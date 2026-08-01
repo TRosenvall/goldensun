@@ -525,9 +525,15 @@ pin removed the permuter ran 795 iterations and never beat the baseline. It
 rearranges source to *influence* allocation; it will never write a pin. So it
 can only help where a pin-free match exists.
 
-On `Func_b074` (244 bytes, real structure) it improved the score from 5565 to
-4685 within a few minutes, so it does work where there are structural degrees of
-freedom.
+On `Func_b074` (244 bytes, real structure) a 50-minute six-way run improved its
+score from 5565 to 4160. In bytes actually landing in the right place that is
+17/244 to 19/244 -- so the score moved 25% and the result barely moved at all.
+
+That run also produced the more useful number. Our C compiles to **220 bytes
+against the ROM's 244**: we are ~12 instructions short of the original. A
+missing eighth of the function is not something source permutation can invent,
+which is why the search plateaus. `Func_b074` needs a better C formulation
+first; the permuter is the wrong tool until the sizes agree.
 
 **It does nothing for the 818 register-offset functions.** Those need an
 instruction agbcc cannot emit at all; no amount of source permutation produces
