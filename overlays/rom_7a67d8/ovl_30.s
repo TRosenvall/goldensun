@@ -1,6 +1,26 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ============================================================================
+@ Overlay 0x7a67d8 -- a map with a RASTER SPLIT and a set of camera nudges.
+@
+@ Slot 0  OvlFunc_200  map-load entry
+@ Slot 1  OvlFunc_40   edge transitions   -> .L35c
+@ Slot 2  OvlFunc_4c   map event list     -> .L44c
+@ Slot 3  OvlFunc_54   read after slot 4  -> .L474
+@ Slot 4  OvlFunc_1b4  map objects        -> .L4a4
+@ Slot 5  OvlFunc_48   interactions       -> none (returns 0)
+@
+@ The distinguishing feature is the scanline effect: OvlFunc_26c runs from the
+@ HBlank vector and swaps BG3's horizontal scroll at a chosen line, so the
+@ background scrolls at two different rates above and below a horizon.
+@ OvlFunc_2a0 recomputes the split each frame; OvlFunc_2e0 installs both.
+@
+@ The .L590 / .L5b0 / .L610 / .L614 / .L616 symbols at the bottom are .lcomm
+@ scratch, not table data -- this overlay allocates its own state.
+@ ============================================================================
+
+@ Trigger: loads map 0x3D via slot 8.
 .thumb_func_start OvlFunc_30
 	push	{lr}
 	mov	r0, #8
@@ -10,26 +30,40 @@
 	bx	r0
 .func_end OvlFunc_30
 
+@ Slot 1: edge-transition table.
 .thumb_func_start OvlFunc_40
 	ldr	r0, =.L35c
 	bx	lr
 .func_end OvlFunc_40
 
+@ Slot 5: interaction table -- none.
 .thumb_func_start OvlFunc_48
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_48
 
+@ Slot 2: map event list.
 .thumb_func_start OvlFunc_4c
 	ldr	r0, =.L44c
 	bx	lr
 .func_end OvlFunc_4c
 
+@ Slot 3: read after slot 4.
 .thumb_func_start OvlFunc_54
 	ldr	r0, =.L474
 	bx	lr
 .func_end OvlFunc_54
 
+@ ShiftPlayerAndRider
+@ r0 = x delta, r1 = z delta, both in whole tiles (shifted left 20 to reach the
+@ 16.16 position fields).
+@
+@ Moves TWO entities together: the one whose slot is stored at ewram_240+0x1F4,
+@ and whatever is parked at [iwram_1ebc]+0x1E0. For each, it adds the deltas to
+@ +0x08 and +0x10 and then re-derives the ground height with Func_11f54 --
+@ using the entity's own tile-type byte at +0x22 to pick the layer -- writing
+@ the result to BOTH +0x0C and +0x14 so the entity lands rather than floats.
+@ Either entity may be absent, and each is checked for null separately.
 .thumb_func_start OvlFunc_5c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -89,6 +123,7 @@
 	bx	r0
 .func_end OvlFunc_5c
 
+@ Shift by (0, +5) tiles.
 .thumb_func_start OvlFunc_d8
 	push	{lr}
 	mov	r0, #0
@@ -98,6 +133,7 @@
 	bx	r0
 .func_end OvlFunc_d8
 
+@ Shift by (0, -5) tiles.
 .thumb_func_start OvlFunc_e8
 	push	{lr}
 	mov	r1, #5
@@ -108,6 +144,7 @@
 	bx	r0
 .func_end OvlFunc_e8
 
+@ Shift by (0, +5) tiles -- a duplicate of OvlFunc_d8 at a second trigger.
 .thumb_func_start OvlFunc_f8
 	push	{lr}
 	mov	r0, #0
@@ -117,6 +154,7 @@
 	bx	r0
 .func_end OvlFunc_f8
 
+@ Shift by (0, -5) tiles -- duplicate of OvlFunc_e8.
 .thumb_func_start OvlFunc_108
 	push	{lr}
 	mov	r1, #5
@@ -127,6 +165,7 @@
 	bx	r0
 .func_end OvlFunc_108
 
+@ Shift by (0, +6) tiles.
 .thumb_func_start OvlFunc_118
 	push	{lr}
 	mov	r0, #0
@@ -136,6 +175,7 @@
 	bx	r0
 .func_end OvlFunc_118
 
+@ Shift by (0, -6) tiles.
 .thumb_func_start OvlFunc_128
 	push	{lr}
 	mov	r1, #6
@@ -146,6 +186,8 @@
 	bx	r0
 .func_end OvlFunc_128
 
+@ Trigger: sound 0x7B, then leaves the interaction target halfword at
+@ [iwram_1ebc]+0x16C pending as the next message id.
 .thumb_func_start OvlFunc_138
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc
@@ -163,6 +205,12 @@
 	bx	r0
 .func_end OvlFunc_138
 
+@ ApplyRasterBlend
+@ Takes no arguments. Allocates the 0x540-byte overlay state in mode 9, then
+@ programs the blend: REG_BLDCNT = 0x3F42, REG_BLDALPHA = 0x0C04, and three
+@ fields inside the state block at [iwram_1ecc] -- +0x534 = 0x3F3F,
+@ +0x536 = 0x1F, +0x52A = 0x0A. The same block is set up again by OvlFunc_200
+@ on map load, so this is the re-entry path.
 .thumb_func_start OvlFunc_15c
 	push	{lr}
 	mov	r0, #9
@@ -201,11 +249,14 @@
 	bx	r0
 .func_end OvlFunc_15c
 
+@ Slot 4: map object table.
 .thumb_func_start OvlFunc_1b4
 	ldr	r0, =.L4a4
 	bx	lr
 .func_end OvlFunc_1b4
 
+@ Trigger: opens and immediately closes the cutscene frame -- a beat with no
+@ content, which still consumes the interaction.
 .thumb_func_start OvlFunc_1bc
 	push	{lr}
 	bl	__Func_916b0
@@ -214,14 +265,18 @@
 	bx	r0
 .func_end OvlFunc_1bc
 
+@ Empty hook.
 .thumb_func_start OvlFunc_1cc
 	bx	lr
 .func_end OvlFunc_1cc
 
+@ Empty hook.
 .thumb_func_start OvlFunc_1d0
 	bx	lr
 .func_end OvlFunc_1d0
 
+@ Trigger: copies the two words at iwram_1ae8 and iwram_1b04 into the .L590
+@ scratch as halfwords, then calls Func_5ee0 with the .L5b0 buffer.
 .thumb_func_start OvlFunc_1d4
 	push	{lr}
 	ldr	r3, =iwram_1ae8
@@ -237,6 +292,12 @@
 	bx	r0
 .func_end OvlFunc_1d4
 
+@ Slot 0: map-load entry.
+@
+@ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x100, allocates the
+@ overlay state in mode 9, and programs the same blend registers and state
+@ fields as OvlFunc_15c. Finishes by installing the raster effect through
+@ OvlFunc_2e0.
 .thumb_func_start OvlFunc_200
 	push	{r5, lr}
 	ldr	r5, =iwram_1ebc
@@ -284,6 +345,11 @@
 	bx	r1
 .func_end OvlFunc_200
 
+@ RasterSplitHandler
+@ The HBlank handler, installed on IRQ 1. Compares REG_VCOUNT against the split
+@ line cached in .L610 and writes REG_BG3HOFS from .L614 below it or .L616
+@ above -- one comparison and one store, which is all an HBlank handler can
+@ afford. The two scroll values differ, so BG3 appears to scroll at two speeds.
 .thumb_func_start OvlFunc_26c
 	push	{lr}
 	ldr	r3, =REG_VCOUNT
@@ -304,6 +370,12 @@
 	bx	r0
 .func_end OvlFunc_26c
 
+@ UpdateRasterSplit
+@ The per-frame task that feeds OvlFunc_26c. Reads the camera record at
+@ [iwram_1e70]+0x104: the halfword at +6 gives the horizon, stored as
+@ .L610 = 0xC0 - that, and the halfword at +2 becomes the lower scroll .L614.
+@ The upper scroll .L616 is that same value minus [iwram_1e40] >> 2, so the far
+@ layer moves at a quarter rate -- the parallax.
 .thumb_func_start OvlFunc_2a0
 	ldr	r3, =iwram_1e70
 	mov	r1, #0x82
@@ -329,6 +401,9 @@
 	bx	lr
 .func_end OvlFunc_2a0
 
+@ InstallRasterSplit
+@ Registers OvlFunc_26c on IRQ 1 with Func_307c and OvlFunc_2a0 as a task at
+@ priority 0xC80 with Func_41d8.
 .thumb_func_start OvlFunc_2e0
 	push	{lr}
 	ldr	r2, =OvlFunc_26c

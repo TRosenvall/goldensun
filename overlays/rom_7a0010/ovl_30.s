@@ -1,5 +1,21 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Overlay 0x7a0010 -- a map that BUILDS one of its tables at load time rather
+@ than storing every variant.
+@
+@ Slot 0  OvlFunc_1c4  map-load entry
+@ Slot 1  OvlFunc_5c   edge transitions   -> .L318
+@ Slot 2  OvlFunc_68   map event list     -> .L498
+@ Slot 3  OvlFunc_70   read after slot 4  -> .L4d8, rewritten in place
+@ Slot 4  OvlFunc_1bc  map objects
+@ Slot 5  OvlFunc_64   interactions       -> none (returns 0)
+@ ============================================================================
+
+@ ResetRecordArray
+@ r0 = an array of fifteen 0x18-byte records. Rewrites every one: byte +0x16 to
+@ 2, word +0x04 to 1, and the halfword at +0x00 to sprite 0x69 -- except records
+@ 4 and 7, which get 0x6E instead. Called only from OvlFunc_70.
 .thumb_func_start OvlFunc_30
 	push	{r5, lr}
 	mov	r3, #0
@@ -27,21 +43,33 @@
 	bx	r0
 .func_end OvlFunc_30
 
+@ Slot 1: edge-transition table.
 .thumb_func_start OvlFunc_5c
 	ldr	r0, =.L318
 	bx	lr
 .func_end OvlFunc_5c
 
+@ Slot 5: interaction table -- none.
 .thumb_func_start OvlFunc_64
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_64
 
+@ Slot 2: map event list.
 .thumb_func_start OvlFunc_68
 	ldr	r0, =.L498
 	bx	lr
 .func_end OvlFunc_68
 
+@ Slot 3: read after slot 4.
+@
+@ Unusually, this SLOT MUTATES ITS OWN TABLE. When save bit 0x845 is clear it
+@ first runs OvlFunc_30 over .L4d8 to reset all fifteen records to their default
+@ sprites; once the bit is set the stored table is left as the game last left
+@ it. Either way the result goes through Func_8b868, which tags the records
+@ whose position falls inside the active bounds, and .L4d8 itself is returned.
+@
+@ So this map keeps one mutable record array instead of a table per state.
 .thumb_func_start OvlFunc_70
 	push	{r5, lr}
 	ldr	r0, =0x845
@@ -60,6 +88,12 @@
 	bx	r1
 .func_end OvlFunc_70
 
+@ TalkDirectional
+@ Takes no arguments. Reads the player's facing from +0x06 before opening the
+@ cutscene frame, then picks between two outcomes by range: facings in
+@ 0xA001..0xDFFF (the test is `facing - 0xA001 <= 0x3FFE` in unsigned) run
+@ Func_b0278 with 0x0D and 0x10, anything else speaks line 0x16AD from slot
+@ 0x10. Approaching from the wrong side gets the plain line.
 .thumb_func_start OvlFunc_9c
 	push	{r5, lr}
 	mov	r0, #0

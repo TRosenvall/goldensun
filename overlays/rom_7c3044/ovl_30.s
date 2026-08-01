@@ -1,5 +1,22 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Overlay 0x7c3044 -- serves TWO AREAS, 0x64 and 0x65, with a third fallback.
+@
+@ Slot 0  OvlFunc_308  map-load entry
+@ Slot 1  OvlFunc_30   edge transitions
+@ Slot 2  OvlFunc_74   map event list     -> .L728 (the only constant one)
+@ Slot 3  OvlFunc_7c   read after slot 4
+@ Slot 4  OvlFunc_e4   map objects
+@ Slot 5  OvlFunc_70   interactions       -> none (returns 0)
+@
+@ Area 0x64 subdivides further on the entrance id: entrances 9..0x0F and 0x11
+@ share one layout, everything else another. Slot 3 passes its 0x64 tables
+@ through Func_8b868 to tag the in-bounds records; the 0x65 and fallback tables
+@ are returned as stored.
+@ ============================================================================
+
+@ Slot 1: area 0x64 -> .L4d0, area 0x65 -> .L6c8, otherwise .L4a0.
 .thumb_func_start OvlFunc_30
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -26,16 +43,20 @@
 	bx	r1
 .func_end OvlFunc_30
 
+@ Slot 5: interaction table -- none.
 .thumb_func_start OvlFunc_70
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_70
 
+@ Slot 2: map event list. The same for both areas.
 .thumb_func_start OvlFunc_74
 	ldr	r0, =.L728
 	bx	lr
 .func_end OvlFunc_74
 
+@ Slot 3: area 0x64 splits on entrance -- 9..0x0F or 0x11 give .L8d4, other
+@ entrances .L79c, both tagged by Func_8b868. Area 0x65 -> .La0c, else .L784.
 .thumb_func_start OvlFunc_7c
 	push	{r5, lr}
 	ldr	r1, =ewram_240
@@ -82,6 +103,7 @@
 	bx	r1
 .func_end OvlFunc_7c
 
+@ Slot 4: the map object table, on the same area and entrance split as slot 3.
 .thumb_func_start OvlFunc_e4
 	push	{lr}
 	ldr	r1, =ewram_240
