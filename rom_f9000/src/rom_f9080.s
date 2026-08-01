@@ -698,11 +698,3 @@
 	strh	r1, [r3]
 	bx	lr
 .func_end Func_f9538
-
-@ SetJingleCountdown
-@ r0 = frames. Stores the byte at ewram_3000.
-.thumb_func_start Func_f954c
-	ldr	r3, =ewram_3000
-	ldrb	r0, [r3]
-	bx	lr
-.func_end Func_f954c

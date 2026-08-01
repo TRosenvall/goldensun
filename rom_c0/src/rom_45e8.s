@@ -1,13 +1,6 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ GetStringTable
-@ Takes no arguments. Returns the address of the table at .L779c.
-.thumb_func_start Func_45e8
-	ldr	r0, =.L779c
-	bx	lr
-.func_end Func_45e8
-
 @ CopyString
 @ r0 = destination, r1 = source. Copies a null-terminated byte string.
 .thumb_func_start Func_45f0
@@ -309,6 +302,9 @@
 
 .L777c:
 	.incrom 0x777c, 0x779c
+@ PROMOTED: Func_45e8 now lives in C and reaches this across a file boundary.
+	.global	L779c
+L779c:
 .L779c:
 	.incrom 0x779c, 0x795c
 .L795c:
