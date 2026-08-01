@@ -45,23 +45,67 @@ CLI but no VM. That is the usual macOS confusion.
 
 ## Setup
 
+### 1. Install and start the daemon
+
+**You do not need Docker Desktop, and you do not need to launch any UI.**
+`colima start` *is* the daemon, run from the command line:
+
 ```sh
 brew install colima docker
-colima start --cpu 4 --memory 8 --disk 60
+colima start --cpu 4 --memory 4 --disk 20
 ```
 
-`colima start` boots the VM; it persists across reboots until you `colima stop`.
-Check it with `docker ps` -- an empty table means it is working.
+First run downloads a VM image and takes a few minutes; after that it is
+seconds. The VM persists across reboots until you `colima stop`.
 
-Then build the image (from the repo root):
+Verify with `docker ps` -- an empty table means it works.
+
+### 2. If you still get "cannot connect to the Docker daemon"
+
+Check which context is active:
+
+```sh
+docker context ls
+```
+
+If a stale `desktop-linux` entry is starred, the CLI is still pointed at a
+Docker Desktop socket that no longer exists -- a common leftover on machines
+where Desktop was uninstalled. `colima start` normally switches the context for
+you; if it did not:
+
+```sh
+docker context use colima
+```
+
+### 3. Sizing the VM
+
+The defaults are generous. On a 8 GB machine, giving the VM half is right --
+macOS needs the rest. `--cpu 4 --memory 4` is comfortable for this build;
+gcc-2.96 is not memory-hungry.
+
+Disk is the one to watch. `--disk` sets a *ceiling*, not an allocation -- the
+image is thin-provisioned and grows as used. Actual consumption here:
+
+| | size |
+|---|---|
+| colima VM base | ~1.2 GB |
+| Docker image (Ubuntu + toolchain) | ~1.5 GB |
+| gcc-2.96 source and build | ~3 GB |
+| **total** | **~6 GB** |
+
+Have 8 GB free before starting, and more if you want headroom.
+
+### 4. Build the image
+
+From the repo root:
 
 ```sh
 docker build -t goldensun-build -f tools/Dockerfile .
 ```
 
 That installs the Linux toolchain and builds gcc-2.96 from
-[camelot-gcc](https://github.com/Coaltergeist/camelot-gcc). It takes a while the
-first time and is then cached.
+[camelot-gcc](https://github.com/Coaltergeist/camelot-gcc). Slow the first time,
+cached afterwards.
 
 ## Daily use
 
@@ -102,11 +146,13 @@ alias gsmake='docker run --rm -v "$PWD:/work" -w /work goldensun-build make'
 
 ## Status of this document
 
-The reasoning above is verified: the three macOS build failures were reproduced
-directly, and the licence and host-support facts were checked in the vendored
-source.
+Verified on macOS (Darwin 23, Intel, 8 GB RAM):
 
-**The container recipe itself is untested** -- colima was not installed on the
-machine where this was written. It follows standard Docker practice and
-camelot-gcc's own documented Linux requirements, but expect to adjust the
-package list on first run. Corrections welcome.
+- the three native build failures were reproduced directly
+- the licence and host-support facts were checked in the vendored source
+- **colima install, start, context switch and container execution are tested** --
+  `docker run ubuntu:22.04 uname -a` returns a Linux 6.8 x86_64 kernel
+
+Not yet verified: the `tools/Dockerfile` image build end to end. The package
+list follows camelot-gcc's documented Linux requirements but expect to adjust it
+on first run. Corrections welcome.
