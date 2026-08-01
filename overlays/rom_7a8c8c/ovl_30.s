@@ -1534,6 +1534,7 @@
 	bx	r0
 .func_end OvlFunc_fcc
 
+@ Wrapper: calls OvlFunc_2094.
 .thumb_func_start OvlFunc_ff8
 	push	{lr}
 	bl	OvlFunc_2094
@@ -2354,6 +2355,9 @@
 	bx	r0
 .func_end OvlFunc_15dc
 
+@ Adjusts slot 0 (the player) directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x18.
 .thumb_func_start OvlFunc_170c
 	push	{r5, lr}
 	ldr	r3, =.L3328
@@ -2759,6 +2763,7 @@
 	bx	r0
 .func_end OvlFunc_1a34
 
+@ Wrapper: OvlFunc_1ad0(0x0).
 .thumb_func_start OvlFunc_1ab0
 	push	{lr}
 	mov	r1, #0x20
@@ -2769,6 +2774,7 @@
 	bx	r0
 .func_end OvlFunc_1ab0
 
+@ Wrapper: OvlFunc_1ad0(0x0).
 .thumb_func_start OvlFunc_1ac0
 	push	{lr}
 	mov	r0, #0x20
@@ -3263,6 +3269,8 @@
 	bx	r0
 .func_end OvlFunc_1e08
 
+@ Text box: string 0x17e1 through Func_1776c, option bits 0x1.
+@ No speaker and no staging -- a sign, notice or narration line.
 .thumb_func_start OvlFunc_1f04
 	push	{lr}
 	bl	__Func_916b0
@@ -3274,6 +3282,8 @@
 	bx	r0
 .func_end OvlFunc_1f04
 
+@ Text box: string 0x17e2 through Func_1776c, option bits 0x1.
+@ No speaker and no staging -- a sign, notice or narration line.
 .thumb_func_start OvlFunc_1f20
 	push	{lr}
 	bl	__Func_916b0
@@ -3285,6 +3295,8 @@
 	bx	r0
 .func_end OvlFunc_1f20
 
+@ Text box: string 0x17e3 through Func_1776c, option bits 0x1.
+@ No speaker and no staging -- a sign, notice or narration line.
 .thumb_func_start OvlFunc_1f3c
 	push	{lr}
 	bl	__Func_916b0

@@ -121,6 +121,7 @@
 	bx	r0
 .func_end OvlFunc_f48
 
+@ Wrapper: OvlFunc_ed0(0x11).
 .thumb_func_start OvlFunc_fac
 	push	{lr}
 	mov	r0, #0x11
@@ -129,6 +130,7 @@
 	bx	r0
 .func_end OvlFunc_fac
 
+@ Wrapper: OvlFunc_ed0(0x12).
 .thumb_func_start OvlFunc_fb8
 	push	{lr}
 	mov	r0, #0x12
@@ -137,6 +139,7 @@
 	bx	r0
 .func_end OvlFunc_fb8
 
+@ Wrapper: OvlFunc_ed0(0x13).
 .thumb_func_start OvlFunc_fc4
 	push	{lr}
 	mov	r0, #0x13

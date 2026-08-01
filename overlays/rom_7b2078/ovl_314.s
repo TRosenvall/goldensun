@@ -3656,6 +3656,7 @@
 	bx	r0
 .func_end OvlFunc_25b8
 
+@ Wrapper: OvlFunc_268c(0x0).
 .thumb_func_start OvlFunc_265c
 	push	{lr}
 	mov	r1, #0x20
@@ -3666,6 +3667,7 @@
 	bx	r0
 .func_end OvlFunc_265c
 
+@ Wrapper: OvlFunc_268c(0x0, 0x20).
 .thumb_func_start OvlFunc_266c
 	push	{lr}
 	mov	r0, #0
@@ -3675,6 +3677,7 @@
 	bx	r0
 .func_end OvlFunc_266c
 
+@ Wrapper: OvlFunc_268c(0x0).
 .thumb_func_start OvlFunc_267c
 	push	{lr}
 	mov	r0, #0x20

@@ -6386,6 +6386,8 @@
 	bx	r0
 .func_end OvlFunc_3fc4
 
+@ Text box: string 0x947, 0x29e0 through Func_1776c, option bits 0x1.
+@ No speaker and no staging -- a sign, notice or narration line.
 .thumb_func_start OvlFunc_400c
 	push	{lr}
 	bl	__Func_916b0

@@ -5604,6 +5604,9 @@
 	bx	r0
 .func_end OvlFunc_366c
 
+@ Adjusts slot 0x1c directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers.
 .thumb_func_start OvlFunc_37b4
 	push	{r5, r6, r7, lr}
 	mov	r5, #0x1c

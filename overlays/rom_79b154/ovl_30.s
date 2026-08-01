@@ -144,6 +144,8 @@
 	bx	r1
 .func_end OvlFunc_11c
 
+@ Text box: string 0x947, 0x29dd through Func_1776c, option bits 0x1.
+@ No speaker and no staging -- a sign, notice or narration line.
 .thumb_func_start OvlFunc_170
 	push	{lr}
 	bl	__Func_916b0
@@ -190,6 +192,8 @@
 	bx	r1
 .func_end OvlFunc_198
 
+@ Text box: string 0x1472 through Func_1776c, option bits 0x1.
+@ No speaker and no staging -- a sign, notice or narration line.
 .thumb_func_start OvlFunc_1ec
 	push	{lr}
 	bl	__Func_916b0
@@ -201,6 +205,8 @@
 	bx	r0
 .func_end OvlFunc_1ec
 
+@ Text box: string 0x146e through Func_1776c, option bits 0x1.
+@ No speaker and no staging -- a sign, notice or narration line.
 .thumb_func_start OvlFunc_208
 	push	{lr}
 	bl	__Func_916b0
@@ -212,6 +218,8 @@
 	bx	r0
 .func_end OvlFunc_208
 
+@ Text box: string 0x1470 through Func_1776c, option bits 0x1.
+@ No speaker and no staging -- a sign, notice or narration line.
 .thumb_func_start OvlFunc_224
 	push	{lr}
 	bl	__Func_916b0

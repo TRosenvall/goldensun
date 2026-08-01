@@ -186,6 +186,7 @@
 	bx	r0
 .func_end OvlFunc_334
 
+@ Wrapper: OvlFunc_334(0x200, 0x40, 0x23, 0x15).
 .thumb_func_start OvlFunc_494
 	push	{lr}
 	mov	r0, #0x80
@@ -198,6 +199,7 @@
 	bx	r0
 .func_end OvlFunc_494
 
+@ Wrapper: OvlFunc_334(0x201, 0x41, 0x23, 0x16).
 .thumb_func_start OvlFunc_4a8
 	push	{lr}
 	ldr	r0, =0x201
@@ -209,6 +211,7 @@
 	bx	r0
 .func_end OvlFunc_4a8
 
+@ Wrapper: OvlFunc_334(0x202, 0x42, 0x23, 0x17).
 .thumb_func_start OvlFunc_4c0
 	push	{lr}
 	ldr	r0, =0x202
@@ -220,6 +223,7 @@
 	bx	r0
 .func_end OvlFunc_4c0
 
+@ Wrapper: OvlFunc_334(0x203, 0x43, 0x23, 0x18).
 .thumb_func_start OvlFunc_4d8
 	push	{lr}
 	ldr	r0, =0x203
@@ -231,6 +235,7 @@
 	bx	r0
 .func_end OvlFunc_4d8
 
+@ Wrapper: OvlFunc_334(0x204, 0x44, 0x23, 0x19).
 .thumb_func_start OvlFunc_4f0
 	push	{lr}
 	mov	r0, #0x81
@@ -243,6 +248,7 @@
 	bx	r0
 .func_end OvlFunc_4f0
 
+@ Wrapper: OvlFunc_334(0x205, 0x45, 0x23, 0x1a).
 .thumb_func_start OvlFunc_504
 	push	{lr}
 	ldr	r0, =0x205
@@ -254,6 +260,7 @@
 	bx	r0
 .func_end OvlFunc_504
 
+@ Wrapper: OvlFunc_334(0x206, 0x46, 0x23, 0x1b).
 .thumb_func_start OvlFunc_51c
 	push	{lr}
 	ldr	r0, =0x206
@@ -265,6 +272,7 @@
 	bx	r0
 .func_end OvlFunc_51c
 
+@ Wrapper: OvlFunc_334(0x207, 0x47, 0x23, 0x1c).
 .thumb_func_start OvlFunc_534
 	push	{lr}
 	ldr	r0, =0x207
@@ -276,6 +284,7 @@
 	bx	r0
 .func_end OvlFunc_534
 
+@ Wrapper: OvlFunc_334(0x208, 0x48, 0x23, 0x1d).
 .thumb_func_start OvlFunc_54c
 	push	{lr}
 	mov	r0, #0x82
@@ -288,6 +297,7 @@
 	bx	r0
 .func_end OvlFunc_54c
 
+@ Wrapper: OvlFunc_334(0x209, 0x49, 0x23, 0x1f).
 .thumb_func_start OvlFunc_560
 	push	{lr}
 	ldr	r0, =0x209
@@ -299,6 +309,7 @@
 	bx	r0
 .func_end OvlFunc_560
 
+@ Wrapper: OvlFunc_334(0x20a, 0x4a, 0x23, 0x20).
 .thumb_func_start OvlFunc_578
 	push	{lr}
 	ldr	r0, =0x20a
@@ -310,6 +321,7 @@
 	bx	r0
 .func_end OvlFunc_578
 
+@ Wrapper: OvlFunc_334(0x20b, 0x4f, 0x23, 0x32).
 .thumb_func_start OvlFunc_590
 	push	{lr}
 	ldr	r0, =0x20b
@@ -321,6 +333,7 @@
 	bx	r0
 .func_end OvlFunc_590
 
+@ Wrapper: OvlFunc_334(0x20c, 0x4b, 0x23, 0x33).
 .thumb_func_start OvlFunc_5a8
 	push	{lr}
 	mov	r0, #0x83
@@ -333,6 +346,7 @@
 	bx	r0
 .func_end OvlFunc_5a8
 
+@ Wrapper: OvlFunc_334(0x20d, 0x4c, 0x23, 0x34).
 .thumb_func_start OvlFunc_5bc
 	push	{lr}
 	ldr	r0, =0x20d
@@ -344,6 +358,7 @@
 	bx	r0
 .func_end OvlFunc_5bc
 
+@ Wrapper: OvlFunc_334(0x20e, 0x4d, 0x23, 0x35).
 .thumb_func_start OvlFunc_5d4
 	push	{lr}
 	ldr	r0, =0x20e
@@ -355,6 +370,7 @@
 	bx	r0
 .func_end OvlFunc_5d4
 
+@ Wrapper: OvlFunc_334(0x20f, 0x4e, 0x23, 0x36).
 .thumb_func_start OvlFunc_5ec
 	push	{lr}
 	ldr	r0, =0x20f
@@ -366,6 +382,7 @@
 	bx	r0
 .func_end OvlFunc_5ec
 
+@ Wrapper: OvlFunc_334(0x210, 0x50, 0x23, 0x37).
 .thumb_func_start OvlFunc_604
 	push	{lr}
 	mov	r0, #0x84
@@ -378,6 +395,7 @@
 	bx	r0
 .func_end OvlFunc_604
 
+@ Wrapper: OvlFunc_334(0x211, 0x51, 0x23, 0x38).
 .thumb_func_start OvlFunc_618
 	push	{lr}
 	ldr	r0, =0x211
@@ -389,6 +407,7 @@
 	bx	r0
 .func_end OvlFunc_618
 
+@ Wrapper: OvlFunc_334(0x212, 0x52, 0x23, 0x39).
 .thumb_func_start OvlFunc_630
 	push	{lr}
 	ldr	r0, =0x212
@@ -400,6 +419,7 @@
 	bx	r0
 .func_end OvlFunc_630
 
+@ Wrapper: OvlFunc_334(0x213, 0x53, 0x23, 0x3a).
 .thumb_func_start OvlFunc_648
 	push	{lr}
 	ldr	r0, =0x213
@@ -411,6 +431,7 @@
 	bx	r0
 .func_end OvlFunc_648
 
+@ Wrapper: OvlFunc_334(0x214, 0x54, 0x23, 0x3b).
 .thumb_func_start OvlFunc_660
 	push	{lr}
 	mov	r0, #0x85

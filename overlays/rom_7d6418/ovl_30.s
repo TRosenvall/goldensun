@@ -165,6 +165,7 @@
 	bx	r0
 .func_end OvlFunc_178
 
+@ Wrapper: OvlFunc_8f8(0x0).
 .thumb_func_start OvlFunc_19c
 	push	{lr}
 	mov	r0, #0
@@ -1529,6 +1530,9 @@
 	bx	r0
 .func_end OvlFunc_dd0
 
+@ Adjusts a slot entity directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers.
 .thumb_func_start OvlFunc_e44
 	push	{r5, lr}
 	mov	r5, r1

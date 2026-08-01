@@ -82,6 +82,7 @@
 	bx	r1
 .func_end OvlFunc_e80
 
+@ Wrapper: calls OvlFunc_5900.
 .thumb_func_start OvlFunc_ee4
 	push	{lr}
 	bl	OvlFunc_5900
@@ -89,6 +90,7 @@
 	bx	r0
 .func_end OvlFunc_ee4
 
+@ Wrapper: calls OvlFunc_5578.
 .thumb_func_start OvlFunc_ef0
 	push	{lr}
 	bl	OvlFunc_5578
@@ -96,6 +98,7 @@
 	bx	r0
 .func_end OvlFunc_ef0
 
+@ Wrapper: calls OvlFunc_55c0.
 .thumb_func_start OvlFunc_efc
 	push	{lr}
 	bl	OvlFunc_55c0
@@ -103,6 +106,7 @@
 	bx	r0
 .func_end OvlFunc_efc
 
+@ Wrapper: calls OvlFunc_5458.
 .thumb_func_start OvlFunc_f08
 	push	{lr}
 	bl	OvlFunc_5458
@@ -110,6 +114,8 @@
 	bx	r0
 .func_end OvlFunc_f08
 
+@ Text box: string 0x1637 through Func_1776c, option bits 0x1.
+@ No speaker and no staging -- a sign, notice or narration line.
 .thumb_func_start OvlFunc_f14
 	push	{lr}
 	bl	__Func_916b0

@@ -93,6 +93,7 @@
 	bx	r0
 .func_end OvlFunc_e3c
 
+@ Wrapper: calls OvlFunc_2370.
 .thumb_func_start OvlFunc_e60
 	push	{lr}
 	bl	OvlFunc_2370
@@ -100,6 +101,7 @@
 	bx	r0
 .func_end OvlFunc_e60
 
+@ Wrapper: calls OvlFunc_1fe8.
 .thumb_func_start OvlFunc_e6c
 	push	{lr}
 	bl	OvlFunc_1fe8
@@ -107,6 +109,7 @@
 	bx	r0
 .func_end OvlFunc_e6c
 
+@ Wrapper: calls OvlFunc_2030.
 .thumb_func_start OvlFunc_e78
 	push	{lr}
 	bl	OvlFunc_2030
@@ -114,6 +117,7 @@
 	bx	r0
 .func_end OvlFunc_e78
 
+@ Wrapper: calls OvlFunc_1ec8.
 .thumb_func_start OvlFunc_e84
 	push	{lr}
 	bl	OvlFunc_1ec8

@@ -217,6 +217,7 @@
 	bx	r1
 .func_end OvlFunc_16c
 
+@ Wrapper: calls OvlFunc_1fa4.
 .thumb_func_start OvlFunc_1e0
 	push	{lr}
 	bl	OvlFunc_1fa4
@@ -671,6 +672,7 @@
 	bx	r0
 .func_end OvlFunc_608
 
+@ Wrapper: calls OvlFunc_384.
 .thumb_func_start OvlFunc_65c
 	push	{lr}
 	bl	OvlFunc_384

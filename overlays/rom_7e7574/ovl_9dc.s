@@ -185,6 +185,7 @@
 	bx	r0
 .func_end OvlFunc_b4c
 
+@ Wrapper: calls OvlFunc_c4.
 .thumb_func_start OvlFunc_ba0
 	push	{lr}
 	bl	OvlFunc_c4
@@ -817,6 +818,9 @@
 	bx	r0
 .func_end OvlFunc_10a8
 
+@ Adjusts slot 0 (the player) directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x8, +0x10.
 .thumb_func_start OvlFunc_1108
 	push	{lr}
 	mov	r0, #0
@@ -1068,6 +1072,9 @@
 	bx	r0
 .func_end OvlFunc_12e0
 
+@ Adjusts slot 0 (the player), 0x11 directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x8, +0x10.
 .thumb_func_start OvlFunc_1324
 	push	{r5, lr}
 	mov	r0, #0
@@ -1276,6 +1283,9 @@
 	bx	r0
 .func_end OvlFunc_14bc
 
+@ Adjusts slot 0 (the player) directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x8, +0x10.
 .thumb_func_start OvlFunc_14cc
 	push	{lr}
 	mov	r0, #0
@@ -1478,6 +1488,9 @@
 	bx	r0
 .func_end OvlFunc_1650
 
+@ Adjusts slot 0 (the player) directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x8, +0x10.
 .thumb_func_start OvlFunc_1660
 	push	{lr}
 	mov	r0, #0
@@ -1670,6 +1683,9 @@
 	bx	r0
 .func_end OvlFunc_17bc
 
+@ Adjusts slot 0 (the player) directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x8, +0x10.
 .thumb_func_start OvlFunc_181c
 	push	{r5, r6, lr}
 	bl	__Func_92054
@@ -1725,6 +1741,9 @@
 	bx	r1
 .func_end OvlFunc_181c
 
+@ Adjusts slot 0 (the player) directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x8, +0x10.
 .thumb_func_start OvlFunc_1880
 	push	{r5, r6, lr}
 	bl	__Func_92054
@@ -1808,6 +1827,9 @@
 	bx	r1
 .func_end OvlFunc_18e4
 
+@ Adjusts slot 0 (the player) directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x8, +0x10.
 .thumb_func_start OvlFunc_1918
 	push	{r5, lr}
 	bl	__Func_92054

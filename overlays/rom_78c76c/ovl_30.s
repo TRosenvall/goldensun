@@ -3000,6 +3000,9 @@
 	bx	r0
 .func_end OvlFunc_1b44
 
+@ Adjusts a slot entity directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x8, +0x10.
 .thumb_func_start OvlFunc_1be8
 	push	{r5, r6, lr}
 	mov	r5, r1

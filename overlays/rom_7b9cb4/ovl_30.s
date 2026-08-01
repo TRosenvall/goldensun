@@ -56,6 +56,9 @@
 	bx	r1
 .func_end OvlFunc_40
 
+@ Adjusts slot 0x8 directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x8, +0xc, +0x10.
 .thumb_func_start OvlFunc_98
 	push	{r5, lr}
 	mov	r5, r0
@@ -1343,6 +1346,9 @@
 	bx	r0
 .func_end OvlFunc_bd8
 
+@ Adjusts slot 0xa directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers.
 .thumb_func_start OvlFunc_c74
 	push	{lr}
 	mov	r0, #0xa
@@ -1354,6 +1360,9 @@
 	bx	r0
 .func_end OvlFunc_c74
 
+@ Adjusts slot 0xa directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers.
 .thumb_func_start OvlFunc_c88
 	push	{lr}
 	mov	r0, #0xa

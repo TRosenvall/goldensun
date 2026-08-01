@@ -890,6 +890,7 @@
 	bx	r0
 .func_end OvlFunc_16c4
 
+@ Wrapper: OvlFunc_3b24(0x2b20000, 0x0, 0x2480000).
 .thumb_func_start OvlFunc_1790
 	push	{lr}
 	mov	r2, #0x92

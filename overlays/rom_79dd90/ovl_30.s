@@ -125,6 +125,8 @@
 	bx	r0
 .func_end OvlFunc_f8
 
+@ Text box: string 0x947, 0x29de through Func_1776c, option bits 0x1.
+@ No speaker and no staging -- a sign, notice or narration line.
 .thumb_func_start OvlFunc_12c
 	push	{lr}
 	bl	__Func_916b0

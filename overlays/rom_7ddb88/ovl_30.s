@@ -29,6 +29,7 @@
 	bx	lr
 .func_end OvlFunc_4c
 
+@ Wrapper: calls OvlFunc_common1_2060.
 .thumb_func_start OvlFunc_50
 	push	{lr}
 	bl	OvlFunc_common1_2060

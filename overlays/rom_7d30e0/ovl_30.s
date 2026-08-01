@@ -2033,6 +2033,7 @@
 	bx	r0
 .func_end OvlFunc_10b8
 
+@ Wrapper: OvlFunc_10b8(0x0).
 .thumb_func_start OvlFunc_1108
 	push	{lr}
 	mov	r0, #0
@@ -2041,6 +2042,7 @@
 	bx	r0
 .func_end OvlFunc_1108
 
+@ Wrapper: OvlFunc_10b8(0x1).
 .thumb_func_start OvlFunc_1114
 	push	{lr}
 	mov	r0, #1
@@ -2568,6 +2570,7 @@
 	bx	r0
 .func_end OvlFunc_152c
 
+@ Wrapper: OvlFunc_152c(0x0).
 .thumb_func_start OvlFunc_15cc
 	push	{lr}
 	mov	r0, #0
@@ -2576,6 +2579,7 @@
 	bx	r0
 .func_end OvlFunc_15cc
 
+@ Wrapper: OvlFunc_152c(0x1).
 .thumb_func_start OvlFunc_15d8
 	push	{lr}
 	mov	r0, #1
@@ -2584,6 +2588,7 @@
 	bx	r0
 .func_end OvlFunc_15d8
 
+@ Wrapper: OvlFunc_152c(0x2).
 .thumb_func_start OvlFunc_15e4
 	push	{lr}
 	mov	r0, #2
@@ -3596,6 +3601,7 @@
 	bx	r0
 .func_end OvlFunc_1df8
 
+@ Wrapper: calls OvlFunc_1df8.
 .thumb_func_start OvlFunc_1e54
 	push	{lr}
 	bl	OvlFunc_1df8
@@ -3612,6 +3618,7 @@
 	bx	r0
 .func_end OvlFunc_1e60
 
+@ Wrapper: calls OvlFunc_1df8.
 .thumb_func_start OvlFunc_1e74
 	push	{lr}
 	bl	OvlFunc_1df8
@@ -3628,6 +3635,9 @@
 	bx	r0
 .func_end OvlFunc_1e80
 
+@ Adjusts slot 0x9, 0xe directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x8, +0xc, +0x10.
 .thumb_func_start OvlFunc_1e94
 	push	{r5, lr}
 	mov	r0, #0xe

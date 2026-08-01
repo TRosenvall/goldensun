@@ -10,6 +10,9 @@
 	bx	r0
 .func_end OvlFunc_314
 
+@ Adjusts slot 0 (the player), 0x14 directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers.
 .thumb_func_start OvlFunc_324
 	push	{lr}
 	mov	r0, #0
@@ -38,6 +41,9 @@
 	bx	r0
 .func_end OvlFunc_324
 
+@ Adjusts slot 0x13 directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x1e, +0x50.
 .thumb_func_start OvlFunc_358
 	push	{lr}
 	mov	r0, #0x13

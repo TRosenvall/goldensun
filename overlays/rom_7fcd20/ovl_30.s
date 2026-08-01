@@ -134,6 +134,7 @@
 	bx	r0
 .func_end OvlFunc_7c
 
+@ Wrapper: OvlFunc_7c(0xc9b).
 .thumb_func_start OvlFunc_130
 	push	{lr}
 	ldr	r0, =0xc9b
@@ -144,6 +145,7 @@
 	bx	r0
 .func_end OvlFunc_130
 
+@ Wrapper: OvlFunc_7c(0xcc6).
 .thumb_func_start OvlFunc_148
 	push	{lr}
 	ldr	r0, =0xcc6
@@ -154,6 +156,7 @@
 	bx	r0
 .func_end OvlFunc_148
 
+@ Wrapper: OvlFunc_7c(0xcf1, 0xc9b).
 .thumb_func_start OvlFunc_160
 	push	{lr}
 	ldr	r3, =0xc9b
@@ -165,6 +168,7 @@
 	bx	r0
 .func_end OvlFunc_160
 
+@ Wrapper: OvlFunc_7c(0xd21).
 .thumb_func_start OvlFunc_180
 	push	{lr}
 	ldr	r0, =0xd21
@@ -175,6 +179,7 @@
 	bx	r0
 .func_end OvlFunc_180
 
+@ Wrapper: OvlFunc_7c(0xd4c, 0xc9b).
 .thumb_func_start OvlFunc_198
 	push	{lr}
 	ldr	r3, =0xc9b
@@ -186,6 +191,7 @@
 	bx	r0
 .func_end OvlFunc_198
 
+@ Wrapper: OvlFunc_7c(0xd77, 0xc9b).
 .thumb_func_start OvlFunc_1b8
 	push	{lr}
 	ldr	r3, =0xc9b
@@ -197,6 +203,7 @@
 	bx	r0
 .func_end OvlFunc_1b8
 
+@ Wrapper: OvlFunc_7c(0xda2, 0xc9b).
 .thumb_func_start OvlFunc_1d8
 	push	{lr}
 	ldr	r3, =0xc9b
@@ -1530,6 +1537,7 @@
 	bx	r0
 .func_end OvlFunc_cf4
 
+@ Wrapper: calls OvlFunc_cf4.
 .thumb_func_start OvlFunc_f08
 	push	{lr}
 	bl	OvlFunc_cf4

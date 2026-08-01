@@ -6248,6 +6248,9 @@
 	bx	r0
 .func_end OvlFunc_3ce4
 
+@ Adjusts slot 0x1b directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x50.
 .thumb_func_start OvlFunc_3e18
 	push	{lr}
 	mov	r0, #0x1b
@@ -7127,6 +7130,9 @@
 	bx	r0
 .func_end OvlFunc_45a8
 
+@ Adjusts slot 0 (the player), 0x8, 0x16 directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x9, +0x50.
 .thumb_func_start OvlFunc_45b8
 	push	{r5, r6, lr}
 	mov	r0, #0
@@ -7160,6 +7166,8 @@
 	bx	r0
 .func_end OvlFunc_45b8
 
+@ Text box: string 0xee4 through Func_1776c, option bits 0x1.
+@ No speaker and no staging -- a sign, notice or narration line.
 .thumb_func_start OvlFunc_45fc
 	push	{lr}
 	bl	__Func_916b0
@@ -7171,6 +7179,8 @@
 	bx	r0
 .func_end OvlFunc_45fc
 
+@ Text box: string 0x1120 through Func_1776c, option bits 0x1.
+@ No speaker and no staging -- a sign, notice or narration line.
 .thumb_func_start OvlFunc_4618
 	push	{lr}
 	bl	__Func_916b0

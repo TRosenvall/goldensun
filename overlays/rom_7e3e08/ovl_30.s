@@ -1379,6 +1379,7 @@
 	bx	r0
 .func_end OvlFunc_abc
 
+@ Wrapper: OvlFunc_abc(0x0).
 .thumb_func_start OvlFunc_ae8
 	push	{lr}
 	mov	r0, #0
@@ -1387,6 +1388,7 @@
 	bx	r0
 .func_end OvlFunc_ae8
 
+@ Wrapper: OvlFunc_abc(0x1).
 .thumb_func_start OvlFunc_af4
 	push	{lr}
 	mov	r0, #1
@@ -1395,6 +1397,7 @@
 	bx	r0
 .func_end OvlFunc_af4
 
+@ Wrapper: OvlFunc_abc(0x2).
 .thumb_func_start OvlFunc_b00
 	push	{lr}
 	mov	r0, #2
@@ -1403,6 +1406,7 @@
 	bx	r0
 .func_end OvlFunc_b00
 
+@ Wrapper: OvlFunc_abc(0x3).
 .thumb_func_start OvlFunc_b0c
 	push	{lr}
 	mov	r0, #3
@@ -1411,6 +1415,7 @@
 	bx	r0
 .func_end OvlFunc_b0c
 
+@ Wrapper: OvlFunc_abc(0x4).
 .thumb_func_start OvlFunc_b18
 	push	{lr}
 	mov	r0, #4
@@ -1419,6 +1424,7 @@
 	bx	r0
 .func_end OvlFunc_b18
 
+@ Wrapper: OvlFunc_abc(0x5).
 .thumb_func_start OvlFunc_b24
 	push	{lr}
 	mov	r0, #5
@@ -5772,6 +5778,9 @@
 	bx	r1
 .func_end OvlFunc_3598
 
+@ Adjusts slot 0 (the player) directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x9, +0x50.
 .thumb_func_start OvlFunc_3610
 	push	{r5, lr}
 	mov	r5, r0
