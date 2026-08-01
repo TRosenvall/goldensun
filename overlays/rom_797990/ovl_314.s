@@ -199,21 +199,25 @@
 	bx	r1
 .func_end OvlFunc_400
 
+@ Slot 1: the edge-transition table -- .L1450.
 .thumb_func_start OvlFunc_498
 	ldr	r0, =.L1450
 	bx	lr
 .func_end OvlFunc_498
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_4a0
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_4a0
 
+@ Slot 2: the map event list -- .L15a0.
 .thumb_func_start OvlFunc_4a4
 	ldr	r0, =.L15a0
 	bx	lr
 .func_end OvlFunc_4a4
 
+@ Slot 3: the read after slot 4 -- .L15d8.
 .thumb_func_start OvlFunc_4ac
 	ldr	r0, =.L15d8
 	bx	lr
@@ -235,6 +239,9 @@
 	bx	r0
 .func_end OvlFunc_4b4
 
+@ Talk: line 0x1cab, shown.
+@ Also turns to face the player.
+@ Sets save bit 0x305.
 .thumb_func_start OvlFunc_4d8
 	push	{lr}
 	bl	__Func_916b0
@@ -268,6 +275,9 @@
 	bx	r0
 .func_end OvlFunc_50c
 
+@ Talk: line 0x1caf, shown.
+@ Also turns to face the player.
+@ Sets save bits 0x306, 0x868.
 .thumb_func_start OvlFunc_52c
 	push	{lr}
 	bl	__Func_916b0
@@ -432,6 +442,9 @@
 	bx	r0
 .func_end OvlFunc_640
 
+@ Talk: line 0x1cb5, shown.
+@ Also turns to face the player.
+@ Sets save bit 0x308.
 .thumb_func_start OvlFunc_6b4
 	push	{lr}
 	bl	__Func_916b0
@@ -469,6 +482,9 @@
 	bx	r0
 .func_end OvlFunc_6b4
 
+@ Talk: line 0x1cab, shown.
+@ Also turns to face the player, re-forms the followers.
+@ Sets save bit 0x305.
 .thumb_func_start OvlFunc_710
 	push	{lr}
 	bl	__Func_916b0
@@ -515,6 +531,9 @@
 	bx	r0
 .func_end OvlFunc_754
 
+@ Talk: line 0x1caf, shown.
+@ Also turns to face the player, re-forms the followers.
+@ Sets save bits 0x306, 0x868.
 .thumb_func_start OvlFunc_784
 	push	{lr}
 	bl	__Func_916b0
@@ -630,6 +649,12 @@
 	bx	r0
 .func_end OvlFunc_864
 
+@ Cutscene: roughly 75 instructions of straight-line script --
+@ 0 turns, 1 animation change, 1 dialogue line, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x1cb5, 0x1cc2.
+@ Reads save bit 0x308.
+@ Sets save bit 0x308.
 .thumb_func_start OvlFunc_8a8
 	push	{r5, lr}
 	mov	r0, #0xc2
@@ -1137,6 +1162,10 @@
 	bx	r0
 .func_end OvlFunc_cc8
 
+@ Map edit: 1 attribute copy.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
+@ Records it with save bit 0x200.
 .thumb_func_start OvlFunc_d24
 	push	{lr}
 	mov	r0, #0x80
@@ -1157,6 +1186,10 @@
 	bx	r0
 .func_end OvlFunc_d24
 
+@ Map edit: 1 attribute copy.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
+@ Clears save bit 0x200.
 .thumb_func_start OvlFunc_d4c
 	push	{lr}
 	mov	r0, #0x80
@@ -1250,6 +1283,7 @@
 	bx	r0
 .func_end OvlFunc_d84
 
+@ Map edit: 1 metatile copy and 1 attribute copy.
 .thumb_func_start OvlFunc_e30
 	push	{lr}
 	sub	sp, #8
@@ -1275,6 +1309,7 @@
 	bx	r0
 .func_end OvlFunc_e30
 
+@ Map edit: 1 metatile copy and 1 attribute copy.
 .thumb_func_start OvlFunc_e60
 	push	{lr}
 	sub	sp, #8
@@ -1357,6 +1392,7 @@
 	bx	r0
 .func_end OvlFunc_f00
 
+@ Slot 4: the map object table -- .L17dc.
 .thumb_func_start OvlFunc_f28
 	ldr	r0, =.L17dc
 	bx	lr

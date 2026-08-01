@@ -1307,21 +1307,25 @@
 	bx	r1
 .func_end OvlFunc_9fc
 
+@ Slot 1: the edge-transition table -- .L306c.
 .thumb_func_start OvlFunc_a4c
 	ldr	r0, =.L306c
 	bx	lr
 .func_end OvlFunc_a4c
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_a54
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_a54
 
+@ Slot 2: the map event list -- .L30cc.
 .thumb_func_start OvlFunc_a58
 	ldr	r0, =.L30cc
 	bx	lr
 .func_end OvlFunc_a58
 
+@ Slot 3: the read after slot 4 -- .L30e4.
 .thumb_func_start OvlFunc_a60
 	ldr	r0, =.L30e4
 	bx	lr
@@ -1551,6 +1555,7 @@
 	bx	r0
 .func_end OvlFunc_c14
 
+@ Slot 4: the map object table -- .L3294.
 .thumb_func_start OvlFunc_c60
 	ldr	r0, =.L3294
 	bx	lr
@@ -1644,6 +1649,12 @@
 	bx	r1
 .func_end OvlFunc_c68
 
+@ Cutscene: roughly 2519 instructions of straight-line script --
+@ 41 turns, 68 animation changes, 4 dialogue lines, 82 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x1474, 0x147c, 0x1488, 0x1489.
+@ Reads save bit 0x3.
+@ Sets save bit 0x843.
 .thumb_func_start OvlFunc_d3c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

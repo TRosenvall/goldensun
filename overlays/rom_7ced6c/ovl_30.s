@@ -1671,11 +1671,13 @@
 	bx	r1
 .func_end OvlFunc_cc4
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_d3c
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_d3c
 
+@ Slot 2: the map event list -- .L3508.
 .thumb_func_start OvlFunc_d40
 	ldr	r0, =.L3508
 	bx	lr
@@ -2641,6 +2643,10 @@
 	bx	r0
 .func_end OvlFunc_15d0
 
+@ Map edit: 1 attribute copy.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
+@ Records it with save bit 0x8c4.
 .thumb_func_start OvlFunc_1624
 	push	{lr}
 	ldr	r0, =0x8c4

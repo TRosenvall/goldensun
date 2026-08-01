@@ -1441,21 +1441,25 @@
 	bx	r0
 .func_end OvlFunc_a68
 
+@ Slot 1: the edge-transition table -- .L1690.
 .thumb_func_start OvlFunc_b50
 	ldr	r0, =.L1690
 	bx	lr
 .func_end OvlFunc_b50
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_b58
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_b58
 
+@ Slot 2: the map event list -- .L1750.
 .thumb_func_start OvlFunc_b5c
 	ldr	r0, =.L1750
 	bx	lr
 .func_end OvlFunc_b5c
 
+@ Slot 3: the read after slot 4 -- .L176c.
 .thumb_func_start OvlFunc_b64
 	ldr	r0, =.L176c
 	bx	lr
@@ -1629,6 +1633,10 @@
 	bx	r0
 .func_end OvlFunc_bd0
 
+@ Cutscene: roughly 193 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 5 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x300.
 .thumb_func_start OvlFunc_ce0
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -1828,6 +1836,10 @@
 	bx	r0
 .func_end OvlFunc_ce0
 
+@ Cutscene: roughly 179 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x301.
 .thumb_func_start OvlFunc_ecc
 	push	{r5, r6, lr}
 	mov	r6, r11
@@ -2041,6 +2053,7 @@
 	bx	r0
 .func_end OvlFunc_10b4
 
+@ Slot 4: the map object table -- .L1814.
 .thumb_func_start OvlFunc_10c0
 	ldr	r0, =.L1814
 	bx	lr
@@ -2118,6 +2131,11 @@
 	bx	r0
 .func_end OvlFunc_10c8
 
+@ Cutscene: roughly 72 instructions of straight-line script --
+@ 1 turn, 1 animation change, 1 dialogue line, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x132f.
+@ Sets save bit 0x869.
 .thumb_func_start OvlFunc_115c
 	push	{lr}
 	ldr	r0, =OvlFunc_10c8
@@ -2193,6 +2211,10 @@
 	bx	r0
 .func_end OvlFunc_115c
 
+@ Cutscene: roughly 163 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x300, 0x301, 0x302.
 .thumb_func_start OvlFunc_121c
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1ebc

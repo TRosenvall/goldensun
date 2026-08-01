@@ -1,26 +1,31 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Slot 1: the edge-transition table -- .L1170.
 .thumb_func_start OvlFunc_30
 	ldr	r0, =.L1170
 	bx	lr
 .func_end OvlFunc_30
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_38
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_38
 
+@ Slot 2: the map event list -- .L11d0.
 .thumb_func_start OvlFunc_3c
 	ldr	r0, =.L11d0
 	bx	lr
 .func_end OvlFunc_3c
 
+@ Slot 3: the read after slot 4 -- .L11e0.
 .thumb_func_start OvlFunc_44
 	ldr	r0, =.L11e0
 	bx	lr
 .func_end OvlFunc_44
 
+@ Slot 4: the map object table -- .L1240.
 .thumb_func_start OvlFunc_4c
 	ldr	r0, =.L1240
 	bx	lr
@@ -144,6 +149,9 @@
 	bx	r0
 .func_end OvlFunc_98
 
+@ Map edit: 2 attribute copies.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
 .thumb_func_start OvlFunc_150
 	push	{lr}
 	ldr	r3, =.L12c4
@@ -893,6 +901,9 @@
 	bx	r0
 .func_end OvlFunc_3f0
 
+@ Cutscene: roughly 76 instructions of straight-line script --
+@ 0 turns, 5 animation changes, 0 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_7e0
 	push	{r5, lr}
 	sub	sp, #8
@@ -976,6 +987,9 @@
 	.word	1
 .func_end OvlFunc_7e0
 
+@ Cutscene: roughly 75 instructions of straight-line script --
+@ 0 turns, 5 animation changes, 0 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_8b0
 	push	{r5, lr}
 	sub	sp, #8

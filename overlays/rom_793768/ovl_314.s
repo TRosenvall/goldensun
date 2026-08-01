@@ -129,21 +129,27 @@
 	bx	r1
 .func_end OvlFunc_3ac
 
+@ Slot 1: the edge-transition table -- .L1f5c.
 .thumb_func_start OvlFunc_418
 	ldr	r0, =.L1f5c
 	bx	lr
 .func_end OvlFunc_418
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_420
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_420
 
+@ Slot 2: the map event list -- .L2094.
 .thumb_func_start OvlFunc_424
 	ldr	r0, =.L2094
 	bx	lr
 .func_end OvlFunc_424
 
+@ Slot 3: the read after slot 4.
+@ Chooses among .L227c, .L20cc
+@ on save bit 0x855.
 .thumb_func_start OvlFunc_42c
 	push	{lr}
 	ldr	r0, =0x855
@@ -198,6 +204,11 @@
 	bx	r1
 .func_end OvlFunc_464
 
+@ Cutscene: roughly 103 instructions of straight-line script --
+@ 0 turns, 1 animation change, 2 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x1327, 0x132a.
+@ Reads save bits 0x855, 0x856.
 .thumb_func_start OvlFunc_4a0
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc
@@ -325,6 +336,9 @@
 	bx	r0
 .func_end OvlFunc_5c8
 
+@ Slot 4: the map object table.
+@ Chooses among .L2630, .L2414
+@ on save bit 0x855.
 .thumb_func_start OvlFunc_5f0
 	push	{lr}
 	ldr	r0, =0x855
@@ -1176,6 +1190,8 @@
 	bx	r0
 .func_end OvlFunc_dd4
 
+@ Talk: lines 0x1241, 0x134e, 0x13ab, shown.
+@ Which line is chosen by save bits 0x855, 0x858.
 .thumb_func_start OvlFunc_e0c
 	push	{r5, lr}
 	mov	r0, #0x13
@@ -1232,6 +1248,10 @@
 	bx	r0
 .func_end OvlFunc_e84
 
+@ Map edit: 1 attribute copy.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
+@ Records it with save bit 0x200.
 .thumb_func_start OvlFunc_ea4
 	push	{lr}
 	mov	r0, #0x80
@@ -1252,6 +1272,10 @@
 	bx	r0
 .func_end OvlFunc_ea4
 
+@ Map edit: 1 attribute copy.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
+@ Clears save bit 0x200.
 .thumb_func_start OvlFunc_ecc
 	push	{lr}
 	mov	r0, #0x80
@@ -1774,6 +1798,11 @@
 	bx	r0
 .func_end OvlFunc_12c0
 
+@ Cutscene: roughly 266 instructions of straight-line script --
+@ 0 turns, 4 animation changes, 2 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1328.
+@ Reads save bits 0x2, 0x109, 0x200, 0x853.
 .thumb_func_start OvlFunc_136c
 	push	{r5, r6, r7, lr}
 	ldr	r0, =0x87a

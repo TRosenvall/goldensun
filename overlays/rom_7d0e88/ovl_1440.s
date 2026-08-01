@@ -44,11 +44,13 @@
 	bx	r1
 .func_end OvlFunc_1440
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_14b8
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_14b8
 
+@ Slot 2: the map event list -- .L3014.
 .thumb_func_start OvlFunc_14bc
 	ldr	r0, =.L3014
 	bx	lr

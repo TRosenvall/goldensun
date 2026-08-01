@@ -211,6 +211,7 @@
 	bx	r1
 .func_end OvlFunc_1ac
 
+@ Slot 2: the map event list -- .L3040.
 .thumb_func_start OvlFunc_1d4
 	ldr	r0, =.L3040
 	bx	lr
@@ -249,6 +250,8 @@
 	bx	r1
 .func_end OvlFunc_1dc
 
+@ Counter: shop type 0x10 via Func_b29a8, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- line 0x16b3.
 .thumb_func_start OvlFunc_230
 	push	{r5, lr}
 	mov	r0, #0
@@ -431,6 +434,11 @@
 	bx	r0
 .func_end OvlFunc_304
 
+@ Cutscene: roughly 281 instructions of straight-line script --
+@ 3 turns, 2 animation changes, 2 dialogue lines, 13 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1786.
+@ Sets save bit 0x847.
 .thumb_func_start OvlFunc_3c8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -718,6 +726,10 @@
 	bx	r0
 .func_end OvlFunc_3c8
 
+@ Cutscene: roughly 133 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x843, 0x845.
 .thumb_func_start OvlFunc_694
 	push	{r5, lr}
 	ldr	r3, =ewram_240
@@ -980,6 +992,12 @@
 	bx	r0
 .func_end OvlFunc_8d8
 
+@ Cutscene: roughly 2800 instructions of straight-line script --
+@ 54 turns, 79 animation changes, 4 dialogue lines, 94 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x1473, 0x147b, 0x1488, 0x1489.
+@ Reads save bit 0x3.
+@ Sets save bit 0x843.
 .thumb_func_start OvlFunc_8ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

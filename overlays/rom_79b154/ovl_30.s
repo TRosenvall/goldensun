@@ -96,6 +96,7 @@
 	bx	r1
 .func_end OvlFunc_dc
 
+@ Slot 2: the map event list -- .L142c.
 .thumb_func_start OvlFunc_104
 	ldr	r0, =.L142c
 	bx	lr
@@ -222,6 +223,9 @@
 	bx	r0
 .func_end OvlFunc_224
 
+@ Talk: line 0x13ae, shown.
+@ Which line is chosen by save bit 0x301.
+@ Sets save bit 0x301.
 .thumb_func_start OvlFunc_240
 	push	{lr}
 	bl	__Func_916b0
@@ -250,6 +254,7 @@
 	bx	r0
 .func_end OvlFunc_240
 
+@ Talk: line 0x13b3, asked as a question.
 .thumb_func_start OvlFunc_288
 	push	{lr}
 	bl	__Func_916b0
@@ -263,6 +268,7 @@
 	bx	r0
 .func_end OvlFunc_288
 
+@ Talk: line 0x13b7, asked as a question.
 .thumb_func_start OvlFunc_2a8
 	push	{lr}
 	bl	__Func_916b0
@@ -276,6 +282,7 @@
 	bx	r0
 .func_end OvlFunc_2a8
 
+@ Talk: line 0x16bf, asked as a question.
 .thumb_func_start OvlFunc_2c8
 	push	{lr}
 	bl	__Func_916b0
@@ -289,6 +296,7 @@
 	bx	r0
 .func_end OvlFunc_2c8
 
+@ Talk: line 0x16c8, asked as a question.
 .thumb_func_start OvlFunc_2e8
 	push	{lr}
 	bl	__Func_916b0
@@ -302,6 +310,7 @@
 	bx	r0
 .func_end OvlFunc_2e8
 
+@ Talk: line 0x16cc, asked as a question.
 .thumb_func_start OvlFunc_308
 	push	{lr}
 	bl	__Func_916b0
@@ -415,6 +424,11 @@
 	bx	r0
 .func_end OvlFunc_328
 
+@ Cutscene: roughly 136 instructions of straight-line script --
+@ 1 turn, 3 animation changes, 1 dialogue line, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1774.
+@ Sets save bit 0x848.
 .thumb_func_start OvlFunc_404
 	push	{r5, r6, r7, lr}
 	mov	r0, #0
@@ -563,6 +577,12 @@
 	bx	r0
 .func_end OvlFunc_578
 
+@ Cutscene: roughly 296 instructions of straight-line script --
+@ 13 turns, 9 animation changes, 7 dialogue lines, 6 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1775.
+@ Reads save bits 0x845, 0x848.
+@ Sets save bit 0x849.
 .thumb_func_start OvlFunc_584
 	push	{r5, r6, lr}
 	mov	r0, #0
@@ -1124,6 +1144,10 @@
 	bx	r0
 .func_end OvlFunc_9cc
 
+@ Cutscene: roughly 186 instructions of straight-line script --
+@ 2 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x845, 0x848, 0x849, 0x881.
 .thumb_func_start OvlFunc_ae0
 	push	{r5, r6, r7, lr}
 	mov	r0, #0xa

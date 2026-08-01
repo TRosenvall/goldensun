@@ -116,11 +116,13 @@
 	bx	r1
 .func_end OvlFunc_3ac
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_410
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_410
 
+@ Slot 2: the map event list -- .L236c.
 .thumb_func_start OvlFunc_414
 	ldr	r0, =.L236c
 	bx	lr
@@ -202,6 +204,7 @@
 	bx	r0
 .func_end OvlFunc_498
 
+@ Slot 4: the map object table -- .L2500.
 .thumb_func_start OvlFunc_4dc
 	ldr	r0, =.L2500
 	bx	lr

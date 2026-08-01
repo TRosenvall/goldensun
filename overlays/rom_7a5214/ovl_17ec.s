@@ -106,6 +106,9 @@
 	bx	r0
 .func_end OvlFunc_185c
 
+@ Cutscene: roughly 135 instructions of straight-line script --
+@ 0 turns, 1 animation change, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_18b8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

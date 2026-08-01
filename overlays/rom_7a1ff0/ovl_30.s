@@ -1249,21 +1249,25 @@
 	bx	r1
 .func_end OvlFunc_8c0
 
+@ Slot 1: the edge-transition table -- .Lf80.
 .thumb_func_start OvlFunc_9dc
 	ldr	r0, =.Lf80
 	bx	lr
 .func_end OvlFunc_9dc
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_9e4
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_9e4
 
+@ Slot 2: the map event list -- .Lfe0.
 .thumb_func_start OvlFunc_9e8
 	ldr	r0, =.Lfe0
 	bx	lr
 .func_end OvlFunc_9e8
 
+@ Slot 3: the read after slot 4 -- .Lff0.
 .thumb_func_start OvlFunc_9f0
 	ldr	r0, =.Lff0
 	bx	lr
@@ -1315,6 +1319,7 @@
 	bx	r0
 .func_end OvlFunc_a2c
 
+@ Slot 4: the map object table -- .L1068.
 .thumb_func_start OvlFunc_a60
 	ldr	r0, =.L1068
 	bx	lr

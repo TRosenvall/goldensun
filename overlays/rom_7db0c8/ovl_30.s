@@ -1,21 +1,25 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Slot 1: the edge-transition table -- .L4194.
 .thumb_func_start OvlFunc_30
 	ldr	r0, =.L4194
 	bx	lr
 .func_end OvlFunc_30
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_38
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_38
 
+@ Slot 2: the map event list -- .L41dc.
 .thumb_func_start OvlFunc_3c
 	ldr	r0, =.L41dc
 	bx	lr
 .func_end OvlFunc_3c
 
+@ Slot 3: the read after slot 4 -- .L41f4.
 .thumb_func_start OvlFunc_44
 	ldr	r0, =.L41f4
 	bx	lr
@@ -260,6 +264,10 @@
 	bx	r0
 .func_end OvlFunc_238
 
+@ Map edit: 1 attribute copy.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
+@ Records it with save bit 0x303.
 .thumb_func_start OvlFunc_248
 	push	{lr}
 	sub	sp, #8
@@ -607,6 +615,11 @@
 	bx	r0
 .func_end OvlFunc_490
 
+@ Cutscene: roughly 292 instructions of straight-line script --
+@ 0 turns, 3 animation changes, 0 dialogue lines, 13 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bit 0x301.
+@ Sets save bits 0x301, 0x302.
 .thumb_func_start OvlFunc_540
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -913,6 +926,10 @@
 	bx	r0
 .func_end OvlFunc_830
 
+@ Cutscene: roughly 106 instructions of straight-line script --
+@ 0 turns, 5 animation changes, 0 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x11a.
 .thumb_func_start OvlFunc_840
 	push	{r5, r6, lr}
 	bl	OvlFunc_common1_16f8
@@ -1037,11 +1054,15 @@
 	bx	r0
 .func_end OvlFunc_954
 
+@ Slot 4: the map object table -- .L4420.
 .thumb_func_start OvlFunc_96c
 	ldr	r0, =.L4420
 	bx	lr
 .func_end OvlFunc_96c
 
+@ Cutscene: roughly 61 instructions of straight-line script --
+@ 0 turns, 4 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_974
 	push	{r5, lr}
 	mov	r5, r0
@@ -1133,6 +1154,11 @@
 	bx	r0
 .func_end OvlFunc_a10
 
+@ Cutscene: roughly 348 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x301, 0x302, 0x303.
+@ Sets save bit 0x144.
 .thumb_func_start OvlFunc_a3c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1505,6 +1531,10 @@
 	bx	r1
 .func_end OvlFunc_a3c
 
+@ Cutscene: roughly 427 instructions of straight-line script --
+@ 5 turns, 14 animation changes, 23 dialogue lines, 9 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x20cb, 0x20d4, 0x20d5, 0x20e1.
 .thumb_func_start OvlFunc_db8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1941,6 +1971,10 @@
 	bx	r0
 .func_end OvlFunc_db8
 
+@ Cutscene: roughly 179 instructions of straight-line script --
+@ 3 turns, 1 animation change, 4 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x208b, 0x208c.
 .thumb_func_start OvlFunc_1214
 	push	{r5, r6, r7, lr}
 	ldr	r3, =ewram_240
@@ -2128,6 +2162,10 @@
 	bx	r0
 .func_end OvlFunc_1214
 
+@ Cutscene: roughly 196 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 5 dialogue lines, 8 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x208f, 0x2090.
 .thumb_func_start OvlFunc_13e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2332,6 +2370,10 @@
 	bx	r0
 .func_end OvlFunc_13e4
 
+@ Cutscene: roughly 99 instructions of straight-line script --
+@ 1 turn, 0 animation changes, 4 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x2094, 0x2095.
 .thumb_func_start OvlFunc_15e0
 	push	{r5, r6, lr}
 	ldr	r3, =ewram_240
@@ -2438,6 +2480,10 @@
 	bx	r0
 .func_end OvlFunc_15e0
 
+@ Cutscene: roughly 167 instructions of straight-line script --
+@ 3 turns, 1 animation change, 5 dialogue lines, 4 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x2098, 0x2099.
 .thumb_func_start OvlFunc_16ec
 	push	{r5, r6, r7, lr}
 	ldr	r3, =ewram_240

@@ -283,16 +283,19 @@
 	bx	r1
 .func_end OvlFunc_250
 
+@ Slot 1: the edge-transition table -- .L527c.
 .thumb_func_start OvlFunc_290
 	ldr	r0, =.L527c
 	bx	lr
 .func_end OvlFunc_290
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_298
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_298
 
+@ Slot 2: the map event list -- .L5a2c.
 .thumb_func_start OvlFunc_29c
 	ldr	r0, =.L5a2c
 	bx	lr
@@ -623,6 +626,7 @@
 	bx	r0
 .func_end OvlFunc_580
 
+@ Slot 4: the map object table -- .L63f4.
 .thumb_func_start OvlFunc_590
 	ldr	r0, =.L63f4
 	bx	lr
@@ -1114,6 +1118,10 @@
 	bx	r1
 .func_end OvlFunc_6ec
 
+@ Cutscene: roughly 151 instructions of straight-line script --
+@ 2 turns, 5 animation changes, 0 dialogue lines, 8 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x94f.
 .thumb_func_start OvlFunc_a8c
 	push	{lr}
 	bl	__Func_916b0
@@ -1271,6 +1279,11 @@
 	bx	r0
 .func_end OvlFunc_a8c
 
+@ Cutscene: roughly 834 instructions of straight-line script --
+@ 31 turns, 11 animation changes, 13 dialogue lines, 27 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1215.
+@ Sets save bit 0x85a.
 .thumb_func_start OvlFunc_c28
 	push	{r5, r6, lr}
 	mov	r0, #0xf
@@ -2119,6 +2132,9 @@
 	bx	r0
 .func_end OvlFunc_c28
 
+@ Cutscene: roughly 103 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_155c
 	push	{lr}
 	mov	r1, #1
@@ -2225,6 +2241,9 @@
 	bx	r0
 .func_end OvlFunc_155c
 
+@ Cutscene: roughly 103 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_1680
 	push	{lr}
 	mov	r1, #1
@@ -2793,6 +2812,12 @@
 	bx	r0
 .func_end OvlFunc_1c08
 
+@ Cutscene: roughly 561 instructions of straight-line script --
+@ 0 turns, 8 animation changes, 22 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0xc4f, 0xc62, 0xc63, 0xc68.
+@ Reads save bit 0x16e.
+@ Sets save bits 0x16e, 0x16f, 0x171.
 .thumb_func_start OvlFunc_1ca4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3385,6 +3410,9 @@
 	bx	r0
 .func_end OvlFunc_1ca4
 
+@ Cutscene: roughly 177 instructions of straight-line script --
+@ 4 turns, 3 animation changes, 0 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_2274
 	push	{r5, lr}
 	mov	r0, #0xa
@@ -3565,6 +3593,11 @@
 	bx	r0
 .func_end OvlFunc_2274
 
+@ Cutscene: roughly 251 instructions of straight-line script --
+@ 7 turns, 0 animation changes, 6 dialogue lines, 7 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x263c, 0x2642.
+@ Sets save bits 0x234, 0x9bf.
 .thumb_func_start OvlFunc_24a8
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -3913,6 +3946,8 @@
 	bx	r0
 .func_end OvlFunc_27dc
 
+@ Talk: line 0x2642, shown.
+@ Also turns to face the player, settles back to a resting angle.
 .thumb_func_start OvlFunc_281c
 	push	{lr}
 	bl	__Func_916b0
@@ -3988,6 +4023,11 @@
 	bx	r0
 .func_end OvlFunc_28a8
 
+@ Cutscene: roughly 363 instructions of straight-line script --
+@ 5 turns, 15 animation changes, 7 dialogue lines, 7 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x2644.
+@ Sets save bit 0x85d.
 .thumb_func_start OvlFunc_28e8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -4359,6 +4399,10 @@
 	bx	r0
 .func_end OvlFunc_28e8
 
+@ Cutscene: roughly 397 instructions of straight-line script --
+@ 5 turns, 8 animation changes, 18 dialogue lines, 12 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x2913.
 .thumb_func_start OvlFunc_2cb4
 	push	{r5, lr}
 	ldr	r3, =ewram_240
@@ -4942,6 +4986,9 @@
 	bx	r0
 .func_end OvlFunc_31fc
 
+@ Cutscene: roughly 99 instructions of straight-line script --
+@ 0 turns, 2 animation changes, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_32f0
 	push	{lr}
 	bl	__Func_916b0

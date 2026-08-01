@@ -411,6 +411,11 @@
 	bx	r0
 .func_end OvlFunc_2648
 
+@ Cutscene: roughly 150 instructions of straight-line script --
+@ 3 turns, 5 animation changes, 5 dialogue lines, 8 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1577.
+@ Sets save bit 0x870.
 .thumb_func_start OvlFunc_2684
 	push	{lr}
 	bl	__Func_916b0
@@ -566,6 +571,7 @@
 	bx	r0
 .func_end OvlFunc_2684
 
+@ Talk: line 0x157d, shown.
 .thumb_func_start OvlFunc_2814
 	push	{lr}
 	bl	__Func_916b0
@@ -646,6 +652,11 @@
 	bx	r0
 .func_end OvlFunc_2844
 
+@ Cutscene: roughly 499 instructions of straight-line script --
+@ 18 turns, 14 animation changes, 11 dialogue lines, 22 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x157f.
+@ Sets save bit 0x871.
 .thumb_func_start OvlFunc_28b0
 	push	{r5, lr}
 	mov	r0, #0xa

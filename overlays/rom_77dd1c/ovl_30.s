@@ -93,31 +93,40 @@
 	bx	r1
 .func_end OvlFunc_64
 
+@ Slot 1: the edge-transition table -- .L50e4.
 .thumb_func_start OvlFunc_e8
 	ldr	r0, =.L50e4
 	bx	lr
 .func_end OvlFunc_e8
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_f0
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_f0
 
+@ Slot 2: the map event list -- .L527c.
 .thumb_func_start OvlFunc_f4
 	ldr	r0, =.L527c
 	bx	lr
 .func_end OvlFunc_f4
 
+@ Slot 3: the read after slot 4 -- .L52b8.
 .thumb_func_start OvlFunc_fc
 	ldr	r0, =.L52b8
 	bx	lr
 .func_end OvlFunc_fc
 
+@ Slot 4: the map object table -- .L5558.
 .thumb_func_start OvlFunc_104
 	ldr	r0, =.L5558
 	bx	lr
 .func_end OvlFunc_104
 
+@ Map edit: 1 attribute copy.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
+@ Records it with save bit 0x210.
 .thumb_func_start OvlFunc_10c
 	push	{lr}
 	mov	r0, #0x84
@@ -138,6 +147,10 @@
 	bx	r0
 .func_end OvlFunc_10c
 
+@ Map edit: 1 attribute copy.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
+@ Clears save bit 0x210.
 .thumb_func_start OvlFunc_134
 	push	{lr}
 	mov	r0, #0x84
@@ -446,6 +459,11 @@
 	bx	r0
 .func_end OvlFunc_400
 
+@ Cutscene: roughly 561 instructions of straight-line script --
+@ 4 turns, 8 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x210, 0x830, 0x831.
+@ Sets save bit 0x834.
 .thumb_func_start OvlFunc_434
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -1035,6 +1053,11 @@
 	bx	r1
 .func_end OvlFunc_434
 
+@ Cutscene: roughly 301 instructions of straight-line script --
+@ 8 turns, 9 animation changes, 9 dialogue lines, 4 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0xe5c, 0xe65, 0xe66.
+@ Sets save bits 0x205, 0x87b.
 .thumb_func_start OvlFunc_a10
 	push	{r5, lr}
 	bl	__Func_916b0
@@ -1483,6 +1506,9 @@
 	bx	r0
 .func_end OvlFunc_d5c
 
+@ Map edit: 5 attribute copies.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
 .thumb_func_start OvlFunc_ec4
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -1538,6 +1564,11 @@
 	bx	r0
 .func_end OvlFunc_ec4
 
+@ Cutscene: roughly 127 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x30c, 0x311, 0x831, 0x837.
+@ Sets save bits 0x30c, 0x311, 0x831.
 .thumb_func_start OvlFunc_f38
 	push	{r5, lr}
 	ldr	r0, =0x311
@@ -1674,6 +1705,9 @@
 	bx	r0
 .func_end OvlFunc_f38
 
+@ Map edit: 8 attribute copies.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
 .thumb_func_start OvlFunc_10a4
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -1757,6 +1791,11 @@
 	bx	r0
 .func_end OvlFunc_10a4
 
+@ Cutscene: roughly 147 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x30c, 0x312, 0x832, 0x837.
+@ Sets save bits 0x30c, 0x312, 0x832.
 .thumb_func_start OvlFunc_1154
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -1913,6 +1952,9 @@
 	bx	r0
 .func_end OvlFunc_1154
 
+@ Map edit: 4 attribute copies.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
 .thumb_func_start OvlFunc_12f0
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -2075,6 +2117,9 @@
 	bx	r0
 .func_end OvlFunc_1348
 
+@ Map edit: 5 attribute copies.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
 .thumb_func_start OvlFunc_1498
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -2131,6 +2176,11 @@
 	bx	r0
 .func_end OvlFunc_1498
 
+@ Cutscene: roughly 84 instructions of straight-line script --
+@ 0 turns, 1 animation change, 3 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xe67.
+@ Sets save bit 0x835.
 .thumb_func_start OvlFunc_150c
 	push	{r5, lr}
 	bl	__Func_916b0
@@ -2329,6 +2379,11 @@
 	bx	r0
 .func_end OvlFunc_16cc
 
+@ Cutscene: roughly 84 instructions of straight-line script --
+@ 0 turns, 4 animation changes, 2 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0xe70, 0xee5, 0xee6, 0xee7.
+@ Sets save bit 0x837.
 .thumb_func_start OvlFunc_173c
 	push	{r5, lr}
 	mov	r1, #0
@@ -2421,6 +2476,12 @@
 	bx	r0
 .func_end OvlFunc_173c
 
+@ Cutscene: roughly 129 instructions of straight-line script --
+@ 1 turn, 4 animation changes, 5 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xe74.
+@ Reads save bit 0x837.
+@ Sets save bit 0x837.
 .thumb_func_start OvlFunc_1828
 	push	{r5, r6, lr}
 	ldr	r0, =0x837
@@ -2556,6 +2617,10 @@
 	bx	r0
 .func_end OvlFunc_1828
 
+@ Cutscene: roughly 77 instructions of straight-line script --
+@ 1 turn, 1 animation change, 2 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xe7b.
 .thumb_func_start OvlFunc_198c
 	push	{lr}
 	bl	__Func_916b0
@@ -2638,6 +2703,10 @@
 	bx	r0
 .func_end OvlFunc_198c
 
+@ Cutscene: roughly 69 instructions of straight-line script --
+@ 0 turns, 2 animation changes, 2 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xe7d.
 .thumb_func_start OvlFunc_1a64
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -2712,6 +2781,12 @@
 	bx	r0
 .func_end OvlFunc_1a64
 
+@ Cutscene: roughly 525 instructions of straight-line script --
+@ 6 turns, 14 animation changes, 6 dialogue lines, 13 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xe7f.
+@ Reads save bit 0x838.
+@ Sets save bit 0x838.
 .thumb_func_start OvlFunc_1b18
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3351,6 +3426,12 @@
 	bx	r0
 .func_end OvlFunc_20fc
 
+@ Cutscene: roughly 680 instructions of straight-line script --
+@ 33 turns, 19 animation changes, 15 dialogue lines, 16 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xe8c.
+@ Reads save bit 0x83a.
+@ Sets save bit 0x83a.
 .thumb_func_start OvlFunc_2180
 	push	{r5, r6, lr}
 	ldr	r0, =0x83a
@@ -4041,6 +4122,10 @@
 	bx	r0
 .func_end OvlFunc_2180
 
+@ Cutscene: roughly 405 instructions of straight-line script --
+@ 14 turns, 20 animation changes, 6 dialogue lines, 14 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0xe9b, 0xea1.
 .thumb_func_start OvlFunc_28a4
 	push	{r5, lr}
 	mov	r1, #0xc0
@@ -4454,6 +4539,12 @@
 	bx	r0
 .func_end OvlFunc_28a4
 
+@ Cutscene: roughly 68 instructions of straight-line script --
+@ 1 turn, 2 animation changes, 3 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0xea4, 0xea5.
+@ Reads save bit 0x30d.
+@ Sets save bit 0x30d.
 .thumb_func_start OvlFunc_2d28
 	push	{r5, lr}
 	bl	__Func_916b0
@@ -4527,6 +4618,12 @@
 	bx	r0
 .func_end OvlFunc_2d28
 
+@ Cutscene: roughly 363 instructions of straight-line script --
+@ 9 turns, 7 animation changes, 8 dialogue lines, 6 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xec6.
+@ Reads save bits 0x840, 0x841.
+@ Sets save bit 0x841.
 .thumb_func_start OvlFunc_2dec
 	push	{r5, r6, r7, lr}
 	mov	r0, #0x84
@@ -4899,6 +4996,10 @@
 	bx	r0
 .func_end OvlFunc_2dec
 
+@ Cutscene: roughly 1026 instructions of straight-line script --
+@ 8 turns, 15 animation changes, 0 dialogue lines, 23 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x166.
 .thumb_func_start OvlFunc_31ac
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -6172,6 +6273,12 @@
 	bx	r0
 .func_end OvlFunc_3e18
 
+@ Cutscene: roughly 132 instructions of straight-line script --
+@ 1 turn, 9 animation changes, 3 dialogue lines, 9 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0xed1, 0xed2.
+@ Reads save bit 0x305.
+@ Sets save bit 0x305.
 .thumb_func_start OvlFunc_3e48
 	push	{r5, r6, lr}
 	mov	r0, #0
@@ -6315,6 +6422,11 @@
 	bx	r0
 .func_end OvlFunc_3e48
 
+@ Cutscene: roughly 116 instructions of straight-line script --
+@ 3 turns, 2 animation changes, 3 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xed3.
+@ Sets save bit 0x842.
 .thumb_func_start OvlFunc_3fb0
 	push	{lr}
 	bl	__Func_916b0
@@ -6434,6 +6546,7 @@
 	bx	r0
 .func_end OvlFunc_3fb0
 
+@ Map edit: 8 metatile copies and 7 attribute copies.
 .thumb_func_start OvlFunc_40f0
 	push	{r5, r6, lr}
 	mov	r6, r10

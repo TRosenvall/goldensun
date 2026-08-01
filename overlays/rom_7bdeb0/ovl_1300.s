@@ -59,6 +59,10 @@
 	bx	r0
 .func_end OvlFunc_1378
 
+@ Cutscene: roughly 117 instructions of straight-line script --
+@ 0 turns, 3 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x203.
 .thumb_func_start OvlFunc_1390
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -180,6 +184,10 @@
 	bx	r0
 .func_end OvlFunc_1390
 
+@ Cutscene: roughly 108 instructions of straight-line script --
+@ 0 turns, 5 animation changes, 0 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x202.
 .thumb_func_start OvlFunc_14ac
 	push	{r5, r6, lr}
 	sub	sp, #8

@@ -1,21 +1,25 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Slot 1: the edge-transition table -- .L25cc.
 .thumb_func_start OvlFunc_314
 	ldr	r0, =.L25cc
 	bx	lr
 .func_end OvlFunc_314
 
+@ Slot 5: the interaction table -- .L29d4.
 .thumb_func_start OvlFunc_31c
 	ldr	r0, =.L29d4
 	bx	lr
 .func_end OvlFunc_31c
 
+@ Slot 2: the map event list -- .L2a14.
 .thumb_func_start OvlFunc_324
 	ldr	r0, =.L2a14
 	bx	lr
 .func_end OvlFunc_324
 
+@ Slot 3: the read after slot 4 -- .L2a58.
 .thumb_func_start OvlFunc_32c
 	ldr	r0, =.L2a58
 	bx	lr
@@ -437,11 +441,17 @@
 	.word	0xffffffff
 .func_end OvlFunc_674
 
+@ Slot 4: the map object table -- .L2ae8.
 .thumb_func_start OvlFunc_694
 	ldr	r0, =.L2ae8
 	bx	lr
 .func_end OvlFunc_694
 
+@ Cutscene: roughly 236 instructions of straight-line script --
+@ 4 turns, 2 animation changes, 5 dialogue lines, 4 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x14ce.
+@ Reads save bit 0x3.
 .thumb_func_start OvlFunc_69c
 	push	{r5, r6, lr}
 	mov	r0, #3
@@ -685,6 +695,12 @@
 	bx	r0
 .func_end OvlFunc_69c
 
+@ Cutscene: roughly 588 instructions of straight-line script --
+@ 14 turns, 11 animation changes, 20 dialogue lines, 17 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x14d3, 0x14dd, 0x14df.
+@ Reads save bit 0x3.
+@ Sets save bit 0x844.
 .thumb_func_start OvlFunc_918
 	push	{r5, r6, r7, lr}
 	mov	r0, #3
@@ -1361,6 +1377,11 @@
 	bx	r0
 .func_end OvlFunc_f58
 
+@ Cutscene: roughly 196 instructions of straight-line script --
+@ 0 turns, 1 animation change, 0 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x844.
+@ Sets save bits 0x201, 0x20d, 0x20f, 0x213.
 .thumb_func_start OvlFunc_1004
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1824,6 +1845,9 @@
 	bx	r0
 .func_end OvlFunc_1244
 
+@ Cutscene: roughly 126 instructions of straight-line script --
+@ 0 turns, 25 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_1424
 	push	{lr}
 	cmp	r0, #0xc

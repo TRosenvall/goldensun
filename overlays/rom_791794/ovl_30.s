@@ -1,31 +1,41 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Slot 1: the edge-transition table -- .L36d4.
 .thumb_func_start OvlFunc_30
 	ldr	r0, =.L36d4
 	bx	lr
 .func_end OvlFunc_30
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_38
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_38
 
+@ Slot 2: the map event list -- .L3704.
 .thumb_func_start OvlFunc_3c
 	ldr	r0, =.L3704
 	bx	lr
 .func_end OvlFunc_3c
 
+@ Slot 3: the read after slot 4 -- .L3710.
 .thumb_func_start OvlFunc_44
 	ldr	r0, =.L3710
 	bx	lr
 .func_end OvlFunc_44
 
+@ Slot 4: the map object table -- .L3998.
 .thumb_func_start OvlFunc_4c
 	ldr	r0, =.L3998
 	bx	lr
 .func_end OvlFunc_4c
 
+@ Cutscene: roughly 1318 instructions of straight-line script --
+@ 63 turns, 25 animation changes, 41 dialogue lines, 32 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x10cd, 0x10d6, 0x10d7, 0x10d8.
+@ Sets save bit 0x246.
 .thumb_func_start OvlFunc_54
 	push	{r5, r6, r7, lr}
 	ldr	r5, =iwram_1ec4
@@ -2038,6 +2048,11 @@
 	bx	r0
 .func_end OvlFunc_135c
 
+@ Cutscene: roughly 1932 instructions of straight-line script --
+@ 56 turns, 20 animation changes, 25 dialogue lines, 113 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x10f8, 0x10fb, 0x10fd, 0x10fe.
+@ Sets save bits 0x100, 0x814, 0x83f.
 .thumb_func_start OvlFunc_1410
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -4031,6 +4046,7 @@
 	bx	r0
 .func_end OvlFunc_2820
 
+@ Map edit: 7 metatile copies.
 .thumb_func_start OvlFunc_284c
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -4099,6 +4115,7 @@
 	bx	r0
 .func_end OvlFunc_284c
 
+@ Map edit: 4 metatile copies.
 .thumb_func_start OvlFunc_28dc
 	push	{r5, lr}
 	sub	sp, #8
@@ -4540,6 +4557,9 @@
 	bx	r0
 .func_end OvlFunc_2c1c
 
+@ Map edit: 8 attribute copies.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
 .thumb_func_start OvlFunc_2c9c
 	push	{r5, r6, lr}
 	mov	r6, r8

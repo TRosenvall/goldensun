@@ -1,20 +1,26 @@
 	.include "macros.inc"
 
+@ Slot 1: the edge-transition table -- .Lc3c.
 .thumb_func_start OvlFunc_30
 	ldr	r0, =.Lc3c
 	bx	lr
 .func_end OvlFunc_30
 
+@ Slot 5: the interaction table -- .Lda4.
 .thumb_func_start OvlFunc_38
 	ldr	r0, =.Lda4
 	bx	lr
 .func_end OvlFunc_38
 
+@ Slot 2: the map event list -- .Ldd4.
 .thumb_func_start OvlFunc_40
 	ldr	r0, =.Ldd4
 	bx	lr
 .func_end OvlFunc_40
 
+@ Slot 3: the read after slot 4.
+@ Chooses among .Lf28, .Le08
+@ on save bit 0x96f.
 .thumb_func_start OvlFunc_48
 	push	{lr}
 	ldr	r0, =0x96f
@@ -30,6 +36,9 @@
 	bx	r1
 .func_end OvlFunc_48
 
+@ Counter: shop 0x1f via Func_b0278, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0x25cf, 0x261c.
+@ Gated on save bit 0x96f.
 .thumb_func_start OvlFunc_6c
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -94,6 +103,9 @@
 	bx	r0
 .func_end OvlFunc_6c
 
+@ Counter: INN 0xa via Func_b3284, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0x25d1, 0x2620.
+@ Gated on save bit 0x96f.
 .thumb_func_start OvlFunc_100
 	push	{r5, lr}
 	mov	r5, r0
@@ -140,6 +152,9 @@
 	bx	r0
 .func_end OvlFunc_100
 
+@ Counter: shop type via Func_b29a8, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0x25d5, 0x262c.
+@ Gated on save bit 0x96f.
 .thumb_func_start OvlFunc_16c
 	push	{r5, lr}
 	mov	r5, r0
@@ -185,6 +200,7 @@
 	bx	r0
 .func_end OvlFunc_16c
 
+@ Talk: line 0x2624, shown.
 .thumb_func_start OvlFunc_1d4
 	push	{r5, r6, lr}
 	ldr	r5, =0x2624
@@ -232,6 +248,12 @@
 	bx	r0
 .func_end OvlFunc_21c
 
+@ Cutscene: roughly 764 instructions of straight-line script --
+@ 17 turns, 14 animation changes, 38 dialogue lines, 104 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x25eb.
+@ Reads save bit 0x98a.
+@ Sets save bit 0x9b0.
 .thumb_func_start OvlFunc_240
 	push	{lr}
 	mov	r0, #0x9b
@@ -1008,6 +1030,9 @@
 	bx	r0
 .func_end OvlFunc_240
 
+@ Slot 4: the map object table.
+@ Chooses among .L11ec, .L1090
+@ on save bit 0x96f.
 .thumb_func_start OvlFunc_a54
 	push	{lr}
 	ldr	r0, =0x96f

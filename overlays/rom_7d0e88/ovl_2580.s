@@ -203,6 +203,10 @@
 	bx	r0
 .func_end OvlFunc_26b8
 
+@ Cutscene: roughly 284 instructions of straight-line script --
+@ 0 turns, 1 animation change, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x200, 0x202.
 .thumb_func_start OvlFunc_274c
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc

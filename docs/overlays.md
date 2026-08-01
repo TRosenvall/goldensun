@@ -106,10 +106,44 @@ Half the corpus is under 50 instructions.
    depth per function.
 
 
+## Two kinds of annotation
+
+Overlay annotations come from two sources, and it is worth knowing which you
+are reading.
+
+**Hand-read.** Someone read the function and wrote prose about it. These name
+the function, explain why it does what it does, and call out anything
+surprising. Every module header is hand-read, as is all of `rom_780898`,
+`rom_78dee8`, `rom_7a67d8`, `rom_7fc720` and the other overlays listed as
+complete below.
+
+**Pattern-derived.** By the time a few dozen overlays had been read, the same
+half-dozen shapes accounted for most functions in the rest. A classifier now
+recognises those shapes and states the concrete facts: which table a slot
+returns, which save bits a selector tests, which message ids a villager
+speaks, which shop a counter opens. These annotations are shorter and never
+speculate about intent.
+
+The classifier extracts facts by tracking r0-r3 through the body and recording
+the arguments at each call site -- a number is a message id because it was in
+r0 at a `Func_92b94` call, not because it looked like one. An earlier version
+guessed from magnitude instead and was wrong in both directions: save-bit
+indices and message ids share a numeric range, so it reported ewram offsets as
+save bits and labelled a 241-instruction cutscene a "talk handler". If you
+extend it, keep the tracking and resist the shortcut.
+
+It refuses more than it accepts (roughly 2000 functions come back unclassified)
+and that is the intended bias: a wrong annotation is far worse than none. Two
+guards matter in particular -- a straight-line-only register trace that resets
+at every label, since a branch may arrive with different values; and a
+vocabulary check on talk handlers, because a short function containing a
+message id may still be a small scene doing several other things.
+
 ## Progress
 
-242 of 3540 overlay functions annotated (6.8%), across 26 of the 97
-directories.
+1461 of 3540 overlay functions annotated (41.3%). 22 directories are complete
+and hand-read end to end; most of the rest now carry pattern-derived
+annotations on their recognisable functions.
 
 - `overlays/common/` -- 65 functions
 - `overlays/rom_779188/` -- 10 functions, plus the six-slot contract header

@@ -46,21 +46,27 @@
 	bx	r1
 .func_end OvlFunc_30
 
+@ Slot 1: the edge-transition table -- .Lc08.
 .thumb_func_start OvlFunc_88
 	ldr	r0, =.Lc08
 	bx	lr
 .func_end OvlFunc_88
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_90
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_90
 
+@ Slot 2: the map event list -- .Lc50.
 .thumb_func_start OvlFunc_94
 	ldr	r0, =.Lc50
 	bx	lr
 .func_end OvlFunc_94
 
+@ Slot 3: the read after slot 4.
+@ Chooses among .Lc7c, .Lc64
+@ on save bits 0x845, 0x84f and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
 .thumb_func_start OvlFunc_9c
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -153,6 +159,7 @@
 	bx	r1
 .func_end OvlFunc_154
 
+@ Talk: line 0x13c0, asked as a question.
 .thumb_func_start OvlFunc_184
 	push	{lr}
 	bl	__Func_916b0
@@ -166,6 +173,7 @@
 	bx	r0
 .func_end OvlFunc_184
 
+@ Talk: line 0x13c3, asked as a question.
 .thumb_func_start OvlFunc_1a4
 	push	{lr}
 	bl	__Func_916b0
@@ -179,6 +187,7 @@
 	bx	r0
 .func_end OvlFunc_1a4
 
+@ Talk: line 0x1751, asked as a question.
 .thumb_func_start OvlFunc_1c4
 	push	{lr}
 	bl	__Func_916b0
@@ -192,6 +201,12 @@
 	bx	r0
 .func_end OvlFunc_1c4
 
+@ Cutscene: roughly 233 instructions of straight-line script --
+@ 8 turns, 2 animation changes, 9 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x140d, 0x1413, 0x1414, 0x1416.
+@ Reads save bits 0x201, 0x304, 0x84a.
+@ Sets save bits 0x201, 0x84a.
 .thumb_func_start OvlFunc_1e4
 	push	{lr}
 	bl	__Func_916b0
@@ -589,6 +604,11 @@
 	bx	r0
 .func_end OvlFunc_50c
 
+@ Cutscene: roughly 293 instructions of straight-line script --
+@ 10 turns, 3 animation changes, 6 dialogue lines, 5 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x1720, 0x1724, 0x1726.
+@ Reads save bit 0x84a.
 .thumb_func_start OvlFunc_5dc
 	push	{lr}
 	bl	__Func_916b0

@@ -32,11 +32,13 @@
 	bx	r1
 .func_end OvlFunc_d20
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_d74
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_d74
 
+@ Slot 2: the map event list -- .L21dc.
 .thumb_func_start OvlFunc_d78
 	ldr	r0, =.L21dc
 	bx	lr
@@ -103,6 +105,10 @@
 	bx	r0
 .func_end OvlFunc_de8
 
+@ Cutscene: roughly 153 instructions of straight-line script --
+@ 1 turn, 1 animation change, 0 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x200.
 .thumb_func_start OvlFunc_e04
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -262,6 +268,10 @@
 	bx	r0
 .func_end OvlFunc_e04
 
+@ Cutscene: roughly 136 instructions of straight-line script --
+@ 0 turns, 1 animation change, 0 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x201.
 .thumb_func_start OvlFunc_f78
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -501,6 +511,11 @@
 	bx	r1
 .func_end OvlFunc_10e0
 
+@ Cutscene: roughly 71 instructions of straight-line script --
+@ 2 turns, 0 animation changes, 0 dialogue lines, 4 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bit 0x200.
+@ Sets save bit 0x200.
 .thumb_func_start OvlFunc_11a0
 	push	{lr}
 	mov	r0, #0x80

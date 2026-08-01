@@ -32,6 +32,7 @@
 	bx	r1
 .func_end OvlFunc_30
 
+@ Slot 5: the interaction table -- .L1c5c.
 .thumb_func_start OvlFunc_84
 	ldr	r0, =.L1c5c
 	bx	lr

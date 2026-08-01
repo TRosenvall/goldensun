@@ -2347,11 +2347,17 @@
 	bx	r1
 .func_end OvlFunc_12b0
 
+@ Slot 2: the map event list -- .L385c.
 .thumb_func_start OvlFunc_12d8
 	ldr	r0, =.L385c
 	bx	lr
 .func_end OvlFunc_12d8
 
+@ Slot 3: the read after slot 4.
+@ Chooses among .L38f4, .L3a74
+@ on the area/entrance id at ewram_240+0x1C0 or +0x1C2.
+@ The result is passed through Func_8b868 first, which tags the records
+@ whose position falls inside the active bounds.
 .thumb_func_start OvlFunc_12e0
 	push	{r5, lr}
 	ldr	r3, =ewram_240
@@ -3232,6 +3238,9 @@
 	bx	r1
 .func_end OvlFunc_1a98
 
+@ Cutscene: roughly 151 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_1abc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -3392,6 +3401,9 @@
 	bx	r0
 .func_end OvlFunc_1abc
 
+@ Cutscene: roughly 90 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_1c2c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -3487,6 +3499,9 @@
 	bx	r0
 .func_end OvlFunc_1c2c
 
+@ Cutscene: roughly 250 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_1d04
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3897,6 +3912,11 @@
 	bx	r0
 .func_end OvlFunc_2040
 
+@ Cutscene: roughly 241 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 6 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bit 0x984.
+@ Sets save bit 0x984.
 .thumb_func_start OvlFunc_20a4
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -4446,6 +4466,11 @@
 	bx	r0
 .func_end OvlFunc_252c
 
+@ Cutscene: roughly 993 instructions of straight-line script --
+@ 0 turns, 9 animation changes, 0 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x200, 0x201, 0x202.
+@ Sets save bits 0x200, 0x201, 0x202, 0x973.
 .thumb_func_start OvlFunc_259c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

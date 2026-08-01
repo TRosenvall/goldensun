@@ -1,26 +1,31 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Slot 1: the edge-transition table -- .L1658.
 .thumb_func_start OvlFunc_30
 	ldr	r0, =.L1658
 	bx	lr
 .func_end OvlFunc_30
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_38
 	mov	r0, #0
 	bx	lr
  .func_end OvlFunc_38
 
+@ Slot 2: the map event list -- .L1688.
 .thumb_func_start OvlFunc_3c
 	ldr	r0, =.L1688
 	bx	lr
 .func_end OvlFunc_3c
 
+@ Slot 3: the read after slot 4 -- .L168c.
 .thumb_func_start OvlFunc_44
 	ldr	r0, =.L168c
 	bx	lr
 .func_end OvlFunc_44
 
+@ Slot 4: the map object table -- .L16a4.
 .thumb_func_start OvlFunc_4c
 	ldr	r0, =.L16a4
 	bx	lr
