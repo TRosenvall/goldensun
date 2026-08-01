@@ -1,20 +1,44 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Overlay 0x79c0c4 -- a town with shops, an inn, and a dozen villagers.
+@
+@ Slot 0  OvlFunc_4c8  map-load entry
+@ Slot 1  OvlFunc_30   edge transitions   -> .L598
+@ Slot 2  OvlFunc_3c   map event list     -> .L688
+@ Slot 3  OvlFunc_44   -> .L6b0, tagged in place by Func_8b868
+@ Slot 4  OvlFunc_11c  map objects        -> .L8f0
+@ Slot 5  OvlFunc_38   interactions       -> none (returns 0)
+@
+@ All four tables are constant -- this town has no story variants at the table
+@ level. Instead save bit 0x845 swaps individual lines from the 0x13xx block to
+@ the 0x16xx block, handler by handler.
+@
+@ The counters use the standard facing arc (`facing - 0xA001 <= 0x3FFE`);
+@ see overlays/rom_7b7790/ovl_314.s. Several villagers finish by turning back
+@ to a resting angle with Func_92adc, which is what makes them face the street
+@ again after a conversation.
+@ ============================================================================
+
+@ Slot 1: edge-transition table.
 .thumb_func_start OvlFunc_30
 	ldr	r0, =.L598
 	bx	lr
 .func_end OvlFunc_30
 
+@ Slot 5: interaction table -- none.
 .thumb_func_start OvlFunc_38
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_38
 
+@ Slot 2: map event list.
 .thumb_func_start OvlFunc_3c
 	ldr	r0, =.L688
 	bx	lr
 .func_end OvlFunc_3c
 
+@ Slot 3: .L6b0, passed through Func_8b868 so the in-bounds records are tagged.
 .thumb_func_start OvlFunc_44
 	push	{r5, lr}
 	ldr	r5, =.L6b0
@@ -26,6 +50,7 @@
 	bx	r1
 .func_end OvlFunc_44
 
+@ Counter: shop 7, speaker slot 0x10. Lines 0x16F5 (after 0x845) / 0x13E3.
 .thumb_func_start OvlFunc_5c
 	push	{r5, lr}
 	mov	r0, #0
@@ -63,6 +88,7 @@
 	bx	r0
 .func_end OvlFunc_5c
 
+@ Counter: shop 9, speaker slot 0x12. Lines 0x16F9 / 0x13E9.
 .thumb_func_start OvlFunc_bc
 	push	{r5, lr}
 	mov	r0, #0
@@ -100,11 +126,16 @@
 	bx	r0
 .func_end OvlFunc_bc
 
+@ Slot 4: map object table.
 .thumb_func_start OvlFunc_11c
 	ldr	r0, =.L8f0
 	bx	lr
 .func_end OvlFunc_11c
 
+@ Counter: shop 8, speaker slot 0x11.
+@ The before-0x845 branch is the elaborate one -- line 0x13E5, the shopkeeper
+@ turns to face the player, a ten-frame beat, a question through Func_93054,
+@ then a turn to 0x3000. After the bit is set it collapses to a single line.
 .thumb_func_start OvlFunc_124
 	push	{r5, lr}
 	mov	r0, #0
@@ -155,6 +186,8 @@
 	bx	r0
 .func_end OvlFunc_124
 
+@ Talk: slot 0x15, line 0x13ED. Turns to face the player, speaks, then
+@ settles back to angle 0xC000.
 .thumb_func_start OvlFunc_1a8
 	push	{lr}
 	bl	__Func_916b0
@@ -177,6 +210,13 @@
 	bx	r0
 .func_end OvlFunc_1a8
 
+@ TalkAndCount
+@ Takes no arguments. Slot 0x18, line 0x13F0 through Func_93040, a turn toward
+@ the player and a ten-frame beat, then a yes/no question.
+@
+@ A "yes" INCREMENTS the halfword at [iwram_1ebc]+0x1D8 rather than setting a
+@ flag -- so this villager is counting something across repeat visits, not
+@ recording a one-off.
 .thumb_func_start OvlFunc_1e0
 	push	{lr}
 	bl	__Func_916b0
@@ -222,6 +262,7 @@
 	bx	r0
 .func_end OvlFunc_1e0
 
+@ Talk: slot 0x1B, line 0x13F6, with the same turn-and-ask shape.
 .thumb_func_start OvlFunc_250
 	push	{lr}
 	bl	__Func_916b0
@@ -263,6 +304,7 @@
 	bx	r0
 .func_end OvlFunc_250
 
+@ Talk: slot 8, line 0x16E1, asked as a question.
 .thumb_func_start OvlFunc_2b4
 	push	{lr}
 	bl	__Func_916b0
@@ -276,6 +318,7 @@
 	bx	r0
 .func_end OvlFunc_2b4
 
+@ Talk: slot 0x0D, line 0x16EC, asked as a question.
 .thumb_func_start OvlFunc_2d4
 	push	{lr}
 	bl	__Func_916b0
@@ -289,6 +332,7 @@
 	bx	r0
 .func_end OvlFunc_2d4
 
+@ Counter: INN 2, speaker slot 0x13. Lines 0x16FB (a question) / 0x13EB.
 .thumb_func_start OvlFunc_2f4
 	push	{r5, lr}
 	mov	r0, #0
@@ -328,6 +372,13 @@
 	bx	r0
 .func_end OvlFunc_2f4
 
+@ TalkOnceThenRepeat
+@ Takes no arguments. Save bit 0x300 gates a one-time exchange: line 0x16FF from
+@ slot 0x15, a turn to 0x8000, a second line, then slot 0x16 re-forms and runs
+@ effect sequence 0x102 through Func_93874, a sixty-frame beat and its own line
+@ -- after which 0x300 is set so it never replays.
+@
+@ Either way it falls through to the repeat line 0x1702 and a turn to 0xC000.
 .thumb_func_start OvlFunc_35c
 	push	{lr}
 	bl	__Func_916b0
@@ -386,6 +437,7 @@
 	bx	r0
 .func_end OvlFunc_35c
 
+@ Talk: slot 0x16, line 0x1703, turn, second line, settle to angle 0.
 .thumb_func_start OvlFunc_3f4
 	push	{lr}
 	bl	__Func_916b0
@@ -410,6 +462,7 @@
 	bx	r0
 .func_end OvlFunc_3f4
 
+@ Talk: slot 0x17, line 0x1705.
 .thumb_func_start OvlFunc_430
 	push	{lr}
 	bl	__Func_916b0
@@ -435,6 +488,7 @@
 	bx	r0
 .func_end OvlFunc_430
 
+@ Talk: a short line handler.
 .thumb_func_start OvlFunc_470
 	push	{lr}
 	bl	__Func_916b0
@@ -448,6 +502,7 @@
 	bx	r0
 .func_end OvlFunc_470
 
+@ Talk: a short line handler.
 .thumb_func_start OvlFunc_490
 	push	{lr}
 	bl	__Func_916b0
@@ -470,6 +525,13 @@
 	bx	r0
 .func_end OvlFunc_490
 
+@ Slot 0: map-load entry.
+@
+@ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x209, then fixes up slot
+@ 0x1B's presentation: the entity's +0x23 is cleared, and byte +0x09 of its
+@ actor has bits 0 and 1 cleared before bit 3 is set -- the read-modify-write
+@ is spelled `sub r3, #0xd` on a register still holding 0, giving the mask
+@ 0xFFFFFFF3. That selects the OAM priority this one object needs.
 .thumb_func_start OvlFunc_4c8
 	push	{lr}
 	ldr	r3, =iwram_1ebc

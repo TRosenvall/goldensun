@@ -1,5 +1,25 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Overlay 0x7987ac -- a town interior with a shared talk helper and one
+@ position-watching task.
+@
+@ Slot 0  OvlFunc_4e4  map-load entry
+@ Slot 1  OvlFunc_6c   edge transitions   -> .L6dc
+@ Slot 2  OvlFunc_78   map event list     -> .L7cc
+@ Slot 3  OvlFunc_80   -> .L7f4, tagged in place by Func_8b868
+@ Slot 4  OvlFunc_4dc  map objects        -> .L98c
+@ Slot 5  OvlFunc_74   interactions       -> none (returns 0)
+@
+@ OvlFunc_98 is a small helper the villagers share -- open the frame, set
+@ animation 1, speak, close -- so most handlers here are three calls long.
+@ ============================================================================
+
+@ WatchPlayerTile
+@ The per-frame task OvlFunc_4e4 registers at priority 0xC80.
+@ Sets save bit 0x250 while the player stands on tile x 0x22..0x23 AND tile z
+@ 0x29..0x2A, and clears it otherwise. A live position test rather than a
+@ one-shot trigger, so the bit tracks the player continuously.
 .thumb_func_start OvlFunc_30
 	push	{r5, lr}
 	mov	r0, #0
@@ -31,21 +51,25 @@
 	bx	r0
 .func_end OvlFunc_30
 
+@ Slot 1: edge-transition table.
 .thumb_func_start OvlFunc_6c
 	ldr	r0, =.L6dc
 	bx	lr
 .func_end OvlFunc_6c
 
+@ Slot 5: interaction table -- none.
 .thumb_func_start OvlFunc_74
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_74
 
+@ Slot 2: map event list.
 .thumb_func_start OvlFunc_78
 	ldr	r0, =.L7cc
 	bx	lr
 .func_end OvlFunc_78
 
+@ Slot 3: .L7f4, passed through Func_8b868 to tag the in-bounds records.
 .thumb_func_start OvlFunc_80
 	push	{r5, lr}
 	ldr	r5, =.L7f4
@@ -57,6 +81,10 @@
 	bx	r1
 .func_end OvlFunc_80
 
+@ SpeakSimple
+@ r0 = speaker slot. Opens the cutscene frame, sets animation 1, shows the
+@ message id a caller has already staged with Func_92b94, and closes. Six of
+@ the villagers below are just a message id and a call to this.
 .thumb_func_start OvlFunc_98
 	push	{r5, lr}
 	mov	r5, r0
@@ -73,6 +101,7 @@
 	bx	r0
 .func_end OvlFunc_98
 
+@ Talk: slot 9, line 0x1CC9. Turns to face the player first.
 .thumb_func_start OvlFunc_bc
 	push	{lr}
 	ldr	r0, =0x1cc9
@@ -87,6 +116,7 @@
 	bx	r0
 .func_end OvlFunc_bc
 
+@ Talk: slot 0x0B, line 0x1CCD.
 .thumb_func_start OvlFunc_dc
 	push	{lr}
 	ldr	r0, =0x1ccd
@@ -101,6 +131,7 @@
 	bx	r0
 .func_end OvlFunc_dc
 
+@ Talk: slot 0x0C, line 0x1CD0.
 .thumb_func_start OvlFunc_fc
 	push	{lr}
 	ldr	r0, =0x1cd0
@@ -115,6 +146,14 @@
 	bx	r0
 .func_end OvlFunc_fc
 
+@ TalkAndCount
+@ Takes no arguments. The long one: slot 0x10 turns to the player, speaks line
+@ 0x1CD4, plays animation 4 and waits, speaks again, runs interaction effect
+@ 0x102 through Func_937b8 with a sixty-frame hold, then asks a yes/no.
+@
+@ A "yes" increments the halfword at [iwram_1ebc]+0x1D8 -- the same running
+@ count OvlFunc_1e0 in overlays/rom_79c0c4 feeds. Sets save bits 0x300 and
+@ 0x868 on the way out.
 .thumb_func_start OvlFunc_11c
 	push	{lr}
 	bl	__Func_916b0
@@ -180,6 +219,7 @@
 	bx	r0
 .func_end OvlFunc_11c
 
+@ Talk: slot 0x10, line 0x1CDA -- the repeat line for the villager above.
 .thumb_func_start OvlFunc_1c4
 	push	{lr}
 	ldr	r0, =0x1cda
@@ -194,6 +234,7 @@
 	bx	r0
 .func_end OvlFunc_1c4
 
+@ Talk: slot 0x17, line 0x1CEE.
 .thumb_func_start OvlFunc_1e4
 	push	{lr}
 	ldr	r0, =0x1cee
@@ -208,6 +249,16 @@
 	bx	r0
 .func_end OvlFunc_1e4
 
+@ TalkInventoryGate
+@ Takes no arguments. Slot 0x12, and the only handler here that inspects the
+@ party rather than a save bit.
+@
+@ Line 0x137C before save bit 0x85B, 0x1385 after. If the player declines the
+@ prompt, the count at [iwram_1ebc]+0x1D8 is incremented and the villager plays
+@ animation 3. If they accept, Func_78500 counts the party's inventory: a zero
+@ count gets animation 4 and the consolation line 0x1384, a non-zero count runs
+@ Func_8f1c0 and Func_91a58 with 0xE7 -- the hand-over -- and sets 0x85B so it
+@ cannot be repeated.
 .thumb_func_start OvlFunc_204
 	push	{lr}
 	bl	__Func_916b0
@@ -303,6 +354,7 @@
 	bx	r0
 .func_end OvlFunc_204
 
+@ Talk: a short line handler using OvlFunc_98.
 .thumb_func_start OvlFunc_2fc
 	push	{r5, lr}
 	bl	__Func_916b0
@@ -329,6 +381,7 @@
 	bx	r0
 .func_end OvlFunc_2fc
 
+@ Talk: a short line handler.
 .thumb_func_start OvlFunc_338
 	push	{lr}
 	bl	__Func_916b0
@@ -359,6 +412,7 @@
 	bx	r0
 .func_end OvlFunc_338
 
+@ Talk: a short line handler.
 .thumb_func_start OvlFunc_380
 	push	{r5, lr}
 	mov	r0, #0
@@ -387,6 +441,7 @@
 	bx	r0
 .func_end OvlFunc_380
 
+@ Talk: a short line handler.
 .thumb_func_start OvlFunc_3c8
 	push	{r5, lr}
 	mov	r0, #0
@@ -415,6 +470,7 @@
 	bx	r0
 .func_end OvlFunc_3c8
 
+@ Talk: a short line handler.
 .thumb_func_start OvlFunc_410
 	push	{r5, lr}
 	mov	r0, #0
@@ -443,6 +499,7 @@
 	bx	r0
 .func_end OvlFunc_410
 
+@ Talk: a short line handler.
 .thumb_func_start OvlFunc_458
 	push	{r5, lr}
 	mov	r0, #0
@@ -471,6 +528,7 @@
 	bx	r0
 .func_end OvlFunc_458
 
+@ Talk: a short line handler.
 .thumb_func_start OvlFunc_4a0
 	push	{lr}
 	bl	__Func_916b0
@@ -493,11 +551,23 @@
 	bx	r0
 .func_end OvlFunc_4a0
 
+@ Slot 4: map object table.
 .thumb_func_start OvlFunc_4dc
 	ldr	r0, =.L98c
 	bx	lr
 .func_end OvlFunc_4dc
 
+@ Slot 0: map-load entry.
+@
+@ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x209, then stages by
+@ entrance id:
+@   entrance 5        a 0x43x4 metatile copy from (0, 0x78), and slot 8 has its
+@                     flag byte +0x55 cleared and both height words +0x0C and
+@                     +0x14 zeroed -- dropping it to ground level.
+@   entrances 7, 0x0B spawn object 0xE7 at (0x2380000, 0x100000, 0x2A00000)
+@                     through OvlFunc_570, and register OvlFunc_30 as a task at
+@                     priority 0xC80 so the player's position is watched.
+@ Every other entrance needs nothing.
 .thumb_func_start OvlFunc_4e4
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc
@@ -562,6 +632,10 @@
 	bx	r1
 .func_end OvlFunc_4e4
 
+@ SpawnTrackedObject
+@ r0 = object id, r1..r3 = position. Takes the actor from slot 0x16 via
+@ Func_c150, clears its bytes +0x26 and +0x27, masks bit 5 out of +0x05, and
+@ places the object -- the setup path for the one prop this map spawns itself.
 .thumb_func_start OvlFunc_570
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
