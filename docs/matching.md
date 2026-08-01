@@ -485,3 +485,51 @@ watch agbcc reject it.
   at `+0x42`, which overlaps it. One reading is wrong.
 - `Entity +0x0A/+0x12` are not fields at all -- they alias the high halfwords
   of the 16.16 x and z, and the ROM reads them both ways.
+
+## decomp-permuter-agbcc
+
+`tools/mkpermuter.sh <Func> <source.c> [outdir] [--target-from-c <ref.c>]`
+builds a working directory for
+[decomp-permuter-agbcc](https://github.com/WhenGryphonsFly/decomp-permuter-agbcc),
+which randomly permutes C source -- temporaries, type changes, statement
+reordering -- fishing for a byte match.
+
+The tool's own README describes a project-wide import that splits every `.s`
+file and rebuilds. That is destructive and aimed at bulk setup; `mkpermuter.sh`
+does the per-function setup from USAGE.md instead and touches nothing in the
+repo.
+
+Run it with the venv at `../permuter-venv` (pycparser 3.x removed
+`plyparser`, which the permuter imports, so it needs **pycparser 2.21**):
+
+    cd ../decomp-permuter-agbcc
+    ../permuter-venv/bin/python permuter.py ../permuter-work/Func_xxxx -j6
+
+### Two things to get right
+
+**Both sides must be unlinked objects.** The first version of `mkpermuter.sh`
+built `target.o` from `baserom.gba` bytes and compared it against our freshly
+compiled `.o`. Every instruction matched and the comparison still failed --
+because our object's literal pool holds relocation placeholders where the ROM
+has resolved addresses. The target is now assembled from the function's own
+`.s`, which `make compare` already proves byte-identical to the ROM.
+
+**It cannot invent register pins.** `register int v asm("r3")` is a GCC
+extension; pycparser rejects it outright, so `mkpermuter.sh` strips pins the way
+`import.py` does and the search runs over un-pinned source.
+
+### What it is and is not good for
+
+Tested against `Func_488c`, where the known answer is a single r3 pin: with the
+pin removed the permuter ran 795 iterations and never beat the baseline. It
+rearranges source to *influence* allocation; it will never write a pin. So it
+can only help where a pin-free match exists.
+
+On `Func_b074` (244 bytes, real structure) it improved the score from 5565 to
+4685 within a few minutes, so it does work where there are structural degrees of
+freedom.
+
+**It does nothing for the 818 register-offset functions.** Those need an
+instruction agbcc cannot emit at all; no amount of source permutation produces
+it. The permuter's reach is the *other* category -- functions agbcc can express
+but allocates or schedules differently.
