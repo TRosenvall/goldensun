@@ -122,6 +122,8 @@
 	bx	r0
 .func_end OvlFunc_9c
 
+@ Counter: shop 0x0E, speaker slot 0x11, chatter line 0x16AF. Same
+@ facing test as OvlFunc_9c.
 .thumb_func_start OvlFunc_e4
 	push	{r5, lr}
 	mov	r0, #0
@@ -150,6 +152,7 @@
 	bx	r0
 .func_end OvlFunc_e4
 
+@ Counter: shop 0x0F, speaker slot 0x12, chatter line 0x16B1.
 .thumb_func_start OvlFunc_12c
 	push	{r5, lr}
 	mov	r0, #0
@@ -178,6 +181,7 @@
 	bx	r0
 .func_end OvlFunc_12c
 
+@ Counter: INN 3, speaker slot 0x13, chatter line 0x16B7.
 .thumb_func_start OvlFunc_174
 	push	{r5, lr}
 	mov	r0, #0
@@ -206,11 +210,24 @@
 	bx	r0
 .func_end OvlFunc_174
 
+@ Slot 4: map object table.
 .thumb_func_start OvlFunc_1bc
 	ldr	r0, =.L658
 	bx	lr
 .func_end OvlFunc_1bc
 
+@ Slot 0: map-load entry.
+@
+@ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x209. When save bit 0x845
+@ is clear it walks slots 8..0x16 and calls Func_c528 with 0 on each entity --
+@ the same reset OvlFunc_30 does to the record array, applied to the live
+@ entities.
+@
+@ Then it repaints the town depending on how the player arrived. Entrance 7
+@ gets one set of three Func_10424 metatile copies (source rows 0x22/0x5E,
+@ 0x0D x 8 each); any entrance whose id minus 8 is at most 0x10000 in the
+@ shifted comparison gets a different set, plus Func_923e4 teleporting slots
+@ 0x0A, 0x0B and 0x0C to the origin -- parking three objects out of the way.
 .thumb_func_start OvlFunc_1c4
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1ebc

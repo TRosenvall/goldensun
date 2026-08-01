@@ -193,6 +193,10 @@
 	bx	r0
 .func_end OvlFunc_120
 
+@ WarpToRecordedPoint -- the twin of OvlFunc_120, differing only in the
+@ descriptor it passes Func_10560 (.L5fe rather than .L5e8) and in ending with
+@ Func_91e9c on the interaction target, so the destination also becomes the
+@ next pending message.
 .thumb_func_start OvlFunc_194
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -244,6 +248,8 @@
 	bx	r0
 .func_end OvlFunc_194
 
+@ Second table selector on save bit 0x96F: .L758 once set, .L614 before.
+@ Reached from a table rather than an export slot.
 .thumb_func_start OvlFunc_208
 	push	{lr}
 	ldr	r0, =0x96f
@@ -259,6 +265,15 @@
 	bx	r1
 .func_end OvlFunc_208
 
+@ Slot 0: map-load entry.
+@
+@ Arriving through entrance 0x5A sets save bit 0x96F -- so that one doorway is
+@ what advances this map's state. Then the scene step delay at
+@ [iwram_1ebc]+0x1C0 is set to 0x100 and the message delay at +0x1C8 to 0x18.
+@
+@ If save bit 0x201 is already set the passage OvlFunc_f8 opens is re-applied
+@ on load and slot 0x10 is put into animation 4, so the room reflects work the
+@ player did on a previous visit.
 .thumb_func_start OvlFunc_22c
 	push	{lr}
 	ldr	r3, =ewram_240
