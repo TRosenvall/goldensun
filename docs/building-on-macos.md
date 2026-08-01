@@ -141,8 +141,8 @@ alias gsmake='docker run --rm -v "$PWD:/work" -w /work goldensun-build make'
   an `arm-elf` *target* regardless of host architecture, so a native arm64 VM is
   fine and much faster. Only add `--arch x86_64` if something specifically needs
   it.
-- **Disk.** The VM image plus the compiler build wants ~10 GB. `--disk 60`
-  leaves room.
+- **Disk.** See the sizing table above -- about 6 GB in total, thin-provisioned.
+  `colima delete` reclaims all of it if you want the space back.
 
 ## Status of this document
 
