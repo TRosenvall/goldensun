@@ -4,25 +4,30 @@
  * +0x0C) from world coordinates and a scale pair.  See f9_1_rom_b074.s for
  * the ROM's disassembly and its annotation.
  *
- * STATUS: NOT MATCHING -- 23 of ~61 instructions aligned.  f9_1_rom_b074.s is
- * present, so the .s rule wins and THIS FILE IS NOT BUILT.  Delete the .s to
- * switch over, and expect the checksum to fail until it matches.
+ * STATUS: NOT MATCHING, AND NOT REACHABLE WITH agbcc.
  *
- *     tools/asmdiff.py Func_b074 rom_9000/src/f9_1_rom_b074.c \
- *         --rom-offset 0xb074 --rom-size 244
+ * The ROM allocates lr (r14) as a general-purpose register -- `mov r14, r3`
+ * caches obj+0x21 there for the length of the function.  It can do that because
+ * this is a leaf: nothing calls out, so lr is dead after the prologue saves it.
  *
- * Known remaining gap: the ROM uses FOUR high registers (ip=obj, fp=a3,
- * sl=a2, r9=mode, plus r8=a1>>16 assigned late), and critically it never saves
- * a1 -- a1 stays in r1 while the scale pointer is loaded into r2.  agbcc loads
- * the scale pointer into r1 instead, which forces a1 out to a high register and
- * changes the whole prologue.  Getting agbcc to pick r2 there is the next thing
- * to try; pinning a2/a3 to r10/r11 (done below) and computing a1>>16 early each
- * helped a little, combining them did not.
+ * agbcc never does this.  Across all 161 functions this project builds from C,
+ * it emits `mov lr, ...` exactly zero times.  The ROM does it in 117 functions.
+ * That is a capability the original compiler has and agbcc does not, so no C
+ * input reaches this shape -- the same kind of wall as the register-offset
+ * addressing mode, and the reason the permuter plateaus here.
  *
- * This is materially harder than Func_b684: 61 instructions, four high
- * registers, two stack locals and an embedded literal pool whose placement must
- * also match.  Worth revisiting with decomp-permuter (see docs/matching.md).
- */
+ * What IS fixed below: `h` is unsigned, so the halving is `lsr` as in the ROM
+ * rather than `asr`.  That was a real defect in the earlier draft.
+ *
+ * What remains, and is not worth chasing until the compiler question settles:
+ *   - four high registers saved (r8-r11); agbcc saves three, because it has one
+ *     fewer long-lived value to place once lr is off the table,
+ *   - the halfword clear-mask is 0xFFFFFE00 in the ROM.  agbcc folds it to
+ *     0xFE00 because `ldrh` tells it the value is 16-bit.  Writing `~0x1ff` in
+ *     the C does not change this -- verified.
+ *
+ * See docs/matching.md, "A fourth obstacle".
+  */
 typedef unsigned char u8;
 typedef signed char s8;
 
@@ -35,7 +40,8 @@ void Func_b074(void *obj, int a1, int a2, int a3, int a4, int *scale)
     int mode;
     int offA, offB;
     int sx, sy;
-    int t, d, h, corr;
+    int t, d, corr;
+    unsigned int h;
     int x1, y1, x2, y2;
     u8 *o2;
 

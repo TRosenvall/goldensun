@@ -539,3 +539,58 @@ first; the permuter is the wrong tool until the sizes agree.
 instruction agbcc cannot emit at all; no amount of source permutation produces
 it. The permuter's reach is the *other* category -- functions agbcc can express
 but allocates or schedules differently.
+
+## A fourth obstacle: lr is not allocatable
+
+The ROM allocates **lr (r14) as a general-purpose register in leaf functions**.
+`Func_b074` is the clearest example -- `mov r14, r3` parks a pointer there for
+the length of the function. That is legal: a leaf calls nothing, so once the
+prologue has pushed lr the register is free.
+
+agbcc never does it. Across all 161 functions this project builds from C it
+emits `mov lr, ...` **zero** times. The ROM does it in **117 functions**.
+
+Measure it with:
+
+    # ROM side
+    grep -c '^\s*mov\s\+\(r14\|lr\),' rom_*/src/*.s
+    # agbcc side -- compile every .c we have and look for the same
+    for f in rom_*/src/*.c; do arm-none-eabi-cpp -Iinclude -nostdinc -undef \
+      -std=gnu89 $f | tools/agbcc/bin/agbcc -O -mthumb-interwork -fhex-asm \
+      -fcall-used-r4 -o -; done | grep -c '^\s*mov\s\+\(lr\|r14\),'
+
+### What this does to the totals
+
+Combined with the register-offset mode, and counting only functions still in
+assembly:
+
+| blocked by | functions |
+|---|---:|
+| register-offset addressing | 768 |
+| lr-as-scratch | 117 |
+| both | 75 |
+| **either** | **810 of 2038 (39.7%)** |
+
+42 functions -- `Func_b074` among them -- are blocked by lr allocation *alone*.
+Those had looked reachable and are not.
+
+### Why this matters more than the count
+
+This is the **third independent codegen capability** the original compiler has
+and agbcc lacks, after register-offset addressing and the constant-
+materialisation cost model. Three independent differences is a poor fit for
+"agbcc has bugs" and a good fit for **it is a different compiler** -- which is
+what the agbcc maintainer said when they closed the issue with "agbcc doesn't
+cover all the possible compiler variations used by real games."
+
+The `-mthumb-interwork` epilogue still matches across 96.1% of the ROM, so it is
+very likely GCC-family -- a different version or a vendor fork, in the same
+vein as KMC GCC on N64 or PSY-Q on PSX. Identifying it is now the highest-value
+open question in the project; every further matching effort depends on the
+answer.
+
+### Consequence for tooling
+
+Do not spend permuter time on functions in the 810. No C input and no source
+permutation reaches an instruction the compiler cannot emit or a register it
+will not allocate. Filter targets against both lists first.
