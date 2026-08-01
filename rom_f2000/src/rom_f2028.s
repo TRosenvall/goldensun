@@ -85,7 +85,7 @@
 	beq	.Lf207e
 	b	.Lf2208
 .Lf207e:
-	ldr	r3, =.Lf39ab
+	ldr	r3, =Lf39ab
 	mov	r2, r10
 	ldrb	r3, [r3]
 	sub	r2, r1, r2
@@ -157,7 +157,7 @@
 	str	r2, [r6, r3]
 	mov	r3, #0x34
 	str	r2, [r6, r3]
-	ldr	r3, =.Lf39ab
+	ldr	r3, =Lf39ab
 	ldrb	r3, [r3, #2]
 	mov	r7, r3
 	sub	r3, #0x68
@@ -198,7 +198,7 @@
 	str	r3, [r6, r2]
 	mov	r3, #5
 	mov	r8, r3
-	ldr	r3, =.Lf39ab
+	ldr	r3, =Lf39ab
 	ldrb	r3, [r3, #4]
 	mov	r7, r3
 	sub	r3, #0x68
@@ -268,7 +268,7 @@
 	.pool_aligned
 
 .Lf2208:
-	ldr	r3, =.Lf39ab
+	ldr	r3, =Lf39ab
 	mov	r2, r10
 	ldrb	r3, [r3, #1]
 	sub	r2, r1, r2
@@ -340,7 +340,7 @@
 	str	r2, [r6, r3]
 	mov	r3, #0x34
 	str	r2, [r6, r3]
-	ldr	r3, =.Lf39ab
+	ldr	r3, =Lf39ab
 	ldrb	r3, [r3, #3]
 	mov	r7, r3
 	sub	r3, #0x68
@@ -411,7 +411,7 @@
 	str	r2, [r6, r3]
 	mov	r3, #8
 	mov	r8, r3
-	ldr	r3, =.Lf39ab
+	ldr	r3, =Lf39ab
 	ldrb	r3, [r3, #5]
 	mov	r7, r3
 	sub	r3, #0x68
@@ -1212,7 +1212,7 @@
 	bl	Func_48f4
 	mov	r6, r0
 	mov	r1, r6
-	ldr	r0, =.Lf38bc
+	ldr	r0, =Lf38bc
 	bl	Func_53e8
 	mov	r5, r8
 	add	r5, #0x80
@@ -1304,7 +1304,7 @@
 	mov	r1, #0x3c
 	mov	r0, r7
 	bl	Func_b50_from_thumb
-	ldr	r2, =.Lf39b1
+	ldr	r2, =Lf39b1
 	b	.Lf2af0
 
 	.align	2, 0
@@ -2161,7 +2161,7 @@
 	b	.Lf3766
 .Lf31ae:
 	mov	r1, #0x1f
-	ldr	r2, =.Lf3a2e
+	ldr	r2, =Lf3a2e
 	mov	r11, r1
 .Lf31b4:
 	mov	r3, r10
@@ -2276,18 +2276,18 @@
 	mov	r6, r0
 	mov	r0, r5
 	bl	Func_f3898
-	ldr	r2, =.Lf3a6e
+	ldr	r2, =Lf3a6e
 	mov	r5, r0
 	lsl	r3, r5, #1
 	ldrh	r3, [r2, r3]
 	mov	r1, r8
 	strh	r3, [r1]
-	ldr	r2, =.Lf3a2e
+	ldr	r2, =Lf3a2e
 	lsl	r3, r6, #1
 	ldrh	r3, [r2, r3]
 	mov	r2, r8
 	strh	r3, [r2, #2]
-	ldr	r2, =.Lf39ee
+	ldr	r2, =Lf39ee
 	lsl	r3, r7, #1
 	ldrh	r3, [r2, r3]
 	strh	r3, [r1, #4]
@@ -2307,7 +2307,7 @@
 	bcc	.Lf32c8
 	b	.Lf3766
 .Lf32c8:
-	ldr	r1, =.Lf39ee
+	ldr	r1, =Lf39ee
 	mov	r11, r1
 .Lf32cc:
 	mov	r2, r10
@@ -2390,7 +2390,7 @@
 	bcc	.Lf3362
 	b	.Lf3766
 .Lf3362:
-	ldr	r1, =.Lf3a6e
+	ldr	r1, =Lf3a6e
 	mov	r11, r1
 .Lf3366:
 	mov	r2, r10
@@ -2481,7 +2481,7 @@
 	sub	r6, r0
 	mov	r0, r5
 	bl	Func_af0_from_thumb
-	ldr	r1, =.Lf39ee
+	ldr	r1, =Lf39ee
 	sub	r5, r0
 	lsl	r3, r5, #1
 	ldrh	r3, [r1, r3]
@@ -2491,7 +2491,7 @@
 	ldrh	r3, [r1, r3]
 	mov	r1, r8
 	strh	r3, [r1, #2]
-	ldr	r2, =.Lf3a2e
+	ldr	r2, =Lf3a2e
 	lsl	r3, r7, #1
 	ldrh	r3, [r2, r3]
 	mov	r2, r8
@@ -2546,18 +2546,18 @@
 	mov	r6, r0
 	mov	r0, r5
 	bl	Func_f3898
-	ldr	r2, =.Lf3a6e
+	ldr	r2, =Lf3a6e
 	mov	r5, r0
 	lsl	r3, r5, #1
 	ldrh	r3, [r2, r3]
 	mov	r1, r8
 	strh	r3, [r1]
-	ldr	r2, =.Lf3a2e
+	ldr	r2, =Lf3a2e
 	lsl	r3, r6, #1
 	ldrh	r3, [r2, r3]
 	mov	r2, r8
 	strh	r3, [r2, #2]
-	ldr	r2, =.Lf39ee
+	ldr	r2, =Lf39ee
 	lsl	r3, r7, #1
 	ldrh	r3, [r2, r3]
 	strh	r3, [r1, #4]
@@ -2784,7 +2784,7 @@
 	mov	r6, r0
 	lsr	r0, r5, #16
 	bl	Func_f3898
-	ldr	r1, =.Lf39ee
+	ldr	r1, =Lf39ee
 	mov	r5, r0
 	lsl	r3, r5, #1
 	ldrh	r3, [r1, r3]
@@ -2796,7 +2796,7 @@
 	ldrh	r3, [r1, r3]
 	mov	r1, r8
 	strh	r3, [r1]
-	ldr	r1, =.Lf39ee
+	ldr	r1, =Lf39ee
 	mov	r2, #2
 	lsl	r3, r7, #1
 	ldrh	r3, [r1, r3]
@@ -3046,52 +3046,3 @@
 	pop	{r0}
 	bx	r0
 .func_end Func_f3858
-
-@ ClampComponent
-@ r0 = a colour component. Clamps to 0..0x1F -- the five bits the GBA gives each
-@ channel.
-.thumb_func_start Func_f3898
-	push	{lr}
-	cmp	r0, #0x1f
-	ble	.Lf38a2
-	mov	r0, #0x1f
-	b	.Lf38a8
-.Lf38a2:
-	cmp	r0, #0
-	bge	.Lf38a8
-	mov	r0, #0
-.Lf38a8:
-	pop	{r1}
-	bx	r1
-.func_end Func_f3898
-
-@ ClampPackedColour
-@ r0 = a packed colour. Clamps at 0x7C00, which is red 0x1F with green and blue
-@ zero -- the largest value the packing can produce before it would carry into
-@ the unused bit 15.
-.thumb_func_start Func_f38ac
-	push	{lr}
-	mov	r3, #0xf8
-	lsl	r3, #7
-	cmp	r0, r3
-	ble	.Lf38b8
-	mov	r0, r3
-.Lf38b8:
-	pop	{r1}
-	bx	r1
-.func_end Func_f38ac
-
-	.section .rodata
-
-.Lf38bc:
-	.incrom 0xf38bc, 0xf39ab
-.Lf39ab:
-	.incrom 0xf39ab, 0xf39b1
-.Lf39b1:
-	.incrom 0xf39b1, 0xf39ee
-.Lf39ee:
-	.incrom 0xf39ee, 0xf3a2e
-.Lf3a2e:
-	.incrom 0xf3a2e, 0xf3a6e
-.Lf3a6e:
-	.incrom 0xf3a6e, 0xf3aae
