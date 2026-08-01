@@ -105,8 +105,44 @@ Half the corpus is under 50 instructions.
    naming, not getting stuck. Consistency of vocabulary matters more than
    depth per function.
 
-Two overlays are already annotated: `overlays/common/` (65 functions) and
-`overlays/rom_779188/` (10 functions, plus the slot-contract header).
+
+## Progress
+
+242 of 3540 overlay functions annotated (6.8%), across 26 of the 97
+directories.
+
+- `overlays/common/` -- 65 functions
+- `overlays/rom_779188/` -- 10 functions, plus the six-slot contract header
+- `overlays/rom_780898/` -- the push-log core in full, plus this map's slots
+- 23 sibling overlays -- 153 functions carrying the shared core's names
+
+### The push-log block
+
+`OvlFunc_30 .. OvlFunc_8c0` in `rom_780898` is the pushable-log puzzle: the
+long logs and pillars a player shoulders one tile at a time. It is worth
+knowing by sight because it recurs, byte-identical, in 23 other overlays.
+
+What makes it map code rather than an entity script is the third job it does.
+Besides finding the log and animating the push, it rewrites the map's collision
+attributes -- `OvlFunc_244` stamps 0xFF over the log's footprint at the
+destination and 0 at the origin, on layers 0 and 2 -- so the log actually
+obstructs movement where it comes to rest.
+
+Two details worth remembering:
+
+- A log can only be pushed **broadside**. `OvlFunc_34c` rejects a match when the
+  player's coordinate along the log's own axis equals the log's, so facing down
+  a log's length finds nothing. Bit 0 of the model index doubles as the axis
+  flag, since the six pushable models in the table alternate orientation.
+- `OvlFunc_474` stops its outward walk only on a Func_120dc result of 2
+  ("no tile / blocked"). Results of 1 and -1, the step-too-high and drop-too-far
+  rejections, do not stop it -- so a log will be pushed down a ledge it could
+  never be pushed up.
+
+Sibling overlays carry the function names and a one-line summary pointing back
+here. Their local table labels differ (label names are address-derived) and are
+resolved per overlay in the annotation; the underlying table bytes were checked
+identical.
 
 
 ## Reproducing these numbers

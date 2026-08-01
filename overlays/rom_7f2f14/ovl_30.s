@@ -361,6 +361,10 @@
 	bx	r0
 .func_end OvlFunc_118
 
+@ Distance3D
+@ Integer distance between two {x,y,z} triples.
+@ Byte-identical to OvlFunc_30 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
 .thumb_func_start OvlFunc_2f0
 	push	{r5, lr}
 	ldmia	r0!, {r5}
@@ -430,6 +434,11 @@
 	bx	r1
 .func_end OvlFunc_32c
 
+@ TryPushBlockOneTile
+@ Interaction handler for a single-tile pushable block.
+@ Byte-identical to OvlFunc_c4 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
+@ Here .L50e8 is the facing->step table.
 .thumb_func_start OvlFunc_374
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -609,6 +618,10 @@
 	bx	r0
 .func_end OvlFunc_374
 
+@ FillMapRectCollisionByte
+@ Stamp one byte over a rectangle of map collision cells.
+@ Byte-identical to OvlFunc_244 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
 .thumb_func_start OvlFunc_4f4
 	push	{r5, r6, lr}
 	mov	r4, r3

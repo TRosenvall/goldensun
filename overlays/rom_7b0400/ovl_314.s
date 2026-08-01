@@ -539,6 +539,10 @@
 	bx	r0
 .func_end OvlFunc_56c
 
+@ Distance3D
+@ Integer distance between two {x,y,z} triples.
+@ Byte-identical to OvlFunc_30 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
 .thumb_func_start OvlFunc_890
 	push	{r5, lr}
 	ldmia	r0!, {r5}
