@@ -216,6 +216,40 @@ unreachable. That filter is what produced every match so far:
 grep -L '\[r[0-9]*, r[0-9]*\]' rom_*/src/*.s
 ```
 
+### A third obstacle: constant materialisation
+
+Five functions of the shape `REG_X = constant` cannot be matched, and the reason
+is neither registers nor scheduling. The ROM loads the constant from the
+literal pool where agbcc emits a `mov` immediate:
+
+```
+        ROM                             agbcc
+        ldr  r2, =REG_BLDCNT            ldr  r1, .L3
+        ldr  r3, .Lc0eb0  @ 0xbf        mov  r0, #0xbf
+        strh r3, [r2]                   strh r0, [r1]
+        bx   lr                         bx   lr
+        .Lc0eb0: .word 0xbf
+```
+
+`0xBF` fits in a Thumb `mov` immediate, so agbcc uses one. Measured threshold:
+
+| value | agbcc emits |
+|---|---|
+| 0x7F, 0xBF, 0xFF | `mov rN, #value` |
+| 0x100 | `mov rN, #0x80` (plus a shift) |
+| 0x1BF and above | `ldr rN, .LN+4` -- pool |
+
+So the pool only appears above 255, and no optimisation level or flag changes it
+(`-O0`, `-O`, `-O2`, `-O3`, `-Os`, and several others all behave the same). The
+original compiler pooled a value that this one materialises inline, which is a
+COST MODEL difference rather than a missing feature.
+
+This is a much smaller problem than the addressing mode -- it affects five
+functions rather than 818 -- and unlike that one it has no obvious upstream fix
+to ask for. It is recorded here so the shape is recognised rather than
+re-attempted: **a function whose only oddity is a pooled small constant is not
+worth chasing.**
+
 ### A second, smaller obstacle: instruction scheduling
 
 `Func_48a0` compiles to the ROM's exact five instructions in a different order:
