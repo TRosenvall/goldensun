@@ -20,10 +20,22 @@ It builds the following ROM:
 
 ### Decompilation
 
-The toolchain question is settled: **agbcc (GCC `2.9-arm-000512`) is the correct
-compiler**, and it produces byte-matching code once invoked with the right
-flags. See [docs/matching.md](docs/matching.md) for the evidence and the
-workflow.
+**The compiler is patched gcc-2.96** — an arm-elf dev snapshot from 2000-07-31,
+the branch between FSF gcc-2.95 and gcc-3.0. Camelot appear to have built their
+own rather than using the SDK's.
+
+This corrects an earlier claim here that agbcc was the right compiler. It is
+not, and the difference is not cosmetic: agbcc never emits Thumb register-offset
+addressing (768 functions need it) and never allocates `lr` in leaf functions
+(117 more). Everything currently matching was built with agbcc and **will need
+re-verifying** against gcc-2.96.
+
+See [docs/matching.md](docs/matching.md) for the evidence and workflow, and
+[docs/attribution.md](docs/attribution.md) for where the identification came
+from.
+
+> **macOS users:** the compiler cannot be built or run on macOS. The build runs
+> in a Linux container — see [docs/building-on-macos.md](docs/building-on-macos.md).
 
 * **79 functions are fully decompiled and matching** — built from C rather than
   assembly, with the ROM still byte-identical. Most are one-line dispatch
