@@ -377,10 +377,18 @@
 	bx	r1
 .func_end Func_792c4
 
-@ RefreshCharacterStats
-@ r0 = combatant id. Re-runs Func_7905c with a zero delta and rebuilds the
-@ summary, so a character's derived stats are recomputed without changing its
-@ level.
+@ LevelCharacterUpTo
+@ r0 = combatant id, r1 = target level.
+@
+@ Reads the current level from byte +0x0F of the record and, while it is below
+@ the target, calls Func_7905c once per level with a 0x10-byte stack scratch --
+@ so the character gains each level in turn rather than jumping, and every
+@ per-level effect fires. A target at or below the current level does nothing.
+@ Func_77428 then rebuilds the derived-stat summary either way.
+@
+@ NOTE: an earlier annotation here described this as taking r0 only and
+@ refreshing with a zero delta. That was wrong -- r1 is a target level and the
+@ loop is a real level-up. The screen in overlays/rom_7fc720 depends on it.
 .thumb_func_start Func_792fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
