@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ GetDecompressorTemplate
+@ r0 = index. Returns the address of one of the decoder templates the routines
+@ below install.
 .thumb_func_start Func_52f4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -34,6 +37,13 @@
 	bx	r0
 .func_end Func_52f4
 
+@ DecompressVariant
+@ r0 = compressed source, r1 = destination. One of eleven adjacent routines
+@ (Func_5340..Func_567c) that share one shape: allocate a scratch with
+@ Func_4938, DMA3-copy a decoder template into it, call it there, and release
+@ with Func_2df0. They differ only in which template they install and how big a
+@ scratch it needs. Func_5340 is the one the rest of the ROM uses most; it takes
+@ 0x2C4 bytes and installs Func_2544.
 .thumb_func_start Func_5340
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -69,6 +79,13 @@
 	bx	r1
 .func_end Func_5340
 
+@ DecompressVariant
+@ r0 = compressed source, r1 = destination. One of eleven adjacent routines
+@ (Func_5340..Func_567c) that share one shape: allocate a scratch with
+@ Func_4938, DMA3-copy a decoder template into it, call it there, and release
+@ with Func_2df0. They differ only in which template they install and how big a
+@ scratch it needs. Func_5340 is the one the rest of the ROM uses most; it takes
+@ 0x2C4 bytes and installs Func_2544.
 .thumb_func_start Func_5394
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -104,6 +121,13 @@
 	bx	r1
 .func_end Func_5394
 
+@ DecompressVariant
+@ r0 = compressed source, r1 = destination. One of eleven adjacent routines
+@ (Func_5340..Func_567c) that share one shape: allocate a scratch with
+@ Func_4938, DMA3-copy a decoder template into it, call it there, and release
+@ with Func_2df0. They differ only in which template they install and how big a
+@ scratch it needs. Func_5340 is the one the rest of the ROM uses most; it takes
+@ 0x2C4 bytes and installs Func_2544.
 .thumb_func_start Func_53e8
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -139,6 +163,13 @@
 	bx	r1
 .func_end Func_53e8
 
+@ DecompressVariant
+@ r0 = compressed source, r1 = destination. One of eleven adjacent routines
+@ (Func_5340..Func_567c) that share one shape: allocate a scratch with
+@ Func_4938, DMA3-copy a decoder template into it, call it there, and release
+@ with Func_2df0. They differ only in which template they install and how big a
+@ scratch it needs. Func_5340 is the one the rest of the ROM uses most; it takes
+@ 0x2C4 bytes and installs Func_2544.
 .thumb_func_start Func_543c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -176,6 +207,13 @@
 	bx	r0
 .func_end Func_543c
 
+@ DecompressVariant
+@ r0 = compressed source, r1 = destination. One of eleven adjacent routines
+@ (Func_5340..Func_567c) that share one shape: allocate a scratch with
+@ Func_4938, DMA3-copy a decoder template into it, call it there, and release
+@ with Func_2df0. They differ only in which template they install and how big a
+@ scratch it needs. Func_5340 is the one the rest of the ROM uses most; it takes
+@ 0x2C4 bytes and installs Func_2544.
 .thumb_func_start Func_5490
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -213,6 +251,13 @@
 	bx	r0
 .func_end Func_5490
 
+@ DecompressVariant
+@ r0 = compressed source, r1 = destination. One of eleven adjacent routines
+@ (Func_5340..Func_567c) that share one shape: allocate a scratch with
+@ Func_4938, DMA3-copy a decoder template into it, call it there, and release
+@ with Func_2df0. They differ only in which template they install and how big a
+@ scratch it needs. Func_5340 is the one the rest of the ROM uses most; it takes
+@ 0x2C4 bytes and installs Func_2544.
 .thumb_func_start Func_54e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -248,6 +293,13 @@
 	bx	r0
 .func_end Func_54e4
 
+@ DecompressVariant
+@ r0 = compressed source, r1 = destination. One of eleven adjacent routines
+@ (Func_5340..Func_567c) that share one shape: allocate a scratch with
+@ Func_4938, DMA3-copy a decoder template into it, call it there, and release
+@ with Func_2df0. They differ only in which template they install and how big a
+@ scratch it needs. Func_5340 is the one the rest of the ROM uses most; it takes
+@ 0x2C4 bytes and installs Func_2544.
 .thumb_func_start Func_5534
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -283,6 +335,13 @@
 	bx	r0
 .func_end Func_5534
 
+@ DecompressVariant
+@ r0 = compressed source, r1 = destination. One of eleven adjacent routines
+@ (Func_5340..Func_567c) that share one shape: allocate a scratch with
+@ Func_4938, DMA3-copy a decoder template into it, call it there, and release
+@ with Func_2df0. They differ only in which template they install and how big a
+@ scratch it needs. Func_5340 is the one the rest of the ROM uses most; it takes
+@ 0x2C4 bytes and installs Func_2544.
 .thumb_func_start Func_5584
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -320,6 +379,13 @@
 	bx	r0
 .func_end Func_5584
 
+@ DecompressVariant
+@ r0 = compressed source, r1 = destination. One of eleven adjacent routines
+@ (Func_5340..Func_567c) that share one shape: allocate a scratch with
+@ Func_4938, DMA3-copy a decoder template into it, call it there, and release
+@ with Func_2df0. They differ only in which template they install and how big a
+@ scratch it needs. Func_5340 is the one the rest of the ROM uses most; it takes
+@ 0x2C4 bytes and installs Func_2544.
 .thumb_func_start Func_55d8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -357,6 +423,13 @@
 	bx	r0
 .func_end Func_55d8
 
+@ DecompressVariant
+@ r0 = compressed source, r1 = destination. One of eleven adjacent routines
+@ (Func_5340..Func_567c) that share one shape: allocate a scratch with
+@ Func_4938, DMA3-copy a decoder template into it, call it there, and release
+@ with Func_2df0. They differ only in which template they install and how big a
+@ scratch it needs. Func_5340 is the one the rest of the ROM uses most; it takes
+@ 0x2C4 bytes and installs Func_2544.
 .thumb_func_start Func_562c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -392,6 +465,13 @@
 	bx	r0
 .func_end Func_562c
 
+@ DecompressVariant
+@ r0 = compressed source, r1 = destination. One of eleven adjacent routines
+@ (Func_5340..Func_567c) that share one shape: allocate a scratch with
+@ Func_4938, DMA3-copy a decoder template into it, call it there, and release
+@ with Func_2df0. They differ only in which template they install and how big a
+@ scratch it needs. Func_5340 is the one the rest of the ROM uses most; it takes
+@ 0x2C4 bytes and installs Func_2544.
 .thumb_func_start Func_567c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ShutdownSound
+@ Takes no arguments. Disables the sound interrupt with Func_307c and releases
+@ the engine's allocation with Func_2dd8.
 .thumb_func_start Func_5cf8
 	push	{lr}
 	mov	r0, #5
@@ -13,6 +16,10 @@
 	bx	r1
 .func_end Func_5cf8
 
+@ InitSound
+@ r0.. = parameters. Brings the sound engine up: configures the timers and
+@ enables the interrupt through Func_307c, and starts the mixer via
+@ Func_651c. 157 lines; traced structurally.
 .thumb_func_start Func_5d10
 	push	{r5, r6, r7, lr}
 	ldr	r6, =REG_IME
@@ -170,6 +177,8 @@
 	bx	r0
 .func_end Func_5d10
 
+@ GetMixerState
+@ Takes no arguments. Returns the mixer state block.
 .thumb_func_start Func_5e70
 	push	{lr}
 	ldr	r2, =ewram_2240
@@ -183,6 +192,8 @@
 	bx	r0
 .func_end Func_5e70
 
+@ SetMasterVolume
+@ r0 = volume. Writes the master mix level.
 .thumb_func_start Func_5e88
 	ldr	r0, =REG_IME
 	ldr	r4, .L5eb4	@ 0
@@ -222,6 +233,9 @@
 	bx	lr
 .func_end Func_5e88
 
+@ MixChannels
+@ r0.. = parameters. Mixes the active channels into the output buffer through
+@ Func_60e8 and Func_615c. 117 lines; traced structurally.
 .thumb_func_start Func_5ee0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -339,6 +353,10 @@
 	bx	r1
 .func_end Func_5ee0
 
+@ StepSound -- the per-frame sound update
+@ Takes no arguments. Called every frame from Func_30f8. Advances the sequencer,
+@ retires finished channels and refills the DMA output buffers. 94 lines; traced
+@ structurally.
 .thumb_func_start Func_5fcc
 	push	{r5, r6, r7, lr}
 	ldr	r7, =ewram_2240
@@ -433,6 +451,9 @@
 	bx	r1
 .func_end Func_5fcc
 
+@ MixChannelsAlt
+@ r0.. = parameters. A second mixing path over the same Func_60e8 / Func_615c
+@ primitives.
 .thumb_func_start Func_6088
 	push	{r5, r6, r7, lr}
 	ldr	r3, =REG_SIOCNT
@@ -481,6 +502,9 @@
 	bx	r1
 .func_end Func_6088
 
+@ MixSampleBlock
+@ r0.. = parameters. Accumulates one block of one channel's samples into the
+@ output buffer.
 .thumb_func_start Func_60e8
 	push	{r5, lr}
 	ldr	r4, =ewram_2240
@@ -539,6 +563,9 @@
 	.word	0xc0
 .func_end Func_60e8
 
+@ MixSampleBlockStereo
+@ r0.. = parameters. The stereo counterpart to Func_60e8. 113 lines; traced
+@ structurally.
 .thumb_func_start Func_615c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -652,6 +679,9 @@
 	bx	r1
 .func_end Func_615c
 
+@ ResampleBlock
+@ r0.. = parameters. Resamples a block to the mixer rate. 145 lines; traced
+@ structurally.
 .thumb_func_start Func_6240
 	push	{r5, r6, r7, lr}
 	ldr	r3, =REG_SIODATA32
@@ -797,6 +827,8 @@
 	bx	r0
 .func_end Func_6240
 
+@ EnableSoundIrq
+@ r0.. = parameters. Arms the sound timer interrupt through Func_307c.
 .thumb_func_start Func_6358
 	push	{lr}
 	ldr	r2, =iwram_1cb0
@@ -822,6 +854,8 @@
 	bx	r0
 .func_end Func_6358
 
+@ WaitForSoundIdle
+@ Takes no arguments. Spins on Func_30f8(1) until the engine reports idle.
 .thumb_func_start Func_6384
 	push	{r5, r6, lr}
 	ldr	r1, =iwram_1f64
@@ -850,6 +884,8 @@
 	bx	r1
 .func_end Func_6384
 
+@ StartMusicFadeOut
+@ r0.. = parameters. Begins ramping the music volume down.
 .thumb_func_start Func_63bc
 	push	{r5, r6, r7, lr}
 	ldr	r5, =ewram_2080
@@ -882,6 +918,8 @@
 	bx	r1
 .func_end Func_63bc
 
+@ StartMusicFadeIn
+@ r0.. = parameters. Begins ramping the music volume up.
 .thumb_func_start Func_6408
 	push	{r5, r6, lr}
 	ldr	r5, =ewram_23ac
@@ -918,6 +956,8 @@
 	.word	0
 .func_end Func_6408
 
+@ WaitForFadeOut
+@ Takes no arguments. Blocks on Func_30f8(1) until the fade finishes.
 .thumb_func_start Func_6458
 	push	{r5, r6, lr}
 	ldr	r2, =ewram_2080
@@ -942,6 +982,8 @@
 	bx	r0
 .func_end Func_6458
 
+@ WaitForFadeIn
+@ Takes no arguments. The Func_6458 counterpart.
 .thumb_func_start Func_6488
 	push	{r5, r6, lr}
 	ldr	r2, =ewram_23ac
@@ -966,6 +1008,8 @@
 	bx	r0
 .func_end Func_6488
 
+@ WaitForTrackEnd
+@ Takes no arguments. Blocks on Func_30f8(1) until the current track ends.
 .thumb_func_start Func_64b8
 	push	{r5, lr}
 	ldr	r3, =ewram_2080
@@ -994,6 +1038,8 @@
 	bx	r0
 .func_end Func_64b8
 
+@ StopMusic
+@ Takes no arguments. Halts the sequencer immediately.
 .thumb_func_start Func_64f4
 	push	{lr}
 	ldr	r3, =ewram_2080
@@ -1014,6 +1060,8 @@
 	bx	r1
 .func_end Func_64f4
 
+@ StartMixer
+@ Takes no arguments. Starts the mixer timers and DMA.
 .thumb_func_start Func_651c
 	ldr	r1, =ewram_2220
 	ldr	r0, =REG_IME
@@ -1036,6 +1084,10 @@
 	bx	lr
 .func_end Func_651c
 
+@ RunSequencer
+@ r0.. = parameters. Interprets the music sequence data: reads events, applies
+@ them to channels, and handles loops. 286 lines and the core of the music
+@ playback; traced structurally.
 .thumb_func_start Func_655c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1322,10 +1374,15 @@
 	bx	r0
 .func_end Func_655c
 
+@ NoOp
+@ A bare `bx lr`.
 .thumb_func_start Func_6798
 	bx	lr
 .func_end Func_6798
 
+@ RunSoundTest
+@ r0.. = parameters. Drives the engine through Func_5d10, the fade routines and
+@ Func_6384 a frame at a time -- the shape of a sound test harness.
 .thumb_func_start Func_679c
 	push	{r5, r6, lr}
 	mov	r0, #3

@@ -1,6 +1,15 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ StepMenuLayer
+@ Takes no arguments. Called every frame from Func_1789c, after the windows and
+@ message boxes have been stepped.
+@ Runs the cursor and sprite side of the UI: allocates and releases OBJ tiles
+@ (Func_3d28, Func_3dec, Func_3fa4), animates the cursor position with
+@ Func_2322 / Func_231c (sine and cosine, so the cursor bobs), and reads the
+@ frame counter at iwram_1800. Func_4458 supplies randomness for the idle
+@ animation.
+@ 546 lines; traced structurally.
 .thumb_func_start Func_191cc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -547,6 +556,9 @@
 	bx	r0
 .func_end Func_191cc
 
+@ ReleaseAllMenuBuffers
+@ Takes no arguments. Func_196c4 with a mask of 0x7FFFFFFF -- every slot -- so
+@ this is the "free everything" form of the buffer release below.
 .thumb_func_start Func_1964c
 	push	{lr}
 	ldr	r2, =0x7fffffff
@@ -555,6 +567,9 @@
 	bx	r0
 .func_end Func_1964c
 
+@ LayoutMenuString
+@ r0 = string id. Lays a string out with Func_18038 and returns its measured
+@ extent from the ring at [iwram_1e8c]+0xEB0, for sizing a menu box.
 .thumb_func_start Func_1965c
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e8c
@@ -610,6 +625,12 @@
 	.word	0
 .func_end Func_1965c
 
+@ ReleaseMenuBuffers
+@ r0, r1 = parameters, r2 = a bitmask of which buffers to release.
+@ Walks the allocation slots in iwram_1e50 -- the same tag table rom_c9000 uses
+@ -- freeing each selected entry with Func_2dd8 and reallocating with Func_48b0
+@ where a replacement is wanted. Func_19bac does the DMA copy for entries that
+@ are being resized rather than dropped.
 .thumb_func_start Func_196c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -726,6 +747,9 @@
 	.word	0
 .func_end Func_196c4
 
+@ ClearSlot
+@ r0 = slot. Zeroes the first word if it is non-zero. A guard so callers can
+@ release a slot without checking first.
 .thumb_func_start Func_197b4
 	push	{lr}
 	ldr	r3, [r0]
@@ -738,6 +762,9 @@
 	bx	r1
 .func_end Func_197b4
 
+@ RunMenuModal
+@ r0.. = menu parameters. Drives a menu to completion, one Func_30f8(1) per
+@ frame, and closes its window with Func_16418 on the way out.
 .thumb_func_start Func_197c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -817,6 +844,10 @@
 	bx	r0
 .func_end Func_197c4
 
+@ RepaintTextRegion
+@ r0 = message-box slot. Repaints the region a message box occupies, restoring
+@ the tilemap with Func_16178 and redrawing the frame with Func_170f8. Called by
+@ Func_16868 when a box has more text to reveal.
 .thumb_func_start Func_19854
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -883,6 +914,10 @@
 	bx	r0
 .func_end Func_19854
 
+@ ClearCallbackTable
+@ Takes no arguments. Clears the eight-entry callback table -- pointers at
+@ [iwram_1e8c]+0x12BC (4 bytes each) and their ids at +0x12DC (2 bytes each) --
+@ used by Func_19908 and Func_19944.
 .thumb_func_start Func_198dc
 	push	{lr}
 	ldr	r3, =iwram_1e8c
@@ -904,6 +939,10 @@
 	bx	r0
 .func_end Func_198dc
 
+@ RegisterCallback
+@ r0 = callback, r1 = id. Finds the first free slot in the eight-entry table --
+@ free meaning its id halfword at [iwram_1e8c]+0x12DC is zero -- stores the
+@ pointer at +0x12BC and the id alongside, and returns the slot index.
 .thumb_func_start Func_19908
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e8c
@@ -934,6 +973,10 @@
 	bx	r0
 .func_end Func_19908
 
+@ LookupCallback
+@ r0 = id, r1 = non-zero to also remove it. Scans the eight-entry table for a
+@ matching id and returns its callback pointer, clearing both the pointer and
+@ the id when r1 is set. Returns 0 when the id is not registered.
 .thumb_func_start Func_19944
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e8c
@@ -977,6 +1020,11 @@
 	bx	r1
 .func_end Func_19944
 
+@ PollConfirmKey
+@ r0 = mask. Returns whether a confirm-style press is active this frame.
+@ Reads the HELD key state at iwram_1ae8 against 0x303 -- A, B, and the two
+@ shoulder buttons. The byte at [iwram_1e8c]+0x12F9 gates a _Func_f954c check,
+@ which suppresses input while that subsystem is busy.
 .thumb_func_start Func_1999c
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1e8c
@@ -1015,6 +1063,11 @@
 	bx	r1
 .func_end Func_1999c
 
+@ PollMenuKey
+@ r0 = mask. The NEWLY-PRESSED counterpart to Func_1999c, reading iwram_1c94
+@ (pressed this frame) and iwram_1af8 rather than the held state, so menu
+@ navigation does not repeat while a key is down.
+@ The mode byte at [iwram_1e8c]+0xEA4 selects between two interpretations.
 .thumb_func_start Func_199ec
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e8c
@@ -1061,6 +1114,9 @@
 	bx	r1
 .func_end Func_199ec
 
+@ RunMenuModalSimple
+@ r0.. = menu parameters. The short form of Func_197c4: spins on Func_30f8(1)
+@ and closes with Func_16418, without the extra state that one tracks.
 .thumb_func_start Func_19a54
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1e8c
@@ -1100,6 +1156,11 @@
 	bx	r0
 .func_end Func_19a54
 
+@ RunChoicePrompt
+@ r0 = string id, r1.. = options. Opens a message box with Func_165d8 and a
+@ window with Func_162d4, renders the prompt through Func_18038 and Func_187ac,
+@ then waits on Func_17364 / Func_17394 before closing with Func_16418.
+@ This is the yes/no and multi-option prompt used across the game.
 .thumb_func_start Func_19aa0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1222,6 +1283,9 @@
 	bx	r0
 .func_end Func_19aa0
 
+@ LayoutStringMode1
+@ r0 = string id. Func_18038(id, 1) -- the layout pass in mode 1, which callers
+@ use when the text is going somewhere other than the standard box.
 .thumb_func_start Func_19ba0
 	push	{lr}
 	mov	r1, #1
@@ -1230,6 +1294,10 @@
 	bx	r1
 .func_end Func_19ba0
 
+@ CopyMenuBuffer
+@ r0, r1 = source and destination. Allocates scratch with Func_4938, DMA3-copies
+@ the buffer, and releases the scratch with Func_2df0. Used by Func_196c4 when a
+@ buffer is being resized rather than freed.
 .thumb_func_start Func_19bac
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -1263,6 +1331,9 @@
 	bx	r0
 .func_end Func_19bac
 
+@ BuildMenuLayout
+@ r0.. = layout parameters. Computes the row and column positions for a menu's
+@ entries. 148 lines of pure arithmetic with no calls out; traced structurally.
 .thumb_func_start Func_19bfc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1411,6 +1482,10 @@
 	bx	r1
 .func_end Func_19bfc
 
+@ InitMenuLayer
+@ Takes no arguments. Called from Func_15f30 during UI bring-up. Sets the two
+@ halfwords at [iwram_1e8c]+0x12EC and +0x12EE to 0x3E7 (999) -- sentinel values
+@ meaning "no selection", since real indices are small.
 .thumb_func_start Func_19d0c
 	ldr	r3, =iwram_1e8c
 	ldr	r0, =0x12ec

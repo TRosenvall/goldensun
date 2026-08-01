@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ LoadInstrument
+@ r0.. = parameters. Resolves an instrument definition through Func_6ac0 and
+@ installs it on a channel.
 .thumb_func_start Func_6878
 	push	{r4, r5, lr}
 	sub	sp, #0x44
@@ -71,6 +74,9 @@
 	bx	r1
 .func_end Func_6878
 
+@ LoadInstrumentForChannel
+@ r0.. = parameters. Func_6878 applied to a specific channel; called by
+@ Func_56cc when a cue starts.
 .thumb_func_start Func_6910
 	push	{r4, lr}
 	ldr	r2, =REG_WAITCNT
@@ -133,6 +139,8 @@
 	bx	r1
 .func_end Func_6910
 
+@ GetInstrumentField
+@ r0 = instrument. Returns one of its fields.
 .thumb_func_start Func_69a4
 	ldr	r1, =ewram_4c22
 	ldrh	r0, [r1]
@@ -151,6 +159,8 @@
 	bx	lr
 .func_end Func_69a4
 
+@ SetSampleAddress
+@ r0.. = parameters. Points a channel at its sample data in ROM.
 .thumb_func_start Func_69c8
 	mov	r2, r1
 	lsl	r0, #24
@@ -178,6 +188,8 @@
 	bx	lr
 .func_end Func_69c8
 
+@ ComputeEnvelopeStep
+@ r0.. = parameters. Derives the per-frame envelope increment.
 .thumb_func_start Func_6a00
 	push	{r4, r5, lr}
 	lsl	r0, #24
@@ -225,6 +237,8 @@
 	bx	r0
 .func_end Func_6a00
 
+@ ApplyEnvelope
+@ r0 = channel. Advances the channel's envelope one step.
 .thumb_func_start Func_6a78
 	ldr	r1, =ewram_4c28
 	ldr	r0, [r1]
@@ -251,11 +265,16 @@
 	bx	lr
 .func_end Func_6a78
 
+@ NoOp
+@ A bare `bx lr`.
 .thumb_func_start Func_6abc
 	ldrb	r0, [r0]
 	bx	lr
 .func_end Func_6abc
 
+@ GetInstrumentRecord
+@ r0 = instrument id. Returns its definition. The lookup nearly every routine
+@ in this file starts with.
 .thumb_func_start Func_6ac0
 	mov	r2, r0
 	ldr	r1, =ewram_4c1c
@@ -286,6 +305,9 @@
 	bx	lr
 .func_end Func_6ac0
 
+@ StepEnvelope
+@ r0 = channel. Runs Func_6a00 and Func_6a78 together to advance the channel's
+@ envelope and volume.
 .thumb_func_start Func_6af8
 	push	{r4, r5, r6, r7, lr}
 	mov	r7, r8
@@ -356,6 +378,8 @@
 	bx	r1
 .func_end Func_6af8
 
+@ ResetEnvelope
+@ r0 = channel. Returns the envelope to its attack phase.
 .thumb_func_start Func_6b84
 	push	{r4, lr}
 	mov	r4, r0
@@ -378,6 +402,9 @@
 	bx	r0
 .func_end Func_6b84
 
+@ InitChannelState
+@ r0 = channel. Clears the channel record and sets its defaults. Called by
+@ Func_58ac when a channel is claimed and by Func_5c68 when it is faded.
 .thumb_func_start Func_6ba8
 	push	{r4, r5, r6, r7, lr}
 	sub	sp, #0x80
@@ -435,6 +462,8 @@
 	bx	r0
 .func_end Func_6ba8
 
+@ SetChannelLoop
+@ r0.. = parameters. Configures a channel's loop points.
 .thumb_func_start Func_6c24
 	push	{r4, r5, lr}
 	mov	r4, r0
@@ -473,6 +502,9 @@
 	bx	r1
 .func_end Func_6c24
 
+@ ResolveSample
+@ r0 = sample id. Returns the sample's address and length; Func_5868 uses it to
+@ point a channel at its data.
 .thumb_func_start Func_6c68
 	push	{r4, r5, lr}
 	sub	sp, #0x100
@@ -527,6 +559,8 @@
 	bx	r1
 .func_end Func_6c68
 
+@ SetChannelInstrument
+@ r0.. = parameters. Binds an instrument (Func_6ac0) to a channel.
 .thumb_func_start Func_6cdc
 	push	{r4, r5, r6, lr}
 	sub	sp, #0x40
@@ -573,6 +607,9 @@
 	bx	r1
 .func_end Func_6cdc
 
+@ ApplyInstrumentToChannel
+@ r0.. = parameters. Copies an instrument's envelope, loop and pitch settings
+@ onto a channel.
 .thumb_func_start Func_6d50
 	push	{r4, r5, r6, lr}
 	mov	r6, r8
@@ -641,6 +678,8 @@
 	bx	r1
 .func_end Func_6d50
 
+@ SetChannelDetune
+@ r0.. = parameters. Applies a pitch offset.
 .thumb_func_start Func_6dec
 	push	{r4, lr}
 	ldr	r4, =0xe005555
@@ -665,6 +704,10 @@
 	bx	r1
 .func_end Func_6dec
 
+@ StartNote
+@ r0.. = parameters. Begins a note: resolves the instrument (Func_6ac0), applies
+@ it (Func_6d50), detunes (Func_6dec) and triggers (Func_6f6c). 145 lines;
+@ traced structurally.
 .thumb_func_start Func_6e24
 	push	{r4, r5, r6, r7, lr}
 	mov	r7, r9
@@ -810,6 +853,8 @@
 	bx	r1
 .func_end Func_6e24
 
+@ StopNote
+@ r0 = channel. Releases the note, entering the envelope's release phase.
 .thumb_func_start Func_6f48
 	mov	r2, r0
 	ldr	r0, =ewram_4c08
@@ -833,6 +878,8 @@
 	bx	lr
 .func_end Func_6f48
 
+@ TriggerNote
+@ r0 = channel. Starts the channel's sample playing.
 .thumb_func_start Func_6f6c
 	push	{lr}
 	bl	_call_via_r1
@@ -847,6 +894,8 @@
 	bx	r1
 .func_end Func_6f6c
 
+@ StartNoteSimple
+@ r0.. = parameters. A shorter Func_6e24 without the detune stage.
 .thumb_func_start Func_6f84
 	push	{r4, r5, r6, r7, lr}
 	sub	sp, #0x40
@@ -925,6 +974,8 @@
 	bx	r1
 .func_end Func_6f84
 
+@ SetNoteVelocity
+@ r0.. = parameters. Scales a note's volume by its velocity.
 .thumb_func_start Func_7028
 	push	{r4, r5, r6, lr}
 	sub	sp, #0x40
@@ -970,6 +1021,8 @@
 	bx	r1
 .func_end Func_7028
 
+@ ComputePitchFromNote
+@ r0 = note number. Converts a note to a sample step rate.
 .thumb_func_start Func_7098
 	push	{r4, r5, lr}
 	lsl	r0, #16
@@ -1030,6 +1083,8 @@
 	bx	r1
 .func_end Func_7098
 
+@ SetNotePitch
+@ r0.. = parameters. Applies Func_7098's rate to a channel.
 .thumb_func_start Func_711c
 	push	{r4, r5, r6, lr}
 	sub	sp, #0x40
@@ -1102,6 +1157,8 @@
 	bx	r1
 .func_end Func_711c
 
+@ ComputeVibrato
+@ r0.. = parameters. Derives the vibrato offset for this frame.
 .thumb_func_start Func_71a8
 	push	{r4, r5, r6, lr}
 	mov	r5, r1
@@ -1156,6 +1213,9 @@
 	bx	r1
 .func_end Func_71a8
 
+@ ApplyVibrato
+@ r0 = channel. Applies Func_71a8's offset to the channel's pitch. 106 lines;
+@ traced structurally.
 .thumb_func_start Func_7220
 	push	{r4, r5, r6, r7, lr}
 	mov	r7, r8

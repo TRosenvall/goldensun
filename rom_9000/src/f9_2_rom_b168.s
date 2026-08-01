@@ -1,5 +1,19 @@
 	.include "macros.inc"
 
+@ SubmitSpritePairWithLabel
+@ r0=sprite object, r1=position vector {x, y, z} (16.16), r2=scale pair
+@ {scaleX, scaleY}, r3=(u16) style selector.
+@ Renders the object's text label via Func_aa0c, then builds and submits both
+@ OAM entries. If the label changed, or either scale differs from 1.0, an
+@ affine matrix is allocated with Func_3d28 and its index stored in bits 1-5 of
+@ +0x07; the rotation halfword is negated when Func_aa0c reported a flip.
+@ Scale > 1.0 selects affine mode 3 and doubles the half-extents (as in
+@ Func_b074). The companion entry at +0x0C is only emitted when bit 0 of +0x26
+@ is set and its y lands on-screen (<= 0x9F); the main entry is culled unless
+@ x <= 0xEF and y <= 0x9F. Each surviving entry is handed to Func_3dec with a
+@ priority derived from the z coordinate (1 when z <= -0x64.0000, otherwise
+@ (z >> 17) + 0xA).
+@ NOTE: reference assembly -- the live build compiles f9_2_rom_b168.c.
 .thumb_func_start Func_b168
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

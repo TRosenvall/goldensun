@@ -1,6 +1,15 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ClearBackgroundPage
+@ r0 = 0 for the first page, non-zero for the second. DMA3-fills one of the two
+@ image pages and its palette with a constant:
+@
+@     page 0   0x6000000, 0x1E00 words of 0x01010101, palette 0x5000000
+@     page 1   0x6008000, 0x1E00 words of 0x81818181, palette 0x5000100
+@
+@ The 0x8500xxxx control words are fixed-source fills, so the single stack word
+@ supplies the value for the whole transfer.
 .thumb_func_start Func_f0254
 	push	{r5, lr}
 	sub	sp, #4
@@ -38,6 +47,17 @@
 	bx	r0
 .func_end Func_f0254
 
+@ LoadBackgroundImage
+@ r0 = 0 to just clear, otherwise the asset id; r1 = which page.
+@ Resolves the asset with Func_2f40, DMA3-copies Func_f0024 into a 0x230-byte
+@ scratch under tag 0x31, calls it there to decompress straight into the page's
+@ VRAM, and rewinds the tag. The per-word bias handed to the decoder is 0 for
+@ page 0 and 0x80808080 for page 1, which is what puts the two pages in
+@ different halves of the palette.
+@
+@ The palette is not written directly. Instead, with interrupts masked, an entry
+@ is appended to the transfer queue at ewram_2090 -- source, destination,
+@ 0x84000040 -- capped at 32 pending entries, for the VBlank handler to run.
 .thumb_func_start Func_f02b0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -123,6 +143,16 @@
 	bx	r0
 .func_end Func_f02b0
 
+@ BuildWindowTable
+@ r0 = destination. Writes a 0x200-entry halfword-pair table:
+@
+@     0x20 words of 0x01FF01FF     the top margin
+@     0xF0 words counting up by 0x00020002 from 0x00010000
+@     0x30 words of 0x01FF01FF     the bottom margin
+@     0xC0 zero words
+@
+@ Each word is two halfwords, so the middle run is a per-scanline ramp. Called
+@ twice, for 0x6007800 and 0x600F800 -- the tail of each background page.
 .thumb_func_start Func_f037c
 	push	{lr}
 	mov	r2, #0x80
@@ -159,6 +189,10 @@
 	bx	r0
 .func_end Func_f037c
 
+@ ScrollBackground
+@ The per-frame task Func_f03f0 registers at sort key 0x480. On every fourth
+@ frame -- iwram_1800 & 3 -- it decrements the halfwords at iwram_1ad0+8 and
+@ +0x0C by one, which is the slow drift of the credit backdrop.
 .thumb_func_start Func_f03c0
 	push	{lr}
 	ldr	r3, =iwram_1800
@@ -180,6 +214,28 @@
 	bx	r0
 .func_end Func_f03c0
 
+@ RunCreditRoll
+@ r0 = ignored. Returns 0.
+@
+@ THE STAFF CREDIT ROLL, and the entry point overlay rom_779188 calls. It sets
+@ up a crossfading slideshow with the credits scrolling over the top:
+@
+@   * clears the run flags at iwram_1d18, iwram_1f58, iwram_1ac4 and iwram_1d08,
+@     registers Func_f03c0 at 0x480 and blanks both image pages
+@   * BG2CNT = 0x1F8A and BG3CNT = 0x0F83, DISPCNT = 0x1C40, BLDCNT = 0x2844 --
+@     alpha blending between the two background layers, which is what makes the
+@     crossfade possible at all
+@   * Func_f0678 builds the scrolling text
+@   * waits 0x12C = 300 frames, then runs 33 images
+@
+@ Each image comes from the next word of .Lf0a5c and is decompressed into the
+@ page that is NOT showing. The crossfade is sixteen steps of BLDALPHA four
+@ frames apart -- so about a second -- and the two arms differ only in which
+@ direction the coefficients run, because the pages alternate. Then it holds for
+@ 0x10B = 267 frames before the next.
+@
+@ Afterwards BLDCNT is cleared, DISPCNT goes back to 0x1040, Func_479c and
+@ Func_4760 restore the display, and iwram_1d18 is raised to say it is done.
 .thumb_func_start Func_f03f0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -306,6 +362,19 @@
 	bx	r1
 .func_end Func_f03f0
 
+@ BuildCreditOam
+@ The per-frame task Func_f0678 registers at sort key 0x480. Rebuilds the whole
+@ OAM for the scrolling text every frame.
+@
+@ The scroll position is the halfword at ewram_4c00: its low 3 bits are the
+@ sub-tile offset and bits 3.. select which row of the text bitmap is at the
+@ top. It writes 15 rows of 6 sprites into the buffer at [ewram_4c0c], y stepping
+@ by 8 and the tile index wrapping at 0x300, then DMA3s 0x100 words of it to OAM
+@ at 0x7000000.
+@
+@ When ewram_4c04 is zero -- the roll is not paused -- and it is every fourth
+@ frame, the scroll position advances by one. So the credits move at two pixels
+@ per second... one row of 8 pixels every 32 frames.
 .thumb_func_start Func_f0538
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -409,6 +478,15 @@
 	bx	r0
 .func_end Func_f0538
 
+@ FeedNextCreditLine
+@ The per-frame task Func_f0678 registers at sort key 0xC80. Watches the scroll
+@ position and, whenever it crosses into a new 8-pixel row, renders the next
+@ credit line into the row that has just scrolled off the top.
+@
+@ The line index is `(row + 0x10) & 0x1F`, so the text bitmap is a 32-row ring
+@ buffer half a screen ahead of what is showing. The string comes from the
+@ pointer table .Lf1220 and goes through Func_f07f0 with alignment 1 (centred).
+@ Does nothing while ewram_4c04 is set.
 .thumb_func_start Func_f0614
 	push	{r5, r6, lr}
 	ldr	r5, =ewram_4c04
@@ -456,6 +534,19 @@
 	bx	r0
 .func_end Func_f0614
 
+@ BuildCreditText
+@ Takes no arguments. Sets the scrolling text up. Takes a 0x400-byte OAM buffer
+@ at ewram_4c0c, blanks the text bitmap at 0x6010000 (0x1800 words) and sets its
+@ palette entry at 0x6016000 to 0x11111111.
+@
+@ It then fills the OAM buffer with four groups of sprite pairs -- three groups
+@ of eight at fixed attributes, then the 15 x 6 grid the text itself lives in,
+@ then eight more -- zeroes the scroll state at ewram_4c00, ewram_4c04 and
+@ ewram_4c08, and registers Func_f0538 at 0x480 and Func_f0614 at 0xC80.
+@
+@ Finally it pre-renders the first 32 lines from .Lf1220 through Func_f07f0, so
+@ the roll starts with a full screen of text rather than scrolling in from
+@ nothing.
 .thumb_func_start Func_f0678
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -618,6 +709,32 @@
 	bx	r0
 .func_end Func_f0678
 
+@ RenderCreditLine
+@ r0 = a NUL-terminated ASCII string, r1 = destination row, r2 = alignment
+@ (1 centred, 2 right, anything else left). Returns 0, or -1 for a null string.
+@
+@ THE CREDITS HAVE THEIR OWN FONT. This does not touch rom_15000's Huffman text
+@ system at all -- it rasterises 1bpp glyphs straight out of two tables:
+@
+@     .Lf1770   the glyph bitmaps, 8 bytes each, 8x8 and 1bpp
+@     .Lf11bd   the advance width per glyph, one byte each
+@
+@ Both are indexed by `character - 0x20`, and characters below 0x20 are skipped
+@ entirely, so this is plain ASCII from space upward. That is why the credits are
+@ English-only.
+@
+@ It measures the string first to work out the left edge (0xC0 is the field
+@ width), then draws each glyph into a 0x900-byte scratch TWICE: colour 1 at an
+@ offset of 0x101 -- one pixel right and one row down -- and colour 0x0F at the
+@ glyph position. That offset pair is a drop shadow.
+@
+@ The scratch is 8 bits per pixel while it is being drawn and gets packed down
+@ to 4bpp in place (`hi << 4 | lo`) before eight 32-byte strips are copied to
+@ 0x6010000 + row * 0x20.
+@
+@ Save bit 0x200 latches "the scratch has been used once": the first call zeroes
+@ the whole buffer and sets the bit, and every call after that scrolls the
+@ previous contents up with Func_1af8 and clears only the new row.
 .thumb_func_start Func_f07f0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

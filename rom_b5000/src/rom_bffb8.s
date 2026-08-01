@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunEncounterIntro
+@ r0.. = parameters. Plays the encounter's opening flourish a frame at a time
+@ (Func_30f8), rolling variation with Func_4458 and reserving with Func_3b70.
 .thumb_func_start Func_bffb8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -111,6 +114,8 @@
 	bx	r1
 .func_end Func_bffb8
 
+@ SetBlendRegisters
+@ r0.. = parameters. Writes REG_BLDCNT and REG_BLDALPHA for the battle scene.
 .thumb_func_start Func_c0098
 	push	{lr}
 	ldr	r2, =0x3020100
@@ -141,6 +146,9 @@
 	bx	r0
 .func_end Func_c0098
 
+@ SetWindowRegisters
+@ r0.. = parameters. Writes the window registers (REG_WIN0H, REG_WINOUT) for
+@ the battle scene.
 .thumb_func_start Func_c00d8
 	push	{r5, r6, lr}
 	mov	r1, #0x80
@@ -178,6 +186,8 @@
 	bx	r0
 .func_end Func_c00d8
 
+@ SetBackgroundRegisters
+@ r0.. = parameters. Writes REG_BG0CNT / REG_BG1CNT for the battle scene.
 .thumb_func_start Func_c0130
 	push	{lr}
 	ldr	r2, =iwram_1f00
@@ -213,6 +223,8 @@
 	bx	r0
 .func_end Func_c0130
 
+@ GetSceneField
+@ r0 = index. Returns one of the scene configuration fields.
 .thumb_func_start Func_c0184
 	push	{lr}
 	ldr	r3, =iwram_1ef8
@@ -235,6 +247,8 @@
 	bx	r0
 .func_end Func_c0184
 
+@ ApplySceneTransform
+@ r0.. = parameters. Applies the scene transform via Func_c0cec.
 .thumb_func_start Func_c01bc
 	push	{lr}
 	ldr	r3, =iwram_1ef8
@@ -288,6 +302,8 @@
 	bx	r0
 .func_end Func_c01bc
 
+@ ComputeSceneGeometry
+@ r0.. = parameters. Derives the scene's geometry; no calls out.
 .thumb_func_start Func_c0228
 	push	{r5, lr}
 	ldr	r3, =iwram_1ef8
@@ -346,6 +362,9 @@
 	bx	r0
 .func_end Func_c0228
 
+@ ResetBg0Scroll
+@ Takes no arguments. REG_BG0VOFS = 0. Identical to Func_b5b08 in rom_b5a0c.s --
+@ the same two instructions duplicated in two files.
 .thumb_func_start Func_c0298
 	ldr	r3, =REG_BG0VOFS
 	mov	r2, #0
@@ -353,6 +372,11 @@
 	bx	lr
 .func_end Func_c0298
 
+@ RunSceneSetup
+@ r0.. = parameters. 485 lines. Builds the battle scene: allocates and frees
+@ with Func_2dd8, arms a scanline trigger with Func_307c, registers a task with
+@ Func_41d8, reserves OBJ tiles with Func_393c / Func_39fc, and paces with
+@ Func_30f8. Traced structurally.
 .thumb_func_start Func_c02a4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -838,6 +862,8 @@
 	bx	r0
 .func_end Func_c02a4
 
+@ BlendSceneLayer
+@ r0.. = parameters. Applies Func_c1724's blend over a scene layer. Exported.
 .thumb_func_start Func_c0700
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1e74
@@ -886,6 +912,11 @@
 	bx	r0
 .func_end Func_c0700
 
+@ LoadSceneGraphics
+@ r0.. = parameters. Loads the battle scene's graphics and registers the
+@ per-frame task with Func_41d8, configuring the blend and window registers
+@ through Func_c0098 and Func_c00d8. Exported; rom_c9000 calls it during
+@ animation setup.
 .thumb_func_start Func_c0774
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1f00
@@ -1018,6 +1049,8 @@
 	bx	r0
 .func_end Func_c0774
 
+@ AllocSceneBuffer
+@ r0 = size. Allocates the scene buffer with Func_48f4.
 .thumb_func_start Func_c08a8
 	push	{r5, lr}
 	mov	r1, #0xa8
@@ -1042,6 +1075,8 @@
 	bx	r0
 .func_end Func_c08a8
 
+@ FreeSceneBuffer
+@ Takes no arguments. Releases the scene buffer with Func_2dd8.
 .thumb_func_start Func_c08e0
 	push	{lr}
 	mov	r0, #0xa
@@ -1050,6 +1085,12 @@
 	bx	r0
 .func_end Func_c08e0
 
+@ LoadAndDecompressBattleGraphic
+@ r0, r1 = parameters, r2 = asset id. Fetches the asset with Func_2f40, then
+@ ALLOCATES 0x230 BYTES UNDER TAG 0x31 AND DMA3-COPIES Func_b5138 INTO IT,
+@ calling the decompressor there rather than in place -- which is why
+@ Func_b5138 relocates its own jump table. Func_2dd8 frees the scratch after.
+@ Exported; rom_c9000's class handlers use it to load their graphics.
 .thumb_func_start Func_c08ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1163,6 +1204,9 @@
 	.word	0x1f83
 .func_end Func_c08ec
 
+@ UploadViewMatrix
+@ r0.. = parameters. Pushes the battle view matrix to the affine registers,
+@ gated on a save bit through _Func_79338. 219 lines; traced structurally.
 .thumb_func_start Func_c0a24
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1382,6 +1426,9 @@
 	bx	r0
 .func_end Func_c0a24
 
+@ BuildSceneMatrix
+@ r0.. = parameters. Composes the scene transform from Func_49ac, Func_4bd4,
+@ Func_4c1c, Func_4cb4, Func_51d8, Func_5258 and Func_5268.
 .thumb_func_start Func_c0be4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1495,6 +1542,9 @@
 	bx	r0
 .func_end Func_c0be4
 
+@ BuildViewMatrix
+@ r0.. = parameters. The camera counterpart to Func_c0be4, same helper set.
+@ Exported.
 .thumb_func_start Func_c0cec
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1607,6 +1657,9 @@
 	bx	r0
 .func_end Func_c0cec
 
+@ AimCameraAtCombatant
+@ r0 = combatant id. Points the camera at a combatant, resolving it with
+@ Func_b7dd0 and rebuilding with Func_c0cec. Exported.
 .thumb_func_start Func_c0df4
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -1640,6 +1693,8 @@
 	bx	r0
 .func_end Func_c0df4
 
+@ WaitFramesA
+@ r0 = count. Spins on Func_30f8(1). Exported.
 .thumb_func_start Func_c0e38
 	push	{r5, r6, r7, lr}
 	ldr	r2, =REG_BLDCNT
@@ -1670,6 +1725,8 @@
 	bx	r0
 .func_end Func_c0e38
 
+@ WaitFramesB
+@ r0 = count. A second Func_30f8 spin with different bookkeeping. Exported.
 .thumb_func_start Func_c0e70
 	push	{r5, r6, r7, lr}
 	ldr	r2, =REG_BLDCNT
@@ -1700,6 +1757,8 @@
 	bx	r0
 .func_end Func_c0e70
 
+@ GetSceneFlag
+@ r0 = index. Returns a scene flag; no calls out.
 .thumb_func_start Func_c0ea8
 	ldr	r2, =REG_BLDCNT
 	ldr	r3, .Lc0eb0	@ 0xbf
@@ -1711,6 +1770,8 @@
 	.word	0xbf
 .func_end Func_c0ea8
 
+@ SetSceneFlag
+@ r0 = index, r1 = value. Writes a scene flag.
 .thumb_func_start Func_c0eb8
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -1732,6 +1793,8 @@
 	bx	r0
 .func_end Func_c0eb8
 
+@ GetSceneCounter
+@ Takes no arguments. Returns the scene frame counter.
 .thumb_func_start Func_c0edc
 	push	{lr}
 	cmp	r0, #0
@@ -1743,6 +1806,8 @@
 	bx	r1
 .func_end Func_c0edc
 
+@ RunSceneFade
+@ r0.. = parameters. Fades the scene a frame at a time through Func_30f8.
 .thumb_func_start Func_c0eec
 	push	{r5, lr}
 	ldr	r1, =iwram_1ae8
@@ -1827,6 +1892,9 @@
 	bx	r1
 .func_end Func_c0eec
 
+@ SubmitCombatantToScene
+@ r0 = combatant id. Adds the combatant's sprite to the scene draw list, via
+@ Func_b7dd0.
 .thumb_func_start Func_c0f98
 	push	{r5, r6, lr}
 	mov	r5, r1
@@ -1894,6 +1962,9 @@
 	bx	r0
 .func_end Func_c0f98
 
+@ SubmitQueuedCombatants
+@ Takes no arguments. Walks the action queue with Func_b6c08 and submits each
+@ combatant through Func_c0f98.
 .thumb_func_start Func_c1014
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1930,6 +2001,8 @@
 	bx	r0
 .func_end Func_c1014
 
+@ SubmitQueuedCombatantsAlt
+@ Takes no arguments. As Func_c1014 over the other queue group.
 .thumb_func_start Func_c1054
 	push	{r5, r6, r7, lr}
 	sub	sp, #0x1c
@@ -1957,6 +2030,8 @@
 	bx	r0
 .func_end Func_c1054
 
+@ SortSceneDrawList
+@ r0.. = parameters. Orders the scene draw list by depth; no calls out.
 .thumb_func_start Func_c1084
 	push	{lr}
 	ldr	r3, =iwram_1e74

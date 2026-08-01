@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ FindMapEventEntry
+@ r0=event id, or 0x3E7 for "any". Searches the current map's event list --
+@ reached through the overlay entry point at __start_overlay+0x14 -- for an
+@ entry matching the area id at ewram_240+0x1C0.
+@ Entries are words: the low 12 bits are an area id (0x1FF is a wildcard), the
+@ upper bits a type. A candidate is accepted only if its guard event flag, if
+@ any, passes _Func_79338. Returns the matching entry.
 .thumb_func_start Func_8a5f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -117,6 +124,10 @@
 	bx	r0
 .func_end Func_8a5f8
 
+@ SetCurrentEncounterSet
+@ r0=encounter set id, or -1 to clear. Stores it at ewram_240+0x236 and, when a
+@ real id is given, loads the matching encounter table so the map knows what can
+@ be met on it.
 .thumb_func_start Func_8a6e4
 	push	{r5, r6, lr}
 	ldr	r1, =ewram_240
@@ -376,6 +387,9 @@
 	bx	r0
 .func_end Func_8a6e4
 
+@ GetAreaGroup
+@ r0=area id. Returns the signed group byte at +0x02 of the area's 8-byte record
+@ in .L9f1a8 -- which region of the world the area belongs to.
 .thumb_func_start Func_8a8d0
 	ldr	r3, =.L9f1a8
 	lsl	r0, #3
@@ -386,6 +400,11 @@
 	bx	lr
 .func_end Func_8a8d0
 
+@ EnterArea
+@ Takes no arguments. Applies everything that changes when the party arrives in
+@ a new area: reads the area record from .L9f1a8, sets the input-enable flag
+@ iwram_1f54, and applies the area's music, encounter set and flags. The
+@ ~250-instruction body is characterised structurally.
 .thumb_func_start Func_8a8e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -650,6 +669,9 @@
 
 	.pool_aligned
 
+@ GetCurrentAreaField
+@ Takes no arguments. Reads the current area id from ewram_240+0x1C0 and returns
+@ a field from its 8-byte record in .L9f1a8.
 .thumb_func_start Func_8ab48
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -667,6 +689,11 @@
 	bx	r0
 .func_end Func_8ab48
 
+@ ApplyAreaSettings
+@ Takes no arguments. Re-applies the current area's record from .L9f1a8 --
+@ music, palette and encounter configuration -- without going through the full
+@ Func_8a8e4 entry sequence. Used after a transition that stays within the same
+@ area.
 .thumb_func_start Func_8ab74
 	push	{r5, r6, lr}
 	ldr	r5, =ewram_240
@@ -806,6 +833,9 @@
 	bx	r0
 .func_end Func_8ab74
 
+@ PlayAreaSound
+@ Takes no arguments. Plays the sound id cached at ewram_240+0x1F0 through
+@ _Func_f9080 -- the area's ambient or arrival cue.
 .thumb_func_start Func_8acc4
 	push	{lr}
 	ldr	r3, =ewram_240

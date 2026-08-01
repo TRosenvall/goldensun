@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ LayOutBattlefield
+@ r0.. = parameters. Places every combatant on the field: Func_b6d30 assigns the
+@ slots, Func_b6eb4 resolves each sprite, Func_44d0 (atan2) supplies the facing,
+@ and Func_c2384 / Func_c23a0 write the positions. Item properties come from
+@ _Func_78870 and the records from _Func_77394.
+@ 496 lines; traced structurally.
 .thumb_func_start Func_b6f44
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

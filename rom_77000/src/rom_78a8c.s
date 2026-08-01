@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ GetItemDisplayRecord
+@ r0 = item id. Combines the ability record from Func_78414 with the display
+@ record from Func_78b9c.
 .thumb_func_start Func_78a8c
 	push	{lr}
 	bl	Func_78414
@@ -10,6 +13,9 @@
 	bx	r1
 .func_end Func_78a8c
 
+@ ComputeItemValue
+@ r0.. = parameters. Derives an item's value from its record fields; no calls
+@ out.
 .thumb_func_start Func_78aa0
 	push	{lr}
 	mov	r2, r0
@@ -38,6 +44,8 @@
 	bx	r1
 .func_end Func_78aa0
 
+@ NotifyItemUsed
+@ r0.. = parameters. Reports a consumed item through Func_78aa0.
 .thumb_func_start Func_78ad0
 	push	{lr}
 	ldr	r3, =0x1ff
@@ -56,6 +64,9 @@
 	bx	r1
 .func_end Func_78ad0
 
+@ FindEquippedSlot
+@ r0 = combatant id, r1 = category. Returns the inventory slot holding the
+@ equipped item of that category, testing bit 10 of each halfword.
 .thumb_func_start Func_78af8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -110,6 +121,8 @@
 	bx	r1
 .func_end Func_78af8
 
+@ FindEquippedInParty
+@ r0 = category. Runs Func_78af8 across the active party from Func_796c4.
 .thumb_func_start Func_78b60
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

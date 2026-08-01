@@ -1,6 +1,43 @@
 	.include "macros.inc"
+
+@ ============================================================================
+@ The title screen, the logo splashes, and the palette-fade engine.
+@
+@ Eighteen functions, all reached from overlay rom_779188, which runs them in
+@ order: Func_f2b70 and Func_f2d54 are the two splash screens, then
+@ _Func_1f77c decides whether a save exists and Func_f26ec draws the title with
+@ or without the continue option.
+@
+@ Both splashes animate through an HDMA on BG0HOFS fed from iwram_1ad0 -- a
+@ per-scanline horizontal offset table built at 0x6003000 -- rather than by
+@ moving anything. A or Start (iwram_1c94 & 9) skips either.
+@
+@ THE PALETTE-FADE ENGINE (Func_f377c through Func_f3898) is the interesting
+@ part and is general enough that it could serve anything. It works on UNPACKED
+@ colour: 512 colours become 1536 halfwords, one per channel, so an
+@ interpolation can carry a fractional value per channel that 5-bit packed
+@ colour cannot represent. Func_f3078 converts in both directions and clamps,
+@ Func_f2ebc computes the per-frame step, and Func_f2f10 pushes the result out
+@ through the ewram_2090 transfer queue at VBlank.
+@
+@ Its block, under tag 0x20 at iwram_1ed0:
+@
+@     +0x0000  the packed 512-colour snapshot, index halfword at +0
+@     +0x0400  the CURRENT unpacked palette, 0x600 halfwords
+@     +0x1000  the TARGET
+@     +0x1C00  the per-frame step
+@     +0x3001  frames remaining      +0x3002  a phase flag
+@ ============================================================================
 	.include "gba.inc"
 
+@ AnimateTitleScreen
+@ The per-frame task Func_f26ec registers at sort key 0x480. Advances the title
+@ screen's animation: a frame counter at [iwram_1efc]+0x0C ticks every frame and
+@ a phase counter at +0x14 every fourth, and the phase drives a perspective-style
+@ sweep -- the y position is `0x90 - phase`, the horizon 0x30 - the BG offset at
+@ iwram_1ad0+6, and each scanline's scale comes from `(y - horizon) * k / 0x50`
+@ with k from .Lf39ab. Past phase 0x118 it takes the settled branch instead.
+@ iwram_1d20 pauses the whole thing. 540 lines; traced structurally.
 .thumb_func_start Func_f2028
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -548,6 +585,16 @@
 	bx	r0
 .func_end Func_f2028
 
+@ LoadTitleGraphics
+@ Takes no arguments. Loads the title screen's assets: 0x15 supplies the OBJ
+@ palette at 0x5000200 and, after Func_53e8 decompresses it, the tiles at
+@ 0x6010000; 0x17 supplies the BG palette at 0x5000000 and its tiles. The
+@ decompressed halves are staged through ewram_10000, ewram_12940 and
+@ ewram_1a140 before being DMA3'd into VRAM.
+@
+@ It also arms the window hardware -- WIN0H, WININ -- and BLDALPHA, which is what
+@ lets the logo sit over a blended sky. Entry 0 of each palette is forced to
+@ zero. 246 lines; traced structurally.
 .thumb_func_start Func_f24a0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -801,6 +848,19 @@
 	bx	r0
 .func_end Func_f24a0
 
+@ RunTitleScreen
+@ r0 = non-zero when a save file exists. The title screen, and one of the two
+@ entry points overlay rom_779188 calls -- with 0 for a fresh cartridge and 1
+@ when _Func_1f77c found a save.
+@
+@ Takes 0xE0 bytes under tag 0x2B for its own state at iwram_1efc, loads the
+@ graphics with Func_f24a0, starts the palette-fade engine with Func_f377c, sets
+@ the target palette with Func_f3824 and begins a 0x3C-frame fade with
+@ Func_f3858. Func_f2028 is registered at 0x480 to animate it. The BLDCNT
+@ transfer is queued through ewram_2090 with interrupts masked rather than
+@ written directly.
+@
+@ 503 lines; traced structurally.
 .thumb_func_start Func_f26ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1311,10 +1371,25 @@
 	bx	r1
 .func_end Func_f26ec
 
+@ NullHandler
+@ An empty `bx lr`.
 .thumb_func_start Func_f2b6c
 	bx	lr
 .func_end Func_f2b6c
 
+@ RunLogoSplash
+@ r0 = 0 for the long version, non-zero for the short. Returns -1 when the player
+@ skipped it, 0 when it ran to completion.
+@
+@ The first splash screen. Plays sound 0x6E, loads asset 0x18, decompresses it
+@ with Func_5340 into ewram_10000 and DMA3s it to 0x6004000. It then builds a
+@ per-scanline BG offset table at 0x6003000 -- 30 halfwords of a ramp per row for
+@ 20 rows, with 0x1FF markers between -- and points an HDMA at BG0HOFS through
+@ iwram_1ad0, which is the sideways-shear the logo animates with.
+@
+@ Timing depends on r0: the long path waits up to 0x77 = 119 frames per phase,
+@ the short one 0x3B = 59, and the hold is 0xB3 = 179. A or Start
+@ (iwram_1c94 & 9) cuts to an 8-frame fade instead of 0x3C.
 .thumb_func_start Func_f2b70
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1532,6 +1607,12 @@
 	bx	r1
 .func_end Func_f2b70
 
+@ RunSecondLogoSplash
+@ Takes no arguments. Returns 0. The second splash screen: asset 0x19, the same
+@ HDMA-through-iwram_1ad0 setup as Func_f2b70, but instead of a static image it
+@ cycles four animation frames -- `(iwram_1e40 >> 3) & 3` picks one and 0xD0
+@ halfwords are DMA3'd to 0x6004100 every frame, so the cycle is eight frames
+@ per step. Waits up to 0x77 = 119 frames or until A or Start.
 .thumb_func_start Func_f2d54
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -1673,10 +1754,22 @@
 	bx	r1
 .func_end Func_f2d54
 
+@ NullHandler2
+@ An empty `bx lr`.
 .thumb_func_start Func_f2eb8
 	bx	lr
 .func_end Func_f2eb8
 
+@ ComputePaletteStep
+@ r0 = the current palette, r1 = the target, r2 = the destination, r3 = frames.
+@ For each of 0x600 halfword components it stores `(target - current) / frames`
+@ -- the per-frame increment the fade will add. Func_af0 supplies the signed
+@ quotient, so a negative delta steps down correctly.
+@
+@ 0x600 is 1536, which is 512 colours times THREE components. The fade engine
+@ keeps red, green and blue in separate halfwords precisely so this division can
+@ carry a fractional result per channel; Func_f3078 is what packs them back into
+@ the 5:5:5 the hardware wants.
 .thumb_func_start Func_f2ebc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1719,6 +1812,11 @@
 	bx	r0
 .func_end Func_f2ebc
 
+@ UploadFadedPalette
+@ The per-frame task Func_f377c registers at sort key 0xC80. Advances the fade by
+@ one step and queues the result into the transfer list at ewram_2090 with
+@ interrupts masked, for the VBlank handler to move into palette RAM.
+@ 169 lines; traced structurally.
 .thumb_func_start Func_f2f10
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1ed0
@@ -1895,6 +1993,15 @@
 	bx	r0
 .func_end Func_f2f10
 
+@ PackUnpackPalette
+@ r0 = a 16.16 scale, r1 = the packed side, r2 = the unpacked side, r3 = mode.
+@ The core of the fade engine: converts between 512 packed 5:5:5 colours and
+@ 1536 separate halfword components, multiplying by the scale on the way. Every
+@ component goes through Func_f3898, which clamps to 0..0x1F, and the packed
+@ result through Func_f38ac, which clamps to 0x7C00 -- so an over-bright fade
+@ saturates rather than wrapping.
+@
+@ 877 lines, almost all of it unrolled; traced structurally.
 .thumb_func_start Func_f3078
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2779,6 +2886,20 @@
 	bx	r0
 .func_end Func_f3078
 
+@ StartPaletteFadeEngine
+@ Takes no arguments. Takes 0x3004 bytes under tag 0x20 -- the block iwram_1ed0
+@ points at -- and snapshots both palettes into the front of it: 0x200 bytes from
+@ 0x5000000 and 0x200 from 0x5000200, so +0x000..+0x400 is the packed 512-colour
+@ copy. Func_f3078 then unpacks it into the working buffer at +0x1000, and
+@ Func_f2f10 is registered at sort key 0xC80.
+@
+@ The block's layout, from here and Func_f3858:
+@
+@     +0x0000  the packed snapshot, and a step index halfword at +0
+@     +0x0400  the CURRENT unpacked palette, 0x600 halfwords
+@     +0x1000  the TARGET unpacked palette
+@     +0x1C00  the per-frame step from Func_f2ebc
+@     +0x3001  frames remaining     +0x3002  a phase flag
 .thumb_func_start Func_f377c
 	push	{lr}
 	ldr	r1, =0x3004
@@ -2823,6 +2944,8 @@
 	bx	r0
 .func_end Func_f377c
 
+@ StopPaletteFadeEngine
+@ Takes no arguments. Unregisters Func_f2f10 and rewinds tag 0x20.
 .thumb_func_start Func_f37ec
 	push	{lr}
 	ldr	r0, =Func_f2f10
@@ -2833,6 +2956,10 @@
 	bx	r0
 .func_end Func_f37ec
 
+@ SetFadeTargetScaled
+@ r0 = a 16.16 scale, r1 = mode. Runs Func_f3078 from the packed snapshot into
+@ the buffer at +0x1000 -- the fade TARGET. Does nothing when the engine is not
+@ running.
 .thumb_func_start Func_f3804
 	push	{lr}
 	ldr	r3, =iwram_1ed0
@@ -2850,6 +2977,9 @@
 	bx	r0
 .func_end Func_f3804
 
+@ SetFadeCurrentScaled
+@ r0 = a 16.16 scale, r1 = mode. As Func_f3804 but writing the buffer at +0x400,
+@ the CURRENT palette. The two differ only in that offset.
 .thumb_func_start Func_f3824
 	push	{lr}
 	ldr	r3, =iwram_1ed0
@@ -2867,6 +2997,9 @@
 	bx	r0
 .func_end Func_f3824
 
+@ SetFadeIndex
+@ r0 = value. Stores the halfword at the front of the fade block. Does nothing
+@ when the engine is not running.
 .thumb_func_start Func_f3844
 	push	{lr}
 	ldr	r3, =iwram_1ed0
@@ -2879,6 +3012,10 @@
 	bx	r0
 .func_end Func_f3844
 
+@ BeginPaletteFade
+@ r0 = how many frames the fade should take. Records the count at +0x3001,
+@ clears the phase flag at +0x3002, and computes the per-frame step with
+@ Func_f2ebc from the current palette at +0x400 toward the target at +0x1000.
 .thumb_func_start Func_f3858
 	push	{r5, lr}
 	ldr	r3, =iwram_1ed0
@@ -2910,6 +3047,9 @@
 	bx	r0
 .func_end Func_f3858
 
+@ ClampComponent
+@ r0 = a colour component. Clamps to 0..0x1F -- the five bits the GBA gives each
+@ channel.
 .thumb_func_start Func_f3898
 	push	{lr}
 	cmp	r0, #0x1f
@@ -2925,6 +3065,10 @@
 	bx	r1
 .func_end Func_f3898
 
+@ ClampPackedColour
+@ r0 = a packed colour. Clamps at 0x7C00, which is red 0x1F with green and blue
+@ zero -- the largest value the packing can produce before it would carry into
+@ the unused bit 15.
 .thumb_func_start Func_f38ac
 	push	{lr}
 	mov	r3, #0xf8

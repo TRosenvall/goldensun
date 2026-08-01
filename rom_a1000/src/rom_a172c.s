@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ AttachIconNode
+@ r0 = x, r1 = tile source, r2 = y, r3 = priority. Reserves an OBJ slot with
+@ Func_4080, gives it 0x80 bytes of tiles from .Laea4c through Func_3fa4, and
+@ chains a node onto it with _Func_1eadc. Returns the node, or 0 when no OBJ
+@ slot was free.
 .thumb_func_start Func_a172c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -36,6 +41,12 @@
 	bx	r1
 .func_end Func_a172c
 
+@ AttachIconNodeAlt
+@ r0 = x, r1 = y, r2 = priority, r3 = tile source. Identical to Func_a172c in
+@ every instruction that matters -- same OBJ slot, same 0x80 bytes from
+@ .Laea4c, same _Func_1eadc -- differing only in which argument register
+@ carries which field. The two exist because their callers pass the arguments
+@ in different orders; this is the exported one.
 .thumb_func_start Func_a1778
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -72,6 +83,12 @@
 	bx	r1
 .func_end Func_a1778
 
+@ ResetNodeAnimation
+@ r0 = node, or 0 for a no-op. Marks the node live (+0x05 = 1), copies its
+@ resource id from +0x06 into the low 9 bits of +0x16, restarts the frame
+@ counter by copying +0x08 to +0x14, and clears the top two bits of +0x17 and
+@ the low two of +0x15. Called 43 times across the module, always to rewind a
+@ sprite that is about to be reused rather than to build a new one.
 .thumb_func_start Func_a17c4
 	push	{lr}
 	cmp	r0, #0
@@ -103,6 +120,9 @@
 	bx	r0
 .func_end Func_a17c4
 
+@ ClearMenuEntries
+@ Takes no arguments. _Func_1ed40(0, r1, 0) -- populates menu 0, which is
+@ empty, and so wipes whatever entries were showing.
 .thumb_func_start Func_a1804
 	push	{lr}
 	mov	r0, #0

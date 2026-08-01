@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ WaitForEntityIdle
+@ r0=entity. Blocks until Func_ca98 reports the entity has no movement target
+@ left, yielding one frame at a time with Func_30f8(1). Gives up after 0x257
+@ (599) frames so a stuck entity cannot hang the caller.
 .thumb_func_start Func_ca6c
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -24,6 +28,11 @@
 	bx	r0
 .func_end Func_ca6c
 
+@ IsEntityIdle
+@ r0=entity. Returns 1 when every active movement target is cleared to the
+@ 0x80000000 "none" sentinel, else 0. The x target (+0x38) and z target (+0x40)
+@ are always required; the y target (+0x3C) is only checked when vertical
+@ motion is enabled, i.e. when the mode byte at +0x55 is 0.
 .thumb_func_start Func_ca98
 	push	{lr}
 	mov	r3, r0
@@ -56,6 +65,37 @@
 	bx	r1
 .func_end Func_ca98
 
+@ UpdateEntities
+@ Per-frame update over the 0x40 entities at [iwram_1e64], stride 0x70. Takes no
+@ arguments. This is the full Thumb version of the reduced ARM loop Func_a494
+@ (rom_92b8.s) -- same entity layout, more behaviour.
+@ Per entity, skipping slots with a null script (+0x00) or a set freeze flag
+@ (+0x5B):
+@   1) run the hook at +0x6C
+@   2) tick the wait timer at +0x5E; at zero, run the script VM -- opcodes
+@      <= 0x3F dispatch through Data_13624, higher values just advance the
+@      cursor at +0x04
+@   3) unless suspended by +0x61, integrate movement. With a target set
+@      (+0x38/+0x3C/+0x40 != 0x80000000) accelerate toward it by +0x34 and clamp
+@      the speed to +0x30, using Func_948/Func_45d4 for length and Func_8ac for
+@      the reciprocal; with no target, decay the existing velocity instead.
+@   4) apply the mode bits at +0x55:
+@        bit 0 -- follow terrain: Func_11f54 returns the ground height for the
+@                 tile type at +0x22; the step is clamped to half of +0x34 and
+@                 tripled to bound the climb rate
+@        bit 1 -- gravity/landing against the height cached at +0x14, with the
+@                 restitution factor at +0x44 and the cutoff at +0x48
+@        bit 2 -- vertical oscillation driven by the .L131c0 table indexed by
+@                 (+0x44 & 0x3F) >> 1, scaled by +0x48 and shifted right 4 or 6
+@                 depending on bit 3
+@        bit 4 -- suppress the speed clamp in step 3
+@   5) when bit 7 of +0x59 is set, test the new position with Func_d924; a hit
+@      bumps the collision counter at +0x60 and abandons the move
+@   6) detect arrival on the axis named by +0x56 (0x10 = x, 0x11 = y, 0x12 = z)
+@      by sign-change; on arrival optionally snap to the target (+0x58) and
+@      clear all three targets
+@   7) when bit 0 of +0x5A is set, turn the facing angle at +0x06 toward the
+@      direction of travel via Func_44d0, clamped to +/-0x1000 per frame
 .thumb_func_start Func_cacc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -843,6 +883,11 @@
 	bx	r0
 .func_end Func_cacc
 
+@ SetEntityPosition
+@ r0=entity, r1=x, r2=y, r3=z (all 16.16). Teleports the entity: writes the
+@ position to +0x08/+0x0C/+0x10, clears the velocity at +0x24/+0x28/+0x2C and
+@ resets all three movement targets to the 0x80000000 "none" sentinel, so any
+@ in-flight move is abandoned.
 .thumb_func_start Func_d130
 	str	r3, [r0, #0x10]
 	mov	r3, #0x80
@@ -859,6 +904,20 @@
 	bx	lr
 .func_end Func_d130
 
+@ SetEntityMoveTarget
+@ r0=entity, r1=target x, r2=target y, r3=target z (16.16). Starts a move
+@ toward the given point.
+@ Measures the distance with Func_948, refining it through Func_888/Func_45d4
+@ when it is under 0x100000. A distance below 1.0 (0x10000) degenerates to a
+@ teleport: the position is written straight to +0x08/+0x0C/+0x10 and the
+@ targets are left cleared. Otherwise, unless +0x58 requests an exact stop, the
+@ target is extended by a braking allowance derived from the max speed at +0x30
+@ and the acceleration at +0x34, so the entity decelerates onto the point
+@ instead of overshooting.
+@ Writes the (possibly extended) target to +0x38/+0x3C/+0x40 and records which
+@ axis the arrival test should watch in +0x56: 0x10 (x) by default, 0x12 (z)
+@ when |dz| exceeds |dx|, and 0x11 (y) when vertical motion is enabled
+@ (+0x55 == 0) and |dy| exceeds the dominant horizontal component.
 .thumb_func_start Func_d14c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1073,6 +1132,11 @@
 	bx	r0
 .func_end Func_d14c
 
+@ RunEntityUpdateFromRam
+@ Takes no arguments. Allocates a 0x4E8-byte buffer (Func_4938), DMA-copies the
+@ ARM entity update Func_a494 (rom_92b8.s) into it, calls the RAM copy, then
+@ frees the buffer with Func_2df0. The copy exists purely so the hot ARM loop
+@ executes out of RAM rather than ROM.
 .thumb_func_start Func_d304
 	push	{r5, r6, lr}
 	ldr	r5, =0x4e8
@@ -1096,6 +1160,21 @@
 	bx	r0
 .func_end Func_d304
 
+@ UpdateEntitiesXZ
+@ Per-frame update over the first 14 entities at [iwram_1e64], stride 0x70.
+@ Takes no arguments. A cut-down sibling of Func_cacc: target seeking is done
+@ in the x/z plane only (the y axis is left to gravity), and the terrain-follow,
+@ oscillation and collision steps are absent.
+@ Per entity with a non-null script (+0x00):
+@   - seek the target at +0x38/+0x40 with the acceleration at +0x34, clamped to
+@     the max speed at +0x30; with no target, decay the velocity toward zero
+@   - when bit 1 of +0x55 is set, apply the fall/landing step against the height
+@     cached at +0x14 using the restitution at +0x44 and cutoff at +0x48
+@   - integrate into +0x08/+0x0C/+0x10 and run the arrival test named by +0x56
+@     (0x10 = x, 0x11 = y, 0x12 = z), clearing the targets on arrival and
+@     optionally snapping to them per +0x58
+@   - when bit 0 of +0x5A is set, turn the facing angle at +0x06 toward the
+@     heading via Func_44d0, clamped to +/-0x1000 per frame
 .thumb_func_start Func_d340
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1486,5 +1565,8 @@
 
 	.section .rodata
 
+@ .L131c0 -- 32-entry oscillation table (0x80 bytes of words) used by Func_cacc
+@ for the bit-2 vertical bob: indexed by (+0x44 & 0x3F) >> 1 and scaled by the
+@ amplitude at +0x48.
 .L131c0:
 	.incrom 0x131c0, 0x13240

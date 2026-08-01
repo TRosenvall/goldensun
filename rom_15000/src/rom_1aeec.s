@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ EmitPartySprites
+@ r0.. = sprite parameters. Emits the party screen's character sprites,
+@ reserving OBJ tiles with Func_3fa4, releasing with Func_3dec, and reading
+@ character data through _Func_79338. Driven from Func_1a98c's per-frame task
+@ and paced by the frame counter at iwram_1800. 142 lines; traced structurally.
 .thumb_func_start Func_1aeec
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -142,6 +147,10 @@
 	bx	r0
 .func_end Func_1aeec
 
+@ OpenPartyPanel
+@ r0.. = panel parameters. Opens a window with Func_162d4, fills it through
+@ Func_1e7c0 and Func_1b36c, and closes any previous panel with Func_16418 /
+@ Func_16478. The core "show a character panel" call the party screen uses.
 .thumb_func_start Func_1b010
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -296,6 +305,10 @@
 	bx	r0
 .func_end Func_1b010
 
+@ ClosePartyScreen
+@ Takes no arguments. Tears the party screen down: stops the task with
+@ Func_1a97c, closes windows with Func_16418, releases OBJ tiles with
+@ Func_3f3c and the block with Func_2dd8, giving a frame with Func_30f8.
 .thumb_func_start Func_1b148
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e98
@@ -375,6 +388,8 @@
 	bx	r0
 .func_end Func_1b148
 
+@ GetPartyScreenField
+@ r0 = index. Returns one of the party-screen state fields from iwram_1e98.
 .thumb_func_start Func_1b1ec
 	push	{lr}
 	ldr	r3, =iwram_1e98
@@ -405,6 +420,8 @@
 	bx	r0
 .func_end Func_1b1ec
 
+@ RefreshPartyPanel
+@ r0.. = parameters. Thin wrapper over Func_1b248 that repaints the panel.
 .thumb_func_start Func_1b228
 	push	{r5, lr}
 	ldr	r3, =iwram_1e98
@@ -420,6 +437,9 @@
 	bx	r0
 .func_end Func_1b228
 
+@ DrawPartyPanel
+@ r0.. = panel parameters. Draws a character panel's contents, reserving tiles
+@ with Func_3fa4 and Func_4080. 144 lines; traced structurally.
 .thumb_func_start Func_1b248
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -564,6 +584,9 @@
 	bx	r0
 .func_end Func_1b248
 
+@ CountVisibleEntries
+@ r0 = party-screen block. Returns how many entries are live, walking the count
+@ at +0x39E and the pointer at +0x348. Returns 0 when the list is empty.
 .thumb_func_start Func_1b36c
 	push	{lr}
 	mov	r2, #0xd2
@@ -589,6 +612,10 @@
 	bx	r1
 .func_end Func_1b36c
 
+@ RunPartyScreenInput
+@ Takes no arguments. The party screen's input loop: polls iwram_1c94 (newly
+@ pressed) and iwram_1b04 (auto-repeat) each frame through Func_30f8(1) and
+@ dispatches to Func_1b664, Func_1b810, Func_1b9ec and Func_1be80.
 .thumb_func_start Func_1b398
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e98
@@ -653,6 +680,9 @@
 	bx	r1
 .func_end Func_1b398
 
+@ RunPartySelectInput
+@ Takes no arguments. As Func_1b398 but for the character-selection mode; plays
+@ the move and confirm sounds through _Func_f9080.
 .thumb_func_start Func_1b424
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1e98
@@ -747,6 +777,9 @@
 	bx	r1
 .func_end Func_1b424
 
+@ ScrollPartyListUp
+@ r0.. = parameters. Moves the party list selection up one, repainting through
+@ Func_1b010 and Func_1ba68, one frame per step via Func_30f8.
 .thumb_func_start Func_1b4ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -847,6 +880,9 @@
 	bx	r0
 .func_end Func_1b4ec
 
+@ ScrollPartyListDown
+@ r0.. = parameters. The downward counterpart to Func_1b4ec, same structure and
+@ same helpers.
 .thumb_func_start Func_1b5c0
 	push	{r5, r6, r7, lr}
 	mov	r1, #0xe7
@@ -922,6 +958,10 @@
 	bx	r0
 .func_end Func_1b5c0
 
+@ PagePartyListForward
+@ r0.. = parameters. Advances the party list by a page, animating through
+@ Func_1ba68 and reloading portraits with Func_1bd98. 210 lines; traced
+@ structurally.
 .thumb_func_start Func_1b664
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1132,6 +1172,8 @@
 	bx	r0
 .func_end Func_1b664
 
+@ PagePartyListBackward
+@ r0.. = parameters. The backward counterpart to Func_1b664, same shape.
 .thumb_func_start Func_1b810
 	push	{r5, r6, r7, lr}
 	ldr	r1, =0x39e
@@ -1337,6 +1379,8 @@
 	bx	r0
 .func_end Func_1b810
 
+@ LoadPanelPortrait
+@ r0 = character. Loads the portrait for a panel through Func_19ee4.
 .thumb_func_start Func_1b9a8
 	push	{lr}
 	mov	r3, #0xd2
@@ -1375,6 +1419,9 @@
 	bx	r0
 .func_end Func_1b9a8
 
+@ LoadPanelGraphics
+@ r0 = character. Loads a panel's portrait with Func_19ee4 and its shared
+@ graphics with Func_1c188.
 .thumb_func_start Func_1b9ec
 	push	{lr}
 	mov	r3, #0xd2
@@ -1414,6 +1461,8 @@
 	bx	r0
 .func_end Func_1b9ec
 
+@ PlayPartyScreenCue
+@ r0 = cue. Forwards to _Func_c10e8 in rom_b5000.
 .thumb_func_start Func_1ba34
 	push	{lr}
 	mov	r3, #0xd2
@@ -1441,6 +1490,10 @@
 	bx	r0
 .func_end Func_1ba34
 
+@ AnimatePanelTransition
+@ r0.. = parameters. Slides panels between positions a frame at a time
+@ (Func_30f8), claiming slots with Func_1a910 and releasing tiles with
+@ Func_3f3c. 227 lines; traced structurally.
 .thumb_func_start Func_1ba68
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1668,6 +1721,9 @@
 	bx	r0
 .func_end Func_1ba68
 
+@ LoadPanelSet
+@ r0.. = parameters. Loads the portrait, icon and table graphics for one panel
+@ via Func_19ee4, Func_1a2a4, Func_1a32c and Func_1a3d0.
 .thumb_func_start Func_1bc34
 	push	{r5, lr}
 	mov	r3, #1
@@ -1744,6 +1800,8 @@
 	bx	r1
 .func_end Func_1bc34
 
+@ LoadPanelSetExtended
+@ r0.. = parameters. As Func_1bc34 with the icon set from Func_1a2ec added.
 .thumb_func_start Func_1bcd4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1839,6 +1897,9 @@
 	bx	r1
 .func_end Func_1bcd4
 
+@ LoadAllPortraits
+@ r0.. = parameters. Loads portraits for every visible party entry through
+@ Func_19ee4, Func_19fcc and Func_1a3d0.
 .thumb_func_start Func_1bd98
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
@@ -1954,6 +2015,10 @@
 	bx	r0
 .func_end Func_1bd98
 
+@ RunPartyReorder
+@ r0.. = parameters. Drives the party-reordering interaction, moving entries
+@ with Func_1a910, repainting each frame with Func_30f8, and releasing tiles
+@ with Func_3f3c. 288 lines; traced structurally.
 .thumb_func_start Func_1be80
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2242,30 +2307,48 @@
 	bx	r1
 .func_end Func_1be80
 
+@ NoOp
+@ A bare `bx lr`, present as a table entry or placeholder.
 .thumb_func_start Func_1c0c4
 	bx	lr
 .func_end Func_1c0c4
 
+@ NoOp
+@ A bare `bx lr`. Exported, so something outside this module holds its address;
+@ calling it does nothing.
 .thumb_func_start Func_1c0c8
 	bx	lr
 .func_end Func_1c0c8
 
+@ NoOp
+@ A bare `bx lr`. Exported, so something outside this module holds its address;
+@ calling it does nothing.
 .thumb_func_start Func_1c0cc
 	bx	lr
 .func_end Func_1c0cc
 
+@ NoOp
+@ A bare `bx lr`, present as a table entry or placeholder.
 .thumb_func_start Func_1c0d0
 	bx	lr
 .func_end Func_1c0d0
 
+@ NoOp
+@ A bare `bx lr`, present as a table entry or placeholder.
 .thumb_func_start Func_1c0d4
 	bx	lr
 .func_end Func_1c0d4
 
+@ NoOp
+@ A bare `bx lr`. Exported, so something outside this module holds its address;
+@ calling it does nothing.
 .thumb_func_start Func_1c0d8
 	bx	lr
 .func_end Func_1c0d8
 
+@ ReserveScreenTiles
+@ r0.. = parameters. Reserves OBJ tile space for the screen with Func_3fa4 and
+@ Func_4080.
 .thumb_func_start Func_1c0dc
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -2327,6 +2410,8 @@
 	bx	r0
 .func_end Func_1c0dc
 
+@ ReleaseScreenTiles
+@ r0 = handle. Releases a tile reservation with Func_3dec.
 .thumb_func_start Func_1c154
 	push	{lr}
 	ldr	r3, =0x1ff
@@ -2348,6 +2433,8 @@
 	bx	r0
 .func_end Func_1c154
 
+@ FreeScreenTiles
+@ r0 = handle. Releases OBJ tiles with Func_3f3c.
 .thumb_func_start Func_1c17c
 	push	{lr}
 	bl	Func_3f3c
@@ -2355,6 +2442,11 @@
 	bx	r0
 .func_end Func_1c17c
 
+@ LoadScreenGraphics
+@ r0.. = parameters. Loads the party screen's shared graphics: Func_2f40 gets
+@ the asset, Func_48b0 allocates, Func_53e8 unpacks, Func_3fa4 / Func_4080
+@ reserve the tiles, and Func_2dd8 frees the scratch. Func_1b36c supplies the
+@ entry count so only the visible panels are loaded.
 .thumb_func_start Func_1c188
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -2422,6 +2514,9 @@
 	bx	r0
 .func_end Func_1c188
 
+@ ReleasePanelTiles
+@ r0 = panel. Releases the panel's OBJ tiles with Func_3f3c and clears its
+@ handle in the block at iwram_1e98.
 .thumb_func_start Func_1c21c
 	push	{r5, lr}
 	ldr	r3, =iwram_1e98
@@ -2442,6 +2537,22 @@
 	bx	r0
 .func_end Func_1c21c
 
+@ RunFieldMenuLoop
+@ Takes no arguments. The field menu, opened from rom_8a000. Func_28920 draws
+@ the menu and returns the chosen entry; this dispatches it, five ways:
+@
+@     0  _Func_8ce74  NOT a screen -- reads the terrain the player is standing
+@                     on and stores it, or 0xFF, at [iwram_1ebc]+0x17A, then
+@                     leaves the menu
+@     1  _Func_a5b94  Items      -- loops the menu again on -1
+@     2  _Func_aa56c  Djinn      -- loops again on 0
+@     3  _Func_a24d0  Psynergy   -- loops again on -1
+@     4  _Func_a7478  Status     -- loops again on -1
+@
+@ Note the polarity differs: entry 2 loops on ZERO and the others on -1, which
+@ is why Func_aa56c returns 1 where the rest return their selection.
+@ Func_1c2d0 and Func_1c2e4 fade around each pass. iwram_1ebc is the block the
+@ result is written into.
 .thumb_func_start Func_1c244
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1ebc
@@ -2508,6 +2619,9 @@
 	bx	r1
 .func_end Func_1c244
 
+@ FadeAndStep
+@ Takes no arguments. Func_1ef08(1) then one Func_30f8(1) -- start a fade and
+@ let a frame pass.
 .thumb_func_start Func_1c2d0
 	push	{lr}
 	mov	r0, #1
@@ -2518,6 +2632,8 @@
 	bx	r0
 .func_end Func_1c2d0
 
+@ RestoreAfterMenu
+@ Takes no arguments. Forwards to Func_1f5d4.
 .thumb_func_start Func_1c2e4
 	push	{lr}
 	bl	Func_1f5d4
@@ -2525,6 +2641,9 @@
 	bx	r0
 .func_end Func_1c2e4
 
+@ OpenPartyScreen
+@ Takes no arguments. Func_1a66c allocates the block, Func_1a778 resets it, then
+@ a frame passes.
 .thumb_func_start Func_1c2f0
 	push	{lr}
 	bl	Func_1a66c
@@ -2535,6 +2654,10 @@
 	bx	r0
 .func_end Func_1c2f0
 
+@ RunPartyScreen
+@ Takes no arguments. Builds the screen with Func_1a7f4, starts its task with
+@ Func_1a968, opens the panel with Func_1b010, runs input with Func_1b424, and
+@ tears down with Func_1b148.
 .thumb_func_start Func_1c304
 	push	{r5, lr}
 	ldr	r3, =iwram_1e98
@@ -2563,6 +2686,10 @@
 	bx	r1
 .func_end Func_1c304
 
+@ OpenStatusOverlay
+@ r0.. = parameters. Opens a window with Func_162d4, renders text with
+@ Func_187ac, registers a task with Func_41d8, and reads the save-data
+@ preferences at ewram_240. State lives in iwram_1ebc.
 .thumb_func_start Func_1c34c
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1ebc
@@ -2630,6 +2757,9 @@
 	bx	r0
 .func_end Func_1c34c
 
+@ CloseStatusOverlay
+@ Takes no arguments. Unregisters the task with Func_4278 and closes the window
+@ with Func_16418.
 .thumb_func_start Func_1c3e8
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -2657,6 +2787,8 @@
 	bx	r0
 .func_end Func_1c3e8
 
+@ CloseStatusOverlayAlt
+@ Takes no arguments. As Func_1c3e8 with different cleanup ordering.
 .thumb_func_start Func_1c428
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -2679,6 +2811,9 @@
 	bx	r0
 .func_end Func_1c428
 
+@ ForwardToParty
+@ r0, r1 = parameters. Calls _Func_789dc with r1 and always returns 0 -- the
+@ callee's result is discarded.
 .thumb_func_start Func_1c458
 	push	{lr}
 	mov	r0, r1
@@ -2688,11 +2823,16 @@
 	bx	r1
 .func_end Func_1c458
 
+@ ReturnOne
+@ Takes no arguments. Returns 1 unconditionally. Exported, so it is a predicate
+@ stub something else queries.
 .thumb_func_start Func_1c468
 	mov	r0, #1
 	bx	lr
 .func_end Func_1c468
 
+@ ReadSaveFlag
+@ r0 = index. Reads a preference byte out of the save block at ewram_240.
 .thumb_func_start Func_1c46c
 	push	{lr}
 	ldr	r2, =0x205
@@ -2718,6 +2858,11 @@
 	bx	r0
 .func_end Func_1c46c
 
+@ RunMenuScreen
+@ r0.. = parameters. A full menu screen: opens windows with Func_162d4, reads
+@ input from iwram_1c94 and iwram_1b04, calls Func_1c7fc for character data and
+@ Func_1c8a0 for the save block, fades with Func_1e41c / Func_1e7c0, and closes
+@ with Func_16418. 385 lines; traced structurally.
 .thumb_func_start Func_1c49c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3103,6 +3248,9 @@
 	bx	r0
 .func_end Func_1c49c
 
+@ ReadCharacterSummary
+@ r0 = character. Collects a character's display summary through _Func_77394,
+@ _Func_78b9c and _Func_796c4 in rom_77000.
 .thumb_func_start Func_1c7fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3190,6 +3338,9 @@
 	bx	r1
 .func_end Func_1c7fc
 
+@ ReadSaveSummary
+@ r0.. = parameters. Reads party totals out of the save block, using both
+@ ewram_240 and ewram_462.
 .thumb_func_start Func_1c8a0
 	push	{r5, r6, r7, lr}
 	mov	r3, #0
@@ -3256,6 +3407,8 @@
 	bx	r0
 .func_end Func_1c8a0
 
+@ RunMenuScreenDefault
+@ Takes no arguments. Func_1c49c with the default parameters.
 .thumb_func_start Func_1c924
 	push	{lr}
 	bl	Func_1c49c
@@ -3263,6 +3416,8 @@
 	bx	r0
 .func_end Func_1c924
 
+@ AllocMenuBlock
+@ r0 = size. Allocates a menu state block with Func_48f4.
 .thumb_func_start Func_1c930
 	push	{lr}
 	ldr	r1, =0x1004
@@ -3279,6 +3434,10 @@
 	bx	r0
 .func_end Func_1c930
 
+@ CloseMenuScreen
+@ Takes no arguments. Waits for the window to go idle with Func_17394, closes it
+@ with Func_16418, releases tiles with Func_3f3c and the block with Func_2dd8.
+@ State is at iwram_1e9c.
 .thumb_func_start Func_1c954
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1e9c
@@ -3326,18 +3485,27 @@
 	bx	r0
 .func_end Func_1c954
 
+@ NoOp
+@ A bare `bx lr`, present as a table entry or placeholder.
 .thumb_func_start Func_1c9bc
 	bx	lr
 .func_end Func_1c9bc
 
+@ NoOp
+@ A bare `bx lr`, present as a table entry or placeholder.
 .thumb_func_start Func_1c9c0
 	bx	lr
 .func_end Func_1c9c0
 
+@ NoOp
+@ A bare `bx lr`, present as a table entry or placeholder.
 .thumb_func_start Func_1c9c4
 	bx	lr
 .func_end Func_1c9c4
 
+@ ComputeMenuMetrics
+@ r0.. = parameters. Pure arithmetic over the menu state with no calls out;
+@ 49 lines, traced structurally.
 .thumb_func_start Func_1c9c8
 	mov	r1, #0x80
 	lsl	r1, #3

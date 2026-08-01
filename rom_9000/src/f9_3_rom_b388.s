@@ -1,5 +1,21 @@
 	.include "macros.inc"
 
+@ ProjectAndSubmitSprite
+@ r0=sprite object, r1=world position, r2=scale pair, r3=(u16) style selector,
+@ [sp+0x58]=priority override (0 = derive from depth).
+@ The full 3D path: projects the world position to screen space with Func_5268
+@ into a local vector, then culls unless the projection is valid (+8 non-zero)
+@ and the result lies within x in [-0x20, 0x110] and y in [-0x20, 0xD0].
+@ Perspective scale comes from Func_888 (fixed-point divide) against the depth
+@ at +0x18, unless bit 1 of +0x1D says the caller already supplied it. Both
+@ axis scales are clamped to 0x1F7FF (-> 0x1F800). Renders the label via
+@ Func_aa0c, allocates an affine matrix with Func_3d28 when rotated or scaled
+@ (mode 3 and doubled extents above 1.0, mode 0 when unrotated and unscaled),
+@ writes y/flags/x into +0x04..+0x07 and submits with Func_3dec. When bit 0 of
+@ +0x26 is set, the companion entry at +0x0C is projected from the object's
+@ ground position and submitted as a second sprite.
+@ On the cull path (.Lb658): unless bit 0 of +0x1D is set, releases the sprite's
+@ tile allocation with Func_3f78 and sets the dirty flag at +0x25.
 .thumb_func_start Func_b388
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

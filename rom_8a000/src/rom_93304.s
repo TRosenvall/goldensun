@@ -1,5 +1,23 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Camera control and party-follow.
+@
+@ The camera state block is fetched with Func_48f4(0x1B, 0xCCC); the camera
+@ ENTITY lives at +0x1E0 within it and the scene mode at +0x19E. Pointing
+@ [iwram_1e70] at the camera entity's position words (+0x08) is what makes the
+@ map scroller in rom_9000 follow it.
+@ Map bounds are held in the map state at [iwram_1e70]+0xEC..+0xF8 and every
+@ camera move below is clamped against them, inset by a margin so the view never
+@ shows past the edge.
+@ ============================================================================
+
+@ SetDialoguePortrait
+@ r0=speaker slot, or 0x80000000 for "no portrait".
+@ Writes the portrait id at iwram_1e8c+0x12F4 and its style byte at +0x12F6.
+@ The sentinel clears both; otherwise the id comes from Func_92ba8 /
+@ Func_915ac and the style is looked up in .L9fc28 by the text-speed setting at
+@ ewram_240+0x20C.
 .thumb_func_start Func_93304
 	push	{r5, lr}
 	ldr	r3, =iwram_1e8c
@@ -36,6 +54,13 @@
 	bx	r0
 .func_end Func_93304
 
+@ AttachCameraToSlot
+@ r0=slot, r1=non-zero to keep the current camera position.
+@ Binds the camera entity to the slot's entity with _Func_c4bc and repoints
+@ [iwram_1e70] at the camera's position words so the map scrolls with it.
+@ Unless r1 says otherwise the camera is snapped straight onto the target's
+@ position, given a frame to settle, and -- outside scene mode 3 -- the map view
+@ is refreshed with _Func_fe9c so the new region is drawn immediately.
 .thumb_func_start Func_9335c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -90,6 +115,9 @@
 	bx	r0
 .func_end Func_9335c
 
+@ SetCameraSpeed
+@ r0=max speed, r1=acceleration. Writes +0x30 and +0x34 of the camera entity,
+@ controlling how quickly the camera catches up with whatever it is following.
 .thumb_func_start Func_933d4
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -108,6 +136,14 @@
 	bx	r0
 .func_end Func_933d4
 
+@ MoveCameraTo
+@ r0=x, r1=y, r2=z, r3=flags. Any coordinate passed as -1 keeps its current
+@ value, so a caller can move one axis at a time.
+@ Detaches the camera from its follow target with _Func_c4ac, then clamps the
+@ destination against the map bounds at [iwram_1e70]+0xEC..+0xF8 -- each inset
+@ by a margin (0x780000 on x, 0x600000 and 0x780000 on z, 0x400000 on the far
+@ edge) so the camera stops short of showing past the map -- and starts the
+@ move.
 .thumb_func_start Func_933f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -238,6 +274,10 @@
 	bx	r0
 .func_end Func_933f8
 
+@ CenterCameraOnSlot
+@ r0=slot, r1=flags. Moves the camera to the slot entity's current position via
+@ the same clamped path as Func_933f8, leaving the camera detached rather than
+@ bound. No-op if the slot is empty.
 .thumb_func_start Func_93500
 	push	{r5, r6, lr}
 	mov	r6, r1
@@ -260,6 +300,10 @@
 	bx	r0
 .func_end Func_93500
 
+@ WaitForCameraArrival
+@ Takes no arguments. Blocks on _Func_ca6c until the camera entity finishes its
+@ move, then pauses a further 2 frames through Func_9163c so the view settles
+@ before the next scripted step.
 .thumb_func_start Func_93530
 	push	{lr}
 	ldr	r1, =0xccc
@@ -276,6 +320,8 @@
 	bx	r0
 .func_end Func_93530
 
+@ GetCameraEntity
+@ Returns the camera entity pointer from +0x1E0 of the camera state block.
 .thumb_func_start Func_93554
 	push	{lr}
 	ldr	r1, =0xccc
@@ -289,6 +335,9 @@
 	bx	r1
 .func_end Func_93554
 
+@ SetCameraFollowTarget
+@ r0=target entity or 0, r1=flags. Binds the camera to r0 with _Func_c4bc when
+@ a target is given, or releases it to free movement when r0 is null.
 .thumb_func_start Func_93570
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -320,6 +369,11 @@
 	bx	r0
 .func_end Func_93570
 
+@ SetMapBounds
+@ r0, r1, r2, r3 = minimum x, minimum z, maximum x, maximum z. Writes the four
+@ bound words at [iwram_1e70]+0xEC, +0xF0, +0xF4 and +0xF8 that every camera
+@ move in this file clamps against. Scripts use this to fence the camera into a
+@ sub-region of a larger map.
 .thumb_func_start Func_935b0
 	ldr	r4, =iwram_1e70
 	ldr	r4, [r4]
@@ -338,6 +392,10 @@
 	bx	lr
 .func_end Func_935b0
 
+@ MoveCameraToClamped
+@ r0..r3 = destination and flags. Like Func_933f8 but reads the live map bounds
+@ rather than the cached ones and applies the clamp before issuing the move, so
+@ it stays correct after a Func_935b0 change mid-scene.
 .thumb_func_start Func_935d4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -428,6 +486,10 @@
 	bx	r1
 .func_end Func_935d4
 
+@ ScrollCameraBy
+@ r0=x delta, r1=z delta. Offsets the camera from its current position, clamped
+@ to the map bounds. Scene mode 3 (+0x19E) takes a different path that keeps the
+@ camera locked to its follow target instead.
 .thumb_func_start Func_936a0
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e70
@@ -474,6 +536,10 @@
 	bx	r0
 .func_end Func_936a0
 
+@ RestoreCameraToPlayer
+@ Takes no arguments. Returns the camera to the player after a scripted move:
+@ in scene mode 3 it re-binds directly, otherwise it re-centres on the player
+@ entity and lets the normal follow behaviour resume.
 .thumb_func_start Func_93710
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1e70
@@ -516,6 +582,11 @@
 	bx	r0
 .func_end Func_93710
 
+@ CameraFollowHook
+@ r0=camera entity. Per-frame hook. Copies the followed entity's position
+@ (from the script argument at +0x68) into the camera, clearing the movement
+@ mode at +0x55 so the camera does not try to path toward it, and mirrors the
+@ target's facing into +0x66. A null target makes the hook a no-op.
 .thumb_func_start Func_9376c
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -556,6 +627,11 @@
 	bx	r1
 .func_end Func_9376c
 
+@ PlayInteractionEffect
+@ r0=slot, r1=effect id in the low byte, r2=parameter. Plays the sound and
+@ visual that accompanies a field interaction; effect 6 additionally plays
+@ sound 0x6E up front. Dispatches on the low byte to select which of the
+@ per-effect routines runs.
 .thumb_func_start Func_937b8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -649,6 +725,10 @@
 	bx	r0
 .func_end Func_937b8
 
+@ RunSlotEffectSequence
+@ r0=slot, r1=sequence id. Runs a short scripted effect on the slot entity --
+@ animation change, wait, and position nudge -- returning when it completes.
+@ The ~120-instruction body is characterised structurally.
 .thumb_func_start Func_93874
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -774,6 +854,11 @@
 	bx	r0
 .func_end Func_93874
 
+@ ClearSlotEffectFlags
+@ r0=entity. Clears the actor option byte through _Func_c528(entity, 0) and
+@ zeroes the collision flags at +0x59, undoing what an effect sequence set.
+@ Always returns 0, so it doubles as a script opcode handler that ends the VM
+@ pass.
 .thumb_func_start Func_93964
 	push	{r5, lr}
 	mov	r1, #0
@@ -788,6 +873,11 @@
 	bx	r1
 .func_end Func_93964
 
+@ ChaseTargetHook
+@ r0=entity. Per-frame hook for an entity chasing the target held at +0x68.
+@ Computes the delta to the target, and once it closes to within the threshold
+@ switches behaviour -- the usual approach-then-stop pattern. A null target is a
+@ no-op.
 .thumb_func_start Func_9397c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -861,6 +951,10 @@
 	bx	r1
 .func_end Func_9397c
 
+@ FaceTargetHook
+@ r0=entity. Per-frame hook that keeps the entity looking at the target at
+@ +0x68: clears bit 0 of +0x5A so the mover does not also turn it toward its
+@ heading, then sets the facing angle from the atan2 of the delta.
 .thumb_func_start Func_93a14
 	push	{r5, lr}
 	mov	r5, r0
@@ -907,6 +1001,12 @@
 	bx	r1
 .func_end Func_93a14
 
+@ SetEntityBehaviour
+@ r0=entity, r1=behaviour id 1..7. Installs one of seven canned behaviours by
+@ jumping through the table at .L93a80 -- each arm points the entity at a
+@ different script or hook (follow, chase, face, wander, and so on). Ids outside
+@ 1..7 fall through and leave the entity unchanged.
+@ This is the common entry point the slot helpers in rom_91584.s call.
 .thumb_func_start Func_93a6c
 	push	{r5, lr}
 	sub	r3, r1, #1
@@ -961,6 +1061,10 @@
 	bx	r0
 .func_end Func_93a6c
 
+@ ScanNearbyEntities
+@ Walks the 0x40 entities at [iwram_1e64] looking for ones within 0x28 units of
+@ the reference position, collecting matches for the caller. The
+@ ~130-instruction body is characterised structurally.
 .thumb_func_start Func_93af8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1090,6 +1194,11 @@
 	bx	r1
 .func_end Func_93af8
 
+@ AdvanceDialogue
+@ Takes no arguments. The handler behind message control codes 0xF9 and 0xFE
+@ (see Func_8d8f0): resolves the player entity from ewram_240+0x1F4 and steps
+@ the conversation to its next line, closing the current box and opening the
+@ following one.
 .thumb_func_start Func_93c00
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1342,6 +1451,10 @@
 	bx	r1
 .func_end Func_93c00
 
+@ DialogueChoiceA
+@ Takes no arguments. The first branch of the 0xFD two-way prompt -- taken when
+@ A is pressed. Reads the player entity from ewram_240+0x1F4 and follows the
+@ affirmative path of the conversation.
 .thumb_func_start Func_93e28
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1514,6 +1627,10 @@
 	bx	r1
 .func_end Func_93e28
 
+@ DialogueChoiceB
+@ Takes no arguments. The second branch of the 0xFD prompt -- taken when B is
+@ pressed. Unlike Func_93e28 it consults the save block at ewram_434 as well,
+@ so the decline path can depend on stored progress.
 .thumb_func_start Func_93fa0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1714,6 +1831,9 @@
 	bx	r1
 .func_end Func_93fa0
 
+@ IsSlotWithinCameraView
+@ r0=slot, r1=margin. Returns 0 when the slot entity lies inside the current
+@ camera view expanded by r1, and -1 when it does not or the slot is empty.
 .thumb_func_start Func_94154
 	push	{r5, r6, lr}
 	mov	r5, r1
@@ -1781,10 +1901,15 @@
 	bx	r1
 .func_end Func_94154
 
+@ Nop -- empty hook.
 .thumb_func_start Func_941dc
 	bx	lr
 .func_end Func_941dc
 
+@ RunPendingSceneEvent
+@ Takes no arguments. Reads the pending event id at ewram_240+0x1EE and, if one
+@ is queued, runs it against the scene block at iwram_1ebc. This is how a map
+@ transition hands a cutscene to the newly loaded map.
 .thumb_func_start Func_941e0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1896,6 +2021,18 @@
 	bx	r1
 .func_end Func_941e0
 
+@ PlayPartyEffectAnimation
+@ r0 = effect id. Takes the party entity from ewram_240+0x1F4 through
+@ Func_8ba1c, starts animation 0x1B on its actor with _Func_b8ac, snaps the
+@ entity to a fixed position -- x's low 20 bits cleared and 0x80000 added, z's
+@ cleared and 0x100000 added -- zeroes its velocity words at +0x24 and +0x2C,
+@ sets +0x38 and +0x40 to 0x80000000, runs the effect through _Func_c300 and
+@ waits eighteen frames.
+@
+@ NOTE: declared `.thumb_func_Start` with a capital S. GAS accepts it and the
+@ bytes are identical, but a case-sensitive scan of the sources misses this
+@ function -- it and Func_97f80 in rom_97b54.s are the only two in the ROM with
+@ the typo, along with Func_a1c6c and Func_a1f74 in rom_a1000.
 .thumb_func_Start Func_942e0
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -1948,6 +2085,9 @@
 	bx	r0
 .func_end Func_942e0
 
+@ SetProgressFlagA
+@ Takes no arguments. Runs effect 0x1A through Func_942e0 and sets event flag
+@ 0x120. Called from the examine handler in rom_8d5dc.s for one outcome class.
 .thumb_func_start Func_94354
 	push	{lr}
 	mov	r0, #0x1a
@@ -1959,6 +2099,9 @@
 	bx	r0
 .func_end Func_94354
 
+@ SetProgressFlagB
+@ Takes no arguments. Runs effect 0x19 through Func_942e0 and sets event flag
+@ 0x121 -- the sibling of Func_94354 for the other outcome class.
 .thumb_func_start Func_94368
 	push	{lr}
 	mov	r0, #0x19
@@ -1969,6 +2112,10 @@
 	bx	r0
 .func_end Func_94368
 
+@ RunPlayerReactionSequence
+@ r0=reaction id. Plays a scripted reaction on the player entity (from
+@ ewram_240+0x1F4): animation, effect and a short wait. The ~40-instruction
+@ body is characterised structurally.
 .thumb_func_start Func_94380
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2044,6 +2191,10 @@
 	bx	r0
 .func_end Func_94380
 
+@ CheckProgressFlags
+@ Takes no arguments. Tests event flag 0x120 (and the companion 0x121) with
+@ _Func_79338 and returns which of the two outcome states the save is in --
+@ the read side of Func_94354 / Func_94368.
 .thumb_func_start Func_94428
 	push	{r5, r6, lr}
 	mov	r5, #0x90

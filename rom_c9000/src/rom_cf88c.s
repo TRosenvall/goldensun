@@ -1,62 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-.thumb_func_start Func_cf88c
-	push	{lr}
-	mov	r1, #4
-	bl	Func_cf8e0
-	pop	{r0}
-	bx	r0
-.func_end Func_cf88c
-
-.thumb_func_start Func_cf898
-	push	{lr}
-	mov	r1, #5
-	bl	Func_cf8e0
-	pop	{r0}
-	bx	r0
-.func_end Func_cf898
-
-.thumb_func_start Func_cf8a4
-	push	{lr}
-	mov	r1, #0
-	bl	Func_cf8e0
-	pop	{r0}
-	bx	r0
-.func_end Func_cf8a4
-
-.thumb_func_start Func_cf8b0
-	push	{lr}
-	mov	r1, #1
-	bl	Func_cf8e0
-	pop	{r0}
-	bx	r0
-.func_end Func_cf8b0
-
-.thumb_func_start Func_cf8bc
-	push	{lr}
-	mov	r1, #6
-	bl	Func_cf8e0
-	pop	{r0}
-	bx	r0
-.func_end Func_cf8bc
-
-.thumb_func_start Func_cf8c8
-	push	{lr}
-	mov	r1, #2
-	bl	Func_cf8e0
-	pop	{r0}
-	bx	r0
-.func_end Func_cf8c8
-
-.thumb_func_start Func_cf8d4
-	push	{lr}
-	mov	r1, #3
-	bl	Func_cf8e0
-	pop	{r0}
-	bx	r0
-.func_end Func_cf8d4
-
+@ Playcf8e0Impl
+@ r0=action descriptor, r1=variant. The shared implementation behind the
+@ 7 thin wrappers in this file, which exist so the animation table can hold
+@ one address per variant:
+@     0=Func_cf8a4 1=Func_cf8b0 2=Func_cf8c8 3=Func_cf8d4 4=Func_cf88c 5=Func_cf898 6=Func_cf8bc
+@ Works from the battle state at [iwram_1eec]; the variant selects timing,
+@ colours and which arm of the sequence runs. Body characterised
+@ structurally -- see the wrappers for the variant numbering.
 .thumb_func_start Func_cf8e0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

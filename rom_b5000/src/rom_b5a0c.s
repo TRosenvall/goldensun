@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ BuildCombatantLists
+@ r0.. = destinations. Fills both sides' combatant lists with Func_b6a60 (the
+@ player's side) and Func_b6ae0 (the enemy's), which is the pair every turn
+@ decision starts from.
 .thumb_func_start Func_b5a0c
 	push	{r5, r6, r7, lr}
 	sub	sp, #0x1c
@@ -111,6 +115,10 @@
 	.word	0xff
 .func_end Func_b5a0c
 
+@ FixUpBattleTiles
+@ Takes no arguments. DMA3-copies 8 halfwords from 0x6000290 down to 0x6000280
+@ and clears 0x14 bytes at 0x600028C. The same shift-a-tile-up-and-clear-the-
+@ remainder shape rom_15000's Func_15fb8 uses.
 .thumb_func_start Func_b5ad4
 	push	{lr}
 	ldr	r3, =REG_DMA3SAD
@@ -127,6 +135,8 @@
 	bx	r1
 .func_end Func_b5ad4
 
+@ ResetBg0Scroll
+@ Takes no arguments. REG_BG0VOFS = 0.
 .thumb_func_start Func_b5b08
 	ldr	r3, =REG_BG0VOFS
 	mov	r2, #0
@@ -134,10 +144,16 @@
 	bx	lr
 .func_end Func_b5b08
 
+@ NoOp
+@ A bare `bx lr`, present as a table entry or placeholder.
 .thumb_func_start Func_b5b14
 	bx	lr
 .func_end Func_b5b14
 
+@ RefreshPartyForBattle
+@ r0.. = parameters. Walks the player-side list from Func_b6a60 and rebuilds
+@ each member's record and derived stats through _Func_77394 and _Func_77428, so
+@ the battle starts from current values.
 .thumb_func_start Func_b5b18
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -256,6 +272,10 @@
 	bx	r1
 .func_end Func_b5b18
 
+@ ApplyStartOfBattleStatus
+@ r0.. = parameters. For each combatant on both sides, reconciles the persistent
+@ status entries from rom_77000 (_Func_7a1f8, _Func_7a2e4, _Func_7a3a8) with the
+@ battle-side record from Func_b7dd0, gated on save bits via _Func_79338.
 .thumb_func_start Func_b5c08
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -414,6 +434,9 @@
 	bx	r1
 .func_end Func_b5c08
 
+@ ResolveElementalAffinity
+@ r0.. = parameters. Looks up each combatant's element record with _Func_797d4
+@ and stores the resulting affinity into the battle state.
 .thumb_func_start Func_b5d3c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -525,10 +548,17 @@
 	bx	r1
 .func_end Func_b5d3c
 
+@ NoOp
+@ A bare `bx lr`, present as a table entry or placeholder.
 .thumb_func_start Func_b5e10
 	bx	lr
 .func_end Func_b5e10
 
+@ RunBattleIntroText
+@ r0.. = parameters. Shows the opening message: allocates scratch with
+@ Func_4970, plays the intro cue through Func_6408 / Func_6488, lays the string
+@ out with _Func_1964c, and gives frames with Func_30f8 while it plays.
+@ Func_2df0 releases the scratch.
 .thumb_func_start Func_b5e14
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -651,6 +681,9 @@
 	bx	r1
 .func_end Func_b5e14
 
+@ RunBattleOutroText
+@ r0.. = parameters. The closing counterpart to Func_b5e14, using Func_63bc /
+@ Func_6458 for its cue.
 .thumb_func_start Func_b5f0c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -815,6 +848,8 @@
 	bx	r1
 .func_end Func_b5f0c
 
+@ GetBattleStateField
+@ r0 = index. Returns one of the battle state fields from [iwram_1e74].
 .thumb_func_start Func_b606c
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -845,6 +880,10 @@
 	bx	r1
 .func_end Func_b606c
 
+@ WaitFrames
+@ r0 = count. Spins on Func_30f8(1) that many times. Unlike rom_c9000's
+@ Func_d655c -- whose per-frame call is a no-op stub -- this one really does
+@ yield each frame.
 .thumb_func_start Func_b60a0
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e74
@@ -932,6 +971,9 @@
 	bx	r1
 .func_end Func_b60a0
 
+@ RunBattleTransition
+@ r0.. = parameters. Plays the screen transition into or out of a battle, a
+@ frame at a time through Func_30f8. 288 lines; traced structurally.
 .thumb_func_start Func_b6148
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e74
@@ -1220,6 +1262,9 @@
 	bx	r1
 .func_end Func_b6148
 
+@ CountActiveParty
+@ Takes no arguments. Returns how many player-side combatants Func_b6a60
+@ reports.
 .thumb_func_start Func_b6378
 	push	{r5, r6, lr}
 	sub	sp, #0x10
@@ -1250,6 +1295,8 @@
 	bx	r1
 .func_end Func_b6378
 
+@ ClearBattleScratch
+@ Takes no arguments. Clears 0x10 bytes at ewram_2224.
 .thumb_func_start Func_b63b0
 	push	{lr}
 	ldr	r3, =Func_8d4
@@ -1260,6 +1307,19 @@
 	bx	r1
 .func_end Func_b63b0
 
+@ StartBattle -- THE MODULE'S ENTRY POINT
+@ r0 = encounter id. Allocates everything a battle needs, sets it up, and runs
+@ it. 705 lines; traced structurally, but the allocations at the top are exact
+@ and are what the module header's tag map is built from:
+@     Func_48f4(0x0C, 0x4C)   -> iwram_1e80  view / camera
+@     Func_48f4(0x09, 0x82C)  -> iwram_1e74  battle state
+@     Func_48f4(0x36, 0x7C8)  -> iwram_1f28  SIX enemy records (0x7C8 / 0x14C)
+@     Func_48f4(0x2C, 0x20)   -> iwram_1f00
+@     Func_48f4(0x0B, 0x280)  -> iwram_1e7c
+@ The enemy block is cleared with Func_8d4 immediately after allocation, so
+@ _Func_77394 returns zeroed records until the encounter fills them in.
+@ Save bits 0x103 and 0x169 are set on entry, REG_DISPCNT is poked to 1, and
+@ Func_49ac begins the view matrix.
 .thumb_func_start Func_b63c8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1965,6 +2025,13 @@
 	bx	r1
 .func_end Func_b63c8
 
+@ ListPlayerCombatants
+@ r0 = destination. Fills the caller's array with the player-side combatant ids
+@ and returns the count.
+@ THE FRONT LINE IS CAPPED AT FOUR, or THREE when the byte at [iwram_1e74]+0x44
+@ is non-zero -- so +0x44 is the battle-mode flag that shrinks the active row.
+@ The roster itself comes from ewram_240 and _Func_795fc, so only characters who
+@ have actually joined are considered.
 .thumb_func_start Func_b6a60
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -2033,6 +2100,12 @@
 	.word	0xff
 .func_end Func_b6a60
 
+@ ListEnemyCombatants
+@ r0 = non-zero to apply the debug cap. Fills the caller's array with enemy ids
+@ starting at 0x80 and returns the count.
+@ The limit is SIX -- matching the 0x7C8 / 0x14C = 6 enemy records Func_b63c8
+@ allocates -- but drops to THREE when save bit 0x16C is set, which is the bit
+@ Func_b56e0's debug harness sets while Down is held.
 .thumb_func_start Func_b6ae0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -2084,6 +2157,10 @@
 	bx	r1
 .func_end Func_b6ae0
 
+@ ListLivingCombatants
+@ r0.. = parameters. Builds the list of combatants still standing, filtering the
+@ Func_b6a60 result by each record's state and the save bits _Func_79338
+@ reports.
 .thumb_func_start Func_b6b40
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2191,6 +2268,11 @@
 	bx	r1
 .func_end Func_b6b40
 
+@ WalkActionQueue
+@ r0 = selector mask, r1 = destination (may be 0 to count only).
+@ Walks the halfword list at [iwram_1e74]+0x58. THE QUEUE IS SENTINEL-DELIMITED:
+@ 0xFF ends it and 0xFE separates groups within it. Bit 0 of the selector picks
+@ the first arm; entries are copied out as halfwords.
 .thumb_func_start Func_b6c08
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e74
@@ -2270,6 +2352,9 @@
 	.word	0xff
 .func_end Func_b6c08
 
+@ SubmitActionGroup3
+@ Takes no arguments. Reads queue group 3 with Func_b6c08 into a 0x1C-byte stack
+@ buffer and hands it to Func_b7b6c with mode 1.
 .thumb_func_start Func_b6c90
 	push	{r5, lr}
 	sub	sp, #0x1c
@@ -2286,6 +2371,8 @@
 	bx	r0
 .func_end Func_b6c90
 
+@ SubmitActionGroup3Alt
+@ Takes no arguments. As Func_b6c90 with the other Func_b7b6c mode.
 .thumb_func_start Func_b6cb0
 	push	{r5, lr}
 	sub	sp, #0x1c
@@ -2302,6 +2389,9 @@
 	bx	r0
 .func_end Func_b6cb0
 
+@ GetCombatantActor
+@ r0 = combatant id. Returns [record+0x14] of the battle-side record Func_b7dd0
+@ hands out -- the actor the animation layer draws.
 .thumb_func_start Func_b6cd0
 	push	{lr}
 	bl	Func_b7dd0
@@ -2310,6 +2400,8 @@
 	bx	r1
 .func_end Func_b6cd0
 
+@ SetCombatantSlot
+@ r0.. = parameters. Writes a combatant's slot assignment through Func_c23c0.
 .thumb_func_start Func_b6cdc
 	push	{r5, lr}
 	bl	Func_c23c0
@@ -2354,6 +2446,10 @@
 	bx	r1
 .func_end Func_b6cdc
 
+@ AssignBattlePositions
+@ r0.. = parameters. Places every combatant on its side of the field, reading
+@ records with _Func_77394 and writing slots through Func_c2384 / Func_c23a0 /
+@ Func_c23c0. Func_b6b8 supplies the geometry.
 .thumb_func_start Func_b6d30
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2480,6 +2576,8 @@
 	bx	r1
 .func_end Func_b6d30
 
+@ ComputeSlotPosition
+@ r0 = slot. Returns the world position for a battle slot via Func_b6b8.
 .thumb_func_start Func_b6e30
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

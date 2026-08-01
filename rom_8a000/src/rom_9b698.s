@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ UpdateFieldEffects
+@ Takes no arguments. Per-frame update over the field-effect instances hanging
+@ off [iwram_1f30]: advances each instance's timers, steps its motion and
+@ retires the ones that have finished. The ~110-instruction body is
+@ characterised structurally.
 .thumb_func_start Func_9b698
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -154,6 +159,9 @@
 	bx	r0
 .func_end Func_9b698
 
+@ TickEffectAnimation
+@ r0=effect instance. Advances the instance's frame counters at +0x38 and +0x3A
+@ while the enable byte at +0x45 is non-zero, wrapping when the sequence ends.
 .thumb_func_start Func_9b804
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -210,6 +218,10 @@
 	bx	r0
 .func_end Func_9b804
 
+@ ApplyEffectTransform
+@ r0=effect instance. Rebuilds the instance's on-screen transform from its
+@ current state, taking the scale/rotation path selected by bit 2 of the flag
+@ byte at +0x47.
 .thumb_func_start Func_9b86c
 	push	{r5, r6, r7, lr}
 	mov	r4, r0
@@ -270,6 +282,10 @@
 	bx	r0
 .func_end Func_9b86c
 
+@ StepEffectMotion
+@ r0=effect instance. Integrates one frame of motion toward the target at +0x0C,
+@ treating the 0x80000000 sentinel as "no target" and leaving the instance
+@ stationary in that case.
 .thumb_func_start Func_9b8f4
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -425,6 +441,10 @@
 	bx	r0
 .func_end Func_9b8f4
 
+@ IsEffectActive
+@ r0=effect instance. Returns 0 when the instance is inactive -- the enable byte
+@ at +0x41 is zero -- and otherwise reports whether it still has a live target
+@ at +0x0C.
 .thumb_func_start Func_9ba34
 	push	{lr}
 	mov	r3, r0
@@ -449,6 +469,10 @@
 	bx	r1
 .func_end Func_9ba34
 
+@ SetEffectPosition
+@ r0=effect instance, r1=x, r2=y. Writes the position words at +0x04 and +0x08,
+@ clears the target words at +0x0C and +0x10 to the 0x80000000 "none" sentinel
+@ and zeroes the timer at +0x1C, so the instance sits still where it is put.
 .thumb_func_start Func_9ba5c
 	mov	r3, #0x80
 	lsl	r3, #24
@@ -461,6 +485,9 @@
 	bx	lr
 .func_end Func_9ba5c
 
+@ SetEffectAnimation
+@ r0=effect instance. Forwards the instance's actor (the pointer at +0x00) to
+@ _Func_ba30, switching its animation.
 .thumb_func_start Func_9ba70
 	push	{lr}
 	ldr	r0, [r0]
@@ -469,6 +496,9 @@
 	bx	r0
 .func_end Func_9ba70
 
+@ SetEffectScript
+@ r0=effect instance, r1=script. Stores the script at +0x34, resets the two
+@ frame counters at +0x38 and +0x3A and clears the state byte at +0x40.
 .thumb_func_start Func_9ba7c
 	mov	r3, #0
 	ldr	r2, =0
@@ -480,6 +510,14 @@
 	bx	lr
 .func_end Func_9ba7c
 
+@ CreateFieldEffect
+@ r0=effect instance to fill, r1=actor resource id, r2=x, r3=y.
+@ Zero-fills the 0x48-byte instance by DMA, creates its actor with _Func_bc70
+@ and clears the actor's priority bits (+0x09 bits 2-3), then places it with
+@ Func_9ba5c.
+@ Seeds the defaults: +0x20 = 0x20000, the three speed words at +0x24/+0x28/+0x2C
+@ = 0x10000, the origin copied to +0x14/+0x18, the actor's option byte at +0x26
+@ cleared, and the five enable bytes at +0x41..+0x45 all set to 1.
 .thumb_func_start Func_9ba90
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -558,6 +596,9 @@
 	bx	r0
 .func_end Func_9ba90
 
+@ DestroyFieldEffect
+@ r0=effect instance. Releases the instance's actor and clears its enable bytes
+@ so Func_9b698 stops updating it.
 .thumb_func_start Func_9bb34
 	push	{r5, lr}
 	mov	r5, r0

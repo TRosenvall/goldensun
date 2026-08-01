@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ ComputeItemEffectValue
+@ r0.. = parameters. Prices an item's effect from its record (_Func_773d8),
+@ gated on save bits (_Func_79338) and divided with Func_af0.
 .thumb_func_start Func_c1a34
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -106,6 +109,9 @@
 	bx	r1
 .func_end Func_c1a34
 
+@ ComputePartyEffect
+@ r0.. = parameters. Applies Func_c1a34 across the party list from Func_b6a60,
+@ with a Func_4970 scratch released by Func_2df0.
 .thumb_func_start Func_c1afc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -277,6 +283,9 @@
 	bx	r1
 .func_end Func_c1afc
 
+@ ApplyEffectToRecords
+@ r0.. = parameters. Writes the computed effects back through _Func_77394 and
+@ rebuilds summaries with _Func_77428.
 .thumb_func_start Func_c1c54
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -478,6 +487,9 @@
 	bx	r1
 .func_end Func_c1c54
 
+@ DistributeRemainder
+@ r0.. = parameters. Spreads a remainder across recipients using Func_b1c (the
+@ signed remainder), so rounding loss is shared rather than dropped.
 .thumb_func_start Func_c1df4
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e74
@@ -585,6 +597,9 @@
 	bx	r1
 .func_end Func_c1df4
 
+@ GetCombatantSizeClass
+@ r0 = combatant id. Returns the size class from the record _Func_77394
+@ hands out; rom_b9b30's Func_bac6c scales sprites by it.
 .thumb_func_start Func_c1ebc
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1e74
@@ -663,6 +678,8 @@
 	bx	r1
 .func_end Func_c1ebc
 
+@ GetCombatantResistance
+@ r0 = combatant id. Reads a resistance field out of the record.
 .thumb_func_start Func_c1f50
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -712,6 +729,8 @@
 	bx	r1
 .func_end Func_c1f50
 
+@ RollVariance
+@ r0.. = parameters. Applies a Func_4458 roll as a +/- variance.
 .thumb_func_start Func_c1fa8
 	push	{r5, r6, lr}
 	mov	r3, #0xbe
@@ -757,6 +776,10 @@
 	bx	r1
 .func_end Func_c1fa8
 
+@ ResolveEffectChain
+@ r0.. = parameters. 450 lines. Chains the effect computation together --
+@ Func_c1afc, Func_c1c54, Func_c1df4, Func_c1f50 -- and writes the results into
+@ the field state through Func_c23c0. Traced structurally.
 .thumb_func_start Func_c1ffc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1207,6 +1230,8 @@
 	bx	r1
 .func_end Func_c1ffc
 
+@ GetSpriteTableCount
+@ Takes no arguments. Returns the entry count of the .Lc7420 table.
 .thumb_func_start Func_c2368
 	push	{lr}
 	ldr	r3, =.Lc7420
@@ -1223,6 +1248,11 @@
 	bx	r1
 .func_end Func_c2368
 
+@ GetSpriteTableId
+@ r0 = index (0..0xAB). Returns the halfword at .Lc7420 + index*8.
+@ THE TABLE IS 172 ENTRIES OF 8 BYTES: it runs 0xC7420..0xC7980, and
+@ 0x560 / 8 = 0xAC, exactly matching the bound every accessor checks. An index
+@ above 0xAB falls back to entry 0.
 .thumb_func_start Func_c2384
 	push	{lr}
 	cmp	r0, #0xab
@@ -1239,6 +1269,8 @@
 	bx	r1
 .func_end Func_c2384
 
+@ GetSpriteTableField2
+@ r0 = index. Returns another field of the same 8-byte entry.
 .thumb_func_start Func_c23a0
 	push	{lr}
 	cmp	r0, #0xab
@@ -1258,6 +1290,9 @@
 	bx	r1
 .func_end Func_c23a0
 
+@ GetSpriteTableFlag
+@ r0 = index. Returns bit 0 of the byte at entry+2, or 0 for an out-of-range
+@ index.
 .thumb_func_start Func_c23c0
 	push	{lr}
 	cmp	r0, #0xab
@@ -1281,6 +1316,8 @@
 	bx	r1
 .func_end Func_c23c0
 
+@ GetSpriteTableField3
+@ r0 = index. Returns a further field of the entry.
 .thumb_func_start Func_c23e8
 	push	{lr}
 	cmp	r0, #0xab
@@ -1303,6 +1340,8 @@
 	bx	r1
 .func_end Func_c23e8
 
+@ GetSpriteTableField4
+@ r0 = index. Another entry field. Exported.
 .thumb_func_start Func_c2410
 	push	{lr}
 	cmp	r0, #0xab
@@ -1324,6 +1363,8 @@
 	bx	r1
 .func_end Func_c2410
 
+@ GetSpriteTableField5
+@ r0 = index. Another entry field. Exported.
 .thumb_func_start Func_c2434
 	push	{lr}
 	cmp	r0, #0xab
@@ -1342,6 +1383,9 @@
 	bx	r1
 .func_end Func_c2434
 
+@ GetSpriteTableByte4
+@ r0 = index. Returns the byte at entry+4, or 0 when the index exceeds 0xAB.
+@ Exported.
 .thumb_func_start Func_c2454
 	push	{lr}
 	cmp	r0, #0xab
@@ -1358,6 +1402,9 @@
 	bx	r1
 .func_end Func_c2454
 
+@ GetAbilitySpriteEntry
+@ r0 = ability id. Resolves the ability record with _Func_78414 and maps it to
+@ its .Lc7420 entry.
 .thumb_func_start Func_c2470
 	push	{r5, r6, lr}
 	ldr	r3, =0x1ff
@@ -1392,6 +1439,8 @@
 	bx	r1
 .func_end Func_c2470
 
+@ ComputeEffectRange
+@ r0.. = parameters. Returns how far an effect reaches; no calls out.
 .thumb_func_start Func_c24b0
 	push	{lr}
 	ldr	r3, =iwram_1e74
@@ -1421,6 +1470,11 @@
 	bx	r0
 .func_end Func_c24b0
 
+@ ResolveAbilityEffect
+@ r0.. = parameters. 291 lines. Works out an ability's effect: the sprite entry
+@ (Func_c2470), the records (_Func_77394, _Func_773d8), the save bits
+@ (_Func_79338) and a Func_4458 roll, divided with Func_af0 and Func_b60.
+@ Traced structurally.
 .thumb_func_start Func_c24f0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1712,6 +1766,11 @@
 	bx	r1
 .func_end Func_c24f0
 
+@ RunAbilitySelection
+@ r0.. = parameters. 314 lines. Lets the player choose an ability: lists the
+@ living targets (Func_b6b40), opens the HUD (Func_bb65c), registers the menu
+@ values (_Func_198dc) and shows the prompt through _Func_175a0.
+@ Traced structurally.
 .thumb_func_start Func_c2724
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2026,6 +2085,10 @@
 	.word	0
 .func_end Func_c2724
 
+@ DebugMenuStub
+@ A bare `bx lr`. Reached from Func_b56e0's debug harness by pressing SELECT --
+@ so whatever that key once opened has been removed, leaving the call site
+@ pointing at an empty function.
 .thumb_func_start Func_c2a08
 	bx	lr
 .func_end Func_c2a08

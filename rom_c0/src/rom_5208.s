@@ -1,5 +1,7 @@
 	.include "macros.inc"
 
+@ SetViewAngles
+@ r0.. = angles. Sets the view orientation from sine and cosine.
 .thumb_func_start Func_5208
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -36,6 +38,8 @@
 	bx	r0
 .func_end Func_5208
 
+@ SetViewDistance
+@ r0 = distance. Sets the projection distance.
 .thumb_func_start Func_5258
 	ldr	r3, =iwram_1ce0
 	str	r0, [r3]
@@ -44,6 +48,11 @@
 	bx	lr
 .func_end Func_5258
 
+@ ProjectToScreen
+@ r0 = a 3-vector, r1 = destination. Projects through the current transform and
+@ divides by depth to give screen coordinates.
+@ This is the call rom_c9000's Func_e3944 and rom_b5000's Func_b7f20 wrap, so
+@ every "where is this on screen" question in the game ends here.
 .thumb_func_start Func_5268
 	push	{r5, r6, r7, lr}
 	mov	r5, r1

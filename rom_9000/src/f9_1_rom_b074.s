@@ -1,5 +1,19 @@
 	.include "macros.inc"
 
+@ SetSpritePairPosition
+@ r0=sprite object, r1=screen x (16.16), r2=base z (16.16), r3=object z (16.16),
+@ [sp+0x28]=companion base z (16.16), [sp+0x2C]=pointer to {scaleX, scaleY}.
+@ Positions the object's two OAM entries: the main one at +0x00 and its
+@ companion (shadow) at +0x0C. Each entry is laid out as
+@   +4 = y (byte), +5 = flags (bits 0-1 = affine/size mode), +6 = x (9 bits).
+@ Half-extents come from +0x20 (width) and +0x21 (height), halved. If either
+@ scale exceeds 1.0 (0x10000) the double-size affine mode 3 is selected and the
+@ half-extents and the companion's fixed offsets are doubled (8/4 -> 0x10/8);
+@ otherwise mode 1. The y term subtracts a scaled vertical correction, using
+@ (+0x21 / 2 - (s8)+0x23) * scaleY rounded up via the +0xFFFF bias.
+@ NOTE: this is the reference assembly. The live build compiles
+@ f9_1_rom_b074.c instead -- see the caveat in the summary, that draft writes
+@ the mode into +0x23 rather than +0x05.
 .thumb_func_start Func_b074
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

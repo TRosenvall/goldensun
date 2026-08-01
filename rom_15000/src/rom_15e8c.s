@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ AllocNode
+@ Takes no arguments. Pops the head off the free list of display nodes and
+@ returns it (0 when exhausted). The list head is [iwram_1e8c]+0xD98 and the
+@ tail cache is +0xD9C; popping the last node moves the tail back to the head
+@ slot. The popped node's link word is cleared.
 .thumb_func_start Func_15e8c
 	push	{lr}
 	ldr	r3, =iwram_1e8c
@@ -25,6 +30,12 @@
 	bx	r1
 .func_end Func_15e8c
 
+@ FreeNode
+@ r0 = node. Pushes a node back onto the free list, appending at the tail
+@ cached in [iwram_1e8c]+0xD9C.
+@ BOUNDS-CHECKED: the node is only accepted when it lies inside the pool,
+@ [iwram_1e8c]+0x698 up to +0xD98. Anything outside is silently ignored, so
+@ callers may pass statically allocated records without corrupting the list.
 .thumb_func_start Func_15ec0
 	push	{lr}
 	ldr	r3, =iwram_1e8c
@@ -50,6 +61,11 @@
 	bx	r0
 .func_end Func_15ec0
 
+@ InitNodePool
+@ Takes no arguments. Builds the display-node free list: 64 nodes of 0x1C bytes
+@ running from [iwram_1e8c]+0x698 to +0xD98, each linked to the next, head
+@ stored at +0xD98 and tail at +0xD9C. The last node's link is cleared.
+@ 64 * 0x1C = 0x700 = 0xD98 - 0x698, so the pool exactly fills its region.
 .thumb_func_start Func_15ef4
 	push	{lr}
 	ldr	r3, =iwram_1e8c
@@ -78,6 +94,20 @@
 	bx	r0
 .func_end Func_15ef4
 
+@ InitUiSystem
+@ Takes no arguments. Brings up the whole UI layer:
+@     Func_48f4(0xF, 0x12FC) allocates the UI block -- this is what iwram_1e8c
+@       points at, and 0x12FC is its size, so every +0xNNN offset in this module
+@       is bounded by it
+@     the block is DMA-cleared, then defaults are written:
+@       +0xEA3 = 1 (dirty mask, see Func_160fc), +0xEA7 = 0x0F, +0x12B6 = 0x63
+@     the first 0x140 bytes are filled with 0xF000F000, the empty-tile pattern
+@     Func_15ef4 builds the node free list
+@     Func_19d0c initialises the menu layer
+@     Func_41d8 registers Func_160fc as the per-frame flush at priority 0x480
+@     Func_173f4 finishes setup
+@ Func_16018 below is the same sequence with one extra field and a different
+@ finisher; use this one for the plain case.
 .thumb_func_start Func_15f30
 	push	{r5, lr}
 	ldr	r1, =0x12fc
@@ -126,6 +156,15 @@
 	bx	r0
 .func_end Func_15f30
 
+@ CopyTileHalf
+@ r0 = source tile index, r1 = destination tile index (both masked to 0x3FF).
+@ DMA3-copies 0x10 bytes -- half a 4bpp tile, four pixel rows -- from
+@ 0x6000010 + src*0x20 to 0x6000000 + dst*0x20, then clears 0x14 bytes at
+@ 0x600000C + dst*0x20 with Func_8d4.
+@ The source is read from +0x10 within its tile and the destination written
+@ from +0x00, so this shifts the copied rows upward by four as it goes.
+@ Called by Func_16018 with (0xF013, 0x80); note 0xF013 is a text control code
+@ and only its low 10 bits survive the mask.
 .thumb_func_start Func_15fb8
 	push	{lr}
 	mov	r12, r3
@@ -163,6 +202,13 @@
 	bx	r1
 .func_end Func_15fb8
 
+@ InitUiSystemWithMode
+@ r0 = mode, passed on to Func_17464.
+@ The same bring-up as Func_15f30 -- same 0x12FC allocation under tag 0xF, same
+@ clear, same defaults, same node pool, same Func_160fc registration -- with two
+@ differences: it also sets +0xEA5 = 1, and it finishes with Func_17464(mode)
+@ instead of Func_173f4, then seeds a tile through Func_15fb8(0xF013, 0x80).
+@ It does NOT call Func_19d0c, so the menu layer is left uninitialised.
 .thumb_func_start Func_16018
 	push	{r5, r6, lr}
 	mov	r6, r9
@@ -245,6 +291,16 @@
 	bx	r0
 .func_end Func_16018
 
+@ FlushUiToVram
+@ Takes no arguments. Registered by Func_15f30/Func_16018 as a per-frame task.
+@ Does nothing while the suspend flag at [iwram_1e8c]+0xEA6 is non-zero.
+@ Otherwise it reads the DIRTY MASK at +0xEA3 and DMA-copies one 0x100-byte
+@ block to 0x6002000 for each set bit, advancing both source and destination by
+@ 0x100 per bit. Bit 0 means "everything": it replaces the mask with 0x3F so all
+@ rows are sent. The mask is shifted right once before the loop, so bits 1..5
+@ are the five individually-dirtyable blocks. The mask is cleared afterwards.
+@ Everything else in this module marks work by setting bits here; this is the
+@ only place that touches VRAM for it.
 .thumb_func_start Func_160fc
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e8c
@@ -302,6 +358,15 @@
 	bx	r0
 .func_end Func_160fc
 
+@ RestoreTilemapRect
+@ r0 = x column, r1 = y row, r2 = width, r3 = height, all in TILES.
+@ Writes the saved background back over a rectangle of the 30x20 tilemap, which
+@ is how a window erases itself when it closes.
+@ The tilemap index is (row * 32 + column) * 2, so the map stride is 32 entries
+@ even though only 30 are visible.
+@ Everything is clamped before use: width and height to 2..0x1E, and the height
+@ is further trimmed so row + height never exceeds 0x14 (20 rows). Callers can
+@ therefore pass sloppy geometry without running off the map.
 .thumb_func_start Func_16178
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -397,6 +462,13 @@
 	bx	r0
 .func_end Func_16178
 
+@ RedrawWindowContents
+@ r0 = window record. Clears the pending count at +0x1A, then repaints from the
+@ record's own geometry (+0x0C, +0x0E, +0x08, +0x0A).
+@ Flag bit 3 of +0x16 selects a background pass through Func_170f8; flag bit 5
+@ then chooses whether the 0xF00-byte text scratch at 0x6002500 is filled with
+@ 0x44444444 (opaque colour 4) or cleared -- the same two fills Func_16738 and
+@ Func_1671c provide as standalone helpers.
 .thumb_func_start Func_16230
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -470,6 +542,18 @@
 	bx	r0
 .func_end Func_16230
 
+@ OpenWindow
+@ r0 = x column, r1 = y row, r2 = width, r3 = height, arg5 on the stack = flags.
+@ All geometry in TILES. Returns the window record, or 0 when all eight slots
+@ are taken.
+@ Scans the pool at [iwram_1e8c]+0x500 (8 records, stride 0x24) for a slot that
+@ is free by Func_17394's test -- bit 0 of +0x16 clear AND the signed halfword
+@ at +0x1A zero -- then fills it in:
+@     +0x0C,+0x0E = x, y     +0x08,+0x0A = width, height
+@     +0x00,+0x04 cleared    +0x10 = 1     +0x14 = 0     +0x16 = 1 | flags
+@ Func_173ac resets the global text style so the new window starts clean, then
+@ selected flag bits are copied into +0x16 and Func_16230 paints it.
+@ The standard message box is Func_162d4(0, 0xF, 0x1E, 6, ...).
 .thumb_func_start Func_162d4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -616,6 +700,11 @@
 	bx	r1
 .func_end Func_162d4
 
+@ WaitForWindowIdle
+@ r0 = window record. Spins on Func_30f8(1) until the pending count at +0x1A
+@ reaches 0, so the caller can be sure queued text has finished drawing.
+@ Returns immediately when flag bit 1 of +0x16 is set, which marks a window that
+@ never queues work.
 .thumb_func_start Func_163ec
 	push	{r5, lr}
 	mov	r5, r0
@@ -641,6 +730,14 @@
 	bx	r0
 .func_end Func_163ec
 
+@ CloseWindow
+@ r0 = window record, r1 = non-zero to also erase and wipe.
+@ Always: Func_16478 releases the window's resources, the geometry is SAVED to
+@ +0x1C..+0x22 in the order x, y, w, h, and the flags at +0x16 are cleared --
+@ which alone is enough to return the slot to Func_162d4's scan.
+@ When r1 is non-zero it additionally calls Func_16178 to restore the tilemap
+@ underneath and then zeroes the entire record. Pass 0 to keep the pixels on
+@ screen while freeing the slot.
 .thumb_func_start Func_16418
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -692,6 +789,10 @@
 	bx	r0
 .func_end Func_16418
 
+@ ReleaseWindowResources
+@ r0 = window record. Calls Func_16498 then Func_164ac -- the tilemap side and
+@ the node/OBJ side of tearing a window down. Split out because Func_16418 needs
+@ both and other paths need only one.
 .thumb_func_start Func_16478
 	push	{r5, lr}
 	mov	r5, r0
@@ -709,6 +810,9 @@
 	bx	r0
 .func_end Func_16478
 
+@ ReleaseWindowTiles
+@ r0 = window record. Hands the window's tile region back through Func_170f8
+@ using its saved geometry.
 .thumb_func_start Func_16498
 	push	{lr}
 	ldrh	r4, [r0, #0xc]
@@ -721,6 +825,9 @@
 	bx	r0
 .func_end Func_16498
 
+@ ReleaseWindowNodes
+@ r0 = window record. Walks the window's node list and returns each node with
+@ Func_16594, then clears the list head.
 .thumb_func_start Func_164ac
 	push	{r5, lr}
 	mov	r3, r0
@@ -744,6 +851,13 @@
 	bx	r0
 .func_end Func_164ac
 
+@ MarkTileRectDirty
+@ r0 = window record, r1 = left, r2 = top, r3 = right, arg5 = bottom, all in
+@ PIXELS. Converts to tiles by adding 7 and shifting right 3 -- a round-up to
+@ whole tiles -- then offsets by the window's own origin (+0x0C, +0x0E) and
+@ marks that tile rectangle for the next flush.
+@ Callers that have drawn text at pixel coordinates use this to tell
+@ Func_160fc which rows changed.
 .thumb_func_start Func_164d4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -826,6 +940,9 @@
 	bx	r0
 .func_end Func_164d4
 
+@ CacheListTail
+@ r0 = list head. Walks the singly-linked list to its last node and stores that
+@ node at [r0+4], so later appends are O(1). Used with Func_16584.
 .thumb_func_start Func_1656c
 	push	{lr}
 	ldr	r3, [r0]
@@ -843,6 +960,9 @@
 	bx	r0
 .func_end Func_1656c
 
+@ AppendNode
+@ r0 = list, r1 = node. Links the node after the cached tail at [r0+4] and
+@ updates the cache. Does nothing when r0 is null.
 .thumb_func_start Func_16584
 	push	{lr}
 	cmp	r0, #0
@@ -855,6 +975,9 @@
 	bx	r0
 .func_end Func_16584
 
+@ FreeDisplayNode
+@ r0 = node. Releases the node's OBJ tile allocation with Func_3f3c when it
+@ holds one, then returns the node itself to the free list with Func_15ec0.
 .thumb_func_start Func_16594
 	push	{r5, lr}
 	mov	r5, r0
@@ -888,6 +1011,12 @@
 	.word	0x3e7
 .func_end Func_16594
 
+@ OpenMessageBox
+@ r0..r3 and arg5 are the box parameters. Scans the THREE message-box slots at
+@ [iwram_1e8c]+0x620 (stride 0x28) for one whose first word is 0 -- an unused
+@ slot -- and claims it. Returns 0 when all three are busy.
+@ These slots sit immediately after the eight window records at +0x500, since
+@ 8 * 0x24 = 0x120 and 0x500 + 0x120 = 0x620.
 .thumb_func_start Func_165d8
 	push	{r5, r6, r7, lr}
 	mov	r7, r3
@@ -975,6 +1104,10 @@
 	bx	r1
 .func_end Func_165d8
 
+@ CloseMessageBoxes
+@ r0, r1 = teardown parameters. Walks the three message-box slots looking for
+@ the first that is either empty or already finished (its record's +0x14 is
+@ zero), and tears down from there with Func_167d8.
 .thumb_func_start Func_16670
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1e8c
@@ -1072,6 +1205,9 @@
 	bx	r1
 .func_end Func_16670
 
+@ ClearTextBuffer
+@ Takes no arguments. Fills the 0xF00-byte text scratch at 0x6002500 with 0
+@ (transparent). Func_16738 below is the same fill with colour 4.
 .thumb_func_start Func_1671c
 	push	{lr}
 	mov	r1, #0xf0
@@ -1084,6 +1220,10 @@
 	bx	r1
 .func_end Func_1671c
 
+@ FillTextBuffer
+@ Takes no arguments. Fills the 0xF00-byte text scratch at 0x6002500 with
+@ 0x44444444 -- palette index 4 in every 4bpp pixel. The opaque counterpart to
+@ Func_1671c.
 .thumb_func_start Func_16738
 	push	{lr}
 	mov	r1, #0xf0
@@ -1096,6 +1236,10 @@
 	bx	r1
 .func_end Func_16738
 
+@ FindActiveMessageBox
+@ Takes no arguments. Returns the first of the three message-box slots that is
+@ empty or whose record has +0x14 == 0, or 0 if all three are still running.
+@ Same scan as Func_17364, which reduces the result to a yes/no.
 .thumb_func_start Func_16758
 	push	{r5, lr}
 	ldr	r3, =iwram_1e8c
@@ -1144,6 +1288,12 @@
 	bx	r0
 .func_end Func_16758
 
+@ ApplyStyleFromRecord
+@ r0 = record. Copies three saved style values out of the record into the
+@ global text-style fields:
+@     [r0+0x16] -> +0xEAE      [r0+0x18] -> +0xEAC      [r0+0x1A] -> +0xEA8
+@ These are exactly the three fields Func_173ac resets to 0x0F, 0 and 0x0A, so
+@ this is "restore the style this record was created with".
 .thumb_func_start Func_167ac
 	ldr	r3, =iwram_1e8c
 	ldr	r4, =0xeae
@@ -1162,12 +1312,21 @@
 	bx	lr
 .func_end Func_167ac
 
+@ MarkWindowClosing
+@ r0 = window record. Sets the halfword at +0x1C to 2. Func_16670 calls this on
+@ every window it is tearing down.
 .thumb_func_start Func_167d8
 	mov	r3, #2
 	strh	r3, [r0, #0x1c]
 	bx	lr
 .func_end Func_167d8
 
+@ ScrollTextBuffer
+@ r0 = line count. Shifts the text scratch at 0x6002500 upward by r0 lines,
+@ moving 0x20 - 3*r0 rows and clearing the rest, using DMA3 with control word
+@ 0x84000000 (word transfers).
+@ The stride arithmetic (r0*3 then <<1 and <<3) reflects three tile rows per
+@ text line at 0x20 bytes a tile row.
 .thumb_func_start Func_167e0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1231,6 +1390,13 @@
 	bx	r0
 .func_end Func_167e0
 
+@ StepMessageBoxes
+@ Takes no arguments. Advances each of the three message-box slots at
+@ [iwram_1e8c]+0x620 one frame.
+@ A slot whose record has +0x18 non-zero is skipped as still busy elsewhere; a
+@ record whose +0x16 has gone to zero is unlinked from its slot; otherwise the
+@ pending count at +0x12 drives Func_19854 to emit the next chunk of text.
+@ Called every frame from Func_1789c.
 .thumb_func_start Func_16868
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1305,6 +1471,18 @@
 	bx	r0
 .func_end Func_16868
 
+@ RunMessageBoxInput
+@ r0 = message-box record. The interactive core of the text system: reads the
+@ key globals (iwram_1ae8 held, iwram_1af8, iwram_1cd0) and the save-data flags
+@ at ewram_240 + 0x20C to decide how the box advances.
+@ It handles the whole lifecycle -- scrolling with Func_167e0, repainting the
+@ frame with Func_170f8 and Func_16178, restoring style with Func_167ac,
+@ marking closure with Func_167d8, releasing tiles with Func_3f3c and
+@ Func_16478 -- and plays the page-advance sounds through _Func_f9080.
+@ The ewram_240 read is the text-speed / auto-advance preference, which is why
+@ this is the one function here that touches save data.
+@ 771 lines; traced structurally. The branch-by-branch behaviour of the input
+@ handling is not yet documented.
 .thumb_func_start Func_168f4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2076,6 +2254,14 @@
 	bx	r1
 .func_end Func_168f4
 
+@ StepWindows
+@ Takes no arguments. Advances all eight window records at [iwram_1e8c]+0x500.
+@ For each slot still in use (+0x16 non-zero):
+@     a non-zero signed +0x18 means a scroll is in progress -- Func_17004 moves
+@       it one step and +0x18 counts down
+@     otherwise a non-zero signed +0x1A means items are still queued, and
+@       Func_16230 repaints
+@ Called every frame from Func_1789c.
 .thumb_func_start Func_16f2c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -2183,6 +2369,11 @@
 	bx	r0
 .func_end Func_16f2c
 
+@ ScrollWindowContents
+@ r0 = window record, r1 = amount. Uses the signed pair at +0x18 and +0x1A as a
+@ scroll range: the difference is how far to move, and the width at +0x08
+@ scales it into a byte offset via Func_8ac (the 32-bit multiply helper).
+@ Called by Func_16f2c when a window's contents outgrow its height.
 .thumb_func_start Func_17004
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2275,6 +2466,12 @@
 	bx	r0
 .func_end Func_17004
 
+@ FillTilemapRun
+@ r0 = destination, r1 = tile entry, r2 = count. DMA3-fills `count` halfwords
+@ with the same tile entry and returns the advanced destination pointer, so
+@ callers can chain runs. A count of 0 or less writes nothing and returns the
+@ pointer unchanged. The source is a stack halfword with the DMA source-fixed
+@ bit set (control 0x81000000).
 .thumb_func_start Func_170c4
 	push	{r5, lr}
 	mov	r4, r2
@@ -2302,6 +2499,14 @@
 	bx	r1
 .func_end Func_170c4
 
+@ DrawWindowFrame
+@ r0 = x column, r1 = y row, r2 = width, r3 = height, in tiles.
+@ Paints a window's border and interior into the tilemap at
+@ [iwram_1e8c] + (row*32 + column)*2, emitting each span with Func_170c4.
+@ Widths or heights of 1 or less take an early exit, so degenerate windows draw
+@ nothing rather than corrupting the map.
+@ Body traced structurally; the individual corner and edge tile indices are not
+@ yet documented.
 .thumb_func_start Func_170f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2477,6 +2682,12 @@
 	bx	r0
 .func_end Func_170f8
 
+@ SaveTilemapRect
+@ r0 = x column, r1 = y row, r2 = width, r3 = height, arg5 = destination.
+@ The counterpart to Func_16178: copies the current tilemap contents of a
+@ rectangle out to a buffer so the window that is about to cover it can restore
+@ them later. Same (row*32 + column)*2 indexing, same early-out when width or
+@ height is 1 or less.
 .thumb_func_start Func_17248
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2628,6 +2839,11 @@
 	bx	r0
 .func_end Func_17248
 
+@ AreMessageBoxesIdle
+@ Takes no arguments. Returns 1 when none of the three message-box slots at
+@ [iwram_1e8c]+0x620 is still running, 0 otherwise. A slot counts as running
+@ when its record exists and the record's +0x14 is non-zero.
+@ This is the condition Func_175a0 blocks on.
 .thumb_func_start Func_17364
 	push	{lr}
 	ldr	r3, =iwram_1e8c
@@ -2655,6 +2871,10 @@
 	bx	r1
 .func_end Func_17364
 
+@ IsWindowSlotFree
+@ r0 = window record. Returns 1 when the slot is unused, 0 otherwise.
+@ The test is +0x16 == 0 AND the signed halfword at +0x1A == 0 -- the same
+@ predicate Func_162d4 uses when scanning the pool for a slot to hand out.
 .thumb_func_start Func_17394
 	push	{lr}
 	ldrh	r3, [r0, #0x16]
@@ -2672,6 +2892,12 @@
 	bx	r1
 .func_end Func_17394
 
+@ ResetTextStyle
+@ Takes no arguments. Restores the default text parameters in the UI block:
+@     +0xEA8 = 0x0A   +0xEAA = 1    +0xEAC = 0
+@     +0xEAE = 0x0F   +0x12B0 = 9
+@ Called by Func_162d4 every time a window is opened, so each window starts
+@ from the same style regardless of what the previous one left behind.
 .thumb_func_start Func_173ac
 	ldr	r3, =iwram_1e8c
 	ldr	r2, [r3]
@@ -2698,6 +2924,11 @@
 	bx	lr
 .func_end Func_173ac
 
+@ ResetTextStyleAndTiles
+@ Takes no arguments. Allocates 0x2000 bytes of OBJ tiles under tag 0x5F with
+@ Func_3fa4, stores the handle at [iwram_1e8c]+0x12B8, then writes the default
+@ style: +0x12B0 = 9, +0xEA8 = 0x0A, +0xEAC = 0.
+@ Func_17464 below is the same with the allocation made conditional.
 .thumb_func_start Func_173f4
 	push	{r5, lr}
 	ldr	r3, =iwram_1e8c
@@ -2738,6 +2969,10 @@
 	bx	r0
 .func_end Func_173f4
 
+@ ResetTextStyleAndTilesIf
+@ r0 = non-zero to also allocate. Identical to Func_173f4 except the 0x2000-byte
+@ tag-0x5F allocation is skipped when r0 is 0, which lets Func_16018 re-init the
+@ style without leaking a second tile block.
 .thumb_func_start Func_17464
 	push	{r5, lr}
 	ldr	r3, =iwram_1e8c
@@ -2781,6 +3016,10 @@
 	bx	r0
 .func_end Func_17464
 
+@ CloseGlobalWindow
+@ Takes no arguments. Closes the window whose record is cached at [iwram_1ee4]
+@ with Func_16418(win, 1) -- erasing the tilemap under it -- and clears the
+@ cache. Safe to call when nothing is open.
 .thumb_func_start Func_174d8
 	push	{r5, lr}
 	ldr	r3, =iwram_1ee4
@@ -2798,6 +3037,14 @@
 	bx	r0
 .func_end Func_174d8
 
+@ OpenTextBox
+@ r0 = string id. Opens the standard message box and queues the string.
+@ Sets the mode byte at [iwram_1e8c]+0xEA5 to 2 while measuring, calls
+@ Func_18038 to lay the string out, and if the resulting entry in the halfword
+@ table at +0xEB0 is non-zero, opens a window with
+@ Func_162d4(0, 0xF, 0x1E, 6, 0xA) -- full width, six rows, at row 15 -- caching
+@ it in the slot's first word.
+@ Returns without opening anything when the string measures empty.
 .thumb_func_start Func_174f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2879,6 +3126,12 @@
 	bx	r0
 .func_end Func_174f8
 
+@ ShowTextAndWait
+@ r0 = string id. Opens the box with Func_174f8, then spins on Func_30f8(1)
+@ until Func_17364 reports all three slots idle, and gives one more frame.
+@ This is the module's most-called entry point from outside -- rom_b5000 uses it
+@ with ids like 0x816, 0x843 and 0x847 -- and it BLOCKS, so callers are already
+@ running in their own frame loop.
 .thumb_func_start Func_175a0
 	push	{lr}
 	bl	Func_174f8
@@ -2896,6 +3149,11 @@
 	bx	r0
 .func_end Func_175a0
 
+@ MeasureString
+@ r0 = destination record, r1 = string id. Clears the two halfwords at
+@ [iwram_1e8c]+0x12F4 and +0x12F6, lays the string out with Func_18038, and
+@ returns 0 when the resulting entry in the +0xEB0 table is empty or no
+@ destination was given. Otherwise it fills the record through Func_165d8.
 .thumb_func_start Func_175c0
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e8c
@@ -2942,6 +3200,10 @@
 	bx	r1
 .func_end Func_175c0
 
+@ SetTextFlags
+@ r0 = bit mask. Sets the byte at [iwram_1e8c]+0x12FA when bit 0 is present and
+@ +0x12FB when bit 1 is. Both are one-way -- there is no clear path here -- and
+@ they sit in the last two bytes of the 0x12FC-byte UI block.
 .thumb_func_start Func_17620
 	push	{lr}
 	ldr	r3, =iwram_1e8c
@@ -2969,6 +3231,13 @@
 	bx	r0
 .func_end Func_17620
 
+@ OpenTextBoxAt
+@ r0, r1, r2 = placement parameters, r3 = packed geometry: its top 12 bits
+@ (shifted left 4 then right 20) go to [iwram_1e8c]+0x12F4 and the low 16 bits
+@ are the string id. +0x12F6 is cleared.
+@ Lays the string out with Func_18038, and when the +0xEB0 table entry is
+@ non-zero opens a window with Func_162d4 sized to the measured text rather
+@ than to the fixed 30x6 box Func_174f8 uses.
 .thumb_func_start Func_17658
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -3101,6 +3370,13 @@
 	bx	r1
 .func_end Func_17658
 
+@ RunTextBoxModal
+@ r0 = string id, r1 = option bits. Opens a box with Func_17658 and drives it to
+@ completion, polling Func_17364 each frame through Func_30f8(1) and closing
+@ with Func_16418.
+@ Bit 1 of r1 selects a variant that also consults ewram_240 -- the save-data
+@ preferences -- and _Func_94154, and Func_187ac supplies the choice result.
+@ Traced structurally; the option-bit meanings are not yet documented.
 .thumb_func_start Func_1776c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -3245,6 +3521,10 @@
 	bx	r0
 .func_end Func_1776c
 
+@ StepUi
+@ Takes no arguments. The module's per-frame tick: Func_16f2c advances the eight
+@ windows, Func_16868 advances the three message boxes, Func_191cc advances the
+@ menu layer. Everything else in this module is driven from these three.
 .thumb_func_start Func_1789c
 	push	{lr}
 	bl	Func_16f2c

@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ UploadMapTilemap
+@ Takes no arguments. Sets REG_BG1CNT to 0x682 and DMAs the 0x9600-byte tilemap
+@ from ewram_10000 to 0x6006A00. Installed into the iwram_1cfc vblank hook by
+@ Func_11590 so the upload repeats each frame while the map layer is active.
 .thumb_func_start Func_11568
 	ldr	r2, =0x682
 	ldr	r3, =REG_BG1CNT
@@ -14,6 +18,17 @@
 	bx	lr
 .func_end Func_11568
 
+@ SetupMapBgLayer
+@ Takes no arguments. Switches BG1 over to the map tilemap:
+@   - sets the tile-animation suspend flag at [iwram_1e70]+0xFC and pauses the
+@     Func_1179c task, so no animation writes race the upload
+@   - DMAs 0x2000 bytes of tile graphics from ewram_1c000 to 0x6004000 and lets
+@     one frame pass
+@   - picks the working buffer from [iwram_1e6c] offset by 0x1400 when bit 0 of
+@     iwram_1e40 is set (the double-buffer select) plus 0xC80, and builds the
+@     tilemap into ewram_10000 with Func_12388
+@   - seeds the window bounds at +0x100 = 0xC8 and +0x13A = 0xFF
+@   - installs Func_11568 as the iwram_1cfc per-frame upload hook
 .thumb_func_start Func_11590
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e6c
@@ -63,6 +78,10 @@
 	bx	r0
 .func_end Func_11590
 
+@ UploadAltTilemap
+@ Takes no arguments. The counterpart to Func_11568 for the second layout: sets
+@ REG_BG1CNT to 0x501 and DMAs 0x8000 bytes from ewram_38000 to 0x6008000.
+@ Installed into iwram_1cfc by Func_11644 and Func_1173c.
 .thumb_func_start Func_1161c
 	ldr	r2, =0x501
 	ldr	r3, =REG_BG1CNT
@@ -76,6 +95,19 @@
 	bx	lr
 .func_end Func_1161c
 
+@ LoadMapGraphics
+@ Takes no arguments. Full graphics load for a newly entered map, driven by the
+@ five-entry resource table at [iwram_1e70]+0x11C.
+@   - preserves palette entry 0 across the load: the live value at 0x5000000 is
+@     saved, the decompressed palette (Func_2f40 + Func_53e8) is written to
+@     ewram_10000, entry 0 is restored, and 0x70 words are DMAd back to palette
+@     RAM so the backdrop colour never flickers
+@   - decompresses the four tile banks to ewram_38000, ewram_3a000, ewram_3c000
+@     and ewram_3e000
+@   - installs Func_1161c as the upload hook and resets the window bounds at
+@     +0x100 / +0x102 to 0 and 0x9F
+@   - after a frame, loads resource 0xD5 into ewram_10000, runs Func_113e4,
+@     clears the suspend flag at +0xFC and resumes the Func_1179c task
 .thumb_func_start Func_11644
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -167,6 +199,11 @@
 	bx	r0
 .func_end Func_11644
 
+@ RestoreMapGraphics
+@ Takes no arguments. The short form of Func_11644 used when returning to a map
+@ whose tile banks are still resident: reinstalls Func_1161c as the upload hook,
+@ resets the window bounds to 0 / 0x9F, reloads resource 0xD5 into ewram_10000,
+@ runs Func_113e4 and resumes the tile-animation task.
 .thumb_func_start Func_1173c
 	push	{lr}
 	ldr	r3, =iwram_1e70
@@ -199,6 +236,23 @@
 	bx	r0
 .func_end Func_1173c
 
+@ TileAnimationTask
+@ Per-frame task (registered at priority 0xC80 by Func_118d8). Takes no
+@ arguments. Runs 16 independent tile-animation channels stored at
+@ [iwram_1e70]+0x18, stride 0xC:
+@   +0x00 script base   +0x04 script cursor
+@   +0x08 delay counter  +0x0A paused flag
+@ A channel with a null base or a set paused flag is skipped; a non-zero delay
+@ is simply decremented (with the 0xFFFF bias at .L1186c) and the channel waits.
+@ Otherwise halfwords are consumed from the cursor until one costs time:
+@   0xFFFF     -- rewind the cursor to the script base (loop)
+@   0xFExx     -- xx == 0xFF stops the channel; otherwise jump to script word xx
+@   any other  -- a 4-halfword frame record {count, delay, src, dst} that DMAs
+@                 one block of tiles and then reloads the delay
+@ Block geometry depends on the colour depth flag at [iwram_1e70]+0x16: 4bpp
+@ uses 0x20-byte tiles out of ewram_1c000 or 0x6004000, 8bpp uses 0x40-byte
+@ tiles out of ewram_20000 or 0x6008000, with the high source ranges selected
+@ once the tile index passes 0x600 / 0x200 respectively.
 .thumb_func_start Func_1179c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -332,6 +386,9 @@
 	bx	r0
 .func_end Func_1179c
 
+@ ResumeTileAnimationChannel
+@ r0=channel index 0-15. Clears the paused flag of that channel (the halfword at
+@ [iwram_1e70] + index*0xC + 0x22, i.e. +0x0A within the channel record).
 .thumb_func_start Func_118a8
 	ldr	r3, =iwram_1e70
 	ldr	r2, [r3]
@@ -344,6 +401,9 @@
 	bx	lr
 .func_end Func_118a8
 
+@ PauseTileAnimationChannel
+@ r0=channel index 0-15. Sets the channel's paused flag, freezing it in place
+@ without losing its cursor. The counterpart to Func_118a8.
 .thumb_func_start Func_118c0
 	ldr	r3, =iwram_1e70
 	ldr	r2, [r3]
@@ -356,6 +416,14 @@
 	bx	lr
 .func_end Func_118c0
 
+@ LoadTileAnimations
+@ r0=animation script. Zero-fills all 16 channel records by DMA, then walks the
+@ script as halfwords until the 0xFFFF terminator, binding one channel per
+@ 0xFDxx marker: the low nibble of the marker is the channel index, bit 7
+@ selects whether it starts paused, and both the base and cursor are pointed at
+@ the halfword after the marker.
+@ Registers Func_1179c at priority 0xC80 only if at least one channel was bound,
+@ so a map with no animated tiles costs nothing per frame.
 .thumb_func_start Func_118d8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -439,6 +507,10 @@
 	bx	r0
 .func_end Func_118d8
 
+@ SuspendTileAnimationTask
+@ Takes no arguments. Pauses the whole Func_1179c task, but only when the
+@ suspend flag at [iwram_1e70]+0xFC is 0 -- so a caller that already suspended
+@ it (Func_11590) is not double-counted.
 .thumb_func_start Func_11984
 	push	{lr}
 	ldr	r3, =iwram_1e70
@@ -456,6 +528,9 @@
 	bx	r0
 .func_end Func_11984
 
+@ ResumeTileAnimationTask
+@ Takes no arguments. Resumes the Func_1179c task, again only when the suspend
+@ flag at [iwram_1e70]+0xFC is 0. The counterpart to Func_11984.
 .thumb_func_start Func_119a8
 	push	{lr}
 	ldr	r3, =iwram_1e70
@@ -473,6 +548,18 @@
 	bx	r0
 .func_end Func_119a8
 
+@ BlendAnimationTask
+@ Per-frame task (registered at priority 0xC80 by Func_11a84). Takes no
+@ arguments. Drives one scripted blend channel at [iwram_1e70]+0xD8, using the
+@ same {base, cursor, delay, paused} record layout as the tile channels.
+@ Script halfwords:
+@   0xFFFF     -- rewind to the base
+@   0xFExx     -- xx == 0xFF stops; otherwise jump to script word xx
+@   0x3xxx     -- write the value to REG_BLDCNT and cache its low byte at
+@                 [iwram_1e70]+0x103, which records the selected blend mode
+@   any other  -- write the value to REG_BLDALPHA when the cached mode bits are
+@                 0x40, otherwise to REG_BLDY, then take the following halfword
+@                 as the delay
 .thumb_func_start Func_119cc
 	push	{lr}
 	ldr	r3, =iwram_1e70
@@ -563,6 +650,10 @@
 	bx	r0
 .func_end Func_119cc
 
+@ LoadBlendAnimation
+@ r0=blend script. Zero-fills the blend channel record at [iwram_1e70]+0xD8 by
+@ DMA and, unless the script starts with the 0xFFFF terminator, points both base
+@ and cursor at it and registers Func_119cc at priority 0xC80.
 .thumb_func_start Func_11a84
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1e70
@@ -602,6 +693,9 @@
 	bx	r0
 .func_end Func_11a84
 
+@ SuspendBlendAnimation
+@ Takes no arguments. Pauses the Func_119cc task, leaving the current blend
+@ registers as they are.
 .thumb_func_start Func_11ae0
 	push	{lr}
 	ldr	r0, =Func_119cc
@@ -610,6 +704,8 @@
 	bx	r0
 .func_end Func_11ae0
 
+@ ResumeBlendAnimation
+@ Takes no arguments. Resumes the Func_119cc task.
 .thumb_func_start Func_11af0
 	push	{lr}
 	ldr	r0, =Func_119cc
@@ -618,6 +714,11 @@
 	bx	r0
 .func_end Func_11af0
 
+@ InitPaletteCycleBuffers
+@ Takes no arguments. Allocates the 0xB4-byte palette-cycle state (tag 0x1C) and
+@ clears it: four channel records of 0x2C bytes each -- header fields at +0x00,
+@ +0x04, +0x06, +0x08, +0x0A followed by a 16-halfword colour buffer at +0x0C --
+@ plus the active-channel count at +0xB0.
 .thumb_func_start Func_11b00
 	push	{r5, r6, lr}
 	mov	r1, #0xb4
@@ -664,6 +765,14 @@
 	bx	r0
 .func_end Func_11b00
 
+@ AddPaletteCycleChannel
+@ r0=palette bank, r1=index within the bank, r2=frame delay, r3=colour count.
+@ Returns 0 on success, or -1 when all four channels are already in use.
+@ Resolves the target palette address as 0x5000000 + (bank * 16 + index) * 2,
+@ stores it at +0x00 along with the delay at +0x08 and the count at +0x0A, and
+@ DMAs the current colours from palette RAM into the channel's buffer at +0x0C
+@ so the cycle rotates whatever is on screen at the time. Bumps the count at
+@ +0xB0.
 .thumb_func_start Func_11b54
 	push	{r5, r6, r7, lr}
 	lsl	r2, #16
@@ -722,6 +831,9 @@
 	bx	r1
 .func_end Func_11b54
 
+@ ShutdownPaletteCycle
+@ Takes no arguments. Unregisters the Func_11bf4 task with Func_4278 and frees
+@ the state block allocated by Func_11b00 (tag 0x1C).
 .thumb_func_start Func_11bc8
 	push	{lr}
 	ldr	r0, =Func_11bf4
@@ -732,6 +844,9 @@
 	bx	r0
 .func_end Func_11bc8
 
+@ StartPaletteCycle
+@ Takes no arguments. Registers Func_11bf4 at priority 0xC80 so the configured
+@ channels begin animating.
 .thumb_func_start Func_11be0
 	push	{lr}
 	mov	r1, #0xc8
@@ -742,6 +857,15 @@
 	bx	r0
 .func_end Func_11be0
 
+@ PaletteCycleTask
+@ Per-frame task. Takes no arguments. Rotates the colours of each active channel
+@ in the state block at [iwram_1ec0]; the channel count at +0xB0 is masked to 2
+@ bits, so at most four run.
+@ A channel with a non-zero counter at +0x06 just decrements it. Otherwise the
+@ channel's stored colours (+0x0C onward, +0x0A of them) are copied into a
+@ 0x20-byte stack buffer starting from the phase at +0x04 and wrapping around,
+@ DMAd to the palette address at +0x00, and the phase is advanced by one and
+@ wrapped. The delay at +0x08 is then reloaded into +0x06.
 .thumb_func_start Func_11bf4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

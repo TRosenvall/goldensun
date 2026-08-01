@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ Sub_d82b0
+@ Battle animation routine, 345 instructions.
+@ State: iwram_1eec, ewram_10000.
+@ Calls out to: _Func_b7dd0, _Func_b8530, _Func_bd7dc, _Func_f9080.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_d82b0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -362,6 +369,13 @@
 	bx	r0
 .func_end Func_d82b0
 
+@ Sub_d85d0
+@ Battle animation routine, 383 instructions.
+@ State: iwram_1eec, iwram_1e50, ewram_10000.
+@ Calls out to: _Func_b7dd0, _Func_b8530, _Func_bd7dc, _Func_f9080.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_d85d0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

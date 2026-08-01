@@ -1,5 +1,18 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Field ability sequences, part 2.
+@
+@ Same effect state as rom_9ad70.s / rom_96cdc.s: iwram_1f30 with the caster at
+@ +0x10, target at +0x14 and the particle instances from +0x58. Each Run*
+@ routine below is a blocking cutscene -- animate, wait, apply -- and the Hook
+@ routines are the per-frame motion installed on individual particles at +0x6C.
+@ ============================================================================
+
+@ GetDpadHeading
+@ Returns the heading angle for the current D-pad state, reading bits 4-7 of
+@ iwram_1ae8 and indexing the 16-entry table .L9f0f8. The rom_8a000 counterpart
+@ of the .L13254 lookup in rom_ebec.s.
 .thumb_func_start Func_97b54
 	ldr	r3, =iwram_1ae8
 	ldr	r3, [r3]
@@ -12,6 +25,9 @@
 	bx	lr
 .func_end Func_97b54
 
+@ TrackTargetHook
+@ r0=entity. Per-frame hook that keeps the particle pointed at the target held
+@ at +0x68, recomputing the delta each frame. A null target makes it a no-op.
 .thumb_func_start Func_97b70
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -105,6 +121,10 @@
 	bx	r0
 .func_end Func_97b70
 
+@ RunGrowAbility
+@ Takes no arguments. The plant/grow field ability: raises the target from its
+@ tile, plays the growth stages and leaves the grown object in place. The
+@ ~500-instruction body is characterised structurally.
 .thumb_func_start Func_97c3c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -476,6 +496,24 @@
 	bx	r0
 .func_end Func_97c3c
 
+@ StepEntityWanderState
+@ r0 = entity. Advances the four-state wander machine whose state byte is the
+@ signed value at entity+0x40:
+@
+@     0  pick a new heading: Func_4458 supplies a 16-bit angle, Func_447c
+@        rotates the entity's home position (+0x14, +0x18) by it, the result
+@        becomes the target at +0x0C and +0x10, the speed at +0x20 and +0x24 is
+@        set to 0x40000 and +0x42 is cleared. Falls through to state 1.
+@     1  walk -- Func_9ba34 reports arrival, and only then does the state
+@        advance
+@     2  return home: the target is reset to the home position, +0x32 is set to
+@        0x400 and +0x42 to 1
+@     3  Func_9ba34 again, then Func_9bb34 finishes the cycle
+@
+@ States 0 and 2 advance and re-enter the loop in the same call; 1 and 3 return
+@ and wait for the next frame.
+@
+@ Declared `.thumb_Func_start` with a capital F -- see the note on Func_942e0.
 .thumb_Func_start Func_97f80
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -566,6 +604,9 @@
 	bx	r0
 .func_end Func_97f80
 
+@ RunAbilityWithPaletteSetup
+@ Takes no arguments. Uploads the ability palettes with Func_97384, then runs
+@ Func_98070 against the caster from [iwram_1f30]+0x10.
 .thumb_func_start Func_9802c
 	push	{r5, lr}
 	ldr	r3, =iwram_1f30
@@ -594,6 +635,9 @@
 	bx	r0
 .func_end Func_9802c
 
+@ AnimateCasterRotation
+@ r0=caster entity. Spins the caster's facing at +0x06 through a full turn over
+@ a fixed number of frames, the wind-up shared by several abilities.
 .thumb_func_start Func_98070
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -718,6 +762,9 @@
 	bx	r1
 .func_end Func_98070
 
+@ ClampEffectHeight
+@ r0=effect instance. Clamps the height word at +0x18 to 0xFFFF and mirrors it
+@ into +0x1C, keeping a rising particle from overshooting. Null-safe.
 .thumb_func_start Func_98184
 	push	{lr}
 	cmp	r0, #0
@@ -743,6 +790,10 @@
 	bx	r0
 .func_end Func_98184
 
+@ RunLaunchAbility
+@ r0=caster. Plays sound 0x9A and launches the effect upward from the caster,
+@ stepping the height by -0x800 per frame. The ~120-instruction body is
+@ characterised structurally.
 .thumb_func_start Func_981b0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -842,6 +893,10 @@
 	bx	r0
 .func_end Func_981b0
 
+@ FindEntityNearPosition
+@ r0=position. Scans the 0x40 entities at [iwram_1e64] for one close to r0 and
+@ returns it, or 0. The ability targeting counterpart to Func_d924's collision
+@ scan in rom_9000.
 .thumb_func_start Func_98294
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1e64
@@ -880,6 +935,9 @@
 	bx	r0
 .func_end Func_98294
 
+@ PositionCasterForAbility
+@ Takes no arguments. Moves the player entity (ewram_240+0x1F4) into the
+@ standing position an ability cast requires, aligning it to the target tile.
 .thumb_func_start Func_982dc
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1ebc
@@ -966,6 +1024,10 @@
 	bx	r0
 .func_end Func_982dc
 
+@ SpawnAbilityParticles
+@ Takes no arguments. Creates the particle instances an ability needs, binding
+@ each to the effect state and giving it its starting offset. The
+@ ~190-instruction body is characterised structurally.
 .thumb_func_start Func_983a0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1080,6 +1142,9 @@
 	bx	r0
 .func_end Func_983a0
 
+@ RunAbilityIntro
+@ Takes no arguments. The common opening beat: freezes the player, plays the
+@ cast pose and brings the particles up before the ability's own body runs.
 .thumb_func_start Func_984c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1177,6 +1242,9 @@
 	bx	r0
 .func_end Func_984c0
 
+@ RunTargetLiftIntro
+@ Takes no arguments. Opens an ability that acts on a target object: verifies a
+@ target is present at [iwram_1f30]+0x14 and hands off to Func_98698.
 .thumb_func_start Func_985a8
 	push	{r5, lr}
 	ldr	r3, =iwram_1f30
@@ -1214,6 +1282,10 @@
 	bx	r0
 .func_end Func_985a8
 
+@ RunTargetLift
+@ Takes no arguments. Lifts the target object, playing sound 0x86 and driving
+@ its rise through Func_98698. The ~150-instruction body is characterised
+@ structurally.
 .thumb_func_start Func_985fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1282,6 +1354,10 @@
 	bx	r0
 .func_end Func_985fc
 
+@ AnimateTargetRise
+@ Takes no arguments. Steps the target object upward frame by frame, updating
+@ its shadow and particles as it goes. The ~420-instruction body is
+@ characterised structurally.
 .thumb_func_start Func_98698
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1493,6 +1569,9 @@
 	bx	r0
 .func_end Func_98698
 
+@ RunTargetSet
+@ Takes no arguments. Sets a lifted object back down at its destination,
+@ resolving the landing tile and clearing the lift state.
 .thumb_func_start Func_98848
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1615,6 +1694,9 @@
 	bx	r0
 .func_end Func_98848
 
+@ RunTargetMove
+@ Takes no arguments. Carries a lifted object sideways to a new tile before it
+@ is set down. The ~340-instruction body is characterised structurally.
 .thumb_func_start Func_98954
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1750,6 +1832,9 @@
 	bx	r0
 .func_end Func_98954
 
+@ PlayAbilityImpact
+@ r0, r1, r2, r3 = impact position and kind. Plays sound 0x8A and the impact
+@ burst at that point.
 .thumb_func_start Func_98a84
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1820,6 +1905,9 @@
 	bx	r1
 .func_end Func_98a84
 
+@ PlaceParticlesAroundTarget
+@ r0=effect instance base. Spaces the ability's particles around the target,
+@ using the per-instance offsets at +0x40.
 .thumb_func_start Func_98b10
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1941,6 +2029,9 @@
 	bx	r0
 .func_end Func_98b10
 
+@ RunShatterAbility
+@ r0=target. Plays sound 0x86 and the break-apart effect on the target object,
+@ removing it from the map when the animation finishes.
 .thumb_func_start Func_98c08
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2025,6 +2116,8 @@
 	bx	r1
 .func_end Func_98c08
 
+@ RunFreezeAbility_Wrapper
+@ Tail call to Func_98cd8; a second entry point for the ability table.
 .thumb_func_start Func_98ccc
 	push	{lr}
 	bl	Func_98cd8
@@ -2032,6 +2125,10 @@
 	bx	r0
 .func_end Func_98ccc
 
+@ RunFreezeAbility
+@ Takes no arguments. The freeze field ability: forms the frozen pillar at the
+@ target and leaves it as standing geometry. The ~600-instruction body is
+@ characterised structurally.
 .thumb_func_start Func_98cd8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2417,6 +2514,9 @@
 	bx	r0
 .func_end Func_98cd8
 
+@ FlickerEveryEighthFrame
+@ r0=entity. Applies a palette change on every eighth frame (bits 0-2 of
+@ iwram_1e40), the slow shimmer used on a completed ice pillar.
 .thumb_func_start Func_99018
 	push	{lr}
 	ldr	r3, =iwram_1e40
@@ -2438,6 +2538,9 @@
 	bx	r0
 .func_end Func_99018
 
+@ SinkEffectHook
+@ r0=entity. Per-frame hook that lowers the entity: subtracts 0x1000 from the
+@ height words at +0x18 and +0x1C each frame. Null-safe.
 .thumb_func_start Func_99040
 	push	{lr}
 	cmp	r0, #0
@@ -2460,6 +2563,9 @@
 	bx	r0
 .func_end Func_99040
 
+@ OrbitHookSlow
+@ r0=entity. Per-frame hook that advances the phase at +0x64 and moves the
+@ particle around its orbit; the slower of the two variants here.
 .thumb_func_start Func_99070
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -2508,6 +2614,9 @@
 	bx	r0
 .func_end Func_99070
 
+@ OrbitHookFast
+@ r0=entity. The faster sibling of Func_99070 -- same phase word at +0x64, a
+@ larger step per frame.
 .thumb_func_start Func_990cc
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -2556,6 +2665,9 @@
 	bx	r0
 .func_end Func_990cc
 
+@ MarkTargetHeld
+@ Takes no arguments. Sets the held flag at +0x35 of the effect state when a
+@ target is present at +0x14, recording that an object is currently lifted.
 .thumb_func_start Func_99128
 	push	{lr}
 	ldr	r3, =iwram_1f30
@@ -2585,6 +2697,10 @@
 	bx	r0
 .func_end Func_99128
 
+@ RunCarryAbility
+@ Takes no arguments. Carries a held object with the player as they walk,
+@ updating its position each frame until it is released. The
+@ ~400-instruction body is characterised structurally.
 .thumb_func_start Func_99160
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2757,6 +2873,9 @@
 	bx	r0
 .func_end Func_99160
 
+@ ComputeOrbitOffset
+@ r0=entity. Converts the phase counter at +0x64 into a position offset through
+@ Func_2322 (the sine table), giving the particle its circular path.
 .thumb_func_start Func_992f0
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -2796,6 +2915,9 @@
 	bx	r0
 .func_end Func_992f0
 
+@ ApplyParticleOffset
+@ r0=entity. Adds the computed orbit offset to the particle's position, relative
+@ to the effect origin in [iwram_1f30]. Null-safe.
 .thumb_func_start Func_99340
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1f30
@@ -2850,6 +2972,10 @@
 	bx	r0
 .func_end Func_99340
 
+@ AnimateParticleSpiral
+@ r0=entity. Advances the particle along a spiral -- phase at +0x64 driving both
+@ the angle and a growing radius. The ~110-instruction body is characterised
+@ structurally.
 .thumb_func_start Func_993b0
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -2968,6 +3094,9 @@
 	bx	r0
 .func_end Func_993b0
 
+@ RunAbilityOutro_Wrapper
+@ Runs Func_994d0 and then Func_97174, restoring the caster's hook and palette
+@ once the ability finishes.
 .thumb_func_start Func_994c0
 	push	{lr}
 	bl	Func_994d0
@@ -2976,6 +3105,10 @@
 	bx	r0
 .func_end Func_994c0
 
+@ RunAbilityOutro
+@ Takes no arguments. The common closing beat: retracts the particles, returns
+@ the caster to idle and releases the effect instances. The ~400-instruction
+@ body is characterised structurally.
 .thumb_func_start Func_994d0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -3168,6 +3301,10 @@
 	bx	r0
 .func_end Func_994d0
 
+@ RestorePlayerAfterAbility
+@ Takes no arguments. Returns the player entity (ewram_240+0x1F4) to normal
+@ control after a cast: clears the freeze flag, restores the idle animation and
+@ re-enables input.
 .thumb_func_start Func_99678
 	push	{r5, r6, lr}
 	ldr	r3, =ewram_240
@@ -3261,6 +3398,9 @@
 	bx	r0
 .func_end Func_99678
 
+@ SaveAbilityResult
+@ Takes no arguments. Records the outcome of the cast into ewram_240 so the map
+@ script and save state reflect whatever the ability changed.
 .thumb_func_start Func_99738
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3362,6 +3502,10 @@
 	bx	r0
 .func_end Func_99738
 
+@ HasPendingAbilityResult
+@ Takes no arguments. Returns whether the pending-result halfword at
+@ ewram_240+0x24C is non-zero -- i.e. whether a cast left something for the map
+@ script to act on.
 .thumb_func_start Func_99810
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -3381,6 +3525,10 @@
 	bx	r0
 .func_end Func_99810
 
+@ ApplyAbilityResultToScene
+@ Takes no arguments. Applies the recorded ability result to the live scene:
+@ updates the affected slots and map tiles so the change persists. The
+@ ~230-instruction body is characterised structurally.
 .thumb_func_start Func_99838
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3486,6 +3634,10 @@
 	bx	r0
 .func_end Func_99838
 
+@ FallToGroundHook
+@ r0=entity. Per-frame hook that drops the entity until its y (+0x0C) reaches
+@ the ground height cached at +0x14, then sets the wait timer at +0x5E to end
+@ the sequence.
 .thumb_func_start Func_99920
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -3550,6 +3702,9 @@
 	bx	r0
 .func_end Func_99920
 
+@ BounceScatterHook
+@ r0=entity. Per-frame hook that drops the entity by 0x4CCC and gives it a
+@ random sideways nudge from Func_4458 -- the debris scatter after a break.
 .thumb_func_start Func_999a8
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -3577,6 +3732,8 @@
 	bx	r0
 .func_end Func_999a8
 
+@ RunBreakAbility_Wrapper
+@ Tail call to Func_999f0; a second entry point for the ability table.
 .thumb_func_start Func_999e4
 	push	{lr}
 	bl	Func_999f0
@@ -3584,6 +3741,10 @@
 	bx	r0
 .func_end Func_999e4
 
+@ RunBreakAbility
+@ Takes no arguments. The break/shatter field ability: cracks the target apart
+@ and scatters the debris with the hooks above. The ~800-instruction body is
+@ characterised structurally.
 .thumb_func_start Func_999f0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3963,6 +4124,10 @@
 	bx	r0
 .func_end Func_999f0
 
+@ CaptureTargetPosition
+@ Takes no arguments. Copies the target's position from [iwram_1f30]+0x14 into
+@ the caller's stack frame, the common preamble to an ability that needs the
+@ original location after moving the object.
 .thumb_func_start Func_99d18
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1f30
@@ -4021,6 +4186,10 @@
 	bx	r0
 .func_end Func_99d18
 
+@ RunRevealHiddenAbility
+@ Takes no arguments. Reveals hidden objects around the caster, spawning their
+@ entities and playing the discovery effect. The ~1300-instruction body is
+@ characterised structurally.
 .thumb_func_start Func_99da4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -4577,6 +4746,9 @@
 	bx	r0
 .func_end Func_99da4
 
+@ RunAbilityFailure
+@ Takes no arguments. The "nothing happened" path: plays the failure cue and
+@ returns the caster to idle without changing the world.
 .thumb_func_start Func_9a294
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -4712,6 +4884,9 @@
 	bx	r0
 .func_end Func_9a294
 
+@ PlayAbilityImpactVariant
+@ r0, r1, r2, r3 = impact position and kind. A second impact routine alongside
+@ Func_98a84, also opening with sound 0x8A but using a different burst.
 .thumb_func_start Func_9a3c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

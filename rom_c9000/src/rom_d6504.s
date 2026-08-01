@@ -1,6 +1,58 @@
 	.include "macros.inc"
+
+@ ============================================================================
+@ Battle animation dispatch.
+@
+@ rom_c9000 is the presentation layer for battle: it plays the animation for an
+@ action while rom_b5000 owns the turn logic and the numbers. rom_b5000 calls
+@ into it through the two entry points here.
+@
+@ ALLOCATION TAGS. Func_48b0(tag, size) allocates and Func_2dd8(tag) frees; the
+@ pointer lives at iwram_1e50 + tag*4, so the symbol a handler dereferences
+@ tells you which tag it wants. The three Func_d6578 allocates land adjacently:
+@     tag 0x27  iwram_1eec  0x782C  the battle-animation state block
+@     tag 0x28  iwram_1ef0  0x4000  destination render buffer (128x128 8bpp)
+@     tag 0x29  iwram_1ef4  0x302   sprite scratch
+@ and the two blitters Func_ed408 generates sit just past them, which is why
+@ handlers reach them as [iwram_1ef0 + 0x18] and [iwram_1ef0 + 0x1c]:
+@     tag 0x2E  iwram_1ef0+0x18     generated blitter A
+@     tag 0x2F  iwram_1ef0+0x1c     generated blitter B
+@ Both are called as blit(dst, srcGfx, x, y, w, h), x and y naming the CENTRE.
+@
+@ SHARED SPRITE TABLE. Data_ede48 is the cumulative offset of each sprite size
+@ in the tag-0x29 buffer: size n is n wide by 2n tall, so entry n is the sum of
+@ 2k^2 for k < n -- 0, 2, 10, 28, 60, 110, 182, 280, 408, 570. Ten sizes ending
+@ at 570 + 200 = 770 = 0x302, exactly the buffer's size.
+@
+@ State: the 0x782C block at [iwram_1eec]. Notable fields:
+@     +0x77AC/+0x77B0  screen-shake amount and mode
+@     +0x77D8..+0x7807 effect-actor array, filled by Func_dbb24
+@     +0x7818          per-combatant byte array
+@     +0x7824          set to 1 each frame to arm the Func_cd260 effect task
+@     +0x7828          the current action descriptor
+@ Action descriptor fields used by the handlers: +0x00 animation class,
+@ +0x04 a side/direction selector, +0x08 the acting combatant, +0x14 the target
+@ count, +0x24 onward an array of halfword target ids.
+@
+@ EVERY handler is synchronous: it runs its own frame loop, calling Func_30f8(1)
+@ once per frame, and returns only when the animation is over. Holding A or B
+@ (iwram_1b04 & 3) fast-forwards by jumping the frame counter. Func_bd7dc(code)
+@ raises the one-shot flag at [iwram_1e74]+0x800 (code at +0x820) that hands
+@ control back to rom_b5000.
+@
+@ Combatants are addressed by id through _Func_77394 (rom_8a000's party record
+@ lookup): ids 0..7 are the player's side, 0x80..0x85 the enemy side, and the
+@ halfword at +0x38 of a record is current HP -- zero means down.
+@ ============================================================================
 	.include "gba.inc"
 
+@ StepScreenShake
+@ Takes no arguments. Advances the battle screen shake one frame using the
+@ amount at [iwram_1eec]+0x77AC and the mode at +0x77B0, adding the offset into
+@ the view's y at [iwram_1e80]+0x36.
+@ Mode 1 applies the full amount once and then clears the mode -- a single
+@ jolt. Any other mode applies half the amount and alternates between 2 and 0,
+@ giving the oscillating shake.
 .thumb_func_start Func_d6504
 	push	{lr}
 	ldr	r3, =iwram_1eec
@@ -45,6 +97,10 @@
 	bx	r0
 .func_end Func_d6504
 
+@ AdvanceFrames
+@ r0=count. Calls Func_dbb98 r0 times -- the module's per-frame step -- so an
+@ animation can hold for a fixed number of frames. A count of 0 returns
+@ immediately.
 .thumb_func_start Func_d655c
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -62,6 +118,17 @@
 	bx	r0
 .func_end Func_d655c
 
+@ PlayActionAnimation
+@ r0=action descriptor. The main entry point rom_b5000 calls to play a battle
+@ action. Allocates the three working buffers (0x302 under tag 0x29, 0x782C
+@ under 0x27, 0x4000 under 0x28), dispatches on the animation class in
+@ descriptor[0], and releases all three before returning.
+@ Class 0 and 11 both fall through to Func_e7320; classes 1..12 select one of
+@ twelve handlers via the table at .Ld65ac, each living in its own file:
+@     1 Func_e823c    2 Func_d2d98    3 Func_eb754    4 Func_dc968
+@     5 Func_d6970    6 Func_ec100    7 Func_d2458    8 Func_d1714
+@     9 Func_ea0d8   10 Func_d765c   11 Func_e7320   12 Func_e15e8
+@ A class above 12 allocates and frees the buffers without playing anything.
 .thumb_func_start Func_d6578
 	push	{r5, lr}
 	mov	r5, r0
@@ -158,6 +225,12 @@
 	bx	r0
 .func_end Func_d6578
 
+@ PlayActionAnimationByTable
+@ r0=action descriptor. The variant used for actions whose handler comes from
+@ the Data_ee2b4 table rather than the fixed dispatch in Func_d6578.
+@ Allocates the same three buffers, stores the descriptor at [iwram_1eec]+0x7828
+@ so the handlers can reach it, then calls Data_ee2b4[class - 1]. A class of 0
+@ clears descriptor+0x18 and plays nothing. Buffers are released either way.
 .thumb_func_start Func_d6660
 	push	{r5, lr}
 	mov	r5, r0
@@ -200,6 +273,13 @@
 	bx	r0
 .func_end Func_d6660
 
+@ BuildWindowScanlineTable
+@ Takes no arguments. Fills the 160-entry WIN0H table at ewram_10082 and arms
+@ the DMA0 HBlank transfer that feeds it.
+@ Rows outside 8..0x87 get the 0xFFF1 "closed" value. Inside that band the left
+@ edge is the base width at ewram_10000 minus the per-row inset from
+@ ewram_fffa, clamped to 0..0xF0 -- so the window opens as a shape that follows
+@ the inset table rather than a plain rectangle.
 .thumb_func_start Func_d66cc
 	push	{r5, r6, lr}
 	ldr	r6, =ewram_10000
@@ -259,6 +339,13 @@
 	bx	r0
 .func_end Func_d66cc
 
+@ CollectLivingCombatants
+@ r0=action descriptor. Builds the list of combatants still standing and hands
+@ it to _Func_b7b6c.
+@ The side is chosen by the halfword at descriptor+0x24: above 0x7F scans the
+@ enemy ids 0x80..0x85, otherwise the player ids 0..7. Each id is resolved with
+@ _Func_77394 and kept only when its current HP at +0x38 is positive. The list
+@ is terminated with 0xFF.
 .thumb_func_start Func_d6750
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -336,6 +423,14 @@
 	bx	r0
 .func_end Func_d6750
 
+@ SetUpBattleBackdrop
+@ Takes no arguments. Prepares the display for an animation: forces DISPCNT
+@ mode 1, sets the window width at iwram_1ad0+0x06 to 0x20, converts the
+@ palette through _Func_c08ec, and DMAs 0x4000 bytes of tile data from
+@ [iwram_1e74]+0x7C to 0x6004000.
+@ After a frame it programmes the blend: REG_BLDCNT 0x3F46, REG_BLDALPHA
+@ 0x100E, DISPCNT 0x7741, and sets the projection reference at iwram_1ce0+0x10
+@ to 0x78.
 .thumb_func_start Func_d67dc
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -416,6 +511,20 @@
 	bx	r0
 .func_end Func_d67dc
 
+@ SetCombatantSpriteState
+@ r0=palette source, r1=palette index (-1 to leave alone), r2=animation index
+@ (-1 to leave alone), r3=per-combatant byte to record (-1 to skip).
+@ Walks every combatant in the current action via _Func_b7dd0 and _Func_b7f70.
+@ For each one:
+@   - stores r3 into the per-combatant array at [iwram_1eec]+0x7818
+@   - for every part of the combatant's actor except the two held at +0x20 and
+@     +0x24 of the battle record (the ones the action itself is animating),
+@     sets the palette byte at +0x05 -- computed by _Func_b6cd0 from r0 when
+@     r1 is 0, otherwise r1 directly -- and invalidates the cached frame by
+@     writing 0xFF to +0x16
+@   - applies animation r2 with _Func_ba30
+@ Combatants whose battle record has a non-zero halfword at +0x2A are skipped
+@ entirely.
 .thumb_func_start Func_d6888
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -528,6 +637,9 @@
 	bx	r0
 .func_end Func_d6888
 
+@ RestoreBattleView
+@ Takes no arguments. Undoes the animation's display changes: Func_cdb24(1)
+@ followed by Func_cdbc0, putting the battle screen back to its normal state.
 .thumb_func_start Func_d6960
 	push	{lr}
 	mov	r0, #1

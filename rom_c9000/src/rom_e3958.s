@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ StepDamageNumberA
+@ r0, r1 = animation record. Runs Func_e3994 then drops the record's y at +0x04
+@ by 0x10 -- one frame of a rising damage number. Three near-identical steppers
+@ exist (see Func_e396c, Func_e3980) differing only in what they call first.
 .thumb_func_start Func_e3958
 	push	{r5, lr}
 	mov	r5, r1
@@ -13,6 +17,9 @@
 	bx	r0
 .func_end Func_e3958
 
+@ StepDamageNumberB
+@ r0, r1 = animation record. As Func_e3958 but calls _Func_b845c for the
+@ per-frame work before the same 0x10 rise.
 .thumb_func_start Func_e396c
 	push	{r5, lr}
 	mov	r5, r1
@@ -25,6 +32,9 @@
 	bx	r0
 .func_end Func_e396c
 
+@ StepDamageNumberC
+@ r0, r1 = animation record. As Func_e3958 but calls _Func_b7f20 before the
+@ same 0x10 rise.
 .thumb_func_start Func_e3980
 	push	{r5, lr}
 	mov	r5, r1
@@ -37,6 +47,9 @@
 	bx	r0
 .func_end Func_e3980
 
+@ PositionOverTarget
+@ r0=record. Positions the record over its combatant using the view state at
+@ [iwram_1e80], so a number or icon tracks the sprite it belongs to.
 .thumb_func_start Func_e3994
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -94,6 +107,10 @@
 	bx	r1
 .func_end Func_e3994
 
+@ GetActionTargetSide
+@ Takes no arguments. Reads the current action descriptor from
+@ [iwram_1eec]+0x7828 and returns its target-side field at +0x24 -- above 0x7F
+@ means the enemy side (see Func_d6750 in rom_d6504.s).
 .thumb_func_start Func_e3a14
 	push	{lr}
 	ldr	r3, =iwram_1eec
@@ -112,6 +129,10 @@
 	bx	r0
 .func_end Func_e3a14
 
+@ PlayNumberAnimation
+@ r0=action descriptor. A second entry point alongside Func_d6578, allocating
+@ its own working buffers (0x60E under tag 0x29, 0x782C under 0x27) and playing
+@ the damage/heal number sequence. Body characterised structurally.
 .thumb_func_start Func_e3a3c
 	push	{r5, lr}
 	mov	r5, r0
@@ -154,6 +175,9 @@
 	bx	r0
 .func_end Func_e3a3c
 
+@ RunNumberSequence
+@ r0=descriptor. Drives the number animation frame by frame -- spawn, rise,
+@ fade -- using the steppers above. Body characterised structurally.
 .thumb_func_start Func_e3aa0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -862,6 +886,9 @@
 	bx	r0
 .func_end Func_e3aa0
 
+@ RunNumberSequenceAlt
+@ r0=descriptor. Second variant of the number sequence, for the other outcome
+@ class. Body characterised structurally.
 .thumb_func_start Func_e40a4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1582,6 +1609,10 @@
 	bx	r0
 .func_end Func_e40a4
 
+@ BuildNumberGraphics
+@ r0=descriptor. Renders the digits into a 0x80-byte stack buffer and uploads
+@ them to palette/OBJ memory (base 0x5000000). Body characterised
+@ structurally.
 .thumb_func_start Func_e46f0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

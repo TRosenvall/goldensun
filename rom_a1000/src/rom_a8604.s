@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ DrawStatusNumbers
+@ r0 = window, r1 = character, r2 = flags. The body of the status page: the
+@ name, the class, the HP and PP pairs, the four stats and the status icons.
+@ Labels come from 0xAFD, 0xAFE and the 0xBD4..0xBD9 block -- the same 0xBD6 to
+@ 0xBD9 run Func_a112c uses for the status icons, so the two agree by
+@ construction. _Func_7a5bc supplies the party summary and Func_a8b10 the status
+@ flags; Func_a9dc4 loads the element icons and Func_a9d3c places them.
+@ 347 lines; traced structurally.
 .thumb_func_start Func_a8604
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -354,6 +362,10 @@
 	bx	r0
 .func_end Func_a8604
 
+@ SpinDelay
+@ Takes no arguments. Counts 255 down to -1 doing nothing. A busy-wait -- there
+@ is no Func_30f8 in it, so it burns cycles inside a frame rather than waiting
+@ for one.
 .thumb_func_start Func_a8904
 	push	{lr}
 	mov	r3, #0xff
@@ -365,6 +377,10 @@
 	bx	r0
 .func_end Func_a8904
 
+@ DrawCharacterHeader
+@ r0.. = placement. Draws the name and class line -- STRING 0x741 + the class
+@ id at record+0x129 -- with the level and the coin label 0xB0E. 209 lines;
+@ traced structurally.
 .thumb_func_start Func_a8914
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -581,6 +597,20 @@
 	bx	r0
 .func_end Func_a8914
 
+@ CollectStatusFlags
+@ r0 = five-byte destination, r1 = 1 to include the downed flag, r2 = character
+@ id. Zeroes the five bytes and sets:
+@
+@     [0]  the character is DOWN -- current HP (record+0x38) is zero -- and
+@          only when r1 is 1
+@     [1]  record+0x131 is exactly 1
+@     [2]  record+0x131 is anything else non-zero
+@     [3]  record+0x130 is non-zero
+@     [4]  record+0x140 is non-zero
+@
+@ Returns how many of [1]..[4] were set. Those four map one for one onto the
+@ strings 0xBD6, 0xBD7, 0xBD8 and 0xBD9 that Func_a112c prints, so this is the
+@ status-icon set.
 .thumb_func_start Func_a8b10
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -650,6 +680,10 @@
 	bx	r1
 .func_end Func_a8b10
 
+@ BuildStatusScrollState
+@ r0 = destination, r1 = which cursor. The Func_a5578 of the status pages, with
+@ one addition: a total of zero forces the index to zero rather than to -1.
+@ Same seven words, same divisor of five.
 .thumb_func_start Func_a8b8c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -728,6 +762,13 @@
 	bx	r1
 .func_end Func_a8b8c
 
+@ BuildBarGraphTiles
+@ Takes no arguments. Generates the stat-bar tiles directly into VRAM at
+@ 0x6005000 rather than loading them: each 0x40-byte tile is filled with
+@ 0x44444444 (colour 4 everywhere) through Func_8d8, then words from .Laf23c are
+@ XORed in to cut a diagonal. Two shapes are built, six rows of six tiles each,
+@ and the diagonal's slope is what the two `cmp r7` arms select -- shape 0
+@ shifts the cut with the row and shape 1 does not.
 .thumb_func_start Func_a8c2c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -801,6 +842,12 @@
 	bx	r0
 .func_end Func_a8c2c
 
+@ DrawBracket
+@ r0 = window, r1 = column, r2 = row, r3 = index. Plots a three-tile bracket
+@ through _Func_19000: tile 0xF281 + index*2 with the horizontal-flip bit
+@ (0x400) at the column, 0xF280 + index*2 next to it, and 0xF281 + index*2
+@ unflipped at the far end. One tile drawn twice, mirrored -- which is why only
+@ two tiles exist per index.
 .thumb_func_start Func_a8cc0
 	push	{r5, r6, lr}
 	mov	r6, r11
@@ -854,6 +901,10 @@
 	bx	r0
 .func_end Func_a8cc0
 
+@ DrawEquipDetail
+@ r0.. = placement. Draws the equipment page's detail block: the item's line at
+@ 0x53A + id, labels 0xB13, 0xB14 and 0xB15, and the row tint through
+@ Func_a2268. 243 lines; traced structurally.
 .thumb_func_start Func_a8d34
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1104,6 +1155,11 @@
 	bx	r1
 .func_end Func_a8d34
 
+@ DrawEquipPage
+@ r0.. = placement. One page of the equipment list: Func_a2324 shows the
+@ sprites, Func_a21b0 draws the page bar and Func_a8cc0 the brackets. Names come
+@ from 0x333 + display id and the class line from 0x741 + record+0x129; the
+@ headings are 0xAED and 0xAEF. 159 lines; traced structurally.
 .thumb_func_start Func_a8f40
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1270,6 +1326,12 @@
 	bx	r1
 .func_end Func_a8f40
 
+@ RunStatusPage2
+@ Takes no arguments. The equipment page of the status screen. Builds the
+@ descriptor with Func_a8b8c, the list with Func_a68ec, draws through Func_a8d34
+@ and Func_a8f40, and moves with Func_a1fd4. Func_a8c2c generates the bar tiles
+@ on entry and Func_a9374 reloads the icons after each change. Label 0xB06;
+@ watches save bits 0x150 and 0x242. 312 lines; traced structurally.
 .thumb_func_start Func_a90bc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1589,11 +1651,16 @@
 	bx	r1
 .func_end Func_a90bc
 
+@ AlwaysAccept3
+@ Returns 1.
 .thumb_func_start Func_a9370
 	mov	r0, #1
 	bx	lr
 .func_end Func_a9370
 
+@ ReloadOwnerIcons
+@ r0 = unused, r1 = character id. Resolves the character, hides every list
+@ sprite and reloads the icons for state+0x1C8 through Func_a68a8.
 .thumb_func_start Func_a9374
 	push	{r5, lr}
 	ldr	r3, =iwram_1f2c
@@ -1611,14 +1678,22 @@
 	bx	r0
 .func_end Func_a9374
 
+@ NullHandler5
+@ An empty `bx lr`.
 .thumb_func_start Func_a939c
 	bx	lr
 .func_end Func_a939c
 
+@ NullHandler6
+@ An empty `bx lr`.
 .thumb_func_start Func_a93a0
 	bx	lr
 .func_end Func_a93a0
 
+@ DrawAbilityDetailPage
+@ r0.. = placement. The ability page's detail block: resolves ids through
+@ _Func_78414 (mask 0x1FF), plots its frame a tile at a time with _Func_19000
+@ and tints the selected row with Func_a2268. 240 lines; traced structurally.
 .thumb_func_start Func_a93a4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1866,6 +1941,11 @@
 	bx	r1
 .func_end Func_a93a4
 
+@ DrawAbilityPage2
+@ r0.. = placement. One page of the ability list, names from 0x182 + id and the
+@ power figure under label 0xAF7. Prints 0xAD7 when the list is empty. Uses
+@ Func_a2324 and Func_a21b0 like every other page renderer here.
+@ 136 lines; traced structurally.
 .thumb_func_start Func_a9598
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2009,6 +2089,11 @@
 	bx	r1
 .func_end Func_a9598
 
+@ RunStatusPage3
+@ Takes no arguments. The ability page of the status screen. Compacts with
+@ Func_a3ddc, sorts with Func_a1e38, loads icons with Func_a3e28, draws through
+@ Func_a93a4 and Func_a9598, and shares Func_a9a5c with the equipment view.
+@ Label 0xB06. 327 lines; traced structurally.
 .thumb_func_start Func_a96d8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2343,6 +2428,23 @@
 	bx	r1
 .func_end Func_a96d8
 
+@ StepDjinnGrid
+@ r0 = column pointer, r1 = row pointer, r2 = the direction bit that was
+@ pressed. The navigation for the irregular grid on the equipment page, where
+@ row 3 is a special narrow row:
+@
+@     0x40 (Up)     row -= 1, wrapping to 5; rows above 3 are rejected outright.
+@                   Row 3 clamps the column to 0 or 1 (from 4 or below, and
+@                   above 4 respectively), and landing on row 3 column 1 bumps
+@                   the row to 2.
+@     0x80 (Down)   row += 1, wrapping to 0; row 3 with column 1 becomes row 4,
+@                   and row 4 resets the column to 0.
+@     0x20 (Left)   column -= 1; row 3 undoes it, rows above 3 wrap to 7 and
+@                   rows below wrap to 1.
+@     0x10 (Right)  column += 1; row 3 undoes it, rows above 3 wrap past 7 and
+@                   rows below past 1.
+@
+@ Writes both back and returns row * 9 + column, the flat index.
 .thumb_func_start Func_a99b0
 	push	{lr}
 	ldr	r3, [r0]
@@ -2446,11 +2548,19 @@
 	bx	r1
 .func_end Func_a99b0
 
+@ AlwaysAccept4
+@ Returns 1.
 .thumb_func_start Func_a9a58
 	mov	r0, #1
 	bx	lr
 .func_end Func_a9a58
 
+@ DrawEquipSlots
+@ r0 = window, r1 = character id, r2 = non-zero to skip the icons.
+@ Draws the four equipment slot labels -- 0xB24 at row 0, 0xB25 at 0x20, 0xB26
+@ at 0x10 and 0xB27 at 0x30 -- then Func_a9aec fills in what is equipped. Unless
+@ r2 says otherwise it also lets a frame pass, loads the icons with Func_a3e28
+@ and positions them with Func_a9c18.
 .thumb_func_start Func_a9a5c
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -2512,6 +2622,16 @@
 	bx	r0
 .func_end Func_a9a5c
 
+@ DrawEquippedNames
+@ r0 = window, r1 = the fifteen-entry inventory list. For each slot with BIT 9
+@ SET -- the equipped flag -- it resolves the ability record and prints the item
+@ name (0x182 + id) at x 8 on the row its kind selects:
+@
+@     kind 1 -> row 0x08     kind 3 -> row 0x28
+@     kind 2 -> row 0x38     kind 4 -> row 0x18
+@
+@ So the ability record's +0x02 doubles as the equipment slot type, and the four
+@ kinds are the four slots Func_a9a5c labels.
 .thumb_func_start Func_a9aec
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2603,6 +2723,9 @@
 	bx	r0
 .func_end Func_a9aec
 
+@ LayOutEquipGrid
+@ r0 = x origin, r1 = y origin, r2 = columns. Walks all 32 nodes at state+0x48
+@ and places each through Func_a9bd8. The Func_a1bdc of this file.
 .thumb_func_start Func_a9b94
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2639,6 +2762,11 @@
 	bx	r0
 .func_end Func_a9b94
 
+@ PlaceEquipNode
+@ r0 = node, r1 = index (wrapped above 31), r2 = x origin, r3 = y origin,
+@ arg5 = columns. Row is index / columns, column index % columns, both scaled by
+@ 16, then Func_a17c4. Same arithmetic as Func_a1c2c but taking the node
+@ directly instead of an array and an index.
 .thumb_func_start Func_a9bd8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -2672,6 +2800,11 @@
 	bx	r0
 .func_end Func_a9bd8
 
+@ PlaceEquippedIcons
+@ r0 = the fifteen-entry list. Parks every sprite off screen with Func_a9cbc,
+@ then for each EQUIPPED entry (bit 9 set) moves the matching node to x 0xD8 and
+@ the y its ability kind selects -- 1 to 0x20, 2 to 0x50, 3 to 0x40, 4 to 0x30 --
+@ so the icons line up with the labels Func_a9aec wrote.
 .thumb_func_start Func_a9c18
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -2764,6 +2897,10 @@
 	bx	r0
 .func_end Func_a9c18
 
+@ ParkListSprites
+@ Takes no arguments. Moves all 32 nodes at state+0x48 to (0xF8, 0xA8) -- off
+@ the visible area -- and rewinds each. Hiding by position rather than by the
+@ +0x05 state byte, which is what Func_a345c does.
 .thumb_func_start Func_a9cbc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -2795,6 +2932,9 @@
 	bx	r0
 .func_end Func_a9cbc
 
+@ CreateElementSprites
+@ r0 = window. Fills the eight node slots at state+0xC8 with panel sprites from
+@ _Func_1eb64 at priority 0xA8, tile source 0xF8. Returns 1.
 .thumb_func_start Func_a9cf8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -2829,6 +2969,10 @@
 	bx	r1
 .func_end Func_a9cf8
 
+@ PlaceElementIcons
+@ r0 = five flag bytes. Parks the eight state+0xC8 sprites with Func_a9d84, then
+@ for each set flag moves one to x 8 with y stepping down from 0x58 by 0x10 and
+@ sort order 0xF0. Only as many icons appear as the character has affinities.
 .thumb_func_start Func_a9d3c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -2866,6 +3010,9 @@
 	bx	r0
 .func_end Func_a9d3c
 
+@ ParkElementSprites
+@ Takes no arguments. Moves the five state+0xC8 sprites to (0xF8, 0xA8) with
+@ sort order 0xF0 and rewinds each -- the Func_a9cbc of the element icons.
 .thumb_func_start Func_a9d84
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -2899,6 +3046,11 @@
 	bx	r0
 .func_end Func_a9d84
 
+@ LoadElementIcons
+@ r0 = five flag bytes. For each set flag, loads panel set 8 into the matching
+@ state+0xC8 node with the graphic id its slot selects: 0x10, 1, 2, 0x0F, 7 for
+@ slots 0 through 4. Slots past 4 would take 0, but the loop stops at 4.
+@ Returns 1.
 .thumb_func_start Func_a9dc4
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1f2c
@@ -2958,6 +3110,9 @@
 	bx	r1
 .func_end Func_a9dc4
 
+@ RestoreStatusPalette
+@ Takes no arguments. Func_a22f4 then Func_a2144(0x0D) -- resync the palettes
+@ and reload bank 13, which is the status screen's own.
 .thumb_func_start Func_a9e34
 	push	{lr}
 	bl	Func_a22f4
@@ -2967,10 +3122,27 @@
 	bx	r0
 .func_end Func_a9e34
 
+@ NullHandler7
+@ An empty `bx lr`.
 .thumb_func_start Func_a9e44
 	bx	lr
 .func_end Func_a9e44
 
+@ UseInventoryItem
+@ r0 = inventory slot, r1 = user id, r2 = target. THE function that actually
+@ uses an item. It resolves the slot to an ability record, takes the display id
+@ from +0x28 (mask 0x3FFF) and applies the effect through Func_a9f10. A -1 from
+@ there is passed straight back as the failure code.
+@
+@ On success the ability record's TARGET KIND at +0x0C decides what happens to
+@ the item itself:
+@
+@     1  it is consumed -- _Func_788c4 takes one unit and the list is recompacted
+@     4  it TRANSFORMS: the slot's id is rewritten in place, and id 0xB8
+@        specifically becomes 0xB9
+@     anything else  the item is unchanged
+@
+@ Returns 0 on success.
 .thumb_func_start Func_a9e48
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3064,11 +3236,20 @@
 	bx	r1
 .func_end Func_a9e48
 
+@ AlwaysAccept5
+@ Returns 1.
 .thumb_func_start Func_a9f0c
 	mov	r0, #1
 	bx	lr
 .func_end Func_a9f0c
 
+@ ApplyItemEffect
+@ r0 = display id, r1 = character id, r2 = target, r3 = 1 to actually apply.
+@ The effect engine behind Func_a9e48: reads the display record, rolls
+@ Func_4458 where the effect is chancy, adjusts the target through
+@ _Func_79c5c, refreshes the HP fraction with _Func_7822c and recomputes the
+@ record with _Func_77428. Failures leave a reason code at state+0x25A, which
+@ Func_a32b8 turns into string 0xBEF + code. 617 lines; traced structurally.
 .thumb_func_start Func_a9f10
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3693,6 +3874,9 @@
 	bx	r1
 .func_end Func_a9f10
 
+@ PlayItemSoundForAbility
+@ r0 = ability id. Resolves the ability record, takes the display id from +0x28
+@ (mask 0x3FFF) and hands it to Func_aa460.
 .thumb_func_start Func_aa448
 	push	{lr}
 	bl	_Func_78414
@@ -3704,6 +3888,11 @@
 	bx	r0
 .func_end Func_aa448
 
+@ PlayItemSound
+@ r0 = display id. Picks the use sound from the display record. Kinds 1 and 0xB
+@ of the low nibble of +0x01 both play 0x7E. Everything else dispatches on
+@ +0x03, which selects 0x52, 0x54, 0x5B or silence -- the 32-entry table is
+@ almost all "0x5B", with only indices 3, 5 and the last two differing.
 .thumb_func_start Func_aa460
 	push	{lr}
 	bl	_Func_78b9c
@@ -3781,6 +3970,8 @@
 	bx	r0
 .func_end Func_aa460
 
+@ AlwaysReject
+@ Returns 0. The counterpart to Func_a5780 and friends.
 .thumb_func_start Func_aa534
 	mov	r0, #0
 	bx	lr

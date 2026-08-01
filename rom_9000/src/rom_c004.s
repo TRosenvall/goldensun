@@ -1,6 +1,17 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ InitEntitySystem
+@ r0=mode. Brings up the entity layer on top of the sprite layer:
+@   - allocates the 0x5C-byte system header (tag 6) and the 0x1C00-byte entity
+@     table (tag 5) with Func_48f4, then DMA zero-fills both
+@   - Func_bb20 initialises the underlying actor/part pools
+@   - registers the per-frame update task at priority 0xC8A via Func_41d8:
+@     Func_d340 (the 14-slot x/z loop) in mode 4, otherwise Func_cacc
+@   - registers the draw task at priority 0xC80: Func_c880 (projected 3D) for
+@     modes 3 and 4, otherwise Func_c62c (2D map-relative), which also clears
+@     iwram_1d1c and iwram_1cc0
+@   - seeds the header's default palette (+0x06 = 0x0F) and flags (+0x07 = 0)
 .thumb_func_start Func_c004
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -76,14 +87,21 @@
 	bx	r0
 .func_end Func_c004
 
+@ EntityHook_Nop -- do-nothing hook, used where a callback slot must be filled.
 .thumb_func_start Func_c0c4
 	bx	lr
 .func_end Func_c0c4
 
+@ EntityHook_Nop2 -- second do-nothing hook, distinct address from Func_c0c4 so
+@ the two slots can be told apart by pointer comparison.
 .thumb_func_start Func_c0c8
 	bx	lr
 .func_end Func_c0c8
 
+@ FindFreeEntitySlot
+@ Returns the first unused entity in the 0x40-slot table at [iwram_1e64]
+@ (stride 0x70), or 0 when the table is full. A slot counts as free when its
+@ script pointer at +0x00 is null.
 .thumb_func_start Func_c0cc
 	push	{lr}
 	ldr	r3, =iwram_1e64
@@ -107,6 +125,11 @@
 	bx	r1
 .func_end Func_c0cc
 
+@ DestroyEntity
+@ r0=entity. Destroys the entity's actors according to the draw kind in the low
+@ nibble of +0x54 -- kind 1 is the single actor at +0x50, kind 2 is an array of
+@ up to four -- each released with Func_bdd4, then DMA zero-fills the entity's
+@ 0x70 bytes to return the slot to the table. No-op on a null pointer.
 .thumb_func_start Func_c0f4
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
@@ -155,6 +178,21 @@
 	bx	r0
 .func_end Func_c0f4
 
+@ SpawnEntity
+@ r0=packed descriptor (bits 12+ = draw kind, bits 0-11 = resource id),
+@ r1=x, r2=y, r3=z (16.16). Returns the new entity, or 0 if the table is full.
+@ Claims a slot with Func_c0cc, then builds the actors:
+@   kind 0 -- one actor from Func_bc70; +0x54 = 1 and the collision radius at
+@             +0x20 is header[9] >> 1. If Func_bc70 fails, +0x54 = 0 so the
+@             entity exists but is never drawn.
+@   kind 2 -- bump-allocates a 4-pointer array from [iwram_1e68]+0x18, zeroes
+@             it, and fills the first two entries with actors for id and id+1;
+@             +0x54 = 2.
+@ Func_d130 writes the position, then the entity defaults are applied: script
+@ .L1358c, max speed +0x30 = 0x20000, +0x18/+0x1C/+0x34 = 1.0, mode +0x55 = 3,
+@ +0x59 = 0, turn-to-face +0x5A = 1, restitution +0x44 = 0x4000, facing
+@ +0x06 = 0x4000, and the spawn tile is cached as (x >> 16, z >> 16) in the
+@ halfwords at +0x64 and +0x66.
 .thumb_func_start Func_c150
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -350,6 +388,10 @@
 	bx	r1
 .func_end Func_c150
 
+@ SetEntityScript
+@ r0=entity, r1=script. Points the entity's VM at a new script: +0x00 = script,
+@ cursor +0x04 = 0, and the state bytes at +0x57, +0x5B and +0x5D are cleared so
+@ the freeze flag and any pending sub-state are dropped. No-op on a null entity.
 .thumb_func_start Func_c2d8
 	push	{lr}
 	cmp	r0, #0
@@ -374,6 +416,9 @@
 	bx	r0
 .func_end Func_c2d8
 
+@ SetEntityAnimation
+@ r0=entity, r1=animation index. Forwards to Func_ba30 for the entity's actor
+@ (draw kind 1) or for each of the up to four actors in the array (kind 2).
 .thumb_func_start Func_c300
 	push	{r5, r6, r7, lr}
 	mov	r7, r1
@@ -413,6 +458,9 @@
 	bx	r0
 .func_end Func_c300
 
+@ SetEntityAnimSpeed
+@ r0=entity, r1=speed. Forwards to Func_baf8 for the entity's actor (draw
+@ kind 1) or for each actor in the array (kind 2). 0x10 is normal speed.
 .thumb_func_start Func_c344
 	push	{r5, r6, r7, lr}
 	mov	r7, r1
@@ -452,6 +500,9 @@
 	bx	r0
 .func_end Func_c344
 
+@ SetEntityAnimationAndSpeed
+@ r0=entity, r1=animation index, r2=speed. Func_c300 and Func_c344 in one call:
+@ applies Func_ba30 then Func_baf8 to the entity's actor or actor array.
 .thumb_func_start Func_c388
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -506,6 +557,9 @@
 	bx	r0
 .func_end Func_c388
 
+@ SetEntityActorRotation
+@ r0=entity, r1=angle. Writes the rotation halfword at actor+0x1E, which
+@ Func_b168/Func_b388 fold into the affine matrix. Draw kind 1 only.
 .thumb_func_start Func_c3ec
 	push	{lr}
 	cmp	r0, #0
@@ -524,6 +578,10 @@
 	bx	r0
 .func_end Func_c3ec
 
+@ SetEntityPartResource
+@ r0=entity, r1=resource id (negative is ignored). Rewrites the id halfword of
+@ the actor's first part and re-runs Func_b7c0 to rebind every part to the new
+@ resource -- i.e. swaps the sprite an entity is wearing. Draw kind 1 only.
 .thumb_func_start Func_c408
 	push	{lr}
 	cmp	r0, #0
@@ -546,6 +604,10 @@
 	bx	r0
 .func_end Func_c408
 
+@ AddEntityPart
+@ r0=entity, r1=resource id (negative is ignored). Attaches an extra part to
+@ the entity's actor via Func_b8ac, e.g. an overlay or held item. Draw kind 1
+@ only.
 .thumb_func_start Func_c430
 	push	{lr}
 	cmp	r0, #0
@@ -566,6 +628,9 @@
 	bx	r0
 .func_end Func_c430
 
+@ StartBehaviour_13608
+@ r0=entity, r1=parameter. Installs the canned behaviour script .L13608 via
+@ Func_c2d8 and stores the parameter in the script argument slot at +0x68.
 .thumb_func_start Func_c454
 	push	{r5, r6, lr}
 	mov	r6, r1
@@ -578,6 +643,7 @@
 	bx	r0
 .func_end Func_c454
 
+@ StartBehaviour_13590 -- r0=entity. Installs behaviour script .L13590.
 .thumb_func_start Func_c46c
 	push	{lr}
 	ldr	r1, =.L13590
@@ -586,6 +652,7 @@
 	bx	r0
 .func_end Func_c46c
 
+@ StartBehaviour_135a8 -- r0=entity. Installs behaviour script .L135a8.
 .thumb_func_start Func_c47c
 	push	{lr}
 	ldr	r1, =.L135a8
@@ -594,6 +661,7 @@
 	bx	r0
 .func_end Func_c47c
 
+@ StartBehaviour_135c0 -- r0=entity. Installs behaviour script .L135c0.
 .thumb_func_start Func_c48c
 	push	{lr}
 	ldr	r1, =.L135c0
@@ -602,6 +670,7 @@
 	bx	r0
 .func_end Func_c48c
 
+@ StartBehaviour_135d8 -- r0=entity. Installs behaviour script .L135d8.
 .thumb_func_start Func_c49c
 	push	{lr}
 	ldr	r1, =.L135d8
@@ -610,6 +679,8 @@
 	bx	r0
 .func_end Func_c49c
 
+@ StartBehaviour_13620 -- r0=entity. Installs behaviour script .L13620, the
+@ 4-byte (single word) script immediately before the Data_13624 opcode table.
 .thumb_func_start Func_c4ac
 	push	{lr}
 	ldr	r1, =.L13620
@@ -618,6 +689,11 @@
 	bx	r0
 .func_end Func_c4ac
 
+@ StartBehaviour_135f0
+@ r0=entity, r1=parameter. Installs behaviour script .L135f0. When the
+@ parameter is non-zero it also overrides the movement tuning for this script:
+@ acceleration +0x34 = 0x8000 (half speed), max speed +0x30 = 0x40000, the
+@ script argument at +0x68 = r1, and the spawn-tile halfword at +0x64 is reset.
 .thumb_func_start Func_c4bc
 	push	{r5, r6, lr}
 	mov	r6, r1
@@ -643,6 +719,11 @@
 	bx	r0
 .func_end Func_c4bc
 
+@ WaitForScriptOpcode10
+@ r0=entity. Blocks until the entity's script VM reaches opcode 0x10 -- the
+@ conventional "idle / ready" instruction -- polling the word at
+@ script[cursor] once per frame with Func_30f8(1). Gives up after 0x12B (299)
+@ frames. Returns immediately if the entity is already sitting on opcode 0x10.
 .thumb_func_start Func_c4ec
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -674,6 +755,10 @@
 	bx	r0
 .func_end Func_c4ec
 
+@ SetEntityActorOptions
+@ r0=entity, r1=option bits. Writes the actor's option byte at +0x26, whose
+@ bit 0 enables the companion/shadow sprite and bit 1 the text outline pass
+@ (see Func_b388 and Func_aa0c). Draw kind 1 only.
 .thumb_func_start Func_c528
 	push	{lr}
 	cmp	r0, #0
@@ -693,6 +778,10 @@
 	bx	r0
 .func_end Func_c528
 
+@ SetEntityActorPriority
+@ r0=entity, r1=priority 0-3. Replaces bits 2-3 of the actor's flag byte at
+@ +0x05 -- the OAM priority field -- leaving the affine mode in bits 0-1 alone.
+@ Requires an exact draw kind of 1 (not just the low nibble).
 .thumb_func_start Func_c548
 	push	{lr}
 	cmp	r0, #0
@@ -717,6 +806,10 @@
 	bx	r0
 .func_end Func_c548
 
+@ SetEntityUseCallerScale
+@ r0=entity, r1=0 or 1. Replaces bit 1 of the actor's flag byte at +0x1D, the
+@ flag Func_b388 tests to decide whether to compute the perspective scale from
+@ the depth or take the caller-supplied value. Requires draw kind exactly 1.
 .thumb_func_start Func_c570
 	push	{lr}
 	cmp	r0, #0
@@ -741,6 +834,10 @@
 	bx	r0
 .func_end Func_c570
 
+@ SetEntityPalette
+@ r0=entity, r1=palette index. Forwards to Func_b684, which stamps the palette
+@ onto every line of the actor's label (skipping ones pinned to 0x0F) and marks
+@ it dirty. Requires draw kind exactly 1.
 .thumb_func_start Func_c598
 	push	{lr}
 	cmp	r0, #0
@@ -757,6 +854,13 @@
 	bx	r0
 .func_end Func_c598
 
+@ SuspendEntityDrawTasks
+@ Takes no arguments. Suspends both draw tasks (Func_c62c and Func_c880) with
+@ Func_42c8, so OAM stops being rewritten and the sprites freeze as they are.
+@ Then _Func_91200(0x10000, 1) and _Func_91254(1) run, one frame is allowed to
+@ pass with Func_30f8(1), and DISPCNT is rewritten to disable BG1/BG2/BG3
+@ (mask 0xF1FF) while forcing OBJ on (bit 12) -- leaving a sprite-only display.
+@ Func_c5fc is the counterpart.
 .thumb_func_start Func_c5b4
 	push	{lr}
 	ldr	r0, =Func_c62c
@@ -787,6 +891,10 @@
 	.word	0x1000
 .func_end Func_c5b4
 
+@ ResumeEntityDrawTasks
+@ Takes no arguments. Undoes Func_c5b4: re-enables both draw tasks (Func_c62c
+@ and Func_c880) with Func_439c and clears BG1/BG2/BG3 *and* OBJ from DISPCNT
+@ (mask 0xE1FF), leaving the layers dark until the resumed tasks repopulate OAM.
 .thumb_func_start Func_c5fc
 	push	{lr}
 	ldr	r0, =Func_c62c
@@ -803,11 +911,36 @@
 	bx	r0
 .func_end Func_c5fc
 
+@ ScriptOp_Continue -- opcode handler that does nothing and returns 1, keeping
+@ the VM running. The no-op entry in the Data_13624 dispatch table.
 .thumb_func_start Func_c628
 	mov	r0, #1
 	bx	lr
 .func_end Func_c628
 
+@ DrawWorldEntities2D
+@ Per-frame sprite pass for the map (non-projected) view; the counterpart to
+@ Func_c880, registered by Func_c004 for modes other than 3 and 4. Takes no
+@ arguments.
+@ Setup: reads the map state from [iwram_1e70], caches the camera origin at
+@ +0xE4/+0xE8 truncated to whole pixels, and allocates the usual 0x2C4 scratch
+@ arena with a RAM copy of Func_9bb8.
+@ Loop: walks the 0x40 entities (stride 0x70) and, for each active slot whose
+@ draw kind (+0x54 low nibble) is 1:
+@   - culls against the same screen window as Func_bfa4 -- x within
+@     [-32, 272), y within [-32, 224). A culled entity releases its tile
+@     allocation with Func_3f78 and sets the dirty flag at actor+0x25, unless
+@     the keep-loaded flag at +0x5C is set.
+@   - looks up the map attribute word for the entity's tile: the layer table at
+@     [map + 0x130 + layer * 0x30] indexed by (z >> 20) * 128 + (x >> 20).
+@     Bits 16-17 set the OAM priority in actor+0x09 and +0x15 (only when bit 0
+@     of +0x1B enables it); bits 18-19 set the tile-type byte at entity+0x22.
+@   - scales the entity's two size fields by the actor depth at +0x18 through
+@     Func_888, builds the position triple on the stack, and applies the two
+@     display offsets from +0x23: bit 1 shifts by -0x140.0000 and bit 2 by
+@     +0x140.0000.
+@   - submits with Func_b168, passing the entity facing at +0x06.
+@ Releases the scratch arena with Func_2dd8 before returning.
 .thumb_func_start Func_c62c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1093,6 +1226,8 @@
 	bx	r0
 .func_end Func_c62c
 
+@ ScriptOp_Continue2 -- second no-op opcode handler returning 1, at a distinct
+@ address from Func_c628 so the two table entries stay distinguishable.
 .thumb_func_start Func_c87c
 	mov	r0, #1
 	bx	lr
@@ -1100,6 +1235,10 @@
 
 	.section .rodata
 
+@ Entity behaviour scripts. Each is a word array of opcodes consumed by the VM
+@ in Func_cacc / Func_a494 and dispatched through Data_13624. .L1358c is the
+@ default installed by Func_c150 at spawn; the rest are selected by the
+@ Func_c46c..Func_c4bc family. They sit immediately before Data_13624 in rodata.
 .L1358c:
 	.incrom 0x1358c, 0x13590
 .L13590:

@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ CanLevelUp
+@ r0 = combatant id, r1 = amount (1..0x63 accepted). Returns 0 when the byte at
+@ record+0x129 is zero or the class index at +0x128 exceeds 7, so the check is
+@ both "is this character eligible" and "is the amount sane".
 .thumb_func_start Func_79008
 	push	{r5, lr}
 	mov	r5, r1
@@ -41,6 +45,12 @@
 	bx	r1
 .func_end Func_79008
 
+@ ApplyLevelUp
+@ r0 = combatant id, r1 = amount. Recomputes the character's stats from its
+@ 0xB4-byte base record (Func_78ed8), rolls the per-level variance with
+@ Func_4458, rebuilds equipment effects with Func_78bf0 and the summary with
+@ Func_77428, using a Func_4970 scratch released by Func_2df0.
+@ 293 lines; traced structurally. This is where growth curves live.
 .thumb_func_start Func_7905c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -334,6 +344,9 @@
 	bx	r1
 .func_end Func_7905c
 
+@ TryLevelUp
+@ r0 = combatant id, r1 = amount. Func_79008 gates it and Func_7905c applies
+@ it.
 .thumb_func_start Func_792c4
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -364,6 +377,10 @@
 	bx	r1
 .func_end Func_792c4
 
+@ RefreshCharacterStats
+@ r0 = combatant id. Re-runs Func_7905c with a zero delta and rebuilds the
+@ summary, so a character's derived stats are recomputed without changing its
+@ level.
 .thumb_func_start Func_792fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

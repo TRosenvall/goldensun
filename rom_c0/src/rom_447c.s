@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ RotateVector
+@ r0 = vector, r1 = angle. Rotates a 2-vector by the angle, taking the sine and
+@ cosine from Func_2322.
 .thumb_func_start Func_447c
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -36,6 +39,12 @@
 	bx	r0
 .func_end Func_447c
 
+@ Atan2
+@ r0 = x, r1 = y. Returns the angle in the same 0x10000-per-turn units the sine
+@ and cosine tables use.
+@ Handles the axis cases first -- x == 0 returns 0, y == 0 returns a quarter
+@ turn (`0x80 << 7` = 0x4000) -- then reduces to one octant, divides with
+@ Func_af0 and looks the ratio up, reflecting for the remaining seven.
 .thumb_func_start Func_44d0
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -152,6 +161,10 @@
 	bx	r1
 .func_end Func_44d0
 
+@ IntegerSqrtThumb
+@ r0 = value. Returns floor(sqrt(value)), computed bit by bit from bit 15 down.
+@ A Thumb implementation of what Func_948 does in ARM; callers in Thumb code use
+@ this one to avoid the interworking veneer.
 .thumb_func_start Func_45a4
 	push	{r5, r6, lr}
 	mov	r5, #0
@@ -181,6 +194,9 @@
 	bx	r1
 .func_end Func_45a4
 
+@ CallHookScaled
+@ Takes no arguments. Calls through the pointer at iwram_1d8 and returns its
+@ result shifted left 8.
 .thumb_func_start Func_45d4
 	push	{lr}
 	ldr	r3, =iwram_1d8

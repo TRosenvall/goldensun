@@ -1,31 +1,100 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ============================================================================
+@ Overlay rom_779188 -- the front end.
+@
+@ Ten functions, the smallest overlay in the ROM, and the one the game boots
+@ into. OvlFunc_54 is its whole reason to exist: logos, title, new game,
+@ continue and the ending credits, all selected by the area sub-id.
+@
+@ THE SIX-SLOT CONTRACT, which every one of the 96 overlays implements.
+@ Overlays link at 0x02008000 with exports.o first, so the export table is at
+@ __start_overlay. Each entry is a .thumb_stub -- four bytes of code plus a
+@ four-byte literal pool -- so slot N's CODE is at N*8 and its TARGET ADDRESS
+@ is at N*8+4. The ROM reads the target and calls it:
+@
+@   slot  offset  read by                        what it returns
+@   ----  ------  -----------------------------  ---------------------------
+@     0   +0x04   Func_8d590, Func_8c4f8         THE MAIN ENTRY (a routine)
+@     1   +0x0C   Func_8cf78                     the edge-transition table
+@     2   +0x14   Func_8a5f8                     the map event list
+@     3   +0x1C   Func_8c4f8                     a table, read after slot 4
+@     4   +0x24   Func_8c4f8, Func_8e9c0,        the map object table
+@                 Func_8f32c
+@     5   +0x2C   Func_8bde0                     the interaction table
+@
+@ Slot 0 is code; slots 1..5 are one-line accessors returning a pointer, and
+@ any of them may return 0 to mean "this map has none" -- OvlFunc_38 here does
+@ exactly that.
+@
+@ The exports.s ORDER is what fixes the slots, not the function names: this
+@ overlay lists OvlFunc_54, _30, _3c, _44, _4c, _38, which is why _54 lands in
+@ slot 0 and _38 in slot 5 despite their addresses. Every overlay names its
+@ functions after its own offsets, so the names differ everywhere while the
+@ slots do not.
+@ ============================================================================
+
+@ GetEdgeTransitionTable -- EXPORT SLOT 1
+@ Returns .L5f8. rom_8a000's Func_8cf78 (CheckMapEdgeTransition) reads this
+@ through __start_overlay+0x0C.
 .thumb_func_start OvlFunc_30
 	ldr	r0, =.L5f8
 	bx	lr
 .func_end OvlFunc_30
 
+@ GetInteractionTable -- EXPORT SLOT 5
+@ Returns 0 -- this map has no interaction records. rom_8a000's Func_8bde0
+@ (TestEntityInteractable) reads it through __start_overlay+0x2C and treats a
+@ null table as "nothing here is interactable".
 .thumb_func_start OvlFunc_38
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_38
 
+@ GetMapEventList -- EXPORT SLOT 2
+@ Returns .L628. rom_8a000's Func_8a5f8 (FindMapEventEntry) reads this through
+@ __start_overlay+0x14 and searches it for an entry matching the current area.
 .thumb_func_start OvlFunc_3c
 	ldr	r0, =.L628
 	bx	lr
 .func_end OvlFunc_3c
 
+@ GetTableSlot3 -- EXPORT SLOT 3
+@ Returns .L62c. Read through __start_overlay+0x1C by Func_8c4f8, immediately
+@ after slot 4.
 .thumb_func_start OvlFunc_44
 	ldr	r0, =.L62c
 	bx	lr
 .func_end OvlFunc_44
 
+@ GetMapObjectTable -- EXPORT SLOT 4
+@ Returns .L644. The most-read slot: Func_8c4f8, Func_8e9c0 (PlaceMapObjects) and
+@ Func_8f32c (BuildOverlayTables) all take it from __start_overlay+0x24.
 .thumb_func_start OvlFunc_4c
 	ldr	r0, =.L644
 	bx	lr
 .func_end OvlFunc_4c
 
+@ RunTitleSequence -- EXPORT SLOT 0, the overlay's main entry
+@ Takes no arguments. Called through __start_overlay+0x04 by rom_8a000's
+@ Func_8d590 and Func_8c4f8. Dispatches on the area sub-id at ewram_240+0x1C2:
+@
+@     0x0A  _Func_92054 resolves the party entity and clears its +0x55, sound
+@           0x4B, OvlFunc_2e8(0), 0x78 frames or a keypress, then
+@           _Func_91e3c(0, 2)
+@     0x09  sound 0x43, THE CREDIT ROLL via _Func_f03f0(0), sound 0x11, a fade
+@           through _Func_3b70(0x3C) / _Func_3ce0, _Func_9163c(0xF0), sound
+@           0x13, and _Func_91e3c(1, 2)
+@     else  _Func_2f3c(0x0B), then the boot path -- sound 0x13, the two logo
+@           splashes _Func_f2b70(0) and _Func_f2d54(0), _Func_1f77c to test for a
+@           save file, and THE TITLE SCREEN as _Func_f26ec(1) when one exists or
+@           _Func_f26ec(0) when it does not, with sounds 0x46 and 0x40
+@           respectively
+@
+@ So this single function is the game's whole front end: logos, title, new game,
+@ continue and the ending credits, selected by one field. 135 lines; the dispatch
+@ is traced, the arms structurally.
 .thumb_func_start OvlFunc_54
 	push	{r5, r6, lr}
 	ldr	r2, =ewram_240
@@ -168,6 +237,12 @@
 	bx	r1
 .func_end OvlFunc_54
 
+@ LoadTitleSprite
+@ Takes no arguments. Reserves an OBJ slot once, caching it in the halfword .L650
+@ (which starts at -1), takes a 0x520-byte scratch, decompresses asset 0x1C into
+@ it with _Func_5340, DMA3s eight halfwords of palette to 0x50003E0 and loads
+@ 0x500 bytes of tiles from scratch+0x20 with _Func_3fa4. Spins on the DMA3 busy
+@ bit before releasing the scratch.
 .thumb_func_start OvlFunc_1c0
 	push	{r5, r6, lr}
 	mov	r0, #0xa4
@@ -216,6 +291,12 @@
 	bx	r0
 .func_end OvlFunc_1c0
 
+@ BuildTitleOam
+@ r0.. = parameters. Writes OAM entries for the title sprite: the tile base comes
+@ from the reserved slot's entry in iwram_1b10 shifted right by 5, the vertical
+@ positions step 8 apart counting down from 0xE8, and the attribute words are
+@ built from .L68c and .L6a0. iwram_1e40 -- the frame counter -- drives the
+@ animation phase.
 .thumb_func_start OvlFunc_238
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -300,6 +381,11 @@
 	bx	r0
 .func_end OvlFunc_238
 
+@ RunTitleFade
+@ r0 = direction. Drives a full-screen fade using the blend hardware: BLDCNT,
+@ BLDALPHA and BLDY are all queued through the ewram_2090 transfer list with
+@ interrupts masked rather than written directly, so they land at VBlank.
+@ [iwram_1ebc] supplies the scene state. 160 lines; traced structurally.
 .thumb_func_start OvlFunc_2e8
 	push	{r5, r6, r7, lr}
 	bl	OvlFunc_454
@@ -467,6 +553,11 @@
 	bx	r0
 .func_end OvlFunc_2e8
 
+@ SetUpTitleBackground
+@ r0.. = parameters. Programs BG2CNT, stages the decompressed image through
+@ ewram_10000, and points an HDMA at BG0HOFS fed from iwram_1ad0 -- the same
+@ per-scanline shear rom_f2000's splash screens use. Reads the map bounds at
+@ [iwram_1e70]. 105 lines; traced structurally.
 .thumb_func_start OvlFunc_454
 	push	{r5, r6, lr}
 	mov	r0, #0

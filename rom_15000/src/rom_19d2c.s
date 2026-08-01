@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ LookupMenuEntry
+@ r0 = menu id (0..0x13; anything higher returns -1). Searches the pair table at
+@ Data_367e4 -- {id, value} halfword pairs terminated by an id of -1 -- and
+@ returns the matching value, or -1 when the id is absent.
 .thumb_func_start Func_19d2c
 	push	{r5, lr}
 	mov	r1, #1
@@ -66,6 +70,10 @@
 	bx	r1
 .func_end Func_19d2c
 
+@ OpenMenuById
+@ r0..r3 = placement. Resolves the menu through Func_19d2c, and when it exists
+@ opens a window with Func_162d4 and populates it via Func_1ec6c. Does nothing
+@ when the id is unknown.
 .thumb_func_start Func_19da8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -145,6 +153,10 @@
 	bx	r1
 .func_end Func_19da8
 
+@ CloseMenuById
+@ r0 = menu id. Resolves it with Func_19d2c and closes the matching window in
+@ the pool at [iwram_1e8c]+0x500 with Func_16418, clearing the selection
+@ sentinel at +0x12EE when it was pointing at this menu.
 .thumb_func_start Func_19e48
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1e8c

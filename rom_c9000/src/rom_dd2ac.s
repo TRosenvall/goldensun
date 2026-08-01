@@ -1,22 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-.thumb_func_start Func_dd2ac
-	push	{lr}
-	mov	r1, #0
-	bl	Func_dd2c4
-	pop	{r0}
-	bx	r0
-.func_end Func_dd2ac
-
-.thumb_func_start Func_dd2b8
-	push	{lr}
-	mov	r1, #1
-	bl	Func_dd2c4
-	pop	{r0}
-	bx	r0
-.func_end Func_dd2b8
-
+@ Playdd2c4Impl
+@ r0=action descriptor, r1=variant. The shared implementation behind the
+@ 2 thin wrappers in this file, which exist so the animation table can hold
+@ one address per variant:
+@     0=Func_dd2ac 1=Func_dd2b8
+@ Works from the battle state at [iwram_1eec]; the variant selects timing,
+@ colours and which arm of the sequence runs. Body characterised
+@ structurally -- see the wrappers for the variant numbering.
 .thumb_func_start Func_dd2c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -573,6 +565,14 @@
 	bx	r0
 .func_end Func_dd2c4
 
+@ Sub_dd77c
+@ Battle animation routine, 244 instructions.
+@ State: iwram_1eec.
+@ Calls out to: _Func_f9080.
+@ Touches: REG_BG2PA, REG_BG2X.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_dd77c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -839,6 +839,14 @@
 	bx	r0
 .func_end Func_dd77c
 
+@ Sub_dd9c0
+@ Battle animation routine, 446 instructions.
+@ State: iwram_1eec, ewram_10000.
+@ Calls out to: _Func_bd7dc, _Func_f9080.
+@ Touches: REG_BG2PA, REG_BG2X, REG_BLDALPHA, REG_BLDCNT.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_dd9c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1336,6 +1344,13 @@
 	bx	r0
 .func_end Func_dd9c0
 
+@ Sub_ddde0
+@ Battle animation routine, 555 instructions.
+@ State: iwram_1eec, iwram_1f0c, ewram_10000.
+@ Calls out to: _Func_b8228, _Func_bd7dc, _Func_f9080.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_ddde0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1925,6 +1940,14 @@
 	bx	r0
 .func_end Func_ddde0
 
+@ Sub_de2f8
+@ Battle animation routine, 696 instructions.
+@ State: iwram_1eec, iwram_1e80, iwram_1e50, ewram_10000.
+@ Calls out to: _Func_b7dd0, _Func_f9080.
+@ Touches: REG_BLDALPHA.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_de2f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

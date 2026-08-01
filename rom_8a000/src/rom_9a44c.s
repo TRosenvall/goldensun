@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ ProjectileMotionHook
+@ r0=entity. Per-frame hook that integrates a stored velocity: adds the three
+@ words at +0x44, +0x48 and +0x4C to the position at +0x08, +0x0C and +0x10.
+@ A straight-line move that bypasses the seek logic entirely.
 .thumb_func_start Func_9a44c
 	ldr	r3, [r0, #8]
 	ldr	r2, [r0, #0x44]
@@ -30,6 +34,11 @@
 	bx	lr
 .func_end Func_9a44c
 
+@ RunProjectileAbility
+@ r0, r1 and stacked arguments describe the launch. Fires a field-ability
+@ projectile from the caster toward the target, running the flight, the impact
+@ and the resulting world change. The ~180-instruction body is characterised
+@ structurally.
 .thumb_func_start Func_9a484
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -266,6 +275,9 @@
 	bx	r0
 .func_end Func_9a484
 
+@ ProjectileMotionWithDrag
+@ r0=entity. Func_9a44c plus decay: after integrating the velocity words at
+@ +0x44/+0x48/+0x4C it also reduces them, so the projectile slows as it flies.
 .thumb_func_start Func_9a65c
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -314,6 +326,10 @@
 	bx	r0
 .func_end Func_9a65c
 
+@ BuildProjectileArc
+@ r0=entity. Computes the launch velocity that carries the projectile from its
+@ current position to the target, filling the velocity words the motion hooks
+@ integrate.
 .thumb_func_start Func_9a6b8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -373,6 +389,9 @@
 	bx	r0
 .func_end Func_9a6b8
 
+@ ScatterProjectile
+@ r0=entity. Gives the projectile a randomised heading around its current facing
+@ (+0x06) using Func_4458, so repeated casts do not follow identical paths.
 .thumb_func_start Func_9a738
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -457,6 +476,9 @@
 	bx	r0
 .func_end Func_9a738
 
+@ HomingProjectileHook
+@ r0=entity. Per-frame hook that steers the projectile toward the target held at
+@ +0x68, adjusting the facing at +0x06 each frame rather than flying straight.
 .thumb_func_start Func_9a7f4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -528,6 +550,10 @@
 	bx	r0
 .func_end Func_9a7f4
 
+@ FallEffectHook
+@ r0=entity. Per-frame hook that drops the entity: subtracts 0x80 from the
+@ height words at +0x18 and +0x1C each frame and stops once the value passes
+@ 0x8000.
 .thumb_func_start Func_9a890
 	push	{r5, lr}
 	mov	r5, r0
@@ -551,6 +577,8 @@
 	bx	r0
 .func_end Func_9a890
 
+@ RunImpactAbility_Wrapper
+@ Tail call to Func_9a8c4; a second entry point for the ability table.
 .thumb_func_start Func_9a8b8
 	push	{lr}
 	bl	Func_9a8c4
@@ -558,6 +586,10 @@
 	bx	r0
 .func_end Func_9a8b8
 
+@ RunImpactAbility
+@ Takes no arguments. The impact/strike field ability: reads caster and target
+@ from [iwram_1f30], plays the strike, and applies the result. The
+@ ~230-instruction body is characterised structurally.
 .thumb_func_start Func_9a8c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -761,6 +793,9 @@
 	bx	r0
 .func_end Func_9a8c4
 
+@ PlaceImpactParticles
+@ r0=effect instance base. Distributes the ability's particle instances around
+@ the impact point, spacing them from the offsets at +0x40 of each instance.
 .thumb_func_start Func_9aa98
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -886,6 +921,9 @@
 	bx	r0
 .func_end Func_9aa98
 
+@ FreezeTargetAndRun
+@ Takes no arguments. Sets the freeze flag at +0x5B on the target entity from
+@ [iwram_1f30]+0x14 so it cannot move, then runs Func_9abb4.
 .thumb_func_start Func_9ab98
 	push	{lr}
 	ldr	r3, =iwram_1f30
@@ -899,6 +937,10 @@
 	bx	r0
 .func_end Func_9ab98
 
+@ RunTargetReaction
+@ Takes no arguments. Plays the target's reaction to a field ability -- the
+@ recoil animation and any position change -- against the caster and target in
+@ the effect state. The ~120-instruction body is characterised structurally.
 .thumb_func_start Func_9abb4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

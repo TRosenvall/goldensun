@@ -3,6 +3,16 @@
 	.incdata Data_92b8, 0x92b8, 0x97b8
 	.incdata Data_97b8, 0x97b8, 0x9bb8
 
+@ DecodeStringToBuffer
+@ r0=src, r1=dst, r2=mode. Expands a 0-terminated encoded byte string into dst.
+@ Source bytes >= 0xE0 are skip codes: they advance dst by (byte - 0xDF) instead
+@ of storing. 0 terminates. mode selects behaviour via the table at .L9cdc:
+@   0         -> raw copy, 4 bytes at a time (.L9bc0)
+@   1-6,9-12  -> translate each byte through a 224-entry table (.L9d00). The
+@                table is paged in from Data_92b8 into Data_9d9c and the last
+@                loaded page is cached in .L9d90 to skip redundant reloads.
+@   7,8,13-15 -> store a constant (0xF, [iwram_1c90], 1, 0) per source byte,
+@                i.e. emit an attribute/colour layer rather than glyph indices.
 .arm_func_start Func_9bb8
 	cmp	r2, #0
 	bne	.L9cd0
@@ -165,6 +175,14 @@ Data_9d9c:
 	.ssize	Data_9d9c
 .func_end Func_9bb8
 
+@ RenderAffineBackground  (mode-7 style rasteriser)
+@ r0=per-row parameter array (stride 0x20: +0=dx, +4=dy, +8=x, +0xC=y, all
+@ 17.15 fixed point), r1=destination pixel buffer, r2=tile pixel data,
+@ r3=tilemap. Walks each row stepping (x,y) by (dx,dy), and for every sample
+@ does a two-level lookup: tilemap byte at [r3 + (y>>26)*64 + (x>>26)], then
+@ pixel byte at [r2 + tile*64 + subpixel]. A zero result retries against the
+@ neighbouring map/tile page (the -0x1000 / -0x4000 fixups). Pixels are packed
+@ two per halfword and stored to r1; r4's high bytes count rows/columns.
 .arm_func_start Func_9e7c
 	push	{r5, r6, r7, r8, r9, r10, r11, lr}
 	mov	r4, #0xa00000
@@ -329,6 +347,17 @@ Data_9d9c:
 	bx	lr
 .func_end Func_9e7c
 
+@ BuildAffineScanlineTable
+@ Builds the 160 per-scanline entries that drive the affine background.
+@ r0=previous camera state, r1=current camera state (+0=x, +8=z as 16.16),
+@ r2=working array (stride 0x14), r3=output table (stride 0x20).
+@ Derives the camera angle from the delta between the two camera states via
+@ Exports_c0+0x44 (atan2), then Exports_c0+0x5C / +0x64 (sin/cos) for the
+@ rotation terms; the angle is cached in iwram_1f60 so an unchanged angle takes
+@ the cheap path at .La294 that only re-adds the translation. Each output entry
+@ gets the two rotation halfwords at +0 and +4 and the two 16.16 offsets at +8
+@ and +0xC, then those four words are duplicated at +0x10 (double-buffered /
+@ interleaved for the DMA that feeds the registers).
 .arm_func_start Func_a0f8
 	push	{r5, r6, r7, r8, r9, r10, lr}
 	mov	r5, r1
@@ -498,6 +527,17 @@ Data_9d9c:
 	bx	lr
 .func_end Func_a0f8
 
+@ ExpandMapAndTilesToStridedBuffers
+@ Two unrelated-looking but paired unpack loops, both writing at stride 4 so the
+@ results interleave into one buffer:
+@   1) 0x4000 halfwords from r0 -> r1. Entries whose top 12 bits match 0xFFF are
+@      renumbered by a running counter (r4), i.e. placeholder/auto-allocated map
+@      entries get sequential indices. Others copy through untouched.
+@   2) 0x1000 words each from r2 and r2+0x4000 -> r1. These are two byte planes
+@      that get de-interleaved with the 0x00FF00FF masks and recombined into
+@      four halfwords per iteration.
+@ Feeds the lookup buffers that Func_9e7c samples. (Byte-plane split is clear;
+@ the exact meaning of the 0xFFF sentinel in loop 1 is inferred, not confirmed.)
 .arm_func_start Func_a37c
 	push	{r5, r6, r7, r8}
 	mov	r5, #0xff000000
@@ -543,6 +583,12 @@ Data_9d9c:
 	bx	lr
 .func_end Func_a37c
 
+@ LinearBitmapToTiles
+@ r0=source bitmap, r1=source row pitch in bytes, r2=height in rows, r3=dest.
+@ Gathers 8-byte-wide columns down 8 consecutive rows and writes them out
+@ contiguously, i.e. converts a linear bitmap region into GBA 8x8 tile order.
+@ Returns immediately unless both pitch and height are multiples of 8 (the
+@ bics/bicnes pair at entry).
 .arm_func_start Func_a418
 	bics	r1, #7
 	bicnes	r2, #7
@@ -579,6 +625,25 @@ Data_9d9c:
 	bx	lr
 .func_end Func_a418
 
+@ UpdateEntities
+@ Per-frame update over the 8 entity slots starting at [iwram_1e64], stride 0x70.
+@ For each live slot (+0x00 = script pointer, non-null means active):
+@   - call the per-entity hook at +0x6C if present
+@   - tick the wait timer at +0x5E; while it is zero, run the script VM: read the
+@     opcode at [script + (+0x04)*4], dispatch opcodes <= 0x3F through the jump
+@     table at Data_13624, and skip anything above that. Loops until a handler
+@     returns 0.
+@   - movement: if a target position is set (+0x38/+0x3C/+0x40, 0x80000000 means
+@     "none"), steer toward it. Distance via Func_948 (sqrt), normalised with
+@     Func_8AC (reciprocal), accelerated by +0x34 and clamped to the max speed at
+@     +0x30. Velocity lives at +0x24 (x), +0x28 (y), +0x2C (z).
+@   - vertical: when bit 1 of +0x55 is set, apply the fall/bounce step using the
+@     ground height at +0x14, restitution at +0x44 and cutoff at +0x48.
+@   - integrate into the position at +0x08/+0x0C/+0x10, then per the arrival mode
+@     at +0x56 (0x10=x, 0x11=y, 0x12=z) detect overshoot of the target axis and,
+@     on arrival, optionally snap to it (+0x58) and clear the target.
+@   - when bit 0 of +0x5A is set, turn the facing angle at +0x06 toward the
+@     direction of travel via Func_44D0 (atan2), clamped to +/-0x1000 per frame.
 .arm_func_start Func_a494
 	push	{r5, r6, r7, r8, r9, r10, lr}
 	mov	r2, #0
@@ -909,16 +974,19 @@ Data_9d9c:
 	bx	lr
 .func_end Func_a494
 
+@ Atan2_Veneer -- long-branch veneer to Func_44d0 (atan2, r0=y r1=x -> angle).
 .arm_func_start Func_a958
 	ldr	r4, =Func_44d0
 	bx	r4
 .ssize	Func_a958
 
+@ Sqrt_Veneer -- long-branch veneer to Func_948 (integer sqrt of r0).
 .arm_func_start Func_a960
 	ldr	r4, =Func_948
 	bx	r4
 .ssize	Func_a960
 
+@ DivScale_Veneer -- long-branch veneer to Func_8ac (fixed-point r1/r0).
 .arm_func_start Func_a968
 	ldr	r4, =Func_8ac
 	bx	r4

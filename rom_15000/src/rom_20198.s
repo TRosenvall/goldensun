@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ DrawStatPanel
+@ r0.. = parameters. Draws a character's stat panel, mixing text blocks
+@ (Func_1e41c, Func_1e7c0), scratch runs (Func_1e858, Func_1e8b0, Func_1e940)
+@ and numbers (Func_1e9d4, Func_1ea08), then releases with Func_16478.
 .thumb_func_start Func_20198
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -72,6 +76,11 @@
 	bx	r0
 .func_end Func_20198
 
+@ RunStatusScreen
+@ r0.. = parameters. The character status screen, 671 lines: opens windows with
+@ Func_162d4, lays out with Func_1ccc0, draws with the Func_1e41c / Func_1e74c /
+@ Func_1e858 family, and closes with Func_16418 / Func_16498.
+@ Traced structurally.
 .thumb_func_start Func_20244
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -743,6 +752,9 @@
 	bx	r1
 .func_end Func_20244
 
+@ RunStatusPrompt
+@ r0.. = parameters. Wraps Func_20244 in a prompt flow, gathering the summary
+@ with Func_1f818 and blocking on Func_17364 a frame at a time.
 .thumb_func_start Func_207c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -859,6 +871,9 @@
 	bx	r1
 .func_end Func_207c4
 
+@ RunStatusPromptSound
+@ r0.. = parameters. As Func_207c4 with the UI sounds routed through Func_56cc /
+@ Func_5a78 / Func_5c68 / Func_5cf8.
 .thumb_func_start Func_208e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -941,6 +956,8 @@
 	bx	r1
 .func_end Func_208e4
 
+@ ReserveStatusTiles
+@ Takes no arguments. Reserves OBJ tiles with Func_3fa4 and Func_4080.
 .thumb_func_start Func_209b0
 	push	{r5, lr}
 	bl	Func_4080
@@ -954,11 +971,17 @@
 	bx	r1
 .func_end Func_209b0
 
+@ ReturnZero
+@ Takes no arguments. Returns 0 unconditionally.
 .thumb_func_start Func_209cc
 	mov	r0, #1
 	bx	lr
 .func_end Func_209cc
 
+@ DecompressStatusGraphics
+@ r0.. = parameters. Allocates scratch with Func_4970, decompresses with
+@ Func_5340 -- rom_c0's run-from-RAM decompressor -- and releases with
+@ Func_2df0.
 .thumb_func_start Func_209d0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1030,6 +1053,8 @@
 	bx	r0
 .func_end Func_209d0
 
+@ ComputeStatusLayout
+@ r0.. = parameters. Positions the status screen's fields; no calls out.
 .thumb_func_start Func_20a60
 	push	{r5, r6, r7, lr}
 	mov	r6, r3
@@ -1105,6 +1130,8 @@
 	bx	r0
 .func_end Func_20a60
 
+@ ReserveTilesA
+@ Takes no arguments. A single Func_3fa4 reservation.
 .thumb_func_start Func_20aec
 	push	{lr}
 	ldr	r2, =Data_310a4
@@ -1114,6 +1141,9 @@
 	bx	r0
 .func_end Func_20aec
 
+@ ReserveTilesB
+@ Takes no arguments. A second single Func_3fa4 reservation, distinct only in
+@ the size it asks for.
 .thumb_func_start Func_20b00
 	push	{lr}
 	ldr	r2, =Data_317e4
@@ -1123,6 +1153,9 @@
 	bx	r0
 .func_end Func_20b00
 
+@ MeasureStatusText
+@ r0.. = parameters. Measures a status field's text with Func_18850 so it can be
+@ right-aligned.
 .thumb_func_start Func_20b14
 	push	{lr}
 	ldr	r3, =iwram_1e8c
@@ -1170,6 +1203,8 @@
 	bx	r1
 .func_end Func_20b14
 
+@ DrawStatusField
+@ r0.. = parameters. Draws one status field through Func_1e858.
 .thumb_func_start Func_20b64
 	push	{r5, r6, lr}
 	ldrb	r2, [r1]
@@ -1234,6 +1269,10 @@
 	bx	r0
 .func_end Func_20b64
 
+@ RunEquipScreen
+@ r0.. = parameters. The equipment screen, 563 lines: menus through Func_19d2c /
+@ Func_19da8 / Func_19e48, windows through Func_162d4 / Func_16418 / Func_16478,
+@ text through Func_1e41c. Traced structurally.
 .thumb_func_start Func_20bd8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1797,6 +1836,10 @@
 	bx	r1
 .func_end Func_20bd8
 
+@ RunAbilityScreen
+@ r0.. = parameters. The ability list screen, 206 lines: windows, sprite nodes
+@ through Func_1eadc, layout through Func_20a60, one frame per Func_30f8, tiles
+@ freed with Func_3f3c. Traced structurally.
 .thumb_func_start Func_2106c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2003,6 +2046,10 @@
 	bx	r1
 .func_end Func_2106c
 
+@ RunSelectionMenu
+@ r0.. = parameters. A selection menu built from the shared pieces: Func_165d8
+@ for the message box, Func_19908 to register its callback, Func_19ba0 and
+@ Func_19d2c for the entries, Func_1a4fc for graphics.
 .thumb_func_start Func_21228
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2132,6 +2179,8 @@
 	bx	r0
 .func_end Func_21228
 
+@ ReadCharacterForMenu
+@ r0 = index. Reads a character record through _Func_79338.
 .thumb_func_start Func_21360
 	push	{r5, lr}
 	mov	r5, r0
@@ -2156,6 +2205,8 @@
 	bx	r1
 .func_end Func_21360
 
+@ RunSelectionMenuVariantA
+@ r0.. = parameters. The same shape as Func_21228 with different entry sourcing.
 .thumb_func_start Func_21390
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2256,6 +2307,9 @@
 	bx	r0
 .func_end Func_21390
 
+@ RunSelectionMenuVariantB
+@ r0.. = parameters. A third variant of Func_21228, again differing only in
+@ which entries it offers.
 .thumb_func_start Func_21488
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2395,6 +2449,9 @@
 	bx	r0
 .func_end Func_21488
 
+@ LoadIconGraphic
+@ r0.. = parameters. Allocates with Func_48f4, unpacks with Func_53e8, reserves
+@ tiles with Func_3fa4, frees with Func_2dd8.
 .thumb_func_start Func_215e0
 	push	{r5, r6, r7, lr}
 	mov	r7, r1
@@ -2424,6 +2481,9 @@
 	bx	r0
 .func_end Func_215e0
 
+@ AttachIconGraphic
+@ r0.. = parameters. Loads with Func_215e0, reserves with Func_4080, attaches
+@ the node with Func_1eadc.
 .thumb_func_start Func_21620
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2496,6 +2556,8 @@
 	bx	r1
 .func_end Func_21620
 
+@ ComputeIconSlot
+@ r0.. = parameters. Returns an icon slot index; no calls out.
 .thumb_func_start Func_216b4
 	push	{r5, lr}
 	ldr	r4, =iwram_1800
@@ -2521,6 +2583,9 @@
 	bx	r0
 .func_end Func_216b4
 
+@ LoadNamedIcon
+@ r0 = id. Fetches with Func_2f40, allocates with Func_48f4, unpacks with
+@ Func_53e8, reserves with Func_3fa4, and consults Func_f9cc.
 .thumb_func_start Func_216e8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2569,6 +2634,9 @@
 	bx	r0
 .func_end Func_216e8
 
+@ AttachNamedIcon
+@ r0 = id, r1.. = placement. Loads with Func_216e8 and attaches with
+@ Func_1eadc.
 .thumb_func_start Func_21750
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2612,6 +2680,8 @@
 	bx	r1
 .func_end Func_21750
 
+@ ReserveIconVram
+@ r0.. = parameters. Reserves VRAM for an icon through Func_3d28.
 .thumb_func_start Func_217a4
 	push	{r5, lr}
 	ldr	r3, =iwram_1800
@@ -2689,6 +2759,8 @@
 	bx	r0
 .func_end Func_217a4
 
+@ ComputeIconGeometry
+@ r0.. = parameters. Pure arithmetic; no calls out.
 .thumb_func_start Func_21848
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2762,6 +2834,8 @@
 	bx	r1
 .func_end Func_21848
 
+@ ClipIconToWindow
+@ r0.. = parameters. Clips an icon against its window with Func_19000.
 .thumb_func_start Func_218dc
 	push	{r5, r6, lr}
 	mov	r6, r11
@@ -2815,6 +2889,8 @@
 	bx	r1
 .func_end Func_218dc
 
+@ ComputeGridPosition
+@ r0.. = parameters. Maps an index to a grid cell; no calls out.
 .thumb_func_start Func_21950
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -2881,6 +2957,8 @@
 	bx	r0
 .func_end Func_21950
 
+@ GetGridPosition
+@ r0 = index. Func_21950 with the caller's defaults filled in.
 .thumb_func_start Func_219c8
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e40
@@ -2916,6 +2994,9 @@
 	bx	r0
 .func_end Func_219c8
 
+@ ComputeScrollWindow
+@ r0.. = parameters. Works out the visible slice of a scrolling list; no calls
+@ out.
 .thumb_func_start Func_21a18
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2995,6 +3076,9 @@
 	bx	r0
 .func_end Func_21a18
 
+@ LoadIconSetToBuffer
+@ r0 = index. Allocates with Func_48f4, selects with Func_1a4c0, reserves with
+@ Func_40d0, frees with Func_2dd8.
 .thumb_func_start Func_21ab0
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -3025,6 +3109,8 @@
 	bx	r1
 .func_end Func_21ab0
 
+@ LoadPortraitToBuffer
+@ r0 = id. As Func_21ab0 but drawing through Func_1a088.
 .thumb_func_start Func_21af0
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -3056,6 +3142,8 @@
 	bx	r1
 .func_end Func_21af0
 
+@ LoadCharacterIconToBuffer
+@ r0 = character. As Func_21ab0 but loading through Func_1a3d0.
 .thumb_func_start Func_21b30
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -3094,6 +3182,9 @@
 	bx	r1
 .func_end Func_21b30
 
+@ LoadCharacterGraphic
+@ r0 = character. Reads the record with _Func_79338 and loads with
+@ Func_1a4fc.
 .thumb_func_start Func_21b80
 	push	{r5, lr}
 	sub	sp, #0x10
@@ -3134,6 +3225,8 @@
 	bx	r1
 .func_end Func_21b80
 
+@ GetIconField
+@ r0 = index. Returns an icon-table field; no calls out.
 .thumb_func_start Func_21bc8
 	push	{lr}
 	cmp	r0, #0
@@ -3147,6 +3240,8 @@
 	bx	r1
 .func_end Func_21bc8
 
+@ AllocIconBuffer
+@ r0 = size. Allocates with Func_48b0 and frees the previous with Func_2dd8.
 .thumb_func_start Func_21be0
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -3178,6 +3273,9 @@
 	bx	r0
 .func_end Func_21be0
 
+@ OpenIconWindow
+@ r0.. = parameters. Opens a window with Func_162d4 and draws into it with
+@ Func_1e940.
 .thumb_func_start Func_21c34
 	push	{r5, lr}
 	sub	sp, #4
@@ -3201,6 +3299,9 @@
 	bx	r1
 .func_end Func_21c34
 
+@ LoadIconAsset
+@ r0 = asset id. Fetches with Func_2f40, allocates with Func_48b0, unpacks with
+@ Func_53e8, reserves with Func_40d0, frees with Func_2dd8.
 .thumb_func_start Func_21c64
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -3236,6 +3337,9 @@
 	bx	r1
 .func_end Func_21c64
 
+@ LoadIconAssetScratch
+@ r0 = asset id. As Func_21c64 but staging through a Func_4938 scratch released
+@ by Func_2df0.
 .thumb_func_start Func_21cb8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -3328,6 +3432,8 @@
 	bx	r0
 .func_end Func_21cb8
 
+@ LoadShopIcons
+@ r0.. = parameters. Loads a shop's icons through Func_21c64 and Func_21cb8.
 .thumb_func_start Func_21d88
 	push	{r5, r6, lr}
 	mov	r6, r8

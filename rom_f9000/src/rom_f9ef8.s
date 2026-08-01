@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ TrackStop
+@ r0 = player, r1 = track. Walks the track's channel list at +0x20 and stops
+@ every channel on it, clearing each one's status byte and its back-pointer to
+@ the track. A channel of the CGB type goes through the oscillator-off handler
+@ in the driver block at iwram_7ff0 first, so the PSG hardware is silenced as
+@ well as the mixer state.
+@ Entry 31 of the jump table, and the routine Func_fab7c calls when a fade-out
+@ reaches zero.
 .thumb_func_start Func_f9ef8
 	push	{r4, r5, r6, lr}
 	mov	r5, r1
@@ -39,6 +47,18 @@
 	bx	r0
 .func_end Func_f9ef8
 
+@ ComputeChannelVolume
+@ r4 = channel, r5 = track. The CHANNEL-level counterpart of Func_fac44: that
+@ one rebuilds the track's stereo pair, this one turns it into the two levels
+@ the mixer reads. Turns the track's volume (+0x12) and pan (+0x14) into
+@ the two 8-bit mixer levels at channel+0x02 and +0x03:
+@
+@     right = (0x80 + pan) * vol * player.volMR >> 14
+@     left  = (0x7F - pan) * vol * player.volML >> 14
+@
+@ both clamped at 0xFF. Pan is signed around zero, so the two expressions are
+@ symmetric; the 0x80 versus 0x7F asymmetry is what makes hard-left and
+@ hard-right reachable with a single byte.
 .thumb_func_start Func_f9f3c
 	ldrb	r1, [r4, #0x12]
 	mov	r0, #0x14
@@ -68,6 +88,11 @@
 	bx	lr
 .func_end Func_f9f3c
 
+@ UpdateChannelVolumes
+@ r0.. = parameters. Walks the channels of a track and refreshes each one's
+@ mixer state -- Func_f9f3c for the stereo levels, Func_fa1fc for the pitch,
+@ Func_fa678 to release and Func_fac44 for the envelope step. 269 lines; traced
+@ structurally.
 .thumb_func_start Func_f9f6c
 	push	{r4, r5, r6, r7, lr}
 	mov	r4, r8
@@ -344,6 +369,9 @@
 	bx	r0
 .func_end Func_f9f6c
 
+@ TrackEndOfTie
+@ r0 = player, r1 = track. Ends a tied note: finds the channel holding it and
+@ sets the release bit. Command 0xCE, index 29.
 .thumb_func_start Func_fa16c
 	push	{r4, r5}
 	ldr	r2, [r1, #0x40]
@@ -384,6 +412,11 @@
 	bx	lr
 .func_end Func_fa16c
 
+@ MarkModulationChanged
+@ r1 = track. Zeroes the modulation accumulators at track+0x16 and +0x1A, then
+@ raises flag bits 2 and 3 when the modulation type at +0x18 is zero and bits 0
+@ and 1 otherwise -- pitch modulation versus volume modulation, which is exactly
+@ what the two flag pairs mean everywhere else in this driver.
 .thumb_func_start Func_fa1ac
 	mov	r2, #0
 	strb	r2, [r1, #0x16]
@@ -402,6 +435,10 @@
 	bx	lr
 .func_end Func_fa1ac
 
+@ FetchTrackByteRaw
+@ r1 = track. Reads the byte at the command pointer and advances it, WITHOUT the
+@ guard Func_f9ab4 applies. Used only by the two commands below, where the byte
+@ has already been bounds-checked by the caller.
 .thumb_func_start Func_fa1c8
 	ldr	r2, [r1, #0x40]
 	add	r3, r2, #1
@@ -410,6 +447,9 @@
 	bx	lr
 .func_end Func_fa1c8
 
+@ TrackLfoSpeed
+@ r1 = track. Stores the next byte at track+0x19 and, when it is zero, calls
+@ Func_fa1ac to clear the modulation state. Command 0xC2, index 17.
 .thumb_func_start Func_fa1d4
 	mov	r12, lr
 	bl	Func_fa1c8
@@ -421,6 +461,9 @@
 	bx	r12
 .func_end Func_fa1d4
 
+@ TrackModDepth
+@ r1 = track. Stores the next byte at track+0x17, clearing the modulation state
+@ when it is zero. Command 0xC4, index 19.
 .thumb_func_start Func_fa1e8
 	mov	r12, lr
 	bl	Func_fa1c8
@@ -432,6 +475,9 @@
 	bx	r12
 .func_end Func_fa1e8
 
+@ ComputeChannelPitch
+@ r0.. = parameters. Turns a key, tune and bend into the mixer's frequency step,
+@ using Func_f95e0 for the 32x32 high multiply. 41 lines; traced structurally.
 .thumb_func_start Func_fa1fc
 	push	{r4, r5, r6, r7, lr}
 	mov	r12, r0
@@ -480,10 +526,16 @@
 	bx	r1
 .func_end Func_fa1fc
 
+@ NoOp
+@ A bare `bx lr`.
 .thumb_func_start Func_fa260
 	bx	lr
 .func_end Func_fa260
 
+@ ResumePlayer
+@ r0 = player. Clears bit 31 of the status word at player+0x04 -- the paused
+@ flag -- but only when player+0x34 carries the 'Smsh' ident, so a pointer into
+@ uninitialised memory is ignored.
 .thumb_func_start Func_fa264
 	mov	r2, r0
 	ldr	r3, [r2, #0x34]
@@ -498,6 +550,10 @@
 	bx	lr
 .func_end Func_fa264
 
+@ StartPlayerFadeOut
+@ r0 = player, r1 = the fade length. Sets the fade counter and reload at
+@ player+0x26 and +0x24 and the direction at +0x28 to 0x100 -- downward.
+@ Guarded by the ident check.
 .thumb_func_start Func_fa280
 	mov	r2, r0
 	lsl	r1, #16
@@ -515,6 +571,12 @@
 	bx	lr
 .func_end Func_fa280
 
+@ InitSoundDriver
+@ Takes no arguments. Brings the whole driver up: Func_fa55c initialises the
+@ mixer state, Func_fa6a0 the DirectSound hardware, Func_fa83c the timer, and
+@ Func_fa9e0 the channel pool. Func_6864 does the bulk clears. The blocks it
+@ touches -- ewram_3050, ewram_4090, ewram_4350 and iwram_7000 -- are the driver
+@ work area, and iwram_7ff0 ends up pointing at it.
 .thumb_func_start Func_fa2a0
 	push	{r4, r5, r6, lr}
 	ldr	r0, =Func_f9674
@@ -557,6 +619,10 @@
 	bx	r0
 .func_end Func_fa2a0
 
+@ SoundVBlank
+@ Takes no arguments. Func_f95f0 -- the VBlank half of the mixer. Exported, and
+@ the only rom_f9000 export whose name does not appear in a `bl` anywhere; it
+@ reaches the frame loop through the export veneer.
 .thumb_func_start Func_fa318
 	push	{lr}
 	bl	Func_f95f0
@@ -564,6 +630,15 @@
 	bx	r0
 .func_end Func_fa318
 
+@ StartSong
+@ r0 = song id. Resolves it through the two tables and starts it:
+@
+@     Data_fc684 + id*8    the SONG TABLE -- header pointer at +0, player index
+@                          at +4
+@     Data_fc624 + n*12    the PLAYER TABLE -- eight players, 12 bytes each
+@
+@ Func_faa58 does the actual start. Every music and jingle path in Func_f9080
+@ funnels through here.
 .thumb_func_start Func_fa324
 	push	{lr}
 	lsl	r0, #16
@@ -584,6 +659,9 @@
 	bx	r0
 .func_end Func_fa324
 
+@ StartSongOnPlayer
+@ r0 = song id, r1 = an override. As Func_fa324 but with the player chosen by
+@ the caller rather than by the song table.
 .thumb_func_start Func_fa350
 	push	{lr}
 	lsl	r0, #16
@@ -624,6 +702,9 @@
 	bx	r0
 .func_end Func_fa350
 
+@ StartSongResumed
+@ r0 = song id. Func_fa324 with a Func_fa264 first, so a player that was paused
+@ starts playing again rather than staying stopped.
 .thumb_func_start Func_fa39c
 	push	{lr}
 	lsl	r0, #16
@@ -667,6 +748,10 @@
 	bx	r0
 .func_end Func_fa39c
 
+@ StopSong
+@ r0 = song id. Looks the song up the same way Func_fa324 does and stops its
+@ player with Func_fab3c -- but ONLY when the player is still running that
+@ song, so stopping a song that has already been replaced does nothing.
 .thumb_func_start Func_fa3f0
 	push	{lr}
 	lsl	r0, #16
@@ -691,6 +776,9 @@
 	bx	r0
 .func_end Func_fa3f0
 
+@ ResumeSong
+@ r0 = song id. The Func_fa3f0 of resuming: same identity check, then
+@ Func_fa264.
 .thumb_func_start Func_fa424
 	push	{lr}
 	lsl	r0, #16
@@ -715,6 +803,9 @@
 	bx	r0
 .func_end Func_fa424
 
+@ StopAllSongs
+@ Takes no arguments. Walks all eight entries of Data_fc624, twelve bytes apart,
+@ and stops each player with Func_fab3c.
 .thumb_func_start Func_fa458
 	push	{r4, r5, lr}
 	ldr	r0, =8
@@ -737,6 +828,8 @@
 	bx	r0
 .func_end Func_fa458
 
+@ ResumeCurrentPlayer
+@ r0 = player. A thin wrapper on Func_fa264.
 .thumb_func_start Func_fa484
 	push	{lr}
 	bl	Func_fa264
@@ -744,6 +837,9 @@
 	bx	r0
 .func_end Func_fa484
 
+@ ResumeAllSongs
+@ Takes no arguments. Func_fa458's counterpart -- Func_fa264 on all eight
+@ players.
 .thumb_func_start Func_fa490
 	push	{r4, r5, lr}
 	ldr	r0, =8
@@ -766,6 +862,9 @@
 	bx	r0
 .func_end Func_fa490
 
+@ FadePlayerOut
+@ r0 = player, r1 = length. Narrows the length to 16 bits and calls Func_fa280.
+@ This is the entry Func_f9080 uses for its two fade-out ids.
 .thumb_func_start Func_fa4bc
 	push	{lr}
 	lsl	r1, #16
@@ -775,6 +874,9 @@
 	bx	r0
 .func_end Func_fa4bc
 
+@ FadePlayerIn
+@ r0 = player, r1 = length. As Func_fa280 but with the direction word at +0x28
+@ set to 0x101 rather than 0x100 -- one is up, the other down.
 .thumb_func_start Func_fa4cc
 	mov	r2, r0
 	lsl	r1, #16
@@ -791,6 +893,10 @@
 	bx	lr
 .func_end Func_fa4cc
 
+@ FadePlayerOutAndStop
+@ r0 = player, r1 = length. Direction 2, and it also clears the paused bit so the
+@ fade actually runs. The variant used when the player is to be released
+@ afterwards.
 .thumb_func_start Func_fa4ec
 	mov	r2, r0
 	lsl	r1, #16
@@ -811,6 +917,9 @@
 	bx	lr
 .func_end Func_fa4ec
 
+@ ReleaseChannel
+@ r0.. = parameters. Hands a channel back through Func_fa68c. 34 lines; traced
+@ structurally.
 .thumb_func_start Func_fa514
 	push	{r4, r5, r6, r7, lr}
 	ldrb	r5, [r0, #8]
@@ -852,6 +961,10 @@
 	bx	r0
 .func_end Func_fa514
 
+@ InitMixerState
+@ r0.. = parameters. Sets the mixer's globals up: REG_SOUNDCNT_L, REG_SOUNDCNT_X
+@ and REG_SOUND1CNT_H are programmed, the work area at ewram_4000 and iwram_7ff0
+@ seeded, and Func_6864 clears the buffers. 96 lines; traced structurally.
 .thumb_func_start Func_fa55c
 	push	{r4, r5, r6, lr}
 	sub	sp, #4
@@ -955,11 +1068,17 @@
 	bx	r0
 .func_end Func_fa55c
 
+@ SoundBiasSwi
+@ `swi 0x2A` then return -- the BIOS SoundBias call, which ramps the DAC bias so
+@ switching the sound on does not click.
 .thumb_func_start Func_fa674
 	swi	0x2a
 	bx	lr
 .func_end Func_fa674
 
+@ CallChannelRelease
+@ r0 = channel. Calls through the function pointer at ewram_4088. The engine
+@ keeps its release routine indirect so a caller can substitute one.
 .thumb_func_start Func_fa678
 	push	{lr}
 	ldr	r1, =ewram_4088
@@ -969,6 +1088,9 @@
 	bx	r0
 .func_end Func_fa678
 
+@ CallChannelFree
+@ r0 = channel. Calls through the pointer at ewram_408c, the free counterpart of
+@ Func_fa678.
 .thumb_func_start Func_fa68c
 	push	{lr}
 	ldr	r1, =ewram_408c
@@ -978,6 +1100,11 @@
 	bx	r0
 .func_end Func_fa68c
 
+@ InitDirectSound
+@ r0.. = parameters. Programs the DirectSound hardware: REG_SOUNDBIAS,
+@ REG_SOUNDCNT_X, then DMA1 and DMA2 pointed at REG_FIFO_A and REG_FIFO_B with
+@ their control words, and Func_fa798 to set the timer. Func_f9a80 copies the
+@ jump table in. 87 lines; traced structurally.
 .thumb_func_start Func_fa6a0
 	push	{r4, r5, lr}
 	sub	sp, #4
@@ -1072,6 +1199,11 @@
 	bx	r0
 .func_end Func_fa6a0
 
+@ SetSampleRateTimer
+@ r0.. = parameters. Programs TM0CNT_L and TM0CNT_H so the FIFO DMAs fire at the
+@ mixer's sample rate, using Func_af0 for the reload value and REG_VCOUNT to
+@ avoid changing it mid-scanline. Func_fa9a4 stops the DMAs across the change.
+@ Entry 30 of the jump table.
 .thumb_func_start Func_fa798
 	push	{r4, r5, r6, lr}
 	mov	r2, r0
@@ -1135,6 +1267,9 @@
 	bx	r0
 .func_end Func_fa798
 
+@ StartAudioTimer
+@ r0.. = parameters. Ramps REG_SOUNDBIAS, sets the rate with Func_fa798 and
+@ starts the FIFO DMAs with Func_fa928. 71 lines; traced structurally.
 .thumb_func_start Func_fa83c
 	push	{r4, r5, lr}
 	mov	r3, r0
@@ -1213,6 +1348,9 @@
 	bx	r0
 .func_end Func_fa83c
 
+@ ReadDriverField
+@ r0.. = parameters. A small accessor over the driver block at iwram_7ff0; no
+@ calls out.
 .thumb_func_start Func_fa8d4
 	push	{r4, r5, r6, r7, lr}
 	ldr	r0, =iwram_7ff0
@@ -1257,6 +1395,10 @@
 	bx	r0
 .func_end Func_fa8d4
 
+@ StartFifoDma
+@ r0.. = parameters. Enables DMA1 and DMA2 into the two FIFOs with the 0xB600
+@ control word, clearing them first with Func_6864. The routine Func_f9c44
+@ re-runs every frame to keep them alive.
 .thumb_func_start Func_fa928
 	push	{lr}
 	sub	sp, #4
@@ -1309,6 +1451,12 @@
 	bx	r0
 .func_end Func_fa928
 
+@ StopFifoDma
+@ Takes no arguments. Disables both FIFO DMAs (0xB600 with the enable bit clear),
+@ zeroes the countdown at +0x04 and DAMAGES THE IDENT at [iwram_7ff0] by
+@ subtracting 10 from it, so every guarded entry point in the driver refuses to
+@ run until it is restored. That is how the engine locks itself while the timer
+@ is being reprogrammed.
 .thumb_func_start Func_fa9a4
 	push	{r4, lr}
 	ldr	r0, =iwram_7ff0
@@ -1336,6 +1484,10 @@
 	bx	r0
 .func_end Func_fa9a4
 
+@ InitChannelPool
+@ r0.. = parameters. Builds the free list of mixer channels and installs the
+@ default release and free handlers through Func_fa68c. 53 lines; traced
+@ structurally.
 .thumb_func_start Func_fa9e0
 	push	{r4, r5, r6, r7, lr}
 	mov	r7, r0
@@ -1396,6 +1548,12 @@
 	bx	r0
 .func_end Func_fa9e0
 
+@ StartPlayerOnSong
+@ r0 = player, r1 = song header. The routine every start path ends at: stops
+@ whatever the player was doing with Func_f9ef8, copies the header's track count
+@ and voice-group pointer into the player, points each track's command pointer at
+@ its stream, and arms the timer with Func_fa83c. 114 lines; traced
+@ structurally.
 .thumb_func_start Func_faa58
 	push	{r4, r5, r6, r7, lr}
 	mov	r7, r8
@@ -1517,6 +1675,8 @@
 	bx	r0
 .func_end Func_faa58
 
+@ StopPlayer
+@ r0 = player. Releases every channel with Func_f9ef8 and marks the player idle.
 .thumb_func_start Func_fab3c
 	push	{r4, r5, r6, lr}
 	mov	r6, r0
@@ -1552,6 +1712,13 @@
 	bx	r0
 .func_end Func_fab3c
 
+@ FadeOutBody
+@ r0 = player. Runs the fade. The interval at player+0x24 being zero means no
+@ fade is in progress; otherwise the counter at +0x26 ticks down and, on
+@ reaching zero, reloads and steps the fade word at +0x28 by four. Bit 0 of that
+@ word is the DIRECTION -- set counts up and stops at the maximum, clear counts
+@ down and, on reaching zero, stops every track with Func_f9ef8.
+@ Entry 32 of the jump table. 105 lines; traced structurally.
 .thumb_func_start Func_fab7c
 	push	{r4, r5, r6, r7, lr}
 	mov	r6, r0
@@ -1664,6 +1831,22 @@
 	bx	r0
 .func_end Func_fab7c
 
+@ TrkVolPitSet
+@ r0 = player, r1 = track. Recomputes everything the flag bits at track+0x00
+@ mark as dirty, and is the reason those bits exist:
+@
+@   flag bits 0 and 1 (volume) -- the stereo pair at track+0x10 and +0x11 is
+@   rebuilt from `vol * volX >> 5`, scaled again by the modulation depth when
+@   the type at +0x18 is 1, then split by `2 * pan + panX` clamped to
+@   -128..127, with the modulation added when the type is 2
+@
+@   flag bits 2 and 3 (pitch) -- track+0x08 and +0x09 are rebuilt from
+@   `(tune + bend * bendRange) * 4 + (keyShift << 8) + (keyShiftX << 8) + pitX`,
+@   with `16 * modM` added when the modulation type is 0
+@
+@ So the modulation type at +0x18 selects which of the three quantities the LFO
+@ actually moves: 0 pitch, 1 volume, 2 pan.
+@ Entry 33 of the jump table. 93 lines; traced structurally.
 .thumb_func_start Func_fac44
 	push	{r4, lr}
 	mov	r2, r1
@@ -1764,6 +1947,10 @@
 	bx	r0
 .func_end Func_fac44
 
+@ StepModulation
+@ r0.. = parameters. Advances the LFO for one channel, producing the value that
+@ Func_f9f6c folds into either the pitch or the volume depending on the type at
+@ track+0x18. 82 lines; traced structurally.
 .thumb_func_start Func_facf8
 	push	{r4, r5, r6, r7, lr}
 	lsl	r0, #24
@@ -1853,6 +2040,9 @@
 	bx	r1
 .func_end Func_facf8
 
+@ SilencePsgChannels
+@ r0.. = parameters. Writes the off values to REG_SOUND1CNT_H, REG_SOUND2CNT_L,
+@ REG_SOUND3CNT_L and REG_SOUND4CNT_L -- all four PSG channels at once.
 .thumb_func_start Func_fada0
 	lsl	r0, #24
 	lsr	r0, #24
@@ -1903,6 +2093,9 @@
 	bx	lr
 .func_end Func_fada0
 
+@ ComputePsgFrequency
+@ r0.. = parameters. Converts a key into the 11-bit divider the PSG channels
+@ want. 53 lines; traced structurally.
 .thumb_func_start Func_fadf0
 	push	{r4, lr}
 	mov	r1, r0
@@ -1963,6 +2156,13 @@
 	bx	r0
 .func_end Func_fadf0
 
+@ DrivePsgChannels
+@ r0.. = parameters. THE PSG SIDE of the driver -- the four hardware channels the
+@ GBA inherits from the Game Boy, driven in parallel with the two PCM FIFOs.
+@ Programs SOUND1CNT_L/H, SOUND2CNT_L, SOUND3CNT_L/H, SOUND4CNT_L, SOUNDCNT_L
+@ and SOUNDBIAS, and uploads waveforms to REG_WAVE_RAM for channel 3.
+@ Func_fada0 silences and Func_fadf0 supplies the dividers.
+@ 575 lines; traced structurally.
 .thumb_func_start Func_fae58
 	push	{r4, r5, r6, r7, lr}
 	mov	r7, r10
@@ -2545,6 +2745,10 @@
 	bx	r0
 .func_end Func_fae58
 
+@ SetPlayerTempoScale
+@ r0 = player, r1 = scale. Stores the scale at player+0x1E and recomputes the
+@ effective rate at +0x20 as `(base * scale) >> 8`, where the base at +0x1C is
+@ what Func_f9b4c's TEMPO command wrote. Guarded by the ident check.
 .thumb_func_start Func_fb2a4
 	push	{r4, lr}
 	mov	r2, r0
@@ -2566,6 +2770,10 @@
 	bx	r0
 .func_end Func_fb2a4
 
+@ SetPlayerVolume
+@ r0 = player, r1 = volume, r2 = a mask. Applies a volume to the player's tracks,
+@ selected by the mask so a caller can leave some alone. 50 lines; traced
+@ structurally.
 .thumb_func_start Func_fb2cc
 	push	{r4, r5, r6, r7, lr}
 	mov	r7, r9
@@ -2623,6 +2831,9 @@
 	bx	r0
 .func_end Func_fb2cc
 
+@ SetPlayerPitch
+@ r0 = player, r1 = value, r2 = a mask. The Func_fb2cc of pitch. 56 lines;
+@ traced structurally.
 .thumb_func_start Func_fb334
 	push	{r4, r5, r6, r7, lr}
 	mov	r7, r10
@@ -2686,6 +2897,9 @@
 	bx	r0
 .func_end Func_fb334
 
+@ SetPlayerPan
+@ r0 = player, r1 = value, r2 = a mask. The third of the same family.
+@ 50 lines; traced structurally.
 .thumb_func_start Func_fb3a8
 	push	{r4, r5, r6, r7, lr}
 	mov	r7, r9
@@ -2743,6 +2957,10 @@
 	bx	r0
 .func_end Func_fb3a8
 
+@ ResetTrackModulation
+@ r0 = track. The Func_fa1ac of a caller that has the track in r0 rather than
+@ r1: same two accumulators cleared and the same flag pair chosen by the
+@ modulation type at +0x18.
 .thumb_func_start Func_fb410
 	mov	r1, r0
 	mov	r2, #0
@@ -2763,6 +2981,9 @@
 	bx	lr
 .func_end Func_fb410
 
+@ ApplyTrackModulation
+@ r0.. = parameters. Walks a player's tracks calling Func_fb410 on each.
+@ 54 lines; traced structurally.
 .thumb_func_start Func_fb430
 	push	{r4, r5, r6, r7, lr}
 	mov	r7, r10
@@ -2824,6 +3045,9 @@
 	bx	r0
 .func_end Func_fb430
 
+@ ApplyTrackModulationMasked
+@ r0.. = parameters. As Func_fb430 with a track mask. 54 lines; traced
+@ structurally.
 .thumb_func_start Func_fb4a4
 	push	{r4, r5, r6, r7, lr}
 	mov	r7, r10
@@ -2885,6 +3109,10 @@
 	bx	r0
 .func_end Func_fb4a4
 
+@ MemoryAccessCommand
+@ r0.. = parameters. The engine's read-modify-write on its own scratch at
+@ ewram_4004, which is what lets a song test and set values and branch on them.
+@ 172 lines; traced structurally.
 .thumb_func_start Func_fb518
 	push	{r4, r5, r6, lr}
 	mov	r4, r0
@@ -3064,6 +3292,9 @@
 	bx	r0
 .func_end Func_fb518
 
+@ TrackExtendedCommand
+@ r0 = player, r1 = track. Reads a sub-command byte and dispatches through the
+@ second table at .Lfba48 -- the extended-command set below. Command 0xCD.
 .thumb_func_start Func_fb670
 	push	{lr}
 	ldr	r2, [r1, #0x40]
@@ -3079,6 +3310,10 @@
 	bx	r0
 .func_end Func_fb670
 
+@ CallMixerHook
+@ r0.. = parameters. Calls through the pointer at ewram_4000, which is where
+@ Func_fa55c installed the mixer entry point. Indirect so the mixer can be
+@ swapped.
 .thumb_func_start Func_fb690
 	push	{lr}
 	ldr	r2, =ewram_4000
@@ -3088,6 +3323,9 @@
 	bx	r0
 .func_end Func_fb690
 
+@ XcmdSetWord
+@ r1 = track. Reads four bytes little-endian, one at a time, and stores the word
+@ at track+0x28. An extended command.
 .thumb_func_start Func_fb6a4
 	push	{r4, lr}
 	ldr	r2, [r1, #0x40]
@@ -3118,6 +3356,8 @@
 	bx	r0
 .func_end Func_fb6a4
 
+@ XcmdSetByte24
+@ r1 = track. Stores the next byte at track+0x24.
 .thumb_func_start Func_fb6ec
 	ldr	r0, [r1, #0x40]
 	ldrb	r2, [r0]
@@ -3130,6 +3370,8 @@
 	bx	lr
 .func_end Func_fb6ec
 
+@ XcmdSetByte2C
+@ r1 = track. Stores the next byte at track+0x2C.
 .thumb_func_start Func_fb700
 	ldr	r0, [r1, #0x40]
 	ldrb	r2, [r0]
@@ -3142,6 +3384,8 @@
 	bx	lr
 .func_end Func_fb700
 
+@ XcmdSetByte2D
+@ r1 = track. Stores the next byte at track+0x2D.
 .thumb_func_start Func_fb714
 	ldr	r0, [r1, #0x40]
 	ldrb	r0, [r0]
@@ -3154,6 +3398,8 @@
 	bx	lr
 .func_end Func_fb714
 
+@ XcmdSetByte2E
+@ r1 = track. Stores the next byte at track+0x2E.
 .thumb_func_start Func_fb728
 	ldr	r0, [r1, #0x40]
 	ldrb	r0, [r0]
@@ -3166,6 +3412,12 @@
 	bx	lr
 .func_end Func_fb728
 
+@ XcmdSetByte2F
+@ r1 = track. Stores the next byte at track+0x2F. Together with Func_fb6ec,
+@ Func_fb700, Func_fb714 and Func_fb728 these five write the ToneData record at
+@ track+0x24..+0x2F that Func_f9b74's VOICE command normally fills in -- so an
+@ extended command can override one field of an instrument without changing the
+@ instrument.
 .thumb_func_start Func_fb73c
 	ldr	r0, [r1, #0x40]
 	ldrb	r0, [r0]
@@ -3178,6 +3430,8 @@
 	bx	lr
 .func_end Func_fb73c
 
+@ XcmdSetEchoVolume
+@ r1 = track. Stores the next byte at track+0x1E.
 .thumb_func_start Func_fb750
 	ldr	r0, [r1, #0x40]
 	ldrb	r2, [r0]
@@ -3187,6 +3441,8 @@
 	bx	lr
 .func_end Func_fb750
 
+@ XcmdSetEchoLength
+@ r1 = track. Stores the next byte at track+0x1F.
 .thumb_func_start Func_fb75c
 	ldr	r0, [r1, #0x40]
 	ldrb	r2, [r0]
@@ -3196,6 +3452,8 @@
 	bx	lr
 .func_end Func_fb75c
 
+@ XcmdSetByte26
+@ r1 = track. Stores the next byte at track+0x26.
 .thumb_func_start Func_fb768
 	ldr	r0, [r1, #0x40]
 	ldrb	r0, [r0]
@@ -3208,6 +3466,8 @@
 	bx	lr
 .func_end Func_fb768
 
+@ XcmdSetByte27
+@ r1 = track. Stores the next byte at track+0x27.
 .thumb_func_start Func_fb77c
 	ldr	r0, [r1, #0x40]
 	ldrb	r0, [r0]
@@ -3220,6 +3480,8 @@
 	bx	lr
 .func_end Func_fb77c
 
+@ XcmdNoOp
+@ A bare `bx lr`. The table at .Lfba48 needs an entry that does nothing.
 .thumb_func_start Func_fb790
 	bx	lr
 .func_end Func_fb790

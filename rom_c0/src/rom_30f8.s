@@ -1,6 +1,17 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ AdvanceFrames -- the heartbeat of every synchronous loop
+@ r0 = number of frames to wait. Returns when they have elapsed.
+@ IT SWITCHES STACKS. When the caller's SP is below iwram_79ff it saves the
+@ difference at iwram_1804, DMA3-copies the current stack out to ewram_23b0, and
+@ moves SP to iwram_7a00 for the duration. That is why deeply nested game code
+@ can call this without overflowing the system stack _start set up.
+@ While waiting it services the frame: Func_3538 for input timing, Func_4420 to
+@ run the registered task groups, Func_3d04 and Func_3e10 for the display
+@ lists, and Func_5fcc for sound.
+@ Every "run until done" loop in the ROM -- battle animations, menus, text
+@ boxes -- is built on this call. 473 lines; traced structurally.
 .thumb_func_start Func_30f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -474,6 +485,9 @@
 	bx	r0
 .func_end Func_30f8
 
+@ ResetKeyRepeat
+@ Takes no arguments. Sets the auto-repeat counter at iwram_1b00 to 0x13, the
+@ same initial delay Func_3650 uses when nothing is held.
 .thumb_func_start Func_352c
 	ldr	r2, =iwram_1b00
 	mov	r3, #0x13
@@ -481,6 +495,11 @@
 	bx	lr
 .func_end Func_352c
 
+@ StepKeyRepeat
+@ Takes no arguments. Advances the auto-repeat state machine: when the counter
+@ at iwram_1b00 runs out it copies the held keys from iwram_1ae8 into
+@ iwram_1b04 and reloads the counter with 6 -- so the first repeat waits 0x13
+@ frames and subsequent ones 6.
 .thumb_func_start Func_3538
 	push	{r5, lr}
 	ldr	r4, =iwram_1b00

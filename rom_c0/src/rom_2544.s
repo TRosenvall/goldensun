@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ DecompressorTemplate -- copied into RAM before use
+@ r0 = compressed source, r1 = destination.
+@ NOT CALLED IN PLACE. Func_5340 allocates a 0x2C4-byte scratch, DMA3-copies
+@ this routine into it, and calls it there; rom_15000's Func_1a5a4 does the same
+@ with Func_15afc and rom_b5000's Func_c08ec with Func_b5138.
+@ Running the decoder from RAM avoids ROM wait states on what is a
+@ byte-at-a-time inner loop.
 .arm_func_start Func_2544
 	push	{r5, r6, r7, r9, lr}
 	ldrb	r2, [r0], #1
@@ -207,6 +214,9 @@
 	b	.L27d8
 .func_end Func_2544
 
+@ DecompressLarge
+@ r0 = source, r1 = destination. A second, larger decoder in the same family;
+@ 342 lines, traced structurally.
 .arm_func_start Func_2808
 	ldrb	r2, [r0], #1
 	cmp	r2, #2
@@ -549,6 +559,9 @@
 	b	.L2c10
 .func_end Func_2808
 
+@ DecompressTail
+@ r0 = source, r1 = destination. The short tail routine the two decoders above
+@ share for their final partial block.
 .arm_func_start Func_2cf4
 	stmfd	sp!, {r5}
 	add	r0, #4
@@ -582,6 +595,9 @@
 	b	.L2d3c
 .func_end Func_2cf4
 
+@ DecompressorTemplateSmall
+@ r0 = source, r1 = destination. A second RAM-resident template: Func_2fb0
+@ DMA3-copies this into a 0x7C-byte scratch from Func_4938 and runs it there.
 .arm_func_start Func_2d5c
 	push	{r5, r6}
 	add	r1, r1

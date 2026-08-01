@@ -1,6 +1,62 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ============================================================================
+@ Party, character records and event flags.
+@
+@ rom_77000 is the game's data layer. It owns the character records, the derived
+@ stats, the inventory and the global event flags, and it hands them out to
+@ everyone else. 100 functions are exported and there is essentially no hardware
+@ use (four DMA3 setups), so nothing here draws -- it answers questions.
+@
+@ Func_77394 is the MOST-CALLED CROSS-MODULE FUNCTION IN THE ROM at 226 call
+@ sites. If you are reading any other module and see `_Func_77394`, it is
+@ fetching a combatant record.
+@
+@ COMBATANT RECORDS -- 0x14C bytes each, Func_77394(id) resolves them:
+@     ids 0x00..0x07   ewram_500 + id * 0x14C            the player's side
+@     ids 0x80..0x85   [iwram_1f28] + id * 0x14C - 0xA600  the enemy side
+@     anything else    0
+@ The enemy bias is exact: 0x80 * 0x14C = 0xA600, so enemy 0x80 sits at offset 0
+@ of the block iwram_1f28 points at. That is the whole reason the ids are split
+@ 0..7 / 0x80..0x85 rather than being contiguous.
+@
+@ Record fields established so far:
+@     +0x0F  a per-character byte summed across the party by Func_77348
+@     +0x10, +0x12  signed pair copied out first by Func_77428
+@     +0x14  CURRENT HP AS A FRACTION, (curHP << 14) / maxHP, clamped 0..0x4000
+@     +0x34  max HP        +0x36  max PP
+@     +0x38  current HP    +0x3A  current PP
+@ Func_7822c recomputes +0x14 and is called after every HP or PP change.
+@
+@ THE SAVE VARIABLE STORE at ewram_40 -- 512 bytes, addressed at four
+@ granularities by the accessors in rom_79338.s. It is not just a flag array:
+@     bit     Func_79338 test, Func_79358 set, Func_79374 clear, Func_79390
+@             toggle -- 288 call sites between them
+@     byte    Func_793b8 read, Func_793c8 write
+@     counter Func_793d8 increment, Func_793f8 decrement, both SATURATING at
+@             0xFF and 0 rather than wrapping
+@     nibble  Func_79418 read, Func_79434 write, with bit 2 of the index picking
+@             the low or high nibble
+@ All of them index the same byte as `(idx & 0xFFF) >> 3`, written
+@ `(idx << 20) >> 23` to mask and shift in one instruction pair.
+@ Because the views overlap, a "flag" and a "counter" can occupy the same byte;
+@ do not assume an index is only ever used one way.
+@ INDICES 0..7 ARE PARTY MEMBERSHIP: Func_795fc counts exactly those eight bits
+@ to get the active party size, so bit N means "character N has joined". That
+@ also matches the eight entries in the Func_78ed8 base-stat table.
+@
+@ ITEM RECORDS -- 0x54 bytes each at Data_80ec8, resolved by Func_773d8(id) for
+@ ids 8..0x101; out-of-range ids fall back to entry 0.
+@
+@ SAVE DATA lives at ewram_240. The active party's member ids are the byte list
+@ at ewram_240 + 0x1F8, and ewram_240 + 0x205 is the in-game hour (see
+@ rom_15000's Func_1ca1c).
+@ ============================================================================
+
+@ InitPartyData
+@ Takes no arguments. Builds the party tables with Func_77d38 and hands off to
+@ _Func_8a8e4 in rom_8a000.
 .thumb_func_start Func_77320
 	push	{lr}
 	bl	Func_77d38
@@ -10,6 +66,10 @@
 	bx	r0
 .func_end Func_77320
 
+@ GetRecordOrDefault
+@ r0 = non-zero to fetch combatant 0x83, 0 to return ewram_24c instead.
+@ A two-way selector some callers use to fall back on a scratch record rather
+@ than a real combatant.
 .thumb_func_start Func_77330
 	push	{lr}
 	cmp	r0, #0
@@ -24,6 +84,12 @@
 	bx	r1
 .func_end Func_77330
 
+@ SumPartyField
+@ Takes no arguments. Returns the sum of byte +0x0F across every active party
+@ member, then divides by the party size with Func_af0 -- so this is a PARTY
+@ AVERAGE, not a total.
+@ The member ids come from the byte list at ewram_240+0x1F8 and the count from
+@ Func_795fc.
 .thumb_func_start Func_77348
 	push	{r5, r6, r7, lr}
 	sub	sp, #4
@@ -63,6 +129,12 @@
 	bx	r1
 .func_end Func_77348
 
+@ GetCombatantRecord
+@ r0 = combatant id. Returns its 0x14C-byte record, or 0 for an unknown id.
+@     0x00..0x07  ewram_500 + id * 0x14C
+@     0x80..0x85  [iwram_1f28] + id * 0x14C - 0xA600, so 0x80 lands at offset 0
+@ Enemy ids also return 0 when iwram_1f28 is null, i.e. outside battle.
+@ The most-called cross-module function in the ROM -- 226 sites.
 .thumb_func_start Func_77394
 	push	{lr}
 	mov	r3, r14
@@ -97,6 +169,10 @@
 	bx	r1
 .func_end Func_77394
 
+@ GetItemRecord
+@ r0 = item id. Returns Data_80ec8 + (id - 8) * 0x54.
+@ Ids below 8 or above 0x101 are clamped to entry 0, so a bad id yields the
+@ null item rather than reading out of bounds. Item records are 0x54 bytes.
 .thumb_func_start Func_773d8
 	push	{lr}
 	sub	r0, #8
@@ -112,6 +188,11 @@
 	bx	r1
 .func_end Func_773d8
 
+@ CopyBytesDirectional
+@ r0, r1 = the two buffers, r2 = length, r3 = direction.
+@ A non-zero r3 copies r0 -> r1; zero copies r1 -> r0. Both arms are plain
+@ forward byte loops, so overlapping ranges are NOT handled -- this is a memcpy
+@ with a swappable sense, not a memmove.
 .thumb_func_start Func_773f4
 	push	{lr}
 	cmp	r3, #0
@@ -145,6 +226,15 @@
 	bx	r0
 .func_end Func_773f4
 
+@ BuildCharacterSummary
+@ r0 = combatant id. Allocates a 0x60-byte scratch with Func_4970 and fills it
+@ with everything the UI needs about a character: the signed pair at +0x10/+0x12,
+@ the halfwords at +0x18/+0x1A/+0x1C, the byte at +0x1E, the nibble fields of
+@ +0x1F, and much more, consulting item records through Func_78414 and event
+@ flags through Func_79338.
+@ 1023 lines and the largest routine in the module; traced structurally. This is
+@ where derived stats are computed, so it is the function to read when a
+@ displayed number does not match a stored one.
 .thumb_func_start Func_77428
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1168,6 +1258,10 @@
 	bx	r0
 .func_end Func_77428
 
+@ RecomputePartyFlags
+@ r0.. = parameters. Walks the active party (size from Func_795fc), reads each
+@ record and its equipment through Func_78414, and sets or clears the
+@ corresponding event flags with Func_79358 / Func_79374.
 .thumb_func_start Func_77c10
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1252,6 +1346,10 @@
 	bx	r0
 .func_end Func_77c10
 
+@ ReadPackedTable
+@ Takes no arguments. Fetches asset 2 with Func_2f40 and walks it as a run of
+@ packed byte triples, each decoded as `(b * 5) * 2 - 0x1E0` plus two more
+@ bytes. Returns the decoded pointers.
 .thumb_func_start Func_77cb8
 	push	{r5, lr}
 	ldr	r0, =2
@@ -1311,6 +1409,10 @@
 	bx	r1
 .func_end Func_77cb8
 
+@ BuildPartyTables
+@ Takes no arguments. Assembles the party tables at startup from the packed data
+@ Func_77cb8 decodes, seeding each character through Func_78ee8 and Func_7961c.
+@ 232 lines; traced structurally.
 .thumb_func_start Func_77d38
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1543,6 +1645,10 @@
 	bx	r0
 .func_end Func_77d38
 
+@ JoinParty
+@ r0 = character id. Rebuilds the character's summary with Func_77428, sets its
+@ membership event flag with Func_79358, and notifies Func_79ae8.
+@ Since flags 0..7 are membership, this is what makes Func_795fc's count go up.
 .thumb_func_start Func_77f40
 	push	{lr}
 	mov	r0, #0x20
@@ -1563,6 +1669,11 @@
 	bx	r0
 .func_end Func_77f40
 
+@ SetPartyMembership
+@ r0.. = parameters. The general form of Func_77f40: adds or removes characters,
+@ setting flags with Func_79358 and clearing with Func_79374, rebuilding
+@ summaries with Func_77428, and updating equipment through Func_78708 and
+@ Func_78e28.
 .thumb_func_start Func_77f70
 	push	{r5, r6, lr}
 	mov	r0, #0x20
@@ -1698,6 +1809,9 @@
 	bx	r0
 .func_end Func_77f70
 
+@ AveragePartyStat
+@ r0 = field selector. Sums one field across the active party and divides by the
+@ member count with Func_af0. Same shape as Func_77348 over a different field.
 .thumb_func_start Func_7808c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1792,6 +1906,10 @@
 	bx	r0
 .func_end Func_7808c
 
+@ AveragePartyStatFiltered
+@ r0 = field selector. As Func_7808c but skipping members whose event flag
+@ (Func_79338) is clear, so downed or absent characters do not drag the average
+@ down.
 .thumb_func_start Func_78144
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1903,10 +2021,17 @@
 	bx	r0
 .func_end Func_78144
 
+@ NoOp
+@ A bare `bx lr`, present as a table entry or placeholder.
 .thumb_func_start Func_78228
 	bx	lr
 .func_end Func_78228
 
+@ RecomputeHpFraction
+@ r0 = combatant id. Sets +0x14 to (curHP << 14) / maxHP -- Func_af0 supplies
+@ the signed quotient -- clamped to 0..0x4000.
+@ 0x4000 is full health, so +0x14 is a 14-bit fraction rather than a percentage;
+@ UI bars scale from it directly. Called after every HP or PP change.
 .thumb_func_start Func_7822c
 	push	{r5, lr}
 	bl	Func_77394
@@ -1968,6 +2093,9 @@
 	bx	r0
 .func_end Func_7822c
 
+@ ScaleStat
+@ r0, r1, r2 = value, numerator, denominator. Scales a stat with Func_af0 and
+@ clamps the result.
 .thumb_func_start Func_782a0
 	push	{r5, lr}
 	mov	r5, r0
@@ -2038,6 +2166,9 @@
 	bx	r0
 .func_end Func_782a0
 
+@ ScaleStatAlt
+@ r0, r1, r2 = value, numerator, denominator. As Func_782a0 with different
+@ clamping bounds.
 .thumb_func_start Func_78320
 	push	{r5, lr}
 	mov	r5, r0
@@ -2109,6 +2240,12 @@
 	bx	r0
 .func_end Func_78320
 
+@ ChangeHp
+@ r0 = combatant id, r1 = SIGNED delta. Adds the delta to current HP at +0x38,
+@ clamps to 0..maxHP (+0x34), recomputes the fraction with Func_7822c, and
+@ returns the new HP.
+@ This is the damage and healing entry point -- rom_b5000 calls it as
+@ _Func_783a4(id, -damage). Reaching 0 is how a combatant goes down.
 .thumb_func_start Func_783a4
 	push	{r5, r6, r7, lr}
 	mov	r5, r1
@@ -2138,6 +2275,10 @@
 	bx	r1
 .func_end Func_783a4
 
+@ ChangePp
+@ r0 = combatant id, r1 = SIGNED delta. The Func_783a4 counterpart for PP:
+@ current at +0x3A, maximum at +0x36, same clamp and the same Func_7822c
+@ refresh, returning the new PP.
 .thumb_func_start Func_783dc
 	push	{r5, r6, r7, lr}
 	mov	r5, r1

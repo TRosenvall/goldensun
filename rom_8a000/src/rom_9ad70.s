@@ -1,5 +1,21 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Field ability (Psynergy) effects.
+@
+@ iwram_1f30 points at the field-effect state: +0x10 the caster entity, +0x14
+@ the target position, +0x18/+0x1A the target slot and parameter, and an array
+@ of effect instances from +0x58 (0x48 bytes each, updated by Func_9b804 and
+@ friends in rom_9b698.s).
+@ Each ability is a blocking routine: it opens with Func_916b0, animates the
+@ caster and its particles, applies the world change, and closes with
+@ Func_91750.
+@ ============================================================================
+
+@ IdleFlickerHook
+@ r0=entity. Per-frame hook that gives a resting entity a subtle palette
+@ flicker: draws a random index from Func_4458, uses it to pick a signed byte
+@ from .L9f160 and applies it as the palette through _Func_c598.
 .thumb_func_start Func_9ad70
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -15,6 +31,10 @@
 	bx	r0
 .func_end Func_9ad70
 
+@ SaveAndClearEntityHook
+@ r0=slot. Saves the slot entity's current per-frame hook (+0x6C) to
+@ ewram_240+0x250 and clears it, so a scripted sequence can take over the
+@ entity's behaviour and restore it afterwards.
 .thumb_func_start Func_9ad90
 	push	{lr}
 	bl	Func_8ba1c
@@ -55,6 +75,10 @@
 	bx	r0
 .func_end Func_9ad90
 
+@ RestoreEntityHook
+@ r0=slot. Undoes Func_9ad90: puts the saved hook from ewram_240+0x250 back at
+@ +0x6C. If the current hook is Func_9ad70 it is cleared first, so the idle
+@ flicker does not survive the restore.
 .thumb_func_start Func_9ade8
 	push	{r5, lr}
 	bl	Func_8ba1c
@@ -92,6 +116,9 @@
 	bx	r0
 .func_end Func_9ade8
 
+@ GetSlotVoiceOrNone
+@ r0=slot. Returns the slot if its speaker record carries a voice id
+@ (Func_915dc returns something other than 0xFF), and -1 otherwise.
 .thumb_func_start Func_9ae3c
 	push	{r5, lr}
 	mov	r5, r0
@@ -109,6 +136,9 @@
 	bx	r1
 .func_end Func_9ae3c
 
+@ RunFieldAbility_Wrapper
+@ Tail call to Func_9ae64; a separate entry point so the ability table can
+@ reference it by its own address.
 .thumb_func_start Func_9ae58
 	push	{lr}
 	bl	Func_9ae64
@@ -116,6 +146,12 @@
 	bx	r0
 .func_end Func_9ae58
 
+@ RunFieldAbility
+@ Takes no arguments. The main field-ability sequence: reads the caster and
+@ target from [iwram_1f30], plays the cast animation and particle effects,
+@ applies the effect to the world, and restores control.
+@ The ~500-instruction body is characterised structurally; the state block
+@ layout and the open/close bracketing are verified.
 .thumb_func_start Func_9ae64
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -390,6 +426,10 @@
 	bx	r0
 .func_end Func_9ae64
 
+@ SpinEffectHook
+@ r0=entity. Per-frame hook that rotates the entity's facing at +0x06 by a step
+@ derived from the counter at +0x64, giving the spinning motion used while an
+@ ability charges.
 .thumb_func_start Func_9b0b0
 	push	{lr}
 	mov	r1, r0
@@ -415,6 +455,10 @@
 	bx	r0
 .func_end Func_9b0b0
 
+@ RiseEffectHook
+@ r0=entity. Per-frame hook that lifts the entity: subtracts 0x280 from the two
+@ height words at +0x18 and +0x1C each frame and advances the facing at +0x06,
+@ so the target floats upward while turning.
 .thumb_func_start Func_9b0dc
 	push	{lr}
 	ldr	r1, =0xfffffd80
@@ -451,6 +495,10 @@
 	.word	0
 .func_end Func_9b0dc
 
+@ PlaceAbilityTargets
+@ r0=effect instance base. Positions the ability's particle instances around the
+@ target read from [iwram_1f30]+0x10, spacing them by the offsets held from
+@ +0x40 of the instance.
 .thumb_func_start Func_9b11c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -563,6 +611,11 @@
 	bx	r0
 .func_end Func_9b11c
 
+@ RunGrowthAbility
+@ Takes no arguments. The grow/raise field ability: brackets the sequence with
+@ Func_916b0 and Func_91750, animates the caster, and drives the target upward
+@ through the rise hooks above. The ~180-instruction body is characterised
+@ structurally.
 .thumb_func_start Func_9b208
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -708,6 +761,10 @@
 	bx	r0
 .func_end Func_9b208
 
+@ FindTargetInRangeA
+@ r0=effect state. Scans for a valid ability target within 0xA0000 units of the
+@ position at +0x14, using the range limit at ewram_240+0x1DA. Returns the
+@ target or a negative result.
 .thumb_func_start Func_9b364
 	push	{r5, r6, lr}
 	ldr	r3, =ewram_240
@@ -766,6 +823,10 @@
 	bx	r0
 .func_end Func_9b364
 
+@ FindTargetInRangeB
+@ r0=effect state. Same scan as Func_9b364 over a second candidate set -- the
+@ two differ only in which table they walk, so an ability can look for either
+@ kind of target.
 .thumb_func_start Func_9b3d8
 	push	{r5, r6, lr}
 	ldr	r3, =ewram_240
@@ -825,6 +886,10 @@
 	bx	r0
 .func_end Func_9b3d8
 
+@ RunMoveAbility
+@ Takes no arguments. The push/move field ability: locates the target, animates
+@ the caster, and slides the target to its new tile. The ~130-instruction body
+@ is characterised structurally.
 .thumb_func_start Func_9b450
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -979,6 +1044,10 @@
 	bx	r0
 .func_end Func_9b450
 
+@ SetCasterPaletteByFrame
+@ Takes no arguments. Applies a palette to the player's actor chosen from the
+@ global frame counter iwram_1e40, producing the pulsing tint a caster shows
+@ while an ability is active.
 .thumb_func_start Func_9b588
 	push	{r5, r6, lr}
 	ldr	r3, =ewram_240
@@ -1020,6 +1089,9 @@
 	bx	r0
 .func_end Func_9b588
 
+@ AdvanceEffectCounters
+@ r0=entity. Steps the two counters at +0x64 and +0x66 that the ability hooks
+@ use as their phase, wrapping each at its limit.
 .thumb_func_start Func_9b5dc
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -1071,6 +1143,9 @@
 	bx	r0
 .func_end Func_9b5dc
 
+@ ClearAbilityState
+@ Takes no arguments. Zeroes the field-ability scratch words at ewram_240+0x244
+@ and +0x248, resetting the system between casts.
 .thumb_func_start Func_9b648
 	push	{lr}
 	ldr	r1, =ewram_240

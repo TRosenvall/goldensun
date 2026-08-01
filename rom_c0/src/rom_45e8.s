@@ -1,11 +1,15 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ GetStringTable
+@ Takes no arguments. Returns the address of the table at .L779c.
 .thumb_func_start Func_45e8
 	ldr	r0, =.L779c
 	bx	lr
 .func_end Func_45e8
 
+@ CopyString
+@ r0 = destination, r1 = source. Copies a null-terminated byte string.
 .thumb_func_start Func_45f0
 	push	{lr}
 	ldr	r3, =iwram_1f70
@@ -29,6 +33,11 @@
 	bx	r0
 .func_end Func_45f0
 
+@ FormatDecimal
+@ r0 = value, r1 = destination. Writes the value as decimal text.
+@ Uses the power-of-ten table at .L7970 and Func_b60 for the unsigned division,
+@ emitting 0x20 (space) for leading zeros and 0x2D ('-') for a negative value,
+@ with the working buffer at iwram_1f70.
 .thumb_func_start Func_4620
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -92,6 +101,8 @@
 	bx	r0
 .func_end Func_4620
 
+@ StringLength
+@ r0 = string. Returns its length in bytes.
 .thumb_func_start Func_4698
 	push	{lr}
 	ldr	r1, =iwram_1cbc
@@ -120,6 +131,9 @@
 	bx	r0
 .func_end Func_4698
 
+@ AppendString
+@ r0 = destination, r1 = source. Concatenates onto the end of the
+@ destination.
 .thumb_func_start Func_46c4
 	push	{r5, lr}
 	ldr	r3, =iwram_1ac4
@@ -161,6 +175,8 @@
 	bx	r0
 .func_end Func_46c4
 
+@ CopyAndAppend
+@ r0.. = parameters. Func_45f0 then Func_46c4.
 .thumb_func_start Func_4718
 	push	{r5, lr}
 	mov	r5, r1
@@ -178,6 +194,8 @@
 	bx	r0
 .func_end Func_4718
 
+@ FormatAndAppend
+@ r0.. = parameters. Func_4620 then Func_46c4.
 .thumb_func_start Func_473c
 	push	{r5, lr}
 	mov	r5, r1
@@ -195,6 +213,10 @@
 	bx	r0
 .func_end Func_473c
 
+@ InitBackground
+@ Takes no arguments. Fills the tilemap at 0x6002000 with 0xF000F000 -- the
+@ empty-tile pattern -- records the base at iwram_1cbc, and configures
+@ REG_BG0CNT.
 .thumb_func_start Func_4760
 	sub	sp, #4
 	ldr	r3, =0xf000f000
@@ -216,6 +238,9 @@
 	bx	lr
 .func_end Func_4760
 
+@ LoadSystemFont
+@ Takes no arguments. Fetches asset 0x13 with Func_2f40 and DMA3s it to
+@ 0x6000000 (0x800 words), then loads a 0x10-word palette to 0x50001E0.
 .thumb_func_start Func_479c
 	push	{lr}
 	ldr	r0, =0x13
@@ -268,6 +293,8 @@
 	bx	r0
 .func_end Func_479c
 
+@ SetBackgroundScroll
+@ r0, r1 = offsets. Writes the BG scroll registers.
 .thumb_func_start Func_4838
 	ldr	r3, =REG_DMA3SAD
 	ldr	r0, =.L779c

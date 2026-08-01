@@ -1,6 +1,95 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunAnimationClass2 -- particle eruption
+@ r0 = action descriptor. Animation class 2, entered from the twelve-way table
+@ in Func_d6578 (rom_d6504.s). Runs to completion synchronously: 124 frames,
+@ one Func_30f8(1) per frame. Stores the descriptor at [iwram_1eec]+0x7828 on
+@ entry.
+@
+@ Reads as an eruption: a fountain of flame sprites thrown up out of a small
+@ disc, falling back under gravity, over a scrolling ground band, with the
+@ whole field sucked upward for the last 40 frames. The mechanics below are
+@ traced; the element is inferred from them and from the asset ids.
+@
+@ SETUP
+@   REG_BLDALPHA = 0x1010 (even 16/16 blend).
+@   Func_cef64(0, sp+0x34) fills two sprite-draw callbacks at sp+0x34/sp+0x38.
+@     Both are blit(dst, gfx, x, y, w, h) with x,y giving the CENTRE (the caller
+@     pre-subtracts w/2 and h/2). dst is [iwram_1ef0], the 0x4000 render buffer,
+@     throughout -- see the tag map in rom_d6504.s.
+@   Three assets via Func_2f40 (= Data_320000[id]); each carries an 0x80-byte
+@   palette followed by compressed graphics, decompressed with Func_5340:
+@     0x6e  palette -> BG palette RAM (0x5000000), gfx -> [iwram_1eec]+0
+@     0x85  gfx -> [iwram_1eec]+0x6E4     (palette skipped)
+@     0x73  gfx -> [iwram_1ef4]           (no palette header; the 0x302 buffer
+@           that Data_ede48 indexes, so this asset IS the ten flame sizes)
+@   [iwram_1eec]+0x7780 = 2, +0x7784 = 0x4B; Func_41d8 registers Func_cd260 as
+@     the per-frame effect task.
+@   Clears the 64-entry list at +0x7098 (stride 0x1C) to -1, seeds 16 entries at
+@     +0x7320 from Func_4458 (the LCG at iwram_1cb4), and frees all 1024
+@     particles at ewram_10000 by setting +0x18 = -1.
+@   Func_d6750 collects the living combatants; Func_dbb24(12, 0x17C, 2) spawns
+@     12 effect actors into [iwram_1eec]+0x77D8.
+@
+@ PARTICLE POOL -- ewram_10000, 1024 entries of 0x1C bytes
+@   +0x00 x (16.16)   +0x04 y (16.16)   +0x0C vx   +0x10 vy   +0x18 age, -1=free
+@   Spawned as: angle = rand16, r = rand & 0x3F,
+@     x = 32.0 + (r*sin angle >> 3), y = 96.0 + (r*cos angle >> 2),
+@     vx = ((rand & 0x3F) - 0x20) << 14, vy = (-(rand & 0x3F) - 8) << 13.
+@   vy starts negative, so they are thrown upward out of a small disc.
+@
+@ MAIN LOOP -- frame counter 0..0x7B
+@   A or B held (iwram_1b04 & 3) and frame in 0x21..0x61  -> jump to 0x62.
+@     This is the whole fast-forward: the middle 64 frames are skipped.
+@   frame 0x78          Func_bd7dc(0x86), the one-shot signal back to rom_b5000.
+@   frames 0..0x0F      the ground band rises 2px per frame (32px total).
+@   frames 0..0x63      two damped 16.16 accumulators drive Func_e6d3c(1, x, y):
+@                       x starts 256.0 with vx -16.0, y starts 88.0 with vy
+@                       -4.0; vx *= 58/64 and vy *= 56/64 each frame, and vx
+@                       gains +0.5 once x falls to 120.0 or below.
+@   frame 0x1C          burst: every free particle in the pool is spawned.
+@   frames 0x20..0x4F   up to 16 more particles spawned per frame.
+@   frames 0, 0x20, 0x50  sounds 0xA4, 0x91, 0x90 via _Func_f9080.
+@   frames 0x20..0x4F   three 34px-wide columns of asset 0x85 at x = 0x10, 0x20,
+@                       0x30 (table .Lee1ac), each drawn as two pieces split at
+@                       q = (frame*16 + i*25 - 256) MOD 104 (Func_b1c is the
+@                       signed remainder; Func_af0 is the quotient). 104 = 0x68
+@                       is the column height, so this is a wrapping vertical
+@                       scroll -- the columns rise and repeat, staggered 25
+@                       units apart.
+@   frames 0..0x5F      five 32x32 tiles of asset 0x6e in a row, scrolling
+@                       horizontally by (frame/4) & 31, at y = 0x78 - rise.
+@   every frame         update every live particle:
+@                         size n = (i MOD 3) + 2, +2 while falling, then floored
+@                           to 6/7/8/9/10 past frames 0x44/0x46/0x48/0x4A/0x4C.
+@                           The modulo gives three sizes mixed through the pool;
+@                           the floors make every flame grow as the eruption
+@                           builds, so late frames are all size 10.
+@                         graphic = [iwram_1ef4] + Data_ede48[n-1]; that table is
+@                           the cumulative tile offset for sprites n wide by 2n
+@                           tall (deltas are 2n^2), drawn centred at (x, y).
+@                         callback sp+0x34 while rising, sp+0x38 while falling.
+@                         x += vx; y += vy.
+@                         frame > 0x50 -> vy -= 0.5 every frame (the updraft);
+@                           otherwise vy += .Lee1b4[i & 3] = 0.5/0.25/0.25/0.125,
+@                           four gravity strengths so the fountain spreads out.
+@                         vx and vy both *= 62/64 (drag); age++.
+@                         killed (+0x18 = -1) once falling and y > 0x68, the
+@                           ground line -- the same 0x68 used by .Lee1ac.
+@   frames 0..0x4F      for each of the [desc+0x14] targets, ids at desc+0x24+2i:
+@                         t = frame MOD 12, so this pulses every 12 frames
+@                         frame > 0x1D and t == 0 -> Func_d6888(id, 7, 5, -1, 0),
+@                           then actor +0x28 = 0x48000 and +0x48 = 0xAB85
+@                         t == 6 -> Func_d6888(id, 0, 5, -1, 0), six frames later
+@   end of frame        [iwram_1eec]+0x7824 = 1 arms Func_cd260, then Func_30f8(1).
+@
+@ TEARDOWN
+@   Func_4278(Func_cd260) unregisters the task; Func_2dd8 frees tags 0x2F and
+@   0x2E, the two generated blitters (this handler does not call Func_ed408
+@   itself -- Func_cd594 or Func_cef64 must have produced them); Func_e6eac(1,
+@   x, y) mirrors the Func_e6d3c setup; the 12 actors at +0x77D8 are destroyed
+@   with _Func_bdd4; Func_cdbc0 restores the background and view state.
 .thumb_func_start Func_d2d98
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -734,6 +823,14 @@
 	bx	r0
 .func_end Func_d2d98
 
+@ Sub_d33c0
+@ Battle animation routine, 510 instructions.
+@ State: iwram_1eec, iwram_1e80, ewram_10000.
+@ Calls out to: _Func_b7dd0, _Func_b8228, _Func_b8530, _Func_bd7dc, _Func_f9080.
+@ Touches: REG_BLDALPHA.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_d33c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1274,6 +1371,14 @@
 	bx	r0
 .func_end Func_d33c0
 
+@ Sub_d3854
+@ Battle animation routine, 441 instructions.
+@ State: iwram_1eec.
+@ Calls out to: _Func_b8228, _Func_bd7dc, _Func_f9080.
+@ Touches: REG_BLDALPHA.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_d3854
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1763,6 +1868,14 @@
 	bx	r0
 .func_end Func_d3854
 
+@ Sub_d3c80
+@ Battle animation routine, 488 instructions.
+@ State: iwram_1eec, iwram_1e80, ewram_10000.
+@ Calls out to: _Func_bd7dc, _Func_f9080.
+@ Touches: REG_BLDALPHA.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_d3c80
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2288,6 +2401,10 @@
 	bx	r0
 .func_end Func_d3c80
 
+@ Sub_d40ec
+@ Battle animation routine, 83 instructions.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_d40ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2381,6 +2498,14 @@
 	bx	r0
 .func_end Func_d40ec
 
+@ Sub_d41a4
+@ Battle animation routine, 466 instructions.
+@ State: iwram_1eec, iwram_1e80, ewram_10000.
+@ Calls out to: _Func_b8228, _Func_bd7dc, _Func_f9080.
+@ Touches: REG_BLDALPHA.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_d41a4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

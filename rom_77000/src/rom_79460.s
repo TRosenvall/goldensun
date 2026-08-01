@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ RebuildPartyRoster
+@ r0.. = parameters. Rebuilds the active roster and every member's derived
+@ stats, releasing the UI's cached menu buffers through _Func_196c4 so the
+@ screens pick up the change. 209 lines; traced structurally.
 .thumb_func_start Func_79460
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -209,6 +213,10 @@
 	bx	r1
 .func_end Func_79460
 
+@ GetPartySize
+@ Takes no arguments. Counts save bits 0..7 with Func_79338 and returns the
+@ total -- the number of characters who have joined. Every party walk in this
+@ module is bounded by this.
 .thumb_func_start Func_795fc
 	push	{r5, r6, lr}
 	mov	r6, #0
@@ -229,6 +237,10 @@
 	bx	r1
 .func_end Func_795fc
 
+@ AddPartyMember
+@ r0 = character id. Sets the membership bit with Func_79358 and appends the id
+@ to the roster byte list at ewram_240+0x1F8, skipping the append when the
+@ character is already listed.
 .thumb_func_start Func_7961c
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -269,6 +281,10 @@
 	bx	r1
 .func_end Func_7961c
 
+@ RemovePartyMember
+@ r0 = character id. Clears the membership bit with Func_79374 and removes the
+@ id from the roster list, shifting the remainder down so the list stays
+@ compact.
 .thumb_func_start Func_79664
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -318,6 +334,10 @@
 	bx	r1
 .func_end Func_79664
 
+@ CopyRosterIds
+@ r0 = destination halfword array. Widens the roster bytes at ewram_240+0x1F8
+@ into halfwords and returns the count from Func_795fc. The standard way the
+@ rest of the ROM enumerates the party.
 .thumb_func_start Func_796c4
 	push	{r5, lr}
 	mov	r5, r0
@@ -352,6 +372,10 @@
 	.word	0xff
 .func_end Func_796c4
 
+@ ChangeMoney
+@ r0 = signed delta. Adds it to the money field at ewram_240+0x10 and returns
+@ the new total, CLAMPED TO 0..0xF423F -- 999,999, the gold cap. Negative
+@ results clamp to zero rather than underflowing.
 .thumb_func_start Func_79700
 	push	{lr}
 	ldr	r1, =ewram_240
@@ -372,6 +396,8 @@
 	bx	r1
 .func_end Func_79700
 
+@ GetCounterA
+@ r0 = index. Reads a counter out of the save block.
 .thumb_func_start Func_79728
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -395,6 +421,8 @@
 	bx	r1
 .func_end Func_79728
 
+@ GetCounterB
+@ r0 = index. Reads a second save-block counter, same shape as Func_79728.
 .thumb_func_start Func_79754
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -418,6 +446,8 @@
 	bx	r1
 .func_end Func_79754
 
+@ ReadScratchRecordField
+@ r0.. = parameters. Reads fields from the record Func_77330 selects.
 .thumb_func_start Func_7977c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -463,6 +493,9 @@
 	bx	r1
 .func_end Func_7977c
 
+@ GetElementRecord
+@ r0 = index (0..0xF). Returns .L84a9c + index * 8; an index above 15 returns 0
+@ rather than reading past the table. Sixteen 8-byte entries.
 .thumb_func_start Func_797d4
 	push	{lr}
 	cmp	r0, #0xf
@@ -478,6 +511,9 @@
 	bx	r1
 .func_end Func_797d4
 
+@ GetGrowthEntry
+@ r0, r1 = row and column. Returns the word at .L88db8[(r0 * 4 + r1)], a flat
+@ word table indexed as a 4-column grid.
 .thumb_func_start Func_797ec
 	lsl	r0, #2
 	ldr	r3, =.L88db8
@@ -487,6 +523,9 @@
 	bx	lr
 .func_end Func_797ec
 
+@ ComputeDerivedStat
+@ r0.. = parameters. Combines a character's 0xB4-byte base entry (Func_78ed8)
+@ with an item record (Func_773d8) to produce one derived stat.
 .thumb_func_start Func_797fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
@@ -556,6 +595,9 @@
 	bx	r1
 .func_end Func_797fc
 
+@ GetScaledStat
+@ r0 = combatant id, r1 = which. Func_797fc for the raw value, then Func_af0 to
+@ scale it.
 .thumb_func_start Func_7987c
 	push	{r5, r6, lr}
 	mov	r6, r1
@@ -584,6 +626,8 @@
 	bx	r1
 .func_end Func_7987c
 
+@ GetItemStatField
+@ r0 = item id, r1 = which. Reads one field from the 0x54-byte item record.
 .thumb_func_start Func_798b4
 	push	{lr}
 	mov	r3, #0x94
@@ -606,6 +650,10 @@
 	bx	r1
 .func_end Func_798b4
 
+@ RecomputeAllStats
+@ r0 = combatant id. Recomputes every derived stat from the base entry and the
+@ equipped items, with Func_af0 and Func_b1c supplying the division and
+@ remainder. 103 lines; traced structurally.
 .thumb_func_start Func_798e0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -709,6 +757,10 @@
 	bx	r1
 .func_end Func_798e0
 
+@ ApplyElementalBonuses
+@ r0 = combatant id. Walks the element table (Func_797fc, Func_797ec) applying
+@ each element's contribution, gated by save bits through Func_79338.
+@ 156 lines; traced structurally.
 .thumb_func_start Func_799b0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -865,6 +917,9 @@
 	bx	r1
 .func_end Func_799b0
 
+@ GetEffectRecord
+@ r0 = index. Returns .L84b1c + index * 0x54. Same 0x54 stride as the item
+@ records Func_773d8 hands out, but a different table -- do not confuse them.
 .thumb_func_start Func_79ad8
 	mov	r3, #0x54
 	mul	r0, r3
@@ -873,6 +928,10 @@
 	bx	lr
 .func_end Func_79ad8
 
+@ RefreshCombatant
+@ r0 = combatant id. The standard "something changed, recompute everything"
+@ call: Func_798e0 for the derived stats, Func_799b0 for elemental bonuses and
+@ Func_78bf0 for equipment effects.
 .thumb_func_start Func_79ae8
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -899,6 +958,8 @@
 	bx	r0
 .func_end Func_79ae8
 
+@ RollWeightedChoice
+@ r0.. = parameters. Picks from a weighted table, dividing with Func_af0.
 .thumb_func_start Func_79b24
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -987,6 +1048,11 @@
 	bx	r1
 .func_end Func_79b24
 
+@ RandomBattle
+@ Takes no arguments. A 16-bit LCG returning bits 8..23 of the new seed.
+@ SEPARATE FROM rom_c0's Func_4458: the constants are identical (0x41C64E6D,
+@ 0x3039) but the seed lives at ewram_23a8 rather than iwram_1cb4, so this
+@ stream is independent and, being in ewram, is part of the save state.
 .thumb_func_start Func_79bc4
 	ldr	r1, =ewram_23a8
 	ldr	r3, =0x41c64e6d
@@ -1001,6 +1067,8 @@
 	bx	lr
 .func_end Func_79bc4
 
+@ RandomBelow
+@ r0 = bound. Func_79bc4 reduced into 0..bound-1.
 .thumb_func_start Func_79be8
 	push	{lr}
 	bl	Func_79bc4
@@ -1011,6 +1079,8 @@
 	bx	r1
 .func_end Func_79be8
 
+@ RollWeightedA
+@ r0.. = parameters. A Func_79b24 wrapper with one weighting.
 .thumb_func_start Func_79bf8
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -1041,6 +1111,8 @@
 	bx	r1
 .func_end Func_79bf8
 
+@ RollWeightedB
+@ r0.. = parameters. A second Func_79b24 wrapper.
 .thumb_func_start Func_79c30
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -1063,6 +1135,9 @@
 	bx	r1
 .func_end Func_79c30
 
+@ RollWeightedC
+@ r0.. = parameters. A third Func_79b24 wrapper; the three differ only in the
+@ table they weight against.
 .thumb_func_start Func_79c5c
 	push	{r5, r6, lr}
 	lsl	r1, #1
@@ -1087,6 +1162,9 @@
 	bx	r1
 .func_end Func_79c5c
 
+@ GetEquippedItemCategory
+@ r0 = combatant id. Finds the equipped item and returns its category via
+@ Func_7882c and Func_798b4.
 .thumb_func_start Func_79c8c
 	push	{lr}
 	bl	Func_77394
@@ -1111,6 +1189,8 @@
 	bx	r1
 .func_end Func_79c8c
 
+@ GetAbilityPower
+@ r0 = ability id. Reads the power fields out of the 0x2C-byte ability record.
 .thumb_func_start Func_79cbc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1165,6 +1245,9 @@
 	bx	r1
 .func_end Func_79cbc
 
+@ ComputeAbilityDamage
+@ r0.. = parameters. Combines the ability power (Func_79cbc), the item category
+@ (Func_7882c) and a random roll (Func_79bc4), dividing with Func_af0.
 .thumb_func_start Func_79d1c
 	push	{r5, r6, lr}
 	ldr	r2, =0x129
@@ -1209,6 +1292,9 @@
 	bx	r1
 .func_end Func_79d1c
 
+@ ComputeHitChance
+@ r0.. = parameters. Pure arithmetic over the attacker and defender stats; no
+@ calls out. 114 lines, traced structurally.
 .thumb_func_start Func_79d7c
 	push	{lr}
 	sub	r0, #8
@@ -1323,6 +1409,9 @@
 	bx	r1
 .func_end Func_79d7c
 
+@ GetEffectForItem
+@ r0 = item id. Resolves the item record (Func_773d8) to its effect record
+@ (Func_79ad8).
 .thumb_func_start Func_79e9c
 	push	{r5, lr}
 	mov	r5, r1
@@ -1374,6 +1463,9 @@
 	bx	r1
 .func_end Func_79e9c
 
+@ IsSpecialId
+@ r0 = id. Returns 1 for exactly three ids -- 5, 0x38 and 0x39 -- and 0
+@ otherwise. A hard-coded special case rather than a table lookup.
 .thumb_func_start Func_79ef8
 	push	{lr}
 	cmp	r0, #5
@@ -1392,6 +1484,11 @@
 	bx	r1
 .func_end Func_79ef8
 
+@ ResolveAction
+@ r0.. = parameters. Works out the outcome of an action: the actor's scaled
+@ stats (Func_7987c), the hit roll (Func_79d7c, Func_79be8), the item effect
+@ (Func_79e9c) and the special-case test (Func_79ef8).
+@ 220 lines; traced structurally. This is the damage-formula entry point.
 .thumb_func_start Func_79f10
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1612,6 +1709,10 @@
 	bx	r1
 .func_end Func_79f10
 
+@ GetActionTableEntry
+@ r0 = row (0..3), r1 = column (0..0x13). Returns .L8926c + (row * 20 + col) * 12
+@ -- a 4 by 20 grid of 12-byte entries. Out-of-range indices fall back to entry
+@ 0 rather than reading past the table.
 .thumb_func_start Func_7a0cc
 	push	{lr}
 	mov	r3, #0
@@ -1633,6 +1734,10 @@
 	bx	r1
 .func_end Func_7a0cc
 
+@ ApplyStatusEffect
+@ r0 = combatant id, r1 = effect. Sets the corresponding save bit with
+@ Func_79358 after checking it with Func_79338, and updates the record's status
+@ fields through Func_7a1b4 and Func_7a458.
 .thumb_func_start Func_7a0f4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1728,6 +1833,9 @@
 	bx	r1
 .func_end Func_7a0f4
 
+@ GetStatusSlot
+@ r0 = combatant id, r1 = index, r2 = value. Reads the status byte array at
+@ record+0x118, whose entries are validated against a bound of 9.
 .thumb_func_start Func_7a1b4
 	push	{r5, r6, r7, lr}
 	mov	r5, r1
@@ -1766,6 +1874,9 @@
 	bx	r1
 .func_end Func_7a1b4
 
+@ ReadStatusTable
+@ r0.. = parameters. Reads the combatant's status entries, falling back on the
+@ scratch record from Func_77330 when no real combatant is given.
 .thumb_func_start Func_7a1f8
 	push	{r5, r6, r7, lr}
 	mov	r5, r1
@@ -1871,6 +1982,8 @@
 	bx	r1
 .func_end Func_7a1f8
 
+@ GetStatusCount
+@ r0 = combatant id. Returns how many status entries the combatant carries.
 .thumb_func_start Func_7a2bc
 	push	{r5, r6, lr}
 	mov	r6, r2
@@ -1892,6 +2005,9 @@
 	bx	r1
 .func_end Func_7a2bc
 
+@ AddStatusEntry
+@ r0 = combatant id, r1 = entry. Appends to the status array through
+@ Func_7a1f8 and refreshes the combatant with Func_79ae8.
 .thumb_func_start Func_7a2e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1949,6 +2065,9 @@
 	bx	r1
 .func_end Func_7a2e4
 
+@ RemoveStatusEntry
+@ r0 = combatant id, r1 = entry. Removes from the status array and refreshes
+@ with Func_79ae8.
 .thumb_func_start Func_7a350
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1994,6 +2113,9 @@
 	bx	r1
 .func_end Func_7a350
 
+@ ScanStatusTable
+@ r0.. = parameters. Searches the status table of the record Func_77330
+@ selects. 96 lines; traced structurally.
 .thumb_func_start Func_7a3a8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2090,6 +2212,8 @@
 	bx	r1
 .func_end Func_7a3a8
 
+@ FindStatusEntry
+@ r0 = entry. Func_7a3a8 with the scratch record, returning the matching slot.
 .thumb_func_start Func_7a458
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -2123,6 +2247,9 @@
 	bx	r1
 .func_end Func_7a458
 
+@ RebuildStatusState
+@ r0 = combatant id. Re-derives the whole status array by replaying
+@ Func_7a2e4 / Func_7a350 against what Func_7a3a8 and Func_7a458 report.
 .thumb_func_start Func_7a498
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2214,6 +2341,9 @@
 	bx	r1
 .func_end Func_7a498
 
+@ ReadScratchStatus
+@ r0.. = parameters. Reads status fields out of the Func_77330 scratch
+@ record.
 .thumb_func_start Func_7a550
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -2268,6 +2398,8 @@
 	bx	r1
 .func_end Func_7a550
 
+@ GetDefaultActionEntry
+@ Takes no arguments. Func_7a0cc with row and column 0.
 .thumb_func_start Func_7a5b0
 	push	{lr}
 	bl	Func_7a0cc
@@ -2276,6 +2408,9 @@
 	bx	r1
 .func_end Func_7a5b0
 
+@ SummarisePartyStatus
+@ r0 = destination. Walks the roster from Func_796c4 and writes each member's
+@ status summary. Used by rom_15000's save and status screens.
 .thumb_func_start Func_7a5bc
 	push	{r5, r6, r7, lr}
 	sub	sp, #0x24
@@ -2334,6 +2469,9 @@
 	bx	r1
 .func_end Func_7a5bc
 
+@ GrantStartingItem
+@ r0 = combatant id, r1 = item id. Adds the item with Func_78708 unless
+@ Func_78588 reports the character already has it.
 .thumb_func_start Func_7a628
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -2366,6 +2504,11 @@
 	bx	r0
 .func_end Func_7a628
 
+@ ApplyClassChange
+@ r0 = combatant id, r1 = class. Rewrites the class fields, grants the class's
+@ starting items with Func_7a628, sets the associated save bits with
+@ Func_79358, and refreshes with Func_77428 and Func_79ae8.
+@ 157 lines; traced structurally.
 .thumb_func_start Func_7a664
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2523,6 +2666,9 @@
 	bx	r0
 .func_end Func_7a664
 
+@ RevertClassChange
+@ r0 = combatant id. Undoes Func_7a664: clears the save bits with Func_79374
+@ and refreshes with Func_77428 and Func_79ae8.
 .thumb_func_start Func_7a7a0
 	push	{r5, r6, lr}
 	ldr	r5, =ewram_1078

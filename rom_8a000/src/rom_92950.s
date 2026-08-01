@@ -1,5 +1,22 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Message boxes.
+@
+@ The id of the line to show lives at iwram_1ebc+0x1D8 and is bumped by one
+@ after each box closes, so a run of consecutive lines needs no bookkeeping in
+@ the caller. Func_92c40 opens a box positioned against a speaker; Func_93168
+@ opens one at explicit screen coordinates. Both clamp into the visible area and
+@ flip the box above the speaker when it would fall off the bottom.
+@ Every wait honours the fast-forward flag at +0x1CC (see Func_9163c).
+@ ============================================================================
+
+@ SetSlotPalette
+@ r0=slot, r1=palette index, with bit 8 selecting the mode.
+@ Bit 8 set installs Func_92980 as the entity's per-frame hook (+0x6C), so the
+@ palette cycles on its own. Bit 8 clear removes the hook and applies r1 once
+@ through Func_929d8. Used to make an NPC flash while a script runs and then
+@ settle back to a fixed colour.
 .thumb_func_start Func_92950
 	push	{r5, lr}
 	mov	r5, r1
@@ -24,6 +41,13 @@
 	bx	r0
 .func_end Func_92950
 
+@ PaletteBlinkHook
+@ r0=entity. Per-frame hook installed by Func_92950. Picks a palette byte from
+@ the 4-entry table .L9ed80 indexed by (iwram_1e40 >> 1) & 3 -- the global frame
+@ counter, so the cycle runs at half speed over four steps -- and writes it to
+@ the palette field (+0x05) of every part of the actor that has an animation
+@ table. Sets the actor's dirty flag at +0x25 so the change is picked up.
+@ Ignores entities that are not draw kind 1.
 .thumb_func_start Func_92980
 	push	{lr}
 	mov	r3, r0
@@ -71,6 +95,11 @@
 	bx	r0
 .func_end Func_92980
 
+@ SetActorPartsPalette
+@ r0=entity, r1=palette index. Writes r1 to the palette field (+0x05) of every
+@ part of the actor that has an animation table, then sets the dirty flag at
+@ +0x25. The static counterpart to Func_92980, and what Func_92950 calls when
+@ no cycling was requested. Ignores entities that are not draw kind 1.
 .thumb_func_start Func_929d8
 	push	{lr}
 	mov	r3, r0
@@ -112,6 +141,15 @@
 	bx	r0
 .func_end Func_929d8
 
+@ SetSlotChaseTarget
+@ r0=slot, r1=packed target -- slot index in the low byte, bit 12 a
+@ "keep current speed" flag -- r2=script.
+@ Stores the target entity in the chaser's script argument slot at +0x68 and
+@ installs the script with _Func_c2d8. Unless bit 12 is set it also matches the
+@ chaser to its quarry: the turn rate at +0x64 becomes 0x28, the acceleration
+@ at +0x34 is twice the target's, the max speed at +0x30 is copied outright, and
+@ the collision flags at +0x59 are cleared so the chaser passes through others.
+@ Both slots must resolve or nothing happens.
 .thumb_func_start Func_92a1c
 	push	{r5, r6, r7, lr}
 	mov	r6, r1
@@ -158,6 +196,13 @@
 	bx	r0
 .func_end Func_92a1c
 
+@ StepFacingTowardTarget
+@ r0=entity. Moves the facing angle at +0x06 one step toward the goal angle
+@ stored at +0x64 and returns the step taken (0 when already there).
+@ NOTE the clamp is asymmetric with its own test: a delta larger than 0x1000 is
+@ replaced by 0x800, and one below -0x1000 by -0x800, so deltas between 0x800
+@ and 0x1000 pass through UNCLAMPED and turn faster than the nominal limit.
+@ That looks unintentional but is what the original does.
 .thumb_func_start Func_92a74
 	push	{lr}
 	mov	r2, r0
@@ -192,6 +237,10 @@
 	bx	r1
 .func_end Func_92a74
 
+@ StopSlotEntity
+@ r0=slot. Cancels any move: all three targets (+0x38/+0x3C/+0x40) go back to
+@ the 0x80000000 "none" sentinel, the default behaviour is reinstalled with
+@ _Func_c4ac, and the idle animation 1 is selected.
 .thumb_func_start Func_92ab4
 	push	{r5, lr}
 	bl	Func_8ba1c
@@ -213,6 +262,11 @@
 	bx	r0
 .func_end Func_92ab4
 
+@ TurnSlotToAngle
+@ r0=slot, r1=goal facing angle, r2=frames to wait afterwards. Stores the goal
+@ at +0x64, installs the turn script Data_9fc1c so the entity rotates toward it
+@ over subsequent frames, then blocks for r2 frames through Func_9163c (so a
+@ fast-forwarding player skips the pause).
 .thumb_func_start Func_92adc
 	push	{r5, r6, lr}
 	mov	r5, r1
@@ -233,6 +287,12 @@
 	bx	r0
 .func_end Func_92adc
 
+@ SetSlotDrawPriority
+@ r0=slot, r1=priority 0-3. Writes bits 2-3 of BOTH actor byte +0x09 and byte
+@ +0x15 -- the OAM priority of the main sprite and of its companion/shadow --
+@ so the pair stays on the same layer. Also clears bit 0 of the entity's +0x23,
+@ dropping the position-correction that would otherwise offset the sprite.
+@ Draw kind 1 only.
 .thumb_func_start Func_92b08
 	push	{r5, r6, lr}
 	mov	r5, r1
@@ -274,6 +334,11 @@
 	bx	r0
 .func_end Func_92b08
 
+@ ShareActorTiles
+@ r0=destination slot, r1=source slot. Copies the source actor's tile
+@ allocation size code (+0x1C) and the low 10 bits of its OAM attr2 (+0x08) --
+@ the tile index -- onto the destination actor, so both draw from the same VRAM
+@ tiles. Lets a second entity mirror a sprite without a second allocation.
 .thumb_func_start Func_92b54
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -302,10 +367,15 @@
 	bx	r0
 .func_end Func_92b54
 
+@ Nop -- empty hook.
 .thumb_func_start Func_92b90
 	bx	lr
 .func_end Func_92b90
 
+@ SetActiveMessageId
+@ r0=message id. Stores it as a halfword at iwram_1ebc+0x1D8, the id the
+@ dialogue system opens next. The interaction handlers in rom_8d5dc.s feed this
+@ from a trigger's payload.
 .thumb_func_start Func_92b94
 	ldr	r3, =iwram_1ebc
 	mov	r2, #0xec
@@ -316,6 +386,10 @@
 	bx	lr
 .func_end Func_92b94
 
+@ GetSlotSpriteId
+@ r0=slot (masked to 12 bits). Returns the sprite resource id of that slot's
+@ actor -- read from the first part at actor+0x28 -- or -1 when the slot is
+@ empty or not draw kind 1. The inverse of Func_92be0.
 .thumb_func_start Func_92ba8
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -344,6 +418,11 @@
 	bx	r1
 .func_end Func_92ba8
 
+@ FindSlotBySpriteId
+@ r0=sprite resource id. Returns the slot holding an actor whose first part has
+@ that id, or -1 if none does.
+@ Checks slot 8 first as a special case, then scans 9..0x41. Since only the
+@ streamed scenery range is searched, party slots 0-7 are never returned.
 .thumb_func_start Func_92be0
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc
@@ -395,6 +474,16 @@
 	bx	r1
 .func_end Func_92be0
 
+@ OpenMessageBoxForSlot
+@ r0=packed speaker: slot in the low 12 bits, style flags in bits 12-15.
+@ Opens a message box for the line at iwram_1ebc+0x1D8, positioned against that
+@ slot's on-screen sprite, and returns the box handle.
+@ Reads the window metrics from iwram_1e8c and resolves the speaker's sprite id
+@ with Func_92ba8 so the box can carry the right portrait. The box is placed
+@ below the speaker when there is room and flipped above it otherwise, then
+@ clamped into the visible area.
+@ The ~420-instruction body is characterised structurally; the state block, the
+@ message-id source and the flag layout are verified.
 .thumb_func_start Func_92c40
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -822,6 +911,14 @@
 	bx	r1
 .func_end Func_92c40
 
+@ ShowMessageAndWait
+@ r0=speaker slot, r1=style flags. Opens the box with Func_92c40, lets a frame
+@ pass, then resolves the speaker for the portrait: slots 0-7 whose Func_8d394
+@ lookup succeeds report themselves, anything else falls back to the sprite id
+@ from Func_92ba8. That id goes to _Func_19e48.
+@ Blocks until _Func_17394 reports the box closed, polling once per frame with a
+@ 0x258 (600) frame cap, and closes any leftover prompt with _Func_19a54.
+@ Returns immediately after opening if the fast-forward flag at +0x1CC is set.
 .thumb_func_start Func_92f84
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -908,6 +1005,9 @@
 	bx	r0
 .func_end Func_92f84
 
+@ ShowMessageAndPause
+@ r0=speaker slot, r1=style flags, r2=frames. Func_92f84 followed by
+@ Func_9163c(r2), so the caller gets a skippable pause after the box closes.
 .thumb_func_start Func_93040
 	push	{r5, lr}
 	mov	r5, r2
@@ -919,6 +1019,13 @@
 	bx	r0
 .func_end Func_93040
 
+@ ShowMessageWithPrompt
+@ r0=speaker slot, r1=style flags. Returns the player's choice.
+@ Opens the box with Func_92c40, puts the yes/no prompt up through
+@ Func_91c7c against the player entity, then shows the follow-up line with
+@ Func_92f84. The message id at +0x1D8 is advanced by one either way, but the
+@ order differs: a non-zero choice advances before the follow-up, a zero choice
+@ after -- so the two branches select different lines.
 .thumb_func_start Func_93054
 	push	{r5, r6, r7, lr}
 	mov	r6, r1
@@ -965,10 +1072,18 @@
 	bx	r1
 .func_end Func_93054
 
+@ Nop -- empty hook.
 .thumb_func_start Func_930b8
 	bx	lr
 .func_end Func_930b8
 
+@ ShowMessageAtPositionForSlot
+@ r0=packed slot (low 12 bits). Records the slot as the active speaker at
+@ iwram_1ebc+0x1F4, then opens a box at an explicit position -- unless the
+@ fast-forward flag at +0x1CC is set, in which case the whole box is skipped.
+@ Coordinates are clamped the same way everywhere in this file: x into
+@ [0x14, 0xDC], y into [8, 0x138], and a y past 0x77 moves the box 0x20 down
+@ rather than up so it clears the speaker.
 .thumb_func_start Func_930bc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1053,6 +1168,9 @@
 	bx	r0
 .func_end Func_930bc
 
+@ ShowMessageAtXY_Wrapper
+@ Tail call to Func_93168 with the arguments untouched; a separate entry point
+@ so the export table can expose it under its own address.
 .thumb_func_start Func_9315c
 	push	{lr}
 	bl	Func_93168
@@ -1060,6 +1178,13 @@
 	bx	r0
 .func_end Func_9315c
 
+@ ShowMessageAtXY
+@ r0, r1 unused on entry, r2=x, r3=y. Opens the box for the line at
+@ iwram_1ebc+0x1D8 at explicit screen coordinates via _Func_17658, clamping x
+@ into [0x14, 0xDC] and y into [8, 0x138] and nudging the box by +/-0x20
+@ depending on which side of 0x77 y falls.
+@ Blocks until _Func_17394 reports the box closed, then advances the message id
+@ by one so the next call shows the following line.
 .thumb_func_start Func_93168
 	push	{r5, r6, lr}
 	mov	r0, r2
@@ -1120,6 +1245,10 @@
 	bx	r0
 .func_end Func_93168
 
+@ SetMessageSpeakerFromSlot
+@ r0=slot. Looks the slot's sprite id up with Func_92ba8 and, unless it is -1,
+@ registers it as the message speaker with _Func_19e48 -- setting the portrait
+@ without opening a box.
 .thumb_func_start Func_931d4
 	push	{lr}
 	bl	Func_92ba8
@@ -1133,6 +1262,13 @@
 	bx	r0
 .func_end Func_931d4
 
+@ ShowMessageAtSlotOffset
+@ r0=speaker slot, r1, r2, r3 and one stacked argument = position offsets.
+@ Resolves the slot's sprite id with Func_92ba8 and opens a box offset from that
+@ speaker rather than centred on it, using the same clamping as Func_93168.
+@ The body follows the shape of Func_92c40; the argument roles beyond the slot
+@ are inferred from the call sites and should be confirmed before relying on
+@ them.
 .thumb_func_start Func_931ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

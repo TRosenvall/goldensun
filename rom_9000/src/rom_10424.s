@@ -1,5 +1,36 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Map rectangle blits.
+@
+@ The map is a 128-wide grid of 4-byte metatile records at ewram_10000. The low
+@ 12 bits of a record are the metatile index; the top 20 bits are attributes
+@ (priority, collision, layer). ewram_20000 expands an index into the four
+@ GBA tilemap entries of its 2x2 tile block, 8 bytes per index.
+@
+@ All four blit variants below share the same tail: after updating a record they
+@ check it against the three active viewports at [iwram_1e70]+0x104 (stride
+@ 0x30, position words shifted right by 20 to reach tile units). If the record
+@ falls inside a viewport's 16x12 window, its 2x2 block is written straight into
+@ that viewport's screen block at 0x6002800 + n * 0x800, so an edit already on
+@ screen appears the same frame instead of waiting for a full re-upload.
+@
+@ They differ in what they copy and how they are called:
+@   Func_10424 -- index only, UNSIGNED bounds, args (sx, sy, dx, dy, w, h)
+@   Func_105d4 -- whole record, SIGNED bounds, args (sx, sy, w, h, dx, dy)
+@   Func_10788 -- index only, SIGNED bounds, args (sx, sy, w, h, dx, dy)
+@   Func_10704 -- attributes only, onto an existing rectangle
+@ Note the argument order really does differ between Func_10424 and the other
+@ two; the width/height and destination operands are swapped.
+@ ============================================================================
+
+@ CopyMapRectIndicesU
+@ r0=source x, r1=source y, r2=dest x, r3=dest y, [sp+0x44]=width,
+@ [sp+0x48]=height (both unsigned; a zero or negative extent copies nothing).
+@ Copies the metatile INDEX of each record in the source rectangle over the
+@ destination, preserving the destination's attribute bits:
+@     dst = (dst & 0xFFFFF000) | (src & 0x00000FFF)
+@ Refreshes any covered on-screen block as described above.
 .thumb_func_start Func_10424
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -152,6 +183,12 @@
 	bx	r0
 .func_end Func_10424
 
+@ PlayMapRectAnimation
+@ r0=step list, r1=dest x, r2=dest y. Walks a list of 5-halfword steps
+@ {source x, source y, width, height, delay} terminated by a 0xFFFF source x.
+@ Each step blits its source rectangle to the same fixed destination with
+@ Func_10424 and then blocks for `delay` frames via Func_30f8 -- so a sequence
+@ of stored rectangles plays as an animation in place on the map.
 .thumb_func_start Func_10560
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -210,6 +247,13 @@
 	bx	r0
 .func_end Func_10560
 
+@ CopyMapRectFull
+@ r0=source x, r1=source y, r2=width, r3=height, [sp+0x44]=dest x,
+@ [sp+0x48]=dest y, all signed.
+@ Copies each source record WHOLE -- index and attributes together -- rather
+@ than merging, so the destination inherits collision and priority as well as
+@ appearance. Otherwise identical to Func_10424, including the on-screen
+@ refresh. Note the swapped argument order relative to Func_10424.
 .thumb_func_start Func_105d4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -358,6 +402,15 @@
 	bx	r0
 .func_end Func_105d4
 
+@ CopyMapRectAttributes
+@ r0=attribute source x, r1=attribute source y, r2=width, r3=height,
+@ [sp+0x18]=dest x, [sp+0x1C]=dest y.
+@ The complement of Func_10788: takes the top 20 attribute bits from the source
+@ rectangle and applies them to the destination while leaving the destination's
+@ metatile indices alone:
+@     dst = (dst & 0x00000FFF) | (src & 0xFFFFF000)
+@ Used to repaint collision or priority over unchanged artwork. Unlike the other
+@ three it does not touch VRAM, since only attributes changed.
 .thumb_func_start Func_10704
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -425,6 +478,12 @@
 	bx	r0
 .func_end Func_10704
 
+@ CopyMapRectIndices
+@ r0=source x, r1=source y, r2=width, r3=height, [sp+0x44]=dest x,
+@ [sp+0x48]=dest y, all signed.
+@ Same index-only merge as Func_10424 -- destination attributes are preserved --
+@ but with signed loop bounds and the argument order of Func_105d4. This is the
+@ variant general map edits go through.
 .thumb_func_start Func_10788
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -578,6 +637,10 @@
 	bx	r0
 .func_end Func_10788
 
+@ SetMapLayerBits
+@ r0=value. Replaces bits 9-11 of the map control halfword at [iwram_1e70]+0x14
+@ with bits 9-11 of r0, leaving every other bit untouched. Those three bits
+@ select which map layers are active for the blits above.
 .thumb_func_start Func_108c4
 	ldr	r3, =iwram_1e70
 	ldr	r4, [r3]

@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunApproachSequence
+@ r0.. = parameters. Moves the acting combatant into position before an action:
+@ walks the queue with Func_b6c08, rebuilds the view with Func_49ac / Func_51d8
+@ / Func_5258, submits sprites with Func_b7e7c, one frame per Func_30f8.
+@ 233 lines; traced structurally.
 .thumb_func_start Func_b9b30
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -234,6 +239,9 @@
 	bx	r1
 .func_end Func_b9b30
 
+@ ReadCombatantStats
+@ r0 = combatant id. Pulls the stat fields this module needs out of the
+@ persistent record _Func_77394 returns.
 .thumb_func_start Func_b9d34
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -311,6 +319,9 @@
 	bx	r1
 .func_end Func_b9d34
 
+@ RunRetreatSequence
+@ r0.. = parameters. The counterpart to Func_b9b30, returning a combatant to its
+@ slot (Func_b7e60) with the orientation Func_b8064 computes.
 .thumb_func_start Func_b9dc4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -427,6 +438,10 @@
 	bx	r1
 .func_end Func_b9dc4
 
+@ RunAttackSequence
+@ r0.. = parameters. The full melee sequence: approach, strike, retreat, driving
+@ the actors through Func_b7b6c and their parts through Func_b7f70, registering
+@ a per-frame task with Func_41d8. 491 lines; traced structurally.
 .thumb_func_start Func_b9ec0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -918,6 +933,10 @@
 	bx	r1
 .func_end Func_b9ec0
 
+@ TriggerBattleAnimation
+@ r0.. = parameters. Hands off to rom_c9000: Func_bbb0c raises the event and
+@ Func_c10e8 plays it, with Func_bb938 and Func_bb65c handling the UI around
+@ it.
 .thumb_func_start Func_ba27c
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -952,6 +971,9 @@
 	bx	r1
 .func_end Func_ba27c
 
+@ RunRangedSequence
+@ r0.. = parameters. The projectile counterpart to Func_b9ec0, aiming with
+@ Func_44d0 (atan2) and pacing with Func_af0. 328 lines; traced structurally.
 .thumb_func_start Func_ba2c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1280,6 +1302,9 @@
 	bx	r1
 .func_end Func_ba2c0
 
+@ RunImpactSequence
+@ r0.. = parameters. Plays the moment of impact -- orientation via Func_b8000,
+@ shadow via Func_b8178, animation via Func_b82c4.
 .thumb_func_start Func_ba584
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1407,6 +1432,9 @@
 	bx	r1
 .func_end Func_ba584
 
+@ RunSpecialSequence
+@ r0.. = parameters. A longer action sequence with its own per-frame task
+@ (Func_41d8). 290 lines; traced structurally.
 .thumb_func_start Func_ba6ac
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1697,6 +1725,9 @@
 	bx	r1
 .func_end Func_ba6ac
 
+@ CountActorParts
+@ r0 = actor. Iterates Func_b7f70 until it returns 0 and reports how many parts
+@ the actor has.
 .thumb_func_start Func_ba918
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1750,6 +1781,9 @@
 	bx	r1
 .func_end Func_ba918
 
+@ RunSummonSequence
+@ r0.. = parameters. The largest of the action sequences at 298 lines, with its
+@ own task and atan2 aiming. Traced structurally.
 .thumb_func_start Func_ba978
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2048,6 +2082,9 @@
 	bx	r1
 .func_end Func_ba978
 
+@ ShowDamageNumbers
+@ r0.. = parameters. Puts the damage overlay up through rom_15000's _Func_1f200,
+@ counting the actor's parts with Func_ba918 and pricing with _Func_2281c.
 .thumb_func_start Func_babdc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -2108,6 +2145,8 @@
 	bx	r0
 .func_end Func_babdc
 
+@ GetCombatantScale
+@ r0 = combatant id. Derives the display scale from the record and Func_c1ebc.
 .thumb_func_start Func_bac6c
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1e74
@@ -2182,6 +2221,9 @@
 	bx	r0
 .func_end Func_bac6c
 
+@ PlayReactionAnimation
+@ r0 = combatant id. Puts the combatant into its reaction pose through
+@ _Func_ba30, positioned by Func_b7e60 and scaled by Func_bac6c.
 .thumb_func_start Func_bace8
 	push	{r5, r6, r7, lr}
 	sub	sp, #0x10
@@ -2255,6 +2297,11 @@
 	bx	r0
 .func_end Func_bace8
 
+@ SurveyCombatantHp
+@ r0 = side selector. Walks the queue at [iwram_1e74]+0x58 -- 0xFF ends it,
+@ 0xFE separates groups -- reading each combatant's current HP (record+0x38)
+@ through _Func_77394, and rolls with Func_4458.
+@ Used to decide whether a side still has anyone standing.
 .thumb_func_start Func_bad7c
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e74
@@ -2363,6 +2410,14 @@
 	bx	r1
 .func_end Func_bad7c
 
+@ ResolveActionOutcome
+@ r0.. = parameters. 938 lines and the largest routine in the module.
+@ Computes what an action actually does: reads the persistent records
+@ (_Func_77394), the item records (_Func_773d8), the special-case ids
+@ (_Func_79ef8), and rolls with Func_4458.
+@ THE DAMAGE FORMULA LIVES HERE. rom_77000's Func_79f10 supplies the generic
+@ resolution; this is the battle-specific layer on top. Traced structurally --
+@ read this one before trusting any derived damage number.
 .thumb_func_start Func_bae40
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ WrapIndex
+@ r0 = value, r1 = modulus added first. Returns (r0 + r1) % r1 through Func_b1c,
+@ so a value of -1 comes back as modulus - 1. The wraparound helper the Djinn
+@ screen uses everywhere.
 .thumb_func_start Func_aa538
 	push	{lr}
 	add	r0, r1
@@ -9,6 +13,10 @@
 	bx	r1
 .func_end Func_aa538
 
+@ SetDjinnRowY
+@ r0 = base y. Writes four x values stepping 0x38 from 0x20 at state+0x134 and
+@ four y values at state+0x154, all offset by 0x3D from the argument -- the
+@ four elemental columns of the Djinn grid.
 .thumb_func_start Func_aa544
 	push	{lr}
 	ldr	r3, =iwram_1f2c
@@ -31,6 +39,21 @@
 	bx	r1
 .func_end Func_aa544
 
+@ RunDjinnScreen -- MENU INDEX 2
+@ Takes no arguments. The Djinn screen. On top of the standard scaffold it:
+@
+@   * saves ewram_240+0x20C, forces it to 2 for the duration and restores it
+@   * takes a 0x2130-byte scratch at state+0x184 -- 0x2000 of tiles plus 0x80 of
+@     palette plus working space -- and blits it to 0x6004000 and 0x5000080 on
+@     the way out, which is how the screen paints a full background and puts the
+@     field back
+@   * picks a background variant from the story flags: save bit 0x16E gates the
+@     whole thing, then 0x16F and 0x171 select 1, 0x0E, 0x1B or 0x1C
+@   * spawns the four element actors through Func_ad508 and tears them down with
+@     Func_ad658
+@
+@ Func_aa768 is the state machine. Returns 1; rom_15000's Func_1c244 leaves the
+@ menu on any non-zero answer.
 .thumb_func_start Func_aa56c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -235,6 +258,13 @@
 	bx	r1
 .func_end Func_aa56c
 
+@ RunDjinnStates
+@ Takes no arguments. The Djinn screen's state machine: pick a member, pick a
+@ djinn, set or remove it, and transfer between members. It reads and writes the
+@ combatant status arrays directly -- _Func_7a2e4 adds an entry, _Func_7a350
+@ removes one, _Func_7a3a8, _Func_7a458 and _Func_7a498 query them -- and
+@ recomputes with _Func_77428 after every change. State+0x255..0x257 hold the
+@ pending move. 634 lines; traced structurally.
 .thumb_func_start Func_aa768
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -876,6 +906,14 @@
 	bx	r1
 .func_end Func_aa768
 
+@ BrightenPaletteBank
+@ r0 = signed delta. Reads a 16-colour bank out of palette RAM, adds the delta
+@ to each of red, green and blue with clamping at 0 and 31, and writes the
+@ result 0x20 bytes LOWER -- so bank 15 becomes bank 14. It runs three passes:
+@ the first uses the caller's delta on the bank at offset 0x1E0, and the second
+@ and third both use -12 on the bank at 0x0E0.
+@
+@ The last two passes are identical, so the third has no effect.
 .thumb_func_start Func_aac84
 	push	{r5, r6, r7, lr}
 	mov	r1, #0
@@ -956,6 +994,14 @@
 	bx	r0
 .func_end Func_aac84
 
+@ PaintDjinnBackground
+@ Takes no arguments. Sets the Djinn screen's whole display up. Opens the body
+@ window at (0, 5, 0x1E, 0xF), copies 0x2000 bytes of tiles and 0x80 of palette
+@ out of the state+0x184 scratch into VRAM, fills the char block with
+@ 0x33333333 and the palette with 0x55555555, lays out the grid with
+@ _Func_21a18, blits Data_af26c over 0x60052C0, pulls the string table in with
+@ Func_45e8 and DMA3s two more palette blocks. Func_aac84(8) brightens the
+@ result and Func_aafb8 draws the contents.
 .thumb_func_start Func_aad10
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -1041,6 +1087,9 @@
 	bx	r1
 .func_end Func_aad10
 
+@ ComputeDjinnLayout
+@ r0.. = parameters. Pure arithmetic over the 0x3FFF / 0x4000 id space, no
+@ calls out. 173 lines; traced structurally.
 .thumb_func_start Func_aae14
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1221,6 +1270,10 @@
 	bx	r1
 .func_end Func_aae14
 
+@ CountPartyDjinn
+@ r0 = destination, stride 0x14. For each roster member, Func_ac8fc with a
+@ target of -1 collects their whole djinn list into the record at r0 + i*0x14
+@ and the count goes to r0 + 0xA0 + i.
 .thumb_func_start Func_aaf58
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1268,6 +1321,12 @@
 	bx	r1
 .func_end Func_aaf58
 
+@ DrawDjinnGrid
+@ r0 = state. Draws the Djinn grid: clears with _Func_1e41c, plots the frame
+@ with _Func_19000, collects the lists with Func_ac8fc, reads the status arrays
+@ through _Func_7a1f8 and _Func_7a2bc, and prints from the 0x45F block and
+@ string 0xBAD. Sets the tilemap dirty byte at [iwram_1e8c]+0xEA3 and clears the
+@ suppress byte at +0xEA6. 270 lines; traced structurally.
 .thumb_func_start Func_aafb8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1545,6 +1604,10 @@
 	bx	r0
 .func_end Func_aafb8
 
+@ ComputePriceInWindow
+@ r0 = window, r1 = x, r2 = y, r3.., arg5, arg6. Adds the window's own +0x0C
+@ column and +0x0E row (plus one for the border) to the coordinates and calls
+@ rom_15000's _Func_22768. A window-relative wrapper, nothing more.
 .thumb_func_start Func_ab1f4
 	push	{r5, r6, lr}
 	mov	r4, r0
@@ -1567,6 +1630,10 @@
 	bx	r1
 .func_end Func_ab1f4
 
+@ FillTilemapRect
+@ r0 = absolute column, r1 = absolute row, r2, r3, arg5 = the fill. Writes
+@ straight into the tilemap at [iwram_1e8c] and raises the dirty byte at
+@ +0xEA3. No calls out; 103 lines, traced structurally.
 .thumb_func_start Func_ab21c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1677,6 +1744,9 @@
 	bx	r0
 .func_end Func_ab21c
 
+@ FillTilemapRectInWindow
+@ r0 = window, r1 = x, r2 = y, r3.., arg5, arg6. The Func_ab1f4 of Func_ab21c:
+@ adds the window origin and the border, then fills.
 .thumb_func_start Func_ab2ec
 	push	{r5, r6, lr}
 	mov	r4, r0
@@ -1699,6 +1769,12 @@
 	bx	r0
 .func_end Func_ab2ec
 
+@ RunDjinnDetail
+@ Takes no arguments. The detail pane of the Djinn screen. Opens its own window,
+@ draws through Func_ab1f4, Func_ab21c and Func_ab2ec, prints strings 0xC30,
+@ 0xC32 and 0xC39, and uses the 0x12B6 and 0x12F8 blocks for the descriptions.
+@ Releases its OBJ tiles with Func_3f3c on the way out. 304 lines; traced
+@ structurally.
 .thumb_func_start Func_ab314
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2010,6 +2086,20 @@
 	bx	r1
 .func_end Func_ab314
 
+@ RunDjinnMain
+@ Takes no arguments. The Djinn screen's largest routine and the one that does
+@ the work: it walks the grid, moves djinn between members, sets and unsets
+@ them, and reflects each change through the combatant status arrays
+@ (_Func_7a2e4, _Func_7a350, _Func_7a3a8, _Func_7a458, _Func_7a2bc) and
+@ _Func_77428. It also calls rom_b5000's _Func_bf5a8, which is the routine that
+@ writes battle-side status back into the persistent record -- the only place
+@ outside a battle that does.
+@
+@ Class names come from 0x741 + record+0x129, and the prompts from the 0xB98,
+@ 0xB99, 0xB9A, 0xB9E, 0xBA9, 0xBAD..0xBB2 and 0xBBE strings. The pointers at
+@ scratch+0x2128 and +0x212C are its two working lists.
+@
+@ 2315 lines -- the largest function in the module. Traced structurally.
 .thumb_func_start Func_ab5e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -4332,6 +4422,21 @@
 	bx	r1
 .func_end Func_ab5e4
 
+@ CollectDjinn
+@ r0 = destination halfword array, r1 = character id, r2 = element or -1 for
+@ all. Builds the list of djinn a character has, one halfword each, and returns
+@ the count.
+@
+@ The masks live in the combatant record as four words apiece, one per element,
+@ twenty bits used in each:
+@
+@     record+0x0F8 + e*4   the djinn the character HAS
+@     record+0x108 + e*4   the ones that are SET
+@
+@ Each entry comes out as `(element << 5) | index`, with bit 15 added when the
+@ djinn is set, and -- in the all-elements pass -- the character id in bits
+@ 8..15 as well. So twenty per element across four elements is the ceiling the
+@ data structure allows.
 .thumb_func_start Func_ac8fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -4474,6 +4579,12 @@
 	bx	r1
 .func_end Func_ac8fc
 
+@ DrawDjinnPanels
+@ r0 = which pair, r1 = flags. Draws two character panels through Func_acab8:
+@ for r0 == 0 the character at state+0x259 into the window at state+0x34 and the
+@ one at state+0x258 into state+0x24; otherwise state+0x21B into state+0x34 and
+@ state+0x21A into state+0x24. The two calls differ only in the trailing flag
+@ words, which is which side of a transfer each panel represents. Returns 1.
 .thumb_func_start Func_aca04
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -4556,6 +4667,14 @@
 	bx	r1
 .func_end Func_aca04
 
+@ DrawDjinnCharacterPanel
+@ r0 = window, r1, r2 = placement, r3 = character id, arg5.. = flags.
+@ One character's Djinn panel: name and class (0x741 + record+0x129), the djinn
+@ icons through Func_ae958 and the change arrows through Func_ae9f0, the item
+@ names at 0x333 + display id, and the class-change preview -- _Func_7a2e4 and
+@ _Func_7a350 are called on a COPY so the panel can show what the new class
+@ would be without committing. Headings 0xAED, 0xBA2, 0xBA3, 0xBA8 and the
+@ 0x8AE block. 924 lines; traced structurally.
 .thumb_func_start Func_acab8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

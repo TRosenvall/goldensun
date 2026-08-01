@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ LoadPartyPreset
+@ r0 = preset index. Wipes the current party -- Func_79664 removes characters 0,
+@ 1, 2, 3 and 5 -- then rebuilds it from the preset, giving each member its
+@ equipment through Func_78708 / Func_78e28, refreshing stats with Func_792fc
+@ and re-adding them with Func_7961c.
+@ Only the debug harness Func_b56e0 calls this, so the preset table is a test
+@ fixture rather than something the shipped game uses.
 .thumb_func_start Func_b5368
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -239,6 +246,12 @@
 	bx	r1
 .func_end Func_b5368
 
+@ DebugEditCharacter
+@ Takes no arguments. Opens string 0x903 through _Func_1964c and writes the
+@ resulting values straight into combatant 0's record byte by byte, up to 14
+@ fields.
+@ Reached from Func_b56e0 by pressing START in the debug picker. Writing raw
+@ record bytes from a menu is not something the shipped game does.
 .thumb_func_start Func_b5534
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -437,6 +450,26 @@
 	b	.Lb559c
 .func_end Func_b5534
 
+@ DebugBattleHarness
+@ Takes no arguments. Never returns -- it loops forever starting battles.
+@
+@ WITHOUT DOWN HELD it sets save bit 0x162 and calls Func_b63c8(0x101), the
+@ real battle entry, then loops.
+@
+@ WITH DOWN HELD (iwram_1ae8 & 0x80) it drops into a live encounter picker
+@ driven by the auto-repeat key state at iwram_1b04. The id starts at 0x101:
+@     Right / Left  step it by 1        Up / Down  step it by 10
+@     R / L         cycle party presets through Func_b5368
+@     Start         Func_b5534, the record editor
+@     Select        Func_c2a08
+@     B             sets a mode flag and writes 5 to ewram_416
+@     A             launches Func_b63c8 with the current id
+@ Confirming also sets save bits 0x16C (only while Down is still held), 0x16E
+@ (when the id is exactly 0x1C) and 0x162, and rebuilds combatant 0 with
+@ _Func_77428.
+@
+@ This is a development tool left in the ROM. Treat the bits it sets as debug
+@ state, not as game progression.
 .thumb_func_start Func_b56e0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -616,6 +649,12 @@
 .func_end Func_b56e0
 
 
+@ StepBattleCamera
+@ Takes no arguments. Advances the battle camera one frame from the view block
+@ at [iwram_1e80], gated on the byte at [iwram_1e74]+0x44 and the low two bits
+@ of iwram_1f64 -- when both of those bits are set the camera holds still.
+@ Otherwise the counter at +0x51 advances and Func_49ac / Func_4bd4 / Func_4c1c
+@ / Func_4cb4 rebuild the view matrix, which Func_c0a24 then uploads.
 .thumb_func_start Func_b5864
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e80
@@ -736,6 +775,12 @@
 	bx	r0
 .func_end Func_b5864
 
+@ ShowBattleResults
+@ r0 = number of result lines. Clears the UI callback table with _Func_198dc,
+@ collects the result values with Func_b6ae0, registers each as a callback with
+@ _Func_19908, and shows string 0x811 for the last one through _Func_175a0 --
+@ which blocks until the player dismisses it.
+@ Func_bb65c and Func_174d8 close the windows afterwards.
 .thumb_func_start Func_b595c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

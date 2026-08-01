@@ -1,21 +1,9 @@
 	.include "macros.inc"
 
-.thumb_func_start Func_ca1e4
-	push	{lr}
-	mov	r1, #1
-	bl	Func_ca1fc
-	pop	{r0}
-	bx	r0
-.func_end Func_ca1e4
-
-.thumb_func_start Func_ca1f0
-	push	{lr}
-	mov	r1, #0
-	bl	Func_ca1fc
-	pop	{r0}
-	bx	r0
-.func_end Func_ca1f0
-
+@ PlayTwoWayEffect
+@ r0=action descriptor, r1=variant 0 or 1. The implementation behind the two
+@ wrappers above; the variant is kept at sp+0x28 and selects between the two
+@ halves of the sequence. The body is characterised structurally.
 .thumb_func_start Func_ca1fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

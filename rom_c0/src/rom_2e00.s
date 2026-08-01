@@ -1,6 +1,16 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Main -- called once from _start and never returns
+@ Takes no arguments. Brings the system up and enters the game:
+@     disarms the DMA0 HBlank transfer (the clear-enable-twice idiom)
+@     REG_WAITCNT = 0x4014, the ROM wait-state configuration
+@     clears memory by DMA
+@     Func_300c relocates rom_770 into IWRAM and installs the IRQ vector
+@     Func_307c enables the interrupt sources
+@     Func_40e8 starts the task table, Func_4760 / Func_403c the subsystems
+@     Func_30f8 then drives frames from here on
+@ _start branches back to itself if this ever returns, which it does not.
 .thumb_func_start Func_2e00
 	push	{r5, lr}
 	ldr	r2, =REG_DMA0SAD
@@ -78,6 +88,10 @@
 	bx	r0
 .func_end Func_2e00
 
+@ HangForever
+@ Takes no arguments. An infinite `Func_30f8(1)` loop that reads iwram_1c94 (the
+@ newly-pressed keys) and does nothing with it. Frames keep running, so the
+@ display and sound continue -- a hang, not a lockup.
 .thumb_func_start Func_2ee4
 	push	{r5, lr}
 	ldr	r5, =iwram_1c94
@@ -88,31 +102,47 @@
 	b	.L2ee8
 .func_end Func_2ee4
 
+@ NoOp
+@ A bare `bx lr`. One of six adjacent stubs (Func_2ef8..Func_2f0c) that are
+@ almost certainly hooks whose bodies were removed.
 .thumb_func_start Func_2ef8
 	bx	lr
 .func_end Func_2ef8
 
+@ NoOp
+@ A bare `bx lr`. See Func_2ef8.
 .thumb_func_start Func_2efc
 	bx	lr
 .func_end Func_2efc
 
+@ NoOp
+@ A bare `bx lr`. See Func_2ef8.
 .thumb_func_start Func_2f00
 	bx	lr
 .func_end Func_2f00
 
+@ NoOp
+@ A bare `bx lr`. See Func_2ef8.
 .thumb_func_start Func_2f04
 	bx	lr
 .func_end Func_2f04
 
+@ NoOp
+@ A bare `bx lr`. See Func_2ef8.
 .thumb_func_start Func_2f08
 	bx	lr
 .func_end Func_2f08
 
+@ ReturnZero
+@ Takes no arguments. Returns 0. The last of the adjacent stub group.
 .thumb_func_start Func_2f0c
 	mov     r0, #0
 	bx	lr
 .func_end Func_2f0c
 
+@ LoadBootAsset
+@ Takes no arguments. Fetches asset 2 with Func_2f40, DMA3-copies four words of
+@ it to iwram_7804, and clears the word at +0xC.
 .thumb_func_start Func_2f10
 	push	{lr}
 	ldr	r0, =2
@@ -129,10 +159,17 @@
 	bx	r0
 .func_end Func_2f10
 
+@ NoOp
+@ A bare `bx lr`.
 .thumb_func_start Func_2f3c
 	bx	lr
 .func_end Func_2f3c
 
+@ GetAsset
+@ r0 = asset id. Returns Data_320000[id] -- a flat table of pointers into the
+@ asset region at ROM 0x320000. No bounds check whatsoever, so an out-of-range
+@ id reads whatever follows the table.
+@ The most widely used accessor in the ROM after Func_77394.
 .thumb_func_start Func_2f40
 	ldr	r3, =Data_320000
 	lsl	r0, #2
@@ -140,6 +177,9 @@
 	bx	lr
 .func_end Func_2f40
 
+@ ScanPaletteEntries
+@ r0 = palette, r1 = count. Walks halfword entries testing the top bits against
+@ 0xF800 and 0xF000, collecting those that match.
 .thumb_func_start Func_2f4c
 	push	{r5, r6, r7, lr}
 	asr	r7, r1, #1
@@ -193,6 +233,10 @@
 	bx	r0
 .func_end Func_2f4c
 
+@ DecompressAssetToScratch
+@ r0 = asset id, r1 = destination. Fetches with Func_2f40, decompresses with
+@ Func_5340, then allocates a 0x7C scratch with Func_4938, DMA3-copies
+@ Func_2d5c into it and runs that from RAM, releasing with Func_2df0.
 .thumb_func_start Func_2fb0
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -229,10 +273,21 @@
 	bx	r0
 .func_end Func_2fb0
 
+@ NoOp
+@ A bare `bx lr`.
 .thumb_func_start Func_3008
 	bx	lr
 .func_end Func_3008
 
+@ RelocateIwramCode
+@ Takes no arguments. THE BOOT-TIME COPY THAT MAKES rom_770 WORK:
+@     DMA3 __load_start_rom_770 -> iwram_0, 0x500 words (0x1400 bytes, exactly
+@       the 0x770..0x1B70 span)
+@     writes iwram_0 into the BIOS IRQ vector at iwram_7ffc, replacing the
+@       .Lintr_main that _start installed
+@     DMA3 Data_850 -> .L7320, 0xE words
+@ stage1.ld declares that section `> iwram AT > rom`, so it was linked for IWRAM
+@ all along; this is the copy that puts it there. See the header of rom_770.s.
 .thumb_func_start Func_300c
 	push	{r5, r6, lr}
 	ldr	r6, =REG_IME
@@ -268,6 +323,14 @@
 	bx	r0
 .func_end Func_300c
 
+@ SetInterruptSource
+@ r0 = IRQ number (0..0xD; higher is rejected), r1 = parameter, r2 = handler.
+@ Enables the source in REG_IE when r2 is non-zero and disables it otherwise,
+@ under an REG_IME guard, then records the handler.
+@ THE IRQ NUMBERS ARE THE GBA'S: 0 VBlank, 1 HBlank, 2 VCount, 3.. timers.
+@ Sources 0..2 take a separate arm, and for IRQ 2 the r1 parameter is the
+@ SCANLINE to match on -- which is what rom_c9000's Func_ec100 is doing when it
+@ calls Func_307c(2, 0x60, Func_ec0f0) to move its split-scale boundary.
 .thumb_func_start Func_307c
 	push	{r5, r6, lr}
 	mov	r5, r1

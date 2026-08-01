@@ -1,5 +1,61 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Text, windows and menus.
+@
+@ rom_15000 is the game's UI layer: it decodes compressed strings, rasterises
+@ glyphs, and runs the window and menu system that every other module calls
+@ into. 135 functions are exported -- more than any other module -- and the
+@ hardware footprint is almost nil (31 DMA3 setups, two BG control writes), so
+@ this is a service layer rather than a renderer.
+@
+@ TEXT is stored Huffman-compressed with an ORDER-1 CONTEXT MODEL: the tree used
+@ to decode a character is selected by the character before it. Func_15430 is
+@ the decoder and Func_15570 seeks it to a string by id. Both are ARM, not
+@ Thumb, because they are bit-twiddling inner loops.
+@
+@ The decoder state is three words, passed by pointer:
+@     +0x00  the previous character -- doubles as the tree selector
+@     +0x04  byte pointer into the compressed stream
+@     +0x08  bit buffer, refilled a word at a time
+@
+@ WINDOWS live in a pool of 8 records of 0x24 bytes at [iwram_1e8c] + 0x500,
+@ allocated by Func_162d4. Immediately after them, at + 0x620, sit 3 message-box
+@ slots of 0x28 bytes; Func_17364 reports "all idle" by checking the halfword at
+@ +0x14 of each. Func_175a0(textId) is the common "show a message and block
+@ until it is dismissed" entry point, and it is what rom_b5000 calls with ids
+@ like 0x816 and 0x847.
+@
+@ Window record, 0x24 bytes. Func_162d4(x, y, w, h, flags) fills it:
+@     +0x00 node list head        +0x04 node list tail cache
+@     +0x08 width  in tiles       +0x0A height in tiles
+@     +0x0C x column              +0x0E y row
+@     +0x10 = 1                   +0x14 busy/state halfword
+@     +0x16 flags, bit 0 = slot in use
+@     +0x1A pending item count, signed -- Func_163ec waits on this
+@     +0x1C..+0x22 geometry saved at close, in the order x, y, w, h
+@ Geometry is in TILES on a 30x20 grid, not pixels. The standard message box is
+@ Func_162d4(0, 0xF, 0x1E, 6, ...) -- full width, six rows, at row 15.
+@ A slot is free when +0x16 == 0 AND the signed halfword at +0x1A is zero
+@ (Func_17394 is that predicate).
+@
+@ Input comes from the globals rom_c0 maintains: iwram_1ae8 keys held,
+@ iwram_1c94 keys newly pressed this frame, iwram_1b04 keys with auto-repeat.
+@ Menus poll these directly. Sound is played through _Func_f9080 (103 sites).
+@ Party records are reached through _Func_77394.
+@ ============================================================================
+
+@ DecodeNextCharacter
+@ r0 = decoder state (3 words, see the file header). Returns the character and
+@ writes the advanced state back through r0.
+@ The tree is chosen by the PREVIOUS character, which is state[0] on entry:
+@     HuffmanTreePointers[prev >> 8] gives {base, offsets}
+@     base + offsets[prev & 0xFF] is where this character's tree starts
+@ so the model is order-1 -- 'u' after 'q' costs almost nothing.
+@ From there it is a standard bit walk: shift the buffer right, reload a word
+@ when the sentinel falls out, branch on carry until a leaf. The leaf's value is
+@ 12 bits packed nibble-aligned across two bytes read BACKWARDS from the tree
+@ base, which is why the tail does two ldrb at negative offsets.
 .arm_func_start Func_15430
 	push	{r5, r6}
 	ldm	r0, {r1, r2, r3}
@@ -91,6 +147,16 @@
 	bx	lr
 .func_end Func_15430
 
+@ SeekToString
+@ r0 = decoder state, r1 = string id. Points the decoder at a string and primes
+@ its bit buffer; the caller then pulls characters with Func_15430.
+@ StringPointers[id >> 8] gives {base, lengths}. The low byte of the id is a
+@ COUNT OF STRINGS TO SKIP, not an offset: it walks that many entries of a byte
+@ length table, adding each to base, with 0xFF meaning "this entry continues
+@ into the next byte" so strings longer than 254 bytes still encode.
+@ Byte offsets are then rounded down to a word and the bit buffer is pre-shifted
+@ by the discarded bits, so decoding can start mid-word.
+@ state[0] is left 0, so the first character decodes under the null context.
 .arm_func_start Func_15570
 	lsr	r3, r1, #8
 	ldr	r12, =StringPointers
@@ -120,6 +186,19 @@
 	bx	lr
 .func_end Func_15570
 
+@ DrawGlyph
+@ r0 = window/target record, r1 = character, r2 = x in pixels, r3 = y in
+@ pixels, arg5 on the stack = the glyph source. Returns non-zero when it
+@ declines to draw.
+@ Characters below 0x20 or above 0x8F are rejected outright; codes above 0xFF
+@ are only accepted as 0xDE and 0xDF, which are the two-byte lead-ins.
+@ Width comes from Data_370d4 indexed by (character - 0x20), so that table is
+@ the font's advance-width array.
+@ Pixels are plotted 4bpp into VRAM at 0x6002500 + (row * stride) with the
+@ nibble selected by the low bits of x -- the read-modify-write with a 0xF mask
+@ shifted by (x & 3) * 4 is what makes glyphs land on arbitrary pixel columns
+@ rather than tile boundaries. The 0x1100/0x3300 constants are the two ink
+@ colours it alternates between for the shadow pass.
 .arm_func_start Func_155d0
 	push	{r5, r6, r7, r8, r9, r10, lr}
 	mov	r7, r3
@@ -342,6 +421,19 @@
 	bx	lr
 .func_end Func_155d0
 
+@ BuildBorderRow
+@ r0 = destination halfword array, r1 = source halfword array.
+@ Walks a halfword-terminated source, dispatching codes 0xF007..0xF01A through
+@ two jump tables -- one used before a state flag is set and one after -- and
+@ emits four identical halfwords per run into the destination.
+@ Each dispatch arm sets up the same six values from (index * 8) with small
+@ +1/+7/+8 variations, which is the signature of picking corner, edge and fill
+@ tiles out of one tile bank: the arms differ only in WHICH corner is rounded.
+@ The 0x1D bound on the inner counter is 29 columns, one short of a 30-column
+@ screen row, so this builds one row of a window border at a time.
+@ NOTE the two jump tables are 20 and 21 entries and mostly point at the same
+@ default arm; only codes 0xF010, 0xF013, 0xF016 and 0xF01A do anything
+@ distinct. Body traced structurally rather than per-instruction.
 .arm_func_start Func_158e8
 	push	{r5, r6, r7, r8, r9, r10, lr}
 	mov	r10, r1
@@ -493,6 +585,18 @@
 	bx	lr
 .func_end Func_158e8
 
+@ DecompressNibbleStream
+@ r0 = compressed source, r1 = destination byte array.
+@ Decodes to one nibble per output BYTE (values 0..0xF), so the output is an
+@ unpacked 4bpp image ready for Func_15d74 / Func_15e10 to pack.
+@ The alphabet is a MOVE-TO-FRONT table held in two registers primed from
+@ 0xFEDCBA98_76543210 -- sixteen 4-bit symbols in descending order. A decoded
+@ symbol is rotated to the front (`orr r2, r4, r3, lsr #28` / `orr r3, r6, r3,
+@ lsl #4`), so recently used values become the cheapest to encode next.
+@ The bit reader is the same shift-and-refill idiom as Func_15430: `lsrs r12,
+@ #1` with `ldreq r12, [r0], #4` and `rrxeqs` reloading a word and re-seeding
+@ the sentinel. A run of set bits selects longer codes and the deeper arms
+@ handle repeats, which is why one decoded symbol can emit two bytes.
 .arm_func_start Func_15afc
 	push	{r5, r6}
 	adr	r5, .L15b30
@@ -677,6 +781,23 @@
 	bx	lr
 .func_end Func_15afc
 
+@ PackTilesMasked -- 8bpp source to 4bpp destination, transparent
+@ r0 = source, r1 = destination, r2 = source stride in 8-byte units,
+@ r3 = number of tile rows.
+@ Reads 8 source BYTES and writes them as 8 nibbles in one word. The packing is
+@ the standard gather: `orr x, x, lsr #4` then mask 0x00FF00FF, `orr x, x,
+@ lsr #8` then mask 0x0000FFFF, leaving four nibbles per source word, then the
+@ two halves are combined.
+@ The transparency is the part worth reading slowly:
+@     orr r5, r12, r12, lsr #1 ; orr r5, r5, lsr #2 ; and r5, #0x11111111
+@ leaves bit 0 of each nibble set exactly where that nibble was non-zero, and
+@     rsbs r5, r5, lsl #4
+@ turns each such marker into a full 0xF. That is a per-pixel opacity mask, so
+@ zero pixels leave the destination untouched. When the mask comes out all-ones
+@ (`mvns r8, r5` setting Z) the whole word is opaque and the read-modify-write
+@ is skipped entirely.
+@ Func_15e10 below is the same routine without the mask -- use that one when the
+@ source is known to be fully opaque.
 .arm_func_start Func_15d74
 	push	{r5, r6, r7, r8, r9, r10}
 	adr	r10, .L15e04
@@ -724,6 +845,14 @@
 	.word	0x11111111
 .func_end Func_15d74
 
+@ PackTilesOpaque -- 8bpp source to 4bpp destination, no transparency
+@ r0 = source, r1 = destination, r2 = source stride in 8-byte units,
+@ r3 = number of tile rows.
+@ Identical to Func_15d74 above -- same gather, same loop, same three constants
+@ at the tail -- except that the packed word is stored directly instead of being
+@ masked against the destination. Every pixel is written, including zeros.
+@ Note the 0x11111111 constant is still loaded even though the mask is never
+@ built, so the two routines were plainly edited from one source.
 .arm_func_start Func_15e10
 	push	{r5, r6, r7, r8, r9, r10}
 	adr	r10, .L15e80

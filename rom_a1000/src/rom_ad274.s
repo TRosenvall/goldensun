@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ SpawnStatusActors
+@ r0 = window, r1 = unused. Creates the four animated actors the status and
+@ Djinn screens show. Any actor already in state+0x224 is destroyed first, then
+@ four are created from the resource table .Laf304 with _Func_bc70 and started
+@ on animation 2. Each gets x 0x10 at state+0x234 + i*2 and y 0x20 at
+@ state+0x244 + i*2. Finally registers Func_ad35c at sort key 0xC80.
 .thumb_func_start Func_ad274
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -84,6 +90,9 @@
 	bx	r0
 .func_end Func_ad274
 
+@ DespawnStatusActors
+@ Takes no arguments. Destroys the four actors at state+0x224, clears the slots
+@ and unregisters Func_ad35c.
 .thumb_func_start Func_ad318
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -116,6 +125,11 @@
 	bx	r0
 .func_end Func_ad318
 
+@ DrawStatusActors
+@ The per-frame task Func_ad274 registers. For each of the four actors it builds
+@ a 16.16 position from state+0x234 (x) and state+0x244 (y), inverting y as
+@ 0x1E20000 minus the stored value exactly as Func_a19a0 does, clears bits 0 and
+@ 2 of the actor's +0x09 and submits through _Func_b168 at scale 0x10000.
 .thumb_func_start Func_ad35c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -205,6 +219,11 @@
 	bx	r0
 .func_end Func_ad35c
 
+@ DrawDjinnActors
+@ The per-frame task Func_ad508 registers. The Func_ad35c of the Djinn screen:
+@ same four actors, but the position comes through _Func_219c8 and Func_af0
+@ so the sprites sit on the grid rather than at fixed offsets. 120 lines;
+@ traced structurally.
 .thumb_func_start Func_ad40c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -332,6 +351,10 @@
 	bx	r0
 .func_end Func_ad40c
 
+@ SpawnDjinnActors
+@ r0 = window, r1 = unused. As Func_ad274 but for the Djinn screen: same four
+@ resources from .Laf304 and animation 2, scale 0x10000 written to +0x20 of each
+@ slot, x 0x10 and y 0xC8, and Func_ad40c registered instead of Func_ad35c.
 .thumb_func_start Func_ad508
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -420,6 +443,10 @@
 	bx	r0
 .func_end Func_ad508
 
+@ SetActorPosition
+@ r0 = slot 0..3, r1 = x, r2 = y, r3 = non-zero to flag it.
+@ Writes x to state+0x234 + slot*2 and y to state+0x23C + slot*2, adding 0x8000
+@ to the y when r3 is set. Does nothing when the slot holds no actor.
 .thumb_func_start Func_ad5b4
 	push	{r5, r6, lr}
 	mov	r5, r3
@@ -456,6 +483,8 @@
 	.word	0xffff8000
 .func_end Func_ad5b4
 
+@ SetActorScale
+@ r0 = slot, r1 = value. Stores the word at state+0x244 + slot*4. No null check.
 .thumb_func_start Func_ad5f4
 	ldr	r3, =iwram_1f2c
 	mov	r2, #0x91
@@ -467,6 +496,10 @@
 	bx	lr
 .func_end Func_ad5f4
 
+@ ReplaceActor
+@ r0 = slot, r1 = resource index into .Laf304, r2 = animation. Destroys whatever
+@ is in the slot, creates a new actor and starts it on the given animation.
+@ Returns 1 even when creation failed -- the slot is then null.
 .thumb_func_start Func_ad608
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -505,6 +538,9 @@
 	bx	r1
 .func_end Func_ad608
 
+@ DespawnDjinnActors
+@ Takes no arguments. The Func_ad318 of the Djinn screen: destroys the four
+@ actors and unregisters Func_ad40c.
 .thumb_func_start Func_ad658
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -537,6 +573,9 @@
 	bx	r0
 .func_end Func_ad658
 
+@ ResetPartyAnimations
+@ Takes no arguments. Sets every party actor at state+0x114 back to animation 1,
+@ for as many members as state+0x219 reports.
 .thumb_func_start Func_ad69c
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1f2c
@@ -565,6 +604,14 @@
 	bx	r0
 .func_end Func_ad69c
 
+@ RunDjinnTransfer
+@ Takes no arguments. The transfer half of the Djinn screen -- moving a djinn
+@ from one character to another. Draws the two panels with Func_aca04 and
+@ Func_acab8, animates the icon across with Func_2322 for the arc, edits the
+@ status arrays with _Func_7a2e4 and _Func_7a350 and recomputes with
+@ _Func_77428. Prompts come from 0xBA0, 0xBA1, 0xBA4..0xBA7, 0xBC1, 0xC42 and
+@ 0xC43, plus the 0x45F block. State+0x255..0x257 carry the pending move.
+@ 1384 lines; traced structurally.
 .thumb_func_start Func_ad6d4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1956,6 +2003,11 @@
 	bx	r1
 .func_end Func_ad6d4
 
+@ RunDjinnList
+@ Takes no arguments. The scrolling list on the Djinn screen: Func_acab8 draws
+@ the panel, Func_aae14 works out the layout, and the page caps 0xF128 / 0xF129
+@ and glyphs 0xF030 / 0xF031 are plotted with _Func_19000. Prompt 0xBAA; save
+@ bit 0x303 gates one branch. 460 lines; traced structurally.
 .thumb_func_start Func_ae2f4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2423,6 +2475,10 @@
 	bx	r1
 .func_end Func_ae2f4
 
+@ FindBlockedDonors
+@ r0 = one byte per member, r1 = the receiving member. Sets the byte for every
+@ OTHER member i for which Func_ae778(r1, i) returns 0, and returns how many
+@ were set. The receiving member's own byte is left at 0.
 .thumb_func_start Func_ae714
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -2473,6 +2529,14 @@
 	bx	r1
 .func_end Func_ae714
 
+@ WouldTransferStayBalanced
+@ r0 = giver, r1 = receiver. Takes the party's djinn counts from Func_ae7fc,
+@ applies the move -- one off the giver, one onto the receiver -- and then
+@ compares EVERY pair of members. Returns 1 only when no two counts differ by
+@ more than one, and 0 as soon as it finds a pair that does.
+@
+@ That is a hard balance constraint on how djinn may be distributed, enforced
+@ before the move is allowed rather than after.
 .thumb_func_start Func_ae778
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2541,6 +2605,14 @@
 	bx	r1
 .func_end Func_ae778
 
+@ CountDjinnPerMember
+@ r0 = one byte per member. For each roster member, counts the bits set in
+@ either the "has" mask at record+0xF8 or the "set" mask at record+0x108, over
+@ twenty bits in each of four element words, and stores the total.
+@
+@ Note it counts a djinn once even when it appears in both masks -- the test is
+@ an OR, not a sum -- so this is how many djinn the character owns, not how many
+@ are set.
 .thumb_func_start Func_ae7fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

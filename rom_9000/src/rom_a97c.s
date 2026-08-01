@@ -1,6 +1,24 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ DecompressLz
+@ r0=compressed source, r1=destination. Returns the destination on success.
+@ Layout: a 2-byte little-endian header giving the offset from src to the
+@ control stream. A header of 0 means "not compressed" -- returns src+2 and
+@ copies nothing. Otherwise:
+@   literals stream forward from src+2 (r6)
+@   control stream starts at src+header (r0) and is read as LSB-first flag bits
+@   with a 0x100 sentinel bit marking when the byte is exhausted and a new
+@   control byte must be fetched.
+@ flag=1 -> emit one literal byte from the literal stream.
+@ flag=0 -> read a 2-byte big-endian token; token 0 ends the stream. Otherwise
+@   len = token >> 12, and if that nibble is 0 an extra byte supplies
+@   len = byte + 0x10; len is then biased by +2. offset = token & 0xFFF.
+@ NOTE: the copy source is (r7 - offset) where r7 is the FIXED base src+2, not
+@ the moving output pointer -- so back-references index a window preceding the
+@ literal stream rather than previously-emitted output. That is unusual for
+@ LZ77 and is worth confirming against a real compressed block before relying
+@ on it (this is likely the format the README's "matching compressor" needs).
 .thumb_func_start Func_a97c
 	push	{r5, r6, r7, lr}
 	ldrb	r3, [r0, #1]
@@ -82,6 +100,37 @@
 	bx	r1
 .func_end Func_a97c
 
+@ RenderTextLabelToVram
+@ r0=label controller, r1=(s16) style/variant selector. Lays out and rasterises
+@ a multi-line text label, then uploads it to OBJ VRAM. Returns non-zero if any
+@ glyph carried the "special" flag (bit 7 of its metrics byte).
+@ Controller layout: +0x08 = tile index (bits 0-9), +0x1C = palette/format,
+@ +0x20 = width, +0x21 = height, +0x24 = last style, +0x25 = dirty flag,
+@ +0x26 = option bits (bit 1 = draw outline), +0x27 = line count,
+@ +0x28.. = array of line pointers.
+@ Line layout: +0x02 = pen x, +0x04 = font kind, +0x05 = palette, +0x06 = draw
+@ order, +0x08 = glyph table, +0x10 = text pointer, +0x14 = read cursor,
+@ +0x16 = measured width, +0x17 = pending width.
+@ Steps:
+@  1) On first use, allocate a 0x2C4 scratch arena (Func_48b0) and DMA a copy of
+@     Func_9bb8..Data_9d9c into RAM, caching the RAM entry point at
+@     iwram_1e68+0xB8 so the glyph blitter runs out of RAM instead of ROM.
+@  2) Measure pass: walk each line's text. Bytes 0xEF..0xFF are control codes
+@     dispatched through .Laac8 (set palette via Func_b9f4, set cursor, advance
+@     pen, terminate, ...). Ordinary characters take a second dispatch on the
+@     font kind (.Lab80) to pick a metrics table from the 0x1307C..0x1314C
+@     rodata block and index it by bits of r1. Widths accumulate into +0x16; a
+@     change sets the dirty flag.
+@  3) If dirty: allocate a width*height 8bpp buffer (Func_4938) and clear it
+@     (Func_8d4), insertion-sort the lines by (draw order << 8 | index) into the
+@     stack buffer at sp+0x30, then blit each line -- kind 1 via Func_5340,
+@     kind 3 via Func_a97c into a scratch buffer first, otherwise straight
+@     through the RAM-resident blitter.
+@  4) If option bit 1 is set, build a 1px outline by testing each pixel's four
+@     neighbours in a second buffer, then merge outline and fill colours.
+@  5) Reserve tiles with Func_3fa4, convert/upload to 0x6010000 + slot*0x20 via
+@     the hook at iwram_1e50+0xD4, store the slot in +0x08, free scratch buffers
+@     (Func_2df0) and release the arena (Func_2dd8) if this call created it.
 .thumb_func_start Func_aa0c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

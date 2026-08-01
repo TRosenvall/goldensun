@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ FormatClockTime
+@ r0 = destination. Reads the hour byte from the save block at ewram_240+0x205
+@ and converts it with Func_b1c(hour + 12, 24) -- the signed remainder -- which
+@ is the 12/24-hour wrap. That makes ewram_240+0x205 the in-game HOUR.
 .thumb_func_start Func_1ca1c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -92,6 +96,10 @@
 	bx	r0
 .func_end Func_1ca1c
 
+@ BuildDialGradient
+@ r0 = target. Fills a gradient from the constants 0xEEEE, 0xCCCC and 0x11110 --
+@ 4bpp colour ramps written four pixels at a time -- and hands off to
+@ Func_1cbd4 to place it.
 .thumb_func_start Func_1cae0
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -165,6 +173,11 @@
 	bx	r0
 .func_end Func_1cae0
 
+@ PlaceDialElement
+@ r0 = record, r1, r2 = parameters. Reads an angle from the halfword at
+@ [r0]+0x576 and a radius from +0x578, converts with Func_888 (the 16.16
+@ trigonometric helper) and positions the element. The `.call_via r4` idiom is
+@ how Thumb code reaches the ARM-mode helper.
 .thumb_func_start Func_1cbd4
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -226,6 +239,9 @@
 	bx	r1
 .func_end Func_1cbd4
 
+@ PlaceDialElementXY
+@ r0 = record, r1, r2 = parameters. As Func_1cbd4 but takes its two signed
+@ halfwords from the head of the record rather than from +0x576.
 .thumb_func_start Func_1cc50
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -283,6 +299,9 @@
 	bx	r1
 .func_end Func_1cc50
 
+@ LayOutDial
+@ r0.. = parameters. Places every element of the dial by repeated Func_1cc50,
+@ dividing the circle with Func_b1c. 147 lines; traced structurally.
 .thumb_func_start Func_1ccc0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -430,6 +449,9 @@
 	bx	r0
 .func_end Func_1ccc0
 
+@ StepPhaseDown
+@ r0 = record. Decrements the three-state phase halfword at [r0]+0x574,
+@ wrapping 0 back to 2.
 .thumb_func_start Func_1ce48
 	push	{lr}
 	ldr	r1, =0x574
@@ -449,6 +471,9 @@
 	bx	r0
 .func_end Func_1ce48
 
+@ StepPhaseUp
+@ r0 = record. Increments the halfword at [r0]+0x574 and wraps it to 0 once it
+@ passes 0x20000.
 .thumb_func_start Func_1ce6c
 	push	{lr}
 	ldr	r2, =0x574
@@ -468,6 +493,9 @@
 	bx	r0
 .func_end Func_1ce6c
 
+@ SelectByPhase
+@ r0 = record. Three-way switch on the phase at [r0]+0x574 (0, 1, 2), reading
+@ the save block at ewram_240 for the chosen arm.
 .thumb_func_start Func_1ce90
 	push	{lr}
 	ldr	r2, =0x574
@@ -509,6 +537,9 @@
 	bx	r0
 .func_end Func_1ce90
 
+@ SelectByPhaseAlt
+@ r0 = record. The same three-way switch as Func_1ce90 over a different set of
+@ save-block fields.
 .thumb_func_start Func_1cee0
 	push	{lr}
 	ldr	r2, =0x574
@@ -560,10 +591,16 @@
 	bx	r0
 .func_end Func_1cee0
 
+@ NoOp
+@ A bare `bx lr`. Exported, so something outside this module holds its address.
 .thumb_func_start Func_1cf44
 	bx	lr
 .func_end Func_1cf44
 
+@ LoadDialGraphics
+@ r0.. = parameters. Fetches the dial's asset with Func_2f40, reserves tiles
+@ with Func_3fa4, and reads party data through _Func_b08b8 / _Func_b0958.
+@ State is at iwram_1ea0.
 .thumb_func_start Func_1cf48
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1ea0
@@ -648,6 +685,9 @@
 	bx	r0
 .func_end Func_1cf48
 
+@ InitDialScreen
+@ Takes no arguments. Allocates the screen block with Func_48f4, DMA-clears it,
+@ registers its per-frame task with Func_41d8, and seeds it from ewram_240.
 .thumb_func_start Func_1d014
 	push	{lr}
 	mov	r1, #0xc5
@@ -725,6 +765,9 @@
 	bx	r0
 .func_end Func_1d014
 
+@ CloseDialScreen
+@ Takes no arguments. Unregisters the task with Func_4278 and frees the block
+@ with Func_2dd8.
 .thumb_func_start Func_1d0f0
 	push	{lr}
 	ldr	r0, =Func_1cf48
@@ -735,6 +778,11 @@
 	bx	r0
 .func_end Func_1d0f0
 
+@ DrawDialScreen
+@ r0.. = parameters. Paints the dial screen: opens windows with Func_162d4,
+@ fades with Func_1e41c / Func_1e7c0 / Func_1eadc, reserves tiles with
+@ Func_3fa4 / Func_4080, and DMA3s the graphics in. 395 lines; traced
+@ structurally.
 .thumb_func_start Func_1d108
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1130,6 +1178,11 @@
 	bx	r1
 .func_end Func_1d108
 
+@ RunDialScreen
+@ Takes no arguments. The screen's main loop: reads iwram_1c94 and iwram_1b04
+@ for input, lays out with Func_1ccc0, re-inits with Func_1d014 / Func_1d0f0,
+@ marks regions dirty with Func_164d4, and closes with Func_16418.
+@ Also touches iwram_1ca0 and iwram_1d08. 497 lines; traced structurally.
 .thumb_func_start Func_1d4cc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1627,6 +1680,9 @@
 	bx	r1
 .func_end Func_1d4cc
 
+@ RefreshDialParty
+@ Takes no arguments. Re-reads party state through _Func_b08b8 and Func_217a4
+@ into the block at iwram_1ea0.
 .thumb_func_start Func_1d94c
 	push	{r5, lr}
 	ldr	r3, =iwram_1ea0
@@ -1647,6 +1703,9 @@
 	bx	r0
 .func_end Func_1d94c
 
+@ InitSubScreen
+@ Takes no arguments. Allocates a second screen block with Func_48f4,
+@ DMA-clears it and registers its task with Func_41d8.
 .thumb_func_start Func_1d980
 	push	{lr}
 	mov	r1, #0xc5
@@ -1671,6 +1730,8 @@
 	bx	r0
 .func_end Func_1d980
 
+@ CloseSubScreen
+@ Takes no arguments. Unregisters with Func_4278 and frees with Func_2dd8.
 .thumb_func_start Func_1d9bc
 	push	{lr}
 	ldr	r0, =Func_1d94c
@@ -1681,6 +1742,9 @@
 	bx	r0
 .func_end Func_1d9bc
 
+@ DrawSubScreen
+@ r0.. = parameters. Paints the second screen, using iwram_1f54 alongside
+@ iwram_1ea0. 189 lines; traced structurally.
 .thumb_func_start Func_1d9d4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1870,6 +1934,10 @@
 	bx	r1
 .func_end Func_1d9d4
 
+@ RunSubScreen
+@ Takes no arguments. The second screen's input loop over iwram_1c94 and
+@ iwram_1b04, calling Func_1d9d4 to repaint and Func_16418 to close.
+@ 202 lines; traced structurally.
 .thumb_func_start Func_1db70
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2072,6 +2140,9 @@
 	bx	r1
 .func_end Func_1db70
 
+@ UploadScreenTiles
+@ r0.. = parameters. Fetches assets with Func_2f40 and DMA3s them into the UI
+@ block at iwram_1e8c. 178 lines; traced structurally.
 .thumb_func_start Func_1dd28
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

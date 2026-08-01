@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ EmitLayoutRun
+@ r0 = flag, r1 = count, r2 = index, r3 = halfword ring buffer, arg5 and arg6 =
+@ further parameters. Writes a short sequence into the caller's 0x200-entry
+@ halfword ring, wrapping every index with `& 0x1FF`.
+@ When r0 is non-zero it lays down 0x20 (space) followed by 0x0A -- the
+@ line-break pair -- before the run proper, so this is where the layout engine
+@ inserts breaks.
+@ 237 lines; traced structurally.
 .thumb_func_start Func_17e88
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -238,6 +246,17 @@
 	bx	r1
 .func_end Func_17e88
 
+@ LayoutString
+@ r0 = string id, r1 = mode. Returns the ring index the laid-out text starts at.
+@ The layout engine at the centre of the module. It walks the decoded string,
+@ measures each run against the current window width, breaks lines, formats
+@ embedded numbers through Func_17dd4, and fills the 0x200-entry halfword ring
+@ at [iwram_1e8c]+0xEB0 -- callers such as Func_174f8 and Func_175c0 then test
+@ that ring's entry for emptiness to decide whether there is anything to show.
+@ It also reads ewram_240, the save-data preferences, and releases scratch with
+@ Func_2dd8.
+@ 839 lines and the largest routine in the module; traced structurally. The
+@ control-code handling is not yet documented.
 .thumb_func_start Func_18038
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1077,6 +1096,12 @@
 	bx	r1
 .func_end Func_18038
 
+@ RenderLayoutToWindow
+@ r0 = window record, r1, r2, r3 and arg5 = placement. Walks the laid-out ring
+@ produced by Func_18038 and draws it, splitting the work between Func_18850
+@ (the measuring and positioning pass) and Func_18a50 (the glyph emission
+@ pass). The 0x1E in the prologue is the 30-tile screen width the runs are
+@ clipped against.
 .thumb_func_start Func_1868c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1216,6 +1241,10 @@
 	bx	r0
 .func_end Func_1868c
 
+@ LayoutAndMeasure
+@ r0 = string id, r1, r2 = output. Convenience wrapper: Func_18038(id, 0) lays
+@ the string out, then Func_18850 measures it without drawing. Use this to size
+@ a window before opening it.
 .thumb_func_start Func_18790
 	push	{r5, r6, lr}
 	mov	r5, r1
@@ -1231,6 +1260,10 @@
 	bx	r0
 .func_end Func_18790
 
+@ LayoutAndRender
+@ r0 = string id, r1, r2, r3 = placement. Lays the string out with
+@ Func_18038(id, 0) and renders it with Func_1868c, but only when the resulting
+@ entry in the +0xEB0 ring is non-empty. Returns without drawing otherwise.
 .thumb_func_start Func_187ac
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1272,6 +1305,11 @@
 	bx	r1
 .func_end Func_187ac
 
+@ LayoutAndRenderVariant
+@ r0 = string id, r1, r2, r3 = placement. Identical in shape to Func_187ac --
+@ same Func_18038 call, same emptiness test against the +0xEB0 ring, same
+@ Func_1868c render -- differing only in the arguments it forwards. The pair
+@ exists so callers can pick between two placement conventions.
 .thumb_func_start Func_187fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1314,6 +1352,11 @@
 	bx	r1
 .func_end Func_187fc
 
+@ MeasureLayoutRuns
+@ r0 = laid-out ring index, r1, r2, r3 = bounds. Walks the runs, accumulating
+@ widths and line counts through a jump table on the control codes, and returns
+@ the measured extent. Func_af0 supplies the divisions for centring.
+@ 247 lines; traced structurally.
 .thumb_func_start Func_18850
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1561,6 +1604,12 @@
 	bx	r0
 .func_end Func_18850
 
+@ DrawLayoutRuns
+@ r0 = laid-out ring index, r1, r2, r3 = placement. The glyph emission pass:
+@ initialises a four-entry style stack on the stack (all 0xF, the default ink),
+@ then walks the runs plotting characters and honouring the inline style codes.
+@ Func_af0 supplies the divisions for alignment.
+@ 300 lines; traced structurally.
 .thumb_func_start Func_18a50
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

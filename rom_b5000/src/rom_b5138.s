@@ -1,5 +1,61 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Battle logic.
+@
+@ rom_b5000 owns a battle: the turn order, the action resolution, the numbers.
+@ It reads the party data from rom_77000, tells rom_c9000 which animation to
+@ play, and drives the menus through rom_15000. If rom_c9000 is what a battle
+@ looks like, this is what a battle IS.
+@
+@ ENTRY POINT. Func_b63c8(encounterId) sets a battle up and runs it. Everything
+@ it needs is allocated there, and the tag map is what makes the module legible
+@ (pointer at iwram_1e50 + tag*4, as everywhere else in this ROM):
+@
+@     tag 0x09  iwram_1e74  0x82C   the battle state block
+@     tag 0x0B  iwram_1e7c  0x280
+@     tag 0x0C  iwram_1e80  0x4C    view / camera, shared with rom_c9000
+@     tag 0x2C  iwram_1f00  0x20
+@     tag 0x36  iwram_1f28  0x7C8   THE ENEMY RECORDS
+@
+@ That last one settles a question left open in rom_77000: 0x7C8 / 0x14C is
+@ exactly 6, so the enemy block holds six combatant records -- which is why
+@ Func_77394 accepts enemy ids 0x80..0x85 and no more, and why it returns 0 for
+@ them when iwram_1f28 is null, i.e. outside battle.
+@
+@ HANDING OFF TO THE ANIMATION LAYER. Func_bd7dc(code) raises a ONE-SHOT flag at
+@ [iwram_1e74]+0x800 and stores the code at +0x820; only the first call per
+@ frame wins. rom_c9000's handlers call it at their hit frame -- 85 sites -- so
+@ this is how an animation tells the turn logic "the blow has landed". +0x824 is
+@ cleared alongside it.
+@
+@ APPLYING THE RESULT goes back out to rom_77000: _Func_783a4(id, -damage) for
+@ HP and _Func_783dc for PP, both clamped and both refreshing the 14-bit HP
+@ fraction the UI bars read.
+@
+@ Func_b7dd0(id) is the module's own combatant lookup (88 external call sites),
+@ distinct from rom_77000's Func_77394 -- this one returns the battle-side
+@ display record rather than the persistent character record.
+@
+@ DEBUG HARNESS. Func_b56e0 is not the shipped entry path. Holding DOWN
+@ (iwram_1ae8 & 0x80) at the top drops into a live encounter-id picker: Right
+@ and Left step the id by 1, Up and Down by 10, L and R cycle party presets
+@ through Func_b5368, Start opens Func_b5534, Select opens Func_c2a08, and A
+@ launches Func_b63c8 with whatever id is showing. Without Down held it just
+@ calls Func_b63c8(0x101) in a loop.
+@ ============================================================================
+
+@ DecompressBattleGraphic -- designed to be copied into RAM and run there
+@ r0 = compressed source, r1 = destination.
+@ THE FIRST LOOP RELOCATES ITS OWN JUMP TABLE: it computes the delta between
+@ where the table was assembled and where the code is actually executing, adds
+@ that to each of eight entries, and writes them to a scratch table. That is
+@ what makes the routine position-independent -- and it is necessary, because
+@ rom_c9000's Func_c08ec DMA3-copies this function into a 0x230-byte scratch
+@ buffer and calls it there rather than calling it in place.
+@ The decoder itself walks a bit stream a halfword at a time, assembling output
+@ through the relocated dispatch. ARM rather than Thumb, like every inner loop
+@ of this kind in the ROM.
 .arm_func_start Func_b5138
 	push	{r5, r6, r7, r8, r9, r10, r11, lr}
 	ldr	r2, .Lb5208

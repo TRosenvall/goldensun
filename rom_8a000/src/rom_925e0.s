@@ -1,5 +1,14 @@
 	.include "macros.inc"
 
+@ ParticleArcHook
+@ r0=particle entity. Installed as the per-frame hook at +0x6C by Func_92624.
+@ Moves the particle on a decaying ballistic arc without going through the
+@ normal seek logic -- it repurposes +0x30 and +0x34 as its own x and z velocity
+@ and writes the new position into both the position words (+0x08/+0x0C/+0x10)
+@ and the target words (+0x38/+0x3C/+0x40) so the mover has nothing left to do.
+@ Each frame y falls by 0x400, x advances by vx and z by vz, then vx loses
+@ 1/18th of itself (via Func_af0_from_thumb) and vz loses 1/16th, giving the
+@ drift a soft ease-out.
 .thumb_func_start Func_925e0
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -37,6 +46,18 @@
 	bx	r0
 .func_end Func_925e0
 
+@ SpawnSparkleParticle
+@ r0=source entity, r1=non-zero to also run Func_929d8 on the new particle.
+@ Spawns entity type 0xDE at the source's position with _Func_c150 and gives it
+@ a randomised look and trajectory:
+@   - a coin flip from Func_4458 picks animation 1 with script .L9fc04 or
+@     animation 2 with script .L9fbec
+@   - the movement mode byte at +0x55 is cleared so the mover leaves it alone
+@   - vz at +0x34 is -(rand % 10 + 5) * 0x1CD, vx at +0x30 is
+@     (rand % 15 - 7) * 2 * 0x1999, so it fans out sideways and rises
+@   - Func_925e0 is installed as the hook at +0x6C
+@ Finally the particle's palette bits (2-3 of actor byte +0x09) are copied from
+@ the source actor so the sparkle tints to match whatever emitted it.
 .thumb_func_start Func_92624
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -144,6 +165,20 @@
 	bx	r0
 .func_end Func_92624
 
+@ PlayLevitateSequence
+@ r0=entity id, r1=animation index, r2=sparkle flag (-1 disables sparkles).
+@ Blocking cutscene: lifts the entity into the air, holds it, and sets it back
+@ down. Does nothing if the id does not resolve.
+@   - sound 0x121, switch to animation r1, wait 10 frames
+@   - switch to animation 1, set bit 1 of the mode byte at +0x55, give +0x28 an
+@     upward velocity of 0x40000 and aim _Func_d14c at y - 0xC0000
+@   - wait 6 frames, sound 0xD9, then Func_92adc for the lift effect
+@   - 14 frames of rising 0x20000 per frame, spawning a sparkle through
+@     Func_92624 on every other frame when the flag allows
+@   - set mode 3, drop the velocity to 0x30000 and aim at y + 0x100000, then
+@     block on _Func_ca6c until the descent finishes
+@   - wait (up to 180 frames) until y falls back to the ground height at +0x14,
+@     pause 2 frames and finish with Func_9202c
 .thumb_func_start Func_92708
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -262,6 +297,10 @@
 	bx	r0
 .func_end Func_92708
 
+@ FaceEntityInstant
+@ r0=slot A, r1=slot B, r2=argument for Func_9163c. Snaps A's facing angle at
+@ +0x06 straight to the atan2 heading toward B -- no interpolation -- then calls
+@ Func_9163c. Both slots must resolve through Func_8ba1c.
 .thumb_func_start Func_9280c
 	push	{r5, r6, r7, lr}
 	mov	r5, r1
@@ -291,6 +330,10 @@
 	bx	r0
 .func_end Func_9280c
 
+@ TurnSlotsToFaceEachOther
+@ r0=slot A, r1=slot B, r2=argument for Func_9163c. Resolves both slots and
+@ hands them to Func_92878 for the gradual turn, then calls Func_9163c. This is
+@ the slot-addressed wrapper; Func_92878 takes entities directly.
 .thumb_func_start Func_92848
 	push	{r5, r6, r7, lr}
 	mov	r5, r1
@@ -314,6 +357,14 @@
 	bx	r0
 .func_end Func_92848
 
+@ TurnToFaceEachOther
+@ r0=entity A, r1=entity B. Blocking. Rotates A toward B and B toward A -- the
+@ second heading is A's plus 0x8000, i.e. exactly opposite -- stepping each
+@ facing angle at +0x06 by at most +/-0x1000 per frame and yielding with
+@ Func_30f8(1) between steps.
+@ Returns as soon as both have arrived, or after 60 frames, whichever comes
+@ first. The counter r1 tracks how many are still turning, so a pair that is
+@ already aligned costs nothing.
 .thumb_func_start Func_92878
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -408,6 +459,10 @@
 	bx	r0
 .func_end Func_92878
 
+@ DespawnSlotEntity
+@ r0=slot. Destroys the slot's entity with _Func_c0f4 and clears the cached
+@ pointer at iwram_1ebc + 0x14 + slot * 4 so nothing dereferences it afterwards.
+@ No-op when the slot is already empty.
 .thumb_func_start Func_92924
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -427,12 +482,15 @@
 	bx	r0
 .func_end Func_92924
 
+@ Nop -- empty handler, present to fill a table or callback slot.
 .thumb_func_start Func_9294c
 	bx	lr
 .func_end Func_9294c
 
 	.section .rodata
 
+@ .L9fbec / .L9fc04 -- the two 0x18-byte sparkle particle scripts Func_92624
+@ chooses between at random.
 .L9fbec:
 	.incrom 0x9fbec, 0x9fc04
 .L9fc04:

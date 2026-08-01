@@ -1,5 +1,35 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Scene entity slots.
+@
+@ iwram_1ebc points at the live scene/map state. Its entity slot table starts at
+@ +0x14 and holds 0xC0 pointers into the rom_9000 entity pool:
+@     slots 0-7      party members and other fixed roles
+@     slots 8-0x41   scenery and NPCs streamed in with the map
+@ Func_8ba1c reads a slot, Func_8b854 takes its address, Func_8b824 allocates
+@ one. Other fields used below: +0x1E0 the camera entity, +0x19E the scene mode,
+@ +0x118 a parallel record table cleared by Func_8b9f8.
+@ ============================================================================
+
+@ SpawnPlayerAndCamera
+@ r0=scene descriptor for the secondary record. Places the player on a freshly
+@ loaded map and attaches the camera.
+@ Copies two 0x18-byte templates from .L9f810 into the records at +0x200 and
+@ +0x218, zeroes the header words at +0x00..+0x0C, and clears the record table
+@ with Func_8b9f8. The player record then takes the saved position from
+@ ewram_240: id at +0x1F4, x at +0x1DC, z at +0x1E4 and facing at +0x1E8, and
+@ both records are registered with Func_8b3ec.
+@ The player entity's tile-type byte at +0x22 comes from ewram_240+0x1EC. If
+@ ewram_240+0x1E0 is set and the tile flags read 0xFD in BOTH the map at
+@ ewram_10000 and the overlay map at ewram_fe00, the player is standing on a
+@ transition tile: ewram_240+0x1F2 is set to 1, the ground height is resampled
+@ with _Func_11f54 one tile back, the movement mode at +0x55 is cleared, and
+@ animation 0x0C is selected. Otherwise ewram_240+0x1F2 is cleared.
+@ Finally entity type 0x8000 is spawned as the camera, bound to the player with
+@ _Func_c4bc, and stored at +0x1E0; [iwram_1e70] is pointed at the camera's
+@ position words so the map scroller follows it. In scene mode 3 the player
+@ actor also gains part 0x17 with palette 0x0F and draw order 9.
 .thumb_func_start Func_8b674
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -196,6 +226,11 @@
 	bx	r0
 .func_end Func_8b674
 
+@ AllocSceneEntitySlot
+@ Returns the first free scene slot, or -1 when the table is full.
+@ Scans slots 8..0x41 tracking the LAST OCCUPIED index and returns that plus
+@ one -- so it appends after everything in use rather than reusing an interior
+@ hole. A result of 0x42 means the table is full and -1 is returned instead.
 .thumb_func_start Func_8b824
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -223,6 +258,10 @@
 	bx	r1
 .func_end Func_8b824
 
+@ GetSceneSlotAddress
+@ r0=slot. Returns the ADDRESS of the slot -- iwram_1ebc + 0x14 + slot * 4 --
+@ for callers that need to write it. Func_8ba1c returns the value instead.
+@ Performs no range check.
 .thumb_func_start Func_8b854
 	ldr	r3, =iwram_1ebc
 	ldr	r3, [r3]
@@ -233,6 +272,12 @@
 	bx	lr
 .func_end Func_8b854
 
+@ MarkRecordsInBounds
+@ r0=array of 0x18-byte records, terminated by -1 in the first halfword.
+@ Clears event flag 0x164 and sets 0x165, then tags every record whose halfword
+@ at +0x02 is still 0: records whose position (+0x08 x, +0x10 z) lies inside the
+@ map bounds at [iwram_1e70]+0xEC..+0xF8 get 0x164, those outside get 0x165.
+@ Lets a later pass distinguish on-map from off-map entries by flag alone.
 .thumb_func_start Func_8b868
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e70
@@ -297,6 +342,15 @@
 	bx	r0
 .func_end Func_8b868
 
+@ DespawnDistantSceneEntities
+@ Takes no arguments. Culls scene slots 8..0x41 against a window around the
+@ player entity at +0x1E0: x within -0xA00000..+0xA00000 and z within
+@ -0xC80000..+0x640000 of the player, i.e. a box wider than it is deep and
+@ offset backwards.
+@ An entity outside the window has its draw kind at +0x54 forced to 1 and bit 1
+@ of actor byte +0x1D cleared -- so _Func_c0f4 releases exactly one actor and
+@ its tiles -- then is destroyed and its slot zeroed. Entities sitting at the
+@ origin (both x and z zero) are treated as unplaced and skipped.
 .thumb_func_start Func_8b8e8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -379,6 +433,13 @@
 	bx	r0
 .func_end Func_8b8e8
 
+@ DespawnAllSceneEntities
+@ Takes no arguments. Unconditional version of Func_8b8e8: destroys every
+@ occupant of slots 8..0x41 with the same draw-kind and actor-flag fixup, then
+@ clears the scene header words at +0x04, +0x08 and +0x0C.
+@ If +0x04 held a record, it is re-registered afterwards into a freshly
+@ allocated slot via Func_8b824 and Func_8b3ec, so the one persistent entry
+@ survives the wipe.
 .thumb_func_start Func_8b98c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -434,6 +495,10 @@
 	bx	r0
 .func_end Func_8b98c
 
+@ ClearSceneRecordTable
+@ Takes no arguments. Zeroes the 0x42-word record table that ends at
+@ iwram_1ebc+0x118, walking it backwards. Called by Func_8b674 as part of
+@ bringing up a new map.
 .thumb_func_start Func_8b9f8
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -453,6 +518,10 @@
 	bx	r0
 .func_end Func_8b9f8
 
+@ GetSlotEntity
+@ r0=slot. Returns the entity pointer at iwram_1ebc + 0x14 + slot * 4, or 0 for
+@ a slot above 0xBF. The bounds check is what makes this safe to call with ids
+@ straight out of map data; Func_8b854 has no such check.
 .thumb_func_start Func_8ba1c
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -472,5 +541,7 @@
 
 	.section .rodata
 
+@ .L9f810 -- two 0x18-byte scene record templates copied into +0x200 and
+@ +0x218 by Func_8b674 when a map is entered.
 .L9f810:
 	.incrom 0x9f810, 0x9f840

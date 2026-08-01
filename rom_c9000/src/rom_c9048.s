@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SetUpWindowBlend
+@ Takes no arguments. Programmes the blend and window hardware for an effect:
+@ REG_BLDCNT to 0, REG_BLDALPHA to 0x100E, and the window registers from
+@ REG_WIN0H with 0x1088 / 0xF0, giving the horizontal band the effects draw
+@ inside.
 .thumb_func_start Func_c9048
 	push	{lr}
 	ldr	r2, =REG_BLDCNT
@@ -74,6 +79,10 @@
 	bx	r0
 .func_end Func_c9048
 
+@ StepEffectPhaseA
+@ Takes no arguments. Increments the phase counter at [iwram_1eec]+0x7790 and
+@ updates the derived value at +0x7794 from it -- one of two phase steppers
+@ (see Func_c9138) that differ in how the derived value is computed.
 .thumb_func_start Func_c90e4
 	push	{r5, lr}
 	ldr	r3, =iwram_1eec
@@ -109,6 +118,9 @@
 	bx	r0
 .func_end Func_c90e4
 
+@ StepEffectPhaseB
+@ Takes no arguments. The counterpart to Func_c90e4: same counter at +0x7790,
+@ different derivation for +0x7794.
 .thumb_func_start Func_c9138
 	push	{r5, lr}
 	ldr	r3, =iwram_1eec
@@ -153,6 +165,10 @@
 	bx	r0
 .func_end Func_c9138
 
+@ ArmWindowHBlank
+@ Takes no arguments. Disarms the DMA0 HBlank transfer, then re-arms it to feed
+@ the window registers per scanline from the table at ewram_10000 -- the
+@ companion to Func_dbb9c, which does the same for the affine registers.
 .thumb_func_start Func_c91a4
 	ldr	r3, =REG_DMA0SAD
 	ldr	r2, =0xc5ff

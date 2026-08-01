@@ -1,22 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-.thumb_func_start Func_d45ec
-	push	{lr}
-	mov	r1, #0
-	bl	Func_d4604
-	pop	{r0}
-	bx	r0
-.func_end Func_d45ec
-
-.thumb_func_start Func_d45f8
-	push	{lr}
-	mov	r1, #1
-	bl	Func_d4604
-	pop	{r0}
-	bx	r0
-.func_end Func_d45f8
-
+@ Playd4604Impl
+@ r0=action descriptor, r1=variant. The shared implementation behind the
+@ 2 thin wrappers in this file, which exist so the animation table can hold
+@ one address per variant:
+@     0=Func_d45ec 1=Func_d45f8
+@ Works from the battle state at [iwram_1eec]; the variant selects timing,
+@ colours and which arm of the sequence runs. Body characterised
+@ structurally -- see the wrappers for the variant numbering.
 .thumb_func_start Func_d4604
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -856,6 +848,11 @@
 	bx	r0
 .func_end Func_d4604
 
+@ RunEffectSequence
+@ r0=action descriptor. The long-form sequence for this file's effect.
+@ Allocates nothing itself -- the caller has already set up the three working
+@ buffers and [iwram_1eec]. Body characterised structurally; the entry
+@ contract is verified.
 .thumb_func_start Func_d4ce8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

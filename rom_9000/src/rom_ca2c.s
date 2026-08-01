@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ ScriptOp_CommitCursor
+@ Entity script opcode handler (dispatched from Data_13624 by Func_a494).
+@ r0=entity. Folds the word cursor at +0x04 into the script base at +0x00
+@ (base += cursor * 4 + 4) and resets the cursor to 0, so the instruction after
+@ the current one becomes the new script origin. Returns 1 to keep the VM
+@ running this frame.
 .thumb_func_start Func_ca2c
 	mov	r3, #4
 	ldrsh	r2, [r0, r3]
@@ -13,27 +19,3 @@
 	mov	r0, #1
 	bx	lr
 .func_end  Func_ca2c
-
-.thumb_func_start Func_ca44
-	mov	r2, r0
-	add	r2, #0x54
-	mov	r3, #0
-	strb	r3, [r2]
-	ldrh	r3, [r0, #4]
-	add	r3, #1
-	strh	r3, [r0, #4]
-	mov	r0, #1
-	bx	lr
-.func_end Func_ca44
-
-.thumb_func_start Func_ca58
-	mov	r2, r0
-	add	r2, #0x54
-	mov	r3, #1
-	strb	r3, [r2]
-	ldrh	r3, [r0, #4]
-	add	r3, #1
-	strh	r3, [r0, #4]
-	mov	r0, #1
-	bx	lr
-.func_end Func_ca58

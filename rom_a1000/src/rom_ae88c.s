@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ ReserveArrowTiles
+@ Takes no arguments. Reserves two OBJ slots with Func_4080 and loads 0x80
+@ bytes into each -- .Laed4c into the slot recorded at state+0x392 and .Laedcc
+@ into the one at +0x394. Those are the up and down arrow graphics Func_ae99c
+@ and Func_ae9f0 attach. A slot that comes back as -1 is stored anyway and
+@ simply never loaded.
 .thumb_func_start Func_ae88c
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1f2c
@@ -32,6 +38,9 @@
 	bx	r0
 .func_end Func_ae88c
 
+@ ReleaseArrowTiles
+@ Takes no arguments. Frees both OBJ slots recorded by Func_ae88c through
+@ Func_3f3c. No null check -- Func_3f3c tolerates the -1.
 .thumb_func_start Func_ae8dc
 	push	{r5, lr}
 	ldr	r3, =iwram_1f2c
@@ -50,6 +59,11 @@
 	bx	r0
 .func_end Func_ae8dc
 
+@ BuildCharacterIcon
+@ r0 = character, r1 = OBJ slot. Takes a 0x608-byte scratch under tag 0x11,
+@ renders the character's icon into it with _Func_1a3d0, copies the part at
+@ +0x400 into the OBJ slot with Func_40d0, and rewinds tag 0x11 immediately.
+@ The scratch is transient by construction -- it never outlives the call.
 .thumb_func_start Func_ae908
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -88,6 +102,11 @@
 	bx	r1
 .func_end Func_ae908
 
+@ AttachCharacterIcon
+@ r0 = x, r1 = y, r2 = priority, r3 = character. Reserves an OBJ slot, fills it
+@ via Func_ae908 and chains a node with _Func_1eadc. Slot 0x60 is the
+@ allocator's "none free" answer (the table has 96 entries) and is skipped
+@ without drawing anything.
 .thumb_func_start Func_ae958
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -122,6 +141,12 @@
 	bx	r1
 .func_end Func_ae958
 
+@ AttachArrowSprite
+@ r0 = x, r1 = y, r2 = priority, r3 = direction -- 0 up, non-zero down.
+@ Attaches the arrow whose tiles Func_ae88c loaded, picking state+0x392 for up
+@ and +0x394 for down. Clears the node's +0x04 and +0x0C and marks it live.
+@ Returns 1, or -1 when no node was free. This is the arrow Func_a15f0 puts
+@ beside a stat that changes.
 .thumb_func_start Func_ae99c
 	push	{r5, r6, lr}
 	mov	r5, r3
@@ -165,6 +190,10 @@
 	bx	r1
 .func_end Func_ae99c
 
+@ AttachArrowSpriteNudged
+@ r0 = x, r1 = y, r2 = priority, r3 = direction. As Func_ae99c but with the
+@ priority biased -- 3 lower for the up arrow, 4 for the down -- so the arrow
+@ sorts behind the text it annotates rather than over it.
 .thumb_func_start Func_ae9f0
 	push	{r5, r6, lr}
 	mov	r5, r3

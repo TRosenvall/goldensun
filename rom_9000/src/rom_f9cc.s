@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RemapBytes
+@ r0=buffer, r1=length. Rewrites each byte in place through the 256-entry
+@ translation table Data_97b8 (rom_92b8.s). A length of 0 is handled correctly
+@ by the pre-decrement against -1.
 .thumb_func_start Func_f9cc
 	push	{lr}
 	mov	r3, #1
@@ -23,6 +27,15 @@
 	bx	r0
 .func_end Func_f9cc
 
+@ DecodeMetatileTable
+@ r0=byte count. Expands the packed metatile definition table from ewram_10002
+@ into ewram_20000, producing (count-1)/2 halfwords. The encoding is chosen by
+@ the mode byte at ewram_10001:
+@   0 -- plain halfword copy
+@   1 -- two separate byte planes (high plane first, low plane at +count/2)
+@        recombined and XOR-delta decoded against the previous halfword
+@   2 -- halfword copy with the same running XOR delta
+@ Any other mode leaves the destination untouched.
 .thumb_func_start Func_f9f4
 	push	{r5, r6, r7, lr}
 	sub	r3, r0, #1
@@ -104,6 +117,11 @@
 	bx	r0
 .func_end Func_f9f4
 
+@ AssignPlaceholderMetatiles
+@ Takes no arguments. Sweeps all 0x4000 map records at ewram_10000 and gives
+@ every entry whose metatile index reads 0xFFF -- the "allocate me" placeholder
+@ -- the next value from a running counter, rewriting the index while preserving
+@ the record's attribute bits. Mirrors the first loop of Func_a37c.
 .thumb_func_start Func_fa8c
 	push	{r5, r6, lr}
 	mov	r4, #0x80
@@ -135,6 +153,13 @@
 	bx	r0
 .func_end Func_fa8c
 
+@ BuildMetatileLookup
+@ Takes no arguments. Expands the map's metatile definitions into the 2x2 tile
+@ lookup at ewram_18000 that the blits in rom_10424.s index.
+@ Allocates a 0x8000-byte scratch buffer, runs Func_1af8 over ewram_10000 into
+@ it, then allocates 0x9C bytes, DMA-copies Func_a37c (rom_92b8.s) there and
+@ calls the RAM copy so the de-interleave runs out of RAM. Both buffers are
+@ released with Func_2df0 before returning.
 .thumb_func_start Func_fac8
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -176,6 +201,22 @@
 	bx	r0
 .func_end Func_fac8
 
+@ LoadMap
+@ r0=map index. The full map load. Blanks BG1-BG3 in DISPCNT (mask 0xC1FF) and
+@ calls Func_3bb4(0) before touching anything, then allocates and zeroes the
+@ 0x194-byte map state (tag 8) that iwram_1e70 points at.
+@ The map archive is the entry at .L13784 + index * 0xC; its first halfword plus
+@ 0x128 is the resource id decompressed by Func_2f40. Sub-resources are read
+@ from offsets inside that archive:
+@   +0x24 -> ewram_10001, then decoded by Func_f9f4
+@   +0x28 -> ewram_2c000 (tile material / height table, see rom_11ce0.s)
+@   +0x2C -> ewram_10000 (the map records), then expanded by Func_fac8
+@   +0x30 -> ewram_2d000 tile animations, handed to Func_118d8 (optional)
+@   +0x34 -> ewram_2de00 blend animation, handed to Func_11a84 (optional)
+@   +0x38 -> stored at state+0x10
+@ Header bytes 0-3 become the map bounds at +0xEC..+0xF8 (each << 19, i.e.
+@ 8-pixel units in 16.16), the camera at +0xE4/+0xE8 is zeroed, and bytes 4-6
+@ become the flags at +0x100, +0x101 and +0x102.
 .thumb_func_start Func_fb38
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -543,6 +584,12 @@
 	bx	r1
 .func_end Func_fb38
 
+@ UpdateMapView
+@ Takes no arguments. Per-frame entry point for map scrolling. Reads the layer
+@ descriptor at [[iwram_1e70]] -- three words giving the layer base and the
+@ current and previous scroll positions -- passes the delta to Func_10230 to
+@ move the hardware scroll, then calls Func_10000 to fill in whatever the move
+@ exposed. Does nothing when no layer is loaded.
 .thumb_func_start Func_fe9c
 	push	{lr}
 	ldr	r3, =iwram_1e70
@@ -564,6 +611,14 @@
 	bx	r0
 .func_end Func_fe9c
 
+@ DrawMetatileRow
+@ r0=screen block index, r1=x in pixels, r2=y in pixels. Writes a horizontal run
+@ of 16 metatiles into the BG screen block at 0x6002800 + index * 0x800.
+@ x and y are halved to metatile units and wrapped into the 128-wide map grid;
+@ for each step the map record at ewram_10000 supplies a metatile index whose
+@ four tile entries are read from ewram_20000 / ewram_20004 and stored as two
+@ words one screen row (0x40 bytes) apart, so each metatile lands as a 2x2 block.
+@ Used to fill the row newly exposed by vertical scrolling.
 .thumb_func_start Func_fec8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -630,6 +685,14 @@
 	bx	r0
 .func_end Func_fec8
 
+@ DrawMetatileColumn
+@ r0=screen block index, r1=x in pixels, r2=y in pixels. The vertical
+@ counterpart to Func_fec8: writes a run of 11 metatiles down the screen block,
+@ stepping the map row by 0x80 records and the destination by 0x40 bytes each
+@ time, both wrapped.
+@ Because a column only needs one tile of each 2x2 block, this variant stores
+@ halfwords rather than words, selecting the left or right half from the low bit
+@ of x. Used to fill the column newly exposed by horizontal scrolling.
 .thumb_func_start Func_ff54
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -711,6 +774,12 @@
 	bx	r0
 .func_end Func_ff54
 
+@ RefreshMapEdges
+@ Takes no arguments. Compares the live camera position against the last drawn
+@ position held in the map state at [iwram_1e70] and, for each of the layers
+@ configured from +0x104, issues Func_fec8 / Func_ff54 for every metatile row or
+@ column the scroll has brought into view, then records the new position. This
+@ is what makes scrolling cost only the exposed edge rather than a full redraw.
 .thumb_func_start Func_10000
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -986,6 +1055,12 @@
 	bx	r0
 .func_end Func_10000
 
+@ UpdateBgScrollRegisters
+@ r0, r1 = camera position derived by Func_fe9c. Converts the camera into
+@ per-layer scroll offsets -- applying each layer's parallax divisor from the
+@ configuration block at [iwram_1e70]+0x104 (stride 0x30) -- and writes the
+@ resulting values to the BG scroll registers, clamping against the map bounds
+@ cached at +0xEC..+0xF8.
 .thumb_func_start Func_10230
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

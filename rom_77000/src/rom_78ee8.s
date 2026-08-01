@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ InitCharacter
+@ r0 = character index. Seeds a character record from its 0xB4-byte base entry
+@ (Func_78ed8), gives it starting equipment through Func_78708, rebuilds the
+@ derived stats with Func_77428, and notifies Func_792fc and Func_79ae8.
+@ Called by Func_77d38 for each of the eight characters at startup.
 .thumb_func_start Func_78ee8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -141,6 +146,8 @@
 	bx	r0
 .func_end Func_78ee8
 
+@ NoOp
+@ A bare `bx lr`, present as a table entry or placeholder.
 .thumb_func_start Func_79004
 	bx	lr
 .func_end Func_79004
