@@ -441,3 +441,47 @@ are worth pulling in when the easy functions are done:
   the Makefile's flags, so this is a convenience rather than a gap.
 
 decomp-permuter is already set up; see the section above.
+
+## Data layouts
+
+`include/` now carries the structures the annotations established. They are
+worth reading before any further conversion work, because most remaining
+functions are mostly field access.
+
+| header | covers |
+|---|---|
+| `entity.h` | the 0x70-byte overworld entity |
+| `scene.h` | the scene/dialogue block behind `iwram_1ebc` |
+| `map.h` | map state, the cell array, map-object and region records |
+| `save.h` | party and save state in `ewram_240`, and the save-bit idioms |
+| `combatant.h` | the 0x14C-byte combatant record |
+| `m4a.h` | the sound driver's track and tone layouts |
+
+Two conventions differ and mixing them up produces code that assembles and then
+reads garbage:
+
+- `iwram_1ebc` and `iwram_1e70` are **pointers** to their blocks. Every access
+  loads the pointer first, then adds an offset.
+- `ewram_240` **is** the block. Offsets apply directly, with no load.
+
+`scene.h` and `map.h` deliberately define offset constants rather than structs.
+Their total sizes are not established -- the scene block is read as far as
++0x236 with nothing bounding it, and the map state is described as 0x194 bytes
+in one place while the world-map path reads +0x338 -- so declaring a struct
+would mean inventing both a size and every hole between the known fields.
+
+Where a struct *is* declared it carries a `sizeof` assertion, and
+`make check-layouts` compiles them. Nothing links that file; it exists so a
+wrong offset fails the build instead of silently producing wrong code. Confirm
+the check can fail before trusting it -- break an assertion deliberately and
+watch agbcc reject it.
+
+### Unresolved conflicts, recorded rather than guessed
+
+- `Entity +0x30/+0x34` are read as max speed / acceleration by the movement
+  code and as a scale pair by the draw loop. Named for movement because far
+  more call sites use it that way.
+- `Entity +0x40` holds a move target, but the draw loop reads a priority byte
+  at `+0x42`, which overlaps it. One reading is wrong.
+- `Entity +0x0A/+0x12` are not fields at all -- they alias the high halfwords
+  of the 16.16 x and z, and the ROM reads them both ways.

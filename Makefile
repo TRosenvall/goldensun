@@ -26,8 +26,15 @@ GBA_CPPFLAGS := -Iinclude -nostdinc -undef -std=gnu89
 # add per-file overrides (as pokeemerald does) if some units disagree.
 GBA_CFLAGS := -O -mthumb-interwork -fhex-asm -fcall-used-r4
 
-.PHONY: compare compare-rom compare-overlays
+.PHONY: compare compare-rom compare-overlays check-layouts
 compare: compare-rom compare-overlays
+
+# The struct layouts in include/ carry sizeof assertions -- a wrong offset makes
+# an array size negative and agbcc refuses the file. Nothing links this; it is
+# compiled purely so the layouts cannot drift unnoticed.
+check-layouts: tools/layout_check.c
+	@$(CPP) $(GBA_CPPFLAGS) $< | $(CC1) $(GBA_CFLAGS) -o /dev/null && \
+	  echo "struct layouts OK"
 
 compare-rom: goldensun.sha1 $(ROM)
 	sha1sum -c $<

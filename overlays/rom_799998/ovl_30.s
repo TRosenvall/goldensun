@@ -52,7 +52,8 @@
 @ the object table cannot describe on its own:
 @   - Func_923e4 places slot 8 at (0xD80000, 0x880000),
 @   - animation 2, then Func_c528 with argument 0 on its entity,
-@   - byte +0x23 set to 2 -- the draw-kind field -- and byte +0x59 cleared,
+@   - byte +0x23 set to 2 -- the display-offset flags, where bit 1 shifts the
+@     sprite by -0x140.0000 -- and byte +0x59 cleared,
 @     which is the flag OvlFunc_6c-style lookups test to decide whether an
 @     entity blocks a push,
 @   - Func_10704 repaints a 5x5 attribute block from (0xB, 0x24) to (0xB, 6),
