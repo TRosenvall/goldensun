@@ -187,11 +187,14 @@ SECTIONS {
 		rom_77000/src/rom_78414.o(.text)
 		rom_77000/src/rom_78a8c.o(.text)
 		rom_77000/src/rom_78b9c.o(.text)
+		rom_77000/src/f_o_rom_78ed8.o(.text)
 		rom_77000/src/rom_78ed8.o(.text)
 		rom_77000/src/rom_78ee8.o(.text)
 		rom_77000/src/rom_79008.o(.text)
 		rom_77000/src/rom_79338.o(.text)
 		rom_77000/src/rom_79460.o(.text)
+		rom_77000/src/f_o_rom_79ad8.o(.text)
+		rom_77000/src/f_t_rom_79ae8.o(.text)
 
 		rom_77000/src/rom_77320.o(.rodata)
 		rom_77000/src/rom_79008.o(.rodata)
@@ -201,7 +204,7 @@ SECTIONS {
 		rom_77000/src/rom_78b9c.o(.rodata)
 		rom_77000/src/rom_80ec8.o(.rodata)
 		rom_77000/src/rom_78ed8.o(.rodata)
-		rom_77000/src/rom_79460.o(.rodata)
+		rom_77000/src/f_t_rom_79ae8.o(.rodata)
 	} > rom
 
 	rom_8a000 : ALIGN(0x1000) {
@@ -486,6 +489,9 @@ SECTIONS {
 	rom_f9000 : ALIGN(0x1000) {
 		rom_f9000/src/exports.o(.text)
 		rom_f9000/src/rom_f9080.o(.text)
+		rom_f9000/src/f_o_rom_f94f8.o(.text)
+		rom_f9000/src/f_t_rom_f950c.o(.text)
+		rom_f9000/src/f_o_rom_f9538.o(.text)
 		rom_f9000/src/f_o_rom_f954c.o(.text)
 		rom_f9000/src/f_m_rom_f9558.o(.text)
 		rom_f9000/src/f_t_rom_f9570.o(.text)
