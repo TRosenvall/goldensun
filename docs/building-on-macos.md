@@ -146,13 +146,18 @@ alias gsmake='docker run --rm -v "$PWD:/work" -w /work goldensun-build make'
 
 ## Status of this document
 
-Verified on macOS (Darwin 23, Intel, 8 GB RAM):
+Verified end to end on macOS (Darwin 23, Intel, 8 GB RAM, colima 4 CPU / 4 GB):
 
 - the three native build failures were reproduced directly
-- the licence and host-support facts were checked in the vendored source
-- **colima install, start, context switch and container execution are tested** --
-  `docker run ubuntu:22.04 uname -a` returns a Linux 6.8 x86_64 kernel
+- licence and host-support facts checked in the vendored source
+- colima install, start, context switch and container execution tested
+- **`tools/Dockerfile` builds clean on the first attempt**, producing
+  `gcc version 2.96 20000731 (experimental)`
+- the compiler was probed for the three behaviours agbcc lacks, and has all
+  three: Thumb register-offset addressing (`ldr r0, [r1, r0]`), `lr` allocated
+  as a scratch register in leaf functions (`mov lr, r0`), and no use of r7
+  without needing `-ffixed-r7`
 
-Not yet verified: the `tools/Dockerfile` image build end to end. The package
-list follows camelot-gcc's documented Linux requirements but expect to adjust it
-on first run. Corrections welcome.
+One gotcha worth knowing: **colima mounts `$HOME`, not `/tmp`.** A file written
+to macOS `/tmp` (really `/private/tmp`) is invisible inside the container. Keep
+scratch files under your home directory.
