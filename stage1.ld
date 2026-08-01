@@ -493,10 +493,12 @@ SECTIONS {
 		rom_f9000/src/f_t_rom_f95a0.o(.text)
 		rom_f9000/src/rom_f95e0.o(.text)
 		rom_f9000/src/rom_f9ef8.o(.text)
+		rom_f9000/src/f_x_rom_fb6ec.o(.text)
+		rom_f9000/src/f_t_rom_fb790.o(.text)
 
 		rom_f9000/src/f_t_rom_f95a0.o(.rodata)
 		rom_f9000/src/rom_f95e0.o(.rodata)
-		rom_f9000/src/rom_f9ef8.o(.rodata)
+		rom_f9000/src/f_t_rom_fb790.o(.rodata)
 		rom_f9000/src/rom_fc624.o(.rodata)
 	} > rom
 

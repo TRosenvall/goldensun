@@ -490,10 +490,10 @@
 	mov	r7, #0xff
 	lsl	r7, #24
 .Lfa210:
-	ldr	r3, =.Lfb830
+	ldr	r3, =Lfb830
 	add	r0, r6, r3
 	ldrb	r5, [r0]
-	ldr	r4, =.Lfb8e4
+	ldr	r4, =Lfb8e4
 	mov	r2, #0xf
 	mov	r0, r5
 	and	r0, r2
@@ -1215,7 +1215,7 @@
 	lsr	r2, r0, #16
 	mov	r6, #0
 	strb	r2, [r4, #8]
-	ldr	r1, =.Lfb914
+	ldr	r1, =Lfb914
 	sub	r0, r2, #1
 	lsl	r0, #1
 	add	r0, r1
@@ -1975,7 +1975,7 @@
 	bls	.Lfad22
 	mov	r5, #0x3b
 .Lfad22:
-	ldr	r0, =.Lfb9c8
+	ldr	r0, =Lfb9c8
 	add	r0, r5, r0
 	ldrb	r0, [r0]
 	b	.Lfad92
@@ -2000,10 +2000,10 @@
 	mov	r1, #0xff
 	mov	r12, r1
 .Lfad4e:
-	ldr	r3, =.Lfb92c
+	ldr	r3, =Lfb92c
 	add	r0, r5, r3
 	ldrb	r6, [r0]
-	ldr	r4, =.Lfb9b0
+	ldr	r4, =Lfb9b0
 	mov	r2, #0xf
 	mov	r0, r6
 	and	r0, r2
@@ -2673,7 +2673,7 @@
 	strb	r0, [r1]
 	cmp	r6, #3
 	bne	.Lfb250
-	ldr	r0, =.Lfba04
+	ldr	r0, =Lfba04
 	ldrb	r1, [r4, #9]
 	add	r0, r1, r0
 	ldrb	r0, [r0]
@@ -3301,7 +3301,7 @@
 	ldrb	r3, [r2]
 	add	r2, #1
 	str	r2, [r1, #0x40]
-	ldr	r2, =.Lfba48
+	ldr	r2, =Lfba48
 	lsl	r3, #2
 	add	r3, r2
 	ldr	r2, [r3]
@@ -3355,155 +3355,3 @@
 	pop	{r0}
 	bx	r0
 .func_end Func_fb6a4
-
-@ XcmdSetByte24
-@ r1 = track. Stores the next byte at track+0x24.
-.thumb_func_start Func_fb6ec
-	ldr	r0, [r1, #0x40]
-	ldrb	r2, [r0]
-	mov	r0, r1
-	add	r0, #0x24
-	strb	r2, [r0]
-	ldr	r0, [r1, #0x40]
-	add	r0, #1
-	str	r0, [r1, #0x40]
-	bx	lr
-.func_end Func_fb6ec
-
-@ XcmdSetByte2C
-@ r1 = track. Stores the next byte at track+0x2C.
-.thumb_func_start Func_fb700
-	ldr	r0, [r1, #0x40]
-	ldrb	r2, [r0]
-	mov	r0, r1
-	add	r0, #0x2c
-	strb	r2, [r0]
-	ldr	r0, [r1, #0x40]
-	add	r0, #1
-	str	r0, [r1, #0x40]
-	bx	lr
-.func_end Func_fb700
-
-@ XcmdSetByte2D
-@ r1 = track. Stores the next byte at track+0x2D.
-.thumb_func_start Func_fb714
-	ldr	r0, [r1, #0x40]
-	ldrb	r0, [r0]
-	mov	r2, r1
-	add	r2, #0x2d
-	strb	r0, [r2]
-	ldr	r0, [r1, #0x40]
-	add	r0, #1
-	str	r0, [r1, #0x40]
-	bx	lr
-.func_end Func_fb714
-
-@ XcmdSetByte2E
-@ r1 = track. Stores the next byte at track+0x2E.
-.thumb_func_start Func_fb728
-	ldr	r0, [r1, #0x40]
-	ldrb	r0, [r0]
-	mov	r2, r1
-	add	r2, #0x2e
-	strb	r0, [r2]
-	ldr	r0, [r1, #0x40]
-	add	r0, #1
-	str	r0, [r1, #0x40]
-	bx	lr
-.func_end Func_fb728
-
-@ XcmdSetByte2F
-@ r1 = track. Stores the next byte at track+0x2F. Together with Func_fb6ec,
-@ Func_fb700, Func_fb714 and Func_fb728 these five write the ToneData record at
-@ track+0x24..+0x2F that Func_f9b74's VOICE command normally fills in -- so an
-@ extended command can override one field of an instrument without changing the
-@ instrument.
-.thumb_func_start Func_fb73c
-	ldr	r0, [r1, #0x40]
-	ldrb	r0, [r0]
-	mov	r2, r1
-	add	r2, #0x2f
-	strb	r0, [r2]
-	ldr	r0, [r1, #0x40]
-	add	r0, #1
-	str	r0, [r1, #0x40]
-	bx	lr
-.func_end Func_fb73c
-
-@ XcmdSetEchoVolume
-@ r1 = track. Stores the next byte at track+0x1E.
-.thumb_func_start Func_fb750
-	ldr	r0, [r1, #0x40]
-	ldrb	r2, [r0]
-	strb	r2, [r1, #0x1e]
-	add	r0, #1
-	str	r0, [r1, #0x40]
-	bx	lr
-.func_end Func_fb750
-
-@ XcmdSetEchoLength
-@ r1 = track. Stores the next byte at track+0x1F.
-.thumb_func_start Func_fb75c
-	ldr	r0, [r1, #0x40]
-	ldrb	r2, [r0]
-	strb	r2, [r1, #0x1f]
-	add	r0, #1
-	str	r0, [r1, #0x40]
-	bx	lr
-.func_end Func_fb75c
-
-@ XcmdSetByte26
-@ r1 = track. Stores the next byte at track+0x26.
-.thumb_func_start Func_fb768
-	ldr	r0, [r1, #0x40]
-	ldrb	r0, [r0]
-	mov	r2, r1
-	add	r2, #0x26
-	strb	r0, [r2]
-	ldr	r0, [r1, #0x40]
-	add	r0, #1
-	str	r0, [r1, #0x40]
-	bx	lr
-.func_end Func_fb768
-
-@ XcmdSetByte27
-@ r1 = track. Stores the next byte at track+0x27.
-.thumb_func_start Func_fb77c
-	ldr	r0, [r1, #0x40]
-	ldrb	r0, [r0]
-	mov	r2, r1
-	add	r2, #0x27
-	strb	r0, [r2]
-	ldr	r0, [r1, #0x40]
-	add	r0, #1
-	str	r0, [r1, #0x40]
-	bx	lr
-.func_end Func_fb77c
-
-@ XcmdNoOp
-@ A bare `bx lr`. The table at .Lfba48 needs an entry that does nothing.
-.thumb_func_start Func_fb790
-	bx	lr
-.func_end Func_fb790
-
-	.section .rodata
-
-.Lfb830:
-	.incrom 0xfb830, 0xfb8e4
-.Lfb8e4:
-	.incrom 0xfb8e4, 0xfb914
-.Lfb914:
-	.incrom 0xfb914, 0xfb92c
-.Lfb92c:
-	.incrom 0xfb92c, 0xfb9b0
-.Lfb9b0:
-	.incrom 0xfb9b0, 0xfb9c8
-.Lfb9c8:
-	.incrom 0xfb9c8, 0xfba04
-.Lfba04:
-	.incrom 0xfba04, 0xfba14
-
-	.incdata Data_fba14, 0xfba14, 0xfba48
-
-.Lfba48:
-	.incrom 0xfba48, 0xfc624
