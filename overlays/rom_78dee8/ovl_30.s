@@ -1,5 +1,32 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Overlay 0x78dee8 -- a map overlay serving MORE THAN ONE MAP.
+@
+@ All four table slots branch on the area id at ewram_240+0x1C0, distinguishing
+@ area 0x13 from area 0x10, with a third fallback for anything else. Area 0x10
+@ subdivides further on the entrance id at ewram_240+0x1C2. So one overlay
+@ backs several rooms that share artwork and script code but differ in layout.
+@
+@ The story here turns on two matched pairs of save bits, one pair per secret
+@ passage:
+@
+@     passage A   0xF01 arms it, 0x81A records that it has been opened
+@     passage B   0xF02 arms it, 0x821 records that it has been opened
+@
+@ Each passage has three functions: an NPC line that changes once the passage
+@ is open (OvlFunc_200, OvlFunc_3bc), the reveal cutscene itself (OvlFunc_258,
+@ OvlFunc_420), and the map edit the cutscene performs. The reveal runs only
+@ when the arming bit is set AND the opened bit is not, so it plays once.
+@
+@ The map edits are done with the rom_c0 rectangle primitives rather than by
+@ swapping tables: Func_10424 copies metatile indices over the wall, Func_10704
+@ copies the attributes behind them so collision follows the artwork, and
+@ Func_fe9c pushes the result to VRAM.
+@ ============================================================================
+
+@ Slot 1: the edge-transition table, one per area.
+@   area 0x13 -> .L1d04    area 0x10 -> .L1d64    otherwise -> .L1cd4
 .thumb_func_start OvlFunc_30
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -26,16 +53,27 @@
 	bx	r1
 .func_end OvlFunc_30
 
+@ Slot 5: the interaction table. None for any of this overlay's areas.
 .thumb_func_start OvlFunc_70
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_70
 
+@ Slot 2: the map event list. The one table that is the same for every area.
 .thumb_func_start OvlFunc_74
 	ldr	r0, =.L1f14
 	bx	lr
 .func_end OvlFunc_74
 
+@ Slot 3: read after slot 4, so it must stay in step with OvlFunc_ec below.
+@ Area 0x10 splits three ways on the entrance id at ewram_240+0x1C2:
+@     entrance 0x0B..0x0D  -> .L2050
+@     entrance 0x0E..0x10  -> .L21b8
+@     anything else        -> .L1fd8, and ONLY this branch first passes the
+@                             table through Func_8b868, which tags the records
+@                             whose position falls inside the active bounds.
+@                             The other tables are pre-tagged constants.
+@ Area 0x13 -> .L22a8. Otherwise -> .L1fc0.
 .thumb_func_start OvlFunc_7c
 	push	{r5, lr}
 	ldr	r1, =ewram_240
@@ -83,6 +121,13 @@
 	bx	r1
 .func_end OvlFunc_7c
 
+@ Slot 4: the map object table, split on the same areas and entrance ranges as
+@ slot 3 and in the same order, so the two stay aligned:
+@     area 0x13                       -> .L22e4
+@     area 0x10, entrance 0x0B..0x0D  -> .L241c
+@     area 0x10, entrance 0x0E..0x10  -> .L2524
+@     area 0x10, otherwise            -> .L232c
+@     any other area                  -> .L22d8
 .thumb_func_start OvlFunc_ec
 	push	{lr}
 	ldr	r1, =ewram_240
@@ -126,6 +171,16 @@
 	bx	r1
 .func_end OvlFunc_ec
 
+@ WalkPlayerInThroughDoorway
+@ Takes no arguments. A map-entry scene: the player walks in from off-screen
+@ while the doorway animates shut behind them.
+@
+@ Sound 0xB5, then three Func_10424 rectangle copies at x = 0x1C, 0x1E, 0x20 --
+@ the same 3x0x15 column stepped one tile right each time, ten frames apart --
+@ which is the door closing frame by frame. Then draw priority 2, speed
+@ 0x9999/0x4CCC, a walk to (0x78, 0x62) via Func_921c4, animation 2, and a
+@ nudge of -8 on z. Closes by hiding the overlay, waiting the scene delay, and
+@ leaving message id 2 pending for whatever runs next.
 .thumb_func_start OvlFunc_154
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -193,6 +248,15 @@
 	bx	r0
 .func_end OvlFunc_154
 
+@ TalkPassageA
+@ Takes no arguments. The NPC beside passage A. Says line 0x1034 once the
+@ passage has been opened (save bit 0x81A), otherwise line 0x1031.
+@
+@ In the not-yet-opened case, if the arming bit 0xF01 is set it also writes 1
+@ to [iwram_1ebc]+0x172, the last of the four interaction halfwords Func_8bc44
+@ clears between interactions. The reveal in OvlFunc_258 keys off the save bits
+@ rather than this, so what it does here is leave the interaction resolved so
+@ the same NPC is not re-triggered on the way past.
 .thumb_func_start OvlFunc_200
 	push	{lr}
 	bl	__Func_916b0
@@ -225,6 +289,26 @@
 	bx	r0
 .func_end OvlFunc_200
 
+@ RevealPassageA
+@ Takes no arguments. The one-shot reveal cutscene for passage A. Returns
+@ immediately unless arming bit 0xF01 is set and opened bit 0x81A is clear, so
+@ it plays exactly once.
+@
+@ The sequence, which OvlFunc_420 mirrors for passage B:
+@   - Func_8e118 dismisses any open box, sound 0xB6 starts the rumble.
+@   - Func_10424 copies a 0x2A x 0x1E rectangle from (0x46, 0x1E), then
+@     Func_fe9c pushes it to VRAM -- the wall cracking.
+@   - Line 0x1032, then sound 0xB7 and the real edit: a 3x1 metatile copy at
+@     (0x1D, 3) followed by the SAME rectangle through Func_10704, so the
+@     collision attributes move with the artwork and the new gap is walkable.
+@     A second copy from (0x6D, 4) lays in the passage interior.
+@   - Three Func_12330 calls shake the map: +0x10000/+0x10000, then
+@     +0x20000/+0x10000, then -1/-1 with 0xE666 to settle. Negative arguments
+@     are skipped by Func_12330, which is how the settle leaves x and z alone.
+@   - Func_937b8 effect 0x100 on the player, then four Func_92adc turns --
+@     0x4000, 0x8000, 0, 0x4000 -- so the player looks around the new opening.
+@   - Line 0x1033 (the id is bumped with `add r8, #1` from 0x1032), then save
+@     bits 0x143 and 0x81A are set to record it.
 .thumb_func_start OvlFunc_258
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -367,6 +451,9 @@
 	bx	r0
 .func_end OvlFunc_258
 
+@ TalkPassageB
+@ Takes no arguments. The passage-B counterpart of OvlFunc_200, on save bits
+@ 0x821 (opened) and 0xF02 (armed), with the same two lines 0x1034 / 0x1031.
 .thumb_func_start OvlFunc_3bc
 	push	{r5, lr}
 	bl	__Func_916b0
@@ -405,6 +492,10 @@
 	bx	r0
 .func_end OvlFunc_3bc
 
+@ RevealPassageB
+@ Takes no arguments. The passage-B reveal, gated on 0xF02 set and 0x821 clear.
+@ Structurally the same scene as OvlFunc_258 with a different rectangle and
+@ different line ids; see there for the step-by-step.
 .thumb_func_start OvlFunc_420
 	push	{r5, r6, lr}
 	ldr	r0, =0xf02
@@ -535,6 +626,14 @@
 	bx	r0
 .func_end OvlFunc_420
 
+@ TrackBlock9West
+@ Takes no arguments. Records where the block in slot 9 is resting, as a pair of
+@ save bits, so the puzzle survives a save and reload.
+@
+@ Both bits 0x302 and 0x303 are cleared first, then exactly one is set from the
+@ block's tile x (its +0x08 taken down with `asr #20`): x 0x5D sets 0x303,
+@ x 0x5F sets 0x302, and any position between them leaves both clear. Slots 9
+@ and 0xA are the two-block arrangement, used when the entrance id is 0x0B..0x0D.
 .thumb_func_start OvlFunc_56c
 	push	{r5, lr}
 	mov	r0, #9
@@ -563,6 +662,10 @@
 	bx	r0
 .func_end OvlFunc_56c
 
+@ TrackBlockAWest
+@ Takes no arguments. The slot-0xA partner of OvlFunc_56c: bits 0x300 / 0x301,
+@ set from tile x 0x73 / 0x71 respectively. Note the sense is inverted relative
+@ to slot 9 -- here the HIGHER x sets the LOWER-numbered bit.
 .thumb_func_start OvlFunc_5ac
 	push	{r5, lr}
 	mov	r0, #0xa
@@ -593,6 +696,11 @@
 	bx	r0
 .func_end OvlFunc_5ac
 
+@ TrackBlock9East
+@ Takes no arguments. First of the six-block arrangement used when the entrance
+@ id is 0x0E..0x10. Slot 9, bits 0x310 / 0x311, tile x 0x65 / 0x63.
+@ Unlike the two-block pair above, each of these six ends by calling
+@ OvlFunc_17c0(0) to re-test whether the whole puzzle is now solved.
 .thumb_func_start OvlFunc_5ec
 	push	{r5, lr}
 	mov	r0, #9
@@ -626,6 +734,8 @@
 	bx	r0
 .func_end OvlFunc_5ec
 
+@ TrackBlockAEast
+@ Slot 0xA, bits 0x312 / 0x313, tile x 0x69 / 0x67. See OvlFunc_5ec.
 .thumb_func_start OvlFunc_634
 	push	{r5, lr}
 	mov	r0, #0xa
@@ -657,6 +767,8 @@
 	bx	r0
 .func_end OvlFunc_634
 
+@ TrackBlockBEast
+@ Slot 0xB, bits 0x314 / 0x315, tile x 0x6D / 0x6B. See OvlFunc_5ec.
 .thumb_func_start OvlFunc_67c
 	push	{r5, lr}
 	mov	r0, #0xb
@@ -690,6 +802,8 @@
 	bx	r0
 .func_end OvlFunc_67c
 
+@ TrackBlockCEast
+@ Slot 0xC, bits 0x316 / 0x317, tile x 0x71 / 0x6F. See OvlFunc_5ec.
 .thumb_func_start OvlFunc_6c4
 	push	{r5, lr}
 	mov	r0, #0xc
@@ -721,6 +835,8 @@
 	bx	r0
 .func_end OvlFunc_6c4
 
+@ TrackBlockDEast
+@ Slot 0xD, bits 0x318 / 0x319, tile x 0x75 / 0x73. See OvlFunc_5ec.
 .thumb_func_start OvlFunc_70c
 	push	{r5, lr}
 	mov	r0, #0xd
@@ -754,6 +870,10 @@
 	bx	r0
 .func_end OvlFunc_70c
 
+@ TrackBlockEEast
+@ Slot 0xE, bits 0x31A / 0x31B, tile x 0x79 / 0x77. See OvlFunc_5ec.
+@ The six blocks sit on a regular grid: consecutive slots are 4 tiles apart and
+@ each owns the next pair of save bits, so slot N uses 0x310 + (N-9)*2.
 .thumb_func_start OvlFunc_754
 	push	{r5, lr}
 	mov	r0, #0xe
@@ -785,6 +905,11 @@
 	bx	r0
 .func_end OvlFunc_754
 
+@ FindBlockAtTile
+@ r0 = tile x, r1 = tile z. Scans map-object slots up to 0x41 and returns the
+@ first entity standing on that tile, or 0. The overlay's own cut-down version
+@ of the shared push-log helper: it compares whole tiles on both axes and does
+@ not check height, because every block in this map is on one floor.
 .thumb_func_start OvlFunc_79c
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc
@@ -814,6 +939,20 @@
 	bx	r1
 .func_end OvlFunc_79c
 
+@ TryPushBlock
+@ Takes no arguments. This overlay's block-push interaction, the same shape as
+@ OvlFunc_c4 in overlays/rom_780898/ovl_30.s but simpler: one tile, no
+@ footprint table, and no map-collision restamp.
+@
+@ Steps one tile along the player's facing through the table at .L265c, finds
+@ the block with OvlFunc_79c, sets its tile-type byte +0x22 to 2 so Func_120dc
+@ samples the right layer, and rejects the push if Func_120dc returns > 0.
+@ Otherwise: animation 8, fifteen frames, sound 0xB9, both block and player
+@ given speed 0x3333 and sent one tile with Func_d14c, Func_ca6c waits it out.
+@
+@ It then re-runs the position trackers for whichever arrangement this entrance
+@ uses -- slots 9 and 0xA for entrance 0x0B..0x0D, slots 9..0xE for 0x0E..0x10 --
+@ so the save bits stay current after every single push.
 .thumb_func_start OvlFunc_7d0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -940,6 +1079,9 @@
 	bx	r0
 .func_end OvlFunc_7d0
 
+@ Slot 0: the overlay's main entry, called once when the map loads.
+@ Dispatches on the area id and does nothing for any area but the two this
+@ overlay serves: area 0x13 -> OvlFunc_92c, area 0x10 -> OvlFunc_a24.
 .thumb_func_start OvlFunc_8f4
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -964,6 +1106,19 @@
 	bx	r1
 .func_end OvlFunc_8f4
 
+@ SetupArea13
+@ Takes no arguments. Map-load setup for area 0x13.
+@
+@ Sets save bit 0x144, then writes 0x20 to [iwram_1ebc]+0x1C0 as the scene's
+@ configured step delay. Three save bits then shape the room:
+@   0x814  registers OvlFunc_1ac8 as a task with Func_41d8 at priority 0xC80,
+@          and clears the word at .L269c that the task uses as its counter.
+@   0x879  four Func_10704 attribute copies around (5, 6) and (0, 1) -- the
+@          after-state of an earlier event, painted in without a cutscene.
+@   0x815  teleports slot 8 to (0x780000, 0xE80000) with Func_923e4 and lays
+@          in three more attribute rows at (2, 0xA).
+@ Each block repaints attributes only, never metatile indices, so the artwork
+@ is already correct in the map data and only collision needs fixing up.
 .thumb_func_start OvlFunc_92c
 	push	{r5, lr}
 	mov	r0, #0xa2
@@ -1068,6 +1223,19 @@
 	bx	r0
 .func_end OvlFunc_92c
 
+@ SetupArea10
+@ Takes no arguments. Map-load setup for area 0x10, and the busiest function in
+@ the overlay.
+@
+@ Writes 0x204 to [iwram_1ebc]+0x1C0 as the step delay. If save bit 0x814 is
+@ set it plays scene 0x8D through Func_91ff0, resets the map transition to
+@ 0x10000 on all three axes, and calls Func_9509c.
+@
+@ The body is a 16-entry jump table at .La78 on the entrance id at
+@ ewram_240+0x1C2, minus one. Seven of the sixteen entries go straight to the
+@ exit, so most entrances need no setup at all; the rest group into four
+@ handlers, which is why entrances 0x0B..0x0D and 0x0E..0x10 behave alike in
+@ the table slots above -- they share a jump-table target.
 .thumb_func_start OvlFunc_a24
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1ebc
@@ -1358,6 +1526,12 @@
 	bx	r0
 .func_end OvlFunc_a24
 
+@ Cutscene: a six-actor staged scene, roughly 240 instructions.
+@ Characterised structurally rather than beat by beat -- it is a straight-line
+@ script with no branching logic worth naming. Thirteen Func_924d4 animation
+@ changes, six Func_923e4 placements and five Func_92adc turns drive six slots
+@ resolved through Func_92054, with Func_9163c pauses between beats and speeds
+@ of 0x9999/0x4CCC throughout.
 .thumb_func_start OvlFunc_d1c
 	push	{r5, lr}
 	bl	__Func_916b0
@@ -1602,6 +1776,11 @@
 	bx	r0
 .func_end OvlFunc_d1c
 
+@ Cutscene: the overlay's largest scene, roughly 645 instructions.
+@ Thirty-seven Func_92adc turns and twenty-three animation changes across six
+@ slots, with eleven Func_93040 dialogue lines and ten Func_925cc formation
+@ changes -- so the party re-forms repeatedly as the conversation moves. Again
+@ straight-line script; the shape is the meaning.
 .thumb_func_start OvlFunc_f8c
 	push	{lr}
 	bl	__Func_916b0
@@ -2247,6 +2426,9 @@
 	bx	r0
 .func_end OvlFunc_f8c
 
+@ Cutscene: a shorter two-actor scene, roughly 150 instructions. Same
+@ vocabulary as OvlFunc_f8c at a fraction of the length -- four turns, three
+@ animation changes, two dialogue lines through Func_93040.
 .thumb_func_start OvlFunc_161c
 	push	{lr}
 	bl	__Func_916b0
@@ -2399,6 +2581,21 @@
 	bx	r0
 .func_end OvlFunc_161c
 
+@ RestoreBlockPuzzle
+@ r0 = nonzero to reposition the blocks as well as repaint. No return value.
+@
+@ Rebuilds the six-block puzzle's appearance from the save bits that
+@ OvlFunc_5ec..OvlFunc_754 maintain, so the room looks right on reload and
+@ after every push.
+@
+@ First it wipes the six marker columns: Func_10704 copies attribute source
+@ rows 0x64, 0x68, 0x6C, 0x70, 0x74, 0x78 -- four apart, matching the blocks'
+@ four-tile spacing -- into the 1x0x20 strip at (0x7A, 0x14). Then for each
+@ pair of bits it paints the occupied marker at x 0x79 instead, and when r0 is
+@ set also teleports the matching slot into place with Func_923e4.
+@
+@ Callers pass 0 from the trackers, where the entity is already where it
+@ belongs and only the marker needs redrawing, and nonzero from setup.
 .thumb_func_start OvlFunc_17c0
 	push	{r5, r6, r7, lr}
 	sub	sp, #8
@@ -2727,6 +2924,9 @@
 	bx	r0
 .func_end OvlFunc_17c0
 
+@ TalkMinor
+@ Takes no arguments. A one-line NPC: opens the cutscene frame, shows string
+@ 0x953 through Func_1776c, closes it. No conditions.
 .thumb_func_start OvlFunc_1aac
 	push	{lr}
 	bl	__Func_916b0
@@ -2738,6 +2938,14 @@
 	bx	r0
 .func_end OvlFunc_1aac
 
+@ ShakeTask
+@ The task OvlFunc_92c registers with Func_41d8 when save bit 0x814 is set.
+@ Runs every frame at priority 0xC80.
+@
+@ Uses the word at .L269c as its own counter and drives the map transition
+@ offsets through two Func_12330 calls, with sound via Func_f9080 and
+@ Func_4458 to unregister itself when done -- a background tremor that
+@ continues while the player has control, rather than a blocking cutscene.
 .thumb_func_start OvlFunc_1ac8
 	push	{r5, lr}
 	ldr	r5, =.L269c

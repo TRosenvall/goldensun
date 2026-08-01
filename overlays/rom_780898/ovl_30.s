@@ -1416,11 +1416,11 @@
 @   slot 5  OvlFunc_9e4    interaction table      -> none (returns 0)
 @
 @ Slots 3 and 4 are not constants: this map has three story states, selected by
-@ two save bits and one party-state halfword. They must agree, because slot 3's
-@ table is indexed against the object list slot 4 returns.
+@ two save bits, plus one case keyed on how the player arrived. They must agree,
+@ because slot 3's table is indexed against the object list slot 4 returns.
 @
 @   condition                                 slot 4     slot 3
-@   ewram_240+0x1C2 == 0x10                   --         .L6e48
+@   entrance id (ewram_240+0x1C2) == 0x10     --         .L6e48
 @   save bit 0x87A set                        .L7334     .L6cc8
 @   save bit 0x815 set                        .L7100     .L6ab8
 @   neither                                   .L6F38     .L68a8
@@ -1448,9 +1448,9 @@
 .func_end OvlFunc_9e8
 
 @ Slot 3: picks the table matching the map's story state. Checked in priority
-@ order -- the party-state halfword at ewram_240+0x1C2 first, then the two save
-@ bits newest-first -- so a later state wins over an earlier one. Must stay in
-@ step with slot 4 (OvlFunc_aa4).
+@ order -- the entrance id at ewram_240+0x1C2 first, then the two save bits
+@ newest-first -- so a later state wins over an earlier one. Must stay in step
+@ with slot 4 (OvlFunc_aa4).
 .thumb_func_start OvlFunc_9f0
 	push	{lr}
 	ldr	r3, =ewram_240
