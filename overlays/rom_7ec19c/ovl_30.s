@@ -232,6 +232,11 @@
 	bx	r0
 .func_end OvlFunc_1d4
 
+@ 13 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetPendingMessageId, PlaySound
 .thumb_func_start OvlFunc_21c
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -1048,6 +1053,12 @@
 	bx	r1
 .func_end OvlFunc_a54
 
+@ 81 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit, GetSlotEntityChecked x4
+@ sets 0x96f.
 .thumb_func_start OvlFunc_a78
 	push	{r5, r6, lr}
 	mov	r6, r10

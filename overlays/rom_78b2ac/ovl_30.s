@@ -30,6 +30,16 @@
 	bx	lr
 .func_end OvlFunc_4c
 
+@ 58 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_25b0, TestSaveBit, BeginCutscene, StartFadeOut
+@   WaitForFade, SetSaveBit, ClearSaveBit x2, TestSaveBit
+@   OvlFunc_9f4, OvlFunc_25b0, TestSaveBit, OvlFunc_1be8
+@   EndCutscene, TestSaveBit
+@   ... and 6 more
+@ reads save bits 0x200, 0x201, 0x80a, 0x811; sets 0x200, 0x201; clears 0x200, 0x201, 0x202.
 .thumb_func_start OvlFunc_54
 	push	{lr}
 	bl	OvlFunc_25b0
@@ -95,6 +105,13 @@
 	bx	r0
 .func_end OvlFunc_54
 
+@ 23 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, BeginCutscene, StartFadeOut, WaitForFade
+@   SetSaveBit, ClearSaveBit x2, EndCutscene
+@ reads save bit 0x200; sets 0x200; clears 0x201, 0x202.
 .thumb_func_start OvlFunc_108
 	push	{lr}
 	mov	r0, #0x80
@@ -122,6 +139,16 @@
 	bx	r0
 .func_end OvlFunc_108
 
+@ 50 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_25b0, TestSaveBit, BeginCutscene, StartFadeOut
+@   WaitForFade, SetSaveBit, ClearSaveBit x2, EndCutscene
+@   TestSaveBit, BeginCutscene, StartFadeOut, WaitForFade
+@   SetSaveBit, ClearSaveBit x2
+@   ... and 3 more
+@ reads save bits 0x200, 0x201, 0x80a; sets 0x200, 0x201; clears 0x200, 0x201, 0x202.
 .thumb_func_start OvlFunc_150
 	push	{lr}
 	bl	OvlFunc_25b0
@@ -178,6 +205,13 @@
 	bx	r0
 .func_end OvlFunc_150
 
+@ 19 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, StartFadeOut, WaitForFade, SetSaveBit
+@   ClearSaveBit x2
+@ reads save bit 0x202; sets 0x202; clears 0x200, 0x201.
 .thumb_func_start OvlFunc_1ec
 	push	{lr}
 	ldr	r0, =0x202
@@ -209,6 +243,13 @@
 	bx	lr
 .func_end OvlFunc_22c
 
+@ 57 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, CopyMapRectIndicesU, TestSaveBit, CopyMapRectIndicesU
+@   TestSaveBit, CopyMapRectIndicesU, TestSaveBit, CopyMapRectIndicesU
+@ reads save bits 0x80b, 0x80c, 0x80d, 0x80e.
 .thumb_func_start OvlFunc_238
 	push	{lr}
 	ldr	r0, =0x80b
@@ -273,6 +314,13 @@
 	bx	r0
 .func_end OvlFunc_238
 
+@ 57 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, CopyMapRectIndicesU, TestSaveBit, CopyMapRectIndicesU
+@   TestSaveBit, CopyMapRectIndicesU, TestSaveBit, CopyMapRectIndicesU
+@ reads save bits 0x826, 0x827, 0x828, 0x829.
 .thumb_func_start OvlFunc_2cc
 	push	{lr}
 	ldr	r0, =0x826
@@ -337,6 +385,13 @@
 	bx	r0
 .func_end OvlFunc_2cc
 
+@ 57 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, CopyMapRectIndicesU, TestSaveBit, CopyMapRectIndicesU
+@   TestSaveBit, CopyMapRectIndicesU, TestSaveBit, CopyMapRectIndicesU
+@ reads save bits 0x80b, 0x80c, 0x80d, 0x80e.
 .thumb_func_start OvlFunc_360
 	push	{lr}
 	ldr	r0, =0x80b
@@ -401,6 +456,13 @@
 	bx	r0
 .func_end OvlFunc_360
 
+@ 57 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, CopyMapRectIndicesU, TestSaveBit, CopyMapRectIndicesU
+@   TestSaveBit, CopyMapRectIndicesU, TestSaveBit, CopyMapRectIndicesU
+@ reads save bits 0x826, 0x827, 0x828, 0x829.
 .thumb_func_start OvlFunc_3f4
 	push	{lr}
 	ldr	r0, =0x826
@@ -1390,6 +1452,12 @@
 	bx	r0
 .func_end OvlFunc_c00
 
+@ 154 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random, PlaySound, CopyMapRectIndicesU x7, Random
+@   SetMapTransition x2
 .thumb_func_start OvlFunc_d9c
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -1567,6 +1635,11 @@
 	bx	r0
 .func_end OvlFunc_d9c
 
+@ 129 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random, PlaySound, CopyMapRectIndicesU x7, Random
 .thumb_func_start OvlFunc_ef8
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -1714,6 +1787,11 @@
 	.word	0
 .func_end OvlFunc_ef8
 
+@ 129 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random, PlaySound, CopyMapRectIndicesU x7, Random
 .thumb_func_start OvlFunc_101c
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -1861,6 +1939,11 @@
 	.word	0
 .func_end OvlFunc_101c
 
+@ 129 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random, PlaySound, CopyMapRectIndicesU x7, Random
 .thumb_func_start OvlFunc_1140
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -2009,6 +2092,16 @@
 	.pool
 .func_end OvlFunc_1140
 
+@ 106 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   MoveCameraTo, CopyMapRectIndicesU x4, MoveCameraTo, UpdateMapView
+@   PlaceSlotAt x2, Func_30f8, StartFadeOut, WaitForFade
+@   SetSaveBit, ClearSaveBit x2, ShowScreenOverlay, WaitSceneDelay
+@   DialogueWait, PlaySound
+@   ... and 5 more
+@ sets 0x201; clears 0x200, 0x202.
 .thumb_func_start OvlFunc_1264
 	push	{r5, r6, lr}
 	mov	r0, #1
@@ -2118,6 +2211,16 @@
 	bx	r0
 .func_end OvlFunc_1264
 
+@ 140 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_1264, SetActiveMessageId, TurnSlotToAngle
+@   PlayInteractionEffect, SetSlotFacingAndScript, MoveCameraTo, WaitForCameraArrival
+@   DialogueWait, OvlFunc_25fc, PlaySound, OvlFunc_238
+@   DialogueWait, PlaySound
+@   ... and 35 more
+@ message id 0x1018; sets 0x813.
 .thumb_func_start OvlFunc_1380
 	push	{r5, lr}
 	bl	__Func_916b0
@@ -2266,6 +2369,16 @@
 	bx	r0
 .func_end OvlFunc_1380
 
+@ 222 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_1264, SetActiveMessageId, TurnSlotToAngle
+@   PlayInteractionEffect, SetSlotFacingAndScript, MoveCameraTo, WaitForCameraArrival
+@   DialogueWait, OvlFunc_25fc, PlaySound, OvlFunc_238
+@   DialogueWait, PlaySound
+@   ... and 38 more
+@ message id 0x1001.
 .thumb_func_start OvlFunc_1510
 	push	{r5, lr}
 	sub	sp, #8
@@ -2500,6 +2613,16 @@
 	bx	r0
 .func_end OvlFunc_1510
 
+@ 253 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, TestSaveBit x2, ClearSaveBit, CopyMapRectIndicesU
+@   TestSaveBit x2, SetSaveBit, TestSaveBit x2, ClearSaveBit
+@   CopyMapRectIndicesU, TestSaveBit x2, SetSaveBit, TestSaveBit x2
+@   ClearSaveBit, CopyMapRectIndicesU
+@   ... and 54 more
+@ message id 0x1025; reads save bits 0x80b, 0x80c, 0x80d, 0x80e, 0x822; sets 0x826, 0x827, 0x828, 0x829; clears 0x826, 0x827, 0x828, 0x829.
 .thumb_func_start OvlFunc_1790
 	push	{r5, lr}
 	sub	sp, #8
@@ -3475,6 +3598,16 @@
 	bx	r0
 .func_end OvlFunc_1ca8
 
+@ 454 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Func_30f8, TestSaveBit x3, SetSaveBit, StartFadeIn
+@   TestSaveBit x3, StartFadeOut, WaitForFade, Func_30f8
+@   SetSaveBit, TestSaveBit, PlaceSlotAt, TestSaveBit
+@   OvlFunc_1380, SetSaveBit
+@   ... and 42 more
+@ reads save bits 0x109, 0x201, 0x202, 0x309, 0x809; sets 0x144, 0x200, 0x309, 0x812, 0x813; clears 0x80b, 0x80c, 0x80d, 0x80e.
 .thumb_func_start OvlFunc_2108
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -3963,6 +4096,12 @@
 	bx	r1
 .func_end OvlFunc_2108
 
+@ 26 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit x4
+@ reads save bits 0x80b, 0x80c, 0x80d, 0x80e.
 .thumb_func_start OvlFunc_25b0
 	push	{r5, lr}
 	ldr	r0, =0x80b
@@ -3996,6 +4135,11 @@
 	bx	r1
 .func_end OvlFunc_25b0
 
+@ 9 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   ShowMessageAndWait, DialogueWait
 .thumb_func_start OvlFunc_25fc
 	push	{r5, lr}
 	mov	r5, r1

@@ -25,6 +25,12 @@
 	bx	lr
 .func_end OvlFunc_44
 
+@ 19 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunMenuModalSimple, OpenTextBoxAt, Func_30f8, AreMessageBoxesIdle
+@   Func_30f8
 .thumb_func_start OvlFunc_4c
 	push	{r5, lr}
 	mov	r5, r0
@@ -49,6 +55,12 @@
 	bx	r0
 .func_end OvlFunc_4c
 
+@ 75 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OpenMenuById, RegisterCallback x3, OvlFunc_4c, Func_30f8
+@   RunMenuModalSimple, CloseWindow
 .thumb_func_start OvlFunc_7c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -265,6 +277,11 @@
 	bx	lr
 .func_end OvlFunc_23c
 
+@ 31 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunTextBoxModal, LevelCharacterUpTo x4, BuildCharacterSummary x4
 .thumb_func_start OvlFunc_244
 	push	{r5, lr}
 	ldr	r0, =0xc1a
@@ -299,6 +316,11 @@
 	bx	r0
 .func_end OvlFunc_244
 
+@ 588 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunTextBoxModal, FindUsableItem x191, BuildCharacterSummary x4
 .thumb_func_start OvlFunc_29c
 	push	{lr}
 	ldr	r0, =0xc1e
@@ -894,6 +916,13 @@
 	bx	r0
 .func_end OvlFunc_29c
 
+@ 232 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunTextBoxModal, GetStatusSlot x7, AddStatusEntry x7, GetStatusSlot x7
+@   AddStatusEntry x7, GetStatusSlot x7, AddStatusEntry x7, GetStatusSlot x6
+@   AddStatusEntry x6, BuildCharacterSummary x4
 .thumb_func_start OvlFunc_8c4
 	push	{lr}
 	ldr	r0, =0xc1d
@@ -1129,6 +1158,12 @@
 	bx	r0
 .func_end OvlFunc_8c4
 
+@ 64 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunTextBoxModal, ChangeHp x4, ChangePp x4, GetCombatantRecord x2
+@   BuildCharacterSummary x4
 .thumb_func_start OvlFunc_b10
 	push	{r5, r6, lr}
 	ldr	r0, =0xc1b
@@ -1196,6 +1231,11 @@
 	bx	r0
 .func_end OvlFunc_b10
 
+@ 116 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunTextBoxModal, FindUsableItem x34, BuildCharacterSummary x4
 .thumb_func_start OvlFunc_bb8
 	push	{lr}
 	ldr	r0, =0xc1f
@@ -1315,6 +1355,15 @@
 	bx	r0
 .func_end OvlFunc_bb8
 
+@ 206 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, OpenWindow x2, Func_30f8, SignedRem
+@   ReleaseWindowTiles, ReleaseWindowNodes, DrawTextScratchEntry, DrawNumberWide
+@   CountPartyInventory, DrawTextScratchEntry, GetAbilityRecord, DrawStringToBuffer
+@   DrawStringAt, ReleaseWindowTiles
+@   ... and 8 more
 .thumb_func_start OvlFunc_cf4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1545,6 +1594,11 @@
 	bx	r0
 .func_end OvlFunc_f08
 
+@ 147 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunTextBoxModal, FindUsableItem x44, BuildCharacterSummary x4
 .thumb_func_start OvlFunc_f14
 	push	{lr}
 	ldr	r0, =0xc1c
@@ -1695,6 +1749,12 @@
 	bx	r0
 .func_end OvlFunc_f14
 
+@ 74 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RemovePartyMember, AddPartyMember x3, NotifyItemUsed x14, LevelCharacterUpTo x4
+@   BuildCharacterSummary x4
 .thumb_func_start OvlFunc_10a8
 	push	{lr}
 	mov	r0, #5

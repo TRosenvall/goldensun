@@ -25,6 +25,11 @@
 	bx	lr
 .func_end OvlFunc_48
 
+@ 18 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, WalkSlotByAndWait, SetPendingMessageId, EndCutscene
 .thumb_func_start OvlFunc_50
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc
@@ -52,6 +57,16 @@
 	bx	lr
 .func_end OvlFunc_80
 
+@ 71 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_12f4, TestSaveBit x2, SetActiveMessageId
+@   ShowMessageAndWait, SetActiveMessageId, ShowMessageAndPause, OvlFunc_12f4
+@   DialogueWait, OvlFunc_12f4, ShowMessageAndPause, SetSlotAnimationAndWait
+@   DialogueWait, ShowMessageAndWait
+@   ... and 8 more
+@ message ids 0x1520, 0x1525; reads save bits 0x845, 0x84c; sets 0x84c.
 .thumb_func_start OvlFunc_88
 	push	{lr}
 	bl	__Func_916b0
@@ -130,6 +145,16 @@
 	bx	r0
 .func_end OvlFunc_88
 
+@ 80 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, TestSaveBit, OvlFunc_12f4, SetActiveMessageId
+@   ShowMessageAndWait, OvlFunc_12f4, TestSaveBit, OvlFunc_12f4
+@   SetActiveMessageId, ShowMessageAndWait, OvlFunc_12f4, FindInventorySlotInParty
+@   SetActiveMessageId, ShowMessageAndWait
+@   ... and 10 more
+@ message ids 0x14c9, 0x14eb, 0x151c; reads save bits 0x844, 0x845.
 .thumb_func_start OvlFunc_158
 	push	{lr}
 	bl	__Func_916b0
@@ -264,6 +289,13 @@
 	bx	r0
 .func_end OvlFunc_284
 
+@ 13 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, CloseMessageWindow, TestSaveBit, OvlFunc_2ec
+@   OvlFunc_488, EndCutscene
+@ reads save bit 0x844.
 .thumb_func_start OvlFunc_2c0
 	push	{lr}
 	bl	__Func_916b0
@@ -1785,6 +1817,12 @@
 	bx	r1
 .func_end OvlFunc_11e8
 
+@ 65 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, SpawnEntity, SetEntityAnimation, SetEntityMoveTarget
+@   SetEntityScript
 .thumb_func_start OvlFunc_1218
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1e40
@@ -1855,6 +1893,11 @@
 	bx	r0
 .func_end OvlFunc_1218
 
+@ 26 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_18b8, WaitForFade, OvlFunc_18b8, WaitForFade
 .thumb_func_start OvlFunc_12b4
 	push	{r5, lr}
 	ldr	r5, =.L1dd4
@@ -2125,6 +2168,11 @@
 	bx	r0
 .func_end OvlFunc_12f4
 
+@ 53 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RotateVector, FreeObjTiles, DestroyEntity
 .thumb_func_start OvlFunc_152c
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -2183,6 +2231,12 @@
 	bx	r0
 .func_end OvlFunc_152c
 
+@ 98 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, SpawnEntity, ValidateRidePair, SetEntityActorOptions
+@   SetEntityAnimation, UnsignedDiv
 .thumb_func_start OvlFunc_15a0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2333,6 +2387,11 @@
 	bx	r0
 .func_end OvlFunc_15a0
 
+@ 27 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   FindInventorySlotInParty, FindInventorySlot, GetCombatantRecord
 .thumb_func_start OvlFunc_172c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -2412,6 +2471,11 @@
 	bx	r0
 .func_end OvlFunc_1768
 
+@ 47 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv x3
 .thumb_func_start OvlFunc_17d0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

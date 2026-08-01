@@ -25,6 +25,12 @@
 	bx	lr
 .func_end OvlFunc_44
 
+@ 103 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectIndices x2, CopyMapRectAttributes, SetSlotAnimation, CopyMapRectIndices x2
+@   SetSlotAnimation, CopyMapRectIndices x2, SetSlotAnimation, CopyMapRectAttributes
 .thumb_func_start OvlFunc_4c
 	push	{r5, r6, r7, lr}
 	ldr	r7, =.L441c
@@ -188,6 +194,12 @@
 	bx	r0
 .func_end OvlFunc_178
 
+@ 64 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, GetSlotEntityChecked, GetTerrainHeight, CopyMapRectAttributes
+@   GetSlotEntityChecked, WriteSaveByte, CopyMapRectAttributes
 .thumb_func_start OvlFunc_1a8
 	push	{r5, lr}
 	sub	sp, #8
@@ -287,6 +299,15 @@
 	bx	r0
 .func_end OvlFunc_248
 
+@ 81 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit, GetSlotEntityChecked, BeginCutscene, SetCameraSpeed
+@   MoveCameraTo, SetEntityAnimation, WaitForCameraArrival, SetEntityMoveTarget
+@   GetSlotEntityChecked, SetEntityMoveTarget, WaitForEntityIdle, DialogueWait
+@   CopyMapRectAttributes, EndCutscene
+@ sets 0x301.
 .thumb_func_start OvlFunc_270
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -371,6 +392,13 @@
 	bx	r0
 .func_end OvlFunc_270
 
+@ 103 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, BeginCutscene, SetEntityMoveTarget, SetEntityAnimation
+@   SetEntityMoveTarget, SetEntityAnimation x2, PlaySound, WaitForEntityIdle
+@   SetEntityAnimation, PlaySound, EndCutscene
 .thumb_func_start OvlFunc_33c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -480,6 +508,12 @@
 	bx	r0
 .func_end OvlFunc_33c
 
+@ 42 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, CopyMapRectAttributes, OvlFunc_33c, GetSlotEntityChecked
+@   CopyMapRectAttributes
 .thumb_func_start OvlFunc_42c
 	push	{r5, r6, lr}
 	ldr	r3, =ewram_240
@@ -526,6 +560,12 @@
 	bx	r0
 .func_end OvlFunc_42c
 
+@ 77 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, CopyMapRectAttributes, OvlFunc_33c, GetSlotEntityChecked
+@   CopyMapRectAttributes
 .thumb_func_start OvlFunc_490
 	push	{r5, r6, r7, lr}
 	ldr	r3, =ewram_240

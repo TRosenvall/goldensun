@@ -211,6 +211,14 @@
 	bx	r0
 .func_end OvlFunc_1bc
 
+@ 37 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, TestSaveBit, SetActiveMessageId, ShowMessageAndWait
+@   SetSlotChaseTarget, SetActiveMessageId, ShowMessageAndPause, RunTextBoxModal
+@   ApplyFieldItemOrAbility, SetSaveBit, EndCutscene
+@ message ids 0x11a4, 0x11a6; reads save bit 0x81b; sets 0x81b.
 .thumb_func_start OvlFunc_1e8
 	push	{r5, lr}
 	bl	__Func_916b0
@@ -295,6 +303,13 @@
 	bx	r0
 .func_end OvlFunc_298
 
+@ 27 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, GetWaveField0, PlaySound, HideScreenOverlay
+@   WaitSceneDelay, SetPendingMessageId
+@ reads save bit 0x834.
 .thumb_func_start OvlFunc_2bc
 	push	{r5, lr}
 	mov	r5, r0
@@ -1700,6 +1715,11 @@
 	bx	r0
 .func_end OvlFunc_658
 
+@ 54 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   UnsignedRem, GetSlotEntityChecked x2, PlaceSlotAt, SetSlotScriptWithTurn
 .thumb_func_start OvlFunc_10c0
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1e40

@@ -115,6 +115,11 @@
 	.word	0
 .func_end OvlFunc_b0
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random x2, SetEntityAnimation, SetEntityScript
 .thumb_func_start OvlFunc_100
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -184,6 +189,12 @@
 	bx	r0
 .func_end OvlFunc_168
 
+@ 221 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Sin x2, GetSlotEntityChecked x4, Random x2, SpawnEntity
+@   SetEntityActorOptions, SetEntityAnimation
 .thumb_func_start OvlFunc_194
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1182,6 +1193,15 @@
 	bx	r0
 .func_end OvlFunc_430
 
+@ 231 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, CloseMessageWindow, WalkSlotToAndWait, TurnSlotToAngle
+@   DialogueWait, PlaySound, DialogueWait, PlaySound
+@   DialogueWait x2, RegisterTask, DialogueWait, PlaySound
+@   SetMapTransition, DialogueWait
+@   ... and 18 more
 .thumb_func_start OvlFunc_b34
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1796,6 +1816,11 @@
 	bx	r0
 .func_end OvlFunc_f80
 
+@ 68 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Func_48f4, RegisterTask x2
 .thumb_func_start OvlFunc_10d4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1868,6 +1893,11 @@
 	bx	r0
 .func_end OvlFunc_10d4
 
+@ 17 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   UnregisterTask x2
 .thumb_func_start OvlFunc_1188
 	push	{lr}
 	ldr	r0, =OvlFunc_f30
@@ -2000,6 +2030,11 @@
 	bx	r0
 .func_end OvlFunc_11c4
 
+@ 34 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Func_4970, CountFreeObjTiles, AllocObjTiles, RegisterTask
 .thumb_func_start OvlFunc_12ac
 	push	{r5, r6, lr}
 	mov	r0, #0x80

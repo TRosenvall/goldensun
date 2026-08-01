@@ -481,6 +481,16 @@
 	bx	r0
 .func_end OvlFunc_3b0
 
+@ 48 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetActiveMessageId, ShowMessageAndWait, TestSaveBit
+@   SetSaveBit, EndEncounterTransition, DialogueWait, PlayInteractionEffect
+@   FaceEntityInstant, ShowMessageAndWait, DialogueWait, SetSlotAnimationAndWait
+@   DialogueWait, ShowMessageAndWait
+@   ... and 2 more
+@ message id 0x2052; reads save bit 0x968; sets 0x968.
 .thumb_func_start OvlFunc_49c
 	push	{r5, lr}
 	mov	r5, r1
@@ -6090,6 +6100,15 @@
 	bx	r0
 .func_end OvlFunc_2014
 
+@ 71 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, PlaySound, SetSlotEntitySpeed, SetSlotAnimation
+@   ResumeTileAnimationChannel, DialogueWait, MoveSlotBy, ResumeTileAnimationChannel
+@   DialogueWait, WalkSlotThroughDoorway, ResumeTileAnimationChannel, DialogueWait
+@   WalkSlotThroughDoorway, DialogueWait
+@   ... and 3 more
 .thumb_func_start OvlFunc_3d40
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc
@@ -6167,6 +6186,12 @@
 	bx	r0
 .func_end OvlFunc_3d40
 
+@ 26 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetSlotEntitySpeed, PlaySound, PlayMapRectAnimation
+@   WalkSlotThroughDoorway, DialogueWait, SetPendingMessageId, EndCutscene
 .thumb_func_start OvlFunc_3df8
 	push	{lr}
 	bl	__Func_916b0
@@ -6455,6 +6480,16 @@
 	bx	r1
 .func_end OvlFunc_4034
 
+@ 260 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PauseTileAnimationChannel x3, SetSaveBit x3, ClearSaveBit, TestSaveBit x2
+@   PlaceSlotAt, GetSlotEntityChecked, Func_48b0, SetPortraitPointer
+@   AllocObjTiles, Func_2dd8, TestSaveBit, SetSaveBit
+@   PlaceSlotAt, OvlFunc_2014
+@   ... and 21 more
+@ reads save bits 0x950, 0x962, 0x966, 0x96f, 0xf31; sets 0x950, 0x962, 0x966, 0x967, 0x96f; clears 0x12f.
 .thumb_func_start OvlFunc_40b4
 	push	{r5, r6, r7, lr}
 	mov	r0, #1

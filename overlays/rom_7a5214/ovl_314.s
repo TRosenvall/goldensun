@@ -25,6 +25,16 @@
 	bx	lr
 .func_end OvlFunc_32c
 
+@ 141 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, TestSaveBit, CopyMapRectFull, SetSaveBit
+@   CopyMapRectFull, PlaySound, BeginCutscene, SetSceneTargetA
+@   SetSlotAnimation, GetSlotEntityChecked, SetEntityActorOptions, RunSlotEffectSequence
+@   DialogueWait, MoveCameraTo
+@   ... and 5 more
+@ sets 0x122.
 .thumb_func_start OvlFunc_334
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1321,6 +1331,13 @@
 	bx	r0
 .func_end OvlFunc_918
 
+@ 71 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, OvlFunc_918, Func_30f8, TestSaveBit
+@   CopyMapRectFull x2, CopyMapRectAttributes x2, CopyMapRectFull, CopyMapRectAttributes
+@ reads save bits 0x109, 0x844.
 .thumb_func_start OvlFunc_f58
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -1623,6 +1640,11 @@
 	bx	lr
 .func_end OvlFunc_1224
 
+@ 220 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv x9, Random
 .thumb_func_start OvlFunc_1244
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2027,6 +2049,11 @@
 	bx	r0
 .func_end OvlFunc_1424
 
+@ 58 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RotateVector, FreeObjTiles, DestroyEntity
 .thumb_func_start OvlFunc_15ac
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -2091,6 +2118,12 @@
 	bx	r0
 .func_end OvlFunc_15ac
 
+@ 110 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv, PlaySound, SpawnEntity, ValidateRidePair
+@   SetEntityActorOptions, SetEntityAnimation, UnsignedDiv x2, PlaySound
 .thumb_func_start OvlFunc_162c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

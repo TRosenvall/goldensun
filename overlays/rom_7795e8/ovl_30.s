@@ -31,6 +31,11 @@
 	bx	lr
 .func_end OvlFunc_4c
 
+@ 88 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   StartFadeOut, GetAsset, DecompressVariant, GetSlotEntityChecked
 .thumb_func_start OvlFunc_54
 	push	{r5, r6, lr}
 	mov	r0, #0
@@ -211,6 +216,11 @@
 	bx	r0
 .func_end OvlFunc_154
 
+@ 96 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound x2
 .thumb_func_start OvlFunc_1fc
 	push	{r5, r6, r7, lr}
 	ldr	r1, =.L16b2
@@ -451,6 +461,16 @@
 	bx	r1
 .func_end OvlFunc_384
 
+@ 920 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_54, RegisterTask, ShowScreenOverlay, WaitSceneDelay
+@   RunTextBoxModal, ShowConfirmPrompt, RunMenuModalSimple, RunTextBoxModal
+@   RunStatusPrompt, DialogueWait, HideScreenOverlay, PlaySound
+@   DialogueWait, SetSceneTargetA
+@   ... and 101 more
+@ reads save bit 0x952; sets 0x109, 0x13e, 0x13f, 0x17e; clears 0x106, 0x109.
 .thumb_func_start OvlFunc_3cc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1461,6 +1481,11 @@
 	bx	r1
 .func_end OvlFunc_3cc
 
+@ 51 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Func_4970, DecompressVariant, FreeScratch
 .thumb_func_start OvlFunc_cfc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1581,6 +1606,11 @@
 	bx	r0
 .func_end OvlFunc_d74
 
+@ 484 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, GetCombatantRecord x2, GetAbilityRecord, GetCombatantRecord
 .thumb_func_start OvlFunc_de4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

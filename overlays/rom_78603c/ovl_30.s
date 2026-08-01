@@ -1189,6 +1189,13 @@
 	bx	r0
 .func_end OvlFunc_964
 
+@ 19 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, PlaySound, PlayMapRectAnimation, WalkSlotTo
+@   SetPendingMessageId
+@ reads save bit 0x242.
 .thumb_func_start OvlFunc_ba8
 	push	{lr}
 	ldr	r0, =0x242
@@ -2609,6 +2616,13 @@
 	bx	r0
 .func_end OvlFunc_1760
 
+@ 24 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetSaveBit, LoadMapByIdAndEntrance, SetSaveBit
+@   EndCutscene
+@ sets 0x87d, 0x900.
 .thumb_func_start OvlFunc_19a4
 	push	{lr}
 	bl	__Func_916b0
@@ -2636,6 +2650,13 @@
 	bx	r0
 .func_end OvlFunc_19a4
 
+@ 24 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetSaveBit, LoadMapByIdAndEntrance, SetSaveBit
+@   EndCutscene
+@ sets 0x87e, 0x900.
 .thumb_func_start OvlFunc_19e8
 	push	{lr}
 	bl	__Func_916b0

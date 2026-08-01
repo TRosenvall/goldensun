@@ -1,5 +1,15 @@
 	.include "macros.inc"
 
+@ 410 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   ClearSaveBit, CopyMapRectFull x3, CopyMapRectAttributes, CopyMapRectFull x5
+@   CopyMapRectAttributes, CopyMapRectFull x3, CopyMapRectAttributes, CopyMapRectFull
+@   CopyMapRectAttributes, CopyMapRectFull x5, CopyMapRectAttributes, CopyMapRectFull x3
+@   CopyMapRectIndices x3, CopyMapRectAttributes x4
+@   ... and 5 more
+@ clears 0x201.
 .thumb_func_start OvlFunc_4e4
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -419,6 +429,16 @@
 	bx	r1
 .func_end OvlFunc_4e4
 
+@ 408 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   ClearSaveBit, SetSaveBit, CopyMapRectFull x3, CopyMapRectAttributes
+@   CopyMapRectFull x5, CopyMapRectAttributes, CopyMapRectFull x3, CopyMapRectAttributes
+@   CopyMapRectFull, CopyMapRectAttributes, CopyMapRectFull x5, CopyMapRectAttributes
+@   CopyMapRectFull x3, PlaceSlotAt x5
+@   ... and 10 more
+@ reads save bit 0x90a; sets 0x201; clears 0x200.
 .thumb_func_start OvlFunc_88c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -837,6 +857,11 @@
 	bx	r1
 .func_end OvlFunc_88c
 
+@ 17 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetFollowerFormationAndRefresh, SetSpawnPositionA, LoadMapByIdAndEntrance
 .thumb_func_start OvlFunc_c38
 	push	{lr}
 	mov	r0, #8
@@ -857,6 +882,12 @@
 	bx	r0
 .func_end OvlFunc_c38
 
+@ 38 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random, TestSaveBit, SetSaveBit, BeginCutscene
+@   SetActiveMessageId, ShowMessageAndWait, EndCutscene
 .thumb_func_start OvlFunc_c6c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -901,6 +932,15 @@
 	bx	r0
 .func_end OvlFunc_c6c
 
+@ 113 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv, TestSaveBit x2, ClearSaveBit x4, TestSaveBit
+@   ClearSaveBit x4, TestSaveBit, ClearSaveBit x4, TestSaveBit
+@   SetSaveBit, TestSaveBit, SetSaveBit, TestSaveBit
+@   SetSaveBit
+@ reads save bits 0x201, 0x300, 0x301, 0x302; sets 0x300, 0x301, 0x302; clears 0x300, 0x301, 0x302, 0x303, 0x304.
 .thumb_func_start OvlFunc_cd0
 	push	{r5, r6, lr}
 	ldr	r0, =0x232
@@ -1289,6 +1329,12 @@
 	bx	r0
 .func_end OvlFunc_e2c
 
+@ 129 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, Random, OvlFunc_common0_10c, Random x2
+@   OvlFunc_common0_10c
 .thumb_func_start OvlFunc_1054
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1596,6 +1642,14 @@
 	bx	r0
 .func_end OvlFunc_1180
 
+@ 184 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_1054, GetSlotEntityChecked, CheckTerrainStep, Random x3
+@   OvlFunc_common0_10c, RunSlotEffectSequence, SetEntityMoveTarget, SetEntityAnimation
+@   WaitForEntityIdle, Func_30f8, SetEntityAnimation, Func_30f8
+@   CheckTerrainStep x3
 .thumb_func_start OvlFunc_12fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1953,6 +2007,12 @@
 	bx	r0
 .func_end OvlFunc_14b0
 
+@ 242 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_1c1c, RegisterTask, CopyMapRectFull x19, StartLoopingSound
+@   CopyMapRectFull x3, OvlFunc_4e4
 .thumb_func_start OvlFunc_1638
 	push	{r5, lr}
 	ldr	r0, =ewram_240
@@ -2204,6 +2264,11 @@
 	bx	r1
 .func_end OvlFunc_1638
 
+@ 19 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSlotEntitySpeed, SetSlotAnimation, WalkSlotToAndWait, SetSlotAnimation
 .thumb_func_start OvlFunc_1874
 	push	{lr}
 	mov	r1, #0x80

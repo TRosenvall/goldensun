@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 8 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   ClearSaveBit, SetSlotScriptWithTurn
+@ clears 0x205.
 .thumb_func_start OvlFunc_1150
 	push	{lr}
 	ldr	r0, =0x205
@@ -12,6 +18,12 @@
 	bx	r0
 .func_end OvlFunc_1150
 
+@ 23 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetSaveBit, SetSlotScriptWithTurn x2
+@ sets 0x205.
 .thumb_func_start OvlFunc_116c
 	push	{r5, lr}
 	mov	r0, #0
@@ -41,6 +53,12 @@
 	bx	r0
 .func_end OvlFunc_116c
 
+@ 28 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetFollowerFormationAndRefresh, DialogueWait, SetSpawnPositionA
+@   LoadMapByIdAndEntrance, EndCutscene
 .thumb_func_start OvlFunc_11b4
 	push	{lr}
 	bl	__Func_916b0

@@ -1262,6 +1262,11 @@
 	bx	lr
 .func_end OvlFunc_9dc
 
+@ 39 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, SetEntityActorOptions, SetActorPartsPalette, SetEntityActorPriority
 .thumb_func_start OvlFunc_9f4
 	push	{r5, r6, lr}
 	mov	r4, r0
@@ -1306,6 +1311,11 @@
 	bx	r1
 .func_end OvlFunc_9f4
 
+@ 46 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, SetEntityActorOptions, SetActorPartsPalette
 .thumb_func_start OvlFunc_a4c
 	push	{r5, r6, lr}
 	mov	r4, r0
@@ -1387,6 +1397,12 @@
 	bx	lr
 .func_end OvlFunc_ab0
 
+@ 220 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SpawnEntity, SetEntityAnimation, SetEntityScript
+@   SetActorPartsPalette, SignedDiv x3, SetEntityAnimation, SetEntityScript
 .thumb_func_start OvlFunc_ae8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2087,6 +2103,11 @@
 	bx	r0
 .func_end OvlFunc_1030
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_c4, OvlFunc_1030, EndCutscene
 .thumb_func_start OvlFunc_10f4
 	push	{lr}
 	bl	__Func_916b0
@@ -2097,6 +2118,11 @@
 	bx	r0
 .func_end OvlFunc_10f4
 
+@ 32 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x3, OvlFunc_10f4, DialogueChoiceA
 .thumb_func_start OvlFunc_110c
 	push	{r5, lr}
 	mov	r0, #9
@@ -2136,6 +2162,11 @@
 	bx	r0
 .func_end OvlFunc_110c
 
+@ 17 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   MoveCameraTo, PlayLevitateSequence, HideScreenOverlay, WaitSceneDelay
 .thumb_func_start OvlFunc_1158
 	push	{lr}
 	mov	r0, #1
@@ -2156,6 +2187,11 @@
 	bx	r0
 .func_end OvlFunc_1158
 
+@ 8 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_1158, SetPendingMessageId, EndCutscene
 .thumb_func_start OvlFunc_1184
 	push	{lr}
 	bl	__Func_916b0
@@ -2167,6 +2203,12 @@
 	bx	r0
 .func_end OvlFunc_1184
 
+@ 15 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_9f4, OvlFunc_1158, SetPendingMessageId
+@   EndCutscene
 .thumb_func_start OvlFunc_119c
 	push	{lr}
 	bl	__Func_916b0
@@ -2185,6 +2227,12 @@
 	bx	r0
 .func_end OvlFunc_119c
 
+@ 22 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_9f4 x2, OvlFunc_1158, SetPendingMessageId
+@   EndCutscene
 .thumb_func_start OvlFunc_11c4
 	push	{lr}
 	bl	__Func_916b0
@@ -2210,6 +2258,11 @@
 	bx	r0
 .func_end OvlFunc_11c4
 
+@ 8 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_1158, SetPendingMessageId, EndCutscene
 .thumb_func_start OvlFunc_11fc
 	push	{lr}
 	bl	__Func_916b0
@@ -2221,6 +2274,11 @@
 	bx	r0
 .func_end OvlFunc_11fc
 
+@ 11 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetSlotAnimation, RunTextBoxModal, EndCutscene
 .thumb_func_start OvlFunc_1214
 	push	{lr}
 	bl	__Func_916b0
@@ -4044,6 +4102,12 @@
 	bx	r0
 .func_end OvlFunc_1b10
 
+@ 28 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, CopyMapRectIndices x2
+@ reads save bit 0x985.
 .thumb_func_start OvlFunc_246c
 	push	{lr}
 	ldr	r0, =0x985
@@ -4094,6 +4158,14 @@
 	bx	r0
 .func_end OvlFunc_24b0
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, SetSaveBit, PlaySound, BeginCutscene
+@   MoveSlotTo x2, WaitForSlotArrival x2, CopyMapRectAttributes, EndCutscene
+@   TestSaveBit, OvlFunc_1b10
+@ reads save bits 0x985, 0x989; sets 0x985.
 .thumb_func_start OvlFunc_24d0
 	push	{lr}
 	ldr	r0, =0x985
@@ -4141,6 +4213,14 @@
 	bx	r0
 .func_end OvlFunc_24d0
 
+@ 47 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, ClearSaveBit, PlaySound, BeginCutscene
+@   MoveSlotTo x2, WaitForSlotArrival x2, CopyMapRectAttributes, EndCutscene
+@   TestSaveBit, ClearSaveBit, SetSaveBit
+@ reads save bits 0x301, 0x985; sets 0x301; clears 0x301, 0x985.
 .thumb_func_start OvlFunc_2548
 	push	{lr}
 	ldr	r0, =0x985
@@ -4193,6 +4273,14 @@
 	bx	r0
 .func_end OvlFunc_2548
 
+@ 53 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, TestSaveBit, RunTextBoxModal, PlaySound
+@   CopyMapRectIndices, DialogueWait, CopyMapRectIndices, DialogueWait
+@   OvlFunc_24d0, SetActiveMessageId, ShowMessageAndWait, EndCutscene
+@ message id 0x2756; reads save bit 0x985.
 .thumb_func_start OvlFunc_25c8
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1ebc
@@ -4293,6 +4381,11 @@
 	bx	lr
 .func_end OvlFunc_26a8
 
+@ 32 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, CopyMapRectAttributes
 .thumb_func_start OvlFunc_26b8
 	push	{lr}
 	mov	r0, #0xc
@@ -4361,6 +4454,12 @@
 	bx	r0
 .func_end OvlFunc_26fc
 
+@ 45 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_2660, DialogueChoiceB, DialogueChoiceA
+@   OvlFunc_26fc
 .thumb_func_start OvlFunc_2738
 	push	{r5, lr}
 	mov	r0, #0
@@ -4445,6 +4544,12 @@
 	bx	r1
 .func_end OvlFunc_27a0
 
+@ 19 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, Func_30f8, SetSaveBit
+@ sets 0x300.
 .thumb_func_start OvlFunc_27f4
 	push	{lr}
 	sub	sp, #8
@@ -4467,6 +4572,12 @@
 	bx	r0
 .func_end OvlFunc_27f4
 
+@ 56 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetSlotDrawPriority x2, CopyMapRectAttributes x3, GetSlotEntityChecked
+@   CopyMapRectAttributes
 .thumb_func_start OvlFunc_2820
 	push	{r5, r6, lr}
 	mov	r0, #8

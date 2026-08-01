@@ -83,6 +83,13 @@
 	bx	r0
 .func_end OvlFunc_2e08
 
+@ 106 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetEntityActorOptions, SetSlotPalette, PlaySound
+@   OvlFunc_3bd4, PlaySound, Random x3, OvlFunc_common0_10c
+@   Func_30f8
 .thumb_func_start OvlFunc_2e6c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

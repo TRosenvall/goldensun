@@ -30,6 +30,11 @@
 	bx	r0
 .func_end OvlFunc_324
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, Random, OvlFunc_common0_10c
 .thumb_func_start OvlFunc_344
 	push	{r5, r6, r7, lr}
 	ldr	r5, =iwram_1e40
@@ -179,6 +184,13 @@
 	bx	r1
 .func_end OvlFunc_41c
 
+@ 21 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, TestSaveBit x2, SetSaveBit x2, PlaySound
+@   SetPendingMessageId, EndCutscene
+@ reads save bits 0x8b2, 0x8b3; sets 0x8b2, 0x8b3.
 .thumb_func_start OvlFunc_498
 	push	{lr}
 	bl	__Func_916b0

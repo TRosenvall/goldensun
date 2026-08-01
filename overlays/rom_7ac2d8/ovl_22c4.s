@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, Random, OvlFunc_3b24
 .thumb_func_start OvlFunc_22c4
 	push	{r5, lr}
 	mov	r0, #9
@@ -39,6 +44,16 @@
 	bx	r1
 .func_end OvlFunc_2304
 
+@ 179 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_758, OvlFunc_8ec, SetSaveBit
+@   ClearSaveBit, GetSlotEntityChecked, OvlFunc_8ec, SetSaveBit
+@   ClearSaveBit x2, OvlFunc_21cc, OvlFunc_2030 x2, OvlFunc_1db4
+@   SetSaveBit, ClearSaveBit x2
+@   ... and 30 more
+@ sets 0x318, 0x319, 0x31a, 0x31b, 0x877; clears 0x318, 0x319, 0x31a, 0x31b.
 .thumb_func_start OvlFunc_2318
 	push	{r5, r6, lr}
 	sub	sp, #0x20
@@ -235,6 +250,11 @@
 	bx	r0
 .func_end OvlFunc_2318
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_3a8, OvlFunc_251c, EndCutscene
 .thumb_func_start OvlFunc_2504
 	push	{lr}
 	bl	__Func_916b0
@@ -245,6 +265,15 @@
 	bx	r0
 .func_end OvlFunc_2504
 
+@ 92 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked, SetSaveBit, ClearSaveBit
+@   SetSaveBit, ClearSaveBit x3, GetSlotEntityChecked, SetSaveBit x2
+@   ClearSaveBit, CopyMapRectAttributes, ClearSaveBit x2, CopyMapRectAttributes
+@   EndCutscene
+@ sets 0x338, 0x339; clears 0x338, 0x339.
 .thumb_func_start OvlFunc_251c
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -350,6 +379,13 @@
 	bx	r0
 .func_end OvlFunc_251c
 
+@ 29 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked, SetSaveBit, CopyMapRectAttributes
+@   EndCutscene
+@ sets 0x348.
 .thumb_func_start OvlFunc_2600
 	push	{lr}
 	sub	sp, #8

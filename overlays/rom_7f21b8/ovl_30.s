@@ -434,6 +434,16 @@
 	bx	r0
 .func_end OvlFunc_308
 
+@ 39 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit, BeginCutscene, CloseMessageWindow, DialogueWait
+@   MoveCameraTo, WaitForCameraArrival, DialogueWait, SetActiveMessageId
+@   ShowMessageAndWait, DialogueWait, FaceEntityInstant, DialogueWait
+@   SetSlotAnimationAndWait, DialogueWait
+@   ... and 1 more
+@ message id 0x288b; sets 0x9bc.
 .thumb_func_start OvlFunc_3f4
 	push	{lr}
 	ldr	r0, =0x9bc
@@ -491,6 +501,11 @@
 	bx	r0
 .func_end OvlFunc_468
 
+@ 13 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetPendingMessageId, PlaySound
 .thumb_func_start OvlFunc_48c
 	push	{lr}
 	ldr	r3, =iwram_1ebc

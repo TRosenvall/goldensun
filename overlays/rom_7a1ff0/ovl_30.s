@@ -1273,6 +1273,11 @@
 	bx	lr
 .func_end OvlFunc_9f0
 
+@ 22 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_474, OvlFunc_608, EndCutscene
 .thumb_func_start OvlFunc_9f8
 	push	{r5, lr}
 	sub	sp, #0x20
@@ -1299,6 +1304,13 @@
 	bx	r0
 .func_end OvlFunc_9f8
 
+@ 17 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, PlaceSlotAt, SetSaveBit, UpdateObjectProximity
+@   ApplyFieldItemOrAbility, EndCutscene
+@ sets 0xfd3.
 .thumb_func_start OvlFunc_a2c
 	push	{lr}
 	bl	__Func_916b0
@@ -1325,6 +1337,13 @@
 	bx	lr
 .func_end OvlFunc_a60
 
+@ 29 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, OvlFunc_cb4, OvlFunc_8c0 x3, TestSaveBit
+@   OvlFunc_abc
+@ reads save bits 0x845, 0xfd3.
 .thumb_func_start OvlFunc_a68
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -1407,6 +1426,11 @@
 	bx	r0
 .func_end OvlFunc_abc
 
+@ 47 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv x3
 .thumb_func_start OvlFunc_b24
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1535,6 +1559,11 @@
 	bx	r0
 .func_end OvlFunc_c0c
 
+@ 46 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Sin, Cos x2, Random x2
 .thumb_func_start OvlFunc_c4c
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -1586,6 +1615,13 @@
 	bx	r1
 .func_end OvlFunc_c4c
 
+@ 97 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetEntityActorOptions, TestSaveBit, Func_48b0
+@   SetPortraitPointer, AllocObjTiles, Func_2dd8
+@ reads save bit 0x109.
 .thumb_func_start OvlFunc_cb4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

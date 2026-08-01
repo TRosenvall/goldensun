@@ -1518,6 +1518,12 @@
 	bx	r1
 .func_end OvlFunc_ddc
 
+@ 65 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_ddc, CopyMapRectAttributes, SetEntityAnimation
+@   CopyMapRectIndicesU x2
 .thumb_func_start OvlFunc_ec8
 	push	{r5, r6, r7, lr}
 	sub	sp, #0x30
@@ -1590,6 +1596,12 @@
 	bx	r1
 .func_end OvlFunc_ec8
 
+@ 53 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_ddc, CopyMapRectAttributes, OvlFunc_528
+@   SetEntityAnimation
 .thumb_func_start OvlFunc_f58
 	push	{r5, r6, r7, lr}
 	sub	sp, #0x30
@@ -1731,6 +1743,12 @@
 	bx	r0
 .func_end OvlFunc_101c
 
+@ 117 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetEntityActorOptions, GetTerrainHeight x2, OvlFunc_common0_18
+@   OvlFunc_da8, DestroyEntity
 .thumb_func_start OvlFunc_1074
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1894,6 +1912,11 @@
 	bx	r0
 .func_end OvlFunc_1174
 
+@ 69 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, Random x3, SignedDiv, OvlFunc_common0_10c
 .thumb_func_start OvlFunc_11c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1967,6 +1990,15 @@
 	bx	r0
 .func_end OvlFunc_11c4
 
+@ 143 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, RotateVector, CheckTerrainStep, OvlFunc_350
+@   RotateVector, OvlFunc_350, CheckTerrainStep, BeginCutscene
+@   SetEntityAnimation, Func_30f8, PlaySound, SetEntityAnimation
+@   SetEntityActorOptions, MoveSlotToAndWait
+@   ... and 3 more
 .thumb_func_start OvlFunc_1268
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2115,6 +2147,11 @@
 	bx	r1
 .func_end OvlFunc_1268
 
+@ 56 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv x3
 .thumb_func_start OvlFunc_13b0
 	push	{r5, r6, lr}
 	mov	r6, r10

@@ -334,6 +334,15 @@
 	bx	r0
 .func_end OvlFunc_2cc
 
+@ 73 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, PlaySound, ResumeTileAnimationChannel x2, BeginCutscene
+@   DialogueWait, SetSlotEntitySpeed, SetSlotAnimation, MoveSlotBy
+@   WalkSlotThroughDoorway, DialogueWait, SetPendingMessageId, EndCutscene
+@   PauseTileAnimationChannel x2
+@ reads save bit 0x200.
 .thumb_func_start OvlFunc_338
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1ebc
@@ -534,6 +543,14 @@
 	bx	r0
 .func_end OvlFunc_4c0
 
+@ 44 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, ApplyObjectToSlot, ApplyFieldItemOrAbility, SetSlotAnimation
+@   SetSaveBit x2, ClearSaveBit x2, PlaySound, SetSlotAnimation
+@   DestroyEntity, EndCutscene
+@ sets 0x84e; clears 0x202, 0x322.
 .thumb_func_start OvlFunc_4ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -583,6 +600,14 @@
 	bx	r0
 .func_end OvlFunc_4ec
 
+@ 49 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit x2, BeginCutscene, PlayInteractionEffect, TurnSlotToAngle
+@   SetFollowerFormationAndRefresh, DialogueWait, SetActiveMessageId, ShowMessageAndWait
+@   SetSlotEntitySpeed, WalkSlotToAndWait, TurnSlotToAngle, EndCutscene
+@ message id 0x1748; reads save bits 0x322, 0x84e.
 .thumb_func_start OvlFunc_568
 	push	{lr}
 	ldr	r0, =0x84e
@@ -2552,6 +2577,11 @@
 	bx	r0
 .func_end OvlFunc_179c
 
+@ 18 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TurnSlotToAngle x3
 .thumb_func_start OvlFunc_1958
 	push	{lr}
 	mov	r1, #0xe0
@@ -2573,6 +2603,11 @@
 	bx	r0
 .func_end OvlFunc_1958
 
+@ 18 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TurnSlotToAngle x3
 .thumb_func_start OvlFunc_1984
 	push	{lr}
 	mov	r1, #0xc0
