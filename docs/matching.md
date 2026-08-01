@@ -594,3 +594,59 @@ answer.
 Do not spend permuter time on functions in the 810. No C input and no source
 permutation reaches an instruction the compiler cannot emit or a register it
 will not allocate. Filter targets against both lists first.
+
+## RESOLVED: the register-offset obstacle is one line of agbcc
+
+The largest obstacle in this project turned out to be a single condition in
+agbcc's `gcc/thumb.h`.
+
+`GO_IF_LEGITIMATE_ADDRESS` accepts REG+REG addresses, but gates the clause on
+`reload_completed` -- so the form only becomes legal after register allocation
+has already finished, and is therefore never chosen. agbcc never emits
+`ldr rD, [rB, rI]` at all. The ROM uses it in 768 functions.
+
+Deleting `&& reload_completed` fixes it. See `tools/agbcc-regoffset.patch`.
+
+Measured:
+
+| check | result |
+|---|---|
+| agbcc builds with the gate lifted | yes, no ICEs |
+| the 80 existing C files (161 functions) | **byte-identical output, zero regressions** |
+| a previously-blocked function | reaches the ROM's instruction sequence |
+
+`Func_2f40` is the clearest demonstration:
+
+    ROM              stock agbcc            gate-lifted
+    ldr r3,=Data     ldr r1,.L3             ldr r1,.L3
+    lsl r0,#2        lsl r0,#2              lsl r0,#2
+    ldr r0,[r3,r0]   add r0,r0,r1           ldr r0,[r1,r0]
+    bx  lr           ldr r0,[r0]            bx  lr
+                     bx  lr
+
+Same instructions; only the register allocation differs, which is the ordinary
+kind of gap a pin closes.
+
+### What this does and does not settle
+
+It removes the obstacle blocking 768 of 2038 remaining functions. It says
+nothing about the other two differences -- lr allocation (117 functions) and
+constant materialisation -- which are separate and still open.
+
+It also does not prove agbcc is "wrong". The upstream `???` comment invited
+exactly this experiment, and the surrounding text explains the gate exists
+because REG+REG is not offsettable and reload could not express that. Lifting it
+is safe **for this project's inputs**; that is all that was measured. Anyone
+reusing the patch should re-run their own regression check.
+
+### How this fits the compiler question
+
+The pret Discord suggests Camelot compiled their own GCC 2.9 rather than using
+the SDK branch agbcc reconstructs. That fits: `gcc/thumb.h` and `gcc/thumb.c`
+contain **zero** Nintendo/AGB markers, so the limitation is upstream-of-the-
+snapshot rather than something Nintendo introduced. A build from different
+sources -- or with this gate absent -- would behave exactly as the ROM does.
+
+Modern `arm-none-eabi-gcc` emits the form freely at every optimisation level,
+confirming it is standard ARM-backend behaviour that this 2000-05-12 snapshot
+happened not to reach.

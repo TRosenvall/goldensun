@@ -1,0 +1,46 @@
+Enable Thumb register-offset addressing in agbcc.
+
+agbcc's GO_IF_LEGITIMATE_ADDRESS accepts REG+REG addresses but gates the whole
+clause on `reload_completed`, so by the time the pattern is legal register
+allocation has already finished and the form is never chosen. The result is that
+agbcc NEVER emits `ldr rD, [rB, rI]`. Golden Sun's original compiler uses it in
+768 functions -- 36% of the ROM -- which made those functions unreachable.
+
+Removing the gate makes agbcc emit the form. Measured on this project:
+
+  * builds cleanly, no ICEs
+  * all 80 C files (161 functions) already matching compile BYTE-IDENTICAL,
+    so it is a safe drop-in with zero regressions
+  * previously-blocked functions now reach the ROM's instruction sequence,
+    e.g. Func_2f40 goes from
+        ldr r1,.L3 / lsl r0,#2 / add r0,r0,r1 / ldr r0,[r0]     (4 insns, wrong)
+    to
+        ldr r1,.L3 / lsl r0,#2 / ldr r0,[r1,r0]                 (matches the ROM
+    shape; only the register differs, which a pin fixes)
+
+The upstream `???` comment above the gate says the author was unsure it was
+right and invited experiment; the surrounding text explains the gate exists
+because REG+REG is not offsettable and reload could not express that. Whether
+lifting it is safe in general is NOT established here -- only that it is safe
+for this project's inputs. Anyone reusing this should re-run their own
+regression check before trusting it.
+
+Apply against a checkout of https://github.com/pret/agbcc :
+
+    cd agbcc && patch -p0 < /path/to/agbcc-regoffset.patch && ./build.sh
+
+Note build.sh uses -j1 deliberately; a parallel make races on the generated
+genrtl.h and fails.
+
+--- gcc/thumb.h
++++ gcc/thumb.h
+@@ -863,8 +863,7 @@
+ 	 will be replaced with STACK, and SP relative addressing only   \
+ 	 permits SP+OFFSET.  */						\
+       if (GET_MODE_SIZE (MODE) <= 4					\
+-	  /* ??? See comment above.  */					\
+-	  && reload_completed						\
++	  /* ??? See comment above.  Gate lifted; see project notes.  */	\
+ 	  && GET_CODE (XEXP (X, 0)) == REG				\
+ 	  && GET_CODE (XEXP (X, 1)) == REG				\
+ 	  && XEXP (X, 0) != frame_pointer_rtx				\
