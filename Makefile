@@ -6,7 +6,11 @@ OVERLAYS := $(patsubst %.ld,%.bin,$(wildcard overlays/*/overlay.ld))
 # 1. Enable 'pipefail' so Make catches errors anywhere in the command chain
 SHELL := /bin/bash
 .SHELLFLAGS := -o pipefail -c
-CC1 := tools/agbcc/bin/agbcc
+# agbcc-gs is our own build of agbcc with Thumb register-offset addressing
+# enabled -- see tools/agbcc-gs/README.md. Stock agbcc is left untouched at
+# tools/agbcc/bin/agbcc so this project cannot disturb an agbcc installation
+# another project depends on.
+CC1 := tools/agbcc-gs/bin/agbcc-gs
 CPP := arm-none-eabi-cpp
 AS := arm-none-eabi-as
 GBA_CPPFLAGS := -Iinclude -nostdinc -undef -std=gnu89

@@ -605,7 +605,10 @@ agbcc's `gcc/thumb.h`.
 has already finished, and is therefore never chosen. agbcc never emits
 `ldr rD, [rB, rI]` at all. The ROM uses it in 768 functions.
 
-Deleting `&& reload_completed` fixes it. See `tools/agbcc-regoffset.patch`.
+Deleting `&& reload_completed` fixes it. The patched compiler is checked in as
+**`tools/agbcc-gs/`** and the build uses it; stock agbcc at `tools/agbcc/` is
+left untouched so this project cannot disturb an agbcc installation another
+project depends on. See `tools/agbcc-gs/README.md`.
 
 Measured:
 
