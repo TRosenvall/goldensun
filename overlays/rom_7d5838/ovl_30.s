@@ -1,20 +1,45 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Overlay 0x7d5838 -- a town with shops, a cluster of villagers, and a
+@ WARP-POINT TABLE.
+@
+@ Slot 0  OvlFunc_3dc  map-load entry
+@ Slot 1  OvlFunc_30   edge transitions   -> .Lbb4
+@ Slot 2  OvlFunc_3c   map event list     -> .Ldac
+@ Slot 3  OvlFunc_44   read after slot 4  -> save bit 0x950: .L1040, else .Le00
+@ Slot 4  OvlFunc_64   map objects        -> three variants
+@ Slot 5  OvlFunc_38   interactions       -> none (returns 0)
+@
+@ Two save bits stage the town: 0x950 is the later marker, 0x962 an
+@ intermediate one, and slot 4 tests both -- .L19d0 / .L1670 / .L1310 newest
+@ first. Every counter below is additionally gated on 0x962, so the shops open
+@ only in the middle state onward.
+@
+@ The counters here use the facing arc at a THIRD offset, `facing + 0xC000`,
+@ rather than the -0xA001 and +0x5FFF seen elsewhere; the arc is the same size,
+@ just rotated for counters approached from a different side.
+@ ============================================================================
+
+@ Slot 1: edge-transition table.
 .thumb_func_start OvlFunc_30
 	ldr	r0, =.Lbb4
 	bx	lr
 .func_end OvlFunc_30
 
+@ Slot 5: interaction table -- none.
 .thumb_func_start OvlFunc_38
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_38
 
+@ Slot 2: map event list.
 .thumb_func_start OvlFunc_3c
 	ldr	r0, =.Ldac
 	bx	lr
 .func_end OvlFunc_3c
 
+@ Slot 3: save bit 0x950 selects the later table.
 .thumb_func_start OvlFunc_44
 	push	{lr}
 	mov	r0, #0x95
@@ -31,6 +56,8 @@
 	bx	r1
 .func_end OvlFunc_44
 
+@ Slot 4: newest state first -- 0x950 -> .L19d0, else 0x962 -> .L1670,
+@ else .L1310.
 .thumb_func_start OvlFunc_64
 	push	{lr}
 	mov	r0, #0x95
@@ -54,6 +81,8 @@
 	bx	r1
 .func_end OvlFunc_64
 
+@ Trigger: sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x201 and the
+@ message delay at +0x1C8 to 0x18, then leaves a message pending.
 .thumb_func_start OvlFunc_9c
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -72,6 +101,17 @@
 	bx	r0
 .func_end OvlFunc_9c
 
+@ WarpToTableEntry
+@ Takes no arguments. The town's warp points, all sharing one handler.
+@
+@ First it clears the flag byte +0x55 on every live entity from slot 8 to 0x41
+@ -- a blanket reset so nothing is mid-interaction across the warp. Then the
+@ interaction target halfword at [iwram_1ebc]+0x16C, minus 0x0E, indexes the
+@ eight-byte records at .L1dcc: a word destination followed by two halfword
+@ coordinates, handed to Func_10560. Sound 0x9E plays throughout.
+@
+@ Subtracting 0x0E means trigger ids 0x0E upward map to entries 0, 1, 2 ...,
+@ so the table is dense and the triggers are numbered consecutively.
 .thumb_func_start OvlFunc_c0
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1ebc
@@ -128,6 +168,11 @@
 	bx	r0
 .func_end OvlFunc_c0
 
+@ Cutscene: the town's arrival scene, roughly 180 instructions.
+@ Actors are created with Func_c150 and Func_c0f4 rather than taken from the
+@ object table, walked in at speeds 0x1CCCC/0xB333 and 0x16666/0xE666, and put
+@ through a conversation from message base 0x2394 with formation changes and
+@ interaction effect 0x101.
 .thumb_func_start OvlFunc_13c
 	push	{r5, lr}
 	bl	__Func_916b0
@@ -311,6 +356,8 @@
 	bx	r0
 .func_end OvlFunc_13c
 
+@ Cutscene: a shorter follow-up from message base 0x23A4, roughly 60
+@ instructions -- formation changes, an effect and two lines.
 .thumb_func_start OvlFunc_328
 	push	{lr}
 	bl	__Func_916b0
@@ -378,6 +425,13 @@
 	bx	r0
 .func_end OvlFunc_328
 
+@ Slot 0: map-load entry.
+@
+@ Reconstructs the town from save bits 0x8AB and 0x8BC: each selects a
+@ Func_10704 attribute repaint and a Func_923e4 placement, so objects and
+@ terrain match whatever the player has already done. Func_91dc8 puts the
+@ screen overlay up, and Func_92adc leaves the affected actors facing the
+@ right way.
 .thumb_func_start OvlFunc_3dc
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -505,6 +559,8 @@
 	bx	r1
 .func_end OvlFunc_3dc
 
+@ Counter: shop 0x1F, speaker slot 0x0D. Lines 0x238D / 0x221B / 0x1FD5
+@ across the three states; gated on save bit 0x962.
 .thumb_func_start OvlFunc_500
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -578,6 +634,8 @@
 	bx	r0
 .func_end OvlFunc_500
 
+@ Counter: shop 0x1F at a second position, lines 0x2389 / 0x2219 / 0x1FD2,
+@ with an interaction effect before the dialogue.
 .thumb_func_start OvlFunc_5a8
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -661,6 +719,8 @@
 	bx	r0
 .func_end OvlFunc_5a8
 
+@ Counter: shop 0x1F, lines 0x238F / 0x221D / 0x1FD9. The shortest of the
+@ three -- no effect, no prompt.
 .thumb_func_start OvlFunc_66c
 	push	{r5, lr}
 	mov	r5, r0
@@ -716,6 +776,7 @@
 	bx	r0
 .func_end OvlFunc_66c
 
+@ Talk: line 0x239E, asked as a yes/no through Func_91c7c.
 .thumb_func_start OvlFunc_6ec
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -749,6 +810,7 @@
 	bx	r0
 .func_end OvlFunc_6ec
 
+@ Talk: line 0x23A1, plain.
 .thumb_func_start OvlFunc_73c
 	push	{r5, lr}
 	mov	r5, r0
@@ -764,6 +826,7 @@
 	bx	r0
 .func_end OvlFunc_73c
 
+@ Talk: line 0x1FBB, asked as a yes/no.
 .thumb_func_start OvlFunc_760
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -797,6 +860,11 @@
 	bx	r0
 .func_end OvlFunc_760
 
+@ TalkTwoBits
+@ Takes no arguments. The one handler here that writes state: lines 0x2399,
+@ 0x239C and 0x239D are selected by save bits 0x8BD and 0x8BE, and answering
+@ the prompt sets one of them -- so this villager tracks two independent
+@ things the player has told them.
 .thumb_func_start OvlFunc_7b0
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -861,6 +929,7 @@
 	bx	r0
 .func_end OvlFunc_7b0
 
+@ Talk: lines 0x23B3 / 0x23B4, chosen by save bit 0x8BE.
 .thumb_func_start OvlFunc_85c
 	push	{lr}
 	bl	__Func_916b0
@@ -883,6 +952,7 @@
 	bx	r0
 .func_end OvlFunc_85c
 
+@ Talk: line 0x23A8 with interaction effect 0x103 first.
 .thumb_func_start OvlFunc_898
 	push	{r5, lr}
 	mov	r5, r0
@@ -902,6 +972,7 @@
 	bx	r0
 .func_end OvlFunc_898
 
+@ Talk: line 0x23AC, asked as a yes/no.
 .thumb_func_start OvlFunc_8cc
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -935,6 +1006,7 @@
 	bx	r0
 .func_end OvlFunc_8cc
 
+@ Counter: shop type 0x1F through Func_b29a8. Lines 0x23BF / 0x2231 / 0x1FEB.
 .thumb_func_start OvlFunc_91c
 	push	{r5, lr}
 	mov	r5, r0
