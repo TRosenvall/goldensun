@@ -141,9 +141,23 @@ message id may still be a small scene doing several other things.
 
 ## Progress
 
-1461 of 3540 overlay functions annotated (41.3%). 22 directories are complete
-and hand-read end to end; most of the rest now carry pattern-derived
-annotations on their recognisable functions.
+**All 3540 overlay functions across all 97 directories are annotated**, and
+with them every function in the repository -- 5642 of 5642.
+
+Roughly a quarter were hand-read; the rest carry pattern-derived annotations
+or, where no shape matched, a labelled call trace. Coverage is not the same as
+understanding: a call trace tells you what a function reaches for, not what it
+means. Treat the traces as a starting point for reading, not a substitute.
+
+The last stragglers were worth the individual attention. Among them:
+`Crc16Ccitt` in `rom_7795e8`, where the polynomial is hidden as an ADD of
+0xFFFFEFDF (that is -0x1021 in two's complement, so the constant to recognise
+is the CCITT 0x1021 and not the literal in the source); `FindRegionContaining`
+in `rom_7a37f0`, whose region records use a flag at +0x06 to choose which axis
+gets a three-unit extension, so one record shape describes both wide and tall
+regions; and a family of palette fades that step each 5-bit BGR555 channel
+toward 0x1F and count the entries already saturated so the caller can tell when
+the fade is done.
 
 - `overlays/common/` -- 65 functions
 - `overlays/rom_779188/` -- 10 functions, plus the six-slot contract header

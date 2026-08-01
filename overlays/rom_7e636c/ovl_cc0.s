@@ -578,6 +578,7 @@
 	bx	r0
 .func_end OvlFunc_1158
 
+@ Empty hook. Present so a table slot has an address to point at.
 .thumb_func_start OvlFunc_11c4
 	bx	lr
 .func_end OvlFunc_11c4
@@ -594,6 +595,10 @@
 	bx	lr
 .func_end OvlFunc_11c8
 
+@ WaitForField
+@ r0 = entity, r1 = the value to wait for. Yields one frame at a time with Func_30f8(1) until the
+@ watched field settles, giving up after 0x28 frames so a stuck entity cannot
+@ hang the caller. The same shape recurs across several overlays.
 .thumb_func_start OvlFunc_11d8
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
@@ -795,6 +800,7 @@
 	bx	r0
 .func_end OvlFunc_11f8
 
+@ Empty hook. Present so a table slot has an address to point at.
 .thumb_func_start OvlFunc_1380
 	bx	lr
 .func_end OvlFunc_1380

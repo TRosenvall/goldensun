@@ -179,6 +179,8 @@
 	bx	r0
 .func_end OvlFunc_158
 
+@ Countdown loop: waits ten frames, then polls a scratch word once per
+@ frame until it reaches a target or the attempt limit runs out.
 .thumb_func_start OvlFunc_178
 	push	{r5, r6, lr}
 	mov	r0, #0xa

@@ -1484,10 +1484,12 @@
 	bx	r0
 .func_end OvlFunc_e30
 
+@ Empty hook. Present so a table slot has an address to point at.
 .thumb_func_start OvlFunc_f28
 	bx	lr
 .func_end OvlFunc_f28
 
+@ Empty hook. Present so a table slot has an address to point at.
 .thumb_func_start OvlFunc_f2c
 	bx	lr
 .func_end OvlFunc_f2c
@@ -1665,6 +1667,10 @@
 	bx	r0
 .func_end OvlFunc_f64
 
+@ ResetOverlayScratch
+@ Takes no arguments. Puts this overlay's own state back to its initial values:
+@ .L3b68 = 0x3F, .L3b70 = 0x78, .L3b00 and .L3b6c cleared, and the sixteen-word
+@ array at .L3ac0 zeroed with an `stmia` loop.
 .thumb_func_start OvlFunc_1084
 	push	{lr}
 	ldr	r2, =.L3b68

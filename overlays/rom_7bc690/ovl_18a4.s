@@ -451,6 +451,7 @@
 	bx	r0
 .func_end OvlFunc_1c1c
 
+@ Stores r0 into this overlay's scratch halfword.
 .thumb_func_start OvlFunc_1c78
 	ldr	r3, =.L3030
 	strh	r0, [r3]

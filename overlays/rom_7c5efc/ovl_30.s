@@ -2034,6 +2034,7 @@
 	bx	r1
 .func_end OvlFunc_12f0
 
+@ Returns 1 -- a table slot that always reports success.
 .thumb_func_start OvlFunc_131c
 	mov	r0, #1
 	bx	lr

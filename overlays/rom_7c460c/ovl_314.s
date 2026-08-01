@@ -1455,6 +1455,7 @@
 	bx	r0
 .func_end OvlFunc_eb0
 
+@ Empty hook. Present so a table slot has an address to point at.
 .thumb_func_start OvlFunc_f9c
 	bx	lr
 .func_end OvlFunc_f9c

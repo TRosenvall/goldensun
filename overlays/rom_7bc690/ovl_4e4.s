@@ -1063,6 +1063,10 @@
 	bx	r0
 .func_end OvlFunc_cd0
 
+@ Distance3D
+@ Two {x, y, z} triples of 16.16 words. Each axis difference is taken down to
+@ 1/16 units with `asr #16`, squared and summed -- the same helper documented
+@ in overlays/rom_780898/ovl_30.s.
 .thumb_func_start OvlFunc_e00
 	push	{lr}
 	ldmia	r0!, {r3}

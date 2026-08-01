@@ -2105,6 +2105,10 @@
 	bx	r1
 .func_end OvlFunc_fe8
 
+@ WaitForField
+@ r0 = entity. Yields one frame at a time with Func_30f8(1) until the
+@ watched field settles, giving up after 0x3C (one second) frames so a stuck entity cannot
+@ hang the caller. The same shape recurs across several overlays.
 .thumb_func_start OvlFunc_1038
 	push	{r5, r6, lr}
 	mov	r5, r0

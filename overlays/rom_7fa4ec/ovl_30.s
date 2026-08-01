@@ -183,6 +183,10 @@
 	bx	r0
 .func_end OvlFunc_100
 
+@ DecayCounter
+@ The per-frame task. Counts up in .L17f4 and, every 0x28 frames, decrements
+@ .L17f0 by one until it reaches its floor of 4, resetting the frame counter
+@ each time. A slow decay with a lower bound.
 .thumb_func_start OvlFunc_168
 	push	{lr}
 	ldr	r2, =.L17f4

@@ -2164,6 +2164,12 @@
 	bx	r1
 .func_end OvlFunc_de4
 
+@ XorDecodeBlock
+@ r0 = buffer, r1 = length, r2 = a second buffer.
+@
+@ Takes the LAST byte of the buffer as a key and XORs it over every preceding
+@ byte in place, then runs a nested pass over the result. Storing the key in
+@ the final byte is why the first loop stops at length-1.
 .thumb_func_start OvlFunc_11e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2290,6 +2296,14 @@
 	bx	r1
 .func_end OvlFunc_11e4
 
+@ Crc16Ccitt
+@ r0 = length, r1 = buffer. Returns the CRC-16/CCITT of the block.
+@
+@ The classic bitwise form: register seeded to 0xFFFF, each byte shifted in at
+@ the top (`lsl r3, #8`), then eight iterations testing bit 15 and shifting
+@ left. The polynomial subtraction is spelled as an ADD of 0xFFFFEFDF, which is
+@ -0x1021 in two's complement -- so the constant to recognise here is 0x1021,
+@ the CCITT polynomial, not the literal in the source.
 .thumb_func_start OvlFunc_12c8
 	push	{r5, r6, r7, lr}
 	mov	r4, r0

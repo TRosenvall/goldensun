@@ -1376,6 +1376,14 @@
 	bx	r0
 .func_end OvlFunc_b3c
 
+@ FindRegionContaining
+@ r0 = an array of 0x0C-byte region records terminated by -1 in the first
+@ halfword, r1 = x, r2 = z. Returns the matching record, or 0.
+@
+@ Each record carries bounds in the halfwords at +0x02 and +0x04 with a flag at
+@ +0x06. The flag chooses WHICH AXIS gets a three-unit extension: zero extends
+@ the x span, non-zero extends the z span, so one record shape describes both a
+@ wide region and a tall one.
 .thumb_func_start OvlFunc_b8c
 	push	{r5, r6, lr}
 	mov	r6, r8

@@ -25,6 +25,7 @@
 	bx	lr
 .func_end OvlFunc_44
 
+@ Empty hook. Present so a table slot has an address to point at.
 .thumb_func_start OvlFunc_4c
 	bx	lr
 .func_end OvlFunc_4c
@@ -1225,6 +1226,8 @@
 	bx	r0
 .func_end OvlFunc_950
 
+@ Countdown loop: waits ten frames, then polls a scratch word once per
+@ frame until it reaches a target or the attempt limit runs out.
 .thumb_func_start OvlFunc_970
 	push	{r5, lr}
 	mov	r0, #0xa

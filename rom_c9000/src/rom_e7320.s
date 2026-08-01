@@ -1,6 +1,21 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ClaimAnimationSlot
+@ r0, r1, r2 = the three payload words to store. No return value.
+@
+@ Finds a free entry in a sixteen-slot array and fills it in. The array base is
+@ [r9-0x88] + 0x7400, and entries are 0x1C bytes apart -- the stride is spelled
+@ `(i * 8 - i) * 4`, which is 28. A slot is free when its word at +0x18 holds
+@ -1; claiming it writes 0 there and then stores r0, r1 and r2 at +0x00, +0x04
+@ and +0x0C.
+@
+@ If all sixteen are taken the call does nothing at all -- the loop exits on
+@ `cmp r4, #0x10` before any store. There is no failure signal, so a caller
+@ cannot tell a dropped request from a serviced one.
+@
+@ Func_e73a0 below is the same routine against a different array (base offset
+@ 0x7080 rather than 0x7400), so the two manage parallel pools.
 .thumb_func_start Func_e7338
 	push	{r5, r6, r7, lr}
 	mov	r7, r9

@@ -80,6 +80,9 @@
 	bx	r0
 .func_end OvlFunc_d58
 
+@ ClearPaletteRun
+@ Zeroes seven consecutive palette halfwords, walking BACKWARD from the end of
+@ the run (`sub r3, #2` each pass). Used to blank a gradient in one go.
 .thumb_func_start OvlFunc_dfc
 	push	{lr}
 	ldr	r1, =0

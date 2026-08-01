@@ -30,6 +30,11 @@
 	bx	r0
 .func_end OvlFunc_2dcc
 
+@ PaletteFadeToWhite
+@ Walks a run of BGR555 palette entries, splits each into its three 5-bit
+@ channels, and steps every channel that is below 0x1F up by one. Entries
+@ already at full white are counted rather than written, so the caller can tell
+@ when the fade has finished.
 .thumb_func_start OvlFunc_2e08
 	push	{r5, r6, lr}
 	ldr	r6, =0x1f

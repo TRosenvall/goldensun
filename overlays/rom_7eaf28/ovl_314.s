@@ -34,6 +34,7 @@
 	bx	r1
 .func_end OvlFunc_324
 
+@ Toggles bit 0 of the entity's byte at +0x54 and returns 1.
 .thumb_func_start OvlFunc_33c
 	add	r0, #0x54
 	ldrb	r3, [r0]

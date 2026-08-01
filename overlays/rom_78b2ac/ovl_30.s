@@ -235,6 +235,7 @@
 	bx	r0
 .func_end OvlFunc_1ec
 
+@ Clears REG_BG2CNT (0x0500_0000 + 0x... via `mov r3, #0xa0; lsl #19`).
 .thumb_func_start OvlFunc_22c
 	mov	r3, #0xa0
 	mov	r2, #0

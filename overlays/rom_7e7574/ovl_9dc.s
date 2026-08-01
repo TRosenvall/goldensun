@@ -884,18 +884,22 @@
 	bx	r1
 .func_end OvlFunc_1038
 
+@ Empty hook. Present so a table slot has an address to point at.
 .thumb_func_start OvlFunc_1098
 	bx	lr
 .func_end OvlFunc_1098
 
+@ Empty hook. Present so a table slot has an address to point at.
 .thumb_func_start OvlFunc_109c
 	bx	lr
 .func_end OvlFunc_109c
 
+@ Empty hook. Present so a table slot has an address to point at.
 .thumb_func_start OvlFunc_10a0
 	bx	lr
 .func_end OvlFunc_10a0
 
+@ Empty hook. Present so a table slot has an address to point at.
 .thumb_func_start OvlFunc_10a4
 	bx	lr
 .func_end OvlFunc_10a4
@@ -3476,6 +3480,7 @@
 	bx	r0
 .func_end OvlFunc_2504
 
+@ Empty hook. Present so a table slot has an address to point at.
 .thumb_func_start OvlFunc_2528
 	bx	lr
 .func_end OvlFunc_2528
@@ -7489,6 +7494,7 @@
 	bx	r0
 .func_end OvlFunc_4d0c
 
+@ Empty hook. Present so a table slot has an address to point at.
 .thumb_func_start OvlFunc_4d4c
 	bx	lr
 .func_end OvlFunc_4d4c

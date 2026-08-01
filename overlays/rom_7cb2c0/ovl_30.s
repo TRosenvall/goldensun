@@ -107,6 +107,11 @@
 	bx	r1
 .func_end OvlFunc_b0
 
+@ TickEntityCounters
+@ r0 = entity. Increments the byte counter at +0x62 and, once it passes 0x50,
+@ also increments the halfword at +0x66 -- a two-stage counter where the byte
+@ is the fast tick and the halfword the slow one. The `lsl #24` before the
+@ compare is the usual byte-width truncation.
 .thumb_func_start OvlFunc_d8
 	push	{lr}
 	mov	r1, r0
