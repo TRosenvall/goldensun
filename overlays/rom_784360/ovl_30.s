@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 40 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Atan2
 .thumb_func_start OvlFunc_30
 	push	{r5, lr}
 	mov	r5, r0
@@ -983,6 +988,11 @@
 	bx	r0
 .func_end OvlFunc_8ac
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, OvlFunc_714
 .thumb_func_start OvlFunc_8dc
 	push	{lr}
 	mov	r0, #0x7b
@@ -1014,6 +1024,12 @@
 	bx	r0
 .func_end OvlFunc_8f0
 
+@ 5 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit
+@ sets 0x90b.
 .thumb_func_start OvlFunc_910
 	push	{lr}
 	ldr	r0, =0x90b
@@ -1022,6 +1038,12 @@
 	bx	r0
 .func_end OvlFunc_910
 
+@ 5 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit
+@ sets 0x90c.
 .thumb_func_start OvlFunc_920
 	push	{lr}
 	ldr	r0, =0x90c
@@ -1030,6 +1052,12 @@
 	bx	r0
 .func_end OvlFunc_920
 
+@ 5 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit
+@ sets 0x90d.
 .thumb_func_start OvlFunc_930
 	push	{lr}
 	ldr	r0, =0x90d
@@ -3907,6 +3935,11 @@
 	bx	r0
 .func_end OvlFunc_2440
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   ApplyRevealToScene
 .thumb_func_start OvlFunc_2564
 	push	{lr}
 	mov	r0, #0x8c
@@ -3916,6 +3949,11 @@
 	bx	r0
 .func_end OvlFunc_2564
 
+@ 4 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunLiftAbility
 .thumb_func_start OvlFunc_2574
 	push	{lr}
 	bl	__Func_97194
@@ -3923,6 +3961,11 @@
 	bx	r0
 .func_end OvlFunc_2574
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_2334
 .thumb_func_start OvlFunc_2580
 	push	{lr}
 	mov	r0, #0xf
@@ -3932,6 +3975,11 @@
 	bx	r0
 .func_end OvlFunc_2580
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_2334
 .thumb_func_start OvlFunc_2590
 	push	{lr}
 	mov	r0, #0x11
@@ -3941,6 +3989,11 @@
 	bx	r0
 .func_end OvlFunc_2590
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_2370
 .thumb_func_start OvlFunc_25a0
 	push	{lr}
 	mov	r0, #0x14

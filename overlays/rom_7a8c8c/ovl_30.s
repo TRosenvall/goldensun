@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSceneFlagAndRefresh
 .thumb_func_start OvlFunc_30
 	push	{lr}
 	mov	r0, #8
@@ -10,6 +15,11 @@
 	bx	r0
 .func_end OvlFunc_30
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   LoadMapByName
 .thumb_func_start OvlFunc_40
 	push	{lr}
 	mov	r0, #0xb
@@ -19,6 +29,9 @@
 	bx	r0
 .func_end OvlFunc_40
 
+@ Leaf helper, 45 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_50
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -87,6 +100,9 @@
 	bx	lr
 .func_end OvlFunc_f0
 
+@ Leaf helper, 40 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_f8
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -1791,6 +1807,9 @@
 	bx	r1
 .func_end OvlFunc_ed8
 
+@ Leaf helper, 45 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_f30
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -2757,6 +2776,10 @@
 	bx	r0
 .func_end OvlFunc_170c
 
+@ Leaf helper, 11 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1ee0
+@ Writes offsets +0x18.
 .thumb_func_start OvlFunc_1730
 	push	{lr}
 	ldr	r3, =.L3328
@@ -3119,6 +3142,12 @@
 	bx	r0
 .func_end OvlFunc_1948
 
+@ 47 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_1ad0 x2, TestSaveBit, OvlFunc_1ad0
+@ reads save bit 0x309.
 .thumb_func_start OvlFunc_1a34
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1ebc
@@ -3332,6 +3361,9 @@
 	bx	r0
 .func_end OvlFunc_1b9c
 
+@ Leaf helper, 21 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x8, +0xc, +0x10, +0x18, +0x1c.
 .thumb_func_start OvlFunc_1bdc
 	ldr	r3, [r0, #8]
 	ldr	r2, [r0, #0x44]
@@ -3356,6 +3388,11 @@
 	bx	lr
 .func_end OvlFunc_1bdc
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetActorPartsPalette
 .thumb_func_start OvlFunc_1c08
 	push	{lr}
 	mov	r1, #0xf

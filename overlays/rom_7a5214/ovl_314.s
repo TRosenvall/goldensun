@@ -454,6 +454,11 @@
 	bx	r0
 .func_end OvlFunc_660
 
+@ 10 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   AdvanceDialogue
 .thumb_func_start OvlFunc_674
 	push	{lr}
 	bl	__Func_93c00
@@ -1628,6 +1633,9 @@
 	bx	r1
 .func_end OvlFunc_1004
 
+@ Leaf helper, 9 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: REG_DMA3SAD, iwram_1ed0
 .thumb_func_start OvlFunc_1224
 	ldr	r2, =iwram_1ed0
 	mov	r0, #0xa0

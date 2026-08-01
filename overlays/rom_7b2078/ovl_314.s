@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetEntityActorOptions
 .thumb_func_start OvlFunc_314
 	push	{lr}
 	mov	r1, #0
@@ -34,6 +39,9 @@
 	bx	r1
 .func_end OvlFunc_324
 
+@ Leaf helper, 15 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_34c
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -3615,6 +3623,9 @@
 	bx	r0
 .func_end OvlFunc_254c
 
+@ Leaf helper, 24 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_2574
 	push	{lr}
 	ldr	r1, =ewram_240

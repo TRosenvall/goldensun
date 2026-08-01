@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   LoadMapByName
 .thumb_func_start OvlFunc_314
 	push	{lr}
 	mov	r0, #0xf
@@ -10,6 +15,11 @@
 	bx	r0
 .func_end OvlFunc_314
 
+@ 11 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetEntityActorOptions
 .thumb_func_start OvlFunc_324
 	push	{r5, lr}
 	mov	r1, #0
@@ -34,6 +44,9 @@
 	bx	lr
 .func_end OvlFunc_33c
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_34c
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -78,6 +91,9 @@
 	bx	lr
 .func_end OvlFunc_3a4
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_3ac
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -959,6 +975,9 @@
 	bx	r0
 .func_end OvlFunc_adc
 
+@ Leaf helper, 6 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1f30
 .thumb_func_start OvlFunc_b14
 	ldr	r3, =iwram_1f30
 	ldr	r3, [r3]
@@ -1172,6 +1191,9 @@
 	bx	r0
 .func_end OvlFunc_c00
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1e40
 .thumb_func_start OvlFunc_ce4
 	push	{lr}
 	ldr	r3, =iwram_1e40
@@ -1352,6 +1374,9 @@
 	bx	r1
 .func_end OvlFunc_dc8
 
+@ Leaf helper, 15 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_e5c
 	push	{lr}
 	ldr	r3, =ewram_240

@@ -1249,6 +1249,9 @@
 	bx	r1
 .func_end OvlFunc_ba4
 
+@ Leaf helper, 80 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_10000, ewram_20000, ewram_20004
 .thumb_func_start OvlFunc_cc0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1395,6 +1398,11 @@
 	bx	r0
 .func_end OvlFunc_da8
 
+@ 111 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked
 .thumb_func_start OvlFunc_ddc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1660,6 +1668,10 @@
 	bx	r1
 .func_end OvlFunc_f58
 
+@ Leaf helper, 33 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: REG_DMA3SAD, iwram_1e70
+@ Reads offsets +0x8.
 .thumb_func_start OvlFunc_fcc
 	push	{r5, lr}
 	mov	r5, r3
@@ -1698,6 +1710,10 @@
 	bx	r0
 .func_end OvlFunc_fcc
 
+@ Leaf helper, 41 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1e70
+@ Writes offsets +0x1, +0x2, +0x3.
 .thumb_func_start OvlFunc_101c
 	push	{r5, lr}
 	mov	r5, r3
@@ -1878,6 +1894,11 @@
 	bx	r1
 .func_end OvlFunc_1074
 
+@ 29 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, Func_30f8
 .thumb_func_start OvlFunc_1174
 	push	{r5, r6, r7, lr}
 	bl	__Func_92054
@@ -2211,6 +2232,11 @@
 	bx	r0
 .func_end OvlFunc_13b0
 
+@ 10 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetActorPartsPalette
 .thumb_func_start OvlFunc_1428
 	push	{lr}
 	mov	r3, r0

@@ -241,6 +241,11 @@
 	bx	r0
 .func_end OvlFunc_198
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, OvlFunc_15c
 .thumb_func_start OvlFunc_1d0
 	push	{lr}
 	mov	r0, #0x7b
@@ -251,6 +256,11 @@
 	bx	r0
 .func_end OvlFunc_1d0
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, OvlFunc_15c
 .thumb_func_start OvlFunc_1e4
 	push	{lr}
 	mov	r0, #0x7b
@@ -261,6 +271,11 @@
 	bx	r0
 .func_end OvlFunc_1e4
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, OvlFunc_15c
 .thumb_func_start OvlFunc_1f8
 	push	{lr}
 	mov	r0, #0x7b
@@ -3447,6 +3462,10 @@
 	bx	r0
 .func_end OvlFunc_1b18
 
+@ Leaf helper, 44 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1e40
+@ Writes offsets +0x5.
 .thumb_func_start OvlFunc_209c
 	push	{lr}
 	mov	r3, r0
@@ -7271,6 +7290,11 @@
 	bx	r0
 .func_end OvlFunc_441c
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   ApplyRevealToScene
 .thumb_func_start OvlFunc_4550
 	push	{lr}
 	mov	r0, #0x8c
@@ -7280,6 +7304,11 @@
 	bx	r0
 .func_end OvlFunc_4550
 
+@ 4 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunLiftAbility
 .thumb_func_start OvlFunc_4560
 	push	{lr}
 	bl	__Func_97194
@@ -7316,6 +7345,11 @@
 	bx	r0
 .func_end OvlFunc_456c
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_434c
 .thumb_func_start OvlFunc_45a8
 	push	{lr}
 	mov	r0, #0x13

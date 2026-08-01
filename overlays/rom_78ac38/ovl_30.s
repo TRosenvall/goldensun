@@ -30,6 +30,11 @@
 	bx	lr
 .func_end OvlFunc_4c
 
+@ 13 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_74
 .thumb_func_start OvlFunc_54
 	push	{lr}
 	ldr	r3, =ewram_240

@@ -1156,6 +1156,9 @@
 	bx	r0
 .func_end OvlFunc_d68
 
+@ Leaf helper, 6 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x1e.
 .thumb_func_start OvlFunc_da8
 	ldr	r2, [r0, #0x50]
 	ldr	r1, =0xfffff800

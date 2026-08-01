@@ -37,6 +37,9 @@
 	bx	lr
 .func_end OvlFunc_58
 
+@ Leaf helper, 16 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_60
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -133,6 +136,9 @@
 	bx	r1
 .func_end OvlFunc_8c
 
+@ Leaf helper, 9 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_2224
 .thumb_func_start OvlFunc_128
 	ldr	r3, =.L1940
 	ldr	r2, =.L1928
@@ -637,6 +643,11 @@
 	bx	r1
 .func_end OvlFunc_398
 
+@ 29 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetPartySize
 .thumb_func_start OvlFunc_53c
 	push	{r5, lr}
 	mov	r5, r0

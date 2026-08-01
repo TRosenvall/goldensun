@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Leaf helper, 20 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_30
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -182,6 +185,9 @@
 	bx	r1
 .func_end OvlFunc_7c
 
+@ Leaf helper, 34 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_238
 	push	{lr}
 	ldr	r1, =ewram_240
@@ -2615,6 +2621,11 @@
 	bx	r0
 .func_end OvlFunc_1688
 
+@ 19 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_1a4c, OvlFunc_1c6c
 .thumb_func_start OvlFunc_1a14
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -2831,6 +2842,11 @@
 	bx	r0
 .func_end OvlFunc_1c48
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TurnSlotToAngle
 .thumb_func_start OvlFunc_1c5c
 	push	{lr}
 	lsl	r1, #16

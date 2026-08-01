@@ -1248,6 +1248,11 @@
 	bx	r1
 .func_end OvlFunc_ba4
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSceneFlagAndRefresh
 .thumb_func_start OvlFunc_cc0
 	push	{lr}
 	mov	r0, #8

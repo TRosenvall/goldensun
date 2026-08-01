@@ -122,6 +122,11 @@
 	bx	r0
 .func_end OvlFunc_d4
 
+@ 14 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   DestroyEntity
 .thumb_func_start OvlFunc_11c
 	push	{lr}
 	mov	r2, r0
@@ -356,6 +361,10 @@
 	bx	r1
 .func_end OvlFunc_2a4
 
+@ Leaf helper, 13 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1e70
+@ Writes offsets +0x1e.
 .thumb_func_start OvlFunc_2cc
 	ldr	r3, =iwram_1e70
 	mov	r1, #0x8d
@@ -376,6 +385,10 @@
 	.word	0
 .func_end OvlFunc_2cc
 
+@ Leaf helper, 15 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1e70
+@ Writes offsets +0x1e.
 .thumb_func_start OvlFunc_2f0
 	ldr	r3, =iwram_1e70
 	ldr	r4, [r0, #0x50]
@@ -428,6 +441,9 @@
 	bx	r1
 .func_end OvlFunc_314
 
+@ Leaf helper, 19 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1e40
 .thumb_func_start OvlFunc_350
 	push	{lr}
 	add	r0, #0x54
@@ -4022,6 +4038,9 @@
 	bx	r0
 .func_end OvlFunc_24a8
 
+@ Leaf helper, 47 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x8, +0xc.
 .thumb_func_start OvlFunc_2768
 	push	{r5, r6, r7, lr}
 	ldr	r4, =.L63f4
@@ -4077,6 +4096,9 @@
 	b	.L27ae
 .func_end OvlFunc_2768
 
+@ Leaf helper, 30 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x4.
 .thumb_func_start OvlFunc_27dc
 	push	{r5, r6, r7, lr}
 	ldr	r0, =.L63f4
@@ -5288,6 +5310,11 @@
 	bx	r0
 .func_end OvlFunc_32f0
 
+@ 18 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_3448 x4
 .thumb_func_start OvlFunc_341c
 	push	{r5, r6, lr}
 	mov	r0, #0
@@ -5309,6 +5336,11 @@
 	bx	r1
 .func_end OvlFunc_341c
 
+@ 35 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit
 .thumb_func_start OvlFunc_3448
 	push	{r5, r6, lr}
 	mov	r6, #0
@@ -5727,6 +5759,9 @@
 	bx	r0
 .func_end OvlFunc_37bc
 
+@ Leaf helper, 6 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1f30
 .thumb_func_start OvlFunc_37c8
 	ldr	r3, =iwram_1f30
 	ldr	r3, [r3]

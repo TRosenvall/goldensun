@@ -81,6 +81,11 @@
 	bx	r1
 .func_end OvlFunc_314
 
+@ 47 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_1674
 .thumb_func_start OvlFunc_3ac
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -170,6 +175,11 @@
 	bx	r1
 .func_end OvlFunc_42c
 
+@ 9 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetCombatantRecord
 .thumb_func_start OvlFunc_450
 	push	{lr}
 	mov	r0, #2
@@ -1854,6 +1864,11 @@
 	bx	r0
 .func_end OvlFunc_113c
 
+@ 10 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, OvlFunc_ef4
 .thumb_func_start OvlFunc_1198
 	push	{lr}
 	mov	r0, #0x7b

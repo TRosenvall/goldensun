@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 40 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Atan2
 .thumb_func_start OvlFunc_30
 	push	{r5, lr}
 	mov	r5, r0
@@ -46,6 +51,9 @@
 	bx	r1
 .func_end OvlFunc_30
 
+@ Leaf helper, 31 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x8, +0xc, +0x18, +0x1c.
 .thumb_func_start OvlFunc_88
 	mov	r1, r0
 	add	r1, #0x64

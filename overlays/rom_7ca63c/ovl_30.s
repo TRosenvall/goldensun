@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ Leaf helper, 31 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1e70
+@ Writes offsets +0x8, +0xc, +0x1e.
 .thumb_func_start OvlFunc_30
 	push	{r5, lr}
 	ldr	r3, =iwram_1e70
@@ -34,6 +38,11 @@
 	bx	r1
 .func_end OvlFunc_30
 
+@ 18 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random
 .thumb_func_start OvlFunc_7c
 	push	{r5, lr}
 	mov	r5, r0
@@ -58,6 +67,9 @@
 	bx	r1
 .func_end OvlFunc_7c
 
+@ Leaf helper, 13 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x18, +0x1c.
 .thumb_func_start OvlFunc_a4
 	push	{lr}
 	mov	r2, #0x80
@@ -178,6 +190,9 @@
 	bx	r1
 .func_end OvlFunc_c0
 
+@ Leaf helper, 34 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x8, +0x9, +0xc, +0x10, +0x18, +0x1c, +0x24, +0x28 and 3 more.
 .thumb_func_start OvlFunc_180
 	push	{lr}
 	ldr	r1, [r0, #0x50]
@@ -247,6 +262,11 @@
 	bx	lr
 .func_end OvlFunc_1e8
 
+@ 4 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   DialogueChoiceA
 .thumb_func_start OvlFunc_1f0
 	push	{lr}
 	bl	__Func_93e28
@@ -1787,6 +1807,11 @@
 	bx	r0
 .func_end OvlFunc_10a0
 
+@ 18 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_115c x4
 .thumb_func_start OvlFunc_1130
 	push	{r5, r6, lr}
 	mov	r0, #0
@@ -1808,6 +1833,11 @@
 	bx	r1
 .func_end OvlFunc_1130
 
+@ 35 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit
 .thumb_func_start OvlFunc_115c
 	push	{r5, r6, lr}
 	mov	r6, #0

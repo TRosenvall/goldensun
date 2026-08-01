@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Leaf helper, 17 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x9, +0x15.
 .thumb_func_start OvlFunc_30
 	mov	r1, r0
 	add	r1, #0x23
@@ -45,6 +48,9 @@
 	bx	r1
 .func_end OvlFunc_54
 
+@ Leaf helper, 15 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_7c
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -77,6 +83,9 @@
 	bx	lr
 .func_end OvlFunc_b0
 
+@ Leaf helper, 15 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_b8
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -1863,6 +1872,9 @@
 	bx	r0
 .func_end OvlFunc_1144
 
+@ Leaf helper, 15 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_1180
 	push	{lr}
 	ldr	r3, =ewram_240

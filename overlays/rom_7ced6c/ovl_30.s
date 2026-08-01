@@ -1248,6 +1248,9 @@
 	bx	r1
 .func_end OvlFunc_8c0
 
+@ Leaf helper, 11 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x9.
 .thumb_func_start OvlFunc_9dc
 	ldr	r0, [r0, #0x50]
 	mov	r3, #3
@@ -1367,6 +1370,9 @@
 	bx	r1
 .func_end OvlFunc_a4c
 
+@ Leaf helper, 27 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x8, +0xc, +0x10, +0x18, +0x1c, +0x1e.
 .thumb_func_start OvlFunc_ab0
 	ldr	r3, [r0, #8]
 	ldr	r2, [r0, #0x44]
@@ -1643,6 +1649,9 @@
 	bx	lr
 .func_end OvlFunc_cc0
 
+@ Leaf helper, 35 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_cc4
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -1699,6 +1708,9 @@
 	bx	lr
 .func_end OvlFunc_d40
 
+@ Leaf helper, 28 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_d48
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -1734,6 +1746,11 @@
 	bx	r1
 .func_end OvlFunc_d48
 
+@ 44 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv
 .thumb_func_start OvlFunc_da4
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -1879,6 +1896,9 @@
 	bx	r0
 .func_end OvlFunc_e88
 
+@ Leaf helper, 35 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_ec4
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -2770,6 +2790,12 @@
 	bx	r0
 .func_end OvlFunc_1624
 
+@ 5 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit
+@ sets 0x8c5.
 .thumb_func_start OvlFunc_164c
 	push	{lr}
 	ldr	r0, =0x8c5
@@ -2778,6 +2804,12 @@
 	bx	r0
 .func_end OvlFunc_164c
 
+@ 5 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit
+@ sets 0x8c6.
 .thumb_func_start OvlFunc_165c
 	push	{lr}
 	ldr	r0, =0x8c6
@@ -2786,6 +2818,12 @@
 	bx	r0
 .func_end OvlFunc_165c
 
+@ 5 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit
+@ sets 0x8c7.
 .thumb_func_start OvlFunc_166c
 	push	{lr}
 	ldr	r0, =0x8c7
@@ -3144,6 +3182,11 @@
 	bx	r0
 .func_end OvlFunc_1904
 
+@ 63 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_185c x2, OvlFunc_18b0 x4, OvlFunc_185c x3, OvlFunc_18b0 x3
 .thumb_func_start OvlFunc_191c
 	push	{lr}
 	mov	r0, #8
@@ -3420,6 +3463,11 @@
 	bx	r1
 .func_end OvlFunc_1a44
 
+@ 17 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_1a44
 .thumb_func_start OvlFunc_1b14
 	push	{lr}
 	mov	r0, #0
@@ -3440,6 +3488,11 @@
 	bx	r1
 .func_end OvlFunc_1b14
 
+@ 18 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_1a44
 .thumb_func_start OvlFunc_1b40
 	push	{lr}
 	mov	r0, #0
@@ -3461,6 +3514,11 @@
 	bx	r1
 .func_end OvlFunc_1b40
 
+@ 17 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_1a44
 .thumb_func_start OvlFunc_1b68
 	push	{lr}
 	mov	r0, #0
@@ -3481,6 +3539,11 @@
 	bx	r1
 .func_end OvlFunc_1b68
 
+@ 18 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_1a44
 .thumb_func_start OvlFunc_1b94
 	push	{lr}
 	mov	r0, #0

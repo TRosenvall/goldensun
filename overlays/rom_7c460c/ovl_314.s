@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Leaf helper, 18 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_314
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -29,6 +32,9 @@
 	bx	lr
 .func_end OvlFunc_34c
 
+@ Leaf helper, 18 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_350
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -52,6 +58,9 @@
 	bx	r1
 .func_end OvlFunc_350
 
+@ Leaf helper, 18 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_388
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -1136,6 +1145,11 @@
 	bx	r0
 .func_end OvlFunc_c74
 
+@ 4 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   AdvanceDialogue
 .thumb_func_start OvlFunc_d08
 	push	{lr}
 	bl	__Func_93c00

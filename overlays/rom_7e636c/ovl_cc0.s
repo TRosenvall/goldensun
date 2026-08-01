@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_cc0
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -458,6 +461,11 @@
 	bx	r0
 .func_end OvlFunc_1080
 
+@ 4 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   AdvanceDialogue
 .thumb_func_start OvlFunc_10f0
 	push	{lr}
 	bl	__Func_93c00
@@ -504,6 +512,11 @@
 	bx	r0
 .func_end OvlFunc_10fc
 
+@ 5 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_3a8, OvlFunc_1158
 .thumb_func_start OvlFunc_1148
 	push	{lr}
 	bl	OvlFunc_3a8
@@ -569,6 +582,9 @@
 	bx	lr
 .func_end OvlFunc_11c4
 
+@ Leaf helper, 6 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x1e.
 .thumb_func_start OvlFunc_11c8
 	ldr	r2, [r0, #0x50]
 	ldr	r1, =0xfffffc00
@@ -783,6 +799,11 @@
 	bx	lr
 .func_end OvlFunc_1380
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaceSlotAt
 .thumb_func_start OvlFunc_1384
 	push	{lr}
 	mov	r0, #0xc

@@ -1248,6 +1248,11 @@
 	bx	r1
 .func_end OvlFunc_8c0
 
+@ 13 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetEntityAnimation
 .thumb_func_start OvlFunc_9dc
 	push	{r5, lr}
 	ldr	r5, =.L3390
@@ -1543,6 +1548,11 @@
 	bx	r1
 .func_end OvlFunc_b1c
 
+@ 32 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_b1c
 .thumb_func_start OvlFunc_c14
 	push	{r5, lr}
 	ldr	r3, =ewram_240
@@ -4314,6 +4324,11 @@
 	bx	r0
 .func_end OvlFunc_2780
 
+@ 20 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   DestroyEntity
 .thumb_func_start OvlFunc_2798
 	push	{lr}
 	ldr	r3, [r0, #0x18]

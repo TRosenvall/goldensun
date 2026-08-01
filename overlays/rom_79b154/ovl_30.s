@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 40 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Atan2
 .thumb_func_start OvlFunc_30
 	push	{r5, lr}
 	mov	r5, r0
@@ -46,6 +51,9 @@
 	bx	r1
 .func_end OvlFunc_30
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_88
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -78,6 +86,9 @@
 	bx	r1
 .func_end OvlFunc_88
 
+@ Leaf helper, 14 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_dc
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -102,6 +113,11 @@
 	bx	lr
 .func_end OvlFunc_104
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSceneFlagAndRefresh
 .thumb_func_start OvlFunc_10c
 	push	{lr}
 	mov	r0, #9
@@ -112,6 +128,9 @@
 	bx	r0
 .func_end OvlFunc_10c
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_11c
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -160,6 +179,9 @@
 	bx	r0
 .func_end OvlFunc_170
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_198
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -586,6 +608,11 @@
 	bx	r0
 .func_end OvlFunc_404
 
+@ 4 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   AdvanceDialogue
 .thumb_func_start OvlFunc_578
 	push	{lr}
 	bl	__Func_93c00
@@ -903,6 +930,11 @@
 	bx	r0
 .func_end OvlFunc_584
 
+@ 31 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_8f0, OvlFunc_ae0, RegisterTask, OvlFunc_d10
 .thumb_func_start OvlFunc_890
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -1477,6 +1509,10 @@
 	bx	r0
 .func_end OvlFunc_d10
 
+@ Leaf helper, 23 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1ebc
+@ Reads offsets +0x8, +0x10.
 .thumb_func_start OvlFunc_d80
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc
@@ -1637,6 +1673,11 @@
 	bx	r0
 .func_end OvlFunc_db4
 
+@ 41 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_f3c
 .thumb_func_start OvlFunc_ed8
 	push	{r5, lr}
 	ldr	r3, =ewram_240

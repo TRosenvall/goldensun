@@ -3099,6 +3099,11 @@
 	bx	r0
 .func_end OvlFunc_5158
 
+@ 31 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Sin
 .thumb_func_start OvlFunc_51b0
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -3135,6 +3140,9 @@
 	bx	r1
 .func_end OvlFunc_51b0
 
+@ Leaf helper, 20 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x18, +0x1c.
 .thumb_func_start OvlFunc_51f0
 	push	{lr}
 	mov	r2, r0
@@ -3160,6 +3168,9 @@
 	bx	r1
 .func_end OvlFunc_51f0
 
+@ Leaf helper, 21 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x18, +0x1c.
 .thumb_func_start OvlFunc_5218
 	push	{lr}
 	mov	r2, r0
@@ -3186,6 +3197,11 @@
 	bx	r1
 .func_end OvlFunc_5218
 
+@ 137 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   call_via_r3, CallHookScaled, call_via_r9 x2
 .thumb_func_start OvlFunc_5244
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -4012,6 +4028,11 @@
 	bx	r0
 .func_end OvlFunc_55c0
 
+@ 30 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_5158, Random
 .thumb_func_start OvlFunc_5900
 	push	{r5, lr}
 	ldr	r3, =iwram_1edc
@@ -4047,6 +4068,11 @@
 	bx	r0
 .func_end OvlFunc_5900
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Func_48f4, DestroyEntity
 .thumb_func_start OvlFunc_5948
 	push	{r5, lr}
 	mov	r0, #0x23

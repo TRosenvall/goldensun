@@ -24,6 +24,11 @@
 	bx	r0
 .func_end OvlFunc_22c4
 
+@ 8 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RegisterTask
 .thumb_func_start OvlFunc_22ec
 	push	{lr}
 	mov	r1, #0xc8
@@ -35,6 +40,11 @@
 	bx	r1
 .func_end OvlFunc_22ec
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   UnregisterTask
 .thumb_func_start OvlFunc_2304
 	push	{lr}
 	ldr	r0, =OvlFunc_22c4
@@ -420,6 +430,9 @@
 	bx	r0
 .func_end OvlFunc_2600
 
+@ Leaf helper, 22 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1e40
 .thumb_func_start OvlFunc_2648
 	push	{lr}
 	ldr	r3, =iwram_1e40

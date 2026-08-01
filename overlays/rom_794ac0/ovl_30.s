@@ -3994,6 +3994,11 @@
 	bx	r0
 .func_end OvlFunc_21c8
 
+@ 119 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_26e4 x17
 .thumb_func_start OvlFunc_2564
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -5078,6 +5083,11 @@
 	bx	r0
 .func_end OvlFunc_2db4
 
+@ 9 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetCombatantRecord
 .thumb_func_start OvlFunc_2f84
 	push	{lr}
 	mov	r0, #2
@@ -7512,6 +7522,9 @@
 	bx	r0
 .func_end OvlFunc_4698
 
+@ Leaf helper, 34 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Reads offsets +0x1, +0x8.
 .thumb_func_start OvlFunc_4704
 	push	{r5, lr}
 	ldr	r3, [r0]
@@ -7554,6 +7567,9 @@
 	bx	r1
 .func_end OvlFunc_4704
 
+@ Leaf helper, 49 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Reads offsets +0x1.
 .thumb_func_start OvlFunc_4754
 	push	{r5, r6, r7, lr}
 	mov	r2, #1
@@ -7610,6 +7626,11 @@
 	bx	r1
 .func_end OvlFunc_4754
 
+@ 31 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntity
 .thumb_func_start OvlFunc_47bc
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -7647,6 +7668,11 @@
 	bx	r1
 .func_end OvlFunc_47bc
 
+@ 33 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntity
 .thumb_func_start OvlFunc_47fc
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -7686,6 +7712,11 @@
 	bx	r1
 .func_end OvlFunc_47fc
 
+@ 46 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_47fc, OvlFunc_47bc x3
 .thumb_func_start OvlFunc_4840
 	push	{r5, r6, lr}
 	cmp	r0, #0
@@ -7739,6 +7770,11 @@
 	bx	r1
 .func_end OvlFunc_4840
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetEntityMoveTarget
 .thumb_func_start OvlFunc_48a4
 	push	{lr}
 	mov	r3, r1

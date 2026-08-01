@@ -1249,6 +1249,11 @@
 	bx	r1
 .func_end OvlFunc_8c0
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSceneFlagAndRefresh
 .thumb_func_start OvlFunc_9dc
 	push	{lr}
 	mov	r0, #0xf
@@ -1263,6 +1268,9 @@
 	bx	lr
 .func_end OvlFunc_9ec
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_9f0
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -1307,6 +1315,9 @@
 	bx	lr
 .func_end OvlFunc_a48
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_a50
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -1814,6 +1825,9 @@
 	bx	r0
 .func_end OvlFunc_ec8
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_ee0
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -1846,6 +1860,11 @@
 	bx	r1
 .func_end OvlFunc_ee0
 
+@ 4 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   AdvanceDialogue
 .thumb_func_start OvlFunc_f34
 	push	{lr}
 	bl	__Func_93c00
@@ -3067,6 +3086,9 @@
 	bx	r0
 .func_end OvlFunc_1838
 
+@ Leaf helper, 5 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: REG_BLDALPHA
 .thumb_func_start OvlFunc_18c0
 	ldr	r3, =REG_BLDALPHA
 	mov	r2, #0xd0
@@ -3075,6 +3097,9 @@
 	bx	lr
 .func_end OvlFunc_18c0
 
+@ Leaf helper, 4 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: REG_BLDALPHA
 .thumb_func_start OvlFunc_18d0
 	ldr	r2, =0x607
 	ldr	r3, =REG_BLDALPHA
@@ -3546,6 +3571,11 @@
 	bx	r0
 .func_end OvlFunc_1bc4
 
+@ 22 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_1bc4
 .thumb_func_start OvlFunc_1c28
 	push	{lr}
 	mov	r0, #9
@@ -3574,6 +3604,11 @@
 	bx	r0
 .func_end OvlFunc_1c28
 
+@ 5 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_c4, OvlFunc_1c28
 .thumb_func_start OvlFunc_1c5c
 	push	{lr}
 	bl	OvlFunc_c4
@@ -3727,6 +3762,11 @@
 	bx	r0
 .func_end OvlFunc_1cf8
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_1c6c, OvlFunc_c4, OvlFunc_1cf8
 .thumb_func_start OvlFunc_1d64
 	push	{lr}
 	bl	OvlFunc_1c6c
@@ -3864,6 +3904,11 @@
 	bx	r0
 .func_end OvlFunc_1e54
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_1da0, OvlFunc_c4, OvlFunc_1e54
 .thumb_func_start OvlFunc_1e60
 	push	{lr}
 	bl	OvlFunc_1da0
@@ -3881,6 +3926,11 @@
 	bx	r0
 .func_end OvlFunc_1e74
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_1da0, OvlFunc_c4, OvlFunc_1e74
 .thumb_func_start OvlFunc_1e80
 	push	{lr}
 	bl	OvlFunc_1da0
@@ -4011,6 +4061,11 @@
 	bx	r0
 .func_end OvlFunc_1edc
 
+@ 35 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_2188, OvlFunc_2290, OvlFunc_2334
 .thumb_func_start OvlFunc_1f78
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc

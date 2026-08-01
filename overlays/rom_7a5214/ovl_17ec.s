@@ -55,6 +55,11 @@
 	bx	r0
 .func_end OvlFunc_17ec
 
+@ 5 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   UnregisterTask
 .thumb_func_start OvlFunc_184c
 	push	{lr}
 	ldr	r0, =OvlFunc_1244
@@ -63,6 +68,11 @@
 	bx	r0
 .func_end OvlFunc_184c
 
+@ 44 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv
 .thumb_func_start OvlFunc_185c
 	push	{r5, r6, r7, lr}
 	mov	r6, r0

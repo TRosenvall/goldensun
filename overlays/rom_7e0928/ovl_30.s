@@ -179,6 +179,11 @@
 	bx	r0
 .func_end OvlFunc_4c
 
+@ 13 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   UnregisterTask, call_via_r5
 .thumb_func_start OvlFunc_188
 	push	{r5, lr}
 	ldr	r3, =.L5484
@@ -195,6 +200,11 @@
 	bx	r0
 .func_end OvlFunc_188
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RegisterTask
 .thumb_func_start OvlFunc_1b4
 	push	{lr}
 	mov	r1, #0xc8
@@ -655,6 +665,11 @@
 	bx	r0
 .func_end OvlFunc_4a4
 
+@ 5 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_common1_2060, OvlFunc_4a4
 .thumb_func_start OvlFunc_57c
 	push	{lr}
 	bl	OvlFunc_common1_2060
@@ -883,6 +898,11 @@
 	bx	r1
 .func_end OvlFunc_6a4
 
+@ 35 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_6a4 x4
 .thumb_func_start OvlFunc_714
 	push	{r5, r6, lr}
 	ldr	r3, =0xffe80000
@@ -1636,6 +1656,11 @@
 	bx	r0
 .func_end OvlFunc_c5c
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_common1_21c8, AdvanceDialogue
 .thumb_func_start OvlFunc_d70
 	push	{lr}
 	bl	OvlFunc_common1_21c8
@@ -1647,6 +1672,11 @@
 	bx	r0
 .func_end OvlFunc_d70
 
+@ 9 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_common1_21c8, AdvanceDialogue, OvlFunc_57c
 .thumb_func_start OvlFunc_d84
 	push	{lr}
 	bl	OvlFunc_common1_21c8
@@ -2309,6 +2339,9 @@
 	bx	r1
 .func_end OvlFunc_da4
 
+@ Leaf helper, 31 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x8, +0xc, +0x18, +0x1c.
 .thumb_func_start OvlFunc_137c
 	mov	r1, r0
 	add	r1, #0x64

@@ -1249,6 +1249,11 @@
 	bx	r1
 .func_end OvlFunc_8c0
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   LoadMapByName
 .thumb_func_start OvlFunc_9dc
 	push	{lr}
 	mov	r0, #0xd
@@ -1276,6 +1281,9 @@
 	bx	lr
 .func_end OvlFunc_9f8
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_a00
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -1308,6 +1316,9 @@
 	bx	r1
 .func_end OvlFunc_a00
 
+@ Leaf helper, 44 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: REG_BLDALPHA, REG_BLDCNT, ewram_1004
 .thumb_func_start OvlFunc_a54
 	push	{lr}
 	ldr	r3, =ewram_1004
@@ -1361,6 +1372,11 @@
 	bx	r0
 .func_end OvlFunc_a54
 
+@ 14 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_a54
 .thumb_func_start OvlFunc_abc
 	push	{lr}
 	ldr	r2, =ewram_1004
@@ -1685,6 +1701,11 @@
 	bx	r0
 .func_end OvlFunc_cf8
 
+@ 5 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_c4, OvlFunc_cf8
 .thumb_func_start OvlFunc_d48
 	push	{lr}
 	bl	OvlFunc_c4
@@ -1900,6 +1921,9 @@
 	bx	r0
 .func_end OvlFunc_eac
 
+@ Leaf helper, 19 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x18, +0x1c.
 .thumb_func_start OvlFunc_ee0
 	mov	r1, r0
 	add	r1, #0x64
@@ -1977,6 +2001,11 @@
 	bx	r0
 .func_end OvlFunc_f10
 
+@ 17 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_f10
 .thumb_func_start OvlFunc_f6c
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -5806,6 +5835,9 @@
 	bx	r0
 .func_end OvlFunc_3518
 
+@ Leaf helper, 35 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_3598
 	push	{lr}
 	ldr	r3, =ewram_240

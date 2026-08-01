@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSceneFlagAndRefresh
 .thumb_func_start OvlFunc_30
 	push	{lr}
 	mov	r0, #0x17
@@ -222,6 +227,11 @@
 	bx	r0
 .func_end OvlFunc_158
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetPendingMessageId
 .thumb_func_start OvlFunc_1f0
 	push	{lr}
 	ldr	r3, =iwram_1ebc

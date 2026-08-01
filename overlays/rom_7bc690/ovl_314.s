@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSceneFlagAndRefresh
 .thumb_func_start OvlFunc_314
 	push	{lr}
 	mov	r0, #0xd
@@ -83,6 +88,9 @@
 	bx	r1
 .func_end OvlFunc_344
 
+@ Leaf helper, 30 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_3ac
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -133,6 +141,12 @@
 	bx	lr
 .func_end OvlFunc_414
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit
+@ sets 0x90a.
 .thumb_func_start OvlFunc_41c
 	push	{r5, lr}
 	ldr	r5, =ewram_240

@@ -336,6 +336,11 @@
 	bx	r0
 .func_end OvlFunc_fd8
 
+@ 5 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetPendingMessageId
 .thumb_func_start OvlFunc_1144
 	push	{lr}
 	mov	r0, #0x3f

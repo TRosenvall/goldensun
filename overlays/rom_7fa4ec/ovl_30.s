@@ -25,6 +25,11 @@
 	bx	lr
 .func_end OvlFunc_44
 
+@ 15 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetPendingMessageId
 .thumb_func_start OvlFunc_4c
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -51,6 +56,11 @@
 	bx	r0
 .func_end OvlFunc_70
 
+@ 20 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_10d4
 .thumb_func_start OvlFunc_7c
 	push	{lr}
 	mov	r0, #0x80
@@ -80,6 +90,11 @@
 	bx	lr
 .func_end OvlFunc_a8
 
+@ 27 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   UnsignedDiv
 .thumb_func_start OvlFunc_b0
 	push	{r5, lr}
 	ldr	r5, =.L181c
@@ -1631,6 +1646,10 @@
 	bx	r1
 .func_end OvlFunc_da4
 
+@ Leaf helper, 27 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: REG_BG3HOFS, REG_DMA0SAD, iwram_1ed8
+@ Writes offsets +0xa.
 .thumb_func_start OvlFunc_f30
 	ldr	r3, =iwram_1ed8
 	mov	r2, #0xf0
@@ -1661,6 +1680,10 @@
 	bx	lr
 .func_end OvlFunc_f30
 
+@ Leaf helper, 146 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1ad0, iwram_1ed8
+@ Reads offsets +0xc.
 .thumb_func_start OvlFunc_f80
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1918,6 +1941,11 @@
 	bx	r0
 .func_end OvlFunc_1188
 
+@ 104 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   ReleaseObjAffine
 .thumb_func_start OvlFunc_11c4
 	push	{r5, r6, r7, lr}
 	ldr	r3, =.L1c1a

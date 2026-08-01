@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 8 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunSlotEffectSequence
 .thumb_func_start OvlFunc_30
 	push	{lr}
 	mov	r1, #0x81
@@ -17,6 +22,9 @@
 	bx	lr
 .func_end OvlFunc_44
 
+@ Leaf helper, 15 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_4c
 	push	{lr}
 	ldr	r3, =ewram_240

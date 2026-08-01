@@ -1492,6 +1492,11 @@
 	bx	lr
 .func_end OvlFunc_f2c
 
+@ 14 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   ExitRideMode, OvlFunc_54
 .thumb_func_start OvlFunc_f30
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -1510,6 +1515,9 @@
 	bx	r1
 .func_end OvlFunc_f30
 
+@ Leaf helper, 8 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x1e.
 .thumb_func_start OvlFunc_f54
 	ldrh	r3, [r0, #6]
 	mov	r1, #0x80
@@ -4496,6 +4504,9 @@
 	bx	r0
 .func_end OvlFunc_29a4
 
+@ Leaf helper, 54 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0xc, +0x18, +0x1c, +0x3c.
 .thumb_func_start OvlFunc_2ba0
 	push	{r5, r6, r7, lr}
 	ldr	r2, =.L3b40
@@ -5074,6 +5085,11 @@
 	bx	r0
 .func_end OvlFunc_2eb0
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   ApplyRevealToScene
 .thumb_func_start OvlFunc_2ff0
 	push	{lr}
 	mov	r0, #0x8c
@@ -5083,6 +5099,11 @@
 	bx	r0
 .func_end OvlFunc_2ff0
 
+@ 4 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunLiftAbility
 .thumb_func_start OvlFunc_3000
 	push	{lr}
 	bl	__Func_97194
@@ -5090,6 +5111,11 @@
 	bx	r0
 .func_end OvlFunc_3000
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_2dd0
 .thumb_func_start OvlFunc_300c
 	push	{lr}
 	mov	r0, #0xf

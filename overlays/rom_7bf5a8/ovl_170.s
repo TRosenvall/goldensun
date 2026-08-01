@@ -159,6 +159,12 @@
 	bx	r0
 .func_end OvlFunc_170
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit
+@ sets 0x300.
 .thumb_func_start OvlFunc_2bc
 	push	{lr}
 	mov	r0, #0xc0
@@ -168,6 +174,11 @@
 	bx	r0
 .func_end OvlFunc_2bc
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunTextBoxModal
 .thumb_func_start OvlFunc_2cc
 	push	{lr}
 	ldr	r0, =0x953

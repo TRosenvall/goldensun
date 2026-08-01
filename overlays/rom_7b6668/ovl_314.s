@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSceneFlagAndRefresh
 .thumb_func_start OvlFunc_314
 	push	{lr}
 	mov	r0, #0x16
@@ -58,6 +63,11 @@
 	bx	r0
 .func_end OvlFunc_358
 
+@ 37 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_common0_10c
 .thumb_func_start OvlFunc_370
 	push	{r5, lr}
 	mov	r0, #0xe
@@ -264,6 +274,11 @@
 	bx	r1
 .func_end OvlFunc_408
 
+@ 71 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_408
 .thumb_func_start OvlFunc_500
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -367,6 +382,12 @@
 	bx	lr
 .func_end OvlFunc_5a8
 
+@ 12 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit
+@ reads save bit 0x895.
 .thumb_func_start OvlFunc_5b0
 	push	{lr}
 	ldr	r0, =0x895

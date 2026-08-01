@@ -1271,6 +1271,9 @@
 	bx	r0
 .func_end OvlFunc_9dc
 
+@ Leaf helper, 44 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x8, +0xc, +0x10, +0x38, +0x3c, +0x40.
 .thumb_func_start OvlFunc_a00
 	push	{lr}
 	mov	r3, r0
@@ -1324,6 +1327,11 @@
 	bx	r0
 .func_end OvlFunc_a00
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetActorPartsPalette
 .thumb_func_start OvlFunc_a58
 	push	{lr}
 	mov	r1, #0xf
@@ -2081,6 +2089,11 @@
 	bx	r0
 .func_end OvlFunc_109c
 
+@ 4 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   AdvanceDialogue
 .thumb_func_start OvlFunc_10b4
 	push	{lr}
 	bl	__Func_93c00

@@ -90,6 +90,11 @@
 	bx	r1
 .func_end OvlFunc_30
 
+@ 40 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Atan2
 .thumb_func_start OvlFunc_d8
 	push	{r5, lr}
 	mov	r5, r0
@@ -136,6 +141,9 @@
 	bx	r1
 .func_end OvlFunc_d8
 
+@ Leaf helper, 15 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_130
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -230,6 +238,9 @@
 	bx	r0
 .func_end OvlFunc_1e0
 
+@ Leaf helper, 15 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_1ec
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -2474,6 +2485,11 @@
 	bx	r0
 .func_end OvlFunc_1704
 
+@ 32 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   DestroyEntity
 .thumb_func_start OvlFunc_174c
 	push	{lr}
 	mov	r1, r0

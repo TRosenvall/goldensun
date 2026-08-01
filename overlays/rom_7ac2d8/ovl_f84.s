@@ -98,6 +98,11 @@
 	bx	r0
 .func_end OvlFunc_ffc
 
+@ 12 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_f84
 .thumb_func_start OvlFunc_1060
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -113,6 +118,11 @@
 	bx	r0
 .func_end OvlFunc_1060
 
+@ 12 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_f84
 .thumb_func_start OvlFunc_1080
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -128,6 +138,11 @@
 	bx	r0
 .func_end OvlFunc_1080
 
+@ 12 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_f84
 .thumb_func_start OvlFunc_10a0
 	push	{lr}
 	ldr	r3, =iwram_1ebc

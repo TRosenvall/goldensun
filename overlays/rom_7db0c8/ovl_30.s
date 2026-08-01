@@ -142,6 +142,11 @@
 	bx	r0
 .func_end OvlFunc_4c
 
+@ 11 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   UnregisterTask, call_via_r5
 .thumb_func_start OvlFunc_134
 	push	{r5, lr}
 	ldr	r3, =.L441c
@@ -156,6 +161,11 @@
 	bx	r0
 .func_end OvlFunc_134
 
+@ 10 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RegisterTask
 .thumb_func_start OvlFunc_158
 	push	{lr}
 	ldr	r3, =.L441c
@@ -268,6 +278,11 @@
 	bx	r0
 .func_end OvlFunc_1a8
 
+@ 5 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_common1_2060, OvlFunc_1a8
 .thumb_func_start OvlFunc_238
 	push	{lr}
 	bl	OvlFunc_common1_2060
@@ -957,6 +972,12 @@
 	bx	r0
 .func_end OvlFunc_540
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit
+@ sets 0x300.
 .thumb_func_start OvlFunc_830
 	push	{lr}
 	mov	r0, #0xc0
@@ -1080,6 +1101,11 @@
 	bx	r0
 .func_end OvlFunc_840
 
+@ 9 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_common1_21c8, AdvanceDialogue, OvlFunc_238
 .thumb_func_start OvlFunc_954
 	push	{lr}
 	bl	OvlFunc_common1_21c8

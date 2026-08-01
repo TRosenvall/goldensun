@@ -1248,6 +1248,9 @@
 	bx	r1
 .func_end OvlFunc_8c0
 
+@ Leaf helper, 11 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x9.
 .thumb_func_start OvlFunc_9dc
 	ldr	r0, [r0, #0x50]
 	mov	r3, #3
@@ -1367,6 +1370,9 @@
 	bx	r1
 .func_end OvlFunc_a4c
 
+@ Leaf helper, 27 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x8, +0xc, +0x10, +0x18, +0x1c, +0x1e.
 .thumb_func_start OvlFunc_ab0
 	ldr	r3, [r0, #8]
 	ldr	r2, [r0, #0x44]
@@ -1639,6 +1645,11 @@
 	bx	r0
 .func_end OvlFunc_ae8
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   LoadMapByName
 .thumb_func_start OvlFunc_cc0
 	push	{lr}
 	mov	r0, #8
@@ -1667,6 +1678,11 @@
 	bx	r0
 .func_end OvlFunc_cd0
 
+@ 44 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv
 .thumb_func_start OvlFunc_cf0
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -1928,6 +1944,9 @@
 	bx	r0
 .func_end OvlFunc_eac
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_f58
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -1960,6 +1979,9 @@
 	bx	r1
 .func_end OvlFunc_f58
 
+@ Leaf helper, 14 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_fac
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -1984,6 +2006,9 @@
 	bx	lr
 .func_end OvlFunc_fd4
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_fdc
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -4141,6 +4166,11 @@
 	bx	r0
 .func_end OvlFunc_246c
 
+@ 14 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectIndices
 .thumb_func_start OvlFunc_24b0
 	push	{lr}
 	sub	sp, #8
@@ -4339,6 +4369,11 @@
 	bx	r0
 .func_end OvlFunc_25c8
 
+@ 30 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetTerrainHeight, OvlFunc_6c
 .thumb_func_start OvlFunc_2660
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -4372,6 +4407,9 @@
 	bx	r1
 .func_end OvlFunc_2660
 
+@ Leaf helper, 6 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1f30
 .thumb_func_start OvlFunc_26a8
 	ldr	r3, =iwram_1f30
 	ldr	r3, [r3]
@@ -4422,6 +4460,11 @@
 	bx	r0
 .func_end OvlFunc_26b8
 
+@ 26 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_2660, OvlFunc_c4
 .thumb_func_start OvlFunc_26fc
 	push	{r5, lr}
 	mov	r0, #0
@@ -4512,6 +4555,9 @@
 	bx	r0
 .func_end OvlFunc_2738
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_27a0
 	push	{lr}
 	ldr	r3, =ewram_240

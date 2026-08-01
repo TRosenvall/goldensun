@@ -141,6 +141,11 @@
 	.word	0
 .func_end OvlFunc_54
 
+@ 68 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   UnregisterTask
 .thumb_func_start OvlFunc_154
 	push	{r5, r6, lr}
 	ldr	r3, =.L16b0
@@ -338,6 +343,9 @@
 	bx	r0
 .func_end OvlFunc_1fc
 
+@ Leaf helper, 71 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x1, +0x2.
 .thumb_func_start OvlFunc_2f4
 	push	{lr}
 	mov	r3, #0
@@ -427,6 +435,12 @@
 	bx	r0
 .func_end OvlFunc_2f4
 
+@ 29 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit
+@ reads save bit 0x144.
 .thumb_func_start OvlFunc_384
 	push	{lr}
 	mov	r0, #0xa2
@@ -1548,6 +1562,11 @@
 	bx	r0
 .func_end OvlFunc_cfc
 
+@ 47 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Func_4970, FreeScratch
 .thumb_func_start OvlFunc_d74
 	push	{r5, r6, r7, lr}
 	mov	r5, r0

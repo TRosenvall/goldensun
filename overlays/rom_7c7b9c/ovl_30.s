@@ -72,6 +72,11 @@
 	bx	r1
 .func_end OvlFunc_30
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetEntityActorOptions
 .thumb_func_start OvlFunc_b4
 	push	{lr}
 	mov	r1, #1
@@ -682,6 +687,11 @@
 	bx	r1
 .func_end OvlFunc_514
 
+@ 18 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random
 .thumb_func_start OvlFunc_570
 	push	{r5, lr}
 	mov	r5, r0
@@ -1096,6 +1106,11 @@
 	bx	r1
 .func_end OvlFunc_724
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random
 .thumb_func_start OvlFunc_89c
 	push	{r5, lr}
 	mov	r5, r0
@@ -1116,6 +1131,9 @@
 	bx	r1
 .func_end OvlFunc_89c
 
+@ Leaf helper, 14 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x18, +0x1c.
 .thumb_func_start OvlFunc_8c0
 	push	{lr}
 	mov	r2, #0x80
@@ -5238,6 +5256,12 @@
 	bx	r0
 .func_end OvlFunc_2c84
 
+@ 36 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit
+@ reads save bit 0x990.
 .thumb_func_start OvlFunc_3150
 	push	{r5, r6, r7, lr}
 	mov	r6, #0
@@ -5519,6 +5543,13 @@
 	bx	r0
 .func_end OvlFunc_3380
 
+@ 73 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_3150, OvlFunc_3464, OvlFunc_3150, OvlFunc_3464
+@   OvlFunc_3150, OvlFunc_3464, OvlFunc_3150, OvlFunc_3464
+@   OvlFunc_3150, OvlFunc_3464
 .thumb_func_start OvlFunc_33b8
 	push	{r5, r6, r7, lr}
 	ldr	r6, =.L5b70
@@ -5606,6 +5637,11 @@
 	bx	r0
 .func_end OvlFunc_33b8
 
+@ 35 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit
 .thumb_func_start OvlFunc_3464
 	push	{r5, r6, lr}
 	mov	r6, #0
@@ -5652,6 +5688,11 @@
 	bx	r1
 .func_end OvlFunc_3464
 
+@ 64 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_3558 x4, OvlFunc_35ec x8
 .thumb_func_start OvlFunc_34bc
 	push	{r5, lr}
 	mov	r0, #8
@@ -6259,6 +6300,11 @@
 	bx	r0
 .func_end OvlFunc_39ec
 
+@ 5 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TurnSlotToAngle
 .thumb_func_start OvlFunc_3a00
 	push	{lr}
 	mov	r2, #0xa

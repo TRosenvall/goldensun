@@ -1248,6 +1248,11 @@
 	bx	r1
 .func_end OvlFunc_ba4
 
+@ 61 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random, OvlFunc_common0_10c
 .thumb_func_start OvlFunc_cc0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1313,6 +1318,11 @@
 	bx	r1
 .func_end OvlFunc_cc0
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound
 .thumb_func_start OvlFunc_d48
 	push	{lr}
 	mov	r0, #0x76

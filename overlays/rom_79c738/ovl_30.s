@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 40 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Atan2
 .thumb_func_start OvlFunc_30
 	push	{r5, lr}
 	mov	r5, r0
@@ -113,6 +118,9 @@
 	bx	r1
 .func_end OvlFunc_9c
 
+@ Leaf helper, 15 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_100
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -451,6 +459,11 @@
 	bx	r0
 .func_end OvlFunc_408
 
+@ 9 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, OvlFunc_3ec, OvlFunc_408
 .thumb_func_start OvlFunc_424
 	push	{lr}
 	bl	__Func_79338
@@ -465,6 +478,12 @@
 	bx	r0
 .func_end OvlFunc_424
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, OvlFunc_424, OvlFunc_4ec
+@ reads save bit 0x84e.
 .thumb_func_start OvlFunc_43c
 	push	{lr}
 	ldr	r0, =0x84e
@@ -486,6 +505,12 @@
 	bx	r0
 .func_end OvlFunc_43c
 
+@ 14 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, OvlFunc_424, OvlFunc_4ec
+@ reads save bit 0x84e.
 .thumb_func_start OvlFunc_468
 	push	{lr}
 	ldr	r0, =0x84e
@@ -505,6 +530,12 @@
 	bx	r0
 .func_end OvlFunc_468
 
+@ 14 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, OvlFunc_424, OvlFunc_4ec
+@ reads save bit 0x84e.
 .thumb_func_start OvlFunc_494
 	push	{lr}
 	ldr	r0, =0x84e
@@ -524,6 +555,12 @@
 	bx	r0
 .func_end OvlFunc_494
 
+@ 14 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, OvlFunc_424, OvlFunc_4ec
+@ reads save bit 0x84e.
 .thumb_func_start OvlFunc_4c0
 	push	{lr}
 	ldr	r0, =0x84e

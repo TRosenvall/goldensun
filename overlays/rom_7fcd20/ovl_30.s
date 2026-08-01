@@ -227,6 +227,11 @@
 	bx	r0
 .func_end OvlFunc_1d8
 
+@ 5 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetUpTestInventory
 .thumb_func_start OvlFunc_1f8
 	push	{lr}
 	mov	r0, #1
@@ -239,6 +244,11 @@
 	bx	lr
 .func_end OvlFunc_204
 
+@ 8 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunShopMenu
 .thumb_func_start OvlFunc_208
 	push	{lr}
 	sub	sp, #8
@@ -250,6 +260,11 @@
 	bx	r0
 .func_end OvlFunc_208
 
+@ 5 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunEquipScreen
 .thumb_func_start OvlFunc_21c
 	push	{lr}
 	mov	r0, #0
@@ -262,6 +277,9 @@
 	bx	lr
 .func_end OvlFunc_228
 
+@ Leaf helper, 6 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1f30
 .thumb_func_start OvlFunc_22c
 	ldr	r3, =iwram_1f30
 	ldr	r3, [r3]
@@ -1832,6 +1850,11 @@
 	bx	r1
 .func_end OvlFunc_10a8
 
+@ 4 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunEquipListScreen
 .thumb_func_start OvlFunc_1170
 	push	{lr}
 	bl	__Func_29554
@@ -1839,6 +1862,11 @@
 	bx	r1
 .func_end OvlFunc_1170
 
+@ 4 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunShopByType
 .thumb_func_start OvlFunc_117c
 	push	{lr}
 	bl	__Func_b29a8
