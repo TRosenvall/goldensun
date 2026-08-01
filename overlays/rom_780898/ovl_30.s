@@ -1,5 +1,48 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Overlay 0x780898 -- a map overlay whose first 1125 instructions are the
+@ PUSHABLE-LOG PUZZLE, shared verbatim with about seventeen other overlays.
+@
+@ OvlFunc_30 .. OvlFunc_8c0 are that shared block. Everything from OvlFunc_9dc
+@ onward is this map's own content. The block is byte-identical across the
+@ family, so the notes here carry over unchanged; see docs/overlays.md for the
+@ member list.
+@
+@ THE PUZZLE. Some maps contain long logs and pillars the player can shoulder
+@ one tile at a time. Pushing one has to do three things at once: verify the
+@ whole footprint of the log clears the terrain it is moving onto, animate the
+@ player and the log together, and rewrite the map's collision attributes so
+@ the log blocks movement at its new resting place and stops blocking at the
+@ old one. The last part is why this needs map code at all rather than a plain
+@ entity script.
+@
+@ THE TWO TABLES, both at the bottom of the file:
+@
+@   .L6190  16 words, indexed by the player's facing (the top four bits of the
+@           halfword at entity+0x06). Each is a packed one-tile step: the HIGH
+@           halfword is the x delta and the LOW halfword the z delta, both in
+@           1/16-tile units, applied as `x += v & 0xFFFF0000` and
+@           `z += v << 16`. The sixteen facings collapse to four cardinal
+@           steps of +-16 units.
+@
+@   .L61d0  six model ids -- 0xCF, 0xCD, 0xE4, 0xE5, 0x12A, 0x129 -- read from
+@           [[entity+0x50]+0x28]. These are the pushable props.
+@   .L61e8  the matching six footprints, four s32 each: minX, minZ, maxX, maxZ
+@           in 1/16-tile units. They alternate orientation, so the even ids are
+@           logs lying along x (-32,-8,32,8) and the odd ids along z
+@           (-8,-32,8,32). Index bit 0 therefore doubles as the axis flag, and
+@           OvlFunc_34c uses it that way.
+@
+@ Positions are 16.16 fixed point at entity +0x08 (x), +0x0C (y), +0x10 (z);
+@ `asr #20` turns one into a whole tile index, `asr #16` into 1/16 units.
+@ ============================================================================
+
+@ Distance3D
+@ r0, r1 = two {x, y, z} triples of 16.16 words. Returns the integer distance
+@ between them: each axis difference is taken down to 1/16 units with `asr #16`,
+@ squared, summed, and passed to the ROM's Func_948 (IntegerSqrt) through a
+@ call_via veneer because Func_948 is ARM code.
 .thumb_func_start OvlFunc_30
 	push	{r5, lr}
 	ldmia	r0!, {r5}
@@ -30,6 +73,17 @@
 	bx	r1
 .func_end OvlFunc_30
 
+@ FindEntityAtPosition
+@ r0 = an {x, y, z} triple, r1 = the entity to skip (the caller itself).
+@ Scans entity slots 8..0x41 -- the map-object range, above the party slots --
+@ from the table at [iwram_1ebc]+0x34, and returns the first whose position
+@ matches r0. Returns 0 if nothing is there.
+@
+@ The comparison is deliberately mismatched between axes: x and z are compared
+@ at whole-tile resolution (`asr #20`) but y at 1/16 (`asr #16`, with 0xFFFF
+@ added first to round negatives toward zero). So an object counts as "here" if
+@ it shares the tile, but only if it is on the same height step -- which is what
+@ keeps a log on a ledge from blocking one on the floor below.
 .thumb_func_start OvlFunc_6c
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1ebc
@@ -78,6 +132,29 @@
 	bx	r1
 .func_end OvlFunc_6c
 
+@ TryPushBlockOneTile
+@ No arguments. The interaction handler for a single-tile pushable block, as
+@ opposed to the multi-tile logs the rest of this file deals with.
+@
+@ Takes the player (slot 0) and steps one tile along the facing from .L6190 to
+@ find the block. Then it rejects the push unless all three of these hold:
+@   - the tile beyond the block is empty (a second OvlFunc_6c one step further,
+@     and if something is there, bit 0 of its byte at +0x59 must be clear),
+@   - the tile directly above the block is clear too -- the same lookup with
+@     y raised by 0x100000, one height step, so a block cannot be shoved under
+@     an overhang,
+@   - Func_120dc accepts the destination terrain (it returns > 0 to reject) and
+@     the block's byte at +0x62 is zero.
+@ +0x22 is set to 2 first because Func_120dc reads it to choose the collision
+@ layer to sample.
+@
+@ Once committed: animation 8 on the player, a fifteen-frame beat, sound 0xB9,
+@ then both the block and the player are given speed 0x3333 in +0x30/+0x34 and
+@ sent to the new tile with Func_d14c. Func_ca6c waits out the slide and
+@ Func_9202c ends the looping push cue. The final position is written straight
+@ into the block, its velocities at +0x24/+0x2C are cleared, and the player's
+@ move targets are reset to the 0x80000000 sentinel before animation 1 returns
+@ it to idle.
 .thumb_func_start OvlFunc_c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -257,6 +334,19 @@
 	bx	r0
 .func_end OvlFunc_c4
 
+@ FillMapRectCollisionByte
+@ r0 = layer (0..2, anything higher means ewram_10000), r1 = x, r2 = z,
+@ r3 = width, [sp+0x0C] = height, [sp+0x10] = the byte to store.
+@ Always returns 0.
+@
+@ Writes one byte into every cell of a rectangle of the map's cell array: the
+@ layer base comes from [iwram_1e70] + 0x130 + layer*0x30, rows are 0x200 bytes
+@ apart (`lsl #9`) and cells 4 bytes, and the byte written is at offset +2 of
+@ the cell -- the collision/attribute byte, not the metatile index.
+@
+@ This is how a log occupies space. OvlFunc_608 calls it with 0xFF to stamp the
+@ footprint solid at the destination and with 0 to clear it at the origin, on
+@ both layer 0 and layer 2. A null [iwram_1e70] makes it a no-op.
 .thumb_func_start OvlFunc_244
 	push	{r5, r6, lr}
 	mov	r4, r3
@@ -312,6 +402,20 @@
 	bx	r1
 .func_end OvlFunc_244
 
+@ PlayerPushFrameHook
+@ r0 = the player entity. Installed at entity+0x6C by OvlFunc_608 for the
+@ duration of a push and cleared again afterwards, so it runs once per frame
+@ while the player is walking the log forward. Always returns 0.
+@
+@ It aborts the player's motion the moment the push stops being valid, by
+@ zeroing the velocities at +0x24/+0x2C and resetting the move targets at
+@ +0x38/+0x40 to the 0x80000000 sentinel. Two conditions trigger that:
+@   - the tile ahead holds an entity that is NOT one of the six pushable models
+@     in .L61d0 (something walked into the way), or
+@   - Func_120dc rejects the terrain ahead.
+@ Stopping the player here rather than in OvlFunc_608 means the log keeps its
+@ own scripted glide while the player halts, which is what produces the small
+@ stumble when a push is interrupted.
 .thumb_func_start OvlFunc_2a8
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -392,6 +496,25 @@
 	bx	r1
 .func_end OvlFunc_2a8
 
+@ FindPushableFacingPlayer
+@ r0 = out, the player's facing (0..15); r1 = out, the entity slot found;
+@ r2 = out, the index into .L61d0/.L61e8 of the model that matched.
+@ Returns the log's entity, or 0 if the player is not facing one.
+@
+@ A double loop: slots 8..0x41 on the outside, the six pushable model ids on the
+@ inside. For each candidate whose model id at [[entity+0x50]+0x28] matches, it
+@ builds the footprint rectangle from .L61e8 around the candidate's centre
+@ (+0x0A and +0x12, the integer halves of x and z) and tests whether the tile
+@ one step ahead of the player falls inside it.
+@
+@ The last check is what makes long logs work. Index bit 0 selects the log's
+@ axis, and the player's coordinate ALONG that axis must differ from the log's:
+@   even index (log lies along x) -- reject if the tile x matches,
+@   odd index  (log lies along z) -- reject if the tile z matches.
+@ Standing at the end of a log and facing down its length therefore finds
+@ nothing, so a log can only be pushed broadside. Everything is compared at
+@ 1/16 resolution (`asr #16` then `asr #4`) rather than whole tiles, because the
+@ footprints are half-tile multiples.
 .thumb_func_start OvlFunc_34c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -539,6 +662,31 @@
 	bx	r1
 .func_end OvlFunc_34c
 
+@ PlanPushDistance
+@ r0 = a six-word request block, filled in on the way through:
+@       +0x00  out, the .L61e8 model index
+@       +0x04  out, the entity slot (written by OvlFunc_34c through r1)
+@       +0x08  out, destination x (16.16)
+@       +0x0C  out, destination y
+@       +0x10  out, destination z
+@       +0x14  cleared on entry
+@ Returns 1 if the log can move at least one tile, 0 if it cannot move at all
+@ or the player is not facing one.
+@
+@ Having located the log with OvlFunc_34c, it converts the footprint into a
+@ width and height in whole tiles -- |minX| + |maxX| and |minZ| + |maxZ|, each
+@ `asr #4` -- and then walks outward one step at a time along the facing. At
+@ every step it probes EVERY cell of the footprint with Func_120dc, raising y
+@ by 0x100000 per row so each height step is sampled where it actually sits.
+@
+@ Only a return of 2 stops the walk -- "no tile / blocked". A return of 1 or -1,
+@ meaning the step up or drop is too large, does not, so a log will happily be
+@ pushed down a slope it could not be pushed up. The loop has no upper bound
+@ other than that wall, which is why long open floors let a log slide the whole
+@ way across.
+@
+@ The step count lands in [sp+0x0C]; the destination written back is the log's
+@ start plus count times the .L6190 delta.
 .thumb_func_start OvlFunc_474
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -747,6 +895,36 @@
 	bx	r1
 .func_end OvlFunc_474
 
+@ RunPushCutscene
+@ r0 = the .L61e8 model index, r1 = the log entity, r2 = destination x,
+@ r3 = destination y, [sp+0x58] = destination z, [sp+0x5C] = an optional
+@ callback invoked at the midpoint (0 for none). Returns nothing useful.
+@
+@ The whole push, start to finish. Note the unusual prologue -- `sub sp, #0x10`
+@ BEFORE the register push, matched by `add sp, #0x10` after popping the return
+@ address into r3 -- which is how the six stacked arguments are addressed.
+@
+@ Order of operations:
+@   1. Clear the log's old footprint: OvlFunc_244 with byte 0 over the width
+@      and height derived from .L61e8, so the player can walk into the space it
+@      is about to vacate.
+@   2. Player speed 0x8000 / accel 0x1999, animation 8, fifteen-frame beat.
+@   3. Func_9228c nudges the player half a tile into the log, then
+@      OvlFunc_2a8 is installed at the player's +0x6C as the per-frame guard.
+@   4. Animation 3 if the facing is 6..13, otherwise 2 -- the two shoulder
+@      poses, chosen by which side of the log the player is on.
+@   5. Sound 0xEF, and Func_d14c launches the log toward its destination.
+@   6. Speed drops to 0x4CCC / 0x1999 and the player follows for half the
+@      remaining distance (`asr #1` on each delta, with the usual round-toward-
+@      zero correction from `lsr #31`).
+@   7. The optional callback fires here, through a call_via veneer.
+@   8. The frame hook is cleared, Func_ca6c waits the log out, sounds 0x120
+@      and 0xD5 close the cue, and the log's final position is written directly
+@      with its velocities zeroed.
+@   9. Func_10704 copies the map attributes over the new footprint and
+@      OvlFunc_244 stamps 0xFF into layers 0 and 2, making the log solid again;
+@      the same pair then runs at the destination and finally clears the origin.
+@      Func_9202c ends the looping push sound.
 .thumb_func_start OvlFunc_608
 	sub	sp, #0x10
 	push	{r5, r6, r7, lr}
@@ -1061,6 +1239,23 @@
 	bx	r3
 .func_end OvlFunc_608
 
+@ StampPlayerFootprintSolid
+@ No arguments. Returns 1 if the player is standing as one of the six pushable
+@ models, 0 otherwise.
+@
+@ Called on map entry. The player entity here is not the party leader but the
+@ log itself -- these maps place the log in slot 0 during setup -- so this reads
+@ its model id at [[entity+0x50]+0x28], finds it in .L61d0, and marks the map
+@ cells it covers solid before the player can reach them. Without it a log would
+@ start the map passable and only become an obstacle after the first push.
+@
+@ The search loop leaves index 7 in the slot when nothing matches (`mov r6, #7`
+@ stored each pass), which the `cmp r2, #6 / bls` test then rejects. Index 0 is
+@ handled by a separate branch before the loop, since the loop writes its
+@ counter only after the first increment.
+@
+@ The work is the same closing pair as OvlFunc_608: Func_10704 to repaint the
+@ attributes, then OvlFunc_244 with 0xFF on layer 0 and layer 2.
 .thumb_func_start OvlFunc_8c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1206,21 +1401,56 @@
 	bx	r1
 .func_end OvlFunc_8c0
 
+@ ----------------------------------------------------------------------------
+@ THIS MAP'S OWN CONTENT starts here. The shared push-log block above ends at
+@ OvlFunc_8c0.
+@
+@ The six export slots, resolved from the overlay header (slot N's target is at
+@ __start_overlay + N*8 + 4):
+@
+@   slot 0  OvlFunc_2a54   main entry (code)
+@   slot 1  OvlFunc_9dc    edge-transition table  -> .L6708
+@   slot 2  OvlFunc_9e8    map event list         -> .L6870
+@   slot 3  OvlFunc_9f0    read after slot 4      -> one of four, see below
+@   slot 4  OvlFunc_aa4    map object table       -> one of three
+@   slot 5  OvlFunc_9e4    interaction table      -> none (returns 0)
+@
+@ Slots 3 and 4 are not constants: this map has three story states, selected by
+@ two save bits and one party-state halfword. They must agree, because slot 3's
+@ table is indexed against the object list slot 4 returns.
+@
+@   condition                                 slot 4     slot 3
+@   ewram_240+0x1C2 == 0x10                   --         .L6e48
+@   save bit 0x87A set                        .L7334     .L6cc8
+@   save bit 0x815 set                        .L7100     .L6ab8
+@   neither                                   .L6F38     .L68a8
+@
+@ Save bit 0x815 also gates most of the NPC dialogue below, and 0x87A a later
+@ revision of it, so the two bits are this map's before/during/after markers.
+@ ----------------------------------------------------------------------------
+
+@ Slot 1: the edge-transition table. Constant for this map.
 .thumb_func_start OvlFunc_9dc
 	ldr	r0, =.L6708
 	bx	lr
 .func_end OvlFunc_9dc
 
+@ Slot 5: the interaction table. This map has none.
 .thumb_func_start OvlFunc_9e4
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_9e4
 
+@ Slot 2: the map event list. Constant for this map.
 .thumb_func_start OvlFunc_9e8
 	ldr	r0, =.L6870
 	bx	lr
 .func_end OvlFunc_9e8
 
+@ Slot 3: picks the table matching the map's story state. Checked in priority
+@ order -- the party-state halfword at ewram_240+0x1C2 first, then the two save
+@ bits newest-first -- so a later state wins over an earlier one. Must stay in
+@ step with slot 4 (OvlFunc_aa4).
 .thumb_func_start OvlFunc_9f0
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -1296,6 +1526,9 @@
 	bx	r0
 .func_end OvlFunc_a74
 
+@ Slot 4: the map object table, in the same three story states as slot 3 but
+@ without the ewram_240+0x1C2 case -- that state reuses whichever object list
+@ the save bits already selected.
 .thumb_func_start OvlFunc_aa4
 	push	{lr}
 	ldr	r0, =0x87a
