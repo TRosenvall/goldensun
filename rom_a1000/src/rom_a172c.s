@@ -19,7 +19,7 @@
 	mov	r6, #0
 	cmp	r5, #0
 	beq	.La1762
-	ldr	r2, =.Laea4c
+	ldr	r2, =Laea4c
 	mov	r1, #0x80
 	bl	Func_3fa4
 	mov	r1, #0x80
@@ -61,7 +61,7 @@
 	mov	r6, #0
 	cmp	r5, #0
 	beq	.La17ae
-	ldr	r2, =.Laea4c
+	ldr	r2, =Laea4c
 	mov	r1, #0x80
 	bl	Func_3fa4
 	mov	r1, #0x80
@@ -119,20 +119,3 @@
 	pop	{r0}
 	bx	r0
 .func_end Func_a17c4
-
-@ ClearMenuEntries
-@ Takes no arguments. _Func_1ed40(0, r1, 0) -- populates menu 0, which is
-@ empty, and so wipes whatever entries were showing.
-.thumb_func_start Func_a1804
-	push	{lr}
-	mov	r0, #0
-	mov	r2, #0
-	bl	_Func_1ed40
-	pop	{r0}
-	bx	r0
-.func_end Func_a1804
-
-	.section .rodata
-
-.Laea4c:
-	.incrom 0xaea4c, 0xaeb4c
