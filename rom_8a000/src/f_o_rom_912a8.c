@@ -8,7 +8,7 @@
  */
 int Func_912a8(int v)
 {
-    register int hi asm("r3");
+    int hi;
     hi = 0xf8 << 7;
     if (v > hi)
         return hi;

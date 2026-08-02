@@ -10,8 +10,8 @@ typedef unsigned int u32;
 extern u32 iwram_1b00;
 void Func_352c(void)
 {
-    register u32 *p asm("r2");
-    register u32 v asm("r3");
+    u32 *p;
+    u32 v;
     p = &iwram_1b00;
     v = 0x13;
     *p = v;

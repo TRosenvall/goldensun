@@ -17,7 +17,7 @@
 
 int Func_d8f4(Entity *e)
 {
-    register u16 cursor asm("r3");
+    u16 cursor;
 
     cursor = e->scriptCursor;
     cursor += 2;

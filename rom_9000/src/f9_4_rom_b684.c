@@ -38,11 +38,11 @@ typedef struct SubEntry {
 
 void Func_b684(void *objArg, int value)
 {
-    register void *obj asm("r12");
-    register SubEntry **table asm("r4");
-    register int i asm("r0");
-    register int n asm("r3");
-    register SubEntry *e asm("r2");
+    void *obj;
+    SubEntry **table;
+    int i;
+    int n;
+    SubEntry *e;
 
     obj = objArg;
 

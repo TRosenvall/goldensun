@@ -27,8 +27,8 @@ extern u32 iwram_7800;
 
 int Func_488c(void)
 {
-    register int v asm("r3");
-    register int top asm("r0");
+    int v;
+    int top;
 
     v = (int)iwram_1e50;
     top = (int)&iwram_7800;

@@ -11,8 +11,8 @@
 extern char L84b1c[];
 void *Func_79ad8(int id)
 {
-    register int i asm("r0");
-    register int n asm("r3");
+    int i;
+    int n;
     n = 0x54;
     i = id * n;
     n = (int)L84b1c;

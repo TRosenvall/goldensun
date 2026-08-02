@@ -73,8 +73,8 @@ void Func_b168(void *obj, int *pos, int *scale, int style)
     int mtx;
     int aff[8];
     int sx, sy;
-    register int px asm("r10");
-    register int pz asm("r11");
+    int px;
+    int pz;
     int pw;
     int lbl, t, d, h;
     int x1, y1;

@@ -14,9 +14,9 @@
 extern char L844ec[];
 void *Func_78ed8(int id)
 {
-    register int i asm("r0");
-    register int n asm("r3");
-    register char *b asm("r2");
+    int i;
+    int n;
+    char *b;
     n = 0xB4;
     i = id * n;
     b = L844ec;

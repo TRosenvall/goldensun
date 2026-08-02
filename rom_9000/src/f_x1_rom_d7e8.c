@@ -21,7 +21,7 @@ extern u8 L13240[];
 
 int Func_d7e8(Entity *e)
 {
-    register int v asm("r3");
+    int v;
 
     v = (int)L13240;
     e->script = (void *)v;

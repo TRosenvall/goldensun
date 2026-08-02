@@ -6,29 +6,29 @@ OVERLAYS := $(patsubst %.ld,%.bin,$(wildcard overlays/*/overlay.ld))
 # 1. Enable 'pipefail' so Make catches errors anywhere in the command chain
 SHELL := /bin/bash
 .SHELLFLAGS := -o pipefail -c
-# agbcc-gs is our own build of agbcc with Thumb register-offset addressing
-# enabled -- see tools/agbcc-gs/README.md. Stock agbcc is left untouched at
-# tools/agbcc/bin/agbcc so this project cannot disturb an agbcc installation
-# another project depends on.
-CC1 := tools/agbcc-gs/bin/agbcc-gs
-CPP := arm-none-eabi-cpp
-AS := arm-none-eabi-as
-GBA_CPPFLAGS := -Iinclude -nostdinc -undef -std=gnu89
-# -fcall-used-r4: Golden Sun's original compiler treated r4 as call-clobbered.
-# Evidence: 727 of 2202 Thumb functions in the ROM use r4 without ever pushing
-# it, while r5/r6/r7 are used unsaved in 1 function between them. agbcc defaults
-# to r4 being callee-saved, so without this flag its prologue is `push {r4, lr}`
-# where the ROM has `push {lr}` -- a mismatch in roughly a third of all
-# functions. Re-derive with: tools/asmdiff.py --help (see docs/matching.md).
+# Camelot compiled Golden Sun with gcc-2.96 (arm-elf, 2000-07-31 dev snapshot),
+# NOT with agbcc. See docs/matching.md.
 #
-# -O rather than -O2: the ROM re-materialises the same address repeatedly
-# (`mov r3, ip; adds r3, #39` ... `mov r4, ip; adds r4, #40` ... `mov r2, ip;
-# adds r2, #37` inside one function) instead of computing it once. -O2 CSEs
-# those into a single value, which is why it scores worse against the ROM. This
-# is a working default from one converted function -- re-check with
-# `tools/asmdiff.py <func> <src> --sweep` as more functions are converted, and
-# add per-file overrides (as pokeemerald does) if some units disagree.
-GBA_CFLAGS := -O -mthumb-interwork -fhex-asm -fcall-used-r4
+# This lives at /opt/gcc296 inside the build container; override GCC296_DIR if
+# you installed it elsewhere. macOS cannot run it -- see
+# docs/building-on-macos.md.
+GCC296_DIR ?= /opt/gcc296
+# NOT named CC: make's builtin rules use CC to build the host tools in tools/,
+# which need the host compiler, not this cross-compiler.
+GBA_CC     := $(GCC296_DIR)/xgcc
+AS         := arm-none-eabi-as
+
+# Unlike agbcc (a bare cc1 needing a separate cpp), xgcc is the full driver and
+# runs its own preprocessor, so there is no CPP stage in the rule below.
+#
+# -O2               Camelot's level; agbcc needed -O
+# -fcall-used-r4    r4 is caller-clobbered in Camelot's ABI. 727 of 2202 Thumb
+#                   functions use r4 without pushing it. This flag was derived
+#                   here independently and still applies under gcc-2.96.
+# -ffixed-r7        NOT needed: gcc-2.96 avoids r7 on its own (verified: zero
+#                   r7 references in a high-pressure probe).
+GBA_CFLAGS := -O2 -mthumb -mthumb-interwork -mcpu=arm7tdmi \
+              -fno-builtin -nostdinc -ffreestanding -fcall-used-r4 -Iinclude
 
 .PHONY: compare compare-rom compare-overlays check-layouts
 compare: compare-rom compare-overlays
@@ -37,7 +37,7 @@ compare: compare-rom compare-overlays
 # an array size negative and agbcc refuses the file. Nothing links this; it is
 # compiled purely so the layouts cannot drift unnoticed.
 check-layouts: tools/layout_check.c
-	@$(CPP) $(GBA_CPPFLAGS) $< | $(CC1) $(GBA_CFLAGS) -o /dev/null && \
+	@$(GBA_CC) -B$(GCC296_DIR)/ $(GBA_CFLAGS) -S $< -o /dev/null && \
 	  echo "struct layouts OK"
 
 compare-rom: goldensun.sha1 $(ROM)
@@ -108,14 +108,18 @@ $(OVERLAYS): %.bin: %.elf
 # Assemble ARM code and generate dependencies
 %.o: %.s
 	arm-none-eabi-as -mcpu=arm7tdmi -Iinclude -MD $(@:.o=.d) -o $@ $<
-# NOTE: agbcc must be given -mthumb-interwork. Without it the epilogue comes out
-# as `pop {..., pc}`, which does not switch modes on ARMv4T, instead of the
-# `pop {r0}; bx r0` the original ROM uses -- so no function can ever match.
-# GBA_CPPFLAGS/GBA_CFLAGS were declared above but not referenced here; they are
-# now, which is what actually applies that flag.
+# xgcc is the full driver: it preprocesses, compiles and emits asm in one step,
+# so there is no separate cpp stage.
+#
+# -mthumb-interwork is essential. Without it the epilogue is `pop {..., pc}`,
+# which does not switch modes on ARMv4T, rather than the `pop {r0}; bx r0` the
+# ROM uses -- so nothing could ever match.
+#
+# The trailing `.align 2, 0` is required: the patched compiler zero-fills
+# between functions but not after the last one in a translation unit, so the
+# assembler's default Thumb-nop padding would otherwise leak in.
 %.o: %.c
-	$(CPP) $(GBA_CPPFLAGS) $< | \
-	$(CC1) $(GBA_CFLAGS) -o - | \
+	$(GBA_CC) -B$(GCC296_DIR)/ $(GBA_CFLAGS) -S $< -o - | \
 	cat - <(printf '.text\n\t.align\t2, 0\n') | \
 	$(AS) -mcpu=arm7tdmi -o $@
 
@@ -134,7 +138,11 @@ DEPS := $(SRCS_S:.s=.d) $(SRCS_C:.c=.d)
 .PHONY: clean
 LDS  := $(wildcard *.ld */*/*.ld)
 MAPS := $(LDS:.ld=.map)
-OBJS := $(SRCS:.s=.o)
+# NOTE: this used to read `OBJS := $(SRCS:.s=.o)`. SRCS is never defined -- the
+# variables are SRCS_S and SRCS_C -- so OBJS expanded to nothing and silently
+# overrode the correct definition above. `make clean` therefore never removed a
+# single object file, and a "clean" rebuild after a toolchain change quietly
+# relinked stale objects. Do not reintroduce a second OBJS assignment here.
 clean::
 	-$(RM) $(ROM) $(OVERLAYS) $(ELFS) $(MAPS) $(OBJS) $(DEPS)
 

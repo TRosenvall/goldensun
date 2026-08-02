@@ -9,7 +9,7 @@
 typedef unsigned short u16;
 void Func_167d8(void *p)
 {
-    register u16 v asm("r3");
+    u16 v;
     v = 2;
     *(u16 *)((char *)p + 0x1c) = v;
 }

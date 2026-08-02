@@ -19,8 +19,8 @@
 
 void Func_fb6ec(void *player, MusicPlayerTrack *t)
 {
-    register int v asm("r2");
-    register u8 *d asm("r0");
+    int v;
+    u8 *d;
 
     v = *t->cmdPtr;
     d = &t->tone.type;
@@ -31,8 +31,8 @@ void Func_fb6ec(void *player, MusicPlayerTrack *t)
 
 void Func_fb700(void *player, MusicPlayerTrack *t)
 {
-    register int v asm("r2");
-    register u8 *d asm("r0");
+    int v;
+    u8 *d;
 
     v = *t->cmdPtr;
     d = &t->tone.attack;
@@ -43,8 +43,8 @@ void Func_fb700(void *player, MusicPlayerTrack *t)
 
 void Func_fb714(void *player, MusicPlayerTrack *t)
 {
-    register int v asm("r0");
-    register u8 *d asm("r2");
+    int v;
+    u8 *d;
 
     v = *t->cmdPtr;
     d = &t->tone.decay;
@@ -55,8 +55,8 @@ void Func_fb714(void *player, MusicPlayerTrack *t)
 
 void Func_fb728(void *player, MusicPlayerTrack *t)
 {
-    register int v asm("r0");
-    register u8 *d asm("r2");
+    int v;
+    u8 *d;
 
     v = *t->cmdPtr;
     d = &t->tone.sustain;
@@ -67,8 +67,8 @@ void Func_fb728(void *player, MusicPlayerTrack *t)
 
 void Func_fb73c(void *player, MusicPlayerTrack *t)
 {
-    register int v asm("r0");
-    register u8 *d asm("r2");
+    int v;
+    u8 *d;
 
     v = *t->cmdPtr;
     d = &t->tone.release;
@@ -79,8 +79,8 @@ void Func_fb73c(void *player, MusicPlayerTrack *t)
 
 void Func_fb750(void *player, MusicPlayerTrack *t)
 {
-    register int v asm("r2");
-    register u8 *d asm("r0");
+    int v;
+    u8 *d;
 
     v = *t->cmdPtr;
     d = &t->echoVolume;
@@ -91,8 +91,8 @@ void Func_fb750(void *player, MusicPlayerTrack *t)
 
 void Func_fb75c(void *player, MusicPlayerTrack *t)
 {
-    register int v asm("r2");
-    register u8 *d asm("r0");
+    int v;
+    u8 *d;
 
     v = *t->cmdPtr;
     d = &t->echoLength;
@@ -103,8 +103,8 @@ void Func_fb75c(void *player, MusicPlayerTrack *t)
 
 void Func_fb768(void *player, MusicPlayerTrack *t)
 {
-    register int v asm("r0");
-    register u8 *d asm("r2");
+    int v;
+    u8 *d;
 
     v = *t->cmdPtr;
     d = &t->tone.length;
@@ -115,8 +115,8 @@ void Func_fb768(void *player, MusicPlayerTrack *t)
 
 void Func_fb77c(void *player, MusicPlayerTrack *t)
 {
-    register int v asm("r0");
-    register u8 *d asm("r2");
+    int v;
+    u8 *d;
 
     v = *t->cmdPtr;
     d = &t->tone.panSweep;

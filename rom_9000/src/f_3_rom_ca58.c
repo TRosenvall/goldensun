@@ -18,8 +18,8 @@
 
 int Func_ca58(Entity *e)
 {
-    register u8 *kind asm("r2");
-    register int t asm("r3");
+    u8 *kind;
+    int t;
 
     kind = &e->drawKind;
     t = 1;

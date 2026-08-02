@@ -12,7 +12,7 @@ u8 Func_f954c(void)
 {
     /* The r3 pin is a matching aid: the original materialises the address in r3
      * and loads through it, where agbcc otherwise uses r0 for both. */
-    register u8 *p asm("r3");
+    u8 *p;
 
     p = &ewram_3000;
     return *p;

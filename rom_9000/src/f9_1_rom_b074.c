@@ -33,8 +33,8 @@ typedef signed char s8;
 
 void Func_b074(void *obj, int a1, int a2, int a3, int a4, int *scale)
 {
-    register int aa2 asm("r10");
-    register int aa3 asm("r11");
+    int aa2;
+    int aa3;
     u8 *hp;
     int halfW, halfH;
     int mode;

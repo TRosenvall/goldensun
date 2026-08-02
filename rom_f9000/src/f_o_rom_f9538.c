@@ -16,7 +16,7 @@ void Func_f9538(u16 x, u16 y)
 {
     /* The r3 pin is a matching aid: the original keeps BOTH addresses in r3,
      * reusing it for the second store, where agbcc allocates two registers. */
-    register u16 *p asm("r3");
+    u16 *p;
 
     p = &ewram_3034;
     *p = x;
