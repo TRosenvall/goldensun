@@ -62,7 +62,9 @@ struct Entity
     /* 0x14 */ u8 unk_14[0x04];
     /* 0x18 */ s32 rotX;            /* orientation, 16.16                     */
     /* 0x1C */ s32 rotY;
-    /* 0x20 */ u8 unk_20[0x02];
+    /* 0x20 */ u16 width;           /* collision radius.  ActorAttrOp_width
+                                       reads it unsigned and compares it
+                                       against a SIGNED operand              */
     /* 0x22 */ u8 tileType;         /* picks the collision layer Func_120dc
                                        samples; above 2 falls back to
                                        ewram_10000                            */
