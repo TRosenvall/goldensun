@@ -98,23 +98,22 @@ generally (see `docs/attribution.md`).
   (BreakItem), `rom_8d5a4`, `rom_91254`, `rom_9a44c`, `rom_c548`
   (Func_800c548/570), `rom_d710` (ActorCmd_Loop).
 
-## A build bug found on the way
+## A build note (ours, not yours)
 
-**The clean build did not work in the container**, and had not for a while.
+Worth stating plainly because an earlier draft of this file got it backwards:
+**this is a collision in our checkout, not a bug in your tree.**
 
-`AGBCC_DIR` defaults to `tools/agbcc` in the Makefile, which holds *macOS*
-binaries; in a Linux container `old_agbcc` fails with
-`Syntax error: "(" unexpected` (the shell trying to run a Mach-O file). It
-never showed up because `src/lib/m4a/` and `src/lib/agb_flash/` change rarely,
-so their objects survived every incremental build and everything looked green.
+`AGBCC_DIR ?= tools/agbcc` is correct. What broke our clean build is that our
+own earlier work committed *macOS* agbcc binaries to exactly that path, back
+when this project was still building with agbcc. In a Linux container they
+fail with `Syntax error: "(" unexpected` -- the shell trying to execute a
+Mach-O file -- and it stayed hidden because `src/lib/m4a/` and
+`src/lib/agb_flash/` change rarely, so their objects survived every
+incremental build.
 
-Fixed by setting `ENV AGBCC_DIR=/opt/agbcc` in `tools/Dockerfile`, next to the
-`GCC296_DIR` that was already there. With an image built before that change,
-pass it explicitly:
-
-    make AGBCC_DIR=/opt/agbcc compare
-
-This branch has been verified from `make clean`, not just incrementally.
+Fixed on our side with `ENV AGBCC_DIR=/opt/agbcc` in our `tools/Dockerfile`.
+Nothing needed upstream. Mentioned only so that if the batch is tested in a
+container, the stale `tools/agbcc/` binaries are known not to be part of it.
 
 ## Reproducing the verification
 
