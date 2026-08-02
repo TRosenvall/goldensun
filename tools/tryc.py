@@ -77,7 +77,7 @@ def resolve_pools(body):
     """
     words, cur = {}, None
     for s in body:
-        m = re.match(r"^(L\d+):$", s)
+        m = re.match(r"^(\.?L[0-9a-fA-F]+):$", s)
         if m:
             cur = m.group(1)
             words.setdefault(cur, [])
@@ -98,13 +98,13 @@ def resolve_pools(body):
         used.add(lab)
         return f"{m.group(1)}=" + w[off // 4]
 
-    out = [re.sub(r"^(ldr\s+\w+, )(L\d+)(?:\+(0[xX][0-9a-fA-F]+|\d+))?$", deref, s) for s in body]
+    out = [re.sub(r"^(ldr\s+\w+, )(\.?L[0-9a-fA-F]+)(?:\+(0[xX][0-9a-fA-F]+|\d+))?$", deref, s) for s in body]
 
     # drop the pool itself, but only the labels actually dereferenced -- a
     # `.word` under an unreferenced label is data (a jump table), not a pool
     keep, skipping = [], False
     for s in out:
-        m = re.match(r"^(L\d+):$", s)
+        m = re.match(r"^(\.?L[0-9a-fA-F]+):$", s)
         if m:
             skipping = m.group(1) in used
             if skipping:
@@ -116,6 +116,27 @@ def resolve_pools(body):
     return keep
 
 
+LABEL = re.compile(r"\.?\bL[0-9a-fA-F]+\b")
+
+
+def renumber(body):
+    """Number the labels that SURVIVED pool resolution, then drop definitions.
+
+    Must run after resolve_pools, not before: gcc's pool labels only exist on
+    one side of the comparison, so numbering with them present offsets every
+    branch target relative to the ROM's.
+    """
+    labels = {}
+
+    def norm(m):
+        if m.group(0) not in labels:
+            labels[m.group(0)] = "L%d" % len(labels)
+        return labels[m.group(0)]
+
+    body = [LABEL.sub(norm, s) for s in body]
+    return [s for s in body if not re.match(r"^L\d+:$", s)]
+
+
 def instructions(text, want=None):
     """Ordered [(name, [insn, ...])] from a .s body.
 
@@ -125,13 +146,6 @@ def instructions(text, want=None):
     is a real mismatch even when the instruction that loads it is identical.
     """
     out, cur, body = [], None, []
-    labels = {}
-
-    def norm_label(m):
-        s = m.group(0)
-        if s not in labels:
-            labels[s] = "L%d" % len(labels)
-        return labels[s]
 
     # The two sides spell a function start differently and both must be read:
     # hand-written asm uses the macros.inc `.thumb_func_start NAME` macro,
@@ -179,13 +193,11 @@ def instructions(text, want=None):
         # Label definitions are KEPT through parsing so resolve_pools can see
         # which .word runs belong to which pool label; the bare ones are
         # dropped afterwards, since their position is implied by branch order.
-        s = re.sub(r"\.?\bL[0-9a-fA-F]+\b", norm_label, s)
         s = re.sub(r"\s+", " ", s)
         body.append(canon(s))
     if cur is not None:
         out.append((cur, body))
-    out = [(n, [x for x in resolve_pools(b) if not re.match(r"^L\d+:$", x)])
-           for n, b in out]
+    out = [(n, renumber(resolve_pools(b))) for n, b in out]
     if want:
         out = [(n, b) for n, b in out if n in want]
     return out
