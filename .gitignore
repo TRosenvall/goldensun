@@ -23,3 +23,6 @@ __pycache__/
 # cloned reference tools, not part of this build
 decomp-permuter/
 nonmatching/
+
+# elevation scratch: candidate .c files under test, never part of the build
+scratch_elev/
