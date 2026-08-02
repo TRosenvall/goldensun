@@ -42,3 +42,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-02T22:19:45Z  end     +2 (LoadOldMoveIcon, LoadMoveIcon); 19 elevated, 12 parked
 2026-08-02T22:42:22Z  end     batch-02 written (7 functions); 19 elevated, 12 parked; clean build green
 2026-08-02T22:45:58Z  start   sustained manual batch; loop/cron not firing, working in-turn
+2026-08-02T22:51:35Z  end     +0 elevated; 3 parked; halfword-pool hypothesis tested and RULED OUT

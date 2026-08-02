@@ -131,8 +131,22 @@ based on the width of the eventual store, and it narrows through `s32` and
 `u32` locals, through explicit casts, and through `~mask` constants that do not
 fit in 16 bits.
 
-Seen in `BreakItem`, `Func_80108c4`, and (narrowed to *byte* width, same
-mechanism) `Func_800c548`.
+Seen in `BreakItem`, `Func_80108c4`, `Func_8092b54`, and (narrowed to *byte*
+width, same mechanism) `Func_800c548` / `Func_800c570`.
+
+**Ruled out — do not repeat this experiment.** Reading the field into an
+`s32` local before masking, rather than masking inline, *does* change what
+gcc puts in the literal pool: inline gives `.word 1023` and a `mov`/`lsl`
+pair for the other mask, while via a local gives `.word -1024` — the ROM's
+constant. It changes nothing that matters. gcc still loads it with **`ldrh`**:
+
+    rom    ldr  r3, =0xfffffc00
+    ours   ldrh r2, .L6      with  .L6: .word -1024
+
+Same constant in the pool, wrong instruction reading it. The pool content is
+a red herring; the load width is the thing, and it follows the width of the
+eventual store. Checking the pool and not the instruction is how this looked
+solved for about ten minutes.
 
 ### 2. Register birth order
 
