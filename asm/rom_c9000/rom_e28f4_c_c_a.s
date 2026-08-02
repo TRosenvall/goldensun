@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Playe2974Impl
+@ r0=action descriptor, r1=variant. The shared implementation behind the
+@ 4 thin wrappers in this file, which exist so the animation table can hold
+@ one address per variant:
+@     0=Func_e291c 0=Func_e2928 1=Func_e2934 2=Func_e2940
+@ Works from the battle state at [iwram_1eec]; the variant selects timing,
+@ colours and which arm of the sequence runs. Body characterised
+@ structurally -- see the wrappers for the variant numbering.
 .thumb_func_start BaseAnim_RapidSlash  @ 0x080e2974
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -795,6 +803,14 @@
 	bx	r0
 .func_end BaseAnim_RapidSlash
 
+@ Sub_e302c
+@ Battle animation routine, 936 instructions.
+@ State: iwram_1eec, iwram_1e50, ewram_10000.
+@ Calls out to: _Func_b168, _Func_b8228, _Func_ba30, _Func_bc70, _Func_bd7dc, _Func_bdd4. ...
+@ Touches: REG_BG2CNT, REG_BG2PA, REG_BG2X, REG_BLDCNT.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_Gaia  @ 0x080e302c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1842,6 +1858,10 @@
 	bx	r0
 .func_end Anim_Gaia
 
+@ Sub_e38b8
+@ Battle animation routine, 40 instructions.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_80e38b8  @ 0x080e38b8
 	push	{r5, r6, lr}
 	mov	r4, r0
@@ -1888,6 +1908,10 @@
 	bx	r0
 .func_end Func_80e38b8
 
+@ Sub_e3908
+@ Battle animation routine, 29 instructions.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_80e3908  @ 0x080e3908
 	push	{r5, lr}
 	mov	r4, r0

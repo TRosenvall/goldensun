@@ -1,6 +1,8 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ GetBattleFlagField
+@ r0 = index. Returns one of the battle flag words; no calls out.
 .thumb_func_start Func_80bd850  @ 0x080bd850
 	push	{lr}
 	mov	r12, r3
@@ -33,6 +35,10 @@
 	bx	r0
 .func_end Func_80bd850
 
+@ RunBattleHudAnimation
+@ r0.. = parameters. 902 lines. Animates the HUD and the action cursor, using
+@ sin (sine) for the bob, Func_393c / Func_39fc / .gcc2_compiled. / UploadSprite2
+@ for OBJ tiles, and Func_b1c for the modulo cycling. Traced structurally.
 .thumb_func_start Func_80bd898  @ 0x080bd898
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

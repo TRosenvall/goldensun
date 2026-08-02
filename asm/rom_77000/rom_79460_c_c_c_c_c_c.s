@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ ApplyClassChange
+@ r0 = combatant id, r1 = class. Rewrites the class fields, grants the class's
+@ starting items with .gcc2_compiled., sets the associated save bits with
+@ SetFlag, and refreshes with CalcStats and .gcc2_compiled..
+@ 157 lines; traced structurally.
 .thumb_func_start Func_807a664  @ 0x0807a664
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -157,6 +162,9 @@
 	bx	r0
 .func_end Func_807a664
 
+@ RevertClassChange
+@ r0 = combatant id. Undoes Func_7a664: clears the save bits with ClearFlag
+@ and refreshes with CalcStats and .gcc2_compiled..
 .thumb_func_start Func_807a7a0  @ 0x0807a7a0
 	push	{r5, r6, lr}
 	ldr	r5, =ewram_2001078

@@ -1,6 +1,8 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ WaitForTrackEnd
+@ Takes no arguments. Blocks on WaitFrames(1) until the current track ends.
 .thumb_func_start Func_80064b8  @ 0x080064b8
 	push	{r5, lr}
 	ldr	r3, =ewram_2002080

@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunSceneSetup
+@ r0.. = parameters. 485 lines. Builds the battle scene: allocates and frees
+@ with Func_2dd8, arms a scanline trigger with SetIntrHandler, registers a task with
+@ StartTask, reserves OBJ tiles with Func_393c / Func_39fc, and paces with
+@ WaitFrames. Traced structurally.
 .thumb_func_start Func_80c02a4  @ 0x080c02a4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -486,6 +491,8 @@
 	bx	r0
 .func_end Func_80c02a4
 
+@ BlendSceneLayer
+@ r0.. = parameters. Applies UploadBGPalette's blend over a scene layer. Exported.
 .thumb_func_start Func_80c0700  @ 0x080c0700
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001e74
@@ -534,6 +541,11 @@
 	bx	r0
 .func_end Func_80c0700
 
+@ LoadSceneGraphics
+@ r0.. = parameters. Loads the battle scene's graphics and registers the
+@ per-frame task with StartTask, configuring the blend and window registers
+@ through Func_c0098 and Func_c00d8. Exported; rom_c9000 calls it during
+@ animation setup.
 .thumb_func_start Func_80c0774  @ 0x080c0774
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001f00
@@ -666,6 +678,8 @@
 	bx	r0
 .func_end Func_80c0774
 
+@ AllocSceneBuffer
+@ r0 = size. Allocates the scene buffer with galloc_ewram.
 .thumb_func_start Func_80c08a8  @ 0x080c08a8
 	push	{r5, lr}
 	mov	r1, #0xa8

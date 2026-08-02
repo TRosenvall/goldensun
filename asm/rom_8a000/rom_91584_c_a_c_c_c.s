@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ CheckFieldAbilityAvailable
+@ r0=packed request: party member index in bits 10-13, ability id in bits 0-9.
+@ Returns 0 if the ability can be used now, or a negative reason code:
+@    -1  the member index is above 7
+@    -2  that member is not in the party (_Func_79338 on the member flag)
+@    -3  the member cannot currently use the ability (_Func_78bc0)
 .thumb_func_start Func_8091814  @ 0x08091814
 	push	{r5, r6, lr}
 	lsr	r5, r0, #10
@@ -37,6 +43,11 @@
 	bx	r1
 .func_end Func_8091814
 
+@ ValidateFieldAbilityShortcuts
+@ Takes no arguments. Re-checks the two field-ability shortcut slots at
+@ ewram_240+0x220 and +0x222 with Func_91814 and clears either one that no
+@ longer passes -- so a shortcut survives only while its owner is in the party
+@ and still able to use it.
 .thumb_func_start Func_8091858  @ 0x08091858
 	push	{r5, r6, lr}
 	ldr	r6, =gState
@@ -64,6 +75,15 @@
 	bx	r0
 .func_end Func_8091858
 
+@ RefreshPartyVitals
+@ r0=party member id. Recomputes the HP and PP bar fractions for the member
+@ record from _Func_77394. Current HP/PP at +0x34/+0x36 are copied to +0x38/+0x3A
+@ and the fractions at +0x14/+0x16 become (current << 14) / max, clamped to
+@ 0..0x4000; a non-zero value that rounds to 0 is floored at 1 so a barely-alive
+@ member never shows an empty bar.
+@ It then counts party members with non-zero HP. If none are left, the player
+@ (ewram_240+0x1F4) is given 1 HP and their fractions recomputed, so the party
+@ can never end up entirely dead on the field.
 .thumb_func_start Func_8091890  @ 0x08091890
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -227,6 +247,11 @@
 	bx	r0
 .func_end Func_8091890
 
+@ CheckPartyFatigueThreshold
+@ r0=context id. Sums _Func_78af8 across every party member (ids at
+@ ewram_240+0x1F8). If the total reaches count * 30, it raises the condition:
+@ _Func_19908(r0, 2) followed by message 0x97D, then the same pair again with
+@ message 0x97E, and returns -1. Returns 0 when the party is below threshold.
 .thumb_func_start Func_80919d8  @ 0x080919d8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -287,6 +312,19 @@
 	bx	r1
 .func_end Func_80919d8
 
+@ ApplyFieldItemOrAbility
+@ r0=target/context id. Returns the affected party member id, or -1.
+@ Resolves the effect through _Func_78618 and reports it with the standard
+@ message pipeline: _Func_19908 pushes a substitution slot, _Func_1776c shows
+@ the line. Which line depends on the outcome -- bit 3 of record byte +0x03
+@ selects the "no effect" branch, a successful use plays sound 0x53 and shows
+@ 0x96A when the affected member is the player (ewram_240+0x1F4) or 0x96B plus
+@ a second substitution when it is somebody else. Failure paths route through
+@ .gcc2_compiled. for a confirmation prompt and _Func_19a54 to close it.
+@ Status stacks are consumed by looping _Func_78948 as many times as
+@ _Func_784b0 reports. The resulting message id is cached at iwram_1ebc+0x1D8.
+@ The ~230-instruction body is characterised structurally; the message ids,
+@ sound and outcome branches are verified.
 .thumb_func_start Func_8091a58  @ 0x08091a58
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -482,6 +520,10 @@
 	bx	r1
 .func_end Func_8091a58
 
+@ TryGiveItem
+@ r0=item id, r1 unused, r2=party member id. Offers the item to the member with
+@ _Func_78588 and returns the member id on success or -1 when the inventory
+@ rejects it (a negative result, i.e. no free slot).
 .thumb_func_start Func_8091c1c  @ 0x08091c1c
 	push	{r5, lr}
 	mov	r5, r2

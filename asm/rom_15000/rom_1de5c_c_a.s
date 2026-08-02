@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ DrawTextBlock
+@ r0.. = parameters. Lays a block of text into the scratch through repeated
+@ Func_1e260 calls, handling alignment and wrapping. 302 lines; traced
+@ structurally.
 .thumb_func_start Func_801e41c  @ 0x0801e41c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -303,6 +307,9 @@
 	bx	r0
 .func_end Func_801e41c
 
+@ SetTextInk
+@ r0 = colour. Masks to 4 bits and stores at [iwram_1e8c]+0xEAE -- the ink
+@ field Func_173ac defaults to 0x0F.
 .thumb_func_start SetTextColor  @ 0x0801e71c
 	ldr	r3, =iwram_3001e8c
 	ldr	r2, .L1e72c	@ 0xf

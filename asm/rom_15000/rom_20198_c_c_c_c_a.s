@@ -1,6 +1,8 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ AllocIconBuffer
+@ r0 = size. Allocates with galloc_iwram and frees the previous with Func_2dd8.
 .thumb_func_start DecompressIcon  @ 0x08021be0
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -32,6 +34,9 @@
 	bx	r0
 .func_end DecompressIcon
 
+@ OpenIconWindow
+@ r0.. = parameters. Opens a window with CreateUIBox and draws into it with
+@ UIDrawText.
 .thumb_func_start Func_8021c34  @ 0x08021c34
 	push	{r5, lr}
 	sub	sp, #4

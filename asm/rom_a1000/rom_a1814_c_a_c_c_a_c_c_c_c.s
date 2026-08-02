@@ -1,6 +1,23 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunPsynergyScreen -- MENU INDEX 3
+@ Takes no arguments. The Psynergy screen. Standard scaffold, with two extras:
+@ a 0x2000-byte scratch that saves and restores the tiles at 0x6004000 around
+@ the screen, and .gcc2_compiled. for its own arrow graphics. Func_a2680 is the state
+@ machine.
+@
+@ On a successful selection it writes `(arg1 << 10) | (arg3 & 0x1FF)` to
+@ [iwram_1e68+0x54]+0x180 and the value at state+0x174 to +0x1A6. THE 0x1FF MASK
+@ IS THE TELL: this screen returns an ABILITY id, the id space _Func_78414
+@ indexes, where Func_a5b94 returns a 0x3FFF display id. Getting the two
+@ confused would silently pick the wrong record.
+@
+@ _Func_91858 runs on the way out, revalidating the two field shortcuts at
+@ ewram_240+0x220 and +0x222 -- so a shortcut pointing at Psynergy the party can
+@ no longer cast is cleared here.
+@
+@ Returns Func_a2680's answer; -1 sends rom_15000's Func_1c244 back to the menu.
 .thumb_func_start Func_80a24d0  @ 0x080a24d0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -175,6 +192,25 @@
 	bx	r1
 .func_end Func_80a24d0
 
+@ RunPsynergyScreen
+@ r0, r1, r2 = out-parameters for the chosen ability, member and slot.
+@ The Psynergy screen's main loop, and the shape every screen in this module
+@ uses: a THIRTEEN-STATE MACHINE with the state in r8, dispatched through the
+@ table at .La26bc, looping through the tail at .La3252 for as long as the
+@ "done" flag on the stack stays clear AND save bit 0x150 is clear. Start
+@ raising 0x150 (.gcc2_compiled.) forces the return value to -1 from wherever it is.
+@
+@ The states, in table order:
+@     0  pick a party member -- Func_a355c, title string 0xAD8
+@     1  that member's ability list -- Func_a5788, title 0xAD9
+@     2, 3, 4, 5, 6, 7  the sub-menus, each ending back at .La3252
+@     8  the loop tail itself
+@     9  Func_a414c, the target picker
+@     10, 11  confirmation and application
+@     12 Func_a4f08
+@
+@ Returns 1 when an ability was chosen, -1 when the player backed out. 1392
+@ lines; the state graph is traced, the individual states structurally.
 .thumb_func_start Func_80a2680  @ 0x080a2680
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1567,6 +1603,14 @@
 	bx	r1
 .func_end Func_80a2680
 
+@ ApplyItemUse
+@ Takes no arguments -- everything comes out of the state block. Hands the item
+@ at state+0x174, the user at state+0x21A and the target at state+0x261 to
+@ Func_a9e48. On -1 it plays sound 0x72, releases the message window's nodes and
+@ shows string 0xBEF + state+0x25A, which is the failure reason the callee left
+@ behind; it then raises state+0x222 so the cursor snaps rather than glides.
+@ On success it registers the consumption through .gcc2_compiled. with the ability id
+@ (state+0x178 masked to 0x1FF) and recomputes BOTH characters with _Func_77428.
 .thumb_func_start Func_80a32b8  @ 0x080a32b8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1631,6 +1675,13 @@
 	bx	r1
 .func_end Func_80a32b8
 
+@ BuildPartyRow
+@ r0..r3 = ignored. Builds the standard party strip: Func_a1814 makes the header
+@ window and cursors, Func_a1870 spawns the actors with spacing 8 at offset
+@ (2, 2). Sets the y of members 1..3 (state+0x146, +0x148, +0x14A) to 0x1E,
+@ clears +0x20, +0x24, +0x28, +0x110 and +0x111, opens the bottom window
+@ (0, 0x11, 0x1E, 3) into state+0x2C, and seeds +0x112 = 8 and +0x113 = 2 --
+@ eight columns, two visible rows.
 .thumb_func_start Func_80a3354  @ 0x080a3354
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001f2c
@@ -1696,6 +1747,11 @@
 	bx	r0
 .func_end Func_80a3354
 
+@ CreateListSprites
+@ r0 = state block, r1 = y. Fills the 32 node slots at state+0x48 with panel
+@ sprites from _Func_1eb64 at priority 0xA8: the first eight take tile source
+@ 0xF8, the remaining twenty-four take 0x100. Three separate loops rather than
+@ one because the tile source changes at index 8.
 .thumb_func_start Func_80a33d4  @ 0x080a33d4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

@@ -1,6 +1,15 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ScalePalette
+@ r0 = source colours, r1 = destination, r2 = a 16.16 scale, r3 = count.
+@ Scales each 5:5:5 colour channel by channel: the three masks 0x001F, 0x03E0
+@ and 0x7C00 are extracted, multiplied, shifted back down by 16 and re-masked, so
+@ a channel that overflows is truncated to its own field rather than carrying
+@ into the next. A brightness ramp, in other words.
+@
+@ Byte for byte the same routine as rom_f4000's Func_f4100; the two modules each
+@ carry their own copy rather than sharing one.
 .thumb_func_start Func_80f6038  @ 0x080f6038
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -58,6 +67,13 @@
 	bx	r1
 .func_end Func_80f6038
 
+@ StreamBackgroundFrame
+@ The per-frame task LuckyWheelsMain registers. It reads rom_c9000's effect block at
+@ iwram_1eec: when the request flag at +0x7824 is 1 it acts on the mode at
+@ +0x7780 -- mode 1 DMA3s 0x8000 bytes to 0x6003500 and then clears the source,
+@ mode 2 decompresses to the same place with BlitFadeAlt_Div2 when the count at +0x7784
+@ is 0x32 and BlitFadeAlt_Div4 otherwise -- then clears the flag and resets the frame
+@ counter at +0x7820 to 1. With no request pending it just advances that counter.
 .thumb_func_start Task_BlitLuckyWheelsAnim  @ 0x080f60a0
 	push	{r5, lr}
 	ldr	r0, =iwram_3001eec
@@ -131,6 +147,9 @@
 	bx	r0
 .func_end Task_BlitLuckyWheelsAnim
 
+@ BuildPrizePalette
+@ r0.. = parameters. Writes the minigame's palette entries directly at 0x5000140
+@ and 0x5000202. No calls out; 86 lines, traced structurally.
 .thumb_func_start Func_80f6148  @ 0x080f6148
 	push	{r5, r6, r7, lr}
 	ldr	r5, =0x5000140
@@ -224,6 +243,10 @@
 	bx	r0
 .func_end Func_80f6148
 
+@ LoadPrizeAsset
+@ r0 = asset id. Resolves it with GetFile and DMA3s it into place, forcing
+@ palette entry 0x5000002 and using the 0x8000003F fixed-source control word for
+@ the fill. 98 lines; traced structurally.
 .thumb_func_start Func_80f61e8  @ 0x080f61e8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -329,6 +352,10 @@
 	bx	r0
 .func_end Func_80f61e8
 
+@ StepPrizeAnimation
+@ r0.. = parameters. Advances one of the animated elements, using Func_af0 for
+@ the per-frame interpolation and masking with 0xFFFFFEFF. 207 lines; traced
+@ structurally.
 .thumb_func_start Func_80f62b8  @ 0x080f62b8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -543,6 +570,21 @@
 	bx	r0
 .func_end Func_80f62b8
 
+@ RunPrizeMinigameLoop
+@ Takes no arguments. The playable part.
+@
+@ THE ENTRY FEE IS AN ITEM, NOT MONEY. `_Func_78b60(0xE4)` checks whether anyone
+@ in the party is carrying item 0xE4, and `_Func_789dc(0xE4)` consumes one to
+@ play -- which is the whole difference between this minigame and rom_f4000's,
+@ where the stake is coins.
+@
+@ The selection is a six-position ring: `Func_b1c(n + 1, 6)` steps forward and
+@ `Func_b1c(n + 5, 6)` back, with sound 0x6F on a move and 0x71 at the ends.
+@ Prompts come from the 0x909..0x913 string block and the outcome sounds are
+@ 0x130, 0x131, 0x132, 0x133 and 0x156.
+@
+@ 1892 lines; the entry fee, the ring and the string block are traced, the rest
+@ structurally.
 .thumb_func_start Func_80f6440  @ 0x080f6440
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2442,6 +2484,10 @@
 	bx	r0
 .func_end Func_80f6440
 
+@ DrawPrizeText
+@ r0.. = placement. Opens a window with _Func_162d4 and prints from the 0x905
+@ block, using cos for the cosine that shapes the layout. The 0xFFE00000
+@ and 0xFFF80000 masks are 16.16 fractional truncations.
 .thumb_func_start Func_80f731c  @ 0x080f731c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2588,6 +2634,19 @@
 	bx	r0
 .func_end Func_80f731c
 
+@ SetUpPrizeMinigame
+@ Takes no arguments. Everything Func_f6440 needs: allocations under tags 0x2C,
+@ 0x2E and others, assets loaded through GetFile and DecompressLZ into 0x6002800,
+@ 0x6002D00, 0x6003000, 0x6003500, 0x600B500, 0x6010000 and 0x6016E00, palettes
+@ at 0x5000080, 0x5000140, 0x5000200 and 0x50003E0, and Task_BlitLuckyWheelsAnim registered as
+@ a per-frame task.
+@
+@ It calls rom_c9000's `_Func_ed408` twice -- with (0x2E, 8, 7, 3) and
+@ (0x2F, ?, 7, 3) -- which is the RUNTIME CODE GENERATOR that assembles a
+@ specialised sprite blitter and back-patches its own branches. Outside
+@ rom_c9000 this is the only module that uses it.
+@
+@ 1073 lines; traced structurally.
 .thumb_func_start LuckyWheelsMain  @ 0x080f7460
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3668,6 +3727,10 @@
 	bx	r0
 .func_end LuckyWheelsMain
 
+@ InitLzwDictionary
+@ Takes no arguments. Clears the 0x400 dictionary entries at [ewram_4c00]+4 --
+@ two words each, twelve bytes apart -- and blanks the 0x400-byte hash head table
+@ at +0x3000. Part of the unreferenced decoder; see Func_f7f78.
 .thumb_func_start Func_80f7db4  @ 0x080f7db4
 	push	{lr}
 	ldr	r3, =ewram_2004c00
@@ -3699,6 +3762,11 @@
 	bx	r0
 .func_end Func_80f7db4
 
+@ LinkDictionaryEntry
+@ r0 = code. Splices entry `code` onto the front of its hash chain: the head
+@ comes from the table at +0x3404, the entry's next and prev words are at
+@ +code*12 and +code*12+4, and the old head's prev is fixed up when there was
+@ one. A doubly-linked list, so Func_f7e34 can unlink in constant time.
 .thumb_func_start Func_80f7df0  @ 0x080f7df0
 	push	{r5, lr}
 	ldr	r3, =ewram_2004c00
@@ -3732,6 +3800,9 @@
 	bx	r0
 .func_end Func_80f7df0
 
+@ UnlinkDictionaryEntry
+@ r0 = code. Removes the entry from its chain by patching the neighbours'
+@ pointers. Does nothing when the entry is not linked.
 .thumb_func_start Func_80f7e34  @ 0x080f7e34
 	push	{lr}
 	ldr	r3, =ewram_2004c00
@@ -3756,6 +3827,10 @@
 	bx	r0
 .func_end Func_80f7e34
 
+@ AddDictionaryEntry
+@ r0, r1, r2 = the prefix code, the character and the slot. Unlinks whatever
+@ occupied the slot and links the new entry in its place, updating the counters
+@ at +0x3404, +0x4438 and +0x4440. 91 lines; traced structurally.
 .thumb_func_start Func_80f7e60  @ 0x080f7e60
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3854,6 +3929,10 @@
 	bx	r0
 .func_end Func_80f7e60
 
+@ EmitDictionaryString
+@ r0 = destination. Copies the [+0x4404] bytes staged at [+0x440C] to
+@ `dest + [+0x443C]`, advancing that output cursor as it goes. The expansion
+@ step of the decoder.
 .thumb_func_start Func_80f7f30  @ 0x080f7f30
 	push	{r5, r6, lr}
 	ldr	r3, =ewram_2004c00
@@ -3888,6 +3967,24 @@
 	bx	r0
 .func_end Func_80f7f30
 
+@ DecompressLzw
+@ r0 = compressed source, r1 = destination, r2 = a limit. Returns the number of
+@ bytes written, from [+0x443C].
+@
+@ A dictionary decoder in the LZW family: 0x400 codes, each a prefix code plus
+@ one character, chained through the doubly-linked structure Func_f7df0 and
+@ Func_f7e34 maintain, with the working state staged over ewram_10000 and
+@ addressed through ewram_4c00. The initial code width is seeded as 0x80 at
+@ +0x3400 and the first free slot as 1 at +0x442C.
+@
+@ **NOTHING CALLS THIS.** There is no `bl` to it and no load of its address
+@ anywhere in the ROM, and its five helpers -- Func_f7db4, Func_f7df0,
+@ Func_f7e34, Func_f7e60 and Func_f7f30 -- are reachable only from here. About
+@ 1150 lines of dead code, a fifth decompressor that the shipped game never runs.
+@ It is not the same algorithm as the DecompressLZ_ROM / Func_b5138 / Func_f0024 family,
+@ which is bit-stream based and has no dictionary.
+@
+@ 950 lines; traced structurally.
 .thumb_func_start Func_80f7f78  @ 0x080f7f78
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

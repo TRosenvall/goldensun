@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunSoundTest
+@ r0.. = parameters. Drives the engine through Func_5d10, the fade routines and
+@ Func_6384 a frame at a time -- the shape of a sound test harness.
 .thumb_func_start Debug_TransferTest  @ 0x0800679c
 	push	{r5, r6, lr}
 	mov	r0, #3

@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunEncounterIntro
+@ r0.. = parameters. Plays the encounter's opening flourish a frame at a time
+@ (WaitFrames), rolling variation with Func_4458 and reserving with Func_3b70.
 .thumb_func_start Func_80bffb8  @ 0x080bffb8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -111,6 +114,8 @@
 	bx	r1
 .func_end Func_80bffb8
 
+@ SetBlendRegisters
+@ r0.. = parameters. Writes REG_BLDCNT and REG_BLDALPHA for the battle scene.
 .thumb_func_start Func_80c0098  @ 0x080c0098
 	push	{lr}
 	ldr	r2, =0x3020100
@@ -141,6 +146,9 @@
 	bx	r0
 .func_end Func_80c0098
 
+@ SetWindowRegisters
+@ r0.. = parameters. Writes the window registers (REG_WIN0H, REG_WINOUT) for
+@ the battle scene.
 .thumb_func_start Func_80c00d8  @ 0x080c00d8
 	push	{r5, r6, lr}
 	mov	r1, #0x80
@@ -178,6 +186,8 @@
 	bx	r0
 .func_end Func_80c00d8
 
+@ SetBackgroundRegisters
+@ r0.. = parameters. Writes REG_BG0CNT / REG_BG1CNT for the battle scene.
 .thumb_func_start Func_80c0130  @ 0x080c0130
 	push	{lr}
 	ldr	r2, =iwram_3001f00

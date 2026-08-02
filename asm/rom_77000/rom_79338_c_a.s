@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ ReadSaveByte
+@ r0 = index. Returns the whole byte at (idx & 0xFFF) >> 3 -- the same byte the
+@ bit accessors address, read in one piece.
 .thumb_func_start GetFlagByte  @ 0x080793b8
 	lsl	r3, r0, #20
 	lsr	r0, r3, #23
@@ -8,6 +11,9 @@
 	bx	lr
 .func_end GetFlagByte
 
+@ WriteSaveByte
+@ r0 = index, r1 = value. Overwrites the whole byte, so this clobbers all eight
+@ bits at that index.
 .thumb_func_start SetFlagByte  @ 0x080793c8
 	lsl	r3, r0, #20
 	lsr	r0, r3, #23
@@ -16,6 +22,9 @@
 	bx	lr
 .func_end SetFlagByte
 
+@ IncrementSaveCounter
+@ r0 = index. Adds 1 to the byte and returns the new value, SATURATING at 0xFF
+@ rather than wrapping -- the `cmp #0xFE / bhi` guard.
 .thumb_func_start IncFlagByte  @ 0x080793d8
 	push	{lr}
 	lsl	r3, r0, #20
@@ -33,6 +42,9 @@
 	bx	r1
 .func_end IncFlagByte
 
+@ DecrementSaveCounter
+@ r0 = index. Subtracts 1 and returns the new value, saturating at 0 rather than
+@ underflowing.
 .thumb_func_start DecFlagByte  @ 0x080793f8
 	push	{lr}
 	lsl	r3, r0, #20
@@ -50,6 +62,10 @@
 	bx	r1
 .func_end DecFlagByte
 
+@ ReadSaveNibble
+@ r0 = index. Returns one nibble of the byte. Bit 2 of the index selects which:
+@ the shift is `idx & 4`, so even groups read the low nibble and odd groups the
+@ high one.
 .thumb_func_start GetFlagNybble  @ 0x08079418
 	lsl	r3, r0, #20
 	mov	r1, #4

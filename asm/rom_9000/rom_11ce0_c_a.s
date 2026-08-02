@@ -1,5 +1,14 @@
 	.include "macros.inc"
 
+@ GetTerrainHeight
+@ r0=layer selector, r1=world x (16.16), r2=world z (16.16). Returns the ground
+@ height at that point as 16.16.
+@ Selects the map layer from [iwram_1e70] + 0x130 + (r0 & 3) * 0x30, falling
+@ back to ewram_10000 when no map is loaded. Tiles are 16 pixels and the grid is
+@ 128 wide with a 4-byte record each; byte +3 of the record is the material id.
+@ The material record at ewram_2c000 + id * 4 supplies the shape index in the
+@ low nibble of its first byte, and its remaining bytes (ewram_2c001 + id * 4)
+@ are the corner heights handed to the sampler along with (x & 15, z & 15).
 .thumb_func_start Func_8011f54  @ 0x08011f54
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e70
@@ -60,6 +69,10 @@
 	bx	r1
 .func_end Func_8011f54
 
+@ GetTerrainSurfaceType
+@ r0=layer selector, r1=world x (16.16), r2=world z (16.16). Resolves the tile
+@ exactly as Func_11f54 does but stops at the material byte, returning its low
+@ nibble -- the shape/surface index -- without sampling a height.
 .thumb_func_start Func_8011fd8  @ 0x08011fd8
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001e70
@@ -108,6 +121,11 @@
 	bx	r1
 .func_end Func_8011fd8
 
+@ GetTileFlags
+@ r0=layer selector, r1=world x, r2=world z. Returns byte +2 of the tile record,
+@ the passability/type field. The coordinates are shifted by 20 rather than 16,
+@ so they are taken straight to whole tiles. A value of 0xFF marks a blocked or
+@ absent tile (see TestCollision).
 .thumb_func_start Func_8012038  @ 0x08012038
 	push	{r5, lr}
 	ldr	r3, =iwram_3001e70
@@ -139,6 +157,10 @@
 	bx	r1
 .func_end Func_8012038
 
+@ SetTileFlags
+@ r0=layer selector, r1=world x, r2=world z, r3=value. The write counterpart to
+@ Func_12038: stores r3 into byte +2 of the addressed tile record. Silently does
+@ nothing when no map is loaded.
 .thumb_func_start Func_8012078  @ 0x08012078
 	push	{r5, r6, lr}
 	mov	r6, r3

@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ EnterArea
+@ Takes no arguments. Applies everything that changes when the party arrives in
+@ a new area: reads the area record from .L9f1a8, sets the input-enable flag
+@ iwram_1f54, and applies the area's music, encounter set and flags. The
+@ ~250-instruction body is characterised structurally.
 .thumb_func_start GameStart  @ 0x0808a8e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

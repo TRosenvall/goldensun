@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SetObjectVisibility
+@ r0=entity, r1=visible. Adjusts the draw kind at +0x54 and the actor flags so
+@ a map object can be shown or hidden in place.
 .thumb_func_start Func_808e0b0  @ 0x0808e0b0
 	push	{lr}
 	mov	r3, r0
@@ -56,6 +59,10 @@
 	bx	r0
 .func_end Func_808e0b0
 
+@ CloseMessageWindow
+@ Takes no arguments. Clears the message-window active flag at iwram_1ebc+0xCB6
+@ and dismisses whatever box is open. Called by CutsceneStart when a cutscene
+@ starts on top of an existing message.
 .thumb_func_start Func_808e118  @ 0x0808e118
 	push	{lr}
 	ldr	r3, =iwram_3001ebc
@@ -77,6 +84,9 @@
 	bx	r0
 .func_end Func_808e118
 
+@ GetObjectRecordField
+@ r0=object id. Returns a field from that object's record, used by the accessors
+@ below. Negative results mean the object is not present.
 .thumb_func_start Func_808e14c  @ 0x0808e14c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -198,6 +208,9 @@
 	bx	r1
 .func_end Func_808e14c
 
+@ ConfigureMapObject
+@ r0=object record. Applies the record's flags, position and behaviour to its
+@ live entity. The ~150-instruction body is characterised structurally.
 .thumb_func_start Func_808e23c  @ 0x0808e23c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -472,6 +485,10 @@
 	bx	r1
 .func_end Func_808e23c
 
+@ RefreshMapObjectState
+@ Takes no arguments. Re-evaluates every spawned map object against the current
+@ event flags, spawning or retiring as the conditions have changed. The
+@ ~130-instruction body is characterised structurally.
 .thumb_func_start Func_808e4b4  @ 0x0808e4b4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -617,6 +634,9 @@
 	bx	r1
 .func_end Func_808e4b4
 
+@ SortMapObjects
+@ Takes no arguments. Orders the map objects for drawing, so nearer ones occlude
+@ further ones correctly.
 .thumb_func_start Func_808e5d8  @ 0x0808e5d8
 	push	{r5, r6, lr}
 	mov	r6, r11
@@ -684,6 +704,9 @@
 	bx	r1
 .func_end Func_808e5d8
 
+@ RunMapObjectScripts
+@ Takes no arguments. Runs the per-object scripts for this frame. The
+@ ~300-instruction body is characterised structurally.
 .thumb_func_start Func_808e680  @ 0x0808e680
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

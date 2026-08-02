@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ CopyNodeGraphics
+@ r0.. = parameters. Allocates scratch with Func_4938, copies a node's graphics,
+@ releases with free.
 .thumb_func_start Func_801edec  @ 0x0801edec
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -55,6 +58,9 @@
 	bx	r0
 .func_end Func_801edec
 
+@ ClearTilemapRect
+@ r0.. = rectangle. Clears a rectangle of the tilemap at 0x6002000, stepping
+@ (0x20 - width) * 2 bytes between rows -- the 32-entry map stride again.
 .thumb_func_start Func_801ee68  @ 0x0801ee68
 	push	{r5, r6, lr}
 	mov	r5, r3
@@ -87,6 +93,9 @@
 	bx	r0
 .func_end Func_801ee68
 
+@ ReadPartyForOverlay
+@ r0.. = parameters. Collects party state for the overlay through _Func_795fc
+@ and _Func_b6a60.
 .thumb_func_start Func_801eea0  @ 0x0801eea0
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e90
@@ -141,6 +150,9 @@
 	bx	r0
 .func_end Func_801eea0
 
+@ OpenOverlay
+@ r0 = mode. Allocates the overlay block with galloc_ewram, opens its window with
+@ CreateUIBox, reads party state with Func_1eea0, and paints with Func_1f200.
 .thumb_func_start Func_801ef08  @ 0x0801ef08
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -183,6 +195,9 @@
 	bx	r0
 .func_end Func_801ef08
 
+@ ComputeOverlayLayout
+@ r0.. = parameters. Positions the overlay's elements; no calls out. 154 lines,
+@ traced structurally.
 .thumb_func_start Func_801ef68  @ 0x0801ef68
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -337,6 +352,9 @@
 	bx	r0
 .func_end Func_801ef68
 
+@ BuildOverlayBars
+@ r0.. = parameters. Builds the overlay's bar graphics, scaling through
+@ Func_45e8. 178 lines; traced structurally.
 .thumb_func_start Func_801f088  @ 0x0801f088
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -515,6 +533,11 @@
 	bx	r1
 .func_end Func_801f088
 
+@ DrawOverlay
+@ r0.. = parameters. Paints the whole overlay: frame through Func_170f8, tiles
+@ through ClearUIRegion / .gcc2_compiled., glyph nodes through Func_18efc, clipping
+@ through Func_19000, ink through SetTextColor and text through Func_1e8b0.
+@ 475 lines; traced structurally.
 .thumb_func_start Func_801f200  @ 0x0801f200
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

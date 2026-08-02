@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ TileHeight_StepAntiDiagonal (shape 3)
+@ Two flat halves split by the anti-diagonal x + z = 15: below it corner 0,
+@ above it corner 1, and exactly on it max(c0, c1) so the ridge line sits at the
+@ higher of the two.
 .thumb_func_start HeightTile_3  @ 0x08011d34
 	push	{lr}
 	mov	r3, #0
@@ -27,6 +31,9 @@
 	bx	r1
 .func_end HeightTile_3
 
+@ TileHeight_StepDiagonal (shape 4)
+@ As HeightTile_3 but split by the main diagonal z - x = 0: negative side corner
+@ 0, positive side corner 1, max(c0, c1) on the line itself.
 .thumb_func_start HeightTile_4  @ 0x08011d60
 	push	{r5, lr}
 	mov	r3, #0
@@ -58,6 +65,11 @@
 	bx	r1
 .func_end HeightTile_4
 
+@ TileHeight_RampAntiDiagonal2 (shape 5)
+@ Two-segment ramp along the anti-diagonal using three corner bytes. For
+@ x + z <= 14 it interpolates corner 0 -> corner 1, past 15 it interpolates
+@ corner 1 -> corner 2, and at exactly 15 it returns corner 1. Division is by
+@ 15 via Func_af0_from_thumb rather than a shift.
 .thumb_func_start HeightTile_5  @ 0x08011d94
 	push	{r5, r6, lr}
 	mov	r3, #0
@@ -97,6 +109,9 @@
 	bx	r1
 .func_end HeightTile_5
 
+@ TileHeight_RampDiagonal2 (shape 6)
+@ Three-corner two-segment ramp along z - x, mirroring HeightTile_5. Uses the
+@ +0xF / >>4 rounding rather than a real divide.
 .thumb_func_start HeightTile_6  @ 0x08011ddc
 	push	{r5, lr}
 	mov	r3, #0
@@ -144,6 +159,11 @@
 	bx	r1
 .func_end HeightTile_6
 
+@ TileHeight_WeightMap (shape 7)
+@ Blends corner 0 and corner 1 using a per-sub-tile weight byte from the 16x16
+@ table .L132fc, indexed by z * 16 + x: height = c0 + weight * (c1 - c0).
+@ NOTE there is no normalising shift after the multiply, unlike every other
+@ sampler here, so the table bytes must already be the final scale factor.
 .thumb_func_start HeightTile_7  @ 0x08011e2c
 	mov	r3, r0
 	mov	r0, #0

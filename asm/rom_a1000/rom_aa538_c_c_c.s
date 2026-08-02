@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunDjinnDetail
+@ Takes no arguments. The detail pane of the Djinn screen. Opens its own window,
+@ draws through Func_ab1f4, Func_ab21c and .gcc2_compiled., prints strings 0xC30,
+@ 0xC32 and 0xC39, and uses the 0x12B6 and 0x12F8 blocks for the descriptions.
+@ Releases its OBJ tiles with Func_3f3c on the way out. 304 lines; traced
+@ structurally.
 .thumb_func_start Func_80ab314  @ 0x080ab314
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -312,6 +318,20 @@
 	bx	r1
 .func_end Func_80ab314
 
+@ RunDjinnMain
+@ Takes no arguments. The Djinn screen's largest routine and the one that does
+@ the work: it walks the grid, moves djinn between members, sets and unsets
+@ them, and reflects each change through the combatant status arrays
+@ (_Func_7a2e4, _Func_7a350, _Func_7a3a8, _Func_7a458, _Func_7a2bc) and
+@ _Func_77428. It also calls rom_b5000's _Func_bf5a8, which is the routine that
+@ writes battle-side status back into the persistent record -- the only place
+@ outside a battle that does.
+@
+@ Class names come from 0x741 + record+0x129, and the prompts from the 0xB98,
+@ 0xB99, 0xB9A, 0xB9E, 0xBA9, 0xBAD..0xBB2 and 0xBBE strings. The pointers at
+@ scratch+0x2128 and +0x212C are its two working lists.
+@
+@ 2315 lines -- the largest function in the module. Traced structurally.
 .thumb_func_start Func_80ab5e4  @ 0x080ab5e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2634,6 +2654,21 @@
 	bx	r1
 .func_end Func_80ab5e4
 
+@ CollectDjinn
+@ r0 = destination halfword array, r1 = character id, r2 = element or -1 for
+@ all. Builds the list of djinn a character has, one halfword each, and returns
+@ the count.
+@
+@ The masks live in the combatant record as four words apiece, one per element,
+@ twenty bits used in each:
+@
+@     record+0x0F8 + e*4   the djinn the character HAS
+@     record+0x108 + e*4   the ones that are SET
+@
+@ Each entry comes out as `(element << 5) | index`, with bit 15 added when the
+@ djinn is set, and -- in the all-elements pass -- the character id in bits
+@ 8..15 as well. So twenty per element across four elements is the ceiling the
+@ data structure allows.
 .thumb_func_start Func_80ac8fc  @ 0x080ac8fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2776,6 +2811,12 @@
 	bx	r1
 .func_end Func_80ac8fc
 
+@ DrawDjinnPanels
+@ r0 = which pair, r1 = flags. Draws two character panels through Func_acab8:
+@ for r0 == 0 the character at state+0x259 into the window at state+0x34 and the
+@ one at state+0x258 into state+0x24; otherwise state+0x21B into state+0x34 and
+@ state+0x21A into state+0x24. The two calls differ only in the trailing flag
+@ words, which is which side of a transfer each panel represents. Returns 1.
 .thumb_func_start Func_80aca04  @ 0x080aca04
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -2858,6 +2899,14 @@
 	bx	r1
 .func_end Func_80aca04
 
+@ DrawDjinnCharacterPanel
+@ r0 = window, r1, r2 = placement, r3 = character id, arg5.. = flags.
+@ One character's Djinn panel: name and class (0x741 + record+0x129), the djinn
+@ icons through .gcc2_compiled. and the change arrows through Func_ae9f0, the item
+@ names at 0x333 + display id, and the class-change preview -- _Func_7a2e4 and
+@ _Func_7a350 are called on a COPY so the panel can show what the new class
+@ would be without committing. Headings 0xAED, 0xBA2, 0xBA3, 0xBA8 and the
+@ 0x8AE block. 924 lines; traced structurally.
 .thumb_func_start Func_80acab8  @ 0x080acab8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

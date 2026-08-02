@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Playdbc30Impl
+@ r0=action descriptor, r1=variant. The shared implementation behind the
+@ 7 thin wrappers in this file, which exist so the animation table can hold
+@ one address per variant:
+@     0=Func_dbbdc 2=Func_dbbe8 3=Func_dbc00 4=Func_dbc24 5=Func_dbc0c 6=Func_dbbf4 7=Func_dbc18
+@ Works from the battle state at [iwram_1eec]; the variant selects timing,
+@ colours and which arm of the sequence runs. Body characterised
+@ structurally -- see the wrappers for the variant numbering.
 .thumb_func_start BaseAnim_Breath  @ 0x080dbc30
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -709,6 +717,11 @@
 	bx	r0
 .func_end BaseAnim_Breath
 
+@ Sub_dc1ec
+@ Battle animation routine, 262 instructions.
+@ State: iwram_1eec, iwram_1e80, ewram_10000.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_Unused_ElementOrbs  @ 0x080dc1ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -991,6 +1004,13 @@
 	bx	r0
 .func_end Anim_Unused_ElementOrbs
 
+@ Sub_dc454
+@ Battle animation routine, 265 instructions.
+@ State: iwram_1eec.
+@ Calls out to: _Func_b7dd0.
+@ Touches: REG_BG2PA, REG_BG2X.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_Unused_Haunt  @ 0x080dc454
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1277,6 +1297,12 @@
 	bx	r0
 .func_end Anim_Unused_Haunt
 
+@ Sub_dc6bc
+@ Battle animation routine, 292 instructions.
+@ State: iwram_1eec, iwram_1e80.
+@ Calls out to: _Func_b7dd0.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_Unused_SkullCloud  @ 0x080dc6bc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1585,6 +1611,96 @@
 	bx	r0
 .func_end Anim_Unused_SkullCloud
 
+@ RunAnimationClass4 -- a scripted flight, sixteen airbursts, then a shower
+@ r0 = action descriptor. Animation class 4, entered from the twelve-way table
+@ in Anim_Summon (rom_d6504.s). Two frame loops: 220 frames (0..0xDB) of flight
+@ and airbursts, then 88 frames (0..0x57) of falling debris and splashes.
+@
+@ ALONE AMONG THE TWELVE, THIS HANDLER NEVER CALLS .gcc2_compiled.. Every other
+@ class raises the one-shot hand-back flag at [iwram_1e74]+0x800 somewhere in
+@ its body; class 4 does not, so whatever resumes rom_b5000 after it must do so
+@ another way. Worth confirming before this one is decompiled.
+@
+@ It also reaches its buffers through iwram_1f00 rather than iwram_1ef0. Same
+@ table, different offset: iwram_1f00 is tag 0x2C, so -0x14/-0x10/-0xC are tags
+@ 0x27/0x28/0x29 and +8/+0xC are the two generated blitters 0x2E/0x2F.
+@
+@ SETUP
+@   sp+0x38 = [iwram_1f00] (tag 0x2C), sp+0x34 = [iwram_1ef0] render buffer,
+@   r11 = [iwram_1eec] state, sp+0x24 = [iwram_1ef4] sprite scratch.
+@   iwram_1ad0+4 is SAVED at sp+0x20 and restored between the loops.
+@   AnimStart(0x2000) -- note the argument; the other handlers pass 0.
+@   REG_BG2PA = 0x100; Func_c9048(); palette entries 0 and 1 zeroed;
+@     +0x7780 = 0; StartTask registers Task_BlitAnim; AnimTransitionOut(0, 0); Func_d6750;
+@     CreateSummonSprite(9, 0x172, 1) spawns nine actors.
+@   LoadVFXFile unpacks asset 0x6A into [iwram_1eec] and 0x73 into [iwram_1ef4];
+@     asset 0xA0's first 0x80 bytes go to palette RAM.
+@   sp+0x30 = GetFile(0xD2) -- THE MOTION PATH, read below.
+@   BuildDraw2DFuncEx(0x2E,7,7,3,2) and BuildDraw2DFuncEx(0x2F,7,7,3,3), stored as the pair at
+@     sp+0x3C for (i & 1) indexing.
+@   iwram_1ce0+0x10 = 0xF0; WaitFrames(1); _Func_c08ec(1, 0x3B, 0).
+@   +0x7790 = 0, +0x7794 = 4, +0x7798 = -1, +0x779C = 0, and StartTask registers
+@     a SECOND task Func_c90e4 (dropped between the loops).
+@   REG_DISPCNT = 0x7741, REG_BG2PA = 0x80, REG_BLDALPHA = 0x1010,
+@     REG_BLDCNT = 0x3F44, REG_BG2CNT = 0x784. +0x7780 = 2, +0x7784 = 0x32.
+@
+@   384 PRE-BUILT 3D TRANSFORMS. Sixteen groups of 24 fragments. Each group gets
+@   a marker at +0x7080; each fragment gets a lifetime in ewram_10000 and its
+@   own random orientation: InitMatrixStack loads identity, MatrixRoll / MatrixPitch /
+@   MatrixYaw rotate by three random 16-bit angles, and MatrixStore stores the
+@   result as 0x30 bytes at ewram_13800 + 0x30*n. Loop one then replays them
+@   with MatrixLoad, so the debris tumbles without any per-frame trig.
+@
+@   Holding A or B here SKIPS LOOP ONE ENTIRELY, straight to the shower.
+@
+@ LOOP ONE -- frames 0..0xDB, the flight and the airbursts
+@   frames 0..0xD1  THE SCRIPTED PATH. Frame 0 reads four bytes from asset 0xD2
+@     as two 16-bit absolute coordinates; every later frame reads two SIGNED
+@     BYTES as deltas, advancing the pointer 4 then 2 bytes a frame. So the
+@     flight is a recorded track, not a formula. Nine actors are submitted
+@     through _Func_b168 at unit scale (.Leeb40) as a 3x3 grid at 32.0 spacing
+@     centred on the current path point.
+@   frame 0x30  +0x77B4 = 0x18, +0x77B8 = 0.
+@   group g (0..15) fires on its own schedule, 8 frames apart:
+@     8g+0x40 .. +0x4F  the group's 24 fragments are transformed by their stored
+@       matrix, projected with .gcc2_compiled. and drawn at 5x10 from Data_ede48[4];
+@       each fragment's counter drops by 4 until it expires.
+@     8g+0x50 .. +0x54  a FIVE-STEP JUMP TABLE (.Ldcdac) draws one to three
+@       hand-placed pieces per step from fixed graphic offsets -- a scripted
+@       five-frame explosion rather than a parameterised one.
+@     8g+0x54           sound 0xD4.
+@     8g+0x55 onward    the group marker drifts with decaying x velocity and
+@       gravity, trailing three pieces from +0x16AC, +0x17FC and +0x1BF3.
+@   end of frame  +0x7824 = 1; WaitFrames(1). A or B held leaves loop one.
+@
+@ BETWEEN THE LOOPS
+@   StopTask(Func_c90e4); iwram_1ad0+4 restored; Func_d67dc; the nine actors
+@   are destroyed HERE rather than at teardown; REG_BG2PA = 0x80;
+@   REG_DISPCNT = 0x7741; LoadVFXFile unpacks asset 0xB4 into ewram_10000, which
+@   is where loop two's splash frames come from.
+@   32 falling drops are seeded at +0x7080: slot i aims at target (i MOD 6) when
+@   that target exists -- Func_e396c gives its screen x, halved and biased --
+@   and lands anywhere otherwise. All start above the screen with age -1.
+@
+@ LOOP TWO -- frames 0..0x57, the shower
+@   Slot i becomes active at frame 2i (and only through frame 0x28):
+@     age < 0   FALLING: pieces from +0x16AC and +0x17FC plus a tail +0x1BF3
+@       whose height shrinks as it approaches y 0x38; x -= 6 and y += 12 per
+@       frame. Crossing y 0x4F sets age 0, +0x77A8 = 2, plays sound 0x86, and
+@       gives target (i MOD 6) Func_d6888(id, 7, 5, i MOD 6, 8) and
+@       _Func_b8228(id, 1).
+@     age 0..0x17  THE SPLASH: frame = age/4 into the six-frame table
+@       Data_ede9f widths {24,29,30,27,24,16}, Data_edea5 heights
+@       {23,32,37,49,53,52}, Data_edeab y-offsets {41,32,26,11,4,2} and
+@       Data_edeb2 graphic offsets {0,552,1480,2590,3913,5185}, which are that
+@       table's own running w*h. The first 12 frames still draw the two impact
+@       pieces on top. NOTE these are the same six frames as .Lee18e/.Lee1A0 in
+@       rom_d244c.s (class 7) -- the same splash, duplicated at another address.
+@   end of frame  UpdateScreenShake(4, 8); Func_cd52c(); +0x7824 = 1; WaitFrames(1).
+@
+@ TEARDOWN
+@   StopTask(Task_BlitAnim); Func_2dd8(0x2F) and Func_2dd8(0x2E) free the two
+@   generated blitters; AnimEnd restores the view.
 .thumb_func_start Anim_Atalanta  @ 0x080dc968
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

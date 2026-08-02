@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ RunPlayerReactionSequence
+@ r0=reaction id. Plays a scripted reaction on the player entity (from
+@ ewram_240+0x1F4): animation, effect and a short wait. The ~40-instruction
+@ body is characterised structurally.
 .thumb_func_start Player_ExitStairs  @ 0x08094380
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -75,6 +79,10 @@
 	bx	r0
 .func_end Player_ExitStairs
 
+@ CheckProgressFlags
+@ Takes no arguments. Tests event flag 0x120 (and the companion 0x121) with
+@ _Func_79338 and returns which of the two outcome states the save is in --
+@ the read side of Func_94354 / Func_94368.
 .thumb_func_start Func_8094428  @ 0x08094428
 	push	{r5, r6, lr}
 	mov	r5, #0x90

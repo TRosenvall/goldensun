@@ -1,6 +1,8 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ PlaySelectSound
+@ r0 = id. Plays a UI sound through Func_56cc / Func_5c68 / .gcc2_compiled..
 .thumb_func_start Func_801f730  @ 0x0801f730
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -37,6 +39,8 @@
 	bx	r1
 .func_end Func_801f730
 
+@ PlayMenuSound
+@ r0.. = parameters. As Func_1f730 with additional routing.
 .thumb_func_start Func_801f77c  @ 0x0801f77c
 	push	{r5, r6, r7, lr}
 	bl	Func_80056cc
@@ -117,6 +121,10 @@
 	bx	r1
 .func_end Func_801f77c
 
+@ ReadPartySummary
+@ r0.. = parameters. Gathers a full party summary across rom_77000 --
+@ _Func_77394, _Func_77cb8, _Func_79338, _Func_796c4, _Func_7a5bc -- plus
+@ _Func_8b158. 184 lines; traced structurally.
 .thumb_func_start PrepareSaveHeader  @ 0x0801f818
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -301,6 +309,9 @@
 	bx	r1
 .func_end PrepareSaveHeader
 
+@ RunPartySummaryPrompt
+@ r0.. = parameters. Reads the summary with PrepareSaveHeader and drives a modal text
+@ box through Func_1776c.
 .thumb_func_start Func_801f9b4  @ 0x0801f9b4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

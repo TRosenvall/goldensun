@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ FindMapEventEntry
+@ r0=event id, or 0x3E7 for "any". Searches the current map's event list --
+@ reached through the overlay entry point at __start_overlay+0x14 -- for an
+@ entry matching the area id at ewram_240+0x1C0.
+@ Entries are words: the low 12 bits are an area id (0x1FF is a wildcard), the
+@ upper bits a type. A candidate is accepted only if its guard event flag, if
+@ any, passes _Func_79338. Returns the matching entry.
 .thumb_func_start Func_808a5f8  @ 0x0808a5f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -117,6 +124,10 @@
 	bx	r0
 .func_end Func_808a5f8
 
+@ SetCurrentEncounterSet
+@ r0=encounter set id, or -1 to clear. Stores it at ewram_240+0x236 and, when a
+@ real id is given, loads the matching encounter table so the map knows what can
+@ be met on it.
 .thumb_func_start RespawnAtSanctum  @ 0x0808a6e4
 	push	{r5, r6, lr}
 	ldr	r1, =gState

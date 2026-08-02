@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunActorSequence
+@ r0 = combatant list, r1 = mode. Drives the combatants' actors a frame at a
+@ time through WaitFrames, submitting sprites with Func_b7aac, cleaning up with
+@ .gcc2_compiled., and reaching into the overlay at _Func_185008.
+@ Exported and called by rom_c9000's Func_d6750, which hands it the list of
+@ combatants still standing. 303 lines; traced structurally.
 .thumb_func_start CreateBattleSpriteOverlays  @ 0x080b7b6c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

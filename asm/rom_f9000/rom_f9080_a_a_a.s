@@ -1,5 +1,40 @@
 	.include "macros.inc"
 
+@ PlaySound
+@ r0 = a sound id in bits 0..11, flags in bits 12..15. THE MOST-CALLED FUNCTION
+@ IN THE ROM -- 1971 call sites across every module and every overlay. Nothing
+@ is returned.
+@
+@ It routes the id by range, and the ranges are the whole interface:
+@
+@     0x011        fade the main player at ewram_4290 out over 7 steps, bump the
+@                  fade latch at ewram_3014 and set the current-track byte
+@                  ewram_303c to 0x13
+@     0x121        fade the player at ewram_4360 out over 3 steps and clear
+@                  ewram_3020+6
+@     0x012        ignored outright
+@     0x064..0xFFF SOUND EFFECT. Data_fc684 + id*8 gives the song header at +0
+@                  and the player index at +4. Player 7 is the shared effect
+@                  player: it scans players 7 down to 4 for one whose status word
+@                  is zero and takes the first free one, falling back to player 7
+@                  with slot 0x0E when they are all busy. MPlayStart starts it and
+@                  the id is recorded at ewram_3020 + slot*2.
+@     0x050..0x063 JINGLE. Fades the main player, zeroes the volume pair, starts
+@                  the song with m4aSongNumStart and sets ewram_3000 to 0x0A -- the
+@                  countdown after which UpdateMusicSettings restores the music.
+@     up to 0x04F  MUSIC. Skipped when it is already playing (ewram_303c).
+@                  SetSoundFXMode is called with 3 for ids 0x43, 0x46 and 0x4B and 2
+@                  otherwise. Then m4aSongNumStart starts it, and the volume state is
+@                  seeded: BIT 12 OF THE ARGUMENT starts the track silent
+@                  (ewram_3008 = 0) so it fades in, otherwise it starts at full
+@                  (0x100). ewram_3034 is the target, ewram_3010 = 4 the step.
+@
+@ The volume state block, used by UpdateMusicSettings every frame:
+@
+@     ewram_3000  jingle countdown        ewram_3008  current volume
+@     ewram_3010  fade step               ewram_3014  fade-out latch
+@     ewram_3020  8 halfwords, the id playing in each effect slot
+@     ewram_3034  target volume           ewram_303c  the current music id
 .thumb_func_start PlaySound  @ 0x080f9080
 	push	{r5, r6, r7, lr}
 	mov	r5, #0xf0
@@ -162,6 +197,13 @@
 	bx	r0
 .func_end PlaySound
 
+@ UpdateSoundVolume
+@ Called every frame. Runs the volume fade toward the target: while ewram_3008
+@ differs from ewram_3034 it moves by the step at ewram_3010 and pushes the
+@ result to the player with m4aMPlayTempoControl. It also ticks the jingle countdown at
+@ ewram_3000 -- when it reaches 1 and the jingle player at ewram_4210 has gone
+@ idle, the music is restored to full volume. m4aMPlayPitchControl and m4aMPlayVolumeControl apply
+@ the result to the players and m4aSoundVSync keeps the DMA fed.
 .thumb_func_start UpdateMusicSettings  @ 0x080f91e8
 	push	{r5, r6, lr}
 	ldr	r1, =ewram_2003000
@@ -288,6 +330,12 @@
 	bx	r0
 .func_end UpdateMusicSettings
 
+@ RunSoundTestLoop
+@ Takes no arguments. A DEBUG SOUND TEST: it loops on WaitFrames(1) reading the
+@ auto-repeat key state at iwram_1b04, steps an id with Func_b1c wrapping, plays
+@ it with PlaySound and stashes the value at iwram_7804. SetSoundFXMode sets the
+@ priority. Nothing in the ROM calls it -- it is reachable only through its
+@ export veneer, like rom_b5000's Debug_BattleTest and rom_b0000's Debug_TestEquipAndStatus.
 .thumb_func_start Debug_SoundTest  @ 0x080f92fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

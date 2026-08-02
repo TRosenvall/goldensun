@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ LoadPortrait
+@ r0 = id, r1 = destination. Allocates the 0x608-byte graphic block under tag
+@ 0x11 -- which is what iwram_1e94 points at, since iwram_1e50 + 0x11*4 =
+@ iwram_1e94 -- then decompresses into it with LoadIcon and reserves OBJ tiles
+@ with UploadSpriteGFX / AllocSpriteSlot. Func_2dd8 releases the block on the failure path.
 .thumb_func_start LoadOldUIIcon  @ 0x08019ee4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -81,6 +86,10 @@
 	bx	r0
 .func_end LoadOldUIIcon
 
+@ LoadPortraitForCharacter
+@ r0 = character, r1..r3 and arg5 = placement. Resolves the character through
+@ _Func_78b9c (rom_77000's party lookup), takes its portrait id from +4 of the
+@ record, and forwards to LoadItemIconID.
 .thumb_func_start LoadOldMoveIcon  @ 0x08019f98
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -107,6 +116,9 @@
 	bx	r0
 .func_end LoadOldMoveIcon
 
+@ LoadPortraitIndexed
+@ r0 = index, r1.. = placement. As LoadOldUIIcon but bounds-checks the index
+@ against Func_19ebc's count of 255 before using it.
 .thumb_func_start LoadItemIconID  @ 0x08019fcc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -194,6 +206,11 @@
 	bx	r0
 .func_end LoadItemIconID
 
+@ DrawPortraitTiles
+@ r0 = id masked to 0x1FF, r1.. = placement. Emits a portrait into OBJ tiles,
+@ working from the block at iwram_1e94 and the character record from
+@ _Func_78414. Func_af0 and Func_b1c supply the row and column arithmetic.
+@ 256 lines; traced structurally.
 .thumb_func_start DrawInventoryIcon  @ 0x0801a088
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -450,6 +467,9 @@
 	bx	r1
 .func_end DrawInventoryIcon
 
+@ LoadAndDrawPortrait
+@ r0 = id, r1, r2 = placement. Allocates the tag-0x11 block, draws through
+@ DrawInventoryIcon, and releases with Func_2dd8. The one-shot form.
 .thumb_func_start LoadInventoryIcon  @ 0x0801a2a4
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -484,6 +504,9 @@
 	bx	r1
 .func_end LoadInventoryIcon
 
+@ LoadIconSet
+@ r0 = index, r1, r2 = placement. Allocates the tag-0x11 block, selects the
+@ pointer through DecompressStatusIcon, and releases with Func_2dd8.
 .thumb_func_start LoadStatusIcon  @ 0x0801a2ec
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -514,6 +537,10 @@
 	bx	r1
 .func_end LoadStatusIcon
 
+@ SelectGraphicTable
+@ r0 = table selector 1..3, r1, r2 = parameters. A four-way switch returning one
+@ of three table base addresses; anything outside 1..3 takes the default arm.
+@ UploadSpriteGFX reserves the tiles for whichever is chosen.
 .thumb_func_start LoadUIBanner  @ 0x0801a32c
 	push	{lr}
 	mov	r3, r2
@@ -555,6 +582,10 @@
 	.word	Data_31864
 .func_end LoadUIBanner
 
+@ SetPortraitPointer
+@ r0 = id masked to 0x1FF. Looks the character up with _Func_78414, indexes the
+@ 255-entry table at .L29ee4 by the halfword at +6 of that record, and stores the
+@ resulting pointer at [iwram_1e94]+0x604. An id of 0 clears it instead.
 .thumb_func_start LoadItemIcon  @ 0x0801a370
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -596,6 +627,10 @@
 	bx	r0
 .func_end LoadItemIcon
 
+@ LoadIconForCharacter
+@ r0 = character, r1..r3 and arg5 = placement. The LoadOldMoveIcon counterpart for
+@ the second table: _Func_78b9c resolves the character and LoadMoveIconID does the
+@ load.
 .thumb_func_start LoadMoveIcon  @ 0x0801a3d0
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -622,6 +657,9 @@
 	bx	r0
 .func_end LoadMoveIcon
 
+@ LoadIconIndexed
+@ r0 = index, r1.. = placement. As LoadItemIconID but bounds-checked against
+@ Func_19ed0's count of 160 and reading the second pointer table.
 .thumb_func_start LoadMoveIconID  @ 0x0801a404
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -709,6 +747,9 @@
 	bx	r0
 .func_end LoadMoveIconID
 
+@ SelectIconPointer
+@ r0 = index. Stores .L308a0[index] at [iwram_1e94]+0x604 and sets the two
+@ halfwords at +0x600 and +0x602 to 2, marking the block dirty.
 .thumb_func_start DecompressStatusIcon  @ 0x0801a4c0
 	push	{lr}
 	ldr	r3, =iwram_3001e94
@@ -734,6 +775,10 @@
 	bx	r0
 .func_end DecompressStatusIcon
 
+@ LoadNamedGraphic
+@ r0 = id, r1, r2, r3 = placement. Allocates the tag-0x11 block, fetches asset
+@ 0xF0 with GetFile, decompresses with LoadIcon, DMA3s it into place and
+@ reserves tiles with UploadSpriteGFX / AllocSpriteSlot.
 .thumb_func_start LoadPortrait  @ 0x0801a4fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

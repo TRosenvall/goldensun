@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ StepBattleHud
+@ Takes no arguments. Advances the HUD each frame: refreshes displays with
+@ Func_bb588, submits sprites with Func_b7aac, shows damage with Func_babdc and
+@ reactions with Func_bace8. 173 lines; traced structurally.
 .thumb_func_start Func_80bb938  @ 0x080bb938
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e74

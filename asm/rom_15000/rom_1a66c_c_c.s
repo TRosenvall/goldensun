@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ StepPartyScreen
+@ Takes no arguments. The party/status screen's per-frame task, registered by
+@ .gcc2_compiled.. Animates the portrait sprites -- allocating and releasing OBJ
+@ tiles through Func_3d28 / .gcc2_compiled. / UploadSpriteGFX, reading the frame counter at
+@ iwram_1800, and pulling character data through _Func_79338 and _Func_b845c.
+@ DisplayMenuArrowCursor does the sprite emission and Func_1b36c counts the visible entries.
+@ 684 lines; traced structurally.
 .thumb_func_start Func_801a98c  @ 0x0801a98c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

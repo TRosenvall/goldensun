@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunActionPhase
+@ r0.. = parameters. The main action phase: resolves targets (Func_b6b40),
+@ submits the actor sequence (CreateBattleSpriteOverlays, .gcc2_compiled.), rolls outcomes with
+@ Func_4458, and advances frames with WaitFrames.
+@ 322 lines; traced structurally.
 .thumb_func_start Func_80b88d0  @ 0x080b88d0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -323,6 +328,9 @@
 	bx	r1
 .func_end Func_80b88d0
 
+@ RunCounterPhase
+@ r0.. = parameters. Handles counters and follow-ups, orienting with Func_b8000
+@ and animating through Func_b82c4.
 .thumb_func_start Func_80b8b48  @ 0x080b8b48
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001f00
@@ -417,6 +425,10 @@
 	bx	r1
 .func_end Func_80b8b48
 
+@ RunResultPhase
+@ r0.. = parameters. Applies and displays the turn's result, driving the damage
+@ overlay through _Func_1f200 and submitting sprites with Func_c300.
+@ 198 lines; traced structurally.
 .thumb_func_start Func_80b8c1c  @ 0x080b8c1c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -615,6 +627,10 @@
 	bx	r1
 .func_end Func_80b8c1c
 
+@ RunDefeatPhase
+@ r0.. = parameters. Handles a combatant going down: plays the fall through
+@ .gcc2_compiled., shows the message with _Func_175a0 and the overlay with
+@ _Func_1f200.
 .thumb_func_start Func_80b8db8  @ 0x080b8db8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

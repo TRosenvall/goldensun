@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ MoveCameraTo
+@ r0=x, r1=y, r2=z, r3=flags. Any coordinate passed as -1 keeps its current
+@ value, so a caller can move one axis at a time.
+@ Detaches the camera from its follow target with _Func_c4ac, then clamps the
+@ destination against the map bounds at [iwram_1e70]+0xEC..+0xF8 -- each inset
+@ by a margin (0x780000 on x, 0x600000 and 0x780000 on z, 0x400000 on the far
+@ edge) so the camera stops short of showing past the map -- and starts the
+@ move.
 .thumb_func_start Func_80933f8  @ 0x080933f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ LayoutMenuString
+@ r0 = string id. Lays a string out with BufferString and returns its measured
+@ extent from the ring at [iwram_1e8c]+0xEB0, for sizing a menu box.
 .thumb_func_start Func_801965c  @ 0x0801965c
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e8c
@@ -56,6 +59,12 @@
 	.word	0
 .func_end Func_801965c
 
+@ ReleaseMenuBuffers
+@ r0, r1 = parameters, r2 = a bitmask of which buffers to release.
+@ Walks the allocation slots in iwram_1e50 -- the same tag table rom_c9000 uses
+@ -- freeing each selected entry with Func_2dd8 and reallocating with galloc_iwram
+@ where a replacement is wanted. HuffStr_Start does the DMA copy for entries that
+@ are being resized rather than dropped.
 .thumb_func_start DecompressString  @ 0x080196c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

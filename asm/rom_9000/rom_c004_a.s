@@ -1,6 +1,17 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ InitEntitySystem
+@ r0=mode. Brings up the entity layer on top of the sprite layer:
+@   - allocates the 0x5C-byte system header (tag 6) and the 0x1C00-byte entity
+@     table (tag 5) with galloc_ewram, then DMA zero-fills both
+@   - InitSprites initialises the underlying actor/part pools
+@   - registers the per-frame update task at priority 0xC8A via StartTask:
+@     Func_d340 (the 14-slot x/z loop) in mode 4, otherwise UpdateActors
+@   - registers the draw task at priority 0xC80: Func_c880 (projected 3D) for
+@     modes 3 and 4, otherwise Func_c62c (2D map-relative), which also clears
+@     iwram_1d1c and iwram_1cc0
+@   - seeds the header's default palette (+0x06 = 0x0F) and flags (+0x07 = 0)
 .thumb_func_start InitActors  @ 0x0800c004
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

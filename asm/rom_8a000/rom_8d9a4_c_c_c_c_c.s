@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ FindSpeakerRecord
+@ r0=speaker id. Searches the table at .L9e9f0 for the record matching the id
+@ and returns it. GetSpriteVoice and Func_915dc read the portrait and voice bytes
+@ from the result.
 .thumb_func_start GetSpriteVoiceEntry  @ 0x08091560
 	push	{lr}
 	mov	r2, r0

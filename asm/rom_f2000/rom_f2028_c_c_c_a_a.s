@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ BeginPaletteFade
+@ r0 = how many frames the fade should take. Records the count at +0x3001,
+@ clears the phase flag at +0x3002, and computes the per-frame step with
+@ Func_f2ebc from the current palette at +0x400 toward the target at +0x1000.
 .thumb_func_start Func_80f3858  @ 0x080f3858
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ed0

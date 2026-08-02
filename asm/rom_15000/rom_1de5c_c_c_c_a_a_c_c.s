@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ PopulateMenuWindow
+@ r0 = menu id, r1.. = placement. Resolves the menu with GetPortrait, loads its
+@ graphics with LoadPortrait, reads character data through _Func_79338, and
+@ attaches each entry's sprite with Func_1eadc. Called by Func_19da8.
 .thumb_func_start Func_801ec6c  @ 0x0801ec6c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -101,6 +105,9 @@
 	bx	r1
 .func_end Func_801ec6c
 
+@ PopulateMenuEntries
+@ r0 = menu id, r1.. = placement. As Func_1ec6c without the node attachment --
+@ used when the entries are drawn rather than sprited.
 .thumb_func_start Func_801ed40  @ 0x0801ed40
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

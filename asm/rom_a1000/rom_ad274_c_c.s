@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ ResetPartyAnimations
+@ Takes no arguments. Sets every party actor at state+0x114 back to animation 1,
+@ for as many members as state+0x219 reports.
 .thumb_func_start Func_80ad69c  @ 0x080ad69c
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001f2c
@@ -28,6 +31,14 @@
 	bx	r0
 .func_end Func_80ad69c
 
+@ RunDjinnTransfer
+@ Takes no arguments. The transfer half of the Djinn screen -- moving a djinn
+@ from one character to another. Draws the two panels with Func_aca04 and
+@ Func_acab8, animates the icon across with sin for the arc, edits the
+@ status arrays with _Func_7a2e4 and _Func_7a350 and recomputes with
+@ _Func_77428. Prompts come from 0xBA0, 0xBA1, 0xBA4..0xBA7, 0xBC1, 0xC42 and
+@ 0xC43, plus the 0x45F block. State+0x255..0x257 carry the pending move.
+@ 1384 lines; traced structurally.
 .thumb_func_start Func_80ad6d4  @ 0x080ad6d4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1419,6 +1430,11 @@
 	bx	r1
 .func_end Func_80ad6d4
 
+@ RunDjinnList
+@ Takes no arguments. The scrolling list on the Djinn screen: Func_acab8 draws
+@ the panel, Func_aae14 works out the layout, and the page caps 0xF128 / 0xF129
+@ and glyphs 0xF030 / 0xF031 are plotted with _Func_19000. Prompt 0xBAA; save
+@ bit 0x303 gates one branch. 460 lines; traced structurally.
 .thumb_func_start Func_80ae2f4  @ 0x080ae2f4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1886,6 +1902,10 @@
 	bx	r1
 .func_end Func_80ae2f4
 
+@ FindBlockedDonors
+@ r0 = one byte per member, r1 = the receiving member. Sets the byte for every
+@ OTHER member i for which Func_ae778(r1, i) returns 0, and returns how many
+@ were set. The receiving member's own byte is left at 0.
 .thumb_func_start Func_80ae714  @ 0x080ae714
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1936,6 +1956,14 @@
 	bx	r1
 .func_end Func_80ae714
 
+@ WouldTransferStayBalanced
+@ r0 = giver, r1 = receiver. Takes the party's djinn counts from Func_ae7fc,
+@ applies the move -- one off the giver, one onto the receiver -- and then
+@ compares EVERY pair of members. Returns 1 only when no two counts differ by
+@ more than one, and 0 as soon as it finds a pair that does.
+@
+@ That is a hard balance constraint on how djinn may be distributed, enforced
+@ before the move is allowed rather than after.
 .thumb_func_start Func_80ae778  @ 0x080ae778
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2004,6 +2032,14 @@
 	bx	r1
 .func_end Func_80ae778
 
+@ CountDjinnPerMember
+@ r0 = one byte per member. For each roster member, counts the bits set in
+@ either the "has" mask at record+0xF8 or the "set" mask at record+0x108, over
+@ twenty bits in each of four element words, and stores the total.
+@
+@ Note it counts a djinn once even when it appears in both masks -- the test is
+@ an OR, not a sum -- so this is how many djinn the character owns, not how many
+@ are set.
 .thumb_func_start Func_80ae7fc  @ 0x080ae7fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

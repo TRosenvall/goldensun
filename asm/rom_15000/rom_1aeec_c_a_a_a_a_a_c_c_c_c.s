@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ OpenStatusOverlay
+@ r0.. = parameters. Opens a window with CreateUIBox, renders text with
+@ TextBox, registers a task with StartTask, and reads the save-data
+@ preferences at ewram_240. State lives in iwram_1ebc.
 .thumb_func_start Func_801c34c  @ 0x0801c34c
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc

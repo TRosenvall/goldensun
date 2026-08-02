@@ -1,5 +1,17 @@
 	.include "macros.inc"
 
+@ RunExamineTrigger
+@ r0=entity id. Tries the kind 2 interaction record first and falls back to
+@ kind 1. Returns 0 if either ran, -1 otherwise.
+@ For kind 2, bit 9 of the record flags clears the dialogue counter at
+@ iwram_1ebc+0x1D8 before running. Message payloads open a message box; larger
+@ payloads are called as functions.
+@ The kind 1 fallback dispatches on bits 4-5 of the record flags to pick a
+@ feedback sound and side effect:
+@     0x00 -> _Func_f9080(0x7B)                    plain examine
+@     0x20 -> _Func_f9080(0x80) then Func_94354    one outcome class
+@     0x30 -> _Func_f9080(0x81) then Func_94368    another
+@ and stores the payload as a message id at iwram_1ebc+0x170.
 .thumb_func_start Func_808d828  @ 0x0808d828
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -97,6 +109,15 @@
 	bx	r1
 .func_end Func_808d828
 
+@ HandleMessageControlCode
+@ r0=control code. Services the codes a message box stops on, using the dialogue
+@ state at iwram_1ebc and the player entity id at ewram_240+0x1F4. Always
+@ returns 0. Each case requires the frame counter at iwram_1ebc+0x19C to exceed
+@ 12, which debounces the button so one press cannot skip two prompts, and
+@ clears that counter once handled.
+@   0xFC -- A (iwram_1ae8 & 0x80) advances via Func_92708(player, 6, 0)
+@   0xF9, 0xFE -- advance unconditionally via Func_93c00
+@   0xFD -- a two-way choice: A selects Func_93e28, B (& 0x40) Func_93fa0
 .thumb_func_start Func_808d8f0  @ 0x0808d8f0
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc

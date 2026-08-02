@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ ApplyStatusEffect
+@ r0 = combatant id, r1 = effect. Sets the corresponding save bit with
+@ SetFlag after checking it with GetFlag, and updates the record's status
+@ fields through GiveDjinni and Func_7a458.
 .thumb_func_start Func_807a0f4  @ 0x0807a0f4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -95,6 +99,9 @@
 	bx	r1
 .func_end Func_807a0f4
 
+@ GetStatusSlot
+@ r0 = combatant id, r1 = index, r2 = value. Reads the status byte array at
+@ record+0x118, whose entries are validated against a bound of 9.
 .thumb_func_start GiveDjinni  @ 0x0807a1b4
 	push	{r5, r6, r7, lr}
 	mov	r5, r1
@@ -133,6 +140,9 @@
 	bx	r1
 .func_end GiveDjinni
 
+@ ReadStatusTable
+@ r0.. = parameters. Reads the combatant's status entries, falling back on the
+@ scratch record from .gcc2_compiled. when no real combatant is given.
 .thumb_func_start Func_807a1f8  @ 0x0807a1f8
 	push	{r5, r6, r7, lr}
 	mov	r5, r1
@@ -238,6 +248,8 @@
 	bx	r1
 .func_end Func_807a1f8
 
+@ GetStatusCount
+@ r0 = combatant id. Returns how many status entries the combatant carries.
 .thumb_func_start Func_807a2bc  @ 0x0807a2bc
 	push	{r5, r6, lr}
 	mov	r6, r2
@@ -259,6 +271,9 @@
 	bx	r1
 .func_end Func_807a2bc
 
+@ AddStatusEntry
+@ r0 = combatant id, r1 = entry. Appends to the status array through
+@ Func_7a1f8 and refreshes the combatant with .gcc2_compiled..
 .thumb_func_start SetDjinni  @ 0x0807a2e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ GetOverlayState
+@ Takes no arguments. Returns the overlay state block, allocating it through
+@ galloc_ewram(0x1F, 0x540) if it does not exist yet.
 .thumb_func_start AllocGlobal1F  @ 0x0808fecc
 	push	{lr}
 	mov	r1, #0xa8
@@ -23,6 +26,11 @@
 	bx	r1
 .func_end AllocGlobal1F
 
+@ ShowScreenOverlay
+@ r0, r1 = overlay parameters. Brings up a screen overlay: sets the mode,
+@ builds its window tables and starts the tasks. Func_91dc8 in rom_91584.s is
+@ the script-facing wrapper. The ~180-instruction body is characterised
+@ structurally.
 .thumb_func_start ScreenTransitionIn  @ 0x0808fefc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -337,6 +345,10 @@
 	bx	r0
 .func_end ScreenTransitionIn
 
+@ HideScreenOverlay
+@ r0, r1 = overlay parameters. The counterpart to ScreenTransitionIn: retracts the
+@ overlay and stops its tasks. The ~180-instruction body is characterised
+@ structurally.
 .thumb_func_start ScreenTransitionOut  @ 0x080901c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

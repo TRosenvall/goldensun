@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ DrawStringAt
+@ r0 = string id, r1.. = placement. Lays the string out with BufferString and
+@ emits it with Func_17aa4.
 .thumb_func_start DrawSmallText  @ 0x0801e74c
 	push	{r5, r6, lr}
 	mov	r6, r11
@@ -59,6 +62,9 @@
 	bx	r0
 .func_end DrawSmallText
 
+@ DrawStringToBuffer
+@ r0 = string id, r1.. = placement. Lays out with BufferString and renders with
+@ Func_1de5c, for text going into a buffer rather than a window.
 .thumb_func_start Func_801e7c0  @ 0x0801e7c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -135,6 +141,9 @@
 	bx	r0
 .func_end Func_801e7c0
 
+@ DrawTextScratch
+@ r0.. = parameters. Allocates scratch with Func_4970, emits through
+@ Func_17aa4, releases with free.
 .thumb_func_start Func_801e858  @ 0x0801e858
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -183,6 +192,8 @@
 	bx	r0
 .func_end Func_801e858
 
+@ DrawTextScratchWide
+@ r0.. = parameters. As Func_1e858 but rendering through Func_1de5c.
 .thumb_func_start Func_801e8b0  @ 0x0801e8b0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -257,6 +268,9 @@
 	bx	r0
 .func_end Func_801e8b0
 
+@ DrawTextScratchEntry
+@ r0.. = parameters. As Func_1e858 but appending a layout entry with
+@ Func_17c8c.
 .thumb_func_start UIDrawText  @ 0x0801e940
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

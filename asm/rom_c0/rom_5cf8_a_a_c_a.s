@@ -1,6 +1,8 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ WaitForSoundIdle
+@ Takes no arguments. Spins on WaitFrames(1) until the engine reports idle.
 .thumb_func_start Func_8006384  @ 0x08006384
 	push	{r5, r6, lr}
 	ldr	r1, =iwram_3001f64
@@ -29,6 +31,8 @@
 	bx	r1
 .func_end Func_8006384
 
+@ StartMusicFadeOut
+@ r0.. = parameters. Begins ramping the music volume down.
 .thumb_func_start Func_80063bc  @ 0x080063bc
 	push	{r5, r6, r7, lr}
 	ldr	r5, =ewram_2002080
@@ -61,6 +65,8 @@
 	bx	r1
 .func_end Func_80063bc
 
+@ StartMusicFadeIn
+@ r0.. = parameters. Begins ramping the music volume up.
 .thumb_func_start Func_8006408  @ 0x08006408
 	push	{r5, r6, lr}
 	ldr	r5, =ewram_20023ac

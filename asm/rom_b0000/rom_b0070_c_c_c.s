@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunInn
+@ r0.. = parameters. Exported. Opens the state, charges through InnHeal, and
+@ tears down -- structurally a shop that sells one service.
 .thumb_func_start Func_80b3284  @ 0x080b3284
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -119,6 +122,12 @@
 	bx	r1
 .func_end Func_80b3284
 
+@ ChargeParty
+@ r0 = price. Exported. THE PAYMENT PATH: negates the price and calls
+@ _Func_79700, rom_77000's money accessor, which clamps at 0 and 999,999.
+@ _Func_796c4 supplies the party list first, and each member is then refreshed.
+@ Note it does NOT check affordability -- the caller must, because Func_79700
+@ clamps rather than failing.
 .thumb_func_start InnHeal  @ 0x080b3398
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -195,6 +204,9 @@
 	bx	r0
 .func_end InnHeal
 
+@ RunShopMenu
+@ r0.. = parameters. Exported. 224 lines. The shop's own top-level menu.
+@ Traced structurally.
 .thumb_func_start UI_SellMenu  @ 0x080b3444
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -419,6 +431,9 @@
 	bx	r1
 .func_end UI_SellMenu
 
+@ RunShopListScreen
+@ r0.. = parameters. 276 lines. Presents the stock list with its own window
+@ (_Func_162d4) and row drawing. Traced structurally.
 .thumb_func_start Func_80b362c  @ 0x080b362c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -695,6 +710,9 @@
 	bx	r1
 .func_end Func_80b362c
 
+@ DrawStockRow
+@ r0.. = parameters. Draws one stock row from Func_b19cc's fields, releasing
+@ tiles with _Func_16498 and swapping inventory slots with _Func_78980.
 .thumb_func_start Func_80b386c  @ 0x080b386c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

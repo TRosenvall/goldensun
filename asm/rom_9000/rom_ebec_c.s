@@ -1,5 +1,16 @@
 	.include "macros.inc"
 
+@ ConstrainedMovementController
+@ r0=entity. The most restricted of the three: speed is fixed -- max 0x8000 into
+@ +0x30 and acceleration 0x4000 into +0x34 -- with no run button.
+@ The heading still comes from .L13254, but the facing angle at +0x06 is snapped
+@ to one of two values by the sign of the resulting z step: 0xC000 for one
+@ direction and 0x4000 for the other. So the entity only ever faces two ways
+@ regardless of which way it travels.
+@ The animation index is chosen from the heading's quadrant (0x0A, 0x0E or 0x0F)
+@ before the move, and the candidate position is validated against the map
+@ record at ewram_10000 for the destination tile. The ~240-instruction body is
+@ characterised structurally.
 .thumb_func_start ActorCmd_Player_Climb  @ 0x0800f7f4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

@@ -1,6 +1,8 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ComputeBarGeometry
+@ r0.. = parameters. Pure arithmetic for the overlay's bars; no calls out.
 .thumb_func_start Func_801fda8  @ 0x0801fda8
 	push	{r5, r6, r7, lr}
 	mov	r6, r3

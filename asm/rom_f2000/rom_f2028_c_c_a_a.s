@@ -1,6 +1,16 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ComputePaletteStep
+@ r0 = the current palette, r1 = the target, r2 = the destination, r3 = frames.
+@ For each of 0x600 halfword components it stores `(target - current) / frames`
+@ -- the per-frame increment the fade will add. Func_af0 supplies the signed
+@ quotient, so a negative delta steps down correctly.
+@
+@ 0x600 is 1536, which is 512 colours times THREE components. The fade engine
+@ keeps red, green and blue in separate halfwords precisely so this division can
+@ carry a fractional result per channel; Func_f3078 is what packs them back into
+@ the 5:5:5 the hardware wants.
 .thumb_func_start Func_80f2ebc  @ 0x080f2ebc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -43,6 +53,11 @@
 	bx	r0
 .func_end Func_80f2ebc
 
+@ UploadFadedPalette
+@ The per-frame task Func_f377c registers at sort key 0xC80. Advances the fade by
+@ one step and queues the result into the transfer list at ewram_2090 with
+@ interrupts masked, for the VBlank handler to move into palette RAM.
+@ 169 lines; traced structurally.
 .thumb_func_start Func_80f2f10  @ 0x080f2f10
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ed0
@@ -219,6 +234,15 @@
 	bx	r0
 .func_end Func_80f2f10
 
+@ PackUnpackPalette
+@ r0 = a 16.16 scale, r1 = the packed side, r2 = the unpacked side, r3 = mode.
+@ The core of the fade engine: converts between 512 packed 5:5:5 colours and
+@ 1536 separate halfword components, multiplying by the scale on the way. Every
+@ component goes through .gcc2_compiled., which clamps to 0..0x1F, and the packed
+@ result through .gcc2_compiled., which clamps to 0x7C00 -- so an over-bright fade
+@ saturates rather than wrapping.
+@
+@ 877 lines, almost all of it unrolled; traced structurally.
 .thumb_func_start Func_80f3078  @ 0x080f3078
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1103,6 +1127,20 @@
 	bx	r0
 .func_end Func_80f3078
 
+@ StartPaletteFadeEngine
+@ Takes no arguments. Takes 0x3004 bytes under tag 0x20 -- the block iwram_1ed0
+@ points at -- and snapshots both palettes into the front of it: 0x200 bytes from
+@ 0x5000000 and 0x200 from 0x5000200, so +0x000..+0x400 is the packed 512-colour
+@ copy. Func_f3078 then unpacks it into the working buffer at +0x1000, and
+@ Func_f2f10 is registered at sort key 0xC80.
+@
+@ The block's layout, from here and Func_f3858:
+@
+@     +0x0000  the packed snapshot, and a step index halfword at +0
+@     +0x0400  the CURRENT unpacked palette, 0x600 halfwords
+@     +0x1000  the TARGET unpacked palette
+@     +0x1C00  the per-frame step from Func_f2ebc
+@     +0x3001  frames remaining     +0x3002  a phase flag
 .thumb_func_start Func_80f377c  @ 0x080f377c
 	push	{lr}
 	ldr	r1, =0x3004

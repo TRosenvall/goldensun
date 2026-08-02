@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RenderTextToBuffer
+@ r0.. = text parameters. The general text renderer: allocates scratch with
+@ Func_4938, fetches the font asset with GetFile, rasterises the run, and
+@ releases with free. 472 lines; traced structurally.
 .thumb_func_start Func_801de5c  @ 0x0801de5c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -473,6 +477,10 @@
 	bx	r1
 .func_end Func_801de5c
 
+@ PlotTextRun
+@ r0.. = run parameters. Writes a laid-out run into the text scratch, reading
+@ the current style from [iwram_1e8c]+0xEA2 and stepping 0x20 bytes per tile
+@ row. The inner loop other drawing paths funnel into.
 .thumb_func_start Func_801e260  @ 0x0801e260
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -563,6 +571,8 @@
 	bx	r0
 .func_end Func_801e260
 
+@ ClearTextRect
+@ r0.. = rectangle. Clears a region of the text scratch. No calls out.
 .thumb_func_start Func_801e318  @ 0x0801e318
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -650,6 +660,8 @@
 	bx	r0
 .func_end Func_801e318
 
+@ CopyTextRect
+@ r0.. = rectangle. Copies a region within the text scratch.
 .thumb_func_start Func_801e3c8  @ 0x0801e3c8
 	push	{lr}
 	ldr	r3, =iwram_3001e8c

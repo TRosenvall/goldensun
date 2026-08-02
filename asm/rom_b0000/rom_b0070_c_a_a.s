@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ MarkShopVisited
+@ r0 = shop id. Sets the shop's save bit through _Func_79358 after testing it
+@ with _Func_79338, and notifies _Func_78ad0.
 .thumb_func_start Func_80b26cc  @ 0x080b26cc
 	push	{r5, r6, lr}
 	mov	r3, #0x80
@@ -43,6 +46,9 @@
 	bx	r0
 .func_end Func_80b26cc
 
+@ CopyShopStock
+@ r0 = shop id, r1 = destination. Copies the shop's 0x17-entry stock list out
+@ of .Lb41ac, whose records are 0x42 bytes (`(id*32 + id) * 2`).
 .thumb_func_start Func_80b2720  @ 0x080b2720
 	push	{r5, lr}
 	lsl	r3, r0, #5

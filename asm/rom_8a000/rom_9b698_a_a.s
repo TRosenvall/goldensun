@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ UpdateFieldEffects
+@ Takes no arguments. Per-frame update over the field-effect instances hanging
+@ off [iwram_1f30]: advances each instance's timers, steps its motion and
+@ retires the ones that have finished. The ~110-instruction body is
+@ characterised structurally.
 .thumb_func_start Field_Avoid  @ 0x0809b698
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -154,6 +159,9 @@
 	bx	r0
 .func_end Field_Avoid
 
+@ TickEffectAnimation
+@ r0=effect instance. Advances the instance's frame counters at +0x38 and +0x3A
+@ while the enable byte at +0x45 is non-zero, wrapping when the sequence ends.
 .thumb_func_start Func_809b804  @ 0x0809b804
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -210,6 +218,10 @@
 	bx	r0
 .func_end Func_809b804
 
+@ ApplyEffectTransform
+@ r0=effect instance. Rebuilds the instance's on-screen transform from its
+@ current state, taking the scale/rotation path selected by bit 2 of the flag
+@ byte at +0x47.
 .thumb_func_start Func_809b86c  @ 0x0809b86c
 	push	{r5, r6, r7, lr}
 	mov	r4, r0
@@ -270,6 +282,10 @@
 	bx	r0
 .func_end Func_809b86c
 
+@ StepEffectMotion
+@ r0=effect instance. Integrates one frame of motion toward the target at +0x0C,
+@ treating the 0x80000000 sentinel as "no target" and leaving the instance
+@ stationary in that case.
 .thumb_func_start Func_809b8f4  @ 0x0809b8f4
 	push	{r5, r6, r7, lr}
 	mov	r6, r0

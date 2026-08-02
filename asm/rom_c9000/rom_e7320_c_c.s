@@ -1,6 +1,21 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ClaimAnimationSlot
+@ r0, r1, r2 = the three payload words to store. No return value.
+@
+@ Finds a free entry in a sixteen-slot array and fills it in. The array base is
+@ [r9-0x88] + 0x7400, and entries are 0x1C bytes apart -- the stride is spelled
+@ `(i * 8 - i) * 4`, which is 28. A slot is free when its word at +0x18 holds
+@ -1; claiming it writes 0 there and then stores r0, r1 and r2 at +0x00, +0x04
+@ and +0x0C.
+@
+@ If all sixteen are taken the call does nothing at all -- the loop exits on
+@ `cmp r4, #0x10` before any store. There is no failure signal, so a caller
+@ cannot tell a dropped request from a serviced one.
+@
+@ Func_e73a0 below is the same routine against a different array (base offset
+@ 0x7080 rather than 0x7400), so the two manage parallel pools.
 .thumb_func_start Func_80e7338  @ 0x080e7338
 	push	{r5, r6, r7, lr}
 	mov	r7, r9
@@ -58,6 +73,10 @@
 	bx	r0
 .func_end Func_80e7338
 
+@ Sub_e73a0
+@ Battle animation routine, 49 instructions.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_80e73a0  @ 0x080e73a0
 	push	{r5, r6, lr}
 	mov	r6, r9
@@ -113,6 +132,79 @@
 	bx	r0
 .func_end Func_80e73a0
 
+@ RunDefaultAnimationImpl -- scanline gradient sweep, then a 3D burst
+@ r0 = action descriptor, r1 = variant (0 = Func_e7320 = animation class 11 AND
+@ the class-0 fall-through, 1 = Func_e732c). Two frame loops: 192 frames
+@ (0..0xBF) and 54 frames (0..0x35).
+@
+@ THE PER-SCANLINE GRADIENT is what makes this one distinctive. Every frame it
+@ rewrites a 160-entry halfword table at [iwram_1eec]+0x1F80, one entry per
+@ scanline, and the task .gcc2_compiled. feeds it to the hardware:
+@     scanlines 0..0x0E    0
+@     scanlines 0x10..0x86 t = (scanline - 0x10)/4 + frame/4, then
+@                          blue  = clamp(t - 0x20, 0, 0x1F)
+@                          green = clamp(t - 0x50, 0, 0x1F)
+@                          red   = green / 2
+@                          packed as (blue << 10) | (green << 5) | red
+@     scanlines 0x87..0x9F 0
+@ Because t carries the frame counter, the blue-to-white band sweeps down the
+@ screen as the animation runs.
+@
+@ VARIANT DIFFERENCES, all decided in the first 60 instructions:
+@   variant 1  the ACTING combatant ([desc+8]) is grabbed through _Func_b7dd0
+@     and given +0x28 = 0xA0000 and +0x48 = 0x91EB, then Func_d6888(actor, -1,
+@     2, -1, 0) and sound 0x91. Two actors are built by hand from resources
+@     0x1E3 and 0x21E4 at OBJ priority 3, and asset 0xC4's palette is loaded.
+@     A direction flag at sp+0x40 is taken from [desc+4].
+@   variant 0  no acting-combatant setup; CreateSummonSprite(1, 0x17D, 3) spawns a
+@     single actor, and the direction flag is forced to -1.
+@   Throughout, variant 1 draws TWO actors (+0x77D8 and +0x77DC) where variant 0
+@     draws one, and uses different anchor offsets.
+@
+@ SETUP
+@   sp+0x48 = [iwram_1ef0] render buffer; the state pointer is kept indirectly
+@     at sp+0x3c, which points to a stack slot HOLDING [iwram_1eec] -- so most
+@     accesses here are a double indirection, unlike the other handlers.
+@   AnimStart(0x2000); REG_BG2PA = 0x100; Func_c9048(); palette 0 and 1 zeroed.
+@   Task_BlitAnim is registered and then IMMEDIATELY unregistered again -- the
+@     StartTask/StopTask pair sits back to back with only AnimTransitionOut(0, 0)
+@     between them, so this handler runs without the usual effect task.
+@   LoadVFXFile unpacks asset 0xC1 into [iwram_1eec].
+@   +0x7780 = 3, +0x7784 = ewram_20202 (used as a literal), and StartTask
+@     registers .gcc2_compiled. at priority 0x4FE -- the gradient uploader.
+@   The 64-entry list at +0x7098 is cleared to -1; +0x778C, the frame counter
+@     MIRRORED INTO THE STATE BLOCK, starts at 0.
+@
+@ LOOP ONE -- frames 0..0xBF
+@   The frame counter lives both in r11 and at [iwram_1eec]+0x778C, incremented
+@     together, so the HBlank task can see it.
+@   frame 0  sound 0x8D.
+@   A or B held exits early -- after frame 0x10 for variant 1, after frame 4 for
+@     variant 0.
+@   every frame  the gradient table above is rebuilt, then one actor (variant 0)
+@     or two (variant 1) are submitted through _Func_b168 at an anchor that
+@     tracks frame/4 and 0x60 - frame, so the figure travels as the band sweeps.
+@   end of frame  +0x7824 = 1; WaitFrames(1).
+@
+@ BETWEEN THE LOOPS
+@   WaitFrames(1), then THREE tasks are unregistered -- Func_c9138, .gcc2_compiled.
+@   and Task_BlitAnim_BG1Wide -- and iwram_1ad0+4/+6 are restored from saved copies.
+@   Func_2dd8(0x2E); Func_d67dc; REG_BG2PA = 0x80, REG_BG2X = 0,
+@   REG_BG2PD = 0xFFFFF000, REG_BLDALPHA = 0x1010, REG_BG2CNT = 0x2784.
+@   A fresh BuildDraw2DFuncEx(0x2E,7,7,3,2) is generated and asset 0xC0 unpacked.
+@   THREE PARTICLE SETS are seeded as 3-VECTORS at the origin with random
+@   velocities: 32 entries at +0x7080, 128 at ewram_10000 and 512 at
+@   ewram_10e00 -- all starting at (0,0,0), so loop two is an explosion
+@   outward from a point.
+@
+@ LOOP TWO -- frames 0..0x35
+@   The three sets step and project each frame; +0x77A8 = 1 keeps a light shake
+@   running; UpdateScreenShake(8, 8); +0x7824 = 1; WaitFrames(1).
+@
+@ TEARDOWN
+@   StopTask(Task_BlitAnim); Func_2dd8(0x2E). VARIANT 0 ONLY destroys its single
+@   actor at +0x77D8 -- variant 1's two actors are left for the caller.
+@   AnimEnd restores the view.
 .thumb_func_start BaseAnim_Meteor  @ 0x080e7404
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1790,6 +1882,82 @@
 	bx	r0
 .func_end BaseAnim_Meteor
 
+@ RunAnimationClass1 -- seven-piece figure, bouncing trails, final burst
+@ r0 = action descriptor. Animation class 1, entered from the twelve-way table
+@ in Anim_Summon (rom_d6504.s). 320 frames (0..0x13F), one WaitFrames(1) each.
+@
+@ UNLIKE EVERY OTHER CLASS, holding A or B ABORTS rather than fast-forwards.
+@ The check before the loop jumps straight to teardown, and the check at the end
+@ of each frame breaks out. There is no "skip to frame N" arm at all.
+@
+@ SETUP
+@   sp+0x30 = [iwram_1ef0] render buffer, sp+0x2c = [iwram_1eec] state,
+@   sp+0x24 = [iwram_1ef4] sprite scratch.
+@   AnimStart(0); Func_c9048(); palette entries 0 and 1 at 0x5000000 zeroed.
+@   +0x7780 = 0; StartTask registers Task_BlitAnim; AnimTransitionOut(1, 0); Func_d6750.
+@   FIFTEEN ACTORS, contiguous from +0x77D8:
+@     CreateSummonSprite(9, 0x17B, 2) fills slots 0..8;
+@     slots 9..14 (+0x77FC onward) are six more built one at a time from
+@       resource 0x186, each given animation (i MOD 3) and OBJ priority 1.
+@     Teardown destroys exactly 15, which is how the two groups are known to be
+@     one contiguous array.
+@   BuildDraw2DFuncEx(0x2E,7,7,3,2) and BuildDraw2DFuncEx(0x2F,7,7,3,3); the two pointers are
+@     read back from iwram_1e50+0xB8 and +0xBC -- i.e. tag*4 off the allocation
+@     table base -- and stored as the two-entry array at sp+0x3C, indexed later
+@     by (i & 1) so alternate particles use alternate blitters.
+@   REG_WININ = 0x2737, REG_WIN0H = 0xF0, REG_WIN1V = 0x1088. After a
+@     WaitFrames(1), _Func_c08ec(1, 0x3C, 0) and AnimTransitionOut(1, 1) load graphics,
+@     LoadVFXFile unpacks asset 0x73 into [iwram_1ef4] and asset 0xC0 into
+@     [iwram_1eec]. Then REG_DISPCNT = 0x7741 (mode 1; BG0-2, OBJ and BOTH
+@     WINDOWS enabled), REG_BG2PA = 0x80, REG_BLDALPHA = 0x1010,
+@     REG_BLDCNT = 0x3F44. +0x7780 = 2, +0x7784 = 0x32.
+@   Six trail entities at +0x7080 get x = (rand & 0x7F) << 16 and y staggered
+@     -16.0 apart; 58 entries at +0x7140 get 0x18; all 1024 particles freed;
+@     +0x77B4 = 0x18, +0x77B8 = 0.
+@
+@ MAIN LOOP -- frame 0..0x13F
+@   sounds  0x9C at each of 0x5E, 0x88 and 0xB2; 0x91 at 0x104.
+@   frames 0x60..0xFB and 0x104..0x107  +0x77A8 = 1.
+@   every frame  THE FIGURE: seven of the actors are submitted through
+@     _Func_b168 at unit scale (Data_edac8 = {0x10000, 0x10000}) using the
+@     offset pair .Leeed8 = {12,44,28,60,0,32,64} and .Leeee1 =
+@     {0,0,32,32,64,64,64} -- a staggered seven-piece figure, not a plain grid.
+@   frames 0..0x5A  the figure's anchor circles: x = 156.0 + sin(frame<<9)<<4,
+@     y = 92.0 + cos(frame<<9)<<4.
+@   three groups i = 0,1,2 with base frame 0x5B + 0x28i (0x5B, 0x83, 0xAB):
+@     base..base+3      anchor y rises by 8.0 per frame
+@     base+3            four sparks seeded at +0x7128 + 0xE0i from (64.0, 96.0)
+@                       with random velocities and age rand & 0xF
+@     base+0x14..+0x23  anchor y falls by 2.0 per frame
+@   frames 0xF4..0xFB  anchor x -= 1.0; frames 0xFC..0x113 x -= (frame-0xFA).0,
+@     so the figure accelerates off to the left.
+@   frames 0..0x103  two more actors (+0x77F4, +0x77F8) are submitted alongside,
+@     the second offset 32.0 in x.
+@   every frame  THE SIX TRAILS at +0x7080, each paired with actor +0x77FC+4i:
+@     submitted through _Func_b168 at its own position, then x += vx, y += vy,
+@     and past frame 0x60 vy gains 0x4000. Crossing y = 120.0 BOUNCES: vy is
+@     negated and halved, and two sparks are seeded at +0x73C8 + 0x38i from half
+@     the x and 32 pixels up. Before frame 0xC8 an entry that has finished
+@     bouncing is reset to the top and starts again.
+@   every frame  the 56 sparks at +0x7128: while age is 0..0x17 draw a 48x48
+@     frame -- index (age/6) + 3 into .Leeef8 sizes {16,32,48,48,48,48,48} and
+@     .Leeeea offsets {0,256,1280,3584,5888,8192,10496}, whose deltas are that
+@     table's own w*h -- then Func_e3908(entry, 0x3C, -0x4000): integrate, apply
+@     0x3C/64 drag and a NEGATIVE gravity, so sparks drift upward.
+@   frame 0x104  the payoff: every target takes _Func_b8228(id, 4) and
+@     Func_d6888(id, 7, -1, i, 8), +0x77A8 = 8, and ALL 1024 particles launch
+@     from (32.0, 92.0) with speed (rand & 0x3FF) + 0x20 on a random angle,
+@     vy doubled and negated so the burst is tall, age (rand & 0xF) + 0x20.
+@   every frame  live particles draw at size (age >> 3) + 1 from [iwram_1ef4] +
+@     Data_ede48[n-1], alternating blitters by (i & 1), then
+@     Func_e3908(entry, 0x3E, 0x1000) -- 0x3E/64 drag, normal downward gravity.
+@     age counts DOWN here, so the burst fades out.
+@   end of frame  UpdateScreenShake(8, 8); Func_cd52c(); +0x7824 = 1; WaitFrames(1).
+@
+@ TEARDOWN
+@   .gcc2_compiled.(0x86); Func_d67dc(); all 15 actors from +0x77D8 destroyed;
+@   StopTask(Task_BlitAnim); Func_2dd8(0x2F) and Func_2dd8(0x2E) free the two
+@   generated blitters; AnimEnd restores the view.
 .thumb_func_start Anim_Ramses  @ 0x080e823c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2679,6 +2847,14 @@
 	bx	r0
 .func_end Anim_Ramses
 
+@ Sub_e89ec
+@ Battle animation routine, 745 instructions.
+@ State: iwram_1eec, iwram_1e80, ewram_10000.
+@ Calls out to: _Func_b8228, _Func_bd7dc, _Func_c0cec, _Func_f9080.
+@ Touches: REG_BLDALPHA.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_DragonCloud  @ 0x080e89ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3486,6 +3662,14 @@
 	bx	r0
 .func_end Anim_DragonCloud
 
+@ Sub_e90a8
+@ Battle animation routine, 438 instructions.
+@ State: iwram_1eec, iwram_1e50, ewram_10000.
+@ Calls out to: _Func_b7dd0, _Func_b8228, _Func_b82c4, _Func_bd7dc, _Func_f9080.
+@ Touches: REG_DMA3SAD.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_Annihilation  @ 0x080e90a8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3952,6 +4136,14 @@
 	bx	r0
 .func_end Anim_Annihilation
 
+@ Sub_e94b8
+@ Battle animation routine, 561 instructions.
+@ State: iwram_1eec, ewram_10000.
+@ Calls out to: _Func_b7dd0, _Func_b8228, _Func_bd7dc, _Func_c300, _Func_c344, _Func_f9080.
+@ Touches: REG_BLDALPHA.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_Ragnarok  @ 0x080e94b8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -4561,6 +4753,14 @@
 	bx	r0
 .func_end Anim_Ragnarok
 
+@ Sub_e99c0
+@ Battle animation routine, 779 instructions.
+@ State: iwram_1eec, ewram_10000.
+@ Calls out to: _Func_b8228, _Func_bd7dc, _Func_f9080.
+@ Touches: REG_BLDALPHA.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_TitanBlade  @ 0x080e99c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

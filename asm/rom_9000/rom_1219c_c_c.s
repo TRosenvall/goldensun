@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SelectPartyRowSpacing
+@ Takes no arguments. Picks the row spacing and column count for the current
+@ party formation, dispatching on the leader's resource kind (byte +4 of the
+@ header at [[iwram_1e60]+0x28]) over the same kind values as Func_12b2c --
+@ 3, 4, 6, 8, 0x14, 0x2C, 0x58 -- with the defaults pair loaded from .L13584.
+@ The per-kind constants and the loop that applies them have NOT been analysed
+@ in detail; the dispatch and the default source are verified.
 .thumb_func_start Task_Debug_SpriteTest  @ 0x08012e28
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

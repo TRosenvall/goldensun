@@ -36,6 +36,9 @@
 	bx	r0
 .func_end Func_a1c6c
 
+@ LayOutGridWide
+@ r0 = 1 to start at row 0x38, anything else 0x28. Lays the first 15 nodes out
+@ five to a row at x 0x74 through Func_a1c6c.
 .thumb_func_start Func_80a1cb0  @ 0x080a1cb0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -82,6 +85,22 @@
 	bx	r0
 .func_end Func_80a1cb0
 
+@ ShowMessage
+@ r0 = string id, r1 = -1 to return immediately, r2 = -1 to reuse the window
+@ already at state+0x2C rather than opening one.
+@
+@ Hides the cursor, and unless r2 is -1 measures the string with _Func_187ac
+@ and opens a window of exactly that size at state+0x3C (resizing an existing
+@ one through .gcc2_compiled. rather than reopening it). Renders with _Func_1e7c0
+@ when reusing the shared window and _Func_1e74c otherwise.
+@
+@ When r1 is -1 it sets save bit 0x151 and returns with the box still up --
+@ that is how a screen leaves a message on screen while it does something else.
+@ Otherwise it spins on WaitFrames(1) until A, B or Start is newly pressed, then
+@ tears the window down.
+@
+@ Either way it raises state+0x222 before returning, so the next Func_a1ac0
+@ snaps the cursor instead of gliding it across a screen that has just changed.
 .thumb_func_start Func_80a1d08  @ 0x080a1d08
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -232,6 +251,18 @@
 	bx	r0
 .func_end Func_80a1d08
 
+@ SortAbilityListByCategory
+@ r0 = array of 15 ability halfwords, r1 = category order (0, 1, 2 or other).
+@ Sorts the list in place into the order Func_a1f74 supplies. It copies the
+@ list to a scratch, counts the non-zero entries, then for each category byte
+@ in turn scans the scratch for the entry whose ability record +0x02 equals the
+@ category's low 7 bits, keeping the LOWEST ability id among the matches, moves
+@ it to the output and blanks it in the scratch. Bit 7 of a category byte adds
+@ a second condition: the entry must also have bit 9 set. The 0xFF byte ends
+@ the category list.
+@
+@ A plain selection sort, but the key is the category table rather than the
+@ value, which is why the menus group Psynergy by element rather than by id.
 .thumb_func_start Func_80a1e38  @ 0x080a1e38
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -455,6 +486,23 @@
 	bx	r0
 .func_end Func_a1f74
 
+@ StepGridCursor
+@ r0 = 0 to swap the axes, r1 = total entries, r2 = columns, r3 = column
+@ pointer, arg5 = row pointer. The shared d-pad handler for every grid in this
+@ module. Rows are total / columns rounded up.
+@
+@ The four direction bits are read from iwram_1b04, so this honours auto-repeat.
+@ With r0 non-zero they map the obvious way (0x10 Right, 0x20 Left, 0x40 Up,
+@ 0x80 Down); with r0 zero the pairs are exchanged, which is how a list that
+@ scrolls horizontally reuses the same code.
+@
+@ Any accepted move plays sound 0x6F. Both indices wrap rather than stopping,
+@ and after a vertical move the column is clamped so the cursor cannot land
+@ past the end of a short last row. Func_352c resets the repeat delay on a
+@ vertical move only.
+@
+@ Returns 1 for a vertical move, 0 for a horizontal one and -1 when nothing was
+@ pressed -- so callers use `> 0` to mean "the page changed, redraw".
 .thumb_func_start Func_80a1fd4  @ 0x080a1fd4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -644,6 +692,12 @@
 	bx	r1
 .func_end Func_80a1fd4
 
+@ LoadMenuPalette
+@ r0 = OBJ palette bank. DMA3-copies the 16 colours at 0x50001E0 into that
+@ bank, queues a second eight-halfword copy for the next VBlank, and then
+@ brightens the bank's colour 4 by nine steps on each of red, green and blue,
+@ clamped at 31. That brightened entry is the highlight the cursor and the
+@ selected row are drawn in.
 .thumb_func_start Func_80a2144  @ 0x080a2144
 	push	{r5, lr}
 	mov	r3, #0xa0
@@ -700,6 +754,15 @@
 	bx	r0
 .func_end Func_80a2144
 
+@ DrawPageIndicator
+@ r0 = window, r1 = total entries, r2 = per page, r3 = current page,
+@ arg5 = right-hand column. Draws the segmented page bar along the window's
+@ first interior row when there is more than one page.
+@
+@ Pages are total / perPage rounded up. The bar occupies the columns ending at
+@ arg5: cap tile 0xF128, then one tile per page taken from 0x31 upward, then
+@ cap 0xF129. The segment matching r3 is written in palette bank 2 and the rest
+@ in bank 3, which is the whole highlight.
 .thumb_func_start Func_80a21b0  @ 0x080a21b0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -790,6 +853,12 @@
 	bx	r0
 .func_end Func_80a21b0
 
+@ TintTilemapRect
+@ r0 = window, r1 = x, r2 = y, r3 = width, arg5 = height, arg6 = palette bank.
+@ ORs the bank into bits 12..15 of every tilemap entry in the rectangle, which
+@ recolours what is already drawn without touching the tile indices. Coordinates
+@ are relative to the window's own origin and clipped to the 30x20 map, and the
+@ dirty byte at [iwram_1e8c]+0xEA3 is raised so the next frame uploads it.
 .thumb_func_start Func_80a2268  @ 0x080a2268
 	push	{r5, r6, r7, lr}
 	mov	r6, r3
@@ -865,6 +934,10 @@
 	bx	r0
 .func_end Func_80a2268
 
+@ SyncObjPaletteToBg
+@ Takes no arguments. DMA3-copies OBJ palette bank 0 (0x5000200) down into BG
+@ bank 14 (0x50001C0), plus one further colour. Keeps the text drawn into the
+@ tilemap the same colours as the sprites drawn over it.
 .thumb_func_start Func_80a22f4  @ 0x080a22f4
 	ldr	r3, =REG_DMA3SAD
 	ldr	r0, =0x5000200
@@ -880,6 +953,12 @@
 	bx	lr
 .func_end Func_80a22f4
 
+@ ShowNodeRun
+@ r0 = count, r1 = first index, r2 = unused, r3 = x, arg5 = y.
+@ Hides all 32 nodes at state+0x48 by setting each one's +0x05 to 0x0D, then
+@ walks `count` of them from `first`, placing each at x and a y that steps down
+@ by 0x10, rewinding it with Func_a17c4 and marking it live. Stops early on a
+@ null slot or once the index passes the visible-row count at state+0x218.
 .thumb_func_start Func_80a2324  @ 0x080a2324
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -962,6 +1041,9 @@
 	bx	r0
 .func_end Func_80a2324
 
+@ DrawCoinTotal
+@ r0 = window. Draws the party's money -- the word at ewram_240+0x10 -- as a
+@ seven-digit number at x 8, then label 0xB0B at x 0x40.
 .thumb_func_start Func_80a23c0  @ 0x080a23c0
 	push	{r5, lr}
 	ldr	r3, =gState

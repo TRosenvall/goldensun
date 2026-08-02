@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ LoadCharacterGraphic
+@ r0 = character. Reads the record with _Func_79338 and loads with
+@ LoadPortrait.
 .thumb_func_start Func_8021b80  @ 0x08021b80
 	push	{r5, lr}
 	sub	sp, #0x10

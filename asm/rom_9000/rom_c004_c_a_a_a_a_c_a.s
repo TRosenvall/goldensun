@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SetEntityAnimSpeed
+@ r0=entity, r1=speed. Forwards to Sprite_SetAnimSpeed for the entity's actor (draw
+@ kind 1) or for each actor in the array (kind 2). 0x10 is normal speed.
 .thumb_func_start Actor_SetAnimSpeed  @ 0x0800c344
 	push	{r5, r6, r7, lr}
 	mov	r7, r1
@@ -40,6 +43,9 @@
 	bx	r0
 .func_end Actor_SetAnimSpeed
 
+@ SetEntityAnimationAndSpeed
+@ r0=entity, r1=animation index, r2=speed. Func_c300 and Actor_SetAnimSpeed in one call:
+@ applies Sprite_SetAnim then Sprite_SetAnimSpeed to the entity's actor or actor array.
 .thumb_func_start Actor_SetAnimAndSpeed  @ 0x0800c388
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

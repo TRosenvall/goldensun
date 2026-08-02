@@ -1,5 +1,7 @@
 	.include "macros.inc"
 
+@ GetCounterB
+@ r0 = index. Reads a second save-block counter, same shape as Func_79728.
 .thumb_func_start Func_8079754  @ 0x08079754
 	push	{lr}
 	ldr	r3, =gState
@@ -23,6 +25,8 @@
 	bx	r1
 .func_end Func_8079754
 
+@ ReadScratchRecordField
+@ r0.. = parameters. Reads fields from the record .gcc2_compiled. selects.
 .thumb_func_start Func_807977c  @ 0x0807977c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

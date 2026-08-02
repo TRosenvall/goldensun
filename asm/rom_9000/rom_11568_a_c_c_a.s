@@ -1,6 +1,19 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ LoadMapGraphics
+@ Takes no arguments. Full graphics load for a newly entered map, driven by the
+@ five-entry resource table at [iwram_1e70]+0x11C.
+@   - preserves palette entry 0 across the load: the live value at 0x5000000 is
+@     saved, the decompressed palette (GetFile + DecompressLZ1) is written to
+@     ewram_10000, entry 0 is restored, and 0x70 words are DMAd back to palette
+@     RAM so the backdrop colour never flickers
+@   - decompresses the four tile banks to ewram_38000, ewram_3a000, ewram_3c000
+@     and ewram_3e000
+@   - installs .gcc2_compiled. as the upload hook and resets the window bounds at
+@     +0x100 / +0x102 to 0 and 0x9F
+@   - after a frame, loads resource 0xD5 into ewram_10000, runs Func_113e4,
+@     clears the suspend flag at +0xFC and resumes the Func_1179c task
 .thumb_func_start Func_8011644  @ 0x08011644
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

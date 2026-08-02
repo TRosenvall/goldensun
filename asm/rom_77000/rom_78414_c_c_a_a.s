@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ CountPartyInventory
+@ r0.. = parameters. Sums Func_784d8 across the active party, whose member list
+@ .gcc2_compiled. supplies.
 .thumb_func_start Func_8078500  @ 0x08078500
 	push	{r5, r6, r7, lr}
 	ldr	r3, =gState
@@ -42,6 +45,8 @@
 	bx	r1
 .func_end Func_8078500
 
+@ CountPartyInventoryFiltered
+@ r0.. = parameters. As Func_78500 with a per-slot filter applied.
 .thumb_func_start Func_8078550  @ 0x08078550
 	push	{r5, r6, r7, lr}
 	sub	sp, #0x14
@@ -72,6 +77,10 @@
 	bx	r1
 .func_end Func_8078550
 
+@ FindUsableItem
+@ r0 = combatant id, r1 = item id. Searches the inventory for the item, but only
+@ when bit 4 of the ability record's +0x03 is set. Compares against the id field
+@ with `(slot ^ wanted) & 0x1FF`, so the quantity and equipped bits are ignored.
 .thumb_func_start GiveItemTo  @ 0x08078588
 	push	{r5, r6, lr}
 	mov	r5, r1
@@ -148,6 +157,8 @@
 	bx	r1
 .func_end GiveItemTo
 
+@ FindUsableItemInParty
+@ r0.. = parameters. Runs GiveItemTo across the active party from .gcc2_compiled..
 .thumb_func_start GiveItem  @ 0x08078618
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

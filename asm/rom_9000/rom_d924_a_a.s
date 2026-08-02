@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ CheckEntityCollision
+@ r0=entity being moved, r1=candidate position (vec3, 16.16). Returns -1 if the
+@ candidate overlaps another entity, 0 if it is clear.
+@ Scans all 0x40 slots at [iwram_1e64], skipping inactive slots, the mover
+@ itself, and any entity without bit 0 of +0x59 (collidable) set. Each pair is
+@ tested by Func_eba0 using both radii from +0x20, biased by -2.
 .thumb_func_start Func_800d924  @ 0x0800d924
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -54,6 +60,10 @@
 	bx	r1
 .func_end Func_800d924
 
+@ FindCollidingEntity
+@ r0=entity being moved, r1=candidate position (vec3, 16.16). Identical scan to
+@ Func_d924 but returns the first colliding entity instead of -1, or 0 when the
+@ candidate is clear -- used where the caller needs to know what it hit.
 .thumb_func_start Func_800d98c  @ 0x0800d98c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

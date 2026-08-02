@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ DrawStatPanel
+@ r0.. = parameters. Draws a character's stat panel, mixing text blocks
+@ (Func_1e41c, Func_1e7c0), scratch runs (Func_1e858, Func_1e8b0, UIDrawText)
+@ and numbers (.gcc2_compiled., .gcc2_compiled.), then releases with .gcc2_compiled..
 .thumb_func_start Func_8020198  @ 0x08020198
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -72,6 +76,11 @@
 	bx	r0
 .func_end Func_8020198
 
+@ RunStatusScreen
+@ r0.. = parameters. The character status screen, 671 lines: opens windows with
+@ CreateUIBox, lays out with SetUIColor, draws with the Func_1e41c / DrawSmallText /
+@ Func_1e858 family, and closes with CloseUIBox / .gcc2_compiled..
+@ Traced structurally.
 .thumb_func_start Func_8020244  @ 0x08020244
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -743,6 +752,9 @@
 	bx	r1
 .func_end Func_8020244
 
+@ RunStatusPrompt
+@ r0.. = parameters. Wraps Func_20244 in a prompt flow, gathering the summary
+@ with PrepareSaveHeader and blocking on .gcc2_compiled. a frame at a time.
 .thumb_func_start Menu_Save  @ 0x080207c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -859,6 +871,9 @@
 	bx	r1
 .func_end Menu_Save
 
+@ RunStatusPromptSound
+@ r0.. = parameters. As Menu_Save with the UI sounds routed through Func_56cc /
+@ Func_5a78 / Func_5c68 / .gcc2_compiled..
 .thumb_func_start SystemMsgBox  @ 0x080208e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

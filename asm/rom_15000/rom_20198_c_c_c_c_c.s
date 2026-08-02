@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ LoadIconAssetScratch
+@ r0 = asset id. As .gcc2_compiled. but staging through a Func_4938 scratch released
+@ by free.
 .thumb_func_start Func_8021cb8  @ 0x08021cb8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -93,6 +96,8 @@
 	bx	r0
 .func_end Func_8021cb8
 
+@ LoadShopIcons
+@ r0.. = parameters. Loads a shop's icons through .gcc2_compiled. and Func_21cb8.
 .thumb_func_start Func_8021d88  @ 0x08021d88
 	push	{r5, r6, lr}
 	mov	r6, r8

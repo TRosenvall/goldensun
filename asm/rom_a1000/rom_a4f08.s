@@ -1,6 +1,16 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunItemTransfer
+@ r0 = source, r1 = destination, r2 = 0 to read the giver's count too.
+@ The give-an-item animation. Takes 0x400 bytes under tag 0xE, notes how many of
+@ the item each side already holds through Func_a3d9c (state+0x21B is the giver,
+@ state+0x21A the receiver), reserves an OBJ slot and attaches TWO sprites to it
+@ at y 0x30 and 0x50 -- the item leaving one character and arriving at the other.
+@ It walks them across with per-frame WaitFrames calls, rotating the OBJ's
+@ attribute-2 field to keep the sprites on the right tiles, then rewinds tag 0xE.
+@ Bails out immediately when AllocSpriteSlot has no OBJ slot free (0x60 is the
+@ "none" answer). 306 lines; traced structurally.
 .thumb_func_start Func_80a4f08  @ 0x080a4f08
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -315,6 +325,12 @@
 	bx	r1
 .func_end Func_80a4f08
 
+@ DrawSelectedItemRow
+@ Takes no arguments. Draws the highlighted item across the top of the detail
+@ window: the icon sprite at (0x70, 8) via _Func_1bcd4 into the node at
+@ state+0x21C, the owner's portrait from _Func_77394 at (0x10, 0), and the item
+@ name -- STRING 0x182 + itemId, the base for every item name in the game -- at
+@ (0x10, 8).
 .thumb_func_start Func_80a51d0  @ 0x080a51d0
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001f2c
@@ -367,6 +383,12 @@
 	bx	r0
 .func_end Func_80a51d0
 
+@ ConfirmItemAction
+@ r0 = ability id. Opens a confirmation window at (0xD, 3, 0x11, 0xA), draws the
+@ item name (0x182 + id), the prompt pair 0xAD4 / 0xAD5 and the two choices
+@ 0xB2C / 0xB2D, and runs a two-row cursor: Func_a1ac0 places it at (0x68, 0x56)
+@ and Up and Down move it by 16 pixels with sound 0x6F. Exits on A, B or save
+@ bit 0x150. 132 lines; the loop is traced, the drawing structurally.
 .thumb_func_start Func_80a524c  @ 0x080a524c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -506,6 +528,14 @@
 	bx	r1
 .func_end Func_80a524c
 
+@ RunEquipPreview
+@ Takes no arguments. Equips the item at state+0x176 onto the character at
+@ state+0x21B, but shows the result before committing: Func_a3ef0 builds the
+@ preview, the record is copied to a 0x14C scratch and _Func_78708 applies the
+@ change. A return of -2 or -1 means the equip is impossible -- it plays sound
+@ 0xAF and leaves. Otherwise it draws labels 0xB2C / 0xB2D and 0xAD6, clears the
+@ comparison area with _Func_164d4, and runs a cursor from (0x6E, 0x20) down in
+@ 0x30-pixel steps over the party. 188 lines; traced structurally.
 .thumb_func_start Func_80a5388  @ 0x080a5388
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

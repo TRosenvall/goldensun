@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ SpawnStatusActors
+@ r0 = window, r1 = unused. Creates the four animated actors the status and
+@ Djinn screens show. Any actor already in state+0x224 is destroyed first, then
+@ four are created from the resource table .Laf304 with _Func_bc70 and started
+@ on animation 2. Each gets x 0x10 at state+0x234 + i*2 and y 0x20 at
+@ state+0x244 + i*2. Finally registers Func_ad35c at sort key 0xC80.
 .thumb_func_start Func_80ad274  @ 0x080ad274
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

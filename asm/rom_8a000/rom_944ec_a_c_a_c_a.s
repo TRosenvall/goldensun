@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunBoardingApproach
+@ Takes no arguments. Walks the player to the vehicle's boarding point before
+@ Func_95938 runs. The ~110-instruction body is characterised structurally.
 .thumb_func_start Func_8095c08  @ 0x08095c08
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -221,6 +224,10 @@
 	bx	r0
 .func_end Func_8095c08
 
+@ RunVehicleTravel
+@ r0=destination. Drives the vehicle from its current position to the
+@ destination as a scripted move. The ~120-instruction body is characterised
+@ structurally.
 .thumb_func_start GetMarsDjinni  @ 0x08095dd0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

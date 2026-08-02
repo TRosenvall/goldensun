@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ScaleStat
+@ r0, r1, r2 = value, numerator, denominator. Scales a stat with Func_af0 and
+@ clamps the result.
 .thumb_func_start Func_80782a0  @ 0x080782a0
 	push	{r5, lr}
 	mov	r5, r0
@@ -71,6 +74,9 @@
 	bx	r0
 .func_end Func_80782a0
 
+@ ScaleStatAlt
+@ r0, r1, r2 = value, numerator, denominator. As Func_782a0 with different
+@ clamping bounds.
 .thumb_func_start Func_8078320  @ 0x08078320
 	push	{r5, lr}
 	mov	r5, r0
@@ -142,6 +148,12 @@
 	bx	r0
 .func_end Func_8078320
 
+@ ChangeHp
+@ r0 = combatant id, r1 = SIGNED delta. Adds the delta to current HP at +0x38,
+@ clamps to 0..maxHP (+0x34), recomputes the fraction with Func_7822c, and
+@ returns the new HP.
+@ This is the damage and healing entry point -- rom_b5000 calls it as
+@ _Func_783a4(id, -damage). Reaching 0 is how a combatant goes down.
 .thumb_func_start ModifyHP  @ 0x080783a4
 	push	{r5, r6, r7, lr}
 	mov	r5, r1
@@ -171,6 +183,10 @@
 	bx	r1
 .func_end ModifyHP
 
+@ ChangePp
+@ r0 = combatant id, r1 = SIGNED delta. The ModifyHP counterpart for PP:
+@ current at +0x3A, maximum at +0x36, same clamp and the same Func_7822c
+@ refresh, returning the new PP.
 .thumb_func_start ModifyPP  @ 0x080783dc
 	push	{r5, r6, r7, lr}
 	mov	r5, r1

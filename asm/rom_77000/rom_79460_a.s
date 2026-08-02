@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ RebuildPartyRoster
+@ r0.. = parameters. Rebuilds the active roster and every member's derived
+@ stats, releasing the UI's cached menu buffers through _Func_196c4 so the
+@ screens pick up the change. 209 lines; traced structurally.
 .thumb_func_start InitEnemyUnit  @ 0x08079460
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

@@ -1,6 +1,20 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ InitUiSystem
+@ Takes no arguments. Brings up the whole UI layer:
+@     galloc_ewram(0xF, 0x12FC) allocates the UI block -- this is what iwram_1e8c
+@       points at, and 0x12FC is its size, so every +0xNNN offset in this module
+@       is bounded by it
+@     the block is DMA-cleared, then defaults are written:
+@       +0xEA3 = 1 (dirty mask, see Func_160fc), +0xEA7 = 0x0F, +0x12B6 = 0x63
+@     the first 0x140 bytes are filled with 0xF000F000, the empty-tile pattern
+@     Func_15ef4 builds the node free list
+@     Func_19d0c initialises the menu layer
+@     StartTask registers Func_160fc as the per-frame flush at priority 0x480
+@     Func_173f4 finishes setup
+@ Func_16018 below is the same sequence with one extra field and a different
+@ finisher; use this one for the plain case.
 .thumb_func_start Func_8015f30  @ 0x08015f30
 	push	{r5, lr}
 	ldr	r1, =0x12fc
@@ -49,6 +63,15 @@
 	bx	r0
 .func_end Func_8015f30
 
+@ CopyTileHalf
+@ r0 = source tile index, r1 = destination tile index (both masked to 0x3FF).
+@ DMA3-copies 0x10 bytes -- half a 4bpp tile, four pixel rows -- from
+@ 0x6000010 + src*0x20 to 0x6000000 + dst*0x20, then clears 0x14 bytes at
+@ 0x600000C + dst*0x20 with Func_8d4.
+@ The source is read from +0x10 within its tile and the destination written
+@ from +0x00, so this shifts the copied rows upward by four as it goes.
+@ Called by Func_16018 with (0xF013, 0x80); note 0xF013 is a text control code
+@ and only its low 10 bits survive the mask.
 .thumb_func_start Func_8015fb8  @ 0x08015fb8
 	push	{lr}
 	mov	r12, r3
@@ -86,6 +109,13 @@
 	bx	r1
 .func_end Func_8015fb8
 
+@ InitUiSystemWithMode
+@ r0 = mode, passed on to .gcc2_compiled..
+@ The same bring-up as Func_15f30 -- same 0x12FC allocation under tag 0xF, same
+@ clear, same defaults, same node pool, same Func_160fc registration -- with two
+@ differences: it also sets +0xEA5 = 1, and it finishes with .gcc2_compiled.(mode)
+@ instead of Func_173f4, then seeds a tile through Func_15fb8(0xF013, 0x80).
+@ It does NOT call Func_19d0c, so the menu layer is left uninitialised.
 .thumb_func_start Func_8016018  @ 0x08016018
 	push	{r5, r6, lr}
 	mov	r6, r9
@@ -168,6 +198,16 @@
 	bx	r0
 .func_end Func_8016018
 
+@ FlushUiToVram
+@ Takes no arguments. Registered by Func_15f30/Func_16018 as a per-frame task.
+@ Does nothing while the suspend flag at [iwram_1e8c]+0xEA6 is non-zero.
+@ Otherwise it reads the DIRTY MASK at +0xEA3 and DMA-copies one 0x100-byte
+@ block to 0x6002000 for each set bit, advancing both source and destination by
+@ 0x100 per bit. Bit 0 means "everything": it replaces the mask with 0x3F so all
+@ rows are sent. The mask is shifted right once before the loop, so bits 1..5
+@ are the five individually-dirtyable blocks. The mask is cleared afterwards.
+@ Everything else in this module marks work by setting bits here; this is the
+@ only place that touches VRAM for it.
 .thumb_func_start Func_80160fc  @ 0x080160fc
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e8c
@@ -225,6 +265,15 @@
 	bx	r0
 .func_end Func_80160fc
 
+@ RestoreTilemapRect
+@ r0 = x column, r1 = y row, r2 = width, r3 = height, all in TILES.
+@ Writes the saved background back over a rectangle of the 30x20 tilemap, which
+@ is how a window erases itself when it closes.
+@ The tilemap index is (row * 32 + column) * 2, so the map stride is 32 entries
+@ even though only 30 are visible.
+@ Everything is clamped before use: width and height to 2..0x1E, and the height
+@ is further trimmed so row + height never exceeds 0x14 (20 rows). Callers can
+@ therefore pass sloppy geometry without running off the map.
 .thumb_func_start ClearUIRegion  @ 0x08016178
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -320,6 +369,13 @@
 	bx	r0
 .func_end ClearUIRegion
 
+@ RedrawWindowContents
+@ r0 = window record. Clears the pending count at +0x1A, then repaints from the
+@ record's own geometry (+0x0C, +0x0E, +0x08, +0x0A).
+@ Flag bit 3 of +0x16 selects a background pass through Func_170f8; flag bit 5
+@ then chooses whether the 0xF00-byte text scratch at 0x6002500 is filled with
+@ 0x44444444 (opaque colour 4) or cleared -- the same two fills Func_16738 and
+@ Func_1671c provide as standalone helpers.
 .thumb_func_start Func_8016230  @ 0x08016230
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -393,6 +449,18 @@
 	bx	r0
 .func_end Func_8016230
 
+@ OpenWindow
+@ r0 = x column, r1 = y row, r2 = width, r3 = height, arg5 on the stack = flags.
+@ All geometry in TILES. Returns the window record, or 0 when all eight slots
+@ are taken.
+@ Scans the pool at [iwram_1e8c]+0x500 (8 records, stride 0x24) for a slot that
+@ is free by .gcc2_compiled.'s test -- bit 0 of +0x16 clear AND the signed halfword
+@ at +0x1A zero -- then fills it in:
+@     +0x0C,+0x0E = x, y     +0x08,+0x0A = width, height
+@     +0x00,+0x04 cleared    +0x10 = 1     +0x14 = 0     +0x16 = 1 | flags
+@ Func_173ac resets the global text style so the new window starts clean, then
+@ selected flag bits are copied into +0x16 and Func_16230 paints it.
+@ The standard message box is CreateUIBox(0, 0xF, 0x1E, 6, ...).
 .thumb_func_start CreateUIBox  @ 0x080162d4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ DrawDialScreen
+@ r0.. = parameters. Paints the dial screen: opens windows with CreateUIBox,
+@ fades with Func_1e41c / Func_1e7c0 / Func_1eadc, reserves tiles with
+@ UploadSpriteGFX / AllocSpriteSlot, and DMA3s the graphics in. 395 lines; traced
+@ structurally.
 .thumb_func_start Func_801d108  @ 0x0801d108
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -396,6 +401,11 @@
 	bx	r1
 .func_end Func_801d108
 
+@ RunDialScreen
+@ Takes no arguments. The screen's main loop: reads iwram_1c94 and iwram_1b04
+@ for input, lays out with SetUIColor, re-inits with Func_1d014 / .gcc2_compiled.,
+@ marks regions dirty with Func_164d4, and closes with CloseUIBox.
+@ Also touches iwram_1ca0 and iwram_1d08. 497 lines; traced structurally.
 .thumb_func_start Menu_Settings  @ 0x0801d4cc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -893,6 +903,9 @@
 	bx	r1
 .func_end Menu_Settings
 
+@ RefreshDialParty
+@ Takes no arguments. Re-reads party state through _Func_b08b8 and Func_217a4
+@ into the block at iwram_1ea0.
 .thumb_func_start Func_801d94c  @ 0x0801d94c
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ea0
@@ -913,6 +926,9 @@
 	bx	r0
 .func_end Func_801d94c
 
+@ InitSubScreen
+@ Takes no arguments. Allocates a second screen block with galloc_ewram,
+@ DMA-clears it and registers its task with StartTask.
 .thumb_func_start Func_801d980  @ 0x0801d980
 	push	{lr}
 	mov	r1, #0xc5

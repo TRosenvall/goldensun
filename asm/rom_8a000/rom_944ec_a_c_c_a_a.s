@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunRideModeA
+@ Takes no arguments. Per-frame update for ride mode 0, reading the mode word at
+@ [iwram_1f30]+0x1E. The ~130-instruction body is characterised structurally.
 .thumb_func_start FieldMove_NoTarget  @ 0x08096810
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -142,6 +145,10 @@
 	bx	r0
 .func_end FieldMove_NoTarget
 
+@ RunRideModeB
+@ Takes no arguments. Per-frame update for the next ride mode; same state block
+@ and shape as FieldMove_NoTarget. The ~130-instruction body is characterised
+@ structurally.
 .thumb_func_start FieldMove_Target  @ 0x08096960
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001f30
@@ -288,6 +295,9 @@
 	bx	r0
 .func_end FieldMove_Target
 
+@ CheckRideModeTransition
+@ Takes no arguments. Tests the ride mode at [iwram_1f30]+0x1E against 2 and
+@ starts the transition out of the vehicle when it matches.
 .thumb_func_start Func_8096ab0  @ 0x08096ab0
 	push	{r5, lr}
 	ldr	r3, =iwram_3001f30
@@ -316,6 +326,9 @@
 	bx	r0
 .func_end Func_8096ab0
 
+@ IsRideModeFinal
+@ Takes no arguments. Returns whether the ride mode at [iwram_1f30]+0x1E has
+@ reached 0x0A, the terminal state that ends the sequence.
 .thumb_func_start Func_8096af0  @ 0x08096af0
 	push	{lr}
 	ldr	r3, =iwram_3001f30

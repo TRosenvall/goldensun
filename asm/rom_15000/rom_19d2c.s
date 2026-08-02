@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ LookupMenuEntry
+@ r0 = menu id (0..0x13; anything higher returns -1). Searches the pair table at
+@ Data_367e4 -- {id, value} halfword pairs terminated by an id of -1 -- and
+@ returns the matching value, or -1 when the id is absent.
 .thumb_func_start GetPortrait  @ 0x08019d2c
 	push	{r5, lr}
 	mov	r1, #1
@@ -66,6 +70,10 @@
 	bx	r1
 .func_end GetPortrait
 
+@ OpenMenuById
+@ r0..r3 = placement. Resolves the menu through GetPortrait, and when it exists
+@ opens a window with CreateUIBox and populates it via Func_1ec6c. Does nothing
+@ when the id is unknown.
 .thumb_func_start Func_8019da8  @ 0x08019da8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -145,6 +153,10 @@
 	bx	r1
 .func_end Func_8019da8
 
+@ CloseMenuById
+@ r0 = menu id. Resolves it with GetPortrait and closes the matching window in
+@ the pool at [iwram_1e8c]+0x500 with CloseUIBox, clearing the selection
+@ sentinel at +0x12EE when it was pointing at this menu.
 .thumb_func_start Func_8019e48  @ 0x08019e48
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001e8c

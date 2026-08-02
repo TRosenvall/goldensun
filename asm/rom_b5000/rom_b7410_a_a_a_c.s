@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ PositionCombatant
+@ r0 = combatant id, r1.. = placement. Writes the combatant's field position
+@ through Func_c23c0, reading its record with _Func_77394.
 .thumb_func_start Func_80b7424  @ 0x080b7424
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

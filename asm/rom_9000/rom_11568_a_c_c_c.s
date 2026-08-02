@@ -1,6 +1,23 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ TileAnimationTask
+@ Per-frame task (registered at priority 0xC80 by Func_118d8). Takes no
+@ arguments. Runs 16 independent tile-animation channels stored at
+@ [iwram_1e70]+0x18, stride 0xC:
+@   +0x00 script base   +0x04 script cursor
+@   +0x08 delay counter  +0x0A paused flag
+@ A channel with a null base or a set paused flag is skipped; a non-zero delay
+@ is simply decremented (with the 0xFFFF bias at .L1186c) and the channel waits.
+@ Otherwise halfwords are consumed from the cursor until one costs time:
+@   0xFFFF     -- rewind the cursor to the script base (loop)
+@   0xFExx     -- xx == 0xFF stops the channel; otherwise jump to script word xx
+@   any other  -- a 4-halfword frame record {count, delay, src, dst} that DMAs
+@                 one block of tiles and then reloads the delay
+@ Block geometry depends on the colour depth flag at [iwram_1e70]+0x16: 4bpp
+@ uses 0x20-byte tiles out of ewram_1c000 or 0x6004000, 8bpp uses 0x40-byte
+@ tiles out of ewram_20000 or 0x6008000, with the high source ranges selected
+@ once the tile index passes 0x600 / 0x200 respectively.
 .thumb_func_start Func_801179c  @ 0x0801179c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

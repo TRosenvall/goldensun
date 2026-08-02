@@ -1,6 +1,105 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunRainAnimationImpl -- downpour, then a burst
+@ r0 = action descriptor, r1 = variant (0 = Func_d2458 = animation class 7,
+@ 1 = Func_d244c). 208 frames, one WaitFrames(1) each. Stores the descriptor at
+@ [iwram_1eec]+0x7828 on entry.
+@
+@ Reads as rain: sixteen drops fall repeatedly and splash where they land, a
+@ haze of sparks and particles drifts up, then at frame 0x80 a burst of large
+@ sprites erupts and the screen flashes white before the palette swaps. The
+@ mechanics are traced; the element is inferred from them.
+@
+@ SETUP
+@   REG_BLDALPHA = 0x1010, REG_BG2CNT = 0x784 (256-colour, char base 1, screen
+@     base 7). AnimStart(0).
+@   TWO BLITTERS ARE GENERATED HERE: BuildDraw2DFuncEx(0x2E, 7, 7, 3, 2) and
+@     BuildDraw2DFuncEx(0x2F, 7, 7, 3, 3). Their pointers are then read straight back
+@     out of the allocation table as [iwram_1ef0+0x18] -> sp+0x28 (blitter A)
+@     and [iwram_1ef0+0x1c] -> sp+0x2c (blitter B). See BuildDraw2DFuncEx.
+@   Assets via GetFile, decompressed with DecompressLZ:
+@     0x7d  palette -> 0x5000000, gfx -> [iwram_1eec]+0      (32x64 burst frames,
+@           0x800 bytes each at 8bpp)
+@     0xb4  gfx -> [iwram_1eec]+0x3000                       (the splash frames)
+@     0x73  gfx -> [iwram_1ef4]                              (the ten sizes that
+@           Data_ede48 indexes)
+@     0xc4  variant 1 only: its palette overwrites 0x5000000
+@   [iwram_1eec]+0x7780 = 2, +0x7784 = 0x4B, StartTask registers Task_BlitAnim.
+@   sp+0x14 = horizontal direction, multiplied into every vx below:
+@     variant 0 -> +1; variant 1 -> -1 unless [desc+4] == 1, then +1.
+@   Variant 1 also fixes a spawn origin at sp+0x3c/0x40 = (0x4C or 0x2C, 0x42)
+@     depending on [desc+4]. Func_e396c's result is computed and then discarded.
+@   Clears +0x7098 (64 entries, stride 0x1C) to -1; seeds the 16 drops at
+@     +0x7320 with x = +-((rand & 0x7F) + 0x80) by direction, y = (rand & 7) -
+@     0x48 (above the screen), age = -(rand & 0x1F) so they stagger; frees all
+@     1024 particles at ewram_10000.
+@   Variant 0 only: Func_d6750, WaitFrames(1), then CreateSummonSprite(8, 0x179, 2).
+@
+@ FOUR PARTICLE SETS, all stride 0x1C, all {x, y, -, vx, vy, -, age}
+@   ewram_10000  1024  drifting haze
+@   +0x74E0        24  slow sparks, drawn as a 1x2 dot of colour 32 (.Lee188)
+@   +0x7080        24  fast burst sprites, 32x64, frame = age/4 from asset 0x7d
+@   +0x7320        16  the falling drops
+@
+@ MAIN LOOP -- frame counter 0..0xCF
+@   A or B held and frame in 0x31..0x9F: variant 0 puts the four actors at
+@     +0x77D8/DC/E4/E8 into animations 8/9/10/11, every target takes
+@     Func_d6888(id, 0xA, 5, -1, 0) + _Func_b8228(id, 4), then frame = 0xA0.
+@   every frame     InitMatrixStack(); MatrixSetLook([iwram_1e80], [iwram_1e80]+0xC).
+@   frame 0xB2      .gcc2_compiled.(0x86), handing back to rom_b5000.
+@   frame 0x30      sound 0x8D.      frame 0x80  sound 0x91.
+@   frame 0x80      +0x7784 = 0x32; +0x77A8 = 0x30.
+@   frames 0xA0..0xAF  +0x7780 = 1 and +0x7784 = 0x10101010, becoming
+@                   0x3F3F3F3F past frame 0xAD -- the white-out. Func_e727c(2,2,2).
+@   frame 0xB0      +0x7780 = 3, +0x7784 = ewram_20202 (used as a literal), and
+@                   asset 0xb4's palette is copied over 0x5000000.
+@   frames 0x21..0xAF  spawn into ewram_10000, 1 per frame and 8 per frame once
+@                   past 0x67: x = ((rand & 0xFF) - 0x20) << 16, y = 112.0,
+@                   vx = ((rand & 0x7F) + .Lee184[i&3]) << 9 with .Lee184 =
+@                   {0, 8, 12, 16}, vy = the same magnitude negated << 11.
+@   frames 0x29..0x7F, ODD FRAMES ONLY  spawn one spark into +0x74E0:
+@                   speed = (rand & 0xFF) + 0x80, angle = (rand & 0x1FFF) +
+@                   0x4E20; vx = speed*sin >> 9, vy = speed*cos >> 9.
+@                   Origin (0x4E..0x55, 70.0) for variant 0, sp+0x3c/0x40 for 1.
+@   frames 0x81..0xAF  spawn one burst sprite into +0x7080, same speed/angle but
+@                   angle - 0x4E20 and the velocities shifted >> 6, so eight
+@                   times faster. Origin (68.0, 64.0) or sp+0x3c/0x40.
+@   frames 0x28..0x2F  the camera target sp+0x18/sp+0x1c walks by (-8.0, +16.0)
+@                   per frame; variant 0 feeds it to Func_e6d3c(3, x, y).
+@   variant 0, frame 0x80 / 0xB0  the four actors switch to animations 8,9,10,11
+@                   / 0,1,3,4.
+@   frame 0x8A      every target takes Func_d6888(id, 0xA, 5, -1, 0) and
+@                   _Func_b8228(id, 4).
+@   frames 0..0xAF  draw and step each set:
+@     +0x7080  blit A(dst, [iwram_1eec] + (age>>2)*0x800, x-0x10, y-0x20, 32, 64)
+@              x += vx*dir; y += vy; dies at age 0x18.
+@     +0x74E0  blit B(dst, .Lee188, x, y-1, 1, 2) -- a single dot.
+@              x += vx*dir; y += vy; vy -= 0x400 each frame, so sparks
+@              accelerate upward; dies at age 0x30.
+@     ewram_10000  size n = .Lee18a[i&3] = {1,1,2,3}; blit A centred with the
+@              graphic at [iwram_1ef4] + Data_ede48[n-1].
+@              x += vx*dir; y += vy. Past frame 0x80 vx loses 0x8000 (odd i) or
+@              0x2000 (even i) per frame, killing the drift; before that vy
+@              loses 0x400 so the haze rises. Dies at age 0x100.
+@   frames 0..0xAF  the 16 drops at +0x7320, each in one of two states:
+@     y <= 0x37 (still falling), age 0:  x -= 6*dir, y += 6, and blit A draws
+@              the size-10 sprite (Data_ede48[9], 10x20) at (x-5, y+0x1E).
+@              Crossing y > 0x37 before frame 0x30 plays sound 0x88 -- the
+@              impact. Otherwise age just increments.
+@     y > 0x37 (landed):  age 0..0xB drives a six-frame splash, frame = age/2,
+@              graphic [iwram_1eec] + 0x3000 + .Lee1a0[f], size .Lee18e[f] x
+@              .Lee194[f], drawn at (x - w/2, y + .Lee19a[f]). The three tables
+@              are w = {24,29,30,27,24,16}, h = {23,32,37,49,53,52}, yoff =
+@              {41,32,26,11,4,2} and .Lee1a0 = {0,552,1480,2590,3913,5185} is
+@              exactly their running w*h product -- a splash that grows upward
+@              from a fixed base. age wraps at 0xC and the drop falls again.
+@   end of frame  UpdateScreenShake(8, 8); Func_cd52c(); +0x7824 = 1; WaitFrames(1).
+@
+@ TEARDOWN
+@   StopTask(Task_BlitAnim); Func_2dd8(0x2F) and Func_2dd8(0x2E) release the two
+@   generated blitters. Variant 0 additionally calls Anim_Unsummon(3, x, y) and
+@   destroys the 8 actors at +0x77D8. AnimEnd restores the view.
 .thumb_func_start BaseAnim_Tiamat  @ 0x080d2464
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

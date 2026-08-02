@@ -1,5 +1,7 @@
 	.include "macros.inc"
 
+@ GetItemStatField
+@ r0 = item id, r1 = which. Reads one field from the 0x54-byte item record.
 .thumb_func_start Func_80798b4  @ 0x080798b4
 	push	{lr}
 	mov	r3, #0x94
@@ -22,6 +24,10 @@
 	bx	r1
 .func_end Func_80798b4
 
+@ RecomputeAllStats
+@ r0 = combatant id. Recomputes every derived stat from the base entry and the
+@ equipped items, with Func_af0 and Func_b1c supplying the division and
+@ remainder. 103 lines; traced structurally.
 .thumb_func_start Func_80798e0  @ 0x080798e0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -125,6 +131,10 @@
 	bx	r1
 .func_end Func_80798e0
 
+@ ApplyElementalBonuses
+@ r0 = combatant id. Walks the element table (Func_797fc, .gcc2_compiled.) applying
+@ each element's contribution, gated by save bits through GetFlag.
+@ 156 lines; traced structurally.
 .thumb_func_start Func_80799b0  @ 0x080799b0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

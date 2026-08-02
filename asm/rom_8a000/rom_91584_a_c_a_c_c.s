@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ ResetPlayerMovement
+@ Takes no arguments. Puts the player entity (id at ewram_240+0x1F4) into a
+@ clean standing state for a cutscene: max speed 0x10000 into +0x30,
+@ acceleration 0x8000 into +0x34, both x and z targets set to the 0x80000000
+@ "none" sentinel and their velocities zeroed.
+@ Selects animation 0x0C when the transition-tile flag at ewram_240+0x1F2 is 1,
+@ otherwise the normal idle animation 1.
 .thumb_func_start Func_8091660  @ 0x08091660
 	push	{r5, lr}
 	ldr	r5, =gState
@@ -39,6 +46,17 @@
 	bx	r0
 .func_end Func_8091660
 
+@ BeginCutscene
+@ Takes no arguments. Opens a scripted scene.
+@ Calls _Func_1c428 to take over input, resets the player with Func_91660, and
+@ tears down any live message box (Func_8e118) if one is flagged at +0xCB6.
+@ Then initialises the dialogue state: clears +0xCC2 and +0xCC4, sets the
+@ message delay at +0x1C8 to 0x10, clears the fast-forward flag at +0x1CC,
+@ and sets the three message id slots at +0x1DA/+0x1DC/+0x1DE to their "none"
+@ values (0xFFFF, -1, -1).
+@ Registers Task_Cutscene at priority 0xC80, clears event flag 0x132, and captures
+@ the current player id from ewram_240+0x1F4 into +0x1F4 while clearing +0x1F8.
+@ Func_91750 is the matching close.
 .thumb_func_start CutsceneStart  @ 0x080916b0
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc

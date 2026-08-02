@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ CopyMapRectIndicesU
+@ r0=source x, r1=source y, r2=dest x, r3=dest y, [sp+0x44]=width,
+@ [sp+0x48]=height (both unsigned; a zero or negative extent copies nothing).
+@ Copies the metatile INDEX of each record in the source rectangle over the
+@ destination, preserving the destination's attribute bits:
+@     dst = (dst & 0xFFFFF000) | (src & 0x00000FFF)
+@ Refreshes any covered on-screen block as described above.
 .thumb_func_start CopyMapTiles  @ 0x08010424
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -152,6 +159,12 @@
 	bx	r0
 .func_end CopyMapTiles
 
+@ PlayMapRectAnimation
+@ r0=step list, r1=dest x, r2=dest y. Walks a list of 5-halfword steps
+@ {source x, source y, width, height, delay} terminated by a 0xFFFF source x.
+@ Each step blits its source rectangle to the same fixed destination with
+@ CopyMapTiles and then blocks for `delay` frames via WaitFrames -- so a sequence
+@ of stored rectangles plays as an animation in place on the map.
 .thumb_func_start Func_8010560  @ 0x08010560
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -210,6 +223,13 @@
 	bx	r0
 .func_end Func_8010560
 
+@ CopyMapRectFull
+@ r0=source x, r1=source y, r2=width, r3=height, [sp+0x44]=dest x,
+@ [sp+0x48]=dest y, all signed.
+@ Copies each source record WHOLE -- index and attributes together -- rather
+@ than merging, so the destination inherits collision and priority as well as
+@ appearance. Otherwise identical to CopyMapTiles, including the on-screen
+@ refresh. Note the swapped argument order relative to CopyMapTiles.
 .thumb_func_start Func_80105d4  @ 0x080105d4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -358,6 +378,15 @@
 	bx	r0
 .func_end Func_80105d4
 
+@ CopyMapRectAttributes
+@ r0=attribute source x, r1=attribute source y, r2=width, r3=height,
+@ [sp+0x18]=dest x, [sp+0x1C]=dest y.
+@ The complement of Func_10788: takes the top 20 attribute bits from the source
+@ rectangle and applies them to the destination while leaving the destination's
+@ metatile indices alone:
+@     dst = (dst & 0x00000FFF) | (src & 0xFFFFF000)
+@ Used to repaint collision or priority over unchanged artwork. Unlike the other
+@ three it does not touch VRAM, since only attributes changed.
 .thumb_func_start Func_8010704  @ 0x08010704
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -425,6 +454,12 @@
 	bx	r0
 .func_end Func_8010704
 
+@ CopyMapRectIndices
+@ r0=source x, r1=source y, r2=width, r3=height, [sp+0x44]=dest x,
+@ [sp+0x48]=dest y, all signed.
+@ Same index-only merge as CopyMapTiles -- destination attributes are preserved --
+@ but with signed loop bounds and the argument order of Func_105d4. This is the
+@ variant general map edits go through.
 .thumb_func_start Func_8010788  @ 0x08010788
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -578,6 +613,10 @@
 	bx	r0
 .func_end Func_8010788
 
+@ SetMapLayerBits
+@ r0=value. Replaces bits 9-11 of the map control halfword at [iwram_1e70]+0x14
+@ with bits 9-11 of r0, leaving every other bit untouched. Those three bits
+@ select which map layers are active for the blits above.
 .thumb_func_start Func_80108c4  @ 0x080108c4
 	ldr	r3, =iwram_3001e70
 	ldr	r4, [r3]

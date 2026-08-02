@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ RunImpactAbility
+@ Takes no arguments. The impact/strike field ability: reads caster and target
+@ from [iwram_1f30], plays the strike, and applies the result. The
+@ ~230-instruction body is characterised structurally.
 .thumb_func_start Field_Whirlwind  @ 0x0809a8c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -203,6 +207,9 @@
 	bx	r0
 .func_end Field_Whirlwind
 
+@ PlaceImpactParticles
+@ r0=effect instance base. Distributes the ability's particle instances around
+@ the impact point, spacing them from the offsets at +0x40 of each instance.
 .thumb_func_start Func_809aa98  @ 0x0809aa98
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

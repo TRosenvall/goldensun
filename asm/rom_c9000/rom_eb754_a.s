@@ -1,6 +1,95 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunAnimationClass3 -- ascent, then a descending wave front
+@ r0 = action descriptor. Animation class 3, entered from the twelve-way table
+@ in Anim_Summon (rom_d6504.s).
+@
+@ TWO SEQUENTIAL FRAME LOOPS: 120 frames of rising (0..0x77), then 96 frames of
+@ descent (0..0x5F), with a re-setup between them. Anim_Neptune (class 6, further
+@ down this file) and Anim_Atalanta (class 4) are built the same way.
+@ This one is alone in generating ONE blitter instead of two -- just
+@ BuildDraw2DFuncEx(0x2E,7,7,3,3), read back from iwram_1e50+0xB8 into sp+0x48, and
+@ only tag 0x2E is freed at the end.
+@
+@ SETUP
+@   sp+0x50 = [iwram_1ef0] render buffer, sp+0x4c = [iwram_1eec] state,
+@   sp+0x44 = [iwram_1ef4] sprite scratch.
+@   AnimStart(0); Func_c9048(); REG_BG2CNT = 0x784; palette entries 0 and 1
+@     zeroed; +0x7780 = 0; StartTask registers Task_BlitAnim; AnimTransitionOut(1, 0).
+@   CreateSummonSprite(9, 0x175, 1) spawns nine actors at priority 1; iwram_1ce0+0x10 =
+@     0xF0; Func_d6750; REG_WININ = 0x2737; REG_WIN0H = 0xCA.
+@   After WaitFrames(1): _Func_c08ec(1, 0x3A, 0), AnimTransitionOut(1, 1), and
+@     LoadVFXFile unpacks asset 0x73 into [iwram_1ef4] and 0x95 into [iwram_1eec].
+@   REG_DISPCNT = 0x7741, REG_BG2PA = 0x80, REG_BLDALPHA = 0x100E,
+@     REG_BLDCNT = 0x3F44. iwram_1ad0+4 is SAVED at sp+0x38 -- loop one scrolls
+@     it and the gap between loops puts it back.
+@   64 streaks seeded at +0x7080 with x = (rand & 0x1F) + 0x10, y and vy random,
+@     age = (rand MOD 0x30) + 2 (Func_b50 is the unsigned remainder).
+@   REG_BG2CNT = 0x786.
+@
+@ LOOP ONE -- frames 0..0x77, the ascent
+@   Entered at the bottom test, so the sound checks run before the body.
+@   sounds  frame 0 -> 0x88, 0x1A -> 0x8D, and 0x9A at each of 0x28, 0x48, 0x68.
+@   A or B held AND frame > 0x10 leaves loop one early; before frame 0x10 the
+@     fast-forward is ignored.
+@   frames 0x18..0x37  the scroll rate at sp+0x30 ramps up by 1 per frame,
+@     capped at 0x18.
+@   frame <= 0x87      iwram_1ad0+4 DROPS by that rate each frame and sp+0x3c
+@     accumulates it -- the camera climbs, and sp+0x3c is how far it has come.
+@   frame <= 0x95      THE FIGURE: nine actors submitted through _Func_b168 at
+@     unit scale (Data_edad8) on the layout .Leef56 = {8,40,72,104,8,40,72,104,0}
+@     by .Leef5f = {0,0,0,24,32,32,32,56,64} -- a wide staggered nine-piece
+@     figure about 112 px across. Past frame 0x67 it also slides horizontally.
+@     frames 8..0x1F it drifts by (rate - 8) per frame, and past frame 7 it
+@     sways on sin((frame<<10) - 0x2000) with amplitude 0x20, widening to 0x60
+@     past frame 0x68. Every 32nd frame (phase 8) sets +0x77A8 = 4, a shake.
+@   frames 0..0x1A     an expanding ring: min(8*frame, 0x40) sprites at angle
+@     i<<10 and radius derived from sp+0x3c, so the ring grows with the climb.
+@   frame 0x18         +0x7780 = 2 and +0x7784 = 0x32; frame 0x1C restores
+@     REG_BG2CNT = 0x784.
+@   frames > 0x11      the 48 streaks at +0x7080: size (i MOD 3) + 1, x += 2,
+@     y += vy, and vy *= 48/64 each frame; an entry is re-seeded once x passes
+@     0x80 or its age runs out.
+@   frames > 0x1F      six 0x30x0x20 tiles at y = 0x78 - min((frame-0x20)/2,
+@     0x28), each picking graphic (rand & 3) so the band flickers.
+@   every frame        if +0x77A8 > 0 it decrements and iwram_1ad0+6 jitters to
+@     (rand & 7) + 0x1C, otherwise it sits at 0x20 -- that is the screen shake.
+@   end of frame       +0x7824 = 1; WaitFrames(1).
+@
+@ BETWEEN THE LOOPS
+@   iwram_1ad0+4 is restored from sp+0x38 and Func_d67dc runs, so the camera
+@   snaps back. REG_WIN0H = 0xF0. All nine actors get +0x09 |= 0xC (priority 3,
+@   behind everything). sp+0x74.. is cleared as a per-target "already hit" flag
+@   array and sp+0x84.. filled with 16 random column offsets. 320 particles at
+@   ewram_10000 are freed. +0x7780 = 2, +0x7784 = 0x4B, REG_BG2CNT = 0x784,
+@   REG_BLDALPHA = 0x1010, and sp+0x10 starts at -0x1E0.
+@
+@ LOOP TWO -- frames 0..0x5F, the descent. NO fast-forward check at all: once
+@   the wave starts it always plays to the end.
+@   frames 0..0x17  the figure is drawn again at unit scale (Data_edae0)
+@     descending -- sp+0x1c starts at 0xE0 and drops 0x10 per frame -- wobbling
+@     on sin((frame<<11) + 0x4000), shifted <<6 for the first 8 frames then <<5,
+@     so the wobble decays as it lands.
+@   sounds  frame 8 -> 0x91 (and +0x77A8 = 8), frame 0xB -> 0x91,
+@     frame 0x2E -> 0x89, frame 0x30 -> 0x88.
+@   every frame  THE WAVE FRONT. For each target not yet flagged, Func_e3980
+@     gives its screen position; once that position is below the descending
+@     front sp+0x1c, the target is flagged and 32 particles burst from it into
+@     ewram_10000 + 0x380i, then _Func_b8228(id, 1) and sound 0x86. So targets
+@     are struck one at a time, in the order the front reaches them.
+@   every frame  all 320 particles step and draw as 3x6 sprites.
+@   frames > 0x28  +0x7780 = 0, +0x7784 = 0x4B, and sixteen 0x30x0x20 columns
+@     rise at y = 0x78 - offset[i] - sp+0x10, x = 8i - 8, each picking graphic
+@     (rand & 3). sp+0x10 climbs 0xC per frame, so the curtain sweeps upward.
+@   frame > 0x40   +0x7780 = 2.
+@   frame 0x3A     every target takes Func_d6888(id, 0xE, 5, -1, 0).
+@   end of frame   UpdateScreenShake(8, 8); Func_cd52c(); +0x7824 = 1; WaitFrames(1).
+@
+@ TEARDOWN
+@   .gcc2_compiled.(0x86); the nine actors at +0x77D8 are destroyed;
+@   StopTask(Task_BlitAnim); Func_2dd8(0x2E) frees the single generated blitter;
+@   AnimEnd restores the view.
 .thumb_func_start Anim_Kirin  @ 0x080eb754
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

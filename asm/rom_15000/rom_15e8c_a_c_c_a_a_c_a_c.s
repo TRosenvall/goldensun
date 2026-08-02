@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ MarkTileRectDirty
+@ r0 = window record, r1 = left, r2 = top, r3 = right, arg5 = bottom, all in
+@ PIXELS. Converts to tiles by adding 7 and shifting right 3 -- a round-up to
+@ whole tiles -- then offsets by the window's own origin (+0x0C, +0x0E) and
+@ marks that tile rectangle for the next flush.
+@ Callers that have drawn text at pixel coordinates use this to tell
+@ Func_160fc which rows changed.
 .thumb_func_start Func_80164d4  @ 0x080164d4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

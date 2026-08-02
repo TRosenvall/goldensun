@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunItemActionMenu
+@ r0 = mode. The second-level menu on the item screen -- the Use / Give / Drop
+@ row. It resizes the window at state+0x20 to (0xD, 5, 0x11, 0xC), registers
+@ Func_a3c08 so the party sprites react to the highlight, and loops on the
+@ d-pad, drawing labels 0xB2F, 0xB30 and 0xB31 and delegating the actual work to
+@ Func_a3ef0. Uses Func_a3d9c to show held quantities and Func_a3ce4 to special-
+@ case ids 0xC1..0xC4. Save bit 0x151 gates the message box.
+@ 388 lines; traced structurally.
 .thumb_func_start Func_80a38d0  @ 0x080a38d0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -389,6 +397,13 @@
 	bx	r1
 .func_end Func_80a38d0
 
+@ AnimatePartyUsability
+@ The per-frame task that makes the party sprites react to the highlighted item.
+@ It only does work on every 32nd frame (iwram_1e40 & 0x1F == 0). For each
+@ roster member it asks _Func_7842c whether that character can use the ability
+@ at state+0x178 (masked to 0x1FF) and sets the actor's animation to 3 when
+@ they can and 1 when they cannot -- the nod-versus-idle the item screen shows
+@ while you scroll.
 .thumb_func_start Func_80a3c08  @ 0x080a3c08
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001f2c
@@ -460,6 +475,9 @@
 	bx	r0
 .func_end Func_80a3c08
 
+@ StopUsabilityAnimation
+@ Takes no arguments. Returns every party actor to animation 1 and unregisters
+@ Func_a3c08.
 .thumb_func_start Func_80a3c98  @ 0x080a3c98
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001f2c
@@ -495,6 +513,8 @@
 	bx	r0
 .func_end Func_80a3c98
 
+@ IsSpecialItemId
+@ r0 = id. Returns 1 for 0xC1 through 0xC4 inclusive, 0 otherwise.
 .thumb_func_start Func_80a3ce4  @ 0x080a3ce4
 	push	{lr}
 	cmp	r0, #0xc4

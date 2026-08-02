@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ RunFreezeAbility
+@ Takes no arguments. The freeze field ability: forms the frozen pillar at the
+@ target and leaves it as standing geometry. The ~600-instruction body is
+@ characterised structurally.
 .thumb_func_start Field_Force  @ 0x08098cd8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

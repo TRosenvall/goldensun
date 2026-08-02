@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SetPlayerObjectFields
+@ r0 unused, r1, r2 = values. Writes both values into the map object record
+@ under the player, or does nothing if there is none.
 .thumb_func_start Func_808edac  @ 0x0808edac
 	push	{r5, r6, r7, lr}
 	mov	r6, r1
@@ -50,6 +53,9 @@
 	bx	r0
 .func_end Func_808edac
 
+@ UpdateObjectAnimation
+@ Takes no arguments. Advances the animation state of the spawned map objects.
+@ The ~90-instruction body is characterised structurally.
 .thumb_func_start Func_808ee0c  @ 0x0808ee0c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -150,6 +156,9 @@
 	bx	r0
 .func_end Func_808ee0c
 
+@ StepObjectCounter
+@ r0=object. Advances the counter at +0x28, wrapping at 0x1FE -- the phase for
+@ an object's idle cycle.
 .thumb_func_start Func_808eee4  @ 0x0808eee4
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -214,6 +223,9 @@
 	bx	r0
 .func_end Func_808eee4
 
+@ RebuildObjectSlots
+@ Takes no arguments. Re-binds the map objects to scene slots after the slot
+@ table has changed. The ~150-instruction body is characterised structurally.
 .thumb_func_start Func_808ef70  @ 0x0808ef70
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

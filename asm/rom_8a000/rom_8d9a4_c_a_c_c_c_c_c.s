@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ IsObjectNearPlayer
+@ r0=object entity. Returns whether the object is close enough to the player
+@ (ewram_240+0x1F4) to be considered active.
 .thumb_func_start Func_808f0d8  @ 0x0808f0d8
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -48,6 +51,9 @@
 	bx	r0
 .func_end Func_808f0d8
 
+@ SetObjectActiveState
+@ r0=object, r1=state. Marks the object active or dormant relative to the
+@ player, spawning or releasing its entity to match.
 .thumb_func_start Func_808f140  @ 0x0808f140
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -106,6 +112,9 @@
 	bx	r0
 .func_end Func_808f140
 
+@ UpdateObjectProximity
+@ Takes no arguments. Runs Func_8f0d8 across the map objects and applies the
+@ resulting active/dormant transitions.
 .thumb_func_start Func_808f1c0  @ 0x0808f1c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -200,6 +209,9 @@
 	bx	r0
 .func_end Func_808f1c0
 
+@ RandomiseObjectPhase
+@ r0=object. Gives the object a random starting phase from Func_4458 (scaled by
+@ 0x64) so identical objects do not animate in lockstep.
 .thumb_func_start Func_808f28c  @ 0x0808f28c
 	push	{r5, r6, lr}
 	sub	sp, #0xc

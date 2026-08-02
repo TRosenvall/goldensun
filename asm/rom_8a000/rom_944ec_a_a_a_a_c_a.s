@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ BuildDistortionTable
+@ Takes no arguments. Recomputes the per-scanline offset table the HBlank
+@ transfer consumes, sampling a wave across the visible rows. The
+@ ~180-instruction body is characterised structurally.
 .thumb_func_start Func_8094544  @ 0x08094544
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -240,6 +244,9 @@
 	bx	r0
 .func_end Func_8094544
 
+@ SetDistortionParameters
+@ r0=amplitude, r1=period. Writes the wave parameters at +0xF20 of the
+@ distortion state that Func_94544 samples.
 .thumb_func_start Func_8094730  @ 0x08094730
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

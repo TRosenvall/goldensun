@@ -1,6 +1,8 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SetCombatantSlot
+@ r0.. = parameters. Writes a combatant's slot assignment through Func_c23c0.
 .thumb_func_start Func_80b6cdc  @ 0x080b6cdc
 	push	{r5, lr}
 	bl	Func_80c23c0
@@ -45,6 +47,10 @@
 	bx	r1
 .func_end Func_80b6cdc
 
+@ AssignBattlePositions
+@ r0.. = parameters. Places every combatant on its side of the field, reading
+@ records with _Func_77394 and writing slots through .gcc2_compiled. / Func_c23a0 /
+@ Func_c23c0. PreloadSpriteGFX supplies the geometry.
 .thumb_func_start Func_80b6d30  @ 0x080b6d30
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -171,6 +177,8 @@
 	bx	r1
 .func_end Func_80b6d30
 
+@ ComputeSlotPosition
+@ r0 = slot. Returns the world position for a battle slot via PreloadSpriteGFX.
 .thumb_func_start Func_80b6e30  @ 0x080b6e30
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

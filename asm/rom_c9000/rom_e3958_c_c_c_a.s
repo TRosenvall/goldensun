@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ PositionOverTarget
+@ r0=record. Positions the record over its combatant using the view state at
+@ [iwram_1e80], so a number or icon tracks the sprite it belongs to.
 .thumb_func_start Func_80e3994  @ 0x080e3994
 	push	{r5, r6, lr}
 	mov	r6, r10

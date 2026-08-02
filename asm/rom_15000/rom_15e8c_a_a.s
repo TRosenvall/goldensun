@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ AllocNode
+@ Takes no arguments. Pops the head off the free list of display nodes and
+@ returns it (0 when exhausted). The list head is [iwram_1e8c]+0xD98 and the
+@ tail cache is +0xD9C; popping the last node moves the tail back to the head
+@ slot. The popped node's link word is cleared.
 .thumb_func_start Func_8015e8c  @ 0x08015e8c
 	push	{lr}
 	ldr	r3, =iwram_3001e8c

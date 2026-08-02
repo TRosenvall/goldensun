@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ GetSlotSpriteId
+@ r0=slot (masked to 12 bits). Returns the sprite resource id of that slot's
+@ actor -- read from the first part at actor+0x28 -- or -1 when the slot is
+@ empty or not draw kind 1. The inverse of Func_92be0.
 .thumb_func_start Func_8092ba8  @ 0x08092ba8
 	push	{lr}
 	ldr	r3, =iwram_3001ebc
@@ -28,6 +32,11 @@
 	bx	r1
 .func_end Func_8092ba8
 
+@ FindSlotBySpriteId
+@ r0=sprite resource id. Returns the slot holding an actor whose first part has
+@ that id, or -1 if none does.
+@ Checks slot 8 first as a special case, then scans 9..0x41. Since only the
+@ streamed scenery range is searched, party slots 0-7 are never returned.
 .thumb_func_start Func_8092be0  @ 0x08092be0
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc
@@ -79,6 +88,16 @@
 	bx	r1
 .func_end Func_8092be0
 
+@ OpenMessageBoxForSlot
+@ r0=packed speaker: slot in the low 12 bits, style flags in bits 12-15.
+@ Opens a message box for the line at iwram_1ebc+0x1D8, positioned against that
+@ slot's on-screen sprite, and returns the box handle.
+@ Reads the window metrics from iwram_1e8c and resolves the speaker's sprite id
+@ with Func_92ba8 so the box can carry the right portrait. The box is placed
+@ below the speaker when there is room and flipped above it otherwise, then
+@ clamped into the visible area.
+@ The ~420-instruction body is characterised structurally; the state block, the
+@ message-id source and the flag layout are verified.
 .thumb_func_start Func_8092c40  @ 0x08092c40
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -506,6 +525,14 @@
 	bx	r1
 .func_end Func_8092c40
 
+@ ShowMessageAndWait
+@ r0=speaker slot, r1=style flags. Opens the box with Func_92c40, lets a frame
+@ pass, then resolves the speaker for the portrait: slots 0-7 whose Func_8d394
+@ lookup succeeds report themselves, anything else falls back to the sprite id
+@ from Func_92ba8. That id goes to _Func_19e48.
+@ Blocks until _Func_17394 reports the box closed, polling once per frame with a
+@ 0x258 (600) frame cap, and closes any leftover prompt with _Func_19a54.
+@ Returns immediately after opening if the fast-forward flag at +0x1CC is set.
 .thumb_func_start ActorMessage  @ 0x08092f84
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

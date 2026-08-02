@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ MarkRecordsInBounds
+@ r0=array of 0x18-byte records, terminated by -1 in the first halfword.
+@ Clears event flag 0x164 and sets 0x165, then tags every record whose halfword
+@ at +0x02 is still 0: records whose position (+0x08 x, +0x10 z) lies inside the
+@ map bounds at [iwram_1e70]+0xEC..+0xF8 get 0x164, those outside get 0x165.
+@ Lets a later pass distinguish on-map from off-map entries by flag alone.
 .thumb_func_start Func_808b868  @ 0x0808b868
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e70
@@ -64,6 +70,15 @@
 	bx	r0
 .func_end Func_808b868
 
+@ DespawnDistantSceneEntities
+@ Takes no arguments. Culls scene slots 8..0x41 against a window around the
+@ player entity at +0x1E0: x within -0xA00000..+0xA00000 and z within
+@ -0xC80000..+0x640000 of the player, i.e. a box wider than it is deep and
+@ offset backwards.
+@ An entity outside the window has its draw kind at +0x54 forced to 1 and bit 1
+@ of actor byte +0x1D cleared -- so _Func_c0f4 releases exactly one actor and
+@ its tiles -- then is destroyed and its slot zeroed. Entities sitting at the
+@ origin (both x and z zero) are treated as unplaced and skipped.
 .thumb_func_start Func_808b8e8  @ 0x0808b8e8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -146,6 +161,13 @@
 	bx	r0
 .func_end Func_808b8e8
 
+@ DespawnAllSceneEntities
+@ Takes no arguments. Unconditional version of Func_8b8e8: destroys every
+@ occupant of slots 8..0x41 with the same draw-kind and actor-flag fixup, then
+@ clears the scene header words at +0x04, +0x08 and +0x0C.
+@ If +0x04 held a record, it is re-registered afterwards into a freshly
+@ allocated slot via Func_8b824 and LoadMapActors, so the one persistent entry
+@ survives the wipe.
 .thumb_func_start Func_808b98c  @ 0x0808b98c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

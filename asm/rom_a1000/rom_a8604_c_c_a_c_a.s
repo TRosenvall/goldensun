@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ PlaceEquippedIcons
+@ r0 = the fifteen-entry list. Parks every sprite off screen with Func_a9cbc,
+@ then for each EQUIPPED entry (bit 9 set) moves the matching node to x 0xD8 and
+@ the y its ability kind selects -- 1 to 0x20, 2 to 0x50, 3 to 0x40, 4 to 0x30 --
+@ so the icons line up with the labels Func_a9aec wrote.
 .thumb_func_start Func_80a9c18  @ 0x080a9c18
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -92,6 +97,10 @@
 	bx	r0
 .func_end Func_80a9c18
 
+@ ParkListSprites
+@ Takes no arguments. Moves all 32 nodes at state+0x48 to (0xF8, 0xA8) -- off
+@ the visible area -- and rewinds each. Hiding by position rather than by the
+@ +0x05 state byte, which is what .gcc2_compiled. does.
 .thumb_func_start Func_80a9cbc  @ 0x080a9cbc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -123,6 +132,9 @@
 	bx	r0
 .func_end Func_80a9cbc
 
+@ CreateElementSprites
+@ r0 = window. Fills the eight node slots at state+0xC8 with panel sprites from
+@ _Func_1eb64 at priority 0xA8, tile source 0xF8. Returns 1.
 .thumb_func_start Func_80a9cf8  @ 0x080a9cf8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -157,6 +169,10 @@
 	bx	r1
 .func_end Func_80a9cf8
 
+@ PlaceElementIcons
+@ r0 = five flag bytes. Parks the eight state+0xC8 sprites with Func_a9d84, then
+@ for each set flag moves one to x 8 with y stepping down from 0x58 by 0x10 and
+@ sort order 0xF0. Only as many icons appear as the character has affinities.
 .thumb_func_start Func_80a9d3c  @ 0x080a9d3c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -194,6 +210,9 @@
 	bx	r0
 .func_end Func_80a9d3c
 
+@ ParkElementSprites
+@ Takes no arguments. Moves the five state+0xC8 sprites to (0xF8, 0xA8) with
+@ sort order 0xF0 and rewinds each -- the Func_a9cbc of the element icons.
 .thumb_func_start Func_80a9d84  @ 0x080a9d84
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -227,6 +246,11 @@
 	bx	r0
 .func_end Func_80a9d84
 
+@ LoadElementIcons
+@ r0 = five flag bytes. For each set flag, loads panel set 8 into the matching
+@ state+0xC8 node with the graphic id its slot selects: 0x10, 1, 2, 0x0F, 7 for
+@ slots 0 through 4. Slots past 4 would take 0, but the loop stops at 4.
+@ Returns 1.
 .thumb_func_start Func_80a9dc4  @ 0x080a9dc4
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001f2c

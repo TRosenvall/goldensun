@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ PlayNumberAnimation
+@ r0=action descriptor. A second entry point alongside Anim_Summon, allocating
+@ its own working buffers (0x60E under tag 0x29, 0x782C under 0x27) and playing
+@ the damage/heal number sequence. Body characterised structurally.
 .thumb_func_start Anim_Attack  @ 0x080e3a3c
 	push	{r5, lr}
 	mov	r5, r0
@@ -43,6 +47,9 @@
 	bx	r0
 .func_end Anim_Attack
 
+@ RunNumberSequence
+@ r0=descriptor. Drives the number animation frame by frame -- spawn, rise,
+@ fade -- using the steppers above. Body characterised structurally.
 .thumb_func_start BaseAnim_Attack  @ 0x080e3aa0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -751,6 +758,9 @@
 	bx	r0
 .func_end BaseAnim_Attack
 
+@ RunNumberSequenceAlt
+@ r0=descriptor. Second variant of the number sequence, for the other outcome
+@ class. Body characterised structurally.
 .thumb_func_start Anim_CriticalHit  @ 0x080e40a4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1471,6 +1481,10 @@
 	bx	r0
 .func_end Anim_CriticalHit
 
+@ BuildNumberGraphics
+@ r0=descriptor. Renders the digits into a 0x80-byte stack buffer and uploads
+@ them to palette/OBJ memory (base 0x5000000). Body characterised
+@ structurally.
 .thumb_func_start Func_80e46f0  @ 0x080e46f0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

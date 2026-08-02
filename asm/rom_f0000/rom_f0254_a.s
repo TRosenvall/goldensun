@@ -1,6 +1,15 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ClearBackgroundPage
+@ r0 = 0 for the first page, non-zero for the second. DMA3-fills one of the two
+@ image pages and its palette with a constant:
+@
+@     page 0   0x6000000, 0x1E00 words of 0x01010101, palette 0x5000000
+@     page 1   0x6008000, 0x1E00 words of 0x81818181, palette 0x5000100
+@
+@ The 0x8500xxxx control words are fixed-source fills, so the single stack word
+@ supplies the value for the whole transfer.
 .thumb_func_start Func_80f0254  @ 0x080f0254
 	push	{r5, lr}
 	sub	sp, #4
@@ -38,6 +47,17 @@
 	bx	r0
 .func_end Func_80f0254
 
+@ LoadBackgroundImage
+@ r0 = 0 to just clear, otherwise the asset id; r1 = which page.
+@ Resolves the asset with GetFile, DMA3-copies Func_f0024 into a 0x230-byte
+@ scratch under tag 0x31, calls it there to decompress straight into the page's
+@ VRAM, and rewinds the tag. The per-word bias handed to the decoder is 0 for
+@ page 0 and 0x80808080 for page 1, which is what puts the two pages in
+@ different halves of the palette.
+@
+@ The palette is not written directly. Instead, with interrupts masked, an entry
+@ is appended to the transfer queue at ewram_2090 -- source, destination,
+@ 0x84000040 -- capped at 32 pending entries, for the VBlank handler to run.
 .thumb_func_start LoadGS1CreditsBG  @ 0x080f02b0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -123,6 +143,16 @@
 	bx	r0
 .func_end LoadGS1CreditsBG
 
+@ BuildWindowTable
+@ r0 = destination. Writes a 0x200-entry halfword-pair table:
+@
+@     0x20 words of 0x01FF01FF     the top margin
+@     0xF0 words counting up by 0x00020002 from 0x00010000
+@     0x30 words of 0x01FF01FF     the bottom margin
+@     0xC0 zero words
+@
+@ Each word is two halfwords, so the middle run is a per-scanline ramp. Called
+@ twice, for 0x6007800 and 0x600F800 -- the tail of each background page.
 .thumb_func_start Func_80f037c  @ 0x080f037c
 	push	{lr}
 	mov	r2, #0x80

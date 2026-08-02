@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ EncounterTransitionTask
+@ Per-frame task registered during an encounter transition. Advances the wipe:
+@ steps the phase counter at [iwram_1ea8]+0x294, recomputes the per-scanline
+@ distortion and rewrites the palette and blend registers each frame. The
+@ ~220-instruction body is characterised structurally.
 .thumb_func_start Task_08097644  @ 0x08097644
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -256,6 +261,10 @@
 	bx	r0
 .func_end Task_08097644
 
+@ EncounterFlashTask
+@ Per-frame task driving the screen flash that precedes the wipe. Runs only
+@ while the phase byte at [iwram_1ea8]+0x294 is zero and the enable byte at
+@ +0x28A is set; otherwise it retires itself.
 .thumb_func_start Func_8097868  @ 0x08097868
 	push	{lr}
 	ldr	r3, =iwram_3001ea8
@@ -294,6 +303,10 @@
 	bx	r0
 .func_end Func_8097868
 
+@ ComputeEncounterWipeGeometry
+@ Takes no arguments. Derives the wipe's centre and radii from the angle stored
+@ at [iwram_1ea8]+0x28E, writing the three results to the caller's stack frame
+@ for Task_08097644 to consume.
 .thumb_func_start Func_80978c4  @ 0x080978c4
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ea8

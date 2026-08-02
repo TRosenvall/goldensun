@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ RunItemDetailLoop
+@ Takes no arguments. Shows the highlighted item's detail line -- STRING 0x53A +
+@ (id & 0x1FF) -- and runs the cursor over the party with Func_a1ac0, redrawing
+@ the preview through Func_a112c as it moves. Exits on save bit 0x150 or 0x151.
+@ 232 lines; traced structurally.
 .thumb_func_start Func_80a63e4  @ 0x080a63e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -239,6 +244,14 @@
 	bx	r1
 .func_end Func_80a63e4
 
+@ AssignFieldShortcut
+@ r0 = party index, r1 = item id, r2 = which slot.
+@ Packs `(index << 10) | (id & 0x3FFF)` and stores it at ewram_240+0x220 for
+@ r2 == 0 and ewram_240+0x222 otherwise. Returns 1.
+@
+@ Those two halfwords are exactly the pair rom_8a000's _Func_91858 revalidates
+@ whenever a menu closes, and rom_a1000's screen teardowns all call it -- which
+@ is how a shortcut pointing at an item you no longer own gets cleared.
 .thumb_func_start Func_80a65e4  @ 0x080a65e4
 	push	{lr}
 	ldr	r3, =0x3fff
@@ -262,6 +275,13 @@
 	bx	r1
 .func_end Func_80a65e4
 
+@ DrawShortcutRow
+@ r0 = window. Draws the current field shortcuts. The heading is string 0xAE4
+@ when both slots are occupied and 0xAE0 when either is empty. For each occupied
+@ slot it prints the item name at 0x333 + (id & 0x3FF), registers the icon
+@ through _Func_19908, adds label 0xAE7, and -- when the name is short enough
+@ (the measured width from _Func_187ac is 10 or less) -- the owner's portrait
+@ from _Func_77394(id >> 10) at x 0x50. 162 lines; traced structurally.
 .thumb_func_start Func_80a6614  @ 0x080a6614
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -431,6 +451,12 @@
 	bx	r1
 .func_end Func_80a6614
 
+@ BuildItemScreenLayout
+@ Takes no arguments. Builds the item screen's furniture: Func_a1814 and
+@ Func_a1870 for the party strip, a (0, 5, 0x1E, 0xF) window into state+0x20,
+@ a cursor sprite at state+0x44, the menu entries via _Func_1ec6c, and sixteen
+@ panel sprites at y 0x60 stepping 0x10 -- the first eight at priority 8 and the
+@ rest at 0x18, so the second row sorts behind the first.
 .thumb_func_start Func_80a6794  @ 0x080a6794
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

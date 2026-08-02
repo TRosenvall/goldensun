@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Playceb54Impl
+@ r0=action descriptor, r1=variant. The shared implementation behind the
+@ 3 thin wrappers in this file, which exist so the animation table can hold
+@ one address per variant:
+@     0=Func_ceb30 1=Func_ceb3c 2=Func_ceb48
+@ Works from the battle state at [iwram_1eec]; the variant selects timing,
+@ colours and which arm of the sequence runs. Body characterised
+@ structurally -- see the wrappers for the variant numbering.
 .thumb_func_start BaseAnim_HauntAttack  @ 0x080ceb54
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -472,6 +480,9 @@
 	bx	r0
 .func_end BaseAnim_HauntAttack
 
+@ SelectEffectStyle
+@ r0=selector, r1=parameter. Dispatches on r0 to choose the effect style,
+@ defaulting to 2 when r0 is 0. Body characterised structurally.
 .thumb_func_start BuildDraw2DFuncs  @ 0x080cef64
 	push	{r5, r6, lr}
 	sub	sp, #4

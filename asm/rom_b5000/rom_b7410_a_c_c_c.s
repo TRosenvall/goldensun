@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SubmitCombatantAt
+@ r0 = combatant id, r1.. = position. Submits the combatant's sprite at an
+@ explicit position through DeleteActor.
 .thumb_func_start Func_80b7e7c  @ 0x080b7e7c
 	push	{r5, r6, r7, lr}
 	mov	r6, #0

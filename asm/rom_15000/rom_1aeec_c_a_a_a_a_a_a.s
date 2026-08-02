@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ ReserveScreenTiles
+@ r0.. = parameters. Reserves OBJ tile space for the screen with UploadSpriteGFX and
+@ AllocSpriteSlot.
 .thumb_func_start Func_801c0dc  @ 0x0801c0dc
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -61,6 +64,8 @@
 	bx	r0
 .func_end Func_801c0dc
 
+@ ReleaseScreenTiles
+@ r0 = handle. Releases a tile reservation with .gcc2_compiled..
 .thumb_func_start Func_801c154  @ 0x0801c154
 	push	{lr}
 	ldr	r3, =0x1ff

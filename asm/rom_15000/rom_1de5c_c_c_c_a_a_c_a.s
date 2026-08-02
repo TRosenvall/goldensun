@@ -1,6 +1,8 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ AttachPortraitSpriteIndexed
+@ r0 = index, r1.. = placement. As .gcc2_compiled. but loading through LoadOldUIIcon.
 .thumb_func_start Func_801ebd8  @ 0x0801ebd8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

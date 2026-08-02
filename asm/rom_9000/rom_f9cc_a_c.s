@@ -1,6 +1,15 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ DecodeMetatileTable
+@ r0=byte count. Expands the packed metatile definition table from ewram_10002
+@ into ewram_20000, producing (count-1)/2 halfwords. The encoding is chosen by
+@ the mode byte at ewram_10001:
+@   0 -- plain halfword copy
+@   1 -- two separate byte planes (high plane first, low plane at +count/2)
+@        recombined and XOR-delta decoded against the previous halfword
+@   2 -- halfword copy with the same running XOR delta
+@ Any other mode leaves the destination untouched.
 .thumb_func_start DecodeMetatileset  @ 0x0800f9f4
 	push	{r5, r6, r7, lr}
 	sub	r3, r0, #1
@@ -82,6 +91,11 @@
 	bx	r0
 .func_end DecodeMetatileset
 
+@ AssignPlaceholderMetatiles
+@ Takes no arguments. Sweeps all 0x4000 map records at ewram_10000 and gives
+@ every entry whose metatile index reads 0xFFF -- the "allocate me" placeholder
+@ -- the next value from a running counter, rewriting the index while preserving
+@ the record's attribute bits. Mirrors the first loop of Func_a37c.
 .thumb_func_start Func_800fa8c  @ 0x0800fa8c
 	push	{r5, r6, lr}
 	mov	r4, #0x80
@@ -113,6 +127,13 @@
 	bx	r0
 .func_end Func_800fa8c
 
+@ BuildMetatileLookup
+@ Takes no arguments. Expands the map's metatile definitions into the 2x2 tile
+@ lookup at ewram_18000 that the blits in rom_10424.s index.
+@ Allocates a 0x8000-byte scratch buffer, runs Func_1af8 over ewram_10000 into
+@ it, then allocates 0x9C bytes, DMA-copies Func_a37c (rom_92b8.s) there and
+@ calls the RAM copy so the de-interleave runs out of RAM. Both buffers are
+@ released with free before returning.
 .thumb_func_start UnpackTilemap  @ 0x0800fac8
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -154,6 +175,22 @@
 	bx	r0
 .func_end UnpackTilemap
 
+@ LoadMap
+@ r0=map index. The full map load. Blanks BG1-BG3 in DISPCNT (mask 0xC1FF) and
+@ calls Func_3bb4(0) before touching anything, then allocates and zeroes the
+@ 0x194-byte map state (tag 8) that iwram_1e70 points at.
+@ The map archive is the entry at .L13784 + index * 0xC; its first halfword plus
+@ 0x128 is the resource id decompressed by GetFile. Sub-resources are read
+@ from offsets inside that archive:
+@   +0x24 -> ewram_10001, then decoded by DecodeMetatileset
+@   +0x28 -> ewram_2c000 (tile material / height table, see rom_11ce0.s)
+@   +0x2C -> ewram_10000 (the map records), then expanded by UnpackTilemap
+@   +0x30 -> ewram_2d000 tile animations, handed to Func_118d8 (optional)
+@   +0x34 -> ewram_2de00 blend animation, handed to Func_11a84 (optional)
+@   +0x38 -> stored at state+0x10
+@ Header bytes 0-3 become the map bounds at +0xEC..+0xF8 (each << 19, i.e.
+@ 8-pixel units in 16.16), the camera at +0xE4/+0xE8 is zeroed, and bytes 4-6
+@ become the flags at +0x100, +0x101 and +0x102.
 .thumb_func_start LoadMapData  @ 0x0800fb38
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

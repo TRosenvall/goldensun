@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ AttachIconGraphic
+@ r0.. = parameters. Loads with .gcc2_compiled., reserves with AllocSpriteSlot, attaches
+@ the node with Func_1eadc.
 .thumb_func_start Func_8021620  @ 0x08021620
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -73,6 +76,8 @@
 	bx	r1
 .func_end Func_8021620
 
+@ ComputeIconSlot
+@ r0.. = parameters. Returns an icon slot index; no calls out.
 .thumb_func_start Func_80216b4  @ 0x080216b4
 	push	{r5, lr}
 	ldr	r4, =iwram_3001800
@@ -98,6 +103,9 @@
 	bx	r0
 .func_end Func_80216b4
 
+@ LoadNamedIcon
+@ r0 = id. Fetches with GetFile, allocates with galloc_ewram, unpacks with
+@ DecompressLZ1, reserves with UploadSpriteGFX, and consults .gcc2_compiled..
 .thumb_func_start StartMenu_AddOption  @ 0x080216e8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

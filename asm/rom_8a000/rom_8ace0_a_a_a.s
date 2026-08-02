@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ ApplyMapEntry
+@ Takes no arguments. Runs after a map load to place the player at the entrance
+@ recorded in ewram_240+0x1C0: resolves the entrance record, writes the spawn
+@ position and facing into the scene block, and applies any entry script the
+@ entrance carries. The ~110-instruction body is characterised structurally.
 .thumb_func_start InitEncounters  @ 0x0808ace0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -135,6 +140,11 @@
 	bx	r0
 .func_end InitEncounters
 
+@ GetSurfaceTypeAtPosition
+@ r0=position vec3. Returns the surface type index under that point.
+@ Calls _Func_122c8 (the rom_9000 footstep lookup, which combines the terrain
+@ material with the tile's type bits) and maps its result through the table at
+@ .L9d7a8 to the smaller set of surface classes this module uses for sounds.
 .thumb_func_start Func_808adf0  @ 0x0808adf0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -202,6 +212,12 @@
 	bx	r1
 .func_end Func_808adf0
 
+@ PlaySurfaceStepEffect
+@ r0=surface type, r1=variant. Plays the footstep sound and any splash/dust
+@ effect for that surface. Event flag 0x15F gates the whole thing, so the
+@ effects can be suppressed during cutscenes.
+@ The ~110-instruction body dispatches per surface type; the flag gate and the
+@ argument roles are verified, the individual arms are not enumerated.
 .thumb_func_start Func_808ae74  @ 0x0808ae74
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

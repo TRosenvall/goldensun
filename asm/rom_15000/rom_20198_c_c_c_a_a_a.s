@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ MeasureStatusText
+@ r0.. = parameters. Measures a status field's text with Func_18850 so it can be
+@ right-aligned.
 .thumb_func_start Func_8020b14  @ 0x08020b14
 	push	{lr}
 	ldr	r3, =iwram_3001e8c
@@ -48,6 +51,8 @@
 	bx	r1
 .func_end Func_8020b14
 
+@ DrawStatusField
+@ r0.. = parameters. Draws one status field through Func_1e858.
 .thumb_func_start Func_8020b64  @ 0x08020b64
 	push	{r5, r6, lr}
 	ldrb	r2, [r1]
@@ -112,6 +117,10 @@
 	bx	r0
 .func_end Func_8020b64
 
+@ RunEquipScreen
+@ r0.. = parameters. The equipment screen, 563 lines: menus through GetPortrait /
+@ Func_19da8 / Func_19e48, windows through CreateUIBox / CloseUIBox / .gcc2_compiled.,
+@ text through Func_1e41c. Traced structurally.
 .thumb_func_start UI_NameEntry  @ 0x08020bd8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -675,6 +684,10 @@
 	bx	r1
 .func_end UI_NameEntry
 
+@ RunAbilityScreen
+@ r0.. = parameters. The ability list screen, 206 lines: windows, sprite nodes
+@ through Func_1eadc, layout through Func_20a60, one frame per WaitFrames, tiles
+@ freed with Func_3f3c. Traced structurally.
 .thumb_func_start Func_802106c  @ 0x0802106c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -881,6 +894,10 @@
 	bx	r1
 .func_end Func_802106c
 
+@ RunSelectionMenu
+@ r0.. = parameters. A selection menu built from the shared pieces: Func_165d8
+@ for the message box, Func_19908 to register its callback, .gcc2_compiled. and
+@ GetPortrait for the entries, LoadPortrait for graphics.
 .thumb_func_start Func_8021228  @ 0x08021228
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1010,6 +1027,8 @@
 	bx	r0
 .func_end Func_8021228
 
+@ ReadCharacterForMenu
+@ r0 = index. Reads a character record through _Func_79338.
 .thumb_func_start Func_8021360  @ 0x08021360
 	push	{r5, lr}
 	mov	r5, r0
@@ -1034,6 +1053,8 @@
 	bx	r1
 .func_end Func_8021360
 
+@ RunSelectionMenuVariantA
+@ r0.. = parameters. The same shape as Func_21228 with different entry sourcing.
 .thumb_func_start Func_8021390  @ 0x08021390
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1134,6 +1155,9 @@
 	bx	r0
 .func_end Func_8021390
 
+@ RunSelectionMenuVariantB
+@ r0.. = parameters. A third variant of Func_21228, again differing only in
+@ which entries it offers.
 .thumb_func_start Func_8021488  @ 0x08021488
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

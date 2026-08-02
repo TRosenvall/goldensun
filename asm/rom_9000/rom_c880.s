@@ -1,6 +1,27 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ DrawWorldEntities
+@ Per-frame sprite pass over the world entity table. Takes no arguments.
+@ Setup:
+@   - allocates a 0x2C4 scratch arena (tag 0x34) and DMA-copies Func_9bb8 into
+@     it, the same run-the-blitter-from-RAM trick as UpdateSpriteAnim
+@   - picks the camera eye/target from [iwram_1e80]+0x18 and +0x1C (falling back
+@     to the struct itself and +0x0C) and derives the view angle with atan2
+@   - queries event flag 0x16B via _Func_79338. When set, the view angle is
+@     rotated by -0x2000 (a quarter turn), Func_a30 installs the alternate
+@     projection table .L13190 and MatrixLook sets up the camera; otherwise
+@     MatrixSetLook does.
+@ Draw loop: walks the 0x40 entities at [iwram_1e64]+0x1B90 backwards (stride
+@ 0x70) so higher slots draw first. Skips inactive slots (+0x00 == 0) and
+@ dispatches on the low nibble of the draw kind at +0x54:
+@   1 -> one actor at +0x50, submitted with Func_b388
+@   2 -> up to four actors from the array at +0x50, each submitted
+@   anything else -> not drawn
+@ Each call passes the entity's own facing (+0x06) added to the view angle, the
+@ scale pair from +0x30/+0x34, and the priority byte at +0x42. When flag 0x16B
+@ is set both scale components are forced to 1.0 (0x10000).
+@ Releases the scratch arena with Func_2dd8 before returning.
 .thumb_func_start Func_800c880  @ 0x0800c880
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

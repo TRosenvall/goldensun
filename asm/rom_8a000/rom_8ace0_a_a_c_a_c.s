@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ PrepareMapTransition
+@ Takes no arguments. Reads the pending destination from ewram_240+0x1C0 and
+@ sets up the transition: resolves the target map, picks the fade style, and
+@ stages the spawn position for the incoming map. The ~100-instruction body is
+@ characterised structurally.
 .thumb_func_start Func_808b090  @ 0x0808b090
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -103,6 +108,10 @@
 	bx	r0
 .func_end Func_808b090
 
+@ FindMapEntryRecord
+@ r0=map id, r1=entrance. Searches the table at .L9ddd8 for the matching entry
+@ record, using Func_8a8d0 to resolve the group. Returns the record, or a
+@ negative result when the pair is not listed.
 .thumb_func_start GetLocationName  @ 0x0808b158
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -171,6 +180,10 @@
 	bx	r1
 .func_end GetLocationName
 
+@ FindAreaRecord
+@ Takes no arguments. Looks the current map and entrance (ewram_240+0x1C0 and
+@ +0x1C2) up in the area table at .L9e1d8 and returns the matching record --
+@ the area name, music and encounter set that go with this location.
 .thumb_func_start UpdateRespawnMap  @ 0x0808b1d8
 	push	{r5, r6, r7, lr}
 	ldr	r0, =gState

@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Sub_df90c
+@ Battle animation routine, 84 instructions.
+@ Calls out to: _Func_b7dd0, _Func_c300, _Func_c4ac, _Func_d14c.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_80df90c  @ 0x080df90c
 	push	{r5, r6, lr}
 	mov	r6, r11
@@ -88,6 +93,10 @@
 	bx	r0
 .func_end Func_80df90c
 
+@ Sub_df9d0
+@ Battle animation routine, 36 instructions.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_80df9d0  @ 0x080df9d0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

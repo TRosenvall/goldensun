@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ DrawStatusNumbers
+@ r0 = window, r1 = character, r2 = flags. The body of the status page: the
+@ name, the class, the HP and PP pairs, the four stats and the status icons.
+@ Labels come from 0xAFD, 0xAFE and the 0xBD4..0xBD9 block -- the same 0xBD6 to
+@ 0xBD9 run Func_a112c uses for the status icons, so the two agree by
+@ construction. _Func_7a5bc supplies the party summary and Func_a8b10 the status
+@ flags; Func_a9dc4 loads the element icons and Func_a9d3c places them.
+@ 347 lines; traced structurally.
 .thumb_func_start Func_80a8604  @ 0x080a8604
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

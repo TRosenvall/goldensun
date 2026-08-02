@@ -1,6 +1,17 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ PlayVariantEffect
+@ r0=action descriptor, r1=variant 0..11. The shared implementation behind the
+@ twelve wrappers above.
+@ Stores the descriptor into the battle state at [iwram_1eec]+0x7828, then sets
+@ up the display: AnimStart selects the backdrop (0 for variant 8, 1 for every
+@ other), REG_BLDALPHA is set to 0x1010, and two LoadVFXFile calls stage the
+@ effect's graphics (resource 0x73, then 0xCE keyed on the variant).
+@ The variant's 7-byte record at .Ledf04 + variant * 7 supplies the per-variant
+@ colours, frame counts and sound ids for the rest of the sequence.
+@ The ~330-instruction body is characterised structurally; the state block, the
+@ variant indexing and the display setup are verified.
 .thumb_func_start BaseAnim_Bite_Sting  @ 0x080ca60c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

@@ -1,6 +1,108 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunAnimationClass6 -- a figure flies in, then five beams fall
+@ r0 = action descriptor. Animation class 6, entered from the twelve-way table
+@ in Anim_Summon (rom_d6504.s).
+@
+@ TWO SEQUENTIAL FRAME LOOPS like Anim_Kirin above: 244 frames (0..0xF3) of
+@ arrival and charge, then 144 frames (0..0x8F) of five beams landing one after
+@ another. Uses the split-scale trick described on Func_ec0e0.
+@
+@ SETUP
+@   sp+0x44 = [iwram_1ef0] render buffer, r11 = [iwram_1eec] state,
+@   sp+0x40 = [iwram_1ef4] sprite scratch.
+@   AnimStart(0); Func_c9048(); palette entries 0 and 1 zeroed.
+@   StartTask(Func_ec0e0, 0x480) and SetIntrHandler(2, 0, Func_ec0f0) arm the BG2
+@     split scale; StartTask also registers Task_BlitAnim.
+@   REG_WININ = 0x2137; AnimTransitionOut(1, 0); REG_WIN0H = 0xF0F0; Func_d6750;
+@     CreateSummonSprite(8, 0x17A, 1) spawns eight actors; iwram_1ce0+0x10 = 0xF0.
+@   After WaitFrames(1): _Func_c08ec(1, 0x3D, 0), then LoadVFXFile unpacks asset
+@     0x73 into [iwram_1ef4], 0x6E into [iwram_1eec] and 0x76 into
+@     [iwram_1eec]+0x4E20.
+@   REG_DISPCNT = 0x7741, REG_BG2PA = 0x80, REG_BLDALPHA = 0x1010,
+@     REG_BLDCNT = 0x3F44. iwram_1ad0+4 SAVED at sp+0x28 and restored between
+@     the loops. +0x7780 = 2, +0x7784 = 0x4B.
+@   BuildDraw2DFuncEx(0x2E,7,7,3,3) and BuildDraw2DFuncEx(0x2F,7,7,3,2); the pair is stored as
+@     the two-entry array at sp+0x50 and indexed by (i & 1) later.
+@   REG_BG2CNT = 0x784. All 1024 particles freed.
+@   32 entries at +0x7080 seeded on a ring at radius (rand & 0x7F) + 0xFF with
+@     velocity = -position/32, so they CONVERGE on the centre.
+@   712 particles at ewram_10000 seeded on a disc at (128.0, 96.0) drifting up
+@     and to the left.
+@
+@ A SECOND SPRITE-SIZE TABLE. Data_ede5c = {0, 4, 20, 56, 120, 220, 364, 560,
+@   816, 1140} indexes [iwram_1eec]+0x4E20 the way Data_ede48 indexes the 0x302
+@   buffer, but its deltas are 4n^2 -- SQUARE sprites of side 2n, where
+@   Data_ede48's are n by 2n. Both tables appear in this handler.
+@
+@ LOOP ONE -- frames 0..0xF3, arrival and charge
+@   sounds  0x18 -> 0xA2, 0x4C -> 0xA4, 0x9A -> 0x8E, 0xDE -> 0x91.
+@   frames 0..0xF   a gradient is built: at frame 1, ewram_10002.. is filled
+@     with 0x80 random bytes and Func_d66cc is registered as a task; each frame
+@     the halfword at ewram_10000 grows by an accelerating step; at frame 0xF
+@     Func_d66cc is unregistered again.
+@   frames > 0x15   THE FIGURE: eight actors through _Func_b168 at SCALE 1.5
+@     (Data_edae8 = {0x18000, 0x18000}) on the 4x2 grid .Leef68 =
+@     {0,32,64,0,32,64,96,96} by .Leef70 = {0,0,0,32,32,32,0,32}, each offset
+@     also scaled by 3/2 to match.
+@     frames 0x16..0x53  the approach velocities decay by 60/64 per frame and
+@       the vertical one is nudged toward y = 0x840000, so it glides in and
+@       settles.
+@     frames 0x54..0xAA  the horizontal velocity is kicked (up to frame 0x6B),
+@       decays the same way, and the figure drifts off again.
+@   frame 0x4C      all 1024 particles re-seed from a disc at (64.0, 96.0).
+@   frame 0x98      SetIntrHandler(2, 0x60, Func_ec0f0) MOVES THE SPLIT to scanline
+@     0x60, so the bottom two-thirds of BG2 squashes to half scale;
+@     +0x77B4 = 0x18 and +0x77B8 = 0.
+@   frames 0x98..0xEF  the 32 converging entries draw as square sprites from
+@     Data_ede5c at size (i & 3) + 5, each starting i/4 frames after the last.
+@   frames 0x98 onward  a single sprite grows through the size table in stages:
+@     (frame-0x98)/2 + 1 capped 4, then +3 capped 6 past 0xC0, then
+@     (frame-0xC8)/4 + 5 capped 8 past 0xC7, with a second smaller copy while
+@     frame <= 0xD5, and 0x30x0x30 frames from 0xD6 onward.
+@   frame 0xDE      the 64 entries at +0x7080 re-seed as small crosses near
+@     (0x64, 0x34) rising at 6 per frame; drawn at size 2 from 0xDE onward and
+@     recycled when they leave the top.
+@   frames > 0xAF   DrawLine is called 5 times a frame, jumping to 0x3C at
+@     frames 0xDF..0xE0 and settling at 0x28 -- the beam fan.
+@   frames > 0x1B   all 1024 particles step and draw at size (i MOD 3) + 2 with
+@     gravity .Leef78[i & 3] = {0.5, 0.25, 0.25, 0.125} and 0x3E/64 drag, dying
+@     once falling past y 0x68.
+@   every frame     five 32x32 tiles scroll horizontally by (frame/4) & 0x1F at
+@     y = 0x58.
+@   end of frame    +0x7824 = 1; WaitFrames(1).
+@   A or B held AND frame > 0x10 leaves loop one early.
+@
+@ BETWEEN THE LOOPS
+@   iwram_1ad0+4 restored; SetIntrHandler(2, 0, 0) DISARMS the scanline handler and
+@   StopTask(Func_ec0e0) drops the task, so BG2 goes back to uniform scale;
+@   Func_d67dc; REG_WIN0H = 0xF0; +0x7780 = 2, +0x7784 = 0x4B; particles freed.
+@   Sixteen beam slots at +0x7080 get x = (rand & 0x1F) + 0x20, y = 0, age = 0,
+@   then for each target Func_e396c supplies HALF its screen x as the beam's
+@   landing column. LoadVFXFile unpacks asset 0x6F; sound 0x121;
+@   REG_BG2PA = 0x80; REG_BLDALPHA = 0x1010.
+@
+@ LOOP TWO -- frames 0..0x8F, five beams
+@   frame 0x60  .gcc2_compiled.(0x86) -- note this handler signals from INSIDE the
+@     loop, not at teardown like most of the others.
+@   Beam i starts at frame 16i and plays sound 0x9A at 16i + 7:
+@     while its age is 0..0x1F the beam draws as two 0x11x0x68 halves split at
+@       (frame*16) MOD 0x68 -- a wrapping vertical scroll, so it appears to pour
+@       downward -- plus a 0x22x0x41 head.
+@     its y advances 0x10 per frame until 0x6F, after which the age counts up.
+@     once landed, the first 8 frames set +0x77A8 = 4 (screen shake) and up to
+@       four particles per frame burst outward from the impact point.
+@   frame 8 + 16i  target i takes Func_d6888(id, 7, 5, i, 8) and
+@     _Func_b8228(id, 2) -- so each target is struck as its own beam lands.
+@   every frame  live particles step with Func_e3908(entry, 0x3C, 0x4000),
+@     bounce off y = 0x78 by halving and negating vy, draw at size (age/8) + 3
+@     with alternating blitters.
+@   end of frame  UpdateScreenShake(4, 8); Func_cd52c(); +0x7824 = 1; WaitFrames(1).
+@
+@ TEARDOWN
+@   The eight actors at +0x77D8 are destroyed; StopTask(Task_BlitAnim);
+@   Func_2dd8(0x2F) and Func_2dd8(0x2E) free the generated blitters; AnimEnd.
 .thumb_func_start Anim_Neptune  @ 0x080ec100
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ RiseEffectHook
+@ r0=entity. Per-frame hook that lifts the entity: subtracts 0x280 from the two
+@ height words at +0x18 and +0x1C each frame and advances the facing at +0x06,
+@ so the target floats upward while turning.
 .thumb_func_start Func_809b0dc  @ 0x0809b0dc
 	push	{lr}
 	ldr	r1, =0xfffffd80
@@ -36,6 +40,10 @@
 	.word	0
 .func_end Func_809b0dc
 
+@ PlaceAbilityTargets
+@ r0=effect instance base. Positions the ability's particle instances around the
+@ target read from [iwram_1f30]+0x10, spacing them by the offsets held from
+@ +0x40 of the instance.
 .thumb_func_start Func_809b11c  @ 0x0809b11c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -148,6 +156,11 @@
 	bx	r0
 .func_end Func_809b11c
 
+@ RunGrowthAbility
+@ Takes no arguments. The grow/raise field ability: brackets the sequence with
+@ CutsceneStart and Func_91750, animates the caster, and drives the target upward
+@ through the rise hooks above. The ~180-instruction body is characterised
+@ structurally.
 .thumb_func_start Field_Retreat  @ 0x0809b208
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -293,6 +306,10 @@
 	bx	r0
 .func_end Field_Retreat
 
+@ FindTargetInRangeA
+@ r0=effect state. Scans for a valid ability target within 0xA0000 units of the
+@ position at +0x14, using the range limit at ewram_240+0x1DA. Returns the
+@ target or a negative result.
 .thumb_func_start Func_809b364  @ 0x0809b364
 	push	{r5, r6, lr}
 	ldr	r3, =gState
@@ -351,6 +368,10 @@
 	bx	r0
 .func_end Func_809b364
 
+@ FindTargetInRangeB
+@ r0=effect state. Same scan as Func_9b364 over a second candidate set -- the
+@ two differ only in which table they walk, so an ability can look for either
+@ kind of target.
 .thumb_func_start Func_809b3d8  @ 0x0809b3d8
 	push	{r5, r6, lr}
 	ldr	r3, =gState
@@ -410,6 +431,10 @@
 	bx	r0
 .func_end Func_809b3d8
 
+@ RunMoveAbility
+@ Takes no arguments. The push/move field ability: locates the target, animates
+@ the caster, and slides the target to its new tile. The ~130-instruction body
+@ is characterised structurally.
 .thumb_func_start Func_809b450  @ 0x0809b450
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

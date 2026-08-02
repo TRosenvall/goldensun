@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ScaleCombatantSprite
+@ r0.. = parameters. Applies a scale to the combatant's sprite, dividing with
+@ Func_af0 and submitting through Func_c300 / Actor_TravelTo.
 .thumb_func_start Func_80b80b8  @ 0x080b80b8
 	push	{r5, r6, lr}
 	mov	r6, r10

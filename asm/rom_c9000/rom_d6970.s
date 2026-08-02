@@ -1,6 +1,93 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunAnimationClass5 -- a wave, a scatter-dissolve, then a reveal
+@ r0 = action descriptor. Animation class 5, entered from the twelve-way table
+@ in Anim_Summon (rom_d6504.s). 366 frames (0..0x16D) in one loop, but the loop
+@ regenerates its blitters and reloads its graphics at frame 0x12E, so it plays
+@ as two acts.
+@
+@ Two things here appear nowhere else in the twelve:
+@   * a SHUFFLED PERMUTATION TABLE driving a pixel-scatter dissolve, and
+@   * a PALETTE DESATURATION that fades the whole screen toward grey.
+@
+@ SETUP
+@   r9 = [iwram_1eec] state, sp+0x40 = [iwram_1ef0] render buffer.
+@   CreateSummonSprite(8, 0x177, 1) spawns eight actors.
+@   THE SHUFFLE: ewram_10000 is filled as 8 blocks of 128 bytes, each block set
+@     to 0..127 and then shuffled in place by 128 random swaps (Func_4458 picks
+@     both indices). The result is eight independent permutations, used as the
+@     scatter order for the dissolve below.
+@   AnimStart(0); REG_BG2PA = 0x100; REG_BLDCNT = 0; LoadVFXFile unpacks asset
+@     0xB2 into [iwram_1eec].
+@   BuildDraw2DFuncEx(0x2E,7,7,3,1) and BuildDraw2DFuncEx(0x2F,7,7,7,1) -- note the different
+@     flag words, 3 and 7, so the two generated blitters differ here. Read back
+@     from iwram_1e50+0xB8 / +0xBC into the pair at sp+0x44.
+@   +0x7780 = 1, +0x7784 = 0; StartTask registers Task_BlitAnim; REG_BG2X = -0x2000.
+@   Three particle sets seeded: 16 wave crests at +0x7080 (the first five start
+@     at x 0, the rest spaced 0x14 apart from -0x5A), 16 sparks at +0x7240, and
+@     16 streaks at +0x7400 starting at (128.0, 64.0) moving left.
+@   Func_d6750.
+@
+@ MAIN LOOP -- frames 0..0x16D
+@   A or B held with frame in 0xBF..0x11D CLEARS the whole 0x4000 render buffer
+@     with Func_8d4 and jumps to 0x11E -- it wipes the screen rather than just
+@     skipping, because the dissolve would otherwise leave debris behind.
+@   sounds  0x1F -> 0x9D (plus +0x77A8 = 8 and _Func_b8228(id, 6) on every
+@     target), 0x48 -> 0x88, 0x8C -> 0x9C.
+@   every frame  an accelerating camera value feeds Func_e6d3c(2, 128.0, y);
+@     y climbs by a step that itself grows 0x4000 a frame, clamped at 64.0.
+@   frames 0x30..0x60  actors +0x77E4 and +0x77E8 cycle through the animation
+@     pairs in .Lee910 = {8,10 / 9,11 / 3,4}, one pair every 0x18 frames.
+@   frames 0x48..0x7F  streak i starts at frame 0x48+i and draws from the
+@     five-frame set .Lee916 offsets / .Lee920 widths {2,5,2,5,3} / .Lee925
+@     heights {6,3,4,3,3}, stepped by Func_e3908(entry, 0x40, 0x1000).
+@   frame 0x80  48 sparks re-seed at +0x7240 and REG_BG2X returns to 0.
+@   frames 0x80..0xE0  THE WAVE: ten crests at +0x7080, each drawn as a 0x18x8
+@     head plus three 0x18-wide vertical slices 0x40 apart plus a tail from
+@     .Lee92a offsets / .Lee930 sizes {16,12,8}. The vertical phase is
+@     velocity*(t - age) folded into 0xB8..0xF7 by repeated subtraction of 0x40,
+@     which is what makes it roll. Crests 0..5 read [iwram_1eec], 6..9 read
+@     [iwram_1eec]+0x6C0, so the two halves use different graphics.
+@   frames 0x80..0xDF  32 entries at +0x7400 draw from .Lee934/.Lee93E/.Lee943
+@     (the same five sprites as .Lee916 above) under gravity 0x4000, recycling
+@     while frame <= 0x9F.
+@   frames 0xE0..0xF7, EVERY FOURTH FRAME  THE DESATURATION: all 64 palette
+@     entries at 0x5000000 are unpacked into 5-bit R, G and B, the mean
+@     (r+g+b)/3 is taken, and each channel is stepped ONE unit toward it. Six
+@     applications over 24 frames, so the screen drains to grey.
+@   frames > 0xE8  THE DISSOLVE: two passes per frame walk index 2*frame-0x1F0
+@     and +1 through the shuffled table and write 0 into 0x20 x 4 bytes of the
+@     render buffer at the scattered positions. The permutation is what makes
+@     the image break up in random order instead of scanning away.
+@   frames 0xA1..0xDF  target i, once frame > 8i, is LIFTED: its +0x0C rises
+@     0x80000 a frame capped at 0x800000, +0x48 is cleared, and every part it
+@     owns is set to animation 5 by walking _Func_b7f70.
+@   per target  frame 0x11E + 5i drops it back (+0x0C = 0x600000, +0x48 =
+@     0xAB85); frame 0x12E + 5i fires Func_d6888(id, 7, -1, i, 8), sound 0x86
+@     and +0x77A8 = 8.
+@
+@   FRAME 0x12E -- ACT TWO. Both blitters are FREED AND REGENERATED mid-loop:
+@     Func_2dd8(0x2F)/Func_2dd8(0x2E), then LoadVFXFile unpacks asset 0x98 into
+@     [iwram_1eec] and 0xC0 into [iwram_1eec]+0x1680, then BuildDraw2DFuncEx(0x2E,...,3)
+@     and BuildDraw2DFuncEx(0x2F,...,7) build a new pair. REG_BLDCNT = 0x3F46,
+@     REG_BG2PA = 0x80, REG_BG2X = 0, +0x7780 = 2, +0x7784 = 0x4B, and
+@     Task_BlitAnim is re-registered. Each target then gets ten 3-vectors seeded
+@     around it, their velocities taken from sin/cos of i*0x3334 with a random
+@     upward component.
+@   frames > 0x12D  target i, from frame 0x12E+4i, draws two 0x14x0x18 pieces at
+@     its projected position (x halved), and six frames later its five entries
+@     project and draw from .Lee958 offsets / .Lee966 sizes
+@     {16,32,48,48,48,48,48} while age <= 0x1A, stepped with
+@     Func_e3908(entry, 0x3C, 0x1000). That size progression is the same
+@     seven-frame burst .Leeeea/.Leeef8 uses in rom_e7320.s (class 1).
+@   end of frame  UpdateScreenShake(4, 0x10) up to frame 0x7F, (2, 2) up to 0x12D,
+@     (4, 8) after; then Func_cd52c(); +0x7824 = 1; WaitFrames(1).
+@
+@ TEARDOWN
+@   StopTask(Task_BlitAnim); Func_2dd8(0x2F) and Func_2dd8(0x2E); .gcc2_compiled.(0x86);
+@   Anim_Unsummon(2, 128.0, y) mirrors the Func_e6d3c setup; the eight actors at
+@   +0x77D8 are destroyed; AnimEnd restores the view.
 .thumb_func_start Anim_Cybele  @ 0x080d6970
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1563,6 +1650,97 @@
 	bx	r0
 .func_end Anim_Cybele
 
+@ RunAnimationClass10 -- a bombardment on fixed sites, then a rain of debris
+@ r0 = action descriptor. Animation class 10, entered from the twelve-way table
+@ in Anim_Summon (rom_d6504.s). Two frame loops: 288 frames (0..0x11F) of
+@ bombardment, then 146 frames (0..0x91) of falling debris.
+@
+@ SIXTEEN FIXED IMPACT SITES. .Lee974 is 16 byte pairs -- (57,130), (75,128),
+@ (71,104), (101,130), (86,126), (85,98), (64,98), (98,96), (77,87), (84,88),
+@ (68,67), (81,49), (94,70), (70,51), (93,36), (81,50) -- unpacked into 32 words
+@ at sp+0x4C on entry. Both loops draw at these hand-placed screen positions
+@ rather than anywhere derived from the combatants, so the barrage pattern is
+@ authored, not computed.
+@
+@ SETUP
+@   sp+0x30 = [iwram_1ef0] render buffer, sp+0x2c = [iwram_1eec] state,
+@   sp+0x1c = [iwram_1ef4] sprite scratch.
+@   AnimStart(0); Func_c9048(); palette entries 0 and 1 zeroed; +0x7780 = 0;
+@     StartTask registers Task_BlitAnim; REG_WININ = 0x2137; AnimTransitionOut(1, 0);
+@     REG_WIN0H = 0xF0F0.
+@   LoadVFXFile unpacks asset 0xB9 into [iwram_1eec] and 0xBA into [iwram_1ef4].
+@   BuildDraw2DFuncEx(0x2E,7,7,3,2) and BuildDraw2DFuncEx(0x2F,7,7,3,1); read back from
+@     [iwram_1ef0+0x18] and +0x1c into sp+0x24 and sp+0x20.
+@   iwram_1ce0+0x10 = 0xF0; Func_d6750; WaitFrames(1); _Func_c08ec(1, 0x3B, 0);
+@     CreateSummonSprite(9, 0x174, 1) spawns nine actors.
+@   REG_DISPCNT = 0x7741, REG_BG2PA = 0x80, REG_BLDALPHA = 0x1010,
+@     REG_BLDCNT = 0x3F44. +0x7780 = 2, +0x7784 = 0x32.
+@   64 particles at ewram_10000 parked with age -1; sound 0x8D.
+@
+@ LOOP ONE -- frames 0..0x11F, the bombardment
+@   frames 0..0xF  the same gradient warm-up class 6 uses: at frame 1,
+@     ewram_10002.. gets 0x80 random bytes and Func_d66cc is registered; at
+@     frame 0xF it is unregistered again.
+@   HOW MANY SITES ARE LIT: 16 up to frame 0x1F, 10 to 0x3F, 6 to 0x67, none
+@     after -- the barrage thins out. Each lit site draws a three-frame sprite
+@     (.Lee998 offsets {0,1152,2064}, .Lee99e widths {24,24,20}, .Lee9a1 heights
+@     {48,38,26}, the offsets being that table's own running w*h) picked by
+@     (i MOD 3).
+@   SCREEN SHAKE: up to frame 0xA7 iwram_1ad0+4 and +6 jitter by (rand & 3) - 1
+@     every frame; after that they sit still; frames 0xB0..0xB3 replay a scripted
+@     decay from .Lee994 = {-4, -3, -2, 0}.
+@   every frame  the nine actors are submitted through _Func_b168 at unit scale
+@     (Data_eda80) as a 3x3 grid at 32.0 spacing, offset by the current shake.
+@   frame 0xAE  all nine actors get +0x09 &= ~0xD, clearing their priority bits.
+@   frames > 0xD0  actor +0x77E0 cycles the animations .Lee9a4 = {2,9,10,11},
+@     one every four frames.
+@   sounds  0x86 at each of 0x20, 0x40, 0x68 and 0xB0; 0x91 at 0xE2.
+@   frames 0x20, 0x40, 0x68  a 32-particle burst each, the second into
+@     ewram_10380 rather than ewram_10000.
+@   frames 0x20..0xCF  those particles draw from the eleven-sprite set
+@     .Lee9BE offsets / .Lee9A8 widths {12,11,8,10,8,12,5,7,7,6,7} / .Lee9B3
+@     heights {10,16,14,15,4,4,3,4,6,12,10}, chosen by (i & 3) and by
+@     (i MOD 7) + 4 past frame 0xBF, under gravity 0x2000.
+@   frame 0xE0  128 particles seed at (144.0, 56.0) moving up and left; from
+@     then on the EVEN-indexed ones draw as 16x16 from .Lee9DA, recycling once
+@     they leave the screen.
+@   frame 0xE4  those 128 positions are COPIED to ewram_10e00 with age 0, and
+@     from frame 0xE4+i each copy plays the nine-frame twinkle Data_ede84
+@     offsets {0,25,74,123,172,221,246,255,256} / Data_ede96 sizes
+@     {5,7,7,7,7,5,3,1,1} -- grow then shrink -- re-seeding from its leader
+@     every 0x12 frames. So the trail lags the head by four frames.
+@   end of frame  +0x7824 = 1; WaitFrames(1). A or B held with frame > 0x10
+@     leaves loop one.
+@
+@ BETWEEN THE LOOPS
+@   The nine actors are destroyed HERE, not at teardown; Func_d67dc;
+@   REG_BLDALPHA = 0x1010; sound 0x121.
+@   64 entries at +0x7080 seed above and right of the screen falling down-left;
+@   64 more at ewram_10000 with staggered negative ages.
+@
+@ LOOP TWO -- frames 0..0x91, the debris
+@   frame 0x60  .gcc2_compiled.(0x86) -- signalled from inside the loop.
+@   frame 0x10  +0x77A8 = 0x20, a long shake.
+@   frames 9..0x47, EVERY FOURTH FRAME  sound 0x84; frame 0x48 sound 0x91.
+@   frames > 0x10  the count of lit sites ramps back up as min((frame-0x10)/2,
+@     0x10) and those sites draw the same three-frame sprite through 0x47.
+@   frames <= 0x47  the 64 falling entries at +0x7080 draw as 0x18x0x30 pieces
+@     and recycle off the top while frame <= 0x2F.
+@   frame 0x48  THE LANDING: the 64 entries re-seed AT the .Lee974 sites with
+@     random velocities and +0x77A8 = 4. From then on they draw from
+@     .Lee9F2/.Lee9EC/.Lee9EF, step with Func_e3908(entry, 0x40, 0x10000), and
+@     each one that hits y 0x78 hard bounces with a quarter of its speed and
+@     sets +0x77A8 = 1, so impacts keep re-triggering the shake.
+@   frames > 0x40  a 0x28x0x50 piece slides in from graphic +0x14F9.
+@   per target  frame 0x20 + 8i fires Func_d6888(id, 9, 5, -1, 0).
+@   frames > 0x48  the 64 entries at ewram_10000 play the same nine-frame
+@     twinkle and re-seed while frame <= 0x7F.
+@   end of frame  UpdateScreenShake(8, 8) during 0x48..0x4F, (2, 2) otherwise;
+@     +0x7824 = 1; WaitFrames(1).
+@
+@ TEARDOWN
+@   Func_2dd8(0x2F) and Func_2dd8(0x2E) free the generated blitters;
+@   StopTask(Task_BlitAnim); AnimEnd restores the view.
 .thumb_func_start Anim_Boreas  @ 0x080d765c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

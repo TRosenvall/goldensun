@@ -1,6 +1,17 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SetupMapBgLayer
+@ Takes no arguments. Switches BG1 over to the map tilemap:
+@   - sets the tile-animation suspend flag at [iwram_1e70]+0xFC and pauses the
+@     Func_1179c task, so no animation writes race the upload
+@   - DMAs 0x2000 bytes of tile graphics from ewram_1c000 to 0x6004000 and lets
+@     one frame pass
+@   - picks the working buffer from [iwram_1e6c] offset by 0x1400 when bit 0 of
+@     iwram_1e40 is set (the double-buffer select) plus 0xC80, and builds the
+@     tilemap into ewram_10000 with Func_12388
+@   - seeds the window bounds at +0x100 = 0xC8 and +0x13A = 0xFF
+@   - installs .gcc2_compiled. as the iwram_1cfc per-frame upload hook
 .thumb_func_start Func_8011590  @ 0x08011590
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e6c

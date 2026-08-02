@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ DecompressGraphic
+@ r0 = compressed source, r1 = destination.
+@ Allocates 0x278 bytes under tag 0x31, DMA3-COPIES Func_15afc INTO IT, and
+@ calls it there -- the same run-decompressor-from-RAM trick DecompressLZ uses in
+@ rom_c0. Func_15afc is the move-to-front nibble decoder in rom_15430.s, so the
+@ output is unpacked 4bpp ready for Func_15d74 / Func_15e10 to pack.
+@ The scratch is released with Func_2dd8 afterwards.
 .thumb_func_start LoadIcon  @ 0x0801a5a4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

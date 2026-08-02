@@ -1,6 +1,17 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ PlayActionAnimation
+@ r0=action descriptor. The main entry point rom_b5000 calls to play a battle
+@ action. Allocates the three working buffers (0x302 under tag 0x29, 0x782C
+@ under 0x27, 0x4000 under 0x28), dispatches on the animation class in
+@ descriptor[0], and releases all three before returning.
+@ Class 0 and 11 both fall through to Func_e7320; classes 1..12 select one of
+@ twelve handlers via the table at .Ld65ac, each living in its own file:
+@     1 Anim_Ramses    2 Anim_Nereid    3 Anim_Kirin    4 Anim_Atalanta
+@     5 Anim_Cybele    6 Anim_Neptune    7 Func_d2458    8 Anim_Procne
+@     9 Anim_Judgment   10 Anim_Boreas   11 Func_e7320   12 Anim_Thor
+@ A class above 12 allocates and frees the buffers without playing anything.
 .thumb_func_start Anim_Summon  @ 0x080d6578
 	push	{r5, lr}
 	mov	r5, r0
@@ -97,6 +108,12 @@
 	bx	r0
 .func_end Anim_Summon
 
+@ PlayActionAnimationByTable
+@ r0=action descriptor. The variant used for actions whose handler comes from
+@ the Data_ee2b4 table rather than the fixed dispatch in Anim_Summon.
+@ Allocates the same three buffers, stores the descriptor at [iwram_1eec]+0x7828
+@ so the handlers can reach it, then calls Data_ee2b4[class - 1]. A class of 0
+@ clears descriptor+0x18 and plays nothing. Buffers are released either way.
 .thumb_func_start Anim_Func  @ 0x080d6660
 	push	{r5, lr}
 	mov	r5, r0
@@ -139,6 +156,13 @@
 	bx	r0
 .func_end Anim_Func
 
+@ BuildWindowScanlineTable
+@ Takes no arguments. Fills the 160-entry WIN0H table at ewram_10082 and arms
+@ the DMA0 HBlank transfer that feeds it.
+@ Rows outside 8..0x87 get the 0xFFF1 "closed" value. Inside that band the left
+@ edge is the base width at ewram_10000 minus the per-row inset from
+@ ewram_fffa, clamped to 0..0xF0 -- so the window opens as a shape that follows
+@ the inset table rather than a plain rectangle.
 .thumb_func_start Func_80d66cc  @ 0x080d66cc
 	push	{r5, r6, lr}
 	ldr	r6, =gBuffer
@@ -198,6 +222,13 @@
 	bx	r0
 .func_end Func_80d66cc
 
+@ CollectLivingCombatants
+@ r0=action descriptor. Builds the list of combatants still standing and hands
+@ it to _Func_b7b6c.
+@ The side is chosen by the halfword at descriptor+0x24: above 0x7F scans the
+@ enemy ids 0x80..0x85, otherwise the player ids 0..7. Each id is resolved with
+@ _Func_77394 and kept only when its current HP at +0x38 is positive. The list
+@ is terminated with 0xFF.
 .thumb_func_start Func_80d6750  @ 0x080d6750
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -275,6 +306,14 @@
 	bx	r0
 .func_end Func_80d6750
 
+@ SetUpBattleBackdrop
+@ Takes no arguments. Prepares the display for an animation: forces DISPCNT
+@ mode 1, sets the window width at iwram_1ad0+0x06 to 0x20, converts the
+@ palette through _Func_c08ec, and DMAs 0x4000 bytes of tile data from
+@ [iwram_1e74]+0x7C to 0x6004000.
+@ After a frame it programmes the blend: REG_BLDCNT 0x3F46, REG_BLDALPHA
+@ 0x100E, DISPCNT 0x7741, and sets the projection reference at iwram_1ce0+0x10
+@ to 0x78.
 .thumb_func_start Func_80d67dc  @ 0x080d67dc
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -355,6 +394,20 @@
 	bx	r0
 .func_end Func_80d67dc
 
+@ SetCombatantSpriteState
+@ r0=palette source, r1=palette index (-1 to leave alone), r2=animation index
+@ (-1 to leave alone), r3=per-combatant byte to record (-1 to skip).
+@ Walks every combatant in the current action via _Func_b7dd0 and _Func_b7f70.
+@ For each one:
+@   - stores r3 into the per-combatant array at [iwram_1eec]+0x7818
+@   - for every part of the combatant's actor except the two held at +0x20 and
+@     +0x24 of the battle record (the ones the action itself is animating),
+@     sets the palette byte at +0x05 -- computed by _Func_b6cd0 from r0 when
+@     r1 is 0, otherwise r1 directly -- and invalidates the cached frame by
+@     writing 0xFF to +0x16
+@   - applies animation r2 with _Func_ba30
+@ Combatants whose battle record has a non-zero halfword at +0x2A are skipped
+@ entirely.
 .thumb_func_start Func_80d6888  @ 0x080d6888
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

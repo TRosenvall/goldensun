@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ EmitLayoutRun
+@ r0 = flag, r1 = count, r2 = index, r3 = halfword ring buffer, arg5 and arg6 =
+@ further parameters. Writes a short sequence into the caller's 0x200-entry
+@ halfword ring, wrapping every index with `& 0x1FF`.
+@ When r0 is non-zero it lays down 0x20 (space) followed by 0x0A -- the
+@ line-break pair -- before the run proper, so this is where the layout engine
+@ inserts breaks.
+@ 237 lines; traced structurally.
 .thumb_func_start Func_8017e88  @ 0x08017e88
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -238,6 +246,17 @@
 	bx	r1
 .func_end Func_8017e88
 
+@ LayoutString
+@ r0 = string id, r1 = mode. Returns the ring index the laid-out text starts at.
+@ The layout engine at the centre of the module. It walks the decoded string,
+@ measures each run against the current window width, breaks lines, formats
+@ embedded numbers through PrintNum, and fills the 0x200-entry halfword ring
+@ at [iwram_1e8c]+0xEB0 -- callers such as PrintBattleText and Func_175c0 then test
+@ that ring's entry for emptiness to decide whether there is anything to show.
+@ It also reads ewram_240, the save-data preferences, and releases scratch with
+@ Func_2dd8.
+@ 839 lines and the largest routine in the module; traced structurally. The
+@ control-code handling is not yet documented.
 .thumb_func_start BufferString  @ 0x08018038
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1077,6 +1096,12 @@
 	bx	r1
 .func_end BufferString
 
+@ RenderLayoutToWindow
+@ r0 = window record, r1, r2, r3 and arg5 = placement. Walks the laid-out ring
+@ produced by BufferString and draws it, splitting the work between Func_18850
+@ (the measuring and positioning pass) and Func_18a50 (the glyph emission
+@ pass). The 0x1E in the prologue is the 30-tile screen width the runs are
+@ clipped against.
 .thumb_func_start Func_801868c  @ 0x0801868c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

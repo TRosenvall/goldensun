@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ ScriptOp_CallPredicate
+@ Script opcode handler. r0=entity. Treats the operand at script[cursor+1] as a
+@ function pointer and calls it with the entity. A non-zero result means "not
+@ finished": the handler returns 0 and the same opcode runs again next frame.
+@ On a zero result it advances the cursor by 2 -- but only if the callee did not
+@ move the cursor itself, so a predicate is free to jump.
 .thumb_func_start ActorCmd_CallNative  @ 0x0800d6a4
 	push	{r5, r6, lr}
 	mov	r5, r0

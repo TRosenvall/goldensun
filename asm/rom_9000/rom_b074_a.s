@@ -1,5 +1,19 @@
 	.include "macros.inc"
 
+@ SetSpritePairPosition
+@ r0=sprite object, r1=screen x (16.16), r2=base z (16.16), r3=object z (16.16),
+@ [sp+0x28]=companion base z (16.16), [sp+0x2C]=pointer to {scaleX, scaleY}.
+@ Positions the object's two OAM entries: the main one at +0x00 and its
+@ companion (shadow) at +0x0C. Each entry is laid out as
+@   +4 = y (byte), +5 = flags (bits 0-1 = affine/size mode), +6 = x (9 bits).
+@ Half-extents come from +0x20 (width) and +0x21 (height), halved. If either
+@ scale exceeds 1.0 (0x10000) the double-size affine mode 3 is selected and the
+@ half-extents and the companion's fixed offsets are doubled (8/4 -> 0x10/8);
+@ otherwise mode 1. The y term subtracts a scaled vertical correction, using
+@ (+0x21 / 2 - (s8)+0x23) * scaleY rounded up via the +0xFFFF bias.
+@ NOTE: this is the reference assembly. The live build compiles
+@ f9_1_rom_b074.c instead -- see the caveat in the summary, that draft writes
+@ the mode into +0x23 rather than +0x05.
 .thumb_func_start Func_800b074  @ 0x0800b074
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -127,6 +141,20 @@
 	bx	r0
 .func_end Func_800b074
 
+@ SubmitSpritePairWithLabel
+@ r0=sprite object, r1=position vector {x, y, z} (16.16), r2=scale pair
+@ {scaleX, scaleY}, r3=(u16) style selector.
+@ Renders the object's text label via UpdateSpriteAnim, then builds and submits both
+@ OAM entries. If the label changed, or either scale differs from 1.0, an
+@ affine matrix is allocated with Func_3d28 and its index stored in bits 1-5 of
+@ +0x07; the rotation halfword is negated when UpdateSpriteAnim reported a flip.
+@ Scale > 1.0 selects affine mode 3 and doubles the half-extents (as in
+@ Func_b074). The companion entry at +0x0C is only emitted when bit 0 of +0x26
+@ is set and its y lands on-screen (<= 0x9F); the main entry is culled unless
+@ x <= 0xEF and y <= 0x9F. Each surviving entry is handed to .gcc2_compiled. with a
+@ priority derived from the z coordinate (1 when z <= -0x64.0000, otherwise
+@ (z >> 17) + 0xA).
+@ NOTE: reference assembly -- the live build compiles f9_2_rom_b168.c.
 .thumb_func_start UpdateSprite  @ 0x0800b168
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -404,6 +432,22 @@
 	bx	r0
 .func_end UpdateSprite
 
+@ ProjectAndSubmitSprite
+@ r0=sprite object, r1=world position, r2=scale pair, r3=(u16) style selector,
+@ [sp+0x58]=priority override (0 = derive from depth).
+@ The full 3D path: projects the world position to screen space with PhysMove
+@ into a local vector, then culls unless the projection is valid (+8 non-zero)
+@ and the result lies within x in [-0x20, 0x110] and y in [-0x20, 0xD0].
+@ Perspective scale comes from Func_888 (fixed-point divide) against the depth
+@ at +0x18, unless bit 1 of +0x1D says the caller already supplied it. Both
+@ axis scales are clamped to 0x1F7FF (-> 0x1F800). Renders the label via
+@ UpdateSpriteAnim, allocates an affine matrix with Func_3d28 when rotated or scaled
+@ (mode 3 and doubled extents above 1.0, mode 0 when unrotated and unscaled),
+@ writes y/flags/x into +0x04..+0x07 and submits with .gcc2_compiled.. When bit 0 of
+@ +0x26 is set, the companion entry at +0x0C is projected from the object's
+@ ground position and submitted as a second sprite.
+@ On the cull path (.Lb658): unless bit 0 of +0x1D is set, releases the sprite's
+@ tile allocation with Func_3f78 and sets the dirty flag at +0x25.
 .thumb_func_start Func_800b388  @ 0x0800b388
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

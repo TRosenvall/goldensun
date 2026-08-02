@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ BuildShopList
+@ r0.. = parameters. Assembles the list of items a shop offers, resolving each
+@ owner through _Func_78b9c. 187 lines; traced structurally.
 .thumb_func_start Func_80228e4  @ 0x080228e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

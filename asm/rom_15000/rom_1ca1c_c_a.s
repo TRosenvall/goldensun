@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ LoadDialGraphics
+@ r0.. = parameters. Fetches the dial's asset with GetFile, reserves tiles
+@ with UploadSpriteGFX, and reads party data through _Func_b08b8 / _Func_b0958.
+@ State is at iwram_1ea0.
 .thumb_func_start Func_801cf48  @ 0x0801cf48
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ea0
@@ -85,6 +89,9 @@
 	bx	r0
 .func_end Func_801cf48
 
+@ InitDialScreen
+@ Takes no arguments. Allocates the screen block with galloc_ewram, DMA-clears it,
+@ registers its per-frame task with StartTask, and seeds it from ewram_240.
 .thumb_func_start Func_801d014  @ 0x0801d014
 	push	{lr}
 	mov	r1, #0xc5

@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ ComputeMenuMetrics
+@ r0.. = parameters. Pure arithmetic over the menu state with no calls out;
+@ 49 lines, traced structurally.
 .thumb_func_start Func_801c9c8  @ 0x0801c9c8
 	mov	r1, #0x80
 	lsl	r1, #3

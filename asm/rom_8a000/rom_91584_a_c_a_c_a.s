@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ DialogueFastForwardTask
+@ Per-frame task registered by CutsceneStart at priority 0xC80. Takes no arguments.
+@ Only acts while the input-enable flag iwram_1f54 is set. Reads iwram_1c94 and
+@ writes the fast-forward flag at iwram_1ebc+0x1CC: L (0x200) clears it, R
+@ (0x100) sets it to -1. Func_9163c consults that flag, so holding R collapses
+@ every scripted wait in the scene to nothing.
 .thumb_func_start Task_Cutscene  @ 0x080915ec
 	push	{lr}
 	ldr	r3, =iwram_3001ebc

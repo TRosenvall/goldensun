@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SelectByPhase
+@ r0 = record. Three-way switch on the phase at [r0]+0x574 (0, 1, 2), reading
+@ the save block at ewram_240 for the chosen arm.
 .thumb_func_start Func_801ce90  @ 0x0801ce90
 	push	{lr}
 	ldr	r2, =0x574
@@ -42,6 +45,9 @@
 	bx	r0
 .func_end Func_801ce90
 
+@ SelectByPhaseAlt
+@ r0 = record. The same three-way switch as Func_1ce90 over a different set of
+@ save-block fields.
 .thumb_func_start Func_801cee0  @ 0x0801cee0
 	push	{lr}
 	ldr	r2, =0x574

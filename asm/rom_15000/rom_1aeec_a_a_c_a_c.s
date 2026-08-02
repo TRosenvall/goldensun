@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ DrawPartyPanel
+@ r0.. = panel parameters. Draws a character panel's contents, reserving tiles
+@ with UploadSpriteGFX and AllocSpriteSlot. 144 lines; traced structurally.
 .thumb_func_start DisplayMenuArrowCursor2  @ 0x0801b248
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -144,6 +147,9 @@
 	bx	r0
 .func_end DisplayMenuArrowCursor2
 
+@ CountVisibleEntries
+@ r0 = party-screen block. Returns how many entries are live, walking the count
+@ at +0x39E and the pointer at +0x348. Returns 0 when the list is empty.
 .thumb_func_start Func_801b36c  @ 0x0801b36c
 	push	{lr}
 	mov	r2, #0xd2
@@ -169,6 +175,10 @@
 	bx	r1
 .func_end Func_801b36c
 
+@ RunPartyScreenInput
+@ Takes no arguments. The party screen's input loop: polls iwram_1c94 (newly
+@ pressed) and iwram_1b04 (auto-repeat) each frame through WaitFrames(1) and
+@ dispatches to Func_1b664, Func_1b810, Func_1b9ec and Func_1be80.
 .thumb_func_start Func_801b398  @ 0x0801b398
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e98
@@ -233,6 +243,9 @@
 	bx	r1
 .func_end Func_801b398
 
+@ RunPartySelectInput
+@ Takes no arguments. As Func_1b398 but for the character-selection mode; plays
+@ the move and confirm sounds through _Func_f9080.
 .thumb_func_start Func_801b424  @ 0x0801b424
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001e98
@@ -327,6 +340,9 @@
 	bx	r1
 .func_end Func_801b424
 
+@ ScrollPartyListUp
+@ r0.. = parameters. Moves the party list selection up one, repainting through
+@ Func_1b010 and Func_1ba68, one frame per step via WaitFrames.
 .thumb_func_start Func_801b4ec  @ 0x0801b4ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -427,6 +443,9 @@
 	bx	r0
 .func_end Func_801b4ec
 
+@ ScrollPartyListDown
+@ r0.. = parameters. The downward counterpart to Func_1b4ec, same structure and
+@ same helpers.
 .thumb_func_start Func_801b5c0  @ 0x0801b5c0
 	push	{r5, r6, r7, lr}
 	mov	r1, #0xe7
@@ -502,6 +521,10 @@
 	bx	r0
 .func_end Func_801b5c0
 
+@ PagePartyListForward
+@ r0.. = parameters. Advances the party list by a page, animating through
+@ Func_1ba68 and reloading portraits with Func_1bd98. 210 lines; traced
+@ structurally.
 .thumb_func_start Func_801b664  @ 0x0801b664
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -712,6 +735,8 @@
 	bx	r0
 .func_end Func_801b664
 
+@ PagePartyListBackward
+@ r0.. = parameters. The backward counterpart to Func_1b664, same shape.
 .thumb_func_start Func_801b810  @ 0x0801b810
 	push	{r5, r6, r7, lr}
 	ldr	r1, =0x39e
@@ -917,6 +942,8 @@
 	bx	r0
 .func_end Func_801b810
 
+@ LoadPanelPortrait
+@ r0 = character. Loads the portrait for a panel through LoadOldUIIcon.
 .thumb_func_start Func_801b9a8  @ 0x0801b9a8
 	push	{lr}
 	mov	r3, #0xd2
@@ -955,6 +982,9 @@
 	bx	r0
 .func_end Func_801b9a8
 
+@ LoadPanelGraphics
+@ r0 = character. Loads a panel's portrait with LoadOldUIIcon and its shared
+@ graphics with Func_1c188.
 .thumb_func_start Func_801b9ec  @ 0x0801b9ec
 	push	{lr}
 	mov	r3, #0xd2

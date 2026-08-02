@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunPsynergyScreen
+@ r0.. = parameters. 1574 lines. A full-screen menu built from the shared
+@ pieces: CreateUIBox opens windows, Func_16738 fills the text scratch,
+@ Func_17aa4 emits runs, Func_19000 clips, Func_17248 saves the tilemap, and
+@ CloseUIBox / .gcc2_compiled. close. Traced structurally.
 .thumb_func_start Func_8023178  @ 0x08023178
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1575,6 +1580,9 @@
 	bx	r1
 .func_end Func_8023178
 
+@ RunItemManageScreen
+@ r0.. = parameters. 1309 lines, same construction as Func_23178 with node
+@ release through .gcc2_compiled. added. Traced structurally.
 .thumb_func_start Func_8023e70  @ 0x08023e70
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2884,6 +2892,9 @@
 	bx	r1
 .func_end Func_8023e70
 
+@ RunDjinnScreen
+@ r0.. = parameters. 1059 lines, same construction with glyph nodes allocated
+@ through Func_18efc. Traced structurally.
 .thumb_func_start Func_8024934  @ 0x08024934
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3943,6 +3954,9 @@
 	bx	r1
 .func_end Func_8024934
 
+@ ReadCharacterTriple
+@ r0 = index. Reads one character through _Func_78414, _Func_7842c and
+@ _Func_78b9c -- three rom_77000 accessors for the same record.
 .thumb_func_start Func_8025180  @ 0x08025180
 	push	{r5, r6, r7, lr}
 	mov	r6, r1
@@ -3986,6 +4000,8 @@
 	bx	r1
 .func_end Func_8025180
 
+@ GetScreenField
+@ r0 = index. Returns a screen state field; no calls out.
 .thumb_func_start Func_80251d4  @ 0x080251d4
 	mov	r3, r0
 	ldr	r0, =0x3ff
@@ -4004,6 +4020,9 @@
 	bx	lr
 .func_end Func_80251d4
 
+@ RunSummonScreen
+@ r0.. = parameters. 870 lines, the same screen construction with menu strings
+@ measured through Func_1965c. Traced structurally.
 .thumb_func_start Func_8025200  @ 0x08025200
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -4874,6 +4893,9 @@
 	bx	r1
 .func_end Func_8025200
 
+@ RunStatusListScreen
+@ r0.. = parameters. 889 lines, same construction as Func_25200. Traced
+@ structurally.
 .thumb_func_start Func_802592c  @ 0x0802592c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -5763,6 +5785,11 @@
 	bx	r1
 .func_end Func_802592c
 
+@ RunNameEntryScreen
+@ r0.. = parameters. 1792 lines. Measures each candidate glyph with Func_17a64
+@ -- the per-character width lookup -- clears the text scratch with Func_1671c,
+@ and sets ink with SetTextColor, which is the signature of a character grid the
+@ player moves a cursor over. Traced structurally.
 .thumb_func_start Func_8026080  @ 0x08026080
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -7555,6 +7582,11 @@
 	bx	r1
 .func_end Func_8026080
 
+@ DrawNameEntryRow
+@ r0.. = parameters. Draws one row of the entry grid, positioning with
+@ .gcc2_compiled., opening the cell window with Func_21c34, numbering with
+@ .gcc2_compiled., releasing tiles with .gcc2_compiled., and playing the move sound
+@ through _Func_f9080. _Func_b8fd4 supplies the character set.
 .thumb_func_start Func_8026e80  @ 0x08026e80
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001f34
@@ -7702,6 +7734,8 @@
 	bx	r0
 .func_end Func_8026e80
 
+@ RunConfirmScreen
+@ r0.. = parameters. A small confirmation screen, one WaitFrames(1) per frame.
 .thumb_func_start Func_8026fa8  @ 0x08026fa8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -7791,6 +7825,8 @@
 	bx	r1
 .func_end Func_8026fa8
 
+@ ReadPartyFlag
+@ r0 = index. Reads through _Func_79ef8.
 .thumb_func_start GetMoveDisplayEffect  @ 0x0802706c
 	push	{r5, lr}
 	ldrb	r3, [r0, #1]
@@ -7830,6 +7866,8 @@
 	bx	r1
 .func_end GetMoveDisplayEffect
 
+@ ApplyPriceModifier
+@ r0.. = parameters. Func_2281c for the adjusted price, then _Func_c10e8.
 .thumb_func_start Func_80270ac  @ 0x080270ac
 	push	{r5, lr}
 	mov	r5, r9
@@ -7853,6 +7891,8 @@
 	bx	r0
 .func_end Func_80270ac
 
+@ DrawMenuLabel
+@ r0.. = parameters. Measures with Func_1965c and emits with Func_17aa4.
 .thumb_func_start Func_80270d8  @ 0x080270d8
 	push	{r5, r6, lr}
 	mov	r6, r9
@@ -7882,6 +7922,12 @@
 	bx	r1
 .func_end Func_80270d8
 
+@ RunMainMenuScreen
+@ r0.. = parameters. 2004 lines and THE LARGEST FUNCTION IN rom_15000.
+@ The top-level in-game menu: opens windows with CreateUIBox, allocates glyph
+@ nodes with Func_18efc, clips with Func_19000, clears regions with Func_1e318,
+@ waits on .gcc2_compiled., and closes with CloseUIBox. Exported, so it is entered
+@ from outside the module. Traced structurally.
 .thumb_func_start Func_8027114  @ 0x08027114
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -9886,6 +9932,9 @@
 	bx	r1
 .func_end Func_8027114
 
+@ BuildMenuSprites
+@ r0.. = parameters. Reserves and releases OBJ VRAM with Func_3d28 / .gcc2_compiled.
+@ for the menu's sprites. 416 lines; traced structurally.
 .thumb_func_start Func_8028194  @ 0x08028194
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -10302,6 +10351,9 @@
 	bx	r0
 .func_end Func_8028194
 
+@ OpenSubScreen
+@ Takes no arguments. Allocates the sub-screen block with galloc_ewram and
+@ registers its task with StartTask. Paired with Func_2851c.
 .thumb_func_start Func_80284dc  @ 0x080284dc
 	push	{r5, lr}
 	mov	r1, #0x98
@@ -10327,6 +10379,10 @@
 	bx	r1
 .func_end Func_80284dc
 
+@ CloseSubScreen
+@ Takes no arguments. Unregisters with StopTask, closes the window with
+@ CloseUIBox, releases tiles with Func_3f3c, frees with Func_2dd8, and gives a
+@ frame with WaitFrames.
 .thumb_func_start Func_802851c  @ 0x0802851c
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001f38
@@ -10367,6 +10423,9 @@
 	bx	r0
 .func_end Func_802851c
 
+@ RunSubScreenLoop
+@ r0.. = parameters. Drives a sub-screen a frame at a time, drawing with
+@ Func_1e7c0, releasing with .gcc2_compiled., and playing sounds via _Func_f9080.
 .thumb_func_start Func_8028574  @ 0x08028574
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -10514,6 +10573,8 @@
 	bx	r1
 .func_end Func_8028574
 
+@ RunSubScreenLoopShort
+@ r0.. = parameters. The abbreviated form of Func_28574.
 .thumb_func_start Func_80286a0  @ 0x080286a0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -10604,6 +10665,9 @@
 	bx	r1
 .func_end Func_80286a0
 
+@ LoadSubScreenGraphics
+@ r0 = asset id. Fetches with GetFile, stages through a Func_4938 scratch,
+@ unpacks with DecompressLZ1, reserves with UploadSpriteGFX, releases with free.
 .thumb_func_start LoadUIIcon  @ 0x0802875c
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -10638,6 +10702,8 @@
 	bx	r0
 .func_end LoadUIIcon
 
+@ AttachSubScreenGraphics
+@ r0 = asset id. LoadUIIcon then AllocSpriteSlot to reserve the OBJ tiles.
 .thumb_func_start AddMenuBarOption  @ 0x080287a8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -10686,6 +10752,9 @@
 	bx	r0
 .func_end AddMenuBarOption
 
+@ OpenSubScreenWindow
+@ r0.. = parameters. Opens the sub-screen's window with CreateUIBox, sizing it
+@ with Func_af0.
 .thumb_func_start Func_8028808  @ 0x08028808
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -10766,6 +10835,8 @@
 	bx	r0
 .func_end Func_8028808
 
+@ OpenSubScreenWindowAlt
+@ r0.. = parameters. As Func_28808 with fixed geometry.
 .thumb_func_start Func_80288a8  @ 0x080288a8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -10828,6 +10899,22 @@
 	bx	r0
 .func_end Func_80288a8
 
+@ RunFieldMenu
+@ r0 = the previously chosen entry. Draws the field menu and returns which
+@ entry the player picked, or a negative value when they backed out.
+@
+@ _Func_7a5bc(-1) decides how many entries there are: when the party summary
+@ comes back empty the extra panel 0x0F is left out, so the menu is three rows
+@ instead of four. The two byte tables .L37403 and .L373f7 translate between
+@ the row on screen and the caller's entry number in each of those two shapes,
+@ indexed by `previous + 6 * short`.
+@
+@ The panels are appended in order -- 1, then 0x0F when the party is present,
+@ then 2 and 7 -- with Func_28808(0x11, 7, 0) placing the box, Func_28574
+@ running the cursor and Func_2851c tearing it down.
+@
+@ Func_1c244 is the caller, and it dispatches the result 0..4 into
+@ _Func_8ce74, _Func_a5b94, _Func_aa56c, _Func_a24d0 and _Func_a7478.
 .thumb_func_start Func_8028920  @ 0x08028920
 	push	{r5, r6, r7, lr}
 	mov	r5, r0

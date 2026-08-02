@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ WaitForSlotAnimationChange
+@ r0=slot. Samples the actor's current-animation byte at +0x24 and blocks until
+@ it changes, checking once per frame and giving up after 0x5A (90) frames.
+@ Where MapActor_WaitAnim waits for a specific animation to end, this waits for
+@ whatever is playing now to be replaced.
 .thumb_func_start Func_8092504  @ 0x08092504
 	push	{r5, r6, r7, lr}
 	sub	sp, #4

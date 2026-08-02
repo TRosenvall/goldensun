@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ ShowMessageAtSlotOffset
+@ r0=speaker slot, r1, r2, r3 and one stacked argument = position offsets.
+@ Resolves the slot's sprite id with Func_92ba8 and opens a box offset from that
+@ speaker rather than centred on it, using the same clamping as Func_93168.
+@ The body follows the shape of Func_92c40; the argument roles beyond the slot
+@ are inferred from the call sites and should be confirmed before relying on
+@ them.
 .thumb_func_start Func_80931ec  @ 0x080931ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

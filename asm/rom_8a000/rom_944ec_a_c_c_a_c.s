@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SetEntityVisible
+@ r0=entity, r1=visibility. Sets the draw kind at +0x54 and the matching actor
+@ flags so an entity can be hidden and shown without being destroyed.
 .thumb_func_start Func_8096b88  @ 0x08096b88
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

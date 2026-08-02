@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RepositionCombatant
+@ r0 = combatant id. Re-runs Func_b7424 from the battle-side record Func_b7dd0
+@ returns, so a combatant that moved is put back where the layout says it
+@ belongs.
 .thumb_func_start Func_80b7548  @ 0x080b7548
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -79,6 +83,9 @@
 	bx	r1
 .func_end Func_80b7548
 
+@ RebuildFieldLayout
+@ Takes no arguments. Re-lays the whole field: Func_b6a60 for the party list,
+@ Func_b6f44 for the layout, then Func_b7424 per combatant.
 .thumb_func_start Func_80b75dc  @ 0x080b75dc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

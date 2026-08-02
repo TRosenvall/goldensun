@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ ApplyAbilityResultToScene
+@ Takes no arguments. Applies the recorded ability result to the live scene:
+@ updates the affected slots and map tiles so the change persists. The
+@ ~230-instruction body is characterised structurally.
 .thumb_func_start Field_Cloak  @ 0x08099838
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -105,6 +109,10 @@
 	bx	r0
 .func_end Field_Cloak
 
+@ FallToGroundHook
+@ r0=entity. Per-frame hook that drops the entity until its y (+0x0C) reaches
+@ the ground height cached at +0x14, then sets the wait timer at +0x5E to end
+@ the sequence.
 .thumb_func_start Func_8099920  @ 0x08099920
 	push	{r5, r6, r7, lr}
 	mov	r6, r0

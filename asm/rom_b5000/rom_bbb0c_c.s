@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunEndOfTurn
+@ r0.. = parameters. 555 lines. Closes a turn out: ticks the status counters,
+@ pushes events with .gcc2_compiled., refreshes the HUD (WaitTextPrompt, Func_b7aac) and
+@ re-sorts the queue with Func_b6c08. Traced structurally.
 .thumb_func_start Func_80bf678  @ 0x080bf678
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -556,6 +560,11 @@
 	bx	r1
 .func_end Func_80bf678
 
+@ RunBattleEnd
+@ r0.. = parameters. 517 lines. Ends the battle: lists the survivors
+@ (Func_b6b40), logs the outcome with .gcc2_compiled., tears the HUD down through
+@ Func_bb938, and uses a Func_4970 scratch released by free.
+@ Traced structurally.
 .thumb_func_start Func_80bfba4  @ 0x080bfba4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

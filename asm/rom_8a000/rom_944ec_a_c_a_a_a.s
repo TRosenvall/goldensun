@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ AllocWaveEffectBuffer
+@ Takes no arguments. Allocates the 0x720-byte wave effect buffer under tag 0x38
+@ and zeroes it.
 .thumb_func_start Func_80958a8  @ 0x080958a8
 	push	{lr}
 	mov	r1, #0xe4
@@ -25,6 +28,9 @@
 	bx	r0
 .func_end Func_80958a8
 
+@ StopWaveEffect
+@ Takes no arguments. Unregisters .gcc2_compiled. and tears down the wave effect
+@ instances at [iwram_1f30]+0x9D.
 .thumb_func_start Func_80958e4  @ 0x080958e4
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001f30

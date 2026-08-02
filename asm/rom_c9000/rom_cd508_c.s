@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Sub_cdd58
+@ Battle animation routine, 107 instructions.
+@ State: iwram_1e74, iwram_1ad0.
+@ Calls out to: _Func_c0774.
+@ Touches: REG_WIN0H, REG_WININ.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start InitRenderTilemapBG1  @ 0x080cdd58
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -144,6 +151,11 @@
 	bx	r0
 .func_end InitRenderTilemapBG1
 
+@ Sub_cde90
+@ Battle animation routine, 202 instructions.
+@ State: iwram_1ef0.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start DrawLine  @ 0x080cde90
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -375,6 +387,13 @@
 	bx	r0
 .func_end DrawLine
 
+@ Sub_ce034
+@ Battle animation routine, 516 instructions.
+@ State: iwram_1eec, iwram_1e80, ewram_10000.
+@ Calls out to: _Func_b7dd0, _Func_b8228, _Func_bd7dc, _Func_c300, _Func_c4ac, _Func_d14c. ...
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_PlanetDiver  @ 0x080ce034
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -919,6 +938,13 @@
 	bx	r0
 .func_end Anim_PlanetDiver
 
+@ Sub_ce4e8
+@ Battle animation routine, 379 instructions.
+@ State: iwram_1eec, iwram_1e80, ewram_10000.
+@ Calls out to: _Func_b7dd0, _Func_bd7dc, _Func_f9080.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_Haunt  @ 0x080ce4e8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1316,6 +1342,13 @@
 	bx	r0
 .func_end Anim_Haunt
 
+@ Sub_ce85c
+@ Battle animation routine, 306 instructions.
+@ State: iwram_1eec, iwram_1e80.
+@ Calls out to: _Func_b7dd0.
+@ Touches: REG_BG2PA, REG_BG2X.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_Confuse  @ 0x080ce85c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

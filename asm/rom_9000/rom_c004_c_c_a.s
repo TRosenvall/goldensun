@@ -1,6 +1,29 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ DrawWorldEntities2D
+@ Per-frame sprite pass for the map (non-projected) view; the counterpart to
+@ Func_c880, registered by InitActors for modes other than 3 and 4. Takes no
+@ arguments.
+@ Setup: reads the map state from [iwram_1e70], caches the camera origin at
+@ +0xE4/+0xE8 truncated to whole pixels, and allocates the usual 0x2C4 scratch
+@ arena with a RAM copy of Func_9bb8.
+@ Loop: walks the 0x40 entities (stride 0x70) and, for each active slot whose
+@ draw kind (+0x54 low nibble) is 1:
+@   - culls against the same screen window as Func_bfa4 -- x within
+@     [-32, 272), y within [-32, 224). A culled entity releases its tile
+@     allocation with Func_3f78 and sets the dirty flag at actor+0x25, unless
+@     the keep-loaded flag at +0x5C is set.
+@   - looks up the map attribute word for the entity's tile: the layer table at
+@     [map + 0x130 + layer * 0x30] indexed by (z >> 20) * 128 + (x >> 20).
+@     Bits 16-17 set the OAM priority in actor+0x09 and +0x15 (only when bit 0
+@     of +0x1B enables it); bits 18-19 set the tile-type byte at entity+0x22.
+@   - scales the entity's two size fields by the actor depth at +0x18 through
+@     Func_888, builds the position triple on the stack, and applies the two
+@     display offsets from +0x23: bit 1 shifts by -0x140.0000 and bit 2 by
+@     +0x140.0000.
+@   - submits with UpdateSprite, passing the entity facing at +0x06.
+@ Releases the scratch arena with Func_2dd8 before returning.
 .thumb_func_start Func_800c62c  @ 0x0800c62c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

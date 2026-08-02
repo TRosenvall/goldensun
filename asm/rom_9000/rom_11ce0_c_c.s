@@ -1,5 +1,17 @@
 	.include "macros.inc"
 
+@ CheckTerrainStep
+@ r0=entity, r1=candidate position. Returns 0 if the entity may stand there,
+@ and non-zero if the move must be rejected:
+@     2 = no tile / blocked (tile flags byte is 0xFF)
+@     1 = the step up exceeds 8.0
+@    -1 = the drop exceeds 12.0
+@ Reads the candidate's integer x and z from the high halfwords at +0x02 and
+@ +0x0A, picks the layer from the entity's tile-type byte at +0x22 (values above
+@ 2 fall back to ewram_10000), samples the height through the same shape
+@ dispatch as Func_11f54, and compares it against the ground height cached in
+@ the entity at +0x14.
+@ This is the terrain half of movement validation; Func_d924 is the entity half.
 .thumb_func_start TestCollision  @ 0x080120dc
 	push	{r5, r6, r7, lr}
 	mov	r3, #0xa

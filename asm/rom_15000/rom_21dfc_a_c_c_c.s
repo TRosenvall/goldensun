@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunShopScreen
+@ r0.. = parameters. THE LARGEST FUNCTION IN THE MODULE at 1157 lines.
+@ Runs the buy/sell interaction end to end: opens windows with CreateUIBox,
+@ renders with Func_1e7c0, prompts with .gcc2_compiled., allocates scratch through
+@ free, and closes with CloseUIBox / .gcc2_compiled..
+@ Traced structurally; the transaction logic is not yet documented.
 .thumb_func_start MenuBar  @ 0x08021e6c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1158,6 +1164,8 @@
 	bx	r1
 .func_end MenuBar
 
+@ ComputePrice
+@ r0.. = parameters. Pure arithmetic returning an item price; no calls out.
 .thumb_func_start Func_8022768  @ 0x08022768
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1253,6 +1261,9 @@
 	bx	r0
 .func_end Func_8022768
 
+@ ComputeAdjustedPrice
+@ r0.. = parameters. Func_22768 with the party modifier from _Func_b6c08
+@ applied.
 .thumb_func_start Func_802281c  @ 0x0802281c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

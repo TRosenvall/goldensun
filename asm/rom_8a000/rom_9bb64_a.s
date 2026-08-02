@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SetupWorldMapView
+@ Takes no arguments. Brings up the world-map screen: allocates a 0x20-byte
+@ header with Func_4970, stages it at ewram_10000, and builds the party marker
+@ from the player id at ewram_240+0x1F4. The ~280-instruction body is
+@ characterised structurally.
 .thumb_func_start Func_809bb64  @ 0x0809bb64
 	push	{r5, r6, r7, lr}
 	mov	r0, #0x20

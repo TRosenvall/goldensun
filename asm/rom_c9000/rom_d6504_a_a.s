@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ StepScreenShake
+@ Takes no arguments. Advances the battle screen shake one frame using the
+@ amount at [iwram_1eec]+0x77AC and the mode at +0x77B0, adding the offset into
+@ the view's y at [iwram_1e80]+0x36.
+@ Mode 1 applies the full amount once and then clears the mode -- a single
+@ jolt. Any other mode applies half the amount and alternates between 2 and 0,
+@ giving the oscillating shake.
 .thumb_func_start Task_SpinCamera  @ 0x080d6504
 	push	{lr}
 	ldr	r3, =iwram_3001eec

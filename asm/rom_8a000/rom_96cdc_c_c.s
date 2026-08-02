@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunLiftAbility
+@ Takes no arguments. The lift field ability: raises the target object off its
+@ tile, holds it, and sets it down at the destination. The ~250-instruction body
+@ is characterised structurally.
 .thumb_func_start Func_8097194  @ 0x08097194
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -117,6 +121,10 @@
 	bx	r0
 .func_end Func_8097194
 
+@ FinishFieldAbility
+@ Takes no arguments. Common teardown for the abilities in this file: restores
+@ the caster's hook and palette, releases the effect instances and returns
+@ control to the player.
 .thumb_func_start Func_809728c  @ 0x0809728c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

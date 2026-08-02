@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ ResolveAction
+@ r0.. = parameters. Works out the outcome of an action: the actor's scaled
+@ stats (.gcc2_compiled.), the hit roll (Func_79d7c, Func_79be8), the item effect
+@ (Func_79e9c) and the special-case test (.gcc2_compiled.).
+@ 220 lines; traced structurally. This is the damage-formula entry point.
 .thumb_func_start Func_8079f10  @ 0x08079f10
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

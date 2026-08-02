@@ -1,6 +1,19 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SpawnEffectActors
+@ r0=count, r1=actor resource id, r2=OBJ priority (only bits 0-1 are used).
+@ Creates `count` actors from one resource and fills the effect-actor array at
+@ [iwram_1eec]+0x77D8 with them, one word each. Each actor gets:
+@     +0x26 = 0                       (u8, cleared)
+@     animation index i               via _Func_ba30, so actor i plays frame i
+@     +0x09 bits 3:2 = r2 & 3         (OBJ priority), other bits preserved
+@ A count of 0 does nothing. A failed _Func_bc70 leaves 0 in the slot and the
+@ loop continues, so callers must null-check the array.
+@
+@ This is the standard way every animation class stocks its particle/effect
+@ actors -- `CreateSummonSprite(16, resId, 2)` means "sixteen copies of resId, each
+@ showing its own animation frame, at priority 2".
 .thumb_func_start CreateSummonSprite  @ 0x080dbb24
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

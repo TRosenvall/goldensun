@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SelectPartyFormation
+@ r0, r1, r2 = formation parameters. Chooses the party layout from the leader's
+@ resource kind, read as byte +4 of the header at [[iwram_1e60]+0x28], with a
+@ multi-way dispatch over kinds 3, 4, 6, 8, 0x14, 0x2C and 0x58. Bit 1 of
+@ iwram_1ae8 selects an alternate offset taken from iwram_1800.
+@ The per-kind bodies (about 250 instructions) have NOT been analysed
+@ individually; only the dispatch structure above is verified.
 .thumb_func_start Func_8012b2c  @ 0x08012b2c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

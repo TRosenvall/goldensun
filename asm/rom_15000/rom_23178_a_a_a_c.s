@@ -1,6 +1,8 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunOptionsScreen
+@ r0.. = parameters. The same sequence with sound routed through Func_1f77c.
 .thumb_func_start Func_80289e8  @ 0x080289e8
 	push	{r5, r6, lr}
 	mov	r6, #0
@@ -98,6 +100,9 @@
 	bx	r1
 .func_end Func_80289e8
 
+@ DrawSubScreenText
+@ r0.. = parameters. Draws with Func_1e7c0 and marks the region dirty with
+@ Func_164d4.
 .thumb_func_start Func_8028aa8  @ 0x08028aa8
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001f38
@@ -197,6 +202,8 @@
 	bx	r0
 .func_end Func_8028aa8
 
+@ DrawSubScreenLabel
+@ r0.. = parameters. Draws with DrawSmallText and releases with .gcc2_compiled..
 .thumb_func_start Func_8028b80  @ 0x08028b80
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001f38
@@ -256,6 +263,8 @@
 	bx	r0
 .func_end Func_8028b80
 
+@ RunPromptSubScreen
+@ r0.. = parameters. A sub-screen that also opens its own window and label.
 .thumb_func_start DataTransferMenu  @ 0x08028c04
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

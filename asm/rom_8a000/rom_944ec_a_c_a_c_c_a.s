@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ AlignPlayerToVehicle
+@ r0=vehicle entity. Snaps the player entity onto the vehicle's position and
+@ facing so the two move as one.
 .thumb_func_start Func_8095fcc  @ 0x08095fcc
 	push	{r5, r6, r7, lr}
 	ldr	r3, =gState
@@ -58,6 +61,9 @@
 	bx	r0
 .func_end Func_8095fcc
 
+@ RunVehicleTurn
+@ Takes no arguments. Turns the vehicle (and the player riding it) to a new
+@ heading over several frames.
 .thumb_func_start Func_8096048  @ 0x08096048
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -174,6 +180,10 @@
 	bx	r0
 .func_end Func_8096048
 
+@ RunVehicleArrival
+@ r0=destination slot. Plays the arrival sequence when the vehicle reaches a
+@ dock or landing point. The ~140-instruction body is characterised
+@ structurally.
 .thumb_func_start GetVenusDjinni  @ 0x08096140
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -479,6 +489,9 @@
 	bx	r0
 .func_end GetVenusDjinni
 
+@ RunVehicleDeparture
+@ Takes no arguments. The counterpart to GetVenusDjinni -- the leaving-the-dock
+@ sequence. The ~90-instruction body is characterised structurally.
 .thumb_func_start Func_809641c  @ 0x0809641c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

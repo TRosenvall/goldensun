@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ IsPositionOnMap
+@ r0=position vec3 (16.16). Returns 0 when the point is on a valid tile and -1
+@ when it is not. Resolves the tile from x (+0x00) and the ground-projected
+@ depth (+0x08 minus +0x04) against the layer at [iwram_1e70]+0x190, and treats
+@ a tile flags byte of 0xFF as off-map. Returns 0 with no test when no map is
+@ loaded. The branchless tail computes the -1/0 result without a compare.
 .thumb_func_start Func_801219c  @ 0x0801219c
 	push	{lr}
 	ldr	r3, [r0]
@@ -57,6 +63,14 @@
 	bx	r1
 .func_end Func_801219c
 
+@ GetSurfaceMaterial
+@ r0=position vec3 (16.16). Returns the material nibble under the point, or 7
+@ when neither layer supplies one.
+@ Converts the position to 8-pixel cells wrapped into the 64x64 BG grid, reads
+@ the tile id from the upper screen block at 0x6005000 and looks up
+@ ewram_2c800 + id * 8 + sub-cell; the low or high nibble is taken depending on
+@ bit 1 of x. If that yields 0 it retries against the lower layer at 0x6004000
+@ and ewram_2c000, and falls back to 7 if that is also empty.
 .thumb_func_start Func_8012204  @ 0x08012204
 	push	{r5, lr}
 	ldr	r4, [r0, #8]

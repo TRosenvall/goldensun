@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ StepBattleSprite
+@ r0 = combatant id. Advances one frame of the combatant's sprite state from its
+@ battle record.
 .thumb_func_start Func_80b83b4  @ 0x080b83b4
 	push	{r5, r6, lr}
 	mov	r5, r1

@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ TrackStop
+@ r0 = player, r1 = track. Walks the track's channel list at +0x20 and stops
+@ every channel on it, clearing each one's status byte and its back-pointer to
+@ the track. A channel of the CGB type goes through the oscillator-off handler
+@ in the driver block at iwram_7ff0 first, so the PSG hardware is silenced as
+@ well as the mixer state.
+@ Entry 31 of the jump table, and the routine FadeOutBody calls when a fade-out
+@ reaches zero.
 .thumb_func_start TrackStop  @ 0x080f9ef8
 	push	{r4, r5, r6, lr}
 	mov	r5, r1
@@ -39,6 +47,18 @@
 	bx	r0
 .func_end TrackStop
 
+@ ComputeChannelVolume
+@ r4 = channel, r5 = track. The CHANNEL-level counterpart of TrkVolPitSet: that
+@ one rebuilds the track's stereo pair, this one turns it into the two levels
+@ the mixer reads. Turns the track's volume (+0x12) and pan (+0x14) into
+@ the two 8-bit mixer levels at channel+0x02 and +0x03:
+@
+@     right = (0x80 + pan) * vol * player.volMR >> 14
+@     left  = (0x7F - pan) * vol * player.volML >> 14
+@
+@ both clamped at 0xFF. Pan is signed around zero, so the two expressions are
+@ symmetric; the 0x80 versus 0x7F asymmetry is what makes hard-left and
+@ hard-right reachable with a single byte.
 .thumb_func_start Func_80f9f3c  @ 0x080f9f3c
 	ldrb	r1, [r4, #0x12]
 	mov	r0, #0x14
@@ -68,6 +88,11 @@
 	bx	lr
 .func_end Func_80f9f3c
 
+@ UpdateChannelVolumes
+@ r0.. = parameters. Walks the channels of a track and refreshes each one's
+@ mixer state -- Func_f9f3c for the stereo levels, Func_fa1fc for the pitch,
+@ ClearChain to release and TrkVolPitSet for the envelope step. 269 lines; traced
+@ structurally.
 .thumb_func_start MP2K_event_nxx  @ 0x080f9f6c
 	push	{r4, r5, r6, r7, lr}
 	mov	r4, r8
@@ -344,6 +369,9 @@
 	bx	r0
 .func_end MP2K_event_nxx
 
+@ TrackEndOfTie
+@ r0 = player, r1 = track. Ends a tied note: finds the channel holding it and
+@ sets the release bit. Command 0xCE, index 29.
 .thumb_func_start MP2K_event_endtie  @ 0x080fa16c
 	push	{r4, r5}
 	ldr	r2, [r1, #0x40]
@@ -384,6 +412,11 @@
 	bx	lr
 .func_end MP2K_event_endtie
 
+@ MarkModulationChanged
+@ r1 = track. Zeroes the modulation accumulators at track+0x16 and +0x1A, then
+@ raises flag bits 2 and 3 when the modulation type at +0x18 is zero and bits 0
+@ and 1 otherwise -- pitch modulation versus volume modulation, which is exactly
+@ what the two flag pairs mean everywhere else in this driver.
 .thumb_func_start Func_80fa1ac  @ 0x080fa1ac
 	mov	r2, #0
 	strb	r2, [r1, #0x16]
@@ -402,6 +435,10 @@
 	bx	lr
 .func_end Func_80fa1ac
 
+@ FetchTrackByteRaw
+@ r1 = track. Reads the byte at the command pointer and advances it, WITHOUT the
+@ guard Func_f9ab4 applies. Used only by the two commands below, where the byte
+@ has already been bounds-checked by the caller.
 .thumb_func_start Func_80fa1c8  @ 0x080fa1c8
 	ldr	r2, [r1, #0x40]
 	add	r3, r2, #1
@@ -410,6 +447,9 @@
 	bx	lr
 .func_end Func_80fa1c8
 
+@ TrackLfoSpeed
+@ r1 = track. Stores the next byte at track+0x19 and, when it is zero, calls
+@ Func_fa1ac to clear the modulation state. Command 0xC2, index 17.
 .thumb_func_start MP2K_event_lfos  @ 0x080fa1d4
 	mov	r12, lr
 	bl	Func_80fa1c8
@@ -421,6 +461,9 @@
 	bx	r12
 .func_end MP2K_event_lfos
 
+@ TrackModDepth
+@ r1 = track. Stores the next byte at track+0x17, clearing the modulation state
+@ when it is zero. Command 0xC4, index 19.
 .thumb_func_start MP2K_event_mod  @ 0x080fa1e8
 	mov	r12, lr
 	bl	Func_80fa1c8

@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ StartLoopingSound
+@ r0=sound id, or -1 for the 0x121 default. Records the id at iwram_1ebc+0xCC8
+@ so .gcc2_compiled. can stop it later, plays 0x12A as the attack, then the sound
+@ itself.
 .thumb_func_start Func_8091ff0  @ 0x08091ff0
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc

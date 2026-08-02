@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ UploadEncounterPalettes
+@ Takes no arguments. DMAs the encounter transition's palette working set --
+@ 0x150 words from the scene buffer at [iwram_1ebc+0x14]+0x3400 into
+@ [iwram_1ebc]+0x776 -- staging the colours the wipe interpolates between.
 .thumb_func_start Func_8097384  @ 0x08097384
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc

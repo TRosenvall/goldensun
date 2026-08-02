@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ FindMapInSpecialList
+@ Takes no arguments. Scans the zero-terminated list at .L9e270 for the current
+@ map id (ewram_240+0x1C0) and reports whether it is present -- the list of maps
+@ that get special handling on entry.
 .thumb_func_start Func_808b25c  @ 0x0808b25c
 	push	{r5, r6, lr}
 	ldr	r2, =gState
@@ -41,6 +45,10 @@
 	bx	r0
 .func_end Func_808b25c
 
+@ GetTransitionStyle
+@ r0=transition kind 1..7. Returns the fade/wipe style constant for that kind
+@ via the jump table at .L8b2c0. Kinds outside 1..7 fall through to the default
+@ at .L8b2f0.
 .thumb_func_start Func_808b2b0  @ 0x0808b2b0
 	push	{lr}
 	sub	r0, #1
@@ -86,6 +94,12 @@
 	bx	r0
 .func_end Func_808b2b0
 
+@ StartMapTransition
+@ r0=map group, r1=entrance. Commits the transition: forms the packed
+@ destination as (group << 4) | entrance, then picks the transition record from
+@ .L9e488. Event flag 0x16C selects an alternate style (0x12) -- the
+@ post-progress variant -- otherwise the style is looked up normally.
+@ This is what Func_91eb0 and Func_91f14 in rom_91584.s ultimately call.
 .thumb_func_start Func_808b320  @ 0x0808b320
 	push	{r5, r6, r7, lr}
 	lsl	r0, #4

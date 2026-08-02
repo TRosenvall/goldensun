@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ FlushDisplayList
+@ Takes no arguments. Emits the accumulated display list, staging through a
+@ Func_4938 scratch released by free. Called once per frame from
+@ WaitFrames.
 .thumb_func_start Func_8003e10  @ 0x08003e10
 	push	{r5, r6, lr}
 	mov	r6, r8

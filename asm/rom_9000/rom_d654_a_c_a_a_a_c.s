@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ ScriptOp_LoopN
+@ Script opcode handler. r0=entity. Two operands: an iteration count at
+@ script[cursor+1] and a target label at script[cursor+2].
+@ A count of 0xFFFF means loop forever and always jumps. Otherwise the iteration
+@ counter at +0x5D is incremented and compared (as a byte) against the count: if
+@ it is still lower, control jumps back to the label via Func_d6d8; once it
+@ reaches the count the counter is reset to 0 and the cursor advances by 3 to
+@ fall out of the loop. Always returns 1.
 .thumb_func_start ActorCmd_Loop  @ 0x0800d710
 	push	{r5, lr}
 	mov	r5, r0

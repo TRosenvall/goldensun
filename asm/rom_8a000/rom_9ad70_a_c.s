@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ RunFieldAbility
+@ Takes no arguments. The main field-ability sequence: reads the caster and
+@ target from [iwram_1f30], plays the cast animation and particle effects,
+@ applies the effect to the world, and restores control.
+@ The ~500-instruction body is characterised structurally; the state block
+@ layout and the open/close bracketing are verified.
 .thumb_func_start Field_Catch  @ 0x0809ae64
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

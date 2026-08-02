@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Playcf8e0Impl
+@ r0=action descriptor, r1=variant. The shared implementation behind the
+@ 7 thin wrappers in this file, which exist so the animation table can hold
+@ one address per variant:
+@     0=Func_cf8a4 1=Func_cf8b0 2=Func_cf8c8 3=Func_cf8d4 4=Func_cf88c 5=Func_cf898 6=Func_cf8bc
+@ Works from the battle state at [iwram_1eec]; the variant selects timing,
+@ colours and which arm of the sequence runs. Body characterised
+@ structurally -- see the wrappers for the variant numbering.
 .thumb_func_start BaseAnim_Blob  @ 0x080cf8e0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ SummarisePartyStatus
+@ r0 = destination. Walks the roster from .gcc2_compiled. and writes each member's
+@ status summary. Used by rom_15000's save and status screens.
 .thumb_func_start GetNumDjinn  @ 0x0807a5bc
 	push	{r5, r6, r7, lr}
 	sub	sp, #0x24

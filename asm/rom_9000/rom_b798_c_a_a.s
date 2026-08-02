@@ -1,6 +1,18 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ BindActorParts
+@ r0=actor. Rebinds every part in the actor's array (+0x27 = count,
+@ +0x28.. = up to 4 part pointers) to its resource header, fetched by part id
+@ with _Func_185008. Always returns 0.
+@ From the FIRST part only, caches the actor-level sprite metrics:
+@   header[0] -> +0x20 (width)     header[1] -> +0x21 (height)
+@   header[2..3] << 8 -> +0x18 (depth)
+@   header[6] -> +0x22   header[7] -> +0x23  (position correction bytes)
+@ For every part: pixel data comes from header+0x0C, or from Func_b798 if that
+@ is null; then part+0x04 = header[4], +0x08 = pixel data, +0x0C = animation
+@ table (header+0x10), +0x07 = header[0x0A], and the animation state is reset
+@ (+0x14 = 0, +0x10 = 0, +0x16 = 0xFF "no frame drawn yet").
 .thumb_func_start InitSprite  @ 0x0800b7c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -91,6 +103,12 @@
 	bx	r1
 .func_end InitSprite
 
+@ BindPartResource
+@ r0=part. Single-part version of the per-part half of InitSprite: looks up the
+@ part's resource header by its id (+0x00), resolves the pixel data from
+@ header+0x0C or Func_b798, and rewrites +0x04/+0x07/+0x08/+0x0C plus the
+@ animation reset (+0x10 = 0, +0x14 = 0, +0x16 = 0xFF). No-op on a null part
+@ or an empty header.
 .thumb_func_start InitSpriteLayer  @ 0x0800b868
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -128,6 +146,14 @@
 	bx	r0
 .func_end InitSpriteLayer
 
+@ AddActorPart
+@ r0=actor, r1=resource id. Finds the first empty entry in the actor's 4-slot
+@ part array (+0x28..+0x34), allocates a part for the id with CreateSpriteLayer and
+@ stores it there. Returns the new part, 0 if allocation failed, or -1 if all
+@ four slots are already occupied. When this is the actor's first part, the
+@ actor-level metrics (+0x20..+0x23, +0x18) are seeded from the resource header
+@ exactly as InitSprite does. The part count at +0x27 grows only when the slot
+@ filled was the one just past the end.
 .thumb_func_start Sprite_AddLayer  @ 0x0800b8ac
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -207,6 +233,11 @@
 	bx	r1
 .func_end Sprite_AddLayer
 
+@ RemoveActorPart
+@ r0=actor, r1=part pointer. Frees the part with DeleteSpriteLayer, locates it in the
+@ actor's 4-slot array and clears that slot. If every slot after the removed
+@ one is empty, the part count at +0x27 shrinks to the removed index -- so
+@ trailing holes are reclaimed but interior ones are left in place.
 .thumb_func_start Sprite_DeleteLayer  @ 0x0800b93c
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -267,6 +298,10 @@
 	bx	r0
 .func_end Sprite_DeleteLayer
 
+@ RemoveActorPartAtIndex
+@ r0=actor, r1=slot index (0-3). Same as Sprite_DeleteLayer but addressed by index
+@ instead of by pointer: frees the occupant with DeleteSpriteLayer, clears the slot,
+@ and shrinks the count at +0x27 when no later slot is still occupied.
 .thumb_func_start Sprite_DeleteLayerIndex  @ 0x0800b9a4
 	push	{r5, r6, r7, lr}
 	mov	r5, r0

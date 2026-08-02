@@ -1,6 +1,8 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunSceneFade
+@ r0.. = parameters. Fades the scene a frame at a time through WaitFrames.
 .thumb_func_start Func_80c0eec  @ 0x080c0eec
 	push	{r5, lr}
 	ldr	r1, =gKeyHeld
@@ -85,6 +87,9 @@
 	bx	r1
 .func_end Func_80c0eec
 
+@ SubmitCombatantToScene
+@ r0 = combatant id. Adds the combatant's sprite to the scene draw list, via
+@ Func_b7dd0.
 .thumb_func_start Func_80c0f98  @ 0x080c0f98
 	push	{r5, r6, lr}
 	mov	r5, r1
@@ -152,6 +157,9 @@
 	bx	r0
 .func_end Func_80c0f98
 
+@ SubmitQueuedCombatants
+@ Takes no arguments. Walks the action queue with Func_b6c08 and submits each
+@ combatant through Func_c0f98.
 .thumb_func_start Func_80c1014  @ 0x080c1014
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -188,6 +196,8 @@
 	bx	r0
 .func_end Func_80c1014
 
+@ SubmitQueuedCombatantsAlt
+@ Takes no arguments. As Func_c1014 over the other queue group.
 .thumb_func_start Func_80c1054  @ 0x080c1054
 	push	{r5, r6, r7, lr}
 	sub	sp, #0x1c
@@ -215,6 +225,8 @@
 	bx	r0
 .func_end Func_80c1054
 
+@ SortSceneDrawList
+@ r0.. = parameters. Orders the scene draw list by depth; no calls out.
 .thumb_func_start Func_80c1084  @ 0x080c1084
 	push	{lr}
 	ldr	r3, =iwram_3001e74

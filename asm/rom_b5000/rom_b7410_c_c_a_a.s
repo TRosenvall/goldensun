@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ComputeCameraTransform
+@ r0.. = parameters. Builds the battle camera matrix from InitMatrixStack, MatrixPitch,
+@ MatrixYaw and MatrixTranslatev.
 .thumb_func_start Func_80b7f9c  @ 0x080b7f9c
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001e80
@@ -45,6 +48,9 @@
 	bx	r0
 .func_end Func_80b7f9c
 
+@ AimAtCombatant
+@ r0 = combatant id. Computes the facing toward a target with atan2 (atan2)
+@ and applies it through Func_c4ac / Actor_TravelTo.
 .thumb_func_start Func_80b8000  @ 0x080b8000
 	push	{r5, r6, lr}
 	bl	GetBattleActor

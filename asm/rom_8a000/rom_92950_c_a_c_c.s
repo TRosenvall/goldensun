@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ ShowMessageWithPrompt
+@ r0=speaker slot, r1=style flags. Returns the player's choice.
+@ Opens the box with Func_92c40, puts the yes/no prompt up through
+@ Func_91c7c against the player entity, then shows the follow-up line with
+@ ActorMessage. The message id at +0x1D8 is advanced by one either way, but the
+@ order differs: a non-zero choice advances before the follow-up, a zero choice
+@ after -- so the two branches select different lines.
 .thumb_func_start Func_8093054  @ 0x08093054
 	push	{r5, r6, r7, lr}
 	mov	r6, r1

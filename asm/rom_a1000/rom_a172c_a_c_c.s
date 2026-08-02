@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ ResetNodeAnimation
+@ r0 = node, or 0 for a no-op. Marks the node live (+0x05 = 1), copies its
+@ resource id from +0x06 into the low 9 bits of +0x16, restarts the frame
+@ counter by copying +0x08 to +0x14, and clears the top two bits of +0x17 and
+@ the low two of +0x15. Called 43 times across the module, always to rewind a
+@ sprite that is about to be reused rather than to build a new one.
 .thumb_func_start Func_80a17c4  @ 0x080a17c4
 	push	{lr}
 	cmp	r0, #0

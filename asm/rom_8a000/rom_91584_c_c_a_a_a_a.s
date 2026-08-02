@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ WaitForAnimationEnd
+@ r0=slot, r1=animation index. Blocks while the slot's actor is still playing
+@ animation r1, checking the actor's current-animation byte at +0x24 once per
+@ frame. Gives up after 0x5A (90) frames, and returns immediately if the slot is
+@ empty or not draw kind 1.
 .thumb_func_start MapActor_WaitAnim  @ 0x08091c44
 	push	{r5, r6, r7, lr}
 	mov	r7, r1
@@ -32,6 +37,17 @@
 	bx	r0
 .func_end MapActor_WaitAnim
 
+@ RunFieldAbilityPrompt
+@ r0=slot, r1=force-simple flag. Returns the prompt result.
+@ First drains any held buttons (spins on iwram_1c94 until released) and waits
+@ for _Func_17364 to report the message window ready, then pauses 3 frames.
+@ When r1 is 0 it compares the combined stat at +0x0E plus +0x0A for the two
+@ party records at +0x1F8 and +0x1FC and picks the lower; a value above 15
+@ downgrades the prompt style passed to _Func_28df4.
+@ The prompt itself is _Func_28df4 with the two counters at iwram_1ebc+0xCC2
+@ and +0xCC4. A non-zero result selects animation 4 on the slot, a zero result
+@ animation 3, each via Func_924d4 then _Func_19e48 / _Func_19a54 and a
+@ MapActor_WaitAnim wait for that animation to finish.
 .thumb_func_start Func_8091c7c  @ 0x08091c7c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

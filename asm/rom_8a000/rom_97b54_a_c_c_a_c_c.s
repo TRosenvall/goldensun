@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ OrbitHookSlow
+@ r0=entity. Per-frame hook that advances the phase at +0x64 and moves the
+@ particle around its orbit; the slower of the two variants here.
 .thumb_func_start Func_8099070  @ 0x08099070
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -48,6 +51,9 @@
 	bx	r0
 .func_end Func_8099070
 
+@ OrbitHookFast
+@ r0=entity. The faster sibling of Func_99070 -- same phase word at +0x64, a
+@ larger step per frame.
 .thumb_func_start Func_80990cc  @ 0x080990cc
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -96,6 +102,9 @@
 	bx	r0
 .func_end Func_80990cc
 
+@ MarkTargetHeld
+@ Takes no arguments. Sets the held flag at +0x35 of the effect state when a
+@ target is present at +0x14, recording that an object is currently lifted.
 .thumb_func_start Field_Frost_Target  @ 0x08099128
 	push	{lr}
 	ldr	r3, =iwram_3001f30
@@ -125,6 +134,10 @@
 	bx	r0
 .func_end Field_Frost_Target
 
+@ RunCarryAbility
+@ Takes no arguments. Carries a held object with the player as they walk,
+@ updating its position each frame until it is released. The
+@ ~400-instruction body is characterised structurally.
 .thumb_func_start Field_Frost  @ 0x08099160
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -297,6 +310,9 @@
 	bx	r0
 .func_end Field_Frost
 
+@ ComputeOrbitOffset
+@ r0=entity. Converts the phase counter at +0x64 into a position offset through
+@ sin (the sine table), giving the particle its circular path.
 .thumb_func_start Func_80992f0  @ 0x080992f0
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -336,6 +352,9 @@
 	bx	r0
 .func_end Func_80992f0
 
+@ ApplyParticleOffset
+@ r0=entity. Adds the computed orbit offset to the particle's position, relative
+@ to the effect origin in [iwram_1f30]. Null-safe.
 .thumb_func_start Func_8099340  @ 0x08099340
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001f30
@@ -390,6 +409,10 @@
 	bx	r0
 .func_end Func_8099340
 
+@ AnimateParticleSpiral
+@ r0=entity. Advances the particle along a spiral -- phase at +0x64 driving both
+@ the angle and a growing radius. The ~110-instruction body is characterised
+@ structurally.
 .thumb_func_start Func_80993b0  @ 0x080993b0
 	push	{r5, r6, r7, lr}
 	mov	r5, r0

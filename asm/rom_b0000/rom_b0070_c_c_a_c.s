@@ -1,6 +1,8 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ShowTypedChoice
+@ r0 = string id. The choice-returning form of .gcc2_compiled..
 .thumb_func_start Func_80b2928  @ 0x080b2928
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -61,6 +63,9 @@
 	bx	r0
 .func_end Func_80b2928
 
+@ RunShopByType
+@ r0.. = parameters. Exported. Opens the state, dispatches on the shop type, and
+@ tears down -- the entry the field layer uses for a specific shop kind.
 .thumb_func_start UI_Sanctum  @ 0x080b29a8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -214,6 +219,9 @@
 	bx	r1
 .func_end UI_Sanctum
 
+@ RunShopConversation
+@ r0.. = parameters. 295 lines. Runs the shopkeeper's dialogue around a
+@ transaction. Traced structurally.
 .thumb_func_start Func_80b2b10  @ 0x080b2b10
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -509,6 +517,9 @@
 	bx	r1
 .func_end Func_80b2b10
 
+@ RefreshPartyAfterPurchase
+@ r0.. = parameters. Rebuilds the affected characters' derived stats through
+@ _Func_77428 and _Func_7822c after an equipment change.
 .thumb_func_start Func_80b2da8  @ 0x080b2da8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -580,6 +591,8 @@
 	bx	r0
 .func_end Func_80b2da8
 
+@ AnimateShopkeeper
+@ r0.. = parameters. Plays the shopkeeper's animation through _Func_ba30.
 .thumb_func_start Func_80b2e30  @ 0x080b2e30
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -661,6 +674,9 @@
 	bx	r0
 .func_end Func_80b2e30
 
+@ ShowShopkeeperLine
+@ r0.. = parameters. Shows one dialogue line, registering its substitution
+@ values with _Func_19908.
 .thumb_func_start Func_80b2ed8  @ 0x080b2ed8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -710,6 +726,10 @@
 	bx	r0
 .func_end Func_80b2ed8
 
+@ AnimateShopSprite
+@ r0.. = parameters. Moves a shop sprite on a path from vec3_translate (rotate) with
+@ Func_4458 variation, submitting through rom_9000's _Func_9ba34 / _Func_9ba5c /
+@ _Func_9bb34.
 .thumb_func_start Func_80b2f4c  @ 0x080b2f4c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -793,6 +813,8 @@
 	bx	r0
 .func_end Func_80b2f4c
 
+@ SpawnShopSprite
+@ r0.. = parameters. Creates a shop sprite through _Func_9b804 and _Func_b684.
 .thumb_func_start Func_80b2ffc  @ 0x080b2ffc
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001f2c
@@ -832,6 +854,10 @@
 	bx	r0
 .func_end Func_80b2ffc
 
+@ RunShopIntro
+@ r0.. = parameters. 191 lines. Plays the arrival sequence: registers a task
+@ with StartTask, uploads graphics (Func_b0840, .gcc2_compiled.), and advances frames
+@ through WaitFrames, unregistering with StopTask. Traced structurally.
 .thumb_func_start Func_80b3050  @ 0x080b3050
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

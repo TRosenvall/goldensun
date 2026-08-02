@@ -1,6 +1,110 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunAnimationClass9 -- four-way mirrored figure, brightness ramps, HBlank queue
+@ r0 = action descriptor. Animation class 9, entered from the twelve-way table
+@ in Anim_Summon (rom_d6504.s). The largest handler in the module at ~2690 lines.
+@ Two frame loops: 160 frames (0..0x9F), then 320 frames (0..0x13F).
+@
+@ THREE THINGS HERE ARE UNIQUE IN THE TWELVE, and all three are worth knowing
+@ before anyone tries to decompile this:
+@
+@ 1. IT REGENERATES BLITTERS INSIDE THE FRAME LOOP -- fourteen BuildDraw2DFuncEx calls
+@    against fourteen Func_2dd8 frees. Tag 0x2E is built once and kept; tag 0x2F
+@    is built, used for a single blit, and freed again, over and over. The four
+@    flag words it cycles are 3, 7, 0xB and 0xF, which differ only in bits 3:2 --
+@    exactly the field BuildDraw2DFuncEx branches on when sizing its output. So bits 3:2
+@    ARE THE MIRRORING MODE, and the four-call run draws one sprite into four
+@    quadrants around a centre near (0x3C, 0x50). A whole code generation and
+@    allocation per quadrant per frame.
+@
+@ 2. IT PRE-BUILDS EIGHT BRIGHTNESS RAMPS. After asset 0x73 is unpacked into
+@    [iwram_1ef4], the 0x302-byte sheet is copied EIGHT times to
+@    [iwram_1eec] + 0x2710 + 0x302*k, each byte clamped to a ceiling of
+@    0x40 - 7k -- 0x40, 0x39, 0x32, 0x2B, 0x24, 0x1D, 0x16, 0x0F -- and floored
+@    at 0. Eight progressively dimmer copies of the same sprites, so the fade is
+@    a pointer change rather than per-pixel work. (0x302 is the tag-0x29 buffer
+@    size; see the note on Data_ede48 in rom_d6504.s.)
+@
+@ 3. A LARGE BLOCK IS UNREACHABLE. The 3D swarm at ewram_10e00 -- 128 entries
+@    stepped with Func_e38b8, projected with .gcc2_compiled. and drawn by depth -- sits
+@    behind `if (frame < 0)`. The frame counter at sp+0x54 is written in exactly
+@    seven places: 0 before loop one, +1 at the end of loop one, 0 before loop
+@    two, the three fast-forward targets 0x96/0xD6/0x118, and +1 at the end of
+@    loop two. None is ever negative, so this block cannot run. It is still
+@    seeded during setup. Treat it as dead code, not as behaviour.
+@
+@ SETUP
+@   sp+0x68 = [iwram_1ef0] render buffer, sp+0x64 = [iwram_1eec] state,
+@   sp+0x60 = [iwram_1f00] (tag 0x2C), sp+0x50 = [iwram_1ef4] sprite scratch,
+@   sp+0x4c = [iwram_1e80] view.
+@   AnimStart(0x2000); REG_BG2PA = 0x100; Func_c9048(); palette 0 and 1 zeroed.
+@   BuildDraw2DFuncEx(0x2E,7,7,3,3) -> sp+0x58, the long-lived blitter.
+@   +0x7780 = 0; StartTask registers Task_BlitAnim; AnimTransitionOut(0, 0); Func_d6750;
+@     CreateSummonSprite(0x10, 0x17E, 1) spawns SIXTEEN actors; iwram_1ce0+0x10 = 0xF0;
+@     WaitFrames(1); _Func_c08ec(1, 0x3B, 0); AnimTransitionOut(0, 1).
+@   REG_DISPCNT = 0x7741, REG_BG2PA = 0x80, REG_BLDALPHA = 0x1010,
+@     REG_BLDCNT = 0x3F44, REG_BG2CNT = 0x784. +0x7780 = 2, +0x7784 = 0x32.
+@   LoadVFXFile unpacks asset 0xBB into [iwram_1eec], 0x67 into +0x600, 0xCE into
+@     +0x95C and 0x73 into [iwram_1ef4]; then the eight ramps above are built and
+@     asset 0x64's palette goes to 0x5000000.
+@   128 entries at ewram_10000 and 128 3-vectors at ewram_10e00 are seeded.
+@
+@ LOOP ONE -- frames 0..0x9F
+@   frame 0x50  sound 0x8E. frame 0x8F  the whole 0x4000 render buffer is filled
+@     with 0x2A2A2A2A by Func_8d8 and sound 0x91 plays -- a flat wash, not a
+@     clear to zero.
+@   frames > 0x50  the 64 entries at ewram_10000 build a fresh rotation each
+@     frame (InitMatrixStack then MatrixRoll / MatrixPitch / MatrixYaw with the frame
+@     folded into the third angle), project through .gcc2_compiled., clamp depth to
+@     +-0x3C and pick a size from Data_ede48 by that depth.
+@   THE FOUR-WAY FIGURE: the size index comes from .Leef28 = {2,3,4,6,10,11,12,0}
+@     with graphic offsets .Leef30 = {0,8,26,58,130,330,572} -- again n by 2n
+@     sprites, the same rule as Data_ede48 -- stepped by (frame-0x71)/4 capped at
+@     6. Each is drawn four times through the regenerate/blit/free cycle in (1).
+@   frames > 0x8F  two more mirrored pieces (flags 3 then 7) slide with the frame,
+@     +0x7784 = 0x4B, and a ring of 128 sprites is laid out on sin/cos around
+@     (0x3C, 0x48) using one more generated blitter.
+@   frame 0x48  +0x77B4 = 0x18, +0x77B8 = 0.
+@   end of frame  +0x7824 = 1; WaitFrames(1). A or B held past frame 4 exits.
+@
+@ BETWEEN THE LOOPS
+@   The render buffer is cleared to 0; all 16 actors are destroyed and SIXTEEN
+@   NEW ones are built one at a time from resource 0x186 with animation
+@   (i MOD 3) and their priority bits cleared. Tag 0x2E is freed and rebuilt.
+@   LoadVFXFile unpacks asset 0x64 into [iwram_1eec]+0x4000, and the 0x302-byte
+@     scratch is RE-QUANTISED IN PLACE: every byte above 0x20 gains 0xE0, every
+@     non-zero byte at or below 0x20 becomes 1. A two-tone stencil.
+@   _Func_c08ec(1, 0x3E, 0); REG_BG2PA = 0x100; REG_BG2PD = 0xFFFFC400;
+@     REG_BG2CNT = 0x784; +0x7780 = 2, +0x7784 = 0x4B.
+@   TWO DMA3 TRANSFERS are set up from a stack word, one 0x1000 words wide into
+@     the render buffer and one 0xE10 into the state block -- fills, not copies,
+@     since the source never advances.
+@
+@ LOOP TWO -- frames 0..0x13F
+@   sounds  0x42 -> 0x91 and 0x8D together, 0x9B -> 0xA2, 0xD9 -> 0x9C,
+@     0x118 -> 0x9D. Frame 0x12C fires .gcc2_compiled.(0x91) -- note the code is 0x91
+@     here, not the 0x86 every other handler uses.
+@   THE FAST-FORWARD HAS THREE STAGES: frames 5..0x95 jump to 0x96, 0x9B..0xD5
+@     jump to 0xD6, and 0xDB..0x117 jump to 0x118. Taking the first one also
+@     pushes two entries onto the HBlank queue at ewram_2090 (each entry is
+@     {value, register, control}, written under REG_IME guard, capacity 0x20) and
+@     unpacks asset 0x70, so skipping still leaves the display registers right.
+@   frames 0x40..0x46  more HBlank queue entries are pushed for REG_BG2PA and
+@     REG_BG2X, which is how the scaling sweep is driven.
+@   the six-frame sequence .Leef3e offsets {2396,2985,3698,4411,4810,5146} with
+@     .Leef4a widths {19,23,23,19,16,17} and .Leef50 heights {31,31,31,21,21,24}
+@     drives the main figure; the offsets are that table's own running w*h.
+@   frames > 0x3F  iwram_1ad0+6 jitters to (rand & 3) + 0x1E every frame, a
+@     continuous shake for the rest of the animation.
+@   Func_d6888 fires once on the targets; the sixteen actors are submitted
+@     through _Func_b168 at unit scale (Data_edad0).
+@   end of frame  the per-frame tag-0x2F blitter is freed; +0x7824 = 1;
+@     WaitFrames(1).
+@
+@ TEARDOWN
+@   All 16 actors at +0x77D8 are destroyed; StopTask(Task_BlitAnim);
+@   Func_2dd8(0x2E) frees the one surviving blitter; AnimEnd.
 .thumb_func_start Anim_Judgment  @ 0x080ea0d8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

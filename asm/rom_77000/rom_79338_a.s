@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ TestSaveBit
+@ r0 = index. Returns 1 when the bit is set, 0 otherwise.
+@ Byte is (idx & 0xFFF) >> 3, bit is idx & 7; the `neg`/`orr`/`lsr #31` tail is
+@ the branchless "is non-zero". 180 call sites -- the most-used accessor here.
 .thumb_func_start GetFlag  @ 0x08079338
 	mov	r3, #7
 	and	r3, r0
@@ -16,6 +20,8 @@
 	bx	lr
 .func_end GetFlag
 
+@ SetSaveBit
+@ r0 = index. Sets the bit. 50 call sites.
 .thumb_func_start SetFlag  @ 0x08079358
 	mov	r3, #7
 	and	r3, r0
@@ -30,6 +36,8 @@
 	bx	lr
 .func_end SetFlag
 
+@ ClearSaveBit
+@ r0 = index. Clears the bit. 58 call sites.
 .thumb_func_start ClearFlag  @ 0x08079374
 	mov	r3, #7
 	and	r3, r0

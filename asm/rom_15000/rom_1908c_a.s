@@ -1,6 +1,15 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ StepMenuLayer
+@ Takes no arguments. Called every frame from .gcc2_compiled., after the windows and
+@ message boxes have been stepped.
+@ Runs the cursor and sprite side of the UI: allocates and releases OBJ tiles
+@ (Func_3d28, .gcc2_compiled., UploadSpriteGFX), animates the cursor position with
+@ sin / cos (sine and cosine, so the cursor bobs), and reads the
+@ frame counter at iwram_1800. Func_4458 supplies randomness for the idle
+@ animation.
+@ 546 lines; traced structurally.
 .thumb_func_start Func_80191cc  @ 0x080191cc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

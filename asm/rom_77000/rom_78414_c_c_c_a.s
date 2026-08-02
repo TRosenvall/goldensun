@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ EquipInventorySlot
+@ r0 = combatant id, r1 = slot. Sets bit 10 (0x400) of the slot's halfword.
+@ Returns 0 on success, -1 when the slot is empty.
 .thumb_func_start BreakItem  @ 0x08078a34
 	push	{r5, lr}
 	mov	r5, r1

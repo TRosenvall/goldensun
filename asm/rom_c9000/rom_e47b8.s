@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunEffectSequence
+@ r0=action descriptor. The single large routine in this file.
+@ Allocates nothing itself -- the caller has already set up the three working
+@ buffers and [iwram_1eec]. Body characterised structurally; the entry
+@ contract is verified.
 .thumb_func_start BaseAnim_SpecialAttack  @ 0x080e47b8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

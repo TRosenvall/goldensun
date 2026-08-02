@@ -1,6 +1,8 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ApplySceneTransform
+@ r0.. = parameters. Applies the scene transform via Func_c0cec.
 .thumb_func_start Func_80c01bc  @ 0x080c01bc
 	push	{lr}
 	ldr	r3, =iwram_3001ef8
@@ -54,6 +56,8 @@
 	bx	r0
 .func_end Func_80c01bc
 
+@ ComputeSceneGeometry
+@ r0.. = parameters. Derives the scene's geometry; no calls out.
 .thumb_func_start Func_80c0228  @ 0x080c0228
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ef8

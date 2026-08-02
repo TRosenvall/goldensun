@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ PlayInteractionEffect
+@ r0=slot, r1=effect id in the low byte, r2=parameter. Plays the sound and
+@ visual that accompanies a field interaction; effect 6 additionally plays
+@ sound 0x6E up front. Dispatches on the low byte to select which of the
+@ per-effect routines runs.
 .thumb_func_start MapActor_Emote  @ 0x080937b8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -93,6 +98,10 @@
 	bx	r0
 .func_end MapActor_Emote
 
+@ RunSlotEffectSequence
+@ r0=slot, r1=sequence id. Runs a short scripted effect on the slot entity --
+@ animation change, wait, and position nudge -- returning when it completes.
+@ The ~120-instruction body is characterised structurally.
 .thumb_func_start MapActor_Surprise  @ 0x08093874
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunTargetPicker
+@ Takes no arguments. Chooses who an item or Psynergy is aimed at. Func_a448c
+@ computes which of the four targets are legal and Func_a45cc draws them with
+@ the illegal ones greyed; .gcc2_compiled. and .gcc2_compiled. supply the layout. The
+@ d-pad walks the grid, A commits through Func_a3ef0 and B backs out. State+0x220
+@ holds the picker mode, and a value of 1 skips straight past the setup.
+@ 386 lines; traced structurally.
 .thumb_func_start Func_80a414c  @ 0x080a414c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -387,6 +394,12 @@
 	bx	r1
 .func_end Func_80a414c
 
+@ ComputeTargetAvailability
+@ r0 = four-byte destination. Fills one signed byte per target slot: -1 means
+@ "cannot be chosen", anything else is the target index. The item at state+0x178
+@ is resolved with _Func_78414 and each roster member tested with Func_a46b4.
+@ An ability whose record +0x02 is zero -- no effect at all -- makes slot 0 the
+@ only legal one.
 .thumb_func_start Func_80a448c  @ 0x080a448c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -549,6 +562,11 @@
 	bx	r0
 .func_end Func_80a448c
 
+@ DrawTargetLabels
+@ r0 = the four availability bytes from Func_a448c, r1 = window. Draws labels
+@ 0xB33 through 0xB36 across row 0x18 at 0x20-pixel intervals, switching the ink
+@ to 0x0E for any slot whose byte is -1 and back to 0x0F afterwards. Greying
+@ out, not omission -- the unavailable choices stay visible.
 .thumb_func_start Func_80a45cc  @ 0x080a45cc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -652,6 +670,14 @@
 	bx	r0
 .func_end Func_80a45cc
 
+@ CanCharacterUseItem
+@ r0 = character id, r1 = item id (masked to 0x1FF). Returns 1 when the item can
+@ be aimed at that character, 0 otherwise.
+@
+@ Three gates: _Func_8e990 must return zero for the id; the ability record's
+@ +0x28 display id must be non-zero and resolvable through _Func_78b9c; and
+@ either the record has no effect kind (+0x02 zero), or its target kind (+0x0C)
+@ is 3, or _Func_7842c approves the pairing.
 .thumb_func_start Func_80a46b4  @ 0x080a46b4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -733,6 +759,14 @@
 	bx	r1
 .func_end Func_80a46b4
 
+@ MaybeBreakItem
+@ Takes no arguments. Applies to the item at state+0x178 and the character at
+@ state+0x21A. When the ability record's target kind (+0x0C) is 2, it rolls
+@ Func_4458 and, if the 16-bit result is below 0x2000 -- ONE CHANCE IN EIGHT --
+@ destroys the item with _Func_78a34, plays sound 0x8A and shows message 0xB86.
+@
+@ The probability is exact: Func_4458's range is 0..0xFFFF and 0x2000 is a
+@ sixteenth of 0x10000... no, an eighth. Items of any other kind never break.
 .thumb_func_start Func_80a4754  @ 0x080a4754
 	push	{r5, lr}
 	ldr	r3, =iwram_3001f2c

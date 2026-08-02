@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ BuildOverlayTables
+@ Takes no arguments. Fills the per-scanline window tables in the overlay state
+@ at iwram_1ecc. The ~180-instruction body is characterised structurally.
 .thumb_func_start Func_808f32c  @ 0x0808f32c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -180,6 +183,9 @@
 	bx	r0
 .func_end Func_808f32c
 
+@ OverlayScanlineTask
+@ Per-frame task. Selects the next window table from iwram_1ecc using the mode
+@ byte at +0x539 and stages it for the HBlank transfer.
 .thumb_func_start Func_808f498  @ 0x0808f498
 	ldr	r3, =iwram_3001ecc
 	ldr	r2, =0x539
@@ -243,6 +249,10 @@
 	bx	lr
 .func_end Func_808f498
 
+@ OverlayUpdateTask
+@ Per-frame task. Advances the overlay animation and recomputes its window
+@ geometry each frame. The ~900-instruction body is characterised
+@ structurally.
 .thumb_func_start Task_ScreenWindowTransition  @ 0x0808f52c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1330,6 +1340,9 @@
 	bx	r0
 .func_end Task_ScreenWindowTransition
 
+@ AllocOverlayState
+@ r0=mode. Allocates the 0x540-byte overlay state under tag 0x1F and
+@ initialises it for that mode.
 .thumb_func_start Func_808fe38  @ 0x0808fe38
 	push	{r5, r6, lr}
 	mov	r1, #0xa8

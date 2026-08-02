@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ DrawCharacterHeader
+@ r0.. = placement. Draws the name and class line -- STRING 0x741 + the class
+@ id at record+0x129 -- with the level and the coin label 0xB0E. 209 lines;
+@ traced structurally.
 .thumb_func_start Func_80a8914  @ 0x080a8914
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -216,6 +220,20 @@
 	bx	r0
 .func_end Func_80a8914
 
+@ CollectStatusFlags
+@ r0 = five-byte destination, r1 = 1 to include the downed flag, r2 = character
+@ id. Zeroes the five bytes and sets:
+@
+@     [0]  the character is DOWN -- current HP (record+0x38) is zero -- and
+@          only when r1 is 1
+@     [1]  record+0x131 is exactly 1
+@     [2]  record+0x131 is anything else non-zero
+@     [3]  record+0x130 is non-zero
+@     [4]  record+0x140 is non-zero
+@
+@ Returns how many of [1]..[4] were set. Those four map one for one onto the
+@ strings 0xBD6, 0xBD7, 0xBD8 and 0xBD9 that Func_a112c prints, so this is the
+@ status-icon set.
 .thumb_func_start Func_80a8b10  @ 0x080a8b10
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -285,6 +303,10 @@
 	bx	r1
 .func_end Func_80a8b10
 
+@ BuildStatusScrollState
+@ r0 = destination, r1 = which cursor. The Func_a5578 of the status pages, with
+@ one addition: a total of zero forces the index to zero rather than to -1.
+@ Same seven words, same divisor of five.
 .thumb_func_start Func_80a8b8c  @ 0x080a8b8c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -363,6 +385,13 @@
 	bx	r1
 .func_end Func_80a8b8c
 
+@ BuildBarGraphTiles
+@ Takes no arguments. Generates the stat-bar tiles directly into VRAM at
+@ 0x6005000 rather than loading them: each 0x40-byte tile is filled with
+@ 0x44444444 (colour 4 everywhere) through Func_8d8, then words from .Laf23c are
+@ XORed in to cut a diagonal. Two shapes are built, six rows of six tiles each,
+@ and the diagonal's slope is what the two `cmp r7` arms select -- shape 0
+@ shifts the cut with the row and shape 1 does not.
 .thumb_func_start LoadMoveRangeIcons  @ 0x080a8c2c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -436,6 +465,12 @@
 	bx	r0
 .func_end LoadMoveRangeIcons
 
+@ DrawBracket
+@ r0 = window, r1 = column, r2 = row, r3 = index. Plots a three-tile bracket
+@ through _Func_19000: tile 0xF281 + index*2 with the horizontal-flip bit
+@ (0x400) at the column, 0xF280 + index*2 next to it, and 0xF281 + index*2
+@ unflipped at the far end. One tile drawn twice, mirrored -- which is why only
+@ two tiles exist per index.
 .thumb_func_start Func_80a8cc0  @ 0x080a8cc0
 	push	{r5, r6, lr}
 	mov	r6, r11
@@ -489,6 +524,10 @@
 	bx	r0
 .func_end Func_80a8cc0
 
+@ DrawEquipDetail
+@ r0.. = placement. Draws the equipment page's detail block: the item's line at
+@ 0x53A + id, labels 0xB13, 0xB14 and 0xB15, and the row tint through
+@ Func_a2268. 243 lines; traced structurally.
 .thumb_func_start Func_80a8d34  @ 0x080a8d34
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -739,6 +778,11 @@
 	bx	r1
 .func_end Func_80a8d34
 
+@ DrawEquipPage
+@ r0.. = placement. One page of the equipment list: Func_a2324 shows the
+@ sprites, Func_a21b0 draws the page bar and Func_a8cc0 the brackets. Names come
+@ from 0x333 + display id and the class line from 0x741 + record+0x129; the
+@ headings are 0xAED and 0xAEF. 159 lines; traced structurally.
 .thumb_func_start Func_80a8f40  @ 0x080a8f40
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -905,6 +949,12 @@
 	bx	r1
 .func_end Func_80a8f40
 
+@ RunStatusPage2
+@ Takes no arguments. The equipment page of the status screen. Builds the
+@ descriptor with Func_a8b8c, the list with Func_a68ec, draws through Func_a8d34
+@ and Func_a8f40, and moves with Func_a1fd4. LoadMoveRangeIcons generates the bar tiles
+@ on entry and .gcc2_compiled. reloads the icons after each change. Label 0xB06;
+@ watches save bits 0x150 and 0x242. 312 lines; traced structurally.
 .thumb_func_start Func_80a90bc  @ 0x080a90bc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

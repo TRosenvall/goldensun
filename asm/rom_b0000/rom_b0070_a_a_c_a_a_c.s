@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunShop
+@ r0 = shop id, r1 = mode. The module's main entry, exported. Bounds-checks the
+@ id against .gcc2_compiled.'s count, opens the state with Func_b010c, runs the
+@ screen through Func_b0aac, and tears down with .gcc2_compiled..
+@ 202 lines; traced structurally.
 .thumb_func_start Func_80b0278  @ 0x080b0278
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -203,6 +208,14 @@
 	bx	r1
 .func_end Func_80b0278
 
+@ SetUpTestInventory
+@ Takes no arguments. Exported. Sets the money at ewram_240+0x10 to 0x30D40 --
+@ 200,000, well under the 999,999 cap -- writes a byte at +0x11C, and grants a
+@ fixed list of item ids (0x48D, 0x40B, ...) through _Func_78588 and
+@ _Func_78708, then runs Func_b0278.
+@ NOTHING IN THE ANNOTATED MODULES CALLS THIS. It is reachable only through its
+@ export veneer, and granting a hard-coded inventory with a round money figure
+@ is a development fixture, not shipped behaviour.
 .thumb_func_start Debug_TestEquipAndStatus  @ 0x080b0444
 	push	{r5, r6, lr}
 	ldr	r3, =gState

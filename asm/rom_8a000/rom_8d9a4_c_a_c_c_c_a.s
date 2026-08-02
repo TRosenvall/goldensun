@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ActOnNoPlayerObject
+@ Takes no arguments. The inverse guard: acts only when Func_8ec14 reports NO
+@ object under the player (note the `bne` where its siblings use `beq`).
 .thumb_func_start Func_808ed4c  @ 0x0808ed4c
 	push	{lr}
 	bl	GetMapActorIndex

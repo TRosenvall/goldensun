@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SumPartyField
+@ Takes no arguments. Returns the sum of byte +0x0F across every active party
+@ member, then divides by the party size with Func_af0 -- so this is a PARTY
+@ AVERAGE, not a total.
+@ The member ids come from the byte list at ewram_240+0x1F8 and the count from
+@ Func_795fc.
 .thumb_func_start Func_8077348  @ 0x08077348
 	push	{r5, r6, r7, lr}
 	sub	sp, #4
@@ -40,6 +46,12 @@
 	bx	r1
 .func_end Func_8077348
 
+@ GetCombatantRecord
+@ r0 = combatant id. Returns its 0x14C-byte record, or 0 for an unknown id.
+@     0x00..0x07  ewram_500 + id * 0x14C
+@     0x80..0x85  [iwram_1f28] + id * 0x14C - 0xA600, so 0x80 lands at offset 0
+@ Enemy ids also return 0 when iwram_1f28 is null, i.e. outside battle.
+@ The most-called cross-module function in the ROM -- 226 sites.
 .thumb_func_start GetUnit  @ 0x08077394
 	push	{lr}
 	mov	r3, r14

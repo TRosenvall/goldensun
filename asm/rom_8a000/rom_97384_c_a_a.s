@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ PrepareEncounterTransition
+@ r0=encounter id. Sets up the transition out of the field and into battle.
+@ Scene mode 3 (iwram_1ebc+0x19E) takes a separate path that skips the field
+@ teardown. The ~40-instruction body is characterised structurally.
 .thumb_func_start Func_80974d8  @ 0x080974d8
 	push	{r5, r6, lr}
 	ldr	r2, =iwram_3001ebc
@@ -52,6 +56,10 @@
 	bx	r0
 .func_end Func_80974d8
 
+@ RunEncounterTransition
+@ r0=encounter id, r1=style. Allocates the transition state with
+@ galloc_ewram(0x16, 0x298), uploads the palettes with Func_97384 and drives the
+@ wipe to completion. The ~90-instruction body is characterised structurally.
 .thumb_func_start Field_MindRead  @ 0x08097540
 	push	{r5, r6, lr}
 	mov	r6, r8

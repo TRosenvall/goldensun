@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ OpenTextBox
+@ r0 = string id. Opens the standard message box and queues the string.
+@ Sets the mode byte at [iwram_1e8c]+0xEA5 to 2 while measuring, calls
+@ BufferString to lay the string out, and if the resulting entry in the halfword
+@ table at +0xEB0 is non-zero, opens a window with
+@ CreateUIBox(0, 0xF, 0x1E, 6, 0xA) -- full width, six rows, at row 15 -- caching
+@ it in the slot's first word.
+@ Returns without opening anything when the string measures empty.
 .thumb_func_start PrintBattleText  @ 0x080174f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

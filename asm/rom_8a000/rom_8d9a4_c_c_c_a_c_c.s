@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ScreenShakeTask
+@ Per-frame task. Applies a decaying offset to the background scroll registers,
+@ producing the screen shake. The ~190-instruction body is characterised
+@ structurally.
 .thumb_func_start Func_80912b8  @ 0x080912b8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -231,6 +235,9 @@
 	bx	r0
 .func_end Func_80912b8
 
+@ StartScreenShake
+@ r0=intensity. Allocates the 0x1C-byte shake state under tag 0x24, seeds it
+@ from r0 and registers Func_912b8.
 .thumb_func_start Func_8091494  @ 0x08091494
 	push	{r5, r6, r7, lr}
 	mov	r6, r0

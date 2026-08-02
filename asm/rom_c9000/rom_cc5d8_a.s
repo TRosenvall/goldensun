@@ -1,6 +1,15 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Sub_cc5d8
+@ Battle animation routine, 349 instructions.
+@ EXPORTED from this module, so it is also called from outside rom_c9000.
+@ State: iwram_1f0c, iwram_1e50, ewram_10000.
+@ Calls out to: _Func_f9080.
+@ Touches: REG_BG2X, REG_BLDALPHA.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_DjinnSet  @ 0x080cc5d8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -392,6 +401,11 @@
 	bx	r0
 .func_end Anim_DjinnSet
 
+@ Sub_cc960
+@ Battle animation routine, 175 instructions.
+@ State: iwram_1eec, ewram_10000.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_80cc960  @ 0x080cc960
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -576,6 +590,12 @@
 	bx	r0
 .func_end Func_80cc960
 
+@ Sub_ccaec
+@ Battle animation routine, 68 instructions.
+@ EXPORTED from this module, so it is also called from outside rom_c9000.
+@ Touches: REG_BG2PA.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_UnleashIntro  @ 0x080ccaec
 	push	{r5, r6, lr}
 	ldr	r1, =0x782c
@@ -668,6 +688,11 @@
 	bx	r0
 .func_end Anim_UnleashIntro
 
+@ Sub_ccbdc
+@ Battle animation routine, 18 instructions.
+@ EXPORTED from this module, so it is also called from outside rom_c9000.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_80ccbdc  @ 0x080ccbdc
 	push	{lr}
 	ldr	r0, =Func_80cc960

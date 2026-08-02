@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ GetFootstepEffect
+@ r0=position vec3, r1=out word. Returns the effect id for stepping on the
+@ point, and writes the tile's 7-bit type field to *r1.
+@ Combines the material from Func_12204 with two modifiers before indexing the
+@ 0x30-entry table .L1353c: bit 7 of byte 3 of the metatile record (from
+@ ewram_20000 on the coarse 32-wide grid) adds 0x10, and a type field of 0x15
+@ adds 0x20. So the table is three banks of 16 materials.
 .thumb_func_start Func_80122c8  @ 0x080122c8
 	push	{r5, r6, r7, lr}
 	mov	r5, r0

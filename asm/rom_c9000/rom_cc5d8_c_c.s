@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Playccc38Impl
+@ r0=action descriptor, r1=variant. The shared implementation behind the
+@ 2 thin wrappers in this file, which exist so the animation table can hold
+@ one address per variant:
+@     0=Func_ccc20 1=Func_ccc2c
+@ Works from the battle state at [iwram_1eec]; the variant selects timing,
+@ colours and which arm of the sequence runs. Body characterised
+@ structurally -- see the wrappers for the variant numbering.
 .thumb_func_start BaseAnim_Tentacle  @ 0x080ccc38
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -283,6 +291,14 @@
 	bx	r0
 .func_end BaseAnim_Tentacle
 
+@ Sub_ccebc
+@ Battle animation routine, 233 instructions.
+@ State: iwram_1ef0, iwram_1f08.
+@ Calls out to: _Func_bd7dc, _Func_f9080.
+@ Touches: REG_BG2PA, REG_BG2X, REG_BLDALPHA.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_SpiderWeb  @ 0x080ccebc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -544,6 +560,11 @@
 	bx	r0
 .func_end Anim_SpiderWeb
 
+@ Sub_cd104
+@ Battle animation routine, 166 instructions.
+@ State: iwram_1ef0.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start AnimTransitionOut  @ 0x080cd104
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

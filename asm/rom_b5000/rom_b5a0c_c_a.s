@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RefreshPartyForBattle
+@ r0.. = parameters. Walks the player-side list from Func_b6a60 and rebuilds
+@ each member's record and derived stats through _Func_77394 and _Func_77428, so
+@ the battle starts from current values.
 .thumb_func_start Func_80b5b18  @ 0x080b5b18
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -119,6 +123,10 @@
 	bx	r1
 .func_end Func_80b5b18
 
+@ ApplyStartOfBattleStatus
+@ r0.. = parameters. For each combatant on both sides, reconciles the persistent
+@ status entries from rom_77000 (_Func_7a1f8, _Func_7a2e4, _Func_7a3a8) with the
+@ battle-side record from Func_b7dd0, gated on save bits via _Func_79338.
 .thumb_func_start Func_80b5c08  @ 0x080b5c08
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -277,6 +285,9 @@
 	bx	r1
 .func_end Func_80b5c08
 
+@ ResolveElementalAffinity
+@ r0.. = parameters. Looks up each combatant's element record with _Func_797d4
+@ and stores the resulting affinity into the battle state.
 .thumb_func_start Func_80b5d3c  @ 0x080b5d3c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ OpenMessageBox
+@ r0..r3 and arg5 are the box parameters. Scans the THREE message-box slots at
+@ [iwram_1e8c]+0x620 (stride 0x28) for one whose first word is 0 -- an unused
+@ slot -- and claims it. Returns 0 when all three are busy.
+@ These slots sit immediately after the eight window records at +0x500, since
+@ 8 * 0x24 = 0x120 and 0x500 + 0x120 = 0x620.
 .thumb_func_start Func_80165d8  @ 0x080165d8
 	push	{r5, r6, r7, lr}
 	mov	r7, r3
@@ -88,6 +94,10 @@
 	bx	r1
 .func_end Func_80165d8
 
+@ CloseMessageBoxes
+@ r0, r1 = teardown parameters. Walks the three message-box slots looking for
+@ the first that is either empty or already finished (its record's +0x14 is
+@ zero), and tears down from there with .gcc2_compiled..
 .thumb_func_start Func_8016670  @ 0x08016670
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001e8c
@@ -185,6 +195,9 @@
 	bx	r1
 .func_end Func_8016670
 
+@ ClearTextBuffer
+@ Takes no arguments. Fills the 0xF00-byte text scratch at 0x6002500 with 0
+@ (transparent). Func_16738 below is the same fill with colour 4.
 .thumb_func_start Func_801671c  @ 0x0801671c
 	push	{lr}
 	mov	r1, #0xf0
@@ -197,6 +210,10 @@
 	bx	r1
 .func_end Func_801671c
 
+@ FillTextBuffer
+@ Takes no arguments. Fills the 0xF00-byte text scratch at 0x6002500 with
+@ 0x44444444 -- palette index 4 in every 4bpp pixel. The opaque counterpart to
+@ Func_1671c.
 .thumb_func_start Func_8016738  @ 0x08016738
 	push	{lr}
 	mov	r1, #0xf0
@@ -209,6 +226,10 @@
 	bx	r1
 .func_end Func_8016738
 
+@ FindActiveMessageBox
+@ Takes no arguments. Returns the first of the three message-box slots that is
+@ empty or whose record has +0x14 == 0, or 0 if all three are still running.
+@ Same scan as .gcc2_compiled., which reduces the result to a yes/no.
 .thumb_func_start Func_8016758  @ 0x08016758
 	push	{r5, lr}
 	ldr	r3, =iwram_3001e8c
@@ -257,6 +278,12 @@
 	bx	r0
 .func_end Func_8016758
 
+@ ApplyStyleFromRecord
+@ r0 = record. Copies three saved style values out of the record into the
+@ global text-style fields:
+@     [r0+0x16] -> +0xEAE      [r0+0x18] -> +0xEAC      [r0+0x1A] -> +0xEA8
+@ These are exactly the three fields Func_173ac resets to 0x0F, 0 and 0x0A, so
+@ this is "restore the style this record was created with".
 .thumb_func_start Func_80167ac  @ 0x080167ac
 	ldr	r3, =iwram_3001e8c
 	ldr	r4, =0xeae

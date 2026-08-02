@@ -1,5 +1,6 @@
 	.include "macros.inc"
 
+@ EntityField_20 -- collision radius (halfword, signed compare)
 .thumb_func_start ActorAttrOp_width  @ 0x0800e334
 	push	{lr}
 	mov	r4, r2

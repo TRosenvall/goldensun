@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ BuildInteractionCandidates
+@ Takes no arguments. Fills the candidate buffer at ewram_1124 with the entities
+@ the player could currently interact with, walking the scene slots and testing
+@ each against the player's position and facing. The ~90-instruction body is
+@ characterised structurally.
 .thumb_func_start Func_808ba38  @ 0x0808ba38
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -124,6 +129,10 @@
 	bx	r0
 .func_end Func_808ba38
 
+@ ScoreInteractionCandidates
+@ Takes no arguments. Ranks the candidates Func_8ba38 collected in ewram_1124,
+@ picking the one most directly in front of the player. The ~110-instruction
+@ body is characterised structurally.
 .thumb_func_start Func_808bb2c  @ 0x0808bb2c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -254,6 +263,10 @@
 	bx	r0
 .func_end Func_808bb2c
 
+@ ClearInteractionState
+@ Takes no arguments. Zeroes the four interaction halfwords at iwram_1ebc+0x16C
+@ through +0x172 -- the pending target, kind and message -- resetting the
+@ subsystem between interactions.
 .thumb_func_start Func_808bc44  @ 0x0808bc44
 	ldr	r3, =iwram_3001ebc
 	mov	r0, #0xb6
@@ -298,6 +311,10 @@
 	bx	lr
 .func_end Func_808bc44
 
+@ GetInteractionState
+@ Takes no arguments. Reads back the interaction halfwords at iwram_1ebc+0x16C
+@ onward that Func_8bc44 clears, returning the pending target and kind to the
+@ caller.
 .thumb_func_start Func_808bc9c  @ 0x0808bc9c
 	ldr	r3, =iwram_3001ebc
 	mov	r2, #0xb6
@@ -367,6 +384,10 @@
 	bx	lr
 .func_end Func_808bc9c
 
+@ GetPlayerFacingTile
+@ Takes no arguments. Resolves the player entity (ewram_240+0x1F4) through the
+@ slot table and returns the map tile directly in front of it, derived from the
+@ position and the facing angle at +0x06.
 .thumb_func_start Func_808bd24  @ 0x0808bd24
 	push	{r5, r6, r7, lr}
 	ldr	r2, =gState
@@ -459,6 +480,10 @@
 	bx	r1
 .func_end Func_808bd24
 
+@ TestEntityInteractable
+@ r0=entity, r1=kind. Decides whether that entity can be addressed right now:
+@ checks its interaction record exists, that any guard event flag passes, and
+@ that it is close enough and roughly in front of the player.
 .thumb_func_start CheckSpecialExits  @ 0x0808bde0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -568,6 +593,11 @@
 	bx	r0
 .func_end CheckSpecialExits
 
+@ FindInteractionTarget
+@ r0, r1, r2, r3 = search origin, facing, range and kind. The main "what is the
+@ player pointing at" search: sweeps the scene slots, applies CheckSpecialExits to each
+@ and returns the best match. The ~420-instruction body is characterised
+@ structurally; the argument roles are inferred from the call sites.
 .thumb_func_start Func_808bec0  @ 0x0808bec0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1082,6 +1112,10 @@
 	bx	r0
 .func_end Func_808bec0
 
+@ FindPartyMemberById
+@ r0=party member id. Scans the party id list at ewram_240+0x1F8 (length from
+@ _Func_795fc) and returns the index of the matching member, or a negative
+@ result when that member is not in the party.
 .thumb_func_start Func_808c2dc  @ 0x0808c2dc
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
@@ -1107,6 +1141,10 @@
 	bx	r0
 .func_end Func_808c2dc
 
+@ ResolveSpeakerSlot
+@ r0=slot or negative for "the player", r1=fallback. Returns the slot to treat
+@ as the speaker; a negative r0 resolves through .gcc2_compiled.(0x1FF, 0) to the
+@ current party leader instead.
 .thumb_func_start Func_808c30c  @ 0x0808c30c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1178,6 +1216,10 @@
 	bx	r0
 .func_end Func_808c30c
 
+@ FindFirstPartyMemberWith
+@ Takes no arguments. Walks the party list at ewram_240+0x1F8 and returns the
+@ first member satisfying the routine's condition, or a negative result. The
+@ companion scan to Func_8c2dc.
 .thumb_func_start UpdatePoison  @ 0x0808c3a4
 	push	{r5, r6, r7, lr}
 	mov	r7, #0
@@ -1260,6 +1302,10 @@
 	bx	r1
 .func_end UpdatePoison
 
+@ IsCameraInSceneMode
+@ Takes no arguments. Reads the scene mode at +0x19E of the camera state block
+@ (galloc_ewram(0x1B, 0xCCC)) and reports whether it is the special mode 3 that
+@ changes how interactions are positioned.
 .thumb_func_start Func_808c44c  @ 0x0808c44c
 	push	{r5, lr}
 	ldr	r1, =0xccc

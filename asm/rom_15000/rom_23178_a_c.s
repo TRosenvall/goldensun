@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ DrawPartyRow
+@ r0.. = parameters. Draws one party row: label with DrawSmallText, scratch text
+@ with Func_1e858, numbers with .gcc2_compiled., and the summary from _Func_8b158.
 .thumb_func_start Func_8028ef0  @ 0x08028ef0
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -74,6 +77,10 @@
 	bx	r0
 .func_end Func_8028ef0
 
+@ RunPartyListScreen
+@ r0.. = parameters. Opens windows with CreateUIBox, reserves tiles with
+@ Func_1c0dc, draws rows with Func_28ef0 and Debug_WarpMenu_UI, releases with
+@ Func_1c154 / .gcc2_compiled., closes with CloseUIBox.
 .thumb_func_start Debug_WarpMenu  @ 0x08028f98
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -191,6 +198,8 @@
 	bx	r1
 .func_end Debug_WarpMenu
 
+@ DrawPartyRows
+@ r0.. = parameters. Draws every visible party row through Func_28ef0.
 .thumb_func_start Debug_WarpMenu_UI  @ 0x08029094
 	push	{r5, r6, r7, lr}
 	ldr	r6, =gKeyRepeat
@@ -379,6 +388,9 @@
 	bx	r1
 .func_end Debug_WarpMenu_UI
 
+@ RunDjinnListScreen
+@ r0.. = parameters. The Debug_WarpMenu shape with Func_292c4 and Func_2938c
+@ supplying the rows.
 .thumb_func_start Debug_FlagEditor  @ 0x080291e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -447,6 +459,8 @@
 	bx	r1
 .func_end Debug_FlagEditor
 
+@ ComputeRowMetrics
+@ r0.. = parameters. Pure arithmetic; no calls out.
 .thumb_func_start Func_8029274  @ 0x08029274
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -497,6 +511,9 @@
 	bx	r0
 .func_end Func_8029274
 
+@ DrawDjinnRow
+@ r0.. = parameters. Draws one row, reading the character with _Func_79338 and
+@ emitting through UIDrawText.
 .thumb_func_start Func_80292c4  @ 0x080292c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -592,6 +609,9 @@
 	bx	r0
 .func_end Func_80292c4
 
+@ ReadDjinnState
+@ r0.. = parameters. Collects state through _Func_79338, _Func_79358 and
+@ _Func_79374.
 .thumb_func_start Func_802938c  @ 0x0802938c
 	push    {r5, r6, lr}
 	ldr	r6, =gKeyRepeat

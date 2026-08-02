@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ OpenShopState
+@ Takes no arguments. Allocates the module's 0xA70-byte state block under TAG
+@ 0x37 -- which is what iwram_1f2c points at -- DMA-clears 0x29C words of it,
+@ reserves OBJ tiles with UploadSpriteGFX / AllocSpriteSlot, registers a per-frame task with
+@ StartTask, and reads the party through _Func_796c4.
 .thumb_func_start Func_80b010c  @ 0x080b010c
 	push	{r5, lr}
 	mov	r1, #0xa7

@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ TurnSlotsToFaceEachOther
+@ r0=slot A, r1=slot B, r2=argument for Func_9163c. Resolves both slots and
+@ hands them to Func_92878 for the gradual turn, then calls Func_9163c. This is
+@ the slot-addressed wrapper; Func_92878 takes entities directly.
 .thumb_func_start Func_8092848  @ 0x08092848
 	push	{r5, r6, r7, lr}
 	mov	r5, r1
@@ -23,6 +27,14 @@
 	bx	r0
 .func_end Func_8092848
 
+@ TurnToFaceEachOther
+@ r0=entity A, r1=entity B. Blocking. Rotates A toward B and B toward A -- the
+@ second heading is A's plus 0x8000, i.e. exactly opposite -- stepping each
+@ facing angle at +0x06 by at most +/-0x1000 per frame and yielding with
+@ WaitFrames(1) between steps.
+@ Returns as soon as both have arrived, or after 60 frames, whichever comes
+@ first. The counter r1 tracks how many are still turning, so a pair that is
+@ already aligned costs nothing.
 .thumb_func_start Func_8092878  @ 0x08092878
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

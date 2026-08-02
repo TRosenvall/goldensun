@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ ComputeDerivedStat
+@ r0.. = parameters. Combines a character's 0xB4-byte base entry (Func_78ed8)
+@ with an item record (Func_773d8) to produce one derived stat.
 .thumb_func_start Func_80797fc  @ 0x080797fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r0

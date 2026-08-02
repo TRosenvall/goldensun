@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ApplyAreaSettings
+@ Takes no arguments. Re-applies the current area's record from .L9f1a8 --
+@ music, palette and encounter configuration -- without going through the full
+@ GameStart entry sequence. Used after a transition that stays within the same
+@ area.
 .thumb_func_start InitMapFlags  @ 0x0808ab74
 	push	{r5, r6, lr}
 	ldr	r5, =gState

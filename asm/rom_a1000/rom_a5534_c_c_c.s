@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ LoadItemIcons
+@ r0 = list. Loads panel set 4 into each of the 32 nodes whose list entry is
+@ non-zero, then hides the empty ones with Func_a3d24. The Func_a3e28 of the
+@ item screen; only the panel set differs.
 .thumb_func_start Func_80a68a8  @ 0x080a68a8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -35,6 +39,17 @@
 	bx	r0
 .func_end Func_80a68a8
 
+@ FilterItemList
+@ r0 = character record, r1 = destination, r2 = filter.
+@ Walks the 32-entry list at record+0x58 -- halfword ids at stride 4, masked
+@ 0x3FFF and resolved through _Func_78b9c -- and copies the ones that pass into
+@ a dense destination, returning the count. The destination's 32 bytes are
+@ zeroed first.
+@
+@ Filter 1 keeps every entry whose display record has a non-zero +0x0C. Any
+@ other filter runs `3 + (r2 != 2)` grouping passes, so entries come out ordered
+@ by category rather than by slot -- the same idea as Func_a1e38, but keyed on
+@ the display record instead of the ability record.
 .thumb_func_start Func_80a68ec  @ 0x080a68ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -182,6 +197,21 @@
 	bx	r1
 .func_end Func_80a68ec
 
+@ BuildItemScrollState
+@ r0 = destination, r1 = which cursor. Identical to Func_a5578 except that it
+@ reads the roster through state+0x218 rather than the ability count.
+@
+@ Fills the seven-word scroll descriptor every list renderer in this module
+@ consumes. The five-row page size is baked in as a literal divisor:
+@
+@     [0x00] the character record from _Func_77394
+@     [0x08] index / 5          the page
+@     [0x0C] total / 5 rounded up   the page count
+@     [0x10] index % 5          the row inside the page
+@     [0x14] total
+@     [0x18] index, clamped to total - 1
+@
+@ Returns 1 always. Word [0x04] is left untouched.
 .thumb_func_start Func_80a6a00  @ 0x080a6a00
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -256,6 +286,13 @@
 	bx	r1
 .func_end Func_80a6a00
 
+@ DrawItemDetail
+@ r0, r1 = unused, r2 = scroll descriptor. The Func_a5614 of the item screen:
+@ recomputes the absolute index, and unless save bit 0x151 is up prints the
+@ item's detail line -- STRING 0x53A + (id & 0x1FF) -- then tints the five rows
+@ with palette 0x0E for the selected one and 0x0F for the rest. When 0x151 IS
+@ up it clears save bit 0x2FF instead and skips the text, leaving whatever
+@ message is on screen alone.
 .thumb_func_start Func_80a6a98  @ 0x080a6a98
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -348,6 +385,12 @@
 	bx	r1
 .func_end Func_80a6a98
 
+@ DrawItemPage
+@ r0 = window, r1 = unused, r2 = scroll descriptor. Draws one five-row page of
+@ items at x 0x70, with the page bar from Func_a21b0 and heading 0xAED. The
+@ title is 0xAE1 when bit 1 of state+0x220 is set and 0xB89 otherwise. Each row
+@ resolves through _Func_77394 for the owner and _Func_78b9c for the item.
+@ 154 lines; traced structurally.
 .thumb_func_start Func_80a6b64  @ 0x080a6b64
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -509,6 +552,13 @@
 	bx	r1
 .func_end Func_80a6b64
 
+@ RunItemPicker
+@ Takes no arguments. The item screen's big loop -- pick an item out of a
+@ character's list, with the party sprites reacting through _Func_ba30 and
+@ Func_a735c gating which entries can be chosen. Builds the descriptor with
+@ Func_a6a00, draws with Func_a6b64 and Func_a6a98, moves with Func_a1fd4, and
+@ Func_a65e4 assigns a shortcut when that is what the caller asked for. Title
+@ strings 0xAE1 and 0xB89 as in Func_a6b64. 826 lines; traced structurally.
 .thumb_func_start Func_80a6ccc  @ 0x080a6ccc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1342,6 +1392,11 @@
 	bx	r1
 .func_end Func_80a6ccc
 
+@ IsItemSelectable
+@ r0 = item id, masked to 14 bits. Resolves the display record and returns 1
+@ only when its +0x0C is zero AND bits 6 and 7 of +0x01 are not both set --
+@ that is, the entry is a plain item and not flagged as hidden. Everything else
+@ returns 0.
 .thumb_func_start Func_80a735c  @ 0x080a735c
 	push	{lr}
 	lsl	r0, #18

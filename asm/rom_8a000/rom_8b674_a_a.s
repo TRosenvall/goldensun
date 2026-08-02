@@ -1,5 +1,23 @@
 	.include "macros.inc"
 
+@ SpawnPlayerAndCamera
+@ r0=scene descriptor for the secondary record. Places the player on a freshly
+@ loaded map and attaches the camera.
+@ Copies two 0x18-byte templates from .L9f810 into the records at +0x200 and
+@ +0x218, zeroes the header words at +0x00..+0x0C, and clears the record table
+@ with .gcc2_compiled.. The player record then takes the saved position from
+@ ewram_240: id at +0x1F4, x at +0x1DC, z at +0x1E4 and facing at +0x1E8, and
+@ both records are registered with LoadMapActors.
+@ The player entity's tile-type byte at +0x22 comes from ewram_240+0x1EC. If
+@ ewram_240+0x1E0 is set and the tile flags read 0xFD in BOTH the map at
+@ ewram_10000 and the overlay map at ewram_fe00, the player is standing on a
+@ transition tile: ewram_240+0x1F2 is set to 1, the ground height is resampled
+@ with _Func_11f54 one tile back, the movement mode at +0x55 is cleared, and
+@ animation 0x0C is selected. Otherwise ewram_240+0x1F2 is cleared.
+@ Finally entity type 0x8000 is spawned as the camera, bound to the player with
+@ _Func_c4bc, and stored at +0x1E0; [iwram_1e70] is pointed at the camera's
+@ position words so the map scroller follows it. In scene mode 3 the player
+@ actor also gains part 0x17 with palette 0x0F and draw order 9.
 .thumb_func_start InitMapActors  @ 0x0808b674
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

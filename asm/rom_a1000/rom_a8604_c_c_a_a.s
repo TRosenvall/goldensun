@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ DrawEquipSlots
+@ r0 = window, r1 = character id, r2 = non-zero to skip the icons.
+@ Draws the four equipment slot labels -- 0xB24 at row 0, 0xB25 at 0x20, 0xB26
+@ at 0x10 and 0xB27 at 0x30 -- then Func_a9aec fills in what is equipped. Unless
+@ r2 says otherwise it also lets a frame pass, loads the icons with Func_a3e28
+@ and positions them with Func_a9c18.
 .thumb_func_start Func_80a9a5c  @ 0x080a9a5c
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -61,6 +67,16 @@
 	bx	r0
 .func_end Func_80a9a5c
 
+@ DrawEquippedNames
+@ r0 = window, r1 = the fifteen-entry inventory list. For each slot with BIT 9
+@ SET -- the equipped flag -- it resolves the ability record and prints the item
+@ name (0x182 + id) at x 8 on the row its kind selects:
+@
+@     kind 1 -> row 0x08     kind 3 -> row 0x28
+@     kind 2 -> row 0x38     kind 4 -> row 0x18
+@
+@ So the ability record's +0x02 doubles as the equipment slot type, and the four
+@ kinds are the four slots Func_a9a5c labels.
 .thumb_func_start Func_80a9aec  @ 0x080a9aec
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -152,6 +168,9 @@
 	bx	r0
 .func_end Func_80a9aec
 
+@ LayOutEquipGrid
+@ r0 = x origin, r1 = y origin, r2 = columns. Walks all 32 nodes at state+0x48
+@ and places each through .gcc2_compiled.. The Func_a1bdc of this file.
 .thumb_func_start Func_80a9b94  @ 0x080a9b94
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

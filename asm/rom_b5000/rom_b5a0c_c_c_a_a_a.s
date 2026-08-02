@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunBattleIntroText
+@ r0.. = parameters. Shows the opening message: allocates scratch with
+@ Func_4970, plays the intro cue through Func_6408 / Func_6488, lays the string
+@ out with _Func_1964c, and gives frames with WaitFrames while it plays.
+@ free releases the scratch.
 .thumb_func_start Func_80b5e14  @ 0x080b5e14
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -123,6 +128,9 @@
 	bx	r1
 .func_end Func_80b5e14
 
+@ RunBattleOutroText
+@ r0.. = parameters. The closing counterpart to Func_b5e14, using Func_63bc /
+@ .gcc2_compiled. for its cue.
 .thumb_func_start Func_80b5f0c  @ 0x080b5f0c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -287,6 +295,8 @@
 	bx	r1
 .func_end Func_80b5f0c
 
+@ GetBattleStateField
+@ r0 = index. Returns one of the battle state fields from [iwram_1e74].
 .thumb_func_start Func_80b606c  @ 0x080b606c
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -317,6 +327,10 @@
 	bx	r1
 .func_end Func_80b606c
 
+@ WaitFrames
+@ r0 = count. Spins on WaitFrames(1) that many times. Unlike rom_c9000's
+@ Func_d655c -- whose per-frame call is a no-op stub -- this one really does
+@ yield each frame.
 .thumb_func_start Func_80b60a0  @ 0x080b60a0
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e74
@@ -404,6 +418,9 @@
 	bx	r1
 .func_end Func_80b60a0
 
+@ RunBattleTransition
+@ r0.. = parameters. Plays the screen transition into or out of a battle, a
+@ frame at a time through WaitFrames. 288 lines; traced structurally.
 .thumb_func_start Func_80b6148  @ 0x080b6148
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e74
@@ -692,6 +709,9 @@
 	bx	r1
 .func_end Func_80b6148
 
+@ CountActiveParty
+@ Takes no arguments. Returns how many player-side combatants Func_b6a60
+@ reports.
 .thumb_func_start Func_80b6378  @ 0x080b6378
 	push	{r5, r6, lr}
 	sub	sp, #0x10
@@ -722,6 +742,8 @@
 	bx	r1
 .func_end Func_80b6378
 
+@ ClearBattleScratch
+@ Takes no arguments. Clears 0x10 bytes at ewram_2224.
 .thumb_func_start Func_80b63b0  @ 0x080b63b0
 	push	{lr}
 	ldr	r3, =Func_80008d4
@@ -732,6 +754,19 @@
 	bx	r1
 .func_end Func_80b63b0
 
+@ StartBattle -- THE MODULE'S ENTRY POINT
+@ r0 = encounter id. Allocates everything a battle needs, sets it up, and runs
+@ it. 705 lines; traced structurally, but the allocations at the top are exact
+@ and are what the module header's tag map is built from:
+@     galloc_ewram(0x0C, 0x4C)   -> iwram_1e80  view / camera
+@     galloc_ewram(0x09, 0x82C)  -> iwram_1e74  battle state
+@     galloc_ewram(0x36, 0x7C8)  -> iwram_1f28  SIX enemy records (0x7C8 / 0x14C)
+@     galloc_ewram(0x2C, 0x20)   -> iwram_1f00
+@     galloc_ewram(0x0B, 0x280)  -> iwram_1e7c
+@ The enemy block is cleared with Func_8d4 immediately after allocation, so
+@ _Func_77394 returns zeroed records until the encounter fills them in.
+@ Save bits 0x103 and 0x169 are set on entry, REG_DISPCNT is poked to 1, and
+@ InitMatrixStack begins the view matrix.
 .thumb_func_start BattleMain  @ 0x080b63c8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1437,6 +1472,13 @@
 	bx	r1
 .func_end BattleMain
 
+@ ListPlayerCombatants
+@ r0 = destination. Fills the caller's array with the player-side combatant ids
+@ and returns the count.
+@ THE FRONT LINE IS CAPPED AT FOUR, or THREE when the byte at [iwram_1e74]+0x44
+@ is non-zero -- so +0x44 is the battle-mode flag that shrinks the active row.
+@ The roster itself comes from ewram_240 and _Func_795fc, so only characters who
+@ have actually joined are considered.
 .thumb_func_start Func_80b6a60  @ 0x080b6a60
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1505,6 +1547,12 @@
 	.word	0xff
 .func_end Func_80b6a60
 
+@ ListEnemyCombatants
+@ r0 = non-zero to apply the debug cap. Fills the caller's array with enemy ids
+@ starting at 0x80 and returns the count.
+@ The limit is SIX -- matching the 0x7C8 / 0x14C = 6 enemy records BattleMain
+@ allocates -- but drops to THREE when save bit 0x16C is set, which is the bit
+@ Debug_BattleTest's debug harness sets while Down is held.
 .thumb_func_start Func_80b6ae0  @ 0x080b6ae0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1556,6 +1604,10 @@
 	bx	r1
 .func_end Func_80b6ae0
 
+@ ListLivingCombatants
+@ r0.. = parameters. Builds the list of combatants still standing, filtering the
+@ Func_b6a60 result by each record's state and the save bits _Func_79338
+@ reports.
 .thumb_func_start Func_80b6b40  @ 0x080b6b40
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1663,6 +1715,11 @@
 	bx	r1
 .func_end Func_80b6b40
 
+@ WalkActionQueue
+@ r0 = selector mask, r1 = destination (may be 0 to count only).
+@ Walks the halfword list at [iwram_1e74]+0x58. THE QUEUE IS SENTINEL-DELIMITED:
+@ 0xFF ends it and 0xFE separates groups within it. Bit 0 of the selector picks
+@ the first arm; entries are copied out as halfwords.
 .thumb_func_start Func_80b6c08  @ 0x080b6c08
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e74

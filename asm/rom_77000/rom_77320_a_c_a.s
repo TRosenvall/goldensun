@@ -1,6 +1,15 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ BuildCharacterSummary
+@ r0 = combatant id. Allocates a 0x60-byte scratch with Func_4970 and fills it
+@ with everything the UI needs about a character: the signed pair at +0x10/+0x12,
+@ the halfwords at +0x18/+0x1A/+0x1C, the byte at +0x1E, the nibble fields of
+@ +0x1F, and much more, consulting item records through Func_78414 and event
+@ flags through GetFlag.
+@ 1023 lines and the largest routine in the module; traced structurally. This is
+@ where derived stats are computed, so it is the function to read when a
+@ displayed number does not match a stored one.
 .thumb_func_start CalcStats  @ 0x08077428
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1024,6 +1033,10 @@
 	bx	r0
 .func_end CalcStats
 
+@ RecomputePartyFlags
+@ r0.. = parameters. Walks the active party (size from Func_795fc), reads each
+@ record and its equipment through Func_78414, and sets or clears the
+@ corresponding event flags with SetFlag / ClearFlag.
 .thumb_func_start CheckLure  @ 0x08077c10
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1108,6 +1121,10 @@
 	bx	r0
 .func_end CheckLure
 
+@ ReadPackedTable
+@ Takes no arguments. Fetches asset 2 with GetFile and walks it as a run of
+@ packed byte triples, each decoded as `(b * 5) * 2 - 0x1E0` plus two more
+@ bytes. Returns the decoded pointers.
 .thumb_func_start Func_8077cb8  @ 0x08077cb8
 	push	{r5, lr}
 	ldr	r0, =2
@@ -1167,6 +1184,10 @@
 	bx	r1
 .func_end Func_8077cb8
 
+@ BuildPartyTables
+@ Takes no arguments. Assembles the party tables at startup from the packed data
+@ Func_77cb8 decodes, seeding each character through ResetPCs and AddPartyMember.
+@ 232 lines; traced structurally.
 .thumb_func_start GameInit  @ 0x08077d38
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

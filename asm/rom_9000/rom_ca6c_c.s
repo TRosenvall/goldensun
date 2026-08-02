@@ -1,6 +1,20 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SetEntityMoveTarget
+@ r0=entity, r1=target x, r2=target y, r3=target z (16.16). Starts a move
+@ toward the given point.
+@ Measures the distance with Func_948, refining it through Func_888/FastIntSqrtFP1616_RAM
+@ when it is under 0x100000. A distance below 1.0 (0x10000) degenerates to a
+@ teleport: the position is written straight to +0x08/+0x0C/+0x10 and the
+@ targets are left cleared. Otherwise, unless +0x58 requests an exact stop, the
+@ target is extended by a braking allowance derived from the max speed at +0x30
+@ and the acceleration at +0x34, so the entity decelerates onto the point
+@ instead of overshooting.
+@ Writes the (possibly extended) target to +0x38/+0x3C/+0x40 and records which
+@ axis the arrival test should watch in +0x56: 0x10 (x) by default, 0x12 (z)
+@ when |dz| exceeds |dx|, and 0x11 (y) when vertical motion is enabled
+@ (+0x55 == 0) and |dy| exceeds the dominant horizontal component.
 .thumb_func_start Actor_TravelTo  @ 0x0800d14c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -215,6 +229,11 @@
 	bx	r0
 .func_end Actor_TravelTo
 
+@ RunEntityUpdateFromRam
+@ Takes no arguments. Allocates a 0x4E8-byte buffer (Func_4938), DMA-copies the
+@ ARM entity update Func_a494 (rom_92b8.s) into it, calls the RAM copy, then
+@ frees the buffer with free. The copy exists purely so the hot ARM loop
+@ executes out of RAM rather than ROM.
 .thumb_func_start Func_800d304  @ 0x0800d304
 	push	{r5, r6, lr}
 	ldr	r5, =0x4e8
@@ -238,6 +257,21 @@
 	bx	r0
 .func_end Func_800d304
 
+@ UpdateEntitiesXZ
+@ Per-frame update over the first 14 entities at [iwram_1e64], stride 0x70.
+@ Takes no arguments. A cut-down sibling of UpdateActors: target seeking is done
+@ in the x/z plane only (the y axis is left to gravity), and the terrain-follow,
+@ oscillation and collision steps are absent.
+@ Per entity with a non-null script (+0x00):
+@   - seek the target at +0x38/+0x40 with the acceleration at +0x34, clamped to
+@     the max speed at +0x30; with no target, decay the velocity toward zero
+@   - when bit 1 of +0x55 is set, apply the fall/landing step against the height
+@     cached at +0x14 using the restitution at +0x44 and cutoff at +0x48
+@   - integrate into +0x08/+0x0C/+0x10 and run the arrival test named by +0x56
+@     (0x10 = x, 0x11 = y, 0x12 = z), clearing the targets on arrival and
+@     optionally snapping to them per +0x58
+@   - when bit 0 of +0x5A is set, turn the facing angle at +0x06 toward the
+@     heading via atan2, clamped to +/-0x1000 per frame
 .thumb_func_start Func_800d340  @ 0x0800d340
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

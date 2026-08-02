@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ ApplyItemEffect
+@ r0 = display id, r1 = character id, r2 = target, r3 = 1 to actually apply.
+@ The effect engine behind Func_a9e48: reads the display record, rolls
+@ Func_4458 where the effect is chancy, adjusts the target through
+@ _Func_79c5c, refreshes the HP fraction with _Func_7822c and recomputes the
+@ record with _Func_77428. Failures leave a reason code at state+0x25A, which
+@ Func_a32b8 turns into string 0xBEF + code. 617 lines; traced structurally.
 .thumb_func_start Func_80a9f10  @ 0x080a9f10
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ StartBehaviour_135f0
+@ r0=entity, r1=parameter. Installs behaviour script .L135f0. When the
+@ parameter is non-zero it also overrides the movement tuning for this script:
+@ acceleration +0x34 = 0x8000 (half speed), max speed +0x30 = 0x40000, the
+@ script argument at +0x68 = r1, and the spawn-tile halfword at +0x64 is reset.
 .thumb_func_start Camera_SetTarget  @ 0x0800c4bc
 	push	{r5, r6, lr}
 	mov	r6, r1

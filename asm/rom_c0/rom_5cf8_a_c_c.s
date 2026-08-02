@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunSequencer
+@ r0.. = parameters. Interprets the music sequence data: reads events, applies
+@ them to channels, and handles loops. 286 lines and the core of the music
+@ playback; traced structurally.
 .thumb_func_start Func_800655c  @ 0x0800655c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

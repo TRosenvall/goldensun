@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ AnimateShopActor
+@ r0.. = parameters. Drives the shopkeeper actor through _Func_ba30, resolving
+@ its ability record with _Func_7845c.
 .thumb_func_start Func_80b11c4  @ 0x080b11c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -78,6 +81,10 @@
 	bx	r0
 .func_end Func_80b11c4
 
+@ DrawShopPanel
+@ r0.. = parameters. 263 lines. Paints a whole shop panel from the text and
+@ icon primitives above plus the records from _Func_77394. Traced
+@ structurally.
 .thumb_func_start Func_80b1260  @ 0x080b1260
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -341,6 +348,9 @@
 	bx	r0
 .func_end Func_80b1260
 
+@ DrawInventoryPanel
+@ r0.. = parameters. The player's-inventory counterpart to Func_b1260, finding
+@ items with _Func_78664 and registering menu values with _Func_19908.
 .thumb_func_start Func_80b1470  @ 0x080b1470
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -440,6 +450,10 @@
 	bx	r0
 .func_end Func_80b1470
 
+@ ResolveTransaction
+@ r0.. = parameters. Works out what a buy or sell actually does, reading the
+@ item record (_Func_78414), locating it (_Func_78664) and dividing with
+@ Func_b60.
 .thumb_func_start Func_80b153c  @ 0x080b153c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -541,6 +555,10 @@
 	bx	r1
 .func_end Func_80b153c
 
+@ BuildTransactionUi
+@ r0.. = parameters. 208 lines. Sets the transaction screen up, allocating with
+@ galloc_ewram and reserving tiles, releasing with Func_2dd8. Traced
+@ structurally.
 .thumb_func_start Func_80b1614  @ 0x080b1614
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -749,6 +767,10 @@
 	bx	r1
 .func_end Func_80b1614
 
+@ RunBuyFlow
+@ r0.. = parameters. The buy interaction: prompt (Func_b0574), quantity
+@ (Func_b1868), confirm (Func_b196c), inventory update through _Func_78588 and
+@ _Func_787dc.
 .thumb_func_start Func_80b17e4  @ 0x080b17e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -808,6 +830,8 @@
 	bx	r0
 .func_end Func_80b17e4
 
+@ RunQuantityPrompt
+@ r0.. = parameters. Lets the player pick a quantity, a frame at a time.
 .thumb_func_start Func_80b1868  @ 0x080b1868
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -923,6 +947,8 @@
 	bx	r1
 .func_end Func_80b1868
 
+@ ConfirmTransaction
+@ r0.. = parameters. Confirms and applies a transaction through Func_b1f4c.
 .thumb_func_start Func_80b196c  @ 0x080b196c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -970,6 +996,9 @@
 	bx	r1
 .func_end Func_80b196c
 
+@ GetItemDisplayFields
+@ r0 = item id. Pulls the fields a row needs out of the record _Func_78414
+@ returns.
 .thumb_func_start Func_80b19cc  @ 0x080b19cc
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -1011,6 +1040,9 @@
 	bx	r1
 .func_end Func_80b19cc
 
+@ RunSellFlow
+@ r0.. = parameters. 200 lines. The sell counterpart to Func_b17e4. Traced
+@ structurally.
 .thumb_func_start Func_80b1a14  @ 0x080b1a14
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1211,6 +1243,9 @@
 	b	.Lb1a94
 .func_end Func_80b1a14
 
+@ RunEquipFlow
+@ r0.. = parameters. 262 lines. The equip-from-shop interaction. Traced
+@ structurally.
 .thumb_func_start Func_80b1bd0  @ 0x080b1bd0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1473,6 +1508,9 @@
 	bx	r1
 .func_end Func_80b1bd0
 
+@ DrawItemDetail
+@ r0.. = parameters. Draws the detail panel for one item, counting the owner's
+@ inventory with _Func_784d8.
 .thumb_func_start Func_80b1dec  @ 0x080b1dec
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1549,6 +1587,8 @@
 	bx	r0
 .func_end Func_80b1dec
 
+@ RunDetailView
+@ r0.. = parameters. Shows the detail panel and waits for dismissal.
 .thumb_func_start Func_80b1e80  @ 0x080b1e80
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1639,6 +1679,9 @@
 	bx	r1
 .func_end Func_80b1e80
 
+@ ApplyTransaction
+@ r0.. = parameters. 182 lines. Commits a buy or sell: adjusts the inventory and
+@ registers the result values with _Func_19908. Traced structurally.
 .thumb_func_start Func_80b1f4c  @ 0x080b1f4c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

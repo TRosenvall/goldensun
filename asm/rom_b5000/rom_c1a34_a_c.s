@@ -1,5 +1,7 @@
 	.include "macros.inc"
 
+@ ComputeEffectRange
+@ r0.. = parameters. Returns how far an effect reaches; no calls out.
 .thumb_func_start Func_80c24b0  @ 0x080c24b0
 	push	{lr}
 	ldr	r3, =iwram_3001e74
@@ -29,6 +31,11 @@
 	bx	r0
 .func_end Func_80c24b0
 
+@ ResolveAbilityEffect
+@ r0.. = parameters. 291 lines. Works out an ability's effect: the sprite entry
+@ (.gcc2_compiled.), the records (_Func_77394, _Func_773d8), the save bits
+@ (_Func_79338) and a Func_4458 roll, divided with Func_af0 and Func_b60.
+@ Traced structurally.
 .thumb_func_start Func_80c24f0  @ 0x080c24f0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -320,6 +327,11 @@
 	bx	r1
 .func_end Func_80c24f0
 
+@ RunAbilitySelection
+@ r0.. = parameters. 314 lines. Lets the player choose an ability: lists the
+@ living targets (Func_b6b40), opens the HUD (WaitTextPrompt), registers the menu
+@ values (_Func_198dc) and shows the prompt through _Func_175a0.
+@ Traced structurally.
 .thumb_func_start Func_80c2724  @ 0x080c2724
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

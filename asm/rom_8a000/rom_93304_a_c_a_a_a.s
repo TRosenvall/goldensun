@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ MoveCameraToClamped
+@ r0..r3 = destination and flags. Like Func_933f8 but reads the live map bounds
+@ rather than the cached ones and applies the clamp before issuing the move, so
+@ it stays correct after a .gcc2_compiled. change mid-scene.
 .thumb_func_start Func_80935d4  @ 0x080935d4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -90,6 +94,10 @@
 	bx	r1
 .func_end Func_80935d4
 
+@ ScrollCameraBy
+@ r0=x delta, r1=z delta. Offsets the camera from its current position, clamped
+@ to the map bounds. Scene mode 3 (+0x19E) takes a different path that keeps the
+@ camera locked to its follow target instead.
 .thumb_func_start Func_80936a0  @ 0x080936a0
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e70

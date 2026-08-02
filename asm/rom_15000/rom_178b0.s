@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ ExpandStringToBuffer
+@ r0 = string id in the low byte with a signed parameter in the high bits,
+@ r1 = context. Builds a 0x180-byte halfword string on the stack (cleared first
+@ with Func_8d4) by decoding the string and substituting values for its control
+@ codes -- names, numbers and item text all arrive this way.
+@ The mode byte at [iwram_1e8c]+0xEA4 selects a second substitution table.
+@ Traced structurally; the individual control codes are not yet documented.
 .thumb_func_start DrawMsgGlyph  @ 0x080178b0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -203,6 +210,13 @@
 	bx	r1
 .func_end DrawMsgGlyph
 
+@ MeasureStringWidth
+@ r0 = halfword string, terminated by 0. Returns its width in pixels.
+@ Per character: 0x20 (space) is 4, anything above 0xFF is 10, 0xDE and 0xDF are
+@ the two-byte lead-ins and cost nothing, and everything else is looked up as
+@ the halfword at Data_32224 + (c - 0x20) * 0x20.
+@ That 0x20 stride means Data_32224 is the FONT TABLE -- width first, then the
+@ glyph bitmap -- and Func_155d0 in rom_15430.s draws from the same entries.
 .thumb_func_start Func_8017a64  @ 0x08017a64
 	push	{lr}
 	ldrh	r2, [r0]
@@ -241,6 +255,12 @@
 	bx	r1
 .func_end Func_8017a64
 
+@ LayoutStringRun
+@ r0 = target (0 selects the current cursor), r1, r2, r3 = placement.
+@ Emits a run of characters into the layout buffer, advancing the cursor held at
+@ [iwram_1e8c]+0x12B2 and resetting the style through Func_173ac. Line breaking
+@ and the glyph queue are handled by DrawText.
+@ Traced structurally.
 .thumb_func_start Func_8017aa4  @ 0x08017aa4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -409,6 +429,12 @@
 	bx	r0
 .func_end Func_8017aa4
 
+@ ResetLayoutCursor
+@ r0 = target (0 selects the current cursor), r1, r2, r3 = parameters.
+@ Clears the entry the cursor at [iwram_1e8c]+0x12B2 points at in the halfword
+@ table at +0xEB0, then advances the cursor with wraparound at 0x1FF.
+@ That table and its 0x200-entry ring are the layout output BufferString fills and
+@ PrintBattleText tests for emptiness.
 .thumb_func_start Func_8017c1c  @ 0x08017c1c
 	push	{r5, r6, r7, lr}
 	mov	r6, r3
@@ -467,6 +493,10 @@
 	bx	r0
 .func_end Func_8017c1c
 
+@ AppendLayoutEntry
+@ r0 = target (0 selects the current cursor), r1, r2, r3 = the entry.
+@ Writes into the +0xEB0 ring at the cursor in [iwram_1e8c]+0x12B2 and advances
+@ it, calling Func_18efc to allocate a display node when the entry needs one.
 .thumb_func_start Func_8017c8c  @ 0x08017c8c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -610,6 +640,15 @@
 	bx	r0
 .func_end Func_8017c8c
 
+@ FormatSignedDecimal
+@ r0 = destination byte buffer, r1 = value, r2 = flags. Writes the value as
+@ decimal text.
+@ Digits come out least-significant first via repeated Func_b1c(v, 10) -- the
+@ signed remainder -- plus 0x30, with Func_af0 supplying the quotient. The
+@ buffer is pre-filled with 0x20 (space), so the result is right-aligned in a
+@ fixed field rather than zero-padded.
+@ A negative value is negated up front; r2 == 0 records that a minus sign is
+@ needed, so a caller can suppress it.
 .thumb_func_start PrintNum  @ 0x08017dd4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ IsEntityIdle
+@ r0=entity. Returns 1 when every active movement target is cleared to the
+@ 0x80000000 "none" sentinel, else 0. The x target (+0x38) and z target (+0x40)
+@ are always required; the y target (+0x3C) is only checked when vertical
+@ motion is enabled, i.e. when the mode byte at +0x55 is 0.
 .thumb_func_start Actor_IsNotMoving  @ 0x0800ca98
 	push	{lr}
 	mov	r3, r0
@@ -33,6 +38,37 @@
 	bx	r1
 .func_end Actor_IsNotMoving
 
+@ UpdateEntities
+@ Per-frame update over the 0x40 entities at [iwram_1e64], stride 0x70. Takes no
+@ arguments. This is the full Thumb version of the reduced ARM loop Func_a494
+@ (rom_92b8.s) -- same entity layout, more behaviour.
+@ Per entity, skipping slots with a null script (+0x00) or a set freeze flag
+@ (+0x5B):
+@   1) run the hook at +0x6C
+@   2) tick the wait timer at +0x5E; at zero, run the script VM -- opcodes
+@      <= 0x3F dispatch through Data_13624, higher values just advance the
+@      cursor at +0x04
+@   3) unless suspended by +0x61, integrate movement. With a target set
+@      (+0x38/+0x3C/+0x40 != 0x80000000) accelerate toward it by +0x34 and clamp
+@      the speed to +0x30, using Func_948/FastIntSqrtFP1616_RAM for length and Func_8ac for
+@      the reciprocal; with no target, decay the existing velocity instead.
+@   4) apply the mode bits at +0x55:
+@        bit 0 -- follow terrain: Func_11f54 returns the ground height for the
+@                 tile type at +0x22; the step is clamped to half of +0x34 and
+@                 tripled to bound the climb rate
+@        bit 1 -- gravity/landing against the height cached at +0x14, with the
+@                 restitution factor at +0x44 and the cutoff at +0x48
+@        bit 2 -- vertical oscillation driven by the .L131c0 table indexed by
+@                 (+0x44 & 0x3F) >> 1, scaled by +0x48 and shifted right 4 or 6
+@                 depending on bit 3
+@        bit 4 -- suppress the speed clamp in step 3
+@   5) when bit 7 of +0x59 is set, test the new position with Func_d924; a hit
+@      bumps the collision counter at +0x60 and abandons the move
+@   6) detect arrival on the axis named by +0x56 (0x10 = x, 0x11 = y, 0x12 = z)
+@      by sign-change; on arrival optionally snap to the target (+0x58) and
+@      clear all three targets
+@   7) when bit 0 of +0x5A is set, turn the facing angle at +0x06 toward the
+@      direction of travel via atan2, clamped to +/-0x1000 per frame
 .thumb_func_start UpdateActors  @ 0x0800cacc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

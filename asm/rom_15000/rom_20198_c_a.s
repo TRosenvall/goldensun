@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ DecompressStatusGraphics
+@ r0.. = parameters. Allocates scratch with Func_4970, decompresses with
+@ DecompressLZ -- rom_c0's run-from-RAM decompressor -- and releases with
+@ free.
 .thumb_func_start Func_80209d0  @ 0x080209d0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -72,6 +76,8 @@
 	bx	r0
 .func_end Func_80209d0
 
+@ ComputeStatusLayout
+@ r0.. = parameters. Positions the status screen's fields; no calls out.
 .thumb_func_start Func_8020a60  @ 0x08020a60
 	push	{r5, r6, r7, lr}
 	mov	r6, r3

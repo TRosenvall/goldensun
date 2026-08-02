@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ AllocScreenSlot
+@ r0 = non-zero to allocate, 0 to reset. Scans the halfword array at
+@ [iwram_1e98]+0x1DE for a free entry and returns its index, or clears the array
+@ when r0 is 0.
 .thumb_func_start Func_801a910  @ 0x0801a910
 	push	{lr}
 	ldr	r3, =iwram_3001e98

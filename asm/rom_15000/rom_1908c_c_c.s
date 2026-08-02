@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ CopyMenuBuffer
+@ r0, r1 = source and destination. Allocates scratch with Func_4938, DMA3-copies
+@ the buffer, and releases the scratch with free. Used by DecompressString when a
+@ buffer is being resized rather than freed.
 .thumb_func_start HuffStr_Start  @ 0x08019bac
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -34,6 +38,9 @@
 	bx	r0
 .func_end HuffStr_Start
 
+@ BuildMenuLayout
+@ r0.. = layout parameters. Computes the row and column positions for a menu's
+@ entries. 148 lines of pure arithmetic with no calls out; traced structurally.
 .thumb_func_start Func_8019bfc  @ 0x08019bfc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -182,6 +189,10 @@
 	bx	r1
 .func_end Func_8019bfc
 
+@ InitMenuLayer
+@ Takes no arguments. Called from Func_15f30 during UI bring-up. Sets the two
+@ halfwords at [iwram_1e8c]+0x12EC and +0x12EE to 0x3E7 (999) -- sentinel values
+@ meaning "no selection", since real indices are small.
 .thumb_func_start Func_8019d0c  @ 0x08019d0c
 	ldr	r3, =iwram_3001e8c
 	ldr	r0, =0x12ec

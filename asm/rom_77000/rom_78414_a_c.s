@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ CanUseAbility
+@ r0 = combatant id, r1 = ability id. Returns 1 when the character's class may
+@ use the ability, 0 otherwise.
+@ The class index is the byte at record+0x128; ability+4 is a bitmask, and the
+@ test is `(mask >> class) & 1`. A class index above 7 always returns 0, so the
+@ mask is eight bits wide.
 .thumb_func_start CanEquipItem  @ 0x0807842c
 	push	{r5, r6, lr}
 	mov	r5, r1

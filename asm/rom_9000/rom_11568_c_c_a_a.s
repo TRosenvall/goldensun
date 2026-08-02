@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ LoadTileAnimations
+@ r0=animation script. Zero-fills all 16 channel records by DMA, then walks the
+@ script as halfwords until the 0xFFFF terminator, binding one channel per
+@ 0xFDxx marker: the low nibble of the marker is the channel index, bit 7
+@ selects whether it starts paused, and both the base and cursor are pointed at
+@ the halfword after the marker.
+@ Registers Func_1179c at priority 0xC80 only if at least one channel was bound,
+@ so a map with no animated tiles costs nothing per frame.
 .thumb_func_start Func_80118d8  @ 0x080118d8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

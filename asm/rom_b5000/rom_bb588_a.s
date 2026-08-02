@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RefreshCombatantDisplay
+@ r0 = combatant id. Recomputes the combatant's depth (Func_b78e4) and rebuilds
+@ its summary through _Func_77394 / _Func_77428 so the HUD matches the record.
 .thumb_func_start Func_80bb588  @ 0x080bb588
 	push	{r5, lr}
 	mov	r5, r0
@@ -102,6 +105,10 @@
 	bx	r1
 .func_end Func_80bb588
 
+@ OpenBattleHud
+@ r0.. = parameters. Brings the battle HUD up: reserves OBJ tiles with
+@ AllocUploadSpriteGFX / UploadSprite2, releases with .gcc2_compiled. / Func_3f3c, animates with
+@ sin (sine), one frame per WaitFrames.
 .thumb_func_start WaitTextPrompt  @ 0x080bb65c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -262,6 +269,8 @@
 	bx	r1
 .func_end WaitTextPrompt
 
+@ CloseBattleHud
+@ r0.. = parameters. The teardown counterpart to WaitTextPrompt. Exported.
 .thumb_func_start Func_80bb7c0  @ 0x080bb7c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

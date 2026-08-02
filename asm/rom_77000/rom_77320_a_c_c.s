@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SetPartyMembership
+@ r0.. = parameters. The general form of .gcc2_compiled.: adds or removes characters,
+@ setting flags with SetFlag and clearing with ClearFlag, rebuilding
+@ summaries with CalcStats, and updating equipment through EquipItem and
+@ GiveInnateMove.
 .thumb_func_start Func_8077f70  @ 0x08077f70
 	push	{r5, r6, lr}
 	mov	r0, #0x20
@@ -136,6 +141,9 @@
 	bx	r0
 .func_end Func_8077f70
 
+@ AveragePartyStat
+@ r0 = field selector. Sums one field across the active party and divides by the
+@ member count with Func_af0. Same shape as Func_77348 over a different field.
 .thumb_func_start Func_807808c  @ 0x0807808c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -230,6 +238,10 @@
 	bx	r0
 .func_end Func_807808c
 
+@ AveragePartyStatFiltered
+@ r0 = field selector. As Func_7808c but skipping members whose event flag
+@ (GetFlag) is clear, so downed or absent characters do not drag the average
+@ down.
 .thumb_func_start Func_8078144  @ 0x08078144
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

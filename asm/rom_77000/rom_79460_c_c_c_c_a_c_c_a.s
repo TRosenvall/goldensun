@@ -1,5 +1,7 @@
 	.include "macros.inc"
 
+@ RollWeightedA
+@ r0.. = parameters. A Func_79b24 wrapper with one weighting.
 .thumb_func_start Func_8079bf8  @ 0x08079bf8
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -30,6 +32,8 @@
 	bx	r1
 .func_end Func_8079bf8
 
+@ RollWeightedB
+@ r0.. = parameters. A second Func_79b24 wrapper.
 .thumb_func_start Func_8079c30  @ 0x08079c30
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -52,6 +56,9 @@
 	bx	r1
 .func_end Func_8079c30
 
+@ RollWeightedC
+@ r0.. = parameters. A third Func_79b24 wrapper; the three differ only in the
+@ table they weight against.
 .thumb_func_start Func_8079c5c  @ 0x08079c5c
 	push	{r5, r6, lr}
 	lsl	r1, #1
@@ -76,6 +83,9 @@
 	bx	r1
 .func_end Func_8079c5c
 
+@ GetEquippedItemCategory
+@ r0 = combatant id. Finds the equipped item and returns its category via
+@ Func_7882c and Func_798b4.
 .thumb_func_start Func_8079c8c  @ 0x08079c8c
 	push	{lr}
 	bl	GetUnit
@@ -100,6 +110,8 @@
 	bx	r1
 .func_end Func_8079c8c
 
+@ GetAbilityPower
+@ r0 = ability id. Reads the power fields out of the 0x2C-byte ability record.
 .thumb_func_start CheckEquipmentCritBoost  @ 0x08079cbc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -154,6 +166,9 @@
 	bx	r1
 .func_end CheckEquipmentCritBoost
 
+@ ComputeAbilityDamage
+@ r0.. = parameters. Combines the ability power (CheckEquipmentCritBoost), the item category
+@ (Func_7882c) and a random roll (Func_79bc4), dividing with Func_af0.
 .thumb_func_start Func_8079d1c  @ 0x08079d1c
 	push	{r5, r6, lr}
 	ldr	r2, =0x129
@@ -198,6 +213,9 @@
 	bx	r1
 .func_end Func_8079d1c
 
+@ ComputeHitChance
+@ r0.. = parameters. Pure arithmetic over the attacker and defender stats; no
+@ calls out. 114 lines, traced structurally.
 .thumb_func_start Func_8079d7c  @ 0x08079d7c
 	push	{lr}
 	sub	r0, #8
@@ -312,6 +330,9 @@
 	bx	r1
 .func_end Func_8079d7c
 
+@ GetEffectForItem
+@ r0 = item id. Resolves the item record (Func_773d8) to its effect record
+@ (Func_79ad8).
 .thumb_func_start Func_8079e9c  @ 0x08079e9c
 	push	{r5, lr}
 	mov	r5, r1

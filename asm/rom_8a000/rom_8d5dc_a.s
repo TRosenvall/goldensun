@@ -1,5 +1,25 @@
 	.include "macros.inc"
 
+@ InteractWithTarget
+@ r0=target NPC id. The main "press A on something" handler. Returns 0 when an
+@ interaction ran and -1 when nothing happened.
+@ Looks the target's interaction records up with FindMapActorEvent(kind, id). Records
+@ carry flags at +0x00 and a payload at +0x08; a payload below 0x100000 is a
+@ message id, anything at or above it is a function pointer called with the
+@ target id.
+@ If the target is already the active one (ewram_240+0x24A) it first tries
+@ kind 7 -- the repeat/"talked to before" record; otherwise, and on failure, it
+@ falls back to kind 0.
+@ Before running the interaction it freezes the player: sets the freeze flag at
+@ entity+0x5B, calls _Func_c344 to stop the walk animation, and saves the facing
+@ angle. When the player's facing (Func_8d394 byte +0x16) is 0 or 3 it also
+@ snaps the follower at ewram_240+0x1F4 onto the leader's position by copying
+@ +0x08/+0x0C/+0x10 into the targets at +0x38/+0x3C/+0x40 and zeroing velocity,
+@ then calls Func_92848 so the party lines up for the conversation.
+@ Afterwards, if the script has come to rest on opcode 0x10, facing 3 attaches
+@ the Data_9ff40 script through Actor_SetBehavior while facing 1 restores the saved
+@ angle into +0x64 and installs Data_9fc1c. The freeze flag is cleared and the
+@ animation speed restored to 0x10 either way.
 .thumb_func_start Func_808d5dc  @ 0x0808d5dc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

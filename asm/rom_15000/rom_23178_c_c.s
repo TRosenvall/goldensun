@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ DispatchScreen
+@ r0 = screen id. Routes to Menu_Settings, StartMenu_Main, Menu_Save or Func_1776c
+@ depending on the id -- the small switch that turns a menu choice into a
+@ screen.
 .thumb_func_start StartMenu  @ 0x08029504
 	push	{r5, r6, lr}
 .L29506:
@@ -40,6 +44,9 @@
 	bx	r1
 .func_end StartMenu
 
+@ RunEquipListScreen
+@ r0.. = parameters. 267 lines: windows, portraits through LoadItemIconID /
+@ LoadStatusIcon / LoadMoveIconID, text through UIDrawText and .gcc2_compiled..
 .thumb_func_start Debug_IconTest  @ 0x08029554
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -307,6 +314,9 @@
 	bx	r1
 .func_end Debug_IconTest
 
+@ RunShopListScreen
+@ r0.. = parameters. 240 lines: windows, menus through Func_19da8, graphics
+@ through LoadPortrait, text through Func_1e7c0 and .gcc2_compiled..
 .thumb_func_start Debug_FaceTest  @ 0x0802977c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

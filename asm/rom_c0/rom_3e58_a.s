@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ FindObjTileRun
+@ r0 = slot (0..0x5F), r1 = size. Searches the OBJ tile table for a free run
+@ large enough and returns its index, or -1.
+@ THE OBJ TILE ALLOCATOR IS A 96-SLOT TABLE at iwram_1b10, four bytes per slot,
+@ with the halfword at +2 set to 0xFFFF when the slot is free. iwram_1810 is the
+@ companion run-length table. Every module's OBJ reservations -- rom_15000's
+@ glyph nodes, rom_c9000's effect sprites, rom_b5000's combatants -- come from
+@ here, which is why a leak in one module starves the others.
 .thumb_func_start Func_8003e58  @ 0x08003e58
 	push	{r5, r6, r7, lr}
 	mov	r6, r0

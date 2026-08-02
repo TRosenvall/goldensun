@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ StepListCursor -- exported list controller
+@ r0 = list record. Moves the cursor and returns whether it changed.
+@ Reads the row count from the list at [r0], the visible count from +0x04 and
+@ the cursor from +0x0A, dividing with Func_af0 to work out the page. Returns
+@ immediately when the active flag at +0x0D (a SIGNED byte) is zero.
+@ rom_15000's dial screen borrows this through _Func_b08b8.
 .thumb_func_start Func_80b08b8  @ 0x080b08b8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -80,6 +86,10 @@
 	bx	r0
 .func_end Func_80b08b8
 
+@ RecomputeScrollWindow -- exported
+@ r0 = list record. Recomputes the scroll offset at +0x08 so the cursor stays
+@ visible, from the total row count at [list]+6 and the visible count. Clamps at
+@ both ends and does nothing when the list pointer is null.
 .thumb_func_start Func_80b0958  @ 0x080b0958
 	push	{r5, lr}
 	mov	r5, r0
@@ -173,6 +183,11 @@
 	bx	r0
 .func_end Func_80b0958
 
+@ InitListRecord -- exported
+@ r0 = list record, r1 = visible rows, r2 = cursor, r3 = flag.
+@ Initialises the controller from the list at [r0]: copies the total count from
+@ [list]+6 and the row height from [list]+8, stores the caller's visible count,
+@ cursor and flag, and clears +0x0C.
 .thumb_func_start Func_80b09fc  @ 0x080b09fc
 	push	{r5, r6, lr}
 	ldr	r5, [r0]
@@ -194,6 +209,11 @@
 	bx	r0
 .func_end Func_80b09fc
 
+@ RebindListRecord -- exported
+@ r0 = list record, r1 = new row count. Points the record at a resized list:
+@ writes the count into [list]+6 and the record's +0x04 and +0x08, patches the
+@ low 9 bits of [list]+0x16, sets the active flag at +0x0D to 1 and clears
+@ +0x0C.
 .thumb_func_start Func_80b0a20  @ 0x080b0a20
 	push	{r5, r6, lr}
 	ldr	r5, [r0]

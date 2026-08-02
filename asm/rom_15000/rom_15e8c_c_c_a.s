@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ OpenTextBoxAt
+@ r0, r1, r2 = placement parameters, r3 = packed geometry: its top 12 bits
+@ (shifted left 4 then right 20) go to [iwram_1e8c]+0x12F4 and the low 16 bits
+@ are the string id. +0x12F6 is cleared.
+@ Lays the string out with BufferString, and when the +0xEB0 table entry is
+@ non-zero opens a window with CreateUIBox sized to the measured text rather
+@ than to the fixed 30x6 box PrintBattleText uses.
 .thumb_func_start Func_8017658  @ 0x08017658
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -133,6 +140,13 @@
 	bx	r1
 .func_end Func_8017658
 
+@ RunTextBoxModal
+@ r0 = string id, r1 = option bits. Opens a box with Func_17658 and drives it to
+@ completion, polling .gcc2_compiled. each frame through WaitFrames(1) and closing
+@ with CloseUIBox.
+@ Bit 1 of r1 selects a variant that also consults ewram_240 -- the save-data
+@ preferences -- and _Func_94154, and TextBox supplies the choice result.
+@ Traced structurally; the option-bit meanings are not yet documented.
 .thumb_func_start Func_801776c  @ 0x0801776c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunApproachSequence
+@ r0.. = parameters. Moves the acting combatant into position before an action:
+@ walks the queue with Func_b6c08, rebuilds the view with InitMatrixStack / MatrixSetLook
+@ / Func_5258, submits sprites with Func_b7e7c, one frame per WaitFrames.
+@ 233 lines; traced structurally.
 .thumb_func_start Func_80b9b30  @ 0x080b9b30
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -234,6 +239,9 @@
 	bx	r1
 .func_end Func_80b9b30
 
+@ ReadCombatantStats
+@ r0 = combatant id. Pulls the stat fields this module needs out of the
+@ persistent record _Func_77394 returns.
 .thumb_func_start InitAnimContext  @ 0x080b9d34
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -311,6 +319,9 @@
 	bx	r1
 .func_end InitAnimContext
 
+@ RunRetreatSequence
+@ r0.. = parameters. The counterpart to Func_b9b30, returning a combatant to its
+@ slot (.gcc2_compiled.) with the orientation .gcc2_compiled. computes.
 .thumb_func_start Func_80b9dc4  @ 0x080b9dc4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -427,6 +438,10 @@
 	bx	r1
 .func_end Func_80b9dc4
 
+@ RunAttackSequence
+@ r0.. = parameters. The full melee sequence: approach, strike, retreat, driving
+@ the actors through CreateBattleSpriteOverlays and their parts through .gcc2_compiled., registering
+@ a per-frame task with StartTask. 491 lines; traced structurally.
 .thumb_func_start Func_80b9ec0  @ 0x080b9ec0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

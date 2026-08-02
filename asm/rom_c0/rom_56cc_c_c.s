@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ FadeChannel
+@ r0 = channel, r1 = target, r2 = rate. Ramps a channel's volume over time
+@ through Func_5b24 and ReadFlash.
 .thumb_func_start Func_8005c68  @ 0x08005c68
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

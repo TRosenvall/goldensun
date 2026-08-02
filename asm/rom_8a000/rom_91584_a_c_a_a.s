@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ GetActiveMessagePortrait
+@ Returns the portrait id for the current speaker, biased by 0x100, or 0 when
+@ there is none. Requires the portrait-enable byte at ewram_240+0x20A to be set
+@ and the speaker record from GetSpriteVoiceEntry to carry a portrait at +0x02 other than
+@ the 0xFF "none" marker.
 .thumb_func_start GetSpriteVoice  @ 0x080915ac
 	push	{lr}
 	ldr	r3, =gState

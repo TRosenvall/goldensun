@@ -1,6 +1,8 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ReserveIconVram
+@ r0.. = parameters. Reserves VRAM for an icon through Func_3d28.
 .thumb_func_start Func_80217a4  @ 0x080217a4
 	push	{r5, lr}
 	ldr	r3, =iwram_3001800
@@ -78,6 +80,8 @@
 	bx	r0
 .func_end Func_80217a4
 
+@ ComputeIconGeometry
+@ r0.. = parameters. Pure arithmetic; no calls out.
 .thumb_func_start Func_8021848  @ 0x08021848
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -151,6 +155,8 @@
 	bx	r1
 .func_end Func_8021848
 
+@ ClipIconToWindow
+@ r0.. = parameters. Clips an icon against its window with Func_19000.
 .thumb_func_start Func_80218dc  @ 0x080218dc
 	push	{r5, r6, lr}
 	mov	r6, r11
@@ -204,6 +210,8 @@
 	bx	r1
 .func_end Func_80218dc
 
+@ ComputeGridPosition
+@ r0.. = parameters. Maps an index to a grid cell; no calls out.
 .thumb_func_start Func_8021950  @ 0x08021950
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

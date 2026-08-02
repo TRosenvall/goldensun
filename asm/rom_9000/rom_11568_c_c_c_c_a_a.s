@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ InitPaletteCycleBuffers
+@ Takes no arguments. Allocates the 0xB4-byte palette-cycle state (tag 0x1C) and
+@ clears it: four channel records of 0x2C bytes each -- header fields at +0x00,
+@ +0x04, +0x06, +0x08, +0x0A followed by a 16-halfword colour buffer at +0x0C --
+@ plus the active-channel count at +0xB0.
 .thumb_func_start Func_8011b00  @ 0x08011b00
 	push	{r5, r6, lr}
 	mov	r1, #0xb4
@@ -47,6 +52,14 @@
 	bx	r0
 .func_end Func_8011b00
 
+@ AddPaletteCycleChannel
+@ r0=palette bank, r1=index within the bank, r2=frame delay, r3=colour count.
+@ Returns 0 on success, or -1 when all four channels are already in use.
+@ Resolves the target palette address as 0x5000000 + (bank * 16 + index) * 2,
+@ stores it at +0x00 along with the delay at +0x08 and the count at +0x0A, and
+@ DMAs the current colours from palette RAM into the channel's buffer at +0x0C
+@ so the cycle rotates whatever is on screen at the time. Bumps the count at
+@ +0xB0.
 .thumb_func_start Func_8011b54  @ 0x08011b54
 	push	{r5, r6, r7, lr}
 	lsl	r2, #16

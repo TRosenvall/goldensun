@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ StartHBlankDistortion
+@ Takes no arguments. Allocates and primes the distortion tables, registers
+@ .gcc2_compiled. and Func_94544, and arms the DMA0 HBlank transfer. The
+@ ~190-instruction body is characterised structurally.
 .thumb_func_start Task_Rain  @ 0x08094820
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -199,6 +203,9 @@
 	bx	r0
 .func_end Task_Rain
 
+@ UpdateWaterSurface
+@ Takes no arguments. Advances the animated water surface in the state at
+@ iwram_1ec8, stepping its phase and rewriting the affected tiles.
 .thumb_func_start Task_Thunder  @ 0x080949a8
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ec8
@@ -320,6 +327,9 @@
 	bx	r0
 .func_end Task_Thunder
 
+@ InitRideState
+@ Takes no arguments. Allocates the ride state with galloc_ewram(0x1D, 0x410),
+@ clears it and seeds the defaults for entering a vehicle mode.
 .thumb_func_start StartRain  @ 0x08094ac8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -424,6 +434,10 @@
 	bx	r0
 .func_end StartRain
 
+@ UpdateRideMotion
+@ Takes no arguments. Per-frame motion for the ride: applies the player's input
+@ heading, integrates the vehicle's velocity and keeps it inside the navigable
+@ area. The ~180-instruction body is characterised structurally.
 .thumb_func_start Task_Snow  @ 0x08094bbc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -665,6 +679,9 @@
 	bx	r0
 .func_end Task_Snow
 
+@ EnterRideMode
+@ Takes no arguments. Transitions the player onto the vehicle: hides the walking
+@ sprite, shows the vehicle actor and hands control to the ride update.
 .thumb_func_start StartSnow  @ 0x08094da0
 	push	{r5, r6, r7, lr}
 	mov	r1, #0x82
@@ -759,6 +776,10 @@
 	bx	r0
 .func_end StartSnow
 
+@ RunRideMode
+@ Takes no arguments. The ride's main loop -- input, motion, collision and
+@ dismount detection -- until the player leaves. The ~220-instruction body is
+@ characterised structurally.
 .thumb_func_start Task_Earthquake  @ 0x08094e7c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1031,6 +1052,9 @@
 	bx	r0
 .func_end Task_Earthquake
 
+@ ExitRideMode
+@ Takes no arguments. Puts the player back on foot: restores the walking sprite,
+@ places it at the dismount tile and releases the ride state.
 .thumb_func_start StartEarthquake  @ 0x0809509c
 	push	{r5, r6, r7, lr}
 	mov	r1, #0x82
@@ -1116,6 +1140,9 @@
 	bx	r0
 .func_end StartEarthquake
 
+@ InitWaveState
+@ Takes no arguments. Allocates the larger wave/water state with
+@ galloc_ewram(0x1E, 0x1F88) and initialises its tables.
 .thumb_func_start StartThunder  @ 0x08095160
 	push	{r5, r6, lr}
 	mov	r6, r8

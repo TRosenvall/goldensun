@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ScrollTextBuffer
+@ r0 = line count. Shifts the text scratch at 0x6002500 upward by r0 lines,
+@ moving 0x20 - 3*r0 rows and clearing the rest, using DMA3 with control word
+@ 0x84000000 (word transfers).
+@ The stride arithmetic (r0*3 then <<1 and <<3) reflects three tile rows per
+@ text line at 0x20 bytes a tile row.
 .thumb_func_start Func_80167e0  @ 0x080167e0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -64,6 +70,13 @@
 	bx	r0
 .func_end Func_80167e0
 
+@ StepMessageBoxes
+@ Takes no arguments. Advances each of the three message-box slots at
+@ [iwram_1e8c]+0x620 one frame.
+@ A slot whose record has +0x18 non-zero is skipped as still busy elsewhere; a
+@ record whose +0x16 has gone to zero is unlinked from its slot; otherwise the
+@ pending count at +0x12 drives Func_19854 to emit the next chunk of text.
+@ Called every frame from .gcc2_compiled..
 .thumb_func_start Func_8016868  @ 0x08016868
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -138,6 +151,18 @@
 	bx	r0
 .func_end Func_8016868
 
+@ RunMessageBoxInput
+@ r0 = message-box record. The interactive core of the text system: reads the
+@ key globals (iwram_1ae8 held, iwram_1af8, iwram_1cd0) and the save-data flags
+@ at ewram_240 + 0x20C to decide how the box advances.
+@ It handles the whole lifecycle -- scrolling with Func_167e0, repainting the
+@ frame with Func_170f8 and ClearUIRegion, restoring style with Func_167ac,
+@ marking closure with .gcc2_compiled., releasing tiles with Func_3f3c and
+@ .gcc2_compiled. -- and plays the page-advance sounds through _Func_f9080.
+@ The ewram_240 read is the text-speed / auto-advance preference, which is why
+@ this is the one function here that touches save data.
+@ 771 lines; traced structurally. The branch-by-branch behaviour of the input
+@ handling is not yet documented.
 .thumb_func_start AdvanceMsgText  @ 0x080168f4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -909,6 +934,14 @@
 	bx	r1
 .func_end AdvanceMsgText
 
+@ StepWindows
+@ Takes no arguments. Advances all eight window records at [iwram_1e8c]+0x500.
+@ For each slot still in use (+0x16 non-zero):
+@     a non-zero signed +0x18 means a scroll is in progress -- Func_17004 moves
+@       it one step and +0x18 counts down
+@     otherwise a non-zero signed +0x1A means items are still queued, and
+@       Func_16230 repaints
+@ Called every frame from .gcc2_compiled..
 .thumb_func_start Func_8016f2c  @ 0x08016f2c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1016,6 +1049,11 @@
 	bx	r0
 .func_end Func_8016f2c
 
+@ ScrollWindowContents
+@ r0 = window record, r1 = amount. Uses the signed pair at +0x18 and +0x1A as a
+@ scroll range: the difference is how far to move, and the width at +0x08
+@ scales it into a byte offset via Func_8ac (the 32-bit multiply helper).
+@ Called by Func_16f2c when a window's contents outgrow its height.
 .thumb_func_start Func_8017004  @ 0x08017004
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1108,6 +1146,12 @@
 	bx	r0
 .func_end Func_8017004
 
+@ FillTilemapRun
+@ r0 = destination, r1 = tile entry, r2 = count. DMA3-fills `count` halfwords
+@ with the same tile entry and returns the advanced destination pointer, so
+@ callers can chain runs. A count of 0 or less writes nothing and returns the
+@ pointer unchanged. The source is a stack halfword with the DMA source-fixed
+@ bit set (control 0x81000000).
 .thumb_func_start Func_80170c4  @ 0x080170c4
 	push	{r5, lr}
 	mov	r4, r2
@@ -1135,6 +1179,14 @@
 	bx	r1
 .func_end Func_80170c4
 
+@ DrawWindowFrame
+@ r0 = x column, r1 = y row, r2 = width, r3 = height, in tiles.
+@ Paints a window's border and interior into the tilemap at
+@ [iwram_1e8c] + (row*32 + column)*2, emitting each span with Func_170c4.
+@ Widths or heights of 1 or less take an early exit, so degenerate windows draw
+@ nothing rather than corrupting the map.
+@ Body traced structurally; the individual corner and edge tile indices are not
+@ yet documented.
 .thumb_func_start Func_80170f8  @ 0x080170f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1310,6 +1362,12 @@
 	bx	r0
 .func_end Func_80170f8
 
+@ SaveTilemapRect
+@ r0 = x column, r1 = y row, r2 = width, r3 = height, arg5 = destination.
+@ The counterpart to ClearUIRegion: copies the current tilemap contents of a
+@ rectangle out to a buffer so the window that is about to cover it can restore
+@ them later. Same (row*32 + column)*2 indexing, same early-out when width or
+@ height is 1 or less.
 .thumb_func_start Func_8017248  @ 0x08017248
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

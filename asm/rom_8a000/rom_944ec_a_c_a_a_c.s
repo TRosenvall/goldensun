@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunMountSequence
+@ r0=vehicle slot. Plays the animation of the player boarding the vehicle,
+@ moving the player entity (ewram_240+0x1F4) onto it. The ~110-instruction body
+@ is characterised structurally.
 .thumb_func_start Func_8095938  @ 0x08095938
 	push	{r5, r6, r7, lr}
 	ldr	r3, =gState
@@ -140,6 +144,10 @@
 	bx	r0
 .func_end Func_8095938
 
+@ RunDismountSequence
+@ r0=vehicle slot. The reverse of Func_95938: steps the player off the vehicle
+@ and back onto solid ground. The ~180-instruction body is characterised
+@ structurally.
 .thumb_func_start GetJupiterDjinni  @ 0x08095a44
 	push	{r5, r6, r7, lr}
 	sub	sp, #0xc
@@ -264,6 +272,9 @@
 	bx	r0
 .func_end GetJupiterDjinni
 
+@ GetRideVariant
+@ Takes no arguments. Returns an entry from .L9f0a4 selected by bit 2 of
+@ iwram_1800 -- which of two ride variants is currently configured.
 .thumb_func_start Func_8095b8c  @ 0x08095b8c
 	ldr	r3, =iwram_3001800
 	ldr	r3, [r3]

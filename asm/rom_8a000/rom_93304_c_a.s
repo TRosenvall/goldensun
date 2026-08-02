@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ RunPendingSceneEvent
+@ Takes no arguments. Reads the pending event id at ewram_240+0x1EE and, if one
+@ is queued, runs it against the scene block at iwram_1ebc. This is how a map
+@ transition hands a cutscene to the newly loaded map.
 .thumb_func_start BattleIntro  @ 0x080941e0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

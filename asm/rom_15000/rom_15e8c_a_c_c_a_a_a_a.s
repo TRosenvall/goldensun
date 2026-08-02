@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ CloseWindow
+@ r0 = window record, r1 = non-zero to also erase and wipe.
+@ Always: .gcc2_compiled. releases the window's resources, the geometry is SAVED to
+@ +0x1C..+0x22 in the order x, y, w, h, and the flags at +0x16 are cleared --
+@ which alone is enough to return the slot to CreateUIBox's scan.
+@ When r1 is non-zero it additionally calls ClearUIRegion to restore the tilemap
+@ underneath and then zeroes the entire record. Pass 0 to keep the pixels on
+@ screen while freeing the slot.
 .thumb_func_start CloseUIBox  @ 0x08016418
 	push	{r5, r6, r7, lr}
 	mov	r5, r0

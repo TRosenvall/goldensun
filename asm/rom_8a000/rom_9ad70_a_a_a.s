@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ IdleFlickerHook
+@ r0=entity. Per-frame hook that gives a resting entity a subtle palette
+@ flicker: draws a random index from Func_4458, uses it to pick a signed byte
+@ from .L9f160 and applies it as the palette through _Func_c598.
 .thumb_func_start Func_809ad70  @ 0x0809ad70
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -15,6 +19,10 @@
 	bx	r0
 .func_end Func_809ad70
 
+@ SaveAndClearEntityHook
+@ r0=slot. Saves the slot entity's current per-frame hook (+0x6C) to
+@ ewram_240+0x250 and clears it, so a scripted sequence can take over the
+@ entity's behaviour and restore it afterwards.
 .thumb_func_start Func_809ad90  @ 0x0809ad90
 	push	{lr}
 	bl	GetFieldActor
@@ -55,6 +63,10 @@
 	bx	r0
 .func_end Func_809ad90
 
+@ RestoreEntityHook
+@ r0=slot. Undoes Func_9ad90: puts the saved hook from ewram_240+0x250 back at
+@ +0x6C. If the current hook is Func_9ad70 it is cleared first, so the idle
+@ flicker does not survive the restore.
 .thumb_func_start Func_809ade8  @ 0x0809ade8
 	push	{r5, lr}
 	bl	GetFieldActor

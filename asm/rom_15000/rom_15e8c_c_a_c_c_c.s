@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ MeasureString
+@ r0 = destination record, r1 = string id. Clears the two halfwords at
+@ [iwram_1e8c]+0x12F4 and +0x12F6, lays the string out with BufferString, and
+@ returns 0 when the resulting entry in the +0xEB0 table is empty or no
+@ destination was given. Otherwise it fills the record through Func_165d8.
 .thumb_func_start Func_80175c0  @ 0x080175c0
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e8c

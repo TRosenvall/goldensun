@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ApplyRevealToScene
+@ r0=reveal kind. Walks the scene slot table (reached from iwram_1ebc) and makes
+@ the matching hidden objects visible, which is the actual world change the
+@ reveal ability performs.
 .thumb_func_start Func_8096fb0  @ 0x08096fb0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -152,6 +156,10 @@
 	bx	r0
 .func_end Func_8096fb0
 
+@ SetAbilityTarget
+@ r0=target slot, r1=parameter. Records both in the field-effect state at
+@ [iwram_1f30]+0x18 and +0x1A and resolves the slot to an entity, so the cast
+@ routines know what they are aimed at.
 .thumb_func_start Func_80970f8  @ 0x080970f8
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001f30

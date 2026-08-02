@@ -1,6 +1,29 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ DrawCharacterPanel
+@ r0 = window slot, r1 = character id, r2 = inventory slot, r3 = mode.
+@ The panel that appears beside every list in this module. It resolves the
+@ character with _Func_77394, reads the equipment halfword at +0xD8 + slot*2,
+@ and turns its low 9 bits into an ability record with _Func_78414. Bit 8 of
+@ the mode (0x100) suppresses the window and the menu entries; the low byte
+@ selects the layout:
+@
+@     0  name (string 0x741 + [record+0x129]) + Func_a153c + the value at
+@        +0x124 under label 0xB0E
+@     2, 3, 4  THE EQUIP PREVIEW -- _Func_7842c decides whether this character
+@        can use the item at all; when it cannot, string 0xB21 and nothing
+@        else. When it can, the record is copied to a 0x14C scratch, the item
+@        applied through _Func_78708, recomputed with _Func_77428, and
+@        Func_a15f0 draws the OLD and NEW stats side by side with arrows.
+@     5  scans the 32 inventory halfwords at +0x58 + i*4 (mask 0x3FFF) for the
+@        item, then string 0x333 + itemId followed by 0xB23 when it is already
+@        held and 0xB22 when it is not
+@     7  name and Func_a153c only
+@     8  the four stats -- +0x3C, +0x3E, +0x40 as halfwords and +0x42 as a byte,
+@        under labels 0xB1C, 0xB1D, 0xB20, 0xB1F
+@
+@ Traced structurally past the dispatch; the individual arms are read.
 .thumb_func_start Func_80a112c  @ 0x080a112c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -421,6 +444,12 @@
 	bx	r0
 .func_end Func_80a112c
 
+@ DrawNumberRightAligned
+@ r0 = window, r1 = value, r2 = right edge x, r3 = y.
+@ Counts the decimal digits by dividing by 10 up to fifteen times, moves x left
+@ by (digits + 1) * 8 -- so the glyphs are 8 pixels wide and one is left for the
+@ sign or padding -- and emits through _Func_1e9d4. This is why every number in
+@ the menus lines up on its right edge.
 .thumb_func_start Func_80a14f0  @ 0x080a14f0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -462,6 +491,18 @@
 	bx	r0
 .func_end Func_80a14f0
 
+@ DrawHpPpReadout
+@ r0 = character record, r1 = window. Draws the two `current/max` pairs the
+@ menus show under a name, at rows 0x28 and 0x30 with the separator glyph
+@ .Laf214 at x 0x30 and the maxima right-aligned at x 0x58.
+@
+@     +0x34 max HP    +0x38 current HP
+@     +0x36 max PP    +0x3A current PP
+@
+@ The ink is switched before the current HP is drawn: colour 4 when it has
+@ fallen below a QUARTER of the maximum, colour 2 when it is zero, then back to
+@ 0x0F. That is the low-HP warning colour, and the quarter threshold is the
+@ `lsl #16 / asr #18` pair, not a comparison against a stored value.
 .thumb_func_start Func_80a153c  @ 0x080a153c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -539,6 +580,13 @@
 	bx	r0
 .func_end Func_80a153c
 
+@ DrawStatComparison
+@ r0 = record BEFORE, r1 = record AFTER, r2 = window.
+@ The other half of Func_a112c's equip preview. For each of the three halfword
+@ stats -- +0x3C under label 0xB1C, +0x3E under 0xB1D, +0x40 under 0xB20 -- it
+@ draws the new value at x 0x10 and, when the old value differs, the old one at
+@ x 0x40 plus an arrow sprite from Func_ae99c at x 0x2C. Arrow direction 0 is up
+@ (the stat rises) and 1 is down. Equal stats draw once with no arrow.
 .thumb_func_start Func_80a15f0  @ 0x080a15f0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

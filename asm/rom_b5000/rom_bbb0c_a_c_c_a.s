@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ TickStatusCounter
+@ r0 = combatant id. Decrements one of the per-combatant status counters in the
+@ persistent record and returns 1 on the turn it reaches zero, clearing the
+@ companion field alongside it. One of ten near-identical routines
+@ (Func_bf250..Func_bf4c4) differing only in which record offset they tick.
 .thumb_func_start Func_80bf250  @ 0x080bf250
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -53,6 +58,11 @@
 	bx	r1
 .func_end Func_80bf250
 
+@ TickStatusCounter
+@ r0 = combatant id. Decrements one of the per-combatant status counters in the
+@ persistent record and returns 1 on the turn it reaches zero, clearing the
+@ companion field alongside it. One of ten near-identical routines
+@ (Func_bf250..Func_bf4c4) differing only in which record offset they tick.
 .thumb_func_start Func_80bf2b4  @ 0x080bf2b4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -105,6 +115,11 @@
 	bx	r1
 .func_end Func_80bf2b4
 
+@ TickStatusCounter
+@ r0 = combatant id. Decrements one of the per-combatant status counters in the
+@ persistent record and returns 1 on the turn it reaches zero, clearing the
+@ companion field alongside it. One of ten near-identical routines
+@ (Func_bf250..Func_bf4c4) differing only in which record offset they tick.
 .thumb_func_start Func_80bf318  @ 0x080bf318
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -157,6 +172,11 @@
 	bx	r1
 .func_end Func_80bf318
 
+@ TickStatusCounter
+@ r0 = combatant id. Decrements one of the per-combatant status counters in the
+@ persistent record and returns 1 on the turn it reaches zero, clearing the
+@ companion field alongside it. One of ten near-identical routines
+@ (Func_bf250..Func_bf4c4) differing only in which record offset they tick.
 .thumb_func_start Func_80bf37c  @ 0x080bf37c
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -192,6 +212,11 @@
 	bx	r1
 .func_end Func_80bf37c
 
+@ TickStatusCounter
+@ r0 = combatant id. Decrements one of the per-combatant status counters in the
+@ persistent record and returns 1 on the turn it reaches zero, clearing the
+@ companion field alongside it. One of ten near-identical routines
+@ (Func_bf250..Func_bf4c4) differing only in which record offset they tick.
 .thumb_func_start Func_80bf3bc  @ 0x080bf3bc
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -226,6 +251,11 @@
 	bx	r1
 .func_end Func_80bf3bc
 
+@ TickStatusCounter
+@ r0 = combatant id. Decrements one of the per-combatant status counters in the
+@ persistent record and returns 1 on the turn it reaches zero, clearing the
+@ companion field alongside it. One of ten near-identical routines
+@ (Func_bf250..Func_bf4c4) differing only in which record offset they tick.
 .thumb_func_start Func_80bf400  @ 0x080bf400
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -261,6 +291,11 @@
 	bx	r1
 .func_end Func_80bf400
 
+@ TickStatusCounter
+@ r0 = combatant id. Decrements one of the per-combatant status counters in the
+@ persistent record and returns 1 on the turn it reaches zero, clearing the
+@ companion field alongside it. One of ten near-identical routines
+@ (Func_bf250..Func_bf4c4) differing only in which record offset they tick.
 .thumb_func_start Func_80bf440  @ 0x080bf440
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -295,6 +330,11 @@
 	bx	r1
 .func_end Func_80bf440
 
+@ TickStatusCounter
+@ r0 = combatant id. Decrements one of the per-combatant status counters in the
+@ persistent record and returns 1 on the turn it reaches zero, clearing the
+@ companion field alongside it. One of ten near-identical routines
+@ (Func_bf250..Func_bf4c4) differing only in which record offset they tick.
 .thumb_func_start Func_80bf484  @ 0x080bf484
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -330,6 +370,11 @@
 	bx	r1
 .func_end Func_80bf484
 
+@ TickStatusCounter
+@ r0 = combatant id. Decrements one of the per-combatant status counters in the
+@ persistent record and returns 1 on the turn it reaches zero, clearing the
+@ companion field alongside it. One of ten near-identical routines
+@ (Func_bf250..Func_bf4c4) differing only in which record offset they tick.
 .thumb_func_start Func_80bf4c4  @ 0x080bf4c4
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -380,6 +425,10 @@
 	bx	r1
 .func_end Func_80bf4c4
 
+@ TickStatusCounterAt13E
+@ r0 = combatant id. Decrements the byte at record+0x13E and returns 1 on the
+@ turn it reaches zero. Same shape as the Func_bf250 family without the
+@ companion clear.
 .thumb_func_start Func_80bf524  @ 0x080bf524
 	push	{lr}
 	bl	_GetUnit
@@ -403,6 +452,9 @@
 	bx	r1
 .func_end Func_80bf524
 
+@ TickStatusCounterB
+@ r0 = combatant id. Another single-counter tick, at a different record
+@ offset.
 .thumb_func_start Func_80bf54c  @ 0x080bf54c
 	push	{lr}
 	bl	_GetUnit
@@ -425,6 +477,8 @@
 	bx	r1
 .func_end Func_80bf54c
 
+@ TickStatusCounterC
+@ r0 = combatant id. A third single-counter tick.
 .thumb_func_start Func_80bf574  @ 0x080bf574
 	push	{lr}
 	bl	_GetUnit
@@ -453,6 +507,10 @@
 	bx	r1
 .func_end Func_80bf574
 
+@ SyncStatusToRecord
+@ r0 = combatant id. Writes the battle-side status back into the persistent
+@ record through _Func_7a2e4 and _Func_7a3a8, then rebuilds the summary with
+@ _Func_77428 -- so status survives the end of the battle. Exported.
 .thumb_func_start Func_80bf5a8  @ 0x080bf5a8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

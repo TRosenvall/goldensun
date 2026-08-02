@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ StopBattleTask
+@ Takes no arguments. Unregisters with StopTask, clears state with .gcc2_compiled.
+@ and gives a frame with WaitFrames.
 .thumb_func_start Func_80be02c  @ 0x080be02c
 	push	{r5, lr}
 	ldr	r3, =iwram_3001e74
@@ -34,6 +37,9 @@
 	bx	r1
 .func_end Func_80be02c
 
+@ CountQueuedActions
+@ r0.. = parameters. Walks the action queue with Func_b6c08 and returns how many
+@ entries it holds.
 .thumb_func_start Func_80be070  @ 0x080be070
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -73,6 +79,10 @@
 	bx	r1
 .func_end Func_80be070
 
+@ CollectQueuedCombatants
+@ r0.. = parameters. Reads the action queue into the caller's array with
+@ Func_b6c08, falling back on the .gcc2_compiled. scratch record where a slot is
+@ empty. Exported.
 .thumb_func_start Func_80be0b4  @ 0x080be0b4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -191,6 +201,11 @@
 	bx	r1
 .func_end Func_80be0b4
 
+@ ShowBattleMessage
+@ r0.. = parameters. Builds the message from the combatant's record
+@ (_Func_77394, _Func_78b9c), registers the substitution values with
+@ _Func_19908, and shows it through _Func_175a0 -- which blocks until the player
+@ dismisses it.
 .thumb_func_start Func_80be18c  @ 0x080be18c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -447,6 +462,11 @@
 	bx	r1
 .func_end Func_80be18c
 
+@ RunPlayerCommandInput
+@ r0.. = parameters. 1658 lines. The player's side of a turn: opens the HUD
+@ (WaitTextPrompt), reads the command selection, marks the UI busy with .gcc2_compiled.,
+@ steps the HUD each frame (Func_bb938, WaitFrames) and reads back the chosen
+@ action through .gcc2_compiled.. Traced structurally.
 .thumb_func_start Func_80be378  @ 0x080be378
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

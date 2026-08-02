@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ AttachListNode
+@ r0 = window, r1.. = parameters. Takes a display node with Func_15e8c, links it
+@ with .gcc2_compiled., and reserves its OBJ tiles with AllocUploadSpriteGFX / UploadSprite2.
 .thumb_func_start Func_8022a7c  @ 0x08022a7c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -98,6 +101,12 @@
 	bx	r0
 .func_end Func_8022a7c
 
+@ RunItemScreen
+@ r0.. = parameters. The item/inventory screen, 733 lines: opens windows with
+@ CreateUIBox, appends layout entries with Func_17c8c, clips with Func_19000,
+@ draws text blocks with Func_1e41c and Func_1e7c0, sets ink with SetTextColor,
+@ and closes with CloseUIBox.
+@ Traced structurally; the per-item behaviour is not yet documented.
 .thumb_func_start Func_8022b44  @ 0x08022b44
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

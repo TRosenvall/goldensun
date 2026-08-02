@@ -1,6 +1,8 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ GetShopDialogue
+@ r0 = shop id. Returns the shop's dialogue string ids from its record.
 .thumb_func_start Func_80b27b0  @ 0x080b27b0
 	push	{r5, lr}
 	mov	r5, r1
@@ -51,6 +53,8 @@
 	bx	r1
 .func_end Func_80b27b0
 
+@ SelectShopGreeting
+@ r0 = shop id. Chooses which greeting to show via Func_b27b0.
 .thumb_func_start Func_80b280c  @ 0x080b280c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -109,6 +113,10 @@
 	bx	r1
 .func_end Func_80b280c
 
+@ AdjustStringForShopType
+@ r0 = string id. Reads the shop-type byte at [iwram_1f2c]+0x3AA and offsets the
+@ string id by a fixed delta for types 1 and 2 -- so one string table serves
+@ three shop kinds.
 .thumb_func_start Func_80b2884  @ 0x080b2884
 	push	{lr}
 	ldr	r3, =iwram_3001f2c

@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ RunBreakAbility
+@ Takes no arguments. The break/shatter field ability: cracks the target apart
+@ and scatters the debris with the hooks above. The ~800-instruction body is
+@ characterised structurally.
 .thumb_func_start Field_Douse  @ 0x080999f0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -379,6 +383,10 @@
 	bx	r0
 .func_end Field_Douse
 
+@ CaptureTargetPosition
+@ Takes no arguments. Copies the target's position from [iwram_1f30]+0x14 into
+@ the caller's stack frame, the common preamble to an ability that needs the
+@ original location after moving the object.
 .thumb_func_start Func_8099d18  @ 0x08099d18
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001f30
@@ -437,6 +445,10 @@
 	bx	r0
 .func_end Func_8099d18
 
+@ RunRevealHiddenAbility
+@ Takes no arguments. Reveals hidden objects around the caster, spawning their
+@ entities and playing the discovery effect. The ~1300-instruction body is
+@ characterised structurally.
 .thumb_func_start Field_Carry_Target  @ 0x08099da4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -993,6 +1005,9 @@
 	bx	r0
 .func_end Field_Carry_Target
 
+@ RunAbilityFailure
+@ Takes no arguments. The "nothing happened" path: plays the failure cue and
+@ returns the caster to idle without changing the world.
 .thumb_func_start Field_Carry  @ 0x0809a294
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1128,6 +1143,9 @@
 	bx	r0
 .func_end Field_Carry
 
+@ PlayAbilityImpactVariant
+@ r0, r1, r2, r3 = impact position and kind. A second impact routine alongside
+@ Func_98a84, also opening with sound 0x8A but using a different burst.
 .thumb_func_start Func_809a3c4  @ 0x0809a3c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ SetDialoguePortrait
+@ r0=speaker slot, or 0x80000000 for "no portrait".
+@ Writes the portrait id at iwram_1e8c+0x12F4 and its style byte at +0x12F6.
+@ The sentinel clears both; otherwise the id comes from Func_92ba8 /
+@ GetSpriteVoice and the style is looked up in .L9fc28 by the text-speed setting at
+@ ewram_240+0x20C.
 .thumb_func_start Func_8093304  @ 0x08093304
 	push	{r5, lr}
 	ldr	r3, =iwram_3001e8c
@@ -36,6 +42,13 @@
 	bx	r0
 .func_end Func_8093304
 
+@ AttachCameraToSlot
+@ r0=slot, r1=non-zero to keep the current camera position.
+@ Binds the camera entity to the slot's entity with _Func_c4bc and repoints
+@ [iwram_1e70] at the camera's position words so the map scrolls with it.
+@ Unless r1 says otherwise the camera is snapped straight onto the target's
+@ position, given a frame to settle, and -- outside scene mode 3 -- the map view
+@ is refreshed with _Func_fe9c so the new region is drawn immediately.
 .thumb_func_start SetCameraTarget  @ 0x0809335c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

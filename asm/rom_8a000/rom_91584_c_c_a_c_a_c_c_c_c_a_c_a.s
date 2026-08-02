@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ SetSlotWalkBehaviour
+@ r0=slot. Sets bit 0 of +0x5A so the entity turns to face its heading, then
+@ installs the default walk behaviour with _Func_c4ac.
 .thumb_func_start MapActor_SetIdle  @ 0x080920a0
 	push	{lr}
 	bl	GetFieldActor

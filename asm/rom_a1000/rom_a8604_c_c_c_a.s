@@ -1,5 +1,20 @@
 	.include "macros.inc"
 
+@ UseInventoryItem
+@ r0 = inventory slot, r1 = user id, r2 = target. THE function that actually
+@ uses an item. It resolves the slot to an ability record, takes the display id
+@ from +0x28 (mask 0x3FFF) and applies the effect through Func_a9f10. A -1 from
+@ there is passed straight back as the failure code.
+@
+@ On success the ability record's TARGET KIND at +0x0C decides what happens to
+@ the item itself:
+@
+@     1  it is consumed -- _Func_788c4 takes one unit and the list is recompacted
+@     4  it TRANSFORMS: the slot's id is rewritten in place, and id 0xB8
+@        specifically becomes 0xB9
+@     anything else  the item is unchanged
+@
+@ Returns 0 on success.
 .thumb_func_start Func_80a9e48  @ 0x080a9e48
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

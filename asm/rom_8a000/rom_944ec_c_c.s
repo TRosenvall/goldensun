@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SpawnVehicleEntity
+@ r0=resource id. Creates the vehicle entity with _Func_c150, records it in the
+@ ride state at [iwram_1f30], and returns it (0 on failure).
 .thumb_func_start CreateParticleActor  @ 0x08096c80
 	push	{r5, r6, lr}
 	ldr	r4, =iwram_3001f30

@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SetPartyAnimation
+@ r0=party slot group (masked to 2 bits), r1=animation index. For each of the 10
+@ party entries at [iwram_1e60] (stride 0x38), switches the group's actor to the
+@ given animation when the index is within the resource's animation count
+@ (header byte 5): points +0x10 at the script, copies header[4] to +0x04, sets
+@ the speed at +0x15 to 0x10, staggers the start by (slot << 4) in the frame
+@ timer at +0x02, and resets +0x14 / +0x16 / +0x17. The position-correction byte
+@ at +0x23 and the rotation halfword at +0x1E are refreshed regardless.
 .thumb_func_start Func_8012d70  @ 0x08012d70
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

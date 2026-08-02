@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ StepOverlayAnimation
+@ Takes no arguments. The overlay's per-frame task, registered by .gcc2_compiled..
+@ Animates with sin (sine), so the element oscillates.
 .thumb_func_start Func_801fd34  @ 0x0801fd34
 	push	{r5, r6, r7, lr}
 	ldr	r7, =iwram_3001800

@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ BuildCombatantLists
+@ r0.. = destinations. Fills both sides' combatant lists with Func_b6a60 (the
+@ player's side) and Func_b6ae0 (the enemy's), which is the pair every turn
+@ decision starts from.
 .thumb_func_start Func_80b5a0c  @ 0x080b5a0c
 	push	{r5, r6, r7, lr}
 	sub	sp, #0x1c

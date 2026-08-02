@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Sub_cb1a4
+@ Battle animation routine, 363 instructions.
+@ State: iwram_1eec, iwram_1e80.
+@ Calls out to: _Func_b7dd0, _Func_b8530, _Func_bd7dc, _Func_c300, _Func_c4ac, _Func_d14c. ...
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_DeathPlunge  @ 0x080cb1a4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -379,6 +386,14 @@
 	bx	r0
 .func_end Anim_DeathPlunge
 
+@ Sub_cb4ec
+@ Battle animation routine, 320 instructions.
+@ State: iwram_1eec.
+@ Calls out to: _Func_f9080.
+@ Touches: REG_BG2PA, REG_BG2X, REG_BLDALPHA.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_Unused_SabreRain  @ 0x080cb4ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -748,6 +763,15 @@
 	bx	r0
 .func_end Anim_Unused_SabreRain
 
+@ Sub_cb7f8
+@ Battle animation routine, 420 instructions.
+@ EXPORTED from this module, so it is also called from outside rom_c9000.
+@ State: iwram_1f0c, iwram_1e80, iwram_1e50, ewram_10000.
+@ Calls out to: _Func_b7dd0, _Func_f9080.
+@ Touches: REG_BG2X, REG_BLDALPHA.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_EPowerUp  @ 0x080cb7f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1209,6 +1233,15 @@
 	bx	r0
 .func_end Anim_EPowerUp
 
+@ Sub_cbc0c
+@ Battle animation routine, 1051 instructions.
+@ EXPORTED from this module, so it is also called from outside rom_c9000.
+@ State: iwram_1e74, iwram_1e50, iwram_1ad0, ewram_10000.
+@ Calls out to: _Func_c0774, _Func_c08ec, _Func_c0cec, _Func_f9080.
+@ Touches: REG_BG1CNT, REG_BG2CNT, REG_BG2PB, REG_BG2X, REG_BG2Y, REG_BLDALPHA.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_ScreenShatter  @ 0x080cbc0c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

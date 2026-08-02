@@ -1,5 +1,6 @@
 	.include "macros.inc"
 
+@ EntityField_5E -- wait timer (halfword)
 .thumb_func_start ActorAttrOp_waitTimer  @ 0x0800e810
 	push	{r5, lr}
 	mov	r4, r2
@@ -39,6 +40,7 @@
 	bx	r0
 .func_end ActorAttrOp_waitTimer
 
+@ EntityField_64 -- spawn/leash tile x (halfword)
 .thumb_func_start ActorAttrOp_unk64  @ 0x0800e850
 	push	{r5, lr}
 	mov	r4, r2
@@ -78,6 +80,7 @@
 	bx	r0
 .func_end ActorAttrOp_unk64
 
+@ EntityField_66 -- spawn/leash tile z (halfword)
 .thumb_func_start ActorAttrOp_unk66  @ 0x0800e890
 	push	{r5, lr}
 	mov	r4, r2

@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ LayoutAndRender
+@ r0 = string id, r1, r2, r3 = placement. Lays the string out with
+@ BufferString(id, 0) and renders it with Func_1868c, but only when the resulting
+@ entry in the +0xEB0 ring is non-empty. Returns without drawing otherwise.
 .thumb_func_start TextBox  @ 0x080187ac
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -42,6 +46,11 @@
 	bx	r1
 .func_end TextBox
 
+@ LayoutAndRenderVariant
+@ r0 = string id, r1, r2, r3 = placement. Identical in shape to TextBox --
+@ same BufferString call, same emptiness test against the +0xEB0 ring, same
+@ Func_1868c render -- differing only in the arguments it forwards. The pair
+@ exists so callers can pick between two placement conventions.
 .thumb_func_start DialogueBox  @ 0x080187fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -84,6 +93,11 @@
 	bx	r1
 .func_end DialogueBox
 
+@ MeasureLayoutRuns
+@ r0 = laid-out ring index, r1, r2, r3 = bounds. Walks the runs, accumulating
+@ widths and line counts through a jump table on the control codes, and returns
+@ the measured extent. Func_af0 supplies the divisions for centring.
+@ 247 lines; traced structurally.
 .thumb_func_start Func_8018850  @ 0x08018850
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -331,6 +345,12 @@
 	bx	r0
 .func_end Func_8018850
 
+@ DrawLayoutRuns
+@ r0 = laid-out ring index, r1, r2, r3 = placement. The glyph emission pass:
+@ initialises a four-entry style stack on the stack (all 0xF, the default ink),
+@ then walks the runs plotting characters and honouring the inline style codes.
+@ Func_af0 supplies the divisions for alignment.
+@ 300 lines; traced structurally.
 .thumb_func_start Func_8018a50  @ 0x08018a50
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ ComputeItemValue
+@ r0.. = parameters. Derives an item's value from its record fields; no calls
+@ out.
 .thumb_func_start Func_8078aa0  @ 0x08078aa0
 	push	{lr}
 	mov	r2, r0
@@ -28,6 +31,8 @@
 	bx	r1
 .func_end Func_8078aa0
 
+@ NotifyItemUsed
+@ r0.. = parameters. Reports a consumed item through Func_78aa0.
 .thumb_func_start Func_8078ad0  @ 0x08078ad0
 	push	{lr}
 	ldr	r3, =0x1ff
@@ -46,6 +51,9 @@
 	bx	r1
 .func_end Func_8078ad0
 
+@ FindEquippedSlot
+@ r0 = combatant id, r1 = category. Returns the inventory slot holding the
+@ equipped item of that category, testing bit 10 of each halfword.
 .thumb_func_start Func_8078af8  @ 0x08078af8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

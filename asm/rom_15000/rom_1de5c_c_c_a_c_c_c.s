@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ DrawNumberToBuffer
+@ r0 = value, r1.. = placement. Formats with PrintNum and renders with
+@ Func_1de5c.
 .thumb_func_start Func_801ea3c  @ 0x0801ea3c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -75,6 +78,10 @@
 	bx	r0
 .func_end Func_801ea3c
 
+@ AttachSpriteNode
+@ r0 = window, r1.. = sprite parameters. Takes a node from the free list with
+@ Func_15e8c, links it to the window with .gcc2_compiled., and releases any OBJ tiles
+@ the slot held with Func_3f3c.
 .thumb_func_start Func_801eadc  @ 0x0801eadc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

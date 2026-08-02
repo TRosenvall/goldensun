@@ -1,5 +1,19 @@
 	.include "macros.inc"
 
+@ BuildAbilityScrollState
+@ r0 = destination, r1 = which cursor.
+@
+@ Fills the seven-word scroll descriptor every list renderer in this module
+@ consumes. The five-row page size is baked in as a literal divisor:
+@
+@     [0x00] the character record from _Func_77394
+@     [0x08] index / 5          the page
+@     [0x0C] total / 5 rounded up   the page count
+@     [0x10] index % 5          the row inside the page
+@     [0x14] total
+@     [0x18] index, clamped to total - 1
+@
+@ Returns 1 always. Word [0x04] is left untouched.
 .thumb_func_start Func_80a5578  @ 0x080a5578
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -75,6 +89,15 @@
 	bx	r1
 .func_end Func_80a5578
 
+@ DrawAbilityDetail
+@ r0, r1 = unused, r2 = scroll descriptor. Recomputes the absolute index as
+@ page * 5 + row and stores it back at [r2+0x18], releases the bottom window's
+@ nodes and prints the highlighted ability's description -- STRING 0x75 + id,
+@ the ability description base -- at its origin.
+@
+@ It then tints the five list rows through Func_a2268: palette 0x0E for the row
+@ matching [r2+0x10] and 0x0F for the rest. That tint IS the selection
+@ highlight; nothing is redrawn.
 .thumb_func_start Func_80a5614  @ 0x080a5614
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -159,6 +182,12 @@
 	bx	r1
 .func_end Func_80a5614
 
+@ DrawAbilityPage
+@ r0 = window, r1 = unused, r2 = scroll descriptor. Draws one page of five
+@ abilities: clears with _Func_1e41c, shows the five sprites with
+@ Func_a2324(5, page*5, ...) at x 0x74, draws the page bar with Func_a21b0, and
+@ prints each name -- STRING 0x182 + (id & 0x1FF) -- 16 pixels apart down the
+@ window. A short last page draws fewer rows; the count is clamped to 5.
 .thumb_func_start Func_80a56c8  @ 0x080a56c8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

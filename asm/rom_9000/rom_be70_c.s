@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ PlaySpriteDissolveMulti
+@ r0=array of actor pointers, r1=count. Same wipe as .gcc2_compiled. but driven
+@ across several actors at once: each group of four steps is applied to every
+@ actor in the array before yielding with WaitFrames(1), so they dissolve in
+@ lockstep. Blocks for 32 frames.
 .thumb_func_start Func_800bf34  @ 0x0800bf34
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -57,6 +62,12 @@
 	bx	r0
 .func_end Func_800bf34
 
+@ GetEntityScreenPos
+@ r0=entity, r1=out vec2 (two s32). Subtracts the camera origin at
+@ [iwram_1e70]+0xE4/+0xE8 (truncated to whole pixels) from the entity position
+@ at +0x08/+0x10, both 16.16. Returns 0 and writes the pixel coordinates when
+@ the result is on-screen -- x within [-32, 272) after the +0x1FFFFF bias test,
+@ y strictly inside (0, 224) -- otherwise zeroes the output and returns -1.
 .thumb_func_start Func_800bfa4  @ 0x0800bfa4
 	push	{r5, lr}
 	ldr	r3, =iwram_3001e70

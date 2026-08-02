@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Playd89acImpl
+@ r0=action descriptor, r1=variant. The shared implementation behind the
+@ 6 thin wrappers in this file, which exist so the animation table can hold
+@ one address per variant:
+@     0=Func_d8948 1=Func_d8954 2=Func_d8960 4=Func_d8988 5=Func_d8994 6=Func_d89a0
+@ Works from the battle state at [iwram_1eec]; the variant selects timing,
+@ colours and which arm of the sequence runs. Body characterised
+@ structurally -- see the wrappers for the variant numbering.
 .thumb_func_start BaseAnim_Heal  @ 0x080d89ac
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

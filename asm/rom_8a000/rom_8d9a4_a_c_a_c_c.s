@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ PlaceMapObjects
+@ Takes no arguments. Positions all spawned map objects on their tiles after a
+@ map load. The ~240-instruction body is characterised structurally.
 .thumb_func_start Func_808e9c0  @ 0x0808e9c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

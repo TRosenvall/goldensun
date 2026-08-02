@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ GetTalkRecordForTarget
+@ r0=entity id. Fetches the kind 0 interaction record for the entity and
+@ compares the id against the active target at ewram_240+0x24A, so the caller
+@ can tell a first conversation from a repeat.
 .thumb_func_start Func_808d5a4  @ 0x0808d5a4
 	push	{r5, r6, lr}
 	mov	r5, r0

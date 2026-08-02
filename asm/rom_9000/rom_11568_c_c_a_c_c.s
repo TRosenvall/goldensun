@@ -1,6 +1,18 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ BlendAnimationTask
+@ Per-frame task (registered at priority 0xC80 by Func_11a84). Takes no
+@ arguments. Drives one scripted blend channel at [iwram_1e70]+0xD8, using the
+@ same {base, cursor, delay, paused} record layout as the tile channels.
+@ Script halfwords:
+@   0xFFFF     -- rewind to the base
+@   0xFExx     -- xx == 0xFF stops; otherwise jump to script word xx
+@   0x3xxx     -- write the value to REG_BLDCNT and cache its low byte at
+@                 [iwram_1e70]+0x103, which records the selected blend mode
+@   any other  -- write the value to REG_BLDALPHA when the cached mode bits are
+@                 0x40, otherwise to REG_BLDY, then take the following halfword
+@                 as the delay
 .thumb_func_start Func_80119cc  @ 0x080119cc
 	push	{lr}
 	ldr	r3, =iwram_3001e70
@@ -91,6 +103,10 @@
 	bx	r0
 .func_end Func_80119cc
 
+@ LoadBlendAnimation
+@ r0=blend script. Zero-fills the blend channel record at [iwram_1e70]+0xD8 by
+@ DMA and, unless the script starts with the 0xFFFF terminator, points both base
+@ and cursor at it and registers Func_119cc at priority 0xC80.
 .thumb_func_start Func_8011a84  @ 0x08011a84
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001e70

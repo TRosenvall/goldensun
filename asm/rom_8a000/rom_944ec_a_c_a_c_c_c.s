@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunVehicleCutscene
+@ Takes no arguments. The full scripted vehicle sequence, chaining approach,
+@ boarding, travel and arrival. The ~230-instruction body is characterised
+@ structurally.
 .thumb_func_start GetMercuryDjinni  @ 0x080965a8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

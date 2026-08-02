@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ ScatterProjectile
+@ r0=entity. Gives the projectile a randomised heading around its current facing
+@ (+0x06) using Func_4458, so repeated casts do not follow identical paths.
 .thumb_func_start Func_809a738  @ 0x0809a738
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -84,6 +87,9 @@
 	bx	r0
 .func_end Func_809a738
 
+@ HomingProjectileHook
+@ r0=entity. Per-frame hook that steers the projectile toward the target held at
+@ +0x68, adjusting the facing at +0x06 each frame rather than flying straight.
 .thumb_func_start Func_809a7f4  @ 0x0809a7f4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ClassifyShopItem
+@ r0 = item id. Categorises it through _Func_78480 and _Func_78ad0 so the shop
+@ knows which list it belongs in.
 .thumb_func_start Func_80b0070  @ 0x080b0070
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

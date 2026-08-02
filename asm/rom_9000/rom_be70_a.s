@@ -1,5 +1,16 @@
 	.include "macros.inc"
 
+@ DissolveSpriteStep
+@ r0=actor, r1=dissolve step. Erases one pixel pair from each of the actor's
+@ OBJ tiles, giving a scrambled "dissolve" wipe when stepped repeatedly.
+@ The tile base is iwram_1b10[+0x1C size code].halfword + 0x6010000; the tile
+@ count is (+0x20 * +0x21) / 64. For each tile, .L1314c (a 0x44-byte scramble
+@ table) is indexed by (step + tile*16) & 0x3F to pick a byte offset within the
+@ tile: bit 0 of the entry selects which half of the 16-bit unit survives --
+@ set keeps the low byte, clear keeps the high byte -- and the other half is
+@ zeroed.
+@ NOTE the guard at .Lbeae is unsigned: (step - 0x40) > 0x3F skips the tile, so
+@ steps 0x00-0x3F do nothing at all and only steps 0x40-0x7F erase.
 .thumb_func_start Func_800be70  @ 0x0800be70
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

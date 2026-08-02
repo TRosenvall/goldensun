@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ ScriptOp_SetField
+@ Script opcode handler. r0=entity. Reads a field id from script[cursor+1]
+@ and a value from script[cursor+2], looks the id up in the accessor table
+@ Data_136e0, and calls it with operation 0 to set the field. A null table
+@ entry is skipped silently. Advances the cursor by 3 and returns 1.
 .thumb_func_start ActorCmd_SetAttr  @ 0x0800e9a0
 	push	{r5, lr}
 	mov	r5, r0
@@ -30,6 +35,11 @@
 	bx	r1
 .func_end ActorCmd_SetAttr
 
+@ ScriptOp_AddField
+@ Script opcode handler. r0=entity. Reads a field id from script[cursor+1]
+@ and a value from script[cursor+2], looks the id up in the accessor table
+@ Data_136e0, and calls it with operation 1 to add to the field. A null table
+@ entry is skipped silently. Advances the cursor by 3 and returns 1.
 .thumb_func_start ActorCmd_IncAttr  @ 0x0800e9dc
 	push	{r5, lr}
 	mov	r5, r0
@@ -60,6 +70,11 @@
 	bx	r1
 .func_end ActorCmd_IncAttr
 
+@ ScriptOp_CompareField
+@ Script opcode handler. r0=entity. Reads a field id from script[cursor+1]
+@ and a value from script[cursor+2], looks the id up in the accessor table
+@ Data_136e0, and calls it with operation 2 to compare the field. A null table
+@ entry is skipped silently. Advances the cursor by 3 and returns 1.
 .thumb_func_start ActorCmd_CmpAttr  @ 0x0800ea18
 	push	{r5, lr}
 	mov	r5, r0

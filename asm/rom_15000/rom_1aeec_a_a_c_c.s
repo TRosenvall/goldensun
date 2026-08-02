@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ AnimatePanelTransition
+@ r0.. = parameters. Slides panels between positions a frame at a time
+@ (WaitFrames), claiming slots with Func_1a910 and releasing tiles with
+@ Func_3f3c. 227 lines; traced structurally.
 .thumb_func_start Func_801ba68  @ 0x0801ba68
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -227,6 +231,9 @@
 	bx	r0
 .func_end Func_801ba68
 
+@ LoadPanelSet
+@ r0.. = parameters. Loads the portrait, icon and table graphics for one panel
+@ via LoadOldUIIcon, LoadInventoryIcon, LoadUIBanner and LoadMoveIcon.
 .thumb_func_start UploadIcon  @ 0x0801bc34
 	push	{r5, lr}
 	mov	r3, #1
@@ -303,6 +310,8 @@
 	bx	r1
 .func_end UploadIcon
 
+@ LoadPanelSetExtended
+@ r0.. = parameters. As UploadIcon with the icon set from LoadStatusIcon added.
 .thumb_func_start Func_801bcd4  @ 0x0801bcd4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -398,6 +407,9 @@
 	bx	r1
 .func_end Func_801bcd4
 
+@ LoadAllPortraits
+@ r0.. = parameters. Loads portraits for every visible party entry through
+@ LoadOldUIIcon, LoadItemIconID and LoadMoveIcon.
 .thumb_func_start Func_801bd98  @ 0x0801bd98
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
@@ -513,6 +525,10 @@
 	bx	r0
 .func_end Func_801bd98
 
+@ RunPartyReorder
+@ r0.. = parameters. Drives the party-reordering interaction, moving entries
+@ with Func_1a910, repainting each frame with WaitFrames, and releasing tiles
+@ with Func_3f3c. 288 lines; traced structurally.
 .thumb_func_start Func_801be80  @ 0x0801be80
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ CreateCursorSprite
+@ r0.. = parameters. Builds the menu cursor as a real actor: _Func_bc70 creates
+@ it, _Func_ba30 sets its animation, _Func_8b3d0 supplies the resource, and
+@ StartTask registers its per-frame task.
+@ Note this uses rom_9000's actor system rather than the display nodes the rest
+@ of this module uses.
 .thumb_func_start Func_801fe2c  @ 0x0801fe2c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -113,6 +119,9 @@
 	bx	r0
 .func_end Func_801fe2c
 
+@ DestroyCursorSprite
+@ Takes no arguments. Unregisters the task with StopTask and destroys the actor
+@ with _Func_bdd4.
 .thumb_func_start Func_801ff14  @ 0x0801ff14
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -145,6 +154,9 @@
 	bx	r0
 .func_end Func_801ff14
 
+@ SubmitCursorSprite
+@ r0.. = position. Submits the cursor through _Func_b168, rom_9000's 3D sprite
+@ entry point.
 .thumb_func_start Func_801ff58  @ 0x0801ff58
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -210,6 +222,9 @@
 	bx	r0
 .func_end Func_801ff58
 
+@ CreateSecondCursor
+@ r0.. = parameters. A second cursor actor, built the same way as Func_1fe2c
+@ but without the _Func_8b3d0 resource lookup.
 .thumb_func_start Func_801ffd8  @ 0x0801ffd8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -294,6 +309,8 @@
 	bx	r0
 .func_end Func_801ffd8
 
+@ DestroySecondCursor
+@ Takes no arguments. The Func_1ff14 counterpart for the second cursor.
 .thumb_func_start Func_8020088  @ 0x08020088
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -326,6 +343,8 @@
 	bx	r0
 .func_end Func_8020088
 
+@ SubmitSecondCursor
+@ r0.. = position. Submits the second cursor through _Func_b168.
 .thumb_func_start Func_80200cc  @ 0x080200cc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -394,6 +413,8 @@
 	bx	r0
 .func_end Func_80200cc
 
+@ DrawCursorLabel
+@ r0.. = parameters. Draws the number beside the cursor with .gcc2_compiled..
 .thumb_func_start Func_8020150  @ 0x08020150
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

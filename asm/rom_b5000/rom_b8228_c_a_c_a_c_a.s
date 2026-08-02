@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunTurnIntro
+@ r0.. = parameters. The opening phase of a turn: picks targets from
+@ Func_b6b40, rolls with Func_4458, orients the actor with .gcc2_compiled., and shows
+@ any message through _Func_175a0.
 .thumb_func_start Func_80b8824  @ 0x080b8824
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

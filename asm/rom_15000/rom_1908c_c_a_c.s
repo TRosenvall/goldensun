@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunMenuModal
+@ r0.. = menu parameters. Drives a menu to completion, one WaitFrames(1) per
+@ frame, and closes its window with CloseUIBox on the way out.
 .thumb_func_start Func_80197c4  @ 0x080197c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -80,6 +83,10 @@
 	bx	r0
 .func_end Func_80197c4
 
+@ RepaintTextRegion
+@ r0 = message-box slot. Repaints the region a message box occupies, restoring
+@ the tilemap with ClearUIRegion and redrawing the frame with Func_170f8. Called by
+@ Func_16868 when a box has more text to reveal.
 .thumb_func_start Func_8019854  @ 0x08019854
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -146,6 +153,10 @@
 	bx	r0
 .func_end Func_8019854
 
+@ ClearCallbackTable
+@ Takes no arguments. Clears the eight-entry callback table -- pointers at
+@ [iwram_1e8c]+0x12BC (4 bytes each) and their ids at +0x12DC (2 bytes each) --
+@ used by Func_19908 and Func_19944.
 .thumb_func_start Func_80198dc  @ 0x080198dc
 	push	{lr}
 	ldr	r3, =iwram_3001e8c
@@ -167,6 +178,10 @@
 	bx	r0
 .func_end Func_80198dc
 
+@ RegisterCallback
+@ r0 = callback, r1 = id. Finds the first free slot in the eight-entry table --
+@ free meaning its id halfword at [iwram_1e8c]+0x12DC is zero -- stores the
+@ pointer at +0x12BC and the id alongside, and returns the slot index.
 .thumb_func_start Func_8019908  @ 0x08019908
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e8c
@@ -197,6 +212,10 @@
 	bx	r0
 .func_end Func_8019908
 
+@ LookupCallback
+@ r0 = id, r1 = non-zero to also remove it. Scans the eight-entry table for a
+@ matching id and returns its callback pointer, clearing both the pointer and
+@ the id when r1 is set. Returns 0 when the id is not registered.
 .thumb_func_start Func_8019944  @ 0x08019944
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e8c
@@ -240,6 +259,11 @@
 	bx	r1
 .func_end Func_8019944
 
+@ PollConfirmKey
+@ r0 = mask. Returns whether a confirm-style press is active this frame.
+@ Reads the HELD key state at iwram_1ae8 against 0x303 -- A, B, and the two
+@ shoulder buttons. The byte at [iwram_1e8c]+0x12F9 gates a _Func_f954c check,
+@ which suppresses input while that subsystem is busy.
 .thumb_func_start Func_801999c  @ 0x0801999c
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001e8c
@@ -278,6 +302,11 @@
 	bx	r1
 .func_end Func_801999c
 
+@ PollMenuKey
+@ r0 = mask. The NEWLY-PRESSED counterpart to Func_1999c, reading iwram_1c94
+@ (pressed this frame) and iwram_1af8 rather than the held state, so menu
+@ navigation does not repeat while a key is down.
+@ The mode byte at [iwram_1e8c]+0xEA4 selects between two interpretations.
 .thumb_func_start Func_80199ec  @ 0x080199ec
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e8c
@@ -324,6 +353,9 @@
 	bx	r1
 .func_end Func_80199ec
 
+@ RunMenuModalSimple
+@ r0.. = menu parameters. The short form of Func_197c4: spins on WaitFrames(1)
+@ and closes with CloseUIBox, without the extra state that one tracks.
 .thumb_func_start Func_8019a54  @ 0x08019a54
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001e8c
@@ -363,6 +395,11 @@
 	bx	r0
 .func_end Func_8019a54
 
+@ RunChoicePrompt
+@ r0 = string id, r1.. = options. Opens a message box with Func_165d8 and a
+@ window with CreateUIBox, renders the prompt through BufferString and TextBox,
+@ then waits on .gcc2_compiled. / .gcc2_compiled. before closing with CloseUIBox.
+@ This is the yes/no and multi-option prompt used across the game.
 .thumb_func_start Func_8019aa0  @ 0x08019aa0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

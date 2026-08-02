@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Playd52c8Impl
+@ r0=action descriptor, r1=variant. The shared implementation behind the
+@ 7 thin wrappers in this file, which exist so the animation table can hold
+@ one address per variant:
+@     1=Func_d5274 2=Func_d5280 3=Func_d528c 4=Func_d5298 5=Func_d52a4 6=Func_d52bc 7=Func_d52b0
+@ Works from the battle state at [iwram_1eec]; the variant selects timing,
+@ colours and which arm of the sequence runs. Body characterised
+@ structurally -- see the wrappers for the variant numbering.
 .thumb_func_start BaseAnim_ParticleCloud  @ 0x080d52c8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -820,6 +828,14 @@
 	bx	r0
 .func_end BaseAnim_ParticleCloud
 
+@ Sub_d59b0
+@ Battle animation routine, 272 instructions.
+@ State: iwram_1eec, iwram_1e80, ewram_10000.
+@ Calls out to: _Func_b7dd0, _Func_bd7dc, _Func_f9080.
+@ Touches: REG_BG2PA, REG_BG2X.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_Sleep  @ 0x080d59b0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1117,6 +1133,14 @@
 	bx	r0
 .func_end Anim_Sleep
 
+@ Sub_d5c48
+@ Battle animation routine, 220 instructions.
+@ State: iwram_1ef0.
+@ Calls out to: _Func_bd7dc, _Func_f9080.
+@ Touches: REG_BG2PA, REG_BG2X.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_Curse  @ 0x080d5c48
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1359,6 +1383,13 @@
 	bx	r0
 .func_end Anim_Curse
 
+@ Sub_d5e54
+@ Battle animation routine, 747 instructions.
+@ State: iwram_1eec, iwram_1e80, ewram_10000.
+@ Calls out to: _Func_b7dd0, _Func_f9080.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_Unused_Fizz  @ 0x080d5e54
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

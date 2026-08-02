@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ BlendPixels
+@ r0 = source, r1 = destination, r2 = blend amount, r3 = row count.
+@ Blends 15-bit colour a row at a time, masking each channel with 0x1F and
+@ clamping the amount to 0x10000. Pure arithmetic, no calls out.
 .thumb_func_start UploadBGPalette  @ 0x080c1724
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -64,6 +68,10 @@
 	bx	r1
 .func_end UploadBGPalette
 
+@ RunAnimationSequence
+@ r0.. = parameters. Loads assets (Anim_Cast), projects the combatant's parts
+@ (.gcc2_compiled.), sets the scene up (Func_c0774) and runs it frame by frame,
+@ releasing with .gcc2_compiled.. 261 lines; traced structurally.
 .thumb_func_start Anim_MoveIntro  @ 0x080c1798
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

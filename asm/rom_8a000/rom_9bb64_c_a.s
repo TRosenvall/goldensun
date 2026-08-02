@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunWorldMapView
+@ Takes no arguments. Drives the world-map screen: moves the cursor, updates the
+@ marker positions and returns when the player exits. The ~270-instruction body
+@ is characterised structurally.
 .thumb_func_start Func_809bcf8  @ 0x0809bcf8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -532,6 +536,10 @@
 	bx	r0
 .func_end Func_809bcf8
 
+@ UpdateWorldMapCamera
+@ Takes no arguments. Keeps the world-map camera (state block from
+@ galloc_ewram(0x1B, 0xCCC)) centred on the cursor, clamped to the map bounds at
+@ [iwram_1e70]+0xEC..+0xF8.
 .thumb_func_start Func_809c138  @ 0x0809c138
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -735,6 +743,9 @@
 	.word	0
 .func_end Func_809c138
 
+@ PlaceWorldMapPlayerMarker
+@ Takes no arguments. Positions the player's marker on the world map from the
+@ player entity (ewram_240+0x1F4) and the current area's world coordinates.
 .thumb_func_start Func_809c314  @ 0x0809c314
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

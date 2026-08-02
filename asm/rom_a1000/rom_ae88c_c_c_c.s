@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ AttachArrowSprite
+@ r0 = x, r1 = y, r2 = priority, r3 = direction -- 0 up, non-zero down.
+@ Attaches the arrow whose tiles .gcc2_compiled. loaded, picking state+0x392 for up
+@ and +0x394 for down. Clears the node's +0x04 and +0x0C and marks it live.
+@ Returns 1, or -1 when no node was free. This is the arrow Func_a15f0 puts
+@ beside a stat that changes.
 .thumb_func_start Func_80ae99c  @ 0x080ae99c
 	push	{r5, r6, lr}
 	mov	r5, r3
@@ -43,6 +49,10 @@
 	bx	r1
 .func_end Func_80ae99c
 
+@ AttachArrowSpriteNudged
+@ r0 = x, r1 = y, r2 = priority, r3 = direction. As Func_ae99c but with the
+@ priority biased -- 3 lower for the up arrow, 4 for the down -- so the arrow
+@ sorts behind the text it annotates rather than over it.
 .thumb_func_start Func_80ae9f0  @ 0x080ae9f0
 	push	{r5, r6, lr}
 	mov	r5, r3

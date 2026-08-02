@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ResetCursorSprite
+@ r0 = ignored. DMA3-fills 0x29C bytes of the state block with zero, then sets
+@ +0x1C to 0xFF and +0x1E, +0x1F, +0x112, +0x113 to 1. The block-clear is what
+@ makes the shared tag 0x37 scratch safe to reuse between screens.
 .thumb_func_start Func_80a1090  @ 0x080a1090
 	ldr	r3, =iwram_3001f2c
 	sub	sp, #4
@@ -29,6 +33,13 @@
 	bx	lr
 .func_end Func_80a1090
 
+@ OpenWindowOnce
+@ r0 = slot holding the window record, r1 = x, r2 = y, r3 = width, arg5 = height,
+@ arg6 = flags. Idempotent: when the slot already holds a window it returns 0,
+@ first releasing it with _Func_16498 unless bit 8 of the flags asks to keep it.
+@ Otherwise _Func_162d4 opens one, stores it in the slot, and it returns 1.
+@ Bits above 7 of the flag word are the module's own; only the low byte reaches
+@ _Func_162d4.
 .thumb_func_start Func_80a10d0  @ 0x080a10d0
 	push	{r5, r6, lr}
 	mov	r6, r0

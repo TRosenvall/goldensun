@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ EmitPartySprites
+@ r0.. = sprite parameters. Emits the party screen's character sprites,
+@ reserving OBJ tiles with UploadSpriteGFX, releasing with .gcc2_compiled., and reading
+@ character data through _Func_79338. Driven from Func_1a98c's per-frame task
+@ and paced by the frame counter at iwram_1800. 142 lines; traced structurally.
 .thumb_func_start DisplayMenuArrowCursor  @ 0x0801aeec
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -142,6 +147,10 @@
 	bx	r0
 .func_end DisplayMenuArrowCursor
 
+@ OpenPartyPanel
+@ r0.. = panel parameters. Opens a window with CreateUIBox, fills it through
+@ Func_1e7c0 and Func_1b36c, and closes any previous panel with CloseUIBox /
+@ .gcc2_compiled.. The core "show a character panel" call the party screen uses.
 .thumb_func_start Func_801b010  @ 0x0801b010
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -296,6 +305,10 @@
 	bx	r0
 .func_end Func_801b010
 
+@ ClosePartyScreen
+@ Takes no arguments. Tears the party screen down: stops the task with
+@ .gcc2_compiled., closes windows with CloseUIBox, releases OBJ tiles with
+@ Func_3f3c and the block with Func_2dd8, giving a frame with WaitFrames.
 .thumb_func_start Func_801b148  @ 0x0801b148
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e98

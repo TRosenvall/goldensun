@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ CountListEntries
+@ r0 = list. Walks the linked list at +0x348, whose length is the halfword at
+@ +0x39E, and returns the count.
 .thumb_func_start Func_80b0694  @ 0x080b0694
 	push	{lr}
 	mov	r2, #0xd2
@@ -26,6 +29,9 @@
 	bx	r1
 .func_end Func_80b0694
 
+@ FillRowAttributes
+@ r0 = count, r1 = value, r2 = base. Writes the same byte into six fields of
+@ each row record, at offsets taken from the halfword table .Lb4100.
 .thumb_func_start Func_80b06c0  @ 0x080b06c0
 	push	{lr}
 	lsl	r3, r1, #4
@@ -51,6 +57,8 @@
 	bx	r0
 .func_end Func_80b06c0
 
+@ ComputeRowLayout
+@ r0.. = parameters. Derives a row's on-screen geometry; no calls out.
 .thumb_func_start Func_80b06ec  @ 0x080b06ec
 	push	{lr}
 	ldr	r3, =.Lb3d40
@@ -96,6 +104,10 @@
 	bx	r0
 .func_end Func_80b06ec
 
+@ BuildShopRows
+@ r0.. = parameters. Builds the visible row records, allocating with galloc_ewram,
+@ reserving tiles with UploadSpriteGFX / AllocSpriteSlot, and dividing with Func_af0 and
+@ Func_b1c. Releases with Func_2dd8.
 .thumb_func_start Func_80b0744  @ 0x080b0744
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -199,6 +211,9 @@
 	bx	r1
 .func_end Func_80b0744
 
+@ UploadShopGraphics
+@ r0 = index. DMA3s a 0x150-word block from the rom_a1000 state at iwram_1ebc
+@ into the shop's buffer, going through _Func_91200 and _Func_91254.
 .thumb_func_start Func_80b0840  @ 0x080b0840
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc

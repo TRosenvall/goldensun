@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ TileHeight_RampX2 (shape 10)
+@ Three-corner two-segment ramp along x: corner 0 -> corner 1 over the first
+@ half (divided by 8), then corner 1 -> corner 2 over the second.
 .thumb_func_start HeightTile_A  @ 0x08011e88
 	push	{lr}
 	mov	r3, #0
@@ -42,6 +45,11 @@
 	bx	r1
 .func_end HeightTile_A
 
+@ TileHeight_RampZ2 (shape 11)
+@ Three-corner two-segment ramp along z, the counterpart to HeightTile_A.
+@ NOTE this sampler loads its corner bytes with `ldrb`, not `ldrsb` -- so unlike
+@ every other entry in the table it treats them as UNSIGNED and cannot express a
+@ negative height.
 .thumb_func_start HeightTile_B  @ 0x08011ed0
 	push	{lr}
 	ldrb	r3, [r0]

@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ ProjectileMotionHook
+@ r0=entity. Per-frame hook that integrates a stored velocity: adds the three
+@ words at +0x44, +0x48 and +0x4C to the position at +0x08, +0x0C and +0x10.
+@ A straight-line move that bypasses the seek logic entirely.
 .thumb_func_start Func_809a44c  @ 0x0809a44c
 	ldr	r3, [r0, #8]
 	ldr	r2, [r0, #0x44]
@@ -30,6 +34,11 @@
 	bx	lr
 .func_end Func_809a44c
 
+@ RunProjectileAbility
+@ r0, r1 and stacked arguments describe the launch. Fires a field-ability
+@ projectile from the caster toward the target, running the flight, the impact
+@ and the resulting world change. The ~180-instruction body is characterised
+@ structurally.
 .thumb_func_start Func_809a484  @ 0x0809a484
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -266,6 +275,9 @@
 	bx	r0
 .func_end Func_809a484
 
+@ ProjectileMotionWithDrag
+@ r0=entity. Func_9a44c plus decay: after integrating the velocity words at
+@ +0x44/+0x48/+0x4C it also reduces them, so the projectile slows as it flies.
 .thumb_func_start Func_809a65c  @ 0x0809a65c
 	push	{r5, r6, r7, lr}
 	mov	r6, r0

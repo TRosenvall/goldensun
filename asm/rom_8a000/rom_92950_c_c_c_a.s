@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ ShowMessageAtXY
+@ r0, r1 unused on entry, r2=x, r3=y. Opens the box for the line at
+@ iwram_1ebc+0x1D8 at explicit screen coordinates via _Func_17658, clamping x
+@ into [0x14, 0xDC] and y into [8, 0x138] and nudging the box by +/-0x20
+@ depending on which side of 0x77 y falls.
+@ Blocks until _Func_17394 reports the box closed, then advances the message id
+@ by one so the next call shows the following line.
 .thumb_func_start Func_8093168  @ 0x08093168
 	push	{r5, r6, lr}
 	mov	r0, r2

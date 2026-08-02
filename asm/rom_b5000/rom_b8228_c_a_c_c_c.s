@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SetCombatantStateWord
+@ r0 = combatant id, r1 = value. The write counterpart to .gcc2_compiled., with the
+@ same two index ranges and the same overlap at +0x66.
 .thumb_func_start Func_80b9a70  @ 0x080b9a70
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001e74
@@ -56,6 +59,8 @@
 	bx	r1
 .func_end Func_80b9a70
 
+@ UploadBattleTransform
+@ r0.. = parameters. Pushes a transform to hardware through Func_c0a24.
 .thumb_func_start Func_80b9acc  @ 0x080b9acc
 	push	{lr}
 	ldr	r3, =iwram_3001e80

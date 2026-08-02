@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ DrawAbilityDetailPage
+@ r0.. = placement. The ability page's detail block: resolves ids through
+@ _Func_78414 (mask 0x1FF), plots its frame a tile at a time with _Func_19000
+@ and tints the selected row with Func_a2268. 240 lines; traced structurally.
 .thumb_func_start Func_80a93a4  @ 0x080a93a4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -247,6 +251,11 @@
 	bx	r1
 .func_end Func_80a93a4
 
+@ DrawAbilityPage2
+@ r0.. = placement. One page of the ability list, names from 0x182 + id and the
+@ power figure under label 0xAF7. Prints 0xAD7 when the list is empty. Uses
+@ Func_a2324 and Func_a21b0 like every other page renderer here.
+@ 136 lines; traced structurally.
 .thumb_func_start Func_80a9598  @ 0x080a9598
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -390,6 +399,11 @@
 	bx	r1
 .func_end Func_80a9598
 
+@ RunStatusPage3
+@ Takes no arguments. The ability page of the status screen. Compacts with
+@ Func_a3ddc, sorts with Func_a1e38, loads icons with Func_a3e28, draws through
+@ Func_a93a4 and Func_a9598, and shares Func_a9a5c with the equipment view.
+@ Label 0xB06. 327 lines; traced structurally.
 .thumb_func_start Func_80a96d8  @ 0x080a96d8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -724,6 +738,23 @@
 	bx	r1
 .func_end Func_80a96d8
 
+@ StepDjinnGrid
+@ r0 = column pointer, r1 = row pointer, r2 = the direction bit that was
+@ pressed. The navigation for the irregular grid on the equipment page, where
+@ row 3 is a special narrow row:
+@
+@     0x40 (Up)     row -= 1, wrapping to 5; rows above 3 are rejected outright.
+@                   Row 3 clamps the column to 0 or 1 (from 4 or below, and
+@                   above 4 respectively), and landing on row 3 column 1 bumps
+@                   the row to 2.
+@     0x80 (Down)   row += 1, wrapping to 0; row 3 with column 1 becomes row 4,
+@                   and row 4 resets the column to 0.
+@     0x20 (Left)   column -= 1; row 3 undoes it, rows above 3 wrap to 7 and
+@                   rows below wrap to 1.
+@     0x10 (Right)  column += 1; row 3 undoes it, rows above 3 wrap past 7 and
+@                   rows below past 1.
+@
+@ Writes both back and returns row * 9 + column, the flat index.
 .thumb_func_start Func_80a99b0  @ 0x080a99b0
 	push	{lr}
 	ldr	r3, [r0]

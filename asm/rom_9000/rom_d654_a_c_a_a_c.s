@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ ScriptOp_JumpIfTrue
+@ Script opcode handler. r0=entity. Jumps to the label at script[cursor+1] when
+@ the condition byte at +0x57 is non-zero, otherwise advances the cursor by 2.
+@ The condition is set by the event-flag opcodes below. Returns 1.
 .thumb_func_start ActorCmd_GotoIfNZ  @ 0x0800d780
 	push	{r5, lr}
 	mov	r5, r0
@@ -29,6 +33,10 @@
 	bx	r1
 .func_end ActorCmd_GotoIfNZ
 
+@ ScriptOp_JumpIfFalse
+@ Script opcode handler. r0=entity. The inverse of ActorCmd_GotoIfNZ: jumps to the label
+@ at script[cursor+1] when the condition byte at +0x57 is zero, otherwise
+@ advances the cursor by 2. Returns 1.
 .thumb_func_start ActorCmd_GotoIfZ  @ 0x0800d7b4
 	push	{r5, lr}
 	mov	r5, r0

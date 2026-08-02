@@ -1,6 +1,8 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ComputeOverlayValues
+@ r0.. = parameters. Derives the displayed values; no calls out.
 .thumb_func_start Func_801f5f0  @ 0x0801f5f0
 	push	{r5, r6, r7, lr}
 	mov	r6, r3
@@ -78,6 +80,10 @@
 	bx	r0
 .func_end Func_801f5f0
 
+@ FormatOverlayNumber
+@ r0 = value. Formats with PrintNum, using Func_b50 and Func_b60 -- the
+@ UNSIGNED remainder helpers -- so the value is treated as unsigned here,
+@ unlike PrintNum's own signed path.
 .thumb_func_start Func_801f680  @ 0x0801f680
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ ResolveCombatantSprite
+@ r0 = combatant id. Picks the sprite variant with GetWeaponType, then reads the
+@ combatant's record through _Func_77394 and drops any inventory entry that no
+@ longer applies with _Func_787dc.
 .thumb_func_start GetWeaponSpriteID  @ 0x080b6eb4
 	push	{r5, r6, lr}
 	mov	r5, r0

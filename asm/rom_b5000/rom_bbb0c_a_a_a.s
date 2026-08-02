@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunBattleMainLoop
+@ r0.. = parameters. 2874 lines -- the second largest routine in the module and
+@ the heart of it. Runs the battle from turn to turn: builds the enemy list
+@ (Func_b6ae0), submits action groups (.gcc2_compiled., Func_b6cdc), scratches with
+@ Func_4938 / free, and divides with Func_af0 and Func_b60.
+@ Traced structurally.
 .thumb_func_start Func_80bbb0c  @ 0x080bbb0c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

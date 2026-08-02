@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ ClassifyAbility
+@ r0 = ability id. Maps the record's +0x02 byte to a category:
+@     1                   -> 1
+@     2, 3, 4, 5 or 9     -> 2
+@     anything else       -> 0
 .thumb_func_start Func_8078480  @ 0x08078480
 	push	{lr}
 	bl	GetItemInfo

@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ CreateFieldEffect
+@ r0=effect instance to fill, r1=actor resource id, r2=x, r3=y.
+@ Zero-fills the 0x48-byte instance by DMA, creates its actor with _Func_bc70
+@ and clears the actor's priority bits (+0x09 bits 2-3), then places it with
+@ .gcc2_compiled..
+@ Seeds the defaults: +0x20 = 0x20000, the three speed words at +0x24/+0x28/+0x2C
+@ = 0x10000, the origin copied to +0x14/+0x18, the actor's option byte at +0x26
+@ cleared, and the five enable bytes at +0x41..+0x45 all set to 1.
 .thumb_func_start Func_809ba90  @ 0x0809ba90
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -79,6 +87,9 @@
 	bx	r0
 .func_end Func_809ba90
 
+@ DestroyFieldEffect
+@ r0=effect instance. Releases the instance's actor and clears its enable bytes
+@ so Field_Avoid stops updating it.
 .thumb_func_start Func_809bb34  @ 0x0809bb34
 	push	{r5, lr}
 	mov	r5, r0

@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SetOverlayCentre
+@ r0=x, r1=y. Records the overlay aperture's centre in the overlay state for the
+@ builders to use.
 .thumb_func_start Func_809088c  @ 0x0809088c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -43,6 +46,10 @@
 	bx	r0
 .func_end Func_809088c
 
+@ FadeTask
+@ Per-frame task registered by .gcc2_compiled.. Steps the fade in the state at
+@ iwram_1ed0 toward its target, rewriting the palette each frame. The
+@ ~380-instruction body is characterised structurally.
 .thumb_func_start Func_80908e0  @ 0x080908e0
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ed0
@@ -230,6 +237,10 @@
 	bx	r0
 .func_end Func_80908e0
 
+@ ApplyFadeToPalette
+@ Takes no arguments. Blends the live palette toward the fade target colour by
+@ the current fade amount. The ~1800-instruction body -- the unrolled per-colour
+@ blend -- is characterised structurally.
 .thumb_func_start Func_8090a5c  @ 0x08090a5c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1124,6 +1135,9 @@
 	bx	r0
 .func_end Func_8090a5c
 
+@ InitFadeState
+@ Takes no arguments. Allocates the 0x2A04-byte fade state under tag 0x20 and
+@ clears it.
 .thumb_func_start Func_8091174  @ 0x08091174
 	push	{lr}
 	ldr	r1, =0x2a04

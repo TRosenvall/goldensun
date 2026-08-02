@@ -1,5 +1,7 @@
 	.include "macros.inc"
 
+@ ReadSaveFlag
+@ r0 = index. Reads a preference byte out of the save block at ewram_240.
 .thumb_func_start Func_801c46c  @ 0x0801c46c
 	push	{lr}
 	ldr	r2, =0x205
@@ -25,6 +27,11 @@
 	bx	r0
 .func_end Func_801c46c
 
+@ RunMenuScreen
+@ r0.. = parameters. A full menu screen: opens windows with CreateUIBox, reads
+@ input from iwram_1c94 and iwram_1b04, calls Func_1c7fc for character data and
+@ Func_1c8a0 for the save block, fades with Func_1e41c / Func_1e7c0, and closes
+@ with CloseUIBox. 385 lines; traced structurally.
 .thumb_func_start Func_801c49c  @ 0x0801c49c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -410,6 +417,9 @@
 	bx	r0
 .func_end Func_801c49c
 
+@ ReadCharacterSummary
+@ r0 = character. Collects a character's display summary through _Func_77394,
+@ _Func_78b9c and _Func_796c4 in rom_77000.
 .thumb_func_start Func_801c7fc  @ 0x0801c7fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -497,6 +507,9 @@
 	bx	r1
 .func_end Func_801c7fc
 
+@ ReadSaveSummary
+@ r0.. = parameters. Reads party totals out of the save block, using both
+@ ewram_240 and ewram_462.
 .thumb_func_start Func_801c8a0  @ 0x0801c8a0
 	push	{r5, r6, r7, lr}
 	mov	r3, #0

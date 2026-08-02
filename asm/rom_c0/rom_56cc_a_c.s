@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SetChannelPitch
+@ r0 = channel, r1 = pitch. Sets the sample step rate, resolving the sample
+@ through Func_5868.
 .thumb_func_start Func_8005b64  @ 0x08005b64
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001f1c

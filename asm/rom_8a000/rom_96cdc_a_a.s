@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SearchFieldTargets
+@ r0=origin, r1=range, r2=kind. Scans the candidate table at ewram_48A for
+@ objects the field ability can act on, returning the best match. Used to decide
+@ what a cast will affect before any animation plays.
 .thumb_func_start Func_8096cdc  @ 0x08096cdc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -41,6 +45,10 @@
 	bx	r0
 .func_end Func_8096cdc
 
+@ OrbitHookA
+@ r0=entity. Per-frame hook that advances the phase counter at +0x64 and moves
+@ the entity around the target held at +0x68, tracing one of the two orbit
+@ patterns the cast effect uses.
 .thumb_func_start Func_8096d2c  @ 0x08096d2c
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -85,6 +93,9 @@
 	bx	r0
 .func_end Func_8096d2c
 
+@ OrbitHookB
+@ r0=entity. The mirror of Func_96d2c -- same phase advance and target, opposite
+@ sweep -- so a pair of particles can circle in opposite directions.
 .thumb_func_start Func_8096d84  @ 0x08096d84
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -130,6 +141,10 @@
 	bx	r0
 .func_end Func_8096d84
 
+@ RunRevealAbility
+@ Takes no arguments. The reveal/detect field ability: reads the caster from
+@ [iwram_1f30]+0x10, spins up the orbit particles and then applies the reveal.
+@ The ~130-instruction body is characterised structurally.
 .thumb_func_start Func_8096ddc  @ 0x08096ddc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

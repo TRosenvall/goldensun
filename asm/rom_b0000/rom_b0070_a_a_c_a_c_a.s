@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ShowShopPrompt
+@ r0 = string id. Opens a prompt with _Func_17658, blocks on _Func_17364 a frame
+@ at a time, and closes with _Func_19a54.
 .thumb_func_start Func_80b04dc  @ 0x080b04dc
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001f2c
@@ -66,6 +69,8 @@
 	bx	r0
 .func_end Func_80b04dc
 
+@ ShowShopChoice
+@ r0.. = parameters. As Func_b04dc but returning the player's selection.
 .thumb_func_start Func_80b0574  @ 0x080b0574
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

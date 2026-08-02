@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ WaitForMapTransition
+@ Takes no arguments. Blocks with WaitFrames(1) until both transition counters at
+@ [iwram_1e70]+0x04 and +0x08 have fallen to 0xFF or below, giving up after
+@ 0x12C (300) frames. Clears the state word at +0x0C before returning either
+@ way.
 .thumb_func_start Func_8012350  @ 0x08012350
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001e70
@@ -31,6 +36,13 @@
 	bx	r0
 .func_end Func_8012350
 
+@ RenderAffineMap
+@ r0, r1 = arguments forwarded to the renderer hook. Allocates 0x27C bytes under
+@ tag 0x31 and DMA-copies the ARM affine rasteriser Func_9e7c (rom_92b8.s) into
+@ it, so the hot loop runs from RAM; the hook at [iwram_1e50]+0xC4 locates that
+@ copy by its tag. The hook is then called with the caller's two arguments plus
+@ the tile source ewram_3c000 and the map source ewram_1c000+0x1000, and the
+@ allocation is released with Func_2dd8.
 .thumb_func_start Func_8012388  @ 0x08012388
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -73,6 +85,17 @@
 	bx	r0
 .func_end Func_8012388
 
+@ BuildPerspectiveScanlineTable
+@ r0=camera height, r1=camera vector, r2=output table (stride 0x14 per row).
+@ Fills 160 entries -- one per scanline -- with the perspective parameters the
+@ affine floor needs; Func_a0f8 (rom_92b8.s) consumes a table of exactly this
+@ stride.
+@ The camera is first transformed by Func_9c0. Then for each row the horizon
+@ offset is divided out with Func_8ac against the row's distance from the pitch
+@ reference held at [iwram_1ce0]+0x10, giving a scale that is multiplied back
+@ through Func_888 and turned into a distance with Func_948. Rows at or above
+@ the horizon (a non-negative divide result) get a zeroed entry. Words +0x08 and
+@ +0x0C of every entry are cleared for the caller to fill.
 .thumb_func_start Func_80123f4  @ 0x080123f4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -203,6 +226,16 @@
 	bx	r0
 .func_end Func_80123f4
 
+@ SetupOverworldView
+@ Takes no arguments. Large one-shot setup for the affine overworld view.
+@ Verified from the entry sequence: allocates a 0xA0-byte state block under
+@ tag 9, sets the text/decoder mode byte iwram_1c90 to 3, DMA-clears the block
+@ and a 0x20-byte stack scratch area, seeds the viewport constants 0x90 / 0x60
+@ and the two unit scales, and calls Func_12af8 to find the first valid resource
+@ id from which to build the actor list.
+@ The remainder of the body (roughly 700 instructions through .L12af8) has NOT
+@ been analysed in detail -- it builds the party actors and per-row tables and
+@ calls into the routines above. Treat this name as provisional.
 .thumb_func_start Debug_SpriteTest  @ 0x08012518
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

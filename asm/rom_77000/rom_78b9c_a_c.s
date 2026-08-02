@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ HasEntry
+@ r0 = combatant id, r1 = entry id. Scans the 32-entry array of 4-byte records
+@ at combatant+0x58, comparing the halfword masked to 0x3FFF. Returns 1 or 0.
 .thumb_func_start HasMove  @ 0x08078bc0
 	push	{r5, lr}
 	mov	r5, r1
@@ -26,6 +29,12 @@
 	bx	r1
 .func_end HasMove
 
+@ RecomputeEquipmentEffects
+@ r0 = combatant id. Walks the inventory and the 32-entry array at +0x58,
+@ applying every equipped item's modifiers to the derived stats through
+@ Func_78414 and Func_79ad8. 320 lines; traced structurally.
+@ This is what EquipItem calls after changing inventory, so a stat that looks
+@ wrong after equipping is most likely a bug in here.
 .thumb_func_start Func_8078bf0  @ 0x08078bf0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -346,6 +355,9 @@
 	bx	r1
 .func_end Func_8078bf0
 
+@ ApplyEquipmentChange
+@ r0 = combatant id, r1.. = the change. Updates the record and re-runs
+@ Func_78bf0 so the derived stats stay consistent.
 .thumb_func_start GiveInnateMove  @ 0x08078e28
 	push	{r5, r6, r7, lr}
 	mov	r6, r1

@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ ComputeItemEffectValue
+@ r0.. = parameters. Prices an item's effect from its record (_Func_773d8),
+@ gated on save bits (_Func_79338) and divided with Func_af0.
 .thumb_func_start Func_80c1a34  @ 0x080c1a34
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -106,6 +109,9 @@
 	bx	r1
 .func_end Func_80c1a34
 
+@ ComputePartyEffect
+@ r0.. = parameters. Applies Func_c1a34 across the party list from Func_b6a60,
+@ with a Func_4970 scratch released by free.
 .thumb_func_start Func_80c1afc  @ 0x080c1afc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -277,6 +283,9 @@
 	bx	r1
 .func_end Func_80c1afc
 
+@ ApplyEffectToRecords
+@ r0.. = parameters. Writes the computed effects back through _Func_77394 and
+@ rebuilds summaries with _Func_77428.
 .thumb_func_start Func_80c1c54  @ 0x080c1c54
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -478,6 +487,9 @@
 	bx	r1
 .func_end Func_80c1c54
 
+@ DistributeRemainder
+@ r0.. = parameters. Spreads a remainder across recipients using Func_b1c (the
+@ signed remainder), so rounding loss is shared rather than dropped.
 .thumb_func_start Func_80c1df4  @ 0x080c1df4
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e74
@@ -585,6 +597,9 @@
 	bx	r1
 .func_end Func_80c1df4
 
+@ GetCombatantSizeClass
+@ r0 = combatant id. Returns the size class from the record _Func_77394
+@ hands out; rom_b9b30's Func_bac6c scales sprites by it.
 .thumb_func_start Func_80c1ebc  @ 0x080c1ebc
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001e74
@@ -663,6 +678,8 @@
 	bx	r1
 .func_end Func_80c1ebc
 
+@ GetCombatantResistance
+@ r0 = combatant id. Reads a resistance field out of the record.
 .thumb_func_start Func_80c1f50  @ 0x080c1f50
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -712,6 +729,8 @@
 	bx	r1
 .func_end Func_80c1f50
 
+@ RollVariance
+@ r0.. = parameters. Applies a Func_4458 roll as a +/- variance.
 .thumb_func_start Func_80c1fa8  @ 0x080c1fa8
 	push	{r5, r6, lr}
 	mov	r3, #0xbe
@@ -757,6 +776,10 @@
 	bx	r1
 .func_end Func_80c1fa8
 
+@ ResolveEffectChain
+@ r0.. = parameters. 450 lines. Chains the effect computation together --
+@ Func_c1afc, Func_c1c54, Func_c1df4, Func_c1f50 -- and writes the results into
+@ the field state through Func_c23c0. Traced structurally.
 .thumb_func_start Func_80c1ffc  @ 0x080c1ffc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

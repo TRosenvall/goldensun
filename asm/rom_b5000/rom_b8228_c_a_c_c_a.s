@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunTurnCleanup
+@ r0.. = parameters. Closes out a turn, re-listing the living combatants with
+@ Func_b6b40 and rolling any end-of-turn effects with Func_4458.
 .thumb_func_start Func_80b8f08  @ 0x080b8f08
 	push	{r5, r6, lr}
 	mov	r2, #0xa
@@ -44,6 +47,9 @@
 	bx	r1
 .func_end Func_80b8f08
 
+@ ComputeArcPosition
+@ r0.. = parameters. Interpolates a position along an arc using cos
+@ (cosine) and Func_af0.
 .thumb_func_start Func_80b8f58  @ 0x080b8f58
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -104,6 +110,10 @@
 	bx	r0
 .func_end Func_80b8f58
 
+@ SetBattleCamera
+@ r0.. = parameters. Rebuilds the battle camera from InitMatrixStack, MatrixPitch,
+@ MatrixYaw, MatrixTranslatev and Func_5258, then uploads it with Func_c0a24.
+@ Exported; rom_15000's name-entry screen borrows it.
 .thumb_func_start Func_80b8fd4  @ 0x080b8fd4
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -193,6 +203,9 @@
 	bx	r0
 .func_end Func_80b8fd4
 
+@ RefreshAllSummaries
+@ Takes no arguments. Walks the action queue with Func_b6c08 and rebuilds each
+@ combatant's derived stats through _Func_77394 and _Func_77428.
 .thumb_func_start Func_80b90ac  @ 0x080b90ac
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -230,6 +243,10 @@
 	bx	r0
 .func_end Func_80b90ac
 
+@ RollTurnOrder
+@ r0.. = parameters. Establishes the turn order, weighing each living
+@ combatant's speed from _Func_77394 with a Func_4458 roll and dividing with
+@ Func_af0.
 .thumb_func_start Func_80b90f8  @ 0x080b90f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -362,6 +379,10 @@
 	bx	r1
 .func_end Func_80b90f8
 
+@ OpenBattleMenu
+@ r0.. = parameters. Opens the in-battle menu by calling rom_15000's top-level
+@ menu screen _Func_27114 -- the 2004-line function -- with a Func_4970 scratch
+@ released by free.
 .thumb_func_start Func_80b920c  @ 0x080b920c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -507,6 +528,10 @@
 	bx	r1
 .func_end Func_80b920c
 
+@ ResolveTargeting
+@ r0.. = parameters. Works out which combatants an action reaches, listing the
+@ living ones with Func_b6b40 and consulting Func_bd424. 178 lines; traced
+@ structurally.
 .thumb_func_start Func_80b9324  @ 0x080b9324
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -685,6 +710,9 @@
 	bx	r1
 .func_end Func_80b9324
 
+@ BuildRewardSummary
+@ r0.. = parameters. Collects the post-battle rewards from each combatant's
+@ record via _Func_77394, _Func_78b9c and _Func_7a5b0.
 .thumb_func_start Func_80b9470  @ 0x080b9470
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -800,6 +828,9 @@
 	bx	r0
 .func_end Func_80b9470
 
+@ FadeBattleMusicOut
+@ r0.. = parameters. Ramps the music down through Func_63bc / .gcc2_compiled. a frame
+@ at a time.
 .thumb_func_start Func_80b9554  @ 0x080b9554
 	push	{r5, r6, r7, lr}
 	mov	r7, r9
@@ -892,6 +923,8 @@
 	bx	r1
 .func_end Func_80b9554
 
+@ FadeBattleMusicIn
+@ r0.. = parameters. The counterpart to Func_b9554, using Func_6408.
 .thumb_func_start Func_80b9604  @ 0x080b9604
 	push	{r5, r6, r7, lr}
 	mov	r7, r9
@@ -1035,6 +1068,9 @@
 	bx	r1
 .func_end Func_80b9604
 
+@ RunBattleMusicSequence
+@ r0.. = parameters. Sequences the battle music through Func_b9554 and
+@ Func_b9604, with a Func_4970 scratch released by free.
 .thumb_func_start Func_80b9724  @ 0x080b9724
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1233,6 +1269,8 @@
 	bx	r1
 .func_end Func_80b9724
 
+@ InitStateArray
+@ r0 = value. Seeds one of the battle state arrays; no calls out.
 .thumb_func_start Func_80b98b4  @ 0x080b98b4
 	push	{r5, r6, r7, lr}
 	mov	r1, #0
@@ -1306,6 +1344,11 @@
 	bx	r0
 .func_end Func_80b98b4
 
+@ ResetBattleTurnState
+@ r0.. = parameters. Clears the 20-entry array at [iwram_1e74]+0x2EC (stride
+@ 0x10), writing 0xFF to each entry's first halfword and 0x8000 to its second,
+@ then refreshes summaries with Func_b90ac, seeds the state array with
+@ Func_b98b4(8) and sets save bit 0x16B.
 .thumb_func_start Func_80b9934  @ 0x080b9934
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e74

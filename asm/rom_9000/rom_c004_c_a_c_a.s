@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SetEntityActorPriority
+@ r0=entity, r1=priority 0-3. Replaces bits 2-3 of the actor's flag byte at
+@ +0x05 -- the OAM priority field -- leaving the affine mode in bits 0-1 alone.
+@ Requires an exact draw kind of 1 (not just the low nibble).
 .thumb_func_start Func_800c548  @ 0x0800c548
 	push	{lr}
 	cmp	r0, #0
@@ -25,6 +29,10 @@
 	bx	r0
 .func_end Func_800c548
 
+@ SetEntityUseCallerScale
+@ r0=entity, r1=0 or 1. Replaces bit 1 of the actor's flag byte at +0x1D, the
+@ flag Func_b388 tests to decide whether to compute the perspective scale from
+@ the depth or take the caller-supplied value. Requires draw kind exactly 1.
 .thumb_func_start Func_800c570  @ 0x0800c570
 	push	{lr}
 	cmp	r0, #0

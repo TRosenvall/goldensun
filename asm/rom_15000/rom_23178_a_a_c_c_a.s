@@ -1,6 +1,8 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunSubScreenC
+@ r0.. = parameters. See Func_28d74.
 .thumb_func_start YesNoMenu  @ 0x08028df4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -49,6 +51,8 @@
 	bx	r1
 .func_end YesNoMenu
 
+@ RunSubScreenD
+@ r0.. = parameters. See Func_28d74; uses Func_288a8's fixed window geometry.
 .thumb_func_start YesNoMenu2  @ 0x08028e54
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

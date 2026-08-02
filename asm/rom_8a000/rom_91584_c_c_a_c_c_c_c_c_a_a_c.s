@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ PlaceSlotAt
+@ r0=slot, r1=x (16.16), r2=z (16.16). Teleports the entity: installs the
+@ default behaviour, zeroes all three velocity words, clears the x and y targets
+@ to the 0x80000000 sentinel and writes the position directly.
+@ When terrain-follow is enabled (bit 0 of +0x55) it also resamples the ground
+@ height at the destination with _Func_11f54, using the entity's tile-type byte
+@ at +0x22, and shifts y by the difference from the cached height at +0x14 so
+@ the entity lands on the surface rather than at the old altitude.
 .thumb_func_start MapActor_SetPos  @ 0x080923e4
 	push	{r5, r6, r7, lr}
 	mov	r6, r1
@@ -57,6 +65,12 @@
 	bx	r0
 .func_end MapActor_SetPos
 
+@ PlaceSlotAt3D
+@ r0=slot, r1=x, r2=y, r3=z (all 16.16). The three-axis form of MapActor_SetPos:
+@ installs the default behaviour, zeroes the velocity, clears the x and y
+@ targets and writes all three position words. When terrain-follow is enabled
+@ (bit 0 of +0x55) the y written by the caller is then corrected against the
+@ ground height sampled by _Func_11f54 at the destination.
 .thumb_func_start MapActor_SetPos3D  @ 0x08092454
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

@@ -1,5 +1,7 @@
 	.include "macros.inc"
 
+@ GetSpriteTableField2
+@ r0 = index. Returns another field of the same 8-byte entry.
 .thumb_func_start Func_80c23a0  @ 0x080c23a0
 	push	{lr}
 	cmp	r0, #0xab
@@ -19,6 +21,9 @@
 	bx	r1
 .func_end Func_80c23a0
 
+@ GetSpriteTableFlag
+@ r0 = index. Returns bit 0 of the byte at entry+2, or 0 for an out-of-range
+@ index.
 .thumb_func_start Func_80c23c0  @ 0x080c23c0
 	push	{lr}
 	cmp	r0, #0xab
@@ -42,6 +47,8 @@
 	bx	r1
 .func_end Func_80c23c0
 
+@ GetSpriteTableField3
+@ r0 = index. Returns a further field of the entry.
 .thumb_func_start Func_80c23e8  @ 0x080c23e8
 	push	{lr}
 	cmp	r0, #0xab
@@ -64,6 +71,8 @@
 	bx	r1
 .func_end Func_80c23e8
 
+@ GetSpriteTableField4
+@ r0 = index. Another entry field. Exported.
 .thumb_func_start GetEnemyAttackAnimParam  @ 0x080c2410
 	push	{lr}
 	cmp	r0, #0xab

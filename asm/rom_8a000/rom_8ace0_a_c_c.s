@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ BindRecordToSlot
+@ r0=scene record, r1=slot. Instantiates the record into the slot: spawns its
+@ entity, applies the record's position, facing, sprite and behaviour script,
+@ and stores the entity in the slot table at iwram_1ebc+0x14.
+@ This is the workhorse behind Func_917ac and InitMapActors. The
+@ ~250-instruction body is characterised structurally; the slot binding and
+@ record source are verified.
 .thumb_func_start LoadMapActors  @ 0x0808b3ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

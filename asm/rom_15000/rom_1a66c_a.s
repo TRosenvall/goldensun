@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ InitPartyScreen
+@ Takes no arguments. Allocates the 0x3E4-byte party/status block under tag 0x12
+@ -- which is what iwram_1e98 points at, since iwram_1e50 + 0x12*4 = iwram_1e98
+@ -- clears its pointer fields at +0x348 onward, and reserves OBJ tiles with
+@ UploadSpriteGFX / AllocSpriteSlot.
+@ Every +0xNNN offset elsewhere in this file and rom_1aeec.s is inside this
+@ block and bounded by 0x3E4.
 .thumb_func_start Func_801a66c  @ 0x0801a66c
 	push	{r5, r6, r7, lr}
 	mov	r1, #0xf9
@@ -128,6 +135,9 @@
 	bx	r0
 .func_end Func_801a66c
 
+@ ResetPartyScreenState
+@ Takes no arguments. Clears the working pointer at [iwram_1e98]+0x348 and the
+@ halfword at +0x39A, then rewinds the entry counter at +0x39E.
 .thumb_func_start Func_801a778  @ 0x0801a778
 	push	{lr}
 	ldr	r3, =iwram_3001e98
@@ -164,6 +174,10 @@
 	bx	r0
 .func_end Func_801a778
 
+@ PushScreenEntry
+@ r0 = value. Appends to the array at [iwram_1e98]+0x354 using the count at
+@ +0x394, which is capped at 0x10 -- sixteen entries. A full array silently
+@ drops the value.
 .thumb_func_start Func_801a7c0  @ 0x0801a7c0
 	push	{lr}
 	ldr	r3, =iwram_3001e98
@@ -192,6 +206,10 @@
 	bx	r0
 .func_end Func_801a7c0
 
+@ BuildPartyScreen
+@ r0.. = screen parameters. Assembles the party/status display: Func_1a910
+@ claims a slot, Func_1bd98 loads the portraits and Func_1c188 the shared
+@ graphics. 146 lines; traced structurally.
 .thumb_func_start Func_801a7f4  @ 0x0801a7f4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

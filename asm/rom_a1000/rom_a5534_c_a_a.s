@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ RunAbilityList
+@ r0 = mode. The Psynergy screen's list state: builds the scroll descriptor with
+@ Func_a5578, draws with Func_a56c8 and Func_a5614, and loops on Func_a1fd4 for
+@ the d-pad. _Func_7842c decides whether the highlighted ability is usable and
+@ _Func_ba30 nods the party sprite accordingly; unusable choices print string
+@ 0xB89 and refuse. A commits through Func_a3ef0, B returns -1.
+@ 504 lines; traced structurally.
 .thumb_func_start Func_80a5788  @ 0x080a5788
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -511,6 +518,19 @@
 	bx	r1
 .func_end Func_80a5788
 
+@ RunItemScreen -- MENU INDEX 1
+@ Takes no arguments. The Items screen. Follows the standard scaffold described
+@ in the module header, with Func_a5cc0 as its state machine and a party header
+@ three rows tall.
+@
+@ On a successful selection (Func_a5cc0 returning 1) it resolves the item
+@ through _Func_78b9c -- MASK 0x3FFF, the display-record id space, which is what
+@ distinguishes this screen's result from Func_a24d0's 0x1FF ability id -- and
+@ writes `(arg1 << 10) | arg3` to [iwram_1e68+0x54]+0x17E for the field engine
+@ to act on.
+@
+@ Returns Func_a5cc0's answer; rom_15000's Func_1c244 loops the menu again on
+@ -1 and leaves it otherwise.
 .thumb_func_start Func_80a5b94  @ 0x080a5b94
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -640,6 +660,13 @@
 	bx	r1
 .func_end Func_80a5b94
 
+@ RunItemScreenStates
+@ r0, r1, r2 = out-parameters. A five-state machine (table at the head of the
+@ body) covering: pick a member, pick an item, pick an action, apply it, and
+@ assign a shortcut. Draws its prompts from 0xAE2, 0xAE3, 0xAE9, 0xAEA, 0xAEB,
+@ 0xAF0 and 0xAF1, reports failures as 0xBEF + state+0x25A, and delegates the
+@ work to Func_a602c, Func_a63e4, Func_a6ccc, Func_a9f10 and Func_aa460.
+@ Func_a65e4 is what writes the field shortcut. 365 lines; traced structurally.
 .thumb_func_start Func_80a5cc0  @ 0x080a5cc0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1012,6 +1039,15 @@
 	bx	r1
 .func_end Func_80a5cc0
 
+@ ClassifySelectedItem
+@ Takes no arguments. Looks at the item at state+0x178, masked 0x3FFF and
+@ resolved through _Func_78b9c, and returns which kind of thing it is:
+@
+@     0  _Func_8e96c rejects the record's +0x0C, or +0x00 is not 2
+@     1  +0x00 is 2
+@     2  +0x08 is 0xFF
+@
+@ The caller uses this to pick which action menu to show.
 .thumb_func_start Func_80a5fe0  @ 0x080a5fe0
 	push	{r5, lr}
 	ldr	r3, =iwram_3001f2c
@@ -1049,6 +1085,12 @@
 	bx	r1
 .func_end Func_80a5fe0
 
+@ SelectItemOwner
+@ r0 = which cursor. The item screen's counterpart to Func_a355c: shows the
+@ cursor sprite at state+0x14 + r0*4, hides the one at state+0x21C, glides to
+@ (index * 24 - 10, 0x10), builds that character's filtered list with
+@ Func_a68ec(record, state+0x1C8, 2), records the count at state+0x218 and hands
+@ off to Func_a60d4. A selection of -1 resets to member 0.
 .thumb_func_start Func_80a602c  @ 0x080a602c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1134,6 +1176,12 @@
 	bx	r1
 .func_end Func_80a602c
 
+@ RunItemOwnerLoop
+@ r0 = roster array, r1 = list. The loop that sits on the member row of the item
+@ screen: opens the panels, creates the sprites with Func_a33d4, draws the coin
+@ total with Func_a23c0 and the shortcut state with Func_a6614, and refreshes
+@ through .gcc2_compiled.. Watches save bit 0x151 for the message-box handshake.
+@ 318 lines; traced structurally.
 .thumb_func_start Func_80a60d4  @ 0x080a60d4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

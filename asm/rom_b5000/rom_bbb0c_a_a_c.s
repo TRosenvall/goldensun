@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ WeightedPick
+@ r0 = an 8-entry byte weight table. Rolls _Func_79bc4 (the battle RNG, seeded
+@ in ewram so it is part of the save state), masks to 8 bits, and walks the
+@ table accumulating weights until the roll is covered. Returns the chosen
+@ index, or 0 when the first weight already covers it.
 .thumb_func_start Func_80bd3e4  @ 0x080bd3e4
 	push	{r5, lr}
 	mov	r5, r9
@@ -36,6 +41,10 @@
 	bx	r1
 .func_end Func_80bd3e4
 
+@ ChooseAction
+@ r0.. = parameters. Decides what a combatant does this turn: surveys HP with
+@ Func_bad7c, prices outcomes with Func_bae40, picks with Func_bd3e4, and
+@ records the result with Func_b9a70. 467 lines; traced structurally.
 .thumb_func_start Func_80bd424  @ 0x080bd424
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -503,6 +512,10 @@
 	bx	r1
 .func_end Func_80bd424
 
+@ ResetDmaAndDispatch
+@ Takes no arguments. Zeroes all three DMA3 register triples, then calls through
+@ the pointer at [iwram_c4]. A hard reset of the transfer state before handing
+@ control on.
 .thumb_func_start Func_80bd7a4  @ 0x080bd7a4
 	push	{lr}
 	mov	r2, #0x84

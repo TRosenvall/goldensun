@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SetActorAnimation
+@ r0=actor, r1=animation index in bits 0-6, bit 7 = "switch without rewinding".
+@ Early-outs when the requested index already matches the actor's current
+@ animation at +0x24. Otherwise applies the Func_b9f4 transition to every bound
+@ part, additionally refreshing the actor's position-correction bytes
+@ (+0x22/+0x23) from part 0's header, then records the new index at +0x24.
+@ Always returns 0.
 .thumb_func_start Sprite_SetAnim  @ 0x0800ba30
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

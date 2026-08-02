@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ PlayBattleAnimation -- the call into rom_c9000
+@ r0.. = parameters. Registers the animation task with StartTask, submits the
+@ combatants with Func_c1054 / Func_c0f98, runs the animation a frame at a time
+@ through WaitFrames, and unregisters with StopTask when it finishes.
+@ Exported and called from rom_15000 and rom_c9000 as well as here.
 .thumb_func_start Func_80c10e8  @ 0x080c10e8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -119,6 +124,10 @@
 	bx	r0
 .func_end Func_80c10e8
 
+@ AnimateSceneElement
+@ r0.. = parameters. Moves a scene element along a path built from sin /
+@ cos (sine and cosine) with Func_4458 variation. 282 lines; traced
+@ structurally.
 .thumb_func_start Func_80c11ec  @ 0x080c11ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -401,6 +410,8 @@
 	bx	r1
 .func_end Func_80c11ec
 
+@ PlayBattleSound
+@ r0 = sound id. Forwards to BlitFade_Div4.
 .thumb_func_start Task_BlitPreAnim  @ 0x080c1438
 	push	{lr}
 	ldr	r3, =gPtrs
@@ -428,6 +439,10 @@
 	bx	r1
 .func_end Task_BlitPreAnim
 
+@ LoadAnimationAssets
+@ r0.. = parameters. Fetches the animation's assets with GetFile, allocates
+@ with galloc_iwram / galloc_ewram, positions with sine and cosine, and registers the
+@ task with StartTask. 253 lines; traced structurally.
 .thumb_func_start Anim_Cast  @ 0x080c1470
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

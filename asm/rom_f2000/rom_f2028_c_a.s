@@ -1,6 +1,19 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunLogoSplash
+@ r0 = 0 for the long version, non-zero for the short. Returns -1 when the player
+@ skipped it, 0 when it ran to completion.
+@
+@ The first splash screen. Plays sound 0x6E, loads asset 0x18, decompresses it
+@ with DecompressLZ into ewram_10000 and DMA3s it to 0x6004000. It then builds a
+@ per-scanline BG offset table at 0x6003000 -- 30 halfwords of a ramp per row for
+@ 20 rows, with 0x1FF markers between -- and points an HDMA at BG0HOFS through
+@ iwram_1ad0, which is the sideways-shear the logo animates with.
+@
+@ Timing depends on r0: the long path waits up to 0x77 = 119 frames per phase,
+@ the short one 0x3B = 59, and the hold is 0xB3 = 179. A or Start
+@ (iwram_1c94 & 9) cuts to an 8-frame fade instead of 0x3C.
 .thumb_func_start NintendoLogo  @ 0x080f2b70
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -218,6 +231,12 @@
 	bx	r1
 .func_end NintendoLogo
 
+@ RunSecondLogoSplash
+@ Takes no arguments. Returns 0. The second splash screen: asset 0x19, the same
+@ HDMA-through-iwram_1ad0 setup as NintendoLogo, but instead of a static image it
+@ cycles four animation frames -- `(iwram_1e40 >> 3) & 3` picks one and 0xD0
+@ halfwords are DMA3'd to 0x6004100 every frame, so the cycle is eight frames
+@ per step. Waits up to 0x77 = 119 frames or until A or Start.
 .thumb_func_start CamelotLogo  @ 0x080f2d54
 	push	{r5, r6, lr}
 	mov	r6, r8

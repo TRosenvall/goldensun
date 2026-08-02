@@ -1,6 +1,15 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ PaletteCycleTask
+@ Per-frame task. Takes no arguments. Rotates the colours of each active channel
+@ in the state block at [iwram_1ec0]; the channel count at +0xB0 is masked to 2
+@ bits, so at most four run.
+@ A channel with a non-zero counter at +0x06 just decrements it. Otherwise the
+@ channel's stored colours (+0x0C onward, +0x0A of them) are copied into a
+@ 0x20-byte stack buffer starting from the phase at +0x04 and wrapping around,
+@ DMAd to the palette address at +0x00, and the phase is advanced by one and
+@ wrapped. The delay at +0x08 is then reloaded into +0x06.
 .thumb_func_start Func_8011bf4  @ 0x08011bf4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

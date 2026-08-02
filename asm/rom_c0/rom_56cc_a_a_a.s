@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ PlaySound
+@ r0.. = sound id and parameters. The entry other modules call for a UI or
+@ effect cue -- rom_15000's Func_1f730 and rom_b5000's Task_BlitPreAnim both land
+@ here. Allocates its state with galloc_ewram, sets the channel up through
+@ Func_58ac and .gcc2_compiled., and pages the sample in with IdentifyFlash / SetFlashTimerIntr.
+@ 161 lines; traced structurally.
 .thumb_func_start Func_80056cc  @ 0x080056cc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -162,6 +168,9 @@
 	bx	r1
 .func_end Func_80056cc
 
+@ PickRandomVariant
+@ r0.. = parameters. Chooses one of a cue's variants with Func_4458 and
+@ Func_b50, so repeated sounds do not sound identical.
 .thumb_func_start Func_8005810  @ 0x08005810
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001f1c
@@ -208,6 +217,8 @@
 	bx	r1
 .func_end Func_8005810
 
+@ SetChannelSample
+@ r0.. = parameters. Points a channel at its sample data through VerifyFlashSector.
 .thumb_func_start Func_8005868  @ 0x08005868
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001f1c
@@ -240,6 +251,9 @@
 	bx	r1
 .func_end Func_8005868
 
+@ AllocateChannel
+@ r0.. = parameters. Claims a free mixer channel via .gcc2_compiled. and initialises
+@ it with ReadFlash.
 .thumb_func_start Func_80058ac  @ 0x080058ac
 	push	{r5, lr}
 	ldr	r3, =iwram_3001f1c

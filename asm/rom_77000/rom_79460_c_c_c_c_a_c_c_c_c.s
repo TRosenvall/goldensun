@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ ScanStatusTable
+@ r0.. = parameters. Searches the status table of the record .gcc2_compiled.
+@ selects. 96 lines; traced structurally.
 .thumb_func_start Func_807a3a8  @ 0x0807a3a8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -96,6 +99,8 @@
 	bx	r1
 .func_end Func_807a3a8
 
+@ FindStatusEntry
+@ r0 = entry. Func_7a3a8 with the scratch record, returning the matching slot.
 .thumb_func_start Func_807a458  @ 0x0807a458
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -129,6 +134,9 @@
 	bx	r1
 .func_end Func_807a458
 
+@ RebuildStatusState
+@ r0 = combatant id. Re-derives the whole status array by replaying
+@ SetDjinni / .gcc2_compiled. against what Func_7a3a8 and Func_7a458 report.
 .thumb_func_start Func_807a498  @ 0x0807a498
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -220,6 +228,9 @@
 	bx	r1
 .func_end Func_807a498
 
+@ ReadScratchStatus
+@ r0.. = parameters. Reads status fields out of the .gcc2_compiled. scratch
+@ record.
 .thumb_func_start Func_807a550  @ 0x0807a550
 	push	{r5, r6, r7, lr}
 	mov	r5, r0

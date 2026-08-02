@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ FindInteractionRecord
+@ r0=kind, r1=entity id. Returns the entity's interaction record of that kind,
+@ or 0 if it has none.
+@ Walks the record list reached from the scene block at iwram_1ebc, matching on
+@ both the entity id and the kind nibble, and checks any guard event flag before
+@ accepting a record. This is what every handler in rom_8d5dc.s calls first.
 .thumb_func_start FindMapActorEvent  @ 0x0808d48c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ PaletteBlinkHook
+@ r0=entity. Per-frame hook installed by .gcc2_compiled.. Picks a palette byte from
+@ the 4-entry table .L9ed80 indexed by (iwram_1e40 >> 1) & 3 -- the global frame
+@ counter, so the cycle runs at half speed over four steps -- and writes it to
+@ the palette field (+0x05) of every part of the actor that has an animation
+@ table. Sets the actor's dirty flag at +0x25 so the change is picked up.
+@ Ignores entities that are not draw kind 1.
 .thumb_func_start Func_8092980  @ 0x08092980
 	push	{lr}
 	mov	r3, r0
@@ -47,6 +54,11 @@
 	bx	r0
 .func_end Func_8092980
 
+@ SetActorPartsPalette
+@ r0=entity, r1=palette index. Writes r1 to the palette field (+0x05) of every
+@ part of the actor that has an animation table, then sets the dirty flag at
+@ +0x25. The static counterpart to Func_92980, and what .gcc2_compiled. calls when
+@ no cycling was requested. Ignores entities that are not draw kind 1.
 .thumb_func_start Func_80929d8  @ 0x080929d8
 	push	{lr}
 	mov	r3, r0
@@ -88,6 +100,15 @@
 	bx	r0
 .func_end Func_80929d8
 
+@ SetSlotChaseTarget
+@ r0=slot, r1=packed target -- slot index in the low byte, bit 12 a
+@ "keep current speed" flag -- r2=script.
+@ Stores the target entity in the chaser's script argument slot at +0x68 and
+@ installs the script with _Func_c2d8. Unless bit 12 is set it also matches the
+@ chaser to its quarry: the turn rate at +0x64 becomes 0x28, the acceleration
+@ at +0x34 is twice the target's, the max speed at +0x30 is copied outright, and
+@ the collision flags at +0x59 are cleared so the chaser passes through others.
+@ Both slots must resolve or nothing happens.
 .thumb_func_start Func_8092a1c  @ 0x08092a1c
 	push	{r5, r6, r7, lr}
 	mov	r6, r1

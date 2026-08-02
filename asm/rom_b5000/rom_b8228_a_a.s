@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SetBattleAnimation
+@ r0 = combatant id, r1 = animation index. Writes two words into the actor:
+@ .Lc59a4[anim] to actor+0x34 and .Lc59c4[anim] to actor+0x30.
+@ SKIPPED ENTIRELY when the character's class byte (record+0x128, the field
+@ rom_77000's CanEquipItem uses) is 0x94 -- that class has no battle animations.
+@ 46 external call sites; rom_c9000 calls it as _Func_b8228(id, anim) to put a
+@ combatant into a reaction pose.
 .thumb_func_start SetBattleActorKnockback  @ 0x080b8228
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -68,6 +75,10 @@
 	bx	r0
 .func_end SetBattleActorKnockback
 
+@ SetBattleAnimationScaled
+@ r0 = combatant id, r1.. = parameters. As SetBattleActorKnockback with a scale applied,
+@ dividing through Func_af0 before submitting via Func_c300 / Func_c4ac /
+@ Actor_TravelTo. Exported.
 .thumb_func_start Func_80b82c4  @ 0x080b82c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ PlaceCombatantParts
+@ r0 = combatant id. Projects the parts and writes their positions back through
+@ Func_c23c0, so the drawn parts follow the logical position. Exported.
 .thumb_func_start Func_80b84c0  @ 0x080b84c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -50,6 +53,10 @@
 	bx	r1
 .func_end Func_80b84c0
 
+@ GetCombatantDrawSlot
+@ r0 = combatant id. Resolves the character's class byte (record+0x128) to a
+@ draw slot through Func_c2454 and Func_c23c0, returning a default when neither
+@ reports one. Exported.
 .thumb_func_start Func_80b8530  @ 0x080b8530
 	push	{r5, lr}
 	mov	r5, r0
@@ -83,6 +90,10 @@
 	bx	r1
 .func_end Func_80b8530
 
+@ ChooseEnemyAction
+@ r0.. = parameters. Picks an enemy's action for the turn: Func_b6b40 lists the
+@ living targets, Func_4458 rolls the choice, and _Func_77394 supplies the
+@ stats it weighs. 189 lines; traced structurally -- the enemy AI lives here.
 .thumb_func_start Func_80b8574  @ 0x080b8574
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -272,6 +283,9 @@
 	bx	r1
 .func_end Func_80b8574
 
+@ UploadBattleView
+@ r0.. = parameters. Pushes the current view matrix to hardware via
+@ Func_c0a24.
 .thumb_func_start Func_80b86ec  @ 0x080b86ec
 	push	{lr}
 	ldr	r3, =iwram_3001e80
@@ -319,6 +333,11 @@
 	bx	r0
 .func_end Func_80b86ec
 
+@ RunTurn
+@ r0.. = parameters. Drives one combatant's turn to completion, a frame at a
+@ time through WaitFrames, dispatching to the phase handlers Func_b8824,
+@ .gcc2_compiled., Func_b88d0, Func_b8c1c and Func_b8f08, and opening UI through
+@ _Func_16758.
 .thumb_func_start Func_80b874c  @ 0x080b874c
 	push	{r5, r6, r7, lr}
 	mov	r7, r0

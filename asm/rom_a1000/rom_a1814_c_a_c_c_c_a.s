@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ HideEveryFifthSprite
+@ Takes no arguments. As .gcc2_compiled. but only for indices where index % 5 == 0 --
+@ Func_b1c supplies the remainder. Those are the row-heading sprites in the
+@ five-wide layouts Func_a1cb0 builds.
 .thumb_func_start Func_80a3480  @ 0x080a3480
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

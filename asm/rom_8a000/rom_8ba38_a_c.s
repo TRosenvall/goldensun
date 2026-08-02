@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunInteractionScan
+@ Takes no arguments. The per-frame entry point that decides what the player is
+@ standing on or facing: refreshes the candidate set, resolves the target and
+@ leaves it in the interaction state for the button handlers to act on. The
+@ ~600-instruction body is characterised structurally.
 .thumb_func_start FieldMain  @ 0x0808c4f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1098,6 +1103,25 @@
 	bx	r1
 .func_end FieldMain
 
+@ GetTerrainUnderPlayer
+@ Takes no arguments. Returns the terrain code the player is standing on, or 0
+@ when it is not one the caller cares about. It fires nothing -- this is a
+@ query.
+@
+@ The player entity comes from ewram_240+0x1F4 through Func_8ba1c and its
+@ position is rotated into map space by vec3_translate. The tile lookup takes one of
+@ two forms depending on the mode halfword at [iwram_1ebc]+0x19E: mode 3 uses a
+@ 32-wide grid at ewram_20000 with a 21-bit shift, anything else a 128-wide
+@ grid at [iwram_1e70]+0x130 with a 20-bit shift. The terrain byte is at +2 of
+@ the entry.
+@
+@ Codes 0xF2..0xF7 are accepted only when the player's height, from
+@ _Func_11f54, is within 0x400000 of the entity's own -- so a terrain feature
+@ on a different level does not count. Any other code is accepted when
+@ FindMapActorEvent(3, code) finds an interaction record for it.
+@
+@ rom_15000's field menu calls this as menu entry 0 and stores the answer,
+@ defaulting to 0xFF, at [iwram_1ebc]+0x17A.
 .thumb_func_start Func_808ce74  @ 0x0808ce74
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1226,6 +1250,10 @@
 	bx	r1
 .func_end Func_808ce74
 
+@ CheckMapEdgeTransition
+@ Takes no arguments. Compares the player position against the map bounds at
+@ [iwram_1e70] and the edge-transition record at ewram_240+0x1C2, starting a map
+@ change when the player walks off the edge.
 .thumb_func_start InitPlayerPos  @ 0x0808cf78
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1397,6 +1425,10 @@
 	bx	r0
 .func_end InitPlayerPos
 
+@ UpdateFollowerPositions
+@ Takes no arguments. Advances the follower trail: each party member behind the
+@ leader is moved onto the position the one ahead occupied, so the party walks in
+@ single file. The ~180-instruction body is characterised structurally.
 .thumb_func_start Debug_PaletteEditor  @ 0x0808d0c8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1775,6 +1807,10 @@
 	bx	r0
 .func_end Debug_PaletteEditor
 
+@ GetPartyRecordForSlot
+@ r0=slot. Searches slots 8 upward in the scene table for the party record whose
+@ entity matches, returning that record or 0. Callers use the byte at +0x16 of
+@ the result as the member's facing/role.
 .thumb_func_start Func_808d394  @ 0x0808d394
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ebc

@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ StepCombatantActors
+@ Takes no arguments. Advances every combatant's actor: walks the action queue
+@ with Func_b6c08, resolves records with Func_b7dd0, iterates each actor's parts
+@ with .gcc2_compiled. and updates them through Func_b7994.
+@ 226 lines; traced structurally.
 .thumb_func_start Func_80b7738  @ 0x080b7738
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -227,6 +232,9 @@
 	bx	r0
 .func_end Func_80b7738
 
+@ ComputeCombatantDepth
+@ r0 = combatant id. Derives the draw depth from the record _Func_77394
+@ returns.
 .thumb_func_start Func_80b78e4  @ 0x080b78e4
 	push	{r5, lr}
 	mov	r5, r1
@@ -317,6 +325,9 @@
 	bx	r1
 .func_end Func_80b78e4
 
+@ UpdateActorParts
+@ r0 = actor. Walks the actor's parts with .gcc2_compiled. and updates each one's
+@ transform through Sprite_AddLayer / Sprite_DeleteLayer / Func_b9f4 in rom_9000.
 .thumb_func_start Func_80b7994  @ 0x080b7994
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -471,6 +482,9 @@
 	bx	r1
 .func_end Func_80b7994
 
+@ SubmitCombatantSprite
+@ r0 = combatant id. Submits the combatant's sprite to rom_9000 through
+@ Func_c300 and Actor_SetAnimSpeed, using the battle record from Func_b7dd0.
 .thumb_func_start Func_80b7aac  @ 0x080b7aac
 	push	{r5, r6, lr}
 	mov	r6, r0

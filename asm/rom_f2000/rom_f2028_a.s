@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ AnimateTitleScreen
+@ The per-frame task StartTitleScreen registers at sort key 0x480. Advances the title
+@ screen's animation: a frame counter at [iwram_1efc]+0x0C ticks every frame and
+@ a phase counter at +0x14 every fourth, and the phase drives a perspective-style
+@ sweep -- the y position is `0x90 - phase`, the horizon 0x30 - the BG offset at
+@ iwram_1ad0+6, and each scanline's scale comes from `(y - horizon) * k / 0x50`
+@ with k from .Lf39ab. Past phase 0x118 it takes the settled branch instead.
+@ iwram_1d20 pauses the whole thing. 540 lines; traced structurally.
 .thumb_func_start Func_80f2028  @ 0x080f2028
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -548,6 +556,16 @@
 	bx	r0
 .func_end Func_80f2028
 
+@ LoadTitleGraphics
+@ Takes no arguments. Loads the title screen's assets: 0x15 supplies the OBJ
+@ palette at 0x5000200 and, after DecompressLZ1 decompresses it, the tiles at
+@ 0x6010000; 0x17 supplies the BG palette at 0x5000000 and its tiles. The
+@ decompressed halves are staged through ewram_10000, ewram_12940 and
+@ ewram_1a140 before being DMA3'd into VRAM.
+@
+@ It also arms the window hardware -- WIN0H, WININ -- and BLDALPHA, which is what
+@ lets the logo sit over a blended sky. Entry 0 of each palette is forced to
+@ zero. 246 lines; traced structurally.
 .thumb_func_start LoadGS1TitleGFX  @ 0x080f24a0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -801,6 +819,19 @@
 	bx	r0
 .func_end LoadGS1TitleGFX
 
+@ RunTitleScreen
+@ r0 = non-zero when a save file exists. The title screen, and one of the two
+@ entry points overlay rom_779188 calls -- with 0 for a fresh cartridge and 1
+@ when _Func_1f77c found a save.
+@
+@ Takes 0xE0 bytes under tag 0x2B for its own state at iwram_1efc, loads the
+@ graphics with LoadGS1TitleGFX, starts the palette-fade engine with Func_f377c, sets
+@ the target palette with .gcc2_compiled. and begins a 0x3C-frame fade with
+@ Func_f3858. Func_f2028 is registered at 0x480 to animate it. The BLDCNT
+@ transfer is queued through ewram_2090 with interrupts masked rather than
+@ written directly.
+@
+@ 503 lines; traced structurally.
 .thumb_func_start StartTitleScreen  @ 0x080f26ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

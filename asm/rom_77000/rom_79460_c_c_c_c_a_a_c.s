@@ -1,5 +1,7 @@
 	.include "macros.inc"
 
+@ RollWeightedChoice
+@ r0.. = parameters. Picks from a weighted table, dividing with Func_af0.
 .thumb_func_start Func_8079b24  @ 0x08079b24
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

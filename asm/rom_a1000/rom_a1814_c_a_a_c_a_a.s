@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ LayOutGrid
+@ r0 = x origin, r1 = y origin, r2 = columns. Walks all 32 sprite nodes at
+@ state+0x48 and hands each live one to .gcc2_compiled. with its index, so they land
+@ on a grid. Null slots are skipped, not compacted -- position follows the slot
+@ index, not the occupied count.
 .thumb_func_start Func_80a1bdc  @ 0x080a1bdc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

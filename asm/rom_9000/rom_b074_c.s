@@ -1,5 +1,21 @@
 	.include "macros.inc"
 
+@ LoadFontResource
+@ r0=slot (0-7), r1=destination buffer, r2=resource id, r3=translation table
+@ selector (0 = none). Returns the glyph area (width * height) from the loaded
+@ header, or 0 on failure.
+@ Loads a font/glyph resource into one of the 8 slots at [iwram_1e68], stride 8:
+@   - fetches the resource header via _Func_185008 (overlay export)
+@   - records (slot << 12) | id at slot+0x1C and the buffer at slot+0x20
+@   - scans the rodata_12fa0 table (4-byte entries: id halfword + size halfword,
+@     see f9_6_rom_b074_rodata.s) for the matching id, bailing out after 0xFF
+@     entries or on a 0 terminator
+@   - decompresses/copies the payload with GetFile and DecompressLZ
+@   - relocates the resource's internal pointer table in place: each non-zero
+@     entry is rebased from a relative offset to an absolute address
+@   - when r3 is non-zero, remaps every payload byte <= 0xDF through the
+@     translation table at Data_92b8 + (r3 - 1) * 0x100 (selector values above 5
+@     fall back to table 0)
 .thumb_func_start PreloadSpriteGFX  @ 0x0800b6b8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

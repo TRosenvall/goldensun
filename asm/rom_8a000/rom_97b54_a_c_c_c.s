@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ RunAbilityOutro
+@ Takes no arguments. The common closing beat: retracts the particles, returns
+@ the caster to idle and releases the effect instances. The ~400-instruction
+@ body is characterised structurally.
 .thumb_func_start Field_Ply  @ 0x080994d0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -192,6 +196,10 @@
 	bx	r0
 .func_end Field_Ply
 
+@ RestorePlayerAfterAbility
+@ Takes no arguments. Returns the player entity (ewram_240+0x1F4) to normal
+@ control after a cast: clears the freeze flag, restores the idle animation and
+@ re-enables input.
 .thumb_func_start Func_8099678  @ 0x08099678
 	push	{r5, r6, lr}
 	ldr	r3, =gState
@@ -285,6 +293,9 @@
 	bx	r0
 .func_end Func_8099678
 
+@ SaveAbilityResult
+@ Takes no arguments. Records the outcome of the cast into ewram_240 so the map
+@ script and save state reflect whatever the ability changed.
 .thumb_func_start Func_8099738  @ 0x08099738
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

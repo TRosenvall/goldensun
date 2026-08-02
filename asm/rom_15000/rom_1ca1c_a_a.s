@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ FormatClockTime
+@ r0 = destination. Reads the hour byte from the save block at ewram_240+0x205
+@ and converts it with Func_b1c(hour + 12, 24) -- the signed remainder -- which
+@ is the 12/24-hour wrap. That makes ewram_240+0x205 the in-game HOUR.
 .thumb_func_start Func_801ca1c  @ 0x0801ca1c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -92,6 +96,10 @@
 	bx	r0
 .func_end Func_801ca1c
 
+@ BuildDialGradient
+@ r0 = target. Fills a gradient from the constants 0xEEEE, 0xCCCC and 0x11110 --
+@ 4bpp colour ramps written four pixels at a time -- and hands off to
+@ Func_1cbd4 to place it.
 .thumb_func_start Func_801cae0  @ 0x0801cae0
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -165,6 +173,11 @@
 	bx	r0
 .func_end Func_801cae0
 
+@ PlaceDialElement
+@ r0 = record, r1, r2 = parameters. Reads an angle from the halfword at
+@ [r0]+0x576 and a radius from +0x578, converts with Func_888 (the 16.16
+@ trigonometric helper) and positions the element. The `.call_via r4` idiom is
+@ how Thumb code reaches the ARM-mode helper.
 .thumb_func_start Func_801cbd4  @ 0x0801cbd4
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -226,6 +239,9 @@
 	bx	r1
 .func_end Func_801cbd4
 
+@ PlaceDialElementXY
+@ r0 = record, r1, r2 = parameters. As Func_1cbd4 but takes its two signed
+@ halfwords from the head of the record rather than from +0x576.
 .thumb_func_start Func_801cc50  @ 0x0801cc50
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -283,6 +299,9 @@
 	bx	r1
 .func_end Func_801cc50
 
+@ LayOutDial
+@ r0.. = parameters. Places every element of the dial by repeated Func_1cc50,
+@ dividing the circle with Func_b1c. 147 lines; traced structurally.
 .thumb_func_start SetUIColor  @ 0x0801ccc0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -430,6 +449,9 @@
 	bx	r0
 .func_end SetUIColor
 
+@ StepPhaseDown
+@ r0 = record. Decrements the three-state phase halfword at [r0]+0x574,
+@ wrapping 0 back to 2.
 .thumb_func_start Func_801ce48  @ 0x0801ce48
 	push	{lr}
 	ldr	r1, =0x574

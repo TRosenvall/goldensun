@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SetObjAffine
+@ r0.. = angle and scale. Builds an OBJ affine matrix from sin /
+@ cos and Func_af0, and writes it into the OAM affine slots.
 .thumb_func_start Func_8003d28  @ 0x08003d28
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

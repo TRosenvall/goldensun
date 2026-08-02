@@ -1,5 +1,18 @@
 	.include "macros.inc"
 
+@ ScriptOp_FollowTargetClamped
+@ Script opcode handler. r0=entity. Moves toward the target entity at +0x68,
+@ keeping the destination inside the playable area. Advances the cursor by 1 and
+@ returns 1; a null or inactive target makes the whole body a no-op.
+@ The bounds come from the map state at [iwram_1e70] +0xEC/+0xF0/+0xF4/+0xF8,
+@ each inset by a fixed margin, and the target position is clamped into that
+@ box before use. Clears the entity's own targets (+0x38/+0x3C/+0x40) and the
+@ mode byte at +0x55 first.
+@ When the spawn-tile halfword at +0x64 is non-zero the clamped point is written
+@ straight to +0x08/+0x0C/+0x10 (hard snap). Otherwise the horizontal step is
+@ the distance scaled to one eighth, clamped to the max speed at +0x30, and the
+@ vertical difference is applied separately -- quartered whenever it exceeds
+@ 0x8000 -- so the follower eases in rather than jumping.
 .thumb_func_start ActorCmd_Camera  @ 0x0800daf0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -242,6 +255,16 @@
 	bx	r1
 .func_end ActorCmd_Camera
 
+@ ScriptOp_ApproachTarget
+@ Script opcode handler. r0=entity. Walks toward the target entity at +0x68 but
+@ stops a fixed 0x10 units short, so the follower never overlaps what it is
+@ chasing. Copies the target's max speed (+0x30) and acceleration (+0x34) so it
+@ can keep pace.
+@ While still further than 0x10 away it scales the delta by (dist - 0x10) / dist
+@ using Func_af0_from_thumb, issues Actor_TravelTo toward the shortened point, selects
+@ the walk animation with Func_c300(2), advances the cursor by 1 and returns 1.
+@ Once inside 0x10 it selects the idle animation with Func_c300(1) and returns 0,
+@ which leaves the cursor put so the handler re-runs next frame.
 .thumb_func_start ActorCmd_FollowTargetWait  @ 0x0800dcdc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -313,6 +336,22 @@
 	bx	r1
 .func_end ActorCmd_FollowTargetWait
 
+@ ScriptOp_PickWanderTarget
+@ Script opcode handler. r0=entity. Chooses a random nearby point to wander to,
+@ rejecting anything blocked or outside the entity's leash. Reads three script
+@ operands: a base distance, a distance scale, and a leash radius (the third is
+@ squared on entry and compared against the squared offset from the spawn tile
+@ cached at +0x64/+0x66).
+@ Up to 7 attempts. Each draws random values from Func_4458 to build a distance
+@ and a heading offset around the current facing (+0x06), turns that into a
+@ candidate point with vec3_translate, and rejects it if any of these fail:
+@   - Func_d924 reports an entity collision at the candidate
+@   - TestCollision reports terrain collision at the candidate, or at the two
+@     probe headings +0x2000 and -0x2000 around it
+@   - the candidate lands outside the leash radius of the spawn tile
+@ On success it issues Actor_TravelTo toward the point, advances the cursor by 4 and
+@ returns 1. After 7 failures it turns 180 degrees (+0x8000 on +0x06), sets the
+@ wait timer at +0x5E to 1 and returns 0 so the handler retries next frame.
 .thumb_func_start ActorCmd_Wander  @ 0x0800dd70
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -507,6 +546,22 @@
 	bx	r1
 .func_end ActorCmd_Wander
 
+@ ScriptOp_PickWanderTargetLeashed
+@ Script opcode handler. r0=entity. The leash-aware sibling of ActorCmd_Wander: same
+@ three script operands (base distance, distance scale, leash radius squared)
+@ and the same 7-attempt structure, but it checks the leash *first* and probes
+@ more directions.
+@ While the entity is still inside its leash radius of the spawn tile
+@ (+0x64/+0x66), each attempt builds a random candidate via Func_4458 and
+@ vec3_translate and rejects it on an entity hit (Func_d924) or a terrain hit
+@ (TestCollision) at the candidate or at any of the probe headings +0x2000,
+@ +0x4000, -0x2000 and -0x4000. A candidate that also stays within the leash is
+@ accepted: bit 1 of the flag byte at +0x59 is set and Actor_TravelTo starts the move.
+@ Once the entity is already outside its leash, the loop at .Le146 instead aims
+@ back toward the spawn point -- heading = atan2 of the offset plus 0x8000 --
+@ retries up to 7 times against the same collision tests, and on success clears
+@ bit 1 of +0x59 before issuing Actor_TravelTo.
+@ Either way the cursor advances by 4 and the handler returns 1.
 .thumb_func_start ActorCmd_Unk9  @ 0x0800df04
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

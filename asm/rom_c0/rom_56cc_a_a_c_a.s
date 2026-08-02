@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ StartMusicTrack
+@ r0.. = parameters. Begins a music track: picks variants (Func_5810), assigns
+@ channels (Func_5868, Func_5b24, Func_5b64) and starts playback (.gcc2_compiled.).
+@ 160 lines; traced structurally.
 .thumb_func_start SomethingSaveHeader  @ 0x08005920
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -161,6 +165,8 @@
 	bx	r1
 .func_end SomethingSaveHeader
 
+@ PlayOneShot
+@ r0.. = parameters. Allocates a channel with Func_58ac and triggers it once.
 .thumb_func_start Func_8005a78  @ 0x08005a78
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001f1c

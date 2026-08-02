@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ PlayModedEffect
+@ r0=action descriptor, r1=mode 0..2. Shared implementation behind the three
+@ wrappers above. Stores the descriptor at [iwram_1eec]+0x7828 and runs the
+@ animation, with the mode selecting which variant of the sequence plays.
+@ The body is characterised structurally.
 .thumb_func_start BaseAnim_Spasm  @ 0x080ceff8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

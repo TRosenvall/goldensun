@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ MixChannels
+@ r0.. = parameters. Mixes the active channels into the output buffer through
+@ Func_60e8 and Func_615c. 117 lines; traced structurally.
 .thumb_func_start Func_8005ee0  @ 0x08005ee0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -118,6 +121,10 @@
 	bx	r1
 .func_end Func_8005ee0
 
+@ StepSound -- the per-frame sound update
+@ Takes no arguments. Called every frame from WaitFrames. Advances the sequencer,
+@ retires finished channels and refills the DMA output buffers. 94 lines; traced
+@ structurally.
 .thumb_func_start Func_8005fcc  @ 0x08005fcc
 	push	{r5, r6, r7, lr}
 	ldr	r7, =ewram_2002240
@@ -212,6 +219,9 @@
 	bx	r1
 .func_end Func_8005fcc
 
+@ MixChannelsAlt
+@ r0.. = parameters. A second mixing path over the same Func_60e8 / Func_615c
+@ primitives.
 .thumb_func_start Func_8006088  @ 0x08006088
 	push	{r5, r6, r7, lr}
 	ldr	r3, =REG_SIOCNT
@@ -260,6 +270,9 @@
 	bx	r1
 .func_end Func_8006088
 
+@ MixSampleBlock
+@ r0.. = parameters. Accumulates one block of one channel's samples into the
+@ output buffer.
 .thumb_func_start Func_80060e8  @ 0x080060e8
 	push	{r5, lr}
 	ldr	r4, =ewram_2002240
@@ -318,6 +331,9 @@
 	.word	0xc0
 .func_end Func_80060e8
 
+@ MixSampleBlockStereo
+@ r0.. = parameters. The stereo counterpart to Func_60e8. 113 lines; traced
+@ structurally.
 .thumb_func_start Func_800615c  @ 0x0800615c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -431,6 +447,9 @@
 	bx	r1
 .func_end Func_800615c
 
+@ ResampleBlock
+@ r0.. = parameters. Resamples a block to the mixer rate. 145 lines; traced
+@ structurally.
 .thumb_func_start Func_8006240  @ 0x08006240
 	push	{r5, r6, r7, lr}
 	ldr	r3, =REG_SIODATA32

@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ WaitForFade
+@ r0=flags. Blocks until the running fade reaches its target. Returns
+@ immediately when no fade state exists.
 .thumb_func_start Func_8091254  @ 0x08091254
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ed0

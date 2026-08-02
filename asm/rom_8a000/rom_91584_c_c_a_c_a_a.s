@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ LoadMapByIdAndEntrance
+@ r0=map id, r1=entrance index. Resolves the destination with GetEncounterGroup,
+@ caching the result at iwram_1ebc+0x17C, then starts the transition with
+@ Func_8b320.
+@ Two special cases: map 0x62 entered at entrance 0 forces ewram_240+0x1B4 to
+@ 0x21, and in scene mode 3 (+0x19E) the player's position is handed to
+@ Func_8adf0 first so the arrival point is recorded.
 .thumb_func_start Func_8091eb0  @ 0x08091eb0
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ebc
@@ -44,6 +51,12 @@
 	bx	r0
 .func_end Func_8091eb0
 
+@ LoadMapByName
+@ r0=packed destination -- bit 11 is a mode flag, the low byte is the id --
+@ r1=name/label index. When bit 11 is clear it first runs Func_9537c.
+@ Stores (r1 + 0x12C) with the mode flag ORed in at ewram_240+0x234, resolves
+@ the destination with .gcc2_compiled. into iwram_1ebc+0x17C, applies the same scene
+@ mode 3 fixup as Func_91eb0, and starts the transition with Func_8b320(0, 0).
 .thumb_func_start Func_8091f14  @ 0x08091f14
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

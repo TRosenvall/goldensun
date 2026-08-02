@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ScaleWipeRadius
+@ r0=radius, r1=numerator, r2=scale. Scales a wipe radius through Func_97a10,
+@ falling back to a Func_888 multiply when the intermediate exceeds 0x3BFFFF so
+@ the result does not overflow.
 .thumb_func_start Func_80979a4  @ 0x080979a4
 	push	{r5, r6, lr}
 	mov	r6, r1
@@ -50,6 +54,10 @@
 	bx	r1
 .func_end Func_80979a4
 
+@ DivideSigned
+@ r0=numerator, r1=denominator. Returns the quotient, handling a zero
+@ denominator by returning 0 and normalising the sign before dividing (the top
+@ nibble test at .L97a28 detects a negative denominator and negates both).
 .thumb_func_start Func_8097a10  @ 0x08097a10
 	push	{r5, r6, lr}
 	mov	r5, r1
@@ -80,6 +88,11 @@
 	bx	r1
 .func_end Func_8097a10
 
+@ HasNoMoveTarget
+@ r0=entity. Returns non-zero when all three movement targets (+0x38, +0x3C,
+@ +0x40) still hold the 0x80000000 "none" sentinel -- i.e. the entity is not
+@ moving anywhere. Compare Actor_IsNotMoving in rom_9000, which applies the same test
+@ with the vertical axis conditional.
 .thumb_func_start Func_8097a54  @ 0x08097a54
 	push	{lr}
 	mov	r2, #0x80
@@ -100,6 +113,10 @@
 	bx	r0
 .func_end Func_8097a54
 
+@ SetEncounterDisplayRegisters
+@ Takes no arguments. Puts the display into encounter-transition state: sets the
+@ active flag at [iwram_1e8c]+0xEA4, and writes 0x739C into the two window
+@ registers at 0x50001E2 and 0x50001E6.
 .thumb_func_start Func_8097a7c  @ 0x08097a7c
 	push	{lr}
 	ldr	r3, =iwram_3001e8c
@@ -147,6 +164,10 @@
 	bx	r0
 .func_end Func_8097a7c
 
+@ RestoreDisplayRegisters
+@ Takes no arguments. Undoes Func_97a7c: unregisters the flash task Func_97868,
+@ restores the window registers at 0x50001E2 / 0x50001E6 to 0x7FFF and 0, and
+@ resets the blend state so the field renders normally again.
 .thumb_func_start Func_8097adc  @ 0x08097adc
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001e8c

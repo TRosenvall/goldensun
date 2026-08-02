@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunShopScreen
+@ r0.. = parameters. 570 lines and the body of a shop visit: opens and closes
+@ sub-screens (.gcc2_compiled., Func_b04dc, Func_b0574), drives the list controller
+@ (.gcc2_compiled.), and advances a frame at a time through WaitFrames.
+@ Traced structurally.
 .thumb_func_start Func_80b0aac  @ 0x080b0aac
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -571,6 +576,9 @@
 	bx	r1
 .func_end Func_80b0aac
 
+@ DrawShopRow
+@ r0.. = parameters. Draws one row: the item record from _Func_78414, the icon
+@ node from _Func_1eadc / _Func_1eb90, released through _Func_16478.
 .thumb_func_start Func_80b0fa4  @ 0x080b0fa4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -713,6 +721,9 @@
 	bx	r0
 .func_end Func_80b0fa4
 
+@ DrawRowText
+@ r0.. = parameters. Emits a row's label and number through _Func_1e7c0 and
+@ _Func_1ea08.
 .thumb_func_start Func_80b10cc  @ 0x080b10cc
 	push	{r5, lr}
 	ldr	r3, =iwram_3001f2c
@@ -741,6 +752,8 @@
 	bx	r0
 .func_end Func_80b10cc
 
+@ DrawRowTextWide
+@ r0.. = parameters. As Func_b10cc with the tile release _Func_16498 first.
 .thumb_func_start Func_80b110c  @ 0x080b110c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

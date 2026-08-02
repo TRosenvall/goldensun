@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ FindFreeEntitySlot
+@ Returns the first unused entity in the 0x40-slot table at [iwram_1e64]
+@ (stride 0x70), or 0 when the table is full. A slot counts as free when its
+@ script pointer at +0x00 is null.
 .thumb_func_start NewActor  @ 0x0800c0cc
 	push	{lr}
 	ldr	r3, =iwram_3001e64
@@ -24,6 +28,11 @@
 	bx	r1
 .func_end NewActor
 
+@ DestroyEntity
+@ r0=entity. Destroys the entity's actors according to the draw kind in the low
+@ nibble of +0x54 -- kind 1 is the single actor at +0x50, kind 2 is an array of
+@ up to four -- each released with DeleteSprite, then DMA zero-fills the entity's
+@ 0x70 bytes to return the slot to the table. No-op on a null pointer.
 .thumb_func_start DeleteActor  @ 0x0800c0f4
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
@@ -72,6 +81,21 @@
 	bx	r0
 .func_end DeleteActor
 
+@ SpawnEntity
+@ r0=packed descriptor (bits 12+ = draw kind, bits 0-11 = resource id),
+@ r1=x, r2=y, r3=z (16.16). Returns the new entity, or 0 if the table is full.
+@ Claims a slot with NewActor, then builds the actors:
+@   kind 0 -- one actor from CreateSprite; +0x54 = 1 and the collision radius at
+@             +0x20 is header[9] >> 1. If CreateSprite fails, +0x54 = 0 so the
+@             entity exists but is never drawn.
+@   kind 2 -- bump-allocates a 4-pointer array from [iwram_1e68]+0x18, zeroes
+@             it, and fills the first two entries with actors for id and id+1;
+@             +0x54 = 2.
+@ Func_d130 writes the position, then the entity defaults are applied: script
+@ .L1358c, max speed +0x30 = 0x20000, +0x18/+0x1C/+0x34 = 1.0, mode +0x55 = 3,
+@ +0x59 = 0, turn-to-face +0x5A = 1, restitution +0x44 = 0x4000, facing
+@ +0x06 = 0x4000, and the spawn tile is cached as (x >> 16, z >> 16) in the
+@ halfwords at +0x64 and +0x66.
 .thumb_func_start CreateActor  @ 0x0800c150
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

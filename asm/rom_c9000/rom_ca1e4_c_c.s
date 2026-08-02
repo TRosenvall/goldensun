@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ PlayTwoWayEffect
+@ r0=action descriptor, r1=variant 0 or 1. The implementation behind the two
+@ wrappers above; the variant is kept at sp+0x28 and selects between the two
+@ halves of the sequence. The body is characterised structurally.
 .thumb_func_start BaseAnim_Spore  @ 0x080ca1fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

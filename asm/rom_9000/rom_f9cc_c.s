@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ DrawMetatileRow
+@ r0=screen block index, r1=x in pixels, r2=y in pixels. Writes a horizontal run
+@ of 16 metatiles into the BG screen block at 0x6002800 + index * 0x800.
+@ x and y are halved to metatile units and wrapped into the 128-wide map grid;
+@ for each step the map record at ewram_10000 supplies a metatile index whose
+@ four tile entries are read from ewram_20000 / ewram_20004 and stored as two
+@ words one screen row (0x40 bytes) apart, so each metatile lands as a 2x2 block.
+@ Used to fill the row newly exposed by vertical scrolling.
 .thumb_func_start UpdateScreenEdge_V  @ 0x0800fec8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -67,6 +75,14 @@
 	bx	r0
 .func_end UpdateScreenEdge_V
 
+@ DrawMetatileColumn
+@ r0=screen block index, r1=x in pixels, r2=y in pixels. The vertical
+@ counterpart to UpdateScreenEdge_V: writes a run of 11 metatiles down the screen block,
+@ stepping the map row by 0x80 records and the destination by 0x40 bytes each
+@ time, both wrapped.
+@ Because a column only needs one tile of each 2x2 block, this variant stores
+@ halfwords rather than words, selecting the left or right half from the low bit
+@ of x. Used to fill the column newly exposed by horizontal scrolling.
 .thumb_func_start UpdateScreenEdge_H  @ 0x0800ff54
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -148,6 +164,12 @@
 	bx	r0
 .func_end UpdateScreenEdge_H
 
+@ RefreshMapEdges
+@ Takes no arguments. Compares the live camera position against the last drawn
+@ position held in the map state at [iwram_1e70] and, for each of the layers
+@ configured from +0x104, issues UpdateScreenEdge_V / UpdateScreenEdge_H for every metatile row or
+@ column the scroll has brought into view, then records the new position. This
+@ is what makes scrolling cost only the exposed edge rather than a full redraw.
 .thumb_func_start UpdateFieldScreen  @ 0x08010000
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -423,6 +445,12 @@
 	bx	r0
 .func_end UpdateFieldScreen
 
+@ UpdateBgScrollRegisters
+@ r0, r1 = camera position derived by .gcc2_compiled.. Converts the camera into
+@ per-layer scroll offsets -- applying each layer's parallax divisor from the
+@ configuration block at [iwram_1e70]+0x104 (stride 0x30) -- and writes the
+@ resulting values to the BG scroll registers, clamping against the map bounds
+@ cached at +0xEC..+0xF8.
 .thumb_func_start Func_8010230  @ 0x08010230
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

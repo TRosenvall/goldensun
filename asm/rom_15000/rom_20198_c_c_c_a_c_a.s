@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ComputeScrollWindow
+@ r0.. = parameters. Works out the visible slice of a scrolling list; no calls
+@ out.
 .thumb_func_start Func_8021a18  @ 0x08021a18
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

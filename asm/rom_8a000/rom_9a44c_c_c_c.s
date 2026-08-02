@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ RunTargetReaction
+@ Takes no arguments. Plays the target's reaction to a field ability -- the
+@ recoil animation and any position change -- against the caster and target in
+@ the effect state. The ~120-instruction body is characterised structurally.
 .thumb_func_start Field_Halt  @ 0x0809abb4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

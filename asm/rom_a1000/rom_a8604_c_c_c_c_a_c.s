@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ PlayItemSound
+@ r0 = display id. Picks the use sound from the display record. Kinds 1 and 0xB
+@ of the low nibble of +0x01 both play 0x7E. Everything else dispatches on
+@ +0x03, which selects 0x52, 0x54, 0x5B or silence -- the 32-entry table is
+@ almost all "0x5B", with only indices 3, 5 and the last two differing.
 .thumb_func_start Func_80aa460  @ 0x080aa460
 	push	{lr}
 	bl	_GetMoveInfo

@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ LoadAndDecompressBattleGraphic
+@ r0, r1 = parameters, r2 = asset id. Fetches the asset with GetFile, then
+@ ALLOCATES 0x230 BYTES UNDER TAG 0x31 AND DMA3-COPIES Func_b5138 INTO IT,
+@ calling the decompressor there rather than in place -- which is why
+@ Func_b5138 relocates its own jump table. Func_2dd8 frees the scratch after.
+@ Exported; rom_c9000's class handlers use it to load their graphics.
 .thumb_func_start AnimTransitionIn  @ 0x080c08ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -114,6 +120,9 @@
 	.word	0x1f83
 .func_end AnimTransitionIn
 
+@ UploadViewMatrix
+@ r0.. = parameters. Pushes the battle view matrix to the affine registers,
+@ gated on a save bit through _Func_79338. 219 lines; traced structurally.
 .thumb_func_start Func_80c0a24  @ 0x080c0a24
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -333,6 +342,9 @@
 	bx	r0
 .func_end Func_80c0a24
 
+@ BuildSceneMatrix
+@ r0.. = parameters. Composes the scene transform from InitMatrixStack, MatrixPitch,
+@ MatrixYaw, MatrixTranslatev, MatrixSetLook, Func_5258 and PhysMove.
 .thumb_func_start Func_80c0be4  @ 0x080c0be4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -446,6 +458,9 @@
 	bx	r0
 .func_end Func_80c0be4
 
+@ BuildViewMatrix
+@ r0.. = parameters. The camera counterpart to Func_c0be4, same helper set.
+@ Exported.
 .thumb_func_start Func_80c0cec  @ 0x080c0cec
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -558,6 +573,9 @@
 	bx	r0
 .func_end Func_80c0cec
 
+@ AimCameraAtCombatant
+@ r0 = combatant id. Points the camera at a combatant, resolving it with
+@ Func_b7dd0 and rebuilding with Func_c0cec. Exported.
 .thumb_func_start Func_80c0df4  @ 0x080c0df4
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -591,6 +609,8 @@
 	bx	r0
 .func_end Func_80c0df4
 
+@ WaitFramesA
+@ r0 = count. Spins on WaitFrames(1). Exported.
 .thumb_func_start Func_80c0e38  @ 0x080c0e38
 	push	{r5, r6, r7, lr}
 	ldr	r2, =REG_BLDCNT
@@ -621,6 +641,8 @@
 	bx	r0
 .func_end Func_80c0e38
 
+@ WaitFramesB
+@ r0 = count. A second WaitFrames spin with different bookkeeping. Exported.
 .thumb_func_start Func_80c0e70  @ 0x080c0e70
 	push	{r5, r6, r7, lr}
 	ldr	r2, =REG_BLDCNT

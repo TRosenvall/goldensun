@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Playdea70Impl
+@ r0=action descriptor, r1=variant. The shared implementation behind the
+@ 8 thin wrappers in this file, which exist so the animation table can hold
+@ one address per variant:
+@     0=Func_de974 1=Func_de980 2=Func_de98c 3=Func_de998 4=Func_de9b0 7=Func_dea24 10=Func_dea30 11=Func_de9a4
+@ Works from the battle state at [iwram_1eec]; the variant selects timing,
+@ colours and which arm of the sequence runs. Body characterised
+@ structurally -- see the wrappers for the variant numbering.
 .thumb_func_start BaseAnim_ParticleSpray  @ 0x080dea70
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ApplyItemAction
+@ r0 = character id, r1 = inventory slot, r2 = action, r3 = target.
+@ Dispatches on the ability record's +0x02 kind, ten ways through the table at
+@ .La3f44, and is the function that actually changes anything: it takes a
+@ 0x14C-byte scratch, copies the record, applies the effect, and redraws the
+@ preview with Func_a112c. Action 1 sets the 0x100 preview flag so nothing is
+@ committed. _Func_78588 finds a matching item and Func_a40ac drops a stack when
+@ the inventory is full. 203 lines; traced structurally.
 .thumb_func_start Func_80a3ef0  @ 0x080a3ef0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -204,6 +212,14 @@
 	bx	r0
 .func_end Func_80a3ef0
 
+@ DiscardFirstUnlockedItem
+@ r0 = character id. Walks the inventory from slot 0, skipping any slot whose
+@ bit 9 is set, and stops at the first empty one. For the first unlocked slot it
+@ finds, it calls _Func_788c4 (quantity + 1) times -- consuming the WHOLE stack,
+@ not one unit -- and then stops.
+@
+@ Returns 1 when it ran off the end of the list without finding anything to
+@ drop, or when that final consume answered 2; 0 otherwise.
 .thumb_func_start Func_80a40ac  @ 0x080a40ac
 	push	{r5, r6, r7, lr}
 	mov	r7, r0

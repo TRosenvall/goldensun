@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ WalkSlotThroughDoorway
+@ r0=slot, r1=argument for Func_92b08, r2=z offset. A two-stage move used for
+@ doorways: first the entity is snapped onto the nearest 16-unit grid line in x
+@ -- the (x mod 16) computation at .L9222c -- and walks 8 units clear of it,
+@ blocking until it arrives. Func_92b08 then runs the transition itself, and a
+@ second _Func_d14c carries the entity r2 further along z on the other side.
 .thumb_func_start Func_8092208  @ 0x08092208
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

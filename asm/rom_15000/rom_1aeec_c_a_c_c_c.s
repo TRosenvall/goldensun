@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ CloseMenuScreen
+@ Takes no arguments. Waits for the window to go idle with .gcc2_compiled., closes it
+@ with CloseUIBox, releases tiles with Func_3f3c and the block with Func_2dd8.
+@ State is at iwram_1e9c.
 .thumb_func_start Func_801c954  @ 0x0801c954
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001e9c

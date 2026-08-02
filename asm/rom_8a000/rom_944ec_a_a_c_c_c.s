@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RestorePlayerControl
+@ r0=player id, r1=mode. Returns the player to normal field control after a
+@ scene or ride: restores the sprite, movement parameters and input handling.
+@ Called by Func_91750 to close a cutscene. The ~220-instruction body is
+@ characterised structurally.
 .thumb_func_start Func_809537c  @ 0x0809537c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -250,6 +255,9 @@
 	bx	r0
 .func_end Func_809537c
 
+@ SetSceneFlagAndRefresh
+@ r0=value. Writes the scene flag at iwram_1ebc+0x16E and re-applies whatever
+@ depends on it.
 .thumb_func_start Func_80955b0  @ 0x080955b0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -349,6 +357,9 @@
 	bx	r0
 .func_end Func_80955b0
 
+@ UpdatePartyFormationState
+@ Takes no arguments. Recomputes the party formation from ewram_240+0x234,
+@ repositioning the followers behind the leader.
 .thumb_func_start Func_8095680  @ 0x08095680
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -459,6 +470,9 @@
 	bx	r0
 .func_end Func_8095680
 
+@ SetPartyFormation
+@ r0=formation id. Stores it at ewram_240+0x234 and applies the new layout to
+@ the live followers.
 .thumb_func_start Func_8095778  @ 0x08095778
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

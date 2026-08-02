@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ DrawSubScreen
+@ r0.. = parameters. Paints the second screen, using iwram_1f54 alongside
+@ iwram_1ea0. 189 lines; traced structurally.
 .thumb_func_start Func_801d9d4  @ 0x0801d9d4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -190,6 +193,10 @@
 	bx	r1
 .func_end Func_801d9d4
 
+@ RunSubScreen
+@ Takes no arguments. The second screen's input loop over iwram_1c94 and
+@ iwram_1b04, calling Func_1d9d4 to repaint and CloseUIBox to close.
+@ 202 lines; traced structurally.
 .thumb_func_start StartMenu_Main  @ 0x0801db70
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -392,6 +399,9 @@
 	bx	r1
 .func_end StartMenu_Main
 
+@ UploadScreenTiles
+@ r0.. = parameters. Fetches assets with GetFile and DMA3s them into the UI
+@ block at iwram_1e8c. 178 lines; traced structurally.
 .thumb_func_start Func_801dd28  @ 0x0801dd28
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

@@ -1,5 +1,18 @@
 	.include "macros.inc"
 
+@ PlayerMovementController
+@ r0=player entity. The main on-foot controller.
+@ Opens with an unrelated housekeeping check: when iwram_1f54 is set and event
+@ flag 0x15E is set, it counts the 0xFF bytes in the 0x200-byte block at
+@ iwram_1810 and, if fewer than 0x88 remain, calls _Func_f9080(0x87) -- a
+@ low-inventory or full-log style notification.
+@ Movement tuning: running gives max speed 0x18000 and acceleration 0x4000 with
+@ animation 5; walking gives 0x10000 / 0x4000 with animation 2.
+@ The remainder is the heading lookup, probe and slide described in the header
+@ above. That body (roughly 800 instructions) has NOT been analysed instruction
+@ by instruction -- the housekeeping block, the speed constants and the heading
+@ dispatch are verified; the probe sequence is inferred from its shared shape
+@ with ActorCmd_Player_World and ActorCmd_Wander.
 .thumb_func_start ActorCmd_Player  @ 0x0800ebec
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -869,6 +882,14 @@
 	bx	r1
 .func_end ActorCmd_Player
 
+@ PlayerMovementControllerSlow
+@ r0=player entity. Same structure as ActorCmd_Player with a lower speed band:
+@ running gives max speed 0x10000 and acceleration 0x14000 with animation 5,
+@ walking gives 0x8000 / 0x4000.
+@ Bit 9 of iwram_1b04 overrides the max speed to 0x40000 -- roughly four times
+@ the run speed -- which looks like a debug or scripted fast-travel path.
+@ As with ActorCmd_Player, the ~590-instruction movement body is characterised
+@ structurally rather than line by line.
 .thumb_func_start ActorCmd_Player_World  @ 0x0800f2f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

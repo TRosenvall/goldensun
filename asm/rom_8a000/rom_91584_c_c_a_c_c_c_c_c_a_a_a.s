@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ SpawnFollowerAtPlayerAndWalk
+@ r0=slot, r1=x delta, r2=z delta, r3=facing angle. Used to bring a follower
+@ into a scene: sets the entity's speed to 0x9999 / 0x4CCC via Func_92064,
+@ snaps it onto the player's position with MapActor_SetPos, clears the freeze flag,
+@ selects the walk animation, walks it out by (r1, r2) with .gcc2_compiled., then
+@ installs the script .L9fbcc and stores the facing angle at +0x64.
 .thumb_func_start Func_809233c  @ 0x0809233c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

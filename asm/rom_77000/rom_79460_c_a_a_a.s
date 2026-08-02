@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ AddPartyMember
+@ r0 = character id. Sets the membership bit with SetFlag and appends the id
+@ to the roster byte list at ewram_240+0x1F8, skipping the append when the
+@ character is already listed.
 .thumb_func_start AddPartyMember  @ 0x0807961c
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -40,6 +44,10 @@
 	bx	r1
 .func_end AddPartyMember
 
+@ RemovePartyMember
+@ r0 = character id. Clears the membership bit with ClearFlag and removes the
+@ id from the roster list, shifting the remainder down so the list stays
+@ compact.
 .thumb_func_start Func_8079664  @ 0x08079664
 	push	{r5, r6, lr}
 	mov	r5, r0

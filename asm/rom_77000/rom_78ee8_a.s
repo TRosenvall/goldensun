@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ InitCharacter
+@ r0 = character index. Seeds a character record from its 0xB4-byte base entry
+@ (Func_78ed8), gives it starting equipment through EquipItem, rebuilds the
+@ derived stats with CalcStats, and notifies SetMinLevel and .gcc2_compiled..
+@ Called by GameInit for each of the eight characters at startup.
 .thumb_func_start ResetPCs  @ 0x08078ee8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

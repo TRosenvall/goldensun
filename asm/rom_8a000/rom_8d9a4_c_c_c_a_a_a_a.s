@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ BuildWindowTableA
+@ Takes no arguments. Fills one of the per-scanline window tables at
+@ iwram_1ecc+0x53C -- the circular aperture variant.
 .thumb_func_start Func_80903bc  @ 0x080903bc
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ecc
@@ -92,6 +95,9 @@
 	.word	0x9f
 .func_end Func_80903bc
 
+@ BuildWindowTableB
+@ Takes no arguments. Second window-table builder over the same buffer, for the
+@ other aperture shape.
 .thumb_func_start Func_8090488  @ 0x08090488
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ecc
@@ -208,6 +214,9 @@
 	bx	r0
 .func_end Func_8090488
 
+@ SyncOverlayToVCount
+@ Takes no arguments. Reads REG_VCOUNT and advances the overlay so its geometry
+@ matches the beam position, avoiding a tear mid-frame.
 .thumb_func_start Func_8090584  @ 0x08090584
 	push	{lr}
 	ldr	r3, =REG_VCOUNT
@@ -322,6 +331,9 @@
 	bx	r0
 .func_end Func_8090584
 
+@ BuildWindowTableC
+@ Takes no arguments. Third window-table builder, for the remaining aperture
+@ shape.
 .thumb_func_start Task_Transition300  @ 0x08090658
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ecc
@@ -471,6 +483,9 @@
 	bx	r0
 .func_end Task_Transition300
 
+@ ClearWindowTable
+@ r0=table. Fills the per-scanline window table with the 0xF000F000 "fully
+@ closed" pattern.
 .thumb_func_start Func_80907b0  @ 0x080907b0
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ecc

@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ LoadScreenGraphics
+@ r0.. = parameters. Loads the party screen's shared graphics: GetFile gets
+@ the asset, galloc_iwram allocates, DecompressLZ1 unpacks, UploadSpriteGFX / AllocSpriteSlot
+@ reserve the tiles, and Func_2dd8 frees the scratch. Func_1b36c supplies the
+@ entry count so only the visible panels are loaded.
 .thumb_func_start Func_801c188  @ 0x0801c188
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -67,6 +72,9 @@
 	bx	r0
 .func_end Func_801c188
 
+@ ReleasePanelTiles
+@ r0 = panel. Releases the panel's OBJ tiles with Func_3f3c and clears its
+@ handle in the block at iwram_1e98.
 .thumb_func_start Func_801c21c  @ 0x0801c21c
 	push	{r5, lr}
 	ldr	r3, =iwram_3001e98
@@ -87,6 +95,22 @@
 	bx	r0
 .func_end Func_801c21c
 
+@ RunFieldMenuLoop
+@ Takes no arguments. The field menu, opened from rom_8a000. Func_28920 draws
+@ the menu and returns the chosen entry; this dispatches it, five ways:
+@
+@     0  _Func_8ce74  NOT a screen -- reads the terrain the player is standing
+@                     on and stores it, or 0xFF, at [iwram_1ebc]+0x17A, then
+@                     leaves the menu
+@     1  _Func_a5b94  Items      -- loops the menu again on -1
+@     2  _Func_aa56c  Djinn      -- loops again on 0
+@     3  _Func_a24d0  Psynergy   -- loops again on -1
+@     4  _Func_a7478  Status     -- loops again on -1
+@
+@ Note the polarity differs: entry 2 loops on ZERO and the others on -1, which
+@ is why Func_aa56c returns 1 where the rest return their selection.
+@ .gcc2_compiled. and .gcc2_compiled. fade around each pass. iwram_1ebc is the block the
+@ result is written into.
 .thumb_func_start Func_801c244  @ 0x0801c244
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc

@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ SetSlotDrawPriority
+@ r0=slot, r1=priority 0-3. Writes bits 2-3 of BOTH actor byte +0x09 and byte
+@ +0x15 -- the OAM priority of the main sprite and of its companion/shadow --
+@ so the pair stays on the same layer. Also clears bit 0 of the entity's +0x23,
+@ dropping the position-correction that would otherwise offset the sprite.
+@ Draw kind 1 only.
 .thumb_func_start Func_8092b08  @ 0x08092b08
 	push	{r5, r6, lr}
 	mov	r5, r1
@@ -41,6 +47,11 @@
 	bx	r0
 .func_end Func_8092b08
 
+@ ShareActorTiles
+@ r0=destination slot, r1=source slot. Copies the source actor's tile
+@ allocation size code (+0x1C) and the low 10 bits of its OAM attr2 (+0x08) --
+@ the tile index -- onto the destination actor, so both draw from the same VRAM
+@ tiles. Lets a second entity mirror a sprite without a second allocation.
 .thumb_func_start Func_8092b54  @ 0x08092b54
 	push	{r5, r6, lr}
 	mov	r6, r8

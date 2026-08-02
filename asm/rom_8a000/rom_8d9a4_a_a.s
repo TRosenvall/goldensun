@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ProcessMapObjects
+@ Takes no arguments. Walks the current map's object records, spawning the ones
+@ whose conditions are met and retiring the rest. The ~400-instruction body is
+@ characterised structurally.
 .thumb_func_start Func_808d9a4  @ 0x0808d9a4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -446,6 +450,9 @@
 	bx	r1
 .func_end Func_808d9a4
 
+@ FindMapObjectByArea
+@ r0=area id. Searches the record table at .L9e686 for the entry matching the
+@ area, returning it or -1.
 .thumb_func_start Func_808ddb8  @ 0x0808ddb8
 	push	{lr}
 	ldr	r2, =.L9e686
@@ -475,6 +482,10 @@
 	bx	r1
 .func_end Func_808ddb8
 
+@ SpawnMapObject
+@ r0=object record. Instantiates one map object: creates its entity, applies its
+@ sprite and script and binds it to a scene slot. The ~130-instruction body is
+@ characterised structurally.
 .thumb_func_start Func_808ddec  @ 0x0808ddec
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -624,6 +635,10 @@
 	bx	r1
 .func_end Func_808ddec
 
+@ UpdateMapObjects
+@ Takes no arguments. Per-frame pass over the spawned map objects, applying
+@ their state changes. The ~150-instruction body is characterised
+@ structurally.
 .thumb_func_start Func_808df1c  @ 0x0808df1c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

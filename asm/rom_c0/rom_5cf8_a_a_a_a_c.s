@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ InitSound
+@ r0.. = parameters. Brings the sound engine up: configures the timers and
+@ enables the interrupt through SetIntrHandler, and starts the mixer via
+@ .gcc2_compiled.. 157 lines; traced structurally.
 .thumb_func_start Func_8005d10  @ 0x08005d10
 	push	{r5, r6, r7, lr}
 	ldr	r6, =REG_IME

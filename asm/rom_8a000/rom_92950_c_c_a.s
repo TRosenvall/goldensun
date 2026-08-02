@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ ShowMessageAtPositionForSlot
+@ r0=packed slot (low 12 bits). Records the slot as the active speaker at
+@ iwram_1ebc+0x1F4, then opens a box at an explicit position -- unless the
+@ fast-forward flag at +0x1CC is set, in which case the whole box is skipped.
+@ Coordinates are clamped the same way everywhere in this file: x into
+@ [0x14, 0xDC], y into [8, 0x138], and a y past 0x77 moves the box 0x20 down
+@ rather than up so it clears the speaker.
 .thumb_func_start Func_80930bc  @ 0x080930bc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

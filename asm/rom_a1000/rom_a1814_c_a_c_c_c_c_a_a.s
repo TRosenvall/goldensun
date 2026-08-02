@@ -1,6 +1,17 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SelectPartyMember
+@ r0 = which cursor, 0 or 1. Reads the selection byte at state+0x1C + r0 and
+@ records the roster count at state+0x1E + r0. A selection of -1 resets to
+@ member 0 without moving anything; otherwise the cursor glides to
+@ (index * 24 - 10, 0x10) through Func_a1ac0 -- 24 pixels is the party-strip
+@ pitch.
+@
+@ It then resolves that member with _Func_77394, compacts their inventory into
+@ state+0x1C8 with Func_a3ddc, stores the count at state+0x218, and hands both
+@ to Func_a35f8 to redraw. Finishes by rewinding the cursor sprite at
+@ state+0x14 + r0*4, so the two cursors animate independently.
 .thumb_func_start Func_80a355c  @ 0x080a355c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -73,6 +84,12 @@
 	bx	r1
 .func_end Func_80a355c
 
+@ DrawMemberAbilityList
+@ r0 = roster array, r1 = compacted list. Redraws the whole left-hand panel for
+@ the member selected at state+0x1C: opens the detail window at (0xD, 3, 0x11,
+@ 0xA), resolves the character, sorts their abilities with Func_a1e38, creates
+@ the sprites with Func_a33d4 and draws each row. Empty lists take the
+@ .gcc2_compiled. path instead. 327 lines; traced structurally.
 .thumb_func_start Func_80a35f8  @ 0x080a35f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

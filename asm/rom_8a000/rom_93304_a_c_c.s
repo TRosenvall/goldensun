@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ ChaseTargetHook
+@ r0=entity. Per-frame hook for an entity chasing the target held at +0x68.
+@ Computes the delta to the target, and once it closes to within the threshold
+@ switches behaviour -- the usual approach-then-stop pattern. A null target is a
+@ no-op.
 .thumb_func_start Func_809397c  @ 0x0809397c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -73,6 +78,10 @@
 	bx	r1
 .func_end Func_809397c
 
+@ FaceTargetHook
+@ r0=entity. Per-frame hook that keeps the entity looking at the target at
+@ +0x68: clears bit 0 of +0x5A so the mover does not also turn it toward its
+@ heading, then sets the facing angle from the atan2 of the delta.
 .thumb_func_start Func_8093a14  @ 0x08093a14
 	push	{r5, lr}
 	mov	r5, r0
@@ -119,6 +128,12 @@
 	bx	r1
 .func_end Func_8093a14
 
+@ SetEntityBehaviour
+@ r0=entity, r1=behaviour id 1..7. Installs one of seven canned behaviours by
+@ jumping through the table at .L93a80 -- each arm points the entity at a
+@ different script or hook (follow, chase, face, wander, and so on). Ids outside
+@ 1..7 fall through and leave the entity unchanged.
+@ This is the common entry point the slot helpers in rom_91584.s call.
 .thumb_func_start Actor_SetBehavior  @ 0x08093a6c
 	push	{r5, lr}
 	sub	r3, r1, #1
@@ -173,6 +188,10 @@
 	bx	r0
 .func_end Actor_SetBehavior
 
+@ ScanNearbyEntities
+@ Walks the 0x40 entities at [iwram_1e64] looking for ones within 0x28 units of
+@ the reference position, collecting matches for the caller. The
+@ ~130-instruction body is characterised structurally.
 .thumb_func_start Func_8093af8  @ 0x08093af8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -302,6 +321,11 @@
 	bx	r1
 .func_end Func_8093af8
 
+@ AdvanceDialogue
+@ Takes no arguments. The handler behind message control codes 0xF9 and 0xFE
+@ (see Func_8d8f0): resolves the player entity from ewram_240+0x1F4 and steps
+@ the conversation to its next line, closing the current box and opening the
+@ following one.
 .thumb_func_start Func_8093c00  @ 0x08093c00
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -554,6 +578,10 @@
 	bx	r1
 .func_end Func_8093c00
 
+@ DialogueChoiceA
+@ Takes no arguments. The first branch of the 0xFD two-way prompt -- taken when
+@ A is pressed. Reads the player entity from ewram_240+0x1F4 and follows the
+@ affirmative path of the conversation.
 .thumb_func_start Func_8093e28  @ 0x08093e28
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -726,6 +754,10 @@
 	bx	r1
 .func_end Func_8093e28
 
+@ DialogueChoiceB
+@ Takes no arguments. The second branch of the 0xFD prompt -- taken when B is
+@ pressed. Unlike Func_93e28 it consults the save block at ewram_434 as well,
+@ so the decline path can depend on stored progress.
 .thumb_func_start Func_8093fa0  @ 0x08093fa0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -926,6 +958,9 @@
 	bx	r1
 .func_end Func_8093fa0
 
+@ IsSlotWithinCameraView
+@ r0=slot, r1=margin. Returns 0 when the slot entity lies inside the current
+@ camera view expanded by r1, and -1 when it does not or the slot is empty.
 .thumb_func_start Func_8094154  @ 0x08094154
 	push	{r5, r6, lr}
 	mov	r5, r1

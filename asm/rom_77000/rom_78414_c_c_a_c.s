@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ FindInventorySlotInParty
+@ r0.. = parameters. Runs Func_78664 across the active party, returning both the
+@ member and the slot.
 .thumb_func_start CheckPartyItem  @ 0x08078698
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -59,6 +62,10 @@
 	bx	r1
 .func_end CheckPartyItem
 
+@ AddInventoryItem
+@ r0 = combatant id, r1 = item id. Places the item in a free slot, bumping the
+@ quantity field if it is already held, then rebuilds the character summary with
+@ CalcStats and the equipment state with Func_78bf0.
 .thumb_func_start EquipItem  @ 0x08078708
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -169,6 +176,9 @@
 	bx	r1
 .func_end EquipItem
 
+@ RemoveInventoryItem
+@ r0 = combatant id, r1 = slot. Clears the slot and compacts the remainder, so
+@ Func_784d8's stop-at-first-empty scan stays correct.
 .thumb_func_start GetEquippedItem  @ 0x080787dc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -214,6 +224,8 @@
 	bx	r1
 .func_end GetEquippedItem
 
+@ GetItemCategory
+@ r0 = item id. Returns the category byte from the ability/item record.
 .thumb_func_start Func_807882c  @ 0x0807882c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -252,6 +264,8 @@
 	bx	r1
 .func_end Func_807882c
 
+@ GetItemProperty
+@ r0 = item id, r1 = which. Returns one of the record's property fields.
 .thumb_func_start Func_8078870  @ 0x08078870
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -296,6 +310,11 @@
 	bx	r1
 .func_end Func_8078870
 
+@ ConsumeInventoryItem
+@ r0 = combatant id, r1 = slot. Decrements the quantity field by 0x800 -- one
+@ unit -- and clears the slot entirely when the count reaches zero. Returns 1 on
+@ success, -1 when the slot was already empty. Rebuilds the summary with
+@ CalcStats.
 .thumb_func_start Func_80788c4  @ 0x080788c4
 	push	{r5, r6, r7, lr}
 	mov	r5, r1
@@ -370,6 +389,9 @@
 	bx	r1
 .func_end Func_80788c4
 
+@ ConsumeAndNotify
+@ r0 = combatant id, r1 = slot. Func_788c4 then Func_78ad0 and _Func_91858 so
+@ the field layer learns the item was used.
 .thumb_func_start Func_8078948  @ 0x08078948
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -397,6 +419,8 @@
 	bx	r1
 .func_end Func_8078948
 
+@ SwapInventorySlots
+@ r0 = combatant id, r1, r2 = slots. Exchanges two inventory halfwords.
 .thumb_func_start CanRemoveItem  @ 0x08078980
 	push	{r5, r6, r7, lr}
 	mov	r5, r1

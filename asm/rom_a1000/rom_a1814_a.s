@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ BuildPartyHeader
+@ r0 = state block. Opens the party header window at (0, 0, 0xD, 5) into
+@ state+0x10, attaches the menu cursor sprite through .gcc2_compiled.(-8, 0xB) and
+@ stores it at state+0x14, starting it hidden (+0x05 = 0x0D). Also seeds
+@ +0x1C = 0xFF and +0x1D = 0 -- no row and no column selected yet -- and sets
+@ the cursor's +0x0F to 0xFE and the sprite at state+0x18's to 0xFF, which is
+@ the OBJ sort order that keeps the cursor over the portraits.
 .thumb_func_start Func_80a1814  @ 0x080a1814
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -48,6 +55,24 @@
 	bx	r1
 .func_end Func_80a1814
 
+@ SpawnPartyActors
+@ r0 = window, r1 = x offset, r2 = y offset, r3 = spacing.
+@ Creates one animated actor per party member and lays them out along the top
+@ of the screen. For each roster id from _Func_796c4 it remaps the resource
+@ through _Func_8b398 (which is what makes the sprites follow story progress),
+@ creates the actor with _Func_bc70, and files it in three parallel arrays:
+@
+@     state+0x114 + i*4   the actor pointer
+@     state+0x134 + i*2   its x, from the window's tile column * 8 plus
+@                         i * (spacing + 0x10)
+@     state+0x144 + i*2   its y, from the window's tile row * 8 plus 0x10
+@
+@ It then sets +0x40 to 0x10000 (unit scale), clears bits 0 and 2 of the
+@ actor's +0x09, zeroes +0x26 and starts animation 1 with _Func_ba30. Slots
+@ past the party size are zeroed out to 8. Finally it registers Func_a19a0 at
+@ sort key 0xC80 so the actors get drawn every frame.
+@
+@ The roster count also goes to state+0x1E.
 .thumb_func_start Func_80a1870  @ 0x080a1870
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -165,6 +190,10 @@
 	bx	r0
 .func_end Func_80a1870
 
+@ DestroyPartyActors
+@ Takes no arguments. Walks the same state+0x114 array for as many entries as
+@ _Func_796c4 reports, destroying each with _Func_bdd4, then unregisters
+@ Func_a19a0. Null slots are skipped, so calling it twice is safe.
 .thumb_func_start Func_80a195c  @ 0x080a195c
 	push	{r5, r6, lr}
 	sub	sp, #0x1c
@@ -198,6 +227,13 @@
 	bx	r0
 .func_end Func_80a195c
 
+@ DrawPartyActors
+@ The per-frame task Func_a1870 registers. For each of the _Func_795fc party
+@ members it builds a 16.16 position from the halfwords at state+0x134 and
+@ +0x144 -- y is inverted as 0x1E20000 minus the stored value, which is the
+@ screen-to-world flip this engine uses everywhere -- clears bits 0 and 2 of
+@ the actor's +0x09, and submits the sprite with _Func_b168 at scale
+@ [actor+0x40].
 .thumb_func_start Func_80a19a0  @ 0x080a19a0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -280,6 +316,15 @@
 	bx	r0
 .func_end Func_80a19a0
 
+@ PlaceCursor
+@ r0 = x offset in pixels, r1 = y offset. Positions the cursor sprite at
+@ state+0x14 inside the window at state+0x10: the window's tile column and row
+@ (+0x0C and +0x0E) are scaled by 8, the caller's offset added, and 8 more for
+@ the border. A small per-axis wobble comes from the byte tables .Laf294 and
+@ .Laf29d indexed by (iwram_1e40 >> 1) & 7 -- iwram_1e40 is the free-running
+@ frame counter, so the cursor bobs on an eight-frame cycle.
+@ The x also goes into the low 9 bits of +0x16, which is the OBJ attribute the
+@ hardware reads.
 .thumb_func_start Func_80a1a40  @ 0x080a1a40
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001f2c
@@ -340,6 +385,16 @@
 	bx	r0
 .func_end Func_80a1a40
 
+@ GlideCursorTo
+@ r0 = target x, r1 = target y, both in the same offsets Func_a1a40 uses.
+@ Moves the cursor there over two frames rather than snapping: the per-frame
+@ step is (target*16 - current*16 + 1) / 2 in 1/16-pixel units, applied twice
+@ with a WaitFrames(1) between. The 0x40 biases and the 0x38 subtraction cancel
+@ out; they exist so the intermediate arithmetic stays positive.
+@
+@ When state+0x222 is non-zero it clears that flag and returns immediately --
+@ that is the "snap, do not glide" request a screen raises when it has just
+@ redrawn everything and an animation would look wrong.
 .thumb_func_start Func_80a1ac0  @ 0x080a1ac0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ ShowStoredDescription
+@ r0 = which stored id. Opens the description window into state+0x30 at
+@ (0, 0, 0xD, 0xA), syncs the palette with Func_a22f4, and when the halfword at
+@ state+0x178 + r0*2 is non-zero renders it with Func_a4924. Always returns 1.
 .thumb_func_start Func_80a47b4  @ 0x080a47b4
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001f2c
@@ -36,6 +40,18 @@
 	bx	r1
 .func_end Func_80a47b4
 
+@ RunDescriptionViewer
+@ r0 = ability or item id. Opens a full-width 30x10 window over the top of the
+@ screen, drops Func_a19a0 off the task list while it is up, and loops until A
+@ (exit with the counter) or B (exit with -1). Up and Down step a counter that
+@ Func_b1c wraps modulo 5.
+@
+@ The counter never reaches Func_a4924 -- the redraw passes the same id every
+@ time -- so the five positions are indistinguishable on screen and only the
+@ final value reaches the caller. Left as found; it looks like a page selector
+@ that was never wired up.
+@
+@ Also exits when save bit 0x150 goes up, which is .gcc2_compiled.'s Start handler.
 .thumb_func_start Func_80a4800  @ 0x080a4800
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -168,6 +184,31 @@
 	bx	r1
 .func_end Func_80a4800
 
+@ DrawAbilityDescription
+@ r0 = window, r1 = ability id (low 9 bits) with flags in the upper bits.
+@ Renders the effect text for an item or Psynergy, one line per clause, with r5
+@ tracking the line number so lines pack from the top. Reads the ability record
+@ from _Func_78414:
+@
+@     +0x02  non-zero means it has effects at all
+@     +0x03  bit 2 -> string 0xB69, bit 3 -> 0xB6A, bit 4 -> 0xB6F plus a
+@            quantity derived from bits 11.. of the caller's flags, and the
+@            low bit gates string 0xB76
+@     +0x08  signed halfword, drawn under label 0xAF7
+@     +0x0A  signed byte, drawn under label 0xAF8
+@     +0x0C  the target kind: 3 adds string 0xB65, 1 adds 0xB63, 2 adds the
+@            pair 0xB73/0xB74 or 0xB71/0xB72 depending on bit 10 of the flags,
+@            and 0 or 4 add nothing
+@     +0x18 + i*4, i < 4   the four effect slots: byte 0 the kind, byte 1 the
+@            signed magnitude
+@
+@ The effect kinds dispatch 0..0x1B into four shapes -- 1..6 and 0x1A print
+@ string 0xB3B + kind then the magnitude; 7..0x0E add a separator glyph and
+@ split the magnitude into tens and units; 0x0F..0x16 clip to a sub-rectangle
+@ with _Func_19000 first, the column being ((kind - 0x0F) & 3) + 1; 0x17, 0x19
+@ and 0x1B print the label alone. Kind 0 ends the list.
+@
+@ When nothing at all was printed it falls back to string 0xB6C.
 .thumb_func_start Func_80a4924  @ 0x080a4924
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -696,6 +737,12 @@
 	bx	r0
 .func_end Func_80a4924
 
+@ DrawSignedValue
+@ r0 = value, r1 = ?, r2 = window, r3 = right edge x, arg5 = y.
+@ Emits the magnitude with _Func_1ea08 and then places a sign glyph -- .Laf224
+@ for positive, .Laf228 for zero or negative -- to its left, backing off by 8
+@ pixels per digit: one column below 10, two below 100, three above. Used for
+@ every stat delta Func_a4924 prints.
 .thumb_func_start Func_80a4db4  @ 0x080a4db4
 	push	{r5, r6, r7, lr}
 	sub	sp, #4

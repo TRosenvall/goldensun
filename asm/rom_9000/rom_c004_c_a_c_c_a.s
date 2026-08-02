@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SuspendEntityDrawTasks
+@ Takes no arguments. Suspends both draw tasks (Func_c62c and Func_c880) with
+@ Func_42c8, so OAM stops being rewritten and the sprites freeze as they are.
+@ Then _Func_91200(0x10000, 1) and _Func_91254(1) run, one frame is allowed to
+@ pass with WaitFrames(1), and DISPCNT is rewritten to disable BG1/BG2/BG3
+@ (mask 0xF1FF) while forcing OBJ on (bit 12) -- leaving a sprite-only display.
+@ .gcc2_compiled. is the counterpart.
 .thumb_func_start Func_800c5b4  @ 0x0800c5b4
 	push	{lr}
 	ldr	r0, =Func_800c62c

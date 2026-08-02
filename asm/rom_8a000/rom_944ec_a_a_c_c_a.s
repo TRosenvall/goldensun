@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ UpdateWaveMotion
+@ r0=wave state. Steps the wave simulation one frame, propagating the
+@ displacement across its cells.
 .thumb_func_start StartThunder2  @ 0x08095290
 	push	{r5, r6, lr}
 	mov	r6, r10

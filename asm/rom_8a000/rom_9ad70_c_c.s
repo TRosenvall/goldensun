@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ AdvanceEffectCounters
+@ r0=entity. Steps the two counters at +0x64 and +0x66 that the ability hooks
+@ use as their phase, wrapping each at its limit.
 .thumb_func_start Func_809b5dc  @ 0x0809b5dc
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -51,6 +54,9 @@
 	bx	r0
 .func_end Func_809b5dc
 
+@ ClearAbilityState
+@ Takes no arguments. Zeroes the field-ability scratch words at ewram_240+0x244
+@ and +0x248, resetting the system between casts.
 .thumb_func_start Func_809b648  @ 0x0809b648
 	push	{lr}
 	ldr	r1, =gState

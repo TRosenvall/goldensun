@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ DrawStatusActors
+@ The per-frame task Func_ad274 registers. For each of the four actors it builds
+@ a 16.16 position from state+0x234 (x) and state+0x244 (y), inverting y as
+@ 0x1E20000 minus the stored value exactly as Func_a19a0 does, clears bits 0 and
+@ 2 of the actor's +0x09 and submits through _Func_b168 at scale 0x10000.
 .thumb_func_start Func_80ad35c  @ 0x080ad35c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -89,6 +94,11 @@
 	bx	r0
 .func_end Func_80ad35c
 
+@ DrawDjinnActors
+@ The per-frame task Func_ad508 registers. The Func_ad35c of the Djinn screen:
+@ same four actors, but the position comes through _Func_219c8 and Func_af0
+@ so the sprites sit on the grid rather than at fixed offsets. 120 lines;
+@ traced structurally.
 .thumb_func_start Func_80ad40c  @ 0x080ad40c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -216,6 +226,10 @@
 	bx	r0
 .func_end Func_80ad40c
 
+@ SpawnDjinnActors
+@ r0 = window, r1 = unused. As Func_ad274 but for the Djinn screen: same four
+@ resources from .Laf304 and animation 2, scale 0x10000 written to +0x20 of each
+@ slot, x 0x10 and y 0xC8, and Func_ad40c registered instead of Func_ad35c.
 .thumb_func_start Func_80ad508  @ 0x080ad508
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -304,6 +318,10 @@
 	bx	r0
 .func_end Func_80ad508
 
+@ SetActorPosition
+@ r0 = slot 0..3, r1 = x, r2 = y, r3 = non-zero to flag it.
+@ Writes x to state+0x234 + slot*2 and y to state+0x23C + slot*2, adding 0x8000
+@ to the y when r3 is set. Does nothing when the slot holds no actor.
 .thumb_func_start Func_80ad5b4  @ 0x080ad5b4
 	push	{r5, r6, lr}
 	mov	r5, r3
@@ -340,6 +358,8 @@
 	.word	0xffff8000
 .func_end Func_80ad5b4
 
+@ SetActorScale
+@ r0 = slot, r1 = value. Stores the word at state+0x244 + slot*4. No null check.
 .thumb_func_start Func_80ad5f4  @ 0x080ad5f4
 	ldr	r3, =iwram_3001f2c
 	mov	r2, #0x91
@@ -351,6 +371,10 @@
 	bx	lr
 .func_end Func_80ad5f4
 
+@ ReplaceActor
+@ r0 = slot, r1 = resource index into .Laf304, r2 = animation. Destroys whatever
+@ is in the slot, creates a new actor and starts it on the given animation.
+@ Returns 1 even when creation failed -- the slot is then null.
 .thumb_func_start Func_80ad608  @ 0x080ad608
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

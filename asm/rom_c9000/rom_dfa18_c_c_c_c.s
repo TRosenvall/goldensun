@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Playdfa48Impl
+@ r0=action descriptor, r1=variant. The shared implementation behind the
+@ 4 thin wrappers in this file, which exist so the animation table can hold
+@ one address per variant:
+@     0=Func_dfa18 1=Func_dfa24 2=Func_dfa30 3=Func_dfa3c
+@ Works from the battle state at [iwram_1eec]; the variant selects timing,
+@ colours and which arm of the sequence runs. Body characterised
+@ structurally -- see the wrappers for the variant numbering.
 .thumb_func_start BaseAnim_Tackle  @ 0x080dfa48
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -404,6 +412,10 @@
 	bx	r0
 .func_end BaseAnim_Tackle
 
+@ Sub_dfddc
+@ Battle animation routine, 39 instructions.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_80dfddc  @ 0x080dfddc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -450,6 +462,13 @@
 	bx	r0
 .func_end Func_80dfddc
 
+@ Sub_dfe2c
+@ Battle animation routine, 413 instructions.
+@ State: iwram_1eec, ewram_10000.
+@ Calls out to: _Func_b8228, _Func_bd7dc, _Func_f9080.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_Mercury  @ 0x080dfe2c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -882,6 +901,14 @@
 	bx	r0
 .func_end Anim_Mercury
 
+@ Sub_e01e4
+@ Battle animation routine, 348 instructions.
+@ State: iwram_1eec, ewram_10000.
+@ Calls out to: _Func_b8228, _Func_bd7dc, _Func_f9080.
+@ Touches: REG_BLDALPHA.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Anim_Jupiter  @ 0x080e01e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

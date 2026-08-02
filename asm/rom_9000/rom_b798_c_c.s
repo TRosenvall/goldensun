@@ -1,6 +1,16 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ InitSpriteSystem
+@ r0=allocation mode; 3 uses the galloc_ewram allocator, anything else galloc_iwram.
+@ Brings up the actor/part subsystem:
+@   - allocates the actor pool (0xE00 bytes, tag 4) and the part pool
+@     (0x600 bytes, tag 3), then zero-fills both by DMA3 (0x380 and 0x180 words)
+@   - LoadSpritePalette initialises the dependent tables
+@   - UploadSpriteGFX(0x5D, 0x80, .L12f20) reserves the shared OBJ tile range
+@   - allocates 0x7C bytes (tag 0x35) and DMA-copies Func_a418 (the linear
+@     bitmap -> 8x8 tile converter, rom_92b8.s) into it so the hot conversion
+@     path runs from RAM rather than ROM
 .thumb_func_start InitSprites  @ 0x0800bb20
 	push	{r5, r6, r7, lr}
 	sub	sp, #4
@@ -67,6 +77,14 @@
 	bx	r0
 .func_end InitSprites
 
+@ AllocPart
+@ r0=resource id. Claims the first free entry in the part pool at [iwram_1e5c]
+@ (stride 0x18, up to 0x40 entries; free means the kind byte at +0x04 is 0) and
+@ initialises it from the resource header: +0x00 = id, +0x08 = pixel data
+@ (header+0x0C, or Func_b798 when null), +0x0C = animation table, +0x07 =
+@ header[0x0A], +0x04 = header[4], +0x05 = 0, +0x10 = first animation script,
+@ +0x14 = 0, +0x16 = 0xFF. Returns the part, or 0 when the pool is full or the
+@ resource header is empty.
 .thumb_func_start CreateSpriteLayer  @ 0x0800bbc0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -142,6 +160,10 @@
 	bx	r1
 .func_end CreateSpriteLayer
 
+@ FreePart
+@ r0=part. Returns the part to the pool by DMA3 zero-filling its 0x18 bytes
+@ (6 words, fixed source) -- clearing +0x04 is what marks the slot free for
+@ CreateSpriteLayer. No-op on a null pointer.
 .thumb_func_start DeleteSpriteLayer  @ 0x0800bc48
 	push	{lr}
 	mov	r1, r0
@@ -161,6 +183,23 @@
 	bx	r0
 .func_end DeleteSpriteLayer
 
+@ CreateActor
+@ r0=resource id. Allocates and initialises a new actor, returning it (0 on
+@ failure). Steps:
+@   - fetch the resource header; AllocSpriteSlot derives the tile-allocation size code
+@     (0x60 means "too large", which aborts)
+@   - claim the first free entry in the actor pool at [iwram_1e60] (stride 0x38,
+@     up to 0x40 entries; free means +0x20 is 0)
+@   - UploadSpriteGFX reserves OBJ tiles; the size code is kept at +0x1C, +0x1E is
+@     cleared and the visible flag at +0x26 is set
+@   - map the sprite's (header[0] << 8 | header[1]) pixel dimensions onto the
+@     OAM shape/size bits via the comparison chain at .Lbd12..: 0x0808, 0x0810,
+@     0x1008, 0x1010, 0x1020, 0x2020, 0x2040, 0x4020, 0x4040. An unrecognised
+@     pair falls through to 0 (8x8).
+@   - write the OAM attribute template into +0x00..+0x14: attr0 = 0,
+@     attr1 = shape/size | 0x2000, attr2 = tile | 0x800, then the priority word
+@     0x6000 and a palette field taken from iwram_1b10[0xBB] >> 5
+@   - Sprite_AddLayer attaches the first part for the same resource id
 .thumb_func_start CreateSprite  @ 0x0800bc70
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -328,6 +367,11 @@
 	bx	r1
 .func_end CreateSprite
 
+@ DestroyActor
+@ r0=actor. Releases the actor's OBJ tile allocation with Func_3f3c (skipped
+@ when bit 0 of +0x1D marks the tiles as externally owned), frees all four part
+@ slots with DeleteSpriteLayer, then DMA3 zero-fills the actor's 0x38 bytes (0xE words)
+@ to return it to the pool. No-op on a null pointer.
 .thumb_func_start DeleteSprite  @ 0x0800bdd4
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
@@ -366,6 +410,15 @@
 	bx	r0
 .func_end DeleteSprite
 
+@ GetAnimationDuration
+@ r0=resource id, r1=animation index, r2=frame count. Returns the summed
+@ duration of the first r2 frames of that animation, or 0 if the index is
+@ beyond the resource's animation count (header[5]).
+@ Walks the animation script as (opcode, operand) byte pairs. Opcodes 0xEF,
+@ 0xF1, 0xFD and 0xFE terminate the walk early. 0xF5, 0xFF and any opcode
+@ <= 0xEE count as a displayed frame: the operand is added to the running total
+@ and the remaining-frame counter decrements. Other opcodes are skipped without
+@ consuming a frame.
 .thumb_func_start Func_800be20  @ 0x0800be20
 	push	{r5, r6, r7, lr}
 	mov	r6, r1

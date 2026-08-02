@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunPromptWithScratch
+@ r0.. = parameters. As .gcc2_compiled. with a Func_4970 scratch allocation released
+@ by free.
 .thumb_func_start Func_801faa8  @ 0x0801faa8
 	push	{r5, r6, r7, lr}
 	mov	r0, #0x80

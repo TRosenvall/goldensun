@@ -1,6 +1,21 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunDjinnScreen -- MENU INDEX 2
+@ Takes no arguments. The Djinn screen. On top of the standard scaffold it:
+@
+@   * saves ewram_240+0x20C, forces it to 2 for the duration and restores it
+@   * takes a 0x2130-byte scratch at state+0x184 -- 0x2000 of tiles plus 0x80 of
+@     palette plus working space -- and blits it to 0x6004000 and 0x5000080 on
+@     the way out, which is how the screen paints a full background and puts the
+@     field back
+@   * picks a background variant from the story flags: save bit 0x16E gates the
+@     whole thing, then 0x16F and 0x171 select 1, 0x0E, 0x1B or 0x1C
+@   * spawns the four element actors through Func_ad508 and tears them down with
+@     .gcc2_compiled.
+@
+@ Func_aa768 is the state machine. Returns 1; rom_15000's Func_1c244 leaves the
+@ menu on any non-zero answer.
 .thumb_func_start Func_80aa56c  @ 0x080aa56c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -205,6 +220,13 @@
 	bx	r1
 .func_end Func_80aa56c
 
+@ RunDjinnStates
+@ Takes no arguments. The Djinn screen's state machine: pick a member, pick a
+@ djinn, set or remove it, and transfer between members. It reads and writes the
+@ combatant status arrays directly -- _Func_7a2e4 adds an entry, _Func_7a350
+@ removes one, _Func_7a3a8, _Func_7a458 and _Func_7a498 query them -- and
+@ recomputes with _Func_77428 after every change. State+0x255..0x257 hold the
+@ pending move. 634 lines; traced structurally.
 .thumb_func_start Func_80aa768  @ 0x080aa768
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -846,6 +868,14 @@
 	bx	r1
 .func_end Func_80aa768
 
+@ BrightenPaletteBank
+@ r0 = signed delta. Reads a 16-colour bank out of palette RAM, adds the delta
+@ to each of red, green and blue with clamping at 0 and 31, and writes the
+@ result 0x20 bytes LOWER -- so bank 15 becomes bank 14. It runs three passes:
+@ the first uses the caller's delta on the bank at offset 0x1E0, and the second
+@ and third both use -12 on the bank at 0x0E0.
+@
+@ The last two passes are identical, so the third has no effect.
 .thumb_func_start Func_80aac84  @ 0x080aac84
 	push	{r5, r6, r7, lr}
 	mov	r1, #0
@@ -926,6 +956,14 @@
 	bx	r0
 .func_end Func_80aac84
 
+@ PaintDjinnBackground
+@ Takes no arguments. Sets the Djinn screen's whole display up. Opens the body
+@ window at (0, 5, 0x1E, 0xF), copies 0x2000 bytes of tiles and 0x80 of palette
+@ out of the state+0x184 scratch into VRAM, fills the char block with
+@ 0x33333333 and the palette with 0x55555555, lays out the grid with
+@ _Func_21a18, blits Data_af26c over 0x60052C0, pulls the string table in with
+@ Func_45e8 and DMA3s two more palette blocks. Func_aac84(8) brightens the
+@ result and Func_aafb8 draws the contents.
 .thumb_func_start Func_80aad10  @ 0x080aad10
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -1011,6 +1049,9 @@
 	bx	r1
 .func_end Func_80aad10
 
+@ ComputeDjinnLayout
+@ r0.. = parameters. Pure arithmetic over the 0x3FFF / 0x4000 id space, no
+@ calls out. 173 lines; traced structurally.
 .thumb_func_start Func_80aae14  @ 0x080aae14
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1191,6 +1232,10 @@
 	bx	r1
 .func_end Func_80aae14
 
+@ CountPartyDjinn
+@ r0 = destination, stride 0x14. For each roster member, Func_ac8fc with a
+@ target of -1 collects their whole djinn list into the record at r0 + i*0x14
+@ and the count goes to r0 + 0xA0 + i.
 .thumb_func_start Func_80aaf58  @ 0x080aaf58
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1238,6 +1283,12 @@
 	bx	r1
 .func_end Func_80aaf58
 
+@ DrawDjinnGrid
+@ r0 = state. Draws the Djinn grid: clears with _Func_1e41c, plots the frame
+@ with _Func_19000, collects the lists with Func_ac8fc, reads the status arrays
+@ through _Func_7a1f8 and _Func_7a2bc, and prints from the 0x45F block and
+@ string 0xBAD. Sets the tilemap dirty byte at [iwram_1e8c]+0xEA3 and clears the
+@ suppress byte at +0xEA6. 270 lines; traced structurally.
 .thumb_func_start Func_80aafb8  @ 0x080aafb8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1515,6 +1566,10 @@
 	bx	r0
 .func_end Func_80aafb8
 
+@ ComputePriceInWindow
+@ r0 = window, r1 = x, r2 = y, r3.., arg5, arg6. Adds the window's own +0x0C
+@ column and +0x0E row (plus one for the border) to the coordinates and calls
+@ rom_15000's _Func_22768. A window-relative wrapper, nothing more.
 .thumb_func_start Func_80ab1f4  @ 0x080ab1f4
 	push	{r5, r6, lr}
 	mov	r4, r0
@@ -1537,6 +1592,10 @@
 	bx	r1
 .func_end Func_80ab1f4
 
+@ FillTilemapRect
+@ r0 = absolute column, r1 = absolute row, r2, r3, arg5 = the fill. Writes
+@ straight into the tilemap at [iwram_1e8c] and raises the dirty byte at
+@ +0xEA3. No calls out; 103 lines, traced structurally.
 .thumb_func_start Func_80ab21c  @ 0x080ab21c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
