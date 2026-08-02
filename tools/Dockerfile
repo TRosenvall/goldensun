@@ -31,15 +31,25 @@ RUN git clone --depth 1 "$CAMELOT_GCC_URL" /opt/camelot-gcc \
     && cd /opt/camelot-gcc \
     && ./build.sh gcc296
 
+# The stock m4a ("Sappy") audio engine in rom_f9000 is NOT Camelot's code -- it
+# is the prebuilt library every GBA licensee linked, compiled with old_agbcc.
+# It does not match under gcc-2.96, so the image carries old_agbcc too.
+#
+# The copies vendored in the repo at tools/agbcc/ are macOS binaries and cannot
+# run here; this builds a Linux one.
+RUN cd /opt/camelot-gcc && ./build.sh agbcc
+
 # install.sh expects a decomp checkout to drop binaries into. We keep them in
 # the image instead, so the mounted repo stays clean and a rebuild of the image
 # cannot leave stale binaries behind in your working tree.
-RUN mkdir -p /opt/gcc296 \
+RUN mkdir -p /opt/gcc296 /opt/agbcc/bin \
     && cp /opt/camelot-gcc/build-296/gcc/cc1 \
           /opt/camelot-gcc/build-296/gcc/xgcc \
           /opt/camelot-gcc/build-296/gcc/cpp \
           /opt/camelot-gcc/build-296/gcc/tradcpp \
           /opt/gcc296/ \
+    && cp /opt/camelot-gcc/agbcc/gcc/old_agbcc /opt/agbcc/bin/ \
+    && cp -r /opt/camelot-gcc/agbcc/include /opt/agbcc/ \
     && rm -rf /opt/camelot-gcc/build-296
 
 # The Makefile finds the compiler here. Override with `make GCC296_DIR=...` if
