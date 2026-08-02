@@ -9,6 +9,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | Batch | Functions | Status |
 |---|---|---|
 | [batch-01](reports/batch-01.md) | 12 | ready to port |
+| [batch-02](reports/batch-02.md) | 7 | ready to port |
 
 Every batch is verified the same way, from a clean build:
 
