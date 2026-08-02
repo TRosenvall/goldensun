@@ -32,6 +32,13 @@
 	.ssize	\sym
 	.endm
 
+	.macro .func_end_emit_size sym:req, sizesym:req
+		.func_end \sym
+		\sym\()_End:
+		.global \sizesym
+		\sizesym = \sym\()_End - \sym
+	.endm
+
 	.macro .incrom start, end
 	.incbin "baserom.gba", \start, \end - \start
 	.endm
@@ -58,4 +65,21 @@
 	.align	2, 0
 	mov	r12, pc
 	bx	\reg
+	.endm
+
+    .macro .ft_include path:req, padding:vararg
+        .section .rodata.mft
+        .word file_\@
+        .section .rodata.mftdata
+    .align 2, 0
+    file_\@:
+        .incbin "\path"
+        .ifnb \padding
+            .byte \padding
+        .endif
+    .endm
+
+	.macro .ft_ref sym:req
+		.section .rodata.mft
+		.word \sym
 	.endm

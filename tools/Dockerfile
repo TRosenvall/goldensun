@@ -49,7 +49,9 @@ RUN mkdir -p /opt/gcc296 /opt/agbcc/bin \
           /opt/camelot-gcc/build-296/gcc/tradcpp \
           /opt/gcc296/ \
     && cp /opt/camelot-gcc/agbcc/gcc/old_agbcc /opt/agbcc/bin/ \
-    && cp -r /opt/camelot-gcc/agbcc/include /opt/agbcc/ \
+    && mkdir -p /opt/agbcc/include \
+    && cp -R /opt/camelot-gcc/agbcc/libc/include/. /opt/agbcc/include/ \
+    && cp -R /opt/camelot-gcc/agbcc/ginclude/.     /opt/agbcc/include/ \
     && rm -rf /opt/camelot-gcc/build-296
 
 # The Makefile finds the compiler here. Override with `make GCC296_DIR=...` if
