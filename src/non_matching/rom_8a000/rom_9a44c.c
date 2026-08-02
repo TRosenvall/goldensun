@@ -11,12 +11,12 @@
  * local at all. All three hoist it identically.
  *
  * Worth noting what this function establishes: +0x30 and +0x34 are added to
- * the ROTATIONS at +0x18 and +0x1C, not to the position. entity.h flags those
+ * the ROTATIONS at +0x18 and +0x1C, not to the position. actor.h flags those
  * two fields as read two ways in the annotations -- as movement tuning and as
  * a scale pair -- and this is a third reading. They are named maxSpeed/accel
  * there; here they are plainly angular velocity.
  */
-#include "entity.h"
+#include "actor.h"
 
 struct DrawActor {
     u8 pad_00[0x1e];
@@ -26,12 +26,12 @@ struct DrawActor {
 /* Per-frame hook that integrates stored velocities: a straight-line move that
  * bypasses the seek logic entirely.
  */
-void Func_809a44c(Entity *entity)
+void Func_809a44c(Actor *actor)
 {
-    entity->x += entity->velX;
-    entity->y += entity->velY;
-    entity->z += entity->velZ;
-    entity->rotX += entity->maxSpeed;
-    entity->rotY += entity->accel;
-    ((struct DrawActor *)entity->actor)->angle += entity->goalFacing;
+    actor->pos.x += actor->velX;
+    actor->pos.y += actor->velY;
+    actor->pos.z += actor->velZ;
+    actor->rotX += actor->speed;
+    actor->rotY += actor->accel;
+    ((struct DrawActor *)actor->sprite)->angle += actor->goalFacing;
 }

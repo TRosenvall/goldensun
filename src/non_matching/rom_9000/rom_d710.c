@@ -17,9 +17,9 @@
  * Both halves are individually solvable; getting them at the same time is
  * what is open.
  */
-#include "entity.h"
+#include "actor.h"
 
-extern u16 Actor_FindScriptMarker(Entity *entity, void *label);
+extern u16 Actor_FindScriptMarker(Actor *actor, void *label);
 
 /* Two operands: an iteration count and a target label.
  *
@@ -28,22 +28,22 @@ extern u16 Actor_FindScriptMarker(Entity *entity, void *label);
  * jumps back to the label, otherwise the counter resets and the cursor steps
  * past all three words. Always returns 1.
  */
-s32 ActorCmd_Loop(Entity *entity)
+s32 ActorCmd_Loop(Actor *actor)
 {
-    s32 *operand = (s32 *)((u8 *)entity->script + (s16)entity->scriptCursor * 4 + 4);
+    s32 *operand = (s32 *)((u8 *)actor->script + (s16)actor->scriptPos * 4 + 4);
     u32 count = *operand++;
     void *label = (void *)*operand;
 
     if (count != 0xffff) {
-        u8 *counter = &entity->unk_5a[3];
+        u8 *counter = &actor->scriptLoop;
 
         *counter = *counter + 1;
         if (*counter >= (s16)count) {
             *counter = 0;
-            entity->scriptCursor += 3;
+            actor->scriptPos += 3;
             return 1;
         }
     }
-    entity->scriptCursor = Actor_FindScriptMarker(entity, label);
+    actor->scriptPos = Actor_FindScriptMarker(actor, label);
     return 1;
 }

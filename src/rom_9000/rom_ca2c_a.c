@@ -1,9 +1,9 @@
-/* Entity script VM: the opcode that makes the script jump to a new base.
+/* Actor script VM: the opcode that makes the script jump to a new base.
  *
  * Whole-file conversion of asm/rom_9000/rom_ca2c_a.s -- one function, so the
  * ROM layout is preserved without splitting the translation unit.
  */
-#include "entity.h"
+#include "actor.h"
 
 /* Script opcode handler, dispatched from Data_13624 by Func_a494.
  *
@@ -15,9 +15,9 @@
  * The cursor is read SIGNED here (the ROM's `ldrsh`) even though it is only
  * ever a forward offset in practice.
  */
-s32 ActorCmd_SetScript(Entity *entity)
+s32 ActorCmd_SetScript(Actor *actor)
 {
-    entity->script = (u8 *)entity->script + (s16)entity->scriptCursor * 4 + 4;
-    entity->scriptCursor = 0;
+    actor->script = (u8 *)actor->script + (s16)actor->scriptPos * 4 + 4;
+    actor->scriptPos = 0;
     return 1;
 }

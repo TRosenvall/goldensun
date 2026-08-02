@@ -1,9 +1,9 @@
-/* Entity attribute opcode: collision radius.
+/* Actor attribute opcode: collision radius.
  *
  * Whole-file conversion of asm/rom_9000/rom_e220_a_c.s -- one function, so the
  * ROM layout is preserved without splitting the translation unit.
  */
-#include "entity.h"
+#include "actor.h"
 
 /* One of the attribute opcodes the script VM dispatches on. op selects what to
  * do with the operand:
@@ -18,12 +18,12 @@
  * ROM, not a decompilation artifact -- it is what the `ldrh` / `asr` pair
  * means.
  */
-void ActorAttrOp_width(Entity *entity, s32 op, s32 value)
+void ActorAttrOp_width(Actor *actor, s32 op, s32 value)
 {
     if (op == 0)
-        entity->width = value;
+        actor->width = value;
     else if (op == 1)
-        entity->width += value;
+        actor->width += value;
     else
-        entity->unk_57 = (entity->width == (s16)value);
+        actor->scriptVar = (actor->width == (s16)value);
 }
