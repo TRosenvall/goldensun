@@ -42,6 +42,30 @@ How functions get converted here, and the compiler behaviours that stop them.
 5. **Build.** `tools/tryc.py` is a screen, not a verdict. `make compare` is the
    only authority.
 
+## Working discipline
+
+Three rules learned by breaking them.
+
+**The build result must gate the commit, not run beside it.** Running
+`make` and then `git commit` as separate steps commits whatever happened,
+including a broken link. Chain them, or check the exit code:
+
+    docker run ... sh -c 'make AGBCC_DIR=/opt/agbcc -j8 && make AGBCC_DIR=/opt/agbcc compare' \
+        && git commit ...
+
+**Write commit messages through a quoted heredoc**, never through
+`python3 -c "..."` or any double-quoted shell string. Backticks and `$` in a
+double-quoted string are substituted by the shell, which silently eats
+fragments of the message -- it has mangled three commits here:
+
+    cat > /tmp/m.txt <<'MSGEOF'
+    ...message...
+    MSGEOF
+    git commit -F /tmp/m.txt
+
+**`git checkout` is denied by this project's permission rules** (the pattern
+that blocks branch switching also matches file restores). Use `git restore`.
+
 ## What the screen has to normalise
 
 Three spellings differ between gcc's output and the ROM's disassembly without
