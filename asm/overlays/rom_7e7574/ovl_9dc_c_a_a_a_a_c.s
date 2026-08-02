@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ 168 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, TestSaveBit x3, OvlFunc_common2_304, OvlFunc_common2_28c
+@   OvlFunc_common2_380, OvlFunc_1108, OvlFunc_1918 x2, OvlFunc_18e4
+@   SetSaveBit x2, OvlFunc_18e4, SetSaveBit x2, TestSaveBit
+@ reads save bits 0x106, 0x214; sets 0x214, 0x215.
 .thumb_func_start OvlFunc_959_2009150
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -183,6 +191,12 @@
 	bx	r0
 .func_end OvlFunc_959_2009150
 
+@ 25 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetSlotWalkBehaviour, MoveSlotBy, SetSlotAnimation
+@   FaceEntityInstant, PlayInteractionEffect, OvlFunc_1b24, EndCutscene
 .thumb_func_start OvlFunc_959_20092e0
 	push	{lr}
 	bl	__CutsceneStart

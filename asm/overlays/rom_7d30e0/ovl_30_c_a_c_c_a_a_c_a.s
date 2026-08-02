@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 67 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, SetMapTransition x2, CopyMapRectFull, WaitFrames
+@   CopyMapRectFull, CopyMapRectAttributes x2
 .thumb_func_start OvlFunc_948_2008f40
 	push	{r5, r6, lr}
 	mov	r3, #0xff
@@ -72,6 +78,12 @@
 	bx	r0
 .func_end OvlFunc_948_2008f40
 
+@ 63 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, SetMapTransition x2, CopyMapRectFull, WaitFrames
+@   CopyMapRectFull, CopyMapRectAttributes x2
 .thumb_func_start OvlFunc_948_2008fdc
 	push	{r5, lr}
 	mov	r3, #0x80
@@ -139,6 +151,13 @@
 	bx	r0
 .func_end OvlFunc_948_2008fdc
 
+@ 27 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, TestSaveBit, FindInventorySlotInParty, SetSaveBit
+@   OvlFunc_fdc, FindAndConsumeInParty
+@ reads save bit 0x9c4; sets 0x9c4.
 .thumb_func_start OvlFunc_948_2009070
 	push	{lr}
 	mov	r0, #0
@@ -170,6 +189,12 @@
 	bx	r0
 .func_end OvlFunc_948_2009070
 
+@ 33 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, TestSaveBit, FindInventorySlotInParty, SetSaveBit
+@   OvlFunc_f40, FindAndConsumeInParty
 .thumb_func_start OvlFunc_948_20090b8
 	push	{r5, r6, lr}
 	mov	r6, r0

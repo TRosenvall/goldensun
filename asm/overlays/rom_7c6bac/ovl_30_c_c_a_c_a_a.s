@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Talk: lines 0x1cfd, 0x1cfe, shown.
+@ Which line is chosen by save bit 0x8a6.
+@ Sets save bit 0x8a6.
 .thumb_func_start OvlFunc_942_2008260
 	push	{lr}
 	bl	__CutsceneStart

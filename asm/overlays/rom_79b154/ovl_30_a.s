@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 40 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Atan2
 .thumb_func_start OvlFunc_907_2008030
 	push	{r5, lr}
 	mov	r5, r0
@@ -46,6 +51,9 @@
 	bx	r1
 .func_end OvlFunc_907_2008030
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_907_2008088
 	push	{lr}
 	ldr	r3, =gState
@@ -78,6 +86,9 @@
 	bx	r1
 .func_end OvlFunc_907_2008088
 
+@ Leaf helper, 14 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_907_20080dc
 	push	{lr}
 	ldr	r3, =gState

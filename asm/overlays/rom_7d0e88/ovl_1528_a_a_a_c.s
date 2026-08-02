@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 22 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_758, OvlFunc_8ec, EndCutscene
 .thumb_func_start OvlFunc_947_2009544
 	push	{r5, lr}
 	sub	sp, #0x20
@@ -27,6 +32,11 @@
 	bx	r0
 .func_end OvlFunc_947_2009544
 
+@ 28 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random
 .thumb_func_start OvlFunc_947_2009578
 	push	{r5, r6, lr}
 	ldr	r3, =REG_VCOUNT

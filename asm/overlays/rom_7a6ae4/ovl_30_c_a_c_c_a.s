@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ RevealSlotF
+@ Takes no arguments. Teleports slot 8 to the origin, sets save bit 0x883, then
+@ after a forty-frame beat brings slot 0x0F into view: animation 2, its flag
+@ byte +0x55 cleared, bit 1 set in +0x23, draw priority 2, and a 1x1 attribute
+@ cell repainted from (0, 0) to (0x0E, 0x12).
 .thumb_func_start OvlFunc_920_2008214
 	push	{lr}
 	sub	sp, #8
@@ -45,6 +50,8 @@
 	bx	r0
 .func_end OvlFunc_920_2008214
 
+@ Trigger: slot 0x0F -- palette change through .gcc2_compiled., a forty-frame beat,
+@ sound 0xD2, then animation 6.
 .thumb_func_start OvlFunc_920_2008280
 	push	{lr}
 	bl	__CutsceneStart
@@ -63,6 +70,7 @@
 	bx	r0
 .func_end OvlFunc_920_2008280
 
+@ Trigger: the same sequence on slot 0x10.
 .thumb_func_start OvlFunc_920_20082ac
 	push	{lr}
 	bl	__CutsceneStart
@@ -81,6 +89,7 @@
 	bx	r0
 .func_end OvlFunc_920_20082ac
 
+@ Trigger: the same sequence on slot 0x11.
 .thumb_func_start OvlFunc_920_20082d8
 	push	{lr}
 	bl	__CutsceneStart
@@ -99,6 +108,21 @@
 	bx	r0
 .func_end OvlFunc_920_20082d8
 
+@ CheckPlateePuzzle
+@ Takes no arguments. The puzzle logic, re-run whenever a block moves.
+@
+@ Slots 0x0B and 0x0C are the blocks. Each is tested against the single target
+@ tile (0x23, 0x17) -- both coordinates at whole-tile resolution -- and its own
+@ save bit is set or CLEARED accordingly: 0x303 for slot 0x0B, 0x304 for slot
+@ 0x0C. Clearing on failure is what lets the player undo a wrong move.
+@
+@ The gate then follows the OR of the two: if either bit is set and the gate
+@ bit 0x302 is not, sound 0xD2 plays, slot 0x11 runs animation 6 and two
+@ attribute cells are repainted from column 0 -- the gate opening. If neither
+@ is set and 0x302 IS, sound 0xDC plays, slot 0x11 returns to animation 2 and
+@ the same two cells are repainted from column 1 -- the gate closing again.
+@ 0x302 tracks which state the gate is currently in, so the transition fires
+@ once per change rather than every frame.
 .thumb_func_start OvlFunc_920_2008304
 	push	{r5, r6, lr}
 	mov	r0, #0xb

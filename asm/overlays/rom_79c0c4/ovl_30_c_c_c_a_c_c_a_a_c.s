@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ TalkOnceThenRepeat
+@ Takes no arguments. Save bit 0x300 gates a one-time exchange: line 0x16FF from
+@ slot 0x15, a turn to 0x8000, a second line, then slot 0x16 re-forms and runs
+@ effect sequence 0x102 through MapActor_Surprise, a sixty-frame beat and its own line
+@ -- after which 0x300 is set so it never replays.
+@
+@ Either way it falls through to the repeat line 0x1702 and a turn to 0xC000.
 .thumb_func_start OvlFunc_908_200835c
 	push	{lr}
 	bl	__CutsceneStart

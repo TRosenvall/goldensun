@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ Map edit: 1 attribute copy.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
+@ Records it with save bit 0x210.
 .thumb_func_start OvlFunc_883_2008d70
 	push	{lr}
 	mov	r0, #0x84
@@ -20,6 +24,10 @@
 	bx	r0
 .func_end OvlFunc_883_2008d70
 
+@ Map edit: 1 attribute copy.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
+@ Clears save bit 0x210.
 .thumb_func_start OvlFunc_883_2008d98
 	push	{lr}
 	mov	r0, #0x84
@@ -40,6 +48,11 @@
 	bx	r0
 .func_end OvlFunc_883_2008d98
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, PlayMapRectAnimation, WalkSlotTo, SetPendingMessageId
 .thumb_func_start OvlFunc_883_2008dc0
 	push	{lr}
 	mov	r0, #0xbc

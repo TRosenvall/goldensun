@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 36 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetSlotDrawPriority
 .thumb_func_start OvlFunc_922_2009004
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -40,6 +45,16 @@
 	bx	r0
 .func_end OvlFunc_922_2009004
 
+@ 107 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, TestSaveBit, OvlFunc_1004, CopyMapRectAttributes
+@   OvlFunc_1004, CopyMapRectAttributes, TestSaveBit, OvlFunc_1004
+@   CopyMapRectAttributes, OvlFunc_1004, CopyMapRectAttributes, TestSaveBit
+@   OvlFunc_1004, CopyMapRectAttributes
+@   ... and 2 more
+@ reads save bits 0x301, 0x302, 0x303.
 .thumb_func_start OvlFunc_922_2009050
 	push	{r5, lr}
 	sub	sp, #8
@@ -156,6 +171,16 @@
 	bx	r0
 .func_end OvlFunc_922_2009050
 
+@ 157 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, TestSaveBit, OvlFunc_1004, CopyMapRectAttributes
+@   OvlFunc_1004, CopyMapRectAttributes, TestSaveBit, OvlFunc_1004
+@   CopyMapRectAttributes x2, TestSaveBit, OvlFunc_1004, CopyMapRectAttributes x2
+@   TestSaveBit, OvlFunc_1004
+@   ... and 8 more
+@ reads save bits 0x304, 0x305, 0x306, 0x307.
 .thumb_func_start OvlFunc_922_2009154
 	push	{r5, r6, r7, lr}
 	sub	sp, #8
@@ -323,6 +348,16 @@
 	bx	r0
 .func_end OvlFunc_922_2009154
 
+@ 329 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, TestSaveBit, OvlFunc_1004, CopyMapRectAttributes
+@   TestSaveBit, OvlFunc_1004, CopyMapRectAttributes x3, OvlFunc_1004
+@   CopyMapRectAttributes, TestSaveBit, OvlFunc_1004, CopyMapRectAttributes
+@   OvlFunc_1004, CopyMapRectAttributes
+@   ... and 26 more
+@ reads save bits 0x308, 0x309, 0x30a, 0x30b, 0x30c.
 .thumb_func_start OvlFunc_922_20092cc
 	push	{r5, lr}
 	sub	sp, #8
@@ -673,6 +708,16 @@
 	bx	r0
 .func_end OvlFunc_922_20092cc
 
+@ 129 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes x2, TestSaveBit, OvlFunc_1004, CopyMapRectAttributes
+@   OvlFunc_1004, CopyMapRectAttributes, TestSaveBit, OvlFunc_1004
+@   CopyMapRectAttributes, OvlFunc_1004, CopyMapRectAttributes, TestSaveBit
+@   OvlFunc_1004, CopyMapRectAttributes
+@   ... and 2 more
+@ reads save bits 0x313, 0x314, 0x315.
 .thumb_func_start OvlFunc_922_20095dc
 	push	{lr}
 	ldr	r3, =gState

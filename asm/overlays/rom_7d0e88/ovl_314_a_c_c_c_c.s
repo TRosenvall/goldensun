@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ StampPlayerFootprintSolid
+@ Mark a log's cells solid on map entry.
+@ Byte-identical to OvlFunc_8c0 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
+@ Here .L2cf8 is the six footprints, .L2ce0 is the six pushable model ids.
 .thumb_func_start OvlFunc_947_2008ba4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -146,6 +151,9 @@
 	bx	r1
 .func_end OvlFunc_947_2008ba4
 
+@ Leaf helper, 80 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_10000, ewram_20000, ewram_20004
 .thumb_func_start OvlFunc_947_2008cc0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

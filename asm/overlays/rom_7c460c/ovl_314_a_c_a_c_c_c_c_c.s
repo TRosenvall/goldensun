@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ Talk: lines 0x1bb5, 0x2411, 0x24db, shown.
+@ Which line is chosen by save bits 0x941, 0x94d.
+@ Also plays an interaction effect, re-forms the followers.
+@ Sets save bit 0x9af.
 .thumb_func_start OvlFunc_939_20088ec
 	push	{r5, lr}
 	ldr	r3, =gState

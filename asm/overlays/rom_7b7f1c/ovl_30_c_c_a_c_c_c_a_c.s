@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 24 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, SetPlayerObjectFields, PlaceSlotAt
 .thumb_func_start OvlFunc_930_2008870
 	push	{lr}
 	sub	sp, #8
@@ -27,6 +32,11 @@
 	bx	r0
 .func_end OvlFunc_930_2008870
 
+@ 24 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, SetPlayerObjectFields, PlaceSlotAt
 .thumb_func_start OvlFunc_930_20088a8
 	push	{lr}
 	sub	sp, #8
@@ -54,6 +64,8 @@
 	bx	r0
 .func_end OvlFunc_930_20088a8
 
+@ Counter: shop type 0xf via UI_Sanctum, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- line 0x1a1e.
 .thumb_func_start OvlFunc_930_20088e0
 	push	{r5, lr}
 	mov	r0, #0
@@ -81,6 +93,12 @@
 	bx	r0
 .func_end OvlFunc_930_20088e0
 
+@ Cutscene: roughly 151 instructions of straight-line script --
+@ 2 turns, 1 animation change, 4 dialogue lines, 7 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x18b5.
+@ Reads save bit 0x89a.
+@ Sets save bit 0x8b0.
 .thumb_func_start OvlFunc_930_2008924
 	push	{r5, lr}
 	ldr	r0, =0x89a

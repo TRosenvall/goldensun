@@ -1,5 +1,7 @@
 	.include "macros.inc"
 
+@ Trigger: sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x201 and the
+@ message delay at +0x1C8 to 0x18, then leaves a message pending.
 .thumb_func_start OvlFunc_950_200809c
 	push	{lr}
 	ldr	r3, =iwram_3001ebc
@@ -18,6 +20,17 @@
 	bx	r0
 .func_end OvlFunc_950_200809c
 
+@ WarpToTableEntry
+@ Takes no arguments. The town's warp points, all sharing one handler.
+@
+@ First it clears the flag byte +0x55 on every live entity from slot 8 to 0x41
+@ -- a blanket reset so nothing is mid-interaction across the warp. Then the
+@ interaction target halfword at [iwram_1ebc]+0x16C, minus 0x0E, indexes the
+@ eight-byte records at .L1dcc: a word destination followed by two halfword
+@ coordinates, handed to Func_10560. Sound 0x9E plays throughout.
+@
+@ Subtracting 0x0E means trigger ids 0x0E upward map to entries 0, 1, 2 ...,
+@ so the table is dense and the triggers are numbered consecutively.
 .thumb_func_start OvlFunc_950_20080c0
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ebc
@@ -74,6 +87,11 @@
 	bx	r0
 .func_end OvlFunc_950_20080c0
 
+@ Cutscene: the town's arrival scene, roughly 180 instructions.
+@ Actors are created with CreateActor and DeleteActor rather than taken from the
+@ object table, walked in at speeds 0x1CCCC/0xB333 and 0x16666/0xE666, and put
+@ through a conversation from message base 0x2394 with formation changes and
+@ interaction effect 0x101.
 .thumb_func_start OvlFunc_950_200813c
 	push	{r5, lr}
 	bl	__CutsceneStart
@@ -257,6 +275,8 @@
 	bx	r0
 .func_end OvlFunc_950_200813c
 
+@ Cutscene: a shorter follow-up from message base 0x23A4, roughly 60
+@ instructions -- formation changes, an effect and two lines.
 .thumb_func_start OvlFunc_950_2008328
 	push	{lr}
 	bl	__CutsceneStart
@@ -324,6 +344,13 @@
 	bx	r0
 .func_end OvlFunc_950_2008328
 
+@ Slot 0: map-load entry.
+@
+@ Reconstructs the town from save bits 0x8AB and 0x8BC: each selects a
+@ Func_10704 attribute repaint and a MapActor_SetPos placement, so objects and
+@ terrain match whatever the player has already done. Func_91dc8 puts the
+@ screen overlay up, and .gcc2_compiled. leaves the affected actors facing the
+@ right way.
 .thumb_func_start OvlFunc_950_20083dc
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -451,6 +478,8 @@
 	bx	r1
 .func_end OvlFunc_950_20083dc
 
+@ Counter: shop 0x1F, speaker slot 0x0D. Lines 0x238D / 0x221B / 0x1FD5
+@ across the three states; gated on save bit 0x962.
 .thumb_func_start OvlFunc_950_2008500
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -524,6 +553,8 @@
 	bx	r0
 .func_end OvlFunc_950_2008500
 
+@ Counter: shop 0x1F at a second position, lines 0x2389 / 0x2219 / 0x1FD2,
+@ with an interaction effect before the dialogue.
 .thumb_func_start OvlFunc_950_20085a8
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -607,6 +638,8 @@
 	bx	r0
 .func_end OvlFunc_950_20085a8
 
+@ Counter: shop 0x1F, lines 0x238F / 0x221D / 0x1FD9. The shortest of the
+@ three -- no effect, no prompt.
 .thumb_func_start OvlFunc_950_200866c
 	push	{r5, lr}
 	mov	r5, r0
@@ -662,6 +695,7 @@
 	bx	r0
 .func_end OvlFunc_950_200866c
 
+@ Talk: line 0x239E, asked as a yes/no through Func_91c7c.
 .thumb_func_start OvlFunc_950_20086ec
 	push	{r5, r6, lr}
 	mov	r6, r0

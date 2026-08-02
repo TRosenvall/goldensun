@@ -1,6 +1,7 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Talk: line 0x23CD from slot 0x0D, preceded by interaction effect 0x102.
 .thumb_func_start OvlFunc_973_200804c
 	push	{lr}
 	ldr	r0, =0x23cd

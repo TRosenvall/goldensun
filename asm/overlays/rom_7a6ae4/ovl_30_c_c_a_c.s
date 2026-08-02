@@ -1,5 +1,6 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 120 instructions of staged conversation.
 .thumb_func_start OvlFunc_920_20087f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

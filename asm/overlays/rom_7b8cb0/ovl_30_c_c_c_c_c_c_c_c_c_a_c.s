@@ -1,5 +1,14 @@
 	.include "macros.inc"
 
+@ 163 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked, PlaySound, CopyMapRectIndicesU x2
+@   DialogueWait, CopyMapRectIndicesU x2, DialogueWait, PlaySound
+@   CopyMapRectIndicesU, PlayMapRectAnimation, SetSlotEntitySpeed, GetSlotEntityChecked
+@   SetSlotAnimation, WalkSlotThroughDoorway x2
+@   ... and 7 more
 .thumb_func_start OvlFunc_931_2008524
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -174,6 +183,12 @@
 	bx	r0
 .func_end OvlFunc_931_2008524
 
+@ 28 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked, PlaySound, WalkSlotThroughDoorway
+@   SetPendingMessageId, HideScreenOverlay, WaitSceneDelay, EndCutscene
 .thumb_func_start OvlFunc_931_20086a4
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc
@@ -205,6 +220,12 @@
 	bx	r0
 .func_end OvlFunc_931_20086a4
 
+@ 89 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetMapTransition, SetEntityAnimation, PlaySound, SetMapTransition
+@   PlaySound, SetEntityAnimation
 .thumb_func_start OvlFunc_931_20086f0
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -304,6 +325,13 @@
 	bx	r0
 .func_end OvlFunc_931_20086f0
 
+@ 53 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetSlotEntitySpeed, MoveSlotToAndWait x2, PlaySound
+@   DespawnSlotEntity, SetMapTransition, DialogueWait, SetMapTransition
+@   DialogueWait, SetSlotAnimation
 .thumb_func_start OvlFunc_931_20087b8
 	push	{lr}
 	mov	r0, #0x12

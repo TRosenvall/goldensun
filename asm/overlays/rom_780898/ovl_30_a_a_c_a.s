@@ -1,5 +1,24 @@
 	.include "macros.inc"
 
+@ FindPushableFacingPlayer
+@ r0 = out, the player's facing (0..15); r1 = out, the entity slot found;
+@ r2 = out, the index into .L61d0/.L61e8 of the model that matched.
+@ Returns the log's entity, or 0 if the player is not facing one.
+@
+@ A double loop: slots 8..0x41 on the outside, the six pushable model ids on the
+@ inside. For each candidate whose model id at [[entity+0x50]+0x28] matches, it
+@ builds the footprint rectangle from .L61e8 around the candidate's centre
+@ (+0x0A and +0x12, the integer halves of x and z) and tests whether the tile
+@ one step ahead of the player falls inside it.
+@
+@ The last check is what makes long logs work. Index bit 0 selects the log's
+@ axis, and the player's coordinate ALONG that axis must differ from the log's:
+@   even index (log lies along x) -- reject if the tile x matches,
+@   odd index  (log lies along z) -- reject if the tile z matches.
+@ Standing at the end of a log and facing down its length therefore finds
+@ nothing, so a log can only be pushed broadside. Everything is compared at
+@ 1/16 resolution (`asr #16` then `asr #4`) rather than whole tiles, because the
+@ footprints are half-tile multiples.
 .thumb_func_start OvlFunc_883_200834c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes x4, GetSlotEntityChecked
 .thumb_func_start OvlFunc_948_20099e8
 	push	{r5, lr}
 	sub	sp, #8

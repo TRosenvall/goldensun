@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Leaf helper, 13 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1e70
+@ Writes offsets +0x1e.
 .thumb_func_start OvlFunc_881_20082cc
 	ldr	r3, =iwram_3001e70
 	mov	r1, #0x8d
@@ -21,6 +25,10 @@
 	.word	0
 .func_end OvlFunc_881_20082cc
 
+@ Leaf helper, 15 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1e70
+@ Writes offsets +0x1e.
 .thumb_func_start OvlFunc_881_20082f0
 	ldr	r3, =iwram_3001e70
 	ldr	r4, [r0, #0x50]
@@ -39,6 +47,12 @@
 	bx	lr
 .func_end OvlFunc_881_20082f0
 
+@ 24 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetEntityActorOptions, SetEntityPalette, TestSaveBit, SetSaveBit
+@ reads save bit 0x8a0; sets 0x2f1.
 .thumb_func_start OvlFunc_881_2008314
 	push	{r5, r6, lr}
 	mov	r5, r0

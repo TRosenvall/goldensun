@@ -1,5 +1,14 @@
 	.include "macros.inc"
 
+@ 35 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, BeginCutscene, SetActiveMessageId, ShowMessageWithPrompt
+@   EndCutscene, OvlFunc_338, RunShop, BeginCutscene
+@   SetActiveMessageId, TestSaveBit, SetActiveMessageId, ShowMessageAndWait
+@   EndCutscene
+@ message ids 0x18e7, 0x18ea, 0x1941; reads save bits 0x242, 0x909.
 .thumb_func_start OvlFunc_931_2008360
 	push	{lr}
 	ldr	r0, =0x242
@@ -42,6 +51,15 @@
 	bx	r0
 .func_end OvlFunc_931_2008360
 
+@ 35 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, BeginCutscene, SetActiveMessageId, ShowMessageAndWait
+@   EndCutscene, OvlFunc_338, RunShop, BeginCutscene
+@   SetActiveMessageId, TestSaveBit, SetActiveMessageId, ShowMessageAndWait
+@   EndCutscene
+@ message ids 0x18ed, 0x18ee, 0x1943; reads save bits 0x241, 0x909.
 .thumb_func_start OvlFunc_931_20083d4
 	push	{lr}
 	ldr	r0, =0x241
@@ -84,6 +102,15 @@
 	bx	r0
 .func_end OvlFunc_931_20083d4
 
+@ 36 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, BeginCutscene, SetActiveMessageId, ShowMessageAndWait
+@   EndCutscene, OvlFunc_338, RunShop, BeginCutscene
+@   SetActiveMessageId, TestSaveBit, SetActiveMessageId, ShowMessageAndWait
+@   EndCutscene
+@ message ids 0x18f1, 0x18f2, 0x1945; reads save bits 0x240, 0x909.
 .thumb_func_start OvlFunc_931_2008448
 	push	{lr}
 	mov	r0, #0x90

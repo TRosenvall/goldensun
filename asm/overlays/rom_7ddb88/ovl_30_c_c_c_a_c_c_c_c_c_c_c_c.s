@@ -1,6 +1,8 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Countdown loop: waits ten frames, then polls a scratch word once per
+@ frame until it reaches a target or the attempt limit runs out.
 .thumb_func_start OvlFunc_955_2008970
 	push	{r5, lr}
 	mov	r0, #0xa
@@ -32,6 +34,13 @@
 	bx	r0
 .func_end OvlFunc_955_2008970
 
+@ 41 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SaveAndClearEntityHook, SetSaveBit, WaitFrames x2, UnregisterTask
+@   CopyMapRectAttributes x2
+@ sets 0x334.
 .thumb_func_start OvlFunc_955_20089b0
 	push	{r5, lr}
 	mov	r0, #0x1f
@@ -77,6 +86,10 @@
 	bx	r0
 .func_end OvlFunc_955_20089b0
 
+@ Cutscene: roughly 106 instructions of straight-line script --
+@ 0 turns, 5 animation changes, 0 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x11a.
 .thumb_func_start OvlFunc_955_2008a1c
 	push	{r5, r6, lr}
 	bl	OvlFunc_common1_16f8

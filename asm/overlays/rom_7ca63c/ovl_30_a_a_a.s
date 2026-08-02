@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ Leaf helper, 31 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1e70
+@ Writes offsets +0x8, +0xc, +0x1e.
 .thumb_func_start OvlFunc_944_2008030
 	push	{r5, lr}
 	ldr	r3, =iwram_3001e70

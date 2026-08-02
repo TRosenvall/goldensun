@@ -1,6 +1,16 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 179 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked, SetEntityActorOptions, SetSlotPalette
+@   StartLoopingSound, ShowScreenOverlay, WaitSceneDelay, DialogueWait
+@   PlaySound, SetCameraSpeed, MoveCameraTo, Random x4
+@   OvlFunc_118, WaitFrames
+@   ... and 8 more
+@ sets 0x306.
 .thumb_func_start OvlFunc_968_200c610
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -188,6 +198,16 @@
 	bx	r0
 .func_end OvlFunc_968_200c610
 
+@ 176 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked, SetEntityActorOptions, SetSlotPalette
+@   StartLoopingSound, ShowScreenOverlay, WaitSceneDelay, DialogueWait
+@   PlaySound, SetCameraSpeed, MoveCameraTo, Random x4
+@   OvlFunc_118, WaitFrames
+@   ... and 8 more
+@ sets 0x307.
 .thumb_func_start OvlFunc_968_200c7c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -371,6 +391,11 @@
 	bx	r0
 .func_end OvlFunc_968_200c7c0
 
+@ 88 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, Random x4, OvlFunc_118
 .thumb_func_start OvlFunc_968_200c968
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -464,6 +489,16 @@
 	bx	r1
 .func_end OvlFunc_968_200c968
 
+@ 178 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, BeginCutscene, MoveCameraTo, UpdateMapView
+@   WaitFrames, ShowScreenOverlay, WaitSceneDelay, PlaySound
+@   DialogueWait x2, RunSlotEffectSequence, SetSlotAnimation, WaitFrames x4
+@   RunSlotEffectSequence, SetSlotAnimation
+@   ... and 6 more
+@ sets 0x101.
 .thumb_func_start OvlFunc_968_200ca2c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -646,6 +681,11 @@
 	bx	r0
 .func_end OvlFunc_968_200ca2c
 
+@ 191 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_32c, SetEntityScript x3
 .thumb_func_start OvlFunc_968_200cbd8
 	push	{r5, r6, r7, lr}
 	mov	r5, r0

@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 10 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RegisterTask
 .thumb_func_start OvlFunc_954_2008158
 	push	{lr}
 	ldr	r3, =.L441c
@@ -14,6 +19,8 @@
 	bx	r0
 .func_end OvlFunc_954_2008158
 
+@ Countdown loop: waits ten frames, then polls a scratch word once per
+@ frame until it reaches a target or the attempt limit runs out.
 .thumb_func_start OvlFunc_954_2008178
 	push	{r5, r6, lr}
 	mov	r0, #0xa
@@ -39,6 +46,12 @@
 	bx	r0
 .func_end OvlFunc_954_2008178
 
+@ 64 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, GetSlotEntityChecked, GetTerrainHeight, CopyMapRectAttributes
+@   GetSlotEntityChecked, WriteSaveByte, CopyMapRectAttributes
 .thumb_func_start OvlFunc_954_20081a8
 	push	{r5, lr}
 	sub	sp, #8

@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ 75 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked x2, OvlFunc_244 x5, GetSlotEntityChecked
+@   EndCutscene
 .thumb_func_start OvlFunc_927_2009b84
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -79,6 +85,13 @@
 	bx	r0
 .func_end OvlFunc_927_2009b84
 
+@ 89 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked x2, OvlFunc_244 x5, GetSlotEntityChecked x2
+@   SetSaveBit, OvlFunc_244, EndCutscene
+@ sets 0x214.
 .thumb_func_start OvlFunc_927_2009c34
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -172,6 +185,16 @@
 	bx	r0
 .func_end OvlFunc_927_2009c34
 
+@ 81 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, OvlFunc_ea8, OvlFunc_d90
+@   DialogueWait, OvlFunc_ae8, AttachCameraToSlot, TurnSlotsToFaceEachOther
+@   DialogueWait, SetFollowerFormationScript, PlayInteractionEffect, PlaySound
+@   DialogueWait, GetSlotEntityChecked x2
+@   ... and 5 more
+@ sets 0x307.
 .thumb_func_start OvlFunc_927_2009d04
 	push	{r5, r6, lr}
 	mov	r0, #0xf
@@ -256,6 +279,10 @@
 	bx	r0
 .func_end OvlFunc_927_2009d04
 
+@ Cutscene: roughly 109 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 7 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x308.
 .thumb_func_start OvlFunc_927_2009de0
 	push	{r5, r6, lr}
 	mov	r0, #0x10
@@ -368,6 +395,10 @@
 	bx	r0
 .func_end OvlFunc_927_2009de0
 
+@ Cutscene: roughly 109 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 7 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x309.
 .thumb_func_start OvlFunc_927_2009ef0
 	push	{r5, r6, lr}
 	mov	r0, #0x11
@@ -480,6 +511,14 @@
 	bx	r0
 .func_end OvlFunc_927_2009ef0
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_ea8, MoveCameraTo, OvlFunc_d90
+@   OvlFunc_e18, SetSlotPalette, GetSlotEntityChecked, SetEntityActorOptions
+@   DialogueWait, SetSaveBit, PlaceSlotAt, EndCutscene
+@ sets 0x30a.
 .thumb_func_start OvlFunc_927_200a004
 	push	{lr}
 	bl	__CutsceneStart
@@ -526,6 +565,10 @@
 	bx	r0
 .func_end OvlFunc_927_200a004
 
+@ Cutscene: roughly 124 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 8 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x30b.
 .thumb_func_start OvlFunc_927_200a078
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -653,6 +696,10 @@
 	bx	r0
 .func_end OvlFunc_927_200a078
 
+@ Cutscene: roughly 108 instructions of straight-line script --
+@ 1 turn, 0 animation changes, 0 dialogue lines, 5 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x89d.
 .thumb_func_start OvlFunc_927_200a1b0
 	push	{r5, lr}
 	mov	r0, #0x12
@@ -764,6 +811,9 @@
 	bx	r0
 .func_end OvlFunc_927_200a1b0
 
+@ Cutscene: roughly 193 instructions of straight-line script --
+@ 1 turn, 0 animation changes, 0 dialogue lines, 7 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_927_200a2c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -961,6 +1011,9 @@
 	bx	r0
 .func_end OvlFunc_927_200a2c0
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_927_200a4ac
 	push	{lr}
 	ldr	r3, =gState
@@ -993,6 +1046,11 @@
 	bx	r1
 .func_end OvlFunc_927_200a4ac
 
+@ Cutscene: roughly 617 instructions of straight-line script --
+@ 1 turn, 4 animation changes, 0 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x300, 0x303, 0x304.
+@ Sets save bits 0x214, 0x88f, 0x89c, 0x89e.
 .thumb_func_start OvlFunc_927_200a500
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc

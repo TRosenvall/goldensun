@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ StampPlayerFootprintSolid
+@ Mark a log's cells solid on map entry.
+@ Byte-identical to OvlFunc_8c0 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
+@ Here .L2f50 is the six footprints, .L2f38 is the six pushable model ids.
 .thumb_func_start OvlFunc_927_20088c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -145,6 +150,9 @@
 	bx	r1
 .func_end OvlFunc_927_20088c0
 
+@ Leaf helper, 11 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x9.
 .thumb_func_start OvlFunc_927_20089dc
 	ldr	r0, [r0, #0x50]
 	mov	r3, #3
@@ -159,6 +167,11 @@
 	bx	lr
 .func_end OvlFunc_927_20089dc
 
+@ 39 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, SetEntityActorOptions, SetActorPartsPalette, SetEntityActorPriority
 .thumb_func_start OvlFunc_927_20089f4
 	push	{r5, r6, lr}
 	mov	r4, r0
@@ -203,6 +216,11 @@
 	bx	r1
 .func_end OvlFunc_927_20089f4
 
+@ 46 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, SetEntityActorOptions, SetActorPartsPalette
 .thumb_func_start OvlFunc_927_2008a4c
 	push	{r5, r6, lr}
 	mov	r4, r0
@@ -254,6 +272,9 @@
 	bx	r1
 .func_end OvlFunc_927_2008a4c
 
+@ Leaf helper, 27 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x8, +0xc, +0x10, +0x18, +0x1c, +0x1e.
 .thumb_func_start OvlFunc_927_2008ab0
 	ldr	r3, [r0, #8]
 	ldr	r2, [r0, #0x44]
@@ -284,6 +305,12 @@
 	bx	lr
 .func_end OvlFunc_927_2008ab0
 
+@ 220 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SpawnEntity, SetEntityAnimation, SetEntityScript
+@   SetActorPartsPalette, SignedDiv x3, SetEntityAnimation, SetEntityScript
 .thumb_func_start OvlFunc_927_2008ae8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

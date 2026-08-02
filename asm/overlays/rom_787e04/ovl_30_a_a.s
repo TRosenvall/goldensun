@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 40 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Atan2
 .thumb_func_start OvlFunc_887_2008030
 	push	{r5, lr}
 	mov	r5, r0

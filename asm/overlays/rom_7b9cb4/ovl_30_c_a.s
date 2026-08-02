@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 85 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RotateVector, SetEntityAnimation, PlaySound, RotateVector
+@   WaitFrames, PlaySound
 .thumb_func_start OvlFunc_932_200b5ac
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -90,6 +96,12 @@
 	bx	r0
 .func_end OvlFunc_932_200b5ac
 
+@ 82 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RotateVector, SetEntityAnimation, PlaySound, RotateVector
+@   WaitFrames, PlaySound
 .thumb_func_start OvlFunc_932_200b668
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

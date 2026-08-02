@@ -1,5 +1,6 @@
 	.include "macros.inc"
 
+@ Cutscene: a short staged scene, roughly 60 instructions.
 .thumb_func_start OvlFunc_963_2008334
 	push	{r5, lr}
 	sub	sp, #8
@@ -63,6 +64,13 @@
 	bx	r0
 .func_end OvlFunc_963_2008334
 
+@ Cutscene: the overlay's main scene, roughly 350 instructions.
+@ Two actors are placed and walked into position (MapActor_SetPos then Func_921c4 at
+@ speed 0x19999/0xCCCC), then a conversation runs through eleven .gcc2_compiled.
+@ lines from message base 0x2654, with .gcc2_compiled. turns between beats,
+@ .gcc2_compiled. / .gcc2_compiled. formation changes, and two MapActor_Surprise effect
+@ sequences. It ends on a Func_93054 question whose answer is checked against a
+@ save bit.
 .thumb_func_start OvlFunc_963_20083c4
 	push	{r5, lr}
 	sub	sp, #8
@@ -412,6 +420,7 @@
 	bx	r0
 .func_end OvlFunc_963_20083c4
 
+@ Cutscene: a shorter follow-up scene, roughly 50 instructions.
 .thumb_func_start OvlFunc_963_2008730
 	push	{lr}
 	bl	__CutsceneStart

@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 103 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectIndices x2, CopyMapRectAttributes, SetSlotAnimation, CopyMapRectIndices x2
+@   SetSlotAnimation, CopyMapRectIndices x2, SetSlotAnimation, CopyMapRectAttributes
 .thumb_func_start OvlFunc_954_200804c
 	push	{r5, r6, r7, lr}
 	ldr	r7, =.L441c

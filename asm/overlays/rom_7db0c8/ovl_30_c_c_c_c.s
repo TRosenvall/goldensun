@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Cutscene: roughly 348 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x301, 0x302, 0x303.
+@ Sets save bit 0x144.
 .thumb_func_start OvlFunc_954_2008a3c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -373,6 +378,10 @@
 	bx	r1
 .func_end OvlFunc_954_2008a3c
 
+@ Cutscene: roughly 427 instructions of straight-line script --
+@ 5 turns, 14 animation changes, 23 dialogue lines, 9 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x20cb, 0x20d4, 0x20d5, 0x20e1.
 .thumb_func_start OvlFunc_954_2008db8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -809,6 +818,10 @@
 	bx	r0
 .func_end OvlFunc_954_2008db8
 
+@ Cutscene: roughly 179 instructions of straight-line script --
+@ 3 turns, 1 animation change, 4 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x208b, 0x208c.
 .thumb_func_start OvlFunc_954_2009214
 	push	{r5, r6, r7, lr}
 	ldr	r3, =gState
@@ -996,6 +1009,10 @@
 	bx	r0
 .func_end OvlFunc_954_2009214
 
+@ Cutscene: roughly 196 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 5 dialogue lines, 8 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x208f, 0x2090.
 .thumb_func_start OvlFunc_954_20093e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1200,6 +1217,10 @@
 	bx	r0
 .func_end OvlFunc_954_20093e4
 
+@ Cutscene: roughly 99 instructions of straight-line script --
+@ 1 turn, 0 animation changes, 4 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x2094, 0x2095.
 .thumb_func_start OvlFunc_954_20095e0
 	push	{r5, r6, lr}
 	ldr	r3, =gState
@@ -1306,6 +1327,10 @@
 	bx	r0
 .func_end OvlFunc_954_20095e0
 
+@ Cutscene: roughly 167 instructions of straight-line script --
+@ 3 turns, 1 animation change, 5 dialogue lines, 4 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x2098, 0x2099.
 .thumb_func_start OvlFunc_954_20096ec
 	push	{r5, r6, r7, lr}
 	ldr	r3, =gState

@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 104 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   ReleaseObjAffine
 .thumb_func_start OvlFunc_970_20091c4
 	push	{r5, r6, r7, lr}
 	ldr	r3, =.L1c1a
@@ -113,6 +118,11 @@
 	bx	r0
 .func_end OvlFunc_970_20091c4
 
+@ 34 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Func_4970, CountFreeObjTiles, AllocObjTiles, RegisterTask
 .thumb_func_start OvlFunc_970_20092ac
 	push	{r5, r6, lr}
 	mov	r0, #0x80

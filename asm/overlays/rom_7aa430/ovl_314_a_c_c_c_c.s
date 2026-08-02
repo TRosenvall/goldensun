@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ StampPlayerFootprintSolid
+@ Mark a log's cells solid on map entry.
+@ Byte-identical to OvlFunc_8c0 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
+@ Here .L2758 is the six footprints, .L2740 is the six pushable model ids.
 .thumb_func_start OvlFunc_923_2008ba4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -145,6 +150,11 @@
 	bx	r1
 .func_end OvlFunc_923_2008ba4
 
+@ 61 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random, OvlFunc_common0_10c
 .thumb_func_start OvlFunc_923_2008cc0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 65 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, SpawnEntity, SetEntityAnimation, SetEntityMoveTarget
+@   SetEntityScript
 .thumb_func_start OvlFunc_917_2009218
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001e40
@@ -71,6 +77,11 @@
 	bx	r0
 .func_end OvlFunc_917_2009218
 
+@ 26 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_18b8, WaitForFade, OvlFunc_18b8, WaitForFade
 .thumb_func_start OvlFunc_917_20092b4
 	push	{r5, lr}
 	ldr	r5, =.L1dd4
@@ -103,6 +114,9 @@
 	bx	r0
 .func_end OvlFunc_917_20092b4
 
+@ Cutscene: roughly 185 instructions of straight-line script --
+@ 0 turns, 33 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_917_20092f4
 	push	{lr}
 	cmp	r0, #0xa
@@ -338,6 +352,11 @@
 	bx	r0
 .func_end OvlFunc_917_20092f4
 
+@ 53 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RotateVector, FreeObjTiles, DestroyEntity
 .thumb_func_start OvlFunc_917_200952c
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -396,6 +415,12 @@
 	bx	r0
 .func_end OvlFunc_917_200952c
 
+@ 98 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, SpawnEntity, ValidateRidePair, SetEntityActorOptions
+@   SetEntityAnimation, UnsignedDiv
 .thumb_func_start OvlFunc_917_20095a0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -546,6 +571,11 @@
 	bx	r0
 .func_end OvlFunc_917_20095a0
 
+@ 27 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   FindInventorySlotInParty, FindInventorySlot, GetCombatantRecord
 .thumb_func_start OvlFunc_917_200972c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -577,6 +607,12 @@
 	bx	r0
 .func_end OvlFunc_917_200972c
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_1838, OvlFunc_17d0, OvlFunc_1878, OvlFunc_1858
+@   StartFadeOut
 .thumb_func_start OvlFunc_917_2009768
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
@@ -625,6 +661,11 @@
 	bx	r0
 .func_end OvlFunc_917_2009768
 
+@ 47 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv x3
 .thumb_func_start OvlFunc_917_20097d0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

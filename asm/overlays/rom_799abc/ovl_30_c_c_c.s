@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ 62 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TurnSlotToAngle, PlayInteractionEffect, SetFollowerFormationScript, SetSlotFacingAndScript
+@   SetSlotAnimation
 .thumb_func_start OvlFunc_905_20090c8
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc
@@ -72,6 +78,11 @@
 	bx	r0
 .func_end OvlFunc_905_20090c8
 
+@ Cutscene: roughly 72 instructions of straight-line script --
+@ 1 turn, 1 animation change, 1 dialogue line, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x132f.
+@ Sets save bit 0x869.
 .thumb_func_start OvlFunc_905_200915c
 	push	{lr}
 	ldr	r0, =OvlFunc_905_20090c8
@@ -147,6 +158,10 @@
 	bx	r0
 .func_end OvlFunc_905_200915c
 
+@ Cutscene: roughly 163 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x300, 0x301, 0x302.
 .thumb_func_start OvlFunc_905_200921c
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc

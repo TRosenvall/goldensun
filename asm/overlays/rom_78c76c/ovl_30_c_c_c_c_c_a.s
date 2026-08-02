@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 122 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_1ff4
 .thumb_func_start OvlFunc_891_2009c14
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -125,6 +130,11 @@
 	bx	r0
 .func_end OvlFunc_891_2009c14
 
+@ 119 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_1ff4
 .thumb_func_start OvlFunc_891_2009d14
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -247,6 +257,11 @@
 	bx	r0
 .func_end OvlFunc_891_2009d14
 
+@ 120 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_1ff4
 .thumb_func_start OvlFunc_891_2009e10
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -370,6 +385,11 @@
 	bx	r0
 .func_end OvlFunc_891_2009e10
 
+@ 108 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_1ff4
 .thumb_func_start OvlFunc_891_2009f0c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -481,6 +501,11 @@
 	bx	r0
 .func_end OvlFunc_891_2009f0c
 
+@ Cutscene: roughly 239 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x80b, 0x80d, 0x80e, 0x80f.
+@ Sets save bit 0x80f.
 .thumb_func_start OvlFunc_891_2009ff4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -730,6 +755,16 @@
 	bx	r0
 .func_end OvlFunc_891_2009ff4
 
+@ 65 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, TestSaveBit x2, SetCameraSpeed, MoveCameraTo
+@   WaitForCameraArrival, PlaySound, CopyMapRectIndicesU, TestSaveBit
+@   CopyMapRectIndicesU, TurnSlotToAngle, DialogueWait, SetSaveBit
+@   TestSaveBit, OvlFunc_98
+@   ... and 1 more
+@ reads save bits 0x816, 0x817, 0x818; sets 0x816.
 .thumb_func_start OvlFunc_891_200a244
 	push	{lr}
 	sub	sp, #8
@@ -800,6 +835,16 @@
 	bx	r0
 .func_end OvlFunc_891_200a244
 
+@ 66 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, TestSaveBit x2, SetCameraSpeed, MoveCameraTo
+@   WaitForCameraArrival, PlaySound, CopyMapRectIndicesU, TestSaveBit
+@   CopyMapRectIndicesU, TurnSlotToAngle, DialogueWait, SetSaveBit
+@   TestSaveBit, OvlFunc_98
+@   ... and 1 more
+@ reads save bits 0x816, 0x817, 0x818; sets 0x817.
 .thumb_func_start OvlFunc_891_200a2f4
 	push	{lr}
 	sub	sp, #8

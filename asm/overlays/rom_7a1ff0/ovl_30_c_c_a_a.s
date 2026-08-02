@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 22 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_474, OvlFunc_608, EndCutscene
 .thumb_func_start OvlFunc_914_20089f8
 	push	{r5, lr}
 	sub	sp, #0x20

@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Slot 3: the read after slot 4.
+@ Chooses among .L19d4, .L1974, .L1a4c, .L1aac, .L195c
+@ on save bit 0x96f and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
 .thumb_func_start OvlFunc_958_2008d20
 	push	{lr}
 	ldr	r3, =gState
@@ -39,6 +42,9 @@
 	bx	r1
 .func_end OvlFunc_958_2008d20
 
+@ Slot 4: the map object table.
+@ Chooses among .L1bcc, .L1b48, .L1c80, .L1ce0, .L1b3c
+@ on save bit 0x96f and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
 .thumb_func_start OvlFunc_958_2008d88
 	push	{lr}
 	ldr	r3, =gState
@@ -78,6 +84,11 @@
 	bx	r1
 .func_end OvlFunc_958_2008d88
 
+@ Cutscene: roughly 129 instructions of straight-line script --
+@ 1 turn, 4 animation changes, 2 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x23da.
+@ Reads save bits 0x98a, 0x9a0.
 .thumb_func_start OvlFunc_958_2008df0
 	push	{lr}
 	ldr	r0, =0x98a
@@ -217,6 +228,16 @@
 	bx	r0
 .func_end OvlFunc_958_2008df0
 
+@ 51 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, FaceEntityInstant x2, SetSlotAnimation, DialogueWait
+@   TurnSlotsToFaceEachOther, SetActiveMessageId, ShowMessageAndWait, SetSlotAnimation
+@   GetSlotEntityChecked, MoveSlotTo, WaitForSlotArrival, PlaceSlotAt
+@   DialogueWait, SetSaveBit
+@   ... and 1 more
+@ message id 0x23d9; sets 0x9a0.
 .thumb_func_start OvlFunc_958_2008f44
 	push	{lr}
 	bl	__CutsceneStart
@@ -272,6 +293,8 @@
 	bx	r0
 .func_end OvlFunc_958_2008f44
 
+@ Talk: line 0x23cc, shown.
+@ Which line is chosen by save bits 0x950, 0x96f.
 .thumb_func_start OvlFunc_958_2008fd0
 	push	{r5, lr}
 	ldr	r5, =0x23cc

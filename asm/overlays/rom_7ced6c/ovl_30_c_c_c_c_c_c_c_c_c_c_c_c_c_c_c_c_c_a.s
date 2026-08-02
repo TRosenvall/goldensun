@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ 90 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RotateVector, CheckTerrainStep, BeginCutscene, SetEntityAnimation
+@   WaitFrames, PlaySound, SetEntityAnimation, SetEntityActorOptions
+@   MoveSlotToAndWait, SetEntityAnimation, SetEntityActorOptions, EndCutscene
 .thumb_func_start OvlFunc_946_2009a44
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -95,6 +102,11 @@
 	bx	r1
 .func_end OvlFunc_946_2009a44
 
+@ 17 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_1a44
 .thumb_func_start OvlFunc_946_2009b14
 	push	{lr}
 	mov	r0, #0

@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ Map edit: 1 attribute copy.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
+@ Records it with save bit 0x8c4.
 .thumb_func_start OvlFunc_946_2009624
 	push	{lr}
 	ldr	r0, =0x8c4

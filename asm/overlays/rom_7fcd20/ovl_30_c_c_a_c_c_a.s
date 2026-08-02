@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 147 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunTextBoxModal, FindUsableItem x44, BuildCharacterSummary x4
 .thumb_func_start OvlFunc_974_2008f14
 	push	{lr}
 	ldr	r0, =0xc1c
@@ -151,6 +156,12 @@
 	bx	r0
 .func_end OvlFunc_974_2008f14
 
+@ 74 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RemovePartyMember, AddPartyMember x3, NotifyItemUsed x14, LevelCharacterUpTo x4
+@   BuildCharacterSummary x4
 .thumb_func_start OvlFunc_974_20090a8
 	push	{lr}
 	mov	r0, #5

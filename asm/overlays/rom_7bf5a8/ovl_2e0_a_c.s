@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, OvlFunc_170, OvlFunc_334, SetSaveBit
+@   PlaySound, OvlFunc_398
+@ reads save bit 0x9a9; sets 0x9a9.
 .thumb_func_start OvlFunc_935_2008368
 	push	{lr}
 	ldr	r0, =0x9a9
@@ -21,6 +28,11 @@
 	bx	r0
 .func_end OvlFunc_935_2008368
 
+@ 32 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectFull x2, CopyMapRectAttributes
 .thumb_func_start OvlFunc_935_2008398
 	push	{r5, lr}
 	sub	sp, #8
@@ -56,6 +68,13 @@
 	bx	r0
 .func_end OvlFunc_935_2008398
 
+@ 15 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, OvlFunc_334, SetSaveBit, PlaySound
+@   OvlFunc_398
+@ reads save bit 0x9a9; sets 0x9a9.
 .thumb_func_start OvlFunc_935_20083e0
 	push	{lr}
 	ldr	r0, =0x9a9

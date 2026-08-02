@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Cutscene: roughly 202 instructions of straight-line script --
+@ 0 turns, 2 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bit 0x104.
 .thumb_func_start OvlFunc_955_2008714
 	push	{r5, r6, r7, lr}
 	ldr	r3, =gState

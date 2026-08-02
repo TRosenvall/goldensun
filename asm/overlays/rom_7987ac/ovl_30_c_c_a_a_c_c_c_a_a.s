@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ TalkAndCount
+@ Takes no arguments. The long one: slot 0x10 turns to the player, speaks line
+@ 0x1CD4, plays animation 4 and waits, speaks again, runs interaction effect
+@ 0x102 through MapActor_Emote with a sixty-frame hold, then asks a yes/no.
+@
+@ A "yes" increments the halfword at [iwram_1ebc]+0x1D8 -- the same running
+@ count OvlFunc_1e0 in overlays/rom_79c0c4 feeds. Sets save bits 0x300 and
+@ 0x868 on the way out.
 .thumb_func_start OvlFunc_902_200811c
 	push	{lr}
 	bl	__CutsceneStart

@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Leaf helper, 80 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_10000, ewram_20000, ewram_20004
 .thumb_func_start OvlFunc_916_2008098
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -88,6 +91,9 @@
 	bx	r0
 .func_end OvlFunc_916_2008098
 
+@ Map edit: 2 attribute copies.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
 .thumb_func_start OvlFunc_916_2008150
 	push	{lr}
 	ldr	r3, =.L12c4
@@ -122,6 +128,14 @@
 	bx	r0
 .func_end OvlFunc_916_2008150
 
+@ 213 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectFull x5, CopyMapRectAttributes, CopyMapRectFull x2, CopyMapRectAttributes
+@   SetEntityAnimation, CopyMapRectFull x2, SetEntityAnimation, CopyMapRectFull
+@   CopyMapRectAttributes, OvlFunc_b3c, CopyMapRectAttributes, OvlFunc_b3c
+@   OvlFunc_150
 .thumb_func_start OvlFunc_916_2008194
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -349,6 +363,11 @@
 	bx	r0
 .func_end OvlFunc_916_2008194
 
+@ 28 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random
 .thumb_func_start OvlFunc_916_200836c
 	push	{r5, r6, lr}
 	ldr	r3, =REG_VCOUNT

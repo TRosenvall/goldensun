@@ -1,6 +1,7 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Map edit: 7 metatile copies.
 .thumb_func_start OvlFunc_897_200a84c
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -69,6 +70,7 @@
 	bx	r0
 .func_end OvlFunc_897_200a84c
 
+@ Map edit: 4 metatile copies.
 .thumb_func_start OvlFunc_897_200a8dc
 	push	{r5, lr}
 	sub	sp, #8

@@ -1,6 +1,16 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 271 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   UnsignedDiv, SetMapTransition x2, GetSlotEntityChecked, SetEntityAnimation
+@   SetActorPartsPalette, Random, UnsignedRem, GetSlotEntityChecked
+@   TestSaveBit, PlaySound, SetEntityActorOptions, SetEntityAnimation
+@   SetEntityScript, Cos
+@   ... and 9 more
+@ reads save bit 0x246.
 .thumb_func_start OvlFunc_897_20090c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -293,6 +303,11 @@
 	bx	r0
 .func_end OvlFunc_897_20090c4
 
+@ 78 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random x5
 .thumb_func_start OvlFunc_897_200935c
 	push	{r5, lr}
 	ldr	r2, =.L3b70
@@ -383,6 +398,11 @@
 	bx	r0
 .func_end OvlFunc_897_200935c
 
+@ Cutscene: roughly 1932 instructions of straight-line script --
+@ 56 turns, 20 animation changes, 25 dialogue lines, 113 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x10f8, 0x10fb, 0x10fd, 0x10fe.
+@ Sets save bits 0x100, 0x814, 0x83f.
 .thumb_func_start OvlFunc_897_2009410
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 57 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit x2, ClearSaveBit, TestSaveBit, ClearSaveBit
+@   TestSaveBit
+@ reads save bits 0x302, 0x303; sets 0x302, 0x303; clears 0x302, 0x303.
 .thumb_func_start OvlFunc_971_200808c
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001f64
@@ -68,6 +75,9 @@
 	bx	r1
 .func_end OvlFunc_971_200808c
 
+@ Leaf helper, 9 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_2224
 .thumb_func_start OvlFunc_971_2008128
 	ldr	r3, =.L1940
 	ldr	r2, =CHAR_ARRAY_ARRAY_971__02009928
@@ -80,6 +90,16 @@
 	bx	lr
 .func_end OvlFunc_971_2008128
 
+@ 158 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, ClearSaveBit, OvlFunc_8c, TestSaveBit
+@   call_via_r7, OvlFunc_128, OvlFunc_8c x3, SetSaveBit
+@   TestSaveBit, ClearSaveBit, TestSaveBit x6, OvlFunc_8c
+@   SetSaveBit, ClearSaveBit x2
+@   ... and 2 more
+@ reads save bits 0x173, 0x200, 0x201, 0x202, 0x205; sets 0x201, 0x205; clears 0x201, 0x202, 0x304.
 .thumb_func_start OvlFunc_971_2008148
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

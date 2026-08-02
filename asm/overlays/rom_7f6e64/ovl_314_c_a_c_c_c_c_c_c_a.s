@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 42 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, Cos, Sin
 .thumb_func_start OvlFunc_969_200b600
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -45,6 +50,11 @@
 	bx	r0
 .func_end OvlFunc_969_200b600
 
+@ 50 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, Cos, Sin
 .thumb_func_start OvlFunc_969_200b660
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -98,6 +108,14 @@
 	bx	r0
 .func_end OvlFunc_969_200b660
 
+@ 93 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, UnsignedRem, GetSlotEntityChecked, TestSaveBit
+@   Random x2, SpawnEntity, SetEntityScript, SetActorPartsPalette
+@   Random x2, Sin
+@ reads save bit 0x236.
 .thumb_func_start OvlFunc_969_200b6d0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -207,6 +225,12 @@
 	bx	r0
 .func_end OvlFunc_969_200b6d0
 
+@ 110 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, TestSaveBit, SetSlotPalette x6, TestSaveBit
+@ reads save bits 0x234, 0x235.
 .thumb_func_start OvlFunc_969_200b7c4
 	push	{r5, r6, lr}
 	mov	r0, #0x14

@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 36 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetSlotDrawPriority
 .thumb_func_start OvlFunc_934_2009938
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -40,6 +45,16 @@
 	bx	r0
 .func_end OvlFunc_934_2009938
 
+@ 238 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSlotDrawPriority x2, OvlFunc_common0_70, TestSaveBit x2, SetSaveBit x2
+@   WaitFrames, TestSaveBit, PlaceSlotAt, GetSlotEntityChecked
+@   OvlFunc_common0_70, CopyMapRectAttributes, OvlFunc_1770, TestSaveBit
+@   CopyMapRectAttributes, TestSaveBit
+@   ... and 14 more
+@ reads save bits 0x70, 0x109, 0x200, 0x201, 0x202; sets 0x200, 0x201.
 .thumb_func_start OvlFunc_934_2009984
 	push	{r5, r6, lr}
 	ldr	r2, =gState

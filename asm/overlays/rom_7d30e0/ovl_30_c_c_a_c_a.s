@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Map edit: 2 attribute copies.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
 .thumb_func_start OvlFunc_948_2009c6c
 	push	{r5, lr}
 	sub	sp, #8
@@ -27,6 +30,11 @@
 	bx	r0
 .func_end OvlFunc_948_2009c6c
 
+@ 19 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, GetSlotEntityChecked
 .thumb_func_start OvlFunc_948_2009ca0
 	push	{lr}
 	sub	sp, #8
@@ -49,6 +57,11 @@
 	bx	r0
 .func_end OvlFunc_948_2009ca0
 
+@ 19 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, GetSlotEntityChecked
 .thumb_func_start OvlFunc_948_2009ccc
 	push	{lr}
 	sub	sp, #8
@@ -71,6 +84,13 @@
 	bx	r0
 .func_end OvlFunc_948_2009ccc
 
+@ 45 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, TestSaveBit, OvlFunc_1ca0, SetSaveBit
+@   OvlFunc_1ccc, OvlFunc_1ca0, OvlFunc_1c6c
+@ reads save bit 0x300; sets 0x300.
 .thumb_func_start OvlFunc_948_2009cf8
 	push	{r5, r6, r7, lr}
 	mov	r0, #0xa

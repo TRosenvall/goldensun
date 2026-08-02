@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ 156 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random, SetEntityMoveTarget, PlaySound, TurnSlotToAngle x2
+@   Random, GetSlotEntityChecked, PlayInteractionEffect, GetSlotEntityChecked
+@   SetEntityMoveTarget x2
 .thumb_func_start OvlFunc_943_2008598
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -189,6 +196,13 @@
 	bx	r1
 .func_end OvlFunc_943_2008598
 
+@ 153 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random, SetEntityMoveTarget, PlaySound, TurnSlotToAngle x2
+@   Random, GetSlotEntityChecked, PlayInteractionEffect, GetSlotEntityChecked
+@   SetEntityMoveTarget
 .thumb_func_start OvlFunc_943_2008724
 	push	{r5, r6, lr}
 	mov	r5, r0

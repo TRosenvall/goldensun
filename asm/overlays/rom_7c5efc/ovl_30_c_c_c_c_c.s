@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 299 instructions of straight-line script --
+@ 10 turns, 17 animation changes, 9 dialogue lines, 12 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x254e.
+@ Sets save bit 0x94f.
 .thumb_func_start OvlFunc_941_2009448
 	push	{r5, lr}
 	mov	r0, #1
@@ -305,6 +310,10 @@
 	bx	r0
 .func_end OvlFunc_941_2009448
 
+@ Cutscene: roughly 263 instructions of straight-line script --
+@ 11 turns, 17 animation changes, 4 dialogue lines, 11 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x2558.
 .thumb_func_start OvlFunc_941_2009760
 	push	{r5, lr}
 	mov	r1, #0xa0
@@ -574,6 +583,16 @@
 	bx	r0
 .func_end OvlFunc_941_2009760
 
+@ 67 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetEntityActorOptions, GetSlotEntityChecked, SetEntityActorOptions
+@   GetSlotEntityChecked, SetEntityActorOptions, GetSlotEntityChecked, SetEntityActorOptions
+@   GetSlotEntityChecked, TestSaveBit, OvlFunc_210, TestSaveBit
+@   OvlFunc_384, TestSaveBit
+@   ... and 5 more
+@ reads save bits 0x200, 0x201, 0x202, 0x203.
 .thumb_func_start OvlFunc_941_2009a0c
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc

@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_888_2008070
 	push	{lr}
 	ldr	r3, =gState
@@ -71,6 +74,9 @@
 	bx	r1
 .func_end OvlFunc_888_2008070
 
+@ Slot 4: the map object table.
+@ Chooses among .L168, .L3e70, .L3ec4, .L3f0c, .L40ec, .L4038, .L4080, .L3fd8, .L3f78, .L3e34
+@ on save bits 0x815, 0x87a and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
 .thumb_func_start OvlFunc_888_200814c
 	push	{lr}
 	ldr	r3, =gState
@@ -168,6 +174,9 @@
 	bx	r1
 .func_end OvlFunc_888_200814c
 
+@ Talk: lines 0x1289, 0x1377, 0x1ce9, shown.
+@ Which line is chosen by save bit 0x855.
+@ Also turns to face the player.
 .thumb_func_start OvlFunc_888_200827c
 	push	{lr}
 	bl	__CutsceneStart
@@ -210,6 +219,14 @@
 	bx	r0
 .func_end OvlFunc_888_200827c
 
+@ 37 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, TestSaveBit, SetActiveMessageId x3, SetSlotWalkBehaviour
+@   SetSlotAnimation, DialogueWait, ShowMessageAndWait, SetSlotScriptWithTurn
+@   EndCutscene
+@ message ids 0x128b, 0x1379, 0x1ceb; reads save bit 0x855.
 .thumb_func_start OvlFunc_888_20082ec
 	push	{lr}
 	bl	__CutsceneStart
@@ -253,6 +270,11 @@
 	bx	r0
 .func_end OvlFunc_888_20082ec
 
+@ Cutscene: roughly 149 instructions of straight-line script --
+@ 3 turns, 2 animation changes, 0 dialogue lines, 11 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1164.
+@ Sets save bit 0x9f0.
 .thumb_func_start OvlFunc_888_2008360
 	push	{lr}
 	bl	__CutsceneStart
@@ -411,6 +433,14 @@
 	bx	r0
 .func_end OvlFunc_888_2008360
 
+@ 54 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, AddSceneRecord, WaitFrames, SetActiveMessageId
+@   OpenMessageBoxForSlot, RunFieldAbilityPrompt, ShowMessageAndWait, ShowMessageAtSlotOffset
+@   ShowMessageAndWait, EndCutscene
+@ message id 0x1bfd.
 .thumb_func_start OvlFunc_888_20084e8
 	push	{r5, lr}
 	sub	sp, #0x1c

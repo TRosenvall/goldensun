@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 137 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   call_via_r3, CallHookScaled, call_via_r9 x2
 .thumb_func_start OvlFunc_923_2009cb4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -153,6 +158,12 @@
 	bx	r1
 .func_end OvlFunc_923_2009cb4
 
+@ 86 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, SetEntityScript, SetActorAnimation, SpawnEntity
+@   SetEntityScript, SetActorAnimation, PlaySound
 .thumb_func_start OvlFunc_923_2009df8
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ebc
@@ -251,6 +262,13 @@
 	bx	r0
 .func_end OvlFunc_923_2009df8
 
+@ 124 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SpawnEntity, SetEntityScript, OvlFunc_1df8
+@   WaitFrames, SetEntityAnimation, SetSaveBit, EndCutscene
+@ sets 0x161.
 .thumb_func_start OvlFunc_923_2009ec8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

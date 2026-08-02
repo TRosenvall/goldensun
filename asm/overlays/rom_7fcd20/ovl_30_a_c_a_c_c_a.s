@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 75 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OpenMenuById, RegisterCallback x3, OvlFunc_4c, WaitFrames
+@   RunMenuModalSimple, CloseWindow
 .thumb_func_start OvlFunc_974_200807c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -86,6 +92,7 @@
 	bx	r0
 .func_end OvlFunc_974_200807c
 
+@ Wrapper: OvlFunc_7c(0xc9b).
 .thumb_func_start OvlFunc_974_2008130
 	push	{lr}
 	ldr	r0, =0xc9b
@@ -96,6 +103,7 @@
 	bx	r0
 .func_end OvlFunc_974_2008130
 
+@ Wrapper: OvlFunc_7c(0xcc6).
 .thumb_func_start OvlFunc_974_2008148
 	push	{lr}
 	ldr	r0, =0xcc6
@@ -106,6 +114,7 @@
 	bx	r0
 .func_end OvlFunc_974_2008148
 
+@ Wrapper: OvlFunc_7c(0xcf1, 0xc9b).
 .thumb_func_start OvlFunc_974_2008160
 	push	{lr}
 	ldr	r3, =0xc9b
@@ -117,6 +126,7 @@
 	bx	r0
 .func_end OvlFunc_974_2008160
 
+@ Wrapper: OvlFunc_7c(0xd21).
 .thumb_func_start OvlFunc_974_2008180
 	push	{lr}
 	ldr	r0, =0xd21
@@ -127,6 +137,7 @@
 	bx	r0
 .func_end OvlFunc_974_2008180
 
+@ Wrapper: OvlFunc_7c(0xd4c, 0xc9b).
 .thumb_func_start OvlFunc_974_2008198
 	push	{lr}
 	ldr	r3, =0xc9b
@@ -138,6 +149,7 @@
 	bx	r0
 .func_end OvlFunc_974_2008198
 
+@ Wrapper: OvlFunc_7c(0xd77, 0xc9b).
 .thumb_func_start OvlFunc_974_20081b8
 	push	{lr}
 	ldr	r3, =0xc9b
@@ -149,6 +161,7 @@
 	bx	r0
 .func_end OvlFunc_974_20081b8
 
+@ Wrapper: OvlFunc_7c(0xda2, 0xc9b).
 .thumb_func_start OvlFunc_974_20081d8
 	push	{lr}
 	ldr	r3, =0xc9b

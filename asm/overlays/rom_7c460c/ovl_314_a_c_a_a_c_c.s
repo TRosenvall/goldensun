@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Slot 4: the map object table.
+@ Chooses among .L23b4, .L21bc, .L1fc4
+@ on save bit 0x941 and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
 .thumb_func_start OvlFunc_939_20086e4
 	push	{lr}
 	ldr	r3, =gState

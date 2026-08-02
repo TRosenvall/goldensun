@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 126 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound x2, SetEntityMoveTarget, WaitForEntityIdle, SetEntityAnimation
+@   WaitFrames, SetEntityAnimation, WaitFrames, FreePart
+@   GetSlotEntity, PlaySound, SetEntityAnimation, SetEntityMoveTarget
+@   WaitFrames, PlaySound
 .thumb_func_start OvlFunc_932_200b484
 	push	{r5, r6, lr}
 	mov	r6, r11

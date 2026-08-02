@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RegisterTask
 .thumb_func_start OvlFunc_956_20081b4
 	push	{lr}
 	mov	r1, #0xc8
@@ -11,6 +16,8 @@
 	bx	r0
 .func_end OvlFunc_956_20081b4
 
+@ Countdown loop: waits ten frames, then polls a scratch word once per
+@ frame until it reaches a target or the attempt limit runs out.
 .thumb_func_start OvlFunc_956_20081c8
 	push	{r5, lr}
 	mov	r0, #0xa
@@ -40,6 +47,9 @@
 	bx	r0
 .func_end OvlFunc_956_20081c8
 
+@ Adjusts a slot entity directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x8.
 .thumb_func_start OvlFunc_956_2008204
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc
@@ -72,6 +82,10 @@
 	bx	r0
 .func_end OvlFunc_956_2008204
 
+@ Map edit: 1 attribute copy.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
+@ Records it with save bit 0x360.
 .thumb_func_start OvlFunc_956_200824c
 	push	{lr}
 	mov	r0, #0xd8
@@ -92,6 +106,13 @@
 	bx	r0
 .func_end OvlFunc_956_200824c
 
+@ 51 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, SetEntityMoveTarget, GetSlotEntityChecked, SetEntityMoveTarget
+@   SetSaveBit, CopyMapRectAttributes x2
+@ sets 0x362.
 .thumb_func_start OvlFunc_956_2008274
 	push	{r5, r6, lr}
 	mov	r0, #9
@@ -146,6 +167,16 @@
 	bx	r0
 .func_end OvlFunc_956_2008274
 
+@ 108 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, GetSlotEntityChecked, MoveSlotTo, WaitForSlotArrival
+@   GetSlotEntityChecked, SetEntityMoveTarget, GetSlotEntityChecked, SetEntityMoveTarget
+@   GetSlotEntityChecked, SetEntityMoveTarget, SetEntityActorOptions, WaitForSlotArrival
+@   CopyMapRectAttributes, WaitFrames
+@   ... and 2 more
+@ reads save bit 0x362; sets 0x367.
 .thumb_func_start OvlFunc_956_20082f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -259,6 +290,14 @@
 	bx	r0
 .func_end OvlFunc_956_20082f8
 
+@ 62 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSlotAnimation, GetSlotEntityChecked, SetEntityMoveTarget, GetSlotEntityChecked
+@   SetEntityMoveTarget, WaitForSlotArrival, CopyMapRectAttributes, WaitFrames
+@   ClearSaveBit
+@ clears 0x367.
 .thumb_func_start OvlFunc_956_2008404
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -324,6 +363,14 @@
 	bx	r0
 .func_end OvlFunc_956_2008404
 
+@ 93 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, SetEntityActorOptions, SetEntityMoveTarget, GetSlotEntityChecked
+@   SetEntityMoveTarget, GetSlotEntityChecked, SetEntityMoveTarget, SetSaveBit
+@   CopyMapRectAttributes x2
+@ sets 0x368.
 .thumb_func_start OvlFunc_956_20084a4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

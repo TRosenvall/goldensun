@@ -1,5 +1,22 @@
 	.include "macros.inc"
 
+@ StampPlayerFootprintSolid
+@ No arguments. Returns 1 if the player is standing as one of the six pushable
+@ models, 0 otherwise.
+@
+@ Called on map entry. The player entity here is not the party leader but the
+@ log itself -- these maps place the log in slot 0 during setup -- so this reads
+@ its model id at [[entity+0x50]+0x28], finds it in .L61d0, and marks the map
+@ cells it covers solid before the player can reach them. Without it a log would
+@ start the map passable and only become an obstacle after the first push.
+@
+@ The search loop leaves index 7 in the slot when nothing matches (`mov r6, #7`
+@ stored each pass), which the `cmp r2, #6 / bls` test then rejects. Index 0 is
+@ handled by a separate branch before the loop, since the loop writes its
+@ counter only after the first increment.
+@
+@ The work is the same closing pair as OvlFunc_608: Func_10704 to repaint the
+@ attributes, then OvlFunc_244 with 0xFF on layer 0 and layer 2.
 .thumb_func_start OvlFunc_883_20088c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

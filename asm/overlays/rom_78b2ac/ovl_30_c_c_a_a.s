@@ -1,5 +1,15 @@
 	.include "macros.inc"
 
+@ 58 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_25b0, TestSaveBit, BeginCutscene, StartFadeOut
+@   WaitForFade, SetSaveBit, ClearSaveBit x2, TestSaveBit
+@   OvlFunc_9f4, OvlFunc_25b0, TestSaveBit, OvlFunc_1be8
+@   EndCutscene, TestSaveBit
+@   ... and 6 more
+@ reads save bits 0x200, 0x201, 0x80a, 0x811; sets 0x200, 0x201; clears 0x200, 0x201, 0x202.
 .thumb_func_start OvlFunc_890_2008054
 	push	{lr}
 	bl	OvlFunc_890_200a5b0
@@ -65,6 +75,13 @@
 	bx	r0
 .func_end OvlFunc_890_2008054
 
+@ 23 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, BeginCutscene, StartFadeOut, WaitForFade
+@   SetSaveBit, ClearSaveBit x2, EndCutscene
+@ reads save bit 0x200; sets 0x200; clears 0x201, 0x202.
 .thumb_func_start OvlFunc_890_2008108
 	push	{lr}
 	mov	r0, #0x80
@@ -92,6 +109,16 @@
 	bx	r0
 .func_end OvlFunc_890_2008108
 
+@ 50 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_25b0, TestSaveBit, BeginCutscene, StartFadeOut
+@   WaitForFade, SetSaveBit, ClearSaveBit x2, EndCutscene
+@   TestSaveBit, BeginCutscene, StartFadeOut, WaitForFade
+@   SetSaveBit, ClearSaveBit x2
+@   ... and 3 more
+@ reads save bits 0x200, 0x201, 0x80a; sets 0x200, 0x201; clears 0x200, 0x201, 0x202.
 .thumb_func_start OvlFunc_890_2008150
 	push	{lr}
 	bl	OvlFunc_890_200a5b0
@@ -148,6 +175,13 @@
 	bx	r0
 .func_end OvlFunc_890_2008150
 
+@ 19 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, StartFadeOut, WaitForFade, SetSaveBit
+@   ClearSaveBit x2
+@ reads save bit 0x202; sets 0x202; clears 0x200, 0x201.
 .thumb_func_start OvlFunc_890_20081ec
 	push	{lr}
 	ldr	r0, =0x202

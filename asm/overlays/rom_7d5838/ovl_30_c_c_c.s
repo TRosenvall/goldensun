@@ -1,5 +1,6 @@
 	.include "macros.inc"
 
+@ Talk: line 0x23A8 with interaction effect 0x103 first.
 .thumb_func_start OvlFunc_950_2008898
 	push	{r5, lr}
 	mov	r5, r0
@@ -19,6 +20,7 @@
 	bx	r0
 .func_end OvlFunc_950_2008898
 
+@ Talk: line 0x23AC, asked as a yes/no.
 .thumb_func_start OvlFunc_950_20088cc
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -52,6 +54,7 @@
 	bx	r0
 .func_end OvlFunc_950_20088cc
 
+@ Counter: shop type 0x1F through UI_Sanctum. Lines 0x23BF / 0x2231 / 0x1FEB.
 .thumb_func_start OvlFunc_950_200891c
 	push	{r5, lr}
 	mov	r5, r0

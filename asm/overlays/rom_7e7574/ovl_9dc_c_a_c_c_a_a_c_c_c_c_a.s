@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 173 instructions of straight-line script --
+@ 2 turns, 8 animation changes, 7 dialogue lines, 5 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x2438.
+@ Sets save bit 0x94a.
 .thumb_func_start OvlFunc_959_2009e94
 	push	{r5, lr}
 	mov	r0, #0
@@ -176,6 +181,12 @@
 	bx	r0
 .func_end OvlFunc_959_2009e94
 
+@ 37 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, PlaceSlotAt x3, SetSlotAnimation x3, FaceEntityInstant
+@   EndCutscene, ShowScreenOverlay
 .thumb_func_start OvlFunc_959_200a06c
 	push	{lr}
 	bl	__CutsceneStart

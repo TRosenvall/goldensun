@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 47 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit x3, SetSaveBit
+@ reads save bits 0x85a, 0x941, 0x94f; sets 0x235.
 .thumb_func_start OvlFunc_881_200837c
 	push	{lr}
 	ldr	r3, =gState
@@ -95,6 +101,11 @@
 	bx	r1
 .func_end OvlFunc_881_200837c
 
+@ 32 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, PlaySound
 .thumb_func_start OvlFunc_881_20084a0
 	push	{r5, r6, r7, lr}
 	sub	r0, #0x64
@@ -132,6 +143,11 @@
 	bx	r0
 .func_end OvlFunc_881_20084a0
 
+@ 32 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, PlaySound
 .thumb_func_start OvlFunc_881_20084f0
 	push	{r5, r6, r7, lr}
 	sub	r0, #0x64

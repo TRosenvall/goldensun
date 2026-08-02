@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ 14 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetActiveMessageId, OvlFunc_3bc, TurnSlotToAngle
+@   EndCutscene
+@ message id 0x1253.
 .thumb_func_start OvlFunc_899_2008428
 	push	{lr}
 	bl	__CutsceneStart

@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 97 instructions of straight-line script --
+@ 2 turns, 0 animation changes, 4 dialogue lines, 10 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x1f18, 0x1f1c.
+@ Reads save bits 0x8a6, 0x8a8.
+@ Sets save bit 0x8a8.
 .thumb_func_start OvlFunc_942_20086c8
 	push	{lr}
 	bl	__CutsceneStart
@@ -105,6 +111,13 @@
 	bx	r0
 .func_end OvlFunc_942_20086c8
 
+@ 51 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, PlaySound, SetSlotEntitySpeed, SetSlotDrawPriority
+@   WalkSlotTo, PlayMapRectAnimation, WalkSlotTo, PlayMapRectAnimation
+@   DialogueWait, SetPendingMessageId, EndCutscene
 .thumb_func_start OvlFunc_942_20087dc
 	push	{lr}
 	bl	__CutsceneStart
@@ -161,6 +174,12 @@
 	bx	r0
 .func_end OvlFunc_942_20087dc
 
+@ 35 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit, OvlFunc_8cc, OvlFunc_958, OvlFunc_ad4
+@ sets 0x950.
 .thumb_func_start OvlFunc_942_200886c
 	push	{r5, lr}
 	ldr	r5, =gState
@@ -203,6 +222,13 @@
 	bx	r1
 .func_end OvlFunc_942_200886c
 
+@ 50 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, SetSaveBit, OvlFunc_ba0, TestSaveBit
+@   ClearSaveBit, TestSaveBit x2, PlaceSlotAt, TurnSlotToAngle
+@ reads save bits 0x109, 0x8a9, 0x8ac, 0x911; sets 0x8ac; clears 0x8a9.
 .thumb_func_start OvlFunc_942_20088cc
 	push	{r5, lr}
 	ldr	r5, =gState
@@ -259,6 +285,10 @@
 	bx	r0
 .func_end OvlFunc_942_20088cc
 
+@ Cutscene: roughly 156 instructions of straight-line script --
+@ 5 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x8aa, 0x8ab, 0x950.
 .thumb_func_start OvlFunc_942_2008958
 	push	{r5, r6, lr}
 	sub	sp, #8

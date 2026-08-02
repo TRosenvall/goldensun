@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ 83 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, SetFollowerFormationAndRefresh, SetActiveMessageId
+@   ShowMessageAndWait, SetSlotEntitySpeed, SetSlotScriptWithTurn x3, WaitForSlotScriptIdle
+@   EndCutscene
+@ message id 0x12ac.
 .thumb_func_start OvlFunc_899_20085bc
 	push	{r5, lr}
 	mov	r0, #0x18
@@ -100,6 +108,10 @@
 	bx	r0
 .func_end OvlFunc_899_20085bc
 
+@ Cutscene: roughly 115 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 1 dialogue line, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x12ad.
 .thumb_func_start OvlFunc_899_2008690
 	push	{r5, r6, r7, lr}
 	mov	r0, #0x19

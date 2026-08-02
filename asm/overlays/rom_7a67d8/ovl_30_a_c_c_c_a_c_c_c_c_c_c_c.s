@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ApplyRasterBlend
+@ Takes no arguments. Allocates the 0x540-byte overlay state in mode 9, then
+@ programs the blend: REG_BLDCNT = 0x3F42, REG_BLDALPHA = 0x0C04, and three
+@ fields inside the state block at [iwram_1ecc] -- +0x534 = 0x3F3F,
+@ +0x536 = 0x1F, +0x52A = 0x0A. The same block is set up again by OvlFunc_200
+@ on map load, so this is the re-entry path.
 .thumb_func_start OvlFunc_919_200815c
 	push	{lr}
 	mov	r0, #9

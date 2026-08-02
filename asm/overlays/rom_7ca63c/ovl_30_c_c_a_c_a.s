@@ -1,5 +1,15 @@
 	.include "macros.inc"
 
+@ 148 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit, TestSaveBit x4, Random x2, RegisterTask
+@   TestSaveBit x2, PlaceSlotAt, TestSaveBit, GetSlotEntityChecked
+@   BeginCutscene, DialogueChoiceB, MoveCameraTo, WaitFrames
+@   AttachCameraToSlot, UpdateMapView
+@   ... and 9 more
+@ reads save bits 0x109, 0x8a0, 0x925, 0x927, 0x928; sets 0x144.
 .thumb_func_start OvlFunc_944_2008240
 	push	{r5, lr}
 	mov	r0, #0xa2

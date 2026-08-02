@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ 18 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, PlayMapRectAnimation, WalkSlotTo, DialogueWait
+@   OvlFunc_15c
 .thumb_func_start OvlFunc_882_2008198
 	push	{lr}
 	mov	r0, #0x9e

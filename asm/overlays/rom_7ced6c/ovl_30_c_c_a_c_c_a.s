@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ 72 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, BeginCutscene, SetSpawnPositionA, LoadMapByIdAndEntrance x5
+@   EndCutscene, PlayMapRectAnimation, PlaySound, SetPendingMessageId
 .thumb_func_start OvlFunc_946_20093ac
 	push	{r5, r6, r7, lr}
 	ldr	r6, =gState
@@ -102,6 +108,13 @@
 	bx	r0
 .func_end OvlFunc_946_20093ac
 
+@ 35 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetSlotEntitySpeed, ShowScreenOverlay, WaitSceneDelay
+@   SetSaveBit, DialogueWait, PlayMapRectAnimation, WalkSlotThroughDoorway
+@   SetPendingMessageId, EndCutscene
 .thumb_func_start OvlFunc_946_2009494
 	push	{lr}
 	bl	__CutsceneStart
@@ -140,6 +153,12 @@
 	bx	r0
 .func_end OvlFunc_946_2009494
 
+@ 27 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, SetEntityActorOptions, SetTileFlags, SetSaveBit
+@ sets 0x240.
 .thumb_func_start OvlFunc_946_2009508
 	push	{r5, lr}
 	mov	r5, r0
@@ -171,6 +190,12 @@
 	bx	r0
 .func_end OvlFunc_946_2009508
 
+@ 26 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, SetEntityActorOptions, SetTileFlags, SetSaveBit
+@ sets 0x241.
 .thumb_func_start OvlFunc_946_2009548
 	push	{r5, lr}
 	mov	r5, r0
@@ -201,6 +226,12 @@
 	bx	r0
 .func_end OvlFunc_946_2009548
 
+@ 26 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, SetEntityActorOptions, SetTileFlags, SetSaveBit
+@ sets 0x242.
 .thumb_func_start OvlFunc_946_200958c
 	push	{r5, lr}
 	mov	r5, r0

@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ 15 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, ShowScreenOverlay, SetSlotEntitySpeed, MoveSlotToAndWait
+@   EndCutscene
 .thumb_func_start OvlFunc_921_20099bc
 	push	{lr}
 	bl	__CutsceneStart
@@ -18,6 +24,11 @@
 	bx	r0
 .func_end OvlFunc_921_20099bc
 
+@ Cutscene: roughly 506 instructions of straight-line script --
+@ 31 turns, 16 animation changes, 21 dialogue lines, 16 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x165b.
+@ Sets save bit 0x82e.
 .thumb_func_start OvlFunc_921_20099e8
 	push	{r5, r6, r7, lr}
 	bl	__CutsceneStart
@@ -532,6 +543,11 @@
 	bx	r0
 .func_end OvlFunc_921_20099e8
 
+@ 55 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetEntityAnimation x2, SetEntityAnimSpeed
 .thumb_func_start OvlFunc_921_2009f24
 	push	{r5, lr}
 	mov	r5, r0
@@ -595,6 +611,15 @@
 	bx	r0
 .func_end OvlFunc_921_2009f24
 
+@ 192 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntity, BeginCutscene, GetTileFlags, RotateVector
+@   GetTileFlags, GetTerrainHeight, SetEntityMoveTarget, SetEntityAnimation
+@   SetEntityAnimSpeed, WaitForEntityIdle, GetTerrainHeight, SetEntityMoveTarget
+@   WaitForEntityIdle, RotateVector
+@   ... and 5 more
 .thumb_func_start OvlFunc_921_2009fa4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Cutscene: roughly 339 instructions of straight-line script --
+@ 6 turns, 9 animation changes, 13 dialogue lines, 13 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x1c66, 0x1c6f.
+@ Reads save bit 0x81c.
+@ Sets save bits 0x203, 0x81e.
 .thumb_func_start OvlFunc_887_2008f90
 	push	{r5, lr}
 	bl	__CutsceneStart
@@ -347,6 +353,14 @@
 	bx	r0
 .func_end OvlFunc_887_2008f90
 
+@ 39 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, TestSaveBit, SetSlotChaseTarget, DialogueWait
+@   SetActiveMessageId, ShowMessageAndWait, SetFollowerFormationAndRefresh, DialogueWait
+@   SetActiveMessageId, ShowMessageAndPause, RunTextBoxModal, EndCutscene
+@ message ids 0x1c77, 0x1c79; reads save bit 0x203.
 .thumb_func_start OvlFunc_887_200933c
 	push	{r5, lr}
 	bl	__CutsceneStart
@@ -391,6 +405,7 @@
 	bx	r0
 .func_end OvlFunc_887_200933c
 
+@ Map edit: 1 metatile copy and 1 attribute copy.
 .thumb_func_start OvlFunc_887_20093b4
 	push	{lr}
 	sub	sp, #8
@@ -415,6 +430,9 @@
 	bx	r0
 .func_end OvlFunc_887_20093b4
 
+@ Cutscene: roughly 140 instructions of straight-line script --
+@ 2 turns, 0 animation changes, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_887_20093e4
 	push	{r5, r6, lr}
 	mov	r6, r8

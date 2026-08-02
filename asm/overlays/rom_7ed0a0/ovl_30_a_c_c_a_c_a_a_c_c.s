@@ -1,5 +1,15 @@
 	.include "macros.inc"
 
+@ 170 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked, DialogueWait, OvlFunc_9f4
+@   GetSlotEntityChecked, PlaySound, WaitFrames, GetSlotEntityChecked
+@   Random x2, OvlFunc_ae8, CopyMapRectAttributes, DialogueWait
+@   GetSlotEntityChecked, SetSlotAnimation
+@   ... and 14 more
+@ sets 0x971.
 .thumb_func_start OvlFunc_964_2009550
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

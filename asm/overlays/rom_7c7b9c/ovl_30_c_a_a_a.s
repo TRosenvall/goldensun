@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Slot 3: the read after slot 4.
+@ Chooses among .L5508, .L4ef0, .L5028, .L4cf8, .L4ba8
+@ on save bits 0x911, 0x922, 0x925, 0x927, 0x928, 0x93e.
 .thumb_func_start OvlFunc_943_2008950
 	push	{r5, lr}
 	ldr	r0, =0x93e

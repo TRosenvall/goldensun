@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 26 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_2660, OvlFunc_c4
 .thumb_func_start OvlFunc_965_200a6fc
 	push	{r5, lr}
 	mov	r0, #0
@@ -32,6 +37,12 @@
 	bx	r0
 .func_end OvlFunc_965_200a6fc
 
+@ 45 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_2660, DialogueChoiceB, DialogueChoiceA
+@   OvlFunc_26fc
 .thumb_func_start OvlFunc_965_200a738
 	push	{r5, lr}
 	mov	r0, #0
@@ -84,6 +95,9 @@
 	bx	r0
 .func_end OvlFunc_965_200a738
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_965_200a7a0
 	push	{lr}
 	ldr	r3, =gState

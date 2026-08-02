@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ Slot 3: the read after slot 4.
+@ Chooses among .L1df4, .L1ddc
+@ on the area/entrance id at ewram_240+0x1C0 or +0x1C2.
+@ The result is passed through Func_8b868 first, which tags the records
+@ whose position falls inside the active bounds.
 .thumb_func_start OvlFunc_938_200806c
 	push	{r5, lr}
 	ldr	r3, =gState
@@ -24,6 +29,9 @@
 	bx	r1
 .func_end OvlFunc_938_200806c
 
+@ Leaf helper, 15 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_938_20080a4
 	push	{lr}
 	ldr	r3, =gState

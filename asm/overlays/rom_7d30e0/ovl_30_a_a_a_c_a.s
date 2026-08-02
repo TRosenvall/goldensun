@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ FindEntityAtPosition
+@ First map-object slot (8..0x41) standing at a position.
+@ Byte-identical to OvlFunc_6c in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
 .thumb_func_start OvlFunc_948_200806c
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ebc
@@ -49,6 +53,11 @@
 	bx	r1
 .func_end OvlFunc_948_200806c
 
+@ TryPushBlockOneTile
+@ Interaction handler for a single-tile pushable block.
+@ Byte-identical to OvlFunc_c4 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
+@ Here .L2644 is the facing->step table.
 .thumb_func_start OvlFunc_948_20080c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -228,6 +237,10 @@
 	bx	r0
 .func_end OvlFunc_948_20080c4
 
+@ FillMapRectCollisionByte
+@ Stamp one byte over a rectangle of map collision cells.
+@ Byte-identical to OvlFunc_244 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
 .thumb_func_start OvlFunc_948_2008244
 	push	{r5, r6, lr}
 	mov	r4, r3

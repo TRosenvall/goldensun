@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ 59 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_4fa8 x2, BeginCutscene, OvlFunc_48e8 x2, OvlFunc_37b4
+@   OvlFunc_48e8, SetSlotAnimation, SetSlotScriptWithTurn, DespawnSlotEntity
+@   SetSlotScriptWithTurn, DespawnSlotEntity, SetSlotScriptWithTurn x2, SetSlotPalette x2
+@   OvlFunc_50e4, EndCutscene
 .thumb_func_start OvlFunc_945_200d6dc
 	push	{r5, r6, lr}
 	mov	r6, r8

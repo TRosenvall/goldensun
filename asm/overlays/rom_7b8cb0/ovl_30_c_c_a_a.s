@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ Slot 3: the read after slot 4.
+@ Chooses among .L140c, .L15bc, .L13f4
+@ on save bits 0x8fd, 0x8fe, 0x907, 0x909 and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
+@ The result is passed through Func_8b868 first, which tags the records
+@ whose position falls inside the active bounds.
 .thumb_func_start OvlFunc_931_200807c
 	push	{r5, lr}
 	ldr	r3, =gState
@@ -65,6 +70,9 @@
 	bx	r1
 .func_end OvlFunc_931_200807c
 
+@ Leaf helper, 20 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_931_200811c
 	push	{lr}
 	ldr	r3, =gState

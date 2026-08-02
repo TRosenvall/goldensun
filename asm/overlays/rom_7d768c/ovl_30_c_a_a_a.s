@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Slot 3: the read after slot 4.
+@ Chooses among .L4b3c, .L4e6c, .L4d64, .L4b84
+@ on save bits 0x950, 0x962 and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
 .thumb_func_start OvlFunc_952_2008070
 	push	{lr}
 	ldr	r3, =gState
@@ -35,6 +38,7 @@
 	bx	r1
 .func_end OvlFunc_952_2008070
 
+@ Talk: line 0x1ff1, shown.
 .thumb_func_start OvlFunc_952_20080c8
 	push	{r5, r6, lr}
 	ldr	r5, =0x1ff1
@@ -64,6 +68,12 @@
 	bx	r0
 .func_end OvlFunc_952_20080c8
 
+@ Cutscene: roughly 130 instructions of straight-line script --
+@ 4 turns, 1 animation change, 3 dialogue lines, 4 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x1ff7, 0x1ff8.
+@ Reads save bit 0x200.
+@ Sets save bits 0x200, 0x969.
 .thumb_func_start OvlFunc_952_2008108
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -206,6 +216,12 @@
 	bx	r0
 .func_end OvlFunc_952_2008108
 
+@ Cutscene: roughly 81 instructions of straight-line script --
+@ 2 turns, 1 animation change, 1 dialogue line, 4 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x2241, 0x2245.
+@ Reads save bit 0x966.
+@ Sets save bits 0x966, 0x967.
 .thumb_func_start OvlFunc_952_2008264
 	push	{r5, r6, lr}
 	mov	r5, r0

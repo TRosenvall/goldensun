@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ Slot 3: read after slot 4.
+@ Area 0xAA -> .Lba8. Area 0xA9 splits on save bit 0x96F -- .Lc98 once set,
+@ .Lc50 before. Anything else -> .Lb90. Note the area tested here (0xA9) is
+@ NOT one of the two slot 4 distinguishes (0xAA, 0xAB), so the two slots key on
+@ different areas; they are not simply parallel.
 .thumb_func_start OvlFunc_963_200808c
 	push	{lr}
 	ldr	r3, =gState
@@ -33,6 +38,7 @@
 	bx	r1
 .func_end OvlFunc_963_200808c
 
+@ Slot 4: the map object table, one per area.
 .thumb_func_start OvlFunc_963_20080e4
 	push	{lr}
 	ldr	r3, =gState
@@ -59,6 +65,25 @@
 	bx	r1
 .func_end OvlFunc_963_20080e4
 
+@ Slot 0: map-load entry.
+@
+@ Save bit 0x89F stages a destination up front -- ewram_240+0x1C4 = 0x69 and
+@ +0x1C6 = 0x0A -- regardless of area.
+@
+@ Area 0xA9:
+@   - save bit 0x897 teleports slot 0x0A to the origin with MapActor_SetPos,
+@   - entrance 3 reads the route pair back: bit 0x8FB writes mode 1 and bit
+@     0x8FC mode 5 into ewram_240+0x242, with the area id going to +0x240, then
+@     clears save bit 0x12F,
+@   - entrance 1 SETS 0x8FB, and unless 0x96F is already set repaints a 2x1
+@     attribute cell from (6, 0) to (0x1B, 8),
+@   - entrance 5 sets 0x8FC.
+@   So the two entrances record which way in the player came, and entrance 3 --
+@   the exit -- turns that into where they go next.
+@
+@ Area 0xAA: five slots are put into standing animations (8, 9, 0x0B into 4;
+@ 0x0A, 0x0C into 3), slot 0x0F gets motion rate 0x19999 at +0x1C, and a
+@ 0x66 x 0x38 attribute block is copied from (0x6C, 0x26).
 .thumb_func_start OvlFunc_963_2008124
 	push	{r5, r6, lr}
 	ldr	r0, =0x89f
@@ -206,6 +231,12 @@
 	bx	r1
 .func_end OvlFunc_963_2008124
 
+@ CrossThreshold
+@ Takes no arguments. Clears the player's flag byte +0x55, plays sound 0x9E, and
+@ animates a doorway with two CopyMapTiles metatile copies four frames apart --
+@ source rows 0x42 then 0x44 into the 8x2 block at (0x24, 0x47). Then
+@ Func_92208 nudges the player by (3, -0x10) and the interaction target
+@ halfword at [iwram_1ebc]+0x16C is left pending as the next message.
 .thumb_func_start OvlFunc_963_2008288
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc

@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ 36 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit, OvlFunc_16bc, OvlFunc_17e8, OvlFunc_1858
+@   OvlFunc_18a4, OvlFunc_1930
+@ sets 0x87a.
 .thumb_func_start OvlFunc_936_200964c
 	push	{lr}
 	ldr	r0, =0x87a
@@ -44,6 +51,15 @@
 	bx	r1
 .func_end OvlFunc_936_200964c
 
+@ 116 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, SetSaveBit x4, TestSaveBit, SetSaveBit
+@   PlaceSlotAt, SetSlotPalette, TestSaveBit, PlaceSlotAt
+@   GetSlotEntityChecked, galloc_iwram, SetPortraitPointer, AllocObjTiles
+@   Func_2dd8, RegisterTask
+@ reads save bits 0x916, 0x940, 0x941; sets 0x321, 0x912, 0x913, 0x915.
 .thumb_func_start OvlFunc_936_20096bc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

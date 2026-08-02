@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ ShakeTask
+@ The task OvlFunc_92c registers with StartTask when save bit 0x814 is set.
+@ Runs every frame at priority 0xC80.
+@
+@ Uses the word at .L269c as its own counter and drives the map transition
+@ offsets through two .gcc2_compiled. calls, with sound via PlaySound and
+@ Func_4458 to unregister itself when done -- a background tremor that
+@ continues while the player has control, rather than a blocking cutscene.
 .thumb_func_start OvlFunc_895_2009ac8
 	push	{r5, lr}
 	ldr	r5, =.L269c

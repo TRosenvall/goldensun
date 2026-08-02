@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 38 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   DestroyEntity, Sin
 .thumb_func_start OvlFunc_887_20095e8
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -44,6 +49,11 @@
 	bx	r0
 .func_end OvlFunc_887_20095e8
 
+@ 39 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   DestroyEntity, Sin
 .thumb_func_start OvlFunc_887_2009638
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -88,6 +98,11 @@
 	bx	r0
 .func_end OvlFunc_887_2009638
 
+@ 126 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, SetActorAnimation, FreeObjTiles
 .thumb_func_start OvlFunc_887_200968c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

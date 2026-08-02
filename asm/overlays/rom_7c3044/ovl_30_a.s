@@ -1,5 +1,6 @@
 	.include "macros.inc"
 
+@ Slot 1: area 0x64 -> .L4d0, area 0x65 -> .L6c8, otherwise .L4a0.
 .thumb_func_start OvlFunc_937_2008030
 	push	{lr}
 	ldr	r3, =gState

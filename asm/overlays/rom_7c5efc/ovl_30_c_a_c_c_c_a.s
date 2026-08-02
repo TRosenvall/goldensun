@@ -1,5 +1,15 @@
 	.include "macros.inc"
 
+@ 129 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, CopyMapRectFull, WaitFrames, CopyMapRectFull
+@   WaitFrames, CopyMapRectFull, WaitFrames, CopyMapRectFull
+@   WaitFrames, CopyMapRectFull x3, WaitFrames, CopyMapRectFull x3
+@   WaitFrames, SetSlotDrawPriority
+@   ... and 1 more
+@ reads save bit 0x202.
 .thumb_func_start OvlFunc_941_2008210
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -133,6 +143,13 @@
 	bx	r0
 .func_end OvlFunc_941_2008210
 
+@ 22 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit x2, RunTextBoxModal, PlaySound, OvlFunc_210
+@   SetSaveBit, ClearSaveBit
+@ reads save bits 0x200, 0x201; sets 0x201; clears 0x202.
 .thumb_func_start OvlFunc_941_200833c
 	push	{lr}
 	ldr	r0, =0x201
@@ -159,6 +176,12 @@
 	bx	r0
 .func_end OvlFunc_941_200833c
 
+@ 98 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectFull, WaitFrames, CopyMapRectFull x3, WaitFrames
+@   CopyMapRectFull x3, CopyMapRectAttributes x2
 .thumb_func_start OvlFunc_941_2008384
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -260,6 +283,13 @@
 	bx	r0
 .func_end OvlFunc_941_2008384
 
+@ 22 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit x2, RunTextBoxModal, PlaySound, OvlFunc_384
+@   SetSaveBit, ClearSaveBit
+@ reads save bits 0x200, 0x202; sets 0x202; clears 0x201.
 .thumb_func_start OvlFunc_941_2008460
 	push	{lr}
 	mov	r0, #0x80
@@ -286,6 +316,12 @@
 	bx	r0
 .func_end OvlFunc_941_2008460
 
+@ Cutscene: roughly 336 instructions of straight-line script --
+@ 10 turns, 5 animation changes, 8 dialogue lines, 8 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x250d, 0x2512.
+@ Reads save bit 0x941.
+@ Sets save bit 0x94d.
 .thumb_func_start OvlFunc_941_20084a8
 	push	{r5, lr}
 	ldr	r0, =0x941
@@ -633,6 +669,10 @@
 	bx	r0
 .func_end OvlFunc_941_20084a8
 
+@ Cutscene: roughly 904 instructions of straight-line script --
+@ 19 turns, 29 animation changes, 48 dialogue lines, 42 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x2516, 0x253f.
 .thumb_func_start OvlFunc_941_2008828
 	push	{r5, lr}
 	bl	__CutsceneStart
@@ -1549,6 +1589,10 @@
 	bx	r0
 .func_end OvlFunc_941_2008828
 
+@ Cutscene: roughly 93 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 2 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x2547, 0x254b.
 .thumb_func_start OvlFunc_941_20091b8
 	push	{r5, lr}
 	ldr	r5, =0x2547

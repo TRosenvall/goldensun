@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 26 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSlotEntitySpeed, WalkSlotTo, PlaySound, SetPendingMessageId
 .thumb_func_start OvlFunc_899_20099a4
 	push	{lr}
 	mov	r1, #0x80

@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ 39 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, PlaySound, PlayMapRectAnimation, CopyMapRectAttributes
+@   OvlFunc_a80
 .thumb_func_start OvlFunc_901_2008b40
 	push	{r5, r6, lr}
 	mov	r0, #0
@@ -42,6 +48,12 @@
 	bx	r0
 .func_end OvlFunc_901_2008b40
 
+@ 39 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, PlaySound, PlayMapRectAnimation, CopyMapRectAttributes
+@   OvlFunc_a80
 .thumb_func_start OvlFunc_901_2008b9c
 	push	{r5, r6, lr}
 	mov	r0, #0
@@ -84,6 +96,11 @@
 	bx	r0
 .func_end OvlFunc_901_2008b9c
 
+@ 13 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, PlayMapRectAnimation, OvlFunc_a80
 .thumb_func_start OvlFunc_901_2008bf8
 	push	{lr}
 	mov	r0, #0x9e
@@ -100,6 +117,12 @@
 	bx	r0
 .func_end OvlFunc_901_2008bf8
 
+@ 75 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, PlaySound, CopyMapRectIndicesU x2, DialogueWait
+@   CopyMapRectIndicesU x2, DialogueWait, CopyMapRectAttributes, OvlFunc_a80
 .thumb_func_start OvlFunc_901_2008c1c
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -178,6 +201,12 @@
 	bx	r0
 .func_end OvlFunc_901_2008c1c
 
+@ 38 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, PlaySound, PlayMapRectAnimation, CopyMapRectAttributes
+@   OvlFunc_a80
 .thumb_func_start OvlFunc_901_2008cc8
 	push	{r5, r6, lr}
 	mov	r0, #0
@@ -219,6 +248,10 @@
 	bx	r0
 .func_end OvlFunc_901_2008cc8
 
+@ Map edit: 1 attribute copy.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
+@ Records it with save bit 0x200.
 .thumb_func_start OvlFunc_901_2008d24
 	push	{lr}
 	mov	r0, #0x80
@@ -239,6 +272,10 @@
 	bx	r0
 .func_end OvlFunc_901_2008d24
 
+@ Map edit: 1 attribute copy.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
+@ Clears save bit 0x200.
 .thumb_func_start OvlFunc_901_2008d4c
 	push	{lr}
 	mov	r0, #0x80

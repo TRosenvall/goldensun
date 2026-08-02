@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 139 instructions of straight-line script --
+@ 0 turns, 1 animation change, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x815, 0x81d, 0x834, 0x87a.
 .thumb_func_start OvlFunc_886_2008368
 	push	{r5, lr}
 	ldr	r5, =iwram_3001ebc
@@ -146,6 +150,9 @@
 	bx	r1
 .func_end OvlFunc_886_2008368
 
+@ Counter: shop 0x1 via Func_b0278, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0xf53, 0x11a2, 0x1c06.
+@ Gated on save bits 0x815, 0x87a.
 .thumb_func_start OvlFunc_886_20084dc
 	push	{lr}
 	mov	r0, #0
@@ -194,6 +201,9 @@
 	bx	r0
 .func_end OvlFunc_886_20084dc
 
+@ Counter: shop 0x2 via Func_b0278, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0xf54, 0x11a3, 0x1c09.
+@ Gated on save bits 0x815, 0x87a.
 .thumb_func_start OvlFunc_886_200855c
 	push	{lr}
 	mov	r0, #0
@@ -238,6 +248,9 @@
 	bx	r0
 .func_end OvlFunc_886_200855c
 
+@ Counter: shop 0x3 via Func_b0278, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0xf55, 0x1c0a.
+@ Gated on save bits 0x815, 0x87a.
 .thumb_func_start OvlFunc_886_20085d4
 	push	{lr}
 	mov	r0, #0
@@ -285,6 +298,11 @@
 	bx	r0
 .func_end OvlFunc_886_20085d4
 
+@ Cutscene: roughly 984 instructions of straight-line script --
+@ 45 turns, 48 animation changes, 25 dialogue lines, 30 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x1c1e, 0x1c33.
+@ Sets save bit 0x81d.
 .thumb_func_start OvlFunc_886_2008658
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1284,6 +1302,11 @@
 	bx	r0
 .func_end OvlFunc_886_2008658
 
+@ 54 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   UnsignedRem, GetSlotEntityChecked x2, PlaceSlotAt, SetSlotScriptWithTurn
 .thumb_func_start OvlFunc_886_20090c0
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001e40

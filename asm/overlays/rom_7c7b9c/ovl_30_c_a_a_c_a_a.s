@@ -1,5 +1,15 @@
 	.include "macros.inc"
 
+@ 54 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, TestSaveBit, SetActiveMessageId, ShowMessageAndWait
+@   TestSaveBit, SetFollowerFormationAndRefresh, SetActiveMessageId, ShowMessageAndWait
+@   GetSlotEntityChecked, Random, SetSlotScriptWithTurn, PlayInteractionEffect
+@   SetFollowerFormationScript, SetActiveMessageId
+@   ... and 2 more
+@ message ids 0x1d36, 0x1d6f, 0x1e08; reads save bits 0x922, 0x925.
 .thumb_func_start OvlFunc_943_2008a48
 	push	{r5, lr}
 	bl	__CutsceneStart
@@ -60,6 +70,16 @@
 	bx	r0
 .func_end OvlFunc_943_2008a48
 
+@ 54 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, TestSaveBit, SetActiveMessageId, ShowMessageAndWait
+@   TestSaveBit, SetFollowerFormationAndRefresh, SetActiveMessageId, ShowMessageAndWait
+@   GetSlotEntityChecked, Random, SetSlotScriptWithTurn, PlayInteractionEffect
+@   SetFollowerFormationScript, SetActiveMessageId
+@   ... and 2 more
+@ message ids 0x1d37, 0x1d70, 0x1e09; reads save bits 0x922, 0x925.
 .thumb_func_start OvlFunc_943_2008af0
 	push	{r5, lr}
 	bl	__CutsceneStart

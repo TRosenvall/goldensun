@@ -1,6 +1,15 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 189 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Func_4970, WaitFrames, StopMusic, WaitFrames
+@   Func_1964c, GetCombatantRecord, StartMusicFadeIn, WaitFrames
+@   StopMusic, WaitFrames, FreeScratch, Func_4970
+@   GetRecordOrDefault, StartMusicFadeIn
+@   ... and 1 more
 .thumb_func_start OvlFunc_971_2008398
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -215,6 +224,11 @@
 	bx	r1
 .func_end OvlFunc_971_2008398
 
+@ 29 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetPartySize
 .thumb_func_start OvlFunc_971_200853c
 	push	{r5, lr}
 	mov	r5, r0
@@ -257,6 +271,15 @@
 	.pool
 .func_end OvlFunc_971_200853c
 
+@ 254 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Func_4970, OvlFunc_53c, GetCombatantRecord, call_via_r3
+@   StartMusicFadeOut, WaitFrames, StopMusic, WaitFrames x2
+@   StopMusic, WaitFrames, StartMusicFadeOut, FreeScratch
+@   Func_4970, GetRecordOrDefault
+@   ... and 6 more
 .thumb_func_start OvlFunc_971_2008580
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -534,6 +557,13 @@
 	bx	r1
 .func_end OvlFunc_971_2008580
 
+@ 62 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, WaitFrames, OvlFunc_580, WaitFrames
+@   OvlFunc_398 x2, WaitFrames, OvlFunc_580, WriteSaveByte
+@ reads save bit 0x302.
 .thumb_func_start OvlFunc_971_20087b0
 	push	{r5, r6, lr}
 	mov	r6, #0
@@ -604,6 +634,12 @@
 	bx	r1
 .func_end OvlFunc_971_20087b0
 
+@ Cutscene: roughly 294 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x293b.
+@ Reads save bits 0x173, 0x200, 0x201, 0x205.
+@ Sets save bits 0x203, 0x205.
 .thumb_func_start OvlFunc_971_2008860
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -936,6 +972,12 @@
 	bx	r1
 .func_end OvlFunc_971_2008860
 
+@ Cutscene: roughly 166 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x293d.
+@ Reads save bits 0x173, 0x201, 0x202, 0x300.
+@ Sets save bits 0x16c, 0x172, 0x173, 0x202.
 .thumb_func_start OvlFunc_971_2008b94
 	push	{r5, r6, r7, lr}
 	ldr	r6, =0x2930
@@ -1121,6 +1163,14 @@
 	bx	r1
 .func_end OvlFunc_971_2008b94
 
+@ 59 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, FaceEntityInstant, ClearCallbackTable
+@   RegisterCallback, SetActiveMessageId, ShowMessageAndWait, SetActiveMessageId
+@   ShowMessageAndWait
+@ message id 0x2989.
 .thumb_func_start OvlFunc_971_2008d68
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1188,6 +1238,16 @@
 	bx	r1
 .func_end OvlFunc_971_2008d68
 
+@ 102 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, FaceEntityInstant, SetActiveMessageId, ShowMessageAndWait
+@   OpenWindow, WaitFrames, ReleaseWindowResources, DrawNumberAt
+@   CloseWindow, LoadPartyPreset, SetActiveMessageId, ShowMessageAndWait
+@   SetActiveMessageId, ShowMessageAndWait
+@   ... and 2 more
+@ message ids 0x989, 0x98b, 0x98c.
 .thumb_func_start OvlFunc_971_2008e10
 	push	{r5, r6, r7, lr}
 	sub	sp, #4

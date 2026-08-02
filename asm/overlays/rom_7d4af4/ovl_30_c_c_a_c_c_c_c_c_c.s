@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ 34 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, TestSaveBit, SetSaveBit, SetActiveMessageId
+@   ShowMessageAndWait, UpdateObjectProximity, ShowMessageAndWait, SetSlotAnimation
+@   ApplyFieldItemOrAbility, SetActiveMessageId, ShowMessageAndWait, EndCutscene
+@ message ids 0x2368, 0x236a; reads save bit 0x8bf; sets 0x8bf.
 .thumb_func_start OvlFunc_949_20085dc
 	push	{lr}
 	bl	__CutsceneStart
@@ -39,6 +47,14 @@
 	bx	r0
 .func_end OvlFunc_949_20085dc
 
+@ 64 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked, PlaySound, PlayMapRectAnimation
+@   SetSlotEntitySpeed, GetSlotEntityChecked, SetSlotAnimation, WalkSlotThroughDoorway
+@   DialogueWait, SetPendingMessageId, HideScreenOverlay, WaitSceneDelay
+@   EndCutscene
 .thumb_func_start OvlFunc_949_2008644
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ebc
@@ -109,6 +125,9 @@
 	bx	r0
 .func_end OvlFunc_949_2008644
 
+@ Adjusts slot 0 (the player) directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x9, +0x15, +0x50.
 .thumb_func_start OvlFunc_949_20086e8
 	push	{r5, lr}
 	mov	r5, r0
@@ -143,6 +162,10 @@
 	bx	r0
 .func_end OvlFunc_949_20086e8
 
+@ Cutscene: roughly 139 instructions of straight-line script --
+@ 1 turn, 2 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x200, 0x201, 0x8c1, 0x950.
 .thumb_func_start OvlFunc_949_2008728
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc
@@ -290,6 +313,11 @@
 	bx	r1
 .func_end OvlFunc_949_2008728
 
+@ Cutscene: roughly 73 instructions of straight-line script --
+@ 3 turns, 0 animation changes, 2 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xe3d.
+@ Sets save bit 0x8c1.
 .thumb_func_start OvlFunc_949_2008894
 	push	{lr}
 	bl	__CutsceneStart

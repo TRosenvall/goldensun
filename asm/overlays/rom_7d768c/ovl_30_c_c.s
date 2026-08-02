@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Slot 4: the map object table.
+@ Chooses among .L5ad8, .L5a48, .L59e8, .L5688, .L5394, .L5004
+@ on save bits 0x950, 0x962 and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
 .thumb_func_start OvlFunc_952_200c034
 	push	{lr}
 	ldr	r3, =gState
@@ -50,6 +53,16 @@
 	bx	r1
 .func_end OvlFunc_952_200c034
 
+@ 260 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PauseTileAnimationChannel x3, SetSaveBit x3, ClearSaveBit, TestSaveBit x2
+@   PlaceSlotAt, GetSlotEntityChecked, galloc_iwram, SetPortraitPointer
+@   AllocObjTiles, Func_2dd8, TestSaveBit, SetSaveBit
+@   PlaceSlotAt, OvlFunc_2014
+@   ... and 21 more
+@ reads save bits 0x950, 0x962, 0x966, 0x96f, 0xf31; sets 0x950, 0x962, 0x966, 0x967, 0x96f; clears 0x12f.
 .thumb_func_start OvlFunc_952_200c0b4
 	push	{r5, r6, r7, lr}
 	mov	r0, #1

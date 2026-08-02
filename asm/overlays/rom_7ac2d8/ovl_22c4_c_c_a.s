@@ -1,5 +1,14 @@
 	.include "macros.inc"
 
+@ 92 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked, SetSaveBit, ClearSaveBit
+@   SetSaveBit, ClearSaveBit x3, GetSlotEntityChecked, SetSaveBit x2
+@   ClearSaveBit, CopyMapRectAttributes, ClearSaveBit x2, CopyMapRectAttributes
+@   EndCutscene
+@ sets 0x338, 0x339; clears 0x338, 0x339.
 .thumb_func_start OvlFunc_924_200a51c
 	push	{r5, r6, lr}
 	sub	sp, #8

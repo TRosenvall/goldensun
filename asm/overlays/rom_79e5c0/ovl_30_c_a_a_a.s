@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ 26 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, OvlFunc_a0
+@ reads save bit 0x845.
 .thumb_func_start OvlFunc_911_20081dc
 	push	{lr}
 	ldr	r3, =gState
@@ -33,6 +39,8 @@
 	bx	r1
 .func_end OvlFunc_911_20081dc
 
+@ Counter: shop type 0x10 via UI_Sanctum, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- line 0x16b3.
 .thumb_func_start OvlFunc_911_2008230
 	push	{r5, lr}
 	mov	r0, #0

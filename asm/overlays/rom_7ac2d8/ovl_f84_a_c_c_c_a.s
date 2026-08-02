@@ -1,5 +1,14 @@
 	.include "macros.inc"
 
+@ 54 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit x3, SetSaveBit, DialogueWait, SetMapTransition
+@   PlaySound, DialogueWait, HideScreenOverlay, WaitSceneDelay
+@   PlaySound, SetMapTransition, WaitForMapTransition, SetPendingMessageId
+@   ClearSaveBit
+@ reads save bits 0x310, 0x311, 0x312; sets 0x876; clears 0x876.
 .thumb_func_start OvlFunc_924_20090c0
 	push	{lr}
 	mov	r0, #0xc4
@@ -59,6 +68,16 @@
 	bx	r0
 .func_end OvlFunc_924_20090c0
 
+@ 201 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_758, OvlFunc_8ec, DialogueWait
+@   CopyMapRectIndicesU, OvlFunc_3c48, SetSaveBit, CopyMapRectIndicesU x3
+@   OvlFunc_8ec, ClearSaveBit, OvlFunc_8ec, DialogueWait
+@   TestSaveBit, CopyMapRectIndicesU
+@   ... and 13 more
+@ reads save bit 0x310; sets 0x310, 0x311, 0x312; clears 0x310, 0x311, 0x312.
 .thumb_func_start OvlFunc_924_2009164
 	push	{r5, r6, lr}
 	sub	sp, #0x20
@@ -276,6 +295,14 @@
 	bx	r0
 .func_end OvlFunc_924_2009164
 
+@ 81 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, RegisterTask, SetSlotEntitySpeed, SetSlotAnimation
+@   GetSlotEntityChecked, PlaySound, MoveSlotTo, MoveSlotToAndWait
+@   MoveSlotTo, DialogueWait, WaitForSlotArrival, GetSlotEntityChecked
+@   UnregisterTask, EndCutscene
 .thumb_func_start OvlFunc_924_2009340
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc

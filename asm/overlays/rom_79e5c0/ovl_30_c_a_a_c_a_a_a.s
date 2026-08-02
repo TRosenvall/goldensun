@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Leaf helper, 15 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_911_2008284
 	push	{lr}
 	ldr	r3, =gState
@@ -20,6 +23,12 @@
 	bx	r1
 .func_end OvlFunc_911_2008284
 
+@ 33 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetSlotEntitySpeed, SetSlotAnimation, MoveSlotBy
+@   SetPendingMessageId
 .thumb_func_start OvlFunc_911_20082b4
 	push	{r5, lr}
 	mov	r5, r0
@@ -56,6 +65,13 @@
 	bx	r0
 .func_end OvlFunc_911_20082b4
 
+@ 72 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, PlaySound, GetSlotEntityChecked, SetSlotEntitySpeed
+@   MoveSlotBy, SetPendingMessageId, EndCutscene, PlayMapRectAnimation
+@   OvlFunc_2b4, EndCutscene
 .thumb_func_start OvlFunc_911_2008304
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ebc
@@ -145,6 +161,11 @@
 	bx	r0
 .func_end OvlFunc_911_2008304
 
+@ Cutscene: roughly 281 instructions of straight-line script --
+@ 3 turns, 2 animation changes, 2 dialogue lines, 13 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1786.
+@ Sets save bit 0x847.
 .thumb_func_start OvlFunc_911_20083c8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -432,6 +453,10 @@
 	bx	r0
 .func_end OvlFunc_911_20083c8
 
+@ Cutscene: roughly 133 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x843, 0x845.
 .thumb_func_start OvlFunc_911_2008694
 	push	{r5, lr}
 	ldr	r3, =gState
@@ -574,6 +599,11 @@
 	bx	r1
 .func_end OvlFunc_911_2008694
 
+@ 79 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x4
 .thumb_func_start OvlFunc_911_2008800
 	push	{lr}
 	mov	r0, #0x13

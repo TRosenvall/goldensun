@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 8 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetSlotAnimation, EndCutscene
 .thumb_func_start OvlFunc_948_2008ec8
 	push	{lr}
 	bl	__CutsceneStart
@@ -12,6 +17,9 @@
 	bx	r0
 .func_end OvlFunc_948_2008ec8
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_948_2008ee0
 	push	{lr}
 	ldr	r3, =gState

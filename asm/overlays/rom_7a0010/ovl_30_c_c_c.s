@@ -1,5 +1,17 @@
 	.include "macros.inc"
 
+@ Slot 0: map-load entry.
+@
+@ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x209. When save bit 0x845
+@ is clear it walks slots 8..0x16 and calls Func_c528 with 0 on each entity --
+@ the same reset OvlFunc_30 does to the record array, applied to the live
+@ entities.
+@
+@ Then it repaints the town depending on how the player arrived. Entrance 7
+@ gets one set of three CopyMapTiles metatile copies (source rows 0x22/0x5E,
+@ 0x0D x 8 each); any entrance whose id minus 8 is at most 0x10000 in the
+@ shifted comparison gets a different set, plus MapActor_SetPos teleporting slots
+@ 0x0A, 0x0B and 0x0C to the origin -- parking three objects out of the way.
 .thumb_func_start OvlFunc_912_20081c4
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc

@@ -1,6 +1,16 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 354 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RotateVector, BeginCutscene, CheckTerrainStep, SetEntityScript
+@   SetEntityAnimation, SpawnEntity, SetEntityScript, SetEntityMoveTarget
+@   SetActorAnimation, DestroyEntity, ClearSaveBit, SetEntityAnimation x2
+@   WaitFrames, PlaySound
+@   ... and 16 more
+@ clears 0x161.
 .thumb_func_start OvlFunc_924_200d5c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -384,6 +394,11 @@
 	bx	r0
 .func_end OvlFunc_924_200d5c0
 
+@ 30 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_5158, Random
 .thumb_func_start OvlFunc_924_200d900
 	push	{r5, lr}
 	ldr	r3, =iwram_3001edc

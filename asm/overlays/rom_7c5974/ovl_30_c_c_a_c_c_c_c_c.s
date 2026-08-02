@@ -1,5 +1,6 @@
 	.include "macros.inc"
 
+@ Counter: shop 0x19, speaker slot 0x10. Lines 0x24F9 / 0x1BCF.
 .thumb_func_start OvlFunc_940_2008224
 	push	{lr}
 	mov	r0, #0

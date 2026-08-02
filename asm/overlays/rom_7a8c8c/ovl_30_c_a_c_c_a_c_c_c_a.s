@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ 40 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, TestSaveBit x2, OvlFunc_180, ClearSaveBit
+@   SetSaveBit, OvlFunc_180, SetSaveBit, ClearSaveBit
+@   PlaySound, WaitFrames, OvlFunc_12cc
+@ reads save bits 0x30d, 0x310; sets 0x308, 0x309; clears 0x308, 0x309.
 .thumb_func_start OvlFunc_922_20085b8
 	push	{lr}
 	mov	r0, #0xf1

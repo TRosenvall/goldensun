@@ -1,5 +1,7 @@
 	.include "macros.inc"
 
+@ Counter: shop 0x17 via Func_b0278, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- line 0x1ad1.
 .thumb_func_start OvlFunc_936_20083d8
 	push	{lr}
 	mov	r0, #0

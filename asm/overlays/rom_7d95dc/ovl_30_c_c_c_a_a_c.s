@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 72 instructions of straight-line script --
+@ 1 turn, 0 animation changes, 1 dialogue line, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x206d, 0x206f.
+@ Reads save bits 0x8a3, 0x8a4.
 .thumb_func_start OvlFunc_953_20091c4
 	push	{r5, lr}
 	bl	__CutsceneStart
@@ -78,6 +83,9 @@
 	bx	r0
 .func_end OvlFunc_953_20091c4
 
+@ Cutscene: roughly 334 instructions of straight-line script --
+@ 9 turns, 26 animation changes, 0 dialogue lines, 18 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_953_2009298
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -415,6 +423,14 @@
 	bx	r0
 .func_end OvlFunc_953_2009298
 
+@ 42 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, ShowScreenOverlay, WaitSceneDelay, DialogueWait
+@   OvlFunc_1c5c, SetActiveMessageId, TestSaveBit, OvlFunc_1c48
+@   OvlFunc_1c5c, SetSaveBit, EndCutscene
+@ message id 0x206e; reads save bit 0x8a4; sets 0x8a3.
 .thumb_func_start OvlFunc_953_200960c
 	push	{r5, lr}
 	bl	__CutsceneStart
@@ -461,6 +477,10 @@
 	bx	r0
 .func_end OvlFunc_953_200960c
 
+@ Cutscene: roughly 334 instructions of straight-line script --
+@ 7 turns, 21 animation changes, 0 dialogue lines, 19 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x8a4.
 .thumb_func_start OvlFunc_953_2009688
 	push	{r5, r6, r7, lr}
 	bl	__CutsceneStart
@@ -799,6 +819,11 @@
 	bx	r0
 .func_end OvlFunc_953_2009688
 
+@ 19 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_1a4c, OvlFunc_1c6c
 .thumb_func_start OvlFunc_953_2009a14
 	push	{lr}
 	ldr	r3, =gState
@@ -823,6 +848,16 @@
 	bx	r1
 .func_end OvlFunc_953_2009a14
 
+@ 82 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   WaitFrames, SetSlotAnimation x4, TestSaveBit, OvlFunc_160c
+@   OvlFunc_1298, OvlFunc_1688, OvlFunc_1cd4, ApplyClassChange
+@   OvlFunc_23e0, OvlFunc_25f0, SetSaveBit, OvlFunc_2b1c
+@   TestSaveBit, OvlFunc_24d8
+@   ... and 8 more
+@ reads save bit 0x109; sets 0x144, 0x90e, 0x90f.
 .thumb_func_start OvlFunc_953_2009a4c
 	push	{lr}
 	mov	r0, #1

@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 19 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, GetSlotEntityChecked
 .thumb_func_start OvlFunc_948_2009a70
 	push	{lr}
 	sub	sp, #8
@@ -23,6 +28,11 @@
 	bx	r0
 .func_end OvlFunc_948_2009a70
 
+@ 19 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, GetSlotEntityChecked
 .thumb_func_start OvlFunc_948_2009a9c
 	push	{lr}
 	sub	sp, #8
@@ -45,6 +55,12 @@
 	bx	r0
 .func_end OvlFunc_948_2009a9c
 
+@ 64 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, OvlFunc_19e8, GetSlotEntityChecked, OvlFunc_1a9c
+@   OvlFunc_1a48, OvlFunc_1a70, CopyMapRectAttributes, GetSlotEntityChecked x2
 .thumb_func_start OvlFunc_948_2009ac8
 	push	{r5, r6, lr}
 	mov	r0, #8
@@ -119,6 +135,12 @@
 	bx	r0
 .func_end OvlFunc_948_2009ac8
 
+@ 41 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, DialogueChoiceB, DialogueChoiceA, OvlFunc_19e8
+@   OvlFunc_c4, OvlFunc_1ac8
 .thumb_func_start OvlFunc_948_2009b60
 	push	{r5, lr}
 	mov	r0, #0
@@ -168,6 +190,13 @@
 	bx	r0
 .func_end OvlFunc_948_2009b60
 
+@ 37 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   UnregisterTask, PlaceSlotAt, TestSaveBit, CopyMapRectAttributes x2
+@   OvlFunc_1ec0, SetSaveBit
+@ reads save bit 0x207; sets 0x206.
 .thumb_func_start OvlFunc_948_2009bc4
 	push	{lr}
 	ldr	r0, =OvlFunc_948_2009e94

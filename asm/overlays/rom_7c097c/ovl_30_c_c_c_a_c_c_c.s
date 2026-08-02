@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 20 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, Random, SetEntityScript
 .thumb_func_start OvlFunc_936_2009ea4
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -23,6 +28,11 @@
 	bx	r0
 .func_end OvlFunc_936_2009ea4
 
+@ 18 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSlotEntitySpeed x2, RegisterTask
 .thumb_func_start OvlFunc_936_2009ed8
 	push	{lr}
 	ldr	r3, =.L5144
@@ -44,6 +54,9 @@
 	bx	r0
 .func_end OvlFunc_936_2009ed8
 
+@ Cutscene: roughly 90 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_936_2009f14
 	push	{lr}
 	ldr	r3, =.L5144
@@ -151,6 +164,10 @@
 	bx	r0
 .func_end OvlFunc_936_2009f14
 
+@ Cutscene: roughly 668 instructions of straight-line script --
+@ 27 turns, 17 animation changes, 23 dialogue lines, 11 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1b05.
 .thumb_func_start OvlFunc_936_200a008
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -828,6 +845,10 @@
 	bx	r0
 .func_end OvlFunc_936_200a008
 
+@ Cutscene: roughly 1066 instructions of straight-line script --
+@ 43 turns, 30 animation changes, 20 dialogue lines, 9 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x256f.
 .thumb_func_start OvlFunc_936_200a6c0
 	push	{r5, r6, lr}
 	mov	r6, r10

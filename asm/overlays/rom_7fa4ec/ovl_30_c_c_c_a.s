@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 27 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   UnsignedDiv
 .thumb_func_start OvlFunc_970_20080b0
 	push	{r5, lr}
 	ldr	r5, =.L181c
@@ -36,6 +41,11 @@
 	.word	0
 .func_end OvlFunc_970_20080b0
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random x2, SetEntityAnimation, SetEntityScript
 .thumb_func_start OvlFunc_970_2008100
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -84,6 +94,10 @@
 	bx	r0
 .func_end OvlFunc_970_2008100
 
+@ DecayCounter
+@ The per-frame task. Counts up in .L17f4 and, every 0x28 frames, decrements
+@ .L17f0 by one until it reaches its floor of 4, resetting the frame counter
+@ each time. A slow decay with a lower bound.
 .thumb_func_start OvlFunc_970_2008168
 	push	{lr}
 	ldr	r2, =.L17f4
@@ -105,6 +119,12 @@
 	bx	r0
 .func_end OvlFunc_970_2008168
 
+@ 221 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Sin x2, GetSlotEntityChecked x4, Random x2, SpawnEntity
+@   SetEntityActorOptions, SetEntityAnimation
 .thumb_func_start OvlFunc_970_2008194
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -344,6 +364,9 @@
 	bx	r0
 .func_end OvlFunc_970_2008194
 
+@ Adjusts slot 0 (the player) directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0xc.
 .thumb_func_start OvlFunc_970_20083c0
 	push	{r5, lr}
 	mov	r0, #0
@@ -357,6 +380,9 @@
 	bx	r1
 .func_end OvlFunc_970_20083c0
 
+@ Adjusts slot 0x1 directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0xc.
 .thumb_func_start OvlFunc_970_20083dc
 	push	{r5, lr}
 	mov	r0, #1
@@ -370,6 +396,9 @@
 	bx	r1
 .func_end OvlFunc_970_20083dc
 
+@ Adjusts slot 0x3 directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0xc.
 .thumb_func_start OvlFunc_970_20083f8
 	push	{r5, lr}
 	mov	r0, #3
@@ -383,6 +412,9 @@
 	bx	r1
 .func_end OvlFunc_970_20083f8
 
+@ Adjusts slot 0x2 directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0xc.
 .thumb_func_start OvlFunc_970_2008414
 	push	{r5, lr}
 	mov	r0, #2
@@ -396,6 +428,11 @@
 	bx	r1
 .func_end OvlFunc_970_2008414
 
+@ Cutscene: roughly 678 instructions of straight-line script --
+@ 28 turns, 19 animation changes, 18 dialogue lines, 70 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x28fe.
+@ Sets save bit 0x11a.
 .thumb_func_start OvlFunc_970_2008430
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -1086,6 +1123,15 @@
 	bx	r0
 .func_end OvlFunc_970_2008430
 
+@ 231 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, CloseMessageWindow, WalkSlotToAndWait, TurnSlotToAngle
+@   DialogueWait, PlaySound, DialogueWait, PlaySound
+@   DialogueWait x2, RegisterTask, DialogueWait, PlaySound
+@   SetMapTransition, DialogueWait
+@   ... and 18 more
 .thumb_func_start OvlFunc_970_2008b34
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1334,6 +1380,9 @@
 	bx	r0
 .func_end OvlFunc_970_2008b34
 
+@ Cutscene: roughly 165 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_970_2008da4
 	push	{r5, r6, r7, lr}
 	ldr	r3, =gState
@@ -1512,6 +1561,10 @@
 	bx	r1
 .func_end OvlFunc_970_2008da4
 
+@ Leaf helper, 27 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: REG_BG3HOFS, REG_DMA0SAD, iwram_1ed8
+@ Writes offsets +0xa.
 .thumb_func_start OvlFunc_970_2008f30
 	ldr	r3, =iwram_3001ed8
 	mov	r2, #0xf0
@@ -1542,6 +1595,10 @@
 	bx	lr
 .func_end OvlFunc_970_2008f30
 
+@ Leaf helper, 146 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1ad0, iwram_1ed8
+@ Reads offsets +0xc.
 .thumb_func_start OvlFunc_970_2008f80
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1697,6 +1754,11 @@
 	bx	r0
 .func_end OvlFunc_970_2008f80
 
+@ 68 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   galloc_ewram, RegisterTask x2
 .thumb_func_start OvlFunc_970_20090d4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

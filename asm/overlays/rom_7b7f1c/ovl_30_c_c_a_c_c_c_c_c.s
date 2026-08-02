@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 25 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectIndicesU, CopyMapRectAttributes, DialogueWait
 .thumb_func_start OvlFunc_930_2008ff0
 	push	{lr}
 	sub	sp, #8
@@ -28,6 +33,11 @@
 	bx	r0
 .func_end OvlFunc_930_2008ff0
 
+@ 25 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectIndicesU, CopyMapRectAttributes, DialogueWait
 .thumb_func_start OvlFunc_930_2009028
 	push	{lr}
 	sub	sp, #8
@@ -56,6 +66,9 @@
 	bx	r0
 .func_end OvlFunc_930_2009028
 
+@ Adjusts slot 0 (the player) directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0xc.
 .thumb_func_start OvlFunc_930_2009060
 	push	{r5, lr}
 	mov	r5, r0

@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Slot 3: the read after slot 4.
+@ Chooses among .Lc7c, .Lc64
+@ on save bits 0x845, 0x84f and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
 .thumb_func_start OvlFunc_910_200809c
 	push	{lr}
 	ldr	r3, =gState

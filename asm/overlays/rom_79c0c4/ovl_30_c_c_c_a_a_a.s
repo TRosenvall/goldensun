@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ Counter: shop 8, speaker slot 0x11.
+@ The before-0x845 branch is the elaborate one -- line 0x13E5, the shopkeeper
+@ turns to face the player, a ten-frame beat, a question through Func_93054,
+@ then a turn to 0x3000. After the bit is set it collapses to a single line.
 .thumb_func_start OvlFunc_908_2008124
 	push	{r5, lr}
 	mov	r0, #0
@@ -50,6 +54,8 @@
 	bx	r0
 .func_end OvlFunc_908_2008124
 
+@ Talk: slot 0x15, line 0x13ED. Turns to face the player, speaks, then
+@ settles back to angle 0xC000.
 .thumb_func_start OvlFunc_908_20081a8
 	push	{lr}
 	bl	__CutsceneStart

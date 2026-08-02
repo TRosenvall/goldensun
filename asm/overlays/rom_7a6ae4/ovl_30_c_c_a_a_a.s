@@ -1,5 +1,7 @@
 	.include "macros.inc"
 
+@ Slot 0: map-load entry. Dispatches to OvlFunc_4b4, _4e8 or _538 for areas
+@ 0x31, 0x30 and 0x2F respectively; any other area needs no setup.
 .thumb_func_start OvlFunc_920_200846c
 	push	{lr}
 	ldr	r3, =gState
@@ -30,6 +32,9 @@
 	bx	r1
 .func_end OvlFunc_920_200846c
 
+@ SetupArea31
+@ Replays the OvlFunc_424 repaint and puts slot 8 into animation 0, but only
+@ when save bit 0x305 records that the player already triggered it.
 .thumb_func_start OvlFunc_920_20084b4
 	push	{lr}
 	ldr	r0, =0x305

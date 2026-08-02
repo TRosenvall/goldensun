@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 23 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   StartFadeIn
 .thumb_func_start OvlFunc_915_2008d9c
 	push	{lr}
 	ldr	r3, =iwram_3001ed0
@@ -27,6 +32,11 @@
 	bx	r0
 .func_end OvlFunc_915_2008d9c
 
+@ 20 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   StartFadeOut, OvlFunc_d9c
 .thumb_func_start OvlFunc_915_2008ddc
 	push	{lr}
 	ldr	r3, =iwram_3001ed0

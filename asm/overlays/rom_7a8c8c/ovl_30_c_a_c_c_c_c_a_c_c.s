@@ -1,5 +1,14 @@
 	.include "macros.inc"
 
+@ 144 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_1948, TestSaveBit, OvlFunc_1b1c, OvlFunc_ed8 x2
+@   GetSlotEntityChecked, SetSlotDrawPriority, SetSlotPalette, StartScreenShake x2
+@   TestSaveBit, CopyMapRectIndicesU x2, StartFadeIn, StartFadeOut
+@   WaitForFade, WaitFrames
+@ reads save bits 0x820, 0xf13.
 .thumb_func_start OvlFunc_922_20097e4
 	push	{r5, r6, r7, lr}
 	sub	sp, #8
@@ -154,6 +163,12 @@
 	bx	r0
 .func_end OvlFunc_922_20097e4
 
+@ 98 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, OvlFunc_1050, CopyMapRectAttributes, OvlFunc_1154
+@   CopyMapRectAttributes, OvlFunc_12cc, CopyMapRectAttributes x2, OvlFunc_15dc
 .thumb_func_start OvlFunc_922_2009948
 	push	{lr}
 	ldr	r1, =gState
@@ -261,6 +276,12 @@
 	bx	r0
 .func_end OvlFunc_922_2009948
 
+@ 47 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_1ad0 x2, TestSaveBit, OvlFunc_1ad0
+@ reads save bit 0x309.
 .thumb_func_start OvlFunc_922_2009a34
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc

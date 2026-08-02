@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 105 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetEntityAnimation, OvlFunc_5610, Atan2, SetEntityAnimation x2
 .thumb_func_start OvlFunc_883_200d64c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

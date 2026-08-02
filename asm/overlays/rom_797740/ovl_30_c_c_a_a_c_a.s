@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ GreetSlot8
+@ Takes no arguments. The slot-8 NPC's scripted greeting.
+@ Turns slot 8 toward slots 9 and 0xA in turn with .gcc2_compiled., forty frames
+@ apart, then speaks line 0x138A. Re-forms the followers -- slot 9 to formation
+@ 2, slot 0xA to formation 2 with a refresh -- turns 8 and 0 to face each other,
+@ drops slot 8 back to formation 1, and closes with a second line.
 .thumb_func_start OvlFunc_900_2008094
 	push	{lr}
 	bl	__CutsceneStart

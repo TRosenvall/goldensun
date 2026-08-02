@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ 22 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSlotAnimation, SetSlotPalette, SetSlotAnimation, GetSlotEntityChecked
+@   SetSaveBit
+@ sets 0x200.
 .thumb_func_start OvlFunc_964_200970c
 	push	{lr}
 	mov	r0, #0x14
@@ -25,6 +32,16 @@
 	bx	r0
 .func_end OvlFunc_964_200970c
 
+@ 174 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked, TestSaveBit, DialogueWait
+@   OvlFunc_9f4, GetSlotEntityChecked, PlaySound, WaitFrames
+@   GetSlotEntityChecked, Random x2, OvlFunc_ae8, CopyMapRectAttributes
+@   DialogueWait, GetSlotEntityChecked
+@   ... and 15 more
+@ reads save bit 0x202; sets 0x972.
 .thumb_func_start OvlFunc_964_2009744
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

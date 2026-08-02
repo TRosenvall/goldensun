@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes x2, SetPlayerObjectFields x2, PlaceSlotAt x2
 .thumb_func_start OvlFunc_964_2009fdc
 	push	{r5, lr}
 	sub	sp, #8
@@ -46,6 +51,11 @@
 	bx	r0
 .func_end OvlFunc_964_2009fdc
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes x2, SetPlayerObjectFields x2, PlaceSlotAt x2
 .thumb_func_start OvlFunc_964_200a040
 	push	{r5, lr}
 	sub	sp, #8
@@ -92,6 +102,11 @@
 	bx	r0
 .func_end OvlFunc_964_200a040
 
+@ Cutscene: roughly 241 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 6 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bit 0x984.
+@ Sets save bit 0x984.
 .thumb_func_start OvlFunc_964_200a0a4
 	push	{r5, r6, lr}
 	sub	sp, #8

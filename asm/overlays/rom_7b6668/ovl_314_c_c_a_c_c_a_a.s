@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 331 instructions of straight-line script --
+@ 2 turns, 3 animation changes, 3 dialogue lines, 5 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x17fa, 0x17fb.
+@ Reads save bit 0x200.
+@ Sets save bit 0x200.
 .thumb_func_start OvlFunc_928_20085f4
 	push	{r5, r6, r7, lr}
 	mov	r0, #0x14

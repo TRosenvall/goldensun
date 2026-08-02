@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 41 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Cos, Sin
 .thumb_func_start OvlFunc_925_200b460
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -44,6 +49,14 @@
 	bx	r0
 .func_end OvlFunc_925_200b460
 
+@ 149 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, Random, PlaceSlotAt, GetSlotEntityChecked
+@   PlaceSlotAt, GetSlotEntityChecked x2, PlaceSlotAt, SpawnEntity
+@   SignedDiv, SetEntityScript, SetActorPartsPalette, Random
+@   Sin
 .thumb_func_start OvlFunc_925_200b4bc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

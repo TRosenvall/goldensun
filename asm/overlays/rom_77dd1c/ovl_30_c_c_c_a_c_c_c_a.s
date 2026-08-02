@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ 17 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, PlayMapRectAnimation, WalkSlotTo, DialogueWait
+@   OvlFunc_15c
 .thumb_func_start OvlFunc_882_2008398
 	push	{lr}
 	mov	r0, #0x9e
@@ -20,6 +26,12 @@
 	bx	r0
 .func_end OvlFunc_882_2008398
 
+@ 17 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, PlayMapRectAnimation, WalkSlotTo, DialogueWait
+@   OvlFunc_15c
 .thumb_func_start OvlFunc_882_20083cc
 	push	{lr}
 	mov	r0, #0x9e
@@ -40,6 +52,12 @@
 	bx	r0
 .func_end OvlFunc_882_20083cc
 
+@ 17 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, PlayMapRectAnimation, WalkSlotTo, DialogueWait
+@   OvlFunc_15c
 .thumb_func_start OvlFunc_882_2008400
 	push	{lr}
 	mov	r0, #0x9e
@@ -60,6 +78,11 @@
 	bx	r0
 .func_end OvlFunc_882_2008400
 
+@ Cutscene: roughly 561 instructions of straight-line script --
+@ 4 turns, 8 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x210, 0x830, 0x831.
+@ Sets save bit 0x834.
 .thumb_func_start OvlFunc_882_2008434
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -649,6 +672,11 @@
 	bx	r1
 .func_end OvlFunc_882_2008434
 
+@ Cutscene: roughly 301 instructions of straight-line script --
+@ 8 turns, 9 animation changes, 9 dialogue lines, 4 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0xe5c, 0xe65, 0xe66.
+@ Sets save bits 0x205, 0x87b.
 .thumb_func_start OvlFunc_882_2008a10
 	push	{r5, lr}
 	bl	__CutsceneStart
@@ -955,6 +983,16 @@
 	bx	r0
 .func_end OvlFunc_882_2008a10
 
+@ 133 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, BeginCutscene, TestSaveBit, GetSlotEntityChecked
+@   SetMapTransition, PlaySound, WaitFrames, PlaySound
+@   PlaceSlotAt, WalkSlotToAndWait, DialogueWait, PlaySound
+@   SetMapTransition, WaitForMapTransition
+@   ... and 11 more
+@ reads save bits 0x30c, 0x310, 0x830, 0x837, 0x841; sets 0x30c, 0x310, 0x830.
 .thumb_func_start OvlFunc_882_2008d5c
 	push	{r5, r6, r7, lr}
 	mov	r0, #0xc4

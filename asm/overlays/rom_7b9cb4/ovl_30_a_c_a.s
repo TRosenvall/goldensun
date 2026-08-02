@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Leaf helper, 65 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_932_20080e4
 	push	{lr}
 	ldr	r3, =gState
@@ -81,6 +84,9 @@
 	bx	r1
 .func_end OvlFunc_932_20080e4
 
+@ Leaf helper, 19 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_932_20081c8
 	push	{lr}
 	ldr	r3, =gState

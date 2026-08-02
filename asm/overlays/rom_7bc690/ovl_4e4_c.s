@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 228 instructions of straight-line script --
+@ 0 turns, 2 animation changes, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x200.
 .thumb_func_start OvlFunc_933_2008e2c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -240,6 +244,12 @@
 	bx	r0
 .func_end OvlFunc_933_2008e2c
 
+@ 129 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, Random, OvlFunc_common0_10c, Random x2
+@   OvlFunc_common0_10c
 .thumb_func_start OvlFunc_933_2009054
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -376,6 +386,10 @@
 	bx	r0
 .func_end OvlFunc_933_2009054
 
+@ Cutscene: roughly 150 instructions of straight-line script --
+@ 0 turns, 2 animation changes, 0 dialogue lines, 4 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x200.
 .thumb_func_start OvlFunc_933_2009180
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -543,6 +557,14 @@
 	bx	r0
 .func_end OvlFunc_933_2009180
 
+@ 184 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_1054, GetSlotEntityChecked, CheckTerrainStep, Random x3
+@   OvlFunc_common0_10c, RunSlotEffectSequence, SetEntityMoveTarget, SetEntityAnimation
+@   WaitForEntityIdle, WaitFrames, SetEntityAnimation, WaitFrames
+@   CheckTerrainStep x3
 .thumb_func_start OvlFunc_933_20092fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -734,6 +756,11 @@
 	bx	r0
 .func_end OvlFunc_933_20092fc
 
+@ Cutscene: roughly 153 instructions of straight-line script --
+@ 0 turns, 2 animation changes, 0 dialogue lines, 5 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x200, 0x90a.
+@ Sets save bit 0x200.
 .thumb_func_start OvlFunc_933_20094b0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -895,6 +922,12 @@
 	bx	r0
 .func_end OvlFunc_933_20094b0
 
+@ 242 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_1c1c, RegisterTask, CopyMapRectFull x19, StartLoopingSound
+@   CopyMapRectFull x3, OvlFunc_4e4
 .thumb_func_start OvlFunc_933_2009638
 	push	{r5, lr}
 	ldr	r0, =gState
@@ -1146,6 +1179,11 @@
 	bx	r1
 .func_end OvlFunc_933_2009638
 
+@ 19 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSlotEntitySpeed, SetSlotAnimation, WalkSlotToAndWait, SetSlotAnimation
 .thumb_func_start OvlFunc_933_2009874
 	push	{lr}
 	mov	r1, #0x80

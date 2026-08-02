@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ 50 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, DialogueWait, PlaySound, OvlFunc_common0_10c
+@   DialogueWait
 .thumb_func_start OvlFunc_926_200c140
 	push	{r5, r6, r7, lr}
 	mov	r0, #8
@@ -55,6 +61,11 @@
 	bx	r0
 .func_end OvlFunc_926_200c140
 
+@ 15 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetActorPartsPalette x2
 .thumb_func_start OvlFunc_926_200c1c4
 	push	{lr}
 	ldr	r3, =iwram_3001e40
@@ -75,6 +86,15 @@
 	bx	r0
 .func_end OvlFunc_926_200c1c4
 
+@ 131 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, GetSlotEntityChecked, DialogueWait, StartFadeIn
+@   StartFadeOut, WaitForFade, DialogueWait, PlaySound
+@   GetSlotEntityChecked, DialogueWait, GetSlotEntityChecked, PlaySound
+@   Random x3, OvlFunc_common0_10c
+@   ... and 8 more
 .thumb_func_start OvlFunc_926_200c1ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

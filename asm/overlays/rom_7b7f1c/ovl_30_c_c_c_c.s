@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Leaf helper, 15 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_930_2009180
 	push	{lr}
 	ldr	r3, =gState
@@ -20,6 +23,11 @@
 	bx	r1
 .func_end OvlFunc_930_2009180
 
+@ Cutscene: roughly 288 instructions of straight-line script --
+@ 3 turns, 5 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x200, 0x201, 0x895.
+@ Sets save bits 0x8b2, 0x8b3.
 .thumb_func_start OvlFunc_930_20091b0
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc

@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 923 instructions of straight-line script --
+@ 28 turns, 24 animation changes, 10 dialogue lines, 13 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x2757.
 .thumb_func_start OvlFunc_969_20088b4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -938,6 +942,12 @@
 	bx	r0
 .func_end OvlFunc_969_20088b4
 
+@ 25 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSlotPalette, GetSlotEntityChecked, SetEntityActorOptions, SetSlotEntitySpeed
+@   SetSlotPalette, GetSlotEntityChecked, SetEntityActorOptions
 .thumb_func_start OvlFunc_969_2009280
 	push	{r5, lr}
 	mov	r5, r0
@@ -968,6 +978,11 @@
 	bx	r0
 .func_end OvlFunc_969_2009280
 
+@ Cutscene: roughly 1361 instructions of straight-line script --
+@ 76 turns, 34 animation changes, 7 dialogue lines, 17 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x278e.
+@ Sets save bit 0x350.
 .thumb_func_start OvlFunc_969_20092c8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ 119 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, Random, GetSlotEntityChecked x2, Random x2
+@   OvlFunc_a68, GetSlotEntityChecked, Random, GetSlotEntityChecked x2
+@   Random x2, OvlFunc_a68
 .thumb_func_start OvlFunc_905_2008bd0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -123,6 +130,10 @@
 	bx	r0
 .func_end OvlFunc_905_2008bd0
 
+@ Cutscene: roughly 193 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 5 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x300.
 .thumb_func_start OvlFunc_905_2008ce0
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -322,6 +333,10 @@
 	bx	r0
 .func_end OvlFunc_905_2008ce0
 
+@ Cutscene: roughly 179 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x301.
 .thumb_func_start OvlFunc_905_2008ecc
 	push	{r5, r6, lr}
 	mov	r6, r11

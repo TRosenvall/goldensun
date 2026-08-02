@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Leaf helper, 15 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_964_200a370
 	push	{lr}
 	ldr	r3, =gState
@@ -20,6 +23,12 @@
 	bx	r1
 .func_end OvlFunc_964_200a370
 
+@ 48 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, OvlFunc_f10, GetSlotEntityChecked x2, CopyMapRectAttributes
+@   GetSlotEntityChecked x2, CopyMapRectAttributes
 .thumb_func_start OvlFunc_964_200a3a0
 	push	{r5, lr}
 	sub	sp, #8
@@ -71,6 +80,12 @@
 	bx	r0
 .func_end OvlFunc_964_200a3a0
 
+@ 48 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, OvlFunc_f10, GetSlotEntityChecked x2, CopyMapRectAttributes
+@   GetSlotEntityChecked x2, CopyMapRectAttributes
 .thumb_func_start OvlFunc_964_200a410
 	push	{r5, lr}
 	sub	sp, #8
@@ -122,6 +137,12 @@
 	bx	r0
 .func_end OvlFunc_964_200a410
 
+@ 73 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes x2, GetSlotEntityChecked x3, CopyMapRectAttributes, GetSlotEntityChecked x2
+@   CopyMapRectAttributes, GetSlotEntityChecked x2, CopyMapRectAttributes
 .thumb_func_start OvlFunc_964_200a480
 	push	{r5, lr}
 	sub	sp, #8
@@ -198,6 +219,12 @@
 	bx	r0
 .func_end OvlFunc_964_200a480
 
+@ 49 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, GetSlotEntityChecked x2, OvlFunc_244, GetSlotEntityChecked x2
+@   OvlFunc_244
 .thumb_func_start OvlFunc_964_200a52c
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -250,6 +277,11 @@
 	bx	r0
 .func_end OvlFunc_964_200a52c
 
+@ Cutscene: roughly 993 instructions of straight-line script --
+@ 0 turns, 9 animation changes, 0 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x200, 0x201, 0x202.
+@ Sets save bits 0x200, 0x201, 0x202, 0x973.
 .thumb_func_start OvlFunc_964_200a59c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

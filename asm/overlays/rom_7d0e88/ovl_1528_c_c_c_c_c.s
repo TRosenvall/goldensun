@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 45 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, OvlFunc_528, TestSaveBit
+@   DialogueWait, PlaySound, SetSaveBit, EndCutscene
+@ reads save bit 0x204; sets 0x204.
 .thumb_func_start OvlFunc_947_200a4cc
 	push	{r5, r6, lr}
 	mov	r0, #0xa
@@ -50,6 +57,12 @@
 	bx	r0
 .func_end OvlFunc_947_200a4cc
 
+@ 26 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_758, OvlFunc_8ec, OvlFunc_2498
+@   OvlFunc_3a8, OvlFunc_24cc, EndCutscene
 .thumb_func_start OvlFunc_947_200a53c
 	push	{r5, lr}
 	sub	sp, #0x20

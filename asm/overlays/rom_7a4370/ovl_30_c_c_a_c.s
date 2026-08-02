@@ -1,6 +1,16 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 80 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, TestSaveBit, OvlFunc_12f4, SetActiveMessageId
+@   ShowMessageAndWait, OvlFunc_12f4, TestSaveBit, OvlFunc_12f4
+@   SetActiveMessageId, ShowMessageAndWait, OvlFunc_12f4, FindInventorySlotInParty
+@   SetActiveMessageId, ShowMessageAndWait
+@   ... and 10 more
+@ message ids 0x14c9, 0x14eb, 0x151c; reads save bits 0x844, 0x845.
 .thumb_func_start OvlFunc_917_2008158
 	push	{lr}
 	bl	__CutsceneStart

@@ -1,5 +1,7 @@
 	.include "macros.inc"
 
+@ Talk: lines 0x1794, 0x17d6, asked as a question.
+@ Which line is chosen by save bit 0x88f.
 .thumb_func_start OvlFunc_926_2008484
 	push	{r5, lr}
 	bl	__CutsceneStart
@@ -59,6 +61,11 @@
 	bx	r0
 .func_end OvlFunc_926_2008484
 
+@ Cutscene: roughly 130 instructions of straight-line script --
+@ 2 turns, 0 animation changes, 1 dialogue line, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x17b4.
+@ Sets save bit 0x892.
 .thumb_func_start OvlFunc_926_2008518
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -192,6 +199,11 @@
 	bx	r0
 .func_end OvlFunc_926_2008518
 
+@ Cutscene: roughly 73 instructions of straight-line script --
+@ 3 turns, 1 animation change, 3 dialogue lines, 5 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x17b7.
+@ Sets save bit 0x894.
 .thumb_func_start OvlFunc_926_2008658
 	push	{lr}
 	sub	sp, #8
@@ -268,6 +280,12 @@
 	bx	r0
 .func_end OvlFunc_926_2008658
 
+@ Cutscene: roughly 337 instructions of straight-line script --
+@ 4 turns, 8 animation changes, 13 dialogue lines, 26 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x179f, 0x17a4, 0x17ab, 0x17ac.
+@ Reads save bit 0x300.
+@ Sets save bits 0x300, 0x891.
 .thumb_func_start OvlFunc_926_200871c
 	push	{r5, lr}
 	bl	__CutsceneStart

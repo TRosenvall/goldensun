@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ WarpToRecordedPoint
+@ Takes no arguments. Reads the interaction target halfword at
+@ [iwram_1ebc]+0x16C, uses it to index the pair table at .L5d0 for an (x, z),
+@ plays sound 0x9E, and hands the coordinates to Func_10560 with the descriptor
+@ at .L5e8. Then .gcc2_compiled. nudges the player -0x10 on z and the scene delay at
+@ +0x1C8 is set to 0x10.
 .thumb_func_start OvlFunc_961_2008120
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -51,6 +57,10 @@
 	bx	r0
 .func_end OvlFunc_961_2008120
 
+@ WarpToRecordedPoint -- the twin of OvlFunc_120, differing only in the
+@ descriptor it passes Func_10560 (.L5fe rather than .L5e8) and in ending with
+@ .gcc2_compiled. on the interaction target, so the destination also becomes the
+@ next pending message.
 .thumb_func_start OvlFunc_961_2008194
 	push	{r5, r6, lr}
 	mov	r6, r10

@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ SetupArea2F
+@ The largest of the three setups, roughly 250 instructions: it reconstructs
+@ the puzzle state from the save bits so the blocks and gate appear as the
+@ player left them, then applies the same repaints the triggers would have.
 .thumb_func_start OvlFunc_920_2008538
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc

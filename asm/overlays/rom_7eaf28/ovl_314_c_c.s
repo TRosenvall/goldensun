@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 83 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   ClearSaveBit, SetSaveBit x2, WriteSaveByte, LoadMapByIdAndEntrance x3
+@   SetSlotWalkBehaviour, PlaceSlotAt, GetSlotEntityChecked
+@ clears 0x20f.
 .thumb_func_start OvlFunc_960_2008b24
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc
@@ -92,6 +99,15 @@
 	bx	r0
 .func_end OvlFunc_960_2008b24
 
+@ 91 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   ReadSaveByte, GetSlotEntityChecked x2, BeginCutscene, MoveCameraTo
+@   PlaySound, SetEntityActorOptions, WaitFrames, HideScreenOverlay
+@   WaitSceneDelay, EndCutscene, SetSaveBit, ReadSaveByte
+@   SetSceneTargetA x2
+@ sets 0x122.
 .thumb_func_start OvlFunc_960_2008c00
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -189,6 +205,9 @@
 	bx	r0
 .func_end OvlFunc_960_2008c00
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1e40
 .thumb_func_start OvlFunc_960_2008ce4
 	push	{lr}
 	ldr	r3, =iwram_3001e40
@@ -225,6 +244,12 @@
 	bx	r0
 .func_end OvlFunc_960_2008ce4
 
+@ 64 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, PlaceSlotAt, CopyMapRectAttributes, SetPlayerObjectFields
+@   CopyMapRectAttributes x2, UnregisterTask
 .thumb_func_start OvlFunc_960_2008d24
 	push	{lr}
 	ldr	r3, =gState
@@ -293,6 +318,12 @@
 	bx	r1
 .func_end OvlFunc_960_2008d24
 
+@ 60 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, PlaceSlotAt, CopyMapRectAttributes, SetPlayerObjectFields
+@   UpdateObjectAnimation, CopyMapRectAttributes, RegisterTask
 .thumb_func_start OvlFunc_960_2008dc8
 	push	{r5, lr}
 	ldr	r3, =gState
@@ -357,6 +388,9 @@
 	bx	r1
 .func_end OvlFunc_960_2008dc8
 
+@ Leaf helper, 15 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_960_2008e5c
 	push	{lr}
 	ldr	r3, =gState
@@ -377,6 +411,12 @@
 	bx	r1
 .func_end OvlFunc_960_2008e5c
 
+@ 74 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   ReadSaveByte, RegisterTask, OvlFunc_d24, OvlFunc_f50
+@   OvlFunc_1094, PlaySound
 .thumb_func_start OvlFunc_960_2008e8c
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e70
@@ -461,6 +501,15 @@
 	bx	r1
 .func_end OvlFunc_960_2008e8c
 
+@ 120 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, SetSaveBit, TestSaveBit, SetSaveBit
+@   TestSaveBit, SetSaveBit, TestSaveBit, SetSaveBit
+@   TestSaveBit, SetSaveBit, GetSlotEntityChecked, TestSaveBit x2
+@   StartLoopingSound
+@ reads save bits 0x109, 0x301, 0x302, 0x303, 0x304; sets 0x206, 0x207, 0x208, 0x209, 0x20a.
 .thumb_func_start OvlFunc_960_2008f50
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -595,6 +644,15 @@
 	bx	r0
 .func_end OvlFunc_960_2008f50
 
+@ 133 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, SetSaveBit, TestSaveBit, SetSaveBit
+@   TestSaveBit, SetSaveBit, GetSlotEntityChecked, TestSaveBit
+@   GetSlotEntityChecked, TestSaveBit, SetSaveBit, TestSaveBit
+@   StartLoopingSound
+@ reads save bits 0x109, 0x311, 0x312, 0x313, 0x315; sets 0x206, 0x207, 0x208, 0x9b7.
 .thumb_func_start OvlFunc_960_2009094
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

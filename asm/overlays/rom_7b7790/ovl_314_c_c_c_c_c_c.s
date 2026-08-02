@@ -1,5 +1,14 @@
 	.include "macros.inc"
 
+@ Slot 0: map-load entry.
+@
+@ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x209, then does per-
+@ entrance staging keyed on ewram_240+0x1C2:
+@   entrances 4 and 7  one OvlFunc_common0_70 prop at x 0xF80000, z 0x1A10000,
+@   entrance 6         two props, at x 0x1CC0000 and 0x1E40000, both z 0x2380000,
+@   entrance 8         clears save bit 0x12F and puts slot 0x0A in animation 6.
+@ The props are background scenery the object table cannot place, spawned
+@ through the shared helper in overlays/common/.
 .thumb_func_start OvlFunc_929_2008598
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc

@@ -1,5 +1,14 @@
 	.include "macros.inc"
 
+@ Slot 3: read after slot 4, so it must stay in step with OvlFunc_ec below.
+@ Area 0x10 splits three ways on the entrance id at ewram_240+0x1C2:
+@     entrance 0x0B..0x0D  -> .L2050
+@     entrance 0x0E..0x10  -> .L21b8
+@     anything else        -> .L1fd8, and ONLY this branch first passes the
+@                             table through Func_8b868, which tags the records
+@                             whose position falls inside the active bounds.
+@                             The other tables are pre-tagged constants.
+@ Area 0x13 -> .L22a8. Otherwise -> .L1fc0.
 .thumb_func_start OvlFunc_895_200807c
 	push	{r5, lr}
 	ldr	r1, =gState
@@ -47,6 +56,13 @@
 	bx	r1
 .func_end OvlFunc_895_200807c
 
+@ Slot 4: the map object table, split on the same areas and entrance ranges as
+@ slot 3 and in the same order, so the two stay aligned:
+@     area 0x13                       -> .L22e4
+@     area 0x10, entrance 0x0B..0x0D  -> .L241c
+@     area 0x10, entrance 0x0E..0x10  -> .L2524
+@     area 0x10, otherwise            -> .L232c
+@     any other area                  -> .L22d8
 .thumb_func_start OvlFunc_895_20080ec
 	push	{lr}
 	ldr	r1, =gState
@@ -90,6 +106,16 @@
 	bx	r1
 .func_end OvlFunc_895_20080ec
 
+@ WalkPlayerInThroughDoorway
+@ Takes no arguments. A map-entry scene: the player walks in from off-screen
+@ while the doorway animates shut behind them.
+@
+@ Sound 0xB5, then three CopyMapTiles rectangle copies at x = 0x1C, 0x1E, 0x20 --
+@ the same 3x0x15 column stepped one tile right each time, ten frames apart --
+@ which is the door closing frame by frame. Then draw priority 2, speed
+@ 0x9999/0x4CCC, a walk to (0x78, 0x62) via Func_921c4, animation 2, and a
+@ nudge of -8 on z. Closes by hiding the overlay, waiting the scene delay, and
+@ leaving message id 2 pending for whatever runs next.
 .thumb_func_start OvlFunc_895_2008154
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -157,6 +183,15 @@
 	bx	r0
 .func_end OvlFunc_895_2008154
 
+@ TalkPassageA
+@ Takes no arguments. The NPC beside passage A. Says line 0x1034 once the
+@ passage has been opened (save bit 0x81A), otherwise line 0x1031.
+@
+@ In the not-yet-opened case, if the arming bit 0xF01 is set it also writes 1
+@ to [iwram_1ebc]+0x172, the last of the four interaction halfwords Func_8bc44
+@ clears between interactions. The reveal in OvlFunc_258 keys off the save bits
+@ rather than this, so what it does here is leave the interaction resolved so
+@ the same NPC is not re-triggered on the way past.
 .thumb_func_start OvlFunc_895_2008200
 	push	{lr}
 	bl	__CutsceneStart
@@ -189,6 +224,26 @@
 	bx	r0
 .func_end OvlFunc_895_2008200
 
+@ RevealPassageA
+@ Takes no arguments. The one-shot reveal cutscene for passage A. Returns
+@ immediately unless arming bit 0xF01 is set and opened bit 0x81A is clear, so
+@ it plays exactly once.
+@
+@ The sequence, which OvlFunc_420 mirrors for passage B:
+@   - Func_8e118 dismisses any open box, sound 0xB6 starts the rumble.
+@   - CopyMapTiles copies a 0x2A x 0x1E rectangle from (0x46, 0x1E), then
+@     .gcc2_compiled. pushes it to VRAM -- the wall cracking.
+@   - Line 0x1032, then sound 0xB7 and the real edit: a 3x1 metatile copy at
+@     (0x1D, 3) followed by the SAME rectangle through Func_10704, so the
+@     collision attributes move with the artwork and the new gap is walkable.
+@     A second copy from (0x6D, 4) lays in the passage interior.
+@   - Three .gcc2_compiled. calls shake the map: +0x10000/+0x10000, then
+@     +0x20000/+0x10000, then -1/-1 with 0xE666 to settle. Negative arguments
+@     are skipped by .gcc2_compiled., which is how the settle leaves x and z alone.
+@   - MapActor_Emote effect 0x100 on the player, then four .gcc2_compiled. turns --
+@     0x4000, 0x8000, 0, 0x4000 -- so the player looks around the new opening.
+@   - Line 0x1033 (the id is bumped with `add r8, #1` from 0x1032), then save
+@     bits 0x143 and 0x81A are set to record it.
 .thumb_func_start OvlFunc_895_2008258
 	push	{r5, r6, lr}
 	mov	r6, r8

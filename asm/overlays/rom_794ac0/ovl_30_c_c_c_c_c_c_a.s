@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ 48 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, galloc_iwram, SetPortraitPointer, AllocObjTiles
+@   Func_2dd8
 .thumb_func_start OvlFunc_899_200c698
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
@@ -52,6 +58,9 @@
 	bx	r0
 .func_end OvlFunc_899_200c698
 
+@ Leaf helper, 34 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Reads offsets +0x1, +0x8.
 .thumb_func_start OvlFunc_899_200c704
 	push	{r5, lr}
 	ldr	r3, [r0]
@@ -94,6 +103,9 @@
 	bx	r1
 .func_end OvlFunc_899_200c704
 
+@ Leaf helper, 49 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Reads offsets +0x1.
 .thumb_func_start OvlFunc_899_200c754
 	push	{r5, r6, r7, lr}
 	mov	r2, #1
@@ -150,6 +162,11 @@
 	bx	r1
 .func_end OvlFunc_899_200c754
 
+@ 31 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntity
 .thumb_func_start OvlFunc_899_200c7bc
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -187,6 +204,11 @@
 	bx	r1
 .func_end OvlFunc_899_200c7bc
 
+@ 33 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntity
 .thumb_func_start OvlFunc_899_200c7fc
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -226,6 +248,11 @@
 	bx	r1
 .func_end OvlFunc_899_200c7fc
 
+@ 46 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_47fc, OvlFunc_47bc x3
 .thumb_func_start OvlFunc_899_200c840
 	push	{r5, r6, lr}
 	cmp	r0, #0

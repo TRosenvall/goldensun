@@ -1,5 +1,21 @@
 	.include "macros.inc"
 
+@ Map-load entry.
+@
+@ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x204 and the message
+@ delay at +0x1C8 to 0x18 -- slower than the usual 0x10, so this room's text
+@ reads at a deliberate pace.
+@
+@ The rest runs only when save bit 0x300 is set, and stages one map object that
+@ the object table cannot describe on its own:
+@   - MapActor_SetPos places slot 8 at (0xD80000, 0x880000),
+@   - animation 2, then Func_c528 with argument 0 on its entity,
+@   - byte +0x23 set to 2 -- the display-offset flags, where bit 1 shifts the
+@     sprite by -0x140.0000 -- and byte +0x59 cleared,
+@     which is the flag OvlFunc_6c-style lookups test to decide whether an
+@     entity blocks a push,
+@   - Func_10704 repaints a 5x5 attribute block from (0xB, 0x24) to (0xB, 6),
+@     so the collision under the object matches where it now stands.
 .thumb_func_start OvlFunc_904_2008054
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc

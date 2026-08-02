@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ 23 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit x3, SetPendingMessageId
+@ reads save bits 0x812, 0x813, 0x818.
 .thumb_func_start OvlFunc_891_2008054
 	push	{lr}
 	ldr	r0, =0x818
@@ -30,6 +36,14 @@
 	bx	r1
 .func_end OvlFunc_891_2008054
 
+@ 77 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectIndicesU, PlaySound, CopyMapRectIndicesU, DialogueWait
+@   CopyMapRectIndicesU, DialogueWait, CopyMapRectIndicesU x3, CopyMapRectAttributes
+@   SetSaveBit, OvlFunc_16dc
+@ sets 0x207.
 .thumb_func_start OvlFunc_891_2008098
 	push	{r5, r6, r7, lr}
 	sub	sp, #8
@@ -111,6 +125,10 @@
 	bx	r0
 .func_end OvlFunc_891_2008098
 
+@ Cutscene: roughly 446 instructions of straight-line script --
+@ 9 turns, 11 animation changes, 0 dialogue lines, 27 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x101a.
 .thumb_func_start OvlFunc_891_2008150
 	push	{r5, r6, r7, lr}
 	bl	__CutsceneStart
@@ -566,6 +584,10 @@
 	bx	r0
 .func_end OvlFunc_891_2008150
 
+@ Cutscene: roughly 610 instructions of straight-line script --
+@ 16 turns, 16 animation changes, 0 dialogue lines, 36 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x1004, 0x1010, 0x1011, 0x1012.
 .thumb_func_start OvlFunc_891_2008614
 	push	{lr}
 	bl	__CutsceneStart
@@ -1187,6 +1209,15 @@
 	bx	r0
 .func_end OvlFunc_891_2008614
 
+@ 238 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, WalkSlotToAndWait, TurnSlotToAngle, DialogueWait x3
+@   WalkSlotToAndWait, TurnSlotToAngle, DialogueWait x3, CopyMapRectIndicesU
+@   DialogueWait, CopyMapRectIndicesU, DialogueWait, CopyMapRectIndicesU
+@   DialogueWait, CopyMapRectIndicesU
+@   ... and 7 more
 .thumb_func_start OvlFunc_891_2008c8c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1439,6 +1470,11 @@
 	bx	r0
 .func_end OvlFunc_891_2008c8c
 
+@ 138 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   ReleaseObjAffine x3
 .thumb_func_start OvlFunc_891_2008eb0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

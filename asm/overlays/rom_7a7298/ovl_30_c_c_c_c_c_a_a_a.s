@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ 88 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked, PlaySound x2, PlayMapRectAnimation
+@   SetSlotEntitySpeed x2, SetSlotAnimation, SetSlotDrawPriority, MoveSlotBy
+@   GetSlotEntityChecked, WalkSlotThroughDoorway, DialogueWait, SetPendingMessageId
+@   EndCutscene
 .thumb_func_start OvlFunc_921_20086c0
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ebc
@@ -97,6 +105,9 @@
 	bx	r0
 .func_end OvlFunc_921_20086c0
 
+@ Counter: shop 0xa via Func_b0278, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0x153e, 0x164b.
+@ Gated on save bit 0x881.
 .thumb_func_start OvlFunc_921_20087a4
 	push	{r5, lr}
 	mov	r0, #0
@@ -185,6 +196,9 @@
 	bx	r0
 .func_end OvlFunc_921_20087a4
 
+@ Counter: shop 0xb via Func_b0278, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0x1543, 0x164d.
+@ Gated on save bit 0x881.
 .thumb_func_start OvlFunc_921_200888c
 	push	{r5, lr}
 	mov	r0, #0
@@ -273,6 +287,9 @@
 	bx	r0
 .func_end OvlFunc_921_200888c
 
+@ Counter: shop 0xc via Func_b0278, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0x1546, 0x1547, 0x164f.
+@ Gated on save bit 0x881.
 .thumb_func_start OvlFunc_921_2008974
 	push	{r5, lr}
 	mov	r0, #0
@@ -350,6 +367,9 @@
 	bx	r0
 .func_end OvlFunc_921_2008974
 
+@ Counter: INN 0x4 via Func_b3284, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0x154b, 0x1653.
+@ Gated on save bit 0x881.
 .thumb_func_start OvlFunc_921_2008a3c
 	push	{lr}
 	mov	r0, #0
@@ -399,6 +419,9 @@
 	bx	r0
 .func_end OvlFunc_921_2008a3c
 
+@ Counter: shop type 0x13 via UI_Sanctum, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0x1553, 0x1554, 0x1572.
+@ Gated on save bits 0x3, 0x82d, 0x881.
 .thumb_func_start OvlFunc_921_2008abc
 	push	{lr}
 	mov	r0, #0
@@ -465,6 +488,10 @@
 	bx	r0
 .func_end OvlFunc_921_2008abc
 
+@ Cutscene: roughly 405 instructions of straight-line script --
+@ 0 turns, 4 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x203, 0x82a, 0x82b.
 .thumb_func_start OvlFunc_921_2008b70
 	push	{r5, r6, lr}
 	ldr	r6, =gState
@@ -898,6 +925,11 @@
 	bx	r1
 .func_end OvlFunc_921_2008b70
 
+@ Cutscene: roughly 548 instructions of straight-line script --
+@ 11 turns, 12 animation changes, 15 dialogue lines, 15 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x155c.
+@ Sets save bit 0x82b.
 .thumb_func_start OvlFunc_921_2008f90
 	push	{r5, lr}
 	bl	__CutsceneStart
@@ -1458,6 +1490,11 @@
 	bx	r0
 .func_end OvlFunc_921_2008f90
 
+@ 47 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RotateVector, DestroyEntity
 .thumb_func_start OvlFunc_921_200954c
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -1510,6 +1547,13 @@
 	bx	r0
 .func_end OvlFunc_921_200954c
 
+@ 98 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Sin, UnsignedRem, Random x2, RotateVector
+@   SpawnEntity, SetEntityActorOptions, SetEntityAnimation, SetActorPartsPalette
+@   SetEntityScript
 .thumb_func_start OvlFunc_921_20095b4
 	push	{r5, r6, lr}
 	mov	r6, r0

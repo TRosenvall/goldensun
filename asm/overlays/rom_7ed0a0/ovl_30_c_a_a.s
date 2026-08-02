@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 151 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_964_2009abc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -160,6 +163,9 @@
 	bx	r0
 .func_end OvlFunc_964_2009abc
 
+@ Cutscene: roughly 90 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_964_2009c2c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -255,6 +261,9 @@
 	bx	r0
 .func_end OvlFunc_964_2009c2c
 
+@ Cutscene: roughly 250 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_964_2009d04
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

@@ -1,5 +1,6 @@
 	.include "macros.inc"
 
+@ Slot 4: map object table.
 .thumb_func_start OvlFunc_906_20083e4
 	push	{lr}
 	ldr	r3, =gState
@@ -20,6 +21,16 @@
 	bx	r1
 .func_end OvlFunc_906_20083e4
 
+@ Slot 0: map-load entry.
+@
+@ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x204. Area 0x1C only:
+@ arriving by entrance 5 just clears save bit 0x12F, otherwise slot 8 gets bit
+@ 4 set in its interaction-flag byte +0x59 so it can be pushed.
+@
+@ If save bit 0x864 is already set, the toppled state is reconstructed without
+@ any animation: slot 8 is teleported to (0x15A0000, 0x1240000), reset, given
+@ bit 1 of +0x23 and animation 2, and the same 3x9 attribute block that
+@ OvlFunc_380 paints is applied.
 .thumb_func_start OvlFunc_906_2008414
 	push	{lr}
 	ldr	r3, =iwram_3001ebc

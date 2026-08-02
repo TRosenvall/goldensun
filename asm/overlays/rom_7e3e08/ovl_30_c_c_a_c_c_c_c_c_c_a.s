@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 52 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   WaitFrames, AllocOverlayState, TestSaveBit, OvlFunc_a54
+@ reads save bit 0x201.
 .thumb_func_start OvlFunc_957_2008b30
 	push	{r5, lr}
 	ldr	r5, =iwram_3001ebc
@@ -58,6 +64,11 @@
 	bx	r0
 .func_end OvlFunc_957_2008b30
 
+@ 37 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSlotPalette x5
 .thumb_func_start OvlFunc_957_2008bc8
 	push	{lr}
 	ldr	r3, =gState
@@ -100,6 +111,12 @@
 	bx	r0
 .func_end OvlFunc_957_2008bc8
 
+@ 40 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, OvlFunc_b30, SetSlotPalette x5
+@ reads save bit 0x200.
 .thumb_func_start OvlFunc_957_2008c2c
 	push	{r5, lr}
 	ldr	r3, =iwram_3001f30
@@ -145,6 +162,11 @@
 	bx	r0
 .func_end OvlFunc_957_2008c2c
 
+@ 38 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TurnSlotToAngle, SetEntityPalette, DialogueWait, SpawnEntity
 .thumb_func_start OvlFunc_957_2008c98
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001f30
@@ -187,6 +209,12 @@
 	bx	r0
 .func_end OvlFunc_957_2008c98
 
+@ 34 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, CopyMapRectAttributes, SetSaveBit
+@ sets 0x212.
 .thumb_func_start OvlFunc_957_2008cf8
 	push	{lr}
 	mov	r0, #0xc

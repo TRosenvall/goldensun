@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ 41 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, PlaySound, SetSlotAnimation
+@   MoveSlotBy, WaitForSlotArrival, SetSlotPalette, GetSlotEntityChecked
+@   SetEntityActorOptions, DialogueWait, HideScreenOverlay, WaitSceneDelay
+@   SetPendingMessageId, EndCutscene
 .thumb_func_start OvlFunc_924_2008f84
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -44,6 +52,13 @@
 	bx	r0
 .func_end OvlFunc_924_2008f84
 
+@ 36 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, PlaySound, SetSlotEntitySpeed, SetSlotDrawPriority
+@   MoveSlotBy, GetSlotEntityChecked, SetEntityActorOptions, DialogueWait
+@   PlaceSlotAt, DialogueWait
 .thumb_func_start OvlFunc_924_2008ffc
 	push	{r5, lr}
 	mov	r5, r0

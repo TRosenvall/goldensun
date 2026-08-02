@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ 30 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetSlotEntitySpeed, MoveSlotBy, SetSlotFacingAndScript
+@   SetSlotAnimation, WaitForSlotArrival, SetSlotAnimation, EndCutscene
 .thumb_func_start OvlFunc_922_2009ad0
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -33,6 +39,12 @@
 	bx	r0
 .func_end OvlFunc_922_2009ad0
 
+@ 56 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, galloc_iwram, SetPortraitPointer, AllocObjTiles
+@   Func_2dd8
 .thumb_func_start OvlFunc_922_2009b1c
 	push	{r5, r6, r7, lr}
 	mov	r1, #0xf8

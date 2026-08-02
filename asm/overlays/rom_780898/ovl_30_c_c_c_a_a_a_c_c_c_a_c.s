@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 88 instructions of straight-line script --
+@ 0 turns, 2 animation changes, 2 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xf39.
 .thumb_func_start OvlFunc_883_2008fec
 	push	{r5, r6, lr}
 	mov	r0, #0
@@ -94,6 +98,16 @@
 	bx	r0
 .func_end OvlFunc_883_2008fec
 
+@ 97 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, BeginCutscene, SetSlotEntitySpeed, SetSlotAnimation
+@   DialogueWait, SetActiveMessageId, ShowMessageAndPause x2, GetSlotEntityChecked
+@   DialogueWait, UpdateMapView, DialogueWait, RunTextBoxModal
+@   DialogueWait x2, UpdateMapView
+@   ... and 3 more
+@ message id 0xf4d; reads save bit 0x808.
 .thumb_func_start OvlFunc_883_20090d8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -197,6 +211,14 @@
 	bx	r0
 .func_end OvlFunc_883_20090d8
 
+@ 37 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, BeginCutscene, SetSlotEntitySpeed, SetActiveMessageId
+@   ShowMessageAndPause x2, RunTextBoxModal, DialogueWait, WalkSlotToAndWait
+@   EndCutscene
+@ message id 0xf4d; reads save bit 0x808.
 .thumb_func_start OvlFunc_883_20091d8
 	push	{r5, lr}
 	ldr	r0, =0x808
@@ -238,6 +260,13 @@
 	bx	r0
 .func_end OvlFunc_883_20091d8
 
+@ 24 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, CopyMapRectAttributes, OvlFunc_32b0, SetSaveBit
+@   EndCutscene
+@ sets 0x204.
 .thumb_func_start OvlFunc_883_2009244
 	push	{lr}
 	sub	sp, #8
@@ -265,6 +294,13 @@
 	bx	r0
 .func_end OvlFunc_883_2009244
 
+@ 24 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_3380, ClearSaveBit, CopyMapRectAttributes
+@   EndCutscene
+@ clears 0x204.
 .thumb_func_start OvlFunc_883_2009280
 	push	{lr}
 	sub	sp, #8
@@ -292,6 +328,11 @@
 	bx	r0
 .func_end OvlFunc_883_2009280
 
+@ Cutscene: roughly 146 instructions of straight-line script --
+@ 5 turns, 2 animation changes, 1 dialogue line, 4 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xfce.
+@ Sets save bit 0x823.
 .thumb_func_start OvlFunc_883_20092bc
 	push	{r5, r6, lr}
 	mov	r0, #0x16

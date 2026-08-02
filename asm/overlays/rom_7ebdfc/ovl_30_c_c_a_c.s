@@ -1,5 +1,6 @@
 	.include "macros.inc"
 
+@ Prompt at message base 0x25B8. r0 = speaker slot. See the header.
 .thumb_func_start OvlFunc_961_2008068
 	push	{r5, r6, lr}
 	ldr	r5, =0x25b8
@@ -31,6 +32,7 @@
 	bx	r0
 .func_end OvlFunc_961_2008068
 
+@ Prompt at message base 0x25DC. r0 = speaker slot.
 .thumb_func_start OvlFunc_961_20080b0
 	push	{r5, r6, lr}
 	ldr	r5, =0x25dc

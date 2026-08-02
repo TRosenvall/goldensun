@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 13 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetSlotAnimation, ShowMessageAndWait, EndCutscene
 .thumb_func_start OvlFunc_901_20084b4
 	push	{r5, lr}
 	mov	r5, r0
@@ -16,6 +21,9 @@
 	bx	r0
 .func_end OvlFunc_901_20084b4
 
+@ Talk: line 0x1cab, shown.
+@ Also turns to face the player.
+@ Sets save bit 0x305.
 .thumb_func_start OvlFunc_901_20084d8
 	push	{lr}
 	bl	__CutsceneStart

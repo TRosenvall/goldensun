@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ 107 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, RotateVector, CheckTerrainStep x2, BeginCutscene
+@   SetEntityAnimation, WaitFrames, PlaySound, SetEntityAnimation
+@   SetEntityActorOptions, MoveSlotToAndWait, SetEntityAnimation, SetEntityActorOptions
+@   WaitFrames, EndCutscene
 .thumb_func_start OvlFunc_964_2008cd0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -112,6 +120,11 @@
 	bx	r1
 .func_end OvlFunc_964_2008cd0
 
+@ 19 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_cd0
 .thumb_func_start OvlFunc_964_2008dc8
 	push	{lr}
 	mov	r0, #0
@@ -134,6 +147,11 @@
 	bx	r0
 .func_end OvlFunc_964_2008dc8
 
+@ 18 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_cd0
 .thumb_func_start OvlFunc_964_2008df4
 	push	{lr}
 	mov	r0, #0
@@ -155,6 +173,9 @@
 	bx	r0
 .func_end OvlFunc_964_2008df4
 
+@ Adjusts slot 0 (the player) directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x10, +0x18.
 .thumb_func_start OvlFunc_964_2008e20
 	push	{r5, r6, lr}
 	mov	r0, #0
@@ -230,6 +251,9 @@
 	bx	r0
 .func_end OvlFunc_964_2008e20
 
+@ Adjusts slot 0 (the player) directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0xc, +0x10.
 .thumb_func_start OvlFunc_964_2008ec8
 	push	{r5, lr}
 	mov	r5, r0

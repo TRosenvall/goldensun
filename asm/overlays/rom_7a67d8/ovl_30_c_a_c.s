@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Slot 0: map-load entry.
+@
+@ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x100, allocates the
+@ overlay state in mode 9, and programs the same blend registers and state
+@ fields as OvlFunc_15c. Finishes by installing the raster effect through
+@ OvlFunc_2e0.
 .thumb_func_start OvlFunc_919_2008200
 	push	{r5, lr}
 	ldr	r5, =iwram_3001ebc
@@ -48,6 +54,11 @@
 	bx	r1
 .func_end OvlFunc_919_2008200
 
+@ RasterSplitHandler
+@ The HBlank handler, installed on IRQ 1. Compares REG_VCOUNT against the split
+@ line cached in .L610 and writes REG_BG3HOFS from .L614 below it or .L616
+@ above -- one comparison and one store, which is all an HBlank handler can
+@ afford. The two scroll values differ, so BG3 appears to scroll at two speeds.
 .thumb_func_start OvlFunc_919_200826c
 	push	{lr}
 	ldr	r3, =REG_VCOUNT
@@ -68,6 +79,12 @@
 	bx	r0
 .func_end OvlFunc_919_200826c
 
+@ UpdateRasterSplit
+@ The per-frame task that feeds OvlFunc_26c. Reads the camera record at
+@ [iwram_1e70]+0x104: the halfword at +6 gives the horizon, stored as
+@ .L610 = 0xC0 - that, and the halfword at +2 becomes the lower scroll .L614.
+@ The upper scroll .L616 is that same value minus [iwram_1e40] >> 2, so the far
+@ layer moves at a quarter rate -- the parallax.
 .thumb_func_start OvlFunc_919_20082a0
 	ldr	r3, =iwram_3001e70
 	mov	r1, #0x82

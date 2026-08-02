@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 35 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit
 .thumb_func_start OvlFunc_881_200b448
 	push	{r5, r6, lr}
 	mov	r6, #0
@@ -47,6 +52,12 @@
 	bx	r1
 .func_end OvlFunc_881_200b448
 
+@ 94 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SpawnEntity, Random x3, SetActorPartsPalette
+@   SetEntityAnimation, SetEntityScript
 .thumb_func_start OvlFunc_881_200b4a0
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e40
@@ -147,6 +158,15 @@
 	bx	r0
 .func_end OvlFunc_881_200b4a0
 
+@ 83 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, DialogueWait, BeginCutscene, ScrollCameraBy
+@   AttachCameraToSlot, WaitFrames, SetSlotPalette, GetSlotEntityChecked
+@   SetEntityActorOptions, GetSlotEntityChecked, SetEntityActorOptions, SetSlotEntitySpeed
+@   SetSlotScriptWithTurn, RegisterTask
+@   ... and 8 more
 .thumb_func_start OvlFunc_881_200b57c
 	push	{r5, r6, lr}
 	mov	r0, #8
@@ -240,6 +260,12 @@
 	bx	r0
 .func_end OvlFunc_881_200b57c
 
+@ 40 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, ReadSaveByte, TestSaveBit, WriteSaveByte
+@ reads save bit 0x106.
 .thumb_func_start OvlFunc_881_200b678
 	push	{r5, r6, lr}
 	ldr	r3, =gState
@@ -285,6 +311,16 @@
 	bx	r0
 .func_end OvlFunc_881_200b678
 
+@ 89 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, TestSaveBit, BeginCutscene, RunSlotEffectSequence
+@   SetSlotAnimation, GetSlotEntityChecked, MoveSlotTo, WaitForSlotArrival
+@   PlaySound, RegisterTask, SetEntityMoveTarget, WaitForSlotArrival
+@   SetSaveBit, WriteSaveByte
+@   ... and 1 more
+@ reads save bit 0x2f0; sets 0x2f0.
 .thumb_func_start OvlFunc_881_200b6dc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

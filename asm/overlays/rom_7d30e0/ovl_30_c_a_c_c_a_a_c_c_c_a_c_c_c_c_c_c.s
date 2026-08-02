@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 55 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, TestSaveBit, SetSaveBit
+@ reads save bit 0x220; sets 0x220.
 .thumb_func_start OvlFunc_948_2009308
 	push	{r5, r6, r7, lr}
 	mov	r0, #0
@@ -62,6 +68,16 @@
 	bx	r0
 .func_end OvlFunc_948_2009308
 
+@ 51 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetSlotEntitySpeed x2, PlaySound, GetSlotEntityChecked
+@   MoveSlotTo, WaitForSlotArrival, MoveSlotBy, DialogueWait
+@   PlaySound, MoveSlotBy, WaitForSlotArrival, MoveSlotTo
+@   WaitForSlotArrival, EndCutscene
+@   ... and 1 more
+@ clears 0x220.
 .thumb_func_start OvlFunc_948_200938c
 	push	{lr}
 	bl	__CutsceneStart
@@ -117,6 +133,12 @@
 	bx	r0
 .func_end OvlFunc_948_200938c
 
+@ 53 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, TestSaveBit, SetSaveBit
+@ reads save bit 0x220; sets 0x220.
 .thumb_func_start OvlFunc_948_200941c
 	push	{r5, r6, r7, lr}
 	mov	r0, #0
@@ -176,6 +198,16 @@
 	bx	r0
 .func_end OvlFunc_948_200941c
 
+@ 51 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetSlotEntitySpeed x2, PlaySound, GetSlotEntityChecked
+@   MoveSlotTo, WaitForSlotArrival, MoveSlotBy, PlaySound
+@   DialogueWait, MoveSlotBy, WaitForSlotArrival, MoveSlotTo
+@   WaitForSlotArrival, EndCutscene
+@   ... and 1 more
+@ clears 0x220.
 .thumb_func_start OvlFunc_948_200949c
 	push	{lr}
 	bl	__CutsceneStart
@@ -231,6 +263,12 @@
 	bx	r0
 .func_end OvlFunc_948_200949c
 
+@ 66 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetSlotEntitySpeed, PlaySound, MoveSlotTo
+@   MoveSlotBy, WaitForSlotArrival
 .thumb_func_start OvlFunc_948_200952c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

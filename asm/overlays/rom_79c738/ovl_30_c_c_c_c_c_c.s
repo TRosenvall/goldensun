@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ 44 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, ApplyObjectToSlot, ApplyFieldItemOrAbility, SetSlotAnimation
+@   SetSaveBit x2, ClearSaveBit x2, PlaySound, SetSlotAnimation
+@   DestroyEntity, EndCutscene
+@ sets 0x84e; clears 0x202, 0x322.
 .thumb_func_start OvlFunc_909_20084ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -49,6 +57,14 @@
 	bx	r0
 .func_end OvlFunc_909_20084ec
 
+@ 49 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit x2, BeginCutscene, PlayInteractionEffect, TurnSlotToAngle
+@   SetFollowerFormationAndRefresh, DialogueWait, SetActiveMessageId, ShowMessageAndWait
+@   SetSlotEntitySpeed, WalkSlotToAndWait, TurnSlotToAngle, EndCutscene
+@ message id 0x1748; reads save bits 0x322, 0x84e.
 .thumb_func_start OvlFunc_909_2008568
 	push	{lr}
 	ldr	r0, =0x84e
@@ -102,6 +118,12 @@
 	bx	r0
 .func_end OvlFunc_909_2008568
 
+@ Cutscene: roughly 73 instructions of straight-line script --
+@ 1 turn, 3 animation changes, 1 dialogue line, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1749.
+@ Reads save bit 0x84e.
+@ Sets save bits 0x333, 0x85e.
 .thumb_func_start OvlFunc_909_20085f4
 	push	{lr}
 	ldr	r0, =0x84e
@@ -179,6 +201,11 @@
 	bx	r0
 .func_end OvlFunc_909_20085f4
 
+@ Cutscene: roughly 178 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x321, 0x322, 0x845.
+@ Sets save bit 0x84b.
 .thumb_func_start OvlFunc_909_20086e0
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc
@@ -370,6 +397,12 @@
 	bx	r1
 .func_end OvlFunc_909_20086e0
 
+@ Cutscene: roughly 1417 instructions of straight-line script --
+@ 59 turns, 57 animation changes, 33 dialogue lines, 25 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x1437, 0x1440, 0x1442, 0x1443.
+@ Reads save bits 0x3, 0x85f.
+@ Sets save bits 0x321, 0x85f.
 .thumb_func_start OvlFunc_909_20088c0
 	push	{r5, lr}
 	bl	__CutsceneStart
@@ -1834,6 +1867,11 @@
 	bx	r0
 .func_end OvlFunc_909_20088c0
 
+@ Cutscene: roughly 159 instructions of straight-line script --
+@ 3 turns, 3 animation changes, 6 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x145e.
+@ Sets save bits 0x200, 0x84f.
 .thumb_func_start OvlFunc_909_200979c
 	push	{lr}
 	bl	__CutsceneStart
@@ -1996,6 +2034,11 @@
 	bx	r0
 .func_end OvlFunc_909_200979c
 
+@ 18 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TurnSlotToAngle x3
 .thumb_func_start OvlFunc_909_2009958
 	push	{lr}
 	mov	r1, #0xe0
@@ -2017,6 +2060,11 @@
 	bx	r0
 .func_end OvlFunc_909_2009958
 
+@ 18 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TurnSlotToAngle x3
 .thumb_func_start OvlFunc_909_2009984
 	push	{lr}
 	mov	r1, #0xc0
@@ -2038,6 +2086,12 @@
 	bx	r0
 .func_end OvlFunc_909_2009984
 
+@ Cutscene: roughly 769 instructions of straight-line script --
+@ 19 turns, 28 animation changes, 20 dialogue lines, 15 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x1728, 0x1737, 0x1738, 0x1739.
+@ Reads save bit 0x84f.
+@ Sets save bits 0x322, 0x84a, 0x84f.
 .thumb_func_start OvlFunc_909_20099b0
 	push	{r5, r6, lr}
 	bl	__CutsceneStart
@@ -2839,6 +2893,11 @@
 	bx	r0
 .func_end OvlFunc_909_20099b0
 
+@ Cutscene: roughly 217 instructions of straight-line script --
+@ 1 turn, 2 animation changes, 2 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1746.
+@ Sets save bit 0x202.
 .thumb_func_start OvlFunc_909_200a1bc
 	push	{r5, r6, lr}
 	sub	sp, #8

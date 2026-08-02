@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 44 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv
 .thumb_func_start OvlFunc_968_200896c
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -49,6 +54,15 @@
 	bx	r0
 .func_end OvlFunc_968_200896c
 
+@ 127 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, MoveCameraTo, UpdateMapView
+@   WaitFrames, ShowScreenOverlay, WaitSceneDelay, DialogueWait
+@   PlaySound, DialogueWait, Cos, Sin
+@   OvlFunc_118, PlaySound
+@   ... and 7 more
 .thumb_func_start OvlFunc_968_20089c8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -180,6 +194,12 @@
 	bx	r0
 .func_end OvlFunc_968_20089c8
 
+@ 62 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, Cos, Sin, SignedDiv
+@   OvlFunc_118
 .thumb_func_start OvlFunc_968_2008b08
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -246,6 +266,12 @@
 	bx	r0
 .func_end OvlFunc_968_2008b08
 
+@ 82 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random, PlaySound, Random, SignedDiv
+@   Random, SignedDiv, OvlFunc_118
 .thumb_func_start OvlFunc_968_2008b98
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

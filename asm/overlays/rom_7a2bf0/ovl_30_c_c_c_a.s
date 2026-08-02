@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 57 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_8c0, TestSaveBit, GetSlotEntityChecked, CopyMapRectAttributes
+@   OvlFunc_244, GetSlotEntityChecked, SetEntityActorOptions, OvlFunc_8c0 x2
+@   TestSaveBit, OvlFunc_c8c
+@ reads save bits 0x201, 0x845.
 .thumb_func_start OvlFunc_915_2008bf8
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc
@@ -63,6 +71,12 @@
 	bx	r1
 .func_end OvlFunc_915_2008bf8
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_d5c, OvlFunc_cf4, OvlFunc_d9c, OvlFunc_d7c
+@   StartFadeOut
 .thumb_func_start OvlFunc_915_2008c8c
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
@@ -111,6 +125,11 @@
 	bx	r0
 .func_end OvlFunc_915_2008c8c
 
+@ 47 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv x3
 .thumb_func_start OvlFunc_915_2008cf4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 111 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv, GetSlotEntityChecked, OvlFunc_f6c, PlaySound
 .thumb_func_start OvlFunc_957_2008f94
 	push	{r5, r6, r7, lr}
 	ldr	r4, =.L3f6c
@@ -122,6 +127,16 @@
 	bx	r0
 .func_end OvlFunc_957_2008f94
 
+@ 367 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, CloseMessageWindow, SetActiveMessageId, ShowMessageAndWait
+@   EndCutscene, GetSlotEntityChecked, SignedDiv, PlaySound x4
+@   WaitFrames, OvlFunc_f10, PlaySound, GetSlotEntityChecked
+@   WaitFrames x2, PlaySound x2
+@   ... and 24 more
+@ message id 0x21db.
 .thumb_func_start OvlFunc_957_200909c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -517,6 +532,11 @@
 	bx	r0
 .func_end OvlFunc_957_200909c
 
+@ Cutscene: roughly 2316 instructions of straight-line script --
+@ 79 turns, 59 animation changes, 83 dialogue lines, 232 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x2183, 0x218a, 0x218b, 0x218c.
+@ Sets save bit 0x962.
 .thumb_func_start OvlFunc_957_20093f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2872,6 +2892,11 @@
 	bx	r0
 .func_end OvlFunc_957_20093f8
 
+@ Cutscene: roughly 809 instructions of straight-line script --
+@ 16 turns, 18 animation changes, 42 dialogue lines, 78 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x214f, 0x2164, 0x2165, 0x2168.
+@ Sets save bit 0x960.
 .thumb_func_start OvlFunc_957_200ac44
 	push	{r5, lr}
 	mov	r0, #0x96
@@ -3696,6 +3721,7 @@
 	bx	r0
 .func_end OvlFunc_957_200ac44
 
+@ Talk: line 0x217f, shown.
 .thumb_func_start OvlFunc_957_200b4bc
 	push	{r5, lr}
 	bl	__CutsceneStart
@@ -3733,6 +3759,10 @@
 	bx	r0
 .func_end OvlFunc_957_200b4bc
 
+@ Talk: line 0x217d, shown.
+@ Which line is chosen by save bits 0x960, 0x962.
+@ Also turns to face the player, re-forms the followers.
+@ Sets save bit 0x961.
 .thumb_func_start OvlFunc_957_200b518
 	push	{lr}
 	mov	r0, #0x96
@@ -3779,6 +3809,9 @@
 	bx	r0
 .func_end OvlFunc_957_200b518
 
+@ Leaf helper, 35 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_957_200b598
 	push	{lr}
 	ldr	r3, =gState
@@ -3823,6 +3856,9 @@
 	bx	r1
 .func_end OvlFunc_957_200b598
 
+@ Adjusts slot 0 (the player) directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x9, +0x50.
 .thumb_func_start OvlFunc_957_200b610
 	push	{r5, lr}
 	mov	r5, r0
@@ -3851,6 +3887,11 @@
 	bx	r0
 .func_end OvlFunc_957_200b610
 
+@ Cutscene: roughly 403 instructions of straight-line script --
+@ 0 turns, 2 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x200, 0x211, 0x212.
+@ Sets save bits 0x200, 0x201.
 .thumb_func_start OvlFunc_957_200b644
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -4283,6 +4324,12 @@
 	bx	r1
 .func_end OvlFunc_957_200b644
 
+@ 74 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random, RotateVector, PlaySound, IsEffectActive x2
+@   DestroyFieldEffect
 .thumb_func_start OvlFunc_957_200ba30
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -4363,6 +4410,15 @@
 	bx	r0
 .func_end OvlFunc_957_200ba30
 
+@ 109 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   AllocWaveEffectBuffer, UploadShopGraphics, PrepareEncounterTransition, CreateFieldEffect
+@   SetEffectScript, SetEffectAnimation, Random, Func_b684
+@   Random, UnsignedDiv, WaitFrames x2, CopyMapRectIndices
+@   CopyMapRectAttributes, WaitFrames
+@   ... and 5 more
 .thumb_func_start OvlFunc_957_200bad4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

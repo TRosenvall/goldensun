@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 50 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetFollowerFormationAndRefresh, SetActiveMessageId, ShowMessageAndPause
+@   SetSlotPalette, WaitFrames, SetSlotPalette, WaitFrames
+@   SetSaveBit, PlaceSlotAt, CopyMapRectAttributes, EndCutscene
+@ message id 0x266d; sets 0x981.
 .thumb_func_start OvlFunc_968_2008f38
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -56,6 +64,8 @@
 	bx	r0
 .func_end OvlFunc_968_2008f38
 
+@ Talk: line 0x2670, shown.
+@ Also re-forms the followers.
 .thumb_func_start OvlFunc_968_2008fbc
 	push	{lr}
 	bl	__CutsceneStart

@@ -1,5 +1,7 @@
 	.include "macros.inc"
 
+@ Slot 3: area 0x64 splits on entrance -- 9..0x0F or 0x11 give .L8d4, other
+@ entrances .L79c, both tagged by Func_8b868. Area 0x65 -> .La0c, else .L784.
 .thumb_func_start OvlFunc_937_200807c
 	push	{r5, lr}
 	ldr	r1, =gState
@@ -46,6 +48,7 @@
 	bx	r1
 .func_end OvlFunc_937_200807c
 
+@ Slot 4: the map object table, on the same area and entrance split as slot 3.
 .thumb_func_start OvlFunc_937_20080e4
 	push	{lr}
 	ldr	r1, =gState

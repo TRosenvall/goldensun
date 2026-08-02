@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Counter: shop 0x1f via Func_b0278, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0x25cf, 0x261c.
+@ Gated on save bit 0x96f.
 .thumb_func_start OvlFunc_962_200806c
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -64,6 +67,9 @@
 	bx	r0
 .func_end OvlFunc_962_200806c
 
+@ Counter: INN 0xa via Func_b3284, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0x25d1, 0x2620.
+@ Gated on save bit 0x96f.
 .thumb_func_start OvlFunc_962_2008100
 	push	{r5, lr}
 	mov	r5, r0
@@ -110,6 +116,9 @@
 	bx	r0
 .func_end OvlFunc_962_2008100
 
+@ Counter: shop type via UI_Sanctum, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0x25d5, 0x262c.
+@ Gated on save bit 0x96f.
 .thumb_func_start OvlFunc_962_200816c
 	push	{r5, lr}
 	mov	r5, r0
@@ -155,6 +164,7 @@
 	bx	r0
 .func_end OvlFunc_962_200816c
 
+@ Talk: line 0x2624, shown.
 .thumb_func_start OvlFunc_962_20081d4
 	push	{r5, r6, lr}
 	ldr	r5, =0x2624

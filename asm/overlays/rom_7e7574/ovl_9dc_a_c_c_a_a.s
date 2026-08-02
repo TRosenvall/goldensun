@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ 23 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSlotEntitySpeed, MoveSlotTo, WaitForSlotArrival, PlaySound
+@   DialogueWait, OvlFunc_b4c, SetSaveBit
+@ sets 0x943.
 .thumb_func_start OvlFunc_959_2008bac
 	push	{lr}
 	mov	r1, #0x80
@@ -26,6 +33,13 @@
 	bx	r0
 .func_end OvlFunc_959_2008bac
 
+@ 57 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetMapTransition x2, PlaySound, CopyMapRectAttributes x2
+@   GetSlotEntityChecked, SetEntityActorOptions, SetSaveBit
+@ sets 0x943.
 .thumb_func_start OvlFunc_959_2008bec
 	push	{r5, lr}
 	mov	r0, #0xc
@@ -88,6 +102,11 @@
 	bx	r0
 .func_end OvlFunc_959_2008bec
 
+@ 10 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaceSlotAt, OvlFunc_b4c
 .thumb_func_start OvlFunc_959_2008c78
 	push	{lr}
 	mov	r1, #0xf8
@@ -101,6 +120,11 @@
 	bx	r0
 .func_end OvlFunc_959_2008c78
 
+@ 35 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectFull x3
 .thumb_func_start OvlFunc_959_2008c90
 	push	{r5, r6, lr}
 	ldr	r3, =.L7714
@@ -139,6 +163,13 @@
 	bx	r0
 .func_end OvlFunc_959_2008c90
 
+@ 44 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   FindInventorySlotInParty, TestSaveBit, OvlFunc_c90, PlaySound
+@   SetMapTransition x2, SetSaveBit
+@ reads save bit 0x941.
 .thumb_func_start OvlFunc_959_2008ce0
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ebc
@@ -188,6 +219,11 @@
 	bx	r0
 .func_end OvlFunc_959_2008ce0
 
+@ 53 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectFull x2, CopyMapRectAttributes x2
 .thumb_func_start OvlFunc_959_2008d54
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -245,6 +281,12 @@
 	bx	r0
 .func_end OvlFunc_959_2008d54
 
+@ 37 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   FindInventorySlotInParty, OvlFunc_d54, PlaySound, SetMapTransition x2
+@   SetSaveBit
 .thumb_func_start OvlFunc_959_2008dcc
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc
@@ -286,6 +328,11 @@
 	bx	r0
 .func_end OvlFunc_959_2008dcc
 
+@ 35 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectFull x3
 .thumb_func_start OvlFunc_959_2008e30
 	push	{r5, r6, lr}
 	ldr	r3, =.L7754
@@ -324,6 +371,12 @@
 	bx	r0
 .func_end OvlFunc_959_2008e30
 
+@ 37 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   FindInventorySlotInParty, OvlFunc_e30, PlaySound, SetMapTransition x2
+@   SetSaveBit
 .thumb_func_start OvlFunc_959_2008e80
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc
@@ -365,6 +418,11 @@
 	bx	r0
 .func_end OvlFunc_959_2008e80
 
+@ 35 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectFull x2, CopyMapRectAttributes
 .thumb_func_start OvlFunc_959_2008ee0
 	push	{r5, r6, lr}
 	ldr	r3, =.L7764
@@ -403,6 +461,12 @@
 	bx	r0
 .func_end OvlFunc_959_2008ee0
 
+@ 37 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   FindInventorySlotInParty, OvlFunc_ee0, PlaySound, SetMapTransition x2
+@   SetSaveBit
 .thumb_func_start OvlFunc_959_2008f30
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc

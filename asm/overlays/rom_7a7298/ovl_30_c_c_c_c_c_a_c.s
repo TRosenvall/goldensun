@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 34 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetActorPartsPalette, SetEntityActorOptions
 .thumb_func_start OvlFunc_921_2009704
 	push	{r5, lr}
 	mov	r5, r0
@@ -37,6 +42,11 @@
 	bx	r0
 .func_end OvlFunc_921_2009704
 
+@ 32 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   DestroyEntity
 .thumb_func_start OvlFunc_921_200974c
 	push	{lr}
 	mov	r1, r0
@@ -73,6 +83,15 @@
 	bx	r0
 .func_end OvlFunc_921_200974c
 
+@ 123 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   UnsignedRem, SpawnEntity, OvlFunc_1704, SetEntityAnimation
+@   UnsignedRem, SpawnEntity, OvlFunc_1704, SetEntityAnimation
+@   UnsignedRem, SpawnEntity, OvlFunc_1704, SetEntityAnimation
+@   UnsignedRem, SpawnEntity
+@   ... and 6 more
 .thumb_func_start OvlFunc_921_2009794
 	push	{r5, r6, lr}
 	ldr	r6, =iwram_3001e40
@@ -204,6 +223,13 @@
 	bx	r0
 .func_end OvlFunc_921_2009794
 
+@ 67 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, TestSaveBit, SetSaveBit, ClearSaveBit
+@   TestSaveBit, SetSaveBit, ClearSaveBit
+@ reads save bits 0x200, 0x201; sets 0x200, 0x201; clears 0x200, 0x201.
 .thumb_func_start OvlFunc_921_20098c4
 	push	{lr}
 	mov	r0, #0

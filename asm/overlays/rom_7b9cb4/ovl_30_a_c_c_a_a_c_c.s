@@ -1,6 +1,15 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 60 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, RunTextBoxModal, PlaySound, TestSaveBit
+@   CopyMapRectAttributes, CopyMapRectIndicesU, ClearSaveBit, CopyMapRectAttributes
+@   CopyMapRectIndicesU, SetSaveBit, WaitFrames, StopLoopingSound
+@   EndCutscene
+@ reads save bit 0x326; sets 0x326; clears 0x326.
 .thumb_func_start OvlFunc_932_2008b3c
 	push	{lr}
 	sub	sp, #8
@@ -66,6 +75,15 @@
 	bx	r0
 .func_end OvlFunc_932_2008b3c
 
+@ 60 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, RunTextBoxModal, PlaySound, TestSaveBit
+@   CopyMapRectAttributes, CopyMapRectIndicesU, ClearSaveBit, CopyMapRectAttributes
+@   CopyMapRectIndicesU, SetSaveBit, WaitFrames, StopLoopingSound
+@   EndCutscene
+@ reads save bit 0x327; sets 0x327; clears 0x327.
 .thumb_func_start OvlFunc_932_2008bd8
 	push	{lr}
 	sub	sp, #8

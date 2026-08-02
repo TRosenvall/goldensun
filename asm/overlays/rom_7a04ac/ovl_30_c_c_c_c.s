@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 79 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, SetEntityScript
 .thumb_func_start OvlFunc_913_200a88c
 	push	{r5, lr}
 	ldr	r3, =.L3394
@@ -89,6 +94,12 @@
 	bx	r1
 .func_end OvlFunc_913_200a88c
 
+@ 147 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, PlaySound, Random x3, SetEntityAnimation
+@   SetEntityScript
 .thumb_func_start OvlFunc_913_200a974
 	push	{r5, r6, r7, lr}
 	ldr	r2, =.L338c
@@ -252,6 +263,11 @@
 	bx	r0
 .func_end OvlFunc_913_200a974
 
+@ 79 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x4
 .thumb_func_start OvlFunc_913_200aad8
 	push	{lr}
 	mov	r0, #0xd

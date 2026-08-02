@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 68 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_1674, GetSlotEntityChecked, OvlFunc_1674
 .thumb_func_start OvlFunc_898_2008314
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

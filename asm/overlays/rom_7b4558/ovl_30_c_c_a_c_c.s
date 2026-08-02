@@ -1,5 +1,14 @@
 	.include "macros.inc"
 
+@ 86 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_474, OvlFunc_608, CopyMapRectAttributes
+@   SetSaveBit, SetSlotAnimation, MoveSlotBy, DialogueWait
+@   SetSlotAnimation, PlaySound, GetSlotEntityChecked, CopyMapRectAttributes
+@   OvlFunc_244, EndCutscene
+@ sets 0x311.
 .thumb_func_start OvlFunc_927_2009454
 	push	{r5, lr}
 	sub	sp, #0x20
@@ -91,6 +100,12 @@
 	bx	r0
 .func_end OvlFunc_927_2009454
 
+@ 75 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked x2, OvlFunc_244 x5, GetSlotEntityChecked
+@   EndCutscene
 .thumb_func_start OvlFunc_927_2009520
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -170,6 +185,10 @@
 	bx	r0
 .func_end OvlFunc_927_2009520
 
+@ Cutscene: roughly 113 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 7 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x303.
 .thumb_func_start OvlFunc_927_20095d0
 	push	{r5, r6, lr}
 	mov	r0, #0xc
@@ -286,6 +305,10 @@
 	bx	r0
 .func_end OvlFunc_927_20095d0
 
+@ Cutscene: roughly 117 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 7 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x304.
 .thumb_func_start OvlFunc_927_20096f0
 	push	{r5, lr}
 	mov	r0, #0xd
@@ -406,6 +429,14 @@
 	bx	r0
 .func_end OvlFunc_927_20096f0
 
+@ 36 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_ea8, OvlFunc_d90, DialogueWait
+@   OvlFunc_e18, SetSlotPalette, GetSlotEntityChecked, SetEntityActorOptions
+@   DialogueWait, SetSaveBit, PlaceSlotAt, EndCutscene
+@ sets 0x305.
 .thumb_func_start OvlFunc_927_2009818
 	push	{lr}
 	bl	__CutsceneStart
@@ -445,6 +476,10 @@
 	bx	r0
 .func_end OvlFunc_927_2009818
 
+@ Cutscene: roughly 123 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 8 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x306.
 .thumb_func_start OvlFunc_927_2009880
 	push	{r5, r6, lr}
 	mov	r0, #0xe
@@ -571,6 +606,16 @@
 	bx	r0
 .func_end OvlFunc_927_2009880
 
+@ 112 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_474, OvlFunc_608, CopyMapRectAttributes x2
+@   SetSlotDrawPriority, SetSaveBit, CopyMapRectAttributes, SetSlotDrawPriority
+@   SetSaveBit, EndCutscene, SetSlotAnimation, MoveSlotBy
+@   DialogueWait, SetSlotAnimation
+@   ... and 4 more
+@ sets 0x312, 0x313.
 .thumb_func_start OvlFunc_927_20099b8
 	push	{r5, r6, lr}
 	sub	sp, #0x20

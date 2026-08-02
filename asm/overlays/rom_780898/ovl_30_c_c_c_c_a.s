@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ 63 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random x3, RotateVector, SpawnEntity, SetEntityActorOptions
+@   SetEntityAnimation, SetEntityScript, PlaySound
 .thumb_func_start OvlFunc_883_200d75c
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -67,6 +73,12 @@
 	bx	r0
 .func_end OvlFunc_883_200d75c
 
+@ 102 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, WaitFrames, SpawnEntity, SetEntityActorOptions
+@   SetEntityScript, Random x5, OvlFunc_58f0, PlaySound
 .thumb_func_start OvlFunc_883_200d7fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

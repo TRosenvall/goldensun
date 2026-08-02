@@ -1,5 +1,15 @@
 	.include "macros.inc"
 
+@ 74 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, TestSaveBit x2, SetActiveMessageId x2, OpenMessageBoxForSlot
+@   RunFieldAbilityPrompt, PlayInteractionEffect, OpenMessageBoxForSlot, RunFieldAbilityPrompt
+@   DialogueWait, ShowMessageAndWait, SetSaveBit, ShowMessageAndWait
+@   SetActiveMessageId, ShowMessageWithPrompt
+@   ... and 1 more
+@ message ids 0x205e, 0x225a, 0x225e; reads save bits 0x3c0, 0x962; sets 0x3c0.
 .thumb_func_start OvlFunc_953_200839c
 	push	{r5, lr}
 	bl	__CutsceneStart

@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ FindPushableFacingPlayer
+@ Locate the log the player is facing, broadside only.
+@ Byte-identical to OvlFunc_34c in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
+@ Here .L2ca0 is the facing->step table, .L2cf8 is the six footprints, .L2ce0 is the six pushable model ids.
 .thumb_func_start OvlFunc_947_2008630
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

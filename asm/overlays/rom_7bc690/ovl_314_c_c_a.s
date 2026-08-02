@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit
+@ sets 0x90a.
 .thumb_func_start OvlFunc_933_200841c
 	push	{r5, lr}
 	ldr	r5, =gState
@@ -51,6 +57,13 @@
 	bx	r1
 .func_end OvlFunc_933_200841c
 
+@ 21 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, TestSaveBit x2, SetSaveBit x2, PlaySound
+@   SetPendingMessageId, EndCutscene
+@ reads save bits 0x8b2, 0x8b3; sets 0x8b2, 0x8b3.
 .thumb_func_start OvlFunc_933_2008498
 	push	{lr}
 	bl	__CutsceneStart

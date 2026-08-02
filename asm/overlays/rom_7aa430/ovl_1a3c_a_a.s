@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 168 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   galloc_ewram, TestSaveBit, GetSlotEntity, SpawnEntity
+@   SetEntityScript, SetActorAnimation, SpawnEntity, SetEntityScript
+@   SetActorAnimation
+@ reads save bit 0x109.
 .thumb_func_start OvlFunc_923_2009a3c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -187,6 +195,11 @@
 	bx	r0
 .func_end OvlFunc_923_2009a3c
 
+@ 38 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, SetEntityScript, SetActorAnimation
 .thumb_func_start OvlFunc_923_2009bc8
 	push	{r5, r6, r7, lr}
 	ldr	r1, [r0, #8]
@@ -229,6 +242,11 @@
 	bx	r0
 .func_end OvlFunc_923_2009bc8
 
+@ 31 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Sin
 .thumb_func_start OvlFunc_923_2009c20
 	push	{r5, r6, lr}
 	mov	r5, r0

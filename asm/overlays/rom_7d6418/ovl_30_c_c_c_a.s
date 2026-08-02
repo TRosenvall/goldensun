@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Leaf helper, 15 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_951_20081a8
 	push	{lr}
 	ldr	r3, =gState
@@ -21,6 +24,11 @@
 	bx	r1
 .func_end OvlFunc_951_20081a8
 
+@ Cutscene: roughly 277 instructions of straight-line script --
+@ 1 turn, 2 animation changes, 5 dialogue lines, 6 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0xe13, 0xe14, 0xe2e, 0xe2f.
+@ Reads save bits 0x109, 0x200, 0x950.
 .thumb_func_start OvlFunc_951_20081d8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -319,6 +327,15 @@
 	bx	r1
 .func_end OvlFunc_951_20081d8
 
+@ 384 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, DialogueWait, PlaySound, DialogueWait
+@   TurnSlotToAngle, DialogueWait, CopyMapRectIndicesU, DialogueWait
+@   CopyMapRectIndicesU, PlaySound, DialogueWait, CopyMapRectIndicesU
+@   PlaySound, DialogueWait
+@   ... and 83 more
 .thumb_func_start OvlFunc_951_20084bc
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -706,6 +723,11 @@
 	bx	r0
 .func_end OvlFunc_951_20084bc
 
+@ 45 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, WaitFrames x2
 .thumb_func_start OvlFunc_951_2008880
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -756,6 +778,10 @@
 	bx	r0
 .func_end OvlFunc_951_2008880
 
+@ Cutscene: roughly 90 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 3 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0xe23, 0xe2a, 0xe31, 0xe33.
 .thumb_func_start OvlFunc_951_20088f8
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -857,6 +883,16 @@
 	bx	r0
 .func_end OvlFunc_951_20088f8
 
+@ 72 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SumPartyField, BeginCutscene, SetActiveMessageId, OpenMessageBoxForSlot
+@   BuildInteractionCandidates, SetActiveMessageId, RegisterCallback, OpenMessageBoxForSlot
+@   RunFieldAbilityPrompt, ShowMessageAndWait, WalkSlotToAndWait x2, TurnSlotToAngle
+@   DialogueWait, SetSceneTargetAClearMessage
+@   ... and 3 more
+@ message ids 0xe0e, 0xe12.
 .thumb_func_start OvlFunc_951_20089f8
 	push	{r5, lr}
 	bl	__Func_8077348
@@ -936,6 +972,16 @@
 	bx	r0
 .func_end OvlFunc_951_20089f8
 
+@ 280 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, CloseMessageWindow, FindEquippedInParty, SetActiveMessageId
+@   OpenMessageBoxForSlot, OpenWindow, DrawStringToBuffer, DrawNumberEntry
+@   DrawStringToBuffer, DrawNumberEntry, RunSubScreenE, CloseWindow
+@   RunMenuModalSimple, SetActiveMessageId
+@   ... and 27 more
+@ message id 0xe46.
 .thumb_func_start OvlFunc_951_2008ac8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1239,6 +1285,11 @@
 	bx	r1
 .func_end OvlFunc_951_2008ac8
 
+@ 41 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random x2, SignedRem
 .thumb_func_start OvlFunc_951_2008d70
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1285,6 +1336,11 @@
 	bx	r1
 .func_end OvlFunc_951_2008d70
 
+@ 53 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetEntityAnimSpeed
 .thumb_func_start OvlFunc_951_2008dd0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

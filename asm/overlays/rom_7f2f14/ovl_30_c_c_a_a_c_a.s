@@ -1,6 +1,16 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 218 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, TestSaveBit, BeginCutscene, CopyMapRectIndicesU
+@   PlaySound, CopyMapRectIndicesU, DialogueWait, SetMapTransition
+@   PlaySound, DialogueWait, Random x3, OvlFunc_118
+@   CopyMapRectIndicesU, WaitFrames
+@   ... and 5 more
+@ reads save bit 0x306.
 .thumb_func_start OvlFunc_968_200a6f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -230,6 +240,16 @@
 	bx	r0
 .func_end OvlFunc_968_200a6f8
 
+@ 211 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, TestSaveBit, BeginCutscene, CopyMapRectIndicesU
+@   PlaySound, DialogueWait, SetMapTransition, PlaySound
+@   DialogueWait, Random x3, OvlFunc_118, CopyMapRectIndicesU
+@   WaitFrames, PlaySound x2
+@   ... and 4 more
+@ reads save bit 0x307.
 .thumb_func_start OvlFunc_968_200a90c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -452,6 +472,11 @@
 	bx	r0
 .func_end OvlFunc_968_200a90c
 
+@ Cutscene: roughly 420 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bit 0x308.
+@ Sets save bit 0x308.
 .thumb_func_start OvlFunc_968_200ab14
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -898,6 +923,12 @@
 	bx	r0
 .func_end OvlFunc_968_200ab14
 
+@ 30 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_cc8, CopyMapRectAttributes x2, OvlFunc_374
+@   EndCutscene, OvlFunc_2b14
 .thumb_func_start OvlFunc_968_200aee4
 	push	{lr}
 	sub	sp, #8
@@ -932,6 +963,13 @@
 	bx	r0
 .func_end OvlFunc_968_200aee4
 
+@ 37 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetSlotEntitySpeed, WalkSlotToAndWait, TurnSlotToAngle
+@   OvlFunc_58, PlayLevitateSequence, DialogueWait, SetPendingMessageId
+@   EndCutscene
 .thumb_func_start OvlFunc_968_200af30
 	push	{lr}
 	bl	__CutsceneStart
@@ -972,6 +1010,9 @@
 	bx	r0
 .func_end OvlFunc_968_200af30
 
+@ Leaf helper, 38 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_968_200af8c
 	push	{lr}
 	ldr	r3, =gState

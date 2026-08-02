@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 67 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetEntityAnimation x2, Random x2, OvlFunc_ae8
 .thumb_func_start OvlFunc_964_2008f4c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -73,6 +78,9 @@
 	bx	r1
 .func_end OvlFunc_964_2008f4c
 
+@ Adjusts slot 0 (the player), 0x8 directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x8, +0xc, +0x10.
 .thumb_func_start OvlFunc_964_2008fe8
 	push	{r5, lr}
 	mov	r5, r0
@@ -110,6 +118,10 @@
 	bx	r1
 .func_end OvlFunc_964_2008fe8
 
+@ WaitForField
+@ r0 = entity. Yields one frame at a time with WaitFrames(1) until the
+@ watched field settles, giving up after 0x3C (one second) frames so a stuck entity cannot
+@ hang the caller. The same shape recurs across several overlays.
 .thumb_func_start OvlFunc_964_2009038
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -139,6 +151,11 @@
 	bx	r0
 .func_end OvlFunc_964_2009038
 
+@ 44 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv
 .thumb_func_start OvlFunc_964_2009068
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -187,6 +204,15 @@
 	bx	r0
 .func_end OvlFunc_964_2009068
 
+@ 114 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, SetEntityAnimation, WaitForSlotAnimationChange
+@   SetEntityAnimation, SetEntityActorOptions, PlaySound, SetEntityMoveTarget
+@   WaitFrames, PlaySound, WaitFrames, Random
+@   UnsignedRem, Random
+@   ... and 4 more
 .thumb_func_start OvlFunc_964_20090c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -306,6 +332,12 @@
 	bx	r0
 .func_end OvlFunc_964_20090c4
 
+@ 62 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, Cos, Sin, SignedDiv
+@   OvlFunc_ae8
 .thumb_func_start OvlFunc_964_20091e0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -372,6 +404,9 @@
 	bx	r0
 .func_end OvlFunc_964_20091e0
 
+@ Leaf helper, 20 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_964_2009270
 	push	{lr}
 	ldr	r3, =gState
@@ -398,6 +433,9 @@
 	bx	r1
 .func_end OvlFunc_964_2009270
 
+@ Leaf helper, 14 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_964_20092b0
 	push	{lr}
 	ldr	r3, =gState

@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 36 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random, SetActorPartsPalette x2
 .thumb_func_start OvlFunc_911_2008050
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -42,6 +47,9 @@
 	bx	r1
 .func_end OvlFunc_911_2008050
 
+@ Leaf helper, 21 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x4, +0x16.
 .thumb_func_start OvlFunc_911_20080a0
 	push	{r5, r6, lr}
 	add	r0, #0x48
@@ -68,6 +76,11 @@
 	bx	r0
 .func_end OvlFunc_911_20080a0
 
+@ 32 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   DestroyEntity
 .thumb_func_start OvlFunc_911_20080cc
 	push	{lr}
 	ldr	r3, [r0, #8]
@@ -104,6 +117,11 @@
 	bx	r1
 .func_end OvlFunc_911_20080cc
 
+@ 40 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Atan2
 .thumb_func_start OvlFunc_911_2008114
 	push	{r5, lr}
 	mov	r5, r0
@@ -150,6 +168,9 @@
 	bx	r1
 .func_end OvlFunc_911_2008114
 
+@ Leaf helper, 20 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_911_200816c
 	push	{lr}
 	ldr	r3, =gState
@@ -176,6 +197,9 @@
 	bx	r1
 .func_end OvlFunc_911_200816c
 
+@ Leaf helper, 14 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_911_20081ac
 	push	{lr}
 	ldr	r3, =gState

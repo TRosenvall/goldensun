@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ 163 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, SetEntityAnimation, SetEntityScript, SetActorPartsPalette
+@   SignedDiv x3
 .thumb_func_start OvlFunc_922_2009c18
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -173,6 +179,11 @@
 	bx	r0
 .func_end OvlFunc_922_2009c18
 
+@ 59 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, Random x2, OvlFunc_1c18
 .thumb_func_start OvlFunc_922_2009d78
 	push	{r5, r6, r7, lr}
 	ldr	r2, =iwram_3001e40
@@ -237,6 +248,16 @@
 	bx	r0
 .func_end OvlFunc_922_2009d78
 
+@ 90 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound x2, BeginCutscene, CloseMessageWindow, StartFadeOut
+@   WaitForFade, WaitFrames, CopyMapRectIndicesU x2, StartFadeOut
+@   WaitForFade, WaitFrames x2, RegisterTask, WaitFrames
+@   StartFadeOut, WaitForFade
+@   ... and 10 more
+@ sets 0x820.
 .thumb_func_start OvlFunc_922_2009e08
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

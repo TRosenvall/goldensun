@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 240 instructions of straight-line script --
+@ 0 turns, 1 animation change, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x815, 0x834, 0x840, 0x842.
+@ Sets save bit 0x20.
 .thumb_func_start OvlFunc_884_2008940
 	push	{r5, lr}
 	ldr	r0, =0x90b
@@ -262,6 +267,12 @@
 	bx	r1
 .func_end OvlFunc_884_2008940
 
+@ Cutscene: roughly 455 instructions of straight-line script --
+@ 13 turns, 17 animation changes, 7 dialogue lines, 5 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xeb6.
+@ Reads save bits 0x834, 0x840.
+@ Sets save bit 0x840.
 .thumb_func_start OvlFunc_884_2008bbc
 	push	{r5, r6, lr}
 	ldr	r0, =0x834
@@ -733,6 +744,10 @@
 	bx	r0
 .func_end OvlFunc_884_2008bbc
 
+@ Cutscene: roughly 177 instructions of straight-line script --
+@ 1 turn, 5 animation changes, 5 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xed6.
 .thumb_func_start OvlFunc_884_2009084
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -913,6 +928,10 @@
 	bx	r0
 .func_end OvlFunc_884_2009084
 
+@ Cutscene: roughly 292 instructions of straight-line script --
+@ 7 turns, 7 animation changes, 2 dialogue lines, 8 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x11a.
 .thumb_func_start OvlFunc_884_2009274
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -1208,6 +1227,9 @@
 	bx	r0
 .func_end OvlFunc_884_2009274
 
+@ Cutscene: roughly 192 instructions of straight-line script --
+@ 6 turns, 4 animation changes, 0 dialogue lines, 5 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_884_20095b4
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -1403,6 +1425,10 @@
 	bx	r0
 .func_end OvlFunc_884_20095b4
 
+@ Cutscene: roughly 1048 instructions of straight-line script --
+@ 11 turns, 46 animation changes, 4 dialogue lines, 30 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x11fa.
 .thumb_func_start OvlFunc_884_20097c8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

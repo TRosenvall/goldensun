@@ -1,5 +1,16 @@
 	.include "macros.inc"
 
+@ Slot 0: map-load entry.
+@
+@ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x209, then stages by
+@ entrance id:
+@   entrance 5        a 0x43x4 metatile copy from (0, 0x78), and slot 8 has its
+@                     flag byte +0x55 cleared and both height words +0x0C and
+@                     +0x14 zeroed -- dropping it to ground level.
+@   entrances 7, 0x0B spawn object 0xE7 at (0x2380000, 0x100000, 0x2A00000)
+@                     through OvlFunc_570, and register OvlFunc_30 as a task at
+@                     priority 0xC80 so the player's position is watched.
+@ Every other entrance needs nothing.
 .thumb_func_start OvlFunc_902_20084e4
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc
@@ -64,6 +75,10 @@
 	bx	r1
 .func_end OvlFunc_902_20084e4
 
+@ SpawnTrackedObject
+@ r0 = object id, r1..r3 = position. Takes the actor from slot 0x16 via
+@ CreateActor, clears its bytes +0x26 and +0x27, masks bit 5 out of +0x05, and
+@ places the object -- the setup path for the one prop this map spawns itself.
 .thumb_func_start OvlFunc_902_2008570
 	push	{r5, r6, r7, lr}
 	mov	r7, r0

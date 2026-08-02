@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ 34 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, MoveCameraTo, WaitFrames, OvlFunc_48e8
+@   SetFollowerFormationAndRefresh, SetActiveMessageId, OvlFunc_486c, TurnSlotToAngle
+@   OvlFunc_48e8
+@ message id 0x1e43.
 .thumb_func_start OvlFunc_945_200c13c
 	push	{lr}
 	bl	__CutsceneStart
@@ -37,6 +45,13 @@
 	bx	r0
 .func_end OvlFunc_945_200c13c
 
+@ 45 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_48e8 x2, OvlFunc_37b4, OvlFunc_48e8
+@   SetSlotAnimation, SetSlotScriptWithTurn x4, SetSlotPalette x3, OvlFunc_50e4
+@   EndCutscene
 .thumb_func_start OvlFunc_945_200c198
 	push	{r5, lr}
 	bl	__CutsceneStart

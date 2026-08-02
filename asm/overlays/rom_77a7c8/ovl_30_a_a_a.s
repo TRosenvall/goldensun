@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 37 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv, Random, LoadMapByName
 .thumb_func_start OvlFunc_881_2008030
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ebc
@@ -43,6 +48,11 @@
 	bx	r0
 .func_end OvlFunc_881_2008030
 
+@ 28 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv, LoadMapByName
 .thumb_func_start OvlFunc_881_200808c
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc
@@ -75,6 +85,11 @@
 	bx	r0
 .func_end OvlFunc_881_200808c
 
+@ 28 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv, LoadMapByName
 .thumb_func_start OvlFunc_881_20080d4
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc
@@ -107,6 +122,11 @@
 	bx	r0
 .func_end OvlFunc_881_20080d4
 
+@ 14 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   DestroyEntity
 .thumb_func_start OvlFunc_881_200811c
 	push	{lr}
 	mov	r2, r0
@@ -126,6 +146,11 @@
 	bx	r0
 .func_end OvlFunc_881_200811c
 
+@ 55 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, PlaySound, SetEntityActorOptions, SetEntityAnimation
 .thumb_func_start OvlFunc_881_200813c
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001e40
@@ -187,6 +212,11 @@
 	bx	r0
 .func_end OvlFunc_881_200813c
 
+@ 57 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetEntityPalette x2, Sin, RotateVector
 .thumb_func_start OvlFunc_881_20081c4
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001e40

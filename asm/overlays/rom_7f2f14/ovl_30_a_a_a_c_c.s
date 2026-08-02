@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Leaf helper, 33 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1ebc
+@ Reads offsets +0x4, +0x8, +0xc, +0x10.
 .thumb_func_start OvlFunc_968_200832c
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc
@@ -40,6 +44,11 @@
 	bx	r1
 .func_end OvlFunc_968_200832c
 
+@ TryPushBlockOneTile
+@ Interaction handler for a single-tile pushable block.
+@ Byte-identical to OvlFunc_c4 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
+@ Here .L50e8 is the facing->step table.
 .thumb_func_start OvlFunc_968_2008374
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -219,6 +228,10 @@
 	bx	r0
 .func_end OvlFunc_968_2008374
 
+@ FillMapRectCollisionByte
+@ Stamp one byte over a rectangle of map collision cells.
+@ Byte-identical to OvlFunc_244 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
 .thumb_func_start OvlFunc_968_20084f4
 	push	{r5, r6, lr}
 	mov	r4, r3
@@ -274,6 +287,11 @@
 	bx	r1
 .func_end OvlFunc_968_20084f4
 
+@ 24 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetActorPartsPalette
 .thumb_func_start OvlFunc_968_2008558
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ebc
@@ -303,6 +321,11 @@
 	bx	r0
 .func_end OvlFunc_968_2008558
 
+@ 10 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetActorPartsPalette
 .thumb_func_start OvlFunc_968_2008594
 	push	{lr}
 	mov	r3, r0
@@ -316,6 +339,11 @@
 	bx	r1
 .func_end OvlFunc_968_2008594
 
+@ 23 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetActorPartsPalette x2, PlaySound
 .thumb_func_start OvlFunc_968_20085ac
 	push	{lr}
 	ldr	r3, =iwram_3001e40
@@ -345,6 +373,11 @@
 	bx	r1
 .func_end OvlFunc_968_20085ac
 
+@ 76 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random x4, SignedDiv, OvlFunc_118
 .thumb_func_start OvlFunc_968_20085e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

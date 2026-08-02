@@ -1,5 +1,14 @@
 	.include "macros.inc"
 
+@ 95 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit, TestSaveBit, PlaceSlotAt, CopyMapRectAttributes
+@   TestSaveBit, PlaceSlotAt, SetSlotAnimation, CopyMapRectAttributes
+@   TestSaveBit, PlaceSlotAt x2, SetSlotAnimation, GetSlotEntityChecked
+@   SetEntityActorOptions
+@ reads save bits 0x9a0, 0x9a2, 0x9a5; sets 0x144.
 .thumb_func_start OvlFunc_958_2009394
 	push	{r5, lr}
 	ldr	r5, =gState

@@ -1,5 +1,16 @@
 	.include "macros.inc"
 
+@ FindEntityAtPosition
+@ r0 = an {x, y, z} triple, r1 = the entity to skip (the caller itself).
+@ Scans entity slots 8..0x41 -- the map-object range, above the party slots --
+@ from the table at [iwram_1ebc]+0x34, and returns the first whose position
+@ matches r0. Returns 0 if nothing is there.
+@
+@ The comparison is deliberately mismatched between axes: x and z are compared
+@ at whole-tile resolution (`asr #20`) but y at 1/16 (`asr #16`, with 0xFFFF
+@ added first to round negatives toward zero). So an object counts as "here" if
+@ it shares the tile, but only if it is on the same height step -- which is what
+@ keeps a log on a ledge from blocking one on the floor below.
 .thumb_func_start OvlFunc_883_200806c
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ebc
@@ -48,6 +59,29 @@
 	bx	r1
 .func_end OvlFunc_883_200806c
 
+@ TryPushBlockOneTile
+@ No arguments. The interaction handler for a single-tile pushable block, as
+@ opposed to the multi-tile logs the rest of this file deals with.
+@
+@ Takes the player (slot 0) and steps one tile along the facing from .L6190 to
+@ find the block. Then it rejects the push unless all three of these hold:
+@   - the tile beyond the block is empty (a second OvlFunc_6c one step further,
+@     and if something is there, bit 0 of its byte at +0x59 must be clear),
+@   - the tile directly above the block is clear too -- the same lookup with
+@     y raised by 0x100000, one height step, so a block cannot be shoved under
+@     an overhang,
+@   - TestCollision accepts the destination terrain (it returns > 0 to reject) and
+@     the block's byte at +0x62 is zero.
+@ +0x22 is set to 2 first because TestCollision reads it to choose the collision
+@ layer to sample.
+@
+@ Once committed: animation 8 on the player, a fifteen-frame beat, sound 0xB9,
+@ then both the block and the player are given speed 0x3333 in +0x30/+0x34 and
+@ sent to the new tile with Actor_TravelTo. Func_ca6c waits out the slide and
+@ .gcc2_compiled. ends the looping push cue. The final position is written straight
+@ into the block, its velocities at +0x24/+0x2C are cleared, and the player's
+@ move targets are reset to the 0x80000000 sentinel before animation 1 returns
+@ it to idle.
 .thumb_func_start OvlFunc_883_20080c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -227,6 +261,19 @@
 	bx	r0
 .func_end OvlFunc_883_20080c4
 
+@ FillMapRectCollisionByte
+@ r0 = layer (0..2, anything higher means ewram_10000), r1 = x, r2 = z,
+@ r3 = width, [sp+0x0C] = height, [sp+0x10] = the byte to store.
+@ Always returns 0.
+@
+@ Writes one byte into every cell of a rectangle of the map's cell array: the
+@ layer base comes from [iwram_1e70] + 0x130 + layer*0x30, rows are 0x200 bytes
+@ apart (`lsl #9`) and cells 4 bytes, and the byte written is at offset +2 of
+@ the cell -- the collision/attribute byte, not the metatile index.
+@
+@ This is how a log occupies space. OvlFunc_608 calls it with 0xFF to stamp the
+@ footprint solid at the destination and with 0 to clear it at the origin, on
+@ both layer 0 and layer 2. A null [iwram_1e70] makes it a no-op.
 .thumb_func_start OvlFunc_883_2008244
 	push	{r5, r6, lr}
 	mov	r4, r3

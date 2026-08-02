@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_960_20083ac
 	push	{lr}
 	ldr	r3, =gState
@@ -33,6 +36,12 @@
 	bx	r1
 .func_end OvlFunc_960_20083ac
 
+@ 40 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, ReadSaveByte, TestSaveBit, WriteSaveByte
+@ reads save bit 0x106.
 .thumb_func_start OvlFunc_960_2008400
 	push	{r5, r6, lr}
 	ldr	r3, =gState
@@ -78,6 +87,16 @@
 	bx	r0
 .func_end OvlFunc_960_2008400
 
+@ 95 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, TestSaveBit, BeginCutscene, RunSlotEffectSequence
+@   SetSlotAnimation, GetSlotEntityChecked, MoveSlotTo, WaitForSlotArrival
+@   PlaySound, RegisterTask, SetEntityMoveTarget, WaitForSlotArrival
+@   SetSaveBit, WriteSaveByte x2
+@   ... and 1 more
+@ reads save bit 0x20f; sets 0x20f.
 .thumb_func_start OvlFunc_960_2008464
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

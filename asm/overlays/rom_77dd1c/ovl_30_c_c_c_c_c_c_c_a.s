@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Adjusts slot 0 (the player), 0x8, 0x16 directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x9, +0x50.
 .thumb_func_start OvlFunc_882_200c5b8
 	push	{r5, r6, lr}
 	mov	r0, #0

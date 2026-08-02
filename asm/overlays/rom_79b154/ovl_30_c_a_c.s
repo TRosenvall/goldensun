@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 296 instructions of straight-line script --
+@ 13 turns, 9 animation changes, 7 dialogue lines, 6 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1775.
+@ Reads save bits 0x845, 0x848.
+@ Sets save bit 0x849.
 .thumb_func_start OvlFunc_907_2008584
 	push	{r5, r6, lr}
 	mov	r0, #0
@@ -304,6 +310,11 @@
 	bx	r0
 .func_end OvlFunc_907_2008584
 
+@ 31 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_8f0, OvlFunc_ae0, RegisterTask, OvlFunc_d10
 .thumb_func_start OvlFunc_907_2008890
 	push	{lr}
 	ldr	r3, =iwram_3001ebc
@@ -341,6 +352,15 @@
 	bx	r1
 .func_end OvlFunc_907_2008890
 
+@ 82 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, PlaceSlotAt, TurnSlotToAngle x2, GetSlotEntityChecked
+@   SetEntityActorOptions, PlaceSlotAt, GetSlotEntityChecked, PlaceSlotAt
+@   ClearSaveBit, TestSaveBit, PlaceSlotAt, OvlFunc_9cc
+@   TestSaveBit x2, SetSaveBit
+@ reads save bits 0x109, 0x845, 0x84a, 0x84b; sets 0x304; clears 0x12f.
 .thumb_func_start OvlFunc_907_20088f0
 	push	{lr}
 	ldr	r0, =0x845
@@ -432,6 +452,13 @@
 	bx	r0
 .func_end OvlFunc_907_20088f0
 
+@ 121 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, CopyMapRectAttributes x5, BeginCutscene, PlayInteractionEffect
+@   SetSlotEntitySpeed, SetSlotFacingAndScript, MoveSlotToAndWait, TurnSlotToAngle
+@   MoveSlotToAndWait, TurnSlotToAngle, EndCutscene
 .thumb_func_start OvlFunc_907_20089cc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -561,6 +588,10 @@
 	bx	r0
 .func_end OvlFunc_907_20089cc
 
+@ Cutscene: roughly 186 instructions of straight-line script --
+@ 2 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x845, 0x848, 0x849, 0x881.
 .thumb_func_start OvlFunc_907_2008ae0
 	push	{r5, r6, r7, lr}
 	mov	r0, #0xa
@@ -756,6 +787,11 @@
 	bx	r0
 .func_end OvlFunc_907_2008ae0
 
+@ 40 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, CopyMapRectAttributes x2
 .thumb_func_start OvlFunc_907_2008cb4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -800,6 +836,13 @@
 	bx	r0
 .func_end OvlFunc_907_2008cb4
 
+@ 42 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_fa0, TestSaveBit, GetSlotEntityChecked, BeginCutscene
+@   MoveCameraTo, UpdateMapView, EndCutscene, WaitFrames
+@ reads save bit 0x109.
 .thumb_func_start OvlFunc_907_2008d10
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc

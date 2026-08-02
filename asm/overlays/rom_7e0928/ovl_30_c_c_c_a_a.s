@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 71 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetActiveMessageId, OpenMessageBoxForSlot, RunFieldAbilityPrompt
+@   SetActiveMessageId, ShowMessageAndWait, HideScreenOverlay, WaitSceneDelay
+@   OvlFunc_common1_78, ShowScreenOverlay, WaitSceneDelay, SetActiveMessageId
+@   ShowMessageAndWait, EndCutscene
 .thumb_func_start OvlFunc_956_2008ba4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -78,6 +86,10 @@
 	bx	r0
 .func_end OvlFunc_956_2008ba4
 
+@ Cutscene: roughly 106 instructions of straight-line script --
+@ 0 turns, 5 animation changes, 0 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x11a.
 .thumb_func_start OvlFunc_956_2008c5c
 	push	{r5, r6, lr}
 	bl	OvlFunc_common1_16f8

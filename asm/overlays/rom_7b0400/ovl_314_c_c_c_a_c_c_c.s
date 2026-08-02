@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ 139 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, PlaySound, SetSlotPalette x2, GetSlotEntityChecked
+@   SetEntityActorOptions, GetSlotEntityChecked, SetEntityActorOptions, DialogueWait
+@   Random x2, OvlFunc_common0_10c, Random x2, OvlFunc_common0_10c
+@   PlaceSlotAt x2
 .thumb_func_start OvlFunc_925_200af18
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -145,6 +153,9 @@
 	bx	r0
 .func_end OvlFunc_925_200af18
 
+@ Cutscene: roughly 148 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_925_200b060
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -300,6 +311,10 @@
 	bx	r0
 .func_end OvlFunc_925_200b060
 
+@ Leaf helper, 34 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1ebc
+@ Reads offsets +0x8, +0x10.
 .thumb_func_start OvlFunc_925_200b1c0
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc
@@ -339,6 +354,12 @@
 	bx	r0
 .func_end OvlFunc_925_200b1c0
 
+@ 128 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_31c0, GetSlotEntityChecked, PlaySound, GetSlotEntityChecked x3
+@   WaitFrames, GetSlotEntityChecked
 .thumb_func_start OvlFunc_925_200b208
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -480,6 +501,12 @@
 	bx	r0
 .func_end OvlFunc_925_200b208
 
+@ 121 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_31c0, GetSlotEntityChecked, PlaySound, GetSlotEntityChecked x3
+@   WaitFrames, UpdateMapView, WaitFrames
 .thumb_func_start OvlFunc_925_200b324
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 25 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_18e4, UnregisterTask
 .thumb_func_start OvlFunc_959_2009718
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc

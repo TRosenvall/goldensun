@@ -1,5 +1,15 @@
 	.include "macros.inc"
 
+@ 268 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_191c, TestSaveBit, CopyMapRectAttributes x2, SetPlayerObjectFields
+@   TestSaveBit, SetSaveBit, CopyMapRectAttributes, SetPlayerObjectFields
+@   OvlFunc_167c, GetSlotEntityChecked, OvlFunc_8c0 x2, TestSaveBit
+@   GetSlotEntityChecked, SetEntityAnimation
+@   ... and 24 more
+@ reads save bits 0x240, 0x241, 0x242, 0x243, 0x8d1; sets 0x8d1.
 .thumb_func_start OvlFunc_946_2008f70
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -287,6 +297,12 @@
 	bx	r1
 .func_end OvlFunc_946_2008f70
 
+@ 61 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, TestSaveBit, PlaceSlotAt, GetSlotEntityChecked
+@   SetEntityActorOptions, SetSlotDrawPriority, CopyMapRectAttributes, GetSlotEntityChecked
 .thumb_func_start OvlFunc_946_2009214
 	push	{r5, r6, lr}
 	mov	r0, #8
@@ -353,6 +369,13 @@
 	bx	r0
 .func_end OvlFunc_946_2009214
 
+@ 78 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, TestSaveBit, DialogueWait, OvlFunc_e00
+@   PlaySound, DialogueWait, GetSlotEntityChecked, SetEntityActorOptions
+@   SetSlotDrawPriority, CopyMapRectAttributes, SetSaveBit
 .thumb_func_start OvlFunc_946_20092b4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

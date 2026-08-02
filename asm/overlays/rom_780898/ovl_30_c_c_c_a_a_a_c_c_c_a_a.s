@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, PlayMapRectAnimation, WalkSlotTo, SetPendingMessageId
 .thumb_func_start OvlFunc_883_2008e54
 	push	{lr}
 	mov	r0, #0x9e
@@ -19,6 +24,11 @@
 	bx	r0
 .func_end OvlFunc_883_2008e54
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, PlayMapRectAnimation, WalkSlotTo, SetPendingMessageId
 .thumb_func_start OvlFunc_883_2008e84
 	push	{lr}
 	mov	r0, #0x9e
@@ -38,6 +48,15 @@
 	bx	r0
 .func_end OvlFunc_883_2008e84
 
+@ 59 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit x2, BeginCutscene, SetActiveMessageId, OpenMessageBoxForSlot
+@   RunFieldAbilityPrompt, ShowMessageAndPause, ShowMessageAndWait, DialogueWait
+@   ShowMessageAndWait, EndCutscene, PlaySound, PlayMapRectAnimation
+@   WalkSlotTo, SetPendingMessageId
+@ message id 0x11b6; reads save bits 0x815, 0x87a.
 .thumb_func_start OvlFunc_883_2008eb4
 	push	{lr}
 	ldr	r0, =0x815
@@ -104,6 +123,11 @@
 	bx	r0
 .func_end OvlFunc_883_2008eb4
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, PlayMapRectAnimation, WalkSlotTo, SetPendingMessageId
 .thumb_func_start OvlFunc_883_2008f5c
 	push	{lr}
 	mov	r0, #0x9e
@@ -123,6 +147,11 @@
 	bx	r0
 .func_end OvlFunc_883_2008f5c
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, PlayMapRectAnimation, WalkSlotTo, SetPendingMessageId
 .thumb_func_start OvlFunc_883_2008f8c
 	push	{lr}
 	mov	r0, #0x9e

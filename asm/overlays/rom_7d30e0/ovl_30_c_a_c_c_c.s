@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 64 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, TestSaveBit, CopyMapRectAttributes, ClearSaveBit
+@   DialogueChoiceB, DialogueChoiceA, TestSaveBit, CopyMapRectAttributes
+@   SetSaveBit, AdvanceDialogue, OvlFunc_1b60, AdvanceDialogue
+@ reads save bit 0x206; sets 0x207; clears 0x207.
 .thumb_func_start OvlFunc_948_20098e0
 	push	{lr}
 	mov	r0, #0

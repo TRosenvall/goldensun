@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ Talk: lines 0xf7c, 0xf7e, 0x11c9, shown.
+@ Which line is chosen by save bits 0x806, 0x815.
+@ Also turns to face the player.
+@ Sets save bit 0x806.
 .thumb_func_start OvlFunc_883_2008b28
 	push	{lr}
 	bl	__CutsceneStart
@@ -46,6 +50,12 @@
 	bx	r0
 .func_end OvlFunc_883_2008b28
 
+@ Cutscene: roughly 66 instructions of straight-line script --
+@ 1 turn, 0 animation changes, 4 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0xf63, 0xf66.
+@ Reads save bit 0x807.
+@ Sets save bit 0x807.
 .thumb_func_start OvlFunc_883_2008ba8
 	push	{lr}
 	bl	__CutsceneStart

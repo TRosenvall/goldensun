@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 70 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 1 dialogue line, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xfce.
 .thumb_func_start OvlFunc_883_2009490
 	push	{r5, r6, lr}
 	mov	r6, r8

@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 62 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random, UnsignedRem
 .thumb_func_start OvlFunc_969_2008314
 	push	{r5, lr}
 	mov	r5, r0
@@ -72,6 +77,11 @@
 	bx	r1
 .func_end OvlFunc_969_2008314
 
+@ 45 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv x2
 .thumb_func_start OvlFunc_969_20083a0
 	push	{r5, r6, lr}
 	mov	r5, r0

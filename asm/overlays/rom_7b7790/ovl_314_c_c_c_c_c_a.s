@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ TalkStaged
+@ Takes no arguments. The one NPC here with staging: line 0x1A64 through
+@ .gcc2_compiled., then slot 9 turns toward slot 0x0A, waits sixty frames, turns
+@ back to slot 0, waits twenty, and delivers a closing line.
 .thumb_func_start OvlFunc_929_2008524
 	push	{lr}
 	bl	__CutsceneStart

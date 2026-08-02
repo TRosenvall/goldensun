@@ -1,5 +1,23 @@
 	.include "macros.inc"
 
+@ RunTopple
+@ r0 = slot. The fall itself.
+@
+@ Phase 1, eighteen frames: each frame subtracts 0x100 from the sprite angle at
+@ [entity+0x50]+0x1E and shifts x by half the cosine of the new angle
+@ (cos, with the usual round-toward-zero `lsr #31` correction), while
+@ +0x38 is held at the 0x80000000 sentinel so the movement system leaves the
+@ entity alone. That is the object tipping over.
+@
+@ Then OvlFunc_4c4 takes over the spin, speed is set to 0x30000/0x18000, the
+@ entity is sent to (0x178, 0x120) with Func_92128, +0x48 gets 0xCCCC and the
+@ tile-type byte +0x22 is cleared. After Func_923c4 and OvlFunc_4d4 confirm it
+@ has landed, sound 0xBC plays, .gcc2_compiled. shakes the map and settles it, and
+@ sound 0x8D closes.
+@
+@ The tail loop walks a full circle in sixteen steps (`lsl r5, #12` on a
+@ counter), taking sine and cosine at each and calling OvlFunc_common0_10c to
+@ spawn a prop -- the ring of debris thrown out by the impact.
 .thumb_func_start OvlFunc_906_20084f4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

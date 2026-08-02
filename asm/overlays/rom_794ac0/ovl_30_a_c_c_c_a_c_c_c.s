@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 235 instructions of straight-line script --
+@ 0 turns, 7 animation changes, 0 dialogue lines, 7 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x12a3, 0x12a4, 0x12a5.
+@ Sets save bit 0x853.
 .thumb_func_start OvlFunc_899_2009f50
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc
@@ -240,6 +245,10 @@
 	bx	r0
 .func_end OvlFunc_899_2009f50
 
+@ Cutscene: roughly 356 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 2 dialogue lines, 13 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x12ae, 0x12bc.
 .thumb_func_start OvlFunc_899_200a1c8
 	push	{r5, r6, lr}
 	bl	__PlayMapMusic
@@ -601,6 +610,11 @@
 	bx	r0
 .func_end OvlFunc_899_200a1c8
 
+@ 119 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_26e4 x17
 .thumb_func_start OvlFunc_899_200a564
 	push	{lr}
 	ldr	r3, =iwram_3001ebc

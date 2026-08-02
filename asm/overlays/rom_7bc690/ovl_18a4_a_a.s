@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 352 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, FreeObjTilesQuiet, Func_4938, SignedDiv x3
+@   ReserveObjTiles x3, SignedDiv, AllocObjTiles, ReleaseObjAffine
+@   FreeScratch
+@ reads save bit 0x104.
 .thumb_func_start OvlFunc_933_20098a4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

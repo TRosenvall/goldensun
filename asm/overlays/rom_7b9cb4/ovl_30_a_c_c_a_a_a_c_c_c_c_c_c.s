@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 25 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random
 .thumb_func_start OvlFunc_932_20086a0
 	push	{r5, r6, lr}
 	mov	r6, #0x80
@@ -30,6 +35,16 @@
 	bx	r0
 .func_end OvlFunc_932_20086a0
 
+@ 96 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, SetMapTransition, DialogueWait, WaitFrames
+@   GetSlotEntityChecked x2, PlaceSlotAt, SetSlotScriptWithTurn, SetInterruptSource
+@   WaitFrames x2, SetInterruptSource, PlaySound, SetMapTransition
+@   DialogueWait, CopyMapRectAttributes
+@   ... and 1 more
+@ sets 0x8fd.
 .thumb_func_start OvlFunc_932_20086dc
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001e70
@@ -139,6 +154,15 @@
 	bx	r0
 .func_end OvlFunc_932_20086dc
 
+@ 87 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectFull, PlaySound, SetMapTransition, DialogueWait
+@   WaitFrames, SetInterruptSource, WaitFrames x2, SetInterruptSource
+@   PlaySound, SetMapTransition, DialogueWait, CopyMapRectFull
+@   SetSaveBit
+@ sets 0x8fe.
 .thumb_func_start OvlFunc_932_20087e8
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001e70
@@ -238,6 +262,15 @@
 	bx	r0
 .func_end OvlFunc_932_20087e8
 
+@ 107 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectIndicesU x3, PlaySound, SetMapTransition, DialogueWait
+@   WaitFrames, SetInterruptSource, WaitFrames x2, SetInterruptSource
+@   PlaySound, SetMapTransition, DialogueWait, CopyMapRectIndicesU
+@   SetSaveBit
+@ sets 0x907.
 .thumb_func_start OvlFunc_932_20088d4
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -357,6 +390,13 @@
 	bx	r0
 .func_end OvlFunc_932_20088d4
 
+@ 50 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, CopyMapRectAttributes, CopyMapRectIndicesU, ClearSaveBit
+@   CopyMapRectAttributes, CopyMapRectIndicesU, SetSaveBit
+@ reads save bit 0x323; sets 0x323; clears 0x323.
 .thumb_func_start OvlFunc_932_20089ec
 	push	{lr}
 	ldr	r0, =0x323

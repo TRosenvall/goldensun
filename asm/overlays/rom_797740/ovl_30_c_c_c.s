@@ -1,5 +1,15 @@
 	.include "macros.inc"
 
+@ Slot 0: map-load entry.
+@
+@ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x209, then branches on
+@ the entrance id at ewram_240+0x1C2:
+@   entrance 2     clears save bit 0x12F and does nothing else,
+@   entrance 0x0A  ORs 0x14 into byte +0x59 of slot 8 only,
+@   otherwise      ORs 0x14 into byte +0x59 of slots 8, 9 and 0xA.
+@ Byte +0x59 carries the per-entity interaction flags, so this is how the three
+@ NPCs are made talkable -- and why arriving through entrance 0x0A leaves two
+@ of them inert.
 .thumb_func_start OvlFunc_900_20081e4
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc

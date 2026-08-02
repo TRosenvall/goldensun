@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ 66 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, BeginCutscene, GetSlotEntityChecked x3, CopyMapRectIndicesU
+@   PlaySound, PlayMapRectAnimation, CopyMapRectAttributes, SetSaveBit
+@   EndCutscene
+@ sets 0x874.
 .thumb_func_start OvlFunc_924_2009420
 	push	{r5, r6, lr}
 	mov	r0, #0xb
@@ -72,6 +80,14 @@
 	bx	r0
 .func_end OvlFunc_924_2009420
 
+@ 58 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, GetSlotEntityChecked x2, BeginCutscene, SetSaveBit
+@   DialogueWait, GetSlotEntityChecked x3, CopyMapRectIndicesU, PlaySound
+@   PlayMapRectAnimation, EndCutscene
+@ reads save bit 0x256; sets 0x256.
 .thumb_func_start OvlFunc_924_20094cc
 	push	{r5, lr}
 	ldr	r0, =0x256
@@ -134,6 +150,14 @@
 	bx	r0
 .func_end OvlFunc_924_20094cc
 
+@ 44 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, BeginCutscene, ClearSaveBit, GetSlotEntityChecked x3
+@   DialogueWait, CopyMapRectIndicesU, PlaySound, PlayMapRectAnimation
+@   EndCutscene
+@ reads save bit 0x256; clears 0x256.
 .thumb_func_start OvlFunc_924_2009568
 	push	{r5, lr}
 	ldr	r0, =0x256
@@ -182,6 +206,12 @@
 	bx	r0
 .func_end OvlFunc_924_2009568
 
+@ 103 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, CopyMapRectIndicesU x4, SetMapTransition x2, DialogueWait
+@   CopyMapRectAttributes
 .thumb_func_start OvlFunc_924_20095e0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -292,6 +322,12 @@
 	bx	r0
 .func_end OvlFunc_924_20095e0
 
+@ 90 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, CopyMapRectIndicesU x3, SetMapTransition x2, DialogueWait
+@   PlaySound, CopyMapRectAttributes, WaitForMapTransition
 .thumb_func_start OvlFunc_924_20096c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

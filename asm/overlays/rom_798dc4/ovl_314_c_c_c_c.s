@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ 85 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetCombatantRecord, FindUsableItem, GetAbilityRecord x2, ConsumeAndNotify
+@   AddInventoryItem
 .thumb_func_start OvlFunc_903_2008fc8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 850 instructions of straight-line script --
+@ 22 turns, 23 animation changes, 32 dialogue lines, 91 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x2702.
+@ Sets save bits 0x988, 0x98a.
 .thumb_func_start OvlFunc_965_2009238
 	push	{lr}
 	ldr	r0, =0x988
@@ -868,6 +873,11 @@
 	bx	r0
 .func_end OvlFunc_965_2009238
 
+@ Cutscene: roughly 914 instructions of straight-line script --
+@ 49 turns, 20 animation changes, 27 dialogue lines, 88 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x272f.
+@ Sets save bit 0x989.
 .thumb_func_start OvlFunc_965_2009b10
 	push	{lr}
 	ldr	r0, =0x989
@@ -1799,6 +1809,12 @@
 	bx	r0
 .func_end OvlFunc_965_2009b10
 
+@ 28 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, CopyMapRectIndices x2
+@ reads save bit 0x985.
 .thumb_func_start OvlFunc_965_200a46c
 	push	{lr}
 	ldr	r0, =0x985
@@ -1832,6 +1848,11 @@
 	bx	r0
 .func_end OvlFunc_965_200a46c
 
+@ 14 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectIndices
 .thumb_func_start OvlFunc_965_200a4b0
 	push	{lr}
 	sub	sp, #8
@@ -1849,6 +1870,14 @@
 	bx	r0
 .func_end OvlFunc_965_200a4b0
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, SetSaveBit, PlaySound, BeginCutscene
+@   MoveSlotTo x2, WaitForSlotArrival x2, CopyMapRectAttributes, EndCutscene
+@   TestSaveBit, OvlFunc_1b10
+@ reads save bits 0x985, 0x989; sets 0x985.
 .thumb_func_start OvlFunc_965_200a4d0
 	push	{lr}
 	ldr	r0, =0x985
@@ -1896,6 +1925,14 @@
 	bx	r0
 .func_end OvlFunc_965_200a4d0
 
+@ 47 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, ClearSaveBit, PlaySound, BeginCutscene
+@   MoveSlotTo x2, WaitForSlotArrival x2, CopyMapRectAttributes, EndCutscene
+@   TestSaveBit, ClearSaveBit, SetSaveBit
+@ reads save bits 0x301, 0x985; sets 0x301; clears 0x301, 0x985.
 .thumb_func_start OvlFunc_965_200a548
 	push	{lr}
 	ldr	r0, =0x985
@@ -1948,6 +1985,14 @@
 	bx	r0
 .func_end OvlFunc_965_200a548
 
+@ 53 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, TestSaveBit, RunTextBoxModal, PlaySound
+@   CopyMapRectIndices, DialogueWait, CopyMapRectIndices, DialogueWait
+@   OvlFunc_24d0, SetActiveMessageId, ShowMessageAndWait, EndCutscene
+@ message id 0x2756; reads save bit 0x985.
 .thumb_func_start OvlFunc_965_200a5c8
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc
@@ -2006,6 +2051,11 @@
 	bx	r0
 .func_end OvlFunc_965_200a5c8
 
+@ 30 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetTerrainHeight, OvlFunc_6c
 .thumb_func_start OvlFunc_965_200a660
 	push	{r5, r6, lr}
 	mov	r5, r0

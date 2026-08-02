@@ -1,5 +1,19 @@
 	.include "macros.inc"
 
+@ TryPushBlock
+@ Takes no arguments. This overlay's block-push interaction, the same shape as
+@ OvlFunc_c4 in overlays/rom_780898/ovl_30.s but simpler: one tile, no
+@ footprint table, and no map-collision restamp.
+@
+@ Steps one tile along the player's facing through the table at .L265c, finds
+@ the block with OvlFunc_79c, sets its tile-type byte +0x22 to 2 so TestCollision
+@ samples the right layer, and rejects the push if TestCollision returns > 0.
+@ Otherwise: animation 8, fifteen frames, sound 0xB9, both block and player
+@ given speed 0x3333 and sent one tile with Actor_TravelTo, Func_ca6c waits it out.
+@
+@ It then re-runs the position trackers for whichever arrangement this entrance
+@ uses -- slots 9 and 0xA for entrance 0x0B..0x0D, slots 9..0xE for 0x0E..0x10 --
+@ so the save bits stay current after every single push.
 .thumb_func_start OvlFunc_895_20087d0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -126,6 +140,9 @@
 	bx	r0
 .func_end OvlFunc_895_20087d0
 
+@ Slot 0: the overlay's main entry, called once when the map loads.
+@ Dispatches on the area id and does nothing for any area but the two this
+@ overlay serves: area 0x13 -> OvlFunc_92c, area 0x10 -> OvlFunc_a24.
 .thumb_func_start OvlFunc_895_20088f4
 	push	{lr}
 	ldr	r3, =gState
@@ -150,6 +167,19 @@
 	bx	r1
 .func_end OvlFunc_895_20088f4
 
+@ SetupArea13
+@ Takes no arguments. Map-load setup for area 0x13.
+@
+@ Sets save bit 0x144, then writes 0x20 to [iwram_1ebc]+0x1C0 as the scene's
+@ configured step delay. Three save bits then shape the room:
+@   0x814  registers OvlFunc_1ac8 as a task with StartTask at priority 0xC80,
+@          and clears the word at .L269c that the task uses as its counter.
+@   0x879  four Func_10704 attribute copies around (5, 6) and (0, 1) -- the
+@          after-state of an earlier event, painted in without a cutscene.
+@   0x815  teleports slot 8 to (0x780000, 0xE80000) with MapActor_SetPos and lays
+@          in three more attribute rows at (2, 0xA).
+@ Each block repaints attributes only, never metatile indices, so the artwork
+@ is already correct in the map data and only collision needs fixing up.
 .thumb_func_start OvlFunc_895_200892c
 	push	{r5, lr}
 	mov	r0, #0xa2
@@ -254,6 +284,19 @@
 	bx	r0
 .func_end OvlFunc_895_200892c
 
+@ SetupArea10
+@ Takes no arguments. Map-load setup for area 0x10, and the busiest function in
+@ the overlay.
+@
+@ Writes 0x204 to [iwram_1ebc]+0x1C0 as the step delay. If save bit 0x814 is
+@ set it plays scene 0x8D through Func_91ff0, resets the map transition to
+@ 0x10000 on all three axes, and calls StartEarthquake.
+@
+@ The body is a 16-entry jump table at .La78 on the entrance id at
+@ ewram_240+0x1C2, minus one. Seven of the sixteen entries go straight to the
+@ exit, so most entrances need no setup at all; the rest group into four
+@ handlers, which is why entrances 0x0B..0x0D and 0x0E..0x10 behave alike in
+@ the table slots above -- they share a jump-table target.
 .thumb_func_start OvlFunc_895_2008a24
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc
@@ -544,6 +587,12 @@
 	bx	r0
 .func_end OvlFunc_895_2008a24
 
+@ Cutscene: a six-actor staged scene, roughly 240 instructions.
+@ Characterised structurally rather than beat by beat -- it is a straight-line
+@ script with no branching logic worth naming. Thirteen Func_924d4 animation
+@ changes, six MapActor_SetPos placements and five .gcc2_compiled. turns drive six slots
+@ resolved through Func_92054, with Func_9163c pauses between beats and speeds
+@ of 0x9999/0x4CCC throughout.
 .thumb_func_start OvlFunc_895_2008d1c
 	push	{r5, lr}
 	bl	__CutsceneStart
@@ -788,6 +837,11 @@
 	bx	r0
 .func_end OvlFunc_895_2008d1c
 
+@ Cutscene: the overlay's largest scene, roughly 645 instructions.
+@ Thirty-seven .gcc2_compiled. turns and twenty-three animation changes across six
+@ slots, with eleven .gcc2_compiled. dialogue lines and ten .gcc2_compiled. formation
+@ changes -- so the party re-forms repeatedly as the conversation moves. Again
+@ straight-line script; the shape is the meaning.
 .thumb_func_start OvlFunc_895_2008f8c
 	push	{lr}
 	bl	__CutsceneStart
@@ -1433,6 +1487,9 @@
 	bx	r0
 .func_end OvlFunc_895_2008f8c
 
+@ Cutscene: a shorter two-actor scene, roughly 150 instructions. Same
+@ vocabulary as OvlFunc_f8c at a fraction of the length -- four turns, three
+@ animation changes, two dialogue lines through .gcc2_compiled..
 .thumb_func_start OvlFunc_895_200961c
 	push	{lr}
 	bl	__CutsceneStart
@@ -1585,6 +1642,21 @@
 	bx	r0
 .func_end OvlFunc_895_200961c
 
+@ RestoreBlockPuzzle
+@ r0 = nonzero to reposition the blocks as well as repaint. No return value.
+@
+@ Rebuilds the six-block puzzle's appearance from the save bits that
+@ OvlFunc_5ec..OvlFunc_754 maintain, so the room looks right on reload and
+@ after every push.
+@
+@ First it wipes the six marker columns: Func_10704 copies attribute source
+@ rows 0x64, 0x68, 0x6C, 0x70, 0x74, 0x78 -- four apart, matching the blocks'
+@ four-tile spacing -- into the 1x0x20 strip at (0x7A, 0x14). Then for each
+@ pair of bits it paints the occupied marker at x 0x79 instead, and when r0 is
+@ set also teleports the matching slot into place with MapActor_SetPos.
+@
+@ Callers pass 0 from the trackers, where the entity is already where it
+@ belongs and only the marker needs redrawing, and nonzero from setup.
 .thumb_func_start OvlFunc_895_20097c0
 	push	{r5, r6, r7, lr}
 	sub	sp, #8

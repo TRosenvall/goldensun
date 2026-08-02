@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ 46 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, SetSaveBit, TestSaveBit x2, SetSaveBit
+@   TestSaveBit x2, SetSaveBit, OvlFunc_904, OvlFunc_b2c
+@ reads save bits 0x8fd, 0x8fe, 0x907; sets 0x240, 0x241, 0x242.
 .thumb_func_start OvlFunc_931_2008874
 	push	{lr}
 	ldr	r0, =0x8fd
@@ -55,6 +62,10 @@
 	bx	r1
 .func_end OvlFunc_931_2008874
 
+@ Cutscene: roughly 213 instructions of straight-line script --
+@ 0 turns, 1 animation change, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x240, 0x241, 0x242, 0x8ff.
 .thumb_func_start OvlFunc_931_2008904
 	push	{r5, r6, r7, lr}
 	mov	r0, #0
@@ -280,6 +291,10 @@
 	bx	r0
 .func_end OvlFunc_931_2008904
 
+@ Cutscene: roughly 84 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x240, 0x241, 0x242.
 .thumb_func_start OvlFunc_931_2008b2c
 	push	{lr}
 	mov	r0, #0x90
@@ -373,6 +388,11 @@
 	bx	r0
 .func_end OvlFunc_931_2008b2c
 
+@ 24 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetActorPartsPalette, SetEntityActorOptions
 .thumb_func_start OvlFunc_931_2008c0c
 	push	{r5, lr}
 	mov	r5, r0
@@ -400,6 +420,11 @@
 	bx	r0
 .func_end OvlFunc_931_2008c0c
 
+@ 84 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random x3, SetActorPartsPalette, Random, DestroyEntity
 .thumb_func_start OvlFunc_931_2008c44
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -493,6 +518,11 @@
 	bx	r0
 .func_end OvlFunc_931_2008c44
 
+@ 33 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, OvlFunc_c0c, SetEntityAnimation
 .thumb_func_start OvlFunc_931_2008d08
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001e40
@@ -530,6 +560,10 @@
 	bx	r0
 .func_end OvlFunc_931_2008d08
 
+@ Cutscene: roughly 69 instructions of straight-line script --
+@ 4 turns, 2 animation changes, 0 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x8ff.
 .thumb_func_start OvlFunc_931_2008d58
 	push	{lr}
 	bl	__CutsceneStart

@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 245 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 10 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x207, 0x80b, 0x80c, 0x80d.
+@ Sets save bits 0x80f, 0x818.
 .thumb_func_start OvlFunc_891_20096dc
 	push	{r5, r6, lr}
 	mov	r0, #0x11
@@ -256,6 +261,13 @@
 	bx	r0
 .func_end OvlFunc_891_20096dc
 
+@ 50 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, PlaySound, SetSlotEntitySpeed x2
+@   GetSlotEntityChecked, SetSlotAnimation, GetSlotEntityChecked, MoveSlotTo x2
+@   WaitForSlotArrival, SetSlotAnimation, EndCutscene
 .thumb_func_start OvlFunc_891_200995c
 	push	{lr}
 	mov	r0, #0x11

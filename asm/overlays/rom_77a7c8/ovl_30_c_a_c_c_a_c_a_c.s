@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 22 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, IsCameraInSceneMode, RunTextBoxModal, TestSaveBit
+@   GetCameraSceneMode, EndCutscene
+@ reads save bit 0x234.
 .thumb_func_start OvlFunc_881_200a8a8
 	push	{lr}
 	bl	__CutsceneStart
@@ -27,6 +34,11 @@
 	bx	r0
 .func_end OvlFunc_881_200a8a8
 
+@ Cutscene: roughly 363 instructions of straight-line script --
+@ 5 turns, 15 animation changes, 7 dialogue lines, 7 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x2644.
+@ Sets save bit 0x85d.
 .thumb_func_start OvlFunc_881_200a8e8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -398,6 +410,10 @@
 	bx	r0
 .func_end OvlFunc_881_200a8e8
 
+@ Cutscene: roughly 397 instructions of straight-line script --
+@ 5 turns, 8 animation changes, 18 dialogue lines, 12 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x2913.
 .thumb_func_start OvlFunc_881_200acb4
 	push	{r5, lr}
 	ldr	r3, =gState
@@ -803,6 +819,16 @@
 	bx	r0
 .func_end OvlFunc_881_200acb4
 
+@ 70 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, PlaySound, StartFadeIn, StartFadeOut
+@   WaitForFade, WaitFrames, ShowScreenOverlay, WaitSceneDelay
+@   SetSlotPalette, GetSlotEntityChecked, SetEntityActorOptions, WaitFrames
+@   SetCameraSpeed, RegisterTask
+@   ... and 10 more
+@ sets 0x11a.
 .thumb_func_start OvlFunc_881_200b130
 	push	{lr}
 	bl	__CutsceneStart
@@ -876,6 +902,12 @@
 	bx	r0
 .func_end OvlFunc_881_200b130
 
+@ 94 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random x2, SpawnEntity, Random, SetEntityAnimation
+@   SetEntityScript, UnsignedRem, Random, MoveCameraTo x2
 .thumb_func_start OvlFunc_881_200b1fc
 	push	{r5, r6, lr}
 	bl	__Random
@@ -981,6 +1013,9 @@
 	bx	r0
 .func_end OvlFunc_881_200b1fc
 
+@ Cutscene: roughly 99 instructions of straight-line script --
+@ 0 turns, 2 animation changes, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_881_200b2f0
 	push	{lr}
 	bl	__CutsceneStart

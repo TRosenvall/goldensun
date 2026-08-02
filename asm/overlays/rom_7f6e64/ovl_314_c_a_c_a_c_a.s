@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 42 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_480
 .thumb_func_start OvlFunc_969_20084bc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -47,6 +52,15 @@
 	bx	r1
 .func_end OvlFunc_969_20084bc
 
+@ 91 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, RotateVector, CheckTerrainStep, ClearSaveBit
+@   OvlFunc_6c0, SetEntityAnimation, WaitFrames, SetEntityAnimation
+@   PlaySound, SetEntityActorOptions, MoveSlotToAndWait, SetEntityAnimation
+@   SetEntityActorOptions
+@ clears 0x250.
 .thumb_func_start OvlFunc_969_2008518
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -142,6 +156,13 @@
 	bx	r0
 .func_end OvlFunc_969_2008518
 
+@ 89 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, OvlFunc_4bc, SetSaveBit
+@   GetSlotEntityChecked, WaitFrames x4, EndCutscene
+@ sets 0x250.
 .thumb_func_start OvlFunc_969_20085ec
 	push	{r5, r6, r7, lr}
 	mov	r0, #0

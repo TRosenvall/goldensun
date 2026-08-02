@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 25 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_10b8, GetSlotEntityChecked, AdvanceDialogue
 .thumb_func_start OvlFunc_948_2009120
 	push	{r5, lr}
 	mov	r0, #2
@@ -30,6 +35,11 @@
 	bx	r0
 .func_end OvlFunc_948_2009120
 
+@ 25 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_10b8, GetSlotEntityChecked, AdvanceDialogue
 .thumb_func_start OvlFunc_948_200915c
 	push	{r5, lr}
 	mov	r0, #3

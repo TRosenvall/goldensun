@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Leaf helper, 23 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_934_2008d80
 	push	{lr}
 	ldr	r3, =gState
@@ -29,6 +32,11 @@
 	bx	r1
 .func_end OvlFunc_934_2008d80
 
+@ 13 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectFull
 .thumb_func_start OvlFunc_934_2008dcc
 	push	{lr}
 	sub	sp, #8
@@ -45,6 +53,11 @@
 	bx	r0
 .func_end OvlFunc_934_2008dcc
 
+@ 13 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectFull
 .thumb_func_start OvlFunc_934_2008de8
 	push	{lr}
 	sub	sp, #8
@@ -61,6 +74,10 @@
 	bx	r0
 .func_end OvlFunc_934_2008de8
 
+@ Cutscene: roughly 153 instructions of straight-line script --
+@ 1 turn, 1 animation change, 0 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x200.
 .thumb_func_start OvlFunc_934_2008e04
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -220,6 +237,10 @@
 	bx	r0
 .func_end OvlFunc_934_2008e04
 
+@ Cutscene: roughly 136 instructions of straight-line script --
+@ 0 turns, 1 animation change, 0 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x201.
 .thumb_func_start OvlFunc_934_2008f78
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

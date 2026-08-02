@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 252 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x237.
 .thumb_func_start OvlFunc_969_200d6a0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -331,6 +335,11 @@
 	bx	r0
 .func_end OvlFunc_969_200d6a0
 
+@ 26 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_5688
 .thumb_func_start OvlFunc_969_200d9f0
 	push	{r5, lr}
 	mov	r3, r0
@@ -361,6 +370,14 @@
 	bx	r0
 .func_end OvlFunc_969_200d9f0
 
+@ 147 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, Random, PlaceSlotAt, GetSlotEntityChecked
+@   PlaceSlotAt, GetSlotEntityChecked x2, PlaceSlotAt, SpawnEntity
+@   SignedDiv, SetEntityScript, SetActorPartsPalette, Random
+@   Sin
 .thumb_func_start OvlFunc_969_200da28
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -526,6 +543,11 @@
 	bx	r0
 .func_end OvlFunc_969_200da28
 
+@ 41 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Cos, Sin
 .thumb_func_start OvlFunc_969_200db90
 	push	{r5, r6, lr}
 	mov	r6, r10

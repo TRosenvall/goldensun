@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 48 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random x2, OvlFunc_b54, SetEntityScript, SpawnEntity
 .thumb_func_start OvlFunc_935_2008b8c
 	push	{r5, r6, r7, lr}
 	mov	r6, r0

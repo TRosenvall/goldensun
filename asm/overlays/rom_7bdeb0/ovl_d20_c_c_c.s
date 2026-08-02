@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ 82 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, CheckTerrainStep, BeginCutscene, SetEntityAnimation
+@   WaitFrames, PlaySound, SetEntityAnimation, SetEntityActorOptions
+@   MoveSlotToAndWait, SetEntityAnimation, SetEntityActorOptions, EndCutscene
 .thumb_func_start OvlFunc_934_20090e0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -87,6 +94,11 @@
 	bx	r1
 .func_end OvlFunc_934_20090e0
 
+@ Cutscene: roughly 71 instructions of straight-line script --
+@ 2 turns, 0 animation changes, 0 dialogue lines, 4 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bit 0x200.
+@ Sets save bit 0x200.
 .thumb_func_start OvlFunc_934_20091a0
 	push	{lr}
 	mov	r0, #0x80
@@ -162,6 +174,14 @@
 	bx	r0
 .func_end OvlFunc_934_20091a0
 
+@ 62 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit x2, SetSaveBit x2, BeginCutscene, RunSlotEffectSequence
+@   SetFollowerFormationAndRefresh, DialogueWait, SetSlotEntitySpeed, WalkSlotToAndWait x3
+@   DialogueWait, TurnSlotToAngle, GetSlotEntityChecked, EndCutscene
+@ reads save bits 0x200, 0x201; sets 0x201, 0x302.
 .thumb_func_start OvlFunc_934_2009258
 	push	{lr}
 	mov	r0, #0x80

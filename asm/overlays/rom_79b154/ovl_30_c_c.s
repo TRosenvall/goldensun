@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ 118 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_d80, CheckTerrainStep, SetEntityAnimation
+@   WaitFrames, PlaySound, SetEntityMoveTarget x2, WaitForEntityIdle
+@   SetEntityAnimation, OvlFunc_cb4, OvlFunc_9cc, OvlFunc_fa0
 .thumb_func_start OvlFunc_907_2008db4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -124,6 +131,11 @@
 	bx	r0
 .func_end OvlFunc_907_2008db4
 
+@ 41 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_f3c
 .thumb_func_start OvlFunc_907_2008ed8
 	push	{r5, lr}
 	ldr	r3, =gState
@@ -175,6 +187,11 @@
 	.word	0
 .func_end OvlFunc_907_2008ed8
 
+@ 45 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, SetEntityScript, SetActorAnimation
 .thumb_func_start OvlFunc_907_2008f3c
 	push	{r5, r6, r7, lr}
 	ldr	r1, [r0, #8]
@@ -224,6 +241,11 @@
 	bx	r0
 .func_end OvlFunc_907_2008f3c
 
+@ 55 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, CopyMapRectAttributes x4
 .thumb_func_start OvlFunc_907_2008fa0
 	push	{r5, lr}
 	mov	r0, #8

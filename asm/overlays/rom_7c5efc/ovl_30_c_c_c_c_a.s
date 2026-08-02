@@ -1,5 +1,7 @@
 	.include "macros.inc"
 
+@ Talk: line 0x255e, shown.
+@ Also turns to face the player, settles back to a resting angle, plays an interaction effect.
 .thumb_func_start OvlFunc_941_2009394
 	push	{r5, lr}
 	mov	r0, #2

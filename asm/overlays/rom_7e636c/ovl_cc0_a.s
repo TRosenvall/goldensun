@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_958_2008cc0
 	push	{lr}
 	ldr	r3, =gState

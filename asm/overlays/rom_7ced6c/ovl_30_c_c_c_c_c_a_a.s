@@ -1,5 +1,14 @@
 	.include "macros.inc"
 
+@ 74 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, CopyMapRectAttributes, PlaceSlotAt, GetSlotEntityChecked
+@   TestSaveBit, PlaceSlotAt, GetSlotEntityChecked, TestSaveBit
+@   PlaceSlotAt, GetSlotEntityChecked, TestSaveBit, PlaceSlotAt
+@   GetSlotEntityChecked
+@ reads save bits 0x8c4, 0x8c5, 0x8c6, 0x8c7.
 .thumb_func_start OvlFunc_946_200967c
 	push	{lr}
 	ldr	r0, =0x8c4
@@ -85,6 +94,11 @@
 	bx	r0
 .func_end OvlFunc_946_200967c
 
+@ 22 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_474, OvlFunc_608, EndCutscene
 .thumb_func_start OvlFunc_946_2009740
 	push	{r5, lr}
 	sub	sp, #0x20
@@ -111,6 +125,13 @@
 	bx	r0
 .func_end OvlFunc_946_2009740
 
+@ 100 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, BeginCutscene, SetEntityMoveTarget, SetEntityAnimation
+@   SetEntityMoveTarget, SetEntityAnimation x2, PlaySound, WaitForEntityIdle
+@   PlaySound, EndCutscene
 .thumb_func_start OvlFunc_946_2009774
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -217,6 +238,11 @@
 	bx	r0
 .func_end OvlFunc_946_2009774
 
+@ 38 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetSlotDrawPriority, CopyMapRectAttributes
 .thumb_func_start OvlFunc_946_200985c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -259,6 +285,11 @@
 	bx	r0
 .func_end OvlFunc_946_200985c
 
+@ 38 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetSlotDrawPriority, CopyMapRectAttributes
 .thumb_func_start OvlFunc_946_20098b0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

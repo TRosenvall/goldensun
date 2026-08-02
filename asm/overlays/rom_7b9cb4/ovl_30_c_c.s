@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 119 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound x2, RotateVector, GetTerrainHeight, RotateVector
+@   GetTerrainHeight, SetEntityAnimation x3
 .thumb_func_start OvlFunc_932_200b738
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -131,6 +137,15 @@
 	bx	r0
 .func_end OvlFunc_932_200b738
 
+@ 157 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, GetSlotEntity, BeginCutscene, RotateVector
+@   GetTerrainHeight, AddActorPart, AttachCameraToSlot, WaitForCameraArrival
+@   SetCameraSpeed, RotateVector, SetEntityMoveTarget, WaitForEntityIdle
+@   PlaySound, GetTileFlags
+@   ... and 7 more
 .thumb_func_start OvlFunc_932_200b850
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -313,6 +328,9 @@
 	bx	r0
 .func_end OvlFunc_932_200b850
 
+@ Leaf helper, 43 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: REG_DMA3SAD, iwram_1ed0
 .thumb_func_start OvlFunc_932_200b9c8
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ed0
@@ -368,6 +386,11 @@
 	bx	r0
 .func_end OvlFunc_932_200b9c8
 
+@ 13 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RegisterTask
 .thumb_func_start OvlFunc_932_200ba44
 	push	{lr}
 	ldr	r2, =0

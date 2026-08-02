@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Slot 3: the read after slot 4.
+@ Chooses among .L6904, .L69c4, .L6b74, .L6c04, .L6c64, .L6cf4, .L68ec
+@ on the area/entrance id at ewram_240+0x1C0 or +0x1C2.
+@ The result is passed through Func_8b868 first, which tags the records
+@ whose position falls inside the active bounds.
 .thumb_func_start OvlFunc_968_2008e88
 	push	{r5, lr}
 	ldr	r3, =gState

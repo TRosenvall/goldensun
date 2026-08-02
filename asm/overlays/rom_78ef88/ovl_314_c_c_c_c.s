@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 84 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, FindInventorySlotInParty, FindInventorySlot, SetEntityScript
+@   galloc_iwram, SetPortraitPointer, AllocObjTiles, Func_2dd8
+@   PlaySound, SetObjectActiveState, ConsumeAndNotify, FindUsableItem
+@   DestroyEntity, SetSlotAnimation
 .thumb_func_start OvlFunc_896_200c260
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -89,6 +97,12 @@
 	bx	r1
 .func_end OvlFunc_896_200c260
 
+@ 56 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, UpdateObjectProximity, RunTextBoxModal, CountInventory x2
+@   RunTextBoxModal, RunShopMenu, ConsumeAndNotify, FindUsableItemInParty x4
 .thumb_func_start OvlFunc_896_200c328
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ebc
@@ -150,6 +164,13 @@
 	bx	r0
 .func_end OvlFunc_896_200c328
 
+@ 94 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, PlaySound, GetSlotEntityChecked, SetEntityActorOptions
+@   DialogueWait, Random x2, OvlFunc_common0_10c, SetSlotPalette x2
+@   GetSlotEntityChecked, SetEntityActorOptions
 .thumb_func_start OvlFunc_896_200c3bc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -250,6 +271,12 @@
 	bx	r0
 .func_end OvlFunc_896_200c3bc
 
+@ 354 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   galloc_ewram, Random x3, UnsignedDiv x3, Sin x2
+@   Cos
 .thumb_func_start OvlFunc_896_200c49c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -630,6 +657,11 @@
 	bx	r0
 .func_end OvlFunc_896_200c49c
 
+@ 85 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   galloc_ewram, GetSlotEntityChecked x2, SetEntityActorPriority, RegisterTask
 .thumb_func_start OvlFunc_896_200c78c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

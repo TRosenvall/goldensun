@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Cutscene: roughly 143 instructions of straight-line script --
+@ 0 turns, 1 animation change, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x203, 0x834, 0x87a.
+@ Sets save bit 0x834.
 .thumb_func_start OvlFunc_887_20083f8
 	push	{r5, lr}
 	ldr	r3, =gState
@@ -157,6 +162,10 @@
 	bx	r1
 .func_end OvlFunc_887_20083f8
 
+@ Cutscene: roughly 430 instructions of straight-line script --
+@ 3 turns, 8 animation changes, 5 dialogue lines, 17 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x21.
 .thumb_func_start OvlFunc_887_2008578
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -598,6 +607,10 @@
 	bx	r0
 .func_end OvlFunc_887_2008578
 
+@ Cutscene: roughly 392 instructions of straight-line script --
+@ 4 turns, 6 animation changes, 1 dialogue line, 6 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xe5b.
 .thumb_func_start OvlFunc_887_2008a0c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -995,6 +1008,9 @@
 	bx	r0
 .func_end OvlFunc_887_2008a0c
 
+@ Counter: INN 0x0 via Func_b3284, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0xf58, 0x11a9, 0x1c14, 0x1c15.
+@ Gated on save bits 0x300, 0x815, 0x87a.
 .thumb_func_start OvlFunc_887_2008e34
 	push	{r5, lr}
 	mov	r0, #0

@@ -1,5 +1,7 @@
 	.include "macros.inc"
 
+@ Talk: line 0x1764, shown.
+@ Also turns to face the player, settles back to a resting angle, plays an interaction effect, re-forms the followers.
 .thumb_func_start OvlFunc_909_2008150
 	push	{lr}
 	bl	__CutsceneStart
@@ -39,6 +41,9 @@
 	bx	r0
 .func_end OvlFunc_909_2008150
 
+@ Talk: lines 0x1750, 0x1768, shown.
+@ Which line is chosen by save bit 0x302.
+@ Sets save bit 0x302.
 .thumb_func_start OvlFunc_909_20081b4
 	push	{lr}
 	bl	__CutsceneStart

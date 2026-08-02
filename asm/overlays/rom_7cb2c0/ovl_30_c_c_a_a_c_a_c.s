@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 112 instructions of straight-line script --
+@ 0 turns, 2 animation changes, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x1e81, 0x1ea1.
+@ Reads save bits 0x300, 0x929, 0x92a, 0x92b.
+@ Sets save bits 0x300, 0x91b, 0x930, 0x939.
 .thumb_func_start OvlFunc_945_2008b84
 	push	{r5, lr}
 	bl	__CutsceneStart
@@ -123,6 +129,12 @@
 	bx	r0
 .func_end OvlFunc_945_2008b84
 
+@ Cutscene: roughly 113 instructions of straight-line script --
+@ 0 turns, 2 animation changes, 1 dialogue line, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x1e84, 0x1ea2.
+@ Reads save bits 0x300, 0x929, 0x92a, 0x92b.
+@ Sets save bits 0x300, 0x918, 0x92d, 0x936.
 .thumb_func_start OvlFunc_945_2008cc8
 	push	{r5, lr}
 	bl	__CutsceneStart
@@ -247,6 +259,15 @@
 	bx	r0
 .func_end OvlFunc_945_2008cc8
 
+@ 66 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, OvlFunc_12dc, BeginCutscene, OvlFunc_1190
+@   SetActiveMessageId, OvlFunc_486c, SetSlotAnimation, GetSlotEntityChecked
+@   MoveSlotTo, WaitForSlotArrival, PlaceSlotAt, EndCutscene
+@   TestSaveBit x3, OvlFunc_1804 x2
+@ message id 0x1ea3; reads save bits 0x300, 0x929, 0x92a, 0x92b.
 .thumb_func_start OvlFunc_945_2008e14
 	push	{r5, lr}
 	mov	r0, #0xc0
@@ -323,6 +344,15 @@
 	bx	r0
 .func_end OvlFunc_945_2008e14
 
+@ 66 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, OvlFunc_12dc, BeginCutscene, OvlFunc_1190
+@   SetActiveMessageId, OvlFunc_486c, SetSlotAnimation, GetSlotEntityChecked
+@   MoveSlotTo, WaitForSlotArrival, PlaceSlotAt, EndCutscene
+@   TestSaveBit x3, OvlFunc_1804 x2
+@ message id 0x1ea4; reads save bits 0x300, 0x929, 0x92a, 0x92b.
 .thumb_func_start OvlFunc_945_2008ee0
 	push	{r5, lr}
 	mov	r0, #0xc0
@@ -399,6 +429,15 @@
 	bx	r0
 .func_end OvlFunc_945_2008ee0
 
+@ 66 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, OvlFunc_12dc, BeginCutscene, OvlFunc_1190
+@   SetActiveMessageId, OvlFunc_486c, SetSlotAnimation, GetSlotEntityChecked
+@   MoveSlotTo, WaitForSlotArrival, PlaceSlotAt, EndCutscene
+@   TestSaveBit x3, OvlFunc_1804 x2
+@ message id 0x1ea5; reads save bits 0x300, 0x929, 0x92a, 0x92b.
 .thumb_func_start OvlFunc_945_2008fac
 	push	{r5, lr}
 	mov	r0, #0xc0
@@ -475,6 +514,15 @@
 	bx	r0
 .func_end OvlFunc_945_2008fac
 
+@ 66 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, OvlFunc_12dc, BeginCutscene, OvlFunc_1190
+@   SetActiveMessageId, OvlFunc_486c, SetSlotAnimation, GetSlotEntityChecked
+@   MoveSlotTo, WaitForSlotArrival, PlaceSlotAt, EndCutscene
+@   TestSaveBit x3, OvlFunc_1804 x2
+@ message id 0x1ea6; reads save bits 0x300, 0x929, 0x92a, 0x92b.
 .thumb_func_start OvlFunc_945_2009078
 	push	{r5, lr}
 	mov	r0, #0xc0
@@ -551,6 +599,9 @@
 	bx	r0
 .func_end OvlFunc_945_2009078
 
+@ Leaf helper, 36 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1ebc
 .thumb_func_start OvlFunc_945_2009144
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ebc
@@ -593,6 +644,9 @@
 	bx	r1
 .func_end OvlFunc_945_2009144
 
+@ Cutscene: roughly 98 instructions of straight-line script --
+@ 0 turns, 2 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_945_2009190
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -698,6 +752,11 @@
 	bx	r0
 .func_end OvlFunc_945_2009190
 
+@ 41 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_1144, CheckTerrainStep
 .thumb_func_start OvlFunc_945_2009280
 	push	{r5, r6, r7, lr}
 	mov	r5, r0

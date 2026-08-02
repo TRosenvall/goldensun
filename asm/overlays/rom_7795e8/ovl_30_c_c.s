@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 88 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   StartFadeOut, GetAsset, DecompressVariant, GetSlotEntityChecked
 .thumb_func_start OvlFunc_880_2008054
 	push	{r5, r6, lr}
 	mov	r0, #0
@@ -106,6 +111,11 @@
 	.word	0
 .func_end OvlFunc_880_2008054
 
+@ 68 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   UnregisterTask
 .thumb_func_start OvlFunc_880_2008154
 	push	{r5, r6, lr}
 	ldr	r3, =.L16b0
@@ -181,6 +191,11 @@
 	bx	r0
 .func_end OvlFunc_880_2008154
 
+@ 96 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound x2
 .thumb_func_start OvlFunc_880_20081fc
 	push	{r5, r6, r7, lr}
 	ldr	r1, =.L16b2
@@ -298,6 +313,9 @@
 	bx	r0
 .func_end OvlFunc_880_20081fc
 
+@ Leaf helper, 71 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x1, +0x2.
 .thumb_func_start OvlFunc_880_20082f4
 	push	{lr}
 	mov	r3, #0
@@ -387,6 +405,12 @@
 	bx	r0
 .func_end OvlFunc_880_20082f4
 
+@ 29 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit
+@ reads save bit 0x144.
 .thumb_func_start OvlFunc_880_2008384
 	push	{lr}
 	mov	r0, #0xa2
@@ -421,6 +445,16 @@
 	bx	r1
 .func_end OvlFunc_880_2008384
 
+@ 920 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_54, RegisterTask, ShowScreenOverlay, WaitSceneDelay
+@   RunTextBoxModal, ShowConfirmPrompt, RunMenuModalSimple, RunTextBoxModal
+@   RunStatusPrompt, DialogueWait, HideScreenOverlay, PlaySound
+@   DialogueWait, SetSceneTargetA
+@   ... and 101 more
+@ reads save bit 0x952; sets 0x109, 0x13e, 0x13f, 0x17e; clears 0x106, 0x109.
 .thumb_func_start OvlFunc_880_20083cc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1431,6 +1465,11 @@
 	bx	r1
 .func_end OvlFunc_880_20083cc
 
+@ 51 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Func_4970, DecompressVariant, FreeScratch
 .thumb_func_start OvlFunc_880_2008cfc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1493,6 +1532,11 @@
 	bx	r0
 .func_end OvlFunc_880_2008cfc
 
+@ 47 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Func_4970, FreeScratch
 .thumb_func_start OvlFunc_880_2008d74
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -1551,6 +1595,11 @@
 	bx	r0
 .func_end OvlFunc_880_2008d74
 
+@ 484 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, GetCombatantRecord x2, GetAbilityRecord, GetCombatantRecord
 .thumb_func_start OvlFunc_880_2008de4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2085,6 +2134,12 @@
 	bx	r1
 .func_end OvlFunc_880_2008de4
 
+@ XorDecodeBlock
+@ r0 = buffer, r1 = length, r2 = a second buffer.
+@
+@ Takes the LAST byte of the buffer as a key and XORs it over every preceding
+@ byte in place, then runs a nested pass over the result. Storing the key in
+@ the final byte is why the first loop stops at length-1.
 .thumb_func_start OvlFunc_880_20091e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2211,6 +2266,14 @@
 	bx	r1
 .func_end OvlFunc_880_20091e4
 
+@ Crc16Ccitt
+@ r0 = length, r1 = buffer. Returns the CRC-16/CCITT of the block.
+@
+@ The classic bitwise form: register seeded to 0xFFFF, each byte shifted in at
+@ the top (`lsl r3, #8`), then eight iterations testing bit 15 and shifting
+@ left. The polynomial subtraction is spelled as an ADD of 0xFFFFEFDF, which is
+@ -0x1021 in two's complement -- so the constant to recognise here is 0x1021,
+@ the CCITT polynomial, not the literal in the source.
 .thumb_func_start OvlFunc_880_20092c8
 	push	{r5, r6, r7, lr}
 	mov	r4, r0

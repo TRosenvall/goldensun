@@ -1,5 +1,14 @@
 	.include "macros.inc"
 
+@ 73 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, PlaySound, ResumeTileAnimationChannel x2, BeginCutscene
+@   DialogueWait, SetSlotEntitySpeed, SetSlotAnimation, MoveSlotBy
+@   WalkSlotThroughDoorway, DialogueWait, SetPendingMessageId, EndCutscene
+@   PauseTileAnimationChannel x2
+@ reads save bit 0x200.
 .thumb_func_start OvlFunc_909_2008338
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc

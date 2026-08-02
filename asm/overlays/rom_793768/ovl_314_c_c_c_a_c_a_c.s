@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ 39 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, PlaySound, PlayMapRectAnimation, CopyMapRectAttributes
+@   OvlFunc_ef4
 .thumb_func_start OvlFunc_898_2008fb4
 	push	{r5, r6, lr}
 	mov	r0, #0
@@ -42,6 +48,12 @@
 	bx	r0
 .func_end OvlFunc_898_2008fb4
 
+@ 39 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, PlaySound, PlayMapRectAnimation, CopyMapRectAttributes
+@   OvlFunc_ef4
 .thumb_func_start OvlFunc_898_2009010
 	push	{r5, r6, lr}
 	mov	r0, #0
@@ -84,6 +96,11 @@
 	bx	r0
 .func_end OvlFunc_898_2009010
 
+@ 13 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, PlayMapRectAnimation, OvlFunc_ef4
 .thumb_func_start OvlFunc_898_200906c
 	push	{lr}
 	mov	r0, #0x9e
@@ -100,6 +117,12 @@
 	bx	r0
 .func_end OvlFunc_898_200906c
 
+@ 75 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, PlaySound, CopyMapRectIndicesU x2, DialogueWait
+@   CopyMapRectIndicesU x2, DialogueWait, CopyMapRectAttributes, OvlFunc_ef4
 .thumb_func_start OvlFunc_898_2009090
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -178,6 +201,12 @@
 	bx	r0
 .func_end OvlFunc_898_2009090
 
+@ 38 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, PlaySound, PlayMapRectAnimation, CopyMapRectAttributes
+@   OvlFunc_ef4
 .thumb_func_start OvlFunc_898_200913c
 	push	{r5, r6, lr}
 	mov	r0, #0

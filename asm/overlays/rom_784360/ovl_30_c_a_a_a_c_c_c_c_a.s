@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ 44 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, CopyMapRectIndicesU, WaitFrames, CopyMapRectIndicesU
+@   WaitFrames, WalkSlotToAndWait, SetSlotDrawPriority, WalkSlotToAndWait
+@   OvlFunc_714
 .thumb_func_start OvlFunc_884_2008780
 	push	{r5, lr}
 	mov	r0, #0xbc

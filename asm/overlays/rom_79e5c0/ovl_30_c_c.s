@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 81 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, SetEntityScript
 .thumb_func_start OvlFunc_911_200a6cc
 	push	{r5, lr}
 	ldr	r3, =.L369c
@@ -91,6 +96,12 @@
 	bx	r1
 .func_end OvlFunc_911_200a6cc
 
+@ 147 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, PlaySound, Random x3, SetEntityAnimation
+@   SetEntityScript
 .thumb_func_start OvlFunc_911_200a7ac
 	push	{r5, r6, r7, lr}
 	ldr	r2, =.L3694
@@ -254,6 +265,14 @@
 	bx	r0
 .func_end OvlFunc_911_200a7ac
 
+@ 55 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, PlaceSlotAt, CopyMapRectAttributes, UpdateMapView
+@   WaitFrames, PlaceSlotAt, TestSaveBit, CopyMapRectIndicesU
+@   CopyMapRectAttributes, UpdateMapView, WaitFrames
+@ reads save bits 0x845, 0x847.
 .thumb_func_start OvlFunc_911_200a910
 	push	{lr}
 	ldr	r0, =0x845

@@ -1,6 +1,16 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ShiftPlayerAndRider
+@ r0 = x delta, r1 = z delta, both in whole tiles (shifted left 20 to reach the
+@ 16.16 position fields).
+@
+@ Moves TWO entities together: the one whose slot is stored at ewram_240+0x1F4,
+@ and whatever is parked at [iwram_1ebc]+0x1E0. For each, it adds the deltas to
+@ +0x08 and +0x10 and then re-derives the ground height with Func_11f54 --
+@ using the entity's own tile-type byte at +0x22 to pick the layer -- writing
+@ the result to BOTH +0x0C and +0x14 so the entity lands rather than floats.
+@ Either entity may be absent, and each is checked for null separately.
 .thumb_func_start OvlFunc_919_200805c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

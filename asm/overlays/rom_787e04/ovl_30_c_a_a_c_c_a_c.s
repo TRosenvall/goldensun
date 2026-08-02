@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Cutscene: roughly 60 instructions of straight-line script --
+@ 0 turns, 1 animation change, 2 dialogue lines, 4 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xf5b.
 .thumb_func_start OvlFunc_887_20081e0
 	push	{lr}
 	bl	__CutsceneStart

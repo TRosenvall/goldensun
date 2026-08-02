@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ 100 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_3184, CheckTerrainStep, SetEntityAnimation
+@   WaitFrames, PlaySound, SetEntityMoveTarget x2, WaitForEntityIdle
+@   StopLoopingSound, SetEntityAnimation, OvlFunc_32a4
 .thumb_func_start OvlFunc_936_200b1b8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -104,6 +111,16 @@
 	bx	r0
 .func_end OvlFunc_936_200b1b8
 
+@ 470 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, TestSaveBit, GetSlotEntityChecked, BeginCutscene
+@   CopyMapRectAttributes, CopyMapRectIndicesU, DialogueWait, SetSaveBit
+@   CopyMapRectIndicesU, DialogueWait, PlaceSlotAt, SetSlotScriptWithTurn
+@   CopyMapRectIndicesU x11, DialogueWait
+@   ... and 24 more
+@ reads save bits 0x302, 0x303; sets 0x302, 0x303.
 .thumb_func_start OvlFunc_936_200b2a4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -590,6 +607,11 @@
 	bx	r0
 .func_end OvlFunc_936_200b2a4
 
+@ 54 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   DestroyEntity
 .thumb_func_start OvlFunc_936_200b6f8
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -652,6 +674,14 @@
 	bx	r0
 .func_end OvlFunc_936_200b6f8
 
+@ 94 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x3, TestSaveBit x2, StartLoopingSound, PlaySound
+@   SetSaveBit, OvlFunc_3864, TestSaveBit x2, StartLoopingSound
+@   PlaySound, SetSaveBit, OvlFunc_3864
+@ reads save bits 0x202, 0x203, 0x302, 0x303; sets 0x202, 0x203.
 .thumb_func_start OvlFunc_936_200b768
 	push	{r5, r6, lr}
 	mov	r0, #8
@@ -754,6 +784,12 @@
 	bx	r0
 .func_end OvlFunc_936_200b768
 
+@ 72 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random, SpawnEntity, SetActorPartsPalette, SetEntityActorOptions
+@   Random x2, SetEntityAnimation, SetEntityScript
 .thumb_func_start OvlFunc_936_200b864
 	push	{r5, r6, lr}
 	mov	r6, r8

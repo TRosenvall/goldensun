@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 116 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetEntityAnimation, OvlFunc_3cc, Atan2, SetEntityAnimation x3
 .thumb_func_start OvlFunc_928_2008408
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -126,6 +131,11 @@
 	bx	r1
 .func_end OvlFunc_928_2008408
 
+@ 71 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_408
 .thumb_func_start OvlFunc_928_2008500
 	push	{r5, r6, lr}
 	mov	r5, r0

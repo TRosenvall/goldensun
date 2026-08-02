@@ -1,6 +1,16 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 57 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, SetSaveBit, BeginCutscene, SetCameraSpeed
+@   CenterCameraOnSlot, WaitForCameraArrival, TurnSlotToAngle, RunSlotEffectSequence
+@   SetFollowerFormationAndRefresh, DialogueWait, SetSlotEntitySpeed, PlaySound
+@   GetSlotEntityChecked, WalkSlotToAndWait
+@   ... and 2 more
+@ reads save bit 0x9c8; sets 0x9c8.
 .thumb_func_start OvlFunc_948_2008ad0
 	push	{lr}
 	ldr	r0, =0x9c8
@@ -62,6 +72,11 @@
 	bx	r0
 .func_end OvlFunc_948_2008ad0
 
+@ Cutscene: roughly 136 instructions of straight-line script --
+@ 2 turns, 0 animation changes, 0 dialogue lines, 5 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x9c8, 0x9c9.
+@ Sets save bit 0x9c9.
 .thumb_func_start OvlFunc_948_2008b68
 	push	{r5, r6, lr}
 	ldr	r0, =0x9c8
@@ -204,6 +219,11 @@
 	bx	r0
 .func_end OvlFunc_948_2008b68
 
+@ Cutscene: roughly 147 instructions of straight-line script --
+@ 2 turns, 0 animation changes, 0 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x9c9, 0x9ca.
+@ Sets save bit 0x9ca.
 .thumb_func_start OvlFunc_948_2008ccc
 	push	{r5, lr}
 	ldr	r0, =0x9c9

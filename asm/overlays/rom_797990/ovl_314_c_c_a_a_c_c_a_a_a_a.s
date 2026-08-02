@@ -1,5 +1,14 @@
 	.include "macros.inc"
 
+@ 68 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, SetActiveMessageId, SetSlotAnimation
+@   TurnSlotsToFaceEachOther, TestSaveBit, PlayInteractionEffect, ShowMessageAndPause x2
+@   SetSaveBit, SetActiveMessageId, ShowMessageAndPause, WaitFrames
+@   EndCutscene, SetSaveBit
+@ message id 0x1cb1; reads save bit 0x300; sets 0x300, 0x307.
 .thumb_func_start OvlFunc_901_200858c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -76,6 +85,13 @@
 	bx	r0
 .func_end OvlFunc_901_200858c
 
+@ 46 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, SetActiveMessageId, SetSlotAnimation
+@   TurnSlotsToFaceEachOther, ShowMessageAndPause, WaitFrames, EndCutscene
+@ message id 0x1cb4.
 .thumb_func_start OvlFunc_901_2008640
 	push	{r5, r6, lr}
 	mov	r6, r10

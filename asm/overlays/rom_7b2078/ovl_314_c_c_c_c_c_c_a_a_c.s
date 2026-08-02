@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 278 instructions of straight-line script --
+@ 0 turns, 11 animation changes, 12 dialogue lines, 21 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x17be, 0x17c8, 0x17c9, 0x17e0.
+@ Sets save bit 0x893.
 .thumb_func_start OvlFunc_926_200a7ec
 	push	{r5, lr}
 	bl	__CutsceneStart
@@ -287,6 +292,11 @@
 	bx	r0
 .func_end OvlFunc_926_200a7ec
 
+@ Cutscene: roughly 1939 instructions of straight-line script --
+@ 85 turns, 59 animation changes, 91 dialogue lines, 99 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1969.
+@ Sets save bit 0x895.
 .thumb_func_start OvlFunc_926_200aad0
 	push	{lr}
 	bl	__CutsceneStart
@@ -2246,6 +2256,10 @@
 	bx	r0
 .func_end OvlFunc_926_200aad0
 
+@ Cutscene: roughly 251 instructions of straight-line script --
+@ 1 turn, 4 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x88f, 0x892, 0x893.
 .thumb_func_start OvlFunc_926_200be58
 	push	{r5, lr}
 	ldr	r5, =gState

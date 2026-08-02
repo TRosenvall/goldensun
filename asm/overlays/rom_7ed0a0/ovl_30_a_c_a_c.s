@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 19 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_cd0
 .thumb_func_start OvlFunc_964_20093b4
 	push	{lr}
 	mov	r0, #0
@@ -22,6 +27,12 @@
 	bx	r0
 .func_end OvlFunc_964_20093b4
 
+@ 27 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, CopyMapRectAttributes x2, OvlFunc_c4, OvlFunc_2480
+@   EndCutscene
 .thumb_func_start OvlFunc_964_20093e0
 	push	{r5, lr}
 	sub	sp, #8

@@ -1,5 +1,7 @@
 	.include "macros.inc"
 
+@ Talk: lines 0x1241, 0x134e, 0x13ab, shown.
+@ Which line is chosen by save bits 0x855, 0x858.
 .thumb_func_start OvlFunc_898_2008e0c
 	push	{r5, lr}
 	mov	r0, #0x13

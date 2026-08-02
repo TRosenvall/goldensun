@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Adjusts slot 0x10 directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers.
 .thumb_func_start OvlFunc_935_2008704
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

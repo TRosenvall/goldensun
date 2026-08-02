@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Slot 3: the read after slot 4.
+@ Chooses among .L1ba4, .L1acc, .L19c4, .L18ec, .L1dcc, .L1d24, .L1c7c, .L18d4
+@ on save bits 0x93e, 0x950 and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
 .thumb_func_start OvlFunc_942_20080a0
 	push	{lr}
 	ldr	r3, =gState
@@ -62,6 +65,13 @@
 	bx	r1
 .func_end OvlFunc_942_20080a0
 
+@ 30 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetSaveBit, WalkSlotToAndWait, SetSlotEntitySpeed
+@   WalkSlotToAndWait, TurnSlotToAngle, DialogueWait, EndCutscene
+@ sets 0x8aa.
 .thumb_func_start OvlFunc_942_2008144
 	push	{lr}
 	bl	__CutsceneStart
@@ -95,6 +105,9 @@
 	bx	r0
 .func_end OvlFunc_942_2008144
 
+@ Slot 4: the map object table.
+@ Chooses among .L1fa0, .L1e80, .L2120, .L2018, .L2390, .L230c, .L224c, .L1e74
+@ on save bits 0x93e, 0x950 and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
 .thumb_func_start OvlFunc_942_200819c
 	push	{lr}
 	ldr	r3, =gState

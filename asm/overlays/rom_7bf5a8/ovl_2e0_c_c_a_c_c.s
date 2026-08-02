@@ -1,6 +1,15 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 131 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetMapTransition x2, PlaySound, Random
+@   OvlFunc_common2_304 x2, OvlFunc_common2_254, OvlFunc_common2_28c x2, OvlFunc_common2_380
+@   DialogueWait, ReserveObjTiles, DialogueWait, SignedRem
+@   CopyMapRectFull, PlaySound
+@   ... and 3 more
 .thumb_func_start OvlFunc_935_2008754
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -141,6 +150,15 @@
 	bx	r0
 .func_end OvlFunc_935_2008754
 
+@ 59 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, RunTextBoxModal, SetSaveBit, PlaySound
+@   CopyMapRectFull, DialogueWait, CopyMapRectFull, DialogueWait
+@   PlaySound, CopyMapRectFull, DialogueWait, CopyMapRectFull
+@   DialogueWait, OvlFunc_754
+@ reads save bit 0x9a8; sets 0x9a8.
 .thumb_func_start OvlFunc_935_20088a8
 	push	{r5, r6, lr}
 	ldr	r0, =0x9a8
@@ -204,6 +222,9 @@
 	bx	r0
 .func_end OvlFunc_935_20088a8
 
+@ Adjusts slot 0xb directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x8, +0xc, +0x10, +0x28, +0x48.
 .thumb_func_start OvlFunc_935_2008944
 	push	{r5, r6, r7, lr}
 	bl	__MapActor_GetActor
@@ -269,6 +290,14 @@
 	bx	r1
 .func_end OvlFunc_935_2008944
 
+@ 87 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x3, OvlFunc_b8c, PlaySound, OvlFunc_944
+@   SetSlotAnimation, TestSaveBit, SetSaveBit, PlaySound x2
+@   OvlFunc_944, PlaySound
+@ reads save bit 0x207; sets 0x207.
 .thumb_func_start OvlFunc_935_20089c0
 	push	{r5, r6, r7, lr}
 	mov	r0, #0xa
@@ -366,6 +395,12 @@
 	bx	r0
 .func_end OvlFunc_935_20089c0
 
+@ 72 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, Random, UnsignedRem, GetSlotEntityChecked x2
+@   TestSaveBit, PlaySound x2
 .thumb_func_start OvlFunc_935_2008aa0
 	push	{r5, r6, r7, lr}
 	mov	r0, #0xa

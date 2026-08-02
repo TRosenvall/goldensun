@@ -1,5 +1,6 @@
 	.include "macros.inc"
 
+@ Slot 3: read after slot 4.
 .thumb_func_start OvlFunc_906_2008350
 	push	{lr}
 	ldr	r3, =gState

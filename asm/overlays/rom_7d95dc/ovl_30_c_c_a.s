@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Slot 3: the read after slot 4.
+@ Chooses among .Lac, .L339c, .L35f4, .L37bc, .L387c, .L399c, .L375c, .L3e1c, .L3bdc, .L3a44, .L3324
+@ on save bits 0x950, 0x962 and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
 .thumb_func_start OvlFunc_953_200807c
 	push	{lr}
 	ldr	r1, =gState
@@ -141,6 +144,9 @@
 	bx	r1
 .func_end OvlFunc_953_200807c
 
+@ Leaf helper, 34 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_953_2008238
 	push	{lr}
 	ldr	r1, =gState

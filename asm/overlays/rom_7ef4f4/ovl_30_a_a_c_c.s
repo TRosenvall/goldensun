@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 44 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv
 .thumb_func_start OvlFunc_965_2008cf0
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -48,6 +53,9 @@
 	bx	r0
 .func_end OvlFunc_965_2008cf0
 
+@ Cutscene: roughly 137 instructions of straight-line script --
+@ 0 turns, 1 animation change, 0 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_965_2008d4c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -189,6 +197,9 @@
 	bx	r0
 .func_end OvlFunc_965_2008d4c
 
+@ Cutscene: roughly 63 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_965_2008eac
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -255,6 +266,9 @@
 	bx	r0
 .func_end OvlFunc_965_2008eac
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_965_2008f58
 	push	{lr}
 	ldr	r3, =gState
@@ -287,6 +301,9 @@
 	bx	r1
 .func_end OvlFunc_965_2008f58
 
+@ Leaf helper, 14 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_965_2008fac
 	push	{lr}
 	ldr	r3, =gState

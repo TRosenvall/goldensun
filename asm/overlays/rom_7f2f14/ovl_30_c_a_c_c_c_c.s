@@ -1,6 +1,16 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 248 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, TestSaveBit, BeginCutscene, PlaySound
+@   SetSaveBit, CopyMapRectIndicesU, DialogueWait, PlaySound
+@   SetMapTransition, DialogueWait, Random x3, OvlFunc_118
+@   CopyMapRectIndicesU x2, WaitFrames
+@   ... and 6 more
+@ reads save bit 0x300; sets 0x300.
 .thumb_func_start OvlFunc_968_2009af0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -262,6 +272,11 @@
 	bx	r0
 .func_end OvlFunc_968_2009af0
 
+@ Cutscene: roughly 200 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bit 0x301.
+@ Sets save bit 0x301.
 .thumb_func_start OvlFunc_968_2009d48
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -472,6 +487,12 @@
 	bx	r0
 .func_end OvlFunc_968_2009d48
 
+@ 21 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_cc8, CopyMapRectAttributes, OvlFunc_374
+@   EndCutscene, OvlFunc_1d48
 .thumb_func_start OvlFunc_968_2009f28
 	push	{lr}
 	sub	sp, #8
@@ -497,6 +518,11 @@
 	bx	r0
 .func_end OvlFunc_968_2009f28
 
+@ Cutscene: roughly 335 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bit 0x304.
+@ Sets save bits 0x302, 0x303, 0x304.
 .thumb_func_start OvlFunc_968_2009f60
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -857,6 +883,12 @@
 	bx	r0
 .func_end OvlFunc_968_2009f60
 
+@ 21 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_cc8, CopyMapRectAttributes, OvlFunc_374
+@   EndCutscene, OvlFunc_1f60
 .thumb_func_start OvlFunc_968_200a26c
 	push	{lr}
 	sub	sp, #8

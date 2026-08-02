@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ 31 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, SetSaveBit, OvlFunc_17a8, OvlFunc_17e4
+@ reads save bit 0x109; sets 0x144.
 .thumb_func_start OvlFunc_922_2009750
 	push	{lr}
 	ldr	r3, =iwram_3001ebc

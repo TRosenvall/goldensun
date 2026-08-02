@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ 62 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked, PlaySound, PlayMapRectAnimation
+@   SetSlotEntitySpeed, GetSlotEntityChecked, SetSlotAnimation, WalkSlotThroughDoorway
+@   DialogueWait, SetPendingMessageId, HideScreenOverlay, WaitSceneDelay
+@   EndCutscene
 .thumb_func_start OvlFunc_936_2008464
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ebc
@@ -67,6 +75,15 @@
 	bx	r0
 .func_end OvlFunc_936_2008464
 
+@ 54 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, PlaySound, CopyMapRectIndicesU, WaitFrames
+@   CopyMapRectIndicesU, WaitFrames, SetSlotEntitySpeed, GetSlotEntityChecked
+@   SetSlotAnimation, MoveSlotBy, DialogueWait, SetPendingMessageId
+@   HideScreenOverlay, WaitSceneDelay
+@   ... and 1 more
 .thumb_func_start OvlFunc_936_2008504
 	push	{r5, lr}
 	sub	sp, #8
@@ -124,6 +141,12 @@
 	bx	r0
 .func_end OvlFunc_936_2008504
 
+@ Cutscene: roughly 1528 instructions of straight-line script --
+@ 70 turns, 28 animation changes, 34 dialogue lines, 16 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x1a92, 0x1a9e, 0x1aa2, 0x1ab2.
+@ Reads save bits 0x910, 0x911.
+@ Sets save bit 0x911.
 .thumb_func_start OvlFunc_936_2008590
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1678,6 +1701,12 @@
 	bx	r0
 .func_end OvlFunc_936_2008590
 
+@ 15 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, ClearSaveBit
+@ reads save bit 0x200; clears 0x200.
 .thumb_func_start OvlFunc_936_200958c
 	push	{lr}
 	mov	r0, #0x80
@@ -1697,6 +1726,12 @@
 	bx	r0
 .func_end OvlFunc_936_200958c
 
+@ 17 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, GetSlotEntityChecked, SetSaveBit
+@ reads save bit 0x200; sets 0x200.
 .thumb_func_start OvlFunc_936_20095b4
 	push	{r5, lr}
 	mov	r0, #0x80
@@ -1718,6 +1753,9 @@
 	bx	r0
 .func_end OvlFunc_936_20095b4
 
+@ Adjusts slot 0 (the player) directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers.
 .thumb_func_start OvlFunc_936_20095e0
 	push	{lr}
 	mov	r0, #0

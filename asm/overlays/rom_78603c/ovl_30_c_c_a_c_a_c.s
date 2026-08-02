@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 666 instructions of straight-line script --
+@ 30 turns, 22 animation changes, 20 dialogue lines, 8 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0xf85, 0xf91, 0xf98.
+@ Reads save bit 0x808.
+@ Sets save bit 0x808.
 .thumb_func_start OvlFunc_885_2008be0
 	push	{r5, r6, r7, lr}
 	ldr	r0, =0x808
@@ -680,6 +686,12 @@
 	bx	r0
 .func_end OvlFunc_885_2008be0
 
+@ Cutscene: roughly 234 instructions of straight-line script --
+@ 7 turns, 6 animation changes, 7 dialogue lines, 7 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xf9f.
+@ Reads save bit 0x800.
+@ Sets save bit 0x800.
 .thumb_func_start OvlFunc_885_20092a0
 	push	{r5, r6, lr}
 	mov	r0, #0x80
@@ -921,6 +933,10 @@
 	bx	r0
 .func_end OvlFunc_885_20092a0
 
+@ Cutscene: roughly 226 instructions of straight-line script --
+@ 0 turns, 1 animation change, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x801, 0x808, 0x834.
 .thumb_func_start OvlFunc_885_200950c
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -1160,6 +1176,12 @@
 	bx	r1
 .func_end OvlFunc_885_200950c
 
+@ Cutscene: roughly 205 instructions of straight-line script --
+@ 4 turns, 6 animation changes, 6 dialogue lines, 4 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0xe85, 0xe8b.
+@ Reads save bits 0x82f, 0x839.
+@ Sets save bits 0x82f, 0x839.
 .thumb_func_start OvlFunc_885_2009760
 	push	{r5, lr}
 	ldr	r0, =0x839

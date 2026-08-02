@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Leaf helper, 24 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x4c.
 .thumb_func_start OvlFunc_945_20080fc
 	push	{lr}
 	ldr	r3, [r0, #0x4c]
@@ -31,6 +34,13 @@
 	bx	r1
 .func_end OvlFunc_945_20080fc
 
+@ 129 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetEntityAnimation, SetEntityMoveTarget, OvlFunc_fc
+@   SetEntityAnimation x3, SetEntityMoveTarget, OvlFunc_fc, SetEntityAnimation
+@   OvlFunc_d8
 .thumb_func_start OvlFunc_945_200812c
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -198,6 +208,11 @@
 	bx	r0
 .func_end OvlFunc_945_200812c
 
+@ 49 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetEntityAnimation
 .thumb_func_start OvlFunc_945_2008284
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -258,6 +273,11 @@
 	bx	r0
 .func_end OvlFunc_945_2008284
 
+@ 36 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetEntityActorOptions, SetActorPartsPalette
 .thumb_func_start OvlFunc_945_20082f4
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -297,6 +317,9 @@
 	bx	r1
 .func_end OvlFunc_945_20082f4
 
+@ Leaf helper, 15 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_945_2008340
 	push	{lr}
 	ldr	r3, =gState

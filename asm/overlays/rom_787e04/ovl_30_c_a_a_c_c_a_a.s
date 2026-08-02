@@ -1,6 +1,7 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Talk: line 0x22b9, shown.
 .thumb_func_start OvlFunc_887_2008118
 	push	{r5, r6, lr}
 	ldr	r5, =0x22b9

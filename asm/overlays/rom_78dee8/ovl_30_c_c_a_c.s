@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ RevealPassageB
+@ Takes no arguments. The passage-B reveal, gated on 0xF02 set and 0x821 clear.
+@ Structurally the same scene as OvlFunc_258 with a different rectangle and
+@ different line ids; see there for the step-by-step.
 .thumb_func_start OvlFunc_895_2008420
 	push	{r5, r6, lr}
 	ldr	r0, =0xf02
@@ -130,6 +134,14 @@
 	bx	r0
 .func_end OvlFunc_895_2008420
 
+@ TrackBlock9West
+@ Takes no arguments. Records where the block in slot 9 is resting, as a pair of
+@ save bits, so the puzzle survives a save and reload.
+@
+@ Both bits 0x302 and 0x303 are cleared first, then exactly one is set from the
+@ block's tile x (its +0x08 taken down with `asr #20`): x 0x5D sets 0x303,
+@ x 0x5F sets 0x302, and any position between them leaves both clear. Slots 9
+@ and 0xA are the two-block arrangement, used when the entrance id is 0x0B..0x0D.
 .thumb_func_start OvlFunc_895_200856c
 	push	{r5, lr}
 	mov	r0, #9
@@ -158,6 +170,10 @@
 	bx	r0
 .func_end OvlFunc_895_200856c
 
+@ TrackBlockAWest
+@ Takes no arguments. The slot-0xA partner of OvlFunc_56c: bits 0x300 / 0x301,
+@ set from tile x 0x73 / 0x71 respectively. Note the sense is inverted relative
+@ to slot 9 -- here the HIGHER x sets the LOWER-numbered bit.
 .thumb_func_start OvlFunc_895_20085ac
 	push	{r5, lr}
 	mov	r0, #0xa
@@ -188,6 +204,11 @@
 	bx	r0
 .func_end OvlFunc_895_20085ac
 
+@ TrackBlock9East
+@ Takes no arguments. First of the six-block arrangement used when the entrance
+@ id is 0x0E..0x10. Slot 9, bits 0x310 / 0x311, tile x 0x65 / 0x63.
+@ Unlike the two-block pair above, each of these six ends by calling
+@ OvlFunc_17c0(0) to re-test whether the whole puzzle is now solved.
 .thumb_func_start OvlFunc_895_20085ec
 	push	{r5, lr}
 	mov	r0, #9
@@ -221,6 +242,8 @@
 	bx	r0
 .func_end OvlFunc_895_20085ec
 
+@ TrackBlockAEast
+@ Slot 0xA, bits 0x312 / 0x313, tile x 0x69 / 0x67. See OvlFunc_5ec.
 .thumb_func_start OvlFunc_895_2008634
 	push	{r5, lr}
 	mov	r0, #0xa
@@ -252,6 +275,8 @@
 	bx	r0
 .func_end OvlFunc_895_2008634
 
+@ TrackBlockBEast
+@ Slot 0xB, bits 0x314 / 0x315, tile x 0x6D / 0x6B. See OvlFunc_5ec.
 .thumb_func_start OvlFunc_895_200867c
 	push	{r5, lr}
 	mov	r0, #0xb
@@ -285,6 +310,8 @@
 	bx	r0
 .func_end OvlFunc_895_200867c
 
+@ TrackBlockCEast
+@ Slot 0xC, bits 0x316 / 0x317, tile x 0x71 / 0x6F. See OvlFunc_5ec.
 .thumb_func_start OvlFunc_895_20086c4
 	push	{r5, lr}
 	mov	r0, #0xc
@@ -316,6 +343,8 @@
 	bx	r0
 .func_end OvlFunc_895_20086c4
 
+@ TrackBlockDEast
+@ Slot 0xD, bits 0x318 / 0x319, tile x 0x75 / 0x73. See OvlFunc_5ec.
 .thumb_func_start OvlFunc_895_200870c
 	push	{r5, lr}
 	mov	r0, #0xd
@@ -349,6 +378,10 @@
 	bx	r0
 .func_end OvlFunc_895_200870c
 
+@ TrackBlockEEast
+@ Slot 0xE, bits 0x31A / 0x31B, tile x 0x79 / 0x77. See OvlFunc_5ec.
+@ The six blocks sit on a regular grid: consecutive slots are 4 tiles apart and
+@ each owns the next pair of save bits, so slot N uses 0x310 + (N-9)*2.
 .thumb_func_start OvlFunc_895_2008754
 	push	{r5, lr}
 	mov	r0, #0xe

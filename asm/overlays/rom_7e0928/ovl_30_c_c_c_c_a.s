@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Cutscene: roughly 599 instructions of straight-line script --
+@ 0 turns, 4 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x360, 0x361, 0x362.
+@ Sets save bits 0x144, 0x950, 0x951.
 .thumb_func_start OvlFunc_956_2008da4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -638,6 +643,9 @@
 	bx	r1
 .func_end OvlFunc_956_2008da4
 
+@ Leaf helper, 31 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x8, +0xc, +0x18, +0x1c.
 .thumb_func_start OvlFunc_956_200937c
 	mov	r1, r0
 	add	r1, #0x64
@@ -672,6 +680,12 @@
 	bx	lr
 .func_end OvlFunc_956_200937c
 
+@ 75 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SignedRem, GetSlotEntityChecked x2, PlaceSlotAt
+@   GetSlotEntityChecked, SetEntityActorOptions, SetSlotScriptWithTurn
 .thumb_func_start OvlFunc_956_20093c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -756,6 +770,10 @@
 	bx	r0
 .func_end OvlFunc_956_20093c0
 
+@ Cutscene: roughly 533 instructions of straight-line script --
+@ 3 turns, 10 animation changes, 10 dialogue lines, 32 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x20f1, 0x214c.
 .thumb_func_start OvlFunc_956_2009474
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -1298,6 +1316,10 @@
 	bx	r0
 .func_end OvlFunc_956_2009474
 
+@ Cutscene: roughly 207 instructions of straight-line script --
+@ 1 turn, 8 animation changes, 4 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x20ed.
 .thumb_func_start OvlFunc_956_2009a0c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1511,6 +1533,10 @@
 	bx	r0
 .func_end OvlFunc_956_2009a0c
 
+@ Cutscene: roughly 182 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 5 dialogue lines, 8 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x20b1, 0x20b2.
 .thumb_func_start OvlFunc_956_2009c20
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1701,6 +1727,10 @@
 	bx	r0
 .func_end OvlFunc_956_2009c20
 
+@ Cutscene: roughly 158 instructions of straight-line script --
+@ 3 turns, 0 animation changes, 4 dialogue lines, 5 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x20b6, 0x20b7.
 .thumb_func_start OvlFunc_956_2009df8
 	push	{r5, r6, r7, lr}
 	ldr	r3, =gState
@@ -1867,6 +1897,10 @@
 	bx	r0
 .func_end OvlFunc_956_2009df8
 
+@ Cutscene: roughly 136 instructions of straight-line script --
+@ 2 turns, 0 animation changes, 4 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x20ba, 0x20bb.
 .thumb_func_start OvlFunc_956_2009f90
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -2012,6 +2046,10 @@
 	bx	r0
 .func_end OvlFunc_956_2009f90
 
+@ Cutscene: roughly 187 instructions of straight-line script --
+@ 1 turn, 5 animation changes, 4 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x20be, 0x20bf.
 .thumb_func_start OvlFunc_956_200a0f0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

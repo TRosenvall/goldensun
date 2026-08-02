@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 588 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunTextBoxModal, FindUsableItem x191, BuildCharacterSummary x4
 .thumb_func_start OvlFunc_974_200829c
 	push	{lr}
 	ldr	r0, =0xc1e
@@ -596,6 +601,13 @@
 	bx	r0
 .func_end OvlFunc_974_200829c
 
+@ 232 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunTextBoxModal, GetStatusSlot x7, AddStatusEntry x7, GetStatusSlot x7
+@   AddStatusEntry x7, GetStatusSlot x7, AddStatusEntry x7, GetStatusSlot x6
+@   AddStatusEntry x6, BuildCharacterSummary x4
 .thumb_func_start OvlFunc_974_20088c4
 	push	{lr}
 	ldr	r0, =0xc1d
@@ -831,6 +843,12 @@
 	bx	r0
 .func_end OvlFunc_974_20088c4
 
+@ 64 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunTextBoxModal, ChangeHp x4, ChangePp x4, GetCombatantRecord x2
+@   BuildCharacterSummary x4
 .thumb_func_start OvlFunc_974_2008b10
 	push	{r5, r6, lr}
 	ldr	r0, =0xc1b
@@ -898,6 +916,11 @@
 	bx	r0
 .func_end OvlFunc_974_2008b10
 
+@ 116 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunTextBoxModal, FindUsableItem x34, BuildCharacterSummary x4
 .thumb_func_start OvlFunc_974_2008bb8
 	push	{lr}
 	ldr	r0, =0xc1f
@@ -1017,6 +1040,15 @@
 	bx	r0
 .func_end OvlFunc_974_2008bb8
 
+@ 206 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, OpenWindow x2, WaitFrames, SignedRem
+@   ReleaseWindowTiles, ReleaseWindowNodes, DrawTextScratchEntry, DrawNumberWide
+@   CountPartyInventory, DrawTextScratchEntry, GetAbilityRecord, DrawStringToBuffer
+@   DrawStringAt, ReleaseWindowTiles
+@   ... and 8 more
 .thumb_func_start OvlFunc_974_2008cf4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

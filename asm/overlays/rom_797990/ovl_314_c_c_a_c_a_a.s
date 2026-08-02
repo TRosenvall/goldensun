@@ -1,5 +1,15 @@
 	.include "macros.inc"
 
+@ 60 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   FindAndConsumeWithNotify, BeginCutscene, DialogueWait, SetFollowerFormationAndRefresh
+@   SetSlotEntitySpeed, WalkSlotToAndWait, DialogueWait, TurnSlotToAngle
+@   SetSlotFacingAndScript, DialogueWait, SetSlotFacingAndScript, DialogueWait
+@   SetSlotFacingAndScript, DialogueWait
+@   ... and 5 more
+@ sets 0x858.
 .thumb_func_start OvlFunc_901_2008d84
 	push	{lr}
 	mov	r0, #0xe7
@@ -63,6 +73,7 @@
 	bx	r0
 .func_end OvlFunc_901_2008d84
 
+@ Map edit: 1 metatile copy and 1 attribute copy.
 .thumb_func_start OvlFunc_901_2008e30
 	push	{lr}
 	sub	sp, #8
@@ -88,6 +99,7 @@
 	bx	r0
 .func_end OvlFunc_901_2008e30
 
+@ Map edit: 1 metatile copy and 1 attribute copy.
 .thumb_func_start OvlFunc_901_2008e60
 	push	{lr}
 	sub	sp, #8

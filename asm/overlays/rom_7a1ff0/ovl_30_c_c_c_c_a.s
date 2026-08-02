@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_b8c, OvlFunc_b24, OvlFunc_bcc, OvlFunc_bac
+@   StartFadeOut
 .thumb_func_start OvlFunc_914_2008abc
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
@@ -49,6 +55,11 @@
 	bx	r0
 .func_end OvlFunc_914_2008abc
 
+@ 47 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv x3
 .thumb_func_start OvlFunc_914_2008b24
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

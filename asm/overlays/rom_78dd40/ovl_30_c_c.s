@@ -1,5 +1,15 @@
 	.include "macros.inc"
 
+@ Map-load entry.
+@
+@ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x204 and the message delay at +0x1C8 to 0x10.
+@
+@ Then the arrival fix-up shared by several overlays in this group: if save bit
+@ 0x814 is set the player is still riding, so Func_91ff0 starts looping sound
+@ 0x8D, .gcc2_compiled. resets the map transition to 0x10000 on all three axes, and
+@ StartEarthquake dismounts -- restoring the walking sprite at the dismount tile.
+@ Without this the player would arrive still mounted and the room's collision
+@ would be wrong for them.
 .thumb_func_start OvlFunc_893_2008054
 	push	{lr}
 	ldr	r3, =iwram_3001ebc

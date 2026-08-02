@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 67 instructions of straight-line script --
+@ 1 turn, 2 animation changes, 3 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x1d30, 0x1dcd, 0x1e06, 0x1eb2.
+@ Reads save bits 0x921, 0x924, 0x925, 0x928.
 .thumb_func_start OvlFunc_945_2008728
 	push	{lr}
 	bl	__CutsceneStart
@@ -74,6 +79,16 @@
 	bx	r0
 .func_end OvlFunc_945_2008728
 
+@ 62 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, TestSaveBit, SetFollowerFormationScript, SetActiveMessageId
+@   OvlFunc_486c, FaceEntityInstant, OpenMessageBoxForSlot, RunFieldAbilityPrompt
+@   DialogueWait, OvlFunc_486c, OvlFunc_4880, ShowMessageAndWait x2
+@   TurnSlotToAngle, SetActiveMessageId
+@   ... and 2 more
+@ message ids 0x1d4e, 0x1e13; reads save bit 0x925.
 .thumb_func_start OvlFunc_945_20087f8
 	push	{lr}
 	bl	__CutsceneStart

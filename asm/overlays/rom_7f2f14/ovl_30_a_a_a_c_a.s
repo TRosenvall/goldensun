@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 29 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, OvlFunc_30, SetEntityActorPriority
 .thumb_func_start OvlFunc_968_2008058
 	push	{r5, r6, lr}
 	mov	r4, r0
@@ -35,6 +40,11 @@
 	bx	r1
 .func_end OvlFunc_968_2008058
 
+@ 34 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, OvlFunc_30
 .thumb_func_start OvlFunc_968_2008098
 	push	{r5, r6, lr}
 	mov	r4, r0
@@ -74,6 +84,9 @@
 	bx	r1
 .func_end OvlFunc_968_2008098
 
+@ Leaf helper, 27 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x8, +0xc, +0x10, +0x18, +0x1c, +0x1e.
 .thumb_func_start OvlFunc_968_20080e0
 	ldr	r3, [r0, #8]
 	ldr	r2, [r0, #0x44]
@@ -104,6 +117,12 @@
 	bx	lr
 .func_end OvlFunc_968_20080e0
 
+@ 220 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SpawnEntity, SetEntityAnimation, SetEntityScript
+@   SetActorPartsPalette, SignedDiv x3, SetEntityAnimation, SetEntityScript
 .thumb_func_start OvlFunc_968_2008118
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

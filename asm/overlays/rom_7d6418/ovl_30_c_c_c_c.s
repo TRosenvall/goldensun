@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Cutscene: roughly 947 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_951_2008e5c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1039,6 +1042,12 @@
 	bx	r0
 .func_end OvlFunc_951_2008e5c
 
+@ 53 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetEntityAnimation, GetSlotEntityChecked, SetEntityAnimation
+@   RegisterTask
 .thumb_func_start OvlFunc_951_20096a8
 	push	{r5, r6, r7, lr}
 	ldr	r0, =.L2070
@@ -1096,6 +1105,14 @@
 	bx	r0
 .func_end OvlFunc_951_20096a8
 
+@ 104 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, SetSlotAnimation, GetSlotEntityChecked, SetEntityAnimation
+@   GetSlotEntityChecked, SetEntityAnimation, OvlFunc_e44 x3, GetSlotEntityChecked
+@   SetEntityAnimation, GetSlotEntityChecked, SetEntityAnimation, OvlFunc_e44 x3
+@   WaitFrames
 .thumb_func_start OvlFunc_951_200973c
 	push	{r5, r6, r7, lr}
 	ldr	r5, =.L2070

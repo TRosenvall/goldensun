@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ 42 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, TestSaveBit, SetActiveMessageId x2
+@   TestSaveBit, OvlFunc_938, EndCutscene, GetSlotEntityChecked
+@ message ids 0x123c, 0x1349; reads save bits 0x2, 0x855.
 .thumb_func_start OvlFunc_898_2008cfc
 	push	{lr}
 	mov	r0, #0xe
@@ -50,6 +57,13 @@
 	bx	r0
 .func_end OvlFunc_898_2008cfc
 
+@ 30 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, TestSaveBit, SetActiveMessageId x2
+@   OvlFunc_938, EndCutscene, GetSlotEntityChecked
+@ message ids 0x123d, 0x134b; reads save bit 0x855.
 .thumb_func_start OvlFunc_898_2008d78
 	push	{lr}
 	mov	r0, #0xf

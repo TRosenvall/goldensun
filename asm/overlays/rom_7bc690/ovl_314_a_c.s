@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, Random, OvlFunc_common0_10c
 .thumb_func_start OvlFunc_933_2008344
 	push	{r5, r6, r7, lr}
 	ldr	r5, =iwram_3001e40
@@ -48,6 +53,9 @@
 	bx	r1
 .func_end OvlFunc_933_2008344
 
+@ Leaf helper, 30 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_933_20083ac
 	push	{lr}
 	ldr	r3, =gState

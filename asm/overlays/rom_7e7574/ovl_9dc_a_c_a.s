@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Leaf helper, 23 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_959_2008a34
 	push	{lr}
 	ldr	r3, =gState
@@ -30,6 +33,9 @@
 	bx	r1
 .func_end OvlFunc_959_2008a34
 
+@ Leaf helper, 35 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_959_2008a80
 	push	{lr}
 	ldr	r3, =gState
@@ -74,6 +80,9 @@
 	bx	r1
 .func_end OvlFunc_959_2008a80
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_959_2008af8
 	push	{lr}
 	ldr	r3, =gState
@@ -106,6 +115,11 @@
 	bx	r1
 .func_end OvlFunc_959_2008af8
 
+@ 37 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes x2, GetSlotEntityChecked, SetEntityActorOptions
 .thumb_func_start OvlFunc_959_2008b4c
 	push	{r5, lr}
 	sub	sp, #8

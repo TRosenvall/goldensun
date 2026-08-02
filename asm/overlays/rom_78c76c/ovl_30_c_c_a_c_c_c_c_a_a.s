@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 17 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetTileFlags, OvlFunc_1be8, OvlFunc_2244
 .thumb_func_start OvlFunc_891_20095d4
 	push	{lr}
 	mov	r1, #0xd0
@@ -21,6 +26,11 @@
 	bx	r0
 .func_end OvlFunc_891_20095d4
 
+@ 17 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetTileFlags, OvlFunc_1be8, OvlFunc_22f4
 .thumb_func_start OvlFunc_891_20095fc
 	push	{lr}
 	mov	r1, #0xb0
@@ -42,6 +52,11 @@
 	bx	r0
 .func_end OvlFunc_891_20095fc
 
+@ 32 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, SetTileFlags x2
 .thumb_func_start OvlFunc_891_2009624
 	push	{r5, lr}
 	mov	r0, #0

@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 38 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, DialogueWait, PlaySound
+@   SetSaveBit, CopyMapRectIndicesU, EndCutscene
+@ sets 0x200.
 .thumb_func_start OvlFunc_968_2009644
 	push	{r5, lr}
 	mov	r0, #0xd
@@ -43,6 +50,14 @@
 	bx	r0
 .func_end OvlFunc_968_2009644
 
+@ 92 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, CopyMapRectIndicesU x2, ClearSaveBit, TestSaveBit
+@   BeginCutscene, DialogueWait, CopyMapRectIndicesU x2, SetSaveBit
+@   PlaySound, EndCutscene
+@ reads save bit 0x201; sets 0x201; clears 0x201.
 .thumb_func_start OvlFunc_968_20096a4
 	push	{r5, lr}
 	mov	r0, #0
@@ -141,6 +156,14 @@
 	bx	r0
 .func_end OvlFunc_968_20096a4
 
+@ 49 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetActiveMessageId, FaceEntityInstant, DialogueWait
+@   ShowMessageAndPause, TurnSlotToAngle, SetCameraSpeed, MoveCameraTo
+@   WaitForCameraArrival, ShowMessageAndWait, EndCutscene
+@ message id 0x267d.
 .thumb_func_start OvlFunc_968_2009780
 	push	{lr}
 	ldr	r3, =iwram_3001ebc
@@ -193,6 +216,9 @@
 	bx	r0
 .func_end OvlFunc_968_2009780
 
+@ Cutscene: roughly 94 instructions of straight-line script --
+@ 0 turns, 2 animation changes, 0 dialogue lines, 4 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_968_2009808
 	push	{r5, r6, lr}
 	mov	r0, #0
@@ -290,6 +316,12 @@
 	bx	r0
 .func_end OvlFunc_968_2009808
 
+@ 49 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, CopyMapRectAttributes x2, GetSlotEntityChecked
+@   CopyMapRectAttributes, OvlFunc_910, EndCutscene
 .thumb_func_start OvlFunc_968_20098f8
 	push	{r5, lr}
 	mov	r0, #8

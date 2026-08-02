@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_934_200969c
 	push	{lr}
 	ldr	r3, =gState
@@ -32,6 +35,12 @@
 	bx	r1
 .func_end OvlFunc_934_200969c
 
+@ 31 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   WaitFrames, SetSlotDrawPriority x2, ClearSaveBit, OvlFunc_1984
+@ clears 0x12f.
 .thumb_func_start OvlFunc_934_20096f0
 	push	{lr}
 	ldr	r3, =iwram_3001ebc

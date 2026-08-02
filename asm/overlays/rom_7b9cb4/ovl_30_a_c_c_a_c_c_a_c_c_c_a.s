@@ -1,6 +1,15 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 69 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, PlaceSlotAt x2, ShowScreenOverlay
+@   WaitSceneDelay, DialogueWait, UpdateObjectProximity, ApplyFieldItemOrAbility
+@   GetCameraEntity, SetCameraSpeed, MoveCameraTo, WaitForCameraArrival
+@   DialogueWait, OvlFunc_6dc
+@   ... and 4 more
 .thumb_func_start OvlFunc_932_200ad58
 	push	{r5, r6, lr}
 	mov	r6, r8

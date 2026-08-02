@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ 19 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetActiveMessageId, ShowMessageAndWait, FindInventorySlotInParty, RunTextBoxModal
+@ message id 0x256c.
 .thumb_func_start OvlFunc_959_200cd50
 	push	{r5, lr}
 	ldr	r5, =0x256c

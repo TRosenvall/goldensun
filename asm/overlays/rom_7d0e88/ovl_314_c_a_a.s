@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 111 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked
 .thumb_func_start OvlFunc_947_2008ddc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -124,6 +129,12 @@
 	bx	r1
 .func_end OvlFunc_947_2008ddc
 
+@ 65 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_ddc, CopyMapRectAttributes, SetEntityAnimation
+@   CopyMapRectIndicesU x2
 .thumb_func_start OvlFunc_947_2008ec8
 	push	{r5, r6, r7, lr}
 	sub	sp, #0x30
@@ -196,6 +207,12 @@
 	bx	r1
 .func_end OvlFunc_947_2008ec8
 
+@ 53 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_ddc, CopyMapRectAttributes, OvlFunc_528
+@   SetEntityAnimation
 .thumb_func_start OvlFunc_947_2008f58
 	push	{r5, r6, r7, lr}
 	sub	sp, #0x30
@@ -254,6 +271,10 @@
 	bx	r1
 .func_end OvlFunc_947_2008f58
 
+@ Leaf helper, 33 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: REG_DMA3SAD, iwram_1e70
+@ Reads offsets +0x8.
 .thumb_func_start OvlFunc_947_2008fcc
 	push	{r5, lr}
 	mov	r5, r3
@@ -292,6 +313,10 @@
 	bx	r0
 .func_end OvlFunc_947_2008fcc
 
+@ Leaf helper, 41 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1e70
+@ Writes offsets +0x1, +0x2, +0x3.
 .thumb_func_start OvlFunc_947_200901c
 	push	{r5, lr}
 	mov	r5, r3
@@ -337,6 +362,12 @@
 	bx	r0
 .func_end OvlFunc_947_200901c
 
+@ 117 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetEntityActorOptions, GetTerrainHeight x2, OvlFunc_common0_18
+@   OvlFunc_da8, DestroyEntity
 .thumb_func_start OvlFunc_947_2009074
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

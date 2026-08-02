@@ -1,5 +1,7 @@
 	.include "macros.inc"
 
+@ Counter: shop type 0x15 through UI_Sanctum, speaker slot 0x15.
+@ Lines 0x2507 / 0x1BDC.
 .thumb_func_start OvlFunc_940_200816c
 	push	{lr}
 	mov	r0, #0

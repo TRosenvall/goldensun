@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 24 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, CheckTerrainStep
 .thumb_func_start OvlFunc_957_2008d58
 	push	{r5, lr}
 	ldr	r3, =iwram_3001f30
@@ -29,6 +34,12 @@
 	bx	r0
 .func_end OvlFunc_957_2008d58
 
+@ 37 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, CopyMapRectAttributes, SetSaveBit
+@ sets 0x211.
 .thumb_func_start OvlFunc_957_2008d90
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001f30
@@ -71,6 +82,14 @@
 	bx	r0
 .func_end OvlFunc_957_2008d90
 
+@ 83 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, RotateVector, CheckTerrainStep, BeginCutscene
+@   SetEntityAnimation, WaitFrames, PlaySound, SetEntityAnimation
+@   SetEntityActorOptions, MoveSlotToAndWait, SetEntityAnimation, SetEntityActorOptions
+@   EndCutscene
 .thumb_func_start OvlFunc_957_2008de8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -158,6 +177,11 @@
 	bx	r0
 .func_end OvlFunc_957_2008de8
 
+@ 22 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_474, OvlFunc_608, EndCutscene
 .thumb_func_start OvlFunc_957_2008eac
 	push	{r5, lr}
 	sub	sp, #0x20
@@ -184,6 +208,9 @@
 	bx	r0
 .func_end OvlFunc_957_2008eac
 
+@ Leaf helper, 19 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x18, +0x1c.
 .thumb_func_start OvlFunc_957_2008ee0
 	mov	r1, r0
 	add	r1, #0x64
@@ -210,6 +237,11 @@
 	bx	lr
 .func_end OvlFunc_957_2008ee0
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, RotateVector
 .thumb_func_start OvlFunc_957_2008f10
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

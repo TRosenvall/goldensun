@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 127 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x30c, 0x311, 0x831, 0x837.
+@ Sets save bits 0x30c, 0x311, 0x831.
 .thumb_func_start OvlFunc_882_2008f38
 	push	{r5, lr}
 	ldr	r0, =0x311
@@ -136,6 +141,9 @@
 	bx	r0
 .func_end OvlFunc_882_2008f38
 
+@ Map edit: 8 attribute copies.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
 .thumb_func_start OvlFunc_882_20090a4
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -219,6 +227,11 @@
 	bx	r0
 .func_end OvlFunc_882_20090a4
 
+@ Cutscene: roughly 147 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x30c, 0x312, 0x832, 0x837.
+@ Sets save bits 0x30c, 0x312, 0x832.
 .thumb_func_start OvlFunc_882_2009154
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -375,6 +388,9 @@
 	bx	r0
 .func_end OvlFunc_882_2009154
 
+@ Map edit: 4 attribute copies.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
 .thumb_func_start OvlFunc_882_20092f0
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -417,6 +433,16 @@
 	bx	r0
 .func_end OvlFunc_882_20092f0
 
+@ 111 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, BeginCutscene, TestSaveBit, GetSlotEntityChecked
+@   SetMapTransition, PlaySound, WaitFrames, PlaySound
+@   PlaceSlotAt, WalkSlotToAndWait, DialogueWait, PlaySound
+@   SetMapTransition, WaitForMapTransition
+@   ... and 12 more
+@ reads save bits 0x30c, 0x313, 0x833, 0x837, 0x841; sets 0x30c, 0x313, 0x833.
 .thumb_func_start OvlFunc_882_2009348
 	push	{r5, lr}
 	ldr	r0, =0x313
@@ -537,6 +563,9 @@
 	bx	r0
 .func_end OvlFunc_882_2009348
 
+@ Map edit: 5 attribute copies.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
 .thumb_func_start OvlFunc_882_2009498
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -593,6 +622,11 @@
 	bx	r0
 .func_end OvlFunc_882_2009498
 
+@ Cutscene: roughly 84 instructions of straight-line script --
+@ 0 turns, 1 animation change, 3 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xe67.
+@ Sets save bit 0x835.
 .thumb_func_start OvlFunc_882_200950c
 	push	{r5, lr}
 	bl	__CutsceneStart
@@ -680,6 +714,14 @@
 	bx	r0
 .func_end OvlFunc_882_200950c
 
+@ 42 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit x2, BeginCutscene, SetActiveMessageId, ShowMessageAndPause
+@   PlayInteractionEffect, WalkSlotToAndWait, FaceEntityInstant, SetFollowerFormationAndRefresh
+@   DialogueWait, ShowMessageAndWait, SetSaveBit, EndCutscene
+@ message id 0xe6c; reads save bits 0x836, 0x837; sets 0x836.
 .thumb_func_start OvlFunc_882_2009600
 	push	{lr}
 	ldr	r0, =0x836

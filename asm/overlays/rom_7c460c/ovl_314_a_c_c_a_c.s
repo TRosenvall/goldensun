@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ 27 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, TestSaveBit, SetSaveBit
+@ reads save bit 0x243; sets 0x243.
 .thumb_func_start OvlFunc_939_2008ac4
 	push	{r5, lr}
 	mov	r0, #0
@@ -32,6 +38,14 @@
 	bx	r0
 .func_end OvlFunc_939_2008ac4
 
+@ 32 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetSlotAnimation, SetActiveMessageId, ShowMessageAndWait
+@   PlayInteractionEffect, SetSlotAnimation, MoveSlotBy, WaitForSlotArrival
+@   SetSlotAnimation, ClearSaveBit, EndCutscene
+@ message id 0x24cf; clears 0x243.
 .thumb_func_start OvlFunc_939_2008b0c
 	push	{lr}
 	bl	__CutsceneStart
@@ -67,6 +81,14 @@
 	bx	r0
 .func_end OvlFunc_939_2008b0c
 
+@ 64 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked, PlaySound, PlayMapRectAnimation
+@   SetSlotEntitySpeed, GetSlotEntityChecked, SetSlotAnimation, WalkSlotThroughDoorway
+@   DialogueWait, SetPendingMessageId, HideScreenOverlay, WaitSceneDelay
+@   EndCutscene
 .thumb_func_start OvlFunc_939_2008b6c
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ebc
@@ -137,6 +159,13 @@
 	bx	r0
 .func_end OvlFunc_939_2008b6c
 
+@ 33 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit x2, SetSlotEntitySpeed, GetSlotEntityChecked, SetSlotAnimation
+@   WalkSlotThroughDoorway, DialogueWait, SetPendingMessageId
+@ reads save bits 0x201, 0x202.
 .thumb_func_start OvlFunc_939_2008c10
 	push	{r5, lr}
 	ldr	r0, =0x202
@@ -174,6 +203,16 @@
 	bx	r0
 .func_end OvlFunc_939_2008c10
 
+@ 53 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit, BeginCutscene, SetSlotEntitySpeed, GetSlotEntityChecked
+@   SetSlotAnimation, WalkSlotBy, PlaySound, CopyMapRectFull
+@   DialogueWait, CopyMapRectFull, DialogueWait, SetPendingMessageId
+@   HideScreenOverlay, WaitSceneDelay
+@   ... and 1 more
+@ sets 0x242.
 .thumb_func_start OvlFunc_939_2008c74
 	push	{r5, r6, lr}
 	ldr	r0, =0x242

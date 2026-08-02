@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ 44 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, TestSaveBit x2, RunTextBoxModal, EndCutscene
+@   PlaySound, PlayMapRectAnimation, SetSlotEntitySpeed, WalkSlotToAndWait
+@   WalkSlotTo, DialogueWait, SetPendingMessageId, EndCutscene
+@ reads save bits 0x895, 0x89a.
 .thumb_func_start OvlFunc_926_200a484
 	push	{lr}
 	bl	__CutsceneStart
@@ -49,6 +57,8 @@
 	bx	r0
 .func_end OvlFunc_926_200a484
 
+@ Counter: shop type 0xd via UI_Sanctum, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- line 0x1a1c.
 .thumb_func_start OvlFunc_926_200a508
 	push	{r5, lr}
 	mov	r0, #0

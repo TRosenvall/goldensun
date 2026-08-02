@@ -1,6 +1,15 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 138 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, RotateVector, CheckTerrainStep, OvlFunc_32c
+@   RotateVector, OvlFunc_32c, CheckTerrainStep, BeginCutscene
+@   SetEntityAnimation, WaitFrames, PlaySound, SetEntityAnimation
+@   SetEntityActorOptions, MoveSlotToAndWait
+@   ... and 3 more
 .thumb_func_start OvlFunc_968_2008cc8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -144,6 +153,9 @@
 	bx	r1
 .func_end OvlFunc_968_2008cc8
 
+@ Leaf helper, 35 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_968_2008e04
 	push	{lr}
 	ldr	r3, =gState

@@ -1,6 +1,15 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 207 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   DespawnSlotEntity, StartFadeOut x2, WaitForFade, PlaySound
+@   SpawnEntity, SetEntityAnimation, WaitFrames, PlayInteractionEffect x2
+@   WaitFrames, RegisterTask, PlaySound, WaitFrames x12
+@   UnregisterTask, StartFadeOut
+@   ... and 1 more
 .thumb_func_start OvlFunc_897_200a9a4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -231,6 +240,9 @@
 	bx	r0
 .func_end OvlFunc_897_200a9a4
 
+@ Leaf helper, 54 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0xc, +0x18, +0x1c, +0x3c.
 .thumb_func_start OvlFunc_897_200aba0
 	push	{r5, r6, r7, lr}
 	ldr	r2, =.L3b40
@@ -292,6 +304,13 @@
 	bx	r0
 .func_end OvlFunc_897_200aba0
 
+@ 52 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetCameraEntity, MoveCameraTo, StartFadeOut, WaitForFade
+@   WaitFrames x2, UpdateMapView, WaitFrames, StartFadeOut
+@   WaitForFade, WaitFrames
 .thumb_func_start OvlFunc_897_200ac1c
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -347,6 +366,9 @@
 	bx	r0
 .func_end OvlFunc_897_200ac1c
 
+@ Map edit: 8 attribute copies.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
 .thumb_func_start OvlFunc_897_200ac9c
 	push	{r5, r6, lr}
 	mov	r6, r8

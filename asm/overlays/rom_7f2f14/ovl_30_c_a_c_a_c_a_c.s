@@ -1,6 +1,8 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Map edit: 4 metatile copies and 2 attribute copies.
+@ Clears save bit 0x161.
 .thumb_func_start OvlFunc_968_2009048
 	push	{r5, r6, lr}
 	ldr	r0, =0x161
@@ -60,6 +62,8 @@
 	bx	r0
 .func_end OvlFunc_968_2009048
 
+@ Map edit: 4 metatile copies and 2 attribute copies.
+@ Records it with save bit 0x161.
 .thumb_func_start OvlFunc_968_20090cc
 	push	{r5, r6, lr}
 	ldr	r0, =0x161
@@ -119,6 +123,9 @@
 	bx	r0
 .func_end OvlFunc_968_20090cc
 
+@ Cutscene: roughly 79 instructions of straight-line script --
+@ 0 turns, 2 animation changes, 0 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_968_2009150
 	push	{r5, lr}
 	mov	r0, #0
@@ -203,6 +210,16 @@
 	bx	r0
 .func_end OvlFunc_968_2009150
 
+@ 288 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetSlotAnimation, RunTextBoxModal, StartFadeIn
+@   StartFadeOut, WaitForFade, DialogueWait, PlaySound
+@   DialogueWait, StartFadeOut, WaitForFade, DialogueWait
+@   TestSaveBit x2, SetSaveBit x2
+@   ... and 17 more
+@ reads save bits 0x982, 0x983; sets 0x982, 0x983; clears 0x982, 0x983.
 .thumb_func_start OvlFunc_968_2009218
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ebc
@@ -498,6 +515,12 @@
 	bx	r0
 .func_end OvlFunc_968_2009218
 
+@ Cutscene: roughly 113 instructions of straight-line script --
+@ 1 turn, 4 animation changes, 2 dialogue lines, 5 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x2691.
+@ Reads save bit 0x986.
+@ Sets save bit 0x986.
 .thumb_func_start OvlFunc_968_20094f4
 	push	{lr}
 	bl	__CutsceneStart

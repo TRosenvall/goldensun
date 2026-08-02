@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Map edit: 4 attribute copies.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
 .thumb_func_start OvlFunc_948_2009da0
 	push	{r5, lr}
 	sub	sp, #8
@@ -43,6 +46,12 @@
 	bx	r0
 .func_end OvlFunc_948_2009da0
 
+@ 38 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_1da0, GetSlotEntityChecked, CopyMapRectAttributes, GetSlotEntityChecked
+@   CopyMapRectAttributes
 .thumb_func_start OvlFunc_948_2009df8
 	push	{r5, lr}
 	sub	sp, #8

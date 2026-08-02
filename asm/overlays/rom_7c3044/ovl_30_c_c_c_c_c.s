@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ ShopCounter
+@ Takes no arguments. Same facing test at a different offset -- `facing +
+@ 0x5FFF` -- so this counter faces the opposite way. Inside the arc it opens
+@ shop type 8 through UI_Sanctum; outside it, line 0x1A8F from slot 8.
 .thumb_func_start OvlFunc_937_20081fc
 	push	{lr}
 	mov	r0, #0
@@ -27,6 +31,9 @@
 	bx	r0
 .func_end OvlFunc_937_20081fc
 
+@ ClearSlotFlags
+@ Takes no arguments. Walks slots from 8 upward and zeroes byte +0x55 on each
+@ live entity, resetting a per-entity interaction flag across the whole map.
 .thumb_func_start OvlFunc_937_2008240
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_3001ebc
@@ -122,6 +129,8 @@
 	bx	r0
 .func_end OvlFunc_937_2008240
 
+@ Slot 0: map-load entry. Sets the scene step delay at [iwram_1ebc]+0x1C0 to
+@ 0x209 and, for area 0x64 only, runs the entrance staging in OvlFunc_33c.
 .thumb_func_start OvlFunc_937_2008308
 	push	{lr}
 	ldr	r3, =iwram_3001ebc
@@ -142,6 +151,13 @@
 	bx	r1
 .func_end OvlFunc_937_2008308
 
+@ StageArea64
+@ Takes no arguments. Entrance-dependent setup for area 0x64:
+@   entrance 3               one CopyMapTiles metatile copy at (0x1E, 0x0E),
+@   entrances 9..0x0F, 0x11  if save bit 0x911 is set, Func_92924 on slots
+@                            0x0A..0x0E and 0x11..0x13 -- eight objects
+@                            switched to their after-state.
+@ Every other entrance needs nothing.
 .thumb_func_start OvlFunc_937_200833c
 	push	{lr}
 	ldr	r3, =gState

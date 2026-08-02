@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ 20 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, BeginCutscene, GetSlotEntityChecked, SetSlotEntitySpeed
+@   WalkSlotToAndWait, EndCutscene
+@ reads save bit 0x80b.
 .thumb_func_start OvlFunc_891_200901c
 	push	{lr}
 	ldr	r0, =0x80b
@@ -24,6 +31,11 @@
 	bx	r0
 .func_end OvlFunc_891_200901c
 
+@ Cutscene: roughly 458 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x30a, 0x30b, 0x80b.
+@ Sets save bits 0x144, 0x30a, 0x30b.
 .thumb_func_start OvlFunc_891_200905c
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -503,6 +515,13 @@
 	bx	r1
 .func_end OvlFunc_891_200905c
 
+@ 76 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   galloc_ewram, DecompressVariant, CountFreeObjTiles, AllocObjTiles
+@   CountFreeObjTiles, AllocObjTiles, CountFreeObjTiles, AllocObjTiles
+@   Func_2dd8, RegisterTask
 .thumb_func_start OvlFunc_891_20094b8
 	push	{r5, r6, lr}
 	mov	r1, #0x80

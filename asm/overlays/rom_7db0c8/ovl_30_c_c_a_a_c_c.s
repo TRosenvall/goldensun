@@ -1,6 +1,15 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 81 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit, GetSlotEntityChecked, BeginCutscene, SetCameraSpeed
+@   MoveCameraTo, SetEntityAnimation, WaitForCameraArrival, SetEntityMoveTarget
+@   GetSlotEntityChecked, SetEntityMoveTarget, WaitForEntityIdle, DialogueWait
+@   CopyMapRectAttributes, EndCutscene
+@ sets 0x301.
 .thumb_func_start OvlFunc_954_2008270
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -85,6 +94,13 @@
 	bx	r0
 .func_end OvlFunc_954_2008270
 
+@ 103 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, BeginCutscene, SetEntityMoveTarget, SetEntityAnimation
+@   SetEntityMoveTarget, SetEntityAnimation x2, PlaySound, WaitForEntityIdle
+@   SetEntityAnimation, PlaySound, EndCutscene
 .thumb_func_start OvlFunc_954_200833c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -194,6 +210,12 @@
 	bx	r0
 .func_end OvlFunc_954_200833c
 
+@ 42 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, CopyMapRectAttributes, OvlFunc_33c, GetSlotEntityChecked
+@   CopyMapRectAttributes
 .thumb_func_start OvlFunc_954_200842c
 	push	{r5, r6, lr}
 	ldr	r3, =gState
@@ -240,6 +262,12 @@
 	bx	r0
 .func_end OvlFunc_954_200842c
 
+@ 77 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, CopyMapRectAttributes, OvlFunc_33c, GetSlotEntityChecked
+@   CopyMapRectAttributes
 .thumb_func_start OvlFunc_954_2008490
 	push	{r5, r6, r7, lr}
 	ldr	r3, =gState
@@ -329,6 +357,11 @@
 	bx	r0
 .func_end OvlFunc_954_2008490
 
+@ Cutscene: roughly 292 instructions of straight-line script --
+@ 0 turns, 3 animation changes, 0 dialogue lines, 13 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bit 0x301.
+@ Sets save bits 0x301, 0x302.
 .thumb_func_start OvlFunc_954_2008540
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

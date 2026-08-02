@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 98 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 5 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x300.
 .thumb_func_start OvlFunc_927_2009150
 	push	{r5, lr}
 	mov	r0, #0xa
@@ -101,6 +105,16 @@
 	bx	r0
 .func_end OvlFunc_927_2009150
 
+@ 85 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, OvlFunc_ea8, OvlFunc_d90
+@   OvlFunc_ae8, AttachCameraToSlot, TurnSlotsToFaceEachOther, DialogueWait
+@   SetFollowerFormationScript, PlayInteractionEffect, PlaySound, DialogueWait
+@   GetSlotEntityChecked x2, OvlFunc_d90
+@   ... and 5 more
+@ sets 0x301.
 .thumb_func_start OvlFunc_927_2009244
 	push	{r5, lr}
 	mov	r0, #0xb
@@ -189,6 +203,16 @@
 	bx	r0
 .func_end OvlFunc_927_2009244
 
+@ 99 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, OvlFunc_ea8, OvlFunc_d90
+@   OvlFunc_ae8, AttachCameraToSlot, TurnSlotsToFaceEachOther, DialogueWait
+@   SetFollowerFormationScript, RunSlotEffectSequence, DialogueWait, OvlFunc_d90
+@   FaceEntityInstant, DialogueWait
+@   ... and 9 more
+@ sets 0x302.
 .thumb_func_start OvlFunc_927_2009328
 	push	{r5, r6, lr}
 	mov	r0, #0xc

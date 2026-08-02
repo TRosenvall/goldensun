@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 17 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   MoveCameraTo, PlayLevitateSequence, HideScreenOverlay, WaitSceneDelay
 .thumb_func_start OvlFunc_965_2009158
 	push	{lr}
 	mov	r0, #1

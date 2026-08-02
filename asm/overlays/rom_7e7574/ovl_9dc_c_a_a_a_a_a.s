@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ 36 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   WalkSlotTo, WaitForSlotArrival, TurnSlotToAngle, DialogueWait
+@   SetSlotAnimation, UpdateObjectProximity, SetSlotAnimation, ApplyFieldItemOrAbility
+@   SetSaveBit, PlaceSlotAt
+@ sets 0xf2e.
 .thumb_func_start OvlFunc_959_20090a8
 	push	{lr}
 	mov	r1, #0x84

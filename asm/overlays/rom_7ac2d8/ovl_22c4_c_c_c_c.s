@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ PaletteFadeToWhite
+@ Walks a run of BGR555 palette entries, splits each into its three 5-bit
+@ channels, and steps every channel that is below 0x1F up by one. Entries
+@ already at full white are counted rather than written, so the caller can tell
+@ when the fade has finished.
 .thumb_func_start OvlFunc_924_200a844
 	push	{r5, r6, lr}
 	ldr	r6, =0x1f
@@ -61,6 +66,11 @@
 	bx	r0
 .func_end OvlFunc_924_200a844
 
+@ Cutscene: roughly 499 instructions of straight-line script --
+@ 18 turns, 14 animation changes, 11 dialogue lines, 22 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x157f.
+@ Sets save bit 0x871.
 .thumb_func_start OvlFunc_924_200a8b0
 	push	{r5, lr}
 	mov	r0, #0xa

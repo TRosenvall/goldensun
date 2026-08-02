@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 54 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x4, SetEntityMoveTarget, WaitForSlotArrival, CopyMapRectAttributes
 .thumb_func_start OvlFunc_947_200a1ac
 	push	{r5, r6, lr}
 	mov	r0, #0xe
@@ -58,6 +63,11 @@
 	bx	r0
 .func_end OvlFunc_947_200a1ac
 
+@ 69 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, Random x3, OvlFunc_common0_10c
 .thumb_func_start OvlFunc_947_200a230
 	push	{r5, r6, r7, lr}
 	ldr	r2, =iwram_3001e40
@@ -132,6 +142,11 @@
 	bx	r0
 .func_end OvlFunc_947_200a230
 
+@ 73 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random x4, SignedDiv, OvlFunc_common0_10c
 .thumb_func_start OvlFunc_947_200a2d8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -209,6 +224,16 @@
 	bx	r1
 .func_end OvlFunc_947_200a2d8
 
+@ 97 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, SetSaveBit, BeginCutscene, SetCameraSpeed
+@   MoveCameraTo, WaitForCameraArrival, DialogueWait, CopyMapRectIndicesU
+@   DialogueWait, RegisterTask, DialogueWait, TestSaveBit
+@   GetSlotEntityChecked, SetSlotAnimation
+@   ... and 12 more
+@ reads save bits 0x201, 0x203; sets 0x202; clears 0x201.
 .thumb_func_start OvlFunc_947_200a384
 	push	{r5, lr}
 	ldr	r0, =0x203

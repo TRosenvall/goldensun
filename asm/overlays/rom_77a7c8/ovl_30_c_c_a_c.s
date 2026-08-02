@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 69 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, BeginCutscene, MoveCameraTo, PlaySound
+@   SetEntityActorOptions, WaitFrames, HideScreenOverlay, WaitSceneDelay
+@   EndCutscene, SetSaveBit, SetSceneTargetA
+@ sets 0x122.
 .thumb_func_start OvlFunc_881_200b84c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -74,6 +82,11 @@
 	bx	r0
 .func_end OvlFunc_881_200b84c
 
+@ 25 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   ReserveObjTiles x3
 .thumb_func_start OvlFunc_881_200b8fc
 	push	{lr}
 	ldr	r0, =REG_BLDCNT
@@ -114,6 +127,11 @@
 	.word	0x10
 .func_end OvlFunc_881_200b8fc
 
+@ 68 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, UnsignedRem, Random, MoveCameraTo x2
 .thumb_func_start OvlFunc_881_200b95c
 	push	{r5, r6, lr}
 	ldr	r3, =gState
@@ -191,6 +209,16 @@
 	bx	r0
 .func_end OvlFunc_881_200b95c
 
+@ 541 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Func_4970, WaitFrames, ClearSaveBit, SetupMapBgLayer
+@   DecompressVariant x2, RegisterTask, BeginCutscene, GetSlotEntityChecked
+@   ShowScreenOverlay, WaitSceneDelay, PlaySound, DialogueWait x13
+@   LoadMapGraphics, RegisterTask
+@   ... and 6 more
+@ sets 0x101; clears 0x109.
 .thumb_func_start OvlFunc_881_200b9fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

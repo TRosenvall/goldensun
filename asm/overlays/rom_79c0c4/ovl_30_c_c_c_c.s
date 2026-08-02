@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ Slot 0: map-load entry.
+@
+@ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x209, then fixes up slot
+@ 0x1B's presentation: the entity's +0x23 is cleared, and byte +0x09 of its
+@ actor has bits 0 and 1 cleared before bit 3 is set -- the read-modify-write
+@ is spelled `sub r3, #0xd` on a register still holding 0, giving the mask
+@ 0xFFFFFFF3. That selects the OAM priority this one object needs.
 .thumb_func_start OvlFunc_908_20084c8
 	push	{lr}
 	ldr	r3, =iwram_3001ebc

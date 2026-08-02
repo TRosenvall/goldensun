@@ -1,5 +1,7 @@
 	.include "macros.inc"
 
+@ Talk: line 0x156d, shown.
+@ Also settles back to a resting angle.
 .thumb_func_start OvlFunc_921_20085dc
 	push	{lr}
 	bl	__CutsceneStart

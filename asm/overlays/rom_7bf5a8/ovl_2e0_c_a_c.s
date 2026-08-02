@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 20 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_170, TestSaveBit, OvlFunc_458, TestSaveBit
+@   PlaySound, OvlFunc_410, SetSaveBit
+@ reads save bits 0x207, 0x9aa; sets 0x9aa.
 .thumb_func_start OvlFunc_935_200848c
 	push	{lr}
 	bl	OvlFunc_935_2008170

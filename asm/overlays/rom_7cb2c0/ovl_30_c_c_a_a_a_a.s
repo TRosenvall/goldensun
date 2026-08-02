@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Slot 3: the read after slot 4.
+@ Chooses among .L39c, .L6da8, .L6eb0, .L6d78, .L6fe8, .L6d48, .L6c58, .L6bf8, .L6be0
+@ on save bits 0x8a0, 0x911, 0x922, 0x925, 0x928, 0x93e and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
 .thumb_func_start OvlFunc_945_200837c
 	push	{lr}
 	ldr	r3, =gState
@@ -187,6 +190,9 @@
 	bx	r1
 .func_end OvlFunc_945_200837c
 
+@ Slot 4: the map object table.
+@ Chooses among .L568, .L76fc, .L7570, .L7444, .L7edc, .L79c0, .L7930, .L7984, .L781c, .L7b58, .L7d44, .L7420
+@ on save bits 0x8a0, 0x928, 0x93e and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
 .thumb_func_start OvlFunc_945_200854c
 	push	{lr}
 	ldr	r3, =gState
@@ -290,6 +296,16 @@
 	bx	r1
 .func_end OvlFunc_945_200854c
 
+@ 49 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, CloseMessageWindow, TestSaveBit, SetActiveMessageId
+@   ShowMessageAndWait, TestSaveBit, SetActiveMessageId, OpenMessageBoxForSlot
+@   RunFieldAbilityPrompt, OvlFunc_1f3c, SetFollowerFormationScript, ShowMessageAndWait
+@   TurnSlotToAngle, SetActiveMessageId
+@   ... and 2 more
+@ message ids 0x1d31, 0x1d91, 0x1dd4; reads save bits 0x921, 0x922.
 .thumb_func_start OvlFunc_945_2008670
 	push	{lr}
 	bl	__CutsceneStart

@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 42 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv x2
 .thumb_func_start OvlFunc_898_2009754
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -47,6 +52,15 @@
 	bx	r0
 .func_end OvlFunc_898_2009754
 
+@ 141 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, Random x2, SpawnEntity, Random
+@   SetEntityAnimation, SetEntityScript, SetEntityAnimation, SetEntityScript
+@   Random, UnsignedRem, Random, UnsignedRem
+@   Random, UnsignedRem
+@   ... and 2 more
 .thumb_func_start OvlFunc_898_20097ac
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

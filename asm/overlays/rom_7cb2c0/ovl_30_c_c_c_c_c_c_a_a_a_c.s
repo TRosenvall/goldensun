@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 337 instructions of straight-line script --
+@ 11 turns, 8 animation changes, 1 dialogue line, 5 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x1eb7, 0x1ebc.
+@ Reads save bits 0x300, 0x929, 0x92a, 0x92b.
 .thumb_func_start OvlFunc_945_200c254
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -350,6 +355,13 @@
 	bx	r0
 .func_end OvlFunc_945_200c254
 
+@ 69 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, SpawnEntity, galloc_iwram, SetPortraitPointer
+@   AllocObjTiles, Func_2dd8, SetSaveBit
+@ reads save bit 0x200; sets 0x200.
 .thumb_func_start OvlFunc_945_200c5d0
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -424,6 +436,10 @@
 	bx	r1
 .func_end OvlFunc_945_200c5d0
 
+@ Cutscene: roughly 133 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x928, 0x929, 0x92a, 0x92b.
 .thumb_func_start OvlFunc_945_200c670
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -568,6 +584,13 @@
 	bx	r0
 .func_end OvlFunc_945_200c670
 
+@ 50 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSlotAnimation, SetSlotAnimSpeed, SetSlotAnimation, SetSlotAnimSpeed
+@   SetSlotAnimation, SetSlotAnimSpeed, SetSlotAnimation, SetSlotAnimSpeed
+@   SetSlotAnimation, SetSlotAnimSpeed
 .thumb_func_start OvlFunc_945_200c7cc
 	push	{r5, lr}
 	mov	r5, r0

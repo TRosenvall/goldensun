@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 174 instructions of straight-line script --
+@ 3 turns, 1 animation change, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bit 0x941.
 .thumb_func_start OvlFunc_959_200cda0
 	push	{r5, r6, r7, lr}
 	ldr	r5, =.L5fa4
@@ -188,6 +192,13 @@
 	bx	r1
 .func_end OvlFunc_959_200cda0
 
+@ 120 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_5470, RegisterTask x5, WaitFrames, UpdateMapView
+@   WaitFrames, CopyMapRectFull, SetMapLayerBits, RegisterTask
+@   SetMapLayerBits, SetSlotPalette x5, WaitFrames
 .thumb_func_start OvlFunc_959_200cf60
 	push	{lr}
 	sub	sp, #8
@@ -339,6 +350,10 @@
 	bx	r0
 .func_end OvlFunc_959_200cf60
 
+@ Cutscene: roughly 171 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x314, 0x949, 0x94a, 0x94b.
 .thumb_func_start OvlFunc_959_200d0e4
 	push	{r5, lr}
 	bl	OvlFunc_959_200d4b0
@@ -560,6 +575,16 @@
 	bx	r0
 .func_end OvlFunc_959_200d0e4
 
+@ 120 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_54dc, TestSaveBit, OvlFunc_c78, SetSaveBit x2
+@   TestSaveBit, PlaceSlotAt, ClearSaveBit, TestSaveBit
+@   PlaceSlotAt, OvlFunc_22d4, TestSaveBit, PlaceSlotAt
+@   ClearSaveBit, TestSaveBit
+@   ... and 10 more
+@ reads save bits 0x943, 0x944, 0x945, 0x946, 0x947; sets 0x217, 0x218; clears 0x217, 0x218.
 .thumb_func_start OvlFunc_959_200d324
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc

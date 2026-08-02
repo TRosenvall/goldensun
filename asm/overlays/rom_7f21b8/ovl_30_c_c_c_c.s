@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Slot 4: the map object table.
+@ Chooses among .L2010, .L1eb4, .L1ca4, .L1a94
+@ on save bit 0x9a7 and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
 .thumb_func_start OvlFunc_967_20084b0
 	push	{lr}
 	ldr	r3, =gState
@@ -34,6 +37,11 @@
 	bx	r1
 .func_end OvlFunc_967_20084b0
 
+@ Cutscene: roughly 931 instructions of straight-line script --
+@ 33 turns, 28 animation changes, 46 dialogue lines, 121 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x2850, 0x2861.
+@ Reads save bit 0x9bf.
 .thumb_func_start OvlFunc_967_2008508
 	push	{lr}
 	bl	__CutsceneStart
@@ -982,6 +990,10 @@
 	bx	r0
 .func_end OvlFunc_967_2008508
 
+@ Cutscene: roughly 123 instructions of straight-line script --
+@ 1 turn, 4 animation changes, 9 dialogue lines, 22 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x2880.
 .thumb_func_start OvlFunc_967_2008eec
 	push	{lr}
 	ldr	r0, =_MSG_2880
@@ -1108,6 +1120,11 @@
 	bx	r0
 .func_end OvlFunc_967_2008eec
 
+@ Cutscene: roughly 172 instructions of straight-line script --
+@ 0 turns, 1 animation change, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bit 0x300.
+@ Sets save bit 0x9a7.
 .thumb_func_start OvlFunc_967_200904c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

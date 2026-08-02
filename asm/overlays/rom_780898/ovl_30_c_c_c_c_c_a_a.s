@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, OvlFunc_c4, OvlFunc_5950
 .thumb_func_start OvlFunc_883_200d928
 	push	{lr}
 	sub	sp, #8
@@ -19,6 +24,14 @@
 	bx	r0
 .func_end OvlFunc_883_200d928
 
+@ 73 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, TestSaveBit, GetSlotEntityChecked, ClearSaveBit x3
+@   CopyMapRectAttributes, SetSaveBit, CopyMapRectAttributes, SetSaveBit
+@   CopyMapRectAttributes, SetSaveBit
+@ reads save bit 0x87a; sets 0x314, 0x315, 0x316; clears 0x314, 0x315, 0x316.
 .thumb_func_start OvlFunc_883_200d950
 	push	{r5, lr}
 	sub	sp, #8

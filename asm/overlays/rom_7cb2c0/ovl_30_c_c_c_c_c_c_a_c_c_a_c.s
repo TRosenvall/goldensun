@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 650 instructions of straight-line script --
+@ 11 turns, 11 animation changes, 0 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_945_200c8e8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -734,6 +737,12 @@
 	bx	r0
 .func_end OvlFunc_945_200c8e8
 
+@ 39 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit
+@ reads save bit 0x990.
 .thumb_func_start OvlFunc_945_200cfa8
 	push	{r5, r6, r7, lr}
 	mov	r6, #0

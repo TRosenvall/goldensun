@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ 148 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectIndicesU x2, Random x2, OvlFunc_common0_10c, DialogueWait
+@   OvlFunc_3b24, CopyMapRectIndicesU, OvlFunc_15e0, DialogueWait
+@   OvlFunc_15e0, PlaySound, RegisterTask, WaitForMapTransition
 .thumb_func_start OvlFunc_924_20097a8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -155,6 +162,12 @@
 	bx	r0
 .func_end OvlFunc_924_20097a8
 
+@ 83 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectIndicesU, Random, OvlFunc_common0_10c, DialogueWait
+@   CopyMapRectIndicesU, UnregisterTask
 .thumb_func_start OvlFunc_924_20098f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -244,6 +257,16 @@
 	bx	r0
 .func_end OvlFunc_924_20098f8
 
+@ 222 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_758, OvlFunc_8ec, DialogueWait
+@   PlaySound, OvlFunc_3860, CopyMapRectIndicesU x6, SetSaveBit
+@   CopyMapRectIndicesU x8, OvlFunc_8ec, ClearSaveBit, OvlFunc_8ec
+@   TestSaveBit, SetCameraSpeed
+@   ... and 11 more
+@ reads save bit 0x307; sets 0x302, 0x306, 0x307; clears 0x302, 0x306.
 .thumb_func_start OvlFunc_924_20099b8
 	push	{r5, r6, lr}
 	mov	r6, r8

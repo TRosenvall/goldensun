@@ -1,5 +1,7 @@
 	.include "macros.inc"
 
+@ Talk: line 0x2584, shown.
+@ Also turns to face the player.
 .thumb_func_start OvlFunc_936_20082e8
 	push	{lr}
 	mov	r0, #0

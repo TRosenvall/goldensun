@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 69 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_f30 x2, BeginCutscene, FaceEntityInstant, TestSaveBit x4
+@   SetActiveMessageId, ShowMessageAndWait, EndCutscene
+@ reads save bits 0x2f0, 0x304, 0x305.
 .thumb_func_start OvlFunc_971_2008f8c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -79,6 +86,11 @@
 	bx	r1
 .func_end OvlFunc_971_2008f8c
 
+@ 9 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   EnableSoundIrq, InstallTransformVariant, SetSceneTargetA
 .thumb_func_start OvlFunc_971_2009050
 	push	{lr}
 	bl	__Func_8006358
@@ -91,6 +103,13 @@
 	bx	r1
 .func_end OvlFunc_971_2009050
 
+@ 45 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, FaceEntityInstant, TestSaveBit x2, SetActiveMessageId
+@   OpenMessageBoxForSlot, EndCutscene
+@ reads save bits 0x304, 0x305.
 .thumb_func_start OvlFunc_971_200906c
 	push	{r5, r6, r7, lr}
 	mov	r5, r0

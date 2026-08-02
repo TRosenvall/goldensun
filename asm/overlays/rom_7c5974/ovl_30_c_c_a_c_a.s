@@ -1,5 +1,7 @@
 	.include "macros.inc"
 
+@ Counter: INN 8, speaker slot 0x11. The inn opens ONLY when 0x941 is set --
+@ both the facing arc and the save bit must pass. Lines 0x24FB / 0x1BD0.
 .thumb_func_start OvlFunc_940_200808c
 	push	{lr}
 	mov	r0, #0

@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 88 instructions of straight-line script --
+@ 1 turn, 0 animation changes, 3 dialogue lines, 8 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x2009.
 .thumb_func_start OvlFunc_952_20083b0
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -91,6 +95,16 @@
 	bx	r0
 .func_end OvlFunc_952_20083b0
 
+@ 48 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetActiveMessageId, ShowMessageAndWait, TestSaveBit
+@   SetSaveBit, EndEncounterTransition, DialogueWait, PlayInteractionEffect
+@   FaceEntityInstant, ShowMessageAndWait, DialogueWait, SetSlotAnimationAndWait
+@   DialogueWait, ShowMessageAndWait
+@   ... and 2 more
+@ message id 0x2052; reads save bit 0x968; sets 0x968.
 .thumb_func_start OvlFunc_952_200849c
 	push	{r5, lr}
 	mov	r5, r1
@@ -143,6 +157,7 @@
 	bx	r0
 .func_end OvlFunc_952_200849c
 
+@ Talk: line 0x22a8, shown.
 .thumb_func_start OvlFunc_952_2008524
 	push	{r5, r6, lr}
 	ldr	r5, =0x22a8
@@ -172,6 +187,7 @@
 	bx	r0
 .func_end OvlFunc_952_2008524
 
+@ Talk: line 0x22ab, shown.
 .thumb_func_start OvlFunc_952_2008564
 	push	{r5, r6, lr}
 	ldr	r5, =0x22ab
@@ -201,6 +217,11 @@
 	bx	r0
 .func_end OvlFunc_952_2008564
 
+@ Cutscene: roughly 74 instructions of straight-line script --
+@ 1 turn, 2 animation changes, 3 dialogue lines, 6 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x2352.
+@ Sets save bit 0xf31.
 .thumb_func_start OvlFunc_952_20085a4
 	push	{r5, lr}
 	bl	__CutsceneStart
@@ -280,6 +301,10 @@
 	bx	r0
 .func_end OvlFunc_952_20085a4
 
+@ Cutscene: roughly 433 instructions of straight-line script --
+@ 11 turns, 19 animation changes, 9 dialogue lines, 34 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x2280.
 .thumb_func_start OvlFunc_952_2008674
 	push	{r5, r6, lr}
 	bl	__CutsceneStart
@@ -730,6 +755,12 @@
 	bx	r0
 .func_end OvlFunc_952_2008674
 
+@ Cutscene: roughly 496 instructions of straight-line script --
+@ 17 turns, 13 animation changes, 10 dialogue lines, 30 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1ffb.
+@ Reads save bit 0x96a.
+@ Sets save bit 0x96a.
 .thumb_func_start OvlFunc_952_2008af8
 	push	{r5, r6, lr}
 	mov	r0, #0
@@ -1250,6 +1281,11 @@
 	bx	r0
 .func_end OvlFunc_952_2008af8
 
+@ Cutscene: roughly 744 instructions of straight-line script --
+@ 6 turns, 24 animation changes, 42 dialogue lines, 100 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x2021.
+@ Sets save bit 0x96b.
 .thumb_func_start OvlFunc_952_2008ff8
 	push	{lr}
 	ldr	r0, =0x96b
@@ -2001,6 +2037,10 @@
 	bx	r0
 .func_end OvlFunc_952_2008ff8
 
+@ Cutscene: roughly 793 instructions of straight-line script --
+@ 25 turns, 25 animation changes, 20 dialogue lines, 74 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x228c.
 .thumb_func_start OvlFunc_952_20097e8
 	push	{r5, r6, r7, lr}
 	bl	__CutsceneStart
@@ -2816,6 +2856,11 @@
 	bx	r0
 .func_end OvlFunc_952_20097e8
 
+@ Cutscene: roughly 2805 instructions of straight-line script --
+@ 90 turns, 85 animation changes, 130 dialogue lines, 326 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x22c4.
+@ Reads save bit 0x951.
 .thumb_func_start OvlFunc_952_200a014
 	push	{r5, lr}
 	mov	r0, #0x1e
@@ -5669,6 +5714,15 @@
 	bx	r0
 .func_end OvlFunc_952_200a014
 
+@ 71 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, PlaySound, SetSlotEntitySpeed, SetSlotAnimation
+@   ResumeTileAnimationChannel, DialogueWait, MoveSlotBy, ResumeTileAnimationChannel
+@   DialogueWait, WalkSlotThroughDoorway, ResumeTileAnimationChannel, DialogueWait
+@   WalkSlotThroughDoorway, DialogueWait
+@   ... and 3 more
 .thumb_func_start OvlFunc_952_200bd40
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc

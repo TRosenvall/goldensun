@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 54 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSlotAnimation x3
 .thumb_func_start OvlFunc_943_200b558
 	push	{r5, lr}
 	ldr	r3, =.L5b40
@@ -62,6 +67,11 @@
 	bx	r0
 .func_end OvlFunc_943_200b558
 
+@ 128 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, ShareActorTiles x4, Sin x4
 .thumb_func_start OvlFunc_943_200b5ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -203,6 +213,9 @@
 	bx	r0
 .func_end OvlFunc_943_200b5ec
 
+@ Cutscene: roughly 224 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_943_200b710
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -435,6 +448,7 @@
 	bx	r0
 .func_end OvlFunc_943_200b710
 
+@ Map edit: 4 metatile copies and 1 attribute copy.
 .thumb_func_start OvlFunc_943_200b950
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -484,6 +498,7 @@
 	bx	r0
 .func_end OvlFunc_943_200b950
 
+@ Map edit: 1 metatile copy and 1 attribute copy.
 .thumb_func_start OvlFunc_943_200b9b8
 	push	{r5, lr}
 	sub	sp, #8

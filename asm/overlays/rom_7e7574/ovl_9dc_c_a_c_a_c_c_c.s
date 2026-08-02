@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Adjusts slot 0 (the player) directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x8, +0x10.
 .thumb_func_start OvlFunc_959_200981c
 	push	{r5, r6, lr}
 	bl	__MapActor_GetActor
@@ -55,6 +58,9 @@
 	bx	r1
 .func_end OvlFunc_959_200981c
 
+@ Adjusts slot 0 (the player) directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x8, +0x10.
 .thumb_func_start OvlFunc_959_2009880
 	push	{r5, r6, lr}
 	bl	__MapActor_GetActor

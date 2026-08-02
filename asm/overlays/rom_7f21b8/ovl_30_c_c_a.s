@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Slot 3: the read after slot 4.
+@ Chooses among .L1974, .L189c, .L1734
+@ on save bit 0x9a7 and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
 .thumb_func_start OvlFunc_967_2008084
 	push	{lr}
 	ldr	r3, =gState
@@ -27,6 +30,9 @@
 	bx	r1
 .func_end OvlFunc_967_2008084
 
+@ Counter: shop 0x20 via Func_b0278, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0x26e3, 0x28f0.
+@ Gated on save bit 0x9a7.
 .thumb_func_start OvlFunc_967_20080c8
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -91,6 +97,9 @@
 	bx	r0
 .func_end OvlFunc_967_20080c8
 
+@ Counter: shop 0x21 via Func_b0278, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0x26e7, 0x28f2.
+@ Gated on save bit 0x9a7.
 .thumb_func_start OvlFunc_967_200815c
 	push	{r5, lr}
 	mov	r5, r0
@@ -137,6 +146,9 @@
 	bx	r0
 .func_end OvlFunc_967_200815c
 
+@ Counter: shop 0x22 via Func_b0278, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0x26e9, 0x28f4.
+@ Gated on save bit 0x9a7.
 .thumb_func_start OvlFunc_967_20081c8
 	push	{r5, lr}
 	mov	r5, r0
@@ -183,6 +195,9 @@
 	bx	r0
 .func_end OvlFunc_967_20081c8
 
+@ Counter: shop type via UI_Sanctum, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0x26f6, 0x28fc.
+@ Gated on save bit 0x9a7.
 .thumb_func_start OvlFunc_967_2008234
 	push	{r5, lr}
 	mov	r5, r0
@@ -228,6 +243,9 @@
 	bx	r0
 .func_end OvlFunc_967_2008234
 
+@ Counter: INN 0xb via Func_b3284, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0x26eb, 0x28f6.
+@ Gated on save bit 0x9a7.
 .thumb_func_start OvlFunc_967_200829c
 	push	{r5, lr}
 	mov	r5, r0
@@ -274,6 +292,11 @@
 	bx	r0
 .func_end OvlFunc_967_200829c
 
+@ Cutscene: roughly 86 instructions of straight-line script --
+@ 1 turn, 2 animation changes, 4 dialogue lines, 8 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x26ec.
+@ Sets save bit 0x300.
 .thumb_func_start OvlFunc_967_2008308
 	push	{r5, lr}
 	mov	r0, #0

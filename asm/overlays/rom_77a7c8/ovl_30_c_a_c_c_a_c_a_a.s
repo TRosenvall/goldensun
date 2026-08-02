@@ -1,6 +1,16 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 210 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit x3, OvlFunc_39fc, SetSceneTargetA, OvlFunc_39fc
+@   SetSceneTargetA, BeginCutscene, FindAndConsumeWithNotify, SetPendingMessageId
+@   SetSaveBit, WaitFrames, SetCameraSpeed, ClearSaveBit
+@   RegisterTask, TestSaveBit
+@   ... and 28 more
+@ reads save bits 0x109, 0x234, 0x815, 0x85a, 0x85d; sets 0x11c, 0x144, 0x160, 0x161, 0x163; clears 0x12f.
 .thumb_func_start OvlFunc_881_20086ec
 	push	{r5, lr}
 	ldr	r3, =gState
@@ -322,6 +332,10 @@
 	bx	r1
 .func_end OvlFunc_881_20086ec
 
+@ Cutscene: roughly 151 instructions of straight-line script --
+@ 2 turns, 5 animation changes, 0 dialogue lines, 8 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x94f.
 .thumb_func_start OvlFunc_881_2008a8c
 	push	{lr}
 	bl	__CutsceneStart
@@ -479,6 +493,11 @@
 	bx	r0
 .func_end OvlFunc_881_2008a8c
 
+@ Cutscene: roughly 834 instructions of straight-line script --
+@ 31 turns, 11 animation changes, 13 dialogue lines, 27 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1215.
+@ Sets save bit 0x85a.
 .thumb_func_start OvlFunc_881_2008c28
 	push	{r5, r6, lr}
 	mov	r0, #0xf
@@ -1327,6 +1346,9 @@
 	bx	r0
 .func_end OvlFunc_881_2008c28
 
+@ Cutscene: roughly 103 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_881_200955c
 	push	{lr}
 	mov	r1, #1
@@ -1433,6 +1455,9 @@
 	bx	r0
 .func_end OvlFunc_881_200955c
 
+@ Cutscene: roughly 103 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_881_2009680
 	push	{lr}
 	mov	r1, #1
@@ -1539,6 +1564,13 @@
 	bx	r0
 .func_end OvlFunc_881_2009680
 
+@ 38 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, TestSaveBit, PlaySound, SetEntityAnimation
+@   SetSaveBit
+@ reads save bit 0x200; sets 0x200.
 .thumb_func_start OvlFunc_881_20097a4
 	push	{r5, lr}
 	mov	r0, #0xf
@@ -1581,6 +1613,15 @@
 	bx	r0
 .func_end OvlFunc_881_20097a4
 
+@ 45 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, MoveCameraTo, WaitFrames
+@   PlaceSlotAt, AttachCameraToSlot, ShowScreenOverlay, SetSlotEntitySpeed
+@   WalkSlotToAndWait, HideScreenOverlay, WaitSceneDelay, SetSaveBit
+@   SetPendingMessageId, EndCutscene
+@ sets 0x927.
 .thumb_func_start OvlFunc_881_20097fc
 	push	{r5, lr}
 	mov	r0, #8
@@ -1629,6 +1670,16 @@
 	bx	r0
 .func_end OvlFunc_881_20097fc
 
+@ 60 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, MoveCameraTo, WaitFrames
+@   PlaceSlotAt x2, WaitFrames, AttachCameraToSlot, ShowScreenOverlay
+@   SetSlotEntitySpeed, SetSlotScriptWithTurn, WaitFrames, HideScreenOverlay
+@   WaitSceneDelay, SetSaveBit
+@   ... and 2 more
+@ sets 0x927.
 .thumb_func_start OvlFunc_881_2009888
 	push	{r5, lr}
 	mov	r0, #8
@@ -1693,6 +1744,16 @@
 	bx	r0
 .func_end OvlFunc_881_2009888
 
+@ 60 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, MoveCameraTo, WaitFrames
+@   PlaceSlotAt x2, WaitFrames, AttachCameraToSlot, ShowScreenOverlay
+@   SetSlotEntitySpeed, SetSlotScriptWithTurn, WaitFrames, HideScreenOverlay
+@   WaitSceneDelay, SetSaveBit
+@   ... and 2 more
+@ sets 0x927.
 .thumb_func_start OvlFunc_881_2009938
 	push	{r5, lr}
 	mov	r0, #8
@@ -1757,6 +1818,16 @@
 	bx	r0
 .func_end OvlFunc_881_2009938
 
+@ 60 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, MoveCameraTo, WaitFrames
+@   PlaceSlotAt x2, WaitFrames, AttachCameraToSlot, ShowScreenOverlay
+@   SetSlotEntitySpeed, SetSlotScriptWithTurn, WaitFrames, HideScreenOverlay
+@   WaitSceneDelay, SetSaveBit
+@   ... and 2 more
+@ sets 0x927.
 .thumb_func_start OvlFunc_881_20099e8
 	push	{r5, lr}
 	mov	r0, #8
@@ -1821,6 +1892,16 @@
 	bx	r0
 .func_end OvlFunc_881_20099e8
 
+@ 67 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, MoveCameraTo, WaitFrames
+@   PlaceSlotAt x2, WaitFrames, AttachCameraToSlot, ShowScreenOverlay
+@   SetSlotEntitySpeed, OvlFunc_341c, SetSlotScriptWithTurn x2, WaitFrames
+@   HideScreenOverlay, WaitSceneDelay
+@   ... and 3 more
+@ sets 0x927.
 .thumb_func_start OvlFunc_881_2009a98
 	push	{r5, lr}
 	mov	r0, #8
@@ -1893,6 +1974,16 @@
 	bx	r0
 .func_end OvlFunc_881_2009a98
 
+@ 53 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, MoveCameraTo, WaitFrames
+@   PlaceSlotAt x2, WaitFrames, AttachCameraToSlot, ShowScreenOverlay
+@   SetSlotEntitySpeed, WalkSlotToAndWait, HideScreenOverlay, WaitSceneDelay
+@   SetSaveBit, ClearSaveBit
+@   ... and 2 more
+@ sets 0x93e; clears 0x927.
 .thumb_func_start OvlFunc_881_2009b5c
 	push	{r5, lr}
 	mov	r0, #8
@@ -1949,6 +2040,16 @@
 	bx	r0
 .func_end OvlFunc_881_2009b5c
 
+@ 49 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetCameraSceneMode, ScrollCameraBy, RestoreCameraToPlayer, IsCameraInSceneMode
+@   SetFollowerFormationAndRefresh, SetActiveMessageId, ShowMessageAndWait, DialogueWait
+@   PlaySound, RunLoadScreen, ClearSaveBit x2, Func_aa56c
+@   SetSlotFacingAndScript, SetActiveMessageId
+@   ... and 6 more
+@ message ids 0xc66, 0xc67; sets 0x171; clears 0x16f, 0x171.
 .thumb_func_start OvlFunc_881_2009c08
 	push	{lr}
 	bl	__Func_808c4c0
@@ -2001,6 +2102,12 @@
 	bx	r0
 .func_end OvlFunc_881_2009c08
 
+@ Cutscene: roughly 561 instructions of straight-line script --
+@ 0 turns, 8 animation changes, 22 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0xc4f, 0xc62, 0xc63, 0xc68.
+@ Reads save bit 0x16e.
+@ Sets save bits 0x16e, 0x16f, 0x171.
 .thumb_func_start OvlFunc_881_2009ca4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2593,6 +2700,9 @@
 	bx	r0
 .func_end OvlFunc_881_2009ca4
 
+@ Cutscene: roughly 177 instructions of straight-line script --
+@ 4 turns, 3 animation changes, 0 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_881_200a274
 	push	{r5, lr}
 	mov	r0, #0xa
@@ -2773,6 +2883,11 @@
 	bx	r0
 .func_end OvlFunc_881_200a274
 
+@ Cutscene: roughly 251 instructions of straight-line script --
+@ 7 turns, 0 animation changes, 6 dialogue lines, 7 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x263c, 0x2642.
+@ Sets save bits 0x234, 0x9bf.
 .thumb_func_start OvlFunc_881_200a4a8
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -3030,6 +3145,9 @@
 	bx	r0
 .func_end OvlFunc_881_200a4a8
 
+@ Leaf helper, 47 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x8, +0xc.
 .thumb_func_start OvlFunc_881_200a768
 	push	{r5, r6, r7, lr}
 	ldr	r4, =gOvl_0200e3f4
@@ -3085,6 +3203,9 @@
 	b	.L27ae
 .func_end OvlFunc_881_200a768
 
+@ Leaf helper, 30 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x4.
 .thumb_func_start OvlFunc_881_200a7dc
 	push	{r5, r6, r7, lr}
 	ldr	r0, =gOvl_0200e3f4
@@ -3121,6 +3242,8 @@
 	bx	r0
 .func_end OvlFunc_881_200a7dc
 
+@ Talk: line 0x2642, shown.
+@ Also turns to face the player, settles back to a resting angle.
 .thumb_func_start OvlFunc_881_200a81c
 	push	{lr}
 	bl	__CutsceneStart

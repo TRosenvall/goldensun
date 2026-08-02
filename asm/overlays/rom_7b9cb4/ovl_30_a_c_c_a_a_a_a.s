@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Leaf helper, 55 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_932_200820c
 	push	{lr}
 	ldr	r3, =gState
@@ -69,6 +72,15 @@
 	bx	r1
 .func_end OvlFunc_932_200820c
 
+@ 71 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, CloseMessageWindow, BeginCutscene, SetSlotAnimation
+@   DialogueWait, PlaySound, SetSlotEntitySpeed, SetSlotAnimation
+@   SetEntityMoveTarget, WaitFrames, WaitForSlotArrival, WaitFrames
+@   EndCutscene, PlaySound
+@   ... and 3 more
 .thumb_func_start OvlFunc_932_20082cc
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
@@ -146,6 +158,11 @@
 	bx	r0
 .func_end OvlFunc_932_20082cc
 
+@ 14 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSpawnPositionA, LoadMapByIdAndEntrance
 .thumb_func_start OvlFunc_932_2008388
 	push	{lr}
 	ldr	r3, =gState
@@ -163,6 +180,11 @@
 	bx	r0
 .func_end OvlFunc_932_2008388
 
+@ 14 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSpawnPositionA, LoadMapByIdAndEntrance
 .thumb_func_start OvlFunc_932_20083b4
 	push	{lr}
 	ldr	r3, =gState
@@ -180,6 +202,11 @@
 	bx	r0
 .func_end OvlFunc_932_20083b4
 
+@ 14 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSpawnPositionA, LoadMapByIdAndEntrance
 .thumb_func_start OvlFunc_932_20083e0
 	push	{lr}
 	ldr	r3, =gState
@@ -197,6 +224,12 @@
 	bx	r0
 .func_end OvlFunc_932_20083e0
 
+@ 49 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, CopyMapRectAttributes x3, SetEntityActorOptions, UpdateMapView
+@   WaitFrames
 .thumb_func_start OvlFunc_932_200840c
 	push	{r5, r6, r7, lr}
 	mov	r0, #0xa

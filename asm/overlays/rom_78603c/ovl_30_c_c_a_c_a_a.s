@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Talk: lines 0xf76, 0x11c4, shown.
+@ Which line is chosen by save bit 0x815.
+@ Also turns to face the player, settles back to a resting angle, re-forms the followers.
 .thumb_func_start OvlFunc_885_20080dc
 	push	{r5, lr}
 	bl	__CutsceneStart
@@ -59,6 +62,11 @@
 	bx	r0
 .func_end OvlFunc_885_20080dc
 
+@ Cutscene: roughly 777 instructions of straight-line script --
+@ 42 turns, 29 animation changes, 27 dialogue lines, 18 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0xfa6, 0xfb0, 0xfb1, 0xfb2.
+@ Reads save bit 0x801.
 .thumb_func_start OvlFunc_885_2008170
 	push	{r5, r6, lr}
 	ldr	r0, =0x801
@@ -857,6 +865,11 @@
 	bx	r0
 .func_end OvlFunc_885_2008170
 
+@ Cutscene: roughly 218 instructions of straight-line script --
+@ 6 turns, 13 animation changes, 2 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xfcc.
+@ Sets save bits 0x242, 0x801.
 .thumb_func_start OvlFunc_885_2008964
 	push	{r5, r6, lr}
 	bl	__CutsceneStart

@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 52 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, GetTerrainHeight, CopyMapRectAttributes x2, SetSaveBit
 .thumb_func_start OvlFunc_956_20085e0
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -58,6 +63,11 @@
 	bx	r0
 .func_end OvlFunc_956_20085e0
 
+@ 33 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetTileFlags
 .thumb_func_start OvlFunc_956_2008658
 	push	{r5, lr}
 	ldr	r3, =gState

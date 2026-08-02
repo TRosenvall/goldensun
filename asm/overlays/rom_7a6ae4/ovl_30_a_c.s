@@ -1,5 +1,6 @@
 	.include "macros.inc"
 
+@ Slot 1: edge-transition table, one per area.
 .thumb_func_start OvlFunc_920_2008040
 	push	{lr}
 	ldr	r3, =gState

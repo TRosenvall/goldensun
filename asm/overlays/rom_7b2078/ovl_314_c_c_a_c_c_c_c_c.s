@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Leaf helper, 24 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_926_200a574
 	push	{lr}
 	ldr	r1, =gState
@@ -30,6 +33,11 @@
 	bx	r1
 .func_end OvlFunc_926_200a574
 
+@ 70 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, Random x2, OvlFunc_common0_10c, SetSlotPalette x2
 .thumb_func_start OvlFunc_926_200a5b8
 	push	{r5, r6, r7, lr}
 	mov	r0, #0

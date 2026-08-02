@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ 67 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, DialogueWait, PlaySound x2, ResumeTileAnimationChannel x2
+@   DialogueWait, SetSlotEntitySpeed, SetSlotAnimation, MoveSlotBy
+@   WalkSlotThroughDoorway, DialogueWait, SetPendingMessageId, PauseTileAnimationChannel x2
+@   EndCutscene
 .thumb_func_start OvlFunc_938_2008184
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc
@@ -74,6 +82,11 @@
 	bx	r0
 .func_end OvlFunc_938_2008184
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_264
 .thumb_func_start OvlFunc_938_2008230
 	push	{lr}
 	ldr	r3, =iwram_3001ebc
@@ -94,6 +107,16 @@
 	bx	r1
 .func_end OvlFunc_938_2008230
 
+@ 94 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PauseTileAnimationChannel x2, TestSaveBit, GetSlotEntityChecked, TestSaveBit
+@   OvlFunc_1494, PlaceSlotAt, TestSaveBit, PlaceSlotAt
+@   GetSlotEntityChecked, TestSaveBit, CopyMapRectIndicesU, CopyMapRectAttributes
+@   UpdateMapView, WaitFrames
+@   ... and 3 more
+@ reads save bits 0x109, 0x321, 0x914, 0x915, 0x941.
 .thumb_func_start OvlFunc_938_2008264
 	push	{lr}
 	mov	r0, #1
@@ -197,6 +220,11 @@
 	bx	r0
 .func_end OvlFunc_938_2008264
 
+@ Cutscene: roughly 1649 instructions of straight-line script --
+@ 74 turns, 76 animation changes, 89 dialogue lines, 38 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1b21.
+@ Sets save bit 0x912.
 .thumb_func_start OvlFunc_938_2008360
 	push	{r5, r6, lr}
 	bl	__CutsceneStart
@@ -1871,6 +1899,11 @@
 	bx	r0
 .func_end OvlFunc_938_2008360
 
+@ 29 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TurnSlotToAngle x4, DialogueWait
 .thumb_func_start OvlFunc_938_200940c
 	push	{r5, lr}
 	mov	r1, #0xc0
@@ -1904,6 +1937,11 @@
 	bx	r0
 .func_end OvlFunc_938_200940c
 
+@ 29 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TurnSlotToAngle x4, DialogueWait
 .thumb_func_start OvlFunc_938_2009450
 	push	{r5, lr}
 	mov	r1, #0xc0
@@ -1937,6 +1975,11 @@
 	bx	r0
 .func_end OvlFunc_938_2009450
 
+@ Cutscene: roughly 550 instructions of straight-line script --
+@ 15 turns, 16 animation changes, 26 dialogue lines, 11 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x2588.
+@ Sets save bit 0x914.
 .thumb_func_start OvlFunc_938_2009494
 	push	{r5, r6, lr}
 	bl	__CutsceneStart

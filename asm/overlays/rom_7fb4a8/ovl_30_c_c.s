@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 39 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, OpenTextBoxAt, WaitFrames, AreMessageBoxesIdle
+@   RunPromptWithScratch, CloseWindow, WaitFrames, OpenTextBoxAt
+@   WaitFrames, AreMessageBoxesIdle, CloseWindow
 .thumb_func_start OvlFunc_971_20091bc
 	push	{r5, lr}
 	mov	r0, #0x55
@@ -47,6 +54,13 @@
 	bx	r1
 .func_end OvlFunc_971_20091bc
 
+@ 39 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, OpenTextBoxAt, WaitFrames, AreMessageBoxesIdle
+@   RunPromptWithScratch, CloseWindow, WaitFrames, OpenTextBoxAt
+@   WaitFrames, AreMessageBoxesIdle, CloseWindow
 .thumb_func_start OvlFunc_971_2009228
 	push	{r5, lr}
 	mov	r0, #0x55
@@ -93,6 +107,11 @@
 	bx	r1
 .func_end OvlFunc_971_2009228
 
+@ 32 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedRem, CopyMapRectIndicesU, SignedDiv, UpdateMapView
 .thumb_func_start OvlFunc_971_2009294
 	push	{r5, r6, r7, lr}
 	ldr	r3, =0x3e7
@@ -130,6 +149,12 @@
 	bx	r1
 .func_end OvlFunc_971_2009294
 
+@ Cutscene: roughly 392 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 1 dialogue line, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x2929, 0x2939, 0x293a, 0x293c.
+@ Reads save bits 0x173, 0x3e8.
+@ Sets save bits 0x304, 0x305.
 .thumb_func_start OvlFunc_971_20092e0
 	push	{r5, r6, r7, lr}
 	ldr	r3, =.L1f50

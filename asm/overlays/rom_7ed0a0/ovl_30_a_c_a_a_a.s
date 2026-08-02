@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ Slot 3: the read after slot 4.
+@ Chooses among .L38f4, .L3a74
+@ on the area/entrance id at ewram_240+0x1C0 or +0x1C2.
+@ The result is passed through Func_8b868 first, which tags the records
+@ whose position falls inside the active bounds.
 .thumb_func_start OvlFunc_964_20092e0
 	push	{r5, lr}
 	ldr	r3, =gState

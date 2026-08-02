@@ -1,6 +1,15 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 412 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetCameraSpeed, MoveCameraTo, WaitForCameraArrival
+@   RunTextBoxModal, PlaySound, PlaceSlotAt, CopyMapRectFull
+@   WaitFrames, CopyMapRectFull, WaitFrames, CopyMapRectFull
+@   WaitFrames, CopyMapRectFull
+@   ... and 46 more
 .thumb_func_start OvlFunc_916_20083f0
 	push	{r5, r6, lr}
 	sub	sp, #0xc
@@ -434,6 +443,9 @@
 	bx	r0
 .func_end OvlFunc_916_20083f0
 
+@ Cutscene: roughly 76 instructions of straight-line script --
+@ 0 turns, 5 animation changes, 0 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_916_20087e0
 	push	{r5, lr}
 	sub	sp, #8
@@ -517,6 +529,9 @@
 	.word	1
 .func_end OvlFunc_916_20087e0
 
+@ Cutscene: roughly 75 instructions of straight-line script --
+@ 0 turns, 5 animation changes, 0 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_916_20088b0
 	push	{r5, lr}
 	sub	sp, #8
@@ -599,6 +614,14 @@
 	.word	0
 .func_end OvlFunc_916_20088b0
 
+@ 101 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectFull, CopyMapRectAttributes x2, TestSaveBit, OvlFunc_a90
+@   OvlFunc_b3c, OvlFunc_194, SetSlotAnimation, GetSlotEntityChecked x2
+@   TestSaveBit, OvlFunc_e64
+@ reads save bits 0x109, 0x845.
 .thumb_func_start OvlFunc_916_2008980
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -712,6 +735,11 @@
 	bx	r1
 .func_end OvlFunc_916_2008980
 
+@ 82 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, SetEntityAnimation, SetEntityActorOptions, GetTerrainHeight
 .thumb_func_start OvlFunc_916_2008a90
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -801,6 +829,10 @@
 	bx	r0
 .func_end OvlFunc_916_2008a90
 
+@ Leaf helper, 38 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_10000
+@ Writes offsets +0x2.
 .thumb_func_start OvlFunc_916_2008b3c
 	push	{r5, r6, r7, lr}
 	mov	r2, #0
@@ -847,6 +879,14 @@
 	bx	r0
 .func_end OvlFunc_916_2008b3c
 
+@ FindRegionContaining
+@ r0 = an array of 0x0C-byte region records terminated by -1 in the first
+@ halfword, r1 = x, r2 = z. Returns the matching record, or 0.
+@
+@ Each record carries bounds in the halfwords at +0x02 and +0x04 with a flag at
+@ +0x06. The flag chooses WHICH AXIS gets a three-unit extension: zero extends
+@ the x span, non-zero extends the z span, so one record shape describes both a
+@ wide region and a tall one.
 .thumb_func_start OvlFunc_916_2008b8c
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -900,6 +940,10 @@
 	bx	r1
 .func_end OvlFunc_916_2008b8c
 
+@ Leaf helper, 32 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_10000, ewram_2c000
+@ Reads offsets +0x2, +0x3.
 .thumb_func_start OvlFunc_916_2008be4
 	push	{r5, r6, r7, lr}
 	ldr	r7, =gBuffer
@@ -941,6 +985,15 @@
 	bx	r1
 .func_end OvlFunc_916_2008be4
 
+@ 239 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, RotateVector, OvlFunc_b8c, RotateVector
+@   OvlFunc_be4, RotateVector, BeginCutscene, SetSlotAnimation
+@   DialogueWait, PlaySound, SetEntityAnimation, SetEntityMoveTarget
+@   DialogueWait, SetSlotAnimation
+@   ... and 11 more
 .thumb_func_start OvlFunc_916_2008c2c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1196,6 +1249,12 @@
 	bx	r0
 .func_end OvlFunc_916_2008c2c
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_f34, OvlFunc_ecc, OvlFunc_f74, OvlFunc_f54
+@   StartFadeOut
 .thumb_func_start OvlFunc_916_2008e64
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
@@ -1244,6 +1303,11 @@
 	bx	r0
 .func_end OvlFunc_916_2008e64
 
+@ 47 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv x3
 .thumb_func_start OvlFunc_916_2008ecc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

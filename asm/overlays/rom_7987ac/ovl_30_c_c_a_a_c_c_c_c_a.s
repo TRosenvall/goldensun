@@ -1,5 +1,15 @@
 	.include "macros.inc"
 
+@ TalkInventoryGate
+@ Takes no arguments. Slot 0x12, and the only handler here that inspects the
+@ party rather than a save bit.
+@
+@ Line 0x137C before save bit 0x85B, 0x1385 after. If the player declines the
+@ prompt, the count at [iwram_1ebc]+0x1D8 is incremented and the villager plays
+@ animation 3. If they accept, Func_78500 counts the party's inventory: a zero
+@ count gets animation 4 and the consolation line 0x1384, a non-zero count runs
+@ Func_8f1c0 and Func_91a58 with 0xE7 -- the hand-over -- and sets 0x85B so it
+@ cannot be repeated.
 .thumb_func_start OvlFunc_902_2008204
 	push	{lr}
 	bl	__CutsceneStart

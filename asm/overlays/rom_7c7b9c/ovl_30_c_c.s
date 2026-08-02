@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 224 instructions of straight-line script --
+@ 7 turns, 4 animation changes, 0 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1f23.
 .thumb_func_start OvlFunc_943_200ba0c
 	push	{r5, r6, lr}
 	bl	__CutsceneStart
@@ -227,6 +231,11 @@
 	bx	r0
 .func_end OvlFunc_943_200ba0c
 
+@ Cutscene: roughly 256 instructions of straight-line script --
+@ 4 turns, 5 animation changes, 1 dialogue line, 4 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x1f53, 0x1f55, 0x1f5b.
+@ Sets save bit 0x903.
 .thumb_func_start OvlFunc_943_200bc88
 	push	{r5, r6, lr}
 	bl	__CutsceneStart
@@ -491,6 +500,10 @@
 	bx	r0
 .func_end OvlFunc_943_200bc88
 
+@ Cutscene: roughly 271 instructions of straight-line script --
+@ 9 turns, 6 animation changes, 2 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1f69.
 .thumb_func_start OvlFunc_943_200bf30
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -767,6 +780,12 @@
 	bx	r0
 .func_end OvlFunc_943_200bf30
 
+@ 25 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   MoveCameraTo, UpdateMapView, PlaceSlotAt, GetSlotEntityChecked
+@   WaitFrames
 .thumb_func_start OvlFunc_943_200c218
 	push	{lr}
 	mov	r0, #0xe8

@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ 89 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, WaitFrames, Cos, Sin
+@   PlaySound, OvlFunc_common0_10c x3
 .thumb_func_start OvlFunc_926_2008bf4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -93,6 +99,12 @@
 	bx	r0
 .func_end OvlFunc_926_2008bf4
 
+@ 91 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, WaitFrames, Cos, Sin
+@   PlaySound, OvlFunc_common0_10c x3
 .thumb_func_start OvlFunc_926_2008cd4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -188,6 +200,11 @@
 	bx	r0
 .func_end OvlFunc_926_2008cd4
 
+@ 90 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, WaitFrames, PlaySound, OvlFunc_common0_10c x4
 .thumb_func_start OvlFunc_926_2008db4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -282,6 +299,11 @@
 	bx	r0
 .func_end OvlFunc_926_2008db4
 
+@ 100 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, WaitFrames, PlaySound, OvlFunc_common0_10c x4
 .thumb_func_start OvlFunc_926_2008e94
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -386,6 +408,12 @@
 	bx	r0
 .func_end OvlFunc_926_2008e94
 
+@ 69 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, WalkSlotToAndWait x5, TurnSlotToAngle, WalkSlotToAndWait
+@   TurnSlotToAngle
 .thumb_func_start OvlFunc_926_2008f80
 	push	{lr}
 	mov	r0, #0
@@ -463,6 +491,10 @@
 	bx	r0
 .func_end OvlFunc_926_2008f80
 
+@ Cutscene: roughly 111 instructions of straight-line script --
+@ 1 turn, 2 animation changes, 4 dialogue lines, 5 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x183a, 0x18ac, 0x18ae.
 .thumb_func_start OvlFunc_926_200902c
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -579,6 +611,11 @@
 	bx	r0
 .func_end OvlFunc_926_200902c
 
+@ Cutscene: roughly 141 instructions of straight-line script --
+@ 1 turn, 3 animation changes, 5 dialogue lines, 7 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x187a.
+@ Sets save bit 0x301.
 .thumb_func_start OvlFunc_926_2009160
 	push	{lr}
 	mov	r0, #0xd

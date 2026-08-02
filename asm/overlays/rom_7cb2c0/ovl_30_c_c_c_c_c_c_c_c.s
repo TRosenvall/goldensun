@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 428 instructions of straight-line script --
+@ 25 turns, 5 animation changes, 2 dialogue lines, 6 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1ec1.
+@ Sets save bits 0x11a, 0x302.
 .thumb_func_start OvlFunc_945_200d7ec
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -431,6 +436,11 @@
 	bx	r0
 .func_end OvlFunc_945_200d7ec
 
+@ 37 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetMapTransition, Random, PlaySound, SetMapTransition
 .thumb_func_start OvlFunc_945_200dc48
 	push	{r5, lr}
 	ldr	r5, =.L7f84
@@ -473,6 +483,13 @@
 	bx	r0
 .func_end OvlFunc_945_200dc48
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_48e8, OvlFunc_4890, OvlFunc_48e8
+@   SetFollowerFormationAndRefresh, DialogueWait, TurnSlotToAngle x2, SetSlotAnimationAndWait
+@   DialogueWait, OvlFunc_48e8
 .thumb_func_start OvlFunc_945_200dca4
 	push	{lr}
 	bl	__CutsceneStart
@@ -519,6 +536,12 @@
 	bx	r0
 .func_end OvlFunc_945_200dca4
 
+@ Cutscene: roughly 397 instructions of straight-line script --
+@ 11 turns, 2 animation changes, 0 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x1f29, 0x1f2d.
+@ Reads save bits 0x92c, 0x92d, 0x92f, 0x933.
+@ Sets save bit 0x8a0.
 .thumb_func_start OvlFunc_945_200dd10
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -931,6 +954,10 @@
 	bx	r0
 .func_end OvlFunc_945_200dd10
 
+@ Cutscene: roughly 257 instructions of straight-line script --
+@ 9 turns, 13 animation changes, 0 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1f78.
 .thumb_func_start OvlFunc_945_200e110
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1191,6 +1218,12 @@
 	bx	r0
 .func_end OvlFunc_945_200e110
 
+@ 52 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, ClearSaveBit, TestSaveBit, ClearSaveBit
+@   SetSaveBit x2
 .thumb_func_start OvlFunc_945_200e3ac
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

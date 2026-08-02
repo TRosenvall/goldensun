@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ 65 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, BeginCutscene, GetSlotEntityChecked x3, CopyMapRectIndicesU
+@   PlaySound, PlayMapRectAnimation, CopyMapRectAttributes, SetSaveBit
+@   EndCutscene
+@ sets 0x878.
 .thumb_func_start OvlFunc_924_2009bf0
 	push	{r5, r6, lr}
 	mov	r0, #8
@@ -71,6 +79,14 @@
 	bx	r0
 .func_end OvlFunc_924_2009bf0
 
+@ 61 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, GetSlotEntityChecked x2, BeginCutscene, SetSaveBit
+@   DialogueWait, GetSlotEntityChecked x3, CopyMapRectIndicesU, PlaySound
+@   PlayMapRectAnimation, EndCutscene
+@ reads save bit 0x256; sets 0x256.
 .thumb_func_start OvlFunc_924_2009c9c
 	push	{r5, lr}
 	ldr	r0, =0x256
@@ -136,6 +152,14 @@
 	bx	r0
 .func_end OvlFunc_924_2009c9c
 
+@ 44 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, BeginCutscene, ClearSaveBit, GetSlotEntityChecked x3
+@   DialogueWait, CopyMapRectIndicesU, PlaySound, PlayMapRectAnimation
+@   EndCutscene
+@ reads save bit 0x256; clears 0x256.
 .thumb_func_start OvlFunc_924_2009d3c
 	push	{r5, lr}
 	ldr	r0, =0x256

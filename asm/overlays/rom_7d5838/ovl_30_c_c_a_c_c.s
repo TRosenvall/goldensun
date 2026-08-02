@@ -1,5 +1,6 @@
 	.include "macros.inc"
 
+@ Talk: line 0x1FBB, asked as a yes/no.
 .thumb_func_start OvlFunc_950_2008760
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -33,6 +34,11 @@
 	bx	r0
 .func_end OvlFunc_950_2008760
 
+@ TalkTwoBits
+@ Takes no arguments. The one handler here that writes state: lines 0x2399,
+@ 0x239C and 0x239D are selected by save bits 0x8BD and 0x8BE, and answering
+@ the prompt sets one of them -- so this villager tracks two independent
+@ things the player has told them.
 .thumb_func_start OvlFunc_950_20087b0
 	push	{r5, r6, lr}
 	mov	r6, r0

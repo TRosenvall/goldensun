@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 159 instructions of straight-line script --
+@ 0 turns, 2 animation changes, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x860, 0x861, 0x862, 0x863.
+@ Sets save bit 0x144.
 .thumb_func_start OvlFunc_903_20084f4
 	push	{r5, lr}
 	mov	r0, #0xa2
@@ -167,6 +172,12 @@
 	bx	r1
 .func_end OvlFunc_903_20084f4
 
+@ Cutscene: roughly 626 instructions of straight-line script --
+@ 21 turns, 23 animation changes, 6 dialogue lines, 44 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x138f.
+@ Reads save bit 0x855.
+@ Sets save bit 0x865.
 .thumb_func_start OvlFunc_903_200867c
 	push	{lr}
 	sub	sp, #8
@@ -807,6 +818,13 @@
 	bx	r0
 .func_end OvlFunc_903_200867c
 
+@ 42 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked, OvlFunc_dd8, GetSlotEntityChecked
+@   CopyMapRectAttributes x2, SetSaveBit, EndCutscene
+@ sets 0x860.
 .thumb_func_start OvlFunc_903_2008d04
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -853,6 +871,12 @@
 	bx	r0
 .func_end OvlFunc_903_2008d04
 
+@ 22 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   ApplyRevealToScene, SetAbilityTarget, FinishFieldAbility, DispatchRideUpdate
+@   ClearCasterHook
 .thumb_func_start OvlFunc_903_2008d68
 	push	{r5, lr}
 	ldr	r3, =iwram_3001f30

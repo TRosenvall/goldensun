@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 49 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, CopyMapRectAttributes x3, OvlFunc_b68 x2
 .thumb_func_start OvlFunc_942_2008af8
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -52,6 +57,11 @@
 	bx	r0
 .func_end OvlFunc_942_2008af8
 
+@ 23 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, SetEntityActorOptions, SetSlotDrawPriority
 .thumb_func_start OvlFunc_942_2008b68
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -78,6 +88,10 @@
 	bx	r0
 .func_end OvlFunc_942_2008b68
 
+@ Cutscene: roughly 255 instructions of straight-line script --
+@ 10 turns, 4 animation changes, 4 dialogue lines, 19 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1f89.
 .thumb_func_start OvlFunc_942_2008ba0
 	push	{lr}
 	bl	__CutsceneStart
@@ -339,6 +353,11 @@
 	bx	r0
 .func_end OvlFunc_942_2008ba0
 
+@ Cutscene: roughly 654 instructions of straight-line script --
+@ 17 turns, 8 animation changes, 18 dialogue lines, 55 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x23eb.
+@ Sets save bit 0x8ab.
 .thumb_func_start OvlFunc_942_2008e40
 	push	{r5, r6, lr}
 	mov	r6, r10

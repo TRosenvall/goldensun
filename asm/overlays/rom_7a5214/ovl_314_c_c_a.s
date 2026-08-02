@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Cutscene: roughly 236 instructions of straight-line script --
+@ 4 turns, 2 animation changes, 5 dialogue lines, 4 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x14ce.
+@ Reads save bit 0x3.
 .thumb_func_start OvlFunc_918_200869c
 	push	{r5, r6, lr}
 	mov	r0, #3
@@ -244,6 +249,12 @@
 	bx	r0
 .func_end OvlFunc_918_200869c
 
+@ Cutscene: roughly 588 instructions of straight-line script --
+@ 14 turns, 11 animation changes, 20 dialogue lines, 17 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x14d3, 0x14dd, 0x14df.
+@ Reads save bit 0x3.
+@ Sets save bit 0x844.
 .thumb_func_start OvlFunc_918_2008918
 	push	{r5, r6, r7, lr}
 	mov	r0, #3
@@ -843,6 +854,13 @@
 	bx	r0
 .func_end OvlFunc_918_2008918
 
+@ 71 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, OvlFunc_918, WaitFrames, TestSaveBit
+@   CopyMapRectFull x2, CopyMapRectAttributes x2, CopyMapRectFull, CopyMapRectAttributes
+@ reads save bits 0x109, 0x844.
 .thumb_func_start OvlFunc_918_2008f58
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -920,6 +938,11 @@
 	bx	r0
 .func_end OvlFunc_918_2008f58
 
+@ Cutscene: roughly 196 instructions of straight-line script --
+@ 0 turns, 1 animation change, 0 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x844.
+@ Sets save bits 0x201, 0x20d, 0x20f, 0x213.
 .thumb_func_start OvlFunc_918_2009004
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

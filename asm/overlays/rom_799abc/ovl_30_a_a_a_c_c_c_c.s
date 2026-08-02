@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ StampPlayerFootprintSolid
+@ Mark a log's cells solid on map entry.
+@ Byte-identical to OvlFunc_8c0 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
+@ Here .L15ac is the six footprints, .L1594 is the six pushable model ids.
 .thumb_func_start OvlFunc_905_20088c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -145,6 +150,11 @@
 	bx	r1
 .func_end OvlFunc_905_20088c0
 
+@ 15 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlayInteractionEffect, SetSlotFacingAndScript, LoadMapByName
 .thumb_func_start OvlFunc_905_20089dc
 	push	{lr}
 	mov	r1, #0x80
@@ -163,6 +173,9 @@
 	bx	r0
 .func_end OvlFunc_905_20089dc
 
+@ Leaf helper, 44 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x8, +0xc, +0x10, +0x38, +0x3c, +0x40.
 .thumb_func_start OvlFunc_905_2008a00
 	push	{lr}
 	mov	r3, r0

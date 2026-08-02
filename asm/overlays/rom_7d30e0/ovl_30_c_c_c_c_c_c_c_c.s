@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Cutscene: roughly 64 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_948_2009edc
 	push	{r5, lr}
 	mov	r0, #0
@@ -74,6 +77,11 @@
 	bx	r0
 .func_end OvlFunc_948_2009edc
 
+@ 35 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_2188, OvlFunc_2290, OvlFunc_2334
 .thumb_func_start OvlFunc_948_2009f78
 	push	{r5, lr}
 	ldr	r3, =iwram_3001ebc
@@ -115,6 +123,14 @@
 	bx	r1
 .func_end OvlFunc_948_2009f78
 
+@ 73 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, PlaceSlotAt, TestSaveBit, PlaceSlotAt
+@   TestSaveBit, PlaceSlotAt, TestSaveBit, PlaceSlotAt
+@   OvlFunc_20c4 x2
+@ reads save bits 0xee7, 0xee8, 0xee9, 0xeea.
 .thumb_func_start OvlFunc_948_2009fd8
 	push	{lr}
 	ldr	r2, =.L2f80
@@ -216,6 +232,12 @@
 	bx	r0
 .func_end OvlFunc_948_2009fd8
 
+@ 83 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, galloc_iwram, SetPortraitPointer, AllocObjTiles
+@   Func_2dd8, FreePart
 .thumb_func_start OvlFunc_948_200a0c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -309,6 +331,16 @@
 	bx	r0
 .func_end OvlFunc_948_200a0c4
 
+@ 91 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   WaitFrames, OvlFunc_20c4 x5, TestSaveBit, PlaceSlotAt
+@   TestSaveBit, PlaceSlotAt, TestSaveBit, PlaceSlotAt
+@   TestSaveBit, PlaceSlotAt, TestSaveBit, OvlFunc_f40
+@   TestSaveBit, OvlFunc_f40
+@   ... and 6 more
+@ reads save bits 0x9c0, 0x9c1, 0x9c2, 0x9c3, 0x9c4.
 .thumb_func_start OvlFunc_948_200a188
 	push	{lr}
 	mov	r0, #1
@@ -412,6 +444,11 @@
 	bx	r0
 .func_end OvlFunc_948_200a188
 
+@ 55 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x9, RegisterTask x3
 .thumb_func_start OvlFunc_948_200a290
 	push	{r5, lr}
 	mov	r0, #8
@@ -470,6 +507,10 @@
 	bx	r0
 .func_end OvlFunc_948_200a290
 
+@ Cutscene: roughly 108 instructions of straight-line script --
+@ 0 turns, 2 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x200, 0x9c8, 0x9c9.
 .thumb_func_start OvlFunc_948_200a334
 	push	{r5, lr}
 	mov	r0, #0xe

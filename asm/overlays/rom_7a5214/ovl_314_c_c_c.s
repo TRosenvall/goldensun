@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 220 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv x9, Random
 .thumb_func_start OvlFunc_918_2009244
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -244,6 +249,9 @@
 	bx	r0
 .func_end OvlFunc_918_2009244
 
+@ Cutscene: roughly 126 instructions of straight-line script --
+@ 0 turns, 25 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_918_2009424
 	push	{lr}
 	cmp	r0, #0xc
@@ -402,6 +410,11 @@
 	bx	r0
 .func_end OvlFunc_918_2009424
 
+@ 58 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RotateVector, FreeObjTiles, DestroyEntity
 .thumb_func_start OvlFunc_918_20095ac
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -466,6 +479,12 @@
 	bx	r0
 .func_end OvlFunc_918_20095ac
 
+@ 110 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv, PlaySound, SpawnEntity, ValidateRidePair
+@   SetEntityActorOptions, SetEntityAnimation, UnsignedDiv x2, PlaySound
 .thumb_func_start OvlFunc_918_200962c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

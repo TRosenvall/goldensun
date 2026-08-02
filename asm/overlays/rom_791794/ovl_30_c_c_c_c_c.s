@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 354 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   galloc_ewram, Random x3, UnsignedDiv x3, Sin x2
+@   Cos
 .thumb_func_start OvlFunc_897_200b01c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -381,6 +387,11 @@
 	bx	r0
 .func_end OvlFunc_897_200b01c
 
+@ 85 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   galloc_ewram, GetSlotEntityChecked x2, SetEntityActorPriority, RegisterTask
 .thumb_func_start OvlFunc_897_200b30c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

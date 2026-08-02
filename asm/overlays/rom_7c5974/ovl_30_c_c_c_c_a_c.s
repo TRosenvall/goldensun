@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ Slot 0: map-load entry.
+@
+@ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x209. Arriving by
+@ entrance 0x0A clears save bit 0x12F and writes ewram_240+0x1C4 = 0x69 and
+@ +0x1C6 = 0x0A -- staging a destination for a later transition.
+@
+@ Always resets slots 0x17, 0x18 and 0x19 with Func_c528, so those three
+@ objects start each visit in their default state.
 .thumb_func_start OvlFunc_940_20083dc
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_3001ebc

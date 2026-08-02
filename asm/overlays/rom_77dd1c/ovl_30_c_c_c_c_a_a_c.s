@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ Cutscene: roughly 132 instructions of straight-line script --
+@ 1 turn, 9 animation changes, 3 dialogue lines, 9 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0xed1, 0xed2.
+@ Reads save bit 0x305.
+@ Sets save bit 0x305.
 .thumb_func_start OvlFunc_882_200be48
 	push	{r5, r6, lr}
 	mov	r0, #0
@@ -143,6 +149,11 @@
 	bx	r0
 .func_end OvlFunc_882_200be48
 
+@ Cutscene: roughly 116 instructions of straight-line script --
+@ 3 turns, 2 animation changes, 3 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xed3.
+@ Sets save bit 0x842.
 .thumb_func_start OvlFunc_882_200bfb0
 	push	{lr}
 	bl	__CutsceneStart
@@ -262,6 +273,7 @@
 	bx	r0
 .func_end OvlFunc_882_200bfb0
 
+@ Map edit: 8 metatile copies and 7 attribute copies.
 .thumb_func_start OvlFunc_882_200c0f0
 	push	{r5, r6, lr}
 	mov	r6, r10

@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ 33 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, TestSaveBit x2, SetActiveMessageId, OvlFunc_354
+@   DialogueWait, OvlFunc_463c, SetSaveBit, SetActiveMessageId x2
+@   OvlFunc_354, EndCutscene
+@ message ids 0x1250, 0x1276, 0x1278; reads save bits 0x851, 0x856; sets 0x851.
 .thumb_func_start OvlFunc_899_200852c
 	push	{lr}
 	bl	__CutsceneStart

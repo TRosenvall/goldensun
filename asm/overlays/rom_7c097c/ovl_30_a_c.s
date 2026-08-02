@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 49 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random, SetEntityAnimation x2, Random x2
 .thumb_func_start OvlFunc_936_2008040
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -58,6 +63,11 @@
 	bx	r1
 .func_end OvlFunc_936_2008040
 
+@ 30 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random x2
 .thumb_func_start OvlFunc_936_20080ac
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -93,6 +103,9 @@
 	bx	r1
 .func_end OvlFunc_936_20080ac
 
+@ Leaf helper, 40 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_936_20080ec
 	push	{lr}
 	ldr	r3, =gState

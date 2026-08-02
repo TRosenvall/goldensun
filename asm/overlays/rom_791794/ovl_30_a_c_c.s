@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Cutscene: roughly 1318 instructions of straight-line script --
+@ 63 turns, 25 animation changes, 41 dialogue lines, 32 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x10cd, 0x10d6, 0x10d7, 0x10d8.
+@ Sets save bit 0x246.
 .thumb_func_start OvlFunc_897_2008054
 	push	{r5, r6, r7, lr}
 	ldr	r5, =iwram_3001ec4
@@ -1335,6 +1340,14 @@
 	bx	r0
 .func_end OvlFunc_897_2008054
 
+@ 101 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, WalkSlotToAndWait, TurnSlotToAngle, DialogueWait
+@   PlaceSlotAt, GetSlotEntityChecked x2, SetEntityActorOptions, SetSlotPalette
+@   PlaySound, DialogueWait, PlaySound, DialogueWait
+@   PlaceSlotAt x2
 .thumb_func_start OvlFunc_897_2008e30
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

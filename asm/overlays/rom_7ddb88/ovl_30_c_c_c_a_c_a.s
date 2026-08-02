@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 103 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, BeginCutscene, SetEntityMoveTarget, SetEntityAnimation
+@   SetEntityMoveTarget, SetEntityAnimation x2, PlaySound, WaitForEntityIdle
+@   PlaySound, SetEntityAnimation, EndCutscene
 .thumb_func_start OvlFunc_955_2008310
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -110,6 +117,12 @@
 	bx	r0
 .func_end OvlFunc_955_2008310
 
+@ 83 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, OvlFunc_310, CopyMapRectAttributes, GetSlotEntityChecked
+@   CopyMapRectAttributes, GetSlotEntityChecked, CopyMapRectAttributes
 .thumb_func_start OvlFunc_955_2008400
 	push	{r5, r6, r7, lr}
 	ldr	r3, =gState
@@ -200,6 +213,15 @@
 	bx	r0
 .func_end OvlFunc_955_2008400
 
+@ 148 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, BeginCutscene, SetSlotAnimation, DialogueWait
+@   SetEntityAnimation, SetEntityMoveTarget, DialogueWait, SetSlotAnimation
+@   galloc_ewram, StartBehaviour_135f0, SetSlotEntitySpeed, SetEntityAnimation
+@   SetEntityMoveTarget, PlaySound
+@   ... and 7 more
 .thumb_func_start OvlFunc_955_20084c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -355,6 +377,12 @@
 	bx	r0
 .func_end OvlFunc_955_20084c0
 
+@ 49 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, GetSlotEntityChecked, CopyMapRectAttributes, GetSlotEntityChecked
+@   CopyMapRectAttributes, GetSlotEntityChecked, CopyMapRectAttributes
 .thumb_func_start OvlFunc_955_200862c
 	push	{r5, lr}
 	sub	sp, #8

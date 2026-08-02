@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 36 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, RunSlotEffectSequence, SetEntityAnimation, SetEntityMoveTarget
+@   WaitForEntityIdle
 .thumb_func_start OvlFunc_956_2008ad4
 	push	{r5, r6, lr}
 	ldr	r6, =gState
@@ -40,6 +46,12 @@
 	bx	r0
 .func_end OvlFunc_956_2008ad4
 
+@ 46 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetEntityAnimation, SetEntityMoveTarget, WaitForEntityIdle
+@   RunSlotEffectSequence, PlayLevitateSequence
 .thumb_func_start OvlFunc_956_2008b30
 	push	{r5, r6, lr}
 	ldr	r3, =gState

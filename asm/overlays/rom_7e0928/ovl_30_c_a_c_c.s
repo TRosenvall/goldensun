@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ 35 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_6a4 x4
 .thumb_func_start OvlFunc_956_2008714
 	push	{r5, r6, lr}
 	ldr	r3, =0xffe80000
@@ -42,6 +47,16 @@
 	bx	r1
 .func_end OvlFunc_956_2008714
 
+@ 290 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, RotateVector, OvlFunc_714 x2, CopyMapRectAttributes x2
+@   BeginCutscene, SetSlotAnimation, DialogueWait, SetEntityAnimation
+@   SetEntityMoveTarget, DialogueWait, SetSlotAnimation, galloc_ewram
+@   StartBehaviour_135f0, SetSlotEntitySpeed
+@   ... and 21 more
+@ sets 0x369.
 .thumb_func_start OvlFunc_956_200876c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

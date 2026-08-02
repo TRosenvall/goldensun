@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 36 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random, SetActorPartsPalette x2
 .thumb_func_start OvlFunc_913_20089fc
 	push	{r5, r6, lr}
 	mov	r5, r0

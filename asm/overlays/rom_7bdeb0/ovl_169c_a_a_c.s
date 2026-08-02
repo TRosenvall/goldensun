@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, TestSaveBit, OvlFunc_1938, CopyMapRectAttributes
+@   OvlFunc_1938, CopyMapRectAttributes
+@ reads save bit 0x301.
 .thumb_func_start OvlFunc_934_2009770
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -48,6 +55,12 @@
 	bx	r0
 .func_end OvlFunc_934_2009770
 
+@ 95 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, BeginCutscene, SetEntityMoveTarget, SetEntityAnimation
+@   SetEntityMoveTarget, SetEntityAnimation x2, WaitForEntityIdle, EndCutscene
 .thumb_func_start OvlFunc_934_20097d8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
