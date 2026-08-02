@@ -653,3 +653,51 @@ sources -- or with this gate absent -- would behave exactly as the ROM does.
 Modern `arm-none-eabi-gcc` emits the form freely at every optimisation level,
 confirming it is standard ARM-backend behaviour that this 2000-05-12 snapshot
 happened not to reach.
+
+## Why rom_f9000 needs a second compiler
+
+`rom_f9000` is the stock m4a ("Sappy" / MKS4AGB) audio engine — Nintendo's
+library, shipped in the SDK as a **prebuilt object** and statically linked. It
+is not code Camelot compiled.
+
+That is not a guess. The two compilers allocate registers in opposite order,
+and the ROM contains both signatures:
+
+| compiler | `REG_ALLOC_ORDER` | allocates first |
+|---|---|---|
+| agbcc (GCC 2.9) | not defined → GCC's ascending default | **r0** |
+| gcc-2.96 | `{3, 2, 1, 0, 12, 14, ...}` in `config/arm/arm.h` | **r3** |
+
+gcc-2.95 reversed the ARM order. So:
+
+- the m4a functions allocate **r0-first** → built by a 2.9-era compiler
+- Camelot's own code allocates **r3-first** → built by gcc-2.96
+
+Two allocators in one binary means two compilers, which is exactly what
+"statically linked prebuilt library" predicts.
+
+### It cannot be worked around
+
+Tested on `Func_fb6ec`, which differs from the ROM only in this one register:
+
+- four C formulations (pointer arithmetic, array indexing, explicit temporary,
+  integer cast) — all produce r3
+- with and without `-fcall-used-r4` — no change
+- at `-O1` and `-O2` — no change
+
+The instruction sequence is otherwise identical. There is no C input that makes
+gcc-2.96 emit gcc-2.9's allocation.
+
+### So there are two honest options
+
+**Keep `old_agbcc` for that one TU** (current). Nine more functions expressed as
+C, at the cost of a second compiler in the build. The second compiler is
+principled rather than a hack: it is the compiler that actually produced those
+bytes.
+
+**Or keep m4a as assembly.** One compiler, nine fewer C functions, and arguably
+the more accurate representation — Camelot never had this as source either.
+`rom_f9000/src/f_x_rom_fb6ec.c` would revert to its `.s`.
+
+Neither is wrong. The build currently does the first, matching the structure
+Coaltergeist's decomp uses, which keeps contribution simpler.
