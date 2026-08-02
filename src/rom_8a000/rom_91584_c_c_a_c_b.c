@@ -25,6 +25,9 @@ void MapActor_TravelTo(unsigned int param_1, int param_2, int param_3) {
         _Actor_TravelTo((int)actor, param_2 << 16, *(int *)(actor + 0xc), param_3 << 16);
     }
 }
+/* r0=slot, r1=x, r2=z. Func_92128 followed by _Func_ca6c, so the call blocks
+ * until the entity arrives (or the 600-frame timeout fires).
+ */
 void Func_8092158(int actorID, int arg1, int arg2) {
     unsigned char *actor;
 
@@ -36,6 +39,9 @@ void Func_8092158(int actorID, int arg1, int arg2) {
         _Actor_WaitMovement((int)actor);
     }
 }
+/* r0=slot, r1=x, r2=z. Func_92128 with the walk animation (2) selected first,
+ * so the entity is animated while it travels. Does not wait.
+ */
 void Func_809218c(int actorID, int arg1, int arg2) {
     unsigned char *actor;
 
@@ -47,6 +53,9 @@ void Func_809218c(int actorID, int arg1, int arg2) {
         _Actor_TravelTo((int)actor, arg1 << 16, *(int *)(actor + 0xc), arg2 << 16);
     }
 }
+/* r0=slot, r1=x, r2=z. The complete scripted walk: select animation 2, move,
+ * block on _Func_ca6c until arrival, then return to the idle animation 1.
+ */
 void Func_80921c4(int actorID, int arg1, int arg2) {
     unsigned char *actor;
 

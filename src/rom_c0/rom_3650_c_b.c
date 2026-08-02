@@ -56,30 +56,86 @@ void SetRegAnimDest(void *dest, const void *src) {
     ScheduleDmaTransfer(dest, src, 0x20000);
 }
 
+/* r0.. = allocation parameters. One of nine adjacent, near-identical routines
+ * (.gcc2_compiled...Func_3a3c) that reserve OBJ tile space, each 31 lines and each
+ * differing only in which size class or bank it serves. They push their
+ * transfers onto the HBlank register queue at ewram_2090 under an REG_IME guard;
+ * that queue holds 0x20 entries of 12 bytes, {value, register, control}, with
+ * the count in its leading halfword.
+ * This is the same queue rom_b5000's Func_be378 writes to directly.
+ */
 void Func_80038bc(void *dest, const void *src) {
     ScheduleDmaTransfer(dest, src, 0x30000);
 }
 
+/* r0.. = allocation parameters. One of nine adjacent, near-identical routines
+ * (.gcc2_compiled...Func_3a3c) that reserve OBJ tile space, each 31 lines and each
+ * differing only in which size class or bank it serves. They push their
+ * transfers onto the HBlank register queue at ewram_2090 under an REG_IME guard;
+ * that queue holds 0x20 entries of 12 bytes, {value, register, control}, with
+ * the count in its leading halfword.
+ * This is the same queue rom_b5000's Func_be378 writes to directly.
+ */
 void Func_80038fc(void *dest, const void *src) {
     ScheduleDmaTransfer(dest, src, 0x50000);
 }
 
+/* r0.. = allocation parameters. One of nine adjacent, near-identical routines
+ * (.gcc2_compiled...Func_3a3c) that reserve OBJ tile space, each 31 lines and each
+ * differing only in which size class or bank it serves. They push their
+ * transfers onto the HBlank register queue at ewram_2090 under an REG_IME guard;
+ * that queue holds 0x20 entries of 12 bytes, {value, register, control}, with
+ * the count in its leading halfword.
+ * This is the same queue rom_b5000's Func_be378 writes to directly.
+ */
 void Func_800393c(void *dest, const void *src) {
     ScheduleDmaTransfer(dest, src, 0x60000);
 }
 
+/* r0.. = allocation parameters. One of nine adjacent, near-identical routines
+ * (.gcc2_compiled...Func_3a3c) that reserve OBJ tile space, each 31 lines and each
+ * differing only in which size class or bank it serves. They push their
+ * transfers onto the HBlank register queue at ewram_2090 under an REG_IME guard;
+ * that queue holds 0x20 entries of 12 bytes, {value, register, control}, with
+ * the count in its leading halfword.
+ * This is the same queue rom_b5000's Func_be378 writes to directly.
+ */
 void Func_800397c(void *dest, const void *src) {
     ScheduleDmaTransfer(dest, src, 0x70000);
 }
 
+/* r0.. = allocation parameters. One of nine adjacent, near-identical routines
+ * (.gcc2_compiled...Func_3a3c) that reserve OBJ tile space, each 31 lines and each
+ * differing only in which size class or bank it serves. They push their
+ * transfers onto the HBlank register queue at ewram_2090 under an REG_IME guard;
+ * that queue holds 0x20 entries of 12 bytes, {value, register, control}, with
+ * the count in its leading halfword.
+ * This is the same queue rom_b5000's Func_be378 writes to directly.
+ */
 void Func_80039bc(void *dest, const void *src) {
     ScheduleDmaTransfer(dest, src, 0x90000);
 }
 
+/* r0.. = allocation parameters. One of nine adjacent, near-identical routines
+ * (.gcc2_compiled...Func_3a3c) that reserve OBJ tile space, each 31 lines and each
+ * differing only in which size class or bank it serves. They push their
+ * transfers onto the HBlank register queue at ewram_2090 under an REG_IME guard;
+ * that queue holds 0x20 entries of 12 bytes, {value, register, control}, with
+ * the count in its leading halfword.
+ * This is the same queue rom_b5000's Func_be378 writes to directly.
+ */
 void Func_80039fc(void *dest, const void *src) {
     ScheduleDmaTransfer(dest, src, 0xA0000);
 }
 
+/* r0.. = allocation parameters. One of nine adjacent, near-identical routines
+ * (.gcc2_compiled...Func_3a3c) that reserve OBJ tile space, each 31 lines and each
+ * differing only in which size class or bank it serves. They push their
+ * transfers onto the HBlank register queue at ewram_2090 under an REG_IME guard;
+ * that queue holds 0x20 entries of 12 bytes, {value, register, control}, with
+ * the count in its leading halfword.
+ * This is the same queue rom_b5000's Func_be378 writes to directly.
+ */
 void Func_8003a3c(void *dest, const void *src) {
     ScheduleDmaTransfer(dest, src, 0xB0000);
 }

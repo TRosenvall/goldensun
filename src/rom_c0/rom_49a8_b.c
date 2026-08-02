@@ -339,6 +339,8 @@ static inline fx32 FxDiv(fx32 num, fx32 denom) {
     return divide(num, denom);
 }
 
+/* r0.. = angles. Sets the view orientation from sine and cosine.
+ */
 void Func_8005208(u32 angle, fx32 zMin, fx32 zMax) {
     s32 f;
     s32 argument;
@@ -354,6 +356,8 @@ void Func_8005208(u32 angle, fx32 zMin, fx32 zMax) {
     gPhysVec.zMax = zMax;
 }
 
+/* r0 = distance. Sets the projection distance.
+ */
 void Func_8005258(fx32 focal, fx32 zMin, fx32 zMax) {
     gPhysVec.focal = focal;
     gPhysVec.zMin = zMin;

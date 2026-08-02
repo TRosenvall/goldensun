@@ -19,6 +19,8 @@ void SetRAMBuildDate(void)
     gRAMBuildDate[3] = 0;
 }
 
+/* A bare `bx lr`.
+ */
 void Func_8002f3c(void) {}
 
 void *GetFile(int index) {

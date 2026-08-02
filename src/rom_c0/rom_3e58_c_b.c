@@ -119,7 +119,11 @@ s32 StartTask(taskfunc_t *func, u32 priority) {
     return resultIndex;
 }
 
+/* A bare `bx lr`.
+ */
 void Func_8004270(void) {}
+/* A bare `bx lr`.
+ */
 void Func_8004274(void) {}
 
 s32 StopTask(taskfunc_t *func) {
@@ -150,6 +154,9 @@ s32 StopTask(taskfunc_t *func) {
     return resultId;
 }
 
+/* r0 = function, r1 = priority. Updates an existing slot's priority and
+ * re-sorts.
+ */
 s32 Func_80042c8(taskfunc_t *arg0) {
     s32 i;
     s32 resultId;
@@ -174,6 +181,9 @@ s32 Func_80042c8(taskfunc_t *arg0) {
     return resultId;
 }
 
+/* r0 = function, r1 = group. Writes the group byte at +6 of the slot -- the
+ * field RunTasks dispatches on.
+ */
 s32 Func_800430c(void) {
     s32 i;
     s32 resultId;
@@ -199,6 +209,8 @@ s32 Func_800430c(void) {
     return resultId;
 }
 
+/* r0 = function. Marks the slot runnable.
+ */
 s32 Func_8004358(taskfunc_t *func, u32 status) {
     s32 i;
     s32 resultId;
@@ -225,6 +237,8 @@ s32 Func_8004358(taskfunc_t *func, u32 status) {
     return resultId;
 }
 
+/* r0 = function. Marks the slot skipped without unregistering it.
+ */
 s32 Func_800439c(taskfunc_t *func) {
     s32 i;
     s32 resultId;
@@ -250,6 +264,8 @@ s32 Func_800439c(taskfunc_t *func) {
     return resultId;
 }
 
+/* r0 = index. Returns the slot record at iwram_1a20 + index*8.
+ */
 s32 Func_80043e0(void) {
     s32 resultId;
     s32 i;

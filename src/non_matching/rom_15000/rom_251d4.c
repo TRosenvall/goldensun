@@ -7,6 +7,8 @@
  */
 #include "dma.h"
 
+/* r0 = index. Returns a screen state field; no calls out.
+ */
 void Func_80251d4(unsigned int src, unsigned int dst)
 {
     DMA3_COPY(((src & 0x3ff) << 5) + (0xc0 << 19),

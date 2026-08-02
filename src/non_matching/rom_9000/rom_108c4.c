@@ -9,6 +9,10 @@
  */
 extern unsigned int iwram_3001e70;
 
+/* r0=value. Replaces bits 9-11 of the map control halfword at [iwram_1e70]+0x14
+ * with bits 9-11 of r0, leaving every other bit untouched. Those three bits
+ * select which map layers are active for the blits above.
+ */
 unsigned int Func_80108c4(unsigned int arg0)
 {
     unsigned char *p = (unsigned char *)iwram_3001e70;

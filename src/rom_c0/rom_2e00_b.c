@@ -71,9 +71,20 @@ void Unused_WaitForever(void)
     }
 }
 
+/* A bare `bx lr`. One of six adjacent stubs (Func_2ef8..Func_2f0c) that are
+ * almost certainly hooks whose bodies were removed.
+ */
 void Func_8002ef8(void) {}
+/* A bare `bx lr`. See Func_2ef8.
+ */
 void Func_8002efc(void) {}
+/* A bare `bx lr`. See Func_2ef8.
+ */
 void Func_8002f00(void) {}
+/* A bare `bx lr`. See Func_2ef8.
+ */
 void Func_8002f04(void) {}
+/* A bare `bx lr`. See Func_2ef8.
+ */
 void Func_8002f08(void) {}
 int Func_8002f0c(void) { return 0; }

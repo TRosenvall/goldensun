@@ -78,6 +78,8 @@ void FormatDecimalString(s32 n) {
 
 extern u16 *iwram_3001cbc;
 
+/* r0 = string. Returns its length in bytes.
+ */
 void Func_8004698(u32 arg0) {
     u16 *p;
     u32 i;
@@ -92,6 +94,9 @@ void Func_8004698(u32 arg0) {
 
 extern u8 iwram_3001ac4;
 
+/* r0 = destination, r1 = source. Concatenates onto the end of the
+ * destination.
+ */
 void Func_80046c4(const char *s) {
     u16 *dst;
     u32 i;
@@ -118,6 +123,8 @@ void Func_80046c4(const char *s) {
     iwram_3001cbc = dst;
 }
 
+/* r0.. = parameters. Debug_PrintHex then Func_46c4.
+ */
 void Func_8004718(u32 n, u32 digits) {
     if (digits - 1 > 7) {
         digits = 8;
@@ -126,6 +133,8 @@ void Func_8004718(u32 n, u32 digits) {
     Func_80046c4(gStringBuffer + 8 - digits);
 }
 
+/* r0.. = parameters. FormatDecimalString then Func_46c4.
+ */
 void Func_800473c(u32 n, u32 digits) {
     if (digits - 1 > 9)
         digits = 10;
@@ -139,6 +148,9 @@ void ClearVRAM(void) {
     SET_IO(REG_BG0CNT, 0x400);
 }
 
+/* Takes no arguments. Fetches asset 0x13 with GetFile and DMA3s it to
+ * 0x6000000 (0x800 words), then loads a 0x10-word palette to 0x50001E0.
+ */
 void Func_800479c(void) {
     void *gfx = GetFile(FILE_GFX_UI);
     DMA3_COPY(gfx, (u16*)0x06000000, 0x800*4);

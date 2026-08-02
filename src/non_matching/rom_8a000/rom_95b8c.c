@@ -11,6 +11,9 @@
 extern unsigned int iwram_3001800;
 extern unsigned int L9f0a4[] __asm__(".L9f0a4");
 
+/* Takes no arguments. Returns an entry from .L9f0a4 selected by bit 2 of
+ * iwram_1800 -- which of two ride variants is currently configured.
+ */
 void Func_8095b8c(void *p)
 {
     unsigned int v = L9f0a4[(iwram_3001800 >> 2) & 1];

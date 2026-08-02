@@ -9,4 +9,6 @@
 unsigned int Func_80a63dc(void) {
     return 1;
 }
+/* An empty `bx lr`.
+ */
 void Func_80a63e0(void) {}

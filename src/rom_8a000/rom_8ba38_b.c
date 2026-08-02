@@ -17,6 +17,9 @@ unsigned int Func_808d428(int x)
     v = _GetFlag();
     return 1 - (((unsigned int)(-v | v)) >> 31);
 }
+/* r0=packed interaction id. Returns the low 9 bits when the kind nibble is 3,
+ * and 0 for every other kind -- so only that one kind carries a sub-id.
+ */
 unsigned int Func_808d458(unsigned int arg0, unsigned int arg1)
 {
     unsigned int a;

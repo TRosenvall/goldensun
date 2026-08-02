@@ -14,6 +14,9 @@ void Func_8021e14(void) {
 
 extern void SetIntrHandler(unsigned int, unsigned int, void *);
 
+/* r0 = scanline. Arms a scanline trigger with SetIntrHandler for the shop screen's
+ * split-background effect.
+ */
 void Func_8021e28(void) {
     SET_IO(REG_BG0VOFS, 0);
     SetIntrHandler((1 << INTR_ID_HBLANK), 0x88, Func_8021e14);

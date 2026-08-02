@@ -102,3 +102,46 @@ project's reverse-engineering of it is the reference for that subsystem.
 - The docs: matching technique, menus, sound, overlays, this file.
 
 The annotation layer in particular has no counterpart in the projects above.
+
+## A finding about our own annotations
+
+Porting the annotation layer onto this tree surfaced a quality problem in it
+that is worth stating plainly.
+
+Where both projects had named the same function, we disagreed at **506 of 515
+addresses**. Most of that is naming convention — our `FadePaletteToHalf` is
+their `BlitFade_Div2_ROM`, and we mean the same thing. But narrowing to
+addresses where both names carry a recognisable domain, **35 of 100 conflicted
+outright**, and spot-checking showed a consistent pattern:
+
+**our prose gets the mechanism right and the purpose wrong.**
+
+Two examples, both verified against the disassembly:
+
+- `0x543c` — we wrote "allocate a scratch, DMA3-copy a decoder template into
+  it, call it there, release it." The mechanism is exactly right; it is a
+  ROM-to-IWRAM trampoline. We called it decompression. Their `BlitFade_Add`,
+  and the `BlitFade_Add_ROM` twin at `0x1fb8`, show it is a blit.
+- `0x6910` — our prose describes sound channels and instrument loading. The
+  disassembly is `REG_WAITCNT` masking, a call to `ReadFlashId`, and a u16
+  truncation. It is `IdentifyFlash`. We were simply wrong.
+
+This is what comes of characterising functions by shape rather than tracing
+what they do — which is exactly how much of the annotation corpus was produced,
+and it is the cost of the coverage. `docs/overlays.md` already warns that a
+call trace says what a function reaches for, not what it means; this is the
+same limitation showing up in the hand-written prose too.
+
+### What follows from it
+
+**Where this tree has already named a function, its name wins and our prose is
+not added.** Their names read like recovered SDK symbols (`BlitFade_Div2_ROM`,
+`DecompressLZ1_ROM`, `cam4aSoundMain`) against our inferences from reading
+code. `tools/port_c_annotations.py` skips those 578 functions.
+
+**Where nothing has been named, our prose is the only description available**
+and is placed. That is the 3,197 functions in `asm/` and 79 in `src/`. It
+should be read as a starting point for verification, not as established fact.
+
+Anyone acting on a ported annotation should check it against the disassembly
+before relying on it.

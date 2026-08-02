@@ -25,6 +25,9 @@ u32 Func_800488c(void) {
     return (void *)&gIWRAMHeap_end - gPtrs[1];
 }
 
+/* Takes no arguments. Returns 0x2040000 - [iwram_1e50+0], the bytes left in the
+ * EWRAM arena. The limit is written as the literal `0x81 << 18`.
+ */
 u32 Func_80048a0(void) {
     return (void*)(0x02040000) - gPtrs[0];
 }
@@ -77,6 +80,13 @@ void *galloc_ewram(s32 index, u32 size) {
     return ptr;
 }
 
+/* AllocAnonymous -- IWRAM first
+ * r0 = size in bytes. Bumps the IWRAM arena, falling back to EWRAM, and returns
+ * the block without recording it anywhere. Returns 0 when neither fits.
+ * NOTHING CAN FREE THIS INDIVIDUALLY -- Func_2dd8 works from a tag. Callers pair
+ * it with a later Func_2dd8 on a tag allocated BEFORE it, which rewinds past
+ * this block too. That is the intended usage, not a leak.
+ */
 void *Func_8004938(u32 size) {
     void *ptr;
 
@@ -94,6 +104,10 @@ void *Func_8004938(u32 size) {
     return ptr;
 }
 
+/* AllocAnonymous -- EWRAM first
+ * r0 = size in bytes. The Func_4938 counterpart with the arenas tried in the
+ * other order. Same caveat about freeing.
+ */
 void *Func_8004970(u32 size) {
     void *ptr;
 

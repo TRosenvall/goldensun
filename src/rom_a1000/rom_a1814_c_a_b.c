@@ -14,6 +14,8 @@ void Func_80a2408(void) {
 }
 extern unsigned int iwram_3001e8c;
 
+/* Takes no arguments. Clears [iwram_1e8c]+0xEA6.
+ */
 void Func_80a2420(void) {
     unsigned int addr;
     addr = iwram_3001e8c + 0xea6;

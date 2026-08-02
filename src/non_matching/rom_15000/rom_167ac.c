@@ -7,6 +7,12 @@
  */
 extern unsigned int iwram_3001e8c;
 
+/* r0 = record. Copies three saved style values out of the record into the
+ * global text-style fields:
+ *     [r0+0x16] -> +0xEAE      [r0+0x18] -> +0xEAC      [r0+0x1A] -> +0xEA8
+ * These are exactly the three fields Func_173ac resets to 0x0F, 0 and 0x0A, so
+ * this is "restore the style this record was created with".
+ */
 void Func_80167ac(int a)
 {
     unsigned char *base = (unsigned char *)iwram_3001e8c;

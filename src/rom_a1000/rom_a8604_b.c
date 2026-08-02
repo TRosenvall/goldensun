@@ -6,4 +6,6 @@
  * goldensun/stage1.ld.
  */
 void Func_80a939c(void) {}
+/* An empty `bx lr`.
+ */
 void Func_80a93a0(void) {}

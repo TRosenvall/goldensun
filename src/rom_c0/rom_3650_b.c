@@ -96,7 +96,11 @@ s32 SetSoundFXMode(u32 filterID) {
     return 0;
 }
 
+/* A bare `bx lr`.
+ */
 void Func_8003808(void) {}
+/* A bare `bx lr`.
+ */
 void Func_800380c(void) {}
 
 extern bool16 ewram_2002000;

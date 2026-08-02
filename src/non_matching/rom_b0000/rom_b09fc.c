@@ -23,6 +23,12 @@ struct S {
     unsigned char f;
 };
 
+/* InitListRecord -- exported
+ * r0 = list record, r1 = visible rows, r2 = cursor, r3 = flag.
+ * Initialises the controller from the list at [r0]: copies the total count from
+ * [list]+6 and the row height from [list]+8, stores the caller's visible count,
+ * cursor and flag, and clears +0x0C.
+ */
 void Func_80b09fc(struct S *arg0, unsigned short arg1, unsigned short arg2, unsigned char arg3)
 {
     unsigned short *src;

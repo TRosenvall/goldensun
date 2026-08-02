@@ -8,6 +8,11 @@
 extern unsigned int iwram_3001eec;
 extern void Func_80008d4();
 
+/* Battle animation routine, 10 instructions.
+ * State: iwram_1eec.
+ * Body NOT traced instruction by instruction -- the facts above are extracted
+ * from the code; the behavioural detail is not yet documented.
+ */
 void Func_80cd508(void) {
     void (*f)() = Func_80008d4;
     f(iwram_3001eec + 0x7818, 8);

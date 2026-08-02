@@ -38,6 +38,9 @@ s32 Func_8003ed4(void) {
     return var_r0;
 }
 
+/* r0 = slot. Marks the run free by writing 0xFFFF to its +2 halfword and
+ * coalescing with neighbours.
+ */
 s32 Func_8003f04(u32 needle) {
     s32 i;
     s32 nFound;
@@ -61,6 +64,9 @@ s32 Func_8003f04(u32 needle) {
     return 0;
 }
 
+/* r0 = slot (0..0x5F). Releases the slot through Func_3f04, returning -1 for an
+ * out-of-range slot or one that was already free.
+ */
 s32 Func_8003f3c(u32 arg0) {
     struct SpriteSlot* slot = &gSpriteSlots[arg0];
     if (arg0 >= 0x60) return -1;
@@ -74,6 +80,8 @@ s32 Func_8003f3c(u32 arg0) {
 }
 
 
+/* r0 = slot. As Func_3f3c without the already-free check.
+ */
 s32 Func_8003f78(unsigned int arg0) {
 	struct SpriteSlot *slot;
 

@@ -22,6 +22,9 @@ unsigned int Func_80789dc(unsigned int arg0)
     Func_80788c4(r5, CheckItem(r5, arg0));
     return 0;
 }
+/* r0 = item id. As .gcc2_compiled. but going through Func_78948 so the field layer is
+ * notified.
+ */
 unsigned int Func_8078a08(unsigned int arg0)
 {
     int r5;

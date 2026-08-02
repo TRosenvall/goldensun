@@ -6,4 +6,6 @@
  * goldensun/stage1.ld.
  */
 void Func_8091c3c(void) {}
+/* Nop4 -- empty hook, distinct address from .gcc2_compiled..
+ */
 void Func_8091c40(void) {}

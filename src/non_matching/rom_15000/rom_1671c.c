@@ -7,6 +7,9 @@
  */
 extern void Func_80008d8(void);
 
+/* Takes no arguments. Fills the 0xF00-byte text scratch at 0x6002500 with 0
+ * (transparent). Func_16738 below is the same fill with colour 4.
+ */
 void Func_801671c(void) {
     void (*f)(int, int, int) = (void (*)(int, int, int))Func_80008d8;
     f(0x6002500, 0xf0 << 4, 0);

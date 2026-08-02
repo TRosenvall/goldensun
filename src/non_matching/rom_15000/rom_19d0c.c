@@ -24,6 +24,10 @@
  */
 extern unsigned char *iwram_3001e8c;
 
+/* Takes no arguments. Called from Func_15f30 during UI bring-up. Sets the two
+ * halfwords at [iwram_1e8c]+0x12EC and +0x12EE to 0x3E7 (999) -- sentinel values
+ * meaning "no selection", since real indices are small.
+ */
 void Func_8019d0c(void) {
     unsigned char *base = iwram_3001e8c;
     int off = 0x12ec;

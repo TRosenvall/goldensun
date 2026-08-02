@@ -31,6 +31,8 @@ unsigned int Func_8005ae0(void) {
     } while (i <= 0xfe7);
     return sum;
 }
+/* r0 = channel, r1 = volume. Writes the channel's mix level.
+ */
 unsigned int Func_8005b24(unsigned int arg0)
 {
     unsigned char *base;

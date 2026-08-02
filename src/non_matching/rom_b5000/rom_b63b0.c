@@ -11,6 +11,8 @@
 extern void Func_80008d4(int a, int b);
 extern unsigned int ewram_2002224;
 
+/* Takes no arguments. Clears 0x10 bytes at ewram_2224.
+ */
 void Func_80b63b0(void)
 {
     void (*fp)(int, int) = Func_80008d4;

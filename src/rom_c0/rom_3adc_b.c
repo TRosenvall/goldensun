@@ -42,6 +42,8 @@ void Func_8003adc(void) {
     }
 }
 
+/* r0.. = parameters. Begins a fade to black.
+ */
 void Func_8003b70(u32 arg0) {
     iwram_3001cd4 = 0;
     iwram_3001cf8 = 0x3E;
@@ -51,6 +53,8 @@ void Func_8003b70(u32 arg0) {
     iwram_3001ac0 = iwram_3001c98;
 }
 
+/* r0.. = parameters. Begins a fade from black.
+ */
 void Func_8003bb4(u32 arg0) {
     iwram_3001cd4 = 0;
     iwram_3001cf8 = 0x3E;
@@ -60,6 +64,8 @@ void Func_8003bb4(u32 arg0) {
     iwram_3001ac0 = iwram_3001c98;
 }
 
+/* r0.. = parameters. Begins a fade to white.
+ */
 void Func_8003bf8(u32 arg0) {
     iwram_3001cd4 = 1;
     iwram_3001cf8 = 0x3E;
@@ -69,6 +75,8 @@ void Func_8003bf8(u32 arg0) {
     iwram_3001ac0 = iwram_3001c98;
 }
 
+/* r0.. = parameters. Begins a fade from white.
+ */
 void Func_8003c3c(u32 arg0) {
     iwram_3001cd4 = 1;
     iwram_3001cf8 = 0x3E;
@@ -78,6 +86,9 @@ void Func_8003c3c(u32 arg0) {
     iwram_3001ac0 = iwram_3001c98;
 }
 
+/* r0.. = parameters. Sets the fade mode, target level and step without starting
+ * it.
+ */
 void Func_8003c80(u8 arg0, u32 arg1, u32 arg2, u32 arg3, u32 arg4) {
     vu8 *r2;
     vu8 *r1;
@@ -95,6 +106,9 @@ void Func_8003c80(u8 arg0, u32 arg1, u32 arg2, u32 arg3, u32 arg4) {
     *r1 = *r2;
 }
 
+/* Takes no arguments. Spins on WaitFrames(1) until the fade enable at iwram_1c98
+ * clears. Blocks, so callers must already be inside their own frame loop.
+ */
 void Func_8003ce0(void)
 {
     if (iwram_3001c98 != 0)
@@ -109,6 +123,9 @@ void Func_8003ce0(void)
 extern void *gRAMLib_end;
 extern u8 iwram_3001d00;
 
+/* Takes no arguments. Clears the 0x400-byte display list at iwram_1400 and
+ * resets its count at iwram_1d00. Called once per frame from WaitFrames.
+ */
 void Func_8003d04(void) {
     iwram_3001d00 = 0;
     CAMELOT_MEMCLEAR(&gRAMLib_end, 0x400);

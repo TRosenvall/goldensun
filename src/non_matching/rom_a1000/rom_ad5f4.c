@@ -10,6 +10,8 @@
  */
 extern unsigned int *iwram_3001f2c;
 
+/* r0 = slot, r1 = value. Stores the word at state+0x244 + slot*4. No null check.
+ */
 void Func_80ad5f4(unsigned int arg0, unsigned int arg1)
 {
     unsigned int *ptr = (unsigned int *)iwram_3001f2c;

@@ -24,6 +24,11 @@ void Func_8015ec0(unsigned int arg0)
     *prev = arg0;
     *(unsigned int *)arg0 = 0;
 }
+/* Takes no arguments. Builds the display-node free list: 64 nodes of 0x1C bytes
+ * running from [iwram_1e8c]+0x698 to +0xD98, each linked to the next, head
+ * stored at +0xD98 and tail at +0xD9C. The last node's link is cleared.
+ * 64 * 0x1C = 0x700 = 0xD98 - 0x698, so the pool exactly fills its region.
+ */
 void Func_8015ef4(void)
 {
     unsigned int base;

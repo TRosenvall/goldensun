@@ -19,6 +19,9 @@ u32 Func_808b02c(s32 arg0) {
 extern s32 Func_808adf0(void);
 extern s32 Func_808ae74(s32, s32);
 
+/* r0=position vec3, r1=variant. Func_8adf0 to classify the surface, then
+ * Func_8ae74 to play it -- the one-shot form used when no slot is involved.
+ */
 s32 Func_808b048(s32 *arg1, s32 arg2) {
     s32 foo = Func_808adf0();
     Func_808ae74(foo, arg2);

@@ -6,4 +6,7 @@
  * goldensun/stage1.ld.
  */
 void Func_800c0c4(void) {}
+/* EntityHook_Nop2 -- second do-nothing hook, distinct address from .gcc2_compiled. so
+ * the two slots can be told apart by pointer comparison.
+ */
 void Func_800c0c8(void) {}

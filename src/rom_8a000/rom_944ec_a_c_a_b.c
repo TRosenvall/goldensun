@@ -20,6 +20,9 @@ void Func_8095bac(unsigned int arg0)
     if (v2 < 0x1000)
         (*(unsigned short *)p)++;
 }
+/* r0=entity. Per-frame hook that lowers the entity by 0x1C0 per frame through
+ * the height words at +0x18 and +0x1C.
+ */
 void Func_8095bd8(unsigned char *p)
 {
     int v1c;

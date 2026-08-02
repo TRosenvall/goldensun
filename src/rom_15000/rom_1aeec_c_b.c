@@ -6,5 +6,9 @@
  * goldensun/stage1.ld.
  */
 void Func_801c9bc(void) {}
+/* A bare `bx lr`, present as a table entry or placeholder.
+ */
 void Func_801c9c0(void) {}
+/* A bare `bx lr`, present as a table entry or placeholder.
+ */
 void Func_801c9c4(void) {}

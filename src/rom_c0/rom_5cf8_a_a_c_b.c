@@ -22,6 +22,8 @@ void Func_8006458(void)
         } while (ewram_2002080 != 0);
     }
 }
+/* Takes no arguments. The .gcc2_compiled. counterpart.
+ */
 void Func_8006488(void)
 {
     unsigned int count;

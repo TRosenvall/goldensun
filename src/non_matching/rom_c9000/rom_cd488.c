@@ -7,6 +7,9 @@
  */
 extern unsigned char *iwram_3001eec;
 
+/* Takes no arguments. Copies the cached affine reference point from
+ * [iwram_1eec]+0x77D0 and +0x77D4 into REG_BG2X and REG_BG2Y.
+ */
 unsigned int Func_80cd488(void)
 {
 	unsigned int base = *(unsigned int *)&iwram_3001eec;

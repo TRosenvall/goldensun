@@ -7,6 +7,10 @@
  */
 extern void Func_80008d8(unsigned int a, unsigned int b, unsigned int c);
 
+/* Takes no arguments. Fills the 0xF00-byte text scratch at 0x6002500 with
+ * 0x44444444 -- palette index 4 in every 4bpp pixel. The opaque counterpart to
+ * Func_1671c.
+ */
 unsigned int Func_8016738(void) {
     void (*f)(unsigned int, unsigned int, unsigned int) = Func_80008d8;
     f(0x6002500, 0xf0 << 4, 0x44444444);
