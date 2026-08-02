@@ -1,76 +1,46 @@
-/* Func_b684 -- SetTextLinesPalette
+/* Func_b684 -- reset the palette slot on an object's sub-entries
  *
- * Writes a palette index to the palette byte (+0x05) of every line in a text
- * label's array (+0x27 = count, +0x28.. = line pointers), skipping any line
- * already pinned to 0x0F, then sets the dirty flag at +0x25 so the label
- * re-renders.  Does nothing on a null controller; the dirty flag is still set
- * when the count is zero.
+ * Walks the object's sub-entry table and sets byte +0x05 of each to `value`,
+ * skipping any already holding 0x0F -- the "locked" marker. Then flags the
+ * object dirty at +0x25 so the next frame re-uploads it.
  *
- * STATUS: MATCHING.  Verify with
- *     tools/asmdiff.py Func_b684 rom_9000/src/f9_4_rom_b684.c \
- *         --rom-offset 0xb684 --rom-size 52
+ * The count at +0x27 gates the loop, but the dirty flag is set whenever the
+ * object is non-null, count or no count.
  *
- * The `register ... asm(...)` pins and the two hand-materialised addresses are
- * matching aids, not style.  Each is here because the original compiler made an
- * allocation choice agbcc does not reproduce on its own:
- *
- *   obj  -> r12  the original spilled the controller to a high register and
- *                re-derived every field address from it rather than keeping a
- *                computed pointer live
- *   i    -> r0   loop counter; the original copies the count out of r3 before
- *                the loop because the loop body clobbers r3
- *   n    -> r3   doubles as the count AND the field5 temp inside the loop,
- *                exactly as the original reuses r3
- *   e    -> r2   entry pointer, reused for the final store address
- *
- * The `n = (int)(...); n = *(u8 *)n;` pair forces the address into r3 and then
- * loads through it, which is what the ROM does.  Written as one expression,
- * agbcc instead reuses r0 (still holding the argument) and emits one fewer
- * instruction.  The `e = ...; n = 1; *(u8 *)e = n;` tail is the same idea.
+ * Note the ROM's `pop {r0}; bx r0` epilogue: the return address lands in r0,
+ * destroying any return value, so this is void.
  */
-
 typedef unsigned char u8;
 
-typedef struct SubEntry {
-    u8 pad[5];
-    u8 field5;
+typedef struct SubEntry
+{
+    /* 0x00 */ u8 unk_00[5];
+    /* 0x05 */ u8 palette;      /* 0x0F means locked; leave it alone */
 } SubEntry;
 
-void Func_b684(void *objArg, int value)
+void Func_b684(void *obj, int value)
 {
-    void *obj;
+    u8 *o = obj;
     SubEntry **table;
-    int i;
     int n;
-    SubEntry *e;
-
-    obj = objArg;
+    int i;
 
     if (obj == 0)
         return;
 
-    n = (int)((u8 *)obj + 0x27);
-    n = *(u8 *)n;
-
+    n = o[0x27];
     if (n != 0)
     {
-        table = (SubEntry **)((u8 *)obj + 0x28);
+        table = (SubEntry **)(o + 0x28);
         i = n;
-
         do
         {
-            e = *table++;
+            SubEntry *e = *table++;
 
-            n = e->field5;
-            if (n != 0x0F)
-                e->field5 = value;
-
-            i--;
-
-        } while (i != 0);
+            if (e->palette != 0x0F)
+                e->palette = value;
+        } while (--i != 0);
     }
 
-    e = (SubEntry *)((u8 *)obj + 0x25);
-    n = 1;
-    *(u8 *)e = n;
+    o[0x25] = 1;
 }

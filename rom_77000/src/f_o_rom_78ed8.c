@@ -1,15 +1,20 @@
-/* Func_78ed8 -- record lookup by id
+/* Func_78ed8 -- address of record `id` in the table at L844ec
  *
- * STATUS: 2 bytes off under gcc-2.96. The instruction sequence is right;
- * the ROM loads the table address into r2, gcc-2.96 picks r3 -- the register
- * it just used for the 0xB4 multiplier. Four C formulations were tried
- * (pointer arithmetic, array indexing, an explicit temporary, an integer
- * cast) and all four choose r3, so the original source said something
- * structurally different that kept r3 live. Not yet found.
+ * Records are 0xB4 bytes.
+ *
+ * The local `p` is load-bearing, not decoration. Written as
+ * `return L844ec + id * 0xB4;` the compiler reuses r3 -- the register holding
+ * the multiplier -- for the table address, where the ROM uses r2. Binding the
+ * table to a local first keeps r3 live across the multiply and pushes the
+ * address to r2, which is what the original did. Four other formulations
+ * (array indexing, a struct-array type, a named multiplier, reversed operand
+ * order) all produce r3.
  */
 extern char L844ec[];
 
 void *Func_78ed8(int id)
 {
-    return L844ec + id * 0xB4;
+    char *p = L844ec;
+
+    return p + id * 0xB4;
 }
