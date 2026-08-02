@@ -54,9 +54,19 @@ RUN mkdir -p /opt/gcc296 /opt/agbcc/bin \
     && cp -R /opt/camelot-gcc/agbcc/ginclude/.     /opt/agbcc/include/ \
     && rm -rf /opt/camelot-gcc/build-296
 
-# The Makefile finds the compiler here. Override with `make GCC296_DIR=...` if
-# you install it somewhere else.
+# The Makefile finds the compilers here. Override with `make GCC296_DIR=...` if
+# you install them somewhere else.
 ENV GCC296_DIR=/opt/gcc296
+
+# AGBCC_DIR MUST be set, not just defaulted in the Makefile.
+#
+# The Makefile's `AGBCC_DIR ?= tools/agbcc` points at the macOS binaries
+# vendored in the repo, which cannot execute in this container -- they fail
+# with `Syntax error: "(" unexpected` because the shell tries to run a Mach-O
+# file as a script. The failure only shows up on a CLEAN build: src/lib/m4a/
+# and src/lib/agb_flash/ change rarely, so their objects survive and the build
+# looks green for as long as nobody deletes them.
+ENV AGBCC_DIR=/opt/agbcc
 
 WORKDIR /work
 CMD ["bash"]

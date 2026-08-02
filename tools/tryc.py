@@ -125,13 +125,12 @@ def instructions(text, want=None):
     is a real mismatch even when the instruction that loads it is identical.
     """
     out, cur, body = [], None, []
-    labels, order = {}, []
+    labels = {}
 
     def norm_label(m):
         s = m.group(0)
         if s not in labels:
             labels[s] = "L%d" % len(labels)
-            order.append(s)
         return labels[s]
 
     # The two sides spell a function start differently and both must be read:
@@ -145,7 +144,7 @@ def instructions(text, want=None):
         if m:
             if cur is not None:
                 out.append((cur, body))
-            cur, body = m.group(1), []
+            cur, body, labels = m.group(1), [], {}
             continue
         if re.match(r"\s*\.(thumb_func|arm)\s*$", l):
             pending = True
@@ -155,7 +154,7 @@ def instructions(text, want=None):
             if m:
                 if cur is not None:
                     out.append((cur, body))
-                cur, body, pending = m.group(1), [], False
+                cur, body, pending, labels = m.group(1), [], False, {}
                 continue
             if l.strip().startswith("."):
                 continue  # .type/.size between the directive and the label
