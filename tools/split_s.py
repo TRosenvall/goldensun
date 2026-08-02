@@ -57,6 +57,53 @@ def parse(path):
     return preamble, blocks
 
 
+DEFINES = re.compile(r"^\s*(\.?[A-Za-z_][\w.]*):")
+GLOBAL = re.compile(r"^\s*\.globa?l\s+(\S+)")
+
+
+def cross_references(groups):
+    """Local labels one part defines and another part needs.
+
+    A `.L` label is file-local: it does not survive into the object's symbol
+    table, so a reference to it from a different .s cannot link. Splitting
+    between a function and a data table it shares with its neighbours produces
+    exactly that, and the failure surfaces only at the final link, as an
+    `undefined reference to .Laebcc` with no indication of which split caused
+    it.
+
+    Found the hard way on rom_a5534_c_c_c.s: the target was the LAST function
+    in the file, so the trailing data tables came with it into _b, and
+    deleting _b.s after writing the .c took two tables that an earlier
+    function still referenced.
+    """
+    defined, used = {}, {}
+    for suffix, group in groups:
+        d, u = set(), set()
+        for _, lines in group:
+            for l in lines:
+                text = l.split("@")[0]
+                m = DEFINES.match(text)
+                if m:
+                    d.add(m.group(1).lstrip("."))
+                for tok in re.findall(r"\.L[\w.]+", text):
+                    u.add(tok.lstrip("."))
+                m = GLOBAL.match(text)
+                if m:
+                    # an explicitly exported label is fine across files
+                    d.discard(m.group(1).lstrip("."))
+                    u.discard(m.group(1).lstrip("."))
+        defined[suffix], used[suffix] = d, u
+
+    bad = []
+    for a, _ in groups:
+        for b, _ in groups:
+            if a == b:
+                continue
+            for sym in sorted(used[a] & defined[b]):
+                bad.append((a, b, sym))
+    return bad
+
+
 def rewrite_ld(stem_rel, parts):
     """Replace the single .o reference with the parts that were written.
 
@@ -100,7 +147,52 @@ def main():
         sys.exit(f"{rel} holds only {target}; convert it directly, no split needed")
 
     stem = rel[:-2]
-    groups = [("_a", blocks[:k]), ("_b", [blocks[k]]), ("_c", blocks[k + 1:])]
+
+    # Cut the target's block at the end of the function itself. Anything after
+    # it -- a literal pool, a .rodata section, an .incrom blob -- belongs to
+    # the file, not to the function, and must NOT travel into _b: the whole
+    # point of _b is that it gets deleted once the .c replaces it.
+    #
+    # rom_a5534_c_c_c.s is why this exists. The target was the last function
+    # in the file, so a trailing .rodata section carrying two .global .incrom
+    # blobs came with it, and deleting _b.s destroyed data that
+    # rom_a5534_a_b.s references. The build stayed green until the final link,
+    # which then reported `undefined reference to .Laebcc` with nothing to
+    # connect it back to the split.
+    name, lines = blocks[k]
+    cut = len(lines)
+    for i, l in enumerate(lines):
+        if re.match(r"\s*\.(func_end|size)\b", l):
+            cut = i + 1
+            break
+    target, trailing = lines[:cut], lines[cut:]
+
+    groups = [("_a", blocks[:k]),
+              ("_b", [(name, target)]),
+              ("_c", ([(name + "_data", trailing)] if any(x.strip() for x in trailing)
+                      else []) + blocks[k + 1:])]
+
+    # Belt and braces: _b must hold exactly the one function and nothing else.
+    body_defs = [l for _, g in [groups[1]] for _, ls in g for l in ls
+                 if DEFINES.match(l.split("@")[0])
+                 and DEFINES.match(l.split("@")[0]).group(1).lstrip(".") != name
+                 and not DEFINES.match(l.split("@")[0]).group(1).startswith(".L")]
+    if body_defs:
+        print(f"REFUSING to split {rel}: {stem}_b.s would carry definitions "
+              f"beyond {name}, which are lost when it becomes a .c:\n")
+        for l in body_defs:
+            print("   ", l.strip())
+        sys.exit(1)
+
+    # And no local label may cross a file boundary, since .L symbols do not
+    # survive into the object's symbol table.
+    bad = cross_references([(s, g) for s, g in groups if g])
+    if bad:
+        print(f"REFUSING to split {rel}: local labels would cross files.\n")
+        for a, b, sym in bad:
+            print(f"  {stem}{a}.s references .{sym}, defined in {stem}{b}.s")
+        sys.exit(1)
+
     written = []
     for suffix, group in groups:
         if not group:
