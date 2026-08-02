@@ -74,3 +74,61 @@ will be building on a foundation you have not checked.
   [docs/attribution.md](docs/attribution.md).
 - Trust `tools/asmdiff.py` alone. It masks relocation sites and has reported
   false matches. `make compare` is the only real check.
+
+
+---
+
+# Update: gcc-2.96 migration (2026-08-02)
+
+## Done
+
+The build now runs on **gcc-2.96** in the container, and **149 of 163 C
+functions match**.
+
+All 51 register pins were removed. They existed to force agbcc into the
+original's register choices; gcc-2.96 makes those choices itself. `Func_488c`
+is the clearest illustration -- it now matches from
+
+    return (int)&iwram_7800 - (int)iwram_1e50[1];
+
+where agbcc needed two pinned variables and three statements to reach the same
+bytes. That is the standard to hold new work to: if the C looks like assembly
+in disguise, the toolchain is probably wrong, not the C.
+
+## Two bugs found on the way
+
+**`make clean` never deleted an object file.** A second
+`OBJS := $(SRCS:.s=.o)` near the clean target referenced an undefined `SRCS`,
+so it expanded to nothing and silently overrode the real definition. The first
+"successful" gcc-2.96 build was relinking stale agbcc objects -- a green
+checksum that meant nothing. Fixed, with a comment so it is not reintroduced.
+
+**`CC` is not a free variable name.** Setting it to the cross-compiler broke
+the host tools in `tools/`, which make builds with its builtin rules. The
+cross-compiler is `GBA_CC`.
+
+## The 14 that remain
+
+| module | count | why |
+|---|---:|---|
+| `rom_f9000` | 9 | **m4a. Not our compiler's fault** |
+| `rom_9000` | 4 | genuine, need re-deriving |
+| `rom_77000` | 1 | genuine |
+
+`rom_f9000` is the stock m4a ("Sappy") audio library, which Camelot linked in
+**prebuilt from a different compiler**. It matches under `old_agbcc`, not
+gcc-2.96. Those nine need a per-file compiler override, not new C -- verified
+by testing three different C formulations, all of which produced byte-identical
+output differing from the ROM only in one scratch register.
+
+`tools/checkfuncs.py` reports per-function status. Use it rather than reading a
+whole-ROM diff: one function four bytes too long displaces everything after it,
+and three real faults look like 500 KB of breakage.
+
+## Next
+
+1. Per-file `old_agbcc` rule for `rom_f9000` (stock agbcc is still vendored at
+   `tools/agbcc/`)
+2. Re-derive the 5 genuine failures
+3. Import Coaltergeist's matched C -- **permission granted 2026-08-02**; see
+   docs/attribution.md
