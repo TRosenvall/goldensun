@@ -1,24 +1,5 @@
 	.include "macros.inc"
 
-@ IdleFlickerHook
-@ r0=entity. Per-frame hook that gives a resting entity a subtle palette
-@ flicker: draws a random index from Func_4458, uses it to pick a signed byte
-@ from .L9f160 and applies it as the palette through _Func_c598.
-.thumb_func_start Func_809ad70  @ 0x0809ad70
-	push	{r5, r6, lr}
-	mov	r6, r0
-	ldr	r5, =.L9f160
-	bl	Random
-	lsl	r0, #3
-	lsr	r0, #16
-	ldrsb	r1, [r5, r0]
-	mov	r0, r6
-	bl	_Actor_SetColorswap
-	pop	{r5, r6}
-	pop	{r0}
-	bx	r0
-.func_end Func_809ad70
-
 @ SaveAndClearEntityHook
 @ r0=slot. Saves the slot entity's current per-frame hook (+0x6C) to
 @ ewram_240+0x250 and clears it, so a scripted sequence can take over the
@@ -103,4 +84,3 @@
 	pop	{r0}
 	bx	r0
 .func_end Func_809ade8
-

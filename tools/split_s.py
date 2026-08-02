@@ -78,7 +78,7 @@ def cross_references(groups):
     """
     defined, used = {}, {}
     for suffix, group in groups:
-        d, u = set(), set()
+        d, u, exported = set(), set(), set()
         for _, lines in group:
             for l in lines:
                 text = l.split("@")[0]
@@ -89,10 +89,13 @@ def cross_references(groups):
                     u.add(tok.lstrip("."))
                 m = GLOBAL.match(text)
                 if m:
-                    # an explicitly exported label is fine across files
-                    d.discard(m.group(1).lstrip("."))
-                    u.discard(m.group(1).lstrip("."))
-        defined[suffix], used[suffix] = d, u
+                    exported.add(m.group(1).lstrip("."))
+        # Apply the exports LAST. A `.global .Lfoo` directive precedes the
+        # `.Lfoo:` definition it exports, so discarding as the lines are read
+        # lets the later definition put the symbol straight back and the
+        # export is ignored -- which made this refuse a split that was
+        # perfectly legal.
+        defined[suffix], used[suffix] = d - exported, u - exported
 
     bad = []
     for a, _ in groups:
