@@ -38,3 +38,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-02T21:30:39Z  setup   cron retimed to every 10 min; 15 elevated, 10 parked, tree green
 2026-08-02T22:09:49Z  start   manual cycle (cron unconfirmed); targets from the ranker
 2026-08-02T22:13:28Z  end     +2 (Func_809ad70, Func_8097a54); 17 elevated total
+2026-08-02T22:16:46Z  start   /loop dynamic mode; cron 8153096b deleted to avoid duplicate work
+2026-08-02T22:19:45Z  end     +2 (LoadOldMoveIcon, LoadMoveIcon); 19 elevated, 12 parked

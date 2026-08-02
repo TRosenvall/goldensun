@@ -58,7 +58,16 @@ def _hex(m):
     return m.group(1) + hex(int(m.group(2), 0) & 0xFFFFFFFF)
 
 
+# ARM register aliases. gcc emits `sl`, the ROM disassembly writes `r10`, and
+# they are the same register -- LoadMoveIcon and LoadOldMoveIcon differed by
+# nothing else. sp/lr/pc are deliberately NOT normalised: both sides already
+# spell those the same way, so touching them only risks new noise.
+ALIAS = re.compile(r"\b(sl|fp|ip)\b")
+_ALIAS = {"sl": "r10", "fp": "r11", "ip": "r12"}
+
+
 def canon(s):
+    s = ALIAS.sub(lambda m: _ALIAS[m.group(1)], s)
     return NUM.sub(_hex, DESTRUCTIVE.sub(r"\1\2\3, \4", s))
 
 
