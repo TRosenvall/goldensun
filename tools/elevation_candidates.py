@@ -141,18 +141,28 @@ def main():
         if "rom_f9000" in rel:
             continue
         stem = re.sub(r"(_[abc])+\.s$", "", rel.replace("asm/", "src/"))
-        for name, idx, body in scan(p):
-            if not body:
-                continue
+        fns = [x for x in scan(p) if x[2]]
+        for name, idx, body in fns:
             f = classify(body)
+            f["fns"] = len(fns)
             rows.append((score(f, name in park_names, stem in park_stems),
                          name, rel, f))
 
+    # A .o is built from ONE source file, so a function inside a
+    # multi-function .s cannot be elevated on its own -- the .s has to be
+    # split into _a/_b/_c and all three wired into the linker script first.
+    # 402 of the 1155 remaining hand-written .s files hold exactly one
+    # function; those convert with nothing but an added .c and a deleted .s,
+    # so they are the batch pool until the splitter exists.
+    if "--single" in sys.argv:
+        rows = [r for r in rows if r[3]["fns"] == 1]
+
     rows.sort()
-    print(f"{'score':>6} {'insn':>5} {'call':>5} {'pool':>5} {'br':>4}  name / file")
+    print(f"{'score':>6} {'insn':>5} {'call':>5} {'pool':>5} {'br':>4} {'fns':>4}"
+          f"  name / file")
     for s, name, rel, f in rows[:limit]:
         print(f"{s:6.1f} {f['n']:5d} {f['calls']:5d} {f['pool']:5d} {f['branches']:4d}"
-              f"  {name}  {rel}")
+              f" {f['fns']:4d}  {name}  {rel}")
     print(f"\n{len(rows)} candidates ({'overlays' if want_overlays else 'main ROM'})")
 
 
