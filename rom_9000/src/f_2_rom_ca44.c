@@ -12,22 +12,12 @@
  * address in r2 across the store and reuses r3 as a scratch for both the
  * constant and the cursor; agbcc picks r1 for the cursor without the pin.
  */
-
 #include "types.h"
 #include "entity.h"
 
 int Func_ca44(Entity *e)
 {
-    u8 *kind;
-    int t;
-
-    kind = &e->drawKind;
-    t = 0;
-    *kind = t;
-
-    t = e->scriptCursor;
-    t += 1;
-    e->scriptCursor = t;
-
+    e->drawKind = 0;
+    e->scriptCursor++;
     return 1;
 }
