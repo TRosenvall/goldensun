@@ -79,3 +79,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T08:03:28Z  end     +0 elevated; small single-function overlay pool is EXHAUSTED
 2026-08-03T08:14:13Z  start   small functions inside multi-function overlay files
 2026-08-03T08:16:09Z  end     +2 (OvlFunc_934_2009378, OvlFunc_948_2008ec8); 32 elevated
+2026-08-03T08:26:47Z  start   more embedded stubs from the multi-function pool
+2026-08-03T08:28:42Z  end     +1 (OvlFunc_936_20095e0); 33 elevated
