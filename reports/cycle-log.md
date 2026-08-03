@@ -144,3 +144,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T15:52:12Z  end     batch-10 written (12 functions); 86 elevated total
 2026-08-03T16:02:42Z  start   four two-function four-way splits
 2026-08-03T16:04:21Z  end     +4 (split four-way members); 90 elevated
+2026-08-03T16:14:42Z  start   test the id-spacing hypothesis, then more four-way splits

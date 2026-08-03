@@ -78,6 +78,20 @@ codebase better than we do. Listed once here rather than repeated per batch.
   real name would be better. See `docs/elevation.md`, "Tell: the ROM pools a
   SMALL constant".
 
+  **What the values themselves say.** Surveying all 52 constant groups in the
+  overlays: the ids form a **dense, contiguous space allocated in per-area
+  runs** — `0x4d`–`0x57` for overlay 932, `0x93`–`0x97` for 957, `0xb5`–`0xba`
+  for 968, `0x36`–`0x39` for 924. Individual functions compare against subsets
+  of their own area's run. Range observed: `0x10`–`0xba`, i.e. ~190 ids.
+
+  That is what a map or area id space looks like. If that matches something you
+  recognise, naming it would retire `unknown_id.sym` outright.
+
+  *(An earlier note here claimed the ids came in PAIRS, from two families whose
+  constants were spaced by two. That was wrong — both are subsets of
+  consecutive runs used elsewhere — and it was repeated once before being
+  checked.)*
+
 - **Two clean-build bugs in the Makefile are fixed in batch 07**, both
   predating our work and both reachable from a fresh clone of your tree: three
   `orig.bin` dependencies naming files that have since been split, and

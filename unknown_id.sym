@@ -36,9 +36,25 @@
  * is, it is not a map id.
  *
  * These three come from three consecutive functions in
- * asm/overlays/rom_7b9cb4/ovl_30_a_c_c_a_a_a_a.s and are spaced by TWO, which
- * is a hint about the namespace worth keeping: whatever indexes it appears to
- * have paired entries. */
+ * asm/overlays/rom_7b9cb4/ovl_30_a_c_c_a_a_a_a.s.
+ *
+ * CORRECTION. They were first noted here as "spaced by TWO, so whatever
+ * indexes this appears to have paired entries." That was wrong, and the wrong
+ * conclusion was drawn twice before it was checked -- a second family
+ * (OvlFunc_957_2008a00, 0x93/0x95/0x97) looked like it corroborated the
+ * pairing.
+ *
+ * Surveying all 52 constant groups in the overlays refutes it: 23 are
+ * CONSECUTIVE, 2 are spaced by two, 27 are mixed. And the two apparent pairs
+ * are subsets of consecutive runs used elsewhere --
+ * OvlFunc_932_20080e4 compares against 0x4d,0x4e,0x4f,0x50,0x51,...,0x57 and
+ * OvlFunc_957_200b598 against 0x93,0x94,0x95,0x96,0x97.
+ *
+ * What the survey DOES show is stronger: the ids form a dense, contiguous
+ * space allocated in per-area runs -- 0x4d-0x57 for overlay 932, 0x93-0x97 for
+ * 957, 0xb5-0xba for 968, 0x36-0x39 for 924. Individual functions select
+ * subsets of their area's run. That is what a map or area id space looks like,
+ * and it is a much better lead than the pairing was. */
 _ID_4d = 0x4d;
 _ID_4f = 0x4f;
 _ID_51 = 0x51;
