@@ -35,9 +35,9 @@ OvlFunc_963_20080e4:
 	.align	2, 0
 .L5:
 	.word	gState
-	.word	_ID_aa
+	.word	_AREA_aa
 	.word	.Lddc
-	.word	_ID_ab
+	.word	_AREA_ab
 	.word	.Le54
 	.word	.Ld10
 .Lfe1:

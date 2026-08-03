@@ -4,17 +4,17 @@
  *
  * Parked: logic faithful, does NOT byte-match (endgame permuter seed).
  * Candidate: tools/runs/run_20260607T031612Z/OvlFunc_911_20081ac-iter-10.c
- * TODO(residual): scalar .L pool + _ID_38 tag; gState-relative dispatch leaf. Blocked scalar-.L class.
+ * TODO(residual): scalar .L pool + _AREA_38 tag; gState-relative dispatch leaf. Blocked scalar-.L class.
  */
 extern short gState[];
 extern unsigned char L3010[] __asm__(".L3010");
-extern int _ID_38;
+extern int _AREA_38;
 
 unsigned char *OvlFunc_911_20081ac(void)
 {
 	int v;
 	v = gState[0xe0];
-	if (v == (int)&_ID_38)
+	if (v == (int)&_AREA_38)
 		return L3010;
 	return (unsigned char *)0;
 }

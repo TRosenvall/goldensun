@@ -138,18 +138,18 @@ fragment is a bad trade — a wrong name propagates, where a missing one waits.
 *means*. It requires the operand to be a symbol, so that gcc pools it. Naming
 the symbol **by value** asserts nothing that could later turn out to be false:
 
-    /* unknown_id.sym */
-    _ID_4d = 0x4d;
+    /* area.sym */
+    _AREA_4d = 0x4d;
 
-    extern int _ID_4d;
-    __Func_8091f90((int) (&_ID_4d), 0x63);   /* -> ldr r0, =0x4d */
+    extern int _AREA_4d;
+    __Func_8091f90((int) (&_AREA_4d), 0x63);   /* -> ldr r0, =0x4d */
 
 An absolute symbol definition in a linker script emits no bytes, so the linked
 result is byte-identical to the literal. `message.sym` has done exactly this
 from the start — its own comment reads *"named by value; pending semantic
 names."* The same move was available here the whole time.
 
-Keep unidentified ids in `unknown_id.sym` rather than folding them into
+Keep unidentified ids in `area.sym` rather than folding them into
 `message.sym` or `file_table.sym`. Those two namespaces are identified, and
 putting an unidentified id in one of them asserts something not known to be
 true — which is the actual bad trade, and it is avoidable.

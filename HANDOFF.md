@@ -74,11 +74,11 @@ codebase better than we do. Listed once here rather than repeated per batch.
   the real number.)
 
   **That reasoning was wrong.** Matching needs the operand to be a *symbol*,
-  not an *identified* one. Defining it by value in `unknown_id.sym` emits no
+  not an *identified* one. Defining it by value in `area.sym` emits no
   bytes and asserts nothing — exactly what `message.sym` already does, per its
   own comment: *"named by value; pending semantic names."*
 
-  So what remains is a naming question, not a blocker: `_ID_4d` works, and a
+  So what remains is a naming question, not a blocker: `_AREA_4d` works, and a
   real name would be better. See `docs/elevation.md`, "Tell: the ROM pools a
   SMALL constant".
 
@@ -104,7 +104,7 @@ codebase better than we do. Listed once here rather than repeated per batch.
   We have **not** renamed `_ID_` to `_AREA_` on that basis. The annotation
   corpus gets purpose wrong often enough to matter, and renaming is deferred
   to the pass that has the whole picture. But if `MapEntrance` is your name
-  and it means what it looks like, confirming it retires `unknown_id.sym`.
+  and it means what it looks like, confirming it retires `area.sym`.
 
   *(An earlier note here claimed the ids came in PAIRS, from two families whose
   constants were spaced by two. That was wrong — both are subsets of

@@ -10,7 +10,7 @@
  */
 typedef struct { unsigned char _bytes[704]; } GlobalState;
 extern GlobalState gState;
-extern int _ID_33;
+extern int _AREA_33;
 extern unsigned char L28a0[] __asm__(".L28a0");
 extern unsigned char L2798[] __asm__(".L2798");
 
@@ -24,7 +24,7 @@ unsigned char *OvlFunc_921_2008130(void)
     off <<= 1;
     base += off;
     off = 0;
-    if (*(short *)((char *)base + off) == (int)(&_ID_33))
+    if (*(short *)((char *)base + off) == (int)(&_AREA_33))
         return L28a0;
     return L2798;
 }

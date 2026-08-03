@@ -29,7 +29,7 @@ OvlFunc_906_20083e4:
 	.align	2, 0
 .L4:
 	.word	gState
-	.word	_ID_1d
+	.word	_AREA_1d
 	.word	.L9f0
 	.word	.L990
 .Lfe1:

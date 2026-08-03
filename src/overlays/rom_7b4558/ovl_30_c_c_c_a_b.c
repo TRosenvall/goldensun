@@ -10,9 +10,9 @@
  */
 typedef struct { unsigned char _bytes[704]; } GlobalState;
 extern GlobalState gState;
-extern int _ID_44;
-extern int _ID_45;
-extern int _ID_46;
+extern int _AREA_44;
+extern int _AREA_45;
+extern int _AREA_46;
 extern unsigned char L3a48[] __asm__(".L3a48");
 extern unsigned char L3b20[] __asm__(".L3b20");
 extern unsigned char L3c1c[] __asm__(".L3c1c");
@@ -30,11 +30,11 @@ unsigned char *OvlFunc_927_200a4ac(void)
     base += off;
     off = 0;
     v = *(short *)((char *)base + off);
-    if (v == (int)(&_ID_44))
+    if (v == (int)(&_AREA_44))
         return L3a48;
-    if (v == (int)(&_ID_45))
+    if (v == (int)(&_AREA_45))
         return L3b20;
-    if (v == (int)(&_ID_46))
+    if (v == (int)(&_AREA_46))
         return L3c1c;
     return L3d54;
 }

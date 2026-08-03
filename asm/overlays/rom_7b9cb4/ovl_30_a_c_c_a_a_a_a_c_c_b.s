@@ -27,7 +27,7 @@ OvlFunc_932_20083e0:
 .L3:
 	.word	gState
 	.word	555
-	.word	_ID_51
+	.word	_AREA_51
 .Lfe1:
 	.size	 OvlFunc_932_20083e0,.Lfe1-OvlFunc_932_20083e0
 

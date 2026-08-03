@@ -41,11 +41,11 @@ OvlFunc_957_2008a00:
 	.align	2, 0
 .L6:
 	.word	gState
-	.word	_ID_93
+	.word	_AREA_93
 	.word	.L41b0
-	.word	_ID_95
+	.word	_AREA_95
 	.word	.L4270
-	.word	_ID_97
+	.word	_AREA_97
 	.word	.L4318
 	.word	.L4198
 .Lfe1:

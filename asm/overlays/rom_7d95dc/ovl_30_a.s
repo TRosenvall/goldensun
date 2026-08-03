@@ -35,9 +35,9 @@ OvlFunc_953_2008030:
 	.align	2, 0
 .L5:
 	.word	gState
-	.word	_ID_8c
+	.word	_AREA_8c
 	.word	.L3094
-	.word	_ID_8e
+	.word	_AREA_8e
 	.word	.L3274
 	.word	.L3034
 .Lfe1:

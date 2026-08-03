@@ -186,3 +186,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T20:46:06Z  start   re-sweep all GetEntrances arities with the widened criterion
 2026-08-03T20:47:43Z  end     +4 (missed GetEntrances members); 132 elevated; the family sweeps were all too narrow
 2026-08-03T20:58:19Z  start   last two missed whole-file members, then batch-15
+2026-08-03T21:24:13Z  start   adopt the area-id naming

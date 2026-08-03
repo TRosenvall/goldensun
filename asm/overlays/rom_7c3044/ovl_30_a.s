@@ -35,9 +35,9 @@ OvlFunc_937_2008030:
 	.align	2, 0
 .L5:
 	.word	gState
-	.word	_ID_64
+	.word	_AREA_64
 	.word	.L4d0
-	.word	_ID_65
+	.word	_AREA_65
 	.word	.L6c8
 	.word	MapEntrance_ARRAY_937__020084a0
 .Lfe1:

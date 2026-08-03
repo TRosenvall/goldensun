@@ -11,8 +11,8 @@
  */
 typedef struct { unsigned char _bytes[704]; } GlobalState;
 extern GlobalState gState;
-extern int _ID_64;
-extern int _ID_65;
+extern int _AREA_64;
+extern int _AREA_65;
 extern unsigned char L4d0[] __asm__(".L4d0");
 extern unsigned char L6c8[] __asm__(".L6c8");
 extern unsigned char MapEntrance_ARRAY_937__020084a0[];
@@ -29,9 +29,9 @@ unsigned char *OvlFunc_937_2008030(void)
     base += off;
     off = 0;
     v = *(short *)((char *)base + off);
-    if (v == (int)(&_ID_64))
+    if (v == (int)(&_AREA_64))
         return L4d0;
-    if (v == (int)(&_ID_65))
+    if (v == (int)(&_AREA_65))
         return L6c8;
     return MapEntrance_ARRAY_937__020084a0;
 }

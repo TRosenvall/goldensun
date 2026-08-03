@@ -12,17 +12,18 @@
  * original -- no spelling of a literal reproduces it. That tell gates 103 of
  * 395 overlay candidates.
  *
- * The fix is to give the value a name. `_ID_4d` is an absolute symbol defined
- * in unknown_id.sym; an absolute symbol definition emits no bytes, so taking
+ * The fix is to give the value a name. `_AREA_4d` is an absolute symbol defined
+ * in area.sym; an absolute symbol definition emits no bytes, so taking
  * its address is byte-identical to the literal while being the shape gcc
- * pools. Its SEMANTICS are still unknown -- see unknown_id.sym.
+ * pools. The name is an inference adopted deliberately, and area.sym records
+ * both the evidence for it and what that evidence is not.
  *
  * Two siblings follow this function in the same .s (OvlFunc_932_20083b4 with
  * 0x4f and OvlFunc_932_20083e0 with 0x51) and are mechanical once split.
  */
 typedef struct { unsigned char _bytes[704]; } GlobalState;
 extern GlobalState gState;
-extern int _ID_4d;
+extern int _AREA_4d;
 extern void __Func_8091f90(int id, int b);
 extern void __Func_8091eb0(int map, int entrance);
 
@@ -32,6 +33,6 @@ void OvlFunc_932_2008388(void)
 
     gs = (unsigned char *)&gState;
     gs[0x22b] = 3;
-    __Func_8091f90((int) (&_ID_4d), 0x63);
+    __Func_8091f90((int) (&_AREA_4d), 0x63);
     __Func_8091eb0(0x35, 2);
 }

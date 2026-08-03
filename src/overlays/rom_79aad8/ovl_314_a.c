@@ -17,8 +17,8 @@
  *     src/overlays/rom_7b7790/ovl_314_c_c_a_b.c.
  *
  *  2. The compare pools 0x1d (`ldr r3, =0x1d / cmp r2, r3`) where `cmp #0x1d`
- *     would fit, which is the pool-tell: that operand was a symbol. `_ID_1d`
- *     in unknown_id.sym. See docs/elevation.md.
+ *     would fit, which is the pool-tell: that operand was a symbol. `_AREA_1d`
+ *     in area.sym. See docs/elevation.md.
  *
  * The two return values are `.global` data labels defined in ovl_314_c_c.s.
  * C cannot spell ".L8d8", so a legal name is bound with a gcc asm() label; the
@@ -28,7 +28,7 @@
  */
 typedef struct { unsigned char _bytes[704]; } GlobalState;
 extern GlobalState gState;
-extern int _ID_1d;
+extern int _AREA_1d;
 extern unsigned char L818[] __asm__(".L818");
 extern unsigned char L8d8[] __asm__(".L8d8");
 
@@ -42,7 +42,7 @@ unsigned char *OvlFunc_906_2008314(void)
     off <<= 1;
     base += off;
     off = 0;
-    if (*(short *)((char *)base + off) == (int)(&_ID_1d))
+    if (*(short *)((char *)base + off) == (int)(&_AREA_1d))
         return L8d8;
     return L818;
 }

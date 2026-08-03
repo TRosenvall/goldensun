@@ -48,13 +48,13 @@ OvlFunc_958_2008d88:
 	.align	2, 0
 .L7:
 	.word	gState
-	.word	_ID_98
+	.word	_AREA_98
 	.word	2415
 	.word	.L1bcc
 	.word	.L1b48
-	.word	_ID_9d
+	.word	_AREA_9d
 	.word	.L1c80
-	.word	_ID_9e
+	.word	_AREA_9e
 	.word	gScript_885__02009ce0
 	.word	.L1b3c
 .Lfe1:

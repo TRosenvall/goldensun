@@ -101,7 +101,7 @@ def scan(path):
 # They still print, because each needs an extra step and the tag says which,
 # but --clean keeps them -- dropping them hid 103 of 395 overlay candidates.
 #
-#   pool-tell        define the operand by value in unknown_id.sym
+#   pool-tell        define the operand by value in area.sym
 #   arg-fill-order   declare every callee, with its void return type
 #
 # Both were "solved" in docs/elevation.md before they were solved HERE, which
@@ -140,7 +140,7 @@ def blockers(body):
         #    --clean keeps these. It was treated as blocked on naming for
         #    twelve rounds because the id NAMESPACE was unknown; matching does
         #    not need the namespace, only a symbol. Define it by value in
-        #    unknown_id.sym and take its address. Still reported, because the
+        #    area.sym and take its address. Still reported, because the
         #    function needs that extra step and the tag says which.
         #
         #    BOTH spellings matter: the disassembly uses `=0` for a literal

@@ -20,7 +20,7 @@ OvlFunc_971_2009050:
 .L4:
 	.align	2, 0
 .L3:
-	.word	_ID_1
+	.word	_AREA_01
 .Lfe1:
 	.size	 OvlFunc_971_2009050,.Lfe1-OvlFunc_971_2009050
 
