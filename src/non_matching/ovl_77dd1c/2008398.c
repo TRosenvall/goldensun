@@ -19,6 +19,35 @@
  * tools/elevation_candidates.py as "arg-fill-order", which it was not when
  * this family was picked -- that is the fifth blocker added to the filter
  * after it cost a round rather than before.
+ *
+ * CHARACTERISED PROPERLY 2026-08-03, after two more failed attempts (0x4b6
+ * declared as a symbol, with and without a prototype on __Func_809218c).
+ *
+ * The class is NOT "the ROM builds an immediate before a pooled argument".
+ * That shape is everywhere -- 2242 sites in the remaining hand-written asm --
+ * and gcc produces it happily. Eighteen sites in gcc's own honest output are
+ * exactly that, e.g.
+ *
+ *     __Func_801776c(0x1528, 1)   ->   mov r1, #1 / ldr r0, .L3
+ *
+ * where the POOLED operand is the FIRST argument. gcc fills r0 last for an
+ * implicitly declared callee, so the immediate lands first for free. Counting
+ * the shape and calling it a blocker would have been wrong by two orders of
+ * magnitude.
+ *
+ * What actually differs here is the order among the NON-r0 arguments:
+ *
+ *     rom    mov r1, #0x66 / ldr r2, =0x4b6 / mov r0, #0     r1 then r2
+ *     ours   ldr r2, =0x4b6 / mov r1, #0x66 / mov r0, #0     r2 then r1
+ *
+ * Both fill r0 last, so the declaration lever -- which decides only where r0
+ * goes -- cannot reach this, and testing confirms it does not. gcc orders the
+ * remaining arguments by operand kind, pool first; the ROM orders them by
+ * register number.
+ *
+ * No formulation has changed that ordering. Whatever does, it is not
+ * declaration state, not symbol-ness of the pooled value, and not statement
+ * order.
  */
 extern void __PlaySound(int id);
 extern void __Func_8010560(void *data, int a, int b);
