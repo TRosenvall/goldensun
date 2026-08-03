@@ -140,3 +140,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T15:31:27Z  start   the 30-member family, largest remaining
 2026-08-03T15:36:32Z  end     +4 (four-way GetEntrances); 80 elevated; splitter now refuses to advise deleting data
 2026-08-03T15:46:51Z  start   remaining whole-file four-way members, guard-checked first
+2026-08-03T15:52:12Z  end     +6 (four-way whole-file members); 86 elevated
+2026-08-03T15:52:12Z  end     batch-10 written (12 functions); 86 elevated total
