@@ -60,3 +60,18 @@ _ID_27 = 0x27;
 _ID_6f = 0x6f;
 _ID_bd = 0xbd;
 _ID_ac = 0xac;
+
+/* the 30-member four-way GetEntrances selector */
+_ID_2f = 0x2f;
+_ID_30 = 0x30;
+_ID_31 = 0x31;
+_ID_1e = 0x1e;
+_ID_20 = 0x20;
+_ID_23 = 0x23;
+_ID_36 = 0x36;
+_ID_37 = 0x37;
+_ID_38 = 0x38;
+_ID_39 = 0x39;
+_ID_44 = 0x44;
+_ID_45 = 0x45;
+_ID_46 = 0x46;

@@ -167,7 +167,33 @@ def main():
         sys.exit(f"{target} not in {rel}; it has: {', '.join(names)}")
     k = names.index(target)
     if len(blocks) == 1:
-        sys.exit(f"{rel} holds only {target}; convert it directly, no split needed")
+        # "One function" is not the same as "nothing else in the file". A .s can
+        # hold one function AND the data tables it selects between, and those
+        # are .incbin blobs that C cannot carry into a translation unit. Delete
+        # the .s in that case and the data goes with it -- the compile still
+        # succeeds, because tryc.py does not link, and the failure surfaces as
+        #
+        #     undefined reference to `.L6c10'
+        #
+        # much later. That happened to ovl_e20_c_c_c_c_c_c_c.s, which holds one
+        # function and FOURTEEN .incbin tables, on this tool's own advice.
+        raw = open(path, errors="replace").read()
+        data = len(re.findall(r"^\.L\w+:", raw, re.M))
+        blobs = raw.count(".incbin")
+        body_labels = set(re.findall(r"(\.L\w+)", "\n".join(blocks[0][1])))
+        defined = set(re.findall(r"^(\.L\w+):", raw, re.M))
+        # labels defined here that the function does NOT branch to are data
+        stranded = sorted(defined - body_labels)
+        if blobs or stranded:
+            sys.exit(
+                f"{rel} holds only {target}, but ALSO {blobs} .incbin blob(s) and "
+                f"{data} label(s), of which {len(stranded)} are not branch targets "
+                f"of the function.\n"
+                f"Converting the whole file would delete that data and the link "
+                f"would fail with 'undefined reference'.\n"
+                f"Split the function from its data by hand, or leave it as assembly.")
+        sys.exit(f"{rel} holds only {target} and no data; convert it directly, "
+                 f"no split needed")
 
     stem = rel[:-2]
 
