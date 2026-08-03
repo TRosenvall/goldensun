@@ -62,3 +62,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T05:47:21Z  halt    loop broken: sandbox classifier now blocks ./type-foo.sh; not worked around
 2026-08-03T06:14:00Z  start   using their non_matching attempts as a starting point
 2026-08-03T06:17:04Z  end     +0 elevated; a22f4 advanced to 3 instructions; 4th screen false-negative class fixed
+2026-08-03T06:27:56Z  start   finishing their parked attempts (worked for a22f4)
+2026-08-03T06:33:35Z  end     +1 (OvlFunc_974_2008160); symbol-address idiom cracked, 6 siblings unblocked

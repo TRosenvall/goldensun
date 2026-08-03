@@ -84,6 +84,18 @@ def _asm_constants():
             m = re.match(r"\s*\.set\s+(\w+)\s*,\s*(0[xX][0-9a-fA-F]+|\d+)", line)
             if m:
                 out[m.group(1)] = hex(int(m.group(2), 0) & 0xFFFFFFFF)
+    # Linker-script fragments define absolute symbols the same way, and the
+    # message ids are the ones that matter: the C refers to `&_MSG_c9b` where
+    # the disassembly shows the bare 0xc9b it resolves to. Same pool word,
+    # different spelling.
+    for name in ("message.sym", "wram.sym", "file_table.sym"):
+        p = os.path.join(ROOT, name)
+        if not os.path.exists(p):
+            continue
+        for line in open(p, errors="replace"):
+            m = re.match(r"\s*(\w+)\s*=\s*(0[xX][0-9a-fA-F]+|\d+)\s*;", line)
+            if m:
+                out[m.group(1)] = hex(int(m.group(2), 0) & 0xFFFFFFFF)
     return out
 
 
@@ -133,7 +145,11 @@ def resolve_pools(body):
         if not w or off % 4 or off // 4 >= len(w):
             return m.group(0)
         used.add(lab)
-        return f"{m.group(1)}=" + w[off // 4]
+        # Resolve an absolute symbol to its value HERE, not in canon(): the
+        # pool entry only becomes visible as `=NAME` after this substitution,
+        # so canon() has already run by then and never sees it.
+        val = w[off // 4]
+        return f"{m.group(1)}=" + ASM_CONST.get(val, val)
 
     out = [re.sub(r"^(ldr\s+\w+, )(\.?L[0-9a-fA-F]+)(?:\+(0[xX][0-9a-fA-F]+|\d+))?$", deref, s) for s in body]
 

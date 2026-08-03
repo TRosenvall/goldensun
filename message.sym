@@ -45,3 +45,5 @@ _MSG_1fa0 = 0x1fa0;
 _MSG_2280 = 0x2280;
 _MSG_2440 = 0x2440;
 _MSG_2880 = 0x2880;
+_MSG_c9b = 0x0c9b;
+_MSG_cc6 = 0x0cc6;
