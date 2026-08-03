@@ -124,3 +124,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T13:32:43Z  end     batch-07 written (5 functions); 54 elevated total
 2026-08-03T13:36:20Z  start   the two OvlFunc_932 pool-tell siblings, now mechanical
 2026-08-03T13:44:15Z  end     +2 (OvlFunc_932_20083b4, OvlFunc_932_20083e0); 57 elevated; naming-evidence table built; count corrected +1
+2026-08-03T13:54:34Z  start   largest pool-tell family, now that the class is tractable

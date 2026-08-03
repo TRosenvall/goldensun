@@ -42,3 +42,13 @@
 _ID_4d = 0x4d;
 _ID_4f = 0x4f;
 _ID_51 = 0x51;
+
+/* compared against a gState halfword at +0x1c0 in the 22-member GetEntrances
+ * family (OvlFunc_906_2008314 and siblings). The ROM pools it for the compare
+ * -- `ldr r3, =0x1d; cmp r2, r3` -- where `cmp #0x1d` would have done. */
+_ID_1d = 0x1d;
+
+/* compared constants from the GetEntrances family -- same shape as _ID_1d */
+_ID_22 = 0x22;
+_ID_33 = 0x33;
+_ID_8b = 0x8b;
