@@ -110,3 +110,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T11:37:31Z  end     +0 elevated; found a 4th blocker class (50 functions) the filter was missing
 2026-08-03T11:48:19Z  start   genuinely unblocked families, filter corrected
 2026-08-03T11:50:04Z  end     +0 elevated; 5th blocker class added; 63 family functions genuinely unblocked
+2026-08-03T12:00:51Z  start   diversified sampling across distinct shapes
+2026-08-03T12:02:28Z  end     +2 (OvlFunc_934 map-edit pair); 46 elevated

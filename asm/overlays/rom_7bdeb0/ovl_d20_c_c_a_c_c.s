@@ -1,79 +1,5 @@
 	.include "macros.inc"
 
-@ Leaf helper, 23 instructions, calls nothing.
-@ Described by what it touches, not by what it means.
-@ Globals: ewram_240
-.thumb_func_start OvlFunc_934_2008d80
-	push	{lr}
-	ldr	r3, =gState
-	mov	r1, #0xe0
-	lsl	r1, #1
-	add	r3, r1
-	mov	r1, #0
-	ldrsh	r2, [r3, r1]
-	ldr	r3, =0x5d
-	cmp	r2, r3
-	beq	.Lda8
-	ldr	r3, =0x5e
-	cmp	r2, r3
-	bne	.Ld9e
-	ldr	r0, =.L22c4
-	b	.Ldaa
-.Ld9e:
-	ldr	r3, =0x5f
-	cmp	r2, r3
-	bne	.Lda8
-	ldr	r0, =.L239c
-	b	.Ldaa
-.Lda8:
-	ldr	r0, =.L2234
-.Ldaa:
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_934_2008d80
-
-@ 13 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   CopyMapRectFull
-.thumb_func_start OvlFunc_934_2008dcc
-	push	{lr}
-	sub	sp, #8
-	mov	r3, #0xf
-	str	r3, [sp]
-	str	r3, [sp, #4]
-	mov	r0, #0x10
-	mov	r1, #0xf
-	mov	r2, #1
-	mov	r3, #1
-	bl	__Func_80105d4
-	add	sp, #8
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_934_2008dcc
-
-@ 13 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   CopyMapRectFull
-.thumb_func_start OvlFunc_934_2008de8
-	push	{lr}
-	sub	sp, #8
-	mov	r3, #0xf
-	str	r3, [sp]
-	str	r3, [sp, #4]
-	mov	r0, #0x10
-	mov	r1, #0x11
-	mov	r2, #1
-	mov	r3, #1
-	bl	__Func_80105d4
-	add	sp, #8
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_934_2008de8
-
 @ Cutscene: roughly 153 instructions of straight-line script --
 @ 1 turn, 1 animation change, 0 dialogue lines, 2 timed pauses.
 @ Characterised structurally rather than beat by beat.
@@ -382,4 +308,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_934_2008f78
-
