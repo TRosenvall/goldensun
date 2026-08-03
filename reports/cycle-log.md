@@ -119,3 +119,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T12:40:50Z  end     batch-06 written (5 functions); 49 elevated total
 2026-08-03T12:51:52Z  start   two more, diversified
 2026-08-03T12:52:57Z  end     +2 (OvlFunc_901_2008754, OvlFunc_932_200b428); 51 elevated
+2026-08-03T13:04:10Z  start   three from distinct overlays, favouring single-function files

@@ -186,6 +186,36 @@ The converse matters too: whatever blocks one member blocks all of them, so a
 family is also the cheapest way to discover that a blocker is expensive. Check
 a candidate's family size before deciding how hard to push on it.
 
+## Declare every callee — argument order depends on it
+
+**A missing prototype changes the generated code.** This is the single
+cheapest lever found so far, and it went unnoticed for 52 functions because
+most of the tree calls overlay routines with no declaration at all and gets
+away with it.
+
+An implicitly declared function returns `int`. gcc-2.96 therefore treats r0 as
+holding a live return value across the call and defers writing r0 when setting
+up the *next* call's arguments. Declare the callee — with its `void` return
+type — and gcc fills r0 first instead:
+
+    no prototype    mov r2,#0x20 / mov r3,#0x20 / mov r1,#0x40 / mov r0,#0
+    prototyped      mov r2,#0x20 / mov r3,#0x20 / mov r0,#0    / mov r1,#0x40
+    rom             mov r2,#0x20 / mov r3,#0x20 / mov r0,#0    / mov r1,#0x40
+
+Both orders occur throughout the ROM, and both occur *inside a single
+function* — `OvlFunc_929_2008524` fills r0 first for two calls and last for a
+third. That is not a scheduling accident to be fought with reformulations; it
+is gcc reporting which callees the original translation unit had declarations
+for.
+
+So: **when the only mismatch is argument fill order, add full prototypes for
+every callee before trying anything else.** Return types matter as much as
+parameter types — prototyping only the mismatching call is not enough, because
+the deferral is caused by the *preceding* call's return type.
+
+This retired the `arg-fill-order` blocker class, which had cost nine failed
+formulations while the fix was one line of C.
+
 ## Blockers
 
 Every function parked in `src/non_matching/` falls into one of these. They are
