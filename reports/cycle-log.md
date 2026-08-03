@@ -116,3 +116,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T12:14:50Z  end     +1 (OvlFunc_942_2008b68); 47 elevated
 2026-08-03T12:25:28Z  start   two more, diversified
 2026-08-03T12:26:52Z  end     +2 (OvlFunc_887_20093b4, OvlFunc_968_2008fbc); 49 elevated
+2026-08-03T12:40:50Z  end     batch-06 written (5 functions); 49 elevated total
