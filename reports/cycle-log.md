@@ -219,3 +219,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T22:56:49Z  start   the six mirror siblings
 2026-08-03T22:58:22Z  end     +6; 194 elevated; mirror family COMPLETE at 7/7
 2026-08-03T23:05:14Z  end     batch-18 written (14 functions); 194 elevated total
+2026-08-03T23:07:37Z  start   next family sweep
+2026-08-03T23:11:15Z  end     +3 (higher-arity GetEntrances); 197 elevated; skipped the data guard and it cost a build
