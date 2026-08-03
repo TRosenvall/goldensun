@@ -12,6 +12,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-02](reports/batch-02.md) | 7 | ready to port |
 | [batch-03](reports/batch-03.md) | 11 | ready to port |
 | [batch-04](reports/batch-04.md) | 8 | ready to port |
+| [batch-05](reports/batch-05.md) | 7 | ready to port |
 
 Every batch is verified the same way, from a clean build:
 

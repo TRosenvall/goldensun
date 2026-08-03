@@ -101,3 +101,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T10:36:15Z  end     +0 elevated; blocker filter folded into the ranker (1116 clean of 1940)
 2026-08-03T10:46:53Z  start   top of the --clean ranking
 2026-08-03T10:48:08Z  end     +3 (OvlFunc_920 stub family); 44 elevated
+2026-08-03T11:01:47Z  end     batch-05 written (7 functions); 44 elevated total
