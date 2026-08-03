@@ -160,3 +160,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T17:45:05Z  end     +2 (OvlFunc_901_20087d4, OvlFunc_947_2009544); 104 elevated; narrow-mask down to one peephole
 2026-08-03T17:55:32Z  start   one more narrow-mask idea, then elevate
 2026-08-03T18:01:19Z  end     +1 (OvlFunc_943_200b380); 105 elevated; a substring family scan produced 9 false members
+2026-08-03T18:11:39Z  start   use find_families properly this time
+2026-08-03T18:13:26Z  end     +5 (three-way GetEntrances); 110 elevated
