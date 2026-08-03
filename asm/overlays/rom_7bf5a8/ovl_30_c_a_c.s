@@ -3,41 +3,6 @@
 @ Leaf helper, 25 instructions, calls nothing.
 @ Described by what it touches, not by what it means.
 @ Globals: ewram_240
-.thumb_func_start OvlFunc_935_200808c
-	push	{lr}
-	ldr	r3, =gState
-	mov	r1, #0xe0
-	lsl	r1, #1
-	add	r3, r1
-	mov	r1, #0
-	ldrsh	r2, [r3, r1]
-	ldr	r3, =0x60
-	cmp	r2, r3
-	bne	.La4
-	ldr	r0, =.L1c80
-	b	.Lba
-.La4:
-	ldr	r3, =0x61
-	cmp	r2, r3
-	bne	.Lae
-	ldr	r0, =.L1cc0
-	b	.Lba
-.Lae:
-	ldr	r3, =0x62
-	cmp	r2, r3
-	bne	.Lb8
-	ldr	r0, =.L1cfc
-	b	.Lba
-.Lb8:
-	ldr	r0, =.L1c7c
-.Lba:
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_935_200808c
-
-@ Leaf helper, 25 instructions, calls nothing.
-@ Described by what it touches, not by what it means.
-@ Globals: ewram_240
 .thumb_func_start OvlFunc_935_20080e0
 	push	{lr}
 	ldr	r3, =gState
@@ -69,4 +34,3 @@
 	pop	{r1}
 	bx	r1
 .func_end OvlFunc_935_20080e0
-

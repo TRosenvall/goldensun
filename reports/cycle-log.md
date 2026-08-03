@@ -142,3 +142,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T15:46:51Z  start   remaining whole-file four-way members, guard-checked first
 2026-08-03T15:52:12Z  end     +6 (four-way whole-file members); 86 elevated
 2026-08-03T15:52:12Z  end     batch-10 written (12 functions); 86 elevated total
+2026-08-03T16:02:42Z  start   four two-function four-way splits
