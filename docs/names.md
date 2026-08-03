@@ -203,10 +203,12 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_951_2008044` | `0x02008044` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script, so the ROM layout does not mov |
 | `OvlFunc_951_2008074` | `0x02008074` | — | read | Split out of that .s; the sibling parts stay as assembly. A three-message prompt: says the opening line, runs a check, and delivers one of t |
 | `OvlFunc_951_20080bc` | `0x020080bc` | — | read | A three-message prompt: says the opening line, runs a check, and delivers one of two follow-ups at base+1 or base+2. One of seven identical  |
+| `OvlFunc_951_20081a8` | `0x020081a8` | — | read | Split out of that .s; the sibling parts stay as assembly. GetEntrances, 2-way form: selects one of 2 per-area tables from the gState halfwor |
 | `OvlFunc_952_2008030` | `0x02008030` | — | read | GetEntrances for this map: picks one of two edge-transition tables from a gState halfword. One of an 18-member family; see src/overlays/rom_ |
 | `OvlFunc_953_2008030` | `0x02008030` | — | read | .o keeps its name and its slot in the overlay's linker script is unchanged. GetEntrances, three-way form: selects one of three edge-transiti |
 | `OvlFunc_956_20081b4` | `0x020081b4` | — | read | Split out of that .s; the _c part stays as assembly and keeps its slot in Registers OvlFunc_956_200804c as a task at priority 0xc80. THE LOC |
 | `OvlFunc_957_2008a00` | `0x02008a00` | — | read | Split out of that .s; the sibling part stays as assembly and keeps its slot in the overlay's linker script, so the ROM layout does not move. |
+| `OvlFunc_957_200b598` | `0x0200b598` | — | read | Split out of that .s. tools/split_s.py refused the cut until the seven tables this function returns were declared .global -- they are data t |
 | `OvlFunc_958_2008cc0` | `0x02008cc0` | — | read | .o keeps its name and its slot in the overlay's linker script is unchanged. Confirmed with tools/split_s.py, which refuses this shortcut whe |
 | `OvlFunc_958_2008d20` | `0x02008d20` | — | read | Split out of that .s; the sibling part stays as assembly and keeps its slot in goldensun/overlays/rom_7e636c/overlay.ld, so the ROM layout d |
 | `OvlFunc_958_2008d88` | `0x02008d88` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in goldensun/overlays/rom_7e636c/overlay.ld, so the ROM layout |
@@ -246,4 +248,4 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_974_20081b8` | `0x020081b8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 | `OvlFunc_974_20081d8` | `0x020081d8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 
-211 functions: 37 named, 174 read
+213 functions: 37 named, 176 read

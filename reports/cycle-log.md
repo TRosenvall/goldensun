@@ -228,3 +228,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T23:24:20Z  end     +5; 211 elevated
 2026-08-03T23:26:45Z  start   the last GetEntrances
 2026-08-03T23:30:06Z  end     +2 (OvlFunc_951_20081a8, OvlFunc_957_200b598); 213 elevated; symbol check added to asmfacts
+2026-08-03T23:49:38Z  end     batch-19 written (19 functions); 213 elevated total
