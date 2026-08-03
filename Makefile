@@ -332,11 +332,23 @@ $(patsubst %.s,%.o,$(wildcard asm/$(strip $(1))*.s)): %.o: $(strip $(1))orig.bin
 endef
 $(foreach overlay_dir,$(OVERLAY_DIRS),$(eval $(call overlay_orig_deps, $(overlay_dir))))
 
-asm/overlays/common/common0.o: overlays/rom_78ef88/orig.bin
-
-asm/overlays/common/common1_c.o: overlays/rom_7db0c8/orig.bin
-
-asm/overlays/common/common2.o: overlays/rom_7bf5a8/orig.bin
+# The three common overlays incbin from a specific overlay's orig.bin. These
+# have to be WILDCARDED over the split descendants, not named directly: once
+# common2.s is split into common2_a.s / common2_c_c_..._b.s, the .incbin
+# travels into whichever part holds it, while a dependency naming common2.o
+# alone keeps pointing at a file that no longer exists.
+#
+# The symptom appears only in a CLEAN build, because `clean` deletes orig.bin
+# and an incremental build still has one lying around from last time:
+#
+#     common2_c_c_c_c_c_c_c_c_c_c.s:112:
+#         Error: file not found: overlays/rom_7bf5a8/orig.bin
+define common_orig_deps
+$(patsubst %.s,%.o,$(wildcard asm/overlays/common/$(strip $(1))*.s)): %.o: $(strip $(2))
+endef
+$(eval $(call common_orig_deps, common0, overlays/rom_78ef88/orig.bin))
+$(eval $(call common_orig_deps, common1_c, overlays/rom_7db0c8/orig.bin))
+$(eval $(call common_orig_deps, common2, overlays/rom_7bf5a8/orig.bin))
 
 overlays/rom_%/orig.bin: baserom.gba tools/unpack_overlay
 	tools/unpack_overlay -r $< -a 0x$* -o $@
