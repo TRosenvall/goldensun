@@ -217,6 +217,10 @@ def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)
     quiet = "--quiet" in sys.argv
+    # Some translation units -- several overlay stems already, per the
+    # per-file rules in the Makefile -- only byte-match at -O1. Screening at
+    # -O2 alone reports those as failures that no rewriting of the C can fix.
+    cflags = ["-O1" if (a == "-O2" and "--O1" in sys.argv) else a for a in CFLAGS]
     src = [a for a in sys.argv[1:] if a.endswith(".c")][0]
     src = os.path.join(ROOT, src) if not src.startswith("/") else src
 
@@ -233,7 +237,7 @@ def main():
     if not os.path.exists(ref):
         sys.exit("no asm counterpart: " + ref)
 
-    r = subprocess.run([os.path.join(GCC, "xgcc")] + CFLAGS + ["-S", "-o", "-", src],
+    r = subprocess.run([os.path.join(GCC, "xgcc")] + cflags + ["-S", "-o", "-", src],
                        capture_output=True, text=True)
     if r.returncode:
         print("COMPILE FAILED")

@@ -51,3 +51,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T04:20:56Z  end     +0 elevated, 2 parked (b8530 one instruction, 92504 new class)
 2026-08-03T04:29:14Z  start   self-driven cycle; user away
 2026-08-03T04:30:09Z  end     +0 elevated, 1 parked (a3480, setup-order only)
+2026-08-03T04:53:54Z  start   overlay corpus (untouched so far); circuit breaker armed
+2026-08-03T04:56:19Z  halt    +0 elevated (3rd zero round); circuit breaker met, loop NOT re-armed
