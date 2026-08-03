@@ -99,3 +99,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T10:22:06Z  start   filtered pool, both blocker shapes excluded
 2026-08-03T10:23:15Z  end     +1 (OvlFunc_901_20084b4); 41 elevated
 2026-08-03T10:36:15Z  end     +0 elevated; blocker filter folded into the ranker (1116 clean of 1940)
+2026-08-03T10:46:53Z  start   top of the --clean ranking
+2026-08-03T10:48:08Z  end     +3 (OvlFunc_920 stub family); 44 elevated
