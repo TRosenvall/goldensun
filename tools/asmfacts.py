@@ -68,6 +68,28 @@ def carries_data(path):
     return bool(defined - used)
 
 
+IDENT = re.compile(r"^(\.L\w+|[A-Za-z_]\w*)$")
+
+
+def return_targets_are_symbols(rets):
+    """True if every `ldr r0, =X` operand is a symbol rather than a number.
+
+    The GetEntrances sweep counts "N compares, N+1 pool loads into r0" and
+    treats the loads as table addresses. Several functions satisfy that count
+    while loading a NUMBER into r0 -- a flag id passed to __GetFlag, say --
+    because the sweep cannot tell a table address from a constant.
+
+    Generated C for those does not compile:
+
+        parse error before `0xf13'
+
+    which is a cheap failure, but it has now cost five generate-and-screen
+    cycles across batches 15 and 19. Checking the operand shape before
+    generating costs nothing and catches all of them.
+    """
+    return all(IDENT.match(r) for r in rets)
+
+
 def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)

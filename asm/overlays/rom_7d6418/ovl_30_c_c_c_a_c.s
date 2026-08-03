@@ -1,29 +1,6 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ Leaf helper, 15 instructions, calls nothing.
-@ Described by what it touches, not by what it means.
-@ Globals: ewram_240
-.thumb_func_start OvlFunc_951_20081a8
-	push	{lr}
-	ldr	r3, =gState
-	mov	r1, #0xe0
-	lsl	r1, #1
-	add	r3, r1
-	mov	r1, #0
-	ldrsh	r2, [r3, r1]
-	ldr	r3, =0xbd
-	cmp	r2, r3
-	bne	.L1c0
-	ldr	r0, =Events_TolbiSpring
-	b	.L1c2
-.L1c0:
-	ldr	r0, =Events_GameBuildings
-.L1c2:
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_951_20081a8
-
 @ Cutscene: roughly 277 instructions of straight-line script --
 @ 1 turn, 2 animation changes, 5 dialogue lines, 6 timed pauses.
 @ Characterised structurally rather than beat by beat.
@@ -1403,4 +1380,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_951_2008dd0
-

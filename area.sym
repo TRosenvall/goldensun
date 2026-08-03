@@ -157,3 +157,5 @@ _AREA_5a = 0x5a;
 _AREA_5b = 0x5b;
 _AREA_5c = 0x5c;
 _AREA_a3 = 0xa3;
+_AREA_94 = 0x94;
+_AREA_96 = 0x96;
