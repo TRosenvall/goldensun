@@ -147,6 +147,20 @@ def blockers(body):
             if a and b and a.group(1) != b.group(1):
                 out.add("stack-arg-pair")
 
+        # 5. argument fill order -- a pooled argument and an immediate
+        #    argument set up in the opposite order from gcc's. The ROM builds
+        #    the immediate first; gcc emits the pool load first.
+        #
+        #        rom    mov r1, #0x66 / ldr r2, =0x4b6
+        #        ours   ldr r2, =0x4b6 / mov r1, #0x66
+        #
+        #    Naming both as locals costs two instructions rather than
+        #    reordering. Seen in the OvlFunc_882_2008398 family and in
+        #    Func_8078948 / LoadStatusIcon from the main ROM.
+        if re.match(r"ldr r\d+, =", l) and i and re.match(r"mov r\d+, #", norm[i - 1]) \
+                and i + 1 < len(norm) and norm[i + 1].startswith(("mov r", "bl ")):
+            out.add("arg-fill-order")
+
         # 3. interleaved argument set-up -- a shifted constant's mov/lsl pair
         #    split by ANOTHER register's move. Nine formulations have failed
         #    against this; gcc always emits the pair contiguously.

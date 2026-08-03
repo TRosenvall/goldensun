@@ -108,3 +108,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T11:25:01Z  end     +0 elevated; pool-tell blocker measured at 75 family functions, not 3
 2026-08-03T11:35:49Z  start   largest unblocked family
 2026-08-03T11:37:31Z  end     +0 elevated; found a 4th blocker class (50 functions) the filter was missing
+2026-08-03T11:48:19Z  start   genuinely unblocked families, filter corrected
+2026-08-03T11:50:04Z  end     +0 elevated; 5th blocker class added; 63 family functions genuinely unblocked
