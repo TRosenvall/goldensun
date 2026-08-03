@@ -149,3 +149,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T16:27:36Z  start   remaining four-way members, then batch-11
 2026-08-03T16:33:40Z  end     +4 (incl. a five-way variant); 98 elevated
 2026-08-03T16:33:40Z  end     batch-11 written (12 functions); 98 elevated total
+2026-08-03T16:44:01Z  start   finish the four-way family, then new territory

@@ -1,47 +1,5 @@
 	.include "macros.inc"
 
-@ Slot 4: the map object table.
-@ Chooses among .L1bcc, .L1b48, .L1c80, .L1ce0, .L1b3c
-@ on save bit 0x96f and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
-.thumb_func_start OvlFunc_958_2008d88
-	push	{lr}
-	ldr	r3, =gState
-	mov	r1, #0xe0
-	lsl	r1, #1
-	add	r3, r1
-	mov	r1, #0
-	ldrsh	r2, [r3, r1]
-	ldr	r3, =0x98
-	cmp	r2, r3
-	bne	.Ldae
-	ldr	r0, =0x96f
-	bl	__GetFlag
-	cmp	r0, #0
-	beq	.Ldaa
-	ldr	r0, =.L1bcc
-	b	.Ldc4
-.Ldaa:
-	ldr	r0, =.L1b48
-	b	.Ldc4
-.Ldae:
-	ldr	r3, =0x9d
-	cmp	r2, r3
-	bne	.Ldb8
-	ldr	r0, =.L1c80
-	b	.Ldc4
-.Ldb8:
-	ldr	r3, =0x9e
-	cmp	r2, r3
-	bne	.Ldc2
-	ldr	r0, =gScript_885__02009ce0
-	b	.Ldc4
-.Ldc2:
-	ldr	r0, =.L1b3c
-.Ldc4:
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_958_2008d88
-
 @ Cutscene: roughly 129 instructions of straight-line script --
 @ 1 turn, 4 animation changes, 2 dialogue lines, 2 timed pauses.
 @ Characterised structurally rather than beat by beat.
