@@ -37,6 +37,35 @@
  * The comparison really is mismatched between axes, as the annotation says:
  * x and z at whole-tile resolution (asr #20), y at 1/16 (asr #16, with 0xffff
  * added first to round negatives toward zero).
+ *
+ * PROGRESS: THE INSTRUCTION SEQUENCE NOW MATCHES. Splitting the table's
+ * address from its dereference -- taking `*(char **)iwram_3001ebc` into a
+ * local, then adding 0x34 in a second statement -- reproduces the ROM's
+ * prologue shape exactly:
+ *
+ *     rom    ldr r3,=0x3001ebc / mov r4,r0 / ldr r2,[r3] / ldr r3,[r4] / mov r1,r2
+ *     ours   ldr r3,=0x3001ebc / mov r1,r0 / ldr r2,[r3] / ldr r3,[r1] / mov r4,r2
+ *
+ * Same instructions, same order. The ONLY difference left in the whole
+ * function is that r4 and r1 are exchanged: the ROM holds the position
+ * argument in r4 and the table pointer in r1, and we do the reverse.
+ *
+ * Both are live across the entire loop, so this is purely which pseudo the
+ * allocator sees first. Four ways of changing that have failed:
+ *
+ *   3. `px = pos->x >> 20` hoisted above the table load (moves the pool load
+ *      to after the argument, diverging at 1 instead of 2 -- worse)
+ *   4. the table address split from the dereference (this one; diverges at 2)
+ *   5. as 4 with `px` declared before `p`
+ *   6. as 4 with the argument copied into its own local first
+ *
+ * The declaration order does not reach the allocator, and neither does the
+ * statement order once the shape is right.
+ *
+ * WHAT THIS IS WORTH. Seventeen functions share this body. Solving the
+ * register exchange solves all of them, and the remaining distance is one
+ * allocation decision -- not a codegen shape, not a missing symbol, not a
+ * scheduling difference.
  */
 struct Vec { int x, y, z; };
 struct Ent { unsigned char pad_00[8]; int x, y, z; };
