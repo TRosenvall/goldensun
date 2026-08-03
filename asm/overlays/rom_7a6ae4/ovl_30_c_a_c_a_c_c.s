@@ -1,38 +1,5 @@
 	.include "macros.inc"
 
-@ Slot 4: map object table, one per area.
-.thumb_func_start OvlFunc_920_20080f4
-	push	{lr}
-	ldr	r3, =gState
-	mov	r1, #0xe0
-	lsl	r1, #1
-	add	r3, r1
-	mov	r1, #0
-	ldrsh	r2, [r3, r1]
-	ldr	r3, =0x31
-	cmp	r2, r3
-	bne	.L10c
-	ldr	r0, =.Lea8
-	b	.L122
-.L10c:
-	ldr	r3, =0x30
-	cmp	r2, r3
-	bne	.L116
-	ldr	r0, =.Lefc
-	b	.L122
-.L116:
-	ldr	r3, =0x2f
-	cmp	r2, r3
-	bne	.L120
-	ldr	r0, =gOvl_02008f80
-	b	.L122
-.L120:
-	ldr	r0, =.Le9c
-.L122:
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_920_20080f4
-
 @ Repaint: a 1x1 attribute cell from source (1, 0) to (0x15, 0x0E) -- one half
 @ of a two-state tile, paired with OvlFunc_168.
 .thumb_func_start OvlFunc_920_2008148

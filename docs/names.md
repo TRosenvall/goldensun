@@ -146,6 +146,7 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_921_2008130` | `0x02008130` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script, so the ROM layout does not mov |
 | `OvlFunc_921_20081ec` | `0x020081ec` | — | read | GetEntrances for this map: picks one of two edge-transition tables from a gState halfword. One of an 18-member family; see src/overlays/rom_ |
 | `OvlFunc_922_2008050` | `0x02008050` | — | read | tools/asmfacts.py, not inferred from the function count. GetEntrances, 8-way form: selects one of 8 per-area tables from the gState halfword |
+| `OvlFunc_922_20080f8` | `0x020080f8` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. GetEntrances, 7-way form: sele |
 | `OvlFunc_924_2008e20` | `0x02008e20` | — | read | GetEntrances, four-way form: selects one of four edge-transition tables from a gState halfword, falling through to the last. One of a 24-mem |
 | `OvlFunc_924_2008e80` | `0x02008e80` | — | read | GetEntrances, 5-way form: selects one of 5 per-area tables from the gState halfword at +0x1C0, falling through to the last. THE EARLIER FAMI |
 | `OvlFunc_924_2008f30` | `0x02008f30` | — | read | THE LAST MEMBER OF THE 24-FUNCTION FAMILY, and the only one that needed its .s split by hand. That .s held one function and FOURTEEN .incbin |
@@ -160,6 +161,8 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_931_2008030` | `0x02008030` | — | read | .o keeps its name and its slot in the overlay's linker script is unchanged. GetEntrances, three-way form: selects one of three edge-transiti |
 | `OvlFunc_931_200811c` | `0x0200811c` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script, so the ROM layout does not mov |
 | `OvlFunc_932_2008040` | `0x02008040` | — | read | Turn one step toward the target, one of eleven identical copies -- one per overlay, byte-for-byte the same body. See src/overlays/rom_784360 |
+| `OvlFunc_932_20080e4` | `0x020080e4` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. GetEntrances, 12-way form: sel |
+| `OvlFunc_932_200820c` | `0x0200820c` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. GetEntrances, 10-way form: sel |
 | `OvlFunc_932_2008388` | `0x02008388` | — | read | THE FIRST FUNCTION ELEVATED OUT OF THE pool-tell BLOCKER. The ROM loads 0x4d from the literal pool rather than building it with `mov r0, #0x |
 | `OvlFunc_932_20083b4` | `0x020083b4` | — | read | Second of three identical stubs differing only in the pooled id -- see ovl_30_a_c_c_a_a_a_a_b.c for why _AREA_4f has to be a symbol rather t |
 | `OvlFunc_932_20083e0` | `0x020083e0` | — | read | Third of three identical stubs differing only in the pooled id -- see ovl_30_a_c_c_a_a_a_a_b.c for why _AREA_51 has to be a symbol rather th |
@@ -173,6 +176,7 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_935_200808c` | `0x0200808c` | — | read | Split out of that .s; the sibling part stays as assembly and keeps its slot in the overlay's linker script, so the ROM layout does not move. |
 | `OvlFunc_935_20080e0` | `0x020080e0` | — | read | GetEntrances, 4-way form. Returns a named global from at least one arm, which is why the family sweeps in batches 08-13 missed it -- they ma |
 | `OvlFunc_935_20082e0` | `0x020082e0` | — | read | .o keeps its name and its slot in the overlay's linker script is unchanged. Confirmed with tools/split_s.py, which refuses this shortcut whe |
+| `OvlFunc_936_20080ec` | `0x020080ec` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. GetEntrances, 7-way form: sele |
 | `OvlFunc_936_2008180` | `0x02008180` | — | read | GetEntrances, 5-way form: selects one of 5 per-area tables from the gState halfword at +0x1C0, falling through to the last. THE EARLIER FAMI |
 | `OvlFunc_936_2008240` | `0x02008240` | — | read | tools/asmfacts.py, not inferred from the function count. GetEntrances, 7-way form: selects one of 7 per-area tables from the gState halfword |
 | `OvlFunc_936_20095e0` | `0x020095e0` | — | read | Overlay 936: set the display-offset flag on the player actor. Split out of asm/overlays/rom_7c097c/ovl_30_c_c_c_a_a_c.s; the neighbouring pa |
@@ -220,6 +224,7 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_966_20080c4` | `0x020080c4` | — | read | Split out of that .s; the _a and _c parts stay as assembly. A three-message prompt: says the opening line, runs a check, and delivers one of |
 | `OvlFunc_967_200804c` | `0x0200804c` | — | read | GetEntrances, two-way form. This one returns a NAMED GLOBAL from its first arm rather than a local `.L` table, which is why the earlier fami |
 | `OvlFunc_968_2008594` | `0x02008594` | — | read | Overlay 968: forward an actor's turn target, masked to its low nibble. Split out of asm/overlays/rom_7f2f14/ovl_30_a_a_a_c_c.s; the neighbou |
+| `OvlFunc_968_2008e04` | `0x02008e04` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. GetEntrances, 6-way form: sele |
 | `OvlFunc_968_2008fbc` | `0x02008fbc` | — | read | Overlay 968: a talk sequence with a positioned speaker. Split out of asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_a_c.s; the neighbouring parts st |
 | `OvlFunc_969_200a15c` | `0x0200a15c` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. A 32-frame sine effect actor r |
 | `OvlFunc_969_200a1ac` | `0x0200a1ac` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. The mirror half of the 32-fram |
@@ -236,4 +241,4 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_974_20081b8` | `0x020081b8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 | `OvlFunc_974_20081d8` | `0x020081d8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 
-201 functions: 37 named, 164 read
+206 functions: 37 named, 169 read

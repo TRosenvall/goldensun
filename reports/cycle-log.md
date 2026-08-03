@@ -224,3 +224,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T23:15:46Z  end     +4 (higher-arity GetEntrances); 201 elevated; asmfacts.py added; 909_200809c parked
 2026-08-03T23:18:11Z  start   the split-needing GetEntrances, guard inline
 2026-08-03T23:20:10Z  end     +5 (6- to 12-way GetEntrances); 206 elevated
+2026-08-03T23:22:42Z  start   five more GetEntrances
+2026-08-03T23:24:20Z  end     +5; 211 elevated
