@@ -195,3 +195,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T21:44:06Z  start   finish FindEntityAtPosition, then batch-15
 2026-08-03T21:45:50Z  end     +6; 151 elevated; FindEntityAtPosition COMPLETE at 17/17
 2026-08-03T21:52:48Z  end     batch-15 written (29 functions); 151 elevated total
+2026-08-03T21:55:23Z  start   retry free with the indexing insight, then next family
+2026-08-03T21:58:59Z  end     +1 (OvlFunc_884_2008030); 152 elevated; free-vs-FindEntity correction recorded

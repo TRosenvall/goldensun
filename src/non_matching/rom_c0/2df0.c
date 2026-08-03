@@ -31,6 +31,22 @@
  * split from the mask into its own statement; the mask named without a base
  * local; and `gPtrs[i >> 2]` as a real array index, which costs two extra
  * instructions because the byte offset has to be converted back.
+ *
+ * THE INDEXING FIX DOES NOT TRANSFER (tested after FindEntityAtPosition was
+ * solved by it, batch 15). There the cure was writing `tbl[i]` instead of
+ * `*p++`, which makes the base live from the top and changes its allocation
+ * priority. Here the base is already a plain array symbol with a computed byte
+ * offset -- there is no pointer walk to convert -- and three indexed forms all
+ * fail identically:
+ *
+ *   * `*(void **)&((char *)gPtrs)[i] = p`            6 vs 6, diverges at 0
+ *   * `gPtrs[(p >> 24) & 1] = p` (element index)     7 vs 6, worse
+ *   * base and index both in locals, indexed store   6 vs 6, diverges at 0
+ *
+ * So the two functions are NOT the same problem after all, and the note above
+ * saying they are should be read with that correction. What they share is the
+ * SYMPTOM -- exact instruction sequence, different register assignment -- and
+ * that symptom evidently has more than one cause.
  */
 extern void *gPtrs[];
 
