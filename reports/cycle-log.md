@@ -127,3 +127,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T13:54:34Z  start   largest pool-tell family, now that the class is tractable
 2026-08-03T13:57:50Z  end     +5 (GetEntrances family head un-parked + 4 siblings); 62 elevated
 2026-08-03T14:08:24Z  start   three remaining whole-file GetEntrances members, then batch-08
+2026-08-03T14:13:35Z  end     +3 (last whole-file GetEntrances members); 65 elevated
+2026-08-03T14:13:35Z  end     batch-08 written (10 functions); 65 elevated total
