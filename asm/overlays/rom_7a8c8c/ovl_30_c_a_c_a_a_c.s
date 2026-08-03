@@ -1,58 +1,5 @@
 	.include "macros.inc"
 
-@ Leaf helper, 40 instructions, calls nothing.
-@ Described by what it touches, not by what it means.
-@ Globals: ewram_240
-.thumb_func_start OvlFunc_922_20080f8
-	push	{lr}
-	ldr	r3, =gState
-	mov	r1, #0xe0
-	lsl	r1, #1
-	add	r3, r1
-	mov	r1, #0
-	ldrsh	r2, [r3, r1]
-	ldr	r3, =0x34
-	cmp	r2, r3
-	bne	.L110
-	ldr	r0, =.L29bc
-	b	.L144
-.L110:
-	ldr	r3, =0x3e
-	cmp	r2, r3
-	bne	.L11a
-	ldr	r0, =.L29ec
-	b	.L144
-.L11a:
-	ldr	r3, =0x3f
-	cmp	r2, r3
-	bne	.L124
-	ldr	r0, =.L2a4c
-	b	.L144
-.L124:
-	ldr	r3, =0x40
-	cmp	r2, r3
-	bne	.L12e
-	ldr	r0, =.L2ac4
-	b	.L144
-.L12e:
-	ldr	r3, =0x41
-	cmp	r2, r3
-	bne	.L138
-	ldr	r0, =.L2b3c
-	b	.L144
-.L138:
-	ldr	r3, =0x43
-	cmp	r2, r3
-	bne	.L142
-	ldr	r0, =.L2b9c
-	b	.L144
-.L142:
-	ldr	r0, =.L29a4
-.L144:
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_922_20080f8
-
 @ 95 instructions. Not one of the recognised overlay shapes,
 @ so this is a CALL TRACE rather than a description -- what it does with
 @ these is not characterised here.
@@ -159,4 +106,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_922_2008180
-
