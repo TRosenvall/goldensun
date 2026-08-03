@@ -58,9 +58,25 @@
  *   4. the table address split from the dereference (this one; diverges at 2)
  *   5. as 4 with `px` declared before `p`
  *   6. as 4 with the argument copied into its own local first
+ *   7. declaring the second argument the annotation claims exists, unused, in
+ *      case its presence changed the allocation. gcc drops it entirely; the
+ *      output is identical.
  *
  * The declaration order does not reach the allocator, and neither does the
  * statement order once the shape is right.
+ *
+ * A NOTE ON WHY THIS IS ODD. gcc-2.96 allocates by priority, roughly usage
+ * frequency over the live range, not by birth order -- "birth order" in
+ * docs/elevation.md is a simplification that happens to hold for short
+ * functions. Here `pos` is dereferenced two or three times per iteration and
+ * the table pointer once, so `pos` should win the cheaper register, and in our
+ * output it does: r1. The ROM gives the cheaper register to the table pointer
+ * instead, which is what a HIGHER usage count for the table would produce.
+ *
+ * That suggests the original source touched the table more often than this
+ * does -- for instance if the loop bound were expressed against the pointer
+ * rather than the separate counter the ROM keeps in r5. Not yet tested,
+ * because the ROM plainly does keep a counter.
  *
  * WHAT THIS IS WORTH. Seventeen functions share this body. Solving the
  * register exchange solves all of them, and the remaining distance is one
