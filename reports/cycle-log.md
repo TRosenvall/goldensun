@@ -169,3 +169,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T18:43:01Z  end     +4 (three-message prompt family); 118 elevated
 2026-08-03T18:53:21Z  start   finish the prompt family
 2026-08-03T18:55:33Z  end     +3; 121 elevated; prompt family complete at 7/7
+2026-08-03T18:57:20Z  end     +3 (prompt family complete); 121 elevated; parked the 17-member FindEntityAtPosition head
