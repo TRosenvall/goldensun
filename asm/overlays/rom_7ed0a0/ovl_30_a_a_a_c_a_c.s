@@ -1,63 +1,11 @@
 	.include "macros.inc"
 
-@ FindEntityAtPosition
-@ First map-object slot (8..0x41) standing at a position.
-@ Byte-identical to OvlFunc_6c in overlays/rom_780898/ovl_30.s,
-@ where the shared push-log block is documented in full.
-.thumb_func_start OvlFunc_965_200806c
-	push	{r5, r6, r7, lr}
-	ldr	r3, =iwram_3001ebc
-	mov	r4, r0
-	ldr	r2, [r3]
-	ldr	r3, [r4]
-	mov	r1, r2
-	ldr	r6, =0xffff
-	mov	r5, #8
-	asr	r7, r3, #20
-	add	r1, #0x34
-.L80:
-	ldmia	r1!, {r0}
-	ldr	r3, [r0, #8]
-	asr	r3, #20
-	cmp	r7, r3
-	bne	.Lae
-	ldr	r3, [r4, #4]
-	cmp	r3, #0
-	bge	.L92
-	add	r3, r6
-.L92:
-	asr	r2, r3, #16
-	ldr	r3, [r0, #0xc]
-	cmp	r3, #0
-	bge	.L9c
-	add	r3, r6
-.L9c:
-	asr	r3, #16
-	cmp	r2, r3
-	bne	.Lae
-	ldr	r2, [r4, #8]
-	ldr	r3, [r0, #0x10]
-	asr	r2, #20
-	asr	r3, #20
-	cmp	r2, r3
-	beq	.Lb6
-.Lae:
-	add	r5, #1
-	cmp	r5, #0x41
-	bls	.L80
-	mov	r0, #0
-.Lb6:
-	pop	{r5, r6, r7}
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_965_200806c
-
 @ TryPushBlockOneTile
 @ Interaction handler for a single-tile pushable block.
 @ Byte-identical to OvlFunc_c4 in overlays/rom_780898/ovl_30.s,
 @ where the shared push-log block is documented in full.
-@ Here .L2fd4 is the facing->step table.
-.thumb_func_start OvlFunc_965_20080c4
+@ Here .L31f0 is the facing->step table.
+.thumb_func_start OvlFunc_964_20080c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
 	mov	r6, r9
@@ -69,7 +17,7 @@
 	ldrh	r3, [r0, #6]
 	mov	r8, r0
 	lsr	r3, #12
-	ldr	r0, =.L2fd4
+	ldr	r0, =.L31f0
 	lsl	r5, r3, #2
 	ldr	r2, =0xffff0000
 	ldr	r1, [r0, r5]
@@ -91,7 +39,7 @@
 	str	r3, [r7, #8]
 	mov	r0, r7
 	mov	r1, r8
-	bl	OvlFunc_965_200806c
+	bl	OvlFunc_964_200806c
 	mov	r6, r0
 	cmp	r6, #0
 	bne	.L114
@@ -113,7 +61,7 @@
 	str	r3, [r7, #8]
 	mov	r0, r7
 	mov	r1, r6
-	bl	OvlFunc_965_200806c
+	bl	OvlFunc_964_200806c
 	cmp	r0, #0
 	beq	.L14a
 	mov	r3, r0
@@ -135,7 +83,7 @@
 	mov	r0, r7
 	str	r3, [r7, #8]
 	mov	r1, r6
-	bl	OvlFunc_965_200806c
+	bl	OvlFunc_964_200806c
 	cmp	r0, #0
 	beq	.L176
 	mov	r3, r0
@@ -234,13 +182,13 @@
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.func_end OvlFunc_965_20080c4
+.func_end OvlFunc_964_20080c4
 
 @ FillMapRectCollisionByte
 @ Stamp one byte over a rectangle of map collision cells.
 @ Byte-identical to OvlFunc_244 in overlays/rom_780898/ovl_30.s,
 @ where the shared push-log block is documented in full.
-.thumb_func_start OvlFunc_965_2008244
+.thumb_func_start OvlFunc_964_2008244
 	push	{r5, r6, lr}
 	mov	r4, r3
 	ldr	r3, [sp, #0xc]
@@ -293,5 +241,4 @@
 	pop	{r5, r6}
 	pop	{r1}
 	bx	r1
-.func_end OvlFunc_965_2008244
-
+.func_end OvlFunc_964_2008244
