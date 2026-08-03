@@ -64,3 +64,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T06:17:04Z  end     +0 elevated; a22f4 advanced to 3 instructions; 4th screen false-negative class fixed
 2026-08-03T06:27:56Z  start   finishing their parked attempts (worked for a22f4)
 2026-08-03T06:33:35Z  end     +1 (OvlFunc_974_2008160); symbol-address idiom cracked, 6 siblings unblocked
+2026-08-03T06:44:09Z  start   the six sibling stubs unblocked by the symbol idiom
+2026-08-03T06:46:51Z  end     +6 (the whole OvlFunc_974 stub family); 29 elevated
