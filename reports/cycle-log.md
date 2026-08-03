@@ -92,3 +92,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T09:34:52Z  end     +0 elevated; QUANTIFIED the top blocker at 34 functions
 2026-08-03T09:45:41Z  start   attacking the 34-function narrow-constant blocker
 2026-08-03T09:47:30Z  end     +0 elevated; CRACKED the 34-function constant width, ordering still open
+2026-08-03T09:58:29Z  start   closing the ordering half of the 34-function blocker
+2026-08-03T09:59:00Z  end     +0 elevated; 7 orderings tried on the 34-fn blocker, width solved, order open

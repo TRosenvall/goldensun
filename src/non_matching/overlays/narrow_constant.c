@@ -26,9 +26,24 @@
  *     rom    mov r3, #3 / ldrb r2 / and r1, r3 / mov r3, #0xd / neg r3, r3
  *     ours   mov r3, #3 / and r1, r3 / mov r2, #0xd / ldrb r3 / neg r2, r2
  *
- * The ROM loads the field between building the 3 and using it. Four statement
- * orders were tried; this one is closest. Writing the C in the ROM's literal
- * instruction order drops an instruction instead of fixing the order.
+ * The ROM loads the field between building the 3 and using it. SEVEN
+ * statement orders have now been tried and this one is still closest:
+ *
+ *   1. mask inline, field in an int local                 11, diff at 1
+ *   2. priority masked into its own local first           11, diff at 1
+ *   3. priority modified in place, field between          11, diff at 2  <-- here
+ *   4. priority masked and shifted in one statement       12, diff at 1
+ *   5. the 3 in a named local, field read after it        10, diff at 1
+ *   6. as 5 but mask and shift combined                   12, diff at 1
+ *   7. shift folded into the final expression             11, diff at 1
+ *
+ * Note 5 and 6: naming the 3 as a local makes gcc fold it away entirely and
+ * the function comes out a whole instruction SHORT, which is a worse failure
+ * than the transposition. The 3 has to stay a literal.
+ *
+ * So the mask-width half is solved and stable, and only the placement of the
+ * ldrb resists. Every order that puts the field read where the ROM has it
+ * either loses the named-mask effect or changes the instruction count.
  *
  * That last step is worth someone else's fresh eyes, because it is now the
  * only thing between here and thirty-four functions.
