@@ -47,3 +47,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T03:21:54Z  end     +2 (Func_80a23c0, InitSpriteLayer); 21 elevated, 16 parked
 2026-08-03T03:46:38Z  start   cron cycle; targets from ranker
 2026-08-03T03:49:27Z  end     +2 (Camera_SetTarget, Func_80925e0); 23 elevated, 16 parked
+2026-08-03T04:19:00Z  start   cycle; aiming to close out batch-03
+2026-08-03T04:20:56Z  end     +0 elevated, 2 parked (b8530 one instruction, 92504 new class)
