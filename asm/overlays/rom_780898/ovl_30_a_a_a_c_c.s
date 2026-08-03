@@ -1,64 +1,5 @@
 	.include "macros.inc"
 
-@ FindEntityAtPosition
-@ r0 = an {x, y, z} triple, r1 = the entity to skip (the caller itself).
-@ Scans entity slots 8..0x41 -- the map-object range, above the party slots --
-@ from the table at [iwram_1ebc]+0x34, and returns the first whose position
-@ matches r0. Returns 0 if nothing is there.
-@
-@ The comparison is deliberately mismatched between axes: x and z are compared
-@ at whole-tile resolution (`asr #20`) but y at 1/16 (`asr #16`, with 0xFFFF
-@ added first to round negatives toward zero). So an object counts as "here" if
-@ it shares the tile, but only if it is on the same height step -- which is what
-@ keeps a log on a ledge from blocking one on the floor below.
-.thumb_func_start OvlFunc_883_200806c
-	push	{r5, r6, r7, lr}
-	ldr	r3, =iwram_3001ebc
-	mov	r4, r0
-	ldr	r2, [r3]
-	ldr	r3, [r4]
-	mov	r1, r2
-	ldr	r6, =0xffff
-	mov	r5, #8
-	asr	r7, r3, #20
-	add	r1, #0x34
-.L80:
-	ldmia	r1!, {r0}
-	ldr	r3, [r0, #8]
-	asr	r3, #20
-	cmp	r7, r3
-	bne	.Lae
-	ldr	r3, [r4, #4]
-	cmp	r3, #0
-	bge	.L92
-	add	r3, r6
-.L92:
-	asr	r2, r3, #16
-	ldr	r3, [r0, #0xc]
-	cmp	r3, #0
-	bge	.L9c
-	add	r3, r6
-.L9c:
-	asr	r3, #16
-	cmp	r2, r3
-	bne	.Lae
-	ldr	r2, [r4, #8]
-	ldr	r3, [r0, #0x10]
-	asr	r2, #20
-	asr	r3, #20
-	cmp	r2, r3
-	beq	.Lb6
-.Lae:
-	add	r5, #1
-	cmp	r5, #0x41
-	bls	.L80
-	mov	r0, #0
-.Lb6:
-	pop	{r5, r6, r7}
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_883_200806c
-
 @ TryPushBlockOneTile
 @ No arguments. The interaction handler for a single-tile pushable block, as
 @ opposed to the multi-tile logs the rest of this file deals with.
@@ -328,4 +269,3 @@
 	pop	{r1}
 	bx	r1
 .func_end OvlFunc_883_2008244
-
