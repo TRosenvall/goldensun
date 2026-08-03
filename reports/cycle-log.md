@@ -45,3 +45,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-02T22:51:35Z  end     +0 elevated; 3 parked; halfword-pool hypothesis tested and RULED OUT
 2026-08-03T03:16:09Z  start   fresh candidates, avoiding shapes already parked
 2026-08-03T03:21:54Z  end     +2 (Func_80a23c0, InitSpriteLayer); 21 elevated, 16 parked
+2026-08-03T03:46:38Z  start   cron cycle; targets from ranker
+2026-08-03T03:49:27Z  end     +2 (Camera_SetTarget, Func_80925e0); 23 elevated, 16 parked

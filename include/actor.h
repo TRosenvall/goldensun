@@ -139,7 +139,8 @@ struct Actor {
     /* 0x63 */ u8 unk_63;
     /* 0x64 */ u16 goalFacing;      /* the gradual-turn target                */
     /* 0x66 */ u16 tickSlow;        /* bumped when tickFast passes 0x50       */
-    /* 0x68 */ u8 unk_68[0x04];
+    /* 0x68 */ u32 unk_68;         /* word-written; Camera_SetTarget
+                                      parks its script argument here     */
     /* 0x6C */ actorfun_t update;
 
 /* GS1 only */
