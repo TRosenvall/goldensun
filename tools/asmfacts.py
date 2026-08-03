@@ -24,6 +24,7 @@ tools/tryc.py cannot cover this: it compiles and does not link, so a stranded
 label is invisible to it. The build is the next thing that would notice, which
 is several minutes and one bad commit later.
 """
+import glob
 import os
 import re
 import sys
@@ -90,9 +91,42 @@ def return_targets_are_symbols(rets):
     return all(IDENT.match(r) for r in rets)
 
 
+def orphans():
+    """Linker-script .o references with neither a .s nor a .c to build them.
+
+    A commit that deletes source can still pass `make -j8 && make compare`:
+    make treats an existing .o with no rule as up to date, so the stale object
+    from the previous build satisfies the link. `make clean` then removes it
+    and the next build dies with "No rule to make target".
+
+    That happened in batch 19 to three overlays at once -- two from splits
+    whose generated .c was deleted after it failed to compile, and one from a
+    cleanup loop that removed the .s of a function that was never elevated.
+
+    This is the check that answers "is the tree consistent" without a five
+    minute rebuild. Run it before committing anything that removes a file.
+    """
+    out = []
+    for ld in sorted(glob.glob(os.path.join(ROOT, "overlays", "*", "*.ld"))
+                     + glob.glob(os.path.join(ROOT, "*.ld"))):
+        for o in sorted(set(re.findall(r"(asm/[A-Za-z0-9_/]*\.o)",
+                                       open(ld, errors="replace").read()))):
+            s_path = os.path.join(ROOT, o[:-2] + ".s")
+            c_path = os.path.join(ROOT, re.sub(r"^asm/", "src/", o)[:-2] + ".c")
+            if not os.path.exists(s_path) and not os.path.exists(c_path):
+                out.append((o, os.path.relpath(ld, ROOT)))
+    return out
+
+
 def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)
+    if sys.argv[1] == "--orphans":
+        bad = orphans()
+        for o, ld in bad:
+            print(f"  ORPHAN {o}   ({ld})")
+        print(f"{len(bad)} orphaned linker references")
+        return 1 if bad else 0
     bad = 0
     for p in sys.argv[1:]:
         rel = os.path.relpath(p, ROOT) if p.startswith("/") else p

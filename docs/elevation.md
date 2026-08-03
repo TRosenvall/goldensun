@@ -46,6 +46,22 @@ How functions get converted here, and the compiler behaviours that stop them.
 
 Three rules learned by breaking them.
 
+**`make -j8 && make compare` does not gate a commit that REMOVES source.**
+It answers "does this build" using whatever is on disk, and make treats an
+existing `.o` with no rule as up to date -- so a stale object from the previous
+build satisfies the link and the commit passes. `make clean` then removes it and
+the next build dies with `No rule to make target`.
+
+Batch 19 committed three overlays in that state at once. Before committing
+anything that deletes a `.s`, run:
+
+    python3 tools/asmfacts.py --orphans
+
+which answers "is the tree consistent" in a second instead of a five-minute
+rebuild. And derive a cleanup list from what was actually WRITTEN, not from what
+was attempted -- that batch's loop deleted five `.s` files for three `.c` files,
+one of them belonging to a function that had never been elevated.
+
 **The build result must gate the commit, not run beside it.** Running
 `make` and then `git commit` as separate steps commits whatever happened,
 including a broken link. Chain them, or check the exit code:
