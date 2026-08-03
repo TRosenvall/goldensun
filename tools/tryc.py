@@ -66,6 +66,44 @@ ALIAS = re.compile(r"\b(sl|fp|ip)\b")
 _ALIAS = {"sl": "r10", "fp": "r11", "ip": "r12"}
 
 
+def makefile_flags(src_rel):
+    """Which flag set the BUILD uses for this source, from the Makefile itself.
+
+    Several translation units -- overlay stems mostly -- are built at -O1
+    rather than -O2, and overlays/common/common2_c* drops -mthumb-interwork.
+    Screening one of those at -O2 reports a clean match that then fails the
+    build. That happened to OvlFunc_964_2009348: the .c was written, the
+    overlay compare failed, and the .c had to be reverted.
+
+    Returns a set of adjustments rather than guessing: "O1", "no-interwork",
+    or nothing.
+    """
+    p = os.path.join(ROOT, "Makefile")
+    if not os.path.exists(p):
+        return set()
+    lines = open(p, errors="replace").read().split("\n")
+    out = set()
+    for i, l in enumerate(lines):
+        m = re.match(r"^(asm/\S+)\.o:\s*(src/\S+)\.c\s*$", l)
+        if not m:
+            continue
+        pat = m.group(2) + ".c"
+        # make's % is a single wildcard; anchor it so a pattern cannot match
+        # a path in a different directory
+        # re.escape does NOT escape '%', so replacing the escaped form finds
+        # nothing and every pattern silently fails to match -- which is how
+        # this first shipped, reporting no per-file rules at all.
+        rx = "^" + re.escape(pat).replace("%", ".*") + "$"
+        if not re.match(rx, src_rel):
+            continue
+        recipe = "\n".join(lines[i + 1:i + 4])
+        if "O1_CFLAGS" in recipe:
+            out.add("O1")
+        if "COMMON2_CFLAGS" in recipe:
+            out.add("no-interwork")
+    return out
+
+
 def _asm_constants():
     """`.set NAME, VALUE` definitions from the .inc files.
 
@@ -261,17 +299,27 @@ def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)
     quiet = "--quiet" in sys.argv
-    # Some translation units -- several overlay stems already, per the
-    # per-file rules in the Makefile -- only byte-match at -O1. Screening at
-    # -O2 alone reports those as failures that no rewriting of the C can fix.
-    cflags = ["-O1" if (a == "-O2" and "--O1" in sys.argv) else a for a in CFLAGS]
+    src = [a for a in sys.argv[1:] if a.endswith(".c")][0]
+    src = os.path.join(ROOT, src) if not src.startswith("/") else src
+
+    # Take the build's OWN per-file rules rather than assuming -O2. Several
+    # translation units are built at -O1, and overlays/common/common2_c* drops
+    # -mthumb-interwork; screening one of those at -O2 reports a clean match
+    # that then fails the build. --O1 still forces it by hand, which is needed
+    # when the candidate is a scratch file the Makefile has no rule for.
+    adjust = makefile_flags(os.path.relpath(src, ROOT))
+    if "--O1" in sys.argv:
+        adjust.add("O1")
+    if adjust and not quiet:
+        print(f"  (built with: {', '.join(sorted(adjust))})")
+    cflags = ["-O1" if (a == "-O2" and "O1" in adjust) else a for a in CFLAGS]
+    if "no-interwork" in adjust:
+        cflags = [a for a in cflags if a != "-mthumb-interwork"]
     # --cflags "<extra>" appends arbitrary compiler flags, so a hypothesis
     # about the original invocation can be tested against a known-failing
     # function without editing this file each time.
     if "--cflags" in sys.argv:
         cflags += sys.argv[sys.argv.index("--cflags") + 1].split()
-    src = [a for a in sys.argv[1:] if a.endswith(".c")][0]
-    src = os.path.join(ROOT, src) if not src.startswith("/") else src
 
     # --ref lets a scratch .c be tested against any .s, which is what makes
     # the order PROVE FIRST, SPLIT SECOND possible. Most targets sit inside a

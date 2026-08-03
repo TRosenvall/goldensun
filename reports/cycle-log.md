@@ -72,3 +72,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T07:14:00Z  end     +0 elevated; runtime-constant search made a tool, 8 more candidates found
 2026-08-03T07:24:46Z  start   more no-shift overlay stubs
 2026-08-03T07:26:39Z  end     +1 (OvlFunc_912_2008030); 2009348 reverted, needs -O1
+2026-08-03T07:39:41Z  end     +0 elevated; screen now reads the Makefiles per-file rules itself
