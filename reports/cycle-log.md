@@ -188,3 +188,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T20:58:19Z  start   last two missed whole-file members, then batch-15
 2026-08-03T21:24:13Z  start   adopt the area-id naming
 2026-08-03T21:29:42Z  end     +1; 135 elevated; SOLVED FindEntityAtPosition, head of the 17-member family
+2026-08-03T21:35:38Z  start   the 16 FindEntityAtPosition siblings
+2026-08-03T21:38:27Z  end     +5 (FindEntityAtPosition siblings); 140 elevated
