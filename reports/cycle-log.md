@@ -146,3 +146,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T16:04:21Z  end     +4 (split four-way members); 90 elevated
 2026-08-03T16:14:42Z  start   test the id-spacing hypothesis, then more four-way splits
 2026-08-03T16:17:10Z  end     +4 (four-way splits); 94 elevated; id-pairing claim refuted and corrected
+2026-08-03T16:27:36Z  start   remaining four-way members, then batch-11

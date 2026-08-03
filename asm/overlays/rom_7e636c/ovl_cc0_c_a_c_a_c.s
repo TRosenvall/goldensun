@@ -1,47 +1,5 @@
 	.include "macros.inc"
 
-@ Slot 3: the read after slot 4.
-@ Chooses among .L19d4, .L1974, .L1a4c, .L1aac, .L195c
-@ on save bit 0x96f and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
-.thumb_func_start OvlFunc_958_2008d20
-	push	{lr}
-	ldr	r3, =gState
-	mov	r1, #0xe0
-	lsl	r1, #1
-	add	r3, r1
-	mov	r1, #0
-	ldrsh	r2, [r3, r1]
-	ldr	r3, =0x98
-	cmp	r2, r3
-	bne	.Ld46
-	ldr	r0, =0x96f
-	bl	__GetFlag
-	cmp	r0, #0
-	beq	.Ld42
-	ldr	r0, =.L19d4
-	b	.Ld5c
-.Ld42:
-	ldr	r0, =.L1974
-	b	.Ld5c
-.Ld46:
-	ldr	r3, =0x9d
-	cmp	r2, r3
-	bne	.Ld50
-	ldr	r0, =gScript_970__02009a4c
-	b	.Ld5c
-.Ld50:
-	ldr	r3, =0x9e
-	cmp	r2, r3
-	bne	.Ld5a
-	ldr	r0, =.L1aac
-	b	.Ld5c
-.Ld5a:
-	ldr	r0, =.L195c
-.Ld5c:
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_958_2008d20
-
 @ Slot 4: the map object table.
 @ Chooses among .L1bcc, .L1b48, .L1c80, .L1ce0, .L1b3c
 @ on save bit 0x96f and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
@@ -342,4 +300,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_958_2008fd0
-
