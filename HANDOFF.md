@@ -96,6 +96,11 @@ codebase better than we do. Listed once here rather than repeated per batch.
     `MapEntrance_ARRAY_895__02009cd4` and `MapEntrance_ARRAY_937__020084a0`;
   * the ROM annotation on one reads *"area 0x13 -> .L1d04"*.
 
+  A third signal (batch 15): `OvlFunc_951_20081a8` selects between
+  `Events_TolbiSpring` and `Events_GameBuildings` — names already in your
+  tree, and Tolbi is a town. So the same id picks map-entrance tables, event
+  tables, and edge-transition tables, all per location.
+
   We have **not** renamed `_ID_` to `_AREA_` on that basis. The annotation
   corpus gets purpose wrong often enough to matter, and renaming is deferred
   to the pass that has the whole picture. But if `MapEntrance` is your name
