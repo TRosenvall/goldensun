@@ -199,3 +199,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T21:58:59Z  end     +1 (OvlFunc_884_2008030); 152 elevated; free-vs-FindEntity correction recorded
 2026-08-03T22:01:24Z  start   the 11-member turn-toward family
 2026-08-03T22:02:47Z  end     +5 (turn-toward family); 157 elevated
+2026-08-03T22:05:07Z  start   finish the turn-toward family
+2026-08-03T22:06:56Z  end     +5; 162 elevated; turn-toward family COMPLETE at 11/11
