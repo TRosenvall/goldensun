@@ -131,6 +131,22 @@ def blockers(body):
         if re.match(r"ldr r\d+, \.L\w+$", l):
             out.add("pool-tell")
 
+        # 4. stack-argument register reuse -- the ROM builds BOTH stack
+        #    constants into separate registers before storing either; gcc
+        #    builds one, stores it, and reuses the register for the second.
+        #
+        #        rom    mov r3, #0xa / mov r2, #0x54 / str r3, [sp] / str r2, [sp, #4]
+        #        ours   mov r3, #0xa / str r3, [sp] / mov r3, #0x54 / str r3, [sp, #4]
+        #
+        #    Naming the two values as locals does not separate them; it costs
+        #    an instruction instead. Seen in OvlFunc_946_2009624 and the
+        #    five-member family at ovl_30_c_c_a_a.s.
+        if l.startswith("str r") and l.endswith(", [sp]") and i >= 2:
+            a = re.match(r"mov (r\d+), #", norm[i - 2])
+            b = re.match(r"mov (r\d+), #", norm[i - 1])
+            if a and b and a.group(1) != b.group(1):
+                out.add("stack-arg-pair")
+
         # 3. interleaved argument set-up -- a shifted constant's mov/lsl pair
         #    split by ANOTHER register's move. Nine formulations have failed
         #    against this; gcc always emits the pair contiguously.
