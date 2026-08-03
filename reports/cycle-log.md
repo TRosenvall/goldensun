@@ -204,3 +204,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T22:13:36Z  end     batch-16 written (11 functions); 162 elevated total
 2026-08-03T22:15:49Z  start   next family sweep, wide band
 2026-08-03T22:19:23Z  end     +1 (OvlFunc_883_2008244); 163 elevated; head of an 18-member family solved
+2026-08-03T22:23:57Z  start   the 18-member FillMapRect family
+2026-08-03T22:25:52Z  end     +5 (FillMapRect siblings); 168 elevated
