@@ -110,6 +110,38 @@ Established by getting specific functions to match, and reusable:
   force an extra callee-save push. Access the field through the struct pointer
   each time.
 
+## Technique: stopping a constant fold with symbol addresses
+
+Where the ROM computes a constant AT RUNTIME:
+
+    ldr r3, =0xc9b / ldr r1, =0xcc6 / sub r1, r3
+
+no C written with literals reproduces it — `0xcc6 - 0xc9b` folds to one
+immediate and a pool word vanishes. The operands were the **addresses of
+absolute symbols** in the original, and gcc cannot fold the difference between
+two link-time addresses:
+
+    extern int _MSG_c9b;
+    extern int _MSG_cc6;
+    f(first, (int)&_MSG_cc6 - (int)&_MSG_c9b);
+
+Define the ids in `message.sym`, a linker fragment whose definitions emit no
+bytes. This unlocked the whole seven-function `OvlFunc_974` family.
+
+Two things that are easy to get wrong:
+
+- **Which ids must be symbols is not arbitrary.** The subtraction's operands
+  must be, or the fold returns. Every other argument stays a plain literal
+  *unless* the ROM reuses one register for both that argument and a side of
+  the subtraction — then it must be a symbol too. Either mistake costs an
+  instruction.
+- **`message.sym` is not a tracked dependency of `stage1.o`.** After adding
+  symbols, delete `stage1.o` by hand or the overlays will not see them and the
+  link fails with an undefined reference.
+
+`tools/find_runtime_constants.py` lists every function in the corpus with this
+signature and says which symbols each would need.
+
 ## Blockers
 
 Every function parked in `src/non_matching/` falls into one of these. They are

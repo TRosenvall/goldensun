@@ -68,3 +68,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T06:46:51Z  end     +6 (the whole OvlFunc_974 stub family); 29 elevated
 2026-08-03T06:57:32Z  start   re-sweep all parked files against the corrected screen
 2026-08-03T07:01:16Z  end     batch-03 written (11 functions); re-sweep found no hidden matches
+2026-08-03T07:12:04Z  start   systematic search for runtime-computed constants
+2026-08-03T07:14:00Z  end     +0 elevated; runtime-constant search made a tool, 8 more candidates found
