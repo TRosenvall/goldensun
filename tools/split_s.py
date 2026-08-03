@@ -26,7 +26,8 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-START = re.compile(r"\s*\.(?:thumb_func_start(?:_noalign)?|arm_func_start)\s+(\S+)")
+START = re.compile(r"\s*\.(?:thumb_func_start(?:_noalign)?|arm_func_start)\s+(\S+)",
+                   re.IGNORECASE)
 
 
 def parse(path):
@@ -50,6 +51,25 @@ def parse(path):
         bounds.append((j, name))
 
     preamble = L[:bounds[0][0]]
+
+    # The preamble is copied into EVERY part, so it must contain nothing but
+    # includes, comments and blank lines. If a function start goes unrecognised
+    # the whole function lands here and gets duplicated across the split, which
+    # the assembler accepts and the linker then rejects with `multiple
+    # definition of ...` -- pointing at the parts, not at the cause.
+    #
+    # That is exactly what `.thumb_func_Start` (capital S, in two files) did
+    # before the pattern above was made case-insensitive. This check is the
+    # backstop for the next spelling nobody anticipated.
+    stray = [l for l in preamble
+             if l.strip()
+             and not l.lstrip().startswith(("@", ".include"))]
+    if stray:
+        sys.exit(f"REFUSING to split {os.path.relpath(path, ROOT)}: the preamble "
+                 f"holds more than includes and comments, and it is copied into "
+                 f"every part.\n\n    " + "\n    ".join(x.strip() for x in stray[:6]) +
+                 f"\n\nA function start was probably not recognised.")
+
     blocks = []
     for k, (j, name) in enumerate(bounds):
         end = bounds[k + 1][0] if k + 1 < len(bounds) else len(L)

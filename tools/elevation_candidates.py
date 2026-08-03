@@ -80,7 +80,8 @@ def scan(path):
     L = open(path, errors="replace").read().split("\n")
     out, cur, start, body = [], None, 0, []
     for i, l in enumerate(L):
-        m = re.match(r"\s*\.(arm_func_start|thumb_func_start(?:_noalign)?)\s+(\S+)", l)
+        m = re.match(r"\s*\.(arm_func_start|thumb_func_start(?:_noalign)?)\s+(\S+)", l,
+                     re.IGNORECASE)
         if m:
             if cur:
                 out.append((cur, start, body))

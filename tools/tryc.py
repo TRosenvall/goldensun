@@ -163,7 +163,8 @@ def instructions(text, want=None):
     pending = False
     for raw in text.split("\n"):
         l = raw.split("@")[0].rstrip()
-        m = re.match(r"\s*\.(?:thumb_func_start(?:_noalign)?|arm_func_start)\s+(\S+)", l)
+        m = re.match(r"\s*\.(?:thumb_func_start(?:_noalign)?|arm_func_start)\s+(\S+)", l,
+                     re.IGNORECASE)
         if m:
             if cur is not None:
                 out.append((cur, body))
