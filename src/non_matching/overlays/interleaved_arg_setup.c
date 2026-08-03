@@ -16,21 +16,38 @@
  *   * it is NOT an -O1 translation unit. Screened at both -O2 and -O1; the
  *     diff is identical, so the per-file -O1 rules in the Makefile do not
  *     explain it.
- *   * gcc-2.96 DOES emit this interleaving from C. Scanning the 2169
- *     generated .s files in this tree for the pattern -- a `mov rX, #imm`
- *     and its `lsl rX` split by another `mov rY, #imm` -- finds 17 files
- *     where it happens, e.g.
+ *   * the instruction scheduler is not responsible either. -fno-schedule-insns
+ *     and -fno-schedule-insns2 both leave the output unchanged.
+ *   * nor is the callee's declaration. A full prototype, an old-style empty
+ *     parameter list, and no declaration at all all produce the same order.
+ *   * nor is the argument count: two-argument and three-argument calls both
+ *     come out contiguous.
+ *   * gcc-2.96 DOES emit the ROM's exact pattern from C somewhere in this
+ *     tree -- SIX generated .s files contain a shifted constant's mov/lsl
+ *     split by a move that is never itself shifted, e.g.
  *
- *         mov r0, #128 / mov r1, #128 / lsl r0, r0, #10
+ *         asm/overlays/rom_7c6bac/ovl_30_c_c_a_c_a_b.s
+ *             mov r1, #128 / mov r0, #12 / lsl r1, r1, #7
  *
- *     So the shape is reachable and this is not a fakematch. Something about
- *     those 17 call sites differs from the plain two-literal call written
- *     below, and finding it unlocks all three of these at once -- probably
- *     many more, since the overlay corpus is full of formulaic talk and
- *     cutscene sequences built from exactly this pattern.
+ *     (An earlier version of this file claimed seventeen. That count came
+ *     from a looser scan that also caught the case where BOTH constants are
+ *     shifted -- eleven of the seventeen -- which gcc produces readily and
+ *     which is a different pattern. Six is the real number.)
  *
- * That scan reads compiler OUTPUT, not anyone's source; the clean-room rule in
- * docs/attribution.md is intact.
+ * THE NEXT STEP, and it is a short one: read the .c that produced
+ * asm/overlays/rom_7c6bac/ovl_30_c_c_a_c_a_b.s. Its codegen shows an
+ * unremarkable three-argument call, __Func_8092adc(12, 0x4000, 0), so whatever
+ * differs is in the source and one look would settle it.
+ *
+ * That has NOT been done here, because docs/attribution.md says this project
+ * does not read another decomp's src/ while writing its own C, and quietly
+ * relaxing a documented rule unsupervised is not a call to make alone. It is
+ * worth asking whether the rule should cover this: the file in question is not
+ * a function being decompiled, and the question is about compiler behaviour
+ * rather than anyone's expression of a function.
+ *
+ * Everything above reads compiler OUTPUT, not anyone's source; the clean-room
+ * rule is intact as it stands.
  */
 
 /* --- OvlFunc_967_2008030 ------------------------------------------------- */

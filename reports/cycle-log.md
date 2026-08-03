@@ -53,3 +53,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T04:30:09Z  end     +0 elevated, 1 parked (a3480, setup-order only)
 2026-08-03T04:53:54Z  start   overlay corpus (untouched so far); circuit breaker armed
 2026-08-03T04:56:19Z  halt    +0 elevated (3rd zero round); circuit breaker met, loop NOT re-armed
+2026-08-03T05:14:48Z  end     +0 elevated; narrowed the overlay blocker to 6 known instances
