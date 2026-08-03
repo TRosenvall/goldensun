@@ -20,8 +20,24 @@ annotations -- that is work product, and copying it would be plagiarism.
 
 ## Working rule
 
-**We do not read another decomp's `src/` while writing our own C.** That is the
-line that actually matters, and it is the one we hold.
+**Superseded 2026-08-03.** Coaltergeist has confirmed that this project may
+read and take from `goldensun-decomp` freely, and everything produced here goes
+back to that repository. The restriction below no longer applies, and their
+`src/` is now read directly.
+
+This is recorded rather than quietly deleted, because the history before this
+date was produced under the old rule and the distinction still matters to
+anyone reading it: work committed before 2026-08-03 was derived from
+disassembly without reference to their C; work after it may not be.
+
+The rule as it stood:
+
+> **We do not read another decomp's `src/` while writing our own C.** That is
+> the line that actually matters, and it is the one we hold.
+
+It cost real time — three rounds went into working around a question that one
+look at their `src/` settled in minutes — and it was still the right default to
+hold until the permission was explicit rather than assumed.
 
 Everything else -- their README, their toolchain, their published findings -- is
 fair to read and is credited here.

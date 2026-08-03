@@ -34,7 +34,34 @@
  *     shifted -- eleven of the seventeen -- which gcc produces readily and
  *     which is a different pattern. Six is the real number.)
  *
- * THE NEXT STEP, and it is a short one: read the .c that produced
+ * RESOLVED AS FAR AS IT CAN BE, 2026-08-03. Their src/ was read (the
+ * permission is now explicit -- see docs/attribution.md) and the answer is
+ * that THE C IS NOT THE VARIABLE.
+ *
+ * The decisive evidence is in their own matched corpus.
+ * src/overlays/rom_7cb2c0/ovl_30_c_c_a_a_c_a_b.c contains
+ *
+ *     __MapActor_Surprise(0xb, 0x81 << 1);
+ *
+ * which is the SAME call shape as OvlFunc_967_2008030 below -- and it compiles
+ * to the CONTIGUOUS form, and byte-matches the ROM there. So the ROM itself
+ * contains BOTH orderings for identical source. The interleaving is a
+ * context-dependent choice gcc-2.96 makes; it is not something the call site
+ * can express.
+ *
+ * Ruled out by direct experiment since: eight formulations of the two-argument
+ * call -- inline shift, named local assigned at its declaration, assigned as a
+ * separate statement, both operands as locals in either order, a volatile
+ * local, and the plain literal -- all produce the contiguous form. So does the
+ * three-argument case with the shift written inline, which is the shape their
+ * working examples use.
+ *
+ * What remains is the surrounding context: register pressure, or whatever else
+ * gcc's scheduler responds to. Chasing that per function is not worthwhile.
+ * Someone should characterise the trigger across all six known instances at
+ * once, or accept these as fakematch candidates.
+ *
+ * (Superseded, kept for the record) THE NEXT STEP, and it is a short one: read the .c that produced
  * asm/overlays/rom_7c6bac/ovl_30_c_c_a_c_a_b.s. Its codegen shows an
  * unremarkable three-argument call, __Func_8092adc(12, 0x4000, 0), so whatever
  * differs is in the source and one look would settle it.
