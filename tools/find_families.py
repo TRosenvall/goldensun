@@ -26,6 +26,16 @@ which is what makes two stubs "the same function with a different slot".
 Call targets are KEPT, because two stubs that call different functions are not
 the same stub even if they look alike -- that distinction is the whole point
 when deciding whether one solution transfers.
+
+A WARNING ABOUT AD-HOC FAMILY SCANS. This tool compares whole SHAPES and
+bounds the body size (--min/--max, default 5-30 instructions). A quick grep
+for "functions containing these calls" does not, and that is not the same
+question: OvlFunc_943_200b380 is a 25-instruction stub, and a substring scan
+for its four callees also returned nine functions of 450 to 1500 instructions
+that merely contain the same calls somewhere inside them. Three were split
+and templated before the screen caught it.
+
+If you scan by hand, bound the instruction count.
 """
 import glob
 import os
