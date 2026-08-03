@@ -177,3 +177,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T19:40:04Z  end     +0 elevated; closed three hypotheses (declaration lever vs stack-arg-pair, unused arg, named mask)
 2026-08-03T19:50:32Z  start   main ROM pool, unexplored for many rounds
 2026-08-03T19:53:15Z  end     +0 elevated; free and Func_80ab1f4 parked at one transposition each; noted the shared allocator residue
+2026-08-03T20:03:52Z  start   target pure call-sequence stubs instead of the ranking top
+2026-08-03T20:08:44Z  end     +3 (call-sequence stubs); 125 elevated; SEVENTH false-negative class fixed in tryc

@@ -42,7 +42,14 @@ DESTRUCTIVE = re.compile(
     r"(\s+)(\w+), \3, (.+)$")
 
 
-NUM = re.compile(r"(?<![\w.])(#|\.word\s+)(-?(?:0[xX][0-9a-fA-F]+|\d+))\b")
+# `=` covers literal-pool loads. The ROM disassembly writes `ldr r0, =1`
+# and gcc writes `ldr r0, =0x1`; identical instructions, and left
+# unnormalised they read as a mismatch. This hid OvlFunc_971_2009050,
+# whose nine instructions were otherwise exact -- and it would hide any
+# function in the pool-tell class, which is the one most often worked on.
+# A symbol (`=gState`) has no digits after the `=` and is untouched, and
+# an assembler `.set foo = 5` has a space, which the pattern does not allow.
+NUM = re.compile(r"(?<![\w.])(#|\.word\s+|=)(-?(?:0[xX][0-9a-fA-F]+|\d+))\b")
 
 
 def _hex(m):
