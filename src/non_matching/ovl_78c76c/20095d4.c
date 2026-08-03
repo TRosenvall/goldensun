@@ -36,6 +36,43 @@
  * looks two lines back from an `lsl` for the `mov` that starts it, and here
  * the pair is split by three. Same deliberate gap as OvlFunc_933_2009874 --
  * but that is now two functions it has cost.
+ *
+ * WHAT THE DIFF ACTUALLY IS (corrected 2026-08-03). It is NOT the interleave.
+ * gcc reproduces `mov r1 / mov r2 / lsl r1 / lsl r2` here without any help.
+ * The single residual instruction is where the PLAIN argument r0 sits: the
+ * ROM wedges `mov r0, #2` between the two movs and the two lsls, and gcc puts
+ * it after both lsls. Everything else in the function is identical.
+ *
+ * gcc DOES emit the wedged form naturally -- three sites in the honest
+ * (non-fakematch) generated output, two of them siblings in this very
+ * overlay. The clearest is OvlFunc_891_200966c in
+ * src/overlays/rom_78c76c/ovl_30_c_c_a_c_c_c_c_a_b.c, which calls the SAME
+ * __Func_8012078 with the SAME two shifted constants and matches:
+ *
+ *     new_var = 0xd0 << 16;              <- assigned BEFORE the outer if
+ *     if (...) {
+ *         new_var2 = 0xe0 << 15;         <- assigned INSIDE it
+ *         if (...) __Func_8012078(2, new_var, new_var2, 0xff);
+ *     }
+ *
+ * The mechanism is that control flow separates each assignment from its use,
+ * so gcc emits the `mov` early and defers the `lsl` to the use site, leaving
+ * exactly the gap `mov r0, #2` fills.
+ *
+ * That cannot be transplanted here: this function has NOTHING between its
+ * prologue and the call, so there is no branch to separate them. Mirroring
+ * the sibling's declaration order and initialiser form changes nothing.
+ *
+ * So the open question is narrow and worth stating precisely: what else, other
+ * than an intervening branch, makes gcc-2.96 defer an `lsl` to its use site?
+ *
+ * A CAUTION FOR WHOEVER TRIES NEXT. The first sweep for "does gcc ever emit
+ * this shape" said yes, 335 sites -- and was WRONG, because it counted
+ * fakematch TUs. Those force shapes with inline-asm barriers and register
+ * variables, so their output is evidence about the barriers, not the
+ * compiler. The tell is `.code 16` directives leaking into the listing.
+ * Exclude fakematch.txt and the `// fakematch` first-line marker before
+ * concluding anything from generated output.
  */
 extern void __Func_8012078(int a, int b, int c, int d);
 extern int  OvlFunc_891_2009be8(int a, int b, int c);

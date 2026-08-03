@@ -272,6 +272,42 @@ lines. The second is a restructure, and the honest move is to leave it.
 A splitter that cut on a label-closed boundary rather than a function boundary
 would clear the whole class.
 
+## Technique: a local keeps a shifted constant's mov/lsl pair together
+
+Where the ROM builds a shifted constant and gcc splits the pair around the
+next argument:
+
+    rom    mov r1, #0xc8 / lsl r1, #4 / ldr r0, =SomeFunc
+    ours   mov r1, #0xc8 / ldr r0, =SomeFunc / lsl r1, #4
+
+**Assign the shifted value to a local before the call.** gcc then finishes
+building it before starting the next argument:
+
+    int prio = 0xc8 << 4;
+    __StartTask(SomeFunc, prio);
+
+Spelling the same value as one constant (`0xc80`) does not work, and neither
+does hoisting the *other* argument into a local. It has to be the shifted one.
+
+Solved `OvlFunc_956_20081b4`.
+
+**This is not the same thing as arg-interleave, and does not solve it.** There
+the ROM wedges a plain `mov` INTO the pair and gcc emits the pair contiguously
+— the opposite direction. gcc reaches that shape when control flow separates
+each assignment from its use, which cannot be transplanted into a function that
+has no branches; see `src/non_matching/ovl_78c76c/20095d4.c`.
+
+### Reading generated output as evidence: exclude fakematches first
+
+A sweep for "does gcc ever emit this shape" reported 335 sites and was
+**wrong**. It counted `// fakematch` translation units, which force shapes with
+inline-asm barriers and register variables — so their listings are evidence
+about the barriers, not about the compiler. The tell is `.code 16` directives
+leaking into the output.
+
+Filter on `fakematch.txt` and the `// fakematch` first-line marker before
+concluding anything from `asm/**/*.s` that gcc generated.
+
 ## Blockers
 
 Every function parked in `src/non_matching/` falls into one of these. They are

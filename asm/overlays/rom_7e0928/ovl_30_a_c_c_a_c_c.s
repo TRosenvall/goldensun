@@ -1,21 +1,6 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ 7 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   RegisterTask
-.thumb_func_start OvlFunc_956_20081b4
-	push	{lr}
-	mov	r1, #0xc8
-	lsl	r1, #4
-	ldr	r0, =OvlFunc_956_200804c
-	bl	__StartTask
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_956_20081b4
-
 @ Countdown loop: waits ten frames, then polls a scratch word once per
 @ frame until it reaches a target or the attempt limit runs out.
 .thumb_func_start OvlFunc_956_20081c8
@@ -467,4 +452,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_956_20084a4
-
