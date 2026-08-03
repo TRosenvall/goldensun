@@ -171,3 +171,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T18:55:33Z  end     +3; 121 elevated; prompt family complete at 7/7
 2026-08-03T18:57:20Z  end     +3 (prompt family complete); 121 elevated; parked the 17-member FindEntityAtPosition head
 2026-08-03T19:07:59Z  start   FindEntityAtPosition prologue
+2026-08-03T19:10:59Z  end     +1 (OvlFunc_936_2009ea4); 122 elevated; FindEntityAtPosition down to one register exchange
