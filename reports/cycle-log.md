@@ -154,3 +154,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T16:58:57Z  start   quantify the last two-way refusal, then new candidates
 2026-08-03T17:01:14Z  end     +1 (OvlFunc_960_2008e5c); 101 elevated; BOTH GetEntrances families complete
 2026-08-03T17:14:47Z  end     +1 (OvlFunc_924_200cf90); 102 elevated; named-intermediate technique generalised
+2026-08-03T17:25:08Z  start   re-examine narrow-mask with the reuse question
