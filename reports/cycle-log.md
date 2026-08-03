@@ -88,3 +88,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T09:09:38Z  end     batch-04 written (8 functions); 37 elevated total
 2026-08-03T09:20:32Z  start   remaining embedded overlay stubs
 2026-08-03T09:22:04Z  end     +2 (OvlFunc_888_200a660, OvlFunc_968_2008594); 39 elevated
+2026-08-03T09:32:46Z  start   widened search to 20 instructions
+2026-08-03T09:34:52Z  end     +0 elevated; QUANTIFIED the top blocker at 34 functions
