@@ -231,3 +231,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T23:49:38Z  end     batch-19 written (19 functions); 213 elevated total
 2026-08-03T23:52:01Z  start   next family sweep
 2026-08-03T23:53:55Z  end     +0 elevated; parked a 6-member family head one hoist from matching
+2026-08-03T23:56:31Z  start   the companion 39-instruction family
+2026-08-03T23:59:02Z  end     +0 elevated; a second family head parked at one reordering
