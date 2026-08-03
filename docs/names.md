@@ -37,11 +37,16 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_883_200806c` | `0x0200806c` | `FindEntityAtPosition` | named | Split out of that .s; the _c part stays as assembly and keeps its slot in FindEntityAtPosition. Scans entity slots 8..0x41 -- the map-object |
 | `OvlFunc_883_2008244` | `0x02008244` | `FillMapRectCollisionByte` | named | Split out of that .s; the _a part stays as assembly and keeps its slot in FillMapRectCollisionByte. Writes one byte into every cell of a rec |
 | `OvlFunc_905_200806c` | `0x0200806c` | `FindEntityAtPosition` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FindEntityAtPosition, one of s |
+| `OvlFunc_905_2008244` | `0x02008244` | `FillMapRectCollisionByte` | named | Split out of that .s; the sibling part stays as assembly and keeps its slot in the overlay's linker script. FillMapRectCollisionByte, one of |
 | `OvlFunc_912_2008030` | `0x02008030` | `ResetRecordArray` | named | Overlay 912: initialise a fifteen-entry slot table. Whole-file conversion of asm/overlays/rom_7a0010/ovl_30_a_a.s. |
 | `OvlFunc_913_200806c` | `0x0200806c` | `FindEntityAtPosition` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FindEntityAtPosition, one of s |
+| `OvlFunc_913_2008244` | `0x02008244` | `FillMapRectCollisionByte` | named | Split out of that .s; the sibling part stays as assembly and keeps its slot in the overlay's linker script. FillMapRectCollisionByte, one of |
 | `OvlFunc_914_200806c` | `0x0200806c` | `FindEntityAtPosition` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FindEntityAtPosition, one of s |
+| `OvlFunc_914_2008244` | `0x02008244` | `FillMapRectCollisionByte` | named | Split out of that .s; the sibling part stays as assembly and keeps its slot in the overlay's linker script. FillMapRectCollisionByte, one of |
 | `OvlFunc_915_200806c` | `0x0200806c` | `FindEntityAtPosition` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FindEntityAtPosition, one of s |
+| `OvlFunc_915_2008244` | `0x02008244` | `FillMapRectCollisionByte` | named | Split out of that .s; the sibling part stays as assembly and keeps its slot in the overlay's linker script. FillMapRectCollisionByte, one of |
 | `OvlFunc_923_2008350` | `0x02008350` | `FindEntityAtPosition` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FindEntityAtPosition, one of s |
+| `OvlFunc_923_2008528` | `0x02008528` | `FillMapRectCollisionByte` | named | Split out of that .s; the sibling part stays as assembly and keeps its slot in the overlay's linker script. FillMapRectCollisionByte, one of |
 | `OvlFunc_924_2008350` | `0x02008350` | `FindEntityAtPosition` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FindEntityAtPosition, one of s |
 | `OvlFunc_927_200806c` | `0x0200806c` | `FindEntityAtPosition` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FindEntityAtPosition, one of s |
 | `OvlFunc_929_2008524` | `0x02008524` | `TalkStaged` | named | TalkStaged. Slot 9 delivers a line, turns to face slot 0x0a for sixty frames, turns back to slot 0 for twenty, then delivers a closing line. |
@@ -198,4 +203,4 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_974_20081b8` | `0x020081b8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 | `OvlFunc_974_20081d8` | `0x020081d8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 
-163 functions: 20 named, 143 read
+168 functions: 25 named, 143 read
