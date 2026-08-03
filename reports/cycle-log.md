@@ -175,3 +175,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T19:26:05Z  end     batch-14 written (8 functions); 122 elevated total
 2026-08-03T19:36:39Z  start   FindEntityAtPosition: does the unused second argument matter?
 2026-08-03T19:40:04Z  end     +0 elevated; closed three hypotheses (declaration lever vs stack-arg-pair, unused arg, named mask)
+2026-08-03T19:50:32Z  start   main ROM pool, unexplored for many rounds
+2026-08-03T19:53:15Z  end     +0 elevated; free and Func_80ab1f4 parked at one transposition each; noted the shared allocator residue
