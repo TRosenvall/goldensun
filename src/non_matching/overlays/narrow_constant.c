@@ -143,12 +143,24 @@
  * as `~(0xc | 0)` to see whether a wider expression blocks the fold. It does
  * not; gcc constant-folds it first.
  *
- * NEXT IDEA WORTH TRYING, not yet tested: the 3 and the mask may come from the
- * SAME constant in the original -- the field holds a 2-bit priority at bits
- * 2-3, so the low mask is 3 and the high mask is ~(3 << 2). If the source
- * derived one from the other, gcc would have a data dependency where it
- * currently has two independent literals, and the peephole would have nothing
- * to fold.
+ * THE SHARED-CONSTANT IDEA WAS TESTED AND FAILS. The thought was that the 3
+ * and the mask are the same constant in the original -- the field holds a
+ * 2-bit priority at bits 2-3, so the low mask is 3 and the high mask is
+ * ~(3 << 2) -- and that deriving one from the other would give gcc a data
+ * dependency where it currently sees two independent literals.
+ *
+ *     int bits = 3;
+ *     priority &= bits;
+ *     m = ~(bits << 2);
+ *
+ * gcc constant-propagates `bits` before the peephole runs, so there is no
+ * dependency left to block the fold: 10 instructions, same as before. Putting
+ * the mask first instead gives 11 and diverges at instruction 0, same as B.
+ *
+ * So a data dependency built out of a compile-time constant cannot work. It
+ * would have to be a value gcc genuinely does not know -- which for a leaf
+ * function taking (Actor *, int) means it would have to come from an argument
+ * or memory, and nothing in the ROM's eleven instructions loads one.
  */
 struct Spr { unsigned char pad_00[9]; unsigned char flags; };
 void OvlFunc_927_20089dc(Actor *actor, int priority) {
