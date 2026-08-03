@@ -96,3 +96,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T09:59:00Z  end     +0 elevated; 7 orderings tried on the 34-fn blocker, width solved, order open
 2026-08-03T10:09:48Z  start   banking wins from the wide pool, avoiding known blockers
 2026-08-03T10:11:07Z  end     +1 (OvlFunc_910_20088e8); 40 elevated
+2026-08-03T10:22:06Z  start   filtered pool, both blocker shapes excluded
+2026-08-03T10:23:15Z  end     +1 (OvlFunc_901_20084b4); 41 elevated
