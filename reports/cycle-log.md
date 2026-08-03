@@ -66,3 +66,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T06:33:35Z  end     +1 (OvlFunc_974_2008160); symbol-address idiom cracked, 6 siblings unblocked
 2026-08-03T06:44:09Z  start   the six sibling stubs unblocked by the symbol idiom
 2026-08-03T06:46:51Z  end     +6 (the whole OvlFunc_974 stub family); 29 elevated
+2026-08-03T06:57:32Z  start   re-sweep all parked files against the corrected screen
+2026-08-03T07:01:16Z  end     batch-03 written (11 functions); re-sweep found no hidden matches
