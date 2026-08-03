@@ -151,3 +151,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T16:33:40Z  end     batch-11 written (12 functions); 98 elevated total
 2026-08-03T16:44:01Z  start   finish the four-way family, then new territory
 2026-08-03T16:48:27Z  end     +2; 100 elevated; four-way family COMPLETE at 24/24
+2026-08-03T16:58:57Z  start   quantify the last two-way refusal, then new candidates
+2026-08-03T17:01:14Z  end     +1 (OvlFunc_960_2008e5c); 101 elevated; BOTH GetEntrances families complete

@@ -260,14 +260,20 @@ exported for the same function's elevated neighbours — these two had simply
 never been needed. Verify in two separable steps: `make compare` green after
 the export and **before** the split, then green again after.
 
-**Not cleared:** `rom_7eaf28/ovl_314_c_c.s` still refuses. That file holds nine
-functions and 54 local labels with only 8 exported, and cutting at the target
-strands references belonging to the *other* functions. The target itself needs
-only its two tables. So the fix is not two exports but dozens.
+**Not cleared, until it was.** `rom_7eaf28/ovl_314_c_c.s` refused for two more
+rounds on the reasoning that it holds nine functions and 54 local labels with
+only 8 exported, so clearing it would take "not two exports but dozens".
 
-The distinction is: **does the target reference labels across the cut, or does
-the cut land in the middle of someone else's references?** The first is two
-lines. The second is a restructure, and the honest move is to leave it.
+**That was an estimate from the file's totals, and it was wrong.** Computing
+what actually crosses *that specific cut* gives **one** label. Exporting it
+cleared the refusal and the function matched.
+
+So: when the splitter refuses, **count what crosses the cut** — do not infer it
+from how many labels the file contains. The two are unrelated, and the second
+one parked a function for three rounds:
+
+    parts = {"a": lines[:cut], "b": lines[cut:end], "c": lines[end:]}
+    cross = (uses[x] & defines[y]) - already_exported   for every x != y
 
 A splitter that cut on a label-closed boundary rather than a function boundary
 would clear the whole class.
