@@ -119,6 +119,36 @@
  * register? If the answer is "nothing in C", then these 34 functions need the
  * 3 to arrive by some route that does not leave its value known -- and the
  * `3` is emitted as `mov r3, #3`, not pooled, so it is not a symbol.
+ *
+ * PROGRESS 2026-08-03 (third pass): TWO HALF-SOLUTIONS, and they conflict.
+ *
+ * A. Field read FIRST, mask after `priority &= 3`:
+ *      prefix is EXACT -- ldr r0 / mov r3,#3 / ldrb r2,[r0,#9] / and r1,r3 --
+ *      sprite stays in r0, field in r2, tail identical.
+ *      FAILS on the peephole: gcc emits `sub r3, #0x10` (10 instructions).
+ *
+ * B. Mask built BEFORE `priority &= 3`:
+ *      DEFEATS the peephole -- gcc emits the mov/neg pair, 11 instructions.
+ *      FAILS on registers: the sprite pointer is pushed out to r4 and the mask
+ *      lands in r0, so almost every line differs.
+ *
+ * The two requirements pull opposite ways. The peephole fires precisely when
+ * the 3 is already live, and the 3 is live precisely when `priority &= 3` has
+ * run -- which is also what keeps the register pressure low enough for the
+ * sprite pointer to stay in r0.
+ *
+ * Three more formulations tried against the register half of B, all still
+ * wrong: no local for the sprite (re-reading actor->sprite at both ends),
+ * the mask built between the field read and the shift, and the mask written
+ * as `~(0xc | 0)` to see whether a wider expression blocks the fold. It does
+ * not; gcc constant-folds it first.
+ *
+ * NEXT IDEA WORTH TRYING, not yet tested: the 3 and the mask may come from the
+ * SAME constant in the original -- the field holds a 2-bit priority at bits
+ * 2-3, so the low mask is 3 and the high mask is ~(3 << 2). If the source
+ * derived one from the other, gcc would have a data dependency where it
+ * currently has two independent literals, and the peephole would have nothing
+ * to fold.
  */
 struct Spr { unsigned char pad_00[9]; unsigned char flags; };
 void OvlFunc_927_20089dc(Actor *actor, int priority) {

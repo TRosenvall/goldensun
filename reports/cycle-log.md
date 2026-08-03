@@ -158,3 +158,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T17:30:28Z  end     batch-12 written (4 functions); 102 elevated total; both families complete
 2026-08-03T17:41:13Z  start   narrow-mask birth order
 2026-08-03T17:45:05Z  end     +2 (OvlFunc_901_20087d4, OvlFunc_947_2009544); 104 elevated; narrow-mask down to one peephole
+2026-08-03T17:55:32Z  start   one more narrow-mask idea, then elevate
