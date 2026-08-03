@@ -129,3 +129,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T14:08:24Z  start   three remaining whole-file GetEntrances members, then batch-08
 2026-08-03T14:13:35Z  end     +3 (last whole-file GetEntrances members); 65 elevated
 2026-08-03T14:13:35Z  end     batch-08 written (10 functions); 65 elevated total
+2026-08-03T14:24:11Z  start   four two-function GetEntrances splits

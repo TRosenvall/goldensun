@@ -1,26 +1,5 @@
 	.include "macros.inc"
 
-@ Slot 4: map object table.
-.thumb_func_start OvlFunc_906_20083e4
-	push	{lr}
-	ldr	r3, =gState
-	mov	r1, #0xe0
-	lsl	r1, #1
-	add	r3, r1
-	mov	r1, #0
-	ldrsh	r2, [r3, r1]
-	ldr	r3, =0x1d
-	cmp	r2, r3
-	bne	.L3fc
-	ldr	r0, =.L9f0
-	b	.L3fe
-.L3fc:
-	ldr	r0, =.L990
-.L3fe:
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_906_20083e4
-
 @ Slot 0: map-load entry.
 @
 @ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x204. Area 0x1C only:
@@ -103,4 +82,3 @@
 	pop	{r1}
 	bx	r1
 .func_end OvlFunc_906_2008414
-

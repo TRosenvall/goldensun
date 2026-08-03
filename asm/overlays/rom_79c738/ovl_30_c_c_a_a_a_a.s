@@ -48,27 +48,3 @@
 	pop	{r1}
 	bx	r1
 .func_end OvlFunc_909_200809c
-
-@ Leaf helper, 15 instructions, calls nothing.
-@ Described by what it touches, not by what it means.
-@ Globals: ewram_240
-.thumb_func_start OvlFunc_909_2008100
-	push	{lr}
-	ldr	r3, =gState
-	mov	r1, #0xe0
-	lsl	r1, #1
-	add	r3, r1
-	mov	r1, #0
-	ldrsh	r2, [r3, r1]
-	ldr	r3, =0x21
-	cmp	r2, r3
-	bne	.L118
-	ldr	r0, =.L2ca8
-	b	.L11a
-.L118:
-	ldr	r0, =.L2c9c
-.L11a:
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_909_2008100
-
