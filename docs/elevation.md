@@ -237,6 +237,41 @@ the deferral is caused by the *preceding* call's return type.
 This retired the `arg-fill-order` blocker class, which had cost nine failed
 formulations while the fix was one line of C.
 
+## Splitting: when the refusal is about the FILE, not the function
+
+`tools/split_s.py` refuses when a local label would cross the boundary it is
+about to create. `.L` symbols do not survive into an object's symbol table, so
+a label defined in one part and referenced from another is invisible to the
+linker — and the failure surfaces much later, looking like a bad
+decompilation.
+
+Three of the eighteen `GetEntrances` functions hit this. **Two were cleared and
+one was not, and the difference is worth knowing before spending a round.**
+
+**Cleared:** the function returns one of two `.incbin` tables defined in the
+same `.s`. C cannot carry an `.incbin` into a translation unit, so the tables
+stay in assembly and the labels are exported instead:
+
+    .global .L1b10
+    .global .L1c9c
+
+A `.global` emits no bytes. In `rom_7b7f1c` four sibling tables were *already*
+exported for the same function's elevated neighbours — these two had simply
+never been needed. Verify in two separable steps: `make compare` green after
+the export and **before** the split, then green again after.
+
+**Not cleared:** `rom_7eaf28/ovl_314_c_c.s` still refuses. That file holds nine
+functions and 54 local labels with only 8 exported, and cutting at the target
+strands references belonging to the *other* functions. The target itself needs
+only its two tables. So the fix is not two exports but dozens.
+
+The distinction is: **does the target reference labels across the cut, or does
+the cut land in the middle of someone else's references?** The first is two
+lines. The second is a restructure, and the honest move is to leave it.
+
+A splitter that cut on a label-closed boundary rather than a function boundary
+would clear the whole class.
+
 ## Blockers
 
 Every function parked in `src/non_matching/` falls into one of these. They are
