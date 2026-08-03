@@ -162,3 +162,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T18:01:19Z  end     +1 (OvlFunc_943_200b380); 105 elevated; a substring family scan produced 9 false members
 2026-08-03T18:11:39Z  start   use find_families properly this time
 2026-08-03T18:13:26Z  end     +5 (three-way GetEntrances); 110 elevated
+2026-08-03T18:23:56Z  start   finish the three-way family, then batch-13
