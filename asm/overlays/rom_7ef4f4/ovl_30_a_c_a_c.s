@@ -1,40 +1,5 @@
 	.include "macros.inc"
 
-@ Leaf helper, 25 instructions, calls nothing.
-@ Described by what it touches, not by what it means.
-@ Globals: ewram_240
-.thumb_func_start OvlFunc_965_2008fdc
-	push	{lr}
-	ldr	r3, =gState
-	mov	r1, #0xe0
-	lsl	r1, #1
-	add	r3, r1
-	mov	r1, #0
-	ldrsh	r2, [r3, r1]
-	ldr	r3, =0xb0
-	cmp	r2, r3
-	bne	.Lff4
-	ldr	r0, =.L3694
-	b	.L100a
-.Lff4:
-	ldr	r3, =0xaf
-	cmp	r2, r3
-	bne	.Lffe
-	ldr	r0, =.L3754
-	b	.L100a
-.Lffe:
-	ldr	r3, =0xae
-	cmp	r2, r3
-	bne	.L1008
-	ldr	r0, =.L3784
-	b	.L100a
-.L1008:
-	ldr	r0, =.L388c
-.L100a:
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_965_2008fdc
-
 @ Cutscene: roughly 77 instructions of straight-line script --
 @ 2 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
 @ Characterised structurally rather than beat by beat.
@@ -121,4 +86,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_965_2009030
-
