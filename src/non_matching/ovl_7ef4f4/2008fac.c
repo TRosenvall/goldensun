@@ -1,5 +1,5 @@
 /* OvlFunc_965_2008fac  [ovl_7ef4f4]
- * Source asm: goldensun/asm/overlays/rom_7ef4f4/ovl_30_a_a_c_c.s
+ * Source asm: goldensun/asm/overlays/rom_7ef4f4/ovl_30_a_a_c_c_c.s
  * (path updated: the .s was split or renamed after this was parked)
  *
  * Parked: logic faithful, does NOT byte-match (endgame permuter seed).

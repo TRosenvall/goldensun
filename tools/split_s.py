@@ -237,9 +237,24 @@ def main():
     # survive into the object's symbol table.
     bad = cross_references([(s, g) for s, g in groups if g])
     if bad:
-        print(f"REFUSING to split {rel}: local labels would cross files.\n")
+        # Print the COUNT first and the fix last. This list was already
+        # accurate when OvlFunc_960_2008e5c was parked for three rounds on a
+        # note claiming the file needed "dozens" of exports -- it needed one,
+        # and that one line was on screen at the time. A wall of detail with
+        # no headline invites an estimate instead of a read.
+        syms = sorted({sym for _, _, sym in bad})
+        print(f"REFUSING to split {rel}: {len(syms)} local label(s) would "
+              f"cross files.\n")
         for a, b, sym in bad:
             print(f"  {stem}{a}.s references .{sym}, defined in {stem}{b}.s")
+        print(f"\nA `.L` symbol does not survive into the object's symbol table, "
+              f"so the link would fail.\nIf these are data tables the function "
+              f"needs, export them in the .s and re-run:\n")
+        for sym in syms:
+            print(f"    .global .{sym}")
+        print(f"\nA .global emits no bytes. Verify `make compare` after the "
+              f"export and BEFORE the split,\nso that the two changes stay "
+              f"separable.")
         sys.exit(1)
 
     written = []

@@ -268,15 +268,45 @@ only 8 exported, so clearing it would take "not two exports but dozens".
 what actually crosses *that specific cut* gives **one** label. Exporting it
 cleared the refusal and the function matched.
 
-So: when the splitter refuses, **count what crosses the cut** — do not infer it
-from how many labels the file contains. The two are unrelated, and the second
-one parked a function for three rounds:
+**The splitter had already printed the answer.** Its refusal lists every
+crossing label by name, and for that file it listed exactly one. The park note
+claiming "dozens" was written with that output on screen.
 
-    parts = {"a": lines[:cut], "b": lines[cut:end], "c": lines[end:]}
-    cross = (uses[x] & defines[y]) - already_exported   for every x != y
+So: when the splitter refuses, **read what it printed**. It now leads with the
+count and ends with the `.global` lines to paste, because a wall of detail with
+no headline is what invited an estimate in the first place.
 
 A splitter that cut on a label-closed boundary rather than a function boundary
 would clear the whole class.
+
+## Technique: naming an intermediate stops gcc folding it
+
+Two matches so far turn on the same lever — gcc folds a computed value into
+whatever consumes it, and assigning it to a named local stops that.
+
+**A byte offset folded into the base pointer.** Where the ROM stores with a
+register offset:
+
+    rom    lsl r3, r6, #1 / add r3, #0xd8 / mov r2, r8 / strh r2, [r0, r3]
+    ours   lsl r3, r6, #1 / add r0, r3 / add r0, #0xd8 / strh r3, [r0]
+
+one instruction longer. Naming the offset produces the ROM's form:
+
+    int off = (slot << 1) + 0xd8;
+    *(short *)((char *)unit + off) = value;
+
+Parenthesising the expression, spelling `slot * 2`, and indexing a `short *`
+rebased by `0xd8` all give the folded version. Solved `OvlFunc_924_200cf90`.
+
+### The mov/neg pair is not inherently hard
+
+`OvlFunc_924_200cf90` also emits `mov r7, #1 / neg r7, r7` — the shape recorded
+as the `narrow-mask` blocker — **with no help at all**, because its `-1` is
+compared twice and gcc keeps it live in a register.
+
+So that blocker is about values used ONCE, not about the pair. Worth checking
+before spending a round on it: if the constant is genuinely reused, the pair
+falls out.
 
 ## Technique: a local keeps a shifted constant's mov/lsl pair together
 
