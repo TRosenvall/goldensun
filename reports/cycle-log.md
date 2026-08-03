@@ -90,3 +90,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T09:22:04Z  end     +2 (OvlFunc_888_200a660, OvlFunc_968_2008594); 39 elevated
 2026-08-03T09:32:46Z  start   widened search to 20 instructions
 2026-08-03T09:34:52Z  end     +0 elevated; QUANTIFIED the top blocker at 34 functions
+2026-08-03T09:45:41Z  start   attacking the 34-function narrow-constant blocker
+2026-08-03T09:47:30Z  end     +0 elevated; CRACKED the 34-function constant width, ordering still open
