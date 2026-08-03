@@ -213,3 +213,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T22:42:14Z  end     batch-17 written (18 functions); 180 elevated total
 2026-08-03T22:44:38Z  start   next family sweep
 2026-08-03T22:48:43Z  end     +5 (sine effect family); 185 elevated
+2026-08-03T22:51:03Z  start   finish the sine family, then its companion
+2026-08-03T22:52:31Z  end     +2; 187 elevated; sine family COMPLETE at 7/7
