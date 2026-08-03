@@ -807,6 +807,8 @@
 	.global .L1610
 	.global gScript_930__020096b8
 	.global .L1790
+	.global .L19c4
+	.global .L17b4
 	.global gScript_960__020097a8
 	.global .L1458
 	.global gOvl_02009488

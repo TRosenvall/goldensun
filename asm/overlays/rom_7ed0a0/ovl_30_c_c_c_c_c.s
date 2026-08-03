@@ -1,28 +1,5 @@
 	.include "macros.inc"
 
-@ Leaf helper, 15 instructions, calls nothing.
-@ Described by what it touches, not by what it means.
-@ Globals: ewram_240
-.thumb_func_start OvlFunc_964_200a370
-	push	{lr}
-	ldr	r3, =gState
-	mov	r1, #0xe0
-	lsl	r1, #1
-	add	r3, r1
-	mov	r1, #0
-	ldrsh	r2, [r3, r1]
-	ldr	r3, =0xac
-	cmp	r2, r3
-	bne	.L2388
-	ldr	r0, =.L3c0c
-	b	.L238a
-.L2388:
-	ldr	r0, =.L3ef4
-.L238a:
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_964_200a370
-
 @ 48 instructions. Not one of the recognised overlay shapes,
 @ so this is a CALL TRACE rather than a description -- what it does with
 @ these is not characterised here.
@@ -1382,6 +1359,8 @@
 	.global gOvl_0200b85c
 	.global gScript_925__0200b8f4
 	.global .L3a74
+	.global .L3c0c
+	.global .L3ef4
 
 .L31f0:
 	.incbin "overlays/rom_7ed0a0/orig.bin", 0x31f0, (0x3230-0x31f0)

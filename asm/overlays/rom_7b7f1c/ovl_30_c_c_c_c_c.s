@@ -1,28 +1,5 @@
 	.include "macros.inc"
 
-@ Leaf helper, 15 instructions, calls nothing.
-@ Described by what it touches, not by what it means.
-@ Globals: ewram_240
-.thumb_func_start OvlFunc_930_2009180
-	push	{lr}
-	ldr	r3, =gState
-	mov	r1, #0xe0
-	lsl	r1, #1
-	add	r3, r1
-	mov	r1, #0
-	ldrsh	r2, [r3, r1]
-	ldr	r3, =0x4a
-	cmp	r2, r3
-	bne	.L1198
-	ldr	r0, =.L1c9c
-	b	.L119a
-.L1198:
-	ldr	r0, =.L1b10
-.L119a:
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_930_2009180
-
 @ Cutscene: roughly 288 instructions of straight-line script --
 @ 3 turns, 5 animation changes, 0 dialogue lines, 0 timed pauses.
 @ Characterised structurally rather than beat by beat.
@@ -343,6 +320,8 @@
 	.global .L1a38
 	.global .L17b4
 	.global .L1844
+	.global .L1b10
+	.global .L1c9c
 
 	.incbin "overlays/rom_7b7f1c/orig.bin", 0x1620, (0x162c-0x1620)
 gScript_930__0200962c:
