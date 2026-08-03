@@ -97,6 +97,57 @@ def scan(path):
     return out
 
 
+def blockers(body):
+    """Known-unmatchable shapes visible in the assembly, from docs/elevation.md.
+
+    Reading a function's shape costs seconds; writing the C, screening it and
+    parking the result costs a round. These three are recognisable before any
+    of that, and every one of them has already burned at least one round.
+
+    Returned as a set of short names so the ranking can report them and
+    --clean can drop them.
+    """
+    out = set()
+    norm = [re.sub(r"\s+", " ", l.strip()) for l in body]
+
+    for i, l in enumerate(norm):
+        # 1. narrow constant materialisation -- the 34-function blocker. The
+        #    ROM builds ~0xc in 32-bit width via mov/neg; gcc narrows to a
+        #    byte immediate. Width is solved (a named int mask), ordering is
+        #    not.
+        if l.startswith("neg r") and i and norm[i - 1].startswith("mov r"):
+            m = re.match(r"mov (r\d+), #(0x[0-9a-f]+|\d+)", norm[i - 1])
+            if m and l == f"neg {m.group(1)}, {m.group(1)}":
+                out.add("narrow-mask")
+
+        # 2. small-constant pool tell -- a pooled value that would fit in an
+        #    eight-bit mov means the operand was a SYMBOL reference. Blocked
+        #    on naming, not technique. BOTH spellings matter: the disassembly
+        #    uses `=0` for a literal pool word and `.Lxxx` for a labelled one,
+        #    and an earlier version of this filter only caught the second.
+        m = re.match(r"ldr r\d+, =(0x[0-9a-f]+|\d+)$", l)
+        if m and int(m.group(1), 0) <= 0xFF:
+            out.add("pool-tell")
+        if re.match(r"ldr r\d+, \.L\w+$", l):
+            out.add("pool-tell")
+
+        # 3. interleaved argument set-up -- a shifted constant's mov/lsl pair
+        #    split by ANOTHER register's move. Nine formulations have failed
+        #    against this; gcc always emits the pair contiguously.
+        #
+        #        mov r1, #0x81     <- builds the constant
+        #        mov r0, #0xe      <- a different register, in between
+        #        lsl r1, #1        <- finishes it
+        m = re.match(r"lsl (r\d+),", l)
+        if m and i >= 2:
+            reg = m.group(1)
+            starts_it = re.match(rf"mov {reg}, #", norm[i - 2])
+            other = re.match(r"mov (r\d+), #", norm[i - 1])
+            if starts_it and other and other.group(1) != reg:
+                out.add("arg-interleave")
+    return out
+
+
 def classify(body):
     """Feature counts used for ranking."""
     return {
@@ -146,6 +197,7 @@ def main():
         for name, idx, body in fns:
             f = classify(body)
             f["fns"] = len(fns)
+            f["blocked"] = blockers(body)
             rows.append((score(f, name in park_names, stem in park_stems),
                          name, rel, f))
 
@@ -157,14 +209,25 @@ def main():
     # so they are the batch pool until the splitter exists.
     if "--single" in sys.argv:
         rows = [r for r in rows if r[3]["fns"] == 1]
+    # --clean drops anything whose assembly already shows a known-unmatchable
+    # shape. Screening against the blocker list BEFORE writing any C is the
+    # cheapest filter available and it took twelve rounds to start using it.
+    if "--clean" in sys.argv:
+        rows = [r for r in rows if not r[3]["blocked"]]
 
     rows.sort()
-    print(f"{'score':>6} {'insn':>5} {'call':>5} {'pool':>5} {'br':>4} {'fns':>4}"
-          f"  name / file")
-    for s, name, rel, f in rows[:limit]:
-        print(f"{s:6.1f} {f['n']:5d} {f['calls']:5d} {f['pool']:5d} {f['branches']:4d}"
-              f" {f['fns']:4d}  {name}  {rel}")
-    print(f"\n{len(rows)} candidates ({'overlays' if want_overlays else 'main ROM'})")
+    print(f"{'score':>6} {'insn':>5} {'call':>5} {'br':>4} {'fns':>4}  "
+          f"{'blocked by':<26}name / file")
+    for sc, name, rel, f in rows[:limit]:
+        b = ",".join(sorted(f["blocked"])) or "-"
+        print(f"{sc:6.1f} {f['n']:5d} {f['calls']:5d} {f['branches']:4d} {f['fns']:4d}  "
+              f"{b:<26}{name}  {rel}")
+    total = len(rows)
+    clear = sum(1 for r in rows if not r[3]["blocked"])
+    print(f"\n{total} candidates ({'overlays' if want_overlays else 'main ROM'}), "
+          f"{clear} with no known blocker in their assembly")
+    if "--clean" not in sys.argv:
+        print("Pass --clean to list only those.")
 
 
 if __name__ == "__main__":
