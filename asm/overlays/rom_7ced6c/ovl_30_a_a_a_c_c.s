@@ -1,64 +1,11 @@
 	.include "macros.inc"
-	.include "gba.inc"
-
-@ FindEntityAtPosition
-@ First map-object slot (8..0x41) standing at a position.
-@ Byte-identical to OvlFunc_6c in overlays/rom_780898/ovl_30.s,
-@ where the shared push-log block is documented in full.
-.thumb_func_start OvlFunc_947_2008350
-	push	{r5, r6, r7, lr}
-	ldr	r3, =iwram_3001ebc
-	mov	r4, r0
-	ldr	r2, [r3]
-	ldr	r3, [r4]
-	mov	r1, r2
-	ldr	r6, =0xffff
-	mov	r5, #8
-	asr	r7, r3, #20
-	add	r1, #0x34
-.L364:
-	ldmia	r1!, {r0}
-	ldr	r3, [r0, #8]
-	asr	r3, #20
-	cmp	r7, r3
-	bne	.L392
-	ldr	r3, [r4, #4]
-	cmp	r3, #0
-	bge	.L376
-	add	r3, r6
-.L376:
-	asr	r2, r3, #16
-	ldr	r3, [r0, #0xc]
-	cmp	r3, #0
-	bge	.L380
-	add	r3, r6
-.L380:
-	asr	r3, #16
-	cmp	r2, r3
-	bne	.L392
-	ldr	r2, [r4, #8]
-	ldr	r3, [r0, #0x10]
-	asr	r2, #20
-	asr	r3, #20
-	cmp	r2, r3
-	beq	.L39a
-.L392:
-	add	r5, #1
-	cmp	r5, #0x41
-	bls	.L364
-	mov	r0, #0
-.L39a:
-	pop	{r5, r6, r7}
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_947_2008350
 
 @ TryPushBlockOneTile
 @ Interaction handler for a single-tile pushable block.
 @ Byte-identical to OvlFunc_c4 in overlays/rom_780898/ovl_30.s,
 @ where the shared push-log block is documented in full.
-@ Here .L2ca0 is the facing->step table.
-.thumb_func_start OvlFunc_947_20083a8
+@ Here .L315c is the facing->step table.
+.thumb_func_start OvlFunc_946_20080c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
 	mov	r6, r9
@@ -70,7 +17,7 @@
 	ldrh	r3, [r0, #6]
 	mov	r8, r0
 	lsr	r3, #12
-	ldr	r0, =.L2ca0
+	ldr	r0, =.L315c
 	lsl	r5, r3, #2
 	ldr	r2, =0xffff0000
 	ldr	r1, [r0, r5]
@@ -92,12 +39,12 @@
 	str	r3, [r7, #8]
 	mov	r0, r7
 	mov	r1, r8
-	bl	OvlFunc_947_2008350
+	bl	OvlFunc_946_200806c
 	mov	r6, r0
 	cmp	r6, #0
-	bne	.L3f8
-	b	.L50a
-.L3f8:
+	bne	.L114
+	b	.L226
+.L114:
 	mov	r2, r9
 	ldr	r1, [r2, r5]
 	mov	r3, r10
@@ -114,17 +61,17 @@
 	str	r3, [r7, #8]
 	mov	r0, r7
 	mov	r1, r6
-	bl	OvlFunc_947_2008350
+	bl	OvlFunc_946_200806c
 	cmp	r0, #0
-	beq	.L42e
+	beq	.L14a
 	mov	r3, r0
 	add	r3, #0x59
 	ldrb	r2, [r3]
 	mov	r3, #1
 	and	r3, r2
 	cmp	r3, #0
-	bne	.L50a
-.L42e:
+	bne	.L226
+.L14a:
 	ldr	r3, [r6, #8]
 	str	r3, [r7]
 	mov	r0, #0x80
@@ -136,17 +83,17 @@
 	mov	r0, r7
 	str	r3, [r7, #8]
 	mov	r1, r6
-	bl	OvlFunc_947_2008350
+	bl	OvlFunc_946_200806c
 	cmp	r0, #0
-	beq	.L45a
+	beq	.L176
 	mov	r3, r0
 	add	r3, #0x59
 	ldrb	r2, [r3]
 	mov	r3, #1
 	and	r3, r2
 	cmp	r3, #0
-	bne	.L50a
-.L45a:
+	bne	.L226
+.L176:
 	mov	r2, r6
 	add	r2, #0x22
 	mov	r3, #2
@@ -169,13 +116,13 @@
 	mov	r1, r7
 	bl	__TestCollision
 	cmp	r0, #0
-	bgt	.L50a
+	bgt	.L226
 	mov	r3, r6
 	add	r3, #0x62
 	ldrb	r3, [r3]
 	mov	r10, r3
 	cmp	r3, #0
-	bne	.L50a
+	bne	.L226
 	mov	r1, #8
 	mov	r0, r8
 	bl	__Actor_SetAnim
@@ -226,7 +173,7 @@
 	mov	r0, r8
 	mov	r1, #1
 	bl	__Actor_SetAnim
-.L50a:
+.L226:
 	add	sp, #0xc
 	pop	{r3, r5, r6}
 	mov	r8, r3
@@ -235,13 +182,13 @@
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.func_end OvlFunc_947_20083a8
+.func_end OvlFunc_946_20080c4
 
 @ FillMapRectCollisionByte
 @ Stamp one byte over a rectangle of map collision cells.
 @ Byte-identical to OvlFunc_244 in overlays/rom_780898/ovl_30.s,
 @ where the shared push-log block is documented in full.
-.thumb_func_start OvlFunc_947_2008528
+.thumb_func_start OvlFunc_946_2008244
 	push	{r5, r6, lr}
 	mov	r4, r3
 	ldr	r3, [sp, #0xc]
@@ -252,9 +199,9 @@
 	ldr	r2, [r3]
 	ldr	r5, [sp, #0x10]
 	cmp	r2, #0
-	beq	.L57c
+	beq	.L298
 	cmp	r0, #2
-	bhi	.L552
+	bhi	.L26e
 	lsl	r3, r0, #1
 	add	r3, r0
 	mov	r0, #0x98
@@ -262,37 +209,36 @@
 	lsl	r3, #4
 	add	r3, r0
 	ldr	r0, [r2, r3]
-	b	.L554
-.L552:
+	b	.L270
+.L26e:
 	ldr	r0, =gBuffer
-.L554:
+.L270:
 	lsl	r3, r1, #7
 	add	r3, r6, r3
 	lsl	r3, #2
 	mov	r1, #0
 	add	r0, r3
 	cmp	r1, r12
-	bcs	.L57c
-.L562:
+	bcs	.L298
+.L27e:
 	lsl	r3, r1, #9
 	mov	r2, #0
 	add	r3, r0, r3
 	cmp	r2, r4
-	bcs	.L576
-.L56c:
+	bcs	.L292
+.L288:
 	add	r2, #1
 	strb	r5, [r3, #2]
 	add	r3, #4
 	cmp	r2, r4
-	bcc	.L56c
-.L576:
+	bcc	.L288
+.L292:
 	add	r1, #1
 	cmp	r1, r12
-	bcc	.L562
-.L57c:
+	bcc	.L27e
+.L298:
 	mov	r0, #0
 	pop	{r5, r6}
 	pop	{r1}
 	bx	r1
-.func_end OvlFunc_947_2008528
-
+.func_end OvlFunc_946_2008244

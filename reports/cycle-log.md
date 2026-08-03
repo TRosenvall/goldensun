@@ -190,3 +190,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T21:29:42Z  end     +1; 135 elevated; SOLVED FindEntityAtPosition, head of the 17-member family
 2026-08-03T21:35:38Z  start   the 16 FindEntityAtPosition siblings
 2026-08-03T21:38:27Z  end     +5 (FindEntityAtPosition siblings); 140 elevated
+2026-08-03T21:40:09Z  start   five more FindEntityAtPosition siblings
+2026-08-03T21:41:43Z  end     +5 (FindEntityAtPosition siblings); 145 elevated
