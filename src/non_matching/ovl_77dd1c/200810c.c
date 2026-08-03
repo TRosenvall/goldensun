@@ -20,6 +20,23 @@
  * ("stack-arg-pair"), which it was not when this family was picked -- the
  * family looked unblocked precisely because the filter did not know the
  * shape yet.
+ *
+ * THE DECLARATION LEVER DOES NOT REACH THIS CLASS (tested 2026-08-03 on
+ * OvlFunc_901_2008d24, same shape, ovl_314_c_c_a_a_c_c_c_c.s).
+ *
+ * Prototyping a callee, or withholding the prototype, moves which register a
+ * call fills FIRST -- that is what retired arg-fill-order in batch 07, in both
+ * directions. It has no effect here: prototyped and implicit produce the same
+ * 17-vs-17 diff at the same instruction.
+ *
+ * Naming the two stack values as locals still costs an instruction (18 vs 17),
+ * exactly as recorded when this class was first written up, and so does
+ * sharing a local for a value that appears both as a register argument and as
+ * a stack argument.
+ *
+ * So the three levers that have solved other ordering classes -- declaration
+ * state, named intermediates, and statement order -- are all confirmed not to
+ * apply. Whatever separates the ROM here is upstream of argument set-up.
  */
 extern void __SetFlag(int flag);
 extern void __Func_8010704(int a, int b, int c, int d, int e, int f);

@@ -174,3 +174,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T19:10:59Z  end     +1 (OvlFunc_936_2009ea4); 122 elevated; FindEntityAtPosition down to one register exchange
 2026-08-03T19:26:05Z  end     batch-14 written (8 functions); 122 elevated total
 2026-08-03T19:36:39Z  start   FindEntityAtPosition: does the unused second argument matter?
+2026-08-03T19:40:04Z  end     +0 elevated; closed three hypotheses (declaration lever vs stack-arg-pair, unused arg, named mask)
