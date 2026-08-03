@@ -26,9 +26,25 @@
  *       (mov #1 / neg, three times); gcc builds one and copies it, coming out
  *       two instructions SHORTER than the ROM (15 vs 17).
  *
- * The common thread is worth stating because it is a lead rather than three
- * separate dead ends: in every case the ROM is LESS eager to reuse a value
- * than gcc is here. Something about the original invocation -- a flag, or a
+ * COUNTEREXAMPLE, 2026-08-03 -- read this before acting on the paragraph
+ * below. Func_80167ac (src/non_matching/rom_15000/rom_167ac.c) goes the OTHER
+ * WAY. There the ROM derives its second constant from its first
+ * (`ldr r4, =0xeae` ... `sub r4, #2` for 0xeac) and gcc loads each fresh:
+ *
+ *     rom    ldr r4, =0xeae ... sub r4, #2 ... ldr r1, =0xea8
+ *     ours   ldr r3, =0xeae ... ldr r3, =0xeac ... ldr r3, =0xea8
+ *
+ * So the disposition is NOT uniform, and "gcc reuses more than the original
+ * build did" is too simple a statement of it. Something decides case by case,
+ * and a single flag or build difference cannot explain both directions. That
+ * also explains why eleven flags changed nothing: there is no one knob whose
+ * setting would fix all of these, because they do not all want the same
+ * setting.
+ *
+ * The common thread below still holds for the three functions in this file,
+ * and is worth stating as a lead rather than three separate dead ends -- but
+ * it is a local pattern, not a global one: in each of these three the ROM is
+ * LESS eager to reuse a value than gcc is here. Something about the original invocation -- a flag, or a
  * compiler build difference -- suppresses common-subexpression elimination
  * and register reuse that this toolchain performs. Finding it would move all
  * three at once, and probably a great deal of the overlay corpus, which is

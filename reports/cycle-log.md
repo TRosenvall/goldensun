@@ -73,3 +73,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T07:24:46Z  start   more no-shift overlay stubs
 2026-08-03T07:26:39Z  end     +1 (OvlFunc_912_2008030); 2009348 reverted, needs -O1
 2026-08-03T07:39:41Z  end     +0 elevated; screen now reads the Makefiles per-file rules itself
+2026-08-03T07:50:29Z  start   re-sweep with per-file flags auto-detected
+2026-08-03T07:51:27Z  end     +0 elevated; sweep clean; found a counterexample that weakens the main hypothesis
