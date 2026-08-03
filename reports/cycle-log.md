@@ -208,3 +208,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T22:25:52Z  end     +5 (FillMapRect siblings); 168 elevated
 2026-08-03T22:28:16Z  start   five more FillMapRect siblings
 2026-08-03T22:30:06Z  end     +5 (FillMapRect siblings); 173 elevated
+2026-08-03T22:32:30Z  start   finish the FillMapRect family
+2026-08-03T22:34:57Z  end     +7; 180 elevated; FillMapRect family COMPLETE at 18/18
