@@ -66,8 +66,36 @@ ALIAS = re.compile(r"\b(sl|fp|ip)\b")
 _ALIAS = {"sl": "r10", "fp": "r11", "ip": "r12"}
 
 
+def _asm_constants():
+    """`.set NAME, VALUE` definitions from the .inc files.
+
+    Hand-written asm writes `ldr r3, =REG_DMA3SAD`; gcc writes
+    `ldr r3, =0x40000d4`. gba.inc defines that name with `.set`, so the
+    assembler resolves it to the same word and the two are the SAME
+    instruction -- but they compare unequal as text, which reported
+    Func_80a22f4 as differing at instruction zero when that line was fine.
+    """
+    out = {}
+    for name in ("gba.inc", "macros.inc"):
+        p = os.path.join(ROOT, "include", name)
+        if not os.path.exists(p):
+            continue
+        for line in open(p, errors="replace"):
+            m = re.match(r"\s*\.set\s+(\w+)\s*,\s*(0[xX][0-9a-fA-F]+|\d+)", line)
+            if m:
+                out[m.group(1)] = hex(int(m.group(2), 0) & 0xFFFFFFFF)
+    return out
+
+
+ASM_CONST = _asm_constants()
+ASM_CONST_RE = re.compile(r"=(" + "|".join(map(re.escape, ASM_CONST)) + r")\b") \
+    if ASM_CONST else None
+
+
 def canon(s):
     s = ALIAS.sub(lambda m: _ALIAS[m.group(1)], s)
+    if ASM_CONST_RE:
+        s = ASM_CONST_RE.sub(lambda m: "=" + ASM_CONST[m.group(1)], s)
     return NUM.sub(_hex, DESTRUCTIVE.sub(r"\1\2\3, \4", s))
 
 

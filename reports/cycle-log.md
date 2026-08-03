@@ -60,3 +60,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T05:44:11Z  start   back to main ROM; overlay corpus is systematically blocked
 2026-08-03T05:46:04Z  end     +0 elevated; 1 parked (ad608, 3 formulations bracket the target)
 2026-08-03T05:47:21Z  halt    loop broken: sandbox classifier now blocks ./type-foo.sh; not worked around
+2026-08-03T06:14:00Z  start   using their non_matching attempts as a starting point
+2026-08-03T06:17:04Z  end     +0 elevated; a22f4 advanced to 3 instructions; 4th screen false-negative class fixed
