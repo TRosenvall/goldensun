@@ -70,3 +70,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T07:01:16Z  end     batch-03 written (11 functions); re-sweep found no hidden matches
 2026-08-03T07:12:04Z  start   systematic search for runtime-computed constants
 2026-08-03T07:14:00Z  end     +0 elevated; runtime-constant search made a tool, 8 more candidates found
+2026-08-03T07:24:46Z  start   more no-shift overlay stubs
+2026-08-03T07:26:39Z  end     +1 (OvlFunc_912_2008030); 2009348 reverted, needs -O1
