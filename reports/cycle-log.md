@@ -123,3 +123,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T13:32:43Z  end     +3 (OvlFunc_929_2008524, OvlFunc_916_2008054, OvlFunc_932_2008388); 54 elevated; RETIRED arg-fill-order and pool-tell; 2 clean-build fixes
 2026-08-03T13:32:43Z  end     batch-07 written (5 functions); 54 elevated total
 2026-08-03T13:36:20Z  start   the two OvlFunc_932 pool-tell siblings, now mechanical
+2026-08-03T13:44:15Z  end     +2 (OvlFunc_932_20083b4, OvlFunc_932_20083e0); 57 elevated; naming-evidence table built; count corrected +1
