@@ -75,3 +75,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T07:39:41Z  end     +0 elevated; screen now reads the Makefiles per-file rules itself
 2026-08-03T07:50:29Z  start   re-sweep with per-file flags auto-detected
 2026-08-03T07:51:27Z  end     +0 elevated; sweep clean; found a counterexample that weakens the main hypothesis
+2026-08-03T08:02:16Z  start   fresh overlay stubs in volume
+2026-08-03T08:03:28Z  end     +0 elevated; small single-function overlay pool is EXHAUSTED
