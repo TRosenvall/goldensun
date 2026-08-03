@@ -181,3 +181,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T20:08:44Z  end     +3 (call-sequence stubs); 125 elevated; SEVENTH false-negative class fixed in tryc
 2026-08-03T20:19:42Z  start   re-screen park after the pool-load fix; more call stubs
 2026-08-03T20:23:18Z  end     +0 this segment; characterised the non-r0 argument ordering; corrected a 2242-site miscount
+2026-08-03T20:33:47Z  start   pool-tell candidates now that the screen renders them correctly
+2026-08-03T20:35:35Z  end     +3 (two-way GetEntrances returning named globals); 128 elevated

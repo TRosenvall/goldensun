@@ -63,7 +63,9 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_887_20093b4` | `0x020093b4` | — | read | Overlay 887: two map edits applied back to back. Split out of the seventeen-part chain at neighbouring parts stay as assembly and are listed |
 | `OvlFunc_888_200a660` | `0x0200a660` | — | read | Overlay 888: detach slot 14's per-frame hook and park it at the origin. Split out of asm/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c.s; the neigh |
 | `OvlFunc_895_2008030` | `0x02008030` | — | read | .o keeps its name and its slot in the overlay's linker script is unchanged. GetEntrances, three-way form: selects one of three edge-transiti |
+| `OvlFunc_898_200906c` | `0x0200906c` | — | read | Split out of that .s; the _a and _c parts stay as assembly and keep their slots in goldensun/overlays/rom_793768/overlay.ld, so the ROM layo |
 | `OvlFunc_901_20084b4` | `0x020084b4` | — | read | Overlay 901: a talk stub taking its slot as an argument. Split out of asm/overlays/rom_797990/ovl_314_c_c_a_a_a.s; the neighbouring parts st |
+| `OvlFunc_901_20084d8` | `0x020084d8` | — | read | Talk with staging: turns slot 8 toward the player, records save bit 0x305, and delivers line 0x1cab. __Func_809280c is deliberately left und |
 | `OvlFunc_901_2008754` | `0x02008754` | — | read | Overlay 901: hold an actor still while it delivers a line. Whole-file conversion of asm/overlays/rom_797990/ovl_314_c_c_a_a_c_c_a_a_c.s -- i |
 | `OvlFunc_901_20087d4` | `0x020087d4` | — | read | Split out of that .s; the _c part stays as assembly and keeps its slot in The same shape as OvlFunc_901_2008754 in src/overlays/rom_797990/o |
 | `OvlFunc_901_2008bf8` | `0x02008bf8` | — | read | Split out of that .s; the _a and _c parts stay as assembly and keep their slots in goldensun/overlays/rom_797990/overlay.ld, so the ROM layo |
@@ -149,6 +151,7 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_970_20083dc` | `0x020083dc` | — | read | Overlay 970: record slot 1's height for later comparison. Split out of asm/overlays/rom_7fa4ec/ovl_30_c_c_c_a.s. One of four near-identical  |
 | `OvlFunc_970_20083f8` | `0x020083f8` | — | read | Overlay 970: record slot 3's height for later comparison. Split out of asm/overlays/rom_7fa4ec/ovl_30_c_c_c_a.s. One of four near-identical  |
 | `OvlFunc_970_2008414` | `0x02008414` | — | read | Overlay 970: record slot 2's height for later comparison. Split out of asm/overlays/rom_7fa4ec/ovl_30_c_c_c_a.s. One of four near-identical  |
+| `OvlFunc_971_2009050` | `0x02009050` | — | read | Split out of that .s; the _a and _c parts stay as assembly and keep their slots in goldensun/overlays/rom_7fb4a8/overlay.ld. Stops the curre |
 | `OvlFunc_974_2008130` | `0x02008130` | — | read | Overlay 974: the first of the seven message-range dispatch stubs. Split out of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_a.s. See ovl_30_a_ |
 | `OvlFunc_974_2008148` | `0x02008148` | — | read | Overlay 974: the second of the seven message-range dispatch stubs. Split out of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_a.s. See ovl_30_a |
 | `OvlFunc_974_2008160` | `0x02008160` | — | read | Overlay 974: one of a family of seven near-identical dispatch stubs. Split out of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a.s; the _a and _ |
@@ -157,4 +160,4 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_974_20081b8` | `0x020081b8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 | `OvlFunc_974_20081d8` | `0x020081d8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 
-122 functions: 2 named, 120 read
+125 functions: 2 named, 123 read
