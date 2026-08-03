@@ -76,6 +76,7 @@ Recording only the name would launder a guess into a fact.
 | `LoadMoveIcon` | `` | — | read | Menu icons: load the move icon for a move. Split out of asm/rom_15000/rom_19ebc_a_c_c.s, which holds twelve functions; the neighbouring _a/_ |
 | `LoadOldMoveIcon` | `` | — | read | Menu icons: load the item icon for a move. Split out of asm/rom_15000/rom_19ebc_a_c_c.s, which holds twelve functions; the neighbouring _a/_ |
 | `MapActor_SetIdle` | `` | — | read | Cutscene layer: park a field actor where it stands. Whole-file conversion of ROM layout is preserved without splitting the translation unit. |
+| `OvlFunc_884_2008030` | `0x02008030` | — | read | Turns an actor one step toward its target: takes the angle to the target with atan2, clamps the change to +/-0x1000 of a full circle, and ap |
 | `OvlFunc_887_2008118` | `0x02008118` | — | read | A three-message prompt: says the opening line, runs a check, and delivers one of two follow-ups at base+1 or base+2. One of seven identical  |
 | `OvlFunc_887_20093b4` | `0x020093b4` | — | read | Overlay 887: two map edits applied back to back. Split out of the seventeen-part chain at neighbouring parts stay as assembly and are listed |
 | `OvlFunc_888_200a660` | `0x0200a660` | — | read | Overlay 888: detach slot 14's per-frame hook and park it at the origin. Split out of asm/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c.s; the neigh |
@@ -186,4 +187,4 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_974_20081b8` | `0x020081b8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 | `OvlFunc_974_20081d8` | `0x020081d8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 
-151 functions: 19 named, 132 read
+152 functions: 19 named, 133 read

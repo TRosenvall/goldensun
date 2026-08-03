@@ -197,3 +197,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T21:52:48Z  end     batch-15 written (29 functions); 151 elevated total
 2026-08-03T21:55:23Z  start   retry free with the indexing insight, then next family
 2026-08-03T21:58:59Z  end     +1 (OvlFunc_884_2008030); 152 elevated; free-vs-FindEntity correction recorded
+2026-08-03T22:01:24Z  start   the 11-member turn-toward family
+2026-08-03T22:02:47Z  end     +5 (turn-toward family); 157 elevated
