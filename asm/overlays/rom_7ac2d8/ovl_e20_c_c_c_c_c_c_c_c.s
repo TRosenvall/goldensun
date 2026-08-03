@@ -3,39 +3,12 @@
 @ Leaf helper, 25 instructions, calls nothing.
 @ Described by what it touches, not by what it means.
 @ Globals: ewram_240
-.thumb_func_start OvlFunc_924_2008f30
-	push	{lr}
-	ldr	r3, =gState
-	mov	r1, #0xe0
-	lsl	r1, #1
-	add	r3, r1
-	mov	r1, #0
-	ldrsh	r2, [r3, r1]
-	ldr	r3, =0x36
-	cmp	r2, r3
-	bne	.Lf48
-	ldr	r0, =.L6ad8
-	b	.Lf5e
-.Lf48:
-	ldr	r3, =0x37
-	cmp	r2, r3
-	bne	.Lf52
-	ldr	r0, =.L6c10
-	b	.Lf5e
-.Lf52:
-	ldr	r3, =0x38
-	cmp	r2, r3
-	bne	.Lf5c
-	ldr	r0, =.L6d60
-	b	.Lf5e
-.Lf5c:
-	ldr	r0, =.L6ec8
-.Lf5e:
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_924_2008f30
 
 	.section .data
+	.global .L6ec8
+	.global .L6d60
+	.global .L6c10
+	.global .L6ad8
 	.global .L66e8
 	.global .L6700
 	.global .L67a8
@@ -75,3 +48,4 @@ gScript_883__0200e614:
 	.incbin "overlays/rom_7ac2d8/orig.bin", 0x6d60, (0x6ec8-0x6d60)
 .L6ec8:
 	.incbin "overlays/rom_7ac2d8/orig.bin", 0x6ec8
+
