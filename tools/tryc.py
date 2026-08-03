@@ -308,6 +308,21 @@ def main():
     # that then fails the build. --O1 still forces it by hand, which is needed
     # when the candidate is a scratch file the Makefile has no rule for.
     adjust = makefile_flags(os.path.relpath(src, ROOT))
+    # A scratch or parked .c does not sit where the build would put it, so the
+    # Makefile has no rule for its path and the per-file flags are lost. The
+    # --ref assembly DOES identify the real translation unit, so take the flags
+    # from there too and union them in.
+    #
+    # This is not hypothetical. src/non_matching/ovl_7ed0a0/2009348.c screened
+    # from its parked path reported a CLEAN MATCH; its real TU builds at -O1
+    # (rule asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a%.o) and at -O1 it does not
+    # match at all. The parked note had warned about exactly this and the sweep
+    # walked into it anyway, because the warning was prose and this was not.
+    if "--ref" in sys.argv:
+        _r = sys.argv[sys.argv.index("--ref") + 1]
+        _r = os.path.relpath(_r, ROOT) if _r.startswith("/") else _r
+        # the rules are written against the src/ side of the pair
+        adjust |= makefile_flags(re.sub(r"^asm/", "src/", _r)[:-2] + ".c")
     if "--O1" in sys.argv:
         adjust.add("O1")
     if adjust and not quiet:
