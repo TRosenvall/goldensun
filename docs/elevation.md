@@ -167,6 +167,25 @@ Two things that are easy to get wrong:
 `tools/find_runtime_constants.py` lists every function in the corpus with this
 signature and says which symbols each would need.
 
+## Families: 190 functions in 50 groups
+
+`tools/find_families.py` groups hand-written functions by identical shape --
+registers, immediates and branch targets abstracted away, call targets kept.
+Two stubs that differ only in a slot number land in the same group.
+
+**50 families covering 190 overlay functions**, the largest with **30
+members**. The overlays duplicate their cutscene and talk stubs per map rather
+than sharing them, so the same sequence recurs across a dozen overlays with
+one constant changed.
+
+Once one member matches, the rest are mechanical: same C, different constant.
+The three families found by accident before this tool existed gave 7, 4 and 3
+functions from one insight each -- 14 of the first 44 elevated.
+
+The converse matters too: whatever blocks one member blocks all of them, so a
+family is also the cheapest way to discover that a blocker is expensive. Check
+a candidate's family size before deciding how hard to push on it.
+
 ## Blockers
 
 Every function parked in `src/non_matching/` falls into one of these. They are
