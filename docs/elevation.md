@@ -124,16 +124,37 @@ simply resolved it back to a number.
 Confirmed by assembling both forms: gas does **not** fold `ldr r0, =1` into a
 `mov`, so these are genuinely different bytes and not a disassembly artifact.
 
-Three functions show it so far — `OvlFunc_974_2008160`'s family (solved, see
-below), `OvlFunc_971_2009050` (`ldr r0, =1`), and `SetTextColor`
-(`ldr r2, =0xf`). Only the first is fixed, because only there was the symbol
-namespace known.
+**103 of 395 overlay candidates** show this tell — the largest single blocker
+in the project.
 
-**The blocker is naming, not technique.** The tree has `message.sym` for
-message ids and `file_table.sym` for file ids; neither covers map ids or
-whatever `0xf` is here. Adding a plausible-looking name to a shared linker
-fragment to save one instruction is a bad trade — a wrong name propagates,
-where a missing one just waits.
+### It does not need the namespace identified — only named
+
+This was treated as blocked for twelve rounds on the reasoning that the tree
+has `message.sym` for message ids and `file_table.sym` for file ids, neither
+covers whatever `0x4d` is, and inventing a plausible name for a shared linker
+fragment is a bad trade — a wrong name propagates, where a missing one waits.
+
+**The premise was wrong.** Matching does not require knowing what the id
+*means*. It requires the operand to be a symbol, so that gcc pools it. Naming
+the symbol **by value** asserts nothing that could later turn out to be false:
+
+    /* unknown_id.sym */
+    _ID_4d = 0x4d;
+
+    extern int _ID_4d;
+    __Func_8091f90((int) (&_ID_4d), 0x63);   /* -> ldr r0, =0x4d */
+
+An absolute symbol definition in a linker script emits no bytes, so the linked
+result is byte-identical to the literal. `message.sym` has done exactly this
+from the start — its own comment reads *"named by value; pending semantic
+names."* The same move was available here the whole time.
+
+Keep unidentified ids in `unknown_id.sym` rather than folding them into
+`message.sym` or `file_table.sym`. Those two namespaces are identified, and
+putting an unidentified id in one of them asserts something not known to be
+true — which is the actual bad trade, and it is avoidable.
+
+First out: `OvlFunc_932_2008388`, with two siblings behind it.
 
 ## Technique: stopping a constant fold with symbol addresses
 

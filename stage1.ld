@@ -14,6 +14,7 @@ MEMORY {
 INCLUDE "wram.sym"
 INCLUDE "message.sym"
 INCLUDE "file_table.sym"
+INCLUDE "unknown_id.sym"
 
 SECTIONS {
 	header : {

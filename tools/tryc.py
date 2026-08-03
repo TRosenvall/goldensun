@@ -126,7 +126,7 @@ def _asm_constants():
     # message ids are the ones that matter: the C refers to `&_MSG_c9b` where
     # the disassembly shows the bare 0xc9b it resolves to. Same pool word,
     # different spelling.
-    for name in ("message.sym", "wram.sym", "file_table.sym"):
+    for name in ("message.sym", "wram.sym", "file_table.sym", "unknown_id.sym"):
         p = os.path.join(ROOT, name)
         if not os.path.exists(p):
             continue

@@ -1,0 +1,44 @@
+/* unknown_id.sym -- absolute symbols for operands the ROM PROVES are symbolic
+ * but whose namespace is not yet identified.
+ *
+ * WHY THIS FILE HAS TO EXIST
+ *
+ * gcc-2.96 never pools a constant it can build with an eight-bit `mov`, and
+ * always pools a symbol's address. So wherever the ROM does
+ *
+ *     ldr r0, =0x4d          instead of          mov r0, #0x4d
+ *
+ * the operand was a SYMBOL REFERENCE in the original source, not a literal.
+ * That tell gates 103 of 395 overlay candidates. It cannot be worked around
+ * by reformulating the C: no spelling of a literal makes gcc pool it.
+ *
+ * Defining the symbol here is what unblocks it. An absolute symbol definition
+ * in a linker script emits NO BYTES -- it only gives the operand a name for
+ * `(int)&_ID_4d` to take the address of, which is exactly the shape gcc
+ * pools. The linked result is byte-identical to the literal.
+ *
+ * ON THE NAMES
+ *
+ * These are named BY VALUE, semantics pending, exactly as message.sym already
+ * does for message ids ("shiftable __MessageID IDs (named by value; pending
+ * semantic names)"). Knowing what 0x4d MEANS would let it be renamed; it is
+ * not needed to match, and guessing a meaning here would be worse than
+ * admitting the gap.
+ *
+ * They are deliberately NOT folded into message.sym or file_table.sym: those
+ * two namespaces are identified, and putting an unidentified id in them would
+ * assert something not known to be true.
+ */
+
+/* first argument of __Func_8091f90 (trace name SetSpawnPositionA).
+ * Note it is NOT the same namespace as __Func_8091eb0's first argument, which
+ * the ROM builds with a plain `mov` two instructions later -- so whatever this
+ * is, it is not a map id.
+ *
+ * These three come from three consecutive functions in
+ * asm/overlays/rom_7b9cb4/ovl_30_a_c_c_a_a_a_a.s and are spaced by TWO, which
+ * is a hint about the namespace worth keeping: whatever indexes it appears to
+ * have paired entries. */
+_ID_4d = 0x4d;
+_ID_4f = 0x4f;
+_ID_51 = 0x51;
