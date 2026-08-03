@@ -86,8 +86,18 @@ codebase better than we do. Listed once here rather than repeated per batch.
   for 968, `0x36`–`0x39` for 924. Individual functions compare against subsets
   of their own area's run. Range observed: `0x10`–`0xba`, i.e. ~190 ids.
 
-  That is what a map or area id space looks like. If that matches something you
-  recognise, naming it would retire `unknown_id.sym` outright.
+  That is what a map or area id space looks like — and batch 13 adds two
+  independent signals that it is specifically an **area** id indexing **map
+  entrance** tables:
+
+  * two of the tables these functions return are already named in your tree,
+    `MapEntrance_ARRAY_895__02009cd4` and `MapEntrance_ARRAY_937__020084a0`;
+  * the ROM annotation on one reads *"area 0x13 -> .L1d04"*.
+
+  We have **not** renamed `_ID_` to `_AREA_` on that basis. The annotation
+  corpus gets purpose wrong often enough to matter, and renaming is deferred
+  to the pass that has the whole picture. But if `MapEntrance` is your name
+  and it means what it looks like, confirming it retires `unknown_id.sym`.
 
   *(An earlier note here claimed the ids came in PAIRS, from two families whose
   constants were spaced by two. That was wrong — both are subsets of
