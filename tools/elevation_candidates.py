@@ -97,6 +97,19 @@ def scan(path):
     return out
 
 
+# Shapes that are RECOGNISED but no longer stop a function being elevated.
+# They still print, because each needs an extra step and the tag says which,
+# but --clean keeps them -- dropping them hid 103 of 395 overlay candidates.
+#
+#   pool-tell        define the operand by value in unknown_id.sym
+#   arg-fill-order   declare every callee, with its void return type
+#
+# Both were "solved" in docs/elevation.md before they were solved HERE, which
+# is the same mistake this filter was written to stop: a check that runs beats
+# a note that is read.
+TRACTABLE = {"pool-tell", "arg-fill-order"}
+
+
 def blockers(body):
     """Known-unmatchable shapes visible in the assembly, from docs/elevation.md.
 
@@ -121,10 +134,18 @@ def blockers(body):
                 out.add("narrow-mask")
 
         # 2. small-constant pool tell -- a pooled value that would fit in an
-        #    eight-bit mov means the operand was a SYMBOL reference. Blocked
-        #    on naming, not technique. BOTH spellings matter: the disassembly
-        #    uses `=0` for a literal pool word and `.Lxxx` for a labelled one,
-        #    and an earlier version of this filter only caught the second.
+        #    eight-bit mov means the operand was a SYMBOL reference.
+        #
+        #    NO LONGER A BLOCKER, and it is listed in TRACTABLE below so
+        #    --clean keeps these. It was treated as blocked on naming for
+        #    twelve rounds because the id NAMESPACE was unknown; matching does
+        #    not need the namespace, only a symbol. Define it by value in
+        #    unknown_id.sym and take its address. Still reported, because the
+        #    function needs that extra step and the tag says which.
+        #
+        #    BOTH spellings matter: the disassembly uses `=0` for a literal
+        #    pool word and `.Lxxx` for a labelled one, and an earlier version
+        #    of this filter only caught the second.
         m = re.match(r"ldr r\d+, =(0x[0-9a-f]+|\d+)$", l)
         if m and int(m.group(1), 0) <= 0xFF:
             out.add("pool-tell")
@@ -243,7 +264,7 @@ def main():
     # shape. Screening against the blocker list BEFORE writing any C is the
     # cheapest filter available and it took twelve rounds to start using it.
     if "--clean" in sys.argv:
-        rows = [r for r in rows if not r[3]["blocked"]]
+        rows = [r for r in rows if not (r[3]["blocked"] - TRACTABLE)]
 
     rows.sort()
     print(f"{'score':>6} {'insn':>5} {'call':>5} {'br':>4} {'fns':>4}  "
@@ -254,8 +275,10 @@ def main():
               f"{b:<26}{name}  {rel}")
     total = len(rows)
     clear = sum(1 for r in rows if not r[3]["blocked"])
+    tract = sum(1 for r in rows if r[3]["blocked"] and not (r[3]["blocked"] - TRACTABLE))
     print(f"\n{total} candidates ({'overlays' if want_overlays else 'main ROM'}), "
-          f"{clear} with no known blocker in their assembly")
+          f"{clear} with nothing flagged, {tract} needing only a known extra step "
+          f"({', '.join(sorted(TRACTABLE))})")
     if "--clean" not in sys.argv:
         print("Pass --clean to list only those.")
 
