@@ -126,3 +126,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T13:44:15Z  end     +2 (OvlFunc_932_20083b4, OvlFunc_932_20083e0); 57 elevated; naming-evidence table built; count corrected +1
 2026-08-03T13:54:34Z  start   largest pool-tell family, now that the class is tractable
 2026-08-03T13:57:50Z  end     +5 (GetEntrances family head un-parked + 4 siblings); 62 elevated
+2026-08-03T14:08:24Z  start   three remaining whole-file GetEntrances members, then batch-08
