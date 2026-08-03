@@ -56,3 +56,6 @@ _MSG_25b8 = 0x25b8;
 _MSG_25dc = 0x25dc;
 _MSG_2624 = 0x2624;
 _MSG_28be = 0x28be;
+_MSG_e19 = 0xe19;
+_MSG_e39 = 0xe39;
+_MSG_22b9 = 0x22b9;
