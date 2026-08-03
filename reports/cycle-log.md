@@ -86,3 +86,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T08:52:19Z  start   more embedded overlay stubs
 2026-08-03T08:55:49Z  end     +4 (OvlFunc_970 height-record family); 37 elevated
 2026-08-03T09:09:38Z  end     batch-04 written (8 functions); 37 elevated total
+2026-08-03T09:20:32Z  start   remaining embedded overlay stubs
+2026-08-03T09:22:04Z  end     +2 (OvlFunc_888_200a660, OvlFunc_968_2008594); 39 elevated
