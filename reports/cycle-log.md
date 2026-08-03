@@ -221,3 +221,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T23:05:14Z  end     batch-18 written (14 functions); 194 elevated total
 2026-08-03T23:07:37Z  start   next family sweep
 2026-08-03T23:11:15Z  end     +3 (higher-arity GetEntrances); 197 elevated; skipped the data guard and it cost a build
+2026-08-03T23:15:46Z  end     +4 (higher-arity GetEntrances); 201 elevated; asmfacts.py added; 909_200809c parked
