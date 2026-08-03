@@ -85,3 +85,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T08:41:35Z  end     +0 elevated; generalised the small-constant pool tell
 2026-08-03T08:52:19Z  start   more embedded overlay stubs
 2026-08-03T08:55:49Z  end     +4 (OvlFunc_970 height-record family); 37 elevated
+2026-08-03T09:09:38Z  end     batch-04 written (8 functions); 37 elevated total
