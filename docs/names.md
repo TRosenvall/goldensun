@@ -67,16 +67,20 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_906_2008314` | `0x02008314` | — | read | GetEntrances. Picks one of two edge-transition tables from a gState halfword. Head of a 22-member family, the largest in the overlays. This  |
 | `OvlFunc_906_2008350` | `0x02008350` | — | read | GetEntrances for this map: picks one of two edge-transition tables from a gState halfword. One of an 18-member family; see src/overlays/rom_ |
 | `OvlFunc_906_20083e4` | `0x020083e4` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script, so the ROM layout does not mov |
+| `OvlFunc_907_2008198` | `0x02008198` | — | read | GetEntrances, four-way form: selects one of four edge-transition tables from a gState halfword, falling through to the last. One of a 24-mem |
 | `OvlFunc_909_2008100` | `0x02008100` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script, so the ROM layout does not mov |
 | `OvlFunc_910_2008154` | `0x02008154` | — | read | GetEntrances for this map: picks one of two edge-transition tables from a gState halfword. One of an 18-member family; see src/overlays/rom_ |
 | `OvlFunc_910_20088e8` | `0x020088e8` | — | read | Overlay 910: play a sound, run a map edit, record it happened. Split out of asm/overlays/rom_79dd90/ovl_30_c_c_c_c_a_c.s; the neighbouring p |
 | `OvlFunc_911_2008284` | `0x02008284` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script, so the ROM layout does not mov |
 | `OvlFunc_916_2008054` | `0x02008054` | — | read | .L12c0 is a 4-byte .lcomm in ovl_30_c_c_c_c_c.s, read as a pointer here and passed to two different overlay routines. The ROM keeps its ADDR |
+| `OvlFunc_920_2008040` | `0x02008040` | — | read | GetEntrances, four-way form: selects one of four edge-transition tables from a gState halfword, falling through to the last. Head of a 24-me |
 | `OvlFunc_920_2008280` | `0x02008280` | — | read | Overlay 920: react-and-turn cutscene stub for slot 0xF. Split out of asm/overlays/rom_7a6ae4/ovl_30_c_a_c_c_a.s. One of three identical stub |
 | `OvlFunc_920_20082ac` | `0x020082ac` | — | read | Overlay 920: react-and-turn cutscene stub for slot 0x10. Split out of asm/overlays/rom_7a6ae4/ovl_30_c_a_c_c_a.s. One of three identical stu |
 | `OvlFunc_920_20082d8` | `0x020082d8` | — | read | Overlay 920: react-and-turn cutscene stub for slot 0x11. Split out of asm/overlays/rom_7a6ae4/ovl_30_c_a_c_c_a.s. One of three identical stu |
 | `OvlFunc_921_2008130` | `0x02008130` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script, so the ROM layout does not mov |
 | `OvlFunc_921_20081ec` | `0x020081ec` | — | read | GetEntrances for this map: picks one of two edge-transition tables from a gState halfword. One of an 18-member family; see src/overlays/rom_ |
+| `OvlFunc_924_2008e20` | `0x02008e20` | — | read | GetEntrances, four-way form: selects one of four edge-transition tables from a gState halfword, falling through to the last. One of a 24-mem |
+| `OvlFunc_927_2008ee0` | `0x02008ee0` | — | read | GetEntrances, four-way form: selects one of four edge-transition tables from a gState halfword, falling through to the last. One of a 24-mem |
 | `OvlFunc_930_200807c` | `0x0200807c` | — | read | GetEntrances for this map: picks one of two edge-transition tables from a gState halfword. One of an 18-member family; see src/overlays/rom_ |
 | `OvlFunc_930_20080b8` | `0x020080b8` | — | read | GetEntrances for this map: picks one of two edge-transition tables from a gState halfword. One of an 18-member family; see src/overlays/rom_ |
 | `OvlFunc_930_2009180` | `0x02009180` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script, so the ROM layout does not mov |
@@ -111,4 +115,4 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_974_20081b8` | `0x020081b8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 | `OvlFunc_974_20081d8` | `0x020081d8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 
-76 functions: 2 named, 74 read
+80 functions: 2 named, 78 read
