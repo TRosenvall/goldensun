@@ -131,3 +131,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T14:13:35Z  end     batch-08 written (10 functions); 65 elevated total
 2026-08-03T14:24:11Z  start   four two-function GetEntrances splits
 2026-08-03T14:26:11Z  end     +4 (split GetEntrances members); 69 elevated; splitter refused one on label crossing
+2026-08-03T14:36:30Z  start   the remaining GetEntrances splits
