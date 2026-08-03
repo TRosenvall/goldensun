@@ -35,6 +35,26 @@
  * full of exactly these formulaic call sequences.
  *
  * Screened at -O2 and -O1; both give the same result.
+ *
+ * FLAG SWEEP: RULED OUT. Eleven flags that plausibly affect reuse or common-
+ * subexpression elimination were tried against two of these functions, and
+ * every one produced output identical to the baseline:
+ *
+ *     -fno-cse-follow-jumps      -fno-rerun-cse-after-loop
+ *     -fno-expensive-optimizations -fno-caller-saves
+ *     -fno-force-mem             -fno-defer-pop
+ *     -fno-strength-reduce       -fno-thread-jumps
+ *     -fno-peephole              -fno-function-cse
+ *
+ * (tools/tryc.py grew a --cflags passthrough so this kind of hypothesis can be
+ * tested against a known-failing function without editing anything.)
+ *
+ * So the difference is NOT reachable by a compiler flag. That leaves two
+ * candidates: the C here differs from the original in a way not yet guessed,
+ * or camelot-gcc's build of gcc-2.96 differs from the one Camelot used in a
+ * way these functions expose. The first is far more likely -- the same
+ * toolchain reproduces 2169 other files byte-for-byte -- which points back at
+ * the reading of the source rather than the invocation.
  */
 
 /* --- OvlFunc_946_2009624 ------------------------------------------------- */

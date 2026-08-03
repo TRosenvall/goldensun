@@ -56,3 +56,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T05:14:48Z  end     +0 elevated; narrowed the overlay blocker to 6 known instances
 2026-08-03T05:20:28Z  start   overlays with NO shifted constants (avoids the arg-interleave blocker)
 2026-08-03T05:22:02Z  end     +0 elevated; 3 overlay parks, all "gcc reuses what the ROM recomputes"
+2026-08-03T05:33:29Z  end     +0 elevated; flag hypothesis ruled out across 11 flags

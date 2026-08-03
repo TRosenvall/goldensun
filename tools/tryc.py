@@ -221,6 +221,11 @@ def main():
     # per-file rules in the Makefile -- only byte-match at -O1. Screening at
     # -O2 alone reports those as failures that no rewriting of the C can fix.
     cflags = ["-O1" if (a == "-O2" and "--O1" in sys.argv) else a for a in CFLAGS]
+    # --cflags "<extra>" appends arbitrary compiler flags, so a hypothesis
+    # about the original invocation can be tested against a known-failing
+    # function without editing this file each time.
+    if "--cflags" in sys.argv:
+        cflags += sys.argv[sys.argv.index("--cflags") + 1].split()
     src = [a for a in sys.argv[1:] if a.endswith(".c")][0]
     src = os.path.join(ROOT, src) if not src.startswith("/") else src
 
