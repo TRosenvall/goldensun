@@ -32,7 +32,25 @@ codebase better than we do. Listed once here rather than repeated per batch.
   to matter -- see `docs/attribution.md`. Any annotation ported into this tree
   should be treated as a starting point, not a finding. One was corrected in
   batch 01 (`Func_80b7e7c` does not take the arguments it was documented with).
-- **Halfword constant pooling** is the single biggest blocker to elevating more
-  (`docs/elevation.md`, blocker class 1). If there is a known C shape that
-  makes gcc-2.96 pool a small constant as a word when the store is to a
-  `u16`, that alone unblocks several functions.
+- **What are the id namespaces?** This is now the single highest-value
+  question, and it is one only you can answer.
+
+  Where the ROM pools a constant that would fit in an eight-bit `mov`
+  (`ldr r0, =1`, `ldr r2, =0xf`, `ldr r3, =0x1d`), the operand was a **symbol
+  reference** in the original source — gcc never pools what it can `mov`, and
+  always pools a symbol address. Verified by assembling both forms.
+
+  `message.sym` covers message ids and `file_table.sym` covers file ids.
+  Neither covers a map id (`__SetDestMap`'s first argument), a text-ink value,
+  or whatever `0x1d` is in the 22-function family at `ovl_314_a.s`.
+
+  **Measured cost: 75 of the 190 functions that sit in duplicated families are
+  blocked on this.** It was reported as "three functions" in batches 04 and 05,
+  which was what happened to be in front of me rather than the real number.
+  Naming those spaces unblocks the class outright — see `docs/elevation.md`,
+  "Tell: the ROM pools a SMALL constant".
+
+- **Narrow constant materialisation** gates 34 functions and is half solved: a
+  named `int` mask reproduces the ROM's 32-bit constant, but the instruction
+  ordering resists seven attempts. `src/non_matching/overlays/narrow_constant.c`
+  has the detail.

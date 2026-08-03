@@ -104,3 +104,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T11:01:47Z  end     batch-05 written (7 functions); 44 elevated total
 2026-08-03T11:12:59Z  start   built a family finder; 14 of 44 came from families
 2026-08-03T11:13:26Z  end     +0 elevated; found 50 families covering 190 functions
+2026-08-03T11:24:09Z  start   the 22-member family at 15 instructions
+2026-08-03T11:25:01Z  end     +0 elevated; pool-tell blocker measured at 75 family functions, not 3
