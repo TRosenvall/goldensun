@@ -430,25 +430,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_910_20085dc
-
-@ 12 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   PlaySound, PlayMapRectAnimation, SetSaveBit
-@ sets 0x200.
-.thumb_func_start OvlFunc_910_20088e8
-	push	{lr}
-	mov	r0, #0xbc
-	bl	__PlaySound
-	ldr	r0, =.Lbd4
-	mov	r1, #0x34
-	mov	r2, #0xb
-	bl	__Func_8010560
-	mov	r0, #0x80
-	lsl	r0, #2
-	bl	__SetFlag
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_910_20088e8
-
