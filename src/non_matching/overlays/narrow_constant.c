@@ -85,6 +85,40 @@
  * remaining question is how to make gcc build the MASK pseudo before the field
  * pseudo, given that reading the field earlier in the source makes it fold the
  * load away entirely.
+ *
+ * PROGRESS 2026-08-03 (second pass): THE PREFIX NOW MATCHES. Reading the field
+ * FIRST, with the operand order (m & f) from above, reproduces the ROM's first
+ * four instructions exactly, including the ldrb landing between the 3 and its
+ * use:
+ *
+ *     ldr r0, [r0, #0x50] / mov r3, #3 / ldrb r2, [r0, #9] / and r1, r3
+ *
+ * So the field/mask register swap is SOLVED, and the earlier reading of this
+ * as a birth-order problem was itself a misdiagnosis -- it was the statement
+ * order after all, just not any of the eleven tried.
+ *
+ * WHAT IS LEFT IS ONE PEEPHOLE. gcc builds the mask in a single instruction
+ * where the ROM takes two:
+ *
+ *     rom    mov r3, #0xd / neg r3, r3        (two instructions, 11 total)
+ *     ours   sub r3, #0x10                    (one instruction, 10 total)
+ *
+ * That is legal and cheaper: r3 still holds the 3 from `priority &= 3`, and
+ * 3 - 0x10 == -0xd == ~0xc. gcc tracks the live value and folds. The ROM's
+ * compiler had the same 3 live and did not.
+ *
+ * FOUR MASK SPELLINGS make no difference -- `~0xc`, `-13`, `0xfffffff3`,
+ * `~(3 << 2)` all produce the `sub`. The value is known to gcc however it is
+ * written, so this cannot be defeated by respelling the constant.
+ *
+ * Building the mask BEFORE `priority &= 3` gives 11 instructions but diverges
+ * at instruction 0, which is worse.
+ *
+ * THE REMAINING QUESTION, and it is now very narrow: what stops gcc-2.96
+ * deriving a constant from another constant that happens to be live in a
+ * register? If the answer is "nothing in C", then these 34 functions need the
+ * 3 to arrive by some route that does not leave its value known -- and the
+ * `3` is emitted as `mov r3, #3`, not pooled, so it is not a symbol.
  */
 struct Spr { unsigned char pad_00[9]; unsigned char flags; };
 void OvlFunc_927_20089dc(Actor *actor, int priority) {

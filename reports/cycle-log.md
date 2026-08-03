@@ -156,3 +156,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T17:14:47Z  end     +1 (OvlFunc_924_200cf90); 102 elevated; named-intermediate technique generalised
 2026-08-03T17:25:08Z  start   re-examine narrow-mask with the reuse question
 2026-08-03T17:30:28Z  end     batch-12 written (4 functions); 102 elevated total; both families complete
+2026-08-03T17:41:13Z  start   narrow-mask birth order
