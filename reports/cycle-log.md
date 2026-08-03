@@ -194,3 +194,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T21:41:43Z  end     +5 (FindEntityAtPosition siblings); 145 elevated
 2026-08-03T21:44:06Z  start   finish FindEntityAtPosition, then batch-15
 2026-08-03T21:45:50Z  end     +6; 151 elevated; FindEntityAtPosition COMPLETE at 17/17
+2026-08-03T21:52:48Z  end     batch-15 written (29 functions); 151 elevated total
