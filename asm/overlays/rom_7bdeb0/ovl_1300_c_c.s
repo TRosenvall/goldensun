@@ -1,21 +1,5 @@
 	.include "macros.inc"
 
-@ 8 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   BeginCutscene, SetSlotAnimation, EndCutscene
-.thumb_func_start OvlFunc_934_2009378
-	push	{lr}
-	bl	__CutsceneStart
-	mov	r0, #8
-	mov	r1, #0
-	bl	__MapActor_SetAnim
-	bl	__CutsceneEnd
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_934_2009378
-
 @ Cutscene: roughly 117 instructions of straight-line script --
 @ 0 turns, 3 animation changes, 0 dialogue lines, 0 timed pauses.
 @ Characterised structurally rather than beat by beat.

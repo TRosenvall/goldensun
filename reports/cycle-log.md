@@ -77,3 +77,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T07:51:27Z  end     +0 elevated; sweep clean; found a counterexample that weakens the main hypothesis
 2026-08-03T08:02:16Z  start   fresh overlay stubs in volume
 2026-08-03T08:03:28Z  end     +0 elevated; small single-function overlay pool is EXHAUSTED
+2026-08-03T08:14:13Z  start   small functions inside multi-function overlay files
+2026-08-03T08:16:09Z  end     +2 (OvlFunc_934_2009378, OvlFunc_948_2008ec8); 32 elevated
