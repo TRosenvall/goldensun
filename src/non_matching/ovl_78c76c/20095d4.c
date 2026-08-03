@@ -15,6 +15,27 @@
  *
  * So this is the arg-interleave class with a third argument involved, and
  * worth retrying if that class ever falls -- it is not a separate problem.
+ *
+ * RE-TESTED after the arg-fill-order fix (2026-08-03). Four formulations, all
+ * producing the identical diff above:
+ *
+ *   1. Full prototypes on every callee, with return types. That is what fixed
+ *      arg-fill-order -- an implicitly declared callee returns int, so gcc
+ *      keeps r0 live across the call and fills the next call's r0 last. It
+ *      does not move r0 here.
+ *   2. The reverse: __Func_8012078 implicitly declared.
+ *   3. The shifted values built into named locals before the call, so the
+ *      shifts are statements rather than argument expressions.
+ *   4. A narrower first parameter (unsigned char), so r0's argument needs a
+ *      conversion the others do not.
+ *
+ * So r0 placement here is NOT driven by declaration state, which is what
+ * separates arg-interleave from arg-fill-order. They looked like one class.
+ *
+ * The filter still does not catch this one: tools/elevation_candidates.py
+ * looks two lines back from an `lsl` for the `mov` that starts it, and here
+ * the pair is split by three. Same deliberate gap as OvlFunc_933_2009874 --
+ * but that is now two functions it has cost.
  */
 extern void __Func_8012078(int a, int b, int c, int d);
 extern int  OvlFunc_891_2009be8(int a, int b, int c);
