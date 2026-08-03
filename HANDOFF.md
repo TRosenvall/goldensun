@@ -16,12 +16,20 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-06](reports/batch-06.md) | 5 | ready to port |
 | [batch-07](reports/batch-07.md) | 5 | ready to port |
 | [batch-08](reports/batch-08.md) | 10 | ready to port |
+| [batch-09](reports/batch-09.md) | 9 | ready to port |
 
 Every batch is verified the same way, from a clean build:
 
     docker build -t goldensun-build -f tools/Dockerfile .
     docker run --rm -v "$PWD:/work" -w /work goldensun-build \
         sh -c 'make clean && make compare'
+
+- **Four `.global` lines were added to two existing `.s` files** (batch 09) so
+  that two functions could be split out from the `.incbin` tables they select
+  between. A `.global` emits no bytes and both files already exported sibling
+  labels the same way, but it is the only change in these batches that edits
+  assembly rather than replacing it. Reverts cleanly if you would rather it
+  did not happen.
 
 ## Naming
 
