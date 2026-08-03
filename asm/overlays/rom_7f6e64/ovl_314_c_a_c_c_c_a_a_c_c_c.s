@@ -1,60 +1,11 @@
 	.include "macros.inc"
 
-@ 39 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   DestroyEntity, Sin
-.thumb_func_start OvlFunc_884_200a3ec
-	push	{r5, r6, lr}
-	mov	r5, r0
-	mov	r2, r5
-	add	r2, #0x64
-	ldrh	r3, [r2]
-	add	r3, #1
-	ldr	r6, [r5, #0x68]
-	strh	r3, [r2]
-	lsl	r3, #16
-	asr	r0, r3, #16
-	cmp	r0, #0x1f
-	ble	.L240c
-	mov	r0, r5
-	bl	__DeleteActor
-	b	.L2438
-.L240c:
-	lsl	r0, #10
-	bl	__sin
-	neg	r3, r0
-	str	r0, [r5, #0x18]
-	str	r3, [r5, #0x1c]
-	ldr	r3, [r6, #8]
-	mov	r1, #0x80
-	str	r3, [r5, #8]
-	ldr	r3, [r5, #0xc]
-	lsl	r1, #9
-	add	r3, r1
-	str	r3, [r5, #0xc]
-	sub	r1, r0
-	ldr	r3, [r6, #0x10]
-	lsl	r2, r1, #2
-	add	r2, r1
-	sub	r3, r2
-	mov	r2, #0x80
-	lsl	r2, #13
-	add	r3, r2
-	str	r3, [r5, #0x10]
-.L2438:
-	pop	{r5, r6}
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_884_200a3ec
-
-@ 128 instructions. Not one of the recognised overlay shapes,
+@ 135 instructions. Not one of the recognised overlay shapes,
 @ so this is a CALL TRACE rather than a description -- what it does with
 @ these is not characterised here.
 @
 @   PlaySound, SpawnEntity, SetActorAnimation, FreeObjTiles
-.thumb_func_start OvlFunc_884_200a440
+.thumb_func_start OvlFunc_969_200a200
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
 	mov	r6, r10
@@ -73,7 +24,7 @@
 	mov	r7, #0
 	mov	r10, sp
 	mov	r9, r1
-.L2466:
+.L2226:
 	ldr	r2, [r6, #0xc]
 	ldr	r3, [r6, #0x10]
 	ldr	r1, [r6, #8]
@@ -83,29 +34,29 @@
 	mov	r2, r10
 	str	r0, [r3, r2]
 	cmp	r0, #0
-	beq	.L2514
+	beq	.L22d4
 	ldr	r3, [r6, #0x14]
 	str	r3, [r0, #0x14]
 	mov	r3, r0
 	ldr	r5, [r0, #0x50]
 	add	r3, #0x55
 	mov	r2, #0
-	ldr	r1, .L249c	@ 0
+	ldr	r1, .L225c	@ 0
 	strb	r2, [r3]
 	add	r3, #0xf
 	strh	r2, [r3]
 	mov	r8, r1
 	str	r6, [r0, #0x68]
 	cmp	r5, #0
-	beq	.L2514
-	b	.L24a4
+	beq	.L22d4
+	b	.L2264
 
 	.align	2, 0
-.L249c:
+.L225c:
 	.word	0
 	.pool
 
-.L24a4:
+.L2264:
 	mov	r1, #0
 	mov	r0, r5
 	bl	__Sprite_SetAnim
@@ -128,7 +79,7 @@
 	lsl	r3, #2
 	add	r3, r2
 	ldrh	r1, [r3, #2]
-	ldr	r2, .L250c	@ 0xffffffc0
+	ldr	r2, .L22cc	@ 0xfffffc00
 	ldrh	r3, [r5, #8]
 	lsl	r1, #17
 	lsr	r1, #22
@@ -154,41 +105,48 @@
 	ldr	r3, [r5, #0x28]
 	mov	r1, r8
 	strb	r1, [r3, #0x16]
-	b	.L2514
+	b	.L22d4
 
 	.align	2, 0
-.L250c:
+.L22cc:
 	.word	0xfffffc00
 	.pool
 
-.L2514:
+.L22d4:
 	add	r7, #1
 	cmp	r7, #1
-	ble	.L2466
+	ble	.L2226
 	ldr	r2, [sp]
-	ldr	r3, =OvlFunc_884_200a3ec
-	ldr	r0, [r2, #0x50]
+	ldr	r3, =OvlFunc_969_200a1ac
 	str	r3, [r2, #0x6c]
+	ldr	r3, [r6, #0x50]
+	ldr	r4, [r2, #0x50]
+	ldrb	r3, [r3, #9]
 	mov	r2, #0xd
-	ldrb	r1, [r0, #9]
+	ldrb	r0, [r4, #9]
 	neg	r2, r2
+	mov	r1, #0xc
+	and	r1, r3
 	mov	r3, r2
-	mov	r4, #8
-	and	r3, r1
-	orr	r3, r4
-	strb	r3, [r0, #9]
+	and	r3, r0
+	orr	r3, r1
+	strb	r3, [r4, #9]
 	mov	r3, r10
-	ldr	r1, [r3, #4]
-	ldr	r0, [r1, #0x50]
-	ldrb	r3, [r0, #9]
-	and	r2, r3
-	ldr	r3, =OvlFunc_884_200a39c
-	orr	r2, r4
-	str	r3, [r1, #0x6c]
-	add	r1, #0x23
+	ldr	r0, [r3, #4]
+	ldr	r3, [r6, #0x50]
+	ldr	r4, [r0, #0x50]
+	ldrb	r1, [r3, #9]
+	mov	r3, #0xc
+	and	r3, r1
+	ldrb	r1, [r4, #9]
+	and	r2, r1
+	orr	r2, r3
+	ldr	r3, =OvlFunc_969_200a15c
+	str	r3, [r0, #0x6c]
+	add	r0, #0x23
 	mov	r3, #2
-	strb	r2, [r0, #9]
-	strb	r3, [r1]
+	strb	r2, [r4, #9]
+	strb	r3, [r0]
 	add	sp, #8
 	pop	{r3, r5, r6, r7}
 	mov	r8, r3
@@ -198,4 +156,4 @@
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.func_end OvlFunc_884_200a440
+.func_end OvlFunc_969_200a200

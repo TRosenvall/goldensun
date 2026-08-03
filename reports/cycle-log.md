@@ -216,3 +216,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T22:51:03Z  start   finish the sine family, then its companion
 2026-08-03T22:52:31Z  end     +2; 187 elevated; sine family COMPLETE at 7/7
 2026-08-03T22:54:24Z  end     +3; 188 elevated; sine family 7/7 and its mirror head
+2026-08-03T22:56:49Z  start   the six mirror siblings
+2026-08-03T22:58:22Z  end     +6; 194 elevated; mirror family COMPLETE at 7/7

@@ -95,6 +95,7 @@ Recording only the name would launder a guess into a fact.
 | `LoadOldMoveIcon` | `` | — | read | Menu icons: load the item icon for a move. Split out of asm/rom_15000/rom_19ebc_a_c_c.s, which holds twelve functions; the neighbouring _a/_ |
 | `MapActor_SetIdle` | `` | — | read | Cutscene layer: park a field actor where it stands. Whole-file conversion of ROM layout is preserved without splitting the translation unit. |
 | `OvlFunc_881_200bfb4` | `0x0200bfb4` | — | read | Split out of that .s; the _a part stays as assembly and keeps its slot in A 32-frame effect actor riding on a parent: each frame it advances |
+| `OvlFunc_881_200c004` | `0x0200c004` | — | read | Split out of that .s; the _c part stays as assembly and keeps its slot in The MIRROR of OvlFunc_881_200bfb4, which sits immediately before i |
 | `OvlFunc_882_200c378` | `0x0200c378` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. A 32-frame sine effect actor r |
 | `OvlFunc_883_200dcc4` | `0x0200dcc4` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. A 32-frame sine effect actor r |
 | `OvlFunc_884_2008030` | `0x02008030` | — | read | Turns an actor one step toward its target: takes the angle to the target with atan2, clamps the change to +/-0x1000 of a full circle, and ap |
@@ -222,4 +223,4 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_974_20081b8` | `0x020081b8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 | `OvlFunc_974_20081d8` | `0x020081d8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 
-187 functions: 37 named, 150 read
+188 functions: 37 named, 151 read
