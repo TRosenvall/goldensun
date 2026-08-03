@@ -139,3 +139,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T15:20:44Z  end     +1 (OvlFunc_956_20081b4); 76 elevated; new mov/lsl-local technique; fakematch contamination trap recorded
 2026-08-03T15:31:27Z  start   the 30-member family, largest remaining
 2026-08-03T15:36:32Z  end     +4 (four-way GetEntrances); 80 elevated; splitter now refuses to advise deleting data
+2026-08-03T15:46:51Z  start   remaining whole-file four-way members, guard-checked first
