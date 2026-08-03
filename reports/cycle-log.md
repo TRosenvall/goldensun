@@ -210,3 +210,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T22:30:06Z  end     +5 (FillMapRect siblings); 173 elevated
 2026-08-03T22:32:30Z  start   finish the FillMapRect family
 2026-08-03T22:34:57Z  end     +7; 180 elevated; FillMapRect family COMPLETE at 18/18
+2026-08-03T22:42:14Z  end     batch-17 written (18 functions); 180 elevated total

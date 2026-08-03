@@ -59,11 +59,18 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_947_2008350` | `0x02008350` | `FindEntityAtPosition` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FindEntityAtPosition, one of s |
 | `OvlFunc_947_2008528` | `0x02008528` | `FillMapRectCollisionByte` | named | Split out of that .s; the sibling part stays as assembly and keeps its slot in the overlay's linker script. FillMapRectCollisionByte, one of |
 | `OvlFunc_948_200806c` | `0x0200806c` | `FindEntityAtPosition` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FindEntityAtPosition, one of s |
+| `OvlFunc_948_2008244` | `0x02008244` | `FillMapRectCollisionByte` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FillMapRectCollisionByte, one  |
 | `OvlFunc_957_200806c` | `0x0200806c` | `FindEntityAtPosition` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FindEntityAtPosition, one of s |
+| `OvlFunc_957_2008244` | `0x02008244` | `FillMapRectCollisionByte` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FillMapRectCollisionByte, one  |
 | `OvlFunc_958_2008350` | `0x02008350` | `FindEntityAtPosition` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FindEntityAtPosition, one of s |
+| `OvlFunc_958_2008528` | `0x02008528` | `FillMapRectCollisionByte` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FillMapRectCollisionByte, one  |
 | `OvlFunc_959_200806c` | `0x0200806c` | `FindEntityAtPosition` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FindEntityAtPosition, one of s |
+| `OvlFunc_959_2008244` | `0x02008244` | `FillMapRectCollisionByte` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FillMapRectCollisionByte, one  |
 | `OvlFunc_964_200806c` | `0x0200806c` | `FindEntityAtPosition` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FindEntityAtPosition, one of s |
+| `OvlFunc_964_2008244` | `0x02008244` | `FillMapRectCollisionByte` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FillMapRectCollisionByte, one  |
 | `OvlFunc_965_200806c` | `0x0200806c` | `FindEntityAtPosition` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FindEntityAtPosition, one of s |
+| `OvlFunc_965_2008244` | `0x02008244` | `FillMapRectCollisionByte` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FillMapRectCollisionByte, one  |
+| `OvlFunc_968_20084f4` | `0x020084f4` | `FillMapRectCollisionByte` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FillMapRectCollisionByte, one  |
 | `ActorAttrOp_width` | `` | — | read | Actor attribute opcode: collision radius. Whole-file conversion of asm/rom_9000/rom_e220_a_c.s -- one function, so the ROM layout is preserv |
 | `ActorCmd_CallNative` | `` | — | read | Actor script VM: the opcode that calls a native predicate. Whole-file conversion of asm/rom_9000/rom_d654_a_c_a_a_a_a.s -- one function, so  |
 | `ActorCmd_GotoIfNZ` | `` | — | read | Actor script VM: the two conditional-jump opcodes. Whole-file conversion of asm/rom_9000/rom_d654_a_c_a_a_c.s -- it holds both of these and  |
@@ -208,4 +215,4 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_974_20081b8` | `0x020081b8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 | `OvlFunc_974_20081d8` | `0x020081d8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 
-173 functions: 30 named, 143 read
+180 functions: 37 named, 143 read
