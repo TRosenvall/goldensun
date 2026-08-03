@@ -108,6 +108,7 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_888_200a660` | `0x0200a660` | — | read | Overlay 888: detach slot 14's per-frame hook and park it at the origin. Split out of asm/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c.s; the neigh |
 | `OvlFunc_895_2008030` | `0x02008030` | — | read | .o keeps its name and its slot in the overlay's linker script is unchanged. GetEntrances, three-way form: selects one of three edge-transiti |
 | `OvlFunc_896_2008314` | `0x02008314` | — | read | Turn one step toward the target, one of ten identical copies -- one per overlay, byte-for-byte the same body. See src/overlays/rom_784360/ov |
+| `OvlFunc_897_200ae0c` | `0x0200ae0c` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. A 32-frame sine effect actor r |
 | `OvlFunc_898_200906c` | `0x0200906c` | — | read | Split out of that .s; the _a and _c parts stay as assembly and keep their slots in goldensun/overlays/rom_793768/overlay.ld, so the ROM layo |
 | `OvlFunc_901_20084b4` | `0x020084b4` | — | read | Overlay 901: a talk stub taking its slot as an argument. Split out of asm/overlays/rom_797990/ovl_314_c_c_a_a_a.s; the neighbouring parts st |
 | `OvlFunc_901_20084d8` | `0x020084d8` | — | read | Talk with staging: turns slot 8 toward the player, records save bit 0x305, and delivers line 0x1cab. __Func_809280c is deliberately left und |
@@ -207,6 +208,7 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_967_200804c` | `0x0200804c` | — | read | GetEntrances, two-way form. This one returns a NAMED GLOBAL from its first arm rather than a local `.L` table, which is why the earlier fami |
 | `OvlFunc_968_2008594` | `0x02008594` | — | read | Overlay 968: forward an actor's turn target, masked to its low nibble. Split out of asm/overlays/rom_7f2f14/ovl_30_a_a_a_c_c.s; the neighbou |
 | `OvlFunc_968_2008fbc` | `0x02008fbc` | — | read | Overlay 968: a talk sequence with a positioned speaker. Split out of asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_a_c.s; the neighbouring parts st |
+| `OvlFunc_969_200a15c` | `0x0200a15c` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. A 32-frame sine effect actor r |
 | `OvlFunc_970_20083c0` | `0x020083c0` | — | read | Overlay 970: record slot 0's height for later comparison. Split out of asm/overlays/rom_7fa4ec/ovl_30_c_c_c_a.s. One of four near-identical  |
 | `OvlFunc_970_20083dc` | `0x020083dc` | — | read | Overlay 970: record slot 1's height for later comparison. Split out of asm/overlays/rom_7fa4ec/ovl_30_c_c_c_a.s. One of four near-identical  |
 | `OvlFunc_970_20083f8` | `0x020083f8` | — | read | Overlay 970: record slot 3's height for later comparison. Split out of asm/overlays/rom_7fa4ec/ovl_30_c_c_c_a.s. One of four near-identical  |
@@ -220,4 +222,4 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_974_20081b8` | `0x020081b8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 | `OvlFunc_974_20081d8` | `0x020081d8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 
-185 functions: 37 named, 148 read
+187 functions: 37 named, 150 read

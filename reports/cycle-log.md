@@ -215,3 +215,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T22:48:43Z  end     +5 (sine effect family); 185 elevated
 2026-08-03T22:51:03Z  start   finish the sine family, then its companion
 2026-08-03T22:52:31Z  end     +2; 187 elevated; sine family COMPLETE at 7/7
+2026-08-03T22:54:24Z  end     +3; 188 elevated; sine family 7/7 and its mirror head
