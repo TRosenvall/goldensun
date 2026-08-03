@@ -201,3 +201,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T22:02:47Z  end     +5 (turn-toward family); 157 elevated
 2026-08-03T22:05:07Z  start   finish the turn-toward family
 2026-08-03T22:06:56Z  end     +5; 162 elevated; turn-toward family COMPLETE at 11/11
+2026-08-03T22:13:36Z  end     batch-16 written (11 functions); 162 elevated total
