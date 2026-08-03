@@ -136,3 +136,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T14:57:43Z  start   re-screening the park against the prototype and pool-tell fixes
 2026-08-03T15:05:53Z  end     +1 (OvlFunc_901_2008bf8); 75 elevated; park repaired (27 repointed, 6 deleted); tryc false-positive class fixed
 2026-08-03T15:16:18Z  start   close the arg-interleave filter gap, validated against gcc output
+2026-08-03T15:20:44Z  end     +1 (OvlFunc_956_20081b4); 76 elevated; new mov/lsl-local technique; fakematch contamination trap recorded
