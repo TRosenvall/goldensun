@@ -1,5 +1,6 @@
 /* HeightTile_7  [rom_9000]
- * Source asm: goldensun/asm/rom_9000/rom_11ce0_a_c_c_a.s
+ * Source asm: goldensun/asm/rom_9000/rom_11ce0_a_c_c_a_a.s
+ * (path updated: the .s was split or renamed after this was parked)
  *
  * Parked: logic faithful, does NOT byte-match (endgame permuter seed).
  * Candidate: tools/runs/run_20260607T010203Z/HeightTile_7-iter-7.c

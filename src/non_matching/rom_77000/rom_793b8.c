@@ -1,5 +1,6 @@
 /* GetFlagByte / SetFlagByte get/set a flag byte by 9-bit bitfield index.
- * Source asm: goldensun/asm/rom_77000/rom_79338.s
+ * Source asm: goldensun/asm/rom_77000/rom_79338_c_a.s
+ * (path updated: the .s was split or renamed after this was parked)
  *
  * index = (id << 20) >> 23  (bits 3..11 of id), into the byte array
  * gFlags. b8 reads, c8 writes.

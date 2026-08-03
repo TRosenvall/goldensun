@@ -1,5 +1,6 @@
 /* Func_80b09fc  [rom_b0000]
- * Source asm: goldensun/asm/rom_b0000/rom_b0070_a_a_c.s
+ * Source asm: goldensun/asm/rom_b0000/rom_b0070_a_a_c_c_a_a.s
+ * (path updated: the .s was split or renamed after this was parked)
  *
  * Parked: logic faithful, does NOT byte-match standalone. Registered in
  * unmatchable.txt (class: tu-pool midpool).

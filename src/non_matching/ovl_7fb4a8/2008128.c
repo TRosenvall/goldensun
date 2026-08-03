@@ -1,6 +1,7 @@
 /* OvlFunc_971_2008128 == ((u32*)ewram_2002224)[L1940[i]] = ((u32*)L1928)[i]
  *   [overlay rom_7fb4a8]
- * Source asm: goldensun/asm/overlays/rom_7fb4a8/ovl_30_a_c_c_c.s
+ * Source asm: goldensun/asm/overlays/rom_7fb4a8/ovl_30_a_c_c_c_a_a_a.s
+ * (path updated: the .s was split or renamed after this was parked)
  *
  * Logic is faithful; this does NOT yet byte-match. Residual diff is pure
  * register allocation / scheduling: the ROM computes i*4 into r1 while keeping

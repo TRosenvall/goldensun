@@ -1,5 +1,6 @@
 /* Func_80a3ce4  [rom_a1000]
- * Source asm: goldensun/asm/rom_a1000/rom_a1814_c_a_c_c_c.s
+ * Source asm: goldensun/asm/rom_a1000/rom_a1814_c_a_c_c_c_c_a_c.s
+ * (path updated: the .s was split or renamed after this was parked)
  *
  * Parked: logic faithful, does NOT byte-match (compiler wall: range-test fold).
  * TODO(residual): ROM has the literal two-compare shape (cmp #0xc4; bgt L0;

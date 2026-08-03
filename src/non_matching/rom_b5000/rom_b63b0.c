@@ -1,5 +1,6 @@
 /* Func_80b63b0  [rom_b5000]
- * Source asm: goldensun/asm/rom_b5000/rom_b5a0c_c_c_a.s
+ * Source asm: goldensun/asm/rom_b5000/rom_b5a0c_c_c_a_a_a.s
+ * (path updated: the .s was split or renamed after this was parked)
  *
  * Parked: logic faithful, does NOT byte-match (endgame permuter seed).
  * Candidate: tools/runs/run_20260606T194103Z/Func_80b63b0-iter-4.c

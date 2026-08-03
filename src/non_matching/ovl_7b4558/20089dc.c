@@ -1,5 +1,6 @@
 /* OvlFunc_927_20089dc  [ovl_7b4558]
- * Source asm: goldensun/asm/overlays/rom_7b4558/ovl_30_a_a.s
+ * Source asm: goldensun/asm/overlays/rom_7b4558/ovl_30_a_a_c_c_c_c.s
+ * (path updated: the .s was split or renamed after this was parked)
  *
  * Parked: logic faithful, does NOT byte-match (endgame permuter seed).
  * Candidate: tools/runs/run_20260606T194103Z/OvlFunc_927_20089dc-iter-3.c

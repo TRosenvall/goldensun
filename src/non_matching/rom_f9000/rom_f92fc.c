@@ -1,5 +1,6 @@
 /* Debug_SoundTest(void) sound-test / music control loop [rom_f9000]
- * Source asm: goldensun/asm/rom_f9000/rom_f9080_a_a.s  (Camelot music-driver prefix)
+ * Source asm: goldensun/asm/rom_f9000/rom_f9080_a_a_a.s
+ * (path updated: the .s was split or renamed after this was parked)  (Camelot music-driver prefix)
  *
  * An infinite control loop (never returns) driving a 3-slot song selector
  * from the controller flag word gKeyRepeat:

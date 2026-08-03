@@ -1,5 +1,6 @@
 /* IncFlagByte  [rom_77000]
- * Source asm: goldensun/asm/rom_77000/rom_79338.s
+ * Source asm: goldensun/asm/rom_77000/rom_79338_c_a.s
+ * (path updated: the .s was split or renamed after this was parked)
  *
  * Parked: logic faithful, does NOT byte-match (endgame permuter seed).
  * Candidate: tools/runs/run_20260607T010203Z/IncFlagByte-iter-7.c

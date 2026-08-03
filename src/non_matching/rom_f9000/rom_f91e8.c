@@ -1,5 +1,6 @@
 /* UpdateMusicSettings(void) BGM volume/tempo/pitch slide updater [rom_f9000]
- * Source asm: goldensun/asm/rom_f9000/rom_f9080_a_a.s  (Camelot music-driver prefix)
+ * Source asm: goldensun/asm/rom_f9000/rom_f9080_a_a_a.s
+ * (path updated: the .s was split or renamed after this was parked)  (Camelot music-driver prefix)
  *
  * Per-frame updater: ages a fade counter, then eases the current BGM volume
  * (2003008) toward its target (2003034) and the current tempo (2003038)

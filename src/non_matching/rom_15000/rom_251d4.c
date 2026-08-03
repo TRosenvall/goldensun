@@ -1,5 +1,6 @@
 /* Func_80251d4  [rom_15000]
- * Source asm: goldensun/asm/rom_15000/rom_23178_a_a.s
+ * Source asm: goldensun/asm/rom_15000/rom_23178_a_a_a_a.s
+ * (path updated: the .s was split or renamed after this was parked)
  *
  * Parked: logic faithful, does NOT byte-match (endgame permuter seed).
  * Candidate: tools/runs/run_20260607T010203Z/Func_80251d4-iter-10.c

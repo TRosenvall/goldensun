@@ -1,5 +1,6 @@
 /* Func_80cd508  [rom_c9000]
- * Source asm: goldensun/asm/rom_c9000/rom_cd508.s
+ * Source asm: goldensun/asm/rom_c9000/rom_cd508_a.s
+ * (path updated: the .s was split or renamed after this was parked)
  *
  * Parked: logic faithful, does NOT byte-match (endgame permuter seed).
  * Candidate: tools/runs/run_20260607T010203Z/Func_80cd508-iter-9.c

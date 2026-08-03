@@ -1,5 +1,6 @@
 /* PlaySound(req) PlaySound dispatch [rom_f9000]
- * Source asm: goldensun/asm/rom_f9000/rom_f9080_a_a.s  (Camelot music-driver prefix)
+ * Source asm: goldensun/asm/rom_f9000/rom_f9080_a_a_a.s
+ * (path updated: the .s was split or renamed after this was parked)  (Camelot music-driver prefix)
  *
  * The Camelot sound front-end. The request word packs flags in bits 12-15
  * (req & 0xf000) and a sound id in bits 0-11 (req & 0xfff), then dispatches:
