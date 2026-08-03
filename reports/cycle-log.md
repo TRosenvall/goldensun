@@ -120,3 +120,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T12:51:52Z  start   two more, diversified
 2026-08-03T12:52:57Z  end     +2 (OvlFunc_901_2008754, OvlFunc_932_200b428); 51 elevated
 2026-08-03T13:04:10Z  start   three from distinct overlays, favouring single-function files
+2026-08-03T13:32:43Z  end     +3 (OvlFunc_929_2008524, OvlFunc_916_2008054, OvlFunc_932_2008388); 54 elevated; RETIRED arg-fill-order and pool-tell; 2 clean-build fixes
+2026-08-03T13:32:43Z  end     batch-07 written (5 functions); 54 elevated total

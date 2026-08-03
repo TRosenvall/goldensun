@@ -14,6 +14,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-04](reports/batch-04.md) | 8 | ready to port |
 | [batch-05](reports/batch-05.md) | 7 | ready to port |
 | [batch-06](reports/batch-06.md) | 5 | ready to port |
+| [batch-07](reports/batch-07.md) | 5 | ready to port |
 
 Every batch is verified the same way, from a clean build:
 
@@ -33,23 +34,34 @@ codebase better than we do. Listed once here rather than repeated per batch.
   to matter -- see `docs/attribution.md`. Any annotation ported into this tree
   should be treated as a starting point, not a finding. One was corrected in
   batch 01 (`Func_80b7e7c` does not take the arguments it was documented with).
-- **What are the id namespaces?** This is now the single highest-value
-  question, and it is one only you can answer.
+- **What are the id namespaces?** No longer blocking — answered mechanically
+  in batch 07 — but still worth a real answer.
 
   Where the ROM pools a constant that would fit in an eight-bit `mov`
   (`ldr r0, =1`, `ldr r2, =0xf`, `ldr r3, =0x1d`), the operand was a **symbol
   reference** in the original source — gcc never pools what it can `mov`, and
   always pools a symbol address. Verified by assembling both forms.
 
-  `message.sym` covers message ids and `file_table.sym` covers file ids.
-  Neither covers a map id (`__SetDestMap`'s first argument), a text-ink value,
-  or whatever `0x1d` is in the 22-function family at `ovl_314_a.s`.
+  This was carried as the top blocker for twelve rounds, at a **measured 103
+  of 395 overlay candidates**, on the reasoning that naming a namespace we
+  could not identify was a bad trade. (It was reported as "three functions" in
+  batches 04 and 05, which was what happened to be in front of me rather than
+  the real number.)
 
-  **Measured cost: 75 of the 190 functions that sit in duplicated families are
-  blocked on this.** It was reported as "three functions" in batches 04 and 05,
-  which was what happened to be in front of me rather than the real number.
-  Naming those spaces unblocks the class outright — see `docs/elevation.md`,
-  "Tell: the ROM pools a SMALL constant".
+  **That reasoning was wrong.** Matching needs the operand to be a *symbol*,
+  not an *identified* one. Defining it by value in `unknown_id.sym` emits no
+  bytes and asserts nothing — exactly what `message.sym` already does, per its
+  own comment: *"named by value; pending semantic names."*
+
+  So what remains is a naming question, not a blocker: `_ID_4d` works, and a
+  real name would be better. See `docs/elevation.md`, "Tell: the ROM pools a
+  SMALL constant".
+
+- **Two clean-build bugs in the Makefile are fixed in batch 07**, both
+  predating our work and both reachable from a fresh clone of your tree: three
+  `orig.bin` dependencies naming files that have since been split, and
+  `as -MD` recording a directory-less `.c` from a generated `.s`'s `.file`
+  directive. Until these, every clean build here needed manual recovery.
 
 - **Narrow constant materialisation** gates 34 functions and is half solved: a
   named `int` mask reproduces the ROM's 32-bit constant, but the instruction
