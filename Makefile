@@ -64,8 +64,23 @@ $(OVERLAYS): %.bin: %.elf
 
 
 # Assemble ARM code and generate dependencies
+#
+# The sed is load-bearing. A gcc-generated .s carries `.file "dummy.c"`, and
+# `as -MD` records that name as a dependency exactly as written -- with no
+# directory component. The resulting .d says
+#
+#     src/rom_b0000/dummy.o: dummy.c src/rom_b0000/dummy.s
+#
+# and the next build that needs that .o dies with
+#
+#     No rule to make target 'dummy.c', needed by 'src/rom_b0000/dummy.o'
+#
+# It only bites after a `make clean`, which is why it reads as a clean-build
+# problem. Directory-less .c entries are never real dependencies -- the .s
+# beside them already is -- so they are dropped.
 %.o: %.s
 	arm-none-eabi-as -mcpu=arm7tdmi -Iinclude -MD $(@:.o=.d) -o $@ $<
+	@sed -E -i 's, [^ /]+\.c( |$$),\1,g' $(@:.o=.d)
 
 # Compile target C with the patched gcc-2.96 build from the camelot-gcc
 # submodule (install via camelot-gcc/install-296.sh). Produces byte-identical
