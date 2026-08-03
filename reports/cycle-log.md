@@ -165,3 +165,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T18:23:56Z  start   finish the three-way family, then batch-13
 2026-08-03T18:29:16Z  end     +4; 114 elevated; ALL THREE GetEntrances arities complete
 2026-08-03T18:29:16Z  end     batch-13 written (12 functions); 114 elevated total
+2026-08-03T18:39:34Z  start   next family after GetEntrances
+2026-08-03T18:43:01Z  end     +4 (three-message prompt family); 118 elevated

@@ -4,75 +4,6 @@
 @ so this is a CALL TRACE rather than a description -- what it does with
 @ these is not characterised here.
 @
-@   GetSlotEntityChecked x2, SetActiveMessageId, ShowMessageAndWait, TurnSlotToAngle
-@   DialogueWait, SetSlotScriptWithTurn
-@ message id 0x26af.
-.thumb_func_start OvlFunc_966_2008078
-	push	{r5, r6, lr}
-	mov	r6, r0
-	bl	__MapActor_GetActor
-	mov	r5, #0x80
-	lsl	r5, #9
-	str	r5, [r0, #0x18]
-	mov	r0, r6
-	bl	__MapActor_GetActor
-	str	r5, [r0, #0x1c]
-	ldr	r0, =0x26af
-	bl	__MessageID
-	mov	r0, r6
-	mov	r1, #0
-	bl	__ActorMessage
-	mov	r1, #0xc0
-	mov	r0, r6
-	lsl	r1, #8
-	mov	r2, #0
-	bl	__Func_8092adc
-	mov	r0, #0x14
-	bl	__CutsceneWait
-	ldr	r1, =ActorCmd_ARRAY_966__02009638
-	mov	r0, r6
-	bl	__MapActor_SetBehavior
-	pop	{r5, r6}
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_966_2008078
-
-@ Talk: line 0x28be, shown.
-.thumb_func_start OvlFunc_966_20080c4
-	push	{r5, r6, lr}
-	ldr	r5, =0x28be
-	mov	r6, r0
-	mov	r0, r5
-	bl	__MessageID
-	mov	r1, #0
-	mov	r0, r6
-	bl	__Func_8092c40
-	mov	r0, #0
-	mov	r1, #0
-	bl	__Func_8091c7c
-	cmp	r0, #0
-	bne	.Lf2
-	mov	r0, #0xa
-	bl	__CutsceneWait
-	add	r0, r5, #1
-	bl	__MessageID
-	b	.Lf8
-.Lf2:
-	add	r0, r5, #2
-	bl	__MessageID
-.Lf8:
-	mov	r0, r6
-	mov	r1, #0
-	bl	__ActorMessage
-	pop	{r5, r6}
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_966_20080c4
-
-@ 27 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
 @   SetSaveBit, SetActiveMessageId, ShowMessageAndWait, SetSlotEntitySpeed
 @   WalkSlotByAndWait, TurnSlotToAngle, DialogueWait
 @ message id 0x28b8; sets 0x9bb.
@@ -175,4 +106,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_966_2008158
-
