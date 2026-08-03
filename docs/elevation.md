@@ -110,6 +110,31 @@ Established by getting specific functions to match, and reusable:
   force an extra callee-save push. Access the field through the struct pointer
   each time.
 
+## Tell: the ROM pools a SMALL constant
+
+If the ROM loads a constant from the literal pool that would fit in an eight-bit
+`mov` — `ldr r0, =1`, `ldr r2, =0xf` — **that operand was almost certainly a
+symbol reference in the original source, not a literal.**
+
+gcc never pools what it can `mov`. It always pools the address of a symbol,
+because the value is not known until link time. So a pooled small constant is
+the compiler telling you the source said `&_SOMETHING`, and the disassembler
+simply resolved it back to a number.
+
+Confirmed by assembling both forms: gas does **not** fold `ldr r0, =1` into a
+`mov`, so these are genuinely different bytes and not a disassembly artifact.
+
+Three functions show it so far — `OvlFunc_974_2008160`'s family (solved, see
+below), `OvlFunc_971_2009050` (`ldr r0, =1`), and `SetTextColor`
+(`ldr r2, =0xf`). Only the first is fixed, because only there was the symbol
+namespace known.
+
+**The blocker is naming, not technique.** The tree has `message.sym` for
+message ids and `file_table.sym` for file ids; neither covers map ids or
+whatever `0xf` is here. Adding a plausible-looking name to a shared linker
+fragment to save one instruction is a bad trade — a wrong name propagates,
+where a missing one just waits.
+
 ## Technique: stopping a constant fold with symbol addresses
 
 Where the ROM computes a constant AT RUNTIME:
