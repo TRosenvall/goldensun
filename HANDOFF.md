@@ -90,34 +90,36 @@ codebase better than we do. Listed once here rather than repeated per batch.
   real name would be better. See `docs/elevation.md`, "Tell: the ROM pools a
   SMALL constant".
 
-  **What the values themselves say.** Surveying all 52 constant groups in the
-  overlays: the ids form a **dense, contiguous space allocated in per-area
-  runs** — `0x4d`–`0x57` for overlay 932, `0x93`–`0x97` for 957, `0xb5`–`0xba`
-  for 968, `0x36`–`0x39` for 924. Individual functions compare against subsets
-  of their own area's run. Range observed: `0x10`–`0xba`, i.e. ~190 ids.
+  **What the values themselves say.** There are **122 ids**, and **121 of them
+  are compared in exactly one overlay** — which is what "each area's code lives
+  in one place" looks like. That result is structural, read straight out of the
+  ROM, and it is the strongest single argument for calling this an area id.
+  `0x6a` is the lone exception, compared in two.
 
-  That is what a map or area id space looks like — and batch 13 adds two
-  independent signals that it is specifically an **area** id indexing **map
-  entrance** tables:
+  The tables selected are named `MapEntrance_ARRAY_*`, `Events_TolbiSpring`,
+  `Events_GameBuildings` — per-location data — and a ROM annotation reads
+  *"area 0x13 -> .L1d04"*.
 
-  * two of the tables these functions return are already named in your tree,
-    `MapEntrance_ARRAY_895__02009cd4` and `MapEntrance_ARRAY_937__020084a0`;
-  * the ROM annotation on one reads *"area 0x13 -> .L1d04"*.
+  **What that evidence is not.** The `MapEntrance`/`Events` names arrived with
+  the upstream tree and are **not the maintainer's** — they are an earlier
+  contributor's inference, so they corroborate nothing on their own. Earlier
+  batches counted them as independent confirmation; that was wrong. The
+  annotation corpus is documented in `docs/attribution.md` as getting mechanism
+  right and purpose wrong often enough to matter. The genuinely independent
+  support is the overlay-exclusivity result, and that alone.
 
-  A third signal (batch 15): `OvlFunc_951_20081a8` selects between
-  `Events_TolbiSpring` and `Events_GameBuildings` — names already in your
-  tree, and Tolbi is a town. So the same id picks map-entrance tables, event
-  tables, and edge-transition tables, all per location.
+  Oddities a correct account should explain: ids `0x00`–`0x0f` never appear,
+  and the space is **70% dense over `0x10`–`0xbd`** — 52 unused values inside
+  the range, with 11 of 23 overlays showing gaps and two having clusters 56
+  apart.
 
-  We have **not** renamed `_ID_` to `_AREA_` on that basis. The annotation
-  corpus gets purpose wrong often enough to matter, and renaming is deferred
-  to the pass that has the whole picture. But if `MapEntrance` is your name
-  and it means what it looks like, confirming it retires `area.sym`.
+  The names were adopted deliberately on that basis. If it turns out wrong the
+  fix is a rename: the values are what matter to the link and they do not
+  change. Confirming what `MapEntrance` means would settle it.
 
-  *(An earlier note here claimed the ids came in PAIRS, from two families whose
-  constants were spaced by two. That was wrong — both are subsets of
-  consecutive runs used elsewhere — and it was repeated once before being
-  checked.)*
+  *(Two earlier claims here have been corrected: that the ids came in PAIRS,
+  and that they formed "dense, contiguous per-area runs" spanning ~190 values.
+  Both were repeated before being checked.)*
 
 - **Two clean-build bugs in the Makefile are fixed in batch 07**, both
   predating our work and both reachable from a fresh clone of your tree: three
