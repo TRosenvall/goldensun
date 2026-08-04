@@ -514,7 +514,14 @@ def main():
             # WHERE the two streams re-converge, which a keyhole around the
             # first divergence hides
             n = max(len(got), len(exp))
-            lo, hi = (0, n) if n <= 40 else (max(0, i - 3), min(n, i + 8))
+            # --full disables the keyhole. Needed by tools/audit_parks.py, which
+            # looks for LABEL positions among the differing lines: a label in
+            # the wrong place means the CONTROL FLOW is wrong, not the codegen,
+            # and that has twice hidden behind a correct-sounding blocker
+            # diagnosis (OvlFunc_931_2008360 in batch 20, OvlFunc_909_200828c in
+            # batch 25). The keyhole is what let the second one hide.
+            full = "--full" in sys.argv
+            lo, hi = (0, n) if (n <= 40 or full) else (max(0, i - 3), min(n, i + 8))
             for k in range(lo, hi):
                 a = exp[k] if k < len(exp) else ""
                 b = got[k] if k < len(got) else ""

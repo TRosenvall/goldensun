@@ -13,6 +13,12 @@
  *   function this small, and the pc-relative offsets then differ. Sibling
  *   Func_80b0a20 (same source file) has the identical b.n-over-pool tail and
  *   will hit the same wall.
+ *
+ * LEAD, from the batch 25 park audit: this function loads 0 FROM THE POOL --
+ * `ldr r6, =0x0` -- where `mov r6, #0` would do. gcc never pools a constant it
+ * can build with an eight-bit mov, so that operand was a SYMBOL whose value is
+ * zero. Same tell as area.sym. Nothing in the tree defines a zero-valued
+ * symbol yet, so this needs a name before it can match.
  */
 struct S {
     unsigned int p;
