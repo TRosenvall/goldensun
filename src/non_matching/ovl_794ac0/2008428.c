@@ -1,37 +1,41 @@
 /* OvlFunc_899_2008428  [ovl_794ac0]
+ *
  * Source asm: goldensun/asm/overlays/rom_794ac0/ovl_30_a_c_a_a_c_c_c_a_a.s
  *
- * Blocker: INTERLEAVED ARGUMENT SET-UP, the class documented in
- * src/non_matching/overlays/interleaved_arg_setup.c. The ROM splits the
- * shifted constant's mov/lsl around the slot argument:
+ * NOT SPLIT, and it would not need one -- the .s holds only this function and
+ * no data. It is left in place because it does not match.
  *
- *     rom    mov r1, #0x80 / mov r0, #0xf / lsl r1, #8 / mov r2, #0
+ * Fourteen instructions, thirteen of them right, and the whole diff is where
+ * ONE `mov r0` sits.
  *
- * ONE MORE FORMULATION RULED OUT. Their matched OvlFunc_942_20082dc produces
- * exactly this shape from a local assigned EARLY in the function and used
- * late:
+ * Blocker: ARG-INTERLEAVE. The ROM puts r0 BETWEEN the two halves of building
+ * r1, and gcc puts it after both:
  *
- *     int new_var;
- *     new_var = 0x80 << 7;      // before several calls
- *     ... __Func_8092adc(0xc, new_var, 0);
+ *     rom    mov r1, #0x80 / mov r0, #0xf / lsl r1, #0x8 / mov r2, #0x0
+ *     ours   mov r1, #0x80 / lsl r1, #0x8 / mov r2, #0x0 / mov r0, #0xf
  *
- * Applied here it is strictly worse: the local becomes live across three
- * calls, so it takes a callee-saved register and the function grows from
- * fourteen instructions to sixteen, including a push/pop pair the ROM does
- * not have. Whatever makes their version work is not the early assignment on
- * its own -- theirs sits inside two nested ifs, so the value is live over a
- * much shorter stretch of straight-line code.
+ * THIS IS NOT THE SIMPLE FILL-ORDER CLASS, and the distinction is the reason
+ * this note exists. Both declaration levers were tried and NEITHER moves it:
  *
- * That is now nine formulations tried against this class across three
- * functions, and none reproduces it.
+ *   1. `extern void __Func_8092adc(int, int, int);` -- declaring the
+ *      mismatching callee, which is what fixed the two functions elevated
+ *      alongside this one in the same round
+ *   2. `extern void OvlFunc_899_20083bc(int);` -- declaring the PRECEDING
+ *      call, so r0 is not held live across it
+ *   3. both together
+ *   4. the shifted argument in a named local, to change what gcc is scheduling
+ *
+ * All four are byte-identical to the form below. The levers move r0 to the
+ * FRONT or the BACK of an argument block; they do not place it in the MIDDLE
+ * of another argument's construction. That is a scheduling decision, not a
+ * declaration one, and nothing in the tree reaches it.
+ *
+ * Worth recording because the symptom -- "one mov r0 in the wrong place" --
+ * looks identical to the fill-order class that the declaration lever retires,
+ * and reaching for that lever here costs four screens. The tell is whether the
+ * misplaced mov is OUTSIDE the other arguments' setup (fill order, fixable) or
+ * INSIDE it (interleave, not).
  */
-extern void __CutsceneStart(void);
-extern void __CutsceneEnd(void);
-extern void __MessageID(int id);
-extern void OvlFunc_899_20083bc(int slot);
-extern void __Func_8092adc(int slot, int angle, int speed);
-
-/* Cutscene: line 0x1253, then turn slot 15 to 0x8000. */
 void OvlFunc_899_2008428(void)
 {
     __CutsceneStart();
