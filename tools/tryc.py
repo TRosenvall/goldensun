@@ -218,11 +218,25 @@ LABEL = re.compile(r"\.?\bL[0-9a-fA-F]+\b")
 
 
 def renumber(body):
-    """Number the labels that SURVIVED pool resolution, then drop definitions.
+    """Number the labels that SURVIVED pool resolution, and KEEP definitions.
 
     Must run after resolve_pools, not before: gcc's pool labels only exist on
     one side of the comparison, so numbering with them present offsets every
     branch target relative to the ROM's.
+
+    LABEL DEFINITIONS ARE KEPT IN THE STREAM. They used to be dropped, on the
+    reasoning that "their position is implied by branch order". It is not.
+
+    OvlFunc_931_2008360 compared equal on every instruction and then differed
+    from the ROM by ONE BYTE -- a `beq` whose offset was 0x02 in the ROM and
+    0x06 in ours. Same mnemonic, same normalised target name, different
+    distance, because the label sat two instructions further along. With the
+    definitions dropped there was nothing left in either stream to disagree
+    about, and the screen reported a clean match on a function that fails
+    `make compare`.
+
+    Keeping `L<n>:` as a token makes the position part of the comparison,
+    which is what a branch actually encodes.
     """
     labels = {}
 
@@ -232,7 +246,16 @@ def renumber(body):
         return labels[m.group(0)]
 
     body = [LABEL.sub(norm, s) for s in body]
-    return [s for s in body if not re.match(r"^L\d+:$", s)]
+    # A definition nothing branches to carries no information -- gcc leaves
+    # such labels behind after pool resolution and the ROM's disassembly does
+    # not. Keep only the ones some instruction actually references, which is
+    # what makes the POSITION of a real branch target part of the comparison
+    # without importing the two sides' bookkeeping differences.
+    used = set()
+    for line in body:
+        if not re.match(r"^L\d+:$", line):
+            used.update(re.findall(r"\bL\d+\b", line))
+    return [x for x in body if not re.match(r"^L\d+:$", x) or x[:-1] in used]
 
 
 def instructions(text, want=None):
@@ -300,6 +323,41 @@ def instructions(text, want=None):
     if want:
         out = [(n, b) for n, b in out if n in want]
     return out
+
+
+def text_size(asm_text, cflags_unused=None):
+    """Bytes of .text an assembler produces for this listing, or None.
+
+    WHY THIS EXISTS. The instruction comparison above resolves literal-pool
+    loads to their VALUES, which is what lets it see through the ROM's
+    `ldr r0, =0x242` versus gcc's `ldr r0, .L8` + `.word 578`. That
+    normalisation is correct and necessary, and it means the comparison cannot
+    see how many bytes the pool actually occupies or where it lands.
+
+    OvlFunc_931_2008360 matched on every instruction and every pool word, in
+    order, and produced an object with 0x74 bytes of .text where the function
+    and its pool are 0x5A. The overlay differed at the first byte past the
+    function. Seventeen batches of screening passed before a function fell into
+    that gap.
+
+    So: assemble both sides and compare the size. It is cheap, it is the only
+    check that sees padding and alignment, and a mismatch here means the
+    instruction comparison is telling the truth about a listing that will still
+    produce different bytes.
+    """
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        sp, op = os.path.join(d, "t.s"), os.path.join(d, "t.o")
+        open(sp, "w").write(asm_text)
+        r = subprocess.run(["arm-none-eabi-as", "-mcpu=arm7tdmi",
+                            "-mthumb-interwork", "-I", os.path.join(ROOT, "include"),
+                            "-o", op, sp], capture_output=True, text=True)
+        if r.returncode:
+            return None
+        r = subprocess.run(["arm-none-eabi-objdump", "-h", op],
+                           capture_output=True, text=True)
+        m = re.search(r"\.text\s+([0-9a-f]+)", r.stdout)
+        return int(m.group(1), 16) if m else None
 
 
 def main():
@@ -386,7 +444,33 @@ def main():
             ok = False
             continue
         if got == exp:
-            print(f"  OK {name}  ({len(got)} lines)")
+            # The instruction streams agree. Now check that the ASSEMBLED sizes
+            # do too -- see text_size() for why that is a separate question.
+            reftxt = open(ref, errors="replace").read()
+            # Only meaningful when the reference holds exactly ONE function.
+            # A multi-function .s assembles to the whole file's .text, and its
+            # literal pool may be shared between functions, so there is no
+            # honest per-function size to compare against. In that case the
+            # check is skipped and reported as skipped -- re-screen against the
+            # _b.s after splitting, where it does apply. Reporting a size
+            # mismatch there would be a false positive on every split
+            # candidate, which is worse than the miss this guards.
+            nrefs = len(re.findall(r"\.(?:thumb|arm)_func_start", reftxt, re.I))
+            mine = refsz = None
+            if nrefs == 1:
+                mine = text_size(r.stdout + "\n\t.text\n\t.align\t2, 0\n")
+                refsz = text_size(reftxt)
+            if mine is not None and refsz is not None and mine != refsz:
+                print(f"  !! {name}: instructions match but .text differs -- "
+                      f"ours 0x{mine:x}, reference 0x{refsz:x}")
+                print(f"     The pool or its padding differs. This WILL fail "
+                      f"make compare; see")
+                print(f"     src/non_matching/ovl_7b8cb0/2008360.c.")
+                ok = False
+                continue
+            note = "" if nrefs == 1 else "  [size check skipped: ref has "
+            note += "" if nrefs == 1 else f"{nrefs} functions]"
+            print(f"  OK {name}  ({len(got)} lines){note}")
             continue
         ok = False
         # first divergence, with a little context -- enough to see whether it

@@ -1,4 +1,7 @@
-/* OvlFunc_931_2008360  [ovl_7b8cb0]  --  0x02008360
+/* OvlFunc_931_2008360  --  SOLVED; kept for the account of HOW the screen
+ * lied. The matching version is src/overlays/rom_7b8cb0/ovl_30_c_c_c_c_c_c_c_c_c_a_a_b.c.
+ *
+ * [ovl_7b8cb0]  --  0x02008360
  *
  * Source asm: goldensun/asm/overlays/rom_7b8cb0/ovl_30_c_c_c_c_c_c_c_c_c_a_a.s
  *
@@ -27,10 +30,31 @@
  * right pool can still emit a differently sized object, and nothing between
  * the screen and `make compare` would notice.
  *
- * That is a real gap and this is the first function to fall into it in
- * seventeen batches. Worth a size check in the screen -- compare the .text
- * size of the assembled candidate against the byte span of the reference
- * function -- before attempting this one again.
+ * WHAT IT ACTUALLY WAS. Exactly one byte differed: a `beq` whose offset was
+ * 0x02 in the ROM and 0x06 here. Same mnemonic, same normalised target, four
+ * bytes of difference in the encoded distance.
+ *
+ * tools/tryc.py normalised every label to L<n> in first-appearance order and
+ * then DROPPED the definitions, on the reasoning -- written in its own
+ * docstring -- that "their position is implied by branch order". It is not.
+ * Both streams had `beq L3` at the same index and neither had anything left
+ * to disagree about, so the screen reported a clean match.
+ *
+ * The C was genuinely wrong: flag 0x909 guards only the extra __MessageID,
+ * and the __ActorMessage after it runs either way. I had put both inside the
+ * guard. That is a semantic error, not a codegen one, and the screen was the
+ * only thing that could have caught it before the build.
+ *
+ * FIXED IN THE SCREEN. renumber() now keeps label definitions that something
+ * actually branches to, so a target's POSITION is part of the comparison --
+ * which is what a branch encodes. Unreferenced definitions are still dropped,
+ * because gcc leaves those behind after pool resolution and the disassembly
+ * does not.
+ *
+ * A .text size check was added first, on a wrong diagnosis, and is kept: it
+ * catches a different class and costs nothing. It is skipped when the
+ * reference holds more than one function, where there is no honest
+ * per-function size to compare.
  */
 extern void __CutsceneStart(void);
 extern void __CutsceneEnd(void);

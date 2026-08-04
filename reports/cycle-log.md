@@ -241,3 +241,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-04T00:19:52Z  end     +1 (OvlFunc_900_2008094); 217 elevated; constant-CSE class measured at 839
 2026-08-04T00:22:54Z  start   call-dense, all known blockers filtered
 2026-08-04T00:29:13Z  end     +0; screen passed but build differed -- size gap in tryc found
+2026-08-04T00:38:20Z  end     +1 (OvlFunc_931_2008360); 218 elevated; tryc was hiding branch-target differences
