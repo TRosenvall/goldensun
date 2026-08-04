@@ -41,6 +41,12 @@ THE FILTERS, AND WHAT EACH ONE COST
                     So this filter throws away some good candidates, which is
                     the right trade while there are hundreds left.
 
+                    AND THE REJECTS ARE A WORKLIST. Run with --allow-repeat and
+                    screen the tagged rows with `tryc.py --no-rerun-cse`: where
+                    the repetitions are separated by a CALL, that flag matches
+                    them. Five tagged candidates in batch 26, three matched
+                    immediately. See CSE_CFLAGS in the Makefile.
+
   no arg-interleave  A `mov r0` landing INSIDE another argument's construction
                      -- between `mov rN, #imm` and its `lsl rN` -- is the
                      arg-interleave blocker, and neither declaration lever
