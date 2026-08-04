@@ -48,14 +48,29 @@
  *    gcc emits the branch-over-pool form when it has to dump the pool before
  *    the function ends. It DID emit exactly that form for the earlier
  *    narrowed-constant attempts in this same function, where the entries were
- *    halfwords -- so the placement is a consequence of what is in the pool and
- *    of what follows the function, not something the C controls directly.
+ *    halfwords.
  *
- *    The .s holds two functions. Converting BOTH into one .c, rather than
- *    splitting this one out alone, is the obvious next thing to try: the pool
- *    placement in the original depended on there being more code after this
- *    function, and a split destroys exactly that context. That has not been
- *    tried yet and is the reason this is parked rather than abandoned.
+ *    THE TU-CONTEXT EXPLANATION IS REFUTED. An earlier version of this note
+ *    proposed that the placement came from there being more code after the
+ *    function, and that converting both functions of the .s into one .c would
+ *    restore it. Both halves of that are wrong, and both were tested:
+ *
+ *      * Func_801c154 is the LAST function in the .s. Nothing follows it, so
+ *        "code after it" cannot be the cause -- which the note should have
+ *        noticed before proposing it.
+ *      * Adding a function after it in the .c does not move the pool.
+ *      * Adding a bulky, literal-heavy function BEFORE it does not either.
+ *
+ *    gcc puts the pool after the epilogue in every arrangement tried. The other
+ *    function in this .s, Func_801c0dc, has the same branch-over-pool shape
+ *    with four real instructions after the pool, so whatever causes it is
+ *    consistent across the original translation unit and is not a property of
+ *    this function alone.
+ *
+ *    What actually decides it is OPEN. gcc dumps a pool early when it cannot
+ *    wait for the next barrier, and neither function here is long enough for
+ *    range pressure to explain it. Worth knowing before assuming any near-miss
+ *    of this shape is reachable from the C.
  *
  * TRIED:
  *   1. plain literals -- both masks narrowed, `ldrh` pool loads, 18 lines

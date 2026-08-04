@@ -401,6 +401,44 @@ the three had been filed as permuter seeds.
 223 functions in `asm/` still call through `_call_via_rN`, so this is worth
 checking against before parking any of them.
 
+## Un-rotated loops: write the control flow with `goto`
+
+gcc rotates a counted loop — body first, test at the bottom — whenever the
+initial value provably satisfies the condition, because it can then drop the
+entry test. Where the ROM instead **tests at the top and jumps into the test**:
+
+    mov r5, #0 / b .L1 / .L2: add r5, #1 / .L1: cmp r5, #0x59 / bgt exit
+
+no structured spelling reproduces it. `for`, `while`, and -O1 all give the
+rotated form. Writing the control flow out directly does:
+
+    i = 0;
+    goto test;
+    inc:
+        i++;
+    test:
+        if (i > 0x59) return;
+        ...
+        if (cond) goto inc;
+
+That is legal C and it is what the ROM's control flow actually *is*. It moved
+`MapActor_WaitAnim` from 26 of 29 instructions to 28. Try it on any near-miss
+where the ROM tests at the top of a counted loop and gcc tests at the bottom.
+
+## Separate variables do not defeat a COPY
+
+Giving a value two names is a real lever — it is what moved
+`OvlFunc_945_200d068`'s first divergence by thirty instructions. But it only
+works on a value gcc **computed** and would otherwise reuse. It does **not**
+stop gcc coalescing a plain copy:
+
+    s = a->sprite;  p = s;  p += 0x24;    /* gcc emits one register, no `mov` */
+
+Three functions have now been tried this way against a ROM that stages a
+pointer through a scratch register before moving it to a callee-saved one
+(`rom_c00d8.c`, `rom_5868.c`, `rom_91c44.c`), and it fails identically in all
+three. Not worth a fourth attempt without a new idea.
+
 ## Splitting: when the refusal is about the FILE, not the function
 
 `tools/split_s.py` refuses when a local label would cross the boundary it is
