@@ -62,9 +62,15 @@ def carries_data(path):
     if not defined:
         return False
     # every .L mentioned inside a function body is a branch target
+    # NOTE the `[^\n]*` -- a function start may carry a trailing comment
+    # (`.thumb_func_start Foo  @ 0x0800ea18`). Requiring a newline straight
+    # after the name makes this capture NOTHING, every label then looks
+    # unreferenced, and the file is reported as carrying data when it does not.
+    # That false positive would block a legitimate whole-file conversion, which
+    # is worse than the miss this function exists to prevent.
     bodies = "\n".join(
         m.group(1) for m in
-        re.finditer(r"\.thumb_func_start\s+\S+\n(.*?)\.func_end", txt, re.S))
+        re.finditer(r"\.thumb_func_start[^\n]*\n(.*?)\.func_end", txt, re.S))
     used = set(re.findall(r"(\.L\w+)", bodies))
     return bool(defined - used)
 

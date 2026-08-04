@@ -233,3 +233,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T23:53:55Z  end     +0 elevated; parked a 6-member family head one hoist from matching
 2026-08-03T23:56:31Z  start   the companion 39-instruction family
 2026-08-03T23:59:02Z  end     +0 elevated; a second family head parked at one reordering
+2026-08-04T00:01:40Z  start   main-ROM families, largely untouched
+2026-08-04T00:06:46Z  end     +3 (ActorCmd attr family); 216 elevated; fixed a false positive in asmfacts
