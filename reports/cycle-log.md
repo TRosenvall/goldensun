@@ -246,3 +246,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-04T00:43:04Z  end     park re-screened with the fixed tool; 0 changed verdicts
 2026-08-04T00:49:59Z  end     batch-20 written (5 functions); 218 elevated total
 2026-08-04T00:52:29Z  start   call-dense candidates, blockers filtered
+2026-08-04T00:55:23Z  end     +1 (OvlFunc_924_2008f84); 219 elevated; -O1 confirmed as the declaration lever limit

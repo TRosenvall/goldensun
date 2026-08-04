@@ -26,10 +26,21 @@
  *   2. __Func_809228c declared
  *   3. the PRECEDING call, __MapActor_SetAnim, made implicit
  *
- * All three produce r0 first. The obvious suspect is -O1: the lever was found
- * and has only ever been exercised at -O2, and this is the first -O1 function
- * it has been asked to decide. Worth testing that hypothesis directly on a
- * function that already matches, rather than assuming it here.
+ * All three produce r0 first.
+ *
+ * -O1 CONFIRMED AS THE CAUSE. The twin of this function,
+ * OvlFunc_924_2008f84 in rom_7ac2d8, is the same forty-one instructions and
+ * builds at -O2. The identical C matches there on the first attempt -- see
+ * src/overlays/rom_7ac2d8/ovl_f84_a_a_b.c.
+ *
+ * So the declaration lever is an -O2 behaviour. It has decided functions in
+ * nine batches and every one of them was -O2; this is the first -O1 function
+ * it was asked about and it does not apply. That is worth knowing before
+ * spending a round on any of the -O1 TUs, which the Makefile lists
+ * explicitly.
+ *
+ * What would match here is still open, and it is a narrower question than it
+ * was: what fills r0 last at -O1?
  */
 #include "actor.h"
 
