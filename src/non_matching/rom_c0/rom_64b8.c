@@ -13,7 +13,12 @@
  * reproduces that. `while (g1 || g2) { ... }` gives 22 and the rotated shape;
  * the goto form gives 24 with the loop skeleton exactly right.
  *
- * Blocker: gcc FACTORS A LOAD that the ROM performs on both paths. The value is
+ * Blocker: THE PRE-HEADER LOAD MERGE -- see
+ * src/non_matching/preheader_load_merge.c for the class, its three members
+ * and everything tried across them, including the compiler-flag attack, which
+ * is now closed rather than open.
+ *
+ * gcc FACTORS A LOAD that the ROM performs on both paths. The value is
  * read before the loop and again at the bottom of the body, and both reads
  * reach the same test:
  *
