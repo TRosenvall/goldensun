@@ -10,7 +10,7 @@ below read back from the linked ELFs.
 
 ## Read this first if you are porting selectively
 
-**Three overlay linker scripts gain a line**, and it is the only change in this
+**Five overlay linker scripts gain a line**, and it is the only change in this
 batch that is not a `.c` replacing a `.s`:
 
     __divsi3 = _divsi3_RAM;
