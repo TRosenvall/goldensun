@@ -73,14 +73,24 @@ It also needs both halves of the declaration rule at once: `__ActorMessage` and
 `__Func_809259c` declared so their `r0` is filled first, `__Func_809280c`,
 `__Func_80925cc` and `__Func_8092848` left undeclared so theirs is filled last.
 
-## A new blocker class, measured
+## A new blocker class, and what the number is not
 
-**839 hand-written functions load the same pooled constant more than once.**
-gcc CSEs it into a callee-saved register — costing a push and two moves — where
-the ROM simply loads it twice.
+To be precise about the direction: **the ROM's double load is the target, not
+the defect.** What blocks is that gcc will not produce it.
 
-It is not automatically blocking all 839: gcc reloads rather than CSEs in 68
-functions of its own honest output. But in **every one of those** the repeated
+    rom    ldr r0, =0x303 / bl __GetFlag  ...  ldr r0, =0x303 / bl __SetFlag
+    ours   ldr r5, =0x303 / mov r0, r5 / bl __GetFlag  ...  mov r0, r5 / bl __SetFlag
+
+gcc sees one value used twice, hoists it into a callee-saved register, and must
+then `push {r5, lr}` where the ROM pushes `{lr}`. Two extra instructions and a
+different prologue.
+
+**839 hand-written functions exhibit the shape.** That is a count of functions
+where the ROM loads one pooled constant more than once — *not* a count of
+blocked functions, and it should not be read as one. Whether any given one is
+blocked depends on whether gcc would CSE in that context, and it demonstrably
+does not always: gcc reloads rather than CSEs in 68 functions of its own honest
+output. But in **every one of those** the repeated
 value is a global's address that then gets *dereferenced*, so the reload is
 forced by the call possibly having changed memory, not by anything the source
 did.

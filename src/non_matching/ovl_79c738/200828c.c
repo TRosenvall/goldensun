@@ -15,8 +15,12 @@
  * register, which costs the push and the two moves; the ROM simply loads it
  * twice.
  *
- * **839 hand-written functions load the same pooled constant more than once**,
- * so if this has a fix it is worth a great deal. It is not automatically a
+ * DIRECTION, because it is easy to state backwards: the ROM's double load is
+ * what we are trying to REPRODUCE. gcc's CSE is the defect.
+ *
+ * **839 hand-written functions exhibit the shape** -- that is, the ROM loads
+ * one pooled constant more than once in them. It is a count of the shape, NOT
+ * a count of blocked functions, and must not be quoted as one. It is not automatically a
  * blocker for all of them -- gcc reloads rather than CSEs in 68 functions of
  * its own honest output -- but in every one of those the repeated value is a
  * GLOBAL'S ADDRESS THAT GETS DEREFERENCED, so the reload is forced by the call

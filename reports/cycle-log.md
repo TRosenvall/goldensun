@@ -245,3 +245,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-04T00:40:46Z  start   re-screen the park with the fixed label handling
 2026-08-04T00:43:04Z  end     park re-screened with the fixed tool; 0 changed verdicts
 2026-08-04T00:49:59Z  end     batch-20 written (5 functions); 218 elevated total
+2026-08-04T00:52:29Z  start   call-dense candidates, blockers filtered
