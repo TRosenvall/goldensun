@@ -165,6 +165,7 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_930_2009180` | `0x02009180` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script, so the ROM layout does not mov |
 | `OvlFunc_931_2008030` | `0x02008030` | — | read | .o keeps its name and its slot in the overlay's linker script is unchanged. GetEntrances, three-way form: selects one of three edge-transiti |
 | `OvlFunc_931_200811c` | `0x0200811c` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script, so the ROM layout does not mov |
+| `OvlFunc_931_2008360` | `0x02008360` | — | read | Split out of that .s; the sibling parts stay as assembly. A three-way talk: before flag 0x242 is set, one line; after it, either a hand-off  |
 | `OvlFunc_932_2008040` | `0x02008040` | — | read | Turn one step toward the target, one of eleven identical copies -- one per overlay, byte-for-byte the same body. See src/overlays/rom_784360 |
 | `OvlFunc_932_20080e4` | `0x020080e4` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. GetEntrances, 12-way form: sel |
 | `OvlFunc_932_200820c` | `0x0200820c` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. GetEntrances, 10-way form: sel |
@@ -252,4 +253,4 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_974_20081b8` | `0x020081b8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 | `OvlFunc_974_20081d8` | `0x020081d8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 
-217 functions: 38 named, 179 read
+218 functions: 38 named, 180 read
