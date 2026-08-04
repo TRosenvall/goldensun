@@ -345,6 +345,35 @@ transposition is among the *non-r0* arguments — `mov r1 / ldr r2` against
 blocker; see `src/non_matching/ovl_77dd1c/2008398.c`, where both directions
 were tried before this was understood and neither helped.
 
+## `bl _call_via_rN` means the source called through a POINTER
+
+When the ROM loads a function's address and branches through it —
+
+    ldr r3, =Func_8001af8 / ... / bl _call_via_r3
+
+— that is not a veneer the linker inserted and it is not something to work
+around. It is what gcc emits for a call through a function pointer. A direct
+call is one instruction shorter, so the screen shows *ours* one line short with
+the `ldr` missing, which reads like a missing instruction rather than a wrong
+call form.
+
+The fix is to route the call through a local of function-pointer type:
+
+    typedef void (*CopyFn)(volatile u16 *dst, void *src, s32 len);
+    CopyFn copy;
+    ...
+    copy = Func_8001af8;
+    copy(pal, data, 0x80);
+
+**gcc-2.96 does not constant-propagate that back into a direct call at -O2.** A
+modern compiler would, which is presumably why the shape went untried for so
+long — it looks like it cannot possibly survive optimisation, and it does.
+
+First matched in `src/rom_c9000/rom_e0524.c` (`LoadVFXFile`). Every other file
+in the tree mentioning `_call_via_r3` is currently parked, though none of them
+is parked *on* this — they are large functions with other residue — so this
+opens the class rather than clearing it.
+
 ## Splitting: when the refusal is about the FILE, not the function
 
 `tools/split_s.py` refuses when a local label would cross the boundary it is
