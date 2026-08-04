@@ -69,6 +69,26 @@ including a broken link. Chain them, or check the exit code:
     docker run ... sh -c 'make AGBCC_DIR=/opt/agbcc -j8 && make AGBCC_DIR=/opt/agbcc compare' \
         && git commit ...
 
+**Always build in the container. Never run bare `make` on the host.** On macOS
+`/usr/bin/make` is GNU make 3.81 (2006) and `sed` is BSD sed, and the two of
+them produce failures that look exactly like a corrupted tree:
+
+  * `sed -E -i 's,...,'` -- BSD sed reads `-i`'s argument as a *backup suffix*,
+    so the script is eaten and the FILENAME becomes the script. Every `.d`
+    under `asm/` then parses as sed's `a` command:
+    `sed: 1: "asm/overlays/...": command a expects \ followed by text`.
+  * `-T $<` in the `$(ELFS)` recipe -- make 3.81 orders the `elf_deps`
+    prerequisites *before* the static-pattern `%.ld`, so `$<` is the first
+    object in the linker script and ld tries to parse an ELF as a script:
+    `ignoring invalid character '\000' in script / syntax error`.
+
+Both are host-only. `gmake` (Homebrew, make 4.x) fixes the second and not the
+first, and the host has no working `tools/pack_overlay` anyway -- those binaries
+are Linux x86-64. A whole round went into "fixing" the Makefile for these before
+noticing that the documented Docker build was green the entire time. The
+Makefile is correct; the invocation was not. `build.sh` uses `gmake`; the commit
+gate above uses Docker. Use one of those two.
+
 **Write commit messages through a quoted heredoc**, never through
 `python3 -c "..."` or any double-quoted shell string. Backticks and `$` in a
 double-quoted string are substituted by the shell, which silently eats

@@ -251,3 +251,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-04T01:00:24Z  end     +1 (OvlFunc_945_200c198); 220 elevated
 2026-08-04T01:02:45Z  start   more call-dense candidates
 2026-08-04T01:06:09Z  end     +1 (OvlFunc_957_200b518); 221 elevated
+2026-08-04T01:08:39Z  start   more call-dense
