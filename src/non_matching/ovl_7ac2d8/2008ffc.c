@@ -13,6 +13,15 @@
  *     rom    ldr r2, =0x3333 / mov r0, #0x0  / ldr r1, =0x6666
  *     ours   ldr r2, =0x3333 / ldr r1, =0x6666 / mov r0, #0x0
  *
+ * CORRECTED IN BATCH 26: the conclusion below is too strong. A middle-position
+ * r0 IS sometimes reachable by declaring the callee -- see
+ * src/overlays/rom_7e7574/ovl_9dc_c_a_a_a_a_c_b.c, where __Func_809228c has
+ * the identical shape (`mov r2 / mov r0 / mov r1`) and one extern fixes it.
+ * So `r0 not at either end` is not by itself a blocker. What separates that
+ * case from this one is open; the difference on the surface is that the other
+ * two arguments here come from POOL LOADS rather than plain movs, which is an
+ * observation and not yet an explanation.
+ *
  * THIS WIDENS THE CLASS. The two members already parked
  * (src/non_matching/ovl_794ac0/2008428.c and
  * src/non_matching/ovl_7f148c/2008078.c) both had r0 landing inside a single

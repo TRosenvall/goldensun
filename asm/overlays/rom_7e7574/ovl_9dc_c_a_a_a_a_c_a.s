@@ -190,38 +190,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_959_2009150
-
-@ 25 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   BeginCutscene, SetSlotWalkBehaviour, MoveSlotBy, SetSlotAnimation
-@   FaceEntityInstant, PlayInteractionEffect, OvlFunc_1b24, EndCutscene
-.thumb_func_start OvlFunc_959_20092e0
-	push	{lr}
-	bl	__CutsceneStart
-	mov	r0, #9
-	bl	__MapActor_SetIdle
-	mov	r2, #0
-	mov	r0, #9
-	mov	r1, #0
-	bl	__Func_809228c
-	mov	r0, #9
-	mov	r1, #0
-	bl	__MapActor_SetAnim
-	mov	r0, #9
-	mov	r1, #0
-	mov	r2, #0
-	bl	__Func_809280c
-	mov	r1, #0x80
-	lsl	r1, #1
-	mov	r2, #0
-	mov	r0, #9
-	bl	__MapActor_Emote
-	mov	r0, #0xa
-	bl	OvlFunc_959_2009b24
-	bl	__CutsceneEnd
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_959_20092e0
-
