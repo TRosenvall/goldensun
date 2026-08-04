@@ -235,3 +235,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-03T23:59:02Z  end     +0 elevated; a second family head parked at one reordering
 2026-08-04T00:01:40Z  start   main-ROM families, largely untouched
 2026-08-04T00:06:46Z  end     +3 (ActorCmd attr family); 216 elevated; fixed a false positive in asmfacts
+2026-08-04T00:09:17Z  start   verify no false skips, then next main-ROM family
+2026-08-04T00:11:57Z  end     +0 elevated; address-folding form solved, block order parked
