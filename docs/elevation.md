@@ -310,6 +310,41 @@ the deferral is caused by the *preceding* call's return type.
 This retired the `arg-fill-order` blocker class, which had cost nine failed
 formulations while the fix was one line of C.
 
+### There are TWO declaration levers, and they are not the same one
+
+The lever above is about the **preceding** call: its return type decides
+whether r0 is live across it, and therefore whether the *next* call fills r0
+first or last. Everything above stands.
+
+There is a second, separate effect. **Leaving the mismatching call ITSELF
+implicit changes the order gcc fills that call's own argument registers**, and
+it puts r0 last:
+
+    prototyped   mov r0, r8    / mov r1, #0x80 / mov r2, r5
+    implicit     mov r1, #0x80 / mov r2, r5    / mov r0, r8
+    rom          mov r1, #0x80 / mov r2, r5    / mov r0, r8
+
+The two wear identical clothes — both are "a missing prototype changes r0's
+position" — and conflating them cost two functions a park each. `LoadStatusIcon`
+was parked with a note recording three failed attempts and the conclusion "the
+order does not move"; one of the things not tried was deleting the declaration
+of the call that was actually wrong. Both it and `Func_8078948` matched on the
+first screen once it was.
+
+So the rule is **both directions, on both calls**. When argument fill order is
+the only mismatch, there are four things to try, not one:
+
+1. prototype every callee (the documented lever — fixes the common case);
+2. make the **preceding** call implicit;
+3. make the **mismatching** call implicit;
+4. prototype the mismatching call but not the preceding one.
+
+Note this is not a free win everywhere. It moves r0 specifically. Where the
+transposition is among the *non-r0* arguments — `mov r1 / ldr r2` against
+`ldr r2 / mov r1` — neither lever reaches it, and that residue is still a real
+blocker; see `src/non_matching/ovl_77dd1c/2008398.c`, where both directions
+were tried before this was understood and neither helped.
+
 ## Splitting: when the refusal is about the FILE, not the function
 
 `tools/split_s.py` refuses when a local label would cross the boundary it is
