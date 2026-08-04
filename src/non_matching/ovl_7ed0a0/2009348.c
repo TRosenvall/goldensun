@@ -15,6 +15,13 @@
  *
  * The offset must be written as an ADDITION of 0xffe00000, not a subtraction
  * of 0x200000; the ROM loads the negative constant and adds.
+ *
+ * -O1 AND THE DECLARATION LEVER. This TU builds at -O1, and the lever that
+ * decides argument fill order -- declare a callee for r0 first, withhold the
+ * declaration for r0 last -- is now known to be an -O2 behaviour only
+ * (docs/elevation.md, confirmed by the OvlFunc_923/OvlFunc_924 twins). If a
+ * future attempt on this function reaches an argument-order diff, that lever
+ * is not the one to reach for.
  */
 
 struct Actor3 {

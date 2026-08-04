@@ -245,6 +245,21 @@ The converse matters too: whatever blocks one member blocks all of them, so a
 family is also the cheapest way to discover that a blocker is expensive. Check
 a candidate's family size before deciding how hard to push on it.
 
+## The declaration lever is an -O2 behaviour
+
+The rule below decided functions in nine batches and every one of them was
+compiled at -O2. It does **not** apply at -O1.
+
+Confirmed by a natural control: `OvlFunc_923_2008ed0` (rom_7aa430, -O1) and
+`OvlFunc_924_2008f84` (rom_7ac2d8, -O2) are the same forty-one instructions.
+The identical C matches at -O2 and fails at -O1, with neither declaring nor
+withholding the prototype moving the argument pair.
+
+Sixteen `.o` prefixes build at -O1; the Makefile lists them explicitly, and
+`tools/tryc.py` prints `(built with: O1)` when it picks one up. **Read that
+line.** Two of the parked functions sit in -O1 units and their diagnoses were
+written before this was known.
+
 ## Declare every callee — argument order depends on it
 
 **A missing prototype changes the generated code.** This is the single
