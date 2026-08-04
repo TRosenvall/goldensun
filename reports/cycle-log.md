@@ -252,3 +252,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-04T01:02:45Z  start   more call-dense candidates
 2026-08-04T01:06:09Z  end     +1 (OvlFunc_957_200b518); 221 elevated
 2026-08-04T01:08:39Z  start   more call-dense
+2026-08-04T05:12:58Z  start   batch-26 report due; 258 elevated
+2026-08-04T05:17:34Z  end     batch-26 published (5 fns); 258 elevated; session closed at user request
