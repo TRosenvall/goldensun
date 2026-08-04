@@ -42,15 +42,38 @@
  *   3. The argument shuffle is real: the ROM calls
  *      __CreateActor(d, a, b, c) from OvlFunc_common0_70(a, b, c, d).
  *
- * NOT TRIED YET: anything that would stop gcc copying the actor into r5. That
- * is the whole remaining problem, and nothing in docs/elevation.md addresses
- * which of two live copies of a value gcc keeps in the return register.
+ * DIAGNOSIS REFINED. The register swap is not the cause, it is downstream of
+ * CONSTANT-CSE, which is a class already known to be unsolved.
+ *
+ * The ROM materialises 0 TWICE -- `mov r3, #0` for the byte store at +0x55 and
+ * `mov r1, #0` for the __Actor_SetSpriteFlags argument. gcc builds it once, in
+ * r1, and uses it for both. That occupies r1, so the sprite pointer goes to r0
+ * instead; r0 then no longer holds the actor, so gcc has to emit `mov r0, r5`
+ * before the call. One CSE, three differing instructions.
+ *
+ * So this is not a new problem. It is src/non_matching/ovl_7f2f14/20087d8.c and
+ * src/non_matching/ovl_794ac0/200852c.c again, in a function where the knock-on
+ * effect happens to be a register reassignment rather than a spill.
+ *
+ * ALSO TRIED, after the two findings above:
+ *   4. the sprite access inline with no local, twice -- 49 lines, 33 differ,
+ *      gcc loads the pointer twice
+ *   5. the sprite local in an inner block to shorten its live range -- no
+ *      change, 10 differ
+ *   6. `extern void __Actor_SetSpriteFlags(Actor *, int);` -- no change
+ *   7. `extern void __Func_80929d8(Actor *, int);` -- 10 differ down to 8, and
+ *      it is in the file below because it is a genuine improvement
+ *   8. both declarations together -- also 8, so (7) is doing the work
+ *
+ * What would finish it is whatever defeats constant-CSE, and that is worth far
+ * more than these five functions.
  */
 #include "gba/types.h"
 #include "actor.h"
 
 struct Spr { u8 pad_00[9]; u8 f9; };
 
+extern void __Func_80929d8(Actor *a, int n);
 extern Actor *__CreateActor(int a, int b, int c, int d);
 
 Actor *OvlFunc_common0_70(int a, int b, int c, int d)

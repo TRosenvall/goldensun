@@ -339,6 +339,14 @@ the only mismatch, there are four things to try, not one:
 3. make the **mismatching** call implicit;
 4. prototype the mismatching call but not the preceding one.
 
+**The lever cannot reach the first call after a control-flow JOIN.** It works by
+fixing whether r0 is live across the *preceding* call — so where the preceding
+call differs per path, no declaration can decide the question.
+`src/non_matching/ovl_793768/2008e0c.c` is 39 of 41 instructions identical with
+one misplaced `mov r0`, and seven declaration combinations produce byte-identical
+output. Check for a join above the mismatching call before spending screens on
+it.
+
 Note this is not a free win everywhere. It moves r0 specifically. Where the
 transposition is among the *non-r0* arguments — `mov r1 / ldr r2` against
 `ldr r2 / mov r1` — neither lever reaches it, and that residue is still a real
