@@ -378,13 +378,20 @@ pointer's type IS the declaration**, and its return type drives the same lever
 as a direct callee's:
 
     void (*fp)(int, int)    ->  gcc fills r0 FIRST
-    int  (*fp)(int, int)    ->  gcc fills r0 LAST   (ROM's order)
+    int  (*fp)(int, int)    ->  gcc fills r0 LAST
 
-So when an indirect call has the r0-last shape, change the *pointer's* return
-type, not where the pointer is stored. Three parked functions all had notes
+**Read the order off the ROM; neither one is the default answer.**
+`Func_80b63b0`, `Func_801671c` and `Func_8016738` all want r0 last and all need
+`int`. `Func_80cd508` wants r0 *first* and needs `void` — and it calls the same
+`Func_80008d4` that `Func_80ccbdc` calls with `int`. One callee, two files,
+opposite types, both byte-exact. That is the point: the pointer's return type is
+a per-call-site fact reporting what the original translation unit declared, not
+a property of the callee.
+
+When an indirect call has the wrong r0 position, change the *pointer's* return
+type, not where the pointer is stored. Three parked functions had notes
 recording several attempts at the storage — "via a typedef'd local, via a plain
 local, with the destination in its own local" — and none at the type.
-`Func_80b63b0`, `Func_801671c` and `Func_8016738` all match once it changes.
 
 Pair this with the epilogue rule already listed above: `pop {rN}` for N ≠ 0
 means the *enclosing* function's return type is non-void. Between them, these

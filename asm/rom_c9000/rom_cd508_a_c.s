@@ -1,24 +1,6 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ Sub_cd508
-@ Battle animation routine, 10 instructions.
-@ State: iwram_1eec.
-@ Body NOT traced instruction by instruction -- the facts above are extracted
-@ from the code; the behavioural detail is not yet documented.
-.thumb_func_start Func_80cd508  @ 0x080cd508
-	push	{lr}
-	ldr	r3, =iwram_3001eec
-	ldr	r0, [r3]
-	ldr	r3, =0x7818
-	mov	r1, #8
-	add	r0, r3
-	ldr	r3, =Func_80008d4
-	bl	_call_via_r3
-	pop	{r0}
-	bx	r0
-.func_end Func_80cd508
-
 @ Sub_cd52c
 @ Battle animation routine, 45 instructions.
 @ State: iwram_1eec.
@@ -957,4 +939,3 @@
 	pop	{r0}
 	bx	r0
 .func_end AnimEnd
-
