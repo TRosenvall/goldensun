@@ -1,57 +1,6 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ 35 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   TestSaveBit
-.thumb_func_start OvlFunc_881_200b448
-	push	{r5, r6, lr}
-	mov	r6, #0
-	cmp	r0, #1
-	beq	.L3462
-	cmp	r0, #1
-	bcc	.L345e
-	cmp	r0, #2
-	beq	.L3466
-	cmp	r0, #3
-	beq	.L3472
-	b	.L3476
-.L345e:
-	ldr	r6, =0x92c
-	b	.L3476
-.L3462:
-	ldr	r6, =0x935
-	b	.L3476
-.L3466:
-	ldr	r6, =0x917
-	b	.L3476
-.L346a:
-	ldr	r3, =.L6718
-	lsl	r2, r5, #2
-	ldr	r0, [r3, r2]
-	b	.L348a
-.L3472:
-	mov	r6, #0x99
-	lsl	r6, #4
-.L3476:
-	mov	r5, #0
-.L3478:
-	add	r0, r6, r5
-	bl	__GetFlag
-	cmp	r0, #0
-	bne	.L346a
-	add	r5, #1
-	cmp	r5, #8
-	bls	.L3478
-	mov	r0, #0
-.L348a:
-	pop	{r5, r6}
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_881_200b448
-
 @ 94 instructions. Not one of the recognised overlay shapes,
 @ so this is a CALL TRACE rather than a description -- what it does with
 @ these is not characterised here.
@@ -414,4 +363,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_881_200b6dc
-

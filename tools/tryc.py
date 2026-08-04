@@ -390,9 +390,19 @@ def main():
         adjust |= makefile_flags(re.sub(r"^asm/", "src/", _r)[:-2] + ".c")
     if "--O1" in sys.argv:
         adjust.add("O1")
+    # --no-sched2 is NOT the same thing as --O1, and assuming it was cost a
+    # park. The Makefile comment on the O1_CFLAGS rules says -O1 is
+    # "equivalently -O2 -fno-schedule-insns2"; for Func_809a44c that is false.
+    # -O1 diverges at instruction 4 of 27 while -O2 -fno-schedule-insns2 is a
+    # clean match, because -O1 also changes register allocation and expression
+    # ordering, not just the post-reload scheduler.
+    if "--no-sched2" in sys.argv:
+        adjust.add("no-sched2")
     if adjust and not quiet:
         print(f"  (built with: {', '.join(sorted(adjust))})")
     cflags = ["-O1" if (a == "-O2" and "O1" in adjust) else a for a in CFLAGS]
+    if "no-sched2" in adjust:
+        cflags = cflags + ["-fno-schedule-insns2"]
     if "no-interwork" in adjust:
         cflags = [a for a in cflags if a != "-mthumb-interwork"]
     # --cflags "<extra>" appends arbitrary compiler flags, so a hypothesis
