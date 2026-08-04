@@ -1,0 +1,177 @@
+#!/usr/bin/env python3
+"""pick_candidates.py -- rank functions by how likely they are to MATCH.
+
+WHY THIS IS SEPARATE FROM elevation_candidates.py
+
+That tool ranks by tractability -- size, call count, branch count -- and filters
+out functions whose blocker is already recorded against them by name. It answers
+"what is small and unattempted".
+
+This one answers a different question: "what is unlikely to hit a blocker I
+already know about". Two consecutive rounds produced no elevations because
+candidates were picked on size alone and landed on shapes that were already
+characterised as blocked. Every filter below was paid for by a round.
+
+THE FILTERS, AND WHAT EACH ONE COST
+
+  --whole-file      One function in the .s and no data, so no split, no linker
+                    script edit, no chance of stranding a label. Not a
+                    correctness filter, just the cheapest kind of win.
+
+  loop-free         Rejects any backward branch. The un-rotated loop shape needs
+                    the goto lever to get close and then usually lands on the
+                    pre-header load merge -- see
+                    src/non_matching/preheader_load_merge.c, three members, all
+                    short by exactly one instruction, no known fix.
+
+  no _call_via_rN   Indirect calls are matchable (four are elevated) but each
+                    needs its own read of the pointer's return type, so they are
+                    their own project rather than a quick win.
+
+  no repeated       THE ONE THAT MATTERS MOST. A pooled constant loaded twice in
+  pooled constant   one function is the constant-CSE blocker: gcc hoists it into
+                    a callee-saved register and pays a push/pop to save one pool
+                    load. OvlFunc_899_200852c is 38 instructions against 36 --
+                    LONGER than the ROM -- for exactly this.
+
+                    Note this is a heuristic, not a proof. The blocked case is a
+                    constant repeated on ONE path; repeated on MUTUALLY
+                    EXCLUSIVE arms it is fine, because gcc never has both live.
+                    OvlFunc_922_20085b8 matched with two ids repeated that way.
+                    So this filter throws away some good candidates, which is
+                    the right trade while there are hundreds left.
+
+  no arg-interleave  A `mov r0` landing INSIDE another argument's construction
+                     -- between `mov rN, #imm` and its `lsl rN` -- is the
+                     arg-interleave blocker, and neither declaration lever
+                     reaches it. It cost two functions and eight screens before
+                     it was recognised, because the symptom is indistinguishable
+                     from the fill-order class the levers DO retire.
+
+                     Unlike the others this one is read off the ROM's own
+                     instruction stream, so it is exact rather than heuristic:
+                     if the reference interleaves, the C cannot.
+
+WHAT IT DOES NOT KNOW
+
+Constants re-materialised with `mov rN, #imm / neg rN, rN` rather than pooled.
+OvlFunc_945_200c13c builds -1 three times that way and is constant-CSE for the
+same reason as the pooled cases, but the `no repeated pooled constant` filter
+does not see it. Check for repeated small-constant construction by eye until
+that is added.
+
+    python3 tools/pick_candidates.py --whole-file
+    python3 tools/pick_candidates.py --min-calls 5 --max-insn 30
+"""
+import collections
+import glob
+import os
+import re
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+from asmfacts import functions, carries_data           # noqa: E402
+
+FUNC = re.compile(r"\.thumb_func_start\s+(\S+)[^\n]*\n(.*?)\.func_end", re.S)
+LABEL = re.compile(r"(\.L\w+):")
+BRANCH = re.compile(r"\tb\w*\t(\.L\w+)")
+POOL = re.compile(r"ldr\s+r\d+,\s*=(\S+)")
+
+
+def has_loop(body):
+    """True if any branch targets a label defined earlier -- i.e. a back edge."""
+    lines = body.split("\n")
+    pos = {m.group(1): i for i, l in enumerate(lines) if (m := LABEL.match(l))}
+    for i, l in enumerate(lines):
+        m = BRANCH.search(l)
+        if m and pos.get(m.group(1), len(lines)) < i:
+            return True
+    return False
+
+
+MOVIMM = re.compile(r"^\tmov\t(r\d+), #")
+LSL = re.compile(r"^\tlsl\t(r\d+),")
+MOVR0 = re.compile(r"^\tmov\tr0,")
+
+
+def has_arg_interleave(body):
+    """True if a `mov r0` sits between a `mov rN, #imm` and that rN's `lsl`.
+
+    This is the ROM telling us it scheduled r0 into the middle of another
+    argument's construction. gcc emits r0 before or after the whole block and
+    neither declaration lever moves it into the gap, so the function cannot
+    match. Read straight off the reference, so it is exact.
+    """
+    pending = {}
+    for line in body.split("\n"):
+        # r0 FIRST. `mov r0, #0xf` matches MOVIMM too, and testing that first
+        # silently swallowed the r0 write -- which made this miss
+        # OvlFunc_899_2008428, one of the two functions it exists to catch.
+        # Caught by self-checking against both known members; a filter that
+        # rejects nothing looks exactly like a filter that is working.
+        if MOVR0.match(line):
+            for r in pending:
+                pending[r] = True          # an r0 write happened while open
+            continue
+        m = MOVIMM.match(line)
+        if m:
+            pending[m.group(1)] = False
+            continue
+        m = LSL.match(line)
+        if m and pending.get(m.group(1)):
+            return True
+        if m:
+            pending.pop(m.group(1), None)
+        if line.startswith("\tbl\t"):
+            pending.clear()
+    return False
+
+
+def scan(whole_file, min_calls, min_insn, max_insn, allow_repeat):
+    rows = []
+    for p in sorted(glob.glob(os.path.join(ROOT, "asm/**/*.s"), recursive=True)):
+        rel = os.path.relpath(p, ROOT)
+        fns = functions(rel)
+        if not fns:
+            continue
+        if whole_file and (len(fns) != 1 or carries_data(rel)):
+            continue
+        txt = open(p, errors="replace").read()
+        for m in FUNC.finditer(txt):
+            name, body = m.group(1), m.group(2)
+            insn = len([l for l in body.split("\n") if l.startswith("\t")])
+            if not (min_insn <= insn <= max_insn):
+                continue
+            calls = body.count("\tbl\t")
+            if calls < min_calls or "_call_via" in body or has_loop(body):
+                continue
+            if has_arg_interleave(body):
+                continue
+            pooled = collections.Counter(POOL.findall(body))
+            dupes = [k for k, v in pooled.items() if v > 1]
+            if dupes and not allow_repeat:
+                continue
+            rows.append((-calls, insn, name, rel, len(fns), dupes))
+    return sorted(rows)
+
+
+def main():
+    a = sys.argv[1:]
+
+    def opt(flag, default):
+        return int(a[a.index(flag) + 1]) if flag in a else default
+
+    rows = scan("--whole-file" in a, opt("--min-calls", 3),
+                opt("--min-insn", 10), opt("--max-insn", 40),
+                "--allow-repeat" in a)
+    print(f"{'call':>4} {'insn':>5} {'fns':>4}  name / file")
+    for c, insn, name, rel, nf, dupes in rows[:opt("--limit", 20)]:
+        tag = f"   [repeats {','.join(dupes)}]" if dupes else ""
+        print(f"{-c:4d} {insn:5d} {nf:4d}  {name}  {rel}{tag}")
+    print(f"\n{len(rows)} candidates")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
