@@ -398,11 +398,21 @@ def main():
     # ordering, not just the post-reload scheduler.
     if "--no-sched2" in sys.argv:
         adjust.add("no-sched2")
+    # --no-rerun-cse is the constant-CSE probe. gcc-2.96 runs CSE a second time
+    # after loop optimisation, and that second pass is what hoists a repeated
+    # pooled constant into a callee-saved register. -fno-gcse,
+    # -fno-cse-follow-jumps, -fno-cse-skip-blocks and
+    # -fno-expensive-optimizations all leave the hoist in place; only this one
+    # removes it.
+    if "--no-rerun-cse" in sys.argv:
+        adjust.add("no-rerun-cse")
     if adjust and not quiet:
         print(f"  (built with: {', '.join(sorted(adjust))})")
     cflags = ["-O1" if (a == "-O2" and "O1" in adjust) else a for a in CFLAGS]
     if "no-sched2" in adjust:
         cflags = cflags + ["-fno-schedule-insns2"]
+    if "no-rerun-cse" in adjust:
+        cflags = cflags + ["-fno-rerun-cse-after-loop"]
     if "no-interwork" in adjust:
         cflags = [a for a in cflags if a != "-mthumb-interwork"]
     # --cflags "<extra>" appends arbitrary compiler flags, so a hypothesis

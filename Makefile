@@ -134,6 +134,31 @@ asm/overlays/common/common2_c%.o: src/overlays/common/common2_c%.c
 # global alternative). Pattern form covers the splitter's future children of
 # these stems, mirroring the common2_c precedent above.
 O1_CFLAGS := $(subst -O2,-O1,$(GCC296_CFLAGS))
+
+# Two overlay TUs match only with gcc's SECOND common-subexpression pass turned
+# off. Both load a save-flag id twice around a call, and at -O2 gcc hoists it
+# into a callee-saved register -- costing a push, a pop and two moves to save
+# one pool load. The ROM loads it twice.
+#
+# -fno-rerun-cse-after-loop is the pass responsible, and it is specifically
+# that one: -fno-gcse, -fno-cse-follow-jumps, -fno-cse-skip-blocks and
+# -fno-expensive-optimizations all leave the hoist in place.
+#
+# FLAGGED FOR REVIEW. This is an assumption about the original build, in the
+# same category as the -O1 rules above and on thinner evidence -- two functions,
+# not a stem. It may instead mean gcc-2.96 runs a pass the original compiler did
+# not, in which case the right fix is a compiler difference rather than a
+# per-file flag. Sweeping all 85 parked files with this flag matched only these
+# two, so it is NOT a general lever for the constant-CSE class.
+CSE_CFLAGS := $(GCC296_CFLAGS) -fno-rerun-cse-after-loop
+asm/overlays/rom_794ac0/ovl_30_a_c_a_c_a.o: src/overlays/rom_794ac0/ovl_30_a_c_a_c_a.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_79c738/ovl_30_c_c_a_c_a_a_c.o: src/overlays/rom_79c738/ovl_30_c_c_a_c_a_a_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)

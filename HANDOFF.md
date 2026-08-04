@@ -129,6 +129,22 @@ codebase better than we do. Listed once here rather than repeated per batch.
   `as -MD` recording a directory-less `.c` from a generated `.s`'s `.file`
   directive. Until these, every clean build here needed manual recovery.
 
+- **Two overlay TUs are built with `-fno-rerun-cse-after-loop`** (batch 25), and
+  this needs a decision from someone who knows the original toolchain. Both load
+  a save-flag id twice around a call; at -O2 gcc-2.96 hoists it into a
+  callee-saved register, spending a push, a pop and two moves to save one pool
+  load, and one of them comes out LONGER than the ROM as a result.
+
+  That flag is specifically the pass responsible — `-fno-gcse`,
+  `-fno-cse-follow-jumps`, `-fno-cse-skip-blocks` and
+  `-fno-expensive-optimizations` all leave the hoist in place.
+
+  **The evidence is thin and is stated as such.** Sweeping all 85 parked files
+  with the flag matched only these two, so it is not a general lever for the
+  constant-CSE class. It may instead mean gcc-2.96 runs a pass the original
+  compiler did not, in which case the right fix is a compiler difference and
+  these two rules should be dropped. See `CSE_CFLAGS` in the Makefile.
+
 - **Narrow constant materialisation** gates 34 functions and is half solved: a
   named `int` mask reproduces the ROM's 32-bit constant, but the instruction
   ordering resists seven attempts. `src/non_matching/overlays/narrow_constant.c`
