@@ -98,21 +98,37 @@ MOVR0 = re.compile(r"^\tmov\tr0,")
 def has_arg_interleave(body):
     """True if a `mov r0` sits between a `mov rN, #imm` and that rN's `lsl`.
 
-    This is the ROM telling us it scheduled r0 into the middle of another
-    argument's construction. gcc emits r0 before or after the whole block and
-    neither declaration lever moves it into the gap, so the function cannot
-    match. Read straight off the reference, so it is exact.
+    The ROM scheduled r0 into the middle of another argument's construction.
+    gcc emits r0 before or after the whole block and neither declaration lever
+    moves it into the gap, so the function cannot match. Read straight off the
+    reference, so it is exact for the shape it covers.
+
+    A WIDER RULE WAS TRIED AND IS WRONG. OvlFunc_924_2008ffc has the same defect
+    with no shift in sight --
+
+        ldr r2, =0x3333 / mov r0, #0 / ldr r1, =0x6666
+
+    -- so the obvious generalisation is "r0 written with some other argument
+    register written both before and after it". That rejects THREE functions
+    that actually matched (OvlFunc_940_2008224, OvlFunc_936_20083d8,
+    OvlFunc_922_20085b8), because r0-r3 are also ordinary scratch registers and
+    nothing in the text distinguishes argument setup from a range check that
+    happens to use r2 and r3. Position alone is not the discriminator.
+
+    So this stays narrow and misses cases like OvlFunc_924_2008ffc, which is the
+    right trade: a filter that rejects good candidates is worse than one that
+    lets a few bad ones through, because the bad ones cost one screen and the
+    good ones are never seen again.
     """
     pending = {}
     for line in body.split("\n"):
         # r0 FIRST. `mov r0, #0xf` matches MOVIMM too, and testing that first
         # silently swallowed the r0 write -- which made this miss
         # OvlFunc_899_2008428, one of the two functions it exists to catch.
-        # Caught by self-checking against both known members; a filter that
-        # rejects nothing looks exactly like a filter that is working.
+        # A filter that rejects nothing looks exactly like one that works.
         if MOVR0.match(line):
             for r in pending:
-                pending[r] = True          # an r0 write happened while open
+                pending[r] = True
             continue
         m = MOVIMM.match(line)
         if m:
