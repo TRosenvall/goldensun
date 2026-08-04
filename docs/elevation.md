@@ -369,10 +369,30 @@ The fix is to route the call through a local of function-pointer type:
 modern compiler would, which is presumably why the shape went untried for so
 long — it looks like it cannot possibly survive optimisation, and it does.
 
-First matched in `src/rom_c9000/rom_e0524.c` (`LoadVFXFile`). Every other file
-in the tree mentioning `_call_via_r3` is currently parked, though none of them
-is parked *on* this — they are large functions with other residue — so this
-opens the class rather than clearing it.
+First matched in `src/rom_c9000/rom_e0524.c` (`LoadVFXFile`).
+
+### The pointer's return type is the declaration
+
+For an indirect call there is no prototype at the call site — **the function
+pointer's type IS the declaration**, and its return type drives the same lever
+as a direct callee's:
+
+    void (*fp)(int, int)    ->  gcc fills r0 FIRST
+    int  (*fp)(int, int)    ->  gcc fills r0 LAST   (ROM's order)
+
+So when an indirect call has the r0-last shape, change the *pointer's* return
+type, not where the pointer is stored. Three parked functions all had notes
+recording several attempts at the storage — "via a typedef'd local, via a plain
+local, with the destination in its own local" — and none at the type.
+`Func_80b63b0`, `Func_801671c` and `Func_8016738` all match once it changes.
+
+Pair this with the epilogue rule already listed above: `pop {rN}` for N ≠ 0
+means the *enclosing* function's return type is non-void. Between them, these
+two type choices decided all three of those functions completely, and two of
+the three had been filed as permuter seeds.
+
+223 functions in `asm/` still call through `_call_via_rN`, so this is worth
+checking against before parking any of them.
 
 ## Splitting: when the refusal is about the FILE, not the function
 
