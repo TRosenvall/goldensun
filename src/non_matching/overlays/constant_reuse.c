@@ -118,3 +118,25 @@ void OvlFunc_965_2009158(void)
     __MapTransitionOut();
     __WaitMapTransition();
 }
+
+/* BATCH 26 -- THE CSE FLAG DOES NOT COVER THIS WHOLE CLASS.
+ *
+ * -fno-rerun-cse-after-loop (see CSE_CFLAGS in the Makefile) removes gcc's
+ * second common-subexpression pass and fixes the POOLED-CONSTANT variant: where
+ * the ROM does `ldr r0, =0x851` twice and gcc hoists it into a callee-saved
+ * register.
+ *
+ * It does NOTHING for the REGISTER-BUILT variant, where the ROM materialises a
+ * small constant with arithmetic more than once:
+ *
+ *     rom    mov r0,#1 / mov r1,#1 / mov r2,#1 / neg r0 / neg r1 / neg r2
+ *     ours   mov r2,#1 / neg r2,r2 / mov r0,r2 / mov r1,r2
+ *
+ * OvlFunc_965_2009158 (ovl_7ef4f4/ovl_30_a_c_c_a_c.s) screens at 15 against 17
+ * both with and WITHOUT the flag, byte-identical. Same for the -1 triple in
+ * src/non_matching/ovl_7f2f14/20087d8.c.
+ *
+ * So the class splits: pooled constants are reachable by a build flag whose
+ * justification is thin, and register-built constants are not reachable at all.
+ * Do not screen a mov/neg case with --no-rerun-cse expecting it to help.
+ */
