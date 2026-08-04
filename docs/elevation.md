@@ -89,6 +89,14 @@ noticing that the documented Docker build was green the entire time. The
 Makefile is correct; the invocation was not. `build.sh` uses `gmake`; the commit
 gate above uses Docker. Use one of those two.
 
+**Changing a compiler flag requires `make clean`.** make tracks file timestamps,
+not command lines, so after editing `GCC296_CFLAGS` or adding a per-file rule the
+existing `.o` files are still used and `make compare` reports failures that have
+nothing to do with the current tree. A global `-fno-rerun-cse-after-loop`
+experiment left three overlays failing for two builds after it was reverted, and
+they looked like a regression in unrelated work. `tools/asmfacts.py --orphans`
+does not catch this — it checks that sources exist, not that objects are current.
+
 **Write commit messages through a quoted heredoc**, never through
 `python3 -c "..."` or any double-quoted shell string. Backticks and `$` in a
 double-quoted string are substituted by the shell, which silently eats

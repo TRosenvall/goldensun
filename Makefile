@@ -150,12 +150,23 @@ O1_CFLAGS := $(subst -O2,-O1,$(GCC296_CFLAGS))
 # not, in which case the right fix is a compiler difference rather than a
 # per-file flag. Sweeping all 85 parked files with this flag matched only these
 # two, so it is NOT a general lever for the constant-CSE class.
+#
+# APPLYING IT GLOBALLY WAS TESTED AND FAILS. Adding it to GCC296_CFLAGS and
+# rebuilding from clean breaks several overlays (rom_78603c, rom_786f0c,
+# rom_787e04 among them) and leaves an undefined reference to `_call_via_sl`
+# in the main ROM. So the pass IS wanted for most translation units and not
+# for these -- which is what a per-file rule means, and is a point in favour
+# of the per-TU reading over a whole-compiler difference.
 CSE_CFLAGS := $(GCC296_CFLAGS) -fno-rerun-cse-after-loop
 asm/overlays/rom_794ac0/ovl_30_a_c_a_c_a.o: src/overlays/rom_794ac0/ovl_30_a_c_a_c_a.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_79c738/ovl_30_c_c_a_c_a_a_c.o: src/overlays/rom_79c738/ovl_30_c_c_a_c_a_a_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_78b2ac/ovl_30_c_c_a_a_b.o: src/overlays/rom_78b2ac/ovl_30_c_c_a_a_b.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)

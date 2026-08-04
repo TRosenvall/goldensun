@@ -136,7 +136,19 @@ void OvlFunc_965_2009158(void)
  * both with and WITHOUT the flag, byte-identical. Same for the -1 triple in
  * src/non_matching/ovl_7f2f14/20087d8.c.
  *
- * So the class splits: pooled constants are reachable by a build flag whose
- * justification is thin, and register-built constants are not reachable at all.
- * Do not screen a mov/neg case with --no-rerun-cse expecting it to help.
+ * CORRECTED IN BATCH 26. The pooled/register-built split above is WRONG.
+ * OvlFunc_890_2008108 builds 0x200 twice with `mov` + `lsl` -- register-built,
+ * not pooled -- and the flag fixes it; it is elevated in
+ * src/overlays/rom_78b2ac/ovl_30_c_c_a_a_b.c.
+ *
+ * The distinction that actually holds is WHERE the repetition sits:
+ *
+ *   across separate CALLS    the rerun-CSE pass hoists the value into a
+ *                            callee-saved register, and the flag stops it.
+ *   inside ONE argument      OvlFunc_965_2009158 builds -1 three times for a
+ *   block                    single call. The flag changes nothing, because
+ *                            that is argument setup and not CSE at all.
+ *
+ * So: screen a repeated constant with --no-rerun-cse when the repetitions are
+ * separated by a call, and do not when they are three operands of one call.
  */
