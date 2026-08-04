@@ -487,8 +487,18 @@ def main():
         # is a scheduling difference or a genuinely different lowering
         i = next((k for k in range(max(len(got), len(exp)))
                   if k >= len(got) or k >= len(exp) or got[k] != exp[k]), 0)
+        # Report the TOTAL number of differing positions, not just where the
+        # first one is. Over 40 lines the listing below is a keyhole around the
+        # first divergence, and reading "one -> in the window" as "one
+        # difference in the function" sent a round down the wrong path: a
+        # 45-line function showed a single mismatched `bl` and looked like a
+        # symbol-naming problem, while two register-allocation differences sat
+        # nine lines further down, outside the window.
+        ndiff = sum(1 for k in range(max(len(got), len(exp)))
+                    if (exp[k] if k < len(exp) else None)
+                    != (got[k] if k < len(got) else None))
         print(f"  XX {name}  (rom {len(exp)} lines, ours {len(got)}, "
-              f"first diff at {i})")
+              f"first diff at {i}, {ndiff} differ)")
         if not quiet:
             # short functions print whole: the useful signal is usually
             # WHERE the two streams re-converge, which a keyhole around the

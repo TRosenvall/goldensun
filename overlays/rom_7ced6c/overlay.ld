@@ -27,7 +27,9 @@ SECTIONS {
 		asm/overlays/rom_7ced6c/ovl_30_a_c.o(.text)
 		asm/overlays/rom_7ced6c/ovl_30_b.o(.text)
 		asm/overlays/rom_7ced6c/ovl_30_c_b.o(.text)
-		asm/overlays/rom_7ced6c/ovl_30_c_c_a_a_a.o(.text)
+		asm/overlays/rom_7ced6c/ovl_30_c_c_a_a_a_a.o(.text)
+		asm/overlays/rom_7ced6c/ovl_30_c_c_a_a_a_b.o(.text)
+		asm/overlays/rom_7ced6c/ovl_30_c_c_a_a_a_c.o(.text)
 		asm/overlays/rom_7ced6c/ovl_30_c_c_a_a_b.o(.text)
 		asm/overlays/rom_7ced6c/ovl_30_c_c_a_a_c_a.o(.text)
 		asm/overlays/rom_7ced6c/ovl_30_c_c_a_a_c_b.o(.text)
@@ -74,3 +76,7 @@ SECTIONS {
 		*(*)
 	}
 }
+
+/* see src/overlays/rom_7a5214/ovl_17ec_c_b.c -- gcc emits __divsi3 for `/`,
+ * overlays call the RAM-resident copy. Absolute alias, emits no bytes. */
+__divsi3 = _divsi3_RAM;
