@@ -73,8 +73,11 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_968_20084f4` | `0x020084f4` | `FillMapRectCollisionByte` | named | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FillMapRectCollisionByte, one  |
 | `ActorAttrOp_width` | `` | — | read | Actor attribute opcode: collision radius. Whole-file conversion of asm/rom_9000/rom_e220_a_c.s -- one function, so the ROM layout is preserv |
 | `ActorCmd_CallNative` | `` | — | read | Actor script VM: the opcode that calls a native predicate. Whole-file conversion of asm/rom_9000/rom_d654_a_c_a_a_a_a.s -- one function, so  |
+| `ActorCmd_CmpAttr` | `` | — | read | The remaining part of that .s held only this function and no data. Script opcode: compare an actor attribute. Identical to ActorCmd_SetAttr  |
 | `ActorCmd_GotoIfNZ` | `` | — | read | Actor script VM: the two conditional-jump opcodes. Whole-file conversion of asm/rom_9000/rom_d654_a_c_a_a_c.s -- it holds both of these and  |
 | `ActorCmd_GotoIfZ` | `` | — | read | Actor script VM: the two conditional-jump opcodes. Whole-file conversion of asm/rom_9000/rom_d654_a_c_a_a_c.s -- it holds both of these and  |
+| `ActorCmd_IncAttr` | `` | — | read | Split out of that .s; the sibling parts stay as assembly. Script opcode: increment an actor attribute. Identical to ActorCmd_SetAttr but for |
+| `ActorCmd_SetAttr` | `` | — | read | Split out of that .s; the _c part stays as assembly and keeps its slot in Script opcode: set an actor attribute. Reads a field id from scrip |
 | `ActorCmd_SetScript` | `` | — | read | Actor script VM: the opcode that makes the script jump to a new base. Whole-file conversion of asm/rom_9000/rom_ca2c_a.s -- one function, so |
 | `Camera_SetTarget` | `` | — | read | Behaviour: install the 0x135F0 script, optionally retuning the movement. Whole-file conversion of asm/rom_9000/rom_c004_c_a_a_c_a_c_c_c_c_c. |
 | `CanEquipItem` | `` | — | read | Equipment: may this unit's class use this item? Whole-file conversion of asm/rom_77000/rom_78414_a_c.s -- one function, so the ROM layout is |
@@ -248,4 +251,4 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_974_20081b8` | `0x020081b8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 | `OvlFunc_974_20081d8` | `0x020081d8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 
-213 functions: 37 named, 176 read
+216 functions: 37 named, 179 read

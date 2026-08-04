@@ -237,3 +237,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-04T00:06:46Z  end     +3 (ActorCmd attr family); 216 elevated; fixed a false positive in asmfacts
 2026-08-04T00:09:17Z  start   verify no false skips, then next main-ROM family
 2026-08-04T00:11:57Z  end     +0 elevated; address-folding form solved, block order parked
+2026-08-04T00:14:47Z  start   target high-call functions instead of low-score ones
+2026-08-04T00:19:52Z  end     +1 (OvlFunc_900_2008094); 217 elevated; constant-CSE class measured at 839
