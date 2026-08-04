@@ -155,6 +155,7 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_924_2008e20` | `0x02008e20` | — | read | GetEntrances, four-way form: selects one of four edge-transition tables from a gState halfword, falling through to the last. One of a 24-mem |
 | `OvlFunc_924_2008e80` | `0x02008e80` | — | read | GetEntrances, 5-way form: selects one of 5 per-area tables from the gState halfword at +0x1C0, falling through to the last. THE EARLIER FAMI |
 | `OvlFunc_924_2008f30` | `0x02008f30` | — | read | THE LAST MEMBER OF THE 24-FUNCTION FAMILY, and the only one that needed its .s split by hand. That .s held one function and FOURTEEN .incbin |
+| `OvlFunc_924_2008f84` | `0x02008f84` | — | read | Split out of that .s; the sibling part stays as assembly. A map-exit cutscene: install an update hook on slot 0, set its speed, walk it, cle |
 | `OvlFunc_924_200cf90` | `0x0200cf90` | — | read | Split out of that .s; the _a and _c parts stay as assembly and keep their slots in goldensun/overlays/rom_7ac2d8/overlay.ld, so the ROM layo |
 | `OvlFunc_926_200834c` | `0x0200834c` | — | read | GetEntrances, two-way form. This one returns a NAMED GLOBAL from its first arm rather than a local `.L` table, which is why the earlier fami |
 | `OvlFunc_927_2008ee0` | `0x02008ee0` | — | read | GetEntrances, four-way form: selects one of four edge-transition tables from a gState halfword, falling through to the last. One of a 24-mem |
@@ -253,4 +254,4 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_974_20081b8` | `0x020081b8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 | `OvlFunc_974_20081d8` | `0x020081d8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 
-218 functions: 38 named, 180 read
+219 functions: 38 named, 181 read
