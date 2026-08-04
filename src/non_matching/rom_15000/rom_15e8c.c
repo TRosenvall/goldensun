@@ -1,5 +1,7 @@
 /* Func_8015e8c @ 0x08015e8c -- asm/rom_15000/rom_15e8c_a_a.s
  *
+ * Source asm: goldensun/asm/rom_15000/rom_15e8c_a_a.s
+ *
  * REGISTER ALLOCATION ONLY. Every instruction is right; r1 and r2 are swapped
  * throughout:
  *

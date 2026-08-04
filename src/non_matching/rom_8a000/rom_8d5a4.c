@@ -1,5 +1,7 @@
 /* Func_808d5a4 @ 0x0808d5a4 -- asm/rom_8a000/rom_8ba38_c_c.s
  *
+ * Source asm: goldensun/asm/rom_8a000/rom_8ba38_c_c.s
+ *
  * SYMBOL+OFFSET FOLDING. Every instruction matches except the address:
  *
  *     rom    ldr r2, =0x24a / ldr r3, =gState / add r3, r2

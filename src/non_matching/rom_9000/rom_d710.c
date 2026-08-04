@@ -1,5 +1,7 @@
 /* ActorCmd_Loop @ 0x0800d710 -- asm/rom_9000/rom_d654_a_c_a_a_a_c.s
  *
+ * Source asm: goldensun/asm/rom_9000/rom_d654_a_c_a_a_a_c.s
+ *
  * Blocker class 2 with an extra wrinkle. 36 of 37 instructions, diverging at
  * the counter update:
  *

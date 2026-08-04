@@ -1,5 +1,7 @@
 /* Func_801671c @ 0x0801671c -- asm/rom_15000/rom_15e8c_a_c_c_c.s
  *
+ * Source asm: goldensun/asm/rom_15000/rom_15e8c_a_c_c_c.s
+ *
  * Blocker class 5, SCHEDULING. Nine instructions, nine right, one in the
  * wrong place:
  *

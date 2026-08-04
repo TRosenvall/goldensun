@@ -1,5 +1,7 @@
 /* free @ 0x08002df0 -- asm/rom_c0/rom_2dd8.s
  *
+ * Source asm: goldensun/asm/rom_c0/rom_2dd8.s
+ *
  * Blocker class 2, REGISTER BIRTH ORDER. Six instructions, all six right,
  * every register different:
  *

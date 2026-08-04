@@ -1,5 +1,7 @@
 /* Func_80a3480 @ 0x080a3480 -- asm/rom_a1000/rom_a1814_c_a_c_c_c_a.s
  *
+ * Source asm: goldensun/asm/rom_a1000/rom_a1814_c_a_c_c_c_a.s
+ *
  * Blocker class 2, REGISTER BIRTH ORDER, in the loop SET-UP only. All 28
  * instructions are present and the loop body is identical; the five setup
  * moves come out in a different order, and the constant lands in r3 rather

@@ -1,5 +1,7 @@
 /* Func_8091254 @ 0x08091254 -- asm/rom_8a000/rom_8d9a4_c_c_c_a_c_a_a.s
  *
+ * Source asm: goldensun/asm/rom_8a000/rom_8d9a4_c_c_c_a_c_a_a.s
+ *
  * CONSTANT CSE. Same instruction count, and the whole second half -- the four
  * shifted constants and the call -- is identical. The two byte offsets differ:
  *

@@ -1,5 +1,7 @@
 /* Func_80b8530 @ 0x080b8530 -- asm/rom_b5000/rom_b8228_c_a_c_a_a_c.s
  *
+ * Source asm: goldensun/asm/rom_b5000/rom_b8228_c_a_c_a_a_c.s
+ *
  * Blocker class 2, REGISTER BIRTH ORDER, down to ONE instruction:
  *
  *     rom    lsr r3, r0, #8      (result into a fresh register)

@@ -1,5 +1,7 @@
 /* SetTextColor @ 0x0801e71c -- asm/rom_15000/rom_1de5c_c_a.s
  *
+ * Source asm: goldensun/asm/rom_15000/rom_1de5c_c_a.s
+ *
  * Eight instructions against eight, and the divergence is the SMALL-CONSTANT
  * POOL TELL documented in docs/elevation.md:
  *

@@ -1,5 +1,7 @@
 /* Func_80a3d6c @ 0x080a3d6c -- asm/rom_a1000/rom_a1814_c_a_c_c_c_c_c_a.s
  *
+ * Source asm: goldensun/asm/rom_a1000/rom_a1814_c_a_c_c_c_c_c_a.s
+ *
  * Blocker class 2, REGISTER BIRTH ORDER. Twenty instructions, all twenty
  * right, r4 and r5 swapped throughout:
  *

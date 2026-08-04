@@ -1,5 +1,7 @@
 /* Func_8092504 @ 0x08092504 -- asm/rom_8a000/rom_91584_c_c_a_c_c_c_c_c_a_c_c.s
  *
+ * Source asm: goldensun/asm/rom_8a000/rom_91584_c_c_a_c_c_c_c_c_a_c_c.s
+ *
  * A NEW failure mode: the ROM SPILLS a value to the stack that gcc keeps in a
  * register, so the ROM is five instructions LONGER than anything produced
  * here (31 vs 26).

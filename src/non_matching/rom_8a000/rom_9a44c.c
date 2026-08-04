@@ -1,5 +1,7 @@
 /* Func_809a44c @ 0x0809a44c -- asm/rom_8a000/rom_9a44c_a_a.s
  *
+ * Source asm: goldensun/asm/rom_8a000/rom_9a44c_a_a.s
+ *
  * Blocker class 5, SCHEDULING (see docs/elevation.md). 26 of 27 instructions
  * are identical; the actor load is hoisted one instruction:
  *

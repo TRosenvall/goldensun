@@ -1,5 +1,7 @@
 /* Func_8092b54 @ 0x08092b54 -- asm/rom_8a000/rom_92950_a_c_c.s
  *
+ * Source asm: goldensun/asm/rom_8a000/rom_92950_a_c_c.s
+ *
  * NOT SPLIT. The .s still holds both its functions and the linker script is
  * untouched; the split was made, screened, and reverted.
  *

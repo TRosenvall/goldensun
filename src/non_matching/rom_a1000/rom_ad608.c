@@ -1,5 +1,7 @@
 /* Func_80ad608 @ 0x080ad608 -- asm/rom_a1000/rom_ad274_c_a_c.s
  *
+ * Source asm: goldensun/asm/rom_a1000/rom_ad274_c_a_c.s
+ *
  * Blocker class 2 at scale: the ROM holds FOUR values across its calls in a
  * particular arrangement and no formulation here reproduces it. Three were
  * tried and each lands somewhere different:

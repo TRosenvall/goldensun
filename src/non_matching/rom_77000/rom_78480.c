@@ -1,5 +1,7 @@
 /* Func_8078480 @ 0x08078480 -- asm/rom_77000/rom_78414_c_a_a.s
  *
+ * Source asm: goldensun/asm/rom_77000/rom_78414_c_a_a.s
+ *
  * gcc-2.96 FOLDS THE RANGE, the ROM does not.
  *
  * The ROM tests 2, 3, 4, 5 and 9 as five separate compare-and-branch pairs.

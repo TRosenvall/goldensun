@@ -1,5 +1,7 @@
 /* Func_80ab1f4 @ 0x080ab1f4 -- asm/rom_a1000/rom_aa538_c_c_a.s
  *
+ * Source asm: goldensun/asm/rom_a1000/rom_aa538_c_c_a.s
+ *
  * Blocker class 5, SCHEDULING. 18 of 19 instructions match; one pair is
  * swapped:
  *

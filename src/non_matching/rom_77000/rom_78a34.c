@@ -1,5 +1,7 @@
 /* BreakItem @ 0x08078a34 -- asm/rom_77000/rom_78414_c_c_c_a.s
  *
+ * Source asm: goldensun/asm/rom_77000/rom_78414_c_c_c_a.s
+ *
  * ONE INSTRUCTION SHORT, and the one that is left is a known gcc-2.96
  * fingerprint rather than anything about this function.
  *
