@@ -82,6 +82,28 @@ fragments of the message -- it has mangled three commits here:
 **`git checkout` is denied by this project's permission rules** (the pattern
 that blocks branch switching also matches file restores). Use `git restore`.
 
+## What the screen must NOT normalise away
+
+The counterpart to the section below, and the more dangerous direction.
+
+Labels were normalised to `L<n>` in appearance order and the DEFINITIONS were
+then dropped, on the reasoning that their position is implied by branch order.
+It is not. A function can have the same instructions, in the same order, with
+the same normalised branch targets, and still encode a different branch
+DISTANCE because the target sits elsewhere.
+
+`OvlFunc_931_2008360` differed from the ROM by exactly one byte that way, and
+the C behind it was semantically wrong -- a guard that enclosed one statement
+too many. The screen existed to catch that and could not.
+
+Definitions that something branches to are now kept in the stream; ones nothing
+references are still dropped, because gcc leaves those behind after pool
+resolution and the disassembly does not.
+
+**Every other class in this tool reported a correct function as WRONG, costing
+a round. That one reported a wrong function as RIGHT.** When adding a
+normalisation, ask which direction its failure runs in.
+
 ## What the screen has to normalise
 
 Three spellings differ between gcc's output and the ROM's disassembly without

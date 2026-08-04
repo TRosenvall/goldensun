@@ -1,5 +1,5 @@
 /* OvlFunc_956_20081b4  [ovl_7e0928]
- * Source asm: goldensun/asm/overlays/rom_7e0928/ovl_30_a_c_c_a_c.s
+ * Source asm: goldensun/asm/overlays/rom_7e0928/ovl_30_a_c_c_a_a.s
  *
  * Blocker: INTERLEAVED ARGUMENT SET-UP again, but note the direction. Seven
  * instructions against seven:
