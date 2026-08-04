@@ -197,6 +197,7 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_942_2008b68` | `0x02008b68` | — | read | Overlay 942: hide an actor and mark it non-interactive. Split out of asm/overlays/rom_7c6bac/ovl_30_c_c_c.s; the neighbouring parts stay as  |
 | `OvlFunc_943_200b380` | `0x0200b380` | — | read | Split out of that .s; the _a and _c parts stay as assembly and keep their slots in goldensun/overlays/rom_7c7b9c/overlay.ld, so the ROM layo |
 | `OvlFunc_945_2008340` | `0x02008340` | — | read | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script, so the ROM layout does not mov |
+| `OvlFunc_945_200c198` | `0x0200c198` | — | read | Split out of that .s; the sibling part stays as assembly. A staging cutscene: two slots configured, a helper run, a third slot configured, o |
 | `OvlFunc_946_2008cc4` | `0x02008cc4` | — | read | GetEntrances, 6-way form: selects one of 6 per-area tables from the gState halfword at +0x1C0, falling through to the last. THE EARLIER FAMI |
 | `OvlFunc_946_2008ec4` | `0x02008ec4` | — | read | tools/asmfacts.py, not inferred from the function count. GetEntrances, 6-way form: selects one of 6 per-area tables from the gState halfword |
 | `OvlFunc_947_2009440` | `0x02009440` | — | read | tools/asmfacts.py, not inferred from the function count. GetEntrances, 6-way form: selects one of 6 per-area tables from the gState halfword |
@@ -254,4 +255,4 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_974_20081b8` | `0x020081b8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 | `OvlFunc_974_20081d8` | `0x020081d8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 
-219 functions: 38 named, 181 read
+220 functions: 38 named, 182 read

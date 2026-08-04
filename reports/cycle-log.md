@@ -249,3 +249,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-04T00:55:23Z  end     +1 (OvlFunc_924_2008f84); 219 elevated; -O1 confirmed as the declaration lever limit
 2026-08-04T00:57:50Z  start   check parked functions against the -O1 TU list
 2026-08-04T01:00:24Z  end     +1 (OvlFunc_945_200c198); 220 elevated
+2026-08-04T01:02:45Z  start   more call-dense candidates
+2026-08-04T01:06:09Z  end     +1 (OvlFunc_957_200b518); 221 elevated
