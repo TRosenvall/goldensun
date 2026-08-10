@@ -255,3 +255,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-04T05:12:58Z  start   batch-26 report due; 258 elevated
 2026-08-04T05:17:34Z  end     batch-26 published (5 fns); 258 elevated; session closed at user request
 2026-08-04T05:19:00Z  halt    cron 97b346a1 deleted; user needs tokens for another project
+2026-08-10T21:24:30Z  start   resumed; re-armed loop
+2026-08-10T21:28:30Z  end     +2 (OvlFunc_934_20096f0, OvlFunc_956_2008a44); 260 elevated

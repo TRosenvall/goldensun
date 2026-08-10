@@ -150,7 +150,27 @@ def has_arg_interleave(body):
     return False
 
 
+def parked_names():
+    """Functions already parked, so they are not offered again as candidates.
+
+    Without this the top of the list fills up with functions that have already
+    been attempted and characterised -- four of the first five rows on the first
+    run after a break, each costing a read to recognise. The parked note is the
+    place to go for those, not the candidate list.
+    """
+    out = set()
+    for p in glob.glob(os.path.join(ROOT, "src/non_matching/**/*.c"),
+                       recursive=True):
+        txt = open(p, errors="replace").read()
+        out.update(re.findall(r"\b((?:Ovl)?Func_\w+|[A-Z]\w+)\s*\(", txt))
+        m = re.match(r"/\*\s*(\S+)", txt)
+        if m:
+            out.add(m.group(1))
+    return out
+
+
 def scan(whole_file, min_calls, min_insn, max_insn, allow_repeat):
+    skip = parked_names()
     rows = []
     for p in sorted(glob.glob(os.path.join(ROOT, "asm/**/*.s"), recursive=True)):
         rel = os.path.relpath(p, ROOT)
@@ -164,6 +184,8 @@ def scan(whole_file, min_calls, min_insn, max_insn, allow_repeat):
             name, body = m.group(1), m.group(2)
             insn = len([l for l in body.split("\n") if l.startswith("\t")])
             if not (min_insn <= insn <= max_insn):
+                continue
+            if name in skip:
                 continue
             calls = body.count("\tbl\t")
             if calls < min_calls or "_call_via" in body or has_loop(body):
