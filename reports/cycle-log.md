@@ -259,3 +259,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-10T21:28:30Z  end     +2 (OvlFunc_934_20096f0, OvlFunc_956_2008a44); 260 elevated
 2026-08-10T21:30:54Z  start   cycle
 2026-08-10T21:32:50Z  end     +2 (OvlFunc_956_200858c, OvlFunc_883_200da94); 262 elevated
+2026-08-10T21:35:09Z  start   cycle
+2026-08-10T21:38:18Z  end     +1 (OvlFunc_959_2008b4c); park 2009750; 263 elevated
