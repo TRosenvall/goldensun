@@ -71,6 +71,42 @@ SRC = re.compile(r"Source asm:\s*goldensun/(\S+\.s)")
 HEAD = re.compile(r"^\s+XX (\S+)\s+\(rom (\d+) lines, ours (\d+)")
 DIFF = re.compile(r"^\s+-> rom (.*?)\s{2,}ours (.*)$")
 LABEL = re.compile(r"^L\d+:$")
+# a bare register operand -- these differing is ordinary allocation noise
+REG = re.compile(r"^(r\d+|sp|lr|pc)$")
+
+
+def operand_mismatch(a, b):
+    """True if two instructions share a mnemonic but differ in a NON-register operand.
+
+    That means the C names a different constant or a different symbol than the
+    ROM does, which is a bug in the source rather than a codegen difference.
+
+    Six parked functions have now been found this way, three of them in one
+    session, all previously filed as "logic faithful" or "reg-alloc divergence":
+
+      OvlFunc_911_20081ac   compared against _AREA_38, ROM wants 0x26
+      HeightTile_7          index written param_2 * 16 + param_3, ROM has them
+                            transposed
+      OvlFunc_907_20080dc   TWO wrong symbols -- a made-up SpecialExitTag for an
+                            area id, and a .L label where the ROM returns a real
+                            global
+
+    A wrong constant produces a well-formed single-instruction diff that reads
+    exactly like allocation noise, which is why they survived so long. Registers
+    are deliberately excluded: r3-versus-r4 is the noise this is trying to see
+    past.
+    """
+    ta, tb = a.split(None, 1), b.split(None, 1)
+    if len(ta) < 2 or len(tb) < 2 or ta[0] != tb[0]:
+        return None
+    oa = [x.strip() for x in ta[1].replace("[", "").replace("]", "").split(",")]
+    ob = [x.strip() for x in tb[1].replace("[", "").replace("]", "").split(",")]
+    if len(oa) != len(ob):
+        return None
+    for x, y in zip(oa, ob):
+        if x != y and not (REG.match(x) and REG.match(y)):
+            return (x, y)
+    return None
 
 
 def audit(path, ref):
@@ -82,17 +118,39 @@ def audit(path, ref):
     h = HEAD.search(out)
     if not h:
         return None
+    rom_text, our_text = [], []
+    for line in out.split("\n"):
+        m = re.match(r"^\s+(?:->)?\s*rom (.*?)\s{2,}ours (.*)$", line)
+        if m:
+            rom_text.append(m.group(1).strip())
+            our_text.append(m.group(2).strip())
+    rom_text, our_text = " | ".join(rom_text), " | ".join(our_text)
     same_len = h.group(2) == h.group(3)
-    labels = []
+    labels, operands = [], []
     for line in out.split("\n"):
         m = DIFF.match(line)
-        if m and (LABEL.match(m.group(1).strip()) or LABEL.match(m.group(2).strip())):
-            labels.append((m.group(1).strip(), m.group(2).strip()))
-    return h.group(1), same_len, labels
+        if not m:
+            continue
+        a, b = m.group(1).strip(), m.group(2).strip()
+        if LABEL.match(a) or LABEL.match(b):
+            labels.append((a, b))
+            continue
+        om = operand_mismatch(a, b)
+        # A TRANSPOSITION also produces differing operands at the same index --
+        # both instructions exist on both sides, just swapped. That is ordinary
+        # scheduling, not a wrong constant, and it was 6 of the first 8 hits.
+        # Only report an operand that appears NOWHERE on the other side.
+        # NOTE the crossing: the ROM's operand is checked against OUR stream and
+        # vice versa. Testing each against the stream it came from is vacuously
+        # true and makes this report nothing, which looks exactly like a filter
+        # that is working.
+        if om and (om[0] not in our_text or om[1] not in rom_text):
+            operands.append((a, b, om))
+    return h.group(1), same_len, labels, operands
 
 
 def main():
-    strong, weak, n = [], [], 0
+    strong, weak, opnd, n = [], [], [], 0
     for p in sorted(glob.glob(os.path.join(ROOT, "src/non_matching/**/*.c"),
                               recursive=True)):
         rel = os.path.relpath(p, ROOT)
@@ -101,11 +159,22 @@ def main():
             continue
         n += 1
         res = audit(rel, m.group(1))
-        if not res or not res[2]:
+        if not res:
             continue
-        (strong if res[1] else weak).append((rel, res[0], res[2]))
+        if res[3]:
+            opnd.append((rel, res[0], res[3]))
+        if res[2]:
+            (strong if res[1] else weak).append((rel, res[0], res[2]))
 
     print(f"screened {n} parked files\n")
+    print("=== OPERAND VALUE DIFFERS -- likely a bug in the C, check first ===")
+    for rel, fn, ops in opnd:
+        print(f"  {fn}  {rel}")
+        for a, b, (x, y) in ops[:2]:
+            print(f"      rom {a!r}\n      ours {b!r}     ({x} vs {y})")
+    if not opnd:
+        print("  (none)")
+    print()
     print("=== SAME LENGTH, label displaced -- re-read these first ===")
     for rel, fn, labs in strong:
         print(f"  {fn}  {rel}")
