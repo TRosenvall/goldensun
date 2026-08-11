@@ -281,3 +281,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-11T05:53:36Z  end     +0; 20089dc family 9->4 differ (5 members)
 2026-08-11T05:55:53Z  start   cycle
 2026-08-11T05:58:05Z  end     +2 (926_200a508, 937_20081fc); 276 elevated
+2026-08-11T06:00:26Z  start   batch-29 due
+2026-08-11T06:05:45Z  end     batch-29 published (5 fns); 276 elevated
