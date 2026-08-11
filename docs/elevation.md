@@ -455,6 +455,38 @@ pointer through a scratch register before moving it to a callee-saved one
 (`rom_c00d8.c`, `rom_5868.c`, `rom_91c44.c`), and it fails identically in all
 three. Not worth a fourth attempt without a new idea.
 
+## The stack-arg-pair lever: name BOTH, adjacent to the call
+
+Where a call takes two stack arguments, the ROM materialises both into separate
+registers before storing either; gcc reuses one register and interleaves each
+build with its own store:
+
+    rom    mov r3, #0x2d / mov r2, #0x2b / str r3, [sp] / str r2, [sp, #4]
+    ours   mov r3, #0x2d / str r3, [sp]  / mov r3, #0x2b / str r3, [sp, #4]
+
+**Name both values as locals, assigned immediately before the call, in the
+order the ROM stores them.** Three steps, each of which matters:
+
+| | |
+|---|---|
+| literals at the call site | 3 positions differ |
+| the SHARED value named (it is also an earlier argument) | 2 differ |
+| both named, first-stored assigned first | match |
+
+The middle step is the non-obvious one — a value that appears both as a register
+argument and as a stack argument has to be named once and used twice, and that
+is what frees the register the other stack value needs.
+
+**Adjacency is the whole trick.** `OvlFunc_932_20084cc` was parked on this class
+having tried named locals and got *thirteen* differing positions, worse than
+literals — because the assignments sat at the top of the function with a call
+between them and their use, so gcc hoisted both materialisations above it.
+Making values live EARLIER is not the same as making them live SIMULTANEOUSLY.
+
+And note the class is **not** "has stack arguments". Several functions pass
+arguments on the stack and need no lever, because the ROM fills the slots first
+and then the registers, which is what gcc does anyway.
+
 ## Splitting: when the refusal is about the FILE, not the function
 
 `tools/split_s.py` refuses when a local label would cross the boundary it is
