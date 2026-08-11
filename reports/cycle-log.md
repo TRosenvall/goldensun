@@ -263,3 +263,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-10T21:38:18Z  end     +1 (OvlFunc_959_2008b4c); park 2009750; 263 elevated
 2026-08-11T04:55:12Z  start   resumed; caffeinate on, loop re-armed; batch-27 due
 2026-08-11T05:02:41Z  end     batch-27 published (5 fns); 263 elevated
+2026-08-11T05:05:18Z  start   cycle
+2026-08-11T05:08:00Z  end     +1 (OvlFunc_911_2008230); park 20084cc; 264 elevated

@@ -38,33 +38,3 @@
 	pop	{r1}
 	bx	r1
 .func_end OvlFunc_911_20081dc
-
-@ Counter: shop type 0x10 via UI_Sanctum, opened only from inside the facing arc.
-@ Outside it the attendant speaks instead -- line 0x16b3.
-.thumb_func_start OvlFunc_911_2008230
-	push	{r5, lr}
-	mov	r0, #0
-	bl	__MapActor_GetActor
-	ldrh	r5, [r0, #6]
-	bl	__CutsceneStart
-	ldr	r3, =0xffff5fff
-	add	r5, r3
-	ldr	r3, =0x3ffe
-	cmp	r5, r3
-	bhi	.L250
-	mov	r0, #0x10
-	bl	__UI_Sanctum
-	b	.L25e
-.L250:
-	ldr	r0, =0x16b3
-	bl	__MessageID
-	mov	r0, #0x10
-	mov	r1, #0
-	bl	__Func_8093054
-.L25e:
-	bl	__CutsceneEnd
-	pop	{r5}
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_911_2008230
-
