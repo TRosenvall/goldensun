@@ -1,36 +1,5 @@
 	.include "macros.inc"
 
-@ ShopCounter
-@ Takes no arguments. Same facing test at a different offset -- `facing +
-@ 0x5FFF` -- so this counter faces the opposite way. Inside the arc it opens
-@ shop type 8 through UI_Sanctum; outside it, line 0x1A8F from slot 8.
-.thumb_func_start OvlFunc_937_20081fc
-	push	{lr}
-	mov	r0, #0
-	bl	__MapActor_GetActor
-	ldr	r2, =0x5fff
-	ldrh	r3, [r0, #6]
-	add	r3, r2
-	ldr	r2, =0x3ffe0000
-	lsl	r3, #16
-	cmp	r3, r2
-	bhi	.L21a
-	mov	r0, #8
-	bl	__UI_Sanctum
-	b	.L230
-.L21a:
-	bl	__CutsceneStart
-	ldr	r0, =0x1a8f
-	bl	__MessageID
-	mov	r0, #8
-	mov	r1, #0
-	bl	__ActorMessage
-	bl	__CutsceneEnd
-.L230:
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_937_20081fc
-
 @ ClearSlotFlags
 @ Takes no arguments. Walks slots from 8 upward and zeroes byte +0x55 on each
 @ live entity, resetting a per-entity interaction flag across the whole map.

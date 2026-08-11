@@ -279,3 +279,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-11T05:48:54Z  end     +0; audit finds wrong-operand parks; 20082cc 13->10 differ
 2026-08-11T05:51:16Z  start   cycle
 2026-08-11T05:53:36Z  end     +0; 20089dc family 9->4 differ (5 members)
+2026-08-11T05:55:53Z  start   cycle
+2026-08-11T05:58:05Z  end     +2 (926_200a508, 937_20081fc); 276 elevated
