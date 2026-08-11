@@ -273,3 +273,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-11T05:28:54Z  end     batch-28 published (8 fns); 271 elevated
 2026-08-11T05:31:20Z  start   cycle
 2026-08-11T05:37:13Z  end     +2 (20081ac, HeightTile_7 unparked); 273 elevated
+2026-08-11T05:39:37Z  start   cycle
+2026-08-11T05:42:50Z  end     +1 (OvlFunc_907_20080dc unparked); 274 elevated
