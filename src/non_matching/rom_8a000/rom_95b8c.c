@@ -7,6 +7,18 @@
  *   `ldr r3,[r3,r1]` (computed index = base, .L9f0a4 ptr = offset); candidate emits
  *   `ldr r3,[r1,r3]`. Restructure so the index expression is the pointer base, e.g.
  *   `*(u32*)((((iwram_3001800>>2)&1)<<2) + (char*)L9f0a4)`; try variants.
+ *
+ * THAT SUGGESTION WAS TRIED AND IS WRONG (batch 29). Writing the index as the
+ * pointer base gives THREE differing positions instead of one -- worse than the
+ * form below. So do the two other obvious variants:
+ *
+ *   the index in its own named local, then `L9f0a4[i]`      3 differ
+ *   `*(u32 *)(i + L9f0a4)` with L9f0a4 typed unsigned char  3 differ
+ *   the array-index form below                              1 differ
+ *
+ * All three of the restructurings move the whole expression rather than just
+ * the operand order, which is what makes them worse. The array-index form stays
+ * the closest and the one instruction is still open.
  */
 extern unsigned int iwram_3001800;
 extern unsigned int L9f0a4[] __asm__(".L9f0a4");

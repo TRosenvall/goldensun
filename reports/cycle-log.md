@@ -271,3 +271,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-11T05:21:24Z  end     +4 (stack-arg-pair family unparked); 271 elevated
 2026-08-11T05:23:46Z  start   batch-28 due
 2026-08-11T05:28:54Z  end     batch-28 published (8 fns); 271 elevated
+2026-08-11T05:31:20Z  start   cycle
+2026-08-11T05:37:13Z  end     +2 (20081ac, HeightTile_7 unparked); 273 elevated
