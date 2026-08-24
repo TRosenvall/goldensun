@@ -323,3 +323,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-24T22:17:36Z  end     +2 (921_2008a3c, 939_20088ec); 338 elevated; 1 parked (lever loop limit)
 2026-08-24T22:22:30Z  end     +2 (945_2008670, 943_2008c28); 340 elevated; lever widened to mov/neg
 2026-08-24T22:27:11Z  end     +3 (948_2009a9c, 948_2009ca0, 948_2009ccc); 343 elevated
+2026-08-24T22:30:52Z  batch   batch-39 published (7 functions); clean build verified
