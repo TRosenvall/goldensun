@@ -53,8 +53,17 @@ offset because the 8-byte outgoing slot is at `sp`, which falls out of the struc
 being an *argument* rather than anything the source arranges.
 
 `OvlFunc_914_20089f8` had been passed over **twice** as "complex struct
-handling" before a twin made the shape obvious. Sweeping for it finds **53
-functions** in `asm/` still carrying this shape.
+handling" before a twin made the shape obvious.
+
+**Correction to the sweep figure.** This report first said 53 functions carry
+the shape. That count came from grepping for `sub sp, #N` with an
+`ldmia`/`stmia` pair, which also matches two unrelated things: DMA register
+writes (a lone `stmia` to `REG_DMA3SAD`) and table walks that `ldmia` into
+hardware registers. The signature that actually identifies an aggregate argument
+is the copy DESTINATION being the outgoing stack slot — `mov rD, sp` followed by
+`stmia rD!`. By that test there are **15**, of which **10** have no inline
+literal pool and are therefore reachable. The larger number was a grep, not a
+finding.
 
 ## Functions
 
