@@ -40,6 +40,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-30](reports/batch-30.md) | 5 | ready to port |
 | [batch-31](reports/batch-31.md) | 6 | ready to port |
 | [batch-32](reports/batch-32.md) | 9 | ready to port |
+| [batch-33](reports/batch-33.md) | 5 | ready to port |
 
 Every batch is verified the same way, from a clean build:
 
