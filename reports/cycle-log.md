@@ -321,3 +321,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-24T21:51:34Z  end     +7 fakematched (all previously parked); find_construct.py; volatile ordering finding; 336 elevated
 2026-08-24T22:11:25Z  batch   batch-38 published (10 functions, 7 fakematched); clean build verified
 2026-08-24T22:17:36Z  end     +2 (921_2008a3c, 939_20088ec); 338 elevated; 1 parked (lever loop limit)
+2026-08-24T22:22:30Z  end     +2 (945_2008670, 943_2008c28); 340 elevated; lever widened to mov/neg

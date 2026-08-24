@@ -635,6 +635,12 @@ values adjacent to the call, which is the stack-arg-pair lever and is the exact
 OPPOSITE of what is needed here. A previous investigation concluded "the C is
 not the variable". It was looking in the right place with the wrong axis.
 
+**IT IS NOT ONLY ABOUT SHIFTED CONSTANTS.** Any two-instruction materialisation
+gets split the same way. `OvlFunc_943_2008c28` passes -0xa, which gcc builds as
+`mov r2,#0xa / neg r2,r2`, and the ROM splits that pair around the other two
+arguments exactly as it splits a `mov`/`lsl` pair. The same lever fixes it. Read
+the rule as "a constant that takes two instructions to build", not "a shift".
+
 **AND IT DOES NOT REACH INSIDE A LOOP BODY.** The assignment has to be in a
 block that dominates the call, and in a loop every such block is also reachable
 across the BACK EDGE -- so the value is live around the loop and gcc keeps it in

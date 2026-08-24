@@ -47,6 +47,11 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 FUNC = re.compile(r"\.thumb_func_start\s+(\S+)[^\n]*\n(.*?)\.func_end", re.S)
 MOVIMM = re.compile(r"^\tmov\t(r\d+), #")
 LSL = re.compile(r"^\tlsl\t(r\d+),")
+# ANY two-instruction materialisation gets split, not just a shift.
+# OvlFunc_943_2008c28 passes -0xa, which gcc builds as `mov r2,#0xa /
+# neg r2,r2`, and the ROM splits that pair around the other arguments the
+# same way. Missing this made the tool under-report; both forms count.
+NEG = re.compile(r"^\tneg\t(r\d+), \1$")
 MOVR0 = re.compile(r"^\tmov\tr0,")
 POOLARG = re.compile(r"^\tldr\t(r[0-3]), =")
 ARGW = re.compile(r"^\t(?:mov|ldr|lsl)\t(r[0-3])\b")
@@ -65,7 +70,7 @@ def sites(lines):
         if m:
             pending[m.group(1)] = None
             continue
-        m = LSL.match(l)
+        m = LSL.match(l) or NEG.match(l)
         if m and pending.get(m.group(1)) is not None:
             out.append(i)
             pending.pop(m.group(1))
