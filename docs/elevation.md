@@ -470,6 +470,29 @@ pointer through a scratch register before moving it to a callee-saved one
 (`rom_c00d8.c`, `rom_5868.c`, `rom_91c44.c`), and it fails identically in all
 three. Not worth a fourth attempt without a new idea.
 
+## Pool loads come first, and no lever moves them
+
+Within one argument block gcc-2.96 emits every literal-pool load before any
+`mov`, whatever order the arguments are written in. The ROM emits them in
+source order. It shows up in two disguises that look like different problems:
+
+    rom    mov r1, #0x66 / ldr r2, =0x4b6 / mov r0, #0
+    ours   ldr r2, =0x4b6 / mov r1, #0x66 / mov r0, #0
+
+    rom    mov r0, r5 / ldr r1, =0xcccc / ldr r2, =0x6666
+    ours   ldr r1, =0xcccc / ldr r2, =0x6666 / mov r0, r5
+
+The second reads as a misplaced `r0` and so looks like the declaration lever's
+class. It is not. **Before spending screens on the declaration lever, check
+whether the displaced operands are exactly the pooled ones.** If they are, the
+lever will not reach it -- neither will any scheduling flag, nor naming the
+values as locals adjacent to the call.
+
+`src/non_matching/overlays/pool_load_first.c` has the full negative result and
+the four members. The only construct known to reach this shape is register
+pinning with inline asm, which is what `OvlFunc_883_2008fbc` does in
+`fakematch.txt`.
+
 ## The stack-arg-pair lever: name BOTH, adjacent to the call
 
 Where a call takes two stack arguments, the ROM materialises both into separate

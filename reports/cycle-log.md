@@ -301,3 +301,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-24T16:37:23Z  end     +2 (898_2008f3c, 898_2008f64); 284 elevated
 2026-08-24T16:48:07Z  end     +3 (935_2008410, 959_200cd50, 913_20089fc); 287 elevated; 1 parked
 2026-08-24T16:53:10Z  batch   batch-31 published (6 functions); clean build verified
+2026-08-24T17:05:43Z  end     +4 (895_2008200, 952_20080c8, 952_2008524, 952_2008564); 291 elevated; 5 parked
