@@ -65,6 +65,37 @@
  * earlier and the scheduler is what puts it back. A next attempt should look at
  * why gcc believes the load cannot alias the stores, rather than at scheduling.
  * The compiler source is in the build image; see docs/elevation.md.
+ *
+ * CORRECTED, batch 41. Last round's note said gcc "proved the two cannot alias"
+ * and suggested reading the alias code. That was the wrong diagnosis, and the
+ * full listing shows why -- look at WHERE the load lands, not just that it moved:
+ *
+ *     rom    ldr r3,[r0,#0x1c] / add r3,r2 / str r3,[r0,#0x1c] / ldr r1,[r0,#0x50]
+ *     ours   ldr r3,[r0,#0x1c] / ldr r1,[r0,#0x50] / add r3,r2 / str r3,[r0,#0x1c]
+ *
+ * gcc drops the sprite load into the slot between a load and its use. That is
+ * the POST-RELOAD SCHEDULER filling a load-use stall on ARM7TDMI, not an
+ * aliasing decision -- and the ROM leaves the slot empty.
+ *
+ * Which also explains the flag result that looked backwards: -fno-schedule-insns2
+ * DOES fix this instruction, and goes to 8 because turning the scheduler off
+ * moves seven others. So the function needs the scheduler ON everywhere except
+ * this one slot, which no flag expresses.
+ *
+ * Tried, on the theory that giving the scheduler a cheaper instruction for the
+ * slot would leave the load alone:
+ *
+ *   the goalFacing pointer walk hoisted above the sprite load      7 (worse)
+ *   the same with the halfword read in its own local               5 (worse)
+ *   the add-assign split into a read, an add and a store           2 (no change)
+ *
+ * Every arrangement that gives the scheduler something else to move makes it
+ * move that instead, and it is always wrong. What would settle this is the
+ * scheduler's cost model -- haifa-sched.c and the arm machine description are
+ * both in the build image -- specifically whether the ROM's build had
+ * -fno-schedule-insns2 for this translation unit only. That is checkable
+ * against the other functions in the same .s: if they need the scheduler ON,
+ * the flag is not the answer and this is a genuine compiler difference.
  */
 #include "actor.h"
 
