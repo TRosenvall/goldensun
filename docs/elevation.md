@@ -551,6 +551,39 @@ variant tried afterwards, so it could not rank them.
 which does fall as a candidate improves. Default to it above about fifty
 instructions.
 
+## THE COMPILER'S SOURCE IS IN THE BUILD IMAGE
+
+`/opt/camelot-gcc/gcc-2.96/gcc/` -- 150 `.c` files, the actual 2.96 tree the
+`cc1` we run was built from. This was found in batch 38, after thirty-seven
+batches of treating gcc as a black box.
+
+**Every blocker class in this document was characterised by probing.** That is
+the expensive way. A question like "why does a `volatile` local defer the shift"
+took twelve hand-written probes and produced a wrong conclusion; the answer is
+four lines of `expand_decl` in `stmt.c` --
+
+    && ! TREE_THIS_VOLATILE (decl)
+    && ! TREE_ADDRESSABLE (decl)
+    && (DECL_REGISTER (decl) || optimize)
+
+-- which says a `volatile` local never gets a register at all, so its effect on
+scheduling is just a consequence of the operand being a MEM. Ten minutes of
+reading against a morning of probing, and the probing got it wrong.
+
+The passes worth knowing where to find:
+
+| question | file |
+|---|---|
+| register or stack slot for a local | `stmt.c`, `expand_decl` |
+| which pseudo gets which hard register | `local-alloc.c`, `global.c` |
+| rematerialise or keep alive | `local-alloc.c`, `reload1.c` |
+| argument set-up order | `calls.c`, `expand_call` |
+| instruction ordering | `haifa-sched.c` |
+| constant folding into a consumer | `combine.c` |
+
+**Read the pass before probing it.** Probes are for confirming a mechanism you
+have already found, not for discovering one.
+
 ## THE BASIC-BLOCK LEVER: assign the constant where the ROM cannot keep it
 
 **This retires two blocker classes**, one of which had been open for thirty-six

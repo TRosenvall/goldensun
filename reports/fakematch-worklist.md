@@ -47,16 +47,35 @@ inline asm:**
 It is unusable **only** because it also forces a stack slot — `sub sp, #4 /
 str r1, [sp] / add sp, #4`, three instructions the ROM does not have.
 
-That is worth stating precisely, because it changes what the open question is.
-It is not *"can plain C produce this ordering"* — it can. It is **"what gives a
-local `volatile`'s effect on scheduling without its effect on storage"** — a
-register-level volatile, which is exactly what the `__asm__ volatile` barrier in
-these files is standing in for.
+### …and it is a dead end. Corrected by reading the compiler.
 
-Somewhere in gcc-2.96's handling of `volatile` locals, the decision to allocate
-memory and the decision not to fold the shift into its consumer are separable.
-A later pass should start by reading that code path rather than by trying more
-C.
+The gcc-2.96 **source** is in the build image, at
+`/opt/camelot-gcc/gcc-2.96/gcc/`. `expand_decl` in `stmt.c` decides whether a
+local gets a register or a stack slot:
+
+    else if (DECL_MODE (decl) != BLKmode
+             && !(flag_float_store && TREE_CODE (type) == REAL_TYPE)
+             && ! TREE_THIS_VOLATILE (decl)          <-- here
+             && ! TREE_ADDRESSABLE (decl)
+             && (DECL_REGISTER (decl) || optimize)
+             && ! current_function_check_memory_usage)
+      { /* Automatic variable that can go in a register. */ }
+
+**A `volatile` local never gets a register.** It is forced to memory at
+declaration expansion, before any optimisation pass runs. So the two effects are
+not separable: the ordering we saw is a *consequence* of the operand being a
+`MEM`, not an independent scheduling property.
+
+I wrote this section as an open lead before checking. It is not one. The
+question a later pass should ask instead is the one the whole class actually
+turns on:
+
+> **What makes gcc-2.96 rematerialise a register-allocated constant inside a
+> single basic block, rather than computing it once?**
+
+That is the same question `OvlFunc_882_200c5b8` and the `-1` triple in
+`src/non_matching/ovl_787e04/20093e4.c` turn on, and it is now answerable by
+reading `local-alloc.c` and `reload1.c` rather than by probing.
 
 ## The list
 
