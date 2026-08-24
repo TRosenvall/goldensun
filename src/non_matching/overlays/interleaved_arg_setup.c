@@ -1,4 +1,29 @@
-/* FOUR overlay functions, one shared blocker. A seventh class.
+/* SOLVED FOR FUNCTIONS WITH A BRANCH -- see reports/arg-interleave.md.
+ *
+ * THE LEVER: assign the shifted constant to a named local in a DIFFERENT BASIC
+ * BLOCK from the call. Crossing a block boundary stops gcc keeping the value in
+ * a register; it rematerialises at the call, and its rebuild of a
+ * two-instruction constant is the split pair with the other argument in the gap.
+ *
+ * Five functions were matched with it in batch 37, including one from the
+ * sibling pool-load-first class -- which establishes that the two classes are
+ * one mechanism seen from two angles.
+ *
+ * THE FOUR MEMBERS BELOW ARE STILL PARKED, and the reason is worth reading
+ * before anyone re-attempts them: ALL FOUR ARE STRAIGHT-LINE. There is no
+ * basic-block boundary to put between the assignment and the call, so the lever
+ * has nothing to work with. A call does NOT create a boundary; only a branch
+ * does.
+ *
+ * Written with a named local anyway, a straight-line member gets WORSE -- gcc
+ * keeps the value in a callee-saved register and pays a push/pop for it.
+ * OvlFunc_908_20081a8 goes from 2 differing instructions to 6.
+ *
+ * What these four need is a way to make gcc rematerialise a value inside a
+ * single basic block. That is the same thing OvlFunc_882_200c5b8 needs, and
+ * the same thing the `-1` triple in src/non_matching/ovl_787e04/20093e4.c
+ * needs. Three parked shapes, one missing construct.
+ *
  *
  *   OvlFunc_967_2008030  asm/overlays/rom_7f21b8/ovl_30_a.s
  *   OvlFunc_973_200804c  asm/overlays/rom_7fc720/ovl_30_c_a_c_a_a.s

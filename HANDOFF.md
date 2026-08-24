@@ -44,6 +44,14 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-34](reports/batch-34.md) | 5 | ready to port |
 | [batch-35](reports/batch-35.md) | 8 | ready to port |
 | [batch-36](reports/batch-36.md) | 7 | ready to port |
+| [batch-37](reports/batch-37.md) | 5 | ready to port |
+
+**[Cracking arg-interleave](reports/arg-interleave.md)** retires two blocker
+classes that stood for 36 batches, and unblocks 417 functions. The lever is one
+line of C: assign an argument's constant to a local in a DIFFERENT BASIC BLOCK
+from the call. Read it before attempting anything with a displaced argument --
+and read how it was found, because the method (search gcc's own output rather
+than generating variants) applies to the classes that are still open.
 
 **[Do large functions break the method?](reports/large-functions.md)** is not a
 batch -- it is an experiment, and it is the most important document here for

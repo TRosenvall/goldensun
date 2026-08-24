@@ -551,7 +551,66 @@ variant tried afterwards, so it could not rank them.
 which does fall as a candidate improves. Default to it above about fifty
 instructions.
 
-## Pool loads come first, and no lever moves them
+## THE BASIC-BLOCK LEVER: assign the constant where the ROM cannot keep it
+
+**This retires two blocker classes**, one of which had been open for thirty-six
+batches. Read it before attempting anything with a displaced argument.
+
+Both classes are the same mechanism seen from two angles:
+
+    arg-interleave      rom  mov r1,#imm / mov r0,#imm / lsl r1,#n
+                        ours mov r1,#imm / lsl r1,#n   / mov r0,#imm
+
+    pool-loads-first    rom  mov r0, r5 / ldr r1,=X / ldr r2,=Y
+                        ours ldr r1,=X / ldr r2,=Y / mov r0, r5
+
+In both, the ROM's expensive operand is materialised in TWO PIECES with another
+argument scheduled into the gap, and gcc emits it in one piece.
+
+**The trigger is not at the call site at all. It is where the value is
+assigned:**
+
+| the C | what gcc does |
+|---|---|
+| literal at the call site | materialises in one piece, contiguous |
+| named local, SAME basic block as the call | keeps it in a callee-saved register |
+| named local, assigned in a **DIFFERENT basic block** | **rematerialises at the call, split** |
+
+Crossing a basic-block boundary is what stops gcc keeping the value in a
+register. It then has to rebuild it at the call, and its rebuild of a
+two-instruction constant is the split pair, with the other argument scheduled
+into the gap. That is the ROM's shape.
+
+    int x;
+    x = 0x88 << 18;          /* assigned here */
+    a = __MapActor_GetActor(8);
+    if (a != 0)              /* <-- a basic-block boundary */
+        ...;
+    __Func_8012078(0, x, ...);   /* used here: different block */
+
+Either arrangement works: assign before an `if` and use INSIDE it, or assign
+before an `if`/`else` and use AFTER the join. A call does NOT create a boundary
+-- only a branch does.
+
+**WHAT DOES NOT WORK, and why the class survived so long.** Every lever the tree
+had was tried against it and all of them are call-site properties: the callee
+declared, undeclared, with widened parameters, with eight different return types
+on the preceding callee; `-fno-schedule-insns`, `-fno-schedule-insns2`,
+`-fno-peephole`, `-fno-force-mem`, `-fno-caller-saves`,
+`-fno-expensive-optimizations`, `-fno-cse-follow-jumps`, `-O1`; and naming the
+values adjacent to the call, which is the stack-arg-pair lever and is the exact
+OPPOSITE of what is needed here. A previous investigation concluded "the C is
+not the variable". It was looking in the right place with the wrong axis.
+
+**THE LIMIT IS REAL. A straight-line function cannot use this**, because there
+is no boundary to put between the assignment and the call. `OvlFunc_882_20083cc`
+written this way goes from two differing instructions to four. Of 1,861 remaining
+functions carrying one of the two shapes, **417 have a basic-block boundary
+before their first site** and are reachable; the rest stay parked.
+
+See reports/arg-interleave.md for how it was found.
+
+## Pool loads come first, but the basic-block lever moves them
 
 Within one argument block gcc-2.96 emits every literal-pool load before any
 `mov`, whatever order the arguments are written in. The ROM emits them in

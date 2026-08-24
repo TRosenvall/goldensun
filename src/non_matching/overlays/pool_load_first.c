@@ -1,4 +1,23 @@
-/* FOUR overlay functions, one shared blocker. An eighth class.
+/* SOLVED FOR FUNCTIONS WITH A BRANCH. OvlFunc_969_2009280 was unparked in
+ * batch 37 by the basic-block lever -- assign the pooled values to named locals
+ * in a DIFFERENT BASIC BLOCK from the call and gcc rematerialises them there,
+ * after `mov r0` instead of before it. See reports/arg-interleave.md.
+ *
+ * That also settled something this file got wrong: this is NOT a separate class
+ * from arg-interleave. Both are gcc emitting an expensive operand in one piece
+ * where the ROM emits it in two with another argument in the gap; one displaces
+ * a shift and the other a pool load, and the same lever moves both.
+ *
+ * THE THREE REMAINING MEMBERS ARE STRAIGHT-LINE and stay parked. There is no
+ * block boundary to put between the assignment and the call. OvlFunc_882_20083cc
+ * written with a named local goes from 2 differing instructions to 4.
+ *
+ * The note below is kept as written, including its speculation about
+ * fakematches, because the negative results in it are still valid -- they are
+ * what ruled out the whole call-site axis and made it clear the answer had to be
+ * somewhere else.
+ *
+ * THREE overlay functions and one now elevated, one shared blocker. An eighth class.
  *
  *   OvlFunc_882_2008398  asm/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_c_c_a.s
  *   OvlFunc_882_20083cc  asm/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_c_c_a.s
