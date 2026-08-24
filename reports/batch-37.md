@@ -12,7 +12,7 @@ linked overlay ELF with `nm`.
 ## Read [reports/arg-interleave.md](arg-interleave.md) first
 
 These five are the verification of a lever, not the point of the batch. The
-lever retires **two** blocker classes and unblocks **417 functions**.
+lever retires **two** blocker classes and unblocks **516 functions**.
 
 In one line: **assign an argument's constant to a named local in a DIFFERENT
 BASIC BLOCK from the call.** Crossing a block boundary stops gcc-2.96 keeping
@@ -58,10 +58,14 @@ between the assignment and the call, and writing it that way makes things
 `OvlFunc_908_20081a8` goes from 2 differing instructions to 6;
 `OvlFunc_882_20083cc` from 2 to 4.
 
-Of 1,861 remaining functions carrying either shape, **417 have a basic-block
-boundary before their first site**: 85 of those ≤80 instructions, 150 of 81–160,
-130 of 161–400, and 52 of the 241 over 400. The rest stay parked, and their
-notes now say why so nobody re-attempts them with this.
+Of 1,025 remaining functions carrying either shape, **516 have a basic-block
+boundary before their first site** and 509 are straight-line. The straight-line
+ones stay parked, and their notes now say why so nobody re-attempts them.
+
+*(Corrected after publication: the first version of the site detector counted a
+store's value as argument setup -- `mov r3,#0 / strh r3,[r0,#6]` before an
+unrelated pooled load -- which inflated the population to 1,861 and the
+reachable count to 417. The ratio was right; the absolute numbers were not.)*
 
 ## What the straight-line cases still need
 

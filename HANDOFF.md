@@ -47,7 +47,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-37](reports/batch-37.md) | 5 | ready to port |
 
 **[Cracking arg-interleave](reports/arg-interleave.md)** retires two blocker
-classes that stood for 36 batches, and unblocks 417 functions. The lever is one
+classes that stood for 36 batches, and unblocks 516 functions. The lever is one
 line of C: assign an argument's constant to a local in a DIFFERENT BASIC BLOCK
 from the call. Read it before attempting anything with a displaced argument --
 and read how it was found, because the method (search gcc's own output rather

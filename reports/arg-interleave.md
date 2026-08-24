@@ -13,8 +13,7 @@ Two classes, filed separately because their symptoms look unrelated:
     pool-loads-first (class 8)  rom  mov r0, r5 / ldr r1,=X / ldr r2,=Y
                                 ours ldr r1,=X / ldr r2,=Y / mov r0, r5
 
-Between them, **1,861 of the 2,974 remaining functions** carry one of these
-shapes, including 97% of those over 400 instructions.
+Between them, **1,025 of the 2,966 remaining functions** carry one of these shapes.
 
 ## The answer
 
@@ -86,15 +85,16 @@ is what establishes that the two are one mechanism.
 between the assignment and the call. `OvlFunc_882_20083cc` written this way goes
 from two differing instructions to **four** — worse than doing nothing.
 
-Of the 1,861 functions carrying either shape, **417 have a basic-block boundary
-before their first site**:
+Of the 1,025 functions carrying either shape, **516 have a basic-block boundary
+before their first site** and 509 are straight-line:
 
-| size | reachable | of |
-|---|---|---|
-| ≤80 | 85 | 694 |
-| 81–160 | 150 | 525 |
-| 161–400 | 130 | 401 |
-| 401+ | 52 | 241 |
+| | functions |
+|---|---|
+| reachable (a branch before the first site) | **516** |
+| straight-line, still parked | 509 |
+
+Of the 509 straight-line ones, 86 are ≤40 instructions, 221 are 41–160, and 202
+are over 160.
 
 The four originally-parked arg-interleave members are all straight-line and stay
 parked. Their notes now record why, so nobody re-attempts them with this lever.
@@ -105,5 +105,5 @@ parked. Their notes now record why, so nobody re-attempts them with this lever.
 unretired blocker classes, not the number of unelevated functions, and that
 retiring one class was worth more than hundreds of small elevations.
 
-This is that argument tested. One round, one construct, **417 functions
+This is that argument tested. One round, one construct, **516 functions
 unblocked** — against a normal round's four.
