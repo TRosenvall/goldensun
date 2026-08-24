@@ -36,6 +36,31 @@
  * So narrow_constant has two sub-cases and only one of them has a lever. The
  * one that does is "a narrow value in a wide expression"; the one that does not
  * is "a narrow expression end to end".
+ *
+ * RE-ATTEMPTED, batch 40, from tools/rank_parks.py. Still 2 of 23 and the two
+ * are the whole diff:
+ *
+ *     rom    ldr r3, =0xf1ff   ...   ldr r2, .Lc5ec   @ 0x1000
+ *     ours   ldrh r3, .L0      ...   ldrh r2, .L0+4
+ *
+ * Both constants fit in sixteen bits and the destination is a `vu16`, so gcc
+ * narrows the whole expression to HImode and pools them as HALFWORDS. The ROM
+ * pools them as WORDS, which is what an un-narrowed expression gives.
+ *
+ * This looks like the inverted narrow_constant class -- gcc narrowing what the
+ * ROM keeps wide -- and the lever for that class does NOT work here:
+ *
+ *   naming the RESULT, `u32 t = (v & 0xf1ff) | 0x1000; *p = t;`     2 (no change)
+ *   the same with the mask first, or split into two statements      2 (no change)
+ *   the same with `int t` rather than `u32 t`                       2 (no change)
+ *   naming the OPERANDS, `m = 0xf1ff; o = 0x1000;`                  7 (worse)
+ *
+ * The lever works when a narrow STORE pulls a `mov` down into a pool load. Here
+ * the narrowing is of the whole computation, and an intervening local does not
+ * stop it because gcc re-derives the mode from the store either way. What would
+ * is something that makes the constants SImode at the tree level -- a symbol
+ * would do it, since gcc always word-loads a symbol address, but 0xf1ff and
+ * 0x1000 are a mask and a bit and there is no reason to think either was one.
  */
 #include "gba/types.h"
 
