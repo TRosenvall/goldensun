@@ -150,6 +150,39 @@ def has_arg_interleave(body):
     return False
 
 
+ARGW = re.compile(r"^\t(?:mov|ldr|lsl|lsr|neg|add|sub)\t(r[0-3])\b")
+
+
+def r0_mid_blocks(body):
+    """Argument blocks where r0 is written with other arg registers either side.
+
+    NOT a filter -- reported as a tag. Batch 26 established that this shape is
+    SOMETIMES reachable by declaring the callee, so rejecting it would throw
+    away good candidates. But it is the "no" answer in three of the four cases
+    measured, so it is worth seeing before spending a screen:
+
+      OvlFunc_959_20092e0   mov r2 / mov r0 / mov r1                REACHABLE
+      OvlFunc_899_2008428   mov r1,#imm / mov r0 / lsl r1 / mov r2  no
+      OvlFunc_924_2008ffc   ldr r2,= / mov r0 / ldr r1,=            no
+      OvlFunc_950_2008898   mov r2 / mov r0 / ldr r1,=              no
+
+    The one that works has all plain `mov`s around r0; the tag reports whether
+    that is the case here, so the odds are visible rather than guessed.
+    """
+    out = []
+    for block in re.split(r"^\tbl\t.*$", body, flags=re.M):
+        seq = [m.group(1) for l in block.split("\n") if (m := ARGW.match(l))]
+        kinds = [l.split("\t")[1] for l in block.split("\n")
+                 if ARGW.match(l)]
+        if "r0" not in seq:
+            continue
+        i = seq.index("r0")
+        if i == 0 or i == len(seq) - 1:
+            continue
+        out.append("all-mov" if all(k == "mov" for k in kinds) else "mixed")
+    return out
+
+
 def parked_names():
     """Functions already parked, so they are not offered again as candidates.
 
@@ -206,7 +239,8 @@ def scan(whole_file, min_calls, min_insn, max_insn, allow_repeat):
             dupes = [k for k, v in pooled.items() if v > 1]
             if dupes and not allow_repeat:
                 continue
-            rows.append((-calls, insn, name, rel, len(fns), dupes))
+            rows.append((-calls, insn, name, rel, len(fns), dupes,
+                         r0_mid_blocks(body)))
     return sorted(rows)
 
 
@@ -220,8 +254,10 @@ def main():
                 opt("--min-insn", 10), opt("--max-insn", 40),
                 "--allow-repeat" in a)
     print(f"{'call':>4} {'insn':>5} {'fns':>4}  name / file")
-    for c, insn, name, rel, nf, dupes in rows[:opt("--limit", 20)]:
+    for c, insn, name, rel, nf, dupes, mid in rows[:opt("--limit", 20)]:
         tag = f"   [repeats {','.join(dupes)}]" if dupes else ""
+        if mid:
+            tag += f"   [r0-mid: {','.join(mid)}]"
         print(f"{-c:4d} {insn:5d} {nf:4d}  {name}  {rel}{tag}")
     print(f"\n{len(rows)} candidates")
     return 0

@@ -295,3 +295,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-24T16:23:45Z  end     +0; corrected batch-30 sweep figure 53->15
 2026-08-24T16:24:55Z  start   cycle
 2026-08-24T16:26:48Z  end     +0; parked 2008898 (arg-interleave, 4th data point)
+2026-08-24T16:29:18Z  start   cycle
+2026-08-24T16:31:42Z  end     +1 (OvlFunc_881_200a8a8); 282 elevated
