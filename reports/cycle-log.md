@@ -285,3 +285,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-11T06:05:45Z  end     batch-29 published (5 fns); 276 elevated
 2026-08-24T04:16:49Z  start   resumed; colima restarted, loop re-armed
 2026-08-24T04:20:58Z  end     +1 (OvlFunc_930_20088e0); 277 elevated
+2026-08-24T04:23:16Z  start   cycle
+2026-08-24T04:36:59Z  end     +0; found tryc pool-placement false positive; parked 200816c+twin

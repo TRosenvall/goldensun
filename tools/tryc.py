@@ -149,6 +149,23 @@ ASM_CONST_RE = re.compile(r"=(" + "|".join(map(re.escape, ASM_CONST)) + r")\b") 
     if ASM_CONST else None
 
 
+def pool_is_inline(path):
+    """True if the reference .s dumps its literal pool inside the function body.
+
+    Two markers: the `.pool_aligned` macro, or a `.word` sitting before the
+    function's `.func_end`. Either means gcc had to branch over the pool, and a
+    single-function translation unit will not reproduce that placement.
+    """
+    if not path or not os.path.exists(path):
+        return False
+    txt = open(path, errors="replace").read()
+    for m in re.finditer(r"\.thumb_func_start.*?\.func_end", txt, re.S):
+        body = m.group(0)
+        if ".pool_aligned" in body or re.search(r"^\s*\.word\s", body, re.M):
+            return True
+    return False
+
+
 def canon(s):
     s = ALIAS.sub(lambda m: _ALIAS[m.group(1)], s)
     if ASM_CONST_RE:
@@ -364,6 +381,7 @@ def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)
     quiet = "--quiet" in sys.argv
+    ref_path = None
     src = [a for a in sys.argv[1:] if a.endswith(".c")][0]
     src = os.path.join(ROOT, src) if not src.startswith("/") else src
 
@@ -428,6 +446,7 @@ def main():
     # then fails to match is a lot of churn for nothing.
     if "--ref" in sys.argv:
         ref = sys.argv[sys.argv.index("--ref") + 1]
+        ref_path = ref if os.path.isabs(ref) else os.path.join(ROOT, ref)
         ref = ref if ref.startswith("/") else os.path.join(ROOT, ref)
     else:
         ref = src.replace("/src/", "/asm/")[:-2] + ".s"
@@ -491,6 +510,28 @@ def main():
             note = "" if nrefs == 1 else "  [size check skipped: ref has "
             note += "" if nrefs == 1 else f"{nrefs} functions]"
             print(f"  OK {name}  ({len(got)} lines){note}")
+            # A CLEAN INSTRUCTION STREAM IS NOT A CLEAN FUNCTION when the ROM
+            # keeps its literal pool INSIDE the function body. Pool loads are
+            # normalised to `ldr rD, =value` on both sides, so a pool sitting at
+            # a different distance compares equal here and still changes every
+            # PC-relative offset in the emitted bytes.
+            #
+            # OvlFunc_962_200816c and its twin OvlFunc_967_2008234 both screened
+            # OK and both failed `make compare` with ~36 differing bytes, all of
+            # them `ldr rN, [pc, #imm]` and branch displacements. gcc puts the
+            # pool after the epilogue in a single-function TU; the ROM has it
+            # mid-function behind a `.pool_aligned`.
+            #
+            # This is the THIRD false-positive class in this tool. Warn rather
+            # than fail: a mid-function pool does not always move, and the build
+            # is still the authority.
+            if pool_is_inline(ref_path):
+                print(f"     !! {name}: the reference keeps its literal pool "
+                      f"INSIDE the function (.pool_aligned / mid-body .word).")
+                print(f"        Pool loads normalise to `=value`, so a pool at a "
+                      f"different distance still compares equal here.")
+                print(f"        VERIFY WITH make compare -- this screen cannot "
+                      f"see PC-relative offsets.")
             continue
         ok = False
         # first divergence, with a little context -- enough to see whether it
