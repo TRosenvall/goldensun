@@ -149,6 +149,44 @@ ASM_CONST_RE = re.compile(r"=(" + "|".join(map(re.escape, ASM_CONST)) + r")\b") 
     if ASM_CONST else None
 
 
+def aligned_report(rom, ours, name):
+    """Report disagreeing REGIONS instead of disagreeing positions.
+
+    WHY THIS EXISTS. The positional diff compares instruction i to instruction
+    i, which is right for a function that is the same length and wrong the
+    moment one side has an extra instruction: everything after shifts by one and
+    reports as different. On a twenty-instruction function that is survivable --
+    the listing is short enough to read. On a 140-instruction one the header
+    said "132 differ" when the two streams actually disagreed in six small
+    places totalling 36 instructions, and every variant screened afterwards
+    also said "132 differ", so the number could not rank them.
+
+    That is not a cosmetic problem. It makes the ONE number the screen prints
+    useless on exactly the functions where reading the whole listing is least
+    practical, and 45% of the remaining work is in functions over 400
+    instructions.
+
+    difflib on the instruction lists gives the regions directly. The count to
+    watch is the LAST line: instructions inside disagreeing regions, which does
+    fall as a candidate improves.
+    """
+    import difflib
+    sm = difflib.SequenceMatcher(None, rom, ours, autojunk=False)
+    bad = 0
+    print(f"  ~~ {name}  (rom {len(rom)}, ours {len(ours)})")
+    for tag, i1, i2, j1, j2 in sm.get_opcodes():
+        if tag == "equal":
+            continue
+        bad += max(i2 - i1, j2 - j1)
+        print(f"     {tag.upper()} at rom[{i1}:{i2}] ours[{j1}:{j2}]")
+        for x in rom[i1:i2]:
+            print(f"          rom  {x}")
+        for y in ours[j1:j2]:
+            print(f"          ours {y}")
+    print(f"     {bad} instruction(s) in disagreeing regions, of {len(rom)}")
+    return bad
+
+
 def pool_is_inline(path):
     """True if the reference .s dumps its literal pool inside the function body.
 
@@ -563,6 +601,16 @@ def main():
                     != (got[k] if k < len(got) else None))
         print(f"  XX {name}  (rom {len(exp)} lines, ours {len(got)}, "
               f"first diff at {i}, {ndiff} differ)")
+        # --align replaces the positional listing with a region-aligned one.
+        # `ndiff` above counts POSITIONS, so a single extra instruction makes
+        # every later position report as different; on a 140-instruction
+        # function that read "132 differ" for streams that disagreed in six
+        # places totalling 36 instructions, and it read the same for every
+        # variant tried afterwards. Use this on anything long enough that the
+        # listing cannot be eyeballed.
+        if "--align" in sys.argv:
+            aligned_report(exp, got, name)
+            continue
         if not quiet:
             # short functions print whole: the useful signal is usually
             # WHERE the two streams re-converge, which a keyhole around the

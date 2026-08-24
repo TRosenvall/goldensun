@@ -522,6 +522,35 @@ This is worth stating because the natural reading is the opposite one: the
 registers differ, so the sources must differ, so go looking for the difference.
 There isn't one. Spend the screen on the constants instead.
 
+## Multiple exits: `goto` the ROM's join points
+
+The first finding that is specific to LENGTH rather than to shape.
+
+A function with more than one exit -- typically one path that runs a teardown
+call and one that skips it -- has to be written with `goto` to labels mirroring
+the ROM's join points. Written with early `return`s, gcc duplicates the teardown
+call at each exit and lays the blocks out in its own order.
+
+`OvlFunc_942_200851c` has two exits and five paths reaching them. Natural
+`if`/`else` with `return`s: 78 of 147 instructions in disagreeing regions.
+The same code with two `goto` targets: 42. Nothing else changed.
+
+Short functions have one exit and never raise the question, which is why this
+did not surface in the first 36 batches. See reports/large-functions.md.
+
+## Use `--align` on anything long
+
+`tryc.py`'s headline count is POSITIONAL -- instruction *i* against instruction
+*i* -- so a single extra instruction on one side makes every later position
+report as different. At twenty instructions that is survivable because the whole
+listing is readable. At 140 it reported "132 differ" for streams that disagreed
+in six places totalling 36 instructions, and reported the same number for every
+variant tried afterwards, so it could not rank them.
+
+`--align` reports disagreeing REGIONS and a count of instructions inside them,
+which does fall as a candidate improves. Default to it above about fifty
+instructions.
+
 ## Pool loads come first, and no lever moves them
 
 Within one argument block gcc-2.96 emits every literal-pool load before any

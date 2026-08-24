@@ -45,6 +45,14 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-35](reports/batch-35.md) | 8 | ready to port |
 | [batch-36](reports/batch-36.md) | 7 | ready to port |
 
+**[Do large functions break the method?](reports/large-functions.md)** is not a
+batch -- it is an experiment, and it is the most important document here for
+anyone deciding what to work on next. Short version: length is not the problem,
+blocker DENSITY is. 99% of functions over 400 instructions contain at least one
+shape we cannot solve at any size, against 23% of those under 20. The binding
+constraint is the number of unretired blocker classes, not the number of
+unelevated functions.
+
 Every batch is verified the same way, from a clean build:
 
     docker build -t goldensun-build -f tools/Dockerfile .
