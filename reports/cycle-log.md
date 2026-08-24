@@ -283,3 +283,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-11T05:58:05Z  end     +2 (926_200a508, 937_20081fc); 276 elevated
 2026-08-11T06:00:26Z  start   batch-29 due
 2026-08-11T06:05:45Z  end     batch-29 published (5 fns); 276 elevated
+2026-08-24T04:16:49Z  start   resumed; colima restarted, loop re-armed
+2026-08-24T04:20:58Z  end     +1 (OvlFunc_930_20088e0); 277 elevated
