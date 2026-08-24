@@ -470,6 +470,29 @@ pointer through a scratch register before moving it to a callee-saved one
 (`rom_c00d8.c`, `rom_5868.c`, `rom_91c44.c`), and it fails identically in all
 three. Not worth a fourth attempt without a new idea.
 
+## Match against the SOLVED corpus, not the unsolved one
+
+`tools/match_shapes.py` reduces every function to a skeleton -- mnemonic plus
+operand KINDS -- and reports remaining assembly whose skeleton already has a
+matched `.c` behind it. It works because the build writes gcc's output to
+`asm/<path>.s` beside the hand-written corpus, so both halves of the tree are
+available in the same representation.
+
+**This is a better question than the other three rankers ask.**
+`elevation_candidates.py` and `pick_candidates.py` rank by what looks *easy*;
+`find_twins.py` groups the remaining assembly against itself. A shape that has
+already matched once comes with a finished `.c` to copy, which is a stronger
+signal than any tractability heuristic -- batch 32 got five functions that way
+by hand, four of them on the first screen, and its first automated run produced
+five more, all five on the first screen.
+
+**The destructive-form collapse is load-bearing.** gcc emits `lsl r2, r2, #2`
+and the ROM's disassembly writes `lsl r2, #2`. Without folding those together
+the two corpora share almost no shapes: the tool found 4 leads before the fold
+and 20 after, on the same tree. `tryc.py` has normalised this since its first
+version, and it still had to be rediscovered here, because a skeleton looks
+nothing like an instruction diff.
+
 ## A register swap between two near-identical functions proves nothing
 
 `OvlFunc_952_20080c8` puts the message base in r5 and the actor slot in r6.

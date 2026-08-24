@@ -1,29 +1,5 @@
 	.include "macros.inc"
 
-@ Map edit: 1 attribute copy.
-@ Attributes only, so the artwork is already correct and only
-@ collision or priority changes.
-@ Clears save bit 0x200.
-.thumb_func_start OvlFunc_898_2008ecc
-	push	{lr}
-	mov	r0, #0x80
-	lsl	r0, #2
-	sub	sp, #8
-	bl	__ClearFlag
-	mov	r3, #0x17
-	mov	r2, #0x1a
-	str	r3, [sp]
-	str	r2, [sp, #4]
-	mov	r0, #0x17
-	mov	r1, #0x17
-	mov	r2, #4
-	mov	r3, #2
-	bl	__Func_8010704
-	add	sp, #8
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_898_2008ecc
-
 @ 30 instructions. Not one of the recognised overlay shapes,
 @ so this is a CALL TRACE rather than a description -- what it does with
 @ these is not characterised here.
