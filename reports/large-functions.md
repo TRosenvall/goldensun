@@ -108,7 +108,9 @@ gcc-2.96 source is in the build image at `/opt/camelot-gcc/gcc-2.96/gcc/`. See
 docs/elevation.md; the first question put to it took ten minutes and corrected a
 conclusion that twelve hand-written probes had got wrong.
 
-**A FRAGMENT matcher — YES, and this is the one to build.** `match_shapes.py`
+**A FRAGMENT matcher — measured YES, then measured again and NO.** The tool was
+built (`tools/find_fragments.py`) and the first ranking was wrong. Both numbers
+are kept below because the difference between them is the lesson. `match_shapes.py`
 compares whole functions, which is why it only ever finds small ones: a
 400-instruction function will never have the same whole-function skeleton as
 anything solved. Splitting at labels and branches and matching BLOCKS instead:
@@ -126,8 +128,33 @@ solved corpus, and the distribution is bimodal rather than flat: 343 functions
 are genuinely novel, but **104 are four-fifths built out of blocks somebody has
 already written C for.**
 
-Those 104 are 70,795 instructions — **15% of everything remaining** — and with
-the 92 behind them, 25%. That is the largest measured, actionable lever left.
+That looked like 70,795 instructions — 15% of everything remaining.
+
+**It is not.** The ranking counted a block as covered if ANY solved function had
+a block of the same shape, and 16% of the distinct block skeletons in the solved
+corpus come *only* from fakematches — inline-asm register pinning, which is not
+C anyone can learn a block from. Worse, the correlation runs the wrong way: a
+function scores high on that metric largely by being full of the arg-interleave
+shape, which is exactly the shape whose only "solutions" are fakematches.
+
+Counting only blocks with a **real** exemplar (`--real`):
+
+| block coverage, real exemplars only | functions | instructions |
+|---|---|---|
+| ≥80% | **1** | 589 |
+| 60–80% | 5 | 1,768 |
+| 40–60% | 17 | 4,188 |
+| <40% | 655 | 305,963 |
+
+Six functions, 2,357 instructions. **Half a percent of the remaining work, not
+25%.** The tool is worth keeping as a "have I seen this block before" lookup,
+and it is not the lever I said it was.
+
+THE LESSON IS ABOUT THE METRIC, NOT THE TOOL. A measurement over a corpus that
+contains 104 fakematches will silently measure the fakematches. Every future
+count over the solved corpus should exclude them by default -- and this was
+caught only because the first `--show` output was visibly full of
+`[FAKEMATCH]` tags, which is luck rather than method.
 
 ## What this says to do next
 
