@@ -306,3 +306,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-24T17:16:09Z  batch   batch-32 published (9 functions); clean build verified
 2026-08-24T17:23:05Z  end     +5 (882_2008134, 883_2008d98, 898_2008ecc, 901_2008d4c, 956_200824c); 301 elevated; new tool match_shapes.py
 2026-08-24T17:26:56Z  batch   batch-33 published (5 functions); clean build verified
+2026-08-24T17:35:44Z  end     +5 (901_2008ac8, 901_2008af0, 950_20086ec, 950_20088cc, 935_2008398); 306 elevated
+2026-08-24T17:35:44Z  batch   batch-34 published (5 functions); clean build verified
