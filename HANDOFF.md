@@ -42,6 +42,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-32](reports/batch-32.md) | 9 | ready to port |
 | [batch-33](reports/batch-33.md) | 5 | ready to port |
 | [batch-34](reports/batch-34.md) | 5 | ready to port |
+| [batch-35](reports/batch-35.md) | 8 | ready to port |
 
 Every batch is verified the same way, from a clean build:
 
@@ -49,12 +50,12 @@ Every batch is verified the same way, from a clean build:
     docker run --rm -v "$PWD:/work" -w /work goldensun-build \
         sh -c 'make clean && make compare'
 
-- **Four `.global` lines were added to two existing `.s` files** (batch 09) so
-  that two functions could be split out from the `.incbin` tables they select
-  between. A `.global` emits no bytes and both files already exported sibling
-  labels the same way, but it is the only change in these batches that edits
-  assembly rather than replacing it. Reverts cleanly if you would rather it
-  did not happen.
+- **Eight `.global` lines have been added to four existing `.s` files** (four in
+  batch 09, three in batch 34, one in batch 35) so that four functions could be
+  split out from the `.incbin` tables they select between. Every one of those
+  files already exported sibling labels the same way, and a `.global` emits no
+  bytes -- but it is the only change in these batches that edits assembly rather
+  than replacing it. Reverts cleanly if you would rather it did not happen.
 
 ## Naming
 
