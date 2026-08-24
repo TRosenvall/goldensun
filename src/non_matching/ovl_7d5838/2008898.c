@@ -1,6 +1,6 @@
 /* OvlFunc_950_2008898  [ovl_7d5838]
  *
- * Source asm: goldensun/asm/overlays/rom_7d5838/ovl_30_c_c_c.s
+ * Source asm: goldensun/asm/overlays/rom_7d5838/ovl_30_c_c_c_a.s
  *
  * NOT SPLIT. The .s still holds all three of its functions.
  *

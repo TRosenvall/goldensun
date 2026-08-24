@@ -1,4 +1,5 @@
 /* Func_80bf524 @ 0x080bf524, Func_80bf54c @ 0x080bf54c
+ * Source asm: goldensun/asm/rom_b5000/rom_bbb0c_a_c_c_a.s
  *   -- asm/rom_b5000/rom_bbb0c_a_c_c_a.s
  *
  * Blocker class 2 plus a truncation difference. Both functions, identically.

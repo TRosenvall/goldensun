@@ -1,5 +1,5 @@
 /* Func_80167ac  [rom_15000]
- * Source asm: goldensun/asm/rom_15000/rom_15e8c_a_c_c_c.s
+ * Source asm: goldensun/asm/rom_15000/rom_15e8c_a_c_c_c_c_c.s
  *
  * Parked: logic faithful, does NOT byte-match (endgame permuter seed).
  * Candidate: tools/runs/run_20260607T010203Z/Func_80167ac-iter-1.c

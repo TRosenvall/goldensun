@@ -1,4 +1,5 @@
 /* Func_800c548 @ 0x0800c548, Func_800c570 @ 0x0800c570
+ * Source asm: goldensun/asm/rom_9000/rom_c004_c_a_c_a.s
  *   -- asm/rom_9000/rom_c004_c_a_c_a.s
  *
  * Blocker classes 1 and 2 at once (see docs/elevation.md).

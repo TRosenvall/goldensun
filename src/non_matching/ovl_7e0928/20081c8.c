@@ -1,6 +1,6 @@
 /* OvlFunc_956_20081c8  [ovl_7e0928]
  *
- * Source asm: goldensun/asm/overlays/rom_7e0928/ovl_30_a_c_c_a_c_c.s
+ * Source asm: goldensun/asm/overlays/rom_7e0928/ovl_30_a_c_c_a_c_c_a.s
  *
  * NOT SPLIT. The .s still holds all seven of its functions and the overlay
  * linker script is untouched.
