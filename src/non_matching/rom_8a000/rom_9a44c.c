@@ -47,6 +47,33 @@
  * two fields as read two ways in the annotations -- as movement tuning and as
  * a scale pair -- and this is a third reading. They are named maxSpeed/accel
  * there; here they are plainly angular velocity.
+ *
+ * RE-ATTEMPTED, batch 41, from tools/rank_parks.py. Still 2 of 27.
+ *
+ * THIS IS A TWIN PAIR AND THE DIFF IS IDENTICAL in both members --
+ * src/non_matching/ovl_7b4558/2008ab0.c (OvlFunc_927_2008ab0) and
+ * src/non_matching/rom_8a000/rom_9a44c.c (Func_809a44c), one an overlay copy of
+ * the other. Solving either solves both, which is the reason to spend on it.
+ *
+ *     rom    ... last add-assign ... / ldr r1,[r0,#0x50] / add r0,#0x64
+ *     ours   ... ldr r1,[r0,#0x50] hoisted TWO INSTRUCTIONS EARLIER, into the
+ *            middle of the last add-assign group ...
+ *
+ * gcc schedules the sprite load above a store, which means it proved the two
+ * cannot alias. Everything tried was aimed at that:
+ *
+ *   the goalFacing read as an explicit pointer walk rather than a field   2
+ *   the sprite read as *(struct Spr **)((unsigned char *)a + 0x50)        2
+ *   the same with the address in its own local first                      2
+ *   -fno-schedule-insns, -fno-gcse, -fno-strength-reduce, --no-rerun-cse  2
+ *   -fno-schedule-insns2                                                  8 (worse)
+ *   -O1                                                                   8 (worse)
+ *
+ * Note that the two flags which DO move it move it the wrong way, which says
+ * the post-reload scheduler is not what places this load -- it is placed
+ * earlier and the scheduler is what puts it back. A next attempt should look at
+ * why gcc believes the load cannot alias the stores, rather than at scheduling.
+ * The compiler source is in the build image; see docs/elevation.md.
  */
 #include "actor.h"
 

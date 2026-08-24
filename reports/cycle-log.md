@@ -328,3 +328,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-24T22:45:03Z  end     +2 (Func_8095b8c unparked, 964_20093e0); 347 elevated; rank_parks.py
 2026-08-24T22:50:49Z  end     +2 (884_20085e8, 968_200aee4); 349 elevated; park sweep, 3 negatives recorded
 2026-08-24T22:59:42Z  batch   batch-40 published (8 functions); 5 stale parks removed, 8 repointed
+2026-08-24T23:05:24Z  end     +2 (896_200a674, 896_200a6e0); 351 elevated; twin-pair negative recorded
