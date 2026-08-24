@@ -318,6 +318,21 @@ the deferral is caused by the *preceding* call's return type.
 This retired the `arg-fill-order` blocker class, which had cost nine failed
 formulations while the fix was one line of C.
 
+### The lever reorders ARGUMENT CONSTRUCTION, not just r0
+
+Every use of it below is about where `mov r0` lands, because that is the case it
+was first noticed on. It is more general than that.
+`OvlFunc_898_2008f3c` has r0 first on both sides and still differs:
+
+    rom    mov r0, #0xcc / mov r1, #0xa0 / lsl r0, #1 / lsl r1, #1 / mov r2, #5
+    ours   mov r0, #0xcc / mov r1, #0xa0 / lsl r1, #1 / mov r2, #5 / lsl r0, #1
+
+gcc interleaves the second shift with the third argument and defers the first
+shift to the end. Declaring the callee puts the whole block in the ROM's order.
+
+**So try it on any argument-block ordering difference**, not only the ones where
+r0 is misplaced.
+
 ### There are TWO declaration levers, and they are not the same one
 
 The lever above is about the **preceding** call: its return type decides
