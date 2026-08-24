@@ -39,6 +39,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-29](reports/batch-29.md) | 5 | ready to port |
 | [batch-30](reports/batch-30.md) | 5 | ready to port |
 | [batch-31](reports/batch-31.md) | 6 | ready to port |
+| [batch-32](reports/batch-32.md) | 9 | ready to port |
 
 Every batch is verified the same way, from a clean build:
 
@@ -159,6 +160,12 @@ codebase better than we do. Listed once here rather than repeated per batch.
   constant-CSE class. It may instead mean gcc-2.96 runs a pass the original
   compiler did not, in which case the right fix is a compiler difference and
   these two rules should be dropped. See `CSE_CFLAGS` in the Makefile.
+
+- **Four functions are left as assembly that an inline-asm fakematch would
+  match** (batch 32, the pool-load-first class). Your tree already contains one,
+  `OvlFunc_883_2008fbc`, with that exact shape. We chose assembly over four more
+  fakematches; if you would rather have the bytes, the park note lists every
+  member and the change is mechanical.
 
 - **Narrow constant materialisation** gates 34 functions and is half solved: a
   named `int` mask reproduces the ROM's 32-bit constant, but the instruction
