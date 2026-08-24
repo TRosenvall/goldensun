@@ -192,6 +192,16 @@ def scan(whole_file, min_calls, min_insn, max_insn, allow_repeat):
                 continue
             if has_arg_interleave(body):
                 continue
+            # An INLINE LITERAL POOL cannot be reproduced from a single-function
+            # translation unit. gcc puts the pool after the epilogue; the ROM
+            # keeps it mid-body behind a `.pool_aligned`, and every PC-relative
+            # offset then differs even though the instruction stream matches
+            # exactly. tools/tryc.py normalises pool loads and so reports OK --
+            # it cost two functions that were split, written in, and reverted
+            # before `make compare` caught them. See
+            # src/non_matching/ovl_7ec19c/200816c.c.
+            if ".pool_aligned" in body or re.search(r"^\s*\.word\s", body, re.M):
+                continue
             pooled = collections.Counter(POOL.findall(body))
             dupes = [k for k, v in pooled.items() if v > 1]
             if dupes and not allow_repeat:

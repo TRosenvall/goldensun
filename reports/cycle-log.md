@@ -287,3 +287,5 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-24T04:20:58Z  end     +1 (OvlFunc_930_20088e0); 277 elevated
 2026-08-24T04:23:16Z  start   cycle
 2026-08-24T04:36:59Z  end     +0; found tryc pool-placement false positive; parked 200816c+twin
+2026-08-24T04:39:19Z  start   cycle
+2026-08-24T04:41:39Z  end     +2 (947_200a53c, 914_20089f8); 279 elevated
