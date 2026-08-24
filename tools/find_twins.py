@@ -25,6 +25,19 @@ shapes and its docstring records what a loose substring match cost: nine false
 positives, 450-1500 instruction functions grouped together because they happened
 to share a few call names, and two splits that had to be reverted.
 
+WHAT IT MISSES, AND WHAT CATCHES THAT
+
+Callee names are part of the comparison here, so two functions that are
+instruction-for-instruction identical except that each calls its OWN overlay's
+copy of a helper do NOT group. That is not rare -- OvlFunc_901_2008ac8 and
+OvlFunc_898_2008f3c are the same fifteen instructions in two overlays, and
+differ only in which local helper they call and in four constants.
+
+tools/match_shapes.py collapses callee names and matches against the SOLVED
+corpus rather than within the remaining one, so it finds those. The two tools
+are complements: this one is exact and finds groups to solve once, that one is
+loose and finds functions already solved elsewhere.
+
 USING IT
 
     python3 tools/find_twins.py                 # all groups, largest payoff first
