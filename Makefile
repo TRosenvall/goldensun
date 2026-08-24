@@ -53,6 +53,20 @@ $(1): $(shell grep -o '[A-Za-z0-9/_-]\+\.o' $(addsuffix .ld,$(basename $(1))))
 endef
 $(foreach elf,$(ELFS),$(eval $(call elf_deps,$(elf))))
 
+# ...and from the symbol files they INCLUDE. Those are not `.o` names, so the
+# rule above cannot see them: editing message.sym left stage1.o stale, and the
+# overlay that referenced the new symbol died with
+#
+#     undefined reference to `_MSG_256c'
+#
+# which reads exactly like a typo in the C rather than a stale object. The
+# assignments in a .sym become symbols in the partially-linked stage1.o, and
+# every overlay picks them up from there with `-R stage1.o`.
+define ld_sym_deps
+$(1): $(shell sed -n 's/^INCLUDE "\(.*\)"/\1/p' $(addsuffix .ld,$(basename $(1))))
+endef
+$(foreach elf,$(ELFS),$(eval $(call ld_sym_deps,$(elf))))
+
 
 # Convert executables to free-standing binaries
 $(ROM) $(OVERLAYS):
