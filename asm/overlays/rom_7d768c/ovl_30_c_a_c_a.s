@@ -156,37 +156,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_952_200bf84
-
-@ Talk: line 0x22a3, shown.
-.thumb_func_start OvlFunc_952_200bfc4
-	push	{r5, r6, lr}
-	ldr	r6, =0x22a3
-	mov	r5, r0
-	mov	r0, r6
-	bl	__MessageID
-	mov	r1, #0
-	mov	r0, r5
-	bl	__Func_8092c40
-	mov	r0, #0
-	mov	r1, #0
-	bl	__Func_8091c7c
-	cmp	r0, #0
-	bne	.L3ff4
-	add	r0, r6, #1
-	bl	__MessageID
-	mov	r0, r5
-	mov	r1, #0
-	bl	__ActorMessage
-	b	.L4002
-.L3ff4:
-	add	r0, r6, #2
-	bl	__MessageID
-	mov	r0, r5
-	mov	r1, #0
-	bl	__ActorMessage
-.L4002:
-	pop	{r5, r6}
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_952_200bfc4
-

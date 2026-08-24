@@ -470,6 +470,18 @@ pointer through a scratch register before moving it to a callee-saved one
 (`rom_c00d8.c`, `rom_5868.c`, `rom_91c44.c`), and it fails identically in all
 three. Not worth a fourth attempt without a new idea.
 
+## A register swap between two near-identical functions proves nothing
+
+`OvlFunc_952_20080c8` puts the message base in r5 and the actor slot in r6.
+`OvlFunc_952_200bfc4` is the same function with a different id and puts them the
+other way round. **The C is identical in shape for both** -- the allocation
+follows which value the compiler happened to see first, and nothing in the
+source controls it.
+
+This is worth stating because the natural reading is the opposite one: the
+registers differ, so the sources must differ, so go looking for the difference.
+There isn't one. Spend the screen on the constants instead.
+
 ## Pool loads come first, and no lever moves them
 
 Within one argument block gcc-2.96 emits every literal-pool load before any
