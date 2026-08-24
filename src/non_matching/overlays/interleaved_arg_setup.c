@@ -1,8 +1,26 @@
-/* THREE overlay functions, one shared blocker. A seventh class.
+/* FOUR overlay functions, one shared blocker. A seventh class.
  *
  *   OvlFunc_967_2008030  asm/overlays/rom_7f21b8/ovl_30_a.s
  *   OvlFunc_973_200804c  asm/overlays/rom_7fc720/ovl_30_c_a_c_a_a.s
  *   OvlFunc_921_20085dc  asm/overlays/rom_7a7298/ovl_30_c_c_c_c_a_a.s
+ *   OvlFunc_908_20081a8  asm/overlays/rom_79c0c4/ovl_30_c_c_c_a_a_a.s
+ *
+ * The fourth arrived in batch 36 from tools/match_shapes.py --near, which is
+ * worth noting because the near matcher CANNOT see this blocker: it collapses
+ * registers, so `mov r1 / mov r0 / lsl r1` and `mov r1 / lsl r1 / mov r0` have
+ * the same skeleton. A near lead can therefore land on a known wall, and the
+ * first one that did cost two screens rather than a round only because the
+ * class was already written up here. It is nineteen against nineteen with two
+ * positions differing:
+ *
+ *     rom    mov r1, #0xc0 / mov r0, #0x15 / lsl r1, #8 / mov r2, #0xa
+ *     ours   mov r1, #0xc0 / lsl r1, #8    / mov r0, #0x15 / mov r2, #0xa
+ *
+ * Tried on this member, on top of everything below: the mismatching callee
+ * undeclared (3 differ, worse), the PRECEDING callee undeclared (4, worse), and
+ * the preceding callee given an `int` return (4, worse). -fno-schedule-insns2
+ * and -O1 both go to 5. Every direction is worse than doing nothing, which is
+ * the same result the other three members give.
  *
  * INTERLEAVED ARGUMENT SET-UP. Every instruction is right in all three; the
  * ROM splits a shifted constant's mov/lsl pair around another argument's move,

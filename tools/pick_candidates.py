@@ -199,6 +199,15 @@ def parked_names():
         m = re.match(r"/\*\s*(\S+)", txt)
         if m:
             out.add(m.group(1))
+        # AND EVERY FUNCTION NAMED IN THE HEADER COMMENT. A park that covers a
+        # CLASS lists its members as bare names -- src/non_matching/overlays/
+        # pool_load_first.c names four -- and only one of them is also a
+        # definition. Matching on "name followed by (" therefore skipped three
+        # of the four, and two came back to the top of this list the round
+        # after they were parked, costing a read each. That is exactly what
+        # this filter exists to prevent.
+        head = txt.split("*/", 1)[0]
+        out.update(re.findall(r"\b((?:Ovl)?Func_\w+)\b", head))
     return out
 
 
