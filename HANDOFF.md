@@ -147,7 +147,7 @@ codebase better than we do. Listed once here rather than repeated per batch.
   with `undefined reference`, which reads like a typo in the C. Silent until
   someone adds a symbol.
 
-- **Two overlay TUs are built with `-fno-rerun-cse-after-loop`** (batch 25), and
+- **Seven TUs are built with `-fno-rerun-cse-after-loop`** (first two in batch 25), and
   this needs a decision from someone who knows the original toolchain. Both load
   a save-flag id twice around a call; at -O2 gcc-2.96 hoists it into a
   callee-saved register, spending a push, a pop and two moves to save one pool
@@ -158,8 +158,9 @@ codebase better than we do. Listed once here rather than repeated per batch.
   `-fno-expensive-optimizations` all leave the hoist in place.
 
   **The evidence is thin and is stated as such.** Sweeping all 85 parked files
-  with the flag matched only these two, so it is not a general lever for the
-  constant-CSE class. It may instead mean gcc-2.96 runs a pass the original
+  with the flag matched only the first two, so it is not a general lever for the
+  constant-CSE class -- the five added since were each found by recognising the
+  shape on a fresh candidate, not by the sweep. It may instead mean gcc-2.96 runs a pass the original
   compiler did not, in which case the right fix is a compiler difference and
   these two rules should be dropped. See `CSE_CFLAGS` in the Makefile.
 

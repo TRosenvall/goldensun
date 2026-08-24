@@ -308,3 +308,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-24T17:26:56Z  batch   batch-33 published (5 functions); clean build verified
 2026-08-24T17:35:44Z  end     +5 (901_2008ac8, 901_2008af0, 950_20086ec, 950_20088cc, 935_2008398); 306 elevated
 2026-08-24T17:35:44Z  batch   batch-34 published (5 functions); clean build verified
+2026-08-24T17:44:29Z  end     +4 (917_200972c, Actor_SetAnimSpeed, 947_20094c4, 909_20081b4); 310 elevated
