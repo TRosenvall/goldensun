@@ -43,6 +43,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-33](reports/batch-33.md) | 5 | ready to port |
 | [batch-34](reports/batch-34.md) | 5 | ready to port |
 | [batch-35](reports/batch-35.md) | 8 | ready to port |
+| [batch-36](reports/batch-36.md) | 7 | ready to port |
 
 Every batch is verified the same way, from a clean build:
 
