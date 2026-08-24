@@ -92,6 +92,43 @@ of instructions inside them, which does fall as a candidate improves. Every
 number in this document comes from it. **This should be the default lens for
 anything over about fifty instructions.**
 
+## Measured afterwards: what would and would not accelerate this
+
+Three ideas were costed rather than argued about. Two are worth nothing and one
+is worth a quarter of the remaining project.
+
+**A mechanical C generator for straight-line call scripts — NO.** Most of what
+has been elevated by hand is cutscene script: a run of calls with constant
+arguments, which a generator could emit from the ROM. Measured across the
+remainder: **110 functions, 5,758 of 458,542 instructions — 1%.** The population
+that looks automatable has already been consumed by hand.
+
+**Reading the compiler instead of probing it — YES, and it is free.** The
+gcc-2.96 source is in the build image at `/opt/camelot-gcc/gcc-2.96/gcc/`. See
+docs/elevation.md; the first question put to it took ten minutes and corrected a
+conclusion that twelve hand-written probes had got wrong.
+
+**A FRAGMENT matcher — YES, and this is the one to build.** `match_shapes.py`
+compares whole functions, which is why it only ever finds small ones: a
+400-instruction function will never have the same whole-function skeleton as
+anything solved. Splitting at labels and branches and matching BLOCKS instead:
+
+| block coverage from the solved corpus | functions | instructions |
+|---|---|---|
+| **≥80%** | **104** | **70,795** |
+| 60–80% | 92 | 44,741 |
+| 40–60% | 52 | 17,745 |
+| 20–40% | 87 | 27,002 |
+| <20% | 343 | 152,225 |
+
+43% of all blocks in large functions have an **exact** skeleton match in the
+solved corpus, and the distribution is bimodal rather than flat: 343 functions
+are genuinely novel, but **104 are four-fifths built out of blocks somebody has
+already written C for.**
+
+Those 104 are 70,795 instructions — **15% of everything remaining** — and with
+the 92 behind them, 25%. That is the largest measured, actionable lever left.
+
 ## What this says to do next
 
 Not "keep elevating small functions" — that is real value per round and it
