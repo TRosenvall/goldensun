@@ -325,3 +325,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-24T22:27:11Z  end     +3 (948_2009a9c, 948_2009ca0, 948_2009ccc); 343 elevated
 2026-08-24T22:30:52Z  batch   batch-39 published (7 functions); clean build verified
 2026-08-24T22:37:36Z  end     +2 (959_2008ce0, 922_2009750 unparked); 345 elevated; lever defeats constant-CSE
+2026-08-24T22:45:03Z  end     +2 (Func_8095b8c unparked, 964_20093e0); 347 elevated; rank_parks.py

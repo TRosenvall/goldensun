@@ -551,6 +551,31 @@ variant tried afterwards, so it could not rank them.
 which does fall as a candidate improves. Default to it above about fifty
 instructions.
 
+## Name the pointer to move a load's base and offset
+
+A register-offset load `ldr rD, [rA, rB]` puts the POINTER in rA and the index
+in rB when the C is `table[i]`. Where the ROM has them the other way round,
+assign the table to a local and index that:
+
+    ours   ldr r3, [r1, r3]        unsigned int v = L9f0a4[i];
+    rom    ldr r3, [r3, r1]        unsigned int *t = L9f0a4; ... t[i];
+
+`Func_8095b8c` was parked for two batches on exactly this one instruction. Its
+note carried three restructurings that all made it WORSE -- writing the index as
+the pointer base, naming the index, and casting the table to `unsigned char *`
+-- because each moved the whole expression. Naming the table moves only which
+operand gcc treats as the base.
+
+Same family as the named-intermediate lever, different target.
+
+## Rank the parked set before re-attempting anything
+
+`tools/rank_parks.py` screens every park and sorts by how far out it actually
+is. The parked set reads as a flat list of dead ends and is not one: the first
+run found a park ONE instruction from matching, and it was matched the same
+round. Nothing about it had changed since it was parked; it was never at the top
+of anything.
+
 ## THE COMPILER'S SOURCE IS IN THE BUILD IMAGE
 
 `/opt/camelot-gcc/gcc-2.96/gcc/` -- 150 `.c` files, the actual 2.96 tree the
