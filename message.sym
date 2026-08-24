@@ -53,6 +53,7 @@ _MSG_d4c = 0x0d4c;
 /* base of a three-message prompt: the ROM holds it in a register and adds
  * 1 and 2, which only happens when the operand is a symbol address. */
 _MSG_25b8 = 0x25b8;
+_MSG_24db = 0x24db;
 _MSG_239e = 0x239e;
 _MSG_23ac = 0x23ac;
 _MSG_22a3 = 0x22a3;

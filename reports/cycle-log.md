@@ -320,3 +320,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-24T21:28:54Z  end     +3 via find_bb_lever (908_2008124, 907_2008890, 926_200a484); 329 elevated
 2026-08-24T21:51:34Z  end     +7 fakematched (all previously parked); find_construct.py; volatile ordering finding; 336 elevated
 2026-08-24T22:11:25Z  batch   batch-38 published (10 functions, 7 fakematched); clean build verified
+2026-08-24T22:17:36Z  end     +2 (921_2008a3c, 939_20088ec); 338 elevated; 1 parked (lever loop limit)

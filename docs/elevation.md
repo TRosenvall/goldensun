@@ -635,7 +635,16 @@ values adjacent to the call, which is the stack-arg-pair lever and is the exact
 OPPOSITE of what is needed here. A previous investigation concluded "the C is
 not the variable". It was looking in the right place with the wrong axis.
 
-**THE LIMIT IS REAL. A straight-line function cannot use this**, because there
+**AND IT DOES NOT REACH INSIDE A LOOP BODY.** The assignment has to be in a
+block that dominates the call, and in a loop every such block is also reachable
+across the BACK EDGE -- so the value is live around the loop and gcc keeps it in
+a callee-saved register instead of rematerialising. `OvlFunc_935_2008b8c` is
+2 of 51 with the literal at the call site, 7 with the value assigned before the
+loop, and 9 with it assigned in the block that jumps into the loop.
+So the clause is: a dominating block that is **not part of the loop the call
+sits in**.
+
+**THE OTHER LIMIT IS REAL. A straight-line function cannot use this**, because there
 is no boundary to put between the assignment and the call. `OvlFunc_882_20083cc`
 written this way goes from two differing instructions to four. Of 1,861 remaining
 functions carrying one of the two shapes, **417 have a basic-block boundary
