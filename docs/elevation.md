@@ -134,6 +134,23 @@ normalisation, ask which direction its failure runs in.
 
 ## What the screen has to normalise
 
+A FOURTH SPELLING was found in batch 36, and it is a typo rather than a
+convention: three lines in the inherited disassembly have **no space after the
+operand comma**.
+
+    asm/rom_c9000/rom_d2d98.s                      ldr r0,=.Lee1f5
+    asm/overlays/rom_7d6418/ovl_30_c_c_c_a_c.s     ldr r5,=0xffff0000
+    asm/overlays/rom_7a8c8c/ovl_30_c_a...c_c_a.s   ldr r0,=.L3058
+
+Collapsing runs of whitespace does not fix that -- there is no whitespace to
+collapse -- so a byte-exact translation reports **one differing position in the
+middle of an otherwise clean diff**, which reads exactly like a wrong symbol.
+`OvlFunc_922_2008f30` is 53 instructions and this was the only difference.
+
+Three lines in the whole tree, and each one is worth a round.
+
+
+
 Three spellings differ between gcc's output and the ROM's disassembly without
 any difference in machine code. Before these were folded, every function
 carrying a constant reported a total mismatch from instruction zero:

@@ -311,3 +311,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-24T17:44:29Z  end     +4 (917_200972c, Actor_SetAnimSpeed, 947_20094c4, 909_20081b4); 310 elevated
 2026-08-24T17:54:22Z  end     +4 (931_20083d4, 911_2008050, 944_200915c, Func_8093a14); 314 elevated
 2026-08-24T17:54:22Z  batch   batch-35 published (8 functions); clean build verified
+2026-08-24T18:01:30Z  end     +3 (Func_809a65c, 922_2008f30, 883_200d928); 317 elevated; tryc comma fix; match_shapes --near

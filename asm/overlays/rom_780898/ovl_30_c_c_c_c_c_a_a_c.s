@@ -1,29 +1,5 @@
 	.include "macros.inc"
 
-@ 16 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   CopyMapRectAttributes, OvlFunc_c4, OvlFunc_5950
-.thumb_func_start OvlFunc_883_200d928
-	push	{lr}
-	sub	sp, #8
-	mov	r3, #0x16
-	mov	r2, #0x24
-	str	r3, [sp]
-	str	r2, [sp, #4]
-	mov	r0, #0x11
-	mov	r1, #0
-	mov	r2, #3
-	mov	r3, #1
-	bl	__Func_8010704
-	bl	OvlFunc_883_20080c4
-	bl	OvlFunc_883_200d950
-	add	sp, #8
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_883_200d928
-
 @ 73 instructions. Not one of the recognised overlay shapes,
 @ so this is a CALL TRACE rather than a description -- what it does with
 @ these is not characterised here.
@@ -112,4 +88,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_883_200d950
-

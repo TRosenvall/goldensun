@@ -333,6 +333,19 @@ def instructions(text, want=None):
         # which .word runs belong to which pool label; the bare ones are
         # dropped afterwards, since their position is implied by branch order.
         s = re.sub(r"\s+", " ", s)
+        # A FOURTH SPELLING DIFFERENCE, and the only one that is a typo rather
+        # than a convention: a handful of lines in the inherited disassembly
+        # have no space after the operand comma --
+        #
+        #     ldr r0,=.L3058          (asm/overlays/rom_7a8c8c/...)
+        #     ldr r0, =.L3130         (every other line in the same function)
+        #
+        # gcc always emits the spaced form, so one of these in a function makes
+        # a byte-exact translation report one differing position, in the middle
+        # of an otherwise clean diff -- which reads exactly like a wrong symbol.
+        # Collapsing runs of whitespace does not fix it; there is no whitespace
+        # to collapse.
+        s = re.sub(r",\s*", ", ", s)
         body.append(canon(s))
     if cur is not None:
         out.append((cur, body))

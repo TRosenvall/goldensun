@@ -48,6 +48,7 @@ Functions already parked are skipped, as in pick_candidates.py.
     python3 tools/match_shapes.py                # every lead, best shapes first
     python3 tools/match_shapes.py --min-insn 12  # skip the trivial wrappers
     python3 tools/match_shapes.py --show <name>  # one lead's exemplars
+    python3 tools/match_shapes.py --near 1       # one line off a solved shape
 """
 import collections
 import glob
@@ -147,10 +148,63 @@ def scan():
     return solved, unsolved
 
 
+def near_matches(solved, unsolved, tol):
+    """Pair each unsolved skeleton with a solved one differing in <= tol lines.
+
+    WHY LOOSEN AT ALL. The exact mode drains: once every shape with a matched
+    exemplar has been elevated, it reports nothing until more work is done. But
+    a function that differs from a solved one in ONE line is still most of a
+    finished .c -- the structure, the levers and the declarations all carry, and
+    only the differing instruction has to be reasoned about.
+
+    WHY THIS IS STILL NARROW. Only skeletons of the SAME LENGTH are compared,
+    and the differing lines are printed, so the cost of a bad lead is reading
+    two lines rather than a round. tools/find_families.py's docstring records
+    what an unbounded loose match cost -- nine false positives and two reverted
+    splits -- and the difference is that this compares whole normalised bodies
+    positionally rather than looking for shared substrings.
+    """
+    by_len = collections.defaultdict(list)
+    for key in solved:
+        by_len[key.count("\n")].append(key)
+    out = []
+    for key, rows in unsolved.items():
+        if key in solved:
+            continue
+        lines = key.split("\n")
+        best = None
+        for cand in by_len.get(len(lines) - 1, ()):
+            cl = cand.split("\n")
+            d = [(i, a, b) for i, (a, b) in enumerate(zip(lines, cl)) if a != b]
+            if len(d) <= tol and (best is None or len(d) < len(best[1])):
+                best = (cand, d)
+        if best:
+            out.append((rows, solved[best[0]], best[1]))
+    return out
+
+
 def main():
     a = sys.argv[1:]
     min_insn = int(a[a.index("--min-insn") + 1]) if "--min-insn" in a else 8
     solved, unsolved = scan()
+
+    if "--near" in a:
+        tol = int(a[a.index("--near") + 1])
+        rowsets = near_matches(solved, unsolved, tol)
+        rowsets = [(r, e, d) for r, e, d in rowsets
+                   if any(x[2] >= min_insn for x in r)]
+        rowsets.sort(key=lambda t: (len(t[2]), -t[0][0][2]))
+        print(f"{'diff':>4} {'insn':>5}  lead / exemplar / what differs")
+        for rows, ex, d in rowsets[:int(a[a.index("--limit") + 1])
+                                   if "--limit" in a else 20]:
+            n, rel, i = rows[0]
+            en, esrc, _ = ex[0]
+            print(f"{len(d):4d} {i:5d}  {n}  {rel}")
+            print(f"{'':11s}  <- {en}  {esrc}")
+            for pos, x, y in d[:3]:
+                print(f"{'':11s}     @{pos}  rom {x!r}  exemplar {y!r}")
+        print(f"\n{len(rowsets)} near shapes within {tol} line(s)")
+        return 0
 
     leads = []
     for key, rows in unsolved.items():
