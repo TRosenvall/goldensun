@@ -317,3 +317,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-24T21:02:15Z  expt    two 140-insn functions attempted; density measured; both parked; tryc --align
 2026-08-24T21:21:30Z  end     +5 via the basic-block lever; arg-interleave + pool-load-first retired for branching cases; 326 elevated
 2026-08-24T21:21:30Z  batch   batch-37 published (5 functions); clean build verified
+2026-08-24T21:28:54Z  end     +3 via find_bb_lever (908_2008124, 907_2008890, 926_200a484); 329 elevated
