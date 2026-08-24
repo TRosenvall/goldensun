@@ -635,6 +635,25 @@ values adjacent to the call, which is the stack-arg-pair lever and is the exact
 OPPOSITE of what is needed here. A previous investigation concluded "the C is
 not the variable". It was looking in the right place with the wrong axis.
 
+**IT ALSO DEFEATS CONSTANT-CSE, which is the bigger use.** Where the ROM builds
+the SAME value twice and gcc builds it once and copies, giving each occurrence
+its own named local in a dominating block makes gcc rematerialise both:
+
+    rom    mov r0,#0xc0 / mov r1,#0xc0 / mov r2,#0x80 / lsl r0,#10 / lsl r1,#10
+    ours   mov r1,#0xc0 / lsl r1,#10 / mov r0,r1 / ...          (literals)
+    ours   ... identical to the ROM ...                          (two locals)
+
+That reaches a class this document had written off. `OvlFunc_922_2009750` was
+parked as a counter-example to the `-fno-rerun-cse-after-loop` rule -- the flag
+was byte-identical on it -- and two locals holding the same offset match it
+outright, with no flag. `OvlFunc_968_20087d8` goes from 19 disagreeing
+instructions to 6 the same way, including the `-1` TRIPLE that
+src/non_matching/ovl_787e04/20093e4.c is still parked on.
+
+**So before reaching for CSE_CFLAGS, try separate locals in a dominating block.**
+The flag is a build-system change that needs justifying upstream; this is one
+line of C.
+
 **IT IS NOT ONLY ABOUT SHIFTED CONSTANTS.** Any two-instruction materialisation
 gets split the same way. `OvlFunc_943_2008c28` passes -0xa, which gcc builds as
 `mov r2,#0xa / neg r2,r2`, and the ROM splits that pair around the other two

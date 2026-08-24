@@ -54,6 +54,32 @@
  * the rest of the constant-CSE class: what makes gcc-2.96 materialise the same
  * small constant twice instead of copying it. Nothing in the tree defeats it
  * yet.
+ *
+ * PROGRESS, batch 40: 19 disagreeing instructions down to 6, using the
+ * BASIC-BLOCK LEVER WITH SEPARATE LOCALS. That construct was found on
+ * OvlFunc_959_2008ce0 and it defeats gcc's CSE, which is exactly what this
+ * function needs -- see reports/arg-interleave.md.
+ *
+ *   as parked, `__Func_80933f8(-1, -1, -1, 0)` with literals      19 of 72
+ *   + n1, n2, n3 as three SEPARATE locals assigned above the      12 of 72
+ *     flag guard, so each is rematerialised at the call
+ *   + s1, s2 for the pooled 0x6666 / 0x3333 the same way           6 of 72
+ *
+ * The `-1` triple that this file was parked on IS SOLVED. gcc now emits the
+ * ROM's three independent mov/neg pairs instead of building the value once and
+ * copying it. What is left is three unrelated displacements:
+ *
+ *   * `neg r0, r0` three positions late against `add r7, #0x55`. Moving the
+ *     `p = &a->interactFlag` assignment after the call changes which way the
+ *     pair is displaced but not that it is.
+ *   * `mov r1, #0x0` one position late in the __Func_8092950 argument block
+ *   * `mov r0, #0x0` two positions early in an __Actor_SetSpriteFlags block
+ *
+ * The last two are ordinary argument-order and the declaration lever has not
+ * been swept on them. This is close and should be finished rather than left.
+ *
+ * The body below is the 6-of-72 version, not the 19-of-72 one this was parked
+ * with.
  */
 #include "actor.h"
 
@@ -75,14 +101,21 @@ void OvlFunc_968_20087d8(void)
     Actor *a;
     int flag;
     unsigned char *p;
+    int n1, n2, n3;
+    int s1, s2;
 
+    s1 = 0x6666;
+    s2 = 0x3333;
+    n1 = -1;
+    n2 = -1;
+    n3 = -1;
     a = __MapActor_GetActor(0);
     flag = __GetFlag(0x109);
     if (flag != 0)
         return;
     __CutsceneStart();
+    __Func_80933f8(n1, n2, n3, 0);
     p = &a->interactFlag;
-    __Func_80933f8(-1, -1, -1, 0);
     *p = flag;
     __MapActor_SetPos(0, ((short *)&a->pos.x)[1] << 16,
                       (((short *)&a->pos.z)[1] << 16) + 0xfff00000);
@@ -92,7 +125,7 @@ void OvlFunc_968_20087d8(void)
     __WaitMapTransition();
     __PlaySound(0xe4);
     a->update = OvlFunc_968_20086a0;
-    __MapActor_SetSpeed(0, 0x6666, 0x3333);
+    __MapActor_SetSpeed(0, s1, s2);
     __Func_8092304(0, 0, 8);
     __Func_8092950(0, 0);
     __Actor_SetSpriteFlags(__MapActor_GetActor(0), 1);

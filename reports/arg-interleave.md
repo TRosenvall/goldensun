@@ -79,6 +79,29 @@ reading it beats generating variants.
 All five match under `make compare`. The fifth is from the *other* class, which
 is what establishes that the two are one mechanism.
 
+## Later: it defeats constant-CSE too
+
+Found in batch 40, and it is the bigger use.
+
+Where the ROM builds the **same value twice** and gcc builds it once and copies,
+giving each occurrence its own named local in a dominating block makes gcc
+rematerialise both. That reaches a class this project had written off:
+
+| function | was | now |
+|---|---|---|
+| `OvlFunc_959_2008ce0` | 6 of 46, two identical shifted constants CSE'd | **matched** |
+| `OvlFunc_922_2009750` | **parked**, and a documented counter-example to the `-fno-rerun-cse-after-loop` rule — the flag was byte-identical on it | **matched, no flag** |
+| `OvlFunc_968_20087d8` | parked on the `-1` triple, 19 disagreeing | 6, triple solved |
+
+`OvlFunc_922_2009750`'s park had guessed that the CSE flag only reaches values
+used as *call arguments* and not values used in *address arithmetic*. That guess
+was wrong in a useful way: the discriminator is not what the value is used for,
+it is whether the uses sit in a different basic block from the assignment.
+
+**Before reaching for `CSE_CFLAGS`, try separate locals in a dominating block.**
+The flag is a build-system change that has to be justified upstream and is
+carried in `HANDOFF.md` as a standing question; this is one line of C.
+
 ## The limit, stated precisely
 
 **A straight-line function cannot use this.** There is no boundary to put
