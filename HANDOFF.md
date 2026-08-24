@@ -38,6 +38,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-28](reports/batch-28.md) | 8 | ready to port |
 | [batch-29](reports/batch-29.md) | 5 | ready to port |
 | [batch-30](reports/batch-30.md) | 5 | ready to port |
+| [batch-31](reports/batch-31.md) | 6 | ready to port |
 
 Every batch is verified the same way, from a clean build:
 
@@ -134,6 +135,14 @@ codebase better than we do. Listed once here rather than repeated per batch.
   `orig.bin` dependencies naming files that have since been split, and
   `as -MD` recording a directory-less `.c` from a generated `.s`'s `.file`
   directive. Until these, every clean build here needed manual recovery.
+
+- **A third clean-build bug in the Makefile is fixed in batch 31**, also
+  predating our work and also reachable from a fresh clone: the dependency
+  generator for the ELFs greps linker scripts for `.o` names, so the `.sym`
+  files a script `INCLUDE`s are never dependencies. Editing `message.sym` left
+  `stage1.o` stale and every overlay referencing the new symbol failed to link
+  with `undefined reference`, which reads like a typo in the C. Silent until
+  someone adds a symbol.
 
 - **Two overlay TUs are built with `-fno-rerun-cse-after-loop`** (batch 25), and
   this needs a decision from someone who knows the original toolchain. Both load
