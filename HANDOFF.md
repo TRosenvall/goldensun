@@ -46,6 +46,12 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-36](reports/batch-36.md) | 7 | ready to port |
 | [batch-37](reports/batch-37.md) | 5 | ready to port |
 
+**[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
+matched with inline asm rather than with a construct, all previously parked. The
+debt is listed rather than buried, with twenty ruled-out formulations and the one
+positive lead: `volatile` gives the right ordering in plain C and fails only on
+the stack slot it also forces.
+
 **[Cracking arg-interleave](reports/arg-interleave.md)** retires two blocker
 classes that stood for 36 batches, and unblocks 516 functions. The lever is one
 line of C: assign an argument's constant to a local in a DIFFERENT BASIC BLOCK

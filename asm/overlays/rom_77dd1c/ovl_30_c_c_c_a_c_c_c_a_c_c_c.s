@@ -1,83 +1,5 @@
 	.include "macros.inc"
 
-@ 17 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   PlaySound, PlayMapRectAnimation, WalkSlotTo, DialogueWait
-@   OvlFunc_15c
-.thumb_func_start OvlFunc_882_2008398
-	push	{lr}
-	mov	r0, #0x9e
-	bl	__PlaySound
-	ldr	r0, =.L578a
-	mov	r1, #0x23
-	mov	r2, #0x4a
-	bl	__Func_8010560
-	mov	r1, #0x66
-	ldr	r2, =0x4b6
-	mov	r0, #0
-	bl	__Func_809218c
-	mov	r0, #3
-	bl	__CutsceneWait
-	mov	r0, #0xa
-	bl	OvlFunc_882_200815c
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_882_2008398
-
-@ 17 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   PlaySound, PlayMapRectAnimation, WalkSlotTo, DialogueWait
-@   OvlFunc_15c
-.thumb_func_start OvlFunc_882_20083cc
-	push	{lr}
-	mov	r0, #0x9e
-	bl	__PlaySound
-	ldr	r0, =.L578a
-	mov	r1, #0x23
-	mov	r2, #0x49
-	bl	__Func_8010560
-	mov	r1, #0x66
-	ldr	r2, =0x4b6
-	mov	r0, #0
-	bl	__Func_809218c
-	mov	r0, #3
-	bl	__CutsceneWait
-	mov	r0, #0xc
-	bl	OvlFunc_882_200815c
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_882_20083cc
-
-@ 17 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   PlaySound, PlayMapRectAnimation, WalkSlotTo, DialogueWait
-@   OvlFunc_15c
-.thumb_func_start OvlFunc_882_2008400
-	push	{lr}
-	mov	r0, #0x9e
-	bl	__PlaySound
-	ldr	r0, =.L57a0
-	mov	r1, #0x26
-	mov	r2, #0x48
-	bl	__Func_8010560
-	mov	r1, #0x92
-	ldr	r2, =0x49e
-	mov	r0, #0
-	bl	__Func_809218c
-	mov	r0, #3
-	bl	__CutsceneWait
-	mov	r0, #0xd
-	bl	OvlFunc_882_200815c
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_882_2008400
-
 @ Cutscene: roughly 561 instructions of straight-line script --
 @ 4 turns, 8 animation changes, 0 dialogue lines, 0 timed pauses.
 @ Characterised structurally rather than beat by beat.
@@ -1134,4 +1056,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_882_2008d5c
-
