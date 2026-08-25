@@ -1180,7 +1180,9 @@ SECTIONS {
 
 	rom_c9000 : ALIGN(0x1000) {
 		src/rom_c9000/exports.o(.text)
-		asm/rom_c9000/rom_c9048_a.o(.text)
+		asm/rom_c9000/rom_c9048_a_a.o(.text)
+		asm/rom_c9000/rom_c9048_a_b.o(.text)
+		asm/rom_c9000/rom_c9048_a_c.o(.text)
 		asm/rom_c9000/rom_c9048_b.o(.text)
 		asm/rom_c9000/rom_c91dc_a.o(.text)
 		asm/rom_c9000/rom_c91dc_b.o(.text)
