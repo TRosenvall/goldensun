@@ -1595,3 +1595,33 @@ both loads AND gets the branch direction.
 Note a loop variable may be genuinely uninitialised on the early-exit path --
 `w` is, above. That is not a bug to fix: the ROM leaves through the same path
 without reading it. Initialising it to silence the thought adds an instruction.
+
+### Lever: the POINTER-TYPED operand comes first in `[rA, rB]`
+
+Thumb's register-offset addressing prints as `ldr r0, [rA, rB]`. Which register
+lands in the rA slot is decided by WHICH SOURCE OPERAND IS THE POINTER, not by
+the order of the addition.
+
+    rom   ldr r0, [r5, r7]      r5 = the walking offset, r7 = the loaded base
+    ours  ldr r0, [r7, r5]
+
+Reversing the addition in the source -- `off + base` rather than `base + off` --
+**does nothing**; gcc canonicalises pointer-plus-integer and the output is
+byte-identical. Change the TYPES instead:
+
+    unsigned int   base = (unsigned int)iwram_3001f2c;   /* base as an integer */
+    unsigned char *w    = (unsigned char *)0x8a;         /* offset as a pointer */
+    ... *(void **)(w + base)
+
+That was the only difference between `Func_801ff14` at 2 of 29 and an exact
+match. It reads oddly, but the ROM's addressing says which variable the original
+source treated as the pointer, and the walking one usually is.
+
+**The other direction** -- a named pointer instead of register-offset addressing
+-- is a separate fix for a separate shape:
+
+    rom   add r3, r2 / mov r2, #0x14 / strh r2, [r3, #0x0]
+    ours  strh r3, [r1, r2]
+
+There, naming the sum (`q = g + k; *(short *)q = t;`) makes gcc compute the
+address and store at offset zero. `OvlFunc_939_2008ac4` needed this one.

@@ -196,7 +196,7 @@ codebase better than we do. Listed once here rather than repeated per batch.
   with `undefined reference`, which reads like a typo in the C. Silent until
   someone adds a symbol.
 
-- **Twenty-two TUs are built with `-fno-rerun-cse-after-loop`**, covering twenty-nine
+- **Twenty-three TUs are built with `-fno-rerun-cse-after-loop`**, covering thirty
   functions (first two in batch 25),
   and as of batch 42 one of them is MAIN-ROM code rather than an overlay, which
   weakens the reading that this is an overlay-only property. It
