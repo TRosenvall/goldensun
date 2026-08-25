@@ -665,3 +665,36 @@ its scope was overstated.
 **Caveat on immediate value:** every `__SetDestMap` caller is 69+ instructions
 and they are cutscene functions, so these seven symbols unblock nothing on their
 own today. They remove a blocker that would otherwise be hit later.
+
+### What the 177 parks are blocked on, roughly
+
+A keyword pass over the park notes, first-match-wins:
+
+     37  register allocation      (naming, elided copies, elided saves)
+     35  scheduling               (hoists, load ordering)
+     19  constant-CSE
+     12  optimiser proved something and removed it
+      7  argument precompute
+      4  pool tell / naming
+      4  basic-block placement
+      3  cross-jumping / CSE of two loads
+     56  unclassified
+
+**Read the numbers with two caveats.** The classifier takes the FIRST class
+whose keywords appear, so a park describing two causes is counted once -- the
+argument-precompute figure reads 7 here against a hand count of 12, because
+several of those notes mention register allocation earlier in the text. And the
+56 unclassified are mostly older parks written before these class names
+settled; they are not a separate phenomenon.
+
+**What survives the caveats** is the shape: register allocation and scheduling
+together are the largest group by a wide margin, and both are compiler-policy
+differences rather than things C can state. The recurring detail is that the
+ROM's allocator reaches for callee-saved registers sooner than gcc-2.96 does --
+several parks show the ROM using r4-r6 where gcc uses r0-r3, and a few show the
+ROM using r4 without saving it at all.
+
+**Planning consequence:** the small-function frontier is now mostly these two
+classes. Further progress at this size is likely to need a compiler-level
+answer rather than more source spellings, which is the same conclusion the
+argument-precompute investigation reached from a different direction.
