@@ -1853,3 +1853,29 @@ and move on. The exceptions worth one attempt are the shapes that are NOT pure
 naming: an elided copy that a derived initialiser can force
 (`q = (T *)(p + K)`), and a register-offset load that a named pointer can turn
 into an add -- both documented above, both with their limits measured.
+
+### The pool tell also appears as an UNFOLDED SUBTRACTION
+
+The familiar form is a small constant pooled where `mov #imm8` would do. There
+is a second form worth recognising:
+
+    ldr r3, =0xd2e / ldr r2, =0xd24 / sub r3, r2 / add r0, r3
+
+Four instructions to add ten. **No compiler leaves `0xd2e - 0xd24` unfolded.**
+Both operands were symbols, and written as literals gcc folds the difference and
+emits `add r0, #0xa` -- so the function comes out several instructions SHORT,
+which reads like an optimiser-proved-it floor and is not one.
+
+Same mechanism as the per-area flag run `0x8c8 + (area - 0x7e)`. If a function
+is mysteriously shorter than the ROM around some arithmetic on pooled
+constants, check whether the ROM is computing something a compiler would fold.
+
+**Finding the namespace: follow the result, not the value.** `Func_80b2884`'s
+result flows to `_Func_8017658`'s first argument in an already-elevated caller,
+and elevated code elsewhere passes `(int)&_MSG_14` there -- so the operands are
+message ids. `_MSG_d21` turned out to be already defined, one of the same run.
+Values collide across namespaces (95 of them do); consumers do not.
+
+**A named temporary can decide the allocation.** `d = X - Y; base += d;` puts
+the two pooled loads in the opposite registers from the ROM. `base += X - Y;`
+matches exactly. Worth trying both when a subtraction's operands land swapped.

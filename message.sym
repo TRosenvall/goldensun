@@ -70,3 +70,23 @@ _MSG_28be = 0x28be;
 _MSG_e19 = 0xe19;
 _MSG_e39 = 0xe39;
 _MSG_22b9 = 0x22b9;
+
+/* Added in batch 68. Func_80b2884 adds a small offset to a message id chosen by
+ * a byte at iwram_3001f2c+0x3aa, and the ROM computes each offset as an
+ * UNFOLDED SUBTRACTION of two pooled constants -- `ldr =0xd2e / ldr =0xd24 /
+ * sub` to add ten. A compiler does not leave that unfolded, so both operands
+ * were symbols.
+ *
+ * The namespace is identified by the CONSUMER, not the value. The result flows
+ * to _Func_8017658's first argument in the already-elevated caller
+ * src/rom_b0000/rom_b0070_c_c_a_b.c, and elevated code elsewhere passes
+ * `(int)&_MSG_14` in that position. `_MSG_d21` was already defined in this
+ * file, one of the same run.
+ *
+ * Named by value, asserting the namespace only -- the convention this file
+ * already uses for the shiftable ids below. */
+_MSG_d24 = 0x0d24;
+_MSG_d2d = 0x0d2d;
+_MSG_d2e = 0x0d2e;
+_MSG_d38 = 0x0d38;
+_MSG_d42 = 0x0d42;
