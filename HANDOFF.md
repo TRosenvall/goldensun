@@ -52,6 +52,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-42](reports/batch-42.md) | 6 | ready to port |
 | [batch-43](reports/batch-43.md) | 8 | ready to port |
 | [batch-44](reports/batch-44.md) | 8 | ready to port |
+| [batch-45](reports/batch-45.md) | 5 | ready to port |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
@@ -202,6 +203,20 @@ codebase better than we do. Listed once here rather than repeated per batch.
   `OvlFunc_883_2008fbc`, with that exact shape. We chose assembly over four more
   fakematches; if you would rather have the bytes, the park note lists every
   member and the change is mechanical.
+
+- **Per-file flag rules written as `%` patterns can describe the wrong
+  translation unit** (found in batch 45). The `_a`/`_b`/`_c` split chain is a
+  POSITIONAL carve of one overlay's assembly, not a TU boundary, so a rule
+  anchored on a name prefix can spread one TU's `-O1` choice onto a neighbour
+  that merely shares that prefix. Two functions were compiled at the wrong `-O`
+  this way, and the symptom was a clean four-line argument-fill diff
+  indistinguishable from a real blocker.
+
+  One rule is narrowed in batch 45. Two others in `rom_7ed0a0` still span more
+  than one parent; **both build green today**, so they were left alone, but a
+  future split under either stem would inherit `-O1` silently.
+  `tools/tryc.py` now warns when a mismatch was screened under wildcard-sourced
+  flags. Worth a decision from someone who knows which stems are really one TU.
 
 - **Narrow constant materialisation** gates 34 functions and is half solved: a
   named `int` mask reproduces the ROM's 32-bit constant, but the instruction
