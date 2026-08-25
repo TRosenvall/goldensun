@@ -1802,3 +1802,29 @@ against immediates. That mistake hid this function for a round.
 **Note the second half still needs care.** Two out-of-range paths written as two
 `return` statements get merged into one block that gcc places differently, six
 instructions' worth. Send both to a shared `goto out;` label instead.
+
+### `include/dma.h`: pick the helper by WHERE the fill value is stored
+
+Two helpers are now confirmed to reproduce the ROM exactly, and they differ in
+one visible way.
+
+`DMA3_SET(src, dst, cnt)` takes a pointer you have already filled:
+
+    zero = 0;                       /* stored wherever gcc likes  */
+    DMA3_SET(&zero, p, cnt);
+
+`DMA3_FILL(dst, value, size)` stores the value THROUGH the register it binds to
+r0, which the ROM shows as:
+
+    mov r0, sp / mov r3, #0x0 / str r3, [r0, #0x0]
+
+If the ROM stores through a register it has just set to `sp`, that is `DMA3_FILL`.
+Using `DMA3_SET` plus a separate assignment gets the transfer right and those
+three instructions wrong -- `Func_80a1090` went from 15 of 25 to 9 on the swap.
+
+**Decoding the size argument:** `DMA3_FILL` builds the count as
+`0x85000000 | (size / 4)`, so a ROM count word of `0x8500029c` means
+`size = 0x29c * 4 = 0xa70`.
+
+The header itself is not a blocker -- that class was retired in batch 65 after
+re-screening all five parks filed under it. Picking the wrong helper is.
