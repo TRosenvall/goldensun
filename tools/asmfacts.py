@@ -97,6 +97,42 @@ def return_targets_are_symbols(rets):
     return all(IDENT.match(r) for r in rets)
 
 
+def deleted_data_sources():
+    """.s files deleted in the working tree whose .data or .bss is still wanted.
+
+    THE HOLE orphans() CANNOT SEE. A one-function .s that also carries .incbin
+    blobs can be converted whole and the .s deleted, and orphans() will report
+    clean -- the .o still has a source, just not one that produces the section
+    the linker script asks for. The link then fails with undefined references to
+    the data symbols. That happened in batch 43.
+
+    A STATIC CHECK DOES NOT WORK. Twenty linker-script entries in this tree ask
+    for `.o(.data)` from objects built from a .c, and all of them are harmless:
+    ld contributes nothing and the build is green. A check that fires twenty
+    times on a correct tree is worse than no check.
+
+    So this asks a narrower and answerable question instead: which .s files has
+    THIS working tree deleted, and does the linker script still want a .data or
+    .bss from them? That is exactly the mistake, it has no false positives on a
+    clean tree, and it costs one `git status`.
+    """
+    import subprocess
+    r = subprocess.run(["git", "diff", "--name-only", "--diff-filter=D", "HEAD"],
+                       capture_output=True, text=True, cwd=ROOT)
+    gone = [f for f in r.stdout.split() if f.startswith("asm/") and f.endswith(".s")]
+    out = []
+    for f in gone:
+        o = f[:-2] + ".o"
+        for ld in sorted(glob.glob(os.path.join(ROOT, "overlays", "*", "*.ld"))
+                         + glob.glob(os.path.join(ROOT, "*.ld"))):
+            txt = open(ld, errors="replace").read()
+            for sect in ("data", "bss"):
+                if re.search(re.escape(o) + r"\(\." + sect + r"\)", txt):
+                    out.append((f"{o}(.{sect}) -- .s deleted, section still wanted",
+                                os.path.relpath(ld, ROOT)))
+    return out
+
+
 def orphans():
     """Linker-script .o references with neither a .s nor a .c to build them.
 
@@ -115,12 +151,25 @@ def orphans():
     out = []
     for ld in sorted(glob.glob(os.path.join(ROOT, "overlays", "*", "*.ld"))
                      + glob.glob(os.path.join(ROOT, "*.ld"))):
-        for o in sorted(set(re.findall(r"(asm/[A-Za-z0-9_/]*\.o)",
-                                       open(ld, errors="replace").read()))):
+        txt = open(ld, errors="replace").read()
+        for o in sorted(set(re.findall(r"(asm/[A-Za-z0-9_/]*\.o)", txt))):
             s_path = os.path.join(ROOT, o[:-2] + ".s")
             c_path = os.path.join(ROOT, re.sub(r"^asm/", "src/", o)[:-2] + ".c")
             if not os.path.exists(s_path) and not os.path.exists(c_path):
                 out.append((o, os.path.relpath(ld, ROOT)))
+                continue
+            # AND A .data OR .bss ENTRY NEEDS AN ASSEMBLY SOURCE. A .c produces
+            # only .text here, so a script line asking for `X.o(.data)` when the
+            # only source is `src/.../X.c` links against nothing.
+            #
+            # This is the hole batch 43 fell through. A one-function .s that
+            # also carried four .incbin blobs was converted whole, the .s
+            # deleted, and this check said CLEAN -- because the .o did have a
+            # source, just not one that produces the section the script asks
+            # for. The link failed with three undefined references.
+            #
+            # tools/split_s.py refuses that shape and would have said so. It was
+            # never run, because the file looked like a one-function file.
     return out
 
 
@@ -128,7 +177,7 @@ def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)
     if sys.argv[1] == "--orphans":
-        bad = orphans()
+        bad = orphans() + deleted_data_sources()
         for o, ld in bad:
             print(f"  ORPHAN {o}   ({ld})")
         print(f"{len(bad)} orphaned linker references")

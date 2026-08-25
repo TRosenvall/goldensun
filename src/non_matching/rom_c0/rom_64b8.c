@@ -47,6 +47,38 @@
  * in a local. Left as a literal it gets hoisted into the pre-header, which is
  * the loop-invariant behaviour recorded in src/rom_b5000/rom_bffb8_a_a_a_b.c --
  * that lever runs the other way here and the local is what the ROM wants.
+ *
+ * PROGRESS AND A DIAGNOSIS, batch 43. Found by tools/rank_parks.py --flags.
+ *
+ * AT -O1 THIS GOES TO 2, and all three members of this family land on the SAME
+ * two instructions -- Func_80064b8 (25), Func_8012350 (27) and
+ * OvlFunc_956_20081c8 (26). At -O2 the diff is the pre-header load merge this
+ * file was named for; -O1 removes that and leaves one thing:
+ *
+ *     rom    mov r3, #0x96 / add r6, #0x1 / lsl r3, #0x1 / cmp r6, r3
+ *     ours   add r6, #0x1  / mov r3, #0x96 / lsl r3, #0x1 / cmp r6, r3
+ *
+ * The loop limit is a TWO-INSTRUCTION CONSTANT and the ROM splits its mov/lsl
+ * pair around the loop counter's increment. That is the arg-interleave shape,
+ * on a comparison operand rather than a call argument.
+ *
+ * IT IS UNREACHABLE, AND THE MECHANISM SAYS SO IN ADVANCE. The basic-block
+ * lever retires that shape, and it requires REG_N_REFS == 2 -- and REG_N_REFS
+ * is incremented by `bb->loop_depth + 1`, so a set-once-used-once pseudo INSIDE
+ * A LOOP counts 4, not 2. See docs/elevation.md.
+ *
+ * Confirmed rather than assumed, all at -O1:
+ *
+ *     the limit as a named local assigned in the loop body   2 of 27  (this file)
+ *     the limit written inline in the comparison             3 of 27
+ *     the limit assigned after the increment                 2 of 27
+ *     the limit assigned BEFORE the loop, i.e. the lever     7 of 27  (worse)
+ *
+ * So the three are one blocker, not three, and the blocker is a known-closed
+ * one rather than an open question. A per-file -O1 rule would take them from
+ * three-or-more out to two, which is not worth a build-system change on its
+ * own; it is recorded here so that whoever finds a way through the loop case
+ * knows these three come with it.
  */
 #include "gba/types.h"
 
