@@ -1,32 +1,5 @@
 	.include "macros.inc"
 
-@ Talk: lines 0x1be3, 0x1be4, shown.
-@ Which line is chosen by save bit 0x302.
-@ Sets save bit 0x302.
-.thumb_func_start OvlFunc_884_2008634
-	push	{lr}
-	bl	__CutsceneStart
-	ldr	r0, =0x302
-	bl	__GetFlag
-	cmp	r0, #0
-	beq	.L64c
-	ldr	r0, =0x1be4
-	bl	__MessageID
-	b	.L658
-.L64c:
-	ldr	r0, =0x1be3
-	bl	__MessageID
-	ldr	r0, =0x302
-	bl	__SetFlag
-.L658:
-	mov	r0, #0xb
-	mov	r1, #0
-	bl	__ActorMessage
-	bl	__CutsceneEnd
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_884_2008634
-
 @ 57 instructions. Not one of the recognised overlay shapes,
 @ so this is a CALL TRACE rather than a description -- what it does with
 @ these is not characterised here.

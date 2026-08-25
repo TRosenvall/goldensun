@@ -117,6 +117,7 @@ _AREA_ae = 0xae;
 _AREA_af = 0xaf;
 _AREA_b0 = 0xb0;
 _AREA_b3 = 0xb3;
+_AREA_b4 = 0xb4;
 _AREA_bd = 0xbd;
 _AREA_63 = 0x63;
 _AREA_66 = 0x66;

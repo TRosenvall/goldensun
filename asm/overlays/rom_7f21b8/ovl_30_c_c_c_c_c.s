@@ -1,42 +1,5 @@
 	.include "macros.inc"
 
-@ Slot 4: the map object table.
-@ Chooses among .L2010, .L1eb4, .L1ca4, .L1a94
-@ on save bit 0x9a7 and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
-.thumb_func_start OvlFunc_967_20084b0
-	push	{lr}
-	ldr	r3, =gState
-	mov	r1, #0xe0
-	lsl	r1, #1
-	add	r3, r1
-	mov	r1, #0
-	ldrsh	r2, [r3, r1]
-	ldr	r3, =0xb4
-	cmp	r2, r3
-	bne	.L4d6
-	ldr	r0, =0x9a7
-	bl	__GetFlag
-	cmp	r0, #0
-	beq	.L4d2
-	ldr	r0, =.L2010
-	b	.L4e6
-.L4d2:
-	ldr	r0, =.L1eb4
-	b	.L4e6
-.L4d6:
-	ldr	r0, =0x9a7
-	bl	__GetFlag
-	cmp	r0, #0
-	beq	.L4e4
-	ldr	r0, =gScript_887__02009ca4
-	b	.L4e6
-.L4e4:
-	ldr	r0, =.L1a94
-.L4e6:
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_967_20084b0
-
 @ Cutscene: roughly 931 instructions of straight-line script --
 @ 33 turns, 28 animation changes, 46 dialogue lines, 121 timed pauses.
 @ Characterised structurally rather than beat by beat.
@@ -1332,12 +1295,15 @@ gOvl_020096d0:
 	.incbin "overlays/rom_7f21b8/orig.bin", 0x189c, (0x1974-0x189c)
 .L1974:
 	.incbin "overlays/rom_7f21b8/orig.bin", 0x1974, (0x1a94-0x1974)
+	.global .L1a94
 .L1a94:
 	.incbin "overlays/rom_7f21b8/orig.bin", 0x1a94, (0x1ca4-0x1a94)
 	.global gScript_887__02009ca4
 gScript_887__02009ca4:
 	.incbin "overlays/rom_7f21b8/orig.bin", 0x1ca4, (0x1eb4-0x1ca4)
+	.global .L1eb4
 .L1eb4:
 	.incbin "overlays/rom_7f21b8/orig.bin", 0x1eb4, (0x2010-0x1eb4)
+	.global .L2010
 .L2010:
 	.incbin "overlays/rom_7f21b8/orig.bin", 0x2010

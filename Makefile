@@ -178,6 +178,14 @@ O1_CFLAGS := $(subst -O2,-O1,$(GCC296_CFLAGS))
 # for these -- which is what a per-file rule means, and is a point in favour
 # of the per-TU reading over a whole-compiler difference.
 CSE_CFLAGS := $(GCC296_CFLAGS) -fno-rerun-cse-after-loop
+asm/overlays/rom_784360/ovl_30_c_a_a_a_c_c_a_c_c_b.o: src/overlays/rom_784360/ovl_30_c_a_a_a_c_c_a_c_c_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7d768c/ovl_30_c_a_c_a_b.o: src/overlays/rom_7d768c/ovl_30_c_a_c_a_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_78dee8/ovl_30_c_c_a_c_b.o: src/overlays/rom_78dee8/ovl_30_c_c_a_c_b.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)

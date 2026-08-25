@@ -38,6 +38,15 @@ THE FILTERS, AND WHAT EACH ONE COST
                     constant repeated on ONE path; repeated on MUTUALLY
                     EXCLUSIVE arms it is fine, because gcc never has both live.
                     OvlFunc_922_20085b8 matched with two ids repeated that way.
+
+                    CONFIRMED AGAIN IN BATCH 52, and this time the mechanical
+                    search for the constant-CSE shape is what flagged it.
+                    OvlFunc_967_20084b0 loads 0x9a7 for two __GetFlag calls --
+                    the exact shape -- but they sit on opposite arms of an area
+                    test. It matches at plain -O2 and needed no Makefile rule.
+                    So the search for this class must be read as a WORKLIST, not
+                    a verdict: check whether the two uses can be live at once
+                    before adding a per-file flag.
                     So this filter throws away some good candidates, which is
                     the right trade while there are hundreds left.
 

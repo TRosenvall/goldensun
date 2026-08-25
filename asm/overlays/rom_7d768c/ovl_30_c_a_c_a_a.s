@@ -128,31 +128,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_952_200be40
-
-@ Talk: lines 0x2239, 0x223a, shown.
-@ Which line is chosen by save bit 0x96d.
-@ Sets save bit 0x96d.
-.thumb_func_start OvlFunc_952_200bf84
-	push	{lr}
-	ldr	r0, =0x96d
-	bl	__GetFlag
-	cmp	r0, #0
-	bne	.L3fa6
-	ldr	r0, =0x96d
-	bl	__SetFlag
-	ldr	r0, =0x2239
-	bl	__MessageID
-	mov	r0, #9
-	mov	r1, #0
-	bl	__ActorMessage
-	b	.L3fb4
-.L3fa6:
-	ldr	r0, =0x223a
-	bl	__MessageID
-	mov	r0, #9
-	mov	r1, #0
-	bl	__ActorMessage
-.L3fb4:
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_952_200bf84
