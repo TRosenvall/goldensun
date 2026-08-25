@@ -1,5 +1,6 @@
 	.include "macros.inc"
 
+
 @ GetTerrainHeight
 @ r0=layer selector, r1=world x (16.16), r2=world z (16.16). Returns the ground
 @ height at that point as 16.16.
@@ -120,75 +121,3 @@
 	pop	{r1}
 	bx	r1
 .func_end Func_8011fd8
-
-@ GetTileFlags
-@ r0=layer selector, r1=world x, r2=world z. Returns byte +2 of the tile record,
-@ the passability/type field. The coordinates are shifted by 20 rather than 16,
-@ so they are taken straight to whole tiles. A value of 0xFF marks a blocked or
-@ absent tile (see TestCollision).
-.thumb_func_start Func_8012038  @ 0x08012038
-	push	{r5, lr}
-	ldr	r3, =iwram_3001e70
-	mov	r5, r0
-	ldr	r0, [r3]
-	mov	r4, r2
-	asr	r1, #20
-	asr	r4, #20
-	ldr	r2, =gBuffer
-	cmp	r0, #0
-	beq	.L1205e
-	mov	r2, #3
-	and	r2, r5
-	lsl	r3, r2, #1
-	add	r3, r2
-	mov	r2, #0x98
-	lsl	r2, #1
-	lsl	r3, #4
-	add	r3, r2
-	ldr	r2, [r0, r3]
-.L1205e:
-	lsl	r3, r4, #7
-	add	r3, r1, r3
-	lsl	r3, #2
-	add	r2, r3
-	ldrb	r0, [r2, #2]
-	pop	{r5}
-	pop	{r1}
-	bx	r1
-.func_end Func_8012038
-
-@ SetTileFlags
-@ r0=layer selector, r1=world x, r2=world z, r3=value. The write counterpart to
-@ Func_12038: stores r3 into byte +2 of the addressed tile record. Silently does
-@ nothing when no map is loaded.
-.thumb_func_start Func_8012078  @ 0x08012078
-	push	{r5, r6, lr}
-	mov	r6, r3
-	ldr	r3, =iwram_3001e70
-	mov	r5, r0
-	ldr	r0, [r3]
-	mov	r4, r2
-	asr	r1, #20
-	asr	r4, #20
-	cmp	r0, #0
-	beq	.L120a8
-	mov	r2, #3
-	and	r2, r5
-	lsl	r3, r2, #1
-	add	r3, r2
-	mov	r2, #0x98
-	lsl	r2, #1
-	lsl	r3, #4
-	add	r3, r2
-	ldr	r2, [r0, r3]
-	lsl	r3, r4, #7
-	add	r3, r1, r3
-	lsl	r3, #2
-	add	r2, r3
-	strb	r6, [r2, #2]
-.L120a8:
-	pop	{r5, r6}
-	pop	{r0}
-	bx	r0
-.func_end Func_8012078
-
