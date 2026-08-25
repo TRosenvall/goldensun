@@ -354,3 +354,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-25T05:35:21Z  end     +4 (920_2008148, 920_2008168, 965_200a4b0, Func_808e118); 402 elevated
 2026-08-25T05:45:20Z  end     +5 (901_2008e30, 901_2008e60, 920_2008188, 920_20081bc, 959_200a26c); 407 elevated
 2026-08-25T05:49:35Z  end     +4 (959_200a2a0, 959_200a2d4, 943_200b9b8, 948_2009c6c); 411 elevated
+2026-08-25T06:13:43Z  end     +2 (Func_8091858, 936_200958c), 2 parks; 413 elevated; scheduler question CLOSED

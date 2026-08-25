@@ -105,6 +105,33 @@
  * -fno-schedule-insns2 for this translation unit only. That is checkable
  * against the other functions in the same .s: if they need the scheduler ON,
  * the flag is not the answer and this is a genuine compiler difference.
+ *
+ * ANSWERED, batch 50 -- THE FLAG IS NOT THE ANSWER, AND THE QUESTION IS CLOSED.
+ *
+ * The note above set the test: "checkable against the other functions in the
+ * same .s: if they need the scheduler ON, the flag is not the answer and this
+ * is a genuine compiler difference." That test has now been run.
+ *
+ * A rule giving the whole `rom_9a44c` stem -fno-schedule-insns2 was added, the
+ * tree rebuilt from clean, and the ROM checksum FAILED. Four of the five
+ * already-elevated siblings change under the flag --
+ *
+ *     rom_9a44c_a_a_b.s   5 instructions
+ *     rom_9a44c_a_b.s     5 instructions
+ *     rom_9a44c_b.s       3 instructions
+ *     rom_9a44c_c_c_b.s   1 instruction
+ *
+ * -- and every one of them was byte-matching at -O2, so moving them breaks the
+ * match. The translation unit needs the post-reload scheduler ON.
+ *
+ * So the remaining possibilities are a SOURCE FORM nobody has found, or a real
+ * difference between gcc-2.96 and the compiler Camelot used. It is NOT a
+ * per-file flag, and no future attempt should spend a round re-testing that.
+ * The Makefile change was reverted; `make compare` is green again.
+ *
+ * What would still be worth doing is reading haifa-sched.c's cost model in the
+ * build image to see what makes the ARM7TDMI load-use stall worth filling here
+ * and not in the ROM. That is a compiler-source question, not a flag question.
  */
 #include "actor.h"
 

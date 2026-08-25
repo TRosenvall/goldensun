@@ -141,6 +141,12 @@ asm/overlays/common/common2_c%.o: src/overlays/common/common2_c%.c
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# NOTE (batch 50): the phrase "equivalently -O2 -fno-schedule-insns2" that used
+# to appear in this comment is NOT generally true, and was removed. For
+# Func_809a44c the two differ sharply, and giving its whole stem
+# -fno-schedule-insns2 breaks four already-matching siblings. -O1 changes
+# register allocation and expression ordering as well as the post-reload
+# scheduler. Treat the two as unrelated knobs.
 # Two overlay TUs verify byte-exact only at -O1 (probed 2026-07-15: the same
 # C bodies sit at a stable 2-line diff under -O2 and byte-match the ROM the
 # moment -O2 becomes -O1; every other candidate in the corpus stays a fail at
@@ -172,6 +178,10 @@ O1_CFLAGS := $(subst -O2,-O1,$(GCC296_CFLAGS))
 # for these -- which is what a per-file rule means, and is a point in favour
 # of the per-TU reading over a whole-compiler difference.
 CSE_CFLAGS := $(GCC296_CFLAGS) -fno-rerun-cse-after-loop
+asm/overlays/rom_7c097c/ovl_30_c_c_c_a_a_c_a_b.o: src/overlays/rom_7c097c/ovl_30_c_c_c_a_a_c_a_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_794ac0/ovl_30_a_c_a_c_a.o: src/overlays/rom_794ac0/ovl_30_a_c_a_c_a.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
@@ -260,8 +270,12 @@ asm/overlays/rom_7c460c/ovl_314_a_c_a_c_a_b.o: src/overlays/rom_7c460c/ovl_314_a
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 # 2026-07-16 fakematch de-hack sweep: the TUs below verify byte-exact with
-# their asm scaffolds removed only at -O1 (equivalently
-# -O2 -fno-schedule-insns2); the same per-file flag choice in the original
+# their asm scaffolds removed only at -O1. (The parenthetical "equivalently
+# -O2 -fno-schedule-insns2" that stood here was REMOVED in batch 50: the two
+# are not equivalent -- -O1 also changes register allocation and expression
+# ordering -- and it was never verified for these TUs, only assumed. If you
+# want the scheduler knob alone, test it; do not infer it from -O1.)
+# The same per-file flag choice in the original
 # build as the rules above. Pattern form covers the splitter's future
 # children of a stem; exact-file form is used where a sibling under the
 # same stem verifies only at -O2 (per-file flag mixing).
