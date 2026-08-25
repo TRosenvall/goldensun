@@ -14,7 +14,9 @@ MEMORY {
 SECTIONS {
 	.text : {
 		src/overlays/rom_7aa430/exports.o(.text)
-		asm/overlays/common/common0.o(.text)
+		asm/overlays/common/common0_a.o(.text)
+		asm/overlays/common/common0_b.o(.text)
+		asm/overlays/common/common0_c.o(.text)
 		asm/overlays/rom_7aa430/ovl_314_a_b.o(.text)
 		asm/overlays/rom_7aa430/ovl_314_a_c_a_b.o(.text)
 		asm/overlays/rom_7aa430/ovl_314_a_c_a_c_a.o(.text)
@@ -61,10 +63,10 @@ SECTIONS {
 	} > overlay
 
 	.data : {
-		asm/overlays/common/common0.o(.data)
+		asm/overlays/common/common0_c.o(.data)
 		asm/overlays/rom_7aa430/ovl_314_c.o(.data)
 		asm/overlays/rom_7aa430/ovl_1a3c_c.o(.data)
-		asm/overlays/common/common0.o(.data1)
+		asm/overlays/common/common0_c.o(.data1)
 		asm/overlays/rom_7aa430/ovl_1150_c_c.o(.data)
 		asm/overlays/rom_7aa430/ovl_d98_c_c_c_c.o(.data)
 		asm/overlays/rom_7aa430/ovl_e90_c_c_c_c.o(.data)

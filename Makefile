@@ -229,6 +229,16 @@ asm/overlays/rom_7f2f14/ovl_30_a_a_a_c_a_c_b.o: src/overlays/rom_7f2f14/ovl_30_a
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+asm/overlays/common/common0_b.o: src/overlays/common/common0_b.c
+	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+asm/overlays/rom_7a67d8/ovl_30_c_a_c_c.o: src/overlays/rom_7a67d8/ovl_30_c_a_c_c.c
+	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 CSE_CFLAGS := $(GCC296_CFLAGS) -fno-rerun-cse-after-loop
 asm/overlays/rom_7c460c/ovl_314_a_c_c_a_c_a_a.o: src/overlays/rom_7c460c/ovl_314_a_c_c_a_c_a_a.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
