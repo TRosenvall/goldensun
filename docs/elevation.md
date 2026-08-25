@@ -1625,3 +1625,30 @@ source treated as the pointer, and the walking one usually is.
 
 There, naming the sum (`q = g + k; *(short *)q = t;`) makes gcc compute the
 address and store at offset zero. `OvlFunc_939_2008ac4` needed this one.
+
+### Splitting again: a `.L` label in `.rodata` needs `.global`
+
+A second split of an already-split file can separate a function from the
+`.rodata` it references. Local labels do not cross object boundaries, so the
+link fails with
+
+    stage1.o: in function `Func_801ffd8':
+    (rom_15000+0xb080): undefined reference to `.L73854'
+
+even though nothing about the source changed. Add `.global` to the label in the
+piece that DEFINES it:
+
+    .section .rodata
+    .global .L73854
+
+    .L73854:
+        .incrom 0x73854, 0x73864
+
+This is the existing convention -- `asm/overlays/rom_7b9cb4/ovl_30_c_c.s` already
+carries `.global .L5238` for the same reason, and elevated C reaches such labels
+with `extern unsigned char L5238[] __asm__(".L5238");`. Symbol binding is
+link-time metadata, so the emitted bytes do not change and `make compare` still
+passes.
+
+Check for this BEFORE splitting: if the piece you are cutting away references a
+`.L` label defined in the part that keeps the data, export it in the same edit.

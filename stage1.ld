@@ -386,7 +386,9 @@ SECTIONS {
 		asm/rom_15000/rom_1de5c_c_c_c_c_c.o(.text)
 		asm/rom_15000/rom_1fe2c_a.o(.text)
 		asm/rom_15000/rom_1fe2c_b.o(.text)
-		asm/rom_15000/rom_1fe2c_c.o(.text)
+		asm/rom_15000/rom_1fe2c_c_a.o(.text)
+		asm/rom_15000/rom_1fe2c_c_b.o(.text)
+		asm/rom_15000/rom_1fe2c_c_c.o(.text)
 		asm/rom_15000/rom_20198_a_a.o(.text)
 		asm/rom_15000/rom_20198_a_b.o(.text)
 		asm/rom_15000/rom_20198_b.o(.text)
@@ -458,7 +460,7 @@ SECTIONS {
 		data/strings/strings.o(.rodata)
 		asm/rom_15000/rom_15e8c_c_c_c.o(.rodata)
 		asm/rom_15000/rom_73812.o(.rodata)
-		asm/rom_15000/rom_1fe2c_c.o(.rodata)
+		asm/rom_15000/rom_1fe2c_c_c.o(.rodata)
 		asm/rom_15000/rom_73864.o(.rodata)
 
 		. += 0x3000;
