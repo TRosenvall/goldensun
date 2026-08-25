@@ -2106,17 +2106,45 @@ two compilers created the pseudos in a different order to begin with.
   `-fno-delayed-branch`, and the baseline -- all byte-identical. gcc-2.96 does
   not expose allocation order as an option.
 
-### The experiment that would settle it
+### THE EXPERIMENT WAS RUN, AND THE HYPOTHESIS IS REFUTED
 
-The gcc-2.96 SOURCE TREE is in the build image at `/opt/camelot-gcc/gcc-2.96/`,
-with `configure` and `build.sh`. Patching `REG_ALLOC_ORDER` to `{2, 3, 0, 1,
-12, 14, 4, 5, ...}`, rebuilding `cc1` into a second directory, and re-screening
-the 26 consistent parks would decide it outright. If the transpositions
-disappear, the hypothesis is proven and the class is not a floor at all.
+`/opt/camelot-gcc/` in the build image ships the gcc-2.96 source with a working
+`build.sh`, and the image has a host toolchain. `REG_ALLOC_ORDER` was patched to
+`{2, 3, 0, 1, 12, 14, 4, 5, ...}`, `cc1` rebuilt, and the result mounted over
+`/opt/gcc296/cc1` in a throwaway container -- nothing in the repo or the image
+was changed.
 
-**It is a project-level decision, not a round-level one.** A different compiler
-build has to be agreed with upstream, and every currently-matching function
-would need re-verifying against it -- the same order swap that fixes 26 parks
-could break something that matches today. The experiment itself is cheap and
-non-destructive: build a second `cc1`, screen against it, touch nothing in the
-Makefile.
+**On eighteen register-allocation parks: 5 improved, 11 got WORSE, 2 unchanged,
+and ZERO matched.**
+
+    80c23a0      4 of 16  ->   2      2008d68      2 of 22  ->   6
+    rom_c0cc     7 of 20  ->   4      2009458      3 of 36  ->   8
+    rom_e3a3c    5 of 39  ->   3      rom_15e8c    7 of 21  ->  12
+    800fa8c     20 of 28  ->  17      808ddb8     12 of 26  ->  17
+
+**The control settles it.** Building the WHOLE ROM with the patched order leaves
+**724,691 bytes** differing. The stock `{3, 2, 1, 0, ...}` is unambiguously the
+right order for this corpus.
+
+### What that means -- the class is SOURCE-shaped, not compiler-shaped
+
+If the allocator's order were wrong we would expect a uniform improvement. We
+got a trade: some functions want the swap and more do not. So the `r2<->r3`
+transposition is **not** an allocator-configuration difference.
+
+What is left is pseudo CREATION order. gcc hands out registers in the order
+pseudos come into existence, so a function whose values are born in the other
+order gets the other registers -- and creation order is a property of the
+SOURCE, not of the compiler. That is why `OvlFunc_957_200b610` responded to
+reading its sprite pointer one statement earlier, and why naming operands
+*within* one statement does nothing: no pseudo exists yet to reorder.
+
+**So this class is reachable in principle**, and the lever is to make the value
+the ROM allocates first be *created* first -- which needs the two values to
+originate in separate statements. Where they are operands of a single
+expression, they cannot be separated without changing what the expression is,
+and those are the genuine floors.
+
+Do not re-run the compiler experiment. It is recorded here with its numbers so
+that it does not get proposed again.
+
