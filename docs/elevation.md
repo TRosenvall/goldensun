@@ -2064,3 +2064,59 @@ tablejump on its own.
 
 Worth knowing before hand-writing an if-chain to imitate one: a jump table in
 the `.s` is not evidence of hand-written assembly.
+
+## REGISTER ALLOCATION: it is systematic, and it is not reachable from C
+
+This is the terminal blocker -- once a function's semantics are right, what is
+left is which register each value lives in. `tools/reg_map.py` measures it
+rather than describing it: for every parked `.c` whose stream is the same
+length as the ROM's, it aligns the two, keeps only the instruction pairs that
+already agree in mnemonic and shape, and reads off the register correspondence.
+
+**41 same-length parks differ in registers. 26 of them are a clean
+permutation** -- every ROM register maps to exactly one of ours and back, so the
+function differs ONLY in naming. The other 15 are conflicting maps: same
+instructions, different value layout, which is not a renaming and will not
+respond to a renaming fix. That split is worth more than the totals.
+
+**The permutation is dominated by ONE adjacent transposition:**
+
+    rom r2 -> ours r3    9        rom r1 -> ours r0    5
+    rom r3 -> ours r2    9        rom r0 -> ours r1    3
+
+Eight functions are exactly `r2<->r3` and nothing else.
+
+`REG_ALLOC_ORDER` (arm.h:989) is `{3, 2, 1, 0, 12, 14, 4, 5, 6, 7, ...}`. gcc
+gives the first pseudo it allocates r3, the second r2, the third r1, the fourth
+r0. **The observed data is what you would see if the original compiler's order
+began `{2, 3, 0, 1, ...}`** -- the same registers, the first two pairs swapped.
+That accounts for 26 of the ~40 correspondences. The remainder (`r1->r2`,
+`r1->r3`, `r4->r1`) do not fit one global order and are probably cases where the
+two compilers created the pseudos in a different order to begin with.
+
+### What does NOT reach it
+
+- **Birth order in the source.** It works when the two values come from separate
+  STATEMENTS -- that is what fixed `OvlFunc_957_200b610` in batch 71. It does
+  nothing when they are operands of ONE statement: naming the pointer, naming
+  the zero, or both, in `a[0x5b] = 0`, all give byte-identical output, because
+  gcc's expander fixes the order before any pseudo exists.
+- **Flags.** Seven probed on a clean `r2<->r3` park -- `-fno-regmove`,
+  `-fno-caller-saves`, `-fno-function-cse`, `-fno-defer-pop`, `-fno-peephole`,
+  `-fno-delayed-branch`, and the baseline -- all byte-identical. gcc-2.96 does
+  not expose allocation order as an option.
+
+### The experiment that would settle it
+
+The gcc-2.96 SOURCE TREE is in the build image at `/opt/camelot-gcc/gcc-2.96/`,
+with `configure` and `build.sh`. Patching `REG_ALLOC_ORDER` to `{2, 3, 0, 1,
+12, 14, 4, 5, ...}`, rebuilding `cc1` into a second directory, and re-screening
+the 26 consistent parks would decide it outright. If the transpositions
+disappear, the hypothesis is proven and the class is not a floor at all.
+
+**It is a project-level decision, not a round-level one.** A different compiler
+build has to be agreed with upstream, and every currently-matching function
+would need re-verifying against it -- the same order swap that fixes 26 parks
+could break something that matches today. The experiment itself is cheap and
+non-destructive: build a second `cc1`, screen against it, touch nothing in the
+Makefile.
