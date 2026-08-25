@@ -29,6 +29,14 @@ project more than once:
 
 This checks all three before touching anything.
 
+**IT CHECKS ONE CUT, NOT A THREE-WAY SPLIT.** Cutting a function out of the
+MIDDLE of a .s leaves two remaining pieces, and labels can cross between THOSE
+two as well -- which this does not look at. That is a real hole: in batch 68 a
+three-way split of `rom_f6008_c.s` linked cleanly on the cut boundary and failed
+on the other one, because the earlier functions referenced six `.L` labels in
+the `.rodata` that stayed with the later half. Check every pair of resulting
+pieces, not just the one this reports on.
+
 WHAT IT DOES NOT DO
 
 It does not edit the linker script or write the .c -- those need judgement about
