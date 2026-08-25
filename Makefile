@@ -215,7 +215,26 @@ asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c%.o: src/overlays/rom_7f2f14/ovl_30_c_
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a%.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_a%.c
+# NARROWED 2026-08-24, same trap as the rom_7b7f1c rule below: this was
+# `ovl_30_a_c_a_a%`, and it also captured `ovl_30_a_c_a_a_c_a_*` -- the OTHER
+# half of the split of ovl_30_a_c_a_a_c.s. Those two halves do not share a
+# translation unit: OvlFunc_964_2009348 sits in the _c_a half, was parked at 6
+# of 18 under the inherited -O1, and byte-matches at -O2.
+#
+# The two files named here each keep -O1 because each is green with it today.
+asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_b.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_b_%.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_a_b_%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_c_b.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_a_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_c_b_%.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_a_c_b_%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
@@ -267,7 +286,14 @@ asm/overlays/rom_7987ac/ovl_30_c_c_a_a_c_a%.o: src/overlays/rom_7987ac/ovl_30_c_
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7aa430/ovl_e90_c_c_a_a%.o: src/overlays/rom_7aa430/ovl_e90_c_c_a_a%.c
+# NARROWED 2026-08-24, same trap: this was `ovl_e90_c_c_a_a%` and captured
+# children of ovl_e90_c_c_a_a_c.s as well. OvlFunc_923_2008ed0 lives there, was
+# parked at 6 of 41 under the inherited -O1, and byte-matches at -O2.
+asm/overlays/rom_7aa430/ovl_e90_c_c_a_a_b.o: src/overlays/rom_7aa430/ovl_e90_c_c_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7aa430/ovl_e90_c_c_a_a_b_%.o: src/overlays/rom_7aa430/ovl_e90_c_c_a_a_b_%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)

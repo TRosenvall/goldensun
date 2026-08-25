@@ -299,20 +299,39 @@ The converse matters too: whatever blocks one member blocks all of them, so a
 family is also the cheapest way to discover that a blocker is expensive. Check
 a candidate's family size before deciding how hard to push on it.
 
-## The declaration lever is an -O2 behaviour
+## WITHDRAWN: "the declaration lever is an -O2 behaviour"
 
-The rule below decided functions in nine batches and every one of them was
-compiled at -O2. It does **not** apply at -O1.
+**This section asserted that the declaration lever does not apply at -O1. That
+was wrong, and the way it was wrong is the more useful lesson.**
 
-Confirmed by a natural control: `OvlFunc_923_2008ed0` (rom_7aa430, -O1) and
-`OvlFunc_924_2008f84` (rom_7ac2d8, -O2) are the same forty-one instructions.
-The identical C matches at -O2 and fails at -O1, with neither declaring nor
-withholding the prototype moving the argument pair.
+The evidence was a natural control: `OvlFunc_923_2008ed0` (rom_7aa430, believed
+-O1) and `OvlFunc_924_2008f84` (rom_7ac2d8, -O2) are the same forty-one
+instructions, and the identical C matched at -O2 and failed at -O1.
 
-Sixteen `.o` prefixes build at -O1; the Makefile lists them explicitly, and
-`tools/tryc.py` prints `(built with: O1)` when it picks one up. **Read that
-line.** Two of the parked functions sit in -O1 units and their diagnoses were
-written before this was known.
+Every observation there was accurate. The inference was not, because
+`OvlFunc_923_2008ed0` **was never an -O1 translation unit**. A Makefile pattern
+rule written for a neighbouring TU captured its file by name prefix (batch 45).
+With the rule narrowed, the function matches at -O2 on the C that was parked,
+and it is elevated in batch 46.
+
+So there is no -O1 counterexample to the lever, and none was ever observed.
+
+### What to take from it
+
+**Two functions that match on identical C are telling you they are the same TU
+shape.** Read that as evidence about the BUILD when their flags differ, not as
+evidence that the flags explain the difference. The control was pointing at the
+Makefile the whole time and was read backwards.
+
+A per-file flag rule spelled as a `%` pattern is a **claim to check**, not a
+fact: the `_a`/`_b`/`_c` split chain is a positional carve of one overlay's
+assembly, and an overlay holds many TUs, so a name prefix does not imply a
+shared compiler invocation. `tools/tryc.py` prints `(built with: O1)` when a
+rule fires, and now adds a warning on a MISMATCH when those flags came from a
+wildcard rule. **Read both lines.**
+
+The -O1 units that are named by explicit Makefile targets remain real; the
+lever has still never been tested against one of those.
 
 ## Declare every callee — argument order depends on it
 
