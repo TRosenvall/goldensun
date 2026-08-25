@@ -190,3 +190,19 @@ _AREA_90 = 0x90;
 _AREA_92 = 0x92;
 _AREA_a9 = 0xa9;
 _AREA_b6 = 0xb6;
+
+/* INCONCLUSIVE LEAD, batch 68 -- recorded so it is not re-investigated blind.
+ *
+ * __SetDestMap receives a pooled small constant at 16 call sites, and a
+ * "destination map" argument looks like it should be an area id. It is NOT
+ * safe to name them on that basis yet, for two reasons:
+ *
+ *   * the values include 0x0, 0x1, 0x2 and 0x4, and the header above records
+ *     that area ids 0x00-0x0f never appear. Either the argument is a different
+ *     namespace, or that claim is about comparisons only. Unresolved.
+ *   * the scan that found them looked backwards a few instructions for ANY
+ *     pooled load, so it does not establish WHICH ARGUMENT the value is. A
+ *     coordinate or a flag in another register would look identical.
+ *
+ * What would settle it: check the register each pooled value is loaded into
+ * against __SetDestMap's signature. Until then these are not evidence. */
