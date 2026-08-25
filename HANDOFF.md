@@ -68,6 +68,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-58](reports/batch-58.md) | 6 | ready to port |
 | [batch-59](reports/batch-59.md) | 6 | ready to port |
 | [batch-60](reports/batch-60.md) | 5 | ready to port |
+| [batch-61](reports/batch-61.md) | 5 | ready to port |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
@@ -291,3 +292,22 @@ codebase better than we do. Listed once here rather than repeated per batch.
   named `int` mask reproduces the ROM's 32-bit constant, but the instruction
   ordering resists seven attempts. `src/non_matching/overlays/narrow_constant.c`
   has the detail.
+
+### `make clean` cannot be recovered inside Docker
+
+`tools/agbcc/bin/{agbcc,agbcc_arm,old_agbcc}` are **Mach-O x86_64** binaries --
+macOS host executables. The Linux container runs them as shell scripts and
+fails with `Syntax error: "(" unexpected`. Five objects need them:
+`src/lib/m4a/{m4a,m4a_tables}.o` and
+`src/lib/agb_flash/{agb_flash,agb_flash_mx,agb_flash_at}.o`.
+
+After any `make clean`, rebuild those five ON THE macOS HOST before returning to
+the container. The exact commands are in
+[reports/batch-61.md](reports/batch-61.md); the `m4a` pair must be run by hand
+because macOS make picks the generic `%.o: %.c` rule for them and reaches for
+`tools/gcc296/xgcc`, which exists only inside the container.
+
+`make compare` is byte-exact against `baserom.gba`, so a passing compare after
+this recovery is proof the host-built objects are correct -- nothing is taken on
+trust. But the report gate's "clean `make clean && make compare`" is a
+five-minute recovery, not a no-op. Do not run `make clean` casually mid-round.
