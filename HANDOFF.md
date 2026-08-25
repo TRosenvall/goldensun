@@ -72,6 +72,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-62](reports/batch-62.md) | 5 | ready to port |
 | [batch-63](reports/batch-63.md) | 5 | ready to port — 1 is an unpark |
 | [batch-64](reports/batch-64.md) | 8 | ready to port — 4 are one function in four overlays |
+| [batch-65](reports/batch-65.md) | 8 | ready to port — 7 first-screen, via existing .sym symbols |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
