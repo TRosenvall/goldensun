@@ -25,8 +25,15 @@
  *   `v > 0x11` and `v >= 0x12`                   identical output
  *   v declared `int` rather than `short`         identical output
  *
- * NEXT: nothing at the source level. gcc picks the constant for a `<`
- * comparison and both spellings arrive at the same canonical form.
+ * THE SAME DEFECT, TO THE INSTRUCTION, PARKS Func_80a3ce4 --
+ * src/non_matching/rom_a1000/rom_a3ce4.c, which carries the class note. Two
+ * functions is enough to say it is one-directional: gcc leaves the UPPER bound
+ * (`v > 0x11` here, `v > 0xc4` there) exactly as the ROM has it, and rewrites
+ * only the LOWER bound.
+ *
+ * NEXT: nothing at the source level. Any function whose only remaining
+ * difference is a lower bound has a 2-line floor -- check for
+ * `cmp #(K-1) / ble` against `cmp #K / blt` before spending a round on one.
  */
 typedef struct { unsigned char _bytes[704]; } GlobalState;
 extern GlobalState gState;

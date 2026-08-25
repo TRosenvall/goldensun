@@ -444,6 +444,55 @@ transposition is among the *non-r0* arguments — `mov r1 / ldr r2` against
 blocker; see `src/non_matching/ovl_77dd1c/2008398.c`, where both directions
 were tried before this was understood and neither helped.
 
+## OUR STREAM BEING SHORTER IS A SIGNATURE, NOT A CURIOSITY
+
+If a screen reports fewer instructions than the ROM, gcc found something cheaper
+than the original compiler did — and that is almost always a *rewrite* of the
+source shape, not a register-allocation difference. It points at a specific
+cause, so it is worth sorting the parked set by it:
+
+    docker run --rm -v "$PWD:/work" -w /work goldensun-build \
+        python3 tools/tryc.py <park> --ref <asm> --quiet     # rom N, ours M
+
+Batch 55 swept all parks this way and found **16 where ours is shorter**. Two
+unparked immediately on the first thing tried:
+
+| Cause | Fix |
+|---|---|
+| the default computed only on the path that needs it | assign it **before** the test, then overwrite in the matching arm |
+| a compound condition fused into one comparison | split the bounds into separate statements |
+
+`OvlFunc_964_20092b0` and `OvlFunc_965_2008fac` were both the first case: the
+park held `if (area == X) return script; return 0;` at 14 lines against 15, and
+the ROM sets `r0` to zero **before** the `cmp` and replaces it in the arm.
+
+**A shorter stream is a failure, and a legible one.** Longer usually means a
+blocker; shorter usually means the source said something more clever than the
+original did.
+
+## Blocker: gcc rewrites a signed LOWER bound and leaves the upper one
+
+    rom    cmp r0, #0xc4 / bgt <out>      upper bound -- MATCHES
+           cmp r0, #0xc1 / blt <out>      lower bound
+    ours   cmp r0, #0xc4 / bgt <out>
+           cmp r0, #0xc0 / ble <out>
+
+gcc-2.96 canonicalises **every** signed lower-bound test to `cmp #(K-1) / ble`:
+
+    v < 0xc1     ->  cmp #0xc0 / ble
+    v <= 0xc0    ->  cmp #0xc0 / ble
+    v >= 0xc1    ->  cmp #0xc0 / ble     (inverted, for the else arm)
+
+and leaves upper bounds alone. The ROM's compiler does not do the rewrite.
+
+**This is one-directional, which is what makes it a class rather than noise.**
+Two functions sit at exactly 2 lines on it — `OvlFunc_899_2008048` and
+`Func_80a3ce4` — after every other difference is fixed. No spelling reaches it,
+and the operand's type does not change it.
+
+**Check for it before spending a round.** If the only remaining difference is
+`cmp #(K-1) / ble` where the ROM has `cmp #K / blt`, there is a 2-line floor.
+
 ## A COMPOUND CONDITION FUSES; SPLIT IT INTO STATEMENTS
 
 Two range tests written as one condition get fused into a single unsigned
