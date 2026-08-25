@@ -194,6 +194,39 @@ def main():
     # So the failure mode is the reverse: a .c committed WITHOUT its .s. That
     # leaves the pair inconsistent with every other file in the tree and is
     # invisible to the build, which regenerates the .s either way.
+    # --unlinked: a src/*.c whose .o NO LINKER SCRIPT REFERENCES.
+    #
+    # WHY. split_s.py reports "holds only X and no data, convert it directly" for
+    # a single-function .s -- meaning the .c replaces THAT file, keeping its
+    # name. Writing the .c under the `_b` name a SPLIT would have produced
+    # instead leaves the original .s in place, still supplying the function,
+    # and the new .o simply unreferenced.
+    #
+    # Nothing catches that. The build is green, `make compare` passes, and
+    # --orphans reports clean, because the stray object is not missing from
+    # anything -- it is merely unused. --asm-pairs misses it too while the file
+    # is untracked. It happened in batch 59 and was noticed only by reading a
+    # directory listing.
+    #
+    # A GREEN BUILD DOES NOT PROVE A NEW .c IS BEING USED. The linker script
+    # reference is what proves it.
+    if sys.argv[1] == "--unlinked":
+        refs = set()
+        for ld in glob.glob(os.path.join(ROOT, "**/*.ld"), recursive=True):
+            for m in re.finditer(r"(asm/\S+?\.o)", open(ld, errors="replace").read()):
+                refs.add(m.group(1))
+        bad = []
+        for c in sorted(glob.glob(os.path.join(ROOT, "src/**/*.c"), recursive=True)):
+            rel = os.path.relpath(c, ROOT)
+            if "non_matching" in rel or rel.startswith("src/lib/"):
+                continue
+            o = "asm/" + rel[len("src/"):-2] + ".o"
+            if o not in refs:
+                bad.append(rel)
+        for rel in bad:
+            print(f"  UNLINKED  {rel}")
+        print(f"{len(bad)} source(s) whose .o no linker script references")
+        return 1 if bad else 0
     if sys.argv[1] == "--asm-pairs":
         tracked = set(subprocess.run(["git", "ls-files", "asm/"],
                                      capture_output=True, text=True,

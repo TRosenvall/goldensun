@@ -249,6 +249,24 @@ codebase better than we do. Listed once here rather than repeated per batch.
   `tools/tryc.py` now warns when a mismatch was screened under wildcard-sourced
   flags. Worth a decision from someone who knows which stems are really one TU.
 
+- **Seven sources in your tree are compiled but never linked**, found by
+  `tools/asmfacts.py --unlinked` (added batch 59). All seven arrived with the
+  base commit, so this predates our work and is reported rather than changed:
+
+      src/rom_b0000/dummy.c
+      src/rom_c0/rom_447c_a_b.c
+      src/rom_f9000/rom_f9ef8_b.c, _c_a_b.c, _c_a_c_b.c, _c_b.c, _c_c_b.c
+
+  The `rom_f9ef8_*` ones look like an abandoned pass at the m4a engine: the
+  linker script takes `src/lib/m4a/m4a.o(.text)` for that region instead, and
+  the matching `.s` files are gone.
+
+  **Why it is worth knowing rather than tidy-up trivia:** a `.c` whose `.o` no
+  linker script references still compiles, still leaves `make compare` green,
+  and still reports clean from `--orphans`. Anyone who elevates a function into
+  one of these files gets a passing build and no effect on the ROM. That is
+  exactly the failure this check was written for, after it happened once here.
+
 - **SIXTY OF THE PARKED SET ARE WITHIN SIX INSTRUCTIONS OF MATCHING**, measured
   in batch 58 with `tools/near_parks.py`. That number is the most useful one
   here for deciding what to work on, because it separates two populations the
