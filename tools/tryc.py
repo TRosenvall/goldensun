@@ -653,15 +653,6 @@ def main():
                       f"different distance still compares equal here.")
                 print(f"        VERIFY WITH make compare -- this screen cannot "
                       f"see PC-relative offsets.")
-        elif pool_is_inline(ref_path):
-            # Near-miss with an inline pool: the residue may be cosmetic, in
-            # which case this is a match the build will still reject.
-            print(f"     !! {name}: the reference keeps its literal pool "
-                  f"INSIDE the function. Even if the remaining difference looks "
-                  f"cosmetic,")
-            print(f"        the emitted SIZE of the translation unit can differ "
-                  f"and shift everything after it. VERIFY WITH make compare.")
-            continue
         ok = False
         # first divergence, with a little context -- enough to see whether it
         # is a scheduling difference or a genuinely different lowering
@@ -679,6 +670,22 @@ def main():
                     != (got[k] if k < len(got) else None))
         print(f"  XX {name}  (rom {len(exp)} lines, ours {len(got)}, "
               f"first diff at {i}, {ndiff} differ)")
+        # A NEAR-MISS WITH AN INLINE POOL IS AS UNPROVEN AS A CLEAN ONE.
+        # Func_801edec screened XX with ONE differing line -- and that line was
+        # only this tool printing a symbol name where the reference prints its
+        # value, i.e. cosmetically identical. The warning below lived only on
+        # the OK path, so nothing fired, and `make compare` failed by 323,730
+        # bytes: the TU came out a different SIZE and everything after it
+        # shifted. Printed here IN ADDITION to the diff, never instead of it --
+        # the first attempt at this fix used an `elif ... continue` and
+        # suppressed the entire mismatch report, which is far worse than the
+        # hole it closed.
+        if pool_is_inline(ref_path):
+            print(f"     !! the reference keeps its literal pool INSIDE the "
+                  f"function. Even a difference that looks cosmetic can mean a "
+                  f"different")
+            print(f"        translation-unit SIZE, which shifts everything after "
+                  f"it. VERIFY WITH make compare.")
         # A NON-DEFAULT FLAG SET THAT CAME FROM A WILDCARD RULE IS A SUSPECT,
         # not a fact. The rule is anchored on a name prefix, and the _a/_b/_c
         # split chain that produces those prefixes is not a translation-unit
