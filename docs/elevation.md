@@ -1687,3 +1687,25 @@ gcc already performs. Reach for it only when the returned value is genuinely
 computed rather than chosen from constants -- see the offset-variable-reused
 lever, where a variable IS the right answer because the value comes from a
 load.
+
+### Lever: assign back into the PARAMETER when the ROM's load is destructive
+
+When the ROM overwrites an argument register with something loaded through it:
+
+    ldr r0, [r0, #0x50]        <- r0 was the parameter, now it is the result
+
+do not introduce a local for the result. A fresh local gets a fresh register,
+and under any pressure at all gcc will reach for a callee-saved one and add a
+push. Assign back into the parameter instead:
+
+    a = *(unsigned char **)(a + 0x50);
+
+`Func_800c570` went from 8 of 21 to 1 on that single change.
+
+The same function shows the companion rule for arguments that are VALUES rather
+than pointers: `f &= 1;` on the parameter, not `m = f; m &= 1;`. The copy is
+real -- it emits `mov r2, r1` -- and the ROM ANDs the incoming register in place.
+
+Both are the same idea. A parameter is already in a register the ROM is willing
+to clobber; naming a local says "keep the original too", and the ROM usually was
+not keeping it.
