@@ -1,82 +1,4 @@
 	.include "macros.inc"
-	.include "gba.inc"
-
-@ 34 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   SpawnEntity, OvlFunc_30
-.thumb_func_start OvlFunc_968_2008098
-	push	{r5, r6, lr}
-	mov	r4, r0
-	mov	r5, r1
-	mov	r6, r2
-	mov	r0, r3
-	mov	r2, r5
-	mov	r1, r4
-	mov	r3, r6
-	bl	__CreateActor
-	mov	r5, r0
-	cmp	r5, #0
-	beq	.Ld8
-	ldr	r1, [r5, #0x50]
-	mov	r3, #0xd
-	ldrb	r2, [r1, #9]
-	neg	r3, r3
-	and	r3, r2
-	mov	r2, #4
-	orr	r3, r2
-	strb	r3, [r1, #9]
-	mov	r1, #0xf
-	bl	OvlFunc_968_2008030
-	mov	r1, r5
-	add	r1, #0x23
-	ldrb	r2, [r1]
-	mov	r3, #2
-	orr	r3, r2
-	strb	r3, [r1]
-	mov	r0, r5
-	b	.Lda
-.Ld8:
-	mov	r0, #0
-.Lda:
-	pop	{r5, r6}
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_968_2008098
-
-@ Leaf helper, 27 instructions, calls nothing.
-@ Described by what it touches, not by what it means.
-@ Writes offsets +0x8, +0xc, +0x10, +0x18, +0x1c, +0x1e.
-.thumb_func_start OvlFunc_968_20080e0
-	ldr	r3, [r0, #8]
-	ldr	r2, [r0, #0x44]
-	add	r3, r2
-	str	r3, [r0, #8]
-	ldr	r2, [r0, #0x48]
-	ldr	r3, [r0, #0xc]
-	add	r3, r2
-	str	r3, [r0, #0xc]
-	ldr	r2, [r0, #0x4c]
-	ldr	r3, [r0, #0x10]
-	add	r3, r2
-	str	r3, [r0, #0x10]
-	ldr	r2, [r0, #0x30]
-	ldr	r3, [r0, #0x18]
-	add	r3, r2
-	str	r3, [r0, #0x18]
-	ldr	r2, [r0, #0x34]
-	ldr	r3, [r0, #0x1c]
-	add	r3, r2
-	str	r3, [r0, #0x1c]
-	ldr	r1, [r0, #0x50]
-	add	r0, #0x64
-	ldrh	r3, [r1, #0x1e]
-	ldrh	r2, [r0]
-	add	r3, r2
-	strh	r3, [r1, #0x1e]
-	bx	lr
-.func_end OvlFunc_968_20080e0
 
 @ 220 instructions. Not one of the recognised overlay shapes,
 @ so this is a CALL TRACE rather than a description -- what it does with
@@ -84,7 +6,7 @@
 @
 @   GetSlotEntityChecked, SpawnEntity, SetEntityAnimation, SetEntityScript
 @   SetActorPartsPalette, SignedDiv x3, SetEntityAnimation, SetEntityScript
-.thumb_func_start OvlFunc_968_2008118
+.thumb_func_start OvlFunc_927_2008ae8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
 	mov	r6, r10
@@ -108,25 +30,25 @@
 	and	r3, r2
 	mov	r9, r0
 	cmp	r3, #0
-	beq	.L156
+	beq	.Lb26
 	cmp	r7, #0
-	beq	.L156
+	beq	.Lb26
 	mov	r3, #0x18
 	ldrsh	r0, [r7, r3]
 	mov	r2, r6
-	b	.L15a
-.L156:
+	b	.Lb2a
+.Lb26:
 	mov	r2, r6
 	mov	r0, #0xde
-.L15a:
+.Lb2a:
 	mov	r1, r5
 	mov	r3, r8
 	bl	__CreateActor
 	mov	r6, r0
 	cmp	r6, #0
-	bne	.L16a
-	b	.L2d2
-.L16a:
+	bne	.Lb3a
+	b	.Lca2
+.Lb3a:
 	ldr	r1, [r6, #0x50]
 	mov	r8, r1
 	mov	r1, r10
@@ -136,7 +58,7 @@
 	mov	r0, r6
 	bl	__Actor_SetAnim
 	mov	r3, r10
-	ldr	r2, =.L51d4
+	ldr	r2, =.L3058
 	and	r3, r5
 	lsl	r3, #2
 	ldr	r1, [r2, r3]
@@ -150,7 +72,7 @@
 	mov	r3, r8
 	add	r3, #0x26
 	strb	r0, [r3]
-	ldr	r3, =OvlFunc_968_20080e0
+	ldr	r3, =OvlFunc_927_2008ab0
 	str	r3, [r6, #0x6c]
 	ldr	r3, [sp, #4]
 	str	r3, [r6, #0x44]
@@ -184,24 +106,24 @@
 	and	r3, r1
 	mov	r5, #3
 	cmp	r3, #0
-	beq	.L2d2
+	beq	.Lca2
 	cmp	r7, #0
-	beq	.L2d2
+	beq	.Lca2
 	mov	r3, #0x80
 	lsl	r3, #9
 	and	r3, r1
 	cmp	r3, #0
-	beq	.L1f8
+	beq	.Lbc8
 	ldr	r1, [r7, #4]
 	mov	r0, r6
 	bl	__Func_80929d8
-.L1f8:
+.Lbc8:
 	mov	r3, #0x80
 	lsl	r3, #10
 	mov	r2, r10
 	and	r3, r2
 	cmp	r3, #0
-	beq	.L224
+	beq	.Lbf4
 	mov	r1, r6
 	add	r1, #0x23
 	ldrb	r2, [r1]
@@ -218,29 +140,29 @@
 	orr	r3, r2
 	mov	r1, r8
 	strb	r3, [r1, #9]
-.L224:
+.Lbf4:
 	mov	r2, #0x80
 	lsl	r2, #12
 	mov	r3, r10
 	and	r2, r3
 	cmp	r2, #0
-	beq	.L238
+	beq	.Lc08
 	ldr	r3, [r7, #8]
 	str	r3, [r6, #0x18]
 	ldr	r3, [r7, #0xc]
 	str	r3, [r6, #0x1c]
-.L238:
+.Lc08:
 	mov	r3, #0x80
 	lsl	r3, #11
 	mov	r1, r10
 	and	r3, r1
 	cmp	r3, #0
-	beq	.L282
-	ldr	r3, =.L51d4
+	beq	.Lc52
+	ldr	r3, =.L3058
 	mov	r1, r11
 	ldr	r5, [r3, r1]
 	cmp	r2, #0
-	beq	.L266
+	beq	.Lc36
 	ldr	r0, [r7, #0x10]
 	ldr	r3, [r6, #0x18]
 	ldr	r1, [r5, #0xc]
@@ -251,8 +173,8 @@
 	ldr	r3, [r6, #0x1c]
 	ldr	r1, [r5, #0xc]
 	sub	r0, r3
-	b	.L27c
-.L266:
+	b	.Lc4c
+.Lc36:
 	ldr	r0, [r7, #0x10]
 	ldr	r2, =0xffff0000
 	ldr	r1, [r5, #0xc]
@@ -263,52 +185,52 @@
 	ldr	r3, =0xffff0000
 	ldr	r1, [r5, #0xc]
 	add	r0, r3
-.L27c:
+.Lc4c:
 	bl	_divsi3_RAM
 	str	r0, [r6, #0x34]
-.L282:
+.Lc52:
 	mov	r3, #0x80
 	lsl	r3, #14
 	mov	r1, r10
 	and	r3, r1
 	cmp	r3, #0
-	beq	.L29e
+	beq	.Lc6e
 	mov	r0, r6
 	mov	r1, #1
 	bl	__Actor_SetAnim
 	ldr	r1, [r7, #0x1c]
 	mov	r0, r6
 	bl	__Actor_SetScript
-.L29e:
+.Lc6e:
 	mov	r3, #0x80
 	lsl	r3, #15
 	mov	r2, r10
 	and	r3, r2
 	cmp	r3, #0
-	beq	.L2b0
+	beq	.Lc80
 	ldrh	r3, [r7, #0x20]
 	mov	r1, r8
 	strh	r3, [r1, #0x1e]
-.L2b0:
+.Lc80:
 	mov	r3, #0x80
 	lsl	r3, #16
 	mov	r2, r10
 	and	r3, r2
 	cmp	r3, #0
-	beq	.L2c2
+	beq	.Lc92
 	ldrh	r3, [r7, #0x22]
 	ldr	r1, [sp]
 	strh	r3, [r1]
-.L2c2:
+.Lc92:
 	mov	r3, #0x80
 	lsl	r3, #17
 	mov	r2, r10
 	and	r3, r2
 	cmp	r3, #0
-	beq	.L2d2
+	beq	.Lca2
 	ldr	r3, [r7, #0x24]
 	str	r3, [r6, #0x6c]
-.L2d2:
+.Lca2:
 	add	sp, #8
 	pop	{r3, r5, r6, r7}
 	mov	r8, r3
@@ -318,4 +240,4 @@
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.func_end OvlFunc_968_2008118
+.func_end OvlFunc_927_2008ae8

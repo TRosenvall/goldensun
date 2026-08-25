@@ -177,6 +177,58 @@ O1_CFLAGS := $(subst -O2,-O1,$(GCC296_CFLAGS))
 # in the main ROM. So the pass IS wanted for most translation units and not
 # for these -- which is what a per-file rule means, and is a point in favour
 # of the per-TU reading over a whole-compiler difference.
+# Six translation units -- all six the SAME 27-instruction function, duplicated
+# byte for byte across the main ROM and five per-area overlays -- match only
+# with strict aliasing turned OFF.
+#
+# The function ends with `p->t->ang += p->spin`, loading a POINTER member two
+# words past an INT member it has just stored to. At -O2 gcc-2.96 enables
+# -fstrict-aliasing, the post-reload scheduler proves the int store cannot
+# alias the pointer load, and hoists the load two instructions earlier to fill
+# a load-use stall. The ROM leaves it in place. Every other instruction already
+# matches, including the src-before-dst load order in the five accumulates that
+# the SAME scheduling pass produces -- so the pass is wanted, only its alias
+# information is not.
+#
+# APPLYING IT GLOBALLY WAS TESTED AND FAILS. Adding -fno-strict-aliasing to
+# GCC296_CFLAGS and rebuilding all 5336 objects generated from src/ leaves 2631
+# bytes differing across the ROM. So most translation units want the alias
+# information and these six do not, which is what a per-file rule means.
+#
+# A seventh byte-identical copy lives in asm/overlays/common/common0.s and is
+# NOT elevated: that object is named by many overlay linker scripts, so
+# splitting it touches all of them. See src/non_matching notes in batch 69.
+ALIAS_CFLAGS := $(GCC296_CFLAGS) -fno-strict-aliasing
+asm/rom_8a000/rom_9a44c_a_a_a_b.o: src/rom_8a000/rom_9a44c_a_a_a_b.c
+	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+asm/overlays/rom_7b4558/ovl_30_a_a_c_c_c_c_c_b.o: src/overlays/rom_7b4558/ovl_30_a_a_c_c_c_c_c_b.c
+	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+asm/overlays/rom_7ced6c/ovl_30_a_a_c_c_c_c_b.o: src/overlays/rom_7ced6c/ovl_30_a_a_c_c_c_c_b.c
+	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+asm/overlays/rom_7ed0a0/ovl_30_a_a_a_c_c_c_c_c_b.o: src/overlays/rom_7ed0a0/ovl_30_a_a_a_c_c_c_c_c_b.c
+	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+asm/overlays/rom_7ef4f4/ovl_30_a_a_a_c_c_c_c_c_b.o: src/overlays/rom_7ef4f4/ovl_30_a_a_a_c_c_c_c_c_b.c
+	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+asm/overlays/rom_7f2f14/ovl_30_a_a_a_c_a_c_b.o: src/overlays/rom_7f2f14/ovl_30_a_a_a_c_a_c_b.c
+	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 CSE_CFLAGS := $(GCC296_CFLAGS) -fno-rerun-cse-after-loop
 asm/overlays/rom_7c460c/ovl_314_a_c_c_a_c_a_a.o: src/overlays/rom_7c460c/ovl_314_a_c_c_a_c_a_a.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<

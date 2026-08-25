@@ -112,9 +112,13 @@ gcc-2.96 has to re-read it. The ROM re-reads it too.
 ## Two facts about this compiler, recorded because they look like bugs
 
 **It writes r4 without saving it.** All three functions in the last round do,
-and so does our output. That is this compiler's behaviour, not a disassembly
-artifact — worth knowing before treating a missing push as evidence that a
-function was hand-written.
+and so does our output — worth knowing before treating a missing push as
+evidence that a function was hand-written.
+
+*Corrected in batch 69:* this is not innate compiler behaviour, it is the
+`-fcall-used-r4` already in `GCC296_CFLAGS` (Makefile line 113, credited to
+Karathan and noted there as required for the byte match). The observation
+stands; the explanation was wrong.
 
 **`strh r2, [r2]` on `REG_IME` is deliberate.** It writes `0x0208`, the low half
 of the register's own address. Only bit 0 of `REG_IME` is live and `0x208` has

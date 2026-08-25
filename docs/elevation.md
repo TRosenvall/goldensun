@@ -1879,3 +1879,58 @@ Values collide across namespaces (95 of them do); consumers do not.
 **A named temporary can decide the allocation.** `d = X - Y; base += d;` puts
 the two pooled loads in the opposite registers from the ROM. `base += X - Y;`
 matches exactly. Worth trying both when a subtraction's operands land swapped.
+
+### `-fno-strict-aliasing`: a per-TU flag, and how to recognise it
+
+Symptom: everything matches except that a LOAD has been hoisted above a STORE,
+usually into a load-use stall a few instructions earlier.
+
+    ours   ldr r3, [r0, #0x1c] / ldr r1, [r0, #0x50] / add r3, r2 / str r3, [r0, #0x1c]
+    rom    ldr r3, [r0, #0x1c] / add r3, r2 / str r3, [r0, #0x1c] / ldr r1, [r0, #0x50]
+
+Moving a load across a store is legal only if the two provably cannot alias. At
+-O2 gcc-2.96 turns on `-fstrict-aliasing`, so a POINTER load and an INT store to
+the same object are in different alias sets and the post-reload scheduler is
+free to reorder them. `-fno-strict-aliasing` makes it assume they may alias and
+the order stands.
+
+**Do not reach for it first.** `-fno-schedule-insns2` is the wrong knob here:
+the same scheduling pass is also what produces the ROM's src-before-dst load
+order inside each `a += b`, so turning it off breaks more than it fixes. The
+pass is wanted; only its alias information is not.
+
+**It is per-TU, measured.** Adding `-fno-strict-aliasing` to `GCC296_CFLAGS` and
+rebuilding all 5336 objects generated from `src/` leaves **2631 bytes** differing
+across the ROM. Six TUs want it; most do not.
+
+### Literal pool ORDERING is a blocker the screen cannot see
+
+`tools/tryc.py` normalises pool loads to `=value`, so a function whose pool sits
+at a different distance still compares equal. It prints a warning saying so.
+**Treat an `OK` carrying that warning as provisional until `make compare`.**
+
+`Func_80ad5b4` is the first case: every instruction matches and the build fails
+on ten bytes, because the ROM's pool is `[0xffff8000][iwram_3001f2c]` and gcc
+emits `[iwram_3001f2c][0xffff8000]` — reference order, which is what
+`add_minipool_forward_ref` (arm.c:4820) produces, since entries are kept sorted
+by `max_address` and the earlier-referenced fix is the more constrained one.
+
+A sweep of every gcc-generated `.s` in the tree finds **zero** literal pools that
+mix a symbol with an integer constant. Every matched TU's pool is all-symbols or
+all-constants, where the ordering cannot be observed. Nothing in the source
+controls it — pool layout is decided in `machine_dependent_reorg`, after the
+insn stream is final.
+
+### A dead `mov rN, r14` right after `push {lr}` means an uninitialised read
+
+gcc-2.96 emits it when a pseudo is live-in with no reaching definition: the
+pseudo takes a hard register from `REG_ALLOC_ORDER` (r14 is sixth) and reload
+materialises the copy. The corpus has 211 `mov rN, r14` instructions and exactly
+one in that position — `GetUnit`. The other 210 are r14 used as ordinary scratch
+after being saved, which is normal.
+
+### r4 is caller-saved BY FLAG, not by nature
+
+Functions that write r4 without pushing it are not hand-written and not
+disassembly artifacts: `GCC296_CFLAGS` carries `-fcall-used-r4` (Makefile line
+113). Batch 68 recorded the observation with the wrong explanation.

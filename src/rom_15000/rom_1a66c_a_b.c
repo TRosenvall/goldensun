@@ -25,8 +25,9 @@
  * re-reads it too.
  *
  * NOTE ON r4: this function writes r4 without saving it, and so does our
- * output. That is this compiler's behaviour, not a disassembly artifact -- it
- * shows up identically in the two accessors in rom_11ce0_c_a_b.c.
+ * output -- it shows up identically in the two accessors in rom_11ce0_c_a_b.c.
+ * The reason is -fcall-used-r4 in GCC296_CFLAGS, not a disassembly artifact and
+ * not something innate to gcc-2.96.
  */
 
 struct Blk {

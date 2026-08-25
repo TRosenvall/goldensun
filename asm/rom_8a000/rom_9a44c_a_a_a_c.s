@@ -1,39 +1,5 @@
 	.include "macros.inc"
 
-@ ProjectileMotionHook
-@ r0=entity. Per-frame hook that integrates a stored velocity: adds the three
-@ words at +0x44, +0x48 and +0x4C to the position at +0x08, +0x0C and +0x10.
-@ A straight-line move that bypasses the seek logic entirely.
-.thumb_func_start Func_809a44c  @ 0x0809a44c
-	ldr	r3, [r0, #8]
-	ldr	r2, [r0, #0x44]
-	add	r3, r2
-	str	r3, [r0, #8]
-	ldr	r2, [r0, #0x48]
-	ldr	r3, [r0, #0xc]
-	add	r3, r2
-	str	r3, [r0, #0xc]
-	ldr	r2, [r0, #0x4c]
-	ldr	r3, [r0, #0x10]
-	add	r3, r2
-	str	r3, [r0, #0x10]
-	ldr	r2, [r0, #0x30]
-	ldr	r3, [r0, #0x18]
-	add	r3, r2
-	str	r3, [r0, #0x18]
-	ldr	r2, [r0, #0x34]
-	ldr	r3, [r0, #0x1c]
-	add	r3, r2
-	str	r3, [r0, #0x1c]
-	ldr	r1, [r0, #0x50]
-	add	r0, #0x64
-	ldrh	r3, [r1, #0x1e]
-	ldrh	r2, [r0]
-	add	r3, r2
-	strh	r3, [r1, #0x1e]
-	bx	lr
-.func_end Func_809a44c
-
 @ RunProjectileAbility
 @ r0, r1 and stacked arguments describe the launch. Fires a field-ability
 @ projectile from the caster toward the target, running the flight, the impact

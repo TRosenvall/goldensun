@@ -44,6 +44,22 @@
  * Every one produced the same two moves. The store order cannot be permuted to
  * fix it, because the store order is what already matches.
  *
+ *
+ * ITS SIBLING Func_8006408 (0x08006408) IS THE SAME FUNCTION over a different
+ * pair of globals and is blocked the same way, so it is not parked separately.
+ * One detail there is worth carrying: where this one stores the already-zero
+ * `cur` register into ewram_20023a4, the sibling loads the zero FROM A POOL --
+ *
+ *      ldr r0, .L6440   @ 0
+ *
+ * -- with a zero already sitting in r4 one instruction away. gcc never pools a
+ * value it can build with `mov #imm8`, and never pools one it already has in a
+ * register, so that operand was a SYMBOL whose value is zero. The only
+ * zero-valued symbols currently defined are _AREA_00 and gMaxLines, and neither
+ * fits a save-request block, so the namespace is unidentified and it has NOT
+ * been named. The consumer that would settle it is whatever reads
+ * ewram_20023a4.
+ *
  * This is the REG_ALLOC_ORDER divergence documented in docs/elevation.md:
  * arm.h:989 lists {3, 2, 1, 0, 12, 14, 4, 5, 6, 7, ...}, gcc reaches for
  * caller-saved registers first, and there is no Thumb override. Not reachable
