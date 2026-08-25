@@ -632,3 +632,36 @@ header states "52 unused values inside the range". A direct count of the
 definitions gave 57 before this change and 49 after. The two may be counting
 different things -- defined ids versus ids some function actually compares -- or
 one may be stale. Reconcile before citing either as evidence.
+
+### `__SetDestMap` is a second area-id consumer -- resolved, not assumed
+
+Batch 68 recorded the `__SetDestMap` lead as INCONCLUSIVE, naming the check that
+would settle it: match each pooled value's destination register against the
+callee's signature. Running that check settles it three ways:
+
+- The signature is known from elevated code:
+  `extern void __SetDestMap(int map, int entrance);`
+- At **all 16 call sites** the pooled value goes into **r0** -- the `map`
+  argument -- with r1 set separately as the entrance.
+- An elevated file **already** writes `__SetDestMap((int)(&_AREA_01), 1)`. The
+  convention predates the investigation.
+
+Seven ids added on that evidence: `_AREA_00 02 04 2d 3a bb be`. `area.sym` now
+defines 133.
+
+**A header claim was wrong and is corrected.** It said *"ids 0x00-0x0f never
+appear"* — flatly contradicted by `_AREA_01`, which the file itself defines. The
+accurate form is that they never appear **in comparisons**; they do appear as
+`__SetDestMap` destinations. The comparison census still shows nothing below
+0x7e among the ids it was missing, so the underlying observation survives; only
+its scope was overstated.
+
+**The consumer rule now has two branches for area:**
+
+    compared against gState+0x1C0     -> area id  (strong)
+    passed as arg 0 to __SetDestMap   -> area id  (strong)
+    used in arithmetic with the above -> area id  (weaker, read it)
+
+**Caveat on immediate value:** every `__SetDestMap` caller is 69+ instructions
+and they are cutscene functions, so these seven symbols unblock nothing on their
+own today. They remove a blocker that would otherwise be hit later.

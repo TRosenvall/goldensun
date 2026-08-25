@@ -36,7 +36,12 @@
  *
  * KNOWN ODDITIES a correct account should explain:
  *
- *   * ids 0x00-0x0f never appear.
+ *   * ids 0x00-0x0f never appear IN COMPARISONS. They do appear as
+ *     __SetDestMap destinations -- _AREA_01 has been used that way in elevated
+ *     code since before this note, and batch 68 added 0x00, 0x02 and 0x04 on
+ *     the same evidence. The unqualified form of this claim was wrong and is
+ *     corrected here; the comparison census still shows nothing below 0x7e
+ *     among the ids it was missing.
  *   * the space is 70% dense over 0x10-0xbd -- 52 unused values inside the
  *     range. An earlier note here claimed "contiguous per-area runs"; that was
  *     wrong, 11 of 23 overlays have gaps and two have clusters 56 apart.
@@ -191,18 +196,28 @@ _AREA_92 = 0x92;
 _AREA_a9 = 0xa9;
 _AREA_b6 = 0xb6;
 
-/* INCONCLUSIVE LEAD, batch 68 -- recorded so it is not re-investigated blind.
+/* RESOLVED, batch 68 -- the __SetDestMap lead, checked and acted on.
  *
- * __SetDestMap receives a pooled small constant at 16 call sites, and a
- * "destination map" argument looks like it should be an area id. It is NOT
- * safe to name them on that basis yet, for two reasons:
+ * The question was whether the pooled small constants reaching __SetDestMap are
+ * area ids. The check named here was: match each pooled value's destination
+ * register against the callee's signature. Doing it settles it three ways.
  *
- *   * the values include 0x0, 0x1, 0x2 and 0x4, and the header above records
- *     that area ids 0x00-0x0f never appear. Either the argument is a different
- *     namespace, or that claim is about comparisons only. Unresolved.
- *   * the scan that found them looked backwards a few instructions for ANY
- *     pooled load, so it does not establish WHICH ARGUMENT the value is. A
- *     coordinate or a flag in another register would look identical.
+ *   * The signature is known from elevated code:
+ *     `extern void __SetDestMap(int map, int entrance);`
+ *   * At all 16 call sites the pooled value is loaded into r0 -- the `map`
+ *     argument -- with r1 set separately as the entrance.
+ *   * An elevated file ALREADY writes `__SetDestMap((int)(&_AREA_01), 1)`, so
+ *     the convention predates this investigation.
  *
- * What would settle it: check the register each pooled value is loaded into
- * against __SetDestMap's signature. Until then these are not evidence. */
+ * The apparent contradiction -- low values 0x0, 0x1, 0x2, 0x4 against a header
+ * claiming 0x00-0x0f never appear -- was the header being imprecise, not the
+ * evidence being wrong. _AREA_01 was already defined. Corrected above.
+ *
+ * Added on this evidence: */
+_AREA_00 = 0x0;
+_AREA_02 = 0x2;
+_AREA_04 = 0x4;
+_AREA_2d = 0x2d;
+_AREA_3a = 0x3a;
+_AREA_bb = 0xbb;
+_AREA_be = 0xbe;
