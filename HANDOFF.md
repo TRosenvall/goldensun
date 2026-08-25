@@ -70,6 +70,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-60](reports/batch-60.md) | 5 | ready to port |
 | [batch-61](reports/batch-61.md) | 5 | ready to port |
 | [batch-62](reports/batch-62.md) | 5 | ready to port |
+| [batch-63](reports/batch-63.md) | 5 | ready to port — 1 is an unpark |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
