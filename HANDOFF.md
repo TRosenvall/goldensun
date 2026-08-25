@@ -185,7 +185,7 @@ codebase better than we do. Listed once here rather than repeated per batch.
   with `undefined reference`, which reads like a typo in the C. Silent until
   someone adds a symbol.
 
-- **Eleven TUs are built with `-fno-rerun-cse-after-loop`** (first two in batch 25),
+- **Fourteen TUs are built with `-fno-rerun-cse-after-loop`** (first two in batch 25),
   and as of batch 42 one of them is MAIN-ROM code rather than an overlay, which
   weakens the reading that this is an overlay-only property. It
   this needs a decision from someone who knows the original toolchain. Both load
@@ -201,6 +201,17 @@ codebase better than we do. Listed once here rather than repeated per batch.
   with the flag matched only the first two, so it is not a general lever for the
   constant-CSE class -- the nine added since were each found by recognising the
   shape on a fresh candidate, not by the sweep.
+
+  **THE COUNT IS NOW THE ARGUMENT.** Batch 51 searched the whole corpus for the
+  shape mechanically -- a pooled flag id loaded for two or more flag calls in
+  one function -- and found **19 unelevated functions** carrying it, three of
+  which were elevated immediately. Fourteen per-file rules and a further sixteen
+  candidates queued behind them is no longer comfortably read as "the original
+  build used this flag on these particular files". It reads more like
+  **gcc-2.96 running a pass the original compiler did not**, in which case the
+  right fix is a compiler-level one and all fourteen rules should eventually be
+  dropped together. Flagged here because that is a maintainer's call, not ours,
+  and because every batch that adds another rule makes it more pressing.
 
   **Batch 50 turned the recognition into a rule worth stating: a flag id READ
   IN A GUARD AND WRITTEN IN THE BODY is constant-CSE.** gcc hoists it into a

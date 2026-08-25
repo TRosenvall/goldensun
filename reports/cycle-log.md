@@ -357,3 +357,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-25T06:13:43Z  end     +2 (Func_8091858, 936_200958c), 2 parks; 413 elevated; scheduler question CLOSED
 2026-08-25T06:21:34Z  end     +2 (937_2008308, 938_2008230), 2 class parks; 415 elevated; tools/shape_groups.py added
 2026-08-25T06:29:33Z  end     +3 (890_20081ec, 941_200833c, 891_200901c); 418 elevated; CSE TUs now 11
+2026-08-25T06:38:05Z  end     +3 (935_20083e0, 935_2008368, 941_2008460); 421 elevated; CSE TUs now 14
