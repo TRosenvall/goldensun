@@ -42,6 +42,16 @@
  * `m &= v` collapses back to the single narrowed `mov`, ten instructions again.
  * That asymmetry is not obvious and cost four screens.
  *
+ * NARROWER THAN IT READS -- corrected in batch 56. OvlFunc_968_2009a50
+ * (src/overlays/rom_7f2f14/ovl_30_c_a_c_c_c_a_c_b.c) MATCHES with exactly the
+ * `m &= f` form that fails here, mov/neg and all. So the rule is not "compound
+ * assignment with the mask as destination collapses"; something else about this
+ * function decides it. The likely difference is that here the OR'd-in value is
+ * computed (`(f & 3) << 2`) where there it is the constant 4, but that is a
+ * hypothesis and has not been tested.
+ *
+ * Do not read the paragraph above as a general law. Try BOTH forms.
+ *
  * THE SAME NARROWING PARKED OvlFunc_931_2008c0c at 1 of 24 in batch 50, where
  * the ROM builds the same 0xfffffff3 by `sub`ing from a zero it already held.
  * Two functions, two different ROM spellings of the constant, one gcc
