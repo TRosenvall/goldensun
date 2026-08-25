@@ -1561,3 +1561,37 @@ it. They are two halves of the same shape and you often need both.
 
 Same reasoning -- Thumb's `mul` is two-operand and destructive, so whichever
 operand the source makes the destination is the one that survives.
+
+### Lever: `do/while` puts the conditional on the BACK EDGE
+
+When the ROM's loop ends with the continue-test jumping BACKWARD and an
+unconditional jump falling out:
+
+    .L103e:  ...
+             bgt .L103e      <- conditional, backward
+             b   .L1056      <- unconditional, out
+
+a forward `goto` will not produce it. Written as
+
+    if (w > v) goto loop;
+    goto join;
+
+gcc INVERTS the test and emits `ble join / b loop` -- conditional forward,
+unconditional backward. Same instruction count, opposite shape.
+
+Write it as a `do/while` whose condition is the continue-test instead:
+
+    do {
+        if (i == 0) goto zero;   /* a top-of-iteration exit is fine inside */
+        ...
+    } while (w > v);
+    goto join;
+
+That took `OvlFunc_964_2009038` from 2 of 26 to an exact match, and the same
+function from 9 of 26 earlier, because the `while` form also let gcc merge the
+in-loop load with the loop-expired one. Spelling both paths out separately keeps
+both loads AND gets the branch direction.
+
+Note a loop variable may be genuinely uninitialised on the early-exit path --
+`w` is, above. That is not a bug to fix: the ROM leaves through the same path
+without reading it. Initialising it to silence the thought adds an instruction.

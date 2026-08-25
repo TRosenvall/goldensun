@@ -36,6 +36,56 @@ FUNC = re.compile(r"\.thumb_func_start\s+(\S+)[^\n]*\n(.*?)\.func_end", re.S)
 LO, HI = 23, 30
 
 
+CHEAP = re.compile(r"^\tmov\tr[0-3], ?#")
+EXPENSIVE = re.compile(
+    r"^\t(ldr\tr[0-3], ?=|lsl\tr[0-3]|lsr\tr[0-3]|asr\tr[0-3]|neg\tr[0-3]|mul\tr[0-3])")
+
+
+def precompute_risk(body):
+    """Flag calls that MAY hit the argument-precompute blocker. A HINT, NOT A FILTER.
+
+    Diagnosed in src/non_matching/ovl_780898/2008dc0.c: gcc-2.96 copies any
+    argument whose rtx_cost exceeds 2 into a pseudo BEFORE loading any hard
+    register (calls.c:805), and in Thumb that is every shift, pool load and
+    synthesised constant (arm.c:2042). Cheap `mov rN, #imm` arguments are emitted
+    afterwards and land last. The ROM's compiler did not precompute, so such
+    calls cannot be matched from C at all.
+
+    The asm signature is a cheap `mov` sitting before an expensive operation in
+    the same argument-setup run.
+
+    MEASURED ACCURACY, against 11 confirmed-blocked and 10 confirmed-matching
+    functions -- the matches read out of their generated .s, which is byte-equal
+    to the ROM:
+
+        rule                    blocked caught    matches wrongly flagged
+        two or more expensive   10 of 11          1 of 10  (Task_BlitPreAnim)
+        one or more expensive   11 of 11          2 of 10  (+ OvlFunc_908_20084c8)
+
+    So it is right about 90% of the time and WRONG ABOUT 10% OF THE TIME, in
+    both directions. The two-or-more rule is used because its false-positive
+    rate is half.
+
+    THAT IS WHY THIS EXCLUDES NOTHING. A flagged function is ranked last and
+    labelled, never dropped -- Task_BlitPreAnim would have been flagged and it
+    matched exactly. Read the flag as "screen this one later", never as "this
+    one is impossible".
+    """
+    risky, run = 0, []
+    for line in body.split("\n"):
+        if line.startswith("\tbl\t") or line.startswith("\t.call_via"):
+            cheap = [i for i, l in enumerate(run) if CHEAP.match(l)]
+            exp = [i for i, l in enumerate(run) if EXPENSIVE.match(l)]
+            if len(exp) >= 2 and cheap and min(cheap) < max(exp):
+                risky += 1
+            run = []
+        elif line.startswith("\t"):
+            run.append(line)
+        else:
+            run = []
+    return risky
+
+
 def main():
     known, parked = set(), set()
     for c in glob.glob("src/**/*.c", recursive=True):
@@ -64,11 +114,16 @@ def main():
             calls = re.findall(r"\tbl\t(\S+)", b)
             if not calls or any(c not in known for c in calls):
                 continue
-            rows.append((len(lines), n, p, len(calls)))
-    rows.sort()
-    print(f"{len(rows)} candidate(s); {len(parked)} parked function(s) excluded\n")
-    for insn, n, p, nc in rows[:20]:
-        print("%3d insn %2d calls  %-24s %s" % (insn, nc, n, p))
+            rows.append((len(lines), n, p, len(calls), precompute_risk(b)))
+    # flagged ones sort LAST but are NOT removed -- see precompute_risk().
+    rows.sort(key=lambda r: (r[4] > 0, r[0], r[1]))
+    flagged = sum(1 for r in rows if r[4] > 0)
+    print(f"{len(rows)} candidate(s); {len(parked)} parked function(s) excluded")
+    print(f"{flagged} ranked last as possible argument-precompute "
+          f"(~10% of these flags are wrong -- screen them, do not skip them)\n")
+    for insn, n, p, nc, k in rows[:20]:
+        tag = "  <- precompute?" if k else ""
+        print("%3d insn %2d calls  %-24s %s%s" % (insn, nc, n, p, tag))
     return 0
 
 
