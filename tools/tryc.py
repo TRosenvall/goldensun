@@ -456,9 +456,42 @@ def text_size(asm_text, cflags_unused=None):
         return int(m.group(1), 16) if m else None
 
 
+KNOWN_OPTS = {"--align", "--cflags", "--full", "--no-rerun-cse", "--no-sched2",
+              "--quiet", "--ref", "--O1"}
+
+
+def check_opts(argv):
+    """Reject unrecognised --options instead of ignoring them.
+
+    WHY THIS EXISTS. `--func <name>` was passed to this tool for many rounds. It
+    is not an option and never was; every function in the .c is compared against
+    the reference by NAME, so there is nothing to select. It was harmless only
+    because scratch files hold one function -- until one held eight, reported a
+    single result, and the same name eight times.
+
+    A flag that silently does nothing is worse than one that errors: it reads
+    like a filter that is working.
+    """
+    takes_value = {"--cflags", "--ref"}
+    i, bad = 0, []
+    args = argv[1:]
+    while i < len(args):
+        a = args[i]
+        if a.startswith("--"):
+            if a not in KNOWN_OPTS:
+                bad.append(a)
+            elif a in takes_value:
+                i += 1
+        i += 1
+    if bad:
+        sys.exit(f"tryc.py: unknown option(s): {' '.join(bad)}\n"
+                 f"known: {' '.join(sorted(KNOWN_OPTS))}")
+
+
 def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)
+    check_opts(sys.argv)
     quiet = "--quiet" in sys.argv
     ref_path = None
     src = [a for a in sys.argv[1:] if a.endswith(".c")][0]
