@@ -30,11 +30,32 @@
  *                                                        `mov r1, r4`
  *   DMA3_SET with raw count words instead of DMA3_COPY16 3 of 12, identical
  *
- * NEXT: same family as src/non_matching/ovl_7a1ff0/2008c0c.c -- the constraint
- * comes from include/dma.h binding r0-r3, not from these functions. Anything
- * that must stay live across a transfer is forced out of the low registers.
- * A helper that took its registers as parameters rather than fixed bindings
- * would change both.
+ * THE HELPER FIX WAS TRIED AND HALF WORKS -- do not spend the round rediscovering
+ * it. A DMA3_COPY16 variant declaring the destination as a READ-WRITE operand,
+ *
+ *     : "+l" (_dst)
+ *     : "l" (_base), "l" (_src), "l" (_cnt)
+ *     : "memory"
+ *
+ * and returning _dst, tells gcc that r1 both supplies and carries the value.
+ * That REMOVES THE SPILL: the destination stays in r1, the `mov r1, r4`
+ * disappears, and the length drops from 13 to 12 with the ROM's `add r1, #0x1c`
+ * in place.
+ *
+ * It does NOT fix the remaining three. Those are the strength reduction above,
+ * which is about two CONSTANTS and has nothing to do with register binding. The
+ * variant was reverted rather than left unused in a shared header, but it is
+ * written out here because it is a one-step change if anyone wants it.
+ *
+ * So the two parks in this family split apart under the experiment:
+ *   this one          the binding was ONE of two defects; fixing it is not enough
+ *   ovl_7a1ff0/2008c0c.c  needs gcc's partial tail merge, which no helper shape
+ *                         reaches -- the count of base loads is the count of calls
+ *
+ * NEXT: nothing at the helper level for this function. The remaining defect is
+ * gcc choosing to derive 0x50001e8 and 0x80000001 from constants it already
+ * holds, and no spelling of a literal prevents that (see batch 48, which
+ * establishes the rule running the other way).
  */
 #include "dma.h"
 

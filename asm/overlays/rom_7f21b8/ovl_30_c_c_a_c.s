@@ -1,35 +1,5 @@
 	.include "macros.inc"
 
-@ Slot 3: the read after slot 4.
-@ Chooses among .L1974, .L189c, .L1734
-@ on save bit 0x9a7 and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
-.thumb_func_start OvlFunc_967_2008084
-	push	{lr}
-	ldr	r3, =gState
-	mov	r1, #0xe0
-	lsl	r1, #1
-	add	r3, r1
-	mov	r1, #0
-	ldrsh	r2, [r3, r1]
-	ldr	r3, =0xb4
-	cmp	r2, r3
-	bne	.Laa
-	ldr	r0, =0x9a7
-	bl	__GetFlag
-	cmp	r0, #0
-	beq	.La6
-	ldr	r0, =.L1974
-	b	.Lac
-.La6:
-	ldr	r0, =.L189c
-	b	.Lac
-.Laa:
-	ldr	r0, =.L1734
-.Lac:
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_967_2008084
-
 @ Counter: shop 0x20 via Func_b0278, opened only from inside the facing arc.
 @ Outside it the attendant speaks instead -- lines 0x26e3, 0x28f0.
 @ Gated on save bit 0x9a7.
@@ -390,4 +360,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_967_2008308
-

@@ -33,11 +33,18 @@
  * in the C chooses how many times a `register ... __asm__("r3")` binding is
  * materialised -- that is inside include/dma.h.
  *
- * NEXT: this is a property of the dma.h helper, not of this function. A variant
- * of DMA3_COPY that takes the base as a parameter, or a formulation where the
- * source selection happens after the base is bound, might reach it. Worth doing
- * once for four functions, and worth checking against the OTHER stmia users
- * first -- 264 unelevated functions contain one.
+ * A HELPER VARIANT WAS TRIED IN BATCH 55 AND DOES NOT REACH THIS ONE. Declaring
+ * the destination a read-write operand fixes a DIFFERENT dma.h defect (see
+ * src/non_matching/rom_a1000/rom_a22f4.c, where it removes a spill), but it has
+ * no bearing here: this function needs TWO base loads and ONE stmia, and the
+ * count of `ldr r3, =REG_DMA3SAD` is the count of DMA3_COPY calls no matter how
+ * the operands are declared. One call gives 21, one per arm gives 24, and the
+ * ROM's 22 is a PARTIAL TAIL MERGE -- gcc-2.96 merging the stmia while leaving
+ * the pool load duplicated in both arms.
+ *
+ * NEXT: that is a codegen behaviour, not a construct. Nothing in C requests a
+ * partial tail merge. Worth re-checking only if a future batch finds gcc-2.96
+ * doing it somewhere else and can see what triggers it.
  */
 #include "dma.h"
 extern unsigned int iwram_3001ed0;

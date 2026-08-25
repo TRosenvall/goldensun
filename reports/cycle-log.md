@@ -367,3 +367,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-25T07:34:06Z  end     +2 (Func_809bb34, Func_8021360), 1 twin-pair park; 446 elevated
 2026-08-25T07:40:46Z  end     +4 (DeleteSpriteLayer, AllocGlobal1F, Func_80251d4, Func_80958a8); 450 elevated
 2026-08-25T07:50:23Z  end     +2 (Func_80c08a8, Func_80284dc); 452 elevated; dma.h register binding named as a class
+2026-08-25T07:56:45Z  end     +2 (967_2008084, Func_801d980); 454 elevated; compound-condition fusion documented

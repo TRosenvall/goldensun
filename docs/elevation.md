@@ -444,6 +444,31 @@ transposition is among the *non-r0* arguments — `mov r1 / ldr r2` against
 blocker; see `src/non_matching/ovl_77dd1c/2008398.c`, where both directions
 were tried before this was understood and neither helped.
 
+## A COMPOUND CONDITION FUSES; SPLIT IT INTO STATEMENTS
+
+Two range tests written as one condition get fused into a single unsigned
+comparison:
+
+    if (v > 0x11 || v < 0xf)          ->  sub r3,#0xf / lsl r3,#16
+                                          cmp r3, 0x20000 / bls
+
+Two instructions longer than the ROM, which does the obvious pair of `cmp`s.
+Writing the bounds as separate statements with a `goto` stops it:
+
+    if (v > 0x11) goto other;
+    if (v < 0xf)  goto other;
+
+`OvlFunc_899_2008048`: **16 of 22 fused, 2 of 22 split.**
+
+This is the same lever as the `neg/orr/lsr` idiom below — **a branch in the
+SOURCE stops a rewrite that no amount of naming reaches.** Two separate findings
+now point at it, so treat "gcc replaced my arithmetic with something cleverer"
+as a cue to add a statement boundary rather than to rename an intermediate.
+
+(What it does *not* reach: the constant gcc picks for a `<` comparison. It
+canonicalises `v < 0xf` and `v <= 0xe` to the same `cmp #0xe / ble`, where the
+ROM has `cmp #0xf / blt`, and neither spelling nor the operand type changes it.)
+
 ## The `neg / orr / lsr #31` idiom needs a STATEMENT-LEVEL branch
 
 gcc-2.96's branchless "is this non-zero" sequence --
