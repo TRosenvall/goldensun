@@ -551,6 +551,30 @@ variant tried afterwards, so it could not rank them.
 which does fall as a candidate improves. Default to it above about fifty
 instructions.
 
+## Pointer arithmetic: the ROM's `add` says which form to write
+
+Two ways to reach `base + off`, and the ROM tells you which it wants before you
+write anything:
+
+| the ROM has | write |
+|---|---|
+| `add r3, r2` — DESTRUCTIVE, two operands | a walk: `p = base; p += off;` |
+| `add r3, r6, r2` — three operands | one expression: `p = base + off;` |
+
+Getting it backwards is not one instruction out. `OvlFunc_923_20091b4` was SIX
+positions out with the walk form where the ROM wanted one expression, because
+the register roles swap: which register ends up holding the base and which the
+offset follows from how the address was built.
+
+**And the two forms can both be right in one function.** That same function
+computes an iwram address that wants the single expression and, three lines
+later, a gState address that wants the walk — written as one expression the
+gState case folds into a single pool constant `gState+555`, which is worse
+again. Read each site off the ROM; there is no default.
+
+The walk form has been this tree's habit because it was the first one written
+down, and that is exactly the kind of thing that turns into a wasted screen.
+
 ## Name the pointer to move a load's base and offset
 
 A register-offset load `ldr rD, [rA, rB]` puts the POINTER in rA and the index

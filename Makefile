@@ -212,6 +212,21 @@ asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a%.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# NOT equivalent to -O2 -fno-schedule-insns2, unlike the rules above.
+# OvlFunc_917_20092b4 is cross-jumped at -O2 -- gcc merges two `bl` calls into
+# one shared tail and the ROM keeps them separate -- and cross-jumping is a
+# jump-pass decision, not a scheduling one. -fno-schedule-insns2 leaves it seven
+# positions out; only real -O1 matches.
+asm/overlays/rom_7a4370/ovl_30_c_c_c_c_a_a_b.o: src/overlays/rom_7a4370/ovl_30_c_c_c_c_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# This one IS equivalent to -O2 -fno-schedule-insns2; -O1 is used for
+# consistency with the rules above. Two pool loads in the wrong order.
+asm/overlays/rom_7bc690/ovl_4e4_a_a_b.o: src/overlays/rom_7bc690/ovl_4e4_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 # 2026-07-16 fakematch de-hack sweep: the TUs below verify byte-exact with
 # their asm scaffolds removed only at -O1 (equivalently
 # -O2 -fno-schedule-insns2); the same per-file flag choice in the original

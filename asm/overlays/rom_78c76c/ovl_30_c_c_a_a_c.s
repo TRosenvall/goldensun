@@ -1,41 +1,5 @@
 	.include "macros.inc"
 
-@ 23 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   TestSaveBit x3, SetPendingMessageId
-@ reads save bits 0x812, 0x813, 0x818.
-.thumb_func_start OvlFunc_891_2008054
-	push	{lr}
-	ldr	r0, =0x818
-	bl	__GetFlag
-	cmp	r0, #0
-	beq	.L6e
-	ldr	r0, =0x813
-	bl	__GetFlag
-	cmp	r0, #0
-	bne	.L82
-	mov	r0, #3
-	b	.L7a
-.L6e:
-	ldr	r0, =0x812
-	bl	__GetFlag
-	cmp	r0, #0
-	bne	.L82
-	mov	r0, #4
-.L7a:
-	bl	__Func_8091e9c
-	mov	r0, #1
-	b	.L86
-.L82:
-	mov	r0, #1
-	neg	r0, r0
-.L86:
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_891_2008054
-
 @ 77 instructions. Not one of the recognised overlay shapes,
 @ so this is a CALL TRACE rather than a description -- what it does with
 @ these is not characterised here.
@@ -1621,4 +1585,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_891_2008eb0
-
