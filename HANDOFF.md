@@ -312,36 +312,51 @@ this recovery is proof the host-built objects are correct -- nothing is taken on
 trust. But the report gate's "clean `make clean && make compare`" is a
 five-minute recovery, not a no-op. Do not run `make clean` casually mid-round.
 
-### Argument-setup ordering is now the dominant small-function blocker
+### Argument precompute: DIAGNOSED, and it is a compiler difference
 
-Ten screened functions are held by ONE difference: where gcc materialises a
-dependency-free `mov rN, #imm` among the other argument registers. The ROM puts
-it in the middle of the sequence; gcc sinks it to the end.
+Eleven screened functions, every one within six instructions, are held by where
+gcc materialises a cheap `mov rN, #imm` among the other argument registers. The
+cause is now read out of the compiler source in the build image, not guessed:
 
-    rom   mov r1, #0xe0 / mov r0, #0x1 / lsl r1, #0x8 / mov r2, #0x0
-    ours  mov r1, #0xe0 / mov r0, #0x1 / mov r2, #0x0 / lsl r1, #0x8
+    calls.c:805   precompute_register_parameters() copies any argument whose
+                  rtx_cost > 2 into a pseudo BEFORE any hard register is loaded,
+                  guarded by SMALL_REGISTER_CLASSES && reg_parm_seen.
+                  reg_parm_seen is set for argument i before argument i is
+                  tested, so it is 1 on the first register argument already.
+    arm.h:1061    SMALL_REGISTER_CLASSES is TARGET_THUMB -- always 1 here.
+    arm.c:2042    In Thumb, ASHIFT/PLUS/MINUS/NEG/NOT/COMPARE cost 4; pool
+                  loads and synthesised constants also exceed 2.
+    calls.c:1684  load_register_parameters() then loops FORWARD;
+                  LOAD_ARGS_REVERSED is not defined anywhere in this tree.
 
-Every one is within six instructions of matching:
+Expensive arguments get hoisted ahead of the register loads; a cheap constant is
+emitted afterwards, and lands last. The ROM's compiler did not precompute -- its
+stream is plain forward load order with constant synthesis left in place.
 
-    OvlFunc_883_2008dc0/e54/e84/f5c/f8c, OvlFunc_884_200881c/20088ac
-                                     seven siblings, 2 of 16 each
-    OvlFunc_930_2008870              2 of 24
-    OvlFunc_930_20088a8              5 of 24
-    OvlFunc_909_2009958              6 of 18
+**The predictive rule, tested:** a call misorders when its argument list mixes
+cheap constants with TWO OR MORE expensive values and a cheap one is not last.
+A call whose arguments are all cheap constants matches. Confirmed on
+`OvlFunc_921_20099bc`, which has one call of each kind -- both predictions held
+on the first screen. It also explains the matches: `OvlFunc_946_2009624` and
+`OvlFunc_932_200aa10` pass only cheap constants.
 
-**Nothing reaches it.** Nine source spellings across three functions are
-byte-identical to each other -- literals, named locals, a local hoisted to the
-top of the function, the shift as its own statement, the shift folded into the
-initialiser, the declaration lever. Four flags are byte-identical to the
-default: `-fno-schedule-insns`, `-fno-peephole`, `-fno-caller-saves`,
-`-fomit-frame-pointer`. `--no-sched2` makes it WORSE everywhere it was tried,
-so the second scheduler is wanted and is not what places these.
+**This is not fixable from C.** Eight source spellings and eight flags are
+byte-identical to the default. These parks should not be retried as source
+problems; they need a compiler change, and they sit with the
+`-fno-rerun-cse-after-loop` count as the second concrete piece of evidence that
+the reference toolchain differs from Camelot's.
 
-Since no scheduler flag reaches it, the order is fixed during argument
-expansion, before scheduling runs -- which is also why source order cannot
-influence it. This belongs with the `-fno-rerun-cse-after-loop` count as
-evidence for a COMPILER DIFFERENCE rather than a source problem, and it is the
-single highest-value thing to resolve: one fix takes at least ten functions.
+**Correction, and it invalidates a test I reported earlier:** `-fno-schedule-insns`
+was never a real experiment. arm.c:634 force-disables `flag_schedule_insns`
+whenever TARGET_THUMB is set, silently, "since it's on by default in -O2". The
+first scheduler NEVER RUNS for any file in this project. Only
+`-fno-schedule-insns2` does anything. Any past note claiming sched1 was ruled
+out by flag should be read as ruled out by construction.
 
-Full analysis and the complete list of what was tried:
+Affected functions:
+`OvlFunc_883_2008dc0/e54/e84/f5c/f8c`, `OvlFunc_884_200881c/20088ac` (2 of 16
+each), `OvlFunc_930_2008870` (2 of 24), `OvlFunc_930_20088a8` (5 of 24),
+`OvlFunc_909_2009958` (6 of 18), `OvlFunc_921_20099bc` (2 of 15).
+
+Full derivation:
 [src/non_matching/ovl_780898/2008dc0.c](src/non_matching/ovl_780898/2008dc0.c).

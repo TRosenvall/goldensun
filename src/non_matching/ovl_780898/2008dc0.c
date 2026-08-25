@@ -31,32 +31,68 @@
  * shifted argument and the pool load. gcc sinks it to last, because a
  * dependency-free `mov` of a small constant has nothing to hold it in place.
  *
- * WHAT WAS TRIED -- NOTHING MOVES IT
+ * THE MECHANISM, read out of the compiler source in the build image
+ * (/opt/camelot-gcc/gcc-2.96/gcc/). This is a COMPILER DIFFERENCE and is NOT
+ * REACHABLE FROM C.
  *
- *  Source spellings, all byte-identical to each other:
- *    1. The literal `0` passed directly.
- *    2. A local assigned `z = 0` at the very top of the function, before the
- *       first call, then passed.
- *    3. The shift as its own statement (`k <<= 1`) rather than in the argument.
- *    4. The shift folded into the initialiser (`k = 0xe0 << 8`), tested on the
- *       sibling OvlFunc_909_2009958.
+ *   calls.c:805  precompute_register_parameters() walks the arguments in order
+ *                and, for each one, copies its value into a pseudo BEFORE any
+ *                hard register is loaded, when
  *
- *  Compiler flags, all byte-identical to the default:
- *    -fno-schedule-insns, -fno-peephole, -fno-caller-saves, -fomit-frame-pointer
+ *                    rtx_cost (args[i].value, SET) > 2
+ *                 && SMALL_REGISTER_CLASSES && reg_parm_seen
  *
- *  `--no-sched2` is WORSE, 4 of 16, so the second scheduler is wanted here and
- *  is not the thing placing this instruction.
+ *                `reg_parm_seen` is set for argument i before argument i is
+ *                tested, so it is already 1 on the very first register
+ *                argument. The condition therefore reduces to the cost test.
  *
- * Since no scheduler flag reaches it, the placement is decided during argument
- * expansion, before scheduling runs at all -- which is why source order cannot
- * influence it either.
+ *   arm.h:1061   #define SMALL_REGISTER_CLASSES  TARGET_THUMB   -- always 1 here.
  *
- * THIS IS NOW THE DOMINANT SMALL-FUNCTION BLOCKER.  Counting only what has been
- * screened, it holds these seven plus OvlFunc_930_2008870 (2 of 24),
- * OvlFunc_930_20088a8 (5 of 24) and OvlFunc_909_2009958 (6 of 18) -- ten
- * functions, every one of them within six instructions.  It belongs with the
- * -fno-rerun-cse-after-loop count in HANDOFF.md as evidence for a compiler
- * difference rather than a source problem.
+ *   arm.c:2042   In Thumb, ASHIFT / PLUS / MINUS / NEG / NOT / COMPARE all cost
+ *                COSTS_N_INSNS(1) = 4, and a constant needing synthesis or a
+ *                literal-pool load costs more than 2 as well.
+ *
+ *   calls.c:1684 load_register_parameters() then loops FORWARD, 0..num_actuals.
+ *                LOAD_ARGS_REVERSED is not defined anywhere in this tree.
+ *
+ * So every "expensive" argument is hoisted ahead of the register loads, and a
+ * cheap `mov rN, #imm` is emitted afterwards -- last, if the expensive ones
+ * came before it in the list. The ROM's compiler did not do this: its stream is
+ * plain forward load order with the constant synthesis left in place, and only
+ * then scheduled.
+ *
+ * THE PREDICTIVE RULE, and it has been tested
+ *
+ *   A call MISORDERS when its argument list mixes CHEAP constants with TWO OR
+ *   MORE EXPENSIVE values and a cheap one is not last. A call whose arguments
+ *   are all cheap constants matches.
+ *
+ *   Confirmed on OvlFunc_921_20099bc, which has one call of each kind:
+ *   __MapActor_SetSpeed(0, 0x20000, 0x1999) misorders, __Func_8092158(0, 0xe8,
+ *   0xcc) is byte-identical. Both predictions held on the first screen.
+ *   It also explains the successes: OvlFunc_946_2009624 and
+ *   OvlFunc_932_200aa10 matched this batch and last, and every one of their
+ *   calls passes only cheap constants.
+ *
+ * WHAT WAS TRIED BEFORE THE DIAGNOSIS, all byte-identical to each other:
+ *   the literal 0 passed directly; a local assigned 0 at the top of the
+ *   function; the shift as its own statement; the shift folded into the
+ *   initialiser; the FINISHED constant 0x1a4 passed instead of `k << 1`
+ *   (gcc synthesises it and precomputes the synthesis, so this changes
+ *   nothing); the declaration lever.
+ *
+ * Flags, all byte-identical to the default: -fno-peephole, -fno-caller-saves,
+ * -fomit-frame-pointer, -fno-regmove, -fno-gcse, -fno-cse-follow-jumps,
+ * -fno-force-mem, -fno-expensive-optimizations.
+ *
+ * CORRECTION to an earlier claim in this file's history: `-fno-schedule-insns`
+ * was never a real test. arm.c:634 FORCE-DISABLES flag_schedule_insns whenever
+ * TARGET_THUMB is set, without a warning, "since it's on by default in -O2".
+ * The first scheduler never runs for any file in this project. Only
+ * -fno-schedule-insns2 does anything, and turning it off is worse here (4 of
+ * 16) and worse everywhere else it has been tried.
+ *
+ * -O1 is also worse (4 of 16), so the -O2 path is the right one.
  */
 extern unsigned char L7544[] __asm__(".L7544");
 extern void __PlaySound(int id);
