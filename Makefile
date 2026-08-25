@@ -279,7 +279,25 @@ asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_a_b.o: src/overlays/rom_7b7f1c/ovl_30
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c%.o: src/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c%.c
+# NARROWED 2026-08-24, and the reason matters. This was
+# `ovl_30_c_c_a_c_c_c_c%`, which ALSO captured `ovl_30_c_c_a_c_c_c_c_c_*` --
+# a different .s further down the same split chain.
+#
+# The trap is that the split chain is NOT a TU boundary. Splitting carves one
+# overlay's assembly into `_a`/`_b`/`_c` pieces by position, and an overlay
+# holds many original translation units, so two pieces sharing a name prefix
+# say nothing about sharing a compiler invocation. A pattern anchored on a
+# prefix therefore spreads a per-TU flag choice to code that never belonged to
+# that TU. OvlFunc_930_2008ff0 and _2009028 byte-match at -O2 and sit
+# at a clean 4-line argument-fill diff at -O1, which reads exactly like the
+# fill-order blocker and cost most of a round before the flag was suspected.
+# The `_b_%` form still covers this stem's own future split children, which is
+# what the pattern was for.
+asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b.o: src/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.o: src/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
