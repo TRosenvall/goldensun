@@ -1,36 +1,5 @@
 	.include "macros.inc"
 
-@ 20 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   TestSaveBit, BeginCutscene, GetSlotEntityChecked, SetSlotEntitySpeed
-@   WalkSlotToAndWait, EndCutscene
-@ reads save bit 0x80b.
-.thumb_func_start OvlFunc_891_200901c
-	push	{lr}
-	ldr	r0, =0x80b
-	bl	__GetFlag
-	cmp	r0, #0
-	bne	.L104c
-	bl	__CutsceneStart
-	mov	r0, #9
-	bl	__MapActor_GetActor
-	mov	r0, #9
-	ldr	r1, =0x3333
-	ldr	r2, =0x1999
-	bl	__MapActor_SetSpeed
-	mov	r1, #0xfc
-	mov	r0, #9
-	lsl	r1, #1
-	mov	r2, #0x98
-	bl	__Func_80921c4
-	bl	__CutsceneEnd
-.L104c:
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_891_200901c
-
 @ Cutscene: roughly 458 instructions of straight-line script --
 @ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
 @ Characterised structurally rather than beat by beat.
@@ -603,4 +572,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_891_20094b8
-

@@ -65,33 +65,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_890_2008150
-
-@ 19 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   TestSaveBit, StartFadeOut, WaitForFade, SetSaveBit
-@   ClearSaveBit x2
-@ reads save bit 0x202; sets 0x202; clears 0x200, 0x201.
-.thumb_func_start OvlFunc_890_20081ec
-	push	{lr}
-	ldr	r0, =0x202
-	bl	__GetFlag
-	cmp	r0, #0
-	bne	.L21a
-	mov	r1, #1
-	ldr	r0, =0x202db1
-	bl	__Func_8091200
-	mov	r0, #0x14
-	bl	__Func_8091254
-	ldr	r0, =0x202
-	bl	__SetFlag
-	mov	r0, #0x80
-	lsl	r0, #2
-	bl	__ClearFlag
-	ldr	r0, =0x201
-	bl	__ClearFlag
-.L21a:
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_890_20081ec
