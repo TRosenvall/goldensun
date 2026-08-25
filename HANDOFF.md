@@ -81,6 +81,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-71](reports/batch-71.md) | 7 | ready to port — solves the 34-function narrow-constant blocker; 16 stale parks deleted |
 | [batch-72](reports/batch-72.md) | 5 | ready to port — the struct-member read lever; a switch reproduces a ROM jump table |
 | [batch-73](reports/batch-73.md) | 6 | ready to port — register class measured and narrowed by a compiler experiment |
+| [batch-74](reports/batch-74.md) | 5 | ready to port — new -fno-gcse group; three size symbols; a blob that is bigger than its function |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
