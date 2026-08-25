@@ -937,6 +937,29 @@ And note the class is **not** "has stack arguments". Several functions pass
 arguments on the stack and need no lever, because the ROM fills the slots first
 and then the registers, which is what gcc does anyway.
 
+
+### Two refinements from batch 49
+
+**A value in a CALLEE-SAVED register around a call is shared across both calls.**
+`OvlFunc_959_200a26c` keeps `0x15` in r5 and pushes r5 in the prologue, then
+stores it into `[sp]` before each of two calls. One local passed as the fifth
+argument of both reproduces it. The saved register is the tell — gcc has no
+reason to spend a push unless the value has to survive the call.
+
+That also settles the store order for free. Where the shared value goes into
+`[sp]` last, immediately before the `bl`, and the per-call value into `[sp, #4]`
+early, no reordering of the C is needed; it falls out of which local is shared.
+
+**Do NOT reuse an earlier pair's local for a later shared value.** In
+`OvlFunc_901_2008e30` the second call stores one register into both slots.
+Writing `n = 3;` and passing `n, n` — recycling the first pair's local —
+perturbs the FIRST pair's register assignment three instructions earlier and
+comes out 3 of 22. A *fresh* local matches, and so do bare literals.
+
+The two failures look nothing alike: the diff lands before the statement that
+caused it. Prefer literals where they match; they are shorter and they cannot
+collide with anything.
+
 ## Splitting: when the refusal is about the FILE, not the function
 
 `tools/split_s.py` refuses when a local label would cross the boundary it is
