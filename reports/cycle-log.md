@@ -377,3 +377,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-25T08:50:48Z  end     +2 (911_20081dc, Func_80a4754); 467 elevated; dispatcher family closed
 2026-08-25T08:55:11Z  end     +1 (Field_Growth_Target); 468 elevated
 2026-08-25T09:07:42Z  end     +1 (948_2009bc4), 3 parks; 469 elevated; 60 parks within 6 instructions measured
+2026-08-25T09:13:29Z  end     +1 (968_2008058), 2 parks; 470 elevated; near_parks clean-screen advice corrected

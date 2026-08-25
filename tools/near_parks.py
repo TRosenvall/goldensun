@@ -62,7 +62,7 @@ def main():
             # unparkable now for a reason unrelated to this sweep
             if " OK " in out:
                 matched += 1
-                print(f"  !! SCREENS CLEAN NOW: {rel}")
+                print(f"  ?? screens clean (NOT necessarily unparkable): {rel}")
             continue
         d = DIS.search(out)
         n = int(d.group(1)) if d else abs(int(h.group(2)) - int(h.group(3)))
@@ -73,7 +73,11 @@ def main():
     for n, fn, rel, rom in near:
         print(f"  {n:2d} of {rom:<4s} {fn:<24s} {rel}")
     if matched:
-        print(f"\n{matched} park(s) screen clean -- re-check those first")
+        print(f"\n{matched} park(s) screen clean. THIS IS NOT AN UNPARK SIGNAL ON ITS")
+        print("OWN. tryc normalises literal-pool loads, so a function whose only")
+        print("defect is POOL PLACEMENT screens OK and still fails make compare --")
+        print("src/non_matching/ovl_7ec19c/200816c.c is exactly that and says so in")
+        print("its note. Read the park before acting; it may already record this.")
     return 0
 
 
