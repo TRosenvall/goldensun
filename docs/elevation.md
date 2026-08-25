@@ -2000,3 +2000,30 @@ instructions saving and restoring it. `-fcall-saved-r4` took
 
 So the r4 question is real and wider than one file, and flipping the flag is not
 by itself an answer anywhere else. Read the prologue before reaching for it.
+
+### The mask's WIDTH tells you which spelling the original used
+
+"Use a bitfield" is not a blanket rule. `OvlFunc_927_2008a4c` writes two masked
+fields and needs opposite spellings for them:
+
+    sprite +9    mov r3, #0xd / neg r3, r3     32-bit mask  -> BITFIELD
+    actor +0x23  mov r3, #0xfe                 byte mask    -> HAND-WRITTEN
+
+gcc's `store_bit_field` works at int width, so a bitfield always produces the
+`mov rN, #K / neg` pair. A bare `mov rN, #0xNN` byte mask is what you get from
+masking a plain `unsigned char` by hand. Declaring the second field as a
+bitfield costs one extra instruction; hand-masking the first costs the whole
+constant-derivation problem.
+
+Read the width off the ROM before choosing.
+
+(`| 2` rather than `& ~2 | 2` for a one-bit set is gcc simplifying, and is not
+evidence either way.)
+
+### An argument PERMUTATION is not the argument-precompute blocker
+
+`OvlFunc_927_2008a4c` calls `__CreateActor` with its own arguments rotated,
+`(d, a, b, c)`, and gcc reproduces the ROM's seven-move shuffle through
+r4/r5/r6 exactly, with no help at all. The argument-precompute class
+(`calls.c:805`) is about a call whose arguments mix cheap constants with two or
+more expensive values — not about permutation. Do not park a rotation on sight.
