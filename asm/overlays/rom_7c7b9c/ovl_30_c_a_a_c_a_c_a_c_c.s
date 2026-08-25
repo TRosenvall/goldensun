@@ -1,0 +1,201 @@
+	.include "macros.inc"
+
+@ 91 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Cos, Sin, Random x2
+.thumb_func_start OvlFunc_943_200b1a8
+	push	{r5, r6, lr}
+	mov	r6, r10
+	mov	r5, r9
+	push	{r5, r6}
+	mov	r6, r8
+	push	{r6}
+	ldr	r3, =iwram_3001e70
+	ldr	r0, =.L5b58
+	ldr	r3, [r3]
+	mov	r8, r0
+	ldr	r0, [r0]
+	ldr	r6, [r3]
+	mov	r9, r3
+	bl	__cos
+	ldr	r1, =.L5b38
+	mov	r5, r0
+	ldr	r0, [r1]
+	mov	r10, r1
+	bl	__sin
+	ldr	r3, [r6]
+	asr	r5, #1
+	add	r3, r5
+	stmia	r6!, {r3}
+	ldr	r3, [r6]
+	add	r3, r0
+	str	r3, [r6]
+	bl	__Random
+	lsl	r3, r0, #1
+	mov	r5, r8
+	add	r3, r0
+	ldr	r2, [r5]
+	lsl	r3, #7
+	lsr	r3, #16
+	add	r2, r3
+	str	r2, [r5]
+	bl	__Random
+	mov	r1, r10
+	ldr	r3, [r1]
+	lsl	r0, #9
+	ldrh	r2, [r5]
+	lsr	r0, #16
+	ldr	r1, =0xffff
+	add	r3, r0
+	str	r2, [r5]
+	and	r3, r1
+	mov	r2, r10
+	str	r3, [r2]
+	ldr	r1, =.L5b50
+	mov	r0, #0x82
+	ldr	r3, [r1]
+	lsl	r0, #1
+	add	r0, r9
+	str	r3, [r0, #8]
+	ldr	r4, =.L5b60
+	ldr	r2, [r1]
+	ldr	r3, [r4]
+	sub	r2, r3
+	str	r2, [r1]
+	cmp	r2, #0
+	bge	.L3230
+	mov	r5, #0x80
+	lsl	r5, #14
+	add	r3, r2, r5
+	str	r3, [r1]
+.L3230:
+	mov	r2, #0x80
+	ldr	r3, [r1]
+	lsl	r2, #14
+	cmp	r3, r2
+	ble	.L3240
+	ldr	r5, =0xffe00000
+	add	r3, r5
+	str	r3, [r1]
+.L3240:
+	ldr	r3, [r1, #4]
+	str	r3, [r0, #0xc]
+	ldr	r2, [r1, #4]
+	ldr	r3, [r4, #4]
+	sub	r2, r3
+	str	r2, [r1, #4]
+	cmp	r2, #0
+	bge	.L3258
+	mov	r0, #0x80
+	lsl	r0, #14
+	add	r3, r2, r0
+	str	r3, [r1, #4]
+.L3258:
+	pop	{r3, r5, r6}
+	mov	r8, r3
+	mov	r9, r5
+	mov	r10, r6
+	pop	{r5, r6}
+	pop	{r0}
+	bx	r0
+.func_end OvlFunc_943_200b1a8
+
+@ Cutscene: roughly 92 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+.thumb_func_start OvlFunc_943_200b284
+	push	{r5, r6, lr}
+	mov	r0, #8
+	bl	__MapActor_GetActor
+	mov	r5, #0
+	add	r0, #0x59
+	strb	r5, [r0]
+	mov	r0, #9
+	bl	__MapActor_GetActor
+	add	r0, #0x59
+	strb	r5, [r0]
+	mov	r0, #0xa
+	bl	__MapActor_GetActor
+	add	r0, #0x59
+	strb	r5, [r0]
+	mov	r0, #0xb
+	bl	__MapActor_GetActor
+	add	r0, #0x59
+	strb	r5, [r0]
+	mov	r0, #8
+	bl	OvlFunc_943_200b380
+	mov	r0, #9
+	bl	OvlFunc_943_200b380
+	mov	r0, #0xa
+	bl	OvlFunc_943_200b380
+	mov	r0, #0xb
+	bl	OvlFunc_943_200b380
+	mov	r0, #0xc
+	bl	OvlFunc_943_200b380
+	mov	r0, #0xd
+	bl	OvlFunc_943_200b380
+	mov	r0, #0xe
+	bl	OvlFunc_943_200b380
+	mov	r0, #0xf
+	bl	OvlFunc_943_200b380
+	mov	r0, #0xc
+	bl	__MapActor_GetActor
+	ldr	r6, =.L5b90
+	ldr	r3, [r0, #0x10]
+	mov	r0, #0xd
+	str	r3, [r6]
+	bl	__MapActor_GetActor
+	ldr	r3, [r0, #0x10]
+	mov	r0, #0xe
+	str	r3, [r6, #4]
+	bl	__MapActor_GetActor
+	ldr	r3, [r0, #0x10]
+	mov	r0, #0xf
+	str	r3, [r6, #8]
+	bl	__MapActor_GetActor
+	ldr	r3, [r0, #0x10]
+	mov	r0, #0x10
+	str	r3, [r6, #0xc]
+	bl	OvlFunc_943_200b380
+	mov	r0, #0x11
+	bl	OvlFunc_943_200b380
+	mov	r0, #0x12
+	bl	OvlFunc_943_200b380
+	mov	r0, #0x13
+	bl	OvlFunc_943_200b380
+	mov	r0, #0x10
+	bl	__MapActor_GetActor
+	ldr	r5, =0xffff0000
+	str	r5, [r0, #0x18]
+	mov	r0, #0x11
+	bl	__MapActor_GetActor
+	str	r5, [r0, #0x18]
+	mov	r0, #0x12
+	bl	__MapActor_GetActor
+	str	r5, [r0, #0x18]
+	mov	r0, #0x13
+	bl	__MapActor_GetActor
+	str	r5, [r0, #0x18]
+	mov	r0, #0x10
+	bl	__MapActor_GetActor
+	ldr	r3, [r0, #0x10]
+	mov	r0, #0x11
+	str	r3, [r6, #0x10]
+	bl	__MapActor_GetActor
+	ldr	r3, [r0, #0x10]
+	mov	r0, #0x12
+	str	r3, [r6, #0x14]
+	bl	__MapActor_GetActor
+	ldr	r3, [r0, #0x10]
+	mov	r0, #0x13
+	str	r3, [r6, #0x18]
+	bl	__MapActor_GetActor
+	ldr	r3, [r0, #0x10]
+	str	r3, [r6, #0x1c]
+	bl	OvlFunc_943_200b3b8
+	pop	{r5, r6}
+	pop	{r0}
+	bx	r0
+.func_end OvlFunc_943_200b284

@@ -380,3 +380,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-25T09:13:29Z  end     +1 (968_2008058), 2 parks; 470 elevated; near_parks clean-screen advice corrected
 2026-08-25T09:18:01Z  end     +4 (939_200918c, 959_2008c90, 959_2008e30, 959_2008ee0); 474 elevated
 2026-08-25T09:27:52Z  end     +4 (948_2009da0, 959_200a410, 959_200a468, 882_20092f0); 478 elevated
+2026-08-25T09:33:26Z  end     +2 (943_200b150, 945_200cfa8); 480 elevated; first switch functions
