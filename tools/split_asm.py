@@ -29,13 +29,13 @@ project more than once:
 
 This checks all three before touching anything.
 
-**IT CHECKS ONE CUT, NOT A THREE-WAY SPLIT.** Cutting a function out of the
-MIDDLE of a .s leaves two remaining pieces, and labels can cross between THOSE
-two as well -- which this does not look at. That is a real hole: in batch 68 a
-three-way split of `rom_f6008_c.s` linked cleanly on the cut boundary and failed
-on the other one, because the earlier functions referenced six `.L` labels in
-the `.rodata` that stayed with the later half. Check every pair of resulting
-pieces, not just the one this reports on.
+THREE-WAY SPLITS ARE CHECKED TOO. Cutting a function out of the MIDDLE leaves
+two remaining pieces, and labels cross between THOSE as readily as across the
+cut. The first version of this tool only checked the cut boundary; a three-way
+split of `rom_f6008_c.s` linked cleanly there and failed on the other side,
+because the twelve earlier functions referenced six `.L` labels in the `.rodata`
+that stayed with the later half. It reported "none needed" for a split that
+needed six. Every pair of resulting pieces is now reported.
 
 WHAT IT DOES NOT DO
 
@@ -76,10 +76,16 @@ def main():
     cut, rest = "\n".join(L[s:e]), "\n".join(L[:s] + L[e:])
     n_funcs = len(re.findall(r"^\.thumb_func_start", "\n".join(L), re.M))
 
-    # (2) labels the cut half references that the remaining half defines
+    # (2) labels crossing ANY boundary the split creates.
+    #
+    # A middle cut yields three pieces -- head, cut, tail -- so there are three
+    # pairs to check, not one. Checking only cut-vs-rest is what let a six-label
+    # failure through in batch 68.
+    head, tail = "\n".join(L[:s]), "\n".join(L[e:])
     need_global = sorted(set(LABEL_REF.findall(cut)) & set(LABEL_DEF.findall(rest)))
-    # ...and the reverse
     reverse = sorted(set(LABEL_REF.findall(rest)) & set(LABEL_DEF.findall(cut)))
+    head_needs = sorted(set(LABEL_REF.findall(head)) & set(LABEL_DEF.findall(tail)))
+    tail_needs = sorted(set(LABEL_REF.findall(tail)) & set(LABEL_DEF.findall(head)))
 
     print(f"{asm}: {n_funcs} function(s); cutting {fn} (lines {s+1}-{e})")
     print(f"  carries data      : {'YES -- keep a .s and its section line' if DATA.search(rest) else 'no'}")
@@ -93,6 +99,15 @@ def main():
     if reverse:
         print(f"  REVERSE refs (the .s would reference labels inside the cut): {reverse}")
         print("      -> the cut is not clean; pick a different boundary")
+    if head and tail and (head_needs or tail_needs):
+        print("  THREE-WAY SPLIT -- labels also cross between the two REMAINING")
+        print("  pieces. If you keep them as separate objects, export these too:")
+        for l in head_needs:
+            print(f"      .global {l}      (defined after the cut, used before)")
+        for l in tail_needs:
+            print(f"      .global {l}      (defined before the cut, used after)")
+    elif head and tail:
+        print("  three-way split : no labels cross between the remaining pieces")
     print(f"  BASENAME WARNING  : name the .c something OTHER than "
           f"'{os.path.basename(asm)[:-2]}' unless this .s is deleted entirely")
 
