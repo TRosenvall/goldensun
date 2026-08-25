@@ -1,31 +1,6 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ FindSpeakerRecord
-@ r0=speaker id. Searches the table at .L9e9f0 for the record matching the id
-@ and returns it. GetSpriteVoice and Func_915dc read the portrait and voice bytes
-@ from the result.
-.thumb_func_start GetSpriteVoiceEntry  @ 0x08091560
-	push	{lr}
-	mov	r2, r0
-	ldr	r0, =.L9e9f0
-	ldrh	r3, [r0]
-	mov	r1, #0
-	cmp	r3, r2
-	beq	.L9157c
-.L9156e:
-	add	r1, #1
-	add	r0, #4
-	cmp	r1, #0x81
-	bhi	.L9157c
-	ldrh	r3, [r0]
-	cmp	r3, r2
-	bne	.L9156e
-.L9157c:
-	pop	{r1}
-	bx	r1
-.func_end GetSpriteVoiceEntry
-
 	.section .rodata
 	.global .L9e8ee
 	.global .L9e92e
@@ -67,5 +42,6 @@
 	.incrom 0x9e96e, 0x9e9ae
 .L9e9ae:
 	.incrom 0x9e9ae, 0x9e9f0
+	.global .L9e9f0
 .L9e9f0:
 	.incrom 0x9e9f0, 0x9ebfc
