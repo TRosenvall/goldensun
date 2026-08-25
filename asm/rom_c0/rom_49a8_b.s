@@ -19,13 +19,13 @@ InitMatrixStack:
 	push	{r5, lr}
 	mov	r1, #48
 	mov	r0, #2
-	ldr	r5, .L11
+	ldr	r5, .L12
 	bl	galloc_ewram
-	ldr	r2, .L11+4
+	ldr	r2, .L12+4
 	mov	r3, #0
 	str	r3, [r2]
 	str	r0, [r5]
-	ldr	r3, .L11+8
+	ldr	r3, .L12+8
 	mov r0, r3
 	mov r1, #0x80
 	mov r2, #0
@@ -40,9 +40,9 @@ InitMatrixStack:
 	pop	{r5}
 	pop	{r0}
 	bx	r0
-.L12:
+.L13:
 	.align	2, 0
-.L11:
+.L12:
 	.word	gMatrixStack
 	.word	gMatrixStackSize
 	.word	Data_8000ac0
@@ -54,15 +54,15 @@ InitMatrixStack:
 	.type	 MatrixPush,function
 MatrixPush:
 	push	{r5, lr}
-	ldr	r5, .L16
+	ldr	r5, .L17
 	ldr	r3, [r5]
 	cmp	r3, #0
-	bgt	.L13
-	ldr	r4, .L16+4
-	ldr	r3, .L16+8
-	ldr	r0, .L16+12
+	bgt	.L14
+	ldr	r4, .L17+4
+	ldr	r3, .L17+8
+	ldr	r0, .L17+12
 	ldr	r1, [r4]
-	ldr	r2, .L16+16
+	ldr	r2, .L17+16
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -72,13 +72,13 @@ MatrixPush:
 	ldr	r3, [r4]
 	add	r3, r3, #48
 	str	r3, [r4]
-.L13:
+.L14:
 	pop	{r5}
 	pop	{r0}
 	bx	r0
-.L17:
+.L18:
 	.align	2, 0
-.L16:
+.L17:
 	.word	gMatrixStackSize
 	.word	gMatrixStack
 	.word	67109076
@@ -92,16 +92,16 @@ MatrixPush:
 	.type	 MatrixStore,function
 MatrixStore:
 	mov	r1, r0
-	ldr	r3, .L20
-	ldr	r0, .L20+4
-	ldr	r2, .L20+8
+	ldr	r3, .L21
+	ldr	r0, .L21+4
+	ldr	r2, .L21+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	bx	lr
-.L21:
+.L22:
 	.align	2, 0
-.L20:
+.L21:
 	.word	67109076
 	.word	Data_8000ac0
 	.word	-2080374772
@@ -112,16 +112,16 @@ MatrixStore:
 	.thumb_func
 	.type	 MatrixLoad,function
 MatrixLoad:
-	ldr	r3, .L24
-	ldr	r1, .L24+4
-	ldr	r2, .L24+8
+	ldr	r3, .L25
+	ldr	r1, .L25+4
+	ldr	r2, .L25+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	bx	lr
-.L25:
+.L26:
 	.align	2, 0
-.L24:
+.L25:
 	.word	67109076
 	.word	Data_8000ac0
 	.word	-2080374772
@@ -133,28 +133,28 @@ MatrixLoad:
 	.type	 MatrixPop,function
 MatrixPop:
 	push	{lr}
-	ldr	r2, .L29
+	ldr	r2, .L30
 	ldr	r3, [r2]
 	cmp	r3, #0
-	ble	.L26
+	ble	.L27
 	sub	r3, r3, #1
 	str	r3, [r2]
-	ldr	r3, .L29+4
+	ldr	r3, .L30+4
 	ldr	r0, [r3]
 	sub	r0, r0, #48
 	str	r0, [r3]
-	ldr	r1, .L29+8
-	ldr	r3, .L29+12
-	ldr	r2, .L29+16
+	ldr	r1, .L30+8
+	ldr	r3, .L30+12
+	ldr	r2, .L30+16
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-.L26:
+.L27:
 	pop	{r0}
 	bx	r0
-.L30:
+.L31:
 	.align	2, 0
-.L29:
+.L30:
 	.word	gMatrixStackSize
 	.word	gMatrixStack
 	.word	Data_8000ac0
@@ -167,7 +167,7 @@ MatrixPop:
 	.thumb_func
 	.type	 MatrixReset,function
 MatrixReset:
-	ldr	r3, .L32
+	ldr	r3, .L33
 	mov r0, r3
 	mov r1, #0x80
 	mov r2, #0
@@ -180,9 +180,9 @@ MatrixReset:
 	
 	.code	16
 	bx	lr
-.L33:
+.L34:
 	.align	2, 0
-.L32:
+.L33:
 	.word	Data_8000ac0
 .Lfe7:
 	.size	 MatrixReset,.Lfe7-MatrixReset
@@ -218,7 +218,7 @@ MatrixRotate:
 	ldr	r0, [r5, #8]
 	bl	cos
 	mov	lr, r0
-	ldr	r3, .L53
+	ldr	r3, .L54
 	mov	r0, fp
 	mov	r1, lr
 	.align 2, 0
@@ -335,7 +335,7 @@ bx r3
 	str	r3, [r5, #40]
 	str	r3, [r5, #44]
 	mov	r0, r5
-	ldr	r3, .L53+4
+	ldr	r3, .L54+4
 	bl	_call_via_r3
 	add	sp, sp, #48
 	pop	{r3, r5, r6}
@@ -347,9 +347,9 @@ bx r3
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L54:
+.L55:
 	.align	2, 0
-.L53:
+.L54:
 	.word	Func_8000888
 	.word	Func_8000a30
 .Lfe8:
@@ -385,16 +385,16 @@ MatrixPitch:
 	str	r3, [r5, #16]
 	str	r3, [r5, #32]
 	str	r6, [r5, #28]
-	ldr	r3, .L57
+	ldr	r3, .L58
 	mov	r0, r5
 	bl	_call_via_r3
 	add	sp, sp, #48
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L58:
+.L59:
 	.align	2, 0
-.L57:
+.L58:
 	.word	Func_8000a30
 .Lfe9:
 	.size	 MatrixPitch,.Lfe9-MatrixPitch
@@ -431,7 +431,7 @@ MatrixYaw:
 	str	r6, [r5]
 	str	r2, [r5, #24]
 	str	r6, [r5, #32]
-	ldr	r3, .L61
+	ldr	r3, .L62
 	mov	r0, r5
 	bl	_call_via_r3
 	add	sp, sp, #48
@@ -440,9 +440,9 @@ MatrixYaw:
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L62:
+.L63:
 	.align	2, 0
-.L61:
+.L62:
 	.word	Func_8000a30
 .Lfe10:
 	.size	 MatrixYaw,.Lfe10-MatrixYaw
@@ -477,16 +477,16 @@ MatrixRoll:
 	str	r3, [r5]
 	str	r3, [r5, #16]
 	str	r6, [r5, #12]
-	ldr	r3, .L65
+	ldr	r3, .L66
 	mov	r0, r5
 	bl	_call_via_r3
 	add	sp, sp, #48
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L66:
+.L67:
 	.align	2, 0
-.L65:
+.L66:
 	.word	Func_8000a30
 .Lfe11:
 	.size	 MatrixRoll,.Lfe11-MatrixRoll
@@ -517,15 +517,15 @@ MatrixTranslatev:
 	ldr	r3, [r6, #8]
 	mov	r0, r5
 	str	r3, [r5, #44]
-	ldr	r3, .L69
+	ldr	r3, .L70
 	bl	_call_via_r3
 	add	sp, sp, #48
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L70:
+.L71:
 	.align	2, 0
-.L69:
+.L70:
 	.word	Func_8000a30
 .Lfe12:
 	.size	 MatrixTranslatev,.Lfe12-MatrixTranslatev
@@ -556,15 +556,15 @@ MatrixScalev:
 	ldr	r3, [r6, #8]
 	mov	r0, r5
 	str	r3, [r5, #32]
-	ldr	r3, .L73
+	ldr	r3, .L74
 	bl	_call_via_r3
 	add	sp, sp, #48
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L74:
+.L75:
 	.align	2, 0
-.L73:
+.L74:
 	.word	Func_8000a30
 .Lfe13:
 	.size	 MatrixScalev,.Lfe13-MatrixScalev
@@ -601,7 +601,7 @@ MatrixRotateTrans:
 	ldr	r0, [r5, #8]
 	bl	cos
 	mov	lr, r0
-	ldr	r3, .L93
+	ldr	r3, .L94
 	mov	r0, fp
 	mov	r1, lr
 	.align 2, 0
@@ -720,7 +720,7 @@ bx r3
 	ldr	r3, [r7, #8]
 	mov	r0, r5
 	str	r3, [r5, #44]
-	ldr	r3, .L93+4
+	ldr	r3, .L94+4
 	bl	_call_via_r3
 	add	sp, sp, #48
 	pop	{r3, r5, r6, r7}
@@ -731,9 +731,9 @@ bx r3
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L94:
+.L95:
 	.align	2, 0
-.L93:
+.L94:
 	.word	Func_8000888
 	.word	Func_8000a30
 .Lfe14:
@@ -774,7 +774,7 @@ MatrixRotateTransScale:
 	ldr	r2, [sp]
 	mov	lr, r0
 	ldr	r7, [r2]
-	ldr	r3, .L122
+	ldr	r3, .L123
 	mov	r0, fp
 	mov	r1, lr
 	.align 2, 0
@@ -952,7 +952,7 @@ bx r3
 	ldr	r3, [r2, #8]
 	mov	r0, r5
 	str	r3, [r5, #44]
-	ldr	r3, .L122+4
+	ldr	r3, .L123+4
 	bl	_call_via_r3
 	add	sp, sp, #56
 	pop	{r3, r5, r6, r7}
@@ -963,9 +963,9 @@ bx r3
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L123:
+.L124:
 	.align	2, 0
-.L122:
+.L123:
 	.word	Func_8000888
 	.word	Func_8000a30
 .Lfe15:
@@ -989,10 +989,10 @@ MakeLookMatrix:
 	str	r0, [sp, #12]
 	mov	r4, r1
 	mov	r9, r2
-	ldr	r3, .L150
-	ldr	r0, .L150+4
+	ldr	r3, .L151
+	ldr	r0, .L151+4
 	ldr	r1, [sp, #12]
-	ldr	r2, .L150+8
+	ldr	r2, .L151+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -1021,17 +1021,17 @@ MakeLookMatrix:
 	mov	r2, r3
 	mov	r0, r1
 	bl	_call_via_r4
-	ldr	r3, .L150+12
+	ldr	r3, .L151+12
 	bl	_call_via_r3
 	mov	r1, r0
-	ldr	r0, .L150+16
+	ldr	r0, .L151+16
 	mov	fp, r0
 	mov	r0, #128
 	lsl	r0, r0, #24
 	bl	_call_via_fp
 	lsr	r3, r0, #15
 	neg	r3, r3
-	ldr	r5, .L150+20
+	ldr	r5, .L151+20
 	ldr	r0, [sp, #28]
 	mov	r1, r3
 	.align 2, 0
@@ -1066,14 +1066,14 @@ bx r5
 	lsl	r3, r3, #9
 	sub	r0, r3, r0
 	cmp	r0, #0
-	ble	.L138
+	ble	.L139
 	bl	FastIntSqrtFP1616_RAM
 	mov	r1, r0
 	mov	r0, #128
 	lsl	r0, r0, #24
 	bl	_call_via_fp
 	lsl	r3, r0, #1
-.L138:
+.L139:
 	ldr	r0, [sp, #20]
 	mov	r1, r3
 	.align 2, 0
@@ -1218,9 +1218,9 @@ bx r5
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L151:
+.L152:
 	.align	2, 0
-.L150:
+.L151:
 	.word	67109076
 	.word	DistSquared
 	.word	-2080374777
@@ -1235,13 +1235,13 @@ bx r5
 	.type	 MatrixSetLook,function
 MatrixSetLook:
 	push	{lr}
-	ldr	r2, .L153
+	ldr	r2, .L154
 	bl	MakeLookMatrix
 	pop	{r0}
 	bx	r0
-.L154:
+.L155:
 	.align	2, 0
-.L153:
+.L154:
 	.word	Data_8000ac0
 .Lfe17:
 	.size	 MatrixSetLook,.Lfe17-MatrixSetLook
@@ -1255,16 +1255,16 @@ MatrixLook:
 	mov	r5, sp
 	mov	r2, r5
 	bl	MakeLookMatrix
-	ldr	r3, .L157
+	ldr	r3, .L158
 	mov	r0, r5
 	bl	_call_via_r3
 	add	sp, sp, #48
 	pop	{r5}
 	pop	{r0}
 	bx	r0
-.L158:
+.L159:
 	.align	2, 0
-.L157:
+.L158:
 	.word	Func_8000a30
 .Lfe18:
 	.size	 MatrixLook,.Lfe18-MatrixLook
@@ -1291,10 +1291,10 @@ Func_8005208:
 	lsl	r1, r0, #2
 	add	r1, r1, r0
 	lsl	r1, r1, #4
-	ldr	r3, .L162
+	ldr	r3, .L163
 	mov	r0, r6
 	bl	_call_via_r3
-	ldr	r3, .L162+4
+	ldr	r3, .L163+4
 	mov	r2, r8
 	str	r2, [r3, #4]
 	mov	r2, sl
@@ -1306,9 +1306,9 @@ Func_8005208:
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L163:
+.L164:
 	.align	2, 0
-.L162:
+.L163:
 	.word	Func_80008ac
 	.word	gPhysVec
 .Lfe19:
@@ -1318,14 +1318,14 @@ Func_8005208:
 	.thumb_func
 	.type	 Func_8005258,function
 Func_8005258:
-	ldr	r3, .L165
+	ldr	r3, .L166
 	str	r0, [r3]
 	str	r1, [r3, #4]
 	str	r2, [r3, #8]
 	bx	lr
-.L166:
+.L167:
 	.align	2, 0
-.L165:
+.L166:
 	.word	gPhysVec
 .Lfe20:
 	.size	 Func_8005258,.Lfe20-Func_8005258
@@ -1336,33 +1336,33 @@ Func_8005258:
 PhysMove:
 	push	{r5, r6, r7, lr}
 	mov	r5, r1
-	ldr	r3, .L178
+	ldr	r3, .L179
 	bl	_call_via_r3
 	ldr	r3, [r5, #8]
-	ldr	r7, .L178+4
+	ldr	r7, .L179+4
 	neg	r1, r3
 	ldr	r3, [r7, #4]
 	mov	r0, #0
 	cmp	r1, r3
-	blt	.L170
+	blt	.L171
 	ldr	r3, [r7, #8]
 	cmp	r1, r3
-	bgt	.L170
+	bgt	.L171
 	asr	r3, r1, #16
 	str	r3, [r5, #8]
 	ldr	r0, [r7]
 	cmp	r0, #0
-	beq	.L171
+	beq	.L172
 	lsr	r1, r1, #11
 	lsl	r0, r0, #5
-	ldr	r3, .L178+8
+	ldr	r3, .L179+8
 	bl	_call_via_r3
 	mov	r4, r0
-	b	.L173
-.L171:
-	ldr	r4, .L178+12
-.L173:
-	ldr	r6, .L178+16
+	b	.L174
+.L172:
+	ldr	r4, .L179+12
+.L174:
+	ldr	r6, .L179+16
 	ldr	r0, [r5]
 	mov	r1, r4
 	.align 2, 0
@@ -1370,10 +1370,10 @@ mov r12, pc
 bx r6
 	.code	16
 	cmp	r0, #0
-	bge	.L175
-	ldr	r3, .L178+20
+	bge	.L176
+	ldr	r3, .L179+20
 	add	r0, r0, r3
-.L175:
+.L176:
 	ldr	r3, [r7, #12]
 	asr	r2, r0, #16
 	add	r3, r3, r2
@@ -1385,22 +1385,22 @@ mov r12, pc
 bx r6
 	.code	16
 	cmp	r0, #0
-	bge	.L177
-	ldr	r3, .L178+20
+	bge	.L178
+	ldr	r3, .L179+20
 	add	r0, r0, r3
-.L177:
+.L178:
 	ldr	r3, [r7, #16]
 	asr	r2, r0, #16
 	sub	r3, r3, r2
 	str	r3, [r5, #4]
 	mov	r0, r4
-.L170:
+.L171:
 	pop	{r5, r6, r7}
 	pop	{r1}
 	bx	r1
-.L179:
+.L180:
 	.align	2, 0
-.L178:
+.L179:
 	.word	Func_80009c0
 	.word	gPhysVec
 	.word	udivsi3_RAM

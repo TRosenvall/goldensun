@@ -8,18 +8,18 @@
 	.thumb_func
 	.type	 OvlFunc_915_2008d5c,function
 OvlFunc_915_2008d5c:
-	ldr	r2, .L10
-	ldr	r3, .L10+4
+	ldr	r2, .L11
+	ldr	r3, .L11+4
 	ldr	r0, [r2]
-	ldr	r1, .L10+8
-	ldr	r2, .L10+12
+	ldr	r1, .L11+8
+	ldr	r2, .L11+12
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	bx	lr
-.L11:
+.L12:
 	.align	2, 0
-.L10:
+.L11:
 	.word	iwram_3001ed0
 	.word	67109076
 	.word	.L10e0

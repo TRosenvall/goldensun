@@ -77,6 +77,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-67](reports/batch-67.md) | 5 | ready to port — 8 new area ids added on stated evidence |
 | [batch-68](reports/batch-68.md) | 7 | ready to port — 5 new message ids; 1 park unparked in the same batch |
 | [batch-69](reports/batch-69.md) | 7 | ready to port — 6 are one function in six places, via a new -fno-strict-aliasing flag group |
+| [batch-70](reports/batch-70.md) | 8 | ready to port — 5 are one bitfield store in five places; 1 unpark |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The

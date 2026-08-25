@@ -21,9 +21,9 @@ Func_8090824:
 	mov	r5, r0
 	mov	r0, sp
 	str	r6, [r0]
-	ldr	r3, .L10
+	ldr	r3, .L11
 	mov	r1, r5
-	ldr	r2, .L10+4
+	ldr	r2, .L11+4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -34,12 +34,12 @@ Func_8090824:
 	add	r3, r5, r2
 	mov	r2, r8
 	strh	r2, [r3]
-	ldr	r3, .L10+8
+	ldr	r3, .L11+8
 	mov	r1, #200
 	add	r5, r5, r3
 	lsl	r1, r1, #4
 	strh	r6, [r5]
-	ldr	r0, .L10+12
+	ldr	r0, .L11+12
 	bl	StartTask
 	mov	r0, #120
 	bl	WaitFrames
@@ -49,9 +49,9 @@ Func_8090824:
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L11:
+.L12:
 	.align	2, 0
-.L10:
+.L11:
 	.word	67109076
 	.word	-2063597232
 	.word	1322

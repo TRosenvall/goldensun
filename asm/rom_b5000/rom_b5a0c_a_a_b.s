@@ -9,22 +9,22 @@
 	.type	 Func_80b5ad4,function
 Func_80b5ad4:
 	push	{lr}
-	ldr	r3, .L11
-	ldr	r0, .L11+4
-	ldr	r1, .L11+8
-	ldr	r2, .L11+12
+	ldr	r3, .L12
+	ldr	r0, .L12+4
+	ldr	r1, .L12+8
+	ldr	r2, .L12+12
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	ldr	r3, .L11+16
+	ldr	r3, .L12+16
 	mov	r1, #20
-	ldr	r0, .L11+20
+	ldr	r0, .L12+20
 	bl	_call_via_r3
 	pop	{r1}
 	bx	r1
-.L12:
+.L13:
 	.align	2, 0
-.L11:
+.L12:
 	.word	67109076
 	.word	100663952
 	.word	100663936

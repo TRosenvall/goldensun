@@ -19,8 +19,8 @@ AllocGlobal1F:
 	mov	r0, sp
 	str	r3, [r0]
 	mov	r1, r4
-	ldr	r3, .L10
-	ldr	r2, .L10+4
+	ldr	r3, .L11
+	ldr	r2, .L11+4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -28,9 +28,9 @@ AllocGlobal1F:
 	add	sp, sp, #4
 	pop	{r1}
 	bx	r1
-.L11:
+.L12:
 	.align	2, 0
-.L10:
+.L11:
 	.word	67109076
 	.word	-2063597232
 .Lfe1:

@@ -9,25 +9,25 @@
 	.type	 ClearHeap,function
 ClearHeap:
 	sub	sp, sp, #4
-	ldr	r4, .L10
+	ldr	r4, .L11
 	mov	r0, sp
 	mov	r3, #0
 	str	r3, [r0]
 	mov	r1, r4
-	ldr	r3, .L10+4
-	ldr	r2, .L10+8
+	ldr	r3, .L11+4
+	ldr	r2, .L11+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	ldr	r3, .L10+12
+	ldr	r3, .L11+12
 	str	r3, [r4, #4]
-	ldr	r3, .L10+16
+	ldr	r3, .L11+16
 	add	sp, sp, #4
 	str	r3, [r4]
 	bx	lr
-.L11:
+.L12:
 	.align	2, 0
-.L10:
+.L11:
 	.word	gPtrs
 	.word	67109076
 	.word	-2063597504
@@ -40,14 +40,14 @@ ClearHeap:
 	.thumb_func
 	.type	 Func_800488c,function
 Func_800488c:
-	ldr	r3, .L13
-	ldr	r0, .L13+4
+	ldr	r3, .L14
+	ldr	r0, .L14+4
 	ldr	r3, [r3, #4]
 	sub	r0, r0, r3
 	bx	lr
-.L14:
+.L15:
 	.align	2, 0
-.L13:
+.L14:
 	.word	gPtrs
 	.word	gIWRAMHeap_end
 .Lfe2:
@@ -57,15 +57,15 @@ Func_800488c:
 	.thumb_func
 	.type	 Func_80048a0,function
 Func_80048a0:
-	ldr	r3, .L16
+	ldr	r3, .L17
 	mov	r0, #129
 	ldr	r3, [r3]
 	lsl	r0, r0, #18
 	sub	r0, r0, r3
 	bx	lr
-.L17:
+.L18:
 	.align	2, 0
-.L16:
+.L17:
 	.word	gPtrs
 .Lfe3:
 	.size	 Func_80048a0,.Lfe3-Func_80048a0
@@ -75,41 +75,41 @@ Func_80048a0:
 	.type	 galloc_iwram,function
 galloc_iwram:
 	push	{r5, lr}
-	ldr	r4, .L23
+	ldr	r4, .L24
 	lsl	r5, r0, #2
 	ldr	r0, [r4, r5]
 	cmp	r0, #0
-	bne	.L18
+	bne	.L19
 	add	r3, r1, #3
 	lsr	r3, r3, #2
 	ldr	r0, [r4, #4]
 	lsl	r1, r3, #2
-	ldr	r3, .L23+4
+	ldr	r3, .L24+4
 	add	r2, r0, r1
 	cmp	r2, r3
-	bls	.L20
+	bls	.L21
 	ldr	r0, [r4]
 	mov	r3, #129
 	add	r1, r0, r1
 	lsl	r3, r3, #18
 	cmp	r1, r3
-	bcc	.L21
+	bcc	.L22
 	mov	r0, #0
-	b	.L18
-.L21:
+	b	.L19
+.L22:
 	str	r1, [r4]
 	str	r0, [r4, r5]
-	b	.L18
-.L20:
+	b	.L19
+.L21:
 	str	r2, [r4, #4]
 	str	r0, [r4, r5]
-.L18:
+.L19:
 	pop	{r5}
 	pop	{r1}
 	bx	r1
-.L24:
+.L25:
 	.align	2, 0
-.L23:
+.L24:
 	.word	gPtrs
 	.word	50362367
 .Lfe4:
@@ -120,11 +120,11 @@ galloc_iwram:
 	.type	 galloc_ewram,function
 galloc_ewram:
 	push	{r5, lr}
-	ldr	r4, .L30
+	ldr	r4, .L31
 	lsl	r5, r0, #2
 	ldr	r0, [r4, r5]
 	cmp	r0, #0
-	bne	.L25
+	bne	.L26
 	add	r3, r1, #3
 	lsr	r3, r3, #2
 	ldr	r0, [r4]
@@ -133,28 +133,28 @@ galloc_ewram:
 	add	r2, r0, r1
 	lsl	r3, r3, #18
 	cmp	r2, r3
-	bcc	.L27
+	bcc	.L28
 	ldr	r0, [r4, #4]
-	ldr	r3, .L30+4
+	ldr	r3, .L31+4
 	add	r1, r0, r1
 	cmp	r1, r3
-	bls	.L28
+	bls	.L29
 	mov	r0, #0
-	b	.L25
-.L28:
+	b	.L26
+.L29:
 	str	r1, [r4, #4]
 	str	r0, [r4, r5]
-	b	.L25
-.L27:
+	b	.L26
+.L28:
 	str	r2, [r4]
 	str	r0, [r4, r5]
-.L25:
+.L26:
 	pop	{r5}
 	pop	{r1}
 	bx	r1
-.L31:
+.L32:
 	.align	2, 0
-.L30:
+.L31:
 	.word	gPtrs
 	.word	50362367
 .Lfe5:
@@ -165,36 +165,36 @@ galloc_ewram:
 	.type	 Func_8004938,function
 Func_8004938:
 	push	{lr}
-	ldr	r1, .L36
+	ldr	r1, .L37
 	add	r3, r0, #3
 	lsr	r3, r3, #2
 	ldr	r2, [r1, #4]
 	lsl	r0, r3, #2
-	ldr	r4, .L36+4
+	ldr	r4, .L37+4
 	add	r3, r2, r0
 	cmp	r3, r4
-	bls	.L33
+	bls	.L34
 	ldr	r2, [r1]
 	mov	r3, #129
 	add	r0, r2, r0
 	lsl	r3, r3, #18
 	cmp	r0, r3
-	bcc	.L34
+	bcc	.L35
 	mov	r0, #0
-	b	.L32
-.L34:
-	str	r0, [r1]
-	b	.L35
-.L33:
-	str	r3, [r1, #4]
+	b	.L33
 .L35:
+	str	r0, [r1]
+	b	.L36
+.L34:
+	str	r3, [r1, #4]
+.L36:
 	mov	r0, r2
-.L32:
+.L33:
 	pop	{r1}
 	bx	r1
-.L37:
+.L38:
 	.align	2, 0
-.L36:
+.L37:
 	.word	gPtrs
 	.word	50362367
 .Lfe6:
@@ -205,7 +205,7 @@ Func_8004938:
 	.type	 Func_8004970,function
 Func_8004970:
 	push	{lr}
-	ldr	r1, .L42
+	ldr	r1, .L43
 	add	r3, r0, #3
 	lsr	r3, r3, #2
 	ldr	r2, [r1]
@@ -214,27 +214,27 @@ Func_8004970:
 	add	r3, r2, r0
 	lsl	r4, r4, #18
 	cmp	r3, r4
-	bcc	.L39
+	bcc	.L40
 	ldr	r2, [r1, #4]
-	ldr	r3, .L42+4
+	ldr	r3, .L43+4
 	add	r0, r2, r0
 	cmp	r0, r3
-	bls	.L40
+	bls	.L41
 	mov	r0, #0
-	b	.L38
-.L40:
-	str	r0, [r1, #4]
-	b	.L41
-.L39:
-	str	r3, [r1]
+	b	.L39
 .L41:
+	str	r0, [r1, #4]
+	b	.L42
+.L40:
+	str	r3, [r1]
+.L42:
 	mov	r0, r2
-.L38:
+.L39:
 	pop	{r1}
 	bx	r1
-.L43:
+.L44:
 	.align	2, 0
-.L42:
+.L43:
 	.word	gPtrs
 	.word	50362367
 .Lfe7:

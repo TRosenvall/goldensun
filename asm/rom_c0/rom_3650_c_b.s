@@ -9,17 +9,17 @@
 	.type	 Func_800383c,function
 Func_800383c:
 	push	{r5, r6, lr}
-	ldr	r4, .L29
+	ldr	r4, .L30
 	.code	16
 	mov	r6, r0
 	mov	r0, r1
-	ldr	r1, .L29+4
+	ldr	r1, .L30+4
 	ldrh	r3, [r1]
 	mov	r5, r3
 	strh	r1, [r1]
 	ldrh	r2, [r4]
 	cmp	r2, #31
-	bgt	.L23
+	bgt	.L24
 	lsl	r3, r2, #1
 	add	r3, r3, r2
 	lsl	r3, r3, #2
@@ -32,14 +32,14 @@ Func_800383c:
 	mov	r2, #128
 	lsl	r2, r2, #9
 	str	r2, [r3]
-.L23:
+.L24:
 	strh	r5, [r1]
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L30:
+.L31:
 	.align	2, 0
-.L29:
+.L30:
 	.word	gDMATaskCount
 	.word	67109384
 .Lfe1:
@@ -50,17 +50,17 @@ Func_800383c:
 	.type	 SetRegAnimDest,function
 SetRegAnimDest:
 	push	{r5, r6, lr}
-	ldr	r4, .L42
+	ldr	r4, .L43
 	.code	16
 	mov	r6, r0
 	mov	r0, r1
-	ldr	r1, .L42+4
+	ldr	r1, .L43+4
 	ldrh	r3, [r1]
 	mov	r5, r3
 	strh	r1, [r1]
 	ldrh	r2, [r4]
 	cmp	r2, #31
-	bgt	.L36
+	bgt	.L37
 	lsl	r3, r2, #1
 	add	r3, r3, r2
 	lsl	r3, r3, #2
@@ -73,14 +73,14 @@ SetRegAnimDest:
 	mov	r2, #128
 	lsl	r2, r2, #10
 	str	r2, [r3]
-.L36:
+.L37:
 	strh	r5, [r1]
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L43:
+.L44:
 	.align	2, 0
-.L42:
+.L43:
 	.word	gDMATaskCount
 	.word	67109384
 .Lfe2:
@@ -91,17 +91,17 @@ SetRegAnimDest:
 	.type	 Func_80038bc,function
 Func_80038bc:
 	push	{r5, r6, lr}
-	ldr	r4, .L55
+	ldr	r4, .L56
 	.code	16
 	mov	r6, r0
 	mov	r0, r1
-	ldr	r1, .L55+4
+	ldr	r1, .L56+4
 	ldrh	r3, [r1]
 	mov	r5, r3
 	strh	r1, [r1]
 	ldrh	r2, [r4]
 	cmp	r2, #31
-	bgt	.L49
+	bgt	.L50
 	lsl	r3, r2, #1
 	add	r3, r3, r2
 	lsl	r3, r3, #2
@@ -114,14 +114,14 @@ Func_80038bc:
 	mov	r2, #192
 	lsl	r2, r2, #10
 	str	r2, [r3]
-.L49:
+.L50:
 	strh	r5, [r1]
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L56:
+.L57:
 	.align	2, 0
-.L55:
+.L56:
 	.word	gDMATaskCount
 	.word	67109384
 .Lfe3:
@@ -132,17 +132,17 @@ Func_80038bc:
 	.type	 Func_80038fc,function
 Func_80038fc:
 	push	{r5, r6, lr}
-	ldr	r4, .L68
+	ldr	r4, .L69
 	.code	16
 	mov	r6, r0
 	mov	r0, r1
-	ldr	r1, .L68+4
+	ldr	r1, .L69+4
 	ldrh	r3, [r1]
 	mov	r5, r3
 	strh	r1, [r1]
 	ldrh	r2, [r4]
 	cmp	r2, #31
-	bgt	.L62
+	bgt	.L63
 	lsl	r3, r2, #1
 	add	r3, r3, r2
 	lsl	r3, r3, #2
@@ -155,14 +155,14 @@ Func_80038fc:
 	mov	r2, #160
 	lsl	r2, r2, #11
 	str	r2, [r3]
-.L62:
+.L63:
 	strh	r5, [r1]
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L69:
+.L70:
 	.align	2, 0
-.L68:
+.L69:
 	.word	gDMATaskCount
 	.word	67109384
 .Lfe4:
@@ -173,17 +173,17 @@ Func_80038fc:
 	.type	 Func_800393c,function
 Func_800393c:
 	push	{r5, r6, lr}
-	ldr	r4, .L81
+	ldr	r4, .L82
 	.code	16
 	mov	r6, r0
 	mov	r0, r1
-	ldr	r1, .L81+4
+	ldr	r1, .L82+4
 	ldrh	r3, [r1]
 	mov	r5, r3
 	strh	r1, [r1]
 	ldrh	r2, [r4]
 	cmp	r2, #31
-	bgt	.L75
+	bgt	.L76
 	lsl	r3, r2, #1
 	add	r3, r3, r2
 	lsl	r3, r3, #2
@@ -196,14 +196,14 @@ Func_800393c:
 	mov	r2, #192
 	lsl	r2, r2, #11
 	str	r2, [r3]
-.L75:
+.L76:
 	strh	r5, [r1]
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L82:
+.L83:
 	.align	2, 0
-.L81:
+.L82:
 	.word	gDMATaskCount
 	.word	67109384
 .Lfe5:
@@ -214,17 +214,17 @@ Func_800393c:
 	.type	 Func_800397c,function
 Func_800397c:
 	push	{r5, r6, lr}
-	ldr	r4, .L94
+	ldr	r4, .L95
 	.code	16
 	mov	r6, r0
 	mov	r0, r1
-	ldr	r1, .L94+4
+	ldr	r1, .L95+4
 	ldrh	r3, [r1]
 	mov	r5, r3
 	strh	r1, [r1]
 	ldrh	r2, [r4]
 	cmp	r2, #31
-	bgt	.L88
+	bgt	.L89
 	lsl	r3, r2, #1
 	add	r3, r3, r2
 	lsl	r3, r3, #2
@@ -237,14 +237,14 @@ Func_800397c:
 	mov	r2, #224
 	lsl	r2, r2, #11
 	str	r2, [r3]
-.L88:
+.L89:
 	strh	r5, [r1]
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L95:
+.L96:
 	.align	2, 0
-.L94:
+.L95:
 	.word	gDMATaskCount
 	.word	67109384
 .Lfe6:
@@ -255,17 +255,17 @@ Func_800397c:
 	.type	 Func_80039bc,function
 Func_80039bc:
 	push	{r5, r6, lr}
-	ldr	r4, .L107
+	ldr	r4, .L108
 	.code	16
 	mov	r6, r0
 	mov	r0, r1
-	ldr	r1, .L107+4
+	ldr	r1, .L108+4
 	ldrh	r3, [r1]
 	mov	r5, r3
 	strh	r1, [r1]
 	ldrh	r2, [r4]
 	cmp	r2, #31
-	bgt	.L101
+	bgt	.L102
 	lsl	r3, r2, #1
 	add	r3, r3, r2
 	lsl	r3, r3, #2
@@ -278,14 +278,14 @@ Func_80039bc:
 	mov	r2, #144
 	lsl	r2, r2, #12
 	str	r2, [r3]
-.L101:
+.L102:
 	strh	r5, [r1]
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L108:
+.L109:
 	.align	2, 0
-.L107:
+.L108:
 	.word	gDMATaskCount
 	.word	67109384
 .Lfe7:
@@ -296,17 +296,17 @@ Func_80039bc:
 	.type	 Func_80039fc,function
 Func_80039fc:
 	push	{r5, r6, lr}
-	ldr	r4, .L120
+	ldr	r4, .L121
 	.code	16
 	mov	r6, r0
 	mov	r0, r1
-	ldr	r1, .L120+4
+	ldr	r1, .L121+4
 	ldrh	r3, [r1]
 	mov	r5, r3
 	strh	r1, [r1]
 	ldrh	r2, [r4]
 	cmp	r2, #31
-	bgt	.L114
+	bgt	.L115
 	lsl	r3, r2, #1
 	add	r3, r3, r2
 	lsl	r3, r3, #2
@@ -319,14 +319,14 @@ Func_80039fc:
 	mov	r2, #160
 	lsl	r2, r2, #12
 	str	r2, [r3]
-.L114:
+.L115:
 	strh	r5, [r1]
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L121:
+.L122:
 	.align	2, 0
-.L120:
+.L121:
 	.word	gDMATaskCount
 	.word	67109384
 .Lfe8:
@@ -337,17 +337,17 @@ Func_80039fc:
 	.type	 Func_8003a3c,function
 Func_8003a3c:
 	push	{r5, r6, lr}
-	ldr	r4, .L133
+	ldr	r4, .L134
 	.code	16
 	mov	r6, r0
 	mov	r0, r1
-	ldr	r1, .L133+4
+	ldr	r1, .L134+4
 	ldrh	r3, [r1]
 	mov	r5, r3
 	strh	r1, [r1]
 	ldrh	r2, [r4]
 	cmp	r2, #31
-	bgt	.L127
+	bgt	.L128
 	lsl	r3, r2, #1
 	add	r3, r3, r2
 	lsl	r3, r3, #2
@@ -360,14 +360,14 @@ Func_8003a3c:
 	mov	r2, #176
 	lsl	r2, r2, #12
 	str	r2, [r3]
-.L127:
+.L128:
 	strh	r5, [r1]
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L134:
+.L135:
 	.align	2, 0
-.L133:
+.L134:
 	.word	gDMATaskCount
 	.word	67109384
 .Lfe9:
@@ -381,12 +381,12 @@ UploadPalette:
 	mov	r7, sl
 	mov	r6, r8
 	push	{r6, r7}
-	ldr	r6, .L138
+	ldr	r6, .L139
 	ldrh	r5, [r6]
 	mov	r7, sp
 	cmp	r5, #0
-	beq	.L136
-	ldr	r2, .L138+4
+	beq	.L137
+	ldr	r2, .L139+4
 	mov	r1, #0
 	lsr	r2, r2, #2
 	lsl	r3, r2, #2
@@ -396,9 +396,9 @@ UploadPalette:
 	sub	r1, r1, r3
 	lsl	r4, r4, #24
 	mov	r8, sp
-	ldr	r3, .L138+8
+	ldr	r3, .L139+8
 	mov	sp, r1
-	ldr	r0, .L138+12
+	ldr	r0, .L139+12
 	orr	r2, r2, r4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
@@ -409,7 +409,7 @@ UploadPalette:
 	mov	r3, sl
 	strh	r3, [r6]
 	mov	sp, r8
-.L136:
+.L137:
 	mov	sp, r7
 	pop	{r3, r5}
 	mov	r8, r3
@@ -417,9 +417,9 @@ UploadPalette:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L139:
+.L140:
 	.align	2, 0
-.L138:
+.L139:
 	.word	gDMATaskCount
 	.word	_UPLOAD_PALETTE_SIZE
 	.word	67109076

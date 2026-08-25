@@ -9,28 +9,28 @@
 	.type	 Func_80c0184,function
 Func_80c0184:
 	push	{lr}
-	ldr	r3, .L11
+	ldr	r3, .L12
 	ldr	r3, [r3]
 	ldr	r3, [r3]
 	sub	r0, r3, #1
 	cmp	r0, #31
-	bhi	.L9
-	ldr	r2, .L11+4
+	bhi	.L10
+	ldr	r2, .L12+4
 	lsr	r0, r0, #2
 	lsl	r0, r0, #5
 	add	r0, r0, r2
-	ldr	r3, .L11+8
-	ldr	r1, .L11+12
-	ldr	r2, .L11+16
+	ldr	r3, .L12+8
+	ldr	r1, .L12+12
+	ldr	r2, .L12+16
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-.L9:
+.L10:
 	pop	{r0}
 	bx	r0
-.L12:
+.L13:
 	.align	2, 0
-.L11:
+.L12:
 	.word	iwram_3001ef8
 	.word	.Lc5a30
 	.word	67109076

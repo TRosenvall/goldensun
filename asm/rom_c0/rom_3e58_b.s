@@ -10,31 +10,31 @@
 Func_8003ed4:
 	push	{lr}
 	mov	r2, #128
-	ldr	r4, .L18
+	ldr	r4, .L19
 	mov	r1, #0
 	mov	r0, #0
 	lsl	r2, r2, #2
-.L12:
+.L13:
 	ldrb	r3, [r4]
 	add	r4, r4, #1
 	cmp	r3, #255
-	beq	.L13
+	beq	.L14
 	mov	r1, #0
-	b	.L11
-.L13:
+	b	.L12
+.L14:
 	add	r1, r1, #1
 	cmp	r0, r1
-	bge	.L11
+	bge	.L12
 	mov	r0, r1
-.L11:
+.L12:
 	sub	r2, r2, #1
 	cmp	r2, #0
-	bne	.L12
+	bne	.L13
 	pop	{r1}
 	bx	r1
-.L19:
+.L20:
 	.align	2, 0
-.L18:
+.L19:
 	.word	gSpriteAllocTable
 .Lfe1:
 	.size	 Func_8003ed4,.Lfe1-Func_8003ed4
@@ -46,37 +46,37 @@ Func_8003f04:
 	push	{r5, lr}
 	mov	r4, #0
 	cmp	r0, #95
-	bhi	.L30
+	bhi	.L31
 	mov	r1, #128
-	ldr	r2, .L31
+	ldr	r2, .L32
 	mov	r5, #255
 	lsl	r1, r1, #2
-.L25:
+.L26:
 	ldrb	r3, [r2]
 	cmp	r3, r0
-	bne	.L26
+	bne	.L27
 	strb	r5, [r2]
 	add	r4, r4, #1
-.L26:
+.L27:
 	sub	r1, r1, #1
 	add	r2, r2, #1
 	cmp	r1, #0
-	bne	.L25
+	bne	.L26
 	cmp	r4, #0
-	beq	.L28
-.L30:
+	beq	.L29
+.L31:
 	mov	r0, #1
 	neg	r0, r0
-	b	.L20
-.L28:
+	b	.L21
+.L29:
 	mov	r0, #0
-.L20:
+.L21:
 	pop	{r5}
 	pop	{r1}
 	bx	r1
-.L32:
+.L33:
 	.align	2, 0
-.L31:
+.L32:
 	.word	gSpriteAllocTable
 .Lfe2:
 	.size	 Func_8003f04,.Lfe2-Func_8003f04
@@ -86,19 +86,19 @@ Func_8003f04:
 	.type	 Func_8003f3c,function
 Func_8003f3c:
 	push	{r5, r6, lr}
-	ldr	r3, .L36
+	ldr	r3, .L37
 	lsl	r2, r0, #2
 	add	r5, r2, r3
 	cmp	r0, #95
-	bls	.L34
+	bls	.L35
 	mov	r0, #1
 	neg	r0, r0
-	b	.L33
-.L34:
+	b	.L34
+.L35:
 	ldrh	r3, [r5, #2]
-	ldr	r6, .L36+4
+	ldr	r6, .L37+4
 	cmp	r3, r6
-	beq	.L35
+	beq	.L36
 	bl	Func_8003f04
 	ldrh	r3, [r5, #2]
 	mov	r2, r6
@@ -106,15 +106,15 @@ Func_8003f3c:
 	mov	r3, #0
 	strh	r2, [r5, #2]
 	strh	r3, [r5]
-.L35:
+.L36:
 	mov	r0, #0
-.L33:
+.L34:
 	pop	{r5, r6}
 	pop	{r1}
 	bx	r1
-.L37:
+.L38:
 	.align	2, 0
-.L36:
+.L37:
 	.word	gSpriteSlots
 	.word	65535
 .Lfe3:
@@ -125,30 +125,30 @@ Func_8003f3c:
 	.type	 Func_8003f78,function
 Func_8003f78:
 	push	{r5, lr}
-	ldr	r3, .L41
+	ldr	r3, .L42
 	lsl	r2, r0, #2
 	add	r5, r2, r3
 	cmp	r0, #95
-	bls	.L39
+	bls	.L40
 	mov	r0, #1
 	neg	r0, r0
-	b	.L38
-.L39:
+	b	.L39
+.L40:
 	ldrh	r3, [r5]
 	cmp	r3, #16
-	bls	.L40
+	bls	.L41
 	bl	Func_8003f04
 	mov	r3, #1
 	strh	r3, [r5]
-.L40:
+.L41:
 	mov	r0, #0
-.L38:
+.L39:
 	pop	{r5}
 	pop	{r1}
 	bx	r1
-.L42:
+.L43:
 	.align	2, 0
-.L41:
+.L42:
 	.word	gSpriteSlots
 .Lfe4:
 	.size	 Func_8003f78,.Lfe4-Func_8003f78
@@ -161,77 +161,77 @@ UploadSpriteGFX:
 	mov	r7, r8
 	push	{r7}
 	mov	r5, r0
-	ldr	r3, .L55
+	ldr	r3, .L56
 	mov	r8, r2
 	lsl	r2, r5, #2
 	mov	r6, r1
 	add	r7, r2, r3
 	mov	r0, #0
 	cmp	r5, #95
-	bhi	.L43
+	bhi	.L44
 	mov	r2, #128
 	lsl	r2, r2, #6
 	cmp	r6, r2
-	bhi	.L43
+	bhi	.L44
 	ldrh	r3, [r7]
 	cmp	r3, #16
-	bls	.L46
+	bls	.L47
 	cmp	r3, r6
-	beq	.L47
+	beq	.L48
 	mov	r0, r5
 	bl	Func_8003f3c
-	b	.L46
-.L47:
+	b	.L47
+.L48:
 	ldrh	r5, [r7, #2]
-	b	.L49
-.L46:
+	b	.L50
+.L47:
 	mov	r0, r5
 	mov	r1, r6
 	bl	Func_8003e58
 	mov	r5, r0
-.L49:
+.L50:
 	mov	r3, #1
 	neg	r3, r3
 	cmp	r5, r3
-	beq	.L50
-	ldr	r2, .L55+4
+	beq	.L51
+	ldr	r2, .L56+4
 	add	r1, r5, r2
 	mov	r2, r8
 	strh	r6, [r7]
 	strh	r5, [r7, #2]
 	cmp	r2, #0
-	beq	.L51
+	beq	.L52
 	cmp	r8, r3
-	bne	.L52
+	bne	.L53
 	mov	r0, r1
-	ldr	r3, .L55+8
+	ldr	r3, .L56+8
 	mov	r1, r6
 	bl	_call_via_r3
-	b	.L51
-.L52:
+	b	.L52
+.L53:
 	mov	r4, #132
 	lsr	r2, r6, #2
 	lsl	r4, r4, #24
-	ldr	r3, .L55+12
+	ldr	r3, .L56+12
 	mov	r0, r8
 	orr	r2, r2, r4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-.L51:
+.L52:
 	lsr	r0, r5, #5
-	b	.L43
-.L50:
+	b	.L44
+.L51:
 	mov	r0, #0
-.L43:
+.L44:
 	pop	{r3}
 	mov	r8, r3
 	pop	{r5, r6, r7}
 	pop	{r1}
 	bx	r1
-.L56:
+.L57:
 	.align	2, 0
-.L55:
+.L56:
 	.word	gSpriteSlots
 	.word	100728832
 	.word	Func_80008d4
@@ -244,30 +244,30 @@ UploadSpriteGFX:
 	.type	 ClearSprites,function
 ClearSprites:
 	push	{lr}
-	ldr	r0, .L70+4
-	ldr	r3, .L70+8
+	ldr	r0, .L71+4
+	ldr	r3, .L71+8
 	mov	r1, #0
 	mov	r2, #255
-.L61:
+.L62:
 	add	r1, r1, #1
 	strb	r2, [r3]
 	add	r3, r3, #1
 	cmp	r1, r0
-	bls	.L61
-	ldr	r2, .L70+12
-	ldrh	r4, .L70
+	bls	.L62
+	ldr	r2, .L71+12
+	ldrh	r4, .L71
 	mov	r1, #0
 	mov	r0, #0
-	b	.L71
-.L72:
+	b	.L72
+.L73:
 	.align	2, 0
-.L70:
+.L71:
 	.word	65535
 	.word	511
 	.word	gSpriteAllocTable
 	.word	gSpriteSlots
-.L71:
-.L66:
+.L72:
+.L67:
 	ldrh	r3, [r2, #2]
 	add	r1, r1, #1
 	orr	r3, r3, r4
@@ -275,7 +275,7 @@ ClearSprites:
 	strh	r0, [r2]
 	add	r2, r2, #4
 	cmp	r1, #95
-	bls	.L66
+	bls	.L67
 	pop	{r0}
 	bx	r0
 .Lfe6:
@@ -286,31 +286,31 @@ ClearSprites:
 	.type	 AllocSpriteSlot,function
 AllocSpriteSlot:
 	push	{lr}
-	ldr	r1, .L79
-	ldr	r4, .L79+4
+	ldr	r1, .L80
+	ldr	r4, .L80+4
 	ldrh	r3, [r1, #2]
 	mov	r0, #96
 	mov	r2, #0
 	cmp	r3, r4
-	bne	.L77
+	bne	.L78
 	mov	r0, #0
-	b	.L75
-.L77:
+	b	.L76
+.L78:
 	add	r2, r2, #1
 	add	r1, r1, #4
 	cmp	r2, #95
-	bgt	.L75
+	bgt	.L76
 	ldrh	r3, [r1, #2]
-	ldr	r4, .L79+4
+	ldr	r4, .L80+4
 	cmp	r3, r4
-	bne	.L77
+	bne	.L78
 	mov	r0, r2
-.L75:
+.L76:
 	pop	{r1}
 	bx	r1
-.L80:
+.L81:
 	.align	2, 0
-.L79:
+.L80:
 	.word	gSpriteSlots
 	.word	65535
 .Lfe7:
@@ -340,15 +340,15 @@ AllocUploadSpriteGFX:
 UploadSprite2:
 	push	{lr}
 	mov	r2, r1
-	ldr	r1, .L83
+	ldr	r1, .L84
 	lsl	r3, r0, #2
 	ldrh	r1, [r1, r3]
 	bl	UploadSpriteGFX
 	pop	{r1}
 	bx	r1
-.L84:
+.L85:
 	.align	2, 0
-.L83:
+.L84:
 	.word	gSpriteSlots
 .Lfe9:
 	.size	 UploadSprite2,.Lfe9-UploadSprite2

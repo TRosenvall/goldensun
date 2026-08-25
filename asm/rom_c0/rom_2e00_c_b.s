@@ -9,12 +9,12 @@
 	.type	 SetRAMBuildDate,function
 SetRAMBuildDate:
 	push	{lr}
-	ldr	r0, .L10
+	ldr	r0, .L11
 	bl	GetFile
-	ldr	r4, .L10+4
-	ldr	r3, .L10+8
+	ldr	r4, .L11+4
+	ldr	r3, .L11+8
 	mov	r1, r4
-	ldr	r2, .L10+12
+	ldr	r2, .L11+12
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -22,9 +22,9 @@ SetRAMBuildDate:
 	str	r3, [r4, #12]
 	pop	{r0}
 	bx	r0
-.L11:
+.L12:
 	.align	2, 0
-.L10:
+.L11:
 	.word	_FILE_BUILD_DATE
 	.word	gRAMBuildDate
 	.word	67109076
@@ -44,13 +44,13 @@ Func_8002f3c:
 	.thumb_func
 	.type	 GetFile,function
 GetFile:
-	ldr	r3, .L14
+	ldr	r3, .L15
 	lsl	r0, r0, #2
 	ldr	r0, [r3, r0]
 	bx	lr
-.L15:
+.L16:
 	.align	2, 0
-.L14:
+.L15:
 	.word	gFileTable
 .Lfe3:
 	.size	 GetFile,.Lfe3-GetFile
@@ -64,28 +64,28 @@ ROM_Unused_DecodeThumbBranchLink:
 	mov	r6, #1
 	add	r0, r0, #2
 	cmp	r6, r7
-	bge	.L24
+	bge	.L25
 	mov	r3, #248
 	lsl	r3, r3, #8
 	mov	ip, r3
 	mov	r3, #240
 	lsl	r3, r3, #8
-	ldr	r5, .L25
+	ldr	r5, .L26
 	mov	lr, r3
 	sub	r0, r0, #4
-.L20:
+.L21:
 	ldrh	r2, [r0, #4]
 	mov	r3, ip
 	mov	r1, r2
 	and	r1, r1, r3
 	add	r0, r0, #2
 	cmp	r1, ip
-	bne	.L19
+	bne	.L20
 	ldrh	r3, [r0]
 	mov	r4, r3
 	and	r4, r4, r1
 	cmp	r4, lr
-	bne	.L19
+	bne	.L20
 	and	r3, r3, r5
 	and	r2, r2, r5
 	lsl	r2, r2, #1
@@ -101,17 +101,17 @@ ROM_Unused_DecodeThumbBranchLink:
 	orr	r3, r3, r1
 	strh	r2, [r0]
 	strh	r3, [r0, #2]
-.L19:
+.L20:
 	add	r6, r6, #1
 	cmp	r6, r7
-	blt	.L20
-.L24:
+	blt	.L21
+.L25:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L26:
+.L27:
 	.align	2, 0
-.L25:
+.L26:
 	.word	2047
 .Lfe4:
 	.size	 ROM_Unused_DecodeThumbBranchLink,.Lfe4-ROM_Unused_DecodeThumbBranchLink
@@ -131,15 +131,15 @@ LoadMapCode:
 	mov	sl, r0
 	
 	.code	16
-	ldr	r5, .L29
+	ldr	r5, .L30
 	mov	r0, r5
 	bl	Func_8004938
 	mov	r2, #132
 	mov	r6, r0
 	lsr	r5, r5, #2
 	lsl	r2, r2, #24
-	ldr	r3, .L29+4
-	ldr	r0, .L29+8
+	ldr	r3, .L30+4
+	ldr	r0, .L30+8
 	mov	r1, r6
 	orr	r2, r2, r5
 	stmia	r3!, {r0, r1, r2}
@@ -156,9 +156,9 @@ LoadMapCode:
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L30:
+.L31:
 	.align	2, 0
-.L29:
+.L30:
 	.word	_FIXUP_RAM_CODE_SIZE
 	.word	67109076
 	.word	FixupRamCode_ROM

@@ -8,11 +8,11 @@
 	.thumb_func
 	.type	 GetSpritePalette,function
 GetSpritePalette:
-	ldr	r0, .L9
+	ldr	r0, .L10
 	bx	lr
-.L10:
+.L11:
 	.align	2, 0
-.L9:
+.L10:
 	.word	PAL_Sprites
 .Lfe1:
 	.size	 GetSpritePalette,.Lfe1-GetSpritePalette
@@ -22,12 +22,12 @@ GetSpritePalette:
 	.type	 Debug_PrintHex,function
 Debug_PrintHex:
 	push	{lr}
-	ldr	r3, .L18
-	ldr	r4, .L18+4
+	ldr	r3, .L19
+	ldr	r4, .L19+4
 	mov	r1, #15
 	add	r2, r3, #7
 	mov	ip, r3
-.L15:
+.L16:
 	mov	r3, r0
 	and	r3, r3, r1
 	ldrb	r3, [r4, r3]
@@ -35,15 +35,15 @@ Debug_PrintHex:
 	sub	r2, r2, #1
 	lsr	r0, r0, #4
 	cmp	r2, ip
-	bge	.L15
-	ldr	r2, .L18
+	bge	.L16
+	ldr	r2, .L19
 	mov	r3, #0
 	strb	r3, [r2, #8]
 	pop	{r0}
 	bx	r0
-.L19:
+.L20:
 	.align	2, 0
-.L18:
+.L19:
 	.word	gStringBuffer
 	.word	sHexDigits
 .Lfe2:
@@ -56,35 +56,35 @@ FormatDecimalString:
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
 	sub	sp, sp, #8
-	ldr	r4, .L33
+	ldr	r4, .L34
 	mov	r1, #32
-	ldr	r7, .L33+4
+	ldr	r7, .L34+4
 	cmp	r6, #0
-	bge	.L21
+	bge	.L22
 	neg	r6, r6
 	mov	r1, #45
-.L21:
+.L22:
 	ldmia	r4!, {r5}
 	mov	r2, #9
 	cmp	r6, r5
-	bcs	.L22
+	bcs	.L23
 	mov	r3, #32
-.L27:
+.L28:
 	sub	r2, r2, #1
 	strb	r3, [r7]
 	add	r7, r7, #1
 	cmp	r2, #0
-	beq	.L22
+	beq	.L23
 	ldmia	r4!, {r5}
 	cmp	r6, r5
-	bcc	.L27
-.L22:
+	bcc	.L28
+.L23:
 	strb	r1, [r7]
 	sub	r4, r4, #4
 	add	r7, r7, #1
 	cmp	r2, #0
-	beq	.L32
-.L30:
+	beq	.L33
+.L31:
 	ldmia	r4!, {r5}
 	mov	r0, r6
 	mov	r1, r5
@@ -102,8 +102,8 @@ FormatDecimalString:
 	sub	r6, r6, r3
 	ldr	r4, [sp]
 	cmp	r2, #0
-	bne	.L30
-.L32:
+	bne	.L31
+.L33:
 	mov	r3, r6
 	add	r3, r3, #48
 	strb	r3, [r7]
@@ -113,9 +113,9 @@ FormatDecimalString:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L34:
+.L35:
 	.align	2, 0
-.L33:
+.L34:
 	.word	sPowersOfTen
 	.word	gStringBuffer
 .Lfe3:
@@ -126,27 +126,27 @@ FormatDecimalString:
 	.type	 Func_8004698,function
 Func_8004698:
 	push	{lr}
-	ldr	r1, .L42+4
+	ldr	r1, .L43+4
 	mov	r2, #0
 	ldr	r3, [r1]
 	cmp	r2, r0
-	bcs	.L41
-	ldrh	r1, .L42
-.L39:
+	bcs	.L42
+	ldrh	r1, .L43
+.L40:
 	add	r2, r2, #1
 	strh	r1, [r3]
 	add	r3, r3, #2
 	cmp	r2, r0
-	bcc	.L39
-	ldr	r1, .L42+4
-	b	.L43
-.L44:
+	bcc	.L40
+	ldr	r1, .L43+4
+	b	.L44
+.L45:
 	.align	2, 0
-.L42:
+.L43:
 	.word	61440
 	.word	iwram_3001cbc
-.L43:
-.L41:
+.L44:
+.L42:
 	str	r3, [r1]
 	pop	{r0}
 	bx	r0
@@ -158,46 +158,46 @@ Func_8004698:
 	.type	 Func_80046c4,function
 Func_80046c4:
 	push	{r5, lr}
-	ldr	r3, .L55
+	ldr	r3, .L56
 	ldrb	r3, [r3]
 	cmp	r3, #0
-	beq	.L45
-	ldr	r4, .L55+4
+	beq	.L46
+	ldr	r4, .L56+4
 	ldrb	r3, [r0]
 	ldr	r2, [r4]
 	mov	r1, #0
 	add	r0, r0, #1
 	cmp	r3, #0
-	beq	.L47
+	beq	.L48
 	mov	r5, #240
-	ldr	r4, .L55+8
+	ldr	r4, .L56+8
 	lsl	r5, r5, #8
-.L53:
+.L54:
 	orr	r3, r3, r5
 	strh	r3, [r2]
 	add	r2, r2, #2
 	cmp	r2, r4
-	bne	.L51
-	ldr	r2, .L55+12
-.L51:
+	bne	.L52
+	ldr	r2, .L56+12
+.L52:
 	add	r1, r1, #1
 	cmp	r1, #31
-	bhi	.L54
+	bhi	.L55
 	ldrb	r3, [r0]
 	add	r0, r0, #1
 	cmp	r3, #0
-	bne	.L53
-.L54:
-	ldr	r4, .L55+4
-.L47:
+	bne	.L54
+.L55:
+	ldr	r4, .L56+4
+.L48:
 	str	r2, [r4]
-.L45:
+.L46:
 	pop	{r5}
 	pop	{r0}
 	bx	r0
-.L56:
+.L57:
 	.align	2, 0
-.L55:
+.L56:
 	.word	iwram_3001ac4
 	.word	iwram_3001cbc
 	.word	100672768
@@ -213,19 +213,19 @@ Func_8004718:
 	mov	r5, r1
 	sub	r3, r5, #1
 	cmp	r3, #7
-	bls	.L58
+	bls	.L59
 	mov	r5, #8
-.L58:
+.L59:
 	bl	Debug_PrintHex
-	ldr	r0, .L59
+	ldr	r0, .L60
 	sub	r0, r0, r5
 	bl	Func_80046c4
 	pop	{r5}
 	pop	{r0}
 	bx	r0
-.L60:
+.L61:
 	.align	2, 0
-.L59:
+.L60:
 	.word	gStringBuffer+8
 .Lfe6:
 	.size	 Func_8004718,.Lfe6-Func_8004718
@@ -238,19 +238,19 @@ Func_800473c:
 	mov	r5, r1
 	sub	r3, r5, #1
 	cmp	r3, #9
-	bls	.L62
+	bls	.L63
 	mov	r5, #10
-.L62:
+.L63:
 	bl	FormatDecimalString
-	ldr	r0, .L63
+	ldr	r0, .L64
 	sub	r0, r0, r5
 	bl	Func_80046c4
 	pop	{r5}
 	pop	{r0}
 	bx	r0
-.L64:
+.L65:
 	.align	2, 0
-.L63:
+.L64:
 	.word	gStringBuffer+10
 .Lfe7:
 	.size	 Func_800473c,.Lfe7-Func_800473c
@@ -260,27 +260,27 @@ Func_800473c:
 	.type	 ClearVRAM,function
 ClearVRAM:
 	sub	sp, sp, #4
-	ldr	r3, .L71
+	ldr	r3, .L72
 	mov	r0, sp
 	str	r3, [r0]
-	ldr	r1, .L71+4
-	ldr	r3, .L71+8
-	ldr	r2, .L71+12
+	ldr	r1, .L72+4
+	ldr	r3, .L72+8
+	ldr	r2, .L72+12
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	ldr	r2, .L71+16
-	ldr	r3, .L71+4
+	ldr	r2, .L72+16
+	ldr	r3, .L72+4
 	str	r3, [r2]
 	mov	r2, #128
-	ldr	r3, .L71+20
+	ldr	r3, .L72+20
 	lsl	r2, r2, #3
 	strh	r2, [r3]
 	add	sp, sp, #4
 	bx	lr
-.L72:
+.L73:
 	.align	2, 0
-.L71:
+.L72:
 	.word	-268374016
 	.word	100671488
 	.word	67109076
@@ -295,18 +295,18 @@ ClearVRAM:
 	.type	 Func_800479c,function
 Func_800479c:
 	push	{lr}
-	ldr	r0, .L109
+	ldr	r0, .L110
 	bl	GetFile
 	mov	r1, #192
-	ldr	r3, .L109+4
+	ldr	r3, .L110+4
 	lsl	r1, r1, #19
-	ldr	r2, .L109+8
+	ldr	r2, .L110+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	ldr	r0, .L109+12
-	ldr	r1, .L109+16
-	ldr	r2, .L109+20
+	ldr	r0, .L110+12
+	ldr	r1, .L110+16
+	ldr	r2, .L110+20
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -315,40 +315,40 @@ Func_800479c:
 	lsl	r3, r3, #19
 	strh	r2, [r3]
 	mov	r2, #131
-	ldr	r3, .L109+24
+	ldr	r3, .L110+24
 	lsl	r2, r2, #7
 	strh	r2, [r3]
-	ldr	r2, .L109+28
+	ldr	r2, .L110+28
 	add	r3, r3, #2
 	strh	r2, [r3]
 	mov	r2, #197
 	lsl	r2, r2, #6
 	add	r3, r3, #2
 	strh	r2, [r3]
-	ldr	r2, .L109+32
+	ldr	r2, .L110+32
 	add	r3, r3, #2
 	strh	r2, [r3]
-	ldr	r2, .L109+36
+	ldr	r2, .L110+36
 	add	r3, r3, #2
 	strh	r2, [r3]
-	ldr	r2, .L109+40
+	ldr	r2, .L110+40
 	add	r3, r3, #2
 	strh	r2, [r3]
-	ldr	r2, .L109+44
+	ldr	r2, .L110+44
 	add	r3, r3, #2
 	strh	r2, [r3]
-	ldr	r3, .L109+4
-	ldr	r0, .L109+48
+	ldr	r3, .L110+4
+	ldr	r0, .L110+48
 	add	r1, r1, #32
-	ldr	r2, .L109+52
+	ldr	r2, .L110+52
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	pop	{r0}
 	bx	r0
-.L110:
+.L111:
 	.align	2, 0
-.L109:
+.L110:
 	.word	_FILE_13
 	.word	67109076
 	.word	-2080372736
@@ -370,17 +370,17 @@ Func_800479c:
 	.thumb_func
 	.type	 LoadSpritePalette,function
 LoadSpritePalette:
-	ldr	r3, .L113
-	ldr	r0, .L113+4
-	ldr	r1, .L113+8
-	ldr	r2, .L113+12
+	ldr	r3, .L114
+	ldr	r0, .L114+4
+	ldr	r1, .L114+8
+	ldr	r2, .L114+12
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	bx	lr
-.L114:
+.L115:
 	.align	2, 0
-.L113:
+.L114:
 	.word	67109076
 	.word	PAL_Sprites
 	.word	83886592

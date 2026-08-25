@@ -8,8 +8,8 @@
 	.thumb_func
 	.type	 Func_800651c,function
 Func_800651c:
-	ldr	r1, .L9
-	ldr	r0, .L9+4
+	ldr	r1, .L10
+	ldr	r0, .L10+4
 	.code	16
 	ldrh	r4, [r0]
 	.code	16
@@ -18,21 +18,21 @@ Func_800651c:
 	.code	16
 	mov	r3, #128
 	strb	r3, [r1, #1]
-	ldr	r3, .L9+8
+	ldr	r3, .L10+8
 	str	r2, [r3]
-	ldr	r3, .L9+12
+	ldr	r3, .L10+12
 	strh	r2, [r3]
-	ldr	r3, .L9+16
+	ldr	r3, .L10+16
 	str	r2, [r3]
-	ldr	r3, .L9+20
+	ldr	r3, .L10+20
 	strb	r2, [r1, #3]
 	strb	r2, [r1, #2]
 	strh	r2, [r3]
 	strh	r4, [r0]
 	bx	lr
-.L10:
+.L11:
 	.align	2, 0
-.L9:
+.L10:
 	.word	ewram_2002220
 	.word	67109384
 	.word	ewram_2002080

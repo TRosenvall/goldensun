@@ -12,22 +12,22 @@ DeleteSpriteLayer:
 	mov	r1, r0
 	sub	sp, sp, #4
 	cmp	r1, #0
-	beq	.L9
+	beq	.L10
 	mov	r0, sp
 	mov	r3, #0
 	str	r3, [r0]
-	ldr	r2, .L11
-	ldr	r3, .L11+4
+	ldr	r2, .L12
+	ldr	r3, .L12+4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-.L9:
+.L10:
 	add	sp, sp, #4
 	pop	{r0}
 	bx	r0
-.L12:
+.L13:
 	.align	2, 0
-.L11:
+.L12:
 	.word	-2063597562
 	.word	67109076
 .Lfe1:

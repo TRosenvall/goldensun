@@ -582,32 +582,32 @@ DummyIntr:
 	.type	 InitRAMLib,function
 InitRAMLib:
 	push	{r5, r6, lr}
-	ldr	r6, .L32
+	ldr	r6, .L33
 	mov	r5, #0
 	strh	r5, [r6]
-	ldr	r4, .L32+4
-	ldr	r3, .L32+8
-	ldr	r0, .L32+12
+	ldr	r4, .L33+4
+	ldr	r3, .L33+8
+	ldr	r0, .L33+12
 	mov	r1, r4
-	ldr	r2, .L32+16
+	ldr	r2, .L33+16
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	ldr	r3, .L32+20
-	ldr	r0, .L32+24
+	ldr	r3, .L33+20
+	ldr	r0, .L33+24
 	str	r4, [r3]
-	ldr	r1, .L32+28
-	ldr	r3, .L32+8
-	ldr	r2, .L32+32
+	ldr	r1, .L33+28
+	ldr	r3, .L33+8
+	ldr	r2, .L33+32
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	sub	r3, r3, #208
 	strh	r5, [r3]
-	ldr	r2, .L32+36
-	ldr	r3, .L32+40
+	ldr	r2, .L33+36
+	ldr	r3, .L33+40
 	strh	r2, [r3]
-	ldr	r2, .L32+44
+	ldr	r2, .L33+44
 	add	r3, r3, #206
 	strh	r2, [r3]
 	mov	r3, #1
@@ -615,9 +615,9 @@ InitRAMLib:
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L33:
+.L34:
 	.align	2, 0
-.L32:
+.L33:
 	.word	67109384
 	.word	iwram_3000000
 	.word	67109076
@@ -641,63 +641,63 @@ SetIntrHandler:
 	mov	r5, r1
 	mov	r1, r2
 	cmp	r0, #13
-	bhi	.L35
-	ldr	r3, .L58
+	bhi	.L36
+	ldr	r3, .L59
 	ldrh	r2, [r3]
 	mov	r6, r2
 	strh	r3, [r3]
 	mov	r2, #1
-	ldr	r4, .L58+4
+	ldr	r4, .L59+4
 	ldrh	r3, [r4]
 	lsl	r2, r2, r0
 	bic	r3, r3, r2
 	cmp	r1, #0
-	beq	.L40
+	beq	.L41
 	orr	r3, r3, r2
-.L40:
+.L41:
 	strh	r3, [r4]
 	cmp	r0, #2
-	bhi	.L45
+	bhi	.L46
 	mov	r4, #8
 	lsl	r4, r4, r0
 	mvn	r2, r4
 	cmp	r0, #2
-	bne	.L46
+	bne	.L47
 	lsl	r3, r5, #8
 	orr	r4, r4, r3
 	mov	r3, #255
 	and	r2, r2, r3
-.L46:
-	ldr	r5, .L58+8
+.L47:
+	ldr	r5, .L59+8
 	ldrh	r3, [r5]
 	and	r3, r3, r2
 	cmp	r1, #0
-	beq	.L47
+	beq	.L48
 	orr	r3, r3, r4
-.L47:
+.L48:
 	strh	r3, [r5]
-.L45:
+.L46:
 	cmp	r1, #0
-	beq	.L52
-	ldr	r2, .L58+12
+	beq	.L53
+	ldr	r2, .L59+12
 	lsl	r3, r0, #2
 	str	r1, [r2, r3]
-	b	.L53
-.L52:
-	ldr	r1, .L58+12
-	ldr	r3, .L58+16
+	b	.L54
+.L53:
+	ldr	r1, .L59+12
+	ldr	r3, .L59+16
 	lsl	r2, r0, #2
 	str	r3, [r1, r2]
-.L53:
-	ldr	r3, .L58
+.L54:
+	ldr	r3, .L59
 	strh	r6, [r3]
-.L35:
+.L36:
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L59:
+.L60:
 	.align	2, 0
-.L58:
+.L59:
 	.word	67109384
 	.word	67109376
 	.word	67108868
@@ -721,39 +721,39 @@ WaitFrames:
 	str	r0, [sp, #4]
 	mov sl, sp
 	.code	16
-	ldr	r1, .L178+4
+	ldr	r1, .L179+4
 	cmp	sl, r1
-	bhi	.L67
-	ldr	r4, .L178+8
-	ldr	r3, .L178+12
+	bhi	.L68
+	ldr	r4, .L179+8
+	ldr	r3, .L179+12
 	mov	r1, sl
 	sub	r2, r4, r1
 	mov	r5, #132
 	str	r2, [r3]
 	lsl	r5, r5, #24
 	lsr	r2, r2, #2
-	ldr	r3, .L178+16
+	ldr	r3, .L179+16
 	mov	r0, sl
-	ldr	r1, .L178+20
+	ldr	r1, .L179+20
 	orr	r2, r2, r5
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	mov sp, r4
 	.code	16
-.L67:
+.L68:
 	ldr	r3, [sp, #4]
 	mov	r2, #0
 	str	r2, [sp]
 	cmp	r2, r3
 	bcc	.LCB248
-	b	.L174	@long jump
+	b	.L175	@long jump
 .LCB248:
-	ldr	r2, .L178+24
+	ldr	r2, .L179+24
 	mov	r1, #1
 	mov	fp, r1
 	mov	r9, r2
-.L72:
-	ldr	r5, .L178+28
+.L73:
+	ldr	r5, .L179+28
 	mov	r3, fp
 	mov	r0, #200
 	strb	r3, [r5]
@@ -766,118 +766,118 @@ WaitFrames:
 	mov	r0, #52
 	bl	galloc_iwram
 	bl	Func_8003e10
-	ldr	r3, .L178+32
+	ldr	r3, .L179+32
 	mov	r1, fp
 	strb	r1, [r3]
-	ldr	r3, .L178+36
+	ldr	r3, .L179+36
 	ldrb	r3, [r3]
 	cmp	r3, #0
-	beq	.L73
-	ldr	r3, .L178+40
+	beq	.L74
+	ldr	r3, .L179+40
 	ldrh	r1, [r3]
 	cmp	r1, #159
-	bls	.L74
+	bls	.L75
 	sub	r1, r1, #160
-	b	.L75
-.L74:
-	add	r1, r1, #68
+	b	.L76
 .L75:
-	ldr	r3, .L178+44
-	ldr	r0, .L178+48
+	add	r1, r1, #68
+.L76:
+	ldr	r3, .L179+44
+	ldr	r0, .L179+48
 	ldrh	r3, [r3]
 	ldr	r2, [r0]
 	sub	r3, r3, #1
 	lsl	r3, r3, #8
 	add	r1, r1, r3
 	cmp	r2, #0
-	bne	.L76
-	ldr	r3, .L178+52
+	bne	.L77
+	ldr	r3, .L179+52
 	str	r2, [r3]
-	b	.L77
-.L76:
+	b	.L78
+.L77:
 	sub	r3, r2, #1
 	str	r3, [r0]
-.L77:
-	ldr	r2, .L178+52
+.L78:
+	ldr	r2, .L179+52
 	ldr	r3, [r2]
 	cmp	r3, r1
-	bcs	.L73
+	bcs	.L74
 	str	r1, [r2]
-	ldr	r2, .L178+48
+	ldr	r2, .L179+48
 	mov	r3, #30
 	str	r3, [r2]
-.L73:
-	ldr	r3, .L178+56
+.L74:
+	ldr	r3, .L179+56
 	ldrb	r3, [r3]
 	mov	r2, r3
 	cmp	r2, #0
-	bne	.L79
-	ldr	r3, .L178+60
+	bne	.L80
+	ldr	r3, .L179+60
 	ldrb	r3, [r3]
 	cmp	r3, #0
-	beq	.L80
-	ldr	r3, .L178+64
+	beq	.L81
+	ldr	r3, .L179+64
 	ldr	r3, [r3]
 	cmp	r3, #0
-	beq	.L81
+	beq	.L82
 	mov	r3, r9
 	strh	r2, [r3]
-	b	.L80
-.L81:
+	b	.L81
+.L82:
 	mov	r1, r9
 	ldrh	r3, [r1]
 	mov	r2, r9
 	add	r3, r3, #1
 	strh	r3, [r2]
-	ldr	r3, .L178+68
+	ldr	r3, .L179+68
 	ldrh	r2, [r2]
 	cmp	r2, r3
-	bls	.L80
-	ldr	r3, .L178+72
+	bls	.L81
+	ldr	r3, .L179+72
 	mov	r1, fp
 	strb	r1, [r3]
-.L80:
-	ldr	r3, .L178+64
+.L81:
+	ldr	r3, .L179+64
 	mov	r2, #192
 	ldr	r3, [r3]
 	lsl	r2, r2, #2
 	cmp	r3, r2
-	bne	.L84
-	ldr	r2, .L178+76
+	bne	.L85
+	ldr	r2, .L179+76
 	ldrh	r3, [r2]
 	add	r3, r3, #1
 	strh	r3, [r2]
 	ldrh	r3, [r2]
 	cmp	r3, #179
-	bls	.L79
-	ldrh	r3, .L178
+	bls	.L80
+	ldrh	r3, .L179
 	strh	r3, [r2]
-	ldr	r3, .L178+72
+	ldr	r3, .L179+72
 	mov	r1, fp
 	strb	r1, [r3]
-	b	.L79
-.L84:
-	ldr	r2, .L178+76
-	ldrh	r3, .L178
+	b	.L80
+.L85:
+	ldr	r2, .L179+76
+	ldrh	r3, .L179
 	strh	r3, [r2]
-.L79:
-	ldr	r3, .L178+80
+.L80:
+	ldr	r3, .L179+80
 	ldrb	r3, [r3]
 	cmp	r3, #0
 	bne	.LCB401
-	b	.L87	@long jump
+	b	.L88	@long jump
 .LCB401:
-	ldr	r5, .L178+84
+	ldr	r5, .L179+84
 	mov	r2, #128
 	ldrb	r3, [r5]
 	lsl	r2, r2, #20
-	ldr	r7, .L178+88
+	ldr	r7, .L179+88
 	mov	r8, r2
-	ldr	r6, .L178+64
-	b	.L177
-.L179:
+	ldr	r6, .L179+64
+	b	.L178
+.L180:
 	.align	2, 0
-.L178:
+.L179:
 	.word	0
 	.word	50362879
 	.word	iwram_3007a00
@@ -901,104 +901,104 @@ WaitFrames:
 	.word	gDebugMode
 	.word	iwram_3001d20
 	.word	iwram_3001d28
-.L91:
+.L92:
 	ldr	r3, [r6]
 	cmp	r3, #12
-	bne	.L87
+	bne	.L88
 	mov	r3, fp
 	strb	r3, [r5]
-.L95:
+.L96:
 	ldrh	r3, [r7]
-	ldrh	r2, .L180
+	ldrh	r2, .L181
 	and	r3, r3, r2
 	strh	r3, [r7]
-	ldr	r0, .L180+4
+	ldr	r0, .L181+4
 	mov	r1, #1
-.L98:
+.L99:
 	swi 0x2
 	.code	16
 	ldrh	r2, [r0]
 	mov	r3, r1
 	and	r3, r3, r2
 	cmp	r3, #0
-	beq	.L98
+	beq	.L99
 	bl	UpdateKeyPressRepeat
-	ldr	r2, .L180+8
+	ldr	r2, .L181+8
 	ldrb	r3, [r2]
 	cmp	r3, #0
-	beq	.L88
+	beq	.L89
 	mov	r3, #0
 	strb	r3, [r2]
-	ldr	r2, .L180+12
-	ldr	r3, .L180+16
+	ldr	r2, .L181+12
+	ldr	r3, .L181+16
 	str	r3, [r2]
-	b	.L181
-.L182:
+	b	.L182
+.L183:
 	.align	2, 0
-.L180:
+.L181:
 	.word	65534
 	.word	iwram_3001d28
 	.word	gSoftReset
 	.word	gIWRAMHeap_end
 	.word	426182404
-.L181:
+.L182:
 	mov	r2, #0
-	ldr	r3, .L183+8
+	ldr	r3, .L184+8
 	strh	r2, [r3]
 	bl	_call_via_r8
-.L88:
+.L89:
 	ldrb	r3, [r5]
-.L177:
+.L178:
 	cmp	r3, #0
-	beq	.L91
-	ldr	r0, .L183+12
+	beq	.L92
+	ldr	r0, .L184+12
 	ldr	r3, [r0]
 	mov	r2, #7
 	and	r3, r3, r2
 	cmp	r3, #0
-	bne	.L87
+	bne	.L88
 	ldr	r1, [r6]
 	mov	r3, #240
 	and	r1, r1, r3
 	cmp	r1, #0
-	bne	.L87
+	bne	.L88
 	ldr	r3, [r0]
 	mov	r2, #8
 	and	r3, r3, r2
 	cmp	r3, #0
-	beq	.L95
+	beq	.L96
 	strb	r1, [r5]
-.L87:
-	ldr	r2, .L183+16
-	ldr	r1, .L183+20
+.L88:
+	ldr	r2, .L184+16
+	ldr	r1, .L184+20
 	ldrh	r3, [r2]
 	strh	r3, [r1]
-	ldrh	r3, .L183
-	ldr	r1, .L183+24
+	ldrh	r3, .L184
+	ldr	r1, .L184+24
 	strh	r3, [r2]
-	ldrh	r2, .L183+4
+	ldrh	r2, .L184+4
 	ldrh	r3, [r1]
 	and	r3, r3, r2
 	strh	r3, [r1]
 	mov	r0, #1
-.L109:
+.L110:
 	swi 0x2
 	.code	16
 	ldrh	r2, [r1]
 	mov	r3, r0
 	and	r3, r3, r2
 	cmp	r3, #0
-	beq	.L109
+	beq	.L110
 	mov	r0, #52
 	bl	gfree
 	bl	Func_8003d04
-	ldr	r2, .L183+28
+	ldr	r2, .L184+28
 	ldr	r3, [r2]
 	add	r3, r3, #1
-	b	.L184
-.L185:
+	b	.L185
+.L186:
 	.align	2, 0
-.L183:
+.L184:
 	.word	0
 	.word	65534
 	.word	67109384
@@ -1007,37 +1007,37 @@ WaitFrames:
 	.word	iwram_3001cd0
 	.word	iwram_3001d28
 	.word	iwram_3001e40
-.L184:
+.L185:
 	str	r3, [r2]
-	ldr	r2, .L186+8
+	ldr	r2, .L187+8
 	ldr	r3, [r2]
 	add	r3, r3, #1
 	str	r3, [r2]
 	bl	UpdateKeyPressRepeat
-	ldr	r3, .L186+12
+	ldr	r3, .L187+12
 	ldrh	r3, [r3]
 	cmp	r3, #0
-	beq	.L113
+	beq	.L114
 	bl	Func_8005fcc
-	ldr	r2, .L186+16
+	ldr	r2, .L187+16
 	ldrb	r3, [r2]
 	cmp	r3, #0
-	beq	.L113
+	beq	.L114
 	mov	r3, #1
 	strb	r3, [r2, #8]
-.L113:
-	ldr	r1, .L186+20
+.L114:
+	ldr	r1, .L187+20
 	ldrb	r3, [r1]
 	cmp	r3, #0
 	bne	.LCB625
-	b	.L115	@long jump
+	b	.L116	@long jump
 .LCB625:
-	ldr	r3, .L186+24
+	ldr	r3, .L187+24
 	ldrb	r3, [r3]
 	mov	r2, r3
 	cmp	r2, #0
 	beq	.LCB631
-	b	.L115	@long jump
+	b	.L116	@long jump
 .LCB631:
 	mov	r4, #128
 	lsl	r4, r4, #19
@@ -1052,44 +1052,44 @@ WaitFrames:
 	mov	r8, r3
 	ldrb	r3, [r1]
 	cmp	r3, #1
-	bne	.L116
+	bne	.L117
 	strh	r2, [r4]
-	ldr	r3, .L186+28
+	ldr	r3, .L187+28
 	strh	r3, [r0]
 	mov	r1, #0
-	ldr	r0, .L186+32
-	ldr	r5, .L186+36
+	ldr	r0, .L187+32
+	ldr	r5, .L187+36
 	mov	r4, #1
-.L128:
+.L129:
 	ldrh	r2, [r0]
 	mov	r3, r5
 	and	r3, r3, r2
 	strh	r3, [r0]
-.L130:
+.L131:
 	swi 0x2
 	.code	16
 	ldrh	r2, [r0]
 	mov	r3, r4
 	and	r3, r3, r2
 	cmp	r3, #0
-	beq	.L130
+	beq	.L131
 	add	r1, r1, #1
 	cmp	r1, #59
-	ble	.L128
-	ldr	r6, .L186+40
-	ldrh	r3, .L186
+	ble	.L129
+	ldr	r6, .L187+40
+	ldrh	r3, .L187
 	strh	r3, [r6]
 	mov	r3, #195
-	ldr	r5, .L186+44
+	ldr	r5, .L187+44
 	lsl	r3, r3, #8
 	strh	r3, [r5]
 	bl	Func_8006868
 	swi 0x3
 	.code	16
 	bl	Func_8006870
-	ldr	r3, .L186+48
+	ldr	r3, .L187+48
 	strh	r3, [r5]
-	ldrh	r3, .L186+4
+	ldrh	r3, .L187+4
 	strh	r3, [r6]
 	lsl	r3, r7, #16
 	mov	r2, #128
@@ -1102,10 +1102,10 @@ WaitFrames:
 	lsr	r3, r3, #16
 	lsl	r2, r2, #19
 	strh	r3, [r2]
-	b	.L187
-.L188:
+	b	.L188
+.L189:
 	.align	2, 0
-.L186:
+.L187:
 	.word	1
 	.word	0
 	.word	iwram_3001c9c
@@ -1119,75 +1119,75 @@ WaitFrames:
 	.word	ewram_2002000
 	.word	67109170
 	.word	49167
-.L187:
+.L188:
 	mov	r1, #0
-	ldr	r0, .L189+4
-	ldr	r5, .L189+8
+	ldr	r0, .L190+4
+	ldr	r5, .L190+8
 	mov	r4, #1
-.L155:
+.L156:
 	ldrh	r2, [r0]
 	mov	r3, r5
 	and	r3, r3, r2
 	strh	r3, [r0]
-.L157:
+.L158:
 	swi 0x2
 	.code	16
 	ldrh	r2, [r0]
 	mov	r3, r4
 	and	r3, r3, r2
 	cmp	r3, #0
-	beq	.L157
+	beq	.L158
 	add	r1, r1, #1
 	cmp	r1, #9
-	ble	.L155
-	ldr	r3, .L189+12
+	ble	.L156
+	ldr	r3, .L190+12
 	mov	r2, #0
 	strb	r2, [r3]
-	ldrh	r3, .L189
+	ldrh	r3, .L190
 	mov	r2, r9
 	strh	r3, [r2]
-	b	.L115
-.L190:
+	b	.L116
+.L191:
 	.align	2, 0
-.L189:
+.L190:
 	.word	0
 	.word	iwram_3001d28
 	.word	65534
 	.word	gSleepMode
-.L116:
+.L117:
 	ldrb	r3, [r1]
 	add	r3, r3, #255
 	strb	r3, [r1]
-.L115:
-	ldr	r2, .L191
+.L116:
+	ldr	r2, .L192
 	ldrb	r3, [r2]
 	cmp	r3, #0
-	beq	.L71
+	beq	.L72
 	mov	r3, #0
 	strb	r3, [r2]
 	mov	r0, #128
-	ldr	r2, .L191+4
-	ldr	r3, .L191+8
+	ldr	r2, .L192+4
+	ldr	r3, .L192+8
 	lsl	r0, r0, #20
 	str	r3, [r2]
 	mov	r2, #0
-	ldr	r3, .L191+12
+	ldr	r3, .L192+12
 	strh	r2, [r3]
 	bl	_call_via_r0
-.L71:
+.L72:
 	ldr	r3, [sp]
 	ldr	r1, [sp, #4]
 	add	r3, r3, #1
 	str	r3, [sp]
 	cmp	r3, r1
 	bcs	.LCB854
-	b	.L72	@long jump
+	b	.L73	@long jump
 .LCB854:
-.L174:
-	ldr	r2, .L191+16
+.L175:
+	ldr	r2, .L192+16
 	ldr	r3, [r2]
 	cmp	r3, #0
-	beq	.L169
+	beq	.L170
 	mov sl, sp
 	.code	16
 	ldr	r3, [r2]
@@ -1196,29 +1196,29 @@ WaitFrames:
 	mov	sl, r2
 	mov sp, sl
 	.code	16
-	ldr	r3, .L191+16
+	ldr	r3, .L192+16
 	ldr	r2, [r3]
 	mov	r4, #132
 	lsl	r4, r4, #24
 	lsr	r2, r2, #2
-	ldr	r3, .L191+20
-	ldr	r0, .L191+24
+	ldr	r3, .L192+20
+	ldr	r0, .L192+24
 	mov	r1, sl
 	orr	r2, r2, r4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	mov	r3, #128
-	ldr	r1, .L191+20
+	ldr	r1, .L192+20
 	lsl	r3, r3, #24
-.L173:
+.L174:
 	ldr	r2, [r1, #8]
 	and	r2, r2, r3
 	cmp	r2, #0
-	bne	.L173
-	ldr	r3, .L191+16
+	bne	.L174
+	ldr	r3, .L192+16
 	str	r2, [r3]
-.L169:
+.L170:
 	add	sp, sp, #8
 	pop	{r3, r5, r6, r7}
 	mov	r8, r3
@@ -1228,9 +1228,9 @@ WaitFrames:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L192:
+.L193:
 	.align	2, 0
-.L191:
+.L192:
 	.word	gSoftReset
 	.word	gIWRAMHeap_end
 	.word	426182404
@@ -1245,13 +1245,13 @@ WaitFrames:
 	.thumb_func
 	.type	 Func_800352c,function
 Func_800352c:
-	ldr	r2, .L194
+	ldr	r2, .L195
 	mov	r3, #19
 	str	r3, [r2]
 	bx	lr
-.L195:
+.L196:
 	.align	2, 0
-.L194:
+.L195:
 	.word	iwram_3001b00
 .Lfe5:
 	.size	 Func_800352c,.Lfe5-Func_800352c
@@ -1261,136 +1261,136 @@ Func_800352c:
 	.type	 UpdateKeyPressRepeat,function
 UpdateKeyPressRepeat:
 	push	{r5, lr}
-	ldr	r4, .L218
+	ldr	r4, .L219
 	ldr	r0, [r4]
 	mov	r5, #0
 	cmp	r0, #0
-	bgt	.L197
-	ldr	r2, .L218+4
-	ldr	r3, .L218+8
+	bgt	.L198
+	ldr	r2, .L219+4
+	ldr	r3, .L219+8
 	ldr	r2, [r2]
 	str	r2, [r3]
 	ldr	r1, [r3]
 	cmp	r0, #0
-	bne	.L198
+	bne	.L199
 	mov	r3, #6
 	str	r3, [r4]
-	b	.L200
-.L198:
+	b	.L201
+.L199:
 	mov	r3, #19
 	str	r3, [r4]
-	b	.L200
-.L197:
-	ldr	r3, .L218+8
+	b	.L201
+.L198:
+	ldr	r3, .L219+8
 	str	r5, [r3]
 	ldr	r1, [r3]
-.L200:
+.L201:
 	cmp	r1, #0
-	beq	.L201
+	beq	.L202
 	mov	r3, #64
 	and	r3, r3, r1
 	mov	r2, #0
 	cmp	r3, #0
-	beq	.L202
-	mov	r2, #1
-.L202:
-	mov	r3, #128
-	and	r3, r3, r1
-	cmp	r3, #0
 	beq	.L203
-	add	r2, r2, #1
+	mov	r2, #1
 .L203:
-	mov	r3, #32
+	mov	r3, #128
 	and	r3, r3, r1
 	cmp	r3, #0
 	beq	.L204
 	add	r2, r2, #1
 .L204:
-	mov	r3, #16
+	mov	r3, #32
 	and	r3, r3, r1
 	cmp	r3, #0
 	beq	.L205
 	add	r2, r2, #1
 .L205:
-	ldr	r0, .L218+12
+	mov	r3, #16
+	and	r3, r3, r1
+	cmp	r3, #0
+	beq	.L206
+	add	r2, r2, #1
+.L206:
+	ldr	r0, .L219+12
 	str	r1, [r0]
 	cmp	r2, #1
-	beq	.L208
-	cmp	r2, #1
-	bcc	.L207
-	cmp	r2, #2
 	beq	.L209
+	cmp	r2, #1
+	bcc	.L208
+	cmp	r2, #2
+	beq	.L210
 	cmp	r2, #3
-	beq	.L211
-	ldr	r2, .L218+16
+	beq	.L212
+	ldr	r2, .L219+16
 	mov	r3, #48
 	str	r3, [r2]
-	ldr	r2, .L218+20
-	b	.L217
-.L207:
-	ldr	r2, .L218+16
-	mov	r3, #48
-	str	r3, [r2]
-	b	.L216
+	ldr	r2, .L219+20
+	b	.L218
 .L208:
-	ldr	r2, .L218+16
+	ldr	r2, .L219+16
+	mov	r3, #48
+	str	r3, [r2]
+	b	.L217
+.L209:
+	ldr	r2, .L219+16
 	mov	r3, #240
 	and	r1, r1, r3
 	str	r1, [r2]
-	b	.L216
-.L209:
-	ldr	r1, .L218+16
+	b	.L217
+.L210:
+	ldr	r1, .L219+16
 	ldr	r3, [r1]
 	ldr	r2, [r0]
 	and	r3, r3, r2
 	cmp	r3, #0
-	bne	.L210
+	bne	.L211
 	mov	r3, #48
 	str	r3, [r1]
-.L210:
+.L211:
 	ldr	r3, [r1]
-	ldr	r2, .L218+24
+	ldr	r2, .L219+24
 	eor	r3, r3, r2
 	ldr	r2, [r0]
 	and	r2, r2, r3
 	str	r2, [r0]
-	b	.L216
-.L211:
-	ldr	r4, .L218+16
+	b	.L217
+.L212:
+	ldr	r4, .L219+16
 	ldr	r3, [r4]
 	mov	r2, #48
 	and	r3, r3, r2
 	cmp	r3, #0
-	beq	.L212
+	beq	.L213
 	mov	r5, #48
-.L212:
+.L213:
 	ldr	r3, [r4]
 	mov	r2, #192
 	and	r3, r3, r2
 	cmp	r3, #0
-	beq	.L213
+	beq	.L214
 	mov	r5, #192
-.L213:
-	ldr	r2, .L218+24
+.L214:
+	ldr	r2, .L219+24
 	eor	r2, r2, r5
 	and	r1, r1, r2
 	str	r1, [r4]
-.L217:
+.L218:
 	ldr	r3, [r0]
 	and	r3, r3, r2
 	str	r3, [r0]
-	b	.L216
-.L201:
-	ldr	r3, .L218+12
+	b	.L217
+.L202:
+	ldr	r3, .L219+12
 	str	r1, [r3]
-.L216:
-	ldr	r1, .L218+4
-	ldr	r0, .L218+28
+.L217:
+	ldr	r1, .L219+4
+	ldr	r0, .L219+28
 	ldr	r3, [r1]
 	ldr	r2, [r0]
 	eor	r3, r3, r2
 	ldr	r2, [r1]
-	ldr	r4, .L218+32
+	ldr	r4, .L219+32
 	and	r3, r3, r2
 	str	r3, [r4]
 	ldr	r3, [r1]
@@ -1398,9 +1398,9 @@ UpdateKeyPressRepeat:
 	pop	{r5}
 	pop	{r0}
 	bx	r0
-.L219:
+.L220:
 	.align	2, 0
-.L218:
+.L219:
 	.word	iwram_3001b00
 	.word	gKeyHeld
 	.word	gKeyRepeat
