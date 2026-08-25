@@ -371,3 +371,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-25T08:02:45Z  end     +2 UNPARKED (964_20092b0, 965_2008fac); 456 elevated; lower-bound canonicalisation named
 2026-08-25T08:12:40Z  end     +1 UNPARKED (GetSpriteVoice); 457 elevated; "shorter" claim refined into two causes
 2026-08-25T08:24:32Z  end     +1 (968_2009a50); 458 elevated; small-function band nearly exhausted
+2026-08-25T08:29:27Z  end     +2 (common1_1fb4, LoadUIIcon); 460 elevated; 26-40 band working well
