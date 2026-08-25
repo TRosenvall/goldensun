@@ -1,40 +1,6 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ 23 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   SetActorPartsPalette x2, PlaySound
-.thumb_func_start OvlFunc_968_20085ac
-	push	{lr}
-	ldr	r3, =iwram_3001e40
-	ldr	r3, [r3]
-	mov	r2, #3
-	and	r3, r2
-	cmp	r3, #0
-	bne	.L5c2
-	mov	r1, #7
-	bl	__Func_80929d8
-	b	.L5c8
-.L5c2:
-	mov	r1, #0
-	bl	__Func_80929d8
-.L5c8:
-	ldr	r3, =iwram_3001e40
-	ldr	r3, [r3]
-	mov	r2, #7
-	and	r3, r2
-	cmp	r3, #0
-	bne	.L5da
-	mov	r0, #0x8a
-	bl	__PlaySound
-.L5da:
-	mov	r0, #0
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_968_20085ac
-
 @ 76 instructions. Not one of the recognised overlay shapes,
 @ so this is a CALL TRACE rather than a description -- what it does with
 @ these is not characterised here.

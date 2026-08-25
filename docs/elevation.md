@@ -1443,3 +1443,37 @@ Seen in `Func_809a44c` and in the original `rom_79338_c_a.s` attempt.
 Classes 2 and 3 are exactly what `decomp-permuter` automates, and the
 checkout is already in the tree. It is the obvious next lever, and it is worth
 reaching for before hand-grinding any more of these.
+
+### Splitting a `.s`: the basename must be unique
+
+The Makefile's rule for a C file is `asm/%.o: src/%.c`, and it writes gcc's
+generated assembly to `$(@:.o=.s)`. A C file at `src/<path>/X.c` therefore
+produces **`asm/<path>/X.s`** and `asm/<path>/X.o`. Linker scripts reference the
+`asm/` object for C sources exactly as they do for hand assembly; `src/.../*.o`
+appears only for the hand-written `exports.s`.
+
+The consequence: if you split `asm/<path>/X.s` and name the elevated C
+`src/<path>/X.c`, gcc's output **overwrites the very `.s` you split**, silently,
+during the build. What you get is a link error that reads like a stale object:
+
+    multiple definition of `OvlFunc_968_20085ac'
+    undefined reference to `OvlFunc_968_20085e4'
+
+Both halves of that message come from the same cause -- the asm file now
+contains gcc's version of the first function and nothing else.
+
+So when splitting, **give every piece a new name and delete the original**:
+
+    src/<path>/X_a.c     <- the elevated function
+    asm/<path>/X_b.s     <- what is left, hand assembly
+    (delete asm/<path>/X.s, X.o, X.d)
+
+and replace the single linker line with one per piece, both under `asm/`:
+
+    asm/<path>/X_a.o(.text)
+    asm/<path>/X_b.o(.text)
+
+This is what the inherited splits already do -- `rom_799abc` carries
+`ovl_30_a_a_a_c_c_c_b` (C) and `_c` (asm) with no `ovl_30_a_a_a_c_c_c.s` left.
+`asmfacts.py --orphans` does not catch the mistake, because the reference is
+not orphaned; only the build does.
