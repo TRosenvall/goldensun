@@ -361,3 +361,38 @@ each), `OvlFunc_930_2008870` (2 of 24), `OvlFunc_930_20088a8` (5 of 24),
 
 Full derivation:
 [src/non_matching/ovl_780898/2008dc0.c](src/non_matching/ovl_780898/2008dc0.c).
+
+### Register-pressure residue: a category, not a set of one-offs
+
+Six parks now reach the same conclusion independently, and it is worth stating
+once rather than rediscovering per file. **What registers the ROM uses is a
+consequence of pressure in the original translation unit, not of how the C is
+written.** Three shapes recur:
+
+- **An elided copy.** The ROM loads a value into one register and copies it
+  before use; gcc loads straight into the destination and skips the copy.
+  `Func_80bf54c` (4 of 19), `OvlFunc_969_200d9f0` (9 of 27).
+- **A dead callee-saved register.** The ROM reserves a register, sets it, and
+  never reads it. `OvlFunc_935_2008704` (6 of 24) -- six instructions of
+  prologue/epilogue bookkeeping for a value with no consumer.
+- **A constant hoisted or not hoisted out of a loop.** `Func_80a9d84`
+  (14 of 30) -- gcc hoists three loop-invariant constants, the ROM hoists two
+  and materialises the third inside the loop.
+
+**The diagnostic that settles it:** find the function's near-twin that DOES
+match. `Func_80bf54c` and `Func_80bf574` are the same shape, and the two-named-
+locals spelling produces the copy in one and not the other -- the difference is
+that `Func_80bf574` has a second store keeping more values live. Likewise
+`Func_80a9cbc` matches and `Func_80a9d84`, identical but for a third constant,
+does not.
+
+**What not to spend rounds on:** the declaration lever, statement reordering,
+extra named locals, and the derived-initialiser lever have all been tried across
+these six and are byte-identical to the default in every case where the twin
+comparison shows pressure is the cause. A copy cannot be requested from C when
+nothing competes for the register.
+
+**What might actually move them:** more of the surrounding TU being elevated, so
+that the register pressure the original had is reproduced. These are the parks
+most likely to fall out for free later rather than to a targeted fix, and they
+should be re-screened after their file's neighbours are elevated -- not before.
