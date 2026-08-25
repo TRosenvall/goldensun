@@ -67,6 +67,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-57](reports/batch-57.md) | 6 | ready to port |
 | [batch-58](reports/batch-58.md) | 6 | ready to port |
 | [batch-59](reports/batch-59.md) | 6 | ready to port |
+| [batch-60](reports/batch-60.md) | 5 | ready to port |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
@@ -194,7 +195,7 @@ codebase better than we do. Listed once here rather than repeated per batch.
   with `undefined reference`, which reads like a typo in the C. Silent until
   someone adds a symbol.
 
-- **Twenty TUs are built with `-fno-rerun-cse-after-loop`**, covering twenty-seven
+- **Twenty-two TUs are built with `-fno-rerun-cse-after-loop`**, covering twenty-nine
   functions (first two in batch 25),
   and as of batch 42 one of them is MAIN-ROM code rather than an overlay, which
   weakens the reading that this is an overlay-only property. It
