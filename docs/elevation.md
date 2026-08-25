@@ -2027,3 +2027,40 @@ evidence either way.)
 r4/r5/r6 exactly, with no help at all. The argument-precompute class
 (`calls.c:805`) is about a call whose arguments mix cheap constants with two or
 more expensive values — not about permutation. Do not park a rotation on sight.
+
+### Read the state as a STRUCT, not as pointer arithmetic
+
+Thumb `ldrsh` has no immediate-offset form, so a signed halfword read always
+needs an index register. That gives gcc a choice, and the two spellings pick
+differently:
+
+    gState.area                     ->  add r3, r1, r0 / mov r0, #0 / ldrsh r3, [r3, r0]
+    *(short *)(base + k + (u32)0)   ->  ldrsh r3, [r6, r2]
+
+Written as arithmetic, gcc folds the addition into the load and makes the index
+carry the offset — one instruction shorter than the ROM. Written as a struct
+member, with the offset inside the TYPE, it has to materialise the address and
+supply a zero index, which is what the ROM does.
+
+This unparked `OvlFunc_922_2009a34` (18 of 50 → exact) and was first-screen for
+`Func_8096ab0`, `OvlFunc_888_2008070` and `OvlFunc_937_20080e4`.
+
+**It is not the same as the inline-zero lever.** Writing the zero as
+`(unsigned int)0` settles *which zero wins* when two compete; it does nothing
+about whether the address gets folded. Both notes exist because the diffs look
+alike.
+
+**gcc derives the second offset by itself.** Two members at 0x16c and 0x1c0 come
+out as `mov r1, #0xb6 / lsl r1, #1 / … / add r1, #0x54` with no help — the same
+constant-derivation peephole that blocks the bitfield cases. Do not force it.
+
+### A `switch` reproduces the ROM's jump table
+
+`OvlFunc_888_2008070`'s `.s` carries a 35-entry `.word` table and a `mov pc, r3`.
+A plain C `switch` produced it exactly — the range check `sub r3, #1 /
+cmp r3, #0x22 / bhi`, the `.align 2, 0`, and every entry in order — with nothing
+done to provoke it. The case values are dense enough that gcc-2.96 chooses a
+tablejump on its own.
+
+Worth knowing before hand-writing an if-chain to imitate one: a jump table in
+the `.s` is not evidence of hand-written assembly.

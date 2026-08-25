@@ -25,6 +25,20 @@
  * loads exactly, `_AREA_92` being one of the eight added in batch 67. The
  * remaining defect is entirely in how the field is read, not in the constants.
  *
+ * A UNION OF THE TWO VIEWS WAS TRIED and does not help:
+ *
+ *     union { unsigned short u; short s; } area;
+ *     h = gState.area.u;  ...  if (gState.area.s == ...)
+ *
+ * gcc still keeps only the signed load. Two differently-typed members at the
+ * same offset are the same MEM in RTL, so CSE unifies them exactly as it does
+ * two casts of one pointer. Recorded because the union is the obvious next
+ * idea after the cast, and it is not a different idea.
+ *
+ * FLAGS PROBED, all negative: -fno-rerun-cse-after-loop and
+ * -fno-cse-follow-jumps are byte-identical; -fno-gcse recovers one instruction
+ * of the three (37 of 39 rather than 36) and still drops the `ldrh`.
+ *
  * The `(short)h` cast is the right spelling for the ROM's `lsl #16 / asr #16`
  * and should not be re-derived; it is simply never reached because the load it
  * would sign-extend has been eliminated.
