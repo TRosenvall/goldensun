@@ -35,6 +35,28 @@
  * Everything else matches: `k = 0x8a << 1` reproduces the ROM's
  * `mov r3, #0x8a / lsl r3, #1`, and the do/while with the post-increment walk
  * `*q++` gives the exact `ldmia r5!, {r0}` the ROM uses.
+ *
+ * MERGED, 2026-08-25. A SECOND park for this function existed at
+ * src/non_matching/rom_a1000/rom_ad69c.c, describing it as "5 of 25, and ours
+ * is one instruction short". Two files, two partial histories, and nothing in
+ * the tooling noticed -- tools/stale_parks.py only checked whether a park's
+ * functions were still unelevated. It now also groups parks by SUBJECT and
+ * reports duplicates; six pairs exist and this is one.
+ *
+ * -fno-gcse TAKES THIS FROM 18 DIFFERING LINES TO 6. Global CSE folds the two
+ * `base + 0x219` computations into one, where the ROM computes it twice --
+ * `add r3, r2, r1` before the loop and `add r7, r2, r1` inside it -- from the
+ * same two registers. Writing them as two separate locals (`p1` and `p2`
+ * below) does not stop the fold; the flag does.
+ *
+ * WHAT IS LEFT after the flag is six lines of register naming around those two
+ * adds. Swapping the birth order of the base and the offset in the source --
+ * `off = 0x219;` before `base = iwram_3001f2c;` -- was tried on the strength of
+ * the batch-73 creation-order reading and is byte-identical. Both are plain
+ * loads, so gcc orders them itself and the source does not get a say. That is
+ * the same boundary the batch-73 experiment drew: creation order is reachable
+ * only when the two values come from statements that do different KINDS of
+ * work.
  */
 extern unsigned char *iwram_3001f2c;
 extern void _Sprite_SetAnim(int handle, int anim);

@@ -1,6 +1,7 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+
 @ ClearBackgroundPage
 @ r0 = 0 for the first page, non-zero for the second. DMA3-fills one of the two
 @ image pages and its palette with a constant:
@@ -142,50 +143,3 @@
 	pop	{r0}
 	bx	r0
 .func_end LoadGS1CreditsBG
-
-@ BuildWindowTable
-@ r0 = destination. Writes a 0x200-entry halfword-pair table:
-@
-@     0x20 words of 0x01FF01FF     the top margin
-@     0xF0 words counting up by 0x00020002 from 0x00010000
-@     0x30 words of 0x01FF01FF     the bottom margin
-@     0xC0 zero words
-@
-@ Each word is two halfwords, so the middle run is a per-scanline ramp. Called
-@ twice, for 0x6007800 and 0x600F800 -- the tail of each background page.
-.thumb_func_start Func_80f037c  @ 0x080f037c
-	push	{lr}
-	mov	r2, #0x80
-	ldr	r1, =0x1ff01ff
-	lsl	r2, #9
-	mov	r3, #0x1f
-.Lf0386:
-	sub	r3, #1
-	stmia	r0!, {r1}
-	cmp	r3, #0
-	bge	.Lf0386
-	ldr	r4, =0x20002
-	mov	r3, #0xef
-.Lf0392:
-	sub	r3, #1
-	stmia	r0!, {r2}
-	add	r2, r4
-	cmp	r3, #0
-	bge	.Lf0392
-	mov	r3, #0x2f
-.Lf039e:
-	sub	r3, #1
-	stmia	r0!, {r1}
-	cmp	r3, #0
-	bge	.Lf039e
-	mov	r2, #0
-	mov	r3, #0xbf
-.Lf03aa:
-	sub	r3, #1
-	stmia	r0!, {r2}
-	cmp	r3, #0
-	bge	.Lf03aa
-	pop	{r0}
-	bx	r0
-.func_end Func_80f037c
-

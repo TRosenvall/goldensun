@@ -67,7 +67,31 @@ def main():
         elif gone and stay:
             part.append((rel, gone, stay))
 
+    # DUPLICATES: two park files describing the SAME function. The stale check
+    # cannot see these -- both name a function that is still in asm/ -- but they
+    # inflate the park census and split the notes, so the second reader finds
+    # half the history. Found by hitting one: Func_80ad69c had two.
+    bysym = {}
+    for p2 in sorted(glob.glob(os.path.join(ROOT, "src/non_matching/**/*.c"),
+                               recursive=True)):
+        head2 = open(p2, errors="replace").read().split("*/")[0]
+        # Only the FIRST symbol -- the file's subject. Matching on every symbol
+        # mentioned flags cross-references and the deliberately grouped park
+        # files, which is 46 false positives against 2 real ones.
+        found = SYM.findall(head2)
+        if found:
+            bysym.setdefault(found[0], []).append(os.path.relpath(p2, ROOT))
+    dupes = {k: v for k, v in bysym.items() if len(v) > 1}
+
     print(f"screened {n} parked files\n")
+    print(f"=== DUPLICATE parks -- one function, several files ({len(dupes)}) ===")
+    for k, v in sorted(dupes.items()):
+        print(f"  {k}")
+        for f in v:
+            print(f"      {f}")
+    if not dupes:
+        print("  (none)")
+    print()
     print("=== FULLY STALE -- every named function is elevated; delete ===")
     for rel, gone in full:
         print(f"  {rel}\n      {', '.join(gone[:6])}")

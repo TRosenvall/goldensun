@@ -1393,7 +1393,8 @@ SECTIONS {
 	rom_f0000 : ALIGN(0x1000) {
 		src/rom_f0000/exports.o(.text)
 		asm/rom_f0000/rom_f0008.o(.text)
-		asm/rom_f0000/rom_f0254_a.o(.text)
+		asm/rom_f0000/rom_f0254_a_a.o(.text)
+		asm/rom_f0000/rom_f0254_a_b.o(.text)
 		asm/rom_f0000/rom_f0254_b.o(.text)
 		asm/rom_f0000/rom_f0254_c.o(.text)
 

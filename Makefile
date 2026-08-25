@@ -199,6 +199,29 @@ O1_CFLAGS := $(subst -O2,-O1,$(GCC296_CFLAGS))
 # NOT elevated: that object is named by many overlay linker scripts, so
 # splitting it touches all of them. See src/non_matching notes in batch 69.
 ALIAS_CFLAGS := $(GCC296_CFLAGS) -fno-strict-aliasing
+
+# One translation unit matches only with GLOBAL CSE turned off. Its inner loop
+# steps a value by a constant, and at -O2 gcc sinks the constant's pool load
+# PAST the loop label -- so it is re-loaded on every iteration. The ROM loads it
+# once, before the loop. That is partial-redundancy motion, and no source
+# placement reaches it: the constant assigned at the top of the function, or
+# immediately before the counter, or immediately after it, all give identical
+# output.
+#
+# SPECIFICALLY -fno-gcse. -fno-strict-aliasing, -fno-strength-reduce and
+# -fno-rerun-cse-after-loop are byte-identical on it; -fno-schedule-insns2 is
+# worse.
+#
+# SWEPT ACROSS EVERY PARK before adopting: -fno-gcse improves six parked
+# functions (one from 116 differing lines to 19, two from 18 to 6) and matches
+# none of them outright. So it is a real mechanism with more to give, and it is
+# NOT a general key -- do not reach for it without reading the diff first.
+GCSE_CFLAGS := $(GCC296_CFLAGS) -fno-gcse
+asm/rom_f0000/rom_f0254_a_b.o: src/rom_f0000/rom_f0254_a_b.c
+	$(GCC296_CC) $(GCSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 asm/rom_8a000/rom_9a44c_a_a_a_b.o: src/rom_8a000/rom_9a44c_a_a_a_b.c
 	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
@@ -230,6 +253,11 @@ asm/overlays/rom_7f2f14/ovl_30_a_a_a_c_a_c_b.o: src/overlays/rom_7f2f14/ovl_30_a
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
 asm/overlays/common/common0_b.o: src/overlays/common/common0_b.c
+	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+asm/overlays/rom_7ca63c/ovl_30_a_a_a.o: src/overlays/rom_7ca63c/ovl_30_a_a_a.c
 	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
