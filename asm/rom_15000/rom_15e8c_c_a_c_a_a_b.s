@@ -1,38 +1,6 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ ResetTextStyle
-@ Takes no arguments. Restores the default text parameters in the UI block:
-@     +0xEA8 = 0x0A   +0xEAA = 1    +0xEAC = 0
-@     +0xEAE = 0x0F   +0x12B0 = 9
-@ Called by CreateUIBox every time a window is opened, so each window starts
-@ from the same style regardless of what the previous one left behind.
-.thumb_func_start Func_80173ac  @ 0x080173ac
-	ldr	r3, =iwram_3001e8c
-	ldr	r2, [r3]
-	ldr	r3, =0xeae
-	add	r1, r2, r3
-	mov	r3, #0xf
-	strh	r3, [r1]
-	ldr	r3, =0xea8
-	add	r1, r2, r3
-	mov	r3, #0xa
-	strh	r3, [r1]
-	ldr	r3, =0x12b0
-	add	r1, r2, r3
-	mov	r3, #9
-	strh	r3, [r1]
-	ldr	r1, =0xeac
-	mov	r0, #0
-	add	r3, r2, r1
-	strh	r0, [r3]
-	ldr	r3, =0xeaa
-	add	r2, r3
-	mov	r3, #1
-	strh	r3, [r2]
-	bx	lr
-.func_end Func_80173ac
-
 @ ResetTextStyleAndTiles
 @ Takes no arguments. Allocates 0x2000 bytes of OBJ tiles under tag 0x5F with
 @ UploadSpriteGFX, stores the handle at [iwram_1e8c]+0x12B8, then writes the default
@@ -77,4 +45,3 @@
 	pop	{r0}
 	bx	r0
 .func_end Func_80173f4
-

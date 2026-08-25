@@ -2148,3 +2148,35 @@ and those are the genuine floors.
 Do not re-run the compiler experiment. It is recorded here with its numbers so
 that it does not get proposed again.
 
+
+### Putting an offset in the TYPE also stops the constant-derivation chain
+
+Batch 72 used struct members to fix an `ldrsh` addressing form. `Func_80173ac`
+shows the same lever doing a second job. Written as pointer arithmetic, five
+halfword stores at fixed offsets fail twice:
+
+    ours   ldrh r3, .L0        the constant pooled AS A HALFWORD, because the
+    rom    mov  r3, #0xf       store is to a `short`
+
+and, once an int local fixes that, gcc DERIVES each offset from the last --
+`sub r0, #0x6` to get from 0xeae to 0xea8 -- where the ROM loads each from the
+pool. No arrangement of int locals stops the derivation.
+
+Declared as struct members at their real offsets, both problems disappear at
+once: each member's address is generated independently, so there is nothing to
+derive from, and the stored constants come out as immediates.
+
+**The general form:** an offset written in the arithmetic is a value gcc can
+fold, derive and narrow. The same offset written in the type is not a value at
+all. When a function's residue is constants behaving oddly, check whether the
+offsets could be members.
+
+### Check the branch SUFFIX on a loop bound
+
+`OvlFunc_911_20080a0` came down to one instruction out of twenty-three:
+
+    rom    bls        ours   ble
+
+`int i` with `i <= 8` gives the signed `ble`; the ROM's `bls` means the counter
+was **unsigned** in the source. Invisible unless you read the suffix, and it is
+the first thing to check before diagnosing anything else about a loop.
