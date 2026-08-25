@@ -1,12 +1,13 @@
 	.include "macros.inc"
 
 
+
 @ StampPlayerFootprintSolid
 @ Mark a log's cells solid on map entry.
 @ Byte-identical to OvlFunc_8c0 in overlays/rom_780898/ovl_30.s,
 @ where the shared push-log block is documented in full.
-@ Here .L2f50 is the six footprints, .L2f38 is the six pushable model ids.
-.thumb_func_start OvlFunc_927_20088c0
+@ Here .L302c is the six footprints, .L3014 is the six pushable model ids.
+.thumb_func_start OvlFunc_965_20088c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
 	mov	r6, r8
@@ -20,7 +21,7 @@
 	ldr	r3, [r3, #0x28]
 	mov	r1, #0
 	ldrsh	r2, [r3, r1]
-	ldr	r1, =.L2f38
+	ldr	r1, =gOvl_0200b014
 	mov	r5, #0
 	ldr	r3, [r1, r5]
 	cmp	r2, r3
@@ -63,7 +64,7 @@
 	ldr	r0, [r0, #0x10]
 	lsl	r1, r2, #4
 	str	r0, [r7, #0x10]
-	ldr	r4, =gScript_884__0200af50
+	ldr	r4, =.L302c
 	add	r5, r1, #4
 	ldr	r2, [r4, r5]
 	mov	r14, r0
@@ -131,7 +132,7 @@
 	mov	r0, #0
 	mov	r3, r6
 	str	r5, [sp, #4]
-	bl	OvlFunc_927_2008244
+	bl	OvlFunc_965_2008244
 	mov	r3, r8
 	ldr	r1, [r7, #8]
 	ldr	r2, [r7, #0x10]
@@ -139,7 +140,7 @@
 	str	r3, [sp]
 	mov	r3, r6
 	str	r5, [sp, #4]
-	bl	OvlFunc_927_2008244
+	bl	OvlFunc_965_2008244
 	mov	r0, #1
 .L9c2:
 	add	sp, #0x20
@@ -149,21 +150,4 @@
 	pop	{r5, r6, r7}
 	pop	{r1}
 	bx	r1
-.func_end OvlFunc_927_20088c0
-
-@ Leaf helper, 11 instructions, calls nothing.
-@ Described by what it touches, not by what it means.
-@ Writes offsets +0x9.
-.thumb_func_start OvlFunc_927_20089dc
-	ldr	r0, [r0, #0x50]
-	mov	r3, #3
-	ldrb	r2, [r0, #9]
-	and	r1, r3
-	mov	r3, #0xd
-	neg	r3, r3
-	lsl	r1, #2
-	and	r3, r2
-	orr	r3, r1
-	strb	r3, [r0, #9]
-	bx	lr
-.func_end OvlFunc_927_20089dc
+.func_end OvlFunc_965_20088c0

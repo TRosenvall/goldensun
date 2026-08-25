@@ -1934,3 +1934,34 @@ after being saved, which is normal.
 Functions that write r4 without pushing it are not hand-written and not
 disassembly artifacts: `GCC296_CFLAGS` carries `-fcall-used-r4` (Makefile line
 113). Batch 68 recorded the observation with the wrong explanation.
+
+### A read-modify-write on a few bits is probably a BITFIELD
+
+Symptom: a mask/shift/merge sequence comes out one instruction SHORT because gcc
+derives the second constant from the first.
+
+    rom    mov r3, #0x3 / and r1, r3 / mov r3, #0xd / neg r3, r3
+    ours   mov r3, #0x3 / and r1, r3 / sub r3, #0x10
+
+`-13` is `3 - 16`, so once 3 is live gcc gets the second mask in one insn. Move
+the negation earlier and the derivation stops, but the two constants then need
+separate registers and the pointer is pushed out of r0 -- the two orderings
+cannot both be had.
+
+Written as a bitfield store --
+
+    unsigned char lo : 2, sel : 2, hi : 4;
+    ...
+    s->sel = v;
+
+-- gcc's `store_bit_field` expands the mask, the shift and the merge itself, and
+the two constants are generated as independent RTL that CSE never relates. Exact
+on the first screen, and it is the more plausible source anyway.
+
+**No flag substitutes for it.** `-fno-gcse`, `-fno-cse-follow-jumps`,
+`-fno-cse-skip-blocks`, `-fno-expensive-optimizations`, `-fno-strict-aliasing`,
+`-fno-rerun-cse-after-loop` and `-O1` were all probed and none stops the
+derivation. This is not a flag question; the two spellings give gcc different
+material.
+
+Worth trying whenever a function's whole body is `x = (x & ~M) | (v << S)`.

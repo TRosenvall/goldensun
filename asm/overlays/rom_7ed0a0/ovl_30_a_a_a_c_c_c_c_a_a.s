@@ -1,6 +1,7 @@
 	.include "macros.inc"
 
 
+
 @ StampPlayerFootprintSolid
 @ Mark a log's cells solid on map entry.
 @ Byte-identical to OvlFunc_8c0 in overlays/rom_780898/ovl_30.s,
@@ -150,20 +151,3 @@
 	pop	{r1}
 	bx	r1
 .func_end OvlFunc_964_20088c0
-
-@ Leaf helper, 11 instructions, calls nothing.
-@ Described by what it touches, not by what it means.
-@ Writes offsets +0x9.
-.thumb_func_start OvlFunc_964_20089dc
-	ldr	r0, [r0, #0x50]
-	mov	r3, #3
-	ldrb	r2, [r0, #9]
-	and	r1, r3
-	mov	r3, #0xd
-	neg	r3, r3
-	lsl	r1, #2
-	and	r3, r2
-	orr	r3, r1
-	strb	r3, [r0, #9]
-	bx	lr
-.func_end OvlFunc_964_20089dc
