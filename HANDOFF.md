@@ -525,42 +525,45 @@ as a known-lost cause. If a DMA function does not match, the reason will be
 somewhere else, and the park note should name that reason rather than the
 header.
 
-### The remaining corpus is heavily DUPLICATED: 102 functions in 12 clusters
+### The remaining corpus is duplicated, but mostly by SHAPE not by bytes
 
-`tools/twin_finder.py` now reports clusters of UNELEVATED twins -- several copies
-of one function, none elevated yet -- as well as matches against solved ones.
-The result changes how the remaining work should be costed:
+`tools/twin_finder.py` reports clusters of UNELEVATED twins. **The first version
+of this entry (batch 65) reported 102 functions in 12 clusters and implied one
+solution would port to all of them. That was wrong, and the correction matters
+more than the original claim.**
 
-    18 copies, 172 instructions each
-    17 copies, 139
-    17 copies, 132
-     7 copies, 220
-     7 copies,  97
-     7 copies,  27
-     6 copies,  16
-     5 copies,  66 / 46 / 39
-     4 copies,  57 / 47
+A signature match is the same OPCODE sequence; operands may differ. Measured
+across the 118 shape-matched functions in clusters of four or more:
 
-**102 functions sit in the top twelve clusters alone.** One screen that cracks a
-cluster is worth its whole membership, which inverts the usual size preference:
-a 172-instruction function copied 18 times is a better target than a clean
-20-instruction singleton.
+    EXACT, operand-identical -- one .c ports verbatim      15 functions, 3 shapes
+    SHAPE only, constants differ                          103 functions
 
-Two clusters are already characterised:
+    18 x 172 insn   shape only, no two identical
+    17 x 139        shape only
+    17 x 132        shape only
+     7 x 220        shape only
+     7 x  97        shape only
+     7 x  27        EXACT -- all seven identical
+     6 x  16        shape only
+     5 x  46        shape only, 4 of the 5 identical
+     5 x  39        shape only, 4 of the 5 identical
 
-- **7 x 27 instructions** -- one shared routine appearing in the main ROM and six
-  overlays, blocked by a SINGLE hoisted load. Parked twice independently before
-  the duplication was noticed (`rom_8a000/rom_9a44c.c` and
-  `ovl_7ced6c/2008ab0.c`, now cross-linked). `-fno-schedule-insns2` fixes that
-  exact load and breaks four earlier pairs instead. **This is the highest-value
-  single park in the corpus.**
-- **6 x 16 instructions** -- the `OvlFunc_883/884` family, blocked by argument
-  precompute, which is a compiler difference traced to `calls.c:805`. Not
-  fixable from C; the cluster confirms the earlier count rather than opening
-  anything.
+So the free-work figure is **15, not 102**. Reporting the shape count alone
+overstates it by nearly 8x. The tool now prints both and labels each cluster.
 
-**Caveat:** clusters are matched on opcode signature, so members share a shape
-but not necessarily operands. The 7 x 27 was checked instruction-by-instruction
-INCLUDING operands and is genuinely one function; the larger clusters have not
-been checked that way and may be a shape shared by related-but-different code.
-Verify before assuming one solution ports.
+**Shape-only clusters are still worth real money**, just not for free: one `.c`
+ports with the constants substituted. That is exactly how `OvlFunc_916_200836c`
+was elevated from `OvlFunc_947_2009578` in batch 63 -- same code, different
+VCOUNT bound and tables, three constants changed, matched on the first screen.
+A 172-instruction shape with 18 members is still the largest single lever in the
+corpus if its shape can be cracked once.
+
+**The one EXACT cluster is the highest-value park.** 7 x 27 instructions, a
+shared routine in the main ROM and six overlays, blocked by a SINGLE hoisted
+load. It was parked twice independently before the duplication was noticed
+(`rom_8a000/rom_9a44c.c` and `ovl_7ced6c/2008ab0.c`, now cross-linked).
+`-fno-schedule-insns2` fixes that exact load and breaks four earlier pairs
+instead.
+
+The 6 x 16 shape is the `OvlFunc_883/884` family, blocked by argument precompute
+(`calls.c:805`) -- a compiler difference, not fixable from C.

@@ -78,7 +78,7 @@ def signature(body):
 
 
 def main():
-    solved, unsolved = {}, {}
+    solved, unsolved, unsolved_body = {}, {}, {}
     for p in sorted(glob.glob("asm/**/*.s", recursive=True)):
         if p.startswith("asm/rom_f9000/"):
             continue
@@ -89,6 +89,9 @@ def main():
             if len(sig) < MIN_INSN:
                 continue
             (solved if gen else unsolved)[m.group(1)] = (sig, p)
+            if not gen:
+                unsolved_body[m.group(1)] = tuple(
+                    l.strip() for l in m.group(2).split('\n') if l.startswith('\t'))
 
     by_sig = defaultdict(list)
     for n, (sig, p) in solved.items():
@@ -100,13 +103,33 @@ def main():
             hits.append((len(sig), n, p, by_sig[sig][0]))
     hits.sort()
 
-    # Clusters of UNELEVATED twins: one screen elevates all of them.
+    # Clusters of UNELEVATED twins.
+    #
+    # TWO KINDS, AND THE DIFFERENCE MATTERS. A signature match means the same
+    # OPCODE sequence; the operands may differ. So a cluster is either
+    #
+    #   EXACT   operand-identical -- one .c ports verbatim but for the name
+    #   SHAPE   same instructions, different constants -- one .c ports with the
+    #           constants substituted, which is how OvlFunc_916_200836c was
+    #           elevated from OvlFunc_947_2009578 in batch 63
+    #
+    # Batch 65 measured this: of 118 shape-matched functions in clusters of 4+,
+    # only 15 are operand-identical. Reporting the shape count alone overstates
+    # the free work by nearly 8x, so both are printed.
     un_by_sig = defaultdict(list)
     for n, (sig, p) in sorted(unsolved.items()):
         if sig not in by_sig:
             un_by_sig[sig].append((n, p))
-    clusters = sorted(((len(v), len(k), v) for k, v in un_by_sig.items()
-                       if len(v) > 1), reverse=True)
+    clusters = []
+    for k, v in un_by_sig.items():
+        if len(v) < 2:
+            continue
+        exact = defaultdict(list)
+        for n, p in v:
+            exact[tuple(unsolved_body[n])].append(n)
+        biggest = max(len(g) for g in exact.values())
+        clusters.append((len(v), len(k), v, biggest))
+    clusters.sort(reverse=True)
 
     # Parked functions are the highest-value category: a park whose twin has
     # SINCE been solved is unparkable by copying, and its note may predate the
@@ -132,10 +155,14 @@ def main():
         print("  (none)")
 
     print("\n=== UNELEVATED CLUSTERS -- one screen elevates all members ===")
-    for cnt, insn, members in clusters[:12]:
-        print("%d copies, %3d insn each" % (cnt, insn))
-        for n, p in members:
+    for cnt, insn, members, biggest in clusters[:12]:
+        kind = "EXACT, ports verbatim" if biggest == cnt else \
+               f"SHAPE only (largest operand-identical subgroup: {biggest})"
+        print("%d copies, %3d insn each  -- %s" % (cnt, insn, kind))
+        for n, p in members[:8]:
             print("        %-24s %s" % (n, p))
+        if len(members) > 8:
+            print("        ... and %d more" % (len(members) - 8))
     if not clusters:
         print("  (none)")
 

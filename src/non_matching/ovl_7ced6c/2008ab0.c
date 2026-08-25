@@ -14,9 +14,12 @@
  *      OvlFunc_968_20080e0   ovl_7f2f14/ovl_30_a_a_a_c_a_c.s
  *      OvlFunc_common0_d4    overlays/common/common0.s
  *
- * verified by comparing instruction lists including operands. Solving this one
- * elevates all seven, and one of them is in the main ROM rather than an
- * overlay, so this is a shared routine linked into each.
+ * verified by comparing instruction lists including operands -- this is the ONLY
+ * operand-identical cluster of its size in the corpus; the larger shape
+ * clusters (18 x 172, 17 x 139, ...) share opcodes but not constants, so they
+ * do not port verbatim. Solving this one elevates all seven, and one of them
+ * is in the main ROM rather than an overlay, so this is a shared routine
+ * linked into each.
  *
  * SEE ALSO src/non_matching/rom_8a000/rom_9a44c.c, which is the SAME FUNCTION
  * parked independently and reaches the same conclusion by a different route.
