@@ -41,6 +41,15 @@ a note concluding the blocker was unreachable; its twin was elevated in batch 61
 and that twin's source matched here unedited but for the name. A park note ages
 badly -- re-run this after any batch that elevates anything.
 
+
+KNOWN GAP: this only matches unelevated or parked functions against ALREADY
+SOLVED ones. A cluster of unelevated twins -- several copies of the same
+function, none of them elevated yet -- is invisible to it. One such cluster was
+found by hand in batch 65 (OvlFunc_946_2008ab0, OvlFunc_964_2008ab0 and
+OvlFunc_965_2008ab0, byte-identical across three overlays), so the gap is real.
+Extending the tool to report unelevated-vs-unelevated clusters would make one
+screen worth three or more elevations. Not done yet.
+
 MEASURED YIELD, so nobody expects more than it gives: across the whole corpus at
 1620 elevated and 2685 unelevated functions, EXACT signature matching found
 exactly ONE hit -- the parked OvlFunc_931_2008c0c above. Consuming it left zero.
