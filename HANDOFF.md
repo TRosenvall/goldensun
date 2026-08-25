@@ -465,7 +465,7 @@ byte, so its presence says nothing about whether a function is reachable.
 
 **Do not build a candidate filter on this.** The `Func_80bf*` family is blocked
 by a specific instance of the pattern, not by the pattern itself. The only two
-measured, real blocker counts remain argument precompute (11 functions,
+measured, real blocker counts remain argument precompute (12 functions,
 mechanism traced to compiler source) and the pool tell (271, upper bound).
 
 ### What the park corpus actually looks like, measured
