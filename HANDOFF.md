@@ -51,6 +51,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-41](reports/batch-41.md) | 6 | ready to port |
 | [batch-42](reports/batch-42.md) | 6 | ready to port |
 | [batch-43](reports/batch-43.md) | 8 | ready to port |
+| [batch-44](reports/batch-44.md) | 8 | ready to port |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
@@ -79,9 +80,9 @@ Every batch is verified the same way, from a clean build:
     docker run --rm -v "$PWD:/work" -w /work goldensun-build \
         sh -c 'make clean && make compare'
 
-- **Eight `.global` lines have been added to four existing `.s` files** (four in
-  batch 09, three in batch 34, one in batch 35) so that four functions could be
-  split out from the `.incbin` tables they select between. Every one of those
+- **Nine `.global` lines have been added to five existing `.s` files** (four in
+  batch 09, three in batch 34, one in batch 35, one in batch 44) so that five
+  functions could be split out from the `.incbin` tables they select between. Every one of those
   files already exported sibling labels the same way, and a `.global` emits no
   bytes -- but it is the only change in these batches that edits assembly rather
   than replacing it. Reverts cleanly if you would rather it did not happen.
