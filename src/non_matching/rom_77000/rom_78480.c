@@ -1,45 +1,51 @@
-/* Func_8078480 @ 0x08078480 -- asm/rom_77000/rom_78414_c_a_a.s
+/* Func_8078480 -- NOT MATCHING. 4 of 25, and ours is one instruction SHORT.
  *
  * Source asm: goldensun/asm/rom_77000/rom_78414_c_a_a.s
  *
- * gcc-2.96 FOLDS THE RANGE, the ROM does not.
+ * Blocker: gcc keeps the result in r0 throughout and skips the ROM's final
+ * `mov r0, r2`. Ours is 24 against 25 -- the "ours is shorter" signature, here
+ * in its register-allocation form rather than a source rewrite.
  *
- * The ROM tests 2, 3, 4, 5 and 9 as five separate compare-and-branch pairs.
- * Every formulation here turns 2..5 into an unsigned range check:
+ * WHAT GOT IT FROM 25 OF 25 TO 4, and is the useful part:
  *
- *     rom    cmp r3, #2 / beq / cmp r3, #3 / beq / cmp r3, #4 / beq / cmp r3, #5 / beq
- *     ours   add r3, #0xfe / lsl / cmp / bls        (i.e. (kind - 2) <= 3)
+ * A `switch` WITH CONTIGUOUS CASES BECOMES A RANGE TEST. Written as
  *
- * Tried: a switch with grouped case labels; a chain of || comparisons; and a
- * chain of separate else-if arms. All three fold. The ROM also keeps the
- * result in r2 and copies it to r0 at the end, which the folded versions do
- * not need to do.
+ *     case 2: case 3: case 4: case 5: case 9:
  *
- * Unfolded compare chains do occur elsewhere in this ROM, so some C shape
- * reaches them -- it just is not any of these three. Worth revisiting once one
- * of those is decompiled and the shape is known.
+ * gcc recognises 2..5 as contiguous and emits `cmp #5 / bgt / cmp #2 / bge`,
+ * which is nothing like the ROM's five individual `cmp`/`beq` pairs -- every
+ * instruction after the third differs. An explicit if/else chain testing each
+ * value with `==` produces the individual compares.
+ *
+ * That is the reverse of batch 59's finding, where a `switch` was needed to get
+ * gcc's balanced tree and an if/else chain would not have produced it. The two
+ * lower differently and the reference says which: individual `cmp`/`beq` pairs
+ * mean the source compared individually.
+ *
+ * NEXT: only the r0-versus-r2 allocation remains.
  */
-#include "gba/types.h"
+extern void *GetItemInfo(int id);
 
-struct ItemInfo {
-    u8 pad_0[2];
-    u8 kind;
-};
-
-extern struct ItemInfo *GetItemInfo(s32 itemId);
-
-/* Maps an item's kind byte to a category: 1 stays 1; 2, 3, 4, 5 and 9 all
- * become 2; anything else is 0.
- */
-s32 Func_8078480(s32 itemId)
+int Func_8078480(int id)
 {
-    struct ItemInfo *info = GetItemInfo(itemId);
-    u8 kind = info->kind;
-    s32 result = 0;
+    unsigned char *info;
+    int k;
+    int r;
 
-    if (kind == 1)
-        result = 1;
-    else if (kind == 2 || kind == 3 || kind == 4 || kind == 5 || kind == 9)
-        result = 2;
-    return result;
+    info = (unsigned char *)GetItemInfo(id);
+    k = info[2];
+    r = 0;
+    if (k == 1)
+        r = 1;
+    else if (k == 2)
+        r = 2;
+    else if (k == 3)
+        r = 2;
+    else if (k == 4)
+        r = 2;
+    else if (k == 5)
+        r = 2;
+    else if (k == 9)
+        r = 2;
+    return r;
 }
