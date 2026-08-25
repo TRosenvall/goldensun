@@ -1,58 +1,5 @@
 	.include "macros.inc"
 
-@ Slot 4: the map object table.
-@ Chooses among .L5ad8, .L5a48, .L59e8, .L5688, .L5394, .L5004
-@ on save bits 0x950, 0x962 and the area/entrance id at ewram_240+0x1C0 or +0x1C2.
-.thumb_func_start OvlFunc_952_200c034
-	push	{lr}
-	ldr	r3, =gState
-	mov	r1, #0xe0
-	lsl	r1, #1
-	add	r3, r1
-	mov	r1, #0
-	ldrsh	r2, [r3, r1]
-	ldr	r3, =0x8b
-	cmp	r2, r3
-	bne	.L406a
-	mov	r0, #0x95
-	lsl	r0, #4
-	bl	__GetFlag
-	cmp	r0, #0
-	beq	.L4058
-	ldr	r0, =.L5ad8
-	b	.L408a
-.L4058:
-	ldr	r0, =0x962
-	bl	__GetFlag
-	cmp	r0, #0
-	beq	.L4066
-	ldr	r0, =.L5a48
-	b	.L408a
-.L4066:
-	ldr	r0, =.L59e8
-	b	.L408a
-.L406a:
-	mov	r0, #0x95
-	lsl	r0, #4
-	bl	__GetFlag
-	cmp	r0, #0
-	beq	.L407a
-	ldr	r0, =.L5688
-	b	.L408a
-.L407a:
-	ldr	r0, =0x962
-	bl	__GetFlag
-	cmp	r0, #0
-	beq	.L4088
-	ldr	r0, =.L5394
-	b	.L408a
-.L4088:
-	ldr	r0, =.L5004
-.L408a:
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_952_200c034
-
 @ 260 instructions. Not one of the recognised overlay shapes,
 @ so this is a CALL TRACE rather than a description -- what it does with
 @ these is not characterised here.
@@ -373,15 +320,21 @@ gOvl_0200ca8c:
 	.incbin "overlays/rom_7d768c/orig.bin", 0x4d64, (0x4e6c-0x4d64)
 .L4e6c:
 	.incbin "overlays/rom_7d768c/orig.bin", 0x4e6c, (0x5004-0x4e6c)
+	.global .L5004
 .L5004:
 	.incbin "overlays/rom_7d768c/orig.bin", 0x5004, (0x5394-0x5004)
+	.global .L5394
 .L5394:
 	.incbin "overlays/rom_7d768c/orig.bin", 0x5394, (0x5688-0x5394)
+	.global .L5688
 .L5688:
 	.incbin "overlays/rom_7d768c/orig.bin", 0x5688, (0x59e8-0x5688)
+	.global .L59e8
 .L59e8:
 	.incbin "overlays/rom_7d768c/orig.bin", 0x59e8, (0x5a48-0x59e8)
+	.global .L5a48
 .L5a48:
 	.incbin "overlays/rom_7d768c/orig.bin", 0x5a48, (0x5ad8-0x5a48)
+	.global .L5ad8
 .L5ad8:
 	.incbin "overlays/rom_7d768c/orig.bin", 0x5ad8
