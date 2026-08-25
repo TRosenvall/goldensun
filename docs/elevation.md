@@ -421,6 +421,37 @@ transposition is among the *non-r0* arguments — `mov r1 / ldr r2` against
 blocker; see `src/non_matching/ovl_77dd1c/2008398.c`, where both directions
 were tried before this was understood and neither helped.
 
+## Tell: `pop {r1}` in a function that looks void names a RETURN VALUE
+
+An epilogue that pops the return address into **r1 instead of r0** is a
+statement about the function's return type, not about register allocation.
+
+    rom    ... bl OvlFunc_946_2009a44 / add sp, #0xc / pop {r1} / bx r1
+    ours   ... bl OvlFunc_946_2009a44 / add sp, #0xc / pop {r0} / bx r0
+
+gcc-2.96 uses r0 for the scratch register in a Thumb epilogue whenever it can.
+It reaches for r1 only when **r0 is still live across the epilogue** — which
+happens when the value in r0 is the function's own return value. So the ROM is
+saying: this function returns something, and the something is whatever the last
+call left in r0.
+
+    return OvlFunc_946_2009a44(actor, pos);
+
+Written as `void` the two streams differ in exactly those two instructions and
+nothing else — a 2-of-17 diff that reads like noise if you are not looking for
+it. Two functions in batch 46 turned on this (`OvlFunc_946_2009b68`,
+`OvlFunc_946_2009b14`), while their three siblings in another overlay genuinely
+are `void` and pop `r0`.
+
+**Check the epilogue register before writing `void`.** It costs nothing and it
+is not recoverable from the body: a tail call whose result is discarded and one
+whose result is returned have identical bodies.
+
+Related: the same reading identified those two functions' argument lists. The
+ROM never rewrites r0 before the `bl`, so the pointer returned by an earlier
+call is still there and is the first argument — the callee takes the actor AND
+the array, where the siblings take only the array.
+
 ## `bl _call_via_rN` means the source called through a POINTER
 
 When the ROM loads a function's address and branches through it —
