@@ -75,6 +75,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-65](reports/batch-65.md) | 8 | ready to port — 7 first-screen, via existing .sym symbols |
 | [batch-66](reports/batch-66.md) | 5 | ready to port — all via existing .sym symbols |
 | [batch-67](reports/batch-67.md) | 5 | ready to port — 8 new area ids added on stated evidence |
+| [batch-68](reports/batch-68.md) | 7 | ready to port — 5 new message ids; 1 park unparked in the same batch |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
