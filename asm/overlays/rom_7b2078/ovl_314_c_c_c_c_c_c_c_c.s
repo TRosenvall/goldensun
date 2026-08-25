@@ -1,91 +1,5 @@
 	.include "macros.inc"
 
-@ 50 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   GetSlotEntityChecked, DialogueWait, PlaySound, OvlFunc_common0_10c
-@   DialogueWait
-.thumb_func_start OvlFunc_926_200c140
-	push	{r5, r6, r7, lr}
-	mov	r0, #8
-	sub	sp, #0x38
-	bl	__MapActor_GetActor
-	mov	r3, #1
-	add	r5, sp, #0x10
-	str	r3, [r5]
-	ldr	r3, =0x119
-	strh	r3, [r5, #0x18]
-	ldr	r3, =.L51d8
-	str	r3, [r5, #0x1c]
-	mov	r3, #0xe0
-	lsl	r3, #10
-	str	r3, [r5, #0x10]
-	mov	r3, #0xc0
-	lsl	r3, #9
-	str	r3, [r5, #0x14]
-	mov	r7, r0
-	mov	r6, #0
-.L4168:
-	mov	r0, #0xa
-	bl	__CutsceneWait
-	mov	r3, #1
-	and	r3, r6
-	cmp	r3, #0
-	beq	.L417c
-	mov	r0, #0x82
-	bl	__PlaySound
-.L417c:
-	ldr	r2, [r7, #0x10]
-	ldr	r3, =0xffe80000
-	add	r2, r3
-	ldr	r3, =0x9999
-	ldr	r0, [r7, #8]
-	ldr	r1, [r7, #0xc]
-	str	r3, [sp]
-	mov	r3, #0
-	str	r3, [sp, #4]
-	ldr	r3, =0x360001
-	add	r6, #1
-	str	r3, [sp, #8]
-	mov	r3, #0
-	str	r5, [sp, #0xc]
-	bl	OvlFunc_common0_10c
-	cmp	r6, #7
-	bls	.L4168
-	mov	r0, #0x3c
-	bl	__CutsceneWait
-	add	sp, #0x38
-	pop	{r5, r6, r7}
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_926_200c140
-
-@ 15 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   SetActorPartsPalette x2
-.thumb_func_start OvlFunc_926_200c1c4
-	push	{lr}
-	ldr	r3, =iwram_3001e40
-	ldr	r3, [r3]
-	mov	r2, #1
-	lsr	r3, #1
-	and	r3, r2
-	cmp	r3, #0
-	beq	.L41dc
-	mov	r1, #0xa
-	bl	__Func_80929d8
-	b	.L41e2
-.L41dc:
-	mov	r1, #9
-	bl	__Func_80929d8
-.L41e2:
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_926_200c1c4
-
 @ 131 instructions. Not one of the recognised overlay shapes,
 @ so this is a CALL TRACE rather than a description -- what it does with
 @ these is not characterised here.
@@ -272,5 +186,6 @@ gOvl_0200c8c8:
 	.incbin "overlays/rom_7b2078/orig.bin", 0x4d40, (0x5184-0x4d40)
 .L5184:
 	.incbin "overlays/rom_7b2078/orig.bin", 0x5184, (0x51d8-0x5184)
+	.global .L51d8
 .L51d8:
 	.incbin "overlays/rom_7b2078/orig.bin", 0x51d8
