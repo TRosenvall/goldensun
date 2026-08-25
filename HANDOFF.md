@@ -311,3 +311,37 @@ because macOS make picks the generic `%.o: %.c` rule for them and reaches for
 this recovery is proof the host-built objects are correct -- nothing is taken on
 trust. But the report gate's "clean `make clean && make compare`" is a
 five-minute recovery, not a no-op. Do not run `make clean` casually mid-round.
+
+### Argument-setup ordering is now the dominant small-function blocker
+
+Ten screened functions are held by ONE difference: where gcc materialises a
+dependency-free `mov rN, #imm` among the other argument registers. The ROM puts
+it in the middle of the sequence; gcc sinks it to the end.
+
+    rom   mov r1, #0xe0 / mov r0, #0x1 / lsl r1, #0x8 / mov r2, #0x0
+    ours  mov r1, #0xe0 / mov r0, #0x1 / mov r2, #0x0 / lsl r1, #0x8
+
+Every one is within six instructions of matching:
+
+    OvlFunc_883_2008dc0/e54/e84/f5c/f8c, OvlFunc_884_200881c/20088ac
+                                     seven siblings, 2 of 16 each
+    OvlFunc_930_2008870              2 of 24
+    OvlFunc_930_20088a8              5 of 24
+    OvlFunc_909_2009958              6 of 18
+
+**Nothing reaches it.** Nine source spellings across three functions are
+byte-identical to each other -- literals, named locals, a local hoisted to the
+top of the function, the shift as its own statement, the shift folded into the
+initialiser, the declaration lever. Four flags are byte-identical to the
+default: `-fno-schedule-insns`, `-fno-peephole`, `-fno-caller-saves`,
+`-fomit-frame-pointer`. `--no-sched2` makes it WORSE everywhere it was tried,
+so the second scheduler is wanted and is not what places these.
+
+Since no scheduler flag reaches it, the order is fixed during argument
+expansion, before scheduling runs -- which is also why source order cannot
+influence it. This belongs with the `-fno-rerun-cse-after-loop` count as
+evidence for a COMPILER DIFFERENCE rather than a source problem, and it is the
+single highest-value thing to resolve: one fix takes at least ten functions.
+
+Full analysis and the complete list of what was tried:
+[src/non_matching/ovl_780898/2008dc0.c](src/non_matching/ovl_780898/2008dc0.c).
