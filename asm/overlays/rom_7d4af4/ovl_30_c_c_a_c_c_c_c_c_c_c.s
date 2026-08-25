@@ -1,52 +1,5 @@
 	.include "macros.inc"
 
-@ 34 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   BeginCutscene, TestSaveBit, SetSaveBit, SetActiveMessageId
-@   ShowMessageAndWait, UpdateObjectProximity, ShowMessageAndWait, SetSlotAnimation
-@   ApplyFieldItemOrAbility, SetActiveMessageId, ShowMessageAndWait, EndCutscene
-@ message ids 0x2368, 0x236a; reads save bit 0x8bf; sets 0x8bf.
-.thumb_func_start OvlFunc_949_20085dc
-	push	{lr}
-	bl	__CutsceneStart
-	ldr	r0, =0x8bf
-	bl	__GetFlag
-	cmp	r0, #0
-	bne	.L622
-	ldr	r0, =0x8bf
-	bl	__SetFlag
-	ldr	r0, =0x2368
-	bl	__MessageID
-	mov	r0, #0x13
-	mov	r1, #0
-	bl	__ActorMessage
-	mov	r0, #0xe9
-	mov	r1, #3
-	bl	__Func_808f1c0
-	mov	r0, #0x13
-	mov	r1, #0
-	bl	__ActorMessage
-	mov	r0, #0
-	mov	r1, #1
-	bl	__MapActor_SetAnim
-	mov	r0, #0xe9
-	mov	r1, #0
-	bl	__Func_8091a58
-	b	.L630
-.L622:
-	ldr	r0, =0x236a
-	bl	__MessageID
-	mov	r0, #0x13
-	mov	r1, #0
-	bl	__ActorMessage
-.L630:
-	bl	__CutsceneEnd
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_949_20085dc
-
 @ 64 instructions. Not one of the recognised overlay shapes,
 @ so this is a CALL TRACE rather than a description -- what it does with
 @ these is not characterised here.
@@ -395,4 +348,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_949_2008894
-

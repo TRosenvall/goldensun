@@ -938,6 +938,34 @@ arguments on the stack and need no lever, because the ROM fills the slots first
 and then the registers, which is what gcc does anyway.
 
 
+### Batch 52: assign inside the arm when the ROM builds the pair twice
+
+Batch 49 said to hoist a shared value to a dominating block. That is right when
+the ROM builds it **once**. When both arms of an `if/else` pass the *same* pair
+and the ROM builds it **fresh in each arm**, the locals must be assigned
+**inside each arm**:
+
+    if (t == 0x24) {
+        __SetFlag(0x335);
+        m = 0x23; n = 0x4d;              /* assigned here */
+        __Func_8010704(0x23, 0x4e, 1, 1, m, n);
+    } else {
+        __ClearFlag(0x335);
+        m = 0x23; n = 0x4d;              /* and again here */
+        __Func_8010704(0x22, 0x4d, 1, 1, m, n);
+    }
+
+`OvlFunc_955_200805c`, three spellings:
+
+| | |
+|---|---|
+| assigned in each arm | 36 lines, **exact** |
+| hoisted above the `if` | 35 lines, 26 differ — gcc materialises once and carries it across the branch |
+| bare literals | 36 lines, 6 differ — one register reused for both slots instead of two |
+
+The duplication looks redundant and is what the ROM says. **Count the
+materialisations in the reference before deciding where to put the assignment.**
+
 ### Two refinements from batch 49
 
 **A value in a CALLEE-SAVED register around a call is shared across both calls.**

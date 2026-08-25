@@ -56,36 +56,3 @@
 	pop	{r1}
 	bx	r1
 .func_end OvlFunc_933_200841c
-
-@ 21 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   BeginCutscene, TestSaveBit x2, SetSaveBit x2, PlaySound
-@   SetPendingMessageId, EndCutscene
-@ reads save bits 0x8b2, 0x8b3; sets 0x8b2, 0x8b3.
-.thumb_func_start OvlFunc_933_2008498
-	push	{lr}
-	bl	__CutsceneStart
-	ldr	r0, =0x8b2
-	bl	__GetFlag
-	cmp	r0, #0
-	bne	.L4be
-	ldr	r0, =0x8b3
-	bl	__GetFlag
-	cmp	r0, #0
-	bne	.L4be
-	ldr	r0, =0x8b3
-	bl	__SetFlag
-	ldr	r0, =0x8b2
-	bl	__SetFlag
-.L4be:
-	mov	r0, #0x7b
-	bl	__PlaySound
-	mov	r0, #3
-	bl	__Func_8091e9c
-	bl	__CutsceneEnd
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_933_2008498
-

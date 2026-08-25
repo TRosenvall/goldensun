@@ -360,3 +360,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-25T06:38:05Z  end     +3 (935_20083e0, 935_2008368, 941_2008460); 421 elevated; CSE TUs now 14
 2026-08-25T06:45:53Z  end     +8 (895_200856c family, one .o); 429 elevated; tryc rejects unknown options
 2026-08-25T06:58:29Z  end     +3 (884_2008634, 952_200bf84, 967_20084b0); 432 elevated; one CSE false positive confirmed
+2026-08-25T07:06:13Z  end     +4 (933_2008498, 948_2009070, 949_20085dc, 955_200805c); 436 elevated; CSE queue empty
