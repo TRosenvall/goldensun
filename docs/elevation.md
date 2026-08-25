@@ -979,6 +979,44 @@ no headline is what invited an estimate in the first place.
 A splitter that cut on a label-closed boundary rather than a function boundary
 would clear the whole class.
 
+## An add/sub chain on a constant may be gcc's OWN arithmetic
+
+When the ROM walks one register through a function, adjusting it rather than
+rebuilding it, that looks like a source variable being reused — and often is
+not.
+
+    mov r3,#0xe0 / lsl r3,#1 / add r2,r1,r3 / add r3,#0x41 / str r3,[r2]
+    sub r3,#0x39 / add r2,r1,r3 / mov r3,#0x18 / str r3,[r2]
+
+Read as source, that says: an offset `0x1c0`, then the stored value built from
+it as `0x1c0 + 0x41`, then the next offset as `0x201 - 0x39`. Writing exactly
+that — `v = 0x1c0; q = p + v; v += 0x41; *q = v; v -= 0x39; ...` — is **10 of
+15** for `OvlFunc_950_200809c`, because gcc then allocates base and offset to
+different registers than the ROM did.
+
+The source is just:
+
+    *(int *)(p + 0x1c0) = 0x201;
+    *(int *)(p + 0x1c8) = 0x18;
+
+gcc had `0x1c0` in a register, needed `0x201`, and reached for `add #0x41`
+because that is cheaper than a second `mov`/`lsl` pair. **The chain is the
+compiler's arithmetic on a constant it already had, not the source's.**
+
+### How to tell this apart from the real reuse lever
+
+The genuine offset-reuse lever (batch 44, `Func_809b648`) looks similar:
+
+    mov r3,#0x91 / lsl r3,#2 / add r2,r1,r3 / mov r3,#0 / str r3,[r2]
+
+The difference is the **final `mov`**. There, the register is *overwritten* with
+an unrelated value (`#0`) before the store — gcc will not do that on its own,
+because it had no reason to destroy the offset. Where the register is instead
+*adjusted* into the next value by `add`/`sub`, that is strength reduction and
+the source had plain literals.
+
+**Try the literal form first.** It is shorter, and being wrong costs one screen.
+
 ## Technique: naming an intermediate stops gcc folding it
 
 Two matches so far turn on the same lever — gcc folds a computed value into

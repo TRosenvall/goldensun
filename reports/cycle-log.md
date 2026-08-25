@@ -350,3 +350,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-25T04:55:44Z  end     +5 (964_20093b4, 964_2008df4, 964_2008dc8, 946_2009b68, 946_2009b14); 389 elevated
 2026-08-25T05:07:25Z  end     +3 (895_20088f4, 953_2009a14, Func_8021c34), 2 parked; 392 elevated
 2026-08-25T05:12:29Z  end     +3 (938_200806c, 964_20092e0, 939_20086e4); 395 elevated; 2 area ids added
+2026-08-25T05:28:55Z  end     +3 (950_200809c, 973_20086f8, Func_80798b4), 1 parked; 398 elevated; m4a filter added

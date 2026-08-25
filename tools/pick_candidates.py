@@ -47,6 +47,27 @@ THE FILTERS, AND WHAT EACH ONE COST
                     them. Five tagged candidates in batch 26, three matched
                     immediately. See CSE_CFLAGS in the Makefile.
 
+  not m4a            asm/rom_f9000/ is the stock m4a / "Sappy" sound engine.
+                     The Makefile already knows it is different: src/lib/m4a/
+                     is built with old_agbcc and -D M4A_SIGNED_CHAR, NOT
+                     Camelot's gcc296. tryc.py screens with gcc296 flags, so a
+                     screen there answers the wrong question even when the
+                     function really was C.
+
+  not hand-assembly  A prologue of `mov r12, lr` with a matching `bx r12` is
+                     not a shape gcc-2.96 emits for Thumb -- it saves lr with
+                     `push {lr}` and returns through a popped register. Fifteen
+                     functions in the tree use the r12 convention and all of
+                     them are in the m4a engine, whose hand-written half is
+                     assembly by ORIGIN and was never compiled from anything.
+
+                     These two cost most of a round: eight of the top sixteen
+                     candidates at `--min-calls 1 --max-insn 20` were `ply_*`
+                     sound commands, which look ideal -- eight instructions,
+                     one call, a tiny shared helper -- and cannot be elevated
+                     at all. Small in absolute terms, dominant at the top of
+                     the list, which is the only place that matters.
+
   no arg-interleave  A `mov r0` landing INSIDE another argument's construction
                      -- between `mov rN, #imm` and its `lsl rN` -- is the
                      arg-interleave blocker, and neither declaration lever
@@ -216,6 +237,9 @@ def scan(whole_file, min_calls, min_insn, max_insn, allow_repeat):
     rows = []
     for p in sorted(glob.glob(os.path.join(ROOT, "asm/**/*.s"), recursive=True)):
         rel = os.path.relpath(p, ROOT)
+        # m4a: a different compiler entirely -- see the docstring.
+        if rel.startswith("asm/rom_f9000/"):
+            continue
         fns = functions(rel)
         if not fns:
             continue
@@ -233,6 +257,12 @@ def scan(whole_file, min_calls, min_insn, max_insn, allow_repeat):
             if calls < min_calls or "_call_via" in body or has_loop(body):
                 continue
             if has_arg_interleave(body):
+                continue
+            # HAND-WRITTEN ASSEMBLY, not compiler output. gcc-2.96 never saves
+            # lr in r12 for Thumb; it pushes lr and returns through a popped
+            # register. Nothing to elevate -- these were never C.
+            if re.search(r"^\tmov\tr12, lr", body, re.M) or \
+                    re.search(r"^\tbx\tr12", body, re.M):
                 continue
             # An INLINE LITERAL POOL cannot be reproduced from a single-function
             # translation unit. gcc puts the pool after the epilogue; the ROM
