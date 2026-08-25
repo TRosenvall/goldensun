@@ -332,3 +332,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-24T23:10:28Z  end     +2 (931_2008448, 957_200b4bc); 353 elevated; sprite-load diagnosis corrected
 2026-08-25T02:24:41Z  end     +2 (933_2008c6c, 888_20086e8); 355 elevated; constant-CSE class split by control flow
 2026-08-25T02:28:39Z  batch   batch-41 published (6 functions); clean build verified
+2026-08-25T02:37:07Z  end     +1 (936_2009858); 356 elevated; 2 parked; local-alloc.c finding settles 3 parks

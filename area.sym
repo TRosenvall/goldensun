@@ -130,6 +130,7 @@ _AREA_7d = 0x7d;
 _AREA_99 = 0x99;
 _AREA_9c = 0x9c;
 _AREA_34 = 0x34;
+_AREA_35 = 0x35;
 _AREA_3e = 0x3e;
 _AREA_3f = 0x3f;
 _AREA_40 = 0x40;

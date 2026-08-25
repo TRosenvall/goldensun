@@ -1,44 +1,5 @@
 	.include "macros.inc"
 
-@ 26 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   TestSaveBit, OvlFunc_3a3c, TestSaveBit, GetSlotEntityChecked
-@   OvlFunc_26c0
-@ reads save bits 0x915, 0xfd6.
-.thumb_func_start OvlFunc_936_2009858
-	push	{lr}
-	ldr	r0, =0xfd6
-	bl	__GetFlag
-	cmp	r0, #0
-	bne	.L186a
-	mov	r0, #0xc
-	bl	OvlFunc_936_200ba3c
-.L186a:
-	ldr	r0, =0x915
-	bl	__GetFlag
-	cmp	r0, #0
-	beq	.L187e
-	mov	r0, #8
-	bl	__MapActor_GetActor
-	mov	r3, #0
-	strh	r3, [r0, #6]
-.L187e:
-	ldr	r3, =gState
-	mov	r2, #0xe1
-	lsl	r2, #1
-	add	r3, r2
-	mov	r2, #0
-	ldrsh	r3, [r3, r2]
-	cmp	r3, #0xa
-	bne	.L1892
-	bl	OvlFunc_936_200a6c0
-.L1892:
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_936_2009858
-
 @ 56 instructions. Not one of the recognised overlay shapes,
 @ so this is a CALL TRACE rather than a description -- what it does with
 @ these is not characterised here.
@@ -694,4 +655,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_936_2009930
-
