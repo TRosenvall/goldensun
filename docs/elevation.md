@@ -1974,3 +1974,29 @@ derivation. This is not a flag question; the two spellings give gcc different
 material.
 
 Worth trying whenever a function's whole body is `x = (x & ~M) | (v << S)`.
+
+### Two flag facts read off the ROM, not guessed
+
+Both are visible in the ROM's own bytes and neither needs a screen to establish.
+
+**`pop {r4, r5, r6, pc}` means the TU was built WITHOUT `-mthumb-interwork`.**
+With interwork gcc emits `pop {r4, r5, r6} / pop {r0} / bx r0`. The Makefile's
+`COMMON2_CFLAGS` rule already drops interwork for `common2_c%` — but
+`common2_a` needs it too, which the wildcard does not cover.
+
+**A prologue that pushes r4 and keeps a value in it ACROSS A CALL means the TU
+was built WITHOUT `-fcall-used-r4`.** That flag is in `GCC296_CFLAGS`, so gcc
+cannot keep anything in r4 across a call; it reaches past to r8 and spends four
+instructions saving and restoring it. `-fcall-saved-r4` took
+`OvlFunc_common2_28c` from 33 differing lines to 4.
+
+**Swept, and the sweep bounds the claim.** All 164 parks re-screened with
+`-fcall-saved-r4`: it improves **eight** and matches **none**.
+
+    ovl_77dd1c/200c5b8.c   36 -> 21     rom_a1000/80a9d84.c    33 -> 15
+    rom_9000/HeightTile_4  22 -> 16     rom_a1000/rom_ad608.c  38 -> 28
+    ovl_common/common2_254 22 -> 21     rom_b5000/rom_c00d8.c  33 -> 32
+    ovl_7c6bac/200851c.c  150 -> 143    rom_f9000/rom_f92fc.c 143 -> 141
+
+So the r4 question is real and wider than one file, and flipping the flag is not
+by itself an answer anywhere else. Read the prologue before reaching for it.
