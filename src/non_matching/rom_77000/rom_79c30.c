@@ -2,6 +2,12 @@
  *
  * Source asm: goldensun/asm/rom_77000/rom_79460_c_c_c_c_a_c_c_a_a.s
  *
+ * TWIN: Func_8079c5c in the same .s chain
+ * (asm/rom_77000/rom_79460_c_c_c_c_a_c_c_a_a.s) has the identical tail --
+ * call, two multiplies, bias-and-shift -- differing only in how its first
+ * argument is derived. It is the same defect and this park covers both. Noted
+ * in batch 56 while screening candidates; not screened separately.
+ *
  * Blocker class: MULTIPLY OPERAND CANONICALISATION.
  *
  * A fixed-point scale: call, two multiplies, then a signed divide by 0x10000
