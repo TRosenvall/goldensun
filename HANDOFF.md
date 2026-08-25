@@ -281,8 +281,8 @@ codebase better than we do. Listed once here rather than repeated per batch.
 
   **Close does not mean reachable.** Many of the sixty sit on named, settled
   classes where the residual is a FLOOR rather than a gap -- the signed
-  lower-bound canonicalisation (batch 55), the `include/dma.h` register binding
-  (batches 54-55), the pre-header load merge, multiply operand canonicalisation.
+  lower-bound canonicalisation (batch 55), the pre-header load merge, multiply
+  operand canonicalisation.
   Each park note says which. Read it before spending a round.
 
   What the number DOES say is that the remaining difficulty is concentrated in a
@@ -500,3 +500,27 @@ spelling problems:
     -5  src/non_matching/rom_b5000/80c23c0.c    branchless bit extract
     -3  src/non_matching/rom_c0/8006384.c       register-register AND
     -3  src/non_matching/rom_b5000/80c2410.c    provably dead mov
+
+### Retired: "dma.h register binding" was not a blocker class
+
+Batches 54-55 named `include/dma.h` register binding as a blocker and five parks
+were filed under it. Re-screening all five in batch 65 shows the label was
+wrong, and no park is actually held by it:
+
+- **`Func_80170c4`** matches the ROM's `stmia r3!, {r0, r1, r2} / sub r3, #0xc`
+  EXACTLY through `DMA3_SET(&buf, d, cnt)`, with the halfword staged at `sp+2`
+  by a plain local. Its residue is an unrelated copy elided at a shared exit.
+- **`Func_80a22f4`** has the binding as ONE of two defects, and its own note
+  records a helper variant (`"+l" (_dst)`) that removes it -- the spill goes
+  away and the length drops from 13 to 12. What remains is gcc strength-reducing
+  the second transfer's constants off the first, which is about constants and
+  has nothing to do with registers.
+- **`OvlFunc_914_2008c0c`** needs gcc's partial tail merge; the count of base
+  loads is the count of calls, which no helper shape reaches.
+- `Func_80198dc`, `Func_80bd7a4` are held by other classes.
+
+**Practical consequence:** `include/dma.h` works. Reach for `DMA3_SET` /
+`DMA3_COPY16` when a function does a DMA transfer, and do not treat the header
+as a known-lost cause. If a DMA function does not match, the reason will be
+somewhere else, and the park note should name that reason rather than the
+header.
