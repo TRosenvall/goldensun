@@ -95,6 +95,23 @@ static inline void DMA3_COPY16(const void *src, void *dst, u32 size) {
     );
 }
 
+// The DMA0 form: same shape as DMA3_SET, but its base register is the one
+// UnknownDMAPrefix() has already loaded, so a function that does the prefix and
+// then a DMA0 transfer loads &REG_DMA0SAD exactly once.
+static inline void DMA0_SET(const void *src, void *dst, u32 cnt) {
+    register vu32 *_base __asm__("r3") = &REG_DMA0SAD;
+    register const void *_src  __asm__("r0") = src;
+    register void *_dst  __asm__("r1") = dst;
+    register u32 _cnt  __asm__("r2") = cnt;
+    __asm__ volatile (
+        "stmia\tr3!, {r0, r1, r2}\n\t"
+        "sub\tr3, #0xc"
+        :
+        : "r" (_base), "r" (_src), "r" (_dst), "r" (_cnt)
+        : "memory"
+    );
+}
+
 // prelude on some functions
 
 static inline u16 UnknownDMAPrefix(void) {
