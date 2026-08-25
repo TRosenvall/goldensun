@@ -698,3 +698,38 @@ ROM using r4 without saving it at all.
 classes. Further progress at this size is likely to need a compiler-level
 answer rather than more source spellings, which is the same conclusion the
 argument-precompute investigation reached from a different direction.
+
+### A named mechanism for the register-allocation parks: `REG_ALLOC_ORDER`
+
+37 parks are blocked on register allocation, and the recurring detail is that
+the ROM reaches for r4-r6 where gcc-2.96 uses r0-r3. That has a named cause in
+the compiler source.
+
+`config/arm/arm.h:989` defines the allocation order, with its own rationale in
+the comment above it:
+
+    /* ... Allocate r0 through r3 in reverse order since r3 is
+       least likely to contain a function parameter; in addition results are
+       returned in r0.  */
+    #define REG_ALLOC_ORDER  { 3, 2, 1, 0, 12, 14, 4, 5, 6, 7, 8, 10, ... }
+
+So gcc tries **r3, r2, r1, r0 first** -- caller-saved before callee-saved -- then
+r12 and r14, then r4 onward. **There is no Thumb-specific override**; the same
+order applies, with the high registers simply unusable.
+
+**What this explains.** In `Func_800fa8c` the ROM keeps four loop values in
+r4/r5/r6 and saves three of them; gcc puts two in r0/r1 and two in r4/r5. With
+no call in the loop, gcc's choice is cheaper and legitimate -- it is not a bug,
+it is a different starting point in the same list.
+
+**What it does NOT establish.** That the original toolchain had a different
+`REG_ALLOC_ORDER` is the most economical explanation, not a proven one.
+Different register pressure, a different pass order, or a different
+`CALL_USED_REGISTERS` would produce similar symptoms. Nothing here was tested by
+rebuilding a compiler.
+
+**The testable next step**, for anyone who can rebuild gcc-2.96: change
+`REG_ALLOC_ORDER` to start at 4 and re-screen the register-allocation parks. If
+a meaningful fraction resolve, that is the answer for the largest blocked class
+in the corpus. If none do, the class needs a different explanation and this
+entry should be struck.

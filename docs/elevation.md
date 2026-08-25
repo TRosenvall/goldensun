@@ -1828,3 +1828,28 @@ three instructions wrong -- `Func_80a1090` went from 15 of 25 to 9 on the swap.
 
 The header itself is not a blocker -- that class was retired in batch 65 after
 re-screening all five parks filed under it. Picking the wrong helper is.
+
+### Why register-allocation diffs are usually a floor
+
+gcc-2.96's ARM back end allocates in the order given by `REG_ALLOC_ORDER`
+(`config/arm/arm.h:989`): **r3, r2, r1, r0, then r12, r14, then r4 onward**. The
+comment there explains the choice -- r3 is least likely to hold a parameter, and
+results come back in r0.
+
+The ROM's code repeatedly reaches for r4-r6 where gcc picks r0-r3. Since the
+order is a compiler constant and not a function of the source, no spelling moves
+it. That is why the following have all been tried across many parks and are all
+byte-identical:
+
+- naming extra locals, or removing them
+- reordering declarations
+- reordering the statements that produce the values
+- copying a parameter into a local before use
+
+**Recognising the floor early saves a round.** If the two streams have the same
+mnemonics and immediates in the same order, and differ only in which register
+each value sits in, stop. Record the count, note that the structure is exact,
+and move on. The exceptions worth one attempt are the shapes that are NOT pure
+naming: an elided copy that a derived initialiser can force
+(`q = (T *)(p + K)`), and a register-offset load that a named pointer can turn
+into an add -- both documented above, both with their limits measured.
