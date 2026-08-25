@@ -55,6 +55,7 @@ _AREA_20 = 0x20;
 _AREA_21 = 0x21;
 _AREA_22 = 0x22;
 _AREA_23 = 0x23;
+_AREA_24 = 0x24;
 _AREA_26 = 0x26;
 _AREA_27 = 0x27;
 _AREA_2f = 0x2f;

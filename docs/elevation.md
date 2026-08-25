@@ -917,6 +917,20 @@ plain C they are unreachable, and register pinning is the only way through.
 empirical limits that cost about six rounds to discover.** The passes table
 below is not decoration.
 
+## DO NOT APPLY THE BASIC-BLOCK LEVER PREEMPTIVELY
+
+The lever is for constants gcc will **not** place where the ROM has them. If gcc
+already places them correctly, hoisting perturbs what was right.
+
+`Func_80a4754` looks like a textbook case — its last call interleaves
+(`mov r2,#1 / ldr r0,=0xb86 / neg r2,r2 / mov r1,#0`) and the call sits inside a
+guarded block, so the conditions hold on paper. Applying it is **2 of 36**:
+hoisting `n = -1;` above the guards moves `mov r1, #0` one instruction early.
+The plain literal `-1` at the call site matches exactly.
+
+**Screen the plain form first.** The lever costs a screen to add and a screen to
+discover it was the thing that broke you.
+
 ## THE BASIC-BLOCK LEVER: assign the constant where the ROM cannot keep it
 
 **This retires two blocker classes**, one of which had been open for thirty-six
