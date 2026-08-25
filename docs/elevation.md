@@ -1192,6 +1192,23 @@ gcc had `0x1c0` in a register, needed `0x201`, and reached for `add #0x41`
 because that is cheaper than a second `mov`/`lsl` pair. **The chain is the
 compiler's arithmetic on a constant it already had, not the source's.**
 
+### The test that decides it (refined, batch 56)
+
+**Write the literals first and see whether gcc produces the chain.**
+
+- gcc produces it  →  the chain is gcc's, keep the literals
+- gcc emits fresh constants instead  →  the chain was in the source, write it
+
+`OvlFunc_common1_15b8` is the case that settles this. The ROM derives its second
+constant from the first with `asr r3, #1`. Written as two literals, gcc emits a
+fresh `mov`/`lsl` — so the shift belongs to the source, and writing
+`v >>= 1;` takes it from 8 of 34 to 6.
+
+**The mnemonic is not the discriminator; who generates it is.** The paragraph
+below reads as though `add`/`sub` means gcc and something else means the source.
+That is a useful prior, not a test — one screen with literals answers it
+directly.
+
 ### How to tell this apart from the real reuse lever
 
 The genuine offset-reuse lever (batch 44, `Func_809b648`) looks similar:

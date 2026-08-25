@@ -1,45 +1,5 @@
 	.include "macros.inc"
 
-@ Map edit: 3 attribute copies.
-@ Attributes only, so the artwork is already correct and only
-@ collision or priority changes.
-@ Records it with save bit 0x241.
-.thumb_func_start OvlFunc_939_2008fa0
-	push	{r5, lr}
-	sub	sp, #8
-	mov	r3, #7
-	str	r3, [sp]
-	mov	r5, #0xb
-	mov	r0, #6
-	mov	r1, #0xb
-	mov	r2, #1
-	mov	r3, #1
-	str	r5, [sp, #4]
-	bl	__Func_8010704
-	mov	r3, #8
-	str	r3, [sp]
-	mov	r0, #6
-	mov	r1, #0xb
-	mov	r2, #1
-	mov	r3, #1
-	str	r5, [sp, #4]
-	bl	__Func_8010704
-	mov	r3, #9
-	str	r3, [sp]
-	mov	r1, #0xb
-	mov	r2, #1
-	mov	r3, #1
-	mov	r0, #6
-	str	r5, [sp, #4]
-	bl	__Func_8010704
-	ldr	r0, =0x241
-	bl	__SetFlag
-	add	sp, #8
-	pop	{r5}
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_939_2008fa0
-
 @ Cutscene: roughly 155 instructions of straight-line script --
 @ 0 turns, 2 animation changes, 4 dialogue lines, 4 timed pauses.
 @ Characterised structurally rather than beat by beat.
@@ -875,4 +835,3 @@
 	pop	{r1}
 	bx	r1
 .func_end OvlFunc_939_2009668
-
