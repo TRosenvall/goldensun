@@ -1777,3 +1777,28 @@ the diff -- a register-offset load where the ROM computes an address first --
 but there the problem is gcc folding `add r3, r5, r1` into the load, not a
 reused zero. The same edit is byte-identical there. Two different defects with
 the same shape in the diff; check which one you have before reaching for this.
+
+### The signed lower-bound floor applies only to IMMEDIATE comparisons
+
+Batch 55 established that gcc-2.96 rewrites every signed LOWER bound to
+`cmp #(K-1) / ble` where the ROM has `cmp #K / blt`, and that this is
+one-directional with a two-line minimum. That is true **for comparisons against
+an immediate**.
+
+It does not apply when the bound is a SYMBOL. `(int)(&_AREA_7e)` is not a
+compile-time constant gcc can decrement, so the comparison is
+register-to-register:
+
+    cmp r2, r3
+    blt .Lout
+
+and gcc emits `blt` exactly as the ROM does. `OvlFunc_946_2008d48` range-tests
+`_AREA_7e <= area <= _AREA_86` and matches exactly.
+
+**Consequence for candidate selection.** A filter that drops every function
+containing a signed range branch is too coarse -- it should drop only ranges
+against immediates. That mistake hid this function for a round.
+
+**Note the second half still needs care.** Two out-of-range paths written as two
+`return` statements get merged into one block that gcc places differently, six
+instructions' worth. Send both to a shared `goto out;` label instead.

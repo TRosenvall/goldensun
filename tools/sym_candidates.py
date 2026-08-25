@@ -30,7 +30,21 @@ THE CONSUMER DECIDES, and the rule was read off existing elevated code:
 
 Only `area` is classified confidently today: reading gState+0x1C0 is a distinct
 instruction signature (`mov rN, #0xe0 / lsl rN, #1`) that cannot be confused
-with anything else. `file` and `msg` are reported as UNCLASSIFIED with their
+with anything else.
+
+RANGE BRANCHES ARE NOT A DISQUALIFIER. An earlier filter dropped every candidate
+containing a signed range branch, on the grounds of the batch-55 lower-bound
+floor. That floor applies only to comparisons against an IMMEDIATE; a bound that
+is a symbol compiles to a register-to-register `cmp` and gcc emits `blt` exactly
+as the ROM does (OvlFunc_946_2008d48). Drop only immediate ranges.
+
+TWO TIERS WITHIN AREA, because batch 67 found the rule was too narrow. The
+strong tier is a pooled value COMPARED against the area field. But an area id
+also appears in ARITHMETIC -- `OvlFunc_946_2009494` computes a per-area flag as
+`0x8c8 + (area - 0x7e)`, and `(int)(&_AREA_7e)` reproduces it exactly. Counting
+only comparisons under-reports. Functions that read the area field but use their
+pooled values some other way are listed separately as WEAK: the namespace is
+likely but the use should be read before a name is chosen. `file` and `msg` are reported as UNCLASSIFIED with their
 call targets listed, so the consumer can be identified by hand before a name is
 chosen. Do not guess from the value.
 """
@@ -79,7 +93,13 @@ def main():
                 continue
             ins = len([l for l in b.split("\n") if l.startswith("\t")])
             if AREA_FIELD.search(b) and all(v in areas for v in vals):
-                rows.append((ins, n, p, sorted({f"_AREA_{v:02x}" for v in vals}), n in parked))
+                cmped = set()
+                for mm in re.finditer(r"^\tldr\t(r\d+), =(0x[0-9a-f]+|\d+)\n\tcmp\t",
+                                      b, re.M):
+                    cmped.add(int(mm.group(2), 0))
+                tier = "" if set(vals) <= cmped else "  WEAK: not all compared"
+                rows.append((ins, n, p,
+                             sorted({f"_AREA_{v:02x}" for v in vals}) , n in parked, tier))
             else:
                 unclassified.append((ins, n, p, sorted({hex(v) for v in vals}),
                                      sorted(set(CALL.findall(b)))[:3]))
@@ -87,9 +107,10 @@ def main():
     unclassified.sort()
     if want == "area":
         print(f"{len(rows)} functions read gState+0x1C0 and compare only DEFINED area ids\n")
-        for ins, n, p, syms, pk in rows:
-            print("%3d insn  %-24s %-30s %s%s"
-                  % (ins, n, ",".join(syms), p, "  [parked]" if pk else ""))
+        for ins, n, p, syms, pk, tier in rows:
+            print("%3d insn  %-24s %-30s %s%s%s"
+                  % (ins, n, ",".join(syms), p,
+                     "  [parked]" if pk else "", tier))
     else:
         print(f"{len(unclassified)} pool-tell functions NOT classified as area.")
         print("Identify the consumer before naming -- call targets shown.\n")
