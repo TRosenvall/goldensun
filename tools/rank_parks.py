@@ -69,6 +69,22 @@ def main():
                 matched[mm.group(1)] = s
     define = re.compile(r"^\w[\w \*]*?\b((?:Ovl)?Func_\w+|[A-Z]\w+)\s*\([^;]*\)\s*\{", re.M)
 
+    # --flags screens each park under the per-file build settings this tree
+    # already uses, and reports any that a flag IMPROVES.
+    #
+    # This was a one-off sweep before it was a mode, and its first run unparked
+    # two functions in a single pass -- one of them a park that had cost several
+    # screens of source variants across two batches, and which -O1 matches
+    # outright. The lesson is that "try the flags" had been happening per
+    # function, at the moment of parking, and never again afterwards; a park
+    # written before a flag rule existed is never revisited by anything.
+    #
+    # Cheap enough to run whenever a new per-file rule is added, which is the
+    # moment the parked set may have quietly become solvable.
+    flagsets = [("plain", []), ("O1", ["--O1"]),
+                ("nosched2", ["--no-sched2"]), ("nocse", ["--no-rerun-cse"])]
+    do_flags = "--flags" in sys.argv
+
     rows, skipped, stale = [], 0, []
     for p in sorted(glob.glob(os.path.join(ROOT, "src/non_matching/**/*.c"),
                               recursive=True)):
@@ -90,7 +106,22 @@ def main():
             continue
         c = COUNT.search(out)
         if c:
-            rows.append((int(c.group(1)), int(c.group(2)), rel, ""))
+            note = ""
+            if do_flags:
+                best, bestname = int(c.group(1)), "plain"
+                for name, fl in flagsets[1:]:
+                    r2 = subprocess.run(
+                        [sys.executable, os.path.join(ROOT, "tools/tryc.py"),
+                         rel, "--ref", m.group(1), "--align"] + fl,
+                        capture_output=True, text=True, cwd=ROOT)
+                    o2 = r2.stdout + r2.stderr
+                    v = 0 if re.search(r"^\s+OK ", o2, re.M) else (
+                        int(COUNT.search(o2).group(1)) if COUNT.search(o2) else 999)
+                    if v < best:
+                        best, bestname = v, name
+                if bestname != "plain":
+                    note = f"<-- {bestname} gives {best}"
+            rows.append((int(c.group(1)), int(c.group(2)), rel, note))
     rows.sort()
     if stale:
         print("STALE -- these parks define a function that is now MATCHED "

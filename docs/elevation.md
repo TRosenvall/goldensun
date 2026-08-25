@@ -592,6 +592,23 @@ operand gcc treats as the base.
 
 Same family as the named-intermediate lever, different target.
 
+## Sweep flags ACROSS the parked set, not per function at parking time
+
+`tools/rank_parks.py --flags` screens every park under every per-file build
+setting the tree uses and reports the ones a flag improves. Its first run
+unparked two functions in a single pass.
+
+One of them, `OvlFunc_939_20087f4`, had cost several screens across two batches
+and matches at **-O1 with the parked C unchanged**. `--O1` had been tried on it
+-- on three of its four source formulations. It was never tried on the fourth,
+because by the time that one was written the flags had already been ruled out on
+the others.
+
+**Flags and source forms are two axes and they were being swept separately.** A
+park written before a per-file rule existed is never revisited by anything, so
+run this whenever a new rule is added -- that is the moment the parked set may
+have quietly become solvable.
+
 ## Rank the parked set before re-attempting anything
 
 `tools/rank_parks.py` screens every park and sorts by how far out it actually

@@ -184,6 +184,13 @@ asm/overlays/rom_79c738/ovl_30_c_c_a_a_c_b.o: src/overlays/rom_79c738/ovl_30_c_c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# The EIGHTH on this flag, and the first in main-ROM code rather than an
+# overlay -- worth noting for the standing question in HANDOFF.md about whether
+# the flag is a real property of the original build.
+asm/rom_c9000/rom_cd260_b.o: src/rom_c9000/rom_cd260_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_78b2ac/ovl_30_c_c_a_a_b.o: src/overlays/rom_78b2ac/ovl_30_c_c_a_a_b.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
@@ -224,6 +231,12 @@ asm/overlays/rom_7a4370/ovl_30_c_c_c_c_a_a_b.o: src/overlays/rom_7a4370/ovl_30_c
 # This one IS equivalent to -O2 -fno-schedule-insns2; -O1 is used for
 # consistency with the rules above. Two pool loads in the wrong order.
 asm/overlays/rom_7bc690/ovl_4e4_a_a_b.o: src/overlays/rom_7bc690/ovl_4e4_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# Unparked by -O1 alone, with the C unchanged from the parked version. The
+# speculative literal hoist that parked it in batch 32 is an -O2 behaviour.
+asm/overlays/rom_7c460c/ovl_314_a_c_a_c_a_b.o: src/overlays/rom_7c460c/ovl_314_a_c_a_c_a_b.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)

@@ -334,3 +334,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-25T02:28:39Z  batch   batch-41 published (6 functions); clean build verified
 2026-08-25T02:37:07Z  end     +1 (936_2009858); 356 elevated; 2 parked; local-alloc.c finding settles 3 parks
 2026-08-25T02:46:16Z  end     +3 (891_2008054, 917_20092b4, 933_2008c38); 359 elevated; 2 new O1 rules
+2026-08-25T02:55:05Z  end     +2 unparked (939_20087f4, Func_80cd488); 361 elevated; rank_parks --flags
