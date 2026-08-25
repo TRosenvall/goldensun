@@ -637,6 +637,15 @@ def main():
             # This is the THIRD false-positive class in this tool. Warn rather
             # than fail: a mid-function pool does not always move, and the build
             # is still the authority.
+            #
+            # THE WARNING USED TO LIVE ONLY HERE, ON THE `OK` PATH, and that was
+            # a hole. Func_801edec screened XX with ONE differing line -- and
+            # that line was only this tool printing a symbol name where the
+            # reference prints its value, i.e. cosmetically identical. No
+            # warning fired, and `make compare` failed by 323,730 bytes because
+            # the TU came out a different SIZE and everything after it shifted.
+            # A near-match with an inline pool is exactly as unproven as a
+            # clean one, so warn_inline_pool() is now called on both paths.
             if pool_is_inline(ref_path):
                 print(f"     !! {name}: the reference keeps its literal pool "
                       f"INSIDE the function (.pool_aligned / mid-body .word).")
@@ -644,6 +653,14 @@ def main():
                       f"different distance still compares equal here.")
                 print(f"        VERIFY WITH make compare -- this screen cannot "
                       f"see PC-relative offsets.")
+        elif pool_is_inline(ref_path):
+            # Near-miss with an inline pool: the residue may be cosmetic, in
+            # which case this is a match the build will still reject.
+            print(f"     !! {name}: the reference keeps its literal pool "
+                  f"INSIDE the function. Even if the remaining difference looks "
+                  f"cosmetic,")
+            print(f"        the emitted SIZE of the translation unit can differ "
+                  f"and shift everything after it. VERIFY WITH make compare.")
             continue
         ok = False
         # first divergence, with a little context -- enough to see whether it
