@@ -49,6 +49,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-39](reports/batch-39.md) | 7 | ready to port |
 | [batch-40](reports/batch-40.md) | 8 | ready to port |
 | [batch-41](reports/batch-41.md) | 6 | ready to port |
+| [batch-42](reports/batch-42.md) | 6 | ready to port |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
@@ -175,7 +176,9 @@ codebase better than we do. Listed once here rather than repeated per batch.
   with `undefined reference`, which reads like a typo in the C. Silent until
   someone adds a symbol.
 
-- **Seven TUs are built with `-fno-rerun-cse-after-loop`** (first two in batch 25), and
+- **Eight TUs are built with `-fno-rerun-cse-after-loop`** (first two in batch 25),
+  and as of batch 42 one of them is MAIN-ROM code rather than an overlay, which
+  weakens the reading that this is an overlay-only property. It
   this needs a decision from someone who knows the original toolchain. Both load
   a save-flag id twice around a call; at -O2 gcc-2.96 hoists it into a
   callee-saved register, spending a push, a pop and two moves to save one pool
