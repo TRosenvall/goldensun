@@ -1519,3 +1519,45 @@ is where this pays.
 
 So: try it when the ROM shows a literal as the destination AND the code is
 straight-line. Screen it, do not assume it.
+
+### Lever: a DERIVED initialiser forces the pointer copy gcc coalesces away
+
+When the ROM loads a pointer into one register and copies it into another
+before walking it:
+
+    ldr r3, [r3, #0x0]
+    mov r5, r3              <- the copy gcc will not emit
+    add r5, #0x48
+
+writing the obvious two statements does NOT reproduce it:
+
+    q = p;                  /* gcc coalesces q with p and loads straight */
+    q += 0x48;              /* into r5, dropping the copy entirely       */
+
+Write the initialiser as a single DERIVED expression instead:
+
+    q = (unsigned char **)(p + 0x48);
+
+Now `p` and `q` are different values, the copy is real, and the `add` follows.
+That took `Func_80a9cbc` from 2 of 28 to an exact match with no other change.
+
+**The initialiser must be an expression, not an alias.** `Func_8078550` needs
+the same copy and cannot get it, because there the second pointer is the same
+address as the first -- a bare `w = buf;` alongside `Func_80796c4(buf)`. gcc has
+no reason to keep two names for one value, and the attempt made it worse (8 of
+27 to 10). If the two pointers genuinely hold the same address, this lever has
+nothing to work with.
+
+Note the pairing with the existing pointer-walk lever: a destructive `+=` gives
+you the WALK, but only a derived initialiser gives you the COPY that precedes
+it. They are two halves of the same shape and you often need both.
+
+### The constant-as-destination lever applies to MUL as well
+
+`mov r3, #0x64 / mul r3, r0` is the same shape as the AND/ORR case:
+
+    x = 0x64;
+    x *= r;                 /* not  x = 0x64 * r;  */
+
+Same reasoning -- Thumb's `mul` is two-operand and destructive, so whichever
+operand the source makes the destination is the one that survives.
