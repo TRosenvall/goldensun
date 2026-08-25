@@ -541,7 +541,7 @@ Data_8009d9c:
 	bne	.La3d0
 	pop	{r5, r6, r7, r8}
 	bx	lr
-.func_end Func_800a37c
+.func_end_emit_size Func_800a37c, _FUNC_800A37C_SIZE
 
 .arm_func_start Func_800a418  @ 0x0800a418
 	bics	r1, #7
@@ -925,3 +925,13 @@ Data_8009d9c:
 .ssize	Func_800a968
 
 .pool
+
+@ The blob Func_800d304 copies to RAM is Func_800a494 PLUS the three veneers it
+@ calls through and PLUS this pool: 0x4c4 + 3*8 + 0xc = 0x4e8, which is exactly
+@ the size that function loads. The size symbol therefore has to be measured
+@ from here, not from Func_800a494's own .func_end.
+@ Emits no bytes -- an absolute symbol definition, same class as the .global
+@ lines HANDOFF.md records.
+Func_800a494_Blob_End:
+	.global _FUNC_800A494_SIZE
+	_FUNC_800A494_SIZE = Func_800a494_Blob_End - Func_800a494
