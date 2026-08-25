@@ -58,6 +58,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-48](reports/batch-48.md) | 7 | ready to port |
 | [batch-49](reports/batch-49.md) | 9 | ready to port |
 | [batch-50](reports/batch-50.md) | 7 | ready to port |
+| [batch-51](reports/batch-51.md) | 11 | ready to port |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
@@ -185,7 +186,8 @@ codebase better than we do. Listed once here rather than repeated per batch.
   with `undefined reference`, which reads like a typo in the C. Silent until
   someone adds a symbol.
 
-- **Fourteen TUs are built with `-fno-rerun-cse-after-loop`** (first two in batch 25),
+- **Fifteen TUs are built with `-fno-rerun-cse-after-loop`**, covering twenty-two
+  functions (first two in batch 25),
   and as of batch 42 one of them is MAIN-ROM code rather than an overlay, which
   weakens the reading that this is an overlay-only property. It
   this needs a decision from someone who knows the original toolchain. Both load
@@ -204,8 +206,8 @@ codebase better than we do. Listed once here rather than repeated per batch.
 
   **THE COUNT IS NOW THE ARGUMENT.** Batch 51 searched the whole corpus for the
   shape mechanically -- a pooled flag id loaded for two or more flag calls in
-  one function -- and found **19 unelevated functions** carrying it, three of
-  which were elevated immediately. Fourteen per-file rules and a further sixteen
+  one function -- and found **19 unelevated functions** carrying it, eleven of
+  which are now elevated. Fifteen per-file rules and a further eight
   candidates queued behind them is no longer comfortably read as "the original
   build used this flag on these particular files". It reads more like
   **gcc-2.96 running a pass the original compiler did not**, in which case the
