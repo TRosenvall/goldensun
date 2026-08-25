@@ -1076,6 +1076,20 @@ arguments on the stack and need no lever, because the ROM fills the slots first
 and then the registers, which is what gcc does anyway.
 
 
+### One local per independent operation (batch 57)
+
+Recycling a local across two operations the ROM keeps apart shifts the whole
+register assignment. `OvlFunc_942_200886c` reads gState twice — different
+offsets, different tests — and reusing one offset variable and one value
+variable for both is **6 of 39**. Giving each read its own offset, pointer and
+value matches exactly.
+
+The base pointer IS genuinely held across both (r5, pushed), so that one stays a
+single local.
+
+**Read the ROM for which registers are held and which are rebuilt, then mirror
+it.** A local is not free: it is a statement that one value spans both uses.
+
 ### Batch 52: assign inside the arm when the ROM builds the pair twice
 
 Batch 49 said to hoist a shared value to a dominating block. That is right when

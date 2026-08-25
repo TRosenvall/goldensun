@@ -373,3 +373,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-25T08:24:32Z  end     +1 (968_2009a50); 458 elevated; small-function band nearly exhausted
 2026-08-25T08:29:27Z  end     +2 (common1_1fb4, LoadUIIcon); 460 elevated; 26-40 band working well
 2026-08-25T08:34:57Z  end     +2 (939_2008fa0, 947_200a63c); 462 elevated; batch-48 rule given a real test
+2026-08-25T08:44:37Z  end     +3 (936_200964c, 942_200886c, 886_200855c); 465 elevated
