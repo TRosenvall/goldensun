@@ -32,12 +32,12 @@
  * re-derived: the wrapper takes (a, b, c, d) and calls __CreateActor(d, a, b, c),
  * which is what generates the four-register rotation through r4/r5/r6.
  *
- * NOT SCREENED, and recorded as such rather than assumed: the neighbouring
- * 4-copy cluster at 46 instructions (OvlFunc_92x_2008a4c) is the same wrapper
- * with an extra `orr` and a trailing read-modify-write on byte +0x23. It has
- * the identical guard shape and the identical post-call argument pattern, so it
- * is expected to hit both blockers above, but that expectation has not been
- * tested.
+ * THE NEIGHBOURING 4-COPY CLUSTER WAS SCREENED IN THE NEXT ROUND and the
+ * expectation held: `OvlFunc_92x_2008a4c` (46 instructions, four copies) hits
+ * both blockers above and lands at 19 of 48. It is parked separately at
+ * src/non_matching/ovl_7ced6c/2008a4c.c. Eight of these __CreateActor wrappers
+ * are therefore blocked by the same two things, which makes those two blockers
+ * worth eight functions between them.
  */
 extern unsigned char *__CreateActor(int a, int b, int c, int d);
 extern void __Actor_SetSpriteFlags(void *a, int n);

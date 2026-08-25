@@ -567,3 +567,26 @@ instead.
 
 The 6 x 16 shape is the `OvlFunc_883/884` family, blocked by argument precompute
 (`calls.c:805`) -- a compiler difference, not fixable from C.
+
+### Where the blocked work is concentrated, by function count
+
+Three blockers now account for more blocked functions than everything else
+combined, because each holds a whole duplicated cluster:
+
+    8 functions   basic-block placement + one register naming
+                  the __CreateActor wrappers: 4 x 39 insn and 4 x 46 insn,
+                  src/non_matching/ovl_7ced6c/20089f4.c and 2008a4c.c
+    7 functions   one hoisted load, scheduler-related
+                  src/non_matching/rom_8a000/rom_9a44c.c (highest value: the
+                  seven are operand-identical, so one fix ports verbatim)
+    12 functions  argument precompute, calls.c:805 -- a compiler difference,
+                  NOT fixable from C
+
+So 15 functions sit behind two behaviours that are still open, and 12 behind one
+that is closed. That is a better guide to where a round is worth spending than
+the raw park count of 158.
+
+**All three clusters were found by tools/twin_finder.py or by the cluster census
+in this file, not by reading the candidate list.** Duplicate-aware selection is
+what makes a single screen worth four to seven functions; per-function selection
+had been picking singletons for many rounds.
