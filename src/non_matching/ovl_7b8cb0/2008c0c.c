@@ -2,6 +2,11 @@
  *
  * Source asm: goldensun/asm/overlays/rom_7b8cb0/ovl_30_c_c_c_c_c_c_c_c_c_c.s
  *
+ * TWIN: OvlFunc_932_200aa10 in asm/overlays/rom_7b9cb4/ovl_30_a_c_c_a_c_c_a_a.s
+ * is instruction-for-instruction identical, so this park covers two functions
+ * and solving it elevates both. Found in batch 53 while screening candidates;
+ * not screened separately, because the bodies are the same.
+ *
  * Blocker class: constant materialisation width. ONE instruction differs.
  *
  *     rom    mov r3, #0x0 ... sub r3, #0xd      (r3 = 0xfffffff3)

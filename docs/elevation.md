@@ -444,6 +444,29 @@ transposition is among the *non-r0* arguments — `mov r1 / ldr r2` against
 blocker; see `src/non_matching/ovl_77dd1c/2008398.c`, where both directions
 were tried before this was understood and neither helped.
 
+## The `neg / orr / lsr #31` idiom needs a STATEMENT-LEVEL branch
+
+gcc-2.96's branchless "is this non-zero" sequence --
+
+    neg r0, r3 / orr r0, r3 / lsr r0, #0x1f
+
+-- is **not** what `!= 0` compiles to. For `Func_807a2bc`:
+
+| Source | Result |
+|---|---|
+| `return (x & (1 << bit)) != 0;` | 15 lines — rewritten to `(x >> bit) & 1` |
+| `return (x & (1 << bit)) ? 1 : 0;` | 15 lines — same rewrite |
+| `v = x & (1 << bit); if (v) return 1; return 0;` | **18 lines, exact** |
+
+Both expression forms let gcc see that the result is a single bit and replace the
+mask with a shift, three instructions shorter. Only the **statement-level
+`if`/`return`** produces the ROM's sequence.
+
+Naming the mask and the value in their own statements *without* the `if` is 19
+lines and worse than either. **It is the branch that stops the rewrite, not the
+naming** — which is the opposite of the usual lever, where naming an
+intermediate is what preserves structure.
+
 ## Tell: `pop {r1}` in a function that looks void names a RETURN VALUE
 
 An epilogue that pops the return address into **r1 instead of r0** is a

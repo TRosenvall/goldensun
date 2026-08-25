@@ -361,3 +361,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-25T06:45:53Z  end     +8 (895_200856c family, one .o); 429 elevated; tryc rejects unknown options
 2026-08-25T06:58:29Z  end     +3 (884_2008634, 952_200bf84, 967_20084b0); 432 elevated; one CSE false positive confirmed
 2026-08-25T07:06:13Z  end     +4 (933_2008498, 948_2009070, 949_20085dc, 955_200805c); 436 elevated; CSE queue empty
+2026-08-25T07:13:10Z  end     +2 (957_2008d58, Func_807a2bc); 438 elevated; neg/orr/lsr idiom documented
