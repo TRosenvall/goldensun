@@ -1,36 +1,5 @@
 	.include "macros.inc"
 
-@ TileHeight_StepAntiDiagonal (shape 3)
-@ Two flat halves split by the anti-diagonal x + z = 15: below it corner 0,
-@ above it corner 1, and exactly on it max(c0, c1) so the ridge line sits at the
-@ higher of the two.
-.thumb_func_start HeightTile_3  @ 0x08011d34
-	push	{lr}
-	mov	r3, #0
-	ldrsb	r3, [r0, r3]
-	lsl	r4, r3, #19
-	mov	r3, #1
-	ldrsb	r3, [r0, r3]
-	lsl	r0, r3, #19
-	mov	r3, r4
-	cmp	r0, r4
-	ble	.L11d4a
-	mov	r3, r0
-.L11d4a:
-	add	r1, r2
-	cmp	r1, #0xf
-	bne	.L11d54
-	mov	r0, r3
-	b	.L11d5a
-.L11d54:
-	cmp	r1, #0xe
-	bhi	.L11d5a
-	mov	r0, r4
-.L11d5a:
-	pop	{r1}
-	bx	r1
-.func_end HeightTile_3
-
 @ TileHeight_StepDiagonal (shape 4)
 @ As HeightTile_3 but split by the main diagonal z - x = 0: negative side corner
 @ 0, positive side corner 1, max(c0, c1) on the line itself.
