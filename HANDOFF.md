@@ -127,6 +127,14 @@ often enough to matter.
 
 ## Standing items for review
 
+**26 parked files are PARTLY STALE** — they name a group of functions, some of
+which have since been elevated, and their notes now describe a mix of solved and
+unsolved work. `python3 tools/stale_parks.py` lists them. They need editing, not
+deleting, and that has not been done. Sixteen FULLY stale files were deleted in
+batch 71; the park count went 180 → 164. Treat any park census taken before that
+as counting solved problems.
+
+
 Things surfaced across batches that need a decision from someone who knows the
 codebase better than we do. Listed once here rather than repeated per batch.
 
