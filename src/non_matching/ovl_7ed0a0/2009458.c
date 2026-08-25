@@ -29,6 +29,13 @@
  * other arm). gcc picks the destination register itself; operand order in the
  * source does not reach it.
  *
+ * TRIED AND WORSE, batch 57: the fully spelled-out read-modify-write that fixes
+ * the identical residual in src/rom_8a000/rom_97b54_a_c_a_b.c -- pointer,
+ * loaded value, constant and result each in their own local and statement --
+ * takes this function from 3 of 36 to 7. The two functions have the same
+ * two-instruction difference and do not respond to the same spelling, so
+ * whatever decides the register pair is not the statement structure.
+ *
  * NEXT: nothing at the expression level. This is the allocator choosing r2/r3
  * the other way round from Camelot's compiler on a three-value block.
  */

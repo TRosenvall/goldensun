@@ -375,3 +375,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-25T08:34:57Z  end     +2 (939_2008fa0, 947_200a63c); 462 elevated; batch-48 rule given a real test
 2026-08-25T08:44:37Z  end     +3 (936_200964c, 942_200886c, 886_200855c); 465 elevated
 2026-08-25T08:50:48Z  end     +2 (911_20081dc, Func_80a4754); 467 elevated; dispatcher family closed
+2026-08-25T08:55:11Z  end     +1 (Field_Growth_Target); 468 elevated
