@@ -348,3 +348,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-25T04:34:06Z  end     +2 (930_2008ff0, 930_2009028); 382 elevated; Makefile pattern rule narrowed
 2026-08-25T04:49:58Z  end     +2 (923_2008ed0, 964_2009348, both UNPARKED); 384 elevated; two more wildcard rules narrowed
 2026-08-25T04:55:44Z  end     +5 (964_20093b4, 964_2008df4, 964_2008dc8, 946_2009b68, 946_2009b14); 389 elevated
+2026-08-25T05:07:25Z  end     +3 (895_20088f4, 953_2009a14, Func_8021c34), 2 parked; 392 elevated
