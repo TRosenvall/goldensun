@@ -37,6 +37,21 @@
  * OvlFunc_894_2008054 are byte-identical twins in adjacent overlays, and
  * OvlFunc_973_200871c has the same prologue with a different constant. Solving
  * one solves three, which is why it is worth more than three instructions.
+ *
+ * SHARPENED, batch 44. The construct this park calls "the one that should work
+ * and is the worst result" -- reusing the offset variable as the stored value --
+ * IS CORRECT, and has now been confirmed on a function that matches with it:
+ * src/rom_8a000/rom_9ad70_c_c_b.c (Func_809b648) has the same
+ * `add r2,r1,r3 / mov r3,#0 / str r3,[r2]` shape and needs exactly that form.
+ *
+ * So the problem here is not the construct. It is that this function has TWO
+ * stores sharing one offset variable, and the reuse that fixes the second one
+ * changes the register allocation of the first. Func_809b648 has only one
+ * store and no such interaction.
+ *
+ * That narrows the next attempt: keep the reuse for the second store and find a
+ * way to stop it disturbing the first, rather than looking for a different
+ * construct.
  */
 extern unsigned int iwram_3001ebc;
 extern int __GetFlag(int id);

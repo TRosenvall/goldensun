@@ -384,6 +384,14 @@ def instructions(text, want=None):
         # Collapsing runs of whitespace does not fix it; there is no whitespace
         # to collapse.
         s = re.sub(r",\s*", ", ", s)
+        # A FIFTH SPELLING. `ldrb r3, [r3]` and `ldrb r3, [r3, #0]` are the same
+        # instruction -- the zero-offset form is an alias -- and the ROM's
+        # disassembly writes one while gcc writes the other. Fold them, the same
+        # way the destructive-form and comma-spacing differences are folded.
+        #
+        # Only the bare single-register form: `[r3, r2]` is a REGISTER offset
+        # and a different instruction, so it must not be touched.
+        s = re.sub(r"\[(r\d+|sp|pc)\]", r"[\1, #0x0]", s)
         body.append(canon(s))
     if cur is not None:
         out.append((cur, body))

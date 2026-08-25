@@ -341,3 +341,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-25T03:34:25Z  end     +2 (888_20082ec, 887_200933c); 369 elevated; 3 parked (indexed-store family)
 2026-08-25T03:40:53Z  batch   batch-43 published (8 functions); clean build verified
 2026-08-25T03:43:48Z  end     +2 (948_20090b8, 939_2008c10); 371 elevated; 1 parked (pool tell, no namespace)
+2026-08-25T03:50:32Z  end     +2 (964_2008fe8, Func_809b648); 373 elevated; fifth tryc spelling

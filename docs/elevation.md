@@ -132,6 +132,15 @@ resolution and the disassembly does not.
 a round. That one reported a wrong function as RIGHT.** When adding a
 normalisation, ask which direction its failure runs in.
 
+## A FIFTH SPELLING, found in batch 44
+
+`ldrb r3, [r3]` and `ldrb r3, [r3, #0]` are the same instruction -- the
+zero-offset form is an alias -- and the ROM's disassembly writes one while gcc
+writes the other. `tryc.py` now folds them.
+
+Only the bare single-register form. `[r3, r2]` is a REGISTER offset and a
+different instruction.
+
 ## What the screen has to normalise
 
 A FOURTH SPELLING was found in batch 36, and it is a typo rather than a
