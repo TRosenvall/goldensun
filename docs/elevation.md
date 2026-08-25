@@ -1652,3 +1652,38 @@ passes.
 
 Check for this BEFORE splitting: if the piece you are cutting away references a
 `.L` label defined in the part that keeps the data, export it in the same edit.
+
+### Lever: a plain `return K;` per path, not a result variable
+
+When several paths return different constants and the ROM re-materialises the
+value on each path:
+
+    mov r0, #0x1 / cmp r3, #0 / beq .Lexit      <- set, then branch to the shared exit
+    ...
+    mov r0, #0x1 / b .Lexit                     <- set again on the other path
+    .Lzero: mov r0, #0x0
+    .Lexit: pop {...}
+
+do NOT write it with a result variable:
+
+    r = 1;
+    if (t == 0) goto out;
+    ... call ...
+    r = 1;
+    goto out;
+    zero: r = 0;
+    out: return r;
+
+gcc sees ONE value live across the call and parks it in a callee-saved register
+(`mov r7, #0x1`), which is both wrong and more expensive. Write two plain
+`return 1;` statements instead. **gcc merges the epilogues by itself** -- the
+shared exit the result variable was trying to build by hand appears anyway, and
+the constant is re-materialised per path exactly as the ROM does it.
+
+`Func_80bf3bc`, 8 of 31 down to 2 on that change alone.
+
+The general point: a result variable is a way of describing control flow that
+gcc already performs. Reach for it only when the returned value is genuinely
+computed rather than chosen from constants -- see the offset-variable-reused
+lever, where a variable IS the right answer because the value comes from a
+load.

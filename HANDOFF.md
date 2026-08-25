@@ -438,3 +438,32 @@ deferred, so these functions are a maintainer's call. Two worked examples with
 the evidence written out:
 [src/non_matching/ovl_7d768c/2008070.c](src/non_matching/ovl_7d768c/2008070.c)
 (pooled 0x8b) and its sibling `OvlFunc_963_200808c` (pooled 0xaa and 0xa9).
+
+### Dead end: load-then-copy is NOT a blocker signature
+
+`ldrb rA, [..]` immediately followed by `mov rB, rA` is the shape behind the
+four-function `Func_80bf*` family, where gcc loads straight into the destination
+and drops the copy. It looked like it might be a large blocker class, and the
+raw numbers encouraged that:
+
+    unelevated   508 of 2702  (18.8%)
+    elevated      72 of 2915  ( 2.5%)
+
+**That 7.5x enrichment is a SIZE ARTIFACT.** Elevated functions are small,
+unelevated ones are large, and a longer function has more chances to contain any
+given pattern. Controlling for length removes it:
+
+    size band     elevated      unelevated
+    12-25         19/980  (2%)  10/149  (7%)
+    26-40         29/485  (6%)  28/351  (8%)
+    41-70          4/94   (4%)  67/666 (10%)
+    71-200         2/45   (4%) 191/988 (19%)
+
+In the 26-40 band -- where both populations are well represented -- the rates are
+6% and 8%. gcc emits load-then-copy routinely in functions that match byte for
+byte, so its presence says nothing about whether a function is reachable.
+
+**Do not build a candidate filter on this.** The `Func_80bf*` family is blocked
+by a specific instance of the pattern, not by the pattern itself. The only two
+measured, real blocker counts remain argument precompute (11 functions,
+mechanism traced to compiler source) and the pool tell (271, upper bound).
