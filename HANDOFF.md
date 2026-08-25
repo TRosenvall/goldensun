@@ -467,3 +467,36 @@ byte, so its presence says nothing about whether a function is reachable.
 by a specific instance of the pattern, not by the pattern itself. The only two
 measured, real blocker counts remain argument precompute (11 functions,
 mechanism traced to compiler source) and the pool tell (271, upper bound).
+
+### What the park corpus actually looks like, measured
+
+A claim was made in batch 64 that the remaining small-function pool is
+"dominated by cases where gcc's output is shorter than the ROM's". **That was an
+overstatement.** Measured across the 53 park files that record a length
+comparison:
+
+    ours SHORTER than ROM    21  (40%)
+    same length              28  (53%)
+    ours LONGER               4  ( 8%)
+
+**The majority are same-length**, which means register allocation and
+instruction ordering -- differences the levers are built for and which have been
+cracked repeatedly. The shorter-than-ROM group is real and substantial at 40%,
+and it is the genuinely hard one: where the optimiser proved something (a value
+the guard pinned, a provably-dead instruction, a mask the store makes
+redundant), no source spelling puts the longer form back.
+
+**Caveat on the denominator:** only 53 of 159 park files record a length
+comparison at all. The newer park format includes it; older notes do not. The
+proportions are from the files that have it, and newer parks are biased toward
+the near-misses that got the most attention, so the shorter-than-ROM share is
+probably an over-estimate for the corpus as a whole.
+
+**What follows for planning:** the same-length majority is still worth working,
+and the biggest shortfalls are listed below so they are not re-attempted as
+spelling problems:
+
+    -6  src/non_matching/ovl_7bf5a8/2008704.c   dead callee-saved register
+    -5  src/non_matching/rom_b5000/80c23c0.c    branchless bit extract
+    -3  src/non_matching/rom_c0/8006384.c       register-register AND
+    -3  src/non_matching/rom_b5000/80c2410.c    provably dead mov
