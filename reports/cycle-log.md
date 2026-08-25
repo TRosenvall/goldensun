@@ -382,3 +382,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-25T09:27:52Z  end     +4 (948_2009da0, 959_200a410, 959_200a468, 882_20092f0); 478 elevated
 2026-08-25T09:33:26Z  end     +2 (943_200b150, 945_200cfa8); 480 elevated; first switch functions
 2026-08-25T09:45:18Z  end     +0, 3 parks; 480 elevated; N identical pool entries => N distinct symbols
+2026-08-25T09:52:23Z  end     +3 (HasMove, 954_2008178, Func_808d5a4); 483 elevated; carries_data missed .incrom

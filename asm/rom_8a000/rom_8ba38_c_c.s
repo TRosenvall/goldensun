@@ -1,36 +1,7 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ GetTalkRecordForTarget
-@ r0=entity id. Fetches the kind 0 interaction record for the entity and
-@ compares the id against the active target at ewram_240+0x24A, so the caller
-@ can tell a first conversation from a repeat.
-.thumb_func_start Func_808d5a4  @ 0x0808d5a4
-	push	{r5, r6, lr}
-	mov	r5, r0
-	mov	r1, r5
-	mov	r0, #0
-	bl	FindMapActorEvent
-	ldr	r2, =0x24a
-	ldr	r3, =gState
-	add	r3, r2
-	mov	r2, #0
-	ldrsh	r1, [r3, r2]
-	mov	r6, r0
-	cmp	r1, r5
-	bne	.L8d5ca
-	mov	r0, #7
-	bl	FindMapActorEvent
-	cmp	r0, #0
-	bne	.L8d5cc
-.L8d5ca:
-	mov	r0, r6
-.L8d5cc:
-	pop	{r5, r6}
-	pop	{r1}
-	bx	r1
-.func_end Func_808d5a4
-
+@ Data only: the function that lived here is src/rom_8a000/rom_8ba38_c_c_b.c.
 	.section .rodata
 	.global .L9e4ce
 
