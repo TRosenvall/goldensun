@@ -782,6 +782,16 @@ gets split the same way. `OvlFunc_943_2008c28` passes -0xa, which gcc builds as
 arguments exactly as it splits a `mov`/`lsl` pair. The same lever fixes it. Read
 the rule as "a constant that takes two instructions to build", not "a shift".
 
+**EVERY REPEATED USE MUST BE IN A DIFFERENT BLOCK FROM THE ASSIGNMENT.** One
+use in the assignment's own block defeats it. `OvlFunc_936_20095b4` passes
+`0x80 << 2` to `__GetFlag` in an `if` condition and to `__SetFlag` inside the
+body; two separate locals assigned above the `if` leave it exactly where the
+literal does, because CSE merges them into one pseudo before local-alloc runs
+and that pseudo is then referenced three times -- so `REG_N_REFS == 2` fails.
+
+The cases where it works -- `OvlFunc_892_2008054`, `OvlFunc_959_2008ce0` -- have
+ALL the repeated uses inside the conditional block.
+
 **AND IT DOES NOT REACH INSIDE A LOOP BODY.** The assignment has to be in a
 block that dominates the call, and in a loop every such block is also reachable
 across the BACK EDGE -- so the value is live around the loop and gcc keeps it in

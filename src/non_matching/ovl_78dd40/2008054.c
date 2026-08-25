@@ -52,6 +52,39 @@
  * That narrows the next attempt: keep the reuse for the second store and find a
  * way to stop it disturbing the first, rather than looking for a different
  * construct.
+ *
+ * BODY REPLACED, batch 44, and the number went UP on purpose.
+ *
+ * The previous body was 3 of 30 and one of those three was a WRONG INSTRUCTION
+ * FORM -- an indexed `str r2, [r1, r3]` where the ROM computes the address.
+ * The body below is 5 of 30 and every one of the five is the SAME instruction
+ * with two registers swapped:
+ *
+ *     rom    ldr r1,[r3] ... add r2, r1, r3 ... str r3,[r2]
+ *     ours   ldr r2,[r3] ... add r1, r2, r3 ... str r3,[r1]
+ *
+ * The base lands in r2 where the ROM has r1; everything else is identical,
+ * including both address computations and both stores.
+ *
+ * FIVE IS A BETTER STARTING POINT THAN THREE. A wrong instruction form is a
+ * construct error and says the C is not what Camelot wrote; a register-naming
+ * difference says the C is right and the allocator disagreed. This body proves
+ * the construct.
+ *
+ * WHAT DID IT: giving the second offset its own variable, each reused as its
+ * own store's value --
+ *
+ *     off = 0xe0 << 1; p = base + off; off += 0x44;  *p = off;
+ *     o2  = off - 0x3c; p = base + o2;  o2 = 0x10;   *p = o2;
+ *
+ * Reusing ONE variable for both (the obvious reading of the ROM, which reuses
+ * r3 throughout) is 10 of 30 -- it disturbs the prologue. Two variables, each
+ * reused once, keeps the prologue and fixes both stores.
+ *
+ * TRIED AND DID NOT MOVE THE REGISTER: declaring the offset before the base,
+ * declaring the second offset first, computing the offset before the base
+ * (7, worse), distinct pointer variables for the two addresses (10), and
+ * re-reading iwram_3001ebc for the second address (12).
  */
 extern unsigned int iwram_3001ebc;
 extern int __GetFlag(int id);
@@ -63,6 +96,7 @@ int OvlFunc_893_2008054(void)
 {
     unsigned char *base;
     unsigned char *p;
+    unsigned int o2;
     unsigned int off;
     int a;
     int b;
@@ -77,9 +111,10 @@ int OvlFunc_893_2008054(void)
     p = base + off;
     off += 0x44;
     *(unsigned int *)p = off;
-    off -= 0x3c;
-    p = base + off;
-    *(unsigned int *)p = 0x10;
+    o2 = off - 0x3c;
+    p = base + o2;
+    o2 = 0x10;
+    *(unsigned int *)p = o2;
     if (__GetFlag(0x814)) {
         __Func_8091ff0(0x8d);
         __Func_8012330(a, b, c);
