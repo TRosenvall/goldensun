@@ -410,36 +410,48 @@ that the register pressure the original had is reproduced. These are the parks
 most likely to fall out for free later rather than to a targeted fix, and they
 should be re-screened after their file's neighbours are elevated -- not before.
 
-### The pool tell is a 271-function blocker, and it is a naming problem
+### The pool tell: 209 functions need NO naming at all -- correcting batch 63
 
-A constant below 0x100 fits in `mov #imm8` / `cmp #imm8`. When the ROM spends a
-literal-pool word on one instead, the operand was a SYMBOL whose value happens
-to be small. That is the pool tell, and it is already recorded as a lever -- what
-was never measured is how much it blocks.
+Batch 63 measured the pool tell at 271 unelevated functions and concluded they
+were "blocked on naming... a maintainer's call". **The second half was wrong.**
 
-**271 unelevated functions load a constant below 0x100 from the literal pool.**
-The commonest values are 0x0 (54 functions), 0x2 (21), 0x1f (19), 0x1 (15) and
-0x75 (13).
+`area.sym`, `message.sym`, `file_table.sym` and `wram.sym` already define **611
+symbols**. Cross-referencing them against the pool-tell sites:
 
-The `=0` cases are the least ambiguous: `mov rN, #0` is always available, so a
-PC-relative load of zero is never a compiler choice. These are disassembled ROM
-bytes, not our output -- the disassembler prints `ldr r3, =0` because the
-encoded instruction really is a PC-relative load, so the tell is genuine rather
-than an artifact of how the `.s` was written.
+    unelevated functions with the pool tell    270
+      EVERY value already has a symbol         209   <- elevatable NOW
+      some values have symbols                  13
+      no values have symbols                    48   <- genuinely need naming
 
-**Caveat on the number:** it counts functions containing at least one such load,
-not functions blocked *only* by this. Some will have other blockers too, and the
-count mixes Thumb and ARM-mode common code. Treat it as an upper bound on what
-naming would unlock, not a promise.
+So 209 functions are not blocked on a decision by anyone. They are blocked on
+nobody having looked in `area.sym`. Two were elevated the day this was found:
+`OvlFunc_952_2008070` (parked at 7 of 32, exact once `_AREA_8b` was used) and
+`OvlFunc_926_200a574`.
 
-**Why it matters for planning:** this is the largest single identified blocker
-in the corpus, larger than argument precompute (11), and unlike that one it is
-FIXABLE -- but not by us. Naming is exactly what this effort has deliberately
-deferred, so these functions are a maintainer's call. Two worked examples with
-the evidence written out:
-[src/non_matching/ovl_7d768c/2008070.c](src/non_matching/ovl_7d768c/2008070.c)
-(pooled 0x8b) and its sibling `OvlFunc_963_200808c` (pooled 0xaa and 0xa9).
+**THE TECHNIQUE**, already established in this tree and documented at the top of
+`area.sym`:
 
+    extern int _AREA_3c;                        /* declare  */
+    if (v == (int)(&_AREA_3c)) ...              /* compare against its ADDRESS */
+
+gcc-2.96 always pools a symbol's address and never pools a constant it can build
+with an eight-bit `mov`, which is exactly the asymmetry the pool tell describes.
+An absolute symbol definition emits no bytes, so the link is byte-identical and
+`make compare` proves it.
+
+**`OvlFunc_926_200a574` is the clean demonstration**: it compares against
+`_AREA_3c` (pooled) AND against a literal `3` (`cmp r3, #0x3`) in the same
+function, so the tell distinguishes symbols from literals rather than being an
+artifact of the disassembly.
+
+**What the remaining 48 need** is genuine naming, and `area.sym`'s own header is
+the model: it records why the namespace is called an area id, what the evidence
+is, and explicitly what the evidence is NOT. The values still unnamed are
+`00 02 05 0c 15 18 19 1a 1b 1f 28 2d 32 3a 3b 3d 69 7e 80 86 8d 8f 90 92 a9 b6
+bb f0` -- and note that several of those (0x00 appearing in 54 functions, 0x02 in
+21) are almost certainly NOT area ids, since the area space is documented as
+never using 0x00-0x0f. They belong to some other namespace that has not been
+identified yet.
 ### Dead end: load-then-copy is NOT a blocker signature
 
 `ldrb rA, [..]` immediately followed by `mov rB, rA` is the shape behind the
