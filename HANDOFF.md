@@ -83,6 +83,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-73](reports/batch-73.md) | 6 | ready to port — register class measured and narrowed by a compiler experiment |
 | [batch-74](reports/batch-74.md) | 5 | ready to port — new -fno-gcse group; three size symbols; a blob that is bigger than its function |
 | [batch-75](reports/batch-75.md) | 5 | ready to port — do-while wrappers are load-bearing; tryc's pool warning hole closed |
+| [batch-76](reports/batch-76.md) | 5 | ready to port — address vs value; the three-operand lever and its limit |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The

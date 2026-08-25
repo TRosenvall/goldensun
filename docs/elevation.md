@@ -2216,3 +2216,42 @@ had moved.
 **The only test that decides pool layout is `make compare`.** Treat a clean
 screen on a function whose reference has any inline `.word` or `.pool` as
 unproven, warning or no warning.
+
+### A named intermediate forces the THREE-operand form
+
+Thumb has both `add rd, rn, rm` and `add rd, rm`, and gcc picks the short form
+whenever the destination is also an operand. When the ROM has the long form and
+you have the short one, give the subexpression its own statement:
+
+    DMA0_SET((char *)b + i * 4, ...)     ->  add r0, r4        (ours)
+
+    off = i * 4;
+    src = (char *)b + off;               ->  add r0, r4, r0    (the ROM's)
+    DMA0_SET(src, ...)
+
+Scaling into the variable itself (`i = i * 4;` then `b + i`) works equally well.
+What matters is that the addition is a statement rather than a subexpression of
+a call argument.
+
+**It does not always work, and the difference is instructive.** The same trick
+fails on `Func_80b06c0`'s `lsl r3, r1, #4` -- there the shift's source is dead
+immediately after, so gcc allocates the named local to the same register and the
+short form is still correct. The lever needs the two values to be
+simultaneously live, which a pointer base and its offset are and a shift's
+input and output are not.
+
+### Arithmetic narrows to the width of its STORE unless a local says otherwise
+
+Batch 71 needed an `int` local to stop a CONSTANT narrowing. `OvlFunc_911_20080cc`
+needs one to stop the ARITHMETIC narrowing:
+
+    if (--a->f64 == 0)     ->  ldr r3, =0xffff / add r2, r3 / and r3, r2
+
+    t = a->f64 - 1;            (int)
+    a->f64 = t;
+    if ((unsigned short)t == 0)
+                           ->  sub r3, #1 / strh / lsl r3, #16 / cmp r3, #0
+
+Same cause seen from the other side: gcc works in the width of the eventual
+store. Do the arithmetic at int width and put the truncation only where the
+value is TESTED.
