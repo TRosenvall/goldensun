@@ -337,3 +337,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-25T02:55:05Z  end     +2 unparked (939_20087f4, Func_80cd488); 361 elevated; rank_parks --flags
 2026-08-25T02:56:11Z  batch   batch-42 published (6 functions); clean build verified
 2026-08-25T03:07:40Z  end     +2 (892_2008054, 881_2008314); 363 elevated; orphan check hole closed
+2026-08-25T03:26:46Z  end     +4 (920_20084b4, 955_2008258, 955_200828c, Func_8096af0); 367 elevated
