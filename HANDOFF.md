@@ -71,6 +71,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-61](reports/batch-61.md) | 5 | ready to port |
 | [batch-62](reports/batch-62.md) | 5 | ready to port |
 | [batch-63](reports/batch-63.md) | 5 | ready to port — 1 is an unpark |
+| [batch-64](reports/batch-64.md) | 8 | ready to port — 4 are one function in four overlays |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
@@ -573,16 +574,17 @@ The 6 x 16 shape is the `OvlFunc_883/884` family, blocked by argument precompute
 Three blockers now account for more blocked functions than everything else
 combined, because each holds a whole duplicated cluster:
 
-    8 functions   basic-block placement + one register naming
-                  the __CreateActor wrappers: 4 x 39 insn and 4 x 46 insn,
-                  src/non_matching/ovl_7ced6c/20089f4.c and 2008a4c.c
+    4 functions   one register naming (was 8; the 4 x 39 cluster is now
+                  ELEVATED -- basic-block placement was solved by inverting the
+                  guard, see docs/elevation.md)
+                  src/non_matching/ovl_7ced6c/2008a4c.c
     7 functions   one hoisted load, scheduler-related
                   src/non_matching/rom_8a000/rom_9a44c.c (highest value: the
                   seven are operand-identical, so one fix ports verbatim)
     12 functions  argument precompute, calls.c:805 -- a compiler difference,
                   NOT fixable from C
 
-So 15 functions sit behind two behaviours that are still open, and 12 behind one
+So 11 functions sit behind two behaviours that are still open, and 12 behind one
 that is closed. That is a better guide to where a round is worth spending than
 the raw park count of 158.
 

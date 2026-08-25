@@ -22,11 +22,21 @@
  *      `if (v == 0) goto one; ... goto rest; one: return 1; rest: ...` --
  *      which is the ROM's block order stated in the source. BYTE-IDENTICAL.
  *
- * (2) is the informative one. Block reordering happens after the source has had
- * its say, so naming the order in C does not reach it. This is distinct from
- * the branch-SENSE levers (arm inversion, do/while back edge), which do work,
- * because those change which test gcc emits rather than where it puts the
- * resulting blocks.
+ * (2) WAS THE WRONG CONCLUSION AND IS CORRECTED HERE. It said block reordering
+ * happens after the source has had its say and cannot be reached from C. What
+ * (2) actually tested was a goto spelling of the SAME early-return shape, which
+ * changes nothing -- both put the return at the guard.
+ *
+ * INVERTING THE GUARD DOES REACH IT. Putting the body inside `if (cond) { ...
+ * return X; }` with the other return AFTER, so the body is the taken branch,
+ * moves the short return block to the end where the ROM has it. That elevated
+ * four __CreateActor wrappers in batch 65 (src/overlays/rom_7ced6c/
+ * ovl_30_a_a_c_c_c_b.c and its three twins) after a round of being parked as
+ * unreachable.
+ *
+ * It does not rescue THIS function -- retried, still 19 of 28, because the guard
+ * here has a whole comparison chain on one side rather than a single return --
+ * but the general claim was too strong and two later parks repeated it.
  *
  * The comparison chain itself is right: each test compares against the value
  * loaded by the PREVIOUS test (`x != w`, then `y != x`), which is what gives

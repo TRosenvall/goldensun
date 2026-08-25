@@ -1709,3 +1709,40 @@ real -- it emits `mov r2, r1` -- and the ROM ANDs the incoming register in place
 Both are the same idea. A parameter is already in a register the ROM is willing
 to clobber; naming a local says "keep the original too", and the ROM usually was
 not keeping it.
+
+### Lever: invert the guard so the BODY is the taken branch
+
+When the ROM reaches a short return block by branching FORWARD to the end:
+
+    cmp r5, #0 / beq .Lzero
+    <the whole body>
+    mov r0, r5 / b .Lexit
+    .Lzero: mov r0, #0
+    .Lexit: pop
+
+an early return will not produce it. `if (p == 0) return 0;` followed by the
+body puts `mov r0, #0` AT THE GUARD, and every label after it shifts. So does
+the same shape written with a `goto`, and so does a result variable with a
+single exit (11 of 41 on the function below).
+
+Put the body inside the guard instead, with the short return after it:
+
+    if (p != 0) {
+        <body>
+        return p;
+    }
+    return 0;
+
+Identical control flow, opposite layout -- and the layout is the one the ROM
+has. That elevated four `__CreateActor` wrappers at once in batch 65.
+
+**This corrects an earlier claim.** Three parks recorded that basic-block
+placement is decided after the source has had its say and cannot be reached from
+C. What had actually been tested was a `goto` spelling of the same early-return
+shape, which changes nothing. Inverting the guard is a different edit and it
+does reach it.
+
+**It is not universal.** `OvlFunc_945_20080fc` has a comparison chain on one side
+of the guard rather than a single return, and inverting there does not move the
+block. The lever wants a SHORT return block on one side and the bulk of the
+function on the other.

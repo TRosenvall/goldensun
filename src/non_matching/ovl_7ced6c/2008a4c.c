@@ -1,7 +1,7 @@
 /* OvlFunc_946_2008a4c  --  NOT MATCHING
  *
  * Source asm: goldensun/asm/overlays/rom_7ced6c/ovl_30_a_a_c_c_c.s
- * Best screen: 19 instructions in disagreeing regions, of 48 (rom 48, ours 47).
+ * Best screen: 14 instructions in disagreeing regions, of 48 (streams same length).
  *
  * THIS PARK COVERS FOUR FUNCTIONS -- operand-identical copies:
  *
@@ -15,19 +15,22 @@
  * predicted this one would hit the same two blockers; SCREENING CONFIRMS IT,
  * which is why this file says "confirmed" and not "presumably".
  *
- *  1. BASIC-BLOCK PLACEMENT -- the null return's `mov r0, #0` is emitted at the
- *     guard rather than at the end.
- *  2. REGISTER NAMING through the actor-flags block, which follows from gcc
- *     putting the loaded pointer in r2 where the ROM uses r1.
+ *  1. BASIC-BLOCK PLACEMENT -- SOLVED. Putting the body inside
+ *     `if (p != 0) { ... return p; }` with `return 0;` after moves the null
+ *     return to the end, where the ROM has it. That took this from 19 of 48 to
+ *     14 and made the lengths match. It also elevated the whole 39-instruction
+ *     sibling cluster outright -- see src/overlays/rom_7ced6c/ovl_30_a_a_c_c_c_b.c.
+ *  2. REGISTER NAMING through the actor-flags block -- STILL OPEN. gcc puts the
+ *     loaded pointer in r2 where the ROM uses r1, and the extra `orr` and the
+ *     trailing read-modify-write give that renaming fourteen instructions to
+ *     propagate through. This is what remains.
  *
  * The count is higher here than in the 39-instruction sibling (19 against 5)
  * only because the extra `orr` and the read-modify-write give the renaming more
  * instructions to propagate through; the two causes are the same.
  *
- * TAKEN TOGETHER with the 39-instruction cluster, EIGHT functions are blocked by
- * these two behaviours. That is worth recording next to the seven-function
- * scheduling park (rom_8a000/rom_9a44c.c) as the second-largest concentration
- * of blocked work in the corpus.
+ * The 39-instruction cluster is now ELEVATED, so what was an eight-function
+ * concentration is down to these four.
  *
  * The constant-as-destination spellings are right and should not be re-derived:
  * `n = 0xd; n = -n; n &= v;` gives `mov r3, #0xd / neg r3, r3 / and r3, r2`,
