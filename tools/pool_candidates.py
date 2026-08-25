@@ -112,7 +112,12 @@ def main():
             if not (LO <= len(lines) <= HI):
                 continue
             calls = re.findall(r"\tbl\t(\S+)", b)
-            if not calls or any(c not in known for c in calls):
+            # LEAF FUNCTIONS ARE CANDIDATES TOO, and for a long time they were
+            # silently excluded here by `not calls`. They are the BEST
+            # candidates: no callee signature to guess, and the argument-precompute
+            # blocker cannot apply because there are no arguments to set up.
+            # 123 of them sat unscreened before this was noticed.
+            if any(c not in known for c in calls):
                 continue
             rows.append((len(lines), n, p, len(calls), precompute_risk(b)))
     # flagged ones sort LAST but are NOT removed -- see precompute_risk().
