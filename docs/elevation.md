@@ -110,6 +110,29 @@ fragments of the message -- it has mangled three commits here:
 **`git checkout` is denied by this project's permission rules** (the pattern
 that blocks branch switching also matches file restores). Use `git restore`.
 
+
+### The generated `.s` beside the `.c` IS tracked — commit it
+
+Converting a function deletes its hand-written `.s`; the next build writes a
+**generated** one to the same path from the new `.c`, so git reports the file as
+*modified* rather than deleted. That reads like compiler output leaking into the
+corpus, and it is not.
+
+`.gitignore` covers `.o`, `.d`, `.elf`, `.map` — and deliberately **not** `.s`.
+The tree carries **2,535 tracked `.s` files bearing gcc's own banner**, all
+arriving with the upstream base commit. Tracking the generated assembly beside
+the C is the convention, and 391 of 391 elevations here follow it.
+
+So: **stage the modified `.s` along with the new `.c`.** Do not `git rm --cached`
+it. Verify with
+
+    python3 tools/asmfacts.py --asm-pairs
+
+which fails if any elevated `.c` lacks a tracked sibling `.s`. This was got
+backwards once — three files were untracked on the theory that generated
+assembly should never be committed — and the check exists so the question is
+settled by the repository rather than by intuition.
+
 ## What the screen must NOT normalise away
 
 The counterpart to the section below, and the more dangerous direction.
