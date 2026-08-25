@@ -396,3 +396,33 @@ nothing competes for the register.
 that the register pressure the original had is reproduced. These are the parks
 most likely to fall out for free later rather than to a targeted fix, and they
 should be re-screened after their file's neighbours are elevated -- not before.
+
+### The pool tell is a 271-function blocker, and it is a naming problem
+
+A constant below 0x100 fits in `mov #imm8` / `cmp #imm8`. When the ROM spends a
+literal-pool word on one instead, the operand was a SYMBOL whose value happens
+to be small. That is the pool tell, and it is already recorded as a lever -- what
+was never measured is how much it blocks.
+
+**271 unelevated functions load a constant below 0x100 from the literal pool.**
+The commonest values are 0x0 (54 functions), 0x2 (21), 0x1f (19), 0x1 (15) and
+0x75 (13).
+
+The `=0` cases are the least ambiguous: `mov rN, #0` is always available, so a
+PC-relative load of zero is never a compiler choice. These are disassembled ROM
+bytes, not our output -- the disassembler prints `ldr r3, =0` because the
+encoded instruction really is a PC-relative load, so the tell is genuine rather
+than an artifact of how the `.s` was written.
+
+**Caveat on the number:** it counts functions containing at least one such load,
+not functions blocked *only* by this. Some will have other blockers too, and the
+count mixes Thumb and ARM-mode common code. Treat it as an upper bound on what
+naming would unlock, not a promise.
+
+**Why it matters for planning:** this is the largest single identified blocker
+in the corpus, larger than argument precompute (11), and unlike that one it is
+FIXABLE -- but not by us. Naming is exactly what this effort has deliberately
+deferred, so these functions are a maintainer's call. Two worked examples with
+the evidence written out:
+[src/non_matching/ovl_7d768c/2008070.c](src/non_matching/ovl_7d768c/2008070.c)
+(pooled 0x8b) and its sibling `OvlFunc_963_200808c` (pooled 0xaa and 0xa9).
