@@ -25,7 +25,15 @@
  *   - the flag field declared `int` and stored through an `unsigned char *`
  *     cast, to keep the value int-typed at the store: byte-identical.
  *
- * Both fail the same way. The width follows the store instruction, and the
+ *   - the zero replaced by a WORD-WIDTH SYMBOL, `(int)(&_AREA_00)`, on the
+ *     theory that a symbol address cannot be narrowed and would therefore
+ *     force the `ldr`. It DOES force the `ldr` -- the mechanism is real -- but
+ *     the function goes from 1 differing line to 4, because gcc re-optimises
+ *     the byte store around it. Func_80b0a20 has the same symptom and the same
+ *     substitution makes it three instructions SHORT. So the width tell is
+ *     real and the substitution is not a fix.
+ *
+ * All three fail the same way. The width follows the store instruction, and the
  * store instruction is fixed by the field being a byte -- which the ROM's
  * `strb` confirms. There is no room between those two facts.
  *
