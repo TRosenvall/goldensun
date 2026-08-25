@@ -129,6 +129,24 @@ often enough to matter.
 
 ## Standing items for review
 
+**36 functions are NOT compiler output and are excluded from candidate lists.**
+`asm/rom_f9000/rom_f95e0.s` and `asm/rom_f9ef8_a.s` are the MP2K sound driver,
+hand-written assembly: `mov r12, lr` / `bx r12` return conventions, an `adr`/`bx`
+switch into ARM mode to reach `umull`, and a `bl` to a label inside another
+function. `tools/not_c.py` holds the list and the evidence;
+`asmfacts.functions()` filters them out by default, so every tool built on it
+skips them. They are byte-exact today and should be counted as DONE, not as
+remaining work. Corroboration is already in this tree: `src/lib/m4a/m4a0.s` is a
+hand-written assembly copy of the same driver, carried in from Coaltergeist's
+tree and never built -- upstream ships this driver as assembly.
+
+**Do not clear the smallest size band first.** See
+`src/non_matching/tiny_reg_order.c`. Below twenty instructions there is no
+structure left for C to express and everything remaining is register birth order
+and address-load placement -- the residue that parks larger functions, except it
+is the whole function. The 21-40 band is where the hit rate is.
+
+
 **26 parked files are PARTLY STALE** — they name a group of functions, some of
 which have since been elevated, and their notes now describe a mix of solved and
 unsolved work. `python3 tools/stale_parks.py` lists them. They need editing, not
