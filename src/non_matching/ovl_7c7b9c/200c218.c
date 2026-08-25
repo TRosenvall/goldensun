@@ -43,6 +43,25 @@
  * src/non_matching/ovl_77dd1c/200c5b8.c and the `-1` triple in
  * src/non_matching/ovl_787e04/20093e4.c: a way to make gcc rematerialise a
  * value inside a single basic block. Three parked shapes, one construct.
+ *
+ * SETTLED, batch 42, by reading the compiler rather than probing it.
+ *
+ * gcc-2.96 rebuilds a constant at its use instead of keeping it live in exactly
+ * one place -- `update_equiv_regs` in local-alloc.c -- and only when BOTH of
+ * these hold:
+ *
+ *     REG_N_REFS (regno) == 2        set once, used exactly once
+ *     REG_BASIC_BLOCK (regno) < 0    the pseudo spans MORE THAN ONE basic block
+ *
+ * A straight-line function has one basic block, so the second condition can
+ * never hold, whatever the C says -- it is a property of the control-flow graph
+ * and not of the source. The only other pass that could do it is `combine`, and
+ * combine can only fold a constant into its consumer if the target takes it as
+ * an immediate, which a two-instruction constant does not.
+ *
+ * So this is NOT waiting on a construct that has not been found. In plain C it
+ * is unreachable, and register pinning -- a fakematch -- is the only way
+ * through. See docs/elevation.md and reports/fakematch-worklist.md.
  */
 extern void __Func_80933f8(int a, int b, int c, int d);
 extern void __Func_800fe9c(void);

@@ -53,6 +53,25 @@
  * Not a bitfield. A `unsigned b : 2` copy would emit the shift pair that turns
  * a bit range into a value and back; the ROM has no shifts at all, so this is
  * a straight masked merge.
+ *
+ * SETTLED, batch 42, by reading the compiler rather than probing it.
+ *
+ * gcc-2.96 rebuilds a constant at its use instead of keeping it live in exactly
+ * one place -- `update_equiv_regs` in local-alloc.c -- and only when BOTH of
+ * these hold:
+ *
+ *     REG_N_REFS (regno) == 2        set once, used exactly once
+ *     REG_BASIC_BLOCK (regno) < 0    the pseudo spans MORE THAN ONE basic block
+ *
+ * A straight-line function has one basic block, so the second condition can
+ * never hold, whatever the C says -- it is a property of the control-flow graph
+ * and not of the source. The only other pass that could do it is `combine`, and
+ * combine can only fold a constant into its consumer if the target takes it as
+ * an immediate, which a two-instruction constant does not.
+ *
+ * So this is NOT waiting on a construct that has not been found. In plain C it
+ * is unreachable, and register pinning -- a fakematch -- is the only way
+ * through. See docs/elevation.md and reports/fakematch-worklist.md.
  */
 
 struct Spr { unsigned char pad_00[9]; unsigned char flags; };

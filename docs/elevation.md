@@ -609,6 +609,53 @@ The passes worth knowing where to find:
 **Read the pass before probing it.** Probes are for confirming a mechanism you
 have already found, not for discovering one.
 
+## WHY THE BASIC-BLOCK LEVER WORKS -- read from the compiler, not inferred
+
+The lever below was found by experiment over three batches and its limits were
+found the same way, one park at a time. All of it is four lines of
+`local-alloc.c`, in `update_equiv_regs`:
+
+    if (REG_N_REFS (regno) == 2
+        && REG_BASIC_BLOCK (regno) < 0
+        && rtx_equal_p (XEXP (note, 0), SET_SRC (set)))
+      reg_equiv_replace[regno] = 1;
+
+with gcc's own comment above it:
+
+    If the register is referenced exactly twice, meaning it is set once and
+    used once, indicate that the reference may be replaced by the equivalence
+    we computed above.  If the register is only used in one basic block, this
+    can't succeed or combine would have done it.
+
+`reg_equiv_replace` is what makes the allocator REBUILD a value at its use
+instead of keeping it live. Both conditions have to hold, and between them they
+predict every result we got:
+
+| observation | which condition |
+|---|---|
+| separate locals work, one local used twice does not | `REG_N_REFS == 2` -- one pseudo used twice fails it, two pseudos used once each pass |
+| a branch is required | `REG_BASIC_BLOCK < 0` is `REG_BLOCK_GLOBAL`, set only when the pseudo appears in MORE THAN ONE basic block (`flow.c`) |
+| a straight-line function can never use it | one basic block, so no pseudo is ever GLOBAL. Calls do NOT split blocks in gcc-2.96 |
+| it fails inside a loop body | `REG_N_REFS` is incremented by `bb->loop_depth + 1`, so inside a loop a set-once-used-once pseudo counts 4, not 2 |
+
+**THE STRAIGHT-LINE CASE IS NOT AN UNSOLVED PROBLEM. IT IS UNREACHABLE.** There
+is no C that satisfies `REG_BASIC_BLOCK < 0` in a function with one basic block,
+because the condition is about the control-flow graph and not about the source.
+The only other pass that rebuilds a constant at its use is `combine`, and
+combine can only fold one into its consumer if the target has an instruction
+taking it as an immediate -- which a constant needing two instructions, by
+definition, does not.
+
+So the three parked shapes that were filed as "one missing construct" --
+`src/non_matching/ovl_77dd1c/200c5b8.c`,
+`src/non_matching/ovl_7c7b9c/200c218.c`, and the `-1` triple in
+`src/non_matching/ovl_787e04/20093e4.c` -- are not waiting on a construct. In
+plain C they are unreachable, and register pinning is the only way through.
+
+**This took ten minutes of reading and it settles three parks and four
+empirical limits that cost about six rounds to discover.** The passes table
+below is not decoration.
+
 ## THE BASIC-BLOCK LEVER: assign the constant where the ROM cannot keep it
 
 **This retires two blocker classes**, one of which had been open for thirty-six

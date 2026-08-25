@@ -77,6 +77,35 @@ That is the same question `OvlFunc_882_200c5b8` and the `-1` triple in
 `src/non_matching/ovl_787e04/20093e4.c` turn on, and it is now answerable by
 reading `local-alloc.c` and `reload1.c` rather than by probing.
 
+## SETTLED, batch 42: this is not a search problem
+
+The worklist above assumed a construct existed and had not been found. **It does
+not exist.**
+
+gcc-2.96 rebuilds a constant at its use instead of keeping it live in exactly
+one place, `update_equiv_regs` in `local-alloc.c`, and only when both hold:
+
+    REG_N_REFS (regno) == 2        set once, used exactly once
+    REG_BASIC_BLOCK (regno) < 0    the pseudo spans MORE THAN ONE basic block
+
+The second condition is a property of the control-flow graph, not of the source.
+A straight-line function has one basic block, so no C can satisfy it. The only
+other pass that could rebuild the value is `combine`, and combine folds a
+constant into its consumer only when the target has an instruction taking it as
+an immediate — which a constant needing two instructions does not.
+
+**So the fakematches below are not a debt that better C will pay off.** They are
+the only way to reach these functions in this compiler, and a future pass should
+either accept them or accept the assembly. What a future pass CAN still do is
+check the reverse: whether the original build used a compiler whose
+`update_equiv_regs` had different conditions, which would make these functions
+evidence of a toolchain difference rather than of anything about the source.
+
+That also settles three parks that were filed as sharing "one missing
+construct": `src/non_matching/ovl_77dd1c/200c5b8.c`,
+`src/non_matching/ovl_7c7b9c/200c218.c`, and the `-1` triple in
+`src/non_matching/ovl_787e04/20093e4.c`.
+
 ## The list
 
 | function | overlay | file |
