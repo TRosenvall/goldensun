@@ -1,98 +1,6 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ CopyNodeGraphics
-@ r0.. = parameters. Allocates scratch with Func_4938, copies a node's graphics,
-@ releases with free.
-.thumb_func_start Func_801edec  @ 0x0801edec
-	push	{r5, r6, r7, lr}
-	mov	r7, r8
-	push	{r7}
-	ldr	r3, =iwram_3001e8c
-	ldr	r7, [r3]
-	sub	sp, #4
-	mov	r8, r0
-	cmp	r7, #0
-	bne	.L1ee24
-	mov	r0, sp
-	ldr	r3, .L1ee14	@ 0xe0e0
-	add	r0, #2
-	strh	r3, [r0]
-	mov	r1, r8
-	ldr	r3, =REG_DMA3SAD
-	ldr	r2, =0x810000a0
-	stmia	r3!, {r0, r1, r2}
-	sub	r3, #0xc
-	b	.L1ee4e
-
-	.align	2, 0
-.L1ee14:
-	.word	0xe0e0
-	.pool
-
-.L1ee24:
-	ldr	r5, =0x214
-	mov	r0, r5
-	bl	Func_8004938
-	mov	r2, #0x84
-	mov	r6, r0
-	lsr	r5, #2
-	lsl	r2, #24
-	ldr	r3, =REG_DMA3SAD
-	ldr	r0, =Func_80158e8
-	mov	r1, r6
-	orr	r2, r5
-	stmia	r3!, {r0, r1, r2}
-	sub	r3, #0xc
-	mov	r0, r8
-	mov	r1, r7
-	bl	_call_via_r6
-	mov	r0, r6
-	bl	free
-.L1ee4e:
-	add	sp, #4
-	pop	{r3}
-	mov	r8, r3
-	pop	{r5, r6, r7}
-	pop	{r0}
-	bx	r0
-.func_end Func_801edec
-
-@ ClearTilemapRect
-@ r0.. = rectangle. Clears a rectangle of the tilemap at 0x6002000, stepping
-@ (0x20 - width) * 2 bytes between rows -- the 32-entry map stride again.
-.thumb_func_start Func_801ee68  @ 0x0801ee68
-	push	{r5, r6, lr}
-	mov	r5, r3
-	mov	r4, #0
-	ldr	r6, [sp, #0xc]
-	ldr	r0, =0x6002000
-	cmp	r4, r5
-	bcs	.L1ee94
-	mov	r3, #0x20
-	sub	r3, r2
-	lsl	r3, #1
-.L1ee7c:
-	mov	r1, #0
-	cmp	r1, r2
-	bcs	.L1ee8c
-.L1ee82:
-	add	r1, #1
-	strh	r6, [r0]
-	add	r0, #2
-	cmp	r1, r2
-	bcc	.L1ee82
-.L1ee8c:
-	add	r4, #1
-	add	r0, r3
-	cmp	r4, r5
-	bcc	.L1ee7c
-.L1ee94:
-	pop	{r5, r6}
-	pop	{r0}
-	bx	r0
-.func_end Func_801ee68
-
 @ ReadPartyForOverlay
 @ r0.. = parameters. Collects party state for the overlay through _Func_795fc
 @ and _Func_b6a60.
@@ -1012,4 +920,3 @@
 	pop	{r0}
 	bx	r0
 .func_end Func_801f200
-
