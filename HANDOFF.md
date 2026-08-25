@@ -248,6 +248,24 @@ codebase better than we do. Listed once here rather than repeated per batch.
   `tools/tryc.py` now warns when a mismatch was screened under wildcard-sourced
   flags. Worth a decision from someone who knows which stems are really one TU.
 
+- **SIXTY OF THE PARKED SET ARE WITHIN SIX INSTRUCTIONS OF MATCHING**, measured
+  in batch 58 with `tools/near_parks.py`. That number is the most useful one
+  here for deciding what to work on, because it separates two populations the
+  word "parked" hides: a park at 2 of 24 is a compiler difference nobody has
+  cracked, and a park at 30 of 34 is a function whose C is probably wrong. Only
+  the second is worth re-reading from scratch.
+
+  **Close does not mean reachable.** Many of the sixty sit on named, settled
+  classes where the residual is a FLOOR rather than a gap -- the signed
+  lower-bound canonicalisation (batch 55), the `include/dma.h` register binding
+  (batches 54-55), the pre-header load merge, multiply operand canonicalisation.
+  Each park note says which. Read it before spending a round.
+
+  What the number DOES say is that the remaining difficulty is concentrated in a
+  small number of compiler behaviours rather than spread across the corpus. If
+  any one of those classes is ever cracked at the compiler level, it takes a
+  large block of these with it.
+
 - **Narrow constant materialisation** gates 34 functions and is half solved: a
   named `int` mask reproduces the ROM's 32-bit constant, but the instruction
   ordering resists seven attempts. `src/non_matching/overlays/narrow_constant.c`
