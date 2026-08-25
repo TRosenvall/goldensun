@@ -1746,3 +1746,34 @@ does reach it.
 of the guard rather than a single return, and inverting there does not move the
 block. The lever wants a SHORT return block on one side and the bulk of the
 function on the other.
+
+### Refinement: inline the ldrsh zero when another zero is stored later
+
+Thumb `ldrsh`/`ldrsb` have no immediate-offset form, so a zero offset must live
+in a register. The usual advice in this file is to name it:
+
+    o = 0;
+    v = *(short *)(g + o);
+
+That is right **when it is the only zero in the function**. When a zero is also
+STORED later, gcc merges the two: it keeps the offset alive, reuses it for the
+`strb`, drops the ROM's separate `mov r3, #0`, and pulls a callee-saved register
+into the prologue to hold it. Nine instructions differ on
+`OvlFunc_921_200816c` for that one merge.
+
+Inline the cast instead:
+
+    v = *(short *)(g + (unsigned int)0);
+
+That still forces the register-offset form -- the ISA leaves no choice -- but
+gives gcc no named value to reuse. `OvlFunc_921_200816c`: 9 of 46 to exact.
+
+**Writing the store as a literal does not help.** `*t = 0;` instead of
+`z = 0; *t = z;` is byte-identical, because the merge happens on the OFFSET
+side, not the store side.
+
+**And it does not fix a folded address.** `OvlFunc_922_2009a34` looks similar in
+the diff -- a register-offset load where the ROM computes an address first --
+but there the problem is gcc folding `add r3, r5, r1` into the load, not a
+reused zero. The same edit is byte-identical there. Two different defects with
+the same shape in the diff; check which one you have before reaching for this.
