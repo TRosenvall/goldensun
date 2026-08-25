@@ -47,6 +47,17 @@
  * three-or-more out to two, which is not worth a build-system change on its
  * own; it is recorded here so that whoever finds a way through the loop case
  * knows these three come with it.
+ *
+ * IMPROVED, batch 56: 6 instructions in disagreeing regions down to 4. The
+ * counter increment goes AFTER the __WaitFrames call, not before it. The ROM
+ * has `mov r0, #1 / add r5, #1 / bl __WaitFrames` -- the increment scheduled
+ * into the argument-setup slot -- and writing `i++;` first puts the add ahead
+ * of the `mov r0`. Neither source order produces the ROM's interleave, but
+ * this one leaves only the pre-header load and the label shift that follows
+ * from it.
+ *
+ * Nothing here changes the class: still short by exactly one instruction, still
+ * that instruction.
  */
 extern int L5480 __asm__(".L5480");
 extern int L5484 __asm__(".L5484");

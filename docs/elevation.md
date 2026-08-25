@@ -467,8 +467,23 @@ park held `if (area == X) return script; return 0;` at 14 lines against 15, and
 the ROM sets `r0` to zero **before** the `cmp` and replaces it in the arm.
 
 **A shorter stream is a failure, and a legible one.** Longer usually means a
-blocker; shorter usually means the source said something more clever than the
-original did.
+blocker; shorter means gcc saved an instruction the original compiler did not.
+
+### But there are TWO causes, and only one is fixable
+
+Refining this after batch 56 walked into the other one:
+
+| Cause | Signature | Fixable? |
+|---|---|---|
+| gcc **rewrote the source shape** — fused a condition, hoisted a default, replaced a mask with a shift | the missing instruction is somewhere the source can move | **yes** — a statement boundary, or restructuring the arms |
+| gcc **cross-jumped** — two predecessor blocks ended in the same instruction, so it sank that instruction into the shared successor | the missing instruction is the LAST one of two blocks that meet | **no known fix** |
+
+The second is the pre-header load merge class
+(`src/non_matching/preheader_load_merge.c`), four members, every one short by
+exactly one instruction and always the same instruction.
+
+**So check which kind before spending a round.** If the missing instruction sits
+at a join, it is cross-jumping and the source cannot reach it.
 
 ## Blocker: gcc rewrites a signed LOWER bound and leaves the upper one
 

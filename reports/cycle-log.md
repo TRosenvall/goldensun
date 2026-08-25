@@ -369,3 +369,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-25T07:50:23Z  end     +2 (Func_80c08a8, Func_80284dc); 452 elevated; dma.h register binding named as a class
 2026-08-25T07:56:45Z  end     +2 (967_2008084, Func_801d980); 454 elevated; compound-condition fusion documented
 2026-08-25T08:02:45Z  end     +2 UNPARKED (964_20092b0, 965_2008fac); 456 elevated; lower-bound canonicalisation named
+2026-08-25T08:12:40Z  end     +1 UNPARKED (GetSpriteVoice); 457 elevated; "shorter" claim refined into two causes
