@@ -606,3 +606,28 @@ the raw park count of 158.
 in this file, not by reading the candidate list.** Duplicate-aware selection is
 what makes a single screen worth four to seven functions; per-function selection
 had been picking singletons for many rounds.
+
+### Naming a symbol is sometimes the elevation -- eight added on stated evidence
+
+Batch 67 added eight ids to `area.sym`: `_AREA_7e 86 8d 8f 90 92 a9 b6`. Each is
+**compared against the halfword at gState+0x1C0**, which is area.sym's own
+stated criterion for the namespace. Eleven functions were blocked on them.
+
+**Each was previously defined only in `file_table.sym`.** That is not a
+contradiction: a file id and an area id may share a number, and 95 small values
+already collide across the four `.sym` files. The CONSUMER distinguishes them,
+which is why `tools/sym_candidates.py` refuses to classify from the value.
+
+**What the addition is and is not.** It asserts the namespace, not the meaning --
+the same "named by value, pending semantic names" convention `message.sym`
+already uses. It does not claim to know which place `0x8f` is.
+
+**Weak corroboration, stated as weak:** all eight fall inside 0x10-0xbd, so they
+shrink the gap the area.sym header records as an oddity. The gaps shrink; they
+do not close.
+
+**An unresolved discrepancy, recorded rather than smoothed over.** The area.sym
+header states "52 unused values inside the range". A direct count of the
+definitions gave 57 before this change and 49 after. The two may be counting
+different things -- defined ids versus ids some function actually compares -- or
+one may be stale. Reconcile before citing either as evidence.

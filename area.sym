@@ -164,3 +164,29 @@ _AREA_5c = 0x5c;
 _AREA_a3 = 0xa3;
 _AREA_94 = 0x94;
 _AREA_96 = 0x96;
+
+/* Added in batch 67 by the same criterion the header states: each of these is
+ * COMPARED AGAINST the halfword at gState+0x1C0, in eleven functions between
+ * them. Each was previously defined only in file_table.sym, which is not a
+ * contradiction -- a file id and an area id may share a number, and the
+ * consumer is what distinguishes them.
+ *
+ * All eight fall inside 0x10-0xbd, which is weak corroboration for the area-id
+ * reading rather than proof: the gaps shrink, they do not close. Counted
+ * directly, the range held 117 of 174 values before this change (57 gaps) and
+ * holds 125 after (49 gaps).
+ *
+ * NOTE A DISCREPANCY, unresolved: the header above states "52 unused values
+ * inside the range", but a direct count of the definitions gave 57 before this
+ * change. The two figures may be counting different things -- defined ids
+ * versus ids some function actually compares -- or one may be stale. The
+ * numbers here are from counting the definitions in this file. Worth
+ * reconciling before either is cited as evidence. */
+_AREA_7e = 0x7e;
+_AREA_86 = 0x86;
+_AREA_8d = 0x8d;
+_AREA_8f = 0x8f;
+_AREA_90 = 0x90;
+_AREA_92 = 0x92;
+_AREA_a9 = 0xa9;
+_AREA_b6 = 0xb6;
