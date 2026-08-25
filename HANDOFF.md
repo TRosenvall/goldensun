@@ -524,3 +524,43 @@ wrong, and no park is actually held by it:
 as a known-lost cause. If a DMA function does not match, the reason will be
 somewhere else, and the park note should name that reason rather than the
 header.
+
+### The remaining corpus is heavily DUPLICATED: 102 functions in 12 clusters
+
+`tools/twin_finder.py` now reports clusters of UNELEVATED twins -- several copies
+of one function, none elevated yet -- as well as matches against solved ones.
+The result changes how the remaining work should be costed:
+
+    18 copies, 172 instructions each
+    17 copies, 139
+    17 copies, 132
+     7 copies, 220
+     7 copies,  97
+     7 copies,  27
+     6 copies,  16
+     5 copies,  66 / 46 / 39
+     4 copies,  57 / 47
+
+**102 functions sit in the top twelve clusters alone.** One screen that cracks a
+cluster is worth its whole membership, which inverts the usual size preference:
+a 172-instruction function copied 18 times is a better target than a clean
+20-instruction singleton.
+
+Two clusters are already characterised:
+
+- **7 x 27 instructions** -- one shared routine appearing in the main ROM and six
+  overlays, blocked by a SINGLE hoisted load. Parked twice independently before
+  the duplication was noticed (`rom_8a000/rom_9a44c.c` and
+  `ovl_7ced6c/2008ab0.c`, now cross-linked). `-fno-schedule-insns2` fixes that
+  exact load and breaks four earlier pairs instead. **This is the highest-value
+  single park in the corpus.**
+- **6 x 16 instructions** -- the `OvlFunc_883/884` family, blocked by argument
+  precompute, which is a compiler difference traced to `calls.c:805`. Not
+  fixable from C; the cluster confirms the earlier count rather than opening
+  anything.
+
+**Caveat:** clusters are matched on opcode signature, so members share a shape
+but not necessarily operands. The 7 x 27 was checked instruction-by-instruction
+INCLUDING operands and is genuinely one function; the larger clusters have not
+been checked that way and may be a shape shared by related-but-different code.
+Verify before assuming one solution ports.

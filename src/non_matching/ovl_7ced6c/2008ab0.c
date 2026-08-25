@@ -3,17 +3,27 @@
  * Source asm: goldensun/asm/overlays/rom_7ced6c/ovl_30_a_a_c_c_c.s
  * Best screen: 2 instructions in disagreeing regions, of 27 (streams same length).
  *
- * THIS PARK COVERS THREE FUNCTIONS. Byte-for-byte identical copies exist as
+ * THIS PARK COVERS SEVEN FUNCTIONS. Operand-identical copies -- not merely the
+ * same shape -- exist as
  *
+ *      Func_809a44c          rom_8a000/rom_9a44c_a_a_a.s      (MAIN ROM)
+ *      OvlFunc_927_2008ab0   ovl_7b4558/ovl_30_a_a_c_c_c_c.s
  *      OvlFunc_946_2008ab0   ovl_7ced6c/ovl_30_a_a_c_c_c.s
  *      OvlFunc_964_2008ab0   ovl_7ed0a0/ovl_30_a_a_a_c_c_c_c.s
  *      OvlFunc_965_2008ab0   ovl_7ef4f4/ovl_30_a_a_a_c_c_c_c.s
+ *      OvlFunc_968_20080e0   ovl_7f2f14/ovl_30_a_a_a_c_a_c.s
+ *      OvlFunc_common0_d4    overlays/common/common0.s
  *
- * verified by comparing the instruction lists directly, not just the lengths.
- * Solving this one elevates all three. (tools/twin_finder.py did not report
- * them because it only matches unelevated functions against SOLVED ones; a
- * cluster of unelevated twins is invisible to it. Worth extending if another
- * such cluster turns up.)
+ * verified by comparing instruction lists including operands. Solving this one
+ * elevates all seven, and one of them is in the main ROM rather than an
+ * overlay, so this is a shared routine linked into each.
+ *
+ * SEE ALSO src/non_matching/rom_8a000/rom_9a44c.c, which is the SAME FUNCTION
+ * parked independently and reaches the same conclusion by a different route.
+ * That note is the better one on the flag question -- it establishes that
+ * -fno-schedule-insns2 FIXES THIS EXACT LOAD and breaks four earlier pairs
+ * instead, and that -O1 is worse than either. Read it before spending a round
+ * here.
  *
  * BLOCKER CLASS: scheduling of one load.
  *

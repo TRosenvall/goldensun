@@ -42,13 +42,11 @@ and that twin's source matched here unedited but for the name. A park note ages
 badly -- re-run this after any batch that elevates anything.
 
 
-KNOWN GAP: this only matches unelevated or parked functions against ALREADY
-SOLVED ones. A cluster of unelevated twins -- several copies of the same
-function, none of them elevated yet -- is invisible to it. One such cluster was
-found by hand in batch 65 (OvlFunc_946_2008ab0, OvlFunc_964_2008ab0 and
-OvlFunc_965_2008ab0, byte-identical across three overlays), so the gap is real.
-Extending the tool to report unelevated-vs-unelevated clusters would make one
-screen worth three or more elevations. Not done yet.
+UNELEVATED CLUSTERS are reported too, and they are the higher-value output.
+Several copies of one function with none of them elevated means a single screen
+is worth N elevations. The batch-65 cluster (OvlFunc_946_2008ab0,
+OvlFunc_964_2008ab0, OvlFunc_965_2008ab0 -- byte-identical across three
+overlays) was found by hand before this section existed.
 
 MEASURED YIELD, so nobody expects more than it gives: across the whole corpus at
 1620 elevated and 2685 unelevated functions, EXACT signature matching found
@@ -102,6 +100,14 @@ def main():
             hits.append((len(sig), n, p, by_sig[sig][0]))
     hits.sort()
 
+    # Clusters of UNELEVATED twins: one screen elevates all of them.
+    un_by_sig = defaultdict(list)
+    for n, (sig, p) in sorted(unsolved.items()):
+        if sig not in by_sig:
+            un_by_sig[sig].append((n, p))
+    clusters = sorted(((len(v), len(k), v) for k, v in un_by_sig.items()
+                       if len(v) > 1), reverse=True)
+
     # Parked functions are the highest-value category: a park whose twin has
     # SINCE been solved is unparkable by copying, and its note may predate the
     # twin's solution by many batches.
@@ -123,6 +129,14 @@ def main():
         print("%3d insn  %-24s %s" % (insn, n, p))
         print("          twin of %-16s %s" % (tn, tp))
     if not stale:
+        print("  (none)")
+
+    print("\n=== UNELEVATED CLUSTERS -- one screen elevates all members ===")
+    for cnt, insn, members in clusters[:12]:
+        print("%d copies, %3d insn each" % (cnt, insn))
+        for n, p in members:
+            print("        %-24s %s" % (n, p))
+    if not clusters:
         print("  (none)")
 
     print("\n=== unelevated, twin solved -- start from the twin's .c ===")

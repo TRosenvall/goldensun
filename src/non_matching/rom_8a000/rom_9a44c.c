@@ -1,3 +1,9 @@
+/* CLUSTER NOTE added in batch 65: this function is duplicated SEVEN times,
+ * operand-identical, across the main ROM and six overlays -- see
+ * src/non_matching/ovl_7ced6c/2008ab0.c for the list. Every copy is blocked by
+ * the single hoisted load analysed below. Cracking it is worth seven
+ * elevations, which makes this the highest-value single park in the corpus.
+ */
 /* Func_809a44c @ 0x0809a44c -- asm/rom_8a000/rom_9a44c_a_a.s
  *
  * Source asm: goldensun/asm/rom_8a000/rom_9a44c_a_a_a.s
