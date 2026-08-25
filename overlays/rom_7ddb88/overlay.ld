@@ -61,19 +61,20 @@ SECTIONS {
 		asm/overlays/common/common1_c_a_c_c_a.o(.text)
 		asm/overlays/common/common1_c_a_c_c_b.o(.text)
 		asm/overlays/common/common1_c_b.o(.text)
-		asm/overlays/common/common1_c_c.o(.text)
+		asm/overlays/common/common1_c_c_a.o(.text)
+		asm/overlays/common/common1_c_c_b.o(.text)
 		src/overlays/rom_7ddb88/imports.o(.text)
 	} > overlay
 
 	.data : {
 		asm/overlays/rom_7ddb88/ovl_30_c_c_c_c.o(.data)
-		asm/overlays/common/common1_c_c.o(.data)
+		asm/overlays/common/common1_c_c_b.o(.data)
 		asm/overlays/rom_7ddb88/ovl_30_c_c_c_c.o(.data1)
-		asm/overlays/common/common1_c_c.o(.data1)
+		asm/overlays/common/common1_c_c_b.o(.data1)
 	} > overlay
 
 	.bss : {
-		asm/overlays/common/common1_c_c.o(.bss)
+		asm/overlays/common/common1_c_c_b.o(.bss)
 	} > overlay
 
 	/DISCARD/ : {
