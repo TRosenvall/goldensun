@@ -1477,3 +1477,45 @@ This is what the inherited splits already do -- `rom_799abc` carries
 `ovl_30_a_a_a_c_c_c_b` (C) and `_c` (asm) with no `ovl_30_a_a_a_c_c_c.s` left.
 `asmfacts.py --orphans` does not catch the mistake, because the reference is
 not orphaned; only the build does.
+
+### Lever: make the CONSTANT the destination of an AND/ORR
+
+Thumb's data-processing instructions are two-operand and destructive, so
+`and rX, rY` overwrites rX. When the ROM writes
+
+    mov r2, #0xc
+    and r2, r3          <- the CONSTANT's register is the destination
+
+and gcc writes
+
+    mov r3, #0xc
+    and r2, r3          <- the loaded VALUE is the destination
+
+the fix is compound assignment onto the constant:
+
+    m = 0xc;
+    m &= u;             instead of    m = 0xc & u;
+
+**Why it is worth more than one instruction.** With the constant as the
+destination it is DEAD after the AND. Left live, gcc will reuse it to build
+other nearby constants -- `OvlFunc_957_200b610` needs the mask -13 a few
+instructions later, and with 0xc still in hand gcc emitted `sub r3, #0x19`
+(0xc - 0x19 = -13) where the ROM has `mov r3, #0xd / neg r3, r3`. Killing the
+constant killed the derivation too, and unblocked the instruction ORDER as
+well: gcc had been hoisting two `ldrb`s together and stopped. One spelling
+change, 8 of 25 down to 3.
+
+**When it does nothing.** The lever needs a LITERAL on one side. If both
+operands are registers -- a mask that arrived as a parameter, say -- gcc
+canonicalises the AND regardless of which side the source names first, and the
+spelling has no effect at all. `Func_8006384` in `src/non_matching/rom_c0/`
+is that case: `t = m; t &= v;` produced byte-identical output.
+
+**When it makes things worse.** `OvlFunc_930_2009060` has the ROM shape
+`mov r3, #0x2 / orr r3, r2` inside each of two mutually exclusive branch arms.
+There the compound form went from 11 of 25 to 13 -- it fixes the ORR and
+perturbs the surrounding allocation by more than it gains. Straight-line code
+is where this pays.
+
+So: try it when the ROM shows a literal as the destination AND the code is
+straight-line. Screen it, do not assume it.
