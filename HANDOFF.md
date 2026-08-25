@@ -57,6 +57,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-47](reports/batch-47.md) | 6 | ready to port |
 | [batch-48](reports/batch-48.md) | 7 | ready to port |
 | [batch-49](reports/batch-49.md) | 9 | ready to port |
+| [batch-50](reports/batch-50.md) | 7 | ready to port |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
@@ -85,9 +86,10 @@ Every batch is verified the same way, from a clean build:
     docker run --rm -v "$PWD:/work" -w /work goldensun-build \
         sh -c 'make clean && make compare'
 
-- **Nine `.global` lines have been added to five existing `.s` files** (four in
-  batch 09, three in batch 34, one in batch 35, one in batch 44) so that five
-  functions could be split out from the `.incbin` tables they select between. Every one of those
+- **Ten `.global` lines have been added to six existing `.s` files** (four in
+  batch 09, three in batch 34, one in batch 35, one in batch 44, one in batch
+  50) so that six functions could be split out from the `.incbin` tables they
+  select between. Every one of those
   files already exported sibling labels the same way, and a `.global` emits no
   bytes -- but it is the only change in these batches that edits assembly rather
   than replacing it. Reverts cleanly if you would rather it did not happen.
@@ -183,7 +185,7 @@ codebase better than we do. Listed once here rather than repeated per batch.
   with `undefined reference`, which reads like a typo in the C. Silent until
   someone adds a symbol.
 
-- **Eight TUs are built with `-fno-rerun-cse-after-loop`** (first two in batch 25),
+- **Eleven TUs are built with `-fno-rerun-cse-after-loop`** (first two in batch 25),
   and as of batch 42 one of them is MAIN-ROM code rather than an overlay, which
   weakens the reading that this is an overlay-only property. It
   this needs a decision from someone who knows the original toolchain. Both load
@@ -197,8 +199,14 @@ codebase better than we do. Listed once here rather than repeated per batch.
 
   **The evidence is thin and is stated as such.** Sweeping all 85 parked files
   with the flag matched only the first two, so it is not a general lever for the
-  constant-CSE class -- the five added since were each found by recognising the
-  shape on a fresh candidate, not by the sweep. It may instead mean gcc-2.96 runs a pass the original
+  constant-CSE class -- the nine added since were each found by recognising the
+  shape on a fresh candidate, not by the sweep.
+
+  **Batch 50 turned the recognition into a rule worth stating: a flag id READ
+  IN A GUARD AND WRITTEN IN THE BODY is constant-CSE.** gcc hoists it into a
+  callee-saved register across the call, spending a push and a pop to save one
+  pool load, where the ROM simply loads it twice. That shape found three of the
+  eleven directly. It may instead mean gcc-2.96 runs a pass the original
   compiler did not, in which case the right fix is a compiler difference and
   these two rules should be dropped. See `CSE_CFLAGS` in the Makefile.
 
