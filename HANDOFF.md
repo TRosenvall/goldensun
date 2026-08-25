@@ -381,11 +381,22 @@ written.** Three shapes recur:
   and materialises the third inside the loop.
 
 **The diagnostic that settles it:** find the function's near-twin that DOES
-match. `Func_80bf54c` and `Func_80bf574` are the same shape, and the two-named-
-locals spelling produces the copy in one and not the other -- the difference is
-that `Func_80bf574` has a second store keeping more values live. Likewise
-`Func_80a9cbc` matches and `Func_80a9d84`, identical but for a third constant,
-does not.
+match. `Func_80a9cbc` matches and `Func_80a9d84`, identical but for a third
+constant, does not -- so the third constant is the whole cause.
+
+**CORRECTION (batch 64).** This entry previously also claimed that the
+two-named-locals spelling produces the elided copy in `Func_80bf574` but not in
+`Func_80bf54c`, and attributed the difference to pressure from a second store.
+That was wrong and was never checked: screening `Func_80bf574` shows it emits
+`ldrb r3` with no copy, exactly like `Func_80bf54c`. A third sibling,
+`Func_80bf3bc`, has strictly MORE pressure -- a parameter held across a
+three-argument call -- and elides it too.
+
+So for THAT shape the copy is a plain codegen difference, not a pressure effect.
+Pressure remains the right reading for the dead callee-saved register and the
+loop-invariant hoist; it is not established for elided copies, and the
+near-twin test is what distinguishes them. Run the test before invoking the
+category.
 
 **What not to spend rounds on:** the declaration lever, statement reordering,
 extra named locals, and the derived-initialiser lever have all been tried across

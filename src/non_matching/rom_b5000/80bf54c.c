@@ -22,13 +22,18 @@
  *  4. A derived initialiser for `q`, `p + 0x13f` inline instead of through a
  *     named offset -- the lever that landed Func_80a9cbc in this same batch.
  *
- * Why (1) works in the sibling and not here is the useful part: Func_80bf574
- * has a SECOND store through the same pointer at a different offset, so more
- * values are live at once and gcc needs the extra register anyway. Here the
- * pointer is used twice and nothing else competes, so the copy is pure waste
- * and gcc removes it. The copy is a symptom of pressure, not of spelling --
- * which is the same conclusion reached for the dead r8 in
- * src/non_matching/ovl_7bf5a8/2008704.c.
+ * CORRECTED IN BATCH 64. This note previously claimed spelling (1) DOES produce
+ * the copy in the sibling Func_80bf574, and explained the difference as extra
+ * register pressure from that function's second store. That was asserted
+ * without screening it, and it is false: Func_80bf574 emits `ldrb r3` with no
+ * copy, exactly as here. A third sibling, Func_80bf3bc, has strictly more
+ * pressure -- a parameter live across a three-argument call -- and elides it
+ * too (see src/non_matching/rom_b5000/80bf3bc.c, 2 of 31).
+ *
+ * All three siblings elide the copy regardless of pressure, so for this shape it
+ * is a plain codegen difference. Pressure is still the right reading for the
+ * dead callee-saved register in src/non_matching/ovl_7bf5a8/2008704.c; it is
+ * not established for elided copies.
  *
  * The `lsl r3, #24` with NO following `lsr` is reproduced by `t = t << 24;`
  * as its own statement before the test; that part is right.
