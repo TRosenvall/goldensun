@@ -2180,3 +2180,39 @@ offsets could be members.
 `int i` with `i <= 8` gives the signed `ble`; the ROM's `bls` means the counter
 was **unsigned** in the source. Invisible unless you read the suffix, and it is
 the first thing to check before diagnosing anything else about a loop.
+
+
+### `do { } while (0)` around a copy-to-RAM wrapper is LOAD-BEARING
+
+`src/rom_c0/rom_52f4.c` -- which already matches -- writes every one of its
+copy-to-RAM wrappers with the allocation, the DMA and the free inside one
+`do { } while (0)`, and the call inside a second nested one. It reads like a
+leftover macro expansion and is easy to write off as noise.
+
+It is not noise. Written flat, the ROM's argument saves and its size load come
+out in the other order:
+
+    rom    mov r8, r0 / mov r10, r1 / ldr r5, =SIZE
+    ours   ldr r5, =SIZE / mov r8, r0 / mov r0, r5 / mov r10, r1
+
+Four differing lines. With the wrappers, nothing else changed, both
+`HuffStr_Start` and `Func_8003e10` are exact. The block scope decides when the
+incoming arguments become pseudos relative to the size constant. A named local
+for the argument does NOT substitute -- gcc coalesces it away.
+
+### "No pool warning" is not evidence of no pool problem
+
+`tools/tryc.py` warns when the reference keeps a literal pool inside the
+function. `Func_801edec` has exactly that shape -- a `b` over a mid-body `.word`
+and a `.pool` -- and **the warning did not fire**. The screen reported 45 lines
+against 45 with one cosmetic difference, and the build failed `make compare` by
+**323,730 bytes**, because the translation unit came out a different size and
+everything after it shifted.
+
+The first differing bytes were not in the function at all: they were in the
+rom_15000 exports table, whose veneers carry pooled addresses of functions that
+had moved.
+
+**The only test that decides pool layout is `make compare`.** Treat a clean
+screen on a function whose reference has any inline `.word` or `.pool` as
+unproven, warning or no warning.

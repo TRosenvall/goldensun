@@ -118,7 +118,7 @@
 	mov	r1, #0
 	stm	r0, {r1, r2, r3}
 	bx	lr
-.func_end Func_8015570
+.func_end_emit_size Func_8015570, _FUNC_8015570_SIZE
 
 .arm_func_start Func_80155d0  @ 0x080155d0
 	push	{r5, r6, r7, r8, r9, r10, lr}
@@ -491,7 +491,7 @@
 	bls	.L158f4
 	pop	{r5, r6, r7, r8, r9, r10, lr}
 	bx	lr
-.func_end Func_80158e8
+.func_end_emit_size Func_80158e8, _FUNC_80158E8_SIZE
 
 .arm_func_start Func_8015afc  @ 0x08015afc
 	push	{r5, r6}
