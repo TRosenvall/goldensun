@@ -73,6 +73,9 @@ ALIAS = re.compile(r"\b(sl|fp|ip)\b")
 _ALIAS = {"sl": "r10", "fp": "r11", "ip": "r12"}
 
 
+WILDCARD_HITS = set()
+
+
 def makefile_flags(src_rel):
     """Which flag set the BUILD uses for this source, from the Makefile itself.
 
@@ -84,6 +87,15 @@ def makefile_flags(src_rel):
 
     Returns a set of adjustments rather than guessing: "O1", "no-interwork",
     or nothing.
+
+    WILDCARD_HITS records, as a side effect, whether any rule that fired was a
+    `%` PATTERN rather than an explicit target. That distinction matters: a
+    pattern is anchored on a name prefix, and the split chain that produces
+    those prefixes is NOT a translation-unit boundary, so a pattern can spread
+    one TU's flag choice onto a neighbouring TU that merely shares a prefix.
+    See the narrowed rom_7b7f1c rule in the Makefile for the case that cost a
+    round -- at the wrong -O the diff was four lines of argument fill order,
+    indistinguishable from a real blocker.
     """
     p = os.path.join(ROOT, "Makefile")
     if not os.path.exists(p):
@@ -104,10 +116,18 @@ def makefile_flags(src_rel):
         if not re.match(rx, src_rel):
             continue
         recipe = "\n".join(lines[i + 1:i + 4])
+        # Record the pattern ONLY when it actually contributes a non-default
+        # flag. The generic `src/%.c` rule is a wildcard too, so recording
+        # every match would fire the hint on every mismatch and make it noise.
+        hit = False
         if "O1_CFLAGS" in recipe:
             out.add("O1")
+            hit = True
         if "COMMON2_CFLAGS" in recipe:
             out.add("no-interwork")
+            hit = True
+        if hit and "%" in pat:
+            WILDCARD_HITS.add(pat)
     return out
 
 
@@ -609,6 +629,19 @@ def main():
                     != (got[k] if k < len(got) else None))
         print(f"  XX {name}  (rom {len(exp)} lines, ours {len(got)}, "
               f"first diff at {i}, {ndiff} differ)")
+        # A NON-DEFAULT FLAG SET THAT CAME FROM A WILDCARD RULE IS A SUSPECT,
+        # not a fact. The rule is anchored on a name prefix, and the _a/_b/_c
+        # split chain that produces those prefixes is not a translation-unit
+        # boundary -- so the rule may be describing a NEIGHBOURING TU. This is
+        # printed only on a mismatch, because on a match the flags are right by
+        # construction.
+        if adjust and WILDCARD_HITS and not quiet:
+            print(f"     ?? flags {sorted(adjust)} came from a WILDCARD rule "
+                  f"({', '.join(sorted(WILDCARD_HITS))}).")
+            print("        That rule may belong to a neighbouring TU that only "
+                  "shares a name prefix.")
+            print("        Re-screen with the default flags before believing "
+                  "this diff:  --cflags \"-O2\"")
         # --align replaces the positional listing with a region-aligned one.
         # `ndiff` above counts POSITIONS, so a single extra instruction makes
         # every later position report as different; on a 140-instruction
