@@ -363,3 +363,4 @@ cycle died -- check what was left uncommitted before trusting the tree.
 2026-08-25T07:06:13Z  end     +4 (933_2008498, 948_2009070, 949_20085dc, 955_200805c); 436 elevated; CSE queue empty
 2026-08-25T07:13:10Z  end     +2 (957_2008d58, Func_807a2bc); 438 elevated; neg/orr/lsr idiom documented
 2026-08-25T07:18:24Z  end     +4 (914_2008bcc, 915_2008d9c, 916_2008f74, 917_2009878); 442 elevated
+2026-08-25T07:23:12Z  end     +2 (964_2008ec8, 968_20088c8); 444 elevated; tools/find_solved_shape.py added

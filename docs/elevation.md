@@ -592,6 +592,32 @@ pointer through a scratch register before moving it to a callee-saved one
 (`rom_c00d8.c`, `rom_5868.c`, `rom_91c44.c`), and it fails identically in all
 three. Not worth a fourth attempt without a new idea.
 
+## LOOK UP A SHAPE IN THE SOLVED CORPUS BEFORE INVENTING A CONSTRUCT
+
+The tree tracks the **generated** `.s` beside every elevated `.c`. That means the
+corpus of solved codegen is on disk and searchable, and it answers *"what C
+produces this instruction"* directly rather than by derivation.
+
+    python3 tools/find_solved_shape.py 'stmia'
+    python3 tools/find_solved_shape.py --seq 'mul' 'asr'
+
+Batch 53 spent a whole round's thinking on one question — what produces
+`stmia r3!, {r0, r1, r2}`? The answer was **two files away**: a neighbouring
+elevated function in the same overlay already used `DMA3_COPY` from
+`include/dma.h`. Once found, the C took one correction and four functions fell
+out of it.
+
+It only searches `.s` files that carry gcc's banner **and** have a sibling `.c`,
+because that pair is the proof the C is what produced the assembly. Hand-written
+corpus is deliberately skipped: it shows what the ROM does, which you already
+have, not what C reproduces it.
+
+**A "no hits" answer is also useful.** It says the shape is genuinely new, so
+time spent deriving it is not time wasted looking in the wrong place. `mov r12,
+rN` returns no hits — nothing in the elevated corpus uses r12 as a scratch — and
+that turned out not to matter, because gcc emits it from register pressure with
+no prompting from the source at all.
+
 ## Match against the SOLVED corpus, not the unsolved one
 
 `tools/match_shapes.py` reduces every function to a skeleton -- mnemonic plus
