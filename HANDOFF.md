@@ -98,6 +98,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-88](reports/batch-88.md) | 9 | ready to port — tools/find_shape.py --clusters: 143 functions reachable by shape |
 | [batch-89](reports/batch-89.md) | 7 | ready to port — a two-way choice of NEARBY constants goes branchless; scope of a named arg |
 | [batch-90](reports/batch-90.md) | 7 | ready to port — a trailing `& 0xf` can be a BITFIELD; bitfield write ORDER is source order |
+| [batch-91](reports/batch-91.md) | 5 | ready to port — a fourth facing test (the quadrant mask), and what a repeated `cmp` says about a switch |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The

@@ -2650,3 +2650,82 @@ needs one to stop the ARITHMETIC narrowing:
 Same cause seen from the other side: gcc works in the width of the eventual
 store. Do the arithmetic at int width and put the truncation only where the
 value is TESTED.
+
+## A switch DECISION TREE means three or more case labels
+
+gcc-2.96 lowers a `switch` two different ways, and which one it picks is a
+reliable read on how many case labels the source had.
+
+**Two labels** gives a plain equality chain, one `cmp`/`beq` per case and a
+fall-through default:
+
+```
+	cmp	r5, #0xc
+	beq	.Lcase_c
+	cmp	r5, #0xd
+	beq	.Lcase_d
+	<default>
+```
+
+**Three or more** gives the balanced decision tree, whose signature is a
+constant compared TWICE in a row -- once against `beq` and once against a
+relational branch that leaves for the default:
+
+```
+	cmp	r5, #0xd
+	beq	.Lcase_d
+	cmp	r5, #0xd	<- the same constant again
+	bgt	.Ldefault
+	cmp	r5, #0xc
+	bne	.Ldefault
+	<case 0xc, reached by fall-through>
+```
+
+So a repeated `cmp` against the same immediate, feeding first an equality
+branch and then a `bgt`/`blt`, is not redundant code and is not something to
+try to spell away. It says the switch has at least one more case label than
+the number of distinct bodies visible in the ROM -- the extra label shares a
+body with another case or with the default, which is why it leaves no trace of
+its own.
+
+Measured on OvlFunc_971_200906c (src/non_matching/overlays/200906c.c): the
+two-case switch gives the chain, and adding a third case whose value equals the
+default's reproduces the tree exactly, register for register.
+
+## The QUADRANT facing test -- a fourth spelling for batch 29's table
+
+The three facing tests catalogued in reports/batch-29.md are all RANGE checks,
+`f - k <= n`. There is a fourth, and it is an equality on masked bits:
+
+```
+	ldrh	r3, [r0, #6]
+	mov	r2, #0x80 / lsl r2, #6	<- 0x2000, half a quadrant
+	add	r3, r2
+	ldr	r2, =0xffffc000
+	and	r3, r2
+	lsl	r3, #16
+	mov	r2, #0xc0 / lsl r2, #24	<- 0xc0000000
+	cmp	r3, r2
+	bne	...
+```
+
+Rotate the angle by half a quadrant, mask it down to its top two bits, and ask
+which quadrant it landed in. Two things about the source are forced, and both
+were measured rather than guessed:
+
+* **The mask is written `~0x3fff`, not `0xc000`.** gcc pools 0xffffc000 in a
+  single `ldr`; `0xc000` costs `mov` + `lsl` and diverges at the first masked
+  instruction. Writing a high mask as the complement of a small constant is
+  what puts the 32-bit form in the pool.
+* **The result is an `unsigned short`.** `lsl r3, #16` against a pre-shifted
+  0xc0000000 is the narrowing-cast tell from batch 29, here on an equality
+  rather than on a range. Leaving the value an `int` drops both shifts.
+
+```c
+unsigned short d = (a->facing + 0x2000) & ~0x3fff;
+if (d == 0xc000) { ... }
+```
+
+Five functions matched on this in batch 91. Grep `asm/` for `0xffffc000` to
+find the rest: twenty-eight files hold it, and ten of the functions that do are
+sixty instructions or fewer.
