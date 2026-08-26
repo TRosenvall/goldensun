@@ -15,6 +15,7 @@ INCLUDE "wram.sym"
 INCLUDE "message.sym"
 INCLUDE "file_table.sym"
 INCLUDE "area.sym"
+INCLUDE "const.sym"
 
 SECTIONS {
 	header : {

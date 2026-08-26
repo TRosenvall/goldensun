@@ -268,6 +268,14 @@ asm/overlays/rom_7a67d8/ovl_30_c_a_c_c.o: src/overlays/rom_7a67d8/ovl_30_c_a_c_c
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
 CSE_CFLAGS := $(GCC296_CFLAGS) -fno-rerun-cse-after-loop
+# OvlFunc_901_2008804 reads and then sets the same save flag, 0x307. At plain
+# -O2 gcc hoists the id into r5 across the call, paying a push and a pop to save
+# one pool load; the ROM loads it twice. 29 differing lines become none.
+asm/overlays/rom_797990/ovl_314_c_c_a_a_c_c_a_c_c_a_a_b.o: src/overlays/rom_797990/ovl_314_c_c_a_a_c_c_a_c_c_a_a_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 asm/overlays/rom_7c460c/ovl_314_a_c_c_a_c_a_a.o: src/overlays/rom_7c460c/ovl_314_a_c_c_a_c_a_a.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)

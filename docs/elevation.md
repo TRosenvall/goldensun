@@ -380,6 +380,63 @@ Decide on FUNCTIONS AND SECTIONS, not on whether the text is empty:
 
 Same for the tail. Caught in batch 82 on `ovl_30_c_c_c_c_c_c`.
 
+## `orr rd, rs` -- which operand becomes the destination
+
+Thumb's two-operand `orr` makes the destination one of the operands, so the ROM
+tells you which side of the source expression gcc kept:
+
+    rom    ldrb r2, [r0] / mov r3, #2 / orr r3, r2      the CONSTANT is rd
+    ours   ldrb r3, [r0] / mov r2, #2 / orr r3, r2      the VALUE is rd
+
+`*p |= 2` gives ours, and so does every commutative rearrangement of it —
+`*p = 2 | *p`, `*p = *p | 2`, naming the loaded value, naming the constant as an
+`int`. gcc canonicalises a commutative operator to put the constant second and
+none of those reach it.
+
+**Name the constant in a local OF THE WIDTH IT IS COMBINED WITH, and write it
+first:**
+
+    unsigned char two = 2;      /* p is unsigned char *  */
+    *p = two | *p;
+
+The width matters: an `int` local leaves the order unchanged. Solved
+`OvlFunc_920_2008214`.
+
+### When the ROM also POOLS the constant, that is the tell
+
+For a halfword field the same trick gets the operand order but changes the
+constant from a pool load to a `mov`, because the widened local is SImode:
+
+| source | operands | constant |
+|---|---|---|
+| `*p \|= 2` | wrong way round | `ldr r3, =2` ✔ |
+| `unsigned short two = 2; *p = two \| *p;` | right ✔ | `mov r3, #2` |
+| `two = (unsigned short)(int)&_CONST_2;` | right ✔ | `ldr r3, =_CONST_2` ✔ |
+
+Only the symbol form gives both — which is the pool tell (§"the ROM pools a
+SMALL constant") arriving with a measurement behind it rather than an
+assumption. `const.sym` holds these; its header records the bar for adding one.
+
+Four functions turned on this. The internal control in `OvlFunc_898_2008cfc` is
+worth knowing: it uses the value 2 **twice**, once as a save-flag id where the
+ROM writes `mov r0, #2` and once in this OR where it writes `ldr r3, =2` — same
+value, same function, one immediate and one pooled.
+
+## Stack arguments: name them to keep two registers alive
+
+`f(0, 0, 1, 1, 0x12, 0xe)` with literals gives
+
+    mov r3, #0x12 / str r3, [sp] / mov r3, #0xe / str r3, [sp, #4]
+
+— gcc computes and stores each in turn, reusing r3. Where the ROM builds both
+first,
+
+    mov r3, #0x12 / mov r2, #0xe / str r3, [sp] / str r2, [sp, #4]
+
+name them as locals. Two live pseudos instead of one, and the four instructions
+come out in the ROM's order. Three of `OvlFunc_920_2008214`'s five differences
+were this.
+
 ## A named local used ONCE can cost the preferred register
 
 The tree has a standing lever that says naming an intermediate forces the
