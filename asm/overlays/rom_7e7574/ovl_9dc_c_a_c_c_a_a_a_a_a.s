@@ -1,5 +1,6 @@
 	.include "macros.inc"
 
+
 @ Adjusts slot 0 (the player) directly.
 @ Takes the entity with Func_92054 and writes its fields in place rather
 @ than going through the slot helpers -- touches +0x8, +0x10.
@@ -363,62 +364,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_959_2009b24
-
-@ 42 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   FaceEntityInstant x2, OvlFunc_1c4c, OvlFunc_1ca4, OvlFunc_1cf0
-@   OvlFunc_1d60, OvlFunc_1ca4
-.thumb_func_start OvlFunc_959_2009be4
-	push	{r5, lr}
-	mov	r5, r0
-	mov	r1, #0
-	mov	r2, #0
-	bl	__Func_809280c
-	mov	r2, #0
-	mov	r0, #0
-	mov	r1, r5
-	bl	__Func_809280c
-	ldr	r3, =.L5fa4
-	ldr	r2, [r3]
-	mov	r3, #3
-	and	r2, r3
-	cmp	r2, #1
-	beq	.L1c22
-	cmp	r2, #1
-	bgt	.L1c10
-	cmp	r2, #0
-	beq	.L1c1a
-	b	.L1c3a
-.L1c10:
-	cmp	r2, #2
-	beq	.L1c2a
-	cmp	r2, #3
-	beq	.L1c32
-	b	.L1c3a
-.L1c1a:
-	mov	r0, r5
-	bl	OvlFunc_959_2009c4c
-	b	.L1c40
-.L1c22:
-	mov	r0, r5
-	bl	OvlFunc_959_2009ca4
-	b	.L1c40
-.L1c2a:
-	mov	r0, r5
-	bl	OvlFunc_959_2009cf0
-	b	.L1c40
-.L1c32:
-	mov	r0, r5
-	bl	OvlFunc_959_2009d60
-	b	.L1c40
-.L1c3a:
-	mov	r0, r5
-	bl	OvlFunc_959_2009ca4
-.L1c40:
-	pop	{r5}
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_959_2009be4
-

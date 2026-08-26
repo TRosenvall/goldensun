@@ -1,91 +1,6 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ Countdown loop: waits ten frames, then polls a scratch word once per
-@ frame until it reaches a target or the attempt limit runs out.
-.thumb_func_start OvlFunc_955_2008970
-	push	{r5, lr}
-	mov	r0, #0xa
-	bl	__WaitFrames
-	ldr	r3, =.L4834
-	ldr	r3, [r3]
-	mov	r5, #0
-	b	.L994
-.L980:
-	mov	r0, #1
-	bl	__WaitFrames
-	mov	r3, #0x96
-	add	r5, #1
-	lsl	r3, #2
-	cmp	r5, r3
-	bge	.L9a0
-	ldr	r3, =.L4834
-	ldr	r3, [r3]
-.L994:
-	cmp	r3, #0
-	bne	.L980
-	ldr	r3, =.L4838
-	ldr	r3, [r3]
-	cmp	r3, #0x4b
-	bne	.L980
-.L9a0:
-	pop	{r5}
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_955_2008970
-
-@ 41 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   SaveAndClearEntityHook, SetSaveBit, WaitFrames x2, UnregisterTask
-@   CopyMapRectAttributes x2
-@ sets 0x334.
-.thumb_func_start OvlFunc_955_20089b0
-	push	{r5, lr}
-	mov	r0, #0x1f
-	sub	sp, #8
-	bl	__Func_809ad90
-	mov	r0, #0xcd
-	lsl	r0, #2
-	bl	__SetFlag
-	ldr	r3, =.L4834
-	ldr	r3, [r3]
-	cmp	r3, #0
-	beq	.L9d0
-	ldr	r2, =.L4838
-	mov	r3, #0
-	str	r3, [r2]
-.L9d0:
-	mov	r0, #0x1e
-	bl	__WaitFrames
-	mov	r0, #1
-	bl	__WaitFrames
-	ldr	r0, =OvlFunc_955_2008714
-	bl	__StopTask
-	mov	r3, #0xd
-	str	r3, [sp, #4]
-	mov	r5, #0x3a
-	mov	r0, #0x3a
-	mov	r1, #0x1c
-	mov	r2, #7
-	mov	r3, #1
-	str	r5, [sp]
-	bl	__Func_8010704
-	mov	r3, #0xb
-	str	r3, [sp, #4]
-	mov	r0, #0x39
-	mov	r1, #0xb
-	mov	r2, #1
-	mov	r3, #1
-	str	r5, [sp]
-	bl	__Func_8010704
-	add	sp, #8
-	pop	{r5}
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_955_20089b0
-
 @ Cutscene: roughly 106 instructions of straight-line script --
 @ 0 turns, 5 animation changes, 0 dialogue lines, 3 timed pauses.
 @ Characterised structurally rather than beat by beat.
@@ -199,4 +114,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_955_2008a1c
-

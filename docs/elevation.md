@@ -402,6 +402,22 @@ first:**
 The width matters: an `int` local leaves the order unchanged. Solved
 `OvlFunc_920_2008214`.
 
+### IT IS A SPELLING TO TRY, NOT A RULE TO APPLY (batches 85, 86)
+
+`OvlFunc_898_200913c` has both answers four instructions apart:
+
+    rom   ldrb r2, [r5]     / mov r3, #0xfe / and r3, r2      the CONSTANT is rd
+    rom   ldrb r3, [r6, #9] / mov r2, #0xc  / orr r3, r2      the VALUE is rd
+
+and the plain `*p &= 0xfe` and `m[9] |= 0xc` give exactly those, with nothing
+named. Naming either constant moves the wrong one. Meanwhile
+`OvlFunc_903_2008d04` needs the narrow local for **its** `orr` — the plain form,
+`2 | *p`, and an `int` local all get it backwards.
+
+So the order is: **write the plain form, look at which operand the ROM makes the
+destination, and only then reach for the local.** Applying the lever on sight
+costs a screen as often as it saves one.
+
 ### When the ROM also POOLS the constant, that is the tell
 
 For a halfword field the same trick gets the operand order but changes the
@@ -421,6 +437,26 @@ Four functions turned on this. The internal control in `OvlFunc_898_2008cfc` is
 worth knowing: it uses the value 2 **twice**, once as a save-flag id where the
 ROM writes `mov r0, #2` and once in this OR where it writes `ldr r3, =2` — same
 value, same function, one immediate and one pooled.
+
+## A named local has a TYPE and a POSITION, and the ROM says both
+
+Widening a stored constant with an `int` local is batch 84's rule, and it is
+only half the answer. `OvlFunc_939_20091d0` stores `0x5b` into a `u16`:
+
+| local | result |
+|---|---|
+| `int v = 0x5b;` next to the store | 10 of 40 differing |
+| `int v = 0x5b;` at the top of the function | **match** |
+
+Assigned at the top, the pseudo is live across the calls and lands in a
+callee-saved register — which is where the ROM has it. The same distinction
+decided `OvlFunc_901_2008864` (batch 83) and `OvlFunc_928_2008968` (batch 85),
+both of which needed a stored zero assigned before the first call so it would be
+pushed.
+
+**Read the register off the ROM.** A caller-saved register (r0–r3) means the
+pseudo is born after the last call; a pushed callee-saved one means it is born
+before the first.
 
 ## Stack arguments: name them to keep two registers alive
 
