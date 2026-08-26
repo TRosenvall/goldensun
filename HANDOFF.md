@@ -99,6 +99,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-89](reports/batch-89.md) | 7 | ready to port — a two-way choice of NEARBY constants goes branchless; scope of a named arg |
 | [batch-90](reports/batch-90.md) | 7 | ready to port — a trailing `& 0xf` can be a BITFIELD; bitfield write ORDER is source order |
 | [batch-91](reports/batch-91.md) | 5 | ready to port — a fourth facing test (the quadrant mask), and what a repeated `cmp` says about a switch |
+| [batch-92](reports/batch-92.md) | 6 | ready to port — a missing prototype reorders argument setup; two readings that failed their own control |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The

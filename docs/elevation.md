@@ -2729,3 +2729,53 @@ if (d == 0xc000) { ... }
 Five functions matched on this in batch 91. Grep `asm/` for `0xffffc000` to
 find the rest: twenty-eight files hold it, and ten of the functions that do are
 sixty instructions or fewer.
+
+## A rotation in the argument moves: the callee had no prototype
+
+When everything else in a function matches and what is left is the ORDER of the
+hard-register argument moves in front of one call, try deleting that callee's
+`extern` declaration.
+
+```
+	rom	mov r1, #0 / mov r2, #0 / mov r0, r7
+	ours	mov r0, r7 / mov r1, #0 / mov r2, #0
+```
+
+With a prototype in scope gcc-2.96 emits the moves in ascending register order
+and puts r0 first. With **no declaration at all** -- the arguments going through
+the default promotions instead -- it emits r0 last. That was the entire
+remaining difference in `Func_80a47b4`
+(src/rom_a1000/rom_a47b4_a_b.c), and nothing else touched it: the
+declaration-order lever, `void *` parameter types, assigning inside the call
+expression, and `-fno-schedule-insns`, `-fno-schedule-insns2`, `-fno-peephole`,
+`-fno-defer-pop` and `-fno-caller-saves` all left the rotation exactly as it
+was.
+
+So a three-move rotation is not scheduling noise; it is a statement about the
+original translation unit. This also explains why several already-matched files
+in the tree carry a comment saying one callee is "intentionally implicit" --
+that was arrived at by trial there, and this is the rule behind it.
+
+## A value that is provably constant inside its branch is NOT evidence
+
+Two claims were written into batch 92's files from reading the assembly, and
+both were false when measured. Both are the same mistake, and it is an easy one
+because the assembly looks so specific.
+
+`OvlFunc_957_2008cf8` tests `y == 0x14` and then calls a six-argument function
+whose second argument is built with `mov r1, #0x14` while its sixth is filled
+with `str r4, [sp, #4]` -- r4 still holding `y`. That reads as a clear statement
+that one of them is the variable and the other the literal. It is not: passing
+`y` for the stack slot only, for both, or for neither all compile to the same
+thirty-five instructions. Inside the branch gcc knows `y == 0x14` and picks per
+operand whether to re-derive or reuse, and the choice is not reachable from C.
+
+`Anim_Kite` passes `sp + 0xc` and `sp + 8` as two out-parameters, which looks
+like it pins two locals to two frame slots. Swapping their declarations changes
+nothing; gcc assigns frame slots by use.
+
+**The discipline:** before writing "the ROM does X, so the source must have said
+Y" into a file, compile the alternative and check that it actually differs. A
+comment claiming a control that was never run is worse than no comment, because
+the next person will believe it. When the alternative turns out to match too,
+say so in the file -- the negative is the useful part.
