@@ -27,6 +27,28 @@
  * BLOCKED ON NAMING, not on technique. What symbol has the value 0xf here?
  * message.sym and file_table.sym are the two id namespaces in the tree and
  * neither is obviously right for a text-ink mask.
+ *
+ * BATCH 93: THE const.sym ROUTE WAS TRIED AND IS A NET LOSS. Batch 83
+ * established `_CONST_2` for exactly this shape -- a value the ROM pools that
+ * an eight-bit `mov` could build -- and this function meets that bar on paper.
+ * A hypothetical `_CONST_F` taken as `(int)&_CONST_F` DOES put the pool load
+ * where the ROM has it, which is the part the literal cannot do. But it costs
+ * a register: gcc then keeps the mask in r2 and the address in r1 and lands
+ * the `and` in r2, where the ROM reuses r2 for both and lands the `and` in r0.
+ *
+ *     rom          ldr r2, =0xf / and r0, r2 / ldr r2, =0xeae / add r3, r2
+ *     _CONST_F     ldr r2, =sym / ldr r1, =0xeae / and r2, r0 / add r3, r1
+ *
+ * Five spellings of it were measured -- named int, inline, `mask & colour`,
+ * `colour &= mask`, and a separate pointer local -- and all five give the same
+ * five differing positions. The plain literal gives FOUR. So the symbol is not
+ * simply the missing piece; something else also has to move, and until that is
+ * known adding `_CONST_F` to const.sym would be adding an entry that does not
+ * pay for itself. No entry was added.
+ *
+ * The literal form is what is kept below, because it is the closer of the two.
+ * -O1, -fno-rerun-cse-after-loop and -fno-expensive-optimizations were also
+ * screened against it and none improves on four.
  */
 extern unsigned char *iwram_3001e8c;
 

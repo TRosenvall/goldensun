@@ -33,24 +33,6 @@
  * 0x10000 in a callee-saved register across a call and reusing it for both
  * stores -- that is a value gcc COMPUTED, so it reuses it exactly as the ROM
  * does, unlike the constant-CSE cases where the ROM rebuilds.
- *
- * BATCH 93 -- ONE OF THE THREE IS GONE, and the lever is batch 92's. This file
- * called __Func_8092adc with NO declaration in scope. Adding
- * `extern void __Func_8092adc(int, int, int);` moves `mov r2, #0` into place
- * and takes the count from 3 differing to 2:
- *
- *     rom     mov r1, #0xc0 / mov r0, r6 / lsl r1, #8 / mov r2, #0
- *     before  mov r1, #0xc0 / lsl r1, #8 / mov r2, #0 / mov r0, r6
- *     after   mov r1, #0xc0 / lsl r1, #8 / mov r0, r6 / mov r2, #0
- *
- * Batch 92 found the rule going the other way -- REMOVING a prototype pushed
- * r0 to the end for Func_80a47b4 -- and this is the same rule read forwards.
- * The prototype is in the source below.
- *
- * What is left is the genuine interleave: the ROM slots `mov r0, r6` BETWEEN
- * `mov r1, #0xc0` and its `lsl r1, #8`, splitting a shifted constant's two
- * halves around another argument. That is the blocker this file was filed
- * under and it is untouched.
  */
 #include "gba/types.h"
 #include "actor.h"
