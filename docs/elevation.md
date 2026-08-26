@@ -363,6 +363,23 @@ true — which is the actual bad trade, and it is avoidable.
 
 First out: `OvlFunc_932_2008388`, with two siblings behind it.
 
+## A split piece that holds only `.include` is not a piece
+
+When the cut is at the very head of a `.s`, the "head" still contains the file's
+`.include "macros.inc"` line, so a naive `if head.strip()` writes an `_a.s` with
+no content, an empty `_a.o`, and a linker-script line for it. It links and
+`make compare` passes — an object contributing nothing to `.text` changes
+nothing — so this is invisible until someone reads the script and wonders what
+`_a` is.
+
+Decide on FUNCTIONS AND SECTIONS, not on whether the text is empty:
+
+    body = [l for l in head.split("\n")
+            if l.strip() and not l.strip().startswith(".include")]
+    if body: write the _a piece
+
+Same for the tail. Caught in batch 82 on `ovl_30_c_c_c_c_c_c`.
+
 ## Technique: reaching a file-local `.L` symbol from C
 
 A function that indexes a table living in its own `.s`, or reads a `.lcomm` slot
