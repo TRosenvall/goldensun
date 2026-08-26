@@ -363,6 +363,33 @@ true — which is the actual bad trade, and it is avoidable.
 
 First out: `OvlFunc_932_2008388`, with two siblings behind it.
 
+## Technique: rename a file-local data label to reach it from C
+
+A function that indexes a table living in its own `.s` reads, in the
+disassembly, as
+
+    ldr r1, =.L23f0
+
+and a C file cannot reference that: local labels do not cross object
+boundaries, and `.L23f0` is not an identifier. `split_asm.py` reports it as
+`MUST EXPORT`, but `.global .L23f0` only solves the asm-to-asm case.
+
+**Rename the label and export it.** A label emits no bytes, so renaming one and
+giving it global binding changes symbol-table metadata and nothing else — the
+link is byte-identical, which `make compare` proves.
+
+    -.L23f0:
+    +	.global gTable_921__0200a3f0
+    +gTable_921__0200a3f0:
+     	.incbin "overlays/rom_7a7298/orig.bin", 0x23f0, (0x2430-0x23f0)
+
+Name it **by address**, in the shape the tree already uses for the script blobs
+sitting beside it (`gScript_921__0200a4f4`). That asserts nothing about what the
+data means, which is the same reasoning as naming ids by value in `area.sym`.
+
+Unblocked `OvlFunc_921_2009f24` and its twin, which were otherwise exact on the
+first screen.
+
 ## Technique: stopping a constant fold with symbol addresses
 
 Where the ROM computes a constant AT RUNTIME:
