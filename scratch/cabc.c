@@ -9,7 +9,6 @@ void OvlFunc_914_2008abc(int scale)
     unsigned int i;
     unsigned int u;
     unsigned short *p;
-    unsigned int n;
 
     OvlFunc_914_2008b8c();
     i = 0;
@@ -21,8 +20,7 @@ void OvlFunc_914_2008abc(int scale)
                 *p = OvlFunc_914_2008b24(*p, scale);
             }
         }
-        n = i + (0x80 << 9);
-        i = n;
+        i += 0x80 << 9;
     } while (i <= (0xdf << 16));
     OvlFunc_914_2008bcc();
     OvlFunc_914_2008bac();

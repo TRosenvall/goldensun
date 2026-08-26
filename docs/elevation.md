@@ -363,6 +363,49 @@ true — which is the actual bad trade, and it is avoidable.
 
 First out: `OvlFunc_932_2008388`, with two siblings behind it.
 
+## A `.s` that has been split before has taken the obvious names
+
+`split_asm.py`'s BASENAME WARNING says not to name the `.c` after the `.s`. That
+is necessary and not sufficient: a file split in an earlier batch already has
+`<base>_b.s` beside it, holding the **generated assembly of an elevated C
+file**. Writing a new piece there overwrites it, and the symptom is an
+`undefined reference` to a function that plainly exists:
+
+    ovl_30_c_c_c_c_a_b.c:(.text+0x32): undefined reference to `OvlFunc_914_2008b24'
+
+Batch 88 did this to four overlays at once. Nothing warned; `--orphans` passes,
+because the linker script is consistent — it is the *contents* of a piece that
+were destroyed.
+
+**Choose suffixes by looking at what is already there**, in `asm/` and `src/`
+alike, and take the first free letters:
+
+    taken = {suffixes of asm/overlays/<d>/<b>_*.{s,o,d}} |
+            {suffixes of src/overlays/<d>/<b>_*.c}
+    pick the first len(pieces) letters not in `taken`
+
+The pieces do not have to be `_a`/`_b`/`_c` and nothing depends on their being
+in order — the linker script gives the order.
+
+## Find a family by its SHAPE, not by byte identity
+
+`tools/find_twins.py` finds functions byte-identical up to symbol names.
+`tools/find_shape.py` finds functions with the same **instruction stream** once
+constants, labels and call targets are wildcarded — a much larger net, because
+siblings usually differ in ids and in which functions they call.
+
+    python3 tools/find_shape.py <asm/file.s> <SolvedFunction>   # siblings of one solve
+    python3 tools/find_shape.py --clusters --min-insn 25        # all families at once
+
+`--clusters` is the one to run when nothing is solved yet: it groups every
+remaining function by shape and ranks by payoff. Its top entries are much larger
+than `find_twins.py`'s — an 18-member group at 176 instructions, and the
+thirteen-member family `find_twins.py` reports is **seventeen** by shape.
+
+The workflow is: solve one member, then fill the captured constants into the
+same C. Batch 88 did two families this way, nine functions, every sibling clean
+on the first screen.
+
 ## A split piece that holds only `.include` is not a piece
 
 When the cut is at the very head of a `.s`, the "head" still contains the file's
