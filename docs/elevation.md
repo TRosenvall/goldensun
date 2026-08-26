@@ -2865,3 +2865,49 @@ The tell is in the pool: 0x1f4 is reachable as `mov` + `lsl` (0xfa << 1) and 500
 is not reachable by `mov` at all, so the folded form has no choice but to pool
 it. A `=symbol+N` pool entry where the ROM has arithmetic means a local base
 pointer is missing.
+
+## A register-offset load's operand order: subscript or pointer arithmetic
+
+`LDR/LDRH/LDRB Rd, [Rn, Rm]` computes `Rn + Rm` either way but encodes the two
+registers in fixed positions, so `[r3, r2]` and `[r2, r3]` are **different
+bytes**. Which one you get is decided by how the access is written:
+
+```c
+*(unsigned short *)(file + off)      ->  ldrh r0, [r2, r3]   base first
+((unsigned short *)file)[idx]        ->  ldrh r0, [r3, r2]   scaled index first
+```
+
+Four spellings were measured on `StartMenu_AddOption`
+(src/rom_15000/rom_20198_c_c_c_a_a_c_a_b.c): `file + off` and `(int)file + off`
+both give base-first; `off + (int)file` and the array subscript both give
+index-first. It was the only differing instruction in forty-five.
+
+So a register-offset load whose **first** register holds a scaled index is a
+tell for a subscript, and the base-first form is what naive pointer arithmetic
+produces. Check this before assuming a one-instruction residue is allocation
+noise.
+
+## When a named constant IS forced: it has to cross a call
+
+Batches 92-95 produced six comments claiming the ROM's choice of register proved
+something about the source, and four of them were false. The ones that survived
+all have the same shape, so here is the discriminator.
+
+**Not evidence.** Two stores in a row sharing a register; a value sitting in a
+callee-saved register; a constant that is provably constant inside its branch;
+which operand of a commutative `and`/`orr` becomes the destination. Every one of
+these has been measured and the alternative spelling compiled identically.
+`OvlFunc_common1_17c0` writes zero to two fields from one register and returns a
+third zero from another — the local, all-literals, and all-one-local spellings
+are the same thirty-five instructions.
+
+**Evidence.** A value that has to **survive a call**. `Func_801ef08` keeps a
+zero in r10 across three calls and writes it afterwards; spelled as a bare `0`
+the function is 35 instructions against 39 and diverges at the first. Two
+DIFFERENT constants in two stack slots at one call site are the same kind of
+thing: they need two registers at once, so naming both is forced, while two
+copies of the SAME value are not.
+
+The rule of thumb: ask whether the spelling changes what has to be **live** at
+some point. If it does not, the assembly is showing you the allocator, not the
+source.

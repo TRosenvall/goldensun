@@ -102,6 +102,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-92](reports/batch-92.md) | 6 | ready to port — a missing prototype reorders argument setup; two readings that failed their own control |
 | [batch-93](reports/batch-93.md) | 5 | ready to port — the prototype lever runs both ways; 52 parks are within six instructions |
 | [batch-94](reports/batch-94.md) | 5 | ready to port — the gState offset must be BUILT not folded; a callee-saved register is not a naming signal |
+| [batch-95](reports/batch-95.md) | 5 | ready to port — `pushal` is `push`; a load's operand order says subscript vs pointer arithmetic |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
