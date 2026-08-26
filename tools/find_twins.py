@@ -13,6 +13,13 @@ that could be elevated by solving ONE member of each group. That is a different
 kind of work from picking candidates one at a time, and it is the main reason to
 expect the rate to hold up rather than decay as the easy shapes run out.
 
+RUN IT AFTER EVERY SOLVE, NOT ONLY WHEN HUNTING FOR CLUSTERS. Batches 77 and
+78 each elevated pairs this way: solve one function, hash the corpus, find that
+the shape already existed somewhere else, port the .c with the symbol changed.
+Four of batch 77's five and four of batch 78's came from that, and in every case
+the twin matched on the first screen. The scan costs seconds; a freshly solved
+shape is exactly when it pays.
+
 WHAT COUNTS AS A TWIN
 
 Bodies are compared after renumbering local labels, so two functions that differ
