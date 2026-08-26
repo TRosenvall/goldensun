@@ -22,24 +22,6 @@
  *                                                              named local is
  *                                                              spilled
  *   __Func_80922c4's prototype withheld                        48 lines, but 4
- *
- * BATCH 94 -- WITHHOLDING THAT PROTOTYPE IS NOW THE BEST FORM, at 2 of 48, and
- * it is what the source below does. The line above recorded 4 when it was
- * written; the rest of the file has improved since and the same change now
- * lands `mov r1, #0` correctly too. What remains is one transposition:
- *
- *     rom   ... mov r0, #0 / neg r2, r2 / bl __Func_80922c4
- *     ours  ... neg r2, r2 / mov r0, #0 / bl __Func_80922c4
- *
- * Three spellings of the negative third argument were tried against it -- a
- * named `int n = -0x10`, `0 - 0x10`, and decimal `-16` -- and all three are
- * byte-identical at 2.
- *
- * This function is also the counterexample that softened batch 93's statement
- * of the prototype lever. That batch wrote it as a table: r0 EARLIER in the ROM
- * means ADD a declaration. Here the ROM puts r0 earlier and REMOVING the
- * declaration is what helps. The lever is real; its direction is not readable
- * off the ROM, so measure both.
  *                                                              instructions in
  *                                                              disagreeing
  *                                                              regions instead
@@ -88,7 +70,7 @@ void OvlFunc_961_2008120(void)
     y = *(short *)(tbl + off);
     __PlaySound(0x9e);
     __Func_8010560(L5e8, x, y);
-    __Func_80922c4(0, 0, -0x10);
+    __Func_80922c4(0, 0, -16);
     *(int *)(iwram_3001ebc + (0xe4 << 1)) = 0x10;
     __Func_8091e9c(idx);
 }

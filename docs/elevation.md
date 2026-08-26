@@ -2756,23 +2756,30 @@ original translation unit. This also explains why several already-matched files
 in the tree carry a comment saying one callee is "intentionally implicit" --
 that was arrived at by trial there, and this is the rule behind it.
 
-**The rule runs both ways, confirmed in batch 93 on two more functions.** Read
-the direction off the ROM before touching anything:
+**The lever works in both directions, but it is NOT a rule you can read off the
+ROM and apply blind.** Batch 93 stated it as a table -- r0 later in the ROM means
+delete the declaration, r0 earlier means add one -- and batch 94 found a case
+that breaks the table. Try both and measure; that costs two compiles.
 
-| the ROM puts the r0 move | do this |
-|---|---|
-| LATER than you do | delete the callee's `extern` declaration |
-| EARLIER than you do | add one |
+What is solid, from four functions:
 
-`OvlFunc_964_200a52c` wanted r0 later and a deleted prototype closed it exactly.
-`OvlFunc_966_2008078` (src/non_matching/ovl_7f148c/2008078.c) wanted r0 earlier,
-had no declaration in scope, and adding one took it from three differing
-positions to two.
+* Adding or removing a callee's declaration DOES change the order gcc emits the
+  argument-setup moves in, and nothing else reaches that order -- not
+  declaration order, not parameter types, not assigning inside the call, not
+  `-fno-schedule-insns`, `-fno-schedule-insns2`, `-fno-peephole`,
+  `-fno-defer-pop` or `-fno-caller-saves`.
+* `OvlFunc_964_200a52c` wanted r0 later; deleting the declaration closed it
+  exactly.
+* `OvlFunc_966_2008078` wanted r0 earlier, had no declaration, and adding one
+  took it from three differing positions to two.
+* `OvlFunc_961_2008120` also wants r0 EARLIER -- and *deleting* its declaration
+  is what improved it, three to two, which is the opposite of what the table
+  predicts. So the direction is not determined by where r0 sits.
 
-Two cautions. It is the r0 move specifically -- the other argument registers
-stay in ascending order either way. And it only applies when the r0 argument is
-a VALUE IN A REGISTER; where r0 is a small constant the rotation has some other
-cause, and dropping the prototype changes nothing (measured on
+Two limits, both measured. It is the r0 move that shifts; the other argument
+registers stay in ascending order either way. And it only bites when the r0
+argument is a VALUE IN A REGISTER -- where r0 is a small constant the rotation
+has some other cause and the declaration changes nothing at all (measured on
 `OvlFunc_930_2008870`, whose r0 argument is `#0xe`).
 
 ## A value that is provably constant inside its branch is NOT evidence

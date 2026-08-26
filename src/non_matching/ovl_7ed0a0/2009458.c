@@ -36,6 +36,13 @@
  * two-instruction difference and do not respond to the same spelling, so
  * whatever decides the register pair is not the statement structure.
  *
+ * TRIED AND WORSE, batch 94: making the mask the ACCUMULATOR, so that the
+ * destination of the `and` ties to the mask pseudo the way the ROM's does --
+ * `v = 0xf7; v &= t;` and `v = 0xf7; v = v & t;`. Both give 7 of 36 rather than
+ * 3. Declaration order of `t` and `v` was permuted and both were tried as
+ * `unsigned char`; all four are byte-identical to the form below except
+ * `unsigned char v`, which costs two instructions.
+ *
  * NEXT: nothing at the expression level. This is the allocator choosing r2/r3
  * the other way round from Camelot's compiler on a three-value block.
  */
