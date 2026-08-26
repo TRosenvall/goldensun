@@ -92,6 +92,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-82](reports/batch-82.md) | 5 | ready to port — asm labels beat renaming; a named local can COST the preferred register |
 | [batch-83](reports/batch-83.md) | 6 | ready to port — which operand becomes the `orr` destination; const.sym |
 | [batch-84](reports/batch-84.md) | 5 | ready to port — read the constant's WIDTH off the ROM; split_asm could not see .lcomm |
+| [batch-85](reports/batch-85.md) | 5 | ready to port — batch 83's lever is not a rule; pick_candidates sees BUILT constants |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
