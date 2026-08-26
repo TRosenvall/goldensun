@@ -19,9 +19,9 @@ void OvlFunc_901_2008640(void)
 {
     struct A *a;
     unsigned short *p;
-    unsigned short two;
-    unsigned short zero;
     short saved;
+    unsigned short zero;
+    unsigned short two;
 
     a = __MapActor_GetActor(0xf);
     p = &a->f64;

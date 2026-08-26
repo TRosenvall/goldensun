@@ -24,8 +24,8 @@ void OvlFunc_901_2008640(void)
     short saved;
 
     a = __MapActor_GetActor(0xf);
-    p = &a->f64;
     saved = a->f6;
+    p = &a->f64;
     two = (unsigned short)(int)&_CONST_2;
     *p = two | *p;
     zero = 0;

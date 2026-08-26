@@ -38,6 +38,15 @@
  * else about the function is right, so anyone who works out what governs the
  * dump point can close it by changing nothing but the compiler invocation.
  *
+ * BATCH 93 -- THE PLACEMENT IS NOT A FAMILY-WIDE BUG. OvlFunc_901_2008640
+ * (src/non_matching/overlays/2008640.c) is the same cutscene bookend with the
+ * same `b .L / <pool> / .L:` shape in its tail, and gcc puts ITS pool exactly
+ * where the ROM does. So whatever moves this one is specific to this function
+ * -- most likely the byte count from the function start to the dump point,
+ * since the ROM's point here is 4-aligned and ours is not -- and not a general
+ * disagreement about where thumb pools go. Do not spend time looking for a
+ * global flag.
+ *
  * THE REST OF THE FUNCTION IS SETTLED and should not be re-derived:
  *   - the pooled 2 is `_CONST_2` from const.sym, the same call as the rest of
  *     this overlay family -- see src/overlays/rom_793768/ovl_314_c_c_c_a_a_c_a_b.c

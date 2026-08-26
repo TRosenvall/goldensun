@@ -25,9 +25,9 @@ void OvlFunc_901_2008640(void)
 
     a = __MapActor_GetActor(0xf);
     p = &a->f64;
-    saved = a->f6;
     two = (unsigned short)(int)&_CONST_2;
     *p = two | *p;
+    saved = a->f6;
     zero = 0;
     __CutsceneStart();
     __MessageID(0x1cb4);
