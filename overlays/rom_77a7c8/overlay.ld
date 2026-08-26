@@ -14,7 +14,8 @@ MEMORY {
 SECTIONS {
 	.text : {
 		src/overlays/rom_77a7c8/exports.o(.text)
-		asm/overlays/rom_77a7c8/ovl_30_a_a_a.o(.text)
+		asm/overlays/rom_77a7c8/ovl_30_a_a_a_b.o(.text)
+		asm/overlays/rom_77a7c8/ovl_30_a_a_a_c.o(.text)
 		asm/overlays/rom_77a7c8/ovl_30_a_a_b.o(.text)
 		asm/overlays/rom_77a7c8/ovl_30_a_b.o(.text)
 		asm/overlays/rom_77a7c8/ovl_30_b.o(.text)
@@ -69,3 +70,10 @@ SECTIONS {
 		*(*)
 	}
 }
+
+/* gcc-2.96 emits __divsi3 for `/` and has no flag to rename it. Overlay code
+ * calls the RAM-resident copy through the stub .export_func divsi3_RAM makes.
+ * These are different functions at different addresses, so this alias is what
+ * lets a C division in an overlay link to the routine the ROM actually calls.
+ * Emits no bytes. Same reasoning as overlays/rom_7a5214/overlay.ld. */
+__divsi3 = _divsi3_RAM;
