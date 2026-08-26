@@ -89,6 +89,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-79](reports/batch-79.md) | 6 | ready to port — `ldrh rD, .L` IS `ldr rD, =v`; pool ORDER reads operand modes |
 | [batch-80](reports/batch-80.md) | 6 | ready to port — the pool_range table from arm.md; naming a file-local data label |
 | [batch-81](reports/batch-81.md) | 6 | ready to port — tryc called clean matches failures; the 13-member family at 144/144 |
+| [batch-82](reports/batch-82.md) | 5 | ready to port — asm labels beat renaming; a named local can COST the preferred register |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
