@@ -95,6 +95,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-85](reports/batch-85.md) | 5 | ready to port — batch 83's lever is not a rule; pick_candidates sees BUILT constants |
 | [batch-86](reports/batch-86.md) | 5 | ready to port — both answers to the operand lever in one function; where the local goes |
 | [batch-87](reports/batch-87.md) | 5 | ready to port — find a family by its instruction SHAPE, not by byte identity |
+| [batch-88](reports/batch-88.md) | 9 | ready to port — tools/find_shape.py --clusters: 143 functions reachable by shape |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
