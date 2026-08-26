@@ -21,6 +21,14 @@
  * back to the `mov rN, #imm` that last set that register, and reports this one
  * as `[repeats -1]`.
  *
+ * THE BLOCKER COVERS A SECOND CLUSTER. tools/find_shape.py --clusters (batch 88)
+ * reports OvlFunc_881_2009888, OvlFunc_881_2009938 and OvlFunc_881_20099e8 as a
+ * three-member group, and all three open with the same
+ * `__Func_80933f8(-1, -1, -1, 0)`. Screened in batch 91: 61 lines against 61
+ * with 53 differing, every one of them the cascade from that one hoist. So this
+ * park stands for four functions, not one, and the C for the other three is the
+ * obvious transcription -- they differ only in one message id each.
+ *
  * The rest of the reading is believed correct: the two stores at +0x1c and
  * +0x18 take the same value and are written in that order, and the camera
  * target, transitions and save bit are all straightforward.

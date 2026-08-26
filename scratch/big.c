@@ -13,9 +13,9 @@ struct Ent {
 struct Rect { int x0, z0, x1, z1; };
 
 extern unsigned char iwram_3001ebc[];
-extern int gStep[];
-extern int gModelId[];
-extern struct Rect gBox[];
+extern int L6190[];
+extern int L61d0[];
+extern struct Rect L61e8[];
 extern struct Ent *__MapActor_GetActor(int slot);
 
 struct Ent *OvlFunc_883_200834c(int *facingOut, int *slotOut, int *modelOut)
@@ -33,18 +33,19 @@ struct Ent *OvlFunc_883_200834c(int *facingOut, int *slotOut, int *modelOut)
         e = tbl[slot];
         id = *e->f50->f28;
         for (i = 0; i <= 5; i++) {
-            if (id != gModelId[i])
+            if (id != L61d0[i])
                 continue;
             *modelOut = i;
-            s = gStep[*facingOut];
-            tx = ((pl->x >> 16) + (s >> 16)) >> 4;
-            tz = ((pl->z >> 16) + (short)s) >> 4;
+            s = L6190[*facingOut] >> 16;
+            tx = ((pl->x >> 16) + s) >> 4;
+            s = (short)L6190[*facingOut];
+            tz = ((pl->z >> 16) + s) >> 4;
             ex = *(short *)((char *)e + 0xa);
-            x0 = (ex + gBox[i].x0) >> 4;
+            x0 = (ex + L61e8[i].x0) >> 4;
             ez = *(short *)((char *)e + 0x12);
-            z0 = (ez + gBox[i].z0) >> 4;
-            x1 = (ex + gBox[i].x1) >> 4;
-            z1 = (ez + gBox[i].z1) >> 4;
+            z0 = (ez + L61e8[i].z0) >> 4;
+            x1 = (ex + L61e8[i].x1) >> 4;
+            z1 = (ez + L61e8[i].z1) >> 4;
             if (x0 > tx)
                 continue;
             if (tx >= x1)

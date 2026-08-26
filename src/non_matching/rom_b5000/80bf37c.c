@@ -21,6 +21,12 @@
  * takes all three. The annotation calls it one of ten near-identical routines;
  * the other seven differ enough in shape not to cluster with these.
  *
+ * A SECOND CLUSTER HAS THE SAME BLOCKER. Func_80bf250, Func_80bf2b4 and
+ * Func_80bf318 are their own three-member shape group -- the same counter tick
+ * with an extra signed companion byte at +0x133 -- and screening the first in
+ * batch 91 gives 50 lines against 49 with 31 differing, the same `mov r0, #0`
+ * hoisted above the first test. So this park stands for SIX functions.
+ *
  * TWO THINGS WERE SOLVED GETTING HERE and both are worth keeping:
  *
  *   THE DECREMENT IS `v = v + 0xff`, NOT `v--`. The value is a byte and the

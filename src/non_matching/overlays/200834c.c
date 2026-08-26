@@ -90,6 +90,17 @@
  *   gBox      6 rectangles: (-32,-8,32,8) (-8,-32,8,32) (-32,-16,32,0)
  *             (-8,-32,8,32) (-32,-8,32,8) (-8,-32,8,32)
  *
+ * RE-ATTEMPTED IN BATCH 91 with batch 89's finding that two assignments come out
+ * in the OPPOSITE order to their source order. Writing `tz` before `tx` -- three
+ * spellings, including one that loads the step word once and one that names both
+ * player coordinates -- gives 122 to 125 differing of ~142, far worse than the
+ * 28 below. So the source order really is tx then tz, and the hoist is the
+ * scheduler rather than anything the assignment order reaches.
+ *
+ * ALSO: this cluster is SEVENTEEN functions by shape, not thirteen.
+ * tools/find_shape.py --clusters (batch 88) ranks it second in the tree at 2304
+ * payoff. find_twins.py sees only the thirteen that are byte-identical.
+ *
  * NOTE FOR ANYONE RE-SCREENING THIS FILE: it reports 46 differing, not 28. The
  * extra eighteen are the three table symbols and the label renumbering behind
  * them -- tryc.py normalises the ROM's `.L6190` to `L<n>` because it looks like

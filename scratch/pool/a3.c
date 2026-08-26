@@ -1,21 +1,73 @@
-extern void *_GetUnit(int id);
-extern int Func_80bf208(int id, int n, int k);
+struct Model { unsigned char pad00[0x28]; short *f28; };
 
-int Func_80bf37c(int id)
+struct Ent {
+    unsigned char pad00[6];
+    unsigned short facing;
+    int x;
+    unsigned char pad0c[4];
+    int z;
+    unsigned char pad14[0x3c];
+    struct Model *f50;
+};
+
+struct Rect { int x0, z0, x1, z1; };
+
+extern unsigned char iwram_3001ebc[];
+extern int L6190[];
+extern int L61d0[];
+extern struct Rect L61e8[];
+extern struct Ent *__MapActor_GetActor(int slot);
+
+struct Ent *OvlFunc_883_200834c(int *facingOut, int *slotOut, int *modelOut)
 {
-    unsigned char *p;
-    int v;
+    struct Ent **tbl;
+    struct Ent *pl;
+    struct Ent *e;
+    unsigned int slot, i;
+    int px, pz;
+    int s, tx, tz, x0, z0, x1, z1, ex, ez, id;
 
-    p = (unsigned char *)_GetUnit(id) + (0x9c << 1);
-    v = *p;
-    if (v == 0)
-        return 0;
-    v = v + 0xff;
-    *p = v;
-    if ((unsigned char)v == 0)
-        return 1;
-    if (Func_80bf208(id, *p, 0x1e) == 0)
-        return 0;
-    *p = 0;
-    return 1;
+    tbl = (struct Ent **)(*(char **)iwram_3001ebc + 0x14);
+    pl = __MapActor_GetActor(0);
+    *facingOut = pl->facing >> 12;
+    for (slot = 8; slot <= 0x41; slot++) {
+        e = tbl[slot];
+        id = *e->f50->f28;
+        for (i = 0; i <= 5; i++) {
+            if (id != L61d0[i])
+                continue;
+            *modelOut = i;
+            s = L6190[*facingOut];
+            pz = pl->z;
+            px = pl->x;
+            tz = ((pz >> 16) + (short)s) >> 4;
+            tx = ((px >> 16) + (s >> 16)) >> 4;
+            ex = *(short *)((char *)e + 0xa);
+            x0 = (ex + L61e8[i].x0) >> 4;
+            ez = *(short *)((char *)e + 0x12);
+            z0 = (ez + L61e8[i].z0) >> 4;
+            x1 = (ex + L61e8[i].x1) >> 4;
+            z1 = (ez + L61e8[i].z1) >> 4;
+            if (x0 > tx)
+                continue;
+            if (tx >= x1)
+                continue;
+            if (z0 > tz)
+                continue;
+            if (tz >= z1)
+                continue;
+            if (i & 1) {
+                if (x0 == (pl->x >> 20))
+                    continue;
+                *slotOut = slot;
+                return e;
+            } else {
+                if (z0 == (pl->z >> 20))
+                    continue;
+                *slotOut = slot;
+                return e;
+            }
+        }
+    }
+    return 0;
 }
