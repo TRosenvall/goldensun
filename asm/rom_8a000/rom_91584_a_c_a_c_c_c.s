@@ -1,51 +1,5 @@
 	.include "macros.inc"
 
-@ ResetPlayerMovement
-@ Takes no arguments. Puts the player entity (id at ewram_240+0x1F4) into a
-@ clean standing state for a cutscene: max speed 0x10000 into +0x30,
-@ acceleration 0x8000 into +0x34, both x and z targets set to the 0x80000000
-@ "none" sentinel and their velocities zeroed.
-@ Selects animation 0x0C when the transition-tile flag at ewram_240+0x1F2 is 1,
-@ otherwise the normal idle animation 1.
-.thumb_func_start Func_8091660  @ 0x08091660
-	push	{r5, lr}
-	ldr	r5, =gState
-	mov	r2, #0xfa
-	lsl	r2, #1
-	add	r3, r5, r2
-	ldr	r0, [r3]
-	bl	GetFieldActor
-	mov	r3, #0x80
-	lsl	r3, #9
-	str	r3, [r0, #0x30]
-	mov	r3, #0x80
-	lsl	r3, #8
-	str	r3, [r0, #0x34]
-	mov	r3, #0x80
-	lsl	r3, #24
-	str	r3, [r0, #0x38]
-	str	r3, [r0, #0x40]
-	mov	r2, #0xf9
-	mov	r3, #0
-	str	r3, [r0, #0x24]
-	str	r3, [r0, #0x2c]
-	lsl	r2, #1
-	add	r3, r5, r2
-	ldrb	r3, [r3]
-	cmp	r3, #1
-	bne	.L9169e
-	mov	r1, #0xc
-	bl	_Actor_SetAnim
-	b	.L916a4
-.L9169e:
-	mov	r1, #1
-	bl	_Actor_SetAnim
-.L916a4:
-	pop	{r5}
-	pop	{r0}
-	bx	r0
-.func_end Func_8091660
-
 @ BeginCutscene
 @ Takes no arguments. Opens a scripted scene.
 @ Calls _Func_1c428 to take over input, resets the player with Func_91660, and
@@ -123,4 +77,3 @@
 	pop	{r0}
 	bx	r0
 .func_end CutsceneStart
-

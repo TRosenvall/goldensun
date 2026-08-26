@@ -36,9 +36,16 @@
  * survive THREE intervening calls, which means it is not a CSE question at all
  * but a register-allocation one: something must decide that a constant is worth
  * a callee-saved register plus a push/pop pair, and this build decides it is
- * not. `-fcall-used-r4` -- which is in GCC296_CFLAGS and takes one register out
- * of the callee-saved set -- is the obvious suspect and is worth measuring
- * against a function of this shape that DOES match elsewhere in the tree.
+ * not.
+ *
+ * `-fcall-used-r4` IS RULED OUT, batch 92. It was the obvious suspect -- it is
+ * in GCC296_CFLAGS and it takes one register out of the callee-saved set -- so
+ * OvlFunc_962_200806c was compiled with the flag REMOVED to see whether the
+ * extra callee-saved register would change the decision. It does not. gcc uses
+ * r4 for the slot instead of r5 and still emits four independent pool loads;
+ * the base is not promoted to a register either way. So the difference is not
+ * about how many callee-saved registers are available, and the next hypothesis
+ * has to come from somewhere else.
  *
  * WHAT IS ALREADY RIGHT in both, and should not be re-derived: the quadrant
  * facing test (`(unsigned short)((f6 + 0x2000) & ~0x3fff) == 0xc000`, settled
