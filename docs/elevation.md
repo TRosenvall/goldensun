@@ -2756,6 +2756,25 @@ original translation unit. This also explains why several already-matched files
 in the tree carry a comment saying one callee is "intentionally implicit" --
 that was arrived at by trial there, and this is the rule behind it.
 
+**The rule runs both ways, confirmed in batch 93 on two more functions.** Read
+the direction off the ROM before touching anything:
+
+| the ROM puts the r0 move | do this |
+|---|---|
+| LATER than you do | delete the callee's `extern` declaration |
+| EARLIER than you do | add one |
+
+`OvlFunc_964_200a52c` wanted r0 later and a deleted prototype closed it exactly.
+`OvlFunc_966_2008078` (src/non_matching/ovl_7f148c/2008078.c) wanted r0 earlier,
+had no declaration in scope, and adding one took it from three differing
+positions to two.
+
+Two cautions. It is the r0 move specifically -- the other argument registers
+stay in ascending order either way. And it only applies when the r0 argument is
+a VALUE IN A REGISTER; where r0 is a small constant the rotation has some other
+cause, and dropping the prototype changes nothing (measured on
+`OvlFunc_930_2008870`, whose r0 argument is `#0xe`).
+
 ## A value that is provably constant inside its branch is NOT evidence
 
 Two claims were written into batch 92's files from reading the assembly, and
