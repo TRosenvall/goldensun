@@ -1,15 +1,36 @@
-#include "gba/types.h"
-#include "actor.h"
-extern void __ActorMessage(int actor, int b);
-extern Actor *__MapActor_GetActor(int slot);
-void OvlFunc_962_200816c(int slot)
+extern unsigned char iwram_3001ebc[];
+extern void __CutsceneStart(void);
+extern void __CutsceneEnd(void);
+extern void __MapTransitionIn(void);
+extern void __WaitMapTransition(void);
+extern void __CutsceneWait(int n);
+extern void __MessageID(int id);
+extern int __GetFlag(int id);
+extern void __SetFlag(int id);
+extern void OvlFunc_953_2009c5c(int slot, int v);
+extern void OvlFunc_953_2009c48(int slot);
+
+void OvlFunc_953_200960c(void)
 {
-    Actor *a; u32 f; unsigned m;
-    a = __MapActor_GetActor(0);
-    f = a->facing;
-    f += 0x80 << 6;
-    m = 0xffffc000;
-    if ((u16)(f & m) == 0xc000) { __UI_Sanctum(slot); }
-    else if (__GetFlag(0x96f)) { __MessageID(0x262c); __ActorMessage(slot, 0); }
-    else { __MessageID(0x25d5); __ActorMessage(slot, 0); }
+    char *base;
+    int *p;
+    int off;
+
+    __CutsceneStart();
+    base = *(char **)iwram_3001ebc;
+    p = (int *)(base + (0xe0 << 1));
+    *p = 0x201;
+    __MapTransitionIn();
+    __WaitMapTransition();
+    __CutsceneWait(0x14);
+    OvlFunc_953_2009c5c(0x11, 0xa0 << 7);
+    __MessageID(0x206e);
+    if (__GetFlag(0x8a4)) {
+        base = *(char **)iwram_3001ebc;
+        (*(unsigned short *)(base + (0xec << 1)))++;
+    }
+    OvlFunc_953_2009c48(0x11);
+    OvlFunc_953_2009c5c(0x11, 0xc0 << 6);
+    __SetFlag(0x8a3);
+    __CutsceneEnd();
 }

@@ -12,19 +12,19 @@ extern void OvlFunc_953_2009c48(int slot);
 
 void OvlFunc_953_200960c(void)
 {
-    int *base;
+    char *base;
 
     __CutsceneStart();
-    base = *(int **)iwram_3001ebc;
-    base[0x70] = 0x201;
+    base = *(char **)iwram_3001ebc;
+    *(int *)(base + (0xe0 << 1)) = 0x201;
     __MapTransitionIn();
     __WaitMapTransition();
     __CutsceneWait(0x14);
     OvlFunc_953_2009c5c(0x11, 0xa0 << 7);
     __MessageID(0x206e);
     if (__GetFlag(0x8a4)) {
-        base = *(int **)iwram_3001ebc;
-        (*(unsigned short *)((char *)base + (0xec << 1)))++;
+        base = *(char **)iwram_3001ebc;
+        (*(unsigned short *)(base + (0xec << 1)))++;
     }
     OvlFunc_953_2009c48(0x11);
     OvlFunc_953_2009c5c(0x11, 0xc0 << 6);

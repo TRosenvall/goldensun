@@ -380,6 +380,33 @@ Decide on FUNCTIONS AND SECTIONS, not on whether the text is empty:
 
 Same for the tail. Caught in batch 82 on `ovl_30_c_c_c_c_c_c`.
 
+## A named local used ONCE can cost the preferred register
+
+The tree has a standing lever that says naming an intermediate forces the
+three-operand form and generally helps. **The converse is also real**, and it
+shows up as a clean register transposition rather than as extra instructions:
+
+    base = *(char **)iwram_3001ebc;
+    *(int *)(base + (0xe0 << 1)) = 0x201;     /* r2/r3 swapped vs the ROM */
+
+    *(int *)(*(char **)iwram_3001ebc + (0xe0 << 1)) = 0x201;   /* matches */
+
+`REG_ALLOC_ORDER` (arm.h:989) starts `{3, 2, 1, 0, ...}`, so r3 goes to whichever
+pseudo the allocator ranks first. Giving the base pointer its own named local
+changes the ranking and hands r3 to the offset constant instead.
+
+**So when a block differs only by a consistent register swap, try removing a
+local as well as adding one.** On `OvlFunc_953_200960c` four other spellings of
+the same store — operand order swapped, the destination named, the offset named,
+the offset written as the folded literal — all gave the identical six
+differences, and so did `-fno-gcse`, `-fno-rerun-cse-after-loop`,
+`-fno-schedule-insns2` and `-O1`. Only deleting the local moved it.
+
+The corollary matters too: **do not delete a local the ROM's own code implies.**
+The same function reads `iwram_3001ebc` a second time, and there the local
+stays, because the ROM holds `&iwram_3001ebc` in r5 across every call and
+re-loads the pointer — two separate reads of a global, not one cached value.
+
 ## Technique: reaching a file-local `.L` symbol from C
 
 A function that indexes a table living in its own `.s`, or reads a `.lcomm` slot
