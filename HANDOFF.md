@@ -85,6 +85,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-75](reports/batch-75.md) | 5 | ready to port — do-while wrappers are load-bearing; tryc's pool warning hole closed |
 | [batch-76](reports/batch-76.md) | 5 | ready to port — address vs value; the three-operand lever and its limit |
 | [batch-77](reports/batch-77.md) | 5 | ready to port — 2 solves with free twins; one short member read two ways |
+| [batch-78](reports/batch-78.md) | 6 | ready to port — 3 solves, 3 free twins; a split that dropped its .data |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
