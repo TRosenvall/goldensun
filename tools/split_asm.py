@@ -47,8 +47,22 @@ import re
 import sys
 
 FUNC = r"\.thumb_func_start\s+{}\b"
-LABEL_DEF = re.compile(r"^(\.L[0-9a-fA-Z_]+):", re.M)
+# A LABEL IS ALSO DEFINED BY `.lcomm`, and missing that let a split link-fail.
+# `.lcomm .L525c, 4` reserves a .bss slot and defines the symbol just as
+# `.L525c:` would, but it has no colon, so the first version of this pattern did
+# not see it. Splitting ovl_30_c_c.s in batch 84 therefore reported ONE label to
+# export when three were needed, and the build died with
+#
+#     undefined reference to `.L525c'
+#
+# from the piece that had been cut away. `.comm` is accepted too, for symmetry.
+LABEL_DEF = re.compile(r"^(?:(\.L[0-9a-fA-Z_]+):|\s*\.l?comm\s+(\.L[0-9a-fA-Z_]+)\s*,)", re.M)
 LABEL_REF = re.compile(r"=(\.L[0-9a-fA-Z_]+)\b")
+def _defs(text):
+    """Every label DEFINED in `text`, from either spelling."""
+    return [a or b for a, b in LABEL_DEF.findall(text)]
+
+
 DATA = re.compile(r"^\s*\.(incbin|incrom|incdata|section)\b", re.M)
 
 
@@ -82,10 +96,10 @@ def main():
     # pairs to check, not one. Checking only cut-vs-rest is what let a six-label
     # failure through in batch 68.
     head, tail = "\n".join(L[:s]), "\n".join(L[e:])
-    need_global = sorted(set(LABEL_REF.findall(cut)) & set(LABEL_DEF.findall(rest)))
-    reverse = sorted(set(LABEL_REF.findall(rest)) & set(LABEL_DEF.findall(cut)))
-    head_needs = sorted(set(LABEL_REF.findall(head)) & set(LABEL_DEF.findall(tail)))
-    tail_needs = sorted(set(LABEL_REF.findall(tail)) & set(LABEL_DEF.findall(head)))
+    need_global = sorted(set(LABEL_REF.findall(cut)) & set(_defs(rest)))
+    reverse = sorted(set(LABEL_REF.findall(rest)) & set(_defs(cut)))
+    head_needs = sorted(set(LABEL_REF.findall(head)) & set(_defs(tail)))
+    tail_needs = sorted(set(LABEL_REF.findall(tail)) & set(_defs(head)))
 
     print(f"{asm}: {n_funcs} function(s); cutting {fn} (lines {s+1}-{e})")
     print(f"  carries data      : {'YES -- keep a .s and its section line' if DATA.search(rest) else 'no'}")

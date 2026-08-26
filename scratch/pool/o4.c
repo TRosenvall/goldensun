@@ -18,6 +18,7 @@ void OvlFunc_957_2008ee0(struct A *a)
     v = L4468[((short)*p >> 2) & 3];
     a->f18 = v;
     a->f1c = v;
-    t = *p + 1;
+    t = *p;
+    t++;
     *p = t & 0xf;
 }

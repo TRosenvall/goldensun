@@ -1,35 +1,15 @@
-extern unsigned char iwram_3001ebc[];
-extern void __CutsceneStart(void);
-extern void __CutsceneEnd(void);
-extern void __MapTransitionIn(void);
-extern void __WaitMapTransition(void);
-extern void __CutsceneWait(int n);
-extern void __MessageID(int id);
-extern int __GetFlag(int id);
-extern void __SetFlag(int id);
-extern void OvlFunc_953_2009c5c(int slot, int v);
-extern void OvlFunc_953_2009c48(int slot);
+extern unsigned short L5260 __asm__(".L5260");
+extern unsigned short L525c __asm__(".L525c");
+extern void OvlFunc_932_200b9c8(void);
+extern void __StartTask(void *fn, int prio);
 
-void OvlFunc_953_200960c(void)
+void OvlFunc_932_200ba44(void)
 {
-    char *base;
-    int v;
-
-    __CutsceneStart();
-    v = 0x201;
-    base = *(char **)iwram_3001ebc;
-    *(int *)(base + (0xe0 << 1)) = v;
-    __MapTransitionIn();
-    __WaitMapTransition();
-    __CutsceneWait(0x14);
-    OvlFunc_953_2009c5c(0x11, 0xa0 << 7);
-    __MessageID(0x206e);
-    if (__GetFlag(0x8a4)) {
-        base = *(char **)iwram_3001ebc;
-        (*(unsigned short *)(base + (0xec << 1)))++;
+    L5260 = 0;
+    L525c = 0;
+    {
+        int pr;
+        pr = 0xc8 << 4;
+        __StartTask(OvlFunc_932_200b9c8, pr);
     }
-    OvlFunc_953_2009c48(0x11);
-    OvlFunc_953_2009c5c(0x11, 0xc0 << 6);
-    __SetFlag(0x8a3);
-    __CutsceneEnd();
 }

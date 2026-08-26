@@ -1,22 +1,11 @@
-extern unsigned char gBuffer[];
-extern unsigned char ewram_2020000[];
-extern unsigned char ewram_2020004[];
+extern unsigned char gFlags[512];
 
-void OvlFunc_916_2008098(int col, int row, int w, int h, int page, int x0, int y0)
+int GetFlag(int flagID)
 {
-    unsigned int *src;
-    int x, y, i;
-    unsigned int t;
-
-    src = (unsigned int *)gBuffer + (col + (row << 7));
-    for (y = y0; y < y0 + h; y++) {
-        for (x = x0; x < x0 + w; x++) {
-            t = *src++;
-            i = ((((y & 0xf) + (page << 4)) << 5) + (x & 0xf)) << 2;
-            i += 0x6002800;
-            *(int *)i = *(int *)(ewram_2020000 + ((t & 0xfff) << 3));
-            *(int *)(i + 0x40) = *(int *)(ewram_2020004 + ((t & 0xfff) << 3));
-        }
-        src += 0x80 - w;
-    }
+    int bit, val;
+    unsigned char *f;
+    bit = 1 << (flagID & 7);
+    f = gFlags;
+    val = f[(unsigned)(flagID << 20) >> 23] & bit;
+    return (unsigned)(-val | val) >> 31;
 }

@@ -2,6 +2,7 @@ extern void *__MapActor_GetActor(int slot);
 extern void __CutsceneStart(void);
 extern void __CutsceneWait(int n);
 extern void __PlaySound(int id);
+extern void __MapActor_SetSpeed(int slot, int vx, int vz);
 extern void __MapActor_SetPos(int slot, int x, int z);
 extern void __Actor_SetSpriteFlags(void *a, int f);
 extern void __Func_8092b08(int slot, int n);

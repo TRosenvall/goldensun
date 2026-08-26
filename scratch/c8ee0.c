@@ -12,12 +12,10 @@ void OvlFunc_957_2008ee0(struct A *a)
 {
     unsigned short *p;
     int v;
-    int t;
 
     p = &a->f64;
     v = L4468[((short)*p >> 2) & 3];
     a->f18 = v;
     a->f1c = v;
-    t = *p + 1;
-    *p = t & 0xf;
+    *p = (*p + 1) & 0xf;
 }

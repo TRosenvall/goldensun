@@ -3,10 +3,7 @@ extern unsigned char gFlags[512];
 int GetFlag(int flagID)
 {
     int bit, val;
-    unsigned int t;
     bit = 1 << (flagID & 7);
-    t = flagID << 20;
-    t >>= 23;
-    val = gFlags[t] & bit;
+    val = bit & gFlags[(unsigned)(flagID << 20) >> 23];
     return (unsigned)(-val | val) >> 31;
 }

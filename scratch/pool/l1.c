@@ -6,7 +6,6 @@ extern void __MessageID(int id);
 extern void __MapActor_SetSpeed(int slot, int vx, int vz);
 extern void __Func_8093040(int a, int b, int c);
 extern void __Func_801776c(int a, int b);
-extern void __Func_80921c4(int a, int b, int c);
 
 void OvlFunc_883_20091d8(void)
 {
