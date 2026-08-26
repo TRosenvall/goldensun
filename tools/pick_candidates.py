@@ -90,11 +90,10 @@ THE FILTERS, AND WHAT EACH ONE COST
 
 WHAT IT DOES NOT KNOW
 
-Constants re-materialised with `mov rN, #imm / neg rN, rN` rather than pooled.
-OvlFunc_945_200c13c builds -1 three times that way and is constant-CSE for the
-same reason as the pooled cases, but the `no repeated pooled constant` filter
-does not see it. Check for repeated small-constant construction by eye until
-that is added.
+(As of batch 85 the repeated-constant filter DOES see `mov rN, #imm` followed by
+a shift or a negate, so OvlFunc_945_200c13c's three `-1`s and the mov+lsl pairs
+that cost batch 85 three functions are now caught. What it still cannot see is a
+constant repeated as two DIFFERENT constructions of the same value.)
 
     python3 tools/pick_candidates.py --whole-file
     python3 tools/pick_candidates.py --min-calls 5 --max-insn 30
@@ -113,6 +112,22 @@ FUNC = re.compile(r"\.thumb_func_start\s+(\S+)[^\n]*\n(.*?)\.func_end", re.S)
 LABEL = re.compile(r"(\.L\w+):")
 BRANCH = re.compile(r"\tb\w*\t(\.L\w+)")
 POOL = re.compile(r"ldr\s+r\d+,\s*=(\S+)")
+
+# A CONSTANT BUILT TWICE IS THE SAME BLOCKER AS A CONSTANT POOLED TWICE, and the
+# docstring above used to say this filter did not see it. gcc CSEs
+#
+#     mov r0, #0xd5 / lsl r0, #17        (twice in the ROM)
+#
+# into one callee-saved register and pays a push and a pop for it, exactly as it
+# does for a repeated `ldr =`. Batch 85 met three functions on this in one round
+# -- OvlFunc_887_2008e34, OvlFunc_921_20087a4 and OvlFunc_959_2008e80 -- before
+# adding the pattern here.
+#
+# Matched as a PAIR because that is what identifies the value: `mov rN, #imm`
+# alone repeats harmlessly all over (r0 = 0 for a slot id, say), and it is the
+# shift that makes the constant expensive enough for gcc to want to share it.
+BUILT = re.compile(r"mov\s+(r\d+), #(0x[0-9a-f]+|\d+)\n\t(?:lsl|neg)\s+\1,"
+                   r"(?: \1,)? ?(#?[0-9a-fx]*)")
 
 
 def has_loop(body):
@@ -298,7 +313,13 @@ def scan(whole_file, min_calls, min_insn, max_insn, allow_repeat,
                                      or re.search(r"^\s*\.word\s", body, re.M)):
                 continue
             pooled = collections.Counter(POOL.findall(body))
+            # ...and constants BUILT with mov+shift, which cost gcc the same
+            # decision. Keyed on (value, shift) so `mov #0x80 / lsl #6` and
+            # `mov #0x80 / lsl #9` are different constants, which they are.
+            built = collections.Counter(
+                (v, sh) for _, v, sh in BUILT.findall(body))
             dupes = [k for k, v in pooled.items() if v > 1]
+            dupes += [f"{v}<<{sh}" for (v, sh), n in built.items() if n > 1]
             if dupes and not allow_repeat:
                 continue
             rows.append((-calls, insn, name, rel, len(fns), dupes,
