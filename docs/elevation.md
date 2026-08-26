@@ -363,32 +363,53 @@ true — which is the actual bad trade, and it is avoidable.
 
 First out: `OvlFunc_932_2008388`, with two siblings behind it.
 
-## Technique: rename a file-local data label to reach it from C
+## Technique: reaching a file-local `.L` symbol from C
 
-A function that indexes a table living in its own `.s` reads, in the
-disassembly, as
+A function that indexes a table living in its own `.s`, or reads a `.lcomm` slot
+the overlay declares, needs a name C cannot spell:
 
-    ldr r1, =.L23f0
+    ldr r1, =.L23f0            @ a data label
+    .global .L57fc             @ a .bss slot
+    .lcomm  .L57fc, 4
 
-and a C file cannot reference that: local labels do not cross object
-boundaries, and `.L23f0` is not an identifier. `split_asm.py` reports it as
-`MUST EXPORT`, but `.global .L23f0` only solves the asm-to-asm case.
+Local labels do not cross object boundaries and `.L23f0` is not an identifier.
+`split_asm.py` reports the first case as `MUST EXPORT`, but `.global` on its own
+only solves the asm-to-asm half.
 
-**Rename the label and export it.** A label emits no bytes, so renaming one and
-giving it global binding changes symbol-table metadata and nothing else — the
-link is byte-identical, which `make compare` proves.
+**Use gcc's asm-label extension. It is the least invasive form and this tree
+already used it before either of the notes below were written:**
 
-    -.L23f0:
-    +	.global gTable_921__0200a3f0
-    +gTable_921__0200a3f0:
-     	.incbin "overlays/rom_7a7298/orig.bin", 0x23f0, (0x2430-0x23f0)
+    extern unsigned int L57fc __asm__(".L57fc");
+    extern short        tbl[]  __asm__(".L23f0");
 
-Name it **by address**, in the shape the tree already uses for the script blobs
-sitting beside it (`gScript_921__0200a4f4`). That asserts nothing about what the
-data means, which is the same reasoning as naming ids by value in `area.sym`.
+The declaration gets a link name that need not be a valid identifier, and **no
+other file changes** — which matters, because a symbol like `.L57fc` may be
+referenced from several `.s` files and from already-elevated `.c` files that use
+this same idiom. Renaming it breaks those; batch 81 broke two that way and had
+to back the rename out.
 
-Unblocked `OvlFunc_921_2009f24` and its twin, which were otherwise exact on the
-first screen.
+### The heavier alternative: rename and export
+
+Renaming the label and adding `.global` also works, and batch 80 used it for
+`gTable_921__0200a3f0`:
+
+```diff
+-.L23f0:
++	.global gTable_921__0200a3f0
++gTable_921__0200a3f0:
+ 	.incbin "overlays/rom_7aa430/orig.bin", 0x23f0, (0x2430-0x23f0)
+```
+
+A label emits no bytes, so this changes symbol-table metadata only and the link
+stays byte-identical. It reads better in the C, and it is worth doing when the
+symbol is referenced from exactly one place and a real name is genuinely more
+informative. **It is not worth doing to make a reference possible** — the asm
+label already does that — and every reference to the old name, in `.s` and `.c`
+alike, has to move with it.
+
+Name by ADDRESS in either case (`gTable_921__0200a3f0`, `gOvl_020086dc`), which
+asserts nothing about what the data means — the same reasoning as naming ids by
+value in `area.sym`.
 
 ## Technique: stopping a constant fold with symbol addresses
 
