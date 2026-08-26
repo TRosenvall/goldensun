@@ -15,6 +15,7 @@ SECTIONS {
 	.text : {
 		src/overlays/rom_77dd1c/exports.o(.text)
 		asm/overlays/rom_77dd1c/ovl_30_a_a.o(.text)
+		asm/overlays/rom_77dd1c/ovl_30_a_a_b.o(.text)
 		asm/overlays/rom_77dd1c/ovl_30_a_b.o(.text)
 		asm/overlays/rom_77dd1c/ovl_30_b.o(.text)
 		asm/overlays/rom_77dd1c/ovl_30_c_b.o(.text)
@@ -76,3 +77,8 @@ SECTIONS {
 		*(*)
 	}
 }
+
+/* gcc-2.96 emits __umodsi3 for `%` and has no flag to rename it. Overlay code
+ * calls the RAM-resident copy through the stub .export_func umodsi3_RAM makes.
+ * These are different functions at different addresses. Emits no bytes. */
+__umodsi3 = _umodsi3_RAM;

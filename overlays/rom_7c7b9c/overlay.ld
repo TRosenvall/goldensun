@@ -57,3 +57,8 @@ SECTIONS {
 		*(*)
 	}
 }
+
+/* gcc-2.96 emits __umodsi3 for `%` and has no flag to rename it. Overlay code
+ * calls the RAM-resident copy through the stub .export_func umodsi3_RAM makes.
+ * These are different functions at different addresses. Emits no bytes. */
+__umodsi3 = _umodsi3_RAM;

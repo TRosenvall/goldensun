@@ -702,12 +702,17 @@ def main():
         # inside asm/overlays/ do call `__divsi3` directly, so equating the two
         # names would hide a real difference in those. A hint costs nothing and
         # hides nothing.
-        if any(("divsi3" in a) != ("divsi3" in b) or
-               ("divsi3" in a and "divsi3" in b and a != b)
-               for a, b in zip(exp, got)):
-            print(f"     -- `__divsi3` vs `_divsi3_RAM` is the LINKER ALIAS, not "
+        # ALL FOUR HELPERS, not just __divsi3. The first version of this hint
+        # matched the literal string "divsi3" and so said nothing about
+        # OvlFunc_882_2008064, whose single differing line was
+        # `bl __umodsi3` against `bl _umodsi3_RAM`.
+        hlp = next((h for h in ("divsi3", "udivsi3", "modsi3", "umodsi3")
+                    for a, b in zip(exp, got)
+                    if a != b and h in a and h in b), None)
+        if hlp:
+            print(f"     -- `__{hlp}` vs `_{hlp}_RAM` is the LINKER ALIAS, not "
                   f"the C: add")
-            print(f"        `__divsi3 = _divsi3_RAM;` to this overlay's "
+            print(f"        `__{hlp} = _{hlp}_RAM;` to this overlay's "
                   f"overlay.ld. See src/overlays/rom_7a5214/ovl_17ec_c_b.c.")
         # A NEAR-MISS WITH AN INLINE POOL IS AS UNPROVEN AS A CLEAN ONE.
         # Func_801edec screened XX with ONE differing line -- and that line was
