@@ -387,6 +387,47 @@ alike, and take the first free letters:
 The pieces do not have to be `_a`/`_b`/`_c` and nothing depends on their being
 in order — the linker script gives the order.
 
+## Several bitfield writes to one byte MERGE -- and their order is the ROM's
+
+Batch 71's rule reads the width of a mask to choose the spelling: a 32-bit
+`mov / neg` pair means a bitfield, a bare byte `mov #0xNN` means hand-written
+masking. `OvlFunc_883_200db48` extends it in two ways.
+
+**A trailing `& 0xf` can be a bitfield too.** The ROM writes two bytes with one
+load and one store each:
+
+    mov r2, #0xd / neg r2, r2 / ldrb r3, [r6, #9] / and r2, r3    ~0xc
+    mov r3, #4 / ldrb r1, [r6, #5] / orr r2, r3
+    mov r3, #0x21 / neg r3, r3 / and r3, r1 / strb r3, [r6, #5]   ~0x20
+    mov r3, #0xf / and r2, r3 / strb r2, [r6, #9]
+
+Three masks, and the last one — `mov r3, #0xf` — *looks* hand-written by the
+width rule. It is not: it is a four-bit field cleared to zero, and gcc **merges
+adjacent bitfield writes to the same byte** into the single load and store the
+ROM has. Written as ordinary masking with `int` locals to keep the constants
+wide, the function is 77 differing of 98; written as three bitfield assignments
+it is exact.
+
+**The order of the assignments is the ROM's interleave, not source-tidy order.**
+`f9_mid = 1; f5_b5 = 0; f9_hi = 0;` matches. The same three regrouped as
+`f9_mid; f9_hi; f5_b5` — which reads better, both f9 writes together — is 20 of
+98. gcc emits them in the order written and schedules the loads around them.
+
+**So when a byte-width mask appears next to 32-bit ones on the same field, try
+it as a bitfield before assuming the width rule applies.**
+
+## The same function can want a named zero and a bare one
+
+`OvlFunc_883_200db48` stores `0` to five fields and `1` to two. The zero needs a
+named `int z` assigned at the top of the function, so its pseudo is live across
+the calls and lands in a pushed register — the pattern from batches 78, 83 and
+85. The one must be written as a **plain literal in both places**: gcc shares it
+into a callee-saved register by itself, and giving it a local puts the `mov #1`
+on the wrong side of a neighbouring store.
+
+Same function, same kind of constant, opposite answers. Read each one off the
+ROM rather than applying the pattern that worked last time.
+
 ## A two-way choice of NEARBY constants goes branchless -- put the call in both arms
 
 `__MapActor_GetActor(c ? 0xf : 0xe)` does not compile to a branch. gcc notices

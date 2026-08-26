@@ -1,72 +1,83 @@
-struct Model { unsigned char pad00[0x28]; short *f28; };
-
-struct Ent {
-    unsigned char pad00[6];
-    unsigned short facing;
-    int x;
-    unsigned char pad0c[4];
-    int z;
-    unsigned char pad14[0x3c];
-    struct Model *f50;
+struct S {
+    unsigned char pad00[5];
+    unsigned char f5;
+    unsigned char pad06[3];
+    unsigned char f9;
+    unsigned char pad0a[0x12];
+    unsigned char f1c;
+    unsigned char pad1d[10];
+    unsigned char f27;
 };
 
-struct Rect { int x0, z0, x1, z1; };
+struct A {
+    unsigned char pad00[8];
+    int f8;
+    int fc;
+    unsigned char pad10[0x13];
+    unsigned char f23;
+    unsigned char pad24[0xc];
+    int f30;
+    unsigned char pad34[4];
+    int f38;
+    int f3c;
+    unsigned char pad40[0x10];
+    struct S *f50;
+    unsigned char pad54[1];
+    unsigned char f55;
+    unsigned char f56;
+    unsigned char pad57[5];
+    unsigned char f5c;
+    unsigned char pad5d[4];
+    unsigned char f61;
+    unsigned char pad62[10];
+    void *f6c;
+};
 
-extern unsigned char iwram_3001ebc[];
-extern int L6190[];
-extern int L61d0[];
-extern struct Rect L61e8[];
-extern struct Ent *__MapActor_GetActor(int slot);
+extern struct A *__MapActor_GetActor(int slot);
+extern void __Actor_SetSpriteFlags(struct A *a, int f);
+extern int __GetFlag(int id);
+extern void *__galloc_iwram(int tag, int n);
+extern void __gfree(int tag);
+extern void __LoadItemIcon(int id);
+extern void __UploadSpriteGFX(int a, int b, void *c);
+extern void OvlFunc_883_200dae0(void);
 
-struct Ent *OvlFunc_883_200834c(int *facingOut, int *slotOut, int *modelOut)
+void OvlFunc_883_200db48(int slot)
 {
-    struct Ent **tbl;
-    struct Ent *pl;
-    struct Ent *e;
-    unsigned int slot, i;
-    int s, tx, tz, x0, z0, x1, z1, ex, ez, id;
+    struct A *a;
+    struct S *s;
+    void *buf;
+    int z;
+    int v, w;
+    int one;
 
-    tbl = (struct Ent **)(*(char **)iwram_3001ebc + 0x14);
-    pl = __MapActor_GetActor(0);
-    *facingOut = pl->facing >> 12;
-    for (slot = 8; slot <= 0x41; slot++) {
-        e = tbl[slot];
-        id = *e->f50->f28;
-        for (i = 0; i <= 5; i++) {
-            if (id != L61d0[i])
-                continue;
-            *modelOut = i;
-            s = L6190[*facingOut];
-            tx = pl->x >> 16;
-            tx = (tx + (s >> 16)) >> 4;
-            tz = pl->z >> 16;
-            tz = (tz + (short)s) >> 4;
-            ex = *(short *)((char *)e + 0xa);
-            x0 = (ex + L61e8[i].x0) >> 4;
-            ez = *(short *)((char *)e + 0x12);
-            z0 = (ez + L61e8[i].z0) >> 4;
-            x1 = (ex + L61e8[i].x1) >> 4;
-            z1 = (ez + L61e8[i].z1) >> 4;
-            if (x0 > tx)
-                continue;
-            if (tx >= x1)
-                continue;
-            if (z0 > tz)
-                continue;
-            if (tz >= z1)
-                continue;
-            if (i & 1) {
-                if (x0 == (pl->x >> 20))
-                    continue;
-                *slotOut = slot;
-                return e;
-            } else {
-                if (z0 == (pl->z >> 20))
-                    continue;
-                *slotOut = slot;
-                return e;
-            }
-        }
-    }
-    return 0;
+    a = __MapActor_GetActor(slot);
+    s = a->f50;
+    v = s->f9;
+    v = (v & ~0xc) | 4;
+    w = s->f5;
+    w = w & ~0x20;
+    s->f5 = w;
+    v = v & 0xf;
+    s->f9 = v;
+    z = 0;
+    s->f27 = z;
+    __Actor_SetSpriteFlags(a, 0);
+    a->f5c = z;
+    a->f55 = z;
+    if (__GetFlag(0x109) == 0)
+        a->fc += 0x80 << 14;
+    a->f23 &= 0xfe;
+    one = 1;
+    a->f61 = one;
+    buf = __galloc_iwram(0x11, 0xc1 << 3);
+    __LoadItemIcon(0xb5);
+    __UploadSpriteGFX(s->f1c, 0x80, (char *)buf + (0x80 << 3));
+    __gfree(0x11);
+    a->f38 = a->f8;
+    a->f30 = z;
+    a->f3c = a->fc;
+    a->f5c = one;
+    a->f6c = OvlFunc_883_200dae0;
+    a->f56 = z;
 }

@@ -53,14 +53,15 @@ SECTIONS {
 		asm/overlays/rom_7c460c/ovl_314_c_a_c_c_b.o(.text)
 		asm/overlays/rom_7c460c/ovl_314_c_a_c_c_c.o(.text)
 		asm/overlays/rom_7c460c/ovl_314_c_b.o(.text)
-		asm/overlays/rom_7c460c/ovl_314_c_c.o(.text)
+		asm/overlays/rom_7c460c/ovl_314_c_c_a.o(.text)
+		asm/overlays/rom_7c460c/ovl_314_c_c_b.o(.text)
 		src/overlays/rom_7c460c/imports.o(.text)
 	} > overlay
 
 	.data : {
 		asm/overlays/common/common0_c.o(.data)
 		asm/overlays/common/common0_c.o(.data1)
-		asm/overlays/rom_7c460c/ovl_314_c_c.o(.data)
+		asm/overlays/rom_7c460c/ovl_314_c_c_b.o(.data)
 	} > overlay
 
 	/DISCARD/ : {

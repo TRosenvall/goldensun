@@ -1,12 +1,8 @@
 struct S {
     unsigned char pad00[5];
-    unsigned char f5_lo : 5;
-    unsigned char f5_b5 : 1;
-    unsigned char f5_hi : 2;
+    unsigned char f5;
     unsigned char pad06[3];
-    unsigned char f9_lo : 2;
-    unsigned char f9_mid : 2;
-    unsigned char f9_hi : 4;
+    unsigned char f9;
     unsigned char pad0a[0x12];
     unsigned char f1c;
     unsigned char pad1d[10];
@@ -43,6 +39,7 @@ extern int __GetFlag(int id);
 extern void *__galloc_iwram(int tag, int n);
 extern void __gfree(int tag);
 extern void __LoadItemIcon(int id);
+extern void __UploadSpriteGFX(int a, int b, void *c);
 extern void OvlFunc_883_200dae0(void);
 
 void OvlFunc_883_200db48(int slot)
@@ -51,13 +48,12 @@ void OvlFunc_883_200db48(int slot)
     struct S *s;
     void *buf;
     int z;
-    unsigned char one;
+    int one;
 
     a = __MapActor_GetActor(slot);
     s = a->f50;
-    s->f9_mid = 1;
-    s->f5_b5 = 0;
-    s->f9_hi = 0;
+    s->f5 = s->f5 & ~0x20;
+    s->f9 = ((s->f9 & ~0xc) | 4) & 0xf;
     z = 0;
     s->f27 = z;
     __Actor_SetSpriteFlags(a, 0);

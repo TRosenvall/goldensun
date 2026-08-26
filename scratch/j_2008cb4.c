@@ -43,15 +43,14 @@ extern int __GetFlag(int id);
 extern void *__galloc_iwram(int tag, int n);
 extern void __gfree(int tag);
 extern void __LoadItemIcon(int id);
-extern void OvlFunc_883_200dae0(void);
+extern void OvlFunc_914_2008c4c(void);
 
-void OvlFunc_883_200db48(int slot)
+void OvlFunc_914_2008cb4(int slot)
 {
     struct A *a;
     struct S *s;
     void *buf;
     int z;
-    unsigned char one;
 
     a = __MapActor_GetActor(slot);
     s = a->f50;
@@ -66,8 +65,7 @@ void OvlFunc_883_200db48(int slot)
     if (__GetFlag(0x109) == 0)
         a->fc += 0x80 << 14;
     a->f23 &= 0xfe;
-    one = 1;
-    a->f61 = one;
+    a->f61 = 1;
     buf = __galloc_iwram(0x11, 0xc1 << 3);
     __LoadItemIcon(0xb5);
     __UploadSpriteGFX(s->f1c, 0x80, (char *)buf + (0x80 << 3));
@@ -75,7 +73,7 @@ void OvlFunc_883_200db48(int slot)
     a->f38 = a->f8;
     a->f30 = z;
     a->f3c = a->fc;
-    a->f5c = one;
-    a->f6c = OvlFunc_883_200dae0;
+    a->f5c = 1;
+    a->f6c = OvlFunc_914_2008c4c;
     a->f56 = z;
 }
