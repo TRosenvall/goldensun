@@ -1,5 +1,6 @@
 	.include "macros.inc"
 
+
 @ Slot 0: map-load entry.
 @
 @ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x209, then stages by
@@ -74,75 +75,3 @@
 	pop	{r1}
 	bx	r1
 .func_end OvlFunc_902_20084e4
-
-@ SpawnTrackedObject
-@ r0 = object id, r1..r3 = position. Takes the actor from slot 0x16 via
-@ CreateActor, clears its bytes +0x26 and +0x27, masks bit 5 out of +0x05, and
-@ places the object -- the setup path for the one prop this map spawns itself.
-.thumb_func_start OvlFunc_902_2008570
-	push	{r5, r6, r7, lr}
-	mov	r7, r0
-	mov	r0, #0x16
-	mov	r5, #0
-	bl	__CreateActor
-	cmp	r0, #0
-	beq	.L5d4
-	ldr	r6, [r0, #0x50]
-	mov	r3, r6
-	add	r3, #0x26
-	strb	r5, [r3]
-	add	r3, #1
-	strb	r5, [r3]
-	mov	r3, #0x21
-	ldrb	r2, [r6, #5]
-	neg	r3, r3
-	and	r3, r2
-	ldrb	r2, [r6, #9]
-	strb	r3, [r6, #5]
-	mov	r3, #0xf
-	and	r3, r2
-	strb	r3, [r6, #9]
-	mov	r3, r0
-	add	r3, #0x55
-	mov	r2, r0
-	strb	r5, [r3]
-	add	r2, #0x5c
-	mov	r3, #1
-	mov	r1, #0xc1
-	strb	r3, [r2]
-	lsl	r1, #3
-	mov	r0, #0x11
-	bl	__galloc_iwram
-	mov	r5, r0
-	mov	r0, r7
-	bl	__LoadItemIcon
-	mov	r3, #0x80
-	lsl	r3, #3
-	add	r5, r3
-	ldrb	r0, [r6, #0x1c]
-	mov	r1, #0x80
-	mov	r2, r5
-	bl	__UploadSpriteGFX
-	mov	r0, #0x11
-	bl	__gfree
-.L5d4:
-	pop	{r5, r6, r7}
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_902_2008570
-
-	.section .data
-	.global .L7f4
-	.global gOvl_020086dc
-	.global MapEntrance_ARRAY_902__020086dc
-gOvl_020086dc:
-MapEntrance_ARRAY_902__020086dc:
-	.incbin "overlays/rom_7987ac/orig.bin", 0x6dc, (0x7cc-0x6dc)
-	.global gOvl_020087cc
-gOvl_020087cc:
-	.incbin "overlays/rom_7987ac/orig.bin", 0x7cc, (0x7f4-0x7cc)
-.L7f4:
-	.incbin "overlays/rom_7987ac/orig.bin", 0x7f4, (0x98c-0x7f4)
-	.global gOvl_0200898c
-gOvl_0200898c:
-	.incbin "overlays/rom_7987ac/orig.bin", 0x98c
