@@ -15,10 +15,8 @@ void *OvlFunc_899_2008310(void)
     short v;
 
     v = gState.f1c2;
-    if (v <= 0x11) {
-        if (v >= 0xf)
-            return L61fc;
-    }
+    if (v <= 0x11 && v >= 0xf)
+        return L61fc;
     if (__GetFlag(0x855))
         return L6250;
     return L5e30;

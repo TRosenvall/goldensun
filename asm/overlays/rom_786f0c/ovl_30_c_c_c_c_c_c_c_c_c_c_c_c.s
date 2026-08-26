@@ -1,55 +1,5 @@
 	.include "macros.inc"
 
-@ Counter: shop 0x3 via Func_b0278, opened only from inside the facing arc.
-@ Outside it the attendant speaks instead -- lines 0xf55, 0x1c0a.
-@ Gated on save bits 0x815, 0x87a.
-.thumb_func_start OvlFunc_886_20085d4
-	push	{lr}
-	mov	r0, #0
-	bl	__MapActor_GetActor
-	ldr	r2, =0xffff5fff
-	ldrh	r3, [r0, #6]
-	add	r3, r2
-	ldr	r2, =0x3ffe
-	cmp	r3, r2
-	bhi	.L5f2
-	mov	r0, #3
-	mov	r1, #0x14
-	bl	__Func_80b0278
-	b	.L63a
-.L5f2:
-	ldr	r0, =0x87a
-	bl	__GetFlag
-	cmp	r0, #0
-	beq	.L614
-	bl	__CutsceneStart
-	ldr	r0, =0x1c0a
-	bl	__MessageID
-	mov	r0, #0x14
-	mov	r1, #0
-	bl	__ActorMessage
-	bl	__CutsceneEnd
-	b	.L63a
-.L614:
-	ldr	r0, =0x815
-	bl	__GetFlag
-	cmp	r0, #0
-	beq	.L624
-	bl	OvlFunc_886_20081e8
-	b	.L63a
-.L624:
-	bl	__CutsceneStart
-	ldr	r0, =0xf55
-	bl	__MessageID
-	mov	r0, #0x14
-	mov	r1, #0
-	bl	__ActorMessage
-	bl	__CutsceneEnd
-.L63a:
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_886_20085d4
-
 @ Cutscene: roughly 984 instructions of straight-line script --
 @ 45 turns, 48 animation changes, 25 dialogue lines, 30 timed pauses.
 @ Characterised structurally rather than beat by beat.

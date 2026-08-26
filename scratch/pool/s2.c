@@ -1,32 +1,27 @@
-extern void *__MapActor_GetActor(int slot);
-extern void __CutsceneStart(void);
-extern void __CutsceneEnd(void);
-extern void __CutsceneWait(int n);
-extern void __MapActor_SetPos(int slot, int x, int z);
-extern void __MapActor_DoAnim(int slot, int a);
-extern void __SetFlag(int id);
-extern void __Func_8092b08(int slot, int n);
-extern void __Func_8010704(int a, int b, int c, int d, int e, int f);
+typedef struct {
+    unsigned char pad00[0x1c2];
+    short f1c2;
+    unsigned char pad1c4[0x2c0 - 0x1c4];
+} GlobalState;
 
-void OvlFunc_920_2008214(void)
+extern GlobalState gState;
+extern int __GetFlag(int id);
+extern short L61fc[] __asm__(".L61fc");
+extern short L6250[] __asm__(".L6250");
+extern short L5e30[] __asm__(".L5e30");
+
+void *OvlFunc_899_2008310(void)
 {
-    unsigned char *p;
-    int e5, e6;
-    int two;
+    short v;
 
-    __CutsceneStart();
-    __MapActor_SetPos(8, 0, 0);
-    __SetFlag(0x883);
-    __CutsceneWait(0x28);
-    __MapActor_DoAnim(0xf, 2);
-    p = (unsigned char *)__MapActor_GetActor(0xf) + 0x55;
-    *p = 0;
-    p = (unsigned char *)__MapActor_GetActor(0xf) + 0x23;
-    two = 2;
-    *p = two | *p;
-    __Func_8092b08(0xf, 2);
-    e5 = 0x12;
-    e6 = 0xe;
-    __Func_8010704(0, 0, 1, 1, e5, e6);
-    __CutsceneEnd();
+    v = gState.f1c2;
+    if (v > 0x11)
+        goto other;
+    if (v < 0xf)
+        goto other;
+    return L61fc;
+other:
+    if (__GetFlag(0x855))
+        return L6250;
+    return L5e30;
 }
