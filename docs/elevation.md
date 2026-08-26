@@ -2805,3 +2805,63 @@ Y" into a file, compile the alternative and check that it actually differs. A
 comment claiming a control that was never run is worse than no comment, because
 the next person will believe it. When the alternative turns out to match too,
 say so in the file -- the negative is the useful part.
+
+## A value in a callee-saved register is NOT evidence the source named it
+
+This has now cost a spelling in three consecutive batches, so treat it as a
+standing non-signal rather than re-deriving it.
+
+The ROM does something like
+
+```
+	mov	r5, #0x2a		<- once, before the first call
+	...
+	str	r5, [sp, #4]		<- at every call site
+```
+
+and the push list says `{r5, lr}`, so one value demonstrably survives across
+calls. That reads as a named local. It usually is not: gcc hoists a repeated
+constant into a callee-saved register on its own, and the literal spelling
+compiles to the same instructions. Measured on `OvlFunc_948_20099e8` (identical
+at 43), and in the opposite direction on `OvlFunc_964_200a52c`, where writing
+the two shared values as locals HOISTS them above the first call and costs three
+instructions.
+
+**What is forced, and what this is often confused with:** two DIFFERENT
+constants in the two stack slots. There the ROM builds both into separate
+registers before storing either, and passing literals makes gcc walk one
+register through both stores:
+
+```
+	rom	mov r3, #9 / mov r2, #0x26 / str r3, [sp] / str r2, [sp, #4]
+	ours	mov r3, #9 / str r3, [sp] / mov r3, #0x26 / str r3, [sp, #4]
+```
+
+Naming both is what separates them. So the lever is about **two distinct values
+needing two distinct registers**, not about a value living a long time.
+
+The general form, which is the same mistake as the constant-inside-a-branch one
+above: **the register allocator's output is not a transcript of the source.**
+Before writing "the ROM keeps X in r5, so the source named X", compile the
+version that does not name it.
+
+## The gState offset must be BUILT, not folded
+
+`*(int *)(gState + 0x1f4)` lets gcc fold symbol and offset into a single pool
+entry:
+
+```
+	rom	ldr r3, =gState / mov r2, #0xfa / lsl r2, #1 / add r3, r2 / ldr r0, [r3]
+	ours	ldr r3, =gState+500 / ldr r0, [r3]
+```
+
+Assigning `gState` to a local `unsigned char *` first blocks the fold, because
+the local holds the address as a value and the `+ 0x1f4` has to be real
+arithmetic. This is needed **even when the base is used only once** — it is
+about the fold, not about reuse, which is what
+src/rom_8a000/rom_8d9a4_c_a_c_c_c_c_c_a.c settles.
+
+The tell is in the pool: 0x1f4 is reachable as `mov` + `lsl` (0xfa << 1) and 500
+is not reachable by `mov` at all, so the folded form has no choice but to pool
+it. A `=symbol+N` pool entry where the ROM has arithmetic means a local base
+pointer is missing.
