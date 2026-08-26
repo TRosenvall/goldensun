@@ -260,8 +260,7 @@ def resolve_pools(body):
     used = set()
 
     def deref(m):
-        # groups: 1 = "ldr", 2 = " rD, ", 3 = label, 4 = optional +offset
-        lab, off = m.group(3), int(m.group(4) or "0", 0)
+        lab, off = m.group(2), int(m.group(3) or "0", 0)
         w = words.get(lab)
         if not w or off % 4 or off // 4 >= len(w):
             return m.group(0)
@@ -270,24 +269,9 @@ def resolve_pools(body):
         # pool entry only becomes visible as `=NAME` after this substitution,
         # so canon() has already run by then and never sees it.
         val = w[off // 4]
-        return f"{m.group(1)}{m.group(2)}=" + ASM_CONST.get(val, val)
+        return f"{m.group(1)}=" + ASM_CONST.get(val, val)
 
-    # `ldrh`/`ldrb` ARE THE SAME INSTRUCTION HERE, and missing that cost a
-    # four-member family several rounds. Thumb-1 has no pc-relative `ldrh` or
-    # `ldrb` -- only `LDR Rd, [PC, #imm8*4]` exists -- so when gcc's HImode
-    # pattern prints
-    #
-    #     ldrh r2, .L0
-    #
-    # gas assembles the very same halfword the ROM's `ldr r2, =0x1f` does,
-    # 0x4a0d. Matching only `ldr` here left that line reported as a difference
-    # in every screen of OvlFunc_914_2008b24 and its three twins, all four of
-    # which are byte-identical to the ROM. The mnemonic is rewritten to `ldr`
-    # so the two sides can compare at all.
-    #
-    # Only a BARE LABEL operand matches, so `ldrh r2, [r3, #4]` is untouched.
-    out = [re.sub(r"^(ldr)[bh]?(\s+\w+, )(\.?L[0-9a-fA-F]+)(?:\+(0[xX][0-9a-fA-F]+|\d+))?$",
-                  deref, s) for s in body]
+    out = [re.sub(r"^(ldr\s+\w+, )(\.?L[0-9a-fA-F]+)(?:\+(0[xX][0-9a-fA-F]+|\d+))?$", deref, s) for s in body]
 
     # drop the pool itself, but only the labels actually dereferenced -- a
     # `.word` under an unreferenced label is data (a jump table), not a pool
@@ -336,25 +320,17 @@ def renumber(body):
             labels[m.group(0)] = "L%d" % len(labels)
         return labels[m.group(0)]
 
+    body = [LABEL.sub(norm, s) for s in body]
     # A definition nothing branches to carries no information -- gcc leaves
     # such labels behind after pool resolution and the ROM's disassembly does
     # not. Keep only the ones some instruction actually references, which is
     # what makes the POSITION of a real branch target part of the comparison
     # without importing the two sides' bookkeeping differences.
-    #
-    # DROP THEM BEFORE NUMBERING, NOT AFTER. Numbering first hands an index to
-    # a label that is then thrown away, so every later label on that side is
-    # off by one and the two streams disagree about names they agree about the
-    # position of. OvlFunc_914_2008b24 -- byte-identical to the ROM -- reported
-    # `ble L1` against `ble L2` for exactly this, because gcc's discarded pool
-    # label had consumed L1 on our side and nothing had on the ROM's.
-    defn = re.compile(r"^\.?L[0-9a-fA-F]+:$")
-    used_raw = set()
+    used = set()
     for line in body:
-        if not defn.match(line):
-            used_raw.update(LABEL.findall(line))
-    body = [x for x in body if not defn.match(x) or x[:-1] in used_raw]
-    return [LABEL.sub(norm, s) for s in body]
+        if not re.match(r"^L\d+:$", line):
+            used.update(re.findall(r"\bL\d+\b", line))
+    return [x for x in body if not re.match(r"^L\d+:$", x) or x[:-1] in used]
 
 
 def instructions(text, want=None):
@@ -694,21 +670,6 @@ def main():
                     != (got[k] if k < len(got) else None))
         print(f"  XX {name}  (rom {len(exp)} lines, ours {len(got)}, "
               f"first diff at {i}, {ndiff} differ)")
-        # THE DIVISION HELPER IS A LINK-TIME QUESTION, NOT A SOURCE ONE, and it
-        # is worth saying so here because the diff looks like a wrong symbol.
-        # gcc-2.96 emits `__divsi3` for `/` with no flag to rename it; overlay
-        # code calls the RAM-resident copy `_divsi3_RAM` through the stub
-        # .export_func makes. Deliberately NOT normalised away: 17 call sites
-        # inside asm/overlays/ do call `__divsi3` directly, so equating the two
-        # names would hide a real difference in those. A hint costs nothing and
-        # hides nothing.
-        if any(("divsi3" in a) != ("divsi3" in b) or
-               ("divsi3" in a and "divsi3" in b and a != b)
-               for a, b in zip(exp, got)):
-            print(f"     -- `__divsi3` vs `_divsi3_RAM` is the LINKER ALIAS, not "
-                  f"the C: add")
-            print(f"        `__divsi3 = _divsi3_RAM;` to this overlay's "
-                  f"overlay.ld. See src/overlays/rom_7a5214/ovl_17ec_c_b.c.")
         # A NEAR-MISS WITH AN INLINE POOL IS AS UNPROVEN AS A CLEAN ONE.
         # Func_801edec screened XX with ONE differing line -- and that line was
         # only this tool printing a symbol name where the reference prints its

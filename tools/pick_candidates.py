@@ -241,7 +241,8 @@ def parked_names():
     return out
 
 
-def scan(whole_file, min_calls, min_insn, max_insn, allow_repeat):
+def scan(whole_file, min_calls, min_insn, max_insn, allow_repeat,
+         skip_inline_pool=False):
     skip = parked_names()
     rows = []
     for p in sorted(glob.glob(os.path.join(ROOT, "asm/**/*.s"), recursive=True)):
@@ -273,15 +274,28 @@ def scan(whole_file, min_calls, min_insn, max_insn, allow_repeat):
             if re.search(r"^\tmov\tr12, lr", body, re.M) or \
                     re.search(r"^\tbx\tr12", body, re.M):
                 continue
-            # An INLINE LITERAL POOL cannot be reproduced from a single-function
-            # translation unit. gcc puts the pool after the epilogue; the ROM
-            # keeps it mid-body behind a `.pool_aligned`, and every PC-relative
-            # offset then differs even though the instruction stream matches
-            # exactly. tools/tryc.py normalises pool loads and so reports OK --
-            # it cost two functions that were split, written in, and reverted
-            # before `make compare` caught them. See
-            # src/non_matching/ovl_7ec19c/200816c.c.
-            if ".pool_aligned" in body or re.search(r"^\s*\.word\s", body, re.M):
+            # AN INLINE LITERAL POOL IS NOT A DISQUALIFICATION. This used to
+            # `continue` here, on the batch-30 reasoning that gcc puts the pool
+            # after the epilogue while the ROM keeps it mid-body behind a
+            # `.pool_aligned`, so every PC-relative offset differs even when the
+            # instruction stream matches. That cost two functions, and the rule
+            # it produced then cost four more.
+            #
+            # gcc reproduces a mid-body pool perfectly well, `b` around it and
+            # all. It does so when the pool reference is NARROW: arm.md gives a
+            # HImode pool load a pool_range of 32-60 bytes against SImode's
+            # 1020, so it cannot wait for the barrier at the end of the function
+            # and dump_table manufactures a jump over an early pool. The whole
+            # OvlFunc_914_2008b24 family -- four byte-identical functions -- was
+            # excluded from this list by the old rule and is now elevated.
+            #
+            # The real hazard is unchanged and belongs to tryc.py, which warns
+            # about it on both the OK and the near-miss paths: a screen cannot
+            # see PC-relative offsets, so an inline-pool reference must be taken
+            # to `make compare` before it is believed. `--no-inline-pool`
+            # restores the old exclusion for anyone who wants a safer worklist.
+            if skip_inline_pool and (".pool_aligned" in body
+                                     or re.search(r"^\s*\.word\s", body, re.M)):
                 continue
             pooled = collections.Counter(POOL.findall(body))
             dupes = [k for k, v in pooled.items() if v > 1]
@@ -300,7 +314,7 @@ def main():
 
     rows = scan("--whole-file" in a, opt("--min-calls", 3),
                 opt("--min-insn", 10), opt("--max-insn", 40),
-                "--allow-repeat" in a)
+                "--allow-repeat" in a, "--no-inline-pool" in a)
     print(f"{'call':>4} {'insn':>5} {'fns':>4}  name / file")
     for c, insn, name, rel, nf, dupes, mid in rows[:opt("--limit", 20)]:
         tag = f"   [repeats {','.join(dupes)}]" if dupes else ""

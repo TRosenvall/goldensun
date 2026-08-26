@@ -242,6 +242,71 @@ Confirmed by assembling both forms: gas does **not** fold `ldr r0, =1` into a
 **103 of 395 overlay candidates** show this tell — the largest single blocker
 in the project.
 
+### FIRST CHECK THAT THE POOL LOAD IS EVEN DIFFERENT (batch 79)
+
+Before spending a round on this tell, confirm the two sides actually differ **in
+the encoding**. Twice now they did not.
+
+gcc prints a HImode pool reference as
+
+    ldrh r2, .L0
+
+where the ROM disassembly writes `ldr r2, =0x1f`. **Thumb-1 has no
+pc-relative `ldrh` or `ldrb`** — the only PC-form load in the instruction set is
+`LDR Rd, [PC, #imm8*4]` — so gas assembles gcc's line to the very same halfword,
+`0x4a0d`. `tryc.py` normalised only the `=` spelling and reported these as
+differences for as long as they existed; it now rewrites the mnemonic, but the
+habit to keep is **objdump both objects before believing a pool diagnosis**.
+
+Two functions sat parked on this for four and eleven formulations respectively
+(`BreakItem`, `Func_800c5b4`), and a four-member family was excluded from the
+candidate list outright. All six are now elevated with the C essentially
+unchanged from what was parked.
+
+The false lead is worth knowing because it is convincing: reading the ROM's
+`ldr r2, =0x1f` as this tell gives `(int)&_SYM`, which reproduces the ROM's
+assembly **text** exactly. It is still wrong — an SImode symbol load has the
+full 1020-byte pool range, so the pool moves to the end of the function and the
+jump over it disappears. Right text, wrong bytes.
+
+### Pool ORDER is a readout of operand modes
+
+When every instruction matches and `make compare` still fails, compare the
+**order of the pool words**. gcc sorts a minipool by each entry's `max_address`
+— the referencing instruction's address plus its `pool_range` — so the order is
+a direct statement about the MODE of each operand:
+
+| mode | `pool_range` (arm.md) |
+|---|---|
+| HImode / QImode | 32–60 bytes |
+| SImode | 1020 bytes |
+
+An early narrow constant therefore sorts *before* a late wide one, and a
+symbol's address always sorts late. `Func_800c5b4` matched instruction for
+instruction and failed by fourteen bytes:
+
+    rom   0x1000  Func_800c62c  Func_800c880  0xf1ff
+    ours  0xf1ff  0x1000        Func_800c62c  Func_800c880
+
+which says the ROM's `0xf1ff` is SImode and its `0x1000` is HImode. Splitting
+the expression so the AND's result stays `u32` fixed it. **No instruction-stream
+diff can show this** — `tryc.py` drops pool words on both sides by design — so
+when a screen says OK on a function with a pool, the byte comparison is the only
+authority.
+
+### A mid-function pool is REPRODUCIBLE, not a disqualification
+
+Batch 30 concluded that a ROM keeping its pool inside the function body behind a
+`.pool_aligned` could not come out of a single-function translation unit, and
+`pick_candidates.py` excluded 336 references on that basis. **That is wrong.**
+
+gcc emits exactly that shape — `b` around the pool, pool, label — whenever the
+pool reference is narrow, because a HImode load's 32–60 byte range cannot reach
+the barrier at the end of the function and `dump_table` manufactures a jump over
+an early pool. The exclusion is now off by default; `--no-inline-pool` restores
+it. What remains true, and is what batch 30 actually caught, is that the SCREEN
+cannot see PC-relative offsets, so these must go to `make compare`.
+
 ### It does not need the namespace identified — only named
 
 This was treated as blocked for twelve rounds on the reasoning that the tree
