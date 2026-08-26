@@ -21,6 +21,12 @@
  * giving it global binding changes symbol-table metadata and nothing else; the
  * link is byte-identical.
  *
+ * CORRECTED IN BATCH 81: the rename was not necessary. gcc's asm-label
+ * extension -- `extern short tbl[] __asm__(".L23f0");` -- reaches the symbol
+ * without touching any other file, and this tree was already using it in
+ * src/overlays/rom_77dd1c/. The rename is still correct and still byte-neutral,
+ * but reach for the asm label first; see docs/elevation.md.
+ *
  * The rest fell out on the first screen, at 60 lines against 60 with the only
  * differences being that name and the label numbering behind it:
  *
