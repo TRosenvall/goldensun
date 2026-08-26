@@ -120,39 +120,43 @@ POOL = re.compile(r"ldr\s+r\d+,\s*=(\S+)")
 #
 # into one callee-saved register and pays a push and a pop for it, exactly as it
 # does for a repeated `ldr =`. Batch 85 met three functions on this in one round
-# -- OvlFunc_887_2008e34, OvlFunc_921_20087a4 and OvlFunc_959_2008e80 -- before
-# adding the pattern here.
+# and added the pattern; batch 86 met two more and had to generalise it twice.
 #
-# Matched as a PAIR because that is what identifies the value: `mov rN, #imm`
-# alone repeats harmlessly all over (r0 = 0 for a slot id, say), and it is the
-# shift that makes the constant expensive enough for gcc to want to share it.
-BUILT = re.compile(r"mov\s+(r\d+), #(0x[0-9a-f]+|\d+)\n\t(?:lsl|neg)\s+\1,"
-                   r"(?: \1,)? ?(#?[0-9a-fx]*)")
-
-# ...and the SEPARATED form, which the adjacent pattern misses. gcc-2.96 emits
-# all the `mov`s for a call's arguments and then all the `neg`s:
+# THE MOVE AND ITS SHIFT ARE OFTEN NOT ADJACENT, which is what the first two
+# versions got wrong. gcc emits all of a call's `mov`s and then all its `neg`s:
 #
 #     mov r0, #1 / mov r1, #1 / mov r2, #1 / mov r3, #0 /
-#     neg r1, r1 / neg r2, r2 / neg r0, r0
+#     neg r1, r1 / neg r2, r2 / neg r0, r0            <- -1, three times
 #
-# which is -1 built three times. OvlFunc_881_20097fc cost a screen to that in
-# batch 85, right after the adjacent pattern was added. Counted by matching each
-# `neg rN, rN` back to the `mov rN, #imm` that most recently set that register.
-NEG = re.compile(r"neg\s+(r\d+), \1")
-MOVI = re.compile(r"mov\s+(r\d+), #(0x[0-9a-f]+|\d+)")
+# and it will happily put unrelated work between a `mov` and its `lsl`:
+#
+#     mov r0, #0x81 / str r3, [r5, #0x14] / str r3, [r5, #0xc] / lsl r0, #2
+#
+# So this tracks REGISTERS rather than matching text pairs: remember the last
+# `mov rN, #imm`, and when that register is later shifted or negated, record the
+# resulting value. `mov` to the same register in between simply replaces it,
+# which is correct -- the old value is gone.
+MOVI = re.compile(r"^\s*mov\s+(r\d+), #(0x[0-9a-fA-F]+|\d+)\s*$")
+DERIVE = re.compile(r"^\s*(lsl|neg|asr)\s+(r\d+),(?: \2,)? ?#?(\w*)\s*$")
 
 
-def negated_constants(body):
-    """Values that get `mov rN, #v` and later `neg rN, rN`, in order."""
+def built_constants(body):
+    """Values formed as `mov rN, #imm` and later shifted or negated."""
     live, out = {}, []
     for line in body.split("\n"):
-        m = MOVI.search(line)
+        m = MOVI.match(line)
         if m:
             live[m.group(1)] = m.group(2)
             continue
-        m = NEG.search(line)
-        if m and m.group(1) in live:
-            out.append("-" + live.pop(m.group(1)))
+        m = DERIVE.match(line)
+        if m and m.group(2) in live:
+            op, sh = m.group(1), m.group(3)
+            out.append(f"{live.pop(m.group(2))}{op}{sh}")
+            continue
+        # any other write to a register forgets what was in it
+        m = re.match(r"^\s*\w+\s+(r\d+)[,\s]", line)
+        if m:
+            live.pop(m.group(1), None)
     return out
 
 
@@ -342,12 +346,9 @@ def scan(whole_file, min_calls, min_insn, max_insn, allow_repeat,
             # ...and constants BUILT with mov+shift, which cost gcc the same
             # decision. Keyed on (value, shift) so `mov #0x80 / lsl #6` and
             # `mov #0x80 / lsl #9` are different constants, which they are.
-            built = collections.Counter(
-                (v, sh) for _, v, sh in BUILT.findall(body))
+            built = collections.Counter(built_constants(body))
             dupes = [k for k, v in pooled.items() if v > 1]
-            dupes += [f"{v}<<{sh}" for (v, sh), n in built.items() if n > 1]
-            neg = collections.Counter(negated_constants(body))
-            dupes += [k for k, n in neg.items() if n > 1]
+            dupes += [k for k, n in built.items() if n > 1]
             if dupes and not allow_repeat:
                 continue
             rows.append((-calls, insn, name, rel, len(fns), dupes,

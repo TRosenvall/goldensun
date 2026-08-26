@@ -1,51 +1,30 @@
-struct Box {
-    unsigned char pad00[0xc];
-    unsigned short w;
-    unsigned short h;
-};
+extern unsigned char iwram_3001ebc[];
+extern void *__MapActor_GetActor(int slot);
+extern void __PlaySound(int id);
+extern void __WaitFrames(int n);
+extern void __CopyMapTiles(int a, int b, int c, int d, int e, int f);
+extern void __Func_8092208(int a, int b, int c);
+extern void __Func_8091e9c(int n);
 
-extern unsigned char iwram_3001e8c[];
-
-void Func_8020a60(struct Box *b, int x, int y, int w, int h, int flip)
+void OvlFunc_963_2008288(void)
 {
-    unsigned short *base;
-    unsigned short *p;
-    int x1, y1, off, n, tx, ty;
+    char *base;
+    short v;
+    unsigned char *p;
+    int two;
+    int dx;
 
-    base = *(unsigned short **)iwram_3001e8c;
-    tx = x + b->w;
-    ty = y + b->h;
-    x1 = tx + 1;
-    y1 = ty + 1;
-    flip <<= 12;
-    if (x1 < 0) {
-        w += x1;
-        x1 = 0;
-    }
-    if (x1 + w > 0x1d)
-        w = 0x1e - x1;
-    if (y1 < 0) {
-        h += y1;
-        y1 = 0;
-    }
-    if (y1 + h > 0x1d)
-        h = 0x14 - y1;
-    if (w > 0 && h > 0) {
-        off = (y1 << 6) + (x1 << 1);
-        do {
-            p = (unsigned short *)((char *)base + off);
-            n = w;
-            while (n != 0) {
-                unsigned int v = *p;
-                v &= ~0x1000;
-                v |= flip;
-                *p = v;
-                n--;
-                p++;
-            }
-            h--;
-            off += 0x40;
-        } while (h != 0);
-        *((char *)base + 0xea3) = 1;
-    }
+    base = *(char **)iwram_3001ebc;
+    v = *(short *)(base + (0xb6 << 1));
+    p = (unsigned char *)__MapActor_GetActor(0) + 0x55;
+    *p = 0;
+    __PlaySound(0x9e);
+    two = 2;
+    __CopyMapTiles(0x42, 0x24, 0x47, 8, two, two);
+    __WaitFrames(4);
+    __CopyMapTiles(0x44, 0x24, 0x47, 8, two, two);
+    __WaitFrames(4);
+    dx = 3;
+    __Func_8092208(0, dx, -0x10);
+    __Func_8091e9c(v);
 }

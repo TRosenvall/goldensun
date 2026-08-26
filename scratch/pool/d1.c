@@ -1,47 +1,30 @@
-struct Box {
-    unsigned char pad00[0xc];
-    unsigned short w;
-    unsigned short h;
-};
+struct A { unsigned char pad00[8]; int f8; };
 
-extern unsigned char iwram_3001e8c[];
+extern void *__MapActor_GetActor(int slot);
+extern void __CutsceneStart(void);
+extern void __CutsceneEnd(void);
+extern void __SetFlag(int id);
+extern void OvlFunc_903_2008dd8(int slot);
+extern void __Func_8010704(int a, int b, int c, int d, int e, int f);
 
-void Func_8020a60(struct Box *b, int x, int y, int w, int h, int flip)
+void OvlFunc_903_2008d04(void)
 {
-    unsigned short *base;
-    unsigned short *p;
-    int x1, y1, off, n;
+    int y;
+    unsigned char *p;
+    int c;
+    unsigned char two;
 
-    base = *(unsigned short **)iwram_3001e8c;
-    x1 = x + b->w + 1;
-    y1 = y + b->h + 1;
-    flip <<= 12;
-    if (x1 < 0) {
-        w += x1;
-        x1 = 0;
+    __CutsceneStart();
+    y = ((struct A *)__MapActor_GetActor(8))->f8 >> 20;
+    if (y == 0xb) {
+        OvlFunc_903_2008dd8(8);
+        p = (unsigned char *)__MapActor_GetActor(8) + 0x23;
+        two = 2;
+    *p = two | *p;
+        c = 0xc;
+        __Func_8010704(0x27, 0xc, 3, 1, 8, c);
+        __Func_8010704(0x2b, 0xb, 3, 1, c, y);
+        __SetFlag(0x86 << 4);
     }
-    if (x1 + w > 0x1d)
-        w = 0x1e - x1;
-    if (y1 < 0) {
-        h += y1;
-        y1 = 0;
-    }
-    if (y1 + h > 0x1d)
-        h = 0x14 - y1;
-    if (w > 0 && h > 0) {
-        off = (y1 << 6) + (x1 << 1);
-        do {
-            p = (unsigned short *)((char *)base + off);
-            n = w;
-            while (n != 0) {
-                int v = *p;
-                *p = (v & ~0x1000) | flip;
-                n--;
-                p++;
-            }
-            h--;
-            off += 0x40;
-        } while (h != 0);
-        *((char *)base + 0xea3) = 1;
-    }
+    __CutsceneEnd();
 }

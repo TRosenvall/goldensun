@@ -12,9 +12,7 @@ void OvlFunc_939_20091d0(void)
     char *base;
     struct A *a;
     int z;
-    int v;
 
-    v = 0x5b;
     base = *(char **)iwram_3001ebc;
     __ClearFlag(0x241);
     __ClearFlag(0x90 << 2);
@@ -24,7 +22,7 @@ void OvlFunc_939_20091d0(void)
         if (z > (0xa0 << 16)) {
             if (z < (0xf8 << 16)) {
                 __StopTask(OvlFunc_939_2009240);
-                *(unsigned short *)(base + (0xc1 << 1)) = v;
+                *(unsigned short *)(base + (0xc1 << 1)) = 0x5b;
             }
         }
     }

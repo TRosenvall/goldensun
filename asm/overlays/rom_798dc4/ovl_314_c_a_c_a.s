@@ -1,5 +1,6 @@
 	.include "macros.inc"
 
+
 @ Cutscene: roughly 159 instructions of straight-line script --
 @ 0 turns, 2 animation changes, 0 dialogue lines, 1 timed pause.
 @ Characterised structurally rather than beat by beat.
@@ -817,88 +818,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_903_200867c
-
-@ 42 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   BeginCutscene, GetSlotEntityChecked, OvlFunc_dd8, GetSlotEntityChecked
-@   CopyMapRectAttributes x2, SetSaveBit, EndCutscene
-@ sets 0x860.
-.thumb_func_start OvlFunc_903_2008d04
-	push	{r5, r6, lr}
-	sub	sp, #8
-	bl	__CutsceneStart
-	mov	r0, #8
-	bl	__MapActor_GetActor
-	ldr	r3, [r0, #8]
-	asr	r6, r3, #20
-	cmp	r6, #0xb
-	bne	.Ld5c
-	mov	r0, #8
-	bl	OvlFunc_903_2008dd8
-	mov	r0, #8
-	bl	__MapActor_GetActor
-	add	r0, #0x23
-	ldrb	r2, [r0]
-	mov	r3, #2
-	orr	r3, r2
-	strb	r3, [r0]
-	mov	r3, #8
-	str	r3, [sp]
-	mov	r5, #0xc
-	mov	r0, #0x27
-	mov	r1, #0xc
-	mov	r2, #3
-	mov	r3, #1
-	str	r5, [sp, #4]
-	bl	__Func_8010704
-	mov	r0, #0x2b
-	mov	r1, #0xb
-	mov	r2, #3
-	mov	r3, #1
-	str	r5, [sp]
-	str	r6, [sp, #4]
-	bl	__Func_8010704
-	mov	r0, #0x86
-	lsl	r0, #4
-	bl	__SetFlag
-.Ld5c:
-	bl	__CutsceneEnd
-	add	sp, #8
-	pop	{r5, r6}
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_903_2008d04
-
-@ 22 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   ApplyRevealToScene, SetAbilityTarget, FinishFieldAbility, DispatchRideUpdate
-@   ClearCasterHook
-.thumb_func_start OvlFunc_903_2008d68
-	push	{r5, lr}
-	ldr	r3, =iwram_3001f30
-	mov	r0, #0x4e
-	mov	r1, #1
-	ldr	r5, [r3]
-	bl	__Func_8096fb0
-	mov	r1, #0xf
-	mov	r0, #2
-	bl	__Func_80970f8
-	ldr	r3, =0x71c
-	add	r5, r3
-	ldrb	r2, [r5]
-	mov	r3, #8
-	orr	r3, r2
-	strb	r3, [r5]
-	bl	__Func_809728c
-	mov	r0, #1
-	bl	__FieldMove
-	bl	__Func_8097174
-	pop	{r5}
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_903_2008d68
-

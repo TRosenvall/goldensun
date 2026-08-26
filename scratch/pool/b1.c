@@ -23,7 +23,7 @@ void OvlFunc_898_20087ec(void)
     a = __MapActor_GetActor(0xe);
     saved = a->f6;
     p = &a->f64;
-    *p = 2 | *p;
+    *p |= 2;
     __CutsceneStart();
     __MessageID(0x122c);
     __MapActor_SetAnim(0xe, 0);

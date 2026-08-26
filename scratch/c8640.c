@@ -5,32 +5,37 @@ struct A {
     unsigned short f64;
 };
 
+extern int _CONST_2;
 extern struct A *__MapActor_GetActor(int slot);
 extern void __CutsceneStart(void);
 extern void __CutsceneEnd(void);
 extern void __MessageID(int id);
 extern void __MapActor_SetAnim(int slot, int a);
 extern void __WaitFrames(int n);
-extern void OvlFunc_898_200973c(int a, int b, int c);
-extern void OvlFunc_898_2009724(int a, int b);
+extern void __Func_8092848(int a, int b, int c);
+extern void __Func_8093040(int a, int b, int c);
 
-void OvlFunc_898_20087ec(void)
+void OvlFunc_901_2008640(void)
 {
     struct A *a;
     unsigned short *p;
+    unsigned short two;
     short saved;
+    int z;
 
-    a = __MapActor_GetActor(0xe);
-    saved = a->f6;
+    a = __MapActor_GetActor(0xf);
     p = &a->f64;
-    *p = 2 | *p;
+    saved = a->f6;
+    two = (unsigned short)(int)&_CONST_2;
+    *p = two | *p;
+    z = 0;
     __CutsceneStart();
-    __MessageID(0x122c);
-    __MapActor_SetAnim(0xe, 0);
-    OvlFunc_898_200973c(0xe, 0, 2);
-    OvlFunc_898_2009724(0xe, 0xa);
+    __MessageID(0x1cb4);
+    __MapActor_SetAnim(0xf, 0);
+    __Func_8092848(0xf, 0, 2);
+    __Func_8093040(0xf, 0, 0xa);
     a->f6 = saved;
     __WaitFrames(1);
     __CutsceneEnd();
-    *p &= 1;
+    *p = z;
 }

@@ -1,7 +1,7 @@
 extern unsigned char iwram_3001ebc[];
 extern void *__MapActor_GetActor(int slot);
 extern void __PlaySound(int id);
-extern void __WaitFrames(int n);
+extern void __CopyMapTiles(int a, int b, int c, int d, int e, int f);
 extern void __Func_8092208(int a, int b, int c);
 extern void __Func_8091e9c(int n);
 

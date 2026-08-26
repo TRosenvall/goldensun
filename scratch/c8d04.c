@@ -12,15 +12,13 @@ void OvlFunc_903_2008d04(void)
     int y;
     unsigned char *p;
     int c;
-    int two;
 
     __CutsceneStart();
     y = ((struct A *)__MapActor_GetActor(8))->f8 >> 20;
     if (y == 0xb) {
         OvlFunc_903_2008dd8(8);
         p = (unsigned char *)__MapActor_GetActor(8) + 0x23;
-        two = 2;
-    *p = two | *p;
+        *p |= 2;
         c = 0xc;
         __Func_8010704(0x27, 0xc, 3, 1, 8, c);
         __Func_8010704(0x2b, 0xb, 3, 1, c, y);

@@ -5,6 +5,7 @@ struct A {
     unsigned short f64;
 };
 
+extern int _CONST_2;
 extern struct A *__MapActor_GetActor(int slot);
 extern void __CutsceneStart(void);
 extern void __CutsceneEnd(void);
@@ -18,12 +19,14 @@ void OvlFunc_898_20087ec(void)
 {
     struct A *a;
     unsigned short *p;
+    unsigned short two;
     short saved;
 
     a = __MapActor_GetActor(0xe);
     saved = a->f6;
     p = &a->f64;
-    *p = 2 | *p;
+    two = (unsigned short)(int)&_CONST_2;
+    *p |= two;
     __CutsceneStart();
     __MessageID(0x122c);
     __MapActor_SetAnim(0xe, 0);
