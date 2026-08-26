@@ -1,17 +1,33 @@
-typedef unsigned short u16; typedef unsigned int u32; typedef volatile unsigned short vu16;
-extern void Func_80042c8(void *fn);
-extern void Func_800c62c(void); extern void Func_800c880(void);
-extern void _Func_8091200(int a, int b); extern void _Func_8091254(int a);
-extern void WaitFrames(int n);
-void Func_800c5b4(void)
+extern void __CutsceneStart(void);
+extern void __CutsceneEnd(void);
+extern void __MessageID(int id);
+extern void __ActorMessage(int slot, int n);
+extern void __MapActor_SetBehavior(int slot, int b);
+extern void __MapActor_SetIdle(int slot);
+extern void __MapActor_SetAnim(int slot, int a);
+extern void __MapActor_Emote(int slot, int e, int n);
+extern void __MapTransitionOut(void);
+extern void __Func_809228c(int a, int b, int c);
+extern void __Func_8091e9c(int n);
+
+void OvlFunc_959_2009ab0(void)
 {
-    vu16 *p; u32 v;
-    Func_80042c8(Func_800c62c);
-    Func_80042c8(Func_800c880);
-    _Func_8091200(0x80 << 9, 1);
-    _Func_8091254(1);
-    WaitFrames(1);
-    p = (vu16 *)(0x80 << 19);
-    v = *p;
-    *p = (v & 0xf1ff) | 0x1000;
+    int id;
+
+    __CutsceneStart();
+    __Func_809228c(9, 0, 0);
+    __MapActor_SetBehavior(9, 1);
+    __MapActor_SetIdle(9);
+    __MapActor_SetAnim(9, 0);
+    __MapActor_SetBehavior(0, 1);
+    id = 0x240d;
+    __MessageID(id);
+    __ActorMessage(9, 0);
+    __MapActor_Emote(0, 0x81 << 1, 0x3c);
+    id++;
+    __MessageID(id);
+    __ActorMessage(9, 0);
+    __Func_8091e9c(0x3c);
+    __MapTransitionOut();
+    __CutsceneEnd();
 }

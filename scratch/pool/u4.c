@@ -13,14 +13,16 @@ void OvlFunc_928_2008968(void)
 {
     unsigned char *p;
     unsigned char m;
+    int z;
     int x, z;
 
+    z = 0;
     __CutsceneStart();
     p = (unsigned char *)__MapActor_GetActor(0x14) + 0x23;
     m = 0xfd;
     *p &= m;
     p = (unsigned char *)__MapActor_GetActor(0x14) + 0x55;
-    *p = 0;
+    *p = z;
     x = ((struct A *)__MapActor_GetActor(0x14))->f8 >> 20;
     z = ((struct A *)__MapActor_GetActor(0x14))->f10 >> 20;
     __Func_8010704(3, 0x11, 1, 1, x, z);

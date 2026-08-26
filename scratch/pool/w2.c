@@ -1,34 +1,33 @@
-struct A { unsigned char pad00[0x64]; unsigned short f64; };
-extern int _CONST_2;
-extern int _MSG_1cc0;
-extern struct A *__MapActor_GetActor(int slot);
+struct A { unsigned char pad00[8]; int f8; unsigned char pad0c[4]; int f10; };
+
+extern void *__MapActor_GetActor(int slot);
 extern void __CutsceneStart(void);
 extern void __CutsceneEnd(void);
-extern void __MessageID(int id);
-extern int __GetFlag(int id);
 extern void __SetFlag(int id);
-extern void OvlFunc_901_20084b4(int slot);
-extern void OvlFunc_901_200858c(void);
+extern void __StartTask(void *fn, int prio);
+extern void OvlFunc_928_2008324(void);
+extern void __Func_8010704(int a, int b, int c, int d, int e, int f);
+extern void __Func_8092b08(int slot, int n);
 
-void OvlFunc_901_2008804(void)
+void OvlFunc_928_2008968(void)
 {
-    unsigned short *p;
-    unsigned short two;
-    int one;
+    unsigned char *p;
+    unsigned char m;
+    int x, zz;
+    int zero;
 
-    p = &__MapActor_GetActor(0xe)->f64;
-    two = (unsigned short)(int)&_CONST_2;
-    *p = two | *p;
     __CutsceneStart();
-    if (__GetFlag(0x307)) {
-        __MessageID((int)&_MSG_1cc0);
-        OvlFunc_901_20084b4(0xe);
-    } else {
-        OvlFunc_901_200858c();
-        __SetFlag(0x307);
-    }
+    p = (unsigned char *)__MapActor_GetActor(0x14) + 0x23;
+    m = 0xfd;
+    *p = m & *p;
+    p = (unsigned char *)__MapActor_GetActor(0x14) + 0x55;
+    zero = 0;
+    *p = zero;
+    x = ((struct A *)__MapActor_GetActor(0x14))->f8 >> 20;
+    zz = ((struct A *)__MapActor_GetActor(0x14))->f10 >> 20;
+    __Func_8010704(3, 0x11, 1, 1, x, zz);
+    __StartTask(OvlFunc_928_2008324, 0xc8 << 4);
+    __SetFlag(0x201);
+    __Func_8092b08(0x14, 2);
     __CutsceneEnd();
-    one = 1;
-    p = &__MapActor_GetActor(0xe)->f64;
-    *p = one;
 }

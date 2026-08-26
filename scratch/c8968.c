@@ -18,7 +18,7 @@ void OvlFunc_928_2008968(void)
     __CutsceneStart();
     p = (unsigned char *)__MapActor_GetActor(0x14) + 0x23;
     m = 0xfd;
-    *p &= m;
+    *p = m & *p;
     p = (unsigned char *)__MapActor_GetActor(0x14) + 0x55;
     *p = 0;
     x = ((struct A *)__MapActor_GetActor(0x14))->f8 >> 20;

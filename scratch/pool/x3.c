@@ -12,18 +12,18 @@ extern void __Func_8092b08(int slot, int n);
 void OvlFunc_928_2008968(void)
 {
     unsigned char *p;
-    unsigned char m;
-    int x, z;
+    int x, zz;
+    int zero;
 
+    zero = 0;
     __CutsceneStart();
     p = (unsigned char *)__MapActor_GetActor(0x14) + 0x23;
-    m = 0xfd;
-    *p &= m;
+    *p &= 0xfd;
     p = (unsigned char *)__MapActor_GetActor(0x14) + 0x55;
-    *p = 0;
+    *p = zero;
     x = ((struct A *)__MapActor_GetActor(0x14))->f8 >> 20;
-    z = ((struct A *)__MapActor_GetActor(0x14))->f10 >> 20;
-    __Func_8010704(3, 0x11, 1, 1, x, z);
+    zz = ((struct A *)__MapActor_GetActor(0x14))->f10 >> 20;
+    __Func_8010704(3, 0x11, 1, 1, x, zz);
     __StartTask(OvlFunc_928_2008324, 0xc8 << 4);
     __SetFlag(0x201);
     __Func_8092b08(0x14, 2);

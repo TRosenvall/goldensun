@@ -20,8 +20,8 @@ void OvlFunc_959_2009ab0(void)
     __MapActor_SetIdle(9);
     __MapActor_SetAnim(9, 0);
     __MapActor_SetBehavior(0, 1);
-    __MessageID(0x240d);
     id = 0x240d;
+    __MessageID(id);
     __ActorMessage(9, 0);
     __MapActor_Emote(0, 0x81 << 1, 0x3c);
     __MessageID(id + 1);
