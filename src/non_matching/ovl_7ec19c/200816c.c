@@ -20,6 +20,24 @@
  *      it into r2 early and builds 0x2000 in r1, where the ROM builds 0x2000 in
  *      r2 and then REUSES r2 for the mask. Four positions apart.
  *
+ * THE FAMILY IS FIVE FUNCTIONS, not two. tools/find_shape.py (batch 88) matched
+ * this function's instruction stream with its constants wildcarded and returned
+ *
+ *     OvlFunc_962_2008100   asm/overlays/rom_7ec19c/ovl_30_c_a_c_a.s
+ *     OvlFunc_967_200815c   asm/overlays/rom_7f21b8/ovl_30_c_c_a_c.s
+ *     OvlFunc_967_20081c8   asm/overlays/rom_7f21b8/ovl_30_c_c_a_c.s
+ *     OvlFunc_967_200829c   asm/overlays/rom_7f21b8/ovl_30_c_c_a_c.s
+ *
+ * alongside this one and its already-known twin OvlFunc_967_2008234. They
+ * differ only in the shop-or-sanctum call and five ids, so the C below is the
+ * template for all of them.
+ *
+ * OvlFunc_967_200815c WAS WIRED IN AND FAILED, which is the useful part: it
+ * screens OK, its instruction stream is exact, and `make compare` came back
+ * 45,250 bytes out. Reverted. So the pool blocker is not peculiar to the two
+ * members that were known -- it is the family's, and whatever fixes one fixes
+ * five.
+ *
  * Blocker: LITERAL POOL PLACEMENT -- and as of batch 80 the mechanism is read
  * out of the compiler rather than guessed at. It is still not reachable from C.
  *
