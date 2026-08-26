@@ -94,6 +94,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-84](reports/batch-84.md) | 5 | ready to port — read the constant's WIDTH off the ROM; split_asm could not see .lcomm |
 | [batch-85](reports/batch-85.md) | 5 | ready to port — batch 83's lever is not a rule; pick_candidates sees BUILT constants |
 | [batch-86](reports/batch-86.md) | 5 | ready to port — both answers to the operand lever in one function; where the local goes |
+| [batch-87](reports/batch-87.md) | 5 | ready to port — find a family by its instruction SHAPE, not by byte identity |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
