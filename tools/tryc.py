@@ -80,6 +80,20 @@ def _hex(m):
 ALIAS = re.compile(r"\b(sl|fp|ip|lr)\b")
 _ALIAS = {"sl": "r10", "fp": "r11", "ip": "r12", "lr": "r14"}
 
+# An `al` condition suffix is "always", which is the default, so `pushal` and
+# `push` assemble to the SAME halfword -- verified against the assembler:
+#
+#     pushal {r5, r6, lr}   ->  b560
+#     push   {r5, r6, lr}   ->  b560
+#
+# The disassembly that produced asm/ spells one instruction in the whole tree
+# that way (asm/overlays/common/common1_c_a_c_c_a.s), and without this a
+# byte-perfect function reads as "1 differ" and gets parked. Only the forms that
+# actually occur are rewritten; a blanket "strip a trailing al" would also eat
+# real mnemonics such as `bal` -> `b` (harmless) but is not worth the risk on
+# names this tool does not control.
+CONDAL = re.compile(r"^(push|pop)al\b")
+
 
 WILDCARD_HITS = set()
 
@@ -233,6 +247,7 @@ def pool_is_inline(path):
 
 
 def canon(s):
+    s = CONDAL.sub(r"\1", s)
     s = ALIAS.sub(lambda m: _ALIAS[m.group(1)], s)
     if ASM_CONST_RE:
         s = ASM_CONST_RE.sub(lambda m: "=" + ASM_CONST[m.group(1)], s)
