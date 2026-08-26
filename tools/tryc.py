@@ -69,8 +69,16 @@ def _hex(m):
 # they are the same register -- LoadMoveIcon and LoadOldMoveIcon differed by
 # nothing else. sp/lr/pc are deliberately NOT normalised: both sides already
 # spell those the same way, so touching them only risks new noise.
-ALIAS = re.compile(r"\b(sl|fp|ip)\b")
-_ALIAS = {"sl": "r10", "fp": "r11", "ip": "r12"}
+# `lr` IS `r14`, and the two sides do NOT agree on how to spell it. The comment
+# that used to sit here said sp/lr/pc were left alone because "both sides
+# already spell those the same way". That is true inside a push/pop list, where
+# both write `lr`, and false everywhere else: the ROM disassembly writes
+# `mov r14, r1` where gcc writes `mov lr, r3`. OvlFunc_883_200834c -- a
+# thirteen-member family -- reported two differences for that alone.
+# sp and pc stay out: both sides really do agree on those, and touching them
+# only risks new noise.
+ALIAS = re.compile(r"\b(sl|fp|ip|lr)\b")
+_ALIAS = {"sl": "r10", "fp": "r11", "ip": "r12", "lr": "r14"}
 
 
 WILDCARD_HITS = set()
