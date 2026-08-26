@@ -86,6 +86,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-76](reports/batch-76.md) | 5 | ready to port — address vs value; the three-operand lever and its limit |
 | [batch-77](reports/batch-77.md) | 5 | ready to port — 2 solves with free twins; one short member read two ways |
 | [batch-78](reports/batch-78.md) | 6 | ready to port — 3 solves, 3 free twins; a split that dropped its .data |
+| [batch-79](reports/batch-79.md) | 6 | ready to port — `ldrh rD, .L` IS `ldr rD, =v`; pool ORDER reads operand modes |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
