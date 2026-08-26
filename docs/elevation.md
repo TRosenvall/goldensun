@@ -2911,3 +2911,70 @@ copies of the SAME value are not.
 The rule of thumb: ask whether the spelling changes what has to be **live** at
 some point. If it does not, the assembly is showing you the allocator, not the
 source.
+
+## Two levers that defeat control-flow blockers
+
+Both were found in batches 95-96 and both have now closed or nearly closed more
+than one function. They address blockers that had previously been treated as
+dead ends.
+
+### Move the call inside the arms to stop if-conversion
+
+When the ROM **branches** over a choice of two nearby constants and gcc insists
+on making it branchless -- the `neg / orr / lsr #31` boolean-normalise idiom
+followed by an add or subtract -- look for a call that can move inside the arms:
+
+```c
+/* if-converted: no branch at all */
+if (cond) id = 0xd2c; else id = 0xd2d;
+s = f(id);
+
+/* branches, then cross-jumps the two tails back into one bl */
+if (cond) s = f(0xd2c); else s = f(0xd2d);
+```
+
+gcc will not speculate a call, so the if-conversion cannot happen; it then
+cross-jumps the identical tails, which is exactly the ROM's shape -- two pool
+loads, a `b`, one shared call. Found on `Func_80b2ed8`
+(src/non_matching/rom_b0000/80b2ed8.c), 26 differing to 19; closed
+`Func_80b8f08` (src/rom_b5000/rom_b8228_c_a_c_c_a_b.c), 29 to 2.
+
+### Turn the null test around to stop the return-constant hoist
+
+`if (p == 0) return 0;` as an early return lets gcc hoist the `mov r0, #0`
+**above** the test. That hoist parked `Func_80bf37c` in batch 89 and five shape
+siblings with it. Writing the same thing with the positive test keeps the
+constant in the else block, where the ROM has it:
+
+```c
+if (p != 0) {
+    ...
+    return p;
+}
+return 0;
+```
+
+Took `OvlFunc_common0_18` from 30 differing of 40 to 8 of 41
+(src/non_matching/ovl_common/common0_18.c). Worth trying on the whole
+`Func_80bf37c` family.
+
+## The r2/r3 exchange: a four-member allocator class
+
+Four parked functions now differ from the ROM by nothing but which of r2 and r3
+holds which value, with identical instructions in identical order:
+
+* src/non_matching/ovl_7ed0a0/2009458.c   (a masked byte, 3 of 36)
+* src/non_matching/rom_b0000/80b2ed8.c    (a pooled constant, 19 of 46)
+* src/non_matching/ovl_7b9cb4/200ab58.c   (a walked pointer, 7 of 35)
+* src/non_matching/ovl_common/common0_18.c (a masked byte, 8 of 41)
+
+Between them they have absorbed a dozen spellings -- operand order, declaration
+order, named intermediates, walked versus indexed pointers, signed versus
+unsigned fields -- and none of it moves the pair.
+
+**The lead worth following.** `src/rom_8a000/rom_8d9a4_c_a_c_c_c_c_c_c.c` has
+the identical four-instruction masked-byte sequence and MATCHES. The difference
+is what follows: there the `and` result feeds an `orr` before being stored,
+giving it a longer live range; in `common0_18` it is stored immediately. If the
+allocator is splitting on live-range length, that is testable, and it would
+cover at least two of the four.
