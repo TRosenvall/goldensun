@@ -1,5 +1,6 @@
 	.include "macros.inc"
 
+
 @ 82 instructions. Not one of the recognised overlay shapes,
 @ so this is a CALL TRACE rather than a description -- what it does with
 @ these is not characterised here.
@@ -483,56 +484,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_907_2008cb4
-
-@ 42 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   OvlFunc_fa0, TestSaveBit, GetSlotEntityChecked, BeginCutscene
-@   MoveCameraTo, UpdateMapView, EndCutscene, WaitFrames
-@ reads save bit 0x109.
-.thumb_func_start OvlFunc_907_2008d10
-	push	{r5, lr}
-	ldr	r3, =iwram_3001ebc
-	mov	r2, #0xe0
-	ldr	r3, [r3]
-	lsl	r2, #1
-	add	r3, r2
-	add	r2, #0x44
-	str	r2, [r3]
-	bl	OvlFunc_907_2008fa0
-	ldr	r3, =gState
-	mov	r2, #0xe1
-	lsl	r2, #1
-	add	r3, r2
-	ldrh	r3, [r3]
-	mov	r2, #0x80
-	sub	r3, #3
-	lsl	r3, #16
-	lsl	r2, #9
-	cmp	r3, r2
-	bhi	.Ld6e
-	ldr	r0, =0x109
-	bl	__GetFlag
-	cmp	r0, #0
-	bne	.Ld6e
-	mov	r0, #0
-	bl	__MapActor_GetActor
-	mov	r5, r0
-	bl	__CutsceneStart
-	mov	r1, #0x80
-	lsl	r1, #13
-	ldr	r0, [r5, #8]
-	str	r1, [r5, #0xc]
-	ldr	r2, [r5, #0x10]
-	mov	r3, #0
-	bl	__Func_80933f8
-	bl	__Func_800fe9c
-	bl	__CutsceneEnd
-	mov	r0, #1
-	bl	__WaitFrames
-.Ld6e:
-	pop	{r5}
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_907_2008d10

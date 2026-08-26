@@ -23,7 +23,7 @@ void OvlFunc_907_2008d10(void)
 
     *(int *)(*(char **)iwram_3001ebc + (0xe0 << 1)) = 0x204;
     OvlFunc_907_2008fa0();
-    if ((unsigned short)((int)gState.f1c2 - 3) <= 1) {
+    if ((unsigned short)(gState.f1c2 - 3) <= 1) {
         if (__GetFlag(0x109) == 0) {
             a = __MapActor_GetActor(0);
             __CutsceneStart();

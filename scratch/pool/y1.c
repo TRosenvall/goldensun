@@ -1,15 +1,39 @@
+typedef struct {
+    unsigned char pad00[0x1c2];
+    unsigned short f1c2;
+    unsigned char pad1c4[0x2c0 - 0x1c4];
+} GlobalState;
+
+struct A { unsigned char pad00[8]; int f8; int fc; int f10; };
+
 extern unsigned char iwram_3001ebc[];
-extern void __MapActor_SetSpeed(unsigned int, int, int);
-extern void __Func_809218c(int, int, int);
-extern void __Func_8091e9c(int);
+extern GlobalState gState;
+extern struct A *__MapActor_GetActor(int slot);
+extern void __CutsceneStart(void);
+extern void __CutsceneEnd(void);
+extern void __WaitFrames(int n);
+extern int __GetFlag(int id);
+extern void OvlFunc_907_2008fa0(void);
+extern void __Func_80933f8(int a, int b, int c, int d);
+extern void __Func_800fe9c(void);
 
-void OvlFunc_898_2008ef4(int a, int b, int c)
+void OvlFunc_907_2008d10(void)
 {
-    char *base;
+    struct A *a;
+    int v;
 
-    __MapActor_SetSpeed(0, 0x8000, 0x4000);
-    __Func_809218c(0, a, b);
-    base = *(char **)iwram_3001ebc;
-    *(int *)(base + (0xe4 << 1)) = 0x10;
-    __Func_8091e9c(c);
+    *(int *)(*(char **)iwram_3001ebc + (0xe0 << 1)) = 0x204;
+    OvlFunc_907_2008fa0();
+    v = gState.f1c2;
+    if ((unsigned short)(v - 3) <= 1) {
+        if (__GetFlag(0x109) == 0) {
+            a = __MapActor_GetActor(0);
+            __CutsceneStart();
+            a->fc = 0x80 << 13;
+            __Func_80933f8(a->f8, 0x80 << 13, a->f10, 0);
+            __Func_800fe9c();
+            __CutsceneEnd();
+            __WaitFrames(1);
+        }
+    }
 }

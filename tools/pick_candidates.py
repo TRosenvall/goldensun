@@ -129,6 +129,32 @@ POOL = re.compile(r"ldr\s+r\d+,\s*=(\S+)")
 BUILT = re.compile(r"mov\s+(r\d+), #(0x[0-9a-f]+|\d+)\n\t(?:lsl|neg)\s+\1,"
                    r"(?: \1,)? ?(#?[0-9a-fx]*)")
 
+# ...and the SEPARATED form, which the adjacent pattern misses. gcc-2.96 emits
+# all the `mov`s for a call's arguments and then all the `neg`s:
+#
+#     mov r0, #1 / mov r1, #1 / mov r2, #1 / mov r3, #0 /
+#     neg r1, r1 / neg r2, r2 / neg r0, r0
+#
+# which is -1 built three times. OvlFunc_881_20097fc cost a screen to that in
+# batch 85, right after the adjacent pattern was added. Counted by matching each
+# `neg rN, rN` back to the `mov rN, #imm` that most recently set that register.
+NEG = re.compile(r"neg\s+(r\d+), \1")
+MOVI = re.compile(r"mov\s+(r\d+), #(0x[0-9a-f]+|\d+)")
+
+
+def negated_constants(body):
+    """Values that get `mov rN, #v` and later `neg rN, rN`, in order."""
+    live, out = {}, []
+    for line in body.split("\n"):
+        m = MOVI.search(line)
+        if m:
+            live[m.group(1)] = m.group(2)
+            continue
+        m = NEG.search(line)
+        if m and m.group(1) in live:
+            out.append("-" + live.pop(m.group(1)))
+    return out
+
 
 def has_loop(body):
     """True if any branch targets a label defined earlier -- i.e. a back edge."""
@@ -320,6 +346,8 @@ def scan(whole_file, min_calls, min_insn, max_insn, allow_repeat,
                 (v, sh) for _, v, sh in BUILT.findall(body))
             dupes = [k for k, v in pooled.items() if v > 1]
             dupes += [f"{v}<<{sh}" for (v, sh), n in built.items() if n > 1]
+            neg = collections.Counter(negated_constants(body))
+            dupes += [k for k, n in neg.items() if n > 1]
             if dupes and not allow_repeat:
                 continue
             rows.append((-calls, insn, name, rel, len(fns), dupes,
