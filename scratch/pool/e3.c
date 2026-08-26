@@ -1,27 +1,34 @@
-extern unsigned char iwram_3001ebc[];
+extern unsigned char iwram_3001e8c[];
 extern void *__MapActor_GetActor(int slot);
-extern void __PlaySound(int id);
-extern void __CopyMapTiles(int a, int b, int c, int d, int e, int f);
-extern void __Func_8092208(int a, int b, int c);
-extern void __Func_8091e9c(int n);
+extern int OvlFunc_898_2009674(void *a, void *b, int c, int d);
 
-void OvlFunc_963_2008288(void)
+int OvlFunc_898_2008314(void *e)
 {
-    char *base;
-    short v;
-    unsigned char *p;
-    int two;
+    unsigned char *base;
+    char *tbl;
+    unsigned short *p;
+    int flag;
+    int kind;
+    int x;
+    void *a;
 
-    base = *(char **)iwram_3001ebc;
-    v = *(short *)(base + (0xb6 << 1));
-    p = (unsigned char *)__MapActor_GetActor(0) + 0x55;
-    *p = 0;
-    __PlaySound(0x9e);
-    two = 2;
-    __CopyMapTiles(0x42, 0x24, 0x47, 8, two, two);
-    __WaitFrames(4);
-    __CopyMapTiles(0x44, 0x24, 0x47, 8, two, two);
-    __WaitFrames(4);
-    __Func_8092208(0, 3, -0x10);
-    __Func_8091e9c(v);
+    base = *(unsigned char **)iwram_3001e8c;
+    tbl = *(char **)(iwram_3001e8c + 0x30);
+    p = (unsigned short *)((char *)e + 0x64);
+    kind = 0x12;
+    flag = 0;
+    if (*p & 1)
+        x = 0xf;
+    else
+        x = 0xe;
+    if (OvlFunc_898_2009674(e, __MapActor_GetActor(x), 0x20, 0) == 0) {
+        a = __MapActor_GetActor(0);
+        if (*(short *)(tbl + (0xbc << 1)) != 0 || base[0xea4] != 0) {
+            kind = 0x1a;
+            if (*p & 2)
+                flag = 1;
+        }
+        OvlFunc_898_2009674(e, a, kind, flag);
+    }
+    return 0;
 }

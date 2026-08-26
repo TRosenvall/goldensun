@@ -1,38 +1,23 @@
-struct A {
-    unsigned char pad00[6];
-    short f6;
-    unsigned char pad08[0x5c];
-    unsigned short f64;
-};
+extern void *_GetUnit(int id);
+extern int Func_80bf208(int id, int n, int k);
 
-extern struct A *__MapActor_GetActor(int slot);
-extern void __CutsceneStart(void);
-extern void __CutsceneEnd(void);
-extern void __MessageID(int id);
-extern void __MapActor_SetAnim(int slot, int a);
-extern void __WaitFrames(int n);
-extern void OvlFunc_898_200973c(int a, int b, int c);
-extern void OvlFunc_898_2009724(int a, int b);
-
-void OvlFunc_898_20087ec(void)
+int Func_80bf37c(int id)
 {
-    struct A *a;
-    unsigned short *p;
-    unsigned short two;
-    short saved;
+    unsigned char *p;
+    int v;
 
-    a = __MapActor_GetActor(0xe);
-    saved = a->f6;
-    p = &a->f64;
-    two = 2;
-    *p = two | *p;
-    __CutsceneStart();
-    __MessageID(0x122c);
-    __MapActor_SetAnim(0xe, 0);
-    OvlFunc_898_200973c(0xe, 0, 2);
-    OvlFunc_898_2009724(0xe, 0xa);
-    a->f6 = saved;
-    __WaitFrames(1);
-    __CutsceneEnd();
-    *p &= 1;
+    p = (unsigned char *)_GetUnit(id) + (0x9c << 1);
+    v = *p;
+    if (v == 0)
+        goto zero;
+    v = v + 0xff;
+    *p = v;
+    if ((unsigned char)v == 0)
+        return 1;
+    if (Func_80bf208(id, *p, 0x1e) == 0)
+        goto zero;
+    *p = 0;
+    return 1;
+zero:
+    return 0;
 }

@@ -387,6 +387,40 @@ alike, and take the first free letters:
 The pieces do not have to be `_a`/`_b`/`_c` and nothing depends on their being
 in order — the linker script gives the order.
 
+## A two-way choice of NEARBY constants goes branchless -- put the call in both arms
+
+`__MapActor_GetActor(c ? 0xf : 0xe)` does not compile to a branch. gcc notices
+the two values differ by one and emits the "is non-zero" chain:
+
+    ours   neg r0, r3 / orr r0, r3 / lsr r0, #0x1f / add r0, #0xe
+    rom    cmp r3, #0 / beq .L0 / mov r0, #0xf / b .L1 / .L0: mov r0, #0xe / .L1:
+
+An `if`/`else` assigning to a variable does the same thing, and so does swapping
+the declaration order. **Write the call inside each arm.** gcc cross-jumps the
+call itself and keeps the branch for the argument, which is exactly the ROM's
+shape:
+
+    if (*p & 1) a = __MapActor_GetActor(0xf);
+    else        a = __MapActor_GetActor(0xe);
+
+That took `OvlFunc_898_2008314` from 58 differing lines to 4. It is the mirror
+of the `neg / orr / lsr #31` section below: there the idiom is what the ROM has
+and a statement-level branch is what produces it; here the branch is what the
+ROM has and the obvious C produces the idiom.
+
+## Two initialisers come out in the OPPOSITE order to their assignments
+
+The last four lines of the same function were two constants loaded into
+callee-saved registers before any branch:
+
+    rom    mov r2, #0x12 / mov r10, r2 / mov r3, #0x0 / mov r9, r3
+    ours   mov r2, #0x0  / mov r9, r2  / mov r3, #0x12 / mov r10, r3
+
+Writing `kind = 0x12; flag = 0;` emits flag first; writing `flag = 0;
+kind = 0x12;` emits kind first. **Declaration order does not reach it** —
+swapping `int kind; int flag;` changes nothing. Only the order of the
+assignments does, and it inverts.
+
 ## Find a family by its SHAPE, not by byte identity
 
 `tools/find_twins.py` finds functions byte-identical up to symbol names.

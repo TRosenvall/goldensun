@@ -10,13 +10,12 @@ int Func_80bf37c(int id)
     v = *p;
     if (v == 0)
         return 0;
-    v = v + 0xff;
+    v--;
     *p = v;
     if ((unsigned char)v == 0)
         return 1;
-    if (Func_80bf208(id, *p, 0x1e) != 0) {
-        *p = 0;
-        return 1;
-    }
-    return 0;
+    if (Func_80bf208(id, *p, 0x1e) == 0)
+        return 0;
+    *p = 0;
+    return 1;
 }
