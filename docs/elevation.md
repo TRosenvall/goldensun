@@ -276,10 +276,16 @@ When every instruction matches and `make compare` still fails, compare the
 — the referencing instruction's address plus its `pool_range` — so the order is
 a direct statement about the MODE of each operand:
 
-| mode | `pool_range` (arm.md) |
-|---|---|
-| HImode / QImode | 32–60 bytes |
-| SImode | 1020 bytes |
+| pattern (arm.md) | `pool_range` | note |
+|---|---|---|
+| `*thumb_movsi_insn` | 1020 | |
+| `*thumb_movhi_insn` | 64 | pool entry is still a full `.word` |
+| `*thumb_zero_extendhisi2` | 60 | prints **`ldr`** for a pool label, not `ldrh` |
+| `*thumb_movqi_insn` | 32 | |
+
+A HImode `CONST_INT` is emitted into the pool sign-extended, so a HImode mask of
+`-0x4000` appears as `.word 0xffffc000` — the pool word is four bytes wide
+whatever the mode, and its value alone does not tell you the mode.
 
 An early narrow constant therefore sorts *before* a late wide one, and a
 symbol's address always sorts late. `Func_800c5b4` matched instruction for
@@ -306,6 +312,27 @@ the barrier at the end of the function and `dump_table` manufactures a jump over
 an early pool. The exclusion is now off by default; `--no-inline-pool` restores
 it. What remains true, and is what batch 30 actually caught, is that the SCREEN
 cannot see PC-relative offsets, so these must go to `make compare`.
+
+### The placement rule, from `arm.c` rather than by inference
+
+`arm_reorg` (arm.c:5500) walks the fixes and puts the pool at the **last barrier
+within reach of the pool's first entry**, manufacturing one with a `b` if none
+is in range. It stops accumulating into a pool when the next fix will not fit:
+
+    if (fix->address >= minipool_vector_head->max_address - fix->fix_size)
+        return NULL;                       /* add_minipool_forward_ref */
+
+Two consequences worth having in mind before touching a pool-placement park:
+
+- **A wide first entry pushes the whole pool to the end of the function.** This
+  is what makes an `int` local for a constant actively harmful when the ROM's
+  pool is mid-body — it converts a 64-byte range into a 1020-byte one.
+- **A short-range first entry can also SPLIT the pool**, leaving later
+  references to a second pool after the epilogue. `OvlFunc_962_200816c` needs
+  exactly that and is parked on it: the split requires the head entry's
+  `max_address` to be about 64, i.e. a HImode mask, and the mask value it needs
+  (`0xffffc000`) is SImode in every C spelling that survives the `(u16)`
+  comparison. Eleven were byte-compared; that park says not to retry spellings.
 
 ### It does not need the namespace identified — only named
 
