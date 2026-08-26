@@ -685,6 +685,18 @@ def main():
                       f"different distance still compares equal here.")
                 print(f"        VERIFY WITH make compare -- this screen cannot "
                       f"see PC-relative offsets.")
+            # THIS `continue` IS LOAD-BEARING AND WAS LOST ONCE. Adding the
+            # inline-pool warning to this branch in batch 75 displaced it, and
+            # from then until batch 81 every CLEAN screen printed its `OK` line
+            # and then fell straight into the mismatch report below, emitting
+            #
+            #     OK  Func_x  (21 lines)
+            #     XX  Func_x  (rom 21 lines, ours 21, first diff at 0, 0 differ)
+            #
+            # and returning failure. "0 differ" is the tell that it is this bug
+            # and not a real mismatch. Anything reading the exit status, or
+            # grepping for `^  XX`, was told a match had failed.
+            continue
         ok = False
         # first divergence, with a little context -- enough to see whether it
         # is a scheduling difference or a genuinely different lowering
