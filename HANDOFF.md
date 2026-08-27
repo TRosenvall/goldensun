@@ -105,6 +105,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-95](reports/batch-95.md) | 5 | ready to port — `pushal` is `push`; a load's operand order says subscript vs pointer arithmetic |
 | [batch-96](reports/batch-96.md) | 5 | ready to port — the positive test stops the return-constant hoist; the r2/r3 class named |
 | [batch-97](reports/batch-97.md) | 5 | ready to port — a named constant's TYPE can decide an r2/r3 pair; two pointer chains must both be live |
+| [batch-98](reports/batch-98.md) | 5 | ready to port — the WIDTH of the arithmetic decides add-vs-sub; the r2/r3 live-range theory refuted |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The

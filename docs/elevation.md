@@ -3012,9 +3012,13 @@ And **statement order decides a coordinate pair**: writing two field reads in
 the order the ROM loads them took `OvlFunc_946_200985c` from 9 differing to 2.
 Declaration order does nothing; the order of the STATEMENTS is what counts.
 
-**The lead still worth following.** `src/rom_8a000/rom_8d9a4_c_a_c_c_c_c_c_c.c`
-has the identical four-instruction masked-byte sequence and MATCHES. The difference
-is what follows: there the `and` result feeds an `orr` before being stored,
-giving it a longer live range; in `common0_18` it is stored immediately. If the
-allocator is splitting on live-range length, that is testable, and it would
-cover at least two of the four.
+**THAT LEAD IS REFUTED, batch 98.** The theory was that
+`src/rom_8a000/rom_8d9a4_c_a_c_c_c_c_c_c.c` matches because its `and` result
+feeds an `orr` before being stored, giving it a longer live range, while
+`common0_18` stores immediately. `OvlFunc_922_2008ed8`
+(src/non_matching/ovl_7a8c8c/2008ed8.c) has the `orr` **and still splits**, at 8
+of 43. So live-range length is not the discriminator and that avenue is closed.
+
+What the class does respond to is narrower than hoped: a named constant of the
+field's width, and statement order, and only in cases that store in the same
+statement. Six functions have now been through it; two yielded.
