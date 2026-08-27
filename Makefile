@@ -239,6 +239,18 @@ SCHED2_CFLAGS := $(GCC296_CFLAGS) -fno-schedule-insns2
 # it is the register reservation that is wanted and not the frame.
 FIXEDR7_CFLAGS := $(GCC296_CFLAGS) -ffixed-r7
 
+# -fno-strength-reduce : LoadMoveRangeIcons recomputes its table byte offset and
+# a shifted shape index every iteration; gcc makes induction variables for both
+# and the ROM does not.  27 differing without it, byte-identical with it.  The
+# while(1)-increment rewrite is NOT a substitute -- it removes the loop rotation,
+# not the givs, and makes this function worse (78 lines against the ROM's 70).
+STRENGTH_CFLAGS := $(GCC296_CFLAGS) -fno-strength-reduce
+asm/rom_a1000/rom_a8604_a_a_c_b.o: src/rom_a1000/rom_a8604_a_a_c_b.c
+	$(GCC296_CC) $(STRENGTH_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+
 # OvlFunc_960_2008464: 98 differing at -O2, exact with -fno-rerun-cse-after-loop.
 asm/overlays/rom_7eaf28/ovl_314_c_a_c_a_c_c.o: src/overlays/rom_7eaf28/ovl_314_c_a_c_a_c_c.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<

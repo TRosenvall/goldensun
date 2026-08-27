@@ -77,6 +77,12 @@ SECTIONS {
 		asm/overlays/rom_7aa430/ovl_e90_c_c_c_c.o(.data)
 	} > overlay
 
+/* gcc-2.96 emits __divsi3 / __umodsi3 and has no flag to rename them.  Overlay
+ * code calls the RAM-resident copies through the stubs the .export_func lines
+ * make.  Same treatment as overlays/rom_7a5214/overlay.ld:80.  Emits no bytes. */
+__divsi3 = _divsi3_RAM;
+__umodsi3 = _umodsi3_RAM;
+
 	/DISCARD/ : {
 		*(*)
 	}

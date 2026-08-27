@@ -17,6 +17,9 @@
 	call_via r7
 	call_via r8
 	call_via r9
+
+.global _call_via_sl @ gcc emits `sl` for r10, as it emits `fp` for r11.
+_call_via_sl:
 	call_via r10
 
 .global _call_via_fp @ gcc emits `fp` for r11.
