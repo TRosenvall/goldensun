@@ -1,25 +1,28 @@
-/* OvlFunc_898_2008a4c -- NOT MATCHING
+/* OvlFunc_898_2008a4c
  *
- * Source asm: goldensun/asm/overlays/rom_793768/ovl_314_c_c_a_c_c_c_a_a.s
- * Best screen: 51 instructions against the ROM's 50.
+ * Cut out of goldensun/asm//overlays/rom_793768/ovl_314_c_c_a_c_c_c_a_a_b.s.
  *
- * BLOCKER CLASS: literal-pool placement -- a FOURTH member of the cutscene
- * bookend family, alongside src/overlays/rom_793768/ovl_314_c_c_c_a_a_c_a_b.c
- * (matched), src/non_matching/overlays/2008acc.c and
- * src/non_matching/overlays/2008640.c.
+ * WAS PARKED, AND THE PARKED C WAS ALREADY CORRECT -- unchanged here except
+ * for this note.
  *
- * This one has an `if` whose exit and the pool-skip branch COINCIDE in the ROM:
- * one `b .La98` serves both, with `.pool_aligned` between it and the label. We
- * emit two labels and two branches, which is the extra instruction.
+ * tools/tryc.py screens it at 25 differing of 50 and every one of those is a
+ * cascade from ONE redundant label. gcc puts the pool-skip label immediately
+ * before the ifs own join label, so two label definitions land at the same
+ * address:
  *
- * So the family now has three distinct outcomes on the same shape -- one
- * matches, one is off by one instruction of pool placement (2008acc), one is
- * off by scheduling (2008640), and this one merges a branch the ROM shares.
- * The pooled 2 is `_CONST_2` in all four and behaves identically.
+ *     ours   strh r3,[r2] / b .L5 / <pool> / .L5: / .L3: / mov r0, #0xe
+ *     rom    strh r3,[r2] / b .La98 / <pool> / .La98:      / mov r0, #0xe
  *
- * The body screens clean: the walked +0x64 pointer, the signed facing saved and
- * restored, the flag test on save bit 2, and the counter bump at
- * [iwram_3001ebc]+0x1d8.
+ * A label emits no bytes. tryc deliberately keeps branched-to label
+ * definitions in the stream -- which is right, and here it shifts every later
+ * position and the positional count cascades.
+ *
+ * The lesson is symmetric to the one already in docs/elevation.md. A CLEAN
+ * screen on a function with an inline pool is unproven until make compare; so
+ * is a DIRTY screen whose first difference is a label. Both need the byte
+ * check, and this one passes it.
+ *
+ * Screened by a parallel agent; re-verified here before wiring.
  */
 struct A {
     unsigned char pad00[6];
