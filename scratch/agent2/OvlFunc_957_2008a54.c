@@ -1,3 +1,8 @@
+/* OvlFunc_957_2008a54  --  asm/overlays/rom_7e3e08/ovl_30_c_c_a_a_a_c.s
+ * PARKED at 3 differing of 50 -- see the report.  Everything matches except
+ * that the ROM issues `strh r1, [r3]` (the BLDCNT write) BETWEEN the `ldrb`
+ * and the lsl/asr sign-extension, and gcc schedules the two shifts first.
+ */
 #define REG_BLDCNT   (*(volatile unsigned short *)0x04000050)
 #define REG_BLDALPHA (*(volatile unsigned short *)0x04000052)
 

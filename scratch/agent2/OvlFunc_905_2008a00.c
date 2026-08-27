@@ -1,3 +1,14 @@
+/* OvlFunc_905_2008a00  --  asm/overlays/rom_799abc/ovl_30_a_a_a_c_c_c_c.s
+ *
+ * A three-case switch on the short at +0x66 that adds the two velocity words
+ * at +0x30/+0x34 into two of the three position words, mirroring each result
+ * into +0x38/+0x3c/+0x40.
+ *
+ * Three case labels means a DECISION TREE, and the case bodies come out in
+ * SOURCE order -- 0, 1, 2 here, which is also numeric order.  Cases 1 and 2
+ * share their tail (`f10 += f34`) and gcc cross-jumps it into the ROM's .La4a.
+ * No --cflags.
+ */
 struct S {
     unsigned char pad00[8];
     int f8;

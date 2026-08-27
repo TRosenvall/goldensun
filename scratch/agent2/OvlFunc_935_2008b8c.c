@@ -1,3 +1,14 @@
+/* OvlFunc_935_2008b8c  --  asm/overlays/rom_7bf5a8/ovl_b8c_a.s
+ *
+ * Spawns up to four actors at the caller's position, each with jittered
+ * velocity, and breaks out early if the spawn fails.
+ *
+ * An un-rotated loop: the ROM jumps straight to the test (`b .Lbda`), so the
+ * `for` with the spawn AT THE TOP of the body and a `break` on failure is the
+ * natural spelling and needs no goto.  Field writes are in the ROM's order
+ * (+0x1c before +0x18); the two __Random results are consumed in call order.
+ * No --cflags.
+ */
 struct Actor {
     unsigned char pad00[0x18];
     int f18;

@@ -1,57 +1,5 @@
 	.include "macros.inc"
 
-@ 42 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   GetSlotEntityChecked, OvlFunc_480
-.thumb_func_start OvlFunc_969_20084bc
-	push	{r5, r6, r7, lr}
-	mov	r7, r10
-	mov	r6, r8
-	push	{r6, r7}
-	ldr	r3, =iwram_3001ebc
-	mov	r2, #0
-	mov	r0, #0
-	ldr	r5, [r3]
-	mov	r8, r2
-	bl	__MapActor_GetActor
-	mov	r7, #0xa0
-	lsl	r7, #2
-	mov	r10, r0
-	mov	r6, #8
-	add	r5, #0x34
-.L4dc:
-	ldmia	r5!, {r1}
-	cmp	r1, #0
-	beq	.L500
-	ldr	r3, [r1, #0x50]
-	ldr	r3, [r3, #0x28]
-	mov	r2, #0
-	ldrsh	r3, [r3, r2]
-	cmp	r3, #0xf2
-	bne	.L500
-	mov	r0, r10
-	add	r1, #8
-	add	r0, #8
-	bl	OvlFunc_969_2008480
-	cmp	r0, r7
-	bge	.L500
-	mov	r7, r0
-	mov	r8, r6
-.L500:
-	add	r6, #1
-	cmp	r6, #0x41
-	bls	.L4dc
-	mov	r0, r8
-	pop	{r3, r5}
-	mov	r8, r3
-	mov	r10, r5
-	pop	{r5, r6, r7}
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_969_20084bc
-
 @ 91 instructions. Not one of the recognised overlay shapes,
 @ so this is a CALL TRACE rather than a description -- what it does with
 @ these is not characterised here.
@@ -255,4 +203,3 @@
 	pop	{r0}
 	bx	r0
 .func_end OvlFunc_969_20085ec
-

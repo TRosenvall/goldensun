@@ -23,8 +23,9 @@ void OvlFunc_880_2008d74(struct S *s)
     d1 = (short *)(0x6002000 + off);
     base += off;
     d2 = (short *)base;
+    i = 0;
     k = 0;
-    for (i = 0; i <= 7; i++) {
+    do {
         t = k + 0x20;
         for (j = 0xf; j >= 0; j--) {
             short v = t | ~0xfff;
@@ -36,7 +37,8 @@ void OvlFunc_880_2008d74(struct S *s)
         }
         d1 += 0x10;
         d2 += 0x10;
+        i++;
         k += 0x10;
-    }
+    } while (i <= 7);
     __free(buf);
 }

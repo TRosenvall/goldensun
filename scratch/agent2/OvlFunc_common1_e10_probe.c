@@ -1,3 +1,22 @@
+/* OvlFunc_common1_e10  --  asm/overlays/common/common1_a_a_a_a_c_c.s
+ *
+ * SCREENS OK ONLY WITH THE LABELS RENAMED.  The .L9xx names below are STAND-INS
+ * for the overlay's real symbols .L33 .L22 .L36 .L46 .L24 .L25 .L37 .L11 .L2
+ * .L12 .L3 .L13.  Spelt with the real names via the asm-label extension the
+ * function is 13 differing of 47, because gcc emits its OWN .L3, .L11 and .L12
+ * in this compile and the references bind to those instead.  See the report:
+ * the fix is a rename in asm/overlays/common/common1_c_c_b.s (definitions and
+ * .global lines) plus the references in common1_a_a_a_a_c_c.s -- two files,
+ * nothing else in the tree names these symbols.
+ *
+ * Otherwise straightforward: a chain of independent `if`s selecting a script
+ * pointer (NOT an else-if chain -- the ROM re-tests r5 each time), and the
+ * halfword zeros come from a POOL (`ldr r2, .Le7c`) while the word zero is a
+ * `mov r3, #0`, which is docs/elevation.md's HImode rule visible in one
+ * function.  Writing `L36 = 0; L37 = p; L46 = 0; L24 = 0; L25 = 0;` in that
+ * order is what shares the one pooled zero across the three strh.
+ * No --cflags.
+ */
 extern short L33 __asm__(".L933");
 extern short L22 __asm__(".L922");
 extern short L36 __asm__(".L936");

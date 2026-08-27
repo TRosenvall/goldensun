@@ -1,3 +1,7 @@
+/* OvlFunc_951_2008880  --  asm/overlays/rom_7d6418/ovl_30_c_c_c_a_c_a.s
+ * PARKED at 4 differing of 47 -- see the report.  Two adjacent-instruction
+ * swaps in the second loop, both pure scheduling.
+ */
 #define REG_BLDCNT   (*(volatile unsigned short *)0x04000050)
 #define REG_BLDALPHA (*(volatile unsigned short *)0x04000052)
 
