@@ -200,3 +200,43 @@ What changes at this size:
 Report the first-differing-line POSITION as well as the count for anything that
 does not close. At this size that is the single most useful number for whoever
 picks it up next.
+
+## Round 5 — new since your last brief
+
+Round 4 returned 29 matches from 48 functions. These are the things that changed
+underneath you; all are in `docs/elevation.md` now.
+
+1. **`tryc.py` got a fix — re-screen before believing an old measurement.** It now
+   folds `mov rd, rs` = `add rd, rs, #0` for LOW registers (they are the same
+   halfword, 0x1c1a). Anything previously parked at "1 differing, and it is a
+   reg-to-reg move" may now be OK.
+2. **The HImode-literal rule is NARROWER than the doc used to say.** Plain
+   literals are right for `1…0x7fff` through a `u16 *`. Only **`0`** and values
+   **≥ 0x8000** need an `int` local. And for ≥ 0x8000 you need BOTH an unsigned
+   pointer and the local — through a signed `short *`, `0xb000` pools as
+   `0xffffb000`.
+3. **`volatile` is a reading, not a hack.** One `ldr =sym` with TWO `ldr [rN]`
+   and no call between means the global is `volatile` — two textual reads in C
+   are not enough, gcc CSEs them. A stack halfword stored and then loaded back
+   is a `volatile` local. Prefer `volatile` over a `-fno-gcse` rule: it costs no
+   per-file flag group.
+4. **`-fno-schedule-insns2` is a misleading probe.** On every scheduling-shaped
+   residue in round 4 it moved the first difference back to ~1 and multiplied the
+   count. It is never the answer to a one-instruction scheduling difference.
+5. **Name the store's DESTINATION pointer** when the ROM computes the address as
+   a whole instruction before the value. In one case this dissolved a difference
+   twenty positions EARLIER — the later difference was causing the earlier one.
+6. **Three more one-screen levers**: `i = 0;` as its own statement is not the
+   same as a `for`-init; DELETING a single-use local reaches an r0↔r4 exchange;
+   deleting a loop-BOUND local moves the bound into a high register (symptom: an
+   extra callee-saved push).
+7. **Strict aliasing can SINK a store.** If a store lands far from where the ROM
+   has it and nothing else differs, write it through a `char *` lvalue (alias set
+   0, cannot move) before reaching for the scheduler.
+8. **`-ffixed-r7`** is worth one screen when the ROM saves a HIGH register
+   (r8–r11) and you do not, and the line-count gap is about four. Report it; the
+   coordinator adds the per-file rule.
+9. **Do not spend a `.sym` addition on argument ORDER.** The symbol tell governs
+   hoisting across a call, not setup order within one call — measured negative.
+
+Your worklist is 15 functions, band 60-99. That band returned 60% last round.
