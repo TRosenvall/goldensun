@@ -4211,24 +4211,44 @@ screens. If gcc has never produced that sequence anywhere in the corpus, no
 spelling will make it. Two classes have now been closed this way — this one and
 two consecutive `neg rN, rN`.
 
-## The split constant build: a second class closed by the corpus test
 
-`mov rA, #K / mov rB, #K2 / lsl rA, #n` — a shifted constant build with an
-unrelated `mov` slotted between its two halves — appears **0 times in the 2987
-generated `.s` files**. gcc-2.96 as configured here always finishes a shifted
-build before touching another register.
+## RETRACTED: "the split constant build is unreachable"
 
-This is the same shape as the `mov #K / mov #0 / neg / mov #0` family and the
-same verdict: unreachable, not unreached. Together the two cover a large part of
-what has been parked as "argument interleave" — `2009df8`, `20087dc`, `2008d24`,
-`926_2008658`, `881_2009a98` and `200be34` are all instances of a constant build
-split by an unrelated `mov`.
+I claimed here that `mov rA, #K / mov rB, #K2 / lsl rA, #n` appears 0 times in
+the 2987 generated `.s` files and that the class was therefore unreachable.
+**That was wrong, and it was wrong because the detector was broken.**
 
-> **Before spending screens on a fixed short residue, grep the GENERATED `.s`
-> files for that exact sequence.** If the compiler has never emitted it anywhere
-> in the corpus, no spelling will produce it. Three classes have now been closed
-> this way: two consecutive `neg rN, rN`, the `neg`-interleave quartet, and the
-> split shifted build.
+Generated `.s` files are gcc's own assembly output and use a different notation
+from the ROM's disassembly: **decimal immediates** (`mov r2, #224`) and the
+**three-operand** shift form (`lsl r2, r2, #1`). My regex required the ROM's
+two-operand `lsl r2, #1`, so it matched nothing in the generated corpus. The
+"0 of 2987" measured my regex, not the compiler.
 
-That test is cheap, decisive, and it is the difference between parking a class in
-one screen and grinding eleven functions to the same two-line floor.
+Re-run with both operand forms accepted, and with a positive control:
+
+| pattern | generated `.s` files |
+|---|---|
+| adjacent `mov`/`lsl` build (positive control) | **777** of 2987 |
+| split `mov` / `mov` / `lsl` | **51** of 2987 |
+| any `neg` at all (positive control) | **241** of 2987 |
+| two consecutive `neg rN, rN` | **2** of 2987 |
+
+So gcc-2.96 **does** emit the split shifted build — 51 files — and it does emit
+two consecutive `neg`s, twice. Neither class is unreachable. The functions parked
+on them are parked on "I have not found the spelling", not on "no spelling
+exists", and the parks say so.
+
+**The corpus test is still the right idea. Two rules for using it:**
+
+1. **Always run a positive control.** Count how often the *unsplit* or *simpler*
+   form of the shape appears. A zero with no positive control is
+   indistinguishable from a broken pattern, and that is exactly what happened
+   here.
+2. **Write patterns against gcc's notation, not the ROM's**, when searching
+   generated files: decimal immediates, three-operand shifts. The two corpora do
+   not use the same spelling for the same instruction.
+
+This also downgrades agent1's report that "0 of the generated `.s` files contain
+two consecutive `neg rN, rN`" — the true count is 2, and with `neg` appearing in
+only 241 files to begin with, a low count is weak evidence rather than proof.
+

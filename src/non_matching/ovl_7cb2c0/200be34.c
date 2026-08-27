@@ -14,18 +14,18 @@
  * `mov #K / mov #0 / neg / mov #0` family in ovl_7c460c/2008c74.c -- a
  * multi-instruction constant build split by an unrelated `mov`.
  *
- * CORPUS TEST -- UNREACHABLE, do not spend screens:
- *   0 of the 2987 GENERATED .s files (built from committed src/*.c) contain
+ * CORRECTED: this is NOT unreachable.  I first measured "0 of 2987 generated
+ * .s files contain mov rA,#K / mov rB,#K2 / lsl rA,#n" and concluded the class
+ * was closed.  The detector was broken: generated .s files are gcc's own output
+ * and use DECIMAL immediates and the THREE-operand shift (`lsl r2, r2, #1`),
+ * while my pattern required the ROM's two-operand form.  It matched nothing.
  *
- *       mov rA, #K / mov rB, #K2 / lsl rA, #n
+ * Re-measured with both forms accepted and a positive control:
+ *     adjacent mov/lsl build (control) : 777 of 2987
+ *     split mov / mov / lsl            :  51 of 2987
  *
- *   gcc-2.96 as configured here finishes a shifted constant build before
- *   touching another register, always.  No spelling reaches it.
- *
- * This is the same technique that closed the neg family, and it generalises:
- * when a residue is a fixed short instruction sequence, grep the GENERATED .s
- * for it first.  If the compiler has never emitted it anywhere in the corpus,
- * the difference is not a spelling problem.
+ * gcc DOES emit this shape, 51 times.  So the spelling exists and I have not
+ * found it.  This park is "not yet solved", not "cannot be solved".
  *
  * Best C: scratch/rbe34.c.
  */

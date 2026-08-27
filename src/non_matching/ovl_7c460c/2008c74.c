@@ -15,15 +15,20 @@
  * Both are `f(0, 0, -8)`.  Solve it once and two functions land; see
  * src/non_matching/ovl_7c097c/2008504.c.
  *
- * DECISIVE CORPUS TEST -- the family is UNREACHABLE, not merely unreached.
- * Zero of the 2987 generated .s files in the tree (those built from committed
- * src/*.c) contain the four-line sequence
+ * CORPUS TEST -- SUGGESTIVE, NOT DECISIVE.  Zero of the 2987 generated .s
+ * files contain the four-line sequence
  *
  *     mov rA, #K / mov rB, #0 / neg rA, rA / mov rC, #0
  *
- * so gcc-2.96 as configured here never emits it, whatever the C says.  This is
- * the same form of test agent1 used for two consecutive `neg rN, rN`.  Do not
- * spend further screens on any member.
+ * but read that with care.  `neg` appears in only 241 of the 2987 files at all,
+ * and two CONSECUTIVE `neg`s appear in 2 -- so a zero for a rarer four-line
+ * pattern is a low base rate, not proof of impossibility.  An earlier version
+ * of this note called it decisive and claimed the family was unreachable; that
+ * was an overstatement, and the sibling park ovl_7cb2c0/200be34.c records the
+ * detector bug that produced a matching false zero for a related shape.
+ *
+ * Treat this as: eleven functions share one residue, eleven spellings and three
+ * flags have failed on it, and it is a poor use of screens -- not as proof.
  *
  * THE FAMILY -- 11 functions carry the idiom:
  *   OvlFunc_895_2008154      asm/overlays/rom_78dee8/ovl_30_c_c_a_a_a.s
