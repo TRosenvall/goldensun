@@ -15,6 +15,29 @@
  * Both are `f(0, 0, -8)`.  Solve it once and two functions land; see
  * src/non_matching/ovl_7c097c/2008504.c.
  *
+ * DECISIVE CORPUS TEST -- the family is UNREACHABLE, not merely unreached.
+ * Zero of the 2987 generated .s files in the tree (those built from committed
+ * src/*.c) contain the four-line sequence
+ *
+ *     mov rA, #K / mov rB, #0 / neg rA, rA / mov rC, #0
+ *
+ * so gcc-2.96 as configured here never emits it, whatever the C says.  This is
+ * the same form of test agent1 used for two consecutive `neg rN, rN`.  Do not
+ * spend further screens on any member.
+ *
+ * THE FAMILY -- 11 functions carry the idiom:
+ *   OvlFunc_895_2008154      asm/overlays/rom_78dee8/ovl_30_c_c_a_a_a.s
+ *   OvlFunc_916_20087e0      asm/overlays/rom_7a37f0/ovl_30_c_c_c_a_c_a_a.s
+ *   OvlFunc_936_2008504      asm/overlays/rom_7c097c/ovl_30_c_c_c_a_a_c_a_a_c.s
+ *   OvlFunc_939_2008c74      asm/overlays/rom_7c460c/ovl_314_a_c_c_a_c_c.s
+ *   OvlFunc_941_2009760      asm/overlays/rom_7c5efc/ovl_30_c_c_c_c_c.s
+ *   OvlFunc_950_200813c      asm/overlays/rom_7d5838/ovl_30_c_c_a_c_a_a_c_a.s
+ *   OvlFunc_952_2008674      asm/overlays/rom_7d768c/ovl_30_c_a_a_c_c_c.s
+ *   OvlFunc_952_2008af8      asm/overlays/rom_7d768c/ovl_30_c_a_a_c_c_c.s
+ *   OvlFunc_959_200b054      asm/overlays/rom_7e7574/ovl_9dc_c_c_a_a_a.s
+ *   OvlFunc_965_2009030      asm/overlays/rom_7ef4f4/ovl_30_a_c_a_c.s
+ *   OvlFunc_966_20087c4      asm/overlays/rom_7f148c/ovl_30_c_c_c_a_a.s
+ *
  * MEASURED (all 53 lines, all 2 differing at position 18):
  *   plain literal -8                                        2
  *   `int m = -8;` immediately before the call                2

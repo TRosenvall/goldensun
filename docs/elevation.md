@@ -4189,3 +4189,24 @@ That looks like a corpus defect and it is tempting to delete one.
 emits two labels at that address from the correct C, so the duplication is a
 faithful transcription of the original object, not a transcription error. The
 function is byte-identical (164/164) *with* the duplicate present. Left as-is.
+
+## The `mov #K / mov #0 / neg / mov #0` argument idiom: 11 functions, unreachable
+
+`f(0, 0, -8)` compiles to `mov r2,#8 / neg r2,r2 / mov r1,#0 / mov r0,#0`; the
+ROM has `mov r2,#8 / mov r1,#0 / neg r2,r2 / mov r0,#0` — the `mov r1,#0` slots
+between the two halves of the `-8` build, filling the dependency stall.
+
+**Zero of the 2987 generated `.s` files in the tree contain that four-line
+sequence.** gcc-2.96 as configured here never emits it. Eleven functions carry
+the idiom and every one of them is capped at the same two-line residue; the full
+list is in `src/non_matching/ovl_7c460c/2008c74.c`.
+
+Eleven spellings and three flags are measured in that park. The only one that
+moves the count moves it the wrong way, and `-fno-schedule-insns` does not touch
+it — so whatever reorders the pair is not the pre-reload scheduler.
+
+**The general technique is the point:** when a residue is a fixed short
+instruction sequence, grep the *generated* `.s` files for it before spending
+screens. If gcc has never produced that sequence anywhere in the corpus, no
+spelling will make it. Two classes have now been closed this way — this one and
+two consecutive `neg rN, rN`.
