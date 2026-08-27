@@ -3382,6 +3382,14 @@ assembly whether the ROM **rebuilds** it at each use or **carries** it there.
 | rebuilds the value at the use (a `mov`/`lsl` pair split around another argument; a `mov` where gcc pools; a pool load issued late) | a local in a **dominating** block, **one per site** | crossing a block boundary makes local-alloc rematerialise instead of allocating |
 | carries the value into the use (one register holding it across calls, a callee-saved register in the push list) | a local **adjacent** to the first use, **shared** | adjacency is what makes the values live SIMULTANEOUSLY |
 
+**CARRIED HAS A PRECONDITION, added in batch 109: name it only if gcc would
+otherwise REBUILD it.** If gcc is already carrying the value, naming it only
+moves where it is built, and the literal's position is usually the ROM's. The
+`-1` in `src/overlays/rom_7e7574/ovl_9dc_a_c_c_a_a_c_a_b.c` is carried in r6
+across three calls; named and assigned above the `if` it is 22 differing of 38,
+because gcc then builds it before the call the ROM builds it after. As a plain
+literal, gcc carries it into r6 by itself. **Screen the unnamed spelling first.**
+
 Both are visible before writing any C. A value in the ROM's push list is
 carried. A value built twice from scratch is rebuilt.
 
@@ -3420,6 +3428,19 @@ which flags) are already made. Each hit then costs a constant substitution plus
 whatever its own tail does differently.
 
 **Two minutes per match, and it is the highest-yield habit in this document.**
+
+**Batch 109 turned it into `tools/prologue_families.py`**, which clusters every
+remaining function in `asm/` on its first N instructions so the families can be
+picked BEFORE solving a member. Use `--n 12`; at `--n 6` the largest cluster is
+235 functions sharing nothing but the high-register save boilerplate. It
+canonicalises immediates, pool symbols and branch labels and keeps register
+numbering literal — registers are what does NOT vary inside a real family, so
+canonicalising them collides unrelated code.
+
+34 families of 3+ share their first twelve instructions. The three largest are
+per-overlay copies of one routine — 18 members at 172 instructions, 18 at 139,
+17 at 132 — which is 53 functions behind three solves, and the largest single
+lever left in the tree.
 
 ## Screening is not wiring
 
