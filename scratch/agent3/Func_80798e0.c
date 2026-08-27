@@ -6,13 +6,14 @@ struct EnemyRow { int p; unsigned char pad[4]; int q[4]; };
 extern struct EnemyRow L88e38[] __asm__(".L88e38");
 extern unsigned char L88df8[] __asm__(".L88df8");
 
-void Func_80798e0(int id, void *out)
+int Func_80798e0(int id, void *out)
 {
     unsigned char *u;
     void *e;
     unsigned int k;
     int i;
     int buf[4];
+    struct EnemyRow *rows;
     int *s;
     int *d;
     unsigned char *tbl;
@@ -25,9 +26,11 @@ void Func_80798e0(int id, void *out)
         k = *((unsigned char *)e + 0x34);
         if (k > 0x2b)
             k = 0;
-        s = L88e38[k].q;
+        i = 0;
         d = (int *)out;
-        for (i = 0; i <= 3; i++)
+        rows = L88e38;
+        s = rows[k].q;
+        for (; i <= 3; i++)
             *d++ = *s++;
     } else {
         Func_80797fc(u[0x94 << 1], u + 0xf8, buf);

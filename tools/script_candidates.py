@@ -37,6 +37,7 @@ END = re.compile(r"^\.func_end")
 LABEL = re.compile(r"^\.L\w+:")
 MOVI = re.compile(r"^\tmov\t(r\d+), #(0x[0-9a-f]+|\d+)$")
 LSL = re.compile(r"^\tlsl\t(r\d+), #(0x[0-9a-f]+|\d+)$")
+NEG = re.compile(r"^\tneg\t(r\d+), (r\d+)$")
 LDRE = re.compile(r"^\tldr\t(r\d+), =(0x[0-9a-f]+|\d+)$")
 
 
@@ -60,6 +61,15 @@ def constants(lines):
         m = LSL.match(ln)
         if m and m.group(1) in pend:
             out.append(pend.pop(m.group(1)) << int(m.group(2), 0))
+            continue
+        m = NEG.match(ln)
+        if m and m.group(2) in pend:
+            # `mov rN, #K` + `neg rN, rN` is a two-instruction build of -K, and
+            # gcc commons it exactly like a shifted build or a pool load.  It is
+            # also the shape gcc will NOT reproduce: 0 of the generated .s files
+            # in the tree contain two consecutive `neg rN, rN`, so a call taking
+            # two negative constants is unreachable rather than merely unreached.
+            out.append(-pend.pop(m.group(2)))
             continue
         m = LDRE.match(ln)
         if m:
