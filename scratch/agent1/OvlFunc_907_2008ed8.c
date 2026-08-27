@@ -23,8 +23,8 @@ void OvlFunc_907_2008ed8(void)
             OvlFunc_907_2008f3c(a);
         L1d88[0]++;
         if (L1d88[0] == (wrap >> 16))
-            L1d88[0] = 0;
+            *L1d88 = 0;
     } else {
-        L1d88[0] = 0;
+        *L1d88 = 0;
     }
 }

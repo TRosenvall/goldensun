@@ -11,18 +11,16 @@ void OvlFunc_956_2008b30(void)
     unsigned char *gs;
     int *slot;
     unsigned char *a;
-    int lim;
     int dz;
     int em;
 
-    lim = 0xa6 << 18;
     dz = 0xc0 << 12;
     em = 0x81 << 1;
     gs = gState;
     slot = (int *)(gs + 0x1f4);
     a = __MapActor_GetActor(*slot);
-    if (*(int *)(a + 8) > lim)
-        *(int *)(a + 8) = lim;
+    if (*(int *)(a + 8) > (0xa6 << 18))
+        *(int *)(a + 8) = 0xa6 << 18;
     *(int *)(a + 0x34) = 0x80 << 9;
     *(int *)(a + 0x30) = 0x80 << 10;
     __Actor_SetAnim(a, 5);

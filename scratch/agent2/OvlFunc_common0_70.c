@@ -25,13 +25,14 @@ struct Actor *OvlFunc_common0_70(int x, int y, int z, int id)
     struct Actor *a;
 
     a = __CreateActor(id, x, y, z);
-    if (a == 0)
-        return 0;
-    a->f50->f9_b2 = 1;
-    a->f55 = 0;
-    a->f59 = 8;
-    __Actor_SetSpriteFlags(a, 0);
-    __Func_80929d8(a, 0xf);
-    a->f23 = (a->f23 & 0xfe) | 2;
-    return a;
+    if (a != 0) {
+        a->f50->f9_b2 = 1;
+        a->f55 = 0;
+        a->f59 = 8;
+        __Actor_SetSpriteFlags(a, 0);
+        __Func_80929d8(a, 0xf);
+        a->f23 = (a->f23 & 0xfe) | 2;
+        return a;
+    }
+    return 0;
 }
