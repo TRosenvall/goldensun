@@ -25,6 +25,9 @@ _call_via_sl:
 .global _call_via_fp @ gcc emits `fp` for r11.
 _call_via_fp:
 	call_via r11
+
+.global _call_via_ip @ gcc emits `ip` for r12.
+_call_via_ip:
 	call_via r12
 	call_via sp
 	call_via lr
