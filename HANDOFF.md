@@ -110,6 +110,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-100](reports/batch-100.md) | 5 | ready to port — bcc/bhi in a switch means an UNSIGNED value; the exit layout follows duplicated tails |
 | [batch-101](reports/batch-101.md) | 5 | ready to port — jump tables reachable (106 remain); split_s.py was blind to .incrom |
 | [batch-102](reports/batch-102.md) | 5 | ready to port — the jump-table class worked systematically; READ THE TABLE for the case order |
+| [batch-103](reports/batch-103.md) | 5 | ready to port — an out-of-line arm needs a goto; symbol-vs-literal split inside one switch |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
