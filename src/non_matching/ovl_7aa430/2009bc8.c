@@ -2,9 +2,20 @@
  * OvlFunc_924_200d158 -- the same function in a different overlay, differing
  *                        only in the script symbol, so this park covers two.
  *
+ * OvlFunc_907_2008f3c -- a THIRD member, batch 99, same blocker at 7 of 46.
+ *
  * Source asm: goldensun/asm/overlays/rom_7aa430/ovl_1a3c_a_a_a.s
  *             goldensun/asm/overlays/rom_7ac2d8/ovl_35b8_a_a_c_c_a.s
+ *             goldensun/asm/overlays/rom_79b154/ovl_30_c_c.s
  * Best screen: 7 differing of 39, streams the same length.
+ *
+ * OvlFunc_907_2008f3c is the same routine with one extra masked byte at the
+ * sprite's +5 (`mask & s->f5 | 4`, the named-int form). It reaches EXACTLY the
+ * same 7 differing positions with exactly the same spelling, which is a useful
+ * confirmation: the residue is the two pointer chains and nothing to do with
+ * what the sprite branch does afterwards. Two further spellings were measured
+ * on it and both are worse -- naming the 1 and 2 as `unsigned char` (11), and
+ * storing +0x22 before +0x55 (10) -- matching what the other two members do.
  *
  * BLOCKER CLASS: register allocation, r2 against r3, on two pointer chains.
  *
