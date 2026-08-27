@@ -17,7 +17,7 @@ ONLY one allowed to change it. You must NOT:
   * create, modify or delete ANYTHING under `asm/`, `src/`, `overlays/`,
     the `Makefile`, or any `.ld` or `.sym` file
   * run any `git` command that writes (`add`, `commit`, `checkout`, `rm`, ...)
-  * write anywhere except your own `scratch/agent1/` directory
+  * write anywhere except your own `scratch/agentN/` directory
 
 Reading any file in the tree is fine and expected. `git log`/`git show` for
 reading history is fine.
@@ -36,13 +36,13 @@ full, then GREP IT for whatever shape you hit. It is the accumulated result of
 1. Read the assembly:
        python3 tools/showfunc.py <FunctionName>
 
-2. Write your candidate C to `scratch/agent1/<name>.c`. Declare every callee
+2. Write your candidate C to `scratch/agentN/<name>.c`. Declare every callee
    yourself with `extern`; do not include project headers unless you need a
    type that already exists (`include/` is readable).
 
 3. Screen it:
        docker run --rm -v "$PWD:/work" -w /work goldensun-build \
-           python3 tools/tryc.py scratch/agent1/<name>.c --ref <path/to/.s> --full
+           python3 tools/tryc.py scratch/agentN/<name>.c --ref <path/to/.s> --full
 
    `--quiet` for just the verdict, `--full` for the instruction-by-instruction
    diff. A screen costs 2-4 seconds -- iterate freely, that is the cheap part.
@@ -116,3 +116,59 @@ Two things from the last round worth having:
 * If `tryc.py` prints `built with: O1` (or any per-file group), CHECK IT. Two of
   five such warnings last round were wrong for the file, and the check is one
   screen with `--cflags "-O2"`.
+
+## New in round 3 — read these before you start
+
+These came out of round 2 and are all in `docs/elevation.md` now. They are the
+highest-yield things added since the last brief.
+
+1. **`.pool_aligned` inside a loop makes `tryc.py` lie.** Four round-2 functions
+   screened DIRTY at 25-48 differing lines and were byte-for-byte identical.
+   The ROM's `b .LN / pool / .LN:` collapses to one label where gcc emits two,
+   and everything after shifts one position. If your ref has a `.pool_aligned`
+   inside a loop body and your diff looks like a uniform one-line shift, run
+   `scratch/agent3/bytecheck.sh <your.c> <ref.s> <FuncName>` BEFORE changing a
+   single spelling. Equal `.text` size + equal byte sequence means you are done;
+   report it as byte-identical rather than as OK, and say you used bytecheck.
+
+2. **`-fno-rerun-cse-after-loop` costs matches in loops.** Five round-2
+   functions were OK on default flags and broken (23-47 differing) under it.
+   Screen both ways, always, but never assume the flag is neutral.
+
+3. **Count the `mov r0, #0` sites** in a boolean-returning function. One zero
+   site = `if (A && B && C) return 1; return 0;`. Two, with one hoisted above
+   the first `cmp`, = the first test is a separate early return:
+   `if (!A) return 0; if (B && C) return 1; return 0;`.
+
+4. **Three one-screen levers.** Swap the DECLARATIONS with the statements
+   untouched (13 → exact once). Copy the FIRST parameter into a local to swap
+   the two entry `mov`s. Use `while (1) { …; if (exit) break; i++; }` instead of
+   `for (i = 0; ; i++)` when the ROM strength-reduces a table walk and you do not.
+
+5. **Store inside each arm.** `if (c) {small} else {big}` with one store after
+   the join lets gcc speculate the cheap arm above the compare (45 of 46).
+   Put the store in both arms and let cross-jumping merge them (11 of 46).
+
+6. **Read a field twice** — guard on the field, body on a local — to get the
+   ROM's redundant-looking `mov`. 23 → 3 differing on one function.
+
+7. **`ldr rN, =0` is NOT a symbol tell.** gcc-2.96 really does pool a literal 0.
+   Do not go looking for a `_CONST_0`.
+
+8. **`push {r4` in your ref means the file is not built with `-fcall-used-r4`.**
+   0 of 2134 generated `.s` files have it. If every differing line is an r4/r5
+   rename and the instruction count is right, screen
+   `--cflags "-fcall-saved-r4"` and report that the file needs a per-file rule.
+
+9. **Resolve the ref path yourself.** Worklist paths go stale when a `.s` is
+   split. `python3 tools/showfunc.py <name>` gives the current path and also
+   catches "already elevated" (tryc refuses a generated `.s`). Step 0, every time.
+
+10. **You can screen against a `.sym` addition without touching the tree.**
+    Copy the sym file into your scratch dir, add your symbol, and bind-mount it
+    over the original in the same `docker run`:
+    `-v "$PWD/scratch/agentN/message_plus.sym:/work/message.sym:ro"`.
+    Report the needed line; do not edit the real file.
+
+Your worklist is `scratch/agentN/worklist.json` — 16 functions, band 34-62
+instructions, parks already excluded.
