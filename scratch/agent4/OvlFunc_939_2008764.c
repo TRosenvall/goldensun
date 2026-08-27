@@ -20,9 +20,7 @@ void OvlFunc_939_2008764(void)
         __MessageID(0x1b9f);
         __Func_8092c40(0x12, 0);
         if (__Func_8091c7c(0, 0) == 0) {
-            p = *(unsigned char **)iwram_3001ebc;
-            p += 0xec << 1;
-            s = (unsigned short *)p;
+            s = (unsigned short *)((0xec << 1) + *(unsigned char **)iwram_3001ebc);
             *s = *s + 1;
             __Func_8092c40(0x12, 0);
             if (__Func_8091c7c(0, 0) == 1) {

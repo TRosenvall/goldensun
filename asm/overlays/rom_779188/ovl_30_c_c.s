@@ -590,6 +590,7 @@ gOvl_0200862c:
 	.global gOvl_02008644
 gOvl_02008644:
 	.incbin "overlays/rom_779188/orig.bin", 0x644, (0x650-0x644)
+	.global .L650
 .L650:
 	.incbin "overlays/rom_779188/orig.bin", 0x650
 
