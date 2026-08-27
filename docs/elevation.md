@@ -3549,3 +3549,43 @@ The only construct that reaches the no-branch case is an inline-asm barrier
 That is the single most valuable open question in this document. What would
 settle it is a clean construct that makes gcc rematerialise a pool constant with
 no control-flow boundary available.
+
+## The symbol-address technique, generalised
+
+`§Technique: stopping a constant fold with symbol addresses` records the
+SUBTRACTION case (`0xcc6 - 0xc9b`). It is more general than that, and batch 111
+retired two parks with it:
+
+> **Wherever the ROM shows gcc FAILING to relate two constants it obviously
+> could, try making them symbols.** An `int` constant folds; a `SYMBOL_REF` does
+> not, and gcc cannot reach one symbol from another by an immediate.
+
+Three shapes it covers:
+
+* **A base reached later by `add`.** `src/non_matching/ovl_7e636c/2008fd0.c` was
+  parked with the note "a named `int base` does not change it — gcc
+  constant-folds `base + 8`". `base = (int)&_MSG_23cc;` cannot be folded, so
+  gcc holds the symbol in a callee-saved register and does `mov r0, r5 /
+  add r0, #8` — the ROM's sequence, push list included.
+* **Nearby constants chosen by a switch.** `src/non_matching/overlays/200906c.c`
+  was parked on gcc deriving three ids from one pool load; three symbols give
+  three loads.
+* **A small constant that the ROM POOLS.** Anything that fits `mov` but appears
+  as `ldr rN, =K` is a symbol — `_AREA_4b`, `_AREA_7e`.
+
+And a second, independent tell worth knowing: **a pool load of a SYMBOL is not
+hoisted, where a pool load of an int constant is.** That fires on values too
+large for `mov`, where the "small constant pooled" tell says nothing.
+
+## Each stack-argument SITE needs its own pair of locals
+
+`§The stack-arg-pair lever` says to name both values adjacent to the call. That
+is necessary and not sufficient when a function has several such calls: one pair
+of locals reused across sites lands in r2 where the ROM has r3, at every site.
+`OvlFunc_936_20098a4` is 4 differing of 58 with a reused pair and exact with one
+pair per site; `OvlFunc_911_200a910` has four sites and needs four pairs.
+
+That is the rebuilt-vs-carried rule reaching the stack-argument case. In the
+same function a value the ROM genuinely SHARES (`mov r5, #2` once, stored at
+both calls) still wants a single local — the two rules land on adjacent
+arguments of one call, and the ROM says which is which.

@@ -118,6 +118,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-108](reports/batch-108.md) | 7 | ready to port — grep every .s for a solved function's PROLOGUE; two families found that way; the three-operand add means a named pointer |
 | [batch-109](reports/batch-109.md) | 7 | ready to port — tools/prologue_families.py clusters the whole tree into families (34 of 3+, three of 17-18 members left); carried values want naming only if gcc would rebuild them |
 | [batch-110](reports/batch-110.md) | 5 | ready to port — the 18-member block-pushing family parked at 7 of 176; band breakdown of the remaining 2475; a constant hoist the CSE flag does NOT reach |
+| [batch-111](reports/batch-111.md) | 12 | ready to port — four parallel screening agents (coordinator does all tree mutation); the symbol-address technique retires two parks; constant-CSE blocker measured to the end (49% of remaining mass at risk) |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
