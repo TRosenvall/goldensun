@@ -4,10 +4,12 @@ extern int Func_80bf208(int id, int n, int k);
 int Func_80bf37c(int id)
 {
     unsigned char *p;
+    int t;
     int v;
 
     p = (unsigned char *)_GetUnit(id) + (0x9c << 1);
-    v = *p;
+    t = *p;
+    v = t;
     if (v == 0)
         return 0;
     v = v + 0xff;

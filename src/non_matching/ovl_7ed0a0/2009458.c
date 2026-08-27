@@ -43,6 +43,19 @@
  * `unsigned char`; all four are byte-identical to the form below except
  * `unsigned char v`, which costs two instructions.
  *
+ * TRIED AND WORSE, batch 97: the lever that closed OvlFunc_946_200985c, which
+ * has the IDENTICAL shape (`ldrb r2 / mov r3, #k / and-or-orr r3, r2`). There a
+ * named constant of the FIELD's type -- `unsigned char two = 2; *q = two | *q;`
+ * -- put the constant in the destination and closed the function, where a named
+ * `int` did not. Here the same spelling with `unsigned char m = 0xf7` gives 4 of
+ * 36 against this file's 3, and dropping the `t` intermediate as well gives 5.
+ *
+ * So the type-of-the-named-constant lever is real but does not reach this one.
+ * The difference from 985c is probably that there the store is in the same
+ * statement as the mask, while here the two arms compute into `v` and share a
+ * store after the join -- so the value has to cross the join and the allocator
+ * has a different problem.
+ *
  * NEXT: nothing at the expression level. This is the allocator choosing r2/r3
  * the other way round from Camelot's compiler on a three-value block.
  */

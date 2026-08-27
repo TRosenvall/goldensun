@@ -44,6 +44,31 @@
  * (32/7, no change); re-reading `*p` for the first test (33/25); `!` instead of
  * `== 0` throughout (32/11).
  *
+ * BATCH 97 -- THE POSITIVE-TEST LEVER DOES NOT APPLY HERE, and that is worth
+ * recording because batch 96 found it defeating what looked like this same
+ * blocker in src/non_matching/ovl_common/common0_18.c. There, turning
+ * `if (n == 0) return 0;` into `if (n != 0) { ... return n; } return 0;` moved
+ * the hoisted constant back into its block, 30 differing to 8.
+ *
+ * Three restructurings were measured against this function and all are WORSE
+ * than the 7 the form below gives:
+ *
+ *   return 1 as the fall-through, with the call test inside a nested if   18
+ *   the same with the loaded byte in its own extra local                 18
+ *   the loaded byte as `unsigned char` and the working copy `int`        20
+ *   return 0 as the fall-through with two locals                    31/26
+ *
+ * So the return-constant hoist has at least TWO distinct causes. The one
+ * common0_18 has is reachable by restructuring the exits; the one here is not.
+ * The distinguishing feature is probably that common0_18 has a single early
+ * return against a long body, while this function has FOUR exits, two returning
+ * each value, and gcc has a real choice about which constant to preload. Do not
+ * spend another round on exit shapes here.
+ *
+ * The unexplained instruction remains `ldrb r2, [r5] / mov r3, r2` -- a
+ * redundant register copy in the ROM, with r2 dead immediately after. Two-local
+ * spellings do not produce it.
+ *
  * Flags: -fno-gcse, -fno-rerun-cse-after-loop, -fno-cse-follow-jumps,
  * -fno-cse-skip-blocks and -fno-thread-jumps all leave it at 7; -O1 is 27.
  */
