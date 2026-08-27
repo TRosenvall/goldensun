@@ -1,5 +1,27 @@
 /* Anim_UnleashIntro -- NOT MATCHING
  *
+ * RE-SCREENED IN BATCH 105 UNDER THE BASIC-BLOCK LEVER: still 2 of 80.
+ *
+ * The lever retired the r0-against-a-shift class on three other functions this
+ * round, so it was the first thing tried here. Three placements were compiled
+ * -- the shifted palette address assigned before the switch, at the top of the
+ * function, and with the length levered alongside it -- and all three give the
+ * same two instructions.
+ *
+ * The reason is visible once the shapes are lined up. gcc ALREADY splits the
+ * pair here; what differs is only how much lands in the gap:
+ *
+ *     rom    mov r0, #0xa0 / ldr r3, =Func_8001af8 / mov r2, #0x80 / lsl r0, #19
+ *     ours   mov r0, #0xa0 / ldr r3, =Func_8001af8 / lsl r0, #19 / mov r2, #0x80
+ *
+ * The lever's job is to make gcc rematerialise a value at the call rather than
+ * hold it in a register, and it is already doing that. Which of the remaining
+ * arguments gcc schedules into the gap is a separate question the lever does
+ * not answer. Worth recording as the lever's OTHER boundary, alongside the
+ * straight-line-function one.
+ *
+ * The original park text follows.
+ *
  * Source asm: goldensun/asm/rom_c9000/rom_cc5d8_a_a.s
  * Best screen: 80 instructions against the ROM's 80, 2 differing.
  *
@@ -59,6 +81,8 @@ void Anim_UnleashIntro(s32 kind)
     s32 len;
     s32 arg;
 
+    pal = 0xa0 << 19;
+    len = 0x80;
     buf = galloc_iwram(0x27, 0x782c);
     galloc_iwram(0x28, 0x80 << 7);
     AnimStart(0);
@@ -84,10 +108,7 @@ void Anim_UnleashIntro(s32 kind)
         break;
     }
     data = GetFile(id);
-    pal = 0xa0;
     copy = Func_8001af8;
-    len = 0x80;
-    pal <<= 19;
     copy((volatile u16 *)pal, data, len);
     *(s32 *)(buf + 0x778c) = 0;
     *(s32 *)(buf + (0xef << 7)) = 3;

@@ -1,7 +1,38 @@
 /* Task_BlitAnim -- NOT MATCHING
  *
+ * UPDATED IN BATCH 105: 29 differing to 3, by the BASIC-BLOCK LEVER.
+ *
+ * The constant hoist named below IS reachable. Giving the two 0x4000 uses in
+ * case 1 their own named locals assigned in a dominating block -- and the
+ * single use in case 0 a third -- makes gcc rematerialise each one instead of
+ * building it once and keeping it in a callee-saved register. The prologue
+ * comes back to `push {r5, r6, lr}` and the whole r5/r6/r7 renumbering goes
+ * with it.
+ *
+ * The dosage matters and is not monotonic. Two locals (case 1 only) gives 5;
+ * adding one for case 0 gives 3; giving all seven use sites their own local
+ * gives 11, worse than two. That is the REG_N_REFS == 2 clause in the lever's
+ * write-up biting from the other side -- past some point CSE merges the
+ * locals back into one pseudo and the pseudo is referenced too often.
+ *
+ * WHAT IS LEFT IS THE POOL-LOADS-FIRST CLASS, three instructions on case 1's
+ * first call:
+ *
+ *     rom    mov r1, r5 / lsl r2, #7 / ldr r0, =0x6004000
+ *     ours   ldr r0, =0x6004000 / mov r1, r5 / lsl r2, #7
+ *
+ * gcc emits the literal-pool load before any `mov` in the same argument block;
+ * the ROM emits it in source order. That is the class documented at
+ * src/non_matching/overlays/pool_load_first.c, where the only construct known
+ * to reach it is register pinning with inline asm. Staging the destination
+ * through a named local in a dominating block -- the one thing the lever adds
+ * to that class -- was tried and leaves it at 3.
+ *
+ * The original park text follows.
+ *
  * Source asm: goldensun/asm/rom_c9000/rom_cd260_a.s
- * Best screen: 105 instructions against the ROM's 105, 29 differing.
+ * Best screen when this was written: 105 against the ROM's 105, 29 differing.
+ * Best screen NOW: 3 differing, per the batch-105 note above.
  *
  * BLOCKER CLASS: a constant hoisted across a call.
  *
@@ -63,7 +94,13 @@ void Task_BlitAnim(void)
     CopyFn copy;
     FillFn fill;
     u32 val;
+    u32 len1;
+    u32 len2;
+    u32 len0;
 
+    len1 = 0x4000;
+    len2 = 0x4000;
+    len0 = 0x4000;
     pp = &iwram_3001eec;
     b = pp[0];
     if (*(int *)(b + 0x7824) == 1) {
@@ -71,14 +108,14 @@ void Task_BlitAnim(void)
         switch (*(int *)(b + 0x7780)) {
         case 0:
             copy = Func_8001af8;
-            copy((void *)0x6004000, s, 0x4000);
+            copy((void *)0x6004000, s, len0);
             break;
         case 1:
             copy = Func_8001af8;
-            copy((void *)0x6004000, s, 0x4000);
+            copy((void *)0x6004000, s, len1);
             val = *(u32 *)(b + 0x7784);
             fill = Func_80008d8;
-            fill(s, 0x4000, val);
+            fill(s, len2, val);
             break;
         case 2:
             if (*(int *)(b + 0x7784) == 0x32)
