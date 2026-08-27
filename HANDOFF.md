@@ -107,6 +107,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-97](reports/batch-97.md) | 5 | ready to port — a named constant's TYPE can decide an r2/r3 pair; two pointer chains must both be live |
 | [batch-98](reports/batch-98.md) | 5 | ready to port — the WIDTH of the arithmetic decides add-vs-sub; the r2/r3 live-range theory refuted |
 | [batch-99](reports/batch-99.md) | 5 | ready to port — the prototype lever is really a RETURN TYPE lever; two files de-folklored |
+| [batch-100](reports/batch-100.md) | 5 | ready to port — bcc/bhi in a switch means an UNSIGNED value; the exit layout follows duplicated tails |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
