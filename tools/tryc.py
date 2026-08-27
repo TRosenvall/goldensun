@@ -459,7 +459,18 @@ def instructions(text, want=None):
         # Only the bare single-register form: `[r3, r2]` is a REGISTER offset
         # and a different instruction, so it must not be touched.
         s = re.sub(r"\[(r\d+|sp|pc)\]", r"[\1, #0x0]", s)
-        body.append(canon(s))
+        # A SIXTH SPELLING. `mov rd, rs` and `add rd, rs, #0` assemble to the
+        # SAME halfword when both registers are low: `mov r2, r3` and
+        # `add r2, r3, #0` are both 0x1c1a. The ROM's disassembly writes `mov`,
+        # gcc-2.96 writes the add form, and Func_80a19a0 screened 1-of-79 DIRTY
+        # while being byte-for-byte identical because of it.
+        #
+        # ONLY for r0-r7 on both operands. `mov r8, r3` is 0x4698 -- a genuinely
+        # different instruction with no `add` equivalent -- so folding a high
+        # register here would hide a real difference.
+        c = canon(s)
+        c = re.sub(r"^add\s+(r[0-7]),\s*(r[0-7]),\s*#0x?0+$", r"mov \1, \2", c)
+        body.append(c)
     if cur is not None:
         out.append((cur, body))
     out = [(n, renumber(resolve_pools(b))) for n, b in out]

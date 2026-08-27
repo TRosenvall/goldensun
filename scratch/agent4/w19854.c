@@ -24,13 +24,15 @@ void Func_8019854(struct Box *b)
     int y;
     int w;
     int h;
+    int m;
 
     r = b->f0;
+    m = r->f12;
     x = r->fc;
     y = r->fe;
     w = r->f8;
     h = r->fa;
-    if (r->f12 == 4) {
+    if (m == 4) {
         Func_80170f8(x - 1, y - 1, w + 2, h + 2);
         b->f14 += 0xffff;
         if (b->f14 == 0) {
