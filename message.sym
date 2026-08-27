@@ -72,6 +72,7 @@ _MSG_256c = 0x256c;
 _MSG_25b8 = 0x25b8;
 _MSG_25dc = 0x25dc;
 _MSG_2624 = 0x2624;
+_MSG_26e3 = 0x26e3;
 _MSG_2880 = 0x2880;
 _MSG_28be = 0x28be;
 _MSG_297f = 0x297f;
