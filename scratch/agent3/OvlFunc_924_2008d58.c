@@ -11,6 +11,7 @@ void OvlFunc_924_2008d58(void)
     unsigned int i;
     int c;
     int mix;
+    unsigned short *p;
 
     t = 0;
     if (_umodsi3_RAM(iwram_3001e40, 5) == 0) {
@@ -21,9 +22,10 @@ void OvlFunc_924_2008d58(void)
             c = t;
             if (i <= 2)
                 c -= _divsi3_RAM(c << 2, 10);
+            p = (unsigned short *)(0x5000000 + ((0x6f - i) << 1));
             mix = (L600c << 10) | (L6008 << 5);
             c |= mix;
-            *(unsigned short *)(0x5000000 + ((0x6f - i) << 1)) = c;
+            *p = c;
             i++;
         } while (i <= 5);
         *(unsigned short *)0x50000d2 = gScript_969__0200e004 | mix;

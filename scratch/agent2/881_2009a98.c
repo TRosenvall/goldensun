@@ -27,10 +27,17 @@ void OvlFunc_881_2009a98(void)
 {
     struct Actor *act;
     short *p;
+    int m1;
+    int m2;
+    int m3;
+    int z;
 
     act = __MapActor_GetActor(8);
     __CutsceneStart();
-    __Func_80933f8(-1, -1, -1, 0);
+    m1 = -1;
+    m2 = -1;
+    m3 = -1;
+    __Func_80933f8(m1, m2, m3, 0);
     __WaitFrames(1);
     __MapActor_SetPos(0, 0, 0);
     __MapActor_SetPos(8, 0x1f080000, 0xc8 << 16);
@@ -42,7 +49,8 @@ void OvlFunc_881_2009a98(void)
     __MapActor_SetSpeed(8, 0x9999, 0x4ccc);
     p = (short *)act;
     p += 0x32;
-    *p = 0;
+    z = 0;
+    *p = z;
     if (OvlFunc_881_200b41c() == 0xb) {
         __MapActor_SetBehavior(8, gScript_881__0200d1b8);
     } else {

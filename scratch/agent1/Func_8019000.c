@@ -36,19 +36,22 @@ void Func_8019000(struct Win *win, int entry, unsigned int col, unsigned int row
         pal = 0;
         break;
     }
-    if (mode == 1)
-        return;
-    if (mode >= 1) {
-        if (mode <= 4) {
-            idx = ((win->y + row) << 5) + (win->x + col);
-            if (idx >= (0xa0 << 2))
-                return;
-            *(unsigned short *)(map + idx * 2) = pal | entry;
+    switch (mode) {
+    case 1:
+        break;
+    case 2:
+    case 3:
+    case 4:
+        idx = ((win->y + row) << 5) + (win->x + col);
+        if (idx >= (0xa0 << 2))
             return;
-        }
+        *(unsigned short *)(map + (idx << 1)) = pal | entry;
+        break;
+    default:
+        idx = ((win->y + row) << 5) + (win->x + col);
+        if (idx >= (0xa0 << 2))
+            return;
+        *(unsigned short *)(map + (idx << 1)) = entry;
+        break;
     }
-    idx = ((win->y + row) << 5) + (win->x + col);
-    if (idx >= (0xa0 << 2))
-        return;
-    *(unsigned short *)(map + idx * 2) = entry;
 }
