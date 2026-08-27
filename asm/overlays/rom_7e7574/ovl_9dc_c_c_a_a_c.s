@@ -1,0 +1,212 @@
+	.include "macros.inc"
+
+@ Talk: line 0x2411, shown.
+@ Also settles back to a resting angle, plays an interaction effect.
+.thumb_func_start OvlFunc_959_200c704
+	push	{r5, lr}
+	mov	r0, #0x15
+	ldr	r1, =0x101
+	mov	r2, #0x1e
+	bl	__MapActor_Emote
+	mov	r1, #0xd0
+	lsl	r1, #8
+	mov	r2, #0
+	mov	r0, #0x15
+	bl	__Func_8092adc
+	mov	r0, #0x32
+	bl	__CutsceneWait
+	mov	r1, #0xb0
+	lsl	r1, #8
+	mov	r2, #0
+	mov	r0, #0x15
+	bl	__Func_8092adc
+	mov	r0, #0x32
+	bl	__CutsceneWait
+	mov	r1, #0xa0
+	mov	r2, #0
+	lsl	r1, #7
+	mov	r0, #0x15
+	bl	__Func_8092adc
+	mov	r0, #0x32
+	bl	__CutsceneWait
+	ldr	r5, =0x2411
+	mov	r0, r5
+	bl	__MessageID
+	mov	r0, #0x15
+	mov	r1, #0
+	bl	__ActorMessage
+	mov	r1, #4
+	mov	r0, #0x15
+	bl	__MapActor_SetAnim
+	mov	r0, #0x3c
+	bl	__CutsceneWait
+	mov	r1, #0xb0
+	lsl	r1, #8
+	mov	r2, #0
+	mov	r0, #0x15
+	bl	__Func_8092adc
+	add	r5, #1
+	mov	r0, #0x28
+	bl	__CutsceneWait
+	mov	r0, r5
+	bl	__MessageID
+	mov	r0, #0x15
+	mov	r1, #0
+	bl	__ActorMessage
+	pop	{r5}
+	pop	{r0}
+	bx	r0
+.func_end OvlFunc_959_200c704
+
+@ Cutscene: roughly 139 instructions of straight-line script --
+@ 0 turns, 1 animation change, 4 dialogue lines, 4 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x244f, 0x2455, 0x2457, 0x2566.
+@ Reads save bits 0x313, 0x941.
+@ Sets save bit 0x313.
+.thumb_func_start OvlFunc_959_200c794
+	push	{r5, lr}
+	bl	__CutsceneStart
+	ldr	r0, =0x941
+	bl	__GetFlag
+	cmp	r0, #0
+	beq	.L47b8
+	ldr	r0, =0x2566
+	bl	__MessageID
+	mov	r0, #0x12
+	mov	r1, #0
+	bl	__ActorMessage
+	bl	__CutsceneEnd
+	b	.L4902
+.L47b8:
+	ldr	r0, =0x313
+	bl	__GetFlag
+	cmp	r0, #0
+	beq	.L47d6
+	ldr	r0, =0x2457
+	bl	__MessageID
+	mov	r1, #0
+	mov	r0, #0x19
+	bl	__Func_8092c40
+	bl	__CutsceneEnd
+	b	.L4902
+.L47d6:
+	mov	r1, #0x81
+	mov	r0, #0x19
+	lsl	r1, #1
+	mov	r2, #0x1e
+	bl	__MapActor_Emote
+	mov	r2, #0
+	mov	r1, #0
+	mov	r0, #0x19
+	bl	__Func_809280c
+	ldr	r5, =0x244f
+	mov	r0, r5
+	bl	__MessageID
+	mov	r0, #0x19
+	mov	r1, #0
+	bl	__ActorMessage
+	mov	r2, #0
+	mov	r0, #0x19
+	mov	r1, #0x18
+	bl	__Func_809280c
+	mov	r1, #1
+	mov	r0, #0x18
+	bl	__Func_8093500
+	bl	__Func_8093530
+	mov	r0, #0x3c
+	bl	__CutsceneWait
+	mov	r1, #1
+	mov	r0, #0
+	bl	__Func_8093500
+	mov	r0, #0x14
+	bl	__CutsceneWait
+	mov	r2, #0x3c
+	ldr	r1, =0x105
+	mov	r0, #0x19
+	bl	__MapActor_Emote
+	add	r0, r5, #1
+	bl	__MessageID
+	mov	r0, #0x19
+	mov	r1, #0
+	bl	__ActorMessage
+	mov	r2, #0x3c
+	ldr	r1, =0x107
+	mov	r0, #0x19
+	bl	__MapActor_Emote
+	add	r0, r5, #2
+	bl	__MessageID
+	mov	r1, #0
+	mov	r0, #0x19
+	bl	__ActorMessage
+	mov	r0, #0x46
+	bl	__CutsceneWait
+	mov	r1, #0x80
+	mov	r0, #0x19
+	lsl	r1, #1
+	mov	r2, #0x3c
+	bl	__MapActor_Emote
+	mov	r1, #0
+	mov	r2, #0
+	mov	r0, #0x19
+	bl	__Func_809280c
+	add	r0, r5, #3
+	bl	__MessageID
+	mov	r1, #0
+	mov	r0, #0x19
+	bl	__Func_8092c40
+	mov	r0, #0
+	mov	r1, #0
+	bl	__Func_8091c7c
+	cmp	r0, #0
+	bne	.L489c
+	add	r0, r5, #4
+	bl	__MessageID
+	mov	r0, #0x19
+	mov	r1, #0
+	bl	__Func_8092c40
+	b	.L48aa
+.L489c:
+	add	r0, r5, #5
+	bl	__MessageID
+	mov	r0, #0x19
+	mov	r1, #0
+	bl	__Func_8092c40
+.L48aa:
+	mov	r0, #0x3c
+	bl	__CutsceneWait
+	mov	r2, #0x3c
+	ldr	r1, =0x105
+	mov	r0, #0x19
+	bl	__MapActor_Emote
+	ldr	r5, =0x2455
+	mov	r0, r5
+	bl	__MessageID
+	mov	r1, #0
+	mov	r0, #0x19
+	bl	__Func_8092c40
+	mov	r1, #1
+	mov	r0, #0x19
+	bl	__Func_80925cc
+	add	r0, r5, #1
+	bl	__MessageID
+	mov	r1, #0
+	mov	r0, #0x19
+	bl	__Func_8092c40
+	add	r5, #2
+	mov	r1, #3
+	mov	r0, #0x19
+	bl	__MapActor_DoAnim
+	mov	r0, r5
+	bl	__MessageID
+	mov	r1, #0
+	mov	r0, #0x19
+	bl	__Func_8092c40
+	ldr	r0, =0x313
+	bl	__SetFlag
+	bl	__CutsceneEnd
+.L4902:
+	pop	{r5}
+	pop	{r0}
+	bx	r0
+.func_end OvlFunc_959_200c794
