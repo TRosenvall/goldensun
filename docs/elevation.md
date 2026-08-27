@@ -3628,3 +3628,34 @@ Two mistakes in batch 112, both from generating file headers programmatically:
   compile time only because the fragment happened to be invalid C.
 
 **Operate on an explicit file list, and anchor text extraction to line starts.**
+
+## A Makefile target with a doubled slash is a different target
+
+`grep -rln 'pattern' asm/` prints paths as `asm//overlays/...` because the
+search path ends in a slash. POSIX collapses `//` when opening a file, so `.c`
+files written to such a path land correctly and every screen passes.
+
+**make does not collapse it.** `asm//overlays/X.o` is a different target from
+`asm/overlays/X.o`, so a per-file flag rule written that way is silently dead
+and the file keeps building from whatever pattern rule matches.
+
+The symptom in batch 113 was **every overlay comparing clean while the ROM SHA1
+failed**, which sends you looking at the main ROM where nothing changed. The way
+back was `git stash push -u` to prove HEAD was green, then re-reading the six
+added lines.
+
+**Normalise paths before putting them in a makefile.** When a rule seems not to
+apply, compare the target string character by character before suspecting the
+recipe.
+
+## An explicit rule beats a pattern rule -- use that instead of narrowing
+
+Several stems in this tree have `%` wildcard rules applying `O1_CFLAGS`, and
+some of them are wrong for particular files: `tools/tryc.py` prints the flag
+group it inherited (`built with: O1`), and in batch 113 **two of five such
+warnings were wrong for the file in question** -- 20 and 43 differing at `-O1`,
+exact at `-O2`.
+
+Do not narrow the wildcard; other files depend on it. Add an **explicit** rule
+for the one target, which GNU make prefers over any pattern rule. The cost of
+checking a warning is one screen, so check every one.

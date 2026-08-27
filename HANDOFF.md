@@ -120,6 +120,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-110](reports/batch-110.md) | 5 | ready to port — the 18-member block-pushing family parked at 7 of 176; band breakdown of the remaining 2475; a constant hoist the CSE flag does NOT reach |
 | [batch-111](reports/batch-111.md) | 12 | ready to port — four parallel screening agents (coordinator does all tree mutation); the symbol-address technique retires two parks; constant-CSE blocker measured to the end (49% of remaining mass at risk) |
 | [batch-112](reports/batch-112.md) | 13 | ready to port — a park that was never wrong (a dirty screen opening on a LABEL is a false negative); the symbol tell fires on large values too; six TUs wanted CSE_CFLAGS |
+| [batch-113](reports/batch-113.md) | 10 | ready to port — a double slash made six Makefile rules silently dead (clean overlays, failing ROM sha1); two mis-scoped -O1 wildcards; label sweep of all 228 parks is a clean negative |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
