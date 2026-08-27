@@ -112,6 +112,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-102](reports/batch-102.md) | 5 | ready to port — the jump-table class worked systematically; READ THE TABLE for the case order |
 | [batch-103](reports/batch-103.md) | 5 | ready to port — an out-of-line arm needs a goto; symbol-vs-literal split inside one switch |
 | [batch-104](reports/batch-104.md) | 5 | ready to port — the 1000+ band scouted and its blocker named; a named constant that crosses a call; HImode constants have no immediate |
+| [batch-105](reports/batch-105.md) | 5 | ready to port — the basic-block lever retires the r0-against-a-shift class and reaches pool-loads-first; five parks unparked, no new function attempted |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The

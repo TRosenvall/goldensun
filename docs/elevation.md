@@ -1412,6 +1412,29 @@ and that pseudo is then referenced three times -- so `REG_N_REFS == 2` fails.
 The cases where it works -- `OvlFunc_892_2008054`, `OvlFunc_959_2008ce0` -- have
 ALL the repeated uses inside the conditional block.
 
+**THE DOSAGE IS NOT MONOTONIC — lever the sites that are WRONG, not every site
+that could take one.** `Task_BlitAnim` has seven uses of the same `0x4000`:
+literals everywhere gives 29 differing, two locals gives 5, three gives 3, and
+all seven gives 11. That is the `REG_N_REFS == 2` clause biting from the other
+side -- past some point CSE merges the locals back into one pseudo and the
+pseudo is referenced too often to be rematerialised.
+
+**IT ONLY DECIDES *WHETHER* A VALUE IS REMATERIALISED, NOT *WHAT* FILLS THE GAP.**
+`Anim_UnleashIntro` sits at 2 of 80 with gcc already splitting the pair:
+
+    rom    mov r0, #0xa0 / ldr r3, =Func_8001af8 / mov r2, #0x80 / lsl r0, #19
+    ours   mov r0, #0xa0 / ldr r3, =Func_8001af8 / lsl r0, #19 / mov r2, #0x80
+
+Three placements give the same two instructions. Which of the remaining
+arguments gcc schedules into the gap is a separate question. Related: if the
+ROM's gap swallows EVERY other argument -- `OvlFunc_929_2008598` defers its
+`lsl` past all three -- that is the scheduler, and four placements leave it
+unchanged at 4 of 55.
+
+**AND IT DOES NOT TOUCH REGISTER CHOICE.** `OvlFunc_956_2008b30` is parked on
+which register holds a pooled mask. It has a real boundary; the addend, the
+mask, and both together were each assigned above it, and all three are 3 of 47.
+
 **AND IT DOES NOT REACH INSIDE A LOOP BODY.** The assignment has to be in a
 block that dominates the call, and in a loop every such block is also reachable
 across the BACK EDGE -- so the value is live around the loop and gcc keeps it in
@@ -1451,6 +1474,21 @@ values as locals adjacent to the call.
 the four members. The only construct known to reach this shape is register
 pinning with inline asm, which is what `OvlFunc_883_2008fbc` does in
 `fakematch.txt`.
+
+**CORRECTED IN BATCH 105.** The basic-block lever DOES reach this shape, whenever
+the function has a boundary to use. `OvlFunc_943_2008a48` and
+`OvlFunc_943_2008af0` had been parked on
+
+    rom    mov r2, #0 / mov r0, #0x15 / ldr r1, =0x103 / bl __MapActor_Emote
+    ours   mov r2, #0 / ldr r1, =0x103 / mov r0, #0x15 / bl __MapActor_Emote
+
+since batch 96, and both close with `0x103` named in a block that dominates the
+call. The park had tried naming it INSIDE the else-block, which is the case the
+lever's own table says keeps the value in a register.
+
+The inline-asm sentence above still stands for the STRAIGHT-LINE members of the
+class, which is what its four catalogued examples happen to be. Check for a
+boundary before writing one off.
 
 ## The stack-arg-pair lever: name BOTH, adjacent to the call
 
