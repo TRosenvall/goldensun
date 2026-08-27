@@ -97,3 +97,22 @@ function.
 
 Do not claim a function matched unless `tryc.py` printed `OK` for it. Say
 plainly which ones did not.
+
+## Added for this round
+
+Your worklist has been PRE-FILTERED with `tools/blocked_cse.py` to exclude the
+one shape nothing reaches: a constant needing a pool load or two instructions to
+build, used twice with one use dominating the other and no label between them.
+See "Pool-constant CSE: the complete rule" in docs/elevation.md. If you hit that
+shape anyway, say so and move on rather than sweeping flags at it -- six
+CSE-related flags have already been measured against it.
+
+Two things from the last round worth having:
+
+* A DIRTY screen whose FIRST differing line is a label definition may be a false
+  negative -- a label emits no bytes, and one extra label shifts every later
+  position. Batch 112 unparked a function that had been sitting at "25 differing
+  of 50" and was byte-perfect.
+* If `tryc.py` prints `built with: O1` (or any per-file group), CHECK IT. Two of
+  five such warnings last round were wrong for the file, and the check is one
+  screen with `--cflags "-O2"`.

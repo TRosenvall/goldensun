@@ -1,100 +1,86 @@
 [
  {
-  "func": "OvlFunc_943_20093d4",
+  "func": "OvlFunc_907_2008cb4",
   "insns": 40,
-  "labels": 0,
-  "calls": 6,
-  "ref": "asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a.s"
+  "labels": 1,
+  "ref": "asm/overlays/rom_79b154/ovl_30_c_a_c_c_a.s"
  },
  {
-  "func": "OvlFunc_958_2009158",
+  "func": "OvlFunc_907_2008ed8",
   "insns": 41,
-  "labels": 1,
-  "calls": 10,
-  "ref": "asm/overlays/rom_7e636c/ovl_cc0_c_a_c_c_c_c.s"
- },
- {
-  "func": "OvlFunc_882_2009600",
-  "insns": 42,
-  "labels": 1,
-  "calls": 13,
-  "ref": "asm/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_c_c_c_c.s"
- },
- {
-  "func": "OvlFunc_958_2008fd0",
-  "insns": 42,
-  "labels": 3,
-  "calls": 8,
-  "ref": "asm/overlays/rom_7e636c/ovl_cc0_c_a_c_a_c_c.s"
- },
- {
-  "func": "OvlFunc_945_200dca4",
-  "insns": 43,
-  "labels": 0,
-  "calls": 11,
-  "ref": "asm/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_c_c.s"
- },
- {
-  "func": "OvlFunc_879_20081c0",
-  "insns": 43,
-  "labels": 2,
-  "calls": 6,
-  "ref": "asm/overlays/rom_779188/ovl_30_c_c.s"
- },
- {
-  "func": "OvlFunc_971_200906c",
-  "insns": 45,
   "labels": 4,
-  "calls": 7,
-  "ref": "asm/overlays/rom_7fb4a8/ovl_30_c_a_a_a_c.s"
+  "ref": "asm/overlays/rom_79b154/ovl_30_c_c.s"
  },
  {
-  "func": "OvlFunc_945_2009978",
-  "insns": 46,
-  "labels": 3,
-  "calls": 13,
-  "ref": "asm/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_a_a_a.s"
+  "func": "OvlFunc_969_20084bc",
+  "insns": 42,
+  "labels": 2,
+  "ref": "asm/overlays/rom_7f6e64/ovl_314_c_a_c_a_c_a.s"
+ },
+ {
+  "func": "OvlFunc_925_20088cc",
+  "insns": 42,
+  "labels": 2,
+  "ref": "asm/overlays/rom_7b0400/ovl_314_c_c_c_a_c_a.s"
+ },
+ {
+  "func": "OvlFunc_932_200b9c8",
+  "insns": 43,
+  "labels": 4,
+  "ref": "asm/overlays/rom_7b9cb4/ovl_30_c_c_a.s"
+ },
+ {
+  "func": "OvlFunc_968_2008e88",
+  "insns": 44,
+  "labels": 8,
+  "ref": "asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_a_a.s"
+ },
+ {
+  "func": "OvlFunc_907_2008f3c",
+  "insns": 45,
+  "labels": 1,
+  "ref": "asm/overlays/rom_79b154/ovl_30_c_c.s"
  },
  {
   "func": "OvlFunc_956_2008b30",
   "insns": 46,
   "labels": 1,
-  "calls": 6,
   "ref": "asm/overlays/rom_7e0928/ovl_30_c_c_a_c.s"
  },
  {
-  "func": "OvlFunc_926_200a6d8",
-  "insns": 47,
-  "labels": 0,
-  "calls": 15,
-  "ref": "asm/overlays/rom_7b2078/ovl_314_c_c_c_c_c_a.s"
- },
- {
-  "func": "OvlFunc_961_2008120",
-  "insns": 48,
-  "labels": 0,
-  "calls": 4,
-  "ref": "asm/overlays/rom_7ebdfc/ovl_30_c_c_c_a.s"
- },
- {
-  "func": "OvlFunc_961_2008194",
-  "insns": 48,
-  "labels": 0,
-  "calls": 4,
-  "ref": "asm/overlays/rom_7ebdfc/ovl_30_c_c_c_a.s"
- },
- {
-  "func": "OvlFunc_943_2009920",
+  "func": "OvlFunc_909_2008568",
   "insns": 49,
   "labels": 1,
-  "calls": 14,
-  "ref": "asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a.s"
+  "ref": "asm/overlays/rom_79c738/ovl_30_c_c_c_c_c_c_c.s"
  },
  {
-  "func": "OvlFunc_926_200c140",
-  "insns": 50,
+  "func": "OvlFunc_946_200a450",
+  "insns": 51,
+  "labels": 4,
+  "ref": "asm/overlays/rom_7ced6c/ovl_30_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_a.s"
+ },
+ {
+  "func": "OvlFunc_942_20087dc",
+  "insns": 51,
   "labels": 2,
-  "calls": 5,
-  "ref": "asm/overlays/rom_7b2078/ovl_314_c_c_c_c_c_c_c_a.s"
+  "ref": "asm/overlays/rom_7c6bac/ovl_30_c_c_a_c_c_c_c_a.s"
+ },
+ {
+  "func": "OvlFunc_946_2009de0",
+  "insns": 52,
+  "labels": 3,
+  "ref": "asm/overlays/rom_7ced6c/ovl_30_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_a.s"
+ },
+ {
+  "func": "OvlFunc_956_20085e0",
+  "insns": 52,
+  "labels": 2,
+  "ref": "asm/overlays/rom_7e0928/ovl_30_c_a_c_a.s"
+ },
+ {
+  "func": "OvlFunc_946_200a004",
+  "insns": 53,
+  "labels": 5,
+  "ref": "asm/overlays/rom_7ced6c/ovl_30_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_a.s"
  }
 ]
