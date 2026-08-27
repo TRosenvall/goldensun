@@ -7,23 +7,30 @@
  * if the halfword at index `idx` in the table at +0x178 is non-zero -- hands
  * that value to Func_80a4924 along with the pointer the context holds.
  *
- * THE CALLEE HAS NO PROTOTYPE, AND THAT IS THE MATCH. This was the last three
- * instructions, and they are a pure rotation of the argument-setup moves:
+ * THE CALLEE'S RETURN TYPE IS `int`, NOT `void`, and that is the match. This
+ * was the last three instructions, and they are a pure rotation of the
+ * argument-setup moves:
  *
  *      rom    mov r1, #0 / mov r2, #0 / mov r0, r7
  *      ours   mov r0, r7 / mov r1, #0 / mov r2, #0
  *
- * With `extern void Func_80a10d0(void *, int, int, int, int, int);` in scope,
- * gcc emits the hard-register moves in ascending order and puts r0 first. With
- * NO declaration at all -- the arguments going through the default promotions
- * instead -- it emits r0 last, which is the ROM. Nothing else moved it: the
- * declaration-order lever, `void *` parameter types, assigning inside the call,
- * and -fno-schedule-insns / -fno-schedule-insns2 / -fno-peephole /
- * -fno-defer-pop / -fno-caller-saves all left the rotation exactly as it was.
+ * Declared `extern void Func_80a10d0(...)`, gcc emits the hard-register moves
+ * in ascending order and puts r0 first. Declared `extern int` -- or not
+ * declared at all, which gives the implicit `int` return -- it emits r0 last,
+ * which is the ROM.
  *
- * So a three-move rotation in argument setup is a TELL: the original
- * translation unit had no prototype for that callee in scope. Worth trying
- * before treating such a rotation as scheduling noise.
+ * BATCH 99 CORRECTED THIS FILE. It originally said the lever was the absence of
+ * a PROTOTYPE, because deleting the whole declaration is what was tried first
+ * and it worked. That changed two things at once. Isolating them shows the
+ * parameter list is irrelevant and the RETURN TYPE decides it: `int f(int,int)`,
+ * `int f()` and no declaration all match; `void f(int,int)` and `void f()` do
+ * not. The full prototype below is therefore the honest declaration, and the
+ * function still matches with it.
+ *
+ * Nothing else touched the rotation: the declaration-order lever, `void *`
+ * parameter types, assigning inside the call expression, and
+ * -fno-schedule-insns / -fno-schedule-insns2 / -fno-peephole / -fno-defer-pop /
+ * -fno-caller-saves all left it exactly as it was.
  *
  * TWO OTHER READINGS that were needed to get that far:
  *
@@ -39,6 +46,7 @@
  *   argument register. Repeating the subscript in the test and in the call and
  *   letting CSE share it is what puts the value in r3 and copies it out.
  */
+extern int Func_80a10d0(void *p, int a, int b, int c, int d, int e);
 extern char *iwram_3001f2c;
 extern void Func_80a22f4(void);
 extern void Func_80a4924(void *p, int v);

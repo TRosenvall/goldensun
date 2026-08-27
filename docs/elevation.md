@@ -2730,57 +2730,54 @@ Five functions matched on this in batch 91. Grep `asm/` for `0xffffc000` to
 find the rest: twenty-eight files hold it, and ten of the functions that do are
 sixty instructions or fewer.
 
-## A rotation in the argument moves: the callee had no prototype
+## A rotation in the argument moves: the callee's RETURN TYPE
 
 When everything else in a function matches and what is left is the ORDER of the
-hard-register argument moves in front of one call, try deleting that callee's
-`extern` declaration.
+hard-register argument moves in front of one call, change that callee's declared
+return type between `void` and `int`.
 
 ```
 	rom	mov r1, #0 / mov r2, #0 / mov r0, r7
 	ours	mov r0, r7 / mov r1, #0 / mov r2, #0
 ```
 
-With a prototype in scope gcc-2.96 emits the moves in ascending register order
-and puts r0 first. With **no declaration at all** -- the arguments going through
-the default promotions instead -- it emits r0 last. That was the entire
-remaining difference in `Func_80a47b4`
-(src/rom_a1000/rom_a47b4_a_b.c), and nothing else touched it: the
-declaration-order lever, `void *` parameter types, assigning inside the call
-expression, and `-fno-schedule-insns`, `-fno-schedule-insns2`, `-fno-peephole`,
-`-fno-defer-pop` and `-fno-caller-saves` all left the rotation exactly as it
-was.
+Declared `extern void f(...)`, gcc-2.96 emits the moves in ascending register
+order and puts r0 first. Declared `extern int f(...)`, it emits r0 last.
 
-So a three-move rotation is not scheduling noise; it is a statement about the
-original translation unit. This also explains why several already-matched files
-in the tree carry a comment saying one callee is "intentionally implicit" --
-that was arrived at by trial there, and this is the rule behind it.
+**Batches 92-94 got this wrong and batch 99 corrected it.** The lever was
+originally recorded as "delete the callee's prototype", because deleting the
+whole declaration is what was tried first and it worked. That changes two things
+at once. Isolating them:
 
-**The lever works in both directions, but it is NOT a rule you can read off the
-ROM and apply blind.** Batch 93 stated it as a table -- r0 later in the ROM means
-delete the declaration, r0 earlier means add one -- and batch 94 found a case
-that breaks the table. Try both and measure; that costs two compiles.
+| declaration | result |
+|---|---|
+| `void f(int, int)` | r0 first |
+| `void f()` | r0 first |
+| `int f(int, int)` | r0 last |
+| `int f()` | r0 last |
+| no declaration at all | r0 last (implicit `int`) |
 
-What is solid, from four functions:
+The parameter list is irrelevant. Deleting the declaration worked only because
+it also made the return type implicitly `int`. Two files that carried a
+deliberately-omitted declaration -- `src/rom_a1000/rom_a47b4_a_b.c` and
+`src/overlays/rom_7ed0a0/ovl_30_c_c_c_c_c_a.c` -- now have full prototypes with
+`int` returns and still match.
 
-* Adding or removing a callee's declaration DOES change the order gcc emits the
-  argument-setup moves in, and nothing else reaches that order -- not
-  declaration order, not parameter types, not assigning inside the call, not
-  `-fno-schedule-insns`, `-fno-schedule-insns2`, `-fno-peephole`,
-  `-fno-defer-pop` or `-fno-caller-saves`.
-* `OvlFunc_964_200a52c` wanted r0 later; deleting the declaration closed it
-  exactly.
-* `OvlFunc_966_2008078` wanted r0 earlier, had no declaration, and adding one
-  took it from three differing positions to two.
-* `OvlFunc_961_2008120` also wants r0 EARLIER -- and *deleting* its declaration
-  is what improved it, three to two, which is the opposite of what the table
-  predicts. So the direction is not determined by where r0 sits.
+This also explains why the direction looked unpredictable in batch 94: adding a
+prototype to a callee that had none moves r0 EARLIER only if the prototype you
+add says `void`. `OvlFunc_961_2008120` improved on deleting a `void` declaration
+and would have improved just as much on changing it to `int`.
 
-Two limits, both measured. It is the r0 move that shifts; the other argument
-registers stay in ascending order either way. And it only bites when the r0
-argument is a VALUE IN A REGISTER -- where r0 is a small constant the rotation
-has some other cause and the declaration changes nothing at all (measured on
-`OvlFunc_930_2008870`, whose r0 argument is `#0xe`).
+**The batch-93 caveat is withdrawn.** It said the lever only bites when the r0
+argument is a value in a register. `OvlFunc_936_20082e8`
+(src/overlays/rom_7c097c/ovl_30_c_c_a_c_a.c) has `mov r0, #8` -- a small
+constant -- and responds exactly.
+
+**What it does NOT cover:** a rotation between a pool load and an immediate.
+`OvlFunc_943_2008a48` (src/non_matching/ovl_7c7b9c/2008a48.c) is two
+instructions out with `ldr r1, =0x103` and `mov r0, #0x15` transposed, and
+neither the return type nor deleting the declaration moves it. gcc issues pool
+loads as early as it can; that is a different mechanism.
 
 ## A value that is provably constant inside its branch is NOT evidence
 

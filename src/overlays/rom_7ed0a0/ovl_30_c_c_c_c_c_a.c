@@ -34,12 +34,15 @@
  *   as two locals is what separates them, and it is the whole difference -- 5
  *   differing positions of 48 becomes an exact match.
  *
- *   ONE CALLEE HAS NO PROTOTYPE. OvlFunc_964_200a52c came down to two
+ *   ONE CALLEE RETURNS `int`, NOT `void`. OvlFunc_964_200a52c came down to two
  *   instructions, a swap of `mov r1, r5` and `mov r0, #0` in the second call to
- *   OvlFunc_964_2008244. Deleting that function's `extern` declaration puts r0
- *   after r1 and closes it. This is batch 92's rule applied deliberately for
- *   the first time rather than stumbled on, and it is the second function it
- *   has closed.
+ *   OvlFunc_964_2008244. Declaring that callee with an `int` return puts r0
+ *   after r1 and closes it.
+ *
+ *   This file originally deleted the declaration outright, which is how batch
+ *   93 phrased the lever. Batch 99 isolated it: the parameter list does not
+ *   matter, the RETURN TYPE does. The prototype below is restored with an `int`
+ *   return, which is both honest and what matches.
  *
  * ONE THING THAT LOOKED LIKE A LEVER AND WAS NOT. In OvlFunc_964_200a52c the
  * ROM keeps 1 and 0xff in r8 and r6 across both calls to OvlFunc_964_2008244,
@@ -61,6 +64,7 @@ struct A {
 extern struct A *__MapActor_GetActor(int slot);
 extern void __Func_8010704(int a, int b, int c, int d, int e, int f);
 extern void OvlFunc_964_2008f10(int a, int b);
+extern int OvlFunc_964_2008244(int a, int b, int c, int d, int e, int f);
 
 void OvlFunc_964_200a3a0(void)
 {
