@@ -45,7 +45,8 @@ void OvlFunc_881_200b4a0(void)
             n->f1c = 0x80 << 8;
             s = n->part;
             if ((__Random() * 2) >> 16) {
-                d = __Random() * 3;
+                d = __Random();
+                d *= 3;
                 d <<= 4;
                 d = (unsigned int)d >> 16;
                 d <<= 16;
