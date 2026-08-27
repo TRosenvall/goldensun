@@ -230,6 +230,19 @@ GCSE_CFLAGS := $(GCC296_CFLAGS) -fno-gcse
 # it; the named-shifted-local lever does not reach it, and -O1 matches too but
 # changes more than is needed.  Measured on this one function only.
 SCHED2_CFLAGS := $(GCC296_CFLAGS) -fno-schedule-insns2
+
+# -ffixed-r7 : OvlFunc_945_200d6dc allocates three callee-saved registers and
+# the ROM's third one is r8 -- which costs `mov r6,r8 / push {r6}` at entry and
+# the matching pop -- where gcc reaches for the cheaper r7.  Reserving r7 makes
+# gcc spend r8 and the length matches exactly (55 -> 59 lines, the ROM's count).
+# -fno-omit-frame-pointer also reserves r7 but adds frame setup (61 lines), so
+# it is the register reservation that is wanted and not the frame.
+FIXEDR7_CFLAGS := $(GCC296_CFLAGS) -ffixed-r7
+asm/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_c_a_c.o: src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_c_a_c.c
+	$(GCC296_CC) $(FIXEDR7_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 asm/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_a_a_a_c_b.o: src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_a_a_a_c_b.c
 	$(GCC296_CC) $(SCHED2_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)

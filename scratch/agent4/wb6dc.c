@@ -25,7 +25,7 @@ extern void __SetFlag(int id);
 extern void __SetFlagByte(int id, int v);
 extern void __CutsceneStart(void);
 extern void __CutsceneEnd(void);
-extern void __MapActor_Surprise(int slot, int a);
+extern int __MapActor_Surprise(int slot, int a);
 extern void __MapActor_SetAnim(int slot, int a);
 extern void __MapActor_TravelTo(int slot, int x, int y);
 extern void __MapActor_WaitMovement(int slot);
@@ -40,6 +40,7 @@ void OvlFunc_881_200b6dc(int slot)
     struct Actor *a;
     struct Ent *e;
     int leader;
+    int arg;
 
     gs = gState;
     leader = *(int *)(gs + 0x1f4);
@@ -54,7 +55,9 @@ void OvlFunc_881_200b6dc(int slot)
         }
         __MapActor_WaitMovement(leader);
         __PlaySound(0xf4);
-        __StartTask(OvlFunc_881_200b678, 0xc8 << 4);
+        arg = 0xc8;
+        arg <<= 4;
+        __StartTask(OvlFunc_881_200b678, arg);
         a->f55 = 0;
         __Actor_TravelTo(a, a->f8, a->fc + (0x80 << 14), a->f10);
         __MapActor_WaitMovement(leader);
