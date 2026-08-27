@@ -23,7 +23,7 @@ void OvlFunc_945_2009190(int slot)
     struct A *a;
     struct A *b;
     struct A *p;
-    int ok, mask, d, w;
+    int ok, mask, d, w, vy;
 
     a = __MapActor_GetActor(0);
     ok = 1;
@@ -41,10 +41,11 @@ void OvlFunc_945_2009190(int slot)
         if (ok != 0)
             d = ((a->f6 + (0x80 << 8)) & mask) >> 12;
     }
+    vy = 0xcccc;
     p = __MapActor_GetActor(0);
     if (p != 0)
         __MapActor_SetPos(slot, p->f8, p->f10);
-    __MapActor_SetSpeed(slot, 0x19999, 0xcccc);
+    __MapActor_SetSpeed(slot, 0x19999, vy);
     __MapActor_SetAnim(slot, 2);
     w = *(int *)((unsigned char *)L6668 + (d << 2));
     __Func_809228c(slot, w >> 16, (short)w);

@@ -12,6 +12,7 @@ void Func_80a2268(struct Win *win, int x, int y, int w, int h, int bank)
     unsigned short *p;
     int off;
     int n;
+    int mask;
 
     base = iwram_3001e8c;
     x = x + win->f0c + 1;
@@ -31,11 +32,12 @@ void Func_80a2268(struct Win *win, int x, int y, int w, int h, int bank)
         h = 0x14 - y;
     if (w > 0 && h > 0) {
         off = (y << 6) + (x << 1);
+        mask = 0xffffefff;
         do {
             p = (unsigned short *)(off + base);
             n = w;
             while (n != 0) {
-                *p = (*p & 0xffffefff) | bank;
+                *p = (*p & mask) | bank;
                 n--;
                 p++;
             }
