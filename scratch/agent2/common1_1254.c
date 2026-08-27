@@ -63,7 +63,7 @@ void OvlFunc_common1_1254(int slot)
         __CutsceneWait(0x1e);
     }
     zero = 0;
-    e->f7 = zero;
+    *((unsigned char *)e + 7) = zero;
     e->f6 = 0xf;
     act->f8 = L49;
     act->f10 = L20;
