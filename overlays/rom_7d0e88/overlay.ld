@@ -65,7 +65,8 @@ SECTIONS {
 		asm/overlays/rom_7d0e88/ovl_2580_a_c_a.o(.text)
 		asm/overlays/rom_7d0e88/ovl_2580_a_c_b.o(.text)
 		asm/overlays/rom_7d0e88/ovl_2580_b.o(.text)
-		asm/overlays/rom_7d0e88/ovl_2580_c.o(.text)
+		asm/overlays/rom_7d0e88/ovl_2580_c_b.o(.text)
+		asm/overlays/rom_7d0e88/ovl_2580_c_c.o(.text)
 		src/overlays/rom_7d0e88/imports.o(.text)
 		src/lib/call_via.o(.text)
 	} > overlay
@@ -79,7 +80,8 @@ SECTIONS {
 		asm/overlays/rom_7d0e88/ovl_1528_c_c_c_c_c_b.o(.data)
 		asm/overlays/rom_7d0e88/ovl_1528_c_c_c_c_c_c.o(.data)
 		asm/overlays/rom_7d0e88/ovl_1440_c_c_b.o(.data)
-		asm/overlays/rom_7d0e88/ovl_2580_c.o(.data)
+		asm/overlays/rom_7d0e88/ovl_2580_c_b.o(.data)
+		asm/overlays/rom_7d0e88/ovl_2580_c_c.o(.data)
 	} > overlay
 
 	.bss : {

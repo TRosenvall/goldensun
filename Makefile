@@ -239,6 +239,16 @@ SCHED2_CFLAGS := $(GCC296_CFLAGS) -fno-schedule-insns2
 # it is the register reservation that is wanted and not the frame.
 FIXEDR7_CFLAGS := $(GCC296_CFLAGS) -ffixed-r7
 
+# OvlFunc_962_2008a78: gcc deletes three reloads of a pointer field across
+# byte/bitfield stores into the pointed-to struct, coming out three instructions
+# short.  volatile on the field gets the reloads back but leaves a scheduling
+# residue; -fno-strict-aliasing is exact.
+asm/overlays/rom_7ec19c/ovl_30_c_c_c_b.o: src/overlays/rom_7ec19c/ovl_30_c_c_c_b.c
+	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+
 # OvlFunc_881_200b6dc: gcc hoists 0xbc << 2 (shared by __GetFlag and __SetFlag)
 # into a callee-saved register at -O2; 15 instructions in disagreeing regions
 # without the flag, exact with it.
