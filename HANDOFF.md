@@ -109,6 +109,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-99](reports/batch-99.md) | 5 | ready to port — the prototype lever is really a RETURN TYPE lever; two files de-folklored |
 | [batch-100](reports/batch-100.md) | 5 | ready to port — bcc/bhi in a switch means an UNSIGNED value; the exit layout follows duplicated tails |
 | [batch-101](reports/batch-101.md) | 5 | ready to port — jump tables reachable (106 remain); split_s.py was blind to .incrom |
+| [batch-102](reports/batch-102.md) | 5 | ready to port — the jump-table class worked systematically; READ THE TABLE for the case order |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
