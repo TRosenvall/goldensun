@@ -3457,3 +3457,47 @@ screen had been run. The check that catches it:
 
 before and after. If the count did not drop by the number of functions claimed,
 something was screened and not wired.
+
+## The CSE flag and the constant hoist are NOT the same thing
+
+Batch 106's rule was "try `-fno-rerun-cse-after-loop` first and keep the
+literals". Batch 110 found the case it does not reach, and the distinction is
+worth keeping straight:
+
+| the ROM's shape | what reaches it |
+|---|---|
+| a value read then written with CALLS BETWEEN, held in a callee-saved register | `-fno-rerun-cse-after-loop` |
+| the SAME pool constant needed by two calls in ONE straight-line block, built once and copied | the basic-block lever ONLY |
+
+`OvlFunc_890_2008150` is the first row and the flag matches it with plain
+literals. `src/non_matching/rom_7d30e0/2009838.c` is the second and SIX
+CSE-related flags leave it untouched — the hoist happens at expand, and no flag
+in this tree's vocabulary disables it.
+
+The lever reaches the second row, and the lever needs a branch.
+
+## Nine functions are parked on "the lever is right and there is no boundary"
+
+Two family parks now sit on the same sentence:
+
+* `src/non_matching/ovl_780898/2008e54.c` — six functions, straight-line
+  arg-interleave.
+* `src/non_matching/rom_7d30e0/2009838.c` — three functions, straight-line
+  constant hoist.
+
+In both, the shape is one the basic-block lever demonstrably fixes elsewhere,
+and in both the function has no branch to put between the assignment and the
+use. **A construct that produces rematerialisation without a control-flow
+boundary would unpark nine functions at once**, and is the highest-value open
+question in this document after the eighteen-member family in
+`src/non_matching/ovl_780898/20080c4.c`.
+
+## `n += 0xff` is not the same spelling as `n--`
+
+When a value is stored with `strb` and then tested for zero, +255 and -1 agree
+modulo 256 — and gcc-2.96 emits the ROM's `add r3, #0xff` only for the first.
+`n--` on an `unsigned char` produces `lsl #24 / lsr #24` around the store
+instead. On `Func_80bf37c` that is 24 differing against 11.
+
+Read the ROM's `add rN, #0xff` as a decrement written the long way, not as an
+addition of 255.
