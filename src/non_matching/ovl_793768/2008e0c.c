@@ -39,6 +39,15 @@
  * __MessageID on the other two. There is no single predecessor whose return
  * type could decide the question, so nothing the declarations say can move it.
  *
+ * BATCH 108: THE PLACEMENT RULE DOES NOT REACH IT EITHER. The rebuilt-vs-carried
+ * rule says a value rematerialised at the call is emitted LAST, so levering the
+ * ZERO should put `mov r1, #0` after `mov r0, #0x13` -- which is the ROM's
+ * order. It does not: `int z = 0;` at the top of the function, used once at the
+ * call, is the same 2 of 41. Levering the slot instead is also 2.
+ *
+ * That is worth having, because it says the join bound is stronger than the
+ * placement rule rather than a special case of it.
+ *
  * That predicts the class: a fill-order mismatch on the FIRST call after a join
  * with differing predecessors is not reachable by declarations. Worth checking
  * against before spending seven screens on one, as this cost.
