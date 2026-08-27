@@ -243,7 +243,7 @@
 	.section .data
 	.global .L4
 	.global .L5
-	.global .L7
+	.global gOvlCommon1_3fe4
 	.global .L8
 	.global .L1
 	.global .L2
@@ -262,7 +262,7 @@
 	.incbin "overlays/rom_7db0c8/orig.bin", 0x3f14, (0x3fd0-0x3f14)
 .L6:
 	.incbin "overlays/rom_7db0c8/orig.bin", 0x3fd0, (0x3fe4-0x3fd0)
-.L7:
+gOvlCommon1_3fe4:
 	.incbin "overlays/rom_7db0c8/orig.bin", 0x3fe4, (0x4008-0x3fe4)
 .L8:
 	.incbin "overlays/rom_7db0c8/orig.bin", 0x4008, (0x4010-0x4008)

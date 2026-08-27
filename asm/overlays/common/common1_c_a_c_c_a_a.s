@@ -51,7 +51,7 @@
 	strb	r3, [r2]
 	mov	r1, #0
 	bl	__Actor_SetSpriteFlags
-	ldr	r1, =.L7
+	ldr	r1, =gOvlCommon1_3fe4
 	mov	r0, r5
 	bl	__Actor_SetScript
 	mov	r0, r5
