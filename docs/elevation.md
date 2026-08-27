@@ -3915,3 +3915,63 @@ This is the counterpart to the batch-116 correction that `ldr rN, =0` is *not* a
 symbol tell. The distinction is whether the constant is **zero** — gcc really
 does pool a literal 0 on a cross-jumped tail — versus any other small value,
 where a pool load still means a symbol.
+
+## `-ffixed-r7`: when the ROM spends r8 and you spend r7
+
+`OvlFunc_945_200d6dc` needs three callee-saved registers. gcc takes r5, r6, r7.
+The ROM takes r5, r6 and **r8** — which is not free in thumb: it costs
+`mov r6, r8 / push {r6}` at entry and `pop {r3} / mov r8, r3` at exit, four
+instructions gcc had no reason to spend. Our version was 55 lines against the
+ROM's 59, and those four are the whole gap.
+
+`--cflags "-ffixed-r7"` reserves r7 without any other change: **55 → 59 lines,
+41 differing → 9**, and the residue was a plain r5/r6 swap that two separate
+locals for the two script pointers then closed. It is now a `FIXEDR7_CFLAGS`
+group in the Makefile with one explicit rule.
+
+`-fno-omit-frame-pointer` also reserves r7 and is the wrong tool: it reserves
+the register *and* emits frame setup, giving 61 lines. What is wanted is the
+reservation alone.
+
+**Do not reach for this generally.** Measured against the two register-allocation
+parks with the closest-looking signature:
+
+| park | best | with `-ffixed-r7` |
+|---|---|---|
+| `StartThunder2` | 32 of 74 | 32 (no change) |
+| `Func_80f7df0` | 18 of 30 | 18 (no change) |
+
+The tell that it *is* worth trying is specific and mechanical: **the ROM saves a
+high register (r8–r11) and your version does not, and the line-count gap is
+about four.** Where the counts already agree, reserving r7 has nothing to fix.
+
+## Straight-line call scripts: check for a repeated constant BEFORE writing C
+
+The easiest class left is functions with many `bl`s and no labels —
+`tools/draft_script.py` writes the first draft and the work is review. But two
+of them in a row failed on the same thing, and it was visible in the assembly
+first.
+
+**A constant used at two call sites in a straight-line function is
+unreachable.** gcc hoists it into a callee-saved register and reloads it with a
+`mov`; the ROM rebuilds it. There is no control-flow boundary to satisfy the
+other half of the constant-CSE precondition, and nothing substitutes:
+`-fno-rerun-cse-after-loop`, `-fno-gcse`, `-fno-expensive-optimizations`,
+`-fno-cse-follow-jumps`, `-fno-force-mem`, `-fno-thread-jumps`, `-O1`, and
+spelling the constants as `const.sym` symbols all leave the instruction COUNT
+wrong. See `src/non_matching/ovl_77dd1c/200bc48.c` for the one-constant
+specimen and `.../ovl_77a7c8/2009c08.c` for the two-constant one.
+
+Two refinements the specimens produced:
+
+* **gcc hoists a POOL LOAD too**, not just a `mov`+`lsl` build — even though a
+  reload and the replacing `mov` cost the same one instruction.
+* **One symbol used twice is hoisted like an integer.** The rule that "two
+  DISTINCT symbols of equal value reload" is about two different symbols;
+  `(int)&_CONST_16f` at both sites changes nothing.
+
+`tools/script_candidates.py` ranks the class by repeated *expensive* constant
+(pool loads and shifted builds; bare `mov rN, #imm8` is rematerialised for free
+and must not be counted — counting it reported 40 of 41 functions as blocked).
+In band 30–70 there are 68 such scripts and **40 have no repeated constant**.
+The first two picked from the clean list matched on the first screen.
