@@ -26,6 +26,16 @@
  * gcc fixes argument-setup order after these choices are made, so none of them
  * reach it.
  *
+ * BATCH 100 -- THE RETURN-TYPE LEVER DOES NOT APPLY. Batch 99 established that
+ * an argument-move rotation is usually decided by whether the callee is
+ * declared `void` or `int`. Declaring __MapActor_SetPos with an `int` return
+ * changes nothing here, byte for byte.
+ *
+ * That fits the boundary the lever already has. It moves r0 relative to other
+ * REGISTER MOVES; this rotation is `mov r0, #0xe` against two `lsl`
+ * instructions, and OvlFunc_943_2008a48 is `mov r0` against a POOL LOAD --
+ * neither responds. The lever is for `mov`-against-`mov`.
+ *
  * NOT THE SCHEDULER BEING WRONG -- it is being right.  `--no-sched2` makes this
  * WORSE, 6 of 24, so this TU wants the scheduler on and the residue is its
  * choice within a sequence it is otherwise getting right.  `--no-rerun-cse` is
