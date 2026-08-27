@@ -65,6 +65,7 @@ _MSG_22b9 = 0x22b9;
 _MSG_239e = 0x239e;
 _MSG_23ac = 0x23ac;
 _MSG_23cc = 0x23cc;
+_MSG_240d = 0x240d;
 _MSG_2440 = 0x2440;
 _MSG_24db = 0x24db;
 _MSG_256c = 0x256c;
