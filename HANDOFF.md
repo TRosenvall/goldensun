@@ -115,6 +115,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-105](reports/batch-105.md) | 5 | ready to port — the basic-block lever retires the r0-against-a-shift class and reaches pool-loads-first; five parks unparked, no new function attempted |
 | [batch-106](reports/batch-106.md) | 5 | ready to port — CSE_CFLAGS vs the basic-block lever separated (try the flag first); the full table of argument orders; a low-numbered .L symbol cannot use the asm-label extension |
 | [batch-107](reports/batch-107.md) | 5 | ready to port — rebuilt-vs-carried is one rule behind three blocker classes; the HImode rule needs the lever's placement too; one park unparked |
+| [batch-108](reports/batch-108.md) | 7 | ready to port — grep every .s for a solved function's PROLOGUE; two families found that way; the three-operand add means a named pointer |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The

@@ -3398,3 +3398,41 @@ found that an HImode store needs an int-typed right-hand side and wrote the
 local beside the store; batch 96 found that `OvlFunc_943_2008a48` wanted its
 constant named and wrote it inside the else-block. Both were correct about the
 value and wrong about the position, and both sat parked for several batches.
+
+## After a match, GREP FOR ITS PROLOGUE
+
+`tools/find_twins.py` and `tools/find_families.py` compare whole-function
+shapes. A cruder search finds things they do not: take the first five or six
+instructions of a function you have just matched, escape them, and grep every
+`.s`.
+
+```python
+pat = re.compile(r"\.thumb_func_start (\S+)\n\tpush\t\{r5, r6, r7, lr\}\n"
+                 r"\tldr\tr3, =iwram_3001ebc\n\tldr\tr7, \[r3\]\n"
+                 r"\tbl\t__CutsceneStart\n\tmov\tr5, #8\n\tmov\tr6, #0\n")
+```
+
+Batch 108 got **five of its seven** this way, from two searches. The reason a
+prefix match wins is that these functions are identical only at the start and
+diverge freely afterwards — a whole-function shape comparison scores them apart,
+but the prologue is where the hard decisions (which locals, which registers,
+which flags) are already made. Each hit then costs a constant substitution plus
+whatever its own tail does differently.
+
+**Two minutes per match, and it is the highest-yield habit in this document.**
+
+## Screening is not wiring
+
+`tools/tryc.py` saying OK means the C compiles to the ROM's instructions. It
+does **not** mean the tree changed. Splitting the `.s`, writing the `.c`,
+deleting the `.s` and rebuilding is a separate step, and `make compare` cannot
+tell you it was skipped — an unwired function is still assembly and still
+builds green.
+
+Batch 108 wrote a function into a commit message as elevated when only the
+screen had been run. The check that catches it:
+
+    grep -rh "^\.thumb_func_start" asm/ | wc -l
+
+before and after. If the count did not drop by the number of functions claimed,
+something was screened and not wired.
