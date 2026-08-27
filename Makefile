@@ -224,6 +224,17 @@ asm/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_c_c_c_c_b.o: src/overlays/rom_7e3e0
 # none of them outright. So it is a real mechanism with more to give, and it is
 # NOT a general key -- do not reach for it without reading the diff first.
 GCSE_CFLAGS := $(GCC296_CFLAGS) -fno-gcse
+
+# -fno-schedule-insns2 : OvlFunc_945_2009978 hoists `mov r0,#0x8f / lsl r0,#4`
+# above the gState[0x22b] store at -O2.  The post-reload scheduler is what does
+# it; the named-shifted-local lever does not reach it, and -O1 matches too but
+# changes more than is needed.  Measured on this one function only.
+SCHED2_CFLAGS := $(GCC296_CFLAGS) -fno-schedule-insns2
+asm/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_a_a_a_c_b.o: src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_a_a_a_c_b.c
+	$(GCC296_CC) $(SCHED2_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 asm/rom_f0000/rom_f0254_a_b.o: src/rom_f0000/rom_f0254_a_b.c
 	$(GCC296_CC) $(GCSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
