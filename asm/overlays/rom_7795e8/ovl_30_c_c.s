@@ -2319,8 +2319,10 @@
 	.section .data
 	.global gOvl_02009658
 
+	.global	.L14d4
 .L14d4:
 	.incbin "overlays/rom_7795e8/orig.bin", 0x14d4, (0x14dc-0x14d4)
+	.global	.L14dc
 .L14dc:
 	.incbin "overlays/rom_7795e8/orig.bin", 0x14dc, (0x1658-0x14dc)
 gOvl_02009658:
@@ -2334,10 +2336,13 @@ gOvl_0200968c:
 	.global gOvl_020096a4
 gOvl_020096a4:
 	.incbin "overlays/rom_7795e8/orig.bin", 0x16a4, (0x16b0-0x16a4)
+	.global	.L16b0
 .L16b0:
 	.incbin "overlays/rom_7795e8/orig.bin", 0x16b0, (0x16b2-0x16b0)
+	.global	.L16b2
 .L16b2:
 	.incbin "overlays/rom_7795e8/orig.bin", 0x16b2, (0x16b4-0x16b2)
+	.global	.L16b4
 .L16b4:
 	.incbin "overlays/rom_7795e8/orig.bin", 0x16b4, (0x16b6-0x16b4)
 .L16b6:
