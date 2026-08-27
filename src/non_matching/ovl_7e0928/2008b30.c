@@ -20,6 +20,12 @@
  *   - computing the whole third argument into a local in two statements
  *     (WORSE, 9 of 47 -- it moves the `and` above the SetAnim call)
  *
+ * BATCH 105: the BASIC-BLOCK LEVER does not reach it either. The clamp
+ * `if (a->f8 > lim)` gives a real boundary, and the addend, the mask, and both
+ * together were each assigned above it and used after the join. All three are
+ * 3 of 47, unchanged. The lever decides WHERE a value is rematerialised; this
+ * blocker is about WHICH REGISTER holds the mask, which it does not touch.
+ *
  * Everything else is right: the gState slot pointer held in r6 across three
  * calls, the clamp at 0xa6 << 18, and the two `mov`+`lsl` constants.
  */

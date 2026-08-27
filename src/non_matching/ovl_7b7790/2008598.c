@@ -19,6 +19,21 @@
  * 0x8e << 18 changes nothing (it is already shared through r5), and
  * -fno-schedule-insns2 makes it worse, 9 of 55.
  *
+ * BATCH 105: THE BASIC-BLOCK LEVER DOES NOT REACH THIS ONE. Four placements
+ * compiled, all 4 of 55 or worse: 0xe6 << 17 as a local assigned at the top of
+ * the function and again after the first statement; both shifted first
+ * arguments as their own locals; the shared 0x8e << 18 as two locals (54 lines,
+ * 12 differing); the OTHER arm's 0xf8 << 16 as a local (6 differing).
+ *
+ * That matters because the lever retired three other functions of this class in
+ * the same round. The distinguishing feature here is how FAR the ROM defers the
+ * `lsl` -- past all three remaining argument moves, so it is the last
+ * instruction before the `bl`. Where the lever works, the ROM's gap holds one
+ * or two moves. A gap that swallows every other argument looks like the
+ * scheduler rather than rematerialisation, which is also what the park's own
+ * observation says: only the FIRST of the two calls in the arm does it, and
+ * both calls are written identically.
+ *
  * Everything else is right, including two pieces of gcc's own arithmetic that
  * look like source decisions and are not: the stored 0x209 is derived from the
  * 0x1c0 offset already in the register, and the 0x1c2 gState offset is then
