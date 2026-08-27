@@ -4252,3 +4252,80 @@ This also downgrades agent1's report that "0 of the generated `.s` files contain
 two consecutive `neg rN, rN`" — the true count is 2, and with `neg` appearing in
 only 241 files to begin with, a low count is weak evidence rather than proof.
 
+
+## Perturb one copy of a CSE-able constant to see what is underneath it
+
+Before parking anything on constant CSE, change the **second** occurrence to a
+nearby different value so gcc cannot common it, and screen. The result says
+whether the CSE is the only blocker. One screen, and it changes what the park is
+worth:
+
+* `OvlFunc_891_2009b44`: 74 differing → **2 of 66**, and those two are exactly
+  the literals that were changed. The function is otherwise exact — a far
+  stronger park than "74 differing".
+* `OvlFunc_955_2008b38`: 29 → **12 of 63**, revealing a *second*, independent
+  arg-interleave blocker the CSE was hiding.
+
+## `--quiet`'s count and `--full`'s count are different numbers
+
+`--quiet` reports raw differing lines; the last line of `--full` reports
+*instructions in disagreeing regions* after alignment. The gap can be large —
+`OvlFunc_971_2008f8c` reads 17 at `--quiet` and is **2** aligned.
+
+**Ranking parks by the `--quiet` number mis-orders them.** Always take the
+aligned number, and record that one in the park.
+
+## CONFLICT: is the declaration-order lever real?
+
+Batch 115 recorded "declaration order alone, statements untouched" as a
+one-screen lever, from `OvlFunc_956_20085e0` going 13 of 54 → exact on swapping
+`int m; int n;` to `int n; int m;`.
+
+Two later measurements contradict it. All **24** permutations of four locals on
+`OvlFunc_932_200b5ac` gave byte-identical output; four orders of seven locals on
+`Func_80a6a98` likewise. And on `Func_80f7df0` five declaration orders all gave
+18 differing.
+
+Both results stand — the original was a real screen. The honest reading is that
+declaration order is **usually inert and occasionally decisive**, so it is worth
+exactly the one screen it costs and nothing more. What reliably moves registers
+is the order of the **assignment statements**: on `FieldMove_NoTarget` the six
+orderings of three header assignments span 9–13 differing.
+
+Do not treat a null result from reordering declarations as evidence about
+anything else.
+
+## An HImode constant >= 0x8000 costs a mid-function pool AND a branch
+
+Beyond producing the wrong constant, storing `0xffff` directly through a `u16 *`
+makes gcc emit `ldrh r3, <pool>`, which forces a **literal pool inside the
+function and a `b` to jump over it** — two extra instructions, and every later
+position shifts. `FieldMove_NoTarget` was 139 lines against 137 for that reason
+alone; `k = 0xffff;` as an `int` local fixed the constant, the pool and the
+branch together.
+
+## The add/sub chain test applies to SYMBOL addresses too
+
+Where the ROM has `ldr r3, =iwram_3001f30 / sub r3, #0x74 / ldr r1, [r3]`,
+declaring the second global separately gives gcc a second pool entry rather than
+the chain — so by the existing test the chain belongs to the *source*:
+`*(T **)((unsigned char *)&iwram_3001f30 - 0x74)` reproduces it. That section
+currently discusses numeric constants only.
+
+## Reuse an existing variable as a call's destination to kill a constant derivation
+
+`OvlFunc_971_2008f8c` keeps a default `msg = 0x294e` live into a four-arm `if`;
+gcc then *derives* one arm's constant from it (`add r5, #25` for 0x2967) and
+cross-jumps the arms. Writing the intervening `__GetFlag` result into **`msg`
+itself** — which the ROM's `mov r5, r0` proves — kills the old value in that
+region, and both the derivation and the cross-jumping vanish: 63 → 8 differing.
+
+> When the ROM loads a fresh pool constant into a register that already holds a
+> nearby constant on your side, look for a source-level reuse that kills the old
+> value, not for a way to stop the `add`.
+
+## Negative: `extern int f();` is the same lever as a full `int` prototype
+
+Measured identical on two functions. The **return type** is the whole lever; the
+presence or absence of a parameter list is not part of it. (Distinct from the
+batch-117 no-prototype lever, which is about removing the declaration entirely.)
