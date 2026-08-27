@@ -3141,7 +3141,26 @@ it lands in a callee-saved register — the shape is right, the register class i
 not.
 
 The rule generalises: **a pool load of a small constant where the ROM has a
-`mov` is a TYPE question, not a scheduling one.** The same way a lone trailing
+`mov` is a TYPE question, not a scheduling one.** It is BOTH, and batch 107 found
+the second half.
+
+**The int-typed value must also be in a DOMINATING block, and each site needs
+its own local.** Declaring it beside the store is not enough -- gcc keeps it in
+a register and, if several sites share one local, coalesces them into a pseudo
+that lives across a call. Measured on `OvlFunc_936_2009f14` (four sites):
+
+| | differing of 103 |
+|---|---|
+| bare literal `0` | 106 |
+| `int zero = 0;` inside each case | 12 |
+| ONE `int zero = 0;` at the top of the function | 83 |
+| FOUR separate `int` locals at the top | **match** |
+
+and on `OvlFunc_905_20090c8` (one site): `int k = 0x63;` in the store's own
+block is 46 of 69, the same declaration at the top of the function matches.
+
+So the HImode rule is the basic-block lever wearing a type: the value must be
+int so `strh` truncates it, AND it must be rematerialised at the store. The same way a lone trailing
 `mov r0, #imm` the ROM lacks is a return-type question.
 
 ## A call result in a store expression must not go through a named local
@@ -3351,3 +3370,31 @@ Reading it as `~0xd` on `OvlFunc_881_200813c` turned one bitfield write into
 two and cost three instructions. The batch-71 rule -- a 32-bit `mov`/`neg` pair
 means a bitfield -- is right; getting the WIDTH and OFFSET of that bitfield
 wrong from a misread mask looks exactly like a codegen difference.
+
+## REBUILT or CARRIED: read which, then place the local accordingly
+
+Three blocker classes in this document are the same rule seen from different
+angles, and batch 107 collapsed them. Before naming a value, decide from the
+assembly whether the ROM **rebuilds** it at each use or **carries** it there.
+
+| the ROM does | the C | why |
+|---|---|---|
+| rebuilds the value at the use (a `mov`/`lsl` pair split around another argument; a `mov` where gcc pools; a pool load issued late) | a local in a **dominating** block, **one per site** | crossing a block boundary makes local-alloc rematerialise instead of allocating |
+| carries the value into the use (one register holding it across calls, a callee-saved register in the push list) | a local **adjacent** to the first use, **shared** | adjacency is what makes the values live SIMULTANEOUSLY |
+
+Both are visible before writing any C. A value in the ROM's push list is
+carried. A value built twice from scratch is rebuilt.
+
+`OvlFunc_902_20084e4` needs both in one function: its zero is CARRIED across
+three calls (named immediately before the first store — hoisting the same
+declaration to the top of the function is 14 differing of 61), and its two
+stack arguments are CARRIED (named adjacent, per the stack-arg-pair lever).
+`OvlFunc_936_2009f14`'s four zeros are REBUILT (four separate locals at the top
+of the function; one shared local is 83 of 101, worse than the park it came
+from).
+
+**The failure mode is applying the right idea in the wrong block.** Batch 104
+found that an HImode store needs an int-typed right-hand side and wrote the
+local beside the store; batch 96 found that `OvlFunc_943_2008a48` wanted its
+constant named and wrote it inside the else-block. Both were correct about the
+value and wrong about the position, and both sat parked for several batches.
