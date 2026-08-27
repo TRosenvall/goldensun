@@ -363,6 +363,646 @@ asm/rom_c9000/rom_cd260_b.o: src/rom_c9000/rom_cd260_b.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7d95dc/ovl_30_c_c_c_a_a_a_c_a_c_c.o: src/overlays/rom_7d95dc/ovl_30_c_c_c_a_a_a_c_a_c_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7bf5a8/ovl_2e0_c_a_c.o: src/overlays/rom_7bf5a8/ovl_2e0_c_a_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7bf5a8/ovl_2e0_c_c_a_a_a.o: src/overlays/rom_7bf5a8/ovl_2e0_c_c_a_a_a.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_79b154/ovl_30_c_a_a_c_a_c_c_c.o: src/overlays/rom_79b154/ovl_30_c_a_a_c_a_c_c_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# NARROWED 2026-08-24, same trap as the rom_7b7f1c rule below: this was
+# `ovl_30_a_c_a_a%`, and it also captured `ovl_30_a_c_a_a_c_a_*` -- the OTHER
+# half of the split of ovl_30_a_c_a_a_c.s. Those two halves do not share a
+# translation unit: OvlFunc_964_2009348 sits in the _c_a half, was parked at 6
+# of 18 under the inherited -O1, and byte-matches at -O2.
+#
+# The two files named here each keep -O1 because each is green with it today.
+asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_b.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_b_%.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_a_b_%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_c_b.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_a_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_c_b_%.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_a_c_b_%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# NOT equivalent to -O2 -fno-schedule-insns2, unlike the rules above.
+# OvlFunc_917_20092b4 is cross-jumped at -O2 -- gcc merges two `bl` calls into
+# one shared tail and the ROM keeps them separate -- and cross-jumping is a
+# jump-pass decision, not a scheduling one. -fno-schedule-insns2 leaves it seven
+# positions out; only real -O1 matches.
+asm/overlays/rom_7a4370/ovl_30_c_c_c_c_a_a_b.o: src/overlays/rom_7a4370/ovl_30_c_c_c_c_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# This one IS equivalent to -O2 -fno-schedule-insns2; -O1 is used for
+# consistency with the rules above. Two pool loads in the wrong order.
+asm/overlays/rom_7bc690/ovl_4e4_a_a_b.o: src/overlays/rom_7bc690/ovl_4e4_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# Unparked by -O1 alone, with the C unchanged from the parked version. The
+# speculative literal hoist that parked it in batch 32 is an -O2 behaviour.
+asm/overlays/rom_7c460c/ovl_314_a_c_a_c_a_b.o: src/overlays/rom_7c460c/ovl_314_a_c_a_c_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# 2026-07-16 fakematch de-hack sweep: the TUs below verify byte-exact with
+# their asm scaffolds removed only at -O1. (The parenthetical "equivalently
+# -O2 -fno-schedule-insns2" that stood here was REMOVED in batch 50: the two
+# are not equivalent -- -O1 also changes register allocation and expression
+# ordering -- and it was never verified for these TUs, only assumed. If you
+# want the scheduler knob alone, test it; do not infer it from -O1.)
+# The same per-file flag choice in the original
+# build as the rules above. Pattern form covers the splitter's future
+# children of a stem; exact-file form is used where a sibling under the
+# same stem verifies only at -O2 (per-file flag mixing).
+# TODO: consolidate the TUs 
+# Exact-file form (2026-07-17): the pattern ovl_30_c_c_c_a_c% swallowed the
+# new split child ovl_30_c_c_c_a_c_c_c_b.c, whose match verifies only at -O2
+# (judge -O2 pass, in-tree -O1 build failed compare-rom); per-file flag
+# mixing inside this chain, so the TU boundary sits between _c_c_b and _c_c_c.
+asm/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_b.o: src/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_c_b.o: src/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_78603c/ovl_30_c_c_a_c_a%.o: src/overlays/rom_78603c/ovl_30_c_c_a_c_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7987ac/ovl_30_c_c_a_a_c_a%.o: src/overlays/rom_7987ac/ovl_30_c_c_a_a_c_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# NARROWED 2026-08-24, same trap: this was `ovl_e90_c_c_a_a%` and captured
+# children of ovl_e90_c_c_a_a_c.s as well. OvlFunc_923_2008ed0 lives there, was
+# parked at 6 of 41 under the inherited -O1, and byte-matches at -O2.
+asm/overlays/rom_7aa430/ovl_e90_c_c_a_a_b.o: src/overlays/rom_7aa430/ovl_e90_c_c_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7aa430/ovl_e90_c_c_a_a_b_%.o: src/overlays/rom_7aa430/ovl_e90_c_c_a_a_b_%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7b4558/ovl_30_c_c_a_c_a%.o: src/overlays/rom_7b4558/ovl_30_c_c_a_c_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_a_b.o: src/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# NARROWED 2026-08-24, and the reason matters. This was
+# `ovl_30_c_c_a_c_c_c_c%`, which ALSO captured `ovl_30_c_c_a_c_c_c_c_c_*` --
+# a different .s further down the same split chain.
+#
+# The trap is that the split chain is NOT a TU boundary. Splitting carves one
+# overlay's assembly into `_a`/`_b`/`_c` pieces by position, and an overlay
+# holds many original translation units, so two pieces sharing a name prefix
+# say nothing about sharing a compiler invocation. A pattern anchored on a
+# prefix therefore spreads a per-TU flag choice to code that never belonged to
+# that TU. OvlFunc_930_2008ff0 and _2009028 byte-match at -O2 and sit
+# at a clean 4-line argument-fill diff at -O1, which reads exactly like the
+# fill-order blocker and cost most of a round before the flag was suspected.
+# The `_b_%` form still covers this stem's own future split children, which is
+# what the pattern was for.
+asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b.o: src/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.o: src/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ac2d8/ovl_35b8_a_a_a_b.o: src/overlays/rom_7ac2d8/ovl_35b8_a_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ac2d8/ovl_35b8_a_a_a_c_b.o: src/overlays/rom_7ac2d8/ovl_35b8_a_a_a_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_78b2ac/ovl_30_c_c_a_a_b.o: src/overlays/rom_78b2ac/ovl_30_c_c_a_a_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7bf5a8/ovl_2e0_c_a_c.o: src/overlays/rom_7bf5a8/ovl_2e0_c_a_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7bf5a8/ovl_2e0_c_c_a_a_a.o: src/overlays/rom_7bf5a8/ovl_2e0_c_c_a_a_a.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_79b154/ovl_30_c_a_a_c_a_c_c_c.o: src/overlays/rom_79b154/ovl_30_c_a_a_c_a_c_c_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# NARROWED 2026-08-24, same trap as the rom_7b7f1c rule below: this was
+# `ovl_30_a_c_a_a%`, and it also captured `ovl_30_a_c_a_a_c_a_*` -- the OTHER
+# half of the split of ovl_30_a_c_a_a_c.s. Those two halves do not share a
+# translation unit: OvlFunc_964_2009348 sits in the _c_a half, was parked at 6
+# of 18 under the inherited -O1, and byte-matches at -O2.
+#
+# The two files named here each keep -O1 because each is green with it today.
+asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_b.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_b_%.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_a_b_%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_c_b.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_a_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_c_b_%.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_a_c_b_%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# NOT equivalent to -O2 -fno-schedule-insns2, unlike the rules above.
+# OvlFunc_917_20092b4 is cross-jumped at -O2 -- gcc merges two `bl` calls into
+# one shared tail and the ROM keeps them separate -- and cross-jumping is a
+# jump-pass decision, not a scheduling one. -fno-schedule-insns2 leaves it seven
+# positions out; only real -O1 matches.
+asm/overlays/rom_7a4370/ovl_30_c_c_c_c_a_a_b.o: src/overlays/rom_7a4370/ovl_30_c_c_c_c_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# This one IS equivalent to -O2 -fno-schedule-insns2; -O1 is used for
+# consistency with the rules above. Two pool loads in the wrong order.
+asm/overlays/rom_7bc690/ovl_4e4_a_a_b.o: src/overlays/rom_7bc690/ovl_4e4_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# Unparked by -O1 alone, with the C unchanged from the parked version. The
+# speculative literal hoist that parked it in batch 32 is an -O2 behaviour.
+asm/overlays/rom_7c460c/ovl_314_a_c_a_c_a_b.o: src/overlays/rom_7c460c/ovl_314_a_c_a_c_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# 2026-07-16 fakematch de-hack sweep: the TUs below verify byte-exact with
+# their asm scaffolds removed only at -O1. (The parenthetical "equivalently
+# -O2 -fno-schedule-insns2" that stood here was REMOVED in batch 50: the two
+# are not equivalent -- -O1 also changes register allocation and expression
+# ordering -- and it was never verified for these TUs, only assumed. If you
+# want the scheduler knob alone, test it; do not infer it from -O1.)
+# The same per-file flag choice in the original
+# build as the rules above. Pattern form covers the splitter's future
+# children of a stem; exact-file form is used where a sibling under the
+# same stem verifies only at -O2 (per-file flag mixing).
+# TODO: consolidate the TUs 
+# Exact-file form (2026-07-17): the pattern ovl_30_c_c_c_a_c% swallowed the
+# new split child ovl_30_c_c_c_a_c_c_c_b.c, whose match verifies only at -O2
+# (judge -O2 pass, in-tree -O1 build failed compare-rom); per-file flag
+# mixing inside this chain, so the TU boundary sits between _c_c_b and _c_c_c.
+asm/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_b.o: src/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_c_b.o: src/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_78603c/ovl_30_c_c_a_c_a%.o: src/overlays/rom_78603c/ovl_30_c_c_a_c_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7987ac/ovl_30_c_c_a_a_c_a%.o: src/overlays/rom_7987ac/ovl_30_c_c_a_a_c_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# NARROWED 2026-08-24, same trap: this was `ovl_e90_c_c_a_a%` and captured
+# children of ovl_e90_c_c_a_a_c.s as well. OvlFunc_923_2008ed0 lives there, was
+# parked at 6 of 41 under the inherited -O1, and byte-matches at -O2.
+asm/overlays/rom_7aa430/ovl_e90_c_c_a_a_b.o: src/overlays/rom_7aa430/ovl_e90_c_c_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7aa430/ovl_e90_c_c_a_a_b_%.o: src/overlays/rom_7aa430/ovl_e90_c_c_a_a_b_%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7b4558/ovl_30_c_c_a_c_a%.o: src/overlays/rom_7b4558/ovl_30_c_c_a_c_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_a_b.o: src/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# NARROWED 2026-08-24, and the reason matters. This was
+# `ovl_30_c_c_a_c_c_c_c%`, which ALSO captured `ovl_30_c_c_a_c_c_c_c_c_*` --
+# a different .s further down the same split chain.
+#
+# The trap is that the split chain is NOT a TU boundary. Splitting carves one
+# overlay's assembly into `_a`/`_b`/`_c` pieces by position, and an overlay
+# holds many original translation units, so two pieces sharing a name prefix
+# say nothing about sharing a compiler invocation. A pattern anchored on a
+# prefix therefore spreads a per-TU flag choice to code that never belonged to
+# that TU. OvlFunc_930_2008ff0 and _2009028 byte-match at -O2 and sit
+# at a clean 4-line argument-fill diff at -O1, which reads exactly like the
+# fill-order blocker and cost most of a round before the flag was suspected.
+# The `_b_%` form still covers this stem's own future split children, which is
+# what the pattern was for.
+asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b.o: src/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.o: src/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ac2d8/ovl_35b8_a_a_a_b.o: src/overlays/rom_7ac2d8/ovl_35b8_a_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ac2d8/ovl_35b8_a_a_a_c_b.o: src/overlays/rom_7ac2d8/ovl_35b8_a_a_a_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7c6bac/ovl_30_c_c_a_c_c_c_c_c_b.o: src/overlays/rom_7c6bac/ovl_30_c_c_a_c_c_c_c_c_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7bf5a8/ovl_2e0_c_a_c.o: src/overlays/rom_7bf5a8/ovl_2e0_c_a_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7bf5a8/ovl_2e0_c_c_a_a_a.o: src/overlays/rom_7bf5a8/ovl_2e0_c_c_a_a_a.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_79b154/ovl_30_c_a_a_c_a_c_c_c.o: src/overlays/rom_79b154/ovl_30_c_a_a_c_a_c_c_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# NARROWED 2026-08-24, same trap as the rom_7b7f1c rule below: this was
+# `ovl_30_a_c_a_a%`, and it also captured `ovl_30_a_c_a_a_c_a_*` -- the OTHER
+# half of the split of ovl_30_a_c_a_a_c.s. Those two halves do not share a
+# translation unit: OvlFunc_964_2009348 sits in the _c_a half, was parked at 6
+# of 18 under the inherited -O1, and byte-matches at -O2.
+#
+# The two files named here each keep -O1 because each is green with it today.
+asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_b.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_b_%.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_a_b_%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_c_b.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_a_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_c_b_%.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_a_c_b_%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# NOT equivalent to -O2 -fno-schedule-insns2, unlike the rules above.
+# OvlFunc_917_20092b4 is cross-jumped at -O2 -- gcc merges two `bl` calls into
+# one shared tail and the ROM keeps them separate -- and cross-jumping is a
+# jump-pass decision, not a scheduling one. -fno-schedule-insns2 leaves it seven
+# positions out; only real -O1 matches.
+asm/overlays/rom_7a4370/ovl_30_c_c_c_c_a_a_b.o: src/overlays/rom_7a4370/ovl_30_c_c_c_c_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# This one IS equivalent to -O2 -fno-schedule-insns2; -O1 is used for
+# consistency with the rules above. Two pool loads in the wrong order.
+asm/overlays/rom_7bc690/ovl_4e4_a_a_b.o: src/overlays/rom_7bc690/ovl_4e4_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# Unparked by -O1 alone, with the C unchanged from the parked version. The
+# speculative literal hoist that parked it in batch 32 is an -O2 behaviour.
+asm/overlays/rom_7c460c/ovl_314_a_c_a_c_a_b.o: src/overlays/rom_7c460c/ovl_314_a_c_a_c_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# 2026-07-16 fakematch de-hack sweep: the TUs below verify byte-exact with
+# their asm scaffolds removed only at -O1. (The parenthetical "equivalently
+# -O2 -fno-schedule-insns2" that stood here was REMOVED in batch 50: the two
+# are not equivalent -- -O1 also changes register allocation and expression
+# ordering -- and it was never verified for these TUs, only assumed. If you
+# want the scheduler knob alone, test it; do not infer it from -O1.)
+# The same per-file flag choice in the original
+# build as the rules above. Pattern form covers the splitter's future
+# children of a stem; exact-file form is used where a sibling under the
+# same stem verifies only at -O2 (per-file flag mixing).
+# TODO: consolidate the TUs 
+# Exact-file form (2026-07-17): the pattern ovl_30_c_c_c_a_c% swallowed the
+# new split child ovl_30_c_c_c_a_c_c_c_b.c, whose match verifies only at -O2
+# (judge -O2 pass, in-tree -O1 build failed compare-rom); per-file flag
+# mixing inside this chain, so the TU boundary sits between _c_c_b and _c_c_c.
+asm/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_b.o: src/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_c_b.o: src/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_78603c/ovl_30_c_c_a_c_a%.o: src/overlays/rom_78603c/ovl_30_c_c_a_c_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7987ac/ovl_30_c_c_a_a_c_a%.o: src/overlays/rom_7987ac/ovl_30_c_c_a_a_c_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# NARROWED 2026-08-24, same trap: this was `ovl_e90_c_c_a_a%` and captured
+# children of ovl_e90_c_c_a_a_c.s as well. OvlFunc_923_2008ed0 lives there, was
+# parked at 6 of 41 under the inherited -O1, and byte-matches at -O2.
+asm/overlays/rom_7aa430/ovl_e90_c_c_a_a_b.o: src/overlays/rom_7aa430/ovl_e90_c_c_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7aa430/ovl_e90_c_c_a_a_b_%.o: src/overlays/rom_7aa430/ovl_e90_c_c_a_a_b_%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7b4558/ovl_30_c_c_a_c_a%.o: src/overlays/rom_7b4558/ovl_30_c_c_a_c_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_a_b.o: src/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# NARROWED 2026-08-24, and the reason matters. This was
+# `ovl_30_c_c_a_c_c_c_c%`, which ALSO captured `ovl_30_c_c_a_c_c_c_c_c_*` --
+# a different .s further down the same split chain.
+#
+# The trap is that the split chain is NOT a TU boundary. Splitting carves one
+# overlay's assembly into `_a`/`_b`/`_c` pieces by position, and an overlay
+# holds many original translation units, so two pieces sharing a name prefix
+# say nothing about sharing a compiler invocation. A pattern anchored on a
+# prefix therefore spreads a per-TU flag choice to code that never belonged to
+# that TU. OvlFunc_930_2008ff0 and _2009028 byte-match at -O2 and sit
+# at a clean 4-line argument-fill diff at -O1, which reads exactly like the
+# fill-order blocker and cost most of a round before the flag was suspected.
+# The `_b_%` form still covers this stem's own future split children, which is
+# what the pattern was for.
+asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b.o: src/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.o: src/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ac2d8/ovl_35b8_a_a_a_b.o: src/overlays/rom_7ac2d8/ovl_35b8_a_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ac2d8/ovl_35b8_a_a_a_c_b.o: src/overlays/rom_7ac2d8/ovl_35b8_a_a_a_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_78b2ac/ovl_30_c_c_a_a_b.o: src/overlays/rom_78b2ac/ovl_30_c_c_a_a_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7bf5a8/ovl_2e0_c_a_c.o: src/overlays/rom_7bf5a8/ovl_2e0_c_a_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7bf5a8/ovl_2e0_c_c_a_a_a.o: src/overlays/rom_7bf5a8/ovl_2e0_c_c_a_a_a.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_79b154/ovl_30_c_a_a_c_a_c_c_c.o: src/overlays/rom_79b154/ovl_30_c_a_a_c_a_c_c_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# NARROWED 2026-08-24, same trap as the rom_7b7f1c rule below: this was
+# `ovl_30_a_c_a_a%`, and it also captured `ovl_30_a_c_a_a_c_a_*` -- the OTHER
+# half of the split of ovl_30_a_c_a_a_c.s. Those two halves do not share a
+# translation unit: OvlFunc_964_2009348 sits in the _c_a half, was parked at 6
+# of 18 under the inherited -O1, and byte-matches at -O2.
+#
+# The two files named here each keep -O1 because each is green with it today.
+asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_b.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_b_%.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_a_b_%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_c_b.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_a_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_c_b_%.o: src/overlays/rom_7ed0a0/ovl_30_a_c_a_a_c_b_%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# NOT equivalent to -O2 -fno-schedule-insns2, unlike the rules above.
+# OvlFunc_917_20092b4 is cross-jumped at -O2 -- gcc merges two `bl` calls into
+# one shared tail and the ROM keeps them separate -- and cross-jumping is a
+# jump-pass decision, not a scheduling one. -fno-schedule-insns2 leaves it seven
+# positions out; only real -O1 matches.
+asm/overlays/rom_7a4370/ovl_30_c_c_c_c_a_a_b.o: src/overlays/rom_7a4370/ovl_30_c_c_c_c_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# This one IS equivalent to -O2 -fno-schedule-insns2; -O1 is used for
+# consistency with the rules above. Two pool loads in the wrong order.
+asm/overlays/rom_7bc690/ovl_4e4_a_a_b.o: src/overlays/rom_7bc690/ovl_4e4_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# Unparked by -O1 alone, with the C unchanged from the parked version. The
+# speculative literal hoist that parked it in batch 32 is an -O2 behaviour.
+asm/overlays/rom_7c460c/ovl_314_a_c_a_c_a_b.o: src/overlays/rom_7c460c/ovl_314_a_c_a_c_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# 2026-07-16 fakematch de-hack sweep: the TUs below verify byte-exact with
+# their asm scaffolds removed only at -O1. (The parenthetical "equivalently
+# -O2 -fno-schedule-insns2" that stood here was REMOVED in batch 50: the two
+# are not equivalent -- -O1 also changes register allocation and expression
+# ordering -- and it was never verified for these TUs, only assumed. If you
+# want the scheduler knob alone, test it; do not infer it from -O1.)
+# The same per-file flag choice in the original
+# build as the rules above. Pattern form covers the splitter's future
+# children of a stem; exact-file form is used where a sibling under the
+# same stem verifies only at -O2 (per-file flag mixing).
+# TODO: consolidate the TUs 
+# Exact-file form (2026-07-17): the pattern ovl_30_c_c_c_a_c% swallowed the
+# new split child ovl_30_c_c_c_a_c_c_c_b.c, whose match verifies only at -O2
+# (judge -O2 pass, in-tree -O1 build failed compare-rom); per-file flag
+# mixing inside this chain, so the TU boundary sits between _c_c_b and _c_c_c.
+asm/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_b.o: src/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_c_b.o: src/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_78603c/ovl_30_c_c_a_c_a%.o: src/overlays/rom_78603c/ovl_30_c_c_a_c_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7987ac/ovl_30_c_c_a_a_c_a%.o: src/overlays/rom_7987ac/ovl_30_c_c_a_a_c_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# NARROWED 2026-08-24, same trap: this was `ovl_e90_c_c_a_a%` and captured
+# children of ovl_e90_c_c_a_a_c.s as well. OvlFunc_923_2008ed0 lives there, was
+# parked at 6 of 41 under the inherited -O1, and byte-matches at -O2.
+asm/overlays/rom_7aa430/ovl_e90_c_c_a_a_b.o: src/overlays/rom_7aa430/ovl_e90_c_c_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7aa430/ovl_e90_c_c_a_a_b_%.o: src/overlays/rom_7aa430/ovl_e90_c_c_a_a_b_%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7b4558/ovl_30_c_c_a_c_a%.o: src/overlays/rom_7b4558/ovl_30_c_c_a_c_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_a_b.o: src/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# NARROWED 2026-08-24, and the reason matters. This was
+# `ovl_30_c_c_a_c_c_c_c%`, which ALSO captured `ovl_30_c_c_a_c_c_c_c_c_*` --
+# a different .s further down the same split chain.
+#
+# The trap is that the split chain is NOT a TU boundary. Splitting carves one
+# overlay's assembly into `_a`/`_b`/`_c` pieces by position, and an overlay
+# holds many original translation units, so two pieces sharing a name prefix
+# say nothing about sharing a compiler invocation. A pattern anchored on a
+# prefix therefore spreads a per-TU flag choice to code that never belonged to
+# that TU. OvlFunc_930_2008ff0 and _2009028 byte-match at -O2 and sit
+# at a clean 4-line argument-fill diff at -O1, which reads exactly like the
+# fill-order blocker and cost most of a round before the flag was suspected.
+# The `_b_%` form still covers this stem's own future split children, which is
+# what the pattern was for.
+asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b.o: src/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.o: src/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ac2d8/ovl_35b8_a_a_a_b.o: src/overlays/rom_7ac2d8/ovl_35b8_a_a_a_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ac2d8/ovl_35b8_a_a_a_c_b.o: src/overlays/rom_7ac2d8/ovl_35b8_a_a_a_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_78b2ac/ovl_30_c_c_a_a_c_a.o: src/overlays/rom_78b2ac/ovl_30_c_c_a_a_c_a.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
