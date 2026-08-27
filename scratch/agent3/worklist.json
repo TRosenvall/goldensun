@@ -1,0 +1,100 @@
+[
+ {
+  "func": "OvlFunc_881_200b678",
+  "insns": 40,
+  "labels": 2,
+  "calls": 4,
+  "ref": "asm/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_c_c.s"
+ },
+ {
+  "func": "OvlFunc_883_2008b28",
+  "insns": 40,
+  "labels": 3,
+  "calls": 13,
+  "ref": "asm/overlays/rom_780898/ovl_30_c_c_a_c.s"
+ },
+ {
+  "func": "OvlFunc_953_200a5f0",
+  "insns": 41,
+  "labels": 2,
+  "calls": 12,
+  "ref": "asm/overlays/rom_7d95dc/ovl_30_c_c_c_c_a_c.s"
+ },
+ {
+  "func": "OvlFunc_927_200a004",
+  "insns": 43,
+  "labels": 0,
+  "calls": 12,
+  "ref": "asm/overlays/rom_7b4558/ovl_30_c_c_c_a_a.s"
+ },
+ {
+  "func": "OvlFunc_898_20087ec",
+  "insns": 43,
+  "labels": 1,
+  "calls": 8,
+  "ref": "asm/overlays/rom_793768/ovl_314_c_c_a_c_a_c_c_c_a_a_c.s"
+ },
+ {
+  "func": "OvlFunc_898_200885c",
+  "insns": 43,
+  "labels": 1,
+  "calls": 8,
+  "ref": "asm/overlays/rom_793768/ovl_314_c_c_a_c_a_c_c_c_a_a_c.s"
+ },
+ {
+  "func": "OvlFunc_898_2008acc",
+  "insns": 43,
+  "labels": 1,
+  "calls": 8,
+  "ref": "asm/overlays/rom_793768/ovl_314_c_c_a_c_c_c_a_a.s"
+ },
+ {
+  "func": "OvlFunc_953_2008648",
+  "insns": 43,
+  "labels": 0,
+  "calls": 13,
+  "ref": "asm/overlays/rom_7d95dc/ovl_30_c_c_c_a_a_a_c_c_a.s"
+ },
+ {
+  "func": "OvlFunc_964_2009fdc",
+  "insns": 43,
+  "labels": 0,
+  "calls": 6,
+  "ref": "asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a_a.s"
+ },
+ {
+  "func": "OvlFunc_964_200a040",
+  "insns": 43,
+  "labels": 0,
+  "calls": 6,
+  "ref": "asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a_a.s"
+ },
+ {
+  "func": "OvlFunc_881_20097fc",
+  "insns": 45,
+  "labels": 0,
+  "calls": 14,
+  "ref": "asm/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a.s"
+ },
+ {
+  "func": "OvlFunc_881_2009c08",
+  "insns": 49,
+  "labels": 0,
+  "calls": 21,
+  "ref": "asm/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a.s"
+ },
+ {
+  "func": "OvlFunc_898_2008a4c",
+  "insns": 49,
+  "labels": 1,
+  "calls": 9,
+  "ref": "asm/overlays/rom_793768/ovl_314_c_c_a_c_c_c_a_a.s"
+ },
+ {
+  "func": "OvlFunc_955_200862c",
+  "insns": 49,
+  "labels": 0,
+  "calls": 7,
+  "ref": "asm/overlays/rom_7ddb88/ovl_30_c_c_c_a_c_a.s"
+ }
+]
