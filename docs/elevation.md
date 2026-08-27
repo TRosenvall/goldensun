@@ -3589,3 +3589,42 @@ That is the rebuilt-vs-carried rule reaching the stack-argument case. In the
 same function a value the ROM genuinely SHARES (`mov r5, #2` once, stored at
 both calls) still wants a single local — the two rules land on adjacent
 arguments of one call, and the ROM says which is which.
+
+## A DIRTY screen that opens on a LABEL is a false negative
+
+`§Use --align on anything long` and the inline-pool warning both say a CLEAN
+screen can be unproven until `make compare`. Batch 112 found the symmetric
+failure, and it had a function parked on it.
+
+`OvlFunc_898_2008a4c` screened at **25 differing of 50** and its parked C was
+already byte-perfect. gcc puts the pool-skip label immediately before the `if`s
+own join label, so two label definitions land at the same address:
+
+    ours   strh r3,[r2] / b .L5   / <pool> / .L5: / .L3: / mov r0, #0xe
+    rom    strh r3,[r2] / b .La98 / <pool> / .La98:       / mov r0, #0xe
+
+A label emits no bytes. `tryc.py` keeps branched-to label definitions in the
+stream deliberately -- that is correct and must stay -- but one extra label
+shifts every later position and the positional count cascades.
+
+**So: if the FIRST differing line is a label definition, check the bytes before
+believing the number.** Assemble both sides standalone and `objdump -d` them; it
+costs about what a screen costs. `scratch/agent3/bytecheck.sh` is one
+implementation.
+
+Worth sweeping the parked set for: any park whose first difference is a label.
+
+## Doing this at volume: operate on a list, not a glob
+
+Two mistakes in batch 112, both from generating file headers programmatically:
+
+* A quote-stripping pass (gcc-2.96 warns on an unbalanced `'` even inside a
+  comment) was applied by glob to every `.c` under `src/overlays/` -- **404
+  files** -- instead of the new ones. Caught before commit; restored with
+  `git show HEAD:<path> > <path>`, which is the tree's way back since
+  `git checkout` is not available.
+* Body extraction searched for `struct` anywhere in the text and matched it
+  inside the word "instruction", truncating a comment mid-word. It failed at
+  compile time only because the fragment happened to be invalid C.
+
+**Operate on an explicit file list, and anchor text extraction to line starts.**
