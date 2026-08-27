@@ -179,16 +179,31 @@ def main():
         # function and FOURTEEN .incbin tables, on this tool's own advice.
         raw = open(path, errors="replace").read()
         data = len(re.findall(r"^\.L\w+:", raw, re.M))
-        blobs = raw.count(".incbin")
+        # COUNT EVERY BLOB DIRECTIVE, NOT JUST .incbin. This read `.incbin`
+        # only, and rom_b6eb4.s carries its five tables as `.incrom` -- so the
+        # tool reported "no data", the .s was deleted on its word, and the link
+        # died with `undefined reference to '.Lc2a46'`. Batch 101. The same
+        # class of blindness as the `.lcomm` one in batch 78.
+        blobs = len(re.findall(r"^\s*\.(?:incbin|incrom|incdata)\b", raw, re.M))
+        # A DATA SECTION AFTER THE CODE IS ITSELF DISQUALIFYING, whatever
+        # directive fills it. Checked separately so a new blob spelling cannot
+        # slip past the list above.
+        tail = raw[raw.rindex(".func_end"):] if ".func_end" in raw else ""
+        has_section = bool(re.search(r"^\s*\.section\b", tail, re.M))
         body_labels = set(re.findall(r"(\.L\w+)", "\n".join(blocks[0][1])))
         defined = set(re.findall(r"^(\.L\w+):", raw, re.M))
-        # labels defined here that the function does NOT branch to are data
+        # Labels the function does NOT mention at all are plainly data.
         stranded = sorted(defined - body_labels)
-        if blobs or stranded:
+        # ... but a label can be BOTH referenced by the function and defined in
+        # the file's data, which is exactly what a jump table's targets look
+        # like. Those are data too, and `defined - body_labels` misses them, so
+        # count anything defined after the last .func_end as well.
+        after = set(re.findall(r"^(\.L\w+):", tail, re.M))
+        if blobs or stranded or has_section or after:
             sys.exit(
-                f"{rel} holds only {target}, but ALSO {blobs} .incbin blob(s) and "
+                f"{rel} holds only {target}, but ALSO {blobs} blob(s), "
                 f"{data} label(s), of which {len(stranded)} are not branch targets "
-                f"of the function.\n"
+                f"of the function and {len(after)} are defined after the code.\n"
                 f"Converting the whole file would delete that data and the link "
                 f"would fail with 'undefined reference'.\n"
                 f"Split the function from its data by hand, or leave it as assembly.")

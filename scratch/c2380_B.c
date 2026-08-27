@@ -1,0 +1,43 @@
+struct R {
+    unsigned char pad00[4];
+    int f4;
+    int f8;
+    int fc;
+    int f10;
+};
+
+extern void OvlFunc_common2_618(int *in, struct R *r);
+extern int OvlFunc_common2_40c(struct R *r);
+extern int OvlFunc_common2_3ec(struct R *r);
+extern int OvlFunc_common2_3fc(struct R *r);
+extern int OvlFunc_common2_41c(int a, int b, int c);
+
+int OvlFunc_common2_380(int a, int b)
+{
+    int in[2];
+    struct R r;
+    struct R *rp;
+    int t;
+    int v;
+
+    in[0] = a;
+    in[1] = b;
+    rp = &r;
+    OvlFunc_common2_618(in, rp);
+    if (OvlFunc_common2_40c(rp))
+        return 0;
+    if (OvlFunc_common2_3ec(rp))
+        return 0;
+    if (OvlFunc_common2_3fc(rp) == 0) {
+        t = rp->f8;
+        if (t < 0)
+            return 0;
+        if (t <= 0x1e) {
+            v = OvlFunc_common2_41c(rp->fc, rp->f10, 0x3c - t);
+            if (rp->f4 != 0)
+                v = -v;
+            return v;
+        }
+    }
+    return (rp->f4 != 0) + 0x7fffffff;
+}
