@@ -1,25 +1,30 @@
-/* OvlFunc_898_2008a4c -- NOT MATCHING
+/* OvlFunc_898_2008a4c -- MATCHES.  This UNPARKS src/non_matching/overlays/2008a4c.c,
+ * whose C body is unchanged below; only the verdict was wrong.
+ * ref: asm/overlays/rom_793768/ovl_314_c_c_a_c_c_c_a_a.s
  *
- * Source asm: goldensun/asm/overlays/rom_793768/ovl_314_c_c_a_c_c_c_a_a.s
- * Best screen: 51 instructions against the ROM's 50.
+ * tools/tryc.py reports "25 differing of 50" and that report is an ARTIFACT.
+ * gcc's create_fix_barrier puts the pool skip label immediately before the
+ * `if`'s own join label, so the output carries two labels at the same address:
  *
- * BLOCKER CLASS: literal-pool placement -- a FOURTH member of the cutscene
- * bookend family, alongside src/overlays/rom_793768/ovl_314_c_c_c_a_a_c_a_b.c
- * (matched), src/non_matching/overlays/2008acc.c and
- * src/non_matching/overlays/2008640.c.
+ *     ours   strh r3,[r2] / b .L5 / <pool> / .L5: / .L3: / mov r0,#0xe
+ *     rom    strh r3,[r2] / b .La98 / <pool> / .La98: / mov r0,#0xe
  *
- * This one has an `if` whose exit and the pool-skip branch COINCIDE in the ROM:
- * one `b .La98` serves both, with `.pool_aligned` between it and the label. We
- * emit two labels and two branches, which is the extra instruction.
+ * A label emits no bytes.  tryc.py keeps branched-to label definitions in the
+ * stream (deliberately -- see "What the screen must NOT normalise away"), so
+ * the extra one shifts every later position and the positional diff cascades
+ * to 25.  The park note read that as "we emit two labels and two branches,
+ * which is the extra instruction"; there is only one branch.
  *
- * So the family now has three distinct outcomes on the same shape -- one
- * matches, one is off by one instruction of pool placement (2008acc), one is
- * off by scheduling (2008640), and this one merges a branch the ROM shares.
- * The pooled 2 is `_CONST_2` in all four and behaves identically.
+ * VERIFIED AT THE BYTE LEVEL.  Assembling this file and the ROM's function
+ * standalone with `arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork` gives
+ * 128 bytes of .text each, and `objdump -d` differs in exactly one word: our
+ * pool slot at +0x40 is 0x00000000 carrying R_ARM_ABS32 _CONST_2, where the
+ * ROM has 0x00000002.  const.sym already defines `_CONST_2 = 0x2`, and an
+ * absolute symbol emits no bytes, so the linked result is identical.
+ * (scratch/agent3/bytecheck.sh reproduces this.)
  *
- * The body screens clean: the walked +0x64 pointer, the signed facing saved and
- * restored, the flag test on save bit 2, and the counter bump at
- * [iwram_3001ebc]+0x1d8.
+ * LESSON FOR THE SCREEN: when a diff opens at a label and everything before it
+ * matches, assemble both sides before believing the count.
  */
 struct A {
     unsigned char pad00[6];

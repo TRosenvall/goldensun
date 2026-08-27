@@ -1,3 +1,17 @@
+/* OvlFunc_881_200b678 -- MATCHES on the default flags.
+ * ref: asm/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_c_c.s
+ * tryc.py: OK (42 lines).  Byte-verified: 100 bytes of .text identical to the
+ * ROM's, pool included (scratch/agent3/bytecheck.sh).
+ *
+ * The one lever it needed is batch 44's OFFSET-REUSE form: the ROM computes the
+ * address into r2 and then overwrites the offset register r3 with the halfword
+ * it is about to store --
+ *     mov r3,#0xc1 / lsl r3,#1 / add r2,r6,r3 / mov r3,#0x63 / strh r3,[r2]
+ * -- so one variable does both jobs.  Written with a separate `unsigned short
+ * k = 0x63` the function is 7 of 42: the constant is materialised before the
+ * address and the gState offset lands in r1 instead of r2.  Reusing `off`
+ * fixed both at once.
+ */
 extern unsigned char gState[];
 extern unsigned char iwram_3001ebc[];
 extern unsigned char iwram_3001e40[];
