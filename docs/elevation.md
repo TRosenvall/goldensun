@@ -3502,49 +3502,50 @@ instead. On `Func_80bf37c` that is 24 differing against 11.
 Read the ROM's `add rN, #0xff` as a decrement written the long way, not as an
 addition of 255.
 
-## Pool-constant CSE: measured behaviour, and a population at risk
+## Pool-constant CSE: the complete rule
 
-A constant that needs a pool load (`ldr rN, =0x9999`) and is used **twice with
-one use dominating the other** is hoisted by gcc-2.96 into a callee-saved
-register and copied to the argument register at each site. The ROM often
-reloads it from the pool instead. Probed directly with one-line functions under
-this tree's exact flags:
+A constant needing a pool load (`ldr rN, =0x9999`) used **twice, with one use
+dominating the other**, is hoisted by gcc-2.96 into a callee-saved register and
+copied to the argument register at each site. The ROM often reloads it. Probed
+directly with one-line functions under this tree's exact flags, and the answer
+is a TWO-PART precondition:
 
-| source | result |
-|---|---|
-| two uses, straight line | **hoisted** into r5/r6, `push {r5, r6, lr}` |
-| the same, as named locals | **hoisted** — identical output |
-| the same, with `-fno-rerun-cse-after-loop` | **hoisted** — identical output |
-| the same, separated by two other calls | **hoisted** |
-| the same, with a BRANCH between the two uses | **still hoisted** |
-| two uses in MUTUALLY EXCLUSIVE arms | **reloaded**, `push {lr}` only |
-| two DISTINCT extern symbols of equal value | **reloaded**, `push {lr}` only |
-| the SAME extern symbol twice | **hoisted** |
+| between the two uses | flags | result |
+|---|---|---|
+| nothing — straight line | any combination tried | **hoisted** |
+| a branch | default | **hoisted** |
+| a branch | `-fno-rerun-cse-after-loop` | **reloaded** — `push {lr}` only |
+| mutually exclusive arms | any | **reloaded** |
+| — two DISTINCT symbols of equal value | any | **reloaded** |
+| — the SAME symbol twice | default | hoisted |
 
-**The branch row is the important one and it corrects a natural assumption.**
-The basic-block lever does NOT defeat pool-constant CSE. What the lever does is
-move where a SINGLE-use value is materialised. A value used twice with
-domination is a different mechanism and the lever does not touch it.
+**Neither half alone is enough.** A branch under default flags still hoists; the
+flag without a branch still hoists. That is why batch 106's "try the flag first"
+rule worked on `OvlFunc_890_2008150` (early returns between the uses) and did
+nothing for `src/non_matching/rom_7d30e0/2009838.c` (two consecutive calls, no
+branch anywhere).
 
-Two things do: mutually exclusive control flow (where the problem never arises),
-and two *different* linker symbols that happen to share a value — gcc cannot
-CSE two distinct `SYMBOL_REF`s.
+It also corrects a natural assumption: **the basic-block lever does not defeat
+this.** The lever moves where a SINGLE-use value is materialised. A twice-used
+value with domination is a different mechanism, and the lever alone leaves it
+hoisted — the flag is the other half.
 
-**Population at risk.** 316 of the 2,472 remaining functions (13% by count but
-**35% of the remaining instructions**) contain a repeated pool constant inside
-one label-free region. 178 of those are 250+ instructions. In the straight-line
-script band (250+ instructions, under 2% labels) it is 123 of 138 — that band
-has no branches at all, so every repeat dominates.
+Confirmed against the matched corpus: `src/overlays/rom_7c5efc/ovl_30_c_a_c_c_c_a_b.c`
+reloads `0x201` across two early returns and is built with `CSE_CFLAGS`; its own
+header note records 25 instructions against 23 without the flag, exact with it.
 
-**But "at risk" is not "blocked", and this is where I over-concluded once.** 34
-already-matched files DO reload a pool constant inside a label-free region. On
-inspection those split into: files using an inline-asm barrier
-(`__asm__ ("" : "+r" (x))`, a fakematch — see `fakematch.txt`), files including
-`dma.h` (also inline asm), and files where the repeats are actually in different
-branches or used once. So the clean-C population is smaller than 34, and no
-clean construct for the dominating case has been demonstrated yet.
+**Genuinely unreachable population.** A repeated pool constant with NO label
+between the two uses has no boundary to supply the first half, and nothing
+reaches it: **316 of the 2,472 remaining functions — 13% by count but 35% of the
+remaining instruction mass**, 178 of them 250+ instructions. In the
+straight-line script band (250+ instructions, under 2% labels) it is 123 of 138,
+because those functions have no branches at all.
 
-**What would settle it** is finding one matched, non-fakematch function whose
-generated code reloads a pool constant that a preceding use dominates, and
-reading its C. That is a concrete search, and it is worth more than any single
-function: 35% of the remaining instruction mass sits behind the answer.
+The only construct that reaches the no-branch case is an inline-asm barrier
+(`__asm__ ("" : "+r" (x))`), which is a fakematch — see `fakematch.txt`, where
+`OvlFunc_958_2009080` uses exactly that.
+
+**So the straight-line script band is blocked, and it is a third of the project.**
+That is the single most valuable open question in this document. What would
+settle it is a clean construct that makes gcc rematerialise a pool constant with
+no control-flow boundary available.
