@@ -37,6 +37,7 @@ void OvlFunc_883_2008fec(void)
     struct A *p;
     int v;
     int z;
+    int k2;
 
     a = __MapActor_GetActor(0);
     b = __MapActor_GetActor(5);
@@ -57,6 +58,7 @@ void OvlFunc_883_2008fec(void)
     __MapActor_SetSpeed(5, 0x80 << 9, 0x80 << 8);
     __Func_80921c4(5, 0x6e, 0x11b);
     __Func_8092848(0, 5, 2);
+    k2 = 0x12f;
     __MessageID(0xf39);
     if (a->f8 < b->f8)
         __Func_8093040(0xa005, 0, 2);
@@ -70,6 +72,6 @@ void OvlFunc_883_2008fec(void)
         __MapActor_TravelTo(5, *(short *)((char *)p + 0xa), *(short *)((char *)p + 0x12));
     __MapActor_WaitMovement(5);
     __MapActor_SetPos(5, 0, 0);
-    __Func_80921c4(0, 0x6e, 0x12f);
+    __Func_80921c4(0, 0x6e, k2);
     __CutsceneEnd();
 }

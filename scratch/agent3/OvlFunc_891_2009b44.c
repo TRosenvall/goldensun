@@ -1,7 +1,8 @@
 /* OvlFunc_891_2009b44 -- PARKED on pool-constant CSE (the certain, zero-label class).
  * ref: asm/overlays/rom_78c76c/ovl_30_c_c_c_c_a.s
  *
- * As written: 74 differing of 66 (ours 76 lines), first diff at position 0 --
+ * As written: 74 raw differing lines / 51 instructions in disagreeing regions,
+ * of 66 (ours 76 lines), first diff at position 0 --
  * gcc hoists 0x3333 and 0x1999 into two extra callee-saved registers, which
  * changes the prologue (push {r5,r6,r7,lr} vs the ROM's push {r5,r6,lr}) and
  * cascades through the whole body.
@@ -11,9 +12,9 @@
  * 2 differing of 66 -- and those 2 are exactly the two literals that were
  * changed.  Everything else is byte-exact.
  *
- * Flags measured, all identical at 74 of 66: -fno-rerun-cse-after-loop,
+ * Flags measured, all identical at 74/51 of 66: -fno-rerun-cse-after-loop,
  * -fno-gcse, -fno-cse-follow-jumps, -fno-cse-skip-blocks,
- * -fno-expensive-optimizations, -fno-force-mem; -O1 gives 75.
+ * -fno-expensive-optimizations, -fno-force-mem; -O1 gives 75 raw.
  * The function has NO labels at all, so there is no boundary for the
  * basic-block lever.
  *
