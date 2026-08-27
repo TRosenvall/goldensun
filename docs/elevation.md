@@ -4329,3 +4329,56 @@ region, and both the derivation and the cross-jumping vanish: 63 → 8 differing
 Measured identical on two functions. The **return type** is the whole lever; the
 presence or absence of a parameter list is not part of it. (Distinct from the
 batch-117 no-prototype lever, which is about removing the declaration entirely.)
+
+## `.call_via rN` in a ref is a hard wall — 51 functions
+
+`include/macros.inc` defines `.call_via reg` as `mov r12, pc / bx \reg`. That is
+four bytes, the same size as `bl _call_via_rN`, but **different bytes**.
+gcc-2.96's thumb machine description has exactly one indirect-call pattern in
+each direction — `bl\t_call_via_%0` — unconditionally, so no C produces the
+inline form.
+
+**51 of the 2346 unelevated functions contain `.call_via`** (my count; the agent
+that found this reported 169 call *sites*, which is consistent — several per
+function). Every one of them is unreachable as long as that is true.
+
+This is the complement of the existing `_call_via_rN` note, which says 223
+functions *call through the veneer* and treats that as a positive signal. The
+`grep -l '\.call_via'` set is the opposite and should be **excluded from
+candidate selection**:
+
+    grep -rl '\.call_via' asm/
+
+It also explains a puzzle worth remembering: a function using `.call_via` can
+keep a value in r4 across the call site, which `-fcall-used-r4` forbids for a
+real `bl`. Seeing r4 survive a call is a second tell for this shape.
+
+## The `_call_via_` veneer names follow `reg_names`, and two were missing
+
+gcc-2.96 names the veneer from `reg_names`: r10 → `sl`, r11 → `fp`, r12 → `ip`,
+r14 → `lr`. `src/lib/call_via.s` already carried `.global _call_via_fp` for r11
+for exactly this reason but had no `_call_via_sl`, so any function calling
+through r10 screened one line dirty on the symbol name while being
+byte-identical. Adding the label (which emits no bytes) turned two such
+functions into matches immediately. `ip` and `lr` are still gaps if they ever
+come up.
+
+## Caveat on "two distinct symbols of equal value reload"
+
+That row of the CSE table is correct — two distinct symbols do defeat the hoist —
+but it **costs a pool word**. The ROM pools the shared constant once; two
+symbols pool twice. Measured on `OvlFunc_916_20088b0`: the hoist really does
+stop (67 differing → 6) and the object is 212 bytes against the ROM's 208. The
+trick only works where the ROM's pool holds two words anyway, so it does not
+rescue the straight-line script band.
+
+## Counter-examples to the narrowed HImode rule
+
+The rule was tightened to "only `0` and values ≥ 0x8000 need an `int` local".
+That is still the common case, but it is not exhaustive: on `Func_801b4ec`,
+`*(unsigned short *)(p + 0x3a2) = 0x21;` and `… = 8;` both pool, and `int` locals
+fixed both. Something else — here an adjacent `ldr rN, =0x3a2` offset load in the
+same statement — can drag a small value into the pool too.
+
+**Screen the plain literal first, but do not conclude a small pooled HImode
+constant is a symbol tell without trying the `int` local.**
