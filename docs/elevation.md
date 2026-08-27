@@ -4056,3 +4056,136 @@ directly puts `mov r8, r3` before `mov r6, sp` (2 of 65); assigning `p = v;` onc
 and writing everything through `p` was exact. Same family as "naming an
 intermediate stops gcc folding it", but the trigger is the order in which the
 frame pointer is materialised.
+
+## The HImode-literal rule is narrower than stated: only 0 and >= 0x8000
+
+The existing rule ("gcc-2.96 has no immediate alternative for an HImode
+constant, so use an `int` local") over-applies. Measured across four functions:
+
+| stored through a `u16`/`short *` | plain literal gives |
+|---|---|
+| `1`, `0x28`, `0xf0`, `0xfa` | the ROM's `mov rN, #imm` — **no local needed** |
+| `0` | `ldr r3, =0x0` — needs an `int` local |
+| `0xb000`, `0xfc88` (bit 15 set) | a pool load — needs an `int` local |
+
+So: **plain literals are correct for 1…0x7fff; only `0` and values ≥ 0x8000
+need the local.** `Func_801c188` stores four `u16` members with bare literals and
+is exact.
+
+The ≥ 0x8000 case has a trap in front of it. Through a *signed* `short *`,
+`0xb000` becomes `-0x5000` and pools as `0xffffb000`; making the pointer
+`unsigned short *` fixes the pool word but gcc still pools it. Both changes are
+needed — `OvlFunc_884_2008674` went 37 differing → 37 → **exact** across the two.
+
+And the local's cost is not only its own instruction: in `Func_8016230` a pooled
+zero also produced a spurious `b`/label pair fifteen instructions later, so
+`int z = 0;` took it from 51 of 72 to exact. **A stray branch downstream of a
+pooled zero is a symptom of the same defect.**
+
+## `volatile` is a reading, not a hack: two signatures
+
+**A global the ROM RELOADS is `volatile`.** The tell is one address load and two
+value loads with no call between:
+
+    ldr r6, =gKeyHeld           <- address once, kept in a callee-saved register
+    ldr r3, [r6]  ...  ldr r3, [r6]
+
+Two textual reads in C are *not* enough — gcc CSEs them. `OvlFunc_880_20081fc`
+went 95 of 100 → 10 on adding `volatile` to `gKeyHeld` alone, and the two
+instructions it restored were exactly the second reads.
+
+**A store immediately followed by a load-back of the same stack halfword is a
+`volatile` LOCAL.** `volatile unsigned short t;` is what puts the local in
+memory, forces the `mov rX, sp / add rX, #2` address register (Thumb has no
+sp-relative `strh`), and makes the write/read-back pair real.
+
+Where a `-fno-gcse` rule and a `volatile` both match, prefer `volatile` — it
+costs no per-file flag group. `OvlFunc_947_200a230` is wired that way.
+
+## `-fno-gcse` reaches a re-read that no `cse`-family flag does
+
+`OvlFunc_947_200a230` reads a global twice with a branch between; gcc caches the
+first load. `-fno-cse-follow-jumps`, `-fno-cse-skip-blocks` and
+`-fno-rerun-cse-after-loop` are all identical at 5 differing; **`-fno-gcse` is
+exact.** The redundancy is eliminated by *global* CSE, which is why the local-CSE
+flags miss it.
+
+## `-fno-schedule-insns2` is an actively misleading probe
+
+On every function this round that reached a scheduling-shaped residue, it moved
+the first differing position back to ~1 and multiplied the count: 3 → 15,
+17 → 41, 8 → 25, 2 → 23. **It is never the answer to a one-instruction
+scheduling difference, and it destroys the evidence you were reading.**
+
+## Name the store's DESTINATION pointer when the ROM computes the address first
+
+Distinct from the operand-order lever. Where the ROM computes `dst = base + K`
+as a whole instruction *before* the value:
+
+    ldr r3, =0x604 / add r2, r7, r3     <- destination first
+    ... build the value ...  /  str r0, [r2]
+
+`dst = (u8 **)(buf + 0x604); ... *dst = src;` took `Func_801c188` from 13 of 64
+to exact — **and dissolved a six-instruction difference twenty positions
+earlier.** "Fix the earliest difference first" is the usual advice; this is a
+concrete case where the later difference was the *cause* of the earlier one.
+
+## Two more one-screen levers
+
+**`i = 0;` as its own statement is not the same as `for (i = 0; …)`.** The
+`for`-init is emitted at the end of the loop preheader; a separate statement is
+emitted where you write it. `Func_80798e0`: 3 of 100 → exact.
+
+**Deleting a single-use local reaches an r0↔r4 exchange.** `OvlFunc_880_20081fc`
+was 10 of 102, every line one transposition; `t = L16ba; if (t != 0)` →
+`if (L16ba != 0)` was exact. Try it alongside the declaration-order lever on any
+same-length park whose differences are one clean transposition.
+
+**Deleting a loop-bound local moves the bound into a high register.** With
+`n = o->f27;` hoisted, gcc puts `n` in a low register and grows the push list;
+`for (i = 0; i < o->f27; i++)` lets gcc hoist the load itself and copy it to r12.
+`OvlFunc_888_200a5c4`: 8 differing → exact. The visible symptom is an extra
+callee-saved push rather than an r2/r3 swap.
+
+## Strict aliasing can SINK a store, and a `char *` lvalue pins it
+
+The existing `-fno-strict-aliasing` note is about a load hoisted above a store.
+The converse happens too: in `OvlFunc_common1_1254` a `e->f7 = 0` store sank
+~25 instructions to sit beside a zero it shared with later `int` stores, and no
+naming, ordering or scheduling flag reached it. Writing it as
+`*((unsigned char *)e + 7) = zero;` — a `char` lvalue is alias set 0 and cannot
+move past the other stores — matches on **default flags**. `-fno-strict-aliasing`
+also matches; the char-pointer form is strictly better because it needs no flag.
+
+> When a store lands far from where the ROM has it and nothing else differs, ask
+> whether alias sets let gcc move it, before reaching for the scheduler.
+
+## Two live pointers to nearby fields: use struct members, not two locals
+
+Where the ROM has `add r3, r5, r2 / add r2, #2 / strh / add r3, r5, r2 / strh`,
+naming the addresses as one local, as two locals, computing both before either
+store, and an `off += 2` walk all leave the *second* store folded into
+register-offset addressing and one instruction short. Casting the base to a
+struct and writing `t->f290 = id; t->f292 = style;` is exact — gcc derives the
+second offset with `add r2, #2` itself. Same "offset in the TYPE" lever, but the
+failure it fixes is *address folding into the store*.
+
+## Negative: the symbol tell does NOT govern argument-setup order
+
+The doc says a pool load of a SYMBOL is not hoisted where an int constant is.
+That governs hoisting **across a call**, not the order of argument setup *within*
+one call. Measured on `OvlFunc_881_2009a98`: replacing both constants of
+`__MapActor_SetSpeed(8, 0x9999, 0x4ccc)` with symbol addresses emits the two pool
+loads before `mov r0, #8`, byte-for-byte the same as the literal spelling. Do not
+spend a `.sym` addition on argument order.
+
+## A duplicated `.L` label in a ref is not necessarily a defect
+
+`asm/overlays/rom_7ac2d8/ovl_d58_a.s` defines `.Ld90:` on two consecutive lines,
+which makes `tryc.py` report 6 differing of 69 for a byte-identical function.
+That looks like a corpus defect and it is tempting to delete one.
+
+**Deleting it makes the screen worse — 6 differing becomes 47.** gcc genuinely
+emits two labels at that address from the correct C, so the duplication is a
+faithful transcription of the original object, not a transcription error. The
+function is byte-identical (164/164) *with* the duplicate present. Left as-is.
