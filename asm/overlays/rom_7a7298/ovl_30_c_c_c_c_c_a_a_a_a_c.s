@@ -1,0 +1,263 @@
+	.include "macros.inc"
+
+@ Counter: shop 0xa via Func_b0278, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0x153e, 0x164b.
+@ Gated on save bit 0x881.
+.thumb_func_start OvlFunc_921_20087a4
+	push	{r5, lr}
+	mov	r0, #0
+	bl	__MapActor_GetActor
+	mov	r2, #6
+	ldrsh	r5, [r0, r2]
+	ldr	r0, =0x881
+	bl	__GetFlag
+	cmp	r0, #0
+	beq	.L804
+	ldr	r2, =0x5fff0000
+	lsl	r3, r5, #16
+	add	r3, r2
+	ldr	r2, =0x3ffe0000
+	cmp	r3, r2
+	bhi	.L7d0
+	mov	r0, #0xa
+	mov	r1, #0xc
+	bl	__Func_80b0278
+	b	.L86c
+.L7d0:
+	bl	__CutsceneStart
+	mov	r2, #0
+	mov	r1, #0
+	mov	r0, #0xc
+	bl	__Func_809280c
+	mov	r0, #0xa
+	bl	__CutsceneWait
+	ldr	r0, =0x164b
+	bl	__MessageID
+	mov	r0, #0xc
+	mov	r1, #0
+	bl	__ActorMessage
+	mov	r1, #0x80
+	mov	r0, #0xc
+	lsl	r1, #7
+	mov	r2, #0xa
+	bl	__Func_8092adc
+	bl	__CutsceneEnd
+	b	.L86c
+.L804:
+	ldr	r2, =0x5fff0000
+	lsl	r3, r5, #16
+	add	r3, r2
+	ldr	r2, =0x3ffe0000
+	cmp	r3, r2
+	bhi	.L86c
+	bl	__CutsceneStart
+	mov	r0, #0xc0
+	mov	r1, #0xc0
+	lsl	r0, #11
+	lsl	r1, #8
+	bl	__Func_80933d4
+	mov	r0, #0xd5
+	mov	r1, #1
+	mov	r2, #0xf6
+	lsl	r2, #17
+	mov	r3, #1
+	neg	r1, r1
+	lsl	r0, #17
+	bl	__Func_80933f8
+	bl	__Func_8093530
+	mov	r0, #0x14
+	bl	__CutsceneWait
+	ldr	r1, =gScript_921__0200a5ec
+	mov	r0, #0xc
+	bl	__MapActor_RunScript
+	ldr	r0, =0x153e
+	bl	__MessageID
+	mov	r0, #0xc
+	mov	r1, #0
+	bl	__ActorMessage
+	mov	r0, #0xd5
+	mov	r1, #1
+	mov	r2, #0x9a
+	lsl	r0, #17
+	neg	r1, r1
+	lsl	r2, #18
+	mov	r3, #1
+	bl	__Func_80933f8
+	bl	__Func_8093530
+	bl	__CutsceneEnd
+.L86c:
+	pop	{r5}
+	pop	{r0}
+	bx	r0
+.func_end OvlFunc_921_20087a4
+
+@ Counter: shop 0xb via Func_b0278, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0x1543, 0x164d.
+@ Gated on save bit 0x881.
+.thumb_func_start OvlFunc_921_200888c
+	push	{r5, lr}
+	mov	r0, #0
+	bl	__MapActor_GetActor
+	mov	r2, #6
+	ldrsh	r5, [r0, r2]
+	ldr	r0, =0x881
+	bl	__GetFlag
+	cmp	r0, #0
+	beq	.L8ec
+	ldr	r2, =0x5fff0000
+	lsl	r3, r5, #16
+	add	r3, r2
+	ldr	r2, =0x3ffe0000
+	cmp	r3, r2
+	bhi	.L8b8
+	mov	r0, #0xb
+	mov	r1, #0xd
+	bl	__Func_80b0278
+	b	.L954
+.L8b8:
+	bl	__CutsceneStart
+	mov	r2, #0
+	mov	r1, #0
+	mov	r0, #0xd
+	bl	__Func_809280c
+	mov	r0, #0xa
+	bl	__CutsceneWait
+	ldr	r0, =0x164d
+	bl	__MessageID
+	mov	r0, #0xd
+	mov	r1, #0
+	bl	__ActorMessage
+	mov	r1, #0x80
+	mov	r0, #0xd
+	lsl	r1, #7
+	mov	r2, #0xa
+	bl	__Func_8092adc
+	bl	__CutsceneEnd
+	b	.L954
+.L8ec:
+	ldr	r2, =0x5fff0000
+	lsl	r3, r5, #16
+	add	r3, r2
+	ldr	r2, =0x3ffe0000
+	cmp	r3, r2
+	bhi	.L954
+	bl	__CutsceneStart
+	mov	r0, #0xc0
+	mov	r1, #0xc0
+	lsl	r0, #11
+	lsl	r1, #8
+	bl	__Func_80933d4
+	mov	r0, #0xd5
+	mov	r1, #1
+	mov	r2, #0xf6
+	lsl	r2, #17
+	mov	r3, #1
+	neg	r1, r1
+	lsl	r0, #17
+	bl	__Func_80933f8
+	bl	__Func_8093530
+	mov	r0, #0x14
+	bl	__CutsceneWait
+	ldr	r1, =gScript_921__0200a5ec
+	mov	r0, #0xd
+	bl	__MapActor_RunScript
+	ldr	r0, =0x1543
+	bl	__MessageID
+	mov	r0, #0xd
+	mov	r1, #0
+	bl	__ActorMessage
+	mov	r0, #0xd5
+	mov	r1, #1
+	mov	r2, #0x9a
+	lsl	r0, #17
+	neg	r1, r1
+	lsl	r2, #18
+	mov	r3, #1
+	bl	__Func_80933f8
+	bl	__Func_8093530
+	bl	__CutsceneEnd
+.L954:
+	pop	{r5}
+	pop	{r0}
+	bx	r0
+.func_end OvlFunc_921_200888c
+
+@ Counter: shop 0xc via Func_b0278, opened only from inside the facing arc.
+@ Outside it the attendant speaks instead -- lines 0x1546, 0x1547, 0x164f.
+@ Gated on save bit 0x881.
+.thumb_func_start OvlFunc_921_2008974
+	push	{r5, lr}
+	mov	r0, #0
+	bl	__MapActor_GetActor
+	mov	r2, #6
+	ldrsh	r5, [r0, r2]
+	ldr	r0, =0x881
+	bl	__GetFlag
+	cmp	r0, #0
+	beq	.L9ce
+	ldr	r2, =0x5fff0000
+	lsl	r3, r5, #16
+	add	r3, r2
+	ldr	r2, =0x3ffe0000
+	cmp	r3, r2
+	bhi	.L9a0
+	mov	r0, #0xc
+	mov	r1, #0xf
+	bl	__Func_80b0278
+	b	.La1e
+.L9a0:
+	bl	__CutsceneStart
+	mov	r2, #0
+	mov	r1, #0
+	mov	r0, #0xf
+	bl	__Func_809280c
+	ldr	r0, =0x164f
+	bl	__MessageID
+	mov	r0, #0xf
+	mov	r1, #0
+	bl	__ActorMessage
+	mov	r1, #0x80
+	mov	r0, #0xf
+	lsl	r1, #7
+	mov	r2, #0
+	bl	__Func_8092adc
+	bl	__CutsceneEnd
+	b	.La1e
+.L9ce:
+	ldr	r2, =0x5fff0000
+	lsl	r3, r5, #16
+	add	r3, r2
+	ldr	r2, =0x3ffe0000
+	cmp	r3, r2
+	bhi	.L9fa
+	bl	__CutsceneStart
+	ldr	r0, =0x1546
+	bl	__MessageID
+	mov	r0, #0xe
+	mov	r1, #0
+	bl	__ActorMessage
+	mov	r1, #0xe
+	mov	r0, #0xc
+	bl	__Func_80b0278
+	bl	__CutsceneEnd
+	b	.La1e
+.L9fa:
+	mov	r2, #0xa
+	mov	r1, #0
+	mov	r0, #0xe
+	bl	__Func_809280c
+	ldr	r0, =0x1547
+	bl	__MessageID
+	mov	r0, #0xe
+	mov	r1, #0
+	bl	__ActorMessage
+	mov	r1, #0xa0
+	mov	r0, #0xe
+	lsl	r1, #7
+	mov	r2, #0xa
+	bl	__Func_8092adc
+.La1e:
+	pop	{r5}
+	pop	{r0}
+	bx	r0
+.func_end OvlFunc_921_2008974

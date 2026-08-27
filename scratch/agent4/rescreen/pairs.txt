@@ -17,3 +17,15 @@ src/non_matching/rom_8a000/95290.c|StartThunder2|asm/rom_8a000/rom_944ec_a_a_c_c
 src/non_matching/rom_8a000/809b0dc.c|Func_809b0dc|asm/rom_8a000/rom_9ad70_c_a.s
 src/non_matching/ovl_799abc/20089dc.c|OvlFunc_905_20089dc|asm/overlays/rom_799abc/ovl_30_a_a_a_c_c_c_c_a.s
 src/non_matching/rom_9000/HeightTile_4.c|HeightTile_4|asm/rom_9000/rom_11ce0_a_c_c_a_a_a_b.s
+src/non_matching/rom_b0000/80b0a20.c|Func_80b0a20|asm/rom_b0000/rom_b0070_a_a_c_c_a_a.s
+src/non_matching/rom_b0000/80b0694.c|Func_80b0694|asm/rom_b0000/rom_b0070_a_a_c_a_c_c_c_a.s
+src/non_matching/rom_b0000/80b06c0.c|Func_80b06c0|asm/rom_b0000/rom_b0070_a_a_c_a_c_c_c_a.s
+src/non_matching/ovl_7c460c/2008c74.c|OvlFunc_939_2008c74|asm/overlays/rom_7c460c/ovl_314_a_c_c_a_c_c.s
+src/non_matching/ovl_7d4af4/20086e8.c|OvlFunc_949_20086e8|asm/overlays/rom_7d4af4/ovl_30_c_c_a_c_c_c_c_c_c_c_c.s
+src/non_matching/rom_15000/801ce48.c|Func_801ce48|asm/rom_15000/rom_1ca1c_a_a_c.s
+src/non_matching/rom_15000/8019908.c|Func_8019908|asm/rom_15000/rom_1908c_c_a_c_c.s
+src/non_matching/ovl_780898/2008e54.c|OvlFunc_883_2008e54|asm/overlays/rom_780898/ovl_30_c_c_c_a_a_a_c_c_c_a_a_a.s
+src/non_matching/ovl_common/common2_28c.c|OvlFunc_common2_28c|asm/overlays/common/common2_a.s
+src/non_matching/ovl_7b9cb4/20086a0.c|OvlFunc_932_20086a0|asm/overlays/rom_7b9cb4/ovl_30_a_c_c_a_a_a_c_c_c_c_c_c_a.s
+src/non_matching/ovl_7a7298/20099bc.c|OvlFunc_921_20099bc|asm/overlays/rom_7a7298/ovl_30_c_c_c_c_c_c_c_a.s
+src/non_matching/rom_c0/80063bc.c|Func_80063bc|asm/rom_c0/rom_5cf8_a_a_c_a.s

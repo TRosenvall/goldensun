@@ -1,13 +1,13 @@
 #!/bin/sh
 # bytecheck.sh <candidate.c> <ref.s> <FuncName> [cflags...]
+# Assembles the candidate and the ROM function standalone and diffs .text.
 C="$1"; REF="$2"; FN="$3"; shift 3
 cd /tmp || exit 1
 python3 - "$REF" "$FN" <<'PY' > rom.s
-import sys, re
+import sys
 t=open('/work/'+sys.argv[1]).read()
 fn=sys.argv[2]
-m=re.search(r'^\s*\.thumb_func_start(?:_noalign)?\s+'+re.escape(fn)+r'\b.*$', t, re.M)
-i=m.start()
+import re as _re; i=_re.search(r"\.thumb_func_start\s+"+fn+r"\b", t).start()
 j=t.index('.func_end '+fn)+len('.func_end '+fn)
 print('\t.include "macros.inc"')
 print(t[i:j])
@@ -23,5 +23,5 @@ arm-none-eabi-objdump -d rom.o  | sed 's/^ *//' | cut -f2- | tail -n +4 > r.txt
 echo "== $FN"
 arm-none-eabi-size -A ours.o | grep -w .text | sed 's/^/  ours /'
 arm-none-eabi-size -A rom.o  | grep -w .text | sed 's/^/  rom  /'
-if diff -q o.txt r.txt >/dev/null; then echo "  TEXT IDENTICAL"; else diff o.txt r.txt | head -40; fi
+if diff -q o.txt r.txt >/dev/null; then echo "  TEXT IDENTICAL"; else diff o.txt r.txt | head -30; fi
 echo "  relocs:"; arm-none-eabi-objdump -r ours.o | grep ABS32 | sed 's/^/    /'

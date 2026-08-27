@@ -1,0 +1,16 @@
+src/non_matching/rom_c9000/cd260_a.c asm/rom_c9000/rom_cd260_a.s Task_BlitAnim
+src/non_matching/ovl_7b7790/2008598.c asm/overlays/rom_7b7790/ovl_314_c_c_c_c_c_c.s OvlFunc_929_2008598
+src/non_matching/rom_77000/rom_78ad0.c asm/rom_77000/rom_78a8c_c_a.s Func_8078ad0
+src/non_matching/ovl_7ed0a0/2009458.c asm/overlays/rom_7ed0a0/ovl_30_a_c_c_a_a.s OvlFunc_964_2009458
+src/non_matching/ovl_7b7f1c/2008870.c asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_a_c_a.s OvlFunc_930_2008870
+src/non_matching/ovl_7f148c/2008078.c asm/overlays/rom_7f148c/ovl_30_c_c_a_c_a.s OvlFunc_966_2008078
+src/non_matching/ovl_780898/2008dc0.c asm/overlays/rom_780898/ovl_30_c_c_c_a_a_a_a_c_c_a_c_c.s OvlFunc_883_2008dc0
+src/non_matching/rom_77000/rom_79c30.c asm/rom_77000/rom_79460_c_c_c_c_a_c_c_a_a.s Func_8079c30
+src/non_matching/rom_b5000/80c23a0.c asm/rom_b5000/rom_c1a34_a_a_c_c_a_a.s Func_80c23a0
+src/non_matching/overlays/2008acc.c asm/overlays/rom_793768/ovl_314_c_c_a_c_c_c_a_a_c.s OvlFunc_898_2008acc
+src/non_matching/ovl_7ced6c/2009494.c asm/overlays/rom_7ced6c/ovl_30_c_c_a_c_c_a_a_c.s OvlFunc_946_2009494
+src/non_matching/rom_a1000/rom_a22f4.c asm/rom_a1000/rom_a1814_c_a_a_c_a_c_a_c.s Func_80a22f4
+src/non_matching/ovl_799abc/20089dc.c asm/overlays/rom_799abc/ovl_30_a_a_a_c_c_c_c_a.s OvlFunc_905_20089dc
+src/non_matching/rom_b0000/80b06c0.c asm/rom_b0000/rom_b0070_a_a_c_a_c_c_c_a.s Func_80b06c0
+src/non_matching/ovl_780898/2008e54.c asm/overlays/rom_780898/ovl_30_c_c_c_a_a_a_c_c_c_a_a_a.s OvlFunc_883_2008e54
+src/non_matching/ovl_7a7298/20099bc.c asm/overlays/rom_7a7298/ovl_30_c_c_c_c_c_c_c_a.s OvlFunc_921_20099bc
