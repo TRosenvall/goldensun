@@ -122,6 +122,8 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-112](reports/batch-112.md) | 13 | ready to port — a park that was never wrong (a dirty screen opening on a LABEL is a false negative); the symbol tell fires on large values too; six TUs wanted CSE_CFLAGS |
 | [batch-113](reports/batch-113.md) | 10 | ready to port — a double slash made six Makefile rules silently dead (clean overlays, failing ROM sha1); two mis-scoped -O1 wildcards; label sweep of all 228 parks is a clean negative |
 | [batch-114](reports/batch-114.md) | 6 | ready to port — block layout tells you which branch is the if BODY (42 of 55 wrong way round); signed division and signed ranges are gcc's own; grep for an IDIOM as a third family axis |
+| [batch-115](reports/batch-115.md) | 32 | ready to port — a .pool_aligned inside a loop is a SECOND label false negative my batch-113 sweep could not have found (4 byte-identical functions); -fno-rerun-cse-after-loop costs matches in loops; declaration order, parameter-copy and while(1)-increment levers |
+| [batch-116](reports/batch-116.md) | 0 | 12 parks, six at <=5 differing — store INSIDE each arm or gcc speculates; read a field twice to get the mov; `ldr rN,=0` is NOT a symbol tell; `push {r4` greps for a file that wants -fcall-saved-r4 |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The

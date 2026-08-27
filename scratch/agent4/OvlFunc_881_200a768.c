@@ -24,13 +24,15 @@ void OvlFunc_881_200a768(void)
 {
     int i;
 
-    for (i = 0; ; i++) {
+    i = 0;
+    while (1) {
         if (gOvl_0200e3f4[i].f0 == 1 && gOvl_0200e3f4[i].f4 == 0x8a) {
             gOvl_0200e3f4[i].f0 = 2;
             gOvl_0200e3f4[i].f8 = OvlFunc_881_200a858;
         }
         if (gOvl_0200e3f4[i].f0 == -1)
             break;
+        i++;
     }
     for (i = 0; ; i++) {
         if (gTbl2[i].f0 == 0x39) {

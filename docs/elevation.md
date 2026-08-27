@@ -3702,3 +3702,175 @@ the `=0xfffff` division bias twice or more returns 15 functions.
 
 So the three axes are: same PROLOGUE, same SHAPE, same IDIOM. The third is a
 one-line grep and it found a family the other two score apart.
+
+## A `.pool_aligned` INSIDE A LOOP is the other label false negative
+
+Batch 112 found a false negative where the first differing line is a label
+definition. Batch 113 built `tools/label_false_negatives.py` for exactly that
+signature, swept all 228 parks, got zero hits, and recorded it as a clean
+negative. **That conclusion was too broad and the detector was too narrow.**
+
+Batch 115 elevated four functions that screen DIRTY at 48, 28, 25 and 26
+differing lines and are **byte-for-byte identical to the ROM**. The sweep could
+not have found them:
+
+* it screened only **parks**, and three of the four had never been attempted;
+* it flagged only diffs whose **first** differing line is a label, and these
+  open on an ordinary instruction — the label shift appears further down.
+
+The producing shape is a **`.pool_aligned` inside a loop body**. The ROM has
+`b .LN / pool / .LN:` — one label — where gcc emits two, and every subsequent
+line shifts by one position.
+
+> Any DIRTY screen whose ref contains `.pool_aligned` inside a loop goes to a
+> byte-level check BEFORE a single spelling is changed.
+
+The check is to assemble the candidate and the ROM function standalone and diff
+the `objdump -d` byte column together with `.text` sizes;
+`scratch/agent3/bytecheck.sh` does it. Equal size plus equal byte sequence is
+proof; `make compare` then confirms it in the tree.
+
+The general lesson, which cost more than the four functions: **a negative from a
+detector bounds only what that detector looks at.** "Swept all 228 parks: zero
+hits" was true and was reported as though it settled the question.
+
+## `-fno-rerun-cse-after-loop` is not free, and LOOPS are where it costs
+
+This doc has said for many batches to try the flag before contorting the C. The
+counterpart, measured across four independent screening runs:
+
+| function | default | with the flag |
+|---|---|---|
+| `OvlFunc_918_20097ec` | 18 differing | **45** |
+| `OvlFunc_881_200a768` | **OK** | 23 differing |
+| `OvlFunc_969_20084bc` | **OK** | 35 differing |
+| `OvlFunc_925_20088cc` | **OK** | 35 differing |
+| `OvlFunc_932_200b9c8` | **OK** | 47 differing |
+
+In a loop whose base address is a `SYMBOL_REF`, the second CSE pass is what
+keeps that base in one register; removing it makes gcc rebuild the address at
+every access. **Measure it, never assume it neutral, and never widen it to a
+file group on the strength of one function in that file.**
+
+## Reading rule: count the `mov r0, #0` sites
+
+For a boolean-returning function built from a chain of tests, the number of
+distinct `mov r0, #0` sites tells you how the source is spelled:
+
+* **one** zero site — one combined condition,
+  `if (A && B && C && D) return 1; return 0;`
+* **two** zero sites, one hoisted above the first `cmp` — the first test is a
+  **separate early return**,
+  `if (!A) return 0; if (C && D) return 1; return 0;`
+
+`OvlFunc_959_200981c` and `OvlFunc_959_2009880` are the same shape with the axes
+swapped and take *opposite* spellings. The second is 16 of 52 written the first
+way and exact written the second. Two family members wanting opposite spellings
+of the same test is normal; the zero-site count is what separates them.
+
+## Three cheap levers, each one screen
+
+**Declaration order alone, statements untouched.** `OvlFunc_956_20085e0` went 13
+of 54 → exact on swapping `int m; int n;` to `int n; int m;`. Swapping the
+*assignments* gave 11; four separate locals gave 6. The earlier claim that
+declaration order is inert once the values are born in separate statements is
+wrong. Try this first on any same-length r2↔r3 park.
+
+**Copy the FIRST parameter into a local to swap the two entry `mov`s.**
+`OvlFunc_883_200b45c` differed only in `mov r8, r1` / `mov r6, r0` order.
+`f(int first, …) { int slot = first; … }` makes gcc emit the *second*
+parameter's copy first. Naming the second parameter instead does nothing.
+
+**`while (1) { …; if (exit) break; i++; }` reaches strength reduction where
+`for (i = 0; ; i++)` does not.** `OvlFunc_881_200a768` walks a 12-byte-record
+table; the `for` form rebuilds `i*12` at every access (29 of 52 differing), the
+`while` form yields the ROM's two byte-offset induction variables and matches.
+Semantically identical — only the increment's position relative to the `break`
+differs. The second loop in the same function strength-reduces correctly in
+`for` form, so this is not about record size.
+
+## Store INSIDE each arm, or gcc will speculate the cheap one
+
+`if (c) { small } else { big }` with one store after the join: written with a
+shared result variable and a single trailing store — including the `goto`
+spelling — gcc **speculates the cheap arm above the compare**, inverts the
+branch, and the small block stops being a block: `OvlFunc_943_20088e0` at 45 of
+46. Writing the store **inside each arm** and letting cross-jumping merge the
+two identical `strb`s reproduces the ROM's layout: 11 of 46.
+
+> When the ROM's short arm is a real basic block ending in `b`, the source
+> stores in the arm. When gcc collapses your short arm, you gave it something
+> speculatable.
+
+This is the mirror image of the tail-merge notes above, which are about arms
+that *should* merge.
+
+## Read a field twice to get the redundant-looking `mov`
+
+The ROM has `ldrb r3,[r3] / cmp r3,#0 / … / mov r1, r3`. `n = p->f27;
+if (n != 0) {…}` coalesces that copy away. Writing the **guard on the field** and
+the **body on a local** — two textual reads that gcc then CSEs — reproduces it.
+`OvlFunc_882_200a09c`: 23 → 3 differing on this alone. Generalises
+rebuilt-vs-carried to a value the ROM reads once but the source names twice.
+
+## Correction: `ldr rN, =0` is NOT a symbol tell
+
+The pooled-small-constant section says gcc never pools a constant it can `mov`,
+and sends you to `const.sym`. **gcc-2.96 really does pool a plain literal `0`.**
+`OvlFunc_945_2008284` has two `ldr r3, =0` sites and a plain `0` reproduces both
+byte-exact; gcc writes them as `ldrh r3, .L11` + `.word 0`, which the assembler
+encodes as `ldr r3, [pc, #imm]`.
+
+There are 53 `ldr rN, =0` sites in `asm/`. The shape appears where gcc
+**cross-jumps two arms into a shared tail** and needs the constant in a register
+on the merged path; in the same function the non-merged arm uses a register that
+already holds 0. Do not add a `_CONST_0`.
+
+## `push {r4` is a one-grep test that the file is NOT built with `-fcall-used-r4`
+
+**0 of 2134 generated `.s` files under `asm/overlays/` contain a `push {r4`.**
+The flag is global in `GCC296_CFLAGS`, so a *hand-written* `.s` that pushes r4
+cannot have been built with it. `OvlFunc_common2_380` is 12 of 52 under the
+tree's flags with **every one of the 12 an r4-vs-r5 rename**, and exact under
+`--cflags "-fcall-saved-r4"`.
+
+    grep -l 'push\t{r4' asm/overlays/**/*.s
+
+This is worth running across the whole parked set. The failure signature —
+correct instruction count, every differing line a callee-saved register rename —
+currently reads as "register allocation, unreachable from C", which is the
+largest blocked class in the corpus.
+
+## Screening against a `.sym` addition without touching the tree
+
+`tryc.py` resolves `_MSG_*`, `_AREA_*` and friends from `/work/<name>.sym`, and
+`ROOT` is fixed at `/work`. Bind-mount a modified copy **over** that one path,
+read-only, in the same `docker run`:
+
+    docker run --rm -v "$PWD:/work" \
+      -v "$PWD/scratch/message_plus.sym:/work/message.sym:ro" \
+      -w /work goldensun-build python3 tools/tryc.py ...
+
+The host file is untouched. This turns "1 differing, and it is the symbol I would
+have to add" into a real `OK` **before** anyone edits a linker fragment. Works
+for `wram.sym`, `file_table.sym` and `area.sym` too.
+
+## A worklist `ref` path goes stale the moment its `.s` is split
+
+Splitting renames the file. A worklist generated before the split points at a
+path that no longer exists. `showfunc.py <name>` resolves the current path in one
+call **and** catches the already-elevated case, since `tryc.py` refuses a
+generated `.s` as a tautology. Make it step 0 for every function rather than
+trusting the recorded path.
+
+## Exporting labels for a split is iterative — drive it from the tool's output
+
+`split_s.py` reports the labels it needs exported, but only the ones it hits
+first. `asm/overlays/rom_7795e8/ovl_30_c_c.s` took four rounds (`.L14d4 .L14dc
+.L16b0 .L16b2 .L16b4` → `.L16bc` → `.L16b6 .L16ba`). Loop on the tool's output
+rather than reading the file, and note that a shell loop passing a
+newline-separated label list unquoted will silently do nothing — pass the labels
+as separate argv entries.
+
+Exports are byte-neutral: verify `make compare` after the export and **before**
+the split, so the two changes stay separable.
