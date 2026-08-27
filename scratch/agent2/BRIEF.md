@@ -172,3 +172,31 @@ highest-yield things added since the last brief.
 
 Your worklist is `scratch/agentN/worklist.json` — 16 functions, band 34-62
 instructions, parks already excluded.
+
+## Round 4 — you are working a BIGGER band
+
+Previous rounds worked 34-62 instruction functions. Your worklist is **12
+functions of 60-99 instructions**. This band has 550 unparked members and only
+about 20 parks across the whole thing, so it is essentially untouched — the
+levers in this brief have barely been tried here.
+
+What changes at this size:
+
+* **Expect more than one blocker per function.** At 40 instructions a DIRTY
+  screen is usually one decision. At 80 it is often two or three independent
+  ones. Fix the EARLIEST differing position first and re-screen — later
+  differences frequently dissolve because they were a cascade from the first.
+* **Do not judge progress by the differing COUNT alone.** A change that takes
+  you 30 → 28 may be right, and one that takes 30 → 12 may be a coincidence of
+  register naming. Read where the first difference moved to.
+* **Loops are much more common here.** That makes item 2 above (the CSE flag
+  costing matches) and the strength-reduction lever (item 4) far more likely to
+  matter than they were in the small band.
+* **Budget your time.** 12 functions, not 16. If one is still far off after a
+  dozen screens, park it with the measurements and move on — a well-measured
+  park is worth more than a half-finished match, and the coordinator can pick
+  it up with fresh eyes.
+
+Report the first-differing-line POSITION as well as the count for anything that
+does not close. At this size that is the single most useful number for whoever
+picks it up next.

@@ -1,82 +1,62 @@
 [
  {
-  "name": "Func_80d67dc",
-  "ref": "asm/rom_c9000/rom_d6504_a_c_c.s",
-  "insns": 59
+  "name": "OvlFunc_926_20093b8",
+  "ref": "asm/overlays/rom_7b2078/ovl_314_c_c_a_c_c_c_a_a_c_c.s",
+  "insns": 78
  },
  {
-  "name": "OvlFunc_946_2009f78",
-  "ref": "asm/overlays/rom_7ced6c/ovl_30_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_c_a_c_a.s",
-  "insns": 61
+  "name": "OvlFunc_924_2009420",
+  "ref": "asm/overlays/rom_7ac2d8/ovl_f84_a_c_c_c_c_a.s",
+  "insns": 66
  },
  {
-  "name": "OvlFunc_968_2008b08",
-  "ref": "asm/overlays/rom_7f2f14/ovl_30_a_c_c_a_c.s",
+  "name": "OvlFunc_927_2008d90",
+  "ref": "asm/overlays/rom_7b4558/ovl_30_a_c_c_a.s",
+  "insns": 60
+ },
+ {
+  "name": "OvlFunc_948_200952c",
+  "ref": "asm/overlays/rom_7d30e0/ovl_30_c_a_c_c_a_a_c_c_c_a_c_c_c_c_c_c.s",
+  "insns": 66
+ },
+ {
+  "name": "Func_80a19a0",
+  "ref": "asm/rom_a1000/rom_a1814_a.s",
+  "insns": 76
+ },
+ {
+  "name": "Func_80aad10",
+  "ref": "asm/rom_a1000/rom_aa538_c_c_a.s",
+  "insns": 82
+ },
+ {
+  "name": "OvlFunc_881_200b6dc",
+  "ref": "asm/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_c_c_c.s",
+  "insns": 89
+ },
+ {
+  "name": "Func_80bace8",
+  "ref": "asm/rom_b5000/rom_b9b30_c.s",
+  "insns": 63
+ },
+ {
+  "name": "Func_801cae0",
+  "ref": "asm/rom_15000/rom_1ca1c_a_a.s",
+  "insns": 70
+ },
+ {
+  "name": "CutsceneStart",
+  "ref": "asm/rom_8a000/rom_91584_a_c_a_c_c_c.s",
+  "insns": 63
+ },
+ {
+  "name": "Func_8019854",
+  "ref": "asm/rom_15000/rom_1908c_c_a_c.s",
   "insns": 62
  },
  {
-  "name": "OvlFunc_948_20097ac",
-  "ref": "asm/overlays/rom_7d30e0/ovl_30_c_a_c_c_a_a_c_c_c_c_c_c.s",
-  "insns": 59
- },
- {
-  "name": "Func_809088c",
-  "ref": "asm/rom_8a000/rom_8d9a4_c_c_c_a_a_a_c.s",
-  "insns": 37
- },
- {
-  "name": "OvlFunc_941_2009394",
-  "ref": "asm/overlays/rom_7c5efc/ovl_30_c_c_c_c_a.s",
-  "insns": 53
- },
- {
-  "name": "OvlFunc_971_2008f30",
-  "ref": "asm/overlays/rom_7fb4a8/ovl_30_a_c_c_c_c.s",
-  "insns": 39
- },
- {
-  "name": "Func_808b98c",
-  "ref": "asm/rom_8a000/rom_8b674_c_a.s",
-  "insns": 49
- },
- {
-  "name": "Func_80a40ac",
-  "ref": "asm/rom_a1000/rom_a1814_c_c_a_a.s",
-  "insns": 46
- },
- {
-  "name": "Func_80e727c",
-  "ref": "asm/rom_c9000/rom_e6638_a_c.s",
-  "insns": 44
- },
- {
-  "name": "Func_809ad90",
-  "ref": "asm/rom_8a000/rom_9ad70_a_a_a_c_a.s",
-  "insns": 35
- },
- {
-  "name": "OvlFunc_959_200a69c",
-  "ref": "asm/overlays/rom_7e7574/ovl_9dc_c_c_a_a_a.s",
-  "insns": 46
- },
- {
-  "name": "OvlFunc_909_2008150",
-  "ref": "asm/overlays/rom_79c738/ovl_30_c_c_a_a_c_a.s",
-  "insns": 36
- },
- {
-  "name": "OvlFunc_968_200af30",
-  "ref": "asm/overlays/rom_7f2f14/ovl_30_c_c_a_a_c_a_c.s",
-  "insns": 37
- },
- {
-  "name": "OvlFunc_953_2008648",
-  "ref": "asm/overlays/rom_7d95dc/ovl_30_c_c_c_a_a_a_c_c_a.s",
-  "insns": 43
- },
- {
-  "name": "OvlFunc_922_2009d78",
-  "ref": "asm/overlays/rom_7a8c8c/ovl_30_c_c_c_a.s",
-  "insns": 59
+  "name": "Func_8005fcc",
+  "ref": "asm/rom_c0/rom_5cf8_a_a_a_c_c.s",
+  "insns": 79
  }
 ]
