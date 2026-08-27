@@ -10,8 +10,8 @@ void OvlFunc_918_20097ec(void)
     int one;
 
     if (T(0) != -1) {
-        one = 1;
         off = 0;
+        one = 1;
         do {
             if (__GetFlag(T(off)) && T(off + 2) != 0)
                 __CopyMapTiles(T(off + 4), T(off + 6), T(off + 8), T(off + 10),

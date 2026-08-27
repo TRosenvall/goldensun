@@ -3659,3 +3659,46 @@ exact at `-O2`.
 Do not narrow the wildcard; other files depend on it. Add an **explicit** rule
 for the one target, which GNU make prefers over any pattern rule. The cost of
 checking a warning is one screen, so check every one.
+
+## Block layout tells you which branch is the `if` BODY
+
+A conditional branch that jumps FORWARD past a block means that block is the
+fallthrough, and therefore the `if` body rather than the `else`. Getting it
+backwards does not cost one instruction; it rearranges the whole tail.
+
+    OvlFunc_917_200952c   early-return form 42 of 55, if/else form exact
+    OvlFunc_959_2009980   passing-case form 10 of 56, failing-case form exact
+    OvlFunc_959_2009918   3 of 54 with the polarity swapped
+
+`200952c` reads naturally as `if (n > 0x77) { cleanup; return; }` and that is
+wrong -- its `bgt` skips forward over the arc code, so the arc is the body.
+
+On a two-clause condition it means spelling the test as the FAILING case:
+`if (dx > 7 || dz > 5) return 0; return 1;`.
+
+On a single boolean result, **which value the ROM presets is the tell**:
+`mov r0, #1 / cmp / ble / mov r0, #0` presets TRUE and overwrites on failure,
+which is `if (cond) return 1; return 0;`. Forcing it with a result variable
+costs an instruction.
+
+## Do not write out signed division or signed ranges
+
+`if (x < 0) x += 0xfffff;` then `asr #20` is `x / 0x100000` on an `int`. gcc
+generates the bias-and-shift. Writing the bias by hand adds a branch per site,
+and these appear four times in a 54-instruction function.
+
+`v >= -6 && v <= 6` compiles to one unsigned compare (`add r3, #6 / cmp r3,
+#0xc / bhi`). Two signed compares give two branches.
+
+And where the ROM spells a test oddly, spell it that way: `ax - 1 < bx &&
+ax + 1 > bx` is `ax == bx`, and only the long form reproduces.
+
+## A third family axis: grep for an IDIOM, not a position
+
+`tools/prologue_families.py` clusters on the first N instructions and
+`find_twins.py` on whole-function shape. Batch 114's six share neither -- they
+share an idiom. Grepping every `.s` for functions under 90 instructions that use
+the `=0xfffff` division bias twice or more returns 15 functions.
+
+So the three axes are: same PROLOGUE, same SHAPE, same IDIOM. The third is a
+one-line grep and it found a family the other two score apart.

@@ -121,6 +121,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-111](reports/batch-111.md) | 12 | ready to port — four parallel screening agents (coordinator does all tree mutation); the symbol-address technique retires two parks; constant-CSE blocker measured to the end (49% of remaining mass at risk) |
 | [batch-112](reports/batch-112.md) | 13 | ready to port — a park that was never wrong (a dirty screen opening on a LABEL is a false negative); the symbol tell fires on large values too; six TUs wanted CSE_CFLAGS |
 | [batch-113](reports/batch-113.md) | 10 | ready to port — a double slash made six Makefile rules silently dead (clean overlays, failing ROM sha1); two mis-scoped -O1 wildcards; label sweep of all 228 parks is a clean negative |
+| [batch-114](reports/batch-114.md) | 6 | ready to port — block layout tells you which branch is the if BODY (42 of 55 wrong way round); signed division and signed ranges are gcc's own; grep for an IDIOM as a third family axis |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The

@@ -11,23 +11,22 @@ void OvlFunc_956_2008b30(void)
     unsigned char *gs;
     int *slot;
     unsigned char *a;
-    int lim;
     int dz;
+    int t;
     int em;
 
-    lim = 0xa6 << 18;
     dz = 0xc0 << 12;
     em = 0x81 << 1;
     gs = gState;
     slot = (int *)(gs + 0x1f4);
     a = __MapActor_GetActor(*slot);
-    if (*(int *)(a + 8) > lim)
-        *(int *)(a + 8) = lim;
+    if (*(int *)(a + 8) > (0xa6 << 18))
+        *(int *)(a + 8) = 0xa6 << 18;
     *(int *)(a + 0x34) = 0x80 << 9;
     *(int *)(a + 0x30) = 0x80 << 10;
     __Actor_SetAnim(a, 5);
-    __Actor_TravelTo(a, *(int *)(a + 8), *(int *)(a + 0xc),
-                     (*(int *)(a + 0x10) & 0xfff00000) + dz);
+    t = *(int *)(a + 0x10) & 0xfff00000;
+    __Actor_TravelTo(a, *(int *)(a + 8), *(int *)(a + 0xc), t + dz);
     __Actor_WaitMovement(a);
     __MapActor_Surprise(*slot, em);
     __Func_8092708(*slot, 6, 0);
