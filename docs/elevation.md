@@ -2898,9 +2898,19 @@ these has been measured and the alternative spelling compiled identically.
 third zero from another — the local, all-literals, and all-one-local spellings
 are the same thirty-five instructions.
 
-**Evidence.** A value that has to **survive a call**. `Func_801ef08` keeps a
-zero in r10 across three calls and writes it afterwards; spelled as a bare `0`
-the function is 35 instructions against 39 and diverges at the first. Two
+**Evidence, but only sometimes.** A value that has to **survive a call**.
+`Func_801ef08` keeps a zero in r10 across three calls and writes it afterwards;
+spelled as a bare `0` the function is 35 instructions against 39 and diverges at
+the first.
+
+**Necessary, NOT sufficient -- batch 100.** `OvlFunc_956_2008274`
+(src/overlays/rom_7e0928/ovl_30_a_c_c_a_c_c_c_b.c) keeps TWO pooled constants in
+two callee-saved registers across a call and re-stores both afterwards, which
+passes the survives-a-call test completely. Named as locals the two registers
+come out EXCHANGED (6 differing of 51) and no ordering of declarations or
+assignments fixes it; written as plain literals at both sites it matches. So
+surviving a call raises naming from "no reason to think so" to "worth trying" --
+it does not settle it. Measure both. Two
 DIFFERENT constants in two stack slots at one call site are the same kind of
 thing: they need two registers at once, so naming both is forced, while two
 copies of the SAME value are not.
