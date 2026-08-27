@@ -426,6 +426,16 @@ def instructions(text, want=None):
         s = l.strip()
         if not s or s.startswith("@"):
             continue
+        # `.call_via rN` is a MACRO (include/macros.inc), not a directive: it
+        # expands to `mov r12, pc` + `bx rN`, two real instructions.  Skipping
+        # it because it starts with a dot dropped both from the ROM stream, so
+        # every function using it screened short and looked unmatchable.  51
+        # functions contain it and the class was read as a compiler limitation.
+        m = re.match(r"^\.call_via\s+(r\d+|sl|fp|ip|lr)$", s)
+        if m:
+            body.append(canon("mov r12, pc"))
+            body.append(canon("bx " + m.group(1)))
+            continue
         if s.startswith(".") and not s.startswith(".word"):
             # .align/.global/.type/.size/.func_end carry no code
             if s.startswith(".thumb") or s.startswith(".arm"):

@@ -4330,28 +4330,51 @@ Measured identical on two functions. The **return type** is the whole lever; the
 presence or absence of a parameter list is not part of it. (Distinct from the
 batch-117 no-prototype lever, which is about removing the declaration entirely.)
 
-## `.call_via rN` in a ref is a hard wall — 51 functions
+## RETRACTED: "`.call_via rN` is a hard wall". It is reachable, and 51 functions were written off
 
-`include/macros.inc` defines `.call_via reg` as `mov r12, pc / bx \reg`. That is
-four bytes, the same size as `bl _call_via_rN`, but **different bytes**.
-gcc-2.96's thumb machine description has exactly one indirect-call pattern in
-each direction — `bl\t_call_via_%0` — unconditionally, so no C produces the
-inline form.
+I claimed here that `.call_via rN` — `mov r12, pc / bx rN`, a Thumb-to-ARM call
+into an IWRAM routine — could never be produced, because gcc-2.96's machine
+description has exactly one indirect-call pattern, `bl _call_via_%0`. **51
+functions were removed from the candidate pool on that basis. The claim was
+wrong.**
 
-**51 of the 2346 unelevated functions contain `.call_via`** (my count; the agent
-that found this reported 169 call *sites*, which is consistent — several per
-function). Every one of them is unreachable as long as that is true.
+Two mistakes compounded:
 
-This is the complement of the existing `_call_via_rN` note, which says 223
-functions *call through the veneer* and treats that as a positive signal. The
-`grep -l '\.call_via'` set is the opposite and should be **excluded from
-candidate selection**:
+1. **The machine description bounds the CODE GENERATOR, not the source
+   language.** This tree already reproduces fixed instruction sequences gcc
+   would never choose, with inline asm — `include/dma.h` does it for the DMA
+   registers. The same technique reaches `.call_via`.
+2. **`tryc.py` silently DROPPED the line.** `.call_via` begins with a dot, so
+   the ref parser skipped it as a directive — but it is a *macro* from
+   `include/macros.inc` that expands to two real instructions. Every function
+   using it screened two instructions short per call site, which reads exactly
+   like an unmatchable structural difference. Fixed: the parser now expands it.
 
-    grep -rl '\.call_via' asm/
+**`Func_8097a10` is elevated and byte-exact.** The shape that works:
 
-It also explains a puzzle worth remembering: a function using `.call_via` can
-keep a value in r4 across the call site, which `-fcall-used-r4` forbids for a
-real `bl`. Seeing r4 survive a call is a second tell for this shape.
+```c
+static inline int call_via_r4(int (*f)(int, int), int a, int b)
+{
+    register int (*_f)(int, int) __asm__("r4") = f;
+    register int _a __asm__("r0") = a;
+    register int _b __asm__("r1") = b;
+    __asm__ volatile ("\t.align\t2, 0\n\tmov\tr12, pc\n\tbx\tr4"
+                      : "=r" (_a) : "r" (_f), "0" (_a), "r" (_b)
+                      : "memory", "lr", "r12");
+    return _a;
+}
+```
+
+Note the second lever it needed: the *other* call in the same function goes
+through the ordinary veneer (`ldr r3, =F / bl _call_via_r3`), and a direct
+`F(a, b)` call will not produce that. Assigning the address to a function-pointer
+local first — `g = F; r = g(v, base);` — does.
+
+**The lesson is bigger than the class.** "The compiler cannot emit X" is a claim
+about the code generator; the ROM is evidence that *something* emitted it, and
+in a matching decomp the source is allowed to use whatever the original used —
+including inline asm. Before declaring a shape unreachable, check whether the
+screen is even *showing* you the shape.
 
 ## The `_call_via_` veneer names follow `reg_names`, and two were missing
 
