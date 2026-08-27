@@ -140,3 +140,34 @@ Three operational notes for anyone running this:
 Item 3 is the one to do first. If the `push {r4` grep is the discriminator it
 appears to be, it reclassifies a slice of the register-allocation parks, which
 is the largest blocked class in the corpus.
+
+---
+
+## Correction (added after batch 117): the `push {r4` hypothesis was overstated here
+
+Item 3 of "Tree changes still owed" above says the `push {r4` grep "reclassifies
+a slice of the register-allocation parks, which is the largest blocked class in
+the corpus", and calls it the thing to do first. **That framing was wrong in two
+ways and it was measured, not argued.**
+
+* **The signature's reach is one translation unit.** Across 1,013 hand-written
+  `.s` files and 2,452 functions, **only 16 functions push r4 at all**: eight in
+  the `overlays/common/common2*` family, seven in the m4a sound driver (genuine
+  hand-written assembly, not decompilable), and one in early boot. Four parks
+  carry it, all four `common2`. There is no "slice of the register-allocation
+  class" to reclassify.
+* **The sweep had already been run.** `src/non_matching/ovl_common/common2_28c.c`
+  records all 164 parks screened with `-fcall-saved-r4`: it improves eight and
+  matches none. I proposed work that was already in the tree's own notes.
+
+Also corrected: this report says `OvlFunc_common2_380` "is exact" under the flag.
+Re-measured, it is **1 of 52** — the flag is worth 13 → 1, the best result on
+that function anywhere, but the last line is not an r4 rename. It is the
+frame-offset-0 blocker `common2_28c` is parked on: gcc-2.96 addresses frame
+offset 0 as `[sp, #0]` whenever the base is provably `sp`, no matter how the C
+names the pointer, while still using the named register for offset 4 in the same
+pair of stores. Four spellings measured (array subscript, `*q`/`q[1]`,
+`*(q+0)`/`*(q+1)`, and a two-int struct through a pointer) all give 1 of 52.
+
+The flag is still right for `common2`, and the tree change is still owed — it is
+just one TU and about eight functions, not a class key.

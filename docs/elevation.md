@@ -3975,3 +3975,84 @@ Two refinements the specimens produced:
 and must not be counted — counting it reported 40 of 41 functions as blocked).
 In band 30–70 there are 68 such scripts and **40 have no repeated constant**.
 The first two picked from the clean list matched on the first screen.
+
+## A THIRD label false-negative shape: two returns cross-jumped to one epilogue
+
+Batch 115 recorded the `.pool_aligned`-in-a-loop shape. Here is another, and it
+has nothing to do with pools.
+
+`Func_80b60a0` screens `10 differing of 74, first diff at 54` and is
+**byte-for-byte identical** (168/168 bytes). The cause: our C has two distinct
+`return 0;` statements, gcc cross-jumps them and emits two labels at the same
+address, and the ROM's disassembly has one. Every position after shifts by one.
+
+> If the diff's disagreeing region contains **only label lines**, run the byte
+> check before changing a single spelling.
+
+Both false-negative shapes so far fail in the SAFE direction — they report a
+correct function as wrong. That is the opposite of the batch-112 hazard, and it
+means the cost is wasted screens rather than a bad commit.
+
+## `mov rd, rs` and `add rd, rs, #0` are the same instruction — for LOW registers
+
+`mov r2, r3` and `add r2, r3, #0` both assemble to `0x1c1a`. The ROM's
+disassembly writes `mov`, gcc-2.96 writes the `add` form. `Func_80a19a0`
+screened 1-of-79 DIRTY while being byte-identical purely because of this.
+
+`tools/tryc.py` now folds them — **only for r0–r7 on both operands**. `mov r8, r3`
+is `0x4698`, a genuinely different instruction with no `add` equivalent, so
+folding a high register would hide a real difference. This sits beside the
+`ldrb [r3]` / `ldrb [r3, #0]` fold.
+
+## `(idx << 1)` and `idx * 2` are not interchangeable in a register-offset store
+
+On `Func_8019000`, `*(unsigned short *)(map + idx * 2)` gives
+`strh r5, [r3, r6]` — index first — and `*(unsigned short *)(map + (idx << 1))`
+gives the ROM's `strh r5, [r6, r3]` — base first. The array-subscript form and
+`(unsigned int)map + idx*2` both give index-first. That one spelling was worth
+2 of 73. The existing operand-order note covers subscript versus pointer
+arithmetic; it does not cover `<<1` versus `*2` *inside* the pointer arithmetic.
+
+## Hoisting a constant's assignment ABOVE an unrelated load flips high-register allocation
+
+`Func_80a6a00` sat at exactly 5 of 71 with `base` in r8 and `p` in r10 where the
+ROM has the reverse. Three declaration-order permutations did nothing; swapping
+the two assignments made it worse. Hoisting `base = 0x86 << 2;` to be the
+**first statement of the function**, above the unrelated `iwram_3001f2c` load,
+was exact on the first screen.
+
+The mechanism is worth knowing because it makes the lever predictable: the
+lengthened live range lowers the allocno's priority
+(`floor_log2(n_refs) * n_refs / live_length`) and pushes it one slot down
+`REG_ALLOC_ORDER`, whose call-saved sequence for Thumb is
+**r5, r6, r7, r8, r10, r9, r11** (`arm.h:989`). r10 comes before r9 — so
+"the ROM used r10 and we used r9" is a one-slot priority difference, not noise.
+
+## The argument-list case of constant CSE, and a corpus test for it
+
+The constant-CSE blocker also fires **inside a single call's argument list**,
+where there is not even a statement boundary to reason about:
+
+* `__Func_80933f8(-1, -1, -1, 0)` — the ROM builds `-1` three times
+  (`mov #1` / `neg` ×3); gcc builds it once and copies.
+* `__Func_8012330(0x80 << 10, 0x80 << 10, 0x80 << 9)` — gcc commons the two
+  `0x20000`s.
+
+**Corpus test: 0 of the generated `.s` files contain two consecutive
+`neg rN, rN`.** So two `-1` arguments to one call is unreachable for this
+compiler — not merely unreached. Check that before spending screens.
+
+`tools/blocked_cse.py` misses this: it looks at pool constants and
+statement-level repeats, not at repeats *within one argument list*, and it let
+three such functions through in one 12-function worklist. Widening it to "the
+same non-immediate constant appearing more than once in a single call's
+argument list" is the outstanding fix.
+
+## `sub sp, #N` + `mov rX, sp` for a stack vector needs a named `int *p = v;`
+
+Both `Field_Growth` and `OvlFunc_883_200d75c` build a three-word vector on the
+stack, pass it to `vec3_translate`, then read it back. Using `v[0]`/`v[1]`/`v[2]`
+directly puts `mov r8, r3` before `mov r6, sp` (2 of 65); assigning `p = v;` once
+and writing everything through `p` was exact. Same family as "naming an
+intermediate stops gcc folding it", but the trigger is the order in which the
+frame pointer is materialised.
