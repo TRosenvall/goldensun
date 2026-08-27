@@ -38,6 +38,7 @@
  *   ... + 0xb assigned in the dominating entry block           8   (66 lines)
  *   ... + 0x47 assigned in the dominating entry block         12
  *   ... + q0/q1 hoisted to the dominating entry block         12
+ *   ... + the __Func_8010704 prototype removed entirely       14  (worse)
  *
  * The basic-block lever IS available here -- the entry block dominates the
  * whole if-body -- and it makes things WORSE at both positions tried.  That is

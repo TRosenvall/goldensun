@@ -3874,3 +3874,44 @@ as separate argv entries.
 
 Exports are byte-neutral: verify `make compare` after the export and **before**
 the split, so the two changes stay separable.
+
+## Withholding the prototype is a real lever for ARGUMENT ORDER — and it is narrow
+
+`OvlFunc_927_2009520` makes five 6-argument calls to one callee. gcc emitted
+`mov r0, #2` FIRST at every site; the ROM emits it LAST at three of them, second
+at one, and third at another — the variation is the scheduler, so the source is
+uniform and something upstream of scheduling differs.
+
+Nothing about the call sites moved it: `-fno-schedule-insns` (13 of 76),
+`-fno-schedule-insns2` (37, much worse), `-fno-rerun-cse-after-loop` (13), and a
+carried `int kind = 2;` local for the first argument (13). **Deleting the
+`extern` declaration entirely — so the callee is K&R implicit `int` — matched
+exactly.** 13 differing to zero, from removing one line.
+
+The mechanism is that without a prototype gcc has no parameter types to convert
+against, so the argument expressions are expanded in a different order. It costs
+a warning and nothing else.
+
+**But it does not generalise to the arg-interleave class.** Measured on the two
+parks with the closest-looking signature:
+
+| park | best | with no prototype |
+|---|---|---|
+| `OvlFunc_960_2008d24` | 8 of 65 | **14** (worse) |
+| `OvlFunc_948_2009df8` | 18 of 40 | 18 (no change) |
+
+So: try it, it is one line and it sometimes wins outright — but a park that
+already records "prototype removed, no change" has genuinely tested it, and the
+lever is not a reason to reopen the class.
+
+## A pooled constant that FITS a thumb immediate is a symbol tell, and `area.sym` is the first place to look
+
+`OvlFunc_960_2008d24` compares a `gState` halfword against `0xa5` and the ROM
+does it as `ldr r3, =0xa5 / cmp r2, r3`. Thumb `cmp Rn, #imm8` covers 0–255, so
+gcc had no reason to pool it. `_AREA_a5` was already in `area.sym`; spelling the
+test `== (int)(&_AREA_a5)` took the screen from **62 differing to 17**.
+
+This is the counterpart to the batch-116 correction that `ldr rN, =0` is *not* a
+symbol tell. The distinction is whether the constant is **zero** — gcc really
+does pool a literal 0 on a cross-jumped tail — versus any other small value,
+where a pool load still means a symbol.
