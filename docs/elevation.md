@@ -4210,3 +4210,25 @@ instruction sequence, grep the *generated* `.s` files for it before spending
 screens. If gcc has never produced that sequence anywhere in the corpus, no
 spelling will make it. Two classes have now been closed this way — this one and
 two consecutive `neg rN, rN`.
+
+## The split constant build: a second class closed by the corpus test
+
+`mov rA, #K / mov rB, #K2 / lsl rA, #n` — a shifted constant build with an
+unrelated `mov` slotted between its two halves — appears **0 times in the 2987
+generated `.s` files**. gcc-2.96 as configured here always finishes a shifted
+build before touching another register.
+
+This is the same shape as the `mov #K / mov #0 / neg / mov #0` family and the
+same verdict: unreachable, not unreached. Together the two cover a large part of
+what has been parked as "argument interleave" — `2009df8`, `20087dc`, `2008d24`,
+`926_2008658`, `881_2009a98` and `200be34` are all instances of a constant build
+split by an unrelated `mov`.
+
+> **Before spending screens on a fixed short residue, grep the GENERATED `.s`
+> files for that exact sequence.** If the compiler has never emitted it anywhere
+> in the corpus, no spelling will produce it. Three classes have now been closed
+> this way: two consecutive `neg rN, rN`, the `neg`-interleave quartet, and the
+> split shifted build.
+
+That test is cheap, decisive, and it is the difference between parking a class in
+one screen and grinding eleven functions to the same two-line floor.

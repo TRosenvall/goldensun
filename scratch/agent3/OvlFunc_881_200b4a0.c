@@ -36,6 +36,8 @@ void OvlFunc_881_200b4a0(void)
     struct Actor *n;
     struct Part *s;
     int d;
+    int e;
+    int r;
 
     if ((iwram_3001e40 & 0xf) == 0) {
         a = __MapActor_GetActor(8);
@@ -45,13 +47,14 @@ void OvlFunc_881_200b4a0(void)
             n->f1c = 0x80 << 8;
             s = n->part;
             if ((__Random() * 2) >> 16) {
-                d = __Random();
-                d *= 3;
-                d <<= 4;
-                d = (unsigned int)d >> 16;
-                d <<= 16;
-                n->x -= d >> 1;
-                n->z -= d;
+                r = __Random();
+                e = r * 2;
+                e += r;
+                e <<= 4;
+                e = (unsigned int)e >> 16;
+                e <<= 16;
+                n->x -= e >> 1;
+                n->z -= e;
             } else {
                 d = __Random() * 32;
                 d = (unsigned int)d >> 16;
