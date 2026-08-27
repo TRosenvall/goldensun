@@ -125,6 +125,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-115](reports/batch-115.md) | 32 | ready to port — a .pool_aligned inside a loop is a SECOND label false negative my batch-113 sweep could not have found (4 byte-identical functions); -fno-rerun-cse-after-loop costs matches in loops; declaration order, parameter-copy and while(1)-increment levers |
 | [batch-116](reports/batch-116.md) | 0 | 12 parks, six at <=5 differing — store INSIDE each arm or gcc speculates; read a field twice to get the mov; `ldr rN,=0` is NOT a symbol tell; `push {r4` greps for a file that wants -fcall-saved-r4 |
 | [batch-117](reports/batch-117.md) | 5 | ready to port — -ffixed-r7 as a per-file group (ROM spends r8 where gcc spends r7); the no-prototype lever for argument order; tools/script_candidates.py avoids the straight-line constant-CSE class at selection time |
+| [batch-118](reports/batch-118.md) | 31 | ready to port — tryc.py folded `mov rd,rs` = `add rd,rs,#0` (low regs only), a false negative that was costing correct answers; -ffixed-r7; the HImode-literal rule narrowed to 0 and >=0x8000; corrects the batch-116 push{r4} overstatement |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
