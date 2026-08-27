@@ -14,14 +14,17 @@ extern void __Func_8093530(void);
 void OvlFunc_968_2009780(void)
 {
     unsigned char *base;
+    short *p;
     int zero;
     int one;
 
     base = *(unsigned char **)iwram_3001ebc;
+    p = (short *)(base + 0xcba);
     zero = 0;
-    *(short *)(base + 0xcba) = zero;
+    *p = zero;
+    base += 0xcb6;
     one = 1;
-    *(short *)(base + 0xcb6) = one;
+    *(short *)base = one;
     __CutsceneStart();
     __MessageID(0x267d);
     __Func_809280c(0xa, 0, 0);
