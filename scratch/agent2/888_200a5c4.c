@@ -41,10 +41,8 @@ void OvlFunc_888_200a5c4(void)
     struct Actor *a;
     struct Actor *b;
     struct Obj *o;
-    struct Ent **p;
     struct Ent *e;
     unsigned int i;
-    unsigned int n;
 
     a = __MapActor_GetActor(8);
     if (a != 0) {
@@ -55,10 +53,8 @@ void OvlFunc_888_200a5c4(void)
     b->f6 = __MapActor_GetActor(8)->f6;
     __MapActor_GetActor(0xe)->f6c = OvlFunc_888_200a67c;
     o = __MapActor_GetActor(0xe)->f50;
-    n = o->f27;
-    p = o->f28;
-    for (i = 0; i < n; i++) {
-        e = *p++;
+    for (i = 0; i < o->f27; i++) {
+        e = o->f28[i];
         if (e != 0 && e->f10 != 0) {
             e->f5 = 0xa;
         }
