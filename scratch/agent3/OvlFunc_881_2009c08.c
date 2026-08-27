@@ -1,3 +1,27 @@
+/* OvlFunc_881_2009c08 -- NOT MATCHING. 34 differing of 49; ours 52 lines.
+ * ref: asm/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a.s
+ *
+ * BLOCKER: constant hoisted across a call, and this is the CLEANEST instance
+ * found -- it is the only defect in the function.  0x16f and 0x171 are each
+ * passed to two calls in one straight-line block; gcc pools each once into
+ * r5/r6 well before its first use and copies `mov r0, r6` at each site, adding
+ * a two-register push the ROM does not have.  The ROM re-issues
+ * `ldr r0, =0x16f` at every site.
+ *
+ * CONTROL: change the second pair to 0x16d/0x173 and the function is 49 lines
+ * with exactly 2 differing positions -- both of them the constants I changed.
+ * So with the real constants everything else is instruction-for-instruction
+ * exact and the CSE accounts for all 34.
+ *
+ * MEASURED, all identical at 34: -fno-rerun-cse-after-loop (the flag the tree
+ * uses for the read-then-write form of this class), -fno-gcse,
+ * -fno-cse-follow-jumps, -fno-cse-skip-blocks, -fno-expensive-optimizations,
+ * -fno-caller-saves, -fno-function-cse, and the CSE flags combined.
+ * -O1 and -fno-schedule-insns2 are 35.
+ *
+ * This belongs with src/non_matching/rom_7d30e0/2009838.c -- the straight-line
+ * members of the class the basic-block lever cannot reach.
+ */
 extern void __Func_808c4c0(void);
 extern void __Func_80936a0(int, int);
 extern void __Func_8093710(void);

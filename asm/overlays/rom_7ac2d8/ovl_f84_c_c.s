@@ -216,6 +216,7 @@
 	.incbin "overlays/rom_7ac2d8/orig.bin", 0x6010, (0x603a-0x6010)
 .L603a:
 	.incbin "overlays/rom_7ac2d8/orig.bin", 0x603a, (0x6064-0x603a)
+	.global .L6064
 .L6064:
 	.incbin "overlays/rom_7ac2d8/orig.bin", 0x6064, (0x608e-0x6064)
 	.global .L608e
