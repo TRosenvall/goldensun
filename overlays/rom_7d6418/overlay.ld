@@ -25,7 +25,9 @@ SECTIONS {
 		asm/overlays/rom_7d6418/ovl_30_c_c_a_c_b.o(.text)
 		asm/overlays/rom_7d6418/ovl_30_c_c_b.o(.text)
 		asm/overlays/rom_7d6418/ovl_30_c_c_c_a_b.o(.text)
-		asm/overlays/rom_7d6418/ovl_30_c_c_c_a_c.o(.text)
+		asm/overlays/rom_7d6418/ovl_30_c_c_c_a_c_a.o(.text)
+		asm/overlays/rom_7d6418/ovl_30_c_c_c_a_c_b.o(.text)
+		asm/overlays/rom_7d6418/ovl_30_c_c_c_a_c_c.o(.text)
 		asm/overlays/rom_7d6418/ovl_30_c_c_c_b.o(.text)
 		asm/overlays/rom_7d6418/ovl_30_c_c_c_c.o(.text)
 		src/overlays/rom_7d6418/imports.o(.text)
@@ -44,3 +46,11 @@ SECTIONS {
 		*(*)
 	}
 }
+
+/* gcc-2.96 emits __modsi3 for `%` and has no flag to rename it. Overlay code
+ * calls the RAM-resident copy through the stub .export_func modsi3_RAM makes.
+ * These are different functions at different addresses, so this alias is what
+ * lets a C modulo in an overlay link to the routine the ROM actually calls.
+ * Emits no bytes. Same reasoning as the __divsi3 alias in other overlay.ld
+ * files -- see overlays/rom_7a5214/overlay.ld for the counts. */
+__modsi3 = _modsi3_RAM;
