@@ -11,6 +11,7 @@ _MSG_19 = 0x19;
 _MSG_1a = 0x1a;
 
 /* shiftable __MessageID IDs (named by value; pending semantic names) */
+_MSG_b33 = 0xb33;
 _MSG_c9b = 0x0c9b;
 _MSG_cc6 = 0x0cc6;
 _MSG_d21 = 0x0d21;
