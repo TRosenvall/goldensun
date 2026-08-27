@@ -3029,3 +3029,56 @@ of 43. So live-range length is not the discriminator and that avenue is closed.
 What the class does respond to is narrower than hoped: a named constant of the
 field's width, and statement order, and only in cases that store in the same
 statement. Six functions have now been through it; two yielded.
+
+## A jump-table switch, and what it needs
+
+gcc-2.96 turns a dense switch into a real table:
+
+```
+	cmp	r0, #5 / bhi <default>
+	ldr	r2, =.Ltable / lsl r3, r0, #2 / ldr r3, [r3, r2] / mov pc, r3
+.Ltable:
+	.word ... six entries ...
+```
+
+`GetWeaponSpriteID` (src/rom_b5000/rom_b6eb4_a.c) is the first one matched.
+Two things had to be right.
+
+**The case values have to be dense enough.** The table has an entry for 4 even
+though 4 is not a case — its slot holds the default label. Cases 0, 1, 2, 3 and
+5 with nothing for 4 is what makes the range dense enough for gcc to prefer a
+table over the decision tree described above.
+
+**The work goes INSIDE each case, not after the switch.** Written as
+`case 0: tbl = A; break; ... default: return r;` with one `r = tbl[type];`
+after the switch, gcc emits a separate `mov r0, #0 / b` block for the default
+and comes out five instructions long. Written as `case 0: r = A[type]; break;`
+in every case, gcc cross-jumps the five identical tails into one AND lets the
+default fall straight out of the switch to the shared `return r` — which is what
+the table's default slot points at.
+
+Those are the same decision seen twice: **give gcc identical tails and let the
+default do nothing.** It is the same shape as the duplicated-tail lever for
+plain `if` exits.
+
+## A split that says "no data" is a claim to CHECK
+
+`tools/split_s.py` refuses to convert a single-function `.s` that also carries
+data, because deleting it would take the data with it and the link would fail
+much later with `undefined reference`. Twice now that check has been blind:
+
+* **batch 78** — it did not recognise `.lcomm`/`.comm` definitions;
+* **batch 101** — it counted `.incbin` but not **`.incrom`**, and its
+  "stranded label" test only looked for labels the function never mentions. A
+  jump table's targets are *both* referenced by the function *and* data, so they
+  passed. `rom_b6eb4.s` was reported dataless, deleted, and the link died on
+  `.Lc2a46`.
+
+It now counts every blob directive, flags any `.section` appearing after the
+last `.func_end`, and flags labels *defined* after the code regardless of
+whether the function mentions them.
+
+The working lesson survives the fix: **when the tool says a file has no data,
+look at the tail of the file yourself.** The failure mode is a link error that
+reads like a bad decompilation rather than a bad split, so it costs a
+disproportionate amount of time to diagnose.
