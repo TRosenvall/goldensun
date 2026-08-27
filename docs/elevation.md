@@ -2972,8 +2972,48 @@ Between them they have absorbed a dozen spellings -- operand order, declaration
 order, named intermediates, walked versus indexed pointers, signed versus
 unsigned fields -- and none of it moves the pair.
 
-**The lead worth following.** `src/rom_8a000/rom_8d9a4_c_a_c_c_c_c_c_c.c` has
-the identical four-instruction masked-byte sequence and MATCHES. The difference
+**BATCH 97: THE EXCHANGE IS SOMETIMES REACHABLE, AND THE LEVER IS A TYPE.**
+`OvlFunc_946_200985c` (src/overlays/rom_7ced6c/ovl_30_c_c_c_c_c_a_a_c_b.c) has
+the shape
+
+```
+	ldrb	r2, [r1] / mov r3, #2 / orr r3, r2 / strb r3, [r1]
+```
+
+with the CONSTANT in the destination. `*q = 2 | *q`, `*q |= 2`, `*q = *q | 2`
+and a named `int two` all put the loaded byte there instead. A named constant of
+the FIELD's own type --
+
+```c
+unsigned char two = 2;
+*q = two | *q;
+```
+
+-- puts the constant in the destination and closes the function. `int two` fails
+and `unsigned char two` works on the same statement, so it is the WIDTH of the
+named constant that is the lever, not the naming.
+
+It does not transfer everywhere: tried on `2009458.c` it gives 4 of 36 against
+that park's existing 3, and on `200ab58.c` it changes nothing. The cases it
+reached both store in the SAME statement as the mask; the ones it did not
+compute into a variable that crosses a join. That is the distinction to test
+next.
+
+**Two more orderings that reach the allocator**, both from
+`OvlFunc_923_2009bc8` (src/non_matching/ovl_7aa430/2009bc8.c), 26 differing to 7:
+
+* **Two pointer chains have to be computed before the first store**, or gcc
+  derives the second from the first with a `sub` and walks one register
+  backwards. Naming them as two locals is not enough; both must be LIVE across
+  the first store.
+* **The store order then decides which chain gets which register.**
+
+And **statement order decides a coordinate pair**: writing two field reads in
+the order the ROM loads them took `OvlFunc_946_200985c` from 9 differing to 2.
+Declaration order does nothing; the order of the STATEMENTS is what counts.
+
+**The lead still worth following.** `src/rom_8a000/rom_8d9a4_c_a_c_c_c_c_c_c.c`
+has the identical four-instruction masked-byte sequence and MATCHES. The difference
 is what follows: there the `and` result feeds an `orr` before being stored,
 giving it a longer live range; in `common0_18` it is stored immediately. If the
 allocator is splitting on live-range length, that is testable, and it would
