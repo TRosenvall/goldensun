@@ -238,6 +238,16 @@ SCHED2_CFLAGS := $(GCC296_CFLAGS) -fno-schedule-insns2
 # -fno-omit-frame-pointer also reserves r7 but adds frame setup (61 lines), so
 # it is the register reservation that is wanted and not the frame.
 FIXEDR7_CFLAGS := $(GCC296_CFLAGS) -ffixed-r7
+
+# OvlFunc_968_20096a4 is caught by the rom_7f2f14/ovl_30_c_a_c_a_c_c% wildcard,
+# which applies O1_CFLAGS -- wrong for this TU: 36 differing at -O1, 5 at -O2,
+# exact at -O2 with -fno-rerun-cse-after-loop.  An EXPLICIT rule beats a pattern
+# rule, so this overrides the wildcard without having to narrow it.
+asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c_a_a_b.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c_a_a_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 asm/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_c_a_c.o: src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_c_a_c.c
 	$(GCC296_CC) $(FIXEDR7_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
