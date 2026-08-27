@@ -565,5 +565,6 @@ gScript_953__0200adac:
 	.incbin "overlays/rom_7d30e0/orig.bin", 0x2dac, (0x2f74-0x2dac)
 .L2f74:
 	.incbin "overlays/rom_7d30e0/orig.bin", 0x2f74, (0x2f80-0x2f74)
+	.global .L2f80
 .L2f80:
 	.incbin "overlays/rom_7d30e0/orig.bin", 0x2f80
