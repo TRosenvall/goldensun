@@ -3082,3 +3082,140 @@ The working lesson survives the fix: **when the tool says a file has no data,
 look at the tail of the file yourself.** The failure mode is a link error that
 reads like a bad decompilation rather than a bad split, so it costs a
 disproportionate amount of time to diagnose.
+
+## gcc-2.96 has no immediate alternative for an HImode constant
+
+Storing a literal `0` through a `short *` gives `ldr r3, =0x0` — a four-byte
+pool load of zero — not `mov r3, #0`. Measured on `short`, `unsigned short`,
+through a `short *` local, and by indexing a `short *` return value. All pool.
+
+So when the ROM has
+
+```
+mov r3, #0x0 / add r0, #0x64 / strh r3, [r0]
+```
+
+the right-hand side in the source is **int-typed** and the `strh` truncates it.
+`{ int zero = 0; *(short *)(...) = zero; }` reproduces the ROM's sequence
+(`OvlFunc_936_2009f14`, 106 differing to 12). The residue there is that gcc
+coalesces repeated `zero`s into one pseudo whose live range crosses a call, so
+it lands in a callee-saved register — the shape is right, the register class is
+not.
+
+The rule generalises: **a pool load of a small constant where the ROM has a
+`mov` is a TYPE question, not a scheduling one.** The same way a lone trailing
+`mov r0, #imm` the ROM lacks is a return-type question.
+
+## A call result in a store expression must not go through a named local
+
+```c
+p = __MapActor_GetActor(n);
+*(short *)(p + 0x64) = 0;        /* mov r2, r0 / add r2, #0x64 / strh */
+```
+
+keeps `p` live and copies. Inlined —
+
+```c
+*(short *)(__MapActor_GetActor(n) + 0x64) = 0;   /* add r0, #0x64 / strh */
+```
+
+— `r0` is dead after the add and the ROM's form appears. Two instructions per
+site; over five arms of a switch that was ten. This is the *opposite* of the
+usual advice (name the value to force a copy), so check which way the ROM went
+before reaching for either.
+
+## `bls`/`b` where the ROM has one `bhi` can be a LENGTH symptom
+
+A Thumb conditional branch reaches ±254 bytes. A switch whose default target is
+the function epilogue will invert to `bls <table> / b <epilogue>` once the body
+plus the jump table pushes the epilogue out of range. On `OvlFunc_936_2009f14`
+that happened at 105 instructions and corrected itself when the body came down
+to 103. **Do not chase the branch polarity — find the extra instructions.**
+
+## A peeled `case 0` before a jump table means an `if`/`else`
+
+```
+cmp r3, #0 / beq <somewhere> / sub r3, #1 / cmp r3, #0xb / bhi
+```
+
+is not what one switch with `case 0:` in it compiles to — that gives a table
+starting at 0 with no peel (`Anim_Summon`, 90 lines against 92, 77 differing).
+The source is
+
+```c
+if (c == 0) { ... } else switch (c) { ... }
+```
+
+and gcc cross-jumps the if-branch into whichever case shares its body, which is
+why the `beq` can land on a jump-table target.
+
+**`else switch` is not interchangeable with an early return.** The form
+
+```c
+if (c == 0) { ...; return; }
+switch (c) { ... }
+```
+
+loses the shared epilogue and runs long by however many instructions the
+epilogue holds — five, on `Anim_Summon`.
+
+## Spell the last case explicitly ALONGSIDE `default:`
+
+When a switch's highest case shares a body with the out-of-range case, writing
+`default:` alone makes gcc drop the jump table for a comparison tree
+(`Anim_UnleashIntro`, 59 differing). Writing
+
+```c
+case 4:
+default:
+    ...
+```
+
+restores the table, with slot 4 doubling as the `bhi` target. The apparently
+redundant `case 4:` is the lever.
+
+## The statement-form argument lever: where it stops
+
+Writing an argument as its own statements gets a shift ahead of the other
+argument setup:
+
+```c
+arg = 0xc8;  ...  arg <<= 4;  StartTask(Func_80cc960, arg);
+```
+
+This works when the shift is racing a **pool load** (`ldr r0, =Func_80cc960`) —
+two independent sites on `Anim_UnleashIntro`, six differing to two.
+
+It does **not** work when the shift is racing a **`mov`**:
+
+```
+rom    mov r2, #0x80 / lsl r0, #19
+ours   lsl r0, #19 / mov r2, #0x80
+```
+
+Seven spellings were compiled against that one site and all seven give the same
+two instructions: the constant as a local assigned before the shift, before the
+other argument, before the preceding call; the shift folded into the argument
+expression; the address staged through a separate pointer local; and an
+unprototyped function-pointer typedef.
+
+This is almost certainly the same class as the **r0-against-a-shift rotation**
+recorded on `OvlFunc_911_2008304`, `OvlFunc_888_20085cc` and
+`OvlFunc_948_2009fd8` — five functions on one unsolved shape.
+
+## A constant hoisted across a call
+
+Two calls in one block taking the same non-immediate constant (`0x4000`, built
+as `mov #0x80 / lsl #7`): gcc builds it once and keeps it in a callee-saved
+register across the first call, where the ROM rematerialises it. The cost is a
+whole extra callee-saved register, so it shows up as a wrong `push` list and a
+renumbering of every callee-saved register in the body — a large differing count
+from one cause.
+
+**Flags do not reach it**: `-fno-gcse`, `-fno-rerun-cse-after-loop`,
+`-fno-cse-follow-jumps`, `-fno-force-mem` all identical;
+`-fno-expensive-optimizations` worse. It is local CSE.
+
+The smallest instance is `src/non_matching/rom_c9000/cd260_a.c` (two calls, 29
+of 105). The largest is `src/non_matching/overlays/200b4c8.c` (about fifteen
+constants, 1027 instructions). Solve it on the small one.
