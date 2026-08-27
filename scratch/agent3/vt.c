@@ -9,7 +9,7 @@ extern void __WaitFrames(int n);
 extern void __MapActor_SetPos(int slot, int x, int z);
 extern unsigned char *__MapActor_GetActor(int slot);
 extern void __MapActor_SetBehavior(int slot, void *script);
-extern void __MapActor_SetSpeed(int slot, int a, int b);
+extern int __MapActor_SetSpeed();
 extern int __GetFlag(int id);
 extern void OvlFunc_943_200c218(void);
 

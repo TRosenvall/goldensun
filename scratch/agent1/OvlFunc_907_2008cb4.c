@@ -12,8 +12,7 @@ void OvlFunc_907_2008cb4(void)
     int z;
 
     a = __MapActor_GetActor(8);
-    x = *(int *)(a + 8);
-    x >>= 20;
+    x = *(int *)(a + 8) >> 20;
     z = *(int *)(a + 0x10) >> 20;
     for (i = 0; i <= 0x13; i += 2) {
         m = L1d28[i];

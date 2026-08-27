@@ -9,7 +9,6 @@ extern void __WaitFrames(int n);
 extern void __MapActor_SetPos(int slot, int x, int z);
 extern unsigned char *__MapActor_GetActor(int slot);
 extern void __MapActor_SetBehavior(int slot, void *script);
-extern void __MapActor_SetSpeed(int slot, int a, int b);
 extern int __GetFlag(int id);
 extern void OvlFunc_943_200c218(void);
 
@@ -34,7 +33,6 @@ void OvlFunc_943_2009920(void)
     q = __MapActor_GetActor(0x15) + 0x59;
     m = 0x80;
     *q = m | *q;
-    __MapActor_SetSpeed(0x15, 0xcccc, 0x6666);
     __MapActor_SetBehavior(0x15, gScript_943__0200c628);
     if (__GetFlag(0x109) != 0) {
         OvlFunc_943_200c218();
