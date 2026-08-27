@@ -21,14 +21,12 @@ int OvlFunc_900_20081e4(void)
         q = __MapActor_GetActor(8) + 0x59;
         *q = m | *q;
     } else {
-        unsigned char m;
         q = __MapActor_GetActor(8) + 0x59;
         *q |= 0x14;
         q = __MapActor_GetActor(9) + 0x59;
         *q |= 0x14;
         q = __MapActor_GetActor(0xa) + 0x59;
-        m = 0x14;
-        *q = m | *q;
+        *q |= 0x14;
     }
     return 0;
 }
