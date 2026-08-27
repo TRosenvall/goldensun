@@ -113,6 +113,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-103](reports/batch-103.md) | 5 | ready to port — an out-of-line arm needs a goto; symbol-vs-literal split inside one switch |
 | [batch-104](reports/batch-104.md) | 5 | ready to port — the 1000+ band scouted and its blocker named; a named constant that crosses a call; HImode constants have no immediate |
 | [batch-105](reports/batch-105.md) | 5 | ready to port — the basic-block lever retires the r0-against-a-shift class and reaches pool-loads-first; five parks unparked, no new function attempted |
+| [batch-106](reports/batch-106.md) | 5 | ready to port — CSE_CFLAGS vs the basic-block lever separated (try the flag first); the full table of argument orders; a low-numbered .L symbol cannot use the asm-label extension |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The

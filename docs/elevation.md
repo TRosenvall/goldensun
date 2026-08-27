@@ -3257,3 +3257,97 @@ from one cause.
 The smallest instance is `src/non_matching/rom_c9000/cd260_a.c` (two calls, 29
 of 105). The largest is `src/non_matching/overlays/200b4c8.c` (about fifteen
 constants, 1027 instructions). Solve it on the small one.
+
+## Constant CSE vs argument scheduling: which fix, and prefer the flag
+
+Two different things both look like "a constant is in the wrong place", and the
+basic-block lever fixes both. Only one of them should be fixed that way.
+
+**Constant CSE.** One value used by two calls; gcc builds it once and keeps it
+in a callee-saved register, so the function grows a `push` the ROM lacks.
+
+    rom    ldr r0, =0x201 / bl __GetFlag  ...  ldr r0, =0x201 / bl __SetFlag
+    ours   ldr r5, =0x201 / mov r0, r5 / bl __GetFlag  ...  mov r0, r5 / bl __SetFlag
+
+**`-fno-rerun-cse-after-loop` fixes this and the C stays literal.** The lever
+also fixes it, by giving each use its own named local — and that is the wrong
+answer, because a handful of `int` locals whose only job is to hold a flag id is
+not source anybody wrote. `OvlFunc_890_2008150` needed five of them; the flag
+matches it with no change to the C at all.
+
+**Argument scheduling.** A two-instruction constant split around another
+argument, or a pool load issued before the register moves. **The flag does not
+touch this.** Measured on the three functions batch 105 closed with the lever:
+under `-fno-rerun-cse-after-loop` with their literal spellings,
+`OvlFunc_948_2009fd8` stays at 12 of 97, `OvlFunc_911_2008304` at 2 of 85,
+`OvlFunc_943_2008a48` at 2 of 57.
+
+The two are independent and a function can need both. `OvlFunc_942_20088cc`:
+
+| | differing of 53 |
+|---|---|
+| literals, default flags | 46 |
+| literals, `-fno-rerun-cse-after-loop` | 3 |
+| lever, default flags | 48 |
+| lever + `-fno-rerun-cse-after-loop` | **0** |
+
+**So: try the flag first and keep the literals. Reach for the lever only for
+what the flag leaves behind.** CSE_CFLAGS is an existing per-file group with
+many members, so adopting it costs nothing.
+
+## The complete table of argument orders gcc-2.96 can emit
+
+Compiled as one-line functions under this tree's exact flags (batch 106). This
+is the ground truth the return-type lever and the interleave levers are
+navigating:
+
+| callee | third argument | emitted order |
+|---|---|---|
+| `void` | cheap constant | r0, r1, r2 |
+| `int` | cheap constant | r1, r2, r0 |
+| `void` | pool constant, or `mov`+`lsl` | r2, r0, r1 |
+| `int` | pool constant, or `mov`+`lsl` | r2, r1, r0 |
+| `void` | a global read | `ldr` base, r0, `ldr` r2, r1 |
+
+`precompute_register_parameters` (calls.c:805) copies any argument whose
+`rtx_cost` exceeds 2 into a pseudo before any hard register is loaded — that is
+the whole difference between rows 1-2 and rows 3-4.
+
+**A ROM that issues a CHEAP `mov` for a later argument before r0 is
+unreachable.** That is row 3's order with row 1's cost, and no spelling of a
+value both clears the threshold at expand and assembles to one `mov`.
+`OvlFunc_885_20080dc` is parked on exactly that, with the return-type lever, the
+unprototyped form, the basic-block lever, narrow parameter types and seven flags
+all measured at the same 9 of 56.
+
+Note also what the table does NOT contain: **r0 in the middle**. The
+return-type lever moves r0 between first and last, and nothing moves it to the
+middle of a three-argument call.
+
+## A LOW-numbered `.L` symbol cannot use the asm-label extension
+
+`extern unsigned char tbl[] __asm__(".L7");` compiles, links, and is **wrong**.
+gcc numbers its own labels `.L1`, `.L2`, ... so a low number collides: gcc emits
+a `.L7:` of its own in front of the constant pool and the reference resolves to
+that instead of the external blob.
+
+The tell is subtle. `tools/tryc.py` reports ONE differing line — a stray label
+at the end of the stream — which reads like a pool-placement artifact. The
+build then fails `make compare` on the overlay.
+
+The technique's own examples (`.L23f0`, `.L57fc`) are high numbers where this
+cannot happen. **For a low-numbered label, rename and export instead** — and
+check the precondition first: `grep -rln '^\.LN:' asm/` will usually show
+hundreds of files, because `.LN` is gcc's per-file local label everywhere. What
+matters is how many files reference it ACROSS an object boundary. For `.L7`
+that was exactly one, so the rename to `gOvlCommon1_3fe4` was two lines.
+
+## `neg` of a constant is the two's complement, so read the bits
+
+`mov r3, #0xd / neg r3, r3` is `~0xc`, not `~0xd`. -13 is `0xfffffff3`, which
+clears bits 2 and 3 and leaves bit 0 alone.
+
+Reading it as `~0xd` on `OvlFunc_881_200813c` turned one bitfield write into
+two and cost three instructions. The batch-71 rule -- a 32-bit `mov`/`neg` pair
+means a bitfield -- is right; getting the WIDTH and OFFSET of that bitfield
+wrong from a misread mask looks exactly like a codegen difference.
