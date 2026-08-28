@@ -6133,3 +6133,24 @@ The ROM materialises both values into two registers and only then stores both.
 Naming them as two separate locals immediately before the call gives gcc two
 pseudos and reproduces it. Both six-argument calls in `OvlFunc_938_2008264`
 needed it, and one fix covered both.
+
+## Measure the remaining count, never decrement it
+
+Batch reports 130-133 each carried a "remaining functions" figure, and the series
+ran 2224 -> 2219 -> 2214 -> 2208 -> 2202 with every step exactly equal to that
+batch's elevation count. That is the signature of a hand-maintained counter, not
+a measurement: nothing in it ever re-reads the tree, so a baseline error persists
+forever and grows invisible. By batch 134 it sat 46 below the truth.
+
+`tools/remaining.py` measures it. Counting four ways -- raw occurrences and
+distinct names, each with and without excluding TUs that already have a `.c` --
+gives the same 2248, so there is no definitional ambiguity to argue about.
+gcc-generated `.s` intermediates use `.thumb_func` rather than
+`.thumb_func_start` and so never contaminate the count; no exclusion rule is
+needed at all.
+
+The general point is worth more than the number: **a figure that is only ever
+derived from the previous figure is not evidence.** If a report states a
+quantity, it should come from re-measuring the thing. This is the same
+discipline as the "a zero component means the regex is broken" rule -- both are
+about not letting a number pass without something checking it against reality.

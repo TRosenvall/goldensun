@@ -117,3 +117,19 @@ Reporting the measured number with its method rather than a number that
 continues the previous series. The delta across these two batches should not be
 read as a rate until the methods are reconciled. Elevated `.c` files (excluding
 parks) stand at 3,171 and parks at 305, both directly counted.
+
+### Resolved, immediately after publication
+
+The discrepancy was not a difference of method. Batches 130-133 ran
+2224 -> 2219 -> 2214 -> 2208 -> 2202, and every step equals that batch's
+elevation count exactly: the figure was a hand-maintained counter being
+decremented rather than a measurement, so a baseline error could never correct
+itself. It had drifted 46 low.
+
+Counting four ways -- raw occurrences and distinct names, with and without
+excluding TUs that already have a `.c` -- all give **2248**, so the definition is
+not ambiguous either. gcc-generated `.s` intermediates carry `.thumb_func`, not
+`.thumb_func_start`, so they never contaminate the count.
+
+`tools/remaining.py` now measures it. Future batches should print its output
+rather than subtracting from the previous batch.
