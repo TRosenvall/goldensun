@@ -6603,3 +6603,25 @@ type". One screen separates them.
 Where the field is already named in `include/actor.h`, use that name; where it is
 not, a local struct with `unk_XX` holes is what the other matched files in this
 tree do, and only the offsets the function actually touches need to be right.
+
+## Splitting a .s that holds ONE function plus its data
+
+`tools/split_s.py` refuses a file with a single function and trailing data, and
+its refusal is correct: there is no second function to split at, so converting
+the whole file would delete the data and the link would fail on undefined
+references. It says so explicitly and names the blob and label counts.
+
+When the boundary is clean -- everything through `.func_end`, then
+`.section .data` -- the manual split is two files rather than three:
+
+    _b.s   the preamble and the function, no data
+    _c.s   the `.include` line and the data section, no functions
+
+Both go in BOTH the `.text` and `.data` lists of the overlay script; an empty
+contribution costs nothing and keeps the ordering obvious. Then run the
+byte-neutral `make compare` WITH THE FUNCTION STILL IN ASSEMBLY before writing
+any C, which is what catches a mis-placed boundary while it is still cheap.
+
+`OvlFunc_958_2009394` is the worked example. Note its C references none of the
+fifteen data blobs -- they belong to the overlay, not the function -- so the
+split is genuinely clean rather than needing `__asm__` label externs.
