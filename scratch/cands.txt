@@ -1,0 +1,6 @@
+asm/overlays/rom_7e636c/ovl_cc0_c_c_c_c.s OvlFunc_958_2009394
+asm/overlays/rom_7b9cb4/ovl_30_a_c_c_a_c_c_a_a_a_a_c.s OvlFunc_932_200a310
+asm/overlays/rom_7cb2c0/ovl_30_c_c_a_a_c_a_c_a.s OvlFunc_945_2008b84
+asm/overlays/rom_7cb2c0/ovl_30_c_c_a_a_c_a_c_a.s OvlFunc_945_2008cc8
+asm/rom_77000/rom_77320_a_c_c.s Func_8077f70
+asm/overlays/rom_7c097c/ovl_30_c_c_c_a_c_a_c_c.s OvlFunc_936_20096bc

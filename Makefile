@@ -4356,6 +4356,14 @@ asm/overlays/rom_7ac2d8/ovl_35b8_a_a_a_c_b.o: src/overlays/rom_7ac2d8/ovl_35b8_a
 # OvlFunc_959_200cbfc reuses the flag id 0x226 for a GetFlag at the top and a
 # SetFlag at the bottom.  At -O2 gcc commons the two pool loads into r6 and adds
 # a push the ROM does not have -- 98 differing.  CSE_CFLAGS is exact.
+# OvlFunc_945_2008b84 reads the flag 0x300 at the top and sets it near the
+# bottom.  At -O2 gcc commons the two builds into r5 before the first call and
+# adds a push the ROM does not have -- 73 differing.  CSE_CFLAGS is exact.
+asm/overlays/rom_7cb2c0/ovl_30_c_c_a_a_c_a_c_a_b.o: src/overlays/rom_7cb2c0/ovl_30_c_c_a_a_c_a_c_a_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 asm/overlays/rom_7e7574/ovl_9dc_c_c_a_c_a_c_c.o: src/overlays/rom_7e7574/ovl_9dc_c_c_a_c_a_c_c.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
