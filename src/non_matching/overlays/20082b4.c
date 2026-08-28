@@ -1,30 +1,30 @@
-/* OvlFunc_901_2008a80 -- 0x02008a80,
- * asm/overlays/rom_797990/ovl_314_c_c_a_a_c_c_a_c_c_a_c.s
+/* OvlFunc_911_20082b4 -- 0x020082b4,
+ * asm/overlays/rom_79e5c0/ovl_30_c_a_a_c_a_a_a_c_a.s
  *
- * Best screen: 30 of 30 lines, TWO differing.  Candidate at scratch/L8a80.c.
+ * 33 of 33 lines, 5 differing.  Candidate at scratch/L82b4.c.
  *
- *      rom   lsl r1, #0x8 / mov r0, #0x0 / lsl r2, #0x7
- *      ours  lsl r1, #0x8 / lsl r2, #0x7 / mov r0, #0x0
+ *      rom   lsl r2, #0x7 / mov r0, #0x0 / lsl r1, #0x8
+ *      ours  lsl r2, #0x7 / lsl r1, #0x8 / mov r0, #0x0
  *
- * Same blocker as src/non_matching/overlays/20099a4.c: the position of the
- * `mov r0, #0` that sets up a zero first argument.  Everything else is exact,
- * including both shifted builds and the whole integer-local address chain for
- * the iwram store.
+ * THIRD instance of the argument-setup-order class, after
+ * src/non_matching/overlays/20099a4.c and 2008a80.c.  Everything else is exact.
  *
- * This is the second instance, and together they narrow the class usefully.
- * The two functions place that instruction in DIFFERENT slots --
- * 20099a4 has it before both shifts, 2008a80 has it between them -- so it is
- * not a fixed convention being missed.  It is the scheduler, and the input
- * ordering it works from differs with the surrounding register pressure (this
- * function has three parameters to preserve, that one has none).
+ * What the three together establish: gcc ALWAYS emits the `mov r0, #0` last in
+ * the argument-setup block, and the ROM never does.  Across the three the ROM
+ * places it in two different slots -- before both shifted builds in 20099a4,
+ * between them in 2008a80 and here -- so there is no fixed convention to
+ * imitate, and `--no-sched2` makes all three worse, so the ROM was built with
+ * the second scheduling pass running.  The difference is in what that pass was
+ * handed, which is the argument evaluation order, and nothing tried reaches it.
  *
- * TRIED: naming the zero as a local shared by both calls that take one (2, no
- * change); --no-sched2 (13, much worse, and it disturbs the shifted builds).
+ * TRIED across the three: naming the zero as a local; sharing one zero local
+ * across the calls that take one; naming the shifted values as locals;
+ * --no-sched2; -fno-schedule-insns; -fno-defer-pop; -fomit-frame-pointer.
  *
- * Since --no-sched2 makes it worse rather than better, the ROM was built WITH
- * the second scheduling pass and the difference is in what that pass was
- * handed, not whether it ran.  That is a narrower statement than the 20099a4
- * park could make on its own.
+ * The class is now sized -- see docs/elevation.md.  It is worth detecting
+ * BEFORE writing a candidate, because a function whose only defect is this is
+ * otherwise indistinguishable from one that is nearly right for a reachable
+ * reason.
  *
  * CORRECTION (added later, and it changes the class).  An earlier version of
  * this park said gcc ALWAYS emits the `mov r0, #0` last in an argument block.

@@ -5296,3 +5296,55 @@ The same reading explains `OvlFunc_899_20099a4`, whose store the ROM
 materialises and where ours matches with no coaxing: the ROM there reuses the
 offset register for the stored value, which is only possible once the address
 is already in a register.
+
+## Argument-setup order: the zero interleaved into a shifted build
+
+The ROM often emits
+
+    mov r1, #0x80 / mov r2, #0x80 / mov r0, #0x0 / lsl r1, #8 / lsl r2, #7
+    bl  __MapActor_SetSpeed
+
+with the zero first argument INSIDE the split build of the other two, while the
+obvious C -- `f(0, 0x80 << 8, 0x80 << 7)` -- puts the `mov r0, #0` last. Three
+functions were parked on this before it was understood.
+
+**It is reachable.** A control over the 3411 solved functions found 15 carrying
+the exact shape. The construct, from
+`src/overlays/rom_79c738/ovl_30_c_c_c_c_c_c_c_b.c`:
+
+    int c, d;
+    c = 0x80 << 9;
+    d = 0x80 << 8;
+    if (__GetFlag(0x84e) != 0) return;      /* <-- the guards are load-bearing */
+    if (__GetFlag(0x322) == 0) return;
+    ...
+    __MapActor_SetSpeed(0, c, d);
+
+Named locals assigned at the top, **with a branch between the assignments and
+the call**. gcc will not keep the constants live across the guards, so it
+rematerialises each at its use, and the rematerialised sequence interleaves the
+way the ROM's does.
+
+**The branch is not optional.** Doing the same in a straight-line function makes
+gcc keep the values live instead, which is strictly worse: 33 -> 39 lines on
+`OvlFunc_911_20082b4`, 26 -> 29 on `OvlFunc_899_20099a4`. This is the same
+dominating-block mechanism as the constant-CSE lever, applied to argument order
+rather than to constant sharing, and it fails the same way without a block to
+dominate from.
+
+**Sizing.** 248 of the 2244 remaining functions carry the shape. 150 have a
+conditional branch before the site and are worth the lever. 98 are straight-line
+at every site and are, for now, out of reach.
+
+### The detector needed tightening, twice
+
+A first pass asked only "is `mov r0,#0` not last in the block" and reported 450
+remaining / 144 solved -- both inflated by trivial `mov r0,#0 / mov r1,#5` pairs
+where r0-first is simply the natural order. The signature that matters is the
+zero **interleaved into a split build**: a `mov rX,#imm` before it and an
+`lsl rX` after it. That gives 248 / 15, and the 15 are what located the
+construct.
+
+A control that is too loose does not just overcount -- it points at the wrong
+examples. The smallest "solved example" the loose detector offered was a
+two-instruction block with nothing to learn from.
