@@ -31,3 +31,29 @@
  * ranks straight-line call scripts by repeated EXPENSIVE constant, so this
  * class can be avoided at selection time rather than discovered at screen time.
  */
+
+/* ---- MERGED from src/non_matching/overlays/200bc48.c ----
+ * That file was a second park for the same function, written later under the
+ * src/non_matching/overlays/ naming while this one already existed.  Its
+ * analysis is kept verbatim below; the duplicate file is removed.
+ *
+ OvlFunc_882_200bc48 -- 0x0200bc48,
+ * asm/overlays/rom_77dd1c/ovl_30_c_c_c_c_a_a_a_c_c_c_c.s
+ *
+ * 54 vs 53 lines, 41 differing.  Candidate at scratch/Lbc48.c.
+ * A pure straight-line script: 22 calls, no memory operations, no branches.
+ *
+ * BLOCKER: the flag id `0xb3 << 1` is built twice by the ROM (once for
+ * __SetFlag, once for __ClearFlag) and gcc commons the two into r5, adding a
+ * push.
+ *
+ * This is the no-branch case recorded in docs/elevation.md.  Both naming levers
+ * need a dominating block and there is none, so the flag group is the only tool
+ * -- and CSE_CFLAGS does not fix it, nor -O1 (37 differing) nor --no-sched2
+ * (37).  The commoning is the main -O2 CSE.
+ *
+ * Second instance of that shape after src/non_matching/overlays/20095bc.c, and
+ * the two together give it a name: a straight-line script whose flag id is used
+ * twice is out of reach.  `tools/pool.py` prints both facts (`br` and `flag2`),
+ * so the combination is visible before writing any C.
+ */
