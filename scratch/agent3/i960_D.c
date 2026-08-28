@@ -15,7 +15,7 @@ extern int _CONST_2;
 extern int __GetFlagByte(int id);
 extern struct Actor *__MapActor_GetActor(int slot);
 extern void __CutsceneStart(void);
-extern void __Func_80933f8(int a, int b, int c, int d);
+extern int __Func_80933f8(int a, int b, int c, int d);
 extern void __PlaySound(int id);
 extern void __Actor_SetSpriteFlags(int slot, int flags);
 extern void __WaitFrames(int n);

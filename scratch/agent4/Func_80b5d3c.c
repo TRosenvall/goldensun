@@ -5,33 +5,40 @@ extern int *_Func_8077330(int n);
 
 void Func_80b5d3c(void)
 {
-    unsigned short buf[10];
     unsigned char e[4];
+    unsigned short buf[10];
     unsigned char *s;
     unsigned short *p;
     int count;
     int i;
     int j;
-    int k;
     int m;
+    int off;
     int mask;
 
     count = Func_80b6a60(buf);
     mask = 0;
     for (i = 0; i <= 3; i++) {
         e[i] = 0;
-        for (j = 0, p = buf; j < count; j++)
-            e[i] += _GetUnit(*p++)[0x118 + i];
+        if (count > 0) {
+            off = 0x118;
+            p = buf;
+            off += i;
+            j = count;
+            do {
+                e[i] += _GetUnit(*p++)[off];
+            } while (--j != 0);
+        }
     }
-    for (k = 0; k <= 0x1f; k++) {
-        s = _GetSummonInfo(k);
+    for (i = 0; i <= 0x1f; i++) {
+        s = _GetSummonInfo(i);
         if (s != 0) {
             s += 4;
             for (m = 0; m <= 3; m++)
                 if (e[m] < s[m])
                     break;
             if (m == 4)
-                mask |= 1 << k;
+                mask |= 1 << i;
         }
     }
     *_Func_8077330(0) = mask;

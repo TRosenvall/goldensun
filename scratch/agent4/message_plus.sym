@@ -98,8 +98,7 @@ _MSG_2985 = 0x2985;
  * Named by value, asserting the namespace only -- the convention this file
  * already uses for the shiftable ids below. */
 
-/* agent4 screening addition */
+/* agent4 screening additions */
 _MSG_810 = 0x810;
 _MSG_811 = 0x811;
-_MSG_812 = 0x812;
-_MSG_813 = 0x813;
+_MSG_c7b = 0x0c7b;

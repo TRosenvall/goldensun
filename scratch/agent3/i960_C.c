@@ -33,7 +33,7 @@ void OvlFunc_960_2008c00(void)
     struct Actor *a1;
     struct Actor *a2;
     int b;
-    int i;
+    int i, m1, m2, m3;
 
     b = __GetFlagByte(0x218);
     base = (unsigned int)&gState;
@@ -43,7 +43,10 @@ void OvlFunc_960_2008c00(void)
     a1 = __MapActor_GetActor(*(int *)base);
     a2 = __MapActor_GetActor(b);
     __CutsceneStart();
-    __Func_80933f8(-1, -1, -1, 0);
+    m1 = -1;
+    m2 = -1;
+    m3 = -1;
+    __Func_80933f8(m1, m2, m3, 0);
     __PlaySound(0xdb);
     __Actor_SetSpriteFlags(*(int *)base, 0);
     a2->f55 = 0;

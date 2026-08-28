@@ -27,12 +27,12 @@ extern void __SetDestMap(int a, int b);
 
 void OvlFunc_960_2008c00(void)
 {
+    int b;
     unsigned int base;
     unsigned int base2;
     unsigned int off;
     struct Actor *a1;
     struct Actor *a2;
-    int b;
     int i;
 
     b = __GetFlagByte(0x218);
@@ -43,7 +43,7 @@ void OvlFunc_960_2008c00(void)
     a1 = __MapActor_GetActor(*(int *)base);
     a2 = __MapActor_GetActor(b);
     __CutsceneStart();
-    __Func_80933f8(-1, -1, -1, 0);
+    __Func_80933f8(-1, -2, -3, 0);
     __PlaySound(0xdb);
     __Actor_SetSpriteFlags(*(int *)base, 0);
     a2->f55 = 0;

@@ -43,7 +43,7 @@ void OvlFunc_960_2008c00(void)
     a1 = __MapActor_GetActor(*(int *)base);
     a2 = __MapActor_GetActor(b);
     __CutsceneStart();
-    __Func_80933f8(-1, -1, -1, 0);
+    __Func_80933f8(0 - 1, ~0, -1, 0);
     __PlaySound(0xdb);
     __Actor_SetSpriteFlags(*(int *)base, 0);
     a2->f55 = 0;
