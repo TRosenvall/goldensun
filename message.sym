@@ -68,6 +68,18 @@ _MSG_239e = 0x239e;
 _MSG_23ac = 0x23ac;
 _MSG_23cc = 0x23cc;
 _MSG_240d = 0x240d;
+
+/* Two bases used by OvlFunc_959_200cbfc, which holds each in a callee-saved
+ * register and derives its neighbours -- `add r5, #1` off the first, and
+ * `add r0, r5, #1/2/3` off the second.  Both flow straight into __MessageID,
+ * which identifies the namespace; the values are the ids the ROM pools.
+ *
+ * The symbol form is what makes gcc SPEND the register: written as plain int
+ * constants it rematerialises each id and never keeps one alive, which is the
+ * symbol-base rule in docs/elevation.md.  The ids in between (0x242f, 0x2431,
+ * 0x2432, 0x2433) are reached by arithmetic and are deliberately not named. */
+_MSG_242e = 0x242e;
+_MSG_2430 = 0x2430;
 _MSG_2440 = 0x2440;
 _MSG_24db = 0x24db;
 _MSG_256c = 0x256c;

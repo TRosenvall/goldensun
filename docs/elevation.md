@@ -6329,3 +6329,20 @@ headers show is supported here -- is the experiment worth running.
 Recognising this is cheap and worth doing early: if the ROM listing has a `b`
 immediately before a `.pool_aligned` that is not `.func_end`'s own, the missing
 instruction is pool placement and no amount of respelling the body will find it.
+
+## The no-prototype lever does not always trade one site for another
+
+Batch 133 recorded that the lever fails when a callee's sites disagree about
+argument order, because gcc's unprototyped order matches one and breaks the
+other. `OvlFunc_959_200cbfc` is exactly that shape and the lever worked anyway.
+
+`__Func_8092c40` is called three times. The ROM sets r1 before r0 at the first
+site and r0 before r1 at the other two. With a prototype gcc emitted r0 first
+everywhere, so one site was wrong. Dropping the prototype fixed that site and
+LEFT THE OTHER TWO CORRECT -- 4 differing to 2.
+
+So "the sites disagree" predicts nothing on its own. gcc's unprototyped ordering
+is not a single fixed rule applied uniformly; it can land differently at
+different sites in the same function. I predicted this would trade one for two
+and screened it anyway, which is the only reason it was found. One screen is
+cheaper than the reasoning about whether to bother.
