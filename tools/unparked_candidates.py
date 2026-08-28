@@ -35,6 +35,11 @@ and the rule exists precisely so these are not screened one at a time.
 
 Excluded, in order:
   * files holding more than one function   -- these need a split first
+  * files with DATA after the last .func_end -- the .o carries a .rodata or
+    .data section other translation units reference, so replacing the .s with
+    a .c deletes symbols and the LINK fails, not the compare. Elevating one of
+    these needs a hand-split into a text half and a data half first, with both
+    listed in every linker-script section the original appeared in.
   * functions with an elevated .c already  -- mirrored src/ path exists
   * functions branching over .pool         -- the 312-function toolchain
                                               ceiling, see poolblocked.py
@@ -112,6 +117,14 @@ def main():
                 continue
             body = t[t.index(".thumb_func_start"):]
             if ".pool" in body:
+                continue
+            # data after the function: .rodata/.data/.incrom that other TUs
+            # reference by label. Replacing the .s with a .c drops it and the
+            # link fails. Cost a round when rom_1aeec_c_c.s turned out to hold
+            # two .incrom blocks after .func_end.
+            tail = body[body.rindex(".func_end"):] if ".func_end" in body else ""
+            if re.search(r"\.(section|incrom|word|byte|hword|space|align)\b",
+                         tail):
                 continue
             if starts[0] in parked:
                 skipped += 1
