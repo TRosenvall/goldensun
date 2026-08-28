@@ -4759,3 +4759,93 @@ says nothing.
 Why they differ is not established here; what is established is that the two
 operations must be tried separately and that a null result on one type is not
 evidence about the lever.
+
+## gcc-2.96 thumb `REG_ALLOC_ORDER`, read from the compiler source
+
+`/opt/camelot-gcc/gcc-2.96/gcc/config/arm/arm.h:989` gives
+**`{3, 2, 1, 0, 12, 14, 4, 5, 6, 7, 8, 10, 9, 11}`**. Two consequences that
+explain ROM shapes people keep re-deriving:
+
+* For a **call-crossing** value the order is **r5, r6, r7, r8, r10, r9, r11**.
+  So `r10` before `r9` is normal, not an oddity, and a fourth long-lived value
+  reaches r11 only after r8, r10 and r9 are taken.
+* **r12 and r14 are allocatable and come before r4.** A `mov r12, r3` in a ROM
+  is a register-pressure readout — "r0–r3 were all busy when this local was
+  born" — not a special construct.
+
+## A recurring residue class: the parameter pointer one register too low
+
+Three separate near-misses in one round are 1:1 with the ROM and differ only by
+a rotation where our `e`/`m` takes r6/r9 and the ROM takes r7/r8, with
+everything downstream shifting. Measured against it and all inert: declaration
+reordering, copying the parameter into a local, deleting a named pointer,
+`-fno-rerun-cse-after-loop`.
+
+It is **not** the priority formula — `global.c`'s `allocno_compare` is
+`floor_log2(n_refs) * n_refs / live_length`, and by that the parameter always
+outranks the short-lived value that beats it in the ROM. The cause is in
+`find_reg`'s conflict/preference pass. Recognise it in one screen rather than
+ten: **same instruction stream, one register rotation, parameter one slot low.**
+
+## A parameter and a loop counter can be the SAME variable
+
+`Func_8092708` sat at 33 of 115 with every difference an r5↔r6 exchange between
+an actor pointer used ~20 times (twice inside loops) and an `anim` parameter
+used once. The ROM gives **r5 — the first callee-saved register — to the
+short-lived parameter.**
+
+`allocno_compare` weights priority by basic-block *frequency*, so merging the
+parameter with a loop counter multiplies its priority past a whole-function
+pointer's. Reusing `anim` as the counter for both loops, changing nothing else,
+matched exactly.
+
+> When the ROM gives the first callee-saved register to a value that looks too
+> short-lived to deserve it, look for a later loop counter it could be the same
+> variable as.
+
+## Two ways to stop `symbol + K` folding, and they give different `add`s
+
+The doc records the walk (`p = gState; p += K;`), which yields the
+**destructive** `add r2, r1`. Naming the offset in a dominating block —
+`off = 0xfc * 2; p = gState + off;` — yields
+`ldr r3, =gState / mov r1, #0xfc / lsl r1, #1 / add r2, r3, r1`, the
+**three-operand** form. On one function the walk was 15 of 61 and the named
+offset 5. Read the ROM's `add` to choose, exactly as for ordinary pointer
+arithmetic.
+
+## `-fno-gcse`'s signature: visibly redundant work across a call or branch
+
+A repeated `ldr rN, =sym` into the same register in a later block, or an address
+rebuilt at two sites. Without the flag, global CSE collapses them **and the
+whole allocation shifts**, so the residue reads as a dozen unrelated faults. One
+function went 49 → 32 differing on the flag alone, before any spelling change.
+
+## A variable with DISJOINT live ranges should be two variables
+
+One `prev` shared between two mutually exclusive switch arms: the ROM used a
+callee-saved register in one arm and the scratch r2 in the other. Splitting it
+took 32 → 25 and fixed **three** registers at once.
+
+This is the counterpart to "naming one level too many" — there the fix is fewer
+locals, here it is more. The discriminator is whether the ROM gives the two
+regions different registers.
+
+## Fix a narrowed negative constant with the LITERAL's spelling first
+
+`p->f1e = s + 0xffffc000;` narrows to `mov #0xc0 / lsl #8`, because the literal
+is *unsigned* in C89. `p->f1e = s - 0x4000;` keeps the ROM's
+`ldr =0xffffc000 / add`. The documented fix — an `int` local — also works in
+isolation but cost six lines in place. **Spelling first, local second.**
+
+## `ble .LCB / b far` is the thumb long-branch expansion, not a source shape
+
+arm.md emits an inverted short branch over a `b` when the target is out of
+range. Do not read it as evidence of an odd source structure, and note the
+`.LCB` label often coincides with a real `.L` label in the disassembly.
+
+## A function can return a value it never moves into r0
+
+An early exit that branches straight to the shared epilogue with r0 still
+holding a compared load. `return -1;` does not produce that;
+`v = p[0]; if (v == -1) return v;` does. Costs one instruction and a whole-tail
+shift when missed.
