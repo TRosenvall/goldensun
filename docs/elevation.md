@@ -6396,3 +6396,25 @@ Two things it settles that `OvlFunc_932_200a9dc` left open:
 Selection note: `pool.py` predicted this exactly -- `site 4, unguarded 0`. That
 filter (guarded sites present, unguarded sites zero) has now called three
 functions correctly and is the cheapest way to find candidates for this lever.
+
+## "r0 in the middle" and "r0 at the end" are different problems
+
+`OvlFunc_954_20095e0` had eight argument-order differences across five call
+sites, and they needed OPPOSITE fixes in the same function:
+
+  * **r0 wanted in the MIDDLE** of another argument's split build, at
+    `__MapActor_SetSpeed` and `__MapActor_Emote`. Fixed by naming the other
+    arguments in the block dominating the guarded region. 13 differing -> 9.
+  * **r0 wanted at the END**, after every other argument, at
+    `OvlFunc_common1_1078`, `__Func_8092adc` and `OvlFunc_common1_5e4`. Naming
+    cannot produce that; DROPPING those three prototypes can. 9 -> exact.
+
+The two levers push in opposite directions, and reaching for the wrong one looks
+like the right one failing. Read the ROM at each site and ask which position r0
+occupies:
+
+    ... / mov r0 / lsl r1 / ...     -> r0 is INSIDE a split build: name the others
+    ... / mov r1 / mov r2 / mov r0  -> r0 is LAST: drop the prototype
+
+A single function can want both, at different sites, for different callees. That
+is not a contradiction and it is not a sign the first lever failed.
