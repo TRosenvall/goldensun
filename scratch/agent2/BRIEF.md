@@ -240,3 +240,45 @@ underneath you; all are in `docs/elevation.md` now.
    hoisting across a call, not setup order within one call — measured negative.
 
 Your worklist is 15 functions, band 60-99. That band returned 60% last round.
+
+## Round 6 — a class that was written off is open again
+
+**`.call_via rN` is NOT unreachable.** An earlier round declared 51 functions
+permanently dead because gcc-2.96's machine description has only one
+indirect-call pattern (`bl _call_via_rN`). That bounds the code GENERATOR, not
+the source. Two things were wrong:
+
+* `tools/tryc.py` was **silently dropping** the `.call_via` line — it starts
+  with a dot, so the ref parser skipped it as a directive, but it is a MACRO
+  from `include/macros.inc` expanding to `mov r12, pc` + `bx rN`. Every such
+  function screened two instructions short per call site. **Fixed** — re-screen
+  anything you saw before.
+* Inline asm reaches it, exactly as `include/dma.h` already does for DMA.
+  `Func_8097a10` is elevated and byte-exact with:
+
+```c
+static inline int call_via_r4(int (*f)(int, int), int a, int b)
+{
+    register int (*_f)(int, int) __asm__("r4") = f;
+    register int _a __asm__("r0") = a;
+    register int _b __asm__("r1") = b;
+    __asm__ volatile ("\t.align\t2, 0\n\tmov\tr12, pc\n\tbx\tr4"
+                      : "=r" (_a) : "r" (_f), "0" (_a), "r" (_b)
+                      : "memory", "lr", "r12");
+    return _a;
+}
+```
+
+Adapt the register names and the argument count to the call site you have.
+
+**Second lever these functions need:** the ordinary veneer call
+(`ldr r3, =F / bl _call_via_r3`) does NOT come from a direct `F(a, b)` call.
+Assign the address to a function-pointer local first: `g = F; r = g(a, b);`.
+
+**A general rule from this:** "the compiler cannot emit X" is a claim about the
+code generator. The ROM is proof something emitted it. Before calling a shape
+unreachable, check that the SCREEN is even showing you the shape.
+
+Your worklist this round IS pre-filtered with `tools/blocked_cse.py` (last round
+it was not, and ~20% of two agents' budgets went to genuinely blocked
+functions). If you still hit a repeated-constant hoist, say so.
