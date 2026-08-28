@@ -48,7 +48,8 @@ SECTIONS {
 		asm/overlays/rom_7a7298/ovl_30_c_c_c_c_c_a_b.o(.text)
 		asm/overlays/rom_7a7298/ovl_30_c_c_c_c_c_a_c_a.o(.text)
 		asm/overlays/rom_7a7298/ovl_30_c_c_c_c_c_a_c_b.o(.text)
-		asm/overlays/rom_7a7298/ovl_30_c_c_c_c_c_a_c_c.o(.text)
+		asm/overlays/rom_7a7298/ovl_30_c_c_c_c_c_a_c_c_b.o(.text)
+		asm/overlays/rom_7a7298/ovl_30_c_c_c_c_c_a_c_c_c.o(.text)
 		asm/overlays/rom_7a7298/ovl_30_c_c_c_c_c_b.o(.text)
 		asm/overlays/rom_7a7298/ovl_30_c_c_c_c_c_c_b.o(.text)
 		asm/overlays/rom_7a7298/ovl_30_c_c_c_c_c_c_c_a.o(.text)
@@ -69,3 +70,10 @@ SECTIONS {
 		*(*)
 	}
 }
+
+/* gcc-2.96 emits __umodsi3 for `%` and has no flag to rename it. Overlay code
+ * calls the RAM-resident copy through the stub .export_func umodsi3_RAM makes.
+ * These are different functions at different addresses. Emits no bytes.
+ * Added for OvlFunc_921_2009794, whose five `%` operations are otherwise the
+ * only thing between it and an exact match. */
+__umodsi3 = _umodsi3_RAM;
