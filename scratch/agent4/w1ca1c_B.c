@@ -6,6 +6,7 @@ void Func_801ca1c(void *dst)
 {
     unsigned char *g;
     unsigned char *p;
+    unsigned char *tb;
     short t;
     short i;
     int m;
@@ -15,12 +16,12 @@ void Func_801ca1c(void *dst)
     p = g + 0x205;
     t = ((*p + 12) % 24) * 4;
     p = g + 0x206;
-    m = *p;
-    m -= 7;
+    m = *p - 7;
+    tb = tbl;
     i = t % 96;
-    a = tbl[i];
-    b = tbl[(t + 0x20) % 96];
-    c = tbl[(t + 0x40) % 96];
+    a = tb[i];
+    b = tb[(t + 0x20) % 96];
+    c = tb[(t + 0x40) % 96];
     a += m;
     b += m;
     c += m;

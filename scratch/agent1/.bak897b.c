@@ -85,8 +85,8 @@ void OvlFunc_897_2008f64(void)
 
         for (i = 0; i <= 0xf; i++) {
             b = __MapActor_GetActor(i + 0x10);
-            b->f50->f1e = (i << 12) - 0x4000;
             s = i << 12;
+            b->f50->f1e = s - 0x4000;
             x = call_via(g, __cos(s), 0x80 << 17);
             y = call_via(g, __sin(s), 0x80 << 17);
             __Actor_TravelTo(b, b->f8 + x, b->fc, b->f10 + y);
