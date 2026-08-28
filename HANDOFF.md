@@ -130,6 +130,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-120](reports/batch-120.md) | 18 | ready to port — a blocked_cse filter that filtered NOTHING (awk column off by one, 113 copies of the word "repeats"); corrections to the .call_via helper guidance; build the constant AFTER the call; naming one level too many costs a register |
 | [batch-121](reports/batch-121.md) | 18 | ready to port — tools/twin_families.py: work by FAMILY, 46 families cover 96 remaining functions; DMA call belongs in BOTH arms (retracts a batch-120 note); the ORR-destination local must be NARROW; a CSE boundary is necessary but not sufficient |
 | [batch-122](reports/batch-122.md) | 21 | ready to port — `cmp #K/bge` with K>0 is UNREACHABLE (read from combine.c), decidable from the ref; goto loops disable loop optimisation entirely (95 differing -> 3 where no flag helped); three more mis-scoped O1 wildcards had three functions parked at the wrong -O level |
+| [batch-123](reports/batch-123.md) | 8 | ready to port — RETRACTS the "gcc always folds symbol+offset" park: 34 of 531 already-matching functions carry the shape, and the integer-local address idiom produces it; 356 remaining functions in reach. The first control read 0 of 531 because the detector wanted the two-operand `add` — count sub-patterns. `ldrh` vs `ldrsh` is set by the DESTINATION type; a rebuilt loop bound is not always the goto tell |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
@@ -815,4 +816,3 @@ a meaningful fraction resolve, that is the answer for the largest blocked class
 in the corpus. If none do, the class needs a different explanation and this
 entry should be struck.
 
-- [batch-123](reports/batch-123.md) — eight elevated; a wrong park retracted and the integer-local address idiom recovered, 356 functions in reach
