@@ -1,0 +1,53 @@
+extern void __CutsceneStart(void);
+extern void __CutsceneEnd(void);
+extern void __CutsceneWait(int n);
+extern void __MapTransitionIn(void);
+extern void __WaitMapTransition(void);
+extern void __Func_8092adc(int a, int b, int c);
+extern void __Func_8093500(int a, int b);
+extern void __Func_8093530(void);
+extern void __Func_80925cc(int a, int b);
+extern void __MessageID(int id);
+extern void __Func_8093040(int a, int b, int c);
+extern void __MapActor_DoAnim(int a, int b);
+extern void __MapActor_Emote(int slot, int a, int b);
+extern void __Func_809259c(int a, int b);
+extern void __MapActor_Surprise(int a, int b);
+extern void __MapActor_SetAnim(int a, int b);
+extern void __SetFlag(int id);
+
+void OvlFunc_930_2008b2c(void)
+{
+    __CutsceneStart();
+    __MapTransitionIn();
+    __WaitMapTransition();
+    __CutsceneWait(0x1e);
+    __Func_8092adc(0, 0xc0 << 7, 0);
+    __Func_8093500(9, 1);
+    __Func_8093530();
+    __Func_80925cc(8, 2);
+    __CutsceneWait(0x14);
+    __MessageID(0x19cf);
+    __Func_8093040(8, 0, 0x14);
+    __Func_80925cc(9, 1);
+    __CutsceneWait(0x14);
+    __Func_8093040(9, 0, 0x14);
+    __MapActor_DoAnim(8, 3);
+    __CutsceneWait(0x14);
+    __Func_8093040(8, 0, 0x14);
+    __Func_8092adc(0xa, 0xd0 << 8, 0x14);
+    __Func_8093040(0xa, 0, 0x14);
+    __MapActor_DoAnim(8, 3);
+    __CutsceneWait(0x3c);
+    __MapActor_Emote(8, 0x81 << 1, 0x3c);
+    __MapActor_DoAnim(8, 4);
+    __CutsceneWait(0x14);
+    __Func_8093040(8, 0, 0x14);
+    __Func_809259c(0xa, 2);
+    __MapActor_Surprise(0xa, 0x81 << 1);
+    __CutsceneWait(0x3c);
+    __Func_8092adc(0xa, 0xb0 << 8, 0x14);
+    __MapActor_SetAnim(9, 5);
+    __CutsceneEnd();
+    __SetFlag(0x8b1);
+}
