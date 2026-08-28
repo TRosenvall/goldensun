@@ -5973,3 +5973,30 @@ destination first. gcc copies the operand on the RIGHT of the C expression:
 
 Multiplication commutes, so both are correct and only one matches. Read which
 value the ROM's `mov` copies and put the OTHER one on the right.
+
+## The no-prototype lever works best on a callee used MANY times the same way
+
+Batch 130 recorded that dropping a callee's prototype flips gcc's argument-setup
+order, and batch 133 recorded that this fails when the callee appears at sites
+with different argument orders -- gcc's unprototyped order matches one site and
+breaks the other.
+
+The converse is the strong case, and `OvlFunc_974_2008bb8` is the clean example:
+thirty-five calls to one callee, all `(who, item)`, and the ROM sets r1 before
+r0 at every one of them. With a prototype gcc set r0 first at all thirty-five --
+66 of 116 lines differing, in one perfectly regular pattern. Removing that one
+prototype matched the function exactly.
+
+So read the REGULARITY of the difference, not just its shape:
+
+  * one callee, many sites, the SAME swap at every site -> drop its prototype;
+    this is close to a certainty rather than a gamble
+  * one callee, several sites, the swap at SOME sites only -> the lever will
+    trade one set of sites for the other; don't spend the round on it
+
+Drop the prototype for that callee ALONE. The other callees in the same function
+keep theirs and are unaffected, so there is no reason to widen the change.
+
+A useful corollary for selection: a flat call-sequence function whose diff is
+large but perfectly periodic is usually a ONE-line fix, and is worth picking
+ahead of a function whose diff is small but irregular.
