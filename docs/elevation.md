@@ -6776,3 +6776,39 @@ STATEMENT form. When a class looks like a floor, ask what construct has not
 been tried, and check whether the matching corpus already contains the
 instruction that is supposedly unreachable. That check is cheap and it is what
 broke this one.
+
+## An early `return 0` guard is not the same shape as a tail `return 0`
+
+`OvlFunc_968_2008098` screened at 26 of 36 written the obvious way:
+
+    n = CreateActor(...);
+    if (n == 0)
+        return 0;
+    ...work...
+    return n;
+
+and matched EXACTLY when the same logic was written with the zero in the tail:
+
+    n = CreateActor(...);
+    if (n != 0) {
+        ...work...
+        return n;
+    }
+    return 0;
+
+Two separate differences collapsed at once, which is why this is worth a
+section rather than a line.
+
+  * gcc materialises the early `return 0` BEFORE the comparison -- `mov r0, #0
+    / cmp r5, #0 / beq` against the ROM's `cmp r5, #0 / beq`. The constant for
+    a path not yet taken is hoisted above the test that selects it.
+  * The redundant `mov r0, r5` before the inner call disappeared too. That one
+    looked like the "elided copy" register-pressure shape, which HANDOFF.md
+    describes as a consequence of pressure rather than of source form -- and
+    here it was a consequence of source form after all.
+
+The second point is the general one. A difference that matches a known
+pressure-residue shape is not automatically pressure residue. Check the
+control-flow shape first: it is cheap, and it moves register allocation. The
+ROM's own layout is the hint -- a single exit with the zero assigned in an else
+arm and one `b` to a shared epilogue means the source had one exit, not two.

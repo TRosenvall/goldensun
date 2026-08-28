@@ -48,4 +48,30 @@
  *
  * The OR role swap is the same signature as 200a5c0.c in this directory, which
  * was parked this round after seven spellings.  Do not re-spend a round on it.
+ *
+ * LATER: the -O1 hypothesis above is CONFIRMED as far as it goes -- 86 against
+ * 86 with 15 differing, reproduced -- and at least one of the remaining 15 is
+ * now identified and is NOT reachable from C.
+ *
+ * The first difference is argument precompute:
+ *
+ *     rom    ldr r3, =0x3001ebc / mov r0, #0x10 / ldr r5, [r3] / bl GetActor
+ *     ours   ldr r3, =0x3001ebc / ldr r5, [r3] / mov r0, #0x10 / bl GetActor
+ *
+ * The cheap `mov r0, #0x10` is the call's argument; the memory load is
+ * expensive work beside it. gcc emits the expensive work first and lets the
+ * cheap constant land last, which is exactly HANDOFF.md's "Argument
+ * precompute: DIAGNOSED" section -- calls.c:805, not fixable from C.
+ *
+ * Swapping the two source statements so the call comes first makes it WORSE,
+ * 18 differing: gcc then does the whole call before touching iwram_3001ebc,
+ * where the ROM reads it before the call. The 15-differing form above is the
+ * better one and is kept.
+ *
+ * SO THE -O1 QUESTION IS NOT SETTLED BY CLOSING THIS FUNCTION, and it cannot
+ * be. Some of the residue is a documented compiler difference that would
+ * remain at any optimisation level. Adding an O1 rule for this TU on the
+ * strength of a line count that still leaves 15 differing -- against the grain
+ * of a directory whose only explicit rule is CSE -- is not justified, and none
+ * was added. The line-count evidence stands where the note left it.
  */
