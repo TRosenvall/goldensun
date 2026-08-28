@@ -3,18 +3,18 @@ void Func_80aac84(int delta)
     int i;
     int j;
     int n;
+    int off;
     int idx;
     int r, g, b;
     unsigned int c;
-    int off;
     int mask;
 
     n = 0xf;
     i = 0;
     mask = 0x1f;
 outer:
-    j = 0;
     idx = n << 4;
+    j = 0;
 inner:
     off = (idx + j) * 2;
     c = *(unsigned short *)(0x5000000 + off);

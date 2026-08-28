@@ -13,11 +13,11 @@ void Func_80aac84(int delta)
     i = 0;
     mask = 0x1f;
 outer:
-    j = 0;
     idx = n << 4;
+    j = 0;
 inner:
     off = (idx + j) * 2;
-    c = *(unsigned short *)(0x5000000 + off);
+    c = *(unsigned short *)((char *)0x5000000 + off);
     r = (c >> 10) & mask;
     g = (c >> 5) & mask;
     b = c & mask;
