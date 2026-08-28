@@ -6346,3 +6346,28 @@ is not a single fixed rule applied uniformly; it can land differently at
 different sites in the same function. I predicted this would trade one for two
 and screened it anyway, which is the only reason it was found. One screen is
 cheaper than the reasoning about whether to bother.
+
+## The mid-function pool is NOT a translation-unit property (refuted)
+
+The previous entry proposed that early literal-pool dumping might be a property
+of the original translation unit, and that elevating a whole cluster into one
+`.c` might reproduce it. **That is refuted**, and cheaply.
+
+Compile a function alone, then compile it again with a second function appended,
+and diff where old_agbcc puts the pool. It does not move: both end
+
+    pop {...} / bx r0 / .L4: / .align 2, 0 / .L3: / .word ...
+
+-- pool after the epilogue, no branch, because control never reaches it. The ROM
+instead branches over a pool placed BEFORE its epilogue. Both sides emit a label
+at the same point; only the order differs.
+
+So this is old_agbcc's constant-pool emission and nothing about source form or TU
+composition reaches it. A park blocked on a `b` over a `.pool_aligned` is blocked
+for good with the current toolchain.
+
+**The method is the transferable part.** The hypothesis would have cost three
+function transcriptions to test the obvious way, and one compile to test the
+cheap way. When a hypothesis is about compiler behaviour rather than about a
+specific function, construct the smallest input that would show it -- a real
+function plus a two-line dummy -- rather than building the full case first.

@@ -65,9 +65,27 @@
  * one `.c`, which the "Cluster X..Y" headers elsewhere in the tree show is a
  * supported shape -- and see whether the pool lands early on its own.
  *
- * That is a real experiment rather than another spelling, and it is the right
- * next step for this file.  It is also four functions' worth of work, so it
- * wants a round of its own rather than being tacked onto one.
+ * THE CLUSTER HYPOTHESIS WAS TESTED AND IS REFUTED.  Before transcribing three
+ * more functions to try it, the cheap version was run: compile this function's
+ * C alone, then compile it again with a second function appended, and compare
+ * where old_agbcc puts the literal pool.
+ *
+ * It does not move.  In both cases the generated `.s` ends
+ *
+ *      pop {r5, r6} / pop {r0} / bx r0 / .L4: / .align 2, 0 / .L3: / .word ...
+ *
+ * -- pool AFTER the epilogue, with no branch, because control never reaches it
+ * and none is needed.  Adding a following function changes nothing about the
+ * first function's pool placement, and no `b` over a pool appears anywhere.
+ *
+ * So the mid-function pool is not a translation-unit property and elevating the
+ * cluster would not have produced it.  Both sides even emit a label at the same
+ * point; the difference is purely that the ROM's epilogue sits AFTER its pool
+ * and ours before.  That is old_agbcc's constant-pool emission, which no source
+ * form and no TU composition reaches.
+ *
+ * Recording the refutation rather than leaving the lead standing, because it was
+ * flagged as the most promising open experiment in the tree and it is not one.
  */
 
 struct B {
