@@ -4701,3 +4701,40 @@ line naming the object before editing:
 `.text` goes to the new `.c`'s object, and `.data` **and** `.bss` both go to the
 data half. Getting one of the three right is enough to make the first error go
 away and not enough to link.
+
+## Working by FAMILY: `tools/twin_families.py`
+
+Picking candidates one at a time hits diminishing returns — the tractable shapes
+get taken and what is left is register-allocation floors. Grouping the
+**remaining** functions by identical opcode stream changes the economics: one
+solved `.c` is a template and the rest are a search-and-replace on constants.
+
+46 families of 2+ in the 20–120 band cover 96 functions. Results so far:
+
+* a four-member DMA family, elevated in one round, **including a member parked
+  for several batches** at "21 lines against 22" whose answer was sitting in its
+  three siblings;
+* a two-member family where the sibling matched on the first screen after six
+  constants were substituted.
+
+Two cautions the tool's docstring carries:
+
+* It groups unelevated functions **against each other**. An earlier version
+  compared them against already-elevated ones and returned zero, because
+  generated `.s` files use gcc's own `.thumb_func` directive rather than the
+  repo's `.thumb_func_start` macro — the scan saw no elevated bodies at all.
+* A family can be uniformly *blocked* as easily as uniformly solvable. A
+  three-member family of `f(-1, -1, -1, 0)` callers is parked because none of the
+  three has a control-flow boundary; the identical C **matches** on
+  `OvlFunc_923_2009208`, which does. Read the family before assuming it is a win.
+
+## The constant-CSE rule needs BOTH halves, and a boundary alone is not enough
+
+`OvlFunc_932_2008b3c` uses a flag id once before an `if` and once in each arm —
+three uses in three different basic blocks, so the boundary the rule asks for is
+present. gcc still hoists the id into a callee-saved register and pays a push.
+
+Of the CSE-family flags only **`-fno-rerun-cse-after-loop`** undoes it;
+`-fno-gcse` is byte-identical to the default. Both halves of the precondition
+are required, and the boundary is the half that is easy to mistake for
+sufficient.
