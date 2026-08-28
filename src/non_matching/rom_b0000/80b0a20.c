@@ -42,6 +42,32 @@
  * So the width tell is real and the substitution is not a fix. Recorded that
  * way rather than as a naming lead, because guessing a namespace on top of a
  * spelling that makes the function WORSE would be two mistakes.
+ *
+ * REVISITED, and the missing instruction is identified.  It is not the zero at
+ * all: the ROM's last instructions are
+ *
+ *      b .Lb0a64 / .pool_aligned / .Lb0a64: / pop {r5,r6} / pop {r0} / bx r0
+ *
+ * -- a real branch over an in-function LITERAL POOL placed before the epilogue.
+ * That branch is the one line we are short.  `.pool_aligned` expands to
+ * `.align 2, 0` + `.pool` (include/macros.inc), so this is pool placement, not
+ * control flow, and no source spelling reaches it.
+ *
+ * MEASURED: across every elevated translation unit in the tree, ZERO generated
+ * `.s` files contain a mid-function pool.  old_agbcc emits the pool at
+ * `.func_end` and never early, so this pattern has never been reproduced here.
+ *
+ * THE LEAD, and it is a translation-unit one.  Three of the FOUR functions in
+ * asm/rom_b0000/rom_b0070_a_a_c_c_a_a.s carry a mid-function `.pool_aligned`,
+ * so early pool dumping looks like a property of how that TU was compiled rather
+ * than of this function.  A single-function `.c` can therefore probably never
+ * match it.  The test would be to elevate the cluster -- all four functions in
+ * one `.c`, which the "Cluster X..Y" headers elsewhere in the tree show is a
+ * supported shape -- and see whether the pool lands early on its own.
+ *
+ * That is a real experiment rather than another spelling, and it is the right
+ * next step for this file.  It is also four functions' worth of work, so it
+ * wants a round of its own rather than being tacked onto one.
  */
 
 struct B {

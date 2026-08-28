@@ -6307,3 +6307,25 @@ That is the largest untried lever/park intersection currently known. It is not a
 promise: several of those parks mention halfwords incidentally and are blocked on
 something else, as `Func_80a3d6c` and `SetTextColor` both turned out to be. But
 it is a queue built from evidence rather than from guessing at the next function.
+
+## The mid-function literal pool is a translation-unit property
+
+`Func_80b0a20` is one instruction from matching, and the instruction is a `b`
+that jumps over an in-function literal pool placed before the epilogue:
+
+    b .Lb0a64 / .pool_aligned / .Lb0a64: / pop {r5, r6} / pop {r0} / bx r0
+
+`.pool_aligned` is `.align 2, 0` + `.pool`, so this is pool PLACEMENT, and no
+source spelling reaches it. Measured: across every elevated translation unit,
+zero generated `.s` files contain a mid-function pool -- old_agbcc emits at
+`.func_end` and never early.
+
+What makes it a lead rather than a dead end is that three of the four functions
+in that `.s` carry one. Early pool dumping looks like a property of the original
+TU, which means a single-function `.c` may not be able to match any of them, and
+the cluster form -- several functions in one `.c`, which the "Cluster X..Y"
+headers show is supported here -- is the experiment worth running.
+
+Recognising this is cheap and worth doing early: if the ROM listing has a `b`
+immediately before a `.pool_aligned` that is not `.func_end`'s own, the missing
+instruction is pool placement and no amount of respelling the body will find it.
