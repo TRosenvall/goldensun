@@ -45,6 +45,33 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Makefile pattern rules with a non-default flag group.  tryc.py compiles a
+# candidate with the flags for its OWN path, and a file that does not exist yet
+# has no path in the Makefile -- so a screen can be exact at -O2 while the build
+# uses -O1 and the overlay differs.  That cost a green screen and a red build on
+# OvlFunc_885_20080dc.  This column warns before the C is written.
+def wildcards():
+    out = []
+    txt = open(os.path.join(ROOT, "Makefile"), errors="ignore").read().split("\n")
+    for i, l in enumerate(txt):
+        m = re.match(r"^(asm/\S+?)%\.o: \S+%\.c$", l)
+        if not m or i + 1 >= len(txt):
+            continue
+        g = re.search(r"\$\((\w+_CFLAGS)\)", txt[i + 1])
+        if g and g.group(1) != "GCC296_CFLAGS":
+            out.append((m.group(1), g.group(1)))
+    return out
+
+
+WILDCARDS = wildcards()
+
+
+def wildcard_for(asm_path):
+    """flag group a new .c under this .s's name would silently inherit"""
+    stem = asm_path[:-2] if asm_path.endswith(".s") else asm_path
+    hits = {g for pre, g in WILDCARDS if stem.startswith(pre)}
+    return "/".join(sorted(g.replace("_CFLAGS", "") for g in hits)) if hits else "-"
 START = re.compile(r"^\.thumb_func_start(?:_noalign)? (\S+)")
 END = re.compile(r"^\.func_end")
 BL = re.compile(r"^\tbl\t(\S+)$")
@@ -123,10 +150,11 @@ def main():
     rows = [r for r in rows if r and lo <= r["n"] <= hi and keep(shape, r)]
     rows.sort(key=lambda r: r["n"])
     print(f"{len(rows)} candidates, shape={shape}, {lo}-{hi} instructions")
-    print("insns calls mem  br flag2 site  name")
+    print("insns calls mem  br flag2 site wildcard  name")
     for r in rows[:20]:
         print(f"{r['n']:5} {r['calls']:5} {r['mem']:3} {r['br']:3} "
-              f"{'Y' if r['flag2'] else '-':>5} {r['site']:>4}  {r['name']:28} {r['path']}")
+              f"{'Y' if r['flag2'] else '-':>5} {r['site']:>4} {r['wild']:>8}  "
+              f"{r['name']:28} {r['path']}")
     return 0
 
 
@@ -177,6 +205,7 @@ def measure(name, path, body, lines, start):
             "br": sum(1 for x in body if COND.match(x)),
             "flagcalls": sum(1 for x in body if FLAGCALL.match(x)),
             "flag2": any(v > 1 for v in ids.values()),
+            "wild": wildcard_for(os.path.relpath(path, ROOT)),
             "site": guarded, "unguarded": unguarded}
 
 
