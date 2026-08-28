@@ -95,5 +95,4 @@ ok:
     Actor_TravelTo(e, v[0], v[1], v[2]);
     e->f4 = e->f4 + 4;
     return 1;
-fail:
 }

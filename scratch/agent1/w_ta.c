@@ -38,24 +38,22 @@ static inline int call_via_r3(int a, int b)
 int ActorCmd_Wander(struct Ent *e)
 {
     int *p;
-    int a, b, c;
+    int a, b, c, t;
     int i;
     int dist, head;
-    int dx, dz;
+    int dx, dz, x, z;
     int v[3];
     int w[3];
 
     p = e->f0 + e->f4 + 1;
     a = *p++;
     b = *p++;
-    c = *p;
-    c /= 0x10000;
-    c *= c;
+    c = *p / 0x10000;
+    c = c * c;
     i = 0;
     while (1) {
         i++;
-        if (i > 7)
-            goto fail;
+        if (i <= 7) {
         v[0] = e->f8;
         v[1] = e->fc;
         v[2] = e->f10;
@@ -83,17 +81,20 @@ int ActorCmd_Wander(struct Ent *e)
         vec3_translate(dist, head - 0x2000, w);
         if (TestCollision(e, w) != 0)
             continue;
-        dx = v[0] / 0x10000 - e->f64;
-        dz = v[2] / 0x10000 - e->f66;
+        x = v[0];
+        dx = x / 0x10000 - e->f64;
+        z = v[2];
+        dz = z / 0x10000 - e->f66;
         if (dx * dx + dz * dz <= c)
             goto ok;
+        } else {
+        e->f6 = e->f6 + 0x8000;
+        e->f5e = 1;
+        return 0;
+        }
     }
 ok:
-    Actor_TravelTo(e, v[0], v[1], v[2]);
+    Actor_TravelTo(e, x, v[1], z);
     e->f4 = e->f4 + 4;
     return 1;
-fail:
-    e->f6 = e->f6 + 0x8000;
-    e->f5e = 1;
-    return 0;
 }
