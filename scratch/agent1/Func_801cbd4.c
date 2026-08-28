@@ -1,17 +1,16 @@
 extern int Func_8000888(int, int);
 
-static inline int call_via_r4(int (*f)(int, int), int a, int b)
+static inline int call_via(int (*f)(int, int), int a, int b)
 {
-    register int (*_f)(int, int) __asm__("r4") = f;
     register int _a __asm__("r0") = a;
     register int _b __asm__("r1") = b;
     __asm__ volatile (
         "\t.align\t2, 0\n"
         "\tmov\tr12, pc\n"
-        "\tbx\tr4"
+        "\tbx\t%1"
         : "=r" (_a)
-        : "r" (_f), "0" (_a), "r" (_b)
-        : "memory", "lr", "r12"
+        : "r" (f), "0" (_a), "r" (_b)
+        : "memory", "r2", "lr", "r12"
     );
     return _a;
 }
@@ -20,9 +19,9 @@ unsigned short Func_801cbd4(int rec, int a, int b, int c)
 {
     int x, y, z;
 
-    x = call_via_r4(Func_8000888, *(unsigned short *)(rec + 0x576) << 16, a) >> 16;
-    y = call_via_r4(Func_8000888, *(unsigned short *)(rec + 0x578) << 16, b) >> 16;
-    z = call_via_r4(Func_8000888, *(unsigned short *)(rec + 0x57a) << 16, c) >> 16;
+    x = call_via(Func_8000888, *(unsigned short *)(rec + 0x576) << 16, a) >> 16;
+    y = call_via(Func_8000888, *(unsigned short *)(rec + 0x578) << 16, b) >> 16;
+    z = call_via(Func_8000888, *(unsigned short *)(rec + 0x57a) << 16, c) >> 16;
     if (x < 0)
         x = 0;
     if (y < 0)
@@ -35,5 +34,5 @@ unsigned short Func_801cbd4(int rec, int a, int b, int c)
         y = 31;
     if (z > 31)
         z = 31;
-    return x + (y << 5) + (z << 10);
+    return x + ((z << 10) + (y << 5));
 }
