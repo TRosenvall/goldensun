@@ -91,6 +91,11 @@ SECTIONS {
 		asm/overlays/common/common1_c_c_b.o(.bss)
 	} > overlay
 
+/* gcc-2.96 emits __divsi3 for `/` and has no flag to rename it.  Overlay code
+ * calls the RAM-resident copy through the stub .export_func divsi3_RAM makes.
+ * Same treatment as overlays/rom_7a5214/overlay.ld.  Emits no bytes. */
+__divsi3 = _divsi3_RAM;
+
 	/DISCARD/ : {
 		*(*)
 	}
