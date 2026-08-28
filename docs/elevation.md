@@ -5643,3 +5643,50 @@ and the source cannot reach the order.
 Together with `OvlFunc_899_20099a4` (a split build exists but no dominating
 block) this bounds the class from both sides. The lever needs a split build AND
 a preceding branch; missing either, park it.
+
+## The no-prototype lever fixes two-argument order
+
+When the ROM sets up a two-`mov` argument block as `mov r1 / mov r0` and gcc
+emits `mov r0 / mov r1`, **remove the callee's prototype**. A call with no
+visible declaration gets the ROM's order.
+
+I had parked this shape twice as unreachable ("neither argument is a split
+build, so the interleave lever has nothing to work with"). The control refutes
+it: **332 of 3428 solved functions** contain a two-`mov` block with r1 emitted
+first. The smallest example, `src/overlays/rom_78603c/ovl_30_c_c_b.c`, declares
+NOTHING at all -- four calls, no externs -- and produces
+`mov r1,#0 / mov r0,#16` from `__Func_8093054(0x10, 0)`.
+
+Applied to the two parks:
+  * `OvlFunc_921_20082b8` -- 2 of 74 differing, **exact** on removing one
+    prototype. The park is deleted.
+  * `OvlFunc_950_20087b0` -- 2 of 61, **exact**, and elevated in the same round.
+
+It does not always apply. `OvlFunc_952_20085a4` calls `__ActorMessage` in both
+arms of a branch and the ROM orders its arguments differently in each, so no
+single declaration choice satisfies both. Check whether the callee appears more
+than once before reaching for this.
+
+**Cost:** the file loses type checking for that callee, and gcc-2.96 warns under
+`-Wimplicit`. Remove only the prototype the call needs, not all of them.
+
+## Symbol bases: gcc spends a register for a symbol and not for an integer
+
+The ROM often holds a message id in a callee-saved register and derives
+neighbours from it:
+
+    ldr r5, =0x2399 ... add r0, r5, #1 ... add r0, r5, #2
+
+Written `int m = 0x2399;` gcc emits three independent pool loads and does not
+keep `m` alive at all -- rematerialising a pool constant is cheaper than a
+push/pop pair, so it never spends the register. Mutating the variable
+(`m += 1;`) is worse: each arm then folds independently.
+
+Declaring the base as an absolute symbol -- `extern int _MSG_2399;` and
+`m = (int)(&_MSG_2399);` -- produces the register and both `add`s. On
+`OvlFunc_950_20087b0` that took **73 differing to 3**.
+
+This extends the batch-123 derived-constant rule with the lever it lacked. That
+rule said derivation is reachable when the base is already forced into a
+register by a runtime use; this says how to force it when nothing else does.
+`message.sym` already carried a section comment describing exactly this shape.

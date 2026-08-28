@@ -33,8 +33,5 @@
  *
  * BLOCKER: `__ActorMessage(0xe, 0)` appears in both arms of the branch, and the
  * ROM emits its two arguments in DIFFERENT orders in the two arms -- r0 first in
- * the then-arm, r1 first in the else-arm.  Ours emits r0 first in both.  Neither
- * argument is a split build, so the interleave lever has nothing to work with;
- * this is the same bound as src/non_matching/overlays/20082b8.c.  Naming the
- * zero in the else arm alone changes nothing.
+ * the then-arm, r1 first in the else-arm.  Ours emits r0 first in both.
  */

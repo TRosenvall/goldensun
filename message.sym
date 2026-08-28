@@ -83,6 +83,15 @@ _MSG_2985 = 0x2985;
 
 /* base of a three-message prompt: the ROM holds it in a register and adds
  * 1 and 2, which only happens when the operand is a symbol address. */
+_MSG_2399 = 0x2399;
+
+/* Added while elevating OvlFunc_950_20087b0.  Same shape as the entry above:
+ * the ROM loads 0x2399 into a callee-saved register and reaches the other two
+ * messages with `add r0, r5, #1` and `add r0, r5, #2`.  With a plain int
+ * constant gcc emits three independent pool loads and does not keep the base
+ * alive at all -- rematerialising is cheaper than a push/pop pair.  It will
+ * spend the register for a SYMBOL address and not for an integer, which is
+ * what makes this a symbol in the original source. */
 
 /* Added in batch 68. Func_80b2884 adds a small offset to a message id chosen by
  * a byte at iwram_3001f2c+0x3aa, and the ROM computes each offset as an
