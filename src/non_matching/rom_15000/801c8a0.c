@@ -1,46 +1,51 @@
 /* Func_801c8a0 -- 0x0801c8a0, asm/rom_15000/rom_1aeec_c_a_c_a_b.s
  *
- * BLOCKER: unfoldable symbol+offset.  The ROM loads a symbol base and adds a
- * runtime-BUILT constant offset to it:
+ * Best screen: ours 60 lines against the ROM's 63.  Candidate kept at
+ * scratch/L1c8a0_best.c.
  *
- *      mov  r2, #0x88
- *      ldr  r3, =0x2000240          ; gState
- *      lsl  r2, #0x2                ; 0x88 << 2 = 0x220
- *      add  r3, r2
- *      ldrh r3, [r3, #0x0]          ; reads 0x2000460
+ * CORRECTION.  An earlier version of this park claimed the blocker was that
+ * "gcc always folds symbol+constant into one pool entry, and nothing stops it".
+ * That was wrong, and the control that refuted it is worth repeating: 34 of 531
+ * already-MATCHING functions in this repo contain exactly the shape I called
+ * unreachable.  The address build now matches exactly.  See
+ * docs/elevation.md, "Address arithmetic in unsigned int locals".
  *
- * gcc-2.96 folds a symbol plus a constant offset into a single pool entry
- * unconditionally -- we get `ldr r3, =gState+544 / ldrh r3, [r3, #0]`, two
- * instructions where the ROM has four.  Nothing in the source appears able to
- * stop it.
+ * SOLVED:
+ *   - The four-instruction address build (`mov r2,#0x88 / ldr r3,=gState /
+ *     lsl r2,#2 / add r3,r2`) comes from doing the arithmetic in unsigned int
+ *     locals across separate statements, not in pointer arithmetic:
+ *         r2 = 0x88; r3 = (unsigned int)&gState; r2 <<= 2; r3 += r2;
+ *         key = *(unsigned short *)r3;
+ *     Any single-expression spelling folds to `ldr r3,=gState+544`.
+ *   - Both loops are do/while.  A `for` is actively wrong here: gcc rotates it,
+ *     rewrites `i <= 0x1bf` into `i < 0x1c0`, and then rebuilds the bound as
+ *     `mov r3,#0xe0 / lsl r3,#1` every iteration because 0x1c0 is a cheap
+ *     shifted build.  A rebuilt loop bound is therefore NOT always the goto
+ *     tell -- check for a `for` that should be a do/while first.
+ *   - `key` must be `unsigned int`.  A HImode local is loaded with `ldrsh` plus
+ *     a zero index register, and `>> 10` on a signed int gives `asr`.
+ *   - Loop 1 is instruction-for-instruction identical to the ROM.
  *
- * Everything else in this function matches.  Best screen: ours 57 lines against
- * the ROM's 63; the six-line deficit is this address build (3) plus the
- * register-allocation shift it causes downstream (out2 lands in r12 instead of
- * the ROM's r14, and `a`/`i` swap r1 and r2).  Both loop bodies are
- * instruction-for-instruction identical to the ROM.
+ * REMAINING BLOCKER, and it is a narrow one: in loop 2 the ROM hoists the
+ * loop-invariant CONSTANTS (0x3ff into r6, 0x1bf into r5, the address of
+ * ewram_2000462 into r12) but does NOT hoist the LOAD of that address --
+ * `mov r2,r12 / ldrh r4,[r2]` runs every iteration.  Ours hoists the load.
  *
- * SOLVED, and reusable:
- *   - BOTH loops are do/while, not `for`.  Written as `for (i = 0; i <= 0x1bf;
- *     i++)` gcc rotates the loop, jumps INTO the middle of the body to reach
- *     the test, and -- because it converted `i <= 0x1bf` to `i < 0x1c0` -- then
- *     rebuilds the bound as `mov r3,#0xe0 / lsl r3,#1` on every iteration.
- *     The ROM instead hoists `ldr r5,=0x1bf` once and tests `ble` at the
- *     bottom, which is exactly what a do/while gives.  Worth remembering: a
- *     rebuilt loop bound is NOT always the goto-loop tell -- here it was a
- *     `for` that should have been a do/while, and the `<=K` to `<K+1` rewrite
- *     is what made rebuilding cheap enough for gcc to prefer it.
- *   - The two loops differ in ONE deliberate way: loop 1 reads its global once
- *     before the loop, loop 2 re-reads `ewram_2000462` inside the body every
- *     iteration.  That asymmetry is in the ROM (`mov r2,r12 / ldrh r4,[r2]`
- *     inside loop 2) and it reproduces from writing the load in that position
- *     in the source.  It is not an optimiser artefact.
- *   - `key` must be `unsigned int`, not `unsigned short`: a HImode local is
- *     loaded with `ldrsh` plus a zero index register (see the note on
- *     Func_80a3ddc), and `>> 10` on a signed int gives `asr`, not the ROM's
- *     `lsr`.
+ * That combination means loop optimisation ran and the load was killed by a
+ * store inside the loop -- the only store there is `*out2 = i` on the found
+ * path.  gcc-2.96 evidently proves that store cannot alias the global, and I
+ * could not make it stop:
+ *     - taking the global's address into a local pointer first  -- no change
+ *     - declaring the global as an extern ARRAY and reading [0] -- no change
+ *     - reading it through a cast integer, `*(unsigned short *)r3` -- no change
+ *     - storing through a cast integer, `*(int *)ro = i`         -- no change
+ *     - `volatile` on the global (64 lines, adds an instruction)
+ *     - making loop 2 a goto loop: this DOES keep the load inside (62 lines,
+ *       the closest structural fit) but then nothing is hoisted, so 0x3ff is
+ *       reloaded from the pool inside the body where the ROM has `mov r3, r6`.
  *
- * TRIED AND DID NOT MOVE THE ADDRESS BUILD: `((unsigned short *)gState)[0x110]`;
- * `*(unsigned short *)((int)gState + (0x88 << 2))`; writing the offset as
- * `0x88 * 4`; -O1; -fno-rerun-cse-after-loop (69 lines, worse).
+ * So the shape wanted is "loop optimisation runs, one specific load does not
+ * hoist", and the goto lever is too blunt for it -- it is all-or-nothing.  A
+ * function needing partial hoisting is not currently reachable, and that is a
+ * cleaner statement of the gap than anything about constant folding.
  */

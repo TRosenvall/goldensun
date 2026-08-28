@@ -1,62 +1,72 @@
 [
  {
-  "name": "OvlFunc_918_2009004",
-  "ref": "asm/overlays/rom_7a5214/ovl_314_c_c_a.s",
-  "insns": 196
+  "name": "OvlFunc_970_20091c4",
+  "ref": "asm/overlays/rom_7fa4ec/ovl_30_c_c_c_c.s",
+  "insns": 104
  },
  {
-  "name": "OvlFunc_897_2008f64",
-  "ref": "asm/overlays/rom_791794/ovl_30_c_c_a_a.s",
-  "insns": 120
+  "name": "Func_80a56c8",
+  "ref": "asm/rom_a1000/rom_a5534_a_c.s",
+  "insns": 80
  },
  {
-  "name": "UpdateActors",
-  "ref": "asm/rom_9000/rom_ca6c_a_c_c.s",
-  "insns": 683
+  "name": "Func_80cd52c",
+  "ref": "asm/rom_c9000/rom_cd508_a_c.s",
+  "insns": 45
  },
  {
-  "name": "ActorCmd_Wander",
-  "ref": "asm/rom_9000/rom_d924_c_c.s",
-  "insns": 182
+  "name": "OvlFunc_935_2008944",
+  "ref": "asm/overlays/rom_7bf5a8/ovl_2e0_c_c_a_c_c.s",
+  "insns": 55
  },
  {
-  "name": "Func_800d340",
-  "ref": "asm/rom_9000/rom_ca6c_c_c.s",
-  "insns": 338
+  "name": "Func_8021cb8",
+  "ref": "asm/rom_15000/rom_20198_c_c_c_c_c.s",
+  "insns": 86
  },
  {
-  "name": "Actor_TravelTo",
-  "ref": "asm/rom_9000/rom_ca6c_c_a.s",
-  "insns": 190
+  "name": "OvlFunc_964_20091e0",
+  "ref": "asm/overlays/rom_7ed0a0/ovl_30_a_a_c_c_a_c.s",
+  "insns": 62
  },
  {
-  "name": "UpdateFieldScreen",
-  "ref": "asm/rom_9000/rom_f9cc_c.s",
-  "insns": 245
+  "name": "OvlFunc_897_2008e30",
+  "ref": "asm/overlays/rom_791794/ovl_30_a_c_c.s",
+  "insns": 101
  },
  {
-  "name": "OvlFunc_924_200d244",
-  "ref": "asm/overlays/rom_7ac2d8/ovl_35b8_a_c_a_a.s",
-  "insns": 137
+  "name": "Func_807808c",
+  "ref": "asm/rom_77000/rom_77320_a_c_c.s",
+  "insns": 84
  },
  {
-  "name": "Func_80993b0",
-  "ref": "asm/rom_8a000/rom_97b54_a_c_c_a_c_c_c_c.s",
-  "insns": 111
+  "name": "Func_80ad274",
+  "ref": "asm/rom_a1000/rom_ad274_a.s",
+  "insns": 68
  },
  {
-  "name": "OvlFunc_932_200b738",
-  "ref": "asm/overlays/rom_7b9cb4/ovl_30_c_c_a_a.s",
-  "insns": 119
+  "name": "Func_801e3c8",
+  "ref": "asm/rom_15000/rom_1de5c_a.s",
+  "insns": 36
  },
  {
-  "name": "Func_80f3078",
-  "ref": "asm/rom_f2000/rom_f2028_c_c_a_a.s",
-  "insns": 797
+  "name": "Func_801e260",
+  "ref": "asm/rom_15000/rom_1de5c_a.s",
+  "insns": 81
  },
  {
-  "name": "Func_80ad6d4",
-  "ref": "asm/rom_a1000/rom_ad274_c_c.s",
-  "insns": 1274
+  "name": "OvlFunc_897_200aba0",
+  "ref": "asm/overlays/rom_791794/ovl_30_c_c_a_c_c_c_a.s",
+  "insns": 54
+ },
+ {
+  "name": "DecodeMetatileset",
+  "ref": "asm/rom_9000/rom_f9cc_a_c.s",
+  "insns": 70
+ },
+ {
+  "name": "OvlFunc_903_2008fc8",
+  "ref": "asm/overlays/rom_798dc4/ovl_314_c_c_c_c.s",
+  "insns": 85
  }
 ]
