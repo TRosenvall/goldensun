@@ -5453,3 +5453,42 @@ at roughly four matches in five this session.
 **Selection lesson:** prefer functions with enough structure that source-level
 choices still have leverage. A 13-instruction function that is 3 lines off is
 not "nearly done" -- it is out of moves.
+
+## Both split builds must be named, not just the repeated one
+
+`OvlFunc_953_200a820` has six calls of the form
+`f(slot, X << 2, 0x93 << 2)` behind a `GetFlag` guard, with the ROM
+interleaving the slot constant into the two shifted builds. Getting there took
+three separate applications of the same lever, and the order is instructive:
+
+  1. **All inline** -- 61 of 86 differing. gcc hoists the two pooled SetSpeed
+     constants into r5/r6 and adds a push.
+  2. **Name the two POOLED constants separately per call site** (`s1,t1,s2,t2`,
+     all four assigned before the guard) -- 43. The push disappears. Note
+     `-fno-rerun-cse-after-loop` did NOT fix this one, unlike
+     `OvlFunc_883_2008ba8`; separate locals did.
+  3. **Name the repeated `0x93 << 2` six times** (`y1..y6`) -- 12, and the
+     remaining twelve differences are all one pair of instructions swapped.
+  4. **Name the varying `X << 2` too** (`x1..x6`) -- exact.
+
+Step 4 is the point. After step 3 the second argument was a named local and the
+third was inline, and the interleave did not appear. **A call with two split-build
+arguments needs BOTH named** for gcc to rematerialise them in the ROM's order --
+naming one and leaving the other inline is not a partial win, it is no win.
+
+Twelve named locals in a 40-line function looks absurd and is correct.
+
+## The HImode literal cuts both ways: 0 and 0x8000 need opposite treatment
+
+Storing a constant through a `short *`:
+
+  * `*(unsigned short *)p = 0;` pools the zero (`ldr r3, =0x0`). An **int
+    intermediate** -- `v = 0; *(unsigned short *)p = v;` -- gives the ROM's
+    `mov r3, #0x0`.
+  * `*(short *)p = 0x80 << 8;` pools 0xffff8000, because the value sign-extends
+    into HImode. An **unsigned short destination** with the shift written
+    inline gives the ROM's `mov r3,#0x80 / lsl r3,#8`.
+
+Two sibling functions in the same `.s` needed one each, which is how the pair
+came up. When the ROM builds a halfword constant with `mov`(+`lsl`) and ours
+pools it, the fix is one of these two and they are not interchangeable.
