@@ -11,7 +11,27 @@ middle. Some ROM functions instead dump the pool early and jump over it:
     .L6a0:
         ...
 
-That `b` is a real instruction we cannot produce. It was measured across the
+That `b` is a real instruction we cannot produce.
+
+CORRECTED (batch 142). The original test here looked for `.pool_aligned` with a
+`b .L...` in the THREE PRECEDING LINES, and reported 312 of 2212. That is too
+narrow twice over: the directive is sometimes plain `.pool`, and the ROM often
+puts `.align` and one or more `.word` blocks between the branch and the pool,
+so the `b` is further than three lines away. OvlFunc_919_200815c is the case
+that exposed it -- a textbook branch-over-pool that the old test missed and
+that therefore kept being offered as a fresh candidate.
+
+The test is now "a `.pool` or `.pool_aligned` inside the body with CODE after
+it", which is the property that actually cannot be produced, and it gives 521.
+
+That wider test was checked against the corpus that already matches before
+being adopted: ZERO of 3494 matching functions contain a mid-body pool. A
+LOOSER version -- any mid-body data, including `.word` -- is wrong, because 85
+matching functions do have mid-body `.word` blocks and they are switch JUMP
+TABLES, which gcc emits routinely. Pools and jump tables are both "data in the
+middle" and mean opposite things.
+
+It was measured across the
 whole tree: mid-function pools appear in ZERO of the elevated translation units,
 and the cluster hypothesis -- that pool placement might be a property of the
 translation unit rather than the function -- was tested and refuted (compiling a
@@ -34,7 +54,8 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 START = re.compile(r"^\s*\.(?:thumb_func_start(?:_noalign)?|arm_func_start)\s+(\S+)")
-BR = re.compile(r"^\tb\t\.L\w+$")
+POOL = re.compile(r"^\s*\.pool(_aligned)?\s*$")
+CODE = re.compile(r"^\t[a-z]")
 
 
 def scan():
@@ -48,16 +69,23 @@ def scan():
                 continue
             L = open(p, errors="ignore").read().split("\n")
             cur = None
-            for i, l in enumerate(L):
+            seen_pool = False
+            for l in L:
                 m = START.match(l)
                 if m:
                     cur = m.group(1)
                     total += 1
+                    seen_pool = False
                     continue
-                if cur and l.strip() == ".pool_aligned":
-                    if any(BR.match(L[j]) for j in range(max(0, i - 3), i)):
-                        blocked.append((cur, os.path.relpath(p, ROOT)))
-                        cur = None
+                if not cur:
+                    continue
+                if l.startswith(".func_end"):
+                    cur = None
+                elif POOL.match(l):
+                    seen_pool = True
+                elif seen_pool and CODE.match(l):
+                    blocked.append((cur, os.path.relpath(p, ROOT)))
+                    cur = None
     return blocked, total
 
 
