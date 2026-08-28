@@ -4638,3 +4638,25 @@ This is the counterweight to "naming one level too many": that note is about
 values that should not be named at all, this one is about a value that must be
 born *earlier* than its first use suggests. The diagnostic is the same — the
 push list — but it points the opposite way.
+
+## The ORR-destination lever needs an `unsigned char` local, not an `int` one
+
+Where the ROM has the constant in the destination register —
+
+    rom   ldrb r2, [r1] / mov r3, #2 / orr r3, r2
+    ours  ldrb r3, [r1] / mov r2, #2 / orr r3, r2
+
+— naming the constant is the documented fix, and the TYPE is load-bearing.
+Measured on `OvlFunc_947_2008ec8`, all against a 69-line ROM:
+
+    *p = 2 | *p;                     2 differing
+    *p |= 2;                         2
+    int m = 2; *p = m | *p;          2   (byte-identical to the literal)
+    unsigned char m = 2; *p = m | *p;   OK
+
+An `int` local is folded away — gcc knows the value fits and treats it exactly
+like the literal. A narrow local survives as a distinct QImode pseudo, and that
+is what makes it the `orr` destination. The existing note says "a narrow
+`unsigned char` constant reaches 'constant is rd'"; the sharpening is that the
+`int` spelling is not a weaker version of the same lever, it is *no lever at
+all*, so a null result from `int m` says nothing about the technique.
