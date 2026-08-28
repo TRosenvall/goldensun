@@ -4364,6 +4364,16 @@ asm/overlays/rom_7e7574/ovl_9dc_c_a_c_c_a_a_c_c_c_c_c_c_c_c_a_c.o: src/overlays/
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# OvlFunc_883_2008ba8 loads the flag id 0x807 twice, once for __GetFlag and
+# once for __SetFlag.  At -O2 the rerun-CSE-after-loop pass commons the two
+# pool loads into a callee-saved register and adds a push the ROM does not
+# have.  No source spelling defeats it (two separate named locals, a local
+# assigned inside the guarded block, -fno-gcse all leave it); CSE_CFLAGS is
+# exact.
+asm/overlays/rom_780898/ovl_30_c_c_a_c_c.o: src/overlays/rom_780898/ovl_30_c_c_a_c_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7bf5a8/ovl_2e0_c_a_c.o: src/overlays/rom_7bf5a8/ovl_2e0_c_a_c.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)

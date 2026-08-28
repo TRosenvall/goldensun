@@ -5373,3 +5373,28 @@ constant-CSE concern does not arise here.
 single-instruction argument) landing inside a SPLIT BUILD of another argument,
 whether that build is `mov`+`lsl` or `mov`+`neg`. The 248-function sizing above
 counts only the `lsl` form and is therefore a floor.
+
+## An added push holding a commoned constant is a FLAG tell, not a source problem
+
+`OvlFunc_883_2008ba8` loads the flag id 0x807 twice — once for `__GetFlag`, once
+for `__SetFlag`. At `-O2` gcc commons the two pool loads into r5 and adds a
+`push {r5}` the ROM does not have:
+
+    rom   push {r14} / bl __CutsceneStart / ldr r0,=0x807 / bl __GetFlag
+          ... ldr r0,=0x807 / bl __SetFlag
+    ours  push {r5, r14} / ldr r5,=0x807 / bl __CutsceneStart / mov r0,r5 ...
+
+I spent two screens on source spellings first — two separately named locals
+holding the same value (the trick that works on the `-1` triple), a local
+assigned inside the guarded block, `-fno-gcse`. None moved it.
+`-fno-rerun-cse-after-loop` (`CSE_CFLAGS`) was exact.
+
+**The diagnostic is the push list.** When ours pushes a callee-saved register the
+ROM does not, and that register holds a constant used more than once, the
+rerun-CSE pass is the cause and the fix is the flag group, not the C. Check the
+push list before trying spellings — it is visible in the first two lines of the
+screen.
+
+This is the second use of the push list as a diagnostic, alongside the
+"naming one level too many costs a register" note. Both read the prologue rather
+than the body, and both are cheap to check first.
