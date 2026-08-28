@@ -1,3 +1,12 @@
+/* ActorCmd_Loop -- PARKED, 3 of 40 aligned (1 real instruction + 2 label shift).
+   Ref: asm/rom_9000/rom_d654_a_c_a_a_a_c.s
+   Residue: the ROM has `mov r0, r5 / add r0, #0x5d`; gcc emits only
+   `add r0, #0x5d`, because reload knows the incoming parameter register r0
+   still holds `e`.  Blocker class: elided pointer copy / register allocation.
+   Tried (all byte-identical to each other): derived initialiser
+   `c = e + 0x5d`, `(unsigned char *)((int)e + 0x5d)`, a two-step walk
+   `c = e; c += 0x5d;`, a struct with the counter as a member at 0x5d, and
+   hoisting the assignment above the `if` (worse: 28 differ).  */
 extern int Actor_FindScriptMarker(unsigned char *e, int label);
 
 int ActorCmd_Loop(unsigned char *e)

@@ -1,93 +1,5 @@
 	.include "macros.inc"
 
-@ GetSlotSpriteId
-@ r0=slot (masked to 12 bits). Returns the sprite resource id of that slot's
-@ actor -- read from the first part at actor+0x28 -- or -1 when the slot is
-@ empty or not draw kind 1. The inverse of Func_92be0.
-.thumb_func_start Func_8092ba8  @ 0x08092ba8
-	push	{lr}
-	ldr	r3, =iwram_3001ebc
-	ldr	r2, [r3]
-	ldr	r3, =0xfff
-	and	r3, r0
-	lsl	r3, #2
-	add	r3, #0x14
-	ldr	r2, [r2, r3]
-	mov	r1, #1
-	neg	r1, r1
-	cmp	r2, #0
-	beq	.L92bd2
-	mov	r3, r2
-	add	r3, #0x54
-	ldrb	r3, [r3]
-	cmp	r3, #1
-	bne	.L92bd2
-	ldr	r3, [r2, #0x50]
-	ldr	r3, [r3, #0x28]
-	mov	r2, #0
-	ldrsh	r1, [r3, r2]
-.L92bd2:
-	mov	r0, r1
-	pop	{r1}
-	bx	r1
-.func_end Func_8092ba8
-
-@ FindSlotBySpriteId
-@ r0=sprite resource id. Returns the slot holding an actor whose first part has
-@ that id, or -1 if none does.
-@ Checks slot 8 first as a special case, then scans 9..0x41. Since only the
-@ streamed scenery range is searched, party slots 0-7 are never returned.
-.thumb_func_start Func_8092be0  @ 0x08092be0
-	push	{r5, lr}
-	ldr	r3, =iwram_3001ebc
-	ldr	r4, [r3]
-	ldr	r2, [r4, #0x34]
-	mov	r5, #1
-	neg	r5, r5
-	mov	r1, #8
-	cmp	r2, #0
-	beq	.L92c0c
-	mov	r3, r2
-	add	r3, #0x54
-	ldrb	r3, [r3]
-	cmp	r3, #1
-	bne	.L92c0c
-	ldr	r3, [r2, #0x50]
-	ldr	r3, [r3, #0x28]
-	mov	r2, #0
-	ldrsh	r3, [r3, r2]
-	cmp	r3, r0
-	bne	.L92c0c
-	mov	r5, #8
-	b	.L92c34
-.L92c0c:
-	add	r1, #1
-	cmp	r1, #0x41
-	bgt	.L92c34
-	lsl	r3, r1, #2
-	add	r3, #0x14
-	ldr	r2, [r4, r3]
-	cmp	r2, #0
-	beq	.L92c0c
-	mov	r3, r2
-	add	r3, #0x54
-	ldrb	r3, [r3]
-	cmp	r3, #1
-	bne	.L92c0c
-	ldr	r3, [r2, #0x50]
-	ldr	r3, [r3, #0x28]
-	mov	r2, #0
-	ldrsh	r3, [r3, r2]
-	cmp	r3, r0
-	bne	.L92c0c
-	mov	r5, r1
-.L92c34:
-	mov	r0, r5
-	pop	{r5}
-	pop	{r1}
-	bx	r1
-.func_end Func_8092be0
-
 @ OpenMessageBoxForSlot
 @ r0=packed speaker: slot in the low 12 bits, style flags in bits 12-15.
 @ Opens a message box for the line at iwram_1ebc+0x1D8, positioned against that
@@ -618,4 +530,3 @@
 	pop	{r0}
 	bx	r0
 .func_end ActorMessage
-

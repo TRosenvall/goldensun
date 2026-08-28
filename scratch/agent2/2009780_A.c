@@ -1,3 +1,16 @@
+/* OvlFunc_968_2009780 -- PARKED, 2 of 49 aligned.
+   Ref: asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c_a_a_c.s
+   MUST BE SCREENED/BUILT AT -O2.  The Makefile wildcard rule
+   src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c%.c applies O1_CFLAGS to this
+   stem and it is WRONG for this TU: -O1 gives 26 differing, -O2 gives 2.
+   An explicit -O2 rule is needed when this is wired.
+   Residue:  rom  mov r1,#0xe0 / mov r2,#0 / mov r0,#0xa / lsl r1,#8
+             ours mov r1,#0xe0 / mov r2,#0 / lsl r1,#8   / mov r0,#0xa
+   Blocker class: arg-interleave, shift racing a `mov`, in a STRAIGHT-LINE
+   function -- no basic-block boundary for the rematerialisation lever.
+   Tried: `int`/`void`/no-prototype on the mismatching callee and on the
+   preceding one (4 combinations), the constant spelled 0xe000 instead of
+   0xe0<<8, and -fno-schedule-insns.  All 2 of 49.  */
 extern unsigned char *iwram_3001ebc;
 
 extern void __CutsceneStart(void);
