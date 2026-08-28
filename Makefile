@@ -309,6 +309,13 @@ asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a_c_b.o: src/overlays/rom_7f2f14/ovl_30
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# OvlFunc_968_2009048 sits in the same mis-scoped ovl_30_c_a_c_a_c_a% wildcard
+# as OvlFunc_968_20090cc above and needs the same explicit -O2 rule.
+asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a_c_a.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a_c_a.c
+	$(GCC296_CC) $(GCC296_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 
 # OvlFunc_962_2008a78: gcc deletes three reloads of a pointer field across
 # byte/bitfield stores into the pointed-to struct, coming out three instructions
@@ -4347,6 +4354,13 @@ asm/overlays/rom_7ac2d8/ovl_35b8_a_a_a_c_b.o: src/overlays/rom_7ac2d8/ovl_35b8_a
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7e7574/ovl_9dc_c_a_c_c_a_a_c_c_c_c_c_c_c_c_a_b.o: src/overlays/rom_7e7574/ovl_9dc_c_a_c_c_a_a_c_c_c_c_c_c_c_c_a_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# OvlFunc_959_200a38c is OvlFunc_959_200a308 with four immediates changed, so it
+# needs the same CSE_CFLAGS: 41 differing at -O2, exact with
+# -fno-rerun-cse-after-loop.  Found by tools/solved_twins.py.
+asm/overlays/rom_7e7574/ovl_9dc_c_a_c_c_a_a_c_c_c_c_c_c_c_c_a_c.o: src/overlays/rom_7e7574/ovl_9dc_c_a_c_c_a_a_c_c_c_c_c_c_c_c_a_c.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)

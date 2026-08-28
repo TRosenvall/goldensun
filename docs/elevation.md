@@ -5196,3 +5196,43 @@ became a single `.c` with no split and no linker change at all.
 
 `tools/twin_families.py` finds these; run it before starting anything that looks
 like boilerplate.
+
+## `tools/solved_twins.py` -- search the remaining functions against the SOLVED ones
+
+`twin_families.py` groups the remaining functions against each other. That finds
+families, but the first member still has to be solved the hard way. This searches
+the other direction -- remaining functions against everything already matched --
+and a hit is the cheapest elevation there is: copy the `.c`, change the
+immediates, screen.
+
+It found 11, and one of them was `OvlFunc_924_200d900`, which had already been
+elevated by hand that same round after being spotted by accident. Two more were
+elevated from it immediately.
+
+The solved corpus is a **build artefact**: `asm/<path>/X.s` is gcc's output
+whenever `src/<path>/X.c` exists, so "solved" is just every `.s` that has a `.c`
+counterpart. Build before trusting the output.
+
+Matching is on the **mnemonic stream only** -- no registers, immediates, or
+branch targets. That looseness is the point: differing immediates are what make a
+twin cheap rather than useless. Every hit still gets screened.
+
+**Check the template's flag group.** `OvlFunc_959_200a38c` is
+`OvlFunc_959_200a308` with four immediates changed and needs the same
+`CSE_CFLAGS` -- 41 differing at `-O2`, exact with `-fno-rerun-cse-after-loop`.
+A twin inherits its template's flags along with its shape.
+
+### The zero-result guard, and why it is not optional
+
+The first run reported **0 solved out of 3095 files** -- which, without the
+guard, reads exactly like "there are no twins". gcc emits
+
+    .thumb_func
+    .type    NAME,function
+    NAME:
+
+and the parser wanted `.thumb_func` on the immediately preceding line. This is
+the same class of failure as the two-operand `add` in batch 123 and the
+`.thumb_func_start` mismatch recorded in `twin_families.py`. The tool now
+refuses to report when either corpus is empty, because on this codebase an empty
+corpus has never once been the real answer.
