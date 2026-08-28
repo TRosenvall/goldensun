@@ -49,8 +49,8 @@ int ActorCmd_Wander(struct Ent *e)
     a = *p++;
     b = *p++;
     c = *p;
-    c = c / 0x10000;
-    c = c * c;
+    c /= 0x10000;
+    c *= c;
     i = 0;
     while (1) {
         i++;
@@ -88,12 +88,12 @@ int ActorCmd_Wander(struct Ent *e)
         if (dx * dx + dz * dz <= c)
             goto ok;
     }
-fail:
-    e->f6 = e->f6 + 0x8000;
-    e->f5e = 1;
-    return 0;
 ok:
     Actor_TravelTo(e, v[0], v[1], v[2]);
     e->f4 = e->f4 + 4;
     return 1;
+fail:
+    e->f6 = e->f6 + 0x8000;
+    e->f5e = 1;
+    return 0;
 }

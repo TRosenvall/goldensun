@@ -38,7 +38,7 @@ static inline int call_via_r3(int a, int b)
 int ActorCmd_Wander(struct Ent *e)
 {
     int *p;
-    int a, b, c;
+    int a, b, c, t;
     int i;
     int dist, head;
     int dx, dz;
@@ -49,8 +49,8 @@ int ActorCmd_Wander(struct Ent *e)
     a = *p++;
     b = *p++;
     c = *p;
-    c = c / 0x10000;
-    c = c * c;
+    t = c / 0x10000;
+    c = t * t;
     i = 0;
     while (1) {
         i++;

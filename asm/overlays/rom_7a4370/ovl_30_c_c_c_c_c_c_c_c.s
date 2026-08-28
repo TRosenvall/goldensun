@@ -1,35 +1,6 @@
 	.include "macros.inc"
-	.include "gba.inc"
 
-@ 20 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   StartFadeOut, OvlFunc_1878
-.thumb_func_start OvlFunc_917_20098b8
-	push	{lr}
-	ldr	r3, =iwram_3001ed0
-	ldr	r1, [r3]
-	cmp	r0, #0
-	beq	.L18c8
-	ldr	r3, =REG_DMA3SAD
-	ldr	r0, =.L24e0
-	b	.L18cc
-.L18c8:
-	ldr	r3, =REG_DMA3SAD
-	ldr	r0, =.L1de0
-.L18cc:
-	ldr	r2, =0x840000e0
-	stmia	r3!, {r0, r1, r2}
-	sub	r3, #0xc
-	mov	r0, #0x80
-	lsl	r0, #9
-	mov	r1, #0
-	bl	__Func_8091200
-	bl	OvlFunc_917_2009878
-	pop	{r0}
-	bx	r0
-.func_end OvlFunc_917_20098b8
+@ data half of the former ovl_30_c_c_c_c_c_c_c.s; its one function is now the sibling .c
 
 	.section .data
 	.global gScript_917__02009d9c
