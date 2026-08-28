@@ -50,3 +50,12 @@ SECTIONS {
 		*(*)
 	}
 }
+
+/* gcc-2.96 emits __udivsi3 for unsigned `/` and has no flag to rename it.
+ * Overlay code calls the RAM-resident copy through the stub .export_func
+ * udivsi3_RAM makes.  These are different functions at different addresses,
+ * so this alias is what lets an unsigned C division in this overlay link to
+ * the routine the ROM actually calls.  Emits no bytes.
+ * Needed by OvlFunc_970_20080b0.  See overlays/rom_7a5214/overlay.ld for the
+ * signed twin of this note. */
+__udivsi3 = _udivsi3_RAM;

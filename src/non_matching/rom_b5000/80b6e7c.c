@@ -23,6 +23,31 @@
  * so this is NOT the pool tell and the constant needs no name), `m = 0x1ff;
  * m &= v;` makes the constant the AND's destination, and the sentinel is built
  * as `n = 1; n = -n;` to match `mov r2, #1 / neg r2, r2`.
+ *
+ * LATER: re-derived independently before the park file was noticed, which is
+ * how tools/unparked_candidates.py came to match EVERY identifier in a park
+ * rather than only Func_/OvlFunc_ shapes -- this function's real name is what
+ * slipped through. The rediscovery reached the same conclusion, so the note
+ * above is confirmed rather than revised. Three things it did add:
+ *
+ *   - AT -O1 the streams are the same LENGTH (27 against 27) and 20 differ,
+ *     against 27 differing and a short stream at -O2. That is suggestive but
+ *     NOT evidence of an -O1 rule: no Makefile rule covers rom_b6e7c, and 20
+ *     differing is nowhere near a match, so nothing was changed. Recorded so
+ *     the next reader does not re-run the same three flag screens.
+ *     --no-rerun-cse and --no-sched2 are both identical to the default.
+ *
+ *   - The ROM sign-extends the ALREADY LOADED halfword (`lsl r3, r2, #16 /
+ *     asr r3, #16`) instead of re-reading it with `ldrsh`. That is the tell
+ *     for a variable WIDER than short holding the loaded value and being cast
+ *     down -- with `unsigned short v`, gcc knows the cast is just a compare
+ *     against 0xffff and never emits the shift pair.
+ *
+ *   - Acting on that and declaring `int v` makes it WORSE, not better: 22
+ *     differing at -O1 against 20, and 25 at -O2 against 27 with a stream two
+ *     lines short. So the sign-extension tell is real but is not reachable
+ *     from the variable's type while the index is still being strength-reduced.
+ *     The strength reduction is upstream of it and has to go first.
  */
 extern unsigned char Lc593c[] __asm__(".Lc593c");
 

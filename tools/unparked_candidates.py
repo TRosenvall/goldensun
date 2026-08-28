@@ -37,7 +37,19 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def parked_names():
-    """Every function name mentioned anywhere under src/non_matching/."""
+    """Every identifier appearing anywhere under src/non_matching/.
+
+    Deliberately EVERY identifier, not names matching a Func_/OvlFunc_ shape.
+    The first version of this matched `(?:Ovl)?Func_\\w+` and so was blind to
+    every function the ROM annotations gave a real name: GetWeaponType was
+    parked, with the same strength-reduction analysis, and was offered as a
+    fresh candidate anyway -- the round rediscovered the whole finding before
+    spotting the park file. DecompressIcon, TextBox and ActorCmd_Loop were in
+    the same list and are the same risk.
+
+    Over-matching is the safe direction here. A candidate wrongly suppressed
+    costs one function; a park wrongly re-offered costs a round.
+    """
     names = set()
     base = os.path.join(ROOT, "src", "non_matching")
     for root, _, fs in os.walk(base):
@@ -45,7 +57,7 @@ def parked_names():
             if not f.endswith(".c"):
                 continue
             t = open(os.path.join(root, f), errors="ignore").read()
-            names.update(re.findall(r"\b(?:Ovl)?Func_\w+", t))
+            names.update(re.findall(r"[A-Za-z_]\w+", t))
     return names
 
 
