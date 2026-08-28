@@ -6625,3 +6625,31 @@ any C, which is what catches a mis-placed boundary while it is still cheap.
 `OvlFunc_958_2009394` is the worked example. Note its C references none of the
 fifteen data blobs -- they belong to the overlay, not the function -- so the
 split is genuinely clean rather than needing `__asm__` label externs.
+
+## Name the OFFSET, not the base
+
+Reading a global at a fixed offset pulls in two opposing requirements, and there
+is a third spelling that satisfies both.
+
+    ROM   ldr r3, =gState / mov r2, #0xe1 / lsl r2, #1 / add r3, r2
+
+  * `g = gState; ... *(short *)(g + (0xe1 << 1))` -- the base becomes a value
+    gcc will hoist. If a call sits between the assignment and the use, it lives
+    across that call in a callee-saved register and the function gains a push
+    the ROM does not have.
+  * `*(short *)(gState + (0xe1 << 1))` inline -- gcc folds the whole address into
+    one pooled `=gState+450`, which is THREE INSTRUCTIONS SHORTER than the ROM.
+
+Naming the offset gets both halves right:
+
+    off = 0xe1 << 1;
+    ... *(short *)(gState + off) ...
+
+The fold cannot happen, because the offset is a separate value; and nothing is
+held across the call, because the base is still materialised at its use.
+
+`OvlFunc_932_200a310` is the worked example -- 9 differing with the base named,
+93 with it inline, exact with the offset named. This also explains
+`OvlFunc_955_2009424`, parked earlier on precisely this tension with the note
+"the two requirements are in direct conflict and no arrangement satisfies both".
+That was wrong; there was a third arrangement.
