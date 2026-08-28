@@ -6,6 +6,7 @@ extern int _Actor_SetAnimSpeed(void *actor, int speed);
 int Func_80b7aac(int id)
 {
     unsigned char *u;
+    int n;
     int a;
 
     u = _GetUnit(id);
@@ -14,8 +15,10 @@ int Func_80b7aac(int id)
         if (u[0x13c] != 0 || u[0x13b] != 0 || u[0x145] != 0)
             a = (u[0x12a] != 1) << 2;
     } else {
-        a = 5 - (u[0x12a] != 1);
+        a = 4 + (u[0x12a] == 1);
     }
     _Actor_SetAnim(*GetBattleActor(id), a);
-    return _Actor_SetAnimSpeed(*GetBattleActor(id), (id & 3) + 0xe);
+    n = id & 3;
+    n += 0xe;
+    return _Actor_SetAnimSpeed(*GetBattleActor(id), n);
 }

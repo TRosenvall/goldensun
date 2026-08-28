@@ -14,7 +14,7 @@ int Func_80b7aac(int id)
         if (u[0x13c] != 0 || u[0x13b] != 0 || u[0x145] != 0)
             a = (u[0x12a] != 1) << 2;
     } else {
-        a = 5 - (u[0x12a] != 1);
+        a = 5 - (u[0x12a] != a);
     }
     _Actor_SetAnim(*GetBattleActor(id), a);
     return _Actor_SetAnimSpeed(*GetBattleActor(id), (id & 3) + 0xe);
