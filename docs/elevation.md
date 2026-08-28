@@ -6418,3 +6418,43 @@ occupies:
 
 A single function can want both, at different sites, for different callees. That
 is not a contradiction and it is not a sign the first lever failed.
+
+## The division helper names the signedness
+
+gcc emits four different helpers for `/` and `%`, and which one the ROM calls
+says directly whether the operands were signed:
+
+    __divsi3  __modsi3    -> signed
+    __udivsi3 __umodsi3   -> unsigned   (in overlays, via the _RAM aliases)
+
+On `OvlFunc_943_2009684` the first transcription declared `extern int __Random(void)`
+and wrote `__Random() % 0x5a`, which emits `__modsi3`. The ROM calls the unsigned
+helper. Changing the declaration to `unsigned int` took the screen from 55
+differing to 17 in a single edit.
+
+This is a free signedness oracle and it is worth reading BEFORE guessing at
+types from the values. Note it also survives the overlay alias: `bl __umodsi3`
+and the ROM's `bl _umodsi3_RAM` are the same symbol once overlay.ld's
+`__umodsi3 = _umodsi3_RAM;` applies, so a screen that shows only that pair is
+showing no real difference at all -- check the overlay's linker script before
+counting those lines against yourself.
+
+## Something has to cross the call
+
+`OvlFunc_943_2009684` stores a built constant through a pointer that a call
+returns:
+
+    rom   bl GetActor / mov r3,#0x80 / lsl r3,#8 / strh r3,[r0,#6]
+
+The ROM computes the value AFTER the call, so it lives in a scratch register and
+nothing crosses the call at all. Neither available spelling reproduces that:
+
+  * value in a named int -> assigned before the call, must survive it, gcc gives
+    it callee-saved r5
+  * pointer in a named local -> the POINTER survives instead and takes r5, and
+    the store becomes `strh r3, [r5, #6]`
+
+Both are correct code and both cost a callee-saved register the ROM does not
+spend. Recognising the shape is worth a screen or two, not a round: if the ROM
+has nothing live across the call and every spelling of yours does, the value is
+being computed on the wrong side of it and C gives no way to say which.
