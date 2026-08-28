@@ -4966,3 +4966,108 @@ another, and it is not currently reachable.
 Note the same function shows the useful half of the pointer lever: a **named
 destination pointer per access** gets `add r3, r7, r2 / ldrb r3, [r3]` where the
 inline expression gives a reg+reg `ldrb r3, [r6, r3]` — worth 8 instructions.
+
+## Address arithmetic in `unsigned int` locals (356 functions carry the shape)
+
+The ROM very often loads a base from the pool, builds a constant offset with
+`mov`+`lsl`, and adds them at runtime:
+
+    mov  r2, #0x88
+    ldr  r3, =gState
+    lsl  r2, #0x2
+    add  r3, r2
+    ldrh r3, [r3, #0x0]
+
+Every pointer-arithmetic spelling of that folds to `ldr r3, =gState+544` and two
+instructions -- `gState + (0x88 << 2)`, `((unsigned short *)gState)[0x110]`,
+`(int)gState + (0x88 << 2)`, `0x88 * 4`.  I parked a function claiming the shape
+was unreachable.  **It is not.**  The C that produces it does the arithmetic in
+`unsigned int` locals, one operation per statement:
+
+    r2 = 0x88;
+    r3 = (unsigned int)&gState;
+    r2 <<= 2;
+    r3 += r2;
+    key = *(unsigned short *)r3;
+
+`src/rom_8a000/rom_8a5f8_b.c` (PlayMapMusic) has been in the tree doing exactly
+this the whole time.  gcc-2.96 does not constant-fold a `SYMBOL_REF` through a
+chain of integer locals, only inside a single expression.
+
+**Two forms of base, and both are reachable.**  Where the pooled value is a
+POINTER that gets dereferenced first, the ordinary spelling already works and no
+integer locals are needed -- `base = *(unsigned int **)sym;` then
+`*(T *)((unsigned char *)base + 0xe6 * 2)`, as in `CutsceneWait`.  Write the
+offset as a multiplication (`0xe6 * 2`) and gcc emits the `mov`+`lsl` build.
+
+**Sizing, over the 2273 remaining functions:**
+
+  * 115 have the dereferenced-pointer base -- the easy form.
+  * 216 have only the direct symbol base -- these need the integer-local idiom.
+  * 25 have both.
+
+Control, over 531 already-matching functions compiled with the production flags:
+19 contain the dereferenced-pointer form and 15 the direct-symbol form.  Both are
+demonstrably producible.
+
+### The control that caught this, and why the first one lied
+
+The first control run reported **0 of 531**, which would have confirmed the wrong
+park.  The detector was matching `add rD, rS` -- the ROM disassembly's
+two-operand shorthand -- while gcc writes `add rD, rD, rS`.  `add_rr` came back
+0 across the entire corpus, which is impossible for real thumb output and is the
+tell that the detector, not the compiler, is the thing that is broken.
+
+This is the **third** time this exact trap has cost something (see the split
+shifted build, and the `.call_via` write-off).  The rule is not just "run a
+positive control" but: **count the sub-patterns too.** If a component of the
+conjunction is zero across the whole corpus, the regex is wrong.  `tryc.py` has
+folded this form since early on -- its `DESTRUCTIVE` regex exists for precisely
+this -- and any new detector should reuse that normalisation rather than
+re-deriving it.
+
+## `ldrh` versus `ldrsh`: the type of the DESTINATION decides
+
+gcc-2.96 thumb loads a HImode *local* with
+
+    mov   r3, #0x0
+    ldrsh r2, [r0, r3]        @ ldrsh has no immediate-offset form
+    lsl   r3, r2, #0x10       @ ...and tests it for zero by shifting
+
+A plain `ldrh rD, [rB, #0]` only ever comes from loading into an **SImode**
+destination.  So whenever the ROM shows `ldrh`, the variable receiving it is an
+`int`/`unsigned int` in the source, never a `short`.  Corollary: `>> n` on that
+value must be `unsigned int` to get `lsr` rather than `asr`.
+
+Found on `Func_80a3ddc` and immediately decisive on `Func_801c8a0`, where it
+took the screen from a three-instruction miss to an exact one.
+
+## A rebuilt loop bound is not always the `goto` tell
+
+The goto lever says: a constant rebuilt inside the loop means the source loop was
+not a `while`/`for`.  There is a second cause, and checking it first is cheaper.
+
+Given `for (i = 0; i <= 0x1bf; i++)`, gcc rewrites the test to `i < 0x1c0`, and
+0x1c0 **is** a cheap shifted build (`mov r3,#0xe0 / lsl r3,#1`) where 0x1bf is
+not.  So it stops keeping the bound in a register and rebuilds it every
+iteration, and it rotates the loop, jumping into the middle of the body to reach
+the test.  The ROM's `ldr r5,=0x1bf` hoisted once with `ble` at the bottom is a
+**do/while**.
+
+Order of diagnosis when a bound is rebuilt in the loop:
+  1. Is `K+1` a cheap shifted build while `K` is not?  Then it is a `for` that
+     should be a `do/while`.
+  2. Only then reach for the goto lever.
+
+## The gap the goto lever cannot express: partial hoisting
+
+`Func_801c8a0`'s second loop wants loop optimisation to run -- the ROM hoists
+0x3ff, 0x1bf and a symbol address out of it -- while ONE loop-invariant load
+stays inside.  The lever is all-or-nothing: a `do/while` hoists everything
+including the load, a `goto` loop hoists nothing.
+
+Six ways of trying to make gcc believe the in-loop store might alias that load
+(address-taken local, extern array, load through a cast integer, store through a
+cast integer, `volatile`, reordering) all left the output byte-identical.  When a
+function needs partial hoisting, park it -- and record it as this class rather
+than as an aliasing problem, because the aliasing attack does not work.
