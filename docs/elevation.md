@@ -6371,3 +6371,28 @@ function transcriptions to test the obvious way, and one compile to test the
 cheap way. When a hypothesis is about compiler behaviour rather than about a
 specific function, construct the smallest input that would show it -- a real
 function plus a two-line dummy -- rather than building the full case first.
+
+## The interleave lever works when the guard is a call, and scales to many sites
+
+`OvlFunc_948_200a188` is the strongest confirmation of the guarded-interleave
+lever so far: FOUR sites, all the same shape, all fixed at once by naming the two
+split builds in the block dominating each guarded call and leaving the slot a
+bare literal. 12 differing to exact.
+
+Two things it settles that `OvlFunc_932_200a9dc` left open:
+
+  * **The guard may be a CALL.** There the guard was a memory comparison, so the
+    named values never crossed a call and the lever was cheap by construction.
+    Here each guard is `__GetFlag(...)`, so the named values cross a call and
+    could have cost callee-saved registers and pushes. They do not -- gcc
+    rematerialises them per arm and the function still pushes only lr. So
+    "naming before a call is expensive" is not a reason to skip the lever;
+    screen it.
+  * **Naming inside the arm still fails.** The same file with x and y assigned
+    inside each `if` body instead of before it gives the identical 12 differing.
+    Two functions have now shown this both ways round, so the dominance
+    requirement is established rather than suspected.
+
+Selection note: `pool.py` predicted this exactly -- `site 4, unguarded 0`. That
+filter (guarded sites present, unguarded sites zero) has now called three
+functions correctly and is the cheapest way to find candidates for this lever.
