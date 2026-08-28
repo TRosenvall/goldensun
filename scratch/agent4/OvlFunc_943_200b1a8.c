@@ -14,6 +14,7 @@ void OvlFunc_943_200b1a8(void)
     int *q;
     int c;
     int s;
+    int r;
 
     base = iwram_3001e70;
     p = *(int **)base;
@@ -24,8 +25,10 @@ void OvlFunc_943_200b1a8(void)
     p++;
     *p = *p + s;
     L5b58[0] += (unsigned int)(__Random() * 384) >> 16;
-    L5b58[0] &= 0xffff;
-    L5b38[0] = (L5b38[0] + ((unsigned int)(__Random() << 9) >> 16)) & 0xffff;
+    r = __Random();
+    r = L5b38[0] + ((unsigned int)(r << 9) >> 16);
+    L5b58[0] = (unsigned short)L5b58[0];
+    L5b38[0] = r & 0xffff;
     q = (int *)(0x82 * 2 + base);
     q[2] = L5b50[0];
     L5b50[0] -= L5b60[0];
