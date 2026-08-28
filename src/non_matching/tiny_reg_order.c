@@ -26,6 +26,33 @@
  *       a pointer local assigned last. --no-sched2 gets it to 2 of 5 and no
  *       further, which says the scheduler is only part of it.
  *
+ *       PINNED DOWN (this round).  The 2 of 5 needs a SPECIFIC pairing that the
+ *       note above did not record: the index in a NAMED LOCAL *and* SCHED2.
+ *       Candidate kept at scratch/GetFlagByte_best.c:
+ *
+ *           unsigned int i;
+ *           i = (id << 20) >> 23;
+ *           return gFlags[i];
+ *
+ *       Inline (`return gFlags[(id << 20) >> 23];`) stays at 3 with SCHED2, so
+ *       neither half is sufficient alone.  At 2 the base load is in the ROM's
+ *       position and the ONLY residue is the shift routing:
+ *
+ *           rom    lsl r3, r0, #20 / lsr r0, r3, #23     (through scratch r3)
+ *           ours   lsl r0, #20     / lsr r0, #23         (in place)
+ *
+ *       So the pool-load ordering -- the half that looked like the hard part --
+ *       IS reachable from C.  What is not is the three-operand form, which means
+ *       the source and destination pseudos failed to coalesce, and nothing in
+ *       five instructions keeps `id` live to prevent it.
+ *
+ *       Screened at 2 and no better: two separate locals for the two shifts;
+ *       a copy of the parameter first; a compound `i >>= 23`; a trailing `+ 0`.
+ *       Screened at 3: `*(gFlags + i)` instead of the index.  FIFTEEN flag
+ *       settings were also swept, including -fno-peephole, -fno-peephole2,
+ *       -fno-expensive-optimizations, -fno-cse-follow-jumps, -fno-force-mem and
+ *       -fno-caller-saves; only SCHED2 moves anything.
+ *
  *   SetTextColor                asm/rom_15000/rom_1de5c_c_a.s     4 of 8
  *       The ROM masks first and computes the address second; gcc does the
  *       reverse. AND ITS 0xf IS A POOL TELL -- `ldr r2, =0xf` where
