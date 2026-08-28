@@ -6217,3 +6217,39 @@ adds pushes instead.
 That distinction is not "does the function contain a branch" -- `OvlFunc_967_2008308`
 has one and is still unreachable, because its site precedes it. `pool.py`'s
 `site` column already computes it correctly; use that, not a branch count.
+
+## The register-role swap is now the dominant wall
+
+An audit of the 253 function parks puts the blocker classes in this order:
+scheduling/placement 90, interleave 51, constant reuse 14, register-role swap
+12, symbol base 10, HImode 8. But that ranking is misleading about where the
+work is, because the classes are not equally tractable.
+
+The INTERLEAVE class is effectively closed as a lever target. Of 48 interleave
+parks with a live `.s`, only 9 have a guarded site, and working through them
+found that in every one except `OvlFunc_932_200a9dc` (recovered, see above) the
+interleave was ALREADY solved and something else was blocking. The useful filter
+is `site > 0 AND unguarded == 0` in `pool.py`; a function with any unguarded site
+is usually blocked at that site, not the guarded one.
+
+What those parks are blocked on instead, repeatedly, is the REGISTER-ROLE SWAP:
+the right instructions in the right order with two registers exchanged. Twenty-one
+parks describe it. It shows up in at least four dressings:
+
+    base vs offset      ldr r3,=gState / mov r1,#0xe0   (ours: r2 and r3)
+    address vs value    mov r3,r5 / mov r2,#0x14        (ours swapped)
+    commutative operand ldrb r2,[r5] / mov r3,#0x2      (orr identical either way)
+    pointer vs constant  ldr r1,[r3] / mov r3,#0xe0
+
+Nothing in the inventory reaches any of them. Source order picks registers for
+two INDEPENDENT values, and that lever keeps paying; it does not pick them for
+two values feeding one operation. Declaration order, statement order, separate
+locals per chain, and every flag group have been screened across several of these
+and none moves the count.
+
+So the honest strategic read: the cheap classes are worked out, and roughly a
+fifth of the park corpus is waiting on one unsolved question. A lever for the
+register-role swap would be worth more than any number of individual attempts,
+and the best test cases are the small ones -- `OvlFunc_923_20091b4` at 2 and
+`OvlFunc_932_200a5c0` at 2, both under 110 instructions with a single disagreeing
+block.
