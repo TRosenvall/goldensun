@@ -4374,6 +4374,22 @@ asm/overlays/rom_780898/ovl_30_c_c_a_c_c.o: src/overlays/rom_780898/ovl_30_c_c_a
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# OvlFunc_886_20081e8 loads the flag id 0x81b twice, once for __GetFlag and once for
+# __SetFlag.  At -O2 the rerun-CSE pass commons them into a callee-saved
+# register and adds a push the ROM does not have.  Separate named locals do
+# NOT defeat it here (they do on OvlFunc_953_200a820); CSE_CFLAGS is exact.
+asm/overlays/rom_786f0c/ovl_30_c_a_c_c_c_a_c_c.o: src/overlays/rom_786f0c/ovl_30_c_a_c_c_c_a_c_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# OvlFunc_908_200835c builds the flag id 0xc0<<2 twice, once for __GetFlag and once for
+# __SetFlag.  At -O2 the rerun-CSE pass commons them into a callee-saved
+# register and adds a push the ROM does not have.  Separate named locals do
+# NOT defeat it here (they do on OvlFunc_953_200a820); CSE_CFLAGS is exact.
+asm/overlays/rom_79c0c4/ovl_30_c_c_c_a_c_c_a_a_c.o: src/overlays/rom_79c0c4/ovl_30_c_c_c_a_c_c_a_a_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7bf5a8/ovl_2e0_c_a_c.o: src/overlays/rom_7bf5a8/ovl_2e0_c_a_c.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)

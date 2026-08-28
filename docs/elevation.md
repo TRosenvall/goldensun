@@ -5492,3 +5492,36 @@ Storing a constant through a `short *`:
 Two sibling functions in the same `.s` needed one each, which is how the pair
 came up. When the ROM builds a halfword constant with `mov`(+`lsl`) and ours
 pools it, the fix is one of these two and they are not interchangeable.
+
+## The commoned-constant tell has TWO remedies and they are not interchangeable
+
+An added push holding a constant used more than once is a reliable tell (batch
+127). What fixes it is not:
+
+  * `OvlFunc_883_2008ba8`, `OvlFunc_886_20081e8`, `OvlFunc_908_200835c` --
+    `CSE_CFLAGS` (`-fno-rerun-cse-after-loop`) is exact; separate named locals
+    change nothing.
+  * `OvlFunc_953_200a820` -- separate named locals are exact; the flag changes
+    nothing.
+
+Both are one screen. **Try both before concluding anything**, and do it in that
+order only because the flag needs no source edit; there is no evidence either is
+more likely.
+
+A guess at the distinction, offered as a guess: in the three flag cases the
+constant is a *flag id* passed to two different functions across a branch, and
+in the local case it is a pooled *argument pair* reused at two calls in the same
+block. That would make it about whether the commoning happens before or after
+the branch, but I have three cases against one and have not tested it.
+
+## Widening the interleave detector: r0 need not be zero
+
+The batch-127 sizing looked for `mov r0, #0` inside a split build. The
+single-instruction argument can be **any** constant -- `mov r0, #0xc`,
+`mov r0, #0x14`, `mov r0, #0x15` all appear -- and widening the detector took the
+fully-guarded pool from 97 functions to **194**, with much smaller members: the
+smallest is 18 instructions where the narrow pool started at 85.
+
+Two of this round's four matched on the first screen from that widened pool.
+When a sizing looks small, check whether the detector is asking for something
+more specific than the mechanism requires.
