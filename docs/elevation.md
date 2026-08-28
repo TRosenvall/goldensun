@@ -6067,3 +6067,33 @@ Also worth checking before reaching for split_s.py at all: a `.s` holding ONE
 function and no data needs no split. The `.c` replaces it at the same stem, the
 generic `asm/%.o: src/%.c` rule builds it with default GCC296_CFLAGS, and every
 linker script keeps working untouched. `OvlFunc_974_2008f14` was this case.
+
+## The symbol-base lever is bounded by the displacement range
+
+Indexing a typed array instead of casting-and-offsetting keeps a symbol's offset
+as an addressing-mode displacement, which is how `OvlFunc_common1_ea0` matched
+its `strh r2, [r3, #0x1e]`. That lever has a hard boundary: it only works while
+the offset FITS the displacement field.
+
+`Func_8094428` reads `gState + 0x1f4`. Thumb word loads cap their displacement
+at 124, so 0x1f4 cannot be a displacement at all -- the offset has to be
+materialised in a register either way. At that point gcc folds it into the
+pooled address (`ldr r3, =gState+500`) while the ROM keeps them apart
+(`ldr r3, =gState / mov r2,#0xfa / lsl r2,#1 / add r3,r2`). Every spelling tried,
+including the `short[]` index the ROM's own `mov #0xfa / lsl #1` suggests, folds.
+
+So before reaching for the lever, check the offset against the mode:
+byte/halfword/word displacements are 31/62/124. Above that the lever is not a
+candidate and the difference is a park, not a spelling problem.
+
+## The same call is spelled both ways in the same ROM
+
+`Func_80933f8(-1, -1, -1, 0)` appears in both `OvlFunc_965_2008eac` and
+`Func_8094428`. In the first the ROM builds -1 three separate times and our
+commoning of it is the blocker; in the second the ROM commons it exactly as gcc
+wants to. Same callee, same arguments, opposite codegen.
+
+That is worth holding onto whenever a constant-reuse difference tempts a theory
+about the callee or the constant: the choice belongs to the translation unit the
+call sits in, not to the call. Do not carry a reuse verdict from one function to
+another, and do not park a second function by analogy with the first -- screen it.
