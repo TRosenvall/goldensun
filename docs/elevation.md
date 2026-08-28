@@ -5885,3 +5885,34 @@ blocked, and one with none parked has simply not been tried.
 Working method for a family: diff the two listings with
 `grep -vE "^\.L|\tb\t|bne|beq|bhi|bls"` on both sides. What survives is the
 immediates and callees that differ, which is the whole edit.
+
+## Name a POOLED argument to reach an interleave
+
+`OvlFunc_945_200dc48` ends its guarded arm with
+
+    mov r0,#1 / mov r1,#1 / neg r0,r0 / neg r1,r1 / ldr r2, =0xe666
+
+-- the pooled third argument emitted AFTER both `neg`s, where gcc puts it
+between the `mov`s and the `neg`s. Naming `e = 0xe666;` in the dominating block
+was exact.
+
+That extends the interleave lever: the argument being moved does not have to be
+a `mov`-built constant. A pooled one works too, and the same precondition
+applies -- the naming must be in a block that dominates the call. Naming it
+inside the guarded arm instead leaves the count unchanged.
+
+Note this does not contradict "leave pooled constants inline": that rule is
+about a value used at SEVERAL sites, where naming makes gcc hold it. Here it is
+used once, so there is nothing to hold and nothing to lose.
+
+## Working a twin family: two `sed`s and two screens
+
+`OvlFunc_945_200dc48` / `OvlFunc_895_2009ac8` are 37 instructions with identical
+opcode streams. The filtered diff showed four differing lines -- a data label, a
+compare immediate, a sound id, and one shift amount -- and the second matched on
+its first screen from a `sed` of the first.
+
+The second's `.s` also held the `.data` and `.bss` its function uses, all three
+named separately in the overlay linker script. Split by hand into `_b` (text)
+and `_c` (data + bss), pointed the three lines at the two objects, and verified
+byte-neutral with the function still in asm before the `.c` landed.
