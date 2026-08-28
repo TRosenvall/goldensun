@@ -4422,6 +4422,13 @@ asm/overlays/rom_797990/ovl_314_c_c_a_a_c_c_a_c_c_a_c_b.o: src/overlays/rom_7979
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# OvlFunc_903_2008348: two ClearFlag ids materialised across a branch; 50
+# differing at -O2, 6 with CSE_CFLAGS and exact once the stack-argument pairs
+# are named.
+asm/overlays/rom_798dc4/ovl_314_a_c_a_a.o: src/overlays/rom_798dc4/ovl_314_a_c_a_a.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7bf5a8/ovl_2e0_c_a_c.o: src/overlays/rom_7bf5a8/ovl_2e0_c_a_c.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
