@@ -6154,3 +6154,29 @@ derived from the previous figure is not evidence.** If a report states a
 quantity, it should come from re-measuring the thing. This is the same
 discipline as the "a zero component means the regex is broken" rule -- both are
 about not letting a number pass without something checking it against reality.
+
+## The source-order lever does not reach commutative operands
+
+Assignment order picks registers for two independent values, and that lever has
+now paid off repeatedly. It has a boundary worth knowing: it does NOT reach the
+two operands of a commutative operator.
+
+`OvlFunc_932_200a5c0` needs
+
+    rom   ldrb r2, [r5] / mov r3, #0x2 / orr r3, r2
+    ours  ldrb r3, [r5] / mov r2, #0x2 / orr r3, r2
+
+-- the same `orr` and the same store, with only the two source registers
+exchanged. Seven spellings were screened: `2 | *p`, `*p | 2`, `*p |= 2`, both
+orderings of two named locals feeding `c | v`, an indexed form with no pointer
+advance, and four flag groups. Every one gives the identical two differing lines.
+
+The reason is worth stating because it predicts where else the lever will fail:
+for two independent values gcc has a genuine ordering choice to express, so the
+source can influence it. For `a | b` the operands are interchangeable in the RTL
+before allocation, so there is nothing left in the source for the ordering to
+attach to. Expect the same on `&`, `^`, `+` and `*` when the only difference is
+which operand landed in which register.
+
+Do not spend a round on this shape. One screen to confirm it is commutative-role
+rather than something reachable, then park.
