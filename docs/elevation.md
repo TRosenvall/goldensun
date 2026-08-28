@@ -5796,3 +5796,19 @@ build.
 covering it.** The twelve outstanding cases are listed in HANDOFF.md as owed
 work; this is the first one to have actually bitten, and it cost a green screen
 followed by a red build.
+
+## Correction: the no-prototype lever is not ruled out by a callee appearing twice
+
+Batch 130 recorded a discriminator for the no-prototype lever: that it cannot
+work when the callee is called in two arms of a branch and the ROM orders its
+arguments differently in each, because "no single declaration choice can satisfy
+both". **That reasoning is wrong.**
+
+`OvlFunc_921_2008974` calls `__Func_80b0278` in two arms -- `mov r0,#0xc /
+mov r1,#0xf` in one and `mov r1,#0xe / mov r0,#0xc` in the other -- and dropping
+the single prototype matches both. gcc's unprototyped argument ordering is not
+one fixed order; it varies per call site the same way the ROM's does.
+
+The lever still fails on `OvlFunc_952_20085a4`, but not for that reason. What
+actually decides it is unknown, so the correct rule is simply: **try it, it is
+one screen.** The two-arm case is not a reason to skip it.
