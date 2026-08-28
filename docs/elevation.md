@@ -5508,11 +5508,22 @@ Both are one screen. **Try both before concluding anything**, and do it in that
 order only because the flag needs no source edit; there is no evidence either is
 more likely.
 
+**But neither is guaranteed.** `OvlFunc_881_2009c08` shows the tell in textbook
+form -- two pooled flag ids, each used twice, hoisted into r5 and r6 behind a
+push the ROM does not have -- and BOTH remedies fail on it, as does every other
+flag group in the tree. So the tell reliably identifies the CAUSE, but it does
+not promise a fix; budget one screen for each remedy and park if neither takes,
+rather than spending a round hunting for a third.
+
 A guess at the distinction, offered as a guess: in the three flag cases the
 constant is a *flag id* passed to two different functions across a branch, and
 in the local case it is a pooled *argument pair* reused at two calls in the same
 block. That would make it about whether the commoning happens before or after
 the branch, but I have three cases against one and have not tested it.
+
+That guess is now contradicted. `OvlFunc_881_2009c08` is flag ids reused inside a
+single straight-line block (br == 0) -- the shape the guess predicts the named
+locals should fix -- and they do not. Treat the distinction as unknown.
 
 ## Widening the interleave detector: r0 need not be zero
 
