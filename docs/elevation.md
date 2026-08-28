@@ -6577,3 +6577,29 @@ declaring that structure before concluding the class is unreachable. It costs on
 screen. It will not always work -- but "commutative register-role swap" has now
 been shown to be at least two different problems wearing the same diff, and the
 type-shaped one is cheap to rule in or out.
+
+## Type-screen any park that touches memory: two of three recovered
+
+Following the `OvlFunc_932_200a5c0` recovery, 73 parks were found to access
+memory through raw pointer arithmetic. Screening them by declaring a struct and
+using field assignments instead has so far recovered TWO of the THREE tried, on
+their first screen each:
+
+  * `OvlFunc_932_200a5c0` -- 2 differing, filed as a commutative register-role
+    swap. `p->flags |= 2` instead of `*p = 2 | *p`.
+  * `Func_80167ac` -- 14 differing AND TWO INSTRUCTIONS SHORT, filed as "formed
+    pointer vs register-offset store". Typing both sides and writing three plain
+    field assignments matched it. The offsets (0xea8..0xeae) are far past any
+    store displacement, so a struct makes gcc form an address per store, which is
+    exactly what the ROM does and what no arrangement of the arithmetic produced.
+  * `OvlFunc_931_2008d08` -- unchanged at 7. Typing is not a universal key.
+
+The point for selection: **a park describing an addressing-mode or
+register-role difference is a candidate for typing even when the note calls it
+scheduling or allocation.** Those notes were written from the diff, and the diff
+cannot distinguish "gcc allocated differently" from "gcc was told the wrong
+type". One screen separates them.
+
+Where the field is already named in `include/actor.h`, use that name; where it is
+not, a local struct with `unk_XX` holes is what the other matched files in this
+tree do, and only the offsets the function actually touches need to be right.

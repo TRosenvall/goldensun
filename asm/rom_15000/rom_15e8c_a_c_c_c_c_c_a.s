@@ -52,27 +52,3 @@
 	pop	{r0}
 	bx	r0
 .func_end Func_8016758
-
-@ ApplyStyleFromRecord
-@ r0 = record. Copies three saved style values out of the record into the
-@ global text-style fields:
-@     [r0+0x16] -> +0xEAE      [r0+0x18] -> +0xEAC      [r0+0x1A] -> +0xEA8
-@ These are exactly the three fields Func_173ac resets to 0x0F, 0 and 0x0A, so
-@ this is "restore the style this record was created with".
-.thumb_func_start Func_80167ac  @ 0x080167ac
-	ldr	r3, =iwram_3001e8c
-	ldr	r4, =0xeae
-	ldr	r2, [r3]
-	ldrh	r1, [r0, #0x16]
-	add	r3, r2, r4
-	strh	r1, [r3]
-	sub	r4, #2
-	ldrh	r1, [r0, #0x18]
-	add	r3, r2, r4
-	strh	r1, [r3]
-	ldr	r1, =0xea8
-	ldrh	r3, [r0, #0x1a]
-	add	r2, r1
-	strh	r3, [r2]
-	bx	lr
-.func_end Func_80167ac
