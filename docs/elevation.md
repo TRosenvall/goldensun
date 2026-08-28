@@ -4849,3 +4849,81 @@ An early exit that branches straight to the shared epilogue with r0 still
 holding a compared load. `return -1;` does not produce that;
 `v = p[0]; if (v == -1) return v;` does. Costs one instruction and a whole-tail
 shift when missed.
+
+## `cmp #K / bge` and `cmp #K / blt` with K>0 are UNREACHABLE — a one-line screening test
+
+The signed-lower-bound residue has been recorded as "no spelling reaches it".
+The mechanism is now read out of the compiler, and it makes the class decidable
+**before writing any C**.
+
+`combine.c`'s `simplify_comparison` (gcc-2.96, lines ~10150–10180) rewrites,
+unconditionally for `MODE_INT`:
+
+    LT  C  (C>0)  ->  LE (C-1)          GE  C  (C>0)  ->  GT (C-1)
+    LE  C  (C>0)  ->  unchanged         GT  C  (C>0)  ->  unchanged
+
+So for **K > 0**, gcc-2.96 can emit `cmp #K / ble` and `cmp #K / bgt`, and can
+**never** emit `cmp #K / blt` or `cmp #K / bge`.
+
+The ARM hook `arm_canonicalize_comparison` is not involved —
+`CANONICALIZE_COMPARISON` fires only when the constant is *not* ARM-encodable,
+which never happens for these small bounds. Unsigned behaves the same way
+(`LTU`/`GEU` rewritten, `LEU`/`GTU` not). `cmp #0 / bge` is fine, because the
+rewrite is guarded by `const_op > 0`.
+
+> **Grep the ref for `cmp rN, #K` followed by `bge`/`blt` with K > 0. Each such
+> site is a hard floor of two instructions.** Decide before screening.
+
+## `goto` loops disable loop optimisation ENTIRELY — a first-class lever
+
+The doc records "write the control flow with `goto`" as a shape-matching note.
+The mechanism is much bigger: `loop_optimize` is driven by
+`NOTE_INSN_LOOP_BEG`/`END` notes that `stmt.c` emits **only** for `while`, `for`
+and `do` statements. A backward `goto` emits no notes, so loop-invariant
+hoisting, strength reduction **and** `check_dbra_loop` reversal all vanish
+together.
+
+`Func_8090584` was 95 differing of 99 — gcc had hoisted the state pointer, two
+mask constants, a base address and three store values out of the loop — and
+**no flag touched it** (`-fno-gcse`, `-fno-rerun-cse-after-loop`,
+`-fno-move-all-movables`, `-fno-strength-reduce`,
+`-fno-expensive-optimizations` all left it at 95). The `goto` rewrite alone took
+it to **3**, and then to an exact match.
+
+> **If the ROM rebuilds a loop-invariant constant inside the loop body, the
+> source's loop was not a `while`/`for`.**
+
+**Corollary:** once hoisting is off, anything set up in a register *before* the
+loop had to be written there. A `mov r7, #0x1f` in the prologue of a `goto`-loop
+function is `int mask = 0x1f;` in the source, not gcc hoisting `& 0x1f`.
+
+This also subsumes `-fno-strength-reduce` in these cases, and does it without
+that flag's cost — measured at one extra callee-saved register on both functions
+it was tried on.
+
+## Apply `volatile` at the USE SITE, not to the declaration
+
+Where one read of a field must not be commoned with an earlier one, qualifying
+the *declaration* de-optimises the other reads too — one function went to 52
+lines against the ROM's 51. Casting only the offending read matched with no flag
+at all:
+
+    *(unsigned short *)(*(unsigned char *volatile *)&s->f28 + 2) = ~sum;
+
+This is the cheap form of "prefer `volatile` over a `-fno-gcse` rule".
+
+## Two more per-site readings
+
+**Name the memory-mapped register's ADDRESS, and declare it before the value.**
+
+    volatile unsigned short *r = &REG_TM3CNT_H;
+    int z = 0;
+    *r = z;
+
+matches where four spellings of the value local did not — and declaring `z`
+first leaves it at 3 differing. Same two statements, two orders.
+
+**Reusing a dead PARAMETER as a local reaches a register the allocator will not
+otherwise give.** One function was exact except an index in r2 where the ROM has
+r1 — r1 being the second parameter, dead on that path. Assigning into the
+parameter itself matched; declaration order, types and statement order did not.
