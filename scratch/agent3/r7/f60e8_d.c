@@ -26,7 +26,6 @@ void Func_80060e8(const void *src)
     unsigned short *q;
     int sum;
     unsigned int i;
-    int z;
 
     p = s->f28;
     p[0] = s->fb;
@@ -40,7 +39,7 @@ void Func_80060e8(const void *src)
     }
     *(unsigned short *)(*(unsigned char *volatile *)&s->f28 + 2) = ~sum;
     if (s->f0 != 0) {
-        z = 0;
+        int z = 0;
         REG_TM3CNT_H = z;
     }
     s->f14 = -1;

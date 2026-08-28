@@ -14,7 +14,7 @@ struct SndState {
     /* 0x0c */ unsigned char fc[8];
     /* 0x14 */ int f14;
     /* 0x18 */ unsigned char f18[0x10];
-    /* 0x28 */ unsigned char *volatile f28;
+    /* 0x28 */ unsigned char *f28;
 };
 
 extern struct SndState ewram_2002240;
@@ -26,6 +26,7 @@ void Func_80060e8(const void *src)
     unsigned short *q;
     int sum;
     unsigned int i;
+    int z = 0;
 
     p = s->f28;
     p[0] = s->fb;
@@ -37,9 +38,8 @@ void Func_80060e8(const void *src)
     for (i = 0; i < 14; i++) {
         sum += q[i];
     }
-    *(unsigned short *)(s->f28 + 2) = ~sum;
+    *(unsigned short *)(*(unsigned char *volatile *)&s->f28 + 2) = ~sum;
     if (s->f0 != 0) {
-        int z = 0;
         REG_TM3CNT_H = z;
     }
     s->f14 = -1;
