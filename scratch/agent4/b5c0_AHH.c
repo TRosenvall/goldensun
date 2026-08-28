@@ -9,15 +9,21 @@ void Func_801b5c0(unsigned char *w)
     unsigned char *a;
     unsigned char *p;
     int t;
+    int c21;
+    int c8;
+    int c1;
 
+    c8 = 8;
+    c1 = 1;
     a = w + (0xe7 << 2);
     if (*(int *)a != 0) {
         Func_801b9a8(w, *(unsigned short *)(w + 0x39e));
-        *(unsigned short *)(w + 0x3a2) = 0x21;
+        c21 = 0x21;
+        *(unsigned short *)(w + 0x3a2) = c21;
         WaitFrames(1);
         t = *(unsigned short *)(w + 0x39e);
         if (t == 1 && *(unsigned short *)a != 0) {
-            *(unsigned short *)(w + 8) = 8;
+            *(unsigned short *)(w + 8) = c8;
             *(unsigned short *)a -= 1;
             Func_801ba68(w, 0);
             if (*(unsigned short *)a == 0)
@@ -26,7 +32,7 @@ void Func_801b5c0(unsigned char *w)
         } else {
             *(unsigned short *)(w + 0x39e) -= 1;
         }
-        *(unsigned short *)(w + 0x3a2) = 1;
+        *(unsigned short *)(w + 0x3a2) = c1;
         Func_801b9ec(w, *(unsigned short *)(w + 0x39e));
         WaitFrames(1);
         p = *(unsigned char **)(w + (0xd2 << 2));

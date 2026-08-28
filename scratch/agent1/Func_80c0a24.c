@@ -14,7 +14,7 @@ extern short iwram_3001ad0[];
             "\tbx\t%1"                                          \
             : "=r" (_a)                                         \
             : "r" (f), "0" (_a), "r" (_b)                       \
-            : "memory", "r2", "r12");                           \
+            : "memory", "r3", "r12");                           \
         _a;                                                     \
     })
 
@@ -61,10 +61,14 @@ void Func_80c0a24(int a1, int a2, int a3, int a4, int a5)
     d = a5;
     d -= 0x10000;
     dst += 0x10;
-    x = CALL_VIA(Func_8000888, a1, d);
-    x = CALL_VIA(Func_8000888, r, x);
-    y = CALL_VIA(Func_8000888, a2, d);
-    y = CALL_VIA(Func_8000888, r, y);
+    {
+        register int (*h)(int, int) __asm__("r4") = Func_8000888;
+
+        x = CALL_VIA(h, a1, d);
+        x = CALL_VIA(h, r, x);
+        y = CALL_VIA(h, a2, d);
+        y = CALL_VIA(h, r, y);
+    }
     x += 0x7fff;
     x >>= 8;
     x += a3;
