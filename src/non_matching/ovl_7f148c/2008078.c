@@ -51,6 +51,18 @@
  * `mov r1, #0xc0` and its `lsl r1, #8`, splitting a shifted constant's two
  * halves around another argument. That is the blocker this file was filed
  * under and it is untouched.
+ *
+ * RETRIED with the lever recovered from OvlFunc_932_200a9dc -- name the OTHER
+ * arguments and leave the one you want moved as a bare expression.  Naming the
+ * shifted argument alone, and naming it together with the zero, both leave the
+ * count at 2; naming them further up costs an instruction and 19 positions.
+ *
+ * That is the documented precondition holding rather than the lever failing:
+ * 200a9dc had a conditional branch before its site to name in, and this function
+ * is straight-line with no branch anywhere, so there is no block that dominates
+ * the call without being the call's own.  Worth having screened, because the
+ * "name the others" form had not been tried here and it is what made the
+ * difference on the guarded case.
  */
 #include "gba/types.h"
 #include "actor.h"

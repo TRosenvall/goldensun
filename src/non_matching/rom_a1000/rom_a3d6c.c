@@ -11,6 +11,19 @@
  * The ROM builds the mask first so it takes r4. Hoisting it into a named
  * local declared before the counter does not do it -- that variant loses an
  * instruction somewhere else instead (19 vs 20).
+ *
+ * RECHECKED from the other angle.  The source-order lever recorded in batch 134
+ * is about the order of ASSIGNMENT STATEMENTS, not declarations, so it was worth
+ * screening separately.  Both orders -- mask assigned before count, and count
+ * before mask -- give 20 lines against the ROM's 22 and 19 differing, i.e. the
+ * same two-instruction loss the earlier declaration test found.
+ *
+ * So naming the mask at all is what costs the instructions, independently of
+ * where it is named.  The lever reaches two independent values that are ALREADY
+ * both in registers; it does not reach a constant that gcc would otherwise fold
+ * into the loop, because naming it changes how many instructions exist rather
+ * than which register each gets.  That boundary is worth carrying to the other
+ * register-birth-order parks.
  */
 #include "gba/types.h"
 

@@ -6278,3 +6278,32 @@ nothing, so sched1 is not the pass responsible.
 
 Do not spend a round on an instance of this. Recognise it, record it, move on --
 and if a lever is ever found, 25 sites are waiting.
+
+## Naming to reorder only works when the values already cost the same
+
+The source-order lever moves two values between registers. `Func_80a3d6c` shows
+where it stops: the two values there are a pooled mask and a zeroed counter, and
+naming the mask -- in either assignment order, and in either declaration order --
+costs TWO INSTRUCTIONS rather than swapping two registers (20 lines against the
+ROM's 22, 19 differing, versus 6 differing for the plain form).
+
+The distinction to check before reaching for it: are both values already going to
+exist in registers regardless? If yes, naming only changes which register each
+gets, and the lever applies. If naming is what *creates* the value -- a constant
+gcc would otherwise fold, sink, or rematerialise -- then naming changes the
+instruction count and the comparison is no longer about ordering at all.
+
+Read the line count, not the differ count, to tell these apart. A naming attempt
+that changes the length has answered a different question than the one asked.
+
+## A queue worth working: halfword parks that never tried the int intermediate
+
+54 parks mention a halfword store or HImode constant. The int-intermediate lever
+-- store through an `int` local rather than assigning straight into the `short`,
+which took `OvlFunc_938_2008264` from 70 differing to 9 -- has been tried on only
+FOUR of them. The other 50 predate it.
+
+That is the largest untried lever/park intersection currently known. It is not a
+promise: several of those parks mention halfwords incidentally and are blocked on
+something else, as `Func_80a3d6c` and `SetTextColor` both turned out to be. But
+it is a queue built from evidence rather than from guessing at the next function.
