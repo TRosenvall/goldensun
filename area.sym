@@ -54,6 +54,7 @@
 _AREA_01 = 0x1;
 _AREA_10 = 0x10;
 _AREA_13 = 0x13;
+_AREA_1c = 0x1c;
 _AREA_1d = 0x1d;
 _AREA_1e = 0x1e;
 _AREA_20 = 0x20;
