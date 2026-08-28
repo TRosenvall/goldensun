@@ -36,7 +36,7 @@ extern unsigned int iwram_3001e40;
 void OvlFunc_923_2009cb4(int e)
 {
     int *p;
-    int A, B, dx, dy, d, lim;
+    int B, A, dx, dy, d, lim;
     int (*g)(int);
     int (*g2)(int, int);
     int (*h)(int, int);
@@ -54,15 +54,17 @@ void OvlFunc_923_2009cb4(int e)
     *(int *)(e + 0x40) = 0x80000000;
     dx = (A - *(int *)(e + 8)) / 0x10000;
     dy = (B - *(int *)(e + 0x10)) / 0x10000;
+    t2 = dx * dx + dy * dy;
     g = Func_8000948;
-    t1 = g(dx * dx + dy * dy);
+    t1 = g(t2);
     dx = A - *(int *)(e + 8);
     dy = B - *(int *)(e + 0x10);
     d = t1 << 16;
     if (d < 0x400000) {
         t1 = CALL_VIA(Func_8000888, dx, dx);
         t2 = CALL_VIA(Func_8000888, dy, dy);
-        d = __FastIntSqrtFP1616_RAM(t1 + t2);
+        t1 += t2;
+        d = __FastIntSqrtFP1616_RAM(t1);
     }
     lim = d / 8;
     if (lim > *(int *)(e + 0x30))
@@ -73,9 +75,8 @@ void OvlFunc_923_2009cb4(int e)
     } else {
         if (d > lim) {
             g2 = Func_80008ac;
-            h = Func_8000888;
-            dx = CALL_VIA(h, g2(d, dx), lim);
-            dy = CALL_VIA(h, g2(d, dy), lim);
+            dx = CALL_VIA(Func_8000888, g2(d, dx), lim);
+            dy = CALL_VIA(Func_8000888, g2(d, dy), lim);
         }
         *(int *)(e + 8) += dx;
         *(int *)(e + 0x10) += dy;
