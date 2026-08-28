@@ -6500,3 +6500,29 @@ Two details worth carrying:
     reported `site 6, unguarded 0`, and that was exactly the number of
     differences. When the site count and the differing count agree, the whole
     diff is one lever and the function is worth taking ahead of a smaller one.
+
+## 14% of what remains is unreachable: run tools/poolblocked.py first
+
+`tools/poolblocked.py` scans the remaining `.s` files for a function that jumps
+over its own literal pool:
+
+        b .L6a0
+        .pool_aligned
+    .L6a0:
+
+That `b` is a real instruction and old_agbcc cannot produce it -- it emits pools
+at `.func_end` and never early. Measured earlier: mid-function pools appear in
+ZERO elevated translation units, and the cluster hypothesis was tested and
+refuted. So a function carrying this shape cannot match however correctly the
+body is transcribed.
+
+**312 of the 2,239 remaining functions carry it -- 13.9%.**
+
+That number matters for planning twice over. It is a real ceiling on what this
+toolchain can reach, and it means a candidate-ranking tool that does not exclude
+these will keep offering them. `OvlFunc_974_200829c` is exactly that trap: 588
+instructions, THREE distinct callees, no conditional branches, no shifts,
+reuse 0 -- the most attractive profile in the whole dense queue, and unreachable.
+Drafting it would have been 196 calls of transcription for nothing.
+
+Run the scan before drafting anything large. It costs one pass over the tree.
