@@ -6839,3 +6839,33 @@ The general rule this is an instance of: a measurement that returns "nothing
 found" needs the same scepticism as one returning a suspiciously round number.
 Print a total alongside the hits -- `0 of 322` is obviously different from a
 script that never executed, and a bare empty list is not.
+
+## gcc DOES emit data mid-function -- for jump tables, never for pools
+
+`tools/poolblocked.py` counts a function as unreachable when it branches over
+its own literal pool, and reports 312 of 2212. A wider test looks tempting --
+"any data inside the function body with code after it" -- and gives 562, nearly
+double.
+
+**That wider number is wrong, and the check that shows it is cheap.** Of the
+3494 functions whose C already MATCHES, 85 have data mid-body. Looking at one:
+
+        .align  2, 0
+    .L20:
+        .word   .L4
+        .word   .L3
+        ...
+
+A switch jump table. gcc-2.96 emits those mid-function routinely; what it never
+emits mid-function is a *literal pool*. So the two kinds of mid-body data mean
+opposite things, and only the narrow test measures a blocker.
+
+The general rule, and this is the third time it has paid: **before believing a
+class is unreachable, look for it in the corpus that already matches.** If the
+construct appears there, the class is not unreachable and the question becomes
+what produces it. That check broke the signed lower-bound floor (a switch), and
+here it stopped a measurement from being published at nearly twice its true
+size.
+
+`tools/census.py` therefore defers to `poolblocked.py` rather than
+reimplementing the test.
