@@ -5398,3 +5398,58 @@ screen.
 This is the second use of the push list as a diagnostic, alongside the
 "naming one level too many costs a register" note. Both read the prologue rather
 than the body, and both are cheap to check first.
+
+## The branchless `!= 0` idiom: two spellings, and neither is automatic
+
+gcc-2.96's `neg rD,rS / orr rD,rS / lsr rD,#0x1f` computes "is non-zero" without
+a branch. It does **not** emit it from a comparison on its own, and the spelling
+that provokes it depends on what surrounds the comparison:
+
+  * `Func_80a5fe0`: `return 1 - (v != 0);` produces it. The subtraction from a
+    constant forces value mode.
+  * `GetFlag`: `return v != 0;`, `return !!v;`, and assigning to a local first
+    ALL give a branch. Only writing the idiom longhand works:
+
+        r = -v;
+        r |= v;
+        return (unsigned int)r >> 31;
+
+Both are worth keeping. When the ROM shows `neg / orr / lsr #31`, try the
+arithmetic form first; if the comparison stands alone in the return, write the
+three steps out.
+
+## The derived-constant rule has no per-operand granularity
+
+`Func_80a22f4` makes two DMA3_SET calls whose operands differ by fixed amounts.
+The ROM derives ONE of the second call's three operands and pool-loads the other
+two:
+
+    rom   add r1, #0x1c / ldr r0, =0x50001e8 / ldr r2, =0x80000001
+    ours  sub r0, #0x18 / add r1, #0x1c      / sub r2, #0xf
+
+Writing the destination as a mutated variable gets `add r1, #0x1c` exactly --
+the batch-123 rule working as documented, since the first call pins the value
+into a register. But the rule then fires on the source and the count too,
+because the first call pinned those as well, and CSE relates them.
+
+**There is no way to ask for the derivation on one register-pinned operand and
+not its neighbours.** They are all live for the same reason and no flag
+separates them. When a ROM sequence derives some operands and reloads others,
+that asymmetry is currently unreachable.
+
+## A hard round is worth reporting as one
+
+Eight functions attempted in one round, none matched, best screens 3, 3, 10, 11,
+12, 13 and 15 differing. Six of the eight came from the small-function pool
+(12-30 instructions), and five of those stalled on **which register a value
+lands in** with everything else identical.
+
+That is worth stating plainly rather than presenting as progress: the small-band
+pool is dense in register-permutation blockers, because a short function has few
+enough pseudos that one allocation choice decides the whole screen and there is
+no structure left to vary. The guarded argument-order pool, by contrast, has run
+at roughly four matches in five this session.
+
+**Selection lesson:** prefer functions with enough structure that source-level
+choices still have leverage. A 13-instruction function that is 3 lines off is
+not "nearly done" -- it is out of moves.
