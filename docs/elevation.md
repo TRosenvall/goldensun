@@ -5863,3 +5863,25 @@ spellings:
 So on one pointer, one operation wants the pool and the next wants a `mov`, and
 the spelling that produces each is different. Treat "pooled or not" as something
 to measure per operation rather than derive from the width.
+
+## Two unsolved twins are a two-for-one; `twin_families.py` finds them
+
+`solved_twins.py` searches remaining functions against SOLVED ones, so it cannot
+see a pair where neither is done yet. `twin_families.py` groups the remaining
+functions against each other, and that is where those pairs live.
+
+`OvlFunc_899_200891c` and `OvlFunc_902_2008204` are 87 instructions with
+IDENTICAL opcode streams in different overlays. Diffing the two listings with
+labels and branches filtered out showed exactly two differing lines -- one
+argument and one callee. The first matched on its first screen; the second was a
+`sed` away.
+
+**41 families of 2+ cover 90 remaining functions, and 13 of those families have
+no parked member** -- 26 functions in untried shapes, each family a two-for-one.
+That is the cheapest queue currently known, and it is worth re-running as parks
+close: a family whose members are all parked is a shape already known to be
+blocked, and one with none parked has simply not been tried.
+
+Working method for a family: diff the two listings with
+`grep -vE "^\.L|\tb\t|bne|beq|bhi|bls"` on both sides. What survives is the
+immediates and callees that differ, which is the whole edit.
