@@ -12,9 +12,20 @@
  *
  * The length agreeing only at O1 is the signal: the ROM's five extra
  * instructions are work that -O2 optimises away here, not something a source
- * spelling can add back.  Note the Makefile already carries an explicit O1 rule
- * for a sibling in this same overlay directory (ovl_30_c_c_a_c_c_c_c_c_c_b),
- * so an O1 TU here is unsurprising; a rule for this file would have to be added.
+ * spelling can add back.
+ *
+ * CORRECTION.  An earlier version of this note claimed the Makefile already
+ * carries an O1 rule for a sibling in this directory.  It does not -- the one
+ * explicit rule for rom_7d4af4 (ovl_30_c_c_a_c_c_c_c_c_c_b) uses CSE_CFLAGS.
+ * That claim was asserted from memory and is withdrawn.
+ *
+ * What the Makefile actually shows, measured: O1 is applied at OVERLAY scale,
+ * not per file -- 720 O1 rules live in just 13 directories, in blocks of 30 to
+ * 180.  Ten of those 13 directories also carry a handful of single-file
+ * exceptions in another group, so per-file deviation is normal.  But rom_7d4af4
+ * is not an O1 directory at all; its only rule is CSE.  A lone O1 file here
+ * would run against the grain, so the line-count evidence below has to carry
+ * the hypothesis ON ITS OWN rather than being corroborated by neighbours.
  *
  * WHY -O2 IS FIVE SHORT, since it explains the shape rather than just the count:
  * the six message-id arms each end by assigning one id, and the ROM loads each
