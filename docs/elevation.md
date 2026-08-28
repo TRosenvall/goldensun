@@ -5711,3 +5711,39 @@ left is the flag group.** If the flag does not fix it, park it without spending
 screens on spellings. Two of this session's parks and two more before them were
 straight-line cases where I tried the naming lever anyway -- and on one of them
 it cost nine instructions and three extra pushes.
+
+## Name a negated constant as `-1`, not as `x = 1; x = -x;`
+
+For the interleave lever, constants are named at the top of the function so gcc
+rematerialises them at their uses. A negated constant must be written as the
+negative literal:
+
+    c1 = -1;                 /* rematerialised as mov+neg at the use: exact   */
+    c1 = 1; c1 = -c1;        /* a COMPUTED value: gcc holds it in r5 and the
+                                prologue grows a push                          */
+
+On `OvlFunc_891_200a244` the two-step form cost `push {r5, r14}` against the
+ROM's `push {r14}` and 66 of 67 differing; the literal was exact.
+
+The distinction is that gcc will rematerialise a constant but will keep a
+computed value alive. Inside a guarded block the two-step form is fine and is
+what several elevated functions use -- it is only wrong in the dominating block,
+where the whole point is to be rematerialised.
+
+## `tools/pool.py`
+
+The candidate query had been rebuilt inline nine times across these batches,
+twice with a bug that made it report zero. It is now one tool with the
+corrections applied, and its columns answer the questions that decide the
+approach before any C is written:
+
+  * `br == 0` -- neither naming lever can work; only the flag group is left.
+  * `flag2` -- one id feeds both a Get and a Set/Clear, so screen with
+    `--no-rerun-cse` from the start. It predicted the flag group correctly for
+    all three functions elevated this round.
+  * `site` -- guarded interleave sites, the ones the lever can reach.
+
+**Park exclusion is by function NAME.** Park files are named for the low
+address, and overlay functions from different overlays share it -- every overlay
+loads at 0x02000000. `OvlFunc_971_200808c` was being hidden by a park written
+for `OvlFunc_881_200808c`. The names come from the park headers.

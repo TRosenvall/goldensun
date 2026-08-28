@@ -1,0 +1,184 @@
+#!/usr/bin/env python3
+"""pool.py -- select remaining functions by shape, for the levers that fit them.
+
+WHY THIS EXISTS
+
+The same candidate query has been rebuilt inline eight or nine times across
+these batches, each time slightly differently, and twice with a bug that made it
+report zero. Two of those bugs are recorded in docs/elevation.md; both cost a
+round. This puts the query in one place with the corrections already applied.
+
+PARK EXCLUSION IS BY FUNCTION NAME, NOT ADDRESS
+
+Park files are named for the low address (`2008950.c`), and overlay functions
+from DIFFERENT overlays share that suffix -- every overlay loads at 0x02000000.
+`OvlFunc_971_200808c` was being excluded by a park written for
+`OvlFunc_881_200808c`. So the exclusion set is built from the function names in
+the park headers, not from the filenames.
+
+SHAPES
+
+  flags       >=4 Get/Set/ClearFlag calls.  Requiring them to be a MAJORITY
+              of the calls cut 169 candidates to 3, which is too strict to be
+              useful -- a dispatcher usually does a little work per arm.
+              Flag dispatchers; several have matched on the first screen with no
+              lever at all.
+  dense       call-dense scripts: calls*3 >= instructions and mem*3 <= them.
+              DENSITY, NOT SIZE, is the selector -- two rounds picking the
+              smallest candidates produced zero matches across eleven functions.
+  interleave  a single-instruction argument emitted INSIDE another argument's
+              split build (mov+lsl or mov+neg), with a conditional branch
+              before the site. Both halves are required: the lever needs a split
+              build to move things around AND a dominating block to
+              rematerialise from.
+
+Columns include `br` (conditional branches) and `flag2` (one id feeding both a
+Get and a Set/Clear). Read them before writing C:
+
+  * br == 0     -> neither naming lever can work; only the flag group is left.
+  * flag2       -> screen with --no-rerun-cse from the start.
+
+    python3 tools/pool.py <shape> [minsize] [maxsize]
+"""
+import os
+import re
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+START = re.compile(r"^\.thumb_func_start(?:_noalign)? (\S+)")
+END = re.compile(r"^\.func_end")
+BL = re.compile(r"^\tbl\t(\S+)$")
+FLAGCALL = re.compile(r"^\tbl\t_*(Get|Set|Clear)Flag$")
+MEM = re.compile(r"^\t(ldr|str|ldrb|strb|ldrh|strh|ldrsh|ldrsb)\t\w+, \[")
+COND = re.compile(r"^\tb(eq|ne|ge|gt|le|lt|hi|ls|cs|cc|mi|pl)\b")
+SETUP = re.compile(r"^\t(mov|lsl|neg|ldr|add|sub|asr|lsr)\t(r[0-3])\b")
+MOVI3 = re.compile(r"^\tmov\t(r[1-3]), #")
+MOVR0 = re.compile(r"^\tmov\tr0, #(0x[0-9a-f]+|\d+)$")
+SPLIT = re.compile(r"^\t(lsl|neg)\t(r[1-3]),(?: \2,)?(?: #)?")
+LDRE0 = re.compile(r"^\tldr\tr0, =(\S+)$")
+MOVI0 = re.compile(r"^\tmov\tr0, #(0x[0-9a-f]+|\d+)$")
+LSL0 = re.compile(r"^\tlsl\tr0,(?: r0,)? #(0x[0-9a-f]+|\d+)$")
+# park headers name the function: "/* OvlFunc_943_2008950 -- 0x..." or "... and
+# its byte-identical twin OvlFunc_947_2008cc0 -- 0x..."
+PARKNAME = re.compile(r"\b((?:Ovl)?Func_\w+|[A-Z]\w+)\s+--\s+0x")
+
+
+def parked_names():
+    out = set()
+    for root, _, files in os.walk(os.path.join(ROOT, "src/non_matching")):
+        for fn in files:
+            if not fn.endswith(".c"):
+                continue
+            head = open(os.path.join(root, fn), errors="ignore").read(2000)
+            out |= set(PARKNAME.findall(head))
+    return out
+
+
+def flagid(body, k):
+    """id fed to r0 for the call at index k -- pool load OR mov+lsl build."""
+    win = body[max(0, k - 5):k]
+    for y in win:
+        m = LDRE0.match(y)
+        if m:
+            return m.group(1)
+    base = sh = None
+    for y in win:
+        m = MOVI0.match(y)
+        if m:
+            base, sh = int(m.group(1), 0), 0
+        m = LSL0.match(y)
+        if m and base is not None:
+            sh = int(m.group(1), 0)
+    return hex(base << (sh or 0)) if base is not None else None
+
+
+def main():
+    shape = sys.argv[1] if len(sys.argv) > 1 else "flags"
+    lo = int(sys.argv[2]) if len(sys.argv) > 2 else 20
+    hi = int(sys.argv[3]) if len(sys.argv) > 3 else 120
+    skip = parked_names()
+    rows = []
+    for root, _, files in os.walk(os.path.join(ROOT, "asm")):
+        for fn in files:
+            if not fn.endswith(".s"):
+                continue
+            p = os.path.join(root, fn)
+            if os.path.exists(p.replace("/asm/", "/src/", 1)[:-2] + ".c"):
+                continue
+            lines = [l.rstrip("\n") for l in open(p, errors="ignore")]
+            cur, start, body = None, 0, []
+            for i, l in enumerate(lines):
+                m = START.match(l)
+                if m:
+                    cur, start, body = m.group(1), i, []
+                    continue
+                if cur is None:
+                    continue
+                if END.match(l):
+                    if cur not in skip:
+                        rows.append(measure(cur, p, body, lines, start))
+                    cur = None
+                    continue
+                body.append(l)
+    rows = [r for r in rows if r and lo <= r["n"] <= hi and keep(shape, r)]
+    rows.sort(key=lambda r: r["n"])
+    print(f"{len(rows)} candidates, shape={shape}, {lo}-{hi} instructions")
+    print("insns calls mem  br flag2 site  name")
+    for r in rows[:20]:
+        print(f"{r['n']:5} {r['calls']:5} {r['mem']:3} {r['br']:3} "
+              f"{'Y' if r['flag2'] else '-':>5} {r['site']:>4}  {r['name']:28} {r['path']}")
+    return 0
+
+
+def keep(shape, r):
+    if shape == "flags":
+        return r["flagcalls"] >= 4
+    if shape == "dense":
+        return r["calls"] * 3 >= r["n"] and r["mem"] * 3 <= r["n"]
+    if shape == "interleave":
+        return r["site"] > 0 and r["unguarded"] == 0
+    sys.exit("shape must be one of: flags, dense, interleave")
+
+
+def measure(name, path, body, lines, start):
+    import collections
+    n = sum(1 for x in body if x.startswith("\t") and not x.startswith("\t."))
+    if not n:
+        return None
+    calls = sum(1 for x in body if BL.match(x))
+    ids = collections.Counter()
+    for k, x in enumerate(body):
+        if FLAGCALL.match(x):
+            v = flagid(body, k)
+            if v:
+                ids[v] += 1
+    guarded = unguarded = 0
+    for i in range(start, start + len(body) + 1):
+        if i >= len(lines) or not BL.match(lines[i]):
+            continue
+        j, blk = i - 1, []
+        while j >= 0 and SETUP.match(lines[j]):
+            blk.append(lines[j])
+            j -= 1
+        blk.reverse()
+        for zi, x in enumerate(blk):
+            if not MOVR0.match(x):
+                continue
+            started = {MOVI3.match(y).group(1) for y in blk[:zi] if MOVI3.match(y)}
+            if any(SPLIT.match(y) and SPLIT.match(y).group(2) in started
+                   for y in blk[zi + 1:]):
+                if any(COND.match(lines[k]) for k in range(start, i)):
+                    guarded += 1
+                else:
+                    unguarded += 1
+            break
+    return {"name": name, "path": os.path.relpath(path, ROOT), "n": n,
+            "calls": calls, "mem": sum(1 for x in body if MEM.match(x)),
+            "br": sum(1 for x in body if COND.match(x)),
+            "flagcalls": sum(1 for x in body if FLAGCALL.match(x)),
+            "flag2": any(v > 1 for v in ids.values()),
+            "site": guarded, "unguarded": unguarded}
+
+
+if __name__ == "__main__":
+    sys.exit(main())
