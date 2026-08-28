@@ -1,0 +1,8 @@
+DialogueBox
+Func_80dfddc
+Debug_TestEquipAndStatus
+Func_8092be0
+AddMenuBarOption
+OvlFunc_915_2008bf8
+OvlFunc_909_20085f4
+OvlFunc_911_2008800

@@ -6,6 +6,7 @@ struct Scroll {
 };
 
 extern unsigned char *iwram_3001f2c;
+extern int _MSG_182;
 extern void _Func_8016498(int w);
 extern void _Func_801e41c(int w, int a, int b, int c, int d);
 extern void Func_80a2324(int a, int b, int w, int x, int y);
@@ -18,7 +19,7 @@ int Func_80a56c8(int window, int unused, struct Scroll *d)
     unsigned short *p;
     unsigned int base;
     unsigned char count, i;
-    int m;
+    unsigned short v;
 
     st = iwram_3001f2c;
     _Func_8016498(window);
@@ -29,11 +30,16 @@ int Func_80a56c8(int window, int unused, struct Scroll *d)
         count = 5;
     Func_80a2324(5, base, window, 0x74, 0x22);
     Func_80a21b0(window, d->f14, 5, d->f08, 0xf);
-    m = 0x1ff;
-    p = (unsigned short *)(st + (base << 1) + 0x1c8);
-    for (i = 0; i < count; i++) {
-        _Func_801e7c0((m & *p) + 0x182, *(int *)(st + 0x20), 0x18, (i << 4) + 8);
-        p++;
+    i = 0;
+    if (count > i) {
+        p = (unsigned short *)(st + (base << 1) + 0x1c8);
+        do {
+            v = *p;
+            v &= 0x1ff;
+            _Func_801e7c0(v + (int)&_MSG_182, *(int *)(st + 0x20), 0x18, (i << 4) + 8);
+            i++;
+            p++;
+        } while (count > i);
     }
     return 1;
 }

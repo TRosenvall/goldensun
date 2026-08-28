@@ -814,3 +814,5 @@ rebuilding a compiler.
 a meaningful fraction resolve, that is the answer for the largest blocked class
 in the corpus. If none do, the class needs a different explanation and this
 entry should be struck.
+
+- [batch-123](reports/batch-123.md) — eight elevated; a wrong park retracted and the integer-local address idiom recovered, 356 functions in reach
