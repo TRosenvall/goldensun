@@ -4616,3 +4616,25 @@ locals and both return types were neutral against it.
 choice, so reserving it changes nothing. Measured byte-identical on a function
 whose residue is a high-register role exchange. Do not spend a screen on it —
 unlike `-ffixed-r7`, which is real because gcc *does* pick r7.
+
+## Two constants in DIFFERENT registers means they are simultaneously live
+
+`OvlFunc_930_20090b8` masks two bytes with `0xfd`, then stores a zero, then
+passes `0x12` twice. The ROM's registers: mask in **r5**, zero in **r6**, and
+`0x12` back in **r5** after the mask dies.
+
+Written in source order — mask, use it twice, then zero — gcc gives the zero the
+mask's now-dead r5 and never touches r6, so the push list is one register short.
+Four differing of 56, all of it that one choice.
+
+Assigning the zero **before** the mask, so their live ranges overlap, matched.
+
+> When the ROM puts two constants in different callee-saved registers and one of
+> them is later reused for a third value, the two are live at the same time.
+> Read the register reuse as a statement about the source's declaration point,
+> not just its allocation.
+
+This is the counterweight to "naming one level too many": that note is about
+values that should not be named at all, this one is about a value that must be
+born *earlier* than its first use suggests. The diagnostic is the same — the
+push list — but it points the opposite way.
