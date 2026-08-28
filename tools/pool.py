@@ -82,6 +82,16 @@ SETUP = re.compile(r"^\t(mov|lsl|neg|ldr|add|sub|asr|lsr)\t(r[0-3])\b")
 MOVI3 = re.compile(r"^\tmov\t(r[1-3]), #")
 MOVR0 = re.compile(r"^\tmov\tr0, #(0x[0-9a-f]+|\d+)$")
 SPLIT = re.compile(r"^\t(lsl|neg)\t(r[1-3]),(?: \2,)?(?: #)?")
+
+# For the reuse column: a constant that costs MORE THAN ONE instruction to
+# materialise, and is needed more than once, is the shape gcc hoists into a
+# callee-saved register while the ROM rebuilds it in place. See the reuse note
+# in docs/elevation.md.
+MOVIMM = re.compile(r"^\tmov\t(r\d+), #(0x[0-9a-f]+|\d+)$")
+LSLIMM = re.compile(r"^\tlsl\t(r\d+),(?: (r\d+),)? #(0x[0-9a-f]+|\d+)$")
+NEGREG = re.compile(r"^\tneg\t(r\d+), (r\d+)$")
+POOLLD = re.compile(r"^\tldr\t(r\d+), =(\S+)$")
+WRITES = re.compile(r"^\t(mov|lsl|lsr|asr|neg|add|sub|ldr|ldrb|ldrh|mul|orr|and)\t(r\d+)")
 LDRE0 = re.compile(r"^\tldr\tr0, =(\S+)$")
 MOVI0 = re.compile(r"^\tmov\tr0, #(0x[0-9a-f]+|\d+)$")
 LSL0 = re.compile(r"^\tlsl\tr0,(?: r0,)? #(0x[0-9a-f]+|\d+)$")
@@ -150,10 +160,11 @@ def main():
     rows = [r for r in rows if r and lo <= r["n"] <= hi and keep(shape, r)]
     rows.sort(key=lambda r: r["n"])
     print(f"{len(rows)} candidates, shape={shape}, {lo}-{hi} instructions")
-    print("insns calls mem  br flag2 site wildcard  name")
+    print("insns calls mem  br flag2 site reuse wildcard  name")
     for r in rows[:20]:
         print(f"{r['n']:5} {r['calls']:5} {r['mem']:3} {r['br']:3} "
-              f"{'Y' if r['flag2'] else '-':>5} {r['site']:>4} {r['wild']:>8}  "
+              f"{'Y' if r['flag2'] else '-':>5} {r['site']:>4} {r['reuse']:>5} "
+              f"{r['wild']:>8}  "
               f"{r['name']:28} {r['path']}")
     return 0
 
@@ -166,6 +177,49 @@ def keep(shape, r):
     if shape == "interleave":
         return r["site"] > 0 and r["unguarded"] == 0
     sys.exit("shape must be one of: flags, dense, interleave")
+
+
+def reuse(body):
+    """How many distinct EXPENSIVE constants this function needs more than once.
+
+    Expensive means it cannot be reached by a single `mov rD, #imm`: a shifted
+    or negated build, or a pooled load. Those are the ones gcc-2.96 as invoked
+    here hoists and keeps alive across calls, adding a push the ROM does not
+    have, while the original rebuilds them at each use.
+
+    A nonzero value predicts the constant-reuse blocker BEFORE any C is written,
+    which is the whole point -- two functions were transcribed correctly and
+    lost to it in a single round before this column existed.
+    """
+    import collections
+    pending, seen = {}, collections.Counter()
+    for x in body:
+        m = MOVIMM.match(x)
+        if m:
+            pending[m.group(1)] = int(m.group(2), 0)
+            continue
+        m = LSLIMM.match(x)
+        if m:
+            d, src = m.group(1), m.group(2) or m.group(1)
+            if src in pending:
+                seen[pending[src] << int(m.group(3), 0)] += 1
+            pending.pop(d, None)
+            continue
+        m = NEGREG.match(x)
+        if m:
+            if m.group(2) in pending:
+                seen[-pending[m.group(2)]] += 1
+            pending.pop(m.group(1), None)
+            continue
+        m = POOLLD.match(x)
+        if m:
+            seen[m.group(2)] += 1
+            pending.pop(m.group(1), None)
+            continue
+        m = WRITES.match(x)
+        if m:
+            pending.pop(m.group(2), None)
+    return sum(1 for v in seen.values() if v > 1)
 
 
 def measure(name, path, body, lines, start):
@@ -206,7 +260,7 @@ def measure(name, path, body, lines, start):
             "flagcalls": sum(1 for x in body if FLAGCALL.match(x)),
             "flag2": any(v > 1 for v in ids.values()),
             "wild": wildcard_for(os.path.relpath(path, ROOT)),
-            "site": guarded, "unguarded": unguarded}
+            "site": guarded, "unguarded": unguarded, "reuse": reuse(body)}
 
 
 if __name__ == "__main__":

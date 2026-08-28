@@ -6000,3 +6000,34 @@ keep theirs and are unaffected, so there is no reason to widen the change.
 A useful corollary for selection: a flat call-sequence function whose diff is
 large but perfectly periodic is usually a ONE-line fix, and is worth picking
 ahead of a function whose diff is small but irregular.
+
+## Symbol base: index a typed array, don't cast-and-offset
+
+The symbol-base lever has a specific spelling that matters. Given a ROM store of
+
+    ldr  r3, =L2
+    strh r2, [r3, #0x1e]
+
+the transcription that FAILS is the pointer-arithmetic one:
+
+    extern unsigned char L11[] __asm__(".L11");
+    *(short *)(L11 + 0x1e) = a * 60;      /* ldr r3, =L2+30 ; strh r2, [r3, #0] */
+
+`L11 + 0x1e` is a link-time constant, so gcc folds the displacement into the
+pooled address and stores at offset zero. Declaring the symbol with the type
+the access actually uses, and indexing it, keeps base and displacement apart:
+
+    extern short L11[] __asm__(".L11");
+    L11[0xf] = a * 60;                    /* ldr r3, =L2 ; strh r2, [r3, #0x1e] */
+
+A struct with explicit padding works identically, but it invents a layout the
+assembly does not attest to; prefer the array when the access is uniform.
+
+Both differences in `OvlFunc_common1_ea0` were this one decision -- the pooled
+constant and the store displacement are two symptoms, not two problems. When a
+diff shows `=SYM+N` against `=SYM` AND a zero store offset against a nonzero
+one, that is a single fix.
+
+Also confirmed here: `a * 60` reproduces the ROM's strength-reduced
+`((a << 4) - a) << 2` with no help, and the rotated `b test / body / test:`
+loop reproduces from a plain `while`.
