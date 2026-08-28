@@ -54521,6 +54521,7 @@
 02008140 t .gcc2_compiled.
 02008190 t .gcc2_compiled.
 020081bc t .gcc2_compiled.
+020081e8 t .gcc2_compiled.
 02008258 t .gcc2_compiled.
 02008278 t .gcc2_compiled.
 02008298 t .gcc2_compiled.
@@ -75676,6 +75677,7 @@
 0200958c t .gcc2_compiled.
 020095a4 t .gcc2_compiled.
 020095bc t .gcc2_compiled.
+02009624 t .gcc2_compiled.
 0200966c t .gcc2_compiled.
 020096a4 t .gcc2_compiled.
 0200995c t .gcc2_compiled.
@@ -146738,6 +146740,7 @@
 020082b4 t .gcc2_compiled.
 020082d4 t .gcc2_compiled.
 020082f4 t .gcc2_compiled.
+0200835c t .gcc2_compiled.
 020083f4 t .gcc2_compiled.
 02008430 t .gcc2_compiled.
 02008470 t .gcc2_compiled.
@@ -339281,6 +339284,8 @@
 02009c48 t .gcc2_compiled.
 02009c5c t .gcc2_compiled.
 02009c6c t .gcc2_compiled.
+0200a3e0 t .gcc2_compiled.
+0200a820 t .gcc2_compiled.
 0200ab1c t .gcc2_compiled.
 0800e46c A ActorAttrOp_accel
 0800e51c A ActorAttrOp_bounce
@@ -372299,6 +372304,7 @@
 02008814 t .gcc2_compiled.
 02008820 t .gcc2_compiled.
 0200882c t .gcc2_compiled.
+02008adc t .gcc2_compiled.
 02008b14 t .gcc2_compiled.
 02008e5c t .gcc2_compiled.
 0800e46c A ActorAttrOp_accel
