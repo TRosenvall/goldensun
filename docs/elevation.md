@@ -6097,3 +6097,39 @@ That is worth holding onto whenever a constant-reuse difference tempts a theory
 about the callee or the constant: the choice belongs to the translation unit the
 call sits in, not to the call. Do not carry a reuse verdict from one function to
 another, and do not park a second function by analogy with the first -- screen it.
+
+## Levers compose: four spellings on one function, 70 differing to zero
+
+`OvlFunc_938_2008264` is the clearest case so far that the levers stack, and
+that a large diff can be several small blockers rather than one big one:
+
+    plain transcription                             70 differing
+    + int intermediate for the halfword stores       9
+    + name the shifted argument (y)                  8
+    + name the pooled argument (e) as well           6
+    + name both stack arguments (s1, s2)             0
+
+Each step is a documented lever and none of them subsumes another. Two things
+worth carrying forward:
+
+  * **Re-diff after every lever.** The count barely moved from 9 to 8, which in
+    isolation looks like a dead end; but the first difference had jumped from
+    line 49 to line 65, meaning the early blocker was solved and a later one had
+    surfaced. Read WHERE the first difference is, not just how many there are.
+  * **Naming one argument can be insufficient rather than wrong.** Naming `y`
+    alone left the r0/r1 pair transposed; naming `e` alone did nothing at all.
+    Together they were exact. When a lever "fails", try it combined with its
+    neighbours before recording it as inapplicable.
+
+## Two stack arguments want two named locals
+
+A call with more than four arguments spills the rest to `[sp]`. Passed as bare
+literals gcc reuses ONE register for the spill:
+
+    ours  mov r3,#0x4 / str r3,[sp] / mov r3,#0x3 / str r3,[sp,#4]
+    rom   mov r3,#0x4 / mov r2,#0x3 / str r3,[sp] / str r2,[sp,#4]
+
+The ROM materialises both values into two registers and only then stores both.
+Naming them as two separate locals immediately before the call gives gcc two
+pseudos and reproduces it. Both six-argument calls in `OvlFunc_938_2008264`
+needed it, and one fix covered both.
