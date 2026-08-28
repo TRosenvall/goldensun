@@ -1,0 +1,6 @@
+flags 115 Func_8077f70 asm/rom_77000/rom_77320_a_c_c.s
+flags 120 OvlFunc_932_200a490 asm/overlays/rom_7b9cb4/ovl_30_a_c_c_a_c_c_a_a_a_c_a_a.s
+interleave 123 OvlFunc_921_2009794 asm/overlays/rom_7a7298/ovl_30_c_c_c_c_c_a_c_c.s
+interleave 129 OvlFunc_958_2008df0 asm/overlays/rom_7e636c/ovl_cc0_c_a_c_a_c_c_a.s
+interleave 130 OvlFunc_921_2008384 asm/overlays/rom_7a7298/ovl_30_c_c_c_a_a_c_a_c.s
+dense 140 OvlFunc_890_2009380 asm/overlays/rom_78b2ac/ovl_30_c_c_a_c_b.s
