@@ -27,7 +27,7 @@ void StartEarthquake(void)
 
     buf = (int *)galloc_ewram(0x1d, 0x82 * 8);
     p = buf + 2;
-    DMA3_CLEAR(buf, 0x410);
+    DMA3_FILL(buf, 0, 0x410);
     gfx = galloc_ewram(0xe, 0x80 * 8);
     DecompressLZ1(Data_a00b8, gfx);
     slot = AllocSpriteSlot();
@@ -41,11 +41,11 @@ void StartEarthquake(void)
         *q++ = 0;
         *q++ = 0x40000400;
         *q = 0xd400;
-        p[3] = 0;
-        p[5] = 0;
         a = s[0];
         b = s[2];
         a >>= 16;
+        p[3] = 0;
+        p[5] = 0;
         b >>= 16;
         r = _Func_8011f54(0, a, b);
         p[4] = r << 16;

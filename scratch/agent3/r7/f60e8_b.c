@@ -21,27 +21,28 @@ extern struct SndState ewram_2002240;
 
 void Func_80060e8(const void *src)
 {
+    struct SndState *s = &ewram_2002240;
     unsigned char *p;
     unsigned short *q;
     int sum;
     unsigned int i;
 
-    p = ewram_2002240.f28;
-    p[0] = ewram_2002240.fb;
+    p = s->f28;
+    p[0] = s->fb;
     sum = 0;
-    p[1] = ewram_2002240.f2 ^ ewram_2002240.f3;
+    p[1] = s->f2 ^ s->f3;
     *(unsigned short *)(p + 2) = sum;
     DMA3_SET(src, p + 4, 0x84000006);
-    q = (unsigned short *)ewram_2002240.f28;
+    q = (unsigned short *)s->f28;
     for (i = 0; i < 14; i++) {
         sum += q[i];
     }
-    *(unsigned short *)(ewram_2002240.f28 + 2) = ~sum;
-    if (ewram_2002240.f0 != 0) {
+    *(unsigned short *)(s->f28 + 2) = ~sum;
+    if (s->f0 != 0) {
         int z = 0;
         REG_TM3CNT_H = z;
     }
-    ewram_2002240.f14 = -1;
-    if (ewram_2002240.f0 != 0 && ewram_2002240.f8 != 0)
+    s->f14 = -1;
+    if (s->f0 != 0 && s->f8 != 0)
         REG_TM3CNT_H = 0xc0;
 }
