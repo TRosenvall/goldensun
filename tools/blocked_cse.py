@@ -92,6 +92,14 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--band", nargs=2, type=int, default=[0, 10 ** 9])
     ap.add_argument("--list", type=int, default=0)
+    ap.add_argument("--names", action="store_true",
+                    help="print ONLY the blocked function names, one per line, "
+                         "and nothing else. Use this to build a worklist "
+                         "filter. It exists because the names were once pulled "
+                         "out of the table below with the wrong awk column, "
+                         "producing 147 copies of the word \"repeats\" -- a "
+                         "filter that silently excluded nothing and cost two "
+                         "agents a fifth of a round. Do not re-derive it.")
     a = ap.parse_args()
     lo, hi = a.band
     tot = ti = 0
@@ -104,6 +112,10 @@ def main():
             ti += n
             if bad:
                 blocked.append((n, len(bad), name, f))
+    if a.names:
+        for _, _, name, _ in sorted(blocked, reverse=True):
+            print(name)
+        return 0
     bi = sum(b[0] for b in blocked)
     print("band %d-%d: %d functions, %d instructions" % (lo, hi, tot, ti))
     print("blocked by constant CSE with no boundary: %d functions (%.0f%%), "

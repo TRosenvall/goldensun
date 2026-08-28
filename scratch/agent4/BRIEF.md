@@ -282,3 +282,54 @@ unreachable, check that the SCREEN is even showing you the shape.
 Your worklist this round IS pre-filtered with `tools/blocked_cse.py` (last round
 it was not, and ~20% of two agents' budgets went to genuinely blocked
 functions). If you still hit a repeated-constant hoist, say so.
+
+## Round 7 — corrections to what round 6 was told
+
+Round 6's briefs contained two pieces of wrong guidance from me. Both are fixed
+in `docs/elevation.md`; read these before reusing anything from a previous round.
+
+1. **The `.call_via` helper has TWO forms.** I said "bind the callee symbol
+   inside the helper". That is right for **one** call site and wrong for
+   several — binding costs a reload per site. Two or more sites sharing one
+   register want the callee passed as a plain argument, constrained `"r" (f)`,
+   with `bx %1` in the template, so gcc CSEs the address into one register.
+   For a **high** register (r8–r11) declare
+   `register int (*g)(int,int) __asm__("r8") = F;` in the enclosing block and
+   pass `g` unpinned. For TWO SITES IN ONE FUNCTION, binding at **function
+   scope** and referencing `f` as an `"r"` input of a bare `__asm__` at each
+   site beats a helper entirely.
+2. **The clobber list is a per-function READING, not a style rule.** I said
+   never add `"r2"`/`"r3"`. Measured: `"r2"` is *required* on one function,
+   `"r3"` on another, neutral on a third. The test is whether the ROM parks a
+   loop-carried or call-crossing value in that register. **Always drop `"lr"`**
+   — the sequence never writes it, and two functions hold a live value in r14
+   across their call sites.
+3. **Never put two call sites in one expression.** Both outputs bind
+   `register __asm__("r0")`, so gcc treats them as the same value:
+   `f(a,a) + f(b,b)` compiled to ONE call plus `lsl r0, #1`. That is a
+   miscompile, not a match failure. One named local per site, one statement each.
+4. **A volatile `asm` is not cross-jumped.** Writing the call in both arms of an
+   if/else gives two expansions. Select only the differing argument into a local
+   and put one asm after the join.
+
+Other things measured since your last brief:
+
+* **`-fno-rerun-cse-after-loop` is NOT loop-specific.** A straight-line script
+  with no loop had a pooled constant hoisted into a callee-saved register, and
+  of six CSE-family flags only this one undid it. Worth a screen on any
+  straight-line function whose only fault is a hoisted constant.
+* **`-ffixed-r10` is a complete no-op** — gcc-2.96 thumb never picks r10. Do not
+  spend a screen. (`-ffixed-r7` IS real.)
+* **`-fno-strict-aliasing` can present as an argument-setup permutation**, not
+  just as a load hoisted above a store.
+* **Build a constant AFTER the call if the ROM does.** A constant written before
+  a call and used after it is live across it and cannot live in r4; gcc reaches
+  for a third callee-saved register and the prologue changes. Diagnostic: if
+  your prologue saves a high register the ROM does not, count your locals and
+  their live ranges before reaching for a lever.
+* **Naming one level too many costs a register.** A global's ADDRESS and a byte
+  OFFSET want names; the dereferenced VALUE usually does not.
+
+**Your worklist IS filtered this round, and I verified it** — `blocked_cse.py`
+now has a `--names` flag precisely because the extraction was wrong last time
+(147 copies of the word "repeats"). Zero of your entries are on the blocked list.

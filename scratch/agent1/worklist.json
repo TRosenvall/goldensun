@@ -1,63 +1,23 @@
 [
  {
-  "name": "Func_8090a5c",
-  "ref": "asm/rom_8a000/rom_8d9a4_c_c_c_a_a_a_c.s",
-  "insns": 806
+  "name": "OvlFunc_918_2009004",
+  "ref": "asm/overlays/rom_7a5214/ovl_314_c_c_a.s",
+  "insns": 196
  },
  {
-  "name": "OvlFunc_970_2008194",
-  "ref": "asm/overlays/rom_7fa4ec/ovl_30_c_c_c_a_a_c.s",
-  "insns": 221
+  "name": "OvlFunc_897_2008f64",
+  "ref": "asm/overlays/rom_791794/ovl_30_c_c_a_a.s",
+  "insns": 120
  },
  {
-  "name": "Func_80992f0",
-  "ref": "asm/rom_8a000/rom_97b54_a_c_c_a_c_c_c.s",
-  "insns": 34
+  "name": "UpdateActors",
+  "ref": "asm/rom_9000/rom_ca6c_a_c_c.s",
+  "insns": 683
  },
  {
-  "name": "OvlFunc_970_2008f80",
-  "ref": "asm/overlays/rom_7fa4ec/ovl_30_c_c_c_a_c_c_c_c_c_a.s",
-  "insns": 146
- },
- {
-  "name": "Func_801cbd4",
-  "ref": "asm/rom_15000/rom_1ca1c_a_a_c.s",
-  "insns": 49
- },
- {
-  "name": "Func_80111b4",
-  "ref": "asm/rom_9000/rom_108e4.s",
-  "insns": 228
- },
- {
-  "name": "Func_80c0a24",
-  "ref": "asm/rom_b5000/rom_bffb8_a_c_c.s",
-  "insns": 186
- },
- {
-  "name": "Anim_Cast",
-  "ref": "asm/rom_b5000/rom_c10e8_a_a_a_c.s",
-  "insns": 234
- },
- {
-  "name": "CreateBattleSpriteOverlays",
-  "ref": "asm/rom_b5000/rom_b7410_a_a_c_c_c_a.s",
-  "insns": 266
- },
- {
-  "name": "LoadMapActors",
-  "ref": "asm/rom_8a000/rom_8ace0_a_c_c.s",
-  "insns": 272
- },
- {
-  "name": "OvlFunc_923_2009cb4",
-  "ref": "asm/overlays/rom_7aa430/ovl_1a3c_a_c_a.s",
-  "insns": 137
- },
- {
-  "name": "Func_809b86c",
-  "ref": "asm/rom_8a000/rom_9b698_a_a.s",
-  "insns": 53
+  "name": "ActorCmd_Wander",
+  "ref": "asm/rom_9000/rom_d924_c_c.s",
+  "insns": 182
  },
  {
   "name": "Func_800d340",
@@ -65,8 +25,38 @@
   "insns": 338
  },
  {
-  "name": "Func_8010230",
+  "name": "Actor_TravelTo",
+  "ref": "asm/rom_9000/rom_ca6c_c_a.s",
+  "insns": 190
+ },
+ {
+  "name": "UpdateFieldScreen",
   "ref": "asm/rom_9000/rom_f9cc_c.s",
-  "insns": 223
+  "insns": 245
+ },
+ {
+  "name": "OvlFunc_924_200d244",
+  "ref": "asm/overlays/rom_7ac2d8/ovl_35b8_a_c_a_a.s",
+  "insns": 137
+ },
+ {
+  "name": "Func_80993b0",
+  "ref": "asm/rom_8a000/rom_97b54_a_c_c_a_c_c_c_c.s",
+  "insns": 111
+ },
+ {
+  "name": "OvlFunc_932_200b738",
+  "ref": "asm/overlays/rom_7b9cb4/ovl_30_c_c_a_a.s",
+  "insns": 119
+ },
+ {
+  "name": "Func_80f3078",
+  "ref": "asm/rom_f2000/rom_f2028_c_c_a_a.s",
+  "insns": 797
+ },
+ {
+  "name": "Func_80ad6d4",
+  "ref": "asm/rom_a1000/rom_ad274_c_c.s",
+  "insns": 1274
  }
 ]
