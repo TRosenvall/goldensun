@@ -9,10 +9,10 @@ int YesNoMenu(int a, int b, int c, int d)
     int k;
     int r;
 
-    k = 0;
     Func_80284dc();
     if (c == 0)
         c = 3;
+    k = 0;
     if (a != 0)
         k = 0x11;
     AddMenuBarOption(5);

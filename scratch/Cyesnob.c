@@ -6,8 +6,8 @@ extern void Func_802851c(void);
 
 int YesNoMenu(int a, int b, int c, int d)
 {
-    int k;
     int r;
+    int k;
 
     k = 0;
     Func_80284dc();
