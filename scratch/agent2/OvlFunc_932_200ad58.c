@@ -20,7 +20,7 @@ extern void __Func_808f1c0(int a, int b);
 extern void __Func_8091a58(int a, int b);
 extern u8 *__Func_8093554(void);
 extern int __Func_80933d4(int a, int b);
-extern int __Func_80933f8(int a, int b, int c, int d);
+extern void __Func_80933f8(int a, int b, int c, int d);
 extern void __Func_8093530(void);
 extern void OvlFunc_932_20086dc(void);
 extern void __SetMapEvents(u8 *s);

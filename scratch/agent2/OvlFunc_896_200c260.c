@@ -33,7 +33,7 @@ extern void __UploadSpriteGFX(int a, int b, void *c);
 extern void __gfree(int id);
 extern void __PlaySound(int id);
 extern void __Func_808f140(struct Actor *a, int b);
-extern void __Func_8078948(int a, int b);
+extern int __Func_8078948(int a, int b);
 extern void __GiveItemTo(int a, int b);
 extern void __DeleteActor(struct Actor *a);
 extern void __MapActor_SetAnim(int a, int b);
@@ -43,28 +43,37 @@ int OvlFunc_896_200c260(int a)
     struct Actor *act;
     struct Sub *s;
     u8 *p;
-    void *buf;
+    int q;
     int slot;
     int r;
-    int zero = 0;
+    int t;
+    int u;
 
+    q = 0;
     act = __CreateActor(0x16);
     slot = __CheckPartyItem(0xe0);
     r = __CheckItem(slot, 0xe0);
-    if (act != 0) {
+    if (act == 0)
+        return slot;
         __Actor_SetScript(act, gScript_881__0200cbe4);
         s = act->f50;
         p = &s->b26;
-        *p = zero;
+        *p = q;
         p++;
-        *p = zero;
-        s->b5 &= ~0x21;
-        s->b9 &= 0xf;
+        *p = q;
+        u = s->b5;
+        t = ~0x20;
+        t &= u;
+        s->b5 = t;
+        u = s->b9;
+        t = 0xf;
+        t &= u;
+        s->b9 = t;
         act->f28 = 0x28000;
         act->f48 = 0x4000;
-        buf = __galloc_iwram(0x11, 0x608);
+        q = (int)__galloc_iwram(0x11, 0x608);
         __LoadItemIcon(a);
-        __UploadSpriteGFX(s->b1c, 0x80, (u8 *)buf + 0x400);
+        __UploadSpriteGFX(s->b1c, 0x80, (u8 *)(q + 0x400));
         __gfree(0x11);
         __PlaySound(0x53);
         __Func_808f140(act, 3);
@@ -72,6 +81,5 @@ int OvlFunc_896_200c260(int a)
         __GiveItemTo(slot, a);
         __DeleteActor(act);
         __MapActor_SetAnim(0, 1);
-    }
     return slot;
 }

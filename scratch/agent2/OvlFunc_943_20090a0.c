@@ -10,9 +10,9 @@ extern int __Func_80921c4(int a, int b, int c);
 extern void __CutsceneWait(int a);
 extern int __Func_809259c(int a, int b);
 extern void OvlFunc_943_200b9ec(int a);
-extern int __MapActor_SetPos(int a, int b, int c);
-extern int __Func_8092adc(int a, int b, int c);
-extern int __MapActor_Emote(int a, int b, int c);
+extern void __MapActor_SetPos(int a, int b, int c);
+extern void __Func_8092adc(int a, int b, int c);
+extern void __MapActor_Emote(int a, int b, int c);
 extern void __CutsceneEnd(void);
 
 void OvlFunc_943_20090a0(void)

@@ -7,22 +7,30 @@ extern void WaitFrames(int n);
 
 int Func_80bffb8(void)
 {
-    u16 save[4];
+    vu16 s0;
+    vu16 s1;
+    vu16 s2;
+    vu16 s3;
     vu16 *p;
+    int t;
     int i;
 
     p = &REG_BG0CNT;
-    save[3] = *p;
-    *p |= 0x40;
+    t = *p;
+    s0 = t;
+    *p = t | 0x40;
     p++;
-    save[2] = *p;
-    *p |= 0x40;
+    t = *p;
+    s1 = t;
+    *p = t | 0x40;
     p++;
-    save[1] = *p;
-    *p |= 0x40;
+    t = *p;
+    s2 = t;
+    *p = t | 0x40;
     p++;
-    save[0] = *p;
-    *p |= 0x40;
+    t = *p;
+    s3 = t;
+    *p = t | 0x40;
     p += 0x21;
     *p = 0x3eee;
     Func_8003b70(0x10);
@@ -37,12 +45,12 @@ int Func_80bffb8(void)
     REG_DISPCNT = 1;
     WaitFrames(4);
     p = &REG_BG0CNT;
-    *p = save[3];
+    *p = s0;
     p++;
-    *p = save[2];
+    *p = s1;
     p++;
-    *p = save[1];
+    *p = s2;
     p++;
-    *p = save[0];
+    *p = s3;
     return 0;
 }

@@ -19,7 +19,7 @@ int Func_8003d28(struct Aff *p)
     int a;
     int b;
     int c;
-    int n;
+    unsigned int n;
     int t;
     int s;
     int co;
@@ -28,9 +28,9 @@ int Func_8003d28(struct Aff *p)
     short *w;
 
     a = p->f0;
-    n = iwram_3001d00;
     b = p->f2;
     c = p->f4;
+    n = iwram_3001d00;
     if (n > 0x1f)
         return 0;
     q = iwram_3001d40 + n * 8;
