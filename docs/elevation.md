@@ -5766,6 +5766,23 @@ pooled constant as a literal at each store was **exact**.
 Rule of thumb: if the ROM reaches the value with `ldr rN, =...`, do not name it.
 If it reaches it with `mov` or `mov`+`lsl`/`neg`, name it once per use site.
 
+**QUALIFIED (batch 133).** That is the right default but not a law.
+`OvlFunc_959_200a52c` reloads `0xb333` and `0x5999` from the pool at each of
+three `__MapActor_SetSpeed` calls, gcc commons them into r5/r6 and adds two
+pushes, and naming SIX separate locals -- one pooled constant per use site --
+made gcc rematerialise all six and took 56 differing to 4.
+
+So the distinction is not simply cheap-versus-pooled. Both functions name pooled
+constants; in one it costs three pushes and in the other it saves two. What
+differs is where the uses are: `200967c`'s four uses are in four EXCLUSIVE
+branches, so one live value covers all of them and holding is cheap;
+`200a52c`'s three uses are sequential in one block, so holding spans the whole
+run and rematerialising wins.
+
+Practical form: name pooled constants when their uses are **sequential**, leave
+them inline when the uses are in **exclusive branches**. Either way it is one
+screen, so measure rather than reason.
+
 ## Adding a Makefile rule does not rebuild the object
 
 `OvlFunc_885_20080dc` screened exact and its linked overlay differed in 18
