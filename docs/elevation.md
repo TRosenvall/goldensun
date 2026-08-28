@@ -4467,3 +4467,70 @@ Removing the last two took it from 72 differing to **2**.
 
 The diagnostic is the push list: **if your prologue saves a high register the
 ROM does not, count your locals before you reach for a lever.**
+
+## The `.call_via` helper, corrected: one site and several sites want DIFFERENT spellings
+
+I circulated "bind the callee inside the helper" as a general improvement. It is
+right for **one** call site and wrong for several, and the difference is worth
+stating precisely because both forms look reasonable.
+
+| sites | spelling |
+|---|---|
+| one | bind the symbol inside the helper: `register int (*_f)(int,int) __asm__("r4") = Func_8000888;` |
+| two or more sharing one register | pass the callee as a plain argument, constrain it `"r" (f)`, and write `bx %1` in the template |
+
+Binding it costs a **reload per site**: on `Func_801cbd4` (three sites, one
+pointer carried in r4) the bound form emits `ldr r4, =Func_8000888` three times,
+62 lines / 58 differing. The unpinned `%1` form lets gcc CSE the address into
+one register held across all three sites — OK on the first screen after the
+change.
+
+For a **high** register (r8–r11), `"r"` accepts r8 but gcc will never *choose*
+it: declare `register int (*g)(int,int) __asm__("r8") = F;` in the enclosing
+block and pass `g` unpinned. Declared inside a loop body it gives the ROM's
+per-iteration rematerialisation; declared once for the function it gives one.
+
+### The clobber list is a per-function READING, not a style rule
+
+I also circulated "never add `r2`/`r3`". That is wrong as a blanket rule.
+Measured:
+
+* `Func_801cbd4` — `"r2"` **required**. Without it, OK becomes 60 lines / 61
+  differing. The tell is in the ROM's prologue: `mov r6, r2` copies parameter 3
+  into a callee-saved register before the first call, which gcc only does if it
+  believes r2 dies.
+* `Func_80c0a24` — `"r3"` **required**, or gcc picks r3 for the pointer and
+  emits `bx r3` where the ROM has `bx r4`. `"r2"` and `"r3"` together is worse.
+* `Func_809b86c` — `"r2"` neutral.
+
+**The test: look for a loop-carried or call-crossing value living in r2 or r3.**
+If the ROM never parks a value there, the original's macro clobbered it. The two
+registers are independent and must be decided separately — `Func_801cbd4` proves
+r3 is *not* clobbered (argument 4 survives all three sites in r3) while r2 is.
+
+### Drop `"lr"`
+
+`mov r12, pc / bx rN` never writes lr — the ARM callee returns via r12. Two
+functions hold a live value in r14 across the call sites and cannot reproduce it
+with `"lr"` clobbered. **`"memory"` and `"r12"` are the only two that are always
+right.**
+
+### A correctness trap: never put two call sites in one expression
+
+Both sites' outputs are `register … __asm__("r0")`, so gcc treats them as the
+same value. `f(a,a) + f(b,b)` compiled to **one** `bx` followed by `lsl r0, #1`
+— it doubled the second result and dropped the first. Nesting silently dropped
+the `mov` supplying the outer call's first argument. This is a miscompile, not a
+match failure.
+
+**Assign each call's result to its own named local, in its own statement, before
+the next site.** Nesting is tempting because it removes exactly the extra `mov`
+that some of these functions are stuck on. Do not.
+
+### Inlining the symbol at two sites is how you reach the ROM's stack spill
+
+Where the ROM has `ldr r3, =F / … / str r3, [sp] / … / ldr r3, [sp]`, a named
+local does **not** produce it — gcc either allocates a callee-saved register or,
+with a pinned register variable, elides the assignment and calls the *wrong
+function*. Writing the symbol literally at both sites lets CSE build one pseudo
+which then spills, which is the ROM's shape.
