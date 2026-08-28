@@ -5148,3 +5148,51 @@ and point the two linker-script lines at the two new objects.
 exists.** That is what let this round attribute a 58-byte overlay difference to
 the C rather than to the layout; without it, the two failure modes are
 indistinguishable.
+
+## One integer-local per address chain, not one scratch variable reused
+
+Working the integer-local idiom, the natural thing is to write a single scratch
+variable and reuse it, the way the ROM reuses r3:
+
+    r3 = (unsigned int)&iwram_3001edc;
+    q  = *(unsigned char **)r3;
+    r3 -= 0x20;
+    base = *(unsigned char **)r3;
+    r3 = (unsigned int)&gState;      /* <-- same variable, unrelated value */
+    r3 += r1;
+
+That is 10 of 32 differing on `OvlFunc_923_200a370` -- a pure r1/r3 swap that no
+statement reordering fixed. Giving the second chain its **own** variable was an
+exact match on the next screen.
+
+Reusing one C variable for two unrelated address chains makes one pseudo with a
+long live range; gcc then allocates it against the other pseudos differently
+than it allocates two short ones. The ROM's register reuse is the ALLOCATOR
+reusing r3, not the source reusing a variable -- do not read one as the other.
+
+Declaration order is not the lever here: swapping the two declarations left the
+count at 10.
+
+## `tools/oneref.py` -- always size-check
+
+Extracts one function into a standalone `.s` so `tryc.py --ref` runs its `.text`
+size check, which it skips whenever the reference holds more than one function.
+Most targets live in a multi-function `.s`, so that check was silently off for
+most screens, and batch 123 shipped a candidate whose `.text` was 0x9c against
+the reference's 0x98.
+
+    python3 tools/oneref.py <function>
+    docker run ... tools/tryc.py cand.c --ref scratch/<function>.s
+
+A screen printing `[size check skipped: ref has N functions]` has not been
+size-checked. It is one command to fix, and it is not optional.
+
+## Twins are worth checking for before writing anything
+
+`OvlFunc_881_20084a0` and `OvlFunc_881_20084f0` are the same function against a
+different struct field -- offset 0x8 versus 0x10. The second cost one `sed` and
+one screen. They were also the only two functions in their `.s`, so the file
+became a single `.c` with no split and no linker change at all.
+
+`tools/twin_families.py` finds these; run it before starting anything that looks
+like boilerplate.
