@@ -6180,3 +6180,40 @@ which operand landed in which register.
 
 Do not spend a round on this shape. One screen to confirm it is commutative-role
 rather than something reachable, then park.
+
+## The interleave lever moves the argument you do NOT name
+
+`OvlFunc_932_200a9dc` was parked with the note "NEXT: nothing. This is the
+documented limit of the lever rather than a new shape." It was two lines from
+matching, and the lever did reach it.
+
+The park had tried naming the interleaved argument itself -- the `mov r0, #9`
+that needs to move into the split build -- and correctly found that the slot is
+used both before and inside the `if`, so naming it violates the third clause
+(every repeated use must be in a different block from the assignment).
+
+That reasoning is sound and irrelevant. **Name the OTHER arguments.** Naming the
+two split builds `x` and `y` in the dominating block, and leaving the slot as a
+bare literal, is exact:
+
+    rom   mov r1,#0xb8 / mov r2,#0xa4 / mov r0,#9 / lsl r1,#16 / lsl r2,#17
+
+Naming the split builds is what frees gcc to place the single-instruction
+argument between the movs and the shifts. Trying to name the instruction you
+want moved constrains the very thing you are trying to let float.
+
+So when a park says "the lever cannot reach this because the interleaved
+argument cannot be named", that is not a conclusion -- it is the wrong half of
+the call. Check whether the OTHER arguments are nameable before believing it.
+
+## Which interleave parks are worth re-attacking
+
+Of 48 interleave-class parks with a live `.s`, only **9** have a GUARDED site --
+a conditional branch before the interleave, which is what gives the lever a
+dominating block to name in. The other 39 have the site before any branch (or no
+branch at all), where naming hoists constants into callee-saved registers and
+adds pushes instead.
+
+That distinction is not "does the function contain a branch" -- `OvlFunc_967_2008308`
+has one and is still unreachable, because its site precedes it. `pool.py`'s
+`site` column already computes it correctly; use that, not a branch count.
