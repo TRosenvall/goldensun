@@ -1,49 +1,6 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ DispatchScreen
-@ r0 = screen id. Routes to Menu_Settings, StartMenu_Main, Menu_Save or Func_1776c
-@ depending on the id -- the small switch that turns a menu choice into a
-@ screen.
-.thumb_func_start StartMenu  @ 0x08029504
-	push	{r5, r6, lr}
-.L29506:
-	bl	StartMenu_Main
-	mov	r6, #1
-	mov	r5, r0
-	neg	r6, r6
-	mov	r0, r6
-	cmp	r5, r6
-	beq	.L29544
-	cmp	r5, #0
-	bne	.L29524
-	bl	Menu_Save
-	cmp	r0, r6
-	bne	.L29542
-	b	.L29506
-.L29524:
-	cmp	r5, #1
-	bne	.L29536
-	ldr	r0, =0xc2a
-	mov	r1, #1
-	bl	Func_801776c
-	ldr	r3, =gSleepMode
-	strb	r5, [r3]
-	b	.L29542
-.L29536:
-	cmp	r5, #2
-	bne	.L29542
-	bl	Menu_Settings
-	cmp	r0, r6
-	beq	.L29506
-.L29542:
-	mov	r0, #0
-.L29544:
-	pop	{r5, r6}
-	pop	{r1}
-	bx	r1
-.func_end StartMenu
-
 @ RunEquipListScreen
 @ r0.. = parameters. 267 lines: windows, portraits through LoadItemIconID /
 @ LoadStatusIcon / LoadMoveIconID, text through UIDrawText and .gcc2_compiled..
