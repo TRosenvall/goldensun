@@ -95,9 +95,25 @@ WRITES = re.compile(r"^\t(mov|lsl|lsr|asr|neg|add|sub|ldr|ldrb|ldrh|mul|orr|and)
 LDRE0 = re.compile(r"^\tldr\tr0, =(\S+)$")
 MOVI0 = re.compile(r"^\tmov\tr0, #(0x[0-9a-f]+|\d+)$")
 LSL0 = re.compile(r"^\tlsl\tr0,(?: r0,)? #(0x[0-9a-f]+|\d+)$")
-# park headers name the function: "/* OvlFunc_943_2008950 -- 0x..." or "... and
-# its byte-identical twin OvlFunc_947_2008cc0 -- 0x..."
-PARKNAME = re.compile(r"\b((?:Ovl)?Func_\w+|[A-Z]\w+)\s+--\s+0x")
+# Park headers name the function, and they do it in FIVE shapes that accumulated
+# over the life of the tree:
+#     Func_X -- 0xADDR         Func_X  [dir]  --  0xADDR      Func_X @ 0xADDR
+#     Func_X -- asm/path.s     Func_X  --  NOT MATCHING
+# Matching only the first shape excluded 84 of 253 parked functions and let the
+# other 169 come back round as "fresh" candidates -- OvlFunc_881_2009c08 was
+# investigated from scratch one day after it was parked.
+#
+# Two passes, unioned, because they serve different jobs. PARKNAME scans the
+# whole head and needs an address or an asm path after the name: that is strict
+# enough not to catch prose, and it deliberately also catches a twin named in a
+# cross-reference, since both twins are blocked by the same thing. PARKHEAD
+# reads only the first few lines and accepts anything after the dash, which is
+# what picks up the "NOT MATCHING" style headers.
+PARKNAME = re.compile(
+    r"\b((?:Ovl)?Func_\w+|[A-Za-z]\w+)\s*(?:\[[^\]]*\])?\s*(?:--|@)\s*"
+    r"(?:0x[0-9a-fA-F]+|asm/\S+\.s)")
+PARKHEAD = re.compile(
+    r"^\s*/?\*?\s*((?:Ovl)?Func_\w+|[A-Za-z][A-Za-z0-9_]+)\s*(?:\[[^\]]*\])?\s*(?:--|@)\s")
 
 
 def parked_names():
@@ -108,6 +124,11 @@ def parked_names():
                 continue
             head = open(os.path.join(root, fn), errors="ignore").read(2000)
             out |= set(PARKNAME.findall(head))
+            for line in head.split("\n")[:3]:
+                m = PARKHEAD.match(line)
+                if m:
+                    out.add(m.group(1))
+                    break
     return out
 
 
