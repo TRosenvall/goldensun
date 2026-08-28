@@ -4440,6 +4440,14 @@ asm/overlays/rom_7cb2c0/ovl_30_c_c_a_a_a_c_a.o: src/overlays/rom_7cb2c0/ovl_30_c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# OvlFunc_885_20080dc is caught by the rom_78603c/ovl_30_c_c_a_c_a% wildcard,
+# which applies O1_CFLAGS.  Wrong for this TU: it screens exact at -O2 and the
+# linked overlay differs in 18 bytes at -O1, all of them argument-order swaps
+# at four call sites.  An explicit rule beats the pattern rule.
+asm/overlays/rom_78603c/ovl_30_c_c_a_c_a_a_b.o: src/overlays/rom_78603c/ovl_30_c_c_a_c_a_a_b.c
+	$(GCC296_CC) $(GCC296_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_78c76c/ovl_30_c_c_c_c_c_a_b.o: src/overlays/rom_78c76c/ovl_30_c_c_c_c_c_a_b.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)

@@ -5765,3 +5765,34 @@ pooled constant as a literal at each store was **exact**.
 
 Rule of thumb: if the ROM reaches the value with `ldr rN, =...`, do not name it.
 If it reaches it with `mov` or `mov`+`lsl`/`neg`, name it once per use site.
+
+## Adding a Makefile rule does not rebuild the object
+
+`OvlFunc_885_20080dc` screened exact and its linked overlay differed in 18
+bytes. The cause was the documented wildcard hazard -- the new file
+`ovl_30_c_c_a_c_a_a_b.c` is caught by `rom_78603c/ovl_30_c_c_a_c_a%`, which
+applies `O1_CFLAGS`, and all 18 bytes were argument-order swaps at four call
+sites.
+
+Adding an explicit `-O2` rule **did not fix it**, and for a few minutes that
+looked like evidence the diagnosis was wrong. The Makefile is not a dependency
+of the `.o`, so make reported the object up to date and never re-ran the new
+recipe. Deleting `asm/<path>.o` (and its `.s`) made the same rule work
+immediately.
+
+Check with `make -n <the .o>`: "is up to date" means the recipe you just wrote
+has not run. This applies to every flag-group change, so a flag rule that
+"doesn't work" should be retested after deleting the object before it is
+believed.
+
+## Screening cannot see a wildcard
+
+`tryc.py` compiles with the production flags for the file's own path, but a file
+that does not exist yet has no path in the Makefile -- so the screen used `-O2`
+while the build used `-O1`. The screen was right about the C and wrong about the
+build.
+
+**Before wiring a new `.c` into a directory, grep the Makefile for a wildcard
+covering it.** The twelve outstanding cases are listed in HANDOFF.md as owed
+work; this is the first one to have actually bitten, and it cost a green screen
+followed by a red build.

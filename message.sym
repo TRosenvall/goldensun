@@ -84,6 +84,11 @@ _MSG_2985 = 0x2985;
 /* base of a three-message prompt: the ROM holds it in a register and adds
  * 1 and 2, which only happens when the operand is a symbol address. */
 _MSG_2399 = 0x2399;
+_MSG_f76 = 0x0f76;
+
+/* Added while elevating OvlFunc_885_20080dc.  Same three-message-prompt shape:
+ * the ROM holds 0xf76 in r5 and reaches the other two with `add r0, r5, #1`
+ * and `add r0, r5, #2`. */
 
 /* Added while elevating OvlFunc_950_20087b0.  Same shape as the entry above:
  * the ROM loads 0x2399 into a callee-saved register and reaches the other two
