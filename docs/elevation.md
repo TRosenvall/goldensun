@@ -6253,3 +6253,28 @@ register-role swap would be worth more than any number of individual attempts,
 and the best test cases are the small ones -- `OvlFunc_923_20091b4` at 2 and
 `OvlFunc_932_200a5c0` at 2, both under 110 instructions with a single disagreeing
 block.
+
+## A corpus-wide unsolved shape: symbol pool load before constant pool load
+
+    ldr rA, =<symbol>  /  ldr rB, =<constant>  /  add rA, rB
+
+gcc emits the two loads in the opposite order -- constant first -- and no source
+form tried has changed that. Worth stating precisely because the scope was
+measured rather than guessed:
+
+  * the shape occurs at **25 sites** in the remaining assembly
+  * across **3,156 elevated translation units it appears zero times**
+
+So when a park is blocked on it, that is not a lever somebody else already knows.
+Nothing in this tree has ever produced it. Registers and instructions are
+identical on both sides; only the order of two independent pool loads differs,
+which also means it is cheap to recognise and cheap to rule out.
+
+Screened on `OvlFunc_923_20091b4` (2 of 28): nine source forms -- walk, one
+expression, array index, named offset before AND after the pointer assignment,
+non-compound add, gState as struct and as array -- and six flag groups. SCHED2
+and O1 are both worse, so the ROM had them on; `-fno-schedule-insns` changes
+nothing, so sched1 is not the pass responsible.
+
+Do not spend a round on an instance of this. Recognise it, record it, move on --
+and if a lever is ever found, 25 sites are waiting.

@@ -31,6 +31,28 @@
  *
  * The function is STRAIGHT-LINE, so the basic-block lever has nowhere to put
  * anything -- see docs/elevation.md.
+ *
+ * REVISITED, and reclassified.  This is NOT a register-role swap: the
+ * `add r3, r2` is identical on both sides and both operands land in the same
+ * registers.  Only the EMISSION ORDER of two independent pool loads differs.
+ *
+ * The useful measurement is corpus-wide rather than local.  The shape
+ *
+ *      ldr rA, =<symbol> / ldr rB, =<constant> / add rA, rB
+ *
+ * occurs at 25 sites in the ROM's assembly, and in 3,156 elevated translation
+ * units it has been reproduced ZERO times.  So this is not a spelling somebody
+ * else already found and I am missing; no source form in this tree has ever
+ * produced it.  That makes 20091b4 a test case for a corpus-wide unsolved shape
+ * rather than a one-off.
+ *
+ * ALSO TRIED this round, all 2: the offset named and assigned AFTER the pointer
+ * (the park previously recorded only the "before" direction); a non-compound
+ * `g = g + 0x22b`; the array-index form `g[0x22b] = 3`; gState declared as a
+ * plain array instead of a struct; and six flag groups -- CSE, GCSE, ALIAS,
+ * -fno-schedule-insns, SCHED2 and O1.  SCHED2 and O1 are worse (6 differing),
+ * which says the ROM was built with both, and -fno-schedule-insns changes
+ * nothing, which says the pass responsible is not sched1.
  */
 typedef struct { unsigned char _bytes[704]; } GlobalState;
 extern GlobalState gState;
