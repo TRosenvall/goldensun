@@ -127,6 +127,7 @@ order; later ones assume the tooling from earlier ones is already in.
 | [batch-117](reports/batch-117.md) | 5 | ready to port — -ffixed-r7 as a per-file group (ROM spends r8 where gcc spends r7); the no-prototype lever for argument order; tools/script_candidates.py avoids the straight-line constant-CSE class at selection time |
 | [batch-118](reports/batch-118.md) | 31 | ready to port — tryc.py folded `mov rd,rs` = `add rd,rs,#0` (low regs only), a false negative that was costing correct answers; -ffixed-r7; the HImode-literal rule narrowed to 0 and >=0x8000; corrects the batch-116 push{r4} overstatement |
 | [batch-119](reports/batch-119.md) | 34 | ready to port — RETRACTS batch 118's ".call_via is a hard wall": tryc.py was dropping the line and inline asm reaches it, 51 functions back in play; _call_via_sl/_call_via_ip added; the constant-hoist lever needs a dominating block |
+| [batch-120](reports/batch-120.md) | 18 | ready to port — a blocked_cse filter that filtered NOTHING (awk column off by one, 113 copies of the word "repeats"); corrections to the .call_via helper guidance; build the constant AFTER the call; naming one level too many costs a register |
 
 **[Fakematch worklist](reports/fakematch-worklist.md)** — seven functions we
 matched with inline asm rather than with a construct, all previously parked. The
