@@ -5747,3 +5747,21 @@ approach before any C is written:
 address, and overlay functions from different overlays share it -- every overlay
 loads at 0x02000000. `OvlFunc_971_200808c` was being hidden by a park written
 for `OvlFunc_881_200808c`. The names come from the park headers.
+
+## Name CHEAP constants; leave POOL constants inline
+
+The naming lever works because gcc rematerialises a named constant at each use
+rather than keeping it live. That holds for constants it can rebuild in one or
+two instructions -- `mov`, `mov`+`lsl`, `mov`+`neg`. It does **not** hold for a
+constant that needs a literal-pool load: rematerialising a pool load is
+expensive enough that gcc prefers to hold the value, so naming it produces the
+opposite of what was wanted.
+
+`OvlFunc_946_200967c` has four arms each storing 0x19999 and four each passing
+`0xf2 << 18`. Naming all eight gave 65 of 82 differing, with `push {r5, r6, r7,
+r14}` against the ROM's `push {r14}` -- the three pooled 0x19999 copies were
+held in callee-saved registers. Naming only the shifted builds and leaving the
+pooled constant as a literal at each store was **exact**.
+
+Rule of thumb: if the ROM reaches the value with `ldr rN, =...`, do not name it.
+If it reaches it with `mov` or `mov`+`lsl`/`neg`, name it once per use site.

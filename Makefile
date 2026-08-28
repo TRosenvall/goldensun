@@ -4434,6 +4434,12 @@ asm/overlays/rom_78b2ac/ovl_30_c_c_a_a_a.o: src/overlays/rom_78b2ac/ovl_30_c_c_a
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# OvlFunc_945_2008728: 0x925 feeds both a GetFlag in the dispatch chain and a
+# second GetFlag inside one arm; 49 differing at -O2, 1 with CSE_CFLAGS.
+asm/overlays/rom_7cb2c0/ovl_30_c_c_a_a_a_c_a.o: src/overlays/rom_7cb2c0/ovl_30_c_c_a_a_a_c_a.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_78c76c/ovl_30_c_c_c_c_c_a_b.o: src/overlays/rom_78c76c/ovl_30_c_c_c_c_c_a_b.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
