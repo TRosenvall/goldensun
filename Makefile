@@ -4390,6 +4390,22 @@ asm/overlays/rom_79c0c4/ovl_30_c_c_c_a_c_c_a_a_c.o: src/overlays/rom_79c0c4/ovl_
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# Three more cutscene scripts that read and set the same save-bit id.  Same
+# rerun-CSE commoning, same fix.  This is now five of the last seven in the
+# guarded-interleave pool; the shape is `GetFlag(id)` guarding a block that
+# ends `SetFlag(id)`.
+asm/overlays/rom_793768/ovl_314_c_c_c_a_c_c_a_c_b.o: src/overlays/rom_793768/ovl_314_c_c_c_a_c_c_a_c_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7d30e0/ovl_30_c_a_c_c_a_a_a_c_a_b.o: src/overlays/rom_7d30e0/ovl_30_c_a_c_c_a_a_a_c_a_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7bdeb0/ovl_d20_c_c_c_b.o: src/overlays/rom_7bdeb0/ovl_d20_c_c_c_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7bf5a8/ovl_2e0_c_a_c.o: src/overlays/rom_7bf5a8/ovl_2e0_c_a_c.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)

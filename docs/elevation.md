@@ -5525,3 +5525,38 @@ smallest is 18 instructions where the narrow pool started at 85.
 Two of this round's four matched on the first screen from that widened pool.
 When a sizing looks small, check whether the detector is asking for something
 more specific than the mechanism requires.
+
+## `GetFlag(id)` guarding a block that ends `SetFlag(id)` means `CSE_CFLAGS`
+
+Five of the last seven functions elevated from the guarded-interleave pool
+needed `-fno-rerun-cse-after-loop`, and they share one shape:
+
+    if (__GetFlag(id) == 0) {      /* or != 0 */
+        ...
+        __SetFlag(id);
+    }
+
+The id is materialised twice -- once for the test, once for the set. At `-O2`
+the rerun-CSE pass commons the two into a callee-saved register and adds a push
+the ROM does not have. Separate named locals do NOT defeat it in any of the five.
+
+**Screen these with `--no-rerun-cse` from the start.** It costs nothing, and the
+shape is visible in the ROM listing before writing a line of C: the same
+`ldr r0, =<id>` or `mov r0,#K / lsl r0,#n` appearing once before a conditional
+branch and once inside the guarded block.
+
+The counter-example remains `OvlFunc_953_200a820`, where the repeated constant is
+a pooled ARGUMENT PAIR used at two calls in the same block, and there separate
+locals work and the flag does not. The distinction guessed at in the previous
+note now has five cases against one and holds so far: commoning across a branch
+wants the flag, commoning within a block wants separate locals.
+
+## Two results of the same call need two pointer variables
+
+`OvlFunc_960_2008dc8` calls `__MapActor_GetActor(0xe)` twice and uses each result
+once. Written into one variable, gcc preserves the first pointer across its use
+(`mov r2, r0 / add r2, #0x23`) where the ROM destroys it (`add r0, #0x23`).
+Two variables took the screen from **50 differing to 14**.
+
+The variable being reassigned is enough to keep the first value's live range
+open in gcc's view even when it is dead. Give each call result its own name.
