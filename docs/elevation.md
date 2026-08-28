@@ -5071,3 +5071,36 @@ Six ways of trying to make gcc believe the in-loop store might alias that load
 cast integer, `volatile`, reordering) all left the output byte-identical.  When a
 function needs partial hoisting, park it -- and record it as this class rather
 than as an aliasing problem, because the aliasing attack does not work.
+
+## When a derived constant IS reachable (refines the `sub rN,#K` park)
+
+`src/non_matching/rom_15000/80160fc.c` records that the ROM deriving one offset
+from another (`ldr r2,=0xea6 ... sub r2,#3`) is unreachable, because
+`off = 0xea6; ... off -= 3;` is constant-folded at each use.  That is true only
+under a condition worth stating:
+
+**A derived constant is reachable when the base constant has already been forced
+into a register by a runtime use.**  On `Func_8093304` the ROM does
+`ldr r1,=0x12f4 ... add r1,#0x2`, and the spelling that failed on Func_80160fc
+works, because 0x12f4 is first added to a pointer loaded from memory.  gcc must
+materialise it, and CSE then derives the second value from the register.
+
+So before parking a `sub`/`add` on a pooled constant, check whether the base
+value is used in a runtime computation anywhere earlier.  If it is, write the
+offset as a mutated variable and it will derive.  If both values are only ever
+folded into addresses, there is nothing to derive from and the park stands.
+
+## The named-pointer lever needs the offset to be mutated afterwards
+
+Giving a store its own named destination pointer gets `add r3, r7, r2 / strh`
+instead of a reg+reg `strh r3, [r6, r2]`.  It is not unconditional.
+
+It works when the offset variable is **mutated after the pointer is taken** --
+the old sum then has to be materialised, so the `add` survives.  Where the
+offset is dead after the store, gcc always folds it into the addressing mode and
+no spelling tried recovers the separate `add`: naming the pointer, computing it
+through integer locals, making the base an `unsigned int`, or duplicating the
+store into both branches to invite cross-jumping.
+
+`Func_8093304` shows both halves in one function -- the in-branch store gets the
+ROM's `add`, the join-point store does not, one instruction short of a match.
