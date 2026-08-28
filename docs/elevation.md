@@ -5261,3 +5261,38 @@ Cheapest possible working order for a twin:
   2. If it fails, diff the two ROM listings for immediates you missed.
   3. Only then start moving statements -- and re-read the template's header
      first, because it usually already says why they are where they are.
+
+## When the named-destination-pointer lever DOES work
+
+Batch 125 recorded that the lever is pressure-dependent and that its stated
+precondition (the offset must be mutated afterwards) is not sufficient.
+`Func_809ad90` sharpens it from the other side.
+
+Its first store was the function's only defect:
+
+    rom   ldr r1,=gState / mov r3,#0x94 / lsl r3,#2 / add r2,r1,r3 /
+          ldr r3,[r0,#0x6c] / str r3,[r2]
+    ours  ldr r3,[r0,#0x6c] / ldr r1,=gState / mov r2,#0x94 / lsl r2,#2 /
+          str r3,[r1,r2]
+
+Naming the destination -- `d = (int *)(g + off); *d = *(int *)(a + 0x6c);` --
+was exact on the next screen, even though `off` is dead afterwards.
+
+What differs from the case where the lever failed is the **stored value**. Here
+it is a LOAD, so it needs a register of its own; the offset register cannot
+double as it, and the address has to be materialised. In `OvlFunc_881_200808c`
+the stored value was a small constant that gcc could put in the offset's
+register once the offset was dead, so the addressing mode stayed available.
+
+Practical form of the rule:
+
+  * ROM materialises the address (`add rD, rB, rO` then a `#0` access) --
+    look at what is stored or loaded alongside. If it needs a register the
+    offset cannot supply, name the destination pointer and it will follow.
+  * If the other operand is a bare constant, expect gcc to fold and do not
+    spend screens on it.
+
+The same reading explains `OvlFunc_899_20099a4`, whose store the ROM
+materialises and where ours matches with no coaxing: the ROM there reuses the
+offset register for the stored value, which is only possible once the address
+is already in a register.
