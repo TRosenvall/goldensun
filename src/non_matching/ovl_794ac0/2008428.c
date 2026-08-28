@@ -57,6 +57,51 @@
  * creates that precondition here without inventing a live value the ROM does
  * not have.  Two further attempts this round, the plain constant 0x8000 and
  * dropping the prototype on __Func_8092adc, both stay at 2 differing.
+ *
+ * CORRECTED by src/non_matching/ovl_7b2078/200a68c.c.  The precondition stated
+ * above -- that naming the shifted value works when a callee-saved register is
+ * already committed -- is NOT sufficient.  OvlFunc_926_200a68c holds two
+ * arguments across all eight of its calls, so it saves r5 and r6 before any of
+ * this is decided, and naming its two shifted values STILL fails: 36 differing
+ * and eight lines long, because the named locals want registers beyond the two
+ * already committed and gcc spills.
+ *
+ * The narrower reading that survives both cases: the named constant has to fit
+ * in registers the function was going to save anyway, with nothing else
+ * competing for them.  One held value plus one named constant fits, which is
+ * why OvlFunc_921_20087a4 matches.  Two plus two does not.  That is a property
+ * of how many values are live at the call rather than something the C selects,
+ * so it is a coincidence to check for, not a lever to reach for.
+ *
+ * READ THIS FIRST, AND BEFORE ANY OTHER FUNCTION IN THIS CLASS.
+ *
+ * This is the ARGUMENT PRECOMPUTE class, and it was diagnosed out of the
+ * compiler sources long before this park was written.  See HANDOFF.md,
+ * "Argument precompute: DIAGNOSED, and it is a compiler difference", and the
+ * full derivation in src/non_matching/ovl_780898/2008dc0.c:
+ *
+ *     calls.c:805  precompute_register_parameters() copies any argument whose
+ *                  rtx_cost > 2 into a pseudo BEFORE any hard register is
+ *                  loaded, under SMALL_REGISTER_CLASSES && reg_parm_seen.
+ *     arm.h:1061   SMALL_REGISTER_CLASSES is TARGET_THUMB -- always 1 here.
+ *     arm.c:2042   In Thumb, ASHIFT costs 4, so a shifted constant is
+ *                  "expensive" and gets hoisted; a cheap `mov` is emitted
+ *                  afterwards and lands last.
+ *
+ * The ROM's compiler did not precompute.  That is the whole difference, and
+ * HANDOFF.md states plainly that it is NOT FIXABLE FROM C -- eight source
+ * spellings and eight flags are byte-identical to the default.
+ *
+ * The "callee-saved register already committed" theory recorded elsewhere in
+ * these notes was an invented explanation for this same behaviour, arrived at
+ * without reading the existing diagnosis.  It is not a lever and should not be
+ * treated as one.  Anything above that reasons about which registers are
+ * committed is describing a symptom of the hoist, not its cause.
+ *
+ * The predictive rule from HANDOFF.md, which is the useful part: a call
+ * misorders when its argument list mixes cheap constants with expensive values
+ * and a cheap one is not last.  A call whose arguments are ALL cheap constants
+ * matches.  Check that before screening, not after.
  */
 void OvlFunc_899_2008428(void)
 {
