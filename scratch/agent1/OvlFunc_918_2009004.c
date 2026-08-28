@@ -16,6 +16,7 @@ extern unsigned char ewram_2001000[];
 extern unsigned char gState[];
 extern int iwram_3001e70[];
 extern int Func_8000888(int a, int b);
+extern int _AREA_2d;
 
 extern struct Actor *__MapActor_GetActor(int slot);
 extern void __Func_8092950(int a, int b);
@@ -114,7 +115,7 @@ int OvlFunc_918_2009004(void)
         ac->f14 = 0xff600000;
         ac->f48 = 0x80 << 8;
         __PlaySound(0xcc);
-        __SetDestMap(0x2d, k - 0xa);
+        __SetDestMap((int)&_AREA_2d, k - 0xa);
         __CutsceneWait(0x14);
         ac->f22 = 2;
         __Func_8092b08(slot, 3);
