@@ -239,6 +239,28 @@ SCHED2_CFLAGS := $(GCC296_CFLAGS) -fno-schedule-insns2
 # it is the register reservation that is wanted and not the frame.
 FIXEDR7_CFLAGS := $(GCC296_CFLAGS) -ffixed-r7
 
+# THREE MIS-SCOPED O1 WILDCARDS.  rom_7f2f14/ovl_30_c_a_c_a_c_c% and
+# rom_7ef4f4/ovl_30_a_c_c_c_c_c% each capture TUs that merely share a prefix
+# with their intended members, and -O1 is wrong for those: 5 of 39, 2 of 30 and
+# 17 of 55 differing respectively at -O1, all three exact at -O2.  All three
+# were PARKED on the strength of the inherited flag.  Explicit rules override
+# the wildcards without narrowing them.
+asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c_a_a_a.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c_a_a_a.c
+	$(GCC296_CC) $(GCC296_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c_c_a_b.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c_c_a_b.c
+	$(GCC296_CC) $(GCC296_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c_c_c_c_c_b.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c_c_c_c_c_b.c
+	$(GCC296_CC) $(GCC296_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+
 # OvlFunc_932_2008b3c / _2008bd8: a flag id used once before an if and once in
 # each arm.  The boundary exists, so this is the reachable half of the
 # constant-CSE rule -- gcc still hoists the id into r5 and pays a push, and
