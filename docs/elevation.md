@@ -6649,7 +6649,12 @@ The fold cannot happen, because the offset is a separate value; and nothing is
 held across the call, because the base is still materialised at its use.
 
 `OvlFunc_932_200a310` is the worked example -- 9 differing with the base named,
-93 with it inline, exact with the offset named. This also explains
-`OvlFunc_955_2009424`, parked earlier on precisely this tension with the note
-"the two requirements are in direct conflict and no arrangement satisfies both".
-That was wrong; there was a third arrangement.
+93 with it inline, exact with the offset named.
+
+**It does not apply wherever the base appears.** `OvlFunc_955_2009424` was parked
+on what looked like the same tension and the lever was retried on it: 111 lines
+and 97 differing, against 108 and 78 for its inlined form. The difference is that
+the fold has to be COSTING something. On 200a310 the inlined base folds and the
+function comes out three instructions short; on 2009424 the inlined base already
+gives matching length, so there is no fold to prevent and the extra value only
+adds pressure. Check that the inline form is SHORT before reaching for this.

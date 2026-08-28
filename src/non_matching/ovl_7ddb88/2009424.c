@@ -24,6 +24,18 @@
  * does not do -- but naming it is also what forces the extra register.  The two
  * requirements are in direct conflict and no arrangement satisfies both.
  *
+ * RETRIED with the offset-naming lever found on OvlFunc_932_200a310 -- name the
+ * OFFSET rather than the base, which satisfies both halves of that tension
+ * elsewhere.  It does NOT help here: 111 lines and 97 differing, against the 108
+ * and 78 of the inlined form.
+ *
+ * The reason is that this park's note overstated the similarity.  On 200a310 the
+ * inlined base FOLDS and costs three instructions; here the inlined base gives
+ * MATCHING length already, so the fold was never what this function was losing
+ * to.  The 78 are register pressure and nothing else, and the third arrangement
+ * has nothing to fix.  Recorded so the next reader does not retry it a third
+ * time.
+ *
  * NOTE the contrast with the sibling, which needed the base named AND has the
  * same construct: it gets away with it because it holds only two values, so the
  * third register is free.  The lever is not wrong there and right here; the
