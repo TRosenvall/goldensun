@@ -4738,3 +4738,24 @@ Of the CSE-family flags only **`-fno-rerun-cse-after-loop`** undoes it;
 `-fno-gcse` is byte-identical to the default. Both halves of the precondition
 are required, and the boundary is the half that is easy to mistake for
 sufficient.
+
+## The constant-as-destination lever: `orr` wants a NARROW local, `and` wants an `int`
+
+Two sharpenings of the same lever, measured the same day, pointing opposite ways:
+
+| shape | spelling that makes the constant the destination |
+|---|---|
+| `orr r3, r2` with the constant in r3 | `unsigned char m = 2;` — an `int m` is folded and is byte-identical to the plain literal |
+| `and r3, r2` with the constant in r3 | `int m = 0xfe;` — an `unsigned char m` puts the LOADED value in the destination instead |
+
+On `OvlFunc_901_2008c1c` the narrow local gives 4 differing and the `int` gives
+2. On `OvlFunc_947_2008ec8` the narrow local matches and the `int` is inert.
+
+**The statement form is not the lever.** `*p = m & *p;` and
+`m = m & *p; *p = m;` are byte-identical to each other under either type. Only
+the type of the local moves it, so a null result from reordering the assignment
+says nothing.
+
+Why they differ is not established here; what is established is that the two
+operations must be tried separately and that a null result on one type is not
+evidence about the lever.
