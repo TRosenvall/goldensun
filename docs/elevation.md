@@ -5236,3 +5236,28 @@ the same class of failure as the two-operand `add` in batch 123 and the
 `.thumb_func_start` mismatch recorded in `twin_families.py`. The tool now
 refuses to report when either corpus is empty, because on this codebase an empty
 corpus has never once been the real answer.
+
+## Working a `solved_twins.py` hit: trust the template's recorded levers
+
+`OvlFunc_924_200b788` is `OvlFunc_923_2009208` with one call target changed.
+Reading the target's asm first, I "corrected" two things the template's header
+had documented as load-bearing -- the three `-1` locals assigned before the early
+return, and `p = a + 0x55;` written after the call rather than before -- because
+the ROM appears to build both inside the guarded block.
+
+Both corrections were wrong. Moving the `-1` triple inside the guard let gcc CSE
+it (`mov r2,#1 / neg r2,r2 / mov r0,r2 / mov r1,r2`, 67 of 80 differing); moving
+`p` gave 4 of 80. The **unmodified template with only the rename** was exact.
+
+The template's header records what was measured. Where the ROM's instruction
+ORDER seems to disagree with it, the ordering is the optimiser's, not the
+source's -- the dominating-block lever puts the assignments where gcc decides,
+which is not where the C statement sits. Rename first, screen, and only start
+changing things if that fails.
+
+Cheapest possible working order for a twin:
+
+  1. `sed` the names and any differing immediates. Screen. Often done.
+  2. If it fails, diff the two ROM listings for immediates you missed.
+  3. Only then start moving statements -- and re-read the template's header
+     first, because it usually already says why they are where they are.
