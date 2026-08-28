@@ -4416,6 +4416,12 @@ asm/overlays/rom_7d5838/ovl_30_c_c_a_c_c_c.o: src/overlays/rom_7d5838/ovl_30_c_c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# OvlFunc_901_20089f8 is OvlFunc_898_2009238 with three immediates changed and
+# inherits its CSE_CFLAGS along with its shape.
+asm/overlays/rom_797990/ovl_314_c_c_a_a_c_c_a_c_c_a_c_b.o: src/overlays/rom_797990/ovl_314_c_c_a_a_c_c_a_c_c_a_c_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7bf5a8/ovl_2e0_c_a_c.o: src/overlays/rom_7bf5a8/ovl_2e0_c_a_c.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)

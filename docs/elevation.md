@@ -5690,3 +5690,24 @@ This extends the batch-123 derived-constant rule with the lever it lacked. That
 rule said derivation is reachable when the base is already forced into a
 register by a runtime use; this says how to force it when nothing else does.
 `message.sym` already carried a section comment describing exactly this shape.
+
+## A function with no conditional branch has only the flag group
+
+Both source-level levers for constant placement need a dominating block:
+
+  * the **naming lever** against constant CSE -- separate locals assigned before
+    a branch, rematerialised at their uses;
+  * the **interleave lever** for argument order -- named split builds, likewise.
+
+`OvlFunc_939_20095bc` is 23 calls, no memory operations and **no conditional
+branch anywhere**. gcc commons its one repeated shifted constant into a
+callee-saved register and adds a push; neither lever can reach it (naming leaves
+the count unchanged, since there is nothing to rematerialise from), and
+`-fno-rerun-cse-after-loop` does not either, so the commoning is the main -O2 CSE
+pass rather than the rerun.
+
+State it once and check it first: **in a straight-line function the only tool
+left is the flag group.** If the flag does not fix it, park it without spending
+screens on spellings. Two of this session's parks and two more before them were
+straight-line cases where I tried the naming lever anyway -- and on one of them
+it cost nine instructions and three extra pushes.
