@@ -4588,3 +4588,31 @@ spending a fifth of their budget on genuinely blocked functions.
 Same family as the batch-119 note about a verification loop that read a file
 inside the container which had been written outside it — both produced a
 confident pass over an empty set.
+
+## `-fno-rerun-cse-after-loop` is not a loop phenomenon
+
+`OvlFunc_942_20086c8` is a straight-line cutscene script with **no loop at all**,
+and gcc still hoists the shared `0x8a8` into a callee-saved register and grows
+the push list. Of six CSE-family flags — `-fno-gcse`, `-fno-cse-follow-jumps`,
+`-fno-cse-skip-blocks`, `-fno-expensive-optimizations`, `-fno-gcse
+-fno-cse-follow-jumps`, and this one — **only `-fno-rerun-cse-after-loop`
+reaches it.**
+
+The pass runs unconditionally after the loop optimiser; the name describes
+*when* it runs, not what it acts on. Both existing notes about the flag frame it
+as a loop thing — that it *costs* matches in loops is still true, but its reach
+is wider than the name suggests, and it is worth one screen on any
+straight-line function whose only fault is a hoisted constant.
+
+## Two more presentations to add to the recognition lists
+
+**`-fno-strict-aliasing` can present as an argument-setup permutation.** The
+documented symptom is a load hoisted above a store. On `Func_8028aa8` the entire
+residue was a six-position reshuffle *inside one call's argument block*, with no
+store visibly displaced — and the flag matched it exactly. Named stack-arg
+locals and both return types were neutral against it.
+
+**`-ffixed-r10` is a complete no-op.** gcc-2.96 thumb never allocates r10 by
+choice, so reserving it changes nothing. Measured byte-identical on a function
+whose residue is a high-register role exchange. Do not spend a screen on it —
+unlike `-ffixed-r7`, which is real because gcc *does* pick r7.
