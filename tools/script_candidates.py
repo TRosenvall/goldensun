@@ -39,6 +39,54 @@ MOVI = re.compile(r"^\tmov\t(r\d+), #(0x[0-9a-f]+|\d+)$")
 LSL = re.compile(r"^\tlsl\t(r\d+), #(0x[0-9a-f]+|\d+)$")
 NEG = re.compile(r"^\tneg\t(r\d+), (r\d+)$")
 LDRE = re.compile(r"^\tldr\t(r\d+), =(0x[0-9a-f]+|\d+)$")
+ANYMOV = re.compile(r"^\tmov\t(r[0-3]), #")
+ANYEXP = re.compile(r"^\t(?:lsl\t(r[0-3]), #|ldr\t(r[0-3]), =)")
+BL = re.compile(r"^\tbl\t")
+
+
+def r0_before_expensive(lines):
+    """Count call sites where the ROM finishes a CHEAP argument before an
+    EXPENSIVE one -- `mov rA, #imm` followed by `lsl rB, #n` or `ldr rB, =V`
+    for a DIFFERENT argument register, with no `bl` between.
+
+    gcc-2.96 does the opposite: it completes the expensive argument first and
+    emits the cheap `mov` last.  In a function with a block that DOMINATES the
+    call the basic-block lever fixes it.  In a straight-line function nothing
+    does -- measured on OvlFunc_945_200bd10 (13 of 77) and OvlFunc_883_2009490
+    (6 of 70), both parked, after plain literals, the return-type lever, no
+    prototype at all, and hoisting the constants to top-of-function locals
+    (which is much WORSE in one block: 77 lines becomes 97).
+
+    MEASURED NEGATIVE -- this does NOT predict the outcome, and it is reported
+    as an advisory column only, never folded into the ranking:
+
+        OvlFunc_945_200bd10   0 labels  score 5   PARKED (13 of 77)
+        OvlFunc_883_2009490   0 labels  score 3   PARKED (6 of 70)
+        OvlFunc_881_200b130   0 labels  score 3   MATCHED
+        OvlFunc_950_2008328   0 labels  score 1   MATCHED
+
+    A matched function and a parked one both score 3.  Folding this into the
+    "clean" score would have hidden OvlFunc_881_200b130, which matched on the
+    second screen via the return-type lever.  What the count IS good for is
+    knowing, before you start, that you will probably need that lever.
+    """
+    n = 0
+    pend = None
+    for ln in lines:
+        if BL.match(ln):
+            pend = None
+            continue
+        m = ANYMOV.match(ln)
+        if m:
+            pend = m.group(1)
+            continue
+        m = ANYEXP.match(ln)
+        if m and pend:
+            reg = m.group(1) or m.group(2)
+            if reg != pend:
+                n += 1
+                pend = None
+    return n
 
 
 def constants(lines):
@@ -124,15 +172,17 @@ def main():
             continue
         cs = constants(buf)
         repeats = len(cs) - len(set(cs))
-        out.append((repeats, -calls, insns, name, path))
+        r0first = r0_before_expensive(buf) if labels == 0 else 0
+        out.append((repeats, -calls, insns, name, path, repeats, r0first))
 
     out.sort()
     clean = sum(1 for r in out if r[0] == 0)
     print(f"{len(out)} straight-line scripts in band {a.lo}-{a.hi}; "
           f"{clean} with NO repeated constant\n")
-    for repeats, negcalls, insns, name, path in out[:40]:
+    for score, negcalls, insns, name, path, repeats, r0first in out[:40]:
         tag = "clean" if repeats == 0 else f"{repeats} repeat"
-        print(f"  {insns:>3}i {-negcalls:>2}calls  {tag:<9} {name:<26} {path}")
+        note = f"  [r0-first x{r0first}]" if r0first else ""
+        print(f"  {insns:>3}i {-negcalls:>2}calls  {tag:<9} {name:<26} {path}{note}")
     return 0
 
 
