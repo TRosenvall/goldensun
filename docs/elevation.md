@@ -4438,3 +4438,32 @@ more sites sharing one pointer is harder: the ROM loads it *late*, after an
 intervening call, reusing a register that held something else earlier, and
 neither naming the pointer in a local nor inlining the address at both sites
 reproduces that live range. See `src/non_matching/rom_b5000/80b84c0.c`.
+
+## Naming one level too many costs a callee-saved register
+
+`OvlFunc_932_200ad58` first drafted at 72 differing of 69, at 74 lines — five
+instructions too many and every register renamed. The cause was not a lever
+that was missing; it was two locals too many.
+
+The ROM spends r5, r6 and r8. The draft spent r5, r6, r8 and r10, because it
+named:
+
+* the global's **address** — `char **pp = &iwram_3001ebc;` — **correct**, this
+  gives the ROM's single `ldr r6, =iwram_3001ebc` with two `ldr r2, [r6]`
+  reloads across the intervening calls;
+* the byte **offset** — `k = 0xe0 << 1` — **correct**, held in r8 and reused by
+  both stores, and it is what produces the `[r2, r1]` reg+reg form;
+* the dereferenced **value** — `char *q = *pp;` — **wrong**, used once per site;
+* and a literal zero stored through a byte pointer — **wrong**, the ROM has the
+  plain `mov r3, #0`.
+
+Removing the last two took it from 72 differing to **2**.
+
+> The levers that say "name it" are about a value the ROM demonstrably keeps in
+> a register across something. A value the ROM rebuilds at each use should not
+> be named, and naming it is not free — each extra long-lived local competes for
+> the same callee-saved registers and can push a real one into r9–r11, which
+> costs a `mov`+`push` pair at entry and the matching pair at exit.
+
+The diagnostic is the push list: **if your prologue saves a high register the
+ROM does not, count your locals before you reach for a lever.**
