@@ -5829,3 +5829,37 @@ one fixed order; it varies per call site the same way the ROM's does.
 The lever still fails on `OvlFunc_952_20085a4`, but not for that reason. What
 actually decides it is unknown, so the correct rule is simply: **try it, it is
 one screen.** The two-arm case is not a reason to skip it.
+
+## A struct passed BY VALUE: `ldmia`/`stmia` into the argument area
+
+    add  r5, sp, #8
+    mov  r0, r5 / bl OvlFunc_927_2008474      @ &s
+    mov  r3, sp / add r2, sp, #0x18
+    ldmia r2!, {r0, r1} / stmia r3!, {r0, r1}
+    ldr  r3, [r5, #0xc] / ldr r0, [r5] / ldr r1, [r5, #4] / ldr r2, [r5, #8]
+    bl   OvlFunc_927_2008608
+
+The `ldmia`/`stmia` pair copying from a local into the stack argument area, with
+the first four words also loaded into r0-r3, is gcc passing a **struct by
+value**: six words, four in registers and the tail block-copied. Writing the six
+fields as six separate arguments gives `ldr`+`str` pairs instead.
+
+`OvlFunc_927_2008f94` matched on the first screen once the callee was declared
+`void f(struct S s)` with a six-int struct. Worth recognising: a block move into
+`[sp]` immediately before a call is a by-value aggregate, not hand-written
+argument marshalling.
+
+## The HImode-literal rule is not one rule
+
+`OvlFunc_901_200858c` uses the same `unsigned short *` twice and needs opposite
+spellings:
+
+  * `*p |= 2;` -- a COMPOUND assignment -- gives the ROM's **pooled** constant
+    (`ldr r2, =0x2`). The three-step form `v = 2; v |= *p; *p = v;` gives
+    `mov r3, #0x2` and is 45 differing. `*p = 2 | *p;` does not reach it either.
+  * `*p = 1;` gives a **pooled** `ldr r3, =0x1` where the ROM has `mov r3, #0x1`;
+    an int intermediate (`v = 1; *p = v;`) fixes it.
+
+So on one pointer, one operation wants the pool and the next wants a `mov`, and
+the spelling that produces each is different. Treat "pooled or not" as something
+to measure per operation rather than derive from the width.
