@@ -239,6 +239,21 @@ SCHED2_CFLAGS := $(GCC296_CFLAGS) -fno-schedule-insns2
 # it is the register reservation that is wanted and not the frame.
 FIXEDR7_CFLAGS := $(GCC296_CFLAGS) -ffixed-r7
 
+# OvlFunc_932_2008b3c / _2008bd8: a flag id used once before an if and once in
+# each arm.  The boundary exists, so this is the reachable half of the
+# constant-CSE rule -- gcc still hoists the id into r5 and pays a push, and
+# -fno-rerun-cse-after-loop is the only flag that undoes it (-fno-gcse does not).
+asm/overlays/rom_7b9cb4/ovl_30_a_c_c_a_a_c_c_b.o: src/overlays/rom_7b9cb4/ovl_30_a_c_c_a_a_c_c_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+asm/overlays/rom_7b9cb4/ovl_30_a_c_c_a_a_c_c_c.o: src/overlays/rom_7b9cb4/ovl_30_a_c_c_a_a_c_c_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+
 # Func_8028aa8: the whole residue is a six-position reshuffle INSIDE one call's
 # argument block, with no store visibly displaced -- an unusual presentation of
 # strict aliasing.  6 differing of 96 without the flag, exact with it.
