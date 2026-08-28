@@ -5348,3 +5348,28 @@ construct.
 A control that is too loose does not just overcount -- it points at the wrong
 examples. The smallest "solved example" the loose detector offered was a
 two-instruction block with nothing to learn from.
+
+### The argument-order lever, validated — and it covers `neg` too
+
+`OvlFunc_909_2008338` is the first function elevated with it. Naming the two
+shifted constants at the top, with the function's existing guards between them
+and the call, reproduced the ROM's
+
+    mov r1,#0x80 / mov r2,#0x80 / lsl r2,#7 / mov r0,#0 / lsl r1,#8
+
+exactly, and took the first fifty instructions to identical.
+
+The remaining six differences were **the same shape with a different build**:
+
+    rom   mov r2,#0x10 / mov r0,#0 / mov r1,#0 / neg r2,r2
+    ours  mov r2,#0x10 / neg r2,r2 / mov r0,#0 / mov r1,#0
+
+`mov`+`neg` is a split two-instruction build exactly as `mov`+`lsl` is, and the
+same lever fixes it: `m = -0x10;` at the top, passed by name. One shared local
+across both call sites and two separate locals both matched, so the
+constant-CSE concern does not arise here.
+
+**Generalise the detector accordingly**: the shape is a zero (or any
+single-instruction argument) landing inside a SPLIT BUILD of another argument,
+whether that build is `mov`+`lsl` or `mov`+`neg`. The 248-function sizing above
+counts only the `lsl` form and is therefore a floor.
