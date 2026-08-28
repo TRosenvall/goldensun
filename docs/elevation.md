@@ -5916,3 +5916,23 @@ The second's `.s` also held the `.data` and `.bss` its function uses, all three
 named separately in the overlay linker script. Split by hand into `_b` (text)
 and `_c` (data + bss), pointed the three lines at the two objects, and verified
 byte-neutral with the function still in asm before the `.c` landed.
+
+## The epilogue register tells you the return type
+
+    rom   pop {r5} / pop {r1} / bx r1
+    ours  pop {r5} / pop {r0} / bx r0
+
+gcc pops the return address into **r0 when r0 is dead** -- that is, when the
+function returns void -- and into another low register when r0 carries a return
+value. So a ROM epilogue that avoids r0 says the function returns something,
+even when nothing in the body looks like a `return`.
+
+On `OvlFunc_971_20091bc` the body ends with a call whose result is otherwise
+discarded; declaring the function `int` and writing `return __CloseUIBox(h, 1);`
+matched the epilogue exactly. This is cheaper to check than it looks -- the
+epilogue is the last three lines of every screen.
+
+Related and already recorded: a redundant-looking copy of a value into a second
+register before a loop can mean the function returns that value (batch 127,
+`OvlFunc_971_200853c`). Both are the same underlying fact -- r0 is reserved when
+there is a return value -- read from two different places.

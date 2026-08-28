@@ -1,0 +1,23 @@
+extern void __PlaySound(int id);
+extern int __Func_8017658(int id, int a, int b, int c);
+extern int __Func_8017364(void);
+extern void __WaitFrames(int n);
+extern void __Func_801faa8(void);
+extern int __CloseUIBox(int h, int n);
+
+int OvlFunc_971_20091bc(void)
+{
+    int h;
+
+    __PlaySound(0x55);
+    h = __Func_8017658(0x292a, 5, 4, 1);
+    while (__Func_8017364() == 0)
+        __WaitFrames(1);
+    __Func_801faa8();
+    __CloseUIBox(h, 1);
+    __WaitFrames(1);
+    h = __Func_8017658(0x292b, 5, 4, 1);
+    while (__Func_8017364() == 0)
+        __WaitFrames(1);
+    return __CloseUIBox(h, 1);
+}
