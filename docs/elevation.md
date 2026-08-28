@@ -5104,3 +5104,47 @@ store into both branches to invite cross-jumping.
 
 `Func_8093304` shows both halves in one function -- the in-branch store gets the
 ROM's `add`, the join-point store does not, one instruction short of a match.
+
+## Fakematches: what the screen cannot settle
+
+Two candidates this round screened OK and were not matches. Both carried the
+inline-pool warning. The escalation ladder, and where each rung failed:
+
+1. **Instruction stream equal** — `DecodeMetatileset`, 78 lines OK. Its .text
+   was 0x9c against the reference's 0x98.
+2. **Size check** — catches (1), but only runs when the reference holds ONE
+   function. A screen that prints `[size check skipped: ref has N functions]`
+   has not been size-checked at all. Extract a single-function `.s` and re-run
+   before wiring anything into the build. This is the single cheapest habit
+   change available: it caught `DecodeMetatileset` in one command.
+3. **Size check passed, objdump sizes identical** — `OvlFunc_903_2008fc8`
+   passed the size check, and `objdump -h` gave .text 0xbc, .data 0, .bss 0 for
+   both objects. The linked overlay still differed in **58 bytes**.
+
+Rung 3 is the one to internalise. Pool loads normalise to `=value` in the
+screen, so a pool holding **different values at the same distance** compares
+equal, and the sizes agree because the pool is the same length. When the
+reference keeps its literal pool inside the function body, an equal instruction
+stream and an equal .text size together still do not settle it. `make compare`
+is the authority, exactly as this document has always said -- these are the two
+concrete cases that show why.
+
+Overlay bytes are embedded in the ROM image, so an overlay fakematch fails the
+ROM sha1, not just the overlay `cmp`. Do not read `compare-rom` failing as
+"the main ROM is broken".
+
+## Deleting a single-function `.s` that also holds `.data`
+
+`ovl_314_c_c_c_c.s` held one function and a trailing `.section .data` defining
+four `gOvl_*` symbols, and the overlay linker script named the object twice --
+once under `(.text)`, once under `(.data)`. Replacing the `.s` with a `.c`
+broke the link on all four symbols.
+
+`split_s.py` does not help here: with a single function, the trailing data is
+part of that function's block. Split it by hand -- text to `_b`, data to `_c` --
+and point the two linker-script lines at the two new objects.
+
+**Then verify byte-neutrality with the function still in asm, before any `.c`
+exists.** That is what let this round attribute a 58-byte overlay difference to
+the C rather than to the layout; without it, the two failure modes are
+indistinguishable.
