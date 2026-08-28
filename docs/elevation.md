@@ -6458,3 +6458,28 @@ Both are correct code and both cost a callee-saved register the ROM does not
 spend. Recognising the shape is worth a screen or two, not a round: if the ROM
 has nothing live across the call and every spelling of yours does, the value is
 being computed on the wrong side of it and C gives no way to say which.
+
+## A `sub sp, #N` difference is the local's SIZE, not the body
+
+`OvlFunc_896_200c3bc` screened at 2 of 97 on its first transcription, and the
+only real difference was
+
+    rom   sub sp, #0x38        ours  sub sp, #0x50
+
+The function looked expensive -- an eight-argument call with four words spilled
+to `[sp]`, 16.16 fixed-point masking, a counter in a high register -- and all of
+that was already right. The frame was wrong because the local `struct` had been
+padded to 0x40 when it needed to be 0x28.
+
+The arithmetic is worth stating because it is exact rather than a guess:
+
+    ROM frame  -  outgoing stack-argument area  =  size of the local aggregate
+    0x38       -  0x10 (four spilled words)     =  0x28
+
+Count the words the largest call spills to `[sp]`, subtract, and size the
+aggregate to match. When a screen differs only in `sub sp`, do not read the body
+at all -- nothing in the body can change the frame.
+
+Related and confirmed here: `__Random` declared `unsigned` is what makes the
+masking come out as `lsr`. Same signedness question as the division-helper note
+above, and the same answer -- read the instruction, not the value.
