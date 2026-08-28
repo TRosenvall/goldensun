@@ -6725,3 +6725,54 @@ A park should carry its candidate C. 2009754.c is comment-only, so the
 improvement above could not be verified by re-screening it -- tryc.py runs
 clean and silent on a file with no function in it. The C has to be rebuilt
 from the .s before that park can be re-attacked at all.
+
+## The signed lower-bound floor is NOT a floor: use a switch
+
+Three park notes and this document all recorded the same "floor": gcc-2.96
+canonicalises every signed lower bound to `cmp #(K-1) / ble` where the ROM has
+`cmp #K / blt`, and `v < K`, `v <= K-1`, `v >= K` inverted, `!(v >= K)`, an
+`int` operand and a `short` one all produce identical output. The conclusion
+recorded was "a 2-line floor, not worth another round".
+
+**That conclusion was wrong, and the counterexample was already in the tree.**
+
+A corpus check found 15 sites where ALREADY-MATCHING C emits `cmp #K / blt`.
+Fourteen are `cmp #0`, which cannot canonicalise because `-1` is not an
+encodable immediate -- those explain nothing. The fifteenth is `cmp #31 / blt`
+in `src/rom_b5000/rom_bb588_c_c_b.c`, and it comes from a **switch statement**.
+gcc lowers a switch through a different path that emits the bound test
+directly and never canonicalises it.
+
+So when the ROM shows `cmp #K / blt` for K != 0 and the test is a RANGE, write
+the range as a switch with one case label per value:
+
+    switch (e) {
+    case 9: case 0xa: case 0xb: case 0xc:
+    case 0xd: case 0xe: case 0xf: case 0x11:
+        r = table_a;
+        break;
+    default:
+        r = table_b;
+        break;
+    }
+
+Three functions matched on the first screen this way, all three previously
+parked or blocked on exactly this floor: `OvlFunc_937_200807c`,
+`OvlFunc_937_20080e4` (whose park called it "the cleanest example so far
+because every other difference is gone") and `OvlFunc_899_2008048`.
+`Func_80a3ce4`, the function this document used to STATE the floor, also
+matches as a switch; it is not elevated only because its `.s` holds four
+functions and the other three are still assembly.
+
+**Scope, measured rather than assumed.** 242 `cmp #K / blt` sites sit in 158
+unelevated functions. That is the population where this can apply -- not a
+promise that all of them are range tests, which is the precondition. Check that
+the values are contiguous or few enough to enumerate before reaching for it.
+
+**The general lesson, which is the more useful one.** "Every spelling I tried
+gives the same output" is evidence about the spellings tried, not about the
+compiler. All the spellings tried were *expressions*; the lever was a different
+STATEMENT form. When a class looks like a floor, ask what construct has not
+been tried, and check whether the matching corpus already contains the
+instruction that is supposedly unreachable. That check is cheap and it is what
+broke this one.

@@ -37,6 +37,26 @@
  * WHAT THIS PREDICTS: any function whose only remaining difference is a lower
  * bound has a 2-line floor and is not worth another round. Check for
  * `cmp #(K-1) / ble` against `cmp #K / blt` before spending one.
+ *
+ * RETIRED AS A FLOOR. The prediction below -- "any function whose only
+ * remaining difference is a lower bound has a 2-line floor and is not worth
+ * another round" -- is FALSE. A switch statement emits `cmp #K / blt`
+ * directly, because gcc lowers a switch through a path that never
+ * canonicalises the bound. This function matches as:
+ *
+ *     switch (v) {
+ *     case 0xc1: case 0xc2: case 0xc3: case 0xc4: return 1;
+ *     default: return 0;
+ *     }
+ *
+ * screened OK at 12 lines. It is still parked ONLY because its .s holds four
+ * functions and the other three are assembly, so there is nowhere to put it
+ * yet -- not because of any codegen problem. Elevate the other three and this
+ * one comes with them.
+ *
+ * See docs/elevation.md, "The signed lower-bound floor is NOT a floor".
+ * OvlFunc_937_200807c, OvlFunc_937_20080e4 and OvlFunc_899_2008048 were all
+ * elevated this way and their parks are gone.
  */
 int Func_80a3ce4(int v)
 {
