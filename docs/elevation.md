@@ -4933,3 +4933,36 @@ first leaves it at 3 differing. Same two statements, two orders.
 otherwise give.** One function was exact except an index in r2 where the ROM has
 r1 — r1 being the second parameter, dead on that path. Assigning into the
 parameter itself matched; declaration order, types and statement order did not.
+
+## Selecting for the `goto`-loop lever: grep for a constant rebuilt in the loop
+
+The lever has a mechanical signature, so it can drive candidate selection rather
+than being tried after a screen fails. **Find a backward branch, then look for a
+pool load or a `mov`+`lsl` build inside the loop body.** If the ROM rebuilds a
+loop-invariant there, its source loop was not a `while`/`for`.
+
+Two functions picked this way matched on the **first screen** —
+`StartMenu` (a `-1` rebuilt every iteration) and `Func_8019e48`. 18 candidates
+carry the signature in the 30–70 band.
+
+## The INVERSE constant problem: the ROM derives, gcc does not
+
+Every constant-CSE entry above is gcc commoning two constants the ROM rebuilds.
+`Func_80160fc` is the reverse:
+
+    rom   ldr r2, =0xea6 / ... / sub r2, #0x3 / add r3, r7, r2
+    ours  ldr r3, =0xea6 / ... / ldr r3, =0xea3
+
+The ROM's compiler related the two offsets with a `sub`; ours emits two
+independent pool loads. **Writing the offset as one variable mutated in place —
+`off = 0xea6; ... off -= 3;` — does not reach it**, because both values are
+compile-time constants and gcc folds `off` at each use. There is nothing in the
+source to stop it.
+
+Worth recognising as its own shape: a `sub rN, #K` or `add rN, #K` applied to a
+*pooled* constant, with no intervening load, is the ROM deriving one offset from
+another, and it is not currently reachable.
+
+Note the same function shows the useful half of the pointer lever: a **named
+destination pointer per access** gets `add r3, r7, r2 / ldrb r3, [r3]` where the
+inline expression gives a reg+reg `ldrb r3, [r6, r3]` — worth 8 instructions.
