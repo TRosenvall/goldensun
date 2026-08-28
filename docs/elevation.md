@@ -6031,3 +6031,28 @@ one, that is a single fix.
 Also confirmed here: `a * 60` reproduces the ROM's strength-reduced
 `((a << 4) - a) << 2` with no help, and the rotated `b test / body / test:`
 loop reproduces from a plain `while`.
+
+## Match linker-script references on the full path, never the basename
+
+Overlay directories reuse filenames heavily: ten different directories under
+`asm/overlays/` contain a file called `ovl_30_c_c_c_c_c.s`, and they are
+unrelated to each other.
+
+Checking "which linker scripts reference this TU" with the basename therefore
+lies in both directions. Before splitting `asm/overlays/rom_7f21b8/ovl_30_c_c_c_c_c.s`
+a basename grep claimed 36 scripts referenced it; afterwards the same style of
+grep claimed 10 scripts still pointed at the deleted object, which looked like
+`split_s.py` had missed them. Both numbers were noise. Exactly one script --
+`overlays/rom_7f21b8/overlay.ld` -- ever referenced that file, and the tool had
+updated it correctly. The other hits were each overlay's own same-named file,
+still present and untouched.
+
+So grep for `asm/overlays/<dir>/<stem>.o`, with the directory, and treat a
+basename match as evidence of nothing. The cheap confirmation either way is the
+byte-neutral `make compare` after the split and before any C lands -- a genuinely
+missed linker script cannot survive it.
+
+Also worth checking before reaching for split_s.py at all: a `.s` holding ONE
+function and no data needs no split. The `.c` replaces it at the same stem, the
+generic `asm/%.o: src/%.c` rule builds it with default GCC296_CFLAGS, and every
+linker script keeps working untouched. `OvlFunc_974_2008f14` was this case.
