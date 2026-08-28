@@ -4874,6 +4874,12 @@ rewrite is guarded by `const_op > 0`.
 > **Grep the ref for `cmp rN, #K` followed by `bge`/`blt` with K > 0. Each such
 > site is a hard floor of two instructions.** Decide before screening.
 
+**Measured: 33 of the 2274 remaining functions carry one, across 44 sites.** So
+it is a small class, not a wall — but it is worth excluding those 33 from a
+worklist rather than discovering the floor one screen at a time. The grep:
+
+    cmp\trN, #K   immediately followed by   bge  or  blt   with K > 0
+
 ## `goto` loops disable loop optimisation ENTIRELY — a first-class lever
 
 The doc records "write the control flow with `goto`" as a shape-matching note.
