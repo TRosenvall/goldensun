@@ -4660,3 +4660,44 @@ is what makes it the `orr` destination. The existing note says "a narrow
 `unsigned char` constant reaches 'constant is rd'"; the sharpening is that the
 `int` spelling is not a weaker version of the same lever, it is *no lever at
 all*, so a null result from `int m` says nothing about the technique.
+
+## A volatile `asm` CAN be cross-jumped — put the call in both arms
+
+Round 6 recorded that a volatile `asm` is *not* cross-jumped, so writing a
+DMA call in both arms of an `if` gives two expansions and the fix is to select
+only the differing argument into a local and put one `asm` after the join.
+
+A four-member family contradicts that, and the contradiction is the answer.
+The ROM has **one** `stmia` but **two** `ldr r3, =REG_DMA3SAD` — the operand
+setup duplicated into both arms, the asm body merged:
+
+    if (flag) DMA3_COPY(A, d, size); else DMA3_COPY(B, d, size);
+
+gcc cross-jumps the two identical asm bodies into one and leaves the per-arm
+`ldr r0, =A` / `ldr r0, =B` and the duplicated base load. Selecting the source
+into a local and calling once gives 21 lines against the ROM's 22 — one short,
+because the base load then happens once.
+
+Both readings are real; the tell is the ROM's line count. **Two `ldr` of the
+same DMA base with one `stmia` means the call is in both arms.** One of each
+means the argument was selected first.
+
+Four functions turned on this, one of which was already parked at exactly
+"21 against 22, missing one `ldr r3, =REG_DMA3SAD`".
+
+## Splitting a single-function `.s`: remap EVERY section, not the one that errors
+
+`split_s.py` declines a file with one function, so these are done by hand: move
+the data half to a new `.s` and repoint the linker script. Three files this
+batch carried a `.data` **and** a `.bss` section.
+
+Remapping only `(.data)` links cleanly through the `.data` error and then fails
+on `.bss` with a different and much less obvious message —
+`defined in discarded section '.bss'`. Grep the linker script for **every**
+line naming the object before editing:
+
+    grep -n '<stem>' overlays/<rom>/overlay.ld
+
+`.text` goes to the new `.c`'s object, and `.data` **and** `.bss` both go to the
+data half. Getting one of the three right is enough to make the first error go
+away and not enough to link.
