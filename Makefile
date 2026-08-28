@@ -239,6 +239,23 @@ SCHED2_CFLAGS := $(GCC296_CFLAGS) -fno-schedule-insns2
 # it is the register reservation that is wanted and not the frame.
 FIXEDR7_CFLAGS := $(GCC296_CFLAGS) -ffixed-r7
 
+# Func_80b98b4: gcc reverses a 16-iteration loop into a countdown with a
+# strength-reduced address pointer; the ROM keeps base + j and recomputes the
+# index each iteration.  65 differing of 67 at default, exact with the flag.
+asm/rom_b5000/rom_b8228_c_a_c_c_a_c_b.o: src/rom_b5000/rom_b8228_c_a_c_c_a_c_b.c
+	$(GCC296_CC) $(STRENGTH_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+# OvlFunc_968_20090cc is caught by the rom_7f2f14/ovl_30_c_a_c_a_c_a% wildcard,
+# which applies O1_CFLAGS.  Wrong for this TU: 34 differing at -O1, exact at -O2.
+# An explicit rule beats the pattern rule without narrowing it.
+asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a_c_b.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a_c_b.c
+	$(GCC296_CC) $(GCC296_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+
 # OvlFunc_962_2008a78: gcc deletes three reloads of a pointer field across
 # byte/bitfield stores into the pointed-to struct, coming out three instructions
 # short.  volatile on the field gets the reloads back but leaves a scheduling
