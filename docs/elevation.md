@@ -6543,3 +6543,37 @@ The distinction is the register budget, not the shape. Two functions with the
 same structure AND the same number of values live across calls behave the same;
 two with the same structure and different pressure do not. Before copying a
 spelling from a twin, count what the ROM pushes in each.
+
+## A missing TYPE can masquerade as a register-allocation wall
+
+`OvlFunc_932_200a5c0` sat parked at 2 of 107, filed under the commutative
+register-role swap -- the class 21 parks describe, which had survived seven
+spellings and four flag groups across two rounds:
+
+    rom   ldrb r2, [r5] / mov r3, #0x2 / orr r3, r2 / strb r3, [r5]
+    ours  ldrb r3, [r5] / mov r2, #0x2 / orr r3, r2 / strb r3, [r5]
+
+It was not an allocation problem. Written as pointer arithmetic on an
+`unsigned char *`,
+
+    p += 0x23;  *p = 2 | *p;
+
+gcc puts the LOADED BYTE in the orr's destination. Written as a field of a struct
+that names the byte,
+
+    p->flags |= 2;
+
+it puts the CONSTANT there, which is what the ROM does. Exact on the first try.
+
+**But this does not generalise, and the counterexample matters as much.** The
+`OvlFunc_943_20090a0` twins are parked at 2 on the same-looking shape at actor
+offset 0x5a, and the same change makes them WORSE -- 102 lines to 106, 2
+differing to 84. Isolating the type change from the compound-assignment form
+gives the identical 84, so it is the type itself, not the spelling.
+
+So: when a park is blocked on "the right instructions with two registers
+exchanged", and the memory it touches is a field of a known structure, try
+declaring that structure before concluding the class is unreachable. It costs one
+screen. It will not always work -- but "commutative register-role swap" has now
+been shown to be at least two different problems wearing the same diff, and the
+type-shaped one is cheap to rule in or out.
