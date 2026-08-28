@@ -5560,3 +5560,55 @@ Two variables took the screen from **50 differing to 14**.
 
 The variable being reassigned is enough to keep the first value's live range
 open in gcc's view even when it is dead. Give each call result its own name.
+
+## Consume the pointer, do not index it
+
+`a[0x62] = 0;` makes gcc copy the pointer before adding to it:
+
+    ours  mov r3, r0 / add r3, #0x62 / strb r2, [r3]
+    rom   add r0, #0x62 / strb r3, [r0]
+
+Writing the mutation explicitly -- `a += 0x62; *a = 0;` -- consumes the pointer
+instead. On `OvlFunc_964_20094ac` that single change took 28 differing to 7.
+
+This only arises for offsets above 31, where thumb's immediate form is
+unavailable and an `add` is required either way. Below that the question does
+not come up. Combine with the earlier rule (two results of the same call need
+two variables) -- they address opposite halves of the same problem: one keeps a
+pointer alive that should die, the other kills one that should live.
+
+## Name the stored constant, not just the mask
+
+Naming the constant operand of a store or a bitwise op shifts which register the
+POINTER gets. On `OvlFunc_931_200807c`, `z = 0; *p = z;` instead of `*p = 0;` at
+three stores took 15 differing to 6. On `OvlFunc_964_20094ac`, `m = 0xf7;
+v = *p & m;` took 7 to 4.
+
+Neither reached exact, and in both cases what remained was the same register
+swap between the constant and the value it acts on. The lever moves the
+allocation but does not choose it.
+
+## A detector bug that cost most of a round
+
+Classifying the remaining functions by the `GetFlag(id)`/`SetFlag(id)` shape
+reported **0 of 2227**, twice, through two rounds of "fixing" the wrong thing:
+
+  1. First the operand pattern only accepted `ldr r0, =<id>`, missing ids built
+     as `mov r0,#K / lsl r0,#n`. Widened it. Still zero.
+  2. The actual bug: the call was matched with `x.strip() in ("bl __GetFlag",…)`
+     and the assembly separates mnemonic from operand with a **TAB**, so
+     `strip()` yields `bl\t__GetFlag` and nothing ever matched.
+
+With that fixed: **191 functions**. The zero was never plausible -- five had
+been elevated from that exact shape in the preceding two rounds.
+
+The lesson is not "check for tabs". It is that when a detector returns zero and
+the first fix does not change it, the second hypothesis should be about the
+*harness* rather than another refinement of the pattern. Both wrong versions
+were about the ROM's spelling; neither was about mine.
+
+Note also the fixed detector has a known false positive: it looks back five
+lines for the operand and takes a pool load in preference, so a nearby unrelated
+`ldr r0, =X` can be attributed to the wrong call. `OvlFunc_964_20094ac` was
+flagged that way and its two ids are actually 0x200 and 0x201. Screening both
+flag settings costs one command and settles it.
