@@ -239,6 +239,23 @@ SCHED2_CFLAGS := $(GCC296_CFLAGS) -fno-schedule-insns2
 # it is the register reservation that is wanted and not the frame.
 FIXEDR7_CFLAGS := $(GCC296_CFLAGS) -ffixed-r7
 
+# Func_8028aa8: the whole residue is a six-position reshuffle INSIDE one call's
+# argument block, with no store visibly displaced -- an unusual presentation of
+# strict aliasing.  6 differing of 96 without the flag, exact with it.
+asm/rom_15000/rom_23178_a_a_a_c_b.o: src/rom_15000/rom_23178_a_a_a_c_b.c
+	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+# OvlFunc_942_20086c8: gcc hoists the shared 0x8a8 into a callee-saved register
+# and adds a push.  The function has NO LOOP, and of six CSE-family flags only
+# -fno-rerun-cse-after-loop undoes it.
+asm/overlays/rom_7c6bac/ovl_30_c_c_a_c_c_c_c_a_b.o: src/overlays/rom_7c6bac/ovl_30_c_c_a_c_c_c_c_a_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+
 # Func_80b98b4: gcc reverses a 16-iteration loop into a countdown with a
 # strength-reduced address pointer; the ROM keeps base + j and recomputes the
 # index each iteration.  65 differing of 67 at default, exact with the flag.
