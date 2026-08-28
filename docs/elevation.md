@@ -5936,3 +5936,40 @@ Related and already recorded: a redundant-looking copy of a value into a second
 register before a loop can mean the function returns that value (batch 127,
 `OvlFunc_971_200853c`). Both are the same underlying fact -- r0 is reserved when
 there is a return value -- read from two different places.
+
+## Source order of two loads decides which gets r8 and which gets r10
+
+When two values are loaded before the first call and both must survive it, gcc
+puts them in high registers -- and WHICH high register each gets follows the
+order of the assignment statements in the source, not the order the loads are
+emitted in.
+
+On `OvlFunc_969_200db90` the ROM is:
+
+    ldrh  r2, [r6]        @ angle
+    ldr   r1, [r5, #0x68] @ pointer
+    mov   r8, r2
+    mov   r10, r1
+
+The obvious transcription -- assign the angle first, the pointer second -- gave
+the opposite pairing (angle in r10, pointer in r8). Swapping the two assignment
+statements fixed it, and the emitted load order did NOT swap with them: the
+loads are ordered by first USE (the angle is the argument to the first call),
+while the allocation is ordered by the source statements. Those two orders are
+independent, so you can set them separately.
+
+This cost 20 of 41 differing lines, and it is invisible in the diff as anything
+but noise -- the register numbers are simply transposed everywhere downstream.
+When a diff shows two high registers consistently swapped and nothing else
+structural, reorder the source assignments before trying anything cleverer.
+
+## mul copies the second operand
+
+`mul rD, rS` computes rD = rD * rS, so one operand must be copied into the
+destination first. gcc copies the operand on the RIGHT of the C expression:
+
+    r * c   ->  mov r2, r0(c) / mul r2, r3(r)
+    c * r   ->  mov r2, r3(r) / mul r2, r0(c)
+
+Multiplication commutes, so both are correct and only one matches. Read which
+value the ROM's `mov` copies and put the OTHER one on the right.
