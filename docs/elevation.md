@@ -6690,3 +6690,38 @@ one file whose answer you already know by hand -- that caught every one of the
 four. The last one made 405 expression-sized pads (`pad[0x55 - 0x23 - 1]`)
 read as size zero, which put every later field in those structs at a wrong
 offset while still looking like a confident table.
+
+## The overlay divide-alias is a whole blocker class, and it is now swept
+
+gcc-2.96 emits `__divsi3` / `__udivsi3` / `__modsi3` / `__umodsi3` for the C
+operators and has no flag to rename them. Overlay code calls the RAM-resident
+copies -- `_divsi3_RAM` and friends -- through the stub each overlay's
+`imports.s` exports. These are different functions at different addresses, so
+without an alias in the overlay's linker script a correct C division does not
+link to the routine the ROM calls, and the screen shows it as a one- or
+two-instruction difference that looks like a codegen problem and is not.
+
+`tools/tryc.py` already recognises the symptom and says so. The point of this
+section is that it was worth fixing for the WHOLE tree at once rather than one
+function at a time.
+
+26 overlay scripts were missing at least one alias, 35 in total. All are added.
+The check that made it safe: an alias is only sound where that overlay's
+`src/overlays/<ov>/imports.s` actually exports the matching `*_RAM` symbol --
+all 35 did. Aliases emit no bytes, and the ROM was byte-identical afterwards,
+which is the proof rather than the claim.
+
+This was found by elevating OvlFunc_970_20080b0, which screened at ONE
+differing instruction that turned out to be the missing `__udivsi3`. The park
+at src/non_matching/ovl_793768/2009754.c had recorded the same need months
+earlier and named two overlays owed one; both are now covered, and that park
+drops from 8 differing to 6.
+
+So: if a function that divides screens one or two instructions off, check the
+overlay script before touching the C. That check is now expected to pass, and
+if it does not, the overlay is new.
+
+A park should carry its candidate C. 2009754.c is comment-only, so the
+improvement above could not be verified by re-screening it -- tryc.py runs
+clean and silent on a file with no function in it. The C has to be rebuilt
+from the .s before that park can be re-attacked at all.

@@ -54,3 +54,11 @@ SECTIONS {
  * Emits no bytes. Same reasoning as the __divsi3 alias in other overlay.ld
  * files -- see overlays/rom_7a5214/overlay.ld for the counts. */
 __modsi3 = _modsi3_RAM;
+
+/* gcc-2.96 emits __divsi3 for the corresponding C operator and has
+ * no flag to rename it.  Overlay code calls the RAM-resident copy through
+ * the stub .export_func divsi3_RAM makes; they are different functions at
+ * different addresses, so this alias is what lets the C form link to the
+ * routine the ROM actually calls.  Emits no bytes.
+ * See overlays/rom_7a5214/overlay.ld for the original of this note. */
+__divsi3 = _divsi3_RAM;

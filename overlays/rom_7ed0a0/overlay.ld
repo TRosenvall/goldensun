@@ -99,3 +99,11 @@ SECTIONS {
 /* see src/overlays/rom_7a5214/ovl_17ec_c_b.c -- gcc emits __divsi3 for `/`,
  * overlays call the RAM-resident copy. Absolute alias, emits no bytes. */
 __divsi3 = _divsi3_RAM;
+
+/* gcc-2.96 emits __umodsi3 for the corresponding C operator and has
+ * no flag to rename it.  Overlay code calls the RAM-resident copy through
+ * the stub .export_func umodsi3_RAM makes; they are different functions at
+ * different addresses, so this alias is what lets the C form link to the
+ * routine the ROM actually calls.  Emits no bytes.
+ * See overlays/rom_7a5214/overlay.ld for the original of this note. */
+__umodsi3 = _umodsi3_RAM;

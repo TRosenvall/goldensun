@@ -57,3 +57,12 @@ SECTIONS {
 		*(*)
 	}
 }
+
+/* gcc-2.96 emits __udivsi3 for the corresponding C operator and has
+ * no flag to rename it.  Overlay code calls the RAM-resident copy through
+ * the stub .export_func udivsi3_RAM makes; they are different functions at
+ * different addresses, so this alias is what lets the C form link to the
+ * routine the ROM actually calls.  Emits no bytes.
+ * See overlays/rom_7a5214/overlay.ld for the original of this note. */
+__udivsi3 = _udivsi3_RAM;
+__umodsi3 = _umodsi3_RAM;
