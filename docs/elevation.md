@@ -6526,3 +6526,20 @@ reuse 0 -- the most attractive profile in the whole dense queue, and unreachable
 Drafting it would have been 196 calls of transcription for nothing.
 
 Run the scan before drafting anything large. It costs one pass over the tree.
+
+## Whether a sibling's levers transfer depends on the register budget
+
+`OvlFunc_945_2008cc8` matched on its FIRST screen because the two levers its
+sibling `OvlFunc_945_2008b84` needed -- `CSE_CFLAGS` for a flag read at the top
+and set at the bottom, and a dropped prototype on `__Func_8092c40` -- applied
+unchanged.
+
+That is not automatic. `OvlFunc_955_2009424` is a near-twin of the elevated
+`OvlFunc_954_20095e0` and its spelling did NOT transfer: the sibling names the
+gState base to stop gcc folding it, and naming it there costs a fourth
+callee-saved register that the ROM does not spend.
+
+The distinction is the register budget, not the shape. Two functions with the
+same structure AND the same number of values live across calls behave the same;
+two with the same structure and different pressure do not. Before copying a
+spelling from a twin, count what the ROM pushes in each.
