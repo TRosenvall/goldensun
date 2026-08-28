@@ -48,7 +48,7 @@ SRC = os.path.join(ROOT, "src")
 STRUCT = re.compile(r"(?:^|\n)\s*(?:typedef\s+)?struct\s*(\w*)\s*\{", re.M)
 FIELD = re.compile(r"^\s*(?:const\s+)?(unsigned char|signed char|char|unsigned short|short|"
                    r"unsigned int|int|unsigned long|long|u8|s8|u16|s16|u32|s32|fx32|vec3_t|void)\s*"
-                   r"(\*?)\s*(\w+)\s*(?:\[\s*(0x[0-9a-fA-F]+|\d+)\s*\])?\s*;", re.M)
+                   r"(\*?)\s*(\w+)\s*(?:\[([^]]*)\])?\s*;", re.M)
 WIDTH = {"unsigned char": 1, "signed char": 1, "char": 1, "u8": 1, "s8": 1,
          "unsigned short": 2, "short": 2, "u16": 2, "s16": 2,
          "unsigned int": 4, "int": 4, "u32": 4, "s32": 4,
@@ -65,6 +65,21 @@ LEVER = [
     (re.compile(r"_MSG_|message\.sym", re.I), "message-symbol"),
     (re.compile(r"fakematch", re.I), "FAKEMATCH"),
 ]
+
+
+def arrsize(expr):
+    """Array sizes are written as expressions -- `pad[0x55 - 0x23 - 1]` -- so a
+    literal-only match silently reads them as zero and every later offset in the
+    struct comes out wrong. Evaluate the arithmetic, refuse anything else."""
+    expr = expr.strip()
+    if not expr:
+        return None
+    if not re.fullmatch(r"[0-9a-fA-FxX+\-*/() ]+", expr):
+        return None
+    try:
+        return int(eval(expr, {"__builtins__": {}}, {}))
+    except Exception:
+        return None
 
 
 def parse_structs(text):
@@ -92,7 +107,15 @@ def parse_structs(text):
         for f in FIELD.finditer("".join(body)):
             ty, ptr, fname, arr = f.group(1), f.group(2), f.group(3), f.group(4)
             w = 4 if ptr else WIDTH.get(ty, 4)
-            n = int(arr, 0) if arr else 1
+            if arr is None:
+                n = 1
+            else:
+                n = arrsize(arr)
+                if n is None:
+                    # an unparseable size makes every later offset a lie;
+                    # drop the struct rather than publish wrong offsets
+                    fields = None
+                    break
             size = w * n
             if not fname.lower().startswith("pad"):
                 fields.append((fname, off, size))
