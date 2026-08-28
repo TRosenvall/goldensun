@@ -6812,3 +6812,30 @@ pressure-residue shape is not automatically pressure residue. Check the
 control-flow shape first: it is cheap, and it moves register allocation. The
 ROM's own layout is the hint -- a single exit with the zero assigned in an else
 arm and one `b` to a shared epilogue means the source had one exit, not two.
+
+## `docker run` without `-i` silently runs an empty program
+
+    docker run --rm -v "$PWD:/work" -w /work goldensun-build python3 - <<'PY'
+    ...analysis...
+    PY
+
+This produces NO OUTPUT and EXITS 0. Docker does not attach stdin unless `-i`
+is passed, so `python3 -` reads an empty program and succeeds at doing nothing.
+It does not look like a failure; it looks like an analysis that found zero
+results, which is exactly the shape of a real answer.
+
+This has cost real conclusions. A sweep for structs sharing a layout "found
+none" and was nearly written up that way; a park-integrity count came back
+empty the same way. Both had simply never run.
+
+**Always write the script to a file first:**
+
+    cat > scratch/analysis.py <<'PY'
+    ...
+    PY
+    docker run --rm -v "$PWD:/work" -w /work goldensun-build python3 scratch/analysis.py
+
+The general rule this is an instance of: a measurement that returns "nothing
+found" needs the same scepticism as one returning a suspiciously round number.
+Print a total alongside the hits -- `0 of 322` is obviously different from a
+script that never executed, and a bare empty list is not.

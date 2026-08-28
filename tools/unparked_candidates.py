@@ -19,6 +19,20 @@ src/non_matching/, not on the file's path or its header format. Park headers
 use at least five different layouts, and matching the header is what let the
 earlier leak through.
 
+With --safe-args, also excluded: functions whose call argument setup matches
+the ARGUMENT PRECOMPUTE shape that HANDOFF.md documents as not reachable from
+C. gcc-2.96 hoists any argument whose rtx_cost exceeds 2 -- a shifted or
+pool-loaded value -- ahead of the register loads, and emits cheap `mov rN, #K`
+arguments afterwards so they land LAST. A call whose ROM setup interleaves a
+cheap mov among the expensive work, or puts the cheap one first, will misorder
+and no source spelling fixes it.
+
+The filter is deliberately crude: it drops any function where a `mov rN, #K`
+appears between an `lsl` and the `bl`, or where a `mov` of a small constant
+precedes an `lsl` in the same argument block. That over-rejects -- some of
+those calls would match -- but a screen costs more than a skipped candidate,
+and the rule exists precisely so these are not screened one at a time.
+
 Excluded, in order:
   * files holding more than one function   -- these need a split first
   * functions with an elevated .c already  -- mirrored src/ path exists
@@ -61,11 +75,29 @@ def parked_names():
     return names
 
 
+BLOCK = re.compile(r"((?:\t(?:mov|lsl|neg|ldr|add|sub)\t[^\n]*\n)+)\tbl\t")
+
+
+def precompute_risk(body):
+    """True if any call's argument setup shows the precompute shape."""
+    for m in BLOCK.finditer(body):
+        lines = [l for l in m.group(1).split("\n") if l]
+        has_shift = any(l.startswith("\tlsl\t") or l.startswith("\tneg\t")
+                        or "=" in l for l in lines)
+        if not has_shift:
+            continue
+        # a cheap immediate mov that is NOT the last setup line
+        for i, l in enumerate(lines[:-1]):
+            if re.match(r"\tmov\tr\d+, #", l):
+                return True
+    return False
+
+
 def main():
     lo = int(sys.argv[sys.argv.index("--min") + 1]) if "--min" in sys.argv else 10
     hi = int(sys.argv[sys.argv.index("--max") + 1]) if "--max" in sys.argv else 45
     parked = parked_names()
-    out, skipped = [], 0
+    out, skipped, risky = [], 0, 0
     for root, _, fs in os.walk(os.path.join(ROOT, "asm")):
         for f in fs:
             if not f.endswith(".s"):
@@ -84,6 +116,9 @@ def main():
             if starts[0] in parked:
                 skipped += 1
                 continue
+            if "--safe-args" in sys.argv and precompute_risk(body):
+                risky += 1
+                continue
             n = len([l for l in body.split("\n") if l.startswith("\t")])
             if lo <= n <= hi:
                 out.append((n, starts[0], rel))
@@ -91,7 +126,8 @@ def main():
     for n, name, p in (out if "--all" in sys.argv else out[:25]):
         print(f"{n:4d}  {name:28s} {p}")
     print(f"\n{len(out)} candidates ({lo}-{hi} insns); "
-          f"{skipped} suppressed as already parked")
+          f"{skipped} suppressed as already parked"
+          + (f"; {risky} suppressed as argument-precompute risk" if "--safe-args" in sys.argv else ""))
     return 0
 
 
