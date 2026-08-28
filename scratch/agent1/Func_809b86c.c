@@ -11,7 +11,7 @@ static inline int call_via(int (*f)(int, int), int a, int b)
         "\tbx\t%1"
         : "=r" (_a)
         : "r" (f), "0" (_a), "r" (_b)
-        : "memory", "r2", "lr", "r12"
+        : "memory", "lr", "r12"
     );
     return _a;
 }

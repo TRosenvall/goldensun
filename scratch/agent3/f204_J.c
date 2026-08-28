@@ -3,14 +3,16 @@ typedef unsigned char u8;
 #define ewram_202c800 ((u8 *)0x202c800)
 #define ewram_202c000 ((u8 *)0x202c000)
 
-int Func_8012204(int *p)
+typedef struct { int x, y, z; } Vec;
+
+int Func_8012204(Vec *p)
 {
     int zc, xc, cell, sub, v;
     unsigned int m;
     u8 *q;
 
-    xc = p[0] >> 17;
-    zc = p[2] >> 17;
+    zc = p->z >> 17;
+    xc = p->x >> 17;
     cell = (((zc / 8) & 0x3f) << 6) + ((xc / 8) & 0x3f);
     sub = (((zc / 2) & 3) << 1) + ((xc / 4) & 1);
 

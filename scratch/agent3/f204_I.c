@@ -9,10 +9,10 @@ int Func_8012204(int *p)
     unsigned int m;
     u8 *q;
 
-    xc = p[0] >> 17;
     zc = p[2] >> 17;
-    cell = (((zc / 8) & 0x3f) << 6) + ((xc / 8) & 0x3f);
+    xc = p[0] >> 17;
     sub = (((zc / 2) & 3) << 1) + ((xc / 4) & 1);
+    cell = (((zc / 8) & 0x3f) << 6) + ((xc / 8) & 0x3f);
 
     q = ewram_202c800 + ((u8 *)0x6005000)[cell] * 8 + sub;
     m = *q;

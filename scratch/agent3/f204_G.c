@@ -5,12 +5,12 @@ typedef unsigned char u8;
 
 int Func_8012204(int *p)
 {
-    int zc, xc, cell, sub, v;
+    int xc, zc, cell, sub, v;
     unsigned int m;
     u8 *q;
 
-    xc = p[0] >> 17;
     zc = p[2] >> 17;
+    xc = p[0] >> 17;
     cell = (((zc / 8) & 0x3f) << 6) + ((xc / 8) & 0x3f);
     sub = (((zc / 2) & 3) << 1) + ((xc / 4) & 1);
 

@@ -1,7 +1,7 @@
 typedef unsigned char u8;
 
-#define ewram_202c800 ((u8 *)0x202c800)
-#define ewram_202c000 ((u8 *)0x202c000)
+extern u8 ewram_202c800[];
+extern u8 ewram_202c000[];
 
 int Func_8012204(int *p)
 {
@@ -14,7 +14,7 @@ int Func_8012204(int *p)
     cell = (((zc / 8) & 0x3f) << 6) + ((xc / 8) & 0x3f);
     sub = (((zc / 2) & 3) << 1) + ((xc / 4) & 1);
 
-    q = ewram_202c800 + ((u8 *)0x6005000)[cell] * 8 + sub;
+    q = (u8 *)((int)ewram_202c800) + ((u8 *)0x6005000)[cell] * 8 + sub;
     m = *q;
     if (m != 0) {
         if (xc & 2)
@@ -24,7 +24,7 @@ int Func_8012204(int *p)
         if (v != 0)
             return v;
     }
-    q = ewram_202c000 + ((u8 *)0x6004000)[cell] * 8 + sub;
+    q = (u8 *)((int)ewram_202c000) + ((u8 *)0x6004000)[cell] * 8 + sub;
     m = *q;
     if (m != 0) {
         if (xc & 2)
