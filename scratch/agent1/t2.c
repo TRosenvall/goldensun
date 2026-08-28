@@ -4,8 +4,8 @@ extern unsigned char ewram_2020000[];
 
 void DecodeMetatileset(int n)
 {
-    unsigned short *src;
     unsigned short *dst;
+    unsigned short *src;
     unsigned char *hi, *lo;
     int count, i, a, b;
     int prev1, v1;

@@ -11,9 +11,9 @@ void DecodeMetatileset(int n)
     int prev1, v1;
     int prev2, v2;
 
-    count = (n - 1) / 2;
     src = (unsigned short *)ewram_2010002;
     dst = (unsigned short *)ewram_2020000;
+    count = (n - 1) / 2;
     if ((n & 1) != 0) {
         switch (ewram_2010001[0]) {
         case 0:
