@@ -35,6 +35,28 @@
  * and reaching for that lever here costs four screens. The tell is whether the
  * misplaced mov is OUTSIDE the other arguments' setup (fill order, fixable) or
  * INSIDE it (interleave, not).
+ *
+ * LATER (this round): a twin was found that MATCHES with the identical rom
+ * sequence, which narrows the precondition rather than the lever.
+ *
+ * OvlFunc_921_20087a4 emits exactly `mov r1, #0x80 / mov r0, #0xc / lsl r1,
+ * #7 / mov r2, #0xa` -- r0 in the middle of r1's construction, the same shape
+ * called impossible above -- and it matches with the shifted value in a named
+ * local assigned at the TOP of the function.  Attempt 4 above tried that here
+ * and it did not work.
+ *
+ * The difference is what else is live.  OvlFunc_921_20087a4 holds an actor
+ * pointer and a facing value across its calls, so it already pushes r5; the
+ * named constant costs nothing extra and gcc is free to schedule its
+ * materialisation late.  This function holds nothing across a call, so naming
+ * the constant at the top makes it the ONLY long-lived value, gcc puts it in
+ * r5, and the prologue grows to `push {r5, lr}` -- 15 differing, far worse.
+ *
+ * So the lever is not "name the shifted value"; it is "name the shifted value
+ * WHEN a callee-saved register is already committed".  Nothing the C can do
+ * creates that precondition here without inventing a live value the ROM does
+ * not have.  Two further attempts this round, the plain constant 0x8000 and
+ * dropping the prototype on __Func_8092adc, both stay at 2 differing.
  */
 void OvlFunc_899_2008428(void)
 {
