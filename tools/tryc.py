@@ -148,6 +148,21 @@ def makefile_flags(src_rel):
         if "COMMON2_CFLAGS" in recipe:
             out.add("no-interwork")
             hit = True
+        # Every OTHER per-file flag group. These were invisible here until
+        # three parked functions turned out to have been screened at the wrong
+        # optimisation level for several batches -- the O1 handling exists to
+        # prevent exactly that, and the newer groups were never added to it.
+        # A parked .c whose real TU carries one of these otherwise screens at
+        # plain -O2 with no warning.
+        for group, flag in (("CSE_CFLAGS", "-fno-rerun-cse-after-loop"),
+                            ("GCSE_CFLAGS", "-fno-gcse"),
+                            ("ALIAS_CFLAGS", "-fno-strict-aliasing"),
+                            ("SCHED2_CFLAGS", "-fno-schedule-insns2"),
+                            ("FIXEDR7_CFLAGS", "-ffixed-r7"),
+                            ("STRENGTH_CFLAGS", "-fno-strength-reduce")):
+            if group in recipe:
+                out.add(flag)
+                hit = True
         if hit and "%" in pat:
             WILDCARD_HITS.add(pat)
     return out
@@ -613,6 +628,12 @@ def main():
         cflags = cflags + ["-fno-rerun-cse-after-loop"]
     if "no-interwork" in adjust:
         cflags = [a for a in cflags if a != "-mthumb-interwork"]
+    # The newer per-file groups are recorded as the literal flag they add, so
+    # they append directly. Anything already present (e.g. the user also passed
+    # --no-sched2) is not added twice.
+    for a in sorted(adjust):
+        if a.startswith("-f") and a not in cflags:
+            cflags = cflags + [a]
     # --cflags "<extra>" appends arbitrary compiler flags, so a hypothesis
     # about the original invocation can be tested against a known-failing
     # function without editing this file each time.
