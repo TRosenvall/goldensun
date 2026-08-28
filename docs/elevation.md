@@ -4405,3 +4405,36 @@ same statement — can drag a small value into the pool too.
 
 **Screen the plain literal first, but do not conclude a small pooled HImode
 constant is a symbol tell without trying the `int` local.**
+
+## The `.call_via` inline-asm helper: bind the symbol, do not pass it
+
+The working template is in `src/rom_8a000/rom_97384_c_c_a_b.c`. One refinement
+matters at every site:
+
+**Do not pass the callee as a parameter.** gcc materialises the address in some
+register and copies it into the bound one, costing an instruction the ROM does
+not have:
+
+    helper takes (f, a, b)   ours  ldr r5, =Func_8000888 / mov r4, r5
+    symbol bound directly    rom   ldr r4, =Func_8000888
+
+Assign the symbol straight to the register-bound variable inside the helper —
+`register int (*_f)(int,int) __asm__("r4") = Func_8000888;` — and write one
+helper per (callee, register) pair. On `Func_801cc50` this removed the extra
+`mov` *and* freed r5 for the struct pointer, fixing a second difference at the
+same time (49 of 57 → 53 of 57 with the length gap closing from 1 to 1 and both
+prologue lines matching).
+
+**Do NOT add `"r2"`/`"r3"` to the clobber list.** It looks obviously right — a
+real call clobbers them — and it is wrong. `Func_801cc50` went 53 differing /
+56 lines to 61 / 62. Argument 3 survives all three call sites in r3, which
+proves the routine does not clobber it. Where the ROM moves a value out of r2,
+it is to free r2 as the INDEX register for `ldrsh rD, [rB, rO]`, not because of
+clobbering. These IWRAM helpers have a narrower convention than a C call.
+
+**Sub-shapes, easiest first.** A single call site with the address bound
+directly is the reachable one — `Func_8097a10` matched on that alone. Two or
+more sites sharing one pointer is harder: the ROM loads it *late*, after an
+intervening call, reusing a register that held something else earlier, and
+neither naming the pointer in a local nor inlining the address at both sites
+reproduces that live range. See `src/non_matching/rom_b5000/80b84c0.c`.
