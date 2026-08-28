@@ -5612,3 +5612,34 @@ lines for the operand and takes a pool load in preference, so a nearby unrelated
 `ldr r0, =X` can be attributed to the wrong call. `OvlFunc_964_20094ac` was
 flagged that way and its two ids are actually 0x200 and 0x201. Screening both
 flag settings costs one command and settles it.
+
+## Selecting for the interleave lever: prefer call-dense scripts
+
+Two consecutive rounds stalled on register permutation because I picked by SIZE.
+The functions that convert are call-dense: a cutscene script is mostly argument
+setup and `bl`, so the levers (name every split build, name the stored constant,
+consume the pointer) act on nearly every instruction, and there are few enough
+locals that allocation has little room to differ.
+
+A usable filter, over the guarded pool:
+
+    calls * 4 >= instructions        and        memory-ops * 4 <= instructions
+
+That is 11 functions in the 30-90 band, and three of the four tried from it
+matched. By contrast the small-band pool (12-30 instructions, mostly pointer and
+bit work) produced zero matches in eight attempts.
+
+**Density, not size, is the selector.** A 72-instruction script with 23 calls is
+easier than an 18-instruction function with three.
+
+## The boundary of the interleave lever
+
+`OvlFunc_921_20082b8` is 2 of 74: one call out of twenty-three has its two
+single-instruction arguments in the ROM's order and not gcc's, and **neither is
+a split build**. The lever moves arguments around a two-instruction sequence;
+where every argument is one instruction there is nothing to move them around,
+and the source cannot reach the order.
+
+Together with `OvlFunc_899_20099a4` (a split build exists but no dominating
+block) this bounds the class from both sides. The lever needs a split build AND
+a preceding branch; missing either, park it.
