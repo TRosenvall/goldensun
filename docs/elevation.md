@@ -4534,3 +4534,34 @@ local does **not** produce it — gcc either allocates a callee-saved register o
 with a pinned register variable, elides the assignment and calls the *wrong
 function*. Writing the symbol literally at both sites lets CSE build one pseudo
 which then spills, which is the ROM's shape.
+
+## Build a constant AFTER the call if the ROM does — it decides your push list
+
+`OvlFunc_881_20081c4` first drafted with the wrong prologue — r5, r6 **and r7**
+against the ROM's r5, r6 — for one reason: a constant was written before the
+call and used after it.
+
+    ours   t = 0x80 << 13;                       <- live ACROSS the call
+           *(int *)(a + 0xc) = call_via(...) + t;
+
+    rom    ... bx r3 / mov r4, #0x80 / lsl r4, #0xd / add r0, r4
+
+The ROM builds it *after* the call and keeps it in **r4**, which is
+call-clobbered under this tree's `-fcall-used-r4` and therefore free. A value
+live across a call cannot go there, so gcc reached for a third callee-saved
+register and the whole function renamed. Splitting the statement so the
+constant is born after the call took it from 24 differing (first diff at
+position 0) to 12 (first diff at 24):
+
+    r = call_via_r3(__sin(*p << 3), 0x80 << 11);
+    t = 0x80 << 13;
+    *(int *)(a + 0xc) = r + t;
+
+> **Read the ROM for where a constant is BUILT, not just what it is.** A
+> constant built after a call is a statement that the source computes it after
+> the call, and writing it earlier costs a register — which is visible in the
+> push list before it is visible anywhere else.
+
+This is the same diagnostic as "naming one level too many", reached from the
+other direction: there the cost was an extra local, here an extra live range on
+a value that did not need one.
