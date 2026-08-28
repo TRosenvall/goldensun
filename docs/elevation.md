@@ -6483,3 +6483,20 @@ at all -- nothing in the body can change the frame.
 Related and confirmed here: `__Random` declared `unsigned` is what makes the
 masking come out as `lsr`. Same signedness question as the division-helper note
 above, and the same answer -- read the instruction, not the value.
+
+## The interleave lever scales to six sites, including both arms of a branch
+
+`OvlFunc_907_20089cc` is the largest single application so far: SIX call sites,
+all the same shape, all fixed by one naming pass. 13 of 126 differing to exact.
+
+Two details worth carrying:
+
+  * **Both arms of an inner `if` are covered by one naming.** Four of the six
+    sites are two matching pairs in the then- and else-arms of a nested branch.
+    Naming all seven shifted arguments before the OUTER `if` places every one,
+    even though only half of them execute on any path. There is no need to name
+    per-arm, and doing so would put the assignment in the call's own block.
+  * **Read the count of sites from `pool.py` before starting.** This function
+    reported `site 6, unguarded 0`, and that was exactly the number of
+    differences. When the site count and the differing count agree, the whole
+    diff is one lever and the function is worth taking ahead of a smaller one.
