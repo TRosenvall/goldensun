@@ -12,7 +12,8 @@ void Func_80aac84(int delta)
     i = 0;
     do {
         idx = n << 4;
-        for (j = 0; j <= 0xf; j++) {
+        j = 0;
+        while (1) {
             off = (idx + j) * 2;
             c = *(unsigned short *)(0x5000000 + off);
             r = ((c >> 10) & 0x1f) + delta;
@@ -31,6 +32,9 @@ void Func_80aac84(int delta)
             if (b < 0)
                 b = 0;
             *(unsigned short *)(0x4ffffe0 + off) = (r << 10) | (g << 5) | b;
+            if (j == 0xf)
+                break;
+            j++;
         }
         n = 5;
         if (i != 0) {

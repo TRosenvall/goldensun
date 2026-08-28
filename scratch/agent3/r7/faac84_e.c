@@ -6,15 +6,13 @@ void Func_80aac84(int delta)
     int idx;
     int r, g, b;
     unsigned int c;
-    int off;
 
     n = 0xf;
     i = 0;
     do {
         idx = n << 4;
         for (j = 0; j <= 0xf; j++) {
-            off = (idx + j) * 2;
-            c = *(unsigned short *)(0x5000000 + off);
+            c = *(unsigned short *)(0x5000000 + (idx + j) * 2);
             r = ((c >> 10) & 0x1f) + delta;
             g = ((c >> 5) & 0x1f) + delta;
             b = (c & 0x1f) + delta;
@@ -30,7 +28,7 @@ void Func_80aac84(int delta)
                 g = 0;
             if (b < 0)
                 b = 0;
-            *(unsigned short *)(0x4ffffe0 + off) = (r << 10) | (g << 5) | b;
+            *(unsigned short *)(0x4ffffe0 + (idx + j) * 2) = (r << 10) | (g << 5) | b;
         }
         n = 5;
         if (i != 0) {

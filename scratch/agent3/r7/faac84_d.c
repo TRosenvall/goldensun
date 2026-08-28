@@ -13,7 +13,7 @@ void Func_80aac84(int delta)
     do {
         idx = n << 4;
         for (j = 0; j <= 0xf; j++) {
-            off = (idx + j) * 2;
+            off = idx * 2 + j * 2;
             c = *(unsigned short *)(0x5000000 + off);
             r = ((c >> 10) & 0x1f) + delta;
             g = ((c >> 5) & 0x1f) + delta;

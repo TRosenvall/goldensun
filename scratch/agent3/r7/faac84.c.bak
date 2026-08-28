@@ -5,7 +5,7 @@ void Func_80aac84(int delta)
     int n;
     int idx;
     int r, g, b;
-    unsigned int c;
+    int c;
     int off;
 
     n = 0xf;

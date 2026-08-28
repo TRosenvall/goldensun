@@ -38,9 +38,10 @@ static inline int call_via(int (*f)(int, int), int a, int b)
 
 void Actor_TravelTo(struct Ent *e, int tx, int ty, int tz)
 {
+    int dist;
     int dx, dy, dz;
     int ax, ay, az;
-    int dist, t, u, s, k, base;
+    int t, u, s, k, base;
     int i1, i2, i3;
     unsigned char *q;
     int (*g)(int);

@@ -34,7 +34,7 @@ void OvlFunc_common1_fac(int n)
         __PlaySound(0x56);
         OvlFunc_common1_88c(8);
         OvlFunc_common1_e10(3, 1);
-        __CutsceneWait((n / 1 - n * 16) * 4 + 0x3c);
+        __CutsceneWait(n * 4 - n * 64 + 0x3c);
         who = 0;
     } else {
         __CutsceneWait(0x1e);

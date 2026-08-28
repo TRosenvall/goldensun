@@ -42,7 +42,6 @@ void Actor_TravelTo(struct Ent *e, int tx, int ty, int tz)
     int ax, ay, az;
     int dist, t, u, s, k, base;
     int i1, i2, i3;
-    unsigned char *q;
     int (*g)(int);
     int (*h)(int, int);
 
@@ -91,8 +90,7 @@ void Actor_TravelTo(struct Ent *e, int tx, int ty, int tz)
         dx = tx - e->f8;
         dy = ty - e->fc;
         dz = tz - e->f10;
-        q = &e->f56;
-        *q = 0x10;
+        e->f56 = 0x10;
         ax = dx;
         if (dx < 0)
             ax = -dx;
@@ -100,7 +98,7 @@ void Actor_TravelTo(struct Ent *e, int tx, int ty, int tz)
         if (dz < 0)
             az = -dz;
         if (ax < az) {
-            *q = 0x12;
+            e->f56 = 0x12;
             dx = dz;
         }
         if (e->f55 == 0) {
@@ -110,7 +108,7 @@ void Actor_TravelTo(struct Ent *e, int tx, int ty, int tz)
             if (dy < 0)
                 ay = -dy;
             if (dx < ay)
-                *q = 0x11;
+                e->f56 = 0x11;
         }
     }
 }
