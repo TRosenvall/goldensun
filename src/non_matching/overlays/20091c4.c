@@ -18,8 +18,15 @@
  * reverse, and that swaps every register in the ten-instruction block.
  *
  * TRIED: three declaration orders (offset before base, offset first overall,
- * pointer first) and assigning the offset before the base in the statement
- * order.  All 10.
+ * pointer first); assigning the offset before the base in statement order; a
+ * separate pointer variable for each of the two stores; a second base variable
+ * copied before the second store.  All 10.
+ *
+ * The mechanism is visible and still not reachable.  The ROM derefs the global
+ * into a NEW register (`ldr r3, =sym / ldr r1, [r3]`), which frees r3 for the
+ * offset; ours reuses the address register for the result (`ldr r3, [r3]`) and
+ * the offset is pushed to r2.  Nothing in the source appears to decide whether
+ * gcc reuses the address register or takes a fresh one.
  *
  * Identical signature to src/non_matching/overlays/2008054b.c, which is also
  * 21 of 56 on exactly this -- base in r1 and offset in r3 in the ROM, swapped
