@@ -4565,3 +4565,26 @@ position 0) to 12 (first diff at 24):
 This is the same diagnostic as "naming one level too many", reached from the
 other direction: there the cost was an extra local, here an extra live range on
 a value that did not need one.
+
+## Operational: check what a generated filter list actually CONTAINS
+
+Round 6's worklists were built with a `blocked_cse.py` pre-filter, and the
+agents were told so. The filter did nothing. The extraction was
+
+    blocked_cse.py --list 4000 | awk '/insns/{print $4}'
+
+and on a line like `104 insns 3 repeats OvlFunc_955_2009424 asm/...` field 4 is
+the word **`repeats`**, not the name. The exclusion set was 113 identical copies
+of that word, so nothing was excluded, and two agents independently reported
+spending a fifth of their budget on genuinely blocked functions.
+
+`sort -u | head` on the list would have shown one distinct value in one second.
+
+> **A filter list is data. Look at three lines of it before trusting it, and
+> check the distinct count.** The failure is silent: the pipeline runs, the
+> worklists are written, and the only symptom is a hit rate that looks like bad
+> luck.
+
+Same family as the batch-119 note about a verification loop that read a file
+inside the container which had been written outside it — both produced a
+confident pass over an empty set.
