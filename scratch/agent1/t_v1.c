@@ -35,7 +35,8 @@ void OvlFunc_970_2008f80(void)
         amp = *(int *)(base + 0xf18);
         add = *(unsigned short *)((char *)iwram_3001ad0 + 0xc);
         for (i = 0; i != 0xa0; i++) {
-            t = (unsigned short)(CALL_VIA(g, L14c8[(acc >> 16) & 0xff], amp) / 256) + add;
+            short *tp = L14c8;
+            t = (unsigned short)(CALL_VIA(g, tp[(acc >> 16) & 0xff], amp) / 256) + add;
             *dst = t;
             acc += step;
             dst += 2;
@@ -51,7 +52,8 @@ void OvlFunc_970_2008f80(void)
         amp = *(int *)(base + 0xf1c);
         add = (unsigned short)y;
         for (i = 0; i != 0xa0; i++) {
-            t = (unsigned short)(CALL_VIA(g, L14c8[(acc >> 16) & 0xff], amp) / 256) + add;
+            short *tp = L14c8;
+            t = (unsigned short)(CALL_VIA(g, tp[(acc >> 16) & 0xff], amp) / 256) + add;
             *dst = t;
             acc += step;
             dst += 2;
