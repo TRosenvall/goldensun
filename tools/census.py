@@ -14,6 +14,11 @@ WHAT THE CLASSES MEAN, and how much to trust each line:
 
   audio            src/lib/m4a and the rom_f9000 engine. Deliberately left as
                    assembly; not a blocker.
+  arm              .arm_func_start rather than .thumb_func_start. 51 functions
+                   in 7 files. NO ARM COMPILE PATH EXISTS -- the Makefile has
+                   no agbcc_arm or -marm rule and no ARM function has ever been
+                   elevated, so these are blocked on build plumbing rather than
+                   on codegen. tools/agbcc/bin/agbcc_arm exists and is unused.
   branch-over-pool CERTAIN. The function BRANCHES OVER its own literal pool and
                    old_agbcc only emits one at .func_end. This file DEFERS to
                    tools/poolblocked.py rather than reimplementing the test,
@@ -133,6 +138,8 @@ def main():
                 body = t[m.start():end]
                 if "rom_f9000" in rel or "/m4a" in rel:
                     counts["audio"] += 1
+                elif m.group(0).lstrip().startswith(".arm_func_start"):
+                    counts["arm"] += 1
                 elif m.group(1) in blocked:
                     counts["branch-over-pool"] += 1
                 elif const_remat(body):
