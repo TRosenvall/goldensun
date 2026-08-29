@@ -68,3 +68,38 @@ _CONST_2 = 0x2;
  * against r3 -- so this entry is recorded on the pool evidence alone and not
  * on a completed function. */
 _CONST_200 = 0x200;
+
+/* _CONST_1f -- the 5-bit colour-channel mask.
+ *
+ * Func_80a2144 masks two channels with 0x1f and POOLS ONE OF THEM while
+ * building the other with `mov r0, #0x1f` -- same value, same function, one
+ * each way. That is the internal control this file's header describes for
+ * _CONST_2, appearing again.
+ *
+ * SEVEN spellings were probed and none emits the ROM's word-sized pool load:
+ *
+ *     (t >> 21) & 0x1f          m = 0x1f; (t >> 21) & m     0x1f & (t >> 21)
+ *     ((t >> 21) << 27) >> 27   int m = 31; (t >> 21) & m   (t >> 21) % 32
+ *     unsigned short t; (t >> 5) & 0x1f
+ *
+ * All but the last give `mov r3, #31`. The last DOES pool it -- the halfword
+ * exception above -- but as `ldrh`, a halfword load, where the ROM has `ldr`.
+ * Close enough to be worth recording as a near miss and not close enough to
+ * count.
+ *
+ * The reference must be INLINE, `(t >> 21) & (int)&_CONST_1f`. Held in a local
+ * it costs an extra callee-saved register and the function comes out worse
+ * than with the literal -- 30 differing against 21.
+ *
+ * UNVALIDATED, AND THIS ENTRY SAYS SO. With the inline reference tryc.py
+ * reports ONE difference, `=0x1f` against `=_CONST_1f`, which resolve to the
+ * same value at link. `make compare` still FAILED. The screen normalises pool
+ * loads and cannot see where a pool sits, so a function in this class can read
+ * clean and still differ in bytes -- the same trap that caught
+ * OvlFunc_919_200815c. Whatever else differs in Func_80a2144 is invisible to
+ * the screen and was not found.
+ *
+ * The entry is kept on the seven-spelling evidence, which is real and
+ * reusable. It is NOT evidence that this symbol completes any function. */
+_CONST_1f = 0x1f;
+
