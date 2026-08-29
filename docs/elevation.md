@@ -6965,6 +6965,29 @@ its constants, then some unknown share of those 518 is reachable by ordinary
 source-level work rather than by a different compiler. Nobody has tried,
 because the class was believed closed.
 
+**CONFIRMED, and the fix is a source-level lever.** An `int` intermediate for
+the pooled halfword constant moves it out of the HImode group and into general
+reference order:
+
+    *q = 0x3f3f;            ->  3f42 c04 3f3f 4000050 3001ecc 534 536 52a
+    v = 0x3f3f; *q = v;     ->  3f42 c04 4000050 3001ecc 534 3f3f 536 52a  <- ROM
+
+The second is byte-identical to the ROM's pool -- placement, order and contents
+all agree, verified by assembling both and diffing the objects. This is the
+same int-intermediate lever that fixes `mov` versus pool load for small
+constants; for a constant too large for `mov` it does not change WHETHER the
+value is pooled, only WHERE IT SITS in the pool.
+
+So pool entry order IS reachable from the source. `OvlFunc_919_200815c` still
+does not match, but its remaining differences are ordinary ones -- the ROM
+dereferences the state pointer before loading the offset and holds it in r2
+where gcc uses r3. The pool, which was the reason the whole class was written
+off, is solved.
+
+**What this means for the 518.** They are not blocked by pool placement. They
+carry the same ordinary blockers as everything else, with a pool question on
+top that now has a known answer. The class needs re-screening, not retiring.
+
 The screen cannot see any of this -- tryc.py normalises pool loads to `=value`,
 so a function can read 27 of 27 and still fail `make compare`. Any work on this
 class has to be gated on the build, not the screen.
