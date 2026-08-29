@@ -7284,3 +7284,23 @@ way after failing three of its five references to capture.
 The alias belongs in every linker script that lists the referencing `.o` --
 three, for a file shared by three overlays. Missing one is a link error, not a
 silent wrong answer, so the failure mode here is safe.
+
+## Two globals a fixed distance apart: derive the second address, don't declare it
+
+When the ROM reaches two globals by loading one address and subtracting:
+
+    ldr r3, =iwram_3001eec / ldr r2, [r3] / sub r3, #0x6c / ldr r1, [r3]
+
+two separate `extern`s give two pool loads and never reproduce it. Write the
+second as an offset from the FIRST symbol's address:
+
+    st   = iwram_3001eec;
+    view = *(char **)((char *)&iwram_3001eec - 0x6c);
+
+`Task_SpinCamera` matches on that opening exactly. It is the offset-clobber
+lever applied to a symbol address rather than a struct offset -- the address
+register is reused for the second load, so it must be modified in place.
+
+The tell is a `sub` or `add` on a register that just held a symbol address.
+Worth trying wherever two globals are reached a fixed distance apart, which in
+this tree usually means they were one object in the original source.
