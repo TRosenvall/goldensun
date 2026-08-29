@@ -6991,3 +6991,32 @@ top that now has a known answer. The class needs re-screening, not retiring.
 The screen cannot see any of this -- tryc.py normalises pool loads to `=value`,
 so a function can read 27 of 27 and still fail `make compare`. Any work on this
 class has to be gated on the build, not the screen.
+
+## Two pointers over one array: give the source the values the ROM carries
+
+`Func_80a1bdc` walks 32 nodes, testing each and passing the live ones to a
+helper. Written with ONE pointer it comes out 35 lines against the ROM's 39 --
+four short -- and 37 differing.
+
+The ROM carries TWO pointers over the same array: `r7` reads with post-increment
+(`ldmia r7!, {r3}`) while `r5` holds the same address for the call argument and
+is advanced separately at the bottom of the loop. They are always equal, so one
+pointer is the obvious C and it is wrong.
+
+    char *p;  void **q;
+    p = base; i = 0; q = (void **)p;
+    do {
+        if (*q++ != 0)
+            helper(p, i, x, y, cols);
+        i++;  p += 4;
+    } while (i <= 0x1f);
+
+exact at 39 of 39. Adding the second pointer raised the live count from five to
+six, which is what makes gcc reach for r8-r10 and restores the missing
+prologue -- the same reading as `OvlFunc_957_2008f10` and `Func_801a910`: a
+stream N lines SHORT means the source is not carrying enough values.
+
+The last two lines came from assignment ORDER -- `i = 0;` before `q = p;`. That
+is now three functions in a row where the final two differences were the order
+of two initialisations, and it is worth trying both ways as a matter of course
+before concluding anything about a two-line gap.
