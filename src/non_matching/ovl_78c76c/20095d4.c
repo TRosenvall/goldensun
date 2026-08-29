@@ -7,11 +7,17 @@
  *
  *     mov r1, #0xd0 / mov r2, #0xe0 / mov r0, #2 / lsl r1, #16 / lsl r2, #15
  *
- * This is the two-shifted-constants case that gcc DOES produce elsewhere --
- * probe q8 in the session notes emitted exactly that pattern from
- * f3(0xe, 0x102, 0x204). Here it does not, and the plain `mov r0, #2` in the
- * middle is the difference: gcc groups the two shift pairs and puts the
- * unrelated move outside them.
+ * This was recorded as the two-shifted-constants case that gcc DOES produce
+ * elsewhere -- "probe q8 in the session notes emitted exactly that pattern
+ * from f3(0xe, 0x102, 0x204)". THAT CLAIM IS FALSE. Compiling exactly that
+ * call emits gcc's usual form, with the cheap mov AFTER both shifts, not
+ * between them. Eleven source forms were probed -- varying argument count,
+ * prototype presence, signedness, named locals and a stack argument -- and
+ * every one is identical. See docs/elevation.md, "The argument interleave:
+ * settled by probe, and a recorded lead was false".
+ *
+ * gcc groups the two shift pairs and puts the unrelated move outside them, and
+ * nothing in C moves it.
  *
  * So this is the arg-interleave class with a third argument involved, and
  * worth retrying if that class ever falls -- it is not a separate problem.

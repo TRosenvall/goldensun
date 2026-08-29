@@ -7046,3 +7046,46 @@ pointer that has been assigned to a variable first.
 Worth knowing because the shape looks exotic and had been steered around. It is
 in the same category as the overlay divide alias -- something that reads as a
 toolchain feature and is really just a C idiom the corpus already contains.
+
+## The argument interleave: settled by probe, and a recorded lead was false
+
+`src/non_matching/ovl_78c76c/20095d4.c` recorded that gcc DOES emit the ROM's
+interleave, "probe q8 ... emitted exactly that pattern from
+f3(0xe, 0x102, 0x204)". That was the best lead in the class and it is WRONG.
+Compiling exactly that call gives gcc's usual form:
+
+    rom     mov r1,#K / mov r2,#K / mov r0,#c / lsl r1 / lsl r2 / mov r3,#0
+    gcc     mov r1,#K / mov r2,#K / lsl r1 / lsl r2 / mov r0,#c / mov r3,#0
+
+The ROM puts a cheap constant BETWEEN the two builds; gcc always finishes both
+builds first and emits the cheap movs after.
+
+**Eleven source forms were probed and every one is identical:**
+
+    f3(0xe, 0x102, 0x204)                 the recorded lead
+    f3(2, 0xd0<<16, 0xe0<<15)             the failing call, three args
+    f4(2, 0xd0<<16, 0xe0<<15, 0)          the failing call as written
+    f4(0xe, 0x102, 0x204, 0)              lead constants, four args
+    f3(0xe, 0xd0<<16, 0xe0<<15)           lead's cheap value
+    g4(...) with NO PROTOTYPE
+    u4(...) with unsigned parameters
+    the two shifted values in named locals
+    the cheap value in a named local
+    f5(...) with a fifth argument on the stack
+    the cheap constants swapped between r0 and r3
+
+This is a much stronger basis than the usual "eight spellings on one function":
+it varies argument count, prototype presence, signedness, locals, and stack
+arguments, and the output does not move. For this shape -- two expensive
+argument values and one or more cheap constants -- **the ROM's order is not
+reachable from C with this compiler.**
+
+Two consequences. The class is a genuine compiler difference rather than a
+lever nobody has found, and `tools/census.py`'s `open` count is optimistic,
+since its filter passes calls whose cheap constant is last and those still miss
+(see the twins in that park).
+
+The method is the one batch 135 used to kill the cluster hypothesis: when the
+question is about compiler behaviour rather than a particular function, build
+the smallest input that would show it. Eleven probes in one file cost one
+compile.
