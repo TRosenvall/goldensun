@@ -15,10 +15,28 @@ WHAT THE CLASSES MEAN, and how much to trust each line:
   audio            src/lib/m4a and the rom_f9000 engine. Deliberately left as
                    assembly; not a blocker.
   arm              .arm_func_start rather than .thumb_func_start. 51 functions
-                   in 7 files. NO ARM COMPILE PATH EXISTS -- the Makefile has
-                   no agbcc_arm or -marm rule and no ARM function has ever been
-                   elevated, so these are blocked on build plumbing rather than
-                   on codegen. tools/agbcc/bin/agbcc_arm exists and is unused.
+                   in 7 files, and they are the performance primitives: the LZ
+                   decompressors, the BlitFade family, division and integer
+                   sqrt, palette upload, FixupRamCode.
+
+                   TWO REASONS THEY ARE HERE, and they need separating before
+                   this line means anything:
+
+                     * No ARM compile path exists. The Makefile has no
+                       agbcc_arm or -marm rule, and tools/agbcc/bin/agbcc_arm
+                       ships unused. That is fixable plumbing.
+                     * SOME OF THEM ARE PROBABLY HAND-WRITTEN and have no C to
+                       recover. BlitFade_Div2_ROM builds a mask by self-OR-shift,
+                       moves four registers at a time with ldm/stm, and folds a
+                       barrel shift into the AND operand; others use rrx, bxmi
+                       and post-indexed loads. That is not compiler output. For
+                       those, leaving the .s in place is CORRECT rather than a
+                       gap -- the same stance this project already takes on the
+                       39 m4a audio functions.
+
+                   Nobody has read them one by one to say which is which, so do
+                   not read this count as 51 recoverable functions. They also
+                   assemble into the ROM today and block nothing.
   branch-over-pool CERTAIN. The function BRANCHES OVER its own literal pool and
                    old_agbcc only emits one at .func_end. This file DEFERS to
                    tools/poolblocked.py rather than reimplementing the test,
