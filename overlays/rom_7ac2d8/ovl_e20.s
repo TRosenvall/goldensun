@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_e20
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -32,16 +35,21 @@
 	bx	r1
 .func_end OvlFunc_e20
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_e74
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_e74
 
+@ Slot 2: the map event list -- .L6614.
 .thumb_func_start OvlFunc_e78
 	ldr	r0, =.L6614
 	bx	lr
 .func_end OvlFunc_e78
 
+@ Leaf helper, 30 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_e80
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -80,6 +88,7 @@
 	bx	r1
 .func_end OvlFunc_e80
 
+@ Wrapper: calls OvlFunc_5900.
 .thumb_func_start OvlFunc_ee4
 	push	{lr}
 	bl	OvlFunc_5900
@@ -87,6 +96,7 @@
 	bx	r0
 .func_end OvlFunc_ee4
 
+@ Wrapper: calls OvlFunc_5578.
 .thumb_func_start OvlFunc_ef0
 	push	{lr}
 	bl	OvlFunc_5578
@@ -94,6 +104,7 @@
 	bx	r0
 .func_end OvlFunc_ef0
 
+@ Wrapper: calls OvlFunc_55c0.
 .thumb_func_start OvlFunc_efc
 	push	{lr}
 	bl	OvlFunc_55c0
@@ -101,6 +112,7 @@
 	bx	r0
 .func_end OvlFunc_efc
 
+@ Wrapper: calls OvlFunc_5458.
 .thumb_func_start OvlFunc_f08
 	push	{lr}
 	bl	OvlFunc_5458
@@ -108,6 +120,8 @@
 	bx	r0
 .func_end OvlFunc_f08
 
+@ Text box: string 0x1637 through Func_1776c, option bits 0x1.
+@ No speaker and no staging -- a sign, notice or narration line.
 .thumb_func_start OvlFunc_f14
 	push	{lr}
 	bl	__Func_916b0
@@ -119,6 +133,9 @@
 	bx	r0
 .func_end OvlFunc_f14
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_f30
 	push	{lr}
 	ldr	r3, =ewram_240

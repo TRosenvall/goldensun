@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ PlayBattleAnimation -- the call into rom_c9000
+@ r0.. = parameters. Registers the animation task with Func_41d8, submits the
+@ combatants with Func_c1054 / Func_c0f98, runs the animation a frame at a time
+@ through Func_30f8, and unregisters with Func_4278 when it finishes.
+@ Exported and called from rom_15000 and rom_c9000 as well as here.
 .thumb_func_start Func_c10e8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -119,6 +124,10 @@
 	bx	r0
 .func_end Func_c10e8
 
+@ AnimateSceneElement
+@ r0.. = parameters. Moves a scene element along a path built from Func_2322 /
+@ Func_231c (sine and cosine) with Func_4458 variation. 282 lines; traced
+@ structurally.
 .thumb_func_start Func_c11ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -401,6 +410,8 @@
 	bx	r1
 .func_end Func_c11ec
 
+@ PlayBattleSound
+@ r0 = sound id. Forwards to Func_54e4.
 .thumb_func_start Func_c1438
 	push	{lr}
 	ldr	r3, =iwram_1e50
@@ -428,6 +439,10 @@
 	bx	r1
 .func_end Func_c1438
 
+@ LoadAnimationAssets
+@ r0.. = parameters. Fetches the animation's assets with Func_2f40, allocates
+@ with Func_48b0 / Func_48f4, positions with sine and cosine, and registers the
+@ task with Func_41d8. 253 lines; traced structurally.
 .thumb_func_start Func_c1470
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -681,6 +696,9 @@
 	bx	r1
 .func_end Func_c1470
 
+@ ReleaseAnimationAssets
+@ Takes no arguments. Unregisters the task with Func_4278 and frees with
+@ Func_2dd8.
 .thumb_func_start Func_c16d0
 	push	{lr}
 	mov	r1, #0x80
@@ -716,6 +734,10 @@
 	bx	r1
 .func_end Func_c16d0
 
+@ BlendPixels
+@ r0 = source, r1 = destination, r2 = blend amount, r3 = row count.
+@ Blends 15-bit colour a row at a time, masking each channel with 0x1F and
+@ clamping the amount to 0x10000. Pure arithmetic, no calls out.
 .thumb_func_start Func_c1724
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -779,6 +801,10 @@
 	bx	r1
 .func_end Func_c1724
 
+@ RunAnimationSequence
+@ r0.. = parameters. Loads assets (Func_c1470), projects the combatant's parts
+@ (Func_b845c), sets the scene up (Func_c0774) and runs it frame by frame,
+@ releasing with Func_c16d0. 261 lines; traced structurally.
 .thumb_func_start Func_c1798
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1039,25 +1065,6 @@
 	pop	{r0}
 	bx	r0
 .func_end Func_c1798
-
-.thumb_func_start Func_c1a14
-	push	{lr}
-	mov	r0, #0
-	mov	r1, #0
-	bl	Func_c0700
-	pop	{r0}
-	bx	r0
-.func_end Func_c1a14
-
-.thumb_func_start Func_c1a24
-	push	{lr}
-	mov	r0, #2
-	mov	r1, #0
-	mov	r2, #0
-	bl	Func_307c
-	pop	{r0}
-	bx	r0
-.func_end Func_c1a24
 
 	.section .rodata
 

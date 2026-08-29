@@ -1,5 +1,120 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ The sound driver.
+@
+@ 110 functions. This is Nintendo's M4A driver -- the one the SDK shipped and
+@ every GBA game with streamed audio uses -- with a thin game-specific layer on
+@ top. Three pieces of evidence pin it down and none of them is a guess:
+@
+@   * the driver block at iwram_7ff0 begins with 0x68736D53, the ASCII 'Smsh'
+@     identifier, and EVERY public entry point checks it before touching
+@     anything (Func_fa264, Func_fa280, Func_fb2a4 and the rest)
+@   * the track command base is 0xB1: Func_f9c90 subtracts it to index the
+@     36-word jump table at .Lfb7a0, so 0xB1 is FINE, 0xB2 GOTO, 0xB3 PATT,
+@     0xBB TEMPO, 0xBD VOICE, 0xC0 BEND, and so on
+@   * Func_f9a80 copies that whole table into the player, which is how the
+@     engine calls its own commands and helpers by index
+@
+@ THE GAME'S INTERFACE IS ONE FUNCTION. Func_f9080(id) has 1971 call sites --
+@ more than any other function in the ROM by a wide margin -- and routes the id
+@ by range: 0x11 and 0x121 are fades, 0x12 is ignored, 0x50..0x63 are jingles,
+@ anything above 0x63 is a sound effect, and the rest is music. Bit 12 of the
+@ argument makes music start silent so it fades in.
+@
+@ TWO TABLES drive it:
+@
+@     Data_fc624   the PLAYER table, 8 entries of 12 bytes
+@     Data_fc684   the SONG table, 8 bytes per song -- header at +0, player
+@                  index at +4
+@
+@ Player 7 is the shared effect player: Func_f9080 scans players 7 down to 4 for
+@ one whose status word is zero and takes the first free one, falling back to 7
+@ when they are all busy.
+@
+@ THE VOLUME STATE, all in EWRAM and all ticked by Func_f91e8 once a frame:
+@
+@     ewram_3000  jingle countdown       ewram_3008  current volume
+@     ewram_3010  fade step              ewram_3014  fade-out latch
+@     ewram_3020  8 halfwords, the id playing in each effect slot
+@     ewram_3034  target volume          ewram_303c  the current music id
+@
+@ THE PLAYER (r0 in every command handler): +0x04 status with bit 31 = paused,
+@ +0x1C base tempo, +0x1E tempo scale, +0x20 the effective rate, +0x24/+0x26
+@ fade reload and counter, +0x28 fade direction, +0x30 the voice group, +0x34
+@ the ident, +0x3C a per-tick callback.
+@
+@ THE TRACK (r1): +0x00 flags, +0x02 pattern depth, +0x03 repeat counter,
+@ +0x07 running status, +0x0A key shift, +0x0C tune, +0x0E bend, +0x0F bend
+@ range, +0x12 volume, +0x14 pan, +0x16/+0x1A modulation accumulators, +0x18
+@ modulation type, +0x19 LFO speed, +0x1B LFO delay, +0x1D priority,
+@ +0x1E/+0x1F echo, +0x20 the channel list head, +0x24..+0x2F the 12-byte
+@ instrument record, +0x40 the command pointer, +0x44 a THREE-DEEP pattern
+@ stack.
+@
+@ Flag bits 0 and 1 mean "volume or pan changed" and bits 2 and 3 "pitch
+@ changed"; every command handler raises the pair that matches what it wrote,
+@ and Func_f9f6c acts on them.
+@
+@ ROBUSTNESS. Func_f9a98 is a guarded byte read that returns zero for a pointer
+@ outside the expected range, and every stream reader goes through it -- a
+@ corrupt song reads as zeros instead of faulting. Eleven of the 36 jump-table
+@ entries point at Func_f9a50, which simply ends the track, so an unimplemented
+@ command byte cannot run off into the data.
+@
+@ THE TABLE IS VERIFIED, not inferred. Its 36 entries match pret's published
+@ gMPlayJumpTableTemplate position for position, so the correspondence is exact:
+@
+@     0 fine     1 goto     2 patt     3 pend     4 rept    5-8 fine
+@     9 prio    10 tempo   11 keysh   12 voice   13 vol    14 pan
+@    15 bend    16 bendr   17 lfos    18 lfodl   19 mod    20 modt
+@    21-22 fine 23 tune    24-26 fine 27 port    28 fine   29 endtie
+@    30 SampleFreqSet      31 TrackStop         32 FadeOutBody
+@    33 TrkVolPitSet       34 RealClearChain    35 SoundMainBTM
+@
+@ Command byte = index + 0xB1 for entries 0..29; 30..35 are helper pointers the
+@ engine calls indirectly rather than commands a song can issue.
+@
+@ Func_f92fc is a DEBUG SOUND TEST that steps through ids on the d-pad. Nothing
+@ calls it; it is reachable only through its export veneer, like rom_b5000's
+@ Func_b56e0 and rom_b0000's Func_b0444.
+@ ============================================================================
+
+@ PlaySound
+@ r0 = a sound id in bits 0..11, flags in bits 12..15. THE MOST-CALLED FUNCTION
+@ IN THE ROM -- 1971 call sites across every module and every overlay. Nothing
+@ is returned.
+@
+@ It routes the id by range, and the ranges are the whole interface:
+@
+@     0x011        fade the main player at ewram_4290 out over 7 steps, bump the
+@                  fade latch at ewram_3014 and set the current-track byte
+@                  ewram_303c to 0x13
+@     0x121        fade the player at ewram_4360 out over 3 steps and clear
+@                  ewram_3020+6
+@     0x012        ignored outright
+@     0x064..0xFFF SOUND EFFECT. Data_fc684 + id*8 gives the song header at +0
+@                  and the player index at +4. Player 7 is the shared effect
+@                  player: it scans players 7 down to 4 for one whose status word
+@                  is zero and takes the first free one, falling back to player 7
+@                  with slot 0x0E when they are all busy. Func_faa58 starts it and
+@                  the id is recorded at ewram_3020 + slot*2.
+@     0x050..0x063 JINGLE. Fades the main player, zeroes the volume pair, starts
+@                  the song with Func_fa324 and sets ewram_3000 to 0x0A -- the
+@                  countdown after which Func_f91e8 restores the music.
+@     up to 0x04F  MUSIC. Skipped when it is already playing (ewram_303c).
+@                  Func_37d4 is called with 3 for ids 0x43, 0x46 and 0x4B and 2
+@                  otherwise. Then Func_fa324 starts it, and the volume state is
+@                  seeded: BIT 12 OF THE ARGUMENT starts the track silent
+@                  (ewram_3008 = 0) so it fades in, otherwise it starts at full
+@                  (0x100). ewram_3034 is the target, ewram_3010 = 4 the step.
+@
+@ The volume state block, used by Func_f91e8 every frame:
+@
+@     ewram_3000  jingle countdown        ewram_3008  current volume
+@     ewram_3010  fade step               ewram_3014  fade-out latch
+@     ewram_3020  8 halfwords, the id playing in each effect slot
+@     ewram_3034  target volume           ewram_303c  the current music id
 .thumb_func_start Func_f9080
 	push	{r5, r6, r7, lr}
 	mov	r5, #0xf0
@@ -162,6 +277,13 @@
 	bx	r0
 .func_end Func_f9080
 
+@ UpdateSoundVolume
+@ Called every frame. Runs the volume fade toward the target: while ewram_3008
+@ differs from ewram_3034 it moves by the step at ewram_3010 and pushes the
+@ result to the player with Func_fb2a4. It also ticks the jingle countdown at
+@ ewram_3000 -- when it reaches 1 and the jingle player at ewram_4210 has gone
+@ idle, the music is restored to full volume. Func_fb334 and Func_fb2cc apply
+@ the result to the players and Func_f9c44 keeps the DMA fed.
 .thumb_func_start Func_f91e8
 	push	{r5, r6, lr}
 	ldr	r1, =ewram_3000
@@ -288,6 +410,12 @@
 	bx	r0
 .func_end Func_f91e8
 
+@ RunSoundTestLoop
+@ Takes no arguments. A DEBUG SOUND TEST: it loops on Func_30f8(1) reading the
+@ auto-repeat key state at iwram_1b04, steps an id with Func_b1c wrapping, plays
+@ it with Func_f9080 and stashes the value at iwram_7804. Func_37d4 sets the
+@ priority. Nothing in the ROM calls it -- it is reachable only through its
+@ export veneer, like rom_b5000's Func_b56e0 and rom_b0000's Func_b0444.
 .thumb_func_start Func_f92fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -298,7 +426,7 @@
 	push	{r7}
 	sub	sp, #0xc
 	mov	r9, sp
-	ldr	r2, =.Lfb794
+	ldr	r2, =Lfb794
 	mov	r3, r9
 	ldmia	r2!, {r0, r1, r4}
 	stmia	r3!, {r0, r1, r4}
@@ -445,6 +573,10 @@
 	b	.Lf932a
 .func_end Func_f92fc
 
+@ ResetSoundState
+@ Takes no arguments. Zeroes the whole volume state block -- ewram_3000, 3004,
+@ 3008, 300C, 3010, 3014, 3020 and 3030 -- and calls Func_fa2a0 to bring the
+@ driver up. rom_c0's Func_2e00 calls this at boot; it is the only caller.
 .thumb_func_start Func_f9438
 	push	{lr}
 	bl	Func_fa2a0
@@ -498,6 +630,8 @@
 	bx	r0
 .func_end Func_f9438
 
+@ SetMusicVolume
+@ r0 = volume. Applies it to the main player at ewram_4290 through Func_fb2a4.
 .thumb_func_start Func_f94c8
 	push	{lr}
 	mov	r1, r0
@@ -509,6 +643,8 @@
 	bx	r0
 .func_end Func_f94c8
 
+@ SetMusicPitch
+@ r0 = value. Applies it to the main player through Func_fb334.
 .thumb_func_start Func_f94e0
 	push	{lr}
 	mov	r2, r0
@@ -520,127 +656,3 @@
 	pop	{r0}
 	bx	r0
 .func_end Func_f94e0
-
-.thumb_func_start Func_f94f8
-	ldr	r3, =ewram_3030
-	strh	r0, [r3]
-	ldr	r3, =ewram_300c
-	strh	r1, [r3]
-	bx	lr
-.func_end Func_f94f8
-
-.thumb_func_start Func_f950c
-	push	{r5, lr}
-	mov	r2, r0
-	lsl	r2, #16
-	asr	r5, r2, #16
-	ldr	r0, =ewram_4290
-	lsr	r2, #16
-	mov	r1, #0xff
-	bl	Func_fb2cc
-	ldr	r3, =ewram_3034
-	strh	r5, [r3]
-	ldr	r3, =ewram_3008
-	strh	r5, [r3]
-	pop	{r5}
-	pop	{r0}
-	bx	r0
-.func_end Func_f950c
-
-.thumb_func_start Func_f9538
-	ldr	r3, =ewram_3034
-	strh	r0, [r3]
-	ldr	r3, =ewram_3010
-	strh	r1, [r3]
-	bx	lr
-.func_end Func_f9538
-
-.thumb_func_start Func_f954c
-	ldr	r3, =ewram_3000
-	ldrb	r0, [r3]
-	bx	lr
-.func_end Func_f954c
-
-.thumb_func_start Func_f9558
-	push	{lr}
-	bl	Func_fa458
-	pop	{r0}
-	bx	r0
-.func_end Func_f9558
-
-.thumb_func_start Func_f9564
-	push	{lr}
-	bl	Func_fa490
-	pop	{r0}
-	bx	r0
-.func_end Func_f9564
-
-.thumb_func_start Func_f9570
-	push	{lr}
-	mov	r3, #0x80
-	and	r3, r0
-	mov	r2, #0x7f
-	and	r0, r2
-	cmp	r3, #0
-	beq	.Lf9588
-	ldr	r2, =ewram_3040
-	ldrb	r3, [r2]
-	eor	r0, r3
-	strb	r0, [r2]
-	b	.Lf958c
-.Lf9588:
-	ldr	r3, =ewram_3040
-	strb	r0, [r3]
-.Lf958c:
-	pop	{r0}
-	bx	r0
-.func_end Func_f9570
-
-.thumb_func_start Func_f9594
-	ldr	r3, =ewram_303c
-	ldrb	r0, [r3]
-	bx	lr
-.func_end Func_f9594
-
-.thumb_func_start Func_f95a0
-	push	{r5, r6, lr}
-	ldr	r6, =ewram_3000
-	mov	r5, #0
-.Lf95a6:
-	ldrb	r3, [r6]
-	cmp	r3, #0
-	beq	.Lf95ba
-	mov	r0, #1
-	bl	Func_30f8
-	ldr	r3, =0x12b
-	add	r5, #1
-	cmp	r5, r3
-	ble	.Lf95a6
-.Lf95ba:
-	pop	{r5, r6}
-	pop	{r0}
-	bx	r0
-.func_end Func_f95a0
-
-.thumb_func_start Func_f95c8
-	push	{lr}
-	cmp	r0, #0x46
-	beq	.Lf95d6
-	cmp	r0, #0x4b
-	beq	.Lf95d6
-	cmp	r0, #0x43
-	bne	.Lf95da
-.Lf95d6:
-	mov	r0, #3
-	b	.Lf95dc
-.Lf95da:
-	mov	r0, #2
-.Lf95dc:
-	pop	{r1}
-	bx	r1
-.func_end Func_f95c8
-
-	.section .rodata
-
-.Lfb794:
-	.incrom 0xfb794, 0xfb7a0

@@ -13,21 +13,52 @@ MEMORY {
 
 SECTIONS {
 	.text : {
-		overlays/rom_7d6418/exports.o(.text)
-		overlays/rom_7d6418/ovl_30.o(.text)
-		overlays/rom_7d6418/imports.o(.text)
-		lib/call_via.o(.text)
+		src/overlays/rom_7d6418/exports.o(.text)
+		asm/overlays/rom_7d6418/ovl_30_a_b.o(.text)
+		asm/overlays/rom_7d6418/ovl_30_b.o(.text)
+		asm/overlays/rom_7d6418/ovl_30_c_b.o(.text)
+		asm/overlays/rom_7d6418/ovl_30_c_c_a_a_a_b.o(.text)
+		asm/overlays/rom_7d6418/ovl_30_c_c_a_a_a_c_b.o(.text)
+		asm/overlays/rom_7d6418/ovl_30_c_c_a_a_a_c_c.o(.text)
+		asm/overlays/rom_7d6418/ovl_30_c_c_a_a_b.o(.text)
+		asm/overlays/rom_7d6418/ovl_30_c_c_a_b.o(.text)
+		asm/overlays/rom_7d6418/ovl_30_c_c_a_c_b.o(.text)
+		asm/overlays/rom_7d6418/ovl_30_c_c_b.o(.text)
+		asm/overlays/rom_7d6418/ovl_30_c_c_c_a_b.o(.text)
+		asm/overlays/rom_7d6418/ovl_30_c_c_c_a_c_a.o(.text)
+		asm/overlays/rom_7d6418/ovl_30_c_c_c_a_c_b.o(.text)
+		asm/overlays/rom_7d6418/ovl_30_c_c_c_a_c_c.o(.text)
+		asm/overlays/rom_7d6418/ovl_30_c_c_c_b.o(.text)
+		asm/overlays/rom_7d6418/ovl_30_c_c_c_c.o(.text)
+		src/overlays/rom_7d6418/imports.o(.text)
+		src/lib/call_via.o(.text)
 	} > overlay
 
 	.data : {
-		overlays/rom_7d6418/ovl_30.o(.data)
+		asm/overlays/rom_7d6418/ovl_30_c_c_c_c.o(.data)
 	} > overlay
 
 	.bss : {
-		overlays/rom_7d6418/ovl_30.o(.bss)
+		asm/overlays/rom_7d6418/ovl_30_c_c_c_c.o(.bss)
 	} > overlay
 
 	/DISCARD/ : {
 		*(*)
 	}
 }
+
+/* gcc-2.96 emits __modsi3 for `%` and has no flag to rename it. Overlay code
+ * calls the RAM-resident copy through the stub .export_func modsi3_RAM makes.
+ * These are different functions at different addresses, so this alias is what
+ * lets a C modulo in an overlay link to the routine the ROM actually calls.
+ * Emits no bytes. Same reasoning as the __divsi3 alias in other overlay.ld
+ * files -- see overlays/rom_7a5214/overlay.ld for the counts. */
+__modsi3 = _modsi3_RAM;
+
+/* gcc-2.96 emits __divsi3 for the corresponding C operator and has
+ * no flag to rename it.  Overlay code calls the RAM-resident copy through
+ * the stub .export_func divsi3_RAM makes; they are different functions at
+ * different addresses, so this alias is what lets the C form link to the
+ * routine the ROM actually calls.  Emits no bytes.
+ * See overlays/rom_7a5214/overlay.ld for the original of this note. */
+__divsi3 = _divsi3_RAM;

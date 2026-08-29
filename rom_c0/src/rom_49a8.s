@@ -1,10 +1,20 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ NoOp
+@ A bare `bx lr`.
 .thumb_func_start Func_49a8
 	bx	lr
 .func_end Func_49a8
 
+@ LoadIdentity
+@ Takes no arguments. Resets the current transform to the identity, allocating
+@ the matrix storage with Func_48f4 on first use.
+@ THE MATRIX STACK IS THE 3D PIPELINE every module shares: Func_49ac to start,
+@ Func_4bd4 / Func_4c1c / Func_4c6c to rotate about each axis, Func_4cb4 to
+@ scale, Func_4a28 / Func_4a44 to store and replay a built matrix, and
+@ Func_5268 to project a vector to screen. rom_c9000, rom_b5000 and rom_15000
+@ all drive it in that order.
 .thumb_func_start Func_49ac
 	push	{r5, lr}
 	mov	r1, #0x30
@@ -30,6 +40,8 @@
 	bx	r0
 .func_end Func_49ac
 
+@ PushMatrix
+@ Takes no arguments. Saves the current transform.
 .thumb_func_start Func_49e8
 	push	{r5, lr}
 	ldr	r5, =iwram_1cc4
@@ -55,6 +67,10 @@
 	bx	r0
 .func_end Func_49e8
 
+@ StoreMatrix
+@ r0 = destination. Writes the current transform out as 0x30 bytes -- twelve
+@ words, a 3x4 matrix. rom_c9000's Func_dc968 pre-builds 384 of these so its
+@ debris can tumble without per-frame trigonometry.
 .thumb_func_start Func_4a28
 	mov	r1, r0
 	ldr	r3, =REG_DMA3SAD
@@ -65,6 +81,9 @@
 	bx	lr
 .func_end Func_4a28
 
+@ LoadMatrix
+@ r0 = source. Installs a previously stored 0x30-byte transform as the current
+@ one. The replay half of Func_4a28.
 .thumb_func_start Func_4a44
 	ldr	r3, =REG_DMA3SAD
 	ldr	r1, =Data_ac0
@@ -74,6 +93,8 @@
 	bx	lr
 .func_end Func_4a44
 
+@ MultiplyMatrix
+@ r0 = matrix. Post-multiplies the current transform by it.
 .thumb_func_start Func_4a5c
 	push	{lr}
 	ldr	r2, =iwram_1cc4
@@ -96,6 +117,8 @@
 	bx	r0
 .func_end Func_4a5c
 
+@ TranslateMatrix
+@ r0 = a 3-vector. Adds a translation to the current transform.
 .thumb_func_start Func_4a94
 	ldr	r3, =Data_ac0
 	mov	r0, r3
@@ -110,6 +133,9 @@
 	bx	lr
 .func_end Func_4a94
 
+@ BuildRotationMatrix
+@ r0.. = three angles. Composes a full orientation from all three axes in one
+@ pass, which is cheaper than chaining the single-axis routines.
 .thumb_func_start Func_4ab0
 	push	{r5, r6, lr}
 	mov	r6, r11
@@ -221,6 +247,11 @@
 	bx	r0
 .func_end Func_4ab0
 
+@ RotateMatrix
+@ r0 = matrix, r1 = angle. Post-multiplies the current matrix by a rotation
+@ about one axis, taking the sine and cosine from Func_2322 / Func_231c.
+@ Func_4bd4, Func_4c1c and Func_4c6c are the three axes; callers build a full
+@ orientation by chaining them after Func_49ac.
 .thumb_func_start Func_4bd4
 	push	{r5, r6, lr}
 	sub	sp, #0x30
@@ -255,6 +286,11 @@
 	bx	r0
 .func_end Func_4bd4
 
+@ RotateMatrix
+@ r0 = matrix, r1 = angle. Post-multiplies the current matrix by a rotation
+@ about one axis, taking the sine and cosine from Func_2322 / Func_231c.
+@ Func_4bd4, Func_4c1c and Func_4c6c are the three axes; callers build a full
+@ orientation by chaining them after Func_49ac.
 .thumb_func_start Func_4c1c
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -293,6 +329,11 @@
 	bx	r0
 .func_end Func_4c1c
 
+@ RotateMatrix
+@ r0 = matrix, r1 = angle. Post-multiplies the current matrix by a rotation
+@ about one axis, taking the sine and cosine from Func_2322 / Func_231c.
+@ Func_4bd4, Func_4c1c and Func_4c6c are the three axes; callers build a full
+@ orientation by chaining them after Func_49ac.
 .thumb_func_start Func_4c6c
 	push	{r5, r6, lr}
 	sub	sp, #0x30
@@ -327,6 +368,8 @@
 	bx	r0
 .func_end Func_4c6c
 
+@ ScaleMatrix
+@ r0.. = scale factors. Post-multiplies the current transform by a scale.
 .thumb_func_start Func_4cb4
 	push	{r5, r6, lr}
 	sub	sp, #0x30
@@ -356,6 +399,8 @@
 	bx	r0
 .func_end Func_4cb4
 
+@ ScaleMatrixUniform
+@ r0 = scale. Func_4cb4 with the same factor on all three axes.
 .thumb_func_start Func_4cf0
 	push	{r5, r6, lr}
 	sub	sp, #0x30
@@ -385,6 +430,9 @@
 	bx	r0
 .func_end Func_4cf0
 
+@ BuildLookAt
+@ r0.. = parameters. Builds a view transform aiming from one point at another,
+@ using Func_2322 / Func_231c for the derived angles.
 .thumb_func_start Func_4d2c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -498,6 +546,9 @@
 	bx	r0
 .func_end Func_4d2c
 
+@ BuildProjection
+@ r0.. = parameters. Builds the projection half of the pipeline. 148 lines;
+@ traced structurally.
 .thumb_func_start Func_4e54
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -646,6 +697,10 @@
 	bx	r0
 .func_end Func_4e54
 
+@ TransformVectorBatch
+@ r0 = source vectors, r1 = destination, r2 = count. Applies the current
+@ transform to a run of vectors, scaling through Func_45d4. 206 lines; traced
+@ structurally.
 .thumb_func_start Func_4fe4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -852,6 +907,8 @@
 	bx	r0
 .func_end Func_4fe4
 
+@ TransformVector
+@ r0 = vector, r1 = destination. Func_4fe4 for a single vector.
 .thumb_func_start Func_51d8
 	push	{lr}
 	ldr	r2, =Data_ac0
@@ -860,6 +917,8 @@
 	bx	r0
 .func_end Func_51d8
 
+@ TransformVectorInPlace
+@ r0 = vector. Func_4fe4 writing the result back over the source.
 .thumb_func_start Func_51e8
 	push	{r5, lr}
 	sub	sp, #0x30

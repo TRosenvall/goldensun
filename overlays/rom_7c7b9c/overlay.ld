@@ -13,20 +13,59 @@ MEMORY {
 
 SECTIONS {
 	.text : {
-		overlays/rom_7c7b9c/exports.o(.text)
-		overlays/rom_7c7b9c/ovl_30.o(.text)
-		overlays/rom_7c7b9c/imports.o(.text)
+		src/overlays/rom_7c7b9c/exports.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_a_a_a_a.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_a_a_a_b.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_a_a_a_c_a.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_a_a_a_c_b.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_a_a_b.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_a_a_c.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_a_b.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_a_c_b.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_a_c_c.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_b.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_a.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_b.o(.text)
+		src/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_a.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_b.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_a_b.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_a_c.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_b.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a_a.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a_b.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a_c_a.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a_c_b.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a_c_c.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_b.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_c_a.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_c_b.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_b.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_c_a.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_c_b.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_b.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_c_a_a.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_c_a_b.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_c_b.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_b.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_b.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_c.o(.text)
+		src/overlays/rom_7c7b9c/imports.o(.text)
 	} > overlay
 
 	.data : {
-		overlays/rom_7c7b9c/ovl_30.o(.data)
+		asm/overlays/rom_7c7b9c/ovl_30_c_c.o(.data)
 	} > overlay
 
 	.bss : {
-		overlays/rom_7c7b9c/ovl_30.o(.bss)
+		asm/overlays/rom_7c7b9c/ovl_30_c_c.o(.bss)
 	} > overlay
 
 	/DISCARD/ : {
 		*(*)
 	}
 }
+
+/* gcc-2.96 emits __umodsi3 for `%` and has no flag to rename it. Overlay code
+ * calls the RAM-resident copy through the stub .export_func umodsi3_RAM makes.
+ * These are different functions at different addresses. Emits no bytes. */
+__umodsi3 = _umodsi3_RAM;

@@ -1,0 +1,105 @@
+/* const.sym -- constants the ROM POOLS that no literal spelling reproduces.
+ *
+ * WHY THIS FILE EXISTS
+ *
+ * gcc-2.96 never pools a constant it can build with an eight-bit `mov`. So a
+ * pooled small value in the ROM says the source named a SYMBOL, and the
+ * disassembler resolved it back to a number. area.sym, message.sym and
+ * file_table.sym each cover one identified id space; this file is for pooled
+ * constants that belong to none of them.
+ *
+ * THE BAR FOR ADDING ONE, so this does not become a way to explain any
+ * inconvenient constant:
+ *
+ *   1. the ROM POOLS a value an eight-bit `mov` could build, and
+ *   2. no spelling of a literal reproduces both the pool AND the surrounding
+ *      register allocation -- measured, with the attempts recorded in the file
+ *      that needs the symbol.
+ *
+ * A KNOWN EXCEPTION TO THE TELL, so criterion 1 is not sufficient on its own.
+ * gcc DOES pool a small constant when it is an operand of a HALFWORD
+ * expression: in OvlFunc_881_200b8fc the literal 0xc is ORed with an unsigned
+ * short and gcc emits `.word 12` with `ldrh r1, .L5` -- a halfword load from
+ * the pool -- reproducing the ROM exactly. That function matched with plain
+ * literals and needed no symbol at all.
+ *
+ * So before concluding a pooled small value means a symbol, check whether it
+ * meets a halfword. If it does, the literal is the answer and adding an entry
+ * here would be wrong.
+ *
+ * NAMED BY VALUE, asserting nothing about meaning, exactly as message.sym's own
+ * header describes its unidentified entries. An absolute assignment in a linker
+ * script emits no bytes, so a wrong NAME costs nothing and a wrong VALUE fails
+ * `make compare` immediately.
+ *
+ * _CONST_2, the first entry, is the cutscene-lock bit ORed into an actor's flag
+ * halfword at +0x64. The internal control is unusually good: OvlFunc_898_2008cfc
+ * uses the value 2 TWICE, once as a save-flag id where the ROM writes
+ * `mov r0, #2`, and once in this OR where it writes `ldr r3, =2`. Same value,
+ * same function, one immediate and one pooled -- which is the tell doing its job
+ * with the counterexample sitting beside it. Twelve literal spellings were
+ * measured across the four functions that need it; the closest reproduces the
+ * pool with the operands the other way round, or the operands with a `mov`, and
+ * never both.
+ */
+
+_CONST_2 = 0x2;
+
+/* _CONST_200 -- the inventory "locked slot" mask, bit 9.
+ *
+ * Func_80a40ac tests it with `ldr r3, =0x200 / and r3, r2`. gcc-2.96 never
+ * pools 0x200: EIGHT spellings were probed in one file and every one emits
+ * `mov r3, #128 / lsl r3, #2` --
+ *
+ *     int & 0x200            unsigned short & 0x200     int & m, m = 0x200
+ *     (v >> 9) & 1           int & (1 << 9)             unsigned int & 0x200
+ *     (v & 0x200) != 0       short & 0x200
+ *
+ * -- so criterion 2 is measured rather than asserted. The unsigned short and
+ * short forms are worse than the others, not better: gcc shifts the value left
+ * to test the bit instead of masking, and the surrounding allocation moves.
+ *
+ * The halfword exception recorded above does NOT apply here. The masked value
+ * is widened to int by integer promotion before the AND, so there is no HImode
+ * expression for gcc to pool into.
+ *
+ * With `(int)&_CONST_200` the pool appears exactly as the ROM has it.
+ * Func_80a40ac still does not match -- it ends on a register-role swap, r2
+ * against r3 -- so this entry is recorded on the pool evidence alone and not
+ * on a completed function. */
+_CONST_200 = 0x200;
+
+/* _CONST_1f -- the 5-bit colour-channel mask.
+ *
+ * Func_80a2144 masks two channels with 0x1f and POOLS ONE OF THEM while
+ * building the other with `mov r0, #0x1f` -- same value, same function, one
+ * each way. That is the internal control this file's header describes for
+ * _CONST_2, appearing again.
+ *
+ * SEVEN spellings were probed and none emits the ROM's word-sized pool load:
+ *
+ *     (t >> 21) & 0x1f          m = 0x1f; (t >> 21) & m     0x1f & (t >> 21)
+ *     ((t >> 21) << 27) >> 27   int m = 31; (t >> 21) & m   (t >> 21) % 32
+ *     unsigned short t; (t >> 5) & 0x1f
+ *
+ * All but the last give `mov r3, #31`. The last DOES pool it -- the halfword
+ * exception above -- but as `ldrh`, a halfword load, where the ROM has `ldr`.
+ * Close enough to be worth recording as a near miss and not close enough to
+ * count.
+ *
+ * The reference must be INLINE, `(t >> 21) & (int)&_CONST_1f`. Held in a local
+ * it costs an extra callee-saved register and the function comes out worse
+ * than with the literal -- 30 differing against 21.
+ *
+ * UNVALIDATED, AND THIS ENTRY SAYS SO. With the inline reference tryc.py
+ * reports ONE difference, `=0x1f` against `=_CONST_1f`, which resolve to the
+ * same value at link. `make compare` still FAILED. The screen normalises pool
+ * loads and cannot see where a pool sits, so a function in this class can read
+ * clean and still differ in bytes -- the same trap that caught
+ * OvlFunc_919_200815c. Whatever else differs in Func_80a2144 is invisible to
+ * the screen and was not found.
+ *
+ * The entry is kept on the seven-spelling evidence, which is real and
+ * reusable. It is NOT evidence that this symbol completes any function. */
+_CONST_1f = 0x1f;
+

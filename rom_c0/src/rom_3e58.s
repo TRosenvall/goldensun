@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ FindObjTileRun
+@ r0 = slot (0..0x5F), r1 = size. Searches the OBJ tile table for a free run
+@ large enough and returns its index, or -1.
+@ THE OBJ TILE ALLOCATOR IS A 96-SLOT TABLE at iwram_1b10, four bytes per slot,
+@ with the halfword at +2 set to 0xFFFF when the slot is free. iwram_1810 is the
+@ companion run-length table. Every module's OBJ reservations -- rom_15000's
+@ glyph nodes, rom_c9000's effect sprites, rom_b5000's combatants -- come from
+@ here, which is why a leak in one module starves the others.
 .thumb_func_start Func_3e58
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -69,6 +77,8 @@
 	bx	r1
 .func_end Func_3e58
 
+@ GetObjTileSlot
+@ r0 = slot. Returns the slot record at iwram_1b10 + slot*4.
 .thumb_func_start Func_3ed4
 	push	{lr}
 	mov	r2, #0x80
@@ -96,6 +106,9 @@
 	bx	r1
 .func_end Func_3ed4
 
+@ ReleaseObjTileRun
+@ r0 = slot. Marks the run free by writing 0xFFFF to its +2 halfword and
+@ coalescing with neighbours.
 .thumb_func_start Func_3f04
 	push	{r5, lr}
 	mov	r4, #0
@@ -130,6 +143,9 @@
 	bx	r1
 .func_end Func_3f04
 
+@ FreeObjTiles
+@ r0 = slot (0..0x5F). Releases the slot through Func_3f04, returning -1 for an
+@ out-of-range slot or one that was already free.
 .thumb_func_start Func_3f3c
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1b10
@@ -160,6 +176,8 @@
 	bx	r1
 .func_end Func_3f3c
 
+@ FreeObjTilesQuiet
+@ r0 = slot. As Func_3f3c without the already-free check.
 .thumb_func_start Func_3f78
 	push	{r5, lr}
 	ldr	r3, =iwram_1b10
@@ -185,6 +203,10 @@
 	bx	r1
 .func_end Func_3f78
 
+@ AllocObjTiles
+@ r0 = slot, r1 = size in bytes, r2 = flags. Reserves OBJ tile space, rejecting
+@ a slot above 0x5F or a size above 0x2000. Frees any previous reservation on
+@ the slot with Func_3f3c first, so re-reserving is safe.
 .thumb_func_start Func_3fa4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -259,6 +281,8 @@
 	bx	r1
 .func_end Func_3fa4
 
+@ InitObjTileTable
+@ Takes no arguments. Marks all 96 slots free.
 .thumb_func_start Func_403c
 	push	{lr}
 	ldr	r0, =0x1ff
@@ -295,6 +319,9 @@
 	bx	r0
 .func_end Func_403c
 
+@ CountFreeObjTiles
+@ Takes no arguments. Returns how many of the 96 slots are free (halfword at +2
+@ equal to 0xFFFF).
 .thumb_func_start Func_4080
 	push	{lr}
 	ldr	r1, =iwram_1b10
@@ -321,6 +348,9 @@
 	bx	r1
 .func_end Func_4080
 
+@ AllocObjTilesChecked
+@ r0.. = parameters. Func_3fa4 followed by Func_4080, so the caller learns both
+@ the reservation and how much room is left.
 .thumb_func_start Func_40b4
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -335,6 +365,8 @@
 	bx	r1
 .func_end Func_40b4
 
+@ AllocObjTilesSimple
+@ r0.. = parameters. A thin Func_3fa4 wrapper with default flags.
 .thumb_func_start Func_40d0
 	push	{lr}
 	mov	r2, r1

@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Leaf helper, 15 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_30
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -20,16 +23,23 @@
 	bx	r1
 .func_end OvlFunc_30
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_60
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_60
 
+@ Slot 2: the map event list -- .L1d9c.
 .thumb_func_start OvlFunc_64
 	ldr	r0, =.L1d9c
 	bx	lr
 .func_end OvlFunc_64
 
+@ Slot 3: the read after slot 4.
+@ Chooses among .L1df4, .L1ddc
+@ on the area/entrance id at ewram_240+0x1C0 or +0x1C2.
+@ The result is passed through Func_8b868 first, which tags the records
+@ whose position falls inside the active bounds.
 .thumb_func_start OvlFunc_6c
 	push	{r5, lr}
 	ldr	r3, =ewram_240
@@ -54,6 +64,9 @@
 	bx	r1
 .func_end OvlFunc_6c
 
+@ Leaf helper, 15 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_a4
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -74,6 +87,7 @@
 	bx	r1
 .func_end OvlFunc_a4
 
+@ Talk: line 0x1b83, asked as a question.
 .thumb_func_start OvlFunc_d4
 	push	{lr}
 	bl	__Func_916b0
@@ -87,6 +101,7 @@
 	bx	r0
 .func_end OvlFunc_d4
 
+@ Talk: line 0x1b88, asked as a question.
 .thumb_func_start OvlFunc_f4
 	push	{lr}
 	bl	__Func_916b0
@@ -100,6 +115,9 @@
 	bx	r0
 .func_end OvlFunc_f4
 
+@ Talk: line 0x1b91, shown.
+@ Also plays an interaction effect, re-forms the followers.
+@ Sets save bit 0x913.
 .thumb_func_start OvlFunc_114
 	push	{lr}
 	bl	__Func_916b0
@@ -142,6 +160,14 @@
 	bx	r0
 .func_end OvlFunc_114
 
+@ 67 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, DialogueWait, PlaySound x2, ResumeTileAnimationChannel x2
+@   DialogueWait, SetSlotEntitySpeed, SetSlotAnimation, MoveSlotBy
+@   WalkSlotThroughDoorway, DialogueWait, SetPendingMessageId, PauseTileAnimationChannel x2
+@   EndCutscene
 .thumb_func_start OvlFunc_184
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc
@@ -216,6 +242,11 @@
 	bx	r0
 .func_end OvlFunc_184
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_264
 .thumb_func_start OvlFunc_230
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -236,6 +267,16 @@
 	bx	r1
 .func_end OvlFunc_230
 
+@ 94 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PauseTileAnimationChannel x2, TestSaveBit, GetSlotEntityChecked, TestSaveBit
+@   OvlFunc_1494, PlaceSlotAt, TestSaveBit, PlaceSlotAt
+@   GetSlotEntityChecked, TestSaveBit, CopyMapRectIndicesU, CopyMapRectAttributes
+@   UpdateMapView, Func_30f8
+@   ... and 3 more
+@ reads save bits 0x109, 0x321, 0x914, 0x915, 0x941.
 .thumb_func_start OvlFunc_264
 	push	{lr}
 	mov	r0, #1
@@ -339,6 +380,11 @@
 	bx	r0
 .func_end OvlFunc_264
 
+@ Cutscene: roughly 1649 instructions of straight-line script --
+@ 74 turns, 76 animation changes, 89 dialogue lines, 38 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1b21.
+@ Sets save bit 0x912.
 .thumb_func_start OvlFunc_360
 	push	{r5, r6, lr}
 	bl	__Func_916b0
@@ -2013,6 +2059,11 @@
 	bx	r0
 .func_end OvlFunc_360
 
+@ 29 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TurnSlotToAngle x4, DialogueWait
 .thumb_func_start OvlFunc_140c
 	push	{r5, lr}
 	mov	r1, #0xc0
@@ -2046,6 +2097,11 @@
 	bx	r0
 .func_end OvlFunc_140c
 
+@ 29 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TurnSlotToAngle x4, DialogueWait
 .thumb_func_start OvlFunc_1450
 	push	{r5, lr}
 	mov	r1, #0xc0
@@ -2079,6 +2135,11 @@
 	bx	r0
 .func_end OvlFunc_1450
 
+@ Cutscene: roughly 550 instructions of straight-line script --
+@ 15 turns, 16 animation changes, 26 dialogue lines, 11 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x2588.
+@ Sets save bit 0x914.
 .thumb_func_start OvlFunc_1494
 	push	{r5, r6, lr}
 	bl	__Func_916b0

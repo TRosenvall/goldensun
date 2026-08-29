@@ -1,30 +1,40 @@
 	.include "macros.inc"
 
+@ Slot 1: the edge-transition table -- .Lcf0.
 .thumb_func_start OvlFunc_30
 	ldr	r0, =.Lcf0
 	bx	lr
 .func_end OvlFunc_30
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_38
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_38
 
+@ Slot 2: the map event list -- .Ld38.
 .thumb_func_start OvlFunc_3c
 	ldr	r0, =.Ld38
 	bx	lr
 .func_end OvlFunc_3c
 
+@ Slot 3: the read after slot 4 -- .Ld44.
 .thumb_func_start OvlFunc_44
 	ldr	r0, =.Ld44
 	bx	lr
 .func_end OvlFunc_44
 
+@ Slot 4: the map object table -- .Le94.
 .thumb_func_start OvlFunc_4c
 	ldr	r0, =.Le94
 	bx	lr
 .func_end OvlFunc_4c
 
+@ 13 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OvlFunc_74
 .thumb_func_start OvlFunc_54
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -42,6 +52,11 @@
 	bx	r1
 .func_end OvlFunc_54
 
+@ Cutscene: roughly 975 instructions of straight-line script --
+@ 28 turns, 36 animation changes, 20 dialogue lines, 67 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1122.
+@ Sets save bit 0x879.
 .thumb_func_start OvlFunc_74
 	push	{r5, lr}
 	bl	__Func_916b0

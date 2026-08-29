@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ UploadEncounterPalettes
+@ Takes no arguments. DMAs the encounter transition's palette working set --
+@ 0x150 words from the scene buffer at [iwram_1ebc+0x14]+0x3400 into
+@ [iwram_1ebc]+0x776 -- staging the colours the wipe interpolates between.
 .thumb_func_start Func_97384
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc
@@ -109,6 +113,10 @@
 	bx	r0
 .func_end Func_97384
 
+@ StartEncounterFade
+@ Takes no arguments. Begins the fade into an encounter: hands the buffer at
+@ iwram_1ebc+0x236 to Func_91200 with mode 2 and checks the encounter-pending
+@ counter at +0xCB8 to decide whether the fade runs at all.
 .thumb_func_start Func_9748c
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1ebc
@@ -140,6 +148,10 @@
 	bx	r0
 .func_end Func_9748c
 
+@ PrepareEncounterTransition
+@ r0=encounter id. Sets up the transition out of the field and into battle.
+@ Scene mode 3 (iwram_1ebc+0x19E) takes a separate path that skips the field
+@ teardown. The ~40-instruction body is characterised structurally.
 .thumb_func_start Func_974d8
 	push	{r5, r6, lr}
 	ldr	r2, =iwram_1ebc
@@ -191,6 +203,10 @@
 	bx	r0
 .func_end Func_974d8
 
+@ RunEncounterTransition
+@ r0=encounter id, r1=style. Allocates the transition state with
+@ Func_48f4(0x16, 0x298), uploads the palettes with Func_97384 and drives the
+@ wipe to completion. The ~90-instruction body is characterised structurally.
 .thumb_func_start Func_97540
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -273,6 +289,10 @@
 	bx	r0
 .func_end Func_97540
 
+@ EndEncounterTransition
+@ Takes no arguments. Tears the transition down: Func_97adc restores the display
+@ registers, Func_4278 unregisters the per-frame task Func_97644, and the player
+@ entity (id at [iwram_1ea8]+0x290) is returned to its idle animation.
 .thumb_func_start Func_97608
 	push	{r5, lr}
 	ldr	r3, =iwram_1ea8
@@ -295,6 +315,11 @@
 	bx	r0
 .func_end Func_97608
 
+@ EncounterTransitionTask
+@ Per-frame task registered during an encounter transition. Advances the wipe:
+@ steps the phase counter at [iwram_1ea8]+0x294, recomputes the per-scanline
+@ distortion and rewrites the palette and blend registers each frame. The
+@ ~220-instruction body is characterised structurally.
 .thumb_func_start Func_97644
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -550,6 +575,10 @@
 	bx	r0
 .func_end Func_97644
 
+@ EncounterFlashTask
+@ Per-frame task driving the screen flash that precedes the wipe. Runs only
+@ while the phase byte at [iwram_1ea8]+0x294 is zero and the enable byte at
+@ +0x28A is set; otherwise it retires itself.
 .thumb_func_start Func_97868
 	push	{lr}
 	ldr	r3, =iwram_1ea8
@@ -588,6 +617,10 @@
 	bx	r0
 .func_end Func_97868
 
+@ ComputeEncounterWipeGeometry
+@ Takes no arguments. Derives the wipe's centre and radii from the angle stored
+@ at [iwram_1ea8]+0x28E, writing the three results to the caller's stack frame
+@ for Func_97644 to consume.
 .thumb_func_start Func_978c4
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1ea8
@@ -651,6 +684,10 @@
 	bx	r0
 .func_end Func_978c4
 
+@ BuildWipeScanlineTable
+@ r0=table, r1, r2, r3 = geometry. Fills the per-scanline offsets that shape the
+@ encounter wipe, working in the 0x1F0000 / 0x780000 fixed-point range the
+@ effect uses.
 .thumb_func_start Func_97948
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -695,6 +732,10 @@
 	bx	r0
 .func_end Func_97948
 
+@ ScaleWipeRadius
+@ r0=radius, r1=numerator, r2=scale. Scales a wipe radius through Func_97a10,
+@ falling back to a Func_888 multiply when the intermediate exceeds 0x3BFFFF so
+@ the result does not overflow.
 .thumb_func_start Func_979a4
 	push	{r5, r6, lr}
 	mov	r6, r1
@@ -744,6 +785,10 @@
 	bx	r1
 .func_end Func_979a4
 
+@ DivideSigned
+@ r0=numerator, r1=denominator. Returns the quotient, handling a zero
+@ denominator by returning 0 and normalising the sign before dividing (the top
+@ nibble test at .L97a28 detects a negative denominator and negates both).
 .thumb_func_start Func_97a10
 	push	{r5, r6, lr}
 	mov	r5, r1
@@ -774,6 +819,11 @@
 	bx	r1
 .func_end Func_97a10
 
+@ HasNoMoveTarget
+@ r0=entity. Returns non-zero when all three movement targets (+0x38, +0x3C,
+@ +0x40) still hold the 0x80000000 "none" sentinel -- i.e. the entity is not
+@ moving anywhere. Compare Func_ca98 in rom_9000, which applies the same test
+@ with the vertical axis conditional.
 .thumb_func_start Func_97a54
 	push	{lr}
 	mov	r2, #0x80
@@ -794,6 +844,10 @@
 	bx	r0
 .func_end Func_97a54
 
+@ SetEncounterDisplayRegisters
+@ Takes no arguments. Puts the display into encounter-transition state: sets the
+@ active flag at [iwram_1e8c]+0xEA4, and writes 0x739C into the two window
+@ registers at 0x50001E2 and 0x50001E6.
 .thumb_func_start Func_97a7c
 	push	{lr}
 	ldr	r3, =iwram_1e8c
@@ -841,6 +895,10 @@
 	bx	r0
 .func_end Func_97a7c
 
+@ RestoreDisplayRegisters
+@ Takes no arguments. Undoes Func_97a7c: unregisters the flash task Func_97868,
+@ restores the window registers at 0x50001E2 / 0x50001E6 to 0x7FFF and 0, and
+@ resets the blend state so the field renders normally again.
 .thumb_func_start Func_97adc
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1e8c

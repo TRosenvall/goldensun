@@ -1,0 +1,37 @@
+/* const.sym -- constants the ROM POOLS that no literal spelling reproduces.
+ *
+ * WHY THIS FILE EXISTS
+ *
+ * gcc-2.96 never pools a constant it can build with an eight-bit `mov`. So a
+ * pooled small value in the ROM says the source named a SYMBOL, and the
+ * disassembler resolved it back to a number. area.sym, message.sym and
+ * file_table.sym each cover one identified id space; this file is for pooled
+ * constants that belong to none of them.
+ *
+ * THE BAR FOR ADDING ONE, so this does not become a way to explain any
+ * inconvenient constant:
+ *
+ *   1. the ROM POOLS a value an eight-bit `mov` could build, and
+ *   2. no spelling of a literal reproduces both the pool AND the surrounding
+ *      register allocation -- measured, with the attempts recorded in the file
+ *      that needs the symbol.
+ *
+ * NAMED BY VALUE, asserting nothing about meaning, exactly as message.sym's own
+ * header describes its unidentified entries. An absolute assignment in a linker
+ * script emits no bytes, so a wrong NAME costs nothing and a wrong VALUE fails
+ * `make compare` immediately.
+ *
+ * _CONST_2, the first entry, is the cutscene-lock bit ORed into an actor's flag
+ * halfword at +0x64. The internal control is unusually good: OvlFunc_898_2008cfc
+ * uses the value 2 TWICE, once as a save-flag id where the ROM writes
+ * `mov r0, #2`, and once in this OR where it writes `ldr r3, =2`. Same value,
+ * same function, one immediate and one pooled -- which is the tell doing its job
+ * with the counterexample sitting beside it. Twelve literal spellings were
+ * measured across the four functions that need it; the closest reproduces the
+ * pool with the operands the other way round, or the operands with a `mov`, and
+ * never both.
+ */
+
+_CONST_2 = 0x2;
+_CONST_16f = 0x16f;
+_CONST_171 = 0x171;

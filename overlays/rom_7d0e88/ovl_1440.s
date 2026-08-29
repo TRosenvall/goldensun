@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Leaf helper, 35 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_1440
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -44,16 +47,21 @@
 	bx	r1
 .func_end OvlFunc_1440
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_14b8
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_14b8
 
+@ Slot 2: the map event list -- .L3014.
 .thumb_func_start OvlFunc_14bc
 	ldr	r0, =.L3014
 	bx	lr
 .func_end OvlFunc_14bc
 
+@ Leaf helper, 30 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_14c4
 	push	{lr}
 	ldr	r3, =ewram_240

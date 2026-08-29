@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ LookupSpriteVariant
+@ r0 = combatant/resource id. Searches the halfword table at .Lc593c for an
+@ entry whose LOW 9 BITS match, and returns that entry's high 7 bits (>> 9) as
+@ the variant. The table ends at a halfword of -1; an id that is not listed
+@ returns the default variant 6.
 .thumb_func_start Func_b6e7c
 	push	{r5, lr}
 	mov	r5, r0

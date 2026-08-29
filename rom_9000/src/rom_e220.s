@@ -1,5 +1,27 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Entity field accessors.
+@
+@ Every function from Func_e220 to Func_e964 is the same shape and exists once
+@ per entity field. They are not called directly by scripts -- Data_136e0 is a
+@ table of them indexed by field id, and the three dispatchers at the end of
+@ this file (Func_e9a0 / Func_e9dc / Func_ea18) look one up and invoke it.
+@
+@   r0 = entity
+@   r1 = operation: 0 = set the field to r2
+@                   1 = add r2 to the field
+@                   anything else = compare the field with r2 and write 1 or 0
+@                                   to the script condition byte at +0x57, where
+@                                   ScriptOp_JumpIfTrue / JumpIfFalse read it
+@   r2 = value
+@
+@ Byte and halfword fields narrow r2 before comparing, which is why the compare
+@ arm shifts. No accessor returns anything meaningful.
+@ ============================================================================
+
+@ EntityField_00 -- script base pointer
+@ NOTE: add scales the operand by 4, so it advances by whole script words.
 .thumb_func_start Func_e220
 	push	{lr}
 	cmp	r1, #0
@@ -29,6 +51,7 @@
 	bx	r0
 .func_end Func_e220
 
+@ EntityField_04 -- script cursor (halfword, signed compare)
 .thumb_func_start Func_e24c
 	push	{lr}
 	mov	r4, r2
@@ -61,6 +84,7 @@
 	bx	r0
 .func_end Func_e24c
 
+@ EntityField_06 -- facing angle (halfword, unsigned compare)
 .thumb_func_start Func_e280
 	push	{lr}
 	mov	r4, r2
@@ -92,6 +116,7 @@
 	bx	r0
 .func_end Func_e280
 
+@ EntityField_08 -- position x (16.16)
 .thumb_func_start Func_e2b0
 	push	{lr}
 	cmp	r1, #0
@@ -120,6 +145,7 @@
 	bx	r0
 .func_end Func_e2b0
 
+@ EntityField_0C -- position y (16.16)
 .thumb_func_start Func_e2dc
 	push	{lr}
 	cmp	r1, #0
@@ -148,6 +174,7 @@
 	bx	r0
 .func_end Func_e2dc
 
+@ EntityField_10 -- position z (16.16)
 .thumb_func_start Func_e308
 	push	{lr}
 	cmp	r1, #0
@@ -176,6 +203,7 @@
 	bx	r0
 .func_end Func_e308
 
+@ EntityField_20 -- collision radius (halfword, signed compare)
 .thumb_func_start Func_e334
 	push	{lr}
 	mov	r4, r2
@@ -207,6 +235,7 @@
 	bx	r0
 .func_end Func_e334
 
+@ EntityField_18 -- depth / scale reference A
 .thumb_func_start Func_e364
 	push	{lr}
 	cmp	r1, #0
@@ -235,6 +264,7 @@
 	bx	r0
 .func_end Func_e364
 
+@ EntityField_1C -- depth / scale reference B
 .thumb_func_start Func_e390
 	push	{lr}
 	cmp	r1, #0
@@ -263,6 +293,7 @@
 	bx	r0
 .func_end Func_e390
 
+@ EntityField_24 -- velocity x
 .thumb_func_start Func_e3bc
 	push	{lr}
 	cmp	r1, #0
@@ -291,6 +322,7 @@
 	bx	r0
 .func_end Func_e3bc
 
+@ EntityField_28 -- velocity y
 .thumb_func_start Func_e3e8
 	push	{lr}
 	cmp	r1, #0
@@ -319,6 +351,7 @@
 	bx	r0
 .func_end Func_e3e8
 
+@ EntityField_2C -- velocity z
 .thumb_func_start Func_e414
 	push	{lr}
 	cmp	r1, #0
@@ -347,6 +380,7 @@
 	bx	r0
 .func_end Func_e414
 
+@ EntityField_30 -- maximum speed
 .thumb_func_start Func_e440
 	push	{lr}
 	cmp	r1, #0
@@ -375,6 +409,7 @@
 	bx	r0
 .func_end Func_e440
 
+@ EntityField_34 -- acceleration
 .thumb_func_start Func_e46c
 	push	{lr}
 	cmp	r1, #0
@@ -403,6 +438,7 @@
 	bx	r0
 .func_end Func_e46c
 
+@ EntityField_38 -- target x (0x80000000 = none)
 .thumb_func_start Func_e498
 	push	{lr}
 	cmp	r1, #0
@@ -431,6 +467,7 @@
 	bx	r0
 .func_end Func_e498
 
+@ EntityField_3C -- target y (0x80000000 = none)
 .thumb_func_start Func_e4c4
 	push	{lr}
 	cmp	r1, #0
@@ -459,6 +496,7 @@
 	bx	r0
 .func_end Func_e4c4
 
+@ EntityField_40 -- target z (0x80000000 = none)
 .thumb_func_start Func_e4f0
 	push	{lr}
 	cmp	r1, #0
@@ -487,6 +525,7 @@
 	bx	r0
 .func_end Func_e4f0
 
+@ EntityField_44 -- restitution / oscillation phase
 .thumb_func_start Func_e51c
 	push	{lr}
 	cmp	r1, #0
@@ -515,6 +554,7 @@
 	bx	r0
 .func_end Func_e51c
 
+@ EntityField_48 -- fall cutoff / oscillation amplitude
 .thumb_func_start Func_e548
 	push	{lr}
 	cmp	r1, #0
@@ -543,6 +583,7 @@
 	bx	r0
 .func_end Func_e548
 
+@ EntityField_14 -- cached ground height
 .thumb_func_start Func_e574
 	push	{lr}
 	cmp	r1, #0
@@ -571,6 +612,7 @@
 	bx	r0
 .func_end Func_e574
 
+@ EntityField_4C -- general-purpose script word
 .thumb_func_start Func_e5a0
 	push	{lr}
 	cmp	r1, #0
@@ -599,6 +641,8 @@
 	bx	r0
 .func_end Func_e5a0
 
+@ EntityField_50 -- actor pointer
+@ NOTE: add scales the operand by 4, so it steps through an actor array.
 .thumb_func_start Func_e5cc
 	push	{lr}
 	cmp	r1, #0
@@ -628,6 +672,7 @@
 	bx	r0
 .func_end Func_e5cc
 
+@ EntityField_54 -- draw kind (byte)
 .thumb_func_start Func_e5f8
 	push	{lr}
 	mov	r4, r2
@@ -665,6 +710,7 @@
 	bx	r0
 .func_end Func_e5f8
 
+@ EntityField_55 -- movement mode bits (byte)
 .thumb_func_start Func_e634
 	push	{lr}
 	mov	r4, r2
@@ -702,6 +748,7 @@
 	bx	r0
 .func_end Func_e634
 
+@ EntityField_56 -- arrival axis (byte: 0x10 x, 0x11 y, 0x12 z)
 .thumb_func_start Func_e670
 	push	{lr}
 	mov	r4, r2
@@ -739,6 +786,8 @@
 	bx	r0
 .func_end Func_e670
 
+@ EntityField_57 -- script condition flag (byte)
+@ NOTE: this accessor targets the condition byte itself, so a compare here both reads and overwrites it.
 .thumb_func_start Func_e6ac
 	push	{lr}
 	mov	r4, r2
@@ -773,6 +822,7 @@
 	bx	r0
 .func_end Func_e6ac
 
+@ EntityField_58 -- snap-to-target-on-arrival flag (byte)
 .thumb_func_start Func_e6e4
 	push	{lr}
 	mov	r4, r2
@@ -810,6 +860,7 @@
 	bx	r0
 .func_end Func_e6e4
 
+@ EntityField_59 -- collision flags (byte; bit 0 collidable)
 .thumb_func_start Func_e720
 	push	{lr}
 	mov	r4, r2
@@ -847,6 +898,7 @@
 	bx	r0
 .func_end Func_e720
 
+@ EntityField_5A -- turn-to-face flags (byte; bit 0 enables)
 .thumb_func_start Func_e75c
 	push	{lr}
 	mov	r4, r2
@@ -884,6 +936,7 @@
 	bx	r0
 .func_end Func_e75c
 
+@ EntityField_5B -- freeze flag (byte)
 .thumb_func_start Func_e798
 	push	{lr}
 	mov	r4, r2
@@ -921,6 +974,7 @@
 	bx	r0
 .func_end Func_e798
 
+@ EntityField_5D -- loop iteration counter (byte)
 .thumb_func_start Func_e7d4
 	push	{lr}
 	mov	r4, r2
@@ -958,6 +1012,7 @@
 	bx	r0
 .func_end Func_e7d4
 
+@ EntityField_5E -- wait timer (halfword)
 .thumb_func_start Func_e810
 	push	{r5, lr}
 	mov	r4, r2
@@ -997,6 +1052,7 @@
 	bx	r0
 .func_end Func_e810
 
+@ EntityField_64 -- spawn/leash tile x (halfword)
 .thumb_func_start Func_e850
 	push	{r5, lr}
 	mov	r4, r2
@@ -1036,6 +1092,7 @@
 	bx	r0
 .func_end Func_e850
 
+@ EntityField_66 -- spawn/leash tile z (halfword)
 .thumb_func_start Func_e890
 	push	{r5, lr}
 	mov	r4, r2
@@ -1075,6 +1132,7 @@
 	bx	r0
 .func_end Func_e890
 
+@ EntityField_68 -- script argument / target entity
 .thumb_func_start Func_e8d0
 	push	{lr}
 	cmp	r1, #0
@@ -1103,6 +1161,7 @@
 	bx	r0
 .func_end Func_e8d0
 
+@ EntityField_6C -- per-frame hook function pointer
 .thumb_func_start Func_e8fc
 	push	{lr}
 	cmp	r1, #0
@@ -1131,6 +1190,7 @@
 	bx	r0
 .func_end Func_e8fc
 
+@ EntityField_62 -- general-purpose script byte A
 .thumb_func_start Func_e928
 	push	{lr}
 	mov	r4, r2
@@ -1168,6 +1228,7 @@
 	bx	r0
 .func_end Func_e928
 
+@ EntityField_63 -- general-purpose script byte B
 .thumb_func_start Func_e964
 	push	{lr}
 	mov	r4, r2
@@ -1205,6 +1266,11 @@
 	bx	r0
 .func_end Func_e964
 
+@ ScriptOp_SetField
+@ Script opcode handler. r0=entity. Reads a field id from script[cursor+1]
+@ and a value from script[cursor+2], looks the id up in the accessor table
+@ Data_136e0, and calls it with operation 0 to set the field. A null table
+@ entry is skipped silently. Advances the cursor by 3 and returns 1.
 .thumb_func_start Func_e9a0
 	push	{r5, lr}
 	mov	r5, r0
@@ -1235,6 +1301,11 @@
 	bx	r1
 .func_end Func_e9a0
 
+@ ScriptOp_AddField
+@ Script opcode handler. r0=entity. Reads a field id from script[cursor+1]
+@ and a value from script[cursor+2], looks the id up in the accessor table
+@ Data_136e0, and calls it with operation 1 to add to the field. A null table
+@ entry is skipped silently. Advances the cursor by 3 and returns 1.
 .thumb_func_start Func_e9dc
 	push	{r5, lr}
 	mov	r5, r0
@@ -1265,6 +1336,11 @@
 	bx	r1
 .func_end Func_e9dc
 
+@ ScriptOp_CompareField
+@ Script opcode handler. r0=entity. Reads a field id from script[cursor+1]
+@ and a value from script[cursor+2], looks the id up in the accessor table
+@ Data_136e0, and calls it with operation 2 to compare the field. A null table
+@ entry is skipped silently. Advances the cursor by 3 and returns 1.
 .thumb_func_start Func_ea18
 	push	{r5, lr}
 	mov	r5, r0

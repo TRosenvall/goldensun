@@ -1,0 +1,70 @@
+/* OvlFunc_945_20080fc  --  NOT MATCHING
+ *
+ * Source asm: goldensun/asm/overlays/rom_7cb2c0/ovl_30_a_c_c_a.s
+ * Best screen: 19 instructions in disagreeing regions, of 28 (rom 28, ours 27).
+ *
+ * BLOCKER CLASS: basic-block placement.
+ *
+ * The ROM puts the `return 1` for the counter-expired case BETWEEN the
+ * decrement and the rest of the function:
+ *
+ *      cmp r3, #0 / beq .L10a
+ *      sub r3, #1 / str r3, [r0, #0x4c] / b .L10e
+ *      .L10a: mov r0, #1 / b .L128
+ *      .L10e: <the three comparisons>
+ *
+ * gcc sinks that block to the end, past the comparisons, and every label after
+ * the first shifts.
+ *
+ * WHAT WAS TRIED
+ *   1. A plain early `return 1;` (19 of 28).
+ *   2. The layout written out explicitly with gotos --
+ *      `if (v == 0) goto one; ... goto rest; one: return 1; rest: ...` --
+ *      which is the ROM's block order stated in the source. BYTE-IDENTICAL.
+ *
+ * (2) WAS THE WRONG CONCLUSION AND IS CORRECTED HERE. It said block reordering
+ * happens after the source has had its say and cannot be reached from C. What
+ * (2) actually tested was a goto spelling of the SAME early-return shape, which
+ * changes nothing -- both put the return at the guard.
+ *
+ * INVERTING THE GUARD DOES REACH IT. Putting the body inside `if (cond) { ...
+ * return X; }` with the other return AFTER, so the body is the taken branch,
+ * moves the short return block to the end where the ROM has it. That elevated
+ * four __CreateActor wrappers in batch 65 (src/overlays/rom_7ced6c/
+ * ovl_30_a_a_c_c_c_b.c and its three twins) after a round of being parked as
+ * unreachable.
+ *
+ * It does not rescue THIS function -- retried, still 19 of 28, because the guard
+ * here has a whole comparison chain on one side rather than a single return --
+ * but the general claim was too strong and two later parks repeated it.
+ *
+ * The comparison chain itself is right: each test compares against the value
+ * loaded by the PREVIOUS test (`x != w`, then `y != x`), which is what gives
+ * the ROM's `cmp r2, r3` and `cmp r3, r2` rather than three compares against
+ * the constant.
+ */
+int OvlFunc_945_20080fc(unsigned char *a)
+{
+    int v;
+    int k;
+    int w;
+    int x;
+    int y;
+
+    v = *(int *)(a + 0x4c);
+    if (v == 0)
+        return 1;
+    v = v - 1;
+    *(int *)(a + 0x4c) = v;
+    k = 0x80 << 24;
+    w = *(int *)(a + 0x38);
+    if (w != k)
+        return 0;
+    x = *(int *)(a + 0x3c);
+    if (x != w)
+        return 0;
+    y = *(int *)(a + 0x40);
+    if (y != x)
+        return 0;
+    return 1;
+}

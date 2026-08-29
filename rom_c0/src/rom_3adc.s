@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ StepScreenFade
+@ Takes no arguments. Advances a screen fade one step, driven by the enable at
+@ iwram_1c98, the mode at iwram_1cd4 and the level at iwram_1cf8, dividing with
+@ Func_af0.
 .thumb_func_start Func_3adc
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1c98
@@ -65,6 +69,8 @@
 	bx	r0
 .func_end Func_3adc
 
+@ StartFadeOut
+@ r0.. = parameters. Begins a fade to black.
 .thumb_func_start Func_3b70
 	ldr	r2, =iwram_1cd4
 	mov	r3, #0
@@ -94,6 +100,8 @@
 	bx	lr
 .func_end Func_3b70
 
+@ StartFadeIn
+@ r0.. = parameters. Begins a fade from black.
 .thumb_func_start Func_3bb4
 	ldr	r3, =iwram_1cd4
 	mov	r4, #0
@@ -122,6 +130,8 @@
 	bx	lr
 .func_end Func_3bb4
 
+@ StartFadeToWhite
+@ r0.. = parameters. Begins a fade to white.
 .thumb_func_start Func_3bf8
 	ldr	r2, =iwram_1cd4
 	mov	r3, #1
@@ -151,6 +161,8 @@
 	bx	lr
 .func_end Func_3bf8
 
+@ StartFadeFromWhite
+@ r0.. = parameters. Begins a fade from white.
 .thumb_func_start Func_3c3c
 	ldr	r2, =iwram_1cd4
 	mov	r3, #1
@@ -180,6 +192,9 @@
 	bx	lr
 .func_end Func_3c3c
 
+@ ConfigureFade
+@ r0.. = parameters. Sets the fade mode, target level and step without starting
+@ it.
 .thumb_func_start Func_3c80
 	push	{r5, lr}
 	mov	r5, r3
@@ -220,6 +235,9 @@
 	bx	r0
 .func_end Func_3c80
 
+@ WaitForFade
+@ Takes no arguments. Spins on Func_30f8(1) until the fade enable at iwram_1c98
+@ clears. Blocks, so callers must already be inside their own frame loop.
 .thumb_func_start Func_3ce0
 	push	{r5, lr}
 	ldr	r2, =iwram_1c98

@@ -1,38 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-.thumb_func_start Func_dfa18
-	push	{lr}
-	mov	r1, #0
-	bl	Func_dfa48
-	pop	{r0}
-	bx	r0
-.func_end Func_dfa18
-
-.thumb_func_start Func_dfa24
-	push	{lr}
-	mov	r1, #1
-	bl	Func_dfa48
-	pop	{r0}
-	bx	r0
-.func_end Func_dfa24
-
-.thumb_func_start Func_dfa30
-	push	{lr}
-	mov	r1, #2
-	bl	Func_dfa48
-	pop	{r0}
-	bx	r0
-.func_end Func_dfa30
-
-.thumb_func_start Func_dfa3c
-	push	{lr}
-	mov	r1, #3
-	bl	Func_dfa48
-	pop	{r0}
-	bx	r0
-.func_end Func_dfa3c
-
+@ Playdfa48Impl
+@ r0=action descriptor, r1=variant. The shared implementation behind the
+@ 4 thin wrappers in this file, which exist so the animation table can hold
+@ one address per variant:
+@     0=Func_dfa18 1=Func_dfa24 2=Func_dfa30 3=Func_dfa3c
+@ Works from the battle state at [iwram_1eec]; the variant selects timing,
+@ colours and which arm of the sequence runs. Body characterised
+@ structurally -- see the wrappers for the variant numbering.
 .thumb_func_start Func_dfa48
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -436,6 +412,10 @@
 	bx	r0
 .func_end Func_dfa48
 
+@ Sub_dfddc
+@ Battle animation routine, 39 instructions.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_dfddc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -482,6 +462,13 @@
 	bx	r0
 .func_end Func_dfddc
 
+@ Sub_dfe2c
+@ Battle animation routine, 413 instructions.
+@ State: iwram_1eec, ewram_10000.
+@ Calls out to: _Func_b8228, _Func_bd7dc, _Func_f9080.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_dfe2c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -914,6 +901,14 @@
 	bx	r0
 .func_end Func_dfe2c
 
+@ Sub_e01e4
+@ Battle animation routine, 348 instructions.
+@ State: iwram_1eec, ewram_10000.
+@ Calls out to: _Func_b8228, _Func_bd7dc, _Func_f9080.
+@ Touches: REG_BLDALPHA.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_e01e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

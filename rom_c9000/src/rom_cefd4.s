@@ -1,30 +1,16 @@
 	.include "macros.inc"
+
+@ ============================================================================
+@ One effect with three modes. The wrappers exist so the animation table can
+@ hold one address per mode; Func_ceff8 is the implementation.
+@ ============================================================================
 	.include "gba.inc"
 
-.thumb_func_start Func_cefd4
-	push	{lr}
-	mov	r1, #1
-	bl	Func_ceff8
-	pop	{r0}
-	bx	r0
-.func_end Func_cefd4
-
-.thumb_func_start Func_cefe0
-	push	{lr}
-	mov	r1, #0
-	bl	Func_ceff8
-	pop	{r0}
-	bx	r0
-.func_end Func_cefe0
-
-.thumb_func_start Func_cefec
-	push	{lr}
-	mov	r1, #2
-	bl	Func_ceff8
-	pop	{r0}
-	bx	r0
-.func_end Func_cefec
-
+@ PlayModedEffect
+@ r0=action descriptor, r1=mode 0..2. Shared implementation behind the three
+@ wrappers above. Stores the descriptor at [iwram_1eec]+0x7828 and runs the
+@ animation, with the mode selecting which variant of the sequence plays.
+@ The body is characterised structurally.
 .thumb_func_start Func_ceff8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

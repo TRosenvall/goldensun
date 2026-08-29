@@ -1,0 +1,14 @@
+/* Cluster Func_801c9bc..Func_801c9c4 extracted from goldensun/rom_15000/src/rom_1aeec_c.s.
+ *
+ * Total .text for this TU = 12 bytes (= 0xc).
+ * Preserves the original ROM layout when slotted between
+ * rom_15000/src/rom_1aeec_c_a.o and rom_15000/src/rom_1aeec_c_c.o in
+ * goldensun/stage1.ld.
+ */
+void Func_801c9bc(void) {}
+/* A bare `bx lr`, present as a table entry or placeholder.
+ */
+void Func_801c9c0(void) {}
+/* A bare `bx lr`, present as a table entry or placeholder.
+ */
+void Func_801c9c4(void) {}

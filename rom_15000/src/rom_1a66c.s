@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ InitPartyScreen
+@ Takes no arguments. Allocates the 0x3E4-byte party/status block under tag 0x12
+@ -- which is what iwram_1e98 points at, since iwram_1e50 + 0x12*4 = iwram_1e98
+@ -- clears its pointer fields at +0x348 onward, and reserves OBJ tiles with
+@ Func_3fa4 / Func_4080.
+@ Every +0xNNN offset elsewhere in this file and rom_1aeec.s is inside this
+@ block and bounded by 0x3E4.
 .thumb_func_start Func_1a66c
 	push	{r5, r6, r7, lr}
 	mov	r1, #0xf9
@@ -128,6 +135,9 @@
 	bx	r0
 .func_end Func_1a66c
 
+@ ResetPartyScreenState
+@ Takes no arguments. Clears the working pointer at [iwram_1e98]+0x348 and the
+@ halfword at +0x39A, then rewinds the entry counter at +0x39E.
 .thumb_func_start Func_1a778
 	push	{lr}
 	ldr	r3, =iwram_1e98
@@ -164,6 +174,10 @@
 	bx	r0
 .func_end Func_1a778
 
+@ PushScreenEntry
+@ r0 = value. Appends to the array at [iwram_1e98]+0x354 using the count at
+@ +0x394, which is capped at 0x10 -- sixteen entries. A full array silently
+@ drops the value.
 .thumb_func_start Func_1a7c0
 	push	{lr}
 	ldr	r3, =iwram_1e98
@@ -192,6 +206,10 @@
 	bx	r0
 .func_end Func_1a7c0
 
+@ BuildPartyScreen
+@ r0.. = screen parameters. Assembles the party/status display: Func_1a910
+@ claims a slot, Func_1bd98 loads the portraits and Func_1c188 the shared
+@ graphics. 146 lines; traced structurally.
 .thumb_func_start Func_1a7f4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -338,10 +356,16 @@
 	bx	r0
 .func_end Func_1a7f4
 
+@ NoOp
+@ A bare `bx lr`, present as a table entry or placeholder.
 .thumb_func_start Func_1a90c
 	bx	lr
 .func_end Func_1a90c
 
+@ AllocScreenSlot
+@ r0 = non-zero to allocate, 0 to reset. Scans the halfword array at
+@ [iwram_1e98]+0x1DE for a free entry and returns its index, or clears the array
+@ when r0 is 0.
 .thumb_func_start Func_1a910
 	push	{lr}
 	ldr	r3, =iwram_1e98
@@ -394,6 +418,9 @@
 	bx	r1
 .func_end Func_1a910
 
+@ StartPartyScreenTask
+@ Takes no arguments. Registers Func_1a98c as a per-frame task at priority
+@ 0xC80. Func_1a97c below removes it again.
 .thumb_func_start Func_1a968
 	push	{lr}
 	mov	r1, #0xc8
@@ -404,6 +431,8 @@
 	bx	r0
 .func_end Func_1a968
 
+@ StopPartyScreenTask
+@ Takes no arguments. Unregisters Func_1a98c with Func_4278.
 .thumb_func_start Func_1a97c
 	push	{lr}
 	ldr	r0, =Func_1a98c
@@ -412,6 +441,13 @@
 	bx	r0
 .func_end Func_1a97c
 
+@ StepPartyScreen
+@ Takes no arguments. The party/status screen's per-frame task, registered by
+@ Func_1a968. Animates the portrait sprites -- allocating and releasing OBJ
+@ tiles through Func_3d28 / Func_3dec / Func_3fa4, reading the frame counter at
+@ iwram_1800, and pulling character data through _Func_79338 and _Func_b845c.
+@ Func_1aeec does the sprite emission and Func_1b36c counts the visible entries.
+@ 684 lines; traced structurally.
 .thumb_func_start Func_1a98c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

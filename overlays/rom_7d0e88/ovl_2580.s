@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Leaf helper, 35 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_2580
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -44,6 +47,11 @@
 	bx	r1
 .func_end OvlFunc_2580
 
+@ 31 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetEntityActorOptions
 .thumb_func_start OvlFunc_25f8
 	push	{r5, lr}
 	bl	__Func_92054
@@ -78,6 +86,12 @@
 	bx	r0
 .func_end OvlFunc_25f8
 
+@ 33 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, TestSaveBit, SetEntityAnimation, CopyMapRectAttributes
+@   SetSlotScriptWithTurn
 .thumb_func_start OvlFunc_263c
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -115,6 +129,9 @@
 	bx	r0
 .func_end OvlFunc_263c
 
+@ Adjusts a slot entity directly.
+@ Takes the entity with Func_92054 and writes its fields in place rather
+@ than going through the slot helpers -- touches +0x6c.
 .thumb_func_start OvlFunc_2694
 	push	{lr}
 	bl	__Func_92054
@@ -132,6 +149,11 @@
 	bx	r0
 .func_end OvlFunc_2694
 
+@ 62 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, SetSlotDrawPriority, GetSlotEntityChecked
 .thumb_func_start OvlFunc_26b8
 	push	{r5, r6, lr}
 	mov	r0, #0
@@ -203,6 +225,10 @@
 	bx	r0
 .func_end OvlFunc_26b8
 
+@ Cutscene: roughly 284 instructions of straight-line script --
+@ 0 turns, 1 animation change, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x200, 0x202.
 .thumb_func_start OvlFunc_274c
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc

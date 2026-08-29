@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ CountTableA
+@ Takes no arguments. Returns (.L2a2e0 - .L29ee4) / 4 = 255, the number of
+@ entries in the first graphic-pointer table. Computed from the label addresses
+@ rather than stored, so it stays correct if the table is regenerated.
 .thumb_func_start Func_19ebc
 	ldr	r0, =.L2a2e0
 	ldr	r3, =.L29ee4
@@ -9,6 +13,9 @@
 	bx	lr
 .func_end Func_19ebc
 
+@ CountTableB
+@ Takes no arguments. Returns (.L2e108 - .L2de88) / 4 = 160, the entry count of
+@ the second graphic-pointer table, computed the same way as Func_19ebc.
 .thumb_func_start Func_19ed0
 	ldr	r0, =.L2e108
 	ldr	r3, =.L2de88
@@ -17,6 +24,11 @@
 	bx	lr
 .func_end Func_19ed0
 
+@ LoadPortrait
+@ r0 = id, r1 = destination. Allocates the 0x608-byte graphic block under tag
+@ 0x11 -- which is what iwram_1e94 points at, since iwram_1e50 + 0x11*4 =
+@ iwram_1e94 -- then decompresses into it with Func_1a5a4 and reserves OBJ tiles
+@ with Func_3fa4 / Func_4080. Func_2dd8 releases the block on the failure path.
 .thumb_func_start Func_19ee4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -97,6 +109,10 @@
 	bx	r0
 .func_end Func_19ee4
 
+@ LoadPortraitForCharacter
+@ r0 = character, r1..r3 and arg5 = placement. Resolves the character through
+@ _Func_78b9c (rom_77000's party lookup), takes its portrait id from +4 of the
+@ record, and forwards to Func_19fcc.
 .thumb_func_start Func_19f98
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -123,6 +139,9 @@
 	bx	r0
 .func_end Func_19f98
 
+@ LoadPortraitIndexed
+@ r0 = index, r1.. = placement. As Func_19ee4 but bounds-checks the index
+@ against Func_19ebc's count of 255 before using it.
 .thumb_func_start Func_19fcc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -210,6 +229,11 @@
 	bx	r0
 .func_end Func_19fcc
 
+@ DrawPortraitTiles
+@ r0 = id masked to 0x1FF, r1.. = placement. Emits a portrait into OBJ tiles,
+@ working from the block at iwram_1e94 and the character record from
+@ _Func_78414. Func_af0 and Func_b1c supply the row and column arithmetic.
+@ 256 lines; traced structurally.
 .thumb_func_start Func_1a088
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -466,6 +490,9 @@
 	bx	r1
 .func_end Func_1a088
 
+@ LoadAndDrawPortrait
+@ r0 = id, r1, r2 = placement. Allocates the tag-0x11 block, draws through
+@ Func_1a088, and releases with Func_2dd8. The one-shot form.
 .thumb_func_start Func_1a2a4
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -500,6 +527,9 @@
 	bx	r1
 .func_end Func_1a2a4
 
+@ LoadIconSet
+@ r0 = index, r1, r2 = placement. Allocates the tag-0x11 block, selects the
+@ pointer through Func_1a4c0, and releases with Func_2dd8.
 .thumb_func_start Func_1a2ec
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -530,6 +560,10 @@
 	bx	r1
 .func_end Func_1a2ec
 
+@ SelectGraphicTable
+@ r0 = table selector 1..3, r1, r2 = parameters. A four-way switch returning one
+@ of three table base addresses; anything outside 1..3 takes the default arm.
+@ Func_3fa4 reserves the tiles for whichever is chosen.
 .thumb_func_start Func_1a32c
 	push	{lr}
 	mov	r3, r2
@@ -571,6 +605,10 @@
 	.word	Data_31864
 .func_end Func_1a32c
 
+@ SetPortraitPointer
+@ r0 = id masked to 0x1FF. Looks the character up with _Func_78414, indexes the
+@ 255-entry table at .L29ee4 by the halfword at +6 of that record, and stores the
+@ resulting pointer at [iwram_1e94]+0x604. An id of 0 clears it instead.
 .thumb_func_start Func_1a370
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -612,6 +650,10 @@
 	bx	r0
 .func_end Func_1a370
 
+@ LoadIconForCharacter
+@ r0 = character, r1..r3 and arg5 = placement. The Func_19f98 counterpart for
+@ the second table: _Func_78b9c resolves the character and Func_1a404 does the
+@ load.
 .thumb_func_start Func_1a3d0
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -638,6 +680,9 @@
 	bx	r0
 .func_end Func_1a3d0
 
+@ LoadIconIndexed
+@ r0 = index, r1.. = placement. As Func_19fcc but bounds-checked against
+@ Func_19ed0's count of 160 and reading the second pointer table.
 .thumb_func_start Func_1a404
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -725,6 +770,9 @@
 	bx	r0
 .func_end Func_1a404
 
+@ SelectIconPointer
+@ r0 = index. Stores .L308a0[index] at [iwram_1e94]+0x604 and sets the two
+@ halfwords at +0x600 and +0x602 to 2, marking the block dirty.
 .thumb_func_start Func_1a4c0
 	push	{lr}
 	ldr	r3, =iwram_1e94
@@ -750,6 +798,10 @@
 	bx	r0
 .func_end Func_1a4c0
 
+@ LoadNamedGraphic
+@ r0 = id, r1, r2, r3 = placement. Allocates the tag-0x11 block, fetches asset
+@ 0xF0 with Func_2f40, decompresses with Func_1a5a4, DMA3s it into place and
+@ reserves tiles with Func_3fa4 / Func_4080.
 .thumb_func_start Func_1a4fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -821,10 +873,20 @@
 	bx	r0
 .func_end Func_1a4fc
 
+@ NoOp
+@ A bare `bx lr`. Present so a table entry or a call site has something to point
+@ at; calling it does nothing.
 .thumb_func_start Func_1a5a0
 	bx	lr
 .func_end Func_1a5a0
 
+@ DecompressGraphic
+@ r0 = compressed source, r1 = destination.
+@ Allocates 0x278 bytes under tag 0x31, DMA3-COPIES Func_15afc INTO IT, and
+@ calls it there -- the same run-decompressor-from-RAM trick Func_5340 uses in
+@ rom_c0. Func_15afc is the move-to-front nibble decoder in rom_15430.s, so the
+@ output is unpacked 4bpp ready for Func_15d74 / Func_15e10 to pack.
+@ The scratch is released with Func_2dd8 afterwards.
 .thumb_func_start Func_1a5a4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

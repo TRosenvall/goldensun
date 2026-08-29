@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ 287 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, CopyMapRectIndicesU x6, Random x2, OvlFunc_common0_10c
+@   Random x2, OvlFunc_common0_10c, Random x2, OvlFunc_common0_10c
+@   DialogueWait, CopyMapRectIndicesU x6
 .thumb_func_start OvlFunc_1db4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -304,6 +311,13 @@
 	bx	r0
 .func_end OvlFunc_1db4
 
+@ 183 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectIndicesU x3, PlaySound, Random, OvlFunc_common0_10c
+@   Random, OvlFunc_common0_10c, Random, OvlFunc_common0_10c
+@   DialogueWait, CopyMapRectIndicesU x3
 .thumb_func_start OvlFunc_2030
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -500,6 +514,14 @@
 	bx	r0
 .func_end OvlFunc_2030
 
+@ 90 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, SetCameraSpeed, MoveCameraTo, WaitForCameraArrival
+@   TestSaveBit x6, SetSlotScriptWithTurn, TestSaveBit, SetSlotScriptWithTurn
+@   DialogueWait x2
+@ reads save bits 0x319, 0x31a, 0x31b, 0x877.
 .thumb_func_start OvlFunc_21cc
 	push	{r5, r6, lr}
 	mov	r0, #9

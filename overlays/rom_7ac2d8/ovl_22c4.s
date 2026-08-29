@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, Random, OvlFunc_3b24
 .thumb_func_start OvlFunc_22c4
 	push	{r5, lr}
 	mov	r0, #9
@@ -19,6 +24,11 @@
 	bx	r0
 .func_end OvlFunc_22c4
 
+@ 8 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RegisterTask
 .thumb_func_start OvlFunc_22ec
 	push	{lr}
 	mov	r1, #0xc8
@@ -30,6 +40,11 @@
 	bx	r1
 .func_end OvlFunc_22ec
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   UnregisterTask
 .thumb_func_start OvlFunc_2304
 	push	{lr}
 	ldr	r0, =OvlFunc_22c4
@@ -39,6 +54,16 @@
 	bx	r1
 .func_end OvlFunc_2304
 
+@ 179 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_758, OvlFunc_8ec, SetSaveBit
+@   ClearSaveBit, GetSlotEntityChecked, OvlFunc_8ec, SetSaveBit
+@   ClearSaveBit x2, OvlFunc_21cc, OvlFunc_2030 x2, OvlFunc_1db4
+@   SetSaveBit, ClearSaveBit x2
+@   ... and 30 more
+@ sets 0x318, 0x319, 0x31a, 0x31b, 0x877; clears 0x318, 0x319, 0x31a, 0x31b.
 .thumb_func_start OvlFunc_2318
 	push	{r5, r6, lr}
 	sub	sp, #0x20
@@ -235,6 +260,11 @@
 	bx	r0
 .func_end OvlFunc_2318
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_3a8, OvlFunc_251c, EndCutscene
 .thumb_func_start OvlFunc_2504
 	push	{lr}
 	bl	__Func_916b0
@@ -245,6 +275,15 @@
 	bx	r0
 .func_end OvlFunc_2504
 
+@ 92 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked, SetSaveBit, ClearSaveBit
+@   SetSaveBit, ClearSaveBit x3, GetSlotEntityChecked, SetSaveBit x2
+@   ClearSaveBit, CopyMapRectAttributes, ClearSaveBit x2, CopyMapRectAttributes
+@   EndCutscene
+@ sets 0x338, 0x339; clears 0x338, 0x339.
 .thumb_func_start OvlFunc_251c
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -350,6 +389,13 @@
 	bx	r0
 .func_end OvlFunc_251c
 
+@ 29 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked, SetSaveBit, CopyMapRectAttributes
+@   EndCutscene
+@ sets 0x348.
 .thumb_func_start OvlFunc_2600
 	push	{lr}
 	sub	sp, #8
@@ -384,6 +430,9 @@
 	bx	r0
 .func_end OvlFunc_2600
 
+@ Leaf helper, 22 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1e40
 .thumb_func_start OvlFunc_2648
 	push	{lr}
 	ldr	r3, =iwram_1e40
@@ -411,6 +460,11 @@
 	bx	r0
 .func_end OvlFunc_2648
 
+@ Cutscene: roughly 150 instructions of straight-line script --
+@ 3 turns, 5 animation changes, 5 dialogue lines, 8 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1577.
+@ Sets save bit 0x870.
 .thumb_func_start OvlFunc_2684
 	push	{lr}
 	bl	__Func_916b0
@@ -566,6 +620,7 @@
 	bx	r0
 .func_end OvlFunc_2684
 
+@ Talk: line 0x157d, shown.
 .thumb_func_start OvlFunc_2814
 	push	{lr}
 	bl	__Func_916b0
@@ -585,6 +640,11 @@
 	bx	r0
 .func_end OvlFunc_2814
 
+@ PaletteFadeToWhite
+@ Walks a run of BGR555 palette entries, splits each into its three 5-bit
+@ channels, and steps every channel that is below 0x1F up by one. Entries
+@ already at full white are counted rather than written, so the caller can tell
+@ when the fade has finished.
 .thumb_func_start OvlFunc_2844
 	push	{r5, r6, lr}
 	ldr	r6, =0x1f
@@ -646,6 +706,11 @@
 	bx	r0
 .func_end OvlFunc_2844
 
+@ Cutscene: roughly 499 instructions of straight-line script --
+@ 18 turns, 14 animation changes, 11 dialogue lines, 22 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x157f.
+@ Sets save bit 0x871.
 .thumb_func_start OvlFunc_28b0
 	push	{r5, lr}
 	mov	r0, #0xa

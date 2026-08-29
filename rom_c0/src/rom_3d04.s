@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ClearDisplayList
+@ Takes no arguments. Clears the 0x400-byte display list at iwram_1400 and
+@ resets its count at iwram_1d00. Called once per frame from Func_30f8.
 .thumb_func_start Func_3d04
 	push	{lr}
 	ldr	r2, =iwram_1d00
@@ -15,6 +18,9 @@
 	bx	r0
 .func_end Func_3d04
 
+@ SetObjAffine
+@ r0.. = angle and scale. Builds an OBJ affine matrix from Func_2322 /
+@ Func_231c and Func_af0, and writes it into the OAM affine slots.
 .thumb_func_start Func_3d28
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -108,6 +114,8 @@
 	bx	r1
 .func_end Func_3d28
 
+@ ReleaseObjAffine
+@ r0 = slot. Marks an OAM affine slot free.
 .thumb_func_start Func_3dec
 	push	{lr}
 	cmp	r1, #0xff
@@ -128,6 +136,10 @@
 	bx	r0
 .func_end Func_3dec
 
+@ FlushDisplayList
+@ Takes no arguments. Emits the accumulated display list, staging through a
+@ Func_4938 scratch released by Func_2df0. Called once per frame from
+@ Func_30f8.
 .thumb_func_start Func_3e10
 	push	{r5, r6, lr}
 	mov	r6, r8

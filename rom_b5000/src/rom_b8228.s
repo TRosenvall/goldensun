@@ -1,6 +1,13 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SetBattleAnimation
+@ r0 = combatant id, r1 = animation index. Writes two words into the actor:
+@ .Lc59a4[anim] to actor+0x34 and .Lc59c4[anim] to actor+0x30.
+@ SKIPPED ENTIRELY when the character's class byte (record+0x128, the field
+@ rom_77000's Func_7842c uses) is 0x94 -- that class has no battle animations.
+@ 46 external call sites; rom_c9000 calls it as _Func_b8228(id, anim) to put a
+@ combatant into a reaction pose.
 .thumb_func_start Func_b8228
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -68,6 +75,10 @@
 	bx	r0
 .func_end Func_b8228
 
+@ SetBattleAnimationScaled
+@ r0 = combatant id, r1.. = parameters. As Func_b8228 with a scale applied,
+@ dividing through Func_af0 before submitting via Func_c300 / Func_c4ac /
+@ Func_d14c. Exported.
 .thumb_func_start Func_b82c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -162,6 +173,9 @@
 	bx	r0
 .func_end Func_b82c4
 
+@ SubmitBattleSprite
+@ r0 = combatant id. Submits the combatant's sprite through Func_c300 and
+@ Func_c4ac.
 .thumb_func_start Func_b8394
 	push	{r5, lr}
 	bl	Func_b7dd0
@@ -176,10 +190,15 @@
 	bx	r0
 .func_end Func_b8394
 
+@ NoOp
+@ A bare `bx lr`, present as a table entry or placeholder.
 .thumb_func_start Func_b83b0
 	bx	lr
 .func_end Func_b83b0
 
+@ StepBattleSprite
+@ r0 = combatant id. Advances one frame of the combatant's sprite state from its
+@ battle record.
 .thumb_func_start Func_b83b4
 	push	{r5, r6, lr}
 	mov	r5, r1
@@ -233,6 +252,9 @@
 	bx	r0
 .func_end Func_b83b4
 
+@ AnimateCombatant
+@ r0 = combatant id, r1 = frames. Steps the combatant's actor for that many
+@ frames through Func_30f8, updating parts with Func_b8ac / Func_b9f4.
 .thumb_func_start Func_b8418
 	push	{r5, lr}
 	bl	Func_b7dd0
@@ -265,6 +287,10 @@
 	bx	r0
 .func_end Func_b8418
 
+@ ProjectCombatantParts
+@ r0 = combatant id, r1 = destination. Projects each of the combatant's actor
+@ parts to screen with Func_5268 after refreshing the view with Func_b7ed8.
+@ Exported; rom_c9000's Func_e396c reaches the battle field this way.
 .thumb_func_start Func_b845c
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -308,6 +334,9 @@
 	bx	r1
 .func_end Func_b845c
 
+@ PlaceCombatantParts
+@ r0 = combatant id. Projects the parts and writes their positions back through
+@ Func_c23c0, so the drawn parts follow the logical position. Exported.
 .thumb_func_start Func_b84c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -357,6 +386,10 @@
 	bx	r1
 .func_end Func_b84c0
 
+@ GetCombatantDrawSlot
+@ r0 = combatant id. Resolves the character's class byte (record+0x128) to a
+@ draw slot through Func_c2454 and Func_c23c0, returning a default when neither
+@ reports one. Exported.
 .thumb_func_start Func_b8530
 	push	{r5, lr}
 	mov	r5, r0
@@ -390,6 +423,10 @@
 	bx	r1
 .func_end Func_b8530
 
+@ ChooseEnemyAction
+@ r0.. = parameters. Picks an enemy's action for the turn: Func_b6b40 lists the
+@ living targets, Func_4458 rolls the choice, and _Func_77394 supplies the
+@ stats it weighs. 189 lines; traced structurally -- the enemy AI lives here.
 .thumb_func_start Func_b8574
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -579,6 +616,9 @@
 	bx	r1
 .func_end Func_b8574
 
+@ UploadBattleView
+@ r0.. = parameters. Pushes the current view matrix to hardware via
+@ Func_c0a24.
 .thumb_func_start Func_b86ec
 	push	{lr}
 	ldr	r3, =iwram_1e80
@@ -626,6 +666,11 @@
 	bx	r0
 .func_end Func_b86ec
 
+@ RunTurn
+@ r0.. = parameters. Drives one combatant's turn to completion, a frame at a
+@ time through Func_30f8, dispatching to the phase handlers Func_b8824,
+@ Func_b8888, Func_b88d0, Func_b8c1c and Func_b8f08, and opening UI through
+@ _Func_16758.
 .thumb_func_start Func_b874c
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
@@ -714,6 +759,9 @@
 	bx	r1
 .func_end Func_b874c
 
+@ ValidateCombatantId
+@ r0 = id. Returns 0 for a valid id -- 0..7 or 0x80..0x85 -- and -1 otherwise.
+@ The same two ranges Func_77394 accepts, checked without touching memory.
 .thumb_func_start Func_b8808
 	push	{lr}
 	cmp	r0, #7
@@ -733,6 +781,10 @@
 	bx	r1
 .func_end Func_b8808
 
+@ RunTurnIntro
+@ r0.. = parameters. The opening phase of a turn: picks targets from
+@ Func_b6b40, rolls with Func_4458, orients the actor with Func_b8064, and shows
+@ any message through _Func_175a0.
 .thumb_func_start Func_b8824
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -781,6 +833,9 @@
 	bx	r1
 .func_end Func_b8824
 
+@ ShowTurnMessage
+@ r0.. = parameters. Registers the message values with _Func_198dc / _Func_19908
+@ and shows the string through _Func_175a0, which blocks until dismissed.
 .thumb_func_start Func_b8888
 	push	{r5, r6, lr}
 	mov	r2, #0
@@ -814,6 +869,11 @@
 	bx	r1
 .func_end Func_b8888
 
+@ RunActionPhase
+@ r0.. = parameters. The main action phase: resolves targets (Func_b6b40),
+@ submits the actor sequence (Func_b7b6c, Func_b6c90), rolls outcomes with
+@ Func_4458, and advances frames with Func_30f8.
+@ 322 lines; traced structurally.
 .thumb_func_start Func_b88d0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1136,6 +1196,9 @@
 	bx	r1
 .func_end Func_b88d0
 
+@ RunCounterPhase
+@ r0.. = parameters. Handles counters and follow-ups, orienting with Func_b8000
+@ and animating through Func_b82c4.
 .thumb_func_start Func_b8b48
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1f00
@@ -1230,6 +1293,10 @@
 	bx	r1
 .func_end Func_b8b48
 
+@ RunResultPhase
+@ r0.. = parameters. Applies and displays the turn's result, driving the damage
+@ overlay through _Func_1f200 and submitting sprites with Func_c300.
+@ 198 lines; traced structurally.
 .thumb_func_start Func_b8c1c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1428,6 +1495,10 @@
 	bx	r1
 .func_end Func_b8c1c
 
+@ RunDefeatPhase
+@ r0.. = parameters. Handles a combatant going down: plays the fall through
+@ Func_b8ec4, shows the message with _Func_175a0 and the overlay with
+@ _Func_1f200.
 .thumb_func_start Func_b8db8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1539,6 +1610,9 @@
 	bx	r0
 .func_end Func_b8db8
 
+@ PlayDefeatAnimation
+@ r0 = combatant id. Moves the actor to its slot (Func_b7e60) and plays the
+@ fall animation through _Func_ba30, a frame at a time.
 .thumb_func_start Func_b8ec4
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -1571,6 +1645,9 @@
 	bx	r0
 .func_end Func_b8ec4
 
+@ RunTurnCleanup
+@ r0.. = parameters. Closes out a turn, re-listing the living combatants with
+@ Func_b6b40 and rolling any end-of-turn effects with Func_4458.
 .thumb_func_start Func_b8f08
 	push	{r5, r6, lr}
 	mov	r2, #0xa
@@ -1614,6 +1691,9 @@
 	bx	r1
 .func_end Func_b8f08
 
+@ ComputeArcPosition
+@ r0.. = parameters. Interpolates a position along an arc using Func_231c
+@ (cosine) and Func_af0.
 .thumb_func_start Func_b8f58
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1674,6 +1754,10 @@
 	bx	r0
 .func_end Func_b8f58
 
+@ SetBattleCamera
+@ r0.. = parameters. Rebuilds the battle camera from Func_49ac, Func_4bd4,
+@ Func_4c1c, Func_4cb4 and Func_5258, then uploads it with Func_c0a24.
+@ Exported; rom_15000's name-entry screen borrows it.
 .thumb_func_start Func_b8fd4
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -1763,6 +1847,9 @@
 	bx	r0
 .func_end Func_b8fd4
 
+@ RefreshAllSummaries
+@ Takes no arguments. Walks the action queue with Func_b6c08 and rebuilds each
+@ combatant's derived stats through _Func_77394 and _Func_77428.
 .thumb_func_start Func_b90ac
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1800,6 +1887,10 @@
 	bx	r0
 .func_end Func_b90ac
 
+@ RollTurnOrder
+@ r0.. = parameters. Establishes the turn order, weighing each living
+@ combatant's speed from _Func_77394 with a Func_4458 roll and dividing with
+@ Func_af0.
 .thumb_func_start Func_b90f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1932,6 +2023,10 @@
 	bx	r1
 .func_end Func_b90f8
 
+@ OpenBattleMenu
+@ r0.. = parameters. Opens the in-battle menu by calling rom_15000's top-level
+@ menu screen _Func_27114 -- the 2004-line function -- with a Func_4970 scratch
+@ released by Func_2df0.
 .thumb_func_start Func_b920c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2077,6 +2172,10 @@
 	bx	r1
 .func_end Func_b920c
 
+@ ResolveTargeting
+@ r0.. = parameters. Works out which combatants an action reaches, listing the
+@ living ones with Func_b6b40 and consulting Func_bd424. 178 lines; traced
+@ structurally.
 .thumb_func_start Func_b9324
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2255,6 +2354,9 @@
 	bx	r1
 .func_end Func_b9324
 
+@ BuildRewardSummary
+@ r0.. = parameters. Collects the post-battle rewards from each combatant's
+@ record via _Func_77394, _Func_78b9c and _Func_7a5b0.
 .thumb_func_start Func_b9470
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2370,6 +2472,9 @@
 	bx	r0
 .func_end Func_b9470
 
+@ FadeBattleMusicOut
+@ r0.. = parameters. Ramps the music down through Func_63bc / Func_64f4 a frame
+@ at a time.
 .thumb_func_start Func_b9554
 	push	{r5, r6, r7, lr}
 	mov	r7, r9
@@ -2462,6 +2567,8 @@
 	bx	r1
 .func_end Func_b9554
 
+@ FadeBattleMusicIn
+@ r0.. = parameters. The counterpart to Func_b9554, using Func_6408.
 .thumb_func_start Func_b9604
 	push	{r5, r6, r7, lr}
 	mov	r7, r9
@@ -2605,6 +2712,9 @@
 	bx	r1
 .func_end Func_b9604
 
+@ RunBattleMusicSequence
+@ r0.. = parameters. Sequences the battle music through Func_b9554 and
+@ Func_b9604, with a Func_4970 scratch released by Func_2df0.
 .thumb_func_start Func_b9724
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2803,6 +2913,8 @@
 	bx	r1
 .func_end Func_b9724
 
+@ InitStateArray
+@ r0 = value. Seeds one of the battle state arrays; no calls out.
 .thumb_func_start Func_b98b4
 	push	{r5, r6, r7, lr}
 	mov	r1, #0
@@ -2876,6 +2988,11 @@
 	bx	r0
 .func_end Func_b98b4
 
+@ ResetBattleTurnState
+@ r0.. = parameters. Clears the 20-entry array at [iwram_1e74]+0x2EC (stride
+@ 0x10), writing 0xFF to each entry's first halfword and 0x8000 to its second,
+@ then refreshes summaries with Func_b90ac, seeds the state array with
+@ Func_b98b4(8) and sets save bit 0x16B.
 .thumb_func_start Func_b9934
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e74
@@ -3002,6 +3119,15 @@
 	bx	r1
 .func_end Func_b9934
 
+@ GetCombatantStateWord
+@ r0 = combatant id. Returns a signed halfword from the battle state, indexed by
+@ the LOW NIBBLE of the id:
+@     player (bit 7 clear)  [iwram_1e74] + 0x58 + 2*(id & 0xF)
+@     enemy  (bit 7 set)    [iwram_1e74] + 0x66 + 2*(id & 0xF)
+@ NOTE the two ranges touch: player id 7 resolves to +0x66 and enemy 0x80 also
+@ resolves to +0x66. Whether the player side is only ever indexed 0..6 in
+@ practice, or this is a latent aliasing bug, is unresolved -- worth checking
+@ before this function is decompiled.
 .thumb_func_start Func_b9a44
 	push	{lr}
 	ldr	r3, =iwram_1e74
@@ -3027,6 +3153,9 @@
 	bx	r1
 .func_end Func_b9a44
 
+@ SetCombatantStateWord
+@ r0 = combatant id, r1 = value. The write counterpart to Func_b9a44, with the
+@ same two index ranges and the same overlap at +0x66.
 .thumb_func_start Func_b9a70
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1e74
@@ -3082,6 +3211,8 @@
 	bx	r1
 .func_end Func_b9a70
 
+@ UploadBattleTransform
+@ r0.. = parameters. Pushes a transform to hardware through Func_c0a24.
 .thumb_func_start Func_b9acc
 	push	{lr}
 	ldr	r3, =iwram_1e80
@@ -3129,6 +3260,8 @@
 	bx	r0
 .func_end Func_b9acc
 
+@ GetTurnStateField
+@ r0 = index. Returns one of the turn state fields; no calls out.
 .thumb_func_start Func_b9b2c
 	bx	lr
 .func_end Func_b9b2c

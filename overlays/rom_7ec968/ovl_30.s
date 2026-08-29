@@ -1,5 +1,24 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Overlay 0x7ec968 -- serves THREE AREAS (0xA9, 0xAA, 0xAB) and is unusual in
+@ how much of its state lives in ewram_240 rather than in save bits.
+@
+@ Slot 0  OvlFunc_124  map-load entry
+@ Slot 1  OvlFunc_40   edge transitions   -> 0xAA: .La40, 0xAB: .Lad0, else .L998
+@ Slot 2  OvlFunc_84   map event list     -> .Lb48 (the only constant slot)
+@ Slot 3  OvlFunc_8c   read after slot 4
+@ Slot 4  OvlFunc_e4   map objects        -> 0xAA: .Lddc, 0xAB: .Le54, else .Ld10
+@ Slot 5  OvlFunc_80   interactions       -> none (returns 0)
+@
+@ The save bits here come in a matched pair, 0x8FB and 0x8FC, which record
+@ WHICH OF TWO ROUTES the player took. The map-load entry reads them back and
+@ writes a destination into ewram_240+0x240 and a mode into +0x242, so leaving
+@ this map sends the player somewhere that depends on how they arrived.
+@ OvlFunc_2f8 clears both, resetting the choice.
+@ ============================================================================
+
+@ Trigger: loads map 0x1A via slot 0x0D.
 .thumb_func_start OvlFunc_30
 	push	{lr}
 	mov	r0, #0xd
@@ -9,6 +28,7 @@
 	bx	r0
 .func_end OvlFunc_30
 
+@ Slot 1: edge-transition table, one per area.
 .thumb_func_start OvlFunc_40
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -35,16 +55,23 @@
 	bx	r1
 .func_end OvlFunc_40
 
+@ Slot 5: interaction table -- none.
 .thumb_func_start OvlFunc_80
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_80
 
+@ Slot 2: map event list. Shared by all three areas.
 .thumb_func_start OvlFunc_84
 	ldr	r0, =.Lb48
 	bx	lr
 .func_end OvlFunc_84
 
+@ Slot 3: read after slot 4.
+@ Area 0xAA -> .Lba8. Area 0xA9 splits on save bit 0x96F -- .Lc98 once set,
+@ .Lc50 before. Anything else -> .Lb90. Note the area tested here (0xA9) is
+@ NOT one of the two slot 4 distinguishes (0xAA, 0xAB), so the two slots key on
+@ different areas; they are not simply parallel.
 .thumb_func_start OvlFunc_8c
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -78,6 +105,7 @@
 	bx	r1
 .func_end OvlFunc_8c
 
+@ Slot 4: the map object table, one per area.
 .thumb_func_start OvlFunc_e4
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -104,6 +132,25 @@
 	bx	r1
 .func_end OvlFunc_e4
 
+@ Slot 0: map-load entry.
+@
+@ Save bit 0x89F stages a destination up front -- ewram_240+0x1C4 = 0x69 and
+@ +0x1C6 = 0x0A -- regardless of area.
+@
+@ Area 0xA9:
+@   - save bit 0x897 teleports slot 0x0A to the origin with Func_923e4,
+@   - entrance 3 reads the route pair back: bit 0x8FB writes mode 1 and bit
+@     0x8FC mode 5 into ewram_240+0x242, with the area id going to +0x240, then
+@     clears save bit 0x12F,
+@   - entrance 1 SETS 0x8FB, and unless 0x96F is already set repaints a 2x1
+@     attribute cell from (6, 0) to (0x1B, 8),
+@   - entrance 5 sets 0x8FC.
+@   So the two entrances record which way in the player came, and entrance 3 --
+@   the exit -- turns that into where they go next.
+@
+@ Area 0xAA: five slots are put into standing animations (8, 9, 0x0B into 4;
+@ 0x0A, 0x0C into 3), slot 0x0F gets motion rate 0x19999 at +0x1C, and a
+@ 0x66 x 0x38 attribute block is copied from (0x6C, 0x26).
 .thumb_func_start OvlFunc_124
 	push	{r5, r6, lr}
 	ldr	r0, =0x89f
@@ -251,6 +298,12 @@
 	bx	r1
 .func_end OvlFunc_124
 
+@ CrossThreshold
+@ Takes no arguments. Clears the player's flag byte +0x55, plays sound 0x9E, and
+@ animates a doorway with two Func_10424 metatile copies four frames apart --
+@ source rows 0x42 then 0x44 into the 8x2 block at (0x24, 0x47). Then
+@ Func_92208 nudges the player by (3, -0x10) and the interaction target
+@ halfword at [iwram_1ebc]+0x16C is left pending as the next message.
 .thumb_func_start OvlFunc_288
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1ebc
@@ -300,6 +353,10 @@
 	bx	r0
 .func_end OvlFunc_288
 
+@ ResetRouteChoice
+@ Takes no arguments. Sound 0x7B, then clears BOTH route bits 0x8FB and 0x8FC
+@ so the next pass through records afresh, and leaves the interaction target
+@ pending as the next message.
 .thumb_func_start OvlFunc_2f8
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc
@@ -322,6 +379,7 @@
 	bx	r0
 .func_end OvlFunc_2f8
 
+@ Cutscene: a short staged scene, roughly 60 instructions.
 .thumb_func_start OvlFunc_334
 	push	{r5, lr}
 	sub	sp, #8
@@ -385,6 +443,13 @@
 	bx	r0
 .func_end OvlFunc_334
 
+@ Cutscene: the overlay's main scene, roughly 350 instructions.
+@ Two actors are placed and walked into position (Func_923e4 then Func_921c4 at
+@ speed 0x19999/0xCCCC), then a conversation runs through eleven Func_93040
+@ lines from message base 0x2654, with Func_92adc turns between beats,
+@ Func_9259c / Func_925cc formation changes, and two Func_93874 effect
+@ sequences. It ends on a Func_93054 question whose answer is checked against a
+@ save bit.
 .thumb_func_start OvlFunc_3c4
 	push	{r5, lr}
 	sub	sp, #8
@@ -734,6 +799,7 @@
 	bx	r0
 .func_end OvlFunc_3c4
 
+@ Cutscene: a shorter follow-up scene, roughly 50 instructions.
 .thumb_func_start OvlFunc_730
 	push	{lr}
 	bl	__Func_916b0
@@ -784,6 +850,7 @@
 	bx	r0
 .func_end OvlFunc_730
 
+@ Trigger: a short handler closing the overlay's scene set.
 .thumb_func_start OvlFunc_7ac
 	push	{r5, lr}
 	bl	__Func_916b0

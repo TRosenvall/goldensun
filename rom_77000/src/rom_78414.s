@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ GetAbilityRecord
+@ r0 = ability id, masked to 0x1FF. Returns .L7b6a8 + id * 0x2C.
+@ Ability records are 0x2C bytes. Fields established from the callers below:
+@     +0x02  category, classified by Func_78480 into 0 / 1 / 2
+@     +0x03  flag byte; bit 4 gates the Func_78588 path
+@     +0x04  a bitmask of which classes may use it, tested by Func_7842c
 .thumb_func_start Func_78414
 	ldr	r3, =0x1ff
 	mov	r2, #0x2c
@@ -11,6 +17,12 @@
 	bx	lr
 .func_end Func_78414
 
+@ CanUseAbility
+@ r0 = combatant id, r1 = ability id. Returns 1 when the character's class may
+@ use the ability, 0 otherwise.
+@ The class index is the byte at record+0x128; ability+4 is a bitmask, and the
+@ test is `(mask >> class) & 1`. A class index above 7 always returns 0, so the
+@ mask is eight bits wide.
 .thumb_func_start Func_7842c
 	push	{r5, r6, lr}
 	mov	r5, r1
@@ -38,6 +50,10 @@
 	bx	r1
 .func_end Func_7842c
 
+@ GetUsableAbilityCategory
+@ r0 = combatant id, r1 = ability id. Func_7842c gates the lookup and
+@ Func_78480 supplies the category, so an ability the class cannot use reports
+@ no category.
 .thumb_func_start Func_7845c
 	push	{r5, r6, lr}
 	mov	r5, r1
@@ -58,6 +74,11 @@
 	bx	r1
 .func_end Func_7845c
 
+@ ClassifyAbility
+@ r0 = ability id. Maps the record's +0x02 byte to a category:
+@     1                   -> 1
+@     2, 3, 4, 5 or 9     -> 2
+@     anything else       -> 0
 .thumb_func_start Func_78480
 	push	{lr}
 	bl	Func_78414
@@ -86,6 +107,13 @@
 	bx	r1
 .func_end Func_78480
 
+@ GetInventorySlot
+@ r0 = combatant id, r1 = slot (0..14). Reads the halfword at record+0xD8 + 2*slot.
+@ THE INVENTORY HALFWORD PACKS THREE FIELDS:
+@     bits 0..8   item id      (mask 0x1FF)
+@     bit  10     equipped     (Func_78a34 sets it, Func_78a60 clears it)
+@     bits 11..15 quantity - 1 (Func_788c4 decrements by 0x800 per unit)
+@ Returns (h >> 11) + 1, the quantity, or 0 when the id field is empty.
 .thumb_func_start Func_784b0
 	push	{r5, lr}
 	mov	r5, r1
@@ -106,6 +134,10 @@
 	bx	r1
 .func_end Func_784b0
 
+@ CountInventory
+@ r0 = combatant id. Returns how many of the 15 inventory slots at record+0xD8
+@ hold a non-zero halfword, stopping at the first empty one -- so the inventory
+@ is kept COMPACTED, with no holes.
 .thumb_func_start Func_784d8
 	push	{lr}
 	bl	Func_77394
@@ -129,6 +161,9 @@
 	bx	r1
 .func_end Func_784d8
 
+@ CountPartyInventory
+@ r0.. = parameters. Sums Func_784d8 across the active party, whose member list
+@ Func_796c4 supplies.
 .thumb_func_start Func_78500
 	push	{r5, r6, r7, lr}
 	ldr	r3, =ewram_240
@@ -171,6 +206,8 @@
 	bx	r1
 .func_end Func_78500
 
+@ CountPartyInventoryFiltered
+@ r0.. = parameters. As Func_78500 with a per-slot filter applied.
 .thumb_func_start Func_78550
 	push	{r5, r6, r7, lr}
 	sub	sp, #0x14
@@ -201,6 +238,10 @@
 	bx	r1
 .func_end Func_78550
 
+@ FindUsableItem
+@ r0 = combatant id, r1 = item id. Searches the inventory for the item, but only
+@ when bit 4 of the ability record's +0x03 is set. Compares against the id field
+@ with `(slot ^ wanted) & 0x1FF`, so the quantity and equipped bits are ignored.
 .thumb_func_start Func_78588
 	push	{r5, r6, lr}
 	mov	r5, r1
@@ -277,6 +318,8 @@
 	bx	r1
 .func_end Func_78588
 
+@ FindUsableItemInParty
+@ r0.. = parameters. Runs Func_78588 across the active party from Func_796c4.
 .thumb_func_start Func_78618
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -320,6 +363,9 @@
 	bx	r1
 .func_end Func_78618
 
+@ FindInventorySlot
+@ r0 = combatant id, r1 = item id. Returns the slot index (0..14) holding that
+@ item id, or -1 when absent. Matches on the low 9 bits only.
 .thumb_func_start Func_78664
 	push	{r5, lr}
 	mov	r5, r1
@@ -348,6 +394,9 @@
 	bx	r1
 .func_end Func_78664
 
+@ FindInventorySlotInParty
+@ r0.. = parameters. Runs Func_78664 across the active party, returning both the
+@ member and the slot.
 .thumb_func_start Func_78698
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -407,6 +456,10 @@
 	bx	r1
 .func_end Func_78698
 
+@ AddInventoryItem
+@ r0 = combatant id, r1 = item id. Places the item in a free slot, bumping the
+@ quantity field if it is already held, then rebuilds the character summary with
+@ Func_77428 and the equipment state with Func_78bf0.
 .thumb_func_start Func_78708
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -517,6 +570,9 @@
 	bx	r1
 .func_end Func_78708
 
+@ RemoveInventoryItem
+@ r0 = combatant id, r1 = slot. Clears the slot and compacts the remainder, so
+@ Func_784d8's stop-at-first-empty scan stays correct.
 .thumb_func_start Func_787dc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -562,6 +618,8 @@
 	bx	r1
 .func_end Func_787dc
 
+@ GetItemCategory
+@ r0 = item id. Returns the category byte from the ability/item record.
 .thumb_func_start Func_7882c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -600,6 +658,8 @@
 	bx	r1
 .func_end Func_7882c
 
+@ GetItemProperty
+@ r0 = item id, r1 = which. Returns one of the record's property fields.
 .thumb_func_start Func_78870
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -644,6 +704,11 @@
 	bx	r1
 .func_end Func_78870
 
+@ ConsumeInventoryItem
+@ r0 = combatant id, r1 = slot. Decrements the quantity field by 0x800 -- one
+@ unit -- and clears the slot entirely when the count reaches zero. Returns 1 on
+@ success, -1 when the slot was already empty. Rebuilds the summary with
+@ Func_77428.
 .thumb_func_start Func_788c4
 	push	{r5, r6, r7, lr}
 	mov	r5, r1
@@ -718,6 +783,9 @@
 	bx	r1
 .func_end Func_788c4
 
+@ ConsumeAndNotify
+@ r0 = combatant id, r1 = slot. Func_788c4 then Func_78ad0 and _Func_91858 so
+@ the field layer learns the item was used.
 .thumb_func_start Func_78948
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -745,6 +813,8 @@
 	bx	r1
 .func_end Func_78948
 
+@ SwapInventorySlots
+@ r0 = combatant id, r1, r2 = slots. Exchanges two inventory halfwords.
 .thumb_func_start Func_78980
 	push	{r5, r6, r7, lr}
 	mov	r5, r1
@@ -794,6 +864,9 @@
 	bx	r1
 .func_end Func_78980
 
+@ FindAndConsumeInParty
+@ r0 = item id. Locates the item with Func_78664 / Func_78698 and consumes it
+@ with Func_788c4.
 .thumb_func_start Func_789dc
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -817,6 +890,9 @@
 	bx	r1
 .func_end Func_789dc
 
+@ FindAndConsumeWithNotify
+@ r0 = item id. As Func_789dc but going through Func_78948 so the field layer is
+@ notified.
 .thumb_func_start Func_78a08
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -840,6 +916,9 @@
 	bx	r1
 .func_end Func_78a08
 
+@ EquipInventorySlot
+@ r0 = combatant id, r1 = slot. Sets bit 10 (0x400) of the slot's halfword.
+@ Returns 0 on success, -1 when the slot is empty.
 .thumb_func_start Func_78a34
 	push	{r5, lr}
 	mov	r5, r1
@@ -864,6 +943,9 @@
 	bx	r1
 .func_end Func_78a34
 
+@ UnequipInventorySlot
+@ r0 = combatant id, r1 = slot. Clears bit 10 (mask 0xFBFF). Returns 0 on
+@ success, -1 when the slot is empty.
 .thumb_func_start Func_78a60
 	push	{r5, lr}
 	mov	r5, r1

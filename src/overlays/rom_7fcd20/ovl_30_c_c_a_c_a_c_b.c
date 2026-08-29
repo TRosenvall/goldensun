@@ -1,0 +1,59 @@
+/* Cluster OvlFunc_974_2008bb8..OvlFunc_974_2008bb8 extracted from goldensun/asm/overlays/rom_7fcd20/ovl_30_c_c_a_c_a_c.s.
+ *
+ * Total .text for this TU = 316 bytes (= 0x13c).
+ * Preserves the original ROM layout when slotted between
+ * asm/overlays/rom_7fcd20/ovl_30_c_c_a_c_a_c_a.o and asm/overlays/rom_7fcd20/ovl_30_c_c_a_c_a_c_c.o in
+ * goldensun/overlays/rom_7fcd20/overlay.ld.
+ *
+ * Stocks the four party members and recomputes their stats.
+ *
+ * __GiveItemTo IS DELIBERATELY LEFT UNDECLARED -- do not add a prototype.
+ * With one, gcc emits `mov r0, <who>` before `mov r1, <item>` at all
+ * thirty-five call sites; the ROM sets r1 first.  Without it, the argument
+ * order matches everywhere.  See the no-prototype lever in docs/elevation.md.
+ * The other two callees keep their prototypes and are unaffected.
+ */
+extern void __Func_801776c(int a, int b);
+extern void __CalcStats(int who);
+void OvlFunc_974_2008bb8(void)
+{
+    __Func_801776c(0xc1f, 1);
+    __GiveItemTo(0, 0x55);
+    __GiveItemTo(0, 0x54);
+    __GiveItemTo(0, 0x7c);
+    __GiveItemTo(0, 0x7b);
+    __GiveItemTo(0, 9);
+    __GiveItemTo(0, 0xb);
+    __GiveItemTo(0, 0x1b);
+    __GiveItemTo(0, 0x1a);
+    __GiveItemTo(1, 0x26);
+    __GiveItemTo(1, 0x25);
+    __GiveItemTo(1, 0x32);
+    __GiveItemTo(1, 0x31);
+    __GiveItemTo(1, 0x53);
+    __GiveItemTo(1, 0x52);
+    __GiveItemTo(1, 0x86);
+    __GiveItemTo(1, 0x85);
+    __GiveItemTo(1, 0x98);
+    __GiveItemTo(2, 0x40);
+    __GiveItemTo(2, 0x41);
+    __GiveItemTo(2, 0x62);
+    __GiveItemTo(2, 0x61);
+    __GiveItemTo(2, 0x7c);
+    __GiveItemTo(2, 0x83);
+    __GiveItemTo(2, 0x8d);
+    __GiveItemTo(2, 0xa3);
+    __GiveItemTo(3, 0x3d);
+    __GiveItemTo(3, 0x3f);
+    __GiveItemTo(3, 0x60);
+    __GiveItemTo(3, 0x5f);
+    __GiveItemTo(3, 0x71);
+    __GiveItemTo(3, 0x70);
+    __GiveItemTo(3, 0x82);
+    __GiveItemTo(3, 0x8e);
+    __GiveItemTo(3, 0xab);
+    __CalcStats(0);
+    __CalcStats(1);
+    __CalcStats(3);
+    __CalcStats(2);
+}

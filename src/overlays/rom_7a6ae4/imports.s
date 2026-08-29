@@ -1,0 +1,23 @@
+	.include "macros.inc"
+
+	.export_func _WaitFrames
+	.export_func _Actor_SetAnim
+	.export_func _Actor_TravelTo
+	.export_func _Actor_WaitMovement
+	.export_func _CopyMapTiles
+	.export_func _Func_8010704
+	.export_func _TestCollision
+	.export_func _Actor_SetSpriteFlags
+	.export_func _GetFlag
+	.export_func _SetFlag
+	.export_func _ClearFlag
+	.export_func _CutsceneWait
+	.export_func _CutsceneStart
+	.export_func _CutsceneEnd
+	.export_func _MapActor_GetActor
+	.export_func _MapActor_SetPos
+	.export_func _MapActor_SetAnim
+	.export_func _MapActor_DoAnim
+	.export_func _Func_8092950
+	.export_func _Func_8092b08
+	.export_func _PlaySound

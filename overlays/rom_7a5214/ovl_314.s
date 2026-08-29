@@ -1,26 +1,40 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Slot 1: the edge-transition table -- .L25cc.
 .thumb_func_start OvlFunc_314
 	ldr	r0, =.L25cc
 	bx	lr
 .func_end OvlFunc_314
 
+@ Slot 5: the interaction table -- .L29d4.
 .thumb_func_start OvlFunc_31c
 	ldr	r0, =.L29d4
 	bx	lr
 .func_end OvlFunc_31c
 
+@ Slot 2: the map event list -- .L2a14.
 .thumb_func_start OvlFunc_324
 	ldr	r0, =.L2a14
 	bx	lr
 .func_end OvlFunc_324
 
+@ Slot 3: the read after slot 4 -- .L2a58.
 .thumb_func_start OvlFunc_32c
 	ldr	r0, =.L2a58
 	bx	lr
 .func_end OvlFunc_32c
 
+@ 141 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, TestSaveBit, CopyMapRectFull, SetSaveBit
+@   CopyMapRectFull, PlaySound, BeginCutscene, SetSceneTargetA
+@   SetSlotAnimation, GetSlotEntityChecked, SetEntityActorOptions, RunSlotEffectSequence
+@   DialogueWait, MoveCameraTo
+@   ... and 5 more
+@ sets 0x122.
 .thumb_func_start OvlFunc_334
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -182,6 +196,7 @@
 	bx	r0
 .func_end OvlFunc_334
 
+@ Wrapper: OvlFunc_334(0x200, 0x40, 0x23, 0x15).
 .thumb_func_start OvlFunc_494
 	push	{lr}
 	mov	r0, #0x80
@@ -194,6 +209,7 @@
 	bx	r0
 .func_end OvlFunc_494
 
+@ Wrapper: OvlFunc_334(0x201, 0x41, 0x23, 0x16).
 .thumb_func_start OvlFunc_4a8
 	push	{lr}
 	ldr	r0, =0x201
@@ -205,6 +221,7 @@
 	bx	r0
 .func_end OvlFunc_4a8
 
+@ Wrapper: OvlFunc_334(0x202, 0x42, 0x23, 0x17).
 .thumb_func_start OvlFunc_4c0
 	push	{lr}
 	ldr	r0, =0x202
@@ -216,6 +233,7 @@
 	bx	r0
 .func_end OvlFunc_4c0
 
+@ Wrapper: OvlFunc_334(0x203, 0x43, 0x23, 0x18).
 .thumb_func_start OvlFunc_4d8
 	push	{lr}
 	ldr	r0, =0x203
@@ -227,6 +245,7 @@
 	bx	r0
 .func_end OvlFunc_4d8
 
+@ Wrapper: OvlFunc_334(0x204, 0x44, 0x23, 0x19).
 .thumb_func_start OvlFunc_4f0
 	push	{lr}
 	mov	r0, #0x81
@@ -239,6 +258,7 @@
 	bx	r0
 .func_end OvlFunc_4f0
 
+@ Wrapper: OvlFunc_334(0x205, 0x45, 0x23, 0x1a).
 .thumb_func_start OvlFunc_504
 	push	{lr}
 	ldr	r0, =0x205
@@ -250,6 +270,7 @@
 	bx	r0
 .func_end OvlFunc_504
 
+@ Wrapper: OvlFunc_334(0x206, 0x46, 0x23, 0x1b).
 .thumb_func_start OvlFunc_51c
 	push	{lr}
 	ldr	r0, =0x206
@@ -261,6 +282,7 @@
 	bx	r0
 .func_end OvlFunc_51c
 
+@ Wrapper: OvlFunc_334(0x207, 0x47, 0x23, 0x1c).
 .thumb_func_start OvlFunc_534
 	push	{lr}
 	ldr	r0, =0x207
@@ -272,6 +294,7 @@
 	bx	r0
 .func_end OvlFunc_534
 
+@ Wrapper: OvlFunc_334(0x208, 0x48, 0x23, 0x1d).
 .thumb_func_start OvlFunc_54c
 	push	{lr}
 	mov	r0, #0x82
@@ -284,6 +307,7 @@
 	bx	r0
 .func_end OvlFunc_54c
 
+@ Wrapper: OvlFunc_334(0x209, 0x49, 0x23, 0x1f).
 .thumb_func_start OvlFunc_560
 	push	{lr}
 	ldr	r0, =0x209
@@ -295,6 +319,7 @@
 	bx	r0
 .func_end OvlFunc_560
 
+@ Wrapper: OvlFunc_334(0x20a, 0x4a, 0x23, 0x20).
 .thumb_func_start OvlFunc_578
 	push	{lr}
 	ldr	r0, =0x20a
@@ -306,6 +331,7 @@
 	bx	r0
 .func_end OvlFunc_578
 
+@ Wrapper: OvlFunc_334(0x20b, 0x4f, 0x23, 0x32).
 .thumb_func_start OvlFunc_590
 	push	{lr}
 	ldr	r0, =0x20b
@@ -317,6 +343,7 @@
 	bx	r0
 .func_end OvlFunc_590
 
+@ Wrapper: OvlFunc_334(0x20c, 0x4b, 0x23, 0x33).
 .thumb_func_start OvlFunc_5a8
 	push	{lr}
 	mov	r0, #0x83
@@ -329,6 +356,7 @@
 	bx	r0
 .func_end OvlFunc_5a8
 
+@ Wrapper: OvlFunc_334(0x20d, 0x4c, 0x23, 0x34).
 .thumb_func_start OvlFunc_5bc
 	push	{lr}
 	ldr	r0, =0x20d
@@ -340,6 +368,7 @@
 	bx	r0
 .func_end OvlFunc_5bc
 
+@ Wrapper: OvlFunc_334(0x20e, 0x4d, 0x23, 0x35).
 .thumb_func_start OvlFunc_5d4
 	push	{lr}
 	ldr	r0, =0x20e
@@ -351,6 +380,7 @@
 	bx	r0
 .func_end OvlFunc_5d4
 
+@ Wrapper: OvlFunc_334(0x20f, 0x4e, 0x23, 0x36).
 .thumb_func_start OvlFunc_5ec
 	push	{lr}
 	ldr	r0, =0x20f
@@ -362,6 +392,7 @@
 	bx	r0
 .func_end OvlFunc_5ec
 
+@ Wrapper: OvlFunc_334(0x210, 0x50, 0x23, 0x37).
 .thumb_func_start OvlFunc_604
 	push	{lr}
 	mov	r0, #0x84
@@ -374,6 +405,7 @@
 	bx	r0
 .func_end OvlFunc_604
 
+@ Wrapper: OvlFunc_334(0x211, 0x51, 0x23, 0x38).
 .thumb_func_start OvlFunc_618
 	push	{lr}
 	ldr	r0, =0x211
@@ -385,6 +417,7 @@
 	bx	r0
 .func_end OvlFunc_618
 
+@ Wrapper: OvlFunc_334(0x212, 0x52, 0x23, 0x39).
 .thumb_func_start OvlFunc_630
 	push	{lr}
 	ldr	r0, =0x212
@@ -396,6 +429,7 @@
 	bx	r0
 .func_end OvlFunc_630
 
+@ Wrapper: OvlFunc_334(0x213, 0x53, 0x23, 0x3a).
 .thumb_func_start OvlFunc_648
 	push	{lr}
 	ldr	r0, =0x213
@@ -407,6 +441,7 @@
 	bx	r0
 .func_end OvlFunc_648
 
+@ Wrapper: OvlFunc_334(0x214, 0x54, 0x23, 0x3b).
 .thumb_func_start OvlFunc_660
 	push	{lr}
 	mov	r0, #0x85
@@ -419,6 +454,11 @@
 	bx	r0
 .func_end OvlFunc_660
 
+@ 10 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   AdvanceDialogue
 .thumb_func_start OvlFunc_674
 	push	{lr}
 	bl	__Func_93c00
@@ -437,11 +477,17 @@
 	.word	0xffffffff
 .func_end OvlFunc_674
 
+@ Slot 4: the map object table -- .L2ae8.
 .thumb_func_start OvlFunc_694
 	ldr	r0, =.L2ae8
 	bx	lr
 .func_end OvlFunc_694
 
+@ Cutscene: roughly 236 instructions of straight-line script --
+@ 4 turns, 2 animation changes, 5 dialogue lines, 4 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x14ce.
+@ Reads save bit 0x3.
 .thumb_func_start OvlFunc_69c
 	push	{r5, r6, lr}
 	mov	r0, #3
@@ -685,6 +731,12 @@
 	bx	r0
 .func_end OvlFunc_69c
 
+@ Cutscene: roughly 588 instructions of straight-line script --
+@ 14 turns, 11 animation changes, 20 dialogue lines, 17 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x14d3, 0x14dd, 0x14df.
+@ Reads save bit 0x3.
+@ Sets save bit 0x844.
 .thumb_func_start OvlFunc_918
 	push	{r5, r6, r7, lr}
 	mov	r0, #3
@@ -1284,6 +1336,13 @@
 	bx	r0
 .func_end OvlFunc_918
 
+@ 71 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, OvlFunc_918, Func_30f8, TestSaveBit
+@   CopyMapRectFull x2, CopyMapRectAttributes x2, CopyMapRectFull, CopyMapRectAttributes
+@ reads save bits 0x109, 0x844.
 .thumb_func_start OvlFunc_f58
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -1361,6 +1420,11 @@
 	bx	r0
 .func_end OvlFunc_f58
 
+@ Cutscene: roughly 196 instructions of straight-line script --
+@ 0 turns, 1 animation change, 0 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x844.
+@ Sets save bits 0x201, 0x20d, 0x20f, 0x213.
 .thumb_func_start OvlFunc_1004
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1569,6 +1633,9 @@
 	bx	r1
 .func_end OvlFunc_1004
 
+@ Leaf helper, 9 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: REG_DMA3SAD, iwram_1ed0
 .thumb_func_start OvlFunc_1224
 	ldr	r2, =iwram_1ed0
 	mov	r0, #0xa0
@@ -1581,6 +1648,11 @@
 	bx	lr
 .func_end OvlFunc_1224
 
+@ 220 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv x9, Random
 .thumb_func_start OvlFunc_1244
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1824,6 +1896,9 @@
 	bx	r0
 .func_end OvlFunc_1244
 
+@ Cutscene: roughly 126 instructions of straight-line script --
+@ 0 turns, 25 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_1424
 	push	{lr}
 	cmp	r0, #0xc
@@ -1982,6 +2057,11 @@
 	bx	r0
 .func_end OvlFunc_1424
 
+@ 58 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RotateVector, FreeObjTiles, DestroyEntity
 .thumb_func_start OvlFunc_15ac
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -2046,6 +2126,12 @@
 	bx	r0
 .func_end OvlFunc_15ac
 
+@ 110 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv, PlaySound, SpawnEntity, ValidateRidePair
+@   SetEntityActorOptions, SetEntityAnimation, UnsignedDiv x2, PlaySound
 .thumb_func_start OvlFunc_162c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

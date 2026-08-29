@@ -1,6 +1,30 @@
 	.include "macros.inc"
+
+@ ============================================================================
+@ World-map tileset streaming.
+@
+@ The world map is covered by 16x16 quadrants. [iwram_1e70]+0x138 holds a 16x16
+@ table of tileset ids, one per quadrant, indexed by ((z & 0xF) << 4) | (x & 0xF).
+@ [iwram_1e70]+0x338 caches which id is currently resident in each of the four
+@ VRAM slots (2 layers x 2x2 quadrants) so a re-request costs nothing.
+@
+@ Func_113e4 forces all four slots to reload; Func_114a0 is the incremental
+@ version that stops after the first real load, spreading the cost over frames.
+@ ============================================================================
 	.include "gba.inc"
 
+@ LoadTilesetQuadrant
+@ r0=layer (0 or 1), r1=quadrant x, r2=quadrant z, r3=tileset id,
+@ [sp+0x1C]=force flag. Returns 1 if the tileset was loaded, 0 if the cache
+@ already held it (only possible when force is 0).
+@ The cache slot is the halfword at [iwram_1e70] + 0x338 +
+@ (((layer * 2 + (z & 1)) * 2 + (x & 1)) * 2). On a miss the id is recorded,
+@ a 0x400-byte buffer (tag 0x0E) is decompressed from the tileset archive at
+@ [iwram_1e70]+0x110 with Func_53e8, and 16 blocks of 0x40 bytes are DMAd into
+@ ewram_20000 at a 0x80 destination stride.
+@ When force is set it additionally expands the block into the BG map at
+@ 0x6004000, turning each of the 16x16 metatile indices into its 2x2 tile pair
+@ via ewram_10000 / ewram_10002. The buffer is released with Func_2dd8.
 .thumb_func_start Func_108e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -123,6 +147,15 @@
 	bx	r1
 .func_end Func_108e4
 
+@ InitWorldMap
+@ Takes no arguments. Brings up the world-map state block that iwram_1e70 points
+@ at. Blanks BG1-BG3 in DISPCNT (mask 0xC1FF) and calls Func_3bb4(0), then
+@ allocates 0x35C bytes under tag 8 and DMA zero-fills it.
+@ Seeds the camera at +0xE4/+0xE8 to 0, the near bounds at +0xEC/+0xF0 to
+@ 0x200000 and 0x400000, and the far bounds at +0xF4/+0xF8 to 0x1FE00000.
+@ Loads resource 0xD4 as the tileset archive into +0x110 and resource 0xD6 into
+@ ewram_2d000, handing the latter to Func_118d8 as tile animations. Finally sets
+@ REG_BLDCNT to 0x3F9E, REG_BLDALPHA to 0x1010 and REG_BLDY to 0.
 .thumb_func_start Func_109e8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -458,6 +491,14 @@
 	bx	r1
 .func_end Func_109e8
 
+@ SetQuadrantTileset
+@ r0=x, r1=z, r2=camera z, r3=tileset id. Records the id in the quadrant table
+@ at [iwram_1e70]+0x138 for the addressed quadrant.
+@ If that quadrant is within one step of the camera in both axes -- the pair of
+@ range tests at .Ldb4/.Ldc8 -- the change is also applied immediately, calling
+@ Func_108e4 with force set for layer 0 and again for layer 1 with the id
+@ biased by 0x140. A quadrant further away is only recorded; it will be picked
+@ up when the camera reaches it.
 .thumb_func_start Func_10d48
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -565,6 +606,21 @@
 	bx	r0
 .func_end Func_10d48
 
+@ LoadRegionTilesets
+@ r0=world x, r1=world z (16.16). Loads the whole graphics set for the region
+@ containing that point.
+@ The metatile record at ewram_20000 for the coarse (>>21, 32-wide) cell selects
+@ one of two groups: a type field of 0x15 picks group 1, anything else group 0.
+@ The group's 6-word descriptor comes from .L132cc (stride 0x18) and is cached
+@ at [iwram_1e70]+0x11C.
+@ Entry 0 is the palette -- loaded through a 0x200-byte scratch buffer with
+@ colour 0 preserved from live palette RAM, then DMAd to 0x5000000. Entries 1-4
+@ are tile banks decompressed to ewram_38000 / 3a000 / 3c000 / 3e000 and DMAd
+@ to 0x6008000 / a000 / c000 / e000. Entry 5 goes to ewram_28000.
+@ The BG map at 0x6002800 is then filled with the 0xF07FF07F blank pattern and
+@ a 20x15 ramp of tile numbers is written at 0x6003000. Group 1 additionally
+@ seeds six halfwords from +0x14C and calls Func_113e4 to force the quadrant
+@ reload. The scratch buffer is freed with Func_2df0.
 .thumb_func_start Func_10e14
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -753,6 +809,12 @@
 	bx	r0
 .func_end Func_10e14
 
+@ UpdateWorldMapAffine
+@ Takes no arguments. Recomputes the affine background transform for the world
+@ map each frame. Reads the view state from iwram_1e6c, masks the mode bits out
+@ of DISPCNT, disables the DMA0 HBlank transfer while the registers are in flux
+@ (clearing the enable bit in REG_DMA0CNT_H), and rewrites REG_BG2PA..BG2PD plus
+@ the reference point from the camera, double-buffering on bit 0 of iwram_1e40.
 .thumb_func_start Func_10ff0
 	push	{r5, r6, lr}
 	ldr	r1, =iwram_1e6c
@@ -862,6 +924,12 @@
 	bx	r0
 .func_end Func_10ff0
 
+@ DrawWorldMapRow
+@ r0=map row. Expands one horizontal run of 32 metatiles from ewram_20000 into
+@ the BG map at 0x6004000, each becoming a 2x2 tile block: the upper pair from
+@ ewram_10000 and the lower from ewram_10002, written one screen row (0x40
+@ bytes) apart. A second run follows at the +0xFC0 / +0xF80 wrap offsets so the
+@ row is written into both halves of the scrolling buffer.
 .thumb_func_start Func_110e0
 	push	{r5, lr}
 	lsr	r3, r0, #31
@@ -926,6 +994,10 @@
 	bx	r0
 .func_end Func_110e0
 
+@ DrawWorldMapColumn
+@ r0=map column. The vertical counterpart to Func_110e0: walks 64 metatiles down
+@ the map, stepping source and destination by 0x80 bytes, and expands each into
+@ its 2x2 tile block in the BG map at 0x6004000.
 .thumb_func_start Func_11164
 	push	{r5, lr}
 	lsr	r3, r0, #31
@@ -964,6 +1036,15 @@
 	bx	r0
 .func_end Func_11164
 
+@ UpdateWorldMapView
+@ Takes no arguments. Per-frame world-map view update. Reads the camera and view
+@ state from iwram_1e80 and the two words below it, calls Func_114a0 first so at
+@ most one quadrant streams in this frame, then walks the visible object list at
+@ [state] updating positions and issuing the row/column fills above for whatever
+@ the camera movement exposed.
+@ The bulk of the body (roughly 250 instructions) has NOT been analysed
+@ instruction by instruction; the entry sequence, the Func_114a0 call and the
+@ loop structure are verified.
 .thumb_func_start Func_111b4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1210,6 +1291,13 @@
 	bx	r0
 .func_end Func_111b4
 
+@ ReloadVisibleTilesets
+@ Takes no arguments. Forces all four resident tileset slots to reload.
+@ Derives the camera quadrant from [[iwram_1e70]] -- the position words biased by
+@ 0xFF000000 and 0xFEC00000 then shifted right 25 -- and loops layer 0..1 by
+@ z 0..1 by x 0..1, reading each quadrant's id from the table at +0x138 and
+@ calling Func_108e4 with the force flag set. Layer 1 ids are biased by 0x140.
+@ Used after a region change, where every slot is stale.
 .thumb_func_start Func_113e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1305,6 +1393,12 @@
 	bx	r0
 .func_end Func_113e4
 
+@ StreamVisibleTilesets
+@ Takes no arguments. The incremental form of Func_113e4: identical quadrant
+@ walk, but Func_108e4 is called with force clear and the whole routine returns
+@ as soon as one call reports it actually loaded something.
+@ That caps the work at one 0x400-byte decompress per frame, so scrolling into
+@ new terrain streams in over several frames instead of stalling on one.
 .thumb_func_start Func_114a0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

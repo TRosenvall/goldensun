@@ -1,5 +1,52 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Shared overlay code: IEEE 754 DOUBLE-PRECISION SOFT FLOAT.
+@
+@ 18 functions, shared by two overlays -- rom_7bf5a8 and rom_7e7574 -- and
+@ genuinely surprising in a game that is otherwise 16.16 fixed point from end
+@ to end.
+@
+@ This is libgcc's fp-bit.c, compiled in. The identification is not a guess:
+@ the class codes at +0x00 of the unpacked form are exactly libgcc's, which is
+@ why "is it NaN" is written as `class <= 1`:
+@
+@     0 signalling NaN   1 quiet NaN   2 zero   3 normal   4 infinity
+@
+@ and the exponent constants -1022 (0xFFFFFC02) and -1023 (0xFFFFFC01) are the
+@ smallest normal and the denormal marker for a double. The routines present
+@ are __adddf3, __subdf3, __floatsidf and __fixdfsi, plus unpack_d, pack_d and
+@ _fpadd_parts behind them.
+@
+@ isnan, isinf and iszero each appear THREE times -- the compiler inlined them
+@ separately into _fpadd_parts, __fixdfsi and pack_d.
+@
+@ IT IS ACTUALLY USED. rom_7bf5a8/ovl_2e0.s runs this loop 480 times, once a
+@ frame, for exactly eight seconds:
+@
+@     acc -= 4718.592 - (double)(rand() >> 5)
+@
+@ with 4718.592 sitting in the code as 0x40B26E978D4FDF3B and 4294967296.0
+@ (0x41F00000_00000000) used to fix up the sign when the random value is
+@ treated as unsigned. rom_7e7574 has three more call sites.
+@
+@ 16.16 would have expressed that perfectly well, so the most likely reading is
+@ that a C source wrote a decimal literal and the compiler pulled the whole
+@ soft-float library in behind it. Either way it is direct evidence that the
+@ overlays were compiled from C against libgcc -- which is worth knowing before
+@ anyone tries to decompile them.
+@ ============================================================================
+
+@ AddDoubleParts
+@ r0 = unpacked a, r1 = unpacked b, r2 = destination. Returns the result.
+@
+@ The core of double addition, and libgcc's `_fpadd_parts` with the operands
+@ already unpacked. It works through the special cases in the order the C source
+@ does -- NaN wins, then infinity (opposite signs give the canonical NaN from
+@ OvlFunc_common2_2cc, same signs give infinity), then zero -- before aligning
+@ the two 64-bit fractions by their exponent difference and adding or
+@ subtracting according to the signs.
+@ 302 lines; the case analysis is traced, the alignment structurally.
 .thumb_func_start OvlFunc_common2_0
 	push	{r4, r5, r6, r7, lr}
 	mov	r7, r11
@@ -309,6 +356,13 @@
 	pop	{r4, r5, r6, r7, pc}
 .func_end OvlFunc_common2_0
 
+@ AddDouble -- __adddf3
+@ r0:r1 = a, r2:r3 = b, both IEEE 754 doubles in the usual little-endian register
+@ pair. Returns a + b.
+@
+@ Unpacks both with OvlFunc_common2_618, adds with OvlFunc_common2_0, packs the
+@ result with OvlFunc_common2_44c. The 0x4C bytes of stack are the two unpacked
+@ forms plus the result.
 .thumb_func_start OvlFunc_common2_254
 	push	{r4, r5, r6, lr}
 	sub	sp, #0x4c
@@ -335,6 +389,13 @@
 	pop	{r4, r5, r6, pc}
 .func_end OvlFunc_common2_254
 
+@ SubtractDouble -- __subdf3
+@ r0:r1 = a, r2:r3 = b. Returns a - b.
+@
+@ Identical to OvlFunc_common2_254 except for one instruction: the second
+@ operand's sign word at +0x04 of its unpacked form is XORed with 1 before the
+@ add. Subtraction is addition with the sign flipped, and the unpacked
+@ representation makes that a single `eor`.
 .thumb_func_start OvlFunc_common2_28c
 	push	{r4, r5, r6, lr}
 	sub	sp, #0x4c
@@ -365,11 +426,17 @@
 	pop	{r4, r5, r6, pc}
 .func_end OvlFunc_common2_28c
 
+@ CanonicalNaN
+@ Returns the address of .L1, the quiet NaN the arithmetic hands back when it has
+@ nothing better -- infinity minus infinity, and the other invalid cases.
 .thumb_func_start OvlFunc_common2_2cc
 	ldr	r0, =.L1
 	bx	lr
 .func_end OvlFunc_common2_2cc
 
+@ IsNaN
+@ r0 = an unpacked double. Returns 1 when the class word at +0x00 is 0 or 1 --
+@ libgcc's CLASS_SNAN and CLASS_QNAN -- so this is `isnan`.
 .thumb_func_start OvlFunc_common2_2d4
 	push	{lr}
 	ldr	r3, [r0]
@@ -382,6 +449,9 @@
 	pop	{pc}
 .func_end OvlFunc_common2_2d4
 
+@ IsInfinity
+@ r0 = an unpacked double. Returns 1 when the class word at +0x00 is 4,
+@ CLASS_INFINITY. `isinf`.
 .thumb_func_start OvlFunc_common2_2e4
 	push	{lr}
 	ldr	r3, [r0]
@@ -394,6 +464,9 @@
 	pop	{pc}
 .func_end OvlFunc_common2_2e4
 
+@ IsZero
+@ r0 = an unpacked double. Returns 1 when the class word at +0x00 is 2,
+@ CLASS_ZERO. `iszero`.
 .thumb_func_start OvlFunc_common2_2f4
 	push	{lr}
 	ldr	r3, [r0]
@@ -406,6 +479,15 @@
 	pop	{pc}
 .func_end OvlFunc_common2_2f4
 
+@ IntToDouble -- __floatsidf
+@ r0 = a signed 32-bit integer. Returns it as a double.
+@
+@ Zero takes the CLASS_ZERO path directly. Otherwise the sign comes from bit 31,
+@ the exponent starts at 0x3C and the magnitude is normalised by shifting left
+@ until the high word exceeds 0x0FFFFFFF, decrementing the exponent each step.
+@
+@ INT_MIN is special-cased: negating 0x80000000 would overflow, so the result
+@ 0xC1E00000_00000000 -- exactly -2147483648.0 -- is returned as a literal.
 .thumb_func_start OvlFunc_common2_304
 	push	{r4, r5, lr}
 	sub	sp, #0x14
@@ -475,6 +557,16 @@
 	.word	0xc1e00000
 .func_end OvlFunc_common2_304
 
+@ DoubleToInt -- __fixdfsi
+@ r0:r1 = a double. Returns the truncated signed 32-bit value.
+@
+@ NaN and zero both give 0. An exponent below 0 gives 0 as well; above 0x1E, or
+@ an infinity, saturates to INT_MAX or INT_MIN -- the `neg`/`orr`/`lsr #31` then
+@ `add 0x7FFFFFFF` sequence produces 0x7FFFFFFF for a positive value and
+@ 0x80000000 for a negative one without a branch.
+@
+@ In range, the fraction is shifted right by `0x3C - exponent` through
+@ OvlFunc_common2_41c and negated if the sign bit was set.
 .thumb_func_start OvlFunc_common2_380
 	push	{r4, lr}
 	sub	sp, #0x1c
@@ -530,6 +622,12 @@
 	pop	{r4, pc}
 .func_end OvlFunc_common2_380
 
+@ IsNaN2
+@ r0 = an unpacked double. Returns 1 when the class word at +0x00 is 0 or 1 --
+@ libgcc's CLASS_SNAN and CLASS_QNAN -- so this is `isnan`.
+@
+@ A second copy -- the compiler inlined the test separately into each caller, so
+@ this one belongs to OvlFunc_common2_380.
 .thumb_func_start OvlFunc_common2_3ec
 	push	{lr}
 	ldr	r3, [r0]
@@ -542,6 +640,9 @@
 	pop	{pc}
 .func_end OvlFunc_common2_3ec
 
+@ IsInfinity2
+@ r0 = an unpacked double. Returns 1 when the class word at +0x00 is 4,
+@ CLASS_INFINITY. `isinf`.
 .thumb_func_start OvlFunc_common2_3fc
 	push	{lr}
 	ldr	r3, [r0]
@@ -554,6 +655,9 @@
 	pop	{pc}
 .func_end OvlFunc_common2_3fc
 
+@ IsZero2
+@ r0 = an unpacked double. Returns 1 when the class word at +0x00 is 2,
+@ CLASS_ZERO. `iszero`.
 .thumb_func_start OvlFunc_common2_40c
 	push	{lr}
 	ldr	r3, [r0]
@@ -566,6 +670,11 @@
 	pop	{pc}
 .func_end OvlFunc_common2_40c
 
+@ ShiftRight64
+@ r0:r1 = a 64-bit value, r2 = the shift count. Returns it shifted right.
+@ A count of zero returns the input untouched; a count of 32 or more moves the
+@ high word down and zeroes it, which is the case a single `lsr` pair cannot
+@ express on ARM.
 .thumb_func_start OvlFunc_common2_41c
 	push	{r4, r5, r6, lr}
 	mov	r6, r2
@@ -596,6 +705,15 @@
 	pop	{r4, r5, r6, pc}
 .func_end OvlFunc_common2_41c
 
+@ PackDouble -- pack_d
+@ r0 = an unpacked double. Returns the IEEE 754 bit pattern in r0:r1.
+@
+@ The inverse of OvlFunc_common2_618. NaN produces the quiet pattern with the
+@ 0x80000 bit set and an exponent of 0x7FF; infinity the same exponent with a
+@ zero fraction; zero a zero fraction with the sign preserved. A normal value is
+@ rounded to nearest and, when the exponent has fallen below -1022 (0xFFFFFC02),
+@ denormalised by shifting the fraction right instead.
+@ 205 lines; traced structurally.
 .thumb_func_start OvlFunc_common2_44c
 	push	{r4, r5, r6, r7, lr}
 	mov	r7, r10
@@ -808,6 +926,11 @@
 	pop	{r4, r5, r6, r7, pc}
 .func_end OvlFunc_common2_44c
 
+@ IsNaN3
+@ r0 = an unpacked double. Returns 1 when the class word at +0x00 is 0 or 1 --
+@ libgcc's CLASS_SNAN and CLASS_QNAN -- so this is `isnan`.
+@
+@ The third copy, inlined into OvlFunc_common2_44c.
 .thumb_func_start OvlFunc_common2_5e8
 	push	{lr}
 	ldr	r3, [r0]
@@ -820,6 +943,9 @@
 	pop	{pc}
 .func_end OvlFunc_common2_5e8
 
+@ IsInfinity3
+@ r0 = an unpacked double. Returns 1 when the class word at +0x00 is 4,
+@ CLASS_INFINITY. `isinf`.
 .thumb_func_start OvlFunc_common2_5f8
 	push	{lr}
 	ldr	r3, [r0]
@@ -832,6 +958,9 @@
 	pop	{pc}
 .func_end OvlFunc_common2_5f8
 
+@ IsZero3
+@ r0 = an unpacked double. Returns 1 when the class word at +0x00 is 2,
+@ CLASS_ZERO. `iszero`.
 .thumb_func_start OvlFunc_common2_608
 	push	{lr}
 	ldr	r3, [r0]
@@ -844,6 +973,25 @@
 	pop	{pc}
 .func_end OvlFunc_common2_608
 
+@ UnpackDouble -- unpack_d
+@ r0 = a pointer to the IEEE 754 bit pattern, r1 = destination.
+@
+@ Splits a double into the form the arithmetic works on:
+@
+@     +0x00  class    0 signalling NaN, 1 quiet NaN, 2 zero, 3 normal,
+@                     4 infinity -- libgcc's CLASS_* values exactly, which is why
+@                     "is it NaN" is a test for `class <= 1`
+@     +0x04  sign     bit 63, extracted as `[+7] >> 7`
+@     +0x08  exponent the 11 bits from bit 52, BIASED BY 1023 on the way out:
+@                     -1022 (0xFFFFFC02) is the smallest normal, -1023
+@                     (0xFFFFFC01) marks a denormal
+@     +0x0C  fraction 64 bits, the implicit leading 1 restored and the whole
+@                     thing shifted up by 8 so the arithmetic has guard bits
+@
+@ A zero exponent with a zero fraction is CLASS_ZERO; with a non-zero fraction it
+@ is a denormal, which is renormalised here so the adder never has to think about
+@ them.
+@ 109 lines; traced structurally.
 .thumb_func_start OvlFunc_common2_618
 	push	{r4, r5, r6, r7, lr}
 	ldr	r4, [r0, #4]

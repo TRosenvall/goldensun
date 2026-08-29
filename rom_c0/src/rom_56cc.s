@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ PlaySound
+@ r0.. = sound id and parameters. The entry other modules call for a UI or
+@ effect cue -- rom_15000's Func_1f730 and rom_b5000's Func_c1438 both land
+@ here. Allocates its state with Func_48f4, sets the channel up through
+@ Func_58ac and Func_5c08, and pages the sample in with Func_6910 / Func_69c8.
+@ 161 lines; traced structurally.
 .thumb_func_start Func_56cc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -162,6 +168,9 @@
 	bx	r1
 .func_end Func_56cc
 
+@ PickRandomVariant
+@ r0.. = parameters. Chooses one of a cue's variants with Func_4458 and
+@ Func_b50, so repeated sounds do not sound identical.
 .thumb_func_start Func_5810
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1f1c
@@ -208,6 +217,8 @@
 	bx	r1
 .func_end Func_5810
 
+@ SetChannelSample
+@ r0.. = parameters. Points a channel at its sample data through Func_6c68.
 .thumb_func_start Func_5868
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1f1c
@@ -240,6 +251,9 @@
 	bx	r1
 .func_end Func_5868
 
+@ AllocateChannel
+@ r0.. = parameters. Claims a free mixer channel via Func_5ae0 and initialises
+@ it with Func_6ba8.
 .thumb_func_start Func_58ac
 	push	{r5, lr}
 	ldr	r3, =iwram_1f1c
@@ -279,6 +293,8 @@
 	bx	r1
 .func_end Func_58ac
 
+@ GetChannelState
+@ r0 = channel. Returns its state record.
 .thumb_func_start Func_5904
 	push	{lr}
 	ldr	r3, =ewram_4c14
@@ -292,6 +308,10 @@
 	bx	r1
 .func_end Func_5904
 
+@ StartMusicTrack
+@ r0.. = parameters. Begins a music track: picks variants (Func_5810), assigns
+@ channels (Func_5868, Func_5b24, Func_5b64) and starts playback (Func_5c2c).
+@ 160 lines; traced structurally.
 .thumb_func_start Func_5920
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -452,6 +472,8 @@
 	bx	r1
 .func_end Func_5920
 
+@ PlayOneShot
+@ r0.. = parameters. Allocates a channel with Func_58ac and triggers it once.
 .thumb_func_start Func_5a78
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1f1c
@@ -486,6 +508,8 @@
 	bx	r1
 .func_end Func_5a78
 
+@ StopChannel
+@ r0 = channel. Silences it and returns it to the free pool.
 .thumb_func_start Func_5ac0
 	push	{lr}
 	bl	Func_5b24
@@ -504,6 +528,8 @@
 	bx	r1
 .func_end Func_5ac0
 
+@ FindFreeChannel
+@ Takes no arguments. Returns the first idle mixer channel, or -1.
 .thumb_func_start Func_5ae0
 	push	{lr}
 	ldr	r3, =iwram_1f1c
@@ -538,6 +564,8 @@
 	bx	r1
 .func_end Func_5ae0
 
+@ SetChannelVolume
+@ r0 = channel, r1 = volume. Writes the channel's mix level.
 .thumb_func_start Func_5b24
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1f1c
@@ -573,6 +601,9 @@
 	bx	r1
 .func_end Func_5b24
 
+@ SetChannelPitch
+@ r0 = channel, r1 = pitch. Sets the sample step rate, resolving the sample
+@ through Func_5868.
 .thumb_func_start Func_5b64
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1f1c
@@ -650,6 +681,8 @@
 	bx	r1
 .func_end Func_5b64
 
+@ SetChannelPan
+@ r0 = channel, r1 = pan. Writes the stereo position.
 .thumb_func_start Func_5c08
 	push	{lr}
 	mov	r4, r2
@@ -673,6 +706,8 @@
 	bx	r1
 .func_end Func_5c08
 
+@ TriggerChannel
+@ r0 = channel. Starts the channel playing from its configured state.
 .thumb_func_start Func_5c2c
 	push	{r5, lr}
 	ldr	r3, =iwram_1f1c
@@ -705,6 +740,9 @@
 	bx	r1
 .func_end Func_5c2c
 
+@ FadeChannel
+@ r0 = channel, r1 = target, r2 = rate. Ramps a channel's volume over time
+@ through Func_5b24 and Func_6ba8.
 .thumb_func_start Func_5c68
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

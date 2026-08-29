@@ -1,6 +1,22 @@
 	.include "macros.inc"
+
+@ ============================================================================
+@ Vehicle / mount modes and their HBlank effects.
+@
+@ Two state blocks appear here: Func_48f4(0x1D, 0x410) for the ride state and
+@ Func_48f4(0x1E, 0x1F88) for the larger wave/water state. iwram_1ed8 and
+@ iwram_1ec8 hold the per-scanline tables that Func_944ec and Func_94544 feed to
+@ the DMA0 HBlank transfer, which is what produces the rippling water and
+@ heat-haze distortions.
+@ The ride mode itself is at [iwram_1f30]+0x1E; the Func_967e4 dispatcher picks
+@ which per-frame routine runs from it.
+@ ============================================================================
 	.include "gba.inc"
 
+@ HBlankDistortionTask
+@ Per-frame task. Selects the next per-scanline offset table from iwram_1ed8
+@ using its phase byte at +0xF00 and stages it for the DMA0 HBlank transfer,
+@ animating the distortion.
 .thumb_func_start Func_944ec
 	ldr	r3, =iwram_1ed8
 	mov	r2, #0xf0
@@ -35,6 +51,10 @@
 	bx	lr
 .func_end Func_944ec
 
+@ BuildDistortionTable
+@ Takes no arguments. Recomputes the per-scanline offset table the HBlank
+@ transfer consumes, sampling a wave across the visible rows. The
+@ ~180-instruction body is characterised structurally.
 .thumb_func_start Func_94544
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -274,6 +294,9 @@
 	bx	r0
 .func_end Func_94544
 
+@ SetDistortionParameters
+@ r0=amplitude, r1=period. Writes the wave parameters at +0xF20 of the
+@ distortion state that Func_94544 samples.
 .thumb_func_start Func_94730
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -346,6 +369,10 @@
 	bx	r0
 .func_end Func_94730
 
+@ StopHBlankDistortion
+@ Takes no arguments. Unregisters both Func_944ec and Func_94544 and clears the
+@ DMA0 enable bit in REG_DMA0CNT_H, ending the effect and restoring flat
+@ scanlines.
 .thumb_func_start Func_947e4
 	push	{lr}
 	ldr	r0, =Func_944ec
@@ -366,6 +393,10 @@
 	bx	r0
 .func_end Func_947e4
 
+@ StartHBlankDistortion
+@ Takes no arguments. Allocates and primes the distortion tables, registers
+@ Func_944ec and Func_94544, and arms the DMA0 HBlank transfer. The
+@ ~190-instruction body is characterised structurally.
 .thumb_func_start Func_94820
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -564,6 +595,9 @@
 	bx	r0
 .func_end Func_94820
 
+@ UpdateWaterSurface
+@ Takes no arguments. Advances the animated water surface in the state at
+@ iwram_1ec8, stepping its phase and rewriting the affected tiles.
 .thumb_func_start Func_949a8
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1ec8
@@ -685,6 +719,9 @@
 	bx	r0
 .func_end Func_949a8
 
+@ InitRideState
+@ Takes no arguments. Allocates the ride state with Func_48f4(0x1D, 0x410),
+@ clears it and seeds the defaults for entering a vehicle mode.
 .thumb_func_start Func_94ac8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -789,6 +826,10 @@
 	bx	r0
 .func_end Func_94ac8
 
+@ UpdateRideMotion
+@ Takes no arguments. Per-frame motion for the ride: applies the player's input
+@ heading, integrates the vehicle's velocity and keeps it inside the navigable
+@ area. The ~180-instruction body is characterised structurally.
 .thumb_func_start Func_94bbc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1030,6 +1071,9 @@
 	bx	r0
 .func_end Func_94bbc
 
+@ EnterRideMode
+@ Takes no arguments. Transitions the player onto the vehicle: hides the walking
+@ sprite, shows the vehicle actor and hands control to the ride update.
 .thumb_func_start Func_94da0
 	push	{r5, r6, r7, lr}
 	mov	r1, #0x82
@@ -1124,6 +1168,10 @@
 	bx	r0
 .func_end Func_94da0
 
+@ RunRideMode
+@ Takes no arguments. The ride's main loop -- input, motion, collision and
+@ dismount detection -- until the player leaves. The ~220-instruction body is
+@ characterised structurally.
 .thumb_func_start Func_94e7c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1396,6 +1444,9 @@
 	bx	r0
 .func_end Func_94e7c
 
+@ ExitRideMode
+@ Takes no arguments. Puts the player back on foot: restores the walking sprite,
+@ places it at the dismount tile and releases the ride state.
 .thumb_func_start Func_9509c
 	push	{r5, r6, r7, lr}
 	mov	r1, #0x82
@@ -1481,6 +1532,9 @@
 	bx	r0
 .func_end Func_9509c
 
+@ InitWaveState
+@ Takes no arguments. Allocates the larger wave/water state with
+@ Func_48f4(0x1E, 0x1F88) and initialises its tables.
 .thumb_func_start Func_95160
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -1551,6 +1605,10 @@
 	bx	r0
 .func_end Func_95160
 
+@ GetWaveField0
+@ Takes no arguments. Reads a field at +0x1F80 of the wave state -- one of three
+@ near-identical accessors (Func_95214 / Func_95240 / Func_95268) that differ
+@ only in which word they return.
 .thumb_func_start Func_95214
 	push	{lr}
 	ldr	r1, =0x1f88
@@ -1569,6 +1627,9 @@
 	bx	r0
 .func_end Func_95214
 
+@ GetWaveField1
+@ Takes no arguments. Second of the three wave-state accessors; see
+@ Func_95214.
 .thumb_func_start Func_95240
 	push	{lr}
 	ldr	r1, =0x1f88
@@ -1587,6 +1648,9 @@
 	bx	r0
 .func_end Func_95240
 
+@ GetWaveField2
+@ Takes no arguments. Third of the three wave-state accessors; see
+@ Func_95214.
 .thumb_func_start Func_95268
 	push	{lr}
 	ldr	r1, =0x1f88
@@ -1605,6 +1669,9 @@
 	bx	r0
 .func_end Func_95268
 
+@ UpdateWaveMotion
+@ r0=wave state. Steps the wave simulation one frame, propagating the
+@ displacement across its cells.
 .thumb_func_start Func_95290
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -1682,6 +1749,9 @@
 	bx	r0
 .func_end Func_95290
 
+@ MidpointTowardTargetHook
+@ r0=entity. Per-frame hook that halves the distance to the target at +0x68
+@ each frame -- an exponential ease-in used by trailing objects.
 .thumb_func_start Func_95348
 	ldr	r4, [r0, #0x68]
 	ldr	r1, [r0, #8]
@@ -1711,6 +1781,11 @@
 	bx	lr
 .func_end Func_95348
 
+@ RestorePlayerControl
+@ r0=player id, r1=mode. Returns the player to normal field control after a
+@ scene or ride: restores the sprite, movement parameters and input handling.
+@ Called by Func_91750 to close a cutscene. The ~220-instruction body is
+@ characterised structurally.
 .thumb_func_start Func_9537c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1960,6 +2035,9 @@
 	bx	r0
 .func_end Func_9537c
 
+@ SetSceneFlagAndRefresh
+@ r0=value. Writes the scene flag at iwram_1ebc+0x16E and re-applies whatever
+@ depends on it.
 .thumb_func_start Func_955b0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2059,6 +2137,9 @@
 	bx	r0
 .func_end Func_955b0
 
+@ UpdatePartyFormationState
+@ Takes no arguments. Recomputes the party formation from ewram_240+0x234,
+@ repositioning the followers behind the leader.
 .thumb_func_start Func_95680
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2169,6 +2250,9 @@
 	bx	r0
 .func_end Func_95680
 
+@ SetPartyFormation
+@ r0=formation id. Stores it at ewram_240+0x234 and applies the new layout to
+@ the live followers.
 .thumb_func_start Func_95778
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -2295,6 +2379,9 @@
 	bx	r0
 .func_end Func_95778
 
+@ TickWaveEffectInstances
+@ Takes no arguments. Runs the per-frame step over the 0x17 effect instances at
+@ [iwram_1f30]+0x58 that belong to the wave effect.
 .thumb_func_start Func_95884
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1f30
@@ -2314,6 +2401,9 @@
 	bx	r0
 .func_end Func_95884
 
+@ AllocWaveEffectBuffer
+@ Takes no arguments. Allocates the 0x720-byte wave effect buffer under tag 0x38
+@ and zeroes it.
 .thumb_func_start Func_958a8
 	push	{lr}
 	mov	r1, #0xe4
@@ -2338,6 +2428,9 @@
 	bx	r0
 .func_end Func_958a8
 
+@ StopWaveEffect
+@ Takes no arguments. Unregisters Func_95884 and tears down the wave effect
+@ instances at [iwram_1f30]+0x9D.
 .thumb_func_start Func_958e4
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1f30
@@ -2370,6 +2463,9 @@
 	bx	r0
 .func_end Func_958e4
 
+@ SpinFacingHook
+@ r0=entity. Per-frame hook that adds 0x2000 to the facing angle at +0x06 every
+@ frame -- a constant quarter-turn spin.
 .thumb_func_start Func_9592c
 	ldrh	r3, [r0, #6]
 	mov	r2, #0x80
@@ -2379,6 +2475,10 @@
 	bx	lr
 .func_end Func_9592c
 
+@ RunMountSequence
+@ r0=vehicle slot. Plays the animation of the player boarding the vehicle,
+@ moving the player entity (ewram_240+0x1F4) onto it. The ~110-instruction body
+@ is characterised structurally.
 .thumb_func_start Func_95938
 	push	{r5, r6, r7, lr}
 	ldr	r3, =ewram_240
@@ -2518,6 +2618,10 @@
 	bx	r0
 .func_end Func_95938
 
+@ RunDismountSequence
+@ r0=vehicle slot. The reverse of Func_95938: steps the player off the vehicle
+@ and back onto solid ground. The ~180-instruction body is characterised
+@ structurally.
 .thumb_func_start Func_95a44
 	push	{r5, r6, r7, lr}
 	sub	sp, #0xc
@@ -2642,6 +2746,9 @@
 	bx	r0
 .func_end Func_95a44
 
+@ GetRideVariant
+@ Takes no arguments. Returns an entry from .L9f0a4 selected by bit 2 of
+@ iwram_1800 -- which of two ride variants is currently configured.
 .thumb_func_start Func_95b8c
 	ldr	r3, =iwram_1800
 	ldr	r3, [r3]
@@ -2656,6 +2763,9 @@
 	bx	lr
 .func_end Func_95b8c
 
+@ RideBobHook
+@ r0=entity. Per-frame hook that bobs the vehicle using the phase counter at
+@ +0x64, giving it a floating motion while stationary.
 .thumb_func_start Func_95bac
 	push	{lr}
 	mov	r1, r0
@@ -2681,6 +2791,9 @@
 	bx	r0
 .func_end Func_95bac
 
+@ SinkSlowHook
+@ r0=entity. Per-frame hook that lowers the entity by 0x1C0 per frame through
+@ the height words at +0x18 and +0x1C.
 .thumb_func_start Func_95bd8
 	push	{lr}
 	ldr	r1, =0xfffffe40
@@ -2705,6 +2818,9 @@
 	bx	r0
 .func_end Func_95bd8
 
+@ RunBoardingApproach
+@ Takes no arguments. Walks the player to the vehicle's boarding point before
+@ Func_95938 runs. The ~110-instruction body is characterised structurally.
 .thumb_func_start Func_95c08
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2925,6 +3041,10 @@
 	bx	r0
 .func_end Func_95c08
 
+@ RunVehicleTravel
+@ r0=destination. Drives the vehicle from its current position to the
+@ destination as a scripted move. The ~120-instruction body is characterised
+@ structurally.
 .thumb_func_start Func_95dd0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -3114,6 +3234,9 @@
 	bx	r0
 .func_end Func_95dd0
 
+@ SinkFastHook
+@ r0=entity. Per-frame hook that lowers the entity by 0x400 per frame -- the
+@ faster sibling of Func_95bd8.
 .thumb_func_start Func_95f9c
 	push	{lr}
 	ldr	r1, =0xfffffc00
@@ -3138,6 +3261,9 @@
 	bx	r0
 .func_end Func_95f9c
 
+@ AlignPlayerToVehicle
+@ r0=vehicle entity. Snaps the player entity onto the vehicle's position and
+@ facing so the two move as one.
 .thumb_func_start Func_95fcc
 	push	{r5, r6, r7, lr}
 	ldr	r3, =ewram_240
@@ -3195,6 +3321,9 @@
 	bx	r0
 .func_end Func_95fcc
 
+@ RunVehicleTurn
+@ Takes no arguments. Turns the vehicle (and the player riding it) to a new
+@ heading over several frames.
 .thumb_func_start Func_96048
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -3311,6 +3440,10 @@
 	bx	r0
 .func_end Func_96048
 
+@ RunVehicleArrival
+@ r0=destination slot. Plays the arrival sequence when the vehicle reaches a
+@ dock or landing point. The ~140-instruction body is characterised
+@ structurally.
 .thumb_func_start Func_96140
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -3616,6 +3749,9 @@
 	bx	r0
 .func_end Func_96140
 
+@ RunVehicleDeparture
+@ Takes no arguments. The counterpart to Func_96140 -- the leaving-the-dock
+@ sequence. The ~90-instruction body is characterised structurally.
 .thumb_func_start Func_9641c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -3777,6 +3913,9 @@
 	bx	r0
 .func_end Func_9641c
 
+@ MidpointTowardTargetHook2
+@ r0=entity. A second copy of the halve-the-distance hook (compare Func_95348),
+@ at its own address so two objects can be told apart by hook pointer.
 .thumb_func_start Func_96574
 	ldr	r4, [r0, #0x68]
 	ldr	r1, [r0, #8]
@@ -3806,6 +3945,10 @@
 	bx	lr
 .func_end Func_96574
 
+@ RunVehicleCutscene
+@ Takes no arguments. The full scripted vehicle sequence, chaining approach,
+@ boarding, travel and arrival. The ~230-instruction body is characterised
+@ structurally.
 .thumb_func_start Func_965a8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -4053,6 +4196,10 @@
 	bx	r0
 .func_end Func_965a8
 
+@ DispatchRideUpdate
+@ r0=ride mode. Selects the per-frame routine for the current mode: 0 runs
+@ Func_96810, 1 the next arm, and so on. The mode itself lives at
+@ [iwram_1f30]+0x1E.
 .thumb_func_start Func_967e4
 	push	{lr}
 	cmp	r0, #0
@@ -4078,6 +4225,9 @@
 	bx	r0
 .func_end Func_967e4
 
+@ RunRideModeA
+@ Takes no arguments. Per-frame update for ride mode 0, reading the mode word at
+@ [iwram_1f30]+0x1E. The ~130-instruction body is characterised structurally.
 .thumb_func_start Func_96810
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -4219,6 +4369,10 @@
 	bx	r0
 .func_end Func_96810
 
+@ RunRideModeB
+@ Takes no arguments. Per-frame update for the next ride mode; same state block
+@ and shape as Func_96810. The ~130-instruction body is characterised
+@ structurally.
 .thumb_func_start Func_96960
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1f30
@@ -4365,6 +4519,9 @@
 	bx	r0
 .func_end Func_96960
 
+@ CheckRideModeTransition
+@ Takes no arguments. Tests the ride mode at [iwram_1f30]+0x1E against 2 and
+@ starts the transition out of the vehicle when it matches.
 .thumb_func_start Func_96ab0
 	push	{r5, lr}
 	ldr	r3, =iwram_1f30
@@ -4393,6 +4550,9 @@
 	bx	r0
 .func_end Func_96ab0
 
+@ IsRideModeFinal
+@ Takes no arguments. Returns whether the ride mode at [iwram_1f30]+0x1E has
+@ reached 0x0A, the terminal state that ends the sequence.
 .thumb_func_start Func_96af0
 	push	{lr}
 	ldr	r3, =iwram_1f30
@@ -4423,6 +4583,9 @@
 	bx	r0
 .func_end Func_96af0
 
+@ MoveEntityToward
+@ r0=entity, r1=target, r2=step. Advances the entity toward the target position
+@ by one step, used by the vehicle routines rather than the generic mover.
 .thumb_func_start Func_96b28
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -4466,6 +4629,9 @@
 	bx	r1
 .func_end Func_96b28
 
+@ SetEntityVisible
+@ r0=entity, r1=visibility. Sets the draw kind at +0x54 and the matching actor
+@ flags so an entity can be hidden and shown without being destroyed.
 .thumb_func_start Func_96b88
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -4518,6 +4684,9 @@
 	bx	r0
 .func_end Func_96b88
 
+@ SetEntityPositionXY
+@ r0=entity, r1=x, r2=y. Writes the position words directly, bypassing the
+@ terrain-follow correction that Func_923e4 applies.
 .thumb_func_start Func_96bec
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -4547,6 +4716,10 @@
 	bx	r0
 .func_end Func_96bec
 
+@ CountInventorySlots
+@ Takes no arguments. Counts the 0xFF-marked free entries in the 0x200-byte
+@ block at iwram_1810 and returns the total -- the same scan Func_ebec uses for
+@ its low-space check.
 .thumb_func_start Func_96c24
 	push	{lr}
 	mov	r2, #0x80
@@ -4567,6 +4740,9 @@
 	bx	r1
 .func_end Func_96c24
 
+@ ValidateRidePair
+@ r0, r1 = two entity references. Returns 0 unless both are non-null, the guard
+@ the vehicle routines use before pairing a rider with a vehicle.
 .thumb_func_start Func_96c48
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -4599,6 +4775,9 @@
 	bx	r1
 .func_end Func_96c48
 
+@ SpawnVehicleEntity
+@ r0=resource id. Creates the vehicle entity with _Func_c150, records it in the
+@ ride state at [iwram_1f30], and returns it (0 on failure).
 .thumb_func_start Func_96c80
 	push	{r5, r6, lr}
 	ldr	r4, =iwram_1f30

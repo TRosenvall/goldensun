@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Sub_e6638
+@ Battle animation routine, 316 instructions.
+@ State: iwram_1eec, ewram_10000.
+@ Touches: REG_BG2CNT, REG_BLDALPHA, REG_DMA3SAD, REG_IME.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_e6638
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -363,6 +369,11 @@
 	bx	r0
 .func_end Func_e6638
 
+@ Sub_e6948
+@ Battle animation routine, 27 instructions.
+@ State: iwram_1eec.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_e6948
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1eec
@@ -393,6 +404,13 @@
 	bx	r0
 .func_end Func_e6948
 
+@ Sub_e698c
+@ Battle animation routine, 386 instructions.
+@ State: iwram_1eec, ewram_10000.
+@ Calls out to: _Func_b7dd0, _Func_b8228, _Func_bd7dc, _Func_c300, _Func_c4ac, _Func_d14c.
+@ Touches: REG_BG2PA, REG_BG2X.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_e698c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -801,6 +819,12 @@
 	bx	r0
 .func_end Func_e698c
 
+@ Sub_e6d3c
+@ Battle animation routine, 153 instructions.
+@ State: iwram_1eec.
+@ Calls out to: _Func_b168.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_e6d3c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -967,6 +991,14 @@
 	bx	r0
 .func_end Func_e6d3c
 
+@ Sub_e6eac
+@ Battle animation routine, 411 instructions.
+@ State: iwram_1eec, ewram_10000.
+@ Calls out to: _Func_f9080.
+@ Touches: REG_BG2PA.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_e6eac
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1408,6 +1440,10 @@
 	bx	r0
 .func_end Func_e6eac
 
+@ Sub_e727c
+@ Battle animation routine, 44 instructions.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_e727c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1465,6 +1501,12 @@
 	bx	r0
 .func_end Func_e727c
 
+@ Sub_e72e0
+@ Battle animation routine, 21 instructions.
+@ State: iwram_1eec.
+@ Touches: REG_DMA0SAD.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_e72e0
 	ldr	r3, =iwram_1eec
 	ldr	r0, [r3]

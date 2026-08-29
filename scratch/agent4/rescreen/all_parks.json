@@ -1,0 +1,1792 @@
+[
+ {
+  "path": "src/non_matching/tiny_reg_order.c",
+  "ref": null,
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/preheader_load_merge.c",
+  "ref": null,
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7eaf28/2008d24.c",
+  "ref": null,
+  "cnts": [
+   65,
+   62
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7eaf28/2008ce4.c",
+  "ref": null,
+  "cnts": [
+   27
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_c9000/80e3908.c",
+  "ref": null,
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_c9000/rom_e3a3c.c",
+  "ref": "asm/rom_c9000/rom_e3958_c_c_c_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_c9000/rom_dc968.c",
+  "ref": null,
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_c9000/rom_cb4ec.c",
+  "ref": null,
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_c9000/rom_ccebc.c",
+  "ref": null,
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_c9000/cc5d8.c",
+  "ref": "asm/rom_c9000/rom_cc5d8_a_a.s",
+  "cnts": [
+   2,
+   59
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_c9000/cd260_a.c",
+  "ref": "asm/rom_c9000/rom_cd260_a.s",
+  "cnts": [
+   29,
+   29,
+   3,
+   110
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_7b7790/2008598.c",
+  "ref": "asm/overlays/rom_7b7790/ovl_314_c_c_c_c_c_c.s",
+  "cnts": [
+   4,
+   12,
+   6
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_79c738/200809c.c",
+  "ref": "asm/overlays/rom_79c738/ovl_30_c_c_a_a_a_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_79c738/2009958.c",
+  "ref": "asm/overlays/rom_79c738/ovl_30_c_c_c_c_c_c.s",
+  "cnts": [
+   6
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_77dd1c/200c5b8.c",
+  "ref": "asm/overlays/rom_77dd1c/ovl_30_c_c_c_c_c_c_c_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_77dd1c/200bc48.c",
+  "ref": null,
+  "cnts": [
+   53
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_77dd1c/2008030.c",
+  "ref": "asm/overlays/rom_77dd1c/ovl_30_a_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_77dd1c/200a09c.c",
+  "ref": null,
+  "cnts": [
+   49,
+   23
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_78c76c/20095d4.c",
+  "ref": "asm/overlays/rom_78c76c/ovl_30_c_c_a_c_c_c_c_a_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7c097c/2008504.c",
+  "ref": null,
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7c097c/20095b4.c",
+  "ref": "asm/overlays/rom_7c097c/ovl_30_c_c_c_a_a_c_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7c097c/2009ed8.c",
+  "ref": "asm/overlays/rom_7c097c/ovl_30_c_c_c_a_c_c_c_c.s",
+  "cnts": [
+   11
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_78603c/20080dc.c",
+  "ref": "asm/overlays/rom_78603c/ovl_30_c_c_a_c_a_a.s",
+  "cnts": [
+   9
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7a8c8c/2009ad0.c",
+  "ref": null,
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7a8c8c/2008ed8.c",
+  "ref": "asm/overlays/rom_7a8c8c/ovl_30_c_a_c_c_c_a_c_c_c_c_a_a.s",
+  "cnts": [
+   8,
+   32
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7bc690/2009874.c",
+  "ref": "asm/overlays/rom_7bc690/ovl_4e4_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7bc690/2008344.c",
+  "ref": "asm/overlays/rom_7bc690/ovl_314_a_c_a.s",
+  "cnts": [
+   6,
+   43
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7e0928/20081c8.c",
+  "ref": "asm/overlays/rom_7e0928/ovl_30_a_c_c_a_c_c_a.s",
+  "cnts": [
+   6
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7e0928/2008ad4.c",
+  "ref": "asm/overlays/rom_7e0928/ovl_30_c_c_a_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7e0928/2008b30.c",
+  "ref": "asm/overlays/rom_7e0928/ovl_30_c_c_a_c.s",
+  "cnts": [
+   3
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7fc720/200871c.c",
+  "ref": "asm/overlays/rom_7fc720/ovl_30_c_a_c_c_c_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_f9000/rom_f9a18.c",
+  "ref": "asm/rom_f9000/rom_f95e0.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_f9000/rom_f9080.c",
+  "ref": "asm/rom_f9000/rom_f9080_a_a_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_f9000/rom_f9bf4.c",
+  "ref": "asm/rom_f9000/rom_f95e0.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_f9000/rom_f9b40.c",
+  "ref": "asm/rom_f9000/rom_f95e0.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_f9000/rom_f91e8.c",
+  "ref": "asm/rom_f9000/rom_f9080_a_a_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_f9000/rom_f92fc.c",
+  "ref": "asm/rom_f9000/rom_f9080_a_a_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_f9000/rom_f9afc.c",
+  "ref": "asm/rom_f9000/rom_f95e0.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7d5838/2008898.c",
+  "ref": "asm/overlays/rom_7d5838/ovl_30_c_c_c_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7d5838/20080c0.c",
+  "ref": null,
+  "cnts": [
+   53
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7ddb88/200862c.c",
+  "ref": "asm/overlays/rom_7ddb88/ovl_30_c_c_c_a_c_a.s",
+  "cnts": [
+   8
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7ddb88/2008970.c",
+  "ref": "asm/overlays/rom_7ddb88/ovl_30_c_c_c_a_c_c_c_c_c_c_c_c.s",
+  "cnts": [
+   4
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/overlays/2008e80.c",
+  "ref": "asm/overlays/rom_7e7574/ovl_9dc_a_c_c_a_a_c_c_a.s",
+  "cnts": [
+   17
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/overlays/20087ec.c",
+  "ref": "asm/overlays/rom_793768/ovl_314_c_c_a_c_a_c_c_c_a_a_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/overlays/2008f48.c",
+  "ref": "asm/overlays/rom_7aa430/ovl_e90_c_c_a_a_c_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/overlays/200b4c8.c",
+  "ref": "asm/overlays/rom_780898/ovl_30_c_c_c_a_a_a_c_c_c_c_c_c.s",
+  "cnts": [
+   977
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/overlays/common2_41c.c",
+  "ref": null,
+  "cnts": [
+   28
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/overlays/message_base_register.c",
+  "ref": null,
+  "cnts": [
+   36
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/overlays/2008e34.c",
+  "ref": "asm/overlays/rom_787e04/ovl_30_c_a_c_a_c_c_c_c_c_c_c_c_c_c_c_a_a.s",
+  "cnts": [
+   25
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/overlays/20087a4.c",
+  "ref": "asm/overlays/rom_7a7298/ovl_30_c_c_c_c_c_a_a_a_a.s",
+  "cnts": [
+   37
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/overlays/arg_interleave_flat.c",
+  "ref": null,
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/overlays/2008288.c",
+  "ref": "asm/overlays/rom_7ec968/ovl_30_c_c_a_a_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/overlays/2008098.c",
+  "ref": "asm/overlays/rom_7a37f0/ovl_30_c_c_c_a_a_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/overlays/2008310.c",
+  "ref": "asm/overlays/rom_794ac0/ovl_30_a_c_a_a_c_a_c_c_c.s",
+  "cnts": [
+   27
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/overlays/2009ab0.c",
+  "ref": "asm/overlays/rom_7e7574/ovl_9dc_c_a_c_c_a_a_a_a.s",
+  "cnts": [
+   7
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/overlays/2008640.c",
+  "ref": "asm/overlays/rom_797990/ovl_314_c_c_a_a_c_c_a_a_a_a.s",
+  "cnts": [
+   17
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/overlays/2008ef4.c",
+  "ref": "asm/overlays/rom_793768/ovl_314_c_c_c_a_c_a_a_c_a_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/overlays/constant_reuse.c",
+  "ref": null,
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/overlays/2008acc.c",
+  "ref": "asm/overlays/rom_793768/ovl_314_c_c_a_c_c_c_a_a.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/overlays/20097fc.c",
+  "ref": "asm/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a.s",
+  "cnts": [
+   53
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/overlays/20091d8.c",
+  "ref": "asm/overlays/rom_780898/ovl_30_c_c_c_a_a_a_c_c_c_a_c_a.s",
+  "cnts": [
+   9,
+   10
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/overlays/common0_70.c",
+  "ref": "asm/overlays/common/common0.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/overlays/200834c.c",
+  "ref": "asm/overlays/rom_780898/ovl_30_a_a_c_a.s",
+  "cnts": [
+   28,
+   125,
+   46
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_77000/rom_79338.c",
+  "ref": "asm/rom_77000/rom_79338_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_77000/rom_793d8.c",
+  "ref": "asm/rom_77000/rom_79338_c_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_77000/8079bf8.c",
+  "ref": null,
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_77000/80783dc.c",
+  "ref": "asm/rom_77000/rom_77320_c_c.s",
+  "cnts": [
+   14
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_77000/8078aa0.c",
+  "ref": "asm/rom_77000/rom_78a8c_c_a.s",
+  "cnts": [
+   30
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_77000/rom_78ad0.c",
+  "ref": "asm/rom_77000/rom_78a8c_c_a.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_77000/rom_783a4.c",
+  "ref": null,
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_77000/rom_79374.c",
+  "ref": "asm/rom_77000/rom_79338_a.s",
+  "cnts": [
+   8
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_77000/8078550.c",
+  "ref": "asm/rom_77000/rom_78414_c_c_a_a.s",
+  "cnts": [
+   8
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_77000/rom_79c30.c",
+  "ref": "asm/rom_77000/rom_79460_c_c_c_c_a_c_c_a_a.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_77000/rom_79358.c",
+  "ref": "asm/rom_77000/rom_79338_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_77000/rom_793b8.c",
+  "ref": "asm/rom_77000/rom_79338_c_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_77000/rom_793f8.c",
+  "ref": "asm/rom_77000/rom_79338_c_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_77000/rom_78480.c",
+  "ref": "asm/rom_77000/rom_78414_c_a_a.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_77000/rom_79008.c",
+  "ref": "asm/rom_77000/rom_79008_a.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_77000/8077394.c",
+  "ref": null,
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_77000/rom_79418.c",
+  "ref": "asm/rom_77000/rom_79338_c_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7ed0a0/2009458.c",
+  "ref": "asm/overlays/rom_7ed0a0/ovl_30_a_c_c_a_a.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_f6000/f7df0.c",
+  "ref": null,
+  "cnts": [
+   30
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_f6000/80f7e34.c",
+  "ref": "asm/rom_f6000/rom_f6008_c.s",
+  "cnts": [
+   15
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_7ebdfc/2008120.c",
+  "ref": "asm/overlays/rom_7ebdfc/ovl_30_c_c_c_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7e7574/2008dcc.c",
+  "ref": "asm/overlays/rom_7e7574/ovl_9dc_a_c_c_a_a_c.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_7ced6c/2009494.c",
+  "ref": "asm/overlays/rom_7ced6c/ovl_30_c_c_a_c_c_a_a.s",
+  "cnts": [
+   4
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7b8cb0/2008d08.c",
+  "ref": "asm/overlays/rom_7b8cb0/ovl_30_c_c_c_c_c_c_c_c_c_c_c.s",
+  "cnts": [
+   7
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_7b8cb0/20086a4.c",
+  "ref": "asm/overlays/rom_7b8cb0/ovl_30_c_c_c_c_c_c_c_c_c_a_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_794ac0/2008048.c",
+  "ref": "asm/overlays/rom_794ac0/ovl_30_a_c_a_a_a_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_794ac0/200c754.c",
+  "ref": null,
+  "cnts": [
+   53
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_794ac0/2008428.c",
+  "ref": "asm/overlays/rom_794ac0/ovl_30_a_c_a_a_c_c_c_a_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7bf5a8/2008b8c.c",
+  "ref": "asm/overlays/rom_7bf5a8/ovl_b8c_a.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_7bf5a8/2008704.c",
+  "ref": "asm/overlays/rom_7bf5a8/ovl_2e0_c_c_a_c_a.s",
+  "cnts": [
+   6
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7aa430/2009bc8.c",
+  "ref": "asm/overlays/rom_7aa430/ovl_1a3c_a_a_a.s",
+  "cnts": [
+   7,
+   7,
+   26
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_7aa430/20091b4.c",
+  "ref": "asm/overlays/rom_7aa430/ovl_1150_c_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7c7b9c/200c218.c",
+  "ref": "asm/overlays/rom_7c7b9c/ovl_30_c_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7c7b9c/20088e0.c",
+  "ref": null,
+  "cnts": [
+   46
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_7c7b9c/2009920.c",
+  "ref": null,
+  "cnts": [
+   50
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7db0c8/200842c.c",
+  "ref": "asm/overlays/rom_7db0c8/ovl_30_c_c_a_a_c_c.s",
+  "cnts": [
+   9
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7db0c8/2008158.c",
+  "ref": "asm/overlays/rom_7db0c8/ovl_30_c_c_a_a_a_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7c6bac/20087dc.c",
+  "ref": null,
+  "cnts": [
+   53
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7c6bac/200851c.c",
+  "ref": "asm/overlays/rom_7c6bac/ovl_30_c_c_a_c_c_a.s",
+  "cnts": [
+   35
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7ef4f4/2009158.c",
+  "ref": "asm/overlays/rom_7ef4f4/ovl_30_a_c_c_a_c.s",
+  "cnts": [
+   6
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7ef4f4/200a6fc.c",
+  "ref": "asm/overlays/rom_7ef4f4/ovl_30_c_a_c_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7ef4f4/200a660.c",
+  "ref": null,
+  "cnts": [
+   19
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7ef4f4/200a46c.c",
+  "ref": "asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c_c_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7ef4f4/200a5c8.c",
+  "ref": "asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c_c_c_c_c.s",
+  "cnts": [
+   17
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_793768/2009754.c",
+  "ref": null,
+  "cnts": [
+   44
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_793768/2008e0c.c",
+  "ref": "asm/overlays/rom_793768/ovl_314_c_c_c_a_a_c_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7a5214/20097ec.c",
+  "ref": null,
+  "cnts": [
+   47
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_7a1ff0/2008c0c.c",
+  "ref": "asm/overlays/rom_7a1ff0/ovl_30_c_c_c_c_c_c_a_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7d0e88/200a040.c",
+  "ref": "asm/overlays/rom_7d0e88/ovl_1528_a_c_a.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_f4000/80f4100.c",
+  "ref": "asm/rom_f4000/rom_f4008_c_c.s",
+  "cnts": [
+   41
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7e3e08/2008bc8.c",
+  "ref": "asm/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_c_c_a_a.s",
+  "cnts": [
+   11
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7e3e08/2008b30.c",
+  "ref": "asm/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_c_c_a_a.s",
+  "cnts": [
+   11,
+   17,
+   18
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7e3e08/2008a54.c",
+  "ref": null,
+  "cnts": [
+   50
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7f2f14/2008e88.c",
+  "ref": "asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_a_a.s",
+  "cnts": [
+   7
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7f2f14/2009644.c",
+  "ref": "asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7f2f14/20087d8.c",
+  "ref": "asm/overlays/rom_7f2f14/ovl_30_a_a_c_a_c.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_7ac2d8/2008ffc.c",
+  "ref": "asm/overlays/rom_7ac2d8/ovl_f84_a_a_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7ac2d8/200a648.c",
+  "ref": null,
+  "cnts": [
+   9
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_79e5c0/200a608.c",
+  "ref": null,
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_a1000/rom_a3d6c.c",
+  "ref": "asm/rom_a1000/rom_a1814_c_a_c_c_c_c_c_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_a1000/rom_a3480.c",
+  "ref": "asm/rom_a1000/rom_a1814_c_a_c_c_c_a.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_a1000/80a65e4.c",
+  "ref": "asm/rom_a1000/rom_a5534_c_c_a.s",
+  "cnts": [
+   7
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_a1000/rom_ad608.c",
+  "ref": "asm/rom_a1000/rom_ad274_c_a_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_a1000/80a1090.c",
+  "ref": "asm/rom_a1000/rom_a1050_c_a.s",
+  "cnts": [
+   9
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_a1000/80ad5b4.c",
+  "ref": null,
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_a1000/rom_a3ce4.c",
+  "ref": "asm/rom_a1000/rom_a1814_c_a_c_c_c_c_a_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_a1000/aab1f4.c",
+  "ref": "asm/rom_a1000/rom_aa538_c_c_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_a1000/80a9d84.c",
+  "ref": "asm/rom_a1000/rom_a8604_c_c_a_c_a_c.s",
+  "cnts": [
+   14
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_a1000/80a3d9c.c",
+  "ref": null,
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_a1000/rom_a22f4.c",
+  "ref": "asm/rom_a1000/rom_a1814_c_a_a_c_a_c_a.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_a1000/80ad69c.c",
+  "ref": "asm/rom_a1000/rom_ad274_c_c.s",
+  "cnts": [
+   5
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_a1000/rom_ab1f4.c",
+  "ref": "asm/rom_a1000/rom_aa538_c_c_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_a1000/80a7440.c",
+  "ref": null,
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_a1000/80a51d0.c",
+  "ref": "asm/rom_a1000/rom_a4f08.s",
+  "cnts": [
+   24,
+   37,
+   24
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7fb4a8/2008128.c",
+  "ref": "asm/overlays/rom_7fb4a8/ovl_30_a_c_c_c_a_a_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_b5000/rom_bd7a4.c",
+  "ref": "asm/rom_b5000/rom_bbb0c_a_a_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_b5000/80bf574.c",
+  "ref": "asm/rom_b5000/rom_bbb0c_a_c_c_a.s",
+  "cnts": [
+   8
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_b5000/rom_c00d8.c",
+  "ref": "asm/rom_b5000/rom_bffb8_a_a_a_c.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_b5000/80b6e7c.c",
+  "ref": "asm/rom_b5000/rom_b6e7c.s",
+  "cnts": [
+   18
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_b5000/80c23e8.c",
+  "ref": null,
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_b5000/80b84c0.c",
+  "ref": "asm/rom_b5000/rom_b8228_c_a_c_a_a_c.s",
+  "cnts": [
+   49
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_b5000/rom_b8530.c",
+  "ref": "asm/rom_b5000/rom_b8228_c_a_c_a_a_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_b5000/c1ebc.c",
+  "ref": null,
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_b5000/80bf37c.c",
+  "ref": "asm/rom_b5000/rom_bbb0c_a_c_c_a.s",
+  "cnts": [
+   11
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_b5000/80c24b0.c",
+  "ref": "asm/rom_b5000/rom_c1a34_a_c.s",
+  "cnts": [
+   17
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_b5000/80b8000.c",
+  "ref": "asm/rom_b5000/rom_b7410_c_c_a_a.s",
+  "cnts": [
+   16,
+   33,
+   16
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_b5000/80c23c0.c",
+  "ref": "asm/rom_b5000/rom_c1a34_a_a_c_c_a_a.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_b5000/80c2410.c",
+  "ref": "asm/rom_b5000/rom_c1a34_a_a_c_c_a_a.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_b5000/80bf3bc.c",
+  "ref": "asm/rom_b5000/rom_bbb0c_a_c_c_a.s",
+  "cnts": [
+   2
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_b5000/80be02c.c",
+  "ref": "asm/rom_b5000/rom_bbb0c_a_c_a_c.s",
+  "cnts": [
+   16
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_b5000/80bf54c.c",
+  "ref": "asm/rom_b5000/rom_bbb0c_a_c_c_a.s",
+  "cnts": [
+   4
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_b5000/80c23a0.c",
+  "ref": "asm/rom_b5000/rom_c1a34_a_a_c_c_a_a.s",
+  "cnts": [
+   4
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_b5000/rom_bf524.c",
+  "ref": "asm/rom_b5000/rom_bbb0c_a_c_c_a.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_b5000/80bf440.c",
+  "ref": "asm/rom_b5000/rom_bbb0c_a_c_c_a.s",
+  "cnts": [
+   2
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_b5000/80b86ec.c",
+  "ref": null,
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_797740/20081e4.c",
+  "ref": null,
+  "cnts": [
+   54
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7b7f1c/20088a8.c",
+  "ref": "asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_a_c_a.s",
+  "cnts": [
+   5
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_7b7f1c/2009060.c",
+  "ref": "asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_c_c_c.s",
+  "cnts": [
+   11
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7b7f1c/2008870.c",
+  "ref": "asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_a_c_a.s",
+  "cnts": [
+   2
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_8a000/rom_91c44.c",
+  "ref": "asm/rom_8a000/rom_91584_c_c_a_a_a_a.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_8a000/rom_91254.c",
+  "ref": "asm/rom_8a000/rom_8d9a4_c_c_c_a_c_a_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_8a000/rom_9a44c.c",
+  "ref": "asm/rom_8a000/rom_9a44c_a_a_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_8a000/95290.c",
+  "ref": null,
+  "cnts": [
+   74
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_8a000/8092ba8.c",
+  "ref": "asm/rom_8a000/rom_92950_c_a_c_a.s",
+  "cnts": [
+   4
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_8a000/916b0.c",
+  "ref": "asm/rom_8a000/rom_91584_a_c_a_c_c_c.s",
+  "cnts": [
+   52,
+   58
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_8a000/rom_92504.c",
+  "ref": "asm/rom_8a000/rom_91584_c_c_a_c_c_c_c_c_a_c_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_8a000/808ddb8.c",
+  "ref": "asm/rom_8a000/rom_8d9a4_a_a.s",
+  "cnts": [
+   12
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_8a000/rom_92b54.c",
+  "ref": "asm/rom_8a000/rom_92950_a_c_c.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_8a000/809802c.c",
+  "ref": null,
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_8a000/809b0dc.c",
+  "ref": null,
+  "cnts": [
+   19,
+   1
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7795e8/2008384.c",
+  "ref": null,
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_79b154/2008ed8.c",
+  "ref": null,
+  "cnts": [
+   44
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_799abc/20089dc.c",
+  "ref": "asm/overlays/rom_799abc/ovl_30_a_a_a_c_c_c_c.s",
+  "cnts": [
+   2
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7d6418/2008880.c",
+  "ref": null,
+  "cnts": [
+   47
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_9000/rom_12350.c",
+  "ref": "asm/rom_9000/rom_1219c_a_c_c_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_9000/rom_108c4.c",
+  "ref": "asm/rom_9000/rom_10424.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_9000/HeightTile_4.c",
+  "ref": "asm/rom_9000/rom_11ce0_a_c_c_a_a_a.s",
+  "cnts": [
+   8
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_9000/800fa8c.c",
+  "ref": "asm/rom_9000/rom_f9cc_a_c.s",
+  "cnts": [
+   20
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_9000/rom_d710.c",
+  "ref": "asm/rom_9000/rom_d654_a_c_a_a_a_c.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_9000/rom_c0cc.c",
+  "ref": "asm/rom_9000/rom_c004_c_a_a_a_a_a_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_9000/800fac8.c",
+  "ref": null,
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_78de18/2008054.c",
+  "ref": "asm/overlays/rom_78de18/ovl_30_c_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7c3044/20080e4.c",
+  "ref": null,
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_b0000/80b0a20.c",
+  "ref": null,
+  "cnts": [
+   1
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_b0000/80b2ed8.c",
+  "ref": "asm/rom_b0000/rom_b0070_c_c_a_c.s",
+  "cnts": [
+   19,
+   26
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_b0000/80b0694.c",
+  "ref": null,
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_b0000/rom_b09fc.c",
+  "ref": "asm/rom_b0000/rom_b0070_a_a_c_c_a_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_b0000/80b06c0.c",
+  "ref": null,
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_b0000/80b0444.c",
+  "ref": "asm/rom_b0000/rom_b0070_a_a_c_a_a_c.s",
+  "cnts": [
+   38
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_798dc4/2008d68.c",
+  "ref": "asm/overlays/rom_798dc4/ovl_314_c_a_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7c460c/2008c74.c",
+  "ref": null,
+  "cnts": [
+   2
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_791794/200ac1c.c",
+  "ref": "asm/overlays/rom_791794/ovl_30_c_c_a_c_c_c.s",
+  "cnts": [
+   14
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_7d4af4/200828c.c",
+  "ref": "asm/overlays/rom_7d4af4/ovl_30_c_c_a_a_c.s",
+  "cnts": [
+   6
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_7d4af4/20086e8.c",
+  "ref": "asm/overlays/rom_7d4af4/ovl_30_c_c_a_c_c_c_c_c_c_c.s",
+  "cnts": [
+   7
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_7f6e64/200d9f0.c",
+  "ref": "asm/overlays/rom_7f6e64/ovl_314_c_c.s",
+  "cnts": [
+   9
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_7f6e64/200b600.c",
+  "ref": "asm/overlays/rom_7f6e64/ovl_314_c_a_c_c_c_c_c_c_a.s",
+  "cnts": [
+   6
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_7c5efc/2008094.c",
+  "ref": "asm/overlays/rom_7c5efc/ovl_30_c_a_c_c_a_c_a.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_15000/801b36c.c",
+  "ref": "asm/rom_15000/rom_1aeec_a_a_c_a_c.s",
+  "cnts": [
+   12
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_15000/rom_28e54.c",
+  "ref": "asm/rom_15000/rom_23178_a_a_c_c_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_15000/rom_198dc.c",
+  "ref": "asm/rom_15000/rom_1908c_c_a_c.s",
+  "cnts": [
+   11
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_15000/801ce48.c",
+  "ref": "asm/rom_15000/rom_1ca1c_a_a.s",
+  "cnts": [
+   6
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_15000/rom_1a32c.c",
+  "ref": "asm/rom_15000/rom_19ebc_a_c_c_c_a_c_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_15000/rom_167ac.c",
+  "ref": "asm/rom_15000/rom_15e8c_a_c_c_c_c_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_15000/rom_19d0c.c",
+  "ref": "asm/rom_15000/rom_1908c_c_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_15000/rom_21b80.c",
+  "ref": "asm/rom_15000/rom_20198_c_c_c_a_c_c_c_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_15000/rom_1c154.c",
+  "ref": "asm/rom_15000/rom_1aeec_c_a_a_a_a_a_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_15000/rom_1e71c.c",
+  "ref": "asm/rom_15000/rom_1de5c_c_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_15000/801bc34.c",
+  "ref": "asm/rom_15000/rom_1aeec_a_a_c_c.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_15000/80216b4.c",
+  "ref": "asm/rom_15000/rom_20198_c_c_c_a_a_c_a.s",
+  "cnts": [
+   14
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_15000/801edec.c",
+  "ref": null,
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_15000/80170c4.c",
+  "ref": "asm/rom_15000/rom_15e8c_c_a_a_a.s",
+  "cnts": [
+   2
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_15000/801c244.c",
+  "ref": "asm/rom_15000/rom_1aeec_c_a_a_a_a_a_c_a_a_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_15000/80270ac.c",
+  "ref": "asm/rom_15000/rom_23178_a_a_a_a_c_a.s",
+  "cnts": [
+   16
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_15000/rom_1d94c.c",
+  "ref": "asm/rom_15000/rom_1ca1c_c_c_a.s",
+  "cnts": [
+   5
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_15000/8020a60.c",
+  "ref": "asm/rom_15000/rom_20198_c_a.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_15000/rom_15e8c.c",
+  "ref": "asm/rom_15000/rom_15e8c_a_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_15000/8019908.c",
+  "ref": "asm/rom_15000/rom_1908c_c_a_c.s",
+  "cnts": [
+   9
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_15000/8028df4.c",
+  "ref": "asm/rom_15000/rom_23178_a_a_c_c_a.s",
+  "cnts": [
+   39
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7f148c/2008078.c",
+  "ref": "asm/overlays/rom_7f148c/ovl_30_c_c_a_c_a.s",
+  "cnts": [
+   3
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_780898/2008dc0.c",
+  "ref": "asm/overlays/rom_780898/ovl_30_c_c_c_a_a_a_a_c_c_a_c_c.s",
+  "cnts": [
+   2
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_780898/20080c4.c",
+  "ref": "asm/overlays/rom_780898/ovl_30_a_a_a_c_c_a.s",
+  "cnts": [
+   7
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_780898/2008e54.c",
+  "ref": null,
+  "cnts": [
+   3
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7ec19c/200816c.c",
+  "ref": "asm/overlays/rom_7ec19c/ovl_30_c_a_c_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_787e04/20093e4.c",
+  "ref": "asm/overlays/rom_787e04/ovl_30_c_a_c_a_c_c_c_c_c_c_c_c_c_c_c_c_c_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_common/common1_16cc.c",
+  "ref": null,
+  "cnts": [
+   8
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_common/common1_588.c",
+  "ref": "asm/overlays/common/common1_a_a_a_a_c_a.s",
+  "cnts": [
+   15
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_common/common2_254.c",
+  "ref": "asm/overlays/common/common2_a.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_common/common0_18.c",
+  "ref": "asm/overlays/common/common0_a_b.s",
+  "cnts": [
+   8,
+   30
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_common/common2_28c.c",
+  "ref": null,
+  "cnts": [
+   33,
+   33
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/ovl_common/common1_15b8.c",
+  "ref": "asm/overlays/common/common1_a_c_c_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_common/common2_380.c",
+  "ref": "asm/overlays/common/common2_c_c_c_c_a.s",
+  "cnts": [
+   30,
+   51
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7b9cb4/200a9dc.c",
+  "ref": "asm/overlays/rom_7b9cb4/ovl_30_a_c_c_a_c_c_a_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7b9cb4/20086a0.c",
+  "ref": "asm/overlays/rom_7b9cb4/ovl_30_a_c_c_a_a_a_c_c_c_c_c_c.s",
+  "cnts": [
+   3
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7b9cb4/200ab58.c",
+  "ref": "asm/overlays/rom_7b9cb4/ovl_30_a_c_c_a_c_c_a_a_c.s",
+  "cnts": [
+   7
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_7d30e0/2009838.c",
+  "ref": "asm/overlays/rom_7d30e0/ovl_30_c_a_c_c_a_a_c_c_c_c_c_c.s",
+  "cnts": [
+   52
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_7d30e0/2009df8.c",
+  "ref": null,
+  "cnts": [
+   40,
+   18
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7a7298/20099bc.c",
+  "ref": "asm/overlays/rom_7a7298/ovl_30_c_c_c_c_c_c_c.s",
+  "cnts": [
+   2
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_7cb2c0/20080fc.c",
+  "ref": "asm/overlays/rom_7cb2c0/ovl_30_a_c_c_a.s",
+  "cnts": [
+   19
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_77a7c8/2009c08.c",
+  "ref": null,
+  "cnts": [
+   49
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_77a7c8/20082f0.c",
+  "ref": "asm/overlays/rom_77a7c8/ovl_30_c_a_c_a_a_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_77a7c8/200811c.c",
+  "ref": "asm/overlays/rom_77a7c8/ovl_30_a_a_a.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_77a7c8/20082cc.c",
+  "ref": "asm/overlays/rom_77a7c8/ovl_30_c_a_c_a_a_c.s",
+  "cnts": [
+   13
+  ],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_c0/rom_5868.c",
+  "ref": "asm/rom_c0/rom_56cc_a_a_a.s",
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_c0/2dd8.c",
+  "ref": null,
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_c0/80063bc.c",
+  "ref": null,
+  "cnts": [],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_c0/2df0.c",
+  "ref": "asm/rom_c0/rom_2dd8.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_c0/8006384.c",
+  "ref": "asm/rom_c0/rom_5cf8_a_a_c_a.s",
+  "cnts": [
+   9
+  ],
+  "movish": true
+ },
+ {
+  "path": "src/non_matching/rom_c0/rom_2df0.c",
+  "ref": "asm/rom_c0/rom_2dd8.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/rom_c0/rom_64b8.c",
+  "ref": "asm/rom_c0/rom_5cf8_a_a_c_c.s",
+  "cnts": [],
+  "movish": false
+ },
+ {
+  "path": "src/non_matching/ovl_78dd40/2008054.c",
+  "ref": null,
+  "cnts": [],
+  "movish": false
+ }
+]

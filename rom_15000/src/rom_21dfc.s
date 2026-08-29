@@ -1,6 +1,8 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ GetShopField
+@ r0 = index. Returns one of the shop screen's state fields.
 .thumb_func_start Func_21dfc
 	ldr	r1, =REG_BG1CNT
 	mov	r3, #4
@@ -13,6 +15,8 @@
 	bx	lr
 .func_end Func_21dfc
 
+@ SetShopField
+@ r0 = index, r1 = value. Stores into the shop screen's state.
 .thumb_func_start Func_21e14
 	ldr	r1, =REG_BG1CNT
 	mov	r3, #4
@@ -23,6 +27,9 @@
 	bx	lr
 .func_end Func_21e14
 
+@ ArmShopScanline
+@ r0 = scanline. Arms a scanline trigger with Func_307c for the shop screen's
+@ split-background effect.
 .thumb_func_start Func_21e28
 	push	{lr}
 	ldr	r2, =REG_BG0VOFS
@@ -36,6 +43,9 @@
 	bx	r0
 .func_end Func_21e28
 
+@ ShowShopMessage
+@ r0 = string id. Opens a message box with Func_17658 and blocks on Func_17364,
+@ one Func_30f8(1) per frame, until it is dismissed.
 .thumb_func_start Func_21e48
 	push	{r5, lr}
 	mov	r3, #1
@@ -55,6 +65,12 @@
 	bx	r1
 .func_end Func_21e48
 
+@ RunShopScreen
+@ r0.. = parameters. THE LARGEST FUNCTION IN THE MODULE at 1157 lines.
+@ Runs the buy/sell interaction end to end: opens windows with Func_162d4,
+@ renders with Func_1e7c0, prompts with Func_21e48, allocates scratch through
+@ Func_2df0, and closes with Func_16418 / Func_16478.
+@ Traced structurally; the transaction logic is not yet documented.
 .thumb_func_start Func_21e6c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1212,6 +1228,8 @@
 	bx	r1
 .func_end Func_21e6c
 
+@ ComputePrice
+@ r0.. = parameters. Pure arithmetic returning an item price; no calls out.
 .thumb_func_start Func_22768
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1307,6 +1325,9 @@
 	bx	r0
 .func_end Func_22768
 
+@ ComputeAdjustedPrice
+@ r0.. = parameters. Func_22768 with the party modifier from _Func_b6c08
+@ applied.
 .thumb_func_start Func_2281c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1390,6 +1411,8 @@
 	bx	r1
 .func_end Func_2281c
 
+@ SortShopList
+@ r0.. = parameters. Orders the shop list through Func_4620.
 .thumb_func_start Func_228bc
 	push	{r5, lr}
 	mov	r5, r0
@@ -1410,6 +1433,9 @@
 	bx	r1
 .func_end Func_228bc
 
+@ BuildShopList
+@ r0.. = parameters. Assembles the list of items a shop offers, resolving each
+@ owner through _Func_78b9c. 187 lines; traced structurally.
 .thumb_func_start Func_228e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1597,6 +1623,9 @@
 	bx	r1
 .func_end Func_228e4
 
+@ AttachShopIcon
+@ r0.. = parameters. Reserves tiles with Func_4080, builds the icon with
+@ Func_21b30, and attaches the node with Func_1eadc.
 .thumb_func_start Func_22a38
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

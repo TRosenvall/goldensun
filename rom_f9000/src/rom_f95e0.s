@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ UMull32
+@ r0, r1 = unsigned 32-bit factors. Returns the HIGH word of the 64-bit product.
+@ Thumb code that switches to ARM with an `adr`/`bx` pair just to get `umull`,
+@ then switches back -- the only way to reach a long multiply from Thumb.
 .thumb_func_start Func_f95e0
 	adr	r2, .Lf95e4
 	bx	r2
@@ -13,6 +17,9 @@
 	bx	lr
 .func_end Func_f95e0
 
+@ SoundMainVBlank
+@ Called from the VBlank path. Reads REG_VCOUNT to decide how much of the frame
+@ is left and drives the mixer accordingly. 66 lines; traced structurally.
 .thumb_func_start Func_f95f0
 	ldr	r0, .Lf965c	@ iwram_7ff0
 	ldr	r0, [r0]
@@ -86,6 +93,10 @@
 	.word	0x630
 .func_end Func_f95f0
 
+@ MixAudio
+@ The mixer. Reads REG_VCOUNT to stay ahead of the DMA read pointer and fills the
+@ PCM buffers for the two DirectSound FIFOs. 371 lines, heavily unrolled and the
+@ single hottest routine in the ROM; traced structurally.
 .thumb_func_start Func_f9674
 	ldrb	r3, [r0, #5]
 	cmp	r3, #0
@@ -464,6 +475,9 @@
 	.word	0x68736d53
 .func_end Func_f9674
 
+@ Clear64Bytes
+@ r0 = destination. Writes sixteen zero words with four `stmia` bursts. Entry 35
+@ of the jump table -- the engine calls it indirectly rather than by name.
 .thumb_func_start Func_f9a18
 	mov	r12, r4
 	mov	r1, #0
@@ -478,6 +492,11 @@
 	bx	lr
 .func_end Func_f9a18
 
+@ UnlinkChannel
+@ r0 = channel. Removes it from the doubly-linked list its track owns: +0x2C is
+@ the owning track, +0x30 the previous channel and +0x34 the next, and the head
+@ lives at track+0x20. Clears +0x2C so it cannot be unlinked twice.
+@ Entry 34 of the jump table.
 .thumb_func_start Func_f9a30
 	ldr	r3, [r0, #0x2c]
 	cmp	r3, #0
@@ -501,6 +520,15 @@
 	bx	lr
 .func_end Func_f9a30
 
+@ TrackFine
+@ r0 = player, r1 = track. Ends a track: every channel on its list gets bit 6 of
+@ its status byte set (release) unless it is already free -- the 0xC7 mask is
+@ "active in any state" -- and is then unlinked. The track's flags byte is
+@ zeroed, which is what stops it being serviced.
+@
+@ THE COMMAND TABLE'S DEFAULT. Indices 0, 5, 6, 7, 8, 21, 22, 24, 25, 26 and 28
+@ all point here, so any command byte the driver does not implement simply ends
+@ the track rather than running off into the data.
 .thumb_func_start Func_f9a50
 	push	{r4, r5, lr}
 	mov	r5, r1
@@ -529,6 +557,10 @@
 	bx	r0
 .func_end Func_f9a50
 
+@ CopyJumpTable
+@ r0 = destination. Copies all 36 words of .Lfb7a0 into the player's own table,
+@ each through the guarded read at .Lf9a9a. This is what lets the engine call
+@ its own commands and helpers by index instead of by address.
 .thumb_func_start Func_f9a80
 	mov	r12, lr
 	mov	r1, #0x24
@@ -543,6 +575,12 @@
 	bx	r12
 .func_end Func_f9a80
 
+@ ReadByteGuarded
+@ r2 = the address. Returns the byte in r3, or ZERO when the pointer looks wrong:
+@ anything at or above bit 25 of the address, or below .Lfb7a0 unless the top 18
+@ bits are clear. A corrupt song pointer silently reads as zeros instead of
+@ faulting -- and .Lf9a9a, the entry point one instruction in, is what every
+@ other reader branches to.
 .thumb_func_start Func_f9a98
 	ldrb	r3, [r2]
 .Lf9a9a:
@@ -564,6 +602,9 @@
 .Lf9ab0:
 	.word	.Lfb7a0
 
+@ FetchTrackByte
+@ r1 = track. Reads the byte at the track's command pointer (+0x40), advances it
+@ by one and returns it in r3, through the same guard as Func_f9a98.
 .thumb_func_start Func_f9ab4
 	ldr	r2, [r1, #0x40]
 .Lf9ab6:
@@ -573,6 +614,10 @@
 	b	.Lf9a9a
 .func_end Func_f9ab4
 
+@ TrackGoto
+@ r0 = player, r1 = track. Reads a four-byte little-endian pointer from the
+@ command stream, one byte at a time so it does not care about alignment, and
+@ makes it the new command pointer. Command 0xB2, index 1.
 .thumb_func_start Func_f9ac0
 	push	{lr}
 .Lf9ac2:
@@ -592,6 +637,11 @@
 	bx	r0
 .func_end Func_f9ac0
 
+@ TrackPatternCall
+@ r0 = player, r1 = track. Pushes the return address -- the command pointer plus
+@ four -- onto the pattern stack at track+0x44 and jumps like Func_f9ac0. THE
+@ STACK IS THREE DEEP: a level of 3 or more falls through to Func_f9a50 and ends
+@ the track instead of overflowing. Command 0xB3, index 2.
 .thumb_func_start Func_f9ae0
 	ldrb	r2, [r1, #2]
 	cmp	r2, #3
@@ -609,6 +659,9 @@
 	b	Func_f9a50
 .func_end Func_f9ae0
 
+@ TrackPatternReturn
+@ r1 = track. Pops one level off the pattern stack. A level of zero does nothing.
+@ Command 0xB4, index 3.
 .thumb_func_start Func_f9afc
 	ldrb	r2, [r1, #2]
 	cmp	r2, #0
@@ -623,6 +676,11 @@
 	bx	lr
 .func_end Func_f9afc
 
+@ TrackRepeat
+@ r0 = player, r1 = track. A count of zero in the stream means repeat forever --
+@ it just jumps. Otherwise the counter at track+0x03 is incremented and compared
+@ against the count, jumping while it is below and skipping the five-byte command
+@ once it is reached. Command 0xB5, index 4.
 .thumb_func_start Func_f9b10
 	push	{lr}
 	ldr	r2, [r1, #0x40]
@@ -650,6 +708,8 @@
 	bx	r0
 .func_end Func_f9b10
 
+@ TrackPriority
+@ r1 = track. Stores the next byte at track+0x1D. Command 0xBA, index 9.
 .thumb_func_start Func_f9b40
 	mov	r12, lr
 	bl	Func_f9ab4
@@ -657,6 +717,11 @@
 	bx	r12
 .func_end Func_f9b40
 
+@ TrackTempo
+@ r0 = player. Stores the next byte DOUBLED at player+0x1C and recomputes
+@ player+0x20 as `(player+0x1C * player+0x1E) >> 8`. So +0x1C is the base tempo,
+@ +0x1E the scale Func_fb2a4 sets, and +0x20 the effective rate the sequencer
+@ counts with. Command 0xBB, index 10.
 .thumb_func_start Func_f9b4c
 	mov	r12, lr
 	bl	Func_f9ab4
@@ -669,6 +734,9 @@
 	bx	r12
 .func_end Func_f9b4c
 
+@ TrackKeyShift
+@ r1 = track. Stores the next byte at track+0x0A and raises bits 2 and 3 of the
+@ flags. Command 0xBC, index 11.
 .thumb_func_start Func_f9b60
 	mov	r12, lr
 	bl	Func_f9ab4
@@ -680,6 +748,11 @@
 	bx	r12
 .func_end Func_f9b60
 
+@ TrackVoice
+@ r0 = player, r1 = track. Reads an instrument number and copies the THREE WORDS
+@ of its record -- the voice group base is at player+0x30 and each record is 12
+@ bytes -- into track+0x24, +0x28 and +0x2C. Command 0xBD, index 12, which is
+@ also the running-status threshold in Func_f9c90.
 .thumb_func_start Func_f9b74
 	mov	r12, lr
 	ldr	r2, [r1, #0x40]
@@ -703,6 +776,10 @@
 	bx	r12
 .func_end Func_f9b74
 
+@ TrackVolume
+@ r1 = track. Stores the next byte at track+0x12 and raises bits 0 and 1 of the
+@ flags, which is what makes Func_f9f3c recompute the stereo pair.
+@ Command 0xBE, index 13.
 .thumb_func_start Func_f9ba4
 	mov	r12, lr
 	bl	Func_f9ab4
@@ -714,6 +791,10 @@
 	bx	r12
 .func_end Func_f9ba4
 
+@ TrackPan
+@ r1 = track. Stores `byte - 0x40` at track+0x14 -- so the stream is unsigned
+@ around a centre of 0x40 and the field is signed -- and raises flag bits 0 and
+@ 1. Command 0xBF, index 14.
 .thumb_func_start Func_f9bb8
 	mov	r12, lr
 	bl	Func_f9ab4
@@ -726,6 +807,9 @@
 	bx	r12
 .func_end Func_f9bb8
 
+@ TrackBend
+@ r1 = track. Stores `byte - 0x40` at track+0x0E and raises flag bits 2 and 3.
+@ Command 0xC0, index 15.
 .thumb_func_start Func_f9bcc
 	mov	r12, lr
 	bl	Func_f9ab4
@@ -738,6 +822,9 @@
 	bx	r12
 .func_end Func_f9bcc
 
+@ TrackBendRange
+@ r1 = track. Stores the next byte at track+0x0F and raises flag bits 2 and 3.
+@ Command 0xC1, index 16.
 .thumb_func_start Func_f9be0
 	mov	r12, lr
 	bl	Func_f9ab4
@@ -749,6 +836,8 @@
 	bx	r12
 .func_end Func_f9be0
 
+@ TrackLfoDelay
+@ r1 = track. Stores the next byte at track+0x1B. Command 0xC3, index 18.
 .thumb_func_start Func_f9bf4
 	mov	r12, lr
 	bl	Func_f9ab4
@@ -756,6 +845,10 @@
 	bx	r12
 .func_end Func_f9bf4
 
+@ TrackModType
+@ r1 = track. Stores the next byte at track+0x18, but only when it differs from
+@ what is there, and then raises flag bits 0 through 3 together.
+@ Command 0xC5, index 20.
 .thumb_func_start Func_f9c00
 	mov	r12, lr
 	bl	Func_f9ab4
@@ -771,6 +864,9 @@
 	bx	r12
 .func_end Func_f9c00
 
+@ TrackTune
+@ r1 = track. Stores `byte - 0x40` at track+0x0C and raises flag bits 2 and 3.
+@ Command 0xC8, index 23.
 .thumb_func_start Func_f9c18
 	mov	r12, lr
 	bl	Func_f9ab4
@@ -783,6 +879,11 @@
 	bx	r12
 .func_end Func_f9c18
 
+@ TrackPortamento
+@ r1 = track. Takes a register offset and a value from the stream and writes the
+@ value straight to REG_SOUND1CNT_L + offset -- portamento is implemented by
+@ poking the PSG registers directly rather than by anything in the mixer.
+@ Command 0xCC, index 27.
 .thumb_func_start Func_f9c2c
 	mov	r12, lr
 	ldr	r2, [r1, #0x40]
@@ -795,6 +896,13 @@
 	bx	r12
 .func_end Func_f9c2c
 
+@ RestartPcmDma
+@ Called every frame. The DirectSound keep-alive: when the driver block at
+@ iwram_7ff0 carries the 'Smsh' identifier -- 0x68736D53, Nintendo's M4A magic --
+@ it counts down the byte at +0x04, and on reaching zero reloads it from +0x0B
+@ and RESTARTS BOTH FIFO DMAs by clearing and re-setting their enable bits
+@ (0xB600 then 0x0400 on DMA1 and DMA2). Without this the FIFOs would drain and
+@ the music would stop.
 .thumb_func_start Func_f9c44
 	ldr	r0, .Lf9ef0	@ iwram_7ff0
 	ldr	r0, [r0]
@@ -834,6 +942,23 @@
 	bx	lr
 .func_end Func_f9c44
 
+@ RunTrackCommands
+@ r0 = player. THE SEQUENCER. Verified against the 'Smsh' ident at player+0x34,
+@ bumps the tick counter and calls the callback at +0x3C when +0x38 is set, then
+@ walks every track:
+@
+@   * expired channels are released through Func_fa678 and freed with
+@     Func_fa68c; the note-off mask 0xC7 and the release bit 0x40 are the same
+@     ones Func_f9a50 uses
+@   * a command byte below 0x80 reuses the RUNNING STATUS at track+0x07, so a
+@     stream of notes needs no repeated command byte
+@   * bytes from 0x80 to 0xCE are wait-and-command; 0xB1 is the base, so the jump
+@     table index is `cmd - 0xB1`. 0xBD (VOICE) is the running-status cutoff and
+@     0xCF starts the note range.
+@
+@ Func_fab7c does the per-track volume and pitch, Func_fac44 the envelopes.
+@ 323 lines; the dispatch and the command base are traced, the note handling
+@ structurally.
 .thumb_func_start Func_f9c90
 	ldr	r2, .Lf9ef4	@ 0x68736d53
 	ldr	r3, [r0, #0x34]
@@ -1164,6 +1289,9 @@
 	pop	{r3}
 .func_end Func_f9c90
 
+@ CallThroughR3
+@ `bx r3`. The one-instruction trampoline the engine uses to call an entry it
+@ just loaded out of its own jump table. Not itself a table entry.
 .thumb_func_start Func_f9ee8
 	bx	r3
 .func_end Func_f9ee8

@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ QueueGlyphs
+@ r0 = window record, r1.. = the text run. The bridge between layout and
+@ display: pulls display nodes from the free list with Func_15e8c, links them
+@ onto the window with Func_16584, fetches the font data through Func_2f40 and
+@ Func_4938, and DMA3s the rasterised glyphs into place.
+@ Func_4080 allocates the OBJ tiles; Func_2df0 releases the scratch when done.
+@ Func_178b0 supplies the expanded string.
+@ Traced structurally.
 .thumb_func_start Func_18cac
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -279,6 +287,10 @@
 	bx	r1
 .func_end Func_18cac
 
+@ AllocGlyphNode
+@ r0 = window record, r1 = size. Takes a node from the free list with
+@ Func_15e8c, allocates its OBJ tiles with Func_4080, and appends it to the
+@ window's node list with Func_16584. Returns 0 when either allocation fails.
 .thumb_func_start Func_18efc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -403,6 +415,24 @@
 	bx	r0
 .func_end Func_18efc
 
+@ PutTileInWindow
+@ r0 = window record, r1 = tilemap entry, r2 = column, r3 = row, arg5 = mode.
+@ Writes ONE tilemap halfword inside a window's interior. Column and row are
+@ relative to the interior, so both get 1 added for the border before being
+@ offset by the window's own +0x0C x and +0x0E y; the result indexes
+@ [iwram_1e8c] as a 32-wide map.
+@
+@ Two bounds checks reject the write silently: row + 1 must not exceed the
+@ record's +0x0A height less one, column + 1 the +0x08 width less one, and the
+@ final index must stay under 0x280 (32 x 20).
+@
+@ The mode picks a palette bank to OR into the entry:
+@     0 or above 4  the entry is written unchanged
+@     1             nothing is written at all
+@     2             0xE000        3  0xF000        4  0x1000
+@
+@ Callers use it as a tile plotter, not a clipper -- rom_a1000's Func_a21b0
+@ draws its whole page-indicator bar through it, one tile per call.
 .thumb_func_start Func_19000
 	push	{r5, r6, r7, lr}
 	mov	r4, r3
@@ -479,6 +509,9 @@
 	bx	r0
 .func_end Func_19000
 
+@ BuildGlyphTiles
+@ r0.. = glyph parameters. Converts a rasterised glyph into OBJ tiles, calling
+@ Func_3d28 to reserve VRAM. 161 lines, traced structurally.
 .thumb_func_start Func_1908c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

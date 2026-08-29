@@ -1,5 +1,13 @@
 	.include "macros.inc"
 
+@ LoadEffectResource
+@ r0=resource id, r1=destination, r2=skip-palette flag, r3=upload-palette flag.
+@ Decompresses the resource with Func_2f40, then:
+@   - when r3 is set, DMAs the first 0x80 bytes (a 64-colour palette) to
+@     0x5000000 through the RAM-resident copier Func_1af8
+@   - when r2 is set, advances past that palette so only the pixel data is used
+@ and finally copies the remainder to the destination with Func_5340.
+@ Every animation in this module stages its graphics through here.
 .thumb_func_start Func_e0524
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

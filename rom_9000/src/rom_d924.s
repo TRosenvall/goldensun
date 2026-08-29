@@ -1,5 +1,11 @@
 	.include "macros.inc"
 
+@ CheckEntityCollision
+@ r0=entity being moved, r1=candidate position (vec3, 16.16). Returns -1 if the
+@ candidate overlaps another entity, 0 if it is clear.
+@ Scans all 0x40 slots at [iwram_1e64], skipping inactive slots, the mover
+@ itself, and any entity without bit 0 of +0x59 (collidable) set. Each pair is
+@ tested by Func_eba0 using both radii from +0x20, biased by -2.
 .thumb_func_start Func_d924
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -54,6 +60,10 @@
 	bx	r1
 .func_end Func_d924
 
+@ FindCollidingEntity
+@ r0=entity being moved, r1=candidate position (vec3, 16.16). Identical scan to
+@ Func_d924 but returns the first colliding entity instead of -1, or 0 when the
+@ candidate is clear -- used where the caller needs to know what it hit.
 .thumb_func_start Func_d98c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -107,6 +117,10 @@
 	bx	r1
 .func_end Func_d98c
 
+@ ScriptOp_SetPosition
+@ Script opcode handler. r0=entity. Reads the three words following the opcode
+@ as an absolute x/y/z and teleports there with Func_d130, then advances the
+@ cursor at +0x04 by 4 (opcode plus three operands). Returns 1.
 .thumb_func_start Func_d9f0
 	push	{r5, lr}
 	mov	r5, r0
@@ -129,6 +143,10 @@
 	bx	r1
 .func_end Func_d9f0
 
+@ ScriptOp_MoveTo
+@ Script opcode handler. r0=entity. Reads the three words following the opcode
+@ as an absolute x/y/z and starts a move there with Func_d14c (so the entity
+@ walks rather than teleports), then advances the cursor by 4. Returns 1.
 .thumb_func_start Func_da18
 	push	{r5, lr}
 	mov	r5, r0
@@ -151,6 +169,10 @@
 	bx	r1
 .func_end Func_da18
 
+@ ScriptOp_MoveBy
+@ Script opcode handler. r0=entity. Reads the three words following the opcode
+@ as a delta, adds them to the current position at +0x08/+0x0C/+0x10 and starts
+@ a move to that point with Func_d14c. Advances the cursor by 4. Returns 1.
 .thumb_func_start Func_da40
 	push	{r5, lr}
 	mov	r5, r0
@@ -180,6 +202,11 @@
 	bx	r1
 .func_end Func_da40
 
+@ ScriptOp_FaceTarget
+@ Script opcode handler. r0=entity. Takes the target entity from the script
+@ argument slot at +0x68 and sets the facing angle at +0x06 to the atan2
+@ (Func_44d0) of the z and x deltas between the two, i.e. turns instantly to
+@ look at it. Advances the cursor by 1. Returns 1.
 .thumb_func_start Func_da78
 	push	{r5, lr}
 	mov	r5, r0
@@ -201,6 +228,10 @@
 	bx	r1
 .func_end Func_da78
 
+@ ScriptOp_MoveToTarget
+@ Script opcode handler. r0=entity. Starts a move to the current position of the
+@ target entity held at +0x68, via Func_d14c. Advances the cursor by 1.
+@ Returns 1.
 .thumb_func_start Func_daa0
 	push	{r5, lr}
 	mov	r5, r0
@@ -218,6 +249,16 @@
 	bx	r1
 .func_end Func_daa0
 
+@ ScriptOp_MoveByScratch
+@ Script opcode handler. r0=entity. Adds a three-word offset to the current
+@ position and starts a move there with Func_d14c, advancing the cursor by 3.
+@ BUG (original, not a disassembly artifact): the offset is read from the
+@ 0xC bytes of stack just reserved by `sub sp, #0xc` and never written -- see
+@ the three loads through r0 = sp at .Ldac0. The entity is displaced by
+@ whatever the previous call left on the stack. Compare Func_da40, which reads
+@ the same three-word delta from the script and advances by 4; this handler's
+@ cursor step of 3 suggests the operands were meant to come from the script
+@ here too.
 .thumb_func_start Func_dac0
 	push	{r5, lr}
 	sub	sp, #0xc
@@ -244,6 +285,19 @@
 	bx	r1
 .func_end Func_dac0
 
+@ ScriptOp_FollowTargetClamped
+@ Script opcode handler. r0=entity. Moves toward the target entity at +0x68,
+@ keeping the destination inside the playable area. Advances the cursor by 1 and
+@ returns 1; a null or inactive target makes the whole body a no-op.
+@ The bounds come from the map state at [iwram_1e70] +0xEC/+0xF0/+0xF4/+0xF8,
+@ each inset by a fixed margin, and the target position is clamped into that
+@ box before use. Clears the entity's own targets (+0x38/+0x3C/+0x40) and the
+@ mode byte at +0x55 first.
+@ When the spawn-tile halfword at +0x64 is non-zero the clamped point is written
+@ straight to +0x08/+0x0C/+0x10 (hard snap). Otherwise the horizontal step is
+@ the distance scaled to one eighth, clamped to the max speed at +0x30, and the
+@ vertical difference is applied separately -- quartered whenever it exceeds
+@ 0x8000 -- so the follower eases in rather than jumping.
 .thumb_func_start Func_daf0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -486,6 +540,16 @@
 	bx	r1
 .func_end Func_daf0
 
+@ ScriptOp_ApproachTarget
+@ Script opcode handler. r0=entity. Walks toward the target entity at +0x68 but
+@ stops a fixed 0x10 units short, so the follower never overlaps what it is
+@ chasing. Copies the target's max speed (+0x30) and acceleration (+0x34) so it
+@ can keep pace.
+@ While still further than 0x10 away it scales the delta by (dist - 0x10) / dist
+@ using Func_af0_from_thumb, issues Func_d14c toward the shortened point, selects
+@ the walk animation with Func_c300(2), advances the cursor by 1 and returns 1.
+@ Once inside 0x10 it selects the idle animation with Func_c300(1) and returns 0,
+@ which leaves the cursor put so the handler re-runs next frame.
 .thumb_func_start Func_dcdc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -557,6 +621,22 @@
 	bx	r1
 .func_end Func_dcdc
 
+@ ScriptOp_PickWanderTarget
+@ Script opcode handler. r0=entity. Chooses a random nearby point to wander to,
+@ rejecting anything blocked or outside the entity's leash. Reads three script
+@ operands: a base distance, a distance scale, and a leash radius (the third is
+@ squared on entry and compared against the squared offset from the spawn tile
+@ cached at +0x64/+0x66).
+@ Up to 7 attempts. Each draws random values from Func_4458 to build a distance
+@ and a heading offset around the current facing (+0x06), turns that into a
+@ candidate point with Func_447c, and rejects it if any of these fail:
+@   - Func_d924 reports an entity collision at the candidate
+@   - Func_120dc reports terrain collision at the candidate, or at the two
+@     probe headings +0x2000 and -0x2000 around it
+@   - the candidate lands outside the leash radius of the spawn tile
+@ On success it issues Func_d14c toward the point, advances the cursor by 4 and
+@ returns 1. After 7 failures it turns 180 degrees (+0x8000 on +0x06), sets the
+@ wait timer at +0x5E to 1 and returns 0 so the handler retries next frame.
 .thumb_func_start Func_dd70
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -751,6 +831,22 @@
 	bx	r1
 .func_end Func_dd70
 
+@ ScriptOp_PickWanderTargetLeashed
+@ Script opcode handler. r0=entity. The leash-aware sibling of Func_dd70: same
+@ three script operands (base distance, distance scale, leash radius squared)
+@ and the same 7-attempt structure, but it checks the leash *first* and probes
+@ more directions.
+@ While the entity is still inside its leash radius of the spawn tile
+@ (+0x64/+0x66), each attempt builds a random candidate via Func_4458 and
+@ Func_447c and rejects it on an entity hit (Func_d924) or a terrain hit
+@ (Func_120dc) at the candidate or at any of the probe headings +0x2000,
+@ +0x4000, -0x2000 and -0x4000. A candidate that also stays within the leash is
+@ accepted: bit 1 of the flag byte at +0x59 is set and Func_d14c starts the move.
+@ Once the entity is already outside its leash, the loop at .Le146 instead aims
+@ back toward the spawn point -- heading = atan2 of the offset plus 0x8000 --
+@ retries up to 7 times against the same collision tests, and on success clears
+@ bit 1 of +0x59 before issuing Func_d14c.
+@ Either way the cursor advances by 4 and the handler returns 1.
 .thumb_func_start Func_df04
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

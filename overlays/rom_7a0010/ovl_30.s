@@ -1,5 +1,21 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Overlay 0x7a0010 -- a map that BUILDS one of its tables at load time rather
+@ than storing every variant.
+@
+@ Slot 0  OvlFunc_1c4  map-load entry
+@ Slot 1  OvlFunc_5c   edge transitions   -> .L318
+@ Slot 2  OvlFunc_68   map event list     -> .L498
+@ Slot 3  OvlFunc_70   read after slot 4  -> .L4d8, rewritten in place
+@ Slot 4  OvlFunc_1bc  map objects
+@ Slot 5  OvlFunc_64   interactions       -> none (returns 0)
+@ ============================================================================
+
+@ ResetRecordArray
+@ r0 = an array of fifteen 0x18-byte records. Rewrites every one: byte +0x16 to
+@ 2, word +0x04 to 1, and the halfword at +0x00 to sprite 0x69 -- except records
+@ 4 and 7, which get 0x6E instead. Called only from OvlFunc_70.
 .thumb_func_start OvlFunc_30
 	push	{r5, lr}
 	mov	r3, #0
@@ -27,21 +43,33 @@
 	bx	r0
 .func_end OvlFunc_30
 
+@ Slot 1: edge-transition table.
 .thumb_func_start OvlFunc_5c
 	ldr	r0, =.L318
 	bx	lr
 .func_end OvlFunc_5c
 
+@ Slot 5: interaction table -- none.
 .thumb_func_start OvlFunc_64
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_64
 
+@ Slot 2: map event list.
 .thumb_func_start OvlFunc_68
 	ldr	r0, =.L498
 	bx	lr
 .func_end OvlFunc_68
 
+@ Slot 3: read after slot 4.
+@
+@ Unusually, this SLOT MUTATES ITS OWN TABLE. When save bit 0x845 is clear it
+@ first runs OvlFunc_30 over .L4d8 to reset all fifteen records to their default
+@ sprites; once the bit is set the stored table is left as the game last left
+@ it. Either way the result goes through Func_8b868, which tags the records
+@ whose position falls inside the active bounds, and .L4d8 itself is returned.
+@
+@ So this map keeps one mutable record array instead of a table per state.
 .thumb_func_start OvlFunc_70
 	push	{r5, lr}
 	ldr	r0, =0x845
@@ -60,6 +88,12 @@
 	bx	r1
 .func_end OvlFunc_70
 
+@ TalkDirectional
+@ Takes no arguments. Reads the player's facing from +0x06 before opening the
+@ cutscene frame, then picks between two outcomes by range: facings in
+@ 0xA001..0xDFFF (the test is `facing - 0xA001 <= 0x3FFE` in unsigned) run
+@ Func_b0278 with 0x0D and 0x10, anything else speaks line 0x16AD from slot
+@ 0x10. Approaching from the wrong side gets the plain line.
 .thumb_func_start OvlFunc_9c
 	push	{r5, lr}
 	mov	r0, #0
@@ -88,6 +122,8 @@
 	bx	r0
 .func_end OvlFunc_9c
 
+@ Counter: shop 0x0E, speaker slot 0x11, chatter line 0x16AF. Same
+@ facing test as OvlFunc_9c.
 .thumb_func_start OvlFunc_e4
 	push	{r5, lr}
 	mov	r0, #0
@@ -116,6 +152,7 @@
 	bx	r0
 .func_end OvlFunc_e4
 
+@ Counter: shop 0x0F, speaker slot 0x12, chatter line 0x16B1.
 .thumb_func_start OvlFunc_12c
 	push	{r5, lr}
 	mov	r0, #0
@@ -144,6 +181,7 @@
 	bx	r0
 .func_end OvlFunc_12c
 
+@ Counter: INN 3, speaker slot 0x13, chatter line 0x16B7.
 .thumb_func_start OvlFunc_174
 	push	{r5, lr}
 	mov	r0, #0
@@ -172,11 +210,24 @@
 	bx	r0
 .func_end OvlFunc_174
 
+@ Slot 4: map object table.
 .thumb_func_start OvlFunc_1bc
 	ldr	r0, =.L658
 	bx	lr
 .func_end OvlFunc_1bc
 
+@ Slot 0: map-load entry.
+@
+@ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x209. When save bit 0x845
+@ is clear it walks slots 8..0x16 and calls Func_c528 with 0 on each entity --
+@ the same reset OvlFunc_30 does to the record array, applied to the live
+@ entities.
+@
+@ Then it repaints the town depending on how the player arrived. Entrance 7
+@ gets one set of three Func_10424 metatile copies (source rows 0x22/0x5E,
+@ 0x0D x 8 each); any entrance whose id minus 8 is at most 0x10000 in the
+@ shifted comparison gets a different set, plus Func_923e4 teleporting slots
+@ 0x0A, 0x0B and 0x0C to the origin -- parking three objects out of the way.
 .thumb_func_start OvlFunc_1c4
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1ebc

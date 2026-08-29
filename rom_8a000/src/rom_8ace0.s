@@ -1,5 +1,23 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Map transitions and surface effects.
+@
+@ The destination of a transition is looked up from map data rather than named
+@ directly: .L9c610 is a table of 14 halfwords per map group, indexed by
+@ (group * 14 + entrance) * 2 + 4 (Func_8b05c). ewram_240 holds the pending
+@ transition -- +0x1C0/+0x1C2 the target map and entrance, +0x1D6 the current
+@ map id -- and Func_8b320 commits it.
+@ The surface routines at the top resolve what the player is standing on
+@ (through _Func_122c8, the rom_9000 footstep lookup) and play the matching
+@ step sound.
+@ ============================================================================
+
+@ ApplyMapEntry
+@ Takes no arguments. Runs after a map load to place the player at the entrance
+@ recorded in ewram_240+0x1C0: resolves the entrance record, writes the spawn
+@ position and facing into the scene block, and applies any entry script the
+@ entrance carries. The ~110-instruction body is characterised structurally.
 .thumb_func_start Func_8ace0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -135,6 +153,11 @@
 	bx	r0
 .func_end Func_8ace0
 
+@ GetSurfaceTypeAtPosition
+@ r0=position vec3. Returns the surface type index under that point.
+@ Calls _Func_122c8 (the rom_9000 footstep lookup, which combines the terrain
+@ material with the tile's type bits) and maps its result through the table at
+@ .L9d7a8 to the smaller set of surface classes this module uses for sounds.
 .thumb_func_start Func_8adf0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -202,6 +225,12 @@
 	bx	r1
 .func_end Func_8adf0
 
+@ PlaySurfaceStepEffect
+@ r0=surface type, r1=variant. Plays the footstep sound and any splash/dust
+@ effect for that surface. Event flag 0x15F gates the whole thing, so the
+@ effects can be suppressed during cutscenes.
+@ The ~110-instruction body dispatches per surface type; the flag gate and the
+@ argument roles are verified, the individual arms are not enumerated.
 .thumb_func_start Func_8ae74
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -410,6 +439,9 @@
 	bx	r1
 .func_end Func_8ae74
 
+@ PlayStepEffectForSlot
+@ r0=slot. Reads that slot's cached surface type from the byte array at
+@ iwram_1ebc+0x1A0 and plays its step effect through Func_8ae74.
 .thumb_func_start Func_8b02c
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -423,6 +455,9 @@
 	bx	r1
 .func_end Func_8b02c
 
+@ PlayStepEffectAtPosition
+@ r0=position vec3, r1=variant. Func_8adf0 to classify the surface, then
+@ Func_8ae74 to play it -- the one-shot form used when no slot is involved.
 .thumb_func_start Func_8b048
 	push	{r5, lr}
 	mov	r5, r1
@@ -434,6 +469,11 @@
 	bx	r1
 .func_end Func_8b048
 
+@ LookupMapDestination
+@ r0=map group, r1=entrance index. Returns the destination map id from the
+@ table at .L9c610, which stores 14 halfwords per group; the entry read is at
+@ (group * 14 + entrance) * 2 + 4. No range check -- callers are expected to
+@ pass indices that came from map data.
 .thumb_func_start Func_8b05c
 	lsl	r3, r0, #3
 	sub	r3, r0
@@ -446,6 +486,10 @@
 	bx	lr
 .func_end Func_8b05c
 
+@ LookupMapDestinationByIndex
+@ r0=transition index. Reads a {group, entrance} pair from the 4-byte records at
+@ .L9d8b0 and resolves it through Func_8b05c. Lets map scripts refer to a
+@ destination by a single number.
 .thumb_func_start Func_8b074
 	push	{lr}
 	ldr	r3, =.L9d8b0
@@ -459,6 +503,11 @@
 	bx	r1
 .func_end Func_8b074
 
+@ PrepareMapTransition
+@ Takes no arguments. Reads the pending destination from ewram_240+0x1C0 and
+@ sets up the transition: resolves the target map, picks the fade style, and
+@ stages the spawn position for the incoming map. The ~100-instruction body is
+@ characterised structurally.
 .thumb_func_start Func_8b090
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -562,6 +611,10 @@
 	bx	r0
 .func_end Func_8b090
 
+@ FindMapEntryRecord
+@ r0=map id, r1=entrance. Searches the table at .L9ddd8 for the matching entry
+@ record, using Func_8a8d0 to resolve the group. Returns the record, or a
+@ negative result when the pair is not listed.
 .thumb_func_start Func_8b158
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -630,6 +683,10 @@
 	bx	r1
 .func_end Func_8b158
 
+@ FindAreaRecord
+@ Takes no arguments. Looks the current map and entrance (ewram_240+0x1C0 and
+@ +0x1C2) up in the area table at .L9e1d8 and returns the matching record --
+@ the area name, music and encounter set that go with this location.
 .thumb_func_start Func_8b1d8
 	push	{r5, r6, r7, lr}
 	ldr	r0, =ewram_240
@@ -688,6 +745,9 @@
 	bx	r0
 .func_end Func_8b1d8
 
+@ GetCurrentMapId
+@ Returns the signed halfword at ewram_240+0x1D6, the id of the map currently
+@ loaded.
 .thumb_func_start Func_8b248
 	ldr	r3, =ewram_240
 	mov	r2, #0xeb
@@ -698,6 +758,10 @@
 	bx	lr
 .func_end Func_8b248
 
+@ FindMapInSpecialList
+@ Takes no arguments. Scans the zero-terminated list at .L9e270 for the current
+@ map id (ewram_240+0x1C0) and reports whether it is present -- the list of maps
+@ that get special handling on entry.
 .thumb_func_start Func_8b25c
 	push	{r5, r6, lr}
 	ldr	r2, =ewram_240
@@ -739,6 +803,10 @@
 	bx	r0
 .func_end Func_8b25c
 
+@ GetTransitionStyle
+@ r0=transition kind 1..7. Returns the fade/wipe style constant for that kind
+@ via the jump table at .L8b2c0. Kinds outside 1..7 fall through to the default
+@ at .L8b2f0.
 .thumb_func_start Func_8b2b0
 	push	{lr}
 	sub	r0, #1
@@ -784,6 +852,12 @@
 	bx	r0
 .func_end Func_8b2b0
 
+@ StartMapTransition
+@ r0=map group, r1=entrance. Commits the transition: forms the packed
+@ destination as (group << 4) | entrance, then picks the transition record from
+@ .L9e488. Event flag 0x16C selects an alternate style (0x12) -- the
+@ post-progress variant -- otherwise the style is looked up normally.
+@ This is what Func_91eb0 and Func_91f14 in rom_91584.s ultimately call.
 .thumb_func_start Func_8b320
 	push	{r5, r6, r7, lr}
 	lsl	r0, #4
@@ -843,6 +917,11 @@
 	bx	r0
 .func_end Func_8b320
 
+@ RemapAreaIdForProgress
+@ r0=area id. Returns the id to actually use, accounting for story progress:
+@ once event flag 0x20 is set, areas 0 and 1 become 0x12 and 0x13 -- the
+@ post-event versions of the same locations. Ids above 8 pass through
+@ unchanged.
 .thumb_func_start Func_8b398
 	push	{r5, lr}
 	mov	r5, r0
@@ -875,6 +954,10 @@
 	bx	r1
 .func_end Func_8b398
 
+@ RemapAreaId
+@ r0=area id, r1=non-zero to apply the remap. Func_8b398 without the event-flag
+@ lookup: the caller supplies the condition. Same 0 -> 0x12, 1 -> 0x13 mapping
+@ for ids at or below 8.
 .thumb_func_start Func_8b3d0
 	push	{lr}
 	cmp	r0, #8
@@ -893,6 +976,13 @@
 	bx	r1
 .func_end Func_8b3d0
 
+@ BindRecordToSlot
+@ r0=scene record, r1=slot. Instantiates the record into the slot: spawns its
+@ entity, applies the record's position, facing, sprite and behaviour script,
+@ and stores the entity in the slot table at iwram_1ebc+0x14.
+@ This is the workhorse behind Func_917ac and Func_8b674. The
+@ ~250-instruction body is characterised structurally; the slot binding and
+@ record source are verified.
 .thumb_func_start Func_8b3ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1189,6 +1279,10 @@
 	bx	r0
 .func_end Func_8b3ec
 
+@ ClearSceneSlot
+@ r0=slot. Destroys the slot's entity with _Func_c0f4 and zeroes the slot
+@ pointer at iwram_1ebc + 0x14 + slot * 4. The single-slot counterpart of
+@ Func_8b98c.
 .thumb_func_start Func_8b64c
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1ebc

@@ -1,5 +1,24 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Overlay 0x7a6ae4 -- three areas (0x2F, 0x30, 0x31) sharing a PRESSURE-PLATE
+@ PUZZLE and a set of small map edits.
+@
+@ Slot 0  OvlFunc_46c  map-load entry, dispatching to one setup per area
+@ Slot 1  OvlFunc_40   edge transitions   -> one table per area
+@ Slot 2  OvlFunc_98   map event list     -> .Lbcc (constant)
+@ Slot 3  OvlFunc_a0   read after slot 4  -> one per area
+@ Slot 4  OvlFunc_f4   map objects        -> one per area
+@ Slot 5  OvlFunc_94   interactions       -> none (returns 0)
+@
+@ Every table slot uses the same three-way area test in the same order
+@ (0x31, then 0x30, then 0x2F, else a fallback), so the four stay in step.
+@
+@ The puzzle is in OvlFunc_304: two blocks in slots 0x0B and 0x0C, one target
+@ tile, and a gate that opens when EITHER block is on it.
+@ ============================================================================
+
+@ Trigger: resets the entity in r0 with Func_c528.
 .thumb_func_start OvlFunc_30
 	push	{lr}
 	mov	r1, #0
@@ -9,6 +28,7 @@
 	bx	r1
 .func_end OvlFunc_30
 
+@ Slot 1: edge-transition table, one per area.
 .thumb_func_start OvlFunc_40
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -41,16 +61,19 @@
 	bx	r1
 .func_end OvlFunc_40
 
+@ Slot 5: interaction table -- none.
 .thumb_func_start OvlFunc_94
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_94
 
+@ Slot 2: map event list. Shared by all three areas.
 .thumb_func_start OvlFunc_98
 	ldr	r0, =.Lbcc
 	bx	lr
 .func_end OvlFunc_98
 
+@ Slot 3: read after slot 4, one table per area.
 .thumb_func_start OvlFunc_a0
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -83,6 +106,7 @@
 	bx	r1
 .func_end OvlFunc_a0
 
+@ Slot 4: map object table, one per area.
 .thumb_func_start OvlFunc_f4
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -115,6 +139,8 @@
 	bx	r1
 .func_end OvlFunc_f4
 
+@ Repaint: a 1x1 attribute cell from source (1, 0) to (0x15, 0x0E) -- one half
+@ of a two-state tile, paired with OvlFunc_168.
 .thumb_func_start OvlFunc_148
 	push	{lr}
 	sub	sp, #8
@@ -132,6 +158,7 @@
 	bx	r0
 .func_end OvlFunc_148
 
+@ Repaint: the same cell from source (0, 0) -- the other state.
 .thumb_func_start OvlFunc_168
 	push	{lr}
 	sub	sp, #8
@@ -149,6 +176,8 @@
 	bx	r0
 .func_end OvlFunc_168
 
+@ Repaint: a 3x1 metatile copy from (0x6F, 0x25) to (0x61, 0x15), then a 3x2
+@ attribute block from (0x2E, 0x26) to (0x18, 0x20).
 .thumb_func_start OvlFunc_188
 	push	{lr}
 	sub	sp, #8
@@ -175,6 +204,8 @@
 	bx	r0
 .func_end OvlFunc_188
 
+@ Repaint: the counterpart of OvlFunc_188, taking the metatiles from
+@ (0x5F, 0x15) and the attributes to (0x19, 0x20) instead.
 .thumb_func_start OvlFunc_1bc
 	push	{lr}
 	sub	sp, #8
@@ -201,6 +232,7 @@
 	bx	r0
 .func_end OvlFunc_1bc
 
+@ Trigger: teleports slot 9 to the origin and sets save bit 0x882.
 .thumb_func_start OvlFunc_1f0
 	push	{lr}
 	bl	__Func_916b0
@@ -215,6 +247,11 @@
 	bx	r0
 .func_end OvlFunc_1f0
 
+@ RevealSlotF
+@ Takes no arguments. Teleports slot 8 to the origin, sets save bit 0x883, then
+@ after a forty-frame beat brings slot 0x0F into view: animation 2, its flag
+@ byte +0x55 cleared, bit 1 set in +0x23, draw priority 2, and a 1x1 attribute
+@ cell repainted from (0, 0) to (0x0E, 0x12).
 .thumb_func_start OvlFunc_214
 	push	{lr}
 	sub	sp, #8
@@ -260,6 +297,8 @@
 	bx	r0
 .func_end OvlFunc_214
 
+@ Trigger: slot 0x0F -- palette change through Func_92950, a forty-frame beat,
+@ sound 0xD2, then animation 6.
 .thumb_func_start OvlFunc_280
 	push	{lr}
 	bl	__Func_916b0
@@ -278,6 +317,7 @@
 	bx	r0
 .func_end OvlFunc_280
 
+@ Trigger: the same sequence on slot 0x10.
 .thumb_func_start OvlFunc_2ac
 	push	{lr}
 	bl	__Func_916b0
@@ -296,6 +336,7 @@
 	bx	r0
 .func_end OvlFunc_2ac
 
+@ Trigger: the same sequence on slot 0x11.
 .thumb_func_start OvlFunc_2d8
 	push	{lr}
 	bl	__Func_916b0
@@ -314,6 +355,21 @@
 	bx	r0
 .func_end OvlFunc_2d8
 
+@ CheckPlateePuzzle
+@ Takes no arguments. The puzzle logic, re-run whenever a block moves.
+@
+@ Slots 0x0B and 0x0C are the blocks. Each is tested against the single target
+@ tile (0x23, 0x17) -- both coordinates at whole-tile resolution -- and its own
+@ save bit is set or CLEARED accordingly: 0x303 for slot 0x0B, 0x304 for slot
+@ 0x0C. Clearing on failure is what lets the player undo a wrong move.
+@
+@ The gate then follows the OR of the two: if either bit is set and the gate
+@ bit 0x302 is not, sound 0xD2 plays, slot 0x11 runs animation 6 and two
+@ attribute cells are repainted from column 0 -- the gate opening. If neither
+@ is set and 0x302 IS, sound 0xDC plays, slot 0x11 returns to animation 2 and
+@ the same two cells are repainted from column 1 -- the gate closing again.
+@ 0x302 tracks which state the gate is currently in, so the transition fires
+@ once per change rather than every frame.
 .thumb_func_start OvlFunc_304
 	push	{r5, r6, lr}
 	mov	r0, #0xb
@@ -440,6 +496,8 @@
 	bx	r0
 .func_end OvlFunc_304
 
+@ Trigger: repaints a 1x1 attribute cell from (0x1F, 0) to (0x0D, 8) and sets
+@ save bit 0x305.
 .thumb_func_start OvlFunc_424
 	push	{lr}
 	sub	sp, #8
@@ -459,6 +517,7 @@
 	bx	r0
 .func_end OvlFunc_424
 
+@ Sets byte +0x17 of the map descriptor at [iwram_1e70] to 1.
 .thumb_func_start OvlFunc_44c
 	ldr	r3, =iwram_1e70
 	ldr	r2, [r3]
@@ -467,6 +526,7 @@
 	bx	lr
 .func_end OvlFunc_44c
 
+@ Clears the same byte -- the pair toggles one map-wide flag.
 .thumb_func_start OvlFunc_45c
 	ldr	r3, =iwram_1e70
 	ldr	r2, [r3]
@@ -475,6 +535,8 @@
 	bx	lr
 .func_end OvlFunc_45c
 
+@ Slot 0: map-load entry. Dispatches to OvlFunc_4b4, _4e8 or _538 for areas
+@ 0x31, 0x30 and 0x2F respectively; any other area needs no setup.
 .thumb_func_start OvlFunc_46c
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -505,6 +567,9 @@
 	bx	r1
 .func_end OvlFunc_46c
 
+@ SetupArea31
+@ Replays the OvlFunc_424 repaint and puts slot 8 into animation 0, but only
+@ when save bit 0x305 records that the player already triggered it.
 .thumb_func_start OvlFunc_4b4
 	push	{lr}
 	ldr	r0, =0x305
@@ -530,6 +595,10 @@
 	bx	r0
 .func_end OvlFunc_4b4
 
+@ SetupArea30
+@ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x204, puts slots 8 and
+@ 0x0A into animations 1 and 2, and moves slot 9 depending on save bit 0x882 --
+@ to the origin once the trigger has fired, elsewhere otherwise.
 .thumb_func_start OvlFunc_4e8
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -564,6 +633,10 @@
 	bx	r0
 .func_end OvlFunc_4e8
 
+@ SetupArea2F
+@ The largest of the three setups, roughly 250 instructions: it reconstructs
+@ the puzzle state from the save bits so the blocks and gate appear as the
+@ player left them, then applies the same repaints the triggers would have.
 .thumb_func_start OvlFunc_538
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc
@@ -814,6 +887,7 @@
 	bx	r0
 .func_end OvlFunc_538
 
+@ Trigger: a short handler.
 .thumb_func_start OvlFunc_7c4
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc
@@ -843,6 +917,7 @@
 	bx	r1
 .func_end OvlFunc_7c4
 
+@ Cutscene: roughly 120 instructions of staged conversation.
 .thumb_func_start OvlFunc_7f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -962,6 +1037,7 @@
 	bx	r0
 .func_end OvlFunc_7f8
 
+@ Trigger: a short closing handler.
 .thumb_func_start OvlFunc_904
 	bx	lr
 .func_end OvlFunc_904

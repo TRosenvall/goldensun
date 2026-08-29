@@ -1,5 +1,98 @@
 	.include "macros.inc"
 
+@ RunAnimationClass8 -- vortex, summon, four impacts
+@ r0 = action descriptor. Animation class 8, entered from the twelve-way table
+@ in Func_d6578 (rom_d6504.s). 400 frames (0..0x18F), one Func_30f8(1) each.
+@ The longest of the twelve handlers and the only one that MOVES THE TARGETS
+@ THEMSELVES rather than just drawing over them -- it saves their positions on
+@ entry and restores them on exit.
+@
+@ Three acts: the targets are spun up into a rising vortex, a summoned figure
+@ assembles out of nine sprites, then four impacts land with shockwave rings.
+@
+@ SETUP
+@   sp+0x64 = [iwram_1ef0] render buffer, sp+0x60 = [iwram_1e80] view,
+@   sp+0x5c = [iwram_1eec] state block, sp+0x4c = [iwram_1ef4] sprite scratch.
+@   Func_cd594(0). Func_ed408(0x2E,7,7,3,2) and Func_ed408(0x2F,7,7,3,3)
+@   generate the two blitters, read back as sp+0x54 (A) and sp+0x58 (B).
+@   Assets: 0x82 palette -> 0x5000000 and gfx -> [iwram_1eec]+0;
+@           0x73 gfx -> [iwram_1ef4] (the Data_ede48 sizes).
+@   +0x7780 = 2, +0x7784 = 0x32, Func_41d8 registers Func_cd260.
+@
+@   PER-TARGET POLAR STATE, captured once. For each of [desc+0x14] targets:
+@     sp+0xC4 + 8i   original (x, y)  = actor record +0x08 / +0x10
+@     sp+0xA4 + 4i   original halfword at +0x06
+@     sp+0x144 + 4i  angle  = Func_44d0(x, y), atan2, 0x10000 = full turn
+@     sp+0x124 + 4i  radius = Func_948(x^2 + y^2) >> 7, integer sqrt
+@     sp+0x104 + 4i  angular velocity, starts 0
+@   and +0x48 of the record is cleared. The first two arrays are what teardown
+@   restores, so the actors can be flung around freely in between.
+@
+@ MAIN LOOP -- frame 0..0x18F
+@   A or B held: frame <= 0x9F jumps to 0xA0, otherwise to 0x18B -- so the
+@     fast-forward skips to the start of act two, then to the end.
+@   sounds  0x10 -> 0x8D, 0x100 -> 0x8C, and 0xD4 at each of 0x14E, 0x15B,
+@     0x167, 0x174 -- the four entries of .Lee16c, the four impacts.
+@
+@   ACT ONE -- the vortex. Target i joins once frame > 16i, so they are drawn in
+@   one at a time 16 frames apart:
+@     x = radius * sin(angle) >> 1,  y = radius * cos(angle) >> 1
+@     frame <= 0x9F: angular velocity += 0x30 once frame > 16i + 0x10, and the
+@       record's +0x0C rises by 0x60000 when radius <= 0x1F, else 0x8000,
+@       clamped at 0x7C0000 -- tight orbits lift fastest.
+@     frame <= 0x1EA: angle += angular velocity (wrapping at 0x10000) and the
+@       halfword at +0x06 gains angularVelocity/4.
+@     radius -= 2 each frame while above 0x10, so they spiral inward.
+@     frame == .Lee16c[k]: +0x28 = 0 and Func_d6888(id, 7, 5, i, 8).
+@     frame == 0x18B: +0x48 = 0xAB85.
+@   frames 0x10..0x9F and 0x30..0x9F draw two growing 0x20-wide bars, heights
+@     min(2*frame - 0x20, 0x30) and min(2*frame - 0x60, 0x40), with the graphic
+@     frame chosen by ((frame/4) MOD 3) -- Func_b1c is the remainder.
+@   frames 0..0x9F step 24 swirl sprites at +0x7080: the entry is
+@     {radius, height, spin, angle}, built into a 3-vector {r*sin, h, r*cos},
+@     projected by Func_e3944, x halved, drawn 16x16 from [state]+0x2400.
+@     radius shrinks to 0x18, spin accelerates to 0x1000, height climbs, and
+@     the entry recycles once height passes 0x300000.
+@
+@   FRAME 0xA0 -- act two begins. _Func_c08ec(1, 0x3B, 0) and _Func_c0774 load
+@     the summon's graphics; Func_d6750; Func_dbb24(9, 0x178, 2) spawns NINE
+@     actors; asset 0x88 palette -> 0x5000000, gfx -> [state]+0x3600; all 1024
+@     particles are freed; each target's +0x0C is randomised to
+@     ((rand & 0xF) + 8) << 16; iwram_1ce0+0xC = 0x48; the 32 entries at
+@     +0x7080 are re-seeded as 3-vectors; every target's radius resets to 0x10
+@     and angular velocity to 0x1770.
+@
+@   ACT TWO -- frames > 0x9F. The nine actors are submitted through _Func_b168
+@     at unit scale (Data_eda78 = {0x10000, 0x10000}) on a 3x3 GRID: .Lee15a is
+@     the x offsets {0,32,64,0,32,64,0,32,64} and .Lee163 the y offsets
+@     {0,0,0,32,32,32,64,64,64}, so nine 32px sprites tile one 96x96 figure.
+@     The grid origin wobbles on sin(frame<<7) and sin(frame<<9).
+@   frames > 0xFF, up to 0x149: the 32 3-vectors at +0x7080 are pulled toward
+@     the origin -- r = sqrt(x^2+y^2+z^2) >> 9, each component loses
+@     component/r per frame -- and drawn with blitter B at size
+@     6 - (screenZ - 0xAA)/0x24 after screenZ is clamped to 0xAA..0x15E, so
+@     they shrink with distance. Entries that reach r == 0 are counted and the
+@     total draws one sprite of size count/10 + 1 at the centre.
+@
+@   ACT THREE -- the four impacts. Two interleaved schedules:
+@     .Lee16c = {0x14E, 0x15B, 0x167, 0x174} spawn 0x60 particles each into
+@       ewram_10000 + 0xE00*w, one wave per entry, and every wave is stepped and
+@       drawn from its own frame onward (size 3 - (screenZ - 0xAA)/0x5A).
+@     frames 0x14A, 0x156, 0x162, 0x16E (0x14A + 12i) each start an impact at
+@       +0x7710: a three-frame sprite that grows 14x14 -> 24x19 -> 48x24
+@       (.Lee174 widths, .Lee177 heights, .Lee17A y-offsets, .Lee17E graphic
+@       offsets -- the offsets are the running w*h product, so the table is
+@       self-consistent), drifting (-8, +2) per frame, and 8 frames later
+@       Func_4c6c(-0x800) / Func_4c1c(-0x1000) fire and 28 ring particles at
+@       +0x7400 expand outward at 0x924 apart in angle -- the shockwave.
+@   end of frame  Func_cd52c(); +0x7824 = 1; Func_30f8(1).
+@
+@ TEARDOWN
+@   Func_bd7dc(0x86) hands back to rom_b5000, then EVERY TARGET'S ORIGINAL x, y
+@   and +0x06 are written back from sp+0xC4 / sp+0xA4 -- without this the
+@   combatants would stay wherever the vortex left them. iwram_1ce0+0xC = 0x78;
+@   Func_d67dc; the 9 actors at +0x77D8 are destroyed; Func_4278(Func_cd260);
+@   Func_2dd8(0x2F) and Func_2dd8(0x2E) free the generated blitters; Func_cdbc0.
 .thumb_func_start Func_d1714
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

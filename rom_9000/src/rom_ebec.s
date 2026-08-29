@@ -1,5 +1,41 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Player movement controllers.
+@
+@ Func_ebec, Func_f2f8 and Func_f7f4 are three variants of the same controller,
+@ installed as an entity hook (+0x6C, see Func_ea54) so they run once per frame
+@ before the entity's script.
+@
+@ All three share a skeleton:
+@   1. choose the movement tuning -- max speed into +0x30, acceleration into
+@      +0x34, and a walk/run animation index -- from whether the run button is
+@      held. The button mask is configurable: ewram_240+0x21C tested against the
+@      live button state in iwram_1ae8.
+@   2. map the 4-bit D-pad state (iwram_1ae8 >> 4 & 0xF) to a heading through
+@      .L13254, a 16-entry signed halfword table. 0xFFFF means "no direction
+@      held" and short-circuits to the idle path.
+@   3. project a candidate position along that heading with Func_447c, test it
+@      against terrain (ewram_10000) and entities, and retry on nearby headings
+@      before giving up -- the same probe-and-slide pattern as Func_dd70.
+@
+@ They differ in their speed constants and in how much freedom the result has;
+@ see each function.
+@ ============================================================================
+
+@ PlayerMovementController
+@ r0=player entity. The main on-foot controller.
+@ Opens with an unrelated housekeeping check: when iwram_1f54 is set and event
+@ flag 0x15E is set, it counts the 0xFF bytes in the 0x200-byte block at
+@ iwram_1810 and, if fewer than 0x88 remain, calls _Func_f9080(0x87) -- a
+@ low-inventory or full-log style notification.
+@ Movement tuning: running gives max speed 0x18000 and acceleration 0x4000 with
+@ animation 5; walking gives 0x10000 / 0x4000 with animation 2.
+@ The remainder is the heading lookup, probe and slide described in the header
+@ above. That body (roughly 800 instructions) has NOT been analysed instruction
+@ by instruction -- the housekeeping block, the speed constants and the heading
+@ dispatch are verified; the probe sequence is inferred from its shared shape
+@ with Func_f2f8 and Func_dd70.
 .thumb_func_start Func_ebec
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -869,6 +905,14 @@
 	bx	r1
 .func_end Func_ebec
 
+@ PlayerMovementControllerSlow
+@ r0=player entity. Same structure as Func_ebec with a lower speed band:
+@ running gives max speed 0x10000 and acceleration 0x14000 with animation 5,
+@ walking gives 0x8000 / 0x4000.
+@ Bit 9 of iwram_1b04 overrides the max speed to 0x40000 -- roughly four times
+@ the run speed -- which looks like a debug or scripted fast-travel path.
+@ As with Func_ebec, the ~590-instruction movement body is characterised
+@ structurally rather than line by line.
 .thumb_func_start Func_f2f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1464,6 +1508,11 @@
 	bx	r1
 .func_end Func_f2f8
 
+@ ScriptOp_PollInputBindings
+@ Script opcode handler. r0=entity. Calls Func_eaf8 to fold the current button
+@ state into the dialogue variable block, advances the script cursor at +0x04 by
+@ one and returns 1. The result of Func_eaf8 is discarded, so this is used where
+@ a script only needs the side effect.
 .thumb_func_start Func_f7dc
 	push	{r5, lr}
 	mov	r5, r0
@@ -1477,6 +1526,17 @@
 	bx	r1
 .func_end Func_f7dc
 
+@ ConstrainedMovementController
+@ r0=entity. The most restricted of the three: speed is fixed -- max 0x8000 into
+@ +0x30 and acceleration 0x4000 into +0x34 -- with no run button.
+@ The heading still comes from .L13254, but the facing angle at +0x06 is snapped
+@ to one of two values by the sign of the resulting z step: 0xC000 for one
+@ direction and 0x4000 for the other. So the entity only ever faces two ways
+@ regardless of which way it travels.
+@ The animation index is chosen from the heading's quadrant (0x0A, 0x0E or 0x0F)
+@ before the move, and the candidate position is validated against the map
+@ record at ewram_10000 for the destination tile. The ~240-instruction body is
+@ characterised structurally.
 .thumb_func_start Func_f7f4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1711,6 +1771,9 @@
 
 	.section .rodata
 
+@ .L13254 -- D-pad heading table: 16 signed halfword angles indexed by the
+@ 4-bit direction state (iwram_1ae8 >> 4 & 0xF). 0xFFFF marks the entries for
+@ 'nothing held' and opposing-pair combinations that cancel out.
 .L13254:
 	.incrom 0x13254, 0x13274
 .L13274:

@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunPsynergyScreen
+@ r0.. = parameters. 1574 lines. A full-screen menu built from the shared
+@ pieces: Func_162d4 opens windows, Func_16738 fills the text scratch,
+@ Func_17aa4 emits runs, Func_19000 clips, Func_17248 saves the tilemap, and
+@ Func_16418 / Func_16498 close. Traced structurally.
 .thumb_func_start Func_23178
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1575,6 +1580,9 @@
 	bx	r1
 .func_end Func_23178
 
+@ RunItemManageScreen
+@ r0.. = parameters. 1309 lines, same construction as Func_23178 with node
+@ release through Func_164ac added. Traced structurally.
 .thumb_func_start Func_23e70
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2884,6 +2892,9 @@
 	bx	r1
 .func_end Func_23e70
 
+@ RunDjinnScreen
+@ r0.. = parameters. 1059 lines, same construction with glyph nodes allocated
+@ through Func_18efc. Traced structurally.
 .thumb_func_start Func_24934
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3943,6 +3954,9 @@
 	bx	r1
 .func_end Func_24934
 
+@ ReadCharacterTriple
+@ r0 = index. Reads one character through _Func_78414, _Func_7842c and
+@ _Func_78b9c -- three rom_77000 accessors for the same record.
 .thumb_func_start Func_25180
 	push	{r5, r6, r7, lr}
 	mov	r6, r1
@@ -3986,6 +4000,8 @@
 	bx	r1
 .func_end Func_25180
 
+@ GetScreenField
+@ r0 = index. Returns a screen state field; no calls out.
 .thumb_func_start Func_251d4
 	mov	r3, r0
 	ldr	r0, =0x3ff
@@ -4004,6 +4020,9 @@
 	bx	lr
 .func_end Func_251d4
 
+@ RunSummonScreen
+@ r0.. = parameters. 870 lines, the same screen construction with menu strings
+@ measured through Func_1965c. Traced structurally.
 .thumb_func_start Func_25200
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -4874,6 +4893,9 @@
 	bx	r1
 .func_end Func_25200
 
+@ RunStatusListScreen
+@ r0.. = parameters. 889 lines, same construction as Func_25200. Traced
+@ structurally.
 .thumb_func_start Func_2592c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -5763,6 +5785,11 @@
 	bx	r1
 .func_end Func_2592c
 
+@ RunNameEntryScreen
+@ r0.. = parameters. 1792 lines. Measures each candidate glyph with Func_17a64
+@ -- the per-character width lookup -- clears the text scratch with Func_1671c,
+@ and sets ink with Func_1e71c, which is the signature of a character grid the
+@ player moves a cursor over. Traced structurally.
 .thumb_func_start Func_26080
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -7555,6 +7582,11 @@
 	bx	r1
 .func_end Func_26080
 
+@ DrawNameEntryRow
+@ r0.. = parameters. Draws one row of the entry grid, positioning with
+@ Func_219c8, opening the cell window with Func_21c34, numbering with
+@ Func_1ea08, releasing tiles with Func_3dec, and playing the move sound
+@ through _Func_f9080. _Func_b8fd4 supplies the character set.
 .thumb_func_start Func_26e80
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1f34
@@ -7702,6 +7734,8 @@
 	bx	r0
 .func_end Func_26e80
 
+@ RunConfirmScreen
+@ r0.. = parameters. A small confirmation screen, one Func_30f8(1) per frame.
 .thumb_func_start Func_26fa8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -7791,6 +7825,8 @@
 	bx	r1
 .func_end Func_26fa8
 
+@ ReadPartyFlag
+@ r0 = index. Reads through _Func_79ef8.
 .thumb_func_start Func_2706c
 	push	{r5, lr}
 	ldrb	r3, [r0, #1]
@@ -7830,6 +7866,8 @@
 	bx	r1
 .func_end Func_2706c
 
+@ ApplyPriceModifier
+@ r0.. = parameters. Func_2281c for the adjusted price, then _Func_c10e8.
 .thumb_func_start Func_270ac
 	push	{r5, lr}
 	mov	r5, r9
@@ -7853,6 +7891,8 @@
 	bx	r0
 .func_end Func_270ac
 
+@ DrawMenuLabel
+@ r0.. = parameters. Measures with Func_1965c and emits with Func_17aa4.
 .thumb_func_start Func_270d8
 	push	{r5, r6, lr}
 	mov	r6, r9
@@ -7882,6 +7922,12 @@
 	bx	r1
 .func_end Func_270d8
 
+@ RunMainMenuScreen
+@ r0.. = parameters. 2004 lines and THE LARGEST FUNCTION IN rom_15000.
+@ The top-level in-game menu: opens windows with Func_162d4, allocates glyph
+@ nodes with Func_18efc, clips with Func_19000, clears regions with Func_1e318,
+@ waits on Func_17364, and closes with Func_16418. Exported, so it is entered
+@ from outside the module. Traced structurally.
 .thumb_func_start Func_27114
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -9886,6 +9932,9 @@
 	bx	r1
 .func_end Func_27114
 
+@ BuildMenuSprites
+@ r0.. = parameters. Reserves and releases OBJ VRAM with Func_3d28 / Func_3dec
+@ for the menu's sprites. 416 lines; traced structurally.
 .thumb_func_start Func_28194
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -10302,6 +10351,9 @@
 	bx	r0
 .func_end Func_28194
 
+@ OpenSubScreen
+@ Takes no arguments. Allocates the sub-screen block with Func_48f4 and
+@ registers its task with Func_41d8. Paired with Func_2851c.
 .thumb_func_start Func_284dc
 	push	{r5, lr}
 	mov	r1, #0x98
@@ -10327,6 +10379,10 @@
 	bx	r1
 .func_end Func_284dc
 
+@ CloseSubScreen
+@ Takes no arguments. Unregisters with Func_4278, closes the window with
+@ Func_16418, releases tiles with Func_3f3c, frees with Func_2dd8, and gives a
+@ frame with Func_30f8.
 .thumb_func_start Func_2851c
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1f38
@@ -10367,6 +10423,9 @@
 	bx	r0
 .func_end Func_2851c
 
+@ RunSubScreenLoop
+@ r0.. = parameters. Drives a sub-screen a frame at a time, drawing with
+@ Func_1e7c0, releasing with Func_16478, and playing sounds via _Func_f9080.
 .thumb_func_start Func_28574
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -10514,6 +10573,8 @@
 	bx	r1
 .func_end Func_28574
 
+@ RunSubScreenLoopShort
+@ r0.. = parameters. The abbreviated form of Func_28574.
 .thumb_func_start Func_286a0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -10604,6 +10665,9 @@
 	bx	r1
 .func_end Func_286a0
 
+@ LoadSubScreenGraphics
+@ r0 = asset id. Fetches with Func_2f40, stages through a Func_4938 scratch,
+@ unpacks with Func_53e8, reserves with Func_3fa4, releases with Func_2df0.
 .thumb_func_start Func_2875c
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -10638,6 +10702,8 @@
 	bx	r0
 .func_end Func_2875c
 
+@ AttachSubScreenGraphics
+@ r0 = asset id. Func_2875c then Func_4080 to reserve the OBJ tiles.
 .thumb_func_start Func_287a8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -10686,6 +10752,9 @@
 	bx	r0
 .func_end Func_287a8
 
+@ OpenSubScreenWindow
+@ r0.. = parameters. Opens the sub-screen's window with Func_162d4, sizing it
+@ with Func_af0.
 .thumb_func_start Func_28808
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -10766,6 +10835,8 @@
 	bx	r0
 .func_end Func_28808
 
+@ OpenSubScreenWindowAlt
+@ r0.. = parameters. As Func_28808 with fixed geometry.
 .thumb_func_start Func_288a8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -10828,6 +10899,22 @@
 	bx	r0
 .func_end Func_288a8
 
+@ RunFieldMenu
+@ r0 = the previously chosen entry. Draws the field menu and returns which
+@ entry the player picked, or a negative value when they backed out.
+@
+@ _Func_7a5bc(-1) decides how many entries there are: when the party summary
+@ comes back empty the extra panel 0x0F is left out, so the menu is three rows
+@ instead of four. The two byte tables .L37403 and .L373f7 translate between
+@ the row on screen and the caller's entry number in each of those two shapes,
+@ indexed by `previous + 6 * short`.
+@
+@ The panels are appended in order -- 1, then 0x0F when the party is present,
+@ then 2 and 7 -- with Func_28808(0x11, 7, 0) placing the box, Func_28574
+@ running the cursor and Func_2851c tearing it down.
+@
+@ Func_1c244 is the caller, and it dispatches the result 0..4 into
+@ _Func_8ce74, _Func_a5b94, _Func_aa56c, _Func_a24d0 and _Func_a7478.
 .thumb_func_start Func_28920
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -10883,6 +10970,9 @@
 	bx	r1
 .func_end Func_28920
 
+@ RunLoadScreen
+@ r0.. = parameters. The same sequence as Func_28920 with the fade pair
+@ Func_1c2d0 / Func_1c2e4 around it.
 .thumb_func_start Func_2899c
 	push	{r5, r6, lr}
 	mov	r6, r1
@@ -10913,6 +11003,8 @@
 	bx	r1
 .func_end Func_2899c
 
+@ RunOptionsScreen
+@ r0.. = parameters. The same sequence with sound routed through Func_1f77c.
 .thumb_func_start Func_289e8
 	push	{r5, r6, lr}
 	mov	r6, #0
@@ -11010,6 +11102,9 @@
 	bx	r1
 .func_end Func_289e8
 
+@ DrawSubScreenText
+@ r0.. = parameters. Draws with Func_1e7c0 and marks the region dirty with
+@ Func_164d4.
 .thumb_func_start Func_28aa8
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1f38
@@ -11109,6 +11204,8 @@
 	bx	r0
 .func_end Func_28aa8
 
+@ DrawSubScreenLabel
+@ r0.. = parameters. Draws with Func_1e74c and releases with Func_16478.
 .thumb_func_start Func_28b80
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1f38
@@ -11168,6 +11265,8 @@
 	bx	r0
 .func_end Func_28b80
 
+@ RunPromptSubScreen
+@ r0.. = parameters. A sub-screen that also opens its own window and label.
 .thumb_func_start Func_28c04
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -11323,6 +11422,9 @@
 	.word	0xc76
 .func_end Func_28c04
 
+@ RunSubScreenA
+@ r0.. = parameters. One of five near-identical compositions of the sub-screen
+@ sequence; they differ only in the parameters forwarded.
 .thumb_func_start Func_28d74
 	push	{r5, lr}
 	mov	r5, r0
@@ -11349,6 +11451,8 @@
 	bx	r1
 .func_end Func_28d74
 
+@ RunSubScreenB
+@ r0.. = parameters. See Func_28d74.
 .thumb_func_start Func_28db4
 	push	{r5, lr}
 	mov	r5, r0
@@ -11375,6 +11479,8 @@
 	bx	r1
 .func_end Func_28db4
 
+@ RunSubScreenC
+@ r0.. = parameters. See Func_28d74.
 .thumb_func_start Func_28df4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -11423,6 +11529,8 @@
 	bx	r1
 .func_end Func_28df4
 
+@ RunSubScreenD
+@ r0.. = parameters. See Func_28d74; uses Func_288a8's fixed window geometry.
 .thumb_func_start Func_28e54
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -11460,6 +11568,8 @@
 	bx	r1
 .func_end Func_28e54
 
+@ RunSubScreenE
+@ r0.. = parameters. See Func_28d74; the shortest of the five.
 .thumb_func_start Func_28ea8
 	push	{r5, lr}
 	mov	r5, r0
@@ -11482,6 +11592,8 @@
 	bx	r1
 .func_end Func_28ea8
 
+@ StartSubScreenTask
+@ r0 = task. Registers it with Func_41d8.
 .thumb_func_start Func_28edc
 	push	{lr}
 	mov	r1, #0xc8
@@ -11492,6 +11604,9 @@
 	bx	r0
 .func_end Func_28edc
 
+@ DrawPartyRow
+@ r0.. = parameters. Draws one party row: label with Func_1e74c, scratch text
+@ with Func_1e858, numbers with Func_1e9a0, and the summary from _Func_8b158.
 .thumb_func_start Func_28ef0
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -11565,6 +11680,10 @@
 	bx	r0
 .func_end Func_28ef0
 
+@ RunPartyListScreen
+@ r0.. = parameters. Opens windows with Func_162d4, reserves tiles with
+@ Func_1c0dc, draws rows with Func_28ef0 and Func_29094, releases with
+@ Func_1c154 / Func_1c17c, closes with Func_16418.
 .thumb_func_start Func_28f98
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -11682,6 +11801,8 @@
 	bx	r1
 .func_end Func_28f98
 
+@ DrawPartyRows
+@ r0.. = parameters. Draws every visible party row through Func_28ef0.
 .thumb_func_start Func_29094
 	push	{r5, r6, r7, lr}
 	ldr	r6, =iwram_1b04
@@ -11870,6 +11991,9 @@
 	bx	r1
 .func_end Func_29094
 
+@ RunDjinnListScreen
+@ r0.. = parameters. The Func_28f98 shape with Func_292c4 and Func_2938c
+@ supplying the rows.
 .thumb_func_start Func_291e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -11938,6 +12062,8 @@
 	bx	r1
 .func_end Func_291e4
 
+@ ComputeRowMetrics
+@ r0.. = parameters. Pure arithmetic; no calls out.
 .thumb_func_start Func_29274
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -11988,6 +12114,9 @@
 	bx	r0
 .func_end Func_29274
 
+@ DrawDjinnRow
+@ r0.. = parameters. Draws one row, reading the character with _Func_79338 and
+@ emitting through Func_1e940.
 .thumb_func_start Func_292c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -12083,6 +12212,9 @@
 	bx	r0
 .func_end Func_292c4
 
+@ ReadDjinnState
+@ r0.. = parameters. Collects state through _Func_79338, _Func_79358 and
+@ _Func_79374.
 .thumb_func_start Func_2938c
 	push    {r5, r6, lr}
 	ldr	r6, =iwram_1b04
@@ -12256,10 +12388,14 @@
 	bx	r1
 .func_end Func_2938c
 
+@ NoOp
+@ A bare `bx lr`, present as a table entry or placeholder.
 .thumb_func_start Func_294d0
 	bx	lr
 .func_end Func_294d0
 
+@ ReadPartyCount
+@ Takes no arguments. Reads through _Func_79358 and _Func_7a1b4.
 .thumb_func_start Func_294d4
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -12284,6 +12420,10 @@
 	bx	r0
 .func_end Func_294d4
 
+@ DispatchScreen
+@ r0 = screen id. Routes to Func_1d4cc, Func_1db70, Func_207c4 or Func_1776c
+@ depending on the id -- the small switch that turns a menu choice into a
+@ screen.
 .thumb_func_start Func_29504
 	push	{r5, r6, lr}
 .L29506:
@@ -12323,6 +12463,9 @@
 	bx	r1
 .func_end Func_29504
 
+@ RunEquipListScreen
+@ r0.. = parameters. 267 lines: windows, portraits through Func_19fcc /
+@ Func_1a2ec / Func_1a404, text through Func_1e940 and Func_1ea08.
 .thumb_func_start Func_29554
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -12590,6 +12733,9 @@
 	bx	r1
 .func_end Func_29554
 
+@ RunShopListScreen
+@ r0.. = parameters. 240 lines: windows, menus through Func_19da8, graphics
+@ through Func_1a4fc, text through Func_1e7c0 and Func_1ea08.
 .thumb_func_start Func_2977c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

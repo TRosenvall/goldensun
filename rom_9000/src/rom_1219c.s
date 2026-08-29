@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ IsPositionOnMap
+@ r0=position vec3 (16.16). Returns 0 when the point is on a valid tile and -1
+@ when it is not. Resolves the tile from x (+0x00) and the ground-projected
+@ depth (+0x08 minus +0x04) against the layer at [iwram_1e70]+0x190, and treats
+@ a tile flags byte of 0xFF as off-map. Returns 0 with no test when no map is
+@ loaded. The branchless tail computes the -1/0 result without a compare.
 .thumb_func_start Func_1219c
 	push	{lr}
 	ldr	r3, [r0]
@@ -57,6 +63,14 @@
 	bx	r1
 .func_end Func_1219c
 
+@ GetSurfaceMaterial
+@ r0=position vec3 (16.16). Returns the material nibble under the point, or 7
+@ when neither layer supplies one.
+@ Converts the position to 8-pixel cells wrapped into the 64x64 BG grid, reads
+@ the tile id from the upper screen block at 0x6005000 and looks up
+@ ewram_2c800 + id * 8 + sub-cell; the low or high nibble is taken depending on
+@ bit 1 of x. If that yields 0 it retries against the lower layer at 0x6004000
+@ and ewram_2c000, and falls back to 7 if that is also empty.
 .thumb_func_start Func_12204
 	push	{r5, lr}
 	ldr	r4, [r0, #8]
@@ -144,6 +158,10 @@
 	bx	r1
 .func_end Func_12204
 
+@ IsSurfaceInteractive
+@ r0 unused, r1=position vec3. Returns 0 when Func_12204 reports a material in
+@ the range 5..12 inclusive (the unsigned `sub #5 / cmp #7` idiom), and -1
+@ otherwise. Those materials are the ones scripts may react to.
 .thumb_func_start Func_122ac
 	push	{lr}
 	mov	r0, r1
@@ -161,6 +179,13 @@
 	bx	r1
 .func_end Func_122ac
 
+@ GetFootstepEffect
+@ r0=position vec3, r1=out word. Returns the effect id for stepping on the
+@ point, and writes the tile's 7-bit type field to *r1.
+@ Combines the material from Func_12204 with two modifiers before indexing the
+@ 0x30-entry table .L1353c: bit 7 of byte 3 of the metatile record (from
+@ ewram_20000 on the coarse 32-wide grid) adds 0x10, and a type field of 0x15
+@ adds 0x20. So the table is three banks of 16 materials.
 .thumb_func_start Func_122c8
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -213,6 +238,10 @@
 	bx	r1
 .func_end Func_122c8
 
+@ SetMapTransition
+@ r0, r1, r2 = transition parameters. Stores each into [iwram_1e70]+0x04, +0x08
+@ and +0x0C respectively, skipping any argument that is negative -- so a caller
+@ can update one field and leave the others alone.
 .thumb_func_start Func_12330
 	push	{lr}
 	ldr	r3, =iwram_1e70
@@ -233,6 +262,11 @@
 	bx	r0
 .func_end Func_12330
 
+@ WaitForMapTransition
+@ Takes no arguments. Blocks with Func_30f8(1) until both transition counters at
+@ [iwram_1e70]+0x04 and +0x08 have fallen to 0xFF or below, giving up after
+@ 0x12C (300) frames. Clears the state word at +0x0C before returning either
+@ way.
 .thumb_func_start Func_12350
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1e70
@@ -263,6 +297,13 @@
 	bx	r0
 .func_end Func_12350
 
+@ RenderAffineMap
+@ r0, r1 = arguments forwarded to the renderer hook. Allocates 0x27C bytes under
+@ tag 0x31 and DMA-copies the ARM affine rasteriser Func_9e7c (rom_92b8.s) into
+@ it, so the hot loop runs from RAM; the hook at [iwram_1e50]+0xC4 locates that
+@ copy by its tag. The hook is then called with the caller's two arguments plus
+@ the tile source ewram_3c000 and the map source ewram_1c000+0x1000, and the
+@ allocation is released with Func_2dd8.
 .thumb_func_start Func_12388
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -305,6 +346,17 @@
 	bx	r0
 .func_end Func_12388
 
+@ BuildPerspectiveScanlineTable
+@ r0=camera height, r1=camera vector, r2=output table (stride 0x14 per row).
+@ Fills 160 entries -- one per scanline -- with the perspective parameters the
+@ affine floor needs; Func_a0f8 (rom_92b8.s) consumes a table of exactly this
+@ stride.
+@ The camera is first transformed by Func_9c0. Then for each row the horizon
+@ offset is divided out with Func_8ac against the row's distance from the pitch
+@ reference held at [iwram_1ce0]+0x10, giving a scale that is multiplied back
+@ through Func_888 and turned into a distance with Func_948. Rows at or above
+@ the horizon (a non-negative divide result) get a zeroed entry. Words +0x08 and
+@ +0x0C of every entry are cleared for the caller to fill.
 .thumb_func_start Func_123f4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -435,6 +487,16 @@
 	bx	r0
 .func_end Func_123f4
 
+@ SetupOverworldView
+@ Takes no arguments. Large one-shot setup for the affine overworld view.
+@ Verified from the entry sequence: allocates a 0xA0-byte state block under
+@ tag 9, sets the text/decoder mode byte iwram_1c90 to 3, DMA-clears the block
+@ and a 0x20-byte stack scratch area, seeds the viewport constants 0x90 / 0x60
+@ and the two unit scales, and calls Func_12af8 to find the first valid resource
+@ id from which to build the actor list.
+@ The remainder of the body (roughly 700 instructions through .L12af8) has NOT
+@ been analysed in detail -- it builds the party actors and per-row tables and
+@ calls into the routines above. Treat this name as provisional.
 .thumb_func_start Func_12518
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1192,6 +1254,12 @@
 	b	.L126fe
 .func_end Func_12518
 
+@ FindNextValidResource
+@ r0=starting id, r1=step. Walks ids by `step`, wrapping into [0, 0x200) --
+@ negative wraps to 0x200, values at or above 0x200 wrap to -1 and are then
+@ re-stepped -- and returns the first id whose header from _Func_185008 has a
+@ non-zero first byte. Never returns an invalid id; with no valid entry anywhere
+@ in range it does not terminate.
 .thumb_func_start Func_12af8
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -1223,6 +1291,13 @@
 	bx	r1
 .func_end Func_12af8
 
+@ SelectPartyFormation
+@ r0, r1, r2 = formation parameters. Chooses the party layout from the leader's
+@ resource kind, read as byte +4 of the header at [[iwram_1e60]+0x28], with a
+@ multi-way dispatch over kinds 3, 4, 6, 8, 0x14, 0x2C and 0x58. Bit 1 of
+@ iwram_1ae8 selects an alternate offset taken from iwram_1800.
+@ The per-kind bodies (about 250 instructions) have NOT been analysed
+@ individually; only the dispatch structure above is verified.
 .thumb_func_start Func_12b2c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1476,6 +1551,10 @@
 	bx	r0
 .func_end Func_12b2c
 
+@ SetPartyActorPalette
+@ r0=party slot group (masked to 2 bits), r1=palette. Writes the palette byte
+@ at +0x05 of the actor in that group for each of the 10 party entries at
+@ [iwram_1e60], stride 0x38.
 .thumb_func_start Func_12d20
 	push	{lr}
 	ldr	r3, =iwram_1e60
@@ -1497,6 +1576,9 @@
 	bx	r0
 .func_end Func_12d20
 
+@ SetPartyActorDrawOrder
+@ r0=party slot group (masked to 2 bits), r1=draw order. As Func_12d20 but
+@ writes byte +0x06 of each actor -- the draw-order field Func_aa0c sorts on.
 .thumb_func_start Func_12d48
 	push	{lr}
 	ldr	r3, =iwram_1e60
@@ -1518,6 +1600,14 @@
 	bx	r0
 .func_end Func_12d48
 
+@ SetPartyAnimation
+@ r0=party slot group (masked to 2 bits), r1=animation index. For each of the 10
+@ party entries at [iwram_1e60] (stride 0x38), switches the group's actor to the
+@ given animation when the index is within the resource's animation count
+@ (header byte 5): points +0x10 at the script, copies header[4] to +0x04, sets
+@ the speed at +0x15 to 0x10, staggers the start by (slot << 4) in the frame
+@ timer at +0x02, and resets +0x14 / +0x16 / +0x17. The position-correction byte
+@ at +0x23 and the rotation halfword at +0x1E are refreshed regardless.
 .thumb_func_start Func_12d70
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1581,6 +1671,10 @@
 	bx	r0
 .func_end Func_12d70
 
+@ SetPartyActorResource
+@ r0=party slot group (masked to 2 bits), r1=resource id. Rewrites the id
+@ halfword of that group's actor in all 10 party entries and rebinds each with
+@ Func_b868, so the whole party changes sprite together.
 .thumb_func_start Func_12de8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1613,6 +1707,13 @@
 	bx	r0
 .func_end Func_12de8
 
+@ SelectPartyRowSpacing
+@ Takes no arguments. Picks the row spacing and column count for the current
+@ party formation, dispatching on the leader's resource kind (byte +4 of the
+@ header at [[iwram_1e60]+0x28]) over the same kind values as Func_12b2c --
+@ 3, 4, 6, 8, 0x14, 0x2C, 0x58 -- with the defaults pair loaded from .L13584.
+@ The per-kind constants and the loop that applies them have NOT been analysed
+@ in detail; the dispatch and the default source are verified.
 .thumb_func_start Func_12e28
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

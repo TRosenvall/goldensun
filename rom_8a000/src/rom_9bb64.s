@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SetupWorldMapView
+@ Takes no arguments. Brings up the world-map screen: allocates a 0x20-byte
+@ header with Func_4970, stages it at ewram_10000, and builds the party marker
+@ from the player id at ewram_240+0x1F4. The ~280-instruction body is
+@ characterised structurally.
 .thumb_func_start Func_9bb64
 	push	{r5, r6, r7, lr}
 	mov	r0, #0x20
@@ -163,6 +168,10 @@
 	bx	r0
 .func_end Func_9bb64
 
+@ TeardownWorldMapView
+@ Takes no arguments. Releases the two tile allocations recorded at
+@ ewram_10000+0x00 and +0x02 with Func_3f3c and frees the header at +0x1C
+@ through _Func_16418.
 .thumb_func_start Func_9bcd4
 	push	{r5, lr}
 	ldr	r5, =ewram_10000
@@ -178,6 +187,10 @@
 	bx	r0
 .func_end Func_9bcd4
 
+@ RunWorldMapView
+@ Takes no arguments. Drives the world-map screen: moves the cursor, updates the
+@ marker positions and returns when the player exits. The ~270-instruction body
+@ is characterised structurally.
 .thumb_func_start Func_9bcf8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -709,6 +722,10 @@
 	bx	r0
 .func_end Func_9bcf8
 
+@ UpdateWorldMapCamera
+@ Takes no arguments. Keeps the world-map camera (state block from
+@ Func_48f4(0x1B, 0xCCC)) centred on the cursor, clamped to the map bounds at
+@ [iwram_1e70]+0xEC..+0xF8.
 .thumb_func_start Func_9c138
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -912,6 +929,9 @@
 	.word	0
 .func_end Func_9c138
 
+@ PlaceWorldMapPlayerMarker
+@ Takes no arguments. Positions the player's marker on the world map from the
+@ player entity (ewram_240+0x1F4) and the current area's world coordinates.
 .thumb_func_start Func_9c314
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -982,6 +1002,9 @@
 	bx	r0
 .func_end Func_9c314
 
+@ UpdateWorldMapLabels
+@ Takes no arguments. Refreshes the area-name and marker labels shown on the
+@ world map for the currently selected location.
 .thumb_func_start Func_9c3a4
 	push	{r5, r6, lr}
 	ldr	r1, =0xccc

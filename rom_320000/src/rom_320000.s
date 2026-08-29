@@ -1,5 +1,34 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Data_320000 -- the asset and export dispatch table.
+@
+@ 1000 words. Func_2f40(id) in rom_c0 returns Data_320000[id] with NO BOUNDS
+@ CHECK, so this table is the single indirection behind almost every "load
+@ something" call in the game.
+@
+@ IT IS NOT UNIFORM. The first nineteen entries are structural, not assets:
+@     [0]      __start_rom          the ROM base
+@     [1]      Data_320000          the table itself
+@     [2]      .L2                  a small blob at 0x320FA0
+@     [3..18]  the MODULE EXPORT TABLES, in this order:
+@              9000, 15000, 77000, 8a000, a1000, b0000, b5000, f0000,
+@              f2000, c9000, f4000, f6000, f9000, f9000, 185000, 185000
+@              (f9000 and 185000 each appear twice)
+@     [19..]   the actual assets, one .incrom blob each
+@ The final entry is 0, a terminator.
+@
+@ HOW CROSS-MODULE CALLS WORK. A module cannot reach another with a short `bl`,
+@ so each publishes a table of veneers. `.export_func Func_X` in macros.inc
+@ expands to `.thumb_stub _Func_X, Func_X`, which is literally
+@     _Func_X:  ldr r4, =Func_X
+@               bx  r4
+@ Those veneers are collected under `Exports_<module>`, and entries [3..18]
+@ above point at them. That is the whole reason for the `_Func_` prefix
+@ convention: a leading underscore means "through the export veneer", and the
+@ bare name is the real function.
+@ ============================================================================
+
 	.section .rodata
 
 	.global	Data_320000

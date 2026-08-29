@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 44 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, CopyMapRectIndicesU
 .thumb_func_start OvlFunc_17ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -50,6 +55,11 @@
 	bx	r0
 .func_end OvlFunc_17ec
 
+@ 5 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   UnregisterTask
 .thumb_func_start OvlFunc_184c
 	push	{lr}
 	ldr	r0, =OvlFunc_1244
@@ -58,6 +68,11 @@
 	bx	r0
 .func_end OvlFunc_184c
 
+@ 44 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SignedDiv
 .thumb_func_start OvlFunc_185c
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -106,6 +121,9 @@
 	bx	r0
 .func_end OvlFunc_185c
 
+@ Cutscene: roughly 135 instructions of straight-line script --
+@ 0 turns, 1 animation change, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_18b8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

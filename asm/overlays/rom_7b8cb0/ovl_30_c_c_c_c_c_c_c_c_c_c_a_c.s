@@ -1,0 +1,327 @@
+	.include "macros.inc"
+
+@ Cutscene: roughly 213 instructions of straight-line script --
+@ 0 turns, 1 animation change, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x240, 0x241, 0x242, 0x8ff.
+.thumb_func_start OvlFunc_931_2008904
+	push	{r5, r6, r7, lr}
+	mov	r0, #0
+	sub	sp, #8
+	bl	__MapActor_GetActor
+	mov	r7, r0
+	ldr	r0, =0x242
+	bl	__GetFlag
+	mov	r5, r0
+	cmp	r5, #0
+	beq	.L942
+	mov	r3, #0x20
+	mov	r0, #0x40
+	mov	r1, #0x20
+	mov	r2, #0
+	str	r3, [sp]
+	str	r3, [sp, #4]
+	bl	__CopyMapTiles
+	mov	r3, #0
+	str	r3, [sp]
+	str	r3, [sp, #4]
+	mov	r0, #0x40
+	mov	r1, #0x20
+	mov	r2, #0x20
+	mov	r3, #0x20
+	bl	__Func_8010704
+	mov	r0, #0x14
+	b	.L9ac
+.L942:
+	ldr	r0, =0x241
+	bl	__GetFlag
+	mov	r6, r0
+	cmp	r6, #0
+	beq	.L978
+	mov	r3, #0x20
+	mov	r0, #0x40
+	mov	r1, #0
+	mov	r2, #0
+	str	r3, [sp]
+	str	r3, [sp, #4]
+	bl	__CopyMapTiles
+	mov	r1, #0
+	mov	r2, #0x20
+	mov	r3, #0x20
+	mov	r0, #0x40
+	str	r5, [sp]
+	str	r5, [sp, #4]
+	bl	__Func_8010704
+	mov	r0, #0x11
+	bl	__DeleteFieldActor
+	mov	r0, #0x14
+	b	.L9ac
+.L978:
+	mov	r0, #0x90
+	lsl	r0, #2
+	bl	__GetFlag
+	cmp	r0, #0
+	beq	.L9b8
+	mov	r3, #0x20
+	mov	r0, #0
+	mov	r1, #0x40
+	mov	r2, #0
+	str	r3, [sp]
+	str	r3, [sp, #4]
+	bl	__CopyMapTiles
+	mov	r1, #0x40
+	mov	r2, #0x20
+	mov	r3, #0x20
+	mov	r0, #0
+	str	r6, [sp]
+	str	r6, [sp, #4]
+	bl	__Func_8010704
+	mov	r0, #0x10
+	bl	__DeleteFieldActor
+	mov	r0, #0x11
+.L9ac:
+	bl	__DeleteFieldActor
+	mov	r0, #0x15
+	bl	__DeleteFieldActor
+	b	.L9da
+.L9b8:
+	str	r0, [sp]
+	str	r0, [sp, #4]
+	mov	r1, #0x20
+	mov	r2, #0x20
+	mov	r3, #0x20
+	mov	r0, #0
+	bl	__Func_8010704
+	mov	r0, #0xf
+	bl	__DeleteFieldActor
+	mov	r0, #0x10
+	bl	__DeleteFieldActor
+	mov	r0, #0x11
+	bl	__DeleteFieldActor
+.L9da:
+	ldr	r0, =0x8ff
+	bl	__GetFlag
+	cmp	r0, #0
+	beq	.L9ec
+	mov	r0, #0x12
+	bl	__DeleteFieldActor
+	b	.La0c
+.L9ec:
+	mov	r0, #0xaa
+	bl	__Func_8091ff0
+	mov	r0, #0x12
+	mov	r1, #2
+	bl	__Func_8092950
+	mov	r0, #0x12
+	mov	r1, #3
+	bl	__MapActor_SetAnim
+	mov	r1, #0xc8
+	ldr	r0, =OvlFunc_931_2008d08
+	lsl	r1, #4
+	bl	__StartTask
+.La0c:
+	ldr	r3, =gState
+	mov	r2, #0xe1
+	lsl	r2, #1
+	add	r3, r2
+	mov	r2, #0
+	ldrsh	r3, [r3, r2]
+	cmp	r3, #3
+	bne	.La22
+	ldr	r0, =0x12f
+	bl	__ClearFlag
+.La22:
+	mov	r3, #0x14
+	mov	r2, #0x29
+	str	r3, [sp]
+	str	r2, [sp, #4]
+	mov	r0, #0
+	mov	r1, #0x21
+	mov	r2, #4
+	mov	r3, #3
+	bl	__Func_8010704
+	ldr	r0, =0x906
+	bl	__GetFlag
+	cmp	r0, #0
+	beq	.La4e
+	mov	r1, #0xb4
+	mov	r2, #0xa8
+	mov	r0, #0x13
+	lsl	r1, #17
+	lsl	r2, #16
+	bl	__MapActor_SetPos
+.La4e:
+	mov	r0, #0x13
+	bl	__MapActor_GetActor
+	mov	r1, #0
+	bl	__Actor_SetSpriteFlags
+	mov	r0, #0x16
+	mov	r1, #0xf
+	bl	__Func_8092950
+	mov	r0, #0x17
+	mov	r1, #0xf
+	bl	__Func_8092950
+	mov	r1, #0xf
+	mov	r0, #0x18
+	bl	__Func_8092950
+	mov	r0, #0x16
+	bl	__MapActor_GetActor
+	add	r0, #0x59
+	ldrb	r3, [r0]
+	mov	r5, #8
+	orr	r3, r5
+	strb	r3, [r0]
+	mov	r0, #0x17
+	bl	__MapActor_GetActor
+	add	r0, #0x59
+	ldrb	r3, [r0]
+	orr	r3, r5
+	strb	r3, [r0]
+	mov	r0, #0x18
+	bl	__MapActor_GetActor
+	add	r0, #0x59
+	ldrb	r3, [r0]
+	orr	r5, r3
+	strb	r5, [r0]
+	mov	r0, #0x16
+	bl	__MapActor_GetActor
+	add	r0, #0x23
+	ldrb	r3, [r0]
+	mov	r5, #2
+	orr	r3, r5
+	strb	r3, [r0]
+	mov	r0, #0x17
+	bl	__MapActor_GetActor
+	add	r0, #0x23
+	ldrb	r3, [r0]
+	orr	r3, r5
+	strb	r3, [r0]
+	mov	r0, #0x18
+	bl	__MapActor_GetActor
+	add	r0, #0x23
+	ldrb	r3, [r0]
+	orr	r5, r3
+	strb	r5, [r0]
+	mov	r1, #1
+	mov	r0, #0x16
+	bl	__Func_8092b08
+	mov	r0, #0x17
+	mov	r1, #1
+	bl	__Func_8092b08
+	mov	r1, #1
+	mov	r0, #0x18
+	bl	__Func_8092b08
+	mov	r0, #1
+	bl	__WaitFrames
+	bl	__CutsceneStart
+	ldr	r0, [r7, #8]
+	ldr	r1, [r7, #0xc]
+	ldr	r2, [r7, #0x10]
+	mov	r3, #0
+	bl	__Func_80933f8
+	bl	__Func_800fe9c
+	bl	__CutsceneEnd
+	mov	r0, #1
+	bl	__WaitFrames
+	add	sp, #8
+	pop	{r5, r6, r7}
+	pop	{r0}
+	bx	r0
+.func_end OvlFunc_931_2008904
+
+@ Cutscene: roughly 84 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x240, 0x241, 0x242.
+.thumb_func_start OvlFunc_931_2008b2c
+	push	{lr}
+	mov	r0, #0x90
+	lsl	r0, #2
+	bl	__GetFlag
+	cmp	r0, #0
+	bne	.Lb5c
+	mov	r1, #0xca
+	lsl	r1, #18
+	ldr	r2, =0x2d70000
+	mov	r0, #8
+	bl	__MapActor_SetPos
+	mov	r0, #8
+	bl	__MapActor_GetActor
+	mov	r3, #0xc0
+	lsl	r3, #6
+	strh	r3, [r0, #6]
+	ldr	r1, =0x31a0000
+	mov	r0, #9
+	ldr	r2, =0x3390000
+	bl	__MapActor_SetPos
+.Lb5c:
+	ldr	r0, =0x241
+	bl	__GetFlag
+	cmp	r0, #0
+	bne	.Lb8a
+	mov	r1, #0x8c
+	lsl	r1, #18
+	ldr	r2, =0x2c60000
+	mov	r0, #0xa
+	bl	__MapActor_SetPos
+	mov	r0, #0xa
+	bl	__MapActor_GetActor
+	mov	r3, #0x80
+	lsl	r3, #5
+	mov	r1, #0x90
+	strh	r3, [r0, #6]
+	lsl	r1, #18
+	mov	r0, #0xb
+	ldr	r2, =0x2c60000
+	bl	__MapActor_SetPos
+.Lb8a:
+	ldr	r0, =0x242
+	bl	__GetFlag
+	cmp	r0, #0
+	bne	.Lbae
+	mov	r2, #0xba
+	mov	r0, #0xf
+	ldr	r1, =0x1270000
+	lsl	r2, #18
+	bl	__MapActor_SetPos
+	mov	r0, #0xf
+	bl	__MapActor_GetActor
+	mov	r3, #0xb0
+	lsl	r3, #8
+	strh	r3, [r0, #6]
+	b	.Lbc0
+.Lbae:
+	mov	r0, #0xf
+	bl	__MapActor_GetActor
+	mov	r1, r0
+	add	r1, #0x59
+	ldrb	r2, [r1]
+	mov	r3, #4
+	orr	r3, r2
+	strb	r3, [r1]
+.Lbc0:
+	mov	r0, #0x11
+	bl	__MapActor_GetActor
+	cmp	r0, #0
+	beq	.Lbd6
+	mov	r1, r0
+	add	r1, #0x59
+	ldrb	r2, [r1]
+	mov	r3, #4
+	orr	r3, r2
+	strb	r3, [r1]
+.Lbd6:
+	mov	r0, #0x10
+	bl	__MapActor_GetActor
+	cmp	r0, #0
+	beq	.Lbec
+	mov	r1, r0
+	add	r1, #0x59
+	ldrb	r2, [r1]
+	mov	r3, #4
+	orr	r3, r2
+	strb	r3, [r1]
+.Lbec:
+	pop	{r0}
+	bx	r0
+.func_end OvlFunc_931_2008b2c

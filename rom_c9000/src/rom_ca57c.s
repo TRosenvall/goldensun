@@ -1,102 +1,33 @@
 	.include "macros.inc"
+
+@ ============================================================================
+@ One battle animation with twelve variants.
+@
+@ Func_ca60c is the implementation; everything above it is a one-line wrapper
+@ that supplies a variant number. The variant indexes the 7-byte parameter
+@ records at .Ledf04 (12 records, 0x54 bytes) which drive the colours, timing
+@ and sound of the effect.
+@
+@ The wrappers exist so the animation table can hold one address per variant.
+@ They are listed here in variant order rather than address order:
+@
+@     0 Func_ca5d0   1 Func_ca594   2 Func_ca5f4   3 Func_ca588
+@     4 Func_ca5c4   5 Func_ca5ac   6 Func_ca57c   7 Func_ca5e8
+@     8 Func_ca5dc   9 Func_ca5b8  10 Func_ca5a0  11 Func_ca600
+@ ============================================================================
 	.include "gba.inc"
 
-.thumb_func_start Func_ca57c
-	push	{lr}
-	mov	r1, #6
-	bl	Func_ca60c
-	pop	{r0}
-	bx	r0
-.func_end Func_ca57c
-
-.thumb_func_start Func_ca588
-	push	{lr}
-	mov	r1, #3
-	bl	Func_ca60c
-	pop	{r0}
-	bx	r0
-.func_end Func_ca588
-
-.thumb_func_start Func_ca594
-	push	{lr}
-	mov	r1, #1
-	bl	Func_ca60c
-	pop	{r0}
-	bx	r0
-.func_end Func_ca594
-
-.thumb_func_start Func_ca5a0
-	push	{lr}
-	mov	r1, #0xa
-	bl	Func_ca60c
-	pop	{r0}
-	bx	r0
-.func_end Func_ca5a0
-
-.thumb_func_start Func_ca5ac
-	push	{lr}
-	mov	r1, #5
-	bl	Func_ca60c
-	pop	{r0}
-	bx	r0
-.func_end Func_ca5ac
-
-.thumb_func_start Func_ca5b8
-	push	{lr}
-	mov	r1, #9
-	bl	Func_ca60c
-	pop	{r0}
-	bx	r0
-.func_end Func_ca5b8
-
-.thumb_func_start Func_ca5c4
-	push	{lr}
-	mov	r1, #4
-	bl	Func_ca60c
-	pop	{r0}
-	bx	r0
-.func_end Func_ca5c4
-
-.thumb_func_start Func_ca5d0
-	push	{lr}
-	mov	r1, #0
-	bl	Func_ca60c
-	pop	{r0}
-	bx	r0
-.func_end Func_ca5d0
-
-.thumb_func_start Func_ca5dc
-	push	{lr}
-	mov	r1, #8
-	bl	Func_ca60c
-	pop	{r0}
-	bx	r0
-.func_end Func_ca5dc
-
-.thumb_func_start Func_ca5e8
-	push	{lr}
-	mov	r1, #7
-	bl	Func_ca60c
-	pop	{r0}
-	bx	r0
-.func_end Func_ca5e8
-
-.thumb_func_start Func_ca5f4
-	push	{lr}
-	mov	r1, #2
-	bl	Func_ca60c
-	pop	{r0}
-	bx	r0
-.func_end Func_ca5f4
-
-.thumb_func_start Func_ca600
-	push	{lr}
-	mov	r1, #0xb
-	bl	Func_ca60c
-	pop	{r0}
-	bx	r0
-.func_end Func_ca600
-
+@ PlayVariantEffect
+@ r0=action descriptor, r1=variant 0..11. The shared implementation behind the
+@ twelve wrappers above.
+@ Stores the descriptor into the battle state at [iwram_1eec]+0x7828, then sets
+@ up the display: Func_cd594 selects the backdrop (0 for variant 8, 1 for every
+@ other), REG_BLDALPHA is set to 0x1010, and two Func_e0524 calls stage the
+@ effect's graphics (resource 0x73, then 0xCE keyed on the variant).
+@ The variant's 7-byte record at .Ledf04 + variant * 7 supplies the per-variant
+@ colours, frame counts and sound ids for the rest of the sequence.
+@ The ~330-instruction body is characterised structurally; the state block, the
+@ variant indexing and the display setup are verified.
 .thumb_func_start Func_ca60c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1459,6 +1390,8 @@
 
 	.section .rodata
 
+@ .Ledf04 -- twelve 7-byte parameter records, one per variant, indexed by
+@ Func_ca60c as .Ledf04 + variant * 7.
 .Ledf04:
 	.incrom 0xedf04, 0xedf58
 .Ledf58:

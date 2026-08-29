@@ -1,0 +1,72 @@
+[
+ {
+  "name": "Func_80a9aec",
+  "ref": "asm/rom_a1000/rom_a8604_c_c_a_a.s",
+  "insns": 73
+ },
+ {
+  "name": "OvlFunc_915_2008bf8",
+  "ref": "asm/overlays/rom_7a2bf0/ovl_30_c_c_c_a_a.s",
+  "insns": 57
+ },
+ {
+  "name": "Func_80dfddc",
+  "ref": "asm/rom_c9000/rom_dfa18_c_c_c_c.s",
+  "insns": 39
+ },
+ {
+  "name": "Debug_TestEquipAndStatus",
+  "ref": "asm/rom_b0000/rom_b0070_a_a_c_a_a_c.s",
+  "insns": 45
+ },
+ {
+  "name": "Func_8092be0",
+  "ref": "asm/rom_8a000/rom_92950_c_a_c_a.s",
+  "insns": 46
+ },
+ {
+  "name": "DialogueBox",
+  "ref": "asm/rom_15000/rom_17e88_c.s",
+  "insns": 37
+ },
+ {
+  "name": "AddMenuBarOption",
+  "ref": "asm/rom_15000/rom_23178_a_a_a_a_c_c_c.s",
+  "insns": 44
+ },
+ {
+  "name": "OvlFunc_909_20085f4",
+  "ref": "asm/overlays/rom_79c738/ovl_30_c_c_c_c_c_c_c_c.s",
+  "insns": 73
+ },
+ {
+  "name": "OvlFunc_954_2008490",
+  "ref": "asm/overlays/rom_7db0c8/ovl_30_c_c_a_a_c_c.s",
+  "insns": 77
+ },
+ {
+  "name": "ActorCmd_Loop",
+  "ref": "asm/rom_9000/rom_d654_a_c_a_a_a_c.s",
+  "insns": 37
+ },
+ {
+  "name": "Func_8099678",
+  "ref": "asm/rom_8a000/rom_97b54_a_c_c_c.s",
+  "insns": 81
+ },
+ {
+  "name": "OvlFunc_968_2009780",
+  "ref": "asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c_a_a_c.s",
+  "insns": 49
+ },
+ {
+  "name": "OvlFunc_960_2008e8c",
+  "ref": "asm/overlays/rom_7eaf28/ovl_314_c_c_c.s",
+  "insns": 74
+ },
+ {
+  "name": "OvlFunc_911_2008800",
+  "ref": "asm/overlays/rom_79e5c0/ovl_30_c_a_a_c_a_a_a_c_c.s",
+  "insns": 79
+ }
+]

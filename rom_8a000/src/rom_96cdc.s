@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SearchFieldTargets
+@ r0=origin, r1=range, r2=kind. Scans the candidate table at ewram_48A for
+@ objects the field ability can act on, returning the best match. Used to decide
+@ what a cast will affect before any animation plays.
 .thumb_func_start Func_96cdc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -41,6 +45,10 @@
 	bx	r0
 .func_end Func_96cdc
 
+@ OrbitHookA
+@ r0=entity. Per-frame hook that advances the phase counter at +0x64 and moves
+@ the entity around the target held at +0x68, tracing one of the two orbit
+@ patterns the cast effect uses.
 .thumb_func_start Func_96d2c
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -85,6 +93,9 @@
 	bx	r0
 .func_end Func_96d2c
 
+@ OrbitHookB
+@ r0=entity. The mirror of Func_96d2c -- same phase advance and target, opposite
+@ sweep -- so a pair of particles can circle in opposite directions.
 .thumb_func_start Func_96d84
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -130,6 +141,10 @@
 	bx	r0
 .func_end Func_96d84
 
+@ RunRevealAbility
+@ Takes no arguments. The reveal/detect field ability: reads the caster from
+@ [iwram_1f30]+0x10, spins up the orbit particles and then applies the reveal.
+@ The ~130-instruction body is characterised structurally.
 .thumb_func_start Func_96ddc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -284,6 +299,10 @@
 	bx	r0
 .func_end Func_96ddc
 
+@ SetCasterPaletteAlternating
+@ r0=entity. Applies palette 7 on alternate frames (bit 1 of iwram_1e40) and
+@ the default otherwise, via _Func_c598 -- the two-frame flash used during a
+@ cast.
 .thumb_func_start Func_96f14
 	push	{r5, lr}
 	ldr	r3, =iwram_1e40
@@ -315,6 +334,9 @@
 	bx	r0
 .func_end Func_96f14
 
+@ SetCasterPaletteFast
+@ r0=entity. As Func_96f14 but keyed on bit 0 of iwram_1e40, so it alternates
+@ every frame rather than every other frame.
 .thumb_func_start Func_96f50
 	push	{r5, r6, lr}
 	ldr	r5, =iwram_1e40
@@ -345,6 +367,9 @@
 	bx	r0
 .func_end Func_96f50
 
+@ TickAllEffectInstances
+@ Takes no arguments. Runs Func_9b804 over the 0x17 effect instances starting at
+@ [iwram_1f30]+0x58, advancing every particle's animation in one pass.
 .thumb_func_start Func_96f8c
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1f30
@@ -364,6 +389,10 @@
 	bx	r0
 .func_end Func_96f8c
 
+@ ApplyRevealToScene
+@ r0=reveal kind. Walks the scene slot table (reached from iwram_1ebc) and makes
+@ the matching hidden objects visible, which is the actual world change the
+@ reveal ability performs.
 .thumb_func_start Func_96fb0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -515,6 +544,10 @@
 	bx	r0
 .func_end Func_96fb0
 
+@ SetAbilityTarget
+@ r0=target slot, r1=parameter. Records both in the field-effect state at
+@ [iwram_1f30]+0x18 and +0x1A and resolves the slot to an entity, so the cast
+@ routines know what they are aimed at.
 .thumb_func_start Func_970f8
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1f30
@@ -576,6 +609,10 @@
 	bx	r0
 .func_end Func_970f8
 
+@ ClearCasterHook
+@ Takes no arguments. Clears the caster's per-frame hook at +0x6C, resets its
+@ palette through _Func_c598(entity, 0) and lets one frame pass so the change is
+@ visible before the caller continues.
 .thumb_func_start Func_97174
 	push	{lr}
 	ldr	r3, =iwram_1f30
@@ -591,6 +628,10 @@
 	bx	r0
 .func_end Func_97174
 
+@ RunLiftAbility
+@ Takes no arguments. The lift field ability: raises the target object off its
+@ tile, holds it, and sets it down at the destination. The ~250-instruction body
+@ is characterised structurally.
 .thumb_func_start Func_97194
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -707,6 +748,10 @@
 	bx	r0
 .func_end Func_97194
 
+@ FinishFieldAbility
+@ Takes no arguments. Common teardown for the abilities in this file: restores
+@ the caster's hook and palette, releases the effect instances and returns
+@ control to the player.
 .thumb_func_start Func_9728c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

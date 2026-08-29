@@ -1,6 +1,95 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunAnimationClass3 -- ascent, then a descending wave front
+@ r0 = action descriptor. Animation class 3, entered from the twelve-way table
+@ in Func_d6578 (rom_d6504.s).
+@
+@ TWO SEQUENTIAL FRAME LOOPS: 120 frames of rising (0..0x77), then 96 frames of
+@ descent (0..0x5F), with a re-setup between them. Func_ec100 (class 6, further
+@ down this file) and Func_dc968 (class 4) are built the same way.
+@ This one is alone in generating ONE blitter instead of two -- just
+@ Func_ed408(0x2E,7,7,3,3), read back from iwram_1e50+0xB8 into sp+0x48, and
+@ only tag 0x2E is freed at the end.
+@
+@ SETUP
+@   sp+0x50 = [iwram_1ef0] render buffer, sp+0x4c = [iwram_1eec] state,
+@   sp+0x44 = [iwram_1ef4] sprite scratch.
+@   Func_cd594(0); Func_c9048(); REG_BG2CNT = 0x784; palette entries 0 and 1
+@     zeroed; +0x7780 = 0; Func_41d8 registers Func_cd260; Func_cd104(1, 0).
+@   Func_dbb24(9, 0x175, 1) spawns nine actors at priority 1; iwram_1ce0+0x10 =
+@     0xF0; Func_d6750; REG_WININ = 0x2737; REG_WIN0H = 0xCA.
+@   After Func_30f8(1): _Func_c08ec(1, 0x3A, 0), Func_cd104(1, 1), and
+@     Func_e0524 unpacks asset 0x73 into [iwram_1ef4] and 0x95 into [iwram_1eec].
+@   REG_DISPCNT = 0x7741, REG_BG2PA = 0x80, REG_BLDALPHA = 0x100E,
+@     REG_BLDCNT = 0x3F44. iwram_1ad0+4 is SAVED at sp+0x38 -- loop one scrolls
+@     it and the gap between loops puts it back.
+@   64 streaks seeded at +0x7080 with x = (rand & 0x1F) + 0x10, y and vy random,
+@     age = (rand MOD 0x30) + 2 (Func_b50 is the unsigned remainder).
+@   REG_BG2CNT = 0x786.
+@
+@ LOOP ONE -- frames 0..0x77, the ascent
+@   Entered at the bottom test, so the sound checks run before the body.
+@   sounds  frame 0 -> 0x88, 0x1A -> 0x8D, and 0x9A at each of 0x28, 0x48, 0x68.
+@   A or B held AND frame > 0x10 leaves loop one early; before frame 0x10 the
+@     fast-forward is ignored.
+@   frames 0x18..0x37  the scroll rate at sp+0x30 ramps up by 1 per frame,
+@     capped at 0x18.
+@   frame <= 0x87      iwram_1ad0+4 DROPS by that rate each frame and sp+0x3c
+@     accumulates it -- the camera climbs, and sp+0x3c is how far it has come.
+@   frame <= 0x95      THE FIGURE: nine actors submitted through _Func_b168 at
+@     unit scale (Data_edad8) on the layout .Leef56 = {8,40,72,104,8,40,72,104,0}
+@     by .Leef5f = {0,0,0,24,32,32,32,56,64} -- a wide staggered nine-piece
+@     figure about 112 px across. Past frame 0x67 it also slides horizontally.
+@     frames 8..0x1F it drifts by (rate - 8) per frame, and past frame 7 it
+@     sways on sin((frame<<10) - 0x2000) with amplitude 0x20, widening to 0x60
+@     past frame 0x68. Every 32nd frame (phase 8) sets +0x77A8 = 4, a shake.
+@   frames 0..0x1A     an expanding ring: min(8*frame, 0x40) sprites at angle
+@     i<<10 and radius derived from sp+0x3c, so the ring grows with the climb.
+@   frame 0x18         +0x7780 = 2 and +0x7784 = 0x32; frame 0x1C restores
+@     REG_BG2CNT = 0x784.
+@   frames > 0x11      the 48 streaks at +0x7080: size (i MOD 3) + 1, x += 2,
+@     y += vy, and vy *= 48/64 each frame; an entry is re-seeded once x passes
+@     0x80 or its age runs out.
+@   frames > 0x1F      six 0x30x0x20 tiles at y = 0x78 - min((frame-0x20)/2,
+@     0x28), each picking graphic (rand & 3) so the band flickers.
+@   every frame        if +0x77A8 > 0 it decrements and iwram_1ad0+6 jitters to
+@     (rand & 7) + 0x1C, otherwise it sits at 0x20 -- that is the screen shake.
+@   end of frame       +0x7824 = 1; Func_30f8(1).
+@
+@ BETWEEN THE LOOPS
+@   iwram_1ad0+4 is restored from sp+0x38 and Func_d67dc runs, so the camera
+@   snaps back. REG_WIN0H = 0xF0. All nine actors get +0x09 |= 0xC (priority 3,
+@   behind everything). sp+0x74.. is cleared as a per-target "already hit" flag
+@   array and sp+0x84.. filled with 16 random column offsets. 320 particles at
+@   ewram_10000 are freed. +0x7780 = 2, +0x7784 = 0x4B, REG_BG2CNT = 0x784,
+@   REG_BLDALPHA = 0x1010, and sp+0x10 starts at -0x1E0.
+@
+@ LOOP TWO -- frames 0..0x5F, the descent. NO fast-forward check at all: once
+@   the wave starts it always plays to the end.
+@   frames 0..0x17  the figure is drawn again at unit scale (Data_edae0)
+@     descending -- sp+0x1c starts at 0xE0 and drops 0x10 per frame -- wobbling
+@     on sin((frame<<11) + 0x4000), shifted <<6 for the first 8 frames then <<5,
+@     so the wobble decays as it lands.
+@   sounds  frame 8 -> 0x91 (and +0x77A8 = 8), frame 0xB -> 0x91,
+@     frame 0x2E -> 0x89, frame 0x30 -> 0x88.
+@   every frame  THE WAVE FRONT. For each target not yet flagged, Func_e3980
+@     gives its screen position; once that position is below the descending
+@     front sp+0x1c, the target is flagged and 32 particles burst from it into
+@     ewram_10000 + 0x380i, then _Func_b8228(id, 1) and sound 0x86. So targets
+@     are struck one at a time, in the order the front reaches them.
+@   every frame  all 320 particles step and draw as 3x6 sprites.
+@   frames > 0x28  +0x7780 = 0, +0x7784 = 0x4B, and sixteen 0x30x0x20 columns
+@     rise at y = 0x78 - offset[i] - sp+0x10, x = 8i - 8, each picking graphic
+@     (rand & 3). sp+0x10 climbs 0xC per frame, so the curtain sweeps upward.
+@   frame > 0x40   +0x7780 = 2.
+@   frame 0x3A     every target takes Func_d6888(id, 0xE, 5, -1, 0).
+@   end of frame   Func_e155c(8, 8); Func_cd52c(); +0x7824 = 1; Func_30f8(1).
+@
+@ TEARDOWN
+@   Func_bd7dc(0x86); the nine actors at +0x77D8 are destroyed;
+@   Func_4278(Func_cd260); Func_2dd8(0x2E) frees the single generated blitter;
+@   Func_cdbc0 restores the view.
 .thumb_func_start Func_eb754
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1152,6 +1241,13 @@
 	bx	r0
 .func_end Func_eb754
 
+@ SetBg2ScaleFull
+@ No arguments. REG_BG2PA = 0x100, affine scale 1.0.
+@ Registered by Func_ec100 as a per-frame task via Func_41d8; its partner
+@ Func_ec0f0 is armed on a scanline via Func_307c. Together they halve BG2's
+@ horizontal scale from some scanline down: full scale is restored every frame,
+@ then the scanline trigger drops it to 0.5 partway down the screen. Func_ec100
+@ moves the split from line 0 to line 0x60 at frame 0x98.
 .thumb_func_start Func_ec0e0
 	ldr	r2, =REG_BG2PA
 	ldr	r3, .Lec0e8	@ 0x100
@@ -1163,6 +1259,9 @@
 	.word	0x100
 .func_end Func_ec0e0
 
+@ SetBg2ScaleHalf
+@ No arguments. REG_BG2PA = 0x80, affine scale 0.5. The scanline half of the
+@ pair described on Func_ec0e0 above.
 .thumb_func_start Func_ec0f0
 	ldr	r2, =REG_BG2PA
 	ldr	r3, .Lec0f8	@ 0x80
@@ -1174,6 +1273,108 @@
 	.word	0x80
 .func_end Func_ec0f0
 
+@ RunAnimationClass6 -- a figure flies in, then five beams fall
+@ r0 = action descriptor. Animation class 6, entered from the twelve-way table
+@ in Func_d6578 (rom_d6504.s).
+@
+@ TWO SEQUENTIAL FRAME LOOPS like Func_eb754 above: 244 frames (0..0xF3) of
+@ arrival and charge, then 144 frames (0..0x8F) of five beams landing one after
+@ another. Uses the split-scale trick described on Func_ec0e0.
+@
+@ SETUP
+@   sp+0x44 = [iwram_1ef0] render buffer, r11 = [iwram_1eec] state,
+@   sp+0x40 = [iwram_1ef4] sprite scratch.
+@   Func_cd594(0); Func_c9048(); palette entries 0 and 1 zeroed.
+@   Func_41d8(Func_ec0e0, 0x480) and Func_307c(2, 0, Func_ec0f0) arm the BG2
+@     split scale; Func_41d8 also registers Func_cd260.
+@   REG_WININ = 0x2137; Func_cd104(1, 0); REG_WIN0H = 0xF0F0; Func_d6750;
+@     Func_dbb24(8, 0x17A, 1) spawns eight actors; iwram_1ce0+0x10 = 0xF0.
+@   After Func_30f8(1): _Func_c08ec(1, 0x3D, 0), then Func_e0524 unpacks asset
+@     0x73 into [iwram_1ef4], 0x6E into [iwram_1eec] and 0x76 into
+@     [iwram_1eec]+0x4E20.
+@   REG_DISPCNT = 0x7741, REG_BG2PA = 0x80, REG_BLDALPHA = 0x1010,
+@     REG_BLDCNT = 0x3F44. iwram_1ad0+4 SAVED at sp+0x28 and restored between
+@     the loops. +0x7780 = 2, +0x7784 = 0x4B.
+@   Func_ed408(0x2E,7,7,3,3) and Func_ed408(0x2F,7,7,3,2); the pair is stored as
+@     the two-entry array at sp+0x50 and indexed by (i & 1) later.
+@   REG_BG2CNT = 0x784. All 1024 particles freed.
+@   32 entries at +0x7080 seeded on a ring at radius (rand & 0x7F) + 0xFF with
+@     velocity = -position/32, so they CONVERGE on the centre.
+@   712 particles at ewram_10000 seeded on a disc at (128.0, 96.0) drifting up
+@     and to the left.
+@
+@ A SECOND SPRITE-SIZE TABLE. Data_ede5c = {0, 4, 20, 56, 120, 220, 364, 560,
+@   816, 1140} indexes [iwram_1eec]+0x4E20 the way Data_ede48 indexes the 0x302
+@   buffer, but its deltas are 4n^2 -- SQUARE sprites of side 2n, where
+@   Data_ede48's are n by 2n. Both tables appear in this handler.
+@
+@ LOOP ONE -- frames 0..0xF3, arrival and charge
+@   sounds  0x18 -> 0xA2, 0x4C -> 0xA4, 0x9A -> 0x8E, 0xDE -> 0x91.
+@   frames 0..0xF   a gradient is built: at frame 1, ewram_10002.. is filled
+@     with 0x80 random bytes and Func_d66cc is registered as a task; each frame
+@     the halfword at ewram_10000 grows by an accelerating step; at frame 0xF
+@     Func_d66cc is unregistered again.
+@   frames > 0x15   THE FIGURE: eight actors through _Func_b168 at SCALE 1.5
+@     (Data_edae8 = {0x18000, 0x18000}) on the 4x2 grid .Leef68 =
+@     {0,32,64,0,32,64,96,96} by .Leef70 = {0,0,0,32,32,32,0,32}, each offset
+@     also scaled by 3/2 to match.
+@     frames 0x16..0x53  the approach velocities decay by 60/64 per frame and
+@       the vertical one is nudged toward y = 0x840000, so it glides in and
+@       settles.
+@     frames 0x54..0xAA  the horizontal velocity is kicked (up to frame 0x6B),
+@       decays the same way, and the figure drifts off again.
+@   frame 0x4C      all 1024 particles re-seed from a disc at (64.0, 96.0).
+@   frame 0x98      Func_307c(2, 0x60, Func_ec0f0) MOVES THE SPLIT to scanline
+@     0x60, so the bottom two-thirds of BG2 squashes to half scale;
+@     +0x77B4 = 0x18 and +0x77B8 = 0.
+@   frames 0x98..0xEF  the 32 converging entries draw as square sprites from
+@     Data_ede5c at size (i & 3) + 5, each starting i/4 frames after the last.
+@   frames 0x98 onward  a single sprite grows through the size table in stages:
+@     (frame-0x98)/2 + 1 capped 4, then +3 capped 6 past 0xC0, then
+@     (frame-0xC8)/4 + 5 capped 8 past 0xC7, with a second smaller copy while
+@     frame <= 0xD5, and 0x30x0x30 frames from 0xD6 onward.
+@   frame 0xDE      the 64 entries at +0x7080 re-seed as small crosses near
+@     (0x64, 0x34) rising at 6 per frame; drawn at size 2 from 0xDE onward and
+@     recycled when they leave the top.
+@   frames > 0xAF   Func_cde90 is called 5 times a frame, jumping to 0x3C at
+@     frames 0xDF..0xE0 and settling at 0x28 -- the beam fan.
+@   frames > 0x1B   all 1024 particles step and draw at size (i MOD 3) + 2 with
+@     gravity .Leef78[i & 3] = {0.5, 0.25, 0.25, 0.125} and 0x3E/64 drag, dying
+@     once falling past y 0x68.
+@   every frame     five 32x32 tiles scroll horizontally by (frame/4) & 0x1F at
+@     y = 0x58.
+@   end of frame    +0x7824 = 1; Func_30f8(1).
+@   A or B held AND frame > 0x10 leaves loop one early.
+@
+@ BETWEEN THE LOOPS
+@   iwram_1ad0+4 restored; Func_307c(2, 0, 0) DISARMS the scanline handler and
+@   Func_4278(Func_ec0e0) drops the task, so BG2 goes back to uniform scale;
+@   Func_d67dc; REG_WIN0H = 0xF0; +0x7780 = 2, +0x7784 = 0x4B; particles freed.
+@   Sixteen beam slots at +0x7080 get x = (rand & 0x1F) + 0x20, y = 0, age = 0,
+@   then for each target Func_e396c supplies HALF its screen x as the beam's
+@   landing column. Func_e0524 unpacks asset 0x6F; sound 0x121;
+@   REG_BG2PA = 0x80; REG_BLDALPHA = 0x1010.
+@
+@ LOOP TWO -- frames 0..0x8F, five beams
+@   frame 0x60  Func_bd7dc(0x86) -- note this handler signals from INSIDE the
+@     loop, not at teardown like most of the others.
+@   Beam i starts at frame 16i and plays sound 0x9A at 16i + 7:
+@     while its age is 0..0x1F the beam draws as two 0x11x0x68 halves split at
+@       (frame*16) MOD 0x68 -- a wrapping vertical scroll, so it appears to pour
+@       downward -- plus a 0x22x0x41 head.
+@     its y advances 0x10 per frame until 0x6F, after which the age counts up.
+@     once landed, the first 8 frames set +0x77A8 = 4 (screen shake) and up to
+@       four particles per frame burst outward from the impact point.
+@   frame 8 + 16i  target i takes Func_d6888(id, 7, 5, i, 8) and
+@     _Func_b8228(id, 2) -- so each target is struck as its own beam lands.
+@   every frame  live particles step with Func_e3908(entry, 0x3C, 0x4000),
+@     bounce off y = 0x78 by halving and negating vy, draw at size (age/8) + 3
+@     with alternating blitters.
+@   end of frame  Func_e155c(4, 8); Func_cd52c(); +0x7824 = 1; Func_30f8(1).
+@
+@ TEARDOWN
+@   The eight actors at +0x77D8 are destroyed; Func_4278(Func_cd260);
+@   Func_2dd8(0x2F) and Func_2dd8(0x2E) free the generated blitters; Func_cdbc0.
 .thumb_func_start Func_ec100
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

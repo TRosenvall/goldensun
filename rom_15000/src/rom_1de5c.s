@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RenderTextToBuffer
+@ r0.. = text parameters. The general text renderer: allocates scratch with
+@ Func_4938, fetches the font asset with Func_2f40, rasterises the run, and
+@ releases with Func_2df0. 472 lines; traced structurally.
 .thumb_func_start Func_1de5c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -473,6 +477,10 @@
 	bx	r1
 .func_end Func_1de5c
 
+@ PlotTextRun
+@ r0.. = run parameters. Writes a laid-out run into the text scratch, reading
+@ the current style from [iwram_1e8c]+0xEA2 and stepping 0x20 bytes per tile
+@ row. The inner loop other drawing paths funnel into.
 .thumb_func_start Func_1e260
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -563,6 +571,8 @@
 	bx	r0
 .func_end Func_1e260
 
+@ ClearTextRect
+@ r0.. = rectangle. Clears a region of the text scratch. No calls out.
 .thumb_func_start Func_1e318
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -650,6 +660,8 @@
 	bx	r0
 .func_end Func_1e318
 
+@ CopyTextRect
+@ r0.. = rectangle. Copies a region within the text scratch.
 .thumb_func_start Func_1e3c8
 	push	{lr}
 	ldr	r3, =iwram_1e8c
@@ -693,10 +705,16 @@
 	bx	r0
 .func_end Func_1e3c8
 
+@ NoOp
+@ A bare `bx lr`, present as a table entry or placeholder.
 .thumb_func_start Func_1e418
 	bx	lr
 .func_end Func_1e418
 
+@ DrawTextBlock
+@ r0.. = parameters. Lays a block of text into the scratch through repeated
+@ Func_1e260 calls, handling alignment and wrapping. 302 lines; traced
+@ structurally.
 .thumb_func_start Func_1e41c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -999,6 +1017,9 @@
 	bx	r0
 .func_end Func_1e41c
 
+@ SetTextInk
+@ r0 = colour. Masks to 4 bits and stores at [iwram_1e8c]+0xEAE -- the ink
+@ field Func_173ac defaults to 0x0F.
 .thumb_func_start Func_1e71c
 	ldr	r3, =iwram_1e8c
 	ldr	r2, .L1e72c	@ 0xf
@@ -1013,6 +1034,9 @@
 	.word	0xf
 .func_end Func_1e71c
 
+@ SetTextShadow
+@ r0 = value. Stores at [iwram_1e8c]+0xEAC, the shadow/outline field Func_173ac
+@ defaults to 0.
 .thumb_func_start Func_1e738
 	ldr	r3, =iwram_1e8c
 	ldr	r2, =0xeac
@@ -1022,6 +1046,9 @@
 	bx	lr
 .func_end Func_1e738
 
+@ DrawStringAt
+@ r0 = string id, r1.. = placement. Lays the string out with Func_18038 and
+@ emits it with Func_17aa4.
 .thumb_func_start Func_1e74c
 	push	{r5, r6, lr}
 	mov	r6, r11
@@ -1080,6 +1107,9 @@
 	bx	r0
 .func_end Func_1e74c
 
+@ DrawStringToBuffer
+@ r0 = string id, r1.. = placement. Lays out with Func_18038 and renders with
+@ Func_1de5c, for text going into a buffer rather than a window.
 .thumb_func_start Func_1e7c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1156,6 +1186,9 @@
 	bx	r0
 .func_end Func_1e7c0
 
+@ DrawTextScratch
+@ r0.. = parameters. Allocates scratch with Func_4970, emits through
+@ Func_17aa4, releases with Func_2df0.
 .thumb_func_start Func_1e858
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1204,6 +1237,8 @@
 	bx	r0
 .func_end Func_1e858
 
+@ DrawTextScratchWide
+@ r0.. = parameters. As Func_1e858 but rendering through Func_1de5c.
 .thumb_func_start Func_1e8b0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1278,6 +1313,9 @@
 	bx	r0
 .func_end Func_1e8b0
 
+@ DrawTextScratchEntry
+@ r0.. = parameters. As Func_1e858 but appending a layout entry with
+@ Func_17c8c.
 .thumb_func_start Func_1e940
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1329,6 +1367,9 @@
 	bx	r0
 .func_end Func_1e940
 
+@ DrawNumberAt
+@ r0 = value, r1.. = placement. Formats with Func_17dd4 and draws with
+@ Func_1e858.
 .thumb_func_start Func_1e9a0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1355,6 +1396,9 @@
 	bx	r0
 .func_end Func_1e9a0
 
+@ DrawNumberWide
+@ r0 = value, r1.. = placement. Formats with Func_17dd4 and draws with
+@ Func_1e8b0.
 .thumb_func_start Func_1e9d4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1381,6 +1425,9 @@
 	bx	r0
 .func_end Func_1e9d4
 
+@ DrawNumberEntry
+@ r0 = value, r1.. = placement. Formats with Func_17dd4 and draws with
+@ Func_1e940.
 .thumb_func_start Func_1ea08
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1407,6 +1454,9 @@
 	bx	r0
 .func_end Func_1ea08
 
+@ DrawNumberToBuffer
+@ r0 = value, r1.. = placement. Formats with Func_17dd4 and renders with
+@ Func_1de5c.
 .thumb_func_start Func_1ea3c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1481,6 +1531,10 @@
 	bx	r0
 .func_end Func_1ea3c
 
+@ AttachSpriteNode
+@ r0 = window, r1.. = sprite parameters. Takes a node from the free list with
+@ Func_15e8c, links it to the window with Func_16584, and releases any OBJ tiles
+@ the slot held with Func_3f3c.
 .thumb_func_start Func_1eadc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1547,6 +1601,9 @@
 	bx	r1
 .func_end Func_1eadc
 
+@ AttachPanelSprite
+@ r0.. = parameters. Loads the panel graphics with Func_1bc34 and attaches the
+@ node with Func_1eadc.
 .thumb_func_start Func_1eb64
 	push	{r5, r6, lr}
 	sub	sp, #4
@@ -1572,6 +1629,9 @@
 	bx	r1
 .func_end Func_1eb64
 
+@ AttachPortraitSprite
+@ r0 = id, r1.. = placement. Loads with Func_1a2a4, reserves tiles with
+@ Func_4080, attaches with Func_1eadc.
 .thumb_func_start Func_1eb90
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1609,6 +1669,8 @@
 	bx	r1
 .func_end Func_1eb90
 
+@ AttachPortraitSpriteIndexed
+@ r0 = index, r1.. = placement. As Func_1eb90 but loading through Func_19ee4.
 .thumb_func_start Func_1ebd8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1649,6 +1711,9 @@
 	bx	r1
 .func_end Func_1ebd8
 
+@ AttachTableSprite
+@ r0 = selector, r1.. = placement. Picks the graphic table with Func_1a32c and
+@ attaches through Func_1eadc.
 .thumb_func_start Func_1ec24
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1685,6 +1750,10 @@
 	bx	r1
 .func_end Func_1ec24
 
+@ PopulateMenuWindow
+@ r0 = menu id, r1.. = placement. Resolves the menu with Func_19d2c, loads its
+@ graphics with Func_1a4fc, reads character data through _Func_79338, and
+@ attaches each entry's sprite with Func_1eadc. Called by Func_19da8.
 .thumb_func_start Func_1ec6c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1785,6 +1854,9 @@
 	bx	r1
 .func_end Func_1ec6c
 
+@ PopulateMenuEntries
+@ r0 = menu id, r1.. = placement. As Func_1ec6c without the node attachment --
+@ used when the entries are drawn rather than sprited.
 .thumb_func_start Func_1ed40
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1851,6 +1923,9 @@
 	bx	r0
 .func_end Func_1ed40
 
+@ SetNodeStyle
+@ r0 = node, r1 = style. Stores the style byte at +5 and clears the halfword at
+@ +0x0C. Null-safe.
 .thumb_func_start Func_1edcc
 	push	{lr}
 	cmp	r0, #0
@@ -1863,6 +1938,9 @@
 	bx	r0
 .func_end Func_1edcc
 
+@ SetNodeMask
+@ r0 = node, r1 = mask. Stores the BITWISE COMPLEMENT of r1 at +0x0F.
+@ Null-safe.
 .thumb_func_start Func_1eddc
 	push	{lr}
 	cmp	r0, #0
@@ -1874,6 +1952,9 @@
 	bx	r0
 .func_end Func_1eddc
 
+@ CopyNodeGraphics
+@ r0.. = parameters. Allocates scratch with Func_4938, copies a node's graphics,
+@ releases with Func_2df0.
 .thumb_func_start Func_1edec
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1928,6 +2009,9 @@
 	bx	r0
 .func_end Func_1edec
 
+@ ClearTilemapRect
+@ r0.. = rectangle. Clears a rectangle of the tilemap at 0x6002000, stepping
+@ (0x20 - width) * 2 bytes between rows -- the 32-entry map stride again.
 .thumb_func_start Func_1ee68
 	push	{r5, r6, lr}
 	mov	r5, r3
@@ -1960,6 +2044,9 @@
 	bx	r0
 .func_end Func_1ee68
 
+@ ReadPartyForOverlay
+@ r0.. = parameters. Collects party state for the overlay through _Func_795fc
+@ and _Func_b6a60.
 .thumb_func_start Func_1eea0
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e90
@@ -2014,6 +2101,9 @@
 	bx	r0
 .func_end Func_1eea0
 
+@ OpenOverlay
+@ r0 = mode. Allocates the overlay block with Func_48f4, opens its window with
+@ Func_162d4, reads party state with Func_1eea0, and paints with Func_1f200.
 .thumb_func_start Func_1ef08
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -2056,6 +2146,9 @@
 	bx	r0
 .func_end Func_1ef08
 
+@ ComputeOverlayLayout
+@ r0.. = parameters. Positions the overlay's elements; no calls out. 154 lines,
+@ traced structurally.
 .thumb_func_start Func_1ef68
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2210,6 +2303,9 @@
 	bx	r0
 .func_end Func_1ef68
 
+@ BuildOverlayBars
+@ r0.. = parameters. Builds the overlay's bar graphics, scaling through
+@ Func_45e8. 178 lines; traced structurally.
 .thumb_func_start Func_1f088
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2388,6 +2484,11 @@
 	bx	r1
 .func_end Func_1f088
 
+@ DrawOverlay
+@ r0.. = parameters. Paints the whole overlay: frame through Func_170f8, tiles
+@ through Func_16178 / Func_16498, glyph nodes through Func_18efc, clipping
+@ through Func_19000, ink through Func_1e71c and text through Func_1e8b0.
+@ 475 lines; traced structurally.
 .thumb_func_start Func_1f200
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2863,6 +2964,9 @@
 	bx	r0
 .func_end Func_1f200
 
+@ CloseOverlay
+@ Takes no arguments. Closes the window cached at [iwram_1e90] with
+@ Func_16418(win, 1) and frees allocation tag 0x10 with Func_2dd8.
 .thumb_func_start Func_1f5d4
 	push	{lr}
 	ldr	r3, =iwram_1e90
@@ -2876,6 +2980,8 @@
 	bx	r0
 .func_end Func_1f5d4
 
+@ ComputeOverlayValues
+@ r0.. = parameters. Derives the displayed values; no calls out.
 .thumb_func_start Func_1f5f0
 	push	{r5, r6, r7, lr}
 	mov	r6, r3
@@ -2953,6 +3059,10 @@
 	bx	r0
 .func_end Func_1f5f0
 
+@ FormatOverlayNumber
+@ r0 = value. Formats with Func_17dd4, using Func_b50 and Func_b60 -- the
+@ UNSIGNED remainder helpers -- so the value is treated as unsigned here,
+@ unlike Func_17dd4's own signed path.
 .thumb_func_start Func_1f680
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -3015,6 +3125,8 @@
 	bx	r1
 .func_end Func_1f680
 
+@ ClampOverlayValue
+@ r0 = value, r1, r2 = bounds. Clamps and returns.
 .thumb_func_start Func_1f704
 	push	{lr}
 	ldr	r3, =iwram_1f1c
@@ -3037,6 +3149,8 @@
 	bx	r1
 .func_end Func_1f704
 
+@ PlaySelectSound
+@ r0 = id. Plays a UI sound through Func_56cc / Func_5c68 / Func_5cf8.
 .thumb_func_start Func_1f730
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -3073,6 +3187,8 @@
 	bx	r1
 .func_end Func_1f730
 
+@ PlayMenuSound
+@ r0.. = parameters. As Func_1f730 with additional routing.
 .thumb_func_start Func_1f77c
 	push	{r5, r6, r7, lr}
 	bl	Func_56cc
@@ -3153,6 +3269,10 @@
 	bx	r1
 .func_end Func_1f77c
 
+@ ReadPartySummary
+@ r0.. = parameters. Gathers a full party summary across rom_77000 --
+@ _Func_77394, _Func_77cb8, _Func_79338, _Func_796c4, _Func_7a5bc -- plus
+@ _Func_8b158. 184 lines; traced structurally.
 .thumb_func_start Func_1f818
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -3337,6 +3457,9 @@
 	bx	r1
 .func_end Func_1f818
 
+@ RunPartySummaryPrompt
+@ r0.. = parameters. Reads the summary with Func_1f818 and drives a modal text
+@ box through Func_1776c.
 .thumb_func_start Func_1f9b4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -3396,6 +3519,8 @@
 	bx	r1
 .func_end Func_1f9b4
 
+@ RunSimplePrompt
+@ r0 = string id. A modal text box through Func_1776c with sound.
 .thumb_func_start Func_1fa3c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -3444,6 +3569,9 @@
 	bx	r1
 .func_end Func_1fa3c
 
+@ RunPromptWithScratch
+@ r0.. = parameters. As Func_1fa3c with a Func_4970 scratch allocation released
+@ by Func_2df0.
 .thumb_func_start Func_1faa8
 	push	{r5, r6, r7, lr}
 	mov	r0, #0x80
@@ -3509,6 +3637,9 @@
 	bx	r1
 .func_end Func_1faa8
 
+@ RunPromptSequence
+@ r0.. = parameters. Chains prompts, waiting on Func_17364 between them and
+@ giving a frame with Func_30f8.
 .thumb_func_start Func_1fb48
 	push	{r5, lr}
 	mov	r1, #8
@@ -3551,6 +3682,9 @@
 	bx	r1
 .func_end Func_1fb48
 
+@ RunValuePrompt
+@ r0.. = parameters. A prompt that edits a numeric value, clamping with
+@ Func_1f704 and formatting through Func_20244.
 .thumb_func_start Func_1fba8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -3645,6 +3779,8 @@
 	bx	r1
 .func_end Func_1fba8
 
+@ RunValuePromptSequence
+@ r0.. = parameters. The chained form of Func_1fba8.
 .thumb_func_start Func_1fc84
 	push	{r5, r6, r7, lr}
 	bl	Func_56cc
@@ -3720,6 +3856,9 @@
 	bx	r1
 .func_end Func_1fc84
 
+@ StepOverlayAnimation
+@ Takes no arguments. The overlay's per-frame task, registered by Func_1fd84.
+@ Animates with Func_2322 (sine), so the element oscillates.
 .thumb_func_start Func_1fd34
 	push	{r5, r6, r7, lr}
 	ldr	r7, =iwram_1800
@@ -3758,6 +3897,8 @@
 	bx	r0
 .func_end Func_1fd34
 
+@ StartOverlayAnimation
+@ Takes no arguments. Registers Func_1fd34 as a task at priority 0xC80.
 .thumb_func_start Func_1fd84
 	push	{lr}
 	mov	r1, #0xc8
@@ -3768,6 +3909,8 @@
 	bx	r0
 .func_end Func_1fd84
 
+@ StopOverlayAnimation
+@ Takes no arguments. Unregisters Func_1fd34 with Func_4278.
 .thumb_func_start Func_1fd98
 	push	{lr}
 	ldr	r0, =Func_1fd34
@@ -3776,6 +3919,8 @@
 	bx	r0
 .func_end Func_1fd98
 
+@ ComputeBarGeometry
+@ r0.. = parameters. Pure arithmetic for the overlay's bars; no calls out.
 .thumb_func_start Func_1fda8
 	push	{r5, r6, r7, lr}
 	mov	r6, r3

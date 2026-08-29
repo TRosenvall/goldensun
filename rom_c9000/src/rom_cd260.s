@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ UpdateEffectStateA
+@ Takes no arguments. Runs one frame of the effect when the mode word at
+@ [iwram_1eec]+0x7824 is 1, working from the parameters at +0x7780. The
+@ ~60-instruction body is characterised structurally.
 .thumb_func_start Func_cd260
 	push	{r5, r6, lr}
 	ldr	r0, =iwram_1eec
@@ -110,6 +114,9 @@
 	bx	r0
 .func_end Func_cd260
 
+@ UpdateEffectStateB
+@ Takes no arguments. Same mode-1 gate and parameter block as Func_cd260, with
+@ a different per-frame update.
 .thumb_func_start Func_cd358
 	push	{r5, lr}
 	ldr	r3, =iwram_1eec
@@ -197,6 +204,10 @@
 	bx	r0
 .func_end Func_cd358
 
+@ CommitWindowRegisters
+@ Takes no arguments. Copies the cached window bounds from [iwram_1eec]+0x77BC
+@ and +0x77BE straight into REG_WIN0H and the register after it, pushing the
+@ frame's computed window to the hardware.
 .thumb_func_start Func_cd418
 	ldr	r3, =iwram_1eec
 	ldr	r0, =0x77bc
@@ -248,6 +259,9 @@
 	bx	lr
 .func_end Func_cd418
 
+@ CommitAffineRegisters
+@ Takes no arguments. Copies the cached affine reference point from
+@ [iwram_1eec]+0x77D0 and +0x77D4 into REG_BG2X and REG_BG2Y.
 .thumb_func_start Func_cd488
 	ldr	r3, =iwram_1eec
 	ldr	r0, =0x77d0
@@ -264,6 +278,11 @@
 	bx	lr
 .func_end Func_cd488
 
+@ StepEffectCountdown
+@ Takes no arguments. Decrements the counter at +0x77B4 of the block reached
+@ through [iwram_1e74]+0x78 while it is positive, advancing the paired value at
+@ +0x77B8 with it. Note this one reads the rom_b5000 state rather than
+@ iwram_1eec.
 .thumb_func_start Func_cd4b4
 	push	{r5, lr}
 	ldr	r3, =iwram_1e74

@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ InitTaskTable
+@ Takes no arguments. Clears the 20-slot task table at iwram_1a20 -- each slot
+@ is 8 bytes {function, priority halfword at +4, group byte at +6} -- setting
+@ every function to 0 and every priority to 0xFFFF so empty slots sort last.
+@ Also clears the enable flags at iwram_1a10 and iwram_1d34.
 .thumb_func_start Func_40e8
 	push	{lr}
 	ldr	r3, =iwram_1d34
@@ -37,6 +42,8 @@
 	bx	r0
 .func_end Func_40e8
 
+@ GetTaskCount
+@ Takes no arguments. Returns how many task slots are occupied.
 .thumb_func_start Func_412c
 	push	{lr}
 	lsr	r2, #2
@@ -54,6 +61,11 @@
 	bx	r0
 .func_end Func_412c
 
+@ SortTaskTable
+@ Takes no arguments. Bubble-sorts the 20 slots by the priority halfword at +4,
+@ so the per-frame walk runs them in priority order. Called by Func_41d8 after
+@ every registration -- which is why callers can pass priorities in any order
+@ and still get a deterministic sequence.
 .thumb_func_start Func_4144
 	push	{r5, r6, lr}
 	sub	sp, #8
@@ -102,6 +114,9 @@
 	bx	r0
 .func_end Func_4144
 
+@ FindTask
+@ r0 = function pointer. Returns the slot index holding it, or -1. Runs with
+@ interrupts masked (REG_IME saved and restored).
 .thumb_func_start Func_4198
 	push	{r5, lr}
 	mov	r5, #1
@@ -134,6 +149,13 @@
 	bx	r1
 .func_end Func_4198
 
+@ RegisterTask
+@ r0 = function, r1 = priority. Installs the function in a free slot -- or
+@ updates the priority if it is already registered -- then re-sorts with
+@ Func_4144. Returns the slot index, or -1 when all 20 are taken.
+@ LOWER PRIORITY VALUES RUN FIRST, since Func_40e8 fills empty slots with
+@ 0xFFFF. The values other modules pass (0x480, 0x4FE, 0xC80) are ordering
+@ hints, not frame counts.
 .thumb_func_start Func_41d8
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1a10
@@ -215,14 +237,23 @@
 	bx	r1
 .func_end Func_41d8
 
+@ NoOp
+@ A bare `bx lr`.
 .thumb_func_start Func_4270
 	bx	lr
 .func_end Func_4270
 
+@ NoOp
+@ A bare `bx lr`.
 .thumb_func_start Func_4274
 	bx	lr
 .func_end Func_4274
 
+@ UnregisterTask
+@ r0 = function pointer. Finds the slot, clears the function and restores its
+@ priority to 0x7FFF so it sorts out of the way. Returns the freed slot index,
+@ or -1 when the function was not registered. Interrupt-masked like
+@ Func_4198.
 .thumb_func_start Func_4278
 	push	{r5, lr}
 	mov	r5, #1
@@ -262,6 +293,9 @@
 	bx	r1
 .func_end Func_4278
 
+@ SetTaskPriority
+@ r0 = function, r1 = priority. Updates an existing slot's priority and
+@ re-sorts.
 .thumb_func_start Func_42c8
 	push	{r5, r6, lr}
 	mov	r5, #1
@@ -297,6 +331,9 @@
 	bx	r1
 .func_end Func_42c8
 
+@ SetTaskGroup
+@ r0 = function, r1 = group. Writes the group byte at +6 of the slot -- the
+@ field Func_4420 dispatches on.
 .thumb_func_start Func_430c
 	push	{r5, r6, r7, lr}
 	mov	r5, #1
@@ -335,6 +372,8 @@
 	bx	r1
 .func_end Func_430c
 
+@ EnableTask
+@ r0 = function. Marks the slot runnable.
 .thumb_func_start Func_4358
 	push	{r5, r6, lr}
 	mov	r6, r1
@@ -370,6 +409,8 @@
 	bx	r1
 .func_end Func_4358
 
+@ DisableTask
+@ r0 = function. Marks the slot skipped without unregistering it.
 .thumb_func_start Func_439c
 	push	{r5, r6, r7, lr}
 	mov	r5, #1
@@ -406,6 +447,8 @@
 	bx	r1
 .func_end Func_439c
 
+@ GetTaskSlot
+@ r0 = index. Returns the slot record at iwram_1a20 + index*8.
 .thumb_func_start Func_43e0
 	push	{r5, r6, lr}
 	mov	r0, #1
@@ -438,6 +481,12 @@
 	bx	r1
 .func_end Func_43e0
 
+@ RunTaskGroup
+@ r0 = selector; the group compared against each slot's byte at +5 is r0 >> 8.
+@ Walks all 20 slots in their sorted order and calls every task whose group
+@ matches, but only when the master enable at iwram_1d34 is 1.
+@ This is what the frame loop calls to run the per-frame tasks every module
+@ registers with Func_41d8.
 .thumb_func_start Func_4420
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1d34

@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ ResolveCombatantSprite
+@ r0 = combatant id. Picks the sprite variant with Func_b6e7c, then reads the
+@ combatant's record through _Func_77394 and drops any inventory entry that no
+@ longer applies with _Func_787dc.
 .thumb_func_start Func_b6eb4
 	push	{r5, r6, lr}
 	mov	r5, r0

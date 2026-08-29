@@ -1,5 +1,22 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Overlay 0x7c3044 -- serves TWO AREAS, 0x64 and 0x65, with a third fallback.
+@
+@ Slot 0  OvlFunc_308  map-load entry
+@ Slot 1  OvlFunc_30   edge transitions
+@ Slot 2  OvlFunc_74   map event list     -> .L728 (the only constant one)
+@ Slot 3  OvlFunc_7c   read after slot 4
+@ Slot 4  OvlFunc_e4   map objects
+@ Slot 5  OvlFunc_70   interactions       -> none (returns 0)
+@
+@ Area 0x64 subdivides further on the entrance id: entrances 9..0x0F and 0x11
+@ share one layout, everything else another. Slot 3 passes its 0x64 tables
+@ through Func_8b868 to tag the in-bounds records; the 0x65 and fallback tables
+@ are returned as stored.
+@ ============================================================================
+
+@ Slot 1: area 0x64 -> .L4d0, area 0x65 -> .L6c8, otherwise .L4a0.
 .thumb_func_start OvlFunc_30
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -26,16 +43,20 @@
 	bx	r1
 .func_end OvlFunc_30
 
+@ Slot 5: interaction table -- none.
 .thumb_func_start OvlFunc_70
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_70
 
+@ Slot 2: map event list. The same for both areas.
 .thumb_func_start OvlFunc_74
 	ldr	r0, =.L728
 	bx	lr
 .func_end OvlFunc_74
 
+@ Slot 3: area 0x64 splits on entrance -- 9..0x0F or 0x11 give .L8d4, other
+@ entrances .L79c, both tagged by Func_8b868. Area 0x65 -> .La0c, else .L784.
 .thumb_func_start OvlFunc_7c
 	push	{r5, lr}
 	ldr	r1, =ewram_240
@@ -82,6 +103,7 @@
 	bx	r1
 .func_end OvlFunc_7c
 
+@ Slot 4: the map object table, on the same area and entrance split as slot 3.
 .thumb_func_start OvlFunc_e4
 	push	{lr}
 	ldr	r1, =ewram_240
@@ -123,6 +145,7 @@
 	bx	r1
 .func_end OvlFunc_e4
 
+@ Talk: line 0x1ADD from slot 0x0C, then sets save bit 0x910.
 .thumb_func_start OvlFunc_144
 	push	{lr}
 	bl	__Func_916b0
@@ -139,6 +162,7 @@
 	bx	r0
 .func_end OvlFunc_144
 
+@ Talk: line 0x1AE3 from slot 0x10, asked as a question.
 .thumb_func_start OvlFunc_16c
 	push	{lr}
 	bl	__Func_916b0
@@ -152,6 +176,11 @@
 	bx	r0
 .func_end OvlFunc_16c
 
+@ InnCounter
+@ Takes no arguments. Facing 0xA000..0xE000 opens INN 7 with speaker slot 8;
+@ otherwise the innkeeper speaks. Which line depends on save bit 0x911: once
+@ set, line 0x1AFB as a statement; before that, line 0x1AD7 as a question, and
+@ answering it sets save bit 0x910.
 .thumb_func_start OvlFunc_18c
 	push	{lr}
 	mov	r0, #0
@@ -195,6 +224,10 @@
 	bx	r0
 .func_end OvlFunc_18c
 
+@ ShopCounter
+@ Takes no arguments. Same facing test at a different offset -- `facing +
+@ 0x5FFF` -- so this counter faces the opposite way. Inside the arc it opens
+@ shop type 8 through Func_b29a8; outside it, line 0x1A8F from slot 8.
 .thumb_func_start OvlFunc_1fc
 	push	{lr}
 	mov	r0, #0
@@ -222,6 +255,9 @@
 	bx	r0
 .func_end OvlFunc_1fc
 
+@ ClearSlotFlags
+@ Takes no arguments. Walks slots from 8 upward and zeroes byte +0x55 on each
+@ live entity, resetting a per-entity interaction flag across the whole map.
 .thumb_func_start OvlFunc_240
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1ebc
@@ -317,6 +353,8 @@
 	bx	r0
 .func_end OvlFunc_240
 
+@ Slot 0: map-load entry. Sets the scene step delay at [iwram_1ebc]+0x1C0 to
+@ 0x209 and, for area 0x64 only, runs the entrance staging in OvlFunc_33c.
 .thumb_func_start OvlFunc_308
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -337,6 +375,13 @@
 	bx	r1
 .func_end OvlFunc_308
 
+@ StageArea64
+@ Takes no arguments. Entrance-dependent setup for area 0x64:
+@   entrance 3               one Func_10424 metatile copy at (0x1E, 0x0E),
+@   entrances 9..0x0F, 0x11  if save bit 0x911 is set, Func_92924 on slots
+@                            0x0A..0x0E and 0x11..0x13 -- eight objects
+@                            switched to their after-state.
+@ Every other entrance needs nothing.
 .thumb_func_start OvlFunc_33c
 	push	{lr}
 	ldr	r3, =ewram_240

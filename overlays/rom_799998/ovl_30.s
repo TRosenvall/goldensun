@@ -1,29 +1,63 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Overlay 0x799998 -- four constant tables and a single conditional map-load
+@ fix-up.
+@
+@ Slot 0  OvlFunc_54  map-load entry
+@ Slot 1  OvlFunc_30  edge transitions   -> .L108
+@ Slot 2  OvlFunc_3c  map event list     -> .L180
+@ Slot 3  OvlFunc_44  read after slot 4  -> .L194
+@ Slot 4  OvlFunc_4c  map objects        -> .L1c4
+@ Slot 5  OvlFunc_38  interactions       -> none (returns 0)
+@ ============================================================================
+
+@ Slot 1: edge-transition table.
 .thumb_func_start OvlFunc_30
 	ldr	r0, =.L108
 	bx	lr
 .func_end OvlFunc_30
 
+@ Slot 5: interaction table -- none.
 .thumb_func_start OvlFunc_38
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_38
 
+@ Slot 2: map event list.
 .thumb_func_start OvlFunc_3c
 	ldr	r0, =.L180
 	bx	lr
 .func_end OvlFunc_3c
 
+@ Slot 3: read after slot 4.
 .thumb_func_start OvlFunc_44
 	ldr	r0, =.L194
 	bx	lr
 .func_end OvlFunc_44
 
+@ Slot 4: map object table.
 .thumb_func_start OvlFunc_4c
 	ldr	r0, =.L1c4
 	bx	lr
 .func_end OvlFunc_4c
+
+@ Map-load entry.
+@
+@ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x204 and the message
+@ delay at +0x1C8 to 0x18 -- slower than the usual 0x10, so this room's text
+@ reads at a deliberate pace.
+@
+@ The rest runs only when save bit 0x300 is set, and stages one map object that
+@ the object table cannot describe on its own:
+@   - Func_923e4 places slot 8 at (0xD80000, 0x880000),
+@   - animation 2, then Func_c528 with argument 0 on its entity,
+@   - byte +0x23 set to 2 -- the display-offset flags, where bit 1 shifts the
+@     sprite by -0x140.0000 -- and byte +0x59 cleared,
+@     which is the flag OvlFunc_6c-style lookups test to decide whether an
+@     entity blocks a push,
+@   - Func_10704 repaints a 5x5 attribute block from (0xB, 0x24) to (0xB, 6),
+@     so the collision under the object matches where it now stands.
 
 .thumb_func_start OvlFunc_54
 	push	{r5, lr}

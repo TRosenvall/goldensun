@@ -1,26 +1,49 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ============================================================================
+@ Overlay 0x7fc720 -- a SANCTUM interior, plus what looks like a development
+@ level-grant screen.
+@
+@ Slot 0  OvlFunc_71c  map-load entry
+@ Slot 1  OvlFunc_30   edge transitions   -> .L964
+@ Slot 2  OvlFunc_3c   map event list     -> .L994
+@ Slot 3  OvlFunc_44   read after slot 4  -> .L998
+@ Slot 4  OvlFunc_98   map objects        -> .La58
+@ Slot 5  OvlFunc_38   interactions       -> none (returns 0)
+@
+@ Unlike most overlays this one draws its own UI rather than going through the
+@ cutscene layer: Func_162d4 opens window records directly and the rom_15000
+@ text primitives (Func_1e74c, Func_1e940, Func_1ea08) render into them. That
+@ is why the import list reaches into rom_15000 and rom_77000 -- the menu and
+@ character-record modules -- instead of only rom_8a000.
+@ ============================================================================
+
+@ Slot 1: edge-transition table.
 .thumb_func_start OvlFunc_30
 	ldr	r0, =.L964
 	bx	lr
 .func_end OvlFunc_30
 
+@ Slot 5: interaction table -- none.
 .thumb_func_start OvlFunc_38
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_38
 
+@ Slot 2: map event list.
 .thumb_func_start OvlFunc_3c
 	ldr	r0, =.L994
 	bx	lr
 .func_end OvlFunc_3c
 
+@ Slot 3: read after slot 4.
 .thumb_func_start OvlFunc_44
 	ldr	r0, =.L998
 	bx	lr
 .func_end OvlFunc_44
 
+@ Talk: line 0x23CD from slot 0x0D, preceded by interaction effect 0x102.
 .thumb_func_start OvlFunc_4c
 	push	{lr}
 	ldr	r0, =0x23cd
@@ -37,6 +60,8 @@
 	bx	r0
 .func_end OvlFunc_4c
 
+@ Talk: the same line 0x23CD from slot 0x0D, but with effect 0x105 instead --
+@ a second approach to the same speaker.
 .thumb_func_start OvlFunc_70
 	push	{lr}
 	ldr	r1, =0x105
@@ -52,11 +77,17 @@
 	bx	r0
 .func_end OvlFunc_70
 
+@ Slot 4: map object table.
 .thumb_func_start OvlFunc_98
 	ldr	r0, =.La58
 	bx	lr
 .func_end OvlFunc_98
 
+@ RaiseCharacterLevel
+@ r0 = combatant id, r1 = number of levels to add.
+@ Reads the current level from byte +0x0F of the record and calls Func_792fc
+@ with current + r1 as the TARGET, so the character gains the levels one at a
+@ time and every per-level effect fires. Func_77428 then rebuilds the summary.
 .thumb_func_start OvlFunc_a0
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -73,6 +104,9 @@
 	bx	r0
 .func_end OvlFunc_a0
 
+@ RaisePartyLevels
+@ r0 = number of levels. Widens the roster into a stack array with Func_796c4
+@ and applies OvlFunc_a0 to every member.
 .thumb_func_start OvlFunc_c0
 	push	{r5, r6, r7, lr}
 	sub	sp, #0x20
@@ -98,6 +132,23 @@
 	bx	r0
 .func_end OvlFunc_c0
 
+@ LevelGrantScreen
+@ Takes no arguments. Opens a 0x1E x 9 window at (0, 2), draws strings 0xC20,
+@ 0xC21 and 0xC22 down the left, and shows the party leader's level from byte
+@ +0x0F of its record, refreshed each pass.
+@
+@ It then polls iwram_1c94 -- the raw "pressed this frame" bits from
+@ Func_3650 -- directly, rather than through the menu layer:
+@     A (bit 0)                 raise the whole party one level, sound 0x5B
+@     SELECT (2) or START (3)   raise the whole party five levels, sound 0x5D
+@     B (bit 1)                 sound 0x71, close the window and return
+@ Everything else yields a frame through Func_30f8(1).
+@
+@ There is no cost, no confirmation and no story gate -- a button press grants
+@ levels to every roster member outright. Together with the raw input handling
+@ and this overlay's position near the very end of the ROM, that reads as a
+@ development screen rather than shipped content. Whether it is reachable in
+@ the retail build is not something this file can answer.
 .thumb_func_start OvlFunc_ec
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -224,6 +275,14 @@
 	b	.L140
 .func_end OvlFunc_ec
 
+@ SanctumMenu
+@ Takes no arguments. The sanctum's service menu: sound 0x70, then two windows
+@ -- a 0x1E x 7 header at (0, 0) and a 0x1C x 0xA list at (0, 8) -- with a
+@ hand-rolled DMA3 pair copying palette entries at 0x5000200 and 0x50001E8.
+@
+@ The list is redrawn whenever the selection changes, with Func_78500 consulted
+@ to decide which entries are affordable, and Func_b1c (the ARM divide helper)
+@ used to scale the displayed cost.
 .thumb_func_start OvlFunc_214
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -512,6 +571,10 @@
 	bx	r0
 .func_end OvlFunc_214
 
+@ SanctumService
+@ The service the menu above dispatches to -- roughly 250 instructions of
+@ window handling, prompts and record edits, structurally the same as
+@ OvlFunc_214 but acting on the chosen party member.
 .thumb_func_start OvlFunc_4b0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -764,6 +827,8 @@
 	b	.L4f8
 .func_end OvlFunc_4b0
 
+@ Trigger: sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x201 and the
+@ message delay at +0x1C8 to 0x18, then leaves a message pending.
 .thumb_func_start OvlFunc_6f8
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -782,6 +847,13 @@
 	bx	r0
 .func_end OvlFunc_6f8
 
+@ Slot 0: map-load entry.
+@
+@ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x204 and the message
+@ delay at +0x1C8 to 0x18. Slot 0x0B gets 0x19999 written to BOTH +0x18 and
+@ +0x1C -- its two motion rate fields -- and slots 0x0D and 0x0E are put into
+@ animations 5 and 2, so the sanctum's attendants are already in pose when the
+@ room appears.
 .thumb_func_start OvlFunc_71c
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc
@@ -814,6 +886,9 @@
 	bx	r1
 .func_end OvlFunc_71c
 
+@ ConfirmPrompt
+@ Opens a 0x1E x 6 window at (0, 0x0D) and draws strings .L920 and .L93c into
+@ it -- the sanctum's confirmation box.
 .thumb_func_start OvlFunc_768
 	push	{r5, lr}
 	sub	sp, #0x24
@@ -846,6 +921,7 @@
 	bx	r0
 .func_end OvlFunc_768
 
+@ Short helper for the menu above.
 .thumb_func_start OvlFunc_7b8
 	ldr	r3, =iwram_1f30
 	ldr	r3, [r3]
@@ -855,6 +931,7 @@
 	bx	lr
 .func_end OvlFunc_7b8
 
+@ Short helper for the menu above.
 .thumb_func_start OvlFunc_7c8
 	push	{lr}
 	bl	__Func_29554
@@ -862,6 +939,7 @@
 	bx	r1
 .func_end OvlFunc_7c8
 
+@ Short helper for the menu above.
 .thumb_func_start OvlFunc_7d4
 	push	{lr}
 	bl	__Func_2977c

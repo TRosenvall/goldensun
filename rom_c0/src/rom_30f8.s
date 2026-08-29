@@ -1,6 +1,17 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ AdvanceFrames -- the heartbeat of every synchronous loop
+@ r0 = number of frames to wait. Returns when they have elapsed.
+@ IT SWITCHES STACKS. When the caller's SP is below iwram_79ff it saves the
+@ difference at iwram_1804, DMA3-copies the current stack out to ewram_23b0, and
+@ moves SP to iwram_7a00 for the duration. That is why deeply nested game code
+@ can call this without overflowing the system stack _start set up.
+@ While waiting it services the frame: Func_3538 for input timing, Func_4420 to
+@ run the registered task groups, Func_3d04 and Func_3e10 for the display
+@ lists, and Func_5fcc for sound.
+@ Every "run until done" loop in the ROM -- battle animations, menus, text
+@ boxes -- is built on this call. 473 lines; traced structurally.
 .thumb_func_start Func_30f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -473,151 +484,3 @@
 	pop	{r0}
 	bx	r0
 .func_end Func_30f8
-
-.thumb_func_start Func_352c
-	ldr	r2, =iwram_1b00
-	mov	r3, #0x13
-	str	r3, [r2]
-	bx	lr
-.func_end Func_352c
-
-.thumb_func_start Func_3538
-	push	{r5, lr}
-	ldr	r4, =iwram_1b00
-	ldr	r0, [r4]
-	mov	r5, #0
-	cmp	r0, #0
-	bgt	.L355e
-	ldr	r2, =iwram_1ae8
-	ldr	r3, =iwram_1b04
-	ldr	r2, [r2]
-	str	r2, [r3]
-	ldr	r1, [r3]
-	cmp	r0, #0
-	bne	.L3558
-	mov	r3, #6
-	str	r3, [r4]
-	b	.L3564
-.L3558:
-	mov	r3, #0x13
-	str	r3, [r4]
-	b	.L3564
-.L355e:
-	ldr	r3, =iwram_1b04
-	str	r5, [r3]
-	ldr	r1, [r3]
-.L3564:
-	cmp	r1, #0
-	beq	.L360a
-	mov	r3, #0x40
-	and	r3, r1
-	mov	r2, #0
-	cmp	r3, #0
-	beq	.L3574
-	mov	r2, #1
-.L3574:
-	mov	r3, #0x80
-	and	r3, r1
-	cmp	r3, #0
-	beq	.L357e
-	add	r2, #1
-.L357e:
-	mov	r3, #0x20
-	and	r3, r1
-	cmp	r3, #0
-	beq	.L3588
-	add	r2, #1
-.L3588:
-	mov	r3, #0x10
-	and	r3, r1
-	cmp	r3, #0
-	beq	.L3592
-	add	r2, #1
-.L3592:
-	ldr	r0, =iwram_1afc
-	str	r1, [r0]
-	cmp	r2, #1
-	beq	.L35b8
-	cmp	r2, #1
-	bcc	.L35b0
-	cmp	r2, #2
-	beq	.L35c2
-	cmp	r2, #3
-	beq	.L35e0
-	ldr	r2, =iwram_1d04
-	mov	r3, #0x30
-	str	r3, [r2]
-	ldr	r2, =0xff0f
-	b	.L3602
-.L35b0:
-	ldr	r2, =iwram_1d04
-	mov	r3, #0x30
-	str	r3, [r2]
-	b	.L360e
-.L35b8:
-	ldr	r2, =iwram_1d04
-	mov	r3, #0xf0
-	and	r1, r3
-	str	r1, [r2]
-	b	.L360e
-.L35c2:
-	ldr	r1, =iwram_1d04
-	ldr	r3, [r1]
-	ldr	r2, [r0]
-	and	r3, r2
-	cmp	r3, #0
-	bne	.L35d2
-	mov	r3, #0x30
-	str	r3, [r1]
-.L35d2:
-	ldr	r3, [r1]
-	ldr	r2, =0xffff
-	eor	r3, r2
-	ldr	r2, [r0]
-	and	r2, r3
-	str	r2, [r0]
-	b	.L360e
-.L35e0:
-	ldr	r4, =iwram_1d04
-	ldr	r3, [r4]
-	mov	r2, #0x30
-	and	r3, r2
-	cmp	r3, #0
-	beq	.L35ee
-	mov	r5, #0x30
-.L35ee:
-	ldr	r3, [r4]
-	mov	r2, #0xc0
-	and	r3, r2
-	cmp	r3, #0
-	beq	.L35fa
-	mov	r5, #0xc0
-.L35fa:
-	ldr	r2, =0xffff
-	eor	r2, r5
-	and	r1, r2
-	str	r1, [r4]
-.L3602:
-	ldr	r3, [r0]
-	and	r3, r2
-	str	r3, [r0]
-	b	.L360e
-.L360a:
-	ldr	r3, =iwram_1afc
-	str	r1, [r3]
-.L360e:
-	ldr	r1, =iwram_1ae8
-	ldr	r0, =iwram_1cf4
-	ldr	r3, [r1]
-	ldr	r2, [r0]
-	eor	r3, r2
-	ldr	r2, [r1]
-	ldr	r4, =iwram_1c94
-	and	r3, r2
-	str	r3, [r4]
-	ldr	r3, [r1]
-	str	r3, [r0]
-	pop	{r5}
-	pop	{r0}
-	bx	r0
-.func_end Func_3538

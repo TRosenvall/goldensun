@@ -1,6 +1,39 @@
 	.include "macros.inc"
+
+@ ============================================================================
+@ A wagering minigame -- pseudo-area 0x1FD.
+@
+@ Seven functions. rom_8a000's Func_8a8e4 treats area ids above 0x1FA as
+@ special screens rather than maps, and dispatches four of them: 0x1FB does
+@ nothing, 0x1FC is rom_f6000, 0x1FD is this, and 0x1FE starts a battle through
+@ rom_b5000's _Func_b63c8. The caller saves and restores the palette at
+@ 0x50001C0 around the call.
+@
+@ THE STAKE IS MONEY. `_Func_79700(-bet)` takes it, clamped against the balance
+@ at ewram_240+0x10 first so it can never go negative, and `_Func_79700(+prize)`
+@ pays out after a twenty-step sequence. `_Func_77348` supplies the party's
+@ average level, which is what the difficulty scales on. That is the whole
+@ difference from rom_f6000, where the entry fee is an item.
+@
+@ It renders in perspective: Func_f4028 builds a transform in the camera block
+@ at iwram_1e80 -- the SAME block rom_b5000 allocates under tag 0x0C and shares
+@ with rom_c9000 -- walking rom_c0's matrix stack and installing a projection
+@ through Func_5258.
+@
+@ Func_f40b4, Func_f40d0 and Func_f40e8 are an 8.8 fixed-point trio; Func_f4100
+@ is a palette brightness ramp that rom_f6000 carries a byte-identical copy of
+@ as Func_f6038.
+@ ============================================================================
 	.include "gba.inc"
 
+@ RunWagerMinigame -- PSEUDO-AREA 0x1FD
+@ r0 = a parameter passed straight to Func_f4168. Returns 0.
+@
+@ Entered from rom_8a000's Func_8a8e4 (EnterArea): area ids above 0x1FA are not
+@ maps at all but special screens, and 0x1FD is this one. The caller saves the
+@ palette at 0x50001C0 around the call and restores it afterwards.
+@
+@ Sets DISPCNT to 0x40, plays music 9 and hands off to Func_f4168.
 .thumb_func_start Func_f4008
 	push	{lr}
 	ldr	r3, =0x40
@@ -20,6 +53,18 @@
 	bx	r1
 .func_end Func_f4008
 
+@ SetUpProjection
+@ Takes no arguments. Builds the 3D view for the minigame in the camera block at
+@ iwram_1e80 -- the SAME block rom_b5000 allocates under tag 0x0C and shares with
+@ rom_c9000, so the three modules agree on its layout.
+@
+@ It writes 0x9800 to +0x34 (the x rotation) and 0x1FE0000 to +0x20 (the
+@ distance), zeroes the position at +0x0C..+0x14 and +0x18..+0x1C and the second
+@ angle at +0x36, then walks the matrix stack: Func_49ac for identity,
+@ Func_4cb4 to scale by the vector at +0x0C, Func_4c1c and Func_4bd4 to rotate
+@ about the two axes, Func_9c0 to transform. Func_8ac divides 0xFA0000 by 0xC000
+@ in 16.16 and Func_5258 installs the result as the projection with a far plane
+@ of 0x7FFF0000.
 .thumb_func_start Func_f4028
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1e80
@@ -76,6 +121,10 @@
 	bx	r0
 .func_end Func_f4028
 
+@ MulFixed8
+@ r0, r1 = signed 16-bit values. Returns `(r0 * r1) >> 8` as a signed 16-bit
+@ result, with 0xFF added before the shift when the product is negative so the
+@ truncation rounds toward zero rather than toward minus infinity.
 .thumb_func_start Func_f40b4
 	push	{lr}
 	lsl	r0, #16
@@ -94,6 +143,9 @@
 	bx	r1
 .func_end Func_f40b4
 
+@ DivFixed8
+@ r0 = numerator, r1 = denominator, both signed 16-bit. Returns
+@ `(r0 << 8) / r1` -- the inverse of Func_f40b4, through Func_af0.
 .thumb_func_start Func_f40d0
 	push	{lr}
 	lsl	r0, #16
@@ -107,6 +159,8 @@
 	bx	r1
 .func_end Func_f40d0
 
+@ Reciprocal
+@ r0 = a signed 16-bit value. Returns `0x10000 / r0`, narrowed to 16 bits.
 .thumb_func_start Func_f40e8
 	push	{lr}
 	mov	r1, r0
@@ -121,6 +175,12 @@
 	bx	r1
 .func_end Func_f40e8
 
+@ ScalePalette
+@ r0 = source colours, r1 = destination, r2 = a 16.16 scale, r3 = count.
+@ Scales each 5:5:5 colour channel by channel: the three masks 0x001F, 0x03E0
+@ and 0x7C00 are extracted, multiplied, shifted back down by 16 and re-masked, so
+@ a channel that overflows is truncated to its own field rather than carrying
+@ into the next. A brightness ramp, in other words.
 .thumb_func_start Func_f4100
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -178,6 +238,28 @@
 	bx	r1
 .func_end Func_f4100
 
+@ RunWagerMinigameLoop
+@ r0 = a mode. The minigame itself, and the largest function in the module.
+@
+@ It takes five allocations up front -- tag 0x29 for 0x60E bytes, 0x28 for
+@ 0x200, 0x27 for 0x782C, 0x2D for 0x618 and 0x0C for 0x4C -- builds a 32x20
+@ tilemap at 0x6003000 by hand, and loads assets 0x42 and 0x43 (tiles at
+@ 0x6004000 and 0x6010000, palettes at 0x5000200) through Func_5340.
+@ Func_f4028 sets the projection up and Func_f4100 ramps the palette.
+@
+@ THE PLAYER WAGERS MONEY. `_Func_79700(-stake)` takes the bet, clamped first
+@ against the balance at ewram_240+0x10 so it can never go negative, and
+@ `_Func_79700(+prize)` pays out when a counter reaches 0x14 -- twenty steps.
+@ `_Func_77348` supplies the party's average level, which is what the difficulty
+@ scales on. Func_4458 drives the randomness and Func_2322 / Func_231c the
+@ motion.
+@
+@ Sounds: 0x12F on one outcome, 0x12E on the other, 0x5B, 0x5C and 0x5D for the
+@ steps, 0x70 and 0x71 for confirm and cancel. The caps 0x270F (9999) and 0x3E7
+@ (999) bound the stake and the display.
+@
+@ 2199 lines; the allocation map, the wager path and the projection are traced,
+@ the rest structurally.
 .thumb_func_start Func_f4168
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ GetDisplayRecord
+@ r0 = id, masked to 0x3FFF and bounds-checked against 0x208. Returns
+@ .L7ee58 + id * 0x10 -- 0x10-byte display records, 520 of them.
+@ An out-of-range id falls back to entry 0. rom_15000 reads the byte at +4 of
+@ the result as a portrait id.
 .thumb_func_start Func_78b9c
 	push	{lr}
 	ldr	r3, =0x3fff
@@ -17,6 +22,9 @@
 	bx	r1
 .func_end Func_78b9c
 
+@ HasEntry
+@ r0 = combatant id, r1 = entry id. Scans the 32-entry array of 4-byte records
+@ at combatant+0x58, comparing the halfword masked to 0x3FFF. Returns 1 or 0.
 .thumb_func_start Func_78bc0
 	push	{r5, lr}
 	mov	r5, r1
@@ -43,6 +51,12 @@
 	bx	r1
 .func_end Func_78bc0
 
+@ RecomputeEquipmentEffects
+@ r0 = combatant id. Walks the inventory and the 32-entry array at +0x58,
+@ applying every equipped item's modifiers to the derived stats through
+@ Func_78414 and Func_79ad8. 320 lines; traced structurally.
+@ This is what Func_78708 calls after changing inventory, so a stat that looks
+@ wrong after equipping is most likely a bug in here.
 .thumb_func_start Func_78bf0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -363,6 +377,9 @@
 	bx	r1
 .func_end Func_78bf0
 
+@ ApplyEquipmentChange
+@ r0 = combatant id, r1.. = the change. Updates the record and re-runs
+@ Func_78bf0 so the derived stats stay consistent.
 .thumb_func_start Func_78e28
 	push	{r5, r6, r7, lr}
 	mov	r6, r1
@@ -451,6 +468,8 @@
 	bx	r1
 .func_end Func_78e28
 
+@ NotifyEquipmentChanged
+@ r0.. = parameters. Forwards to Func_792c4.
 .thumb_func_start Func_78ecc
 	push	{lr}
 	bl	Func_792c4

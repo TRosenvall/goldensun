@@ -1,6 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ FindLoadedResource
+@ r0=resource key. Linear-scans the 8 loader slots at [iwram_1e68]+0x1C
+@ (stride 8) for a matching key and returns that slot's data pointer (+0x20),
+@ or 0 if the resource is not currently loaded. Keys are written by Func_b6b8
+@ (f9_5_rom_b6b8.s) as (slot << 12) | id.
 .thumb_func_start Func_b798
 	push	{lr}
 	ldr	r3, =iwram_1e68
@@ -25,6 +30,18 @@
 	bx	r1
 .func_end Func_b798
 
+@ BindActorParts
+@ r0=actor. Rebinds every part in the actor's array (+0x27 = count,
+@ +0x28.. = up to 4 part pointers) to its resource header, fetched by part id
+@ with _Func_185008. Always returns 0.
+@ From the FIRST part only, caches the actor-level sprite metrics:
+@   header[0] -> +0x20 (width)     header[1] -> +0x21 (height)
+@   header[2..3] << 8 -> +0x18 (depth)
+@   header[6] -> +0x22   header[7] -> +0x23  (position correction bytes)
+@ For every part: pixel data comes from header+0x0C, or from Func_b798 if that
+@ is null; then part+0x04 = header[4], +0x08 = pixel data, +0x0C = animation
+@ table (header+0x10), +0x07 = header[0x0A], and the animation state is reset
+@ (+0x14 = 0, +0x10 = 0, +0x16 = 0xFF "no frame drawn yet").
 .thumb_func_start Func_b7c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -115,6 +132,12 @@
 	bx	r1
 .func_end Func_b7c0
 
+@ BindPartResource
+@ r0=part. Single-part version of the per-part half of Func_b7c0: looks up the
+@ part's resource header by its id (+0x00), resolves the pixel data from
+@ header+0x0C or Func_b798, and rewrites +0x04/+0x07/+0x08/+0x0C plus the
+@ animation reset (+0x10 = 0, +0x14 = 0, +0x16 = 0xFF). No-op on a null part
+@ or an empty header.
 .thumb_func_start Func_b868
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -152,6 +175,14 @@
 	bx	r0
 .func_end Func_b868
 
+@ AddActorPart
+@ r0=actor, r1=resource id. Finds the first empty entry in the actor's 4-slot
+@ part array (+0x28..+0x34), allocates a part for the id with Func_bbc0 and
+@ stores it there. Returns the new part, 0 if allocation failed, or -1 if all
+@ four slots are already occupied. When this is the actor's first part, the
+@ actor-level metrics (+0x20..+0x23, +0x18) are seeded from the resource header
+@ exactly as Func_b7c0 does. The part count at +0x27 grows only when the slot
+@ filled was the one just past the end.
 .thumb_func_start Func_b8ac
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -231,6 +262,11 @@
 	bx	r1
 .func_end Func_b8ac
 
+@ RemoveActorPart
+@ r0=actor, r1=part pointer. Frees the part with Func_bc48, locates it in the
+@ actor's 4-slot array and clears that slot. If every slot after the removed
+@ one is empty, the part count at +0x27 shrinks to the removed index -- so
+@ trailing holes are reclaimed but interior ones are left in place.
 .thumb_func_start Func_b93c
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -291,6 +327,10 @@
 	bx	r0
 .func_end Func_b93c
 
+@ RemoveActorPartAtIndex
+@ r0=actor, r1=slot index (0-3). Same as Func_b93c but addressed by index
+@ instead of by pointer: frees the occupant with Func_bc48, clears the slot,
+@ and shrinks the count at +0x27 when no later slot is still occupied.
 .thumb_func_start Func_b9a4
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -337,6 +377,12 @@
 	bx	r0
 .func_end Func_b9a4
 
+@ SetPartAnimation
+@ r0=part, r1=animation index; bit 7 of r1 means "switch without rewinding".
+@ Ignored if the part has no animation table (+0x0C) or the index is beyond the
+@ resource's animation count (header[5]). Points +0x10 at the selected script,
+@ copies header[4] to +0x04, sets the speed at +0x15 to 0x10, and unless the
+@ no-rewind bit is set clears the script cursor (+0x14) and frame timer (+0x02).
 .thumb_func_start Func_b9f4
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -370,6 +416,13 @@
 	bx	r0
 .func_end Func_b9f4
 
+@ SetActorAnimation
+@ r0=actor, r1=animation index in bits 0-6, bit 7 = "switch without rewinding".
+@ Early-outs when the requested index already matches the actor's current
+@ animation at +0x24. Otherwise applies the Func_b9f4 transition to every bound
+@ part, additionally refreshing the actor's position-correction bytes
+@ (+0x22/+0x23) from part 0's header, then records the new index at +0x24.
+@ Always returns 0.
 .thumb_func_start Func_ba30
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -454,6 +507,11 @@
 	bx	r1
 .func_end Func_ba30
 
+@ SetActorAnimTimer
+@ r0=actor, r1=frames. Writes r1 << 4 into the frame timer (+0x02) of every
+@ bound part that has an animation table, i.e. seeds the countdown in the
+@ 1/16-frame fixed-point units the tick loop decrements by the speed at +0x15.
+@ Always returns 0.
 .thumb_func_start Func_bacc
 	push	{lr}
 	mov	r3, r0
@@ -482,6 +540,9 @@
 	bx	r1
 .func_end Func_bacc
 
+@ SetActorAnimSpeed
+@ r0=actor, r1=speed. Writes r1 to the playback speed byte (+0x15) of every
+@ bound part that has an animation table. 0x10 is normal speed (see Func_b9f4).
 .thumb_func_start Func_baf8
 	push	{lr}
 	mov	r3, r0
@@ -508,6 +569,16 @@
 	bx	r0
 .func_end Func_baf8
 
+@ InitSpriteSystem
+@ r0=allocation mode; 3 uses the Func_48f4 allocator, anything else Func_48b0.
+@ Brings up the actor/part subsystem:
+@   - allocates the actor pool (0xE00 bytes, tag 4) and the part pool
+@     (0x600 bytes, tag 3), then zero-fills both by DMA3 (0x380 and 0x180 words)
+@   - Func_4838 initialises the dependent tables
+@   - Func_3fa4(0x5D, 0x80, .L12f20) reserves the shared OBJ tile range
+@   - allocates 0x7C bytes (tag 0x35) and DMA-copies Func_a418 (the linear
+@     bitmap -> 8x8 tile converter, rom_92b8.s) into it so the hot conversion
+@     path runs from RAM rather than ROM
 .thumb_func_start Func_bb20
 	push	{r5, r6, r7, lr}
 	sub	sp, #4
@@ -574,6 +645,14 @@
 	bx	r0
 .func_end Func_bb20
 
+@ AllocPart
+@ r0=resource id. Claims the first free entry in the part pool at [iwram_1e5c]
+@ (stride 0x18, up to 0x40 entries; free means the kind byte at +0x04 is 0) and
+@ initialises it from the resource header: +0x00 = id, +0x08 = pixel data
+@ (header+0x0C, or Func_b798 when null), +0x0C = animation table, +0x07 =
+@ header[0x0A], +0x04 = header[4], +0x05 = 0, +0x10 = first animation script,
+@ +0x14 = 0, +0x16 = 0xFF. Returns the part, or 0 when the pool is full or the
+@ resource header is empty.
 .thumb_func_start Func_bbc0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -649,6 +728,10 @@
 	bx	r1
 .func_end Func_bbc0
 
+@ FreePart
+@ r0=part. Returns the part to the pool by DMA3 zero-filling its 0x18 bytes
+@ (6 words, fixed source) -- clearing +0x04 is what marks the slot free for
+@ Func_bbc0. No-op on a null pointer.
 .thumb_func_start Func_bc48
 	push	{lr}
 	mov	r1, r0
@@ -668,6 +751,23 @@
 	bx	r0
 .func_end Func_bc48
 
+@ CreateActor
+@ r0=resource id. Allocates and initialises a new actor, returning it (0 on
+@ failure). Steps:
+@   - fetch the resource header; Func_4080 derives the tile-allocation size code
+@     (0x60 means "too large", which aborts)
+@   - claim the first free entry in the actor pool at [iwram_1e60] (stride 0x38,
+@     up to 0x40 entries; free means +0x20 is 0)
+@   - Func_3fa4 reserves OBJ tiles; the size code is kept at +0x1C, +0x1E is
+@     cleared and the visible flag at +0x26 is set
+@   - map the sprite's (header[0] << 8 | header[1]) pixel dimensions onto the
+@     OAM shape/size bits via the comparison chain at .Lbd12..: 0x0808, 0x0810,
+@     0x1008, 0x1010, 0x1020, 0x2020, 0x2040, 0x4020, 0x4040. An unrecognised
+@     pair falls through to 0 (8x8).
+@   - write the OAM attribute template into +0x00..+0x14: attr0 = 0,
+@     attr1 = shape/size | 0x2000, attr2 = tile | 0x800, then the priority word
+@     0x6000 and a palette field taken from iwram_1b10[0xBB] >> 5
+@   - Func_b8ac attaches the first part for the same resource id
 .thumb_func_start Func_bc70
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -835,6 +935,11 @@
 	bx	r1
 .func_end Func_bc70
 
+@ DestroyActor
+@ r0=actor. Releases the actor's OBJ tile allocation with Func_3f3c (skipped
+@ when bit 0 of +0x1D marks the tiles as externally owned), frees all four part
+@ slots with Func_bc48, then DMA3 zero-fills the actor's 0x38 bytes (0xE words)
+@ to return it to the pool. No-op on a null pointer.
 .thumb_func_start Func_bdd4
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
@@ -873,6 +978,15 @@
 	bx	r0
 .func_end Func_bdd4
 
+@ GetAnimationDuration
+@ r0=resource id, r1=animation index, r2=frame count. Returns the summed
+@ duration of the first r2 frames of that animation, or 0 if the index is
+@ beyond the resource's animation count (header[5]).
+@ Walks the animation script as (opcode, operand) byte pairs. Opcodes 0xEF,
+@ 0xF1, 0xFD and 0xFE terminate the walk early. 0xF5, 0xFF and any opcode
+@ <= 0xEE count as a displayed frame: the operand is added to the running total
+@ and the remaining-frame counter decrements. Other opcodes are skipped without
+@ consuming a frame.
 .thumb_func_start Func_be20
 	push	{r5, r6, r7, lr}
 	mov	r6, r1
@@ -921,5 +1035,7 @@
 
 	.section .rodata
 
+@ .L12f20 -- OBJ tile allocation descriptor passed to Func_3fa4 by
+@ Func_bb20 when reserving the shared sprite tile range.
 .L12f20:
 	.incrom 0x12f20, 0x12fa0

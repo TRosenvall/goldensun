@@ -1,5 +1,8 @@
 	.include "macros.inc"
 
+@ Leaf helper, 22 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1e40
 .thumb_func_start OvlFunc_2dcc
 	push	{lr}
 	ldr	r3, =iwram_1e40
@@ -27,6 +30,11 @@
 	bx	r0
 .func_end OvlFunc_2dcc
 
+@ PaletteFadeToWhite
+@ Walks a run of BGR555 palette entries, splits each into its three 5-bit
+@ channels, and steps every channel that is below 0x1F up by one. Entries
+@ already at full white are counted rather than written, so the caller can tell
+@ when the fade has finished.
 .thumb_func_start OvlFunc_2e08
 	push	{r5, r6, lr}
 	ldr	r6, =0x1f
@@ -83,6 +91,13 @@
 	bx	r0
 .func_end OvlFunc_2e08
 
+@ 106 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetEntityActorOptions, SetSlotPalette, PlaySound
+@   OvlFunc_3bd4, PlaySound, Random x3, OvlFunc_common0_10c
+@   Func_30f8
 .thumb_func_start OvlFunc_2e6c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -195,6 +210,10 @@
 	bx	r0
 .func_end OvlFunc_2e6c
 
+@ Cutscene: roughly 631 instructions of straight-line script --
+@ 14 turns, 6 animation changes, 0 dialogue lines, 26 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bit 0x881.
 .thumb_func_start OvlFunc_2f68
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

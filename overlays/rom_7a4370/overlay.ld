@@ -13,20 +13,55 @@ MEMORY {
 
 SECTIONS {
 	.text : {
-		overlays/rom_7a4370/exports.o(.text)
-		overlays/rom_7a4370/ovl_30.o(.text)
-		overlays/rom_7a4370/imports.o(.text)
+		src/overlays/rom_7a4370/exports.o(.text)
+		asm/overlays/rom_7a4370/ovl_30_b.o(.text)
+		asm/overlays/rom_7a4370/ovl_30_c_a_b.o(.text)
+		asm/overlays/rom_7a4370/ovl_30_c_b.o(.text)
+		asm/overlays/rom_7a4370/ovl_30_c_c_a_b.o(.text)
+		asm/overlays/rom_7a4370/ovl_30_c_c_a_c.o(.text)
+		asm/overlays/rom_7a4370/ovl_30_c_c_b.o(.text)
+		asm/overlays/rom_7a4370/ovl_30_c_c_c_a_b.o(.text)
+		asm/overlays/rom_7a4370/ovl_30_c_c_c_a_c.o(.text)
+		asm/overlays/rom_7a4370/ovl_30_c_c_c_b.o(.text)
+		asm/overlays/rom_7a4370/ovl_30_c_c_c_c_a_a_a.o(.text)
+		asm/overlays/rom_7a4370/ovl_30_c_c_c_c_a_a_b.o(.text)
+		asm/overlays/rom_7a4370/ovl_30_c_c_c_c_a_a_c_a.o(.text)
+		asm/overlays/rom_7a4370/ovl_30_c_c_c_c_a_a_c_b.o(.text)
+		asm/overlays/rom_7a4370/ovl_30_c_c_c_c_a_a_c_c.o(.text)
+		asm/overlays/rom_7a4370/ovl_30_c_c_c_c_a_b.o(.text)
+		asm/overlays/rom_7a4370/ovl_30_c_c_c_c_a_c_a.o(.text)
+		asm/overlays/rom_7a4370/ovl_30_c_c_c_c_a_c_b.o(.text)
+		asm/overlays/rom_7a4370/ovl_30_c_c_c_c_b.o(.text)
+		asm/overlays/rom_7a4370/ovl_30_c_c_c_c_c_b.o(.text)
+		asm/overlays/rom_7a4370/ovl_30_c_c_c_c_c_c_b.o(.text)
+		asm/overlays/rom_7a4370/ovl_30_c_c_c_c_c_c_c_b.o(.text)
+		src/overlays/rom_7a4370/imports.o(.text)
 	} > overlay
 
 	.data : {
-		overlays/rom_7a4370/ovl_30.o(.data)
+		asm/overlays/rom_7a4370/ovl_30_c_c_c_c_c_c_b.o(.data)
+		asm/overlays/rom_7a4370/ovl_30_c_c_c_c_c_c_c_c.o(.data)
 	} > overlay
 
 	.bss : {
-		overlays/rom_7a4370/ovl_30.o(.bss)
+		asm/overlays/rom_7a4370/ovl_30_c_c_c_c_c_c_b.o(.bss)
+		asm/overlays/rom_7a4370/ovl_30_c_c_c_c_c_c_c_c.o(.bss)
 	} > overlay
 
 	/DISCARD/ : {
 		*(*)
 	}
 }
+
+/* gcc-2.96 emits __divsi3 for `/` and has no flag to rename it. Overlay code
+ * calls the RAM-resident copy through the stub .export_func divsi3_RAM makes.
+ * These are different functions at different addresses. Emits no bytes. */
+__divsi3 = _divsi3_RAM;
+
+/* gcc-2.96 emits __udivsi3 for the corresponding C operator and has
+ * no flag to rename it.  Overlay code calls the RAM-resident copy through
+ * the stub .export_func udivsi3_RAM makes; they are different functions at
+ * different addresses, so this alias is what lets the C form link to the
+ * routine the ROM actually calls.  Emits no bytes.
+ * See overlays/rom_7a5214/overlay.ld for the original of this note. */
+__udivsi3 = _udivsi3_RAM;

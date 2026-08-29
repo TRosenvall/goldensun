@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 65 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   UnsignedRem, SignedDiv
 .thumb_func_start OvlFunc_d58
 	push	{r5, r6, r7, lr}
 	sub	sp, #4
@@ -75,6 +80,9 @@
 	bx	r0
 .func_end OvlFunc_d58
 
+@ ClearPaletteRun
+@ Zeroes seven consecutive palette halfwords, walking BACKWARD from the end of
+@ the run (`sub r3, #2` each pass). Used to blank a gradient in one go.
 .thumb_func_start OvlFunc_dfc
 	push	{lr}
 	ldr	r1, =0

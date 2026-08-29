@@ -1,6 +1,25 @@
 	.include "macros.inc"
+
+@ ============================================================================
+@ Map object records, screen overlays and the fade/window system.
+@
+@ Three state blocks live here:
+@   iwram_1ecc -- the screen-overlay state (per-scanline window tables at
+@                 +0x53C, mode byte at +0x539), driven by Func_8f498/Func_8f52c
+@                 as HBlank tasks and torn down by Func_8feb0.
+@   iwram_1ed0 -- the fade state (Func_91174 allocates, Func_911e8 frees), with
+@                 Func_91200/Func_91220 starting a fade and Func_91254 waiting.
+@   iwram_1ebc -- the scene block, as elsewhere in this module.
+@ The Func_8ec14 family near the middle all resolve "the map object record the
+@ player is currently on" and then act on it, which is why they share an
+@ identical opening.
+@ ============================================================================
 	.include "gba.inc"
 
+@ ProcessMapObjects
+@ Takes no arguments. Walks the current map's object records, spawning the ones
+@ whose conditions are met and retiring the rest. The ~400-instruction body is
+@ characterised structurally.
 .thumb_func_start Func_8d9a4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -20,7 +39,7 @@
 	cmp	r5, #5
 	bhi	.L8d9e6
 	bl	Func_91660
-	ldr	r3, =.L9e680
+	ldr	r3, =L9e680
 	ldrb	r3, [r3, r5]
 	ldr	r0, =0x928
 	mov	r8, r3
@@ -446,9 +465,12 @@
 	bx	r1
 .func_end Func_8d9a4
 
+@ FindMapObjectByArea
+@ r0=area id. Searches the record table at .L9e686 for the entry matching the
+@ area, returning it or -1.
 .thumb_func_start Func_8ddb8
 	push	{lr}
-	ldr	r2, =.L9e686
+	ldr	r2, =L9e686
 	mov	r4, #0
 	ldrsh	r3, [r2, r4]
 	mov	r4, #1
@@ -475,6 +497,10 @@
 	bx	r1
 .func_end Func_8ddb8
 
+@ SpawnMapObject
+@ r0=object record. Instantiates one map object: creates its entity, applies its
+@ sprite and script and binds it to a scene slot. The ~130-instruction body is
+@ characterised structurally.
 .thumb_func_start Func_8ddec
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -624,6 +650,10 @@
 	bx	r1
 .func_end Func_8ddec
 
+@ UpdateMapObjects
+@ Takes no arguments. Per-frame pass over the spawned map objects, applying
+@ their state changes. The ~150-instruction body is characterised
+@ structurally.
 .thumb_func_start Func_8df1c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -807,6 +837,9 @@
 	bx	r1
 .func_end Func_8df1c
 
+@ ApplyObjectToSlot
+@ r0=slot, r1=object id, r2=parameter. Resolves the slot with Func_92054 and
+@ applies the object's configuration to that entity.
 .thumb_func_start Func_8e078
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
@@ -833,6 +866,9 @@
 	bx	r1
 .func_end Func_8e078
 
+@ SetObjectVisibility
+@ r0=entity, r1=visible. Adjusts the draw kind at +0x54 and the actor flags so
+@ a map object can be shown or hidden in place.
 .thumb_func_start Func_8e0b0
 	push	{lr}
 	mov	r3, r0
@@ -849,7 +885,7 @@
 	bne	.L8e0d8
 	ldr	r3, =iwram_1e40
 	ldr	r3, [r3]
-	ldr	r1, =.L9e6b8
+	ldr	r1, =L9e6b8
 	lsr	r3, #1
 	mov	r2, #7
 	and	r3, r2
@@ -888,6 +924,10 @@
 	bx	r0
 .func_end Func_8e0b0
 
+@ CloseMessageWindow
+@ Takes no arguments. Clears the message-window active flag at iwram_1ebc+0xCB6
+@ and dismisses whatever box is open. Called by Func_916b0 when a cutscene
+@ starts on top of an existing message.
 .thumb_func_start Func_8e118
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -909,6 +949,9 @@
 	bx	r0
 .func_end Func_8e118
 
+@ GetObjectRecordField
+@ r0=object id. Returns a field from that object's record, used by the accessors
+@ below. Negative results mean the object is not present.
 .thumb_func_start Func_8e14c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1030,6 +1073,9 @@
 	bx	r1
 .func_end Func_8e14c
 
+@ ConfigureMapObject
+@ r0=object record. Applies the record's flags, position and behaviour to its
+@ live entity. The ~150-instruction body is characterised structurally.
 .thumb_func_start Func_8e23c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1304,6 +1350,10 @@
 	bx	r1
 .func_end Func_8e23c
 
+@ RefreshMapObjectState
+@ Takes no arguments. Re-evaluates every spawned map object against the current
+@ event flags, spawning or retiring as the conditions have changed. The
+@ ~130-instruction body is characterised structurally.
 .thumb_func_start Func_8e4b4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1449,6 +1499,9 @@
 	bx	r1
 .func_end Func_8e4b4
 
+@ SortMapObjects
+@ Takes no arguments. Orders the map objects for drawing, so nearer ones occlude
+@ further ones correctly.
 .thumb_func_start Func_8e5d8
 	push	{r5, r6, lr}
 	mov	r6, r11
@@ -1516,6 +1569,9 @@
 	bx	r1
 .func_end Func_8e5d8
 
+@ RunMapObjectScripts
+@ Takes no arguments. Runs the per-object scripts for this frame. The
+@ ~300-instruction body is characterised structurally.
 .thumb_func_start Func_8e680
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1836,6 +1892,9 @@
 	bx	r1
 .func_end Func_8e680
 
+@ GetObjectRecordShort
+@ r0=object id (16-bit). Thin wrapper on the record lookup that returns the
+@ field through a stack temporary.
 .thumb_func_start Func_8e96c
 	push	{lr}
 	mov	r1, r0
@@ -1854,6 +1913,9 @@
 	bx	r1
 .func_end Func_8e96c
 
+@ GetObjectRecordNegated
+@ r0=object id (16-bit). Func_8e14c with the result negated -- used where the
+@ caller wants the complementary value.
 .thumb_func_start Func_8e990
 	push	{lr}
 	lsl	r0, #16
@@ -1867,6 +1929,9 @@
 	bx	r1
 .func_end Func_8e990
 
+@ SnapEntityToGround
+@ r0=entity. Samples the terrain height at the entity's position with
+@ _Func_11f54 and writes it back, putting the entity on the surface.
 .thumb_func_start Func_8e9a8
 	push	{r5, lr}
 	mov	r5, r0
@@ -1881,6 +1946,9 @@
 	bx	r0
 .func_end Func_8e9a8
 
+@ PlaceMapObjects
+@ Takes no arguments. Positions all spawned map objects on their tiles after a
+@ map load. The ~240-instruction body is characterised structurally.
 .thumb_func_start Func_8e9c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2173,6 +2241,10 @@
 	bx	r0
 .func_end Func_8e9c0
 
+@ GetPlayerMapObject
+@ Takes no arguments. Returns the index of the map object record the player is
+@ currently standing on, read via iwram_1ebc+0x11C, or -1 when there is none.
+@ Every Func_8ec50..Func_8edac routine below opens with this call.
 .thumb_func_start Func_8ec14
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -2203,10 +2275,14 @@
 	bx	r1
 .func_end Func_8ec14
 
+@ Nop -- empty hook.
 .thumb_func_start Func_8ec4c
 	bx	lr
 .func_end Func_8ec4c
 
+@ ActOnPlayerObjectA
+@ Takes no arguments. Applies one action to the map object under the player
+@ (Func_8ec14); does nothing when there is no such object.
 .thumb_func_start Func_8ec50
 	push	{lr}
 	bl	Func_8ec14
@@ -2236,6 +2312,9 @@
 	bx	r0
 .func_end Func_8ec50
 
+@ ActOnPlayerObjectB
+@ Takes no arguments. Second of the Func_8ec14 family -- same guard, a different
+@ field updated on the record.
 .thumb_func_start Func_8ec8c
 	push	{r5, lr}
 	bl	Func_8ec14
@@ -2275,6 +2354,8 @@
 	bx	r0
 .func_end Func_8ec8c
 
+@ ActOnPlayerObjectC
+@ Takes no arguments. Third of the Func_8ec14 family.
 .thumb_func_start Func_8ece0
 	push	{lr}
 	bl	Func_8ec14
@@ -2304,6 +2385,8 @@
 	bx	r0
 .func_end Func_8ece0
 
+@ ActOnPlayerObjectD
+@ Takes no arguments. Fourth of the Func_8ec14 family.
 .thumb_func_start Func_8ed1c
 	push	{lr}
 	bl	Func_8ec14
@@ -2328,6 +2411,9 @@
 	bx	r0
 .func_end Func_8ed1c
 
+@ ActOnNoPlayerObject
+@ Takes no arguments. The inverse guard: acts only when Func_8ec14 reports NO
+@ object under the player (note the `bne` where its siblings use `beq`).
 .thumb_func_start Func_8ed4c
 	push	{lr}
 	bl	Func_8ec14
@@ -2351,6 +2437,8 @@
 	bx	r1
 .func_end Func_8ed4c
 
+@ ActOnPlayerObjectE
+@ Takes no arguments. Fifth of the Func_8ec14 family.
 .thumb_func_start Func_8ed78
 	push	{lr}
 	bl	Func_8ec14
@@ -2377,6 +2465,9 @@
 	bx	r0
 .func_end Func_8ed78
 
+@ SetPlayerObjectFields
+@ r0 unused, r1, r2 = values. Writes both values into the map object record
+@ under the player, or does nothing if there is none.
 .thumb_func_start Func_8edac
 	push	{r5, r6, r7, lr}
 	mov	r6, r1
@@ -2426,6 +2517,9 @@
 	bx	r0
 .func_end Func_8edac
 
+@ UpdateObjectAnimation
+@ Takes no arguments. Advances the animation state of the spawned map objects.
+@ The ~90-instruction body is characterised structurally.
 .thumb_func_start Func_8ee0c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2526,6 +2620,9 @@
 	bx	r0
 .func_end Func_8ee0c
 
+@ StepObjectCounter
+@ r0=object. Advances the counter at +0x28, wrapping at 0x1FE -- the phase for
+@ an object's idle cycle.
 .thumb_func_start Func_8eee4
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -2570,7 +2667,7 @@
 	mov	r5, r0
 	cmp	r5, #0
 	beq	.L8ef60
-	ldr	r1, =.L9e87c
+	ldr	r1, =L9e87c
 	bl	_Func_c2d8
 	mov	r1, #0
 	mov	r0, r5
@@ -2590,6 +2687,9 @@
 	bx	r0
 .func_end Func_8eee4
 
+@ RebuildObjectSlots
+@ Takes no arguments. Re-binds the map objects to scene slots after the slot
+@ table has changed. The ~150-instruction body is characterised structurally.
 .thumb_func_start Func_8ef70
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2653,7 +2753,7 @@
 	bl	_Func_c0f4
 	ldr	r1, [r5]
 .L8efea:
-	ldr	r3, =.L9e87c
+	ldr	r3, =L9e87c
 	cmp	r1, r3
 	bne	.L8eff6
 	mov	r0, r5
@@ -2676,7 +2776,7 @@
 	mov	r0, #0
 	cmp	r7, #0
 	beq	.L8f0b8
-	ldr	r1, =.L9e6c0
+	ldr	r1, =L9e6c0
 	mov	r0, r7
 	bl	_Func_c2d8
 	ldr	r6, [r7, #0x50]
@@ -2749,6 +2849,9 @@
 	bx	r1
 .func_end Func_8ef70
 
+@ DestroyEntityIfPresent
+@ r0=entity. Calls _Func_c0f4 when the pointer is non-null; a null-safe wrapper
+@ used all over this file.
 .thumb_func_start Func_8f0c8
 	push	{lr}
 	cmp	r0, #0
@@ -2759,6 +2862,9 @@
 	bx	r0
 .func_end Func_8f0c8
 
+@ IsObjectNearPlayer
+@ r0=object entity. Returns whether the object is close enough to the player
+@ (ewram_240+0x1F4) to be considered active.
 .thumb_func_start Func_8f0d8
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -2794,7 +2900,7 @@
 	mov	r0, r5
 	mov	r1, #0x1c
 	bl	_Func_c300
-	ldr	r1, =.L9e75c
+	ldr	r1, =L9e75c
 	mov	r0, r6
 	bl	_Func_c2d8
 	mov	r3, #0x80
@@ -2806,6 +2912,9 @@
 	bx	r0
 .func_end Func_8f0d8
 
+@ SetObjectActiveState
+@ r0=object, r1=state. Marks the object active or dormant relative to the
+@ player, spawning or releasing its entity to match.
 .thumb_func_start Func_8f140
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -2826,7 +2935,7 @@
 	mov	r0, r5
 	mov	r1, #0
 	bl	_Func_c528
-	ldr	r1, =.L9e6c0
+	ldr	r1, =L9e6c0
 	mov	r0, r5
 	bl	_Func_c2d8
 	mov	r3, #0x80
@@ -2864,6 +2973,9 @@
 	bx	r0
 .func_end Func_8f140
 
+@ UpdateObjectProximity
+@ Takes no arguments. Runs Func_8f0d8 across the map objects and applies the
+@ resulting active/dormant transitions.
 .thumb_func_start Func_8f1c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2958,6 +3070,9 @@
 	bx	r0
 .func_end Func_8f1c0
 
+@ RandomiseObjectPhase
+@ r0=object. Gives the object a random starting phase from Func_4458 (scaled by
+@ 0x64) so identical objects do not animate in lockstep.
 .thumb_func_start Func_8f28c
 	push	{r5, r6, lr}
 	sub	sp, #0xc
@@ -2991,7 +3106,7 @@
 	mov	r5, r0
 	cmp	r5, #0
 	beq	.L8f2f4
-	ldr	r1, =.L9e87c
+	ldr	r1, =L9e87c
 	bl	_Func_c2d8
 	mov	r1, #0
 	mov	r0, r5
@@ -3011,6 +3126,9 @@
 	bx	r0
 .func_end Func_8f28c
 
+@ IsSceneLoaded
+@ Takes no arguments. Returns 0 when iwram_1ebc holds no scene block, i.e. no
+@ map is currently up.
 .thumb_func_start Func_8f304
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -3030,6 +3148,9 @@
 	bx	r1
 .func_end Func_8f304
 
+@ BuildOverlayTables
+@ Takes no arguments. Fills the per-scanline window tables in the overlay state
+@ at iwram_1ecc. The ~180-instruction body is characterised structurally.
 .thumb_func_start Func_8f32c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3169,7 +3290,7 @@
 	mov	r5, r0
 	cmp	r5, #0
 	beq	.L8f44a
-	ldr	r1, =.L9e8a0
+	ldr	r1, =L9e8a0
 	bl	_Func_c2d8
 	mov	r0, r5
 	mov	r1, #0
@@ -3209,6 +3330,9 @@
 	bx	r0
 .func_end Func_8f32c
 
+@ OverlayScanlineTask
+@ Per-frame task. Selects the next window table from iwram_1ecc using the mode
+@ byte at +0x539 and stages it for the HBlank transfer.
 .thumb_func_start Func_8f498
 	ldr	r3, =iwram_1ecc
 	ldr	r2, =0x539
@@ -3272,6 +3396,10 @@
 	bx	lr
 .func_end Func_8f498
 
+@ OverlayUpdateTask
+@ Per-frame task. Advances the overlay animation and recomputes its window
+@ geometry each frame. The ~900-instruction body is characterised
+@ structurally.
 .thumb_func_start Func_8f52c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3518,7 +3646,7 @@
 	mov	r3, #0x1f
 	and	r5, r3
 .L8f7e8:
-	ldr	r3, =.L9e8ac
+	ldr	r3, =L9e8ac
 	ldrb	r5, [r3, r5]
 	mov	r7, #0
 	mov	r3, #0xf1
@@ -4063,7 +4191,7 @@
 	bge	.L8fc02
 	mov	r3, #0x1f
 	mov	r5, r9
-	ldr	r1, =.L9e8ce
+	ldr	r1, =L9e8ce
 	and	r3, r5
 	ldrsb	r3, [r1, r3]
 	sub	r6, r3
@@ -4359,6 +4487,9 @@
 	bx	r0
 .func_end Func_8f52c
 
+@ AllocOverlayState
+@ r0=mode. Allocates the 0x540-byte overlay state under tag 0x1F and
+@ initialises it for that mode.
 .thumb_func_start Func_8fe38
 	push	{r5, r6, lr}
 	mov	r1, #0xa8
@@ -4405,6 +4536,9 @@
 	bx	r0
 .func_end Func_8fe38
 
+@ StopScreenOverlay
+@ Takes no arguments. Suspends both overlay tasks (Func_8f52c and Func_8f498)
+@ with Func_42c8, freezing the effect without freeing its state.
 .thumb_func_start Func_8feb0
 	push	{lr}
 	ldr	r0, =Func_8f52c
@@ -4415,6 +4549,9 @@
 	bx	r0
 .func_end Func_8feb0
 
+@ GetOverlayState
+@ Takes no arguments. Returns the overlay state block, allocating it through
+@ Func_48f4(0x1F, 0x540) if it does not exist yet.
 .thumb_func_start Func_8fecc
 	push	{lr}
 	mov	r1, #0xa8
@@ -4437,6 +4574,11 @@
 	bx	r1
 .func_end Func_8fecc
 
+@ ShowScreenOverlay
+@ r0, r1 = overlay parameters. Brings up a screen overlay: sets the mode,
+@ builds its window tables and starts the tasks. Func_91dc8 in rom_91584.s is
+@ the script-facing wrapper. The ~180-instruction body is characterised
+@ structurally.
 .thumb_func_start Func_8fefc
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -4751,6 +4893,10 @@
 	bx	r0
 .func_end Func_8fefc
 
+@ HideScreenOverlay
+@ r0, r1 = overlay parameters. The counterpart to Func_8fefc: retracts the
+@ overlay and stops its tasks. The ~180-instruction body is characterised
+@ structurally.
 .thumb_func_start Func_901c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -4934,6 +5080,9 @@
 	bx	r0
 .func_end Func_901c0
 
+@ ClampOverlayToMap
+@ r0, r1, r2 = overlay geometry. Constrains the overlay's window to the map
+@ bounds held in [iwram_1e70], so it never opens onto blank space.
 .thumb_func_start Func_90378
 	push	{lr}
 	ldr	r3, =iwram_1e70
@@ -4965,6 +5114,9 @@
 	bx	r0
 .func_end Func_90378
 
+@ BuildWindowTableA
+@ Takes no arguments. Fills one of the per-scanline window tables at
+@ iwram_1ecc+0x53C -- the circular aperture variant.
 .thumb_func_start Func_903bc
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1ecc
@@ -5056,6 +5208,9 @@
 	.word	0x9f
 .func_end Func_903bc
 
+@ BuildWindowTableB
+@ Takes no arguments. Second window-table builder over the same buffer, for the
+@ other aperture shape.
 .thumb_func_start Func_90488
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1ecc
@@ -5172,6 +5327,9 @@
 	bx	r0
 .func_end Func_90488
 
+@ SyncOverlayToVCount
+@ Takes no arguments. Reads REG_VCOUNT and advances the overlay so its geometry
+@ matches the beam position, avoiding a tear mid-frame.
 .thumb_func_start Func_90584
 	push	{lr}
 	ldr	r3, =REG_VCOUNT
@@ -5286,6 +5444,9 @@
 	bx	r0
 .func_end Func_90584
 
+@ BuildWindowTableC
+@ Takes no arguments. Third window-table builder, for the remaining aperture
+@ shape.
 .thumb_func_start Func_90658
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1ecc
@@ -5365,7 +5526,7 @@
 	mov	r3, #0x1f
 	and	r3, r0
 	lsl	r0, r3, #1
-	ldr	r3, =.L9e8ee
+	ldr	r3, =L9e8ee
 	mov	r7, #0x3f
 	mov	r4, #0
 	mov	r12, r3
@@ -5435,6 +5596,9 @@
 	bx	r0
 .func_end Func_90658
 
+@ ClearWindowTable
+@ r0=table. Fills the per-scanline window table with the 0xF000F000 "fully
+@ closed" pattern.
 .thumb_func_start Func_907b0
 	push	{r5, lr}
 	ldr	r3, =iwram_1ecc
@@ -5486,6 +5650,9 @@
 	bx	r0
 .func_end Func_907b0
 
+@ SetOverlayMode
+@ r0=mode. Writes the mode byte at +0x539 of the overlay state, selecting which
+@ of the three table builders runs.
 .thumb_func_start Func_90824
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -5529,6 +5696,9 @@
 	bx	r0
 .func_end Func_90824
 
+@ SetOverlayCentre
+@ r0=x, r1=y. Records the overlay aperture's centre in the overlay state for the
+@ builders to use.
 .thumb_func_start Func_9088c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -5571,6 +5741,10 @@
 	bx	r0
 .func_end Func_9088c
 
+@ FadeTask
+@ Per-frame task registered by Func_91200. Steps the fade in the state at
+@ iwram_1ed0 toward its target, rewriting the palette each frame. The
+@ ~380-instruction body is characterised structurally.
 .thumb_func_start Func_908e0
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1ed0
@@ -5758,6 +5932,10 @@
 	bx	r0
 .func_end Func_908e0
 
+@ ApplyFadeToPalette
+@ Takes no arguments. Blends the live palette toward the fade target colour by
+@ the current fade amount. The ~1800-instruction body -- the unrolled per-colour
+@ blend -- is characterised structurally.
 .thumb_func_start Func_90a5c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -5916,7 +6094,7 @@
 	b	.L9115e
 .L90b92:
 	mov	r1, #0x1f
-	ldr	r2, =.L9e96e
+	ldr	r2, =L9e96e
 	mov	r11, r1
 .L90b98:
 	mov	r3, r10
@@ -6038,21 +6216,21 @@
 	bl	Func_91294
 	mov	r5, r0
 .L90c7e:
-	ldr	r2, =.L9e9ae
+	ldr	r2, =L9e9ae
 	lsl	r3, r5, #1
 	ldrh	r3, [r2, r3]
 	mov	r1, r8
 	mov	r2, #2
 	strh	r3, [r1]
 	add	r8, r2
-	ldr	r2, =.L9e96e
+	ldr	r2, =L9e96e
 	lsl	r3, r7, #1
 	ldrh	r3, [r2, r3]
 	mov	r1, r8
 	mov	r2, #2
 	strh	r3, [r1]
 	add	r8, r2
-	ldr	r2, =.L9e92e
+	ldr	r2, =L9e92e
 	lsl	r3, r6, #1
 	ldrh	r3, [r2, r3]
 	mov	r1, r8
@@ -6073,7 +6251,7 @@
 	bcc	.L90cc0
 	b	.L9115e
 .L90cc0:
-	ldr	r1, =.L9e92e
+	ldr	r1, =L9e92e
 	mov	r11, r1
 .L90cc4:
 	mov	r2, r10
@@ -6156,7 +6334,7 @@
 	bcc	.L90d5a
 	b	.L9115e
 .L90d5a:
-	ldr	r1, =.L9e9ae
+	ldr	r1, =L9e9ae
 	mov	r11, r1
 .L90d5e:
 	mov	r2, r10
@@ -6247,7 +6425,7 @@
 	sub	r7, r0
 	mov	r0, r5
 	bl	Func_af0_from_thumb
-	ldr	r1, =.L9e92e
+	ldr	r1, =L9e92e
 	sub	r5, r0
 	lsl	r3, r5, #1
 	ldrh	r3, [r1, r3]
@@ -6257,7 +6435,7 @@
 	ldrh	r3, [r1, r3]
 	mov	r1, r8
 	strh	r3, [r1, #2]
-	ldr	r2, =.L9e96e
+	ldr	r2, =L9e96e
 	lsl	r3, r6, #1
 	ldrh	r3, [r2, r3]
 	mov	r2, r8
@@ -6312,18 +6490,18 @@
 	mov	r7, r0
 	mov	r0, r5
 	bl	Func_91294
-	ldr	r2, =.L9e9ae
+	ldr	r2, =L9e9ae
 	mov	r5, r0
 	lsl	r3, r5, #1
 	ldrh	r3, [r2, r3]
 	mov	r1, r8
 	strh	r3, [r1]
-	ldr	r2, =.L9e96e
+	ldr	r2, =L9e96e
 	lsl	r3, r7, #1
 	ldrh	r3, [r2, r3]
 	mov	r2, r8
 	strh	r3, [r2, #2]
-	ldr	r2, =.L9e92e
+	ldr	r2, =L9e92e
 	lsl	r3, r6, #1
 	ldrh	r3, [r2, r3]
 	strh	r3, [r1, #4]
@@ -6550,7 +6728,7 @@
 	mov	r6, r0
 	lsr	r0, r5, #16
 	bl	Func_91294
-	ldr	r1, =.L9e92e
+	ldr	r1, =L9e92e
 	mov	r5, r0
 	lsl	r3, r5, #1
 	ldrh	r3, [r1, r3]
@@ -6562,7 +6740,7 @@
 	ldrh	r3, [r1, r3]
 	mov	r1, r8
 	strh	r3, [r1]
-	ldr	r1, =.L9e92e
+	ldr	r1, =L9e92e
 	mov	r2, #2
 	lsl	r3, r7, #1
 	ldrh	r3, [r1, r3]
@@ -6652,6 +6830,9 @@
 	bx	r0
 .func_end Func_90a5c
 
+@ InitFadeState
+@ Takes no arguments. Allocates the 0x2A04-byte fade state under tag 0x20 and
+@ clears it.
 .thumb_func_start Func_91174
 	push	{lr}
 	ldr	r1, =0x2a04
@@ -6695,6 +6876,9 @@
 	bx	r0
 .func_end Func_91174
 
+@ ShutdownFadeState
+@ Takes no arguments. Unregisters the fade task Func_908e0 and frees the state
+@ block (tag 0x20).
 .thumb_func_start Func_911e8
 	push	{lr}
 	ldr	r0, =Func_908e0
@@ -6705,6 +6889,9 @@
 	bx	r0
 .func_end Func_911e8
 
+@ StartFadeOut
+@ r0=target, r1=duration. Begins a fade in the state at iwram_1ed0 and registers
+@ Func_908e0 to drive it. No-op if the fade state has not been allocated.
 .thumb_func_start Func_91200
 	push	{lr}
 	ldr	r3, =iwram_1ed0
@@ -6722,6 +6909,9 @@
 	bx	r0
 .func_end Func_91200
 
+@ StartFadeIn
+@ r0=target, r1=duration. The complementary direction to Func_91200, sharing the
+@ same state and task.
 .thumb_func_start Func_91220
 	push	{lr}
 	ldr	r3, =iwram_1ed0
@@ -6739,6 +6929,9 @@
 	bx	r0
 .func_end Func_91220
 
+@ SetFadeColour
+@ r0=colour. Writes the fade's destination colour at the head of the fade state,
+@ if one is allocated.
 .thumb_func_start Func_91240
 	push	{lr}
 	ldr	r3, =iwram_1ed0
@@ -6751,6 +6944,9 @@
 	bx	r0
 .func_end Func_91240
 
+@ WaitForFade
+@ r0=flags. Blocks until the running fade reaches its target. Returns
+@ immediately when no fade state exists.
 .thumb_func_start Func_91254
 	push	{r5, lr}
 	ldr	r3, =iwram_1ed0
@@ -6781,395 +6977,3 @@
 	pop	{r0}
 	bx	r0
 .func_end Func_91254
-
-.thumb_func_start Func_91294
-	push	{lr}
-	cmp	r0, #0x1f
-	ble	.L9129e
-	mov	r0, #0x1f
-	b	.L912a4
-.L9129e:
-	cmp	r0, #0
-	bge	.L912a4
-	mov	r0, #0
-.L912a4:
-	pop	{r1}
-	bx	r1
-.func_end Func_91294
-
-.thumb_func_start Func_912a8
-	push	{lr}
-	mov	r3, #0xf8
-	lsl	r3, #7
-	cmp	r0, r3
-	ble	.L912b4
-	mov	r0, r3
-.L912b4:
-	pop	{r1}
-	bx	r1
-.func_end Func_912a8
-
-.thumb_func_start Func_912b8
-	push	{r5, r6, r7, lr}
-	mov	r7, r11
-	mov	r6, r10
-	mov	r5, r9
-	push	{r5, r6, r7}
-	mov	r7, r8
-	push	{r7}
-	ldr	r3, =iwram_1ee0
-	ldr	r1, [r3]
-	sub	r3, #0x70
-	ldr	r3, [r3]
-	add	r3, #0xe4
-	mov	r11, r1
-	mov	r1, #2
-	ldrsh	r2, [r3, r1]
-	sub	sp, #0x10
-	str	r2, [sp, #8]
-	mov	r1, #6
-	ldrsh	r2, [r3, r1]
-	str	r2, [sp, #4]
-	mov	r5, r11
-	ldr	r3, [r5, #0x18]
-	cmp	r3, #0
-	bne	.L912ea
-	b	.L91480
-.L912ea:
-	ldr	r2, [r3, #0x10]
-	mov	r10, r2
-	mov	r2, #0x16
-	ldrsh	r1, [r3, r2]
-	ldr	r7, [r3, #8]
-	str	r1, [sp]
-	add	r3, #0x22
-	ldrb	r3, [r3]
-	mov	r1, #0xbd
-	mov	r8, r3
-	ldr	r3, =iwram_1b10
-	lsl	r1, #1
-	ldr	r2, =0xfff80000
-	add	r3, r1
-	add	r7, r2
-	ldrh	r3, [r3]
-	mov	r2, #0x80
-	lsl	r2, #13
-	lsr	r3, #5
-	add	r2, r10
-	mov	r1, r7
-	mov	r0, r8
-	mov	r9, r3
-	bl	_Func_11f54
-	mov	r2, #0x80
-	lsl	r2, #14
-	asr	r6, r0, #16
-	add	r2, r10
-	mov	r0, r8
-	mov	r1, r7
-	bl	_Func_11f54
-	asr	r0, #16
-	sub	r0, #0x10
-	cmp	r0, r6
-	ble	.L91336
-	mov	r6, r0
-.L91336:
-	cmp	r6, #0
-	ble	.L913c8
-	ldr	r3, [sp]
-	cmp	r6, r3
-	ble	.L913c8
-	ldr	r3, =0x40000800
-	mov	r1, #0xd
-	str	r3, [r5, #4]
-	mov	r3, #0x80
-	ldrb	r2, [r5, #9]
-	lsl	r3, #3
-	neg	r1, r1
-	str	r3, [r5, #8]
-	mov	r3, r1
-	and	r3, r2
-	strb	r3, [r5, #9]
-	ldr	r3, .L9138c	@ 0x3ff
-	mov	r2, r9
-	and	r2, r3
-	ldrh	r0, [r5, #8]
-	ldr	r3, =0xfffffc00
-	and	r3, r0
-	orr	r3, r2
-	strh	r3, [r5, #8]
-	ldrb	r3, [r5, #5]
-	and	r1, r3
-	mov	r3, #4
-	orr	r1, r3
-	strb	r1, [r5, #5]
-	ldr	r3, .L91390	@ 0xfff0
-	ldr	r1, [sp, #8]
-	asr	r2, r7, #16
-	and	r2, r3
-	ldr	r3, .L91394	@ 0x1ff
-	sub	r2, r1
-	and	r2, r3
-	ldrh	r1, [r5, #6]
-	ldr	r3, =0xfffffe00
-	and	r3, r1
-	orr	r3, r2
-	strh	r3, [r5, #6]
-	mov	r2, r10
-	b	.L913b0
-
-	.align	2, 0
-.L9138c:
-	.word	0x3ff
-.L91390:
-	.word	0xfff0
-.L91394:
-	.word	0x1ff
-	.pool
-
-.L913b0:
-	ldr	r1, [sp, #4]
-	asr	r3, r2, #16
-	mov	r2, #0xf0
-	and	r3, r2
-	sub	r3, r1
-	sub	r3, r6
-	add	r3, #0x10
-	strb	r3, [r5, #4]
-	mov	r0, r5
-	mov	r1, #0
-	bl	Func_3dec
-.L913c8:
-	mov	r2, #0x80
-	lsl	r2, #13
-	add	r7, r2
-	mov	r1, r7
-	add	r2, r10
-	mov	r0, r8
-	bl	_Func_11f54
-	mov	r2, #0x80
-	lsl	r2, #14
-	asr	r6, r0, #16
-	add	r2, r10
-	mov	r0, r8
-	mov	r1, r7
-	bl	_Func_11f54
-	asr	r0, #16
-	mov	r5, r11
-	sub	r0, #0x10
-	add	r5, #0xc
-	cmp	r0, r6
-	ble	.L913f6
-	mov	r6, r0
-.L913f6:
-	cmp	r6, #0
-	ble	.L91480
-	ldr	r2, [sp]
-	cmp	r6, r2
-	ble	.L91480
-	ldr	r3, =0x40000800
-	mov	r2, #0xd
-	ldrb	r1, [r5, #9]
-	str	r3, [r5, #4]
-	neg	r2, r2
-	mov	r3, #0
-	str	r3, [r5, #8]
-	mov	r3, r2
-	and	r3, r1
-	strb	r3, [r5, #9]
-	ldr	r3, .L9144c	@ 0x3ff
-	mov	r1, r9
-	and	r1, r3
-	mov	r9, r1
-	ldr	r3, =0xfffffc00
-	ldrh	r1, [r5, #8]
-	and	r3, r1
-	mov	r1, r9
-	orr	r3, r1
-	strh	r3, [r5, #8]
-	ldrb	r3, [r5, #5]
-	and	r2, r3
-	mov	r3, #4
-	orr	r2, r3
-	ldr	r3, .L91450	@ 0xfff0
-	strb	r2, [r5, #5]
-	asr	r2, r7, #16
-	and	r2, r3
-	ldr	r3, [sp, #8]
-	sub	r2, r3
-	ldr	r3, .L91454	@ 0x1ff
-	ldrh	r1, [r5, #6]
-	and	r2, r3
-	ldr	r3, =0xfffffe00
-	and	r3, r1
-	orr	r3, r2
-	b	.L91464
-
-	.align	2, 0
-.L9144c:
-	.word	0x3ff
-.L91450:
-	.word	0xfff0
-.L91454:
-	.word	0x1ff
-	.pool
-
-.L91464:
-	mov	r1, r10
-	strh	r3, [r5, #6]
-	mov	r2, #0xf0
-	asr	r3, r1, #16
-	and	r3, r2
-	ldr	r2, [sp, #4]
-	sub	r3, r2
-	sub	r3, r6
-	add	r3, #0x10
-	strb	r3, [r5, #4]
-	mov	r0, r5
-	mov	r1, #0
-	bl	Func_3dec
-.L91480:
-	add	sp, #0x10
-	pop	{r3, r5, r6, r7}
-	mov	r8, r3
-	mov	r9, r5
-	mov	r10, r6
-	mov	r11, r7
-	pop	{r5, r6, r7}
-	pop	{r0}
-	bx	r0
-.func_end Func_912b8
-
-.thumb_func_start Func_91494
-	push	{r5, r6, r7, lr}
-	mov	r6, r0
-	mov	r1, #0x1c
-	mov	r0, #0x24
-	sub	sp, #4
-	bl	Func_48f4
-	mov	r1, #0x80
-	mov	r7, r0
-	lsl	r1, #3
-	mov	r0, #0xe
-	bl	Func_48b0
-	ldr	r3, =0x11111111
-	mov	r4, r0
-	mov	r5, sp
-	str	r3, [r5]
-	mov	r0, r5
-	ldr	r3, =REG_DMA3SAD
-	mov	r1, r4
-	ldr	r2, =0x85000080
-	stmia	r3!, {r0, r1, r2}
-	sub	r3, #0xc
-	mov	r1, #0x80
-	mov	r2, r4
-	lsl	r1, #2
-	mov	r0, #0x5e
-	bl	Func_3fa4
-	mov	r0, #0xe
-	bl	Func_2dd8
-	mov	r1, #0xc8
-	lsl	r1, #4
-	ldr	r0, =Func_912b8
-	bl	Func_41d8
-	ldr	r2, =0x3f9e
-	ldr	r3, =REG_BLDCNT
-	strh	r2, [r3]
-	mov	r2, #0x10
-	add	r3, #2
-	strh	r2, [r3]
-	mov	r2, #0x1f
-	add	r3, #2
-	strh	r2, [r3]
-	mov	r3, #0
-	str	r3, [r5]
-	mov	r0, r5
-	ldr	r3, =REG_DMA3SAD
-	mov	r1, r7
-	ldr	r2, =0x85000007
-	stmia	r3!, {r0, r1, r2}
-	sub	r3, #0xc
-	cmp	r6, #0
-	bne	.L91514
-	ldr	r3, =ewram_240
-	mov	r2, #0xfa
-	lsl	r2, #1
-	add	r3, r2
-	ldr	r0, [r3]
-	bl	Func_8ba1c
-	mov	r6, r0
-.L91514:
-	str	r6, [r7, #0x18]
-	add	sp, #4
-	pop	{r5, r6, r7}
-	pop	{r0}
-	bx	r0
-.func_end Func_91494
-
-.thumb_func_start Func_91540
-	push	{lr}
-	ldr	r0, =Func_912b8
-	bl	Func_42c8
-	pop	{r0}
-	bx	r0
-.func_end Func_91540
-
-.thumb_func_start Func_91550
-	push	{lr}
-	ldr	r0, =Func_912b8
-	bl	Func_439c
-	pop	{r0}
-	bx	r0
-.func_end Func_91550
-
-.thumb_func_start Func_91560
-	push	{lr}
-	mov	r2, r0
-	ldr	r0, =.L9e9f0
-	ldrh	r3, [r0]
-	mov	r1, #0
-	cmp	r3, r2
-	beq	.L9157c
-.L9156e:
-	add	r1, #1
-	add	r0, #4
-	cmp	r1, #0x81
-	bhi	.L9157c
-	ldrh	r3, [r0]
-	cmp	r3, r2
-	bne	.L9156e
-.L9157c:
-	pop	{r1}
-	bx	r1
-.func_end Func_91560
-
-	.section .rodata
-
-.L9e680:
-	.incrom 0x9e680, 0x9e686
-.L9e686:
-	.incrom 0x9e686, 0x9e6b8
-.L9e6b8:
-	.incrom 0x9e6b8, 0x9e6c0
-.L9e6c0:
-	.incrom 0x9e6c0, 0x9e75c
-.L9e75c:
-	.incrom 0x9e75c, 0x9e87c
-.L9e87c:
-	.incrom 0x9e87c, 0x9e8a0
-.L9e8a0:
-	.incrom 0x9e8a0, 0x9e8ac
-.L9e8ac:
-	.incrom 0x9e8ac, 0x9e8ce
-.L9e8ce:
-	.incrom 0x9e8ce, 0x9e8ee
-.L9e8ee:
-	.incrom 0x9e8ee, 0x9e92e
-.L9e92e:
-	.incrom 0x9e92e, 0x9e96e
-.L9e96e:
-	.incrom 0x9e96e, 0x9e9ae
-.L9e9ae:
-	.incrom 0x9e9ae, 0x9e9f0
-.L9e9f0:
-	.incrom 0x9e9f0, 0x9ebfc

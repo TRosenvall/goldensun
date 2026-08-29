@@ -1,6 +1,19 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ PollInput -- the source of every key global
+@ Takes no arguments. Reads REG_KEYINPUT once and derives the three globals the
+@ whole ROM polls:
+@     iwram_1ae8  keys HELD, active-high (`0x3FF ^ REG_KEYINPUT`)
+@     iwram_1c94  keys NEWLY PRESSED this frame (held AND NOT held-last-frame)
+@     iwram_1b04  keys with AUTO-REPEAT applied
+@ The repeat is driven by the counter at iwram_1b00: it is loaded with 0x13 when
+@ nothing is held, set to -1 on a fresh press, and otherwise counts down to
+@ produce the repeat pulses. iwram_1af8 accumulates presses since it was last
+@ cleared.
+@ GBA key bits throughout: 0 A, 1 B, 2 Select, 3 Start, 4 Right, 5 Left, 6 Up,
+@ 7 Down, 8 R, 9 L. So the `& 3` tests scattered through rom_c9000 mean "A or B
+@ held", and rom_b5000's `& 0x80` means "Down".
 .thumb_func_start Func_3650
 	push	{r5, lr}
 	ldr	r2, =REG_DMA0SAD
@@ -142,6 +155,10 @@
 	.word 1
 .func_end Func_3650
 
+@ InstallTransformVariant
+@ r0 = variant index (0..4). DMA3-copies `Func_404 + index * 0x98` into
+@ Label_1348 as 0x26 words, installing one of crt0.s's five IWRAM-resident
+@ fixed-point transform routines. See the note on Func_404.
 .thumb_func_start Func_37d4
 	push	{lr}
 	cmp	r0, #4
@@ -163,14 +180,20 @@
 	bx	r1
 .func_end Func_37d4
 
+@ NoOp
+@ A bare `bx lr`.
 .thumb_func_start Func_3808
 	bx	lr
 .func_end Func_3808
 
+@ NoOp
+@ A bare `bx lr`.
 .thumb_func_start Func_380c
 	bx	lr
 .func_end Func_380c
 
+@ ResetObjQueue
+@ Takes no arguments. Clears the HBlank register queue count at ewram_2090.
 .thumb_func_start Func_3810
 	push	{lr}
 	ldr	r3, =ewram_2000
@@ -188,6 +211,14 @@
 	bx	r0
 .func_end Func_3810
 
+@ ReserveObjTiles
+@ r0.. = allocation parameters. One of nine adjacent, near-identical routines
+@ (Func_383c..Func_3a3c) that reserve OBJ tile space, each 31 lines and each
+@ differing only in which size class or bank it serves. They push their
+@ transfers onto the HBlank register queue at ewram_2090 under an REG_IME guard;
+@ that queue holds 0x20 entries of 12 bytes, {value, register, control}, with
+@ the count in its leading halfword.
+@ This is the same queue rom_b5000's Func_be378 writes to directly.
 .thumb_func_start Func_383c
 	push	{r5, r6, lr}
 	ldr	r4, =ewram_2090
@@ -219,6 +250,14 @@
 	bx	r0
 .func_end Func_383c
 
+@ ReserveObjTiles
+@ r0.. = allocation parameters. One of nine adjacent, near-identical routines
+@ (Func_383c..Func_3a3c) that reserve OBJ tile space, each 31 lines and each
+@ differing only in which size class or bank it serves. They push their
+@ transfers onto the HBlank register queue at ewram_2090 under an REG_IME guard;
+@ that queue holds 0x20 entries of 12 bytes, {value, register, control}, with
+@ the count in its leading halfword.
+@ This is the same queue rom_b5000's Func_be378 writes to directly.
 .thumb_func_start Func_387c
 	push	{r5, r6, lr}
 	ldr	r4, =ewram_2090
@@ -250,6 +289,14 @@
 	bx	r0
 .func_end Func_387c
 
+@ ReserveObjTiles
+@ r0.. = allocation parameters. One of nine adjacent, near-identical routines
+@ (Func_383c..Func_3a3c) that reserve OBJ tile space, each 31 lines and each
+@ differing only in which size class or bank it serves. They push their
+@ transfers onto the HBlank register queue at ewram_2090 under an REG_IME guard;
+@ that queue holds 0x20 entries of 12 bytes, {value, register, control}, with
+@ the count in its leading halfword.
+@ This is the same queue rom_b5000's Func_be378 writes to directly.
 .thumb_func_start Func_38bc
 	push	{r5, r6, lr}
 	ldr	r4, =ewram_2090
@@ -281,6 +328,14 @@
 	bx	r0
 .func_end Func_38bc
 
+@ ReserveObjTiles
+@ r0.. = allocation parameters. One of nine adjacent, near-identical routines
+@ (Func_383c..Func_3a3c) that reserve OBJ tile space, each 31 lines and each
+@ differing only in which size class or bank it serves. They push their
+@ transfers onto the HBlank register queue at ewram_2090 under an REG_IME guard;
+@ that queue holds 0x20 entries of 12 bytes, {value, register, control}, with
+@ the count in its leading halfword.
+@ This is the same queue rom_b5000's Func_be378 writes to directly.
 .thumb_func_start Func_38fc
 	push	{r5, r6, lr}
 	ldr	r4, =ewram_2090
@@ -312,6 +367,14 @@
 	bx	r0
 .func_end Func_38fc
 
+@ ReserveObjTiles
+@ r0.. = allocation parameters. One of nine adjacent, near-identical routines
+@ (Func_383c..Func_3a3c) that reserve OBJ tile space, each 31 lines and each
+@ differing only in which size class or bank it serves. They push their
+@ transfers onto the HBlank register queue at ewram_2090 under an REG_IME guard;
+@ that queue holds 0x20 entries of 12 bytes, {value, register, control}, with
+@ the count in its leading halfword.
+@ This is the same queue rom_b5000's Func_be378 writes to directly.
 .thumb_func_start Func_393c
 	push	{r5, r6, lr}
 	ldr	r4, =ewram_2090
@@ -343,6 +406,14 @@
 	bx	r0
 .func_end Func_393c
 
+@ ReserveObjTiles
+@ r0.. = allocation parameters. One of nine adjacent, near-identical routines
+@ (Func_383c..Func_3a3c) that reserve OBJ tile space, each 31 lines and each
+@ differing only in which size class or bank it serves. They push their
+@ transfers onto the HBlank register queue at ewram_2090 under an REG_IME guard;
+@ that queue holds 0x20 entries of 12 bytes, {value, register, control}, with
+@ the count in its leading halfword.
+@ This is the same queue rom_b5000's Func_be378 writes to directly.
 .thumb_func_start Func_397c
 	push	{r5, r6, lr}
 	ldr	r4, =ewram_2090
@@ -374,6 +445,14 @@
 	bx	r0
 .func_end Func_397c
 
+@ ReserveObjTiles
+@ r0.. = allocation parameters. One of nine adjacent, near-identical routines
+@ (Func_383c..Func_3a3c) that reserve OBJ tile space, each 31 lines and each
+@ differing only in which size class or bank it serves. They push their
+@ transfers onto the HBlank register queue at ewram_2090 under an REG_IME guard;
+@ that queue holds 0x20 entries of 12 bytes, {value, register, control}, with
+@ the count in its leading halfword.
+@ This is the same queue rom_b5000's Func_be378 writes to directly.
 .thumb_func_start Func_39bc
 	push	{r5, r6, lr}
 	ldr	r4, =ewram_2090
@@ -405,6 +484,14 @@
 	bx	r0
 .func_end Func_39bc
 
+@ ReserveObjTiles
+@ r0.. = allocation parameters. One of nine adjacent, near-identical routines
+@ (Func_383c..Func_3a3c) that reserve OBJ tile space, each 31 lines and each
+@ differing only in which size class or bank it serves. They push their
+@ transfers onto the HBlank register queue at ewram_2090 under an REG_IME guard;
+@ that queue holds 0x20 entries of 12 bytes, {value, register, control}, with
+@ the count in its leading halfword.
+@ This is the same queue rom_b5000's Func_be378 writes to directly.
 .thumb_func_start Func_39fc
 	push	{r5, r6, lr}
 	ldr	r4, =ewram_2090
@@ -436,6 +523,14 @@
 	bx	r0
 .func_end Func_39fc
 
+@ ReserveObjTiles
+@ r0.. = allocation parameters. One of nine adjacent, near-identical routines
+@ (Func_383c..Func_3a3c) that reserve OBJ tile space, each 31 lines and each
+@ differing only in which size class or bank it serves. They push their
+@ transfers onto the HBlank register queue at ewram_2090 under an REG_IME guard;
+@ that queue holds 0x20 entries of 12 bytes, {value, register, control}, with
+@ the count in its leading halfword.
+@ This is the same queue rom_b5000's Func_be378 writes to directly.
 .thumb_func_start Func_3a3c
 	push	{r5, r6, lr}
 	ldr	r4, =ewram_2090
@@ -467,6 +562,10 @@
 	bx	r0
 .func_end Func_3a3c
 
+@ FlushObjQueue
+@ Takes no arguments. Drains the ewram_2090 queue, writing each {value,
+@ register} pair to hardware and resetting the count. Called from Func_3650's
+@ per-frame path.
 .thumb_func_start Func_3a7c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

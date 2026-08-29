@@ -1,6 +1,9 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RefreshCombatantDisplay
+@ r0 = combatant id. Recomputes the combatant's depth (Func_b78e4) and rebuilds
+@ its summary through _Func_77394 / _Func_77428 so the HUD matches the record.
 .thumb_func_start Func_bb588
 	push	{r5, lr}
 	mov	r5, r0
@@ -102,6 +105,10 @@
 	bx	r1
 .func_end Func_bb588
 
+@ OpenBattleHud
+@ r0.. = parameters. Brings the battle HUD up: reserves OBJ tiles with
+@ Func_40b4 / Func_40d0, releases with Func_3dec / Func_3f3c, animates with
+@ Func_2322 (sine), one frame per Func_30f8.
 .thumb_func_start Func_bb65c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -262,6 +269,8 @@
 	bx	r1
 .func_end Func_bb65c
 
+@ CloseBattleHud
+@ r0.. = parameters. The teardown counterpart to Func_bb65c. Exported.
 .thumb_func_start Func_bb7c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -389,6 +398,8 @@
 	bx	r1
 .func_end Func_bb7c0
 
+@ SetUiBusyFlag
+@ Takes no arguments. Writes 1 to [iwram_1ee4]+8, marking the UI busy.
 .thumb_func_start Func_bb8d8
 	ldr	r3, =iwram_1ee4
 	ldr	r2, [r3]
@@ -397,6 +408,9 @@
 	bx	lr
 .func_end Func_bb8d8
 
+@ PlaceHudElement
+@ r0.. = parameters. Positions a HUD element over a combatant, scaling with
+@ _Func_782a0 and submitting through Func_c0f4.
 .thumb_func_start Func_bb8e8
 	push	{r5, lr}
 	mov	r5, r0
@@ -427,6 +441,8 @@
 	bx	r1
 .func_end Func_bb8e8
 
+@ SetRecordFlagBit0
+@ r0 = record. Sets bit 0 of the word at record+0x16C.
 .thumb_func_start Func_bb928
 	mov	r3, #0xb6
 	lsl	r3, #1
@@ -438,6 +454,10 @@
 	bx	lr
 .func_end Func_bb928
 
+@ StepBattleHud
+@ Takes no arguments. Advances the HUD each frame: refreshes displays with
+@ Func_bb588, submits sprites with Func_b7aac, shows damage with Func_babdc and
+@ reactions with Func_bace8. 173 lines; traced structurally.
 .thumb_func_start Func_bb938
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e74
@@ -611,6 +631,14 @@
 	bx	r1
 .func_end Func_bb938
 
+@ PushBattleEvent
+@ r0 = event code (byte), r1 = payload (word).
+@ Appends to a parallel-array event log in the battle state:
+@     [iwram_1e74] + 0x6B8 + n        the code, one byte per entry
+@     [iwram_1e74] + 0x6F8 + n*4      the payload, one word per entry
+@     [iwram_1e74] + 0x7FC            the entry count, incremented here
+@ (0x6B8 + 0x40 = 0x6F8.) Nothing here bounds the count, so the caller is
+@ responsible for not overrunning -- worth checking before decompiling.
 .thumb_func_start Func_bbabc
 	push	{r5, lr}
 	ldr	r3, =iwram_1e74
@@ -632,6 +660,9 @@
 	bx	r1
 .func_end Func_bbabc
 
+@ IsSpecialActionId
+@ r0 = action id. Returns 1 for exactly four ids -- 0x1F, 0x20, 0x3C and 0x45 --
+@ and 0 otherwise. A hard-coded set, like rom_77000's Func_79ef8.
 .thumb_func_start Func_bbae8
 	push	{lr}
 	cmp	r0, #0x3c

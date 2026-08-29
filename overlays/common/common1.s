@@ -1,6 +1,47 @@
 	.include "macros.inc"
+
+@ ============================================================================
+@ Shared overlay code: a cutscene library.
+@
+@ 42 functions, shared by THREE adjacent overlays -- rom_7db0c8, rom_7ddb88
+@ and rom_7e0928 -- which together make up one long scripted sequence.
+@
+@ It reads almost entirely as calls into rom_8a000's cutscene layer, so the
+@ annotations there carry over directly: _Func_916b0 and _Func_91750 open and
+@ close a scene, _Func_9163c and _Func_91e20 pace it, _Func_91dc8 and
+@ _Func_91df4 raise and lower the screen overlay, _Func_92b94 and _Func_92f84
+@ show dialogue, _Func_9218c and _Func_d14c walk entities.
+@
+@ The messages it shows are one contiguous block, 0x2076 through 0x20E8, which
+@ is a useful handle on where this sequence sits in the text.
+@
+@ THREE PIECES OF STATE outlive individual calls:
+@
+@   * six SAVE BYTES -- not bits -- at 0x380, 0x388, 0x390, 0x398, 0x3A0 and
+@     0x3A8 hold three (x, z) tile pairs. OvlFunc_common1_0 restores slots 1,
+@     2 and 3 from them and OvlFunc_common1_488 clears them.
+@   * ewram_1000 is a handshake word: OvlFunc_common1_16fc writes 9 and
+@     OvlFunc_common1_1708 spins until it reads 9.
+@   * iwram_1f3c points at a puzzle block that OvlFunc_common1_1ecc allocates
+@     and OvlFunc_common1_1928 drives once a frame.
+@
+@ Two OBJ slots are cached in file-static halfwords that start at -1 and are
+@ claimed lazily -- .L10 for the portraits and .L14 for the sprite effect --
+@ so repeated calls do not leak.
+@ ============================================================================
 	.include "gba.inc"
 
+@ RestoreSavedPositions
+@ Takes no arguments. Restores slots 1, 2 and 3 to positions held in six save
+@ BYTES -- not bits -- read through _Func_793b8:
+@
+@     slot 1   0x380 (x), 0x388 (z)
+@     slot 2   0x390, 0x398
+@     slot 3   0x3A0, 0x3A8
+@
+@ Each byte is a tile coordinate; `(byte << 20) + 0x80000` converts it to 16.16
+@ world space centred in the tile. _Func_923e4 teleports the slot there.
+@ OvlFunc_common1_488 is what clears the same six bytes.
 .thumb_func_start OvlFunc_common1_0
 	push	{r5, r6, lr}
 	mov	r0, #0xe0
@@ -55,6 +96,12 @@
 	bx	r0
 .func_end OvlFunc_common1_0
 
+@ RebuildPartyForScene
+@ r0.. = parameters. Rearranges the party for the scene: _Func_77394 resolves
+@ each member, _Func_79664 removes and _Func_7961c re-adds them so the roster
+@ order changes, _Func_9335c re-attaches the camera, and _Func_91858 revalidates
+@ the field shortcuts afterwards. Reads record+0x131. 92 lines; traced
+@ structurally.
 .thumb_func_start OvlFunc_common1_78
 	push	{r5, lr}
 	mov	r5, r0
@@ -154,6 +201,11 @@
 	bx	r0
 .func_end OvlFunc_common1_78
 
+@ MarkSceneComplete
+@ Takes no arguments. Sets the halfword at [iwram_1ebc]+0x182 to 0x63, but only
+@ when all three of these hold: ewram_240+0x1F4 is non-zero, the signed value at
+@ [iwram_1ebc]+0x17E shifted right by ten equals it, and save bit 0x141 is set.
+@ A guard against re-running the scene.
 .thumb_func_start OvlFunc_common1_148
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc
@@ -187,6 +239,11 @@
 	bx	r0
 .func_end OvlFunc_common1_148
 
+@ RunSceneStepA
+@ r0.. = parameters. One scripted beat: _Func_916b0 opens the scene, the screen
+@ overlay goes up and down through _Func_91dc8 / _Func_91df4, message 0x2085 is
+@ queued with _Func_91e9c, and _Func_91750 closes. Writes save state with
+@ _Func_79358 and _Func_793c8. 134 lines; traced structurally.
 .thumb_func_start OvlFunc_common1_190
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -328,6 +385,9 @@
 	bx	r0
 .func_end OvlFunc_common1_190
 
+@ RunSceneStepB
+@ r0.. = parameters. As OvlFunc_common1_190 but with messages 0x2086 and 0x2089
+@ and a Psynergy prompt through _Func_91c7c. 110 lines; traced structurally.
 .thumb_func_start OvlFunc_common1_2c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -445,6 +505,18 @@
 	bx	r0
 .func_end OvlFunc_common1_2c4
 
+@ RunPartySizeBranch
+@ r0 = slot. Branches on how many characters have joined:
+@
+@     party of one    message 0x20E5, then a walk sequence -- both the player and
+@                     the slot get speed 0x10000 and acceleration 0x8000 through
+@                     _Func_92064, the slot walks to the player's position offset
+@                     by 0x40 in z, and two _Func_921c4 steps bring the player in.
+@                     The pending message is left as 0x0B.
+@     party of more   message 0x20E8 and nothing else
+@
+@ Wrapped in _Func_916b0 / _Func_91750, and the target coordinates come from the
+@ player entity's +0x0A and +0x12.
 .thumb_func_start OvlFunc_common1_3e4
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -510,6 +582,9 @@
 	bx	r0
 .func_end OvlFunc_common1_3e4
 
+@ ClearSavedPositions
+@ Takes no arguments. Zeroes the six save bytes OvlFunc_common1_0 reads --
+@ 0x380, 0x388, 0x390, 0x398, 0x3A0 and 0x3A8 -- through _Func_793c8.
 .thumb_func_start OvlFunc_common1_488
 	push	{lr}
 	mov	r0, #0xe0
@@ -540,6 +615,11 @@
 	bx	r0
 .func_end OvlFunc_common1_488
 
+@ ShowAreaSpecificLine
+@ r0.. = parameters. Picks a message from the current area id at
+@ ewram_240+0x1C0: 0x8F gives 0x2076, 0x90 gives 0x2078, anything else 0x207A,
+@ with 0x207C as a fourth option. Registers a callback with _Func_19908 and
+@ shows the line. Reads and writes save bits.
 .thumb_func_start OvlFunc_common1_4cc
 	push	{r5, r6, lr}
 	mov	r5, r1
@@ -619,6 +699,12 @@
 	bx	r1
 .func_end OvlFunc_common1_4cc
 
+@ ShowAreaLineForSlot
+@ r0 = slot, r1 = callback. Registers the callback at priority 5 with
+@ _Func_19908, then selects a message the same way OvlFunc_common1_4cc does --
+@ area 0x8F -> 0x2076, 0x90 -> 0x2078, else 0x207A -- ADDS ONE to it, and shows
+@ it against the slot with _Func_92f84. The +1 is what makes this the second line
+@ of each pair.
 .thumb_func_start OvlFunc_common1_588
 	push	{r5, lr}
 	mov	r5, r0
@@ -655,6 +741,11 @@
 	bx	r0
 .func_end OvlFunc_common1_588
 
+@ RunConversation
+@ r0.. = parameters. The longest dialogue beat in the file: messages 0x207D,
+@ 0x207E, 0x207F, 0x2083 and 0x2084 in sequence, with roster edits
+@ (_Func_7961c / _Func_79664), save bits, and _Func_91c7c for a Psynergy prompt.
+@ 273 lines; traced structurally.
 .thumb_func_start OvlFunc_common1_5e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -935,6 +1026,11 @@
 	bx	r0
 .func_end OvlFunc_common1_5e4
 
+@ UnequipMatchingItems
+@ r0 = character id, r1 = item id. Calls _Func_78588 to locate the item, then
+@ walks all fifteen inventory halfwords at record+0xD8 and calls _Func_78708 on
+@ EVERY slot whose id matches -- so a character carrying two of the same item has
+@ both unequipped, not just the first.
 .thumb_func_start OvlFunc_common1_850
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -967,6 +1063,16 @@
 	bx	r0
 .func_end OvlFunc_common1_850
 
+@ LoadPortraitGraphics
+@ r0 = index. Takes a 0x1CA0-byte scratch, reserves an OBJ slot once (cached in
+@ the halfword .L10, -1 until claimed), decompresses asset 0xE7 into the scratch
+@ with _Func_5340, DMA3s eight halfwords of palette to 0x50003E0 from the offset
+@ the byte table .L1 gives for this index, and loads 0x400 bytes of tiles from
+@ `scratch + index * 0x400 + 0xA0`.
+@
+@ Index 8 is remapped to 4 for the TILE offset but keeps its own palette entry,
+@ so two portraits share one graphic with different colours. It spins on
+@ DMA3CNT's busy bit before freeing the scratch.
 .thumb_func_start OvlFunc_common1_88c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1029,6 +1135,13 @@
 	bx	r0
 .func_end OvlFunc_common1_88c
 
+@ RunTransitionEffect
+@ The per-frame task OvlFunc_common1_e10 registers at sort key 0xC80. Drives a
+@ full-screen transition: it walks a step table chosen by the caller, allocates
+@ and frees OBJ tiles with _Func_3d28 and _Func_3f3c, updates BLDCNT and
+@ BLDALPHA, and queues palette work through ewram_2090 with interrupts masked.
+@ Unregisters itself with _Func_4278 when the table runs out.
+@ 580 lines; traced structurally.
 .thumb_func_start OvlFunc_common1_920
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1616,6 +1729,13 @@
 	bx	r0
 .func_end OvlFunc_common1_920
 
+@ StartTransitionEffect
+@ r0 = which effect, r1 = a speed. Stores the two into the task's parameter
+@ halfwords (.L33 and .L22, the latter scaled by 16), registers
+@ OvlFunc_common1_920 at sort key 0xC80, and picks the step table: .L11 by
+@ default, .L2 for effect 2, .L12 for effect 4, and for effect 3 either .L3 or
+@ .L13 depending on whether r1 is non-zero. Then clears the four progress
+@ halfwords.
 .thumb_func_start OvlFunc_common1_e10
 	push	{r5, r6, lr}
 	ldr	r3, =.L33
@@ -1675,6 +1795,11 @@
 	bx	r0
 .func_end OvlFunc_common1_e10
 
+@ RunDoorSequence
+@ r0.. = parameters. A scripted entry: sounds 0x59, 0xEC, 0xED and 0xF7,
+@ save bits 0x121 and 0x123, the overlay pair, and OvlFunc_common1_88c plus
+@ OvlFunc_common1_e10 for the graphics and the transition. _Func_8acc4 finishes
+@ it. 89 lines; traced structurally.
 .thumb_func_start OvlFunc_common1_ea0
 	push	{r5, lr}
 	mov	r5, r0
@@ -1771,6 +1896,10 @@
 	bx	r0
 .func_end OvlFunc_common1_ea0
 
+@ RunExitSequence
+@ r0.. = parameters. The counterpart of OvlFunc_common1_ea0: sounds 0x13, 0x56
+@ and 0xF7, save bits 0x105 and 0x121, _Func_937b8 for the interaction effect and
+@ _Func_f954c to arm the jingle countdown. 73 lines; traced structurally.
 .thumb_func_start OvlFunc_common1_fac
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -1851,6 +1980,12 @@
 	bx	r0
 .func_end OvlFunc_common1_fac
 
+@ RunApproachAnimation
+@ r0.. = parameters. Moves entities into position for a scene: _Func_923e4 places
+@ them, _Func_92548 and _Func_9280c set animation and facing, _Func_92b08 the
+@ draw priority, and _Func_c300 / _Func_c528 dress the actors. Plays sounds
+@ through _Func_f9080 and paces itself with _Func_9163c.
+@ 209 lines; traced structurally.
 .thumb_func_start OvlFunc_common1_1078
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2067,6 +2202,10 @@
 	bx	r0
 .func_end OvlFunc_common1_1078
 
+@ RunTurnAnimation
+@ r0.. = parameters. The shorter sibling of OvlFunc_common1_1078: _Func_924d4
+@ sets the animation and _Func_92adc turns the entity to a goal angle.
+@ 81 lines; traced structurally.
 .thumb_func_start OvlFunc_common1_1254
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1e68
@@ -2155,6 +2294,10 @@
 	bx	r0
 .func_end OvlFunc_common1_1254
 
+@ StopEntityMotion
+@ r0 = slot. Resolves the entity, calls _Func_c4ac to drop its behaviour, zeroes
+@ +0x24 and +0x2C, and parks +0x38 and +0x40 at 0x80000000 -- the sentinel this
+@ engine uses for "no target".
 .thumb_func_start OvlFunc_common1_1314
 	push	{r5, lr}
 	bl	__Func_92054
@@ -2172,6 +2315,9 @@
 	bx	r0
 .func_end OvlFunc_common1_1314
 
+@ ReserveEffectObjSlot
+@ Takes no arguments. Claims an OBJ slot through _Func_209b0 the first time it is
+@ called and caches it in the halfword .L14, which starts at -1. Idempotent.
 .thumb_func_start OvlFunc_common1_1334
 	push	{r5, lr}
 	ldr	r5, =.L14
@@ -2189,6 +2335,11 @@
 	bx	r0
 .func_end OvlFunc_common1_1334
 
+@ RunSpriteEffect
+@ The per-frame task OvlFunc_common1_1490 and OvlFunc_common1_14f4 register at
+@ sort key 0xC80. Animates the OBJ slot .L14 holds, stepping position and frame
+@ from the parameter halfwords those two set up and reserving tiles with
+@ _Func_3dec. 131 lines; traced structurally.
 .thumb_func_start OvlFunc_common1_1354
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2327,6 +2478,10 @@
 	bx	r0
 .func_end OvlFunc_common1_1354
 
+@ StartSpriteEffect
+@ r0 = x, r1 = y, r2 = a mode masked to two bits. Reserves the OBJ slot with
+@ OvlFunc_common1_1334, writes the three parameters into .L45, .L29 and .L19,
+@ clears the progress halfwords, and registers OvlFunc_common1_1354.
 .thumb_func_start OvlFunc_common1_1490
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -2370,6 +2525,10 @@
 	bx	r0
 .func_end OvlFunc_common1_1490
 
+@ StartSpriteEffectFromCurrent
+@ r0, r1, r2 = parameters. As OvlFunc_common1_1490 but it COPIES the current
+@ position out of .L45 and .L29 into .L38 and .L42 first, so the new effect
+@ starts where the previous one ended rather than at a given point.
 .thumb_func_start OvlFunc_common1_14f4
 	push	{lr}
 	ldr	r3, =.L21
@@ -2401,6 +2560,10 @@
 	.word	0
 .func_end OvlFunc_common1_14f4
 
+@ StopSpriteEffect
+@ Takes no arguments. Unregisters OvlFunc_common1_1354, frees the OBJ slot with
+@ _Func_3f3c and resets .L14 to -1 so OvlFunc_common1_1334 will claim a fresh one
+@ next time.
 .thumb_func_start OvlFunc_common1_1550
 	push	{r5, lr}
 	ldr	r0, =OvlFunc_common1_1354
@@ -2420,6 +2583,12 @@
 	.word	0xffffffff
 .func_end OvlFunc_common1_1550
 
+@ WalkEntitySlow
+@ r0 = slot, r1 = target x, r2 = target z (both in tiles). Sets the entity's max
+@ speed to 0x20000 and acceleration to half that, clears the script state byte at
+@ +0x5B, drops the behaviour with _Func_c4ac, starts animation 5, and walks it
+@ there with _Func_d14c -- the target coordinates are shifted left 16 and the
+@ current y at +0x0C is kept.
 .thumb_func_start OvlFunc_common1_1578
 	push	{r5, r6, r7, lr}
 	mov	r6, r1
@@ -2452,6 +2621,10 @@
 	bx	r0
 .func_end OvlFunc_common1_1578
 
+@ WalkEntityFast
+@ r0 = slot, r1 = target x, r2 = target z. As OvlFunc_common1_1578 with speed
+@ 0x14000 instead of 0x20000, plus _Func_ca6c and a switch back to animation 1
+@ once the walk is issued.
 .thumb_func_start OvlFunc_common1_15b8
 	push	{r5, r6, r7, lr}
 	mov	r6, r1
@@ -2489,6 +2662,10 @@
 	bx	r0
 .func_end OvlFunc_common1_15b8
 
+@ BuildEffectSprite
+@ r0.. = parameters. Allocates under tag 0x2C, reserves OBJ tiles with
+@ _Func_3fa4, decompresses through _Func_1a370 and _Func_bc48, and rewinds the
+@ tag. 86 lines; traced structurally.
 .thumb_func_start OvlFunc_common1_1608
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2582,6 +2759,11 @@
 	bx	r0
 .func_end OvlFunc_common1_1608
 
+@ FormatHex32
+@ r0 = destination, r1 = value. Writes the value as EIGHT hexadecimal digits at
+@ dest+0 through dest+7, most significant first, followed by a NUL at dest+8.
+@ Digits come from the byte table .L6 indexed by each nibble, so the character
+@ set is whatever that table holds rather than ASCII.
 .thumb_func_start OvlFunc_common1_16cc
 	push	{r5, lr}
 	add	r0, #8
@@ -2606,10 +2788,15 @@
 	bx	r0
 .func_end OvlFunc_common1_16cc
 
+@ NullHandler
+@ An empty `bx lr`.
 .thumb_func_start OvlFunc_common1_16f8
 	bx	lr
 .func_end OvlFunc_common1_16f8
 
+@ SignalReady
+@ Takes no arguments. Writes 9 to the halfword at ewram_1000. The other half of
+@ the handshake OvlFunc_common1_1708 waits on.
 .thumb_func_start OvlFunc_common1_16fc
 	ldr	r2, =ewram_1000
 	mov	r3, #9
@@ -2617,6 +2804,10 @@
 	bx	lr
 .func_end OvlFunc_common1_16fc
 
+@ WaitForReady
+@ Takes no arguments. Spins on Func_30f8(1) until ewram_1000 reads 9. Returns
+@ immediately if it already does, so an earlier OvlFunc_common1_16fc is not
+@ missed.
 .thumb_func_start OvlFunc_common1_1708
 	push	{r5, lr}
 	ldr	r5, =ewram_1000
@@ -2637,6 +2828,15 @@
 	bx	r0
 .func_end OvlFunc_common1_1708
 
+@ MaybeSpawnDustPuff
+@ r0 = entity. A ONE-IN-TEN cosmetic effect: `Func_4458() * 100 >> 16` is a
+@ percentage roll, and only a result of 9 or below spawns anything. When it
+@ fires, two more random values give an angle and a distance which _Func_447c
+@ rotates into an offset from the entity's position, and descriptor 0x11D is
+@ spawned there with script .L7 and animation 1 then 0.
+@
+@ It also clears the entity's script state at +0x55 when the value at +0x28 is
+@ within 0x1FF of -0xFF.
 .thumb_func_start OvlFunc_common1_172c
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -2703,6 +2903,11 @@
 	bx	r0
 .func_end OvlFunc_common1_172c
 
+@ TeleportPlayerToProp
+@ r0 = prop entity. Reads a slot number from the prop's +0x64, resolves that
+@ entity, and moves it to the prop's position raised by 0x2400000 in y with
+@ _Func_d14c. Then clears its script state, installs script .L8, plays sound
+@ 0x53 and zeroes the prop's +0x64 so this fires once. Returns 0.
 .thumb_func_start OvlFunc_common1_17c0
 	pushal	{r5, r6, lr}
 	mov	r6, r8
@@ -2741,6 +2946,11 @@
 	bx	r1
 .func_end OvlFunc_common1_17c0
 
+@ RunPuzzleStep
+@ r0.. = parameters. Advances the puzzle state block at iwram_1f3c: registers a
+@ callback with _Func_19908, checks and sets save bits around 0x211, and issues
+@ moves through _Func_d14c and OvlFunc_common1_850. The -0x100000 and -0xC0000
+@ biases are tile offsets in 16.16. 113 lines; traced structurally.
 .thumb_func_start OvlFunc_common1_1814
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2861,6 +3071,11 @@
 	bx	r1
 .func_end OvlFunc_common1_1814
 
+@ RunPuzzleTask
+@ The per-frame task OvlFunc_common1_1fb4 registers at sort key 0xC85. Drives the
+@ puzzle from the state at ewram_1000 and iwram_1f3c: _Func_44d0 supplies atan2
+@ headings, entities move with _Func_d14c and animate with _Func_c300, and save
+@ bit 0x211 gates completion. 232 lines; traced structurally.
 .thumb_func_start OvlFunc_common1_1928
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -3100,6 +3315,12 @@
 	bx	r0
 .func_end OvlFunc_common1_1928
 
+@ RenderPuzzleView
+@ r0.. = parameters. Builds the puzzle's display: allocates a scratch with
+@ _Func_4970, decompresses with _Func_5340, reserves OBJ tiles with _Func_3fa4
+@ and _Func_3dec, DMA3s a palette to 0x50003C0, and releases the scratch.
+@ Reads save bits and the entity table through _Func_8ba1c.
+@ 453 lines; traced structurally.
 .thumb_func_start OvlFunc_common1_1b08
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3560,6 +3781,10 @@
 	bx	r0
 .func_end OvlFunc_common1_1b08
 
+@ SetUpPuzzle
+@ r0.. = parameters. Allocates the puzzle block under tag 0x1F, loads its
+@ graphics, reserves an OBJ slot and registers the per-frame task. Save bit 0x109
+@ selects between two configurations. 97 lines; traced structurally.
 .thumb_func_start OvlFunc_common1_1ecc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3664,6 +3889,11 @@
 	bx	r0
 .func_end OvlFunc_common1_1ecc
 
+@ StartPuzzle
+@ r0 = asset id. Decompresses the asset to [iwram_1f3c]+0xF0. When save bit 0x109
+@ is CLEAR -- a first visit -- it seeds ewram_1000 with 1, 1, the halfword at
+@ [iwram_1f3c]+0xE0, 0 and 0. Then registers OvlFunc_common1_1928 at sort key
+@ 0xC85.
 .thumb_func_start OvlFunc_common1_1fb4
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1f3c
@@ -3695,6 +3925,8 @@
 	bx	r0
 .func_end OvlFunc_common1_1fb4
 
+@ SetPuzzleValue
+@ r0 = value. Stores the halfword at [iwram_1f3c]+0xDC.
 .thumb_func_start OvlFunc_common1_2008
 	ldr	r3, =iwram_1f3c
 	ldr	r3, [r3]
@@ -3703,6 +3935,11 @@
 	bx	lr
 .func_end OvlFunc_common1_2008
 
+@ FindEntityAtPosition
+@ r0 = a three-word position. Scans entity slots 8 through 0x41 for one whose
+@ +0x08, +0x0C and +0x10 match to TILE precision -- each compared after an
+@ arithmetic shift right by 20, so the fractional part is ignored -- and returns
+@ it, or 0.
 .thumb_func_start OvlFunc_common1_2018
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1ebc
@@ -3742,6 +3979,11 @@
 	bx	r1
 .func_end OvlFunc_common1_2018
 
+@ RunPushSequence
+@ r0.. = parameters. Moves a found entity: OvlFunc_common1_2018 locates it,
+@ _Func_c300 animates, _Func_ca6c and _Func_d14c move it, _Func_120dc applies the
+@ terrain effect and sound 0xEE plays. Paced with Func_30f8.
+@ 158 lines; traced structurally.
 .thumb_func_start OvlFunc_common1_2060
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3907,6 +4149,10 @@
 	bx	r0
 .func_end OvlFunc_common1_2060
 
+@ ComputePushTarget
+@ r0.. = parameters. Works out where a pushed entity lands: _Func_447c rotates
+@ the push direction and OvlFunc_common1_2018 checks the destination is clear.
+@ The -0x100000 bias is one tile in 16.16. 146 lines; traced structurally.
 .thumb_func_start OvlFunc_common1_21c8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

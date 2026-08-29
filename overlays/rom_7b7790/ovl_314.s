@@ -1,20 +1,48 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Overlay 0x7b7790 -- a town interior with SHOP AND INN counters.
+@
+@ Slot 1  OvlFunc_314  edge transitions   -> .L778
+@ Slot 2  OvlFunc_320  map event list     -> .L868
+@ Slot 3  OvlFunc_328  entrance 8 -> .L9c8, otherwise .L890 through Func_8b868
+@ Slot 5  OvlFunc_31c  interactions       -> none (returns 0)
+@
+@ Every counter handler here has the same two-branch shape, and the branch is
+@ on WHERE THE PLAYER IS STANDING rather than on story state:
+@
+@     facing = player entity +0x06
+@     if (facing - 0xA001) <= 0x3FFE     -- i.e. facing roughly 0xA000..0xE000
+@         open the shop or inn
+@     else
+@         speak a line, chosen by save bit 0x895
+@
+@ So walking up to the counter from the front trades; standing beside it only
+@ gets you the shopkeeper's chatter. Save bit 0x895 swaps the whole chatter set
+@ from the 0x18xx range to the 0x1Axx range, which is this town's before/after
+@ marker.
+@ ============================================================================
+
+@ Slot 1: edge-transition table.
 .thumb_func_start OvlFunc_314
 	ldr	r0, =.L778
 	bx	lr
 .func_end OvlFunc_314
 
+@ Slot 5: interaction table -- none.
 .thumb_func_start OvlFunc_31c
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_31c
 
+@ Slot 2: map event list.
 .thumb_func_start OvlFunc_320
 	ldr	r0, =.L868
 	bx	lr
 .func_end OvlFunc_320
 
+@ Slot 3: entrance 8 gets a fixed table; every other entrance gets .L890
+@ tagged by Func_8b868 first.
 .thumb_func_start OvlFunc_328
 	push	{r5, lr}
 	ldr	r3, =ewram_240
@@ -38,6 +66,7 @@
 	bx	r1
 .func_end OvlFunc_328
 
+@ Counter: shop 0x10, speaker slot 0x0E. Lines 0x1817 / 0x1A46.
 .thumb_func_start OvlFunc_35c
 	push	{r5, lr}
 	mov	r0, #0
@@ -75,6 +104,7 @@
 	bx	r0
 .func_end OvlFunc_35c
 
+@ Counter: shop 0x11, speaker slot 0x0F. Lines 0x1819 / 0x1A48.
 .thumb_func_start OvlFunc_3bc
 	push	{r5, lr}
 	mov	r0, #0
@@ -112,6 +142,9 @@
 	bx	r0
 .func_end OvlFunc_3bc
 
+@ Counter: shop 0x12, speaker slot 0x10. Lines 0x181B / 0x1A4A.
+@ The only one whose after-state line uses Func_93054, so it asks a question
+@ rather than just speaking.
 .thumb_func_start OvlFunc_41c
 	push	{r5, lr}
 	mov	r0, #0
@@ -151,6 +184,8 @@
 	bx	r0
 .func_end OvlFunc_41c
 
+@ Counter: INN 5, speaker slot 0x11. The facing test differs -- `facing -
+@ 0x2000 <= 0xC000` -- because this counter is approached from the other side.
 .thumb_func_start OvlFunc_484
 	push	{r5, lr}
 	mov	r0, #0
@@ -189,6 +224,7 @@
 	bx	r0
 .func_end OvlFunc_484
 
+@ Talk: line 0x1A3A from slot 0x0A, asked with Func_93054 so it takes an answer.
 .thumb_func_start OvlFunc_4e4
 	push	{lr}
 	bl	__Func_916b0
@@ -202,6 +238,7 @@
 	bx	r0
 .func_end OvlFunc_4e4
 
+@ Talk: line 0x1A40 from slot 0x0C, also a question.
 .thumb_func_start OvlFunc_504
 	push	{lr}
 	bl	__Func_916b0
@@ -215,6 +252,10 @@
 	bx	r0
 .func_end OvlFunc_504
 
+@ TalkStaged
+@ Takes no arguments. The one NPC here with staging: line 0x1A64 through
+@ Func_93040, then slot 9 turns toward slot 0x0A, waits sixty frames, turns
+@ back to slot 0, waits twenty, and delivers a closing line.
 .thumb_func_start OvlFunc_524
 	push	{lr}
 	bl	__Func_916b0
@@ -244,6 +285,8 @@
 	bx	r0
 .func_end OvlFunc_524
 
+@ Slot 4: map objects. Entrance 8 -> .Ld4c, otherwise .La28 -- the same split
+@ slot 3 makes.
 .thumb_func_start OvlFunc_570
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -263,6 +306,15 @@
 	bx	r1
 .func_end OvlFunc_570
 
+@ Slot 0: map-load entry.
+@
+@ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x209, then does per-
+@ entrance staging keyed on ewram_240+0x1C2:
+@   entrances 4 and 7  one OvlFunc_common0_70 prop at x 0xF80000, z 0x1A10000,
+@   entrance 6         two props, at x 0x1CC0000 and 0x1E40000, both z 0x2380000,
+@   entrance 8         clears save bit 0x12F and puts slot 0x0A in animation 6.
+@ The props are background scenery the object table cannot place, spawned
+@ through the shared helper in overlays/common/.
 .thumb_func_start OvlFunc_598
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc

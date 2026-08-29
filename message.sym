@@ -1,0 +1,126 @@
+_MSG_LEARN_INNATE_MOVE = 0x1e;
+_MSG_0a = 0x0a;
+_MSG_0b = 0x0b;
+_MSG_0c = 0x0c;
+_MSG_0d = 0x0d;
+_MSG_14 = 0x14;
+_MSG_16 = 0x16;
+_MSG_17 = 0x17;
+_MSG_18 = 0x18;
+_MSG_19 = 0x19;
+_MSG_1a = 0x1a;
+
+/* shiftable __MessageID IDs (named by value; pending semantic names) */
+_MSG_b33 = 0xb33;
+_MSG_c7b = 0xc7b;
+_MSG_c9b = 0x0c9b;
+_MSG_cc6 = 0x0cc6;
+_MSG_d21 = 0x0d21;
+_MSG_d24 = 0x0d24;
+_MSG_d2d = 0x0d2d;
+_MSG_d2e = 0x0d2e;
+_MSG_d38 = 0x0d38;
+_MSG_d42 = 0x0d42;
+_MSG_d4c = 0x0d4c;
+_MSG_e19 = 0xe19;
+_MSG_e30 = 0xe30;
+_MSG_e39 = 0xe39;
+_MSG_e70 = 0xe70;
+_MSG_eb0 = 0xeb0;
+_MSG_ed0 = 0xed0;
+_MSG_fb0 = 0xfb0;
+_MSG_fe0 = 0xfe0;
+_MSG_ff0 = 0xff0;
+_MSG_1000 = 0x1000;
+_MSG_1120 = 0x1120;
+_MSG_1280 = 0x1280;
+_MSG_12a0 = 0x12a0;
+_MSG_12c0 = 0x12c0;
+_MSG_1360 = 0x1360;
+_MSG_13c0 = 0x13c0;
+_MSG_1420 = 0x1420;
+_MSG_1440 = 0x1440;
+_MSG_1520 = 0x1520;
+_MSG_1720 = 0x1720;
+_MSG_17e0 = 0x17e0;
+_MSG_1a40 = 0x1a40;
+_MSG_1bc0 = 0x1bc0;
+_MSG_1be0 = 0x1be0;
+_MSG_1c40 = 0x1c40;
+_MSG_1c60 = 0x1c60;
+_MSG_1c79 = 0x1c79;
+_MSG_1cc0 = 0x1cc0;
+_MSG_1d20 = 0x1d20;
+_MSG_1d40 = 0x1d40;
+_MSG_1e40 = 0x1e40;
+_MSG_1ea0 = 0x1ea0;
+_MSG_1f00 = 0x1f00;
+_MSG_1fa0 = 0x1fa0;
+_MSG_1fbb = 0x1fbb;
+_MSG_1ff1 = 0x1ff1;
+_MSG_217f = 0x217f;
+_MSG_2280 = 0x2280;
+_MSG_22a3 = 0x22a3;
+_MSG_22a8 = 0x22a8;
+_MSG_22ab = 0x22ab;
+_MSG_22b9 = 0x22b9;
+_MSG_239e = 0x239e;
+_MSG_23ac = 0x23ac;
+_MSG_23cc = 0x23cc;
+_MSG_240d = 0x240d;
+
+/* Two bases used by OvlFunc_959_200cbfc, which holds each in a callee-saved
+ * register and derives its neighbours -- `add r5, #1` off the first, and
+ * `add r0, r5, #1/2/3` off the second.  Both flow straight into __MessageID,
+ * which identifies the namespace; the values are the ids the ROM pools.
+ *
+ * The symbol form is what makes gcc SPEND the register: written as plain int
+ * constants it rematerialises each id and never keeps one alive, which is the
+ * symbol-base rule in docs/elevation.md.  The ids in between (0x242f, 0x2431,
+ * 0x2432, 0x2433) are reached by arithmetic and are deliberately not named. */
+_MSG_242e = 0x242e;
+_MSG_2430 = 0x2430;
+_MSG_2440 = 0x2440;
+_MSG_24db = 0x24db;
+_MSG_256c = 0x256c;
+_MSG_25b8 = 0x25b8;
+_MSG_25dc = 0x25dc;
+_MSG_2624 = 0x2624;
+_MSG_26e3 = 0x26e3;
+_MSG_2880 = 0x2880;
+_MSG_28be = 0x28be;
+_MSG_297f = 0x297f;
+_MSG_2982 = 0x2982;
+_MSG_2985 = 0x2985;
+
+/* base of a three-message prompt: the ROM holds it in a register and adds
+ * 1 and 2, which only happens when the operand is a symbol address. */
+_MSG_2399 = 0x2399;
+_MSG_f76 = 0x0f76;
+
+/* Added while elevating OvlFunc_885_20080dc.  Same three-message-prompt shape:
+ * the ROM holds 0xf76 in r5 and reaches the other two with `add r0, r5, #1`
+ * and `add r0, r5, #2`. */
+
+/* Added while elevating OvlFunc_950_20087b0.  Same shape as the entry above:
+ * the ROM loads 0x2399 into a callee-saved register and reaches the other two
+ * messages with `add r0, r5, #1` and `add r0, r5, #2`.  With a plain int
+ * constant gcc emits three independent pool loads and does not keep the base
+ * alive at all -- rematerialising is cheaper than a push/pop pair.  It will
+ * spend the register for a SYMBOL address and not for an integer, which is
+ * what makes this a symbol in the original source. */
+
+/* Added in batch 68. Func_80b2884 adds a small offset to a message id chosen by
+ * a byte at iwram_3001f2c+0x3aa, and the ROM computes each offset as an
+ * UNFOLDED SUBTRACTION of two pooled constants -- `ldr =0xd2e / ldr =0xd24 /
+ * sub` to add ten. A compiler does not leave that unfolded, so both operands
+ * were symbols.
+ *
+ * The namespace is identified by the CONSUMER, not the value. The result flows
+ * to _Func_8017658's first argument in the already-elevated caller
+ * src/rom_b0000/rom_b0070_c_c_a_b.c, and elevated code elsewhere passes
+ * `(int)&_MSG_14` in that position. `_MSG_d21` was already defined in this
+ * file, one of the same run.
+ *
+ * Named by value, asserting the namespace only -- the convention this file
+ * already uses for the shiftable ids below. */

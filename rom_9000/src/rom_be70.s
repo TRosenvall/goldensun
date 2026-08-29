@@ -1,5 +1,16 @@
 	.include "macros.inc"
 
+@ DissolveSpriteStep
+@ r0=actor, r1=dissolve step. Erases one pixel pair from each of the actor's
+@ OBJ tiles, giving a scrambled "dissolve" wipe when stepped repeatedly.
+@ The tile base is iwram_1b10[+0x1C size code].halfword + 0x6010000; the tile
+@ count is (+0x20 * +0x21) / 64. For each tile, .L1314c (a 0x44-byte scramble
+@ table) is indexed by (step + tile*16) & 0x3F to pick a byte offset within the
+@ tile: bit 0 of the entry selects which half of the 16-bit unit survives --
+@ set keeps the low byte, clear keeps the high byte -- and the other half is
+@ zeroed.
+@ NOTE the guard at .Lbeae is unsigned: (step - 0x40) > 0x3F skips the tile, so
+@ steps 0x00-0x3F do nothing at all and only steps 0x40-0x7F erase.
 .thumb_func_start Func_be70
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -73,6 +84,10 @@
 	bx	r0
 .func_end Func_be70
 
+@ PlaySpriteDissolve
+@ r0=actor. Runs the whole 0x00-0x7F dissolve on one actor, applying four
+@ Func_be70 steps per frame and yielding with Func_30f8(1) between groups.
+@ Blocks for 32 frames.
 .thumb_func_start Func_befc
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -100,6 +115,11 @@
 	bx	r0
 .func_end Func_befc
 
+@ PlaySpriteDissolveMulti
+@ r0=array of actor pointers, r1=count. Same wipe as Func_befc but driven
+@ across several actors at once: each group of four steps is applied to every
+@ actor in the array before yielding with Func_30f8(1), so they dissolve in
+@ lockstep. Blocks for 32 frames.
 .thumb_func_start Func_bf34
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -157,6 +177,12 @@
 	bx	r0
 .func_end Func_bf34
 
+@ GetEntityScreenPos
+@ r0=entity, r1=out vec2 (two s32). Subtracts the camera origin at
+@ [iwram_1e70]+0xE4/+0xE8 (truncated to whole pixels) from the entity position
+@ at +0x08/+0x10, both 16.16. Returns 0 and writes the pixel coordinates when
+@ the result is on-screen -- x within [-32, 272) after the +0x1FFFFF bias test,
+@ y strictly inside (0, 224) -- otherwise zeroes the output and returns -1.
 .thumb_func_start Func_bfa4
 	push	{r5, lr}
 	ldr	r3, =iwram_1e70
@@ -203,5 +229,8 @@
 
 	.section .rodata
 
+@ .L1314c -- 0x44-byte scramble table driving the dissolve order in Func_be70.
+@ Each entry is a byte offset within a tile; bit 0 selects which half of the
+@ addressed halfword is kept.
 .L1314c:
 	.incrom 0x1314c, 0x13190

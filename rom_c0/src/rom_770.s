@@ -1,5 +1,32 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ THIS WHOLE FILE RUNS FROM IWRAM, NOT FROM ROM.
+@
+@ stage1.ld places it with `rom_770 : { ... } > iwram AT > rom`, so the section
+@ is LINKED for IWRAM but LOADED from ROM, and Func_300c (rom_2e00.s) DMA3-copies
+@ all 0x500 words -- 0x1400 bytes, exactly 0x770..0x1B70 -- to iwram_0 during
+@ boot, then points the IRQ vector at it.
+@
+@ THE Func_<offset> NAMING IS MISLEADING HERE. Those names encode each function's
+@ ROM LOAD offset; the code actually executes at IWRAM addresses:
+@     Func_770  -> 0x03000000        Func_888  -> 0x03000118
+@     Func_1af8 -> 0x03001388
+@ Confirmed with `arm-none-eabi-nm goldensun.elf`. This is the only section in
+@ the ROM where a symbol's name is not its run address, so do not compute
+@ branch targets or PC-relative offsets from the names in this file.
+@
+@ Everything here is ARM and heavily unrolled precisely because it runs from
+@ IWRAM at full speed: the division core every module's arithmetic funnels
+@ through, the fixed-point multiply, the fill and copy primitives, the 3D vector
+@ transform, and two decompressors.
+@ ============================================================================
+
+@ TransformVertexBatch
+@ r0 = source vectors, r1 = destination, r2 = count.
+@ Transforms a run of 3-vectors by the matrix at Data_ac0 using `smull`/`smlal`
+@ accumulation, keeping the middle 32 bits of each 64-bit product -- the 16.16
+@ convention used throughout the ROM.
 .arm_func_start Func_770
 	mov	r3, #0x4000000
 	ldr	r2, [r3, #0x200]!
@@ -78,6 +105,12 @@ Data_864:
 	.ssize	Data_864
 .func_end Func_770
 
+@ FixedMul -- Thumb-return veneer
+@ r0, r1 = 16.16 values. Returns the 16.16 product: `smull` then take the middle
+@ 32 bits of the 64-bit result.
+@ The tail is `add r12, #1; bx r12` rather than `bx lr` -- it returns to r12
+@ with the Thumb bit set, so this is the entry Thumb callers use. Func_89c below
+@ is the identical routine returning normally.
 .arm_func_start Func_888
 	smull	r2, r0, r1, r0
 	lsl	r0, #16
@@ -86,6 +119,9 @@ Data_864:
 	bx	r12
 .func_end Func_888
 
+@ FixedMul
+@ r0, r1 = 16.16 values. Returns the 16.16 product. Identical to Func_888 except
+@ that it returns through lr; ARM callers use this one.
 .arm_func_start Func_89c
 	smull	r2, r0, r1, r0
 	lsl	r0, #16
@@ -93,6 +129,11 @@ Data_864:
 	bx	lr
 .func_end Func_89c
 
+@ FixedDiv
+@ r0 = numerator, r1 = denominator, both 16.16. Returns the 16.16 quotient.
+@ Computes it as a RECIPROCAL MULTIPLY: Func_af0(0x40000000, denominator) gives
+@ a scaled reciprocal, which is then multiplied by the numerator and shifted
+@ back by 14. Cheaper than a second full division.
 .arm_func_start Func_8ac
 	stmfd	sp!, {lr}
 	mov	r4, r1
@@ -106,8 +147,15 @@ Data_864:
 	bx	lr
 .func_end Func_8ac
 
+@ FillZero
+@ r0 = destination, r1 = byte count. `mov r2, #0` and FALLS THROUGH into
+@ Func_8d8, so this is exactly Func_8d8(dst, n, 0). The two share one body.
 .arm_func_start Func_8d4
 	mov	r2, #0
+@ Fill
+@ r0 = destination, r1 = byte count, r2 = fill value. Writes the value across
+@ the range, widening it to a word and using `stm` for the aligned bulk.
+@ Func_8d4 above is the zero-fill entry into this same code.
 .arm_func_start Func_8d8
 	push	{r5, r6, r7, r8, r9}
 	mov	r3, r2
@@ -143,6 +191,11 @@ Data_864:
 .func_end Func_8d8
 .func_end Func_8d4
 
+@ IntegerSqrt
+@ r0 = value. Returns floor(sqrt(value)); a negative input returns 0.
+@ A binary search from bit 15 downward -- `mov r2, #0x8000` then repeatedly
+@ trial-set a bit and back it out when the square overshoots. No table, no
+@ division.
 .arm_func_start Func_948
 	movs	r1, r0
 	mov	r0, #0
@@ -162,6 +215,11 @@ Data_864:
 	bx	lr
 .func_end Func_948
 
+@ ExpandBitmapToBytes
+@ r0 = 1bpp source, r1 = destination, r2 = the value to write for a set bit.
+@ Reads 14 halfwords (the loop bound is r0+0x1C), and for each SET bit writes
+@ one byte of r2 to the destination, advancing 0x10 bytes per source halfword.
+@ A 1bpp-to-8bpp expander -- the shape a glyph or mask unpacker takes.
 .arm_func_start Func_984
 	add	r12, r0, #0x1c
 .L988:
@@ -184,6 +242,10 @@ Data_864:
 	bx	lr
 .func_end Func_984
 
+@ TransformVector
+@ r0 = a 3-vector. Multiplies it by the 3x3 matrix at Data_ac0 with
+@ `smull`/`smlal`, keeps the middle 32 bits of each accumulator, and adds the
+@ translation row that follows the matrix. The core 3D transform.
 .arm_func_start Func_9c0
 	push	{r5, r6, r7, r8, r9, r10, r11, lr}
 	ldm	r0, {r2, r3, r4}
@@ -215,6 +277,9 @@ Data_864:
 	bx	lr
 .func_end Func_9c0
 
+@ TransformAndProject
+@ r0 = a 3-vector. Applies Func_9c0's transform and divides through by the depth
+@ to produce screen coordinates.
 .arm_func_start Func_a30
 	push	{r5, r6, r7, r8, r9, r10, r11, lr}
 	sub	sp, #0x24
@@ -262,6 +327,11 @@ Data_ac0:
 	.word	0x10000, 0, 0, 0
 	.ssize	Data_ac0
 
+@ SignedDiv
+@ r0 = numerator, r1 = denominator. Returns the QUOTIENT, sign taken from
+@ `eor r12, r0, r1` so the result is negative when exactly one input is.
+@ Both operands are made positive and handed to Func_b6c, the shared unsigned
+@ division core.
 .arm_func_start Func_af0
 	eor	r12, r0, r1
 	movs	r2, r1
@@ -276,6 +346,12 @@ Data_ac0:
 	bx	r12
 .func_end Func_af0
 
+@ SignedRem
+@ r0 = numerator, r1 = denominator. Returns the REMAINDER, whose sign follows
+@ the DIVIDEND (r0), not the divisor -- C semantics.
+@ Same Func_b6c core as Func_af0; the only difference is that this one returns
+@ r1 (the remainder) where that one returns r0 (the quotient). Confusing the two
+@ is easy and changes behaviour silently, so check which you have.
 .arm_func_start Func_b1c
 	stmfd	sp!, {lr}
 	eor	r12, r0, r1
@@ -292,6 +368,9 @@ Data_ac0:
 	bx	lr
 .func_end Func_b1c
 
+@ UnsignedRem
+@ r0 = numerator, r1 = denominator. Returns the remainder, treating both as
+@ unsigned. Calls Func_b60 and takes r1.
 .arm_func_start Func_b50
 	mov	r12, lr
 	bl	Func_b60
@@ -299,10 +378,20 @@ Data_ac0:
 	bx	r12
 .func_end Func_b50
 
+@ UnsignedDiv
+@ r0 = numerator, r1 = denominator. Shuffles the operands and falls into
+@ Func_b6c, returning the unsigned quotient.
 .arm_func_start Func_b60
 	mov	r2, r1
 	mov	r1, r0
 	mov	r0, #0
+@ DivideCore
+@ r0 = 0, r1 = numerator, r2 = denominator (as set up by the wrappers).
+@ Returns the quotient in r0 and the remainder in r1.
+@ A restoring binary long division: shift the divisor up until it exceeds the
+@ dividend, then walk back down subtracting and setting quotient bits. No
+@ hardware divide on ARM7TDMI, so every division in the ROM ends up here --
+@ Func_af0, Func_b1c, Func_b50 and Func_b60 are all thin wrappers around it.
 .arm_func_start Func_b6c
 	rsbs	r3, r2, r1, lsr #28
 	bcc	.Lba4
@@ -427,6 +516,12 @@ Data_ac0:
 .func_end Func_b6c
 .func_end Func_b60
 
+@ DecompressLz
+@ r0 = compressed source, r1 = destination.
+@ An LZ77-style decoder: a 16-bit length header, then a control bit stream where
+@ a clear bit copies a literal byte and a set bit reads a two-byte
+@ offset/length pair and copies from earlier in the output.
+@ Returns immediately when the length header is zero.
 .arm_func_start Func_d30
 	ldrb	r2, [r0], #1
 	ldrb	r3, [r0], #1
@@ -473,6 +568,11 @@ Data_ac0:
 	bx	lr
 .func_end Func_d30
 
+@ DecompressHuffman
+@ r0 = compressed source, r1 = destination. 609 lines -- the largest routine in
+@ the file. A Huffman decoder with an inlined bit reader, distinct from the
+@ order-1 text decoder in rom_15000 and from Func_d30's LZ. Traced
+@ structurally.
 .thumb_func_start Func_dc8
 	str	r0, [sp, #4]
 	ldr	r3, [r4, #0x24]
@@ -1082,6 +1182,14 @@ Label_1348:
 .L1568:	.space	0x590
 .func_end Func_dc8
 
+@ FastMemcpy
+@ r0 = destination, r1 = source, r2 = byte count.
+@ Copies 0x100 bytes per iteration with eight `ldm`/`stm` pairs of eight
+@ registers, then a word-at-a-time tail for the remaining 0x1C.
+@ The entry `ands r12, r2, #0xe0 / rsb r12, #0xf0 / add pc, r12, lsr #2` is a
+@ COMPUTED JUMP INTO THE MIDDLE OF THE UNROLLED BLOCK, so a partial first
+@ iteration handles the leading 32-byte remainder without a separate loop.
+@ Word-aligned only.
 .arm_func_start Func_1af8
 	push	{r5, r6, r7, r8, r9}
 	ands	r12, r2, #0xe0

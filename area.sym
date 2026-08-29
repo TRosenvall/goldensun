@@ -1,0 +1,225 @@
+/* area.sym -- the area/map id space.
+ *
+ * WHAT THIS IS
+ *
+ * A single signed halfword at gState+0x1C0 holds the current area. Sixty-one
+ * hand-written functions read it and compare it against these values to pick
+ * per-area data: edge-transition tables, map-entrance tables, event tables and
+ * scripts. One id, many lookups.
+ *
+ * WHY THE OPERANDS HAVE TO BE SYMBOLS
+ *
+ * gcc-2.96 never pools a constant it can build with an eight-bit `mov`, and
+ * always pools a symbol's address. The ROM pools these -- `ldr r3, =0x4d`
+ * where `cmp r2, #0x4d` would do -- so they were symbol references in the
+ * original source. No spelling of a literal reproduces it. An absolute symbol
+ * definition in a linker script emits no bytes, so the link is byte-identical.
+ *
+ * THE NAMES ARE AN INFERENCE, ADOPTED DELIBERATELY (2026-08-03)
+ *
+ * These were `_ID_xx` -- named by value, asserting nothing -- while the
+ * namespace was unidentified. The evidence for calling it an area id:
+ *
+ *   * 121 of the 122 ids are compared in exactly ONE overlay, which is what
+ *     "each area's code lives in one place" looks like. This is structural,
+ *     read out of the ROM, and is the strongest single argument.
+ *   * the tables selected are named MapEntrance_ARRAY_*, Events_TolbiSpring,
+ *     Events_GameBuildings -- per-location data.
+ *   * a ROM annotation reads "area 0x13 -> .L1d04".
+ *
+ * WHAT THE EVIDENCE IS NOT. The MapEntrance/Events names arrived with the
+ * upstream tree and are NOT the maintainer's -- they are an earlier
+ * contributor's inference, so they corroborate nothing on their own. The
+ * annotation corpus is documented in docs/attribution.md as getting mechanism
+ * right and purpose wrong often enough to matter. Genuinely independent
+ * support is the overlay-exclusivity result, and that alone.
+ *
+ * KNOWN ODDITIES a correct account should explain:
+ *
+ *   * ids 0x00-0x0f never appear IN COMPARISONS. They do appear as
+ *     __SetDestMap destinations -- _AREA_01 has been used that way in elevated
+ *     code since before this note, and batch 68 added 0x00, 0x02 and 0x04 on
+ *     the same evidence. The unqualified form of this claim was wrong and is
+ *     corrected here; the comparison census still shows nothing below 0x7e
+ *     among the ids it was missing.
+ *   * the space is 70% dense over 0x10-0xbd -- 52 unused values inside the
+ *     range. An earlier note here claimed "contiguous per-area runs"; that was
+ *     wrong, 11 of 23 overlays have gaps and two have clusters 56 apart.
+ *   * 0x6a is compared in TWO overlays, alone against the other 121.
+ *
+ * If this turns out to be wrong, the fix is a rename: the values are what
+ * matter to the link, and they are unchanged.
+ */
+
+_AREA_01 = 0x1;
+_AREA_10 = 0x10;
+_AREA_13 = 0x13;
+_AREA_1c = 0x1c;
+_AREA_1d = 0x1d;
+_AREA_1e = 0x1e;
+_AREA_20 = 0x20;
+_AREA_21 = 0x21;
+_AREA_22 = 0x22;
+_AREA_23 = 0x23;
+_AREA_24 = 0x24;
+_AREA_26 = 0x26;
+_AREA_27 = 0x27;
+_AREA_2f = 0x2f;
+_AREA_30 = 0x30;
+_AREA_31 = 0x31;
+_AREA_33 = 0x33;
+_AREA_36 = 0x36;
+_AREA_37 = 0x37;
+_AREA_38 = 0x38;
+_AREA_39 = 0x39;
+_AREA_3c = 0x3c;
+_AREA_44 = 0x44;
+_AREA_45 = 0x45;
+_AREA_46 = 0x46;
+_AREA_4a = 0x4a;
+_AREA_4b = 0x4b;
+_AREA_4c = 0x4c;
+_AREA_4d = 0x4d;
+_AREA_4f = 0x4f;
+_AREA_51 = 0x51;
+_AREA_5d = 0x5d;
+_AREA_5e = 0x5e;
+_AREA_5f = 0x5f;
+_AREA_60 = 0x60;
+_AREA_61 = 0x61;
+_AREA_62 = 0x62;
+_AREA_64 = 0x64;
+_AREA_65 = 0x65;
+_AREA_67 = 0x67;
+_AREA_68 = 0x68;
+_AREA_69 = 0x69;
+_AREA_6a = 0x6a;
+_AREA_6b = 0x6b;
+_AREA_6c = 0x6c;
+_AREA_6f = 0x6f;
+_AREA_70 = 0x70;
+_AREA_75 = 0x75;
+_AREA_76 = 0x76;
+_AREA_78 = 0x78;
+_AREA_8b = 0x8b;
+_AREA_8c = 0x8c;
+_AREA_8e = 0x8e;
+_AREA_93 = 0x93;
+_AREA_95 = 0x95;
+_AREA_97 = 0x97;
+_AREA_98 = 0x98;
+_AREA_9d = 0x9d;
+_AREA_9f = 0x9f;
+_AREA_9e = 0x9e;
+_AREA_a0 = 0xa0;
+_AREA_a1 = 0xa1;
+_AREA_a2 = 0xa2;
+_AREA_a4 = 0xa4;
+_AREA_a5 = 0xa5;
+_AREA_a6 = 0xa6;
+_AREA_aa = 0xaa;
+_AREA_ab = 0xab;
+_AREA_ac = 0xac;
+_AREA_ad = 0xad;
+_AREA_ae = 0xae;
+_AREA_af = 0xaf;
+_AREA_b0 = 0xb0;
+_AREA_b3 = 0xb3;
+_AREA_b4 = 0xb4;
+_AREA_bd = 0xbd;
+_AREA_63 = 0x63;
+_AREA_66 = 0x66;
+_AREA_71 = 0x71;
+_AREA_72 = 0x72;
+_AREA_73 = 0x73;
+_AREA_74 = 0x74;
+_AREA_77 = 0x77;
+_AREA_7a = 0x7a;
+_AREA_7b = 0x7b;
+_AREA_7c = 0x7c;
+_AREA_7d = 0x7d;
+_AREA_99 = 0x99;
+_AREA_9c = 0x9c;
+_AREA_34 = 0x34;
+_AREA_35 = 0x35;
+_AREA_3e = 0x3e;
+_AREA_3f = 0x3f;
+_AREA_40 = 0x40;
+_AREA_41 = 0x41;
+_AREA_42 = 0x42;
+_AREA_43 = 0x43;
+_AREA_79 = 0x79;
+_AREA_9a = 0x9a;
+_AREA_9b = 0x9b;
+_AREA_4e = 0x4e;
+_AREA_50 = 0x50;
+_AREA_52 = 0x52;
+_AREA_53 = 0x53;
+_AREA_54 = 0x54;
+_AREA_55 = 0x55;
+_AREA_56 = 0x56;
+_AREA_57 = 0x57;
+_AREA_b5 = 0xb5;
+_AREA_b7 = 0xb7;
+_AREA_b8 = 0xb8;
+_AREA_b9 = 0xb9;
+_AREA_ba = 0xba;
+_AREA_59 = 0x59;
+_AREA_5a = 0x5a;
+_AREA_5b = 0x5b;
+_AREA_5c = 0x5c;
+_AREA_a3 = 0xa3;
+_AREA_94 = 0x94;
+_AREA_96 = 0x96;
+
+/* Added in batch 67 by the same criterion the header states: each of these is
+ * COMPARED AGAINST the halfword at gState+0x1C0, in eleven functions between
+ * them. Each was previously defined only in file_table.sym, which is not a
+ * contradiction -- a file id and an area id may share a number, and the
+ * consumer is what distinguishes them.
+ *
+ * All eight fall inside 0x10-0xbd, which is weak corroboration for the area-id
+ * reading rather than proof: the gaps shrink, they do not close. Counted
+ * directly, the range held 117 of 174 values before this change (57 gaps) and
+ * holds 125 after (49 gaps).
+ *
+ * NOTE A DISCREPANCY, unresolved: the header above states "52 unused values
+ * inside the range", but a direct count of the definitions gave 57 before this
+ * change. The two figures may be counting different things -- defined ids
+ * versus ids some function actually compares -- or one may be stale. The
+ * numbers here are from counting the definitions in this file. Worth
+ * reconciling before either is cited as evidence. */
+_AREA_7e = 0x7e;
+_AREA_86 = 0x86;
+_AREA_8d = 0x8d;
+_AREA_8f = 0x8f;
+_AREA_90 = 0x90;
+_AREA_92 = 0x92;
+_AREA_a9 = 0xa9;
+_AREA_b6 = 0xb6;
+
+/* RESOLVED, batch 68 -- the __SetDestMap lead, checked and acted on.
+ *
+ * The question was whether the pooled small constants reaching __SetDestMap are
+ * area ids. The check named here was: match each pooled value's destination
+ * register against the callee's signature. Doing it settles it three ways.
+ *
+ *   * The signature is known from elevated code:
+ *     `extern void __SetDestMap(int map, int entrance);`
+ *   * At all 16 call sites the pooled value is loaded into r0 -- the `map`
+ *     argument -- with r1 set separately as the entrance.
+ *   * An elevated file ALREADY writes `__SetDestMap((int)(&_AREA_01), 1)`, so
+ *     the convention predates this investigation.
+ *
+ * The apparent contradiction -- low values 0x0, 0x1, 0x2, 0x4 against a header
+ * claiming 0x00-0x0f never appear -- was the header being imprecise, not the
+ * evidence being wrong. _AREA_01 was already defined. Corrected above.
+ *
+ * Added on this evidence: */
+_AREA_00 = 0x0;
+_AREA_02 = 0x2;
+_AREA_04 = 0x4;
+_AREA_2d = 0x2d;
+_AREA_3a = 0x3a;
+_AREA_bb = 0xbb;
+_AREA_be = 0xbe;

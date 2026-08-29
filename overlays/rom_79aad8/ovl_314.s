@@ -1,5 +1,23 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Overlay 0x79aad8 -- serves areas 0x1C and 0x1D, and contains a ONE-SHOT
+@ TOPPLING-OBJECT set piece.
+@
+@ Slot 0  OvlFunc_414  map-load entry
+@ Slot 1  OvlFunc_314  edge transitions   -> area 0x1D: .L8d8, else .L818
+@ Slot 2  OvlFunc_348  map event list     -> .L920 (constant)
+@ Slot 3  OvlFunc_350  read after slot 4  -> area 0x1D: .L978, else .L948
+@ Slot 4  OvlFunc_3e4  map objects        -> area 0x1D: .L9f0, else .L990
+@ Slot 5  OvlFunc_344  interactions       -> none (returns 0)
+@
+@ Save bit 0x864 records that the object in slot 8 has been toppled. Once set,
+@ the map-load entry rebuilds the aftermath directly instead of replaying the
+@ scene, which is the usual pattern -- but here the aftermath is elaborate
+@ enough that it is worth following both paths.
+@ ============================================================================
+
+@ Slot 1: edge-transition table.
 .thumb_func_start OvlFunc_314
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -20,16 +38,19 @@
 	bx	r1
 .func_end OvlFunc_314
 
+@ Slot 5: interaction table -- none.
 .thumb_func_start OvlFunc_344
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_344
 
+@ Slot 2: map event list.
 .thumb_func_start OvlFunc_348
 	ldr	r0, =.L920
 	bx	lr
 .func_end OvlFunc_348
 
+@ Slot 3: read after slot 4.
 .thumb_func_start OvlFunc_350
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -50,6 +71,15 @@
 	bx	r1
 .func_end OvlFunc_350
 
+@ TriggerTopple
+@ Takes no arguments. Fires only when slot 8's tile x is exactly 0x18, so the
+@ object has to have been pushed into position first -- note the negative-safe
+@ rounding (`add 0xFFFFF` before `asr #20`) that a plain shift would get wrong.
+@
+@ Runs the fall through OvlFunc_4f4, then sets bit 1 of the entity's +0x23,
+@ repaints a 3x9 attribute block from (0x13, 0x4A) so the terrain reflects the
+@ new obstacle, resets the entity with Func_c528, and records it with save bit
+@ 0x864.
 .thumb_func_start OvlFunc_380
 	push	{lr}
 	mov	r0, #8
@@ -94,6 +124,7 @@
 	bx	r0
 .func_end OvlFunc_380
 
+@ Slot 4: map object table.
 .thumb_func_start OvlFunc_3e4
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -114,6 +145,16 @@
 	bx	r1
 .func_end OvlFunc_3e4
 
+@ Slot 0: map-load entry.
+@
+@ Sets the scene step delay at [iwram_1ebc]+0x1C0 to 0x204. Area 0x1C only:
+@ arriving by entrance 5 just clears save bit 0x12F, otherwise slot 8 gets bit
+@ 4 set in its interaction-flag byte +0x59 so it can be pushed.
+@
+@ If save bit 0x864 is already set, the toppled state is reconstructed without
+@ any animation: slot 8 is teleported to (0x15A0000, 0x1240000), reset, given
+@ bit 1 of +0x23 and animation 2, and the same 3x9 attribute block that
+@ OvlFunc_380 paints is applied.
 .thumb_func_start OvlFunc_414
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -187,6 +228,10 @@
 	bx	r1
 .func_end OvlFunc_414
 
+@ SpinFrameHook
+@ r0 = entity. Installed at +0x6C by OvlFunc_4f4. Subtracts 0x800 from the
+@ sprite angle at [entity+0x50]+0x1E every frame -- a constant spin, left
+@ running after the scripted fall hands off.
 .thumb_func_start OvlFunc_4c4
 	ldr	r2, [r0, #0x50]
 	ldr	r1, =0xfffff800
@@ -196,6 +241,10 @@
 	bx	lr
 .func_end OvlFunc_4c4
 
+@ WaitUntilBelow
+@ r0 = entity, r1 = height. Yields a frame at a time with Func_30f8(1) until
+@ the entity's y at +0x0C drops to or below r1, giving up after 0x3C frames so
+@ a snagged object cannot hang the scene.
 .thumb_func_start OvlFunc_4d4
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
@@ -216,6 +265,24 @@
 	bx	r0
 .func_end OvlFunc_4d4
 
+@ RunTopple
+@ r0 = slot. The fall itself.
+@
+@ Phase 1, eighteen frames: each frame subtracts 0x100 from the sprite angle at
+@ [entity+0x50]+0x1E and shifts x by half the cosine of the new angle
+@ (Func_231c, with the usual round-toward-zero `lsr #31` correction), while
+@ +0x38 is held at the 0x80000000 sentinel so the movement system leaves the
+@ entity alone. That is the object tipping over.
+@
+@ Then OvlFunc_4c4 takes over the spin, speed is set to 0x30000/0x18000, the
+@ entity is sent to (0x178, 0x120) with Func_92128, +0x48 gets 0xCCCC and the
+@ tile-type byte +0x22 is cleared. After Func_923c4 and OvlFunc_4d4 confirm it
+@ has landed, sound 0xBC plays, Func_12330 shakes the map and settles it, and
+@ sound 0x8D closes.
+@
+@ The tail loop walks a full circle in sixteen steps (`lsl r5, #12` on a
+@ counter), taking sine and cosine at each and calling OvlFunc_common0_10c to
+@ spawn a prop -- the ring of debris thrown out by the impact.
 .thumb_func_start OvlFunc_4f4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

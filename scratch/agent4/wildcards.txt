@@ -1,0 +1,47 @@
+=== PATTERN rules with non-default flag group ===
+COMMON2_CFLAGS   asm/overlays/common/common2_c%.o                           first-line=139 dups=1 members=9
+       src/overlays/common/common2_c_b.c 
+       src/overlays/common/common2_c_c_b.c 
+       src/overlays/common/common2_c_c_c_b.c 
+       src/overlays/common/common2_c_c_c_c_b.c 
+       src/overlays/common/common2_c_c_c_c_c_b.c 
+       src/overlays/common/common2_c_c_c_c_c_c_b.c 
+       src/overlays/common/common2_c_c_c_c_c_c_c_b.c 
+       src/overlays/common/common2_c_c_c_c_c_c_c_c_b.c 
+       src/overlays/common/common2_c_c_c_c_c_c_c_c_c_b.c 
+O1_CFLAGS        asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a%.o                first-line=488 dups=30 members=1
+       src/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a_b.c 
+O1_CFLAGS        asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c%.o              first-line=492 dups=30 members=3
+       src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c_a_a_b.c <-- ALSO explicit rule
+       src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c_a_b.c <-- ALSO explicit rule
+       src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c_b.c 
+O1_CFLAGS        asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_b_%.o               first-line=507 dups=30 members=0
+O1_CFLAGS        asm/overlays/rom_7ed0a0/ovl_30_a_c_a_a_c_b_%.o             first-line=515 dups=30 members=0
+O1_CFLAGS        asm/overlays/rom_78603c/ovl_30_c_c_a_c_a%.o                first-line=563 dups=30 members=1
+       src/overlays/rom_78603c/ovl_30_c_c_a_c_a_b.c 
+O1_CFLAGS        asm/overlays/rom_7987ac/ovl_30_c_c_a_a_c_a%.o              first-line=567 dups=30 members=1
+       src/overlays/rom_7987ac/ovl_30_c_c_a_a_c_a_b.c 
+O1_CFLAGS        asm/overlays/rom_7aa430/ovl_e90_c_c_a_a_b_%.o              first-line=578 dups=30 members=0
+O1_CFLAGS        asm/overlays/rom_7b4558/ovl_30_c_c_a_c_a%.o                first-line=582 dups=30 members=1
+       src/overlays/rom_7b4558/ovl_30_c_c_a_c_a_b.c 
+O1_CFLAGS        asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.o         first-line=608 dups=30 members=0
+O1_CFLAGS        asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o                  first-line=612 dups=30 members=2
+       src/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a_b.c 
+       src/overlays/rom_7ed0a0/ovl_30_c_c_c_a_b.c 
+O1_CFLAGS        asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o              first-line=616 dups=30 members=4
+       src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c_b.c 
+       src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c_c_b.c 
+       src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c_c_c_b.c <-- ALSO explicit rule
+       src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c_c_c_c_b.c <-- ALSO explicit rule
+O1_CFLAGS        asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.o              first-line=620 dups=30 members=2
+       src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a_b.c 
+       src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a_c_b.c <-- ALSO explicit rule
+None             src/lib/m4a/%.o                                            first-line=5306 dups=1 members=2
+       src/lib/m4a/m4a.c 
+       src/lib/m4a/m4a_tables.c 
+CFLAGS           tools/%.o                                                  first-line=5387 dups=1 members=5
+       tools/layout_check.c 
+       tools/pack_overlay.c 
+       tools/pack_strings.c 
+       tools/unpack_overlay.c 
+       tools/unpack_strings.c 

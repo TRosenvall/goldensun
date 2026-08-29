@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ DecodeByteStream
+@ r0 = source, r1 = destination. Decodes a byte stream, handling a source
+@ pointer that is not word-aligned by loading three words and re-shifting them
+@ (`lsr r4, r2 / orr r4, r5, lsl r7`) rather than falling back to byte loads.
 .arm_func_start Func_1b70
 	push	{r1, r5, r6, r7, lr}
 .L1b74:
@@ -161,6 +165,10 @@
 	bx	r12
 .func_end Func_1b70
 
+@ FlushDisplayList
+@ r0 = parameter. Walks the table ending at iwram_1800 BACKWARDS in 16-byte
+@ chunks (`ldmdb r2!, {r3,r4,r5,r6}`), calling a local subroutine for each
+@ non-zero entry. 0x40 iterations of four entries = 256 slots.
 .arm_func_start Func_1dc8
 	push	{r5, r6, r7, r8, r9, lr}
 	ldr	r2, =iwram_1800
@@ -221,6 +229,15 @@
 	bx	lr
 .func_end Func_1dc8
 
+@ FadePaletteTo75Percent
+@ r0 = palette, r1 = backup destination, r2 = byte count.
+@ Copies the original to r1, then scales every BYTE to 3/4 with
+@ `adds x, x, lsl #1` followed by `and 0x3F3F3F3F, x lsr #2` -- multiply by 3,
+@ divide by 4, clamp each byte to 6 bits. Four words per iteration.
+@ One of a family (Func_1ea8, Func_1ef8, Func_1f38, Func_1fb8, Func_203c,
+@ Func_2098, Func_20f4, Func_21c4) that all operate on packed 6-bit channels
+@ this way and differ only in the arithmetic and in whether they advance the
+@ source pointer.
 .arm_func_start Func_1ea8
 	push	{r5, r6}
 	add	r2, r0
@@ -245,6 +262,9 @@
 	bx	lr
 .func_end Func_1ea8
 
+@ FadePaletteToHalf
+@ r0 = palette, r1 = backup, r2 = byte count. As Func_1ea8 but halving each
+@ byte (`and 0x3F3F3F3F, x lsr #1`).
 .arm_func_start Func_1ef8
 	push	{r5, r6}
 	add	r2, r0
@@ -265,6 +285,9 @@
 	bx	lr
 .func_end Func_1ef8
 
+@ BrightenPalette
+@ r0 = palette, r1 = step, r2 = backup, r3 = byte count. Adds a per-byte step
+@ toward white, using the 0x808080 bias to detect and clamp overflow.
 .arm_func_start Func_1f38
 	rsb	r12, r1, #0x80000000
 	add	r12, #0x800000
@@ -301,6 +324,9 @@
 	bx	r12
 .func_end Func_1f38
 
+@ BrightenPaletteSaturating
+@ r0 = palette, r1 = step, r2 = backup, r3 = byte count. As Func_1f38 with the
+@ 0x40404040 carry mask, so each 6-bit channel saturates rather than wrapping.
 .arm_func_start Func_1fb8
 	push	{r5, r6, r7, r8, r9}
 	mov	r8, #0x40
@@ -338,6 +364,10 @@
 	bx	lr
 .func_end Func_1fb8
 
+@ FadePaletteTo75PercentInPlace
+@ r0 = palette, r1 = backup, r2 = byte count. Identical arithmetic to
+@ Func_1ea8; the difference is that this one post-increments the source
+@ (`ldm r0!`) and writes back through a negative offset.
 .arm_func_start Func_203c
 	push	{r5, r6}
 	add	r2, r0
@@ -365,6 +395,9 @@
 	bx	lr
 .func_end Func_203c
 
+@ FadePaletteToHalfInPlace
+@ r0 = palette, r1 = backup, r2 = byte count. The post-incrementing form of
+@ Func_1ef8.
 .arm_func_start Func_2098
 	push	{r5, r6}
 	add	r2, r0
@@ -392,6 +425,9 @@
 	bx	lr
 .func_end Func_2098
 
+@ BrightenPaletteInPlace
+@ r0 = palette, r1 = step, r2 = backup, r3 = byte count. The post-incrementing
+@ form of Func_1f38.
 .arm_func_start Func_20f4
 	rsb	r12, r1, #0x80000000
 	add	r12, #0x800000
@@ -456,6 +492,9 @@
 	bx	r12
 .func_end Func_20f4
 
+@ BrightenPaletteSaturatingInPlace
+@ r0 = palette, r1 = step, r2 = backup, r3 = byte count. The post-incrementing
+@ form of Func_1fb8.
 .arm_func_start Func_21c4
 	push	{r5, r6, r7, r8, r9}
 	mov	r8, #0x40
@@ -521,6 +560,11 @@
 	bx	lr
 .func_end Func_21c4
 
+@ DecodeRleHalfwords
+@ r0 = source, r1 = destination. A halfword RLE decoder: a control bit stream
+@ selects between emitting a literal halfword and repeating an earlier run,
+@ with the back-reference distance packed in the top 11 bits and the length in
+@ the low 5.
 .arm_func_start Func_2298
 	mov	r3, #0x80000000
 	b	.L22a4
@@ -567,11 +611,20 @@
 .L231a:
 	bx	lr
 
+@ Cos
+@ r0 = angle, 0x10000 = a full turn. Adds a quarter turn (0x4000) and FALLS
+@ THROUGH into Func_2322, so cosine costs exactly two extra instructions over
+@ sine. Both are `_noalign` so the fall-through cannot be broken by padding.
 .thumb_func_start_noalign Func_231c
 	mov	r1, #0x40
 	lsl	r1, #8
 	add	r0, r1
 
+@ Sin
+@ r0 = angle, 0x10000 = a full turn. Returns the sine.
+@ Folds the angle into one quadrant, indexes the 256-entry halfword table at
+@ .L2344 (0x2344..0x2544, exactly 0x200 bytes), and negates for the lower half.
+@ Func_231c above is the cosine entry.
 .thumb_func_start_noalign Func_2322
 Func_2322:
 	add	r0, #0x20

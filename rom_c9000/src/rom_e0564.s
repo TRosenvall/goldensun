@@ -1,6 +1,14 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Sub_e0564
+@ Battle animation routine, 362 instructions.
+@ State: iwram_1eec, ewram_10000.
+@ Calls out to: _Func_b8228, _Func_bd7dc, _Func_f9080.
+@ Touches: REG_BLDALPHA.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_e0564
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -389,6 +397,13 @@
 	bx	r0
 .func_end Func_e0564
 
+@ Sub_e08c0
+@ Battle animation routine, 406 instructions.
+@ State: iwram_1eec, ewram_10000.
+@ Calls out to: _Func_b8228, _Func_bd7dc, _Func_f9080.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_e08c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -820,6 +835,13 @@
 	bx	r0
 .func_end Func_e08c0
 
+@ Sub_e0c84
+@ Battle animation routine, 398 instructions.
+@ State: iwram_1eec, ewram_10000.
+@ Calls out to: _Func_b8228, _Func_bd7dc.
+@ Touches: REG_BLDALPHA.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_e0c84
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1248,6 +1270,14 @@
 	bx	r0
 .func_end Func_e0c84
 
+@ Sub_e1040
+@ Battle animation routine, 561 instructions.
+@ State: iwram_1eec, iwram_1f0c, iwram_1e50.
+@ Calls out to: _Func_b7dd0, _Func_b8228, _Func_f9080.
+@ Touches: REG_BLDALPHA.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_e1040
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1852,6 +1882,11 @@
 	bx	r0
 .func_end Func_e1040
 
+@ Sub_e155c
+@ Battle animation routine, 58 instructions.
+@ State: iwram_1eec, iwram_1ad0, iwram_1ce0.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_e155c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1915,6 +1950,81 @@
 	bx	r0
 .func_end Func_e155c
 
+@ RunAnimationClass12 -- a charge, then a staggered eight-lane strike
+@ r0 = action descriptor. Animation class 12, entered from the twelve-way table
+@ in Func_d6578 (rom_d6504.s). Two frame loops: 170 frames (0..0xA9) of charge,
+@ then 192 frames (0..0xBF) of impacts. The frame counter at sp+0x74 IS reset to
+@ 0 between them.
+@
+@ Like Func_ea0d8 (class 9) it PRE-BUILDS EIGHT BRIGHTNESS RAMPS: the 0x302-byte
+@ sprite sheet from asset 0x73 is copied eight times to [iwram_1eec] + 0x2710 +
+@ 0x302*k, each byte clamped to a ceiling of 0x40 - 7k (0x40, 0x39, 0x32, 0x2B,
+@ 0x24, 0x1D, 0x16, 0x0F) and floored at 0. Same idiom, same layout.
+@
+@ Also like class 9, it REGENERATES A BLITTER INSIDE THE LOOP -- twelve
+@ Func_ed408 calls against eleven Func_2dd8 frees, the odd one out being the
+@ long-lived tag 0x2E released at teardown.
+@
+@ A SMALL ODDITY worth checking before decompiling: Func_e0524(0xBC,
+@ [iwram_1eec], 1, 1) is called TWICE IN A ROW with identical arguments during
+@ setup. The second call is redundant unless Func_e0524 is not idempotent.
+@
+@ SETUP
+@   sp+0x84 = [iwram_1f00] (tag 0x2C), sp+0x80 = [iwram_1eec] state,
+@   sp+0x7c = [iwram_1ef0] render buffer, sp+0x78 = [iwram_1ef4] sprite scratch.
+@   Func_cd594(0x2000); REG_BG2PA = 0x100.
+@   Func_e0524 unpacks asset 0xBC into [iwram_1eec] (twice, see above), 0x75 into
+@     +0x1800 and 0x73 into [iwram_1ef4]; then the eight ramps are built.
+@   Func_c9048(); palette 0 and 1 zeroed; REG_BG2CNT = 0x2784.
+@   +0x7790 = 0, +0x7794 = 2, +0x7798 = 1, +0x779C = 0; [tag 0x2C]+0x10 = 1.
+@   TWO tasks registered: Func_c90e4 and Func_cd260, both at priority 0x480.
+@   +0x7780 = 0; Func_cd104(0, 0); _Func_c08ec(1, 0x3D, 0); iwram_1ce0+0x10 =
+@     0xF0; Func_cd104(0, 1); REG_BG2PA = 0x80; two blitters generated.
+@
+@ LOOP ONE -- frames 0..0xA9, the charge
+@   sounds  0x10 -> 0x8C, 0x84 -> 0x83, 0x97 -> 0x91.
+@   every frame  Func_d40ec(...) drives the effect from four accumulators at
+@     sp+0x10..0x1C that advance by 0x1800, 0x14, 4 and 2 per frame -- four
+@     independently-paced ramps feeding position, scale and colour.
+@   frame 0x96  +0x7780 = 1 and +0x7784 = 0x1A1A1A1A, a flat wash; before that
+@     +0x7784 tracks sp+0x68.
+@   The six-frame figure comes from Data_edebe offsets {0,589,1302,2015,2414,
+@     2750} with Data_edeca widths {19,23,23,19,16,17} and Data_eded0 heights
+@     {31,31,31,21,21,24} -- the offsets are that table's own running w*h. This
+@     is the same six frames as .Leef3e/.Leef4a/.Leef50 in rom_ea0d8.s.
+@   end of frame  +0x7824 = 1; Func_30f8(1). A or B held jumps straight to the
+@     between-loops section, which is also the normal exit at frame 0xAA.
+@
+@ BETWEEN THE LOOPS
+@   [tag 0x2C]+0x10 = 0; Func_4278(Func_c90e4); Func_d67dc; Func_d6750;
+@   Func_dbb24(9, 0x173, 1) spawns nine actors.
+@   Func_e0524 unpacks asset 0xCE into ewram_10000, 0xD1 into [iwram_1eec], 0x66
+@     into +0x6000 and 0x74 into [iwram_1ef4]; asset 0xCF's palette goes to
+@     0x5000000. REG_BLDALPHA = 0x1010.
+@   The camera pair sp+0x50/sp+0x4c starts at (80.0, 64.0); 910 entries at
+@     ewram_10c70 are cleared; the frame counter is reset to 0.
+@
+@ LOOP TWO -- frames 0..0xBF, EIGHT STAGGERED LANES
+@   Lane i (0..7) is gated on the frame counter against i*0x80 -- so each lane
+@     opens 128 frames after the previous one in schedule terms, and within its
+@     window draws a 0x30x0x70 piece, then further pieces as the lane advances.
+@   frames 0x50..0x8B, EVERY EIGHTH FRAME  sound 0x86 -- a repeating impact
+@     rhythm through the strike.
+@   frame 0x8C  Func_bd7dc(0x86) hands back to rom_b5000, from inside the loop.
+@   Actors are submitted through _Func_b168 at the non-unit scale
+@     Data_eda98 = {0x870008, 0x8700B8}.
+@   end of frame  Func_e155c(8, 0x10) while frame <= 0x1F, (4, 4) after;
+@     Func_cd52c(); +0x7824 = 1; Func_30f8(1).
+@
+@ TEARDOWN
+@   Func_2dd8(0x2E) frees the long-lived blitter; Func_4278(Func_cd260);
+@   Func_e6eac(0, x, y) mirrors the camera setup; the nine actors at +0x77D8 are
+@   destroyed; Func_cdbc0 restores the view.
+@
+@ DEPTH NOTE: loop one's inner drawing and loop two's per-lane piece layout are
+@ summarised rather than traced line by line. Everything stated above -- the
+@ counters, gates, tables, sounds and call order -- is read directly from the
+@ code; the fine placement arithmetic inside each lane is not yet documented.
 .thumb_func_start Func_e15e8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3698,6 +3808,14 @@
 	bx	r0
 .func_end Func_e15e8
 
+@ Sub_e2538
+@ Battle animation routine, 408 instructions.
+@ State: iwram_1eec, ewram_10000.
+@ Calls out to: _Func_bd7dc, _Func_f9080.
+@ Touches: REG_BG2PA, REG_BG2X.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
 .thumb_func_start Func_e2538
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

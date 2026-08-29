@@ -1,0 +1,5636 @@
+	.include "macros.inc"
+	.include "gba.inc"
+
+@ ClaimAnimationSlot
+@ r0, r1, r2 = the three payload words to store. No return value.
+@
+@ Finds a free entry in a sixteen-slot array and fills it in. The array base is
+@ [r9-0x88] + 0x7400, and entries are 0x1C bytes apart -- the stride is spelled
+@ `(i * 8 - i) * 4`, which is 28. A slot is free when its word at +0x18 holds
+@ -1; claiming it writes 0 there and then stores r0, r1 and r2 at +0x00, +0x04
+@ and +0x0C.
+@
+@ If all sixteen are taken the call does nothing at all -- the loop exits on
+@ `cmp r4, #0x10` before any store. There is no failure signal, so a caller
+@ cannot tell a dropped request from a serviced one.
+@
+@ Func_e73a0 below is the same routine against a different array (base offset
+@ 0x7080 rather than 0x7400), so the two manage parallel pools.
+.thumb_func_start Func_80e7338  @ 0x080e7338
+	push	{r5, r6, r7, lr}
+	mov	r7, r9
+	push	{r7}
+	sub	sp, #4
+	mov	r4, r9
+	mov	r3, sp
+	str	r4, [r3]
+	mov	r3, r4
+	mov	r5, r1
+	mov	r1, r3
+	sub	r1, #0x88
+	ldr	r3, [r1]
+	mov	r7, #0xe8
+	lsl	r7, #7
+	mov	r6, r2
+	add	r2, r3, r7
+	ldr	r3, [r2, #0x18]
+	mov	r7, #1
+	neg	r7, r7
+	mov	r4, #0
+	cmp	r3, r7
+	bne	.Le7368
+	str	r4, [r2, #0x18]
+	b	.Le738c
+.Le7368:
+	add	r4, #1
+	cmp	r4, #0x10
+	beq	.Le7392
+	lsl	r3, r4, #3
+	sub	r3, r4
+	ldr	r2, [r1]
+	lsl	r3, #2
+	add	r2, r3
+	mov	r3, #0xe8
+	lsl	r3, #7
+	add	r2, r3
+	mov	r7, #1
+	ldr	r3, [r2, #0x18]
+	neg	r7, r7
+	cmp	r3, r7
+	bne	.Le7368
+	mov	r3, #0
+	str	r3, [r2, #0x18]
+.Le738c:
+	str	r0, [r2]
+	str	r5, [r2, #4]
+	str	r6, [r2, #0xc]
+.Le7392:
+	add	sp, #4
+	pop	{r3}
+	mov	r9, r3
+	pop	{r5, r6, r7}
+	pop	{r0}
+	bx	r0
+.func_end Func_80e7338
+
+@ Sub_e73a0
+@ Battle animation routine, 49 instructions.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
+.thumb_func_start Func_80e73a0  @ 0x080e73a0
+	push	{r5, r6, lr}
+	mov	r6, r9
+	push	{r6}
+	sub	sp, #4
+	mov	r2, r9
+	mov	r3, sp
+	str	r2, [r3]
+	mov	r3, r2
+	mov	r5, r1
+	mov	r1, r3
+	sub	r1, #0x88
+	ldr	r3, [r1]
+	mov	r6, #0xe1
+	lsl	r6, #7
+	add	r2, r3, r6
+	ldr	r3, [r2, #0x18]
+	mov	r6, #1
+	neg	r6, r6
+	mov	r4, #0
+	cmp	r3, r6
+	bne	.Le73ce
+	str	r4, [r2, #0x18]
+	b	.Le73f2
+.Le73ce:
+	add	r4, #1
+	cmp	r4, #0x20
+	beq	.Le73f6
+	lsl	r3, r4, #3
+	sub	r3, r4
+	ldr	r2, [r1]
+	lsl	r3, #2
+	add	r2, r3
+	mov	r3, #0xe1
+	lsl	r3, #7
+	add	r2, r3
+	mov	r6, #1
+	ldr	r3, [r2, #0x18]
+	neg	r6, r6
+	cmp	r3, r6
+	bne	.Le73ce
+	mov	r3, #0
+	str	r3, [r2, #0x18]
+.Le73f2:
+	str	r0, [r2]
+	str	r5, [r2, #4]
+.Le73f6:
+	add	sp, #4
+	pop	{r3}
+	mov	r9, r3
+	pop	{r5, r6}
+	pop	{r0}
+	bx	r0
+.func_end Func_80e73a0
+
+@ RunDefaultAnimationImpl -- scanline gradient sweep, then a 3D burst
+@ r0 = action descriptor, r1 = variant (0 = Func_e7320 = animation class 11 AND
+@ the class-0 fall-through, 1 = Func_e732c). Two frame loops: 192 frames
+@ (0..0xBF) and 54 frames (0..0x35).
+@
+@ THE PER-SCANLINE GRADIENT is what makes this one distinctive. Every frame it
+@ rewrites a 160-entry halfword table at [iwram_1eec]+0x1F80, one entry per
+@ scanline, and the task .gcc2_compiled. feeds it to the hardware:
+@     scanlines 0..0x0E    0
+@     scanlines 0x10..0x86 t = (scanline - 0x10)/4 + frame/4, then
+@                          blue  = clamp(t - 0x20, 0, 0x1F)
+@                          green = clamp(t - 0x50, 0, 0x1F)
+@                          red   = green / 2
+@                          packed as (blue << 10) | (green << 5) | red
+@     scanlines 0x87..0x9F 0
+@ Because t carries the frame counter, the blue-to-white band sweeps down the
+@ screen as the animation runs.
+@
+@ VARIANT DIFFERENCES, all decided in the first 60 instructions:
+@   variant 1  the ACTING combatant ([desc+8]) is grabbed through _Func_b7dd0
+@     and given +0x28 = 0xA0000 and +0x48 = 0x91EB, then Func_d6888(actor, -1,
+@     2, -1, 0) and sound 0x91. Two actors are built by hand from resources
+@     0x1E3 and 0x21E4 at OBJ priority 3, and asset 0xC4's palette is loaded.
+@     A direction flag at sp+0x40 is taken from [desc+4].
+@   variant 0  no acting-combatant setup; CreateSummonSprite(1, 0x17D, 3) spawns a
+@     single actor, and the direction flag is forced to -1.
+@   Throughout, variant 1 draws TWO actors (+0x77D8 and +0x77DC) where variant 0
+@     draws one, and uses different anchor offsets.
+@
+@ SETUP
+@   sp+0x48 = [iwram_1ef0] render buffer; the state pointer is kept indirectly
+@     at sp+0x3c, which points to a stack slot HOLDING [iwram_1eec] -- so most
+@     accesses here are a double indirection, unlike the other handlers.
+@   AnimStart(0x2000); REG_BG2PA = 0x100; Func_c9048(); palette 0 and 1 zeroed.
+@   Task_BlitAnim is registered and then IMMEDIATELY unregistered again -- the
+@     StartTask/StopTask pair sits back to back with only AnimTransitionOut(0, 0)
+@     between them, so this handler runs without the usual effect task.
+@   LoadVFXFile unpacks asset 0xC1 into [iwram_1eec].
+@   +0x7780 = 3, +0x7784 = ewram_20202 (used as a literal), and StartTask
+@     registers .gcc2_compiled. at priority 0x4FE -- the gradient uploader.
+@   The 64-entry list at +0x7098 is cleared to -1; +0x778C, the frame counter
+@     MIRRORED INTO THE STATE BLOCK, starts at 0.
+@
+@ LOOP ONE -- frames 0..0xBF
+@   The frame counter lives both in r11 and at [iwram_1eec]+0x778C, incremented
+@     together, so the HBlank task can see it.
+@   frame 0  sound 0x8D.
+@   A or B held exits early -- after frame 0x10 for variant 1, after frame 4 for
+@     variant 0.
+@   every frame  the gradient table above is rebuilt, then one actor (variant 0)
+@     or two (variant 1) are submitted through _Func_b168 at an anchor that
+@     tracks frame/4 and 0x60 - frame, so the figure travels as the band sweeps.
+@   end of frame  +0x7824 = 1; WaitFrames(1).
+@
+@ BETWEEN THE LOOPS
+@   WaitFrames(1), then THREE tasks are unregistered -- Func_c9138, .gcc2_compiled.
+@   and Task_BlitAnim_BG1Wide -- and iwram_1ad0+4/+6 are restored from saved copies.
+@   Func_2dd8(0x2E); Func_d67dc; REG_BG2PA = 0x80, REG_BG2X = 0,
+@   REG_BG2PD = 0xFFFFF000, REG_BLDALPHA = 0x1010, REG_BG2CNT = 0x2784.
+@   A fresh BuildDraw2DFuncEx(0x2E,7,7,3,2) is generated and asset 0xC0 unpacked.
+@   THREE PARTICLE SETS are seeded as 3-VECTORS at the origin with random
+@   velocities: 32 entries at +0x7080, 128 at ewram_10000 and 512 at
+@   ewram_10e00 -- all starting at (0,0,0), so loop two is an explosion
+@   outward from a point.
+@
+@ LOOP TWO -- frames 0..0x35
+@   The three sets step and project each frame; +0x77A8 = 1 keeps a light shake
+@   running; UpdateScreenShake(8, 8); +0x7824 = 1; WaitFrames(1).
+@
+@ TEARDOWN
+@   StopTask(Task_BlitAnim); Func_2dd8(0x2E). VARIANT 0 ONLY destroys its single
+@   actor at +0x77D8 -- variant 1's two actors are left for the caller.
+@   AnimEnd restores the view.
+.thumb_func_start BaseAnim_Meteor  @ 0x080e7404
+	push	{r5, r6, r7, lr}
+	mov	r7, r11
+	mov	r6, r10
+	mov	r5, r9
+	push	{r5, r6, r7}
+	mov	r7, r8
+	push	{r7}
+	sub	sp, #0x11c
+	str	r1, [sp, #0x4c]
+	ldr	r3, =iwram_3001ef0
+	mov	r2, sp
+	ldr	r1, [r3]
+	add	r2, #0x94
+	str	r2, [sp, #0x3c]
+	str	r1, [sp, #0x48]
+	sub	r3, #4
+	ldr	r3, [r3]
+	ldr	r4, =0x7828
+	str	r3, [r2]
+	add	r3, r4
+	str	r0, [r3]
+	mov	r0, #0x80
+	lsl	r0, #6
+	bl	AnimStart
+	ldr	r2, =REG_BG2PA
+	ldr	r3, .Le7474	@ 0x100
+	strh	r3, [r2]
+	ldr	r0, [sp, #0x4c]
+	cmp	r0, #1
+	bne	.Le74b8
+	ldr	r1, [sp, #0x3c]
+	ldr	r2, =0x7828
+	ldr	r3, [r1]
+	add	r3, r2
+	ldr	r3, [r3]
+	ldr	r0, [r3, #8]
+	bl	_GetBattleActor
+	mov	r3, #0xa0
+	ldr	r2, [r0]
+	lsl	r3, #12
+	str	r3, [r2, #0x28]
+	ldr	r3, =0x91eb
+	str	r3, [r2, #0x48]
+	ldr	r4, [sp, #0x3c]
+	ldr	r0, =0x7828
+	ldr	r3, [r4]
+	add	r3, r0
+	ldr	r3, [r3]
+	mov	r5, #1
+	ldr	r0, [r3, #8]
+	neg	r5, r5
+	mov	r3, #0
+	b	.Le7488
+
+	.align	2, 0
+.Le7474:
+	.word	0x100
+	.pool
+
+.Le7488:
+	str	r3, [sp]
+	mov	r1, r5
+	mov	r2, #2
+	mov	r3, r5
+	bl	Func_80d6888
+	mov	r0, #0x91
+	bl	_PlaySound
+	ldr	r1, [sp, #0x3c]
+	ldr	r2, =0x7828
+	ldr	r3, [r1]
+	add	r3, r2
+	ldr	r3, [r3]
+	ldr	r4, [sp, #0x4c]
+	ldr	r3, [r3, #4]
+	str	r4, [sp, #0x40]
+	cmp	r3, #1
+	beq	.Le74be
+	str	r5, [sp, #0x40]
+	b	.Le74be
+
+	.pool_aligned
+
+.Le74b8:
+	mov	r0, #1
+	neg	r0, r0
+	str	r0, [sp, #0x40]
+.Le74be:
+	bl	Func_80c9048
+	ldr	r2, =0
+	mov	r3, #0xa0
+	lsl	r3, #19
+	strh	r2, [r3]
+	add	r3, #2
+	strh	r2, [r3]
+	ldr	r1, [sp, #0x3c]
+	mov	r2, #0xef
+	ldr	r3, [r1]
+	ldr	r5, =Task_BlitAnim
+	lsl	r2, #7
+	add	r3, r2
+	mov	r1, #0x90
+	mov	r2, #0
+	str	r2, [r3]
+	lsl	r1, #3
+	mov	r0, r5
+	bl	StartTask
+	mov	r0, #0
+	mov	r1, #0
+	bl	AnimTransitionOut
+	mov	r0, r5
+	bl	StopTask
+	ldr	r3, [sp, #0x4c]
+	b	.Le7504
+
+	.pool_aligned
+
+.Le7504:
+	cmp	r3, #1
+	bne	.Le755c
+	mov	r4, #0
+	ldr	r5, =0x77d8
+	ldr	r6, =0x1e3
+	mov	r8, r4
+.Le7510:
+	mov	r0, r6
+	bl	_CreateSprite
+	ldr	r1, [sp, #0x3c]
+	ldr	r3, [r1]
+	str	r0, [r3, r5]
+	cmp	r0, #0
+	beq	.Le753c
+	mov	r2, r0
+	add	r2, #0x26
+	mov	r3, #0
+	strb	r3, [r2]
+	mov	r1, #2
+	bl	_Sprite_SetAnim
+	ldr	r2, [sp, #0x3c]
+	ldr	r3, [r2]
+	ldr	r1, [r3, r5]
+	ldrb	r3, [r1, #9]
+	mov	r2, #0xc
+	orr	r3, r2
+	strb	r3, [r1, #9]
+.Le753c:
+	mov	r4, #1
+	ldr	r3, =0x2001
+	add	r8, r4
+	mov	r0, r8
+	add	r5, #4
+	add	r6, r3
+	cmp	r0, #2
+	bne	.Le7510
+	b	.Le7566
+
+	.pool_aligned
+
+.Le755c:
+	ldr	r1, =0x17d
+	mov	r0, #1
+	mov	r2, #3
+	bl	CreateSummonSprite
+.Le7566:
+	ldr	r2, [sp, #0x3c]
+	mov	r3, #1
+	ldr	r1, [r2]
+	ldr	r0, =_FILE_c1
+	mov	r2, #1
+	bl	LoadVFXFile
+	ldr	r3, [sp, #0x4c]
+	cmp	r3, #1
+	bne	.Le758e
+	ldr	r0, =_FILE_c4
+	bl	GetFile
+	mov	r1, r0
+	mov	r0, #0xa0
+	ldr	r3, =Func_8001af8
+	lsl	r0, #19
+	mov	r2, #0x80
+	bl	_call_via_r3
+.Le758e:
+	mov	r4, #0x8c
+	lsl	r4, #1
+	add	r4, sp
+	ldr	r3, =0x1010101
+	mov	r9, r4
+	str	r3, [r4]
+	mov	r0, r9
+	ldr	r3, =REG_DMA3SAD
+	ldr	r1, =gBuffer
+	ldr	r2, =0x85002000
+	stmia	r3!, {r0, r1, r2}
+	sub	r3, #0xc
+	mov	r2, #0xf0
+	ldr	r3, =Func_8001af8
+	lsl	r2, #7
+	ldr	r0, =0x6008000
+	bl	_call_via_r3
+	mov	r0, #1
+	bl	WaitFrames
+	ldr	r2, =REG_BLDCNT
+	ldr	r3, .Le75dc	@ 0
+	strh	r3, [r2]
+	ldr	r3, .Le75e0	@ 0x100
+	sub	r2, #0x30
+	strh	r3, [r2]
+	ldr	r3, .Le75e4	@ 0x1f80
+	sub	r2, #0x16
+	strh	r3, [r2]
+	ldr	r3, .Le75e8	@ 0x2787
+	add	r2, #2
+	ldr	r1, =0x5000100
+	mov	r0, #0
+	strh	r3, [r2]
+	mov	r8, r0
+	mov	r7, #0xf
+	mov	r10, r1
+	b	.Le7618
+
+	.align	2, 0
+.Le75dc:
+	.word	0
+.Le75e0:
+	.word	0x100
+.Le75e4:
+	.word	0x1f80
+.Le75e8:
+	.word	0x2787
+	.pool
+
+.Le7618:
+	bl	Random
+	mov	r6, r0
+	bl	Random
+	mov	r5, r0
+	bl	Random
+	and	r5, r7
+	and	r0, r7
+	add	r5, #0x10
+	add	r0, #0x10
+	and	r6, r7
+	lsl	r0, #10
+	lsl	r5, #5
+	add	r6, #0x10
+	orr	r0, r5
+	mov	r4, #1
+	orr	r0, r6
+	mov	r2, r10
+	add	r8, r4
+	strh	r0, [r2]
+	mov	r3, #2
+	mov	r0, r8
+	add	r10, r3
+	cmp	r0, #0x3f
+	bne	.Le7618
+	mov	r1, r9
+	mov	r3, #0
+	str	r3, [r1]
+	mov	r0, r9
+	ldr	r3, =REG_DMA3SAD
+	ldr	r1, [sp, #0x48]
+	ldr	r2, =0x85001000
+	stmia	r3!, {r0, r1, r2}
+	sub	r3, #0xc
+	mov	r2, #0
+	mov	r3, #0x7f
+	mov	r8, r2
+	mov	r10, r3
+	mov	r7, #7
+.Le766a:
+	bl	Random
+	mov	r4, r10
+	mov	r6, r0
+	and	r6, r4
+	bl	Random
+	mov	r5, r0
+	mov	r0, r10
+	and	r5, r0
+	bl	Random
+	mov	r3, #0x3f
+	and	r3, r0
+	mov	r1, r3
+	add	r1, #0x40
+	mov	r3, r5
+	cmp	r5, #0
+	bge	.Le7692
+	add	r3, r5, #7
+.Le7692:
+	asr	r3, #3
+	mov	r2, r6
+	cmp	r6, #0
+	bge	.Le769c
+	add	r2, r6, #7
+.Le769c:
+	asr	r2, #3
+	lsl	r3, #4
+	add	r3, r2
+	and	r5, r7
+	lsl	r3, #3
+	add	r3, r5
+	and	r6, r7
+	lsl	r3, #3
+	ldr	r2, [sp, #0x48]
+	add	r3, r6
+	strb	r1, [r2, r3]
+	mov	r4, #0x80
+	mov	r3, #1
+	add	r8, r3
+	lsl	r4, #1
+	cmp	r8, r4
+	bne	.Le766a
+	mov	r2, #0x80
+	ldr	r1, [sp, #0x48]
+	ldr	r3, =Func_8001af8
+	lsl	r2, #7
+	ldr	r0, =0x6004000
+	bl	_call_via_r3
+	ldr	r2, =gPhysVec
+	mov	r3, #0xf0
+	str	r3, [r2, #0x10]
+	ldr	r0, [sp, #0x3c]
+	ldr	r1, =0x7828
+	ldr	r3, [r0]
+	add	r3, r1
+	ldr	r0, [r3]
+	bl	Func_80d6750
+	ldr	r3, [sp, #0x3c]
+	ldr	r4, =0x77d0
+	ldr	r2, [r3]
+	ldr	r0, =0x77d4
+	add	r3, r2, r4
+	mov	r1, #0
+	str	r1, [r3]
+	sub	r4, #0x40
+	add	r3, r2, r0
+	str	r1, [r3]
+	sub	r0, #0x40
+	add	r3, r2, r4
+	str	r1, [r3]
+	add	r1, r2, r0
+	mov	r3, #2
+	str	r3, [r1]
+	ldr	r4, [sp, #0x40]
+	ldr	r3, =0x7798
+	add	r0, #8
+	add	r1, r2, r3
+	lsl	r3, r4, #7
+	add	r2, r0
+	str	r3, [r1]
+	mov	r1, r8
+	str	r1, [r2]
+	ldr	r0, =Func_80c9138
+	ldr	r1, =0x4ff
+	bl	StartTask
+	mov	r1, #0x90
+	ldr	r0, =Task_BlitAnim_BG1Wide
+	lsl	r1, #3
+	bl	StartTask
+	add	r2, sp, #0x98
+	mov	r10, r2
+	mov	r7, #0x3f
+	mov	r5, r10
+	add	r6, sp, #0x118
+.Le772e:
+	bl	Random
+	and	r0, r7
+	strb	r0, [r5]
+	add	r5, #1
+	cmp	r5, r6
+	bne	.Le772e
+	mov	r3, #1
+	mov	r6, #0
+	mov	r8, r3
+	mov	r5, #0
+.Le7744:
+	mov	r4, r8
+	lsr	r3, r4, #31
+	add	r3, r8
+	asr	r3, #1
+	mov	r0, #4
+	add	r6, r3
+	add	r8, r0
+	cmp	r5, r6
+	beq	.Le77b4
+	mov	r1, #0x7f
+	mov	r2, #0
+	mov	r7, r10
+	mov	r4, #7
+	mov	r14, r1
+	mov	r12, r2
+.Le7762:
+	mov	r0, #0
+.Le7764:
+	mov	r1, r14
+	mov	r3, r0
+	and	r3, r1
+	ldrb	r3, [r7, r3]
+	sub	r1, r5, r3
+	cmp	r1, #0
+	blt	.Le77a4
+	cmp	r1, #0x7f
+	bgt	.Le77a4
+	mov	r2, r1
+	cmp	r1, #0
+	bge	.Le777e
+	add	r2, r1, #7
+.Le777e:
+	asr	r2, #3
+	mov	r3, r0
+	cmp	r0, #0
+	bge	.Le7788
+	add	r3, r0, #7
+.Le7788:
+	asr	r3, #3
+	lsl	r2, #5
+	add	r2, r3
+	and	r1, r4
+	lsl	r2, #3
+	add	r2, r1
+	mov	r3, r0
+	and	r3, r4
+	lsl	r2, #3
+	add	r2, r3
+	ldr	r3, =gBuffer
+	mov	r1, r12
+	add	r2, r3
+	strb	r1, [r2]
+.Le77a4:
+	mov	r2, #0x80
+	add	r0, #1
+	lsl	r2, #1
+	cmp	r0, r2
+	bne	.Le7764
+	add	r5, #1
+	cmp	r5, r6
+	bne	.Le7762
+.Le77b4:
+	ldr	r4, [sp, #0x3c]
+	ldr	r0, =0x7824
+	ldr	r3, [r4]
+	mov	r2, #1
+	add	r3, r0
+	str	r2, [r3]
+	mov	r0, #1
+	bl	WaitFrames
+	cmp	r6, #0xbf
+	ble	.Le7744
+	ldr	r2, =REG_BLDCNT
+	ldr	r3, .Le7804	@ 0x3f42
+	strh	r3, [r2]
+	ldr	r3, .Le7808	@ 0x1010
+	add	r2, #2
+	strh	r3, [r2]
+	ldr	r2, =iwram_3001ad0
+	ldrh	r1, [r2, #4]
+	str	r1, [sp, #0x38]
+	ldrh	r3, [r2, #6]
+	ldr	r5, =iwram_3001f00
+	str	r3, [sp, #0x34]
+	ldr	r4, [r5]
+	mov	r3, #0
+	str	r4, [sp, #0x30]
+	strh	r3, [r2, #4]
+	mov	r3, #0x20
+	strh	r3, [r2, #6]
+	mov	r3, #2
+	str	r3, [sp]
+	mov	r1, #8
+	mov	r2, #7
+	mov	r3, #3
+	mov	r0, #0x2e
+	bl	BuildDraw2DFuncEx
+	ldr	r5, [r5, #8]
+	ldr	r0, [sp, #0x3c]
+	b	.Le7850
+
+	.align	2, 0
+.Le7804:
+	.word	0x3f42
+.Le7808:
+	.word	0x1010
+	.pool
+
+.Le7850:
+	str	r5, [sp, #0x44]
+	mov	r3, #0xef
+	ldr	r2, [r0]
+	lsl	r3, #7
+	add	r1, r2, r3
+	ldr	r4, =0x7784
+	mov	r3, #3
+	str	r3, [r1]
+	ldr	r3, =ewram_2020202
+	add	r2, r4
+	str	r3, [r2]
+	ldr	r1, =0x4fe
+	ldr	r0, =Func_80e72e0
+	bl	StartTask
+	ldr	r1, [sp, #0x3c]
+	ldr	r4, =0x7098
+	ldr	r3, [r1]
+	mov	r0, #0
+	mov	r2, #1
+	mov	r8, r0
+	neg	r2, r2
+	add	r3, r4
+.Le787e:
+	mov	r0, #1
+	add	r8, r0
+	mov	r1, r8
+	str	r2, [r3]
+	add	r3, #0x1c
+	cmp	r1, #0x40
+	bne	.Le787e
+	ldr	r2, [sp, #0x30]
+	mov	r3, #1
+	str	r3, [r2, #0x10]
+	ldr	r4, [sp, #0x3c]
+	ldr	r0, =0x778c
+	ldr	r3, [r4]
+	mov	r2, #0
+	add	r3, r0
+	str	r2, [r3]
+	mov	r11, r2
+	mov	r1, sp
+	mov	r2, sp
+	add	r1, #0x84
+	add	r2, #0x58
+	mov	r3, #0
+	str	r1, [sp, #0x18]
+	str	r2, [sp, #0x2c]
+	str	r4, [sp, #0x28]
+	str	r3, [sp, #0x10]
+.Le78b2:
+	ldr	r4, [sp, #0x3c]
+	ldr	r1, =0x778c
+	ldr	r0, [r4]
+	add	r3, r0, r1
+	ldr	r2, [r3]
+	mov	r3, r2
+	cmp	r3, #0
+	bge	.Le78c4
+	add	r3, #3
+.Le78c4:
+	asr	r4, r3, #2
+	mov	r2, #0xfc
+	ldr	r3, [sp, #0x4c]
+	lsl	r2, #5
+	add	r5, r0, r2
+	cmp	r3, #1
+	bne	.Le78e6
+	ldr	r3, =gKeyRepeat
+	ldr	r3, [r3]
+	mov	r2, #3
+	and	r3, r2
+	cmp	r3, #0
+	beq	.Le78fa
+	mov	r0, r11
+	cmp	r0, #0x10
+	ble	.Le78fa
+	b	.Le7cba
+.Le78e6:
+	ldr	r3, =gKeyRepeat
+	ldr	r3, [r3]
+	mov	r2, #3
+	and	r3, r2
+	cmp	r3, #0
+	beq	.Le78fa
+	mov	r1, r11
+	cmp	r1, #4
+	ble	.Le78fa
+	b	.Le7cba
+.Le78fa:
+	mov	r2, r11
+	cmp	r2, #0
+	bne	.Le790a
+	mov	r0, #0x8d
+	str	r4, [sp, #8]
+	bl	_PlaySound
+	ldr	r4, [sp, #8]
+.Le790a:
+	mov	r3, #0
+	mov	r8, r3
+.Le790e:
+	mov	r0, #1
+	add	r8, r0
+	mov	r1, r8
+	strh	r3, [r5]
+	add	r5, #2
+	cmp	r1, #0xf
+	bne	.Le790e
+.Le791c:
+	mov	r1, r8
+	sub	r1, #0x10
+	mov	r3, r1
+	cmp	r1, #0
+	bge	.Le792a
+	mov	r3, r8
+	sub	r3, #0xd
+.Le792a:
+	asr	r3, #2
+	add	r2, r3, r4
+	mov	r3, r2
+	mov	r1, r2
+	sub	r3, #0x20
+	sub	r1, #0x50
+	cmp	r3, #0
+	bge	.Le793c
+	mov	r3, #0
+.Le793c:
+	cmp	r3, #0x1f
+	ble	.Le7942
+	mov	r3, #0x1f
+.Le7942:
+	cmp	r1, #0
+	bge	.Le7948
+	mov	r1, #0
+.Le7948:
+	cmp	r1, #0x1f
+	ble	.Le794e
+	mov	r1, #0x1f
+.Le794e:
+	lsl	r2, r1, #5
+	lsl	r3, #10
+	orr	r3, r2
+	asr	r2, r1, #1
+	orr	r3, r2
+	mov	r2, #1
+	add	r8, r2
+	strh	r3, [r5]
+	mov	r3, r8
+	add	r5, #2
+	cmp	r3, #0x87
+	bne	.Le791c
+	ldr	r3, .Le7988	@ 0
+.Le7968:
+	mov	r4, #1
+	add	r8, r4
+	mov	r0, r8
+	strh	r3, [r5]
+	add	r5, #2
+	cmp	r0, #0xa0
+	bne	.Le7968
+	ldr	r1, [sp, #0x40]
+	cmp	r1, #1
+	bne	.Le79a8
+	mov	r3, r11
+	cmp	r3, #0
+	bge	.Le7984
+	add	r3, #3
+.Le7984:
+	asr	r7, r3, #2
+	b	.Le79b6
+
+	.align	2, 0
+.Le7988:
+	.word	0
+	.pool
+
+.Le79a8:
+	mov	r2, r11
+	cmp	r2, #0
+	bge	.Le79b0
+	add	r2, #3
+.Le79b0:
+	asr	r2, #2
+	mov	r3, #0x40
+	sub	r7, r3, r2
+.Le79b6:
+	mov	r2, #0x60
+	mov	r3, r11
+	sub	r3, r2, r3
+	ldr	r4, [sp, #0x18]
+	mov	r10, r3
+	mov	r3, #0
+	str	r3, [r4, #0xc]
+	mov	r3, #0xff
+	lsl	r3, #16
+	str	r3, [r4, #4]
+	ldr	r0, [sp, #0x4c]
+	cmp	r0, #1
+	bne	.Le7a1e
+	ldr	r1, [sp, #0x10]
+	mov	r2, #0xa0
+	ldr	r3, [sp, #0x2c]
+	lsl	r2, #8
+	add	r6, r1, r2
+	str	r6, [sp, #0x58]
+	mov	r4, #0xa0
+	str	r6, [r3, #4]
+	ldr	r0, [sp, #0x18]
+	lsl	r4, #15
+	lsl	r3, r7, #16
+	add	r3, r4
+	str	r3, [r0]
+	mov	r1, r10
+	mov	r3, #0x40
+	sub	r3, r1
+	lsl	r3, #16
+	str	r3, [r0, #8]
+	ldr	r2, [sp, #0x28]
+	ldr	r4, =0x77d8
+	ldr	r3, [r2]
+	add	r3, r4
+	ldr	r0, [r3]
+	ldr	r1, [sp, #0x18]
+	ldr	r2, [sp, #0x2c]
+	mov	r3, #0
+	bl	_UpdateSprite
+	ldr	r0, [sp, #0x28]
+	ldr	r1, =0x77dc
+	ldr	r3, [r0]
+	add	r3, r1
+	ldr	r0, [r3]
+	ldr	r1, [sp, #0x18]
+	ldr	r2, [sp, #0x2c]
+	mov	r3, #0
+	bl	_UpdateSprite
+	b	.Le7a54
+.Le7a1e:
+	ldr	r3, [sp, #0x10]
+	mov	r4, #0x80
+	ldr	r0, [sp, #0x2c]
+	lsl	r4, #9
+	add	r6, r3, r4
+	str	r6, [sp, #0x58]
+	mov	r1, #0xc0
+	str	r6, [r0, #4]
+	lsl	r1, #15
+	ldr	r4, [sp, #0x18]
+	lsl	r3, r7, #16
+	add	r3, r1
+	mov	r0, r10
+	str	r3, [r4]
+	sub	r3, r2, r0
+	lsl	r3, #16
+	str	r3, [r4, #8]
+	ldr	r1, [sp, #0x3c]
+	ldr	r2, =0x77d8
+	ldr	r3, [r1]
+	add	r3, r2
+	ldr	r0, [r3]
+	ldr	r1, [sp, #0x18]
+	ldr	r2, [sp, #0x2c]
+	mov	r3, #0
+	bl	_UpdateSprite
+.Le7a54:
+	mov	r3, #0
+	mov	r4, r10
+	mov	r8, r3
+	mov	r3, #0x20
+	sub	r4, r3, r4
+	mov	r10, r4
+	mov	r2, #0
+.Le7a62:
+	ldr	r0, [sp, #0x3c]
+	ldr	r3, [r0]
+	mov	r1, #0xe1
+	add	r3, r2
+	lsl	r1, #7
+	add	r5, r3, r1
+	mov	r4, #1
+	ldr	r3, [r5, #0x18]
+	neg	r4, r4
+	cmp	r3, r4
+	bne	.Le7ad2
+	bl	Random
+	ldr	r3, =0x7fff
+	and	r3, r0
+	mov	r0, #0x80
+	lsl	r0, #7
+	add	r1, r3, r0
+	mov	r3, #0
+	str	r3, [r5, #0x18]
+	mov	r0, r1
+	str	r1, [sp, #0xc]
+	bl	sin
+	mov	r3, r7
+	add	r3, #0x60
+	lsl	r2, r3, #16
+	lsl	r3, r0, #4
+	sub	r3, r0
+	lsl	r3, #1
+	ldr	r1, [sp, #0xc]
+	cmp	r3, #0
+	bge	.Le7aa8
+	ldr	r4, =0xffff
+	add	r3, r4
+.Le7aa8:
+	asr	r3, #16
+	mul	r3, r6
+	add	r3, r2, r3
+	str	r3, [r5]
+	mov	r0, r1
+	bl	cos
+	lsl	r3, r0, #4
+	sub	r3, r0
+	mov	r1, r10
+	lsl	r3, #1
+	lsl	r2, r1, #16
+	cmp	r3, #0
+	bge	.Le7ac8
+	ldr	r4, =0xffff
+	add	r3, r4
+.Le7ac8:
+	asr	r3, #16
+	mul	r3, r6
+	sub	r3, r2, r3
+	str	r3, [r5, #4]
+	b	.Le7ade
+.Le7ad2:
+	mov	r0, #1
+	add	r8, r0
+	mov	r1, r8
+	add	r2, #0x1c
+	cmp	r1, #0x20
+	bne	.Le7a62
+.Le7ade:
+	add	r5, sp, #0x60
+	mov	r3, #0
+	str	r3, [r5]
+	str	r3, [r5, #4]
+	mov	r3, #0x80
+	lsl	r3, #18
+	str	r3, [r5, #8]
+	bl	InitMatrixStack
+	mov	r0, r5
+	bl	MatrixTranslatev
+	mov	r0, #0x80
+	lsl	r0, #4
+	bl	MatrixRoll
+	ldr	r0, [sp, #0x10]
+	bl	MatrixYaw
+	mov	r2, #0
+	ldr	r7, =.Leee76
+	mov	r8, r2
+	add	r6, sp, #0x78
+	add	r5, sp, #0x6c
+.Le7b0e:
+	ldrh	r3, [r7]
+	lsl	r3, #16
+	asr	r2, r3, #16
+	lsr	r3, #31
+	add	r2, r3
+	mov	r4, #2
+	ldrsh	r3, [r7, r4]
+	add	r3, r11
+	lsl	r3, #16
+	str	r3, [r6, #4]
+	ldrh	r3, [r7, #4]
+	asr	r2, #1
+	lsl	r2, #16
+	lsl	r3, #16
+	str	r2, [r6]
+	asr	r2, r3, #16
+	lsr	r3, #31
+	add	r2, r3
+	asr	r2, #1
+	lsl	r2, #16
+	mov	r1, r5
+	str	r2, [r6, #8]
+	mov	r0, r6
+	bl	Func_80e3944
+	mov	r0, #2
+	ldrsh	r2, [r5, r0]
+	mov	r3, r2
+	add	r3, #0x80
+	str	r3, [r5]
+	mov	r1, #6
+	ldrsh	r3, [r5, r1]
+	mov	r1, r3
+	add	r1, #0x3c
+	str	r1, [r5, #4]
+	ldr	r4, [sp, #0x3c]
+	mov	r0, #0xfa
+	ldr	r1, [r4]
+	lsl	r0, #5
+	add	r1, r0
+	mov	r0, #8
+	str	r0, [sp]
+	str	r0, [sp, #4]
+	add	r2, #0x7c
+	add	r3, #0x38
+	ldr	r0, =gBuffer
+	ldr	r4, [sp, #0x44]
+	bl	_call_via_r4
+	mov	r0, #1
+	add	r8, r0
+	mov	r1, r8
+	add	r7, #6
+	cmp	r1, #7
+	bne	.Le7b0e
+	ldr	r2, [sp, #0x40]
+	cmp	r2, #1
+	bne	.Le7b92
+	mov	r3, r11
+	cmp	r3, #0
+	bge	.Le7b8a
+	add	r3, #3
+.Le7b8a:
+	asr	r3, #2
+	mov	r7, r3
+	sub	r7, #0x10
+	b	.Le7ba0
+.Le7b92:
+	mov	r2, r11
+	cmp	r2, #0
+	bge	.Le7b9a
+	add	r2, #3
+.Le7b9a:
+	asr	r2, #2
+	mov	r3, #0x10
+	sub	r7, r3, r2
+.Le7ba0:
+	mov	r3, #0x60
+	neg	r3, r3
+	add	r3, r11
+	mov	r4, #0
+	ldr	r5, =.Leeea0
+	mov	r10, r3
+	mov	r8, r4
+.Le7bae:
+	mov	r0, #2
+	ldrsh	r3, [r5, r0]
+	add	r3, r10
+	cmp	r3, #0x5d
+	bgt	.Le7bf8
+	ldr	r2, [sp, #0x3c]
+	ldr	r1, [r2]
+	mov	r0, #0
+	ldrsh	r2, [r5, r0]
+	mov	r4, #0xe4
+	mov	r0, #0x18
+	lsl	r4, #5
+	add	r2, r7
+	add	r1, r4
+	str	r0, [sp]
+	str	r0, [sp, #4]
+	sub	r2, #0xc
+	sub	r3, #0xc
+	ldr	r0, =gBuffer
+	ldr	r4, [sp, #0x44]
+	bl	_call_via_r4
+	b	.Le7c10
+
+	.pool_aligned
+
+.Le7bf8:
+	cmp	r3, #0x5f
+	bgt	.Le7c10
+	mov	r1, #0
+	ldrsh	r0, [r5, r1]
+	add	r2, sp, #0x11c
+	add	r0, r7
+	mov	r9, r2
+	lsl	r0, #16
+	lsl	r1, r3, #16
+	mov	r2, #1
+	bl	Func_80e7338
+.Le7c10:
+	mov	r3, #1
+	add	r8, r3
+	mov	r4, r8
+	add	r5, #4
+	cmp	r4, #7
+	bne	.Le7bae
+	ldr	r1, [sp, #0x40]
+	lsl	r3, r1, #2
+	mov	r0, #0
+	add	r3, r1
+	mov	r8, r0
+	lsl	r7, r3, #14
+	mov	r6, #0
+.Le7c2a:
+	ldr	r3, [sp, #0x3c]
+	ldr	r2, [r3]
+	mov	r4, #0xe1
+	add	r3, r2, r6
+	lsl	r4, #7
+	add	r5, r3, r4
+	ldr	r1, [r5, #0x18]
+	cmp	r1, #0
+	blt	.Le7c78
+	lsl	r1, #10
+	mov	r4, #6
+	ldrsh	r3, [r5, r4]
+	add	r1, r2, r1
+	mov	r0, #2
+	ldrsh	r2, [r5, r0]
+	mov	r0, #0x20
+	sub	r3, #0x10
+	str	r0, [sp]
+	str	r0, [sp, #4]
+	sub	r2, #0x10
+	ldr	r0, =gBuffer
+	ldr	r4, [sp, #0x44]
+	bl	_call_via_r4
+	ldr	r3, [r5]
+	sub	r3, r7
+	str	r3, [r5]
+	ldr	r0, =0xfffb0000
+	ldr	r3, [r5, #4]
+	add	r3, r0
+	str	r3, [r5, #4]
+	ldr	r3, [r5, #0x18]
+	add	r3, #1
+	str	r3, [r5, #0x18]
+	cmp	r3, #6
+	bne	.Le7c78
+	mov	r3, #1
+	neg	r3, r3
+	str	r3, [r5, #0x18]
+.Le7c78:
+	mov	r1, #1
+	add	r8, r1
+	mov	r2, r8
+	add	r6, #0x1c
+	cmp	r2, #0x20
+	bne	.Le7c2a
+	ldr	r4, [sp, #0x28]
+	ldr	r0, =0x7824
+	ldr	r3, [r4]
+	mov	r2, #1
+	add	r3, r0
+	str	r2, [r3]
+	mov	r0, #1
+	bl	WaitFrames
+	mov	r2, #0x80
+	ldr	r1, [sp, #0x10]
+	lsl	r2, #1
+	add	r1, r2
+	str	r1, [sp, #0x10]
+	ldr	r4, [sp, #0x28]
+	ldr	r0, =0x778c
+	ldr	r2, [r4]
+	mov	r3, #1
+	add	r2, r0
+	add	r11, r3
+	ldr	r3, [r2]
+	mov	r1, r11
+	add	r3, #1
+	str	r3, [r2]
+	cmp	r1, #0xc0
+	beq	.Le7cba
+	b	.Le78b2
+.Le7cba:
+	mov	r0, #1
+	bl	WaitFrames
+	ldr	r2, [sp, #0x30]
+	mov	r5, #0
+	str	r5, [r2, #0x10]
+	ldr	r0, =Func_80c9138
+	bl	StopTask
+	ldr	r0, =Func_80e72e0
+	bl	StopTask
+	ldr	r0, =Task_BlitAnim_BG1Wide
+	bl	StopTask
+	add	r4, sp, #0x38
+	add	r0, sp, #0x34
+	ldr	r3, =iwram_3001ad0
+	ldrh	r4, [r4]
+	ldrh	r0, [r0]
+	strh	r4, [r3, #4]
+	strh	r0, [r3, #6]
+	mov	r0, #0x2e
+	bl	gfree
+	bl	Func_80d67dc
+	ldr	r2, =REG_BG2PA
+	ldr	r3, .Le7d2c	@ 0x80
+	strh	r3, [r2]
+	ldr	r3, =REG_BG2X
+	str	r5, [r3]
+	ldr	r3, =0xfffff000
+	add	r2, #0xc
+	str	r3, [r2]
+	ldr	r3, .Le7d30	@ 0x1010
+	add	r2, #0x26
+	strh	r3, [r2]
+	ldr	r3, .Le7d34	@ 0xae0
+	sub	r2, #0x46
+	strh	r3, [r2]
+	mov	r3, #2
+	str	r3, [sp]
+	mov	r1, #7
+	mov	r2, #7
+	mov	r3, #3
+	mov	r0, #0x2e
+	bl	BuildDraw2DFuncEx
+	ldr	r3, =gPtrs
+	add	r3, #0xb8
+	ldr	r3, [r3]
+	ldr	r2, [sp, #0x3c]
+	str	r3, [sp, #0x44]
+	ldr	r0, =_FILE_c0
+	ldr	r1, [r2]
+	b	.Le7d6c
+
+	.align	2, 0
+.Le7d2c:
+	.word	0x80
+.Le7d30:
+	.word	0x1010
+.Le7d34:
+	.word	0x2784
+	.pool
+
+.Le7d6c:
+	mov	r3, #0
+	mov	r2, #1
+	bl	LoadVFXFile
+	mov	r3, #0
+	mov	r8, r3
+	mov	r7, #0x7f
+	mov	r6, #0
+.Le7d7c:
+	ldr	r4, [sp, #0x3c]
+	ldr	r5, [r4]
+	mov	r0, #0xe1
+	add	r5, r6
+	lsl	r0, #7
+	add	r5, r0
+	bl	Random
+	and	r0, r7
+	str	r0, [r5]
+	bl	Random
+	mov	r1, #1
+	and	r0, r7
+	add	r8, r1
+	add	r0, #0x7f
+	mov	r2, r8
+	str	r0, [r5, #4]
+	add	r6, #0x1c
+	cmp	r2, #0x20
+	bne	.Le7d7c
+	mov	r3, #0
+	ldr	r5, =gBuffer
+	mov	r8, r3
+	mov	r6, #0
+	mov	r7, #0xff
+.Le7db0:
+	str	r6, [r5]
+	str	r6, [r5, #4]
+	str	r6, [r5, #8]
+	bl	Random
+	and	r0, r7
+	sub	r0, #0x7f
+	lsl	r0, #12
+	str	r0, [r5, #0xc]
+	bl	Random
+	and	r0, r7
+	lsl	r0, #11
+	str	r0, [r5, #0x10]
+	bl	Random
+	and	r0, r7
+	sub	r0, #0x7f
+	mov	r4, #1
+	lsl	r0, #12
+	add	r8, r4
+	str	r0, [r5, #0x14]
+	mov	r0, r8
+	str	r6, [r5, #0x18]
+	add	r5, #0x1c
+	cmp	r0, #0x80
+	bne	.Le7db0
+	mov	r1, #0
+	ldr	r5, =ewram_2010e00
+	mov	r8, r1
+	mov	r6, #0
+	mov	r7, #0xff
+.Le7df0:
+	str	r6, [r5]
+	str	r6, [r5, #4]
+	str	r6, [r5, #8]
+	bl	Random
+	and	r0, r7
+	sub	r0, #0x80
+	lsl	r0, #13
+	str	r0, [r5, #0xc]
+	bl	Random
+	and	r0, r7
+	lsl	r0, #11
+	str	r0, [r5, #0x10]
+	bl	Random
+	and	r0, r7
+	sub	r0, #0x80
+	mov	r2, #1
+	mov	r3, #0x80
+	lsl	r0, #13
+	add	r8, r2
+	lsl	r3, #2
+	str	r0, [r5, #0x14]
+	str	r6, [r5, #0x18]
+	add	r5, #0x1c
+	cmp	r8, r3
+	bne	.Le7df0
+	ldr	r4, [sp, #0x3c]
+	mov	r0, #0xef
+	ldr	r2, [r4]
+	lsl	r0, #7
+	add	r1, r2, r0
+	mov	r3, #1
+	str	r3, [r1]
+	ldr	r1, =0x7784
+	ldr	r3, =0x10101010
+	add	r2, r1
+	mov	r1, #0x90
+	str	r3, [r2]
+	ldr	r0, =Task_BlitAnim
+	lsl	r1, #3
+	bl	StartTask
+	mov	r0, #0xe8
+	ldr	r3, [sp, #0x3c]
+	mov	r4, sp
+	add	r4, #0x50
+	lsl	r0, #9
+	mov	r2, #0
+	str	r3, [sp, #0x20]
+	str	r4, [sp, #0x1c]
+	str	r0, [sp, #0x14]
+	mov	r11, r2
+.Le7e5c:
+	ldr	r3, =iwram_3001e80
+	mov	r1, r11
+	sub	r1, #0x10
+	ldr	r5, [r3]
+	str	r1, [sp, #0x24]
+	cmp	r1, #0x13
+	ble	.Le7e74
+	mov	r0, #2
+	mov	r1, #2
+	mov	r2, #2
+	bl	Func_80e727c
+.Le7e74:
+	mov	r2, r11
+	cmp	r2, #0
+	bne	.Le7e80
+	mov	r0, #0x9c
+	bl	_PlaySound
+.Le7e80:
+	mov	r3, r11
+	cmp	r3, #0x28
+	bne	.Le7e8c
+	mov	r0, #0x91
+	bl	_PlaySound
+.Le7e8c:
+	mov	r4, r11
+	cmp	r4, #0x30
+	bne	.Le7ebe
+	ldr	r0, [sp, #0x4c]
+	cmp	r0, #1
+	bne	.Le7eb8
+	ldr	r1, [sp, #0x20]
+	ldr	r2, =0x77d8
+	ldr	r3, [r1]
+	add	r3, r2
+	ldr	r0, [r3]
+	bl	_DeleteSprite
+	ldr	r4, [sp, #0x20]
+	ldr	r0, =0x77dc
+	ldr	r3, [r4]
+	add	r3, r0
+	ldr	r0, [r3]
+	bl	_DeleteSprite
+	bl	_Func_80b6c90
+.Le7eb8:
+	mov	r0, #0x86
+	bl	_Func_80bd7dc
+.Le7ebe:
+	bl	InitMatrixStack
+	mov	r1, r5
+	add	r1, #0xc
+	mov	r0, r5
+	bl	MatrixSetLook
+	ldr	r7, =ewram_2010e00
+	mov	r1, #0
+	mov	r2, #0x3f
+	mov	r8, r1
+	mov	r10, r2
+.Le7ed6:
+	ldr	r3, [r7, #4]
+	cmp	r3, #0
+	blt	.Le7f96
+	add	r6, sp, #0x60
+	mov	r0, r7
+	mov	r1, r6
+	bl	Func_80e3944
+	ldr	r3, [r6]
+	ldr	r2, [r6, #8]
+	asr	r3, #1
+	str	r3, [r6]
+	cmp	r2, #0x9f
+	bgt	.Le7ef8
+	mov	r3, #0xa0
+	str	r3, [r6, #8]
+	mov	r2, #0xa0
+.Le7ef8:
+	ldr	r3, =0x31f
+	cmp	r2, r3
+	ble	.Le7f02
+	str	r3, [r6, #8]
+	mov	r2, r3
+.Le7f02:
+	mov	r3, r2
+	sub	r3, #0xa0
+	cmp	r3, #0
+	bge	.Le7f0c
+	add	r3, #0x3f
+.Le7f0c:
+	asr	r3, #6
+	mov	r0, #9
+	sub	r0, r3
+	ldr	r2, =Data_ede48
+	lsl	r5, r0, #1
+	sub	r3, r5, #2
+	ldrh	r4, [r2, r3]
+	mov	r3, #1
+	mov	r2, r8
+	and	r2, r3
+	lsl	r3, r2, #1
+	add	r3, r2
+	lsl	r3, #7
+	add	r3, r2
+	ldr	r2, [sp, #0x3c]
+	lsl	r3, #1
+	ldr	r1, [r2]
+	add	r4, r3
+	mov	r3, #0xc8
+	add	r1, r4
+	lsl	r3, #6
+	add	r1, r3
+	lsr	r3, r0, #31
+	ldr	r2, [r6]
+	add	r3, r0, r3
+	asr	r3, #1
+	sub	r2, r3
+	ldr	r3, [r6, #4]
+	ldr	r4, [sp, #0x44]
+	sub	r3, r0
+	str	r0, [sp]
+	str	r5, [sp, #4]
+	ldr	r0, [sp, #0x48]
+	bl	_call_via_r4
+	ldr	r2, =0xffffe000
+	mov	r0, r7
+	mov	r1, #0x40
+	bl	Func_80e38b8
+	mov	r2, #0xa0
+	ldr	r3, [r7, #4]
+	lsl	r2, #13
+	cmp	r3, r2
+	bgt	.Le7f96
+	mov	r3, #0
+	str	r3, [r7]
+	str	r3, [r7, #8]
+	str	r2, [r7, #4]
+	bl	Random
+	mov	r1, r10
+	and	r0, r1
+	sub	r0, #0x20
+	lsl	r0, #15
+	str	r0, [r7, #0xc]
+	bl	Random
+	mov	r2, r10
+	and	r0, r2
+	lsl	r0, #13
+	str	r0, [r7, #0x10]
+	bl	Random
+	mov	r3, r10
+	and	r0, r3
+	sub	r0, #0x20
+	lsl	r0, #15
+	str	r0, [r7, #0x14]
+.Le7f96:
+	mov	r4, #1
+	add	r8, r4
+	mov	r0, r8
+	add	r7, #0x1c
+	cmp	r0, #0x40
+	bne	.Le7ed6
+	mov	r1, #0
+	mov	r8, r1
+	mov	r10, r1
+.Le7fa8:
+	ldr	r2, [sp, #0x3c]
+	mov	r5, #7
+	ldr	r1, [r2]
+	mov	r2, r8
+	and	r5, r2
+	mov	r4, r10
+	add	r3, r1, r4
+	mov	r0, #0xe1
+	add	r4, r5, #3
+	ldr	r2, =Data_ede48
+	lsl	r6, r4, #1
+	lsl	r0, #7
+	add	r7, r3, r0
+	sub	r3, r6, #2
+	ldrh	r0, [r2, r3]
+	mov	r3, #1
+	mov	r2, r8
+	and	r2, r3
+	lsl	r3, r2, #1
+	add	r3, r2
+	lsl	r3, #7
+	add	r3, r2
+	lsl	r3, #1
+	ldr	r2, [r7]
+	add	r0, r3
+	lsr	r3, r4, #1
+	add	r1, r0
+	sub	r2, r3
+	mov	r0, #0xc8
+	ldr	r3, [r7, #4]
+	lsl	r0, #6
+	sub	r3, r4
+	add	r1, r0
+	str	r4, [sp]
+	str	r6, [sp, #4]
+	ldr	r0, [sp, #0x48]
+	ldr	r4, [sp, #0x44]
+	bl	_call_via_r4
+	ldr	r3, [r7, #4]
+	mov	r0, #0xa
+	sub	r3, r5
+	sub	r3, #8
+	neg	r0, r0
+	str	r3, [r7, #4]
+	cmp	r3, r0
+	bge	.Le800a
+	mov	r3, #0x80
+	str	r3, [r7, #4]
+.Le800a:
+	mov	r2, #1
+	add	r8, r2
+	mov	r1, #0x1c
+	mov	r3, r8
+	add	r10, r1
+	cmp	r3, #0x40
+	bne	.Le7fa8
+	mov	r4, #0
+	mov	r0, #0xff
+	ldr	r7, =gBuffer
+	mov	r8, r4
+	mov	r10, r4
+	mov	r9, r0
+.Le8024:
+	mov	r1, #3
+	mov	r0, r8
+	bl	__divsi3
+	ldr	r1, [sp, #0x24]
+	cmp	r0, r1
+	bge	.Le80bc
+	ldr	r3, [r7, #4]
+	cmp	r3, #0
+	blt	.Le80bc
+	add	r5, sp, #0x60
+	mov	r0, r7
+	mov	r1, r5
+	bl	Func_80e3944
+	ldr	r3, [r5]
+	asr	r6, r3, #1
+	str	r6, [r5]
+	ldr	r2, [r7, #0x18]
+	cmp	r2, #0xd
+	bhi	.Le807a
+	lsr	r3, r2, #31
+	add	r3, r2, r3
+	ldr	r4, [sp, #0x3c]
+	ldr	r2, =.Leeebc
+	asr	r3, #1
+	lsl	r3, #1
+	ldrh	r2, [r2, r3]
+	ldr	r1, [r4]
+	add	r1, r2
+	ldr	r2, =.Leeeca
+	ldrh	r4, [r2, r3]
+	ldr	r3, [r5, #4]
+	lsr	r0, r4, #1
+	sub	r2, r6, r0
+	sub	r3, r0
+	str	r4, [sp]
+	str	r4, [sp, #4]
+	ldr	r0, [sp, #0x48]
+	ldr	r4, [sp, #0x44]
+	bl	_call_via_r4
+	ldr	r2, [r7, #0x18]
+.Le807a:
+	add	r3, r2, #1
+	str	r3, [r7, #0x18]
+	cmp	r3, #0xe
+	bne	.Le80b2
+	mov	r3, #0xa0
+	lsl	r3, #13
+	mov	r0, r10
+	str	r3, [r7, #4]
+	str	r0, [r7]
+	bl	Random
+	mov	r1, r9
+	and	r0, r1
+	sub	r0, #0x7f
+	lsl	r0, #16
+	mov	r2, r10
+	str	r0, [r7, #8]
+	str	r2, [r7, #0xc]
+	bl	Random
+	mov	r3, r9
+	and	r0, r3
+	mov	r4, r10
+	lsl	r0, #11
+	str	r0, [r7, #0x10]
+	str	r4, [r7, #0x14]
+	str	r4, [r7, #0x18]
+	b	.Le80bc
+.Le80b2:
+	mov	r0, r7
+	mov	r1, #0x40
+	mov	r2, #1
+	bl	Func_80e38b8
+.Le80bc:
+	mov	r0, #1
+	add	r8, r0
+	mov	r1, r8
+	add	r7, #0x1c
+	cmp	r1, #0x40
+	bne	.Le8024
+	ldr	r2, [sp, #0x40]
+	cmp	r2, #1
+	bne	.Le8110
+	mov	r4, r11
+	lsr	r3, r4, #31
+	add	r3, r11
+	asr	r3, #1
+	mov	r1, r3
+	add	r1, #0x18
+	b	.Le811c
+
+	.pool_aligned
+
+.Le8110:
+	mov	r0, r11
+	lsr	r3, r0, #31
+	add	r3, r11
+	asr	r3, #1
+	mov	r2, #0x38
+	sub	r1, r2, r3
+.Le811c:
+	mov	r3, r11
+	lsl	r2, r3, #1
+	mov	r4, r11
+	mov	r3, #0x40
+	sub	r0, r3, r2
+	lsl	r3, r4, #8
+	mov	r4, #0x80
+	lsl	r4, #10
+	add	r2, r3, r4
+	ldr	r4, [sp, #0x18]
+	mov	r3, #0
+	str	r3, [r4, #0xc]
+	mov	r3, #0xff
+	lsl	r3, #16
+	str	r3, [r4, #4]
+	ldr	r3, [sp, #0x4c]
+	cmp	r3, #1
+	bne	.Le8186
+	ldr	r4, [sp, #0x14]
+	ldr	r2, [sp, #0x1c]
+	str	r4, [sp, #0x50]
+	str	r4, [r2, #4]
+	mov	r4, #0xc0
+	lsl	r3, r1, #16
+	lsl	r4, #15
+	ldr	r1, [sp, #0x18]
+	add	r3, r4
+	str	r3, [r1]
+	mov	r3, #0x60
+	sub	r3, r0
+	lsl	r3, #16
+	str	r3, [r1, #8]
+	ldr	r2, [sp, #0x20]
+	ldr	r4, =0x77d8
+	ldr	r3, [r2]
+	add	r3, r4
+	ldr	r0, [r3]
+	ldr	r1, [sp, #0x18]
+	ldr	r2, [sp, #0x1c]
+	mov	r3, #0
+	bl	_UpdateSprite
+	ldr	r0, [sp, #0x20]
+	ldr	r1, =0x77dc
+	ldr	r3, [r0]
+	add	r3, r1
+	ldr	r0, [r3]
+	ldr	r1, [sp, #0x18]
+	ldr	r2, [sp, #0x1c]
+	mov	r3, #0
+	bl	_UpdateSprite
+	b	.Le81b4
+.Le8186:
+	ldr	r3, [sp, #0x1c]
+	str	r2, [sp, #0x50]
+	mov	r4, #0xc0
+	str	r2, [r3, #4]
+	lsl	r4, #15
+	lsl	r3, r1, #16
+	ldr	r1, [sp, #0x18]
+	add	r3, r4
+	str	r3, [r1]
+	mov	r3, #0x60
+	sub	r3, r0
+	lsl	r3, #16
+	str	r3, [r1, #8]
+	ldr	r2, [sp, #0x3c]
+	ldr	r4, =0x77d8
+	ldr	r3, [r2]
+	add	r3, r4
+	ldr	r0, [r3]
+	ldr	r1, [sp, #0x18]
+	ldr	r2, [sp, #0x1c]
+	mov	r3, #0
+	bl	_UpdateSprite
+.Le81b4:
+	ldr	r0, [sp, #0x20]
+	ldr	r1, =0x77a8
+	ldr	r3, [r0]
+	mov	r2, #1
+	add	r3, r1
+	str	r2, [r3]
+	mov	r0, #8
+	mov	r1, #8
+	bl	UpdateScreenShake
+	ldr	r4, [sp, #0x20]
+	ldr	r0, =0x7824
+	ldr	r3, [r4]
+	mov	r1, #1
+	add	r3, r0
+	str	r1, [r3]
+	mov	r0, #1
+	bl	WaitFrames
+	mov	r3, #0x80
+	ldr	r2, [sp, #0x14]
+	mov	r4, #1
+	lsl	r3, #1
+	add	r11, r4
+	add	r2, r3
+	mov	r0, r11
+	str	r2, [sp, #0x14]
+	cmp	r0, #0x36
+	beq	.Le81f0
+	b	.Le7e5c
+.Le81f0:
+	ldr	r0, =Task_BlitAnim
+	bl	StopTask
+	mov	r0, #0x2e
+	bl	gfree
+	ldr	r1, [sp, #0x4c]
+	cmp	r1, #0
+	bne	.Le8210
+	ldr	r2, [sp, #0x3c]
+	ldr	r4, =0x77d8
+	ldr	r3, [r2]
+	add	r3, r4
+	ldr	r0, [r3]
+	bl	_DeleteSprite
+.Le8210:
+	bl	AnimEnd
+	add	sp, #0x11c
+	pop	{r3, r5, r6, r7}
+	mov	r8, r3
+	mov	r9, r5
+	mov	r10, r6
+	mov	r11, r7
+	pop	{r5, r6, r7}
+	pop	{r0}
+	bx	r0
+.func_end BaseAnim_Meteor
+
+@ RunAnimationClass1 -- seven-piece figure, bouncing trails, final burst
+@ r0 = action descriptor. Animation class 1, entered from the twelve-way table
+@ in Anim_Summon (rom_d6504.s). 320 frames (0..0x13F), one WaitFrames(1) each.
+@
+@ UNLIKE EVERY OTHER CLASS, holding A or B ABORTS rather than fast-forwards.
+@ The check before the loop jumps straight to teardown, and the check at the end
+@ of each frame breaks out. There is no "skip to frame N" arm at all.
+@
+@ SETUP
+@   sp+0x30 = [iwram_1ef0] render buffer, sp+0x2c = [iwram_1eec] state,
+@   sp+0x24 = [iwram_1ef4] sprite scratch.
+@   AnimStart(0); Func_c9048(); palette entries 0 and 1 at 0x5000000 zeroed.
+@   +0x7780 = 0; StartTask registers Task_BlitAnim; AnimTransitionOut(1, 0); Func_d6750.
+@   FIFTEEN ACTORS, contiguous from +0x77D8:
+@     CreateSummonSprite(9, 0x17B, 2) fills slots 0..8;
+@     slots 9..14 (+0x77FC onward) are six more built one at a time from
+@       resource 0x186, each given animation (i MOD 3) and OBJ priority 1.
+@     Teardown destroys exactly 15, which is how the two groups are known to be
+@     one contiguous array.
+@   BuildDraw2DFuncEx(0x2E,7,7,3,2) and BuildDraw2DFuncEx(0x2F,7,7,3,3); the two pointers are
+@     read back from iwram_1e50+0xB8 and +0xBC -- i.e. tag*4 off the allocation
+@     table base -- and stored as the two-entry array at sp+0x3C, indexed later
+@     by (i & 1) so alternate particles use alternate blitters.
+@   REG_WININ = 0x2737, REG_WIN0H = 0xF0, REG_WIN1V = 0x1088. After a
+@     WaitFrames(1), _Func_c08ec(1, 0x3C, 0) and AnimTransitionOut(1, 1) load graphics,
+@     LoadVFXFile unpacks asset 0x73 into [iwram_1ef4] and asset 0xC0 into
+@     [iwram_1eec]. Then REG_DISPCNT = 0x7741 (mode 1; BG0-2, OBJ and BOTH
+@     WINDOWS enabled), REG_BG2PA = 0x80, REG_BLDALPHA = 0x1010,
+@     REG_BLDCNT = 0x3F44. +0x7780 = 2, +0x7784 = 0x32.
+@   Six trail entities at +0x7080 get x = (rand & 0x7F) << 16 and y staggered
+@     -16.0 apart; 58 entries at +0x7140 get 0x18; all 1024 particles freed;
+@     +0x77B4 = 0x18, +0x77B8 = 0.
+@
+@ MAIN LOOP -- frame 0..0x13F
+@   sounds  0x9C at each of 0x5E, 0x88 and 0xB2; 0x91 at 0x104.
+@   frames 0x60..0xFB and 0x104..0x107  +0x77A8 = 1.
+@   every frame  THE FIGURE: seven of the actors are submitted through
+@     _Func_b168 at unit scale (Data_edac8 = {0x10000, 0x10000}) using the
+@     offset pair .Leeed8 = {12,44,28,60,0,32,64} and .Leeee1 =
+@     {0,0,32,32,64,64,64} -- a staggered seven-piece figure, not a plain grid.
+@   frames 0..0x5A  the figure's anchor circles: x = 156.0 + sin(frame<<9)<<4,
+@     y = 92.0 + cos(frame<<9)<<4.
+@   three groups i = 0,1,2 with base frame 0x5B + 0x28i (0x5B, 0x83, 0xAB):
+@     base..base+3      anchor y rises by 8.0 per frame
+@     base+3            four sparks seeded at +0x7128 + 0xE0i from (64.0, 96.0)
+@                       with random velocities and age rand & 0xF
+@     base+0x14..+0x23  anchor y falls by 2.0 per frame
+@   frames 0xF4..0xFB  anchor x -= 1.0; frames 0xFC..0x113 x -= (frame-0xFA).0,
+@     so the figure accelerates off to the left.
+@   frames 0..0x103  two more actors (+0x77F4, +0x77F8) are submitted alongside,
+@     the second offset 32.0 in x.
+@   every frame  THE SIX TRAILS at +0x7080, each paired with actor +0x77FC+4i:
+@     submitted through _Func_b168 at its own position, then x += vx, y += vy,
+@     and past frame 0x60 vy gains 0x4000. Crossing y = 120.0 BOUNCES: vy is
+@     negated and halved, and two sparks are seeded at +0x73C8 + 0x38i from half
+@     the x and 32 pixels up. Before frame 0xC8 an entry that has finished
+@     bouncing is reset to the top and starts again.
+@   every frame  the 56 sparks at +0x7128: while age is 0..0x17 draw a 48x48
+@     frame -- index (age/6) + 3 into .Leeef8 sizes {16,32,48,48,48,48,48} and
+@     .Leeeea offsets {0,256,1280,3584,5888,8192,10496}, whose deltas are that
+@     table's own w*h -- then Func_e3908(entry, 0x3C, -0x4000): integrate, apply
+@     0x3C/64 drag and a NEGATIVE gravity, so sparks drift upward.
+@   frame 0x104  the payoff: every target takes _Func_b8228(id, 4) and
+@     Func_d6888(id, 7, -1, i, 8), +0x77A8 = 8, and ALL 1024 particles launch
+@     from (32.0, 92.0) with speed (rand & 0x3FF) + 0x20 on a random angle,
+@     vy doubled and negated so the burst is tall, age (rand & 0xF) + 0x20.
+@   every frame  live particles draw at size (age >> 3) + 1 from [iwram_1ef4] +
+@     Data_ede48[n-1], alternating blitters by (i & 1), then
+@     Func_e3908(entry, 0x3E, 0x1000) -- 0x3E/64 drag, normal downward gravity.
+@     age counts DOWN here, so the burst fades out.
+@   end of frame  UpdateScreenShake(8, 8); Func_cd52c(); +0x7824 = 1; WaitFrames(1).
+@
+@ TEARDOWN
+@   .gcc2_compiled.(0x86); Func_d67dc(); all 15 actors from +0x77D8 destroyed;
+@   StopTask(Task_BlitAnim); Func_2dd8(0x2F) and Func_2dd8(0x2E) free the two
+@   generated blitters; AnimEnd restores the view.
+.thumb_func_start Anim_Ramses  @ 0x080e823c
+	push	{r5, r6, r7, lr}
+	mov	r7, r11
+	mov	r6, r10
+	mov	r5, r9
+	push	{r5, r6, r7}
+	mov	r7, r8
+	push	{r7}
+	ldr	r3, =iwram_3001ef0
+	ldr	r1, [r3]
+	sub	sp, #0x54
+	str	r1, [sp, #0x30]
+	sub	r2, r3, #4
+	ldr	r2, [r2]
+	str	r2, [sp, #0x2c]
+	ldr	r3, [r3, #4]
+	str	r3, [sp, #0x24]
+	ldr	r3, =0x7828
+	add	r5, r2, r3
+	str	r0, [r5]
+	mov	r0, #0
+	bl	AnimStart
+	bl	Func_80c9048
+	ldr	r2, .Le82ac	@ 0
+	mov	r3, #0xa0
+	lsl	r3, #19
+	strh	r2, [r3]
+	add	r3, #2
+	strh	r2, [r3]
+	ldr	r6, [sp, #0x2c]
+	mov	r7, #0xef
+	lsl	r7, #7
+	add	r2, r6, r7
+	mov	r3, #0
+	mov	r1, #0x90
+	str	r3, [r2]
+	lsl	r1, #3
+	ldr	r0, =Task_BlitAnim
+	bl	StartTask
+	mov	r1, #0
+	mov	r0, #1
+	bl	AnimTransitionOut
+	ldr	r0, [r5]
+	bl	Func_80d6750
+	ldr	r1, =0x17b
+	mov	r0, #9
+	mov	r2, #2
+	bl	CreateSummonSprite
+	mov	r1, #0xd
+	b	.Le82c0
+
+	.align	2, 0
+.Le82ac:
+	.word	0
+	.pool
+
+.Le82c0:
+	mov	r0, #0
+	neg	r1, r1
+	ldr	r6, =0x77fc
+	mov	r8, r0
+	mov	r7, r1
+.Le82ca:
+	mov	r0, #0xc3
+	lsl	r0, #1
+	bl	_CreateSprite
+	ldr	r2, [sp, #0x2c]
+	mov	r5, r0
+	str	r5, [r6, r2]
+	cmp	r5, #0
+	beq	.Le8302
+	mov	r2, r5
+	add	r2, #0x26
+	mov	r3, #0
+	strb	r3, [r2]
+	mov	r1, #3
+	mov	r0, r8
+	bl	__modsi3
+	mov	r1, r0
+	mov	r0, r5
+	bl	_Sprite_SetAnim
+	ldr	r3, [sp, #0x2c]
+	ldr	r1, [r6, r3]
+	ldrb	r3, [r1, #9]
+	mov	r2, #4
+	and	r3, r7
+	orr	r3, r2
+	strb	r3, [r1, #9]
+.Le8302:
+	mov	r0, #1
+	add	r8, r0
+	mov	r1, r8
+	add	r6, #4
+	cmp	r1, #6
+	bne	.Le82ca
+	mov	r6, #2
+	mov	r1, #7
+	mov	r2, #7
+	mov	r3, #3
+	mov	r0, #0x2e
+	str	r6, [sp]
+	bl	BuildDraw2DFuncEx
+	ldr	r5, =gPtrs
+	mov	r3, r5
+	add	r3, #0xb8
+	ldr	r3, [r3]
+	mov	r1, #7
+	str	r3, [sp, #0x3c]
+	mov	r2, #7
+	mov	r3, #3
+	mov	r0, #0x2f
+	str	r3, [sp]
+	bl	BuildDraw2DFuncEx
+	add	r5, #0xbc
+	mov	r2, sp
+	ldr	r3, [r5]
+	add	r2, #0x3c
+	str	r2, [sp, #0x10]
+	str	r3, [r2, #4]
+	ldr	r2, =REG_WININ
+	ldr	r3, .Le8380	@ 0x2737
+	strh	r3, [r2]
+	ldr	r3, .Le8384	@ 0xf0
+	sub	r2, #8
+	strh	r3, [r2]
+	ldr	r3, .Le8388	@ 0x1088
+	add	r2, #6
+	strh	r3, [r2]
+	mov	r0, #1
+	bl	WaitFrames
+	mov	r2, #0
+	ldr	r1, =0x3c
+	mov	r0, #1
+	bl	_AnimTransitionIn
+	mov	r0, #1
+	mov	r1, #1
+	bl	AnimTransitionOut
+	ldr	r0, =_FILE_73
+	ldr	r1, [sp, #0x24]
+	mov	r2, #0
+	mov	r3, #0
+	bl	LoadVFXFile
+	ldr	r0, =_FILE_c0
+	ldr	r1, [sp, #0x2c]
+	b	.Le83a4
+
+	.align	2, 0
+.Le8380:
+	.word	0x2737
+.Le8384:
+	.word	0xf0
+.Le8388:
+	.word	0x1088
+	.pool
+
+.Le83a4:
+	mov	r2, #1
+	mov	r3, #1
+	bl	LoadVFXFile
+	ldr	r3, =0x7741
+	mov	r2, #0x80
+	lsl	r2, #19
+	strh	r3, [r2]
+	ldr	r3, =0x80
+	add	r2, #0x20
+	strh	r3, [r2]
+	ldr	r3, =0x1010
+	add	r2, #0x32
+	strh	r3, [r2]
+	ldr	r3, =0x3f44
+	sub	r2, #2
+	strh	r3, [r2]
+	ldr	r7, [sp, #0x2c]
+	mov	r0, #0xef
+	lsl	r0, #7
+	ldr	r1, =0x7784
+	add	r3, r7, r0
+	str	r6, [r3]
+	add	r2, r7, r1
+	mov	r3, #0x32
+	str	r3, [r2]
+	mov	r2, #0xbc
+	mov	r3, #0xb8
+	lsl	r3, #15
+	lsl	r2, #16
+	mov	r6, #0xa0
+	b	.Le83f8
+
+	.pool_aligned
+
+.Le83f8:
+	ldr	r0, [sp, #0x2c]
+	mov	r1, #0xe1
+	lsl	r6, #16
+	mov	r7, #0
+	lsl	r1, #7
+	str	r2, [sp, #0x1c]
+	str	r3, [sp, #0x20]
+	str	r3, [sp, #0x18]
+	str	r6, [sp, #0x14]
+	mov	r8, r7
+	mov	r6, #0
+	add	r5, r0, r1
+.Le8410:
+	bl	Random
+	mov	r3, #0x7f
+	and	r3, r0
+	lsl	r3, #16
+	str	r3, [r5]
+	mov	r3, #1
+	ldr	r2, =0xfff00000
+	add	r8, r3
+	mov	r0, r8
+	str	r7, [r5, #4]
+	str	r6, [r5, #0xc]
+	str	r6, [r5, #0x10]
+	str	r6, [r5, #0x18]
+	add	r7, r2
+	add	r5, #0x1c
+	cmp	r0, #6
+	bne	.Le8410
+	ldr	r6, [sp, #0x2c]
+	ldr	r7, =0x7140
+	mov	r1, #0
+	mov	r8, r1
+	mov	r2, #0x18
+	add	r3, r6, r7
+.Le8440:
+	mov	r0, #1
+	add	r8, r0
+	mov	r1, r8
+	str	r2, [r3]
+	add	r3, #0x1c
+	cmp	r1, #0x3a
+	bne	.Le8440
+	mov	r2, #0
+	mov	r8, r2
+	mov	r1, #1
+	mov	r2, #0x80
+	ldr	r3, =ewram_2010018
+	neg	r1, r1
+	lsl	r2, #3
+.Le845c:
+	mov	r6, #1
+	add	r8, r6
+	str	r1, [r3]
+	add	r3, #0x1c
+	cmp	r8, r2
+	bne	.Le845c
+	ldr	r7, [sp, #0x2c]
+	ldr	r0, =0x77b4
+	ldr	r1, =0x77b8
+	add	r2, r7, r0
+	mov	r3, #0x18
+	str	r3, [r2]
+	mov	r3, #0
+	add	r2, r7, r1
+	str	r3, [r2]
+	str	r3, [sp, #0x28]
+	ldr	r3, =gKeyRepeat
+	ldr	r3, [r3]
+	mov	r2, #3
+	and	r3, r2
+	cmp	r3, #0
+	beq	.Le848a
+	b	.Le8968
+.Le848a:
+	mov	r2, sp
+	mov	r3, sp
+	add	r2, #0x44
+	add	r3, #0x34
+	str	r2, [sp, #8]
+	str	r3, [sp, #0xc]
+.Le8496:
+	ldr	r6, [sp, #0x28]
+	cmp	r6, #0x5e
+	bne	.Le84a2
+	mov	r0, #0x9c
+	bl	_PlaySound
+.Le84a2:
+	ldr	r7, [sp, #0x28]
+	cmp	r7, #0x88
+	bne	.Le84ae
+	mov	r0, #0x9c
+	bl	_PlaySound
+.Le84ae:
+	ldr	r0, [sp, #0x28]
+	cmp	r0, #0xb2
+	bne	.Le84ba
+	mov	r0, #0x9c
+	bl	_PlaySound
+.Le84ba:
+	mov	r2, #0x82
+	ldr	r1, [sp, #0x28]
+	lsl	r2, #1
+	cmp	r1, r2
+	bne	.Le84ca
+	mov	r0, #0x91
+	bl	_PlaySound
+.Le84ca:
+	ldr	r3, =Data_edac8
+	ldr	r4, [r3, #4]
+	ldr	r3, [r3]
+	str	r3, [sp, #0x34]
+	str	r4, [sp, #0x38]
+	ldr	r3, [sp, #0x28]
+	sub	r3, #0x60
+	cmp	r3, #0x9b
+	bhi	.Le84e4
+	ldr	r3, [sp, #0x2c]
+	ldr	r6, =0x77a8
+	add	r2, r3, r6
+	b	.Le84f4
+.Le84e4:
+	ldr	r7, [sp, #0x28]
+	ldr	r0, =0xfffffefc
+	add	r3, r7, r0
+	cmp	r3, #3
+	bhi	.Le84f8
+	ldr	r1, [sp, #0x2c]
+	ldr	r3, =0x77a8
+	add	r2, r1, r3
+.Le84f4:
+	mov	r3, #1
+	str	r3, [r2]
+.Le84f8:
+	mov	r3, #0
+	ldr	r0, [sp, #0x2c]
+	ldr	r1, =0x77d8
+	str	r3, [sp, #0x50]
+	str	r3, [sp, #0x48]
+	ldr	r5, [sp, #8]
+	ldr	r7, =0xffe00000
+	mov	r8, r3
+	add	r6, r0, r1
+.Le850a:
+	ldr	r3, =.Leeed8
+	mov	r2, r8
+	ldrb	r3, [r3, r2]
+	ldr	r0, [sp, #0x1c]
+	lsl	r3, #16
+	add	r3, r0
+	add	r3, r7
+	str	r3, [r5]
+	ldr	r3, =.Leeee1
+	ldrb	r3, [r3, r2]
+	ldr	r1, [sp, #0x20]
+	lsl	r3, #16
+	add	r3, r1
+	add	r3, r7
+	str	r3, [r5, #8]
+	ldr	r2, [sp, #0xc]
+	mov	r3, #0
+	ldmia	r6!, {r0}
+	mov	r1, r5
+	bl	_UpdateSprite
+	mov	r2, #1
+	add	r8, r2
+	mov	r3, r8
+	cmp	r3, #7
+	bne	.Le850a
+	ldr	r6, [sp, #0x28]
+	cmp	r6, #0x5a
+	bgt	.Le8566
+	lsl	r5, r6, #9
+	mov	r0, r5
+	bl	sin
+	mov	r7, #0x9c
+	lsl	r0, #4
+	lsl	r7, #16
+	add	r7, r0, r7
+	mov	r0, r5
+	str	r7, [sp, #0x14]
+	bl	cos
+	mov	r1, #0xb8
+	lsl	r0, #4
+	lsl	r1, #15
+	add	r1, r0, r1
+	str	r1, [sp, #0x18]
+.Le8566:
+	ldr	r2, [sp, #0x28]
+	cmp	r2, #0xc4
+	bgt	.Le8600
+	ldr	r7, [sp, #0x2c]
+	mov	r3, #0
+	mov	r8, r3
+	mov	r6, #0x5b
+	mov	r10, r7
+.Le8576:
+	ldr	r0, [sp, #0x28]
+	cmp	r0, r6
+	blt	.Le858c
+	add	r3, r6, #4
+	cmp	r0, r3
+	bge	.Le858c
+	ldr	r1, [sp, #0x18]
+	mov	r2, #0x80
+	lsl	r2, #12
+	add	r2, r1, r2
+	str	r2, [sp, #0x18]
+.Le858c:
+	ldr	r7, [sp, #0x28]
+	add	r3, r6, #3
+	cmp	r7, r3
+	bne	.Le85d8
+	ldr	r5, =0x7128
+	mov	r0, #0xff
+	mov	r7, #0
+	mov	r9, r0
+	add	r5, r10
+.Le859e:
+	mov	r3, #0x80
+	lsl	r3, #15
+	str	r3, [r5]
+	mov	r3, #0xc0
+	lsl	r3, #15
+	str	r3, [r5, #4]
+	bl	Random
+	mov	r1, r9
+	and	r0, r1
+	sub	r0, #0x7f
+	lsl	r0, #10
+	str	r0, [r5, #0xc]
+	bl	Random
+	mov	r2, r9
+	and	r0, r2
+	sub	r0, #0x7f
+	lsl	r0, #10
+	str	r0, [r5, #0x10]
+	bl	Random
+	mov	r3, #0xf
+	and	r3, r0
+	add	r7, #1
+	str	r3, [r5, #0x18]
+	add	r5, #0x1c
+	cmp	r7, #4
+	bne	.Le859e
+.Le85d8:
+	mov	r3, r6
+	ldr	r7, [sp, #0x28]
+	add	r3, #0x14
+	cmp	r7, r3
+	blt	.Le85f0
+	add	r3, #0x10
+	cmp	r7, r3
+	bge	.Le85f0
+	ldr	r0, [sp, #0x18]
+	ldr	r1, =0xfffe0000
+	add	r1, r0, r1
+	str	r1, [sp, #0x18]
+.Le85f0:
+	mov	r3, #1
+	add	r8, r3
+	mov	r2, #0xe0
+	mov	r7, r8
+	add	r6, #0x28
+	add	r10, r2
+	cmp	r7, #3
+	bne	.Le8576
+.Le8600:
+	ldr	r3, [sp, #0x28]
+	sub	r3, #0xf4
+	cmp	r3, #7
+	bhi	.Le8610
+	ldr	r0, [sp, #0x14]
+	ldr	r1, =0xffff0000
+	add	r1, r0, r1
+	str	r1, [sp, #0x14]
+.Le8610:
+	ldr	r3, [sp, #0x28]
+	sub	r3, #0xfc
+	cmp	r3, #0x17
+	bhi	.Le8624
+	ldr	r3, [sp, #0x28]
+	ldr	r2, [sp, #0x14]
+	sub	r3, #0xfa
+	lsl	r3, #16
+	sub	r3, r2, r3
+	str	r3, [sp, #0x14]
+.Le8624:
+	ldr	r3, [sp, #0x28]
+	ldr	r6, =0x103
+	cmp	r3, r6
+	bgt	.Le866e
+	ldr	r0, [sp, #0x18]
+	mov	r3, #0xff
+	ldr	r1, [sp, #0x2c]
+	lsl	r3, #24
+	ldr	r2, =0x77f4
+	str	r3, [sp, #0x48]
+	add	r3, r0, r3
+	str	r3, [sp, #0x4c]
+	add	r3, r1, r2
+	ldr	r7, [sp, #0x14]
+	ldr	r0, [r3]
+	add	r3, sp, #0x44
+	mov	r1, r3
+	ldr	r2, [sp, #0xc]
+	mov	r3, #0
+	str	r7, [sp, #0x44]
+	bl	_UpdateSprite
+	mov	r7, #0x80
+	ldr	r6, [sp, #0x14]
+	ldr	r0, [sp, #0x2c]
+	ldr	r1, =0x77f8
+	lsl	r7, #14
+	add	r3, r6, r7
+	add	r2, sp, #0x44
+	str	r3, [sp, #0x44]
+	add	r3, r0, r1
+	ldr	r0, [r3]
+	mov	r1, r2
+	mov	r3, #0
+	ldr	r2, [sp, #0xc]
+	bl	_UpdateSprite
+.Le866e:
+	ldr	r6, [sp, #8]
+	mov	r3, #0
+	str	r3, [r6, #4]
+	ldr	r7, [sp, #0x2c]
+	mov	r0, #0xe1
+	lsl	r0, #7
+	mov	r8, r3
+	mov	r11, r6
+	add	r5, r7, r0
+	mov	r9, r7
+.Le8682:
+	ldr	r3, [r5, #0x18]
+	cmp	r3, #2
+	bne	.Le868a
+	b	.Le8796
+.Le868a:
+	ldr	r3, [r5]
+	mov	r1, r11
+	str	r3, [r1]
+	ldr	r3, [r5, #4]
+	mov	r2, r8
+	str	r3, [r1, #8]
+	ldr	r6, =0x77fc
+	lsl	r3, r2, #2
+	ldr	r7, [sp, #0x2c]
+	add	r3, r6
+	ldr	r0, [r7, r3]
+	ldr	r2, [sp, #0xc]
+	mov	r3, #0
+	bl	_UpdateSprite
+	ldr	r3, [r5]
+	ldr	r2, [r5, #0xc]
+	add	r3, r2
+	str	r3, [r5]
+	ldr	r2, [r5, #0x10]
+	ldr	r3, [r5, #4]
+	add	r3, r2
+	str	r3, [r5, #4]
+	ldr	r0, [sp, #0x28]
+	cmp	r0, #0x60
+	ble	.Le86c6
+	mov	r1, #0x80
+	lsl	r1, #7
+	add	r3, r2, r1
+	str	r3, [r5, #0x10]
+.Le86c6:
+	mov	r2, #0xf0
+	ldr	r3, [r5, #4]
+	lsl	r2, #15
+	cmp	r3, r2
+	ble	.Le8796
+	ldr	r3, [r5, #0x18]
+	add	r3, #1
+	str	r3, [r5, #0x18]
+	cmp	r3, #1
+	bne	.Le8788
+	ldr	r3, [r5, #0x10]
+	neg	r3, r3
+	lsr	r2, r3, #31
+	add	r3, r2
+	asr	r3, #1
+	ldr	r6, =0x73c8
+	str	r3, [r5, #0x10]
+	mov	r3, #0xff
+	mov	r7, #0
+	mov	r10, r3
+	add	r6, r9
+.Le86f0:
+	ldr	r3, [r5]
+	lsr	r2, r3, #31
+	add	r3, r2
+	asr	r3, #1
+	str	r3, [r6]
+	ldr	r0, =0xffe00000
+	ldr	r3, [r5, #4]
+	add	r3, r0
+	str	r3, [r6, #4]
+	bl	Random
+	mov	r1, r10
+	and	r0, r1
+	sub	r0, #0x7f
+	lsl	r0, #10
+	str	r0, [r6, #0xc]
+	bl	Random
+	mov	r2, r10
+	and	r0, r2
+	sub	r0, #0x7f
+	lsl	r0, #10
+	str	r0, [r6, #0x10]
+	bl	Random
+	mov	r3, #0xf
+	and	r3, r0
+	add	r7, #1
+	str	r3, [r6, #0x18]
+	add	r6, #0x1c
+	cmp	r7, #2
+	bne	.Le86f0
+	b	.Le8796
+
+	.pool_aligned
+
+.Le8788:
+	ldr	r3, [sp, #0x28]
+	cmp	r3, #0xc7
+	bgt	.Le8796
+	mov	r3, #0
+	str	r3, [r5, #4]
+	str	r3, [r5, #0x10]
+	str	r3, [r5, #0x18]
+.Le8796:
+	mov	r7, #1
+	add	r8, r7
+	mov	r6, #0x38
+	mov	r0, r8
+	add	r5, #0x1c
+	add	r9, r6
+	cmp	r0, #6
+	beq	.Le87a8
+	b	.Le8682
+.Le87a8:
+	ldr	r2, [sp, #0x2c]
+	ldr	r3, =0x7128
+	mov	r1, #0
+	mov	r8, r1
+	add	r5, r2, r3
+.Le87b2:
+	ldr	r0, [r5, #0x18]
+	cmp	r0, #0
+	blt	.Le87fc
+	cmp	r0, #0x17
+	bhi	.Le87ec
+	mov	r1, #6
+	bl	__divsi3
+	ldr	r3, =.Leeeea
+	add	r0, #3
+	lsl	r0, #1
+	ldrh	r1, [r3, r0]
+	ldr	r3, =.Leeef8
+	ldr	r6, [sp, #0x2c]
+	ldrh	r4, [r3, r0]
+	mov	r7, #2
+	ldrsh	r2, [r5, r7]
+	add	r1, r6, r1
+	mov	r6, #6
+	ldrsh	r3, [r5, r6]
+	lsr	r0, r4, #1
+	sub	r2, r0
+	sub	r3, r0
+	str	r4, [sp]
+	str	r4, [sp, #4]
+	ldr	r0, [sp, #0x30]
+	ldr	r4, [sp, #0x3c]
+	bl	_call_via_r4
+.Le87ec:
+	mov	r0, r5
+	mov	r1, #0x3c
+	ldr	r2, =0xffffc000
+	bl	Func_80e3908
+	ldr	r3, [r5, #0x18]
+	add	r3, #1
+	str	r3, [r5, #0x18]
+.Le87fc:
+	mov	r7, #1
+	add	r8, r7
+	mov	r0, r8
+	add	r5, #0x1c
+	cmp	r0, #0x38
+	bne	.Le87b2
+	mov	r2, #0x82
+	ldr	r1, [sp, #0x28]
+	lsl	r2, #1
+	cmp	r1, r2
+	bne	.Le88c8
+	mov	r3, #0
+	mov	r8, r3
+	ldr	r6, [sp, #0x2c]
+	ldr	r3, =0x7828
+	ldr	r3, [r6, r3]
+	ldr	r3, [r3, #0x14]
+	cmp	r3, #0
+	beq	.Le8854
+	ldr	r7, =0x7828
+	add	r5, r6, r7
+	mov	r6, #0x24
+.Le8828:
+	ldr	r3, [r5]
+	ldrsh	r0, [r3, r6]
+	mov	r1, #4
+	bl	_SetBattleActorKnockback
+	ldr	r3, [r5]
+	ldrsh	r0, [r3, r6]
+	mov	r3, #8
+	mov	r2, #1
+	str	r3, [sp]
+	mov	r1, #7
+	mov	r3, r8
+	neg	r2, r2
+	bl	Func_80d6888
+	mov	r3, #1
+	add	r8, r3
+	ldr	r3, [r5]
+	ldr	r3, [r3, #0x14]
+	add	r6, #2
+	cmp	r8, r3
+	bne	.Le8828
+.Le8854:
+	ldr	r6, [sp, #0x2c]
+	ldr	r7, =0x77a8
+	mov	r3, #8
+	add	r2, r6, r7
+	str	r3, [r2]
+	mov	r1, #0x82
+	ldr	r0, [sp, #0x28]
+	lsl	r1, #1
+	cmp	r0, r1
+	bne	.Le88c8
+	mov	r2, #0
+	ldr	r7, =gBuffer
+	mov	r8, r2
+.Le886e:
+	bl	Random
+	ldr	r5, =0x3ff
+	and	r5, r0
+	bl	Random
+	ldr	r3, =0xffff
+	mov	r6, r0
+	and	r6, r3
+	mov	r3, #0x80
+	lsl	r3, #14
+	str	r3, [r7]
+	mov	r3, #0xb8
+	lsl	r3, #15
+	str	r3, [r7, #4]
+	mov	r0, r6
+	bl	sin
+	add	r5, #0x20
+	mov	r3, r5
+	mul	r3, r0
+	asr	r3, #7
+	str	r3, [r7, #0xc]
+	mov	r0, r6
+	bl	cos
+	mov	r3, r5
+	mul	r3, r0
+	lsl	r3, #1
+	neg	r3, r3
+	asr	r3, #7
+	str	r3, [r7, #0x10]
+	bl	Random
+	mov	r3, #0xf
+	and	r3, r0
+	add	r3, #0x20
+	str	r3, [r7, #0x18]
+	mov	r6, #0x80
+	mov	r3, #1
+	add	r8, r3
+	lsl	r6, #2
+	add	r7, #0x1c
+	cmp	r8, r6
+	bne	.Le886e
+.Le88c8:
+	ldr	r0, =Data_ede48
+	mov	r7, #0
+	ldr	r6, =gBuffer
+	mov	r8, r7
+	mov	r10, r0
+.Le88d2:
+	ldr	r0, [r6, #0x18]
+	cmp	r0, #0
+	blt	.Le8922
+	asr	r0, #3
+	add	r0, #1
+	lsl	r5, r0, #1
+	mov	r1, r8
+	sub	r3, r5, #2
+	mov	r2, r10
+	mov	r4, #1
+	and	r4, r1
+	ldrh	r1, [r2, r3]
+	ldr	r3, [sp, #0x24]
+	add	r1, r3, r1
+	lsr	r3, r0, #31
+	mov	r7, #2
+	ldrsh	r2, [r6, r7]
+	add	r3, r0, r3
+	asr	r3, #1
+	sub	r2, r3
+	mov	r7, #6
+	ldrsh	r3, [r6, r7]
+	str	r0, [sp]
+	sub	r3, r0
+	str	r5, [sp, #4]
+	ldr	r0, [sp, #0x10]
+	lsl	r4, #2
+	ldr	r4, [r4, r0]
+	ldr	r0, [sp, #0x30]
+	bl	_call_via_r4
+	mov	r2, #0x80
+	mov	r0, r6
+	mov	r1, #0x3e
+	lsl	r2, #5
+	bl	Func_80e3908
+	ldr	r3, [r6, #0x18]
+	sub	r3, #1
+	str	r3, [r6, #0x18]
+.Le8922:
+	mov	r1, #1
+	mov	r2, #0x80
+	add	r8, r1
+	lsl	r2, #2
+	add	r6, #0x1c
+	cmp	r8, r2
+	bne	.Le88d2
+	mov	r0, #8
+	mov	r1, #8
+	bl	UpdateScreenShake
+	bl	Func_80cd52c
+	ldr	r6, =0x7824
+	ldr	r3, [sp, #0x2c]
+	add	r2, r3, r6
+	mov	r3, #1
+	mov	r0, #1
+	str	r3, [r2]
+	bl	WaitFrames
+	ldr	r7, [sp, #0x28]
+	mov	r0, #0xa0
+	add	r7, #1
+	lsl	r0, #1
+	str	r7, [sp, #0x28]
+	cmp	r7, r0
+	beq	.Le8968
+	ldr	r3, =gKeyRepeat
+	ldr	r3, [r3]
+	mov	r2, #3
+	and	r3, r2
+	cmp	r3, #0
+	bne	.Le8968
+	b	.Le8496
+.Le8968:
+	mov	r0, #0x86
+	bl	_Func_80bd7dc
+	bl	Func_80d67dc
+	ldr	r3, =0x77d8
+	ldr	r2, [sp, #0x2c]
+	mov	r1, #0
+	mov	r8, r1
+	add	r5, r2, r3
+.Le897c:
+	mov	r6, #1
+	add	r8, r6
+	ldmia	r5!, {r0}
+	mov	r7, r8
+	bl	_DeleteSprite
+	cmp	r7, #0xf
+	bne	.Le897c
+	ldr	r0, =Task_BlitAnim
+	bl	StopTask
+	mov	r0, #0x2f
+	bl	gfree
+	mov	r0, #0x2e
+	bl	gfree
+	bl	AnimEnd
+	add	sp, #0x54
+	pop	{r3, r5, r6, r7}
+	mov	r8, r3
+	mov	r9, r5
+	mov	r10, r6
+	mov	r11, r7
+	pop	{r5, r6, r7}
+	pop	{r0}
+	bx	r0
+.func_end Anim_Ramses
+
+@ Sub_e89ec
+@ Battle animation routine, 745 instructions.
+@ State: iwram_1eec, iwram_1e80, ewram_10000.
+@ Calls out to: _Func_b8228, _Func_bd7dc, _Func_c0cec, _Func_f9080.
+@ Touches: REG_BLDALPHA.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
+.thumb_func_start Anim_DragonCloud  @ 0x080e89ec
+	push	{r5, r6, r7, lr}
+	mov	r7, r11
+	mov	r6, r10
+	mov	r5, r9
+	push	{r5, r6, r7}
+	mov	r7, r8
+	push	{r7}
+	ldr	r2, =iwram_3001eec
+	mov	r3, r2
+	ldmia	r3!, {r1}
+	ldr	r3, [r3]
+	sub	sp, #0xe4
+	str	r3, [sp, #0x2c]
+	mov	r3, #0
+	str	r3, [sp, #0x24]
+	str	r3, [sp, #0x1c]
+	str	r3, [sp, #0x18]
+	ldr	r3, =0x7828
+	mov	r9, r1
+	ldr	r2, [r2, #8]
+	add	r3, r9
+	str	r2, [sp, #0x14]
+	str	r0, [r3]
+	mov	r0, #0
+	bl	AnimStart
+	ldr	r2, =REG_BLDALPHA
+	ldr	r3, .Le8a54	@ 0x1010
+	ldr	r0, =_FILE_c2
+	strh	r3, [r2]
+	mov	r1, r9
+	mov	r2, #1
+	mov	r3, #1
+	bl	LoadVFXFile
+	mov	r5, #0xea
+	ldr	r0, =0xfffff1f0
+	mov	r1, #0xb4
+	lsl	r5, #2
+	lsl	r1, #5
+	mov	r2, r9
+	mov	r7, #1
+	mov	r14, r0
+	mov	r12, r1
+	add	r4, r2, r5
+.Le8a46:
+	mov	r3, r14
+	mov	r2, r9
+	mov	r6, #0
+	lsl	r0, r7, #2
+	add	r1, r4, r3
+	add	r2, r12
+	b	.Le8a6c
+
+	.align	2, 0
+.Le8a54:
+	.word	0x1010
+	.pool
+
+.Le8a6c:
+	ldrb	r3, [r2]
+	add	r2, #1
+	cmp	r7, #0xa
+	ble	.Le8a80
+	sub	r3, r0
+	add	r3, #0x28
+	cmp	r3, #0
+	bge	.Le8a7e
+	mov	r3, #0
+.Le8a7e:
+	strb	r3, [r1]
+.Le8a80:
+	add	r6, #1
+	add	r1, #1
+	cmp	r6, r5
+	bne	.Le8a6c
+	mov	r0, #0xea
+	lsl	r0, #2
+	add	r7, #1
+	add	r4, r0
+	cmp	r7, #0x14
+	bne	.Le8a46
+	ldr	r1, [sp, #0x14]
+	ldr	r0, =_FILE_73
+	mov	r2, #0
+	mov	r3, #0
+	bl	LoadVFXFile
+	mov	r1, #0xf0
+	lsl	r1, #6
+	ldr	r0, =_FILE_b4
+	add	r1, r9
+	mov	r2, #1
+	mov	r3, #1
+	bl	LoadVFXFile
+	mov	r2, #1
+	ldr	r0, =_FILE_7d
+	ldr	r1, =gBuffer
+	mov	r3, #0
+	bl	LoadVFXFile
+	ldr	r3, =0x7828
+	add	r3, r9
+	ldr	r3, [r3]
+	mov	r1, sp
+	ldr	r0, [r3, #4]
+	add	r1, #0x30
+	str	r1, [sp, #0x10]
+	bl	BuildDraw2DFuncs
+	mov	r2, #0xef
+	lsl	r2, #7
+	add	r2, r9
+	mov	r3, #2
+	str	r3, [r2]
+	ldr	r2, =0x7784
+	mov	r3, #0x4b
+	add	r2, r9
+	mov	r1, #0x90
+	str	r3, [r2]
+	ldr	r0, =Task_BlitAnim
+	lsl	r1, #3
+	bl	StartTask
+	ldr	r5, =0x7160
+	mov	r6, #0
+	mov	r7, #0x3f
+	add	r5, r9
+.Le8af2:
+	ldr	r3, =0x7828
+	add	r3, r9
+	ldr	r3, [r3]
+	ldr	r3, [r3, #4]
+	cmp	r3, #0
+	bne	.Le8b02
+	ldr	r3, =0xffc80000
+	b	.Le8b06
+.Le8b02:
+	mov	r3, #0xe0
+	lsl	r3, #14
+.Le8b06:
+	str	r3, [r5]
+	mov	r3, #0
+	str	r3, [r5, #4]
+	str	r3, [r5, #8]
+	bl	Random
+	and	r0, r7
+	sub	r0, #0x20
+	lsl	r0, #14
+	str	r0, [r5, #0xc]
+	bl	Random
+	and	r0, r7
+	lsl	r0, #13
+	str	r0, [r5, #0x10]
+	bl	Random
+	and	r0, r7
+	sub	r0, #0x20
+	lsl	r0, #14
+	mov	r3, #1
+	add	r6, #1
+	str	r0, [r5, #0x14]
+	str	r3, [r5, #0x18]
+	add	r5, #0x1c
+	cmp	r6, #0x28
+	bne	.Le8af2
+	ldr	r5, =0x75c0
+	mov	r6, #0
+	mov	r8, r6
+	mov	r7, #0x3f
+	add	r5, r9
+.Le8b46:
+	ldr	r3, =0x7828
+	add	r3, r9
+	ldr	r3, [r3]
+	ldr	r3, [r3, #4]
+	cmp	r3, #0
+	bne	.Le8b56
+	ldr	r3, =0xffc80000
+	b	.Le8b5a
+.Le8b56:
+	mov	r3, #0xe0
+	lsl	r3, #14
+.Le8b5a:
+	str	r3, [r5]
+	mov	r3, #0xa0
+	lsl	r3, #13
+	mov	r2, r8
+	str	r3, [r5, #4]
+	str	r2, [r5, #8]
+	bl	Random
+	and	r0, r7
+	sub	r0, #0x20
+	lsl	r0, #14
+	str	r0, [r5, #0xc]
+	bl	Random
+	and	r0, r7
+	lsl	r0, #12
+	str	r0, [r5, #0x10]
+	bl	Random
+	and	r0, r7
+	sub	r0, #0x20
+	lsl	r0, #14
+	mov	r3, r8
+	add	r6, #1
+	str	r0, [r5, #0x14]
+	str	r3, [r5, #0x18]
+	add	r5, #0x1c
+	cmp	r6, #0x10
+	bne	.Le8b46
+	mov	r5, #0xe1
+	lsl	r5, #7
+	ldr	r6, =0xffffc000
+	mov	r7, #0
+	add	r5, r9
+.Le8b9e:
+	ldr	r3, =0x7828
+	add	r3, r9
+	ldr	r3, [r3]
+	ldr	r3, [r3, #4]
+	cmp	r3, #1
+	bne	.Le8bbc
+	mov	r0, r6
+	bl	sin
+	lsl	r3, r0, #1
+	add	r3, r0
+	lsl	r3, #3
+	asr	r3, #16
+	add	r3, #0x58
+	b	.Le8bce
+.Le8bbc:
+	mov	r0, r6
+	bl	sin
+	lsl	r3, r0, #1
+	add	r3, r0
+	lsl	r3, #3
+	neg	r3, r3
+	asr	r3, #16
+	add	r3, #0x10
+.Le8bce:
+	str	r3, [r5]
+	mov	r0, r6
+	bl	cos
+	lsl	r0, #4
+	asr	r0, #16
+	add	r0, #0x28
+	str	r0, [r5, #4]
+	lsl	r3, r7, #1
+	mov	r0, #0x80
+	neg	r3, r3
+	lsl	r0, #5
+	add	r7, #1
+	str	r3, [r5, #0x18]
+	add	r6, r0
+	add	r5, #0x1c
+	cmp	r7, #8
+	bne	.Le8b9e
+	ldr	r0, =_FILE_d3
+	bl	GetFile
+	ldr	r2, =0x7828
+	mov	r1, #0
+	add	r2, r9
+	str	r0, [sp, #0x20]
+	str	r1, [sp, #0x28]
+	str	r2, [sp, #0xc]
+.Le8c04:
+	ldr	r3, =iwram_3001e80
+	ldr	r3, [r3]
+	mov	r11, r3
+	ldr	r3, [sp, #0x28]
+	cmp	r3, #0x53
+	bne	.Le8c16
+	mov	r0, #0x86
+	bl	_Func_80bd7dc
+.Le8c16:
+	ldr	r0, [sp, #0x28]
+	cmp	r0, #0
+	bne	.Le8c22
+	mov	r0, #0x88
+	bl	_PlaySound
+.Le8c22:
+	ldr	r1, [sp, #0x28]
+	cmp	r1, #0x32
+	bne	.Le8c2e
+	mov	r0, #0x88
+	bl	_PlaySound
+.Le8c2e:
+	ldr	r2, [sp, #0xc]
+	ldr	r3, [r2]
+	ldr	r3, [r3, #4]
+	cmp	r3, #0
+	bne	.Le8c4a
+	ldr	r3, [sp, #0x28]
+	cmp	r3, #0x3f
+	bgt	.Le8c5e
+	mov	r0, r11
+	ldrh	r3, [r0, #0x36]
+	ldr	r1, =0xffffff00
+	mov	r2, r11
+	add	r3, r1
+	b	.Le8c5c
+.Le8c4a:
+	ldr	r3, [sp, #0x28]
+	cmp	r3, #0x3f
+	bgt	.Le8c5e
+	mov	r0, r11
+	ldrh	r3, [r0, #0x36]
+	mov	r1, #0x80
+	lsl	r1, #1
+	add	r3, r1
+	mov	r2, r11
+.Le8c5c:
+	strh	r3, [r2, #0x36]
+.Le8c5e:
+	mov	r3, #0x64
+	mov	r0, #0
+	mov	r1, #0
+	mov	r2, #0
+	bl	_Func_80c0cec
+	ldr	r3, [sp, #0x28]
+	cmp	r3, #0x11
+	bgt	.Le8cce
+	mov	r0, r3
+	mov	r1, #3
+	bl	__divsi3
+	ldr	r2, =Data_edeb2
+	mov	r5, r0
+	lsl	r0, r5, #1
+	ldrh	r1, [r2, r0]
+	mov	r10, r0
+	mov	r3, #0xf0
+	ldr	r0, =Data_edeab
+	lsl	r3, #6
+	mov	r8, r3
+	ldrb	r3, [r0, r5]
+	ldr	r0, =Data_ede9f
+	ldrb	r2, [r0, r5]
+	ldr	r6, =Data_edea5
+	str	r2, [sp]
+	ldrb	r2, [r6, r5]
+	add	r1, r9
+	add	r1, r8
+	add	r3, #0x3c
+	str	r2, [sp, #4]
+	ldr	r4, [sp, #0x30]
+	mov	r2, #0x30
+	ldr	r0, [sp, #0x2c]
+	bl	_call_via_r4
+	ldr	r2, =Data_edeb2
+	ldr	r0, =Data_edeab
+	mov	r3, r10
+	ldrh	r1, [r2, r3]
+	ldrb	r3, [r0, r5]
+	ldr	r0, =Data_ede9f
+	ldrb	r2, [r0, r5]
+	str	r2, [sp]
+	ldrb	r2, [r6, r5]
+	str	r2, [sp, #4]
+	ldr	r2, [sp, #0x10]
+	add	r1, r9
+	ldr	r4, [r2, #4]
+	add	r1, r8
+	add	r3, #0x3c
+	ldr	r0, [sp, #0x2c]
+	mov	r2, #0x38
+	bl	_call_via_r4
+.Le8cce:
+	ldr	r3, [sp, #0x28]
+	sub	r3, #0x12
+	str	r3, [sp, #8]
+	cmp	r3, #0x28
+	bhi	.Le8d1a
+	ldr	r0, [sp, #0x28]
+	cmp	r0, #0x12
+	bne	.Le8d00
+	ldr	r1, [sp, #0x20]
+	mov	r3, #0
+	ldrsb	r3, [r1, r3]
+	ldrb	r2, [r1, #1]
+	lsl	r3, #8
+	add	r3, r2
+	str	r3, [sp, #0x1c]
+	mov	r3, #2
+	ldrsb	r3, [r1, r3]
+	ldrb	r2, [r1, #3]
+	lsl	r3, #8
+	add	r3, r2
+	add	r3, #0x10
+	add	r1, #4
+	str	r3, [sp, #0x18]
+	str	r1, [sp, #0x20]
+	b	.Le8d1a
+.Le8d00:
+	ldr	r2, [sp, #0x20]
+	ldr	r0, [sp, #0x1c]
+	mov	r3, #0
+	ldrsb	r3, [r2, r3]
+	add	r0, r3
+	str	r0, [sp, #0x1c]
+	ldr	r1, [sp, #0x18]
+	mov	r3, #1
+	ldrsb	r3, [r2, r3]
+	add	r2, #2
+	add	r1, r3
+	str	r1, [sp, #0x18]
+	str	r2, [sp, #0x20]
+.Le8d1a:
+	ldr	r3, [sp, #0x28]
+	sub	r3, #0x4e
+	cmp	r3, #0x28
+	bhi	.Le8d3a
+	ldr	r2, [sp, #0x28]
+	cmp	r2, #0x4e
+	bne	.Le8d34
+	mov	r3, #0x38
+	neg	r3, r3
+	mov	r0, #0x30
+	str	r3, [sp, #0x1c]
+	str	r0, [sp, #0x18]
+	b	.Le8d3a
+.Le8d34:
+	ldr	r1, [sp, #0x18]
+	sub	r1, #0x10
+	str	r1, [sp, #0x18]
+.Le8d3a:
+	mov	r2, #0x18
+	mov	r3, #0x27
+	mov	r6, #0x13
+	mov	r10, r2
+	mov	r8, r3
+	mov	r7, #0x9c
+.Le8d46:
+	mov	r3, r6
+	ldr	r0, [sp, #0x28]
+	add	r3, #0x12
+	cmp	r0, r3
+	ble	.Le8daa
+	add	r3, #0x41
+	cmp	r0, r3
+	bgt	.Le8daa
+	lsl	r0, r6, #3
+	mov	r3, r0
+	add	r2, sp, #0x44
+	sub	r3, #8
+	ldr	r3, [r2, r3]
+	str	r3, [r2, r0]
+	sub	r3, r0, #4
+	ldr	r5, [r2, r3]
+	str	r5, [r2, r7]
+	cmp	r6, #0xa
+	ble	.Le8d90
+	mov	r3, #0xea
+	lsl	r3, #2
+	mov	r1, r6
+	mul	r1, r3
+	ldr	r3, =0xfffff1f0
+	add	r1, r9
+	ldr	r2, [r2, r0]
+	add	r1, r3
+	mov	r0, r10
+	mov	r3, r8
+	str	r0, [sp]
+	str	r3, [sp, #4]
+	ldr	r4, [sp, #0x30]
+	ldr	r0, [sp, #0x2c]
+	mov	r3, r5
+	bl	_call_via_r4
+	b	.Le8daa
+.Le8d90:
+	mov	r1, r8
+	ldr	r2, [r2, r0]
+	str	r1, [sp, #4]
+	mov	r1, #0xb4
+	mov	r0, r10
+	lsl	r1, #5
+	str	r0, [sp]
+	ldr	r4, [sp, #0x30]
+	ldr	r0, [sp, #0x2c]
+	add	r1, r9
+	mov	r3, r5
+	bl	_call_via_r4
+.Le8daa:
+	sub	r6, #1
+	sub	r7, #8
+	cmp	r6, #0
+	bne	.Le8d46
+	bl	InitMatrixStack
+	mov	r1, r11
+	add	r1, #0xc
+	mov	r0, r11
+	bl	MatrixSetLook
+	ldr	r2, [sp, #8]
+	cmp	r2, #0x41
+	bhi	.Le8eb4
+	ldr	r0, [sp, #0xc]
+	ldr	r3, [r0]
+	ldr	r3, [r3, #4]
+	cmp	r3, #1
+	bne	.Le8e2c
+	ldr	r3, [sp, #0x1c]
+	lsr	r2, r3, #31
+	add	r2, r3, r2
+	asr	r2, #1
+	mov	r3, #0x40
+	add	r1, sp, #0x38
+	sub	r3, r2
+	b	.Le8e38
+
+	.pool_aligned
+
+.Le8e2c:
+	ldr	r0, [sp, #0x1c]
+	lsr	r3, r0, #31
+	add	r3, r0, r3
+	asr	r3, #1
+	add	r1, sp, #0x38
+	add	r3, #0x40
+.Le8e38:
+	str	r3, [r1]
+	ldr	r2, [sp, #0x18]
+	mov	r3, #0x3c
+	sub	r3, r2
+	str	r3, [r1, #4]
+	add	r4, sp, #0x44
+	ldr	r2, [r4, #4]
+	sub	r3, r2
+	sub	r3, #0x18
+	lsr	r2, r3, #31
+	add	r3, r2
+	asr	r0, r3, #1
+	cmp	r0, #2
+	ble	.Le8e56
+	mov	r0, #2
+.Le8e56:
+	mov	r3, #2
+	neg	r3, r3
+	cmp	r0, r3
+	bge	.Le8e62
+	mov	r0, #2
+	neg	r0, r0
+.Le8e62:
+	ldr	r2, [sp, #0x24]
+	add	r2, r0
+	str	r2, [sp, #0x24]
+	cmp	r2, #8
+	ble	.Le8e70
+	mov	r3, #8
+	str	r3, [sp, #0x24]
+.Le8e70:
+	mov	r2, #8
+	ldr	r0, [sp, #0x24]
+	neg	r2, r2
+	cmp	r0, r2
+	bge	.Le8e7c
+	str	r2, [sp, #0x24]
+.Le8e7c:
+	ldr	r3, [sp, #0x24]
+	cmp	r3, #0
+	bge	.Le8e84
+	add	r3, #3
+.Le8e84:
+	ldr	r2, [r1]
+	asr	r3, #2
+	add	r0, r3, #2
+	mov	r3, r2
+	sub	r3, #0xc
+	str	r3, [r4]
+	ldr	r3, [r1, #4]
+	mov	r1, r3
+	sub	r1, #0x14
+	str	r1, [r4, #4]
+	lsl	r1, r0, #3
+	add	r1, r0
+	mov	r0, #0x18
+	lsl	r1, #7
+	str	r0, [sp]
+	mov	r0, #0x30
+	str	r0, [sp, #4]
+	add	r1, r9
+	sub	r2, #0x12
+	sub	r3, #0x16
+	ldr	r4, [sp, #0x30]
+	ldr	r0, [sp, #0x2c]
+	bl	_call_via_r4
+.Le8eb4:
+	ldr	r3, [sp, #0x28]
+	cmp	r3, #0x53
+	bne	.Le8ee4
+	ldr	r3, =0x77a8
+	mov	r2, #8
+	add	r3, r9
+	str	r2, [r3]
+	ldr	r0, [sp, #0xc]
+	ldr	r3, [r0]
+	mov	r1, #0x24
+	ldrsh	r0, [r3, r1]
+	mov	r1, #7
+	str	r2, [sp]
+	mov	r3, #0
+	mov	r2, #5
+	bl	Func_80d6888
+	ldr	r2, [sp, #0xc]
+	ldr	r3, [r2]
+	mov	r1, #0x24
+	ldrsh	r0, [r3, r1]
+	mov	r1, #1
+	bl	_SetBattleActorKnockback
+.Le8ee4:
+	ldr	r2, [sp, #0x28]
+	cmp	r2, #0x53
+	ble	.Le8fac
+	ldr	r6, =0x7160
+	mov	r7, #0
+	add	r6, r9
+.Le8ef0:
+	ldr	r3, [r6, #4]
+	cmp	r3, #0
+	blt	.Le8fa4
+	add	r5, sp, #0x38
+	mov	r0, r6
+	mov	r1, r5
+	bl	Func_80e3944
+	ldr	r3, [r5]
+	asr	r3, #1
+	str	r3, [r5]
+	ldr	r3, [r5, #8]
+	cmp	r3, #0x9f
+	bgt	.Le8f10
+	mov	r3, #0xa0
+	str	r3, [r5, #8]
+.Le8f10:
+	ldr	r2, =0x31f
+	cmp	r3, r2
+	ble	.Le8f1a
+	str	r2, [r5, #8]
+	mov	r3, r2
+.Le8f1a:
+	mov	r2, r3
+	sub	r2, #0xa0
+	cmp	r2, #0
+	bge	.Le8f24
+	add	r2, #0x3f
+.Le8f24:
+	asr	r2, #6
+	mov	r3, #9
+	sub	r4, r3, r2
+	cmp	r7, #0x2f
+	ble	.Le8f60
+	ldr	r3, [r6, #0x18]
+	cmp	r3, #0xb
+	bgt	.Le8f86
+	lsr	r1, r3, #31
+	add	r1, r3, r1
+	asr	r1, #1
+	ldr	r3, =gBuffer
+	lsl	r1, #11
+	ldr	r2, [r5]
+	add	r1, r3
+	mov	r0, #0x20
+	ldr	r3, [r5, #4]
+	str	r0, [sp]
+	mov	r0, #0x40
+	sub	r3, #0x20
+	str	r0, [sp, #4]
+	sub	r2, #0x10
+	ldr	r4, [sp, #0x30]
+	ldr	r0, [sp, #0x2c]
+	bl	_call_via_r4
+	ldr	r3, [r6, #0x18]
+	add	r3, #1
+	str	r3, [r6, #0x18]
+	b	.Le8f86
+.Le8f60:
+	lsl	r0, r4, #1
+	ldr	r2, =Data_ede48
+	sub	r3, r0, #2
+	ldrh	r1, [r2, r3]
+	ldr	r2, [sp, #0x14]
+	lsr	r3, r4, #31
+	add	r3, r4, r3
+	add	r1, r2, r1
+	ldr	r2, [r5]
+	asr	r3, #1
+	sub	r2, r3
+	ldr	r3, [r5, #4]
+	str	r4, [sp]
+	sub	r3, r4
+	str	r0, [sp, #4]
+	ldr	r4, [sp, #0x30]
+	ldr	r0, [sp, #0x2c]
+	bl	_call_via_r4
+.Le8f86:
+	ldr	r3, [r6]
+	ldr	r2, [r6, #0xc]
+	add	r3, r2
+	ldr	r1, [r6, #0x10]
+	str	r3, [r6]
+	ldr	r3, [r6, #4]
+	add	r3, r1
+	str	r3, [r6, #4]
+	ldr	r2, [r6, #0x14]
+	ldr	r3, [r6, #8]
+	add	r3, r2
+	str	r3, [r6, #8]
+	ldr	r3, =0xffffe000
+	add	r1, r3
+	str	r1, [r6, #0x10]
+.Le8fa4:
+	add	r7, #1
+	add	r6, #0x1c
+	cmp	r7, #0x38
+	bne	.Le8ef0
+.Le8fac:
+	ldr	r0, [sp, #0x28]
+	cmp	r0, #0x32
+	bne	.Le8fd0
+	ldr	r2, =0x77a8
+	mov	r3, #0xc
+	add	r2, r9
+	str	r3, [r2]
+	ldr	r1, [sp, #0xc]
+	ldr	r3, [r1]
+	mov	r2, #0x24
+	ldrsh	r0, [r3, r2]
+	mov	r3, #8
+	str	r3, [sp]
+	mov	r1, #7
+	mov	r2, #5
+	mov	r3, #0
+	bl	Func_80d6888
+.Le8fd0:
+	ldr	r3, [sp, #0x28]
+	cmp	r3, #0x31
+	ble	.Le902a
+	mov	r6, #0xe1
+	lsl	r6, #7
+	mov	r7, #0
+	add	r6, r9
+.Le8fde:
+	ldr	r3, [r6, #0x18]
+	cmp	r3, #0xb
+	bhi	.Le901e
+	lsr	r4, r3, #31
+	add	r4, r3, r4
+	asr	r4, #1
+	ldr	r0, =Data_edeb2
+	lsl	r3, r4, #1
+	ldrh	r1, [r0, r3]
+	ldr	r3, =Data_ede9f
+	mov	r2, #0xf0
+	ldrb	r5, [r3, r4]
+	lsl	r2, #6
+	add	r1, r9
+	add	r1, r2
+	ldr	r2, [r6]
+	lsr	r3, r5, #1
+	sub	r2, r3
+	ldr	r3, =Data_edeab
+	ldrb	r0, [r3, r4]
+	ldr	r3, [r6, #4]
+	str	r5, [sp]
+	add	r3, r0
+	ldr	r0, =Data_edea5
+	ldrb	r0, [r0, r4]
+	str	r0, [sp, #4]
+	ldr	r0, [sp, #0x10]
+	ldr	r4, [r0, #4]
+	ldr	r0, [sp, #0x2c]
+	bl	_call_via_r4
+	ldr	r3, [r6, #0x18]
+.Le901e:
+	add	r3, #1
+	add	r7, #1
+	str	r3, [r6, #0x18]
+	add	r6, #0x1c
+	cmp	r7, #8
+	bne	.Le8fde
+.Le902a:
+	mov	r1, #8
+	mov	r0, #8
+	bl	UpdateScreenShake
+	bl	Func_80cd52c
+	ldr	r2, =0x7824
+	mov	r3, #1
+	add	r2, r9
+	str	r3, [r2]
+	mov	r0, #1
+	bl	WaitFrames
+	ldr	r1, [sp, #0x28]
+	add	r1, #1
+	str	r1, [sp, #0x28]
+	cmp	r1, #0x96
+	beq	.Le9050
+	b	.Le8c04
+.Le9050:
+	ldr	r0, =Task_BlitAnim
+	bl	StopTask
+	mov	r0, #0x2f
+	bl	gfree
+	mov	r0, #0x2e
+	bl	gfree
+	bl	AnimEnd
+	add	sp, #0xe4
+	pop	{r3, r5, r6, r7}
+	mov	r8, r3
+	mov	r9, r5
+	mov	r10, r6
+	mov	r11, r7
+	pop	{r5, r6, r7}
+	pop	{r0}
+	bx	r0
+.func_end Anim_DragonCloud
+
+@ Sub_e90a8
+@ Battle animation routine, 438 instructions.
+@ State: iwram_1eec, iwram_1e50, ewram_10000.
+@ Calls out to: _Func_b7dd0, _Func_b8228, _Func_b82c4, _Func_bd7dc, _Func_f9080.
+@ Touches: REG_DMA3SAD.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
+.thumb_func_start Anim_Annihilation  @ 0x080e90a8
+	push	{r5, r6, r7, lr}
+	mov	r7, r11
+	mov	r6, r10
+	mov	r5, r9
+	push	{r5, r6, r7}
+	mov	r7, r8
+	push	{r7}
+	ldr	r2, =iwram_3001eec
+	mov	r3, r2
+	ldmia	r3!, {r1}
+	ldr	r3, [r3]
+	sub	sp, #0x58
+	str	r3, [sp, #0x24]
+	ldr	r3, [r2, #8]
+	str	r3, [sp, #0x20]
+	sub	r2, #0x6c
+	ldr	r5, =0x7828
+	mov	r11, r1
+	ldr	r2, [r2]
+	add	r5, r11
+	str	r2, [sp, #0x1c]
+	ldr	r7, =gBuffer
+	str	r0, [r5]
+	mov	r0, #0
+	bl	AnimStart
+	ldr	r0, =_FILE_96
+	mov	r1, r11
+	mov	r2, #1
+	mov	r3, #1
+	bl	LoadVFXFile
+	mov	r1, r7
+	ldr	r0, =_FILE_63
+	mov	r2, #1
+	mov	r3, #1
+	bl	LoadVFXFile
+	mov	r2, #0
+	ldr	r1, [sp, #0x20]
+	ldr	r0, =_FILE_73
+	mov	r3, #0
+	bl	LoadVFXFile
+	ldr	r3, [r5]
+	mov	r2, #0x24
+	ldrsh	r1, [r3, r2]
+	ldr	r0, [r3, #8]
+	mov	r2, #4
+	mov	r3, #0
+	bl	_Func_80b82c4
+	mov	r0, #1
+	bl	WaitFrames
+	ldr	r3, [r5]
+	mov	r1, #0x24
+	ldrsh	r0, [r3, r1]
+	bl	_GetBattleActor
+	mov	r5, #0xe1
+	mov	r2, #0
+	lsl	r5, #7
+	ldr	r6, [r0]
+	mov	r8, r2
+	mov	r7, #0xff
+	add	r5, r11
+.Le912e:
+	ldr	r3, [r6, #8]
+	str	r3, [r5]
+	ldr	r3, [r6, #0xc]
+	str	r3, [r5, #4]
+	ldr	r3, [r6, #0x10]
+	str	r3, [r5, #8]
+	bl	Random
+	and	r0, r7
+	lsl	r0, #11
+	str	r0, [r5, #0xc]
+	bl	Random
+	and	r0, r7
+	sub	r0, #0x7f
+	lsl	r0, #12
+	str	r0, [r5, #0x10]
+	bl	Random
+	and	r0, r7
+	sub	r0, #0x7f
+	ldr	r3, [r5]
+	lsl	r0, #12
+	str	r0, [r5, #0x14]
+	cmp	r3, #0
+	ble	.Le9168
+	ldr	r3, [r5, #0xc]
+	neg	r3, r3
+	str	r3, [r5, #0xc]
+.Le9168:
+	mov	r3, r8
+	cmp	r3, #0
+	bge	.Le9170
+	add	r3, #3
+.Le9170:
+	asr	r3, #2
+	lsl	r3, #1
+	add	r3, #0x10
+	str	r3, [r5, #0x18]
+	mov	r3, #1
+	add	r8, r3
+	mov	r0, r8
+	add	r5, #0x1c
+	cmp	r0, #0x40
+	bne	.Le912e
+	ldr	r3, =0x7828
+	add	r3, r11
+	ldr	r3, [r3]
+	mov	r2, sp
+	add	r2, #0x40
+	mov	r1, #0x24
+	ldrsh	r0, [r3, r1]
+	mov	r1, r2
+	str	r2, [sp, #0x18]
+	bl	GetBattleActorPos2
+	mov	r1, #0x90
+	lsl	r1, #3
+	ldr	r0, =Task_BlitAnim
+	bl	StartTask
+	mov	r2, #0xef
+	lsl	r2, #7
+	add	r2, r11
+	mov	r3, #2
+	str	r3, [r2]
+	ldr	r2, =0x7784
+	mov	r3, #0x4b
+	add	r2, r11
+	str	r3, [r2]
+	mov	r3, #0
+	mov	r9, r3
+	ldr	r1, [sp, #0x1c]
+	ldr	r2, =0x7828
+	ldr	r3, =0xffffaf00
+	mov	r0, sp
+	add	r0, #0x4c
+	add	r1, #0xc
+	add	r2, r11
+	add	r3, r11
+	str	r0, [sp, #0x10]
+	str	r1, [sp, #0xc]
+	str	r2, [sp, #0x14]
+	str	r3, [sp, #8]
+.Le91d2:
+	mov	r0, r9
+	cmp	r0, #8
+	bne	.Le91de
+	mov	r0, #0x86
+	bl	_Func_80bd7dc
+.Le91de:
+	ldr	r1, [sp, #0x14]
+	ldr	r3, [r1]
+	ldr	r3, [r3, #0x18]
+	cmp	r3, #0
+	beq	.Le91f4
+	mov	r2, r9
+	cmp	r2, #8
+	bne	.Le91f4
+	mov	r0, #0xd4
+	bl	_PlaySound
+.Le91f4:
+	ldr	r5, =0x7828
+	add	r5, r11
+	ldr	r3, [r5]
+	ldr	r1, [sp, #0x10]
+	ldr	r0, [r3, #8]
+	bl	GetBattleActorPos2
+	mov	r3, r9
+	sub	r3, #6
+	cmp	r3, #5
+	bhi	.Le92ae
+	ldr	r3, [r5]
+	ldr	r3, [r3, #4]
+	cmp	r3, #0
+	bne	.Le9222
+	mov	r3, #3
+	mov	r0, #0x2e
+	mov	r1, #7
+	mov	r2, #7
+	str	r3, [sp]
+	bl	BuildDraw2DFuncEx
+	b	.Le9232
+.Le9222:
+	mov	r3, #3
+	str	r3, [sp]
+	mov	r0, #0x2e
+	mov	r1, #7
+	mov	r2, #7
+	mov	r3, #7
+	bl	BuildDraw2DFuncEx
+.Le9232:
+	ldr	r3, =gPtrs
+	ldr	r0, [sp, #0x14]
+	add	r3, #0xb8
+	ldr	r4, [r3]
+	ldr	r3, [r0]
+	ldr	r3, [r3, #4]
+	str	r4, [sp, #0x28]
+	cmp	r3, #0
+	bne	.Le928c
+	ldr	r2, [sp, #0x4c]
+	lsr	r3, r2, #31
+	add	r2, r3
+	mov	r1, #0x30
+	ldr	r3, [sp, #0x50]
+	asr	r2, #1
+	str	r1, [sp]
+	mov	r1, #0x48
+	str	r1, [sp, #4]
+	sub	r2, #0x18
+	sub	r3, #0x18
+	ldr	r0, [sp, #0x24]
+	ldr	r1, [sp, #8]
+	bl	_call_via_r4
+	b	.Le92a8
+
+	.pool_aligned
+
+.Le928c:
+	ldr	r2, [sp, #0x4c]
+	lsr	r3, r2, #31
+	add	r2, r3
+	mov	r1, #0x30
+	ldr	r3, [sp, #0x50]
+	str	r1, [sp]
+	mov	r1, #0x48
+	str	r1, [sp, #4]
+	asr	r2, #1
+	sub	r3, #0x18
+	ldr	r0, [sp, #0x24]
+	ldr	r1, [sp, #8]
+	bl	_call_via_r4
+.Le92a8:
+	mov	r0, #0x2e
+	bl	gfree
+.Le92ae:
+	mov	r2, r9
+	sub	r2, #0x10
+	cmp	r2, #0x1f
+	bhi	.Le9328
+	lsr	r3, r2, #31
+	add	r3, r2, r3
+	asr	r5, r3, #1
+	mov	r3, #2
+	str	r3, [sp]
+	mov	r0, #0x2e
+	mov	r3, #3
+	mov	r1, #7
+	mov	r2, #7
+	bl	BuildDraw2DFuncEx
+	ldr	r3, =gPtrs
+	add	r3, #0xb8
+	ldr	r3, [r3]
+	str	r3, [sp, #0x28]
+	cmp	r5, #2
+	ble	.Le92da
+	mov	r5, #2
+.Le92da:
+	ldr	r1, [sp, #0x14]
+	ldr	r3, [r1]
+	ldr	r3, [r3, #0x18]
+	mov	r2, #0
+	cmp	r3, #0
+	beq	.Le92ea
+	mov	r2, #0x96
+	lsl	r2, #6
+.Le92ea:
+	lsl	r1, r5, #1
+	add	r1, r5
+	lsl	r1, #3
+	add	r1, r5
+	lsl	r1, #7
+	ldr	r3, [sp, #0x18]
+	add	r1, r2, r1
+	ldr	r2, =gBuffer
+	add	r1, r2
+	ldr	r2, [r3]
+	ldr	r0, [sp, #0x18]
+	lsr	r3, r2, #31
+	add	r2, r3
+	ldr	r3, [r0, #4]
+	mov	r0, #0x28
+	str	r0, [sp]
+	asr	r2, #1
+	mov	r0, #0x50
+	str	r0, [sp, #4]
+	sub	r2, #0x14
+	sub	r3, #0x30
+	ldr	r4, [sp, #0x28]
+	ldr	r0, [sp, #0x24]
+	bl	_call_via_r4
+	ldr	r0, =0x2710
+	bl	Unk_080D655C
+	mov	r0, #0x2e
+	bl	gfree
+.Le9328:
+	mov	r1, r9
+	cmp	r1, #8
+	bne	.Le933e
+	ldr	r3, =0x3f3f3f3f
+	add	r0, sp, #0x30
+	str	r3, [r0]
+	ldr	r1, [sp, #0x24]
+	ldr	r3, =REG_DMA3SAD
+	ldr	r2, =0x85001000
+	stmia	r3!, {r0, r1, r2}
+	sub	r3, #0xc
+.Le933e:
+	bl	InitMatrixStack
+	ldr	r0, [sp, #0x1c]
+	ldr	r1, [sp, #0xc]
+	bl	MatrixSetLook
+	mov	r2, r9
+	cmp	r2, #3
+	ble	.Le93e8
+	ldr	r0, [sp, #0x14]
+	ldr	r3, [r0]
+	add	r1, sp, #0x28
+	ldr	r0, [r3, #4]
+	mov	r10, r1
+	bl	BuildDraw2DFuncs
+	mov	r7, #0xe1
+	mov	r2, #0
+	lsl	r7, #7
+	mov	r8, r2
+	add	r6, sp, #0x34
+	add	r7, r11
+.Le936a:
+	ldr	r5, [r7, #0x18]
+	cmp	r5, #0
+	ble	.Le93d0
+	mov	r1, r6
+	mov	r0, r7
+	bl	Func_80e3944
+	ldr	r2, [r6]
+	asr	r2, #1
+	str	r2, [r6]
+	ldr	r0, [sp, #0x18]
+	ldr	r3, [r6, #4]
+	ldr	r1, [r0, #4]
+	add	r3, r1
+	mov	r1, r8
+	lsr	r4, r1, #31
+	asr	r5, #3
+	add	r4, r8
+	add	r5, #2
+	mov	r1, #1
+	asr	r4, #1
+	sub	r3, #0x70
+	and	r4, r1
+	lsl	r1, r5, #1
+	str	r3, [r6, #4]
+	ldr	r0, =Data_ede48
+	str	r1, [sp, #4]
+	sub	r1, #2
+	ldrh	r1, [r0, r1]
+	ldr	r0, [sp, #0x20]
+	add	r1, r0, r1
+	lsr	r0, r5, #31
+	add	r0, r5, r0
+	str	r5, [sp]
+	asr	r0, #1
+	sub	r2, r0
+	lsl	r4, #2
+	mov	r0, r10
+	sub	r3, r5
+	ldr	r4, [r4, r0]
+	ldr	r0, [sp, #0x24]
+	bl	_call_via_r4
+	mov	r0, r7
+	mov	r1, #0x3c
+	ldr	r2, =0xfffffc00
+	bl	Func_80e38b8
+	ldr	r3, [r7, #0x18]
+	sub	r3, #1
+	str	r3, [r7, #0x18]
+.Le93d0:
+	mov	r1, #1
+	add	r8, r1
+	mov	r2, r8
+	add	r7, #0x1c
+	cmp	r2, #0x40
+	bne	.Le936a
+	mov	r0, #0x2f
+	bl	gfree
+	mov	r0, #0x2e
+	bl	gfree
+.Le93e8:
+	mov	r3, r9
+	cmp	r3, #8
+	bne	.Le9404
+	ldr	r0, [sp, #0x14]
+	ldr	r3, [r0]
+	mov	r1, #0x24
+	ldrsh	r0, [r3, r1]
+	mov	r1, #4
+	bl	_SetBattleActorKnockback
+	ldr	r2, =0x77a8
+	mov	r3, #4
+	add	r2, r11
+	str	r3, [r2]
+.Le9404:
+	mov	r2, r9
+	cmp	r2, #6
+	bne	.Le9422
+	ldr	r0, [sp, #0x14]
+	ldr	r3, [r0]
+	mov	r2, #1
+	mov	r1, #0x24
+	ldrsh	r0, [r3, r1]
+	mov	r3, #0
+	str	r3, [sp]
+	mov	r1, #0xa
+	neg	r2, r2
+	sub	r3, #1
+	bl	Func_80d6888
+.Le9422:
+	mov	r2, r9
+	cmp	r2, #0xe
+	bne	.Le9440
+	ldr	r0, [sp, #0x14]
+	ldr	r3, [r0]
+	mov	r2, #1
+	mov	r1, #0x24
+	ldrsh	r0, [r3, r1]
+	mov	r3, #0
+	str	r3, [sp]
+	mov	r1, #0xa
+	neg	r2, r2
+	sub	r3, #1
+	bl	Func_80d6888
+.Le9440:
+	mov	r1, #0x10
+	mov	r0, #0x10
+	bl	UpdateScreenShake
+	bl	Func_80cd52c
+	ldr	r2, =0x7824
+	mov	r3, #1
+	add	r2, r11
+	str	r3, [r2]
+	mov	r0, #1
+	bl	WaitFrames
+	mov	r3, #0xd8
+	ldr	r2, [sp, #8]
+	mov	r0, #1
+	lsl	r3, #4
+	add	r9, r0
+	add	r2, r3
+	mov	r1, r9
+	str	r2, [sp, #8]
+	cmp	r1, #0x40
+	beq	.Le9470
+	b	.Le91d2
+.Le9470:
+	ldr	r0, =Task_BlitAnim
+	bl	StopTask
+	bl	AnimEnd
+	add	sp, #0x58
+	pop	{r3, r5, r6, r7}
+	mov	r8, r3
+	mov	r9, r5
+	mov	r10, r6
+	mov	r11, r7
+	pop	{r5, r6, r7}
+	pop	{r0}
+	bx	r0
+.func_end Anim_Annihilation
+
+@ Sub_e94b8
+@ Battle animation routine, 561 instructions.
+@ State: iwram_1eec, ewram_10000.
+@ Calls out to: _Func_b7dd0, _Func_b8228, _Func_bd7dc, _Func_c300, _Func_c344, _Func_f9080.
+@ Touches: REG_BLDALPHA.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
+.thumb_func_start Anim_Ragnarok  @ 0x080e94b8
+	push	{r5, r6, r7, lr}
+	mov	r7, r11
+	mov	r6, r10
+	mov	r5, r9
+	push	{r5, r6, r7}
+	mov	r7, r8
+	push	{r7}
+	ldr	r2, =iwram_3001eec
+	mov	r3, r2
+	mov	r5, r0
+	ldmia	r3!, {r0}
+	ldr	r3, [r3]
+	sub	sp, #0x34
+	str	r3, [sp, #0x28]
+	ldr	r2, [r2, #8]
+	str	r2, [sp, #0x20]
+	mov	r11, r0
+	ldr	r0, [r5, #8]
+	bl	_GetBattleActor
+	ldr	r6, =0x7828
+	ldr	r0, [r0]
+	mov	r3, #1
+	add	r6, r11
+	str	r0, [sp, #0x1c]
+	str	r3, [r5, #0x18]
+	mov	r0, #1
+	str	r5, [r6]
+	bl	AnimStart
+	ldr	r2, =REG_BLDALPHA
+	ldr	r3, .Le9534	@ 0x1010
+	strh	r3, [r2]
+	ldr	r3, [r6]
+	mov	r1, sp
+	ldr	r0, [r3, #4]
+	add	r1, #0x2c
+	str	r1, [sp, #0x18]
+	bl	BuildDraw2DFuncs
+	mov	r1, #2
+	ldr	r0, [sp, #0x1c]
+	bl	_Actor_SetAnim
+	mov	r1, #0x30
+	ldr	r0, [sp, #0x1c]
+	bl	_Actor_SetAnimSpeed
+	ldr	r0, =_FILE_55
+	mov	r1, r11
+	mov	r2, #1
+	mov	r3, #1
+	bl	LoadVFXFile
+	mov	r1, #0x80
+	lsl	r1, #6
+	ldr	r0, =_FILE_7d
+	add	r1, r11
+	mov	r2, #1
+	mov	r3, #0
+	b	.Le954c
+
+	.align	2, 0
+.Le9534:
+	.word	0x1010
+	.pool
+
+.Le954c:
+	bl	LoadVFXFile
+	mov	r2, #0
+	ldr	r0, =_FILE_73
+	ldr	r1, [sp, #0x20]
+	mov	r3, #0
+	bl	LoadVFXFile
+	mov	r2, #0
+	str	r2, [sp, #0x24]
+	mov	r9, r2
+	mov	r8, r11
+.Le9564:
+	mov	r7, #0xe1
+	mov	r3, #0
+	lsl	r7, #7
+	mov	r10, r3
+	add	r7, r8
+.Le956e:
+	mov	r0, r10
+	lsl	r6, r0, #1
+	bl	Random
+	ldr	r3, =0xffff
+	mov	r5, r0
+	and	r5, r3
+	mov	r0, r5
+	bl	sin
+	mov	r3, r6
+	mul	r3, r0
+	mov	r0, r5
+	str	r3, [r7]
+	bl	cos
+	mov	r3, r6
+	mul	r3, r0
+	mov	r1, r10
+	neg	r3, r3
+	str	r3, [r7, #4]
+	lsr	r3, r1, #31
+	add	r3, r10
+	asr	r3, #1
+	mov	r2, #1
+	add	r3, #0x19
+	add	r10, r2
+	str	r3, [r7, #0x18]
+	mov	r3, r10
+	add	r7, #0x1c
+	cmp	r3, #0x10
+	bne	.Le956e
+	mov	r1, r9
+	lsl	r3, r1, #3
+	sub	r3, r1
+	ldr	r2, =gBuffer
+	mov	r0, #0
+	lsl	r3, #2
+	mov	r10, r0
+	add	r7, r3, r2
+.Le95be:
+	bl	Random
+	ldr	r5, =0x1ff
+	and	r5, r0
+	bl	Random
+	ldr	r3, =0xffff
+	mov	r6, r0
+	and	r6, r3
+	ldr	r3, =0x7828
+	add	r3, r11
+	ldr	r3, [r3]
+	ldr	r2, [r3, #4]
+	ldr	r0, [sp, #0x24]
+	lsl	r3, r2, #1
+	add	r3, r2
+	ldr	r1, =.Leef06
+	add	r3, r0, r3
+	ldrb	r3, [r1, r3]
+	lsl	r3, #16
+	str	r3, [r7]
+	mov	r3, #0xb0
+	lsl	r3, #15
+	str	r3, [r7, #4]
+	mov	r0, r6
+	bl	sin
+	add	r5, #0x20
+	mov	r3, r5
+	mul	r3, r0
+	asr	r3, #6
+	str	r3, [r7, #0xc]
+	mov	r0, r6
+	bl	cos
+	mov	r3, r5
+	mul	r3, r0
+	lsl	r3, #1
+	neg	r3, r3
+	asr	r3, #6
+	str	r3, [r7, #0x10]
+	bl	Random
+	mov	r3, #7
+	and	r3, r0
+	add	r3, #0x20
+	str	r3, [r7, #0x18]
+	mov	r2, #1
+	mov	r3, #0xaa
+	add	r10, r2
+	lsl	r3, #1
+	add	r7, #0x1c
+	cmp	r10, r3
+	bne	.Le95be
+	ldr	r1, [sp, #0x24]
+	mov	r0, #0xe0
+	lsl	r0, #1
+	add	r1, #1
+	add	r9, r3
+	add	r8, r0
+	str	r1, [sp, #0x24]
+	cmp	r1, #3
+	bne	.Le9564
+	mov	r2, #0xef
+	lsl	r2, #7
+	add	r2, r11
+	mov	r3, #2
+	str	r3, [r2]
+	ldr	r2, =0x7784
+	mov	r3, #0x4b
+	add	r2, r11
+	mov	r1, #0x90
+	str	r3, [r2]
+	ldr	r0, =Task_BlitAnim
+	lsl	r1, #3
+	bl	StartTask
+	mov	r2, #0
+	mov	r9, r2
+.Le965c:
+	mov	r3, r9
+	cmp	r3, #4
+	bne	.Le9668
+	mov	r0, #0xd4
+	bl	_PlaySound
+.Le9668:
+	mov	r0, r9
+	cmp	r0, #8
+	bne	.Le9674
+	ldr	r3, =0x77a8
+	add	r3, r11
+	str	r0, [r3]
+.Le9674:
+	mov	r1, r9
+	cmp	r1, #0x12
+	bne	.Le9680
+	mov	r0, #0x91
+	bl	_PlaySound
+.Le9680:
+	mov	r2, r9
+	cmp	r2, #0x28
+	bne	.Le968c
+	mov	r0, #0x86
+	bl	_Func_80bd7dc
+.Le968c:
+	mov	r3, r9
+	cmp	r3, #0x27
+	bgt	.Le9724
+	ldr	r3, =0x7828
+	add	r3, r11
+	ldr	r3, [r3]
+	ldr	r3, [r3, #4]
+	mov	r1, #0x80
+	cmp	r3, #1
+	bne	.Le96ce
+	mov	r0, r9
+	cmp	r0, #9
+	bgt	.Le96b8
+	lsl	r3, r0, #2
+	add	r3, r9
+	lsl	r3, #1
+	mov	r2, r3
+	lsl	r3, r0, #4
+	mov	r5, r3
+	sub	r2, #8
+	sub	r5, #0x80
+	b	.Le96fe
+.Le96b8:
+	mov	r2, r9
+	cmp	r2, #0x14
+	ble	.Le96ca
+	mov	r0, r9
+	lsl	r3, r0, #1
+	mov	r5, r3
+	add	r2, #0x3e
+	sub	r5, #0x18
+	b	.Le96fe
+.Le96ca:
+	mov	r2, #0x52
+	b	.Le96fc
+.Le96ce:
+	mov	r2, r9
+	cmp	r2, #9
+	bgt	.Le96e6
+	lsl	r3, r2, #2
+	add	r3, r9
+	lsl	r3, #1
+	mov	r0, r9
+	sub	r2, r1, r3
+	lsl	r3, r0, #4
+	mov	r5, r3
+	sub	r5, #0x80
+	b	.Le96fe
+.Le96e6:
+	mov	r2, r9
+	cmp	r2, #0x14
+	ble	.Le96fa
+	mov	r3, #0x3a
+	mov	r0, r9
+	sub	r2, r3, r2
+	lsl	r3, r0, #1
+	mov	r5, r3
+	sub	r5, #0x18
+	b	.Le96fe
+.Le96fa:
+	mov	r2, #0x26
+.Le96fc:
+	mov	r5, #0x10
+.Le96fe:
+	mov	r3, r5
+	add	r3, #0x80
+	cmp	r3, #0x68
+	ble	.Le970c
+	sub	r3, r1, r5
+	mov	r1, r3
+	sub	r1, #0x18
+.Le970c:
+	cmp	r1, #0
+	ble	.Le9724
+	mov	r3, #0x40
+	str	r3, [sp]
+	str	r1, [sp, #4]
+	sub	r2, #0x20
+	ldr	r4, [sp, #0x2c]
+	ldr	r0, [sp, #0x28]
+	mov	r1, r11
+	mov	r3, r5
+	bl	_call_via_r4
+.Le9724:
+	mov	r1, r9
+	cmp	r1, #0x10
+	ble	.Le9730
+	ldr	r0, =_FILE_c0
+	bl	Func_80e46f0
+.Le9730:
+	mov	r2, #0
+	mov	r3, #0x16
+	mov	r0, #0x10
+	mov	r1, r11
+	str	r2, [sp, #0x24]
+	str	r3, [sp, #0x14]
+	str	r2, [sp, #0x10]
+	str	r0, [sp, #0xc]
+	str	r1, [sp, #8]
+.Le9742:
+	ldr	r2, [sp, #0x24]
+	ldr	r3, [sp, #0xc]
+	lsl	r1, r2, #3
+	cmp	r9, r3
+	bne	.Le9754
+	ldr	r2, =0x77a8
+	mov	r3, #0xc
+	add	r2, r11
+	str	r3, [r2]
+.Le9754:
+	ldr	r0, [sp, #0xc]
+	cmp	r9, r0
+	blt	.Le980c
+	mov	r3, r1
+	add	r3, #0x12
+	cmp	r9, r3
+	bge	.Le9790
+	ldr	r3, =0x7828
+	add	r3, r11
+	ldr	r3, [r3]
+	ldr	r2, [r3, #4]
+	lsl	r3, r2, #1
+	add	r3, r2
+	ldr	r2, [sp, #0x24]
+	ldr	r1, =.Leef06
+	add	r3, r2, r3
+	ldrb	r2, [r1, r3]
+	mov	r3, #0x20
+	mov	r1, #0x80
+	str	r3, [sp]
+	lsl	r1, #6
+	mov	r3, #0x40
+	str	r3, [sp, #4]
+	sub	r2, #0x10
+	ldr	r4, [sp, #0x2c]
+	ldr	r0, [sp, #0x28]
+	add	r1, r11
+	mov	r3, #0x38
+	bl	_call_via_r4
+.Le9790:
+	ldr	r0, =.Leef0c
+	ldr	r1, [sp, #8]
+	mov	r2, #0xe1
+	mov	r3, #0
+	lsl	r2, #7
+	mov	r10, r3
+	mov	r8, r0
+	add	r5, r1, r2
+.Le97a0:
+	mov	r3, #6
+	ldrsh	r7, [r5, r3]
+	ldr	r3, =0x7828
+	add	r3, r11
+	ldr	r3, [r3]
+	ldr	r2, [r3, #4]
+	lsl	r3, r2, #1
+	add	r3, r2
+	ldr	r2, [sp, #0x24]
+	mov	r0, #2
+	ldrsh	r1, [r5, r0]
+	ldr	r0, =.Leef06
+	add	r3, r2, r3
+	ldrb	r3, [r0, r3]
+	ldr	r0, [r5, #0x18]
+	add	r6, r1, r3
+	cmp	r0, #0x11
+	bhi	.Le97f2
+	mov	r1, #3
+	bl	__divsi3
+	mov	r2, r8
+	ldrb	r1, [r2, r0]
+	mov	r3, #0x80
+	lsl	r1, #11
+	lsl	r3, #6
+	mov	r0, #0x20
+	add	r1, r11
+	add	r1, r3
+	str	r0, [sp]
+	mov	r2, r6
+	mov	r0, #0x40
+	mov	r3, r7
+	str	r0, [sp, #4]
+	sub	r2, #0x10
+	add	r3, #0x38
+	ldr	r4, [sp, #0x2c]
+	ldr	r0, [sp, #0x28]
+	bl	_call_via_r4
+	ldr	r0, [r5, #0x18]
+.Le97f2:
+	cmp	r0, #0
+	ble	.Le97fa
+	sub	r3, r0, #1
+	b	.Le97fe
+.Le97fa:
+	mov	r3, #1
+	neg	r3, r3
+.Le97fe:
+	str	r3, [r5, #0x18]
+	mov	r0, #1
+	add	r10, r0
+	mov	r1, r10
+	add	r5, #0x1c
+	cmp	r1, #0xc
+	bne	.Le97a0
+.Le980c:
+	ldr	r3, [sp, #0xc]
+	add	r3, #5
+	cmp	r9, r3
+	ble	.Le98e2
+	mov	r2, #0
+	ldr	r7, [sp, #0x10]
+	mov	r10, r2
+.Le981a:
+	lsl	r3, r7, #4
+	add	r3, r7, r3
+	lsl	r3, #2
+	add	r3, r10
+	lsl	r2, r3, #3
+	sub	r2, r3
+	ldr	r3, =gBuffer
+	lsl	r2, #2
+	add	r6, r2, r3
+	ldr	r3, [r6, #0x18]
+	cmp	r3, #0
+	ble	.Le98d6
+	mov	r2, #0x80
+	mov	r0, r6
+	mov	r1, #0x40
+	lsl	r2, #5
+	bl	Func_80e3908
+	ldr	r3, [r6, #0x18]
+	mov	r0, #0xd8
+	ldr	r1, [r6, #4]
+	sub	r3, #1
+	lsl	r0, #15
+	str	r3, [r6, #0x18]
+	cmp	r1, r0
+	ble	.Le9888
+	ldr	r3, [r6, #0x10]
+	neg	r3, r3
+	lsr	r2, r3, #31
+	add	r3, r2
+	asr	r3, #1
+	str	r3, [r6, #0x10]
+	b	.Le98d6
+
+	.pool_aligned
+
+.Le9888:
+	ldr	r0, [r6]
+	ldr	r2, =0x7effff
+	cmp	r0, r2
+	bhi	.Le98d6
+	cmp	r1, #0
+	blt	.Le98d6
+	asr	r1, #16
+	mov	r8, r1
+	asr	r6, r0, #16
+	mov	r1, #5
+	mov	r0, r3
+	bl	__divsi3
+	add	r0, #1
+	lsl	r5, r0, #1
+	mov	r3, r10
+	ldr	r2, =Data_ede48
+	mov	r4, #1
+	and	r4, r3
+	sub	r3, r5, #2
+	ldrh	r1, [r2, r3]
+	lsr	r3, r0, #31
+	add	r3, r0, r3
+	asr	r3, #1
+	sub	r6, r3
+	mov	r3, r8
+	ldr	r2, [sp, #0x20]
+	sub	r3, r0
+	str	r0, [sp]
+	str	r5, [sp, #4]
+	ldr	r0, [sp, #0x18]
+	lsl	r4, #2
+	add	r1, r2, r1
+	ldr	r4, [r4, r0]
+	mov	r2, r6
+	ldr	r0, [sp, #0x28]
+	mov	r8, r3
+	bl	_call_via_r4
+.Le98d6:
+	mov	r1, #1
+	mov	r2, #0x80
+	add	r10, r1
+	lsl	r2, #1
+	cmp	r10, r2
+	bne	.Le981a
+.Le98e2:
+	ldr	r2, =0x7828
+	mov	r3, #0
+	mov	r0, r11
+	mov	r10, r3
+	ldr	r3, [r0, r2]
+	ldr	r3, [r3, #0x14]
+	cmp	r3, #0
+	beq	.Le992e
+	ldr	r1, [sp, #0x14]
+	mov	r6, #0x24
+	mov	r8, r1
+.Le98f8:
+	cmp	r9, r8
+	bne	.Le991c
+	mov	r3, r11
+	add	r5, r3, r2
+	ldr	r3, [r5]
+	ldrsh	r0, [r3, r6]
+	mov	r3, #0xa
+	str	r3, [sp]
+	mov	r1, #7
+	mov	r2, #5
+	mov	r3, r10
+	bl	Func_80d6888
+	ldr	r3, [r5]
+	mov	r1, #4
+	ldrsh	r0, [r3, r6]
+	bl	_SetBattleActorKnockback
+.Le991c:
+	ldr	r2, =0x7828
+	mov	r3, #1
+	mov	r0, r11
+	add	r10, r3
+	ldr	r3, [r0, r2]
+	ldr	r3, [r3, #0x14]
+	add	r6, #2
+	cmp	r10, r3
+	bne	.Le98f8
+.Le992e:
+	ldr	r1, [sp, #0x14]
+	ldr	r2, [sp, #0x10]
+	add	r1, #8
+	add	r2, #5
+	ldr	r3, [sp, #0xc]
+	ldr	r0, [sp, #8]
+	str	r1, [sp, #0x14]
+	str	r2, [sp, #0x10]
+	mov	r1, #0xe0
+	ldr	r2, [sp, #0x24]
+	lsl	r1, #1
+	add	r3, #8
+	add	r0, r1
+	add	r2, #1
+	str	r3, [sp, #0xc]
+	str	r0, [sp, #8]
+	str	r2, [sp, #0x24]
+	cmp	r2, #2
+	beq	.Le9956
+	b	.Le9742
+.Le9956:
+	mov	r0, #0x10
+	mov	r1, #0x10
+	bl	UpdateScreenShake
+	bl	Func_80cd52c
+	ldr	r3, =0x7824
+	mov	r5, #1
+	add	r3, r11
+	str	r5, [r3]
+	mov	r0, #1
+	bl	WaitFrames
+	mov	r3, #1
+	add	r9, r3
+	mov	r0, r9
+	cmp	r0, #0x50
+	beq	.Le997c
+	b	.Le965c
+.Le997c:
+	ldr	r0, [sp, #0x1c]
+	mov	r1, #0x10
+	bl	_Actor_SetAnimSpeed
+	ldr	r0, =Task_BlitAnim
+	bl	StopTask
+	mov	r0, #0x2f
+	bl	gfree
+	mov	r0, #0x2e
+	bl	gfree
+	bl	AnimEnd
+	add	sp, #0x34
+	pop	{r3, r5, r6, r7}
+	mov	r8, r3
+	mov	r9, r5
+	mov	r10, r6
+	mov	r11, r7
+	pop	{r5, r6, r7}
+	pop	{r0}
+	bx	r0
+.func_end Anim_Ragnarok
+
+@ Sub_e99c0
+@ Battle animation routine, 779 instructions.
+@ State: iwram_1eec, ewram_10000.
+@ Calls out to: _Func_b8228, _Func_bd7dc, _Func_f9080.
+@ Touches: REG_BLDALPHA.
+@ Plays sound effects via _Func_f9080.
+@ Body NOT traced instruction by instruction -- the facts above are extracted
+@ from the code; the behavioural detail is not yet documented.
+.thumb_func_start Anim_TitanBlade  @ 0x080e99c0
+	push	{r5, r6, r7, lr}
+	mov	r7, r11
+	mov	r6, r10
+	mov	r5, r9
+	push	{r5, r6, r7}
+	mov	r7, r8
+	push	{r7}
+	ldr	r6, =iwram_3001eec
+	mov	r3, r6
+	ldmia	r3!, {r1}
+	sub	sp, #0x34
+	str	r1, [sp, #0x24]
+	ldr	r3, [r3]
+	str	r3, [sp, #0x20]
+	ldr	r3, =0x7828
+	ldr	r2, [r6, #8]
+	add	r5, r1, r3
+	str	r2, [sp, #0x14]
+	str	r0, [r5]
+	mov	r0, #1
+	bl	AnimStart
+	ldr	r2, =REG_BLDALPHA
+	ldr	r3, .Le9a2c	@ 0x1010
+	strh	r3, [r2]
+	ldr	r3, [r5]
+	add	r5, sp, #0x28
+	mov	r4, #0x24
+	ldrsh	r0, [r3, r4]
+	mov	r1, r5
+	bl	GetBattleActorPos3
+	ldr	r3, [r5]
+	lsr	r2, r3, #31
+	add	r3, r2
+	asr	r3, #1
+	str	r3, [sp, #0x10]
+	mov	r5, #2
+	mov	r1, #7
+	mov	r2, #7
+	mov	r3, #3
+	mov	r0, #0x2e
+	str	r5, [sp]
+	bl	BuildDraw2DFuncEx
+	ldr	r0, [r6, #0x1c]
+	mov	r3, #1
+	str	r0, [sp, #0x18]
+	str	r3, [sp]
+	mov	r1, #7
+	mov	r2, #7
+	mov	r3, #3
+	mov	r0, #0x2f
+	b	.Le9a3c
+
+	.align	2, 0
+.Le9a2c:
+	.word	0x1010
+	.pool
+
+.Le9a3c:
+	bl	BuildDraw2DFuncEx
+	ldr	r3, =0x4e20
+	ldr	r2, [sp, #0x24]
+	ldr	r6, [r6, #0x20]
+	add	r1, r2, r3
+	ldr	r0, =_FILE_56
+	mov	r2, #1
+	mov	r3, #1
+	str	r6, [sp, #0x1c]
+	bl	LoadVFXFile
+	ldr	r0, =_FILE_85
+	ldr	r1, [sp, #0x24]
+	mov	r2, #1
+	mov	r3, #0
+	bl	LoadVFXFile
+	mov	r6, #0xdd
+	ldr	r4, [sp, #0x24]
+	lsl	r6, #4
+	add	r1, r4, r6
+	ldr	r0, =_FILE_7d
+	mov	r2, #1
+	mov	r3, #0
+	bl	LoadVFXFile
+	ldr	r0, =_FILE_73
+	ldr	r1, [sp, #0x14]
+	mov	r2, #0
+	mov	r3, #0
+	bl	LoadVFXFile
+	mov	r1, #0xef
+	ldr	r0, [sp, #0x24]
+	lsl	r1, #7
+	add	r3, r0, r1
+	str	r5, [r3]
+	ldr	r3, =0x7784
+	mov	r1, #0x90
+	add	r2, r0, r3
+	mov	r3, #0x4b
+	str	r3, [r2]
+	ldr	r0, =Task_BlitAnim
+	lsl	r1, #3
+	bl	StartTask
+	mov	r6, #0xe1
+	ldr	r5, [sp, #0x24]
+	mov	r4, #0
+	lsl	r6, #7
+	mov	r8, r4
+	add	r7, r5, r6
+.Le9aa6:
+	mov	r0, r8
+	lsl	r6, r0, #1
+	bl	Random
+	ldr	r3, =0xffff
+	mov	r5, r0
+	and	r5, r3
+	mov	r0, r5
+	bl	sin
+	mov	r3, r6
+	mul	r3, r0
+	mov	r0, r5
+	str	r3, [r7]
+	bl	cos
+	mov	r3, r6
+	mul	r3, r0
+	mov	r1, r8
+	neg	r3, r3
+	str	r3, [r7, #4]
+	lsr	r3, r1, #31
+	add	r3, r8
+	asr	r3, #1
+	mov	r2, #1
+	add	r3, #0x19
+	add	r8, r2
+	str	r3, [r7, #0x18]
+	mov	r3, r8
+	add	r7, #0x1c
+	cmp	r3, #0x20
+	bne	.Le9aa6
+	mov	r4, #0
+	mov	r1, #1
+	mov	r2, #0xab
+	ldr	r3, =ewram_2010018
+	mov	r8, r4
+	neg	r1, r1
+	lsl	r2, #2
+.Le9af4:
+	mov	r5, #1
+	add	r8, r5
+	str	r1, [r3]
+	add	r3, #0x1c
+	cmp	r8, r2
+	bne	.Le9af4
+	ldr	r0, [sp, #0x10]
+	lsl	r0, #16
+	mov	r6, #0
+	str	r0, [sp, #8]
+	ldr	r7, =ewram_2014ad0
+	mov	r8, r6
+.Le9b0c:
+	bl	Random
+	ldr	r6, =0x1ff
+	and	r6, r0
+	bl	Random
+	ldr	r3, =0xffff
+	mov	r5, r0
+	ldr	r1, [sp, #8]
+	and	r5, r3
+	mov	r3, #0xb0
+	lsl	r3, #15
+	str	r1, [r7]
+	str	r3, [r7, #4]
+	mov	r0, r5
+	bl	sin
+	add	r6, #0x20
+	mov	r3, r6
+	mul	r3, r0
+	asr	r3, #5
+	str	r3, [r7, #0xc]
+	mov	r0, r5
+	bl	cos
+	mov	r3, r6
+	mul	r3, r0
+	neg	r3, r3
+	asr	r3, #6
+	str	r3, [r7, #0x10]
+	bl	Random
+	mov	r3, #7
+	and	r3, r0
+	add	r3, #0x20
+	str	r3, [r7, #0x18]
+	mov	r2, #1
+	mov	r3, #0xaa
+	add	r8, r2
+	lsl	r3, #1
+	add	r7, #0x1c
+	cmp	r8, r3
+	bne	.Le9b0c
+	mov	r4, #0
+	mov	r11, r4
+.Le9b66:
+	mov	r3, r11
+	sub	r3, #0x19
+	cmp	r3, #0x16
+	bhi	.Le9b74
+	ldr	r0, =_FILE_c0
+	bl	Func_80e46f0
+.Le9b74:
+	mov	r5, r11
+	cmp	r5, #0x38
+	ble	.Le9b80
+	ldr	r0, =_FILE_c4
+	bl	Func_80e46f0
+.Le9b80:
+	mov	r6, r11
+	cmp	r6, #8
+	bne	.Le9b8e
+	ldr	r0, [sp, #0x24]
+	ldr	r1, =0x77a8
+	add	r3, r0, r1
+	str	r6, [r3]
+.Le9b8e:
+	mov	r2, r11
+	cmp	r2, #0x30
+	bne	.Le9b9e
+	ldr	r3, [sp, #0x24]
+	ldr	r4, =0x77a8
+	add	r2, r3, r4
+	mov	r3, #8
+	str	r3, [r2]
+.Le9b9e:
+	mov	r5, r11
+	cmp	r5, #0x3c
+	bne	.Le9bae
+	ldr	r6, [sp, #0x24]
+	ldr	r0, =0x77a8
+	mov	r3, #0x10
+	add	r2, r6, r0
+	str	r3, [r2]
+.Le9bae:
+	mov	r1, r11
+	cmp	r1, #4
+	bne	.Le9bba
+	mov	r0, #0xd4
+	bl	_PlaySound
+.Le9bba:
+	mov	r2, r11
+	cmp	r2, #0x20
+	bne	.Le9bc6
+	mov	r0, #0xa4
+	bl	_PlaySound
+.Le9bc6:
+	mov	r3, r11
+	cmp	r3, #0x3c
+	bne	.Le9bd8
+	mov	r0, #0x91
+	bl	_PlaySound
+	mov	r0, #0x86
+	bl	_Func_80bd7dc
+.Le9bd8:
+	mov	r4, r11
+	cmp	r4, #0x37
+	ble	.Le9c86
+	ldr	r6, =.Leef12
+	ldr	r0, [sp, #0x24]
+	mov	r1, #0xe1
+	mov	r5, #0
+	lsl	r1, #7
+	mov	r8, r5
+	mov	r10, r6
+	add	r5, r0, r1
+.Le9bee:
+	ldr	r0, [sp, #0x10]
+	mov	r4, #2
+	ldrsh	r3, [r5, r4]
+	add	r6, r3, r0
+	ldr	r0, [r5, #0x18]
+	mov	r2, #6
+	ldrsh	r7, [r5, r2]
+	cmp	r0, #0x11
+	bhi	.Le9c30
+	mov	r1, #3
+	bl	__divsi3
+	mov	r2, r10
+	ldrb	r1, [r2, r0]
+	ldr	r3, [sp, #0x24]
+	mov	r0, #0x20
+	lsl	r1, #11
+	mov	r4, #0xdd
+	add	r1, r3, r1
+	lsl	r4, #4
+	mov	r2, r6
+	str	r0, [sp]
+	mov	r3, r7
+	mov	r0, #0x40
+	str	r0, [sp, #4]
+	add	r1, r4
+	sub	r2, #0x10
+	add	r3, #0x30
+	ldr	r0, [sp, #0x20]
+	ldr	r6, [sp, #0x18]
+	bl	_call_via_r6
+	ldr	r0, [r5, #0x18]
+.Le9c30:
+	cmp	r0, #0
+	ble	.Le9c74
+	sub	r3, r0, #1
+	b	.Le9c78
+
+	.pool_aligned
+
+.Le9c74:
+	mov	r3, #1
+	neg	r3, r3
+.Le9c78:
+	str	r3, [r5, #0x18]
+	mov	r0, #1
+	add	r8, r0
+	mov	r1, r8
+	add	r5, #0x1c
+	cmp	r1, #0x10
+	bne	.Le9bee
+.Le9c86:
+	mov	r2, r11
+	cmp	r2, #0x1c
+	bne	.Le9d0a
+	mov	r3, #0
+	mov	r4, #0x3f
+	ldr	r7, =gBuffer
+	mov	r8, r3
+	mov	r10, r4
+.Le9c96:
+	mov	r5, #1
+	ldr	r3, [r7, #0x18]
+	neg	r5, r5
+	cmp	r3, r5
+	bne	.Le9cfc
+	bl	Random
+	mov	r6, r0
+	mov	r0, r10
+	and	r6, r0
+	bl	Random
+	ldr	r3, =0xffff
+	mov	r5, r0
+	and	r5, r3
+	mov	r0, r5
+	bl	sin
+	mov	r3, r6
+	mul	r3, r0
+	ldr	r1, [sp, #8]
+	asr	r3, #3
+	add	r3, r1
+	str	r3, [r7]
+	mov	r0, r5
+	bl	cos
+	mov	r3, r6
+	mul	r3, r0
+	mov	r2, #0xc0
+	lsl	r2, #15
+	asr	r3, #2
+	add	r3, r2
+	str	r3, [r7, #4]
+	bl	Random
+	mov	r3, r10
+	and	r0, r3
+	sub	r0, #0x20
+	lsl	r0, #14
+	str	r0, [r7, #0xc]
+	bl	Random
+	mov	r4, r10
+	and	r0, r4
+	neg	r0, r0
+	sub	r0, #8
+	lsl	r0, #13
+	mov	r3, #0
+	str	r0, [r7, #0x10]
+	str	r3, [r7, #0x18]
+.Le9cfc:
+	mov	r5, #1
+	mov	r6, #0x80
+	add	r8, r5
+	lsl	r6, #1
+	add	r7, #0x1c
+	cmp	r8, r6
+	bne	.Le9c96
+.Le9d0a:
+	mov	r0, r11
+	sub	r0, #0x20
+	str	r0, [sp, #0xc]
+	cmp	r0, #0x1f
+	bhi	.Le9dec
+	mov	r1, #0
+	mov	r2, #0x3f
+	ldr	r7, =gBuffer
+	mov	r9, r1
+	mov	r8, r1
+	mov	r10, r2
+.Le9d20:
+	mov	r4, #1
+	ldr	r3, [r7, #0x18]
+	neg	r4, r4
+	cmp	r3, r4
+	bne	.Le9d90
+	bl	Random
+	mov	r6, r0
+	bl	Random
+	mov	r5, r10
+	ldr	r3, =0xffff
+	and	r6, r5
+	mov	r5, r0
+	and	r5, r3
+	mov	r0, r5
+	bl	sin
+	mov	r3, r6
+	mul	r3, r0
+	ldr	r0, [sp, #8]
+	asr	r3, #3
+	add	r3, r0
+	str	r3, [r7]
+	mov	r0, r5
+	bl	cos
+	mov	r3, r6
+	mul	r3, r0
+	mov	r1, #0xc0
+	lsl	r1, #15
+	asr	r3, #2
+	add	r3, r1
+	str	r3, [r7, #4]
+	bl	Random
+	mov	r2, r10
+	and	r0, r2
+	sub	r0, #0x20
+	lsl	r0, #14
+	str	r0, [r7, #0xc]
+	bl	Random
+	mov	r3, r10
+	and	r0, r3
+	neg	r0, r0
+	mov	r4, #1
+	sub	r0, #8
+	add	r9, r4
+	lsl	r0, #13
+	mov	r3, #0
+	mov	r5, r9
+	str	r0, [r7, #0x10]
+	str	r3, [r7, #0x18]
+	cmp	r5, #0x10
+	beq	.Le9d9e
+.Le9d90:
+	mov	r6, #1
+	mov	r0, #0xab
+	add	r8, r6
+	lsl	r0, #2
+	add	r7, #0x1c
+	cmp	r8, r0
+	bne	.Le9d20
+.Le9d9e:
+	ldr	r1, [sp, #0xc]
+	cmp	r1, #0x1f
+	bhi	.Le9dec
+	mov	r2, r11
+	ldr	r3, [sp, #0x10]
+	ldr	r1, =0xffffff00
+	lsl	r0, r2, #4
+	mov	r4, #0x22
+	sub	r3, #0x11
+	add	r0, r1
+	mov	r1, #0x68
+	mov	r10, r3
+	mov	r8, r4
+	ldr	r5, [sp, #0x18]
+	bl	__modsi3
+	mov	r9, r5
+	mov	r2, r8
+	mov	r5, r0
+	mov	r6, #0x68
+	mov	r3, #4
+	sub	r3, r5
+	str	r2, [sp]
+	ldr	r1, [sp, #0x24]
+	mov	r2, r10
+	str	r6, [sp, #4]
+	ldr	r0, [sp, #0x20]
+	bl	_call_via_r9
+	mov	r3, #0x6c
+	mov	r4, r8
+	sub	r3, r5
+	str	r4, [sp]
+	str	r5, [sp, #4]
+	ldr	r0, [sp, #0x20]
+	ldr	r1, [sp, #0x24]
+	mov	r2, r10
+	bl	_call_via_r9
+.Le9dec:
+	mov	r5, r11
+	cmp	r5, #0x47
+	bgt	.Le9ee8
+	mov	r6, #0
+	ldr	r5, =gBuffer
+	mov	r8, r6
+.Le9df8:
+	ldr	r3, [r5, #0x18]
+	cmp	r3, #0
+	blt	.Le9eda
+	mov	r0, r8
+	mov	r1, #3
+	bl	__modsi3
+	ldr	r3, [r5, #0x10]
+	add	r4, r0, #2
+	cmp	r3, #0
+	ble	.Le9e10
+	add	r4, #2
+.Le9e10:
+	mov	r0, r11
+	cmp	r0, #0x44
+	ble	.Le9e1c
+	cmp	r4, #5
+	bgt	.Le9e1c
+	mov	r4, #6
+.Le9e1c:
+	mov	r1, r11
+	cmp	r1, #0x46
+	ble	.Le9e28
+	cmp	r4, #6
+	bgt	.Le9e28
+	mov	r4, #7
+.Le9e28:
+	mov	r2, r11
+	cmp	r2, #0x48
+	ble	.Le9e34
+	cmp	r4, #7
+	bgt	.Le9e34
+	mov	r4, #8
+.Le9e34:
+	mov	r3, r11
+	cmp	r3, #0x4a
+	ble	.Le9e40
+	cmp	r4, #8
+	bgt	.Le9e40
+	mov	r4, #9
+.Le9e40:
+	mov	r6, r11
+	cmp	r6, #0x4c
+	ble	.Le9e48
+	mov	r4, #0xa
+.Le9e48:
+	lsl	r0, r4, #1
+	ldr	r2, =Data_ede48
+	sub	r3, r0, #2
+	ldrh	r1, [r2, r3]
+	ldr	r2, [sp, #0x14]
+	add	r1, r2, r1
+	mov	r3, #2
+	ldrsh	r2, [r5, r3]
+	lsr	r3, r4, #31
+	add	r3, r4, r3
+	asr	r3, #1
+	sub	r2, r3
+	mov	r6, #6
+	ldrsh	r3, [r5, r6]
+	str	r4, [sp]
+	sub	r3, r4
+	str	r0, [sp, #4]
+	ldr	r4, [sp, #0x18]
+	ldr	r0, [sp, #0x20]
+	bl	_call_via_r4
+	ldr	r3, [r5]
+	ldr	r2, [r5, #0xc]
+	add	r3, r2
+	str	r3, [r5]
+	ldr	r1, [r5, #0x10]
+	ldr	r3, [r5, #4]
+	mov	r6, r11
+	add	r3, r1
+	str	r3, [r5, #4]
+	cmp	r6, #0x50
+	ble	.Le9e8e
+	ldr	r0, =0xffff8000
+	add	r3, r1, r0
+	b	.Le9e9c
+.Le9e8e:
+	mov	r2, #3
+	mov	r4, r8
+	ldr	r3, =.Leef18
+	and	r2, r4
+	lsl	r2, #2
+	ldr	r3, [r3, r2]
+	add	r3, r1, r3
+.Le9e9c:
+	str	r3, [r5, #0x10]
+	ldr	r2, [r5, #0xc]
+	lsl	r3, r2, #5
+	sub	r3, r2
+	lsl	r3, #1
+	cmp	r3, #0
+	bge	.Le9eac
+	add	r3, #0x3f
+.Le9eac:
+	ldr	r2, [r5, #0x10]
+	asr	r3, #6
+	str	r3, [r5, #0xc]
+	lsl	r3, r2, #5
+	sub	r3, r2
+	lsl	r2, r3, #1
+	cmp	r2, #0
+	bge	.Le9ebe
+	add	r2, #0x3f
+.Le9ebe:
+	ldr	r3, [r5, #0x18]
+	asr	r2, #6
+	add	r3, #1
+	str	r2, [r5, #0x10]
+	str	r3, [r5, #0x18]
+	cmp	r2, #0
+	ble	.Le9eda
+	mov	r6, #6
+	ldrsh	r3, [r5, r6]
+	cmp	r3, #0x6c
+	ble	.Le9eda
+	mov	r3, #1
+	neg	r3, r3
+	str	r3, [r5, #0x18]
+.Le9eda:
+	mov	r0, #1
+	mov	r1, #0xab
+	add	r8, r0
+	lsl	r1, #1
+	add	r5, #0x1c
+	cmp	r8, r1
+	bne	.Le9df8
+.Le9ee8:
+	mov	r2, r11
+	cmp	r2, #0x5f
+	bgt	.Le9f4e
+	ldr	r2, [sp, #0x10]
+	mov	r3, r11
+	sub	r2, #0x12
+	mov	r1, #0x78
+	cmp	r3, #0x3c
+	ble	.Le9f02
+	ldr	r5, =0xfffffe3e
+	lsl	r3, #3
+	add	r4, r3, r5
+	b	.Le9f26
+.Le9f02:
+	mov	r6, r11
+	cmp	r6, #0x20
+	ble	.Le9f16
+	ldr	r0, [sp, #0xc]
+	lsr	r3, r0, #31
+	add	r3, r0, r3
+	asr	r3, #1
+	mov	r4, r3
+	add	r4, #0x10
+	b	.Le9f26
+.Le9f16:
+	mov	r3, r11
+	cmp	r3, #9
+	bgt	.Le9f24
+	lsl	r3, #4
+	mov	r4, r3
+	sub	r4, #0x80
+	b	.Le9f26
+.Le9f24:
+	mov	r4, #0x10
+.Le9f26:
+	mov	r3, r4
+	add	r3, #0x78
+	cmp	r3, #0x6c
+	ble	.Le9f34
+	sub	r3, r1, r4
+	mov	r1, r3
+	sub	r1, #0xc
+.Le9f34:
+	cmp	r1, #0
+	ble	.Le9f4e
+	ldr	r5, [sp, #0x24]
+	ldr	r6, =0x4e20
+	mov	r3, #0x24
+	str	r3, [sp]
+	str	r1, [sp, #4]
+	mov	r3, r4
+	ldr	r0, [sp, #0x20]
+	add	r1, r5, r6
+	ldr	r4, [sp, #0x1c]
+	bl	_call_via_r4
+.Le9f4e:
+	mov	r5, r11
+	cmp	r5, #0x3b
+	ble	.Le9ffc
+	mov	r6, #0
+	ldr	r7, =ewram_2014ad0
+	mov	r8, r6
+.Le9f5a:
+	ldr	r3, [r7, #0x18]
+	cmp	r3, #0
+	ble	.Le9fee
+	mov	r2, #0x80
+	mov	r0, r7
+	mov	r1, #0x40
+	lsl	r2, #6
+	bl	Func_80e3908
+	ldr	r3, [r7, #0x18]
+	mov	r1, #0xd8
+	ldr	r6, [r7, #4]
+	sub	r0, r3, #1
+	lsl	r1, #15
+	str	r0, [r7, #0x18]
+	cmp	r6, r1
+	ble	.Le9fb0
+	ldr	r3, [r7, #0x10]
+	neg	r3, r3
+	lsr	r2, r3, #31
+	add	r3, r2
+	asr	r3, #1
+	str	r3, [r7, #0x10]
+	b	.Le9fee
+
+	.pool_aligned
+
+.Le9fb0:
+	ldr	r5, [r7]
+	ldr	r2, =0x7effff
+	cmp	r5, r2
+	bhi	.Le9fee
+	cmp	r6, #0
+	blt	.Le9fee
+	mov	r1, #5
+	bl	__divsi3
+	add	r0, #1
+	lsl	r4, r0, #1
+	ldr	r2, =Data_ede48
+	sub	r3, r4, #2
+	ldrh	r1, [r2, r3]
+	ldr	r3, [sp, #0x14]
+	add	r1, r3, r1
+	lsr	r3, r0, #31
+	add	r3, r0, r3
+	asr	r3, #1
+	asr	r5, #16
+	asr	r6, #16
+	sub	r5, r3
+	sub	r6, r0
+	str	r0, [sp]
+	str	r4, [sp, #4]
+	ldr	r0, [sp, #0x20]
+	mov	r2, r5
+	mov	r3, r6
+	ldr	r4, [sp, #0x18]
+	bl	_call_via_r4
+.Le9fee:
+	mov	r5, #1
+	mov	r6, #0xaa
+	add	r8, r5
+	lsl	r6, #1
+	add	r7, #0x1c
+	cmp	r8, r6
+	bne	.Le9f5a
+.Le9ffc:
+	mov	r0, r11
+	cmp	r0, #0x44
+	bne	.Lea042
+	ldr	r3, =0x7828
+	ldr	r2, [sp, #0x24]
+	ldr	r3, [r2, r3]
+	ldr	r3, [r3, #0x14]
+	mov	r1, #0
+	mov	r8, r1
+	cmp	r3, #0
+	beq	.Lea042
+	ldr	r3, =0x7828
+	mov	r6, #0x24
+	add	r5, r2, r3
+.Lea018:
+	ldr	r3, [r5]
+	ldrsh	r0, [r3, r6]
+	mov	r3, #0x10
+	str	r3, [sp]
+	mov	r1, #7
+	mov	r2, #5
+	mov	r3, r8
+	bl	Func_80d6888
+	ldr	r3, [r5]
+	ldrsh	r0, [r3, r6]
+	mov	r1, #7
+	bl	_SetBattleActorKnockback
+	ldr	r3, [r5]
+	mov	r2, #1
+	ldr	r3, [r3, #0x14]
+	add	r8, r2
+	add	r6, #2
+	cmp	r8, r3
+	bne	.Lea018
+.Lea042:
+	mov	r3, r11
+	cmp	r3, #9
+	bne	.Lea056
+	mov	r1, #0x80
+	ldr	r3, =Func_80008d8
+	ldr	r0, [sp, #0x20]
+	lsl	r1, #7
+	ldr	r2, =0x3f3f3f3f
+	bl	_call_via_r3
+.Lea056:
+	mov	r4, r11
+	cmp	r4, #0x3c
+	bne	.Lea06a
+	mov	r1, #0x80
+	ldr	r3, =Func_80008d8
+	ldr	r0, [sp, #0x20]
+	lsl	r1, #7
+	ldr	r2, =0x3f3f3f3f
+	bl	_call_via_r3
+.Lea06a:
+	mov	r1, #0x10
+	mov	r0, #0x10
+	bl	UpdateScreenShake
+	bl	Func_80cd52c
+	ldr	r6, =0x7824
+	ldr	r5, [sp, #0x24]
+	mov	r3, #1
+	add	r2, r5, r6
+	mov	r0, #1
+	str	r3, [r2]
+	bl	WaitFrames
+	mov	r0, #1
+	add	r11, r0
+	mov	r1, r11
+	cmp	r1, #0x66
+	beq	.Lea092
+	b	.Le9b66
+.Lea092:
+	ldr	r0, =Task_BlitAnim
+	bl	StopTask
+	mov	r0, #0x2f
+	bl	gfree
+	mov	r0, #0x2e
+	bl	gfree
+	bl	AnimEnd
+	add	sp, #0x34
+	pop	{r3, r5, r6, r7}
+	mov	r8, r3
+	mov	r9, r5
+	mov	r10, r6
+	mov	r11, r7
+	pop	{r5, r6, r7}
+	pop	{r0}
+	bx	r0
+.func_end Anim_TitanBlade
+
+	.section .rodata
+
+.Leee76:
+	.incrom 0xeee76, 0xeeea0
+.Leeea0:
+	.incrom 0xeeea0, 0xeeebc
+.Leeebc:
+	.incrom 0xeeebc, 0xeeeca
+.Leeeca:
+	.incrom 0xeeeca, 0xeeed8
+.Leeed8:
+	.incrom 0xeeed8, 0xeeee1
+.Leeee1:
+	.incrom 0xeeee1, 0xeeeea
+.Leeeea:
+	.incrom 0xeeeea, 0xeeef8
+.Leeef8:
+	.incrom 0xeeef8, 0xeef06
+.Leef06:
+	.incrom 0xeef06, 0xeef0c
+.Leef0c:
+	.incrom 0xeef0c, 0xeef12
+.Leef12:
+	.incrom 0xeef12, 0xeef18
+.Leef18:
+	.incrom 0xeef18, 0xeef28

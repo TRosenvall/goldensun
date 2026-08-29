@@ -1,5 +1,22 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Message boxes.
+@
+@ The id of the line to show lives at iwram_1ebc+0x1D8 and is bumped by one
+@ after each box closes, so a run of consecutive lines needs no bookkeeping in
+@ the caller. Func_92c40 opens a box positioned against a speaker; Func_93168
+@ opens one at explicit screen coordinates. Both clamp into the visible area and
+@ flip the box above the speaker when it would fall off the bottom.
+@ Every wait honours the fast-forward flag at +0x1CC (see Func_9163c).
+@ ============================================================================
+
+@ SetSlotPalette
+@ r0=slot, r1=palette index, with bit 8 selecting the mode.
+@ Bit 8 set installs Func_92980 as the entity's per-frame hook (+0x6C), so the
+@ palette cycles on its own. Bit 8 clear removes the hook and applies r1 once
+@ through Func_929d8. Used to make an NPC flash while a script runs and then
+@ settle back to a fixed colour.
 .thumb_func_start Func_92950
 	push	{r5, lr}
 	mov	r5, r1
@@ -24,6 +41,13 @@
 	bx	r0
 .func_end Func_92950
 
+@ PaletteBlinkHook
+@ r0=entity. Per-frame hook installed by Func_92950. Picks a palette byte from
+@ the 4-entry table .L9ed80 indexed by (iwram_1e40 >> 1) & 3 -- the global frame
+@ counter, so the cycle runs at half speed over four steps -- and writes it to
+@ the palette field (+0x05) of every part of the actor that has an animation
+@ table. Sets the actor's dirty flag at +0x25 so the change is picked up.
+@ Ignores entities that are not draw kind 1.
 .thumb_func_start Func_92980
 	push	{lr}
 	mov	r3, r0
@@ -36,7 +60,7 @@
 	ldr	r3, =iwram_1e40
 	ldr	r3, [r3]
 	ldr	r0, [r0, #0x50]
-	ldr	r1, =.L9ed80
+	ldr	r1, =L9ed80
 	lsr	r3, #1
 	mov	r2, #3
 	and	r3, r2
@@ -71,6 +95,11 @@
 	bx	r0
 .func_end Func_92980
 
+@ SetActorPartsPalette
+@ r0=entity, r1=palette index. Writes r1 to the palette field (+0x05) of every
+@ part of the actor that has an animation table, then sets the dirty flag at
+@ +0x25. The static counterpart to Func_92980, and what Func_92950 calls when
+@ no cycling was requested. Ignores entities that are not draw kind 1.
 .thumb_func_start Func_929d8
 	push	{lr}
 	mov	r3, r0
@@ -112,6 +141,15 @@
 	bx	r0
 .func_end Func_929d8
 
+@ SetSlotChaseTarget
+@ r0=slot, r1=packed target -- slot index in the low byte, bit 12 a
+@ "keep current speed" flag -- r2=script.
+@ Stores the target entity in the chaser's script argument slot at +0x68 and
+@ installs the script with _Func_c2d8. Unless bit 12 is set it also matches the
+@ chaser to its quarry: the turn rate at +0x64 becomes 0x28, the acceleration
+@ at +0x34 is twice the target's, the max speed at +0x30 is copied outright, and
+@ the collision flags at +0x59 are cleared so the chaser passes through others.
+@ Both slots must resolve or nothing happens.
 .thumb_func_start Func_92a1c
 	push	{r5, r6, r7, lr}
 	mov	r6, r1
@@ -158,6 +196,13 @@
 	bx	r0
 .func_end Func_92a1c
 
+@ StepFacingTowardTarget
+@ r0=entity. Moves the facing angle at +0x06 one step toward the goal angle
+@ stored at +0x64 and returns the step taken (0 when already there).
+@ NOTE the clamp is asymmetric with its own test: a delta larger than 0x1000 is
+@ replaced by 0x800, and one below -0x1000 by -0x800, so deltas between 0x800
+@ and 0x1000 pass through UNCLAMPED and turn faster than the nominal limit.
+@ That looks unintentional but is what the original does.
 .thumb_func_start Func_92a74
 	push	{lr}
 	mov	r2, r0
@@ -192,6 +237,10 @@
 	bx	r1
 .func_end Func_92a74
 
+@ StopSlotEntity
+@ r0=slot. Cancels any move: all three targets (+0x38/+0x3C/+0x40) go back to
+@ the 0x80000000 "none" sentinel, the default behaviour is reinstalled with
+@ _Func_c4ac, and the idle animation 1 is selected.
 .thumb_func_start Func_92ab4
 	push	{r5, lr}
 	bl	Func_8ba1c
@@ -213,6 +262,11 @@
 	bx	r0
 .func_end Func_92ab4
 
+@ TurnSlotToAngle
+@ r0=slot, r1=goal facing angle, r2=frames to wait afterwards. Stores the goal
+@ at +0x64, installs the turn script Data_9fc1c so the entity rotates toward it
+@ over subsequent frames, then blocks for r2 frames through Func_9163c (so a
+@ fast-forwarding player skips the pause).
 .thumb_func_start Func_92adc
 	push	{r5, r6, lr}
 	mov	r5, r1
@@ -233,6 +287,12 @@
 	bx	r0
 .func_end Func_92adc
 
+@ SetSlotDrawPriority
+@ r0=slot, r1=priority 0-3. Writes bits 2-3 of BOTH actor byte +0x09 and byte
+@ +0x15 -- the OAM priority of the main sprite and of its companion/shadow --
+@ so the pair stays on the same layer. Also clears bit 0 of the entity's +0x23,
+@ dropping the position-correction that would otherwise offset the sprite.
+@ Draw kind 1 only.
 .thumb_func_start Func_92b08
 	push	{r5, r6, lr}
 	mov	r5, r1
@@ -274,6 +334,11 @@
 	bx	r0
 .func_end Func_92b08
 
+@ ShareActorTiles
+@ r0=destination slot, r1=source slot. Copies the source actor's tile
+@ allocation size code (+0x1C) and the low 10 bits of its OAM attr2 (+0x08) --
+@ the tile index -- onto the destination actor, so both draw from the same VRAM
+@ tiles. Lets a second entity mirror a sprite without a second allocation.
 .thumb_func_start Func_92b54
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -302,10 +367,15 @@
 	bx	r0
 .func_end Func_92b54
 
+@ Nop -- empty hook.
 .thumb_func_start Func_92b90
 	bx	lr
 .func_end Func_92b90
 
+@ SetActiveMessageId
+@ r0=message id. Stores it as a halfword at iwram_1ebc+0x1D8, the id the
+@ dialogue system opens next. The interaction handlers in rom_8d5dc.s feed this
+@ from a trigger's payload.
 .thumb_func_start Func_92b94
 	ldr	r3, =iwram_1ebc
 	mov	r2, #0xec
@@ -316,6 +386,10 @@
 	bx	lr
 .func_end Func_92b94
 
+@ GetSlotSpriteId
+@ r0=slot (masked to 12 bits). Returns the sprite resource id of that slot's
+@ actor -- read from the first part at actor+0x28 -- or -1 when the slot is
+@ empty or not draw kind 1. The inverse of Func_92be0.
 .thumb_func_start Func_92ba8
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -344,6 +418,11 @@
 	bx	r1
 .func_end Func_92ba8
 
+@ FindSlotBySpriteId
+@ r0=sprite resource id. Returns the slot holding an actor whose first part has
+@ that id, or -1 if none does.
+@ Checks slot 8 first as a special case, then scans 9..0x41. Since only the
+@ streamed scenery range is searched, party slots 0-7 are never returned.
 .thumb_func_start Func_92be0
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc
@@ -395,6 +474,16 @@
 	bx	r1
 .func_end Func_92be0
 
+@ OpenMessageBoxForSlot
+@ r0=packed speaker: slot in the low 12 bits, style flags in bits 12-15.
+@ Opens a message box for the line at iwram_1ebc+0x1D8, positioned against that
+@ slot's on-screen sprite, and returns the box handle.
+@ Reads the window metrics from iwram_1e8c and resolves the speaker's sprite id
+@ with Func_92ba8 so the box can carry the right portrait. The box is placed
+@ below the speaker when there is room and flipped above it otherwise, then
+@ clamped into the visible area.
+@ The ~420-instruction body is characterised structurally; the state block, the
+@ message-id source and the flag layout are verified.
 .thumb_func_start Func_92c40
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -822,6 +911,14 @@
 	bx	r1
 .func_end Func_92c40
 
+@ ShowMessageAndWait
+@ r0=speaker slot, r1=style flags. Opens the box with Func_92c40, lets a frame
+@ pass, then resolves the speaker for the portrait: slots 0-7 whose Func_8d394
+@ lookup succeeds report themselves, anything else falls back to the sprite id
+@ from Func_92ba8. That id goes to _Func_19e48.
+@ Blocks until _Func_17394 reports the box closed, polling once per frame with a
+@ 0x258 (600) frame cap, and closes any leftover prompt with _Func_19a54.
+@ Returns immediately after opening if the fast-forward flag at +0x1CC is set.
 .thumb_func_start Func_92f84
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -908,6 +1005,9 @@
 	bx	r0
 .func_end Func_92f84
 
+@ ShowMessageAndPause
+@ r0=speaker slot, r1=style flags, r2=frames. Func_92f84 followed by
+@ Func_9163c(r2), so the caller gets a skippable pause after the box closes.
 .thumb_func_start Func_93040
 	push	{r5, lr}
 	mov	r5, r2
@@ -919,6 +1019,13 @@
 	bx	r0
 .func_end Func_93040
 
+@ ShowMessageWithPrompt
+@ r0=speaker slot, r1=style flags. Returns the player's choice.
+@ Opens the box with Func_92c40, puts the yes/no prompt up through
+@ Func_91c7c against the player entity, then shows the follow-up line with
+@ Func_92f84. The message id at +0x1D8 is advanced by one either way, but the
+@ order differs: a non-zero choice advances before the follow-up, a zero choice
+@ after -- so the two branches select different lines.
 .thumb_func_start Func_93054
 	push	{r5, r6, r7, lr}
 	mov	r6, r1
@@ -965,10 +1072,18 @@
 	bx	r1
 .func_end Func_93054
 
+@ Nop -- empty hook.
 .thumb_func_start Func_930b8
 	bx	lr
 .func_end Func_930b8
 
+@ ShowMessageAtPositionForSlot
+@ r0=packed slot (low 12 bits). Records the slot as the active speaker at
+@ iwram_1ebc+0x1F4, then opens a box at an explicit position -- unless the
+@ fast-forward flag at +0x1CC is set, in which case the whole box is skipped.
+@ Coordinates are clamped the same way everywhere in this file: x into
+@ [0x14, 0xDC], y into [8, 0x138], and a y past 0x77 moves the box 0x20 down
+@ rather than up so it clears the speaker.
 .thumb_func_start Func_930bc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1052,211 +1167,3 @@
 	pop	{r0}
 	bx	r0
 .func_end Func_930bc
-
-.thumb_func_start Func_9315c
-	push	{lr}
-	bl	Func_93168
-	pop	{r0}
-	bx	r0
-.func_end Func_9315c
-
-.thumb_func_start Func_93168
-	push	{r5, r6, lr}
-	mov	r0, r2
-	ldr	r2, =iwram_1ebc
-	ldr	r6, [r2]
-	mov	r2, r3
-	mov	r1, r0
-	cmp	r2, #0x77
-	ble	.L9317c
-	add	r2, #0x20
-	b	.L9317e
-.L9317c:
-	sub	r2, #0x20
-.L9317e:
-	cmp	r0, #8
-	bge	.L93184
-	mov	r1, #8
-.L93184:
-	mov	r3, #0x9c
-	lsl	r3, #1
-	cmp	r1, r3
-	ble	.L9318e
-	mov	r1, r3
-.L9318e:
-	cmp	r2, #0x14
-	bge	.L93194
-	mov	r2, #0x14
-.L93194:
-	cmp	r2, #0xdc
-	ble	.L9319a
-	mov	r2, #0xdc
-.L9319a:
-	mov	r0, #0xec
-	lsl	r0, #1
-	add	r3, r6, r0
-	mov	r4, #0
-	ldrsh	r0, [r3, r4]
-	mov	r3, #1
-	bl	_Func_17658
-	mov	r5, r0
-	b	.L931b4
-.L931ae:
-	mov	r0, #1
-	bl	Func_30f8
-.L931b4:
-	mov	r0, r5
-	bl	_Func_17394
-	cmp	r0, #0
-	beq	.L931ae
-	mov	r0, #0xec
-	lsl	r0, #1
-	add	r2, r6, r0
-	ldrh	r3, [r2]
-	add	r3, #1
-	strh	r3, [r2]
-	pop	{r5, r6}
-	pop	{r0}
-	bx	r0
-.func_end Func_93168
-
-.thumb_func_start Func_931d4
-	push	{lr}
-	bl	Func_92ba8
-	mov	r3, #1
-	neg	r3, r3
-	cmp	r0, r3
-	beq	.L931e6
-	bl	_Func_19e48
-.L931e6:
-	pop	{r0}
-	bx	r0
-.func_end Func_931d4
-
-.thumb_func_start Func_931ec
-	push	{r5, r6, r7, lr}
-	mov	r7, r11
-	mov	r6, r10
-	mov	r5, r9
-	push	{r5, r6, r7}
-	mov	r7, r8
-	push	{r7}
-	mov	r9, r3
-	ldr	r3, =iwram_1ebc
-	ldr	r6, [sp, #0x24]
-	mov	r10, r2
-	mov	r8, r1
-	ldr	r5, [r3]
-	bl	Func_92ba8
-	mov	r11, r0
-	mov	r0, r6
-	bl	Func_92ba8
-	mov	r7, r0
-	mov	r0, r11
-	bl	Func_915ac
-	mov	r2, #0xec
-	lsl	r2, #1
-	add	r5, r2
-	mov	r3, r0
-	ldrh	r0, [r5]
-	add	r2, r0, #1
-	lsl	r0, #16
-	strh	r2, [r5]
-	mov	r1, r8
-	mov	r2, r10
-	lsl	r3, #16
-	asr	r0, #16
-	bl	_Func_17658
-	mov	r2, r9
-	ldr	r3, [sp, #0x20]
-	mov	r1, #0
-	mov	r10, r0
-	mov	r0, r11
-	bl	_Func_19da8
-	mov	r0, r7
-	bl	Func_915ac
-	mov	r3, r0
-	ldrh	r0, [r5]
-	add	r2, r0, #1
-	strh	r2, [r5]
-	lsl	r0, #16
-	ldr	r1, [sp, #0x28]
-	ldr	r2, [sp, #0x2c]
-	lsl	r3, #16
-	asr	r0, #16
-	bl	_Func_17658
-	mov	r1, #0
-	mov	r8, r0
-	ldr	r2, [sp, #0x30]
-	mov	r0, r7
-	ldr	r3, [sp, #0x34]
-	bl	_Func_19da8
-	b	.L93276
-.L93270:
-	mov	r0, #1
-	bl	Func_30f8
-.L93276:
-	bl	_Func_17364
-	cmp	r0, #0
-	beq	.L93270
-	mov	r0, #1
-	bl	Func_30f8
-	ldr	r1, =iwram_1c94
-	ldr	r2, =0x303
-	ldr	r3, [r1]
-	and	r3, r2
-	cmp	r3, #0
-	bne	.L932a2
-	mov	r6, r1
-	mov	r5, r2
-.L93294:
-	mov	r0, #1
-	bl	Func_30f8
-	ldr	r3, [r6]
-	and	r3, r5
-	cmp	r3, #0
-	beq	.L93294
-.L932a2:
-	mov	r0, #1
-	bl	Func_30f8
-	mov	r0, r11
-	bl	_Func_19e48
-	mov	r0, r7
-	bl	_Func_19e48
-	bl	_Func_19a54
-	mov	r0, #1
-	bl	Func_30f8
-	b	.L932c6
-.L932c0:
-	mov	r0, #1
-	bl	Func_30f8
-.L932c6:
-	mov	r0, r10
-	bl	_Func_17394
-	cmp	r0, #0
-	beq	.L932c0
-	b	.L932d8
-.L932d2:
-	mov	r0, #1
-	bl	Func_30f8
-.L932d8:
-	mov	r0, r8
-	bl	_Func_17394
-	cmp	r0, #0
-	beq	.L932d2
-	mov	r0, #1
-	bl	Func_30f8
-	pop	{r3, r5, r6, r7}
-	mov	r8, r3
-	mov	r9, r5
-	mov	r10, r6
-	mov	r11, r7
-	pop	{r5, r6, r7}
-	pop	{r0}
-	bx	r0
-.func_end Func_931ec
-
-	.section .rodata
-
-.L9ed80:
-	.incrom 0x9ed80, 0x9ed84

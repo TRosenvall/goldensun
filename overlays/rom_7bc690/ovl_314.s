@@ -1,5 +1,10 @@
 	.include "macros.inc"
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSceneFlagAndRefresh
 .thumb_func_start OvlFunc_314
 	push	{lr}
 	mov	r0, #0xd
@@ -10,6 +15,10 @@
 	bx	r0
 .func_end OvlFunc_314
 
+@ WaitForField
+@ r0 = entity, r1 = the value to wait for. Yields one frame at a time with Func_30f8(1) until the
+@ watched field settles, giving up after 0x3C (one second) frames so a stuck entity cannot
+@ hang the caller. The same shape recurs across several overlays.
 .thumb_func_start OvlFunc_324
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
@@ -30,6 +39,11 @@
 	bx	r0
 .func_end OvlFunc_324
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, Random, OvlFunc_common0_10c
 .thumb_func_start OvlFunc_344
 	push	{r5, r6, r7, lr}
 	ldr	r5, =iwram_1e40
@@ -78,6 +92,9 @@
 	bx	r1
 .func_end OvlFunc_344
 
+@ Leaf helper, 30 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_3ac
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -116,16 +133,24 @@
 	bx	r1
 .func_end OvlFunc_3ac
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_410
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_410
 
+@ Slot 2: the map event list -- .L236c.
 .thumb_func_start OvlFunc_414
 	ldr	r0, =.L236c
 	bx	lr
 .func_end OvlFunc_414
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit
+@ sets 0x90a.
 .thumb_func_start OvlFunc_41c
 	push	{r5, lr}
 	ldr	r5, =ewram_240
@@ -177,6 +202,13 @@
 	bx	r1
 .func_end OvlFunc_41c
 
+@ 21 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, TestSaveBit x2, SetSaveBit x2, PlaySound
+@   SetPendingMessageId, EndCutscene
+@ reads save bits 0x8b2, 0x8b3; sets 0x8b2, 0x8b3.
 .thumb_func_start OvlFunc_498
 	push	{lr}
 	bl	__Func_916b0
@@ -202,6 +234,7 @@
 	bx	r0
 .func_end OvlFunc_498
 
+@ Slot 4: the map object table -- .L2500.
 .thumb_func_start OvlFunc_4dc
 	ldr	r0, =.L2500
 	bx	lr

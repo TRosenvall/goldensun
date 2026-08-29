@@ -1,26 +1,36 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ Slot 1: the edge-transition table -- .L13c8.
 .thumb_func_start OvlFunc_30
 	ldr	r0, =.L13c8
 	bx	lr
 .func_end OvlFunc_30
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_38
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_38
 
+@ Slot 2: the map event list -- .L13f8.
 .thumb_func_start OvlFunc_3c
 	ldr	r0, =.L13f8
 	bx	lr
 .func_end OvlFunc_3c
 
+@ Slot 3: the read after slot 4 -- .L13fc.
 .thumb_func_start OvlFunc_44
 	ldr	r0, =.L13fc
 	bx	lr
 .func_end OvlFunc_44
 
+@ 19 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunMenuModalSimple, OpenTextBoxAt, Func_30f8, AreMessageBoxesIdle
+@   Func_30f8
 .thumb_func_start OvlFunc_4c
 	push	{r5, lr}
 	mov	r5, r0
@@ -45,6 +55,12 @@
 	bx	r0
 .func_end OvlFunc_4c
 
+@ 75 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   OpenMenuById, RegisterCallback x3, OvlFunc_4c, Func_30f8
+@   RunMenuModalSimple, CloseWindow
 .thumb_func_start OvlFunc_7c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -130,6 +146,7 @@
 	bx	r0
 .func_end OvlFunc_7c
 
+@ Wrapper: OvlFunc_7c(0xc9b).
 .thumb_func_start OvlFunc_130
 	push	{lr}
 	ldr	r0, =0xc9b
@@ -140,6 +157,7 @@
 	bx	r0
 .func_end OvlFunc_130
 
+@ Wrapper: OvlFunc_7c(0xcc6).
 .thumb_func_start OvlFunc_148
 	push	{lr}
 	ldr	r0, =0xcc6
@@ -150,6 +168,7 @@
 	bx	r0
 .func_end OvlFunc_148
 
+@ Wrapper: OvlFunc_7c(0xcf1, 0xc9b).
 .thumb_func_start OvlFunc_160
 	push	{lr}
 	ldr	r3, =0xc9b
@@ -161,6 +180,7 @@
 	bx	r0
 .func_end OvlFunc_160
 
+@ Wrapper: OvlFunc_7c(0xd21).
 .thumb_func_start OvlFunc_180
 	push	{lr}
 	ldr	r0, =0xd21
@@ -171,6 +191,7 @@
 	bx	r0
 .func_end OvlFunc_180
 
+@ Wrapper: OvlFunc_7c(0xd4c, 0xc9b).
 .thumb_func_start OvlFunc_198
 	push	{lr}
 	ldr	r3, =0xc9b
@@ -182,6 +203,7 @@
 	bx	r0
 .func_end OvlFunc_198
 
+@ Wrapper: OvlFunc_7c(0xd77, 0xc9b).
 .thumb_func_start OvlFunc_1b8
 	push	{lr}
 	ldr	r3, =0xc9b
@@ -193,6 +215,7 @@
 	bx	r0
 .func_end OvlFunc_1b8
 
+@ Wrapper: OvlFunc_7c(0xda2, 0xc9b).
 .thumb_func_start OvlFunc_1d8
 	push	{lr}
 	ldr	r3, =0xc9b
@@ -204,6 +227,11 @@
 	bx	r0
 .func_end OvlFunc_1d8
 
+@ 5 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetUpTestInventory
 .thumb_func_start OvlFunc_1f8
 	push	{lr}
 	mov	r0, #1
@@ -212,10 +240,16 @@
 	bx	r0
 .func_end OvlFunc_1f8
 
+@ Empty hook. Present so a table slot has an address to point at.
 .thumb_func_start OvlFunc_204
 	bx	lr
 .func_end OvlFunc_204
 
+@ 8 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunShopMenu
 .thumb_func_start OvlFunc_208
 	push	{lr}
 	sub	sp, #8
@@ -227,6 +261,11 @@
 	bx	r0
 .func_end OvlFunc_208
 
+@ 5 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunEquipScreen
 .thumb_func_start OvlFunc_21c
 	push	{lr}
 	mov	r0, #0
@@ -235,10 +274,14 @@
 	bx	r0
 .func_end OvlFunc_21c
 
+@ Empty hook. Present so a table slot has an address to point at.
 .thumb_func_start OvlFunc_228
 	bx	lr
 .func_end OvlFunc_228
 
+@ Leaf helper, 6 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: iwram_1f30
 .thumb_func_start OvlFunc_22c
 	ldr	r3, =iwram_1f30
 	ldr	r3, [r3]
@@ -248,11 +291,17 @@
 	bx	lr
 .func_end OvlFunc_22c
 
+@ Slot 4: the map object table -- .L1564.
 .thumb_func_start OvlFunc_23c
 	ldr	r0, =.L1564
 	bx	lr
 .func_end OvlFunc_23c
 
+@ 31 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunTextBoxModal, LevelCharacterUpTo x4, BuildCharacterSummary x4
 .thumb_func_start OvlFunc_244
 	push	{r5, lr}
 	ldr	r0, =0xc1a
@@ -287,6 +336,11 @@
 	bx	r0
 .func_end OvlFunc_244
 
+@ 588 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunTextBoxModal, FindUsableItem x191, BuildCharacterSummary x4
 .thumb_func_start OvlFunc_29c
 	push	{lr}
 	ldr	r0, =0xc1e
@@ -882,6 +936,13 @@
 	bx	r0
 .func_end OvlFunc_29c
 
+@ 232 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunTextBoxModal, GetStatusSlot x7, AddStatusEntry x7, GetStatusSlot x7
+@   AddStatusEntry x7, GetStatusSlot x7, AddStatusEntry x7, GetStatusSlot x6
+@   AddStatusEntry x6, BuildCharacterSummary x4
 .thumb_func_start OvlFunc_8c4
 	push	{lr}
 	ldr	r0, =0xc1d
@@ -1117,6 +1178,12 @@
 	bx	r0
 .func_end OvlFunc_8c4
 
+@ 64 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunTextBoxModal, ChangeHp x4, ChangePp x4, GetCombatantRecord x2
+@   BuildCharacterSummary x4
 .thumb_func_start OvlFunc_b10
 	push	{r5, r6, lr}
 	ldr	r0, =0xc1b
@@ -1184,6 +1251,11 @@
 	bx	r0
 .func_end OvlFunc_b10
 
+@ 116 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunTextBoxModal, FindUsableItem x34, BuildCharacterSummary x4
 .thumb_func_start OvlFunc_bb8
 	push	{lr}
 	ldr	r0, =0xc1f
@@ -1303,6 +1375,15 @@
 	bx	r0
 .func_end OvlFunc_bb8
 
+@ 206 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, OpenWindow x2, Func_30f8, SignedRem
+@   ReleaseWindowTiles, ReleaseWindowNodes, DrawTextScratchEntry, DrawNumberWide
+@   CountPartyInventory, DrawTextScratchEntry, GetAbilityRecord, DrawStringToBuffer
+@   DrawStringAt, ReleaseWindowTiles
+@   ... and 8 more
 .thumb_func_start OvlFunc_cf4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1525,6 +1606,7 @@
 	bx	r0
 .func_end OvlFunc_cf4
 
+@ Wrapper: calls OvlFunc_cf4.
 .thumb_func_start OvlFunc_f08
 	push	{lr}
 	bl	OvlFunc_cf4
@@ -1532,6 +1614,11 @@
 	bx	r0
 .func_end OvlFunc_f08
 
+@ 147 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunTextBoxModal, FindUsableItem x44, BuildCharacterSummary x4
 .thumb_func_start OvlFunc_f14
 	push	{lr}
 	ldr	r0, =0xc1c
@@ -1682,6 +1769,12 @@
 	bx	r0
 .func_end OvlFunc_f14
 
+@ 74 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RemovePartyMember, AddPartyMember x3, NotifyItemUsed x14, LevelCharacterUpTo x4
+@   BuildCharacterSummary x4
 .thumb_func_start OvlFunc_10a8
 	push	{lr}
 	mov	r0, #5
@@ -1759,6 +1852,11 @@
 	bx	r1
 .func_end OvlFunc_10a8
 
+@ 4 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunEquipListScreen
 .thumb_func_start OvlFunc_1170
 	push	{lr}
 	bl	__Func_29554
@@ -1766,6 +1864,11 @@
 	bx	r1
 .func_end OvlFunc_1170
 
+@ 4 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunShopByType
 .thumb_func_start OvlFunc_117c
 	push	{lr}
 	bl	__Func_b29a8

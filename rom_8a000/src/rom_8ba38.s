@@ -1,6 +1,24 @@
 	.include "macros.inc"
+
+@ ============================================================================
+@ Interaction targeting.
+@
+@ Func_8d48c is the core lookup: given a kind and an entity id it returns that
+@ entity's interaction record, or 0. Records carry flags at +0x00 and a payload
+@ at +0x08 -- a message id below 0x100000, a function pointer above it. The
+@ handlers in rom_8d5dc.s consume them.
+@ Kinds seen in use: 0 first-time talk, 1 examine fallback, 2 examine, 6 touch,
+@ 7 repeat talk.
+@ The scan routines here decide WHICH entity the player is addressing, using the
+@ player's facing and the party layout at ewram_240+0x1F8.
+@ ============================================================================
 	.include "gba.inc"
 
+@ BuildInteractionCandidates
+@ Takes no arguments. Fills the candidate buffer at ewram_1124 with the entities
+@ the player could currently interact with, walking the scene slots and testing
+@ each against the player's position and facing. The ~90-instruction body is
+@ characterised structurally.
 .thumb_func_start Func_8ba38
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -124,6 +142,10 @@
 	bx	r0
 .func_end Func_8ba38
 
+@ ScoreInteractionCandidates
+@ Takes no arguments. Ranks the candidates Func_8ba38 collected in ewram_1124,
+@ picking the one most directly in front of the player. The ~110-instruction
+@ body is characterised structurally.
 .thumb_func_start Func_8bb2c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -254,6 +276,10 @@
 	bx	r0
 .func_end Func_8bb2c
 
+@ ClearInteractionState
+@ Takes no arguments. Zeroes the four interaction halfwords at iwram_1ebc+0x16C
+@ through +0x172 -- the pending target, kind and message -- resetting the
+@ subsystem between interactions.
 .thumb_func_start Func_8bc44
 	ldr	r3, =iwram_1ebc
 	mov	r0, #0xb6
@@ -298,6 +324,10 @@
 	bx	lr
 .func_end Func_8bc44
 
+@ GetInteractionState
+@ Takes no arguments. Reads back the interaction halfwords at iwram_1ebc+0x16C
+@ onward that Func_8bc44 clears, returning the pending target and kind to the
+@ caller.
 .thumb_func_start Func_8bc9c
 	ldr	r3, =iwram_1ebc
 	mov	r2, #0xb6
@@ -367,6 +397,10 @@
 	bx	lr
 .func_end Func_8bc9c
 
+@ GetPlayerFacingTile
+@ Takes no arguments. Resolves the player entity (ewram_240+0x1F4) through the
+@ slot table and returns the map tile directly in front of it, derived from the
+@ position and the facing angle at +0x06.
 .thumb_func_start Func_8bd24
 	push	{r5, r6, r7, lr}
 	ldr	r2, =ewram_240
@@ -459,6 +493,10 @@
 	bx	r1
 .func_end Func_8bd24
 
+@ TestEntityInteractable
+@ r0=entity, r1=kind. Decides whether that entity can be addressed right now:
+@ checks its interaction record exists, that any guard event flag passes, and
+@ that it is close enough and roughly in front of the player.
 .thumb_func_start Func_8bde0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -568,6 +606,11 @@
 	bx	r0
 .func_end Func_8bde0
 
+@ FindInteractionTarget
+@ r0, r1, r2, r3 = search origin, facing, range and kind. The main "what is the
+@ player pointing at" search: sweeps the scene slots, applies Func_8bde0 to each
+@ and returns the best match. The ~420-instruction body is characterised
+@ structurally; the argument roles are inferred from the call sites.
 .thumb_func_start Func_8bec0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1082,6 +1125,10 @@
 	bx	r0
 .func_end Func_8bec0
 
+@ FindPartyMemberById
+@ r0=party member id. Scans the party id list at ewram_240+0x1F8 (length from
+@ _Func_795fc) and returns the index of the matching member, or a negative
+@ result when that member is not in the party.
 .thumb_func_start Func_8c2dc
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
@@ -1107,6 +1154,10 @@
 	bx	r0
 .func_end Func_8c2dc
 
+@ ResolveSpeakerSlot
+@ r0=slot or negative for "the player", r1=fallback. Returns the slot to treat
+@ as the speaker; a negative r0 resolves through Func_91220(0x1FF, 0) to the
+@ current party leader instead.
 .thumb_func_start Func_8c30c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1178,6 +1229,10 @@
 	bx	r0
 .func_end Func_8c30c
 
+@ FindFirstPartyMemberWith
+@ Takes no arguments. Walks the party list at ewram_240+0x1F8 and returns the
+@ first member satisfying the routine's condition, or a negative result. The
+@ companion scan to Func_8c2dc.
 .thumb_func_start Func_8c3a4
 	push	{r5, r6, r7, lr}
 	mov	r7, #0
@@ -1260,6 +1315,10 @@
 	bx	r1
 .func_end Func_8c3a4
 
+@ IsCameraInSceneMode
+@ Takes no arguments. Reads the scene mode at +0x19E of the camera state block
+@ (Func_48f4(0x1B, 0xCCC)) and reports whether it is the special mode 3 that
+@ changes how interactions are positioned.
 .thumb_func_start Func_8c44c
 	push	{r5, lr}
 	ldr	r1, =0xccc
@@ -1312,6 +1371,9 @@
 	bx	r0
 .func_end Func_8c44c
 
+@ GetCameraSceneMode
+@ Takes no arguments. Returns the scene mode halfword at +0x19E of the camera
+@ state block outright, where Func_8c44c only tests it.
 .thumb_func_start Func_8c4c0
 	push	{r5, lr}
 	ldr	r1, =0xccc
@@ -1339,6 +1401,11 @@
 	bx	r0
 .func_end Func_8c4c0
 
+@ RunInteractionScan
+@ Takes no arguments. The per-frame entry point that decides what the player is
+@ standing on or facing: refreshes the candidate set, resolves the target and
+@ leaves it in the interaction state for the button handlers to act on. The
+@ ~600-instruction body is characterised structurally.
 .thumb_func_start Func_8c4f8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2436,6 +2503,25 @@
 	bx	r1
 .func_end Func_8c4f8
 
+@ GetTerrainUnderPlayer
+@ Takes no arguments. Returns the terrain code the player is standing on, or 0
+@ when it is not one the caller cares about. It fires nothing -- this is a
+@ query.
+@
+@ The player entity comes from ewram_240+0x1F4 through Func_8ba1c and its
+@ position is rotated into map space by Func_447c. The tile lookup takes one of
+@ two forms depending on the mode halfword at [iwram_1ebc]+0x19E: mode 3 uses a
+@ 32-wide grid at ewram_20000 with a 21-bit shift, anything else a 128-wide
+@ grid at [iwram_1e70]+0x130 with a 20-bit shift. The terrain byte is at +2 of
+@ the entry.
+@
+@ Codes 0xF2..0xF7 are accepted only when the player's height, from
+@ _Func_11f54, is within 0x400000 of the entity's own -- so a terrain feature
+@ on a different level does not count. Any other code is accepted when
+@ Func_8d48c(3, code) finds an interaction record for it.
+@
+@ rom_15000's field menu calls this as menu entry 0 and stores the answer,
+@ defaulting to 0xFF, at [iwram_1ebc]+0x17A.
 .thumb_func_start Func_8ce74
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2564,6 +2650,10 @@
 	bx	r1
 .func_end Func_8ce74
 
+@ CheckMapEdgeTransition
+@ Takes no arguments. Compares the player position against the map bounds at
+@ [iwram_1e70] and the edge-transition record at ewram_240+0x1C2, starting a map
+@ change when the player walks off the edge.
 .thumb_func_start Func_8cf78
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2735,6 +2825,10 @@
 	bx	r0
 .func_end Func_8cf78
 
+@ UpdateFollowerPositions
+@ Takes no arguments. Advances the follower trail: each party member behind the
+@ leader is moved onto the position the one ahead occupied, so the party walks in
+@ single file. The ~180-instruction body is characterised structurally.
 .thumb_func_start Func_8d0c8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3113,6 +3207,10 @@
 	bx	r0
 .func_end Func_8d0c8
 
+@ GetPartyRecordForSlot
+@ r0=slot. Searches slots 8 upward in the scene table for the party record whose
+@ entity matches, returning that record or 0. Callers use the byte at +0x16 of
+@ the result as the member's facing/role.
 .thumb_func_start Func_8d394
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1ebc
@@ -3196,6 +3294,10 @@
 	bx	r1
 .func_end Func_8d394
 
+@ IsValidTargetId
+@ r0=target id. Returns 1 for the -1 "none" sentinel and otherwise checks the id
+@ against the 0x1000 limit, reporting whether it can be used as an interaction
+@ target.
 .thumb_func_start Func_8d428
 	push	{lr}
 	mov	r3, #1
@@ -3224,6 +3326,9 @@
 	bx	r1
 .func_end Func_8d428
 
+@ GetInteractionSubId
+@ r0=packed interaction id. Returns the low 9 bits when the kind nibble is 3,
+@ and 0 for every other kind -- so only that one kind carries a sub-id.
 .thumb_func_start Func_8d458
 	push	{lr}
 	mov	r3, #0xf
@@ -3251,6 +3356,12 @@
 	bx	r1
 .func_end Func_8d458
 
+@ FindInteractionRecord
+@ r0=kind, r1=entity id. Returns the entity's interaction record of that kind,
+@ or 0 if it has none.
+@ Walks the record list reached from the scene block at iwram_1ebc, matching on
+@ both the entity id and the kind nibble, and checks any guard event flag before
+@ accepting a record. This is what every handler in rom_8d5dc.s calls first.
 .thumb_func_start Func_8d48c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3385,6 +3496,10 @@
 	bx	r1
 .func_end Func_8d48c
 
+@ RunOverlayEntry
+@ Takes no arguments. Calls the overlay entry point at __start_overlay+0x04 --
+@ the hook the currently loaded map overlay installs for its own per-map
+@ logic.
 .thumb_func_start Func_8d590
 	push	{lr}
 	ldr	r3, =__start_overlay
@@ -3394,6 +3509,10 @@
 	bx	r0
 .func_end Func_8d590
 
+@ GetTalkRecordForTarget
+@ r0=entity id. Fetches the kind 0 interaction record for the entity and
+@ compares the id against the active target at ewram_240+0x24A, so the caller
+@ can tell a first conversation from a repeat.
 .thumb_func_start Func_8d5a4
 	push	{r5, r6, lr}
 	mov	r5, r0

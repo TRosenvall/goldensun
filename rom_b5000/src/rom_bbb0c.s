@@ -1,6 +1,12 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunBattleMainLoop
+@ r0.. = parameters. 2874 lines -- the second largest routine in the module and
+@ the heart of it. Runs the battle from turn to turn: builds the enemy list
+@ (Func_b6ae0), submits action groups (Func_b6c90, Func_b6cdc), scratches with
+@ Func_4938 / Func_2df0, and divides with Func_af0 and Func_b60.
+@ Traced structurally.
 .thumb_func_start Func_bbb0c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2875,6 +2881,9 @@
 	bx	r1
 .func_end Func_bbb0c
 
+@ GetCombatantDisplayRecord
+@ r0 = combatant id. Returns the 0x10-byte display record via rom_77000's
+@ _Func_78b9c.
 .thumb_func_start Func_bd3c8
 	push	{lr}
 	cmp	r0, #0x7e
@@ -2892,6 +2901,11 @@
 	bx	r1
 .func_end Func_bd3c8
 
+@ WeightedPick
+@ r0 = an 8-entry byte weight table. Rolls _Func_79bc4 (the battle RNG, seeded
+@ in ewram so it is part of the save state), masks to 8 bits, and walks the
+@ table accumulating weights until the roll is covered. Returns the chosen
+@ index, or 0 when the first weight already covers it.
 .thumb_func_start Func_bd3e4
 	push	{r5, lr}
 	mov	r5, r9
@@ -2927,6 +2941,10 @@
 	bx	r1
 .func_end Func_bd3e4
 
+@ ChooseAction
+@ r0.. = parameters. Decides what a combatant does this turn: surveys HP with
+@ Func_bad7c, prices outcomes with Func_bae40, picks with Func_bd3e4, and
+@ records the result with Func_b9a70. 467 lines; traced structurally.
 .thumb_func_start Func_bd424
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3394,6 +3412,10 @@
 	bx	r1
 .func_end Func_bd424
 
+@ ResetDmaAndDispatch
+@ Takes no arguments. Zeroes all three DMA3 register triples, then calls through
+@ the pointer at [iwram_c4]. A hard reset of the transfer state before handing
+@ control on.
 .thumb_func_start Func_bd7a4
 	push	{lr}
 	mov	r2, #0x84
@@ -3420,6 +3442,16 @@
 	bx	r0
 .func_end Func_bd7a4
 
+@ SignalAnimationEvent -- the rom_c9000 hand-back
+@ r0 = event code, 0 for none.
+@ A ONE-SHOT LATCH: if the flag at [iwram_1e74]+0x800 is already non-zero it
+@ does nothing at all; otherwise it sets the flag to 1 and, when r0 is non-zero,
+@ stores the code at +0x820.
+@ rom_c9000's animation handlers call this at their hit frame -- 85 sites --
+@ which is how "the blow has landed" gets back to the turn logic. Only the first
+@ call per frame wins, so an animation cannot double-trigger. The codes seen
+@ from rom_c9000 are 0x84, 0x85, 0x86, 0x8F, 0x91 and a few one-offs; 0x86
+@ dominates.
 .thumb_func_start Func_bd7dc
 	push	{lr}
 	ldr	r3, =iwram_1e74
@@ -3443,6 +3475,8 @@
 	bx	r0
 .func_end Func_bd7dc
 
+@ StartBattleTask
+@ r0 = task. Registers it with Func_41d8.
 .thumb_func_start Func_bd808
 	push	{lr}
 	ldr	r3, =iwram_1e74
@@ -3473,6 +3507,8 @@
 	bx	r1
 .func_end Func_bd808
 
+@ GetBattleFlagField
+@ r0 = index. Returns one of the battle flag words; no calls out.
 .thumb_func_start Func_bd850
 	push	{lr}
 	mov	r12, r3
@@ -3505,6 +3541,10 @@
 	bx	r0
 .func_end Func_bd850
 
+@ RunBattleHudAnimation
+@ r0.. = parameters. 902 lines. Animates the HUD and the action cursor, using
+@ Func_2322 (sine) for the bob, Func_393c / Func_39fc / Func_3dec / Func_40d0
+@ for OBJ tiles, and Func_b1c for the modulo cycling. Traced structurally.
 .thumb_func_start Func_bd898
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -4407,6 +4447,8 @@
 	bx	r0
 .func_end Func_bd898
 
+@ ClearBattleTaskState
+@ Takes no arguments. Clears the task bookkeeping fields; no calls out.
 .thumb_func_start Func_bdfec
 	ldr	r3, =iwram_1e74
 	mov	r0, #0x80
@@ -4438,6 +4480,9 @@
 	bx	lr
 .func_end Func_bdfec
 
+@ StopBattleTask
+@ Takes no arguments. Unregisters with Func_4278, clears state with Func_bdfec
+@ and gives a frame with Func_30f8.
 .thumb_func_start Func_be02c
 	push	{r5, lr}
 	ldr	r3, =iwram_1e74
@@ -4471,6 +4516,9 @@
 	bx	r1
 .func_end Func_be02c
 
+@ CountQueuedActions
+@ r0.. = parameters. Walks the action queue with Func_b6c08 and returns how many
+@ entries it holds.
 .thumb_func_start Func_be070
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -4510,6 +4558,10 @@
 	bx	r1
 .func_end Func_be070
 
+@ CollectQueuedCombatants
+@ r0.. = parameters. Reads the action queue into the caller's array with
+@ Func_b6c08, falling back on the Func_77330 scratch record where a slot is
+@ empty. Exported.
 .thumb_func_start Func_be0b4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -4628,6 +4680,11 @@
 	bx	r1
 .func_end Func_be0b4
 
+@ ShowBattleMessage
+@ r0.. = parameters. Builds the message from the combatant's record
+@ (_Func_77394, _Func_78b9c), registers the substitution values with
+@ _Func_19908, and shows it through _Func_175a0 -- which blocks until the player
+@ dismisses it.
 .thumb_func_start Func_be18c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -4884,6 +4941,11 @@
 	bx	r1
 .func_end Func_be18c
 
+@ RunPlayerCommandInput
+@ r0.. = parameters. 1658 lines. The player's side of a turn: opens the HUD
+@ (Func_bb65c), reads the command selection, marks the UI busy with Func_bb8d8,
+@ steps the HUD each frame (Func_bb938, Func_30f8) and reads back the chosen
+@ action through Func_b9a44. Traced structurally.
 .thumb_func_start Func_be378
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -6542,6 +6604,13 @@
 	bx	r1
 .func_end Func_be378
 
+@ RollStatusChance
+@ r0 = combatant id, r1 = tier (0..5), r2 = bonus. Returns 1 when the effect
+@ lands.
+@ The threshold is (record+0x42) * 3 - tier * 5 + bonus, scaled by 0x28F, and
+@ compared against _Func_79bc4() & 0xFFFF. Since 0x28F * 100 = 65500, just under
+@ 0x10000, THE SCALED VALUE IS A PERCENTAGE against a 16-bit roll -- so the
+@ pre-scaling expression is a percent chance. A tier above 5 always fails.
 .thumb_func_start Func_bf208
 	push	{r5, r6, lr}
 	mov	r5, r1
@@ -6576,6 +6645,11 @@
 	bx	r1
 .func_end Func_bf208
 
+@ TickStatusCounter
+@ r0 = combatant id. Decrements one of the per-combatant status counters in the
+@ persistent record and returns 1 on the turn it reaches zero, clearing the
+@ companion field alongside it. One of ten near-identical routines
+@ (Func_bf250..Func_bf4c4) differing only in which record offset they tick.
 .thumb_func_start Func_bf250
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -6628,6 +6702,11 @@
 	bx	r1
 .func_end Func_bf250
 
+@ TickStatusCounter
+@ r0 = combatant id. Decrements one of the per-combatant status counters in the
+@ persistent record and returns 1 on the turn it reaches zero, clearing the
+@ companion field alongside it. One of ten near-identical routines
+@ (Func_bf250..Func_bf4c4) differing only in which record offset they tick.
 .thumb_func_start Func_bf2b4
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -6680,6 +6759,11 @@
 	bx	r1
 .func_end Func_bf2b4
 
+@ TickStatusCounter
+@ r0 = combatant id. Decrements one of the per-combatant status counters in the
+@ persistent record and returns 1 on the turn it reaches zero, clearing the
+@ companion field alongside it. One of ten near-identical routines
+@ (Func_bf250..Func_bf4c4) differing only in which record offset they tick.
 .thumb_func_start Func_bf318
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -6732,6 +6816,11 @@
 	bx	r1
 .func_end Func_bf318
 
+@ TickStatusCounter
+@ r0 = combatant id. Decrements one of the per-combatant status counters in the
+@ persistent record and returns 1 on the turn it reaches zero, clearing the
+@ companion field alongside it. One of ten near-identical routines
+@ (Func_bf250..Func_bf4c4) differing only in which record offset they tick.
 .thumb_func_start Func_bf37c
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -6767,6 +6856,11 @@
 	bx	r1
 .func_end Func_bf37c
 
+@ TickStatusCounter
+@ r0 = combatant id. Decrements one of the per-combatant status counters in the
+@ persistent record and returns 1 on the turn it reaches zero, clearing the
+@ companion field alongside it. One of ten near-identical routines
+@ (Func_bf250..Func_bf4c4) differing only in which record offset they tick.
 .thumb_func_start Func_bf3bc
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -6801,6 +6895,11 @@
 	bx	r1
 .func_end Func_bf3bc
 
+@ TickStatusCounter
+@ r0 = combatant id. Decrements one of the per-combatant status counters in the
+@ persistent record and returns 1 on the turn it reaches zero, clearing the
+@ companion field alongside it. One of ten near-identical routines
+@ (Func_bf250..Func_bf4c4) differing only in which record offset they tick.
 .thumb_func_start Func_bf400
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -6836,6 +6935,11 @@
 	bx	r1
 .func_end Func_bf400
 
+@ TickStatusCounter
+@ r0 = combatant id. Decrements one of the per-combatant status counters in the
+@ persistent record and returns 1 on the turn it reaches zero, clearing the
+@ companion field alongside it. One of ten near-identical routines
+@ (Func_bf250..Func_bf4c4) differing only in which record offset they tick.
 .thumb_func_start Func_bf440
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -6870,6 +6974,11 @@
 	bx	r1
 .func_end Func_bf440
 
+@ TickStatusCounter
+@ r0 = combatant id. Decrements one of the per-combatant status counters in the
+@ persistent record and returns 1 on the turn it reaches zero, clearing the
+@ companion field alongside it. One of ten near-identical routines
+@ (Func_bf250..Func_bf4c4) differing only in which record offset they tick.
 .thumb_func_start Func_bf484
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -6905,6 +7014,11 @@
 	bx	r1
 .func_end Func_bf484
 
+@ TickStatusCounter
+@ r0 = combatant id. Decrements one of the per-combatant status counters in the
+@ persistent record and returns 1 on the turn it reaches zero, clearing the
+@ companion field alongside it. One of ten near-identical routines
+@ (Func_bf250..Func_bf4c4) differing only in which record offset they tick.
 .thumb_func_start Func_bf4c4
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -6955,6 +7069,10 @@
 	bx	r1
 .func_end Func_bf4c4
 
+@ TickStatusCounterAt13E
+@ r0 = combatant id. Decrements the byte at record+0x13E and returns 1 on the
+@ turn it reaches zero. Same shape as the Func_bf250 family without the
+@ companion clear.
 .thumb_func_start Func_bf524
 	push	{lr}
 	bl	_Func_77394
@@ -6978,6 +7096,9 @@
 	bx	r1
 .func_end Func_bf524
 
+@ TickStatusCounterB
+@ r0 = combatant id. Another single-counter tick, at a different record
+@ offset.
 .thumb_func_start Func_bf54c
 	push	{lr}
 	bl	_Func_77394
@@ -7000,6 +7121,8 @@
 	bx	r1
 .func_end Func_bf54c
 
+@ TickStatusCounterC
+@ r0 = combatant id. A third single-counter tick.
 .thumb_func_start Func_bf574
 	push	{lr}
 	bl	_Func_77394
@@ -7028,6 +7151,10 @@
 	bx	r1
 .func_end Func_bf574
 
+@ SyncStatusToRecord
+@ r0 = combatant id. Writes the battle-side status back into the persistent
+@ record through _Func_7a2e4 and _Func_7a3a8, then rebuilds the summary with
+@ _Func_77428 -- so status survives the end of the battle. Exported.
 .thumb_func_start Func_bf5a8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -7122,6 +7249,8 @@
 	bx	r1
 .func_end Func_bf5a8
 
+@ SyncStatusForCombatant
+@ r0 = combatant id. A thin Func_bf5a8 wrapper. Exported.
 .thumb_func_start Func_bf65c
 	push	{r5, lr}
 	mov	r5, #0x13
@@ -7136,10 +7265,16 @@
 	bx	r1
 .func_end Func_bf65c
 
+@ NoOp
+@ A bare `bx lr`, present as a table entry or placeholder.
 .thumb_func_start Func_bf674
 	bx	lr
 .func_end Func_bf674
 
+@ RunEndOfTurn
+@ r0.. = parameters. 555 lines. Closes a turn out: ticks the status counters,
+@ pushes events with Func_bbabc, refreshes the HUD (Func_bb65c, Func_b7aac) and
+@ re-sorts the queue with Func_b6c08. Traced structurally.
 .thumb_func_start Func_bf678
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -7695,6 +7830,11 @@
 	bx	r1
 .func_end Func_bf678
 
+@ RunBattleEnd
+@ r0.. = parameters. 517 lines. Ends the battle: lists the survivors
+@ (Func_b6b40), logs the outcome with Func_bbabc, tears the HUD down through
+@ Func_bb938, and uses a Func_4970 scratch released by Func_2df0.
+@ Traced structurally.
 .thumb_func_start Func_bfba4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

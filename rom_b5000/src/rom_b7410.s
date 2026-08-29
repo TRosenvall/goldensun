@@ -1,6 +1,10 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ GetSlotOffset
+@ r0 = slot index, r1, r2 = outputs. Reads a pair of SIGNED bytes from .Lc2a62
+@ at 2*index and 2*index+1 and writes them out as words -- the x and y nudge for
+@ that battle slot.
 .thumb_func_start Func_b7410
 	ldr	r4, =.Lc2a62
 	lsl	r0, #1
@@ -12,6 +16,9 @@
 	bx	lr
 .func_end Func_b7410
 
+@ PositionCombatant
+@ r0 = combatant id, r1.. = placement. Writes the combatant's field position
+@ through Func_c23c0, reading its record with _Func_77394.
 .thumb_func_start Func_b7424
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -136,6 +143,8 @@
 	bx	r0
 .func_end Func_b7424
 
+@ GetCombatantSide
+@ r0 = combatant id. Returns which side the combatant is on, from its record.
 .thumb_func_start Func_b7514
 	push	{r5, r6, lr}
 	mov	r5, #0
@@ -169,6 +178,10 @@
 	bx	r1
 .func_end Func_b7514
 
+@ RepositionCombatant
+@ r0 = combatant id. Re-runs Func_b7424 from the battle-side record Func_b7dd0
+@ returns, so a combatant that moved is put back where the layout says it
+@ belongs.
 .thumb_func_start Func_b7548
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -247,6 +260,9 @@
 	bx	r1
 .func_end Func_b7548
 
+@ RebuildFieldLayout
+@ Takes no arguments. Re-lays the whole field: Func_b6a60 for the party list,
+@ Func_b6f44 for the layout, then Func_b7424 per combatant.
 .thumb_func_start Func_b75dc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -399,6 +415,10 @@
 	bx	r0
 .func_end Func_b75dc
 
+@ NormaliseCombatantId
+@ r0.. = parameters, r1 = combatant id. Folds enemy ids into the 8..13 range by
+@ adding 0x78 to anything above 7 -- the same fold Func_b7dd0 does -- so callers
+@ can index the 14-entry tables directly.
 .thumb_func_start Func_b770c
 	push	{lr}
 	cmp	r1, #7
@@ -429,6 +449,11 @@
 	bx	r1
 .func_end Func_b770c
 
+@ StepCombatantActors
+@ Takes no arguments. Advances every combatant's actor: walks the action queue
+@ with Func_b6c08, resolves records with Func_b7dd0, iterates each actor's parts
+@ with Func_b7f70 and updates them through Func_b7994.
+@ 226 lines; traced structurally.
 .thumb_func_start Func_b7738
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -655,6 +680,9 @@
 	bx	r0
 .func_end Func_b7738
 
+@ ComputeCombatantDepth
+@ r0 = combatant id. Derives the draw depth from the record _Func_77394
+@ returns.
 .thumb_func_start Func_b78e4
 	push	{r5, lr}
 	mov	r5, r1
@@ -745,6 +773,9 @@
 	bx	r1
 .func_end Func_b78e4
 
+@ UpdateActorParts
+@ r0 = actor. Walks the actor's parts with Func_b7f70 and updates each one's
+@ transform through Func_b8ac / Func_b93c / Func_b9f4 in rom_9000.
 .thumb_func_start Func_b7994
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -899,6 +930,9 @@
 	bx	r1
 .func_end Func_b7994
 
+@ SubmitCombatantSprite
+@ r0 = combatant id. Submits the combatant's sprite to rom_9000 through
+@ Func_c300 and Func_c344, using the battle record from Func_b7dd0.
 .thumb_func_start Func_b7aac
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -966,6 +1000,9 @@
 	bx	r1
 .func_end Func_b7aac
 
+@ DestroyCombatantActor
+@ r0 = combatant id. Walks the actor's parts with Func_b7f70 and destroys each
+@ with _Func_bdd4, then clears the record's actor pointer.
 .thumb_func_start Func_b7b30
 	push	{r5, r6, lr}
 	bl	Func_b7dd0
@@ -998,6 +1035,12 @@
 	bx	r0
 .func_end Func_b7b30
 
+@ RunActorSequence
+@ r0 = combatant list, r1 = mode. Drives the combatants' actors a frame at a
+@ time through Func_30f8, submitting sprites with Func_b7aac, cleaning up with
+@ Func_b7b30, and reaching into the overlay at _Func_185008.
+@ Exported and called by rom_c9000's Func_d6750, which hands it the list of
+@ combatants still standing. 303 lines; traced structurally.
 .thumb_func_start Func_b7b6c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1301,6 +1344,19 @@
 	bx	r0
 .func_end Func_b7b6c
 
+@ GetBattleRecord
+@ r0 = combatant id. Returns the battle-side record, or 0 when the combatant is
+@ not on the field. 88 external call sites.
+@ TWO INDIRECTIONS, and the layout follows from them:
+@     ids above 7 fold down by 0x78, so 0x80..0x85 become 8..13
+@     [iwram_1e74] + 0x2DC + foldedId is a SLOT BYTE, 0xFF meaning "absent"
+@     the record is [iwram_1e74] + 0x74 + slot * 0x2C
+@ So +0x2DC is a 14-entry id-to-slot map -- 8 player and 6 enemy, matching the
+@ six enemy records Func_b63c8 allocates -- and +0x74 is the record array,
+@ 0x2C bytes each. These are BATTLE records; the persistent 0x14C-byte character
+@ records live in rom_77000 behind Func_77394.
+@ Fields seen so far: +0x0C and +0x10 are the field x and z (read by
+@ Func_b7eb4), +0x14 is the actor pointer (read by Func_b6cd0).
 .thumb_func_start Func_b7dd0
 	push	{lr}
 	ldr	r3, =iwram_1e74
@@ -1330,6 +1386,9 @@
 	bx	r1
 .func_end Func_b7dd0
 
+@ ClearActorPartFlags
+@ r0 = actor. Clears field +0x10 of each of the four part pointers at +0x28,
+@ skipping null slots. Does nothing when the actor is null.
 .thumb_func_start Func_b7e04
 	push	{lr}
 	cmp	r0, #0
@@ -1351,6 +1410,8 @@
 	bx	r0
 .func_end Func_b7e04
 
+@ ClearCombatantPartFlags
+@ r0 = combatant id. Func_b7e04 applied to the combatant's actor.
 .thumb_func_start Func_b7e24
 	push	{r5, r6, lr}
 	cmp	r0, #0
@@ -1387,6 +1448,9 @@
 	bx	r0
 .func_end Func_b7e24
 
+@ GetCombatantSlotPosition
+@ r0 = combatant id. Returns the world position of the combatant's slot, via
+@ Func_b7dd0 and Func_b6e30.
 .thumb_func_start Func_b7e60
 	push	{r5, lr}
 	mov	r5, r0
@@ -1401,6 +1465,9 @@
 	bx	r1
 .func_end Func_b7e60
 
+@ SubmitCombatantAt
+@ r0 = combatant id, r1.. = position. Submits the combatant's sprite at an
+@ explicit position through Func_c0f4.
 .thumb_func_start Func_b7e7c
 	push	{r5, r6, r7, lr}
 	mov	r6, #0
@@ -1433,6 +1500,11 @@
 	bx	r1
 .func_end Func_b7e7c
 
+@ GetBattleRecordPosition
+@ r0 = slot index, r1 = destination 3-vector. Reads the x at record+0x0C and the
+@ z at +0x10 -- indexing [iwram_1e74] + 0x74 + slot*0x2C directly rather than
+@ going through Func_b7dd0 -- and writes {x, 0, z}. The y component is always
+@ zeroed, so battle positions are planar.
 .thumb_func_start Func_b7eb4
 	ldr	r3, =iwram_1e74
 	ldr	r4, [r3]
@@ -1452,6 +1524,9 @@
 	bx	lr
 .func_end Func_b7eb4
 
+@ BuildViewMatrix
+@ Takes no arguments. Rebuilds the battle view transform with Func_49ac,
+@ Func_51d8 and Func_51e8, gated on a save bit through _Func_79338.
 .thumb_func_start Func_b7ed8
 	push	{r5, lr}
 	ldr	r3, =iwram_1e80
@@ -1480,6 +1555,11 @@
 	bx	r1
 .func_end Func_b7ed8
 
+@ ProjectCombatant
+@ r0 = combatant id, r1 = destination. Projects the combatant to screen with
+@ Func_5268 after refreshing the view with Func_b7ed8.
+@ This is what rom_c9000's Func_e3980 calls to find where a combatant is on
+@ screen.
 .thumb_func_start Func_b7f20
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -1514,6 +1594,14 @@
 	bx	r1
 .func_end Func_b7f20
 
+@ GetActorPart
+@ r0 = actor, r1 = part index. Returns one of the actor's parts, or 0.
+@ The low nibble of the byte at actor+0x54 is the part MODE:
+@     1  a single part -- [actor+0x50] itself, and only index 0 is valid
+@     2  an array at [actor+0x50], indexed by r1
+@     anything else  no parts
+@ Callers iterate by incrementing r1 until this returns 0, which is why the
+@ mode-1 case rejects every index but the first.
 .thumb_func_start Func_b7f70
 	push	{lr}
 	mov	r3, r0
@@ -1541,6 +1629,9 @@
 	bx	r1
 .func_end Func_b7f70
 
+@ ComputeCameraTransform
+@ r0.. = parameters. Builds the battle camera matrix from Func_49ac, Func_4bd4,
+@ Func_4c1c and Func_4cb4.
 .thumb_func_start Func_b7f9c
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1e80
@@ -1585,6 +1676,9 @@
 	bx	r0
 .func_end Func_b7f9c
 
+@ AimAtCombatant
+@ r0 = combatant id. Computes the facing toward a target with Func_44d0 (atan2)
+@ and applies it through Func_c4ac / Func_d14c.
 .thumb_func_start Func_b8000
 	push	{r5, r6, lr}
 	bl	Func_b7dd0
@@ -1632,6 +1726,9 @@
 	bx	r0
 .func_end Func_b8000
 
+@ SubmitCombatantOriented
+@ r0 = combatant id. Submits the sprite with its computed orientation through
+@ Func_c300 / Func_c4ac / Func_d14c.
 .thumb_func_start Func_b8064
 	push	{r5, r6, lr}
 	bl	Func_b7dd0
@@ -1670,6 +1767,9 @@
 	bx	r0
 .func_end Func_b8064
 
+@ ScaleCombatantSprite
+@ r0.. = parameters. Applies a scale to the combatant's sprite, dividing with
+@ Func_af0 and submitting through Func_c300 / Func_d14c.
 .thumb_func_start Func_b80b8
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -1739,6 +1839,8 @@
 	bx	r0
 .func_end Func_b80b8
 
+@ SetSpriteTransform
+@ r0.. = parameters. Writes a sprite transform through Func_d14c.
 .thumb_func_start Func_b8144
 	push	{lr}
 	mov	r2, r0
@@ -1764,6 +1866,9 @@
 	bx	r0
 .func_end Func_b8144
 
+@ SubmitCombatantShadow
+@ r0 = combatant id. Submits the combatant's shadow sprite via Func_c4ac /
+@ Func_d14c.
 .thumb_func_start Func_b8178
 	push	{r5, r6, lr}
 	bl	Func_b7dd0
@@ -1802,6 +1907,9 @@
 	bx	r0
 .func_end Func_b8178
 
+@ SubmitCombatantFull
+@ r0 = combatant id. The full submit path -- sprite, orientation and shadow --
+@ through Func_c300, Func_c4ac and Func_d14c. Exported.
 .thumb_func_start Func_b81c8
 	push	{r5, r6, lr}
 	bl	Func_b7dd0

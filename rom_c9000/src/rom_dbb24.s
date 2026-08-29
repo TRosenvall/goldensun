@@ -1,6 +1,19 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ SpawnEffectActors
+@ r0=count, r1=actor resource id, r2=OBJ priority (only bits 0-1 are used).
+@ Creates `count` actors from one resource and fills the effect-actor array at
+@ [iwram_1eec]+0x77D8 with them, one word each. Each actor gets:
+@     +0x26 = 0                       (u8, cleared)
+@     animation index i               via _Func_ba30, so actor i plays frame i
+@     +0x09 bits 3:2 = r2 & 3         (OBJ priority), other bits preserved
+@ A count of 0 does nothing. A failed _Func_bc70 leaves 0 in the slot and the
+@ loop continues, so callers must null-check the array.
+@
+@ This is the standard way every animation class stocks its particle/effect
+@ actors -- `Func_dbb24(16, resId, 2)` means "sixteen copies of resId, each
+@ showing its own animation frame, at priority 2".
 .thumb_func_start Func_dbb24
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -59,10 +72,23 @@
 	bx	r0
 .func_end Func_dbb24
 
+@ WaitFrameStub
+@ Takes no arguments and does nothing -- a single `bx lr`.
+@ NOTE this matters for Func_d655c in rom_d6504.s, which calls it in a loop to
+@ "advance N frames": since this is a no-op, that loop spins without yielding
+@ and without advancing anything. Either the real per-frame work happens from an
+@ interrupt, or this is a stub whose implementation was removed. Do not assume
+@ callers of this actually wait.
 .thumb_func_start Func_dbb98
 	bx	lr
 .func_end Func_dbb98
 
+@ UploadAffineBackground
+@ Takes no arguments. Disarms the DMA0 HBlank transfer (clearing the enable bit
+@ in REG_DMA0CNT_H twice, the module's usual belt-and-braces sequence), then
+@ re-arms it to feed REG_BG2X onward from [iwram_1eec]+0x6980 with control word
+@ 0xA6600001 -- a repeating HBlank transfer that drives the affine background
+@ registers per scanline.
 .thumb_func_start Func_dbb9c
 	ldr	r3, =iwram_1eec
 	ldr	r0, [r3]

@@ -1,6 +1,15 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ RunCharacterPicker
+@ Takes no arguments. The character picker on its own, for map scripts -- four
+@ overlays import it and nothing in the main ROM calls it. Same scaffold as the
+@ other screens (tag 0x37, blank the map, snapshot the roster, Func_a8034 for
+@ the party strip, a five-row main window) but the only state it runs is
+@ Func_a7440.
+@
+@ Returns the chosen character id from state+0x21A, or -1 when the player backed
+@ out.
 .thumb_func_start Func_a7380
 	push	{r5, r6, r7, lr}
 	mov	r1, #0xa7
@@ -89,6 +98,10 @@
 	bx	r1
 .func_end Func_a7380
 
+@ PickCharacterOnce
+@ Takes no arguments. Clears state+0x174, runs one pass of Func_a77a4(0), and
+@ returns the character id at state+0x21A -- or -1 unchanged when Func_a77a4
+@ returned -1.
 .thumb_func_start Func_a7440
 	push	{r5, lr}
 	ldr	r3, =iwram_1f2c
@@ -115,6 +128,22 @@
 	bx	r1
 .func_end Func_a7440
 
+@ RunStatusScreen -- MENU INDEX 4
+@ Takes no arguments. The Status screen, and the most elaborate of the five. On
+@ top of the standard scaffold it:
+@
+@   * takes two extra scratches, 0x40 and 0x2000 bytes, and saves the palette at
+@     0x5000000 and the tiles at 0x6004000 into them, restoring both on the way
+@     out -- so it can repaint the whole background and put it back
+@   * queues four DMA3 palette transfers to build its own gradient
+@   * seeds the eight party-sprite y values at state+0x144.. to 0x1E
+@   * calls _Func_7a5bc(-1) and, when the party has anyone in it, spawns the
+@     four animated portrait actors through Func_ad274
+@   * writes three entries at state+0x234 with x stepping 0x20 from 0x82 and a
+@     constant 0x80 at +8
+@
+@ Func_a76d0 is the state machine; the return value is its answer, or -1 when
+@ save bit 0x150 (Start) went up.
 .thumb_func_start Func_a7478
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -352,6 +381,18 @@
 	bx	r1
 .func_end Func_a7478
 
+@ RunStatusStates
+@ Takes no arguments. A four-state loop, with save bit 0x150 as the global exit:
+@
+@     0  Func_a77a4(0) -- pick a character
+@     1  Func_a8114    -- the stats page
+@     2  Func_a90bc    -- the second page
+@     3  Func_a96d8    -- the third page
+@
+@ Each page hides the cursor at [state+0x14] first by setting its +0x05 to 0x0D.
+@ Backing out of a page (-1) returns to state 0 for page 1 and 3, and to state 0
+@ via a full reset for page 2. Backing out of state 0 ends the loop.
+@ Start at any depth forces the return value to -1.
 .thumb_func_start Func_a76d0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -463,6 +504,12 @@
 	bx	r1
 .func_end Func_a76d0
 
+@ SelectStatusCharacter
+@ r0 = which cursor. Shows the cursor at state+0x14 + r0*4, releases the header
+@ window's nodes and -- when save bit 0x172 is set -- clears a 3x9 block with
+@ _Func_1e41c. Glides to (index * 24 - 10, 0x10) unless the selection is -1, in
+@ which case it resets to member 0. Then runs Func_a7d68 when state+0x220 is 3
+@ and Func_a7a34 otherwise.
 .thumb_func_start Func_a77a4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -549,6 +596,12 @@
 	bx	r1
 .func_end Func_a77a4
 
+@ DrawStatusPage
+@ r0.. = placement. Paints the body of the stats page: clears with _Func_1e41c,
+@ plots the frame tiles one at a time through _Func_19000, and prints labels
+@ 0xB17 and 0xB18 and the 0x45F block. Func_a9d84 rewinds the sprites and the
+@ tilemap dirty byte at [iwram_1e8c]+0xEA3 is raised at the end.
+@ 219 lines; traced structurally.
 .thumb_func_start Func_a7850
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -775,6 +828,12 @@
 	bx	r1
 .func_end Func_a7850
 
+@ RunStatsPage
+@ Takes no arguments. The first status page: draws the character at state+0x21A
+@ with Func_a7850 and Func_a8088, prints labels 0xB0D and 0xB16, and loops on
+@ the d-pad. Left and Right change character; L and R swap party order through
+@ Func_a7f44, which destroys and respawns the actors (Func_a195c then
+@ Func_a1870) so the strip re-sorts. 376 lines; traced structurally.
 .thumb_func_start Func_a7a34
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1158,6 +1217,11 @@
 	bx	r1
 .func_end Func_a7a34
 
+@ RunEquipPage
+@ Takes no arguments. The equipment view of the status screen -- reached when
+@ state+0x220 is 3. Builds the filtered item list with Func_a68ec, loads the
+@ icons with Func_a68a8, draws through Func_a8088 and Func_a9b94, and prints
+@ string 0xC05. 217 lines; traced structurally.
 .thumb_func_start Func_a7d68
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1382,6 +1446,16 @@
 	bx	r1
 .func_end Func_a7d68
 
+@ SwapPartyOrder
+@ r0 = index, r1 = 1 to swap with the NEXT member, anything else the previous.
+@ Reorders the party. It cannot swap past either end -- index 0 with r1 zero, or
+@ the last index with r1 one, both return 0 -- and a party of one always
+@ returns 0.
+@
+@ The swap is done the long way round, because the roster is derived state:
+@ the ids are copied to a stack array, two entries exchanged, then EVERY member
+@ is removed with _Func_79664 and re-added with _Func_7961c in the new order,
+@ and _Func_796c4 re-reads the result back into state+0x208. Returns 1.
 .thumb_func_start Func_a7f44
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1511,6 +1585,11 @@
 	bx	r1
 .func_end Func_a7f44
 
+@ BuildStatusPartyRow
+@ Takes no arguments. The Func_a3354 of the status and picker screens:
+@ Func_a1814 and Func_a1870(window, 2, 2, 8), then clears state+0x20, +0x24,
+@ +0x28, +0x2C, +0x110 and +0x111 and seeds +0x112 = 8, +0x113 = 2. It does NOT
+@ open the bottom window, which is the only difference from Func_a3354.
 .thumb_func_start Func_a8034
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1f2c
@@ -1550,6 +1629,13 @@
 	bx	r0
 .func_end Func_a8034
 
+@ OpenStatusBody
+@ r0 = page. Opens the (0, 5, 0x1E, 0xF) body window into state+0x24 if it is
+@ not already up, populates its menu entries with _Func_1ec6c (storing the node
+@ at state+0x17C with sort order 0xF0), creates the list sprites when
+@ state+0x220 is 3, and hands off to Func_a8604 -- with flag 0x100 on a fresh
+@ window and 0 on a reused one, which is how a redraw avoids re-creating what is
+@ already there.
 .thumb_func_start Func_a8088
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1f2c
@@ -1618,6 +1704,13 @@
 	bx	r0
 .func_end Func_a8088
 
+@ RunStatusPage1
+@ Takes no arguments. The main stats page: Func_a8604 draws the numbers,
+@ Func_a847c tints the selected row, Func_a8508 prints the elemental affinities
+@ and Func_a8578 the class or level-up line. Registers a per-frame task, loops on
+@ the d-pad with Left and Right changing character and A opening the sub-page,
+@ and prints label 0xB06. Watches save bits 0x150 and 0x242.
+@ 410 lines; traced structurally.
 .thumb_func_start Func_a8114
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2035,6 +2128,15 @@
 	bx	r1
 .func_end Func_a8114
 
+@ TintStatusRow
+@ r0 = layout, r1 = index, r2 = five affinity flags, r3 = 1 for the selected
+@ row. Tints one row of the status page through Func_a2268 with palette 0x0E
+@ when r3 is 1 and 0x0F otherwise.
+@
+@ Layout 0 walks the flag bytes and takes the row width from .Laf2fc, so only
+@ the affinities the character actually has get a row. Layout 1 uses a fixed
+@ geometry that changes at index 4 -- rows 0..3 sit at x 5 width 0x0D and rows
+@ 4 upward at x 8 width 0x14.
 .thumb_func_start Func_a847c
 	push	{r5, r6, r7, lr}
 	mov	r12, r3
@@ -2107,6 +2209,10 @@
 	bx	r0
 .func_end Func_a847c
 
+@ DrawAffinityLabels
+@ r0 = window, r1 = which, r2 = five flag bytes. Walks the flags and, for the
+@ r1-th one that is set, prints the pair 0xBDC + i*2 and 0xBDD + i*2 -- a label
+@ and its value. When no flag is set at all it prints 0xBDA instead.
 .thumb_func_start Func_a8508
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2163,6 +2269,16 @@
 	bx	r0
 .func_end Func_a8508
 
+@ DrawLevelLine
+@ r0 = window, r1 = line, r2 = 0 to skip past line 3.
+@ Line 1 is the experience-to-next-level readout: the character's level is the
+@ byte at record+0x0F, and _Func_79008(id, level + 1) gives the threshold, from
+@ which the current total at record+0x124 is subtracted and the difference
+@ registered with _Func_19908.
+@
+@ A level of 0x63 -- NINETY-NINE, the cap -- switches to line 8 instead, which
+@ is the "maximum" text. Whichever line is chosen renders as string 0xBE6 + line
+@ into a 0x100 scratch and out through _Func_17aa4.
 .thumb_func_start Func_a8578
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

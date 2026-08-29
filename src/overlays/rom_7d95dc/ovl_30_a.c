@@ -1,0 +1,37 @@
+/* Cluster OvlFunc_953_2008030..OvlFunc_953_2008030 extracted from goldensun/asm/overlays/rom_7d95dc/ovl_30_a.s.
+ *
+ * The .s held ONLY this function and no data, so no split was needed -- the
+ * .o keeps its name and its slot in the overlay's linker script is unchanged.
+ *
+ * GetEntrances, three-way form: selects one of three edge-transition tables
+ * from a gState halfword, falling through to the last. One of nine.
+ *
+ * See src/overlays/rom_79aad8/ovl_314_a.c for why the address arithmetic is
+ * spelled out and why the compared constants have to be symbols.
+ */
+typedef struct { unsigned char _bytes[704]; } GlobalState;
+extern GlobalState gState;
+extern int _AREA_8c;
+extern int _AREA_8e;
+extern unsigned char L3094[] __asm__(".L3094");
+extern unsigned char L3274[] __asm__(".L3274");
+extern unsigned char L3034[] __asm__(".L3034");
+
+unsigned char *OvlFunc_953_2008030(void)
+{
+    unsigned int base;
+    unsigned int off;
+    short v;
+
+    base = (unsigned int)&gState;
+    off = 0xe0;
+    off <<= 1;
+    base += off;
+    off = 0;
+    v = *(short *)((char *)base + off);
+    if (v == (int)(&_AREA_8c))
+        return L3094;
+    if (v == (int)(&_AREA_8e))
+        return L3274;
+    return L3034;
+}

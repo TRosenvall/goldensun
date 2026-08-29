@@ -1,5 +1,25 @@
 	.include "macros.inc"
 
+@ InteractWithTarget
+@ r0=target NPC id. The main "press A on something" handler. Returns 0 when an
+@ interaction ran and -1 when nothing happened.
+@ Looks the target's interaction records up with Func_8d48c(kind, id). Records
+@ carry flags at +0x00 and a payload at +0x08; a payload below 0x100000 is a
+@ message id, anything at or above it is a function pointer called with the
+@ target id.
+@ If the target is already the active one (ewram_240+0x24A) it first tries
+@ kind 7 -- the repeat/"talked to before" record; otherwise, and on failure, it
+@ falls back to kind 0.
+@ Before running the interaction it freezes the player: sets the freeze flag at
+@ entity+0x5B, calls _Func_c344 to stop the walk animation, and saves the facing
+@ angle. When the player's facing (Func_8d394 byte +0x16) is 0 or 3 it also
+@ snaps the follower at ewram_240+0x1F4 onto the leader's position by copying
+@ +0x08/+0x0C/+0x10 into the targets at +0x38/+0x3C/+0x40 and zeroing velocity,
+@ then calls Func_92848 so the party lines up for the conversation.
+@ Afterwards, if the script has come to rest on opcode 0x10, facing 3 attaches
+@ the Data_9ff40 script through Func_93a6c while facing 1 restores the saved
+@ angle into +0x64 and installs Data_9fc1c. The freeze flag is cleared and the
+@ animation speed restored to 0x10 either way.
 .thumb_func_start Func_8d5dc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -235,6 +255,13 @@
 	bx	r1
 .func_end Func_8d5dc
 
+@ RunTouchTrigger
+@ r0=entity id. Fires the kind 6 interaction record -- the one that triggers on
+@ walking into or onto something rather than on a button press. Returns 0 if it
+@ ran, -1 otherwise.
+@ Payloads below 0x100000 are message ids, opened through the
+@ Func_916b0 / Func_92b94 / Func_92f84 / Func_91750 sequence; larger values are
+@ called as functions with the entity id.
 .thumb_func_start Func_8d7d8
 	push	{r5, r6, r7, lr}
 	mov	r7, r0
@@ -273,6 +300,18 @@
 	bx	r1
 .func_end Func_8d7d8
 
+@ RunExamineTrigger
+@ r0=entity id. Tries the kind 2 interaction record first and falls back to
+@ kind 1. Returns 0 if either ran, -1 otherwise.
+@ For kind 2, bit 9 of the record flags clears the dialogue counter at
+@ iwram_1ebc+0x1D8 before running. Message payloads open a message box; larger
+@ payloads are called as functions.
+@ The kind 1 fallback dispatches on bits 4-5 of the record flags to pick a
+@ feedback sound and side effect:
+@     0x00 -> _Func_f9080(0x7B)                    plain examine
+@     0x20 -> _Func_f9080(0x80) then Func_94354    one outcome class
+@     0x30 -> _Func_f9080(0x81) then Func_94368    another
+@ and stores the payload as a message id at iwram_1ebc+0x170.
 .thumb_func_start Func_8d828
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -370,6 +409,15 @@
 	bx	r1
 .func_end Func_8d828
 
+@ HandleMessageControlCode
+@ r0=control code. Services the codes a message box stops on, using the dialogue
+@ state at iwram_1ebc and the player entity id at ewram_240+0x1F4. Always
+@ returns 0. Each case requires the frame counter at iwram_1ebc+0x19C to exceed
+@ 12, which debounces the button so one press cannot skip two prompts, and
+@ clears that counter once handled.
+@   0xFC -- A (iwram_1ae8 & 0x80) advances via Func_92708(player, 6, 0)
+@   0xF9, 0xFE -- advance unconditionally via Func_93c00
+@   0xFD -- a two-way choice: A selects Func_93e28, B (& 0x40) Func_93fa0
 .thumb_func_start Func_8d8f0
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc

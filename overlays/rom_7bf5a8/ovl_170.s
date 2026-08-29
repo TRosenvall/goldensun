@@ -1,5 +1,12 @@
 	.include "macros.inc"
 
+@ 146 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_134, GetSlotEntityChecked, OvlFunc_134
+@   CheckTerrainStep, SetEntityAnimation, Func_30f8, PlaySound
+@   SetEntityMoveTarget x2, WaitForEntityIdle, PlaySound, SetEntityAnimation
 .thumb_func_start OvlFunc_170
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -152,6 +159,12 @@
 	bx	r0
 .func_end OvlFunc_170
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetSaveBit
+@ sets 0x300.
 .thumb_func_start OvlFunc_2bc
 	push	{lr}
 	mov	r0, #0xc0
@@ -161,6 +174,11 @@
 	bx	r0
 .func_end OvlFunc_2bc
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunTextBoxModal
 .thumb_func_start OvlFunc_2cc
 	push	{lr}
 	ldr	r0, =0x953

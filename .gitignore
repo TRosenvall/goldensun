@@ -9,3 +9,24 @@
 
 *.sav
 *.ss[0-9]
+
+.claude/settings.local.json
+
+# editor-local IntelliSense config
+.vscode/
+
+# dropped-in reference decomp, not part of this build
+pokeemerald/
+__pycache__/
+.DS_Store
+
+# cloned reference tools, not part of this build
+decomp-permuter/
+nonmatching/
+
+# elevation scratch: candidate .c files under test, never part of the build
+scratch_elev/
+
+# personal automation helper, not part of the decomp
+type-foo.applescript
+type-foo.sh

@@ -1,20 +1,39 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Overlay 0x7ebdfc -- a small map built around YES/NO PROMPTS.
+@
+@ Slot 1  OvlFunc_30  edge transitions   -> .L2f0
+@ Slot 2  OvlFunc_3c  map event list     -> .L3c8
+@ Slot 3  OvlFunc_44  read after slot 4  -> .L4e0 if save bit 0x96F, else .L3f0
+@ Slot 5  OvlFunc_38  interactions       -> none (returns 0)
+@
+@ OvlFunc_68 and OvlFunc_b0 are the same prompt shape at different message
+@ bases (0x25B8 and 0x25DC). Each takes the speaker slot in r0, opens the box,
+@ puts the yes/no question up through Func_91c7c, and then shows base+2 for yes
+@ or base+1 for no -- with a ten-frame beat before the "no" line only. Reserving
+@ three consecutive ids per prompt is the convention throughout the overlays.
+@ ============================================================================
+
+@ Slot 1: edge-transition table.
 .thumb_func_start OvlFunc_30
 	ldr	r0, =.L2f0
 	bx	lr
 .func_end OvlFunc_30
 
+@ Slot 5: interaction table -- none.
 .thumb_func_start OvlFunc_38
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_38
 
+@ Slot 2: map event list.
 .thumb_func_start OvlFunc_3c
 	ldr	r0, =.L3c8
 	bx	lr
 .func_end OvlFunc_3c
 
+@ Slot 3: save bit 0x96F selects the later object list.
 .thumb_func_start OvlFunc_44
 	push	{lr}
 	ldr	r0, =0x96f
@@ -30,6 +49,7 @@
 	bx	r1
 .func_end OvlFunc_44
 
+@ Prompt at message base 0x25B8. r0 = speaker slot. See the header.
 .thumb_func_start OvlFunc_68
 	push	{r5, r6, lr}
 	ldr	r5, =0x25b8
@@ -61,6 +81,7 @@
 	bx	r0
 .func_end OvlFunc_68
 
+@ Prompt at message base 0x25DC. r0 = speaker slot.
 .thumb_func_start OvlFunc_b0
 	push	{r5, r6, lr}
 	ldr	r5, =0x25dc
@@ -92,6 +113,10 @@
 	bx	r0
 .func_end OvlFunc_b0
 
+@ OpenPassage
+@ Takes no arguments. Repaints a 1x1 attribute cell at (0x19, 9) from source
+@ (4, 9) and sets save bit 0x201 to record it -- the smallest possible version
+@ of the passage-reveal pattern, with no cutscene around it.
 .thumb_func_start OvlFunc_f8
 	push	{lr}
 	sub	sp, #8
@@ -111,6 +136,12 @@
 	bx	r0
 .func_end OvlFunc_f8
 
+@ WarpToRecordedPoint
+@ Takes no arguments. Reads the interaction target halfword at
+@ [iwram_1ebc]+0x16C, uses it to index the pair table at .L5d0 for an (x, z),
+@ plays sound 0x9E, and hands the coordinates to Func_10560 with the descriptor
+@ at .L5e8. Then Func_922c4 nudges the player -0x10 on z and the scene delay at
+@ +0x1C8 is set to 0x10.
 .thumb_func_start OvlFunc_120
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -162,6 +193,10 @@
 	bx	r0
 .func_end OvlFunc_120
 
+@ WarpToRecordedPoint -- the twin of OvlFunc_120, differing only in the
+@ descriptor it passes Func_10560 (.L5fe rather than .L5e8) and in ending with
+@ Func_91e9c on the interaction target, so the destination also becomes the
+@ next pending message.
 .thumb_func_start OvlFunc_194
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -213,6 +248,8 @@
 	bx	r0
 .func_end OvlFunc_194
 
+@ Second table selector on save bit 0x96F: .L758 once set, .L614 before.
+@ Reached from a table rather than an export slot.
 .thumb_func_start OvlFunc_208
 	push	{lr}
 	ldr	r0, =0x96f
@@ -228,6 +265,15 @@
 	bx	r1
 .func_end OvlFunc_208
 
+@ Slot 0: map-load entry.
+@
+@ Arriving through entrance 0x5A sets save bit 0x96F -- so that one doorway is
+@ what advances this map's state. Then the scene step delay at
+@ [iwram_1ebc]+0x1C0 is set to 0x100 and the message delay at +0x1C8 to 0x18.
+@
+@ If save bit 0x201 is already set the passage OvlFunc_f8 opens is re-applied
+@ on load and slot 0x10 is put into animation 4, so the room reflects work the
+@ player did on a previous visit.
 .thumb_func_start OvlFunc_22c
 	push	{lr}
 	ldr	r3, =ewram_240

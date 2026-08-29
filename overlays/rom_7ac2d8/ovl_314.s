@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ Distance3D
+@ Integer distance between two {x,y,z} triples.
+@ Byte-identical to OvlFunc_30 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
 .thumb_func_start OvlFunc_314
 	push	{r5, lr}
 	ldmia	r0!, {r5}
@@ -30,6 +34,10 @@
 	bx	r1
 .func_end OvlFunc_314
 
+@ FindEntityAtPosition
+@ First map-object slot (8..0x41) standing at a position.
+@ Byte-identical to OvlFunc_6c in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
 .thumb_func_start OvlFunc_350
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1ebc
@@ -78,6 +86,11 @@
 	bx	r1
 .func_end OvlFunc_350
 
+@ TryPushBlockOneTile
+@ Interaction handler for a single-tile pushable block.
+@ Byte-identical to OvlFunc_c4 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
+@ Here .L5d50 is the facing->step table.
 .thumb_func_start OvlFunc_3a8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -257,6 +270,10 @@
 	bx	r0
 .func_end OvlFunc_3a8
 
+@ FillMapRectCollisionByte
+@ Stamp one byte over a rectangle of map collision cells.
+@ Byte-identical to OvlFunc_244 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
 .thumb_func_start OvlFunc_528
 	push	{r5, r6, lr}
 	mov	r4, r3
@@ -312,6 +329,11 @@
 	bx	r1
 .func_end OvlFunc_528
 
+@ PlayerPushFrameHook
+@ Per-frame guard that halts the player if a push turns invalid.
+@ Byte-identical to OvlFunc_2a8 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
+@ Here .L5d50 is the facing->step table, .L5d90 is the six pushable model ids.
 .thumb_func_start OvlFunc_58c
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -392,6 +414,11 @@
 	bx	r1
 .func_end OvlFunc_58c
 
+@ FindPushableFacingPlayer
+@ Locate the log the player is facing, broadside only.
+@ Byte-identical to OvlFunc_34c in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
+@ Here .L5d50 is the facing->step table, .L5da8 is the six footprints, .L5d90 is the six pushable model ids.
 .thumb_func_start OvlFunc_630
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -539,6 +566,11 @@
 	bx	r1
 .func_end OvlFunc_630
 
+@ PlanPushDistance
+@ How many tiles the log can travel before it hits a wall.
+@ Byte-identical to OvlFunc_474 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
+@ Here .L5d50 is the facing->step table, .L5da8 is the six footprints.
 .thumb_func_start OvlFunc_758
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -747,6 +779,11 @@
 	bx	r1
 .func_end OvlFunc_758
 
+@ RunPushCutscene
+@ The whole push: animation, glide, and collision restamp.
+@ Byte-identical to OvlFunc_608 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
+@ Here .L5d50 is the facing->step table, .L5da8 is the six footprints.
 .thumb_func_start OvlFunc_8ec
 	sub	sp, #0x10
 	push	{r5, r6, r7, lr}
@@ -1061,6 +1098,11 @@
 	bx	r3
 .func_end OvlFunc_8ec
 
+@ StampPlayerFootprintSolid
+@ Mark a log's cells solid on map entry.
+@ Byte-identical to OvlFunc_8c0 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
+@ Here .L5da8 is the six footprints, .L5d90 is the six pushable model ids.
 .thumb_func_start OvlFunc_ba4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1206,6 +1248,11 @@
 	bx	r1
 .func_end OvlFunc_ba4
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   LoadMapByName
 .thumb_func_start OvlFunc_cc0
 	push	{lr}
 	mov	r0, #0xc
@@ -1215,6 +1262,11 @@
 	bx	r0
 .func_end OvlFunc_cc0
 
+@ 61 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random, OvlFunc_common0_10c
 .thumb_func_start OvlFunc_cd0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8

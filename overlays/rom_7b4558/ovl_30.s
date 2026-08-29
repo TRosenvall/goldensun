@@ -1,5 +1,9 @@
 	.include "macros.inc"
 
+@ Distance3D
+@ Integer distance between two {x,y,z} triples.
+@ Byte-identical to OvlFunc_30 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
 .thumb_func_start OvlFunc_30
 	push	{r5, lr}
 	ldmia	r0!, {r5}
@@ -30,6 +34,10 @@
 	bx	r1
 .func_end OvlFunc_30
 
+@ FindEntityAtPosition
+@ First map-object slot (8..0x41) standing at a position.
+@ Byte-identical to OvlFunc_6c in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
 .thumb_func_start OvlFunc_6c
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1ebc
@@ -78,6 +86,11 @@
 	bx	r1
 .func_end OvlFunc_6c
 
+@ TryPushBlockOneTile
+@ Interaction handler for a single-tile pushable block.
+@ Byte-identical to OvlFunc_c4 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
+@ Here .L2ef8 is the facing->step table.
 .thumb_func_start OvlFunc_c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -257,6 +270,10 @@
 	bx	r0
 .func_end OvlFunc_c4
 
+@ FillMapRectCollisionByte
+@ Stamp one byte over a rectangle of map collision cells.
+@ Byte-identical to OvlFunc_244 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
 .thumb_func_start OvlFunc_244
 	push	{r5, r6, lr}
 	mov	r4, r3
@@ -312,6 +329,11 @@
 	bx	r1
 .func_end OvlFunc_244
 
+@ PlayerPushFrameHook
+@ Per-frame guard that halts the player if a push turns invalid.
+@ Byte-identical to OvlFunc_2a8 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
+@ Here .L2ef8 is the facing->step table, .L2f38 is the six pushable model ids.
 .thumb_func_start OvlFunc_2a8
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -392,6 +414,11 @@
 	bx	r1
 .func_end OvlFunc_2a8
 
+@ FindPushableFacingPlayer
+@ Locate the log the player is facing, broadside only.
+@ Byte-identical to OvlFunc_34c in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
+@ Here .L2ef8 is the facing->step table, .L2f50 is the six footprints, .L2f38 is the six pushable model ids.
 .thumb_func_start OvlFunc_34c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -539,6 +566,11 @@
 	bx	r1
 .func_end OvlFunc_34c
 
+@ PlanPushDistance
+@ How many tiles the log can travel before it hits a wall.
+@ Byte-identical to OvlFunc_474 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
+@ Here .L2ef8 is the facing->step table, .L2f50 is the six footprints.
 .thumb_func_start OvlFunc_474
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -747,6 +779,11 @@
 	bx	r1
 .func_end OvlFunc_474
 
+@ RunPushCutscene
+@ The whole push: animation, glide, and collision restamp.
+@ Byte-identical to OvlFunc_608 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
+@ Here .L2ef8 is the facing->step table, .L2f50 is the six footprints.
 .thumb_func_start OvlFunc_608
 	sub	sp, #0x10
 	push	{r5, r6, r7, lr}
@@ -1061,6 +1098,11 @@
 	bx	r3
 .func_end OvlFunc_608
 
+@ StampPlayerFootprintSolid
+@ Mark a log's cells solid on map entry.
+@ Byte-identical to OvlFunc_8c0 in overlays/rom_780898/ovl_30.s,
+@ where the shared push-log block is documented in full.
+@ Here .L2f50 is the six footprints, .L2f38 is the six pushable model ids.
 .thumb_func_start OvlFunc_8c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1206,6 +1248,9 @@
 	bx	r1
 .func_end OvlFunc_8c0
 
+@ Leaf helper, 11 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x9.
 .thumb_func_start OvlFunc_9dc
 	ldr	r0, [r0, #0x50]
 	mov	r3, #3
@@ -1220,6 +1265,11 @@
 	bx	lr
 .func_end OvlFunc_9dc
 
+@ 39 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, SetEntityActorOptions, SetActorPartsPalette, SetEntityActorPriority
 .thumb_func_start OvlFunc_9f4
 	push	{r5, r6, lr}
 	mov	r4, r0
@@ -1264,6 +1314,11 @@
 	bx	r1
 .func_end OvlFunc_9f4
 
+@ 46 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, SetEntityActorOptions, SetActorPartsPalette
 .thumb_func_start OvlFunc_a4c
 	push	{r5, r6, lr}
 	mov	r4, r0
@@ -1315,6 +1370,9 @@
 	bx	r1
 .func_end OvlFunc_a4c
 
+@ Leaf helper, 27 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Writes offsets +0x8, +0xc, +0x10, +0x18, +0x1c, +0x1e.
 .thumb_func_start OvlFunc_ab0
 	ldr	r3, [r0, #8]
 	ldr	r2, [r0, #0x44]
@@ -1345,6 +1403,12 @@
 	bx	lr
 .func_end OvlFunc_ab0
 
+@ 220 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SpawnEntity, SetEntityAnimation, SetEntityScript
+@   SetActorPartsPalette, SignedDiv x3, SetEntityAnimation, SetEntityScript
 .thumb_func_start OvlFunc_ae8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1581,6 +1645,11 @@
 	bx	r0
 .func_end OvlFunc_ae8
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   LoadMapByName
 .thumb_func_start OvlFunc_cc0
 	push	{lr}
 	mov	r0, #0x12
@@ -1590,6 +1659,13 @@
 	bx	r0
 .func_end OvlFunc_cc0
 
+@ 65 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, CheckTerrainStep, BeginCutscene, SetEntityAnimation
+@   Func_30f8, PlaySound, SetEntityAnimation, SetEntityActorOptions
+@   MoveSlotToAndWait, SetEntityAnimation, SetEntityActorOptions, EndCutscene
 .thumb_func_start OvlFunc_cd0
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1660,6 +1736,11 @@
 	bx	r1
 .func_end OvlFunc_cd0
 
+@ 9 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetActorPartsPalette
 .thumb_func_start OvlFunc_d6c
 	push	{lr}
 	mov	r3, r0
@@ -1672,6 +1753,11 @@
 	bx	r1
 .func_end OvlFunc_d6c
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetEntityActorOptions
 .thumb_func_start OvlFunc_d80
 	push	{lr}
 	mov	r1, #0
@@ -1681,6 +1767,12 @@
 	bx	r1
 .func_end OvlFunc_d80
 
+@ 60 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetSlotDrawPriority, SetSlotEntitySpeed, PlaySound
+@   SetEntityActorOptions, MoveSlotToAndWait, PlaceSlotAt, SetEntityActorOptions
 .thumb_func_start OvlFunc_d90
 	push	{r5, r6, lr}
 	mov	r6, r10
@@ -1744,6 +1836,12 @@
 	bx	r0
 .func_end OvlFunc_d90
 
+@ 64 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, PlaySound, Cos, Sin
+@   SignedDiv, OvlFunc_ae8
 .thumb_func_start OvlFunc_e18
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1812,6 +1910,12 @@
 	bx	r0
 .func_end OvlFunc_e18
 
+@ 22 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetCameraSpeed, CenterCameraOnSlot, WaitForCameraArrival, DialogueWait
+@   OvlFunc_e18, SetSlotPalette
 .thumb_func_start OvlFunc_ea8
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -1837,6 +1941,9 @@
 	bx	r0
 .func_end OvlFunc_ea8
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_ee0
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -1869,16 +1976,21 @@
 	bx	r1
 .func_end OvlFunc_ee0
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_f34
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_f34
 
+@ Slot 2: the map event list -- .L35bc.
 .thumb_func_start OvlFunc_f38
 	ldr	r0, =.L35bc
 	bx	lr
 .func_end OvlFunc_f38
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_f40
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -1911,6 +2023,15 @@
 	bx	r1
 .func_end OvlFunc_f40
 
+@ 70 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_474, OvlFunc_608, SetSaveBit
+@   SetSlotAnimation, SetSlotEntitySpeed, MoveSlotBy, DialogueWait
+@   SetSlotAnimation, PlaySound, SetSlotDrawPriority, GetSlotEntityChecked
+@   CopyMapRectAttributes, EndCutscene
+@ sets 0x310.
 .thumb_func_start OvlFunc_f94
 	push	{r5, lr}
 	sub	sp, #0x20
@@ -1985,6 +2106,11 @@
 	bx	r0
 .func_end OvlFunc_f94
 
+@ 24 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_cd0
 .thumb_func_start OvlFunc_103c
 	push	{lr}
 	mov	r0, #0
@@ -2012,6 +2138,12 @@
 	bx	r0
 .func_end OvlFunc_103c
 
+@ 78 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_cd0, BeginCutscene, SetSlotAnimation
+@   Func_30f8 x3, EndCutscene
 .thumb_func_start OvlFunc_1078
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -2094,6 +2226,11 @@
 	bx	r0
 .func_end OvlFunc_1078
 
+@ 11 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetSlotAnimation, RunTextBoxModal, EndCutscene
 .thumb_func_start OvlFunc_112c
 	push	{lr}
 	bl	__Func_916b0
@@ -2108,6 +2245,10 @@
 	bx	r0
 .func_end OvlFunc_112c
 
+@ Cutscene: roughly 98 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 5 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x300.
 .thumb_func_start OvlFunc_1150
 	push	{r5, lr}
 	mov	r0, #0xa
@@ -2209,6 +2350,16 @@
 	bx	r0
 .func_end OvlFunc_1150
 
+@ 85 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, OvlFunc_ea8, OvlFunc_d90
+@   OvlFunc_ae8, AttachCameraToSlot, TurnSlotsToFaceEachOther, DialogueWait
+@   SetFollowerFormationScript, PlayInteractionEffect, PlaySound, DialogueWait
+@   GetSlotEntityChecked x2, OvlFunc_d90
+@   ... and 5 more
+@ sets 0x301.
 .thumb_func_start OvlFunc_1244
 	push	{r5, lr}
 	mov	r0, #0xb
@@ -2297,6 +2448,16 @@
 	bx	r0
 .func_end OvlFunc_1244
 
+@ 99 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, OvlFunc_ea8, OvlFunc_d90
+@   OvlFunc_ae8, AttachCameraToSlot, TurnSlotsToFaceEachOther, DialogueWait
+@   SetFollowerFormationScript, RunSlotEffectSequence, DialogueWait, OvlFunc_d90
+@   FaceEntityInstant, DialogueWait
+@   ... and 9 more
+@ sets 0x302.
 .thumb_func_start OvlFunc_1328
 	push	{r5, r6, lr}
 	mov	r0, #0xc
@@ -2399,6 +2560,13 @@
 	bx	r0
 .func_end OvlFunc_1328
 
+@ 17 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, PlaceSlotAt, SetSaveBit, UpdateObjectProximity
+@   ApplyFieldItemOrAbility, EndCutscene
+@ sets 0xfd4.
 .thumb_func_start OvlFunc_1420
 	push	{lr}
 	bl	__Func_916b0
@@ -2419,6 +2587,15 @@
 	bx	r0
 .func_end OvlFunc_1420
 
+@ 86 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_474, OvlFunc_608, CopyMapRectAttributes
+@   SetSaveBit, SetSlotAnimation, MoveSlotBy, DialogueWait
+@   SetSlotAnimation, PlaySound, GetSlotEntityChecked, CopyMapRectAttributes
+@   OvlFunc_244, EndCutscene
+@ sets 0x311.
 .thumb_func_start OvlFunc_1454
 	push	{r5, lr}
 	sub	sp, #0x20
@@ -2510,6 +2687,12 @@
 	bx	r0
 .func_end OvlFunc_1454
 
+@ 75 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked x2, OvlFunc_244 x5, GetSlotEntityChecked
+@   EndCutscene
 .thumb_func_start OvlFunc_1520
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -2589,6 +2772,10 @@
 	bx	r0
 .func_end OvlFunc_1520
 
+@ Cutscene: roughly 113 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 7 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x303.
 .thumb_func_start OvlFunc_15d0
 	push	{r5, r6, lr}
 	mov	r0, #0xc
@@ -2705,6 +2892,10 @@
 	bx	r0
 .func_end OvlFunc_15d0
 
+@ Cutscene: roughly 117 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 7 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x304.
 .thumb_func_start OvlFunc_16f0
 	push	{r5, lr}
 	mov	r0, #0xd
@@ -2825,6 +3016,14 @@
 	bx	r0
 .func_end OvlFunc_16f0
 
+@ 36 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_ea8, OvlFunc_d90, DialogueWait
+@   OvlFunc_e18, SetSlotPalette, GetSlotEntityChecked, SetEntityActorOptions
+@   DialogueWait, SetSaveBit, PlaceSlotAt, EndCutscene
+@ sets 0x305.
 .thumb_func_start OvlFunc_1818
 	push	{lr}
 	bl	__Func_916b0
@@ -2864,6 +3063,10 @@
 	bx	r0
 .func_end OvlFunc_1818
 
+@ Cutscene: roughly 123 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 8 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x306.
 .thumb_func_start OvlFunc_1880
 	push	{r5, r6, lr}
 	mov	r0, #0xe
@@ -2990,6 +3193,16 @@
 	bx	r0
 .func_end OvlFunc_1880
 
+@ 112 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_474, OvlFunc_608, CopyMapRectAttributes x2
+@   SetSlotDrawPriority, SetSaveBit, CopyMapRectAttributes, SetSlotDrawPriority
+@   SetSaveBit, EndCutscene, SetSlotAnimation, MoveSlotBy
+@   DialogueWait, SetSlotAnimation
+@   ... and 4 more
+@ sets 0x312, 0x313.
 .thumb_func_start OvlFunc_19b8
 	push	{r5, r6, lr}
 	sub	sp, #0x20
@@ -3112,6 +3325,12 @@
 	bx	r0
 .func_end OvlFunc_19b8
 
+@ 78 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x4, OvlFunc_cd0, BeginCutscene, SetSlotAnimation
+@   Func_30f8 x3, EndCutscene
 .thumb_func_start OvlFunc_1ac8
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -3194,6 +3413,12 @@
 	bx	r0
 .func_end OvlFunc_1ac8
 
+@ 75 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked x2, OvlFunc_244 x5, GetSlotEntityChecked
+@   EndCutscene
 .thumb_func_start OvlFunc_1b84
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -3273,6 +3498,13 @@
 	bx	r0
 .func_end OvlFunc_1b84
 
+@ 89 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, GetSlotEntityChecked x2, OvlFunc_244 x5, GetSlotEntityChecked x2
+@   SetSaveBit, OvlFunc_244, EndCutscene
+@ sets 0x214.
 .thumb_func_start OvlFunc_1c34
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -3366,6 +3598,16 @@
 	bx	r0
 .func_end OvlFunc_1c34
 
+@ 81 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, OvlFunc_ea8, OvlFunc_d90
+@   DialogueWait, OvlFunc_ae8, AttachCameraToSlot, TurnSlotsToFaceEachOther
+@   DialogueWait, SetFollowerFormationScript, PlayInteractionEffect, PlaySound
+@   DialogueWait, GetSlotEntityChecked x2
+@   ... and 5 more
+@ sets 0x307.
 .thumb_func_start OvlFunc_1d04
 	push	{r5, r6, lr}
 	mov	r0, #0xf
@@ -3450,6 +3692,10 @@
 	bx	r0
 .func_end OvlFunc_1d04
 
+@ Cutscene: roughly 109 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 7 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x308.
 .thumb_func_start OvlFunc_1de0
 	push	{r5, r6, lr}
 	mov	r0, #0x10
@@ -3562,6 +3808,10 @@
 	bx	r0
 .func_end OvlFunc_1de0
 
+@ Cutscene: roughly 109 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 7 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x309.
 .thumb_func_start OvlFunc_1ef0
 	push	{r5, r6, lr}
 	mov	r0, #0x11
@@ -3674,6 +3924,14 @@
 	bx	r0
 .func_end OvlFunc_1ef0
 
+@ 43 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_ea8, MoveCameraTo, OvlFunc_d90
+@   OvlFunc_e18, SetSlotPalette, GetSlotEntityChecked, SetEntityActorOptions
+@   DialogueWait, SetSaveBit, PlaceSlotAt, EndCutscene
+@ sets 0x30a.
 .thumb_func_start OvlFunc_2004
 	push	{lr}
 	bl	__Func_916b0
@@ -3720,6 +3978,10 @@
 	bx	r0
 .func_end OvlFunc_2004
 
+@ Cutscene: roughly 124 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 8 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x30b.
 .thumb_func_start OvlFunc_2078
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -3847,6 +4109,10 @@
 	bx	r0
 .func_end OvlFunc_2078
 
+@ Cutscene: roughly 108 instructions of straight-line script --
+@ 1 turn, 0 animation changes, 0 dialogue lines, 5 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Sets save bit 0x89d.
 .thumb_func_start OvlFunc_21b0
 	push	{r5, lr}
 	mov	r0, #0x12
@@ -3958,6 +4224,9 @@
 	bx	r0
 .func_end OvlFunc_21b0
 
+@ Cutscene: roughly 193 instructions of straight-line script --
+@ 1 turn, 0 animation changes, 0 dialogue lines, 7 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_22c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -4155,6 +4424,9 @@
 	bx	r0
 .func_end OvlFunc_22c0
 
+@ Leaf helper, 25 instructions, calls nothing.
+@ Described by what it touches, not by what it means.
+@ Globals: ewram_240
 .thumb_func_start OvlFunc_24ac
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -4187,6 +4459,11 @@
 	bx	r1
 .func_end OvlFunc_24ac
 
+@ Cutscene: roughly 617 instructions of straight-line script --
+@ 1 turn, 4 animation changes, 0 dialogue lines, 3 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x300, 0x303, 0x304.
+@ Sets save bits 0x214, 0x88f, 0x89c, 0x89e.
 .thumb_func_start OvlFunc_2500
 	push	{r5, lr}
 	ldr	r3, =iwram_1ebc
@@ -4869,6 +5146,11 @@
 	bx	r1
 .func_end OvlFunc_2500
 
+@ 46 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Sin, Cos x2, Random x2
 .thumb_func_start OvlFunc_2ba4
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -4920,6 +5202,13 @@
 	bx	r1
 .func_end OvlFunc_2ba4
 
+@ 97 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetEntityActorOptions, TestSaveBit, Func_48b0
+@   SetPortraitPointer, AllocObjTiles, Func_2dd8
+@ reads save bit 0x109.
 .thumb_func_start OvlFunc_2c0c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10

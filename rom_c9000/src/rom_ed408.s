@@ -1,6 +1,35 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ GenerateBlitter -- runtime code generator
+@ r0 = allocation tag (only 0x2E and 0x2F are ever passed), r1, r2 = source and
+@ destination pixel widths, r3 = feature flags, arg5 on the stack = pixel mode.
+@ Returns 1 on success, 0 if the emitter desynchronised from its template table.
+@ Exported (first entry in exports.s) and called from 216 sites in this module.
+@
+@ This does NOT play an animation. It ASSEMBLES A SPECIALISED SPRITE BLITTER AT
+@ RUNTIME and leaves it in the tag's allocation slot:
+@
+@   1. Walks the flags and pixel mode adding up how many words of code it is
+@      about to emit -- the long chain of `add r1, #N` at the top is that size
+@      calculation, not arithmetic on pixels.
+@   2. `lsl r1, #2` turns words into bytes and Func_48b0 allocates the buffer.
+@   3. DMA3-copies code fragments out of the templates at Data_edcc4 and
+@      Data_edcb8, appending or skipping each one according to the flags, so the
+@      emitted routine contains only the cases this animation actually needs.
+@   4. Back-patches the branches it emitted: `(target - site - 8) >> 2` masked
+@      and OR'd into the placeholder word is the ARM B/BL offset encoding.
+@   5. Returns Data_edcc4-walked-to-the-end ? 1 : 0 as a self-check.
+@
+@ The generated routine is reached through the tag's slot in the iwram_1e50
+@ allocation table (see the tag map in rom_d6504.s). Because the table base is
+@ iwram_1e50 and iwram_1ef0 = iwram_1e50 + 0x28*4, the callers' idiom
+@     ldr r5, =iwram_1ef0 ... ldr r4, [r5, #0x18] / ldr r5, [r5, #0x1c]
+@ is just "fetch the tag-0x2E blitter" and "fetch the tag-0x2F blitter".
+@ Both are called as blit(dst, srcGfx, x, y, w, h) with x,y naming the sprite
+@ CENTRE, and both are released with Func_2dd8(0x2F)/Func_2dd8(0x2E) when the
+@ animation ends. Func_cef64 picks between already-generated pairs instead of
+@ generating new ones.
 .thumb_func_start Func_ed408
 	push	{r5, r6, r7, lr}
 	mov	r7, r11

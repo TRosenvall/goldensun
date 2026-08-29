@@ -1,6 +1,44 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
+@ ============================================================================
+@ Shops, and the scrolling-list controller.
+@
+@ rom_b0000 runs the buy/sell screens and, along the way, provides the generic
+@ SCROLLING LIST controller that other modules borrow -- rom_15000's dial screen
+@ reaches Func_b08b8 / Func_b0958 / Func_b09fc / Func_b0a20 through their export
+@ veneers. 14 functions are exported.
+@
+@ Its state block is tag 0x37, so the pointer lives at iwram_1f2c
+@ (iwram_1e50 + 0x37*4). Func_b010c allocates it as 0xA70 bytes with
+@ Func_48b0 -- IWRAM first -- and DMA-clears 0x29C words of it. Func_b0204 is
+@ the matching teardown and frees the same tag, so the reverse-order rule the
+@ arena allocator requires is respected.
+@
+@ It leans on rom_77000 for the money and the goods (_Func_79700 to charge,
+@ _Func_78708 / _Func_787dc to add and remove inventory, _Func_78664 to find an
+@ item, _Func_78414 for the item records), and on rom_15000 for the presentation
+@ (_Func_162d4 windows, _Func_17658 and _Func_175a0 prompts, _Func_1e7c0 and
+@ _Func_1ea08 text and numbers, _Func_1eb90 icons).
+@
+@ THE LIST CONTROLLER record, the argument those four exported functions share:
+@     +0x00  the list being displayed
+@     +0x04  visible row count      +0x06  total row count
+@     +0x08  current scroll offset  +0x0A  cursor position
+@     +0x0C  a flag byte            +0x0D  active flag, 0 disables the list
+@ Func_b09fc initialises it from the list, Func_b0a20 rebinds it to a new one,
+@ Func_b08b8 steps the cursor and Func_b0958 recomputes the scroll window.
+@
+@ A TEST FIXTURE IS STILL IN HERE. Func_b0444 sets the money at ewram_240+0x10
+@ to 0x30D40 (200,000) and grants a fixed list of items through _Func_78588 /
+@ _Func_78708. It is reachable only through its own export veneer -- nothing in
+@ the annotated modules calls it -- so treat it as a development entry, not
+@ something the shipped game reaches.
+@ ============================================================================
+
+@ ClassifyShopItem
+@ r0 = item id. Categorises it through _Func_78480 and _Func_78ad0 so the shop
+@ knows which list it belongs in.
 .thumb_func_start Func_b0070
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -63,6 +101,8 @@
 	.word	0
 .func_end Func_b0070
 
+@ StepListCursor
+@ r0 = list record. A thin Func_b08b8 wrapper.
 .thumb_func_start Func_b00f4
 	push	{lr}
 	ldr	r3, =iwram_1f2c
@@ -75,6 +115,11 @@
 	bx	r0
 .func_end Func_b00f4
 
+@ OpenShopState
+@ Takes no arguments. Allocates the module's 0xA70-byte state block under TAG
+@ 0x37 -- which is what iwram_1f2c points at -- DMA-clears 0x29C words of it,
+@ reserves OBJ tiles with Func_3fa4 / Func_4080, registers a per-frame task with
+@ Func_41d8, and reads the party through _Func_796c4.
 .thumb_func_start Func_b010c
 	push	{r5, lr}
 	mov	r1, #0xa7
@@ -108,14 +153,14 @@
 	lsl	r2, #2
 	add	r3, r5, r2
 	strh	r0, [r3]
-	ldr	r2, =.Lb3940
+	ldr	r2, =Lb3940
 	mov	r1, #0x80
 	bl	Func_3fa4
 	bl	Func_4080
 	ldr	r2, =0x392
 	add	r3, r5, r2
 	strh	r0, [r3]
-	ldr	r2, =.Lb3b40
+	ldr	r2, =Lb3b40
 	mov	r1, #0x80
 	bl	Func_3fa4
 	bl	Func_4080
@@ -123,28 +168,28 @@
 	lsl	r2, #2
 	add	r3, r5, r2
 	strh	r0, [r3]
-	ldr	r2, =.Lb3bc0
+	ldr	r2, =Lb3bc0
 	mov	r1, #0x80
 	bl	Func_3fa4
 	bl	Func_4080
 	ldr	r2, =0x396
 	add	r3, r5, r2
 	strh	r0, [r3]
-	ldr	r2, =.Lb39c0
+	ldr	r2, =Lb39c0
 	mov	r1, #0x80
 	bl	Func_3fa4
 	bl	Func_4080
 	ldr	r2, =0x39a
 	add	r3, r5, r2
 	strh	r0, [r3]
-	ldr	r2, =.Lb3a40
+	ldr	r2, =Lb3a40
 	mov	r1, #0x80
 	bl	Func_3fa4
 	bl	Func_4080
 	mov	r3, #0xe6
 	lsl	r3, #2
 	add	r5, r3
-	ldr	r2, =.Lb3ac0
+	ldr	r2, =Lb3ac0
 	strh	r0, [r5]
 	mov	r1, #0x80
 	bl	Func_3fa4
@@ -158,6 +203,11 @@
 	bx	r0
 .func_end Func_b010c
 
+@ CloseShopState
+@ Takes no arguments. The exact reverse of Func_b010c: unregisters the task
+@ (Func_4278), releases the OBJ tiles (Func_3f3c), closes the menu
+@ (_Func_19a54) and frees tag 0x37 (Func_2dd8). Freeing last is what keeps the
+@ bump arena consistent.
 .thumb_func_start Func_b0204
 	push	{r5, lr}
 	ldr	r3, =iwram_1f2c
@@ -199,6 +249,11 @@
 	bx	r0
 .func_end Func_b0204
 
+@ RunShop
+@ r0 = shop id, r1 = mode. The module's main entry, exported. Bounds-checks the
+@ id against Func_b26c8's count, opens the state with Func_b010c, runs the
+@ screen through Func_b0aac, and tears down with Func_b0204.
+@ 202 lines; traced structurally.
 .thumb_func_start Func_b0278
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -401,6 +456,14 @@
 	bx	r1
 .func_end Func_b0278
 
+@ SetUpTestInventory
+@ Takes no arguments. Exported. Sets the money at ewram_240+0x10 to 0x30D40 --
+@ 200,000, well under the 999,999 cap -- writes a byte at +0x11C, and grants a
+@ fixed list of item ids (0x48D, 0x40B, ...) through _Func_78588 and
+@ _Func_78708, then runs Func_b0278.
+@ NOTHING IN THE ANNOTATED MODULES CALLS THIS. It is reachable only through its
+@ export veneer, and granting a hard-coded inventory with a round money figure
+@ is a development fixture, not shipped behaviour.
 .thumb_func_start Func_b0444
 	push	{r5, r6, lr}
 	ldr	r3, =ewram_240
@@ -449,6 +512,9 @@
 	bx	r1
 .func_end Func_b0444
 
+@ WaitForSound
+@ r0.. = parameters. Spins on Func_30f8(1) until _Func_f954c reports the sound
+@ subsystem idle.
 .thumb_func_start Func_b04c4
 	push	{lr}
 	b	.Lb04ce
@@ -463,6 +529,9 @@
 	bx	r0
 .func_end Func_b04c4
 
+@ ShowShopPrompt
+@ r0 = string id. Opens a prompt with _Func_17658, blocks on _Func_17364 a frame
+@ at a time, and closes with _Func_19a54.
 .thumb_func_start Func_b04dc
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1f2c
@@ -528,6 +597,8 @@
 	bx	r0
 .func_end Func_b04dc
 
+@ ShowShopChoice
+@ r0.. = parameters. As Func_b04dc but returning the player's selection.
 .thumb_func_start Func_b0574
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -614,6 +685,9 @@
 	bx	r0
 .func_end Func_b0574
 
+@ RunShopSubScreen
+@ r0.. = parameters. Hands off to rom_15000's _Func_28e54 and rom_a1000's
+@ _Func_a17c4.
 .thumb_func_start Func_b0634
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1f2c
@@ -637,6 +711,8 @@
 	bx	r1
 .func_end Func_b0634
 
+@ RunShopSubScreenAlt
+@ r0.. = parameters. The Func_b0634 counterpart with different arguments.
 .thumb_func_start Func_b0664
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1f2c
@@ -660,6 +736,9 @@
 	bx	r1
 .func_end Func_b0664
 
+@ CountListEntries
+@ r0 = list. Walks the linked list at +0x348, whose length is the halfword at
+@ +0x39E, and returns the count.
 .thumb_func_start Func_b0694
 	push	{lr}
 	mov	r2, #0xd2
@@ -685,13 +764,16 @@
 	bx	r1
 .func_end Func_b0694
 
+@ FillRowAttributes
+@ r0 = count, r1 = value, r2 = base. Writes the same byte into six fields of
+@ each row record, at offsets taken from the halfword table .Lb4100.
 .thumb_func_start Func_b06c0
 	push	{lr}
 	lsl	r3, r1, #4
 	add	r1, r3, #1
 	cmp	r0, #0
 	ble	.Lb06e4
-	ldr	r4, =.Lb4100
+	ldr	r4, =Lb4100
 .Lb06cc:
 	ldrh	r3, [r4]
 	sub	r0, #1
@@ -710,12 +792,14 @@
 	bx	r0
 .func_end Func_b06c0
 
+@ ComputeRowLayout
+@ r0.. = parameters. Derives a row's on-screen geometry; no calls out.
 .thumb_func_start Func_b06ec
 	push	{lr}
-	ldr	r3, =.Lb3d40
+	ldr	r3, =Lb3d40
 	lsl	r0, #5
 	add	r0, r3
-	ldr	r3, =.Lb413c
+	ldr	r3, =Lb413c
 	lsl	r2, #1
 	ldrh	r3, [r3, r2]
 	add	r1, r3
@@ -755,6 +839,10 @@
 	bx	r0
 .func_end Func_b06ec
 
+@ BuildShopRows
+@ r0.. = parameters. Builds the visible row records, allocating with Func_48f4,
+@ reserving tiles with Func_3fa4 / Func_4080, and dividing with Func_af0 and
+@ Func_b1c. Releases with Func_2dd8.
 .thumb_func_start Func_b0744
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -773,7 +861,7 @@
 	mov	r3, #0
 	mov	r6, r0
 	mov	r9, r3
-	ldr	r0, =.Lb3e80
+	ldr	r0, =Lb3e80
 	ldr	r3, =REG_DMA3SAD
 	mov	r1, r6
 	ldr	r2, =0x84000040
@@ -858,6 +946,9 @@
 	bx	r1
 .func_end Func_b0744
 
+@ UploadShopGraphics
+@ r0 = index. DMA3s a 0x150-word block from the rom_a1000 state at iwram_1ebc
+@ into the shop's buffer, going through _Func_91200 and _Func_91254.
 .thumb_func_start Func_b0840
 	push	{r5, r6, lr}
 	ldr	r3, =iwram_1ebc
@@ -891,6 +982,8 @@
 	bx	r0
 .func_end Func_b0840
 
+@ UploadShopGraphicsAlt
+@ r0 = index. The short form of Func_b0840. Exported.
 .thumb_func_start Func_b0894
 	push	{lr}
 	ldr	r3, =iwram_1ebc
@@ -905,6 +998,12 @@
 	bx	r0
 .func_end Func_b0894
 
+@ StepListCursor -- exported list controller
+@ r0 = list record. Moves the cursor and returns whether it changed.
+@ Reads the row count from the list at [r0], the visible count from +0x04 and
+@ the cursor from +0x0A, dividing with Func_af0 to work out the page. Returns
+@ immediately when the active flag at +0x0D (a SIGNED byte) is zero.
+@ rom_15000's dial screen borrows this through _Func_b08b8.
 .thumb_func_start Func_b08b8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -984,6 +1083,10 @@
 	bx	r0
 .func_end Func_b08b8
 
+@ RecomputeScrollWindow -- exported
+@ r0 = list record. Recomputes the scroll offset at +0x08 so the cursor stays
+@ visible, from the total row count at [list]+6 and the visible count. Clamps at
+@ both ends and does nothing when the list pointer is null.
 .thumb_func_start Func_b0958
 	push	{r5, lr}
 	mov	r5, r0
@@ -1077,6 +1180,11 @@
 	bx	r0
 .func_end Func_b0958
 
+@ InitListRecord -- exported
+@ r0 = list record, r1 = visible rows, r2 = cursor, r3 = flag.
+@ Initialises the controller from the list at [r0]: copies the total count from
+@ [list]+6 and the row height from [list]+8, stores the caller's visible count,
+@ cursor and flag, and clears +0x0C.
 .thumb_func_start Func_b09fc
 	push	{r5, r6, lr}
 	ldr	r5, [r0]
@@ -1098,6 +1206,11 @@
 	bx	r0
 .func_end Func_b09fc
 
+@ RebindListRecord -- exported
+@ r0 = list record, r1 = new row count. Points the record at a resized list:
+@ writes the count into [list]+6 and the record's +0x04 and +0x08, patches the
+@ low 9 bits of [list]+0x16, sets the active flag at +0x0D to 1 and clears
+@ +0x0C.
 .thumb_func_start Func_b0a20
 	push	{r5, r6, lr}
 	ldr	r5, [r0]
@@ -1133,6 +1246,8 @@
 	bx	r0
 .func_end Func_b0a20
 
+@ RefreshListRecord
+@ r0 = list record. Re-runs Func_b09fc against the current list.
 .thumb_func_start Func_b0a6c
 	push	{lr}
 	ldr	r3, =iwram_1f2c
@@ -1165,6 +1280,11 @@
 	bx	r0
 .func_end Func_b0a6c
 
+@ RunShopScreen
+@ r0.. = parameters. 570 lines and the body of a shop visit: opens and closes
+@ sub-screens (Func_b0634, Func_b04dc, Func_b0574), drives the list controller
+@ (Func_b0a6c), and advances a frame at a time through Func_30f8.
+@ Traced structurally.
 .thumb_func_start Func_b0aac
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1735,6 +1855,9 @@
 	bx	r1
 .func_end Func_b0aac
 
+@ DrawShopRow
+@ r0.. = parameters. Draws one row: the item record from _Func_78414, the icon
+@ node from _Func_1eadc / _Func_1eb90, released through _Func_16478.
 .thumb_func_start Func_b0fa4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -1877,6 +2000,9 @@
 	bx	r0
 .func_end Func_b0fa4
 
+@ DrawRowText
+@ r0.. = parameters. Emits a row's label and number through _Func_1e7c0 and
+@ _Func_1ea08.
 .thumb_func_start Func_b10cc
 	push	{r5, lr}
 	ldr	r3, =iwram_1f2c
@@ -1905,6 +2031,8 @@
 	bx	r0
 .func_end Func_b10cc
 
+@ DrawRowTextWide
+@ r0.. = parameters. As Func_b10cc with the tile release _Func_16498 first.
 .thumb_func_start Func_b110c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -1974,6 +2102,8 @@
 	bx	r0
 .func_end Func_b110c
 
+@ DrawRowLabel
+@ r0.. = parameters. The label-only form.
 .thumb_func_start Func_b11a4
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -1992,6 +2122,9 @@
 	bx	r0
 .func_end Func_b11a4
 
+@ AnimateShopActor
+@ r0.. = parameters. Drives the shopkeeper actor through _Func_ba30, resolving
+@ its ability record with _Func_7845c.
 .thumb_func_start Func_b11c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2069,6 +2202,10 @@
 	bx	r0
 .func_end Func_b11c4
 
+@ DrawShopPanel
+@ r0.. = parameters. 263 lines. Paints a whole shop panel from the text and
+@ icon primitives above plus the records from _Func_77394. Traced
+@ structurally.
 .thumb_func_start Func_b1260
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2332,6 +2469,9 @@
 	bx	r0
 .func_end Func_b1260
 
+@ DrawInventoryPanel
+@ r0.. = parameters. The player's-inventory counterpart to Func_b1260, finding
+@ items with _Func_78664 and registering menu values with _Func_19908.
 .thumb_func_start Func_b1470
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2431,6 +2571,10 @@
 	bx	r0
 .func_end Func_b1470
 
+@ ResolveTransaction
+@ r0.. = parameters. Works out what a buy or sell actually does, reading the
+@ item record (_Func_78414), locating it (_Func_78664) and dividing with
+@ Func_b60.
 .thumb_func_start Func_b153c
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2532,6 +2676,10 @@
 	bx	r1
 .func_end Func_b153c
 
+@ BuildTransactionUi
+@ r0.. = parameters. 208 lines. Sets the transaction screen up, allocating with
+@ Func_48f4 and reserving tiles, releasing with Func_2dd8. Traced
+@ structurally.
 .thumb_func_start Func_b1614
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2646,7 +2794,7 @@
 	ldr	r3, =REG_DMA3SAD
 	mov	r7, r0
 	mov	r1, r8
-	ldr	r0, =.Lb3f80
+	ldr	r0, =Lb3f80
 	ldr	r2, =0x84000040
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
@@ -2740,6 +2888,10 @@
 	bx	r1
 .func_end Func_b1614
 
+@ RunBuyFlow
+@ r0.. = parameters. The buy interaction: prompt (Func_b0574), quantity
+@ (Func_b1868), confirm (Func_b196c), inventory update through _Func_78588 and
+@ _Func_787dc.
 .thumb_func_start Func_b17e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2799,6 +2951,8 @@
 	bx	r0
 .func_end Func_b17e4
 
+@ RunQuantityPrompt
+@ r0.. = parameters. Lets the player pick a quantity, a frame at a time.
 .thumb_func_start Func_b1868
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -2914,6 +3068,8 @@
 	bx	r1
 .func_end Func_b1868
 
+@ ConfirmTransaction
+@ r0.. = parameters. Confirms and applies a transaction through Func_b1f4c.
 .thumb_func_start Func_b196c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -2961,6 +3117,9 @@
 	bx	r1
 .func_end Func_b196c
 
+@ GetItemDisplayFields
+@ r0 = item id. Pulls the fields a row needs out of the record _Func_78414
+@ returns.
 .thumb_func_start Func_b19cc
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -3002,6 +3161,9 @@
 	bx	r1
 .func_end Func_b19cc
 
+@ RunSellFlow
+@ r0.. = parameters. 200 lines. The sell counterpart to Func_b17e4. Traced
+@ structurally.
 .thumb_func_start Func_b1a14
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3202,6 +3364,9 @@
 	b	.Lb1a94
 .func_end Func_b1a14
 
+@ RunEquipFlow
+@ r0.. = parameters. 262 lines. The equip-from-shop interaction. Traced
+@ structurally.
 .thumb_func_start Func_b1bd0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3464,6 +3629,9 @@
 	bx	r1
 .func_end Func_b1bd0
 
+@ DrawItemDetail
+@ r0.. = parameters. Draws the detail panel for one item, counting the owner's
+@ inventory with _Func_784d8.
 .thumb_func_start Func_b1dec
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -3540,6 +3708,8 @@
 	bx	r0
 .func_end Func_b1dec
 
+@ RunDetailView
+@ r0.. = parameters. Shows the detail panel and waits for dismissal.
 .thumb_func_start Func_b1e80
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3630,6 +3800,9 @@
 	bx	r1
 .func_end Func_b1e80
 
+@ ApplyTransaction
+@ r0.. = parameters. 182 lines. Commits a buy or sell: adjusts the inventory and
+@ registers the result values with _Func_19908. Traced structurally.
 .thumb_func_start Func_b1f4c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -3812,6 +3985,8 @@
 	bx	r0
 .func_end Func_b1f4c
 
+@ GetItemPrice
+@ r0 = item id. Reads the price field from the item record.
 .thumb_func_start Func_b20e8
 	push	{r5, lr}
 	mov	r5, r0
@@ -3835,6 +4010,8 @@
 	bx	r1
 .func_end Func_b20e8
 
+@ RunSellFlowDefault
+@ Takes no arguments. Func_b1a14 with the default parameters.
 .thumb_func_start Func_b2110
 	push	{lr}
 	bl	Func_b1a14
@@ -3843,6 +4020,9 @@
 	bx	r1
 .func_end Func_b2110
 
+@ RunArtisanFlow
+@ r0.. = parameters. 252 lines. A third transaction flow alongside buy and sell.
+@ Traced structurally.
 .thumb_func_start Func_b211c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -4095,6 +4275,9 @@
 	bx	r1
 .func_end Func_b211c
 
+@ RunRepairFlow
+@ r0.. = parameters. 177 lines. A fourth transaction flow. Traced
+@ structurally.
 .thumb_func_start Func_b2328
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -4272,6 +4455,9 @@
 	bx	r0
 .func_end Func_b2328
 
+@ RunTransferFlow
+@ r0.. = parameters. 205 lines. Moves items between party members. Traced
+@ structurally.
 .thumb_func_start Func_b24e4
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -4301,7 +4487,7 @@
 	lsl	r3, #24
 	asr	r3, #24
 	mov	r10, r2
-	ldr	r2, =.Lb4146
+	ldr	r2, =Lb4146
 	lsl	r3, #1
 	ldrsh	r4, [r2, r3]
 	mov	r2, #0x8c
@@ -4476,2211 +4662,3 @@
 	pop	{r0}
 	bx	r0
 .func_end Func_b24e4
-
-.thumb_func_start Func_b26c8
-	mov	r0, #0x23
-	bx	lr
-.func_end Func_b26c8
-
-.thumb_func_start Func_b26cc
-	push	{r5, r6, lr}
-	mov	r3, #0x80
-	mov	r5, r0
-	lsl	r3, #3
-	add	r6, r5, r3
-	mov	r0, r6
-	bl	_Func_79338
-	cmp	r0, #0
-	bne	.Lb2716
-	mov	r0, r6
-	bl	_Func_79358
-	lsl	r3, r5, #5
-	add	r3, r5
-	lsl	r2, r3, #1
-	ldr	r1, =.Lb41ac
-	mov	r3, r2
-	add	r3, #0x30
-	ldrsh	r0, [r1, r3]
-	mov	r6, #0
-	cmp	r0, #0
-	beq	.Lb2716
-	add	r3, r2, r1
-	mov	r5, r3
-	add	r5, #0x30
-.Lb2700:
-	mov	r1, #1
-	add	r6, #1
-	bl	_Func_78ad0
-	cmp	r6, #7
-	bgt	.Lb2716
-	add	r5, #2
-	mov	r3, #0
-	ldrsh	r0, [r5, r3]
-	cmp	r0, #0
-	bne	.Lb2700
-.Lb2716:
-	pop	{r5, r6}
-	pop	{r0}
-	bx	r0
-.func_end Func_b26cc
-
-.thumb_func_start Func_b2720
-	push	{r5, lr}
-	lsl	r3, r0, #5
-	add	r3, r0
-	mov	r5, r1
-	ldr	r1, =.Lb41ac
-	lsl	r2, r3, #1
-	ldrsh	r3, [r1, r2]
-	mov	r4, #0
-	cmp	r3, #0
-	beq	.Lb274e
-	mov	r0, r5
-	add	r2, r1
-.Lb2738:
-	ldrh	r3, [r2]
-	add	r4, #1
-	strh	r3, [r0]
-	add	r2, #2
-	add	r0, #2
-	cmp	r4, #0x17
-	bgt	.Lb274e
-	mov	r1, #0
-	ldrsh	r3, [r2, r1]
-	cmp	r3, #0
-	bne	.Lb2738
-.Lb274e:
-	ldr	r3, .Lb275c	@ 0
-	lsl	r2, r4, #1
-	strh	r3, [r2, r5]
-	mov	r0, r4
-	pop	{r5}
-	pop	{r1}
-	bx	r1
-
-	.align	2, 0
-.Lb275c:
-	.word	0
-.func_end Func_b2720
-
-.thumb_func_start Func_b2764
-	lsl	r3, r0, #5
-	add	r3, r0
-	ldr	r2, =.Lb41ac
-	lsl	r3, #1
-	add	r3, #0x40
-	ldrsh	r0, [r2, r3]
-	bx	lr
-.func_end Func_b2764
-
-.thumb_func_start Func_b2778
-	push	{r5, lr}
-	mov	r5, r1
-	bl	_Func_77394
-	ldrb	r2, [r0, #0xf]
-	mov	r0, #0
-	cmp	r5, #0
-	bne	.Lb2790
-	lsl	r3, r2, #2
-	add	r3, r2
-	lsl	r0, r3, #2
-	b	.Lb27aa
-.Lb2790:
-	cmp	r5, #1
-	bne	.Lb2798
-	mov	r0, #0xa
-	b	.Lb27aa
-.Lb2798:
-	cmp	r5, #2
-	bne	.Lb27a0
-	mov	r0, #0x32
-	b	.Lb27aa
-.Lb27a0:
-	cmp	r5, #3
-	bne	.Lb27aa
-	lsl	r3, r2, #2
-	add	r3, r2
-	lsl	r0, r3, #1
-.Lb27aa:
-	pop	{r5}
-	pop	{r1}
-	bx	r1
-.func_end Func_b2778
-
-.thumb_func_start Func_b27b0
-	push	{r5, lr}
-	mov	r5, r1
-	bl	_Func_77394
-	mov	r2, r0
-	mov	r0, #0
-	cmp	r5, #0
-	bne	.Lb27c8
-	mov	r1, #0x38
-	ldrsh	r3, [r2, r1]
-	cmp	r3, #0
-	ble	.Lb27fe
-.Lb27c8:
-	cmp	r5, #1
-	bne	.Lb27da
-	ldr	r1, =0x131
-	add	r3, r2, r1
-	ldrb	r3, [r3]
-	lsl	r3, #24
-	asr	r3, #24
-	cmp	r3, #0
-	bne	.Lb27fe
-.Lb27da:
-	cmp	r5, #2
-	bne	.Lb27ea
-	mov	r1, #0xa0
-	lsl	r1, #1
-	add	r3, r2, r1
-	ldrb	r3, [r3]
-	cmp	r3, #0
-	bne	.Lb27fe
-.Lb27ea:
-	cmp	r5, #3
-	bne	.Lb2800
-	mov	r1, #0x98
-	lsl	r1, #1
-	add	r3, r2, r1
-	ldrb	r3, [r3]
-	lsl	r3, #24
-	asr	r3, #24
-	cmp	r3, #0
-	beq	.Lb2800
-.Lb27fe:
-	mov	r0, #1
-.Lb2800:
-	pop	{r5}
-	pop	{r1}
-	bx	r1
-.func_end Func_b27b0
-
-.thumb_func_start Func_b280c
-	push	{r5, r6, r7, lr}
-	mov	r7, r10
-	mov	r6, r8
-	push	{r6, r7}
-	ldr	r3, =iwram_1f2c
-	ldr	r1, =0x3aa
-	ldr	r5, [r3]
-	add	r3, r5, r1
-	ldrb	r3, [r3]
-	lsl	r3, #24
-	asr	r3, #24
-	sub	r1, #3
-	mov	r10, r3
-	add	r3, r5, r1
-	ldrb	r3, [r3]
-	lsl	r3, #24
-	asr	r3, #24
-	mov	r2, #0
-	sub	sp, #4
-	mov	r7, #0
-	cmp	r2, r3
-	bge	.Lb2866
-	add	r3, r5, #2
-	mov	r6, #0xdb
-	mov	r8, r3
-	lsl	r6, #2
-.Lb2840:
-	mov	r1, r8
-	ldrsh	r0, [r1, r6]
-	mov	r1, r10
-	str	r2, [sp]
-	bl	Func_b27b0
-	ldr	r2, [sp]
-	cmp	r0, #0
-	beq	.Lb2854
-	add	r2, #1
-.Lb2854:
-	ldr	r1, =0x3a7
-	add	r3, r5, r1
-	ldrb	r3, [r3]
-	lsl	r3, #24
-	asr	r3, #24
-	add	r7, #1
-	add	r6, #2
-	cmp	r7, r3
-	blt	.Lb2840
-.Lb2866:
-	mov	r0, r2
-	add	sp, #4
-	pop	{r3, r5}
-	mov	r8, r3
-	mov	r10, r5
-	pop	{r5, r6, r7}
-	pop	{r1}
-	bx	r1
-.func_end Func_b280c
-
-.thumb_func_start Func_b2884
-	push	{lr}
-	ldr	r3, =iwram_1f2c
-	ldr	r2, =0x3aa
-	ldr	r3, [r3]
-	add	r3, r2
-	mov	r1, #0
-	ldrsb	r1, [r3, r1]
-	cmp	r1, #1
-	bne	.Lb289e
-	ldr	r3, =0xd2e
-	ldr	r2, =0xd24
-	sub	r3, r2
-	add	r0, r3
-.Lb289e:
-	cmp	r1, #2
-	bne	.Lb28aa
-	ldr	r3, =0xd38
-	ldr	r2, =0xd24
-	sub	r3, r2
-	add	r0, r3
-.Lb28aa:
-	cmp	r1, #3
-	bne	.Lb28b6
-	ldr	r3, =0xd42
-	ldr	r2, =0xd24
-	sub	r3, r2
-	add	r0, r3
-.Lb28b6:
-	pop	{r1}
-	bx	r1
-.func_end Func_b2884
-
-.thumb_func_start Func_b28d4
-	push	{r5, r6, lr}
-	ldr	r3, =iwram_1f2c
-	mov	r2, #0xe9
-	ldr	r3, [r3]
-	lsl	r2, #2
-	add	r3, r2
-	mov	r6, r0
-	ldrh	r0, [r3]
-	bl	_Func_915ac
-	mov	r5, r0
-	bl	_Func_19a54
-	mov	r0, r6
-	bl	Func_b2884
-	lsl	r5, #16
-	mov	r3, #0x22
-	orr	r5, r3
-	mov	r1, #5
-	mov	r2, #0
-	mov	r3, r5
-	mov	r6, r0
-	bl	_Func_17658
-	b	.Lb290e
-.Lb2908:
-	mov	r0, #1
-	bl	Func_30f8
-.Lb290e:
-	bl	_Func_17364
-	cmp	r0, #0
-	beq	.Lb2908
-	mov	r0, #1
-	bl	Func_30f8
-	pop	{r5, r6}
-	pop	{r0}
-	bx	r0
-.func_end Func_b28d4
-
-.thumb_func_start Func_b2928
-	push	{r5, r6, r7, lr}
-	mov	r7, r10
-	mov	r6, r8
-	push	{r6, r7}
-	ldr	r3, =iwram_1f2c
-	ldr	r3, [r3]
-	mov	r6, #0xe0
-	mov	r8, r3
-	lsl	r6, #2
-	add	r6, r8
-	ldr	r3, [r6]
-	ldrb	r3, [r3, #5]
-	mov	r10, r3
-	mov	r3, #0xe9
-	lsl	r3, #2
-	add	r3, r8
-	mov	r7, r0
-	ldrh	r0, [r3]
-	bl	_Func_915ac
-	mov	r5, r0
-	mov	r0, r7
-	bl	Func_b2884
-	ldr	r2, [r6]
-	mov	r3, #0xd
-	strb	r3, [r2, #5]
-	mov	r7, r0
-	lsl	r5, #16
-	bl	_Func_19a54
-	mov	r3, #0x22
-	orr	r5, r3
-	mov	r0, r7
-	mov	r1, #5
-	mov	r2, #0
-	mov	r3, r5
-	bl	_Func_17658
-	b	.Lb297e
-.Lb2978:
-	mov	r0, #1
-	bl	Func_30f8
-.Lb297e:
-	bl	_Func_17364
-	cmp	r0, #0
-	beq	.Lb2978
-	mov	r0, #1
-	bl	Func_30f8
-	mov	r3, #0xe0
-	lsl	r3, #2
-	add	r3, r8
-	ldr	r3, [r3]
-	mov	r2, r10
-	strb	r2, [r3, #5]
-	pop	{r3, r5}
-	mov	r8, r3
-	mov	r10, r5
-	pop	{r5, r6, r7}
-	pop	{r0}
-	bx	r0
-.func_end Func_b2928
-
-.thumb_func_start Func_b29a8
-	push	{r5, r6, r7, lr}
-	mov	r7, r10
-	mov	r6, r8
-	push	{r6, r7}
-	mov	r1, #0
-	sub	sp, #8
-	mov	r8, r1
-	mov	r5, r0
-	mov	r10, r1
-	bl	Func_b010c
-	ldr	r3, =iwram_1f2c
-	ldr	r2, =0x3aa
-	ldr	r7, [r3]
-	mov	r1, r8
-	add	r3, r7, r2
-	strb	r1, [r3]
-	mov	r0, r5
-	bl	_Func_92054
-	ldr	r3, [r0, #0x50]
-	ldr	r3, [r3, #0x28]
-	mov	r1, #0xe9
-	ldrh	r2, [r3]
-	lsl	r1, #2
-	add	r3, r7, r1
-	strh	r2, [r3]
-	mov	r1, #0
-	ldrh	r0, [r3]
-	mov	r2, #0
-	mov	r3, #0
-	bl	_Func_19da8
-	mov	r8, r0
-	cmp	r0, #0
-	bne	.Lb2a2c
-	mov	r0, #5
-	neg	r0, r0
-	mov	r5, #2
-	mov	r1, #0
-	mov	r2, #5
-	mov	r3, #5
-	str	r5, [sp]
-	bl	_Func_162d4
-	mov	r8, r0
-	cmp	r0, #0
-	bne	.Lb2a2c
-	mov	r1, #0
-	mov	r2, #5
-	mov	r3, #5
-	mov	r0, #0
-	str	r5, [sp]
-	bl	_Func_162d4
-	mov	r3, #4
-	neg	r3, r3
-	mov	r8, r0
-	str	r3, [sp]
-	str	r3, [sp, #4]
-	mov	r0, #2
-	mov	r1, #0
-	mov	r2, #0
-	mov	r3, r8
-	bl	_Func_1ec6c
-.Lb2a2c:
-	mov	r2, #0xe4
-	lsl	r2, #2
-	add	r3, r7, r2
-	mov	r1, #0x80
-	ldrh	r0, [r3]
-	mov	r6, #0
-	lsl	r1, #23
-	mov	r2, r8
-	mov	r3, #0
-	str	r6, [sp]
-	bl	_Func_1eadc
-	mov	r3, #1
-	mov	r5, r0
-	strb	r3, [r5, #5]
-	mov	r3, #0xe0
-	lsl	r3, #2
-	strb	r6, [r5, #4]
-	mov	r1, #0x20
-	add	r6, r7, r3
-	neg	r1, r1
-	mov	r0, r6
-	mov	r2, #0x70
-	bl	Func_b0a20
-	str	r5, [r6]
-	ldr	r0, =0xd21
-	bl	Func_b28d4
-	mov	r3, #2
-	str	r3, [sp]
-	mov	r1, #0xb
-	mov	r2, #0xc
-	mov	r3, #4
-	mov	r0, #0x10
-	bl	_Func_162d4
-	str	r0, [r7, #0xc]
-	bl	Func_b10cc
-	ldr	r1, =0x3aa
-	add	r6, r7, r1
-	b	.Lb2ab8
-.Lb2a82:
-	ldr	r5, =0xd24
-	mov	r0, r5
-	bl	Func_b28d4
-	bl	Func_b280c
-	cmp	r0, #0
-	bne	.Lb2a9a
-	add	r0, r5, #1
-	bl	Func_b28d4
-	b	.Lb2a9e
-.Lb2a9a:
-	bl	Func_b2b10
-.Lb2a9e:
-	mov	r2, #0xe0
-	mov	r3, #0
-	lsl	r2, #2
-	mov	r1, #0x20
-	add	r0, r7, r2
-	strb	r3, [r6]
-	neg	r1, r1
-	mov	r2, #0x70
-	bl	Func_b0a20
-	ldr	r0, =0xd22
-	bl	Func_b28d4
-.Lb2ab8:
-	mov	r0, r10
-	bl	_Func_28db4
-	mov	r1, #1
-	mov	r10, r0
-	mov	r3, r10
-	neg	r1, r1
-	strb	r3, [r6]
-	cmp	r10, r1
-	bne	.Lb2a82
-	ldr	r0, =0xd23
-	bl	Func_b28d4
-	ldr	r0, [r7, #0xc]
-	mov	r1, #2
-	bl	_Func_16418
-	mov	r0, r8
-	mov	r1, #2
-	bl	_Func_16418
-	bl	Func_b0204
-	mov	r0, #0
-	add	sp, #8
-	pop	{r3, r5}
-	mov	r8, r3
-	mov	r10, r5
-	pop	{r5, r6, r7}
-	pop	{r1}
-	bx	r1
-.func_end Func_b29a8
-
-.thumb_func_start Func_b2b10
-	push	{r5, r6, r7, lr}
-	mov	r7, r11
-	mov	r6, r10
-	mov	r5, r9
-	push	{r5, r6, r7}
-	mov	r7, r8
-	push	{r7}
-	ldr	r3, =iwram_1f2c
-	sub	sp, #0xc
-	ldr	r7, [r3]
-	mov	r1, #1
-	ldr	r2, =0x3aa
-	mov	r0, #0
-	str	r0, [sp, #8]
-	str	r1, [sp, #4]
-	add	r3, r7, r2
-	ldrb	r3, [r3]
-	lsl	r3, #24
-	asr	r3, #24
-	ldr	r0, =0xd26
-	mov	r9, r3
-	bl	Func_b28d4
-	mov	r5, #2
-	mov	r1, #0xc
-	mov	r2, #0xd
-	mov	r3, #3
-	mov	r0, #1
-	str	r5, [sp]
-	bl	_Func_162d4
-	mov	r4, #0xe0
-	lsl	r4, #2
-	add	r3, r7, r4
-	ldr	r2, [r3]
-	add	r1, sp, #4
-	mov	r11, r0
-	mov	r0, #0xea
-	ldrb	r1, [r1]
-	mov	r3, #4
-	lsl	r0, #2
-	strb	r3, [r2, #5]
-	add	r3, r7, r0
-	strb	r1, [r3]
-	ldr	r2, [sp, #8]
-	mov	r0, r11
-	str	r2, [sp]
-	mov	r1, #2
-	mov	r2, #0
-	mov	r3, #8
-	bl	_Func_a1870
-	mov	r0, #1
-	mov	r1, #0x10
-	mov	r2, #0x17
-	mov	r3, #3
-	str	r5, [sp]
-	bl	_Func_162d4
-	mov	r6, #0
-	mov	r5, #0xdb
-	mov	r10, r6
-	mov	r8, r6
-	lsl	r5, #2
-	str	r0, [sp, #8]
-	b	.Lb2b98
-.Lb2b94:
-	add	r5, #2
-	add	r6, #1
-.Lb2b98:
-	ldr	r4, =0x3a7
-	add	r3, r7, r4
-	ldrb	r3, [r3]
-	lsl	r3, #24
-	asr	r3, #24
-	cmp	r6, r3
-	bge	.Lb2bb6
-	add	r3, r7, #2
-	ldrsh	r0, [r3, r5]
-	mov	r1, r9
-	mov	r10, r0
-	bl	Func_b27b0
-	cmp	r0, #0
-	beq	.Lb2b94
-.Lb2bb6:
-	mov	r2, #1
-	str	r2, [sp, #4]
-.Lb2bba:
-	mov	r3, r8
-	cmp	r3, #0
-	beq	.Lb2bfa
-	mov	r4, #0
-	ldr	r0, =0xd26
-	mov	r8, r4
-	bl	Func_b28d4
-	mov	r5, #0xdb
-	mov	r0, #1
-	mov	r6, #0
-	lsl	r5, #2
-	str	r0, [sp, #4]
-	b	.Lb2bda
-.Lb2bd6:
-	add	r5, #2
-	add	r6, #1
-.Lb2bda:
-	ldr	r1, =0x3a7
-	add	r3, r7, r1
-	ldrb	r3, [r3]
-	lsl	r3, #24
-	asr	r3, #24
-	cmp	r6, r3
-	bge	.Lb2bfa
-	add	r3, r7, #2
-	ldrsh	r2, [r3, r5]
-	mov	r10, r2
-	mov	r0, r10
-	mov	r1, r9
-	bl	Func_b27b0
-	cmp	r0, #0
-	beq	.Lb2bd6
-.Lb2bfa:
-	ldr	r0, [sp, #4]
-	cmp	r0, #0
-	beq	.Lb2c4a
-	ldr	r2, =0x3a7
-	mov	r1, #0
-	str	r1, [sp, #4]
-	add	r3, r7, r2
-	mov	r1, #0
-	ldrsb	r1, [r3, r1]
-	add	r0, r6, r1
-	bl	Func_b1c_from_thumb
-	mov	r3, #0xdb
-	mov	r6, r0
-	lsl	r1, r6, #1
-	lsl	r3, #2
-	add	r2, r1, r3
-	add	r3, r7, #2
-	add	r1, r6
-	ldrsh	r4, [r3, r2]
-	lsl	r1, #3
-	sub	r1, #0xc
-	mov	r0, r11
-	mov	r2, #0
-	mov	r10, r4
-	bl	Func_b0a6c
-	mov	r1, #0xea
-	lsl	r1, #2
-	add	r2, r7, r1
-	mov	r3, #3
-	mov	r0, r11
-	mov	r1, r6
-	strb	r3, [r2]
-	bl	Func_b2e30
-	mov	r1, r10
-	ldr	r0, [sp, #8]
-	bl	Func_b2ed8
-.Lb2c4a:
-	ldr	r1, =iwram_1c94
-	ldr	r2, [r1]
-	mov	r3, #1
-	and	r2, r3
-	cmp	r2, #0
-	beq	.Lb2d12
-	mov	r0, #1
-	bl	Func_30f8
-	mov	r1, r9
-	mov	r0, r10
-	bl	Func_b2778
-	mov	r1, r9
-	mov	r5, r0
-	mov	r0, r10
-	bl	Func_b27b0
-	cmp	r0, #0
-	bne	.Lb2c7a
-	mov	r0, #0x71
-	bl	_Func_f9080
-	b	.Lb2bba
-.Lb2c7a:
-	mov	r0, r10
-	mov	r1, #1
-	bl	_Func_19908
-	mov	r0, r5
-	mov	r1, #5
-	bl	_Func_19908
-	ldr	r2, =0xd27
-	mov	r8, r2
-	mov	r0, r8
-	bl	Func_b28d4
-	mov	r0, #0
-	bl	Func_b0664
-	cmp	r0, #0
-	beq	.Lb2cac
-	mov	r0, r8
-	add	r0, #2
-	bl	Func_b2928
-	mov	r3, #1
-	mov	r8, r3
-	b	.Lb2bba
-.Lb2cac:
-	ldr	r3, =ewram_240
-	ldr	r3, [r3, #0x10]
-	cmp	r5, r3
-	bls	.Lb2cc8
-	mov	r0, #0x71
-	bl	_Func_f9080
-	mov	r0, r8
-	add	r0, #1
-	bl	Func_b2928
-	mov	r4, #1
-	mov	r8, r4
-	b	.Lb2bba
-.Lb2cc8:
-	mov	r1, #1
-	mov	r0, r10
-	bl	_Func_19908
-	mov	r0, r8
-	add	r0, #3
-	bl	Func_b28d4
-	bl	_Func_19a54
-	mov	r1, r9
-	mov	r0, r10
-	bl	Func_b2da8
-	mov	r0, r6
-	bl	Func_b3050
-	neg	r0, r5
-	bl	_Func_79700
-	bl	Func_b10cc
-	mov	r0, r10
-	mov	r1, #1
-	bl	_Func_19908
-	mov	r0, r8
-	add	r0, #4
-	bl	Func_b28d4
-	bl	Func_b280c
-	cmp	r0, #0
-	beq	.Lb2d5a
-	mov	r0, #1
-	mov	r8, r0
-	b	.Lb2bba
-.Lb2d12:
-	ldr	r3, [r1]
-	mov	r2, #2
-	and	r3, r2
-	cmp	r3, #0
-	beq	.Lb2d24
-	mov	r0, #0x71
-	bl	_Func_f9080
-	b	.Lb2d5a
-.Lb2d24:
-	ldr	r5, =iwram_1b04
-	ldr	r3, [r5]
-	mov	r2, #0x20
-	and	r3, r2
-	cmp	r3, #0
-	beq	.Lb2d3c
-	mov	r0, #0x6f
-	bl	_Func_f9080
-	mov	r1, #1
-	str	r1, [sp, #4]
-	sub	r6, #1
-.Lb2d3c:
-	ldr	r3, [r5]
-	mov	r2, #0x10
-	and	r3, r2
-	cmp	r3, #0
-	beq	.Lb2d52
-	mov	r0, #0x6f
-	bl	_Func_f9080
-	mov	r2, #1
-	str	r2, [sp, #4]
-	add	r6, #1
-.Lb2d52:
-	mov	r0, #1
-	bl	Func_30f8
-	b	.Lb2bba
-.Lb2d5a:
-	bl	_Func_a195c
-	mov	r1, #2
-	ldr	r0, [sp, #8]
-	bl	_Func_16418
-	mov	r0, r11
-	mov	r1, #2
-	bl	_Func_16418
-	mov	r0, #1
-	bl	Func_30f8
-	mov	r0, #0
-	add	sp, #0xc
-	pop	{r3, r5, r6, r7}
-	mov	r8, r3
-	mov	r9, r5
-	mov	r10, r6
-	mov	r11, r7
-	pop	{r5, r6, r7}
-	pop	{r1}
-	bx	r1
-.func_end Func_b2b10
-
-.thumb_func_start Func_b2da8
-	push	{r5, r6, r7, lr}
-	mov	r7, r8
-	push	{r7}
-	mov	r7, r0
-	mov	r5, r1
-	bl	_Func_77394
-	mov	r2, r0
-	cmp	r5, #0
-	bne	.Lb2dc8
-	ldrh	r3, [r2, #0x34]
-	mov	r0, r7
-	strh	r3, [r2, #0x38]
-	bl	_Func_7822c
-	b	.Lb2e20
-.Lb2dc8:
-	cmp	r5, #1
-	bne	.Lb2dd0
-	ldr	r3, =0x131
-	b	.Lb2dd8
-.Lb2dd0:
-	cmp	r5, #2
-	bne	.Lb2de0
-	mov	r3, #0xa0
-	lsl	r3, #1
-.Lb2dd8:
-	add	r2, r3
-	mov	r3, #0
-	strb	r3, [r2]
-	b	.Lb2e20
-.Lb2de0:
-	cmp	r5, #3
-	bne	.Lb2e20
-	mov	r3, #0x80
-	lsl	r3, #2
-	mov	r5, r2
-	mov	r8, r3
-	mov	r6, #0xe
-	add	r5, #0xd8
-.Lb2df0:
-	ldrh	r2, [r5]
-	mov	r3, r8
-	and	r3, r2
-	cmp	r3, #0
-	beq	.Lb2e18
-	ldrh	r0, [r5]
-	bl	_Func_78414
-	ldrb	r2, [r0, #3]
-	mov	r3, #1
-	and	r3, r2
-	cmp	r3, #0
-	beq	.Lb2e18
-	ldrh	r2, [r5]
-	mov	r3, r8
-	eor	r3, r2
-	strh	r3, [r5]
-	mov	r0, r7
-	bl	_Func_77428
-.Lb2e18:
-	sub	r6, #1
-	add	r5, #2
-	cmp	r6, #0
-	bge	.Lb2df0
-.Lb2e20:
-	pop	{r3}
-	mov	r8, r3
-	pop	{r5, r6, r7}
-	pop	{r0}
-	bx	r0
-.func_end Func_b2da8
-
-.thumb_func_start Func_b2e30
-	push	{r5, r6, r7, lr}
-	mov	r7, r11
-	mov	r6, r10
-	mov	r5, r9
-	push	{r5, r6, r7}
-	mov	r7, r8
-	push	{r7}
-	ldr	r3, =iwram_1f2c
-	mov	r11, r1
-	ldr	r7, [r3]
-	ldr	r1, =0x3aa
-	add	r3, r7, r1
-	ldrb	r3, [r3]
-	lsl	r3, #24
-	asr	r3, #24
-	mov	r9, r3
-	cmp	r0, #0
-	beq	.Lb2eb8
-	ldr	r2, =0x3a7
-	add	r3, r7, r2
-	ldrb	r3, [r3]
-	lsl	r3, #24
-	asr	r3, #24
-	mov	r6, #0
-	cmp	r6, r3
-	bge	.Lb2eb8
-	mov	r2, #0x8a
-	add	r3, r7, #2
-	sub	r1, #0x3e
-	lsl	r2, #1
-	mov	r10, r3
-	mov	r8, r1
-	add	r5, r7, r2
-.Lb2e72:
-	cmp	r6, r11
-	bne	.Lb2e80
-	ldr	r0, [r5]
-	mov	r1, #0x1e
-	bl	_Func_ba30
-	b	.Lb2e88
-.Lb2e80:
-	ldr	r0, [r5]
-	mov	r1, #1
-	bl	_Func_ba30
-.Lb2e88:
-	mov	r3, #0x80
-	lsl	r3, #9
-	str	r3, [r5, #0x40]
-	mov	r2, r8
-	mov	r3, r10
-	ldrsh	r0, [r3, r2]
-	mov	r1, r9
-	bl	Func_b27b0
-	cmp	r0, #0
-	bne	.Lb2ea2
-	ldr	r3, =0xb333
-	str	r3, [r5, #0x40]
-.Lb2ea2:
-	ldr	r1, =0x3a7
-	mov	r3, #2
-	add	r8, r3
-	add	r3, r7, r1
-	ldrb	r3, [r3]
-	lsl	r3, #24
-	asr	r3, #24
-	add	r6, #1
-	add	r5, #4
-	cmp	r6, r3
-	blt	.Lb2e72
-.Lb2eb8:
-	pop	{r3, r5, r6, r7}
-	mov	r8, r3
-	mov	r9, r5
-	mov	r10, r6
-	mov	r11, r7
-	pop	{r5, r6, r7}
-	pop	{r0}
-	bx	r0
-.func_end Func_b2e30
-
-.thumb_func_start Func_b2ed8
-	push	{r5, r6, r7, lr}
-	mov	r7, r8
-	push	{r7}
-	ldr	r3, =iwram_1f2c
-	ldr	r2, =0x3aa
-	ldr	r3, [r3]
-	add	r3, r2
-	mov	r5, #0
-	ldrsb	r5, [r3, r5]
-	mov	r7, r1
-	mov	r6, r0
-	mov	r1, r5
-	mov	r0, r7
-	bl	Func_b2778
-	mov	r8, r0
-	cmp	r6, #0
-	beq	.Lb2f30
-	mov	r0, r6
-	bl	_Func_16478
-	mov	r0, r7
-	mov	r1, r5
-	bl	Func_b27b0
-	cmp	r0, #0
-	beq	.Lb2f12
-	ldr	r5, =0xd2c
-	b	.Lb2f14
-.Lb2f12:
-	ldr	r5, =0xd2d
-.Lb2f14:
-	mov	r0, r5
-	bl	Func_b2884
-	mov	r1, #5
-	mov	r5, r0
-	mov	r0, r8
-	bl	_Func_19908
-	mov	r0, r5
-	mov	r1, r6
-	mov	r2, #0
-	mov	r3, #0
-	bl	_Func_1e74c
-.Lb2f30:
-	pop	{r3}
-	mov	r8, r3
-	pop	{r5, r6, r7}
-	pop	{r0}
-	bx	r0
-.func_end Func_b2ed8
-
-.thumb_func_start Func_b2f4c
-	push	{r5, r6, r7, lr}
-	mov	r7, r8
-	push	{r7}
-	mov	r6, r0
-	mov	r2, #0x40
-	add	r2, r6
-	mov	r7, #0
-	ldrsb	r7, [r2, r7]
-	sub	sp, #0xc
-	mov	r8, r2
-	cmp	r7, #0
-	bne	.Lb2fc2
-	ldr	r3, [r6, #0x14]
-	mov	r5, sp
-	str	r3, [r5]
-	ldr	r3, [r6, #0x18]
-	str	r3, [r5, #8]
-	bl	Func_4458
-	mov	r1, r0
-	mov	r0, #0xa0
-	lsl	r0, #14
-	mov	r2, r5
-	bl	Func_447c
-	ldr	r1, [r5]
-	ldr	r2, [r5, #8]
-	mov	r0, r6
-	bl	_Func_9ba5c
-	ldr	r3, [r6, #0x14]
-	str	r3, [r5]
-	ldr	r3, [r6, #0x18]
-	str	r3, [r5, #8]
-	bl	Func_4458
-	mov	r1, r0
-	mov	r0, #0x80
-	mov	r2, r5
-	lsl	r0, #11
-	bl	Func_447c
-	ldr	r3, [r5]
-	str	r3, [r6, #0xc]
-	ldr	r3, [r5, #8]
-	str	r3, [r6, #0x10]
-	mov	r3, #0x80
-	lsl	r3, #10
-	str	r3, [r6, #0x20]
-	ldr	r3, =0x6666
-	str	r3, [r6, #0x24]
-	mov	r3, r6
-	add	r3, #0x42
-	strb	r7, [r3]
-	mov	r2, r8
-	ldrb	r3, [r2]
-	add	r3, #1
-	strb	r3, [r2]
-	b	.Lb2fea
-.Lb2fc2:
-	cmp	r7, #1
-	bne	.Lb2fd6
-	mov	r0, r6
-	bl	_Func_9ba34
-	cmp	r0, #0
-	bne	.Lb2fea
-	mov	r3, r8
-	strb	r0, [r3]
-	b	.Lb2fea
-.Lb2fd6:
-	cmp	r7, #2
-	bne	.Lb2fea
-	mov	r0, r6
-	bl	_Func_9ba34
-	cmp	r0, #0
-	bne	.Lb2fea
-	mov	r0, r6
-	bl	_Func_9bb34
-.Lb2fea:
-	add	sp, #0xc
-	pop	{r3}
-	mov	r8, r3
-	pop	{r5, r6, r7}
-	pop	{r0}
-	bx	r0
-.func_end Func_b2f4c
-
-.thumb_func_start Func_b2ffc
-	push	{r5, r6, r7, lr}
-	ldr	r3, =iwram_1f2c
-	mov	r2, #0xec
-	ldr	r7, [r3]
-	lsl	r2, #2
-	add	r5, r7, r2
-	mov	r6, #0x17
-.Lb300a:
-	mov	r0, r5
-	sub	r6, #1
-	bl	_Func_9b804
-	add	r5, #0x48
-	cmp	r6, #0
-	bge	.Lb300a
-	ldr	r2, =0x3ab
-	add	r3, r7, r2
-	mov	r5, #0
-	ldrsb	r5, [r3, r5]
-	mov	r3, #1
-	neg	r3, r3
-	cmp	r5, r3
-	beq	.Lb3040
-	bl	Func_4458
-	mov	r2, #0x8a
-	lsl	r1, r0, #3
-	lsl	r3, r5, #2
-	lsl	r2, #1
-	sub	r1, r0
-	add	r3, r2
-	lsr	r1, #16
-	ldr	r0, [r7, r3]
-	bl	_Func_b684
-.Lb3040:
-	pop	{r5, r6, r7}
-	pop	{r0}
-	bx	r0
-.func_end Func_b2ffc
-
-.thumb_func_start Func_b3050
-	push	{r5, r6, r7, lr}
-	mov	r7, r11
-	mov	r6, r10
-	mov	r5, r9
-	push	{r5, r6, r7}
-	mov	r7, r8
-	push	{r7}
-	ldr	r3, =iwram_1f2c
-	ldr	r3, [r3]
-	mov	r1, #0xe0
-	mov	r8, r3
-	lsl	r1, #2
-	add	r1, r8
-	ldr	r3, [r1]
-	ldr	r2, =0x3ab
-	ldrb	r3, [r3, #5]
-	add	r2, r8
-	mov	r11, r3
-	mov	r3, #0xff
-	strb	r3, [r2]
-	ldr	r2, [r1]
-	mov	r3, #0xd
-	strb	r3, [r2, #5]
-	ldr	r3, =0x3aa
-	add	r3, r8
-	ldr	r2, =.Lb4ab2
-	ldrb	r3, [r3]
-	lsl	r3, #24
-	asr	r3, #24
-	mov	r10, r0
-	ldrsb	r0, [r2, r3]
-	sub	sp, #0xc
-	bl	_Func_f9080
-	ldr	r0, =0x202108
-	bl	Func_b0840
-	mov	r0, r10
-	lsl	r0, #2
-	mov	r3, #0x8a
-	mov	r9, r0
-	lsl	r3, #1
-	add	r3, r9
-	mov	r1, r8
-	ldr	r0, [r1, r3]
-	mov	r1, #0
-	bl	_Func_baf8
-	mov	r0, #0x14
-	bl	Func_30f8
-	mov	r1, #0xc8
-	lsl	r1, #4
-	ldr	r0, =Func_b2ffc
-	bl	Func_41d8
-	mov	r3, r10
-	mov	r0, #0x9a
-	lsl	r2, r3, #1
-	lsl	r0, #1
-	add	r3, r2, r0
-	mov	r1, r8
-	ldrsh	r3, [r1, r3]
-	mov	r6, sp
-	lsl	r3, #16
-	mov	r1, #0xa2
-	str	r3, [r6]
-	lsl	r1, #1
-	add	r3, r2, r1
-	mov	r2, r8
-	ldrsh	r3, [r2, r3]
-	ldr	r1, =0xfff40000
-	lsl	r3, #16
-	add	r3, r1
-	mov	r5, #0xec
-	lsl	r5, #2
-	str	r3, [r6, #8]
-	mov	r7, #0
-	add	r5, r8
-.Lb30ee:
-	mov	r1, #0x8e
-	ldr	r3, [r6, #8]
-	ldr	r2, [r6]
-	mov	r0, r5
-	lsl	r1, #1
-	bl	_Func_9ba90
-	mov	r0, r5
-	ldr	r1, =Func_b2f4c
-	bl	_Func_9ba7c
-	mov	r1, #7
-	mov	r0, r5
-	bl	_Func_9ba70
-	bl	Func_4458
-	lsl	r1, r0, #3
-	sub	r1, r0
-	lsr	r1, #16
-	ldr	r0, [r5]
-	bl	_Func_b684
-	ldr	r3, =0xb333
-	mov	r0, #3
-	str	r3, [r5, #0x2c]
-	str	r3, [r5, #0x28]
-	bl	Func_30f8
-	cmp	r7, #5
-	bne	.Lb3134
-	ldr	r3, =0x3ab
-	mov	r2, r10
-	add	r3, r8
-	strb	r2, [r3]
-.Lb3134:
-	add	r7, #1
-	add	r5, #0x48
-	cmp	r7, #0x11
-	ble	.Lb30ee
-	bl	Func_b04c4
-	mov	r2, #0xfc
-	lsl	r2, #2
-	mov	r1, #2
-	add	r2, r8
-	mov	r7, #0x17
-.Lb314a:
-	mov	r3, #5
-	ldrsb	r3, [r2, r3]
-	cmp	r3, #0
-	beq	.Lb3154
-	strb	r1, [r2]
-.Lb3154:
-	sub	r7, #1
-	add	r2, #0x48
-	cmp	r7, #0
-	bge	.Lb314a
-	mov	r0, #0x14
-	bl	Func_30f8
-	mov	r0, #0x7e
-	bl	_Func_f9080
-	ldr	r2, =0x3ab
-	mov	r3, #0xff
-	add	r2, r8
-	strb	r3, [r2]
-	add	r3, #0x15
-	add	r3, r9
-	mov	r1, r8
-	ldr	r0, [r1, r3]
-	mov	r1, #0
-	bl	_Func_b684
-	mov	r0, #0x14
-	bl	Func_30f8
-	ldr	r6, =0x3f5
-	mov	r5, #0xec
-	lsl	r5, #2
-	add	r6, r8
-	add	r5, r8
-	mov	r7, #0x17
-.Lb3190:
-	ldrb	r3, [r6]
-	lsl	r3, #24
-	add	r6, #0x48
-	cmp	r3, #0
-	beq	.Lb31a0
-	mov	r0, r5
-	bl	_Func_9bb34
-.Lb31a0:
-	sub	r7, #1
-	add	r5, #0x48
-	cmp	r7, #0
-	bge	.Lb3190
-	ldr	r0, =Func_b2ffc
-	bl	Func_4278
-	mov	r3, #0x8a
-	lsl	r3, #1
-	add	r3, r9
-	mov	r2, r8
-	ldr	r0, [r2, r3]
-	mov	r1, #0x10
-	bl	_Func_baf8
-	bl	Func_b0894
-	mov	r0, #0x1e
-	bl	Func_30f8
-	mov	r3, #0xe0
-	lsl	r3, #2
-	add	r3, r8
-	ldr	r3, [r3]
-	mov	r0, r11
-	strb	r0, [r3, #5]
-	add	sp, #0xc
-	pop	{r3, r5, r6, r7}
-	mov	r8, r3
-	mov	r9, r5
-	mov	r10, r6
-	mov	r11, r7
-	pop	{r5, r6, r7}
-	pop	{r0}
-	bx	r0
-.func_end Func_b3050
-
-.thumb_func_start Func_b3210
-	push	{r5, r6, r7, lr}
-	mov	r7, r10
-	mov	r6, r8
-	push	{r6, r7}
-	ldr	r3, =iwram_1f2c
-	ldr	r1, =0x3a7
-	ldr	r6, [r3]
-	ldr	r3, =.Lb4ab6
-	ldrsb	r0, [r3, r0]
-	add	r3, r6, r1
-	ldrb	r3, [r3]
-	lsl	r3, #24
-	asr	r3, #24
-	mov	r2, #0
-	sub	sp, #4
-	mov	r10, r0
-	mov	r7, #0
-	cmp	r2, r3
-	bge	.Lb3266
-	add	r3, r6, #2
-	mov	r5, #0xdb
-	mov	r8, r3
-	lsl	r5, #2
-.Lb323e:
-	mov	r1, r8
-	ldrsh	r0, [r1, r5]
-	str	r2, [sp]
-	bl	_Func_77394
-	mov	r1, #0x38
-	ldrsh	r3, [r0, r1]
-	ldr	r2, [sp]
-	cmp	r3, #0
-	beq	.Lb3254
-	add	r2, #1
-.Lb3254:
-	ldr	r1, =0x3a7
-	add	r3, r6, r1
-	ldrb	r3, [r3]
-	lsl	r3, #24
-	asr	r3, #24
-	add	r7, #1
-	add	r5, #2
-	cmp	r7, r3
-	blt	.Lb323e
-.Lb3266:
-	mov	r0, r10
-	mul	r0, r2
-	add	sp, #4
-	pop	{r3, r5}
-	mov	r8, r3
-	mov	r10, r5
-	pop	{r5, r6, r7}
-	pop	{r1}
-	bx	r1
-.func_end Func_b3210
-
-.thumb_func_start Func_b3284
-	push	{r5, r6, r7, lr}
-	mov	r7, r10
-	mov	r6, r9
-	mov	r5, r8
-	push	{r5, r6, r7}
-	mov	r9, r1
-	sub	sp, #4
-	mov	r6, r0
-	bl	Func_b010c
-	ldr	r3, =iwram_1f2c
-	ldr	r1, =0x3a9
-	ldr	r5, [r3]
-	mov	r2, #1
-	add	r3, r5, r1
-	strb	r2, [r3]
-	cmp	r6, #5
-	bne	.Lb32ae
-	add	r1, #3
-	add	r3, r5, r1
-	strb	r2, [r3]
-.Lb32ae:
-	mov	r0, r9
-	bl	_Func_92054
-	ldr	r3, [r0, #0x50]
-	ldr	r3, [r3, #0x28]
-	mov	r2, #0xe9
-	ldrh	r3, [r3]
-	lsl	r2, #2
-	add	r7, r5, r2
-	strh	r3, [r7]
-	mov	r2, #0
-	mov	r3, #0
-	mov	r1, #0
-	ldrh	r0, [r7]
-	bl	_Func_19da8
-	mov	r8, r0
-	mov	r0, r6
-	bl	Func_b3210
-	mov	r1, #5
-	mov	r6, r0
-	bl	_Func_19908
-	ldr	r3, =0xd1c
-	mov	r10, r3
-	mov	r0, r10
-	bl	Func_b04dc
-	mov	r3, #2
-	str	r3, [sp]
-	mov	r1, #0x10
-	mov	r2, #0xc
-	mov	r3, #4
-	mov	r0, #0
-	bl	_Func_162d4
-	str	r0, [r5, #0xc]
-	bl	Func_b10cc
-	mov	r0, #0
-	bl	Func_b0634
-	cmp	r0, #0
-	beq	.Lb330e
-	mov	r0, r10
-	add	r0, #3
-	b	.Lb331a
-.Lb330e:
-	ldr	r3, =ewram_240
-	ldr	r3, [r3, #0x10]
-	cmp	r6, r3
-	bls	.Lb3328
-	mov	r0, r10
-	add	r0, #2
-.Lb331a:
-	bl	Func_b04dc
-	ldr	r0, [r5, #0xc]
-	mov	r1, #2
-	bl	_Func_16418
-	b	.Lb336a
-.Lb3328:
-	mov	r1, #2
-	ldr	r0, [r5, #0xc]
-	bl	_Func_16418
-	mov	r0, r10
-	add	r0, #1
-	bl	Func_b04dc
-	mov	r1, #2
-	mov	r0, r8
-	bl	_Func_16418
-	mov	r0, r6
-	bl	Func_b3398
-	mov	r0, r9
-	bl	_Func_92054
-	ldr	r3, [r0, #0x50]
-	ldr	r3, [r3, #0x28]
-	ldrh	r3, [r3]
-	strh	r3, [r7]
-	mov	r1, #0
-	ldrh	r0, [r7]
-	mov	r2, #0
-	mov	r3, #0
-	bl	_Func_19da8
-	mov	r8, r0
-	mov	r0, r10
-	add	r0, #4
-	bl	Func_b04dc
-.Lb336a:
-	mov	r0, r8
-	mov	r1, #2
-	bl	_Func_16418
-	bl	Func_b0204
-	mov	r0, #0
-	add	sp, #4
-	pop	{r3, r5, r6}
-	mov	r8, r3
-	mov	r9, r5
-	mov	r10, r6
-	pop	{r5, r6, r7}
-	pop	{r1}
-	bx	r1
-.func_end Func_b3284
-
-.thumb_func_start Func_b3398
-	push	{r5, r6, r7, lr}
-	mov	r7, r10
-	mov	r6, r8
-	push	{r6, r7}
-	sub	sp, #0x10
-	mov	r8, sp
-	mov	r5, r0
-	mov	r0, r8
-	bl	_Func_796c4
-	neg	r5, r5
-	mov	r7, r0
-	mov	r0, r5
-	bl	_Func_79700
-	cmp	r7, #0
-	ble	.Lb33e8
-	mov	r10, r8
-	mov	r6, #0
-	mov	r5, r7
-.Lb33c0:
-	mov	r2, r10
-	ldrsh	r0, [r6, r2]
-	bl	_Func_77394
-	mov	r2, #0x38
-	ldrsh	r3, [r0, r2]
-	cmp	r3, #0
-	beq	.Lb33e0
-	ldrh	r3, [r0, #0x34]
-	strh	r3, [r0, #0x38]
-	ldrh	r3, [r0, #0x36]
-	strh	r3, [r0, #0x3a]
-	mov	r3, r8
-	ldrsh	r0, [r6, r3]
-	bl	_Func_7822c
-.Lb33e0:
-	sub	r5, #1
-	add	r6, #2
-	cmp	r5, #0
-	bne	.Lb33c0
-.Lb33e8:
-	ldr	r6, =iwram_1ebc
-	mov	r3, #0xe0
-	ldr	r1, [r6]
-	lsl	r3, #1
-	add	r2, r1, r3
-	mov	r5, #0xe4
-	add	r3, #0x49
-	str	r3, [r2]
-	lsl	r5, #1
-	mov	r3, #0x3c
-	str	r3, [r1, r5]
-	mov	r0, #0x14
-	bl	Func_30f8
-	bl	_Func_91df4
-	bl	_Func_91e20
-	mov	r0, #0x56
-	bl	_Func_f9080
-	bl	Func_b04c4
-	mov	r0, #0xa
-	bl	Func_30f8
-	bl	_Func_91dc8
-	bl	_Func_91e20
-	mov	r0, #0x1e
-	bl	Func_30f8
-	ldr	r2, [r6]
-	mov	r3, #0x10
-	str	r3, [r2, r5]
-	add	sp, #0x10
-	pop	{r3, r5}
-	mov	r8, r3
-	mov	r10, r5
-	pop	{r5, r6, r7}
-	pop	{r0}
-	bx	r0
-.func_end Func_b3398
-
-.thumb_func_start Func_b3444
-	push	{r5, r6, r7, lr}
-	mov	r7, r11
-	mov	r6, r10
-	mov	r5, r9
-	push	{r5, r6, r7}
-	mov	r7, r8
-	push	{r7}
-	sub	sp, #0x10
-	str	r0, [sp, #0xc]
-	mov	r2, #0
-	mov	r0, #1
-	str	r1, [sp, #8]
-	str	r2, [sp, #4]
-	mov	r9, r0
-	mov	r11, r2
-	bl	Func_b010c
-	ldr	r3, =iwram_1f2c
-	ldr	r3, [r3]
-	mov	r5, #2
-	mov	r8, r3
-	mov	r1, #0xc
-	mov	r2, #0xe
-	mov	r3, #8
-	mov	r0, #0x10
-	str	r5, [sp]
-	bl	_Func_162d4
-	mov	r3, r8
-	str	r0, [r3, #0x20]
-	mov	r1, #0xe
-	mov	r2, #0xd
-	mov	r3, #3
-	mov	r0, #0
-	str	r5, [sp]
-	bl	_Func_162d4
-	mov	r3, #0xe4
-	lsl	r3, #2
-	ldr	r4, [sp, #4]
-	mov	r10, r0
-	add	r3, r8
-	mov	r1, #0x80
-	ldrh	r0, [r3]
-	lsl	r1, #23
-	mov	r2, r10
-	mov	r3, #0
-	str	r4, [sp]
-	bl	_Func_1eadc
-	mov	r6, #0xe0
-	mov	r5, r0
-	add	r0, sp, #4
-	ldrb	r0, [r0]
-	lsl	r6, #2
-	mov	r3, #4
-	add	r6, r8
-	mov	r1, #0x20
-	strb	r3, [r5, #5]
-	strb	r0, [r5, #4]
-	neg	r1, r1
-	mov	r0, r6
-	mov	r2, #0x70
-	bl	Func_b0a20
-	mov	r2, #0xea
-	lsl	r2, #2
-	add	r2, r8
-	mov	r3, #0xc
-	str	r5, [r6]
-	strb	r3, [r2]
-	ldr	r2, [sp, #4]
-	mov	r0, r10
-	str	r2, [sp]
-	mov	r1, #2
-	mov	r2, #0
-	mov	r3, #8
-	bl	_Func_a1870
-	mov	r6, #0xea
-	lsl	r6, #2
-	mov	r7, #0
-	add	r6, r8
-.Lb34ea:
-	mov	r3, r9
-	cmp	r3, #0
-	beq	.Lb353a
-	ldr	r3, =0x3a7
-	add	r3, r8
-	mov	r1, #0
-	ldrsb	r1, [r3, r1]
-	mov	r4, #0
-	add	r0, r7, r1
-	mov	r9, r4
-	bl	Func_b1c_from_thumb
-	mov	r7, r0
-	mov	r0, #0xdb
-	lsl	r0, #2
-	lsl	r1, r7, #1
-	mov	r3, r8
-	add	r2, r1, r0
-	add	r3, #2
-	add	r1, r7
-	ldrsh	r4, [r3, r2]
-	lsl	r1, #3
-	sub	r1, #0xc
-	mov	r0, r10
-	mov	r2, #0
-	mov	r11, r4
-	bl	Func_b0a6c
-	mov	r3, #3
-	mov	r0, r10
-	mov	r1, r7
-	mov	r2, #0
-	strb	r3, [r6]
-	bl	Func_b11c4
-	mov	r2, r8
-	ldr	r0, [r2, #0x20]
-	mov	r1, r11
-	bl	Func_b1dec
-.Lb353a:
-	mov	r0, #1
-	bl	Func_30f8
-	ldr	r1, =iwram_1c94
-	ldr	r2, [r1]
-	mov	r3, #1
-	and	r2, r3
-	cmp	r2, #0
-	beq	.Lb3598
-	mov	r0, r11
-	bl	_Func_784d8
-	cmp	r0, #0
-	bne	.Lb355e
-	mov	r0, #0x71
-	bl	_Func_f9080
-	b	.Lb34ea
-.Lb355e:
-	mov	r0, #0x70
-	bl	_Func_f9080
-	mov	r0, r11
-	bl	Func_b362c
-	mov	r3, #1
-	neg	r3, r3
-	cmp	r0, r3
-	bne	.Lb3588
-	mov	r3, #0xe0
-	lsl	r3, #2
-	add	r3, r8
-	ldr	r2, [r3]
-	mov	r3, #4
-	strb	r3, [r2, #5]
-	mov	r4, #1
-	mov	r3, #0xc
-	strb	r3, [r6]
-	mov	r9, r4
-	b	.Lb34ea
-.Lb3588:
-	ldr	r3, [sp, #0xc]
-	mov	r2, r11
-	str	r2, [r3]
-	ldr	r4, [sp, #8]
-	str	r0, [r4]
-	mov	r0, #0
-	str	r0, [sp, #4]
-	b	.Lb35e8
-.Lb3598:
-	ldr	r3, [r1]
-	mov	r2, #2
-	and	r3, r2
-	cmp	r3, #0
-	beq	.Lb35b8
-	mov	r0, #0x71
-	bl	_Func_f9080
-	mov	r3, #1
-	ldr	r2, [sp, #0xc]
-	neg	r3, r3
-	str	r3, [r2]
-	ldr	r4, [sp, #8]
-	str	r3, [r4]
-	str	r3, [sp, #4]
-	b	.Lb35e8
-.Lb35b8:
-	ldr	r5, =iwram_1b04
-	ldr	r3, [r5]
-	mov	r2, #0x20
-	and	r3, r2
-	cmp	r3, #0
-	beq	.Lb35d0
-	mov	r0, #0x6f
-	bl	_Func_f9080
-	mov	r0, #1
-	sub	r7, #1
-	mov	r9, r0
-.Lb35d0:
-	ldr	r3, [r5]
-	mov	r2, #0x10
-	and	r3, r2
-	cmp	r3, #0
-	beq	.Lb34ea
-	mov	r0, #0x6f
-	bl	_Func_f9080
-	mov	r2, #1
-	add	r7, #1
-	mov	r9, r2
-	b	.Lb34ea
-.Lb35e8:
-	bl	_Func_a195c
-	mov	r0, r10
-	mov	r1, #2
-	bl	_Func_16418
-	mov	r3, r8
-	ldr	r0, [r3, #0x20]
-	mov	r1, #2
-	bl	_Func_16418
-	mov	r0, #1
-	bl	Func_30f8
-	bl	Func_b0204
-	ldr	r0, [sp, #4]
-	add	sp, #0x10
-	pop	{r3, r5, r6, r7}
-	mov	r8, r3
-	mov	r9, r5
-	mov	r10, r6
-	mov	r11, r7
-	pop	{r5, r6, r7}
-	pop	{r1}
-	bx	r1
-.func_end Func_b3444
-
-.thumb_func_start Func_b362c
-	push	{r5, r6, r7, lr}
-	mov	r7, r11
-	mov	r6, r10
-	mov	r5, r9
-	push	{r5, r6, r7}
-	mov	r7, r8
-	push	{r7}
-	ldr	r3, =iwram_1f2c
-	ldr	r3, [r3]
-	sub	sp, #0x18
-	str	r3, [sp, #0x14]
-	mov	r11, r0
-	bl	_Func_77394
-	mov	r1, #1
-	mov	r2, #0
-	str	r0, [sp, #8]
-	str	r2, [sp, #4]
-	mov	r5, #2
-	mov	r2, #0x10
-	mov	r3, #4
-	mov	r10, r1
-	mov	r9, r1
-	mov	r0, #0xe
-	mov	r1, #8
-	str	r5, [sp]
-	bl	_Func_162d4
-	mov	r1, #5
-	str	r0, [sp, #0xc]
-	mov	r2, #0x1e
-	mov	r3, #3
-	mov	r0, #0
-	str	r5, [sp]
-	bl	_Func_162d4
-	mov	r2, #0xe0
-	ldr	r1, [sp, #0x14]
-	str	r0, [sp, #0x10]
-	lsl	r2, #2
-	add	r3, r1, r2
-	ldr	r2, [r3]
-	mov	r3, #0x12
-	strb	r3, [r2, #5]
-	mov	r3, #0xea
-	lsl	r3, #2
-	add	r2, r1, r3
-	mov	r3, #0xc
-	strb	r3, [r2]
-	mov	r7, #0
-.Lb3690:
-	mov	r1, r9
-	cmp	r1, #0
-	beq	.Lb370c
-	mov	r2, #0
-	mov	r0, r11
-	mov	r9, r2
-	bl	_Func_784d8
-	mov	r10, r0
-	mov	r3, r10
-	sub	r3, #1
-	cmp	r7, r3
-	ble	.Lb36ac
-	mov	r7, r3
-.Lb36ac:
-	ldr	r1, [sp, #8]
-	ldr	r2, [sp, #0x14]
-	lsl	r3, r7, #1
-	add	r3, #0xd8
-	ldrh	r3, [r1, r3]
-	ldr	r2, [r2, #0x20]
-	ldr	r6, .Lb36f4	@ 0x1ff
-	mov	r1, #5
-	mov	r0, r7
-	and	r6, r3
-	mov	r8, r2
-	bl	Func_b1c_from_thumb
-	mov	r1, #5
-	mov	r5, r0
-	mov	r0, r7
-	bl	Func_af0_from_thumb
-	mov	r2, r0
-	lsl	r5, #4
-	lsl	r2, #4
-	add	r2, #8
-	mov	r0, r8
-	mov	r1, r5
-	bl	Func_b0a6c
-	mov	r1, #0xea
-	ldr	r3, [sp, #0x14]
-	lsl	r1, #2
-	add	r2, r3, r1
-	mov	r3, #3
-	strb	r3, [r2]
-	ldr	r0, [sp, #0xc]
-	mov	r1, r11
-	mov	r2, r7
-	b	.Lb36fc
-
-	.align	2, 0
-.Lb36f4:
-	.word	0x1ff
-	.pool
-
-.Lb36fc:
-	bl	Func_b386c
-	ldr	r3, =0x75
-	add	r6, r3
-	ldr	r0, [sp, #0x10]
-	mov	r1, r6
-	bl	Func_b11a4
-.Lb370c:
-	mov	r0, #1
-	bl	Func_30f8
-	ldr	r1, =iwram_1c94
-	ldr	r2, [r1]
-	mov	r3, #1
-	and	r2, r3
-	cmp	r2, #0
-	beq	.Lb377c
-	mov	r0, r11
-	mov	r1, r7
-	bl	_Func_78980
-	cmp	r0, #0
-	bne	.Lb3734
-	mov	r0, #0x70
-	bl	_Func_f9080
-	str	r7, [sp, #4]
-	b	.Lb382c
-.Lb3734:
-	mov	r2, #4
-	neg	r2, r2
-	cmp	r0, r2
-	bne	.Lb374a
-	ldr	r0, =0xc96
-	mov	r1, #8
-	mov	r2, #1
-	mov	r3, #2
-	bl	_Func_17658
-	b	.Lb3760
-.Lb374a:
-	mov	r1, #3
-	ldr	r3, [sp, #4]
-	neg	r1, r1
-	cmp	r3, r1
-	bne	.Lb3760
-	ldr	r0, =0xc97
-	mov	r1, #8
-	mov	r2, #1
-	mov	r3, #2
-	bl	_Func_17658
-.Lb3760:
-	mov	r0, #0x71
-	bl	_Func_f9080
-	b	.Lb376e
-.Lb3768:
-	mov	r0, #1
-	bl	Func_30f8
-.Lb376e:
-	bl	_Func_17364
-	cmp	r0, #0
-	beq	.Lb3768
-	bl	_Func_19a54
-	b	.Lb3690
-.Lb377c:
-	ldr	r3, [r1]
-	mov	r2, #2
-	and	r3, r2
-	cmp	r3, #0
-	beq	.Lb3794
-	mov	r0, #0x71
-	bl	_Func_f9080
-	mov	r2, #1
-	neg	r2, r2
-	str	r2, [sp, #4]
-	b	.Lb382c
-.Lb3794:
-	ldr	r5, =iwram_1b04
-	ldr	r3, [r5]
-	mov	r2, #0x20
-	and	r3, r2
-	cmp	r3, #0
-	beq	.Lb37b8
-	mov	r0, #0x6f
-	bl	_Func_f9080
-	sub	r7, #1
-	mov	r3, r10
-	add	r0, r7, r3
-	mov	r1, r10
-	bl	Func_b1c_from_thumb
-	mov	r1, #1
-	mov	r7, r0
-	mov	r9, r1
-.Lb37b8:
-	ldr	r3, [r5]
-	mov	r2, #0x10
-	and	r3, r2
-	cmp	r3, #0
-	beq	.Lb37da
-	mov	r0, #0x6f
-	bl	_Func_f9080
-	add	r7, #1
-	mov	r2, r10
-	add	r0, r7, r2
-	mov	r1, r10
-	bl	Func_b1c_from_thumb
-	mov	r3, #1
-	mov	r7, r0
-	mov	r9, r3
-.Lb37da:
-	ldr	r3, [r5]
-	mov	r2, #0x40
-	and	r3, r2
-	cmp	r3, #0
-	beq	.Lb3800
-	sub	r7, #5
-	cmp	r7, #0
-	bge	.Lb37ec
-	add	r7, #0xf
-.Lb37ec:
-	cmp	r7, r10
-	blt	.Lb37f6
-.Lb37f0:
-	sub	r7, #5
-	cmp	r7, r10
-	bge	.Lb37f0
-.Lb37f6:
-	mov	r0, #0x6f
-	bl	_Func_f9080
-	mov	r1, #1
-	mov	r9, r1
-.Lb3800:
-	ldr	r3, =iwram_1b04
-	ldr	r3, [r3]
-	mov	r2, #0x80
-	and	r3, r2
-	cmp	r3, #0
-	bne	.Lb380e
-	b	.Lb3690
-.Lb380e:
-	add	r7, #5
-	cmp	r7, r10
-	blt	.Lb3816
-	sub	r7, #0xf
-.Lb3816:
-	cmp	r7, #0
-	bge	.Lb3820
-.Lb381a:
-	add	r7, #5
-	cmp	r7, #0
-	blt	.Lb381a
-.Lb3820:
-	mov	r0, #0x6f
-	bl	_Func_f9080
-	mov	r2, #1
-	mov	r9, r2
-	b	.Lb3690
-.Lb382c:
-	ldr	r0, [sp, #0x10]
-	mov	r1, #2
-	bl	_Func_16418
-	mov	r1, #2
-	ldr	r0, [sp, #0xc]
-	bl	_Func_16418
-	mov	r0, #1
-	bl	Func_30f8
-	ldr	r0, [sp, #4]
-	add	sp, #0x18
-	pop	{r3, r5, r6, r7}
-	mov	r8, r3
-	mov	r9, r5
-	mov	r10, r6
-	mov	r11, r7
-	pop	{r5, r6, r7}
-	pop	{r1}
-	bx	r1
-.func_end Func_b362c
-
-.thumb_func_start Func_b386c
-	push	{r5, r6, r7, lr}
-	mov	r7, r11
-	mov	r6, r10
-	mov	r5, r9
-	push	{r5, r6, r7}
-	mov	r7, r8
-	push	{r7}
-	mov	r10, r1
-	mov	r7, r0
-	mov	r0, r10
-	mov	r9, r2
-	sub	sp, #4
-	bl	_Func_77394
-	mov	r2, r9
-	lsl	r3, r2, #1
-	mov	r6, r3
-	add	r6, #0xd8
-	ldrh	r3, [r0, r6]
-	ldr	r5, =0x1ff
-	and	r5, r3
-	ldrh	r3, [r0, r6]
-	lsr	r3, #11
-	add	r3, #1
-	mov	r8, r0
-	mov	r11, r3
-	cmp	r7, #0
-	beq	.Lb391a
-	mov	r0, r7
-	bl	_Func_16498
-	ldr	r0, =0x182
-	mov	r3, #0
-	add	r0, r5, r0
-	mov	r1, r7
-	mov	r2, #0
-	bl	_Func_1e7c0
-	mov	r0, r10
-	mov	r1, r9
-	bl	_Func_78980
-	mov	r3, #4
-	neg	r3, r3
-	cmp	r0, r3
-	bne	.Lb38cc
-	ldr	r0, =0xc94
-	b	.Lb38d6
-.Lb38cc:
-	mov	r2, #3
-	neg	r2, r2
-	cmp	r0, r2
-	bne	.Lb38e2
-	ldr	r0, =0xc95
-.Lb38d6:
-	mov	r1, r7
-	mov	r2, #0
-	mov	r3, #8
-	bl	_Func_1e7c0
-	b	.Lb391a
-.Lb38e2:
-	mov	r3, r8
-	ldrh	r0, [r3, r6]
-	bl	Func_b19cc
-	ldr	r5, =0xc8d
-	mov	r6, r11
-	mul	r6, r0
-	mov	r1, r7
-	mov	r0, r5
-	mov	r2, #8
-	mov	r3, #8
-	bl	_Func_1e7c0
-	mov	r3, #8
-	str	r3, [sp]
-	mov	r0, r6
-	mov	r1, #5
-	mov	r2, r7
-	mov	r3, #0x28
-	sub	r5, #5
-	bl	_Func_1ea08
-	mov	r0, r5
-	mov	r1, r7
-	mov	r2, #0x50
-	mov	r3, #8
-	bl	_Func_1e7c0
-.Lb391a:
-	add	sp, #4
-	pop	{r3, r5, r6, r7}
-	mov	r8, r3
-	mov	r9, r5
-	mov	r10, r6
-	mov	r11, r7
-	pop	{r5, r6, r7}
-	pop	{r0}
-	bx	r0
-.func_end Func_b386c
-
-	.section .rodata
-
-.Lb3940:
-	.incrom 0xb3940, 0xb39c0
-.Lb39c0:
-	.incrom 0xb39c0, 0xb3a40
-.Lb3a40:
-	.incrom 0xb3a40, 0xb3ac0
-.Lb3ac0:
-	.incrom 0xb3ac0, 0xb3b40
-.Lb3b40:
-	.incrom 0xb3b40, 0xb3bc0
-.Lb3bc0:
-	.incrom 0xb3bc0, 0xb3d40
-.Lb3d40:
-	.incrom 0xb3d40, 0xb3e80
-.Lb3e80:
-	.incrom 0xb3e80, 0xb3f80
-.Lb3f80:
-	.incrom 0xb3f80, 0xb4100
-.Lb4100:
-	.incrom 0xb4100, 0xb413c
-.Lb413c:
-	.incrom 0xb413c, 0xb4146
-.Lb4146:
-	.incrom 0xb4146, 0xb41ac
-.Lb41ac:
-	.incrom 0xb41ac, 0xb4ab2
-.Lb4ab2:
-	.incrom 0xb4ab2, 0xb4ab6
-.Lb4ab6:
-	.incrom 0xb4ab6, 0xb4ac2

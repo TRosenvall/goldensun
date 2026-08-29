@@ -1,25 +1,34 @@
 	.include "macros.inc"
 
+@ Slot 1: the edge-transition table -- .L2928.
 .thumb_func_start OvlFunc_e90
 	ldr	r0, =.L2928
 	bx	lr
 .func_end OvlFunc_e90
 
+@ Slot 5: the interaction table -- none for this map (returns 0).
 .thumb_func_start OvlFunc_e98
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_e98
 
+@ Slot 2: the map event list -- .L2bf8.
 .thumb_func_start OvlFunc_e9c
 	ldr	r0, =.L2bf8
 	bx	lr
 .func_end OvlFunc_e9c
 
+@ Slot 3: the read after slot 4 -- .L2c58.
 .thumb_func_start OvlFunc_ea4
 	ldr	r0, =.L2c58
 	bx	lr
 .func_end OvlFunc_ea4
 
+@ 11 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetSlotAnimation, RunTextBoxModal, EndCutscene
 .thumb_func_start OvlFunc_eac
 	push	{lr}
 	bl	__Func_916b0
@@ -34,6 +43,14 @@
 	bx	r0
 .func_end OvlFunc_eac
 
+@ 41 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, BeginCutscene, PlaySound, SetSlotAnimation
+@   MoveSlotBy, WaitForSlotArrival, SetSlotPalette, GetSlotEntityChecked
+@   SetEntityActorOptions, DialogueWait, HideScreenOverlay, WaitSceneDelay
+@   SetPendingMessageId, EndCutscene
 .thumb_func_start OvlFunc_ed0
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -78,6 +95,13 @@
 	bx	r0
 .func_end OvlFunc_ed0
 
+@ 36 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, PlaySound, SetSlotEntitySpeed, SetSlotDrawPriority
+@   MoveSlotBy, GetSlotEntityChecked, SetEntityActorOptions, DialogueWait
+@   PlaceSlotAt, DialogueWait
 .thumb_func_start OvlFunc_f48
 	push	{r5, lr}
 	mov	r5, r0
@@ -117,6 +141,7 @@
 	bx	r0
 .func_end OvlFunc_f48
 
+@ Wrapper: OvlFunc_ed0(0x11).
 .thumb_func_start OvlFunc_fac
 	push	{lr}
 	mov	r0, #0x11
@@ -125,6 +150,7 @@
 	bx	r0
 .func_end OvlFunc_fac
 
+@ Wrapper: OvlFunc_ed0(0x12).
 .thumb_func_start OvlFunc_fb8
 	push	{lr}
 	mov	r0, #0x12
@@ -133,6 +159,7 @@
 	bx	r0
 .func_end OvlFunc_fb8
 
+@ Wrapper: OvlFunc_ed0(0x13).
 .thumb_func_start OvlFunc_fc4
 	push	{lr}
 	mov	r0, #0x13
@@ -141,11 +168,22 @@
 	bx	r0
 .func_end OvlFunc_fc4
 
+@ Slot 4: the map object table -- .L2d60.
 .thumb_func_start OvlFunc_fd0
 	ldr	r0, =.L2d60
 	bx	lr
 .func_end OvlFunc_fd0
 
+@ 143 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked x2, BeginCutscene, StartFadeOut, WaitForFade
+@   DialogueWait, StartFadeOut, WaitForFade, DialogueWait
+@   PlaySound, Random x3, SignedDiv, OvlFunc_common0_10c
+@   DialogueWait, PlaySound
+@   ... and 9 more
+@ sets 0x875.
 .thumb_func_start OvlFunc_fd8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -298,6 +336,11 @@
 	bx	r0
 .func_end OvlFunc_fd8
 
+@ 5 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetPendingMessageId
 .thumb_func_start OvlFunc_1144
 	push	{lr}
 	mov	r0, #0x3f

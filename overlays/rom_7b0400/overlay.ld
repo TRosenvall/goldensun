@@ -13,20 +13,48 @@ MEMORY {
 
 SECTIONS {
 	.text : {
-		overlays/rom_7b0400/exports.o(.text)
-		overlays/common/common0.o(.text)
-		overlays/rom_7b0400/ovl_314.o(.text)
-		overlays/rom_7b0400/imports.o(.text)
-		lib/call_via.o(.text)
+		src/overlays/rom_7b0400/exports.o(.text)
+		asm/overlays/common/common0_a_a.o(.text)
+		asm/overlays/common/common0_a_b_a.o(.text)
+		asm/overlays/common/common0_a_b_b.o(.text)
+		asm/overlays/common/common0_b.o(.text)
+		asm/overlays/common/common0_c.o(.text)
+		asm/overlays/rom_7b0400/ovl_314_a.o(.text)
+		asm/overlays/rom_7b0400/ovl_314_b.o(.text)
+		asm/overlays/rom_7b0400/ovl_314_c_b.o(.text)
+		asm/overlays/rom_7b0400/ovl_314_c_c_a_b.o(.text)
+		asm/overlays/rom_7b0400/ovl_314_c_c_b.o(.text)
+		asm/overlays/rom_7b0400/ovl_314_c_c_c_a_a.o(.text)
+		asm/overlays/rom_7b0400/ovl_314_c_c_c_a_b.o(.text)
+		asm/overlays/rom_7b0400/ovl_314_c_c_c_a_c_a_b.o(.text)
+		asm/overlays/rom_7b0400/ovl_314_c_c_c_a_c_a_c_b.o(.text)
+		asm/overlays/rom_7b0400/ovl_314_c_c_c_a_c_a_c_c.o(.text)
+		asm/overlays/rom_7b0400/ovl_314_c_c_c_a_c_b.o(.text)
+		asm/overlays/rom_7b0400/ovl_314_c_c_c_a_c_c_a_a.o(.text)
+		asm/overlays/rom_7b0400/ovl_314_c_c_c_a_c_c_a_b.o(.text)
+		asm/overlays/rom_7b0400/ovl_314_c_c_c_a_c_c_b.o(.text)
+		asm/overlays/rom_7b0400/ovl_314_c_c_c_a_c_c_c.o(.text)
+		asm/overlays/rom_7b0400/ovl_314_c_c_c_b.o(.text)
+		asm/overlays/rom_7b0400/ovl_314_c_c_c_c.o(.text)
+		src/overlays/rom_7b0400/imports.o(.text)
+		src/lib/call_via.o(.text)
 	} > overlay
 
 	.data : {
-		overlays/common/common0.o(.data)
-		overlays/common/common0.o(.data1)
-		overlays/rom_7b0400/ovl_314.o(.data)
+		asm/overlays/common/common0_c.o(.data)
+		asm/overlays/common/common0_c.o(.data1)
+		asm/overlays/rom_7b0400/ovl_314_c_c_c_c.o(.data)
 	} > overlay
 
 	/DISCARD/ : {
 		*(*)
 	}
 }
+
+/* gcc-2.96 emits __divsi3 for the corresponding C operator and has
+ * no flag to rename it.  Overlay code calls the RAM-resident copy through
+ * the stub .export_func divsi3_RAM makes; they are different functions at
+ * different addresses, so this alias is what lets the C form link to the
+ * routine the ROM actually calls.  Emits no bytes.
+ * See overlays/rom_7a5214/overlay.ld for the original of this note. */
+__divsi3 = _divsi3_RAM;

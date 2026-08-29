@@ -1,5 +1,48 @@
 	.include "macros.inc"
 
+@ ============================================================================
+@ Overlay 0x780898 -- a map overlay whose first 1125 instructions are the
+@ PUSHABLE-LOG PUZZLE, shared verbatim with about seventeen other overlays.
+@
+@ OvlFunc_30 .. OvlFunc_8c0 are that shared block. Everything from OvlFunc_9dc
+@ onward is this map's own content. The block is byte-identical across the
+@ family, so the notes here carry over unchanged; see docs/overlays.md for the
+@ member list.
+@
+@ THE PUZZLE. Some maps contain long logs and pillars the player can shoulder
+@ one tile at a time. Pushing one has to do three things at once: verify the
+@ whole footprint of the log clears the terrain it is moving onto, animate the
+@ player and the log together, and rewrite the map's collision attributes so
+@ the log blocks movement at its new resting place and stops blocking at the
+@ old one. The last part is why this needs map code at all rather than a plain
+@ entity script.
+@
+@ THE TWO TABLES, both at the bottom of the file:
+@
+@   .L6190  16 words, indexed by the player's facing (the top four bits of the
+@           halfword at entity+0x06). Each is a packed one-tile step: the HIGH
+@           halfword is the x delta and the LOW halfword the z delta, both in
+@           1/16-tile units, applied as `x += v & 0xFFFF0000` and
+@           `z += v << 16`. The sixteen facings collapse to four cardinal
+@           steps of +-16 units.
+@
+@   .L61d0  six model ids -- 0xCF, 0xCD, 0xE4, 0xE5, 0x12A, 0x129 -- read from
+@           [[entity+0x50]+0x28]. These are the pushable props.
+@   .L61e8  the matching six footprints, four s32 each: minX, minZ, maxX, maxZ
+@           in 1/16-tile units. They alternate orientation, so the even ids are
+@           logs lying along x (-32,-8,32,8) and the odd ids along z
+@           (-8,-32,8,32). Index bit 0 therefore doubles as the axis flag, and
+@           OvlFunc_34c uses it that way.
+@
+@ Positions are 16.16 fixed point at entity +0x08 (x), +0x0C (y), +0x10 (z);
+@ `asr #20` turns one into a whole tile index, `asr #16` into 1/16 units.
+@ ============================================================================
+
+@ Distance3D
+@ r0, r1 = two {x, y, z} triples of 16.16 words. Returns the integer distance
+@ between them: each axis difference is taken down to 1/16 units with `asr #16`,
+@ squared, summed, and passed to the ROM's Func_948 (IntegerSqrt) through a
+@ call_via veneer because Func_948 is ARM code.
 .thumb_func_start OvlFunc_30
 	push	{r5, lr}
 	ldmia	r0!, {r5}
@@ -30,6 +73,17 @@
 	bx	r1
 .func_end OvlFunc_30
 
+@ FindEntityAtPosition
+@ r0 = an {x, y, z} triple, r1 = the entity to skip (the caller itself).
+@ Scans entity slots 8..0x41 -- the map-object range, above the party slots --
+@ from the table at [iwram_1ebc]+0x34, and returns the first whose position
+@ matches r0. Returns 0 if nothing is there.
+@
+@ The comparison is deliberately mismatched between axes: x and z are compared
+@ at whole-tile resolution (`asr #20`) but y at 1/16 (`asr #16`, with 0xFFFF
+@ added first to round negatives toward zero). So an object counts as "here" if
+@ it shares the tile, but only if it is on the same height step -- which is what
+@ keeps a log on a ledge from blocking one on the floor below.
 .thumb_func_start OvlFunc_6c
 	push	{r5, r6, r7, lr}
 	ldr	r3, =iwram_1ebc
@@ -78,6 +132,29 @@
 	bx	r1
 .func_end OvlFunc_6c
 
+@ TryPushBlockOneTile
+@ No arguments. The interaction handler for a single-tile pushable block, as
+@ opposed to the multi-tile logs the rest of this file deals with.
+@
+@ Takes the player (slot 0) and steps one tile along the facing from .L6190 to
+@ find the block. Then it rejects the push unless all three of these hold:
+@   - the tile beyond the block is empty (a second OvlFunc_6c one step further,
+@     and if something is there, bit 0 of its byte at +0x59 must be clear),
+@   - the tile directly above the block is clear too -- the same lookup with
+@     y raised by 0x100000, one height step, so a block cannot be shoved under
+@     an overhang,
+@   - Func_120dc accepts the destination terrain (it returns > 0 to reject) and
+@     the block's byte at +0x62 is zero.
+@ +0x22 is set to 2 first because Func_120dc reads it to choose the collision
+@ layer to sample.
+@
+@ Once committed: animation 8 on the player, a fifteen-frame beat, sound 0xB9,
+@ then both the block and the player are given speed 0x3333 in +0x30/+0x34 and
+@ sent to the new tile with Func_d14c. Func_ca6c waits out the slide and
+@ Func_9202c ends the looping push cue. The final position is written straight
+@ into the block, its velocities at +0x24/+0x2C are cleared, and the player's
+@ move targets are reset to the 0x80000000 sentinel before animation 1 returns
+@ it to idle.
 .thumb_func_start OvlFunc_c4
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -257,6 +334,19 @@
 	bx	r0
 .func_end OvlFunc_c4
 
+@ FillMapRectCollisionByte
+@ r0 = layer (0..2, anything higher means ewram_10000), r1 = x, r2 = z,
+@ r3 = width, [sp+0x0C] = height, [sp+0x10] = the byte to store.
+@ Always returns 0.
+@
+@ Writes one byte into every cell of a rectangle of the map's cell array: the
+@ layer base comes from [iwram_1e70] + 0x130 + layer*0x30, rows are 0x200 bytes
+@ apart (`lsl #9`) and cells 4 bytes, and the byte written is at offset +2 of
+@ the cell -- the collision/attribute byte, not the metatile index.
+@
+@ This is how a log occupies space. OvlFunc_608 calls it with 0xFF to stamp the
+@ footprint solid at the destination and with 0 to clear it at the origin, on
+@ both layer 0 and layer 2. A null [iwram_1e70] makes it a no-op.
 .thumb_func_start OvlFunc_244
 	push	{r5, r6, lr}
 	mov	r4, r3
@@ -312,6 +402,20 @@
 	bx	r1
 .func_end OvlFunc_244
 
+@ PlayerPushFrameHook
+@ r0 = the player entity. Installed at entity+0x6C by OvlFunc_608 for the
+@ duration of a push and cleared again afterwards, so it runs once per frame
+@ while the player is walking the log forward. Always returns 0.
+@
+@ It aborts the player's motion the moment the push stops being valid, by
+@ zeroing the velocities at +0x24/+0x2C and resetting the move targets at
+@ +0x38/+0x40 to the 0x80000000 sentinel. Two conditions trigger that:
+@   - the tile ahead holds an entity that is NOT one of the six pushable models
+@     in .L61d0 (something walked into the way), or
+@   - Func_120dc rejects the terrain ahead.
+@ Stopping the player here rather than in OvlFunc_608 means the log keeps its
+@ own scripted glide while the player halts, which is what produces the small
+@ stumble when a push is interrupted.
 .thumb_func_start OvlFunc_2a8
 	push	{r5, r6, r7, lr}
 	mov	r5, r0
@@ -392,6 +496,25 @@
 	bx	r1
 .func_end OvlFunc_2a8
 
+@ FindPushableFacingPlayer
+@ r0 = out, the player's facing (0..15); r1 = out, the entity slot found;
+@ r2 = out, the index into .L61d0/.L61e8 of the model that matched.
+@ Returns the log's entity, or 0 if the player is not facing one.
+@
+@ A double loop: slots 8..0x41 on the outside, the six pushable model ids on the
+@ inside. For each candidate whose model id at [[entity+0x50]+0x28] matches, it
+@ builds the footprint rectangle from .L61e8 around the candidate's centre
+@ (+0x0A and +0x12, the integer halves of x and z) and tests whether the tile
+@ one step ahead of the player falls inside it.
+@
+@ The last check is what makes long logs work. Index bit 0 selects the log's
+@ axis, and the player's coordinate ALONG that axis must differ from the log's:
+@   even index (log lies along x) -- reject if the tile x matches,
+@   odd index  (log lies along z) -- reject if the tile z matches.
+@ Standing at the end of a log and facing down its length therefore finds
+@ nothing, so a log can only be pushed broadside. Everything is compared at
+@ 1/16 resolution (`asr #16` then `asr #4`) rather than whole tiles, because the
+@ footprints are half-tile multiples.
 .thumb_func_start OvlFunc_34c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -539,6 +662,31 @@
 	bx	r1
 .func_end OvlFunc_34c
 
+@ PlanPushDistance
+@ r0 = a six-word request block, filled in on the way through:
+@       +0x00  out, the .L61e8 model index
+@       +0x04  out, the entity slot (written by OvlFunc_34c through r1)
+@       +0x08  out, destination x (16.16)
+@       +0x0C  out, destination y
+@       +0x10  out, destination z
+@       +0x14  cleared on entry
+@ Returns 1 if the log can move at least one tile, 0 if it cannot move at all
+@ or the player is not facing one.
+@
+@ Having located the log with OvlFunc_34c, it converts the footprint into a
+@ width and height in whole tiles -- |minX| + |maxX| and |minZ| + |maxZ|, each
+@ `asr #4` -- and then walks outward one step at a time along the facing. At
+@ every step it probes EVERY cell of the footprint with Func_120dc, raising y
+@ by 0x100000 per row so each height step is sampled where it actually sits.
+@
+@ Only a return of 2 stops the walk -- "no tile / blocked". A return of 1 or -1,
+@ meaning the step up or drop is too large, does not, so a log will happily be
+@ pushed down a slope it could not be pushed up. The loop has no upper bound
+@ other than that wall, which is why long open floors let a log slide the whole
+@ way across.
+@
+@ The step count lands in [sp+0x0C]; the destination written back is the log's
+@ start plus count times the .L6190 delta.
 .thumb_func_start OvlFunc_474
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -747,6 +895,36 @@
 	bx	r1
 .func_end OvlFunc_474
 
+@ RunPushCutscene
+@ r0 = the .L61e8 model index, r1 = the log entity, r2 = destination x,
+@ r3 = destination y, [sp+0x58] = destination z, [sp+0x5C] = an optional
+@ callback invoked at the midpoint (0 for none). Returns nothing useful.
+@
+@ The whole push, start to finish. Note the unusual prologue -- `sub sp, #0x10`
+@ BEFORE the register push, matched by `add sp, #0x10` after popping the return
+@ address into r3 -- which is how the six stacked arguments are addressed.
+@
+@ Order of operations:
+@   1. Clear the log's old footprint: OvlFunc_244 with byte 0 over the width
+@      and height derived from .L61e8, so the player can walk into the space it
+@      is about to vacate.
+@   2. Player speed 0x8000 / accel 0x1999, animation 8, fifteen-frame beat.
+@   3. Func_9228c nudges the player half a tile into the log, then
+@      OvlFunc_2a8 is installed at the player's +0x6C as the per-frame guard.
+@   4. Animation 3 if the facing is 6..13, otherwise 2 -- the two shoulder
+@      poses, chosen by which side of the log the player is on.
+@   5. Sound 0xEF, and Func_d14c launches the log toward its destination.
+@   6. Speed drops to 0x4CCC / 0x1999 and the player follows for half the
+@      remaining distance (`asr #1` on each delta, with the usual round-toward-
+@      zero correction from `lsr #31`).
+@   7. The optional callback fires here, through a call_via veneer.
+@   8. The frame hook is cleared, Func_ca6c waits the log out, sounds 0x120
+@      and 0xD5 close the cue, and the log's final position is written directly
+@      with its velocities zeroed.
+@   9. Func_10704 copies the map attributes over the new footprint and
+@      OvlFunc_244 stamps 0xFF into layers 0 and 2, making the log solid again;
+@      the same pair then runs at the destination and finally clears the origin.
+@      Func_9202c ends the looping push sound.
 .thumb_func_start OvlFunc_608
 	sub	sp, #0x10
 	push	{r5, r6, r7, lr}
@@ -1061,6 +1239,23 @@
 	bx	r3
 .func_end OvlFunc_608
 
+@ StampPlayerFootprintSolid
+@ No arguments. Returns 1 if the player is standing as one of the six pushable
+@ models, 0 otherwise.
+@
+@ Called on map entry. The player entity here is not the party leader but the
+@ log itself -- these maps place the log in slot 0 during setup -- so this reads
+@ its model id at [[entity+0x50]+0x28], finds it in .L61d0, and marks the map
+@ cells it covers solid before the player can reach them. Without it a log would
+@ start the map passable and only become an obstacle after the first push.
+@
+@ The search loop leaves index 7 in the slot when nothing matches (`mov r6, #7`
+@ stored each pass), which the `cmp r2, #6 / bls` test then rejects. Index 0 is
+@ handled by a separate branch before the loop, since the loop writes its
+@ counter only after the first increment.
+@
+@ The work is the same closing pair as OvlFunc_608: Func_10704 to repaint the
+@ attributes, then OvlFunc_244 with 0xFF on layer 0 and layer 2.
 .thumb_func_start OvlFunc_8c0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -1206,21 +1401,56 @@
 	bx	r1
 .func_end OvlFunc_8c0
 
+@ ----------------------------------------------------------------------------
+@ THIS MAP'S OWN CONTENT starts here. The shared push-log block above ends at
+@ OvlFunc_8c0.
+@
+@ The six export slots, resolved from the overlay header (slot N's target is at
+@ __start_overlay + N*8 + 4):
+@
+@   slot 0  OvlFunc_2a54   main entry (code)
+@   slot 1  OvlFunc_9dc    edge-transition table  -> .L6708
+@   slot 2  OvlFunc_9e8    map event list         -> .L6870
+@   slot 3  OvlFunc_9f0    read after slot 4      -> one of four, see below
+@   slot 4  OvlFunc_aa4    map object table       -> one of three
+@   slot 5  OvlFunc_9e4    interaction table      -> none (returns 0)
+@
+@ Slots 3 and 4 are not constants: this map has three story states, selected by
+@ two save bits, plus one case keyed on how the player arrived. They must agree,
+@ because slot 3's table is indexed against the object list slot 4 returns.
+@
+@   condition                                 slot 4     slot 3
+@   entrance id (ewram_240+0x1C2) == 0x10     --         .L6e48
+@   save bit 0x87A set                        .L7334     .L6cc8
+@   save bit 0x815 set                        .L7100     .L6ab8
+@   neither                                   .L6F38     .L68a8
+@
+@ Save bit 0x815 also gates most of the NPC dialogue below, and 0x87A a later
+@ revision of it, so the two bits are this map's before/during/after markers.
+@ ----------------------------------------------------------------------------
+
+@ Slot 1: the edge-transition table. Constant for this map.
 .thumb_func_start OvlFunc_9dc
 	ldr	r0, =.L6708
 	bx	lr
 .func_end OvlFunc_9dc
 
+@ Slot 5: the interaction table. This map has none.
 .thumb_func_start OvlFunc_9e4
 	mov	r0, #0
 	bx	lr
 .func_end OvlFunc_9e4
 
+@ Slot 2: the map event list. Constant for this map.
 .thumb_func_start OvlFunc_9e8
 	ldr	r0, =.L6870
 	bx	lr
 .func_end OvlFunc_9e8
 
+@ Slot 3: picks the table matching the map's story state. Checked in priority
+@ order -- the entrance id at ewram_240+0x1C2 first, then the two save bits
+@ newest-first -- so a later state wins over an earlier one. Must stay in step
+@ with slot 4 (OvlFunc_aa4).
 .thumb_func_start OvlFunc_9f0
 	push	{lr}
 	ldr	r3, =ewram_240
@@ -1254,6 +1484,13 @@
 	bx	r1
 .func_end OvlFunc_9f0
 
+@ 18 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, PlaceSlotAt, SetSaveBit, UpdateObjectProximity
+@   ApplyFieldItemOrAbility, EndCutscene
+@ sets 0xfd0.
 .thumb_func_start OvlFunc_a44
 	push	{lr}
 	bl	__Func_916b0
@@ -1275,6 +1512,13 @@
 	bx	r0
 .func_end OvlFunc_a44
 
+@ 18 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, PlaceSlotAt, SetSaveBit, UpdateObjectProximity
+@   ApplyFieldItemOrAbility, EndCutscene
+@ sets 0xfd0.
 .thumb_func_start OvlFunc_a74
 	push	{lr}
 	bl	__Func_916b0
@@ -1296,6 +1540,9 @@
 	bx	r0
 .func_end OvlFunc_a74
 
+@ Slot 4: the map object table, in the same three story states as slot 3 but
+@ without the ewram_240+0x1C2 case -- that state reuses whichever object list
+@ the save bits already selected.
 .thumb_func_start OvlFunc_aa4
 	push	{lr}
 	ldr	r0, =0x87a
@@ -1318,6 +1565,9 @@
 	bx	r1
 .func_end OvlFunc_aa4
 
+@ Talk: lines 0xf81, 0x11cc, shown.
+@ Which line is chosen by save bit 0x815.
+@ Also turns to face the player.
 .thumb_func_start OvlFunc_adc
 	push	{lr}
 	bl	__Func_916b0
@@ -1347,6 +1597,10 @@
 	bx	r0
 .func_end OvlFunc_adc
 
+@ Talk: lines 0xf7c, 0xf7e, 0x11c9, shown.
+@ Which line is chosen by save bits 0x806, 0x815.
+@ Also turns to face the player.
+@ Sets save bit 0x806.
 .thumb_func_start OvlFunc_b28
 	push	{lr}
 	bl	__Func_916b0
@@ -1393,6 +1647,12 @@
 	bx	r0
 .func_end OvlFunc_b28
 
+@ Cutscene: roughly 66 instructions of straight-line script --
+@ 1 turn, 0 animation changes, 4 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0xf63, 0xf66.
+@ Reads save bit 0x807.
+@ Sets save bit 0x807.
 .thumb_func_start OvlFunc_ba8
 	push	{lr}
 	bl	__Func_916b0
@@ -1464,6 +1724,8 @@
 	bx	r0
 .func_end OvlFunc_ba8
 
+@ Talk: lines 0xf68, 0xf69, shown.
+@ Which line is chosen by save bit 0x202.
 .thumb_func_start OvlFunc_c60
 	push	{lr}
 	bl	__Func_916b0
@@ -1486,6 +1748,9 @@
 	bx	r0
 .func_end OvlFunc_c60
 
+@ Talk: line 0x1c8d, shown.
+@ Also turns to face the player.
+@ Sets save bit 0x81f.
 .thumb_func_start OvlFunc_c9c
 	push	{lr}
 	bl	__Func_916b0
@@ -1505,6 +1770,14 @@
 	bx	r0
 .func_end OvlFunc_c9c
 
+@ 33 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, SetMapTransition, Func_30f8, SetMapTransition
+@   SetActiveMessageId, ShowMessageAndPause, FaceEntityInstant, ShowMessageAndWait
+@   EndCutscene
+@ message id 0x1c9a.
 .thumb_func_start OvlFunc_cd0
 	push	{lr}
 	bl	__Func_916b0
@@ -1541,6 +1814,9 @@
 	bx	r0
 .func_end OvlFunc_cd0
 
+@ Talk: line 0x1c9d, asked as a question.
+@ Also turns to face the player, re-forms the followers.
+@ Sets save bit 0x307.
 .thumb_func_start OvlFunc_d2c
 	push	{lr}
 	bl	__Func_916b0
@@ -1565,6 +1841,10 @@
 	bx	r0
 .func_end OvlFunc_d2c
 
+@ Map edit: 1 attribute copy.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
+@ Records it with save bit 0x210.
 .thumb_func_start OvlFunc_d70
 	push	{lr}
 	mov	r0, #0x84
@@ -1585,6 +1865,10 @@
 	bx	r0
 .func_end OvlFunc_d70
 
+@ Map edit: 1 attribute copy.
+@ Attributes only, so the artwork is already correct and only
+@ collision or priority changes.
+@ Clears save bit 0x210.
 .thumb_func_start OvlFunc_d98
 	push	{lr}
 	mov	r0, #0x84
@@ -1605,6 +1889,11 @@
 	bx	r0
 .func_end OvlFunc_d98
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, PlayMapRectAnimation, WalkSlotTo, SetPendingMessageId
 .thumb_func_start OvlFunc_dc0
 	push	{lr}
 	mov	r0, #0xbc
@@ -1624,6 +1913,12 @@
 	bx	r0
 .func_end OvlFunc_dc0
 
+@ 13 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, OvlFunc_fec, PlaySound, SetPendingMessageId
+@ reads save bit 0x801.
 .thumb_func_start OvlFunc_df0
 	push	{lr}
 	ldr	r0, =0x801
@@ -1642,6 +1937,11 @@
 	bx	r0
 .func_end OvlFunc_df0
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, SetPendingMessageId
 .thumb_func_start OvlFunc_e18
 	push	{lr}
 	mov	r0, #0x7b
@@ -1652,6 +1952,11 @@
 	bx	r0
 .func_end OvlFunc_e18
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, SetPendingMessageId
 .thumb_func_start OvlFunc_e2c
 	push	{lr}
 	mov	r0, #0x7b
@@ -1662,6 +1967,11 @@
 	bx	r0
 .func_end OvlFunc_e2c
 
+@ 7 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, SetPendingMessageId
 .thumb_func_start OvlFunc_e40
 	push	{lr}
 	mov	r0, #0x7b
@@ -1672,6 +1982,11 @@
 	bx	r0
 .func_end OvlFunc_e40
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, PlayMapRectAnimation, WalkSlotTo, SetPendingMessageId
 .thumb_func_start OvlFunc_e54
 	push	{lr}
 	mov	r0, #0x9e
@@ -1691,6 +2006,11 @@
 	bx	r0
 .func_end OvlFunc_e54
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, PlayMapRectAnimation, WalkSlotTo, SetPendingMessageId
 .thumb_func_start OvlFunc_e84
 	push	{lr}
 	mov	r0, #0x9e
@@ -1710,6 +2030,15 @@
 	bx	r0
 .func_end OvlFunc_e84
 
+@ 59 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit x2, BeginCutscene, SetActiveMessageId, OpenMessageBoxForSlot
+@   RunFieldAbilityPrompt, ShowMessageAndPause, ShowMessageAndWait, DialogueWait
+@   ShowMessageAndWait, EndCutscene, PlaySound, PlayMapRectAnimation
+@   WalkSlotTo, SetPendingMessageId
+@ message id 0x11b6; reads save bits 0x815, 0x87a.
 .thumb_func_start OvlFunc_eb4
 	push	{lr}
 	ldr	r0, =0x815
@@ -1776,6 +2105,11 @@
 	bx	r0
 .func_end OvlFunc_eb4
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, PlayMapRectAnimation, WalkSlotTo, SetPendingMessageId
 .thumb_func_start OvlFunc_f5c
 	push	{lr}
 	mov	r0, #0x9e
@@ -1795,6 +2129,11 @@
 	bx	r0
 .func_end OvlFunc_f5c
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, PlayMapRectAnimation, WalkSlotTo, SetPendingMessageId
 .thumb_func_start OvlFunc_f8c
 	push	{lr}
 	mov	r0, #0x9e
@@ -1814,6 +2153,11 @@
 	bx	r0
 .func_end OvlFunc_f8c
 
+@ 15 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, PlayMapRectAnimation, WalkSlotTo, SetPendingMessageId
 .thumb_func_start OvlFunc_fbc
 	push	{lr}
 	mov	r0, #0x9e
@@ -1832,6 +2176,10 @@
 	bx	r0
 .func_end OvlFunc_fbc
 
+@ Cutscene: roughly 88 instructions of straight-line script --
+@ 0 turns, 2 animation changes, 2 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xf39.
 .thumb_func_start OvlFunc_fec
 	push	{r5, r6, lr}
 	mov	r0, #0
@@ -1926,6 +2274,16 @@
 	bx	r0
 .func_end OvlFunc_fec
 
+@ 97 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, BeginCutscene, SetSlotEntitySpeed, SetSlotAnimation
+@   DialogueWait, SetActiveMessageId, ShowMessageAndPause x2, GetSlotEntityChecked
+@   DialogueWait, UpdateMapView, DialogueWait, RunTextBoxModal
+@   DialogueWait x2, UpdateMapView
+@   ... and 3 more
+@ message id 0xf4d; reads save bit 0x808.
 .thumb_func_start OvlFunc_10d8
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -2029,6 +2387,14 @@
 	bx	r0
 .func_end OvlFunc_10d8
 
+@ 37 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit, BeginCutscene, SetSlotEntitySpeed, SetActiveMessageId
+@   ShowMessageAndPause x2, RunTextBoxModal, DialogueWait, WalkSlotToAndWait
+@   EndCutscene
+@ message id 0xf4d; reads save bit 0x808.
 .thumb_func_start OvlFunc_11d8
 	push	{r5, lr}
 	ldr	r0, =0x808
@@ -2070,6 +2436,13 @@
 	bx	r0
 .func_end OvlFunc_11d8
 
+@ 24 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, CopyMapRectAttributes, OvlFunc_32b0, SetSaveBit
+@   EndCutscene
+@ sets 0x204.
 .thumb_func_start OvlFunc_1244
 	push	{lr}
 	sub	sp, #8
@@ -2097,6 +2470,13 @@
 	bx	r0
 .func_end OvlFunc_1244
 
+@ 24 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   BeginCutscene, OvlFunc_3380, ClearSaveBit, CopyMapRectAttributes
+@   EndCutscene
+@ clears 0x204.
 .thumb_func_start OvlFunc_1280
 	push	{lr}
 	sub	sp, #8
@@ -2124,6 +2504,11 @@
 	bx	r0
 .func_end OvlFunc_1280
 
+@ Cutscene: roughly 146 instructions of straight-line script --
+@ 5 turns, 2 animation changes, 1 dialogue line, 4 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xfce.
+@ Sets save bit 0x823.
 .thumb_func_start OvlFunc_12bc
 	push	{r5, r6, lr}
 	mov	r0, #0x16
@@ -2273,6 +2658,12 @@
 	bx	r0
 .func_end OvlFunc_12bc
 
+@ 20 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, TestSaveBit, OvlFunc_1490
+@ reads save bit 0x823.
 .thumb_func_start OvlFunc_1454
 	push	{r5, lr}
 	mov	r0, #0x16
@@ -2297,6 +2688,10 @@
 	bx	r0
 .func_end OvlFunc_1454
 
+@ Cutscene: roughly 70 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 1 dialogue line, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0xfce.
 .thumb_func_start OvlFunc_1490
 	push	{r5, r6, lr}
 	mov	r6, r8
@@ -2370,6 +2765,12 @@
 	bx	r0
 .func_end OvlFunc_1490
 
+@ 20 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, TestSaveBit, OvlFunc_1490
+@ reads save bit 0x823.
 .thumb_func_start OvlFunc_1554
 	push	{r5, lr}
 	mov	r0, #0x16
@@ -2394,6 +2795,12 @@
 	bx	r0
 .func_end OvlFunc_1554
 
+@ 26 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, TestSaveBit, OvlFunc_1490 x2
+@ reads save bit 0x823.
 .thumb_func_start OvlFunc_1590
 	push	{r5, lr}
 	mov	r0, #0x16
@@ -2425,6 +2832,11 @@
 	bx	r0
 .func_end OvlFunc_1590
 
+@ Cutscene: roughly 1996 instructions of straight-line script --
+@ 74 turns, 56 animation changes, 46 dialogue lines, 90 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0xf03, 0xf0a, 0xf0e, 0xf27.
+@ Sets save bit 0x202.
 .thumb_func_start OvlFunc_15dc
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -4445,6 +4857,11 @@
 	bx	r0
 .func_end OvlFunc_15dc
 
+@ Cutscene: roughly 229 instructions of straight-line script --
+@ 0 turns, 0 animation changes, 0 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Reads save bits 0x109, 0x204, 0x210, 0x308.
+@ Sets save bit 0x308.
 .thumb_func_start OvlFunc_2a54
 	push	{r5, lr}
 	ldr	r2, =ewram_240
@@ -4692,6 +5109,11 @@
 	bx	r1
 .func_end OvlFunc_2a54
 
+@ Cutscene: roughly 228 instructions of straight-line script --
+@ 6 turns, 10 animation changes, 12 dialogue lines, 4 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1c45.
+@ Sets save bit 0x303.
 .thumb_func_start OvlFunc_2cb0
 	push	{r5, lr}
 	bl	__Func_916b0
@@ -4926,6 +5348,11 @@
 	bx	r0
 .func_end OvlFunc_2cb0
 
+@ Cutscene: roughly 254 instructions of straight-line script --
+@ 13 turns, 10 animation changes, 13 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x1c53, 0x1c60.
+@ Sets save bit 0x304.
 .thumb_func_start OvlFunc_2f14
 	push	{lr}
 	bl	__Func_916b0
@@ -5187,6 +5614,11 @@
 	bx	r0
 .func_end OvlFunc_2f14
 
+@ Cutscene: roughly 89 instructions of straight-line script --
+@ 2 turns, 3 animation changes, 2 dialogue lines, 0 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message base 0x1c90.
+@ Sets save bit 0x305.
 .thumb_func_start OvlFunc_31b4
 	push	{r5, lr}
 	bl	__Func_916b0
@@ -5279,6 +5711,9 @@
 	bx	r0
 .func_end OvlFunc_31b4
 
+@ Cutscene: roughly 80 instructions of straight-line script --
+@ 1 turn, 3 animation changes, 0 dialogue lines, 2 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_32b0
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -5363,6 +5798,9 @@
 	bx	r0
 .func_end OvlFunc_32b0
 
+@ Cutscene: roughly 87 instructions of straight-line script --
+@ 1 turn, 3 animation changes, 0 dialogue lines, 1 timed pause.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_3380
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -5454,6 +5892,11 @@
 	bx	r0
 .func_end OvlFunc_3380
 
+@ 48 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetEntityActorOptions, PlaceSlotAt
 .thumb_func_start OvlFunc_345c
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -5509,6 +5952,9 @@
 	bx	r0
 .func_end OvlFunc_345c
 
+@ Cutscene: roughly 1024 instructions of straight-line script --
+@ 16 turns, 23 animation changes, 24 dialogue lines, 47 timed pauses.
+@ Characterised structurally rather than beat by beat.
 .thumb_func_start OvlFunc_34c8
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -6545,6 +6991,11 @@
 	bx	r0
 .func_end OvlFunc_34c8
 
+@ Cutscene: roughly 2126 instructions of straight-line script --
+@ 70 turns, 63 animation changes, 46 dialogue lines, 63 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0xf03, 0xf0a, 0xf0e, 0xf27.
+@ Sets save bit 0x202.
 .thumb_func_start OvlFunc_3fb0
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -8705,6 +9156,11 @@
 	bx	r0
 .func_end OvlFunc_3fb0
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   ApplyRevealToScene
 .thumb_func_start OvlFunc_5594
 	push	{lr}
 	mov	r0, #0x8c
@@ -8714,6 +9170,11 @@
 	bx	r0
 .func_end OvlFunc_5594
 
+@ 4 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RunLiftAbility
 .thumb_func_start OvlFunc_55a4
 	push	{lr}
 	bl	__Func_97194
@@ -8721,6 +9182,11 @@
 	bx	r0
 .func_end OvlFunc_55a4
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_5c5c
 .thumb_func_start OvlFunc_55b0
 	push	{lr}
 	mov	r0, #1
@@ -8730,6 +9196,11 @@
 	bx	r0
 .func_end OvlFunc_55b0
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_5c5c
 .thumb_func_start OvlFunc_55c0
 	push	{lr}
 	mov	r0, #0
@@ -8739,6 +9210,11 @@
 	bx	r0
 .func_end OvlFunc_55c0
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_5c98
 .thumb_func_start OvlFunc_55d0
 	push	{lr}
 	mov	r0, #9
@@ -8748,6 +9224,11 @@
 	bx	r0
 .func_end OvlFunc_55d0
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_5c98
 .thumb_func_start OvlFunc_55e0
 	push	{lr}
 	mov	r0, #0x17
@@ -8757,6 +9238,11 @@
 	bx	r0
 .func_end OvlFunc_55e0
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_5c98
 .thumb_func_start OvlFunc_55f0
 	push	{lr}
 	mov	r0, #0x18
@@ -8766,6 +9252,11 @@
 	bx	r0
 .func_end OvlFunc_55f0
 
+@ 6 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_5c98
 .thumb_func_start OvlFunc_5600
 	push	{lr}
 	mov	r0, #0x19
@@ -8775,6 +9266,10 @@
 	bx	r0
 .func_end OvlFunc_5600
 
+@ Distance3D
+@ Two {x, y, z} triples of 16.16 words. Each axis difference is taken down to
+@ 1/16 units with `asr #16`, squared and summed -- the same helper documented
+@ in overlays/rom_780898/ovl_30.s.
 .thumb_func_start OvlFunc_5610
 	push	{r5, lr}
 	ldmia	r0!, {r5}
@@ -8805,6 +9300,11 @@
 	bx	r1
 .func_end OvlFunc_5610
 
+@ 105 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetEntityAnimation, OvlFunc_5610, Atan2, SetEntityAnimation x2
 .thumb_func_start OvlFunc_564c
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
@@ -8920,6 +9420,11 @@
 	bx	r1
 .func_end OvlFunc_564c
 
+@ 22 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, OvlFunc_564c
 .thumb_func_start OvlFunc_572c
 	push	{r5, lr}
 	mov	r5, r0
@@ -8947,6 +9452,12 @@
 	bx	r1
 .func_end OvlFunc_572c
 
+@ 63 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Random x3, RotateVector, SpawnEntity, SetEntityActorOptions
+@   SetEntityAnimation, SetEntityScript, PlaySound
 .thumb_func_start OvlFunc_575c
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -9014,6 +9525,12 @@
 	bx	r0
 .func_end OvlFunc_575c
 
+@ 102 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound, Func_30f8, SpawnEntity, SetEntityActorOptions
+@   SetEntityScript, Random x5, OvlFunc_58f0, PlaySound
 .thumb_func_start OvlFunc_57fc
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
@@ -9122,6 +9639,11 @@
 	bx	r0
 .func_end OvlFunc_57fc
 
+@ 25 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   RotateVector, SetEntityMoveTarget
 .thumb_func_start OvlFunc_58f0
 	push	{r5, r6, lr}
 	mov	r6, r0
@@ -9151,6 +9673,11 @@
 	bx	r0
 .func_end OvlFunc_58f0
 
+@ 16 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, OvlFunc_c4, OvlFunc_5950
 .thumb_func_start OvlFunc_5928
 	push	{lr}
 	sub	sp, #8
@@ -9170,6 +9697,14 @@
 	bx	r0
 .func_end OvlFunc_5928
 
+@ 73 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   CopyMapRectAttributes, TestSaveBit, GetSlotEntityChecked, ClearSaveBit x3
+@   CopyMapRectAttributes, SetSaveBit, CopyMapRectAttributes, SetSaveBit
+@   CopyMapRectAttributes, SetSaveBit
+@ reads save bit 0x87a; sets 0x314, 0x315, 0x316; clears 0x314, 0x315, 0x316.
 .thumb_func_start OvlFunc_5950
 	push	{r5, lr}
 	sub	sp, #8
@@ -9251,6 +9786,11 @@
 	bx	r0
 .func_end OvlFunc_5950
 
+@ 11 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   PlaySound
 .thumb_func_start OvlFunc_5a08
 	push	{lr}
 	ldr	r3, =iwram_1e40
@@ -9266,6 +9806,8 @@
 	bx	r0
 .func_end OvlFunc_5a08
 
+@ Text box: string 0xee4 through Func_1776c, option bits 0x1.
+@ No speaker and no staging -- a sign, notice or narration line.
 .thumb_func_start OvlFunc_5a24
 	push	{lr}
 	bl	__Func_916b0
@@ -9277,6 +9819,13 @@
 	bx	r0
 .func_end OvlFunc_5a24
 
+@ 33 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   TestSaveBit x2, GetSlotEntityChecked, ClearSaveBit, TestSaveBit
+@   GetSlotEntityChecked, SetSaveBit
+@ reads save bits 0x106, 0x241; sets 0x241; clears 0x241.
 .thumb_func_start OvlFunc_5a40
 	push	{r5, lr}
 	ldr	r0, =0x241
@@ -9315,6 +9864,12 @@
 	bx	r0
 .func_end OvlFunc_5a40
 
+@ 31 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, TestSaveBit, GetSlotEntityChecked x2
+@ reads save bit 0x87a.
 .thumb_func_start OvlFunc_5a94
 	push	{r5, lr}
 	mov	r0, #0
@@ -9354,6 +9909,11 @@
 	bx	r0
 .func_end OvlFunc_5a94
 
+@ 46 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   Sin, Cos x2, Random x2
 .thumb_func_start OvlFunc_5ae0
 	push	{r5, r6, r7, lr}
 	mov	r6, r0
@@ -9405,6 +9965,13 @@
 	bx	r1
 .func_end OvlFunc_5ae0
 
+@ 97 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   GetSlotEntityChecked, SetEntityActorOptions, TestSaveBit, Func_48b0
+@   SetPortraitPointer, AllocObjTiles, Func_2dd8
+@ reads save bit 0x109.
 .thumb_func_start OvlFunc_5b48
 	push	{r5, r6, r7, lr}
 	mov	r7, r10
@@ -9506,6 +10073,11 @@
 	bx	r0
 .func_end OvlFunc_5b48
 
+@ 25 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SetEntityPalette x2, OvlFunc_5d68
 .thumb_func_start OvlFunc_5c20
 	push	{r5, lr}
 	ldr	r3, =iwram_1e40
@@ -9537,6 +10109,11 @@
 	bx	r0
 .func_end OvlFunc_5c20
 
+@ 25 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   UnsignedRem, SetEntityPalette, OvlFunc_5d68
 .thumb_func_start OvlFunc_5c5c
 	push	{r5, r6, lr}
 	ldr	r5, =iwram_1e40
@@ -9567,6 +10144,11 @@
 	bx	r0
 .func_end OvlFunc_5c5c
 
+@ 18 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   UnsignedRem, SetEntityPalette
 .thumb_func_start OvlFunc_5c98
 	push	{r5, lr}
 	mov	r5, r0
@@ -9589,6 +10171,11 @@
 	bx	r0
 .func_end OvlFunc_5c98
 
+@ 38 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   DestroyEntity, Sin
 .thumb_func_start OvlFunc_5cc4
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -9632,6 +10219,11 @@
 	bx	r0
 .func_end OvlFunc_5cc4
 
+@ 39 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   DestroyEntity, Sin
 .thumb_func_start OvlFunc_5d14
 	push	{r5, r6, lr}
 	mov	r5, r0
@@ -9676,6 +10268,11 @@
 	bx	r0
 .func_end OvlFunc_5d14
 
+@ 126 instructions. Not one of the recognised overlay shapes,
+@ so this is a CALL TRACE rather than a description -- what it does with
+@ these is not characterised here.
+@
+@   SpawnEntity, SetActorAnimation, FreeObjTiles
 .thumb_func_start OvlFunc_5d68
 	push	{r5, r6, r7, lr}
 	mov	r7, r11
