@@ -16,6 +16,17 @@
  *      register allocation -- measured, with the attempts recorded in the file
  *      that needs the symbol.
  *
+ * A KNOWN EXCEPTION TO THE TELL, so criterion 1 is not sufficient on its own.
+ * gcc DOES pool a small constant when it is an operand of a HALFWORD
+ * expression: in OvlFunc_881_200b8fc the literal 0xc is ORed with an unsigned
+ * short and gcc emits `.word 12` with `ldrh r1, .L5` -- a halfword load from
+ * the pool -- reproducing the ROM exactly. That function matched with plain
+ * literals and needed no symbol at all.
+ *
+ * So before concluding a pooled small value means a symbol, check whether it
+ * meets a halfword. If it does, the literal is the answer and adding an entry
+ * here would be wrong.
+ *
  * NAMED BY VALUE, asserting nothing about meaning, exactly as message.sym's own
  * header describes its unidentified entries. An absolute assignment in a linker
  * script emits no bytes, so a wrong NAME costs nothing and a wrong VALUE fails

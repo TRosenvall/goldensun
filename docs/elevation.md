@@ -7089,3 +7089,34 @@ The method is the one batch 135 used to kill the cluster hypothesis: when the
 question is about compiler behaviour rather than a particular function, build
 the smallest input that would show it. Eleven probes in one file cost one
 compile.
+
+## The branch-over-pool class is not a ceiling: first elevation from it
+
+`OvlFunc_881_200b8fc` is the first function elevated out of the 521-function
+branch-over-pool class, and it needed no special handling at all -- plain
+literals, screened, split, and verified with `make compare` rather than the
+screen.
+
+That matters because the class was written off on a rationale that has now
+failed twice: first the claim that gcc cannot emit a mid-function pool (it
+emits 64 of them in already-matching code), and now the assumption that the
+remaining functions are therefore unreachable.
+
+**What the class actually contains, measured.** Of 521 pool-blocked functions,
+198 also match the precompute shape, 43 also match const-remat, and 3 are ARM.
+That leaves **277 where the pool is the only recorded blocker** -- and those are
+the ones worth screening. They are mostly LARGE: 176 are over 120 instructions,
+64 are 61-120, and only 7 are 35 or under. So the reachable part of this class
+is real but expensive per function, not a pile of quick wins.
+
+**A refinement to the const.sym tell.** That file says gcc never pools a
+constant an eight-bit `mov` could build, so a pooled small value means the
+source named a symbol. There is an exception: gcc pools a small constant when
+it is an operand of a HALFWORD expression. Here `0xc | *(unsigned short *)p`
+gives `.word 12` loaded with `ldrh`, matching the ROM, from a plain literal.
+Check for a halfword operand before concluding a symbol is needed.
+
+**The discipline that made this safe:** tryc.py normalises pool loads, so its
+`OK` on a pool-bearing function proves nothing about placement. This one was
+gated on the build throughout -- split first, `make compare` green on the split
+alone, then the C, then `make compare` again.
