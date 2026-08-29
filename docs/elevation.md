@@ -7153,3 +7153,25 @@ is. Against another expensive value it is worth one screen; against a cheap
 Both pool-class elevations this round also confirm the const.sym exception
 above: every small constant the ROM pooled here -- 0xc, 3, 0 -- came out right
 from a plain literal, because each meets a halfword.
+
+## An explicit address computation means the OFFSET gets clobbered
+
+When the ROM computes an address into a register where register-offset
+addressing would have done, look for a later instruction that destroys the
+offset. `OvlFunc_919_2008200` writes 0x100 to `[ptr + 0x1c0]` and makes the
+value with `sub r2, #0xc0` on the register holding 0x1c0 -- so the address had
+to be materialised first.
+
+    *(int *)(p + off) = off - 0xc0;     ->  str r3, [r1, r2], no address at all
+
+    d = (int *)(p + off);               ->  add r3, r2 / sub r2, #0xc0
+    off -= 0xc0;                            / str r2, [r3]      -- the ROM's
+    *d = off;
+
+Reusing the offset variable as the value kills it after the subtraction, which
+forces gcc to compute the address while the offset is still live. The block
+goes from wholly wrong to instruction-for-instruction identical.
+
+The general form: a value derived from an offset by a destructive operation is
+a hint about REGISTER LIFETIME, not just arithmetic. Write the destruction, not
+the expression.
