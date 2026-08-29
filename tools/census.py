@@ -35,7 +35,11 @@ WHAT THE CLASSES MEAN, and how much to trust each line:
                    cheap `mov rN, #K` that is not the last setup line before a
                    `bl`, in a block that also builds something expensive. The
                    rule held on every function tested, but the test here is
-                   crude and OVER-counts -- some of these would match.
+                   crude and OVER-counts. MEASURED: of the 3495 functions whose
+                   C ALREADY MATCHES, this filter would flag 526 -- 15.1%. So
+                   this line is an UPPER BOUND with a known false-positive
+                   rate, not a count of unreachable functions, and it should
+                   never be quoted as "N functions cannot be matched".
   const-remat      PREDICTED. The same built constant is passed in two or more
                    argument registers of one call; the ROM rebuilds it, gcc
                    builds once and copies. Checked BEFORE precompute, because
