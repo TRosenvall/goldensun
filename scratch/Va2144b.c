@@ -6,14 +6,16 @@ void Func_80a2144(int bank)
 {
     unsigned short *pal;
     unsigned short c;
-    int r, g, b;
+    unsigned int r, g, b;
+    unsigned int t;
 
     pal = (unsigned short *)((bank << 5) + (0xa0 << 19));
     DMA3_SET((void *)0x50001e0, pal, 0x80000010);
     DMA3_SET((void *)0x50001e0, pal, 0x84000008);
     c = pal[4];
-    b = (c << 16) >> 26;
-    g = ((c << 16) >> 21) & 0x1f;
+    t = (unsigned int)c << 16;
+    b = t >> 26;
+    g = (t >> 21) & 0x1f;
     r = 0x1f & c;
     b += 9;
     if (b > 0x1f)

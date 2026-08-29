@@ -35,7 +35,7 @@ static inline void DMA3_SET(const void *src, void *dst, u32 cnt) {
         "sub\tr3, #0xc"
         :
         : "r" (_base), "r" (_src), "r" (_dst), "r" (_cnt)
-        : "memory"
+        : "memory", "r0"
     );
 }
 

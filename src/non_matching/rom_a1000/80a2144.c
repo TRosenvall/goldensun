@@ -1,35 +1,30 @@
 /* Func_80a2144 (LoadMenuPalette) -- NON-MATCHING.
- * Blocker class: THE MACRO'S PINNED REGISTER IS ALREADY CORRECT -- the second
- * instance of the class first recorded in src/non_matching/rom_b0000/80b0840.c.
- * 45 lines against the ROM's 47, 36 differing, all downstream of one elision.
+ * Blocker class: a POOLED 0x1f mask, with the same value NOT pooled beside it.
+ * 46 lines against the ROM's 47, 21 differing.
  *
- * The function issues two DMA3 transfers from the SAME source, 0x50001e0:
+ * THE DMA ELISION THAT BLOCKED THIS IS FIXED. This function used to fail at
+ * line 11 on two DMA3 transfers sharing a source, where gcc elided the second
+ * `ldr r0`. include/dma.h now lists "r0" in DMA3_SET's clobbers, which forces
+ * the reload; the whole corpus was rebuilt and all 96 overlays still compare,
+ * and Func_80b0840 -- the first function parked on that class -- is elevated.
+ * The first difference here has moved from line 11 to line 18.
  *
- *     rom    ldr r0, =0x50001e0 / ldr r2, =0x84000008 / stmia r3!, {r0,r1,r2}
- *     ours                        ldr r2, =0x84000008 / stmia r3!, {r0,r1,r2}
+ * WHAT REMAINS. The ROM masks two colour channels with 0x1f and pools ONE of
+ * them:
  *
- * DMA3_SET pins its source to r0 and its inline asm clobbers "memory" but not
- * r0, so gcc sees the pinned register already correct after the first transfer
- * and emits nothing. The ROM reloads it. Our stream is two instructions short
- * and every later difference follows from the shift.
+ *     rom    ldr r3, =0x1f / mov r0, #0x1f / and r1, r3 / and r0, r2
+ *     ours   mov r3, #0x1f / mov r1, r3    / and r0, r3 / and r1, r2
  *
- * That confirms the precondition stated in the first park: the elision happens
- * when two transfers SHARE A SOURCE. rom_7a4370/ovl_30_c_c_c_c_c_c_b.c calls
- * DMA3_COPY twice and matches, because its sources differ. Two instances now,
- * same shape, same cause.
+ * Same constant, same function, one pooled and one immediate -- which is
+ * exactly the internal control const.sym's header describes for _CONST_2. That
+ * makes 0x1f a candidate for an entry, but the bar is a MEASURED set of literal
+ * spellings and only one has been tried here, so nothing was added.
  *
- * ALSO FIXED HERE, though masked by the above: the three colour-channel
- * extractions need UNSIGNED shifts. `(c << 16) >> 26` on an int operand gives
- * `asr`; the ROM has `lsr`. Casting to `unsigned int` before the shift chain
- * produces the logical form. The fix is kept in the source below even though it
- * cannot be verified past the elision.
- *
- * Not tried, because the first park already measured it: anything aimed at the
- * elision itself. That note records that adding "r0" to DMA3_SET's clobber list
- * would force the reload and risks every other DMA3_SET user, and that the
- * whole corpus should be measured before touching include/dma.h. That applies
- * unchanged here, and with a second function now waiting on it the measurement
- * is worth more than it was.
+ * Also unresolved: r0 and r1 are exchanged, and the clamp branches are `ble`
+ * where the ROM has `bls`. Declaring the three channel values `unsigned int`
+ * moves 24 differing to 21 and is kept below, but does not reach the branch --
+ * the comparison is against a constant that fits either way, so gcc picks the
+ * signed form regardless of the operand type.
  */
 #include "gba/types.h"
 #include "gba/io.h"
@@ -39,7 +34,7 @@ void Func_80a2144(int bank)
 {
     unsigned short *pal;
     unsigned short c;
-    int r, g, b;
+    unsigned int r, g, b;
     unsigned int t;
 
     pal = (unsigned short *)((bank << 5) + (0xa0 << 19));
