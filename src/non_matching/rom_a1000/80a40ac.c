@@ -1,38 +1,31 @@
 /* Func_80a40ac (DiscardFirstUnlockedItem) -- NON-MATCHING.
- * Blocker class: a POOLED 0x200 that no literal spelling reproduces.
- * 54 lines against the ROM's 55, 37 differing, and the whole opening -- the
- * call, the register-offset read, both zeroed counters, the pointer advance
- * and the entry branch -- is now exact.
+ * Blocker class: REGISTER-ROLE SWAP. 53 lines against the ROM's 55, 38
+ * differing, and the opening is now structurally identical -- only r2 and r3
+ * are exchanged.
  *
- * TWO LEVERS CARRIED IT FROM 45 TO 37 and both are already documented:
+ *     rom    mov r3, #0xd8 / ldrh r3, [r0, r3]
+ *     ours   mov r2, #0xd8 / ldrh r2, [r0, r2]
  *
- *   1. NAME THE OFFSET. The ROM reads the first slot with register-offset
- *      addressing, `mov r3, #0xd8 / ldrh r3, [r0, r3]`, and only afterwards
- *      advances the pointer by the same 0xd8 as an immediate. Naming 0xd8 in
- *      a variable for the read, while leaving the advance as a literal,
- *      produces both forms.
- *   2. AN INT FOR THE LOADED VALUE. With `unsigned short v` gcc emits `ldrsh`
- *      -- a signed load, equally valid for a `!= 0` test. Assigning the read
- *      to an `int` forces the zero-extending `ldrh` the ROM has. That is the
- *      same signedness family as the lsr/asr tell, on a load rather than a
- *      shift.
+ * THREE LEVERS GOT IT FROM 45 TO HERE, all previously documented:
  *
- * WHAT REMAINS: the ROM POOLS the mask 0x200 -- `ldr r3, =0x200 / and r3, r2`
- * -- where gcc builds it with `mov` and `lsl`. This meets criterion 1 of
- * const.sym's bar for a named constant, and the attempts against criterion 2
- * are recorded here:
+ *   1. NAME THE OFFSET for the register-offset read, leaving the pointer
+ *      advance a literal. The ROM uses 0xd8 in both forms in one function,
+ *      which is what that double use was telling us.
+ *   2. AN INT FOR THE LOADED VALUE, so gcc emits the zero-extending `ldrh`
+ *      rather than `ldrsh`. Same signedness family as the lsr/asr tell.
+ *   3. CLOBBER THE OFFSET WITH THE LOADED VALUE -- `v = 0xd8; v = *(unsigned
+ *      short *)(u + v);` -- which is what makes gcc load into the register
+ *      that held the offset, as the ROM does. The offset-clobber lever applied
+ *      to a load rather than a store.
  *
- *   - `(v & 0x200)` with v an int:            mov r3, #0x80 / lsl
- *   - `(w & 0x200)` with w an unsigned short: 45 differing, WORSE -- gcc
- *     shifts to test the bit instead of masking, and the surrounding
- *     allocation moves with it
+ * THE POOLED MASK IS SOLVED and is now _CONST_200 in const.sym. Eight literal
+ * spellings were probed and none pools 0x200; the entry records them. With
+ * `(int)&_CONST_200` the pool appears exactly as the ROM has it.
  *
- * The halfword-context exception recorded in const.sym does NOT apply: the
- * mask meets a value that has been widened to int by promotion, so there is no
- * HImode expression for gcc to pool into. If a third spelling is tried and
- * fails, this is a candidate for a const.sym entry -- but two attempts is not
- * the measured bar that file asks for.
+ * What remains is which of r2 and r3 holds the offset, which is the
+ * register-pressure category and which no source form has ever selected.
  */
+extern int _CONST_200;
 extern char *_GetUnit(int id);
 extern int _Func_80788c4(int a, int b);
 
@@ -40,20 +33,20 @@ int Func_80a40ac(int who)
 {
     char *u;
     unsigned short *p;
-    int off;
     int v;
-    int i, r, q, n;
+    int i, r, q, n, m;
 
     u = _GetUnit(who);
-    off = 0xd8;
-    v = *(unsigned short *)(u + off);
+    v = 0xd8;
+    v = *(unsigned short *)(u + v);
     r = 0;
     i = 0;
     p = (unsigned short *)(u + 0xd8);
     goto test;
 body:
     v = *p;
-    if ((v & 0x200) != 0)
+    m = (int)&_CONST_200;
+    if ((v & m) != 0)
         goto next;
     q = v >> 11;
     n = q + 1;

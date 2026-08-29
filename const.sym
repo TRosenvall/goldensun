@@ -44,3 +44,27 @@
  */
 
 _CONST_2 = 0x2;
+
+/* _CONST_200 -- the inventory "locked slot" mask, bit 9.
+ *
+ * Func_80a40ac tests it with `ldr r3, =0x200 / and r3, r2`. gcc-2.96 never
+ * pools 0x200: EIGHT spellings were probed in one file and every one emits
+ * `mov r3, #128 / lsl r3, #2` --
+ *
+ *     int & 0x200            unsigned short & 0x200     int & m, m = 0x200
+ *     (v >> 9) & 1           int & (1 << 9)             unsigned int & 0x200
+ *     (v & 0x200) != 0       short & 0x200
+ *
+ * -- so criterion 2 is measured rather than asserted. The unsigned short and
+ * short forms are worse than the others, not better: gcc shifts the value left
+ * to test the bit instead of masking, and the surrounding allocation moves.
+ *
+ * The halfword exception recorded above does NOT apply here. The masked value
+ * is widened to int by integer promotion before the AND, so there is no HImode
+ * expression for gcc to pool into.
+ *
+ * With `(int)&_CONST_200` the pool appears exactly as the ROM has it.
+ * Func_80a40ac still does not match -- it ends on a register-role swap, r2
+ * against r3 -- so this entry is recorded on the pool evidence alone and not
+ * on a completed function. */
+_CONST_200 = 0x200;
