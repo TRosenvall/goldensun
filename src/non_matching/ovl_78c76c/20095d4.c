@@ -1,4 +1,4 @@
-/* OvlFunc_891_20095d4  [ovl_78c76c] and one sibling
+/* OvlFunc_891_20095d4 and OvlFunc_891_20095fc  [ovl_78c76c]
  * Source asm: goldensun/asm/overlays/rom_78c76c/ovl_30_c_c_a_c_c_c_c_a_a.s
  *
  * Seventeen against seventeen, diverging at instruction 3 in the set-up for
@@ -73,6 +73,28 @@
  * compiler. The tell is `.code 16` directives leaking into the listing.
  * Exclude fakematch.txt and the `// fakematch` first-line marker before
  * concluding anything from generated output.
+ *
+ * LATER: re-derived independently, which is how the park was found -- the
+ * function was offered as a fresh candidate by a sweep of the multi-function
+ * pool, and the note above was only noticed after the C had been rewritten.
+ * The rediscovery reached the same diff and the same conclusion, so nothing
+ * above changes. One thing it adds:
+ *
+ * THIS IS A COUNTEREXAMPLE TO HANDOFF.md's PREDICTIVE RULE. That rule says a
+ * call misorders when its argument list mixes cheap constants with expensive
+ * values and A CHEAP ONE IS NOT LAST, and that a call whose cheap constant IS
+ * last will match. Here the ROM's final setup instruction is `mov r3, #0`, a
+ * cheap constant, so the rule predicts a match. Both twins miss by three.
+ *
+ * That matters beyond this file. tools/census.py uses the rule to separate the
+ * `precompute` class from `open`, so the open count is OPTIMISTIC -- it holds
+ * functions that will fail on interleave grounds despite passing the filter.
+ * The rule has false negatives as well as the false positives already
+ * measured at 2.4%.
+ *
+ * Also re-confirmed, with the folded constants 0xd00000 and 0x700000 written
+ * in place of the shifts: identical diff. That is a fifth formulation to add
+ * to the four below.
  */
 extern void __Func_8012078(int a, int b, int c, int d);
 extern int  OvlFunc_891_2009be8(int a, int b, int c);

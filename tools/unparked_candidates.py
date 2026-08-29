@@ -68,6 +68,15 @@ def parked_names():
 
     Over-matching is the safe direction here. A candidate wrongly suppressed
     costs one function; a park wrongly re-offered costs a round.
+
+    THE REMAINING HOLE, and it has bitten: a park that covers several functions
+    but NAMES only one. src/non_matching/ovl_78c76c/20095d4.c opened
+    "OvlFunc_891_20095d4 [ovl_78c76c] and one sibling" -- so the sibling was
+    invisible here, was offered as fresh, was re-derived in full, and the park
+    file was then overwritten by a new one named after the FIRST function.
+    Nothing about that is detectable from the candidate side; the fix is that a
+    park must name every function it covers. Run with --audit to list the parks
+    that talk about siblings, twins or families and name fewer than two.
     """
     names = set()
     base = os.path.join(ROOT, "src", "non_matching")
@@ -98,7 +107,32 @@ def precompute_risk(body):
     return False
 
 
+def audit():
+    """Parks that describe a family but do not name its members."""
+    import collections
+    sus = []
+    base = os.path.join(ROOT, "src", "non_matching")
+    for root, _, fs in os.walk(base):
+        for f in fs:
+            if not f.endswith(".c"):
+                continue
+            p = os.path.join(root, f)
+            t = open(p, errors="ignore").read()
+            if not re.search(r"\b(sibling|twin|famil|member)", t, re.I):
+                continue
+            if len(set(re.findall(r"\b(?:Ovl)?Func_\w+", t))) < 2:
+                sus.append(os.path.relpath(p, ROOT))
+    print(f"{len(sus)} parks mention a family but name fewer than two functions.")
+    print("Each is a hole this filter cannot see through -- the unnamed members")
+    print("will be offered as fresh candidates.\n")
+    for p in sorted(sus):
+        print("  " + p)
+    return 0
+
+
 def main():
+    if "--audit" in sys.argv:
+        return audit()
     lo = int(sys.argv[sys.argv.index("--min") + 1]) if "--min" in sys.argv else 10
     hi = int(sys.argv[sys.argv.index("--max") + 1]) if "--max" in sys.argv else 45
     parked = parked_names()
