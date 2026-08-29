@@ -7268,3 +7268,19 @@ is short:**
 A name in both lists is a captured reference. In `tryc.py` output the symptom
 looks like harmless label renumbering -- `rom ldr r1, =L9 / ours ldr r1, =L3` --
 so it is easy to read past.
+
+**THE FIX: alias the symbol in the linker script.** The data labels ARE
+exported -- `.global .L3` appears in the `.s` that DEFINES them, which is a
+different file from the one that references them, so grepping the referencing
+file suggests they are local and they are not. Give each an alias gcc cannot
+collide with:
+
+    _TBL_L3 = .L3;
+
+and reference `_TBL_L3` from C. Absolute assignments emit no bytes, so the ROM
+is unchanged, and `make compare` proves it. `OvlFunc_common1_e10` matched this
+way after failing three of its five references to capture.
+
+The alias belongs in every linker script that lists the referencing `.o` --
+three, for a file shared by three overlays. Missing one is a link error, not a
+silent wrong answer, so the failure mode here is safe.

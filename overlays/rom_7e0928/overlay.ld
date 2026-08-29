@@ -57,7 +57,8 @@ SECTIONS {
 		asm/overlays/common/common1_a_a_a_a_b.o(.text)
 		asm/overlays/common/common1_a_a_a_a_c_a.o(.text)
 		asm/overlays/common/common1_a_a_a_a_c_b.o(.text)
-		asm/overlays/common/common1_a_a_a_a_c_c_a_a.o(.text)
+		asm/overlays/common/common1_a_a_a_a_c_c_a_a_a.o(.text)
+		asm/overlays/common/common1_a_a_a_a_c_c_a_a_b.o(.text)
 		asm/overlays/common/common1_a_a_a_a_c_c_a_b.o(.text)
 		asm/overlays/common/common1_a_a_a_a_c_c_a_c.o(.text)
 		asm/overlays/common/common1_a_a_a_a_c_c_b.o(.text)
@@ -112,3 +113,15 @@ __divsi3 = _divsi3_RAM;
  * routine the ROM actually calls.  Emits no bytes.
  * See overlays/rom_7a5214/overlay.ld for the original of this note. */
 __modsi3 = _modsi3_RAM;
+
+/* Aliases for five script tables whose ROM labels are .L2, .L3, .L11, .L12 and
+ * .L13.  gcc generates local labels with those same names for its own branch
+ * targets, and the assembler then resolves a C reference to the LOCAL label
+ * rather than the exported data symbol -- silently wrong code.  These give the
+ * same addresses a name gcc cannot collide with.  Emit no bytes.
+ * See docs/elevation.md, "A short .LN extern can be captured by gcc's labels". */
+_TBL_L2 = .L2;
+_TBL_L3 = .L3;
+_TBL_L11 = .L11;
+_TBL_L12 = .L12;
+_TBL_L13 = .L13;
