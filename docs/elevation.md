@@ -6869,3 +6869,29 @@ size.
 
 `tools/census.py` therefore defers to `poolblocked.py` rather than
 reimplementing the test.
+
+## A halfword store wants an INT variable, not a literal
+
+`Func_8016758` matched at 45 of 45 once six literal stores became stores of int
+locals. Written the obvious way:
+
+    *(unsigned short *)(p + 4) = 0;      ->  ldr r3, =0x0      (a POOL LOAD)
+    *(unsigned short *)(p + 4) = z;      ->  mov r3, #0x0      (the ROM's form)
+
+gcc-2.96 materialises a constant destined for a HImode store through the pool,
+even when the value is zero and `mov` would do. Assigning it to an `int` local
+first and storing the local gives the `mov`.
+
+This is the HImode-literal rule already in this document, read in the other
+direction. The existing entry records that a compound `*f |= 2;` REPRODUCES the
+ROM's `ldr r3, =0x2`, which is the case where the pool load is what you want.
+The same mechanism means that when the ROM has `mov`, a literal in the source
+is wrong and an int intermediate is the fix.
+
+Both directions are worth checking whenever a halfword store is involved. In
+this function the tell was three `ldr r3, =0x0` against three `mov r3, #0`,
+which reads like noise until the rule is applied.
+
+The same edit also fixed WHERE `mov r2, #0xf` landed relative to a store,
+because naming the constants gives gcc separate values to schedule rather than
+one shared pool entry.
