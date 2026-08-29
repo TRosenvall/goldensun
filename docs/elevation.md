@@ -7244,3 +7244,27 @@ So the pair is: **name the offset and finish it** for register-offset
 addressing; **clobber the offset after taking the address** for an explicit
 one. Which the ROM wants is visible in the store -- `[rB, rO]` against
 `[rA, #0]` -- and it is worth checking before writing the expression.
+
+## A short `.LN` extern can be captured by gcc's own labels
+
+`extern unsigned char L3[] __asm__(".L3");` compiles to `.word .L3` in the
+literal pool. gcc also names its own branch targets `.L3`, `.L4`, `.L11` and so
+on, and when the numbers overlap the assembler resolves the pool entry to the
+LOCAL label. The code then loads the address of a branch target instead of the
+data it meant, compiles clean, and is wrong.
+
+`OvlFunc_common1_e10` needs five tables named `.L2`, `.L3`, `.L11`, `.L12`,
+`.L13`; gcc generated `.L3`, `.L11` and `.L12` for its own branches in the same
+function. Three of five references were captured.
+
+Nine elevated files use short `.LN` externs and match, so this is not general --
+it depends on how many labels gcc happens to emit for that function, which the
+source cannot predict. **Check the generated assembly whenever the symbol name
+is short:**
+
+    grep -oE "^\.L[0-9]+:" out.s       gcc's own labels
+    sed -n "/^\.L8:/,/^$/p" out.s      the pool it built
+
+A name in both lists is a captured reference. In `tryc.py` output the symptom
+looks like harmless label renumbering -- `rom ldr r1, =L9 / ours ldr r1, =L3` --
+so it is easy to read past.
