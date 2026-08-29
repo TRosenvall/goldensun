@@ -57,6 +57,32 @@
  * `.s` files contain a mid-function pool.  old_agbcc emits the pool at
  * `.func_end` and never early, so this pattern has never been reproduced here.
  *
+ * ===> THAT MEASUREMENT AND THE CONCLUSION DRAWN FROM IT ARE BOTH FALSE. <===
+ *
+ * It searched generated output for the `.pool` DIRECTIVE. gcc never writes that
+ * directive -- it writes `.word` tables at its own labels -- so the search could
+ * only ever return zero. Counting properly, 64 of the 3495 already-matching
+ * functions carry a mid-function literal pool, and batch 141 elevated five
+ * functions out of the class this park helped close.
+ *
+ * old_agbcc is also not the compiler. /opt/gcc296/xgcc builds essentially
+ * everything; old_agbcc builds five m4a and agb_flash objects.
+ *
+ * AND THE MISSING LINE IS NOT THE BRANCH. Compiling the C below emits
+ * `b .L4 / .align / .word 0 / .word 65535 / .word 511 / .word -512 / .L4:` --
+ * a branch over an in-function pool, the ROM's exact shape. The claim below
+ * that "no source spelling reaches it" is wrong on its own evidence.
+ *
+ * WHAT ACTUALLY DIFFERS, re-measured: 28 lines against 29, 21 differing, first
+ * difference at line 4. The ROM loads the pooled zero BEFORE the byte store at
+ * +0xd; gcc emits it after, and the register assignments cascade from there.
+ * Moving `z = 0;` earlier in the source does not move it -- gcc schedules the
+ * load itself.
+ *
+ * So this function is a live candidate on ordering and allocation, not a
+ * toolchain ceiling. The four settled findings above are unaffected and should
+ * still be kept.
+ *
  * THE LEAD, and it is a translation-unit one.  Three of the FOUR functions in
  * asm/rom_b0000/rom_b0070_a_a_c_c_a_a.s carry a mid-function `.pool_aligned`,
  * so early pool dumping looks like a property of how that TU was compiled rather
