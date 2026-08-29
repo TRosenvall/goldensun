@@ -7020,3 +7020,29 @@ The last two lines came from assignment ORDER -- `i = 0;` before `q = p;`. That
 is now three functions in a row where the final two differences were the order
 of two initialisations, and it is worth trying both ways as a matter of course
 before concluding anything about a two-line gap.
+
+## Indirect calls: `_call_via_r3` is a solved shape, not a barrier
+
+149 remaining `.s` files call through `_call_via_r3` and it reads like a
+compiler-support routine you cannot write in C. It is not: 81 files whose C
+already matches emit it, and the source form is an ordinary function-pointer
+local.
+
+    int (*fp)(int);
+    fp = Func_8000948;
+    return fp(new_var);
+
+-- src/overlays/rom_7b4558/ovl_30_a_a_b.c. A pointer loaded from memory works
+the same way:
+
+    void (*fp)(void *, char *);
+    fp = *(void (**)(void *, char *))(gPtrs + 0xc4);
+    fp(arg, rec);
+
+The local matters. Calling through the expression directly is a different
+shape; the ROM's `ldr r3, [...] / bl _call_via_r3` is what you get from a
+pointer that has been assigned to a variable first.
+
+Worth knowing because the shape looks exotic and had been steered around. It is
+in the same category as the overlay divide alias -- something that reads as a
+toolchain feature and is really just a C idiom the corpus already contains.
