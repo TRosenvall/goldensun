@@ -6895,3 +6895,38 @@ which reads like noise until the rule is applied.
 The same edit also fixed WHERE `mov r2, #0xf` landed relative to a store,
 because naming the constants gives gcc separate values to schedule rather than
 one shared pool entry.
+
+## The pool ceiling is REAL, but not for the reason recorded
+
+`tools/poolblocked.py` justified its class with "old_agbcc emits a function's
+constant pool at `.func_end` and never in the middle". Two things about that
+are wrong, and the corrected version still leaves the class standing.
+
+**First, old_agbcc is not the compiler.** `/opt/gcc296/xgcc` builds essentially
+everything; `old_agbcc` builds five m4a and agb_flash objects on the host. The
+claim was about the wrong tool.
+
+**Second, gcc296 DOES place literal pools mid-function.** It never emits the
+`.pool` directive -- it writes `.word` tables at its own labels and loads them
+as `ldr r3, .L15+8` -- which is why a search for `.pool` in generated output
+finds nothing and looks like proof. Counting properly: of 3495 matching
+functions, 85 have mid-body data with code after it, and 64 of those are
+LITERAL CONSTANTS rather than switch jump tables. `OvlFunc_932_200b9c8` is a
+matching function with a pool of five words in its middle.
+
+**So why is the class still real?** `OvlFunc_919_200815c` was screened, reached
+`OK` at 27 of 27 lines, and FAILED `make compare`. tryc.py normalises every
+pool load to `=value`, so it cannot see WHERE the pool sits; the mnemonics
+agreed and the bytes did not. gcc places its pool at a different offset than
+the ROM, so the PC-relative `ldr` encodings differ even when every instruction
+matches.
+
+The blocker is therefore pool PLACEMENT, not pool capability, and the screen is
+blind to exactly that. tryc.py already prints a warning for these functions:
+
+    !! the reference keeps its literal pool INSIDE the function ...
+       VERIFY WITH make compare -- this screen cannot see PC-relative offsets.
+
+**Treat `OK` on a pool-bearing function as unverified until `make compare`
+passes.** It is the one case in this workflow where the screen and the build
+can disagree, and the build is right.
