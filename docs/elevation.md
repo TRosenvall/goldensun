@@ -7120,3 +7120,36 @@ Check for a halfword operand before concluding a symbol is needed.
 `OK` on a pool-bearing function proves nothing about placement. This one was
 gated on the build throughout -- split first, `make compare` green on the split
 alone, then the C, then `make compare` again.
+
+## Naming a shifted value works against a POOL LOAD, not against a cheap mov
+
+Two functions this round ended on the order of two argument setups, and the
+same lever fixed one and not the other. The difference is what the shifted
+value is competing with.
+
+`OvlFunc_common1_1490`, 2 of 32:
+
+    rom    lsl r1, #4 / ldr r0, =OvlFunc_common1_1354
+    ours   ldr r0, =OvlFunc_common1_1354 / lsl r1, #4
+
+Both operands are EXPENSIVE -- a shift and a pool load. Writing
+`n = 0xc8 << 4;` as a statement before the call reorders them and the function
+matches exactly.
+
+The interleave parks -- ovl_794ac0/2008428.c, ovl_79c738/2008150.c and others
+-- look similar and the same edit does nothing:
+
+    rom    mov r1, #0x80 / mov r0, #0xf / lsl r1, #8
+    ours   mov r1, #0x80 / lsl r1, #8   / mov r0, #0xf
+
+There the shifted value competes with a CHEAP `mov`, and that ordering is
+decided by calls.c:805 precomputing expensive arguments ahead of the register
+loads -- settled by eleven probes and not reachable from C.
+
+So before reaching for the named local, check what the misordered instruction
+is. Against another expensive value it is worth one screen; against a cheap
+`mov` it is the documented wall and the screen is wasted.
+
+Both pool-class elevations this round also confirm the const.sym exception
+above: every small constant the ROM pooled here -- 0xc, 3, 0 -- came out right
+from a plain literal, because each meets a halfword.
