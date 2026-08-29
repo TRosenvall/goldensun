@@ -7196,3 +7196,24 @@ like bookkeeping for a value nobody reads.
 The genuinely dead ones -- `OvlFunc_945_200b7b4`, where the ROM sets a register
 to zero and never touches it -- differ in that the value has no consumer at
 all, not merely no consumer in our version.
+
+## Which operand is the POINTER decides the addressing base
+
+`ldrsh r3, [r5, r7]` and `ldrsh r3, [r7, r5]` are the same access with the
+roles swapped, and gcc picks by which C operand has pointer type -- not by the
+order of the addition, which it normalises away.
+
+`Func_80b6e30` walks a byte offset over a struct pointer. Written the natural
+way it comes out reversed from the ROM:
+
+    char *p; int off;        ->  ldrsh r3, [r7, r5]   (pointer is the base)
+    *(short *)(p + off)
+
+    int p; char *off;        ->  ldrsh r3, [r5, r7]   the ROM's
+    *(short *)(off + p)
+
+Writing `off + p` instead of `p + off` does nothing; declaring the OFFSET as
+the pointer and the base as an `int` is what moves it. The result reads
+backwards, so it is worth a comment wherever it is used -- but the ROM's
+register assignment is the only evidence of which role gcc assigned, and this
+is the only lever that reaches it.
