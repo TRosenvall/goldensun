@@ -7217,3 +7217,30 @@ the pointer and the base as an `int` is what moves it. The result reads
 backwards, so it is worth a comment wherever it is used -- but the ROM's
 register assignment is the only evidence of which role gcc assigned, and this
 is the only lever that reaches it.
+
+## Finish the OFFSET before the base, to get register-offset addressing
+
+The mirror of the offset-clobber lever. That one forces gcc to COMPUTE an
+address; this one stops it.
+
+`Func_8020b14` stores through `[base + n*2 + 0xeb0]`. The ROM builds the whole
+offset first and then uses register-offset addressing:
+
+    lsl r3, r1, #1 / mov r2, #0xeb / lsl r2, #4 / add r3, r2
+    / strh r2, [r4, r3]
+
+Written as one expression, `*(unsigned short *)(p + (n * 2 + 0xeb0)) = 0;`,
+gcc folds the base in early -- `add r3, r4` right after the shift -- and ends
+up storing through `[r3, #0]` with the address materialised. Computing the
+offset into its own variable first:
+
+    off = n * 2;
+    off += 0xeb << 4;
+    *(unsigned short *)(p + off) = 0;
+
+keeps the base out until the store and matches exactly.
+
+So the pair is: **name the offset and finish it** for register-offset
+addressing; **clobber the offset after taking the address** for an explicit
+one. Which the ROM wants is visible in the store -- `[rB, rO]` against
+`[rA, #0]` -- and it is worth checking before writing the expression.
