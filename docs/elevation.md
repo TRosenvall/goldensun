@@ -6930,3 +6930,41 @@ blind to exactly that. tryc.py already prints a warning for these functions:
 **Treat `OK` on a pool-bearing function as unverified until `make compare`
 passes.** It is the one case in this workflow where the screen and the build
 can disagree, and the build is right.
+
+## The pool blocker is ENTRY ORDER, not placement -- and that may be reachable
+
+Following the correction above, `OvlFunc_919_200815c` was compiled and its
+output compared against the ROM word by word. The result narrows the class
+sharply.
+
+**Placement is not the problem.** gcc dumped the pool mid-function, before the
+epilogue, with a `b` over it -- exactly the ROM's shape. The claim that gcc
+only dumps at `.func_end` is wrong for this function.
+
+**Contents are not the problem either.** Both pools hold the same eight
+constants: 0x3f42, 0xc04, 0x3f3f, REG_BLDCNT, iwram_3001ecc, 0x534, 0x536,
+0x52a.
+
+**The ORDER differs, in one position:**
+
+    rom    3f42  c04  4000050  3001ecc  534  3f3f  536  52a
+    ours   3f42  c04  3f3f     4000050  3001ecc  534  536  52a
+
+0x3f3f is sixth in the ROM and THIRD in ours. Everything else agrees. gcc
+groups the constants destined for HImode stores (0x3f42, 0xc04, 0x3f3f) ahead
+of the addresses and offsets; the ROM interleaves them in reference order.
+
+That is the same HImode-literal mechanism recorded elsewhere in this document,
+showing up a third way -- it decides not only whether a constant is pooled but
+WHERE IN THE POOL it lands.
+
+**Why this matters for the corpus.** 518 functions are classified
+branch-over-pool and written off as a toolchain ceiling. If the real blocker is
+pool entry order, and entry order follows from the order the source references
+its constants, then some unknown share of those 518 is reachable by ordinary
+source-level work rather than by a different compiler. Nobody has tried,
+because the class was believed closed.
+
+The screen cannot see any of this -- tryc.py normalises pool loads to `=value`,
+so a function can read 27 of 27 and still fail `make compare`. Any work on this
+class has to be gated on the build, not the screen.
