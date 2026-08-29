@@ -5,11 +5,13 @@ int Func_80a40ac(int who)
 {
     char *u;
     unsigned short *p;
+    int off;
     unsigned short v;
     int i, r, q, n;
 
     u = _GetUnit(who);
-    v = *(unsigned short *)(u + 0xd8);
+    off = 0xd8;
+    v = *(unsigned short *)(u + off);
     r = 0;
     i = 0;
     p = (unsigned short *)(u + 0xd8);

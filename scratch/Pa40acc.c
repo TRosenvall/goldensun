@@ -3,20 +3,25 @@ extern int _Func_80788c4(int a, int b);
 
 int Func_80a40ac(int who)
 {
+    char *u;
     unsigned short *p;
-    unsigned short v;
+    int off;
+    int v;
+    unsigned short w;
     int i, r, q, n;
 
-    p = (unsigned short *)(_GetUnit(who) + 0xd8);
-    v = *p;
+    u = _GetUnit(who);
+    off = 0xd8;
+    v = *(unsigned short *)(u + off);
     r = 0;
     i = 0;
+    p = (unsigned short *)(u + 0xd8);
     goto test;
 body:
-    v = *p;
-    if ((v & 0x200) != 0)
+    w = *p;
+    if ((w & 0x200) != 0)
         goto next;
-    q = v >> 11;
+    q = w >> 11;
     n = q + 1;
     if (q == 0)
         n = 1;
