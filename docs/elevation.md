@@ -7175,3 +7175,24 @@ goes from wholly wrong to instruction-for-instruction identical.
 The general form: a value derived from an offset by a destructive operation is
 a hint about REGISTER LIFETIME, not just arithmetic. Write the destruction, not
 the expression.
+
+## A "dead" register can be a TYPE problem, not a pressure problem
+
+`UIDrawText` was read as having a dead callee-saved register: the ROM does
+`mov r8, r3` immediately before a call and never reads r8 again, which is the
+shape docs and HANDOFF both describe as unreachable prologue bookkeeping.
+
+It was not dead. With `int` parameters the function screened at 17 of 45 and
+gcc emitted `asr` where the ROM has `lsr`; changing the two shifted parameters
+to `unsigned int` and shifting them in place matched at 45 of 45 -- and gcc
+emitted the `mov r8, r3` itself, because with the right types that register
+assignment is what its allocator wants.
+
+**So check the signedness tell before diagnosing a dead register.** `lsr`
+against `asr` on the same value says the operand is unsigned, and getting the
+type wrong shifts the whole allocation, which can leave an instruction looking
+like bookkeeping for a value nobody reads.
+
+The genuinely dead ones -- `OvlFunc_945_200b7b4`, where the ROM sets a register
+to zero and never touches it -- differ in that the value has no consumer at
+all, not merely no consumer in our version.
