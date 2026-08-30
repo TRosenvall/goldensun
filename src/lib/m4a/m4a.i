@@ -1,23 +1,20 @@
+# 0 "src/lib/m4a/m4a.c"
+# 0 "<built-in>"
+# 0 "<command-line>"
 # 1 "src/lib/m4a/m4a.c"
-# 1 "<built-in>" 1
-# 1 "<built-in>" 3
-# 385 "<built-in>" 3
-# 1 "<command line>" 1
-# 1 "<built-in>" 2
-# 1 "src/lib/m4a/m4a.c" 2
-# 1 "tools/agbcc/include/string.h" 1
-# 14 "tools/agbcc/include/string.h"
-# 1 "tools/agbcc/include/_ansi.h" 1
-# 15 "tools/agbcc/include/_ansi.h"
-# 1 "tools/agbcc/include/sys/config.h" 1
-# 103 "tools/agbcc/include/sys/config.h"
+# 1 "/opt/agbcc/include/string.h" 1
+# 14 "/opt/agbcc/include/string.h"
+# 1 "/opt/agbcc/include/_ansi.h" 1
+# 15 "/opt/agbcc/include/_ansi.h"
+# 1 "/opt/agbcc/include/sys/config.h" 1
+# 103 "/opt/agbcc/include/sys/config.h"
 typedef int __int32_t;
 typedef unsigned int __uint32_t;
-# 16 "tools/agbcc/include/_ansi.h" 2
-# 15 "tools/agbcc/include/string.h" 2
+# 16 "/opt/agbcc/include/_ansi.h" 2
+# 15 "/opt/agbcc/include/string.h" 2
 
 
-# 1 "tools/agbcc/include/stddef.h" 1
+# 1 "/opt/agbcc/include/stddef.h" 1
 
 
 
@@ -35,7 +32,7 @@ typedef unsigned long int size_t;
 
 
 typedef int wchar_t;
-# 18 "tools/agbcc/include/string.h" 2
+# 18 "/opt/agbcc/include/string.h" 2
 
 
 
@@ -146,18 +143,11 @@ typedef fx32 matrix_t[4][3];
 
 
 # 1 "include/gba/gba.h" 1
-
-
-
-
-
-
-
-
-# 1 "tools/agbcc/include/stdint.h" 1
-# 31 "tools/agbcc/include/stdint.h"
-# 1 "tools/agbcc/include/limits.h" 1
-# 32 "tools/agbcc/include/stdint.h" 2
+# 9 "include/gba/gba.h"
+# 1 "/opt/agbcc/include/stdint.h" 1
+# 31 "/opt/agbcc/include/stdint.h"
+# 1 "/opt/agbcc/include/limits.h" 1
+# 32 "/opt/agbcc/include/stdint.h" 2
 
 
 
@@ -589,21 +579,14 @@ void MP2K_event_xcmd_0C(struct MP2KPlayerState *, struct MP2KTrack *);
 void MP2K_event_xcmd_0D(struct MP2KPlayerState *, struct MP2KTrack *);
 # 4 "src/lib/m4a/m4a.c" 2
 
-# 1 "tools/agbcc/include/stdio.h" 1
-# 40 "tools/agbcc/include/stdio.h"
-# 1 "tools/agbcc/include/stdarg.h" 1
-
-
-
-
-
-
-
-
+# 1 "/opt/agbcc/include/stdio.h" 1
+# 40 "/opt/agbcc/include/stdio.h"
+# 1 "/opt/agbcc/include/stdarg.h" 1
+# 9 "/opt/agbcc/include/stdarg.h"
 typedef void *__gnuc_va_list;
-# 31 "tools/agbcc/include/stdarg.h"
+# 31 "/opt/agbcc/include/stdarg.h"
 typedef __gnuc_va_list va_list;
-# 41 "tools/agbcc/include/stdio.h" 2
+# 41 "/opt/agbcc/include/stdio.h" 2
 
 
 
@@ -611,15 +594,17 @@ typedef __gnuc_va_list va_list;
 
 
 
-# 1 "tools/agbcc/include/sys/reent.h" 1
-# 14 "tools/agbcc/include/sys/reent.h"
-# 1 "tools/agbcc/include/time.h" 1
-# 21 "tools/agbcc/include/time.h"
-# 1 "tools/agbcc/include/machine/time.h" 1
-# 22 "tools/agbcc/include/time.h" 2
-# 33 "tools/agbcc/include/time.h"
-# 1 "tools/agbcc/include/machine/types.h" 1
-# 34 "tools/agbcc/include/time.h" 2
+# 1 "/opt/agbcc/include/sys/reent.h" 1
+# 13 "/opt/agbcc/include/sys/reent.h"
+# 1 "/opt/agbcc/include/_ansi.h" 1
+# 14 "/opt/agbcc/include/sys/reent.h" 2
+# 1 "/opt/agbcc/include/time.h" 1
+# 21 "/opt/agbcc/include/time.h"
+# 1 "/opt/agbcc/include/machine/time.h" 1
+# 22 "/opt/agbcc/include/time.h" 2
+# 33 "/opt/agbcc/include/time.h"
+# 1 "/opt/agbcc/include/machine/types.h" 1
+# 34 "/opt/agbcc/include/time.h" 2
 
 
 typedef unsigned long clock_t;
@@ -660,7 +645,7 @@ char *asctime_r (const struct tm *, char *);
 char *ctime_r (const time_t *, char *);
 struct tm *gmtime_r (const time_t *, struct tm *);
 struct tm *localtime_r (const time_t *, struct tm *);
-# 15 "tools/agbcc/include/sys/reent.h" 2
+# 15 "/opt/agbcc/include/sys/reent.h" 2
 
 
 
@@ -669,7 +654,7 @@ struct tm *localtime_r (const time_t *, struct tm *);
 
 
 typedef unsigned int ULong;
-# 31 "tools/agbcc/include/sys/reent.h"
+# 31 "/opt/agbcc/include/sys/reent.h"
 struct _glue
 {
   struct _glue *_next;
@@ -695,7 +680,7 @@ struct _atexit {
  int _ind;
  void (*_fns[32])(void);
 };
-# 64 "tools/agbcc/include/sys/reent.h"
+# 64 "/opt/agbcc/include/sys/reent.h"
 struct __sbuf {
  unsigned char *_base;
  int _size;
@@ -707,7 +692,7 @@ struct __sbuf {
 
 
 typedef long _fpos_t;
-# 102 "tools/agbcc/include/sys/reent.h"
+# 102 "/opt/agbcc/include/sys/reent.h"
 struct __sFILE {
   unsigned char *_p;
   int _r;
@@ -743,7 +728,7 @@ struct __sFILE {
 
   struct _reent *_data;
 };
-# 146 "tools/agbcc/include/sys/reent.h"
+# 146 "/opt/agbcc/include/sys/reent.h"
 struct _reent
 {
 
@@ -808,16 +793,16 @@ struct _reent
   struct _glue __sglue;
   struct __sFILE __sf[3];
 };
-# 225 "tools/agbcc/include/sys/reent.h"
+# 225 "/opt/agbcc/include/sys/reent.h"
 extern struct _reent *_impure_ptr ;
 
 void _reclaim_reent (struct _reent *);
-# 49 "tools/agbcc/include/stdio.h" 2
+# 49 "/opt/agbcc/include/stdio.h" 2
 
 typedef _fpos_t fpos_t;
 
 typedef struct __sFILE FILE;
-# 128 "tools/agbcc/include/stdio.h"
+# 128 "/opt/agbcc/include/stdio.h"
 int remove (const char *);
 int rename (const char *, const char *);
 
@@ -868,7 +853,7 @@ int vfiprintf (FILE *, const char *, __gnuc_va_list);
 int iprintf (const char *, ...);
 int fiprintf (FILE *, const char *, ...);
 int siprintf (char *, const char *, ...);
-# 186 "tools/agbcc/include/stdio.h"
+# 186 "/opt/agbcc/include/stdio.h"
 FILE * fdopen (int, const char *);
 
 int fileno (FILE *);
@@ -896,8 +881,8 @@ int _printf_r (struct _reent *, const char *, ...);
 int _putchar_r (struct _reent *, int);
 int _puts_r (struct _reent *, const char *);
 int _remove_r (struct _reent *, const char *);
-int _rename_r (struct _reent *, const char *_old, const char *_new);
-
+int _rename_r (struct _reent *, const char *_old, const char *_new)
+                                          ;
 int _scanf_r (struct _reent *, const char *, ...);
 int _sprintf_r (struct _reent *, char *, const char *, ...);
 char * _tempnam_r (struct _reent *, const char *, const char *);
@@ -919,7 +904,11 @@ int __swbuf (int, FILE *);
 
 
 
-FILE *funopen (const void * _cookie, int (*readfn)(void * _cookie, char *_buf, int _n), int (*writefn)(void * _cookie, const char *_buf, int _n), fpos_t (*seekfn)(void * _cookie, fpos_t _off, int _whence), int (*closefn)(void * _cookie));
+FILE *funopen (const void * _cookie, int (*readfn)(void * _cookie, char *_buf, int _n), int (*writefn)(void * _cookie, const char *_buf, int _n), fpos_t (*seekfn)(void * _cookie, fpos_t _off, int _whence), int (*closefn)(void * _cookie))
+
+
+
+                                ;
 # 6 "src/lib/m4a/m4a.c" 2
 # 16 "src/lib/m4a/m4a.c"
 extern char SoundMainRAM_Buffer[0x400];
