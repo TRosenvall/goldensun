@@ -4020,6 +4020,23 @@ A `switch` is still right when the ROM's own compare order is SORTED -- that is
 the tell that gcc built the tree from a switch rather than the author writing a
 chain.
 
+**BOUNDARY (batch 149): try the ordinary form FIRST.** On
+`OvlFunc_971_2008e10` five goto arrangements were screened before the plain
+`for (;;) { ... if (c) break; ... }` was tried at all, and the plain form beat
+every one of them -- 41, 40, 79, 35 differing against **29**.
+
+The reason matters: **a two-instruction block reached by `goto` is DUPLICATED
+INLINE by gcc unless it happens to sit adjacent to the branch.** Move the label
+to where the ROM has the block and gcc copies the body to the branch site
+instead of jumping to it, which is worse than where you started (79). An
+ordinary `break` produces the out-of-line block and the branch to it for free.
+
+So the rule is: reach for gotos when the ROM's block order cannot be expressed
+with ordinary control flow -- a case chain whose bodies are all out of line, an
+arm that rejoins somewhere the structured form cannot reach. Not before trying
+the structured form and reading its diff.
+
+
 ### The declaration is a PER-CALL-SITE choice: two declarations of one callee
 
 When a callee is called more than once and only SOME sites have the wrong
