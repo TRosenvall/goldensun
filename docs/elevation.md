@@ -3945,6 +3945,40 @@ callee-saved register rather than rematerialising — the function grows a
 push/pop pair and gets worse. Measured on `OvlFunc_967_2008308` (60 differing →
 78) and `OvlFunc_911_20082b4` (33 lines → 39). Both are still parked.
 
+### A narrow store of a literal: cast pools it, typed field builds it, named local builds it and costs a register
+
+Measured four times in batch 148 and it settles a recurring confusion.
+`*(short *)(e + 6) = 0x80 << 8` compiles to `ldr r3, =0xffff8000` -- gcc puts
+the constant in the pool, sign-extended to the destination's width -- where the
+ROM has `mov r3, #0x80 / lsl r3, #8`. The same for a byte store. Three
+spellings, three different results:
+
+| spelling | constant | register |
+|---|---|---|
+| `*(short *)(p + K) = V` (cast) | POOLED | -- |
+| `e->f6 = V` (typed field) | mov/lsl | SCRATCH |
+| `v = V; *(short *)(p + K) = v` | mov/lsl | CALLEE-SAVED |
+
+**Prefer the typed field.** It is the only one that gets the ROM's instructions
+without spending a register, and on `OvlFunc_943_20097a0` that mattered: the
+function has exactly two callee-saved registers and both are already claimed by
+values that genuinely live across calls, so naming the two single-use constants
+would have taken registers they need. 37 differing to 6.
+
+Reach for the NAMED LOCAL only when the ROM itself keeps that value in a
+callee-saved register -- look at the prologue. `OvlFunc_943_20097a0` pushes
+{r5, r6} and holds `0xa0 << 7` and a zero there across the whole body, so those
+two are named; the two single-use constants are struct fields.
+
+This also refines "do not name zeros". A zero the ROM keeps in a pushed register
+across calls IS a named local; the rule is about zeros that gcc would otherwise
+rematerialise beside each use.
+
+**Where it does not reach.** When the destinations are many different offsets
+off one pointer and there is no struct to hang them on, neither spelling wins --
+see `src/non_matching/ovl_7892c8/200874c.c`, where the ROM pools a value we mov
+and movs a value we pool in the same block.
+
 ### `if (c) goto X; goto Y;` compiles to `b!c Y; b X` -- the sense INVERTS
 
 gcc expands a conditional goto as "jump-if-false to the next statement", and
