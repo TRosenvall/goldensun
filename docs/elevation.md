@@ -223,6 +223,38 @@ but leaves the variable in the same register, so the `ldr` offsets swap instead
 and the count stays at 13. Birth order moves a POINTER's materialisation, not a
 value's allocation priority.
 
+## A function can be blocked by FILE STRUCTURE rather than by codegen
+
+Thirty-one single-function `.s` files carry their data as a `.section .data`
+full of `.incbin` blobs AFTER `.func_end` -- actor command arrays, scripts,
+overlay tables -- under global labels the rest of the overlay references. Those
+functions were unreachable for a reason that has nothing to do with how the C
+is written: convert the file wholesale and the data goes with it, and the link
+dies in a page of `undefined reference`.
+
+**`tools/split_s.py` now handles this case.** It used to refuse every
+single-function file that carried data and say "split by hand"; it now checks
+whether any of the data sits AHEAD of the function, and if none does, splits
+code to `_b` and data to `_c` through the ordinary path. Files with data before
+or interleaved with the code still get the refusal, because there is no single
+boundary to cut at.
+
+Two things make the clean case safe, and both were already true before anyone
+noticed:
+
+- The cut is unambiguous. The function ends at `.func_end` and `.section .data`
+  begins a line or two later, so there is exactly one boundary.
+- **The linker scripts already list `(.text)` and `(.data)` for these objects on
+  separate lines.** Nothing new has to be invented; the two lines just point at
+  the two new objects, which `rewrite_ld` has always done.
+
+`OvlFunc_907_2008fa0` was parked one round as "matches byte-exact but cannot be
+installed" and is now elevated. If you find a function whose C screens `OK` but
+whose file will not convert, check for this shape before parking it -- and
+**read the whole of `split_s.py`'s output**, not the line you expected. It
+refuses these files with a precise explanation, and piping it through `grep`
+for the success line is how one of them got deleted and broke the build.
+
 ## What the screen must NOT normalise away
 
 The counterpart to the section below, and the more dangerous direction.
