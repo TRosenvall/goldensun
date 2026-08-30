@@ -4,6 +4,8 @@ extern void __Actor_SetAnim(unsigned char *a, int n);
 
 int OvlFunc_883_200d64c(unsigned char *a, unsigned char *b, int c, int d)
 {
+    int *pa;
+    int *pb;
     int r;
     int t;
     int m;
@@ -14,10 +16,12 @@ int OvlFunc_883_200d64c(unsigned char *a, unsigned char *b, int c, int d)
         __Actor_SetAnim(a, 1);
         return 1;
     }
-    if (OvlFunc_883_200d610((int *)(b + 8), (int *)(a + 8)) >= c && d == 0)
+    pa = (int *)(a + 8);
+    pb = (int *)(b + 8);
+    if (OvlFunc_883_200d610(pb, pa) >= c && d == 0)
         goto lose;
     t = (unsigned short)__atan2(*(int *)(b + 0x10) - *(int *)(a + 0x10),
-                                *(int *)(b + 8) - *(int *)(a + 8));
+                                *pb - *pa);
     m = 0xf0 << 8;
     h = *(unsigned short *)(a + 6) & m;
     if ((t & m) != h && ((t + (0x80 << 5)) & m) != h
