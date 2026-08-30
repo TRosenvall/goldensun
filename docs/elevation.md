@@ -7980,3 +7980,32 @@ cautions: it reports the shape and not the reason, and a count of zero is weak
 evidence.
 
 `tools/dupfuncs.py` -- lists the duplicate groups above.
+
+## When gcc HOISTS a repeated constant, exactly: dominance
+
+Probed directly, five variants, and the rule is clean:
+
+    both uses in mutually exclusive branches   -> REBUILDS, push {lr}
+    three uses, all in branches                -> REBUILDS, push {lr}
+    one use dominating + one in a branch       -> HOISTS to the top, push {r5,lr}
+    the same with eight calls in between       -> HOISTS
+    the same with the second use deep in an arm-> HOISTS
+
+So it is **dominance, not distance and not the number of intervening calls**.
+If every use sits in a branch that no other use dominates, gcc rebuilds the
+`mov`+`lsl` at each one and pays no callee-saved register. If one use dominates
+another, gcc computes it once at the top of the function -- ahead of even the
+first call -- and holds it, costing a push and a pop.
+
+This is partial redundancy elimination, a different pass from the cse described
+above, and it explains why the per-use-site naming lever does nothing against
+it: gcc folds the initialisers to one rtx before the pass runs, so five named
+locals and one literal are the same input.
+
+**A CASE THAT CONTRADICTS THE RULE, recorded because it is unresolved.**
+`OvlFunc_952_200be40`'s ROM rebuilds `0xa0 << 7` at a dominating use and a
+branch use both, which by the probe above it should not. Under our flags gcc
+hoists. The likeliest reading is that the two constants are DIFFERENT SYMBOLS in
+the original source and only coincide in value -- the same explanation the
+repeated-flag-id case wanted -- but that is inference from a contradiction, not
+a measurement, and this tree has no symbol space to write it with.

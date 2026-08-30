@@ -25,7 +25,27 @@
  *
  * The message base 0x2233 with `add r0, r5, #1` and `#2` derivations IS
  * reproduced correctly by a plain `base = 0x2233;` local -- that part works.
- */
+  *
+ * PROBED, five variants, and the rule is dominance -- not distance, not the
+ * number of intervening calls:
+ *
+ *     both uses in mutually exclusive branches    -> rebuilds, push {lr}
+ *     three uses, all in branches                 -> rebuilds, push {lr}
+ *     one dominating use + one in a branch        -> HOISTS, push {r5,lr}
+ *     the same with eight calls in between        -> HOISTS
+ *     the same with the second use deep in an arm -> HOISTS
+ *
+ * THIS FUNCTION CONTRADICTS THAT. Its ROM rebuilds 0xa0<<7 at a dominating use
+ * in the prologue and again inside the else branch, which under our flags gcc
+ * will not do. There is no branch before the first use -- the listing is
+ * push / SetFlag / CutsceneStart / Func_808e118 / the first 8092adc -- so the
+ * dominance is not something I have mis-structured.
+ *
+ * The likeliest reading is that the two constants are DIFFERENT SYMBOLS in the
+ * original and coincide only in value. That is inference from a contradiction
+ * rather than a measurement, and this tree has no symbol space to write it
+ * with, so it is recorded and not acted on.
+*/
 extern void __SetFlag(int id);
 extern void __CutsceneStart(void);
 extern void __CutsceneEnd(void);
