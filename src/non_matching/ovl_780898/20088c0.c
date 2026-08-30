@@ -65,6 +65,44 @@
  * NEXT: the two six-argument tail calls and the base-relative reads at
  * +0x13c/+0x140 have still not been checked one instruction at a time.
 */
+
+/* ============================ BATCH 153 UPDATE ============================
+ *
+ * 101 differing -> 57 aligned of 142 (141 lines vs 142). THREE NEW LEVERS, all
+ * transferable, and all found on this function:
+ *
+ * 1. ONE VARIABLE IS BOTH THE COUNTER AND THE TABLE BYTE-OFFSET. The ROM's
+ *    peeled first test is `mov r5, #0 / ldr r3, [r1, r5]`, and that same r5 is
+ *    then `add r5, #1` / `cmp r5, #5` / stored as the index. Writing
+ *    `*(int *)(tp + i)` for the peeled test and a walking `tp += 4` inside the
+ *    loop reproduces it. The previous attempt's SEPARATE offset variable cost
+ *    an extra `mov r4, #0` and left the whole loop misaligned.
+ *
+ * 2. THE TABLE MUST BE TYPED `extern int L31b4[][4]`, NOT `unsigned char[]`
+ *    with byte offsets. With byte offsets gcc folds the first access into a
+ *    pool word `=.L31b4+4` and SUBTRACTS to reach element 0; the 2-D array
+ *    type gives the ROM's `ldr r4, =.L31b4 / lsl r1, r2, #4 / add r5, r1, #4`.
+ *
+ * 3. A STORE FORCES A RELOAD, AND THE ORDER OF TWO STORES CONTROLS IT. The ROM
+ *    reloads `L31b4[n][1]` because an intervening memory write kills the CSE.
+ *    Writing the `v[2]` store BEFORE the `v[4]` store reproduces the reload.
+ *
+ * WHAT IS LEFT is essentially one register flip: the ROM puts `&v[0]` in r7 and
+ * the width in r6, gcc puts them the other way round, and that propagates into
+ * roughly 40 of the 57 lines. Plus about 5 genuine scheduling lines.
+ *
+ * DECLARATION ORDER IS NOT THE LEVER HERE: seven permutations were measured
+ * and every one gave exactly 57. Do not re-run them.
+ *
+ * Other measured spellings: v3 (pz accumulated into itself) 73; E/F 57 (best);
+ * D 59; B 68; G 58; H (v as a named struct) 59; I (dead padding before v) 57;
+ * A (last two args inline) 75; C (px reused instead of reading v[2] back) 78.
+ *
+ * NOTE THE METRIC. These are `--align` counts, not `--quiet` positional
+ * counts. Once lengths desync the positional number inflates and stops ranking
+ * candidates usefully; the prior 101 in this file's header is positional.
+ * ======================================================================== */
+
 extern unsigned char *iwram_3001e70;
 extern unsigned char L61d0[] __asm__(".L61d0");
 extern unsigned char L61e8[] __asm__(".L61e8");
