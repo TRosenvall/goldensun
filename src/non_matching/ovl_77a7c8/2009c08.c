@@ -28,7 +28,20 @@
  * NOT TRIED, because it would be guessing at names: inventing two flag symbols
  * at 0x16f and 0x171. The value would match and the names would assert
  * something unestablished, which is the trap const.sym's header warns about.
- */
+  *
+ * ===> THE SYMBOL CONCLUSION ABOVE IS RETRACTED. <===
+ *
+ * 76 already-matching functions in this tree rebuild the same mov+lsl constant
+ * twice across a call, so the shape is reachable from ordinary C and does not
+ * require two symbols. src/overlays/rom_78b2ac/ovl_30_c_c_a_a_a.c uses the
+ * literal `0x80 << 2` three times with calls between and gcc rebuilds it every
+ * time -- because those three uses sit in DIFFERENT CONDITIONAL BRANCHES.
+ *
+ * The probe result below is still correct for a STRAIGHT-LINE sequence: there,
+ * a repeated literal and a repeated single symbol both CSE, and only two
+ * distinct symbols avoid it. What the probe does not establish is that this
+ * function's source was straight-line. Suspect unreproduced control flow first.
+*/
 extern void __Func_808c4c0(void);
 extern void __Func_80936a0(int a, int b);
 extern void __Func_8093710(void);

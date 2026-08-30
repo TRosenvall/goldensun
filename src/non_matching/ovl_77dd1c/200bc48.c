@@ -1,59 +1,55 @@
-/* OvlFunc_882_200bc48 -- asm/overlays/rom_77dd1c/ovl_30_c_c_c_c_a_a_a_c_c_c.s
+/*
+ * OvlFunc_882_200bc48 -- asm/overlays/rom_77dd1c/ovl_30_c_c_c_c_a_a_a_c_c_c_c_b.s
+ * SPLIT OUT this round; byte-neutral, verified.
  *
- * BLOCKER: CONSTANT CSE, STRAIGHT LINE (the documented-unreachable case)
+ * BLOCKER: gcc CSEs a constant the ROM rebuilds. 54 lines against 53 -- ONE
+ * OVER, and the one is `push {r5}` with its pop, because gcc hoists
+ * `0xb3 << 1` into r5 to survive the calls between the __SetFlag and the
+ * __ClearFlag twenty instructions later. The ROM emits `mov r0,#0xb3 /
+ * lsl r0,#1` at both sites.
  *
- * 41 of 53 differing, ours 54 lines -- exactly ONE instruction too many, and
- * the 41 is that one instruction shifting everything after it.
+ * SEE the corrected section in docs/elevation.md before attacking this. The
+ * shape IS reachable -- 76 matching functions in the tree do it -- but in every
+ * one checked the repeated uses sit in different conditional branches, and this
+ * function is straight-line in the ROM with no branch at all. So either the
+ * original had control flow that the call trace does not reveal, or the
+ * register pressure differs. It is NOT established that two symbols are
+ * required, and one symbol used twice CSEs exactly like a literal.
  *
- * This is the cleanest example of the class in the corpus and is worth keeping
- * as the reference specimen: 22 calls, ZERO labels, one repeated constant.
- * `__SetFlag(0xb3 << 1)` and `__ClearFlag(0xb3 << 1)` are 20 calls apart; the
- * ROM rebuilds `mov r0,#0xb3 / lsl r0,#1` at both sites, gcc hoists the value
- * into r5 and reloads it with `mov r0, r5`, paying a push for the privilege.
- *
- * The documented rule says the reload needs BOTH a control-flow boundary
- * between the uses AND -fno-rerun-cse-after-loop.  There is no boundary here
- * and there is no way to make one, so the rule predicts this is unreachable.
- * It is:
- *
- *   -fno-rerun-cse-after-loop            41 (54 lines)
- *   -fno-gcse                            41 (54)
- *   -fno-expensive-optimizations         41 (54)
- *   -fno-cse-follow-jumps                41 (54)
- *   -fno-force-mem                       41 (54)
- *   -fno-thread-jumps                    41 (54)
- *   -O1                                  37 (54)
- *
- * Every one of them leaves the instruction COUNT wrong, which is the tell that
- * none of them touched the hoist.
- *
- * See tools/script_candidates.py, which exists because of this function: it
- * ranks straight-line call scripts by repeated EXPENSIVE constant, so this
- * class can be avoided at selection time rather than discovered at screen time.
+ * The rest of the function is exact: 22 calls, the six-times-repeated channel
+ * loops written out rather than looped (a loop gives an induction variable the
+ * ROM does not have), and 0x166 built as `0xb3 << 1` rather than pooled.
  */
+extern void __WaitFrames(int n);
+extern void __SetFlag(int id);
+extern void __ClearFlag(int id);
+extern void __Func_80118c0(int n);
+extern void __Func_80118a8(int n);
+extern void __Func_8091200(int a, int b);
+extern void __Func_8091254(int n);
 
-/* ---- MERGED from src/non_matching/overlays/200bc48.c ----
- * That file was a second park for the same function, written later under the
- * src/non_matching/overlays/ naming while this one already existed.  Its
- * analysis is kept verbatim below; the duplicate file is removed.
- *
- OvlFunc_882_200bc48 -- 0x0200bc48,
- * asm/overlays/rom_77dd1c/ovl_30_c_c_c_c_a_a_a_c_c_c_c.s
- *
- * 54 vs 53 lines, 41 differing.  Candidate at scratch/Lbc48.c.
- * A pure straight-line script: 22 calls, no memory operations, no branches.
- *
- * BLOCKER: the flag id `0xb3 << 1` is built twice by the ROM (once for
- * __SetFlag, once for __ClearFlag) and gcc commons the two into r5, adding a
- * push.
- *
- * This is the no-branch case recorded in docs/elevation.md.  Both naming levers
- * need a dominating block and there is none, so the flag group is the only tool
- * -- and CSE_CFLAGS does not fix it, nor -O1 (37 differing) nor --no-sched2
- * (37).  The commoning is the main -O2 CSE.
- *
- * Second instance of that shape after src/non_matching/overlays/20095bc.c, and
- * the two together give it a name: a straight-line script whose flag id is used
- * twice is out of reach.  `tools/pool.py` prints both facts (`br` and `flag2`),
- * so the combination is visible before writing any C.
- */
+void OvlFunc_882_200bc48(void)
+{
+    __WaitFrames(0x14);
+    __SetFlag(0xb3 << 1);
+    __Func_80118c0(0);
+    __Func_80118c0(1);
+    __Func_80118c0(2);
+    __Func_80118c0(3);
+    __Func_80118c0(4);
+    __Func_80118c0(5);
+    __Func_8091200(0x10003, 1);
+    __Func_8091200(0x80 << 9, 2);
+    __Func_8091254(1);
+    __WaitFrames(0x78);
+    __Func_8091200(0, 0);
+    __Func_8091254(0x3c);
+    __WaitFrames(0x3c);
+    __ClearFlag(0xb3 << 1);
+    __Func_80118a8(0);
+    __Func_80118a8(1);
+    __Func_80118a8(2);
+    __Func_80118a8(3);
+    __Func_80118a8(4);
+    __Func_80118a8(5);
+}

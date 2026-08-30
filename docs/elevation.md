@@ -7741,22 +7741,36 @@ guards both return the same value, early returns let gcc cross-jump them into a
 block placed right after the guard; the ROM puts `mov r0, #1` at the end.
 66 differing to 4 on `OvlFunc_964_2008cd0`.
 
-## A pooled constant REBUILT across calls means two different symbols
+## A constant REBUILT across calls: what it does and does not mean
 
-gcc-2.96 always CSEs two identical pooled constants, and if they are separated
-by a call it holds the value in a callee-saved register and pays push/pop for
-it. There is no statement order and no naming that separates them, because
-after cse they are the same rtx.
+**A first version of this section claimed it means the source used two distinct
+symbols. That was wrong, and the control that catches it is cheap: 76
+already-matching functions in this tree rebuild the same `mov`+`lsl` constant
+twice across a call, so the shape is plainly reachable from ordinary C.**
 
-So a ROM that emits `ldr r0, =0x16f` FRESH at two different call sites is
-telling you the source referenced two different SYMBOLS that share a value.
-This is const.sym's symbol tell applied to REPETITION rather than to size, and
-it is a different signature: the constant can be any width.
+What is true, and probed directly. Three functions each calling `f(x)`, `g()`,
+`f(x)` in a straight line:
 
-`OvlFunc_881_2009c08` is three instructions over on exactly this -- 52 against
-49, the three being `push {r5, r6}` and the matching pop -- in a straight-line
-sequence of 21 calls with no control flow at all.
+    same literal twice     ->  push {r5,lr} / ldr r5 ... mov r0,r5   (CSEd)
+    the SAME symbol twice  ->  identical -- CSEd into r5
+    two DIFFERENT symbols  ->  push {lr} / ldr r0,.L6 ... ldr r0,.L6+4
 
-This tree has no flag id symbol space (area, const, file_table, message and
-wram are the whole set), so the symbols cannot currently be written. Any
-straight-line script that reuses a flag id will hit this.
+So in a STRAIGHT-LINE sequence gcc will CSE a repeated constant into a
+callee-saved register and pay push/pop for it.
+
+But that is not what the matching functions do. In
+`src/overlays/rom_78b2ac/ovl_30_c_c_a_a_a.c` the literal `0x80 << 2` appears
+three times with calls between, and gcc rebuilds `mov r0,#128 / lsl r0,r0,#2`
+every time -- because the three uses sit in DIFFERENT CONDITIONAL BRANCHES, not
+in one straight-line run.
+
+**So when the ROM rebuilds a constant and you CSE it, suspect the CONTROL FLOW
+first, not the symbols.** Either the source has a branch you have not
+reproduced, or register pressure differs. Reach for a symbol only after the
+control flow matches and the rebuild still will not appear -- and remember that
+one symbol used twice CSEs exactly like a literal, so the symbol theory requires
+TWO distinct names, which is a strong claim about the id space.
+
+`OvlFunc_881_2009c08` and `OvlFunc_882_200bc48` are parked on this, three and
+one instructions over. Both are genuinely straight-line in the ROM, which is
+what makes them puzzling rather than solved.
