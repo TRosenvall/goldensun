@@ -48,6 +48,14 @@
  * halved Func_80b86ec. This function was re-screened with every scalar global
  * marked volatile and the output is BYTE-IDENTICAL, so the missing re-reads
  * are not its problem. Do not try it again.
+ *
+ * STRUCT-MEMBER FORM: TRIED, NO CHANGE. A parallel screening run found that for
+ * a byte STORE at an offset too large for strb's immediate, a struct member and
+ * an `unsigned char *` subscript emit the address computation and the value in
+ * OPPOSITE orders, and that this closed InitSprite. This function's residue is
+ * the same shape but a LOAD. Declaring the object as a struct and reading
+ * `o->count` instead of `o[0x27]` is byte-identical to the subscript form --
+ * still 3 differing. The lever appears to be specific to stores.
 */
 extern unsigned int iwram_3001e40;
 extern unsigned char L9e6b8[] __asm__(".L9e6b8");

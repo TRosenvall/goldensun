@@ -8,6 +8,9 @@ int OvlFunc_883_200d64c(unsigned char *a, unsigned char *b, int c, int d)
     int t;
     int m;
     int h;
+    int v0;
+    int v1;
+    int v2;
 
     r = 0;
     if (a[0x5b] == 1 && a[0x62] == 0) {
@@ -19,9 +22,11 @@ int OvlFunc_883_200d64c(unsigned char *a, unsigned char *b, int c, int d)
     t = (unsigned short)__atan2(*(int *)(b + 0x10) - *(int *)(a + 0x10),
                                 *(int *)(b + 8) - *(int *)(a + 8));
     m = 0xf0 << 8;
-    h = *(unsigned short *)(a + 6) & m;
-    if ((t & m) != h && ((t + (0x80 << 5)) & m) != h
-        && ((t + 0xfffff000) & m) != h && d == 0)
+    v2 = (t + 0xfffff000) & m;
+    v1 = (t + (0x80 << 5)) & m;
+    v0 = t & m;
+    h = m & *(unsigned short *)(a + 6);
+    if (v0 != h && v1 != h && v2 != h && d == 0)
         goto lose;
     a[0x5b] = 1;
     __Actor_SetAnim(a, 1);

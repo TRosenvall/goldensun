@@ -7566,3 +7566,65 @@ Scheduler interleaves -- the ROM splitting a two-instruction constant build
 around another operation, where we emit the pair together. Three independent
 spellings on `OvlFunc_932_20082cc` and two on `OvlFunc_946_2009494` are all
 byte-identical to each other.
+
+## Levers found by the parallel screening pass
+
+Measured independently of the sections above, and several sharpen rules already
+recorded here.
+
+**A value used TWICE wants `int x = (unsigned short)f(...)`, not `unsigned
+short x`.** The existing note says an angle has to be an unsigned short local.
+That holds when it is used once. Used twice -- two entities, two comparisons --
+gcc re-emits the `lsr #16` at every use and narrows the register; an `int`
+holding an explicit cast keeps one zero-extend. 6 differing against a match on
+`Func_8092878`.
+
+**Split one variable into two with disjoint live ranges to flip a register-role
+swap.** On `Func_80289e8`, `sel = Func_8028574(r)` instead of reusing
+`r = Func_8028574(r)` took 17 differing to 2 by flipping the r5/r6 roles.
+Reordering statements and reordering declarations were both inert on the same
+function (19 and 19). When a role swap resists ordering levers, look for a
+variable doing two jobs.
+
+**Give each mutually-exclusive arm its OWN locals.** `OvlFunc_944_20080c0` has
+four arithmetic arms; sharing one `n`/`t` pair across them makes gcc pick a
+common destination register and lose the destructive `sub r3, r0` form. Naming
+`n1..n4`, `t1..t4` took 16 differing to a match. This is the per-call-site
+stack-argument rule generalised: shared locals across arms that never run
+together still cost.
+
+**Declaration order, not assignment order, flips a pointer pair.** With
+everything else right on `OvlFunc_898_2009674`, `bp` and `ap` were swapped;
+swapping their DECLARATIONS closed it, and swapping their ASSIGNMENTS made it
+much worse (87 lines, 78 differing). Both orderings exist as levers and they
+are not interchangeable.
+
+**The statement POSITION of a naming decides the register it takes.** On
+`OvlFunc_943_200b1a8` the pooled `0xffff` had to be named AND the assignment had
+to sit between two specific statements: in place, a match; one statement
+earlier, 6 differing; one statement later or unnamed, 58 differing and one
+instruction short, because the ROM re-materialises a symbol address whose
+register the constant had taken. Naming is not a boolean.
+
+**Interposing an unrelated `= 0` between two pool loads can fix their order.**
+`PrintBattleText` sat at 8 differing with a pooled `0xea5` hoisted above
+`ldr r3, =iwram_3001e8c` and a zero in the wrong register. Nine spellings of
+naming and reordering the two values were all inert at 8. Moving an unrelated
+`v = 0;` so it sat BETWEEN them fixed the load order and the zero's register at
+once. This is a counter-example to the older note that pool-load order is out of
+reach when there is no basic-block boundary.
+
+**A struct MEMBER and a `unsigned char *` SUBSCRIPT emit a byte STORE's address
+computation and value in opposite orders.** `a->height = info->unk_01;` matched
+`InitSprite` where `a[0x21] = info->unk_01;` was two instructions out of place,
+after statement order, named temporaries and three scheduler flags had all
+failed. MEASURED NOT to extend to LOADS: the same substitution on
+`Func_808e0b0`'s `o[0x27]` read is byte-identical to the subscript form.
+
+**`-fno-schedule-insns2` separates "wrong order" from "wrong register".** On
+`OvlFunc_896_200c260`, disabling sched2 reproduces the ROM's instruction ORDER
+exactly and leaves only a temp-register difference, which identified the two
+visible symptoms as one cause -- gcc picking r2 rather than r0 for a
+`mov high, #imm` staging temp, which removes the anti-dependence that would
+otherwise pin the order. Useful as a diagnostic even though the flag is not
+usable in the build.
