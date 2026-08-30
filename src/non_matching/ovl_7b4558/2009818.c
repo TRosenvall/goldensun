@@ -9,7 +9,33 @@
  *
  * TRIED AND REJECTED: naming the slot (3 differing, unchanged); naming both
  * shifted arguments (3); naming only the second (4, worse).
- */
+  *
+ * whodoesthis.py RESULT, and it changes this park's status from "scheduler,
+ * probably unreachable" to "reachable, but not from this function's shape".
+ *
+ * The interleave IS emitted by ordinary C: 27 matching functions produce
+ * `mov rA,#i / mov rB,#i / mov rC,#i / lsl rA / lsl rB / bl`, and SIXTEEN of
+ * those push only lr, exactly like this function. So a callee-saved frame is
+ * not what buys it.
+ *
+ * Reading them, the spelling is a NAMED LOCAL for each shifted value, assigned
+ * near the TOP of the function and used later -- e.g.
+ * src/overlays/rom_77dd1c/ovl_30_c_c_c_c_a_a_a_c_c_a_b.c has `a = 0x80 << 9;
+ * b = 0x80 << 8;` at the top and `__MapActor_SetSpeed(0x16, a, b)` twelve lines
+ * down, with a call in between, and gcc REMATERIALISES both at the use.
+ *
+ * APPLIED HERE IT DOES NOT REMATERIALISE. Measured: the shifted value named at
+ * the top gives `push {r5}` and 25-26 lines against 23; naming two or three
+ * locals instead of one gives 26; naming it immediately before the call is
+ * byte-identical to the literal. The matching functions carry six or more named
+ * locals competing for registers, which is apparently what tips gcc from
+ * allocating to rematerialising. This function has almost no other live values,
+ * so a single named local always wins a register.
+ *
+ * That is a real condition rather than a spelling, and it is why this stays
+ * parked. Re-attack it if a way is found to make gcc rematerialise without
+ * inventing locals the source did not have.
+*/
 extern void __CutsceneStart(void);
 extern void __CutsceneEnd(void);
 extern void __CutsceneWait(int n);

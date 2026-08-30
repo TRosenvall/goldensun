@@ -7870,3 +7870,25 @@ have managed to write, not what the compiler allows. The `mov`+`lsl` form of one
 search returned zero and was written up as a hard blocker; the pooled form of
 the same search returned seventeen, and reading one of those produced a working
 lever.
+
+## The argument interleave is reachable -- but it depends on register pressure
+
+Recorded across several batches as a scheduler wall on the strength of
+byte-identical spellings. `whodoesthis.py` shows it is not: 27 matching
+functions emit `mov rA,#i / mov rB,#i / mov rC,#i / lsl rA / lsl rB / bl`, and
+16 of those push only `lr`, so a callee-saved frame is not what buys it.
+
+The spelling in all of them is a NAMED LOCAL per shifted value, assigned near
+the top of the function and used much later, with calls in between -- and gcc
+REMATERIALISES the `mov`+`lsl` at the use point rather than keeping it live.
+That rematerialisation is what produces the interleave.
+
+**The condition is register pressure, not the spelling.** Those functions carry
+six or more named locals competing for registers. Applied to a small function
+with almost nothing else live -- `OvlFunc_944_2008468`, `OvlFunc_927_2009818` --
+the same named local simply WINS a register: `push {r5}` appears and the
+function comes out two or three instructions over. Naming two or three locals
+instead of one does not tip it either.
+
+So the lever is real and the two functions above are still parked, which is the
+honest state: the shape is reachable, and not from their shape.
