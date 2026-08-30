@@ -3891,10 +3891,33 @@ tree's flags with **every one of the 12 an r4-vs-r5 rename**, and exact under
 
     grep -l 'push\t{r4' asm/overlays/**/*.s
 
-This is worth running across the whole parked set. The failure signature —
-correct instruction count, every differing line a callee-saved register rename —
-currently reads as "register allocation, unreachable from C", which is the
-largest blocked class in the corpus.
+### The sweep was run (batch 151). It does NOT explain the parked set.
+
+**16 functions in the remaining corpus push r4, and ZERO of them are parked.**
+Every coin-flip park is a function whose ROM leaves r4 alone, so the flag
+cannot be what is wrong with any of them. Do not run this sweep again hoping
+it will unblock the register-allocation class; that class stays open, and the
+cause remains the preference pass in `find_reg`, not a flag.
+
+What the sweep DID show is that the 16 cluster hard: eight are `common2`
+(`_0`, `_254`, `_28c`, `_304`, `_380`, `_41c`, `_44c`, `_618`) and the rest are
+m4a/sound. So `common2` — already known to be a non-interwork TU — was also
+built without `-fcall-used-r4`, and its r4-pushing functions were unreachable
+from C *by construction*, not through any fault of the decompilation.
+
+`COMMON2_CFLAGS` now substitutes `-fcall-saved-r4`. This was verified rather
+than assumed: **all nine existing `common2_c*.c` compile to byte-identical `.s`
+under both flags**, so the flip is a no-op for the matched corpus and only
+opens the r4 functions. `OvlFunc_common2_380` was elevated on the strength of
+it. That verification is the pattern to copy before touching any flag group —
+compile every file the rule already covers under both settings and diff, which
+costs seconds and converts an assumption into a fact.
+
+Note the two flags are not interchangeable as a *screen*: passing
+`-fcall-saved-r4` by hand to a candidate whose C shape is still wrong changes
+nothing, because the flag has nothing to bite on. The old note on
+`OvlFunc_common2_41c` recorded exactly that and drew the right conclusion —
+such a function cannot serve as a test of the hypothesis.
 
 ## Screening against a `.sym` addition without touching the tree
 
@@ -4358,6 +4381,56 @@ directly puts `mov r8, r3` before `mov r6, sp` (2 of 65); assigning `p = v;` onc
 and writing everything through `p` was exact. Same family as "naming an
 intermediate stops gcc folding it", but the trigger is the order in which the
 frame pointer is materialised.
+
+### Narrowing (batch 151): a named pointer does not survive offset 0
+
+`OvlFunc_common2_380` holds TWO stack addresses (`mov r3, sp` and
+`add r4, sp, #8`) and stores two words through the first. Naming both pointers
+gets the second object's address and the offset-4 store right, and leaves
+**exactly one** instruction wrong:
+
+    rom    mov r3, sp / str r0, [r3, #0] / str r1, [r3, #4]
+    ours   mov r3, sp / str r0, [sp, #0] / str r1, [r3, #4]
+
+gcc folds the *offset-0* store back to `sp` while keeping the pointer for the
+offset-4 store — an asymmetry no amount of pointer naming fixes, because at
+offset 0 the pointer and `sp` are the same value and the sp-relative encoding
+is equally short.
+
+**The fix is to stop having two locals.** The 8-byte input block and the
+20-byte output record are contiguous and exactly fill the frame, so they are
+one struct; `&s.in` is then a genuine subobject address rather than "the stack
+pointer", and both stores go through it. Exact.
+
+So when a candidate has two adjacent stack objects passed as two pointers to
+the same callee, and a named pointer gets you to within one offset-0 store,
+**try them as one struct before parking on register allocation.** Check the
+frame size first: if `sub sp, #N` equals the sum of the two objects with no
+padding, that is the tell.
+
+## A 64-bit result wants a union written AFTER the join
+
+Software 64-bit arithmetic returns the pair in r0/r1. Building the result as
+`((unsigned long long)hi << 32) | lo` costs five instructions gcc cannot see
+through — two `mov #0` and two `orr` — where the ROM simply moves the pair.
+Use a `union { unsigned long long q; struct { u32 lo, hi; } h; }`.
+
+WHERE the union is written decides the block structure, and this is the part
+that is easy to get wrong:
+
+| union assigned | result |
+|---|---|
+| inside both arms | gcc threads each arm straight to the epilogue, the join disappears, output is SHORTER than the ROM |
+| once after the join, from plain u32 temporaries | the ROM's shape: arms compute into a register pair, one join materialises it |
+
+`OvlFunc_common2_41c` needs the second, plus a `goto` to put the `count >= 32`
+arm first. That gets it to the ROM's exact 27 lines with the same block order
+and branch senses; what is left is only a register rename, so it is parked on
+the coin flip rather than on shape.
+
+Also: `v >> n` for a variable `n` on a 64-bit value emits a call to
+`__lshrdi3`. Any ROM function that does the shift inline is doing the word
+arithmetic by hand, and the source must too.
 
 ## The HImode-literal rule is narrower than stated: only 0 and >= 0x8000
 
