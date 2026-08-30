@@ -133,6 +133,42 @@ backwards once — three files were untracked on the theory that generated
 assembly should never be committed — and the check exists so the question is
 settled by the repository rather than by intuition.
 
+## The compiler is NOT deterministic. Rebuild before you investigate.
+
+**gcc-2.96's optimiser depends on the process's address layout.** Same file,
+same command, same container:
+
+| condition | runs | result |
+|---|---|---|
+| as-is | 120 | 114 correct, **6 divergent** |
+| `setarch -R` (ASLR off) | 120 | 120 correct |
+
+The divergence is a CSE decision — whether gcc reuses a register that happens
+to already hold a pooled constant — which is exactly what a hash table keyed on
+pointer values would decide differently under a different heap layout. About 5%
+per compile on the file it was measured on.
+
+This corrupts clean builds, and it does so in the most misleading way possible:
+the symptom is two wrong bytes and a `.c` that appears not to reproduce its
+committed `.s`, which is indistinguishable from a fake match. In batch 151 it
+cost most of a round — four optimiser flags and three source rewrites probed
+against a file that was already correct.
+
+**So, in order:**
+
+1. On any `make compare` failure, **rebuild the object and re-diff before
+   investigating anything**. If the second compile agrees with the committed
+   `.s`, it was the compiler, not the source.
+2. **Run `git status` after every build.** Every generated `.s` is tracked, so a
+   divergent compile appears as a modified file naming the exact object. It is
+   free and it is the only cheap way to catch this.
+3. For release-grade verification, `setarch -R` makes the build fully
+   deterministic. It needs `docker run --privileged`; unprivileged it fails with
+   `Operation not permitted`. It is deliberately not wired into the Makefile,
+   because that would make the standard build command require `--privileged`.
+4. **Treat old single-diff conclusions as provisional.** Any function parked or
+   reverted on the strength of one clean-build diff may have been this.
+
 ## What the screen must NOT normalise away
 
 The counterpart to the section below, and the more dangerous direction.
