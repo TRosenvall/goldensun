@@ -135,7 +135,17 @@ asm/%.o: src/%.c
 # so it also covers the splitter's matched _b children (common2_c_b.o, ...). Mirrors
 # the src/lib/m4a/%.o per-file override precedent below. Verified: a common2 fn compiled
 # without -mthumb-interwork emits `pop {pc}`.
-COMMON2_CFLAGS := $(filter-out -mthumb-interwork,$(GCC296_CFLAGS))
+# ...and also WITHOUT -fcall-used-r4. Eight of common2's ROM functions open
+# `push {r4, ...}` (common2_0, _254, _28c, _304, _380, _41c, _44c, _618).
+# -fcall-used-r4 makes r4 caller-saved, so gcc never pushes it -- a function
+# whose ROM pushes r4 cannot be reproduced under that flag at all. Verified
+# safe for the already-matched siblings: all nine existing common2_c*.c files
+# compile to BYTE-IDENTICAL .s under -fcall-used-r4 and -fcall-saved-r4, so
+# the flip is a no-op for them and only unblocks the r4-pushing functions.
+# (`push {r4` is a one-grep test that a TU was not built with -fcall-used-r4;
+# swept tree-wide, only these common2 functions and the m4a/sound TUs qualify.)
+COMMON2_CFLAGS := $(subst -fcall-used-r4,-fcall-saved-r4,\
+                    $(filter-out -mthumb-interwork,$(GCC296_CFLAGS)))
 asm/overlays/common/common2_c%.o: src/overlays/common/common2_c%.c
 	$(GCC296_CC) $(COMMON2_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
