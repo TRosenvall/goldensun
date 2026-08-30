@@ -96,6 +96,42 @@
  * ZERO matching functions, which is consistent with the ROM's order being the
  * natural one and ours being the scheduled variant -- but that is a weak zero
  * and should not be read as proof.
+ *
+ * ROUND 2 ON THE SEVEN LINES. The exact ROM sequence, with the source it maps
+ * to, so the next attempt starts from the right picture:
+ *
+ *     ldr r3, [r7]        v[0]            b->x = v[0];
+ *     str r3, [r6, #8]
+ *     ldr r3, [r7, #8]    v[2]
+ *     mov r1, r10         <-- z copied to a low register HERE
+ *     str r3, [r6, #0x10]                 b->z = v[2];
+ *     str r1, [r6, #0x24]                 b->f24 = z;
+ *     str r1, [r6, #0x2c]                 b->f2c = z;
+ *     mov r3, #0x80 / mov r2, r8 / lsl r3, #24
+ *
+ * We emit the same instructions with `mov r1, r10` and the constant build
+ * swapped: gcc materialises the constant into the gap and defers the z copy to
+ * its first use. The ROM copies z one instruction earlier, between v[2]'s load
+ * and its store.
+ *
+ * TRIED THIS ROUND, all measured against 176 lines / 7 differing:
+ *   naming `k = 0x80 << 24` at its two uses            --  7, byte-identical
+ *   naming k before the b-> stores                     -- 178 lines, 30
+ *   p->x moved above p->f38/f40                        -- 175 lines, 28
+ *   p->f24/f2c moved above p->x                        --  7
+ *   p->f24/f2c moved below p->z                        -- 177 lines, 27
+ *   `zz = z;` copied between b->x and b->z             --  9
+ *   b->f24 moved between b->x and b->z                 -- moves the copy TOO
+ *                                                         early, before b->x
+ *
+ * PLUS everything in the list above from the first round. That is fifteen
+ * spellings across two rounds.
+ *
+ * REACHABLE, not a wall: whodoesthis.py finds 40 matching functions emitting
+ * the ROM's order (two stores of one register, then a constant build). What
+ * none of them show is a case where a value living in a HIGH register has to be
+ * copied down into that same window, which is what this function needs.
+ */
 */
 struct Actor {
     unsigned char pad00[6];
