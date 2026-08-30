@@ -42,6 +42,20 @@
  * halved Func_80b86ec. This function was re-screened with every scalar global
  * marked volatile and the output is BYTE-IDENTICAL, so the missing re-reads
  * are not its problem. Do not try it again.
+ *
+ * FAMILY UPDATE: Func_808e0b0, the other member of this family, is now
+ * ELEVATED. The lever that closed it -- struct types for the object and entry,
+ * plus the guard written as `i = 0; if (i < o->f27)` rather than
+ * `if (o->f27 != 0)`, with the walking-pointer do-while inside -- was found by
+ * grepping GENERATED asm for the same address-temp shape and reading the C that
+ * produced it (src/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c_a_c_b.c).
+ *
+ * IT DOES NOT TRANSFER HERE. Measured: struct types with the `i < o->f27`
+ * guard, 12 differing; struct types with `!= 0`, 11; with `0 < o->f27`, 11;
+ * with the two preheader assignments swapped, 11; without the unused counter,
+ * 11. All are WORSE than the plain-pointer version kept below, which is 7.
+ * This function has an extra guard (`o->flags & 1`) ahead of the loop that the
+ * elevated one does not, and the register pressure differs.
 */
 extern unsigned int iwram_3001e40;
 

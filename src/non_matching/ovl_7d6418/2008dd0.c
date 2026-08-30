@@ -37,7 +37,12 @@
  *   actor+0x26, not to the area halfword. No const.sym entry was added, because
  *   that file's bar wants a symbol that completes a function and this one still
  *   differs by the family blocker above. Resolve the family first, then name it.
- */
+  *
+ * FAMILY UPDATE: Func_808e0b0 is now ELEVATED using struct types plus a guard
+ * written as `i = 0; if (i < o->f27)`. That shape is worth trying here before
+ * anything else -- this park is one instruction short on the same address-temp
+ * residue. It did NOT transfer to Func_8096b88, so measure rather than assume.
+*/
 extern int _AREA_00;
 extern unsigned char *__MapActor_GetActor(int slot);
 extern void __Actor_SetAnimSpeed(unsigned char *a, int n);
