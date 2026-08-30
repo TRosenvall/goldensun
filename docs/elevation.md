@@ -4000,6 +4000,24 @@ callee-saved register rather than rematerialising — the function grows a
 push/pop pair and gets worse. Measured on `OvlFunc_967_2008308` (60 differing →
 78) and `OvlFunc_911_20082b4` (33 lines → 39). Both are still parked.
 
+### A halfword read's ADDRESSING MODE names its signedness
+
+thumb has `ldrh rD, [rB, #imm]` but **no `ldrsh` with an immediate**. A signed
+halfword field must therefore build its offset in a register first. So the
+reference tells you the type outright:
+
+    ldrh  rD, [rB, #imm]   ->  the field is UNSIGNED
+    ldrsh rD, [rB, rO]     ->  the field is SIGNED
+
+`mov r2, #0xa / ldrsh r3, [r5, r2]` where the ROM has `ldrh r3, [r5, #0xa]` is
+not a scheduling difference and not a lever to hunt for -- it is one character
+of the struct declaration. On `Func_801b148` that character was 58 differing
+lines. The same function's other halfword field genuinely is signed and keeps
+its register-offset `ldrsh`, so read each field separately.
+
+This is the cheapest type check in the corpus and it costs one glance at the
+operand. Do it before assuming a residue is the allocator's.
+
 ### A narrow store of a literal: cast pools it, typed field builds it, named local builds it and costs a register
 
 Measured four times in batch 148 and it settles a recurring confusion.
