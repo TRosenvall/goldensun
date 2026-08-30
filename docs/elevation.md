@@ -4041,6 +4041,18 @@ The offset local is still right when the ROM *mutates* it (`add r2, #2` between
 two stores off one base) — that pattern needs both, an offset variable to mutate
 and a pointer variable to store through.
 
+**Narrower than it first looked (batch 152).** The pointer local forces the
+`add` only when something else keeps the offset alive — on `CutsceneStart` the
+offset was mutated *between* the address and the store. On `Func_80a8088`
+nothing did, and gcc folded `w = (void **)(p + o); *w = r;` straight back into
+the register-offset store. What worked there was **dropping the shared offset
+variable** and writing both offsets as plain constants: gcc then computes the
+first address with an `add` and still derives the second from it unprompted.
+33 differing → 3.
+
+So: if a pointer local does not take, the offset variable is the thing holding
+gcc to the register-offset form — remove it rather than adding more locals.
+
 ### A halfword read's ADDRESSING MODE names its signedness
 
 thumb has `ldrh rD, [rB, #imm]` but **no `ldrsh` with an immediate**. A signed
