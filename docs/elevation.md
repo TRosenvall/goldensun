@@ -7924,3 +7924,59 @@ it, costing six instructions of high-register save and restore against the ROM.
 So do not reach for a named local to force this: naming is what fails. The
 condition is dynamic use count, and no spelling changes it for a value used
 twice on one path.
+
+## SMALL functions are hard for a specific reason: no register pressure
+
+A run of eleven rounds on functions of 8 to 20 instructions produced no
+matches, and the parks all say the same thing. It is worth stating as a class
+rather than as eleven separate observations.
+
+Most of the levers in this file work by changing what the register allocator
+does. Naming a value, splitting a live range, reordering statements -- all of
+them only bite when there is competition for registers. In a function with a
+two-instruction body and nothing else live, gcc's choices are forced, and no
+spelling moves them:
+
+  * `OvlFunc_959_2008c78`, 3 of 10. The argument interleave. Naming the two
+    shifted arguments, the slot, and all three are byte-identical. The 27
+    matching functions that DO emit this interleave all have six or more live
+    values; here there are none, so a named local always wins a register
+    instead of being rematerialised.
+  * `Func_80a3ce4`, 1 short. gcc folds a two-sided range test into an unsigned
+    `sub`/`cmp`; three spellings do not prevent it.
+  * `SetTextColor`, 5 of 8. Both operands of an AND are dead afterwards, so the
+    allocator is free to pick either as the destination and picks the other one.
+  * `Func_8019d0c`, 2 short. Register-offset stores where the ROM computes
+    explicit addresses -- and the explicit-pointer lever that fixed exactly this
+    in `SetTextColor` does nothing here.
+
+**Practical consequence: prefer 40-to-120 instruction functions.** They have
+enough live values for the documented levers to have something to act on. The
+smallest remaining functions are not the easiest; they are close to the hardest.
+
+## Duplicate groups: 74 of the remaining functions come free
+
+See `tools/dupfuncs.py`. 101 of the 2110 remaining THUMB functions are
+byte-identical to another one after normalising symbol names, `.L` labels and
+pool operands -- 27 groups, so 74 functions follow from 27 solutions.
+
+It is very top-heavy. Three groups carry FIFTY functions:
+
+    x18  OvlFunc_883_20080c4   parked at 7 differing of 176
+    x17  OvlFunc_883_200834c   parked
+    x15  OvlFunc_883_20088c0   parked at 101 differing, length exact
+
+Those three are the highest-value targets in the tree and their parks carry
+mapped residues. Members of a group differ only in which data tables they name,
+so one C file with the labels as parameters serves the whole group.
+
+## Two search tools
+
+`tools/whodoesthis.py <pattern>` -- searches the GENERATED assembly of every
+already-matching function and prints the C that produced each hit. Use it the
+moment a residue looks like a wall. It corrected four "unreachable" conclusions
+in six rounds and closed three functions. Its docstring carries the two
+cautions: it reports the shape and not the reason, and a count of zero is weak
+evidence.
+
+`tools/dupfuncs.py` -- lists the duplicate groups above.
