@@ -1,23 +1,26 @@
-/* OvlFunc_971_2008128 == ((u32*)ewram_2002224)[L1940[i]] = ((u32*)L1928)[i]
- *   [overlay rom_7fb4a8]
- * Source asm: goldensun/asm/overlays/rom_7fb4a8/ovl_30_a_c_c_c_a_a_a.s
- * (path updated: the .s was split or renamed after this was parked)
+/*
+ * OvlFunc_971_2008128 -- asm/overlays/rom_7fb4a8/ovl_30_a_c_c_c_a_a_a_b.s
+ * SPLIT OUT this round; byte-neutral, verified.
  *
- * Logic is faithful; this does NOT yet byte-match. Residual diff is pure
- * register allocation / scheduling: the ROM computes i*4 into r1 while keeping
- * i in r0 for the byte-table index, and parks the ewram base in r4
- * (-fcall-used-r4); gcc-2.96 here overwrites r0 with i*4 and uses r1 for the
- * base, so the indexed loads/stores pick different registers. Values and
- * operations are identical. KEY TECHNIQUE: both tables are .global asm-labels
- * .L1940 (byte) / .L1928 (word) bound via gcc asm() labels (§8), the relocs
- * match the ROM. A clean permuter target.
+ * BLOCKER: operand order in two register-offset accesses. 9 lines against 9,
+ * 7 differing. Both the load and the store use the scaled INDEX as the
+ * addressing base and the array as the offset -- `ldr r2, [r1, r2]` and
+ * `str r2, [r3, r4]` -- and the pointer-inversion spelling below gets the
+ * shape but not the register assignment.
+ *
+ * The three pool loads (.L1940, the char array, ewram_2002224) are emitted in a
+ * different order from the ROM's, which is where the seven come from.
  */
 extern unsigned char L1940[] __asm__(".L1940");
-extern unsigned int  L1928[] __asm__(".L1928");
-extern unsigned int  ewram_2002224[];
+extern int CHAR_ARRAY_ARRAY_971__02009928[];
+extern unsigned char ewram_2002224[];
 
-void OvlFunc_971_2008128(int i) {
-    unsigned char *a = L1940;
-    unsigned int  *b = L1928;
-    ewram_2002224[a[i]] = b[i];
+void OvlFunc_971_2008128(int i)
+{
+    int off;
+    int k;
+
+    off = i * 4;
+    k = L1940[i] << 2;
+    *(int *)(k + (int)ewram_2002224) = *(int *)(off + (int)CHAR_ARRAY_ARRAY_971__02009928);
 }
