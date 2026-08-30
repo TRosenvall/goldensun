@@ -36,7 +36,20 @@
  * symbol -- the ROM's `ldr r3, =iwram_3001e80 / add r3, #0x80` is one symbol
  * plus an offset too large for `ldr`'s immediate field, which an array index
  * reproduces.
- */
+  *
+ * UPDATE: gKeyHeld must be declared VOLATILE, and that was worth half the
+ * difference here -- 46 lines and 37 differing becomes 45 and 21, with the
+ * first difference moving from line 2 to line 24. The ROM re-reads the global
+ * on every test; without volatile gcc CSEs the reads into one and the whole
+ * function shortens. The tree already had `extern volatile unsigned int
+ * gKeyHeld;` in src/rom_c9000/rom_e3958_c_c_c_b.c, where it was needed for a
+ * dead read, so this is a confirmation rather than a discovery -- but the
+ * declaration had not been carried across to the files that poll it.
+ * OvlFunc_974_200807c matched outright once it was applied there.
+ *
+ * The recorded blocker below is still the remaining one; it just starts 22
+ * lines later than it used to.
+*/
 
 struct O {
     unsigned char pad00[0x36];
@@ -49,7 +62,7 @@ struct P {
 };
 
 extern void *iwram_3001e80[];
-extern unsigned int gKeyHeld;
+extern volatile unsigned int gKeyHeld;
 extern void Func_80c0a24(int a, int b, int c, int d, int e);
 
 void Func_80b86ec(void)
