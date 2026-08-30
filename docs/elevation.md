@@ -7892,3 +7892,35 @@ instead of one does not tip it either.
 
 So the lever is real and the two functions above are still parked, which is the
 honest state: the shape is reachable, and not from their shape.
+
+## A zero survives in a callee-saved register only inside a LOOP
+
+The rule "gcc will not spend a callee-saved register on a value it can rebuild
+in one instruction" is recorded several times here, and it has an exception
+worth knowing, because four parked functions sit on it.
+
+`whodoesthis.py` finds 21 matching functions that DO put a zero in a high
+callee-saved register (`mov r3, #0 / mov r8, r3`), so it is plainly reachable.
+Reading one -- `Func_80ad658` in src/rom_a1000/rom_ad274_c_b.c -- the source is
+a plain literal `0`, and what buys the register is that the store happens
+INSIDE A LOOP:
+
+```c
+for (i = 0x89; i <= 0x8c; i++) {
+    if (*(unsigned int *)(base + (i << 2)) != 0) {
+        _DeleteSprite(...);
+        *(unsigned int *)(base + (i << 2)) = 0;   /* every iteration */
+    }
+}
+```
+
+Several dynamic uses beat one rebuild, so the allocator keeps it.
+
+**Outside a loop it does not.** `OvlFunc_895_20087d0` stores its zero twice, at
+adjacent fields, at the very end of a long straight-line body -- and gcc rebuilds
+it, costing six instructions of high-register save and restore against the ROM.
+`OvlFunc_948_2009ac8` and `Func_80b0070` are the same shape.
+
+So do not reach for a named local to force this: naming is what fails. The
+condition is dynamic use count, and no spelling changes it for a value used
+twice on one path.

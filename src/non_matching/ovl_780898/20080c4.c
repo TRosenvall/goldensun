@@ -77,7 +77,26 @@
  * that would crack it is a construct that makes the two zero stores depend on
  * something the 0x80 setup does not -- worth one focused attempt by anyone with
  * a fresh idea, because eighteen functions come with it.
- */
+  *
+ * ===> HIGHEST-VALUE PARK IN THE TREE. tools/dupfuncs.py shows this function
+ * has EIGHTEEN identical copies across overlays, differing only in which data
+ * labels they name. Solving these seven lines elevates eighteen functions. <===
+ *
+ * whodoesthis.py on the residue: 40 matching functions emit the ROM's order
+ * (two stores of one register, then a constant build), so the ordering is not a
+ * wall. Reading Actor_SetPos in src/rom_9000/rom_ca6c_b.c, its source NAMES the
+ * shifted constant in a local and leaves the zeros as bare literals, grouping
+ * each constant's stores together.
+ *
+ * TRIED FROM THAT, both measured: naming `k = 0x80 << 24` immediately before
+ * its two uses -- 7 differing, byte-identical to the literal; naming it earlier,
+ * before the b-> stores -- 178 lines and 30 differing, much worse.
+ *
+ * The reverse order (our order: constant build, then the two stores) appears in
+ * ZERO matching functions, which is consistent with the ROM's order being the
+ * natural one and ours being the scheduled variant -- but that is a weak zero
+ * and should not be read as proof.
+*/
 struct Actor {
     unsigned char pad00[6];
     unsigned short facing;
