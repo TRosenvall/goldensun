@@ -60,6 +60,9 @@ INTERLEAVE = re.compile(r"\tmov\t(r\d+), #\S+\n(?:\t[^\n]*\n)*?\tmov\tr0, #\S+\n
 # cross-site CSE and there is nothing at the call site to change. Treat it as a
 # reject until that class breaks.
 NEG = re.compile(r"^\tneg\t", re.M)
+# The two ways a park note names the function it covers.
+PARK_HDR = re.compile(r"\b(\w*Func\w*_[0-9a-f]{6,8})\s*--\s*0x")
+PARK_LST = re.compile(r"\b(\w*Func\w*_[0-9a-f]{6,8})\s+asm/\S+\.s")
 MOV = re.compile(r"^\tmov\t(r\d+), #(0x[0-9a-f]+|\d+)$")
 LSL = re.compile(r"^\tlsl\t(r\d+), #(\d+)$")
 POOL = re.compile(r"^\tldr\tr\d+, =(\S+)$")
@@ -85,7 +88,20 @@ def constants(body):
 
 
 def parked():
-    """Addresses already parked under src/non_matching, by file basename.
+    """Functions already parked under src/non_matching.
+
+    Two ways a park claims a function, and BOTH are needed.  The filename is
+    one -- src/non_matching/ovl_7b2078/2008658.c parks OvlFunc_926_2008658.
+    But a park covering a CLASS is named for the class and lists its members
+    inside: message_base_register.c parks OvlFunc_962_200806c and
+    OvlFunc_950_2008500, and neither address appears in any filename.  Both sat
+    at the top of this list with their note already written.
+
+    So the contents are scanned too, for the two conventions park notes use:
+    `<NAME> -- 0x<addr>` in a header and `<NAME>  asm/<path>.s` in a member
+    list.  Loose mentions ("see OvlFunc_926_200a484") are deliberately not
+    matched.  Names that ARE matched but have since been elevated cost nothing:
+    a function whose src/*.c exists never reaches this list.
 
     The filter ranks on the assembly alone, so a function that was tried and
     parked in an earlier round scores exactly as well as a fresh one and floats
@@ -96,8 +112,12 @@ def parked():
     out = set()
     for root, _, files in os.walk("src/non_matching"):
         for f in files:
-            if f.endswith(".c"):
-                out.add(f[:-2])
+            if not f.endswith(".c"):
+                continue
+            out.add(f[:-2])
+            text = open(os.path.join(root, f), errors="ignore").read()
+            out |= set(PARK_HDR.findall(text))
+            out |= set(PARK_LST.findall(text))
     return out
 
 
@@ -132,8 +152,7 @@ def main():
                 continue
             if len(NEG.findall(body)) >= 3:
                 continue
-            addr = name.rsplit("_", 1)[-1]
-            if addr in skip:
+            if name.rsplit("_", 1)[-1] in skip or name in skip:
                 continue
             rows.append((calls, size, name, f, len(starts),
                          len(INTERLEAVE.findall(body))))
