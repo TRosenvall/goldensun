@@ -126,6 +126,25 @@ Not in any particular order.
 The original ROM (USA version) is required. It must be named `baserom.gba` and
 placed in the root directory of the repository.
 
+**Start here if you are on macOS, or on a Linux box you would rather not install
+a 2000-vintage compiler onto: read [docs/building-on-macos.md](docs/building-on-macos.md)
+and build the container.** The compiler this project needs is a patched
+gcc-2.96 that cannot be built on Darwin at all, so the whole build -- compiler
+and make both -- runs inside a Linux image built from `tools/Dockerfile`. Your
+files stay on the host and you edit them normally; only the execution is Linux.
+The short version:
+
+```sh
+docker build -t goldensun-build -f tools/Dockerfile .
+docker run --rm --security-opt seccomp=unconfined \
+    -v "$PWD:/work" -w /work goldensun-build make compare
+```
+
+The image builds both compilers itself and keeps them out of your working tree.
+See "Determinism" below for what that `--security-opt` flag is doing.
+
+The list below is what a NATIVE Linux build needs instead.
+
 Required software:
 
 * GNU make
@@ -180,6 +199,37 @@ To build a single overlay, for example `overlays/rom_779188/overlay.bin`:
 ```
 make overlays/rom_779188/overlay.bin
 ```
+
+### Determinism
+
+**gcc-2.96's optimiser is sensitive to the process's address layout.** The same
+file, the same flags and the same container produce different object code
+between runs: measured on one affected file, 6 divergent compiles in 120 and
+again 3 in 150. Under `setarch -R`, 150 of 150 are identical.
+
+What it decides differently is a common-subexpression choice -- whether to reuse
+a register that already holds a pooled constant -- which is exactly what a hash
+table keyed on pointer values does under a different heap layout.
+
+**The symptom is nasty.** You get two wrong bytes in an 8 MB ROM, and a `.c`
+that appears not to reproduce its committed `.s`. That is indistinguishable from
+a bad decompilation, and it will send you looking for a bug that is not there.
+
+The build handles it automatically where it can. `SETARCH` in the Makefile
+probes for `setarch -R` by actually running it, and wraps both compilers when it
+works. It expands to nothing on macOS, on BSD, and inside a container running
+Docker's default seccomp profile -- in those cases the build is exactly as it
+always was, just not reproducible. Passing `--security-opt seccomp=unconfined`
+to `docker run` permits the `personality()` call and turns determinism on.
+
+**Two rules follow, and they apply whether or not you have the flag:**
+
+1. **A `make compare` failure is not automatically a decompilation error.**
+   Rebuild the object and diff again before investigating anything. If the
+   second compile agrees with the committed `.s`, it was the compiler.
+2. **Run `git status` after every build.** Every generated `.s` is tracked, so a
+   divergent compile appears as a modified file naming the exact object. It is
+   free, and it is the only cheap way to catch this.
 
 To verify a single overlay, for example `overlays/rom_779188/overlay.bin`:
 

@@ -112,8 +112,22 @@ cached afterwards.
 Mount the repo and work inside:
 
 ```sh
-docker run --rm -it -v "$PWD:/work" -w /work goldensun-build bash
+docker run --rm -it --security-opt seccomp=unconfined \
+    -v "$PWD:/work" -w /work goldensun-build bash
 ```
+
+`--security-opt seccomp=unconfined` is what makes the build REPRODUCIBLE, and it
+is worth understanding before you drop it. gcc-2.96's optimiser is sensitive to
+the process's address layout, so without it roughly one compile in thirty of an
+affected file comes out different -- see "Determinism" in the README. The
+Makefile runs the compiler under `setarch -R` to pin the layout, and Docker's
+default seccomp profile blocks the `personality()` call that needs. The Makefile
+probes for this and silently does without, so the build still works unflagged;
+it just is not reproducible.
+
+It relaxes one syscall filter on a container that only compiles code from your
+own checkout. If you would rather not, omit it and rely on the `git status`
+check below instead.
 
 You are now at a Linux shell with the repo at `/work`. Run `make`, `make
 compare`, anything else, normally. Edits made on the Mac appear immediately
@@ -122,14 +136,20 @@ inside; build outputs appear on the Mac. Only the *execution* is Linux.
 For one-off commands without an interactive shell:
 
 ```sh
-docker run --rm -v "$PWD:/work" -w /work goldensun-build make compare
+docker run --rm --security-opt seccomp=unconfined \
+    -v "$PWD:/work" -w /work goldensun-build make compare
 ```
 
 A shell alias is worth having:
 
 ```sh
-alias gsmake='docker run --rm -v "$PWD:/work" -w /work goldensun-build make'
+alias gsmake='docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build make'
 ```
+
+**After any build, run `git status`.** Every generated `.s` is tracked, so a
+compile that came out differently shows up immediately as a modified file naming
+the exact object. It costs nothing and it is the only cheap way to catch the
+nondeterminism if you are building without the flag above.
 
 ## Notes
 

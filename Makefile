@@ -107,7 +107,27 @@ $(OVERLAYS): %.bin: %.elf
 # but NOT AFTER the last function in a TU, so the assembler's default
 # Thumb-nop fill leaks in without this explicit append.
 GCC296_DIR     ?= tools/gcc296
-GCC296_CC      := $(GCC296_DIR)/xgcc
+
+# DETERMINISM (batch 151). gcc-2.96's optimiser is sensitive to the process's
+# ADDRESS LAYOUT. Measured on one file, one command, one container: 6 divergent
+# objects in 120 compiles, and again 3 in 150; zero under `setarch -R`. What it
+# decides differently is a CSE -- whether to reuse a register that already holds
+# a pooled constant -- which is what a hash table keyed on pointer values does
+# under a different heap layout.
+#
+# The symptom is two wrong bytes in the ROM and a .c that appears not to
+# reproduce its committed .s, which is indistinguishable from a bad
+# decompilation. See README "Determinism" before chasing one.
+#
+# So run the compiler under ADDR_NO_RANDOMIZE wherever that is both AVAILABLE
+# and PERMITTED. The probe is a REAL INVOCATION, not `command -v`: under
+# Docker's default seccomp profile setarch exists but personality() is blocked,
+# so a which(1)-style test would pass and then fail every compile. Expands to
+# nothing on macOS, on BSD, and in a default container -- leaving the build
+# exactly as it was, just not reproducible.
+SETARCH        := $(shell setarch -R /bin/true >/dev/null 2>&1 && echo setarch -R)
+
+GCC296_CC      := $(SETARCH) $(GCC296_DIR)/xgcc
 GCC296_CFLAGS  := -B$(GCC296_DIR)/ -O2 -mthumb -mthumb-interwork -mcpu=arm7tdmi \
                   -fno-builtin -nostdinc -ffreestanding \
                   -fcall-used-r4 -Iinclude
@@ -5504,7 +5524,7 @@ M4A_CC1FLAGS  := -Wimplicit -Wparentheses -fhex-asm -mthumb-interwork -O2
 
 src/lib/m4a/%.o: src/lib/m4a/%.c
 	gcc -E $(M4A_CPPFLAGS) $< -o $(@:.o=.i)
-	$(AGBCC_DIR)/bin/old_agbcc $(M4A_CC1FLAGS) -o $(@:.o=.s) $(@:.o=.i)
+	$(SETARCH) $(AGBCC_DIR)/bin/old_agbcc $(M4A_CC1FLAGS) -o $(@:.o=.s) $(@:.o=.i)
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
@@ -5517,19 +5537,19 @@ AGBFLASH_CC1FLAGS := -Wimplicit -Wparentheses -fhex-asm -mthumb-interwork -O
 
 src/lib/agb_flash/agb_flash.o: src/lib/agb_flash/agb_flash.c
 	gcc -E $(AGBFLASH_CPPFLAGS) $< -o $(@:.o=.i)
-	$(AGBCC_DIR)/bin/old_agbcc $(AGBFLASH_CC1FLAGS) -o $(@:.o=.s) $(@:.o=.i)
+	$(SETARCH) $(AGBCC_DIR)/bin/old_agbcc $(AGBFLASH_CC1FLAGS) -o $(@:.o=.s) $(@:.o=.i)
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
 src/lib/agb_flash/agb_flash_mx.o: src/lib/agb_flash/agb_flash_mx.c
 	gcc -E $(AGBFLASH_CPPFLAGS) $< -o $(@:.o=.i)
-	$(AGBCC_DIR)/bin/old_agbcc $(AGBFLASH_CC1FLAGS) -o $(@:.o=.s) $(@:.o=.i)
+	$(SETARCH) $(AGBCC_DIR)/bin/old_agbcc $(AGBFLASH_CC1FLAGS) -o $(@:.o=.s) $(@:.o=.i)
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
 src/lib/agb_flash/agb_flash_at.o: src/lib/agb_flash/agb_flash_at.c
 	gcc -E $(AGBFLASH_CPPFLAGS) $< -o $(@:.o=.i)
-	$(AGBCC_DIR)/bin/old_agbcc $(AGBFLASH_CC1FLAGS) -o $(@:.o=.s) $(@:.o=.i)
+	$(SETARCH) $(AGBCC_DIR)/bin/old_agbcc $(AGBFLASH_CC1FLAGS) -o $(@:.o=.s) $(@:.o=.i)
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
