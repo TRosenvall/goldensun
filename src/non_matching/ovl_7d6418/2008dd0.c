@@ -42,42 +42,88 @@
  * written as `i = 0; if (i < o->f27)`. That shape is worth trying here before
  * anything else -- this park is one instruction short on the same address-temp
  * residue. It did NOT transfer to Func_8096b88, so measure rather than assume.
+ *
+ * FAMILY LEVER APPLIED, and it worked as far as it can. Struct types plus the
+ * guard written `i = 0; if (i < q->f27)` FIXES the address-temp residue that
+ * this park was recorded on: the first difference moves from line 29 to line
+ * 37 and the count from 23 differing to 20. The candidate below is updated to
+ * that form.
+ *
+ * WHAT IS LEFT IS A DIFFERENT BLOCKER. At line 37 the ROM has `b .Le24` where
+ * we fall straight through, and .Le24 sits immediately after a `.pool_aligned`
+ * -- so that branch is the jump OVER a mid-function literal pool, not a loop
+ * rotation. Our function is short enough that gcc puts its pool at the end and
+ * emits no branch, which is why we are one instruction short.
+ *
+ * That is the branch-over-pool class. Batch 141 showed it is not a ceiling and
+ * that pool ENTRY ORDER is source-reachable, so this is worth re-attacking with
+ * those levers -- but it is not the address-temp problem any more, and the park
+ * header above should be read with that in mind.
 */
 extern int _AREA_00;
-extern unsigned char *__MapActor_GetActor(int slot);
-extern void __Actor_SetAnimSpeed(unsigned char *a, int n);
+
+struct Ent {
+    unsigned char pad0[5];
+    unsigned char f5;
+    unsigned char pad6[0x16 - 6];
+    unsigned char f16;
+};
+
+struct Obj {
+    unsigned char pad0[0x26];
+    unsigned char f26;
+    unsigned char f27;
+    struct Ent *f28[1];
+};
+
+struct Actor {
+    unsigned char pad0[6];
+    short f6;
+    int f8;
+    int fc;
+    int f10;
+    unsigned char pad14[0x50 - 0x14];
+    struct Obj *f50;
+    unsigned char pad54;
+    unsigned char f55;
+};
+
+extern struct Actor *__MapActor_GetActor(int slot);
+extern void __Actor_SetAnimSpeed(struct Actor *a, int n);
 
 void OvlFunc_951_2008dd0(int slot, int *src, int h, int v, int sp)
 {
-    unsigned char *e;
-    unsigned char *q;
-    unsigned char **list;
-    unsigned char *r;
-    int n;
+    struct Actor *e;
+    struct Obj *q;
+    struct Ent *r;
+    struct Ent **list;
+    unsigned int i;
+    unsigned int n;
     int m;
     int t;
 
     e = __MapActor_GetActor(slot);
     if (e != 0) {
-        *(int *)(e + 8) = *src++;
-        *(int *)(e + 0xc) = *src++;
-        *(int *)(e + 0x10) = *src;
-        *(short *)(e + 6) = h;
-        e[0x55] = (int)&_AREA_00;
-        (*(unsigned char **)(e + 0x50))[0x26] = (int)&_AREA_00;
+        e->f8 = *src++;
+        e->fc = *src++;
+        e->f10 = *src;
+        e->f6 = h;
+        e->f55 = (int)&_AREA_00;
+        e->f50->f26 = (int)&_AREA_00;
         __Actor_SetAnimSpeed(e, sp);
     }
-    q = *(unsigned char **)(e + 0x50);
-    if (q[0x27] != 0) {
+    q = e->f50;
+    i = 0;
+    if (i < q->f27) {
         m = 0xff;
-        list = (unsigned char **)(q + 0x28);
-        n = q[0x27];
+        list = q->f28;
+        n = q->f27;
         do {
             r = *list++;
-            if (r[5] != v) {
-                t = r[0x16] | m;
-                r[5] = v;
-                r[0x16] = t;
+            if (r->f5 != v) {
+                t = r->f16 | m;
+                r->f5 = v;
+                r->f16 = t;
             }
             n--;
         } while (n != 0);

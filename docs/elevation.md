@@ -7837,3 +7837,36 @@ repeat an ordinary pooled constant inside one basic block, against 4 matching
 functions that do it in ordinary C and 13 more that do it only inside DMA
 inline asm. So the shape is reachable but rare, and this lever is the only
 known route to it.
+
+## The method that has been closing these: read code that ALREADY does it
+
+Three residues in recent rounds were declared unreachable on the strength of
+reasoning about what gcc must do, and all three were wrong. The correction each
+time came from the same move, and it is now a tool:
+
+    python3 tools/whodoesthis.py 'add\tr3, r3, #39'
+    python3 tools/whodoesthis.py --multiline '<pattern spanning lines>'
+
+It searches the GENERATED assembly of every already-matching function and
+prints the C that produced each hit. A count over the remaining hand-written
+assembly tells you what the original authors wrote; a count over generated
+assembly tells you what this compiler will actually emit from C, which is the
+only question that matters when stuck.
+
+It closed `Func_808e0b0` -- parked four rounds on an address-temp register
+choice -- in one pass: searching for "address computed into a register and
+loaded back into the same register" found 18 matching functions, two at offset
+39, and reading one gave both halves of the fix.
+
+TWO CAUTIONS, both learned the hard way.
+
+**It reports the shape, not the reason.** The C it points at may differ from
+yours in several ways with only one that matters. On `Func_808e0b0` the matching
+function's loop GUARD was the entire fix and copying its loop BODY scored 29
+differing.
+
+**A count of zero is weak evidence.** Generated assembly samples what people
+have managed to write, not what the compiler allows. The `mov`+`lsl` form of one
+search returned zero and was written up as a hard blocker; the pooled form of
+the same search returned seventeen, and reading one of those produced a working
+lever.
