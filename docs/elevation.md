@@ -1439,6 +1439,45 @@ Either arrangement works: assign before an `if` and use INSIDE it, or assign
 before an `if`/`else` and use AFTER the join. A call does NOT create a boundary
 -- only a branch does.
 
+### The INVERSE lever (batch 153): naming it in the SAME block makes it contiguous
+
+The table above says a named local in the same basic block as the call "keeps it
+in a callee-saved register". That is not the whole story, and the other half is
+a lever in its own right.
+
+Where the ROM builds a two-instruction constant CONTIGUOUSLY and gcc splits it
+around another argument's load — the mirror image of arg-interleave — naming the
+value in a local **in the same basic block** fixes it:
+
+    rom    mov r1, #0xc8 / lsl r1, #0x4 / ldr r0, =Func_80cc960
+    ours   mov r1, #0xc8 / ldr r0, =Func_80cc960 / lsl r1, #0x4     (literal)
+    ours   ... identical to the ROM ...                             (named local)
+
+On `Anim_UnleashIntro` this fixed both of its `StartTask` sites at once, 6
+differing to 2. So the two directions are symmetric and worth knowing as a pair:
+
+| the ROM | write the constant as |
+|---|---|
+| split around another argument | a local assigned in a DOMINATING block |
+| contiguous, other argument after | a local assigned in the SAME block |
+| either, and it already matches | a literal at the call site |
+
+Try the literal first, then read which way the diff points before picking.
+
+### A wrong jump table can look like a register problem
+
+`Anim_UnleashIntro` switches on 0..4 with the fifth case doing what `default`
+does. Writing only four labelled cases plus `default` makes gcc emit a
+COMPARISON CHAIN, not a table: 59 differing of 80. Adding the redundant
+`case 4:` produces the ROM's table and takes it to 6 — **and fixes an r5/r6
+swap as a side effect.**
+
+That side effect is the part to remember. A two-register rename is not always an
+allocation coin flip; it can be downstream of a control-flow shape that is
+wrong. Check the branch structure before parking on registers. Count the ROM's
+jump-table entries and write out exactly that many cases, redundant ones
+included.
+
 **BOUNDARY (batch 152): a function with no branches is out of reach.** Since a
 call does not create a block boundary, a straight-line function has exactly one
 basic block and there is no "different block" to assign the constant in. The
