@@ -3577,6 +3577,32 @@ And a second, independent tell worth knowing: **a pool load of a SYMBOL is not
 hoisted, where a pool load of an int constant is.** That fires on values too
 large for `mov`, where the "small constant pooled" tell says nothing.
 
+### Batch 149: the `str` operands tell you which stack arguments to name
+
+The rule above says each site needs its own pair. It does not say which sites
+need a pair at all, and the assembly answers that directly -- look at what the
+`str` reads from:
+
+    str r6, [sp]          <- a HELD register: the ROM spent a callee-saved
+                             register on this value, so it is a shared local
+    mov r3, #0x18
+    mov r2, #0x3e         <- BOTH built fresh into separate registers, then
+    str r3, [sp]             stored: this site wants its own pair of locals
+    str r2, [sp, #4]
+
+Written as literals, gcc reuses one register for both and interleaves the
+stores (`mov r3 / str / mov r3 / str`), which is one register short of the ROM
+every time. Written as a fresh pair, each gets its own register.
+
+`OvlFunc_941_20080d4` has eight six-argument calls and needs both answers: two
+values are shared locals because the ROM keeps them in r5 and r6 across the
+whole body, and two sites build both arguments fresh and need their own pairs.
+Six differing to exact. `OvlFunc_922_2009050` is seven sites, one shared and
+five pairs, and matched on the first screen from the same reading.
+
+Do NOT share a pair between sites even when the values repeat -- that is the
+failure the rule below was written for.
+
 ## Each stack-argument SITE needs its own pair of locals
 
 `§The stack-arg-pair lever` says to name both values adjacent to the call. That
