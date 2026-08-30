@@ -223,6 +223,29 @@ but leaves the variable in the same register, so the `ldr` offsets swap instead
 and the count stays at 13. Birth order moves a POINTER's materialisation, not a
 value's allocation priority.
 
+## SETTLED: the branch-over-pool shape is NOT a blocker
+
+Asked directly of four functions in the class, and the answer is unambiguous:
+**gcc-2.96 emits the branch-over-pool instructions itself, at the ROM's
+positions, with no help from the source.**
+
+The decisive observation is on `AnimEnd`. Its ROM has two branch-over-pool
+sites. While the diff stood at 64 differing both were ABSENT from our output;
+once the instruction count converged, **both appeared spontaneously and
+matched**. On `StartSnow` the ROM's `b` over its `0xf` pool is present in our
+stream and matches from the start.
+
+So the pool branch is a consequence of CODE LENGTH, not of a source construct.
+If a reference has one and your output does not, you are the wrong length for
+some other reason -- fix that and the branch appears. `.pool_aligned` or a
+mid-body `.word` is neither a ceiling nor a signal, and **the 516 functions in
+this class should be screened normally.**
+
+This retires the last of the reasoning that made the class look shut. The
+earlier claim rested on old_agbcc's pool behaviour and old_agbcc is not the
+compiler here; that was corrected in batch 153, and this settles the remaining
+question of whether gcc would place them correctly.
+
 ## A function can be blocked by FILE STRUCTURE rather than by codegen
 
 Thirty-one single-function `.s` files carry their data as a `.section .data`

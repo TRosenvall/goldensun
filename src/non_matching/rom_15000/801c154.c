@@ -32,6 +32,24 @@
  * the `b` and its label short. That `b` is a real instruction and it is
  * counted.
  *
+ * *** CORRECTED, SAME BATCH: THE READING BELOW IS WRONG. ***
+ *
+ * An independent screen of four other pool-class functions answered this
+ * directly, and the answer is that POOL PLACEMENT IS NOT A RESIDUE AT ALL.
+ * On StartSnow and AnimEnd, gcc-2.96 emitted the branch-over-pool
+ * instructions at the ROM's own positions with NO help -- and on AnimEnd the
+ * two sites were ABSENT while the diff stood at 64, then APPEARED
+ * SPONTANEOUSLY and matched once the instruction count converged.
+ *
+ * The pool branch is a consequence of CODE LENGTH, not of a source construct.
+ * So on this function the missing `b` is not the blocker; it is downstream of
+ * being two instructions short for some other reason, and the real residue is
+ * the register rename below. `.pool_aligned` in a reference is neither a
+ * ceiling nor a signal. Screen the class normally.
+ *
+ * The superseded reasoning is kept below because the size hypothesis was a
+ * reasonable inference from one function and someone will form it again:
+ *
  * SO THE REFINED READING, worth testing on the rest of the class: pool
  * CONTENTS are reachable from ordinary C, and pool PLACEMENT is the open
  * question. gcc dumps a pool early when it must -- under branch-range pressure
