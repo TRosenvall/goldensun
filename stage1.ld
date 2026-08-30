@@ -1315,7 +1315,9 @@ SECTIONS {
 		asm/rom_b5000/rom_bffb8_b.o(.text)
 		asm/rom_b5000/rom_bffb8_c_a_b.o(.text)
 		asm/rom_b5000/rom_bffb8_c_b.o(.text)
-		asm/rom_b5000/rom_bffb8_c_c.o(.text)
+		asm/rom_b5000/rom_bffb8_c_c_a.o(.text)
+		asm/rom_b5000/rom_bffb8_c_c_b.o(.text)
+		asm/rom_b5000/rom_bffb8_c_c_c.o(.text)
 		asm/rom_b5000/rom_c10e8_a_a_a_a.o(.text)
 		asm/rom_b5000/rom_c10e8_a_a_a_b.o(.text)
 		asm/rom_b5000/rom_c10e8_a_a_a_c.o(.text)
@@ -1350,7 +1352,9 @@ SECTIONS {
 		asm/rom_b5000/rom_b6f44.o(.rodata)
 		asm/rom_b5000/rom_b6e7c.o(.rodata)
 		asm/rom_b5000/rom_b8228_c_c.o(.rodata)
-		asm/rom_b5000/rom_bffb8_c_c.o(.rodata)
+		asm/rom_b5000/rom_bffb8_c_c_a.o(.rodata)
+		asm/rom_b5000/rom_bffb8_c_c_b.o(.rodata)
+		asm/rom_b5000/rom_bffb8_c_c_c.o(.rodata)
 		asm/rom_b5000/rom_c1a34_c.o(.rodata)
 
 		. += 0x1000;
