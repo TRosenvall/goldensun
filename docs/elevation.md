@@ -7304,3 +7304,131 @@ register is reused for the second load, so it must be modified in place.
 The tell is a `sub` or `add` on a register that just held a symbol address.
 Worth trying wherever two globals are reached a fixed distance apart, which in
 this tree usually means they were one object in the original source.
+
+## Naming an expression: a lever with three outcomes and one stated limit
+
+Giving a subexpression its own local variable is the single most-used lever
+here, and it points in three directions. Measured cases:
+
+**It is the whole fix**, when it blocks a reassociation. `GetNumDjinn`'s
+`u[(0x8c << 1) + which]` gets reassociated by gcc into `(u + which) + 0x118`,
+finishing with a plain immediate-offset load; the ROM computes
+`which + 0x118` into a register and does `ldrb r3, [r2, r3]`. Assigning the
+index to an `int` first and subscripting that matches exactly. Source operand
+order is IRRELEVANT -- `u[which + (0x8c << 1)]` is byte-identical to
+`u[(0x8c << 1) + which]`. Only the name moves it.
+
+**THE LIMIT, and without it the lever looks unreliable rather than
+conditional:** naming blocks reassociation only when gcc cannot see the
+definition. In `SetDjinni` the same trick on `i = k + 0xf8` changed NOTHING,
+because `k = entry * 4` is computed locally two lines up and gcc sees straight
+through the name. `GetNumDjinn`'s index was an opaque parameter. If the
+compiler can constant-fold its way back to the original expression, the name
+buys you nothing.
+
+**It is catastrophic**, when it promotes a value gcc was content to
+rematerialise. Naming the `0x200` mask in `CheckEquipmentCritBoost` -- the
+obvious fix for a prologue ordering problem -- took it from **2 differing to
+47**: the name earns the value a callee-saved register of its own, drags r10
+into the frame and moves the argument to r8. A loop-invariant that gcc hoists
+by itself must stay unnamed.
+
+**It does nothing**, when the value already lives in a register.
+`Actor_SetAnimAndSpeed`'s animation index is a parameter; naming it produced
+byte-identical output.
+
+## The halfword exception, and the two directions it runs in
+
+`const.sym`'s header records that gcc pools a small constant when it is an
+operand of a HImode expression. In practice this is common enough to check on
+every function that stores through a `short *`, and it runs BOTH ways.
+
+*The ROM has `mov`, we pool:* name an `int`. `Func_801eea0` hit this twice in
+one function. `*(short *)(p + 4) = 0x1e - x` pools the `0x1e` because the
+subtraction is a HImode operand -- assigning it to an `int` first gives the
+ROM's `mov r3, #0x1e`, and took 13 differing to 7. The remaining 7 were the
+literal zero in `*(short *)(p + 6) = 0`, the same trap; naming that closed the
+function. `Func_80175c0` is a third instance.
+
+*The ROM pools, we have `mov`:* leave the literal alone. `Func_80b0070` ends
+with `ldr r2, .Lb00e0` where `.Lb00e0` is a `.word 0` -- the ROM itself pools
+the zero for a halfword store, so there the plain literal is the right source
+and naming it would be the error.
+
+## Early return versus else-return is worth four instructions
+
+Only when a return VALUE is involved, and that qualifier was measured.
+
+In `SetDjinni`, written as an early `if (...) return 0;` gcc hoists
+`mov r0, #0` above the compare and jumps straight to the epilogue, collapsing
+four instructions. Written as `if (cond) { ...body... } else { return 0; }` --
+identical semantics -- it emits the ROM's separate `mov r0, #0 / b` block. That
+one restructure took 32 differing to 24.
+
+It does NOT help a void function. `Func_808e0b0` and `Func_8096b88` both open
+with early `return;` guards; rewriting both as nested `if` blocks changed
+neither one by a single instruction. There is no value to hoist, so there is
+nothing to move.
+
+## Counter initialisation wants to come first
+
+Three functions where the only remaining difference was an adjacent pair in the
+prologue, and moving the loop counter's `= 0` EARLIER in the source fixed or
+improved all three. `Func_8012d70` matched outright once `i = 0;` was written
+before the offset computation rather than after -- that was the entire
+difference between 2 differing and a match. `Func_80b0070` went 17 -> 16 -> 14
+differing as `n = 0` and then `i = 0` moved ahead of the output-pointer
+computation.
+
+Do not over-apply it: in `Func_80b0070` swapping the two counters relative to
+EACH OTHER (`i = 0` before `n = 0`) made it far worse, 14 differing to 42,
+because gcc then merged the two zeros into one register.
+
+## Statement order does not transfer between near-identical functions
+
+`Func_8096b88` and `Func_808e0b0` are the same shape on the same field layout
+(+0x25 flag, +0x27 count, +0x28 actor array), and both are parked on the same
+register-role swap. Swapping the order of the `list` and `n` assignments
+**helps one and hurts the other**: 5 differing to 3 on `Func_808e0b0`, 7 to 8
+on `Func_8096b88`. Same two statements, same family, opposite sign. Measure it
+per function; there is no rule to carry across.
+
+Both also need the count read TWICE in the source -- once in the guard, once to
+initialise the counter. Reading it once is one instruction SHORT, because gcc
+keeps the loaded byte in the counter register and never emits the ROM's copy.
+
+## Increment and decrement tells
+
+The assembly says which form the source used, and the equivalent-looking
+rewrite does not match.
+
+`ldrh / add #1 / strh` followed by a SEPARATE `lsl #16 / asr #16` on the value
+that was loaded is a POST-increment, `v = (*b)++`. The shift pair exists only
+because the old value is still live after the store; `n = *b; *b = n + 1;`
+reuses one `ldrsh` and never emits it. (`Func_809b5dc`.)
+
+`ldrh / sub #1 / strh` followed by the same shift pair is a PRE-decrement whose
+new value is used, `n = --(*c)`. (`Func_8099340`, matched on the first screen
+because of it.)
+
+## Deriving a nearby global, continued
+
+The section above covers two globals a fixed distance apart. Two more uses, and
+one spelling that does NOT work.
+
+`Func_801eea0` reaches the global 4 bytes below `iwram_3001e90`, and
+`Func_80974d8` reaches the one 0x4c below `iwram_3001ebc`. Both want
+
+```c
+*(unsigned char **)((char *)&iwram_3001e90 - 4)
+```
+
+Declaring the two symbols separately cannot produce the ROM's `sub r3, #4` --
+gcc has no reason to believe two externs are a fixed distance apart, so it
+emits a second pooled address.
+
+**An array with a negative index does not work.** Declaring
+`extern unsigned char *sym[] __asm__("iwram_3001e90");` and writing `sym[-1]`
+looks like the same thing and is worse: gcc declines to fold the `-1` into the
+address and emits a runtime `mov r3, #4 / neg r3, r3` register-offset load.
+Take the address and subtract.
