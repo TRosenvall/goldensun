@@ -3603,6 +3603,18 @@ five pairs, and matched on the first screen from the same reading.
 Do NOT share a pair between sites even when the values repeat -- that is the
 failure the rule below was written for.
 
+**And where the assignment goes picks the REGISTER CLASS.** A named stack
+argument lands in a callee-saved register only if its live range CROSSES A CALL.
+`OvlFunc_927_2009454` passes (4, 0) at its last site and the ROM holds the zero
+in r5 across the whole register-argument setup, storing it after r0-r3 are
+loaded. Declared immediately before the call it gets a SCRATCH register and is
+stored at once -- 6 differing. Moving the assignment up so it spans the
+preceding call makes gcc spend r5 on it and the function matches. Hoisting it
+further, to the top of the function, is wrong again (7).
+
+So: the `str` operands say which values get names; the statement position says
+which register class they get. Read both off the ROM before writing either.
+
 ## Each stack-argument SITE needs its own pair of locals
 
 `§The stack-arg-pair lever` says to name both values adjacent to the call. That
