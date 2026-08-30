@@ -101,6 +101,7 @@ _AREA_70 = 0x70;
 _AREA_75 = 0x75;
 _AREA_76 = 0x76;
 _AREA_78 = 0x78;
+_AREA_89 = 0x89;
 _AREA_8b = 0x8b;
 _AREA_8c = 0x8c;
 _AREA_8e = 0x8e;

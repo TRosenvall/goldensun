@@ -16,6 +16,7 @@ REJECTS a function if any of these hold:
   * an expensive constant used twice anywhere in the body -- cse if the uses are
     close, PRE hoisting if one dominates, and neither yields to any spelling
   * fewer than 8 calls -- arithmetic bodies hit instruction selection instead
+  * three or more `neg` -- the `-1` triple, an unbroken class (batch 148)
 
     python3 tools/pickable.py [--limit N]
 
@@ -51,6 +52,14 @@ FSTART = re.compile(r"^\.(thumb|arm)_func_start\s+(\S+)", re.M)
 # -- but a function carrying three of them is three separate coin flips, so the
 # count is worth seeing before choosing.
 INTERLEAVE = re.compile(r"\tmov\t(r\d+), #\S+\n(?:\t[^\n]*\n)*?\tmov\tr0, #\S+\n\tlsl\t\1, #")
+# Three or more `neg` in one function is the `-1` triple of
+# src/non_matching/overlays/constant_reuse.c: the ROM materialises the same
+# small negative constant once per argument register and gcc builds it once and
+# copies. Every function in the tree carrying it is parked, none is elevated,
+# and batch 148 confirmed it on a function with a SINGLE such call, so it is not
+# cross-site CSE and there is nothing at the call site to change. Treat it as a
+# reject until that class breaks.
+NEG = re.compile(r"^\tneg\t", re.M)
 MOV = re.compile(r"^\tmov\t(r\d+), #(0x[0-9a-f]+|\d+)$")
 LSL = re.compile(r"^\tlsl\t(r\d+), #(\d+)$")
 POOL = re.compile(r"^\tldr\tr\d+, =(\S+)$")
@@ -120,6 +129,8 @@ def main():
             if re.search(r"\b(r8|r9|r10|r11|sl|fp)\b", body):
                 continue
             if any(v > 1 for v in constants(body).values()):
+                continue
+            if len(NEG.findall(body)) >= 3:
                 continue
             addr = name.rsplit("_", 1)[-1]
             if addr in skip:
