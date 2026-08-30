@@ -146,7 +146,11 @@ asm/%.o: src/%.c
 # swept tree-wide, only these common2 functions and the m4a/sound TUs qualify.)
 COMMON2_CFLAGS := $(subst -fcall-used-r4,-fcall-saved-r4,\
                     $(filter-out -mthumb-interwork,$(GCC296_CFLAGS)))
-asm/overlays/common/common2_c%.o: src/overlays/common/common2_c%.c
+# Pattern widened from common2_c% to common2_% in batch 152: common2_a holds
+# the same TU. Its functions carry both tells -- the non-interwork `pop {pc}`
+# epilogue AND a `push {r4, ...}` -- so it wants exactly these flags, and
+# OvlFunc_common2_28c byte-matches under them.
+asm/overlays/common/common2_%.o: src/overlays/common/common2_%.c
 	$(GCC296_CC) $(COMMON2_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
