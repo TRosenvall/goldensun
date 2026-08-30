@@ -3904,6 +3904,90 @@ So: try it, it is one line and it sometimes wins outright — but a park that
 already records "prototype removed, no change" has genuinely tested it, and the
 lever is not a reason to reopen the class.
 
+### Batch 147: the lever is broader than the paragraph above says, and here is how to aim it
+
+The verdict "it does not generalise to the arg-interleave class" was drawn from
+two parks. Four functions responded to it in one round, so the scope needs
+restating. What changed is not the mechanism; it is knowing **which** declaration
+to delete.
+
+**One direction only: `mov r0` moves LATER.** Withholding a prototype puts the
+first argument's load at the END of the setup. It cannot put it in the MIDDLE of
+another argument's `mov`/`lsl` pair — that is the dominating-block naming lever,
+below, and the two pull opposite ways. `OvlFunc_954_20095e0` needs both at once
+and its header says which sites want which; `OvlFunc_955_20092f0` needed both as
+well. **Read each site off the ROM before reaching for either.**
+
+**No declaration is not the same as an empty parameter list.** `extern void
+f();` was screened on three functions here and moved nothing on any of them. The
+`extern` line has to be gone.
+
+**The fix is not always at the call that shows the residue.**
+`OvlFunc_952_20085a4` had a park note naming its blocker exactly: two arms of a
+branch emit `__ActorMessage`'s two arguments in opposite orders, and the ROM
+disagrees with us in one of them. Dropping `__ActorMessage`'s prototype does
+nothing. Dropping the prototype of the call **immediately before the branch**
+fixes both arms. Sweep the neighbours, not only the offender.
+
+**Delete them one at a time.** Over the 62 saved candidates under `scratch/`
+with a reference, deleting every `extern void` at once made 37 worse, 21
+unchanged and 4 better. `tools/protolever.py` does the per-declaration greedy
+hill-climb — score, try each deletion alone, keep the best, repeat — which is
+how `20085a4` was found without reading any assembly. It only touches
+`extern void` declarations: a callee whose result is used changes type when its
+declaration goes.
+
+**Where it will not help.** The dominating-block half of the pair needs a
+dominating block. On a straight-line function that wants `mov r0` in the middle
+there is nowhere to put the definition, and naming the constant at the top of
+the function instead lengthens a live range across a call so gcc allocates a
+callee-saved register rather than rematerialising — the function grows a
+push/pop pair and gets worse. Measured on `OvlFunc_967_2008308` (60 differing →
+78) and `OvlFunc_911_20082b4` (33 lines → 39). Both are still parked.
+
+### The declaration is a PER-CALL-SITE choice: two declarations of one callee
+
+When a callee is called more than once and only SOME sites have the wrong
+argument order, changing its one declaration moves every site together and can
+only ever fix a subset. Give the odd site its own declaration, aliased to the
+same symbol:
+
+    extern int  __CloseUIBox(int h, int n);
+    extern void CloseBoxV(int h, int n) __asm__("__CloseUIBox");
+
+`OvlFunc_971_20091bc` calls `__CloseUIBox(h, 1)` twice with identical arguments
+and the ROM emits `mov r0, r5 / mov r1, #1` at both; with one `int` prototype
+gcc gets the second site right and reverses the first. Routing the first call --
+the one whose result is discarded -- through the void-returning alias matched it
+exactly, and its twin `OvlFunc_971_2009228` with it. The park had recorded this
+as unreachable precisely because it had only tried changing THE declaration.
+
+**The return type is what selects the order** at a site whose result is unused.
+Screened and rejected on the same function, all unchanged: storing the discarded
+result, an alias with an empty parameter list rather than a void return, and the
+alias applied to the returned site instead. Deleting the declaration outright
+also matches here, but only because that makes both sites unprototyped -- the
+same fix by accident, and it would not survive a third call site.
+
+The `__asm__("name")` alias emits nothing and costs nothing; the tree already
+uses the same construct for label symbols.
+
+### Invariance under call-site rewrites says WHERE the lever is, not that there is none
+
+`OvlFunc_955_20092f0` was parked mid-round at 123 of 123 lines with 15
+differing, on the strength of seven spellings of its calls leaving the count
+**exactly** unchanged: constants hoisted, constants inline, a shared zero
+variable, per-call-site locals, the decrement folded into the argument, an empty
+parameter list, and unprototyped callees. The park note said the residue must
+live below the source. It lived in the declarations, and deleting three of them
+closed the function within the hour.
+
+A count that does not move under changes to the call site is real evidence, and
+what it is evidence **of** is that the call site is not where the lever is. It
+says nothing about whether one exists. This is the same failure mode as the
+three corpus-count errors recorded elsewhere in this file, in a new place: a
+measurement that is sound, generalised one step too far.
+
 ## A pooled constant that FITS a thumb immediate is a symbol tell, and `area.sym` is the first place to look
 
 `OvlFunc_960_2008d24` compares a `gState` halfword against `0xa5` and the ROM

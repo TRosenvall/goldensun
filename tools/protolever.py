@@ -22,6 +22,7 @@ differing count for each.  Deleting a prototype for a callee whose RESULT is
 used would change the type of the call, so only `extern void` declarations are
 touched.
 """
+import os
 import re
 import subprocess
 import sys
@@ -30,9 +31,11 @@ DECL = re.compile(r"^extern\s+void\s+([A-Za-z_]\w*)\s*\([^;]*\);\s*$", re.M)
 
 
 def screen(text, ref, tag):
-    open("/tmp/_pl.c", "w").write(text)
-    out = subprocess.run(["python3", "tools/tryc.py", "/tmp/_pl.c", "--ref", ref,
+    tmp = f"scratch/_protolever_{os.getpid()}.c"
+    open(tmp, "w").write(text)
+    out = subprocess.run(["python3", "tools/tryc.py", tmp, "--ref", ref,
                           "--quiet"], capture_output=True, text=True).stdout
+    os.unlink(tmp)
     line = out.strip().splitlines()[0] if out.strip() else "(no output)"
     print(f"  {tag:<34} {line.strip()}")
     m = re.search(r"(\d+) differ", line)
@@ -52,15 +55,31 @@ def main():
     def drop(text, keep):
         return DECL.sub(lambda m: "" if m.group(1) in keep else m.group(0), text)
 
-    allgone = drop(src, set(names))
-    score = screen(allgone, ref, "all prototypes deleted")
-    if score < best:
-        best = score
-    for n in names:
-        score = screen(drop(src, {n}), ref, f"without {n}")
-        if score < best:
-            best = score
-    print(f"\nbest: {best} differing")
+    screen(drop(src, set(names)), ref, "all prototypes deleted")
+
+    # Greedy hill-climb: try each deletion ALONE, keep the single best, repeat.
+    # Deleting them all at once is usually worse -- over the 62 saved candidates
+    # with a reference it made 37 worse, 21 unchanged and 4 better -- because the
+    # lever is per call site. Deleting one at a time is what found the fix on
+    # OvlFunc_952_20085a4, whose park note had named the wrong call.
+    dropped, cur = [], best
+    while True:
+        pick, pick_score = None, cur
+        for n in names:
+            if n in dropped:
+                continue
+            score = screen(drop(src, set(dropped + [n])), ref,
+                           "drop " + ", ".join(dropped + [n]))
+            if score < pick_score:
+                pick, pick_score = n, score
+        if pick is None:
+            break
+        dropped.append(pick)
+        cur = pick_score
+        if cur == 0:
+            break
+    print(f"\nbest: {cur} differing"
+          + (f", deleting {', '.join(dropped)}" if dropped else ", as written"))
     return 0
 
 
