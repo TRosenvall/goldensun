@@ -33,7 +33,38 @@
  * The rest of the 101 is not yet analysed and is probably mostly downstream of
  * that one hoist. The abs()-and-shift block in the middle and the two
  * six-argument tail calls have not been checked instruction by instruction.
- */
+  *
+ * ROUND 2: full instruction-by-instruction comparison done. The candidate is
+ * unchanged at 142/142 and 101 differing, but the residue is now mapped rather
+ * than guessed at, which is the expensive part.
+ *
+ * THE SEARCH LOOP. The ROM tests index 0 with a REGISTER-OFFSET load
+ * (`ldr r3, [r1, r5]`, base plus index) and then walks a POINTER inside the
+ * loop (`add r4, #4 / ldr r3, [r4]`). That is a peeled first iteration with the
+ * loop strength-reduced. Writing it as a plain subscript `((int *)L61d0)[i]`
+ * everywhere, hoping gcc peels and reduces on its own, comes out TWO SHORT at
+ * 140. The mutated-offset form below is the only one measured at exactly 142.
+ *
+ * THE ABS BLOCK, read out of the ROM in order:
+ *
+ *     abs(tbl[idx+4]) -> r2
+ *     abs(tbl[idx+0xc]) -> r3
+ *     add r3, r2, r3
+ *     ldr r0, [r4, r1]        <-- tbl[idx] loaded HERE, between the sum
+ *     asr r3, #4                  and the shift
+ *     abs(r0) -> r6
+ *     abs(tbl[idx+8]) -> r3
+ *     ...
+ *
+ * We compute the sum, shift it, and then load tbl[idx]. Reordering the source
+ * to `h = a + b; a = tbl[idx]; h = h >> 4;` -- which is exactly the ROM's order
+ * -- makes it WORSE: 144 lines and 132 differing. So the interleave is the
+ * scheduler's, not the source's, and matching it will need the surrounding
+ * register pressure to be right rather than the statements reordered.
+ *
+ * NEXT: the two six-argument tail calls and the base-relative reads at
+ * +0x13c/+0x140 have still not been checked one instruction at a time.
+*/
 extern unsigned char *iwram_3001e70;
 extern unsigned char L61d0[] __asm__(".L61d0");
 extern unsigned char L61e8[] __asm__(".L61e8");
