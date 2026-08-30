@@ -7498,3 +7498,71 @@ across three such calls is much worse than giving each call its own pair.
 Sharing makes gcc keep one pair of registers alive across the whole function
 and reload them; separate locals let each call materialise its own into two
 registers and store both, which is what the ROM does.
+
+## THE SYMBOL TELL, generalised — check the halfword exception FIRST
+
+`const.sym`'s header says a pooled constant that an eight-bit `mov` could build
+means the source named a SYMBOL. Two refinements, both measured:
+
+**It holds all the way down to zero.** `OvlFunc_951_2008dd0` emits `ldr r2, =0`
+and uses it for two BYTE stores. Byte stores have NO QImode analogue of the
+halfword exception -- compiling `p[0x55] = 0; q[0x26] = 0;` emits `mov r2, #0`
+and reuses it -- so a pooled zero is a symbol. Substituting one moved that
+function's first difference from line 17 to line 29.
+
+**But check for a halfword before reaching for a symbol.** `OvlFunc_898_2008acc`
+emits `ldr r3, =0x2`, which looks identical to the tell. It is not: the constant
+is ORed with an `unsigned short` lvalue, making it a HImode operand, and gcc
+pools it from the plain literal. That check is what kept a spurious `_CONST_2`
+out of const.sym. Note the same function ANDs 1 into the same halfword and gets
+`mov r3, #1` with no pool -- OR pools, AND narrows.
+
+**Two pooled values and a `sub` means two symbols, or a symbol and a literal.**
+`ldr r3, =0x7e / ldr r2, =0x8d2 / sub r2, r3` cannot be two literals, because
+gcc folds that at compile time. It is `0x8d2 - (int)&_AREA_7e`. And write it
+INLINE at every use: naming the difference hoists its two pool loads above the
+block that should precede them (14 differing against 2 on
+`OvlFunc_946_20092b4`).
+
+Symbols are referenced as `(int)&_SYMBOL`, declared `extern int _SYMBOL;`.
+`_CONST_1` was added and VALIDATED this way -- it closed `Func_809b5dc`, which
+had been parked one instruction short.
+
+## Naming a value, resolved: it asks for a REGISTER, and the class matters
+
+This supersedes the three-outcomes framing above; that section's cases are all
+instances of this one.
+
+  * **Name stack arguments** -- they get a low register and a store, the ROM's
+    shape. But PER CALL SITE: one shared pair across three six-argument calls
+    is 20 differing where separate pairs are 2.
+  * **Name a stack BUFFER's address** when the ROM holds it in a register.
+    `OvlFunc_934_20090e0` is three instructions short without it -- exactly
+    `mov r7, r8`, `push {r7}` and the restore -- because gcc otherwise
+    addresses the buffer through `sp`. Conditional, though: the same lever does
+    nothing for `OvlFunc_946_2008e00`, retried with the assignment moved
+    immediately after the call.
+  * **Name a constant that costs more than one instruction to rebuild**
+    (pooled, or `mov`+`lsl`, or `mov`+`neg`). Removing the named delta from
+    `OvlFunc_927_2009078` makes it two instructions SHORT.
+  * **Do NOT name zeros.** A named zero is promoted to callee-saved, costing
+    push/mov/pop; gcc rebuilds a zero in one instruction and always will.
+    `OvlFunc_926_200a5b8` matched only after the local was removed.
+  * **Do NOT name a value built from pooled symbols** -- see above, it hoists.
+  * **Name a mask that a narrower destination would let gcc truncate**
+    (`p[9] = (p[9] & -13) | 8` becomes `mov r2, #0xf3`). The mask, not the
+    value being masked.
+
+## Two shapes that are NOT reachable from source
+
+Recorded so rounds are not spent on them.
+
+`cmp rN, #<nonzero>` followed by `bge`. gcc-2.96 canonicalises `x >= 8` to
+`x > 7` when inverting a branch. MEASURED: across 3205 generated `.s` files the
+sequence appears exactly ONCE, and that instance is switch dispatch, not a
+comparison expression.
+
+Scheduler interleaves -- the ROM splitting a two-instruction constant build
+around another operation, where we emit the pair together. Three independent
+spellings on `OvlFunc_932_20082cc` and two on `OvlFunc_946_2009494` are all
+byte-identical to each other.
