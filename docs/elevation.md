@@ -6871,8 +6871,19 @@ that jumps over an in-function literal pool placed before the epilogue:
 
     b .Lb0a64 / .pool_aligned / .Lb0a64: / pop {r5, r6} / pop {r0} / bx r0
 
-`.pool_aligned` is `.align 2, 0` + `.pool`, so this is pool PLACEMENT, and no
-source spelling reaches it. Measured: across every elevated translation unit,
+`.pool_aligned` is `.align 2, 0` + `.pool`, so this is pool PLACEMENT.
+
+> **SUPERSEDED -- DO NOT ACT ON THE PARAGRAPH BELOW.** It says no source
+> spelling reaches this and that pools never appear early. Both halves are
+> wrong. It also names **old_agbcc**, which is not the compiler for these
+> translation units at all -- old_agbcc builds only `src/lib/m4a` and
+> `src/lib/agb_flash`; everything else is patched **gcc-2.96**, which DOES emit
+> mid-function pools (64 of them in already-matching code). See "The
+> branch-over-pool class is not a ceiling" below, where a function was elevated
+> straight out of this class with plain literals and no special handling. The
+> paragraph is kept only so the reasoning that produced it stays visible.
+
+Measured (and now known to be wrong): across every elevated translation unit,
 zero generated `.s` files contain a mid-function pool -- old_agbcc emits at
 `.func_end` and never early.
 
@@ -7065,6 +7076,17 @@ over its own literal pool:
         b .L6a0
         .pool_aligned
     .L6a0:
+
+> **SUPERSEDED -- THIS IS NOT A CEILING.** The paragraph below concludes that a
+> function carrying this shape "cannot match however correctly the body is
+> transcribed". That is false, and acting on it costs real functions: an agent
+> in batch 153 skipped `StartSnow` without writing a line of C, citing exactly
+> this text. Two things are wrong with it. **old_agbcc is not the compiler
+> here** -- it builds only `src/lib/m4a` and `src/lib/agb_flash`, and everything
+> else is patched gcc-2.96. And gcc-2.96 emits these pools readily; the shape
+> is `.word` where this text expected `.pool`. `OvlFunc_881_200b8fc` was
+> elevated straight out of the class with plain literals. **Screen these
+> functions; do not write them off.**
 
 That `b` is a real instruction and old_agbcc cannot produce it -- it emits pools
 at `.func_end` and never early. Measured earlier: mid-function pools appear in
