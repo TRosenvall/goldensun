@@ -103,3 +103,29 @@ _CONST_200 = 0x200;
  * reusable. It is NOT evidence that this symbol completes any function. */
 _CONST_1f = 0x1f;
 
+
+/* _CONST_1 -- the value 1, pooled in a comparison against the halfword at
+ * gState+0x1DA.
+ *
+ * CRITERION 1. Func_809b5dc emits `ldr r3, =1 / cmp r2, r3`. One is the
+ * cheapest possible eight-bit `mov`, so a pool entry for it is the strongest
+ * form of the symbol tell in this file's header.
+ *
+ * CRITERION 2, measured before this entry was added and recorded in the park
+ * that used to hold the function. Reading the field into a named `short m` and
+ * comparing `m == 1` does NOT pool the constant; nor does comparing the
+ * dereference directly. Those were the two spellings the halfword exception
+ * predicts would work, and neither does -- the exception covers a constant
+ * that meets a halfword in ARITHMETIC, and a compare against an `ldrsh` result
+ * is evidently not that.
+ *
+ * VALIDATED, unlike _CONST_1f. With `m == (int)&_CONST_1` the function matches
+ * at 48 lines and `make compare` passes. It was one instruction short before.
+ *
+ * ON THE NAME. gState+0x1DA is read by thirteen hand-written functions and is
+ * an id space of its own; it is NOT the area halfword at gState+0x1C0. Using
+ * area.sym's existing `_AREA_01` would match the bytes and assert something
+ * about meaning that nothing here establishes, so the value-named entry is
+ * used instead, exactly as this file's header describes. If that id space is
+ * ever identified, this belongs in its own .sym and should move. */
+_CONST_1 = 0x1;
