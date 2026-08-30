@@ -107,7 +107,7 @@ Using reg 2 for reload 0
 
 (note 11 10 14 NOTE_INSN_FUNCTION_BEG -1347440721)
 
-(note 14 11 18 0x797b17c47740 NOTE_INSN_BLOCK_BEG -1347440721)
+(note 14 11 18 0x79ebc6dc8740 NOTE_INSN_BLOCK_BEG -1347440721)
 
 (insn 18 14 241 (set (reg:SI 2 r2)
         (const_int 0 [0x0])) 173 {*thumb_movsi_insn} (nil)
@@ -281,7 +281,7 @@ Using reg 2 for reload 0
         (expr_list (use (reg:SI 0 r0))
             (nil))))
 
-(note 68 66 271 NOTE_INSN_DELETED 398740064)
+(note 68 66 271 NOTE_INSN_DELETED -958637472)
 
 (insn 271 68 69 (set (reg:SI 2 r2)
         (mem:SI (plus:SI (reg:SI 13 sp)
@@ -354,9 +354,9 @@ Using reg 2 for reload 0
             (reg:SI 3 r3))) 33 {*thumb_subsi3_insn} (insn_list 83 (insn_list 85 (nil)))
     (nil))
 
-(note 89 87 91 NOTE_INSN_DELETED 398739712)
+(note 89 87 91 NOTE_INSN_DELETED -958637824)
 
-(note 91 89 92 NOTE_INSN_DELETED 398739488)
+(note 91 89 92 NOTE_INSN_DELETED -958638048)
 
 (call_insn 92 91 94 (parallel[ 
             (set (reg:SI 0 r0)
@@ -370,7 +370,7 @@ Using reg 2 for reload 0
         (expr_list (use (reg:SI 0 r0))
             (nil))))
 
-(note 94 92 95 NOTE_INSN_DELETED 398739072)
+(note 94 92 95 NOTE_INSN_DELETED -958638464)
 
 (insn 95 94 96 (set (reg:SI 0 r0)
         (ashift:SI (reg:SI 0 r0)
@@ -626,7 +626,7 @@ Using reg 2 for reload 0
 ;; End of basic block 12, registers live:
  0 [r0] 7 [r7] 13 [sp] 25 [sfp]
 
-(note 189 185 193 0x797b17c47740 NOTE_INSN_BLOCK_END -1347440721)
+(note 189 185 193 0x79ebc6dc8740 NOTE_INSN_BLOCK_END -1347440721)
 
 ;; Start of basic block 13, registers live: 0 [r0] 13 [sp]
 (code_label 193 189 209 2 "" "" [1 uses])

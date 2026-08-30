@@ -7628,3 +7628,44 @@ visible symptoms as one cause -- gcc picking r2 rather than r0 for a
 `mov high, #imm` staging temp, which removes the anti-dependence that would
 otherwise pin the order. Useful as a diagnostic even though the flag is not
 usable in the build.
+
+## More from the parallel pass — frames, exits, and where levers stop
+
+**An unused local array reproduces a bare `sub sp, #N`.** gcc-2.96 does NOT
+eliminate the frame slot for an unreferenced array: `int v[3];` emits
+`sub sp, #12` / `add sp, #12` and nothing else. Probed five ways --
+`volatile int v[3]`, a struct-by-value return, a seven-argument call -- all give
+the identical bare frame. This is the cheapest way to reproduce a ROM
+`sub sp, #N` that has no visible user, and on `Func_80e3994` it fixed a
+displaced `mov r8, r1` as a side effect.
+
+**Two textually separate `return -1;` statements ALWAYS merge.** gcc-2.96 folds
+them into one shared block; probed three ways, including with distinct
+constants. So a ROM that MATERIALISES the same constant at two different exits
+is telling you the source used ONE VARIABLE, not two returns -- and that
+variable has to be assigned inside the loop that kills it, not in the preheader.
+That is what produces the interleaved `mov r0,#1 / neg r0,r0` in
+`Func_8003e58`.
+
+**Naming a call's ARGUMENT fixes the `_call_via_rN` register.** The interleave
+lever is recorded for constants; it applies to an indirect call's function
+pointer too. On `Func_809397c`, writing `s = dx*dx + dz*dz;` as its own
+statement before `fp = F;` pushes the pointer load after the argument
+computation and selects the ROM's `_call_via_r3`. Inline, the pointer lands in
+r2 and you get `bl _call_via_r2`.
+
+**A derived constant needs the first one added to a POINTER FROM MEMORY.**
+`off = 0x28b; q0 = b + off; off += 1;` derives 0x28c and 0x28d with `add r2,#1`.
+With plain literals gcc emits `mov r2,#0xa3 / lsl #2` each time -- 42 differing
+of 60 on `Func_80978c4`.
+
+**The base-first/index-first lever does not reach a BARE GLOBAL ARRAY.** Four
+spellings of the same store through a global -- `G[i]`, a named offset,
+`*(G + i)`, `*(G + o)` -- are byte-identical to each other. It only works
+through a pointer local. Measured on `Func_8003e58`.
+
+**A `goto` loop defeats strength reduction.** Where the ROM recomputes
+`start + j` every iteration, a `for` or `do` gets turned into a pointer
+induction (`add r3, #1`). Writing the loop with an explicit `goto` keeps the
+recomputation. Same function also needs the outer scan as a `goto` loop so the
+constants are rebuilt each iteration rather than hoisted.
