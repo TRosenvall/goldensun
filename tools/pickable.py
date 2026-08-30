@@ -15,7 +15,8 @@ REJECTS a function if any of these hold:
     OvlFunc_883_200d64c, OvlFunc_901_2008350 and OvlFunc_949_200807c
   * an expensive constant used twice anywhere in the body -- cse if the uses are
     close, PRE hoisting if one dominates, and neither yields to any spelling
-  * fewer than 8 calls -- arithmetic bodies hit instruction selection instead
+  * fewer than 5 calls -- arithmetic bodies hit instruction selection instead
+    (was 8 until batch 151; see the note at the test)
   * three or more `neg` -- the `-1` triple, an unbroken class (batch 148)
 
     python3 tools/pickable.py [--limit N]
@@ -146,10 +147,22 @@ def main():
             end = starts[i + 1][0] if i + 1 < len(starts) else len(t)
             body = t[off:end]
             size = len(re.findall(r"^\t[a-z]", body, re.M))
-            if not 40 <= size <= 120:
+            if not 25 <= size <= 120:
                 continue
             calls = len(re.findall(r"^\tbl\t", body, re.M))
-            if calls < 8:
+            # RELAXED in batch 151 from 8 to 5.  The floor was measured when
+            # call-dense functions were plentiful; they are now worked through,
+            # and at >=8 the list had fallen to 17 with 7 clean of interleave.
+            # At >=5 it is 31 and 20.  Measured, not guessed: dropping the floor
+            # is what moves the population, and the size floor is worth almost
+            # nothing (40 -> 25 adds one).
+            #
+            # HONEST CAVEAT: the two newly surfaced functions tried first --
+            # OvlFunc_951_20096a8 and OvlFunc_947_2008f58 -- both PARKED, and
+            # both on the register-allocation coin flip, which has nothing to do
+            # with call density.  The relaxation admits legitimate candidates;
+            # it does not make the dominant wall any softer.
+            if calls < 5:
                 continue
             if re.search(r"\b(r8|r9|r10|r11|sl|fp)\b", body):
                 continue
