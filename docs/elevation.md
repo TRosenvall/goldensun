@@ -8009,3 +8009,33 @@ hoists. The likeliest reading is that the two constants are DIFFERENT SYMBOLS in
 the original source and only coincide in value -- the same explanation the
 repeated-flag-id case wanted -- but that is inference from a contradiction, not
 a measurement, and this tree has no symbol space to write it with.
+
+## A SELECTION FILTER that works, built from the blocker conditions
+
+Thirteen rounds of near-misses produced one useful thing: enough measured
+conditions to pick targets that avoid them. Encoding all of them as a filter
+found a match on the first try.
+
+Reject a candidate if ANY of these hold:
+
+  * **Under 40 instructions.** Every lever here works through the register
+    allocator, and a tiny function has no pressure for it to act on. See the
+    small-functions section above -- four parks, none reachable.
+  * **Over 120 instructions.** Too many independent residues to converge on.
+  * **Uses r8-r11.** Allocation-priority residues, the wall that holds
+    OvlFunc_883_200d64c, OvlFunc_901_2008350 and OvlFunc_949_200807c.
+  * **Repeats an expensive constant** (a pooled value, or a `mov`+`lsl` pair)
+    anywhere in the body. That is CSE if the uses are close and PRE hoisting if
+    one dominates another, and neither yields to any spelling.
+  * **Fewer than 8 calls.** Arithmetic-heavy bodies hit instruction selection
+    rather than the documented levers.
+
+107 of the remaining functions pass. The first one tried, `GetJupiterDjinni`
+(118 instructions, 35 calls), matched at 121 lines after a single documented
+lever -- the gState offset needed a local pointer so it is built at runtime
+rather than folded into `ldr =gState+500`.
+
+Detector note: count a `mov rN, #imm` followed by `lsl rN, #k` as one constant
+even when other instructions sit between them. The first version of this filter
+required them adjacent and passed the very function whose PRE hoisting motivated
+writing it.
