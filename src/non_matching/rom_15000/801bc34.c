@@ -1,59 +1,33 @@
-/* UploadIcon -- NOT MATCHING
+/* UploadIcon -- 0x0801bc34, asm/rom_15000/rom_1aeec_a_a_c_c.s
  *
- * Source asm: goldensun/asm/rom_15000/rom_1aeec_a_a_c_c.s
- * Best screen: 69 instructions against the ROM's 71.
+ * 69 lines against the ROM's 71.  Candidate at scratch/Nicon_best.c.
+ * The 38 differing is a two-line shift cascading; the real residue is TWO
+ * INSTRUCTIONS, one at each of two sites.
  *
- * BLOCKER CLASS: a returned value staged through a second register.
+ * SOLVED, and this is the part worth keeping: THE JUMP TABLE REPRODUCES FROM A
+ * PLAIN SWITCH.  The ROM dispatches with `sub r0, #1 / cmp r0, #8 / bhi / lsl
+ * r3, r0, #2 / ldr r3, [r3, r2] / mov pc, r3` over a nine-entry table, five of
+ * whose slots point at the default.  Written as `switch (id)` with cases 1, 2,
+ * 4, 6 and 9 -- gcc does the biasing itself -- the table, its entry order and
+ * the whole dispatch come out exact, and so do the first 32 lines.  Four
+ * elevated functions in the tree already contain a jump table, so the shape was
+ * known reachable; this confirms the ordinary spelling is what reaches it.
  *
- *     rom    bl AllocSpriteSlot / mov r2, r0 / str r2, [sp, #8] / cmp r2, #0x60
- *     ours   bl AllocSpriteSlot / str r0, [sp, #8] / cmp r0, #0x60
+ * BLOCKER: the ROM copies the AllocSpriteSlot result into a register before
+ * using it, and we use it in place.
+ *      rom   bl AllocSpriteSlot / mov r2, r0 / str r2, [sp, #8] / cmp r2, #0x60
+ *      ours  bl AllocSpriteSlot /              str r0, [sp, #8] / cmp r0, #0x60
+ * Ours is one instruction SHORTER at each of the two sites.  `v8` has its
+ * address taken -- the other two arms pass `&v8` -- so it lives in the frame,
+ * and gcc stores the return value and compares it straight out of r0.
  *
- * Two arms do this, so two instructions. The slot variable has its address
- * taken (it is an out-parameter of LoadOldUIIcon and LoadMoveIcon), so it lives
- * on the stack and the store is forced; what differs is that the ROM keeps a
- * register copy and compares THAT, while gcc compares the value still in r0.
+ * TRIED: a separate `t = AllocSpriteSlot(); v8 = t; if (t == 0x60)` at both
+ * sites, which is the obvious way to ask for the register copy.  Byte-identical
+ * to the original -- gcc knows t and v8 hold the same value and folds the copy
+ * away.  Nothing in the source distinguishes "store it" from "keep a copy and
+ * store that" when the copy has no other use.
  *
- * TRIED AND IDENTICAL AT 38 DIFFERING: naming the returned value in its own
- * `int` local and assigning it to the slot separately, which is the spelling
- * that usually forces the extra copy.
- *
- * Everything else is right and was not obvious: the case order off the blocks
- * is 1/6, 2, 9, 4; the two `return -1` arms are cross-jumped into one
- * `mov r0, #1 / neg r0, r0`; and the initial `slot = -1` is stored to the stack
- * before the switch because its address escapes.
+ * Also settled: the two `return -1` paths cross-jump into one shared exit that
+ * skips the trailing `ldr r0, [sp, #8]`, which is what writing them as two
+ * ordinary `return -1;` statements produces.
  */
-extern int AllocSpriteSlot(void);
-extern void LoadOldUIIcon(int a, int b, int *slot, int *out, int e);
-extern void LoadMoveIcon(int a, int b, int *slot, int *out, int e);
-extern void LoadInventoryIcon(int a, int b);
-extern void LoadUIBanner(int a, int b);
-
-int UploadIcon(int kind, int arg)
-{
-    int slot;
-    int out;
-
-    slot = -1;
-    switch (kind) {
-    case 1:
-    case 6:
-        LoadOldUIIcon(arg, 0, &slot, &out, 0);
-        break;
-    case 2:
-        slot = AllocSpriteSlot();
-        if (slot == 0x60)
-            return -1;
-        LoadInventoryIcon(arg, 0x1a);
-        break;
-    case 9:
-        slot = AllocSpriteSlot();
-        if (slot == 0x60)
-            return -1;
-        LoadUIBanner(arg, 0);
-        break;
-    case 4:
-        LoadMoveIcon(arg, 1, &slot, &out, 0);
-        break;
-    }
-    return slot;
-}
