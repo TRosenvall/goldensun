@@ -17,6 +17,23 @@
  *        mov r1, r7 / stmia r1!, {r6} / ... / stmia r1!, {r3} / str r3, [r1]
  *    which is `*q++ = a; *q++ = b; *q = c;`.  Written as struct fields gcc uses
  *    `str rX, [r7, #off]` for all of them and reorders the stores.  A
+ *    *** CORRECTED (batch 154): THE CLAIM BELOW IS FALSE. ***
+ *    `*q++ = v;` emits a single-register `stmia` directly. Verified:
+ *
+ *        void probe(int *q,int a,int b,int c){ *q++=a; *q++=b; *q=c; }
+ *          ->  stmia r0!, {r1} / stmia r0!, {r2} / str r3, [r0]
+ *
+ *    So there was always C to copy the idiom from, and the tool sweep that
+ *    reported zero hits was answering a narrower question than the note took
+ *    it for. Applying this to the sibling StartSnow took it 33 -> 20
+ *    differing. THIS FUNCTION IS WORTH RE-OPENING on that basis.
+ *
+ *    Residue 1 below (halfword narrowing) also does not transfer to
+ *    StartSnow: there the ROM stores the full word AND shifts it, so a plain
+ *    `int` local forces the wide load.
+ *
+ *    The original text is kept below.
+ *
  *    SINGLE-REGISTER `stmia` appears NOWHERE in the generated corpus
  *    (tools/whodoesthis.py, zero hits), so there is no matching C to copy the
  *    idiom from -- and zero is weak evidence, not proof it is unreachable.
