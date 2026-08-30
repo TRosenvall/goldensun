@@ -45,8 +45,10 @@ def main():
         args.remove("--multiline")
     if not args:
         sys.exit(__doc__.strip().split("\n\n")[0])
-    pat = re.compile(args[0].encode().decode("unicode_escape"),
-                     re.M | (re.S if multiline else 0))
+    # Translate ONLY the two whitespace escapes the assembly needs. Using
+    # unicode_escape here silently destroys regex classes like \d and \w.
+    src = args[0].replace("\\t", "\t").replace("\\n", "\n")
+    pat = re.compile(src, re.M | (re.S if multiline else 0))
 
     files = subprocess.run(["git", "ls-files", "src"],
                            capture_output=True, text=True).stdout.split()

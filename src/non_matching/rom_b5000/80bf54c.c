@@ -15,7 +15,19 @@
  *
  * The decrement is `v + 0xff`, not `v - 1`: gcc emits `sub r3, #1` for the
  * latter and the ROM has `add r3, #0xff`.
- */
+  *
+ * tools/whodoesthis.py, run on this residue, finds exactly one matching
+ * function with the `ldrb / mov copy / cmp` shape:
+ * src/rom_c0/rom_2e00_c_c_b.c. Reading it, the copy is there because the
+ * TESTED value is reused afterwards as a zero -- gcc substitutes the register
+ * it has just proved is zero for a later `= 0` store. That is not this
+ * function's shape: here the loaded byte dies at the decrement.
+ *
+ * Also tried, from the disjoint-live-range lever: testing an `unsigned char w`
+ * and computing `v = w + 0xff` into a separate int. 18 lines, 16 differing --
+ * no better than the single-variable form, and worse than the `unsigned char v`
+ * version kept below, which is the only spelling that gets the LENGTH right.
+*/
 extern unsigned char *_GetUnit(int id);
 
 int Func_80bf54c(int id)
