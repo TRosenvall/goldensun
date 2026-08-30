@@ -26,6 +26,12 @@ nonmatching/
 
 # elevation scratch: candidate .c files under test, never part of the build
 scratch_elev/
+# scratch/ is the same thing under a shorter name -- agent and hand screening
+# files. It was committed by mistake in batches 153-154 (`git add -A ... scratch`)
+# and untracked again immediately; it must never be part of the build or the
+# history. toDelete/ is the holding area for files being removed.
+scratch/
+toDelete/
 
 # personal automation helper, not part of the decomp
 type-foo.applescript
