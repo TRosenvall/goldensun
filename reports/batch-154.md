@@ -97,8 +97,23 @@ spelling prevents it. A third instance is named in the 912 park. Worth a
 
 `tools/pickable.py`'s interleave count has a false positive: its regex binds the
 back-reference to `r0`, so an argument set up for one call followed by a shifted
-constant for the next reads as an interleave site. Three of one agent's four
-"1 interleave" flags were that. The fix is to require the two registers differ.
+constant for the next reads as an interleave site. Fixed by requiring the two
+registers to differ.
+
+**CORRECTION, added after measurement.** This report first said "three of one
+agent's four flags were that". That does not hold up. Measured across the tree
+the guard removes 202 of 4616 raw matches (4.4%), but on the CURRENT candidate
+list it changes **nothing** -- all six candidates keep their counts. Across the
+whole filter-eligible population four functions change and two drop to zero. The
+"three of four" figure came from an agent's impression rather than a count, and
+I repeated it without checking. The fix is still right; its impact is smaller
+and narrower than stated.
+
+A second over-count was found while verifying and is NOT fixed: the gap in that
+regex is unbounded and crosses `bl` boundaries, so a match can pair a `mov` from
+one call with a `lsl` from another twenty-five instructions later. It can both
+merge two real sites into one and manufacture one from none. Bounding the gap,
+or restarting it at each `bl` or label, is the follow-up.
 
 The unguarded-interleave boundary now has seven confirmed instances. It is cheap
 enough to recognise up front that no spellings should be spent on it.

@@ -223,6 +223,39 @@ but leaves the variable in the same register, so the `ldr` offsets swap instead
 and the count stays at 13. Birth order moves a POINTER's materialisation, not a
 value's allocation priority.
 
+## The ldrh/ldrsh CSE class is 46 functions, and only ~12 are actually blocked
+
+The shape: the ROM reads the same halfword twice, once unsigned and once
+signed, and gcc emits only the `ldrsh` and derives the other value from it.
+Swept and measured -- **46 functions, 70 sites**. A looser base-register-only
+scan reports 85, but the extra 39 read different offsets off a shared base and
+are not this shape.
+
+**IT IS NOT UNIFORMLY A WALL, and that is the point.** Two already-parked
+members reproduce the pair perfectly. The discriminator is what the UNSIGNED
+value feeds:
+
+| the unsigned value | result |
+|---|---|
+| feeds a use needing true 32-bit zero-extension | gcc MUST keep both loads -- reproducible |
+| used only at 16-bit width, or later sign-extended by `lsl #16 / asr #16` | the two loads are provably the same value, CSE is correct -- blocked |
+
+About **12 sites** fall in the blocked sub-class. The other **~58 are ordinary
+candidates** that merely contain the shape and were never attempted. Do not let
+the label stop you screening them.
+
+**The blocked sub-class is a clean negative -- stop spending rounds on it.**
+Eight spellings were measured on the smallest instance: distinct pointer
+objects, reversed source order, an int-typed intermediate, a separate
+`__asm__`-aliased symbol, plain casts. All are the same MEM in RTL and all CSE
+identically. Only `volatile` keeps both loads, and that is a fakematch.
+
+The mechanism is confirmed positively rather than merely observed: give the
+unsigned value a use the sign-extended value cannot satisfy -- a shift count --
+and gcc keeps both loads immediately. Where the ROM's `ldrh` result is *only*
+ever `lsl #16 / asr #16`, it literally IS the `ldrsh` value, and no legal C can
+force a second load.
+
 ## SETTLED: the branch-over-pool shape is NOT a blocker
 
 Asked directly of four functions in the class, and the answer is unambiguous:

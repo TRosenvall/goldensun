@@ -52,7 +52,20 @@ FSTART = re.compile(r"^\.(thumb|arm)_func_start\s+(\S+)", re.M)
 # pressure. It is not a reject condition -- OvlFunc_927_20099b8 matched with one
 # -- but a function carrying three of them is three separate coin flips, so the
 # count is worth seeing before choosing.
-INTERLEAVE = re.compile(r"\tmov\t(r\d+), #\S+\n(?:\t[^\n]*\n)*?\tmov\tr0, #\S+\n\tlsl\t\1, #")
+# The `(?!r0,)` is LOAD-BEARING and was missing until batch 154.  Without it the
+# back-reference can bind to r0 itself, and then the pattern reads
+#
+#       mov r0, #imm        <- first argument of one call
+#       ...
+#       mov r0, #imm        <- first argument of the NEXT call
+#       lsl r0, #k          <- ...and its shift
+#
+# which is not an interleave at all: it is two consecutive calls each loading
+# r0, with nothing nested inside anything.  An interleave needs TWO DIFFERENT
+# registers -- r0 landing inside another register's mov/lsl pair.  Across asm/
+# the unguarded pattern fired 4616 times and 320 of those (6.9%) were this
+# self-match, which is why the column read high.
+INTERLEAVE = re.compile(r"\tmov\t(?!r0,)(r\d+), #\S+\n(?:\t[^\n]*\n)*?\tmov\tr0, #\S+\n\tlsl\t\1, #")
 # Three or more `neg` in one function is the `-1` triple of
 # src/non_matching/overlays/constant_reuse.c: the ROM materialises the same
 # small negative constant once per argument register and gcc builds it once and
