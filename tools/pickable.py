@@ -20,7 +20,12 @@ REJECTS a function if any of these hold:
     python3 tools/pickable.py [--limit N]
 
 Prints the survivors, most calls first, with the .s they live in and whether a
-split is needed.  Functions already parked under src/non_matching are dropped:
+split is needed, and how many ARGUMENT-CONSTRUCTION INTERLEAVE sites it carries
+-- `mov r0` sitting inside another argument's mov/lsl pair. That is not a reject
+condition (a function has matched with one), but it is the residue that parked
+three functions in batch 148 and no lever reaches it in straight-line code, so
+prefer a zero over a three.  Functions already parked under src/non_matching are
+dropped:
 the filter scores assembly, so a parked function ranks exactly as well as a
 fresh one and will otherwise be re-derived from scratch every round.
 
@@ -38,6 +43,14 @@ import subprocess
 import sys
 
 FSTART = re.compile(r"^\.(thumb|arm)_func_start\s+(\S+)", re.M)
+# `mov rN, #imm` ... `mov r0, #imm` ... `lsl rN, #k` -- a first argument loaded
+# INSIDE another argument's two-instruction constant build. Batch 148 parked
+# three functions on nothing but this, six sites between them, and none of the
+# levers in docs/elevation.md moved a single one on a function with no register
+# pressure. It is not a reject condition -- OvlFunc_927_20099b8 matched with one
+# -- but a function carrying three of them is three separate coin flips, so the
+# count is worth seeing before choosing.
+INTERLEAVE = re.compile(r"\tmov\t(r\d+), #\S+\n(?:\t[^\n]*\n)*?\tmov\tr0, #\S+\n\tlsl\t\1, #")
 MOV = re.compile(r"^\tmov\t(r\d+), #(0x[0-9a-f]+|\d+)$")
 LSL = re.compile(r"^\tlsl\t(r\d+), #(\d+)$")
 POOL = re.compile(r"^\tldr\tr\d+, =(\S+)$")
@@ -111,12 +124,14 @@ def main():
             addr = name.rsplit("_", 1)[-1]
             if addr in skip:
                 continue
-            rows.append((calls, size, name, f, len(starts)))
+            rows.append((calls, size, name, f, len(starts),
+                         len(INTERLEAVE.findall(body))))
     rows.sort(reverse=True)
     print(f"{len(rows)} candidates pass the filter (already-parked addresses excluded)\n")
-    for calls, size, name, f, n in rows[:limit]:
+    for calls, size, name, f, n, iv in rows[:limit]:
         split = "SINGLE" if n == 1 else f"split from {n}"
-        print(f"  {calls:3d} calls  {size:3d} insns  {name:<26} {split:<14} {f}")
+        print(f"  {calls:3d} calls  {size:3d} insns  {iv} interleave  "
+              f"{name:<26} {split:<14} {f}")
     return 0
 
 

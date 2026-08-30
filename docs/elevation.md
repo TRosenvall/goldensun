@@ -3945,6 +3945,47 @@ callee-saved register rather than rematerialising — the function grows a
 push/pop pair and gets worse. Measured on `OvlFunc_967_2008308` (60 differing →
 78) and `OvlFunc_911_20082b4` (33 lines → 39). Both are still parked.
 
+### `if (c) goto X; goto Y;` compiles to `b!c Y; b X` -- the sense INVERTS
+
+gcc expands a conditional goto as "jump-if-false to the next statement", and
+jump threading then folds the following unconditional jump into the branch. The
+branch you get is the OPPOSITE of the one you wrote:
+
+    if (c) goto X;      ==>     b!c  Y
+    goto Y;                     b    X
+
+So to reproduce a ROM that reads `bne loop / b out`, write the test the other
+way round -- `if (!c) goto out; goto loop;`. Two sites on
+`OvlFunc_941_20091b8` were four of its six differing lines, and inverting both
+closed the function exactly.
+
+**This applies only to a conditional goto IMMEDIATELY FOLLOWED BY an
+unconditional one.** The six single-branch tests in the same function --
+`if (p()) goto L;` with a fallthrough after it -- all came out right written the
+natural way, and inverting those breaks them. Check which shape the site is
+before flipping anything.
+
+### Explicit gotos are how you control BLOCK ORDER
+
+Two functions in batch 148 needed the case bodies laid out where the ROM puts
+them, and neither an if/else-if chain nor a switch produces that layout:
+
+  * an if/else-if chain puts each body INLINE behind a `bne`, so the tests are
+    separated by their bodies. `OvlFunc_927_20099b8` scored 99 differing.
+  * a `switch` SORTS the cases and emits a balanced compare tree
+    (`cmp #9 / beq / cmp #9 / bgt / ...`), which is visible immediately -- a
+    `bgt` or `blt` against a case value that is not a range bound means gcc
+    built a tree and the ROM did not.
+
+The ROM shape in both was a contiguous run of tests branching FORWARD to bodies
+that appear in source order after them. Writing that with labels and gotos took
+`OvlFunc_927_20099b8` from 99 differing to 37 in one edit. The remaining 37 were
+argument-setup, a separate problem.
+
+A `switch` is still right when the ROM's own compare order is SORTED -- that is
+the tell that gcc built the tree from a switch rather than the author writing a
+chain.
+
 ### The declaration is a PER-CALL-SITE choice: two declarations of one callee
 
 When a callee is called more than once and only SOME sites have the wrong
