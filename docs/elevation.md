@@ -4444,6 +4444,63 @@ the same callee, and a named pointer gets you to within one offset-0 store,
 frame size first: if `sub sp, #N` equals the sum of the two objects with no
 padding, that is the tell.
 
+### Correction (batch 152): one struct, but a pointer PER SUBOBJECT
+
+`OvlFunc_common2_28c` has two 8-byte operands at `sp+0` and `sp+8` and the ROM
+holds **two** address registers, storing `[r4, #0]/[r4, #4]` and
+`[r5, #0]/[r5, #4]`. Making them one struct and pointing a single pointer at
+the struct gives one base with offsets 0/4/8/0xc — the right addresses, the
+wrong instructions. What matches is one struct with a pointer local to **each
+member**: `pa = &v.a; pb = &v.b;`. So the rule is "the objects must be
+subobjects", not "there must be one pointer".
+
+### And it does NOT apply when the object IS the whole frame
+
+`OvlFunc_common2_304`'s record is the only local, so `&d == sp` exactly and gcc
+can rematerialise it at will. A named pointer there makes it **worse** (52
+differing → 62), because it gives gcc nothing to hold that it cannot recompute.
+Park that case on allocation rather than spending spellings on it.
+
+## Frame layout follows DECLARATION ORDER, last-declared lowest
+
+Several same-sized buffers land at offsets in the **reverse** of their
+declaration order. On `OvlFunc_common2_28c` the ROM's offsets are `v=0x00,
+third=0x10, rb=0x24, ra=0x38`, and the declarations that produce them run
+`ra, rb, third, v`.
+
+This is worth reaching for early rather than guessing: read the offsets off the
+ROM's `add rN, sp, #imm` instructions, sort them, and declare in the opposite
+order. It costs one edit and removes a whole class of "right code, wrong
+offsets" diffs.
+
+## POINTER BIRTH ORDER decides which register each pointer gets
+
+Assigning several address locals up front is not the same as assigning each one
+where the ROM first needs it. On `OvlFunc_common2_28c`, hoisting both operand
+pointers to the top of the body hands the wrong pointer the lower register and
+swaps r5/r6 through the **entire** function body — 8 differing lines from one
+misplaced assignment. The ROM's birth order is `&a, &ra, &b`, so the second
+operand's pointer has to be assigned *after* the first operand's stores.
+
+Read the birth order straight off the ROM: the order in which `add rN, sp, #imm`
+and `mov rN, sp` first appear IS the order the source assigns them in. When a
+diff is "everything is right but two callee-saved registers are swapped", check
+this before concluding it is the allocation coin flip.
+
+## Screening a TU whose flags come from a rule your scratch path does not match
+
+`tools/tryc.py` reads per-file flags from the Makefile by matching the SOURCE
+path, so a file in `scratch/` gets the tree defaults even when its real home has
+an override. `-mno-thumb-interwork` cancels `-mthumb-interwork`, and a later
+`-fcall-saved-r4` overrides an earlier `-fcall-used-r4`, so a common2 function
+screens correctly from any path with:
+
+    --cflags "-mno-thumb-interwork -fcall-saved-r4"
+
+The `common2_254` park had recorded that no meaningful screen was possible for
+its file. It was, and the function went from "diverging from the first
+instruction" to two.
+
 ## A 64-bit result wants a union written AFTER the join
 
 Software 64-bit arithmetic returns the pair in r0/r1. Building the result as
