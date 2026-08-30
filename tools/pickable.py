@@ -61,8 +61,13 @@ INTERLEAVE = re.compile(r"\tmov\t(r\d+), #\S+\n(?:\t[^\n]*\n)*?\tmov\tr0, #\S+\n
 # reject until that class breaks.
 NEG = re.compile(r"^\tneg\t", re.M)
 # The two ways a park note names the function it covers.
-PARK_HDR = re.compile(r"\b(\w*Func\w*_[0-9a-f]{6,8})\s*--\s*0x")
-PARK_LST = re.compile(r"\b(\w*Func\w*_[0-9a-f]{6,8})\s+asm/\S+\.s")
+# Any identifier, not just Func_<hex>: plenty of functions carry real names.
+# StartEarthquake was parked and came straight back to the top of this list
+# because the old pattern required a hex address suffix in the NAME.  The
+# `-- 0x<addr>` and `<name>  asm/<path>.s` anchors are specific enough on their
+# own; loose mentions in prose still do not match.
+PARK_HDR = re.compile(r"^\s*(?:/\*)?\s*([A-Za-z_]\w*)\s*--\s*0x", re.M)
+PARK_LST = re.compile(r"\b([A-Za-z_]\w*)\s+asm/\S+\.s")
 MOV = re.compile(r"^\tmov\t(r\d+), #(0x[0-9a-f]+|\d+)$")
 LSL = re.compile(r"^\tlsl\t(r\d+), #(\d+)$")
 POOL = re.compile(r"^\tldr\tr\d+, =(\S+)$")
