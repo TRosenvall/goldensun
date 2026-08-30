@@ -21,10 +21,16 @@ extern void OvlFunc_955_2008970(void);
 
 void OvlFunc_955_2009424(int a)
 {
+    unsigned char *g;
     int r;
     int k;
+    int sx;
+    int sy;
 
-    if (*(short *)(gState + (0xe1 << 1)) == 2) {
+    sx = 0xc0 << 9;
+    sy = 0xc0 << 8;
+    g = gState;
+    if (*(short *)(g + (0xe1 << 1)) == 2) {
         OvlFunc_common1_2c4();
         return;
     }
@@ -43,7 +49,7 @@ void OvlFunc_955_2009424(int a)
         k = k << 3;
         OvlFunc_common1_1078(0, k, 0x84 << 1);
         __CutsceneWait(0xf);
-        __MapActor_SetSpeed(0, 0xc0 << 9, 0xc0 << 8);
+        __MapActor_SetSpeed(0, sx, sy);
         OvlFunc_common1_15b8(0, k, 0xd8);
         OvlFunc_common1_15b8(0, 0x85 << 3, 0xd8);
         OvlFunc_955_2008970();

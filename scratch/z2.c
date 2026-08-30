@@ -21,10 +21,12 @@ extern void OvlFunc_955_2008970(void);
 
 void OvlFunc_955_2009424(int a)
 {
+    unsigned char *g;
     int r;
     int k;
 
-    if (*(short *)(gState + (0xe1 << 1)) == 2) {
+    g = gState;
+    if (*(short *)(g + (0xe1 << 1)) == 2) {
         OvlFunc_common1_2c4();
         return;
     }

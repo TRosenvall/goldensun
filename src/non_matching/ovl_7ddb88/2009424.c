@@ -1,4 +1,4 @@
-/* OvlFunc_955_2009424 -- 0x02009424, asm/overlays/rom_7ddb88/ovl_30_c_c_c_c.s
+/* OvlFunc_955_2009424 -- 0x02009424, asm/overlays/rom_7ddb88/ovl_30_c_c_c_c_c.s
  *
  * 108 of 108 lines in the best spelling, 78 differing.
  * Candidate: scratch/H9424_best.c.
@@ -41,4 +41,37 @@
  * third register is free.  The lever is not wrong there and right here; the
  * register budget differs.  That is worth remembering before copying a spelling
  * from a twin -- what a template proves is the SHAPE, not that its levers fit.
+ */
+
+/* RETRIED (batch 147) WITH THE PROTOTYPE LEVER, and it helps but does not
+ * close it: 78 differing -> 74, best candidate now scratch/H9424_best.c.
+ * OvlFunc_common1_1078, OvlFunc_common1_15b8 and OvlFunc_common1_5e4 are left
+ * undeclared, which puts `mov r0` at the end of their argument setup exactly as
+ * it does on the sibling OvlFunc_955_20092f0 (now elevated) and on
+ * OvlFunc_956_200a4d0.  Keep them undeclared in any future attempt.
+ *
+ * THE REGISTER-PRESSURE NOTE ABOVE NAMED THE WRONG FOURTH VALUE.  It is not the
+ * gState base and it is not 0x438.  It is `-1`:
+ *
+ *      ours  mov r5, #0x1 / bl __Func_80933d4 / neg r5, r5 / ... / mov r1, r5
+ *      rom   mov r1, #0x1 ... neg r1, r1          (built at the call, discarded)
+ *
+ * The function calls __Func_80933f8 twice, once with a single -1 and once with
+ * __Func_80933f8(-1, -1, -1, 0).  Four uses of a TWO-INSTRUCTION constant, so
+ * gcc common-subexpressions them into one pseudo, and because that pseudo is
+ * live across __Func_80933d4 it must be callee-saved -- which is the `mov r7, r8
+ * / push {r7}` the earlier note read as the naming lever's fault.  It is not.
+ * With the base inlined the push is still there.
+ *
+ * That makes this function a member of the class in
+ * src/non_matching/overlays/constant_reuse.c and the `-1` triple specifically:
+ * every function in the tree containing __Func_80933f8(-1, -1, -1, 0) is parked,
+ * none is elevated, and an eleven-flag sweep against that class found nothing.
+ * Do not spend another round on this one until that class breaks.
+ *
+ * For the record, naming the gState base DOES fix the address fold -- with it
+ * the entry is `ldr r3, =gState / mov r2, #0xe1 / lsl r2, #1 / add r3, r2`, the
+ * ROM's spelling, instead of a folded `ldr r3, =gState+450`.  It costs three
+ * lines elsewhere (111 vs 108) only because the -1 pseudo is already consuming
+ * the register budget.  Fix the -1 first and the base naming should come free.
  */
