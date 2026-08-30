@@ -24,6 +24,7 @@ _MSG_d38 = 0x0d38;
 _MSG_d42 = 0x0d42;
 _MSG_d4c = 0x0d4c;
 _MSG_e19 = 0xe19;
+_MSG_e23 = 0xe23;
 _MSG_e30 = 0xe30;
 _MSG_e39 = 0xe39;
 _MSG_e70 = 0xe70;
