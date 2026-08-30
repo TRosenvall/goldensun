@@ -124,7 +124,21 @@ def makefile_flags(src_rel):
         return set()
     lines = open(p, errors="replace").read().split("\n")
     out = set()
+    # make gives an EXPLICIT target rule precedence over every pattern rule, and
+    # this function used to take the union of both -- so a .c whose stem happens
+    # to fall inside a neighbour's O1 wildcard screened at -O1 even after an
+    # explicit -O2 rule had been written for it, and reported forty differences
+    # for a file that byte-matches. When an explicit rule matches, it is the
+    # only rule that fires.
+    explicit = None
     for i, l in enumerate(lines):
+        m = re.match(r"^(asm/\S+)\.o:\s*(src/\S+)\.c\s*$", l)
+        if m and "%" not in m.group(2) and m.group(2) + ".c" == src_rel:
+            explicit = i
+            break
+    for i, l in enumerate(lines):
+        if explicit is not None and i != explicit:
+            continue
         m = re.match(r"^(asm/\S+)\.o:\s*(src/\S+)\.c\s*$", l)
         if not m:
             continue

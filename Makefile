@@ -623,6 +623,25 @@ asm/overlays/rom_7aa430/ovl_e90_c_c_a_a_b_%.o: src/overlays/rom_7aa430/ovl_e90_c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# ovl_30_c_c_a_c_a_c_b is a splitter child of a DIFFERENT parent than the O1
+# stem below, and it byte-matches only at the default -O2. It matches the O1
+# pattern by name alone, so it needs this explicit rule to escape it; explicit
+# rules beat pattern rules in make regardless of order.
+asm/overlays/rom_7b4558/ovl_30_c_c_a_c_a_c_c_b.o: src/overlays/rom_7b4558/ovl_30_c_c_a_c_a_c_c_b.c
+	$(GCC296_CC) $(GCC296_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+asm/overlays/rom_7b4558/ovl_30_c_c_a_c_a_c_c_a.o: src/overlays/rom_7b4558/ovl_30_c_c_a_c_a_c_c_a.c
+	$(GCC296_CC) $(GCC296_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+asm/overlays/rom_7b4558/ovl_30_c_c_a_c_a_c_b.o: src/overlays/rom_7b4558/ovl_30_c_c_a_c_a_c_b.c
+	$(GCC296_CC) $(GCC296_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 asm/overlays/rom_7b4558/ovl_30_c_c_a_c_a%.o: src/overlays/rom_7b4558/ovl_30_c_c_a_c_a%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
