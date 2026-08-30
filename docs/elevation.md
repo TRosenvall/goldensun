@@ -7459,3 +7459,42 @@ all produce byte-identical output.
 This is a third distinct case for the naming lever, alongside "blocks a
 reassociation" and "promotes a value gcc would rematerialise": here the name
 prevents a WIDTH narrowing that the destination type would otherwise justify.
+
+## When both arms end with the same expression, WRITE IT TWICE
+
+The tidy C -- assign the common value to a local in each arm, then use it once
+after the join -- costs an instruction, because a named variable spanning the
+merge point forces gcc to copy the merged value out of the register the arms
+left it in.
+
+`OvlFunc_948_2009edc` ends both arms of a branch by writing the same field of
+the same actor. The ROM duplicates the CALL in each arm and shares only the
+`add r0, #0x23 / strb` tail. Written as
+
+```c
+if (...) { ...; p = __MapActor_GetActor(0xb); }
+else     { ...; p = __MapActor_GetActor(0xb); v = 0; }
+p[0x23] = v;
+```
+
+gcc emits `mov r3, r0 / add r3, #0x23 / strb r3, [r3]` -- one instruction more
+than the ROM's `add r0, #0x23 / strb r5, [r0]`. Writing the whole store inside
+both arms and letting gcc tail-merge it gives the ROM exactly. 71 lines to 70.
+
+gcc's tail merging is reliable and does not need to be arranged in the source;
+see also Func_80974d8, where writing the shared store in both branches or once
+through a temporary produces byte-identical output. The rule is only about not
+introducing a NAMED variable that outlives the join.
+
+## Stack arguments must be named PER CALL SITE
+
+The existing note says the two stack arguments of a six-argument call want to
+be named locals. `OvlFunc_954_20081a8` sharpens it: sharing one pair of locals
+across three such calls is much worse than giving each call its own pair.
+
+    one shared pair (s1, s2) for all three calls  -- 20 differing
+    a separate pair per call site                 --  2 differing
+
+Sharing makes gcc keep one pair of registers alive across the whole function
+and reload them; separate locals let each call materialise its own into two
+registers and store both, which is what the ROM does.
