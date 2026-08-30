@@ -7795,3 +7795,45 @@ call -- is not reachable by any spelling of that constant.
 It is a small class: three functions in the whole remaining tree
 (`OvlFunc_924_20090c0`, `Field_Carry_Target`, `InitWorldMap`). Recorded so the
 next person recognises it in one screen rather than twenty.
+
+## Repeated constants: SEPARATE LOCALS PER USE SITE, and when it works
+
+The section above establishes that gcc CSEs a repeated constant inside one
+basic block. There is a lever, and it comes from reading matching code rather
+than from guessing.
+
+`src/overlays/rom_7e7574/ovl_9dc_c_c_a_a_a_b.c` calls `__MapActor_SetSpeed`
+three times with the same pair of pooled constants, and the ROM reloads both
+from the pool at every call. Its source declares SIX locals:
+
+```c
+int s1,t1,s2,t2,s3,t3;
+s1 = 0xb333; t1 = 0x5999;
+s2 = 0xb333; t2 = 0x5999;
+s3 = 0xb333; t3 = 0x5999;
+...
+__MapActor_SetSpeed(2, s1, t1);
+__MapActor_SetSpeed(3, s2, t2);
+__MapActor_SetSpeed(1, s3, t3);
+```
+
+One pair per call site, all with the same value. gcc keeps them as distinct
+pseudos and emits a separate pool load for each. This is the per-call-site
+naming rule extended from STACK arguments to REGISTER arguments.
+
+**It closed `OvlFunc_948_20095f0` outright** -- two `SetSpeed` calls, three
+instructions over from the CSE, exact with two pairs of locals.
+
+**MEASURED LIMIT.** It does NOT work when the uses are far apart.
+`OvlFunc_882_200bc48` repeats a constant across about twenty instructions and a
+dozen calls, and `OvlFunc_881_2009c08` repeats two constants across a similar
+span; separate locals change neither, whether assigned at the top of the
+function or immediately before each use (both byte-identical to the literal
+form). The lever appears to work while the two live ranges are short enough
+that gcc does not think a callee-saved register is worth it.
+
+Class size, measured both ways: 257 of the 2113 remaining THUMB functions
+repeat an ordinary pooled constant inside one basic block, against 4 matching
+functions that do it in ordinary C and 13 more that do it only inside DMA
+inline asm. So the shape is reachable but rare, and this lever is the only
+known route to it.
