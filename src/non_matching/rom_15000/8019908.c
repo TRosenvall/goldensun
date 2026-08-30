@@ -1,53 +1,57 @@
-/* Func_8019908  --  NOT MATCHING
+/*
+ * Func_8019908 (RegisterCallback) -- asm/rom_15000/rom_1908c_c_a_c_c_c_b.s
+ * SPLIT OUT this round; byte-neutral, verified.
  *
- * Source asm: goldensun/asm/rom_15000/rom_1908c_c_a_c.s
- * Best screen: 9 instructions in disagreeing regions, of 27 (streams same length).
+ * BLOCKER: the order in which the two parameters are copied to callee-saved
+ * registers. 27 lines against 27, 9 differing:
  *
- * BLOCKER CLASS: register allocation on the two parameter copies.
+ *      rom   mov r7, r1 / ldr r1, [r3] / mov r6, r0
+ *      ours  mov r6, r0 / ldr r0, [r3] / mov r7, r1
  *
- * THE ADDRESSING IS SOLVED. The ROM indexes a parallel array with the OFFSET
- * first, `ldrh r3, [r4, r1]`, and the pointer-typed-operand lever reproduces it
- * exactly -- the walking offset is declared `unsigned char *` and the loaded
- * base is a plain `unsigned int`. See docs/elevation.md.
+ * The ROM saves the second parameter, loads the global, then saves the first.
  *
- * What remains is which registers the two arguments land in. The ROM saves the
- * second argument first (`mov r7, r1`) because r1 is about to be reloaded with
- * the base, then the first argument later (`mov r6, r0`). gcc does it in the
- * other order and uses the opposite pair.
+ * SETTLED, and two of these are worth reusing:
  *
- * WHAT WAS TRIED
- *   Explicit local copies of both parameters, assigned in the ROM's order --
- *   the second before the global load, the first after. BYTE-IDENTICAL.
- *   gcc assigns argument registers by its own rule and statement order does not
- *   reach it, which is the same result as src/non_matching/rom_b5000/80be02c.c.
+ *   THE FUNCTION IS VOID. Its annotation says it returns the slot index, and it
+ *   does compute one, but the epilogue is `pop {r5,r6,r7} / pop {r0} / bx r0` --
+ *   lr is popped into r0, which gcc cannot do if r0 carries a return value.
+ *   Declaring it `int` and returning the index gives `pop {r1} / bx r1`. The
+ *   epilogue register is a reliable void/non-void tell.
+ *
+ *   The id table is indexed with the WALKING OFFSET as the addressing base:
+ *   `ldrh r3, [r4, r1]` where r4 walks 0x12dc, 0x12de, ... and r1 holds the
+ *   iwram pointer. Spelling it `*(unsigned short *)(q + (int)b)` with q the
+ *   walking `unsigned char *` reproduces it; the natural subscript does not.
+ *
+ *   The loop bound 8 and the counter must be assigned BEFORE the second
+ *   pointer, or `add r2, r1, r3` is emitted ahead of them.
+ *
+ * TRIED AND REJECTED: copying both parameters into locals assigned in the ROM's
+ * order (9 differing, unchanged).
  */
 extern unsigned char *iwram_3001e8c;
 
-void Func_8019908(int a, int b)
+void Func_8019908(int cb, int id)
 {
-    unsigned int base;
-    unsigned char *off;
-    unsigned char *p;
-    unsigned int k;
+    unsigned char *b;
+    int *p;
+    unsigned char *q;
     int i;
-    int lim;
-    int h;
+    int n;
 
-    base = (unsigned int)iwram_3001e8c;
-    k = 0x12bc;
-    off = (unsigned char *)0x12dc;
-    lim = 8;
+    b = iwram_3001e8c;
+    q = (unsigned char *)0x12dc;
+    n = 8;
     i = 0;
-    p = (unsigned char *)(base + k);
+    p = (int *)(b + 0x12bc);
     do {
-        h = *(unsigned short *)(off + base);
-        if (h == 0) {
-            *(int *)p = a;
-            *(unsigned short *)(off + base) = b;
-            return;
+        if (*(unsigned short *)(q + (int)b) == 0) {
+            *p = cb;
+            *(unsigned short *)(q + (int)b) = id;
+            break;
         }
         i++;
-        p += 4;
-        off += 2;
-    } while (i != lim);
+        p++;
+        q += 2;
+    } while (i != n);
 }
