@@ -7740,3 +7740,23 @@ Reusing a single `off` across two consecutive register-offset stores costs a
 guards both return the same value, early returns let gcc cross-jump them into a
 block placed right after the guard; the ROM puts `mov r0, #1` at the end.
 66 differing to 4 on `OvlFunc_964_2008cd0`.
+
+## A pooled constant REBUILT across calls means two different symbols
+
+gcc-2.96 always CSEs two identical pooled constants, and if they are separated
+by a call it holds the value in a callee-saved register and pays push/pop for
+it. There is no statement order and no naming that separates them, because
+after cse they are the same rtx.
+
+So a ROM that emits `ldr r0, =0x16f` FRESH at two different call sites is
+telling you the source referenced two different SYMBOLS that share a value.
+This is const.sym's symbol tell applied to REPETITION rather than to size, and
+it is a different signature: the constant can be any width.
+
+`OvlFunc_881_2009c08` is three instructions over on exactly this -- 52 against
+49, the three being `push {r5, r6}` and the matching pop -- in a straight-line
+sequence of 21 calls with no control flow at all.
+
+This tree has no flag id symbol space (area, const, file_table, message and
+wram are the whole set), so the symbols cannot currently be written. Any
+straight-line script that reuses a flag id will hit this.

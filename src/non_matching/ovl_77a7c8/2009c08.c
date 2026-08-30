@@ -1,59 +1,71 @@
-/* OvlFunc_881_2009c08 -- asm/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a.s
+/*
+ * OvlFunc_881_2009c08 -- asm/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_b.s
+ * SPLIT OUT this round; byte-neutral, verified.
  *
- * BLOCKER: CONSTANT CSE, STRAIGHT LINE -- same as OvlFunc_882_200bc48, twice
+ * BLOCKER: gcc CSEs a repeated pooled constant that the ROM rebuilds.
+ * 52 lines against 49 -- THREE OVER, and the three are `push {r5, r6}` and the
+ * matching pop.
  *
- * 34 of 49 differing, ours 52 lines (three too many).  21 calls, zero labels.
- * `__ClearFlag(0x16f)` and `__ClearFlag(0x171)`/`__SetFlag(0x171)` each appear
- * at two sites; the ROM reloads `ldr r0, =0x16f` and `ldr r0, =0x171` from the
- * pool at every site, gcc hoists both into r5 and r6.
+ * THE DIAGNOSIS, and it generalises. This is a pure straight-line call
+ * sequence, 21 calls, no control flow. It calls __ClearFlag(0x16f) twice and
+ * uses the flag 0x171 twice. gcc loads each pooled constant ONCE into a
+ * callee-saved register so it survives the intervening calls -- our output has
+ * `ldr r6, .L3+4` held across four calls -- and pays push/pop for the
+ * privilege. The ROM emits `ldr r0, =0x16f` fresh at each use.
  *
- * TWO THINGS MEASURED HERE THAT ARE NOT IN THE DOC:
+ * gcc-2.96 will always CSE two identical pooled constants; there is no
+ * statement order or naming that separates them, because they ARE the same
+ * rtx. So a ROM that REBUILDS an identical pooled constant across calls is
+ * telling you the source referenced TWO DIFFERENT SYMBOLS that happen to share
+ * a value -- the same reasoning const.sym's header uses for a pooled small
+ * constant, applied to repetition rather than to size.
  *
- *  1. gcc hoists a POOL LOAD, not just a multi-instruction build.  I expected
- *     it not to -- a pool load costs one instruction and so does the `mov` that
- *     replaces it, so there is nothing to gain.  It hoists anyway.  That means
- *     the "expensive constant" heuristic in tools/script_candidates.py must
- *     count `ldr rN, =V` as well as `mov`+`lsl`, and it does.
- *  2. THE SYMBOL-ADDRESS TECHNIQUE DOES NOT DEFEAT IT.  Adding
- *     `_CONST_16f = 0x16f;` / `_CONST_171 = 0x171;` to a bind-mounted copy of
- *     const.sym and spelling the arguments `(int)&_CONST_16f` leaves the line
- *     count at 52 -- gcc CSEs the symbol address exactly as it CSEs the
- *     integer.  The doc's rule that "two DISTINCT symbols of equal value
- *     reload" is about two different symbols; ONE symbol used twice is hoisted
- *     like anything else, and this is the measurement that separates the two.
+ * This tree has no flag id symbol space -- area.sym, const.sym, file_table.sym,
+ * message.sym and wram.sym are the whole set -- so the symbols are not
+ * available to write. Establishing one is the prerequisite for this function
+ * and for any other straight-line script that reuses a flag id.
  *
- * Best C is scratch/p9c08.c; the symbol variant is scratch/p9c08b.c.
+ * NOT TRIED, because it would be guessing at names: inventing two flag symbols
+ * at 0x16f and 0x171. The value would match and the names would assert
+ * something unestablished, which is the trap const.sym's header warns about.
  */
+extern void __Func_808c4c0(void);
+extern void __Func_80936a0(int a, int b);
+extern void __Func_8093710(void);
+extern void __Func_808c44c(void);
+extern void __Func_80925cc(int a, int b);
+extern void __MessageID(int id);
+extern void __ActorMessage(int a, int b);
+extern void __CutsceneWait(int n);
+extern void __PlaySound(int id);
+extern void __Func_802899c(int a, int b);
+extern void __ClearFlag(int id);
+extern void __SetFlag(int id);
+extern void __Func_80aa56c(void);
+extern void __MapActor_Jump(int a, int b, int c);
+extern void __Func_8091eb0(int a, int b);
 
-/* ---- MERGED from src/non_matching/overlays/2009c08.c ----
- * That file was a second park for the same function, written later under the
- * src/non_matching/overlays/ naming while this one already existed.  Its
- * analysis is kept verbatim below; the duplicate file is removed.
- *
- OvlFunc_881_2009c08 -- 0x02009c08, asm/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a.s
- *
- * 49 ROM lines against 52 of ours, 34 differing -- one decision, and the three
- * extra instructions locate it exactly.  Candidate: scratch/L9c08.c.
- *
- * The commoned-constant tell in its textbook form: ours emits
- * `push {r5, r6, r14}` where the ROM pushes only lr, hoists the two pooled flag
- * ids 0x16f and 0x171 into r6 and r5, and then passes `mov r0, r6` / `mov r0, r5`
- * at the four flag calls.  The ROM reloads `ldr r0, =0x16f` at each use.
- *
- * THIS IS THE COUNTEREXAMPLE TO THE TWO-REMEDY RULE.  docs/elevation.md records
- * that this tell is fixed either by CSE_CFLAGS or by separate named locals, and
- * says to try both before concluding anything.  Here BOTH fail, and so does
- * every other flag group in the tree:
- *
- *   CSE_CFLAGS                34   named locals (four, one per use)   34
- *   GCSE                      34   named locals + CSE                 34
- *   ALIAS                     34   named locals + GCSE                34
- *   STRENGTH                  34   SCHED2                             35
- *   FIXEDR7                   34   O1                                 35
- *
- * The docs offered a guess that the flag-group cases are flag ids crossing a
- * BRANCH while the named-local cases are constants reused within one block.
- * This function is the second kind -- br == 0, all four flag calls in a single
- * straight-line block -- and the named-local remedy still does not take, so
- * that guess does not survive as stated.  Recorded rather than patched over.
- */
+void OvlFunc_881_2009c08(void)
+{
+    __Func_808c4c0();
+    __Func_80936a0(0x80 << 9, 6);
+    __Func_8093710();
+    __Func_808c44c();
+    __Func_80925cc(8, 2);
+    __MessageID(0xc66);
+    __ActorMessage(8, 0);
+    __CutsceneWait(0x1e);
+    __PlaySound(0x6f);
+    __Func_802899c(0, 2);
+    __ClearFlag(0x16f);
+    __ClearFlag(0x171);
+    __Func_80aa56c();
+    __MapActor_Jump(8, 4, 0x1e);
+    __MessageID(0xc67);
+    __ActorMessage(8, 0);
+    __ClearFlag(0x16f);
+    __SetFlag(0x171);
+    __Func_80aa56c();
+    __CutsceneWait(0x1e);
+    __Func_8091eb0(0xc, 6);
+}
