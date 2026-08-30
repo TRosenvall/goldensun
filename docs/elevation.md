@@ -1403,6 +1403,19 @@ Either arrangement works: assign before an `if` and use INSIDE it, or assign
 before an `if`/`else` and use AFTER the join. A call does NOT create a boundary
 -- only a branch does.
 
+**BOUNDARY (batch 152): a function with no branches is out of reach.** Since a
+call does not create a block boundary, a straight-line function has exactly one
+basic block and there is no "different block" to assign the constant in. The
+lever has nothing to bite on. `OvlFunc_945_200dca4` is eleven calls in sequence
+with no condition, loop or early return; it is 2 of 43 on a single
+arg-interleave and every spelling of the constant gives the same 2.
+
+This matters because the cutscene scripts in these overlays are mostly
+straight-line, and they are exactly the shape that produces arg-interleaves. If
+a candidate's only defect is an interleave and the function has no branch in
+it, park it and move on rather than working through the spellings -- the fix
+above is not available.
+
 **WHAT DOES NOT WORK, and why the class survived so long.** Every lever the tree
 had was tried against it and all of them are call-site properties: the callee
 declared, undeclared, with widened parameters, with eight different return types
