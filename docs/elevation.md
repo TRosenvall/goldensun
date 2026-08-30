@@ -7432,3 +7432,30 @@ emits a second pooled address.
 looks like the same thing and is worse: gcc declines to fold the `-1` into the
 address and emits a runtime `mov r3, #4 / neg r3, r3` register-offset load.
 Take the address and subtract.
+
+## A mask applied to a byte gets NARROWED unless it is named
+
+`p[9] = (p[9] & -13) | 8;` looks like it must produce the ROM's
+`mov r2, #0xd / neg r2, r2`. It does not. gcc sees that the result is stored
+back into a byte, truncates the mask to its low 8 bits, and emits a single
+`mov r2, #0xf3` -- one instruction shorter than the ROM, and every register
+after it shifts.
+
+Assigning the mask to its own `int` first stops the narrowing:
+
+```c
+int mask = -13;
+p[9] = (p[9] & mask) | 8;
+```
+
+On `OvlFunc_947_200a1ac` that was 53 lines and 42 differing against 54 and 9.
+
+Two things this is NOT. It is not the value being masked: an `int` intermediate
+for the loaded byte (`t = p[9]; p[9] = (t & -13) | 8;`) scores 15 differing,
+worse than naming the mask. And it does not extend to the OR constant -- naming
+the 8, leaving it a literal, and reordering its assignment against the mask's
+all produce byte-identical output.
+
+This is a third distinct case for the naming lever, alongside "blocks a
+reassociation" and "promotes a value gcc would rematerialise": here the name
+prevents a WIDTH narrowing that the destination type would otherwise justify.
