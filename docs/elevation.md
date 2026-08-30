@@ -3615,6 +3615,23 @@ further, to the top of the function, is wrong again (7).
 So: the `str` operands say which values get names; the statement position says
 which register class they get. Read both off the ROM before writing either.
 
+**Batch 150: it is every SLOT, not just a pair, and it is all-or-nothing.**
+`OvlFunc_888_20084e8` makes an ELEVEN-argument call -- four in registers, SEVEN
+on the stack. The ROM materialises every stack value into its own register and
+only then issues the stores. Written as literals gcc reuses ONE register for all
+seven (`mov r3,#3 / str r3 / mov r3,#7 / str r3 / ...`), 22 differing, and it
+never spends the callee-saved register the ROM pushes.
+
+Naming THREE of the seven is worse than naming none (28 differing against 22).
+Naming all seven takes it to 2. The rule is all-or-nothing because the register
+the extra locals compete for is the one that decides the prologue -- a partial
+naming leaves gcc short of exactly one and it reshuffles everything.
+
+Two of the seven were shared, read off the `str` operands as usual: one value
+stored to two slots from one register, and one that is both a register argument
+and a stack slot. Assignment order follows the ROM's materialisation order.
+
+
 ## Each stack-argument SITE needs its own pair of locals
 
 `§The stack-arg-pair lever` says to name both values adjacent to the call. That
