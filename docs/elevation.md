@@ -4000,6 +4000,28 @@ callee-saved register rather than rematerialising — the function grows a
 push/pop pair and gets worse. Measured on `OvlFunc_967_2008308` (60 differing →
 78) and `OvlFunc_911_20082b4` (33 lines → 39). Both are still parked.
 
+### Loop-invariant addresses: one lever keeps them IN, another lifts them OUT
+
+A loop that touches two globals can want opposite treatment for each, and
+`Func_801b398` needs both in the same loop.
+
+**To keep an address inside the loop, write the loop with `goto`.** The ROM
+rebuilds `mov r2, #0xe8 / lsl r2, #2 / add r3, r5, r2` on every pass. Written
+`do { … } while (cond)` gcc recognises a loop, lifts the address out, and needs
+an extra callee-saved register to hold it — visible as `mov r7, r8 / push {r7}`
+in the prologue and a line-count overshoot. An explicit `goto top;` defeats the
+loop recognition and the address goes back inside. (Same lever as the batch-145
+`check_dbra_loop` note, working here against loop-invariant motion.)
+
+**To lift one out, give it a pointer local before the loop.** The ROM loads
+`ldr r7, =gKeyPress` once before the loop and pushes r7 to keep it. Naming the
+global directly puts that load inside; `volatile unsigned int *k = &gKeyPress;`
+before the loop puts it where the ROM has it.
+
+67 lines/66 differing → 62/46 with the goto → exact with the pointer local.
+**Read which the ROM does for each address before reaching for either** — a
+prologue that pushes one register too many is the tell for an unwanted hoist.
+
 ### A store wants a POINTER local, not an offset local
 
 When the ROM computes a destination into a register and stores at immediate
