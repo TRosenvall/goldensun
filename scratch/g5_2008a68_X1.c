@@ -1,3 +1,4 @@
+struct Spr { unsigned char pad0[9]; unsigned char f9; };
 extern unsigned char L160c[] __asm__(".L160c");
 
 extern unsigned char *__MapActor_GetActor(int slot);
@@ -41,7 +42,7 @@ void OvlFunc_905_2008a68(int p0, int p1, int p2, int p3,
         case 0:
             u = (*(unsigned char **)(a0 + 0x50))[9] & 0xc;
             mask = -13;
-            q[9] = (q[9] & mask) | u;
+            q[9] = (((struct Spr *)q)->f9 & mask) | u;
             break;
         case 1:
         case 2:
@@ -49,7 +50,7 @@ void OvlFunc_905_2008a68(int p0, int p1, int p2, int p3,
             ent[0x23] &= 0xfe;
             h &= 3;
             mask = -13;
-            q[9] = (q[9] & mask) | (h << 2);
+            q[9] = (((struct Spr *)q)->f9 & mask) | (h << 2);
             break;
         }
     }

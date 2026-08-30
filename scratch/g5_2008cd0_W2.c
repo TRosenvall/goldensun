@@ -1,10 +1,3 @@
-struct Ent {
-    unsigned char pad0[6];
-    unsigned short f6;
-    unsigned int f8;
-    unsigned int fc;
-    unsigned int f10;
-};
 extern unsigned char *__MapActor_GetActor(int slot);
 extern void __vec3_translate(int a, int b, int *v);
 extern int __TestCollision(unsigned char *e, int *v);
@@ -33,7 +26,9 @@ int OvlFunc_964_2008cd0(int *a)
     p[0] = (*(int *)(e + 8) & 0xfff00000) + (0x80 << 12);
     p[1] = *(int *)(e + 0xc);
     p[2] = (*(int *)(e + 0x10) & 0xfff00000) + (0x80 << 12);
-    n1 = (((struct Ent *)e)->f6 + (0x80 << 6)) & (0xc0 << 8);
+    n1 = *(unsigned short *)(e + 6);
+    n1 += 0x80 << 6;
+    n1 &= 0xc0 << 8;
     __vec3_translate(0x80 << 13, n1, p);
     if (__TestCollision(e, p) != 1) {
     if (__TestCollision(e, a) == 0) {

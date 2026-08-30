@@ -7669,3 +7669,74 @@ through a pointer local. Measured on `Func_8003e58`.
 induction (`add r3, #1`). Writing the loop with an explicit `goto` keeps the
 recomputation. Same function also needs the outer scan as a `goto` loop so the
 constants are rebuilt each iteration rather than hoisted.
+
+## CORRECTION: `cmp rN, #K / bge` with K > 0 IS reachable
+
+An earlier section of this file, and batch 143, record this shape as unreachable
+from an `if`, on the evidence that it appears exactly once across 3205 generated
+`.s` files and that the one instance is switch dispatch. **That inference was
+wrong.** A corpus count says what the tree currently contains, not what the
+compiler can emit, and every function in the tree was written by someone who had
+already concluded the shape was out of reach.
+
+A direct nine-way probe settles it. For `x < 8`:
+
+    if (x < 8) x = 8;                 ->  cmp r0, #7 / bgt     (the rewrite)
+    return x < 8 ? 8 : x;             ->  cmp r0, #8 / bge     <-- the ROM's form
+    int k = 8; if (x < k) x = k;      ->  cmp r0, #8 / bge     <-- the ROM's form
+
+    early return, short, !(x>=8), x<=7, char, x-8<0   ->  all cmp #7 / bgt
+
+So the `<` to `<= K-1` rewrite is applied to an `if` statement's comparison but
+NOT to a conditional expression's, and NOT when the bound arrives through a
+named local.
+
+`Func_8093168` was parked on exactly this at 4 of 57 and had been declared a
+dead end. Naming its two bounds as locals closed it outright: 4 differing, then
+2, then a match. **Whenever a residue is `cmp #K-1 / bgt` against the ROM's
+`cmp #K / bge`, name the bound.**
+
+## More measured behaviours from the parallel pass
+
+**`ldrb rD,[rB] / lsl rD,#24 / cmp rD,#0` is a `volatile signed char` read.**
+Probed twelve spellings: plain `signed char` and a `signed char` bitfield both
+give `mov r3,#0 / ldrsb`; plain `char` is UNSIGNED in this toolchain; `*p << 24`,
+`(c<<24)!=0` and `unsigned char` all fold the shift away. Only
+`volatile signed char` keeps the `lsl #24` and drops the `asr #24`. 6 differing
+to a match on `Func_8097194`.
+
+**The scheduler-interleave wall has a key: the TYPE of the memory operand.**
+`OvlFunc_964_2008cd0`'s last residue was two independent chains emitted in the
+wrong order. Nine source spellings and four scheduler flags were inert at 2
+differing. Declaring the object as a struct and reading the halfword as a named
+`unsigned short` FIELD instead of `*(unsigned short *)(e + 6)` fixed it --
+even though both spellings emit the identical `ldrh r1,[r6,#6]`. The alias set,
+not the instruction, is what sched2 sees.
+
+**A pool constant rebuilt inside a loop has a SECOND cause.** It is recorded
+here as the selection signature for the `goto`-loop lever. It is also what
+reload does when it rematerialises under register pressure instead of spilling.
+`Func_8021a18` has two such constants and matched with plain nested `for` loops;
+the `goto` rewrite made it far worse (71 differing against 4) by killing the
+strength reduction that produces the ROM's induction variables. Count the live
+values before reaching for `goto`.
+
+**The `goto` lever's other job is defeating `check_dbra_loop`.**
+`Func_80197c4` had no hoisted invariants at all, yet gcc reversed all three of
+its counters into countdowns. A ROM loop counting UP with `add / cmp #N / bne`,
+where the counter has no use but the exit test, is itself a goto signature --
+and a cheaper one to spot than a rebuilt constant.
+
+**A stack scratch area wants a `struct`, not a `char[]`.** With an array gcc
+re-addresses each field from `sp` (`mov r3,sp / add r3,#14`) even when it has
+just materialised the buffer address in r0 for a DMA; with a struct field it
+uses `[r0, #imm]`. Two instructions per field on `Func_8005b64`.
+
+**"Finish the offset before the base" needs one named variable PER OFFSET.**
+Reusing a single `off` across two consecutive register-offset stores costs a
+`mov` copy on the second.
+
+**Nested `if`s with the `return 1` in the tail, not early returns.** Where two
+guards both return the same value, early returns let gcc cross-jump them into a
+block placed right after the guard; the ROM puts `mov r0, #1` at the end.
+66 differing to 4 on `OvlFunc_964_2008cd0`.

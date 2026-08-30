@@ -85,6 +85,12 @@ must stay an `int` for the pointer-base inversion to work at all.
 ## Two things measured to be out of reach
 
 **`cmp rN, #<nonzero>` followed by `bge` is not reachable from an `if`.**
+> **CORRECTED, batch 145.** This conclusion was wrong. A corpus count says what
+> the tree contains, not what the compiler can emit. A direct probe shows both
+> `x < 8 ? 8 : x` and a named bound (`int k = 8; if (x < k)`) produce
+> `cmp #8 / bge`. `Func_8093168`, parked on this, is now elevated. See
+> docs/elevation.md.
+
 `Func_8093168` sits at 4 of 57 on exactly that: the ROM has `cmp r0, #8 / bge`,
 we emit `cmp r0, #7 / bgt`. Identical semantics; gcc-2.96 canonicalises
 `x >= 8` to `x > 7` when it inverts a branch. Four spellings were tried — `<= 7`,

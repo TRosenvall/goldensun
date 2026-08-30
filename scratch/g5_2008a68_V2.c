@@ -20,6 +20,7 @@ void OvlFunc_905_2008a68(int p0, int p1, int p2, int p3,
     unsigned int h;
     int mask;
     int u;
+    int w;
 
     a0 = __MapActor_GetActor(0);
     vp = (char *)v;
@@ -40,16 +41,20 @@ void OvlFunc_905_2008a68(int p0, int p1, int p2, int p3,
         switch (h) {
         case 0:
             u = (*(unsigned char **)(a0 + 0x50))[9] & 0xc;
+            w = q[9];
             mask = -13;
-            q[9] = (q[9] & mask) | u;
+            w &= mask;
+            q[9] = w | u;
             break;
         case 1:
         case 2:
         case 3:
             ent[0x23] &= 0xfe;
             h &= 3;
+            w = q[9];
             mask = -13;
-            q[9] = (q[9] & mask) | (h << 2);
+            w &= mask;
+            q[9] = w | (h << 2);
             break;
         }
     }

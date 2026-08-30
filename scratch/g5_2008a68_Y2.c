@@ -16,7 +16,7 @@ void OvlFunc_905_2008a68(int p0, int p1, int p2, int p3,
     char *vp;
     unsigned char *a0;
     unsigned char *ent;
-    unsigned char *q;
+    volatile unsigned char *q;
     unsigned int h;
     int mask;
     int u;
@@ -26,7 +26,7 @@ void OvlFunc_905_2008a68(int p0, int p1, int p2, int p3,
     *(struct S3 *)vp = *(struct S3 *)L160c;
     ent = __CreateActor(0xde, p0, p1, p2);
     if (ent != 0) {
-        q = *(unsigned char **)(ent + 0x50);
+        q = *(volatile unsigned char **)(ent + 0x50);
         __Actor_SetAnim(ent, (f + 1) & 0xf);
         __Actor_SetScript(ent, *(int *)(vp + ((f & 0xf) << 2)));
         __Func_80929d8(ent, (f >> 16) & 0xf);
