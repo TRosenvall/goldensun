@@ -4000,6 +4000,25 @@ callee-saved register rather than rematerialising — the function grows a
 push/pop pair and gets worse. Measured on `OvlFunc_967_2008308` (60 differing →
 78) and `OvlFunc_911_20082b4` (33 lines → 39). Both are still parked.
 
+### A store wants a POINTER local, not an offset local
+
+When the ROM computes a destination into a register and stores at immediate
+zero, and we emit a register-offset store, the source is holding an OFFSET where
+it should hold a POINTER:
+
+    rom   add  r3, r6, r2 / strh r5, [r3, #0]      <- address in a register
+    ours  strh r5, [r6, r2]                        <- register-offset form
+
+`*(short *)(p + o) = z` with a named offset `o` gives gcc the register-offset
+store, which is **one instruction shorter every time** and so shows up as a
+line-count shortfall rather than a rename. Writing it
+`q = (short *)(p + o); *q = z;` recovers the `add`. On `CutsceneStart` two such
+stores were four lines of the gap: 58 lines and 48 differing became 60 and 39.
+
+The offset local is still right when the ROM *mutates* it (`add r2, #2` between
+two stores off one base) — that pattern needs both, an offset variable to mutate
+and a pointer variable to store through.
+
 ### A halfword read's ADDRESSING MODE names its signedness
 
 thumb has `ldrh rD, [rB, #imm]` but **no `ldrsh` with an immediate**. A signed
