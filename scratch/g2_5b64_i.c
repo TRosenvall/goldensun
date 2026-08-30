@@ -21,6 +21,7 @@ int Func_8005b64(int channel, int pitch)
     vu32 *dma;
     int off;
     int idx;
+    int ret;
 
     base = iwram_3001f1c;
     DMA3_CLEAR(&buf, 0x10);
@@ -37,13 +38,14 @@ int Func_8005b64(int channel, int pitch)
     dma = (vu32 *)&REG_DMA3SAD;
     while (dma[2] & 0x80000000)
         ;
-    if (Func_8005868(channel) != 0)
+    ret = Func_8005868(channel);
+    if (ret != 0)
         return 1;
-    base[channel] = 0;
+    base[channel] = ret;
     off = channel + 0x10;
     base[off] = 0x10;
     idx = channel * 2;
     idx += 0x20;
-    *(unsigned short *)(base + idx) = 0;
-    return 0;
+    *(unsigned short *)(base + idx) = ret;
+    return ret;
 }

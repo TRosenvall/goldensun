@@ -22,7 +22,21 @@
  * neg/orr/lsr#31 boolean-normalise idiom plus a pooled constant, which is what
  * the source's `!= 0` gives directly; and `0x3c - t` is a plain subtraction
  * rather than gcc's arithmetic.
- */
+  *
+ * STACK-BUFFER POINTER LEVER: TRIED, NO CHANGE. Naming a stack buffer's
+ * address in a pointer local forces gcc to hold it in a callee-saved register
+ * and closed OvlFunc_934_20090e0, which was three instructions short without
+ * it. This function is ONE short and the ROM holds TWO stack addresses
+ * (`mov r3, sp` and `add r4, sp, #8`), so it looked like the same shape. The
+ * candidate already named the first; naming the struct as well, with the
+ * assignment before and after the first, gives 30 and 31 differing against a
+ * baseline of 30. gcc folds the second pointer back to sp-relative addressing
+ * either way.
+ *
+ * Surveyed the whole park corpus for this lever at the same time: 16 parks
+ * declare a local array, and only this one has the ROM holding a stack address
+ * in a register at all. The lever has no other candidates here.
+*/
 struct R {
     unsigned char pad00[4];
     int f4;

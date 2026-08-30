@@ -1,0 +1,12 @@
+python3 tools/tryc.py scratch/m_200834c.c --ref asm/overlays/rom_780898/ovl_30_a_a_c_a.s
+python3 tools/tryc.py scratch/m_2008640.c --ref asm/overlays/rom_797990/ovl_314_c_c_a_a_c_c_a_a_a_a.s
+python3 tools/tryc.py scratch/m_20087ec.c --ref asm/overlays/rom_793768/ovl_314_c_c_a_c_a_c_c_c_a_a_c.s
+python3 tools/tryc.py scratch/m_20080c4.c --ref asm/overlays/rom_780898/ovl_30_a_a_a_c_c_a.s
+python3 tools/tryc.py scratch/m_2008ed8.c --ref asm/overlays/rom_7a8c8c/ovl_30_c_a_c_c_c_a_c_c_c_c_a_a.s
+python3 tools/tryc.py scratch/m_2009bc8.c --ref asm/overlays/rom_7aa430/ovl_1a3c_a_a_a.s
+python3 tools/tryc.py scratch/m_200b600.c --ref asm/overlays/rom_7f6e64/ovl_314_c_a_c_c_c_c_c_c_a.s
+python3 tools/tryc.py scratch/m_common2_380.c --ref asm/overlays/common/common2_c_c_c_c_a.s
+python3 tools/tryc.py scratch/m_80a51d0.c --ref asm/rom_a1000/rom_a4f08.s
+python3 tools/tryc.py scratch/m_80b8000.c --ref asm/rom_b5000/rom_b7410_c_c_a_a.s
+python3 tools/tryc.py scratch/m_80c23e8.c --ref asm/rom_b5000/rom_c1a34_a_a_c_c_a_a.s
+python3 tools/tryc.py scratch/m_rom_f92fc.c --ref asm/rom_f9000/rom_f9080_a_a_a.s
