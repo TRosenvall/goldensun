@@ -39,7 +39,22 @@
  * pointer from r6 to r7 and puts x in r6, so gcc-2.96's allocation here is
  * priority-driven and the pointer IS beatable -- but no spelling was found that
  * gets both coordinates ahead of it while keeping the single `mov r1, r6` copy.
- */
+  *
+ * UPDATED, batch 145's compare correction applied. The two lower clamps are the
+ * `cmp #K / bge` shape that batch 143 wrongly called unreachable. Naming both
+ * bounds as locals AT THE TOP OF THE GUARDED BLOCK -- not as ternaries, and not
+ * named beside their own clamp -- takes this from 80 lines and 76 differing to
+ * 81 and 40. The LENGTH is now correct; the missing instruction was the
+ * consequence of the rewritten compares, not of the allocation.
+ *
+ * Measured: bounds named at the top of the block, 81/40. Named immediately
+ * before each clamp, 80/76 -- byte-identical to the ternary form. So position
+ * matters here exactly as it does for the pooled-constant naming lever.
+ *
+ * What remains is the allocation permutation recorded below, unchanged in kind
+ * but now the only thing left: the ROM keeps the iwram pointer in r8 and pays
+ * `mov r7, r8 / push {r7}` for it; we give it r6.
+*/
 extern unsigned char *iwram_3001ebc;
 extern void *GetFieldActor(int slot);
 extern int _Func_8017658(int msg, int x, int y, int flag);
@@ -55,22 +70,28 @@ void Func_80930bc(int packed)
     int handle;
     int xx;
     int yy;
+    int k;
+    int lo;
 
     s = iwram_3001ebc;
     slot = packed & 0xfff;
     GetFieldActor(slot);
     *(int *)(s + (0xfa << 1)) = slot;
     if (*(int *)(s + (0xe6 << 1)) == 0) {
+        k = 8;
+        lo = 0x14;
         yy = y;
         xx = x;
         if (yy > 0x77)
             yy += 0x20;
         else
             yy -= 0x20;
-        xx = xx < 8 ? 8 : xx;
+        if (xx < k)
+            xx = k;
         if (xx > (0x9c << 1))
             xx = 0x9c << 1;
-        yy = yy < 0x14 ? 0x14 : yy;
+        if (yy < lo)
+            yy = lo;
         if (yy > 0xdc)
             yy = 0xdc;
 
