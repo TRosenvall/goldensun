@@ -20,9 +20,9 @@ void OvlFunc_967_2008308(void)
     unsigned char *a;
     int m;
     short w;
-    int em;
+    int s;
 
-    em = 0x81 << 1;
+    s = 0xe;
     a = __MapActor_GetActor(0);
     m = *(unsigned short *)(a + 6) + (0x80 << 6);
     m &= 0xffffc000;
@@ -32,26 +32,26 @@ void OvlFunc_967_2008308(void)
     __Func_808e118();
     __MessageID(0x26ec);
     __CutsceneWait(0x32);
-    __MapActor_Emote(0xe, em, 0x32);
-    __Func_809280c(0xe, 0, 0x14);
-    __ActorMessage(0xe, 0);
+    __MapActor_Emote(s, (0x81 << 1), 0x32);
+    __Func_809280c(s, 0, 0x14);
+    __ActorMessage(s, 0);
     __CutsceneWait(0xa);
-    __MapActor_DoAnim(0xe, 4);
+    __MapActor_DoAnim(s, 4);
     __CutsceneWait(0x1e);
-    __ActorMessage(0xe, 0);
+    __ActorMessage(s, 0);
     __CutsceneWait(0xa);
-    __Func_80925cc(0xe, 2);
+    __Func_80925cc(s, 2);
     __CutsceneWait(0x1e);
-    __ActorMessage(0xe, 0);
+    __ActorMessage(s, 0);
     __CutsceneWait(0xa);
-    __MapActor_DoAnim(0xe, 3);
+    __MapActor_DoAnim(s, 3);
     __CutsceneWait(0x14);
-    __ActorMessage(0xe, 0);
+    __ActorMessage(s, 0);
     if ((w << 16) == (0x80 << 24)) {
         __Func_8092304(0, 0, 0x10);
         __Func_8092adc(0, 0xc0 << 8, 0);
         __CutsceneWait(0x14);
     }
-    __MapActor_SetBehavior(0xe, ActorCmd_ARRAY_944__02009314);
+    __MapActor_SetBehavior(s, ActorCmd_ARRAY_944__02009314);
     __CutsceneEnd();
 }

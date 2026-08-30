@@ -20,9 +20,9 @@ void OvlFunc_967_2008308(void)
     unsigned char *a;
     int m;
     short w;
-    int em;
+    int s;
 
-    em = 0x81 << 1;
+    s = 0xe;
     a = __MapActor_GetActor(0);
     m = *(unsigned short *)(a + 6) + (0x80 << 6);
     m &= 0xffffc000;
@@ -32,7 +32,7 @@ void OvlFunc_967_2008308(void)
     __Func_808e118();
     __MessageID(0x26ec);
     __CutsceneWait(0x32);
-    __MapActor_Emote(0xe, em, 0x32);
+    __MapActor_Emote(s, (0x81 << 1), 0x32);
     __Func_809280c(0xe, 0, 0x14);
     __ActorMessage(0xe, 0);
     __CutsceneWait(0xa);

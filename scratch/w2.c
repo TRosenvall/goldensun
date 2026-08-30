@@ -17,10 +17,10 @@ extern unsigned char ActorCmd_ARRAY_944__02009314[];
 
 void OvlFunc_967_2008308(void)
 {
+    int em;
     unsigned char *a;
     int m;
     short w;
-    int em;
 
     em = 0x81 << 1;
     a = __MapActor_GetActor(0);

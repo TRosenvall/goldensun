@@ -20,7 +20,9 @@ REJECTS a function if any of these hold:
     python3 tools/pickable.py [--limit N]
 
 Prints the survivors, most calls first, with the .s they live in and whether a
-split is needed.
+split is needed.  Functions already parked under src/non_matching are dropped:
+the filter scores assembly, so a parked function ranks exactly as well as a
+fresh one and will otherwise be re-derived from scratch every round.
 
 A CAUTION EARNED THE HARD WAY. Count `mov rN, #imm` and a later `lsl rN, #k` as
 ONE constant even with instructions between them. The first version of this
@@ -60,8 +62,26 @@ def constants(body):
     return counts
 
 
+def parked():
+    """Addresses already parked under src/non_matching, by file basename.
+
+    The filter ranks on the assembly alone, so a function that was tried and
+    parked in an earlier round scores exactly as well as a fresh one and floats
+    straight back to the top.  Two rounds were spent re-deriving parks that were
+    already written -- OvlFunc_955_2009424 and OvlFunc_967_2008308 were both at
+    the head of the list on the day their park notes were sitting in the tree.
+    """
+    out = set()
+    for root, _, files in os.walk("src/non_matching"):
+        for f in files:
+            if f.endswith(".c"):
+                out.add(f[:-2])
+    return out
+
+
 def main():
     limit = 20
+    skip = parked()
     if "--limit" in sys.argv:
         limit = int(sys.argv[sys.argv.index("--limit") + 1])
     files = [f for f in subprocess.run(["git", "ls-files", "asm"],
@@ -88,9 +108,12 @@ def main():
                 continue
             if any(v > 1 for v in constants(body).values()):
                 continue
+            addr = name.rsplit("_", 1)[-1]
+            if addr in skip:
+                continue
             rows.append((calls, size, name, f, len(starts)))
     rows.sort(reverse=True)
-    print(f"{len(rows)} candidates pass the filter\n")
+    print(f"{len(rows)} candidates pass the filter (already-parked addresses excluded)\n")
     for calls, size, name, f, n in rows[:limit]:
         split = "SINGLE" if n == 1 else f"split from {n}"
         print(f"  {calls:3d} calls  {size:3d} insns  {name:<26} {split:<14} {f}")

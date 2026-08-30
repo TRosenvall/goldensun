@@ -24,3 +24,25 @@
  * is `mov r0, #0xe`, not a zero.  The detector in docs/elevation.md only looks
  * for `mov r0, #0`, so the 248-function sizing undercounts.
  */
+
+/* RETRIED (batch 147).  Four more spellings, none moved it off 60 differing:
+ *      `em = 0x81 << 1;` at the very top, used at the Emote call only
+ *          -- 87 lines, 78 differing, WORSE.  The dominating-block lever that
+ *          works on OvlFunc_926_200a484 needs the def in a block the use does
+ *          not share; here there is no branch before the call, so hoisting only
+ *          lengthens the live range and gcc allocates instead of rematerialising.
+ *      the actor slot 0xe as a named local used at every call site   60
+ *      the actor slot 0xe as a named local used at the Emote only    60
+ *      the emote constant written as the plain literal 0x102         60
+ *
+ * Three spellings leaving the count EXACTLY unchanged says the r0 position here
+ * is decided below the source, same conclusion as ovl_7ddb88/20092f0.c reached
+ * on six sites of the same shape.  The two parks are the same blocker.
+ *
+ * ALSO WORTH RECORDING: of the 60 differing, only TWO are real.  The rom emits
+ * `b L0 / L0:` to jump over an early literal pool and we put the pool at the
+ * end, which shifts every later line and inflates the count.  Do not read 60 as
+ * sixty problems -- the whole function is right except the Emote interleave and
+ * the pool dump point, and the pool point is downstream of nothing we control
+ * from a single-function translation unit.
+ */
