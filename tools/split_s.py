@@ -200,15 +200,47 @@ def main():
         # count anything defined after the last .func_end as well.
         after = set(re.findall(r"^(\.L\w+):", tail, re.M))
         if blobs or stranded or has_section or after:
-            sys.exit(
-                f"{rel} holds only {target}, but ALSO {blobs} blob(s), "
-                f"{data} label(s), of which {len(stranded)} are not branch targets "
-                f"of the function and {len(after)} are defined after the code.\n"
-                f"Converting the whole file would delete that data and the link "
-                f"would fail with 'undefined reference'.\n"
-                f"Split the function from its data by hand, or leave it as assembly.")
-        sys.exit(f"{rel} holds only {target} and no data; convert it directly, "
-                 f"no split needed")
+            # A CODE/DATA SPLIT IS SAFE WHEN THE DATA IS STRICTLY TRAILING.
+            #
+            # This used to refuse unconditionally and say "split by hand". That
+            # was over-broad: 31 single-function files in the tree carry their
+            # data as a clean `.section .data` AFTER `.func_end`, and for those
+            # the ordinary split path below already does the right thing -- it
+            # cuts at `.func_end`, sends the function to _b and everything
+            # after it to _c, and rewrite_ld repoints EVERY section the object
+            # was listed under, not just .text. The linker scripts already list
+            # (.text) and (.data) on separate lines, so nothing new is needed.
+            #
+            # What made the blanket refusal look necessary is real, but it is
+            # about data BEFORE or INTERLEAVED WITH the code -- that cannot be
+            # cut at a single boundary. So the test is not "is there data" but
+            # "is any of it ahead of the function".
+            #
+            # Falling through rather than hand-rolling the split also means the
+            # existing safeguards still apply: _b is checked for stray
+            # definitions, and cross_references() catches a `.L` label that
+            # would cross the new file boundary and tells you which `.global`
+            # to add. Those are exactly the failures a hand split invites.
+            fe = raw.rindex(".func_end")
+            head = raw[:fe]
+            ahead = (re.search(r"^\s*\.(?:incbin|incrom|incdata)\b", head, re.M)
+                     or re.search(r"^\s*\.section\b", head, re.M)
+                     or (set(re.findall(r"^(\.L\w+):", head, re.M)) - body_labels))
+            if ahead:
+                sys.exit(
+                    f"{rel} holds only {target}, but ALSO {blobs} blob(s), "
+                    f"{data} label(s), of which {len(stranded)} are not branch targets "
+                    f"of the function and {len(after)} are defined after the code.\n"
+                    f"At least some of that data sits BEFORE or INSIDE the function, "
+                    f"so there is no single boundary to cut at.\n"
+                    f"Split the function from its data by hand, or leave it as assembly.")
+            print(f"{rel} holds {target} plus {blobs} blob(s) and {len(after)} "
+                  f"label(s), ALL of it after the code.\n"
+                  f"Splitting code from data: the function goes to _b, the data to _c.\n")
+            # fall through to the ordinary split machinery below
+        else:
+            sys.exit(f"{rel} holds only {target} and no data; convert it directly, "
+                     f"no split needed")
 
     stem = rel[:-2]
 
