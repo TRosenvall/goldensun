@@ -2,6 +2,24 @@
 
 How functions get converted here, and the compiler behaviours that stop them.
 
+> ## THE COMPILER IS gcc-2.96. IT IS NOT agbcc OR old_agbcc.
+>
+> Every function this document is about is built by patched **gcc-2.96**
+> (`/opt/gcc296/xgcc`). `agbcc` and `old_agbcc` compile **five objects** in the
+> entire tree -- `src/lib/m4a/*` and `src/lib/agb_flash/*`, which are prebuilt
+> Nintendo library code, not Camelot's -- and nothing else.
+>
+> **Never explain an elevation blocker in terms of agbcc or old_agbcc.** If a
+> passage below does, it is stale and wrong, and the conclusion drawn from it is
+> unsafe. This is not hypothetical: the "branch-over-pool is a ceiling" claim
+> was built on old_agbcc's pool behaviour, sat in this file for dozens of
+> batches, and in batch 153 caused a function to be written off unscreened. That
+> class is several hundred functions and the ceiling was never there.
+>
+> Where the two compilers genuinely differ is a fact about **which five files**
+> get built by which compiler, never about how a decompiled function must be
+> written.
+
 ## The loop
 
 1. **Pick by shape, not size.** `tools/elevation_candidates.py` ranks the

@@ -2,6 +2,20 @@
 
 ## Is agbcc the right compiler?
 
+**NO -- AND THIS WHOLE SECTION IS SUPERSEDED.** The compiler is patched
+**gcc-2.96**, an arm-elf dev snapshot from 2000-07-31. See the README's
+"Decompilation" section, which states the correction and its evidence: agbcc
+never emits Thumb register-offset addressing (768 functions need it) and never
+allocates `lr` in leaf functions (117 more). agbcc and old_agbcc build exactly
+five objects here, all of them prebuilt Nintendo library code under
+`src/lib/m4a` and `src/lib/agb_flash`.
+
+Everything from here to the end of this section is kept as a record of what was
+believed at the time, and of the evidence that looked convincing for it. Do not
+plan work from it, and do not explain a blocker with it.
+
+The original text follows.
+
 Yes. It is GCC `2.9-arm-000512`, the reconstruction of the Nintendo AGB SDK
 compiler, and it reproduces this ROM's code generation once it is invoked
 correctly.
