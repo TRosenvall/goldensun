@@ -169,6 +169,42 @@ against a file that was already correct.
 4. **Treat old single-diff conclusions as provisional.** Any function parked or
    reverted on the strength of one clean-build diff may have been this.
 
+## Two levers from the batch-153 dispatcher family
+
+**PUT THE CALL IN EVERY ARM and let gcc cross-jump it.** When a ROM's arms set
+only the differing argument registers and branch to a shared tail holding the
+remaining `mov`s and the `bl`, that is NOT a single call after a join. Writing
+it as one call with the argument assigned per arm is nine instructions short,
+because gcc then materialises the *common* arguments once instead of per arm.
+Write the call out in all five or six arms; gcc merges the identical tails and
+keeps the differing setup where the ROM has it. This took
+`OvlFunc_946_200add0` from 66 differing of 80 to 13, and two siblings written
+that way matched on the first screen.
+
+Note this is the same mechanism as the shared-call-tail parks already recorded,
+seen from the other side: those are gcc failing to cross-jump where the ROM
+did. Either way the source shape to try is the same — put the call in the arms
+and let the compiler decide.
+
+**THE COIN FLIP ONLY APPEARS WHEN THE ALLOCATOR HAS SLACK.** Four functions in
+one chunk share a source shape. The three that read THREE actor values and
+spend three callee-saved registers match byte for byte. The one that reads TWO
+and spends two is a pure r5/r6 rename, 13 differing lines and nothing else.
+
+With three live values gcc and the original compiler agree; with two, gcc gives
+the higher-priority pseudo the FIRST available callee-saved register and the
+ROM gives it the second. That is sharper than "register allocation is
+unreachable": **the disagreement shows up in the slack and disappears under
+pressure.** Before parking a two-register rename, check whether a sibling with
+more live values matches from the same source — if it does, the shape is proven
+and the rename is the flip, not a missing lever.
+
+Also tested and negative on that function: the batch-152 birth-order lever does
+NOT apply. Swapping the two computations changes which value is computed first
+but leaves the variable in the same register, so the `ldr` offsets swap instead
+and the count stays at 13. Birth order moves a POINTER's materialisation, not a
+value's allocation priority.
+
 ## What the screen must NOT normalise away
 
 The counterpart to the section below, and the more dangerous direction.
