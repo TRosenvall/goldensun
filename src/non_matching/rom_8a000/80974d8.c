@@ -37,7 +37,37 @@
  * between the subtract and the out[2] load. This looks like scheduler
  * behaviour rather than anything the source controls, but at 2 of 48 it is
  * worth another attempt when a new lever appears.
- */
+  *
+ * whodoesthis.py RESULT: a well-controlled zero, which is the strongest
+ * evidence assembled for any residue here so far -- and still not proof.
+ *
+ * The residue needs a load from [base, #4] emitted while a store to [base] is
+ * still pending. Across every generated .s in the tree:
+ *
+ *     str rN, [rM]                                  -> 263 functions
+ *     ldr [rB,#4] ... str (any)   within 2 insns    ->  22 functions
+ *     ldr [rB,#4] ... str [rB,#N] within 2 insns    ->   8 functions
+ *     ldr [rB,#4] ... str [rB]    within 2 insns    ->   0 functions
+ *
+ * The first three are positive controls proving the search works and the
+ * pattern syntax is right. The fourth is the shape needed. All eight hits from
+ * the third are read-modify-write on the SAME slot, not a hoist.
+ *
+ * Reading that as gcc's aliasing being conservative about a store through an
+ * `int *` with no offset: it will not move a later load above it.
+ *
+ * FOLLOWS FROM THAT, and measured: if the load cannot be hoisted, the source
+ * must read out[1] BEFORE the store is issued. Written that way --
+ * `t = out[0] - a; u = out[1]; out[0] = t; out[2] = out[2] - u - b;` -- the
+ * load does move, and the first difference goes from line 35 to line 29. But
+ * the count goes from 2 differing to 6, because naming the two temporaries
+ * shifts which register holds the masked value. The 2-differing version below
+ * is kept as best.
+ *
+ * Retyping the object as a struct -- the alias-set lever that closed
+ * OvlFunc_964_2008cd0 -- is byte-identical here. Distinct fields of one struct
+ * are not a distinct alias set for this purpose.
+*/
 extern unsigned char *iwram_3001ebc;
 extern void PhysMove(int *out, int *buf);
 
