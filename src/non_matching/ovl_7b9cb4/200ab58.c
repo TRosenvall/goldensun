@@ -38,7 +38,14 @@
  * This is the same class as src/non_matching/ovl_7ed0a0/2009458.c and
  * src/non_matching/rom_b0000/80b2ed8.c: the allocator picking the other member
  * of an r2/r3 pair, with nothing at the expression level reaching it.
- */
+  *
+ * VOLATILE: TRIED, NO CHANGE. Batch-142-era work found that gKeyHeld and
+ * iwram_3001e40 are declared volatile in some translation units and not
+ * others, and that the difference unlocked OvlFunc_933_2008344 outright and
+ * halved Func_80b86ec. This function was re-screened with every scalar global
+ * marked volatile and the output is BYTE-IDENTICAL, so the missing re-reads
+ * are not its problem. Do not try it again.
+*/
 struct A {
     unsigned char pad00[0x64];
     unsigned short f64;

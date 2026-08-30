@@ -35,7 +35,14 @@
  *
  * The second argument in the annotation (r1 = visibility) is never read by the
  * function; the C takes one parameter and that does not affect codegen.
- */
+  *
+ * VOLATILE: TRIED, NO CHANGE. Batch-142-era work found that gKeyHeld and
+ * iwram_3001e40 are declared volatile in some translation units and not
+ * others, and that the difference unlocked OvlFunc_933_2008344 outright and
+ * halved Func_80b86ec. This function was re-screened with every scalar global
+ * marked volatile and the output is BYTE-IDENTICAL, so the missing re-reads
+ * are not its problem. Do not try it again.
+*/
 extern unsigned int iwram_3001e40;
 
 void Func_8096b88(unsigned char *e)

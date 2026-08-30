@@ -41,7 +41,14 @@
  *     `*cp`), on the theory that naming the address would make gcc reuse one
  *     register for it. NO CHANGE AT ALL -- still exactly 3 differing. This was
  *     the most promising idea and it did nothing.
- */
+  *
+ * VOLATILE: TRIED, NO CHANGE. Batch-142-era work found that gKeyHeld and
+ * iwram_3001e40 are declared volatile in some translation units and not
+ * others, and that the difference unlocked OvlFunc_933_2008344 outright and
+ * halved Func_80b86ec. This function was re-screened with every scalar global
+ * marked volatile and the output is BYTE-IDENTICAL, so the missing re-reads
+ * are not its problem. Do not try it again.
+*/
 extern unsigned int iwram_3001e40;
 extern unsigned char L9e6b8[] __asm__(".L9e6b8");
 
