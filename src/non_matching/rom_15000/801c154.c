@@ -1,22 +1,64 @@
-/* Func_801c154 (ReleaseScreenTiles) -- 0x0801c154,
- * asm/rom_15000/rom_1aeec_c_a_a_a_a_a_a.s
+/* Func_801c154  @ 0x0801c154  [rom_15000]
  *
- * 15 vs 13 lines, 10 differing.  Candidate at scratch/L1c154.c.
+ * Source asm: goldensun/asm/rom_15000/rom_1aeec_c_a_a_a_a_a_a.s
  *
- * SOLVED: the mask must be applied through an `int` intermediate.  Written
- * `(v & 0xfffffe00)` with v an `unsigned short`, the OPERATION narrows to
- * HImode and gcc emits `mov r4,#0xfe / lsl r4,#8` -- masking with 0xfe00
- * instead of the ROM's pooled 0xfffffe00.  An `int v` gives the pool load.
- * Same rule as batch 79's Func_800c5b4 and the Func_8020a60 template.
+ * BLOCKER CLASS: pool PLACEMENT (not pool contents), plus a register rename.
+ * 13 lines against 15.
  *
- * BLOCKER, two parts:
- *   - The two ANDs have OPPOSITE destination conventions in the ROM:
- *     `and r1, r3` puts the result in the VALUE register (a &= 0x1ff) while
- *     `and r3, r4` puts it in the CONSTANT's register (0xfffffe00 &= v).
- *     Spelling them that way in the source (`a &= 0x1ff;` and
- *     `n = 0xfffffe00; n &= v;`) changed nothing -- gcc canonicalises both.
- *   - The ROM ends `bl Func_8003dec / b L0 / L0:` -- a branch over an inline
- *     literal pool.  Ours has no pool to branch over, so it is two instructions
- *     short.  That is the `.pool_aligned` shape and it is downstream of the
- *     pool existing at all.
+ * THIS IS A DATA POINT ON THE 516-FUNCTION BRANCH-OVER-POOL CLASS, and it
+ * refines the correction rather than contradicting it. The class was written
+ * off on old_agbcc's behaviour, which is irrelevant here; the ceiling claim is
+ * withdrawn and one function has been elevated straight out of the class. But
+ * this function shows what the residue actually is.
+ *
+ * THE POOL CONTENTS REPRODUCE PERFECTLY FROM PLAIN C. The ROM pools two
+ * constants, 0x1ff and 0xfffffe00, and both appear correctly once the mask is
+ * forced into INT width:
+ *
+ *     int t = *(unsigned short *)(p + 6);
+ *     *(unsigned short *)(p + 6) = (t & ~0x1ff) | a;
+ *
+ * Written directly on the halfword, `& ~0x1ff` narrows to 0xfe00 and gcc
+ * builds it with `mov #0xfe / lsl #8` instead of pooling it -- 14 differing.
+ * With the int temporary both constants pool and the whole tail from
+ * `mov r1, #0xfc` onward matches instruction for instruction.
+ *
+ * WHAT DOES NOT REPRODUCE IS PLACEMENT. The ROM puts its pool BEFORE the
+ * epilogue and jumps over it:
+ *
+ *     bl Func_8003dec / b .L1c178 / .pool_aligned / .L1c178: / pop {r0} / bx r0
+ *
+ * gcc puts the pool after the function and needs no branch, so we are exactly
+ * the `b` and its label short. That `b` is a real instruction and it is
+ * counted.
+ *
+ * SO THE REFINED READING, worth testing on the rest of the class: pool
+ * CONTENTS are reachable from ordinary C, and pool PLACEMENT is the open
+ * question. gcc dumps a pool early when it must -- under branch-range pressure
+ * in a long function -- and this function is fifteen instructions, so it never
+ * has to. That would explain both facts at once: why the one elevated example
+ * came out of this class with no special handling, and why this one cannot.
+ * If that holds, the class splits by SIZE rather than being uniformly open or
+ * uniformly shut, and the large members are the reachable ones.
+ *
+ * Also remaining: a three-register rename in the first six instructions (the
+ * ROM keeps the mask constants in r3 and the loaded halfword in r4; we use r4
+ * and r1). Not worth chasing while the placement question is open.
+ *
+ * Its neighbour Func_80b09fc in asm/rom_b0000/rom_b0070_a_a_c_c_a_a.s is the
+ * same story at 14 lines against 16: the body matches, the missing two lines
+ * are the same `b` and label, and its pooled ZERO (`ldr r6, =0x0`) does not
+ * reproduce from a named int local either -- gcc emits `mov r6, #0`.
  */
+extern void Func_8003dec(unsigned char *p, int n);
+
+void Func_801c154(unsigned char *p, int a, int b)
+{
+    int t;
+
+    a &= 0x1ff;
+    t = *(unsigned short *)(p + 6);
+    *(unsigned short *)(p + 6) = (t & ~0x1ff) | a;
+    p[4] = b;
+    Func_8003dec(p, 0xfc);
+}
