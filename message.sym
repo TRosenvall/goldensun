@@ -59,6 +59,10 @@ _MSG_1ea0 = 0x1ea0;
 _MSG_1f00 = 0x1f00;
 _MSG_1fa0 = 0x1fa0;
 _MSG_1fbb = 0x1fbb;
+/* Added while elevating OvlFunc_950_2008500.  Same three-line-exchange shape as
+ * _MSG_261c: the ROM holds this in a callee-saved register and derives the
+ * other two with `add r0, r5, #1` and `add r0, r5, #2`. */
+_MSG_1fd5 = 0x1fd5;
 _MSG_1ff1 = 0x1ff1;
 _MSG_217f = 0x217f;
 _MSG_2280 = 0x2280;
@@ -73,6 +77,10 @@ _MSG_22b9 = 0x22b9;
  * constant is cheaper than a push/pop pair.  The symbol address is what makes
  * it derive.  0x2354 and 0x2355 are reached by arithmetic and are not named. */
 _MSG_2352 = 0x2352;
+
+/* Added while elevating OvlFunc_950_20085a8.  Same three-line-exchange shape as
+ * _MSG_261c: base in a callee-saved register, `add r0, r6, #1` / `#2`. */
+_MSG_2389 = 0x2389;
 
 _MSG_239e = 0x239e;
 _MSG_23ac = 0x23ac;
@@ -95,6 +103,12 @@ _MSG_24db = 0x24db;
 _MSG_256c = 0x256c;
 _MSG_25b8 = 0x25b8;
 _MSG_25dc = 0x25dc;
+/* Added while elevating OvlFunc_962_200806c.  The ROM loads this base into a
+ * callee-saved register and reaches the other two lines of the exchange with
+ * `add r0, r5, #1` and `add r0, r5, #2`; 0x261d and 0x261e are reached by
+ * arithmetic and are not named.  A plain int is constant-propagated and gcc
+ * never spends the register -- the symbol address is what makes it derive. */
+_MSG_261c = 0x261c;
 _MSG_2624 = 0x2624;
 _MSG_26e3 = 0x26e3;
 _MSG_2880 = 0x2880;
