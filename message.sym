@@ -1,4 +1,5 @@
 _MSG_LEARN_INNATE_MOVE = 0x1e;
+_MSG_09 = 0x09;
 _MSG_0a = 0x0a;
 _MSG_0b = 0x0b;
 _MSG_0c = 0x0c;
