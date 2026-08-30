@@ -1,54 +1,71 @@
-extern int _MSG_2352;
+extern unsigned char *iwram_3001ebc;
+extern int __GetFlag(int id);
 extern void __CutsceneStart(void);
-extern void __Func_808e118(void);
-extern void __MessageID(int id);
-extern void __ActorMessage(int a, int b);
-extern void __CutsceneWait(int n);
-extern void __Func_80925cc(int a, int b);
-extern void __Func_809280c(int a, int b, int c);
+extern void __CutsceneEnd(void);
+extern void __Func_8092848(int a, int b, int c);
 
-extern int __Func_8091c7c(int a, int b);
-
+extern void OvlFunc_953_2009c48(int a);
 extern void __Func_8092adc(int a, int b, int c);
-extern void __MapActor_SetPos(int slot, int x, int z);
-extern void __Func_808f1c0(int a, int b);
-extern void __MapActor_SetAnim(int a, int b);
-extern void __Func_8091a58(int a, int b);
-extern void __SetFlag(int id);
+extern void __Func_809259c(int a, int b);
+extern void __ActorMessage(int a, int b);
+extern unsigned char *__Func_8093554(void);
+extern void __WaitFrames(int n);
+extern void __Func_80933d4(int a, int b);
+extern void __Func_80933f8(int a, int b, int c, int d);
+extern void __Func_8093530(void);
+extern void __MapTransitionOut(void);
+extern void __WaitMapTransition(void);
+extern void __Func_8091e9c(int n);
 
-void OvlFunc_952_20085a4(void)
+void OvlFunc_953_20091c4(void)
 {
-    int m;
-    int n;
+    unsigned char *a;
+    unsigned char *base;
+    int *p;
+    int *q;
+    unsigned int off;
+    int f;
+    int w1;
+    int c1, c2, m1;
 
-    m = (int)(&_MSG_2352);
+    w1 = 0xc0 << 6;
+    c1 = 0x87 << 18;
+    c2 = 0xd0 << 16;
+    m1 = -1;
     __CutsceneStart();
-    __Func_808e118();
-    __MessageID(m);
-    n = 1;
-    n = -n;
-    __ActorMessage(n, 0);
-    __CutsceneWait(0xa);
-    __Func_80925cc(0xe, 2);
-    __CutsceneWait(0x1e);
-    __Func_809280c(0, 0xe, 0x1e);
-    __Func_8092c40(0xe, 0);
-    if (__Func_8091c7c(0, 0) != 0) {
-        __MessageID(m + 2);
-        __ActorMessage(0xe, 0);
+    f = __GetFlag(0x8a4);
+    if (f != 0) {
+        __Func_8092848(0x11, 0, 0x28);
+        __MessageID(0x206f);
+        OvlFunc_953_2009c48(0x11);
+        __Func_8092adc(0x11, w1, 0x14);
     } else {
-        __CutsceneWait(0x14);
-        __MessageID(m + 3);
-        __ActorMessage(0xe, 0);
-        __CutsceneWait(0xa);
-        __MapActor_DoAnim(0, 3);
-        __CutsceneWait(0x1e);
-        __Func_8092adc(0, 0x80 << 7, 0);
-        __CutsceneWait(0x1e);
-        __MapActor_SetPos(0x10, 0, 0);
-        __Func_808f1c0(0xcd, 3);
-        __MapActor_SetAnim(0, 1);
-        __Func_8091a58(0xcd, 0);
-        __SetFlag(0xf31);
+        __Func_809259c(0x11, 2);
+        __MessageID(0x206d);
+        __ActorMessage(0x11, 0);
+        a = __Func_8093554();
+        a += 0x55;
+        *a = f;
+        __WaitFrames(1);
+        __Func_80933d4(0x66666, 0xcccc);
+        __Func_80933f8(c1, m1, c2, 1);
+        __Func_8093530();
+        base = iwram_3001ebc;
+        off = 0xe0;
+        off <<= 1;
+        p = (int *)(base + off);
+        off += 0x40;
+        *p = off;
+        off -= 0x38;
+        q = (int *)(base + off);
+        off = 0x20;
+        *q = off;
+        __MapTransitionOut();
+        __WaitMapTransition();
+        if (__GetFlag(0x8a3) != 0)
+            __Func_8091e9c(0x46);
+        else
+            __Func_8091e9c(7);
     }
+    __CutsceneEnd();
 }

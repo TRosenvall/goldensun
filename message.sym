@@ -64,6 +64,14 @@ _MSG_22a3 = 0x22a3;
 _MSG_22a8 = 0x22a8;
 _MSG_22ab = 0x22ab;
 _MSG_22b9 = 0x22b9;
+/* base of a three-message exchange in OvlFunc_952_20085a4: the ROM holds it in
+ * r5 across the whole cutscene and derives the other two with `add r0, r5, #2`
+ * and `add r0, r5, #3`.  Written as a plain int, gcc pools all three ids
+ * independently and never spends the register -- rematerialising a pool
+ * constant is cheaper than a push/pop pair.  The symbol address is what makes
+ * it derive.  0x2354 and 0x2355 are reached by arithmetic and are not named. */
+_MSG_2352 = 0x2352;
+
 _MSG_239e = 0x239e;
 _MSG_23ac = 0x23ac;
 _MSG_23cc = 0x23cc;

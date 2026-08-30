@@ -275,3 +275,78 @@ scratch/L858c_F.c          OvlFunc_901_200858c        ->     71 drop=-
 scratch/L85a4.c            OvlFunc_952_20085a4        ->      1 drop=__Func_8092c40 
 scratch/L85a4_A.c          OvlFunc_952_20085a4        ->     70 drop=__MapActor_SetPos,__Func_808f1c0,__MapActor_SetAnim 
 scratch/L85a4_B.c          OvlFunc_952_20085a4        ->     70 drop=__MapActor_SetPos,__Func_808f1c0,__MapActor_SetAnim 
+scratch/L85a4_C.c          OvlFunc_952_20085a4        ->      3 drop=__Func_8092c40 
+scratch/L85a4_D.c          OvlFunc_952_20085a4        ->      1 drop=__Func_8092c40 
+scratch/L85a4_E.c          OvlFunc_952_20085a4        ->      1 drop=__Func_8092c40 
+scratch/L85a4_F.c          OvlFunc_952_20085a4        ->      1 drop=__Func_8092c40 
+scratch/L85ec.c: no reference found
+scratch/L8658.c: no reference found
+scratch/L8728.c: no reference found
+scratch/L87b0.c: no reference found
+scratch/L87b0_A.c: no reference found
+scratch/L87b0_B.c: no reference found
+scratch/L87b0_C.c: no reference found
+scratch/L87f0.c: no reference found
+scratch/L888c.c: no reference found
+scratch/L88f0.c: no reference found
+scratch/L891c.c: no reference found
+scratch/L8920.c: no reference found
+scratch/L892c.c: no reference found
+scratch/L892c_B.c: no reference found
+scratch/L892c_C.c: no reference found
+scratch/L892c_D.c: no reference found
+scratch/L892c_E.c: no reference found
+scratch/L8950.c            OvlFunc_943_2008950        ->     35 drop=- 
+scratch/L8950_A.c          OvlFunc_943_2008950        ->     35 drop=- 
+scratch/L8974.c: no reference found
+scratch/L8974_A.c: no reference found
+scratch/L89f8.c: no reference found
+scratch/L8a80.c            OvlFunc_901_2008a80        ->      2 drop=- 
+scratch/L8a80_A.c          OvlFunc_901_2008a80        ->      2 drop=- 
+scratch/L8a80_B.c          OvlFunc_901_2008a80        ->      2 drop=- 
+scratch/L8ad0.c: no reference found
+scratch/L8adc.c: no reference found
+scratch/L8b08.c: no reference found
+scratch/L8b0c.c            OvlFunc_939_2008b0c        ->      2 drop=- 
+scratch/L8b2c.c            OvlFunc_930_2008b2c        ->     33 drop=__Func_809259c 
+scratch/L8ba8.c: no reference found
+scratch/L8ba8_A.c: no reference found
+scratch/L8ba8_B.c: no reference found
+scratch/L8bb8.c: no reference found
+scratch/L8bb8_B.c: no reference found
+scratch/L8d08.c            OvlFunc_931_2008d08        ->      7 drop=- 
+scratch/L8d08_A.c          OvlFunc_931_2008d08        ->      7 drop=- 
+scratch/L8d08_B.c          OvlFunc_931_2008d08        ->      7 drop=- 
+scratch/L8d08_C.c          OvlFunc_931_2008d08        ->      7 drop=- 
+scratch/L8d08_D.c          OvlFunc_931_2008d08        ->      7 drop=- 
+scratch/L8d08_ST.c         OvlFunc_931_2008d08        ->      7 drop=- 
+scratch/L8d58.c            OvlFunc_931_2008d58        ->     26 drop=__Func_80933d4 
+scratch/L8d58_A.c          OvlFunc_931_2008d58        ->     26 drop=__Func_80933d4 
+scratch/L8dc8.c            OvlFunc_960_2008dc8        ->     14 drop=- 
+scratch/L8dc8_A.c          OvlFunc_960_2008dc8        ->     14 drop=- 
+scratch/L8eac.c            OvlFunc_965_2008eac        ->     60 drop=- 
+scratch/L8eac_B.c          OvlFunc_965_2008eac        ->     60 drop=- 
+scratch/L8eec.c: no reference found
+scratch/L8eec_B.c: no reference found
+scratch/L8f14.c: no reference found
+scratch/L8f80.c: no reference found
+scratch/L8f8c.c            OvlFunc_971_2008f8c        ->     45 drop=- 
+scratch/L8f8c_A.c          OvlFunc_971_2008f8c        ->     50 drop=- 
+scratch/L8f8c_B.c          OvlFunc_971_2008f8c        ->     45 drop=- 
+scratch/L8f94.c: no reference found
+scratch/L9048.c: no reference found
+scratch/L9090.c            OvlFunc_966_2009090        ->     89 drop=- 
+scratch/L90c0.c            OvlFunc_924_20090c0        ->     22 drop=- 
+scratch/L90c0_A.c          OvlFunc_924_20090c0        ->     22 drop=- 
+scratch/L90c0_B.c          OvlFunc_924_20090c0        ->     22 drop=- 
+scratch/L91a0.c: no reference found
+scratch/L91a0_A.c: no reference found
+scratch/L91bc.c            OvlFunc_971_20091bc        ->      2 drop=- 
+scratch/L91bc_A.c          OvlFunc_971_20091bc        ->      2 drop=- 
+scratch/L91bc_B.c          OvlFunc_971_20091bc        ->      2 drop=- 
+scratch/L91bc_C.c          OvlFunc_971_20091bc        ->      2 drop=- 
+scratch/L91bc_D.c          OvlFunc_971_20091bc        ->      2 drop=- 
+scratch/L91c4.c            OvlFunc_953_20091c4        ->     10 drop=- 
+scratch/L91c4_A.c          OvlFunc_953_20091c4        ->     10 drop=- 
+scratch/L91c4_B.c          OvlFunc_953_20091c4        ->     10 drop=- 
+scratch/L91c4_C.c          OvlFunc_953_20091c4        ->     10 drop=- 
