@@ -7774,3 +7774,24 @@ TWO distinct names, which is a strong claim about the id space.
 `OvlFunc_881_2009c08` and `OvlFunc_882_200bc48` are parked on this, three and
 one instructions over. Both are genuinely straight-line in the ROM, which is
 what makes them puzzling rather than solved.
+
+## Identical constants in ONE basic block: a controlled blocker
+
+The section above retracts a claim about constants rebuilt ACROSS basic blocks.
+This is the tighter case, and it survives the controls that one failed:
+
+  * Across basic blocks -- routine. 76 matching functions rebuild a constant
+    across a call; 31 rebuild one with no call between. In every case checked
+    the uses sit in different conditional branches.
+  * Within ONE basic block -- never. ZERO of 3235 generated `.s` files build the
+    same constant twice inside a single block.
+  * Probe: only two DISTINCT symbols avoid the CSE. A repeated literal and a
+    repeated single symbol behave identically.
+
+So a ROM that builds the same constant twice with no label or branch between the
+two builds -- most visibly, the same value passed as several arguments of one
+call -- is not reachable by any spelling of that constant.
+
+It is a small class: three functions in the whole remaining tree
+(`OvlFunc_924_20090c0`, `Field_Carry_Target`, `InitWorldMap`). Recorded so the
+next person recognises it in one screen rather than twenty.
