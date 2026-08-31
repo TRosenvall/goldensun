@@ -9586,3 +9586,26 @@ for the `and`s is inert, `unsigned char n` for the `orr` is inert, and applying
 both at once is much worse. The two shapes look identical at a glance because
 both show a `mov` of a constant beside a load; only the operand order of the
 `and` tells them apart.
+
+## The per-call-site stack-argument rule has to be PAID FOR
+
+Naming both stack arguments per call site is a reliable lever, and
+`OvlFunc_924_20096c4` measures its boundary. The same edit buys the post-loop
+call outright and backfires inside the loop:
+
+    16  naive
+    13  name both stack arguments of the post-loop call        <- best
+    13  the above plus a local for the first in-loop site      (inert)
+    94  the above plus a local for the second in-loop site     (92 lines -> 97)
+    94  all four sites named at once                           (92 lines -> 97)
+
+The lever works by keeping BOTH values live simultaneously so the ROM's two
+registers appear instead of one register reused. That is a purchase of two
+registers at the call, and the surrounding block has to have them spare. This
+loop already keeps six values live and the ROM spends r8, r9 and r10 on them; one
+more named local is free, a second forces a spill and costs five lines.
+
+**So apply it freely in straight-line code and cautiously inside a loop that is
+already spending high registers** -- and add the sites ONE AT A TIME, because the
+failure is not gradual. Going from one extra local to two took the function from
+13 differing to 94.
