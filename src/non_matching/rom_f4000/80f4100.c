@@ -1,82 +1,85 @@
-/* Func_80f4100  --  0x080f4100, asm/rom_f4000/rom_f4008_c_c.s
- * ScalePalette. One of TWO byte-identical copies (tools/find_twins.py).
+/* Func_80f4100 -- asm/rom_f4000/rom_f4008_c_c.s
  *
- * Source asm: goldensun/asm/rom_f4000/rom_f4008_c_c.s
+ * BLOCKER: REGISTER RESIDENCY (allocator pressure), not spelling.
+ * 39 of 54, LENGTH EXACT.
  *
- * BLOCKER CLASS: register allocation, driven by WHERE THE THREE PRODUCTS DIE.
- * Status: 54 lines against 54 with the form below, 41 differing -- close in
- * size and not close in shape.
+ * WORTH TWO FUNCTIONS. Func_80f6038 (asm/rom_f6000/rom_f6008_c_a.s) is
+ * instruction-for-instruction identical to this one -- same 54 lines, same
+ * registers, only the local label addresses differ. Whatever lands this lands
+ * both. Check tools/dupfuncs.py for further copies before spending screens.
  *
- * WHAT IT DOES. Scales each 5:5:5 channel of a palette independently: mask,
- * multiply by a 16.16 scale, shift back down and re-mask, so a channel that
- * overflows truncates into its own field instead of carrying into the next.
+ * WHAT IT IS. A 15-bit BGR palette scale over a halfword run:
  *
- * THE ROM'S LOOP COMPUTES ALL THREE PRODUCTS BEFORE ANY SHIFT:
+ *     for (n = count; n; n--)
+ *         *dst++ = per-channel ((chan * scale) >> 16), recombined
  *
- *     and r3, r2   (c & 0x1f)      and r2, r1   (c & 0x3e0)
- *     mul r3, r5   mul r2, r5      and r1, r4   (0x7c00 & c)   mul r1, r5
- *     lsr r4, r3, #16 ... lsr r2, #16 ... orr ... lsr r1, #16 ... orr
+ * with the three channel masks 0x1f, 0xf8<<2 (0x3e0) and 0xf8<<7 (0x7c00).
+ * Returns 0. No calls, one loop, one guard.
  *
- * so three products are live at once in r1/r2/r3, the three masks sit in r8,
- * r14 and r12 for the whole loop, and r4 holds the loaded colour. Eleven live
- * values, and it fits.
+ * THE PROGRESSION -- four spellings, monotone, and it says where the wall is:
  *
- * TWO C SHAPES, AND NEITHER IS RIGHT:
+ *   masks as named locals, separate r/g/b temps          63 lines, 60 differ
+ *   masks as named locals, expression folded             53 lines, 51 differ
+ *   + counter copied after the mask setup (ROM's shape)  53 lines, 47 differ
+ *   masks as REPEATED LITERALS, no mask locals           54 lines, 39 differ
  *
- *   named temporaries          64 lines. Gives the ROM's OPERATION ORDER --
- *   `r = ...; g = ...;         all three masks and muls, then all three shifts
- *    b = ...; *dst = ...;`     -- but gcc puts the three products in r8/r9/r10
- *                              and pushes all three, ten instructions of
- *                              prologue and epilogue the ROM does not have.
+ * The last step is the informative one: DROPPING the named locals fixed the
+ * line count. The ROM's three mask registers are gcc CSE-ing three repeated
+ * literals into registers, NOT four named locals being allocated. Naming them
+ * adds a local gcc then has to place, and the extra placement is what pushed
+ * the length to 53/63. Do not re-try named masks.
  *
- *   one expression             54 lines, the right size. gcc allocates only
- *   (the form below)           r1-r4 plus lr/r12/r8, and the register count is
- *                              right -- but each channel now runs
- *                              mask/mul/shift/mask to completion before the
- *                              next starts, which is not the ROM's order.
+ * Also measured, and NOT the cause: making the masks and `v` unsigned so the
+ * shift is `lsr` rather than `asr` changed NOTHING (51 differ before and
+ * after). gcc already proves the value non-negative here. Recorded because
+ * "the ROM uses lsr so make it unsigned" is a plausible-looking fix that
+ * buys nothing on this function.
  *
- * The two properties trade off against each other and nothing tried gets both.
+ * WHAT REMAINS, stated precisely. The whole register assignment is rotated by
+ * one and every later difference inherits it:
  *
- * MEASURED, all against the same reference:
+ *     rom   src->r7  dst->r6  scale->r5   (three callee-saved)
+ *     ours  src->r6  dst->r5  scale->r0   (two callee-saved + one caller-saved)
  *
- *   named temps, `int`                        64 / 63 differ
- *   named temps, `u32`                        64 / 63
- *   named temps, shift folded into the temp   57 / 51
- *   `for (i = 0; i < count; i++)` with [i]    66 / 64
- *   post-increment and `--count` in the test  55 / 49
- *   ONE EXPRESSION (this file)                54 / 41
+ * and the constant setup follows from it -- the ROM builds the 0x1f mask first
+ * and gives it r8 (`mov r1,#0x1f / mov r8,r1`), while gcc builds a 0xf8 mask
+ * first because r8 is not yet contended.
  *
- *   ... and by flag, on the best two shapes:
- *   one expression   -O2 54/41   -fno-gcse 54/41   -fno-rerun-cse 54/41
- *                    -fno-schedule-insns2 54/41    -O1 53/51
- *   incremental      -O2 55/49   -O1 54/36
+ * gcc is not being wrong here. This function contains NO CALLS, so r0-r3 are
+ * free for the whole body and using r0 for `scale` is the cheaper choice. The
+ * ROM spends a callee-saved register where it does not have to. That asymmetry
+ * is the blocker: to match, gcc must be made to want one MORE long-lived
+ * register than it currently needs, and no spelling of this body creates that
+ * pressure -- the pressure is what decides the allocation, and the body is
+ * already minimal.
  *
- * `int` versus `u32` for the products decides `asr` against the ROM's `lsr`
- * and is settled: they are unsigned. That was the only thing the type change
- * bought.
+ * NOT TRIED, and the honest next directions:
+ *   - a fifth value genuinely live across the loop, if one can be found that
+ *     the ROM also computes (do not invent a use that is not in the asm)
+ *   - whether the ROM's shape falls out of a DIFFERENT loop form (a `while`
+ *     over a moving end pointer rather than a counter), which would change
+ *     what is live rather than merely how it is spelled
  *
- * WHAT WOULD MOVE IT is a shape that keeps three products live without giving
- * them their own pseudos -- which is what the ROM's compiler did and this one
- * will not from any of the six spellings above. Related to the register
- * ALLOCATION class in docs/elevation.md, but this one is not a permutation:
- * ours needs three more callee-saved registers than the ROM's does.
+ * The 39 is not a near-miss to be nudged; the length is right and the
+ * allocation is wrong, so treat it as one decision to flip, not 39 to fix.
  */
-#include "gba/types.h"
-
-int Func_80f4100(u16 *src, u16 *dst, int scale, int count)
+int Func_80f4100(unsigned short *src, unsigned short *dst, int scale, int count)
 {
-    u32 c;
+    int n;
+    int v;
 
     if (count > 0) {
+        n = count;
         do {
-            c = *src;
-            *dst = ((((c & 0x1f) * scale) >> 16) & 0x1f)
-                 | ((((c & (0xf8 << 2)) * scale) >> 16) & (0xf8 << 2))
-                 | ((((c & (0xf8 << 7)) * scale) >> 16) & (0xf8 << 7));
+            v = *src;
+            v = ((((v & 0x1f) * scale) >> 16) & 0x1f)
+              | ((((v & (0xf8 << 2)) * scale) >> 16) & (0xf8 << 2))
+              | ((((v & (0xf8 << 7)) * scale) >> 16) & (0xf8 << 7));
+            n--;
+            *dst = v;
             src++;
             dst++;
-            count--;
-        } while (count != 0);
+        } while (n != 0);
     }
     return 0;
 }

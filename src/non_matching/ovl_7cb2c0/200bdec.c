@@ -33,6 +33,34 @@
  * expected result rather than a surprise: that lever makes gcc build a
  * constant CONTIGUOUSLY, and contiguous is what we already have. The ROM wants
  * it split. There is no third direction to try.
+ *
+ * BATCH-156 UPDATE -- THE THIRD DIRECTION EXISTS, AND IT DOES NOT REACH HERE.
+ *
+ * This park said there was no third direction to try. There is one, found on
+ * Func_80b9a70 (src/rom_b5000/rom_b8228_c_a_c_c_c_b.c): split the constant's
+ * two-instruction build across two SOURCE statements and put the independent
+ * work between them --
+ *
+ *     b = 0xd0;      a = 8;      b <<= 8;      f(a, b, ...);
+ *
+ * gcc keeps the halves as written and the independent mov lands in the gap.
+ * That is exactly the residue here, so it was tried on this function.
+ *
+ * MEASURED: 2 differing, first divergence still at instruction 24, residue
+ * character-for-character unchanged. The lever does not bite.
+ *
+ * WHY -- and this is the useful part. On Func_80b9a70 the split constant is a
+ * LIVE LOCAL: `flag` is used after the sequence, in `i | flag`. Here the
+ * constant is consumed immediately as a call argument and is dead at the call.
+ * gcc rematerialises argument temporaries during argument fill, which discards
+ * any statement structure the source imposed on them.
+ *
+ * So the lever is scoped to values that outlive their construction, and every
+ * park in this class is an argument temporary. That is a REASON these resist,
+ * replacing the earlier guess that a basic-block boundary was the missing
+ * ingredient -- this function's lack of branches is not what blocks it.
+ *
+ * Do not re-try the statement split on an argument temporary.
  */
 extern void __CutsceneStart(void);
 extern void __MessageID(int id);

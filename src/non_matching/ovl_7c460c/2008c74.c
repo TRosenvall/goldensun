@@ -61,4 +61,26 @@
  * usual sign that 2 is a floor rather than a near miss.  Note also that
  * -fno-schedule-insns does NOT touch it, so whatever reorders the pair is not
  * the pre-reload scheduler.
+ *
+ * BATCH-156 FLAG -- THE CORPUS ZERO ABOVE IS PROBABLY A DETECTOR ARTIFACT.
+ *
+ * The "zero of the 2987 generated .s files" result should not be relied on. A
+ * scan for a closely related shape over asm/**/*.s returned zero for a purely
+ * mechanical reason: the .s files separate mnemonic from operands with a TAB,
+ * so a regex written with a literal space matches NOTHING. Corrected, that
+ * same scan returned 3846 sites across 555 functions.
+ *
+ * gcc 2.96's generated output was then checked directly and uses the tab
+ * separator as well (`sub\tr0, r0, #8`), so the generated corpus carries the
+ * identical hazard. Unless the original scan is known to have used `\s+`, its
+ * zero says nothing about the `neg` family.
+ *
+ * This does not make the family reachable -- eleven spellings and three flags
+ * still failed on it, and that evidence stands on its own. It removes the
+ * corpus zero as SUPPORT for unreachability. Re-run the scan with `\s+`
+ * before citing it again. See docs/elevation.md, "Corpus scans must use \s+".
+ *
+ * Separately: the statement-split lever found on Func_80b9a70 does not apply
+ * here either. These are `f(0, 0, -8)` argument temporaries, dead at the call,
+ * and gcc rematerialises those during argument fill.
  */

@@ -8819,3 +8819,81 @@ Detector note: count a `mov rN, #imm` followed by `lsl rN, #k` as one constant
 even when other instructions sit between them. The first version of this filter
 required them adjacent and passed the very function whose PRE hoisting motivated
 writing it.
+
+## The split-constant interleave IS reachable — for LIVE locals only
+
+The shape, which the parks have called arg-interleave for a long time: the ROM
+starts a two-instruction constant build, does one instruction of unrelated
+work, then finishes the build.
+
+    rom    mov r5, #0x80 / mov r0, #0x0 / lsl r5, #0x1
+    gcc    mov r5, #0x80 / lsl r5, #0x1 / mov r0, #0x0
+
+**The lever.** Split the build across two source statements and put the
+independent work between them. gcc keeps the halves where they are written:
+
+    flag = 0x80;        instead of      flag = 0x80 << 1;
+    i = 0;                              i = 0;
+    flag <<= 1;
+
+This is what landed `Func_80b9a70` (0x080b9a70), which had been sitting at 5
+differing with the shape appearing twice, once per arm. Both arms fixed by the
+same edit.
+
+**The boundary, measured, and it is sharp.** The lever only works when the
+constant is a LIVE LOCAL — a value used after the sequence completes. In
+`Func_80b9a70`, `flag` survives into `i | flag`.
+
+It does NOT work when the constant is a call argument that dies at the call.
+gcc rematerialises argument temporaries during argument fill and discards
+whatever statement structure the source imposed. Tried on
+`ovl_7cb2c0/200dca4.c`: residue unchanged, character for character, first
+divergence at the same instruction.
+
+That matters because it re-explains a whole park class. Those parks concluded
+that the missing ingredient was a basic-block boundary and that straight-line
+cutscene scripts were therefore unreachable. The real discriminator is
+lifetime, not control flow. Every park in that class is an argument temporary,
+which is why they resist — and a branch would not have saved them.
+
+**Before spending a screen, ask: does the constant outlive its construction?**
+If no, this lever cannot reach it and neither can the basic-block one.
+
+A known non-generalisation: the same edit on `ovl_79e5c0/200a7ac.c` made it
+worse (7 → 17), where the gap work was a pool load rather than a one
+instruction constant. Cheap work in the gap is part of the precondition.
+
+## Corpus scans over `asm/**/*.s` MUST use `\s+`, not a literal space
+
+A scan for the shape above returned **0 sites**, which was a detector bug. The
+`.s` files separate mnemonic from operands with a **TAB**:
+
+    mov\tr1, #0xd0          not     mov r1, #0xd0
+
+A regex written as `mov (r\d+), #...` matches nothing in the entire asm tree.
+Corrected to `mov\s+(r\d+),\s*#...` the same scan returns **3846 sites across
+555 functions**.
+
+This is the second false zero from this cause. Two defences, both cheap:
+
+1. **Validate the detector against a case you have seen with your own eyes**
+   before believing any zero. The site that exposed this bug was one being read
+   on screen minutes earlier.
+2. **`tryc.py` output is not file text.** Both of its columns are rendered
+   through a disassembler, so the ROM column shows space-separated operands
+   that do not exist in any file. Never lift a pattern out of a tryc diff and
+   grep the asm tree for it verbatim.
+
+**Generated output is affected too — verified, not assumed.** gcc 2.96 emits
+the same tab separator:
+
+    \tsub\tr0, r0, #8
+
+So scans over the build's generated `.s` files carry the identical hazard. The
+first draft of this section claimed they were a different corpus and immune;
+that was wrong, and checking took one compile.
+
+Any earlier conclusion of the form "zero of the N .s files contain X" that was
+produced by a hand-written regex is suspect and should be re-run before it is
+relied on — over either corpus. `src/non_matching/ovl_7c460c/2008c74.c` rests
+on such a zero and is flagged there.
