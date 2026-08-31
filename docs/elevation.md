@@ -9050,3 +9050,49 @@ see this, because make reads the working tree.
 
 **A clean BUILD is not a clean CHECKOUT.** `??` under `asm/` or `src/` means a
 split is half-committed. This check is the last step before any commit.
+
+## The copy-then-modify tell is ONE-DIRECTIONAL, and it has a boundary
+
+The tell — *where the ROM copies a register before modifying it, the original
+had two live names* — closed three functions in recent batches. Two limits,
+both measured:
+
+**It does not run in reverse.** An in-place modify in the ROM is NOT evidence
+of a single name. On `Func_80c0f98` the ROM masks its parameter in place
+(`and r5, r3`); writing `val &= 3; v = val << 2;` to match is byte-identical to
+`v = (val & 3) << 2`, because `val` is dead afterwards and gcc folds both to
+one rtx. Only the copy direction carries information.
+
+**A copy of an UNCHANGING value is unreachable.** On `Func_80a8b10` the ROM
+copies the output base into r12 purely to compare against it
+(`mov r12, r5 ... cmp r3, r12`), leaving us exactly one instruction short with
+everything else exact. Any local initialised from `out` is provably the same
+value, so gcc coalesces it and emits no `mov`. In the three functions where the
+tell worked, the two names held *different* values at some point — a count and
+a loop counter, a division result and an offset. **A pure duplicate of a live
+value is an allocator artifact, not a source construct.**
+
+## `switch` and `if / else if` are not interchangeable
+
+On `Func_80c0f98`, an `if (t == 1) ... else if (t == 2)` chain made gcc fall
+through into the first body:
+
+    rom    cmp r2,#1 / beq L1 / cmp r2,#2 / beq L2 / b L0
+    ours   cmp r2,#1 / bne L1     (first body inlined as the fallthrough)
+
+A `switch` evaluates both tests up front and branches to separate blocks, which
+is what the ROM does. The single edit was worth 20 differences and fixed the
+length (50 of 62 -> 30 of 64). This file already warns that a wrong case count
+can look like a register problem; the wrong control construct can too.
+
+## Where the offset-inside-the-loop lever stops
+
+Declaring an address's offset inside the loop body moves the preheader below
+the guard — it closed `Sprite_DeleteLayer`. It does NOT stop gcc from creating
+an induction pointer in the first place. On `Func_80c1f50` the ROM addresses
+register-offset off a base with one index variable, and gcc builds a parallel
+cursor; four loop shapes, including the offset-inside-the-body form, are
+byte-identical on that point.
+
+Different passes: the lever moves where `move_movables`/`strength_reduce`
+INSERT a value; it has no purchase on `strength_reduce` deciding to CREATE one.
