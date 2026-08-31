@@ -9821,3 +9821,32 @@ and declaration order) are both 8, which the park also already records.
 The park was right and the effort was wasted. `park_retry.py` ranks by what is
 NOT mentioned, which is a heuristic over prose; the sweep is for generating
 candidates, and the park itself is still the thing to read before screening.
+
+## A RANKING TOOL CAN HIDE THE THING IT WAS BUILT TO FIND
+
+`tools/protolever.py` scored a MATCH as the worst possible result for as long as
+it has existed. `tryc` prints `  OK <name> (N lines)` indented; the tool did
+`out.strip()` and then tested for `" OK "` with a leading space, which the strip
+had just removed. An OK row therefore fell through to the "no differing count
+found" branch and scored 10**9.
+
+On `Actor_SetAnimAndSpeed` it printed
+
+    drop Sprite_SetAnim      OK Actor_SetAnimAndSpeed  (51 lines)
+    ...
+    best: 4 differing, as written
+
+The match was in the transcript and invisible to the summary. It was only caught
+because the printed rows were read rather than the verdict.
+
+**Generalise it: a tool that ranks its own screens fails SILENTLY, because the
+rows it prints stay correct while the conclusion inverts.** Any sweep whose
+summary disagrees with its own output is reporting a bug, not a result — check
+that before believing either. The fix here matches on the leading token rather
+than on surrounding whitespace, and is unit-tested against four output shapes,
+including the `[size check skipped]` suffix that tryc appends on multi-function
+references.
+
+How many candidates this cost is not knowable from here; the tool's docstring
+says it was run over 62 saved candidates, and any of those that matched on a
+single deletion would have been reported as a failure.

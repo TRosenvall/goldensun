@@ -28,13 +28,16 @@ import sys
 # (name, residue pattern that suggests it, phrases meaning it was already tried)
 LEVERS = [
     ("merge-vars",  r"register[- ]role|rotation|exchanged|swap",
-                    r"merg|one variable|same variable|single local"),
-    ("uchar-orr",   r"\borr\s+r\d+,\s*r\d+",
+                    r"merg|one variable|same variable|single local|one register"),
+    # only the ORR-DESTINATION shape: a mov'd constant next to the orr, with
+    # the registers exchanged. A bare `orr` anywhere in a quoted listing is not
+    # this shape, and matching it produced false positives on the first sweep.
+    ("uchar-orr",   r"mov\s+r\d+,\s*#0x?[0-9a-f]+\s*/\s*orr\s+r\d+,\s*r\d+",
                     r"unsigned char"),
-    ("int-and",     r"\band\s+r\d+,\s*r\d+",
-                    r"int m\b|`int` local|int local"),
+    ("int-and",     r"mov\s+r\d+,\s*#0x?[0-9a-f]+\s*/\s*and\s+r\d+,\s*r\d+",
+                    r"int m\b|`int` local|int local|int mask"),
     ("no-proto",    r"argument (?:fill )?order|fill order|arguments? .*reversed",
-                    r"prototype"),
+                    r"prototype|implicit|declared|declaration"),
     ("addr-local",  r"ldr r\d+, ?\[r\d+\]|address",
                     r"address-only|delete the local|only holds an address"),
     ("volatile",    r"re-?read|reload|loads? (?:it )?twice",

@@ -38,8 +38,17 @@ def screen(text, ref, tag):
     os.unlink(tmp)
     line = out.strip().splitlines()[0] if out.strip() else "(no output)"
     print(f"  {tag:<34} {line.strip()}")
+    # tryc prints "  OK <name> (N lines)" INDENTED. `out.strip()` removes that
+    # indent, so a test for " OK " with a leading space never fires and a MATCH
+    # scores 10**9 -- the worst possible result. That hid a match on
+    # Actor_SetAnimAndSpeed: the sweep printed two OK rows and then reported
+    # "best: 4 differing, as written". Match on the token, not on surrounding
+    # whitespace.
+    ok = line.split(None, 1)[0] == "OK" if line else False
+    if ok:
+        return 0
     m = re.search(r"(\d+) differ", line)
-    return 10 ** 9 if m is None and " OK " not in line else (0 if " OK " in line else int(m.group(1)))
+    return int(m.group(1)) if m else 10 ** 9
 
 
 def main():
