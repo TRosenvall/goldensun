@@ -46,6 +46,37 @@
  *     128/129 `str [r5,#0xc]` and `ldr [r5,#0x50]` exchanged.
  *     135-137 the two coordinate stores against the byte store.
  *
+ * VERDICT (round 5): THIS PROBABLY DOES NOT CLOSE FROM SOURCE, and the
+ * evidence is now strong enough to stop rather than keep spelling.
+ *
+ * The decisive test is the scheduler diagnostic. If the seven lines were a
+ * pass that could be turned off, disabling it would help:
+ *
+ *     -fno-schedule-insns2     158 lines, 137 differing
+ *     -fno-rerun-cse-after-loop 162 lines, 135 differing
+ *
+ * Both are catastrophic. sched2 is producing very nearly all of the correct
+ * code -- 153 of 160 instructions -- and the seven differences are sched2
+ * making a different LOCAL choice, not a pass acting where it should not. There
+ * is no flag to remove and no pass to suppress.
+ *
+ * That combines with the shape of the residue. All seven are pairs of adjacent
+ * instructions exchanged, the line count is exact, every register is the
+ * ROM's, and the first cluster is the arg-interleave shape inside a switch arm
+ * where the dominating-block lever provably cannot apply -- the two arms need
+ * DIFFERENT constants, so there is nothing to hoist into a dominating block.
+ *
+ * Eleven source spellings have now been measured against these seven lines
+ * across two rounds and not one has moved them; three made it worse. Writing
+ * the interleave out literally -- `lim = 0xf0; v = L368c; lim <<= 14;`, which
+ * is exactly what the ROM does -- is 17, worse than leaving it alone.
+ *
+ * SO: treat this as the interleave/scheduling wall, not as an unfinished
+ * function. It is 153 of 160 correct with every reading settled and recorded
+ * above, and it is a good specimen of the class BECAUSE everything else about
+ * it is right. Anyone reopening it should have a new idea about sched2's
+ * ordering, not a new spelling.
+ *
  * MEASURED AND NEGATIVE this round:
  *   a fresh `int t` for the mask          161 lines, 41   (adds one, costs two)
  *   reusing the dead `v` for it           161 lines, 49
