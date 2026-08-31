@@ -9270,3 +9270,70 @@ that costs a register at exactly that point.
 **Precondition: apply it when the function has a spare register at the store,
 and re-check the count afterwards.** On a function that is already tight, the
 pooled literal is the cheaper of the two wrong answers.
+
+## Duplicate-constant CSE into a callee-saved register (blocker class)
+
+A function calls the same routine twice, or two routines, passing the SAME
+constant. gcc computes it once into a callee-saved register and holds it across
+the intervening call. Holding a value across a call means saving the register,
+so our prologue grows a push the ROM does not have, the epilogue grows a pop,
+and every argument-fill site in between rotates. One hoist, a diff touching most
+of the function. The ROM recomputes the constant each time.
+
+Two instances, both parked:
+
+  ovl942_2008144.c   0x94 << 1 twice   constant costs mov + lsl   18 of 30 differ
+  ovl903_200843c.c   0x3333, 0x1999    constant costs one ldr     58 of 51 differ
+
+The second one settles what the class actually is. In 942 the constant took two
+instructions to build, so hoisting at least saved something. In 903 each use is
+a single pool load and a register copy is also a single instruction, so the
+hoist saves nothing and costs four. gcc hoists anyway. The rule is "repeated
+constant", not "expensive constant".
+
+**Cheapest tell: compare the prologues before diffing the body.** A push the ROM
+does not have, in a function with a repeated constant, is this class.
+
+Source spelling cannot reach it. Four spellings of the shared constant in 942 --
+`0x128`, `0x94 << 1`, `0x94 * 2`, and the two mixed -- compile to BYTE-IDENTICAL
+output. Constant folding runs before CSE, so by the time the hoist is decided
+every spelling has collapsed to the same value. This is the opposite of the
+pooled-constant tell, where `X << 1` versus `0x128` genuinely selects a
+different instruction sequence; there the form is observable, here it is not.
+
+Ruled out for both: `-fno-rerun-cse-after-loop` and `-O1`. Makefile:192 already
+carries a per-file rule using that flag for two overlay TUs whose description --
+"load a save-flag id twice around a call, and at -O2 gcc hoists it into a
+callee-saved register" -- reads exactly like 903, and the flag does not help
+either function. That Makefile comment's own caveat is now confirmed from the
+other side: the flag is not what separates hoisting from not hoisting in
+general, and whatever distinguishes those two TUs is narrower than this pattern.
+Do not widen that rule on the strength of a shape match.
+
+## Naming a value only works if gcc cannot fold it
+
+Hoisting a subexpression into a named local is one of the highest-yield levers
+here, and it has a precise precondition that three functions this round pinned
+down: **the value must not be computable at compile time.** If gcc can fold it,
+the local evaporates before code generation and the edit is a no-op.
+
+  Func_80175c0   named `t = (idx << 1) + 0xeb0`, a RUNTIME expression
+                 survived; produced the ROM's register-offset `ldrh r3, [r5, r3]`
+                 in place of an incremental fold into the base. 26 -> 18.
+
+  Func_801d94c   named `o = 0x5a4` and `q = base + off`, both compile-time
+                 constants. Folded away, zero change.
+
+  rom_79338_a.c  named `p = gFlags`, a link-time constant ADDRESS. Folded away,
+                 zero change.
+
+A symbol address counts as foldable. So before reaching for the lever, ask
+whether the value depends on anything only known at run time. If it does not,
+the lever does not apply and the difference is coming from somewhere else.
+
+One further warning from that same TU: naming is not merely neutral when it
+fails, it can be harmful. Routing GetFlag's mask through a named local cost
+five instructions, because gcc's branchless `!= 0` idiom
+(`neg / orr / lsr #31`) is reached only when the AND feeds the test directly.
+Two functions in one file wanted opposite spellings. Screen per function, not
+per file.

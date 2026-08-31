@@ -47,6 +47,12 @@
  *
  * NOT INSTALLED: a pooled word is four bytes of .text, so this would fail
  * make compare despite being one instruction away.
+ * Also tried (this round): short / unsigned short / char local for the 0x63
+ * store, on the theory that a HImode local would avoid the narrowing that
+ * pushes the constant to the pool.  All three are WORSE than the literal:
+ * 4 differing instead of 1, first diff moves earlier (21 vs 24).  The narrow
+ * local forces its own truncation sequence.  Constant-mode locals are
+ * exhausted here; the remaining 1 instruction is pool-vs-immediate placement.
  */
 extern int iwram_3001ebc;
 extern unsigned char gState[];
