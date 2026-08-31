@@ -1,42 +1,53 @@
-/* OvlFunc_911_200a7ac  [overlays/rom_79e5c0]  -- FIRST PASS, NOT CLOSE
+/* OvlFunc_911_200a7ac  [overlays/rom_79e5c0]
  *
  * Source asm: goldensun/asm/overlays/rom_79e5c0/ovl_30_c_c_a.s
- * State: 157 lines against 160, 157 differing ALIGNED. This is a decoded
- * reading, not a near-miss. It is filed so the next attempt starts from the
- * structure rather than from the assembly.
  *
- * WORTH 2 FUNCTIONS: tools/dupfuncs.py pairs it with OvlFunc_913_200a974 in
+ * State: 159 lines against 160, 35 differing ALIGNED, first difference at
+ * instruction 24. Everything before that matches, and everything after the
+ * case arms matches -- the residue is ONE register swap and its cascade.
+ *
+ * WORTH 2 FUNCTIONS: dupfuncs.py pairs it with OvlFunc_913_200a974 in
  * asm/overlays/rom_7a04ac/ovl_30_c_c_c_c_a.s.
  *
- * WHAT IT DOES, decoded and believed right: a spawner. It dispatches on a
- * three-state global, nudges two more globals toward limits, then -- every
- * eighth tick -- creates actor kind 0x11d, plays a sound every 64th, and
- * scatters it around a base point read through iwram_3001e70 using __Random.
+ * PROGRESS THIS ROUND: 157 -> 76 -> 36 -> 35. Three readings did it, and each
+ * is reusable:
  *
- * THE THREE GLOBALS are the local data labels .L368c, .L3690 and .L3694,
- * reached with the `extern int X __asm__(".LNNNN");` alias form.
+ *   1. THE SECOND GLOBAL IS READ INSIDE EACH CASE ARM, not at the join. The
+ *      ROM duplicates `ldr r2, =.L368c / ldr r3, [r2]` in both arms and shares
+ *      only the compare-and-clamp. Joining early -- reading it once after the
+ *      switch -- is 157 differing; reading it per arm is 76. This is the
+ *      "put the work in every arm and let gcc cross-jump" rule applied to a
+ *      LOAD rather than a call.
+ *   2. THE ACTOR POINTER IS INITIALISED TO ZERO at the top. The ROM's
+ *      `mov r5, #0` before the switch is that initialiser, and the same
+ *      register later holds the created actor; case 3's store to .L3694 reuses
+ *      it by value numbering. Adding `a = 0;` is 76 -> 36 and moves the first
+ *      difference from instruction 3 to 7. Whether case 3 then writes `0` or
+ *      `(int)a` makes no difference.
+ *   3. THE DISPATCH IS UNSIGNED. The ROM's `bhi` needs
+ *      `switch ((unsigned int)L3694)`. Typing the GLOBAL `unsigned int` does
+ *      NOT do it -- only the cast at the switch does. 36 -> 35.
  *
- * THE DISPATCH IS A `switch`, and the first dozen instructions confirm it: the
- * ROM's `cmp #2 / beq / cmp #2 / bhi / cmp #1 / beq / b` is gcc's balanced
- * case tree, reproduced exactly by cases 1, 2 and 3 with a default.
+ * WHAT IS LEFT, and it is one thing: in both case arms the ROM puts the
+ * address of .L368c in r2 and the limit constant in r1; we use r1 and r2 the
+ * other way round. Every one of the 35 lines is that swap or follows from it.
  *
- * TWO CONCRETE DIFFERENCES ARE IDENTIFIED and neither is yet fixed:
- *   1. The ROM compares the state UNSIGNED (`bhi`); we emit `bgt`. Typing the
- *      global `unsigned int` does NOT change it -- measured, no effect -- so
- *      the signedness comes from somewhere else, most likely the case labels'
- *      type or an intervening cast.
- *   2. The ROM hoists `mov r5, #0` to the very top, before the switch. That
- *      zero is the one stored to .L3694 in case 3, and gcc keeps it in the
- *      register that later holds the created actor.
+ *     rom    ldr r2, =.L368c / mov r1, #0xf0 / ldr r3, [r2] / lsl r1, #0xe
+ *     ours   ldr r1, =.L368c / mov r2, #0xf0 / ldr r3, [r1] / lsl r2, #0xe
  *
- * BE CAREFUL WITH THE COUNT. 157 of 160 is the ALIGNED count, so the body
- * really does differ; an earlier read of mine that "the dispatch matches so the
- * rest is cascade" was wrong, and only the first dozen lines are right.
+ * The instruction ORDER is already the ROM's; only the two register names are
+ * exchanged.
  *
- * The struct layout below places f50 at 0x50 and f55 at 0x55, which the tail's
- * `ldr r1, [r5, #0x50]` and `add r3, #0x55` confirm; an earlier version had
- * them transposed and it made no difference to the count, which is itself a
- * hint that the body's problem is upstream of field offsets.
+ * MEASURED AND NEGATIVE, all still 35 or 36:
+ *   swapping the declaration order of the value and the limit          36
+ *   naming the pointer the clamp stores through (`int *pc = &L368c;`)  35
+ *   a named `int z = 0;` for case 3's store instead of a literal       76
+ *   typing the global `unsigned int` rather than casting at the switch 76
+ *
+ * NEXT: this is the register-allocation coin flip in its two-register form,
+ * and per batch 153 it is the kind that disappears under pressure -- so the
+ * thing worth trying is whatever makes the arms need one more live value, not
+ * another spelling of these two.
  */
 struct Sub {
     unsigned char pad00[9];
@@ -79,23 +90,27 @@ void OvlFunc_911_200a7ac(void)
     struct Actor *a;
     struct Sub *s;
     int *b;
+    int v;
     int lim;
     int x;
     int y;
 
-    switch (L3694) {
+    a = 0;
+    switch ((unsigned int)L3694) {
     case 1:
         if (L3690 <= 0x3a97)
             L3690 += 0x32;
+        v = L368c;
         lim = 0xf0 << 14;
         goto clamp;
     case 2:
         if (L3690 <= 0x752f)
             L3690 += 0x32;
+        v = L368c;
         lim = 0xc0 << 13;
     clamp:
-        if (L368c > lim)
-            L368c += 0xffffc000;
+        if (v > lim)
+            L368c = v + 0xffffc000;
         break;
     case 3:
         if (L368c < (int)0xff800000) {
