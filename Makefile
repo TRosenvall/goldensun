@@ -4547,6 +4547,14 @@ asm/overlays/rom_7d95dc/ovl_30_c_c_c_a_a_a_c_a_a_a.o: src/overlays/rom_7d95dc/ov
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# Func_80935d4: the ROM RELOADS *p[0xd4] after a halfword store through the
+# same base. At -O2 strict aliasing lets gcc common the two int reads across a
+# short store, and losing that one load cost 50 instructions of divergence --
+# 54 differing against 4 with the flag. ALIAS_CFLAGS is exact.
+asm/rom_8a000/rom_93304_a_c_a_a_a_b.o: src/rom_8a000/rom_93304_a_c_a_a_a_b.c
+	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 # OvlFunc_885_20080dc is caught by the rom_78603c/ovl_30_c_c_a_c_a% wildcard,
 # which applies O1_CFLAGS.  Wrong for this TU: it screens exact at -O2 and the
 # linked overlay differs in 18 bytes at -O1, all of them argument-order swaps

@@ -9892,3 +9892,38 @@ two dead constants gcc can fold independently.
 **So: deriving is unreachable when both values are dead constants, and reachable
 when the first is genuinely consumed before the arithmetic.** Check for a
 consumer before writing the shape off.
+
+## The aliasing tell is a RECOGNISER, not a lever to sweep with
+
+`-fno-strict-aliasing` has now closed two functions in two rounds, and a
+systematic sweep of it found nothing. Both facts are useful.
+
+Swept across the thirty closest parks that carry candidate C and a live
+reference and do not already mention the flag: **zero improvements, every one
+unchanged.** So it is not a flag to try speculatively. What it IS is the remedy
+for one recognisable shape:
+
+    the ROM RE-READS a field after a store through a pointer of a
+    DIFFERENT WIDTH, and we do not
+
+`Func_808d828` (68 differing to 7) and `Func_80935d4` (54 to 4) both show exactly
+that and nothing else distinguishes them from the thirty that did not respond.
+Read the ROM for the missing load; do not sweep.
+
+The reason it is worth catching early is the SIZE of what it causes. Losing one
+reload shifts everything downstream, so a single commoned load presents as fifty
+instructions of divergence. On both functions the diff looked like a structural
+misreading and was one flag.
+
+## `pop {r1} / bx r1` in a void-looking function: `int` with NO return statement
+
+Recorded before as "names a RETURN VALUE"; the spelling matters and is worth
+pinning. On `Func_80935d4`:
+
+    declared void                                   4 differing, epilogue wrong
+    declared int, `return st;` at the early exits  74 differing, 90 lines
+    declared int, NO return statement anywhere      2 differing, epilogue exact
+
+Adding explicit returns makes gcc materialise a value at each exit, which the
+ROM does not do. The function falls off the end and whatever is in r0 is the
+result — so declare the return type and write no `return` at all.
