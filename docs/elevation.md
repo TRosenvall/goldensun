@@ -10065,3 +10065,26 @@ them distinct and gets two locals.
 This is the per-call-site stack-argument rule with the extra step: check whether
 the ROM's stack value IS one of the register arguments before giving it a local
 of its own.
+
+## The aliasing class has a SECOND form: a load that SANK, not one that vanished
+
+`Func_8096d2c` sat at 4 of 41 with everything else exact. The residue:
+
+    rom   ldrh r3,[r2] / add r3,#1 / ldr r6,[r5,#0x68] / strh r3,[r2] / ...
+    ours  ldrh r3,[r2] / add r3,#1 / strh r3,[r2] / ... / ldr r6,[r5,#0x68]
+
+gcc SANK the `int` load past the halfword store, which is legal only because
+strict aliasing says the two cannot alias. `-fno-strict-aliasing` matched
+outright; three source orderings, including assigning the pointer first, were
+all inert.
+
+So the class is not only "a reload that vanished" -- it is also **a load that
+moved to the wrong side of a store of a different width.** Same cause, opposite
+symptom.
+
+**This form is not detectable from the ROM listing** and `tools/aliastell.py`
+does not look for it: the ROM's order is the natural one, so there is nothing
+anomalous to scan for. It is visible only in the DIFF. The practical rule is to
+try `ALIAS_CFLAGS` whenever a small residue is a load sitting on the wrong side
+of a store of a different width, whether or not the detector offered the
+function.

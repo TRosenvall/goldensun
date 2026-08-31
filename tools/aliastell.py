@@ -24,6 +24,15 @@ downstream, so one missing load presents as fifty instructions of divergence --
 Func_808d828 was 68 differing against 7 with the flag, Func_80935d4 was 54
 against 4.
 
+A SECOND FORM EXISTS AND THIS TOOL CANNOT FIND IT. Func_8096d2c needed the
+same flag because gcc SANK a load PAST a halfword store -- legal only if the
+two cannot alias -- where the ROM has the load before it. That is the same
+class seen from the other side, but it is not detectable here: the ROM's
+order is the natural one, so there is nothing anomalous in the listing. It
+shows up only in the DIFF, as a load that has moved rather than one that has
+vanished. When a small residue is a load on the wrong side of a store of a
+different width, try the flag even if this tool did not offer the function.
+
 MATCHING is textual on the load operand, which is deliberately loose: the same
 `[rB, #K]` may be a different object after a reallocation, and a genuine re-read
 may use a different register pair. It is a candidate generator. Confirm by

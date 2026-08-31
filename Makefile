@@ -4555,6 +4555,14 @@ asm/rom_8a000/rom_93304_a_c_a_a_a_b.o: src/rom_8a000/rom_93304_a_c_a_a_a_b.c
 	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# Func_8096d2c: the ROM loads a[0x68] BEFORE storing a halfword through a
+# different pointer; strict aliasing lets gcc SINK that load past the store,
+# which is the same aliasing class as a vanished reload seen from the other
+# side. 4 differing against exact with the flag. ALIAS_CFLAGS.
+asm/rom_8a000/rom_96cdc_a_a_b.o: src/rom_8a000/rom_96cdc_a_a_b.c
+	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 # OvlFunc_885_20080dc is caught by the rom_78603c/ovl_30_c_c_a_c_a% wildcard,
 # which applies O1_CFLAGS.  Wrong for this TU: it screens exact at -O2 and the
 # linked overlay differs in 18 bytes at -O1, all of them argument-order swaps

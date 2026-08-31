@@ -1,98 +1,6 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ SearchFieldTargets
-@ r0=origin, r1=range, r2=kind. Scans the candidate table at ewram_48A for
-@ objects the field ability can act on, returning the best match. Used to decide
-@ what a cast will affect before any animation plays.
-.thumb_func_start Func_8096cdc  @ 0x08096cdc
-	push	{r5, r6, r7, lr}
-	mov	r7, r10
-	mov	r6, r8
-	push	{r6, r7}
-	mov	r7, r1
-	ldr	r1, =ewram_200048a
-	mov	r8, r0
-	mov	r6, r2
-	mov	r5, #0
-	mov	r10, r1
-.L96cf0:
-	mov	r0, r5
-	bl	GetFieldActor
-	mov	r1, r10
-	mov	r2, #0
-	ldrsh	r3, [r1, r2]
-	cmp	r5, r3
-	beq	.L96d14
-	cmp	r0, #0
-	beq	.L96d14
-	cmp	r0, r8
-	beq	.L96d14
-	mov	r3, r0
-	add	r3, #0x5b
-	strb	r7, [r3]
-	mov	r1, r6
-	bl	_Actor_SetAnimSpeed
-.L96d14:
-	add	r5, #1
-	cmp	r5, #0x42
-	ble	.L96cf0
-	pop	{r3, r5}
-	mov	r8, r3
-	mov	r10, r5
-	pop	{r5, r6, r7}
-	pop	{r0}
-	bx	r0
-.func_end Func_8096cdc
-
-@ OrbitHookA
-@ r0=entity. Per-frame hook that advances the phase counter at +0x64 and moves
-@ the entity around the target held at +0x68, tracing one of the two orbit
-@ patterns the cast effect uses.
-.thumb_func_start Func_8096d2c  @ 0x08096d2c
-	push	{r5, r6, lr}
-	mov	r5, r0
-	mov	r2, r5
-	add	r2, #0x64
-	ldrh	r3, [r2]
-	add	r3, #1
-	ldr	r6, [r5, #0x68]
-	strh	r3, [r2]
-	lsl	r3, #16
-	asr	r0, r3, #16
-	cmp	r0, #0x1f
-	ble	.L96d4e
-	ldr	r1, =Data_9f0b0
-	mov	r0, r5
-	bl	_Actor_SetScript
-	b	.L96d78
-.L96d4e:
-	lsl	r0, #10
-	bl	sin
-	str	r0, [r5, #0x18]
-	str	r0, [r5, #0x1c]
-	ldr	r3, [r6, #8]
-	mov	r1, #0x80
-	str	r3, [r5, #8]
-	ldr	r3, [r5, #0xc]
-	lsl	r1, #9
-	add	r3, r1
-	str	r3, [r5, #0xc]
-	sub	r1, r0
-	ldr	r3, [r6, #0x10]
-	lsl	r2, r1, #2
-	add	r2, r1
-	add	r3, r2
-	mov	r2, #0x90
-	lsl	r2, #12
-	add	r3, r2
-	str	r3, [r5, #0x10]
-.L96d78:
-	pop	{r5, r6}
-	pop	{r0}
-	bx	r0
-.func_end Func_8096d2c
-
 @ OrbitHookB
 @ r0=entity. The mirror of Func_96d2c -- same phase advance and target, opposite
 @ sweep -- so a pair of particles can circle in opposite directions.
@@ -298,4 +206,3 @@
 	pop	{r0}
 	bx	r0
 .func_end Func_8096ddc
-
