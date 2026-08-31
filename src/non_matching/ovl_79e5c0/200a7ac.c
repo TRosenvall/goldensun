@@ -46,8 +46,18 @@
  *     128/129 `str [r5,#0xc]` and `ldr [r5,#0x50]` exchanged.
  *     135-137 the two coordinate stores against the byte store.
  *
- * VERDICT (round 5): THIS PROBABLY DOES NOT CLOSE FROM SOURCE, and the
- * evidence is now strong enough to stop rather than keep spelling.
+ * *** VERDICT CORRECTED (round 6). The paragraph below overstates. ***
+ *
+ * It says the arg-interleave shape is a wall. A corpus survey says otherwise:
+ * gcc-2.96 emits an interleaved two-instruction constant build 1003 times in
+ * already-matching code, and 851 of those are in ORDINARY C files with no
+ * register pinning and no dma.h. The shape is routine, not unreachable.
+ *
+ * What is still true is the narrower claim: no spelling tried HERE has moved
+ * these seven lines, and both scheduler flags are catastrophic. But "I have not
+ * found it" is not "it cannot be done", and the earlier wording blurred the two.
+ *
+ * VERDICT (round 5), AS ORIGINALLY WRITTEN:
  *
  * The decisive test is the scheduler diagnostic. If the seven lines were a
  * pass that could be turned off, disabling it would help:

@@ -223,6 +223,41 @@ but leaves the variable in the same register, so the `ldr` offsets swap instead
 and the count stays at 13. Birth order moves a POINTER's materialisation, not a
 value's allocation priority.
 
+## The interleaved constant build is ROUTINE, not a ceiling
+
+Several parks describe an "arg-interleave wall": the ROM builds a
+two-instruction constant (`mov`/`lsl`) with another instruction scheduled into
+the gap, and our output emits it contiguously. Some of those notes conclude the
+shape is unreachable.
+
+**It is not.** Surveyed across every generated `.s` in the tree:
+
+| shape | count in MATCHING code |
+|---|---|
+| contiguous `mov rX,#imm` / `lsl rX` | 1480 |
+| **interleaved** (something between them) | **1003** |
+| ...of those, in ordinary C (no `register`-pinning, no dma.h) | **851** |
+
+So gcc-2.96 produces the interleave routinely and in plain source. Any park
+that says otherwise is overstating; the honest form of the claim is "no spelling
+I tried moved it here".
+
+**A WARNING ABOUT SCANNING FOR THIS.** gcc emits the THREE-operand form,
+`lsl r0, r0, #19`, while hand-written ROM `.s` uses the two-operand
+`lsl r0, #19`. They assemble identically and tryc normalises them. A regex
+written against the two-operand form finds ZERO hits in generated code and
+looks like proof of a ceiling. That is exactly the mistake this survey nearly
+made -- match `lsl rX(, rX)?, #`.
+
+**ONE MECHANISM IS IDENTIFIED, and it is not general.** In
+`src/overlays/rom_78dd40/ovl_30_c_c_b.c` three named locals are each assigned
+the SAME two-instruction constant; gcc batches the three `mov`s together and
+then the `lsl`s, which produces the interleave as a side effect. Measured
+NEGATIVE: naming both argument values as locals at a site where the two
+constants DIFFER (`OvlFunc_945_200dca4`) changes nothing -- still 2 differing.
+So "name both" is not the lever; batching identical constant builds is one
+route to the shape, and the general one is still open.
+
 ## A local that only holds an ADDRESS can cost the ordering -- delete it
 
 Twice now, in consecutive batches, a function has come down to a handful of
