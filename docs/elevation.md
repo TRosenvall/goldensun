@@ -9130,3 +9130,30 @@ calls" rule hid the loop-body class that produced four elevations; this one hid
 the duplicate groups. Before trusting any reject in this file, check whether
 MATCHING code already does the thing it forbids — `whodoesthis.py` and a grep
 over the generated `.s` answer it in one command.
+
+## Ad-hoc candidate scans MUST reuse `pickable.parked()` — third repeat
+
+A hand-written scan in a scratch script re-offered `Task_SpinCamera`, which was
+already parked at exactly the residue it was re-derived to. A whole round's
+effort was spent reproducing a park note that already existed — including the
+same symbol-address-subtraction lever, already written down.
+
+The cause: park files are named by ADDRESS (`80d6504.c`), and the ad-hoc filter
+matched candidates by the trailing component of the SYMBOL NAME. That works for
+`Func_80b9a70` and never for `Task_SpinCamera`. Measured: **134 functions in
+asm/ have an address matching a park file**, so any name-suffix filter re-offers
+a large slice of already-worked functions.
+
+`tools/pickable.py`'s `parked()` already handles this — it matches on filenames
+AND scans park CONTENTS, because a park covering a class is named for the class
+and lists its members inside. Its docstring records that two rounds were
+previously lost to exactly this. This was the third.
+
+**Rule: a throwaway scan is still a candidate filter. Import `parked()` from
+`tools/pickable.py` rather than re-deriving exclusion, and if a scan needs a
+different ranking, change pickable.py instead of writing a parallel one.**
+
+The cheap check that catches it after the fact is already in the workflow:
+`git status` before committing. A park file that appears as `M` rather than `??`
+means the function was already parked — stop and read the existing note before
+overwriting it.
