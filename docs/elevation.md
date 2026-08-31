@@ -8994,3 +8994,59 @@ modifying it, the original had two live names.** Where it modifies in place,
 one. This is cheap to check and it is a genuine lever, though a site-dependent
 one -- naming the mask constant on the same function bought nothing, while the
 same mask lever moved Func_8029274 by two lines.
+
+## tryc is wrong in BOTH directions on a pool-carrying function
+
+When the reference keeps its literal pool inside the function, tryc prints a
+warning and its count becomes unreliable **in both directions**. Two functions
+in adjacent batches, same warning, opposite failures:
+
+    Func_801fda8    screened 6 DIFFERING   -> byte-identical
+    Func_80d66cc    screened OK, 3 runs    -> build failed the checksum
+
+The first is the double-label artifact: gcc emits two labels at one address and
+the streams misalign, putting the divergence at the very END where it reads
+like an epilogue bug. The second is pool PLACEMENT: every instruction matched,
+but the ROM splits its pool (one constant dumped mid-function) where gcc emits
+one block after the epilogue, so the object is a different SIZE and the whole
+bank shifts. That showed up as 93,746 differing bytes starting BEFORE the
+function, values off by 2 and 4 — a bank-head pointer table recording a moved
+layout.
+
+**Rule: an `OK` that carries the pool warning is a match of the INSTRUCTION
+STREAM, not a match.** tryc cannot see pool placement and says so. Install it
+and let `make compare` decide, and expect either verdict to flip.
+
+**Reading a size shift:** thousands of differing bytes whose values are off by
+2 or 4, beginning before the function you touched, is a layout shift, not a
+code error. Diff the generated `.s` pool against the reference's before
+suspecting the body.
+
+## Register allocation follows ASSIGNMENT position, not declaration order
+
+On `Func_80d66cc` the last 8 differences were a single r0/r1 swap between a
+pointer and a loop counter. Measured:
+
+    permuting the DECLARATION order of the two locals      no change
+    assigning `i = 0` BEFORE the pointer assignments,
+      with an empty `for (; ...)` init                     closed all 8
+
+Declaration order is recorded elsewhere in this file as a lever, and it is one
+— for frame layout, and for values born at their declaration. But for a value
+whose first use is an assignment, it is the **position of that assignment** in
+the statement stream that decides which register it gets. Try moving the
+assignment before reordering the declarations.
+
+## Before every elevation commit: `git status --porcelain`
+
+`split_s.py` produces FOUR changes — the original `.s` deleted, two halves
+created, and a `stage1.ld` edit. Committing explicit paths (which is correct,
+after `scratch/` was swept into history) makes it easy to list two of them and
+omit the sibling half.
+
+Five elevations did exactly that. The committed tree could not link; it built
+locally only because the untracked files sat on disk. `make compare` cannot
+see this, because make reads the working tree.
+
+**A clean BUILD is not a clean CHECKOUT.** `??` under `asm/` or `src/` means a
+split is half-committed. This check is the last step before any commit.
