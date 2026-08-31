@@ -9667,3 +9667,31 @@ Steps 3, 4 and 5 are each independently confirmed multiple times now -- the
 no-prototype lever three times, the address-only local four times on four
 different shapes, and the fall-through reading again on `OvlFunc_953_200839c`
 where swapping the arms took 58 differing to 4.
+
+## The entry-block naming lever has a BUDGET -- name only the interleaved site
+
+Every previous use of this lever named a handful of constants and matched.
+`OvlFunc_968_2008b98` shows what happens past the limit, and it is not a
+graceful degradation.
+
+Six constants named in the entry block -- the shifted argument, two struct
+initialisers, two pooled values and an argument -- and gcc kept ALL of them
+live from the entry block instead of rematerialising them after the guard.
+That means high registers: our prologue grew `mov r7,r11 / mov r6,r10 /
+mov r5,r9 / push {r5,r6,r7}` against the ROM's single `mov r7,r8 / push {r7}`,
+and the function came out 98 lines against 85 with 89 differing.
+
+Naming ONLY the constant at the actual interleave site -- the one whose build
+the ROM splits around `add r5, sp, #0x10` -- and leaving the other five as
+literals took it to 85 lines and 4 differing, two of which were the divide-alias
+false negative. Widening the stack struct by one word closed the rest.
+
+**So the rule is not "name the constants in the entry block".** It is: name the
+constant whose two-instruction build the ROM interleaves, and nothing else. The
+mechanism only pays when rematerialising is cheaper than holding, and each extra
+name pushes gcc toward holding. Read the ROM for which build is actually split
+before naming anything -- the other constants in the same block are not
+participating and naming them is pure cost.
+
+The failure is visible in the prologue before any diff is read: high registers
+saved that the ROM does not save.
