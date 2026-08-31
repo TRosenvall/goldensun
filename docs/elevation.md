@@ -9927,3 +9927,37 @@ pinning. On `Func_80935d4`:
 Adding explicit returns makes gcc materialise a value at each exit, which the
 ROM does not do. The function falls off the end and whatever is in r0 is the
 result — so declare the return type and write no `return` at all.
+
+## The aliasing tell, sharpened: a CHAR store does not qualify, nor does a CALL
+
+`tools/aliastell.py` finds functions whose ROM re-reads a field across a store.
+Its first version returned 48 candidates and the first two worked were both
+false positives, each for a different reason. Both are now excluded and the
+output is 11.
+
+**A call between the store and the re-read means nothing.** gcc cannot assume a
+pointed-to field survives a call, so it reloads regardless.
+`OvlFunc_888_2008848` was offered on exactly that and `-fno-strict-aliasing`
+changes nothing; its real blocker is a dominance hoist of a repeated mask.
+
+**A store through a CHARACTER type does not qualify either.** A character type
+aliases everything under the standard, so gcc must reload after it whatever the
+flag says. `OvlFunc_947_2009938` re-reads `a[0x50]` after `a[0x23] &= 0xfe`, and
+the re-read already matches without the flag.
+
+So the shape that pays is narrower than "a re-read across a store": it is a
+re-read across a store whose type **cannot** alias the loaded type — `short`
+against `int` on `Func_808d828` and `Func_80935d4`, both of which went from
+~60 differing to single digits.
+
+## A large unsigned literal makes the COMPARISON unsigned
+
+On `OvlFunc_947_2009938`:
+
+    b[2] + 0xfff00000 >= a[2]      ->  cmp / bcs   (unsigned)
+    b[2] - 0x100000   >= a[2]      ->  cmp / bge   (signed)
+
+Both emit the identical `ldr r2, =0xfff00000 / add r3, r1, r2` — the pool word
+is the same and only the branch differs. So a ROM `bge` where we emit `bcs`,
+with the same pool constant, is a tell about how the literal was SPELLED in the
+source, not about the operand types. Write the negative.
