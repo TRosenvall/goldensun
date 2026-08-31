@@ -8897,3 +8897,50 @@ Any earlier conclusion of the form "zero of the N .s files contain X" that was
 produced by a hand-written regex is suspect and should be re-run before it is
 relied on — over either corpus. `src/non_matching/ovl_7c460c/2008c74.c` rests
 on such a zero and is flagged there.
+
+## The selection filter was rejecting a class that WORKS: loops with no calls
+
+`tools/pickable.py` rejects any function with fewer than 5 calls, on the
+grounds that arithmetic bodies hit instruction selection rather than the
+documented levers. That rule is too strong, and it was hiding the best
+remaining candidates.
+
+The rule exists because of the small-function class above — 8-to-20
+instruction bodies with no register pressure. But the SIZE rule (prefer
+40-120) already excludes those. The call-count rule was additionally excluding
+**51 loop-carrying functions in the 40-120 band**, and that is precisely where
+the levers in this file work best:
+
+**A loop body is full of LIVE locals; a cutscene script is full of ARGUMENT
+TEMPORARIES.** The distinction measured over the last three rounds is exactly
+the one that decides whether the statement-split lever bites. Call-heavy
+straight-line functions are the ones blocked by argument fill order; loop
+bodies are the ones where naming, ordering and birth order still work.
+
+Evidence: `UpdateRespawnMap` (51 instructions, ZERO calls) matched on the
+FIRST screen. `Func_80b9a70` (52 instructions, zero calls) matched a round
+earlier. Both would have been rejected by the call-count rule.
+
+The scan that finds them: 40-120 instructions, contains a branch to an
+earlier label (a loop), 4 or fewer calls, no r8-r11.
+
+## Change ONE thing at a time, or you will discard three correct fixes
+
+On `Func_8029274` four edits were derived from one diff and applied together.
+The result went from 12 differing to **25**, which reads as "all four were
+wrong". Applied one at a time from the same baseline:
+
+    name the mask local, born before the buffer pointer     12 -> 10
+    invert the digit test so the ROM's fallthrough is taken 12 -> 10
+    rewrite the copy-back loop in int arithmetic            12 -> 26   <- the one
+    (the fourth was folded into the third)
+
+Three of the four were correct and one was catastrophic; bundling them hid
+that completely. The combination of the three good ones reached 6 of 47.
+
+**The corollary is a real lever, not just process.** The bad edit converted a
+pointer loop to integer arithmetic in order to obtain the ROM's SIGNED compare
+(`bge` where a pointer compare gives unsigned `bcs`). Casting only the
+COMPARISON — `while ((int)p >= (int)buf)` — buys the same `bge` and leaves the
+loop body as pointer dereferences, which is what the ROM has. When a cast is
+needed for a comparison, cast the comparison, not the loop.
