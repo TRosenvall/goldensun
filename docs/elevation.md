@@ -9609,3 +9609,35 @@ more named local is free, a second forces a spill and costs five lines.
 already spending high registers** -- and add the sites ONE AT A TIME, because the
 failure is not gradual. Going from one extra local to two took the function from
 13 differing to 94.
+
+## Working a guarded-interleave candidate: the flag id is the one constant NOT to name
+
+The entry-block naming lever and the `GetFlag(id)`/`SetFlag(id)` rule collide on
+the same functions, and the order to apply them in is now clear.
+
+`OvlFunc_923_200996c` is the guarded-interleave shape -- a store interleaved into
+two position builds, all behind a flag guard -- and naming those builds in the
+entry block reproduced them on the first screen. It came to 7 differing, and all
+seven were the flag id:
+
+    rom   mov r0, #0x94 / lsl r0, #2   ... twice, rebuilt
+    ours  mov r5, #0x94 / lsl r5, #2   once, held in r5, `mov r0, r5` at both
+
+Naming the id made it worse in the sense that mattered, but so did the literal --
+both spellings are byte-identical, because the id's FIRST use is the `__GetFlag`
+call in the entry block itself. There is no guard between the assignment and that
+use, so the entry-block mechanism has nothing to work with: the value is simply
+live across a call and gets a callee-saved register. `CSE_CFLAGS`
+(`-fno-rerun-cse-after-loop`) is exact, which is what the GetFlag/SetFlag rule
+already says.
+
+**So when working a candidate from `tools/guarded_interleave.py`:**
+
+  * name every constant whose uses are all AFTER a guard -- that is the lever;
+  * do NOT name a flag id used by the guard itself -- it cannot help, and
+  * screen with `--no-rerun-cse` from the start whenever the ROM shows the same
+    id materialised once before a conditional branch and once inside it.
+
+The distinction is the position of the FIRST use relative to the guard, not the
+constant's kind. A value first used inside the guarded block rematerialises; a
+value first used in the entry block is live across the call and commons.

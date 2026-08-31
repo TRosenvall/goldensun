@@ -4516,6 +4516,16 @@ asm/overlays/rom_7cb2c0/ovl_30_c_c_a_a_a_c_a.o: src/overlays/rom_7cb2c0/ovl_30_c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# OvlFunc_923_200996c: the GetFlag(id)/SetFlag(id) shape exactly -- 0x94 << 2
+# is materialised once for the test and once for the set inside the guarded
+# block, and rerun-CSE commons the two into r5 with a push the ROM lacks.
+# 7 differing at -O2, exact with CSE_CFLAGS.  A named local for the id does NOT
+# defeat it (byte-identical to the literal), which is the fifth-plus case of
+# that rule holding.
+asm/overlays/rom_7aa430/ovl_1150_c_c_c_b.o: src/overlays/rom_7aa430/ovl_1150_c_c_c_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 # OvlFunc_885_20080dc is caught by the rom_78603c/ovl_30_c_c_a_c_a% wildcard,
 # which applies O1_CFLAGS.  Wrong for this TU: it screens exact at -O2 and the
 # linked overlay differs in 18 bytes at -O1, all of them argument-order swaps
