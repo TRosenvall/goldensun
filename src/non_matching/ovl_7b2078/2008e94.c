@@ -30,9 +30,22 @@
  * 68 to 65) and moves the first divergence from 7 to 17. Small, but it is the
  * assignment-position lever behaving as documented.
  *
- * NOT TRIED, and the obvious next step: typed struct access. Everything here
- * goes through `int *a` with hand-computed indices, which is what makes the
- * aliasing behaviour all-or-nothing.
+ * THE OBVIOUS NEXT STEP DOES NOT EXIST AS STATED. I wrote above that a typed
+ * struct from docs/structs.md would let some fields alias the halfword store
+ * and others not. There is no such type to reuse: "Actor" in that document is a
+ * LABEL structmap.py infers from field offsets, not a declared typedef -- no
+ * `} Actor;` exists anywhere in src/ or include/, and each file that uses the
+ * layout declares its own anonymous struct.
+ *
+ * And a struct would probably not help anyway. Strict aliasing keys on the
+ * ACCESS type, and `int` against `unsigned short` is already distinct here --
+ * which is exactly why some reloads vanish. Naming the fields would not change
+ * which pairs may alias.
+ *
+ * So the real question is narrower than "use a struct": WHICH of the ROM's
+ * re-reads survive, and what type would make that specific set survive while
+ * the others are commoned. That is not answerable from the listing alone, and
+ * it is why this is parked rather than pushed further.
  */
 extern unsigned char *__MapActor_GetActor(int slot);
 extern void __WaitFrames(int n);
