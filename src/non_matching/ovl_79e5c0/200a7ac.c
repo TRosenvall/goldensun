@@ -2,52 +2,63 @@
  *
  * Source asm: goldensun/asm/overlays/rom_79e5c0/ovl_30_c_c_a.s
  *
- * State: 159 lines against 160, 25 differing ALIGNED, first difference at
- * instruction 26. Carried across three rounds: 157 -> 76 -> 36 -> 35 -> 25.
+ * State: 160 lines against 160, SEVEN differing aligned, first difference at
+ * instruction 26. Carried across four rounds: 157 -> 76 -> 36 -> 35 -> 25 -> 7.
  *
  * WORTH 2 FUNCTIONS: dupfuncs.py pairs it with OvlFunc_913_200a974 in
  * asm/overlays/rom_7a04ac/ovl_30_c_c_c_c_a.s.
  *
- * READINGS THAT GOT IT HERE, all reusable:
+ * THE FINDING THAT MATTERS, and it generalises well beyond this function:
  *
- *   1. THE SECOND GLOBAL IS READ INSIDE EACH CASE ARM, not at the join. The
- *      ROM duplicates `ldr r2, =.L368c / ldr r3, [r2]` in both arms and shares
- *      only the compare-and-clamp. 157 -> 76. This is the
- *      put-the-work-in-every-arm rule applied to a LOAD rather than a call.
- *   2. THE ACTOR POINTER IS INITIALISED TO ZERO at the top; the ROM's
- *      `mov r5, #0` before the switch is that initialiser, and the same
- *      register later holds the created actor. 76 -> 36.
- *   3. THE DISPATCH IS UNSIGNED, and only a cast AT THE SWITCH gives the ROM's
- *      `bhi`. Typing the global `unsigned int` does nothing. 36 -> 35.
- *   4. IN EACH ARM THE LIMIT IS COMPUTED BEFORE THE GLOBAL IS READ. That one
- *      statement swap fixes the r1/r2 assignment throughout both arms and the
- *      shared clamp. 35 -> 25. Birth order again, and the third time it has
- *      decided a two-register split in this corpus.
+ *   AN `ldrb` LOAD DOES NOT PROVE THE FIELD IS UNSIGNED. This ROM reads the
+ *   field at +9 with `ldrb` -- an unsigned byte load -- and then masks with
+ *   `mov r3, #0xd / neg r3, r3`, i.e. -13 built in INT width. Declaring the
+ *   field `unsigned char` makes gcc narrow the whole expression to QImode and
+ *   emit the byte literal `mov r3, #0xf3`, one instruction short. Declaring it
+ *   `signed char` keeps the arithmetic in SImode and produces the ROM's pair.
+ *   25 differing -> 7, and the line count went 159 -> 160.
  *
- * A CORRECTNESS FIX, not just a diff: the mask is `-0xd` (0xfffffff3), NOT
- * `~0xd` (0xfffffff2). The ROM builds it `mov r3, #0xd / neg r3, r3`. The
- * earlier version of this park had `~0xd` and was simply wrong about the
- * value; it happened not to change the diff count, which is a good reminder
- * that the count does not validate semantics.
+ *   The existing signedness rule reads the LOAD (`ldrh` immediate = unsigned,
+ *   `ldrsh` register-offset = signed). That rule is about halfwords and it does
+ *   not extend to bytes: for a byte field, the load is `ldrb` either way and it
+ *   is the ARITHMETIC WIDTH downstream that reveals the type. Look at how the
+ *   mask is built, not at how the field is read.
  *
- * WHAT IS LEFT: 25 lines in four small clusters, every one an ordering swap of
- * two adjacent instructions, plus ONE MISSING INSTRUCTION -- we are 159 against
- * 160. The missing one is at the mask: the ROM spends `mov #0xd / neg` to build
- * -13 in int width, we emit the byte literal `mov r3, #0xf3`.
+ * OTHER READINGS, all still required:
+ *   - the second global is read INSIDE each case arm, not at the join (157->76)
+ *   - the actor pointer is initialised to zero at the top (76->36)
+ *   - the dispatch is unsigned, and only a cast AT THE SWITCH gives `bhi`;
+ *     typing the global unsigned does nothing (36->35)
+ *   - in each arm the LIMIT is computed before the global is read (35->25)
  *
- *   MEASURED AND NEGATIVE: forcing that AND into int width with a temporary
- *   (`t = s->f9; s->f9 = (t & -0xd) | 4;`) does add the instruction but costs
- *   two others elsewhere -- 161 lines, 41 differing. The int temp is not the
- *   route; something has to keep the FIELD's read in SImode without
- *   introducing a new pseudo.
+ * A CORRECTNESS NOTE kept from the previous round: the mask is -0xd
+ * (0xfffffff3), not ~0xd (0xfffffff2), and getting that wrong did NOT change
+ * the diff count. The count does not validate semantics.
  *
- * The other three clusters are pairs of adjacent stores/loads exchanged
- * (`str [r5,#0xc]` vs `ldr [r5,#0x50]`; the f8/f10 stores against a byte
- * store; the byte store against the f9 read). All are schedule, not shape.
+ * WHAT IS LEFT: seven lines in three clusters, every one a pair of adjacent
+ * instructions exchanged, with the line count now exact.
+ *
+ *     27/28   `ldr r3, [r2]` and `lsl r1, #0xe` -- the ROM reads the global
+ *             BETWEEN the two halves of building the limit; we finish the
+ *             limit first. This is the arg-interleave shape inside a switch
+ *             arm, and the dominating-block lever cannot reach it because the
+ *             two arms need DIFFERENT constants, so there is nothing to hoist.
+ *     128/129 `str [r5,#0xc]` and `ldr [r5,#0x50]` exchanged.
+ *     135-137 the two coordinate stores against the byte store.
+ *
+ * MEASURED AND NEGATIVE this round:
+ *   a fresh `int t` for the mask          161 lines, 41   (adds one, costs two)
+ *   reusing the dead `v` for it           161 lines, 49
+ *   reusing the dead `lim` for it         161 lines, 49
+ *   an explicit `(int)` cast on the field 25   (no change)
+ *   the mask written `~0xc`               25   (no change)
+ *   loading `s` after the f18/f1c stores   7   (no change)
+ *   the coordinate stores hoisted          7   (no change)
+ *   `a->f55` moved down beside the other byte store  20 (worse)
  */
 struct Sub {
     unsigned char pad00[9];
-    unsigned char f9;
+    signed char f9;
     unsigned char pad0a[0x1c];
     unsigned char f26;
 };
