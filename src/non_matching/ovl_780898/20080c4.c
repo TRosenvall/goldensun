@@ -78,6 +78,21 @@
  * something the 0x80 setup does not -- worth one focused attempt by anyone with
  * a fresh idea, because eighteen functions come with it.
   *
+ * ROUND 3, batch 156. The park asks for "a construct that makes the two zero
+ * stores depend on something the 0x80 setup does not". Tried exactly that, and
+ * it is a CLEAN NEGATIVE:
+ *
+ *   giving the PLAYER actor its own pointer local, `q = p;`, assigned after the
+ *   block stores and used for every p-> access in the tail          -- 7
+ *
+ * The reasoning was that a pseudo born after the block stores could not have
+ * its `mov r2, r8` hoisted above them. gcc simply coalesces the copy -- q and p
+ * are the same value with no intervening write, so the birth is not a barrier.
+ * That closes off the "make the second actor's base arrive later" family of
+ * ideas, which is the obvious reading of the park's own suggestion. Anything
+ * that works here has to change what the STORES depend on, not what the
+ * POINTER depends on.
+ *
  * ===> HIGHEST-VALUE PARK IN THE TREE. tools/dupfuncs.py shows this function
  * has EIGHTEEN identical copies across overlays, differing only in which data
  * labels they name. Solving these seven lines elevates eighteen functions. <===
