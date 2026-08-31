@@ -10008,3 +10008,60 @@ Both first screens were already at exact length. The `multi` label costs a
 `split_s.py` run and nothing else, and the split is byte-neutral by
 construction — so treat that population as ordinary candidates, not as work
 deferred behind an obstacle.
+
+## Initialise the RESULT before the value it is compared against
+
+`GetMoveDisplayEffect` is a chain of independent `if`s, each overwriting a
+result. Written the obvious way -- compute the key, zero the result, then test --
+gcc IF-CONVERTS the first test into a branchless `eor / neg / orr / lsr #31`
+sequence and the whole function diverges: 37 of 36 differing and two lines long.
+
+Moving the initialisation ABOVE the key computation:
+
+    r = 0;
+    t = m[1] & 0xf;
+    if (t == 1) r = 1;
+
+is 14 differing and one line short. Nothing else changed. The result being live
+before the condition exists is apparently enough to stop gcc treating the pair
+as a settable predicate.
+
+**So when a ROM has a run of `cmp / bne / mov` and we emit branchless
+arithmetic, try hoisting the result's initialiser above everything the
+conditions read.** It costs one screen and it is not the same as the
+assignment-position lever for register choice -- here it changes the CONTROL
+FLOW gcc emits.
+
+## `volatile` at the use site reaches a redundant load that `-fno-gcse` does not
+
+The same function ends with the ROM reading `m[3]` TWICE -- once into a register
+compared three times, once again as the call argument -- with no store between.
+gcc commons them and is one line short.
+
+Measured, all inert: two separate `int` locals for the two reads;
+`-fno-gcse`, which docs/elevation.md records as reaching re-reads no cse-family
+flag does; and passing the already-loaded local instead.
+
+`*((volatile unsigned char *)m + 3)` at either use site matches outright.
+
+So `-fno-gcse` and a use-site `volatile` are not interchangeable: the flag did
+not restore this load and the cast did. Reach for the cast when the redundant
+load is at ONE identifiable site -- it is also narrower than a flag, which is
+the right shape for a whole-TU decision that only one expression needs.
+
+## A stack argument equal to a register argument is ONE named local, used twice
+
+`OvlFunc_916_2008150` calls the same six-argument routine from both arms of a
+branch. In the first arm the ROM builds 4 once and uses it for BOTH the fourth
+argument and the stack slot:
+
+    rom   mov r2,#9 / mov r3,#4 / str r2,[sp,#4] / mov r0,#0 / mov r1,#0
+          / mov r2,#1 / str r3,[sp,#0]        <- r3 is still argument 4
+
+Writing `f(0, 0, 1, 4, 4, 9)` with two literals gives two materialisations and
+23 differing. Writing `v = 4; f(0, 0, 1, v, v, 9)` matches. The other arm needs
+them distinct and gets two locals.
+
+This is the per-call-site stack-argument rule with the extra step: check whether
+the ROM's stack value IS one of the register arguments before giving it a local
+of its own.
