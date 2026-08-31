@@ -9641,3 +9641,29 @@ already says.
 The distinction is the position of the FIRST use relative to the guard, not the
 constant's kind. A value first used inside the guarded block rematerialises; a
 value first used in the entry block is live across the call and commons.
+
+## The guarded-interleave routine, in order
+
+`tools/guarded_interleave.py` has produced nine elevations. Working its output is
+now mechanical, and the order matters because the steps interfere:
+
+1. **Name every constant whose uses are all AFTER a guard** -- shifted builds,
+   `mov`/`neg` builds, and pool loads alike, assigned in the entry block.
+2. **Never name a flag id used by the guard itself.** Screen with
+   `--no-rerun-cse` from the start when the ROM materialises one id both before
+   and inside a conditional branch, and add a `CSE_CFLAGS` rule if it lands.
+3. **Delete the callee's prototype** when the residue is the same instructions
+   transposed (fill order). Not for different register names.
+4. **Delete any local that only holds an address.**
+5. **Write the arms in the ROM's fall-through order.**
+
+Steps 1 and 2 look contradictory and are not. The discriminator is the position
+of the FIRST use relative to the guard: a value first used inside the guarded
+block rematerialises and wants naming; a value first used in the entry block is
+live across a call, commons, and wants the flag. Three functions in one batch
+were predicted correctly from that rule alone.
+
+Steps 3, 4 and 5 are each independently confirmed multiple times now -- the
+no-prototype lever three times, the address-only local four times on four
+different shapes, and the fall-through reading again on `OvlFunc_953_200839c`
+where swapping the arms took 58 differing to 4.

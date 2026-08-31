@@ -4526,6 +4526,27 @@ asm/overlays/rom_7aa430/ovl_1150_c_c_c_b.o: src/overlays/rom_7aa430/ovl_1150_c_c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# OvlFunc_921_20098c4: 0x80 << 2 feeds a GetFlag guard and both a SetFlag and a
+# ClearFlag in the arms; 29 differing at -O2 and 74 lines against 72, exact with
+# CSE_CFLAGS once the address-only pointer local is deleted.
+asm/overlays/rom_7a7298/ovl_30_c_c_c_c_c_a_c_c_c.o: src/overlays/rom_7a7298/ovl_30_c_c_c_c_c_a_c_c_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# OvlFunc_945_200c5d0: the same GetFlag(0x80 << 2) / SetFlag(0x80 << 2) pair
+# around an actor-creation block; 61 differing at -O2, exact with CSE_CFLAGS.
+asm/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_c_a_b.o: src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_c_a_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# OvlFunc_953_200839c: GetFlag(0xf0 << 2) guarding a block that ends
+# SetFlag(0xf0 << 2); 74 differing at -O2, exact with CSE_CFLAGS once the two
+# arms are written in the ROM's fall-through order and __Func_8092c40 loses its
+# prototype.
+asm/overlays/rom_7d95dc/ovl_30_c_c_c_a_a_a_c_a_a_a.o: src/overlays/rom_7d95dc/ovl_30_c_c_c_a_a_a_c_a_a_a.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 # OvlFunc_885_20080dc is caught by the rom_78603c/ovl_30_c_c_a_c_a% wildcard,
 # which applies O1_CFLAGS.  Wrong for this TU: it screens exact at -O2 and the
 # linked overlay differs in 18 bytes at -O1, all of them argument-order swaps
