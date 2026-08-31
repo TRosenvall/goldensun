@@ -223,6 +223,40 @@ but leaves the variable in the same register, so the `ldr` offsets swap instead
 and the count stays at 13. Birth order moves a POINTER's materialisation, not a
 value's allocation priority.
 
+## The interleave lever CONFIRMED, with its source signature
+
+Following the survey below, the shape was traced back to source in matched
+code. It is the basic-block lever, and this is what it looks like when it works:
+
+    a1 = 0x81 << 1;                    /* named local, assigned early */
+    ...
+    if (...) {                         /* a branch between */
+        __MapActor_Surprise(0x15, a1); /* used at a guarded call site */
+
+produces exactly `mov r1, #129 / mov r0, #21 / lsl r1, r1, #1` -- the other
+argument's `mov` scheduled into the gap. From
+src/overlays/rom_797990/ovl_314_c_c_a_a_c_c_a_c_c_a_c_b.c.
+
+**The signature to look for, before spending a round:** a two-instruction
+constant, assigned to a NAMED LOCAL, in a block that DOMINATES a call site
+which lies behind a branch. All three parts are load-bearing. 117 matched
+functions carry the shape; in 71 of them the shifted constant is in the HIGHER
+register, i.e. a later argument, so argument position is NOT a constraint --
+that hypothesis was tested and refuted (46 lower, 71 higher).
+
+**WHERE IT DOES NOT REACH, both measured:**
+
+  - A STRAIGHT-LINE FUNCTION has no dominating block, so there is nothing to
+    hoist into. `OvlFunc_945_200dca4` (2 of 43) and `OvlFunc_945_200bdec`
+    (2 of 26) are both seven-to-eleven calls in sequence with no condition.
+    Confirmed again this round: naming both argument values at the call site
+    changes nothing.
+  - A SWITCH ARM WHOSE ARMS NEED DIFFERENT CONSTANTS. On
+    `OvlFunc_911_200a7ac` the switch is a real branch, so the boundary above
+    does not apply -- but hoisting BOTH arms' constants above it and selecting
+    one per arm leaves the count unchanged at 7. The lever wants one constant
+    dominating one use, not a choice of constants.
+
 ## The interleaved constant build is ROUTINE, not a ceiling
 
 Several parks describe an "arg-interleave wall": the ROM builds a
