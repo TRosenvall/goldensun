@@ -9157,3 +9157,48 @@ The cheap check that catches it after the fact is already in the workflow:
 `git status` before committing. A park file that appears as `M` rather than `??`
 means the function was already parked — stop and read the existing note before
 overwriting it.
+
+## A `volatile` local reproduces a value the ROM keeps in a stack slot
+
+`Func_8092504` allocates a four-byte frame for ONE value, writes the entry byte
+into it, and re-reads it on every loop iteration — while pushing r5, r6 and r7,
+so it is not short of registers. Written as a plain local, gcc keeps the value
+in a callee-saved register across the call and the function comes out FIVE
+LINES SHORT (33 differing at 29 lines against 34).
+
+Declaring it `volatile` makes it memory-resident and re-read at each use: 8
+differing at exactly 34 lines.
+
+**The tell:** `sub sp, #N` for a frame holding one value, stored once and
+re-loaded inside a loop, in a function that has spare callee-saved registers.
+
+**State it as an inference.** A plain local that gcc happened to SPILL produces
+the same shape, and the two cannot be distinguished from output alone. Reach
+for this when the frame is small, the value is loop-invariant, and register
+pressure does not explain the spill — and say so in the park rather than
+claiming the original said `volatile`.
+
+## Name the COMPLETE offset, not a partial one
+
+The name-the-offset lever has a precision requirement that cost three screens
+on `Func_80b6cdc`. The ROM addresses a table as base plus a computed index,
+with the field displacement folded INTO the index:
+
+    rom    lsl r2, r1, #1 / add r3, r2, #4 / ldrsh r3, [r4, r3]
+    ours   lsl r3, r1, #1 / add r2, r3, r4 / mov r5, #4 / ldrsh r3, [r2, r5]
+
+Written as `s[i + 2]`, gcc folds the base into the pointer and uses the
+displacement as the index — the mirror image. Naming the PARTIAL offset
+(`off = i * 2;` then `s + off + 4`) changes nothing: gcc re-associates it to
+`(s + off) + 4` and the output is byte-identical.
+
+Naming the COMPLETE byte offset is what works:
+
+    off = i * 2;
+    a = off + 4;          /* the whole displacement, in its own local */
+    ... *(short *)(s + a) ...
+
+That matched outright. The ROM's own shape shows why the partial form is not
+enough: it computes `i * 2` once and derives BOTH displacements from it with
+separate adds, so `i * 2` is a real value in the original and each full offset
+is another. Write both.
