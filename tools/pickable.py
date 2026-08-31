@@ -118,6 +118,46 @@ def constants(body):
     return counts
 
 
+WRITES_REG = re.compile(
+    r"^\s*(mov|add|sub|lsl|lsr|asr|and|orr|eor|mul|neg|ldr|ldrb|ldrh|ldrsb|ldrsh|ldm\w*)"
+    r"\s+(r\d+)")
+MOV_REG_REG = re.compile(r"^\s*mov\s+(r\d+),\s*(r\d+)\s*$")
+
+
+def pure_copies(insns):
+    """Count `mov rX, rY` where rY is NEVER WRITTEN AGAIN.
+
+    Such a copy is a pure duplicate: the two registers hold the same value for
+    the rest of the function, so they never diverge.  docs/elevation.md records
+    that this shape is UNREACHABLE from C -- any local initialised from the
+    source is provably the same rtx and gcc coalesces it, emitting no `mov`.
+    Confirmed on Func_80a8b10 (a loop limit), Func_80e38b8 (a base pointer),
+    HeightTile_B (an index) and Func_801cee0 (a loaded byte), each of which sat
+    within a few lines of the ROM with the copy as the entire residue.
+
+    So a nonzero count is a floor on the differing count that no spelling will
+    clear.  It is reported rather than rejected -- a function can carry one and
+    still be worth screening if everything else is clean -- but of 51 low-call
+    candidates only 17 scored zero, and the first zero-scoring one tried matched
+    in two screens (Func_80cd418).
+
+    Deliberately conservative: only `mov rD, rS` is counted, and any later
+    write to rS disqualifies it, so a copy whose source is later reassigned
+    (the reachable two-names case that closed Func_8092980) is NOT counted.
+    """
+    n = 0
+    for i, line in enumerate(insns):
+        m = MOV_REG_REG.match(line)
+        if not m:
+            continue
+        src = m.group(2)
+        if any((w := WRITES_REG.match(x)) and w.group(2) == src
+               for x in insns[i + 1:]):
+            continue
+        n += 1
+    return n
+
+
 def parked():
     """Functions already parked under src/non_matching.
 
