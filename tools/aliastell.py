@@ -76,8 +76,15 @@ def hits(body):
             sw = WIDTH[m.group(1)]
             # a store of a DIFFERENT width makes every wider pending load
             # re-readable in the ROM but commonable for us
+            # A CHARACTER type aliases everything, so gcc reloads after a
+            # `strb` whatever the flag says -- OvlFunc_947_2009938 was offered
+            # on that and its re-read already matched. Likewise a `ldrb` read
+            # is a character read and always reloads. Only a store that CANNOT
+            # alias the loaded type qualifies: short against int.
+            if sw == 1:
+                continue
             for a, (w, _) in list(seen.items()):
-                if w != sw:
+                if w != sw and w != 1:
                     seen[a] = (w, True)
     return n
 
