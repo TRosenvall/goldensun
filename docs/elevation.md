@@ -9202,3 +9202,29 @@ That matched outright. The ROM's own shape shows why the partial form is not
 enough: it computes `i * 2` once and derives BOTH displacements from it with
 separate adds, so `i * 2` is a real value in the original and each full offset
 is another. Write both.
+
+## Where the complete-offset lever stops: the base fold
+
+Naming the complete byte offset restores the ROM's `[base, index]` form ONLY
+when the base register gcc chose is already the right one. Both sides measured
+in one round:
+
+* `Func_80a3c98` — the ROM has the base in r6 and gcc had put it there too;
+  the only difference was that gcc folded the base into the offset chain.
+  Naming the complete offset (`off = 0x8a * 2 + i * 4`) matched outright, and
+  the operand order INSIDE the offset expression made no difference.
+* `Func_80f7df0` — the ROM holds the base in r4 across the whole body, reaches
+  three fields with `[r4, rX]`, and pushes r5 to keep the offsets live. gcc
+  folds each base-plus-offset into a pointer instead, needs one register fewer,
+  and does not push r5. Naming every offset completely is worth only two
+  differences (29 -> 27) and leaves it two lines short.
+
+**The distinction: the fold and the register spend are one decision.** Holding
+several complete offsets live costs a callee-saved register; folding the base
+into a pointer avoids it. When the ROM pays that cost and gcc has no reason to,
+the source cannot ask for the more expensive form — naming the offsets does not
+create the pressure that would justify it.
+
+So check the ROM's `push` list first. If it saves a register more than a
+natural C version needs, the addressing difference is downstream of that and
+the lever will not close it.
