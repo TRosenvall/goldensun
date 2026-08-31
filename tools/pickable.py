@@ -92,7 +92,14 @@ NEG = re.compile(r"^\tneg\t", re.M)
 # because the old pattern required a hex address suffix in the NAME.  The
 # `-- 0x<addr>` and `<name>  asm/<path>.s` anchors are specific enough on their
 # own; loose mentions in prose still do not match.
-PARK_HDR = re.compile(r"^\s*(?:/\*)?\s*([A-Za-z_]\w*)\s*--\s*0x", re.M)
+# A park header names its function as `NAME -- 0xaddr` OR `NAME -- asm/<path>.s`.
+# Only the first was matched until batch 159, and 80 of the 182 park headers in
+# the tree use the second -- so any park whose FILENAME is not the address (a
+# class park, or a function without a hex suffix in its name) was re-offered.
+# OvlFunc_common1_148 came back to the top of the list the round after it was
+# parked; that is the third re-offer this batch and the reason both forms are
+# accepted here rather than fixed park by park.
+PARK_HDR = re.compile(r"^\s*(?:/\*)?\s*([A-Za-z_]\w*)\s*--\s*(?:0x|asm/)", re.M)
 PARK_LST = re.compile(r"\b([A-Za-z_]\w*)\s+asm/\S+\.s")
 MOV = re.compile(r"^\tmov\t(r\d+), #(0x[0-9a-f]+|\d+)$")
 LSL = re.compile(r"^\tlsl\t(r\d+), #(\d+)$")

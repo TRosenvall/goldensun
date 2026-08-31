@@ -9248,3 +9248,25 @@ function. Several uses is CSE and tells you nothing; one use is the tell.
 
 `Func_801b9a8` and its twin `Func_801b9ec` use theirs once, and naming that
 constant would close both.
+
+## The int-local fix for a pooled constant needs a SPARE REGISTER
+
+Routing a stored constant through an `int` local turns a pooled HImode literal
+into a `mov`. It closed `Func_8011b00`, `Func_80173f4` and `Func_80c01bc`.
+
+It is not free, and on `OvlFunc_common1_148` it BACKFIRES — the function sits
+at 1 differing of 30 with the literal left alone, and every route through a
+local is worse:
+
+    a new `int` local                 1 -> 4 differ
+    reusing the already-dead `t`      1 -> 4
+    reusing the already-dead `off`    1 -> 4
+    reusing the already-dead `v`      1 -> 5
+
+Reusing a local that is already dead does not help, so this is not about how
+many variables are declared. The constant has to be LIVE ACROSS THE STORE, and
+that costs a register at exactly that point.
+
+**Precondition: apply it when the function has a spare register at the store,
+and re-check the count afterwards.** On a function that is already tight, the
+pooled literal is the cheaper of the two wrong answers.
