@@ -110,6 +110,10 @@ NEG = re.compile(r"^\tneg\t", re.M)
 PARK_HDR = re.compile(
     r"^\s*(?:/\*)?\s*([A-Za-z_]\w*)\s*(?:--|@)\s*(?:0x|asm/)", re.M)
 PARK_LST = re.compile(r"\b([A-Za-z_]\w*)\s+asm/\S+\.s")
+FUNC_ANY = re.compile(
+    r"^\s*\.thumb_func_start(?:_noalign)?\s+(\S+)|^\s*\.type\s+(\S+?),\s*function",
+    re.M)
+CDEF = re.compile(r"^[A-Za-z_][\w \*]*?\b(\w+)\s*\([^;{]*\)\s*$", re.M)
 MOV = re.compile(r"^\tmov\t(r\d+), #(0x[0-9a-f]+|\d+)$")
 LSL = re.compile(r"^\tlsl\t(r\d+), #(\d+)$")
 POOL = re.compile(r"^\tldr\tr\d+, =(\S+)$")
@@ -195,16 +199,48 @@ def parked():
     straight back to the top.  Two rounds were spent re-deriving parks that were
     already written -- OvlFunc_955_2009424 and OvlFunc_967_2008308 were both at
     the head of the list on the day their park notes were sitting in the tree.
+    HEADER FORMATS ARE NOT A RELIABLE KEY -- do not add a sixth regex.
+
+    Four header conventions were accommodated one at a time, each after a
+    parked function was re-offered as a candidate.  Auditing all 467 park files
+    at once showed the regex approach recognising only 257 of them: the tree
+    also contains `NAME [path]`, `NAME -- NON-MATCHING.`, `NAME -- NOT MATCHING`,
+    `NAME [path] -- 0xaddr`, `NAME and NAME2 [path]`, headers whose first line
+    is a bare `/*`, and class write-ups that name no function at all.  Nearly
+    half the parked set was invisible, which is why candidate scans kept
+    re-offering work that was already done.
+
+    So this no longer parses the header.  It builds the universe of real
+    function names from the .s corpus and looks for any of them in each park
+    file's leading comment, plus any C function the file defines.  A new
+    header convention cannot break that, because it keys on the NAME rather
+    than on the punctuation around it.
     """
+    universe = set()
+    for root, _, files in os.walk("asm"):
+        for f in files:
+            if f.endswith(".s"):
+                text = open(os.path.join(root, f), errors="ignore").read()
+                for a, b in FUNC_ANY.findall(text):
+                    universe.add(a or b)
+
     out = set()
     for root, _, files in os.walk("src/non_matching"):
         for f in files:
             if not f.endswith(".c"):
                 continue
+            path = os.path.join(root, f)
             out.add(f[:-2])
-            text = open(os.path.join(root, f), errors="ignore").read()
+            text = open(path, errors="ignore").read()
             out |= set(PARK_HDR.findall(text))
             out |= set(PARK_LST.findall(text))
+            # the leading comment block, whatever shape it takes
+            m = re.match(r"\s*/\*.*?\*/", text, re.S)
+            if m:
+                out |= {t for t in re.findall(r"\b\w+\b", m.group(0))
+                        if t in universe}
+            # and anything the file actually defines
+            out |= {n for n in CDEF.findall(text) if n in universe}
     return out
 
 

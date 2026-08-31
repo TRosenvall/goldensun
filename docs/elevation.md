@@ -9337,3 +9337,90 @@ five instructions, because gcc's branchless `!= 0` idiom
 (`neg / orr / lsr #31`) is reached only when the AND feeds the test directly.
 Two functions in one file wanted opposite spellings. Screen per function, not
 per file.
+
+## CORRECTION: the duplicate-constant class is the DOMINANCE rule, already recorded
+
+The section "Duplicate-constant CSE into a callee-saved register" above was
+written as a new blocker class. It is not new. "When gcc HOISTS a repeated
+constant, exactly: dominance" already had the mechanism, probed with five
+variants: uses in mutually exclusive branches REBUILD, a use that dominates
+another HOISTS. Both functions parked under the newer heading are straight-line,
+so every use dominates the next, and the hoist is exactly what that rule
+predicts.
+
+What the two new parks do add is the COST side. The dominance entry does not
+say whether gcc weighs what recomputing would cost, and OvlFunc_903_200843c
+settles it: each use is a single pool load and a register copy is also one
+instruction, so the hoist saves nothing and costs four. gcc hoists anyway.
+Repetition plus dominance is the whole trigger; expense does not enter.
+
+Read the two sections together. The dominance rule tells you WHETHER to expect
+the hoist from the ROM's control flow, before writing any C.
+
+## `parked()` was blind to 210 of 467 park files -- fixed by not parsing headers
+
+Four header conventions had been added to `PARK_HDR` one at a time, each after a
+parked function was re-offered as a candidate, and the last entry on this
+promised the problem was closed. It was not. Auditing every park file at once
+instead of reacting to one miss showed the regex recognising 257 of 467. The
+tree also uses `NAME [path]`, `NAME -- NON-MATCHING.`, `NAME -- NOT MATCHING`,
+`NAME [path] -- 0xaddr`, `NAME and NAME2 [path]`, files whose first line is a
+bare `/*`, and class write-ups that name no function at all.
+
+Nearly half the parked set was invisible. The selection filter dropped from 21
+candidates to 10 once this was fixed, so roughly half of every candidate list
+for an unknown number of rounds was work already done -- which is the real cost
+of the four previous one-at-a-time patches, and it was never visible because a
+re-offered function looks exactly like a fresh one.
+
+**The fix is to stop keying on the header format.** `parked()` now builds the
+universe of real function names from the .s corpus and looks for any of them in
+each park file's leading comment, plus any C function the file defines. A sixth
+convention cannot break that, because it keys on the NAME rather than on the
+punctuation around it. `parked()` went from 687 entries to 1143, and the audit
+that found the gap now reports zero unrecognised files -- run it again after
+adding parks in bulk.
+
+The general lesson, which cost four rounds to learn: when a filter is patched
+repeatedly for the same class of miss, MEASURE ITS COVERAGE instead of adding
+another case. One audit answered what four patches did not.
+
+## `tools/filtered.py`: the selection filter, finally as code
+
+The filter described under "A SELECTION FILTER that works" had been used once
+and never committed, so every round re-derived it by hand. It is now a tool.
+Same five rejects (size 40-120, no r8-r11, no repeated expensive constant, at
+least 8 calls), reusing `pickable.parked()`, and it flags which candidates have
+kin. Ten functions currently pass.
+
+## Deleting an address-only local, confirmed on a LOOP base
+
+"A local that only holds an ADDRESS can cost the ordering -- delete it" is an
+old entry, and `UpdatePoison` is a clean second instance with a measurement
+attached, because the local looked mandatory.
+
+The ROM builds the gState offset rather than folding it:
+
+    ldr r3, =gState / mov r2, #0xfc / lsl r2, #1 / add r6, r3, r2
+
+The documented way to stop the fold is a local pointer, and it works -- 78
+differing to 17. But the residue was then a register-role swap, `worst` and the
+array pointer exchanged, plus the base materialising ABOVE the loop guard where
+the ROM has it below. Both symptoms had ONE cause: a local assigned before the
+loop is born before the guard, which lengthens its live range, and by
+`global.c`'s priority formula a longer range loses the earlier register.
+
+Indexing the array directly -- `gState[(0xfc << 1) + i]`, with the local gone --
+matched outright. The index expression carries `i`, so there is nothing for gcc
+to fold into `ldr =gState+504`, and the base is now born in the loop preheader
+BELOW the guard, which gives it the shorter live range and the ROM's register.
+
+So the two levers are not alternatives to choose between. **If the offset varies
+with a loop induction variable, indexing already prevents the fold and the local
+is pure cost.** Reach for the local pointer only when the offset is constant.
+
+Also measured on the same function, and both worth knowing:
+  * assigning the base INSIDE the loop body is much worse (79 lines to 87) --
+    gcc reloads it every iteration rather than hoisting.
+  * declaration order is inert here, three permutations byte-identical, which
+    is what "register allocation follows ASSIGNMENT position" already predicts.
