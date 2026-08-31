@@ -83,3 +83,35 @@ if __name__ == "__main__":
                 print(f"  {r:.3f}  {n:24s} {c}")
             sys.exit(0)
     print("candidate not found")
+
+
+def parent_stem(path, levels=1):
+    """Strip `levels` split suffixes to reach an ancestor filename stem.
+
+    split_s.py names halves by appending _a/_b/_c, so `ovl_30_c_c_c_a_c_a_a.s`
+    and `ovl_30_c_c_c_a_c_a_b.c` are the two children of
+    `ovl_30_c_c_c_a_c_a`.  Stripping ONE suffix finds true siblings; stripping
+    to exhaustion just yields the bank (`ovl_30`), which is the directory proxy
+    batch 159 measured as useless.
+    """
+    stem = os.path.basename(path).rsplit(".", 1)[0]
+    for _ in range(levels):
+        if len(stem) > 2 and stem[-2] == "_" and stem[-1].isalpha():
+            stem = stem[:-2]
+    return os.path.dirname(path), stem
+
+
+def kin(path, levels=1):
+    """Already-matching .c files cut from the same parent .s as `path`.
+
+    Ranks ABOVE shape similarity.  Batch 160: OvlFunc_916_2008b3c's best shape
+    match scored 0.683 -- below the ~0.7 threshold where a sibling stops being a
+    usable template -- but the function beside it in the same file shared the
+    record struct exactly, and taking that struct made the first screen 2 of 43.
+    Shape similarity compares CONTROL FLOW, which is what neighbouring functions
+    differ in; what they share is the DATA they walk.
+    """
+    d, stem = parent_stem(path, levels)
+    d = d.replace("asm/", "src/", 1)
+    return [c for c in glob.glob(d + "/*.c")
+            if "non_matching" not in c and parent_stem(c, levels)[1] == stem]

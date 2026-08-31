@@ -1,51 +1,6 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ Leaf helper, 32 instructions, calls nothing.
-@ Described by what it touches, not by what it means.
-@ Globals: ewram_10000, ewram_2c000
-@ Reads offsets +0x2, +0x3.
-.thumb_func_start OvlFunc_916_2008be4
-	push	{r5, r6, r7, lr}
-	ldr	r7, =gBuffer
-	ldr	r6, =ewram_202c000
-	mov	r5, r2
-	mov	r2, #0
-.Lbee:
-	lsl	r3, r1, #7
-	add	r3, r0, r3
-	lsl	r3, #2
-	add	r4, r3, r7
-	ldrb	r3, [r4, #2]
-	cmp	r3, #0xff
-	beq	.Lc06
-	ldrb	r3, [r4, #3]
-	lsl	r3, #2
-	ldrb	r3, [r3, r6]
-	cmp	r3, #0
-	beq	.Lc0c
-.Lc06:
-	mov	r0, #1
-	neg	r0, r0
-	b	.Lc1e
-.Lc0c:
-	cmp	r5, #0
-	bne	.Lc14
-	add	r0, #1
-	b	.Lc16
-.Lc14:
-	add	r1, #1
-.Lc16:
-	add	r2, #1
-	cmp	r2, #3
-	ble	.Lbee
-	mov	r0, #0
-.Lc1e:
-	pop	{r5, r6, r7}
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_916_2008be4
-
 @ 239 instructions. Not one of the recognised overlay shapes,
 @ so this is a CALL TRACE rather than a description -- what it does with
 @ these is not characterised here.
