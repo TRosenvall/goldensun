@@ -9424,3 +9424,75 @@ Also measured on the same function, and both worth knowing:
     gcc reloads it every iteration rather than hoisting.
   * declaration order is inert here, three permutations byte-identical, which
     is what "register allocation follows ASSIGNMENT position" already predicts.
+
+## The no-prototype lever: two independent hits in one round
+
+The lever is recorded as narrow, with the important caveat that `extern int f();`
+behaves identically to a full prototype -- so it is the ABSENCE of a declaration
+that matters, not a weakened one. Two functions in one round were closed by it,
+on two different callees, and in both the residue was an argument fill order and
+nothing else:
+
+    __Func_8092c40(0x10, 0)      rom mov r1,#0 / mov r0,#0x10   ours reversed
+    OvlFunc_913_2008244(...)     rom sets r0 LAST among r0-r3   ours earlier
+
+Deleting the declaration gave the ROM's order exactly in both cases -- 4
+differing to 2 on the first, and 2 to a match on the second.
+
+**So promote it in the order you try things: when the residue is purely which
+register gets filled when, and the instructions themselves are right, delete the
+callee's declaration before reaching for anything structural.** It costs one
+screen. It is still narrow in the sense that it does nothing for register
+ASSIGNMENT -- only for fill ORDER -- but that distinction is easy to make from
+the diff, because a fill-order residue shows the same instructions transposed
+while an assignment residue shows different register names.
+
+## A stack argument in a callee-saved register means it crossed a call
+
+`OvlFunc_913_2008a68` had a two-argument stack pair where the ROM built the
+second value in r5 and stored it after all four register arguments were filled,
+while we built it in a scratch register and stored it before them.
+
+r5 is callee-saved, and gcc only spends one on a value that survives a call. So
+the ROM's register choice is itself the reading: that value was live across the
+preceding call in the original. Assigning it before that call rather than
+adjacent to its own reproduced the register AND the deferred store, 6 differing
+to 2.
+
+**The live range wants to be the shortest one that still crosses a call.**
+Assigning the same value at the top of the function instead is worse (6 again),
+because a range that crosses several calls is not what the ROM's allocation
+shows. This refines the per-call-site stack-argument rule rather than replacing
+it: name both arguments per site, and then place the assignment by which
+register the ROM spends.
+
+## A second instance of the dominance contradiction
+
+The dominance section ends with `OvlFunc_952_200be40` recorded as a case where
+the ROM rebuilds a constant that, by the measured rule, it should have hoisted --
+with the note that the likeliest reading is two different symbols coinciding in
+value, and that this is inference from a contradiction rather than a
+measurement.
+
+`OvlFunc_891_2008098` is a second instance, and a cleaner one because everything
+around it matches. Instructions 0-53 are exact; the ROM then builds a fresh 2
+into a scratch register for a stack argument while the loop's stack value -- also
+2, in r7 -- is still live and would have served. gcc commons them, which is what
+dominance predicts. Naming the later constant is byte-identical, the same way
+per-use-site naming fails against any dominating use.
+
+Two instances is not proof, but it is enough to stop treating the first as a
+one-off. If a third turns up, the symbol reading is the thing to test.
+
+## Ranking a residue: first-divergence beats the differing COUNT
+
+Splitting two disjoint live ranges into separate variables on
+`OvlFunc_891_2008098` moved the first divergence from instruction 13 to 54 while
+RAISING the differing count from 15 to 24. The 24-differing version is the
+better one: its residue is a single localised call, where the 15-differing
+version's divergence runs through the whole body and the count is low only
+because the two streams keep re-synchronising by accident.
+
+`--quiet`'s count is a similarity score, not a distance to a match. When two
+versions disagree, compare where they FIRST diverge and how localised the
+residue is, and keep the one whose remaining problem you can name.
