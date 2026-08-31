@@ -8944,3 +8944,53 @@ pointer loop to integer arithmetic in order to obtain the ROM's SIGNED compare
 COMPARISON — `while ((int)p >= (int)buf)` — buys the same `bge` and leaves the
 loop body as pointer dereferences, which is what the ROM has. When a cast is
 needed for a comparison, cast the comparison, not the loop.
+
+## The loop-body class: what separates the matches from the stalls
+
+Six functions from the loop-body class have now been worked. The split is
+clean and gives a screening signal to apply BEFORE writing any C.
+
+MATCHED, on first or near-first contact:
+
+    UpdateRespawnMap    51 insns   table search, 3 live values
+    Func_801fda8        58 insns   clipped rect fill, 4 live but short-lived
+    Func_80907b0        45 insns   two DMA blocks + two counted loops
+    Func_80b9a70        52 insns   table search, 3 live values
+
+STALLED, all on the SAME thing -- a whole-function register rotation:
+
+    Func_80f4100        39 of 54   allocation rotated, length exact
+    Func_8029274         6 of 47   copy-back pointer in the wrong register
+    Func_80c0228        36 of 55   v/tile/base/counter all rotated
+    DecodeMetatileset   41 of 78   count/src/dst rotated, switch chain exact
+
+**The signal: count the values live ACROSS the whole body.** At three or so,
+gcc's allocation is forced and matches. At four or more, the ROM and gcc
+disagree about which registers to spend -- typically the ROM spends one more
+callee-saved register than gcc needs, and since these functions have no calls,
+gcc is right and cannot be argued out of it by any spelling.
+
+This is not a reason to avoid the class; four of eight matched, which is a far
+better rate than the call-heavy candidates. It is a reason to read the ROM's
+register usage first and stop early when the rotation is pervasive, rather
+than spending six screens rediscovering it.
+
+## A COPY-then-modify in the ROM means two named values, not one expression
+
+On Func_80c0228 the ROM had
+
+    mov r2, r3 / add r2, #0xd        (copy, then add)
+
+where ours had `add r3, #0xd` in place. The source was `row = v / 8 + 0xd`, one
+expression. Splitting it into two named locals --
+
+    r = v / 8;
+    row = r + 0xd;
+
+-- produced the copy and took the function from 40 differing to 36.
+
+Generalise it as a reading rule: **where the ROM copies a register before
+modifying it, the original had two live names.** Where it modifies in place,
+one. This is cheap to check and it is a genuine lever, though a site-dependent
+one -- naming the mask constant on the same function bought nothing, while the
+same mask lever moved Func_8029274 by two lines.
