@@ -9850,3 +9850,45 @@ references.
 How many candidates this cost is not knowable from here; the tool's docstring
 says it was run over 62 saved candidates, and any of those that matched on a
 single deletion would have been reported as a failure.
+
+## A MISSING RELOAD after a store of a different width is an ALIASING tell
+
+`Func_808d828` sat at 68 differing with everything after one point shifted. The
+cause was a single load:
+
+    rom   strh r3, [r2, #0] / ldr r1, [r5, #0x8] / ...
+    ours  strh r3, [r2, #0] / (no reload -- the old r1 is reused)
+
+At `-O2` gcc-2.96 has strict aliasing on, so a `short` store provably cannot
+alias an `int` read and the reload is commoned away. `-fno-strict-aliasing`
+restores it and takes the function from 68 differing to 7, at exact length.
+
+**Recognise it by the missing load, not by the instructions around it.** Where
+the ROM re-reads a field after storing through a pointer of a DIFFERENT WIDTH
+and we do not, test `ALIAS_CFLAGS` before spending screens on the surrounding
+code — the divergence it causes is unbounded, because everything downstream
+shifts, so it looks like a much larger problem than it is.
+
+## The derived-constant rule: unreachable only when both values are DEAD
+
+"The INVERSE constant problem" says a `sub rN, #K` applied to a pooled constant
+is the ROM deriving one offset from another and is not reachable, because
+`off = A; ... off -= K;` folds at each use. That is true of the case it was
+written from, and too broad.
+
+`Func_808d828`'s ROM does the same shape:
+
+    mov r2, #0x80 / lsl r2, #2 / and r3, r2 / ... / sub r2, #0x64
+
+and the mutate-in-place spelling REPRODUCES it exactly:
+
+    m = 0x80 << 2;
+    if ((f & m) != 0) { m -= 0x64; ... }
+
+The difference is that the value has a REAL USE — as the `and`'s mask — between
+its definition and the subtraction. It is one live variable being mutated, not
+two dead constants gcc can fold independently.
+
+**So: deriving is unreachable when both values are dead constants, and reachable
+when the first is genuinely consumed before the arithmetic.** Check for a
+consumer before writing the shape off.
