@@ -9742,3 +9742,40 @@ compile-time constants, and naming the base folds under the flag exactly as the
 **Before adding a CSE_CFLAGS rule, look for a pooled base that the ROM HOLDS and
 DERIVES from.** That is the thing the flag costs, and it is easy to miss because
 it is working correctly in the unflagged build.
+
+## RE-ATTACK PARKS WITH LEVERS FOUND AFTER THEY WERE WRITTEN
+
+`OvlFunc_946_20092b4` sat parked at TWO differing on this residue:
+
+    rom   ldrb r2, [r1] / mov r3, #0x2 / orr r3, r2
+    ours  ldrb r3, [r1] / mov r2, #0x2 / orr ...
+
+Its park lists two spellings tried and rejected. Neither is the documented fix.
+"The ORR-destination lever needs an `unsigned char` local, not an `int` one" is
+in this file, it is exactly this shape, and `unsigned char m = 2; e[0x23] |= m;`
+matched outright. The park predated the lever and nobody went back.
+
+**A park is a snapshot of what was known the day it was written.** The inventory
+grows every batch, so before spending a round on fresh candidates, grep the park
+corpus for the residue shape of whatever lever was learned most recently. Two
+lines from matching is common in that corpus and the cost of a re-screen is one
+command.
+
+The counter-example, so this is not read as a blanket instruction:
+`OvlFunc_947_2009fd4` is also at 2 differing on an `orr` operand-role residue,
+and its park HAS tried the narrow local -- 18 differing, much worse -- along with
+five other spellings. A thorough park stays parked. Read what was tried before
+re-screening, not after.
+
+## The park corpus goes STALE: 12 files named only already-elevated functions
+
+Sweeping every park file for whether the functions it names are still unsolved
+found twelve that were not -- including one for `Func_80b86ec`, elevated from a
+solved twin two batches earlier with its park left in place. One of them cost a
+round's effort: `OvlFunc_919_2008200`'s park describes a live register-role swap,
+and the function has been elevated since.
+
+They are moved to `toDelete/stale_parks/` rather than deleted, since the analysis
+in them may still be worth reading. Re-run the sweep after any batch that
+elevates from the park corpus; the check is cheap and a stale park is worse than
+no park, because it reads as a measured dead end.
