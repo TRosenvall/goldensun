@@ -1,6 +1,10 @@
 /* Func_801b9a8 -- asm/rom_15000/rom_1aeec_a_a_c_a_c_c.s
  *
- * COVERS TWO FUNCTIONS. Func_801b9ec (0x0801b9ec) in the same file is this
+ * COVERS TWO FUNCTIONS:
+ *   Func_801b9a8  asm/rom_15000/rom_1aeec_a_a_c_a_c_c.s
+ *   Func_801b9ec  asm/rom_15000/rom_1aeec_a_a_c_a_c_c.s
+ *
+ * Func_801b9ec -- 0x0801b9ec -- in the same file is this
  * function plus one trailing `bl Func_801c188`; everything else is identical
  * instruction for instruction. Whatever lands this lands both.
  *
@@ -22,6 +26,19 @@
  * Thumb-1 gas does not fold `ldr rX, =imm8` into `mov`, so a pooled small
  * constant is a genuine SYMBOL TELL -- the original subtracted a named value,
  * not a literal.
+ *
+ * PROBED DIRECTLY rather than argued from the doc. Three forms compiled with
+ * the project's flags -- the subtraction inline as a call argument, through an
+ * int local, and as a plain `return *p - 0x1f` -- ALL emit `sub r0, r0, #31`.
+ * gcc never pools a single-use 0x1f here, so the ROM's pool load is not
+ * something a literal produces.
+ *
+ * BUT THE DOC'S RULE NEEDED A QUALIFIER, found while checking this: matching
+ * code DOES pool a small literal when it is used SEVERAL TIMES and CSE hoists
+ * it into a register -- src/overlays/rom_7ac2d8/ovl_2dcc_b.c masks with 0x1f
+ * three times and its generated .s carries `.word 31`. So "a pooled small
+ * constant is a symbol tell" holds only for a SINGLE-USE constant. Here 0x1f
+ * appears once in the function, so the tell stands.
  *
  * SEARCHED AND NOT FOUND: no `.set`/`.equ` in asm/ or include/ evaluates to
  * 0x1f. The pooled form recurs across at least five other .s files, so it is a

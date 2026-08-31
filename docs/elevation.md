@@ -9228,3 +9228,23 @@ create the pressure that would justify it.
 So check the ROM's `push` list first. If it saves a register more than a
 natural C version needs, the addressing difference is downstream of that and
 the lever will not close it.
+
+## The pooled-small-constant tell applies to SINGLE-USE constants only
+
+The rule recorded here — Thumb-1 gas will not fold `ldr rX, =imm8`, so a pooled
+small constant is a genuine symbol tell — is right but needs a qualifier, and
+the qualifier matters because it decides whether a residue is worth chasing.
+
+**A repeated literal pools too.** `src/overlays/rom_7ac2d8/ovl_2dcc_b.c` masks
+with `0x1f` three times; CSE hoists it into a register and its generated `.s`
+carries `.word 31`. That is a plain literal in matching code, not a symbol.
+
+**A single-use small constant does not.** Probed with the project's flags on
+three forms of `*p - 0x1f` — inline as a call argument, through an `int` local,
+and as a bare return — all three emit `sub r0, r0, #31`. gcc never pools it.
+
+So before treating a pooled small constant as a symbol, count its uses in that
+function. Several uses is CSE and tells you nothing; one use is the tell.
+
+`Func_801b9a8` and its twin `Func_801b9ec` use theirs once, and naming that
+constant would close both.

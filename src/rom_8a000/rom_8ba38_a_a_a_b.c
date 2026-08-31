@@ -1,0 +1,11 @@
+extern int iwram_3001ebc;
+
+int Func_808bc9c(void)
+{
+    short *p;
+
+    p = (short *)iwram_3001ebc;
+    return p[0xb6] + p[0xb7] + p[0xb8] + p[0xb9] + p[0xba] + p[0xbb]
+         + p[0xbc] + p[0xbd] + p[0xbc]
+         + p[0xbe] + p[0xbf] + p[0xc0] + p[0xc1];
+}
