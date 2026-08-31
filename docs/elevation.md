@@ -223,6 +223,33 @@ but leaves the variable in the same register, so the `ldr` offsets swap instead
 and the count stays at 13. Birth order moves a POINTER's materialisation, not a
 value's allocation priority.
 
+## A local that only holds an ADDRESS can cost the ordering -- delete it
+
+Twice now, in consecutive batches, a function has come down to a handful of
+instruction-ordering differences that no respelling could move, and the fix was
+to REMOVE a pointer local rather than to write it differently.
+
+    ours   unsigned short *p = &a->f64;  ...  *p |= 2;  ...  *p &= 1;
+    exact  a->f64 |= 2;  ...  a->f64 &= 1;
+
+On `OvlFunc_898_20087ec` the pointer form is 44 lines against 44 with SIX
+differing, and all six are one shape appearing twice: gcc hoists the `ldrh`
+above the `mov` that saves an earlier field, where the ROM defers it. Dropping
+the local is exact. `Func_80c1084` in batch 155 is the same story -- its park
+had tried the right offset-clobber form while KEEPING the extra local, which is
+why it never fired.
+
+**The tell is that respellings do not move the count.** Four were measured on
+20087ec -- the constant on the left of the operator, a narrow named constant,
+an `int` named constant, and widening the saved field -- and every one stayed at
+exactly six. When several unrelated spellings all give the identical count, the
+variable's EXISTENCE is the problem, not its form.
+
+Note this is the opposite of the stack-argument rules, where naming things is
+the lever. Those locals carry VALUES that must occupy registers across a call;
+this one carries an address gcc can recompute at will, so it buys nothing and
+constrains the schedule. Ask which kind you have before adding or removing one.
+
 ## The ldrh/ldrsh CSE class is 46 functions, and only ~12 are actually blocked
 
 The shape: the ROM reads the same halfword twice, once unsigned and once
