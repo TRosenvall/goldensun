@@ -99,7 +99,16 @@ NEG = re.compile(r"^\tneg\t", re.M)
 # OvlFunc_common1_148 came back to the top of the list the round after it was
 # parked; that is the third re-offer this batch and the reason both forms are
 # accepted here rather than fixed park by park.
-PARK_HDR = re.compile(r"^\s*(?:/\*)?\s*([A-Za-z_]\w*)\s*--\s*(?:0x|asm/)", re.M)
+# THREE header conventions are in use, and each was found the hard way -- by a
+# parked function reappearing at the top of the candidate list:
+#     NAME -- 0xaddr        107 headers
+#     NAME -- asm/<path>.s   81 headers  (added batch 159)
+#     NAME @ 0xaddr          29 headers  (added batch 161)
+# Func_80064b8 was parked with the third form and was re-offered two batches
+# later; it was caught before any C was written only because its shape looked
+# familiar. Accept all three separators rather than normalising 217 headers.
+PARK_HDR = re.compile(
+    r"^\s*(?:/\*)?\s*([A-Za-z_]\w*)\s*(?:--|@)\s*(?:0x|asm/)", re.M)
 PARK_LST = re.compile(r"\b([A-Za-z_]\w*)\s+asm/\S+\.s")
 MOV = re.compile(r"^\tmov\t(r\d+), #(0x[0-9a-f]+|\d+)$")
 LSL = re.compile(r"^\tlsl\t(r\d+), #(\d+)$")
