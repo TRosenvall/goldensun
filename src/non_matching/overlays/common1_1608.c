@@ -60,6 +60,32 @@
  * differences here are the double-label artifact, not real. But 16 includes
  * two genuine constant-width clusters, so this is a real miss, not an
  * artifact-only one.
+ *
+ * ROUND-2 UPDATE -- THE HALFWORD MASK IS NOT REACHABLE BY SPELLING.
+ * Five further forms, all 16 differing and byte-identical to each other:
+ *
+ *   computation split from the store (`hw = ...; *(u16 *)(s+8) = hw;`)
+ *                                             83 lines, 19 differ (WORSE)
+ *   the mask applied in its own statement      85 lines, 16 differ
+ *   `~0x3ff` instead of the literal            85 lines, 16 differ
+ *   `hw` unsigned with an unsigned mask        85 lines, 16 differ
+ *   `-0x400` instead of the literal            85 lines, 16 differ
+ *
+ * gcc canonicalises every spelling of 0xfffffc00 to one rtx and then narrows
+ * it to 0xfc00, because the destination is a halfword store and the upper bits
+ * are provably dead. The ROM pool-loads the full 32-bit constant. Nothing in
+ * the source decides this -- it is a width inference on the STORE, not on the
+ * expression, and the byte mask above (-0x21) only came out right because
+ * naming it in an int local kept a live 32-bit value that gcc could not sink
+ * into the store.
+ *
+ * So the two constant-width residues are NOT the same problem, and that is
+ * the useful distinction: the byte one is reachable (name the mask), the
+ * halfword one is not (the narrowing happens at the store regardless).
+ *
+ * Remaining after all of the above: the halfword mask, and one scheduling swap
+ * where the ROM stores the byte before loading the next constant. Everything
+ * else, including the whole high-register prologue and epilogue, is exact.
  */
 #include "dma.h"
 
