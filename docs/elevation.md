@@ -9496,3 +9496,93 @@ because the two streams keep re-synchronising by accident.
 `--quiet`'s count is a similarity score, not a distance to a match. When two
 versions disagree, compare where they FIRST diverge and how localised the
 residue is, and keep the one whose remaining problem you can name.
+
+## The `neg` interleave family is SOLVED as a class -- it was the missing guard
+
+`src/non_matching/ovl_7c460c/2008c74.c` carried an eleven-function family with
+one two-line residue, eleven failed spellings, three failed flags, and a corpus
+zero that a later batch flagged as probably a tab-versus-space artifact. Re-run
+correctly with `\s+` over the 3336 SOLVED .s files, the shape appears at **13
+sites in 13 already-matching files**. The zero said nothing.
+
+One of the 13 is `src/overlays/rom_7ef4f4/ovl_30_a_c_a_c.c` -- which IS
+`OvlFunc_965_2009030`, a member of that family's own list. It was solved and the
+family note was never updated. What it does is the documented argument-order
+lever: name every split two-instruction build as a local in the function's ENTRY
+BLOCK, which dominates the sites. Its `n1 = -0x10` is a `mov`/`neg` pair.
+
+Counting conditional branches before the `neg` site for all eleven members:
+**the solved one has its site inside two nested guards, and all ten unsolved ones
+are straight-line.** That is a complete explanation, and it also explains the one
+anomalous number in that park -- naming the constant at the top scored 43 instead
+of 2, because with no guard to cross the local stays live and costs a register,
+exactly as the argument-order section records for straight-line functions.
+
+So the family is not its own blocker class. It is the straight-line half of the
+argument-interleave class, already sized at 98 functions and already known to be
+out of reach. Eleven functions did not need eleven more spellings.
+
+**Generalise the lesson, not just the family:** a park that lists members and a
+shared residue is claiming those members are equivalent. Check whether ANY of
+them has been solved since -- by name, not by path, because the paths go stale
+the moment a `.s` is split. Six of that family's eleven paths were stale.
+
+## `tools/guarded_interleave.py`
+
+Separates the two populations for the whole tree: functions whose interleave
+sites are ALL dominated by a conditional branch (the lever works) from those with
+any straight-line site (nothing reaches it). 83 unparked functions have only
+guarded sites. Two elevations came from that list the day it was written --
+`OvlFunc_959_2008bec` and `OvlFunc_922_2009d78`.
+
+It counts `mov`+`lsl` and `mov`+`neg` alike, because the docs generalise the
+shape to any two-instruction build and a filter that implemented only the `lsl`
+example let a `neg` case through the round before.
+
+## A POOLED argument also needs naming in the entry block
+
+`OvlFunc_959_2008bec` came to 2 of 59 with the three shifted constants and both
+`neg` builds named at the top. The last two instructions were a pool load and a
+`neg` transposed:
+
+    rom   neg r1, r1 / ldr r2, =0xe666
+    ours  ldr r2, =0xe666 / neg r1, r1
+
+Adding `e = 0xe666;` to the same entry-block group matched outright. So the rule
+is not "name the two-instruction builds" -- it is **name every argument that the
+ROM materialises inside the interleaved run, pool loads included.** A pool load
+is one instruction and looks like it needs no help, but it participates in the
+same scheduling decision and leaving it as a literal pins it in the wrong slot.
+
+## A global RE-READ across a branch is a `volatile` tell
+
+`OvlFunc_922_2009d78` reads `iwram_3001e40` twice -- once for `& 3` before a
+guard, once for `& 7` after it -- and the ROM emits a second `ldr`. gcc commons
+the two loads, which cost exactly the one missing line and left everything after
+it shifted by one.
+
+`extern volatile int iwram_3001e40;` matched outright. This is the documented
+"volatile is a reading, not a hack" signature, and the version to reach for when
+the residue is a load the ROM performs and we do not.
+
+Measured alongside, and worth keeping: adding a pointer local for the global's
+address -- `int *g = &iwram_3001e40;` -- is inert on its own AND still fails when
+combined with `volatile`. The address is a link-time constant, so the local is
+folded away and only costs ordering. That is the third confirmation of "a local
+that only holds an ADDRESS can cost the ordering, delete it".
+
+## Reading rule: check whether the constant is ALREADY the destination
+
+Before reaching for the constant-as-destination lever on an `and` or `orr`,
+compare the operand order in BOTH streams. On `OvlFunc_968_2009150`:
+
+    rom   ldrb r2, [r0, #0] / mov r3, #0xfe / and r3, r2
+    ours  ldrb r3, [r0, #0] / mov r2, #0xfe / and r2, r3
+
+The constant is the destination in both -- r3 in the ROM, r2 in ours. What
+differs is only which register each value got, so the lever has nothing to do and
+this is the register-role swap. Screened anyway before that was noticed: `int m`
+for the `and`s is inert, `unsigned char n` for the `orr` is inert, and applying
+both at once is much worse. The two shapes look identical at a glance because
+both show a `mov` of a constant beside a load; only the operand order of the
+`and` tells them apart.

@@ -84,3 +84,63 @@
  * here either. These are `f(0, 0, -8)` argument temporaries, dead at the call,
  * and gcc rematerialises those during argument fill.
  */
+
+/* ============================================================================
+ * THE CORPUS ZERO IS SETTLED, AND IT WAS AN ARTIFACT.
+ *
+ * The note above flags the "zero of the 2987 generated .s files" as probably a
+ * tab-versus-space detector fault and asks for the scan to be re-run with \s+
+ * before being cited again. Re-run, over the 3336 SOLVED .s files (those with a
+ * .c beside them), for a `mov` interleaved into a `mov`+`neg` build:
+ *
+ *     13 sites, in 13 different already-matching files.
+ *
+ * So the shape is NOT unreachable and the corpus zero said nothing. One of the
+ * 13 is src/overlays/rom_7ef4f4/ovl_30_a_c_a_c.c -- which is OvlFunc_965_2009030,
+ * a member of the family list above. That member was solved and the family note
+ * was never updated.
+ *
+ * WHAT IT DOES, and it is the documented argument-order lever: every
+ * two-instruction constant that the ROM splits around another argument is named
+ * as its own local IN THE FUNCTION'S ENTRY BLOCK, which dominates all the call
+ * sites. Its `n1 = -0x10` is a `mov`/`neg` pair, exactly this family's shape.
+ *
+ * WHY IT DOES NOT TRANSFER TO THIS FUNCTION, measured across the family. The
+ * lever needs a CONDITIONAL BRANCH between the naming and the site: gcc then
+ * declines to keep the value live across the guard and rematerialises it at the
+ * use, and the rematerialised sequence interleaves. Counting conditional
+ * branches before the `neg` site for every member:
+ *
+ *     OvlFunc_965_2009030   SOLVED -- site is inside two nested guards
+ *     OvlFunc_895_2008154   0 guards before the site
+ *     OvlFunc_916_20087e0   0
+ *     OvlFunc_936_2008504   0
+ *     OvlFunc_939_2008c74   0   <- this function
+ *     OvlFunc_941_2009760   0
+ *     OvlFunc_950_200813c   0
+ *     OvlFunc_952_2008674   0
+ *     OvlFunc_952_2008af8   0
+ *     OvlFunc_959_200b054   0
+ *     OvlFunc_966_20087c4   0
+ *
+ * Every unsolved member is straight-line at its site and the one solved member
+ * is not. That is a complete explanation of the family, and it also explains the
+ * one anomalous measurement in the list above -- `int m = -8;` at the TOP of the
+ * function scoring 43 rather than 2. With no guard to cross, the named local
+ * stays live and costs a register, which is the same failure the argument-order
+ * section records for straight-line functions (33 -> 39 on OvlFunc_911_20082b4).
+ * The lever was being applied without its precondition.
+ *
+ * SO THIS FAMILY IS NOT ITS OWN BLOCKER CLASS. It is the straight-line half of
+ * the argument-interleave class, which docs/elevation.md already sizes at 98
+ * functions and calls out of reach. Eleven functions do not need eleven more
+ * spellings; they need the class solved, or they need to stay parked. Six of the
+ * paths in the family list above were also stale -- the .s files have been split
+ * since -- so a future reader should resolve members by NAME, not by path.
+ *
+ * tools/guarded_interleave.py now separates the two populations for the whole
+ * tree: it reports 83 unparked functions whose interleave sites are ALL guarded,
+ * and that list is where this lever pays. Two elevations came from it the day it
+ * was written.
+ * ============================================================================
+ */
