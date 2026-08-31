@@ -32,6 +32,14 @@
  *   * `m = 8;` assigned BEFORE `mask = -13;`
  *   * `mask` declared before `m`
  *   * the OR constant left as a bare literal 8 rather than a named local
+ *   * `unsigned char m = 8;` -- the narrow type the ORR-destination lever
+ *     prescribes. MUCH WORSE: 47 differing and 55 lines, first difference at 8
+ *     instead of 20. Tried because that lever closed OvlFunc_946_20092b4 and
+ *     OvlFunc_903_2008d68 on a residue that looks identical to this one. It
+ *     does not transfer: there the constant is the ORR DESTINATION and here
+ *     the ROM's problem is that the constant must stay LIVE across two flag
+ *     updates, which a narrow local does not do. The doc's caution that the
+ *     two operations must be tried separately is the right reading.
  *
  * Naming the OR constant changes nothing in either direction, which is itself
  * the answer to the obvious next idea.

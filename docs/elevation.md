@@ -9779,3 +9779,45 @@ They are moved to `toDelete/stale_parks/` rather than deleted, since the analysi
 in them may still be worth reading. Re-run the sweep after any batch that
 elevates from the park corpus; the check is cheap and a stale park is worse than
 no park, because it reads as a measured dead end.
+
+## `tools/park_retry.py` -- and what the first sweep with it found
+
+Ranks parks that are CLOSE (<=20 differing) and whose notes never mention a
+lever whose residue shape they carry. It does not claim the lever works; it says
+the lever was never written down as tried. 123 parks qualify.
+
+**Two elevations came from one lever in two rounds**, both on the same residue:
+
+    rom   ldrb r2, [r1] / mov r3, #K / orr r3, r2
+    ours  ldrb r3, [r1] / mov r2, #K / orr r3, r2
+
+`OvlFunc_946_20092b4` and `OvlFunc_903_2008d68`, both closed by
+`unsigned char m = K;`. The second park is the instructive one: it recorded
+trying "the constant as a named local" and concluded "nothing in
+docs/elevation.md reaches it". The local was an `int`, and the doc's own
+sharpening is that an `int` local is folded and is *no lever at all*. **When a
+park says a named local was tried, check whether it records the TYPE.** If it
+does not, it has not tried the lever.
+
+**The boundary, measured the same round.** `OvlFunc_947_200a1ac` carries a
+residue that looks identical -- `mov r4, #0x8 / and r3, r1 / orr r3, r4` against
+ours -- and `unsigned char` is MUCH worse there: 47 differing and one line long,
+against 9 for the int. The difference is what the ROM needs from the constant.
+In the two that closed, the constant is the ORR DESTINATION. In 947 the ROM's
+requirement is that the constant stay LIVE across two flag updates, and a narrow
+local will not do that. Same-looking residue, opposite remedy.
+
+## A park that records its attempts is a result -- re-deriving it is not
+
+`Func_80170c4`'s park lists four attempts, including "a single `return d;`
+reached by `goto out;` ... THE LENGTH BECOMES CORRECT, 24 against 24 ... BUT THE
+COUNT GETS WORSE, 8 of 24, because r4 and r5 then swap roles".
+
+Restructuring it as `if (n > 0) { ... } return d;` -- the natural spelling of the
+same shared exit -- reproduces exactly that: 24 lines, 8 differing, r4 and r5
+exchanged. Two more screens on the priority formula (a local copy of the counter,
+and declaration order) are both 8, which the park also already records.
+
+The park was right and the effort was wasted. `park_retry.py` ranks by what is
+NOT mentioned, which is a heuristic over prose; the sweep is for generating
+candidates, and the park itself is still the thing to read before screening.
