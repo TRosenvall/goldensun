@@ -9985,3 +9985,26 @@ emitted listing looks unchanged and it is easy to conclude the edit did nothing.
 On `Func_809b804` the offset constant landing in r1 rather than r2 was the whole
 residue. Try this whenever a halfword is read both ways and the only difference
 is which scratch register holds the offset.
+
+## The `multi` population is a real pool, and it had never been worked
+
+`tools/census.py` classifies 692 remaining functions as `multi` -- they share a
+`.s` with others, so their blocker is UNKNOWN until a split, and they are
+excluded from the `open` worklist for that reason. That is not the same as being
+blocked, and after several rounds of thin returns from the worked-over pools it
+was the obvious place to look.
+
+Selecting from it with the criteria that have been paying -- loop-free, no
+r8-r11, no repeated expensive constant, at least three calls, 25 to 75
+instructions -- leaves six functions. Three were tried and two matched, each on
+one edit after the first screen:
+
+    Func_809b804   2 differing on the first screen, matched by reading the
+                   UNSIGNED halfword before the signed one
+    Func_80970f8   4 differing on the first screen, matched by naming the
+                   loaded byte before its store
+
+Both first screens were already at exact length. The `multi` label costs a
+`split_s.py` run and nothing else, and the split is byte-neutral by
+construction — so treat that population as ordinary candidates, not as work
+deferred behind an obstacle.
