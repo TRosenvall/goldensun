@@ -9695,3 +9695,50 @@ participating and naming them is pure cost.
 
 The failure is visible in the prologue before any diff is read: high registers
 saved that the ROM does not save.
+
+## The INVERSE of the disjoint-live-range rule: one register means ONE variable
+
+"A variable with DISJOINT live ranges should be two variables" has a mirror
+image that is just as useful, and `OvlFunc_954_2008490` turns on it.
+
+The ROM computes a field into r6, tests it, and then reuses r6 for an unrelated
+result:
+
+    asr r6, r3, #0x14      /* y = field >> 20 */
+    cmp r6, #0xb           /* tested three times */
+    mov r6, #0xa0          /* n, a different value entirely */
+
+Written as two variables `y` and `n`, gcc puts y in r0 and n in r6 and the whole
+dispatcher rotates -- 38 differing. Written as ONE variable reused for both, it
+matched outright.
+
+So read the ROM's register reuse in both directions. **Two registers for what
+looks like one value means two variables; one register for what look like two
+values means one variable**, even when the two roles are semantically unrelated.
+The second reading feels wrong to write -- reusing `n` to hold a coordinate
+before it holds an offset is not how one would author it -- but it is what the
+original did, and the allocator will not be argued into it otherwise.
+
+## CSE_CFLAGS has a counter-example: check what ELSE the unit commons
+
+"`GetFlag(id)` guarding a block that ends `SetFlag(id)` means `CSE_CFLAGS`" has
+been right on five-plus functions. `OvlFunc_952_2008264` is the first case where
+applying it makes the function WORSE, and the reason generalises.
+
+The unit carries two constants with opposite needs:
+
+    0x966    GetFlag guard + SetFlag inside      wants the pass OFF
+    0x2241   message-id base held in r6, with the ROM deriving
+             `add r0, r6, #1` and `add r0, r6, #2`   wants the pass ON
+
+    default                     33 differ   0x2241 derives correctly, 0x966 commons
+    -fno-rerun-cse-after-loop    57 differ   0x966 correct, 0x2241 stops being held
+
+The flag is per translation unit, so it cannot give one constant the pass and
+deny it to another. No source spelling separates them either -- both are
+compile-time constants, and naming the base folds under the flag exactly as the
+"INVERSE constant problem" section records.
+
+**Before adding a CSE_CFLAGS rule, look for a pooled base that the ROM HOLDS and
+DERIVES from.** That is the thing the flag costs, and it is easy to miss because
+it is working correctly in the unflagged build.
