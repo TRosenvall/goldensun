@@ -9961,3 +9961,27 @@ Both emit the identical `ldr r2, =0xfff00000 / add r3, r1, r2` — the pool word
 is the same and only the branch differs. So a ROM `bge` where we emit `bcs`,
 with the same pool constant, is a tell about how the literal was SPELLED in the
 source, not about the operand types. Write the negative.
+
+## Read the UNSIGNED value before the SIGNED one: confirmed, and it closes functions
+
+Found on `OvlFunc_931_20086f0` (24 differing to 17) and now decisive on
+`Func_809b804`, which it took from 2 differing to a match.
+
+The shape: the ROM reads the same halfword twice, once signed and once
+unsigned, and emits `ldrsh` before `ldrh` regardless of what the source says.
+Writing the UNSIGNED read first anyway changes the register assignment:
+
+    s = *(short *)(a + 0x3a);            /* signed first  */
+    v = *(unsigned short *)(a + 0x3a);   ->  mov r2, #0x3a / ldrsh r3, [r5, r2]
+
+    v = *(unsigned short *)(a + 0x3a);   /* unsigned first */
+    s = *(short *)(a + 0x3a);            ->  mov r1, #0x3a / ldrsh r3, [r5, r1]
+
+Nothing else moves — the emission order is identical both ways. **Source order
+picks the REGISTERS for two independent values; it does not pick the emission
+order.** Those are separate effects and worth holding apart, because the
+emitted listing looks unchanged and it is easy to conclude the edit did nothing.
+
+On `Func_809b804` the offset constant landing in r1 rather than r2 was the whole
+residue. Try this whenever a halfword is read both ways and the only difference
+is which scratch register holds the offset.
