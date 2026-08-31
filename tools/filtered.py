@@ -8,7 +8,8 @@ rejects a candidate if ANY of these hold:
   * under 40 instructions   -- no register pressure for the levers to act on
   * over 120 instructions   -- too many independent residues to converge on
   * uses r8-r11             -- allocation-priority residues
-  * repeats an expensive constant (a pooled value, or a mov+lsl pair) anywhere
+  * repeats an expensive constant (a pooled value, or a mov+lsl or mov+neg
+                               pair) anywhere
                             -- CSE if the uses are close, PRE hoisting if one
                                dominates the other; neither yields to spelling
   * fewer than 8 calls      -- arithmetic-heavy bodies hit instruction
@@ -35,6 +36,7 @@ HIGH = re.compile(r"\br(?:8|9|10|11)\b")
 POOL = re.compile(r"\bldr\s+r\d+,\s*=(\S+)")
 MOVI = re.compile(r"\bmov\s+(r\d+),\s*#(0x[0-9a-f]+|\d+)")
 LSL = re.compile(r"\blsl\s+(r\d+),\s*#(0x[0-9a-f]+|\d+)")
+NEG = re.compile(r"\bneg\s+(r\d+),\s*(r\d+)")
 WRITE = re.compile(r"\b(?:mov|add|sub|ldr|ldrb|ldrh|lsl|lsr|asr|and|orr|eor|neg|mul|bic)\s+(r\d+)")
 
 
@@ -53,6 +55,16 @@ def expensive_constants(body):
         m = LSL.search(l)
         if m and m.group(1) in pend:
             vals.append("built:%d" % (pend.pop(m.group(1)) << int(m.group(2), 0)))
+            continue
+        # `mov`+`neg` is a split two-instruction build exactly as `mov`+`lsl`
+        # is; docs/elevation.md says so under the argument-order lever, and
+        # OvlFunc_974_2008b10 was offered as a candidate and parked on a
+        # repeated -0x64 because this branch was missing.
+        m = NEG.search(l)
+        if m and m.group(2) in pend:
+            vals.append("built:%d" % (-pend.pop(m.group(2))))
+            if m.group(1) != m.group(2):
+                pend.pop(m.group(1), None)
             continue
         m = WRITE.search(l)
         if m:
