@@ -65,6 +65,18 @@ FSTART = re.compile(r"^\.(thumb|arm)_func_start\s+(\S+)", re.M)
 # registers -- r0 landing inside another register's mov/lsl pair.  Across asm/
 # the unguarded pattern fired 4616 times and 320 of those (6.9%) were this
 # self-match, which is why the column read high.
+# BATCH 156: this shape is ARGUMENT FILL by construction -- the regex requires
+# a `mov r0` (a first argument) nested inside another argument's build -- and
+# the argument-temporary boundary in docs/elevation.md says naming cannot reach
+# it. Measured on three functions in one round, and the count PREDICTS the
+# residue exactly at two differing lines per site:
+#
+#   OvlFunc_883_2008fec   1 site  ->  9 of 91, and 4 spellings byte-identical
+#   OvlFunc_953_2008648   3 sites ->  6 of 43, predicted 6 before screening
+#
+# Still NOT a hard reject, because OvlFunc_927_20099b8 matched carrying one and
+# that measurement stands. Sites are now sorted to the bottom rather than
+# excluded, so a clean candidate is always tried first.
 INTERLEAVE = re.compile(r"\tmov\t(?!r0,)(r\d+), #\S+\n(?:\t[^\n]*\n)*?\tmov\tr0, #\S+\n\tlsl\t\1, #")
 # Three or more `neg` in one function is the `-1` triple of
 # src/non_matching/overlays/constant_reuse.c: the ROM materialises the same
@@ -187,12 +199,16 @@ def main():
                 continue
             rows.append((calls, size, name, f, len(starts),
                          len(INTERLEAVE.findall(body))))
-    rows.sort(reverse=True)
+    # Interleave-free candidates FIRST, then most calls. Batch 156 measured why:
+    # each interleave site costs exactly two differing lines and no spelling
+    # removes it, so a candidate with three of them starts six lines down.
+    rows.sort(key=lambda r: (r[5], -r[0]))
     print(f"{len(rows)} candidates pass the filter (already-parked addresses excluded)\n")
     for calls, size, name, f, n, iv in rows[:limit]:
         split = "SINGLE" if n == 1 else f"split from {n}"
+        floor = f"  >={2 * iv} differ" if iv else ""
         print(f"  {calls:3d} calls  {size:3d} insns  {iv} interleave  "
-              f"{name:<26} {split:<14} {f}")
+              f"{name:<26} {split:<14} {f}{floor}")
     return 0
 
 
