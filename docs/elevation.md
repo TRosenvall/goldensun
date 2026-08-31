@@ -9096,3 +9096,37 @@ byte-identical on that point.
 
 Different passes: the lever moves where `move_movables`/`strength_reduce`
 INSERT a value; it has no purchase on `strength_reduce` deciding to CREATE one.
+
+## r8-r11 IS NOT A WALL — the reject was hiding a quarter of the corpus
+
+`tools/pickable.py` rejected any function touching r8-r11, citing three named
+functions as an "allocation-priority wall". Measured directly:
+
+    matching TUs that use a high register:  232
+      of those, fakematches:                 30
+      GENUINE matches:                      202
+
+High registers are reachable from ordinary C, and by a wide margin. The reject
+was generalised from three functions to a class, and it cost:
+
+* **Every unparked duplicate group.** All ten of them use high registers, which
+  is why 72 functions that "come free" from 25 group solutions have gone
+  untouched. That backlog was invisible to the filter, not hard.
+* **The candidate pool.** Removing the reject took the filter from **5
+  candidates to 125**.
+
+**What actually puts a value in r8-r11** is having more call-crossing locals
+than r5/r6/r7 can hold — nothing more exotic. `OvlFunc_common1_1608` reached 16
+of 84 from plain C on its second attempt, with r8 holding a zero used by five
+later stores, r9 an argument across a call, and r10 a status byte across four.
+
+The high-register column is still printed, because these functions are harder
+on average — but harder is not unreachable, and it is now a ranking signal
+rather than an exclusion.
+
+**The general lesson, and this is the third time:** a reject generalised from a
+handful of parks quietly deletes a whole class from view. The "fewer than 5
+calls" rule hid the loop-body class that produced four elevations; this one hid
+the duplicate groups. Before trusting any reject in this file, check whether
+MATCHING code already does the thing it forbids — `whodoesthis.py` and a grep
+over the generated `.s` answer it in one command.

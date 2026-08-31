@@ -11,7 +11,7 @@ REJECTS a function if any of these hold:
   * fewer than 40 instructions -- every lever here works through the register
     allocator, and a tiny function gives it nothing to act on
   * more than 120 instructions -- too many independent residues to converge
-  * any use of r8-r11 -- allocation-priority residues, the wall that holds
+  * (NO LONGER A REJECT, see below) any use of r8-r11 -- the wall that holds
     OvlFunc_883_200d64c, OvlFunc_901_2008350 and OvlFunc_949_200807c
   * an expensive constant used twice anywhere in the body -- cse if the uses are
     close, PRE hoisting if one dominates, and neither yields to any spelling
@@ -189,26 +189,33 @@ def main():
             # it does not make the dominant wall any softer.
             if calls < 5:
                 continue
-            if re.search(r"\b(r8|r9|r10|r11|sl|fp)\b", body):
-                continue
+            # r8-r11 IS NOT A REJECT. Measured batch 157: of the matching
+            # translation units that use a high register, 202 are GENUINE
+            # matches and only 30 are fakematches. The wall this reject was
+            # written for is three named functions, not the class. Blanket-
+            # rejecting it hid every unparked duplicate group -- all of them
+            # use high registers -- and with them the 72 functions that follow
+            # from 25 group solutions. Reported as a column instead.
             if any(v > 1 for v in constants(body).values()):
                 continue
             if len(NEG.findall(body)) >= 3:
                 continue
             if name.rsplit("_", 1)[-1] in skip or name in skip:
                 continue
+            hireg = 1 if re.search(r"\b(r8|r9|r10|r11|sl|fp)\b", body) else 0
             rows.append((calls, size, name, f, len(starts),
-                         len(INTERLEAVE.findall(body))))
+                         len(INTERLEAVE.findall(body)), hireg))
     # Interleave-free candidates FIRST, then most calls. Batch 156 measured why:
     # each interleave site costs exactly two differing lines and no spelling
     # removes it, so a candidate with three of them starts six lines down.
     rows.sort(key=lambda r: (r[5], -r[0]))
     print(f"{len(rows)} candidates pass the filter (already-parked addresses excluded)\n")
-    for calls, size, name, f, n, iv in rows[:limit]:
+    for calls, size, name, f, n, iv, hireg in rows[:limit]:
         split = "SINGLE" if n == 1 else f"split from {n}"
         floor = f"  >={2 * iv} differ" if iv else ""
+        hr = "  hi-reg" if hireg else ""
         print(f"  {calls:3d} calls  {size:3d} insns  {iv} interleave  "
-              f"{name:<26} {split:<14} {f}{floor}")
+              f"{name:<26} {split:<14} {f}{floor}{hr}")
     return 0
 
 
