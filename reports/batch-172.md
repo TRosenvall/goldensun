@@ -57,7 +57,14 @@ MATCH. A short function often needs no lever at all. **A filter tuned to
 predict which functions need documented work will systematically hide the
 functions that need none.**
 
-## THE EPILOGUE NAMES THE RETURN TYPE
+## THE EPILOGUE TELL, REFINED -- AND A CORRECTION TO THIS REPORT
+
+**Correction.** This section originally presented the epilogue tell as a new
+finding. It is not. `docs/elevation.md` already recorded it twice, in batch 46
+("Tell: `pop {r1}` in a function that looks void names a RETURN VALUE") and
+again for `OvlFunc_971_20091bc` ("The epilogue register tells you the return
+type"). The HANDOFF entry for this batch has been corrected too. What follows is
+what the case actually adds.
 
 `Func_80b6378` reached the ROM's exact length and exact sequence with a single
 residue in the last two instructions:
@@ -67,23 +74,26 @@ residue in the last two instructions:
     rom    bx r1       ours   bx r0
 ```
 
-Everything above it was byte-identical. Changing the declaration from `void` to
-`int` -- with no `return` statement added, and no other edit -- matched.
+Changing the declaration from `void` to `int` -- with no `return` statement
+added, and no other edit -- matched.
 
-gcc-2.96's Thumb epilogue needs a scratch register to pop the return address
-into, and it takes the lowest of r0-r3 that is not live at exit. For a
-value-returning function r0 is live at exit **whether or not the function ever
-assigns it**, so the scratch falls to r1. This is a free read of the ROM:
+That is the part the earlier entries do not cover. Both of them explain the r1
+epilogue as the function returning *the value the last call left in r0*, and
+both fix it by writing an explicit `return f(...)`. This function has no
+`return`, no trailing call, and no value to return: its body ends in a store
+inside a loop. So the mechanism sits one step earlier than those entries state.
+gcc marks r0 live at exit from the **declared return type alone**, whether or
+not any value ever reaches it, and the epilogue scratch falls to r1 as a
+consequence. The tell reads:
 
-> **`pop {r0}` / `bx r0` means the function is `void`. `pop {r1}` / `bx r1`
-> means it is not.**
+> **`pop {r0}` / `bx r0` means declared `void`. `pop {r1}` / `bx r1` means
+> declared non-void** -- not "returns something."
 
-Worth checking *before* writing the C rather than after, because it costs
-nothing and it is the only place in a Thumb function where the return type is
-visible when the return value is never actually stored. It also explains a
-residue shape that reads like unexplained scratch-register selection -- the wall
-named in batch 171 -- but is nothing of the kind. **Check the epilogue pair
-before adding a function to that park class.**
+When the earlier entries' fix has no candidate call to apply to, the declaration
+alone is still the whole lever. Their other advice stands unchanged: a two-line
+epilogue residue looks exactly like the scratch-register-selection wall named in
+batch 171, so **check the epilogue pair before adding a function to that park
+class.**
 
 ## AN INDEX INTO A POINTER MUST BE NAMED TO STAY AN INDEX
 

@@ -11211,25 +11211,36 @@ The corollary is useful in the other direction: when naming a value DOES change
 the output, the value was not compile-time known -- so the lever is really about
 blocking a fold or pinning a live range, never about "asking for a register".
 
-## The epilogue names the return type
+## The epilogue tell, refined: it names the DECLARATION, not a value
 
-gcc-2.96's Thumb epilogue pops the return address into a scratch register: the
-lowest of r0-r3 that is not live at exit. For a value-returning function r0 is
-live at exit **whether or not the function ever assigns it**, so the scratch
-falls to r1.
+**This is a correction to how batch 172 first reported it.** The epilogue rule
+was already recorded twice -- "Tell: `pop {r1}` in a function that looks void
+names a RETURN VALUE" (batch 46) and "The epilogue register tells you the return
+type" (`OvlFunc_971_20091bc`). Batch 172 presented it as new; it is not, and the
+batch-172 report and its HANDOFF entry have been corrected.
 
-    pop {r0} / bx r0    ->  the function is void
-    pop {r1} / bx r1    ->  the function is not
+What `Func_80b6378` does add is a case neither earlier entry covers. Both of
+them explain the r1 epilogue as the function returning *the value the last call
+left in r0*, and both fix it by writing an explicit `return f(...)`. This
+function has no `return` statement, no trailing call, and no value to return --
+its body ends in a store inside a loop. Changing `void` to `int` and adding
+nothing else matched.
 
-`Func_80b6378` reached the ROM's exact length and exact sequence with the
-residue entirely in that pair; changing `void` to `int`, adding no `return` and
-no other edit, matched. Read this off the ROM **before** writing the C -- it
-costs nothing, and it is the only place a Thumb function's return type is
-visible when the value is never actually stored.
+So the mechanism is one step earlier than the earlier entries state. gcc marks
+r0 live at exit from the **declared return type alone**, whether or not any
+value ever reaches it, and the epilogue scratch register falls to r1 as a
+consequence. The tell therefore reads:
 
-It also matters for triage. A two-line epilogue residue looks exactly like the
-scratch-register-selection wall named in batch 171. **Check the epilogue pair
-before adding a function to that park class.**
+    pop {r0} / bx r0    ->  declared void
+    pop {r1} / bx r1    ->  declared non-void
+
+and NOT "returns something." When the earlier entries' fix -- writing
+`return <call>;` -- has no candidate call to apply to, the declaration alone is
+still the whole lever.
+
+Also worth keeping from those entries: a two-line epilogue residue looks exactly
+like the scratch-register-selection wall named in batch 171. **Check the
+epilogue pair before adding a function to that park class.**
 
 ## An index into a pointer must be NAMED to stay an index -- correcting "offset first"
 
