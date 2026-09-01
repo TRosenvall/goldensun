@@ -11210,3 +11210,129 @@ directions.
 The corollary is useful in the other direction: when naming a value DOES change
 the output, the value was not compile-time known -- so the lever is really about
 blocking a fold or pinning a live range, never about "asking for a register".
+
+## The epilogue names the return type
+
+gcc-2.96's Thumb epilogue pops the return address into a scratch register: the
+lowest of r0-r3 that is not live at exit. For a value-returning function r0 is
+live at exit **whether or not the function ever assigns it**, so the scratch
+falls to r1.
+
+    pop {r0} / bx r0    ->  the function is void
+    pop {r1} / bx r1    ->  the function is not
+
+`Func_80b6378` reached the ROM's exact length and exact sequence with the
+residue entirely in that pair; changing `void` to `int`, adding no `return` and
+no other edit, matched. Read this off the ROM **before** writing the C -- it
+costs nothing, and it is the only place a Thumb function's return type is
+visible when the value is never actually stored.
+
+It also matters for triage. A two-line epilogue residue looks exactly like the
+scratch-register-selection wall named in batch 171. **Check the epilogue pair
+before adding a function to that park class.**
+
+## An index into a pointer must be NAMED to stay an index -- correcting "offset first"
+
+Batches 170 and 171 recorded the offset-first lever as being about *operand
+order*. That is wrong, and `Func_80b6378` measures it:
+
+| spelling | result vs a 27-line ROM |
+|---|---|
+| `*(p + buf[i] + 0x48) = v;`, `char *p` | 28 lines; base folded in first |
+| `*(char *)(buf[i] + 0x48 + p)`, `int p` | 28 lines, byte-identical to the above |
+| `k = buf[i] + 0x48; p[k] = v;` | **matches** |
+
+Operand order is inert because `+` is commutative and gcc reassociates before it
+selects addressing modes. What produces the ROM's `strb r3, [r6, r2]` is giving
+the index a NAME, which forces the sum to exist as one quantity before the
+memory reference is formed -- and therefore to occupy an index register.
+
+**The general form, which subsumes the batch-170 global-read rule:**
+
+> Naming a value does not tell gcc where to *put* it. It tells gcc the value
+> must *exist*. A name is a materialisation point, not a placement hint.
+
+That is why naming a global's value pins its load above a branch (batch 170),
+why naming an index pins a sum ahead of an address computation (here), and why
+naming a compile-time constant does nothing at all (the constant-folding entry
+above) -- in the last case the value already existed.
+
+## A reassigned accumulator may need a SECOND variable
+
+`Func_8098184` came out one instruction short, the ROM's extra being a bare copy
+inside the loop:
+
+    rom    add r3, r2, r1        ours   add r2, r1
+    rom    mov r2, r3
+
+The in-place `while (v <= lim) v += step;` will not produce it. Two variables,
+with the post-loop stores reading the *destination*, will:
+
+    do { w = v + step; v = w; } while (w <= lim);
+    *(int *)(a + 0x18) = w;
+
+gcc does not coalesce the copy because the live ranges genuinely differ -- `v` is
+dead at the loop exit and `w` is not.
+
+This is batch 171's split-versus-merge discriminator inside a loop body, and its
+tell is different. Batch 171's tell is the **push list**, which is silent here
+because both registers are caller-saved and neither is pushed. **The loop-body
+tell is a bare `mov rN, rM` between the update and the test.** Both point the
+same way from different evidence: a copy the ROM makes and we do not means the
+source had two names where we wrote one.
+
+## A stale object can make a wrong elevation look green
+
+The tree compiles `src/<path>.c` -> `asm/<path>.s` -> `asm/<path>.o`, and it is
+the **`.o` that the linker script names**. When a hand-written `asm/<path>.s` is
+replaced by an elevated `src/<path>.c`, the old `.o` remains and `make` has no
+reason to rebuild it. Two of batch 172's elevations built green incrementally
+while their `.o` was still the one assembled from the hand-written asm that had
+just been deleted -- the C had never been compiled at all.
+
+The already-recorded rule "check every address against the linked ELF" does NOT
+catch this: the symbol is at the right address either way.
+
+> **After removing a hand-written `.s`, an elevation is not proven until a
+> `make clean` build, and the proof is the `.gcc2_compiled.` local symbol at the
+> function's address in the linked ELF** -- that marker is what distinguishes a
+> compiled translation unit from an assembled one.
+
+The visible symptom, if you are looking for it, is a missing generated
+`asm/<path>.s`: it is a tracked build product, and its absence means the object
+beside it was never regenerated.
+
+## The selection filters drained before the corpus did
+
+Every ranking returned nothing usable at the top of batch 172: `fuzzy_solved`
+4 leads at >= 0.80 with all four flagged, `match_shapes` / `solved_twins` /
+`--near` at 0 for the third round running, and `pickable` 99 candidates of which
+**every one uses r8-r11**. That last number is the diagnostic. The filter's
+survivors have become homogeneous -- every remaining admission carries the one
+wall the filter was never built to score.
+
+`pickable` and `filtered` are tuned for 40-120 instructions and >= 5 calls, and
+that band is worked out. Scanning **below** it -- 14-44 instructions, no r8-r11,
+no repeated expensive constant, call count unconstrained -- returned 19
+candidates, of which three were tried and three matched in 1, 4 and 2 screens.
+
+The rejection of functions under 40 instructions is justified in `pickable.py`
+as "a tiny function gives the allocator nothing to act on." That is sound
+reasoning about which LEVERS apply and a false statement about which functions
+MATCH; a short function often needs no lever at all.
+
+> **A filter tuned to predict which functions need documented work will
+> systematically hide the functions that need none.**
+
+## Check siblings inside one .s family by hand
+
+`Sprite_DeleteLayerIndex` matched on the first screen because the already-solved
+`Sprite_DeleteLayer` in the same `.s` family is the same routine reached by
+pointer instead of by index, and its entire second half -- the count loop, the
+zero test, the byte store at `+0x27` -- transferred verbatim.
+
+`fuzzy_solved.py` never surfaced that pair: it scores whole-skeleton similarity,
+and the two functions differ across their entire first half. The tree's
+`_a/_b/_c` splits keep genuinely related routines adjacent, and every ranking
+here is blind to that adjacency. **Before ranking anything, look at what is
+already solved in the target's own family.**
