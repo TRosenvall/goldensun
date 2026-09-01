@@ -10926,3 +10926,43 @@ That function also needed `-ffixed-r7`: the ROM holds four stack-argument
 constants in r5, r6, r8 and r10, skipping r7, and gcc's `REG_ALLOC_ORDER`
 reaches r7 before r8. Reserving it fixed the prologue outright and moved the
 first difference from instruction 0 to instruction 1.
+
+## Initialiser order, third instance -- promote it to a first check
+
+`Func_80a9cf8` came in at the ROM's exact length with 5 differing and closed in
+two steps, both of them ordering:
+
+    p = iwram_3001f2c;  n = 0xa8;  i = 0;  q = p + 0xc8;      2 differing
+    p = iwram_3001f2c;  i = 0;  n = 0xa8;  q = p + 0xc8;      MATCH
+
+That is three functions now:
+
+| function | shape | what moved |
+|---|---|---|
+| `Func_80aac84` | `goto` loop | counter before base |
+| `Func_80a9b94` | plain `do`/`while` | counter before pointer |
+| `Func_80a9cf8` | plain `do`/`while` | counter before the held constant |
+
+It is not a `goto`-loop phenomenon and it is not specific to pointers. **When a
+small residue is confined to a loop's setup block, permute the initialisers
+before reaching for any lever.** Each permutation is one screen, and there are
+usually only two or three worth trying.
+
+`Func_80a9cf8` also needed the global read NAMED before the pointer was derived
+from it — `p = iwram_3001f2c; ... q = p + 0xc8;` rather than
+`q = iwram_3001f2c + 0xc8;` in one expression. That took it from 9 differing to
+2, and it is the same rule `Func_80a1cb0` established: the name pins the LOAD,
+and the displacement still happens where the source puts it.
+
+## Elevations compound: today's match is tomorrow's exemplar
+
+`Func_80a68a8` was elevated one round ago off `tools/fuzzy_solved.py`. This
+round it appeared as the EXEMPLAR for `Func_80a3d24` at ratio 0.710, and that
+function matched on the first screen with no iteration.
+
+That is worth naming because it changes how the lead list behaves. The solved
+corpus grows every round, so a ratio computed today is not the ratio that will
+be computed next round — functions that were below threshold can rise as their
+nearest neighbour gets solved. **Re-run the ranking every round rather than
+working from a saved list**, and do not write off a function because it ranked
+poorly before its family had a member.

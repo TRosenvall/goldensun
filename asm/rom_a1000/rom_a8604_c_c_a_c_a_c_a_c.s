@@ -1,42 +1,5 @@
 	.include "macros.inc"
 
-@ CreateElementSprites
-@ r0 = window. Fills the eight node slots at state+0xC8 with panel sprites from
-@ _Func_1eb64 at priority 0xA8, tile source 0xF8. Returns 1.
-.thumb_func_start Func_80a9cf8  @ 0x080a9cf8
-	push	{r5, r6, r7, lr}
-	mov	r7, r8
-	push	{r7}
-	ldr	r3, =iwram_3001f2c
-	ldr	r3, [r3]
-	mov	r2, #0xa8
-	mov	r6, r3
-	sub	sp, #4
-	mov	r7, r0
-	mov	r5, #0
-	mov	r8, r2
-	add	r6, #0xc8
-.La9d10:
-	mov	r3, r8
-	str	r3, [sp]
-	mov	r1, r5
-	mov	r0, #2
-	mov	r2, r7
-	mov	r3, #0xf8
-	bl	_Func_801eb64
-	add	r5, #1
-	stmia	r6!, {r0}
-	cmp	r5, #7
-	ble	.La9d10
-	mov	r0, #1
-	add	sp, #4
-	pop	{r3}
-	mov	r8, r3
-	pop	{r5, r6, r7}
-	pop	{r1}
-	bx	r1
-.func_end Func_80a9cf8
-
 @ PlaceElementIcons
 @ r0 = five flag bytes. Parks the eight state+0xC8 sprites with Func_a9d84, then
 @ for each set flag moves one to x 8 with y stepping down from 0x58 by 0x10 and
