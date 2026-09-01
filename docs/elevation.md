@@ -10700,3 +10700,30 @@ The discipline that matters is its last line — export FIRST, verify
 `make compare`, and only then split. A `.global` emits no bytes, so the export
 is provably byte-neutral on its own; done together with the split, a layout
 mistake and a bad export are indistinguishable at the end.
+
+## Why container builds must pass `AGBCC_DIR=/opt/agbcc`
+
+`AGBCC_DIR` looks like it selects the compiler and does not. It is referenced
+only by `src/lib/m4a/%.o` and the three `src/lib/agb_flash/*.o` rules
+(Makefile:5583-5614), which build those library objects with `old_agbcc`. Every
+elevated `.c` in this tree compiles with `$(GCC296_CC)` — gcc-2.96 — and no
+elevation has ever gone through agbcc.
+
+The override is still required, and the reason is not obvious from the
+Makefile. Its default is `AGBCC_DIR ?= tools/agbcc`, and that path DOES exist
+inside the container because the repo is mounted there — but:
+
+    tools/agbcc/bin/old_agbcc   Mach-O 64-bit executable x86_64      (host)
+    /opt/agbcc/bin/old_agbcc    ELF 64-bit LSB pie executable        (image)
+
+The checked-in copy is the macOS build. Running `make` in the container without
+the override reaches it, the shell cannot exec a Mach-O binary and falls through
+to parsing it as a script, and the build dies with
+
+    tools/agbcc/bin/old_agbcc: 1: Syntax error: "(" unexpected
+
+which names the compiler and looks like a corrupted toolchain rather than a
+wrong path. So: **build in the container with `AGBCC_DIR=/opt/agbcc`, and know
+that it feeds five library objects only.** If those objects are already current
+the variable never gets used, which is why an incremental build appears to work
+without it.
