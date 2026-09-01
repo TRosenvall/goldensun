@@ -11127,3 +11127,35 @@ known and gcc folds them back into immediates -- the same fold recorded for
 it.** When a run of constant-offset stores matches on count but not on offset
 registers, do not spend screens on loop shapes; the count agreeing is the signal
 that the statement form is already correct.
+
+## Two leads with the SAME ratio and the SAME exemplar are twins of each other
+
+`tools/fuzzy_solved.py` listed `OvlFunc_915_2008aac` and `OvlFunc_913_2008b1c`
+adjacently, both at ratio **0.612** against the same exemplar. That is not a
+coincidence to skim past: an identical ratio against an identical exemplar means
+the two targets have the same skeleton as each other.
+
+They turned out to be shape-identical across two DIFFERENT overlays --
+108 instructions each, differing only in the function name and its labels. The
+first cost one screen plus a branch-polarity flip; the second was `sed
+s/name1/name2/` on the finished file and matched on the first screen.
+
+**Read the ratio column for repeats before picking.** Equal ratios with a shared
+exemplar are a free second elevation, and the pair may live in different
+directories where neither a same-`.s` nor a same-overlay heuristic would find
+them. `tools/twin_families.py` groups by exact opcode stream and would also have
+caught this one; the point is that the ranking already shows it, at no extra
+cost, if the column is read as data rather than as an ordering.
+
+## Branch polarity, confirmed again: the success arm is the `if` BODY
+
+`OvlFunc_915_2008aac` screened at 78 differing of 108 with the whole residue
+downstream of one branch. The ROM's `bne` skips FORWARD to the `return 0`, so
+the cutscene is the fall-through and therefore the `if` body:
+
+    if (r != 0) return 0;  <cutscene>          78 differing
+    if (r == 0) { <cutscene> return 1; } return 0;   MATCH
+
+That is the third function closed by this reading. The tell is in the ROM and
+costs nothing to check: **which way does the conditional branch jump?** Forward
+over the long block means the long block is the body.
