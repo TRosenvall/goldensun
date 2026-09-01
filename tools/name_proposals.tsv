@@ -650,3 +650,11 @@ Func_809ba7c	Actor_SetSpeedFields	read	Field / map	src/field/map_actor.c	Writes 
 Func_809bb34	Actor_DeleteSprite	read	Field / map	src/field/map_actor.c	Deletes an actor's sprite if it has one.
 Func_809bcd4	Map_FreeTileAlloc	read	Field / map	src/field/map_load.c	Releases the OBJ tile allocation recorded at the head of gBuffer.
 Func_809c3a4	Debug_FieldMenu	read	Debug menu	src/ui/debug_menu.c	The field debug menu: reads gKeyHeld, allocates its block and runs Func_809c314.
+Func_8079c8c	GetUnitAttackRange	read+callee	Party / equipment	src/party/stats.c	For an enemy unit returns its stat-row word; for a PC returns the equipped weapon's field at +0x14, defaulting to 4 when nothing is equipped.
+Func_8079d1c	RollUnleash	read+callee	Party / equipment	src/party/item.c	Rolls a weapon's unleash: the equipment crit bonus plus five times the weapon's own rate, scaled into 16.16 and compared against RPGRandom.
+Func_8079d7c	GetClassAffinityWeight	read	Party / stats	src/party/stats.c	Maps a class or status id to a numeric weight through a fifty-slot switch, negative for two ids and for everything unlisted. What the weight feeds is not established here.
+Func_8079e9c	UnitHasAffinity	read+callee	Party / stats	src/party/stats.c	Scans the three affinity bytes of a unit's enemy record at +0x48 or its class record at +0x50 for a match.
+Func_807a2bc	UnitTestBit	read	Party / stats	src/party/stats.c	Tests one bit of a per-unit word at +0x108. The first parameter is unused -- GetUnit overwrites r0 before anything reads it, in the ROM as well.
+Func_807a550	CountStoredItems	read+callee	Party / inventory	src/party/inventory.c	Counts the occupied slots of the party's item container, optionally writing the tally and the first free index into the caller's buffer.
+Func_8012078	GetLayerTileAtB	read+family	Map rendering	src/map/terrain.c	The second entry point in GetLayerTileAt's file, sharing its addressing and differing in which field it returns.
+Func_800eba0	TestSphereOverlap	read	Actor engine	src/field/actor_collision.c	Tests whether two positions overlap given their radii: differences taken in 16.16, rejected outright beyond 0x400000 on any axis. The predicate behind Actor_IsBlockedAt.

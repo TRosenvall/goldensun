@@ -23,9 +23,64 @@ fact is worse than an honest placeholder.
 
 451 elevated functions carry a real name already; **3294 still carry a `Func_`/`OvlFunc_` placeholder**, and those are the naming job.
 
-This file proposes **619** of them (18.8%).
+This file proposes **627** of them (19.0%).
 
-## Actor engine — 7 functions
+## Data objects — 46 of 622 named
+
+A module's state block appears in every file that touches it, so a
+named block is worth more than a named function. These are the
+blocks and tables our own files reference.
+
+| Symbol | Proposed | Basis | Subsystem | Why the name |
+|---|---|---|---|---|
+| `L1314c` | `sSpriteScrambleOrder` | read+callee | Sprites | The tile permutation ScrambleSpriteTiles walks for the dissolve effect. |
+| `L37250` | `sStartMenuOptions` | read+callee | Start menu | The option table StartMenu_ResetOptions clears and StartMenu_AddIconOption fills. |
+| `L372c0` | `sStartMenuPalette` | read+callee | Start menu | The packed palette StartMenu_BuildPalette expands. |
+| `L7b6a8` | `sItemInfoTable` | read+callee | Party / equipment | GetItemInfo indexes it by item id masked to 0x1ff at a 0x2c-byte stride. |
+| `L7ee58` | `sMoveInfoTable` | read+callee | Party / moves | GetMoveInfo indexes it by move id masked to 0x3fff, bounded at 0x208, at a 0x10-byte stride. |
+| `L84a8c` | `sClassInfoTable` | read+callee | Party / stats | GetClassInfo indexes it from +0x90 at a 0x54-byte stride. |
+| `L84a9c` | `sSummonInfoTable` | read+callee | Party / stats | GetSummonInfo indexes it by id up to 0xf at an 8-byte stride. |
+| `L88db8` | `sClassStatTable` | read+callee | Party / stats | The four-wide table GetClassStatEntry indexes as row times four plus column. |
+| `L88e38` | `sEnemyStatRows` | read+callee | Party / stats | The 24-byte enemy stat rows, bounded at 0x2b, read by GetBaseStatSpread and GetEnemyStatRowWord. |
+| `L9d7a8` | `sEncounterRateRows` | read+callee | Field / map | The per-tile encounter rows Field_CheckEncounterTile looks up. |
+| `L9d8b0` | `sMapEncounterRows` | read+callee | Field / map | The (encounter, group) pairs GetMapEncounterGroup reads. |
+| `L9ed80` | `sIdleVariantTable` | read+callee | Field / map | The idle variants MapActor_PickIdleVariant selects with the frame counter. |
+| `L9f0a4` | `sEffectFlickerPair` | read+callee | Field / effects | The two flicker values Effect_PickFlicker chooses between. |
+| `L9f0f8` | `sDPadDirections` | read+callee | Field / map | The sixteen-entry facing table GetDPadDirection indexes with the four direction bits of gKeyHeld. |
+| `L9f160` | `sIdleFlickerTable` | read+callee | Field / map | The signed palette nudges Actor_IdleFlicker picks from at random. |
+| `L9f1a8` | `sMapOverlayTable` | read+callee | Field / map | The per-map overlay code entries Map_LoadOverlayCode loads from. |
+| `Laea4c` | `sMenuIconSheet` | read+callee | Menus | The sprite sheet Menu_CreateIconSprite and Menu_CreateCursorSprite upload. |
+| `Laf2e4` | `sMenuGridTable` | read+callee | Menus | The three-by-three table GetMenuGridEntry reads. |
+| `Lb3d40` | `sDigitGlyphs` | read+callee | Town UI | 32-byte glyph rows indexed by digit; UI_DrawDigit reads them. |
+| `Lb413c` | `sDigitSlotOffsets` | read+callee | Town UI | Per-slot tilemap offsets UI_DrawDigit uses as its destination. |
+| `Lb41ac` | `sShopStockRows` | read+callee | Town UI | The 0x42-byte per-shop stock rows GrantShopStock walks. |
+| `Lc2a62` | `sBattlePositions` | read+callee | Battle | Signed (x, y) formation offsets read in pairs by GetBattlePositionOffset. |
+| `Lc2a7c` | `sBattleViewVectors` | read+callee | Battle | The look vectors Battle_SetupViewMatrix builds the view matrix from. |
+| `Lc5c10` | `sBattleShakeTable` | read+callee | Battle | The signed offsets Battle_ApplyShakeOffset steps through. |
+| `Lc5c38` | `sEncounterVariants` | read+callee | Battle | The variant lists Battle_PickEncounterVariant chooses from at random. |
+| `Lc7420` | `sEncounterGroups` | read+callee | Battle | The eight-byte encounter rows, bounded at 0xab, behind GetEnemyGroupId, GetEnemyGroupSize and GetEnemyGroupEntry. |
+| `gBuffer` | `gBuffer` | named | Map rendering | Already named. The 64KB scratch buffer the map renderer and the animation DMA both draw from. |
+| `gState` | `gState` | named | Global | Already named. The 704-byte persistent record: coins at +0x10, party ids at +0x1f8, map id at +0x1d6, warp pairs at +0x1ce..+0x1d4, text speed at +0x205. |
+| `iwram_3001e40` | `gFrameCounter` | read+family | Field / map | The global frame counter. Read as & 0xf for a phase gate, & 1 and & 2 for the two actor flicker variants, and >> 2 & 1 for the effect flicker. |
+| `iwram_3001e60` | `gSpriteLayers` | read+family | Sprites | The sprite layer group table, indexed at +0x28 with four bytes per group and ten entries each. |
+| `iwram_3001e64` | `gFieldActors` | read+family | Actor engine | The field actor table: 64 records at a 0x70-byte stride, each with the collidable flag at +0x59 and the position at +8. |
+| `iwram_3001e70` | `gMapView` | read+family | Map rendering | The map view block: layer pointers at +0x130 with a 0x30-byte record per layer, the camera words at +4/+8/+0xc, the marker table and the camera bounds at +0xec. |
+| `iwram_3001e74` | `gBattleState` | read+family | Battle | The battle state block: unit records at +0x80 with a 0x2c-byte stride, the slot table at +0x64, and the turn phase words at +0x7fc through +0x804. |
+| `iwram_3001e80` | `gBattleView` | read+family | Battle | The battle camera and view record -- the three vectors, pitch and yaw that Battle_SetViewAngles writes and Battle_PollCameraKeys nudges. |
+| `iwram_3001e8c` | `gUIState` | read+family | UI windows | The UI block: the window list, the text object at +0x620, the text control bytes at +0x12fa and the panel field group at +0xea8. |
+| `iwram_3001e90` | `gStatusBoxes` | read+family | UI windows | The party status box block that UI_CloseStatusBox releases. |
+| `iwram_3001e98` | `gOptionMenu` | read+family | Option menu | The option menu module's block: the node list, the cursor pair at +0x396 and the option record at +0x348. |
+| `iwram_3001ea8` | `gMinimap` | read+family | Field / minimap | The minimap module's block, holding the tracked actor and the projected arrow angle. |
+| `iwram_3001ebc` | `gMapState` | read+family | Field / map | The map module's state block, referenced by 131 of the files we elevated. Holds the event counters at +0x16c, the event flag halfword at +0x170, the actor table, the looping sound id at +0xcc8 and the area fields. |
+| `iwram_3001ed0` | `gTransition` | read+family | Field / transition | The screen-transition block: mode halfword at the head, then the pattern buffer the scanline hook feeds. |
+| `iwram_3001ee4` | `gBoxSlots` | read+family | UI windows | A small block whose first slot holds the currently open UI box; Battle_SetEndFlag writes its third word. |
+| `iwram_3001eec` | `gAnimContext` | read+family | Battle animation | The battle animation context: the counter group at +0x7790, the window registers at +0x77bc, the BG2 reference points at +0x77d0 and the blit block at +0x7818. |
+| `iwram_3001f1c` | `gSaveScratch` | read+family | Save / flash | The flash save scratch block: sixteen slot-status bytes at the head, the sector buffer from +0x40 and the payload from +0x50. |
+| `iwram_3001f2c` | `gMenuState` | read+family | Menus | The party-menu module's state block: the grid node list at +0x48, the message box at +0x10c, the entry table at +0x134 and the actor scale table at +0x244. |
+| `iwram_3001f30` | `gFieldEffects` | read+family | Field / effects | The field effect module's block, with sixteen effect slots from +0x58. |
+| `iwram_3001f38` | `gDebugMenu` | read+family | Debug menu | The debug menu module's block. |
+
+## Actor engine — 8 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
 |---|---|---|---|---|---|---|
@@ -36,6 +91,7 @@ This file proposes **619** of them (18.8%).
 | `Func_800d8e8` | `0x0800d8e8` | `ActorCmd_Delete` | read+family | Actor engine | Script opcode: deletes the actor and returns 0. Joins the ActorCmd_* family already named in this bank. | `src/field/actor_script.c` |
 | `Func_800d924` | `0x0800d924` | `Actor_IsBlockedAt` | read+callee | Actor engine | Walks 64 actor records at iwram_3001e64 (stride 0x70), skipping empty, non-collidable (+0x59 & 1) and self, asking Func_800eba0 for radius overlap. Returns -1 on the first hit. | `src/field/actor_collision.c` |
 | `Func_800d98c` | `0x0800d98c` | `Actor_FindBlockerAt` | read+callee | Actor engine | Twin of Actor_IsBlockedAt, identical but for returning the overlapping record or NULL. | `src/field/actor_collision.c` |
+| `Func_800eba0` | `0x0800eba0` | `TestSphereOverlap` | read | Actor engine | Tests whether two positions overlap given their radii: differences taken in 16.16, rejected outright beyond 0x400000 on any axis. The predicate behind Actor_IsBlockedAt. | `src/field/actor_collision.c` |
 
 ## Battle — 81 functions
 
@@ -440,7 +496,7 @@ This file proposes **619** of them (18.8%).
 |---|---|---|---|---|---|---|
 | `Func_8025180` | `0x08025180` | `GetItemDisplayFlags` | read | Inventory UI | Reads the display flag bytes out of an item record at +2 and +0xc. | `src/ui/inventory_ui.c` |
 
-## Map rendering — 24 functions
+## Map rendering — 25 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
 |---|---|---|---|---|---|---|
@@ -463,6 +519,7 @@ This file proposes **619** of them (18.8%).
 | `Func_8011f3c` | `0x08011f3c` | `GetTileHeightFixedAt` | read | Map rendering | The same conversion taking the address as an integer rather than a pointer. One of three spellings of one operation in this bank. | `src/map/terrain.c` |
 | `Func_8011f48` | `0x08011f48` | `GetTileHeightFixedPtr` | read | Map rendering | The third spelling, loading through a named local first. Kept distinct because the ROM has three separate routines. | `src/map/terrain.c` |
 | `Func_8012038` | `0x08012038` | `GetLayerTileAt` | read | Map rendering | Reads the tile byte for a layer at a world position, indexing gBuffer through the layer's 0x30-byte block at +0x130. | `src/map/terrain.c` |
+| `Func_8012078` | `0x08012078` | `GetLayerTileAtB` | read+family | Map rendering | The second entry point in GetLayerTileAt's file, sharing its addressing and differing in which field it returns. | `src/map/terrain.c` |
 | `Func_80120b4` | `0x080120b4` | `GetCollisionAt` | read | Map rendering | Returns the top two bits of byte 1 of the 4-byte gBuffer cell covering (x/16, y/16) -- the cell's collision class. | `src/map/terrain.c` |
 | `Func_8012204` | `0x08012204` | `GetTerrainAt` | read | Map rendering | Resolves a 3D position to a terrain code: a 64x64 cell index into the map at 0x6005000, then a sub-cell nibble out of ewram_202c800. | `src/map/terrain.c` |
 | `Func_80122ac` | `0x080122ac` | `IsWalkableTerrain` | read+callee | Map rendering | Returns 0 for terrain codes 5 through 12 and -1 otherwise -- the walkability test over GetTerrainAt. | `src/map/terrain.c` |
@@ -611,21 +668,24 @@ This file proposes **619** of them (18.8%).
 | `Func_8078ecc` | `0x08078ecc` | `GetPartyLeaderSlot` | read | Party | A pure tail call to Func_80792c4. The name follows that callee and should be revisited when it is named; nothing in this body claims more. | `src/party/party.c` |
 | `Func_80796c4` | `0x080796c4` | `GetPartyMemberIds` | read | Party | Fills the caller's buffer with one id per living party member, taken from gState+0x1f8, and returns the count. Null buffer returns zero. | `src/party/party.c` |
 
-## Party / equipment — 3 functions
+## Party / equipment — 5 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
 |---|---|---|---|---|---|---|
 | `Func_807845c` | `0x0807845c` | `CanUseItem` | read | Party / equipment | Returns 1 for anything Func_8078480 says is not class-restricted, otherwise defers to CanEquipItem. The permissive wrapper around the class-mask test. | `src/party/item.c` |
 | `Func_807882c` | `0x0807882c` | `GetEquippedItemInfo` | read | Party / equipment | The same scan as GetEquippedItem but returns the ItemInfo record rather than the slot index, and takes the unit directly instead of looking it up. | `src/party/item.c` |
+| `Func_8079c8c` | `0x08079c8c` | `GetUnitAttackRange` | read+callee | Party / equipment | For an enemy unit returns its stat-row word; for a PC returns the equipped weapon's field at +0x14, defaulting to 4 when nothing is equipped. | `src/party/stats.c` |
+| `Func_8079d1c` | `0x08079d1c` | `RollUnleash` | read+callee | Party / equipment | Rolls a weapon's unleash: the equipment crit bonus plus five times the weapon's own rate, scaled into 16.16 and compared against RPGRandom. | `src/party/item.c` |
 | `GetEquippedItem` | `` | `GetEquippedItem` | named | Party / equipment | Keeps the ROM's own name; body agrees -- scans the 15 slots at unit+0xd8 for the first equipped entry (0x200) whose info record carries the requested kind, returns the slot index or -1. | `src/party/item.c` |
 
-## Party / inventory — 3 functions
+## Party / inventory — 4 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
 |---|---|---|---|---|---|---|
 | `Func_8077330` | `0x08077330` | `GetItemContainer` | read | Party / inventory | Picks the item container: argument zero gives the party's shared block at ewram_200024c, anything else gives unit 0x83's. Func_807a550 walks the result at +8. | `src/party/inventory.c` |
 | `Func_8078500` | `0x08078500` | `PartyHasInventorySpace` | read | Party / inventory | Returns 1 if the lead unit or any listed member has a free slot -- FindEmptyInventorySlot returning anything other than 0xf. | `src/party/inventory.c` |
 | `Func_8078948` | `0x08078948` | `RemoveInventoryItem` | read | Party / inventory | Reads the item in the slot, delegates the removal to Func_80788c4, and on success notifies Func_8078ad0 and the UI hook _Func_8091858. | `src/party/inventory.c` |
+| `Func_807a550` | `0x0807a550` | `CountStoredItems` | read+callee | Party / inventory | Counts the occupied slots of the party's item container, optionally writing the tally and the first free index into the caller's buffer. | `src/party/inventory.c` |
 
 ## Party / save — 1 function
 
@@ -633,7 +693,7 @@ This file proposes **619** of them (18.8%).
 |---|---|---|---|---|---|---|
 | `Func_80773f4` | `0x080773f4` | `CopyRecordBytes` | read | Party / save | Copies n bytes between two buffers in whichever direction the fourth argument selects -- the save/load direction switch, one routine serving both. | `src/party/record.c` |
 
-## Party / stats — 9 functions
+## Party / stats — 12 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
 |---|---|---|---|---|---|---|
@@ -646,6 +706,9 @@ This file proposes **619** of them (18.8%).
 | `Func_80798b4` | `0x080798b4` | `GetEnemyStatRowWord` | read | Party / stats | Looks up the unit's enemy row in .L88e38 (24-byte stride, clamped at 0x2b) and returns its first word. | `src/party/stats.c` |
 | `Func_80798e0` | `0x080798e0` | `GetUnitStatSpread` | read | Party / stats | Builds the full stat spread for a unit, taking the enemy table branch when unit+0x129 is zero and the class branch otherwise. | `src/party/stats.c` |
 | `Func_8079ae8` | `0x08079ae8` | `RefreshUnitClass` | read | Party / stats | Recomputes the unit's class byte at +0x129 from its id and Djinn block, then refreshes the derived stats. Paired with CalcStats at every call site. | `src/party/stats.c` |
+| `Func_8079d7c` | `0x08079d7c` | `GetClassAffinityWeight` | read | Party / stats | Maps a class or status id to a numeric weight through a fifty-slot switch, negative for two ids and for everything unlisted. What the weight feeds is not established here. | `src/party/stats.c` |
+| `Func_8079e9c` | `0x08079e9c` | `UnitHasAffinity` | read+callee | Party / stats | Scans the three affinity bytes of a unit's enemy record at +0x48 or its class record at +0x50 for a match. | `src/party/stats.c` |
+| `Func_807a2bc` | `0x0807a2bc` | `UnitTestBit` | read | Party / stats | Tests one bit of a per-unit word at +0x108. The first parameter is unused -- GetUnit overwrites r0 before anything reads it, in the ROM as well. | `src/party/stats.c` |
 
 ## Save / flash — 3 functions
 

@@ -174,6 +174,45 @@ def annotations():
 
 
 PROPOSALS = os.path.join(ROOT, "tools", "name_proposals.tsv")
+OBJECTS = os.path.join(ROOT, "tools", "object_proposals.tsv")
+
+
+def object_proposals():
+    """symbol -> {proposed, basis, subsystem, why} for DATA, from the TSV.
+
+    Functions are only half the rename. A module's state block appears in every
+    file that touches it -- iwram_3001ebc alone is referenced by 131 of the
+    files we added -- so naming the blocks is worth more per row than naming
+    the functions that read them.
+    """
+    out = {}
+    if not os.path.exists(OBJECTS):
+        return out
+    for line in open(OBJECTS, errors="replace"):
+        if line.startswith("#") or not line.strip():
+            continue
+        f = line.rstrip("\n").split("\t")
+        if len(f) < 5:
+            continue
+        out[f[0]] = {"proposed": f[1], "basis": f[2], "subsystem": f[3],
+                     "why": f[4]}
+    return out
+
+
+OBJ_PAT = re.compile(r"\b(iwram_3[0-9a-f]{6}|ewram_2[0-9a-f]{6}|Data_[0-9a-f]+|L[0-9a-f]{4,6})\b")
+
+
+def object_universe():
+    """(distinct placeholder-named data symbols our files reference)."""
+    seen = set()
+    for p in added_sources():
+        try:
+            src = open(os.path.join(ROOT, p), errors="replace").read()
+        except OSError:
+            continue
+        src = re.sub(r"/\*.*?\*/", "", src, flags=re.S)
+        seen.update(OBJ_PAT.findall(src))
+    return seen
 
 
 def proposals():
@@ -329,6 +368,22 @@ def emit_subsystems(rows):
           % (already, place))
     print("This file proposes **%d** of them (%.1f%%).\n"
           % (done, 100.0 * done / place if place else 0))
+    objs = object_proposals()
+    if objs:
+        univ = object_universe()
+        print("## Data objects — %d of %d named\n" % (len(objs), len(univ)))
+        print("A module's state block appears in every file that touches it, so a")
+        print("named block is worth more than a named function. These are the")
+        print("blocks and tables our own files reference.\n")
+        print("| Symbol | Proposed | Basis | Subsystem | Why the name |")
+        print("|---|---|---|---|---|")
+        for k in sorted(objs):
+            o = objs[k]
+            print("| `%s` | `%s` | %s | %s | %s |"
+                  % (k, o["proposed"], o["basis"], o["subsystem"],
+                     o["why"].replace("|", "\\|")))
+        print()
+
     for sub in sorted(groups):
         g = sorted(groups[sub], key=lambda r: r["function"])
         print("## %s — %d function%s\n" % (sub, len(g), "" if len(g) == 1 else "s"))

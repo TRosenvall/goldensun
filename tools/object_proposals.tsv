@@ -1,0 +1,53 @@
+# Proposed identifiers for DATA objects, the companion to name_proposals.tsv.
+# Consumed by tools/name_evidence.py --subsystems.
+#
+# Same rules: basis is recorded, and a symbol whose purpose the code does not
+# establish is left out rather than guessed at.
+#
+#symbol	proposed	basis	subsystem	why
+iwram_3001ebc	gMapState	read+family	Field / map	The map module's state block, referenced by 131 of the files we elevated. Holds the event counters at +0x16c, the event flag halfword at +0x170, the actor table, the looping sound id at +0xcc8 and the area fields.
+iwram_3001e70	gMapView	read+family	Map rendering	The map view block: layer pointers at +0x130 with a 0x30-byte record per layer, the camera words at +4/+8/+0xc, the marker table and the camera bounds at +0xec.
+iwram_3001e8c	gUIState	read+family	UI windows	The UI block: the window list, the text object at +0x620, the text control bytes at +0x12fa and the panel field group at +0xea8.
+iwram_3001f2c	gMenuState	read+family	Menus	The party-menu module's state block: the grid node list at +0x48, the message box at +0x10c, the entry table at +0x134 and the actor scale table at +0x244.
+iwram_3001e74	gBattleState	read+family	Battle	The battle state block: unit records at +0x80 with a 0x2c-byte stride, the slot table at +0x64, and the turn phase words at +0x7fc through +0x804.
+iwram_3001e80	gBattleView	read+family	Battle	The battle camera and view record -- the three vectors, pitch and yaw that Battle_SetViewAngles writes and Battle_PollCameraKeys nudges.
+iwram_3001eec	gAnimContext	read+family	Battle animation	The battle animation context: the counter group at +0x7790, the window registers at +0x77bc, the BG2 reference points at +0x77d0 and the blit block at +0x7818.
+iwram_3001f30	gFieldEffects	read+family	Field / effects	The field effect module's block, with sixteen effect slots from +0x58.
+iwram_3001ed0	gTransition	read+family	Field / transition	The screen-transition block: mode halfword at the head, then the pattern buffer the scanline hook feeds.
+iwram_3001e98	gOptionMenu	read+family	Option menu	The option menu module's block: the node list, the cursor pair at +0x396 and the option record at +0x348.
+iwram_3001f38	gDebugMenu	read+family	Debug menu	The debug menu module's block.
+iwram_3001f1c	gSaveScratch	read+family	Save / flash	The flash save scratch block: sixteen slot-status bytes at the head, the sector buffer from +0x40 and the payload from +0x50.
+iwram_3001e64	gFieldActors	read+family	Actor engine	The field actor table: 64 records at a 0x70-byte stride, each with the collidable flag at +0x59 and the position at +8.
+iwram_3001e40	gFrameCounter	read+family	Field / map	The global frame counter. Read as & 0xf for a phase gate, & 1 and & 2 for the two actor flicker variants, and >> 2 & 1 for the effect flicker.
+iwram_3001ea8	gMinimap	read+family	Field / minimap	The minimap module's block, holding the tracked actor and the projected arrow angle.
+iwram_3001ee4	gBoxSlots	read+family	UI windows	A small block whose first slot holds the currently open UI box; Battle_SetEndFlag writes its third word.
+iwram_3001e60	gSpriteLayers	read+family	Sprites	The sprite layer group table, indexed at +0x28 with four bytes per group and ten entries each.
+iwram_3001e90	gStatusBoxes	read+family	UI windows	The party status box block that UI_CloseStatusBox releases.
+gState	gState	named	Global	Already named. The 704-byte persistent record: coins at +0x10, party ids at +0x1f8, map id at +0x1d6, warp pairs at +0x1ce..+0x1d4, text speed at +0x205.
+gBuffer	gBuffer	named	Map rendering	Already named. The 64KB scratch buffer the map renderer and the animation DMA both draw from.
+L7b6a8	sItemInfoTable	read+callee	Party / equipment	GetItemInfo indexes it by item id masked to 0x1ff at a 0x2c-byte stride.
+L7ee58	sMoveInfoTable	read+callee	Party / moves	GetMoveInfo indexes it by move id masked to 0x3fff, bounded at 0x208, at a 0x10-byte stride.
+L84a8c	sClassInfoTable	read+callee	Party / stats	GetClassInfo indexes it from +0x90 at a 0x54-byte stride.
+L84a9c	sSummonInfoTable	read+callee	Party / stats	GetSummonInfo indexes it by id up to 0xf at an 8-byte stride.
+L88e38	sEnemyStatRows	read+callee	Party / stats	The 24-byte enemy stat rows, bounded at 0x2b, read by GetBaseStatSpread and GetEnemyStatRowWord.
+L88db8	sClassStatTable	read+callee	Party / stats	The four-wide table GetClassStatEntry indexes as row times four plus column.
+Lc7420	sEncounterGroups	read+callee	Battle	The eight-byte encounter rows, bounded at 0xab, behind GetEnemyGroupId, GetEnemyGroupSize and GetEnemyGroupEntry.
+Lc2a62	sBattlePositions	read+callee	Battle	Signed (x, y) formation offsets read in pairs by GetBattlePositionOffset.
+Lc2a7c	sBattleViewVectors	read+callee	Battle	The look vectors Battle_SetupViewMatrix builds the view matrix from.
+Lc5c10	sBattleShakeTable	read+callee	Battle	The signed offsets Battle_ApplyShakeOffset steps through.
+Lc5c38	sEncounterVariants	read+callee	Battle	The variant lists Battle_PickEncounterVariant chooses from at random.
+Lb3d40	sDigitGlyphs	read+callee	Town UI	32-byte glyph rows indexed by digit; UI_DrawDigit reads them.
+Lb413c	sDigitSlotOffsets	read+callee	Town UI	Per-slot tilemap offsets UI_DrawDigit uses as its destination.
+Lb41ac	sShopStockRows	read+callee	Town UI	The 0x42-byte per-shop stock rows GrantShopStock walks.
+Laea4c	sMenuIconSheet	read+callee	Menus	The sprite sheet Menu_CreateIconSprite and Menu_CreateCursorSprite upload.
+Laf2e4	sMenuGridTable	read+callee	Menus	The three-by-three table GetMenuGridEntry reads.
+L9f0f8	sDPadDirections	read+callee	Field / map	The sixteen-entry facing table GetDPadDirection indexes with the four direction bits of gKeyHeld.
+L9f160	sIdleFlickerTable	read+callee	Field / map	The signed palette nudges Actor_IdleFlicker picks from at random.
+L9d8b0	sMapEncounterRows	read+callee	Field / map	The (encounter, group) pairs GetMapEncounterGroup reads.
+L9d7a8	sEncounterRateRows	read+callee	Field / map	The per-tile encounter rows Field_CheckEncounterTile looks up.
+L9f1a8	sMapOverlayTable	read+callee	Field / map	The per-map overlay code entries Map_LoadOverlayCode loads from.
+L9ed80	sIdleVariantTable	read+callee	Field / map	The idle variants MapActor_PickIdleVariant selects with the frame counter.
+L9f0a4	sEffectFlickerPair	read+callee	Field / effects	The two flicker values Effect_PickFlicker chooses between.
+L1314c	sSpriteScrambleOrder	read+callee	Sprites	The tile permutation ScrambleSpriteTiles walks for the dissolve effect.
+L37250	sStartMenuOptions	read+callee	Start menu	The option table StartMenu_ResetOptions clears and StartMenu_AddIconOption fills.
+L372c0	sStartMenuPalette	read+callee	Start menu	The packed palette StartMenu_BuildPalette expands.
