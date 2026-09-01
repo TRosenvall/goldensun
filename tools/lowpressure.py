@@ -23,8 +23,11 @@ This one does, from three signals visible in the .s without any analysis:
   more than a couple of long-lived values. Every park listed above pushes three
   or four callee-saved registers.
 
-  HIGH REGISTERS.  Any mention of r8-r12 or r14 outside the push/pop is the wall
-  itself, already present. Reject.
+  HIGH REGISTERS.  r12 (ip) or r14 (lr) holding a value is a real wall -- no C
+  expresses either. r8-r11 are NOT, and treating them as one cost this tree a
+  long time: gcc-2.96 allocates r8-r11 freely once r4-r7 are committed, and
+  relaxing the reject produced three elevations in one round out of 109
+  candidates it had been hiding. r8-r11 is reported in a column.
 
   LIVE-ACROSS-CALL COUNT, approximated by the number of calls: each `bl` forces
   everything live to a callee-saved register, so calls are what convert a wide
@@ -49,7 +52,13 @@ import filtered
 import pickable
 import shapesib
 
-HIGH = re.compile(r"\br(?:8|9|10|11|12|14)\b")
+# r12 (ip) and r14 (lr) holding a VALUE are a real wall -- the source has no
+# way to ask for either. r8-r11 are NOT: gcc-2.96 allocates them freely once
+# r4-r7 are committed, and three functions were elevated out of this class in
+# one round after the reject was relaxed (Func_80a1814, Func_800d924,
+# Func_800d98c). It is reported as a column, not rejected.
+HIGH = re.compile(r"\br(?:12|14)\b")
+HI811 = re.compile(r"\br(?:8|9|10|11)\b")
 PUSH = re.compile(r"^\s*push\s+\{([^}]*)\}")
 
 
@@ -126,13 +135,16 @@ def main():
                 continue
             calls = sum(1 for l in ins if re.search(r"\bbl\s+", l))
             regs = push_regs(ins)
-            rows.append((len(regs), calls, n, name, s, ",".join(regs) or "-"))
+            nhi = sum(1 for l in body_only if HI811.search(l))
+            rows.append((len(regs), calls, n, name, s, ",".join(regs) or "-",
+                         nhi))
 
     rows.sort()
     print("%d candidates, sorted by register pressure\n" % len(rows))
-    for nreg, calls, n, name, s, regs in rows[:limit]:
-        print("  %d saved (%-11s) %2d bl %3di  %-28s %s"
-              % (nreg, regs, calls, n, name, s))
+    for nreg, calls, n, name, s, regs, nhi in rows[:limit]:
+        print("  %d saved (%-11s) %2d bl %3di  %-28s %s%s"
+              % (nreg, regs, calls, n, name, s,
+                 "  [%d hi]" % nhi if nhi else ""))
 
 
 if __name__ == "__main__":

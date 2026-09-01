@@ -12072,3 +12072,56 @@ That is the honest state of the worklist and it is why recent rounds return one
 elevation or none. **The next real gains are in relaxing a reject, not in
 working the list**: the duplicate-constant reject alone removes 85 of the 173
 precompute-class candidates and every one of the 158 call-dominated scripts.
+
+## r8-r11 is NOT a blocker -- and treating it as one hid 109 functions
+
+Every ranking in this tree rejected any function mentioning r8-r11 outside the
+push/pop. That reject is wrong, and it was costing more than any other.
+
+**gcc-2.96 allocates r8-r11 freely once r4-r7 are committed.** `-fcall-used-r4`
+takes r4 out of the callee-saved set, so a function with four values live across
+a call has only r5, r6, r7 -- and the fourth goes to r8, with the
+`mov r7, r8 / push {r7}` prologue and `pop {r3} / mov r8, r3` epilogue that the
+reject was reading as a wall. Our own screens have been emitting r8 and r10 for
+rounds; the reject was never tested against that.
+
+Relaxing it to a reported column left **122 candidates** where the full reject
+left twelve, and three of the first four tried matched:
+
+| function | screens | what it took |
+|---|---|---|
+| `Func_80a1814` | 3 | the derived byte below |
+| `Func_800d924` | **1** | nothing |
+| `Func_800d98c` | **1** | nothing -- twin of the above |
+
+In all three the r8 came out with no lever: a zero live across two calls, a
+pointer argument live across a loop's call. **Write the C and let the allocator
+find the high register.**
+
+r12 (ip) and r14 (lr) holding a value ARE a real wall -- no C expresses either --
+so the reject is kept for those two and only those.
+
+**How this happened is the same shape as the branch-over-pool correction.** The
+reject was a heuristic ("avoid allocation fights") that hardened into a
+certainty, and the corpus measurement that would have falsified it -- our own
+generated asm, which contains r8 and r10 all over -- was never compared against
+it. Two rejects have now been found wrong this way in three rounds.
+
+## Write a derivation as its own STATEMENT, not as an expression
+
+Batch 178 recorded that when a ROM derives a small constant from a value that is
+already live, the source writes the derivation rather than the constant.
+`Func_80a1814` sharpens it: the derivation has to be a compound assignment.
+
+    rom    mov r3, #0xfe / strb r3, [r0, #0xf] / ... / sub r3, #0xff
+                                               / strb r3, [r2, #0xf]
+
+| spelling | result vs a 44-line ROM |
+|---|---|
+| `r[0xf] = 0xfe;` and `t[0xf] = 0xfe - 0xff;` | 43 lines, 16 differing |
+| `n = 0xfe; r[0xf] = n; t[0xf] = n - 0xff;` | 44 lines, **1** differing |
+| `n = 0xfe; r[0xf] = n; n -= 0xff; t[0xf] = n;` | **matches** |
+
+`n - 0xff` inside the store is folded to -1 and materialised with a `mov`;
+`n -= 0xff` as its own statement survives as a `sub` on the register the
+previous store just used. **The lever is the statement boundary, not the name.**
