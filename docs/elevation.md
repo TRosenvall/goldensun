@@ -12125,3 +12125,57 @@ already live, the source writes the derivation rather than the constant.
 `n - 0xff` inside the store is folded to -1 and materialised with a `mov`;
 `n -= 0xff` as its own statement survives as a `sub` on the register the
 previous store just used. **The lever is the statement boundary, not the name.**
+
+## The derivation lever has no mirror
+
+Three functions now need the source to write a derivation the ROM performs:
+`n -= 0xff` rather than `n - 0xff` (`Func_80a1814`), `t--` rather than
+`t = -1` (`Func_8026e80`), and the `0x3e7` that gcc derives for free in
+`Func_801a66c` and that naming BREAKS.
+
+`Func_801ed40` is the same question pointed the other way and it has no answer.
+Two field offsets four bytes apart are tested one after the other; the ROM pools
+both, and gcc pools the first and subtracts 2:
+
+    rom    ldr r2, =0x12ee ... ldr r2, =0x12ec
+    ours   ldr r2, =0x12ee ... sub r2, #0x2
+
+One differing line of 63, at exact length. Three spellings (`p + 0x12ec`,
+`p + (0x12f0 - 4)`, each address named into its own pointer) and three flags
+(`-fno-gcse`, `-fno-cse-follow-jumps`, `-fno-expensive-optimizations`) are all
+byte-identical.
+
+> **You can ask gcc to derive a constant. You cannot ask it for a second pool
+> entry.** When the ROM materialises two nearby constants separately and gcc
+> derives one from the other, that is the end of the road.
+
+## Our code being SHORTER than the ROM is not always a bug to fix
+
+`OvlFunc_888_200a6f0` comes out 43 lines against the ROM's 45. Both use r8 and
+r10; they disagree only about which value goes where. The angle is used twice
+and early, the `+0x64` pointer twice and late; gcc gives the cheap low register
+to the pointer and needs no moves, while the ROM puts the pointer in r8 and pays
+`mov r2, r8` and `mov r1, r8`.
+
+There is nothing to write. Three spellings of the pointer's construction were
+measured and none moves it, because the difference follows from which register
+the value is heading for, not from the arithmetic. **A two-line deficit where
+the ROM's extra lines are `mov rN, r8` reads are an allocation choice, not a
+missing statement** -- check what the moves are before looking for one.
+
+## A local constant used twice can be folded past a macro
+
+`Func_8012388` allocates a buffer and DMAs into it, passing the same size to
+both:
+
+    rom    ldr r5, =0x27c / ... / lsr r5, #0x2 / lsl r2, #0x18 / orr r2, r5
+    ours   mov r1, #0x9f / lsl r1, #0x2 ... ldr r2, =0x8400009f
+
+`DMA3_COPY` builds `0x84000000 | (size / 4)`. With `size` a local initialised to
+a literal, gcc folds the whole count word at compile time; the ROM's compiler
+kept the size in a register and did the shift and or at runtime.
+
+This is the batch-174 shape -- a fold the ROM declined -- but the recorded fix
+(separate the two constants into different statements) does not apply: here it
+is ONE constant that has to stay a variable, and nothing in this notebook
+currently achieves that. Six lines of 39.
