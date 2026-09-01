@@ -11555,3 +11555,72 @@ Writing `a = (*p++ - '0') * 10; a += *p++;` and then consuming `(a - '0')` where
 The general form: **if the ROM leaves two compile-time constants unfolded, they
 were not adjacent in the source.** gcc will always fold `x*10 - 480 + y - 48`;
 it cannot fold across a statement boundary that the value has to survive.
+
+## A chain of arms that each STORE AND RETURN is not the same as one that assigns and joins
+
+`OvlFunc_880_20082f4` maps a character code through fifteen arms and writes one
+byte. The ROM's shape is a plain chain: `cmp / bgt <next> / mov / add / b <join>`
+per arm, with a single `strb` at the join. Written the way that shape reads --
+
+```c
+    if (c <= 7) v = c + 0x41;
+    else if (c <= 0xc) v = c + 0x42;
+    ...
+    out[0] = v;
+```
+
+-- gcc comes out at **58 lines against the ROM's 86**. It speculates each arm's
+computation ABOVE its test (`mov r3, r0 / add r3, #0x41 / cmp r0, #7 / ble
+<join>`), which is legal because the assignment has no side effect, and saves an
+instruction per arm.
+
+Putting the store inside each arm matches exactly:
+
+```c
+    if (c <= 7) { out[0] = c + 0x41; return; }
+    if (c <= 0xc) { out[0] = c + 0x42; return; }
+    ...
+    out[0] = 0x3d;
+```
+
+A store cannot be speculated above the test, so the computation stays in the
+arm; and cross-jumping then merges the fifteen identical `strb / pop / bx` tails
+back into the one the ROM shows.
+
+> **A ROM whose arms all branch to a single store does NOT mean the source had a
+> join variable.** Cross-jumped store-and-return arms produce the same tail. The
+> discriminator is whether the arm's COMPUTATION sits before or after its test:
+> before means a join variable, after means the arm stores for itself.
+
+An explicit `goto` chain reproducing the ROM's control flow exactly is
+byte-identical to the join-variable form -- gcc canonicalises it away -- so this
+is not reachable by rearranging control flow, only by giving each arm a side
+effect. Six flag groups, including `-fno-thread-jumps` and
+`-fno-cse-follow-jumps`, are all inert.
+
+## Naming is a floor, not a ceiling
+
+Batch 172 established that naming a value forces it to exist, and batches 174
+and 176 used that to pin loads and select addressing forms. `Func_801d014` is
+the limit case. Its residue is that gcc forms a copy's DESTINATION address
+before its source, where the ROM does the reverse, five times over. Naming the
+loaded byte costs eight lines; naming the source address costs five.
+
+> Naming can stop gcc sinking something past a point. It cannot stop gcc
+> hoisting something above one. When the fix you need is "move this LATER", no
+> name will do it.
+
+## The two directions of pool-load motion are different passes
+
+| the ROM has | gcc does | flag |
+|---|---|---|
+| the pool load OUTSIDE a loop | sinks it in, reloading each iteration | `-fno-gcse` fixes it (`rom_f0254_a_b.c`) |
+| the pool load INSIDE a loop | hoists it out into a callee-saved register | no flag exists (`rom_9000/8011164.c`) |
+
+`Func_8011164` reloads `gBuffer` every iteration and bumps it by two between two
+reads. Writing that literally -- `g = gBuffer;` as the loop body's first
+statement, `g += 2;` between the reads -- is the right shape and narrows the push
+list from `{r5, r6, r7, lr}` to `{r5, r6, lr}`, but gcc still recognises
+`g = gBuffer` as loop-invariant and hoists the initialisation. `-fno-gcse` is
+**inert**, which is the diagnostic: the motion belongs to `loop.c`, not global
+CSE, and gcc-2.96 has no switch for it.
