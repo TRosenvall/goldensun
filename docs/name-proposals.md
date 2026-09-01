@@ -23,7 +23,7 @@ fact is worse than an honest placeholder.
 
 451 elevated functions carry a real name already; **3294 still carry a `Func_`/`OvlFunc_` placeholder**, and those are the naming job.
 
-This file proposes **432** of them (13.1%).
+This file proposes **507** of them (15.4%).
 
 ## Actor engine — 7 functions
 
@@ -199,6 +199,101 @@ This file proposes **432** of them (13.1%).
 | `Func_800c5fc` | `0x0800c5fc` | `StopFieldRender` | read | Field | Unregisters both field hooks and restores the blend register. | `src/field/field.c` |
 | `Func_800c628` | `0x0800c628` | `ReturnTrue_800c628` | read | Field | Returns 1 unconditionally. A predicate stub; nothing in the body says what it is standing in for. | `src/field/field.c` |
 | `Func_800c87c` | `0x0800c87c` | `ReturnTrue_800c87c` | read | Field | Returns 1 unconditionally, the twin of ReturnTrue_800c628. | `src/field/field.c` |
+
+## Field / cutscene — 25 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_808d7d8` | `0x0808d7d8` | `Field_RunActorMessage` | read+callee | Field / cutscene | Opens a cutscene, delivers the actor's message and closes it again. | `src/field/cutscene.c` |
+| `Func_808e078` | `0x0808e078` | `MapActor_PlayAnimWithSound` | read+callee | Field / cutscene | Plays a sound, sets a map actor's animation and waits the frames out. | `src/field/cutscene.c` |
+| `Func_808ec4c` | `0x0808ec4c` | `NullSub_808ec4c` | read | Field / cutscene | Empty body. | `src/field/cutscene.c` |
+| `Func_808ec50` | `0x0808ec50` | `MapActor_PlayCutsceneAnimA` | read+family | Field / cutscene | Sets the faced actor's animation, plays a sound and waits. First of four near-identical cutscene animation helpers. | `src/field/cutscene.c` |
+| `Func_808ec8c` | `0x0808ec8c` | `MapActor_PlayCutsceneAnimB` | read+family | Field / cutscene | The variant that also sets the actor's sprite flags. | `src/field/cutscene.c` |
+| `Func_808ece0` | `0x0808ece0` | `MapActor_PlayCutsceneAnimC` | read+family | Field / cutscene | The variant taking the actor id as an argument. | `src/field/cutscene.c` |
+| `Func_808ed1c` | `0x0808ed1c` | `MapActor_SetCutsceneAnim` | read+family | Field / cutscene | The bare variant: sets the animation and nothing else. | `src/field/cutscene.c` |
+| `Func_8091778` | `0x08091778` | `NullSub_8091778` | read | Field / cutscene | Empty body. | `src/field/cutscene.c` |
+| `Func_8091780` | `0x08091780` | `Field_InitCutsceneActors` | read+callee | Field / cutscene | Initialises the map actors for a cutscene and waits for the field actor to appear. | `src/field/cutscene.c` |
+| `Func_80917d0` | `0x080917d0` | `Field_JoinPartyMember` | read+family | Field / cutscene | Adds a party member and runs the join UI. One of two variants differing in which UI hook they call. | `src/field/cutscene.c` |
+| `Func_80917f4` | `0x080917f4` | `Field_JoinPartyMemberB` | read+family | Field / cutscene | The second join variant. | `src/field/cutscene.c` |
+| `Func_8091c1c` | `0x08091c1c` | `Field_GiveItemToMember` | read | Field / cutscene | Hands an item to a party member, returning the member id or -1. The second argument is unused, in the ROM too. | `src/field/cutscene.c` |
+| `Func_8091c3c` | `0x08091c3c` | `NullSub_8091c3c` | read | Field / cutscene | Empty body. | `src/field/cutscene.c` |
+| `Func_8091d84` | `0x08091d84` | `Field_AskYesNo` | read | Field / cutscene | Puts up the yes/no prompt with the three trailing arguments zeroed. | `src/field/cutscene.c` |
+| `Func_8091f90` | `0x08091f90` | `Field_SetWarpDest` | read+family | Field / cutscene | Writes the destination pair at gState+0x1ce/+0x1d0. | `src/field/cutscene.c` |
+| `Func_8091fa8` | `0x08091fa8` | `Field_SetWarpDestB` | read+family | Field / cutscene | Writes the second destination pair at gState+0x1d2/+0x1d4. | `src/field/cutscene.c` |
+| `Func_8091ff0` | `0x08091ff0` | `Field_StartLoopSound` | read | Field / cutscene | Records a looping sound id in the map state and starts it, treating -1 as stop. | `src/field/cutscene.c` |
+| `Func_809202c` | `0x0809202c` | `Field_StopLoopSound` | read+callee | Field / cutscene | Stops whatever Field_StartLoopSound left running. | `src/field/cutscene.c` |
+| `Func_809218c` | `0x0809218c` | `MapActor_TravelToWait` | read+family | Field / cutscene | MapActor_TravelTo plus a wait for the movement to finish; shares its file. | `src/field/cutscene.c` |
+| `Func_80921c4` | `0x080921c4` | `MapActor_TravelToAnim` | read+family | Field / cutscene | The variant that also sets the actor's animation. | `src/field/cutscene.c` |
+| `Func_8092208` | `0x08092208` | `MapActor_WalkTo` | read+family | Field / cutscene | Stops, animates and walks a field actor to an absolute position, then waits. | `src/field/cutscene.c` |
+| `Func_809228c` | `0x0809228c` | `MapActor_MoveBy` | read+family | Field / cutscene | The relative-offset member of the travel family. | `src/field/cutscene.c` |
+| `Func_80922c4` | `0x080922c4` | `MapActor_MoveByAnim` | read+family | Field / cutscene | Relative move with an animation set first. | `src/field/cutscene.c` |
+| `Func_8092304` | `0x08092304` | `MapActor_MoveByAnimWait` | read+family | Field / cutscene | Relative move with animation, waiting for arrival. | `src/field/cutscene.c` |
+| `Func_809255c` | `0x0809255c` | `NullSub_809255c` | read | Field / cutscene | Empty body. | `src/field/cutscene.c` |
+
+## Field / field move — 5 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_808e118` | `0x0808e118` | `Field_InitMoveTargets` | read | Field / field move | Clears the field-move target list in the map state block. | `src/field/field_move.c` |
+| `Func_808e5d8` | `0x0808e5d8` | `Field_UseFieldMove` | read+callee | Field / field move | Runs a field move: reads its record, resolves the target actor and drives the two effect hooks. | `src/field/field_move.c` |
+| `Func_808e96c` | `0x0808e96c` | `Field_QueryMoveTarget` | read+callee | Field / field move | Asks the map query layer for the target of move kind 0x70000005. | `src/field/field_move.c` |
+| `Func_8091814` | `0x08091814` | `Field_PartyHasMove` | read+callee | Field / field move | True when the requested member is present and knows the requested move. | `src/field/field_move.c` |
+| `Func_8091858` | `0x08091858` | `Field_RefreshMoveFlags` | read+callee | Field / field move | Recomputes which field moves the party can currently use into the global state. | `src/field/field_move.c` |
+
+## Field / map — 32 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_808ab48` | `0x0808ab48` | `Map_LoadOverlayCode` | read | Field / map | Loads the current map's code overlay from the table at .L9f1a8 into the overlay region. | `src/field/map_load.c` |
+| `Func_808adf0` | `0x0808adf0` | `Field_CheckEncounterTile` | read+callee | Field / map | Resolves the party's tile, looks up its encounter row in .L9d7a8 and reports whether an encounter is due. | `src/field/encounter.c` |
+| `Func_808b02c` | `0x0808b02c` | `Map_RunEventAt` | read | Field / map | Runs the map event whose id sits at index arg0 of the state block's event list. | `src/field/map_event.c` |
+| `Func_808b048` | `0x0808b048` | `Map_CheckEventAt` | read+callee | Field / map | The query half of Map_RunEventAt, in the same file. | `src/field/map_event.c` |
+| `Func_808b074` | `0x0808b074` | `GetMapEncounterGroup` | read+callee | Field / map | Reads an (encounter, group) pair out of .L9d8b0 and resolves it to an enemy group. | `src/field/encounter.c` |
+| `Func_808b248` | `0x0808b248` | `GetCurrentMapId` | read | Field / map | Returns the halfword at gState+0x1d6. | `src/field/map_load.c` |
+| `Func_808b25c` | `0x0808b25c` | `Map_LoadAreaTable` | read | Field / map | Copies the area descriptor at .L9e270 into the global state. | `src/field/map_load.c` |
+| `Func_808b2b0` | `0x0808b2b0` | `Map_SetAreaName` | read | Field / map | Selects one of the _AREA_* name ids for the current area and stores it. | `src/field/map_load.c` |
+| `Func_808b398` | `0x0808b398` | `IsPartyMemberAvailable` | read+callee | Field / map | True for ids up to 8 once flag 0x20 is set -- the party-joined gate. | `src/field/map_event.c` |
+| `Func_808b3d0` | `0x0808b3d0` | `GetPartyMemberMapId` | read | Field / map | Remaps a party index to its map actor id through a chain of equality tests. | `src/field/map_event.c` |
+| `Func_808b9f8` | `0x0808b9f8` | `Map_StoreState` | read | Field / map | Writes the current map fields back into the persistent block. | `src/field/map_load.c` |
+| `Func_808bc9c` | `0x0808bc9c` | `Map_SumEventCounters` | read | Field / map | Sums the six event counters at state+0x16c onward. | `src/field/map_event.c` |
+| `Func_808c44c` | `0x0808c44c` | `Map_OpenWorldView` | read+callee | Field / map | Allocates the world view's buffers and brings the map view up. | `src/field/map_load.c` |
+| `Func_808c4c0` | `0x0808c4c0` | `Map_OpenWorldViewB` | read+family | Field / map | The second world-view entry, differing in which view routine it calls. | `src/field/map_load.c` |
+| `Func_808d428` | `0x0808d428` | `Field_IsFlagSetOrAlways` | read | Field / map | Returns true for the sentinel -1, otherwise reads the flag. | `src/field/map_event.c` |
+| `Func_808d458` | `0x0808d458` | `Field_IsFlagClear` | read+family | Field / map | The inverted twin of Field_IsFlagSetOrAlways, in the same file. | `src/field/map_event.c` |
+| `Func_808d5a4` | `0x0808d5a4` | `Field_FindEventForActor` | read+callee | Field / map | Looks up the event record attached to a map actor via FindMapActorEvent. | `src/field/map_event.c` |
+| `Func_808e0b0` | `0x0808e0b0` | `MapActor_UpdateEntity` | read | Field / map | Per-frame update of one map entity's flag byte from the table at .L9e6b8. | `src/field/map_actor.c` |
+| `Func_808e990` | `0x0808e990` | `Field_HasEventAt` | read+callee | Field / map | Normalises the event lookup to 0 or 1 with the neg-or-self sign trick. | `src/field/map_event.c` |
+| `Func_808e9a8` | `0x0808e9a8` | `Field_TestCollisionAt` | read+callee | Field / map | Tests the collision layer at a record's position. | `src/field/map_event.c` |
+| `Func_808ed4c` | `0x0808ed4c` | `Map_GetFacedSlot` | read | Field / map | Reads the slot record for whatever the player is facing, or -1. | `src/field/map_event.c` |
+| `Func_808ed78` | `0x0808ed78` | `Map_ClearFacedSlot` | read+callee | Field / map | Clears the record Map_GetFacedSlot would return. | `src/field/map_event.c` |
+| `Func_808edac` | `0x0808edac` | `Map_TestFacedCollision` | read+callee | Field / map | Runs the collision test against the faced slot's position. | `src/field/map_event.c` |
+| `Func_808eee4` | `0x0808eee4` | `MapActor_SetSubFlag` | read | Field / map | Writes the flag byte at +9 of a map actor's sub-record. | `src/field/map_actor.c` |
+| `Func_808f0d8` | `0x0808f0d8` | `MapActor_StepTowardA` | read+family | Field / map | Steps an actor's position toward a target. First of three variants differing in which coordinate fields they use. | `src/field/map_actor.c` |
+| `Func_808f140` | `0x0808f140` | `MapActor_StepTowardB` | read+family | Field / map | The second stepping variant. | `src/field/map_actor.c` |
+| `Func_808f28c` | `0x0808f28c` | `MapActor_StepTowardC` | read+family | Field / map | The third stepping variant. | `src/field/map_actor.c` |
+| `Func_808f304` | `0x0808f304` | `Map_GetStateWord` | read | Field / map | Returns a word out of the map state block. | `src/field/map_load.c` |
+| `Func_8090378` | `0x08090378` | `Map_SetLayerVisible` | read | Field / map | Toggles one map layer's visibility in the view block. | `src/field/map_load.c` |
+| `Func_8091660` | `0x08091660` | `MapActor_SetMotionFields` | read | Field / map | Writes an actor's three motion words at +0x24, +0x2c and +0x30. | `src/field/map_actor.c` |
+| `Func_8091e9c` | `0x08091e9c` | `Map_GetEventFlagWord` | read | Field / map | Reads the event flag halfword at map state +0x170. | `src/field/map_event.c` |
+| `Func_809259c` | `0x0809259c` | `MapActor_InstallScript9EBFC` | read | Field / map | Installs the script at .L9ebfc on a field actor. What the script does is not established here. | `src/field/map_actor.c` |
+
+## Field / transition — 13 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_808feb0` | `0x0808feb0` | `Field_StartScreenTransition` | read+callee | Field / transition | Installs the screen-window transition and its companion hook. | `src/field/transition.c` |
+| `Func_8090584` | `0x08090584` | `Field_ScanlineHook` | read | Field / transition | The per-scanline hook: reads VCOUNT and writes the matching row of the effect buffer. | `src/field/transition.c` |
+| `Func_80907b0` | `0x080907b0` | `Transition_FillPattern` | read | Field / transition | Fills the transition buffer with a repeating word pattern. | `src/field/transition.c` |
+| `Func_8090824` | `0x08090824` | `Transition_Start300` | read+callee | Field / transition | Allocates the transition block, primes its pattern and starts Task_Transition300. | `src/field/transition.c` |
+| `Func_8091174` | `0x08091174` | `Transition_StartWindow` | read+callee | Field / transition | The window-transition entry: allocates, primes and starts its own task. | `src/field/transition.c` |
+| `Func_80911e8` | `0x080911e8` | `Transition_Stop` | read | Field / transition | Stops the transition task and releases the tag-0x20 block. | `src/field/transition.c` |
+| `Func_8091200` | `0x08091200` | `Transition_SetParams` | read+family | Field / transition | Writes the transition's two parameters into its block. | `src/field/transition.c` |
+| `Func_8091220` | `0x08091220` | `Transition_SetParamsB` | read+family | Field / transition | The second parameter setter, with the arguments the other way round. | `src/field/transition.c` |
+| `Func_8091240` | `0x08091240` | `Transition_SetMode` | read | Field / transition | Writes the mode halfword at the head of the transition block. | `src/field/transition.c` |
+| `Func_8091294` | `0x08091294` | `ClampBrightnessField` | read+family | Field / transition | Clamps to 0..0x1f. Byte-for-byte the same routine as ClampBrightness in rom_f2000; the ROM has both. | `src/field/transition.c` |
+| `Func_80912a8` | `0x080912a8` | `ClampScaleField` | read+family | Field / transition | Clamps to at most 0x7c00. The duplicate of ClampScale in rom_f2000. | `src/field/transition.c` |
+| `Func_8091540` | `0x08091540` | `Field_AddFadeHook` | read+family | Field / transition | Installs Func_80912b8 as a per-frame hook. | `src/field/transition.c` |
+| `Func_8091550` | `0x08091550` | `Field_RemoveFadeHook` | read+family | Field / transition | Removes it again. | `src/field/transition.c` |
 
 ## Graphics — 1 function
 

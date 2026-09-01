@@ -461,3 +461,80 @@ Func_8028aa8	Debug_ShowMessage	read+callee	Debug menu	src/ui/debug_menu.c	Opens 
 Func_8028b80	Debug_ShowSmallText	read+callee	Debug menu	src/ui/debug_menu.c	Closes the debug window and redraws it with the small-text renderer.
 Func_8028edc	Debug_StartWarpMenu	read	Debug menu	src/ui/debug_menu.c	Starts Debug_WarpMenu at priority 0xc80.
 Func_80294d0	NullSub_80294d0	read	Debug menu	src/ui/debug_menu.c	Empty body.
+Func_808ab48	Map_LoadOverlayCode	read	Field / map	src/field/map_load.c	Loads the current map's code overlay from the table at .L9f1a8 into the overlay region.
+Func_808adf0	Field_CheckEncounterTile	read+callee	Field / map	src/field/encounter.c	Resolves the party's tile, looks up its encounter row in .L9d7a8 and reports whether an encounter is due.
+Func_808b02c	Map_RunEventAt	read	Field / map	src/field/map_event.c	Runs the map event whose id sits at index arg0 of the state block's event list.
+Func_808b048	Map_CheckEventAt	read+callee	Field / map	src/field/map_event.c	The query half of Map_RunEventAt, in the same file.
+Func_808b074	GetMapEncounterGroup	read+callee	Field / map	src/field/encounter.c	Reads an (encounter, group) pair out of .L9d8b0 and resolves it to an enemy group.
+Func_808b248	GetCurrentMapId	read	Field / map	src/field/map_load.c	Returns the halfword at gState+0x1d6.
+Func_808b25c	Map_LoadAreaTable	read	Field / map	src/field/map_load.c	Copies the area descriptor at .L9e270 into the global state.
+Func_808b2b0	Map_SetAreaName	read	Field / map	src/field/map_load.c	Selects one of the _AREA_* name ids for the current area and stores it.
+Func_808b398	IsPartyMemberAvailable	read+callee	Field / map	src/field/map_event.c	True for ids up to 8 once flag 0x20 is set -- the party-joined gate.
+Func_808b3d0	GetPartyMemberMapId	read	Field / map	src/field/map_event.c	Remaps a party index to its map actor id through a chain of equality tests.
+Func_808b9f8	Map_StoreState	read	Field / map	src/field/map_load.c	Writes the current map fields back into the persistent block.
+Func_808bc9c	Map_SumEventCounters	read	Field / map	src/field/map_event.c	Sums the six event counters at state+0x16c onward.
+Func_808c44c	Map_OpenWorldView	read+callee	Field / map	src/field/map_load.c	Allocates the world view's buffers and brings the map view up.
+Func_808c4c0	Map_OpenWorldViewB	read+family	Field / map	src/field/map_load.c	The second world-view entry, differing in which view routine it calls.
+Func_808d428	Field_IsFlagSetOrAlways	read	Field / map	src/field/map_event.c	Returns true for the sentinel -1, otherwise reads the flag.
+Func_808d458	Field_IsFlagClear	read+family	Field / map	src/field/map_event.c	The inverted twin of Field_IsFlagSetOrAlways, in the same file.
+Func_808d5a4	Field_FindEventForActor	read+callee	Field / map	src/field/map_event.c	Looks up the event record attached to a map actor via FindMapActorEvent.
+Func_808d7d8	Field_RunActorMessage	read+callee	Field / cutscene	src/field/cutscene.c	Opens a cutscene, delivers the actor's message and closes it again.
+Func_808e078	MapActor_PlayAnimWithSound	read+callee	Field / cutscene	src/field/cutscene.c	Plays a sound, sets a map actor's animation and waits the frames out.
+Func_808e0b0	MapActor_UpdateEntity	read	Field / map	src/field/map_actor.c	Per-frame update of one map entity's flag byte from the table at .L9e6b8.
+Func_808e118	Field_InitMoveTargets	read	Field / field move	src/field/field_move.c	Clears the field-move target list in the map state block.
+Func_808e5d8	Field_UseFieldMove	read+callee	Field / field move	src/field/field_move.c	Runs a field move: reads its record, resolves the target actor and drives the two effect hooks.
+Func_808e96c	Field_QueryMoveTarget	read+callee	Field / field move	src/field/field_move.c	Asks the map query layer for the target of move kind 0x70000005.
+Func_808e990	Field_HasEventAt	read+callee	Field / map	src/field/map_event.c	Normalises the event lookup to 0 or 1 with the neg-or-self sign trick.
+Func_808e9a8	Field_TestCollisionAt	read+callee	Field / map	src/field/map_event.c	Tests the collision layer at a record's position.
+Func_808ec4c	NullSub_808ec4c	read	Field / cutscene	src/field/cutscene.c	Empty body.
+Func_808ec50	MapActor_PlayCutsceneAnimA	read+family	Field / cutscene	src/field/cutscene.c	Sets the faced actor's animation, plays a sound and waits. First of four near-identical cutscene animation helpers.
+Func_808ec8c	MapActor_PlayCutsceneAnimB	read+family	Field / cutscene	src/field/cutscene.c	The variant that also sets the actor's sprite flags.
+Func_808ece0	MapActor_PlayCutsceneAnimC	read+family	Field / cutscene	src/field/cutscene.c	The variant taking the actor id as an argument.
+Func_808ed1c	MapActor_SetCutsceneAnim	read+family	Field / cutscene	src/field/cutscene.c	The bare variant: sets the animation and nothing else.
+Func_808ed4c	Map_GetFacedSlot	read	Field / map	src/field/map_event.c	Reads the slot record for whatever the player is facing, or -1.
+Func_808ed78	Map_ClearFacedSlot	read+callee	Field / map	src/field/map_event.c	Clears the record Map_GetFacedSlot would return.
+Func_808edac	Map_TestFacedCollision	read+callee	Field / map	src/field/map_event.c	Runs the collision test against the faced slot's position.
+Func_808eee4	MapActor_SetSubFlag	read	Field / map	src/field/map_actor.c	Writes the flag byte at +9 of a map actor's sub-record.
+Func_808f0d8	MapActor_StepTowardA	read+family	Field / map	src/field/map_actor.c	Steps an actor's position toward a target. First of three variants differing in which coordinate fields they use.
+Func_808f140	MapActor_StepTowardB	read+family	Field / map	src/field/map_actor.c	The second stepping variant.
+Func_808f28c	MapActor_StepTowardC	read+family	Field / map	src/field/map_actor.c	The third stepping variant.
+Func_808f304	Map_GetStateWord	read	Field / map	src/field/map_load.c	Returns a word out of the map state block.
+Func_808feb0	Field_StartScreenTransition	read+callee	Field / transition	src/field/transition.c	Installs the screen-window transition and its companion hook.
+Func_8090378	Map_SetLayerVisible	read	Field / map	src/field/map_load.c	Toggles one map layer's visibility in the view block.
+Func_8090584	Field_ScanlineHook	read	Field / transition	src/field/transition.c	The per-scanline hook: reads VCOUNT and writes the matching row of the effect buffer.
+Func_80907b0	Transition_FillPattern	read	Field / transition	src/field/transition.c	Fills the transition buffer with a repeating word pattern.
+Func_8090824	Transition_Start300	read+callee	Field / transition	src/field/transition.c	Allocates the transition block, primes its pattern and starts Task_Transition300.
+Func_8091174	Transition_StartWindow	read+callee	Field / transition	src/field/transition.c	The window-transition entry: allocates, primes and starts its own task.
+Func_80911e8	Transition_Stop	read	Field / transition	src/field/transition.c	Stops the transition task and releases the tag-0x20 block.
+Func_8091200	Transition_SetParams	read+family	Field / transition	src/field/transition.c	Writes the transition's two parameters into its block.
+Func_8091220	Transition_SetParamsB	read+family	Field / transition	src/field/transition.c	The second parameter setter, with the arguments the other way round.
+Func_8091240	Transition_SetMode	read	Field / transition	src/field/transition.c	Writes the mode halfword at the head of the transition block.
+Func_8091294	ClampBrightnessField	read+family	Field / transition	src/field/transition.c	Clamps to 0..0x1f. Byte-for-byte the same routine as ClampBrightness in rom_f2000; the ROM has both.
+Func_80912a8	ClampScaleField	read+family	Field / transition	src/field/transition.c	Clamps to at most 0x7c00. The duplicate of ClampScale in rom_f2000.
+Func_8091540	Field_AddFadeHook	read+family	Field / transition	src/field/transition.c	Installs Func_80912b8 as a per-frame hook.
+Func_8091550	Field_RemoveFadeHook	read+family	Field / transition	src/field/transition.c	Removes it again.
+Func_8091660	MapActor_SetMotionFields	read	Field / map	src/field/map_actor.c	Writes an actor's three motion words at +0x24, +0x2c and +0x30.
+Func_8091778	NullSub_8091778	read	Field / cutscene	src/field/cutscene.c	Empty body.
+Func_809177c	NullSub_809177c	read	Field / cutscene	src/field/cutscene.c	Empty body, immediately after NullSub_8091778.
+Func_8091780	Field_InitCutsceneActors	read+callee	Field / cutscene	src/field/cutscene.c	Initialises the map actors for a cutscene and waits for the field actor to appear.
+Func_80917d0	Field_JoinPartyMember	read+family	Field / cutscene	src/field/cutscene.c	Adds a party member and runs the join UI. One of two variants differing in which UI hook they call.
+Func_80917f4	Field_JoinPartyMemberB	read+family	Field / cutscene	src/field/cutscene.c	The second join variant.
+Func_8091814	Field_PartyHasMove	read+callee	Field / field move	src/field/field_move.c	True when the requested member is present and knows the requested move.
+Func_8091858	Field_RefreshMoveFlags	read+callee	Field / field move	src/field/field_move.c	Recomputes which field moves the party can currently use into the global state.
+Func_8091c1c	Field_GiveItemToMember	read	Field / cutscene	src/field/cutscene.c	Hands an item to a party member, returning the member id or -1. The second argument is unused, in the ROM too.
+Func_8091c3c	NullSub_8091c3c	read	Field / cutscene	src/field/cutscene.c	Empty body.
+Func_8091c40	NullSub_8091c40	read	Field / cutscene	src/field/cutscene.c	Empty body.
+Func_8091d84	Field_AskYesNo	read	Field / cutscene	src/field/cutscene.c	Puts up the yes/no prompt with the three trailing arguments zeroed.
+Func_8091e9c	Map_GetEventFlagWord	read	Field / map	src/field/map_event.c	Reads the event flag halfword at map state +0x170.
+Func_8091f90	Field_SetWarpDest	read+family	Field / cutscene	src/field/cutscene.c	Writes the destination pair at gState+0x1ce/+0x1d0.
+Func_8091fa8	Field_SetWarpDestB	read+family	Field / cutscene	src/field/cutscene.c	Writes the second destination pair at gState+0x1d2/+0x1d4.
+Func_8091ff0	Field_StartLoopSound	read	Field / cutscene	src/field/cutscene.c	Records a looping sound id in the map state and starts it, treating -1 as stop.
+Func_809202c	Field_StopLoopSound	read+callee	Field / cutscene	src/field/cutscene.c	Stops whatever Field_StartLoopSound left running.
+Func_809218c	MapActor_TravelToWait	read+family	Field / cutscene	src/field/cutscene.c	MapActor_TravelTo plus a wait for the movement to finish; shares its file.
+Func_80921c4	MapActor_TravelToAnim	read+family	Field / cutscene	src/field/cutscene.c	The variant that also sets the actor's animation.
+Func_8092208	MapActor_WalkTo	read+family	Field / cutscene	src/field/cutscene.c	Stops, animates and walks a field actor to an absolute position, then waits.
+Func_809228c	MapActor_MoveBy	read+family	Field / cutscene	src/field/cutscene.c	The relative-offset member of the travel family.
+Func_80922c4	MapActor_MoveByAnim	read+family	Field / cutscene	src/field/cutscene.c	Relative move with an animation set first.
+Func_8092304	MapActor_MoveByAnimWait	read+family	Field / cutscene	src/field/cutscene.c	Relative move with animation, waiting for arrival.
+Func_809255c	NullSub_809255c	read	Field / cutscene	src/field/cutscene.c	Empty body.
+Func_809259c	MapActor_InstallScript9EBFC	read	Field / map	src/field/map_actor.c	Installs the script at .L9ebfc on a field actor. What the script does is not established here.
