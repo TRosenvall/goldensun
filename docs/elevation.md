@@ -10631,3 +10631,72 @@ edits — the clamp's field offsets and the forwarded store.
 That is the second round in a row where the fuzzy ranking produced elevations at
 one or two screens each, against two prior rounds that produced none. Six of the
 seven elevations across those two rounds came off its list.
+
+## The `goto`-loop lever, and what actually separates it from its counter-example
+
+`Func_80aac84` is the clearest instance yet, and it settles the discriminator
+that `Func_80bac6c`'s counter-example left open.
+
+Its inner loop screened at 74 lines against 77 with **71 differing** — gcc had
+both REVERSED the loop (counting down from 15) and STRENGTH-REDUCED the address,
+where the ROM counts up from 0, keeps the base in r14 and recomputes
+`base + j` and then `idx * 2` every iteration. Rewriting both loops with `goto`
+took it to **77 lines and 2 differing**, and a statement-order swap closed it.
+
+Set against `Func_80bac6c`, where the same rewrite cost five instructions and
+went from 34 differing to 51:
+
+| | hoisted / transformed by gcc | goto rewrite |
+|---|---|---|
+| `Func_8090584` | a pointer, two masks, a base, three store values | 95 → 3 |
+| `Func_80aac84` | loop reversal AND strength reduction of the address | 71 → 2 |
+| `Func_80bac6c` | one constant, one induction variable | 34 → 51 |
+
+**The rewrite pays when gcc has applied a loop TRANSFORMATION — reversal or
+strength reduction — not merely hoisted one value.** Reversal and strength
+reduction restructure the whole body, so disabling loop optimisation recovers
+many instructions at once; a single hoisted constant is cheaper to live with
+than the rewrite's own overhead.
+
+The corollary from the original note held here too: with hoisting off, the ROM's
+`mov r7, #0x1f` before the outer loop is an explicit `int mask = 31;` in the
+source, not gcc lifting `& 31` out.
+
+And once the loops are `goto` loops, **the order of the two initialisers is
+observable**: `mov r6, #0x0` (the counter) before `mov r14, r3` (the base) is
+`j = 0;` written before `base = row << 4;`. Reversed, it is 2 differing.
+
+## The per-use-site-locals lever needs a DOMINATING BOUNDARY, like everything else
+
+`OvlFunc_948_200938c` and `_200949c` each call `__MapActor_SetSpeed` twice with
+the same pooled pair. The ROM reloads both constants at each site; gcc hoists
+them into r5/r6, which shows in the prologue as `push {r5, r6, r14}` against the
+ROM's `push {r14}`.
+
+The recorded remedy is separate locals per use site, with a worked instance in
+`src/overlays/rom_7e7574/ovl_9dc_c_c_a_a_a_b.c` — six locals for three calls.
+Copying that spelling here is **exactly inert**, byte for byte identical to the
+plain literals, and `-fno-rerun-cse-after-loop`, `-fno-gcse` and
+`-fno-cse-follow-jumps` are all inert too.
+
+The difference is where the guards are. In the working instance three
+`if (a != 0)` blocks sit BETWEEN the assignments and the uses. In these two the
+only guard is AFTER both calls, so assignments and uses share one straight-line
+region.
+
+**So "separate locals per use site" is the dominating-block mechanism under
+another name, not a property of having several names.** It joins the argument
+interleave and the constant-CSE levers in needing a branch to rematerialise
+across, and the check is the same one: is there a boundary between the
+assignment and the use?
+
+## `split_s.py` refusing on local labels is a two-step, and the steps must stay separable
+
+Splitting `ovl_314_c_c_c.s` was refused: two `.L` labels would have crossed
+files, and a local label does not survive into the object's symbol table, so the
+link would have failed. The tool names the labels and the fix.
+
+The discipline that matters is its last line — export FIRST, verify
+`make compare`, and only then split. A `.global` emits no bytes, so the export
+is provably byte-neutral on its own; done together with the split, a layout
+mistake and a bad export are indistinguishable at the end.
