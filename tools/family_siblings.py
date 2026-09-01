@@ -37,6 +37,15 @@ mostly done is a family whose conventions are already settled.
 The idiom columns are the point of the tool. A family with twelve solved
 siblings is not useful in itself; a family with one solved sibling that already
 spells the exact global the target loads is worth more.
+
+`parks near` was added after batch 177, and it is the other half of the same
+idea. GetEquippedItem and Func_807882c both matched on the pointer-typed-operand
+lever, and NEITHER had an elevated sibling demonstrating it -- the lever was
+written down in src/non_matching/rom_77000/8078588.c, a PARK in the same address
+range that had found the register-offset form, used it, and then failed on an
+unrelated allocation residue. A park that fails on residue B is often the only
+record of working lever A. Read the parks nearest the target's address before
+screening, not only its solved siblings.
 """
 import glob
 import os
@@ -58,6 +67,38 @@ def family(path):
     """The stem shared by every split of one original .s."""
     stem = os.path.basename(path)[:-2]
     return os.path.dirname(path), re.sub(r"(_[abc])+$", "", stem)
+
+
+ADDR = re.compile(r"@\s*0x0?([0-9a-fA-F]{6,8})")
+
+
+def parks_near(asm_path, addr, span=0x400):
+    """Parked .c files whose address is within `span` of the target.
+
+    Parks are named by bare address (8078588.c) and live in a directory that
+    mirrors the asm one. Nearness is the whole signal: the tree's splits keep
+    related routines adjacent, so a park a few hundred bytes away is usually
+    the same subsystem and often the same idiom.
+    """
+    if addr is None:
+        return []
+    d = os.path.dirname(asm_path).replace("asm/", "src/non_matching/", 1)
+    cands = glob.glob(os.path.join(d, "*.c"))
+    # overlays live under src/non_matching/ovl_<tag>/ rather than the
+    # overlays/rom_<tag>/ shape the asm side uses
+    m = re.search(r"overlays/rom_([0-9a-f]+)", asm_path)
+    if m:
+        cands += glob.glob("src/non_matching/ovl_%s/*.c" % m.group(1))
+    out = []
+    for c in cands:
+        b = os.path.basename(c)[:-2]
+        try:
+            a = int(b, 16)
+        except ValueError:
+            continue
+        if abs(a - addr) <= span:
+            out.append((abs(a - addr), c))
+    return [c for _, c in sorted(out)]
 
 
 def solved_in_family(asm_path):
@@ -92,6 +133,8 @@ def main():
         for name, body in shapesib.functions(s):
             if name in parked:
                 continue
+            am = ADDR.search(body[0]) if body else None
+            addr = int(am.group(1), 16) if am else None
             ins = [l for l in body if l.strip()
                    and not l.strip().startswith((".", "@", "/*"))]
             n = len(ins)
@@ -114,12 +157,12 @@ def main():
             vals = filtered.expensive_constants(ins)
             dup = sorted({v for v in vals if vals.count(v) > 1})
             rows.append((len(sibs), len(hit), n, name, s, hit, pooled,
-                         const_sib, dup))
+                         const_sib, dup, addr))
 
     rows.sort(key=lambda r: (-r[1], -r[0], r[2]))
     print("%d remaining functions live in a family with solved siblings\n"
           % len(rows))
-    for sibs, nhit, n, name, s, hit, pooled, const_sib, dup in rows[:limit]:
+    for sibs, nhit, n, name, s, hit, pooled, const_sib, dup, addr in rows[:limit]:
         note = ""
         if dup:
             note += "  <- DUP-CONST %s" % ", ".join(dup[:2])
@@ -135,6 +178,8 @@ def main():
             print("             shares: %s" % ", ".join(hit[:6]))
         for c in solved_in_family(s)[:3]:
             print("             read: %s" % c)
+        for c in parks_near(s, addr)[:3]:
+            print("             parks near: %s" % c)
 
 
 if __name__ == "__main__":

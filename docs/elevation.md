@@ -12179,3 +12179,79 @@ This is the batch-174 shape -- a fold the ROM declined -- but the recorded fix
 (separate the two constants into different statements) does not apply: here it
 is ONE constant that has to stay a variable, and nothing in this notebook
 currently achieves that. Six lines of 39.
+
+## Two plain local inits are emitted in SOURCE ORDER
+
+Not the argument-block rule above -- that one is about pooled loads inside a
+call's argument list, and it says gcc *ignores* source order there. This is the
+opposite case and the opposite answer.
+
+When two locals are initialised to constants in the same basic block and neither
+depends on the other, gcc-2.96 emits the two `mov`s in the order the statements
+are written.
+
+    rom     mov r7, #0x0        i    = 0
+            mov r5, #0xd8       off  = 0xd8
+
+    ours    mov r5, #0xd8       off = 0xd8;   <- written first
+            mov r7, #0x0        i   = 0;
+
+Swapping the two source lines swapped the two instructions and took
+`Func_807882c` from 4 differing of 35 to 2. It is the cheapest lever in the
+notebook -- one line move, no restructuring -- and it is worth trying FIRST on
+any residue that is a pure adjacent transposition of two constant loads.
+
+**The boundary.** It holds for independent constant inits in one block. It does
+NOT hold once the values reach an argument list (the pooled-load rule wins), and
+it does not hold for the `mov r8, rN` copies reload emits for high registers --
+those are placed by the allocator and no source order reaches them. See
+`src/non_matching/rom_77000/8078870.c`, where the residue is exactly such a copy
+and nine spellings left it at 5 differing.
+
+## A byte-sized zero can be served by a register whose LOW BYTE is already zero
+
+The recorded naming lever says: when the ROM materialises a constant separately
+and gcc reuses a register that already holds it, give the value a name. That
+note is written for EXACT duplicates. It also fires on a case it does not
+mention -- a **subword** store whose register only has to agree in the bytes
+being written.
+
+`Func_809a3c4` builds `0xc0 << 10` = 0x30000 into a register for two word
+stores, then does `*(char *)(p + 0x5a) = 0`. The low byte of 0x30000 is zero, so
+gcc reused that register for the byte store and emitted nothing at all:
+
+    rom     mov r3, #0x0 / strb r3, [r5, #0x5a]     two instructions
+    ours    strb r2, [r5, #0x5a]                    one -- r2 still holds 0x30000
+
+That is why the body came out ONE LINE SHORT of the ROM, which reads like a
+missing statement and is not. Assigning through a named local first --
+
+    z = 0;
+    *(char *)(p + 0x5a) = z;
+
+-- restores the separate `mov` and took the function to exact length.
+
+> **Read a one-line-short body at a `strb`/`strh` as a possible subword reuse
+> before assuming a statement is missing.** Check whether any live register's
+> value agrees with the stored constant in just the bytes being written. Word
+> stores cannot do this; byte and halfword stores can, which makes 0 and small
+> constants the ones to watch.
+
+## Discipline: a family's PARK files carry levers, not just its matches
+
+`tools/family_siblings.py` ranks a candidate by how much of its `_a/_b/_c`
+family is already ELEVATED, on the theory that a matched sibling spells the
+symbols and shapes the next one needs. That is true and it has paid off. But it
+misses the other half of the family's record.
+
+`GetEquippedItem` and `Func_807882c` both matched this round on the
+pointer-typed-operand lever. Neither has an elevated sibling that demonstrates
+it. The lever was written down in
+`src/non_matching/rom_77000/8078588.c` -- a PARK, in the same address range,
+which had found the register-offset form, used it, and still failed for an
+unrelated reason. A park that fails on residue B can be the only record of
+working lever A.
+
+> Before screening a candidate, `ls src/non_matching/<its range>/` and read the
+> parks whose addresses are near it. The tool now prints them; see the
+> `parks near` column.
