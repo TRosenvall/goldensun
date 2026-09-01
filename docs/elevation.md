@@ -11075,6 +11075,27 @@ Recognise it from the ROM side -- a `lsl #24` or `lsl #16` whose result is only
 compared against zero -- and do not re-probe; the byte case's ten measurements
 cover the halfword case by the same argument.
 
+### CORRECTION: unreachable only when gcc can RANGE-ANALYSE the value
+
+The sentence above is too broad, and `Func_80bf2b4` is the counter-example. Its
+ROM has `add r3, #0xff / strb r3, [r5] / lsl r3, #0x18 / cmp r3, #0`, and
+`(unsigned char)t == 0` on an `unsigned int t` produces the `lsl #0x18` on the
+FIRST screen.
+
+The difference is what produced the value:
+
+| the tested value is | gcc knows | the shift |
+|---|---|---|
+| a freshly loaded byte or halfword | range 0..255 / 0..65535 | folded away, unreachable |
+| arithmetic that widens past the type, e.g. `v + 0xff` | range 0xff..0x1fe | REAL, and emitted |
+
+In the second case the narrowing genuinely changes the answer -- `(u8)t == 0` is
+not `t == 0` -- so gcc has to keep it.
+
+**Look at what produced the value, not at the shift.** If it came straight from
+a load of the same width the shift is unreachable; if arithmetic widened it,
+`(unsigned char)x == 0` is the spelling and it works on the first screen.
+
 ## A run of constant-offset stores: gcc keeps ONE offset, some ROMs keep two
 
 `Func_80bb588` zeroes 24 contiguous bytes, fully unrolled in the ROM. Written as
