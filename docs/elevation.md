@@ -10862,3 +10862,43 @@ was otherwise correct on the first screen.
 
 So this is not a `goto`-loop phenomenon. **When a diff is two lines and both are
 loop setup, try the other order before anything else.** It costs one screen.
+
+## A global read must be NAMED to keep its load above a following branch
+
+`Func_80a1cb0` selects a constant with an `if`, then walks a list based at a
+global. The ROM loads and dereferences the global BEFORE the branch and keeps
+the value across it:
+
+    ldr r3, =0x3001f2c / mov r2, #0x38 / ldr r3, [r3] / mov r8, r2
+    cmp r0, #1 / beq L0 / mov r2, #0x28 / mov r8, r2
+    L0: mov r5, r3 / add r5, #0x48
+
+Written with the global used only after the branch — `k = 0x38; if (...) k =
+0x28; p = iwram_3001f2c + 0x48;` — gcc sinks the whole load below the branch,
+which is 12 differing at exact length.
+
+Reading it into a named local first, and forming the pointer afterwards:
+
+    s = iwram_3001f2c;
+    k = 0x38;
+    if (mode != 1) k = 0x28;
+    p = s + 0x48;
+
+matches. The name is what pins the load above the branch; the `+ 0x48` still
+happens after it, exactly as the ROM has it.
+
+**This is the read counterpart of the address-local birth rule.** For a store
+the question is where the address is COMPUTED; for a global read it is where the
+value is FETCHED, and a branch between the fetch and the use is what makes the
+difference observable.
+
+## The fuzzy lead pool: what the tags are actually filtering
+
+At ratio >= 0.70 there are 26 leads and exactly ONE is fully clean — the rest
+carry DUP-CONST, FAKEMATCH, or both. That is the tags earning their keep rather
+than the pool being empty: dropping the threshold to 0.66 surfaces five more
+clean leads, and they still close in one or two screens.
+
+So when the clean list empties, **lower the ratio before changing method**. A
+0.70 lead that is clean has been more productive than a 0.90 lead that is
+flagged.
