@@ -12255,3 +12255,69 @@ working lever A.
 > Before screening a candidate, `ls src/non_matching/<its range>/` and read the
 > parks whose addresses are near it. The tool now prints them; see the
 > `parks near` column.
+
+## A "redundant" register copy is usually a SECOND READ gcc has CSEd
+
+This one retired six parked functions and elevated four more in a single round,
+and it was sitting behind a misreading that had been written down twice.
+
+Ten near-identical status-counter routines at `0x080bf250..0x080bf524` all open
+with:
+
+    ldrb r2, [r5]
+    mov  r3, r2
+    cmp  r3, #0
+
+r2 is dead immediately after -- the next read of that same byte is a fresh
+`ldrb r1, [r5]` -- so the `mov` was read as a redundant copy, filed under the
+copy-into-a-register class, and six of the ten were parked on it. The park even
+records that splitting the value across two named locals does not produce it,
+because gcc coalesces them. That was all true and all beside the point.
+
+**The copy is not redundant. It is a second read of `*p` that CSE turned into a
+register copy.** Write the function with a local and there is only ONE read:
+
+    n = *p;
+    if (n == 0) goto fail;
+    n += 0xff;
+    *p = n;                    31 instructions vs the ROM's 32, 26 differing
+
+Write it entirely through the pointer and there are two, the second becomes the
+`mov`, and it matches on the first screen:
+
+    if (*p == 0) goto fail;
+    *p = *p + 0xff;            32 vs 32, MATCH
+
+> **A body that is ONE INSTRUCTION SHORT with a `mov rA, rB` in the ROM's
+> version of the missing line is a CSEd reload, not an allocation artifact.**
+> Count the reads of the value in your C against the reads the ROM makes before
+> it stores. If the ROM loads once and copies, the source read twice.
+
+The general form is more useful than the case: **naming a value is not free.**
+Every lever in this notebook that says "give it a name" buys a statement
+boundary at the cost of collapsing repeated reads into one. When the ROM shows
+more traffic than your version, not less, try REMOVING the name before adding
+another.
+
+This is the third reject in four batches found wrong by retesting rather than by
+new technique -- after branch-over-pool and r8-r11 -- and the same shape as
+both: a correct observation ("that copy does nothing useful") promoted to a
+conclusion about what the source could not have been.
+
+## `.gcc2_compiled.` is a PER-TU symbol, not a per-function one
+
+The standing verification is: after a clean build, every elevated address must
+appear in the linked ELF with a `.gcc2_compiled.` local symbol at the SAME
+address. That works because this tree has been elevating one function per file.
+
+A translation unit with ten functions in it emits the marker ONCE, at the first
+function's address:
+
+    080bf250 t .gcc2_compiled.
+    080bf250 T Func_80bf250
+    080bf2b4 T Func_80bf2b4      <- no marker, and this is correct
+    ...
+
+> For a multi-function TU: the marker at the first address proves the TU was
+> compiled from C, and the remaining symbols at their exact ROM addresses prove
+> the layout. Do not read a missing marker on functions 2..N as a failure.
