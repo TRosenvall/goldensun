@@ -34,5 +34,25 @@
  *   `p = a + 0x23;` moved before the __Func_8010704 call    2
  *   the two independent stores swapped in source           16 (much worse)
  *
+ * BATCH 167 -- the address-local BIRTH-STATEMENT lever does NOT reach this.
+ * That lever (docs/elevation.md) says the statement gap a pointer is born in
+ * decides its register and its placement, and it closed OvlFunc_886_20090c0
+ * from 4 differing to 1. It is the obvious thing to try here, because the
+ * residue IS a pointer copy landing one statement late. It does not work:
+ *   a copy `q = s;` born between `m = 0xfe;` and the mask store     2
+ *   the same copy born before `m = 0xfe;`                          2
+ *   `s` re-derived from `a` at the use site      69 lines, 74 differing
+ * Flags are inert too: -fno-schedule-insns and -fno-strict-aliasing both give
+ * 2, and -fno-schedule-insns2 gives 41 at position 3 -- sched2 is doing
+ * correct work everywhere else in this function.
+ *
+ * The distinction that explains it: in OvlFunc_886_20090c0 the local was born
+ * from a BASE POINTER and the birth statement decided which register it got.
+ * Here the value is already live in r8 across the calls and every use
+ * rematerialises a copy out of it; what differs is where sched2 puts a
+ * register-to-register move, and source position does not reach post-reload
+ * scheduling of a copy. So: the birth-statement lever governs a pointer that is
+ * COMPUTED, not one that is COPIED out of a high register.
+ *
  * Best C: scratch/J8c1c.c.
  */

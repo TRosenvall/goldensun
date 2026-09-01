@@ -10222,3 +10222,110 @@ function has NO conditional branch, so the naming lever has nothing to
 rematerialise across, and naming the split builds -- the spelling that works on
 guarded sites -- is exactly inert. **`tools/filtered.py` should not have offered
 it**: the filter counts calls and instructions and says nothing about guards.
+
+## A symbol-relative load needs BOTH halves named: the base AND the complete offset
+
+`Func_80b26cc` reads a record out of the file-local table `.Lb41ac` at
+`(id*33)*2 + 0x30`. The ROM keeps the symbol in one register and the whole
+computed displacement in another:
+
+    lsl r3, r5, #5 / add r3, r5 / lsl r2, r3, #1
+    ldr r1, =.Lb41ac / mov r3, r2 / add r3, #0x30 / ldrsh r0, [r1, r3]
+
+Written the obvious way, `*(short *)(Lb41ac + off + 0x30)`, gcc reassociates to
+`(Lb41ac + 0x30) + off` and pools the FOLDED symbol — `ldr r2, =.Lb41ac+48` —
+which is 37 lines against 39 and 27 differing.
+
+Two edits, each worth measuring separately:
+
+| source | result |
+|---|---|
+| `*(short *)(Lb41ac + off + 0x30)` | 37 lines, 27 differing |
+| `n = off + 0x30; *(short *)(Lb41ac + n)` | **39 lines**, 8 differing |
+| `base = Lb41ac; n = off + 0x30; *(short *)(base + n)` | 39 lines, **2** |
+
+Naming the complete offset stops the fold and fixes the length. Naming the BASE
+as well is what puts the symbol in the addressing base position — without it
+gcc emits `ldrsh r0, [r3, r1]` with the computed value as the base and the
+symbol as the offset, which is the same instruction with the operands the wrong
+way round. The named base is also reused for the second address the ROM builds
+(`add r3, r2, r1`), so one local fixes both sites.
+
+**So "name the offset, not the base" is half the rule.** When the base is a
+SYMBOL, name it too — the fold and the operand order are two different defects
+and each has its own remedy.
+
+## `do { } while (i != N)` stops gcc reversing a counted loop
+
+`Func_8019a54` walks three slots. Written `for (i = 0; i < 3; i++)` gcc reverses
+the loop — `mov r6, #2 / sub r6, #1 / bge` — because the index is dead in the
+body. The ROM counts UP and exits on `cmp r6, #3 / bne`.
+
+Rewriting the same loop as
+
+    i = 0;
+    do { ... i++; } while (i != 3);
+
+gives the ROM's up-count, and moved the first difference from instruction 6 to
+instruction 14 with nothing else changed. Indexing the array with `i` so the
+counter is a real induction variable does NOT prevent the reversal (23 → 20
+differing, still descending); only the `!=` exit test does.
+
+**Read the loop's exit test in the ROM before writing the loop.** `cmp rN, #K`
+with `bne` is an up-counting `do`/`while (i != K)`; a `bge` against zero on a
+descending counter is what a `for` with a dead index compiles to.
+
+## Write the counter bump AFTER the call, even when the ROM has it before
+
+`Func_80b26cc`'s loop body is a call, then a bound check on a counter the ROM
+increments BEFORE the call:
+
+    mov r1, #1 / add r6, #1 / bl _Func_8078ad0 / cmp r6, #7 / bgt
+
+Written that way in source — `k++;` then the call — gcc emits `add r6, #1`
+first and the argument second, which is 2 differing. Writing `k++` AFTER the
+call statement matches: gcc hoists the increment above the call on its own and
+the argument setup wins the earlier slot.
+
+That is the whole remaining diff on this function, so it is worth stating
+plainly: **the ROM's instruction order for a loop-carried increment is not the
+source's statement order.** gcc will move the increment up; what the source
+controls is what gets the slot before it.
+
+## The birth-statement lever governs a COMPUTED pointer, not a COPIED one
+
+The new address-local rule (an address local's birth statement decides its
+register and placement) does not generalise to every misplaced pointer move.
+
+`OvlFunc_901_2008c1c` sits at 2 of 75 because a `mov r2, r8` lands one
+instruction late — the ROM issues it before an unrelated byte store, gcc after.
+That is a pointer copy landing in the wrong statement gap, which is exactly the
+shape the lever describes, and the lever does not reach it: a copy born between
+the two candidate statements, the same copy born one statement earlier, and
+re-deriving the pointer at the use site all leave it at 2 or make it much worse
+(74 differing). `-fno-schedule-insns` and `-fno-strict-aliasing` are inert;
+`-fno-schedule-insns2` gives 41.
+
+The distinction: on `OvlFunc_886_20090c0` the local was **computed** from a base,
+and its birth statement decided which register it got. Here the value is already
+live in `r8` across the calls and every use rematerialises a copy out of it, so
+what differs is where post-reload scheduling puts a register-to-register move —
+and source position does not reach that.
+
+## Negative: `ldrb` + `lsl #24` before a `cmp #0` is not reachable
+
+`Func_801f730` tests a byte in a loop and the ROM spells it
+`ldrb r3, [r2] / lsl r3, #24 / cmp r3, #0`. Ten shapes were compiled directly
+under this tree's flags and none produces it: plain and signed `char *`, a cast
+at the test, a `signed char` local, five bitfield widths and containers, a
+`volatile` byte, and an explicit `(p[0] << 24) != 0`.
+
+The last is decisive — gcc-2.96 knows `p[0]` is 0..255 and folds
+`(x << 24) != 0` to `x != 0`, so the shift cannot be requested. Every signed
+spelling instead reaches for `ldrsb`, which in Thumb-1 needs a register offset
+and so costs a `mov rN, #0` first. Both are two instructions, so the length is
+right and only the encoding differs.
+
+**Do not spend screens hunting a narrowing spelling for a `!= 0` byte test.**
+Probe the compiler once; if the fold happens, the shape is a property of the
+source's TYPE somewhere upstream, not of the comparison.
