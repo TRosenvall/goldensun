@@ -6,6 +6,7 @@
 	.global .Lc73f8
 	.global .Lc7420
 
+	.global	.Lc5c38
 .Lc5c38:
 	.incrom 0xc5c38, 0xc5c48
 .Lc5c48:

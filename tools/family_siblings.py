@@ -25,8 +25,13 @@ sibling tells you what to type.
     python3 tools/family_siblings.py [--limit N] [--max-insns N]
 
 Columns: how many solved .c files share the family stem, how many of those
-mention the same idioms the target's assembly asks for, the target's size, and
-the files to read. Sorted by solved-sibling count, because a family that is
+mention the same idioms the target's assembly asks for, the target's size, the
+files to read, and -- added after batch 175 -- whether the target REPEATS an
+expensive constant. That last column is a hard skip, not a warning: batch 175
+parked three functions on it in one round, `-fno-gcse` was inert on all three
+(it is cse.c's local constant CSE, which no flag reaches), and one of the three
+was a cutscene script with no branches and no loops that looked completely
+trivial. Read the DUP-CONST column before you read the function. Sorted by solved-sibling count, because a family that is
 mostly done is a family whose conventions are already settled.
 
 The idiom columns are the point of the tool. A family with twelve solved
@@ -39,6 +44,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import filtered
 import pickable
 import shapesib
 
@@ -100,18 +106,31 @@ def main():
             # already declares one shows which name the tree uses.
             pooled = bool(any(POOLED_SMALL.search(l) for l in ins))
             const_sib = "_CONST_" in text
-            rows.append((len(sibs), len(hit), n, name, s, hit, pooled, const_sib))
+            # Batch 175: three parks in one batch, all duplicate-constant CSE,
+            # and one of them (a cutscene script -- thirteen calls, no branches,
+            # no loops) looked completely trivial. -fno-gcse is inert on all
+            # three because it is cse.c's LOCAL constant CSE, so there is no
+            # flag and no spelling. Check this BEFORE reading the shape.
+            vals = filtered.expensive_constants(ins)
+            dup = sorted({v for v in vals if vals.count(v) > 1})
+            rows.append((len(sibs), len(hit), n, name, s, hit, pooled,
+                         const_sib, dup))
 
     rows.sort(key=lambda r: (-r[1], -r[0], r[2]))
     print("%d remaining functions live in a family with solved siblings\n"
           % len(rows))
-    for sibs, nhit, n, name, s, hit, pooled, const_sib in rows[:limit]:
+    for sibs, nhit, n, name, s, hit, pooled, const_sib, dup in rows[:limit]:
         note = ""
+        if dup:
+            note += "  <- DUP-CONST %s" % ", ".join(dup[:2])
         if pooled:
             note += "  POOLED-SMALL" + (" (sibling declares _CONST_*)"
                                         if const_sib else "")
         print("  %2d solved  %d shared-sym  %3di  %-28s %s%s"
               % (sibs, nhit, n, name, s, note))
+        if dup:
+            print("             SKIP unless everything else is exhausted: "
+                  "cse.c shares this and no flag or spelling separates it")
         if hit:
             print("             shares: %s" % ", ".join(hit[:6]))
         for c in solved_in_family(s)[:3]:

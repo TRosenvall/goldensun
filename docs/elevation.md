@@ -11459,3 +11459,62 @@ reaching for a lever:
   constant CSE finds `0x40000d4 = 0x40000b0 + 0x24` on its own.
 - **A register destination derived from another register's address**, likewise:
   `add r1, #0x14` off `&REG_BG2CNT` comes from plainly writing `&REG_BG2PA`.
+
+## `-fno-gcse` reaches a SUNK LOAD but not a SHARED CONSTANT
+
+Batch 175 parked three functions on duplicate-constant CSE and found `-fno-gcse`
+inert on all three. `Func_807a550` matched **with** `-fno-gcse`. Both results
+are right, and together they separate two passes that share a flag name:
+
+| symptom | pass | `-fno-gcse` |
+|---|---|---|
+| one constant materialised once and kept in a callee-saved register | `cse.c`, local | inert |
+| a redundant LOAD sunk onto the only path that needs it | global CSE / PRE | **fixes it** |
+
+`Func_807a550` re-reads its loop bound through a pointer each iteration because
+a byte store inside the loop may alias it. At -O2 gcc is *smarter* than the
+original build: it sinks that reload onto the branch where the store actually
+happens and skips it otherwise. The ROM reloads unconditionally. 7 differing
+lines to exact.
+
+**Read the diff before reaching for the flag.** A shared constant does not yield
+to `-fno-gcse`; a load that appears on fewer paths than the ROM's does.
+
+## Naming the SCALED BYTE offset flips a register+register load's operands
+
+`ldr r0, [r6, r3]` and `ldr r0, [r3, r6]` are different bytes. `Func_80c1fa8`'s
+last instruction was the second where the ROM has the first, and it was the only
+differing line in an otherwise exact 42.
+
+| spelling | result |
+|---|---|
+| `return base[idx];` | `ldr r0, [r3, r6]` -- the SCALED INDEX lands in Rn |
+| `return *(base + idx);` | identical |
+| `return *(int *)((char *)base + idx * 4);` | identical |
+| `k = idx * 4; return *(int *)((char *)base + k);` | **`ldr r0, [r6, r3]`** |
+
+Batch 172 established that naming an index materialises it and therefore
+produces an index register. This is the next question down: *which* operand
+becomes the base. Array subscripting hands gcc `(plus (mult idx 4) base)` and it
+takes the first term as Rn. Naming the already-scaled byte offset hands it
+`(plus base k)` instead.
+
+So the rule has two levels. **Name the index to get a register+register load at
+all; name the SCALED BYTE offset to control which register is the base.**
+
+## An accumulator, again -- and now with a second confirmation
+
+`Func_807a550` and `Func_80c1fa8` both needed `count = 0;` / `n = 0;` moved
+earlier than the natural place, and for two different reasons that are worth
+keeping apart:
+
+- `Func_807a550`: moved above the CALL, so the live range crosses it and the
+  accumulator lands in a callee-saved register. This is batch 173's rule, second
+  instance, and the tell is the same -- the ROM's `mov r6, #0x0` sits *after*
+  the `bl`, which argues against the fix.
+- `Func_80c1fa8`: no call is involved. Moving `n = 0;` above an `if` that
+  rewrites the function's argument took 17 differing lines to 10, purely as
+  statement order.
+
+Together: **an accumulator's initialiser wants to be as early as the source will
+allow**, and it is worth trying at the top of the function before anything else.

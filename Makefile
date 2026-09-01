@@ -431,6 +431,21 @@ asm/rom_f0000/rom_f0254_a_b.o: src/rom_f0000/rom_f0254_a_b.c
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# Func_807a550 walks a table, and its loop bound is RE-READ through a pointer
+# every iteration because a byte store inside the loop may alias it. At -O2 gcc
+# is smarter than the original build: it sinks that reload onto the only path
+# where the store actually happens, and skips it otherwise. The ROM reloads
+# unconditionally. 7 differing lines -> exact.
+#
+# Note this is the OPPOSITE result from batch 175's three duplicate-constant
+# parks, where -fno-gcse was inert. Those are cse.c's LOCAL constant sharing;
+# this is the global pass sinking a redundant LOAD. Same flag name, different
+# symptom: a shared CONSTANT does not yield to it, a sunk LOAD does.
+asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_c_b.o: src/rom_77000/rom_79460_c_c_c_c_a_c_c_c_c_b.c
+	$(GCC296_CC) $(GCSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 asm/rom_8a000/rom_9a44c_a_a_a_b.o: src/rom_8a000/rom_9a44c_a_a_a_b.c
 	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
