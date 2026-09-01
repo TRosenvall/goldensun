@@ -10113,3 +10113,38 @@ Note this is the same rule the `Func_80ae99c` park bounds: layout tells you whic
 arm falls through WHEN GCC EMITS A BRANCH, and says nothing when gcc if-converts
 instead. Chains of tests around calls and loads always branch; two bare constant
 assignments may not.
+
+## `add rOff, #1` then a recomputed address can be a plain POINTER INCREMENT
+
+`Func_80a8034` writes two adjacent bytes and the ROM does:
+
+    mov r2, #0x88 / lsl r2, #1 / add r3, r6, r2   /* address */
+    add r2, #0x1                                  /* offset  */
+    ... / strb r5, [r3, #0]
+    add r3, r6, r2                                /* address again */
+    strb r5, [r3, #0]
+
+Modelled literally -- a live `off` incremented, the address recomputed from it
+each time -- that is 9 differing, exact length, with `off` and the pointer in
+each other's registers and no source ordering moving them.
+
+Written as what it actually is, `p = g + off;` once and then `p += 1;`, it
+matches. gcc chooses to keep the offset live and rebuild the address; that is
+its allocation decision, not a shape the source has to spell out.
+
+**So do not transcribe an offset-plus-recompute pair literally.** Two adjacent
+accesses are a pointer increment; the ROM's extra `add` is how gcc spends
+registers, and asking for it directly gets the registers backwards.
+
+## The merge lever, fourth confirmation: the RESULT can be the input variable
+
+`Func_80b19cc` computes a value, then overwrites it in each of three arms. The
+ROM keeps one register (r5) for the loaded value and then for the result of
+whichever arm ran. Written with a separate `r`, gcc materialises the result in
+r0 ahead of the first compare and the whole tail diverges -- 27 differing.
+Assigning back into the input variable matches.
+
+That is four functions now where "one register for two unrelated values means
+ONE variable" closed or nearly closed the diff, and one (`Func_8099070`) where
+the ROM genuinely uses two registers and merging is worse. The discriminator is
+the ROM, not a preference: count the registers before choosing.
