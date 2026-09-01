@@ -11518,3 +11518,40 @@ keeping apart:
 
 Together: **an accumulator's initialiser wants to be as early as the source will
 allow**, and it is worth trying at the top of the function before anything else.
+
+## The addressing forms are a PREFERENCE, not a guarantee
+
+Batch 174 gave a discriminator for register+register loads: a bare base with the
+constant in the load means a typed array; the constant added into the register
+first means byte pointer arithmetic. `TestCollision` is the case where the
+recorded fix stops working, and the reason is worth having.
+
+`Func_8011f54` and `TestCollision` read the SAME two tables through the same
+idiom, and both ROMs split the ewram read into
+`add r0, r1, r3 / ldrb r0, [r0, #0x0]`. In `Func_8011f54`, writing a named
+pointer (`q = ewram_202c000 + idx; ... *q ...`) produces exactly that. In
+`TestCollision` the identical spelling is folded back into `ldrb r2, [r0, r3]`.
+
+The difference is register pressure. `TestCollision` is also juggling a function
+pointer, two masked coordinates and a table base; `Func_8011f54` is not. A named
+pointer only survives as its own value while gcc has a register to keep it in.
+
+> **When a spelling that worked on one function goes inert on a near-identical
+> one, look at what else is competing for registers before concluding the rule
+> is wrong.** These levers express a preference to the allocator; they do not
+> override it.
+
+## A constant-folding opportunity the ROM did not take means the constants are not adjacent
+
+`Func_8077cb8` parses three two-digit decimal fields. Written the obvious way,
+`(p[0] - '0') * 10 + (p[1] - '0')`, gcc folds -480 and -48 into a single -528
+and the function comes out **ten lines short of the ROM**. The ROM applies
+-0x1e0 at the multiply -- pooled, and shared across all three fields -- and
+-0x30 at the point of use.
+
+Writing `a = (*p++ - '0') * 10; a += *p++;` and then consuming `(a - '0')` where
+`a` is used reproduces both, and takes 46 lines to 54 (of 56).
+
+The general form: **if the ROM leaves two compile-time constants unfolded, they
+were not adjacent in the source.** gcc will always fold `x*10 - 480 + y - 48`;
+it cannot fold across a statement boundary that the value has to survive.
