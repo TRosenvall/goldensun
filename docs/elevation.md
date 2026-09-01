@@ -11003,3 +11003,31 @@ fixes" has a second failure mode worth naming: applied together, a change that
 HELPS and a change that HURTS cancel, and the combined number tells you nothing
 about either. A batch of three that scores worse than the baseline is not
 evidence that all three are wrong.
+
+## SCRATCH-REGISTER SELECTION is a distinct wall, and it is now three deep
+
+Three functions parked in one batch share a residue that none of the recorded
+levers touches: they reach the ROM's exact length AND its exact instruction
+sequence, and differ only in which of r1/r2/r3 carries a value.
+
+| function | lines | differing | shape |
+|---|---|---|---|
+| `OvlFunc_882_20090a4` | 80 of 80 | 8 | `mov r2, #0xf` against `mov r3, #0xf` |
+| `OvlFunc_968_200c968` | 90 of 90 | 22 | struct address built in r2 against r7 |
+| `SystemMsgBox` | 79 of 79 | 23 | the zero and the -9 one register across |
+
+This is worth separating from the register-ROLE swap (which is about
+callee-saved allocation and shows in the prologue) and from scheduling (which
+moves instructions). Here the prologue matches, the order matches, and the
+work matches.
+
+**What does NOT reach it, measured across the three:** naming a value, naming a
+global's address, naming a struct pointer, reordering the statements that
+produce the operands, operand order within an expression, and every flag group
+tried. Those levers change what is computed or when; none of them changes which
+scratch register receives the result.
+
+**Recognising it early is the practical value.** When a screen is at exact
+length with the instruction sequence aligned and the diff is a column of
+`mov rN` against `mov rM`, stop. One probe, then park -- the three above cost
+between four and seven screens each to arrive at the same place.
