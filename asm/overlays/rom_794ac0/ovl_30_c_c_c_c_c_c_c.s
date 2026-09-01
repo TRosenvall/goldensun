@@ -465,6 +465,7 @@
 	.global .L64c0
 	.global .L64d8
 
+	.global	.L4f2c
 .L4f2c:
 	.incbin "overlays/rom_794ac0/orig.bin", 0x4f2c, (0x517c-0x4f2c)
 gScript_899__0200d17c:

@@ -1,50 +1,5 @@
 	.include "macros.inc"
 
-@ Leaf helper, 34 instructions, calls nothing.
-@ Described by what it touches, not by what it means.
-@ Reads offsets +0x1, +0x8.
-.thumb_func_start OvlFunc_899_200c704
-	push	{r5, lr}
-	ldr	r3, [r0]
-	ldr	r2, =0xffc00000
-	add	r3, r2
-	asr	r4, r3, #19
-	ldr	r2, =0xfd900000
-	ldr	r3, [r0, #8]
-	add	r3, r2
-	ldr	r2, =.L4f2c
-	asr	r1, r3, #19
-	mov	r5, #0
-	mov	r0, #0
-	b	.L4722
-.L471e:
-	add	r0, #1
-	add	r2, #0x10
-.L4722:
-	cmp	r0, #0x24
-	bhi	.L4740
-	ldrb	r3, [r2]
-	cmp	r3, r4
-	beq	.L4732
-	add	r3, #1
-	cmp	r3, r4
-	bne	.L471e
-.L4732:
-	ldrb	r3, [r2, #1]
-	cmp	r3, r1
-	beq	.L473e
-	add	r3, #1
-	cmp	r3, r1
-	bne	.L471e
-.L473e:
-	mov	r5, r2
-.L4740:
-	mov	r0, r5
-	pop	{r5}
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_899_200c704
-
 @ Leaf helper, 49 instructions, calls nothing.
 @ Described by what it touches, not by what it means.
 @ Reads offsets +0x1.
