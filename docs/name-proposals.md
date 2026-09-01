@@ -23,7 +23,7 @@ fact is worse than an honest placeholder.
 
 451 elevated functions carry a real name already; **3294 still carry a `Func_`/`OvlFunc_` placeholder**, and those are the naming job.
 
-This file proposes **507** of them (15.4%).
+This file proposes **571** of them (17.3%).
 
 ## Actor engine — 7 functions
 
@@ -200,7 +200,21 @@ This file proposes **507** of them (15.4%).
 | `Func_800c628` | `0x0800c628` | `ReturnTrue_800c628` | read | Field | Returns 1 unconditionally. A predicate stub; nothing in the body says what it is standing in for. | `src/field/field.c` |
 | `Func_800c87c` | `0x0800c87c` | `ReturnTrue_800c87c` | read | Field | Returns 1 unconditionally, the twin of ReturnTrue_800c628. | `src/field/field.c` |
 
-## Field / cutscene — 25 functions
+## Field / camera — 9 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_80933d4` | `0x080933d4` | `Camera_AllocBlock` | read | Field / camera | Reserves the camera module's EWRAM block and seeds its header. | `src/field/camera.c` |
+| `Func_8093500` | `0x08093500` | `Camera_FollowActor` | read+callee | Field / camera | Points the camera at a field actor and installs the follow parameters. | `src/field/camera.c` |
+| `Func_8093530` | `0x08093530` | `Camera_WaitMovement` | read+callee | Field / camera | Waits for the camera's movement to complete, then the cutscene delay. | `src/field/camera.c` |
+| `Func_8093554` | `0x08093554` | `Camera_GetBlock` | read | Field / camera | Returns the camera block, allocating it under tag 0x1b if needed. | `src/field/camera.c` |
+| `Func_8093570` | `0x08093570` | `Camera_SetTargetActor` | read+callee | Field / camera | Sets the camera's target to a given object in the camera block. | `src/field/camera.c` |
+| `Func_80935b0` | `0x080935b0` | `Camera_SetBounds` | read | Field / camera | Writes the four camera bound words at view block +0xec. | `src/field/camera.c` |
+| `Func_80935d4` | `0x080935d4` | `Camera_UpdateTask` | read | Field / camera | The camera's per-frame task: steps toward the target and stops itself when done. | `src/field/camera.c` |
+| `Func_8093710` | `0x08093710` | `Camera_Shake` | read | Field / camera | Runs the camera shake, waiting a frame per step. | `src/field/camera.c` |
+| `Func_80941dc` | `0x080941dc` | `NullSub_80941dc` | read | Field / camera | Empty body. | `src/field/camera.c` |
+
+## Field / cutscene — 35 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
 |---|---|---|---|---|---|---|
@@ -222,6 +236,7 @@ This file proposes **507** of them (15.4%).
 | `Func_8091fa8` | `0x08091fa8` | `Field_SetWarpDestB` | read+family | Field / cutscene | Writes the second destination pair at gState+0x1d2/+0x1d4. | `src/field/cutscene.c` |
 | `Func_8091ff0` | `0x08091ff0` | `Field_StartLoopSound` | read | Field / cutscene | Records a looping sound id in the map state and starts it, treating -1 as stop. | `src/field/cutscene.c` |
 | `Func_809202c` | `0x0809202c` | `Field_StopLoopSound` | read+callee | Field / cutscene | Stops whatever Field_StartLoopSound left running. | `src/field/cutscene.c` |
+| `Func_8092158` | `0x08092158` | `MapActor_TravelToSimple` | read+family | Field / cutscene | The bare member of the MapActor_TravelTo family, sharing its file. | `src/field/cutscene.c` |
 | `Func_809218c` | `0x0809218c` | `MapActor_TravelToWait` | read+family | Field / cutscene | MapActor_TravelTo plus a wait for the movement to finish; shares its file. | `src/field/cutscene.c` |
 | `Func_80921c4` | `0x080921c4` | `MapActor_TravelToAnim` | read+family | Field / cutscene | The variant that also sets the actor's animation. | `src/field/cutscene.c` |
 | `Func_8092208` | `0x08092208` | `MapActor_WalkTo` | read+family | Field / cutscene | Stops, animates and walks a field actor to an absolute position, then waits. | `src/field/cutscene.c` |
@@ -229,6 +244,34 @@ This file proposes **507** of them (15.4%).
 | `Func_80922c4` | `0x080922c4` | `MapActor_MoveByAnim` | read+family | Field / cutscene | Relative move with an animation set first. | `src/field/cutscene.c` |
 | `Func_8092304` | `0x08092304` | `MapActor_MoveByAnimWait` | read+family | Field / cutscene | Relative move with animation, waiting for arrival. | `src/field/cutscene.c` |
 | `Func_809255c` | `0x0809255c` | `NullSub_809255c` | read | Field / cutscene | Empty body. | `src/field/cutscene.c` |
+| `Func_809280c` | `0x0809280c` | `MapActor_FaceTargetWait` | read+callee | Field / cutscene | Turns a field actor to face a target with atan2 and waits out the cutscene delay. | `src/field/cutscene.c` |
+| `Func_8092848` | `0x08092848` | `MapActor_FaceEachOther` | read+callee | Field / cutscene | Turns two field actors to face one another and waits. | `src/field/cutscene.c` |
+| `Func_8092878` | `0x08092878` | `MapActor_FacePair` | read | Field / cutscene | The per-frame half of MapActor_FaceEachOther: steps both actors' angles toward each other. | `src/field/cutscene.c` |
+| `Func_8093040` | `0x08093040` | `MapActor_SayAndWait` | read+callee | Field / cutscene | Delivers an actor's message and waits the given number of frames. | `src/field/cutscene.c` |
+| `Func_80930b8` | `0x080930b8` | `NullSub_80930b8` | read | Field / cutscene | Empty body. | `src/field/cutscene.c` |
+| `Func_809315c` | `0x0809315c` | `Field_ShowPrompt` | read+callee | Field / cutscene | A pure forward to Field_ShowPromptAndWait. | `src/field/cutscene.c` |
+| `Func_8093168` | `0x08093168` | `Field_ShowPromptAndWait` | read+callee | Field / cutscene | Opens a text prompt and spins until it has finished printing. | `src/field/cutscene.c` |
+| `Func_80931d4` | `0x080931d4` | `Field_ClosePortraitIfAny` | read+callee | Field / cutscene | Closes the portrait box unless the lookup returns -1. | `src/field/cutscene.c` |
+| `Func_8096b28` | `0x08096b28` | `Field_RunFlaggedMessage` | read+callee | Field / cutscene | Opens a cutscene and delivers one of two messages depending on a flag. | `src/field/cutscene.c` |
+
+## Field / effects — 14 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_8095884` | `0x08095884` | `Effect_ResetSlots` | read+family | Field / effects | Clears the sixteen effect slots at block +0x58. One of two identical copies in this bank. | `src/field/field_effect.c` |
+| `Func_80958a8` | `0x080958a8` | `Effect_AllocBlock` | read | Field / effects | Reserves the effect module's 0x720-byte IWRAM block under tag 0x38. | `src/field/field_effect.c` |
+| `Func_80958e4` | `0x080958e4` | `Effect_Stop` | read+callee | Field / effects | Stops the effect task, releases its sprites and frees the block. | `src/field/field_effect.c` |
+| `Func_8095b8c` | `0x08095b8c` | `Effect_PickFlicker` | read | Field / effects | Picks one of two flicker values from .L9f0a4 using bit 2 of the frame counter. | `src/field/field_effect.c` |
+| `Func_8095bac` | `0x08095bac` | `Effect_ExpireA` | read+family | Field / effects | Counts an effect down and deletes its actor at zero. First of two variants. | `src/field/field_effect.c` |
+| `Func_8095bd8` | `0x08095bd8` | `Effect_ExpireB` | read+family | Field / effects | The second expiry variant, in the same file. | `src/field/field_effect.c` |
+| `Func_8095f9c` | `0x08095f9c` | `Effect_StepFade` | read | Field / effects | Steps an effect's fade and deletes its actor when it completes. | `src/field/field_effect.c` |
+| `Func_8096574` | `0x08096574` | `Effect_StepChain` | read | Field / effects | Advances a chained effect through its linked list of segments. | `src/field/field_effect.c` |
+| `Func_8096ab0` | `0x08096ab0` | `Effect_SelectVariant` | read | Field / effects | Chooses an effect variant from the global state halfword at +0x24a. | `src/field/field_effect.c` |
+| `Func_8096af0` | `0x08096af0` | `Effect_TickAll` | read+callee | Field / effects | Runs the three effect update passes in order. | `src/field/field_effect.c` |
+| `Func_8096f8c` | `0x08096f8c` | `Effect_ResetSlotsB` | read+family | Field / effects | The second copy of Effect_ResetSlots; the ROM has both. | `src/field/field_effect.c` |
+| `Func_80970f8` | `0x080970f8` | `Effect_MoveSlot` | read+callee | Field / effects | Moves one effect slot's actor along a polar offset. | `src/field/field_effect.c` |
+| `Func_8097174` | `0x08097174` | `Effect_WaitSlot` | read | Field / effects | Spins a frame at a time until an effect slot's counter clears. | `src/field/field_effect.c` |
+| `Func_8097194` | `0x08097194` | `Effect_StopSlot` | read+callee | Field / effects | Stops one effect slot: halts its task, releases its sprite tiles and clears the slot. | `src/field/field_effect.c` |
 
 ## Field / field move — 5 functions
 
@@ -240,7 +283,7 @@ This file proposes **507** of them (15.4%).
 | `Func_8091814` | `0x08091814` | `Field_PartyHasMove` | read+callee | Field / field move | True when the requested member is present and knows the requested move. | `src/field/field_move.c` |
 | `Func_8091858` | `0x08091858` | `Field_RefreshMoveFlags` | read+callee | Field / field move | Recomputes which field moves the party can currently use into the global state. | `src/field/field_move.c` |
 
-## Field / map — 32 functions
+## Field / map — 51 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
 |---|---|---|---|---|---|---|
@@ -276,6 +319,33 @@ This file proposes **507** of them (15.4%).
 | `Func_8091660` | `0x08091660` | `MapActor_SetMotionFields` | read | Field / map | Writes an actor's three motion words at +0x24, +0x2c and +0x30. | `src/field/map_actor.c` |
 | `Func_8091e9c` | `0x08091e9c` | `Map_GetEventFlagWord` | read | Field / map | Reads the event flag halfword at map state +0x170. | `src/field/map_event.c` |
 | `Func_809259c` | `0x0809259c` | `MapActor_InstallScript9EBFC` | read | Field / map | Installs the script at .L9ebfc on a field actor. What the script does is not established here. | `src/field/map_actor.c` |
+| `Func_80925cc` | `0x080925cc` | `MapActor_RunScript9EBFC` | read+callee | Field / map | Installs the .L9ebfc script and waits for it to finish. | `src/field/map_actor.c` |
+| `Func_8092950` | `0x08092950` | `MapActor_SetIdleScript` | read+callee | Field / map | Chooses an idle script for an actor and installs it with its timer. | `src/field/map_actor.c` |
+| `Func_8092980` | `0x08092980` | `MapActor_PickIdleVariant` | read | Field / map | Selects an idle variant from the table at .L9ed80 using the global frame counter. | `src/field/map_actor.c` |
+| `Func_80929d8` | `0x080929d8` | `MapActor_SetIdleTimer` | read | Field / map | Writes the idle countdown into an actor's script record. | `src/field/map_actor.c` |
+| `Func_8092a1c` | `0x08092a1c` | `MapActor_SetScriptPacked` | read | Field / map | Installs a script on the actor named by a packed slot argument. | `src/field/map_actor.c` |
+| `Func_8092a74` | `0x08092a74` | `MapActor_GetAngleDelta` | read | Field / map | Returns the signed difference between an actor's current and target angles. | `src/field/map_actor.c` |
+| `Func_8092ab4` | `0x08092ab4` | `MapActor_StopAndIdle` | read | Field / map | Stops a field actor and puts it back in its idle animation. | `src/field/map_actor.c` |
+| `Func_8092adc` | `0x08092adc` | `MapActor_RunWanderScript` | read+callee | Field / map | Installs the wander script at Data_9fc1c and waits the cutscene delay. | `src/field/map_actor.c` |
+| `Func_8092b90` | `0x08092b90` | `NullSub_8092b90` | read | Field / map | Empty body. | `src/field/map_actor.c` |
+| `Func_8092be0` | `0x08092be0` | `Map_FindActorById` | read | Field / map | Searches the map state's actor table for a given id. | `src/field/map_actor.c` |
+| `Func_8093964` | `0x08093964` | `Actor_ClearSpriteFlags` | read | Field / map | Clears an actor's sprite flags and the byte at +0x59. | `src/field/map_actor.c` |
+| `Func_809397c` | `0x0809397c` | `Actor_StepToTarget` | read+callee | Field / map | Advances an actor one step toward its stored destination and updates its animation. | `src/field/map_actor.c` |
+| `Func_8093a14` | `0x08093a14` | `Actor_TurnTowardTarget` | read+callee | Field / map | Turns an actor one step toward its target's bearing, computed with atan2. | `src/field/map_actor.c` |
+| `Func_809592c` | `0x0809592c` | `Actor_RotateStep` | read | Field / map | Adds 0x2000 to an actor's angle halfword -- an eighth turn per call. | `src/field/map_actor.c` |
+| `Func_8096bec` | `0x08096bec` | `Actor_TravelByPolar` | read+callee | Field / map | Converts a magnitude and angle to a vector with vec3_translate and travels the actor along it. | `src/field/map_actor.c` |
+| `Func_8096cdc` | `0x08096cdc` | `Actor_SetIdleAnimSpeed` | read | Field / map | Sets a field actor's idle animation speed, gated on a flag. | `src/field/map_actor.c` |
+| `Func_8096d2c` | `0x08096d2c` | `Actor_SetBobScript` | read | Field / map | Installs the bobbing script and seeds its phase from a sine lookup. | `src/field/map_actor.c` |
+| `Func_8096f14` | `0x08096f14` | `Actor_FlickerOnFlag2` | read+family | Field / map | Applies the colour swap only while bit 1 of the frame counter is set. | `src/field/map_actor.c` |
+| `Func_8096f50` | `0x08096f50` | `Actor_FlickerOnFlag1` | read+family | Field / map | The bit-0 twin of Actor_FlickerOnFlag2. | `src/field/map_actor.c` |
+
+## Field / particles — 3 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_80925e0` | `0x080925e0` | `Particle_StepBallistic` | read | Field / particles | Moves a particle along a decaying ballistic arc, one frame per call. | `src/field/particle.c` |
+| `Func_8092708` | `0x08092708` | `Particle_StepLinear` | read+family | Field / particles | The straight-line member of the particle stepping pair. | `src/field/particle.c` |
+| `Func_809294c` | `0x0809294c` | `NullSub_809294c` | read | Field / particles | Empty body. | `src/field/particle.c` |
 
 ## Field / transition — 13 functions
 
@@ -294,6 +364,18 @@ This file proposes **507** of them (15.4%).
 | `Func_80912a8` | `0x080912a8` | `ClampScaleField` | read+family | Field / transition | Clamps to at most 0x7c00. The duplicate of ClampScale in rom_f2000. | `src/field/transition.c` |
 | `Func_8091540` | `0x08091540` | `Field_AddFadeHook` | read+family | Field / transition | Installs Func_80912b8 as a per-frame hook. | `src/field/transition.c` |
 | `Func_8091550` | `0x08091550` | `Field_RemoveFadeHook` | read+family | Field / transition | Removes it again. | `src/field/transition.c` |
+
+## Field / weather — 7 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_80944ec` | `0x080944ec` | `Weather_ScanlineHook` | read | Field / weather | The weather effect's per-scanline hook, feeding its buffer to the hardware. | `src/field/weather.c` |
+| `Func_8094730` | `0x08094730` | `Weather_Start` | read+callee | Field / weather | Allocates the weather block, primes it and starts its task and scanline hook. | `src/field/weather.c` |
+| `Func_80947e4` | `0x080947e4` | `Weather_Stop` | read+callee | Field / weather | Removes the weather hooks again. | `src/field/weather.c` |
+| `Func_8095214` | `0x08095214` | `Weather_AllocBlock` | read | Field / weather | Reserves the 0x1f88-byte block under tag 0x1e and seeds its palette word. | `src/field/weather.c` |
+| `Func_8095240` | `0x08095240` | `Weather_InitBlock` | read+family | Field / weather | The second initialiser over the same tag-0x1e block. | `src/field/weather.c` |
+| `Func_8095268` | `0x08095268` | `Weather_SetParams` | read | Field / weather | Writes the weather block's density and speed parameters. | `src/field/weather.c` |
+| `Func_8095348` | `0x08095348` | `Weather_StepParticle` | read | Field / weather | Advances one weather particle and wraps it when it leaves the screen. | `src/field/weather.c` |
 
 ## Graphics — 1 function
 
@@ -578,7 +660,7 @@ This file proposes **507** of them (15.4%).
 | `Func_80fa260` | `0x080fa260` | `NullSub_80fa260` | read | Sound | Empty body. | `src/sound/music.c` |
 | `Func_80fb790` | `0x080fb790` | `NullSub_80fb790` | read | Sound | Empty body. | `src/sound/music.c` |
 
-## Sprites — 7 functions
+## Sprites — 9 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
 |---|---|---|---|---|---|---|
@@ -589,6 +671,8 @@ This file proposes **507** of them (15.4%).
 | `Func_800c570` | `0x0800c570` | `Sprite_SetFlag1D` | read | Sprites | Writes the single-bit field inside the sprite byte at +0x1d. Same caveat as Sprite_SetSelectField. | `src/sprite/sprite.c` |
 | `Func_8012d70` | `0x08012d70` | `SetLayerGroupAnim` | read | Sprites | Walks a layer group's ten sprite entries and points each at the requested animation in the group's sprite info. | `src/sprite/sprite.c` |
 | `Func_8012de8` | `0x08012de8` | `InitLayerGroupSprites` | read | Sprites | Binds a layer group's ten sprite entries to a sprite resource via InitSpriteLayer. | `src/sprite/sprite.c` |
+| `Func_8096c24` | `0x08096c24` | `CountFreeSpriteTiles` | read | Sprites | Counts the free entries of the 512-byte gSpriteAllocTable. | `src/sprite/sprite.c` |
+| `Func_8096c48` | `0x08096c48` | `Sprite_FreePair` | read | Sprites | Releases two sprite tile allocations, skipping either if null. | `src/sprite/sprite.c` |
 
 ## Start menu — 5 functions
 

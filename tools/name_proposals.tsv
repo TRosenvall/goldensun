@@ -538,3 +538,67 @@ Func_80922c4	MapActor_MoveByAnim	read+family	Field / cutscene	src/field/cutscene
 Func_8092304	MapActor_MoveByAnimWait	read+family	Field / cutscene	src/field/cutscene.c	Relative move with animation, waiting for arrival.
 Func_809255c	NullSub_809255c	read	Field / cutscene	src/field/cutscene.c	Empty body.
 Func_809259c	MapActor_InstallScript9EBFC	read	Field / map	src/field/map_actor.c	Installs the script at .L9ebfc on a field actor. What the script does is not established here.
+Func_8092158	MapActor_TravelToSimple	read+family	Field / cutscene	src/field/cutscene.c	The bare member of the MapActor_TravelTo family, sharing its file.
+Func_80925cc	MapActor_RunScript9EBFC	read+callee	Field / map	src/field/map_actor.c	Installs the .L9ebfc script and waits for it to finish.
+Func_80925e0	Particle_StepBallistic	read	Field / particles	src/field/particle.c	Moves a particle along a decaying ballistic arc, one frame per call.
+Func_8092708	Particle_StepLinear	read+family	Field / particles	src/field/particle.c	The straight-line member of the particle stepping pair.
+Func_809280c	MapActor_FaceTargetWait	read+callee	Field / cutscene	src/field/cutscene.c	Turns a field actor to face a target with atan2 and waits out the cutscene delay.
+Func_8092848	MapActor_FaceEachOther	read+callee	Field / cutscene	src/field/cutscene.c	Turns two field actors to face one another and waits.
+Func_8092878	MapActor_FacePair	read	Field / cutscene	src/field/cutscene.c	The per-frame half of MapActor_FaceEachOther: steps both actors' angles toward each other.
+Func_809294c	NullSub_809294c	read	Field / particles	src/field/particle.c	Empty body.
+Func_8092950	MapActor_SetIdleScript	read+callee	Field / map	src/field/map_actor.c	Chooses an idle script for an actor and installs it with its timer.
+Func_8092980	MapActor_PickIdleVariant	read	Field / map	src/field/map_actor.c	Selects an idle variant from the table at .L9ed80 using the global frame counter.
+Func_80929d8	MapActor_SetIdleTimer	read	Field / map	src/field/map_actor.c	Writes the idle countdown into an actor's script record.
+Func_8092a1c	MapActor_SetScriptPacked	read	Field / map	src/field/map_actor.c	Installs a script on the actor named by a packed slot argument.
+Func_8092a74	MapActor_GetAngleDelta	read	Field / map	src/field/map_actor.c	Returns the signed difference between an actor's current and target angles.
+Func_8092ab4	MapActor_StopAndIdle	read	Field / map	src/field/map_actor.c	Stops a field actor and puts it back in its idle animation.
+Func_8092adc	MapActor_RunWanderScript	read+callee	Field / map	src/field/map_actor.c	Installs the wander script at Data_9fc1c and waits the cutscene delay.
+Func_8092b90	NullSub_8092b90	read	Field / map	src/field/map_actor.c	Empty body.
+Func_8092be0	Map_FindActorById	read	Field / map	src/field/map_actor.c	Searches the map state's actor table for a given id.
+Func_8093040	MapActor_SayAndWait	read+callee	Field / cutscene	src/field/cutscene.c	Delivers an actor's message and waits the given number of frames.
+Func_80930b8	NullSub_80930b8	read	Field / cutscene	src/field/cutscene.c	Empty body.
+Func_809315c	Field_ShowPrompt	read+callee	Field / cutscene	src/field/cutscene.c	A pure forward to Field_ShowPromptAndWait.
+Func_8093168	Field_ShowPromptAndWait	read+callee	Field / cutscene	src/field/cutscene.c	Opens a text prompt and spins until it has finished printing.
+Func_80931d4	Field_ClosePortraitIfAny	read+callee	Field / cutscene	src/field/cutscene.c	Closes the portrait box unless the lookup returns -1.
+Func_80933d4	Camera_AllocBlock	read	Field / camera	src/field/camera.c	Reserves the camera module's EWRAM block and seeds its header.
+Func_8093500	Camera_FollowActor	read+callee	Field / camera	src/field/camera.c	Points the camera at a field actor and installs the follow parameters.
+Func_8093530	Camera_WaitMovement	read+callee	Field / camera	src/field/camera.c	Waits for the camera's movement to complete, then the cutscene delay.
+Func_8093554	Camera_GetBlock	read	Field / camera	src/field/camera.c	Returns the camera block, allocating it under tag 0x1b if needed.
+Func_8093570	Camera_SetTargetActor	read+callee	Field / camera	src/field/camera.c	Sets the camera's target to a given object in the camera block.
+Func_80935b0	Camera_SetBounds	read	Field / camera	src/field/camera.c	Writes the four camera bound words at view block +0xec.
+Func_80935d4	Camera_UpdateTask	read	Field / camera	src/field/camera.c	The camera's per-frame task: steps toward the target and stops itself when done.
+Func_8093710	Camera_Shake	read	Field / camera	src/field/camera.c	Runs the camera shake, waiting a frame per step.
+Func_8093964	Actor_ClearSpriteFlags	read	Field / map	src/field/map_actor.c	Clears an actor's sprite flags and the byte at +0x59.
+Func_809397c	Actor_StepToTarget	read+callee	Field / map	src/field/map_actor.c	Advances an actor one step toward its stored destination and updates its animation.
+Func_8093a14	Actor_TurnTowardTarget	read+callee	Field / map	src/field/map_actor.c	Turns an actor one step toward its target's bearing, computed with atan2.
+Func_80941dc	NullSub_80941dc	read	Field / camera	src/field/camera.c	Empty body.
+Func_80944ec	Weather_ScanlineHook	read	Field / weather	src/field/weather.c	The weather effect's per-scanline hook, feeding its buffer to the hardware.
+Func_8094730	Weather_Start	read+callee	Field / weather	src/field/weather.c	Allocates the weather block, primes it and starts its task and scanline hook.
+Func_80947e4	Weather_Stop	read+callee	Field / weather	src/field/weather.c	Removes the weather hooks again.
+Func_8095214	Weather_AllocBlock	read	Field / weather	src/field/weather.c	Reserves the 0x1f88-byte block under tag 0x1e and seeds its palette word.
+Func_8095240	Weather_InitBlock	read+family	Field / weather	src/field/weather.c	The second initialiser over the same tag-0x1e block.
+Func_8095268	Weather_SetParams	read	Field / weather	src/field/weather.c	Writes the weather block's density and speed parameters.
+Func_8095348	Weather_StepParticle	read	Field / weather	src/field/weather.c	Advances one weather particle and wraps it when it leaves the screen.
+Func_8095884	Effect_ResetSlots	read+family	Field / effects	src/field/field_effect.c	Clears the sixteen effect slots at block +0x58. One of two identical copies in this bank.
+Func_80958a8	Effect_AllocBlock	read	Field / effects	src/field/field_effect.c	Reserves the effect module's 0x720-byte IWRAM block under tag 0x38.
+Func_80958e4	Effect_Stop	read+callee	Field / effects	src/field/field_effect.c	Stops the effect task, releases its sprites and frees the block.
+Func_809592c	Actor_RotateStep	read	Field / map	src/field/map_actor.c	Adds 0x2000 to an actor's angle halfword -- an eighth turn per call.
+Func_8095b8c	Effect_PickFlicker	read	Field / effects	src/field/field_effect.c	Picks one of two flicker values from .L9f0a4 using bit 2 of the frame counter.
+Func_8095bac	Effect_ExpireA	read+family	Field / effects	src/field/field_effect.c	Counts an effect down and deletes its actor at zero. First of two variants.
+Func_8095bd8	Effect_ExpireB	read+family	Field / effects	src/field/field_effect.c	The second expiry variant, in the same file.
+Func_8095f9c	Effect_StepFade	read	Field / effects	src/field/field_effect.c	Steps an effect's fade and deletes its actor when it completes.
+Func_8096574	Effect_StepChain	read	Field / effects	src/field/field_effect.c	Advances a chained effect through its linked list of segments.
+Func_8096ab0	Effect_SelectVariant	read	Field / effects	src/field/field_effect.c	Chooses an effect variant from the global state halfword at +0x24a.
+Func_8096af0	Effect_TickAll	read+callee	Field / effects	src/field/field_effect.c	Runs the three effect update passes in order.
+Func_8096b28	Field_RunFlaggedMessage	read+callee	Field / cutscene	src/field/cutscene.c	Opens a cutscene and delivers one of two messages depending on a flag.
+Func_8096bec	Actor_TravelByPolar	read+callee	Field / map	src/field/map_actor.c	Converts a magnitude and angle to a vector with vec3_translate and travels the actor along it.
+Func_8096c24	CountFreeSpriteTiles	read	Sprites	src/sprite/sprite.c	Counts the free entries of the 512-byte gSpriteAllocTable.
+Func_8096c48	Sprite_FreePair	read	Sprites	src/sprite/sprite.c	Releases two sprite tile allocations, skipping either if null.
+Func_8096cdc	Actor_SetIdleAnimSpeed	read	Field / map	src/field/map_actor.c	Sets a field actor's idle animation speed, gated on a flag.
+Func_8096d2c	Actor_SetBobScript	read	Field / map	src/field/map_actor.c	Installs the bobbing script and seeds its phase from a sine lookup.
+Func_8096f14	Actor_FlickerOnFlag2	read+family	Field / map	src/field/map_actor.c	Applies the colour swap only while bit 1 of the frame counter is set.
+Func_8096f50	Actor_FlickerOnFlag1	read+family	Field / map	src/field/map_actor.c	The bit-0 twin of Actor_FlickerOnFlag2.
+Func_8096f8c	Effect_ResetSlotsB	read+family	Field / effects	src/field/field_effect.c	The second copy of Effect_ResetSlots; the ROM has both.
+Func_80970f8	Effect_MoveSlot	read+callee	Field / effects	src/field/field_effect.c	Moves one effect slot's actor along a polar offset.
+Func_8097174	Effect_WaitSlot	read	Field / effects	src/field/field_effect.c	Spins a frame at a time until an effect slot's counter clears.
+Func_8097194	Effect_StopSlot	read+callee	Field / effects	src/field/field_effect.c	Stops one effect slot: halts its task, releases its sprite tiles and clears the slot.
