@@ -24,12 +24,24 @@
  *   > A ROM function that contains a conditional branch and NO `push` was not
  *   > compiled by gcc-2.96.
  *
- * old_agbcc produces the push-less form. Compiled with `/opt/agbcc/bin/old_agbcc
- * -mthumb-interwork -O2`, the same C gives the ROM's shape -- no prologue,
- * `bx lr`, and every branch and store in the ROM's order -- differing only by a
- * leading `add r2, r0, #0` and a rotation of which temp holds which pointer.
- * That is much closer than gcc-2.96 gets and it is the right compiler for this
- * region.
+ * old_agbcc produces the push-less form, and that looked like the answer. IT IS
+ * NOT -- CORRECTED THE ROUND AFTER THIS PARK WAS WRITTEN. Compiled with
+ * `/opt/agbcc/bin/old_agbcc -mthumb-interwork -O2`, the same C gives the ROM's
+ * prologue and epilogue and every branch and store in the ROM's order, but it
+ * opens with `add r2, r0, #0` and runs the whole body through r2. That copy is
+ * SYSTEMATIC, not incidental:
+ *
+ *     void F1(int *p) { p[3] = 0; }              -> mov r1, #0 / str r1, [r0, #0xc]
+ *     void F2(int *p) { if (p[3]) p[4] = 0; }    -> add r1, r0, #0 / ldr r0, [r1, #0xc] ...
+ *     int  F3(int *p) { return p[3] + p[4]; }    -> add r1, r0, #0 / ldr r0, [r1, #0xc] ...
+ *
+ * **old_agbcc copies an incoming pointer argument to another register whenever
+ * it is used more than once.** The ROM uses r0 directly, four times. So the ROM
+ * was not built by old_agbcc either.
+ *
+ * Five spellings were tried against old_agbcc -- a struct with named fields,
+ * plain `*(char **)(p + 0x2c)` casts, an early `return` instead of a wrapping
+ * `if`, and two orderings of the three loads -- and all five produce the copy.
  *
  * WHAT THIS MEANS FOR THE `audio` CLASS. The census keeps 39 functions under
  * `audio` and the reason has never been written down beyond "hand-written
@@ -40,10 +52,11 @@
  *   * They were built by old_agbcc, which the Makefile already drives for
  *     `src/lib/m4a/%.o` and three `src/lib/agb_flash` rules.
  *
- * So the class is not "cannot be C". It is "needs a per-file old_agbcc rule",
- * which is a Makefile change of the same shape as the existing ones. tryc.py
- * screens with gcc-2.96 only, so a candidate here has to be screened by hand
- * against old_agbcc until that changes.
+ * So the class is not "cannot be C" -- this function plainly is C. But it is not
+ * "needs a per-file old_agbcc rule" either, which is what this park originally
+ * claimed. NEITHER compiler in the tree produces the ROM's form: gcc-2.96 gets
+ * the register usage right and the prologue wrong, old_agbcc gets the prologue
+ * right and inserts a copy. Whatever built asm/rom_f9000 is a third thing.
  *
  * A CAVEAT ON SCOPE. Not every rom_f9000 body is C. `Func_80f9f3c` opens
  * `ldrb r1, [r4, #0x12]` and ends `bx lr` having never written r4 -- it takes

@@ -12017,25 +12017,45 @@ old_agbcc compiles the same C to the ROM's shape -- no prologue, `bx lr`, every
 branch and store in order -- differing only by a leading `add r2, r0, #0` and a
 rotation of which temp holds which pointer.
 
-## The `audio` class is "needs old_agbcc", not "cannot be C"
+## The `audio` class is C, but NEITHER compiler in the tree produces it
 
-The census keeps 39 functions under `audio` and the reason was never written
-down beyond "hand-written assembly". Two things are now established about
-`asm/rom_f9000`:
+**This entry replaces the one written the round before, which said the class
+"needs old_agbcc". That was wrong, and the correction is the useful part.**
+
+Two things are established about `asm/rom_f9000`:
 
 - **Some of its functions are ordinary C.** `RealClearChain` is a textbook
-  unlink; `ply_patt` is a three-line dispatcher.
-- **They were built by old_agbcc**, which the Makefile already drives for
-  `src/lib/m4a/%.o` and three `src/lib/agb_flash` rules. Adding a per-file rule
-  is the same shape of change.
+  doubly-linked-list unlink; `ply_patt` is a three-line dispatcher.
+- **Neither of the tree's compilers reproduces the ROM's form.** gcc-2.96 gets
+  the register usage right (`ldr r1, [r0, #0x2c]`, r0 used directly) and the
+  prologue wrong (it pushes lr, see above). old_agbcc gets the prologue right
+  (`bx lr`, no push) and inserts a copy.
 
-`tryc.py` screens with gcc-2.96 only, so a candidate here has to be screened by
-hand against old_agbcc until that changes.
+The old_agbcc copy is systematic, not incidental:
 
-**The class still needs sorting one by one.** Not every body is C:
-`Func_80f9f3c` takes its arguments in r4 and r5 with no prologue -- no C
-signature expresses that -- and `ply_patt` ends `b ply_goto`, a sibling call
-gcc-2.96 does not emit. The push test above answers the first question for free.
+    void F1(int *p) { p[3] = 0; }             -> mov r1, #0 / str r1, [r0, #0xc]
+    void F2(int *p) { if (p[3]) p[4] = 0; }   -> add r1, r0, #0 / ldr r0, [r1, #0xc] ...
+    int  F3(int *p) { return p[3] + p[4]; }   -> add r1, r0, #0 / ldr r0, [r1, #0xc] ...
+
+> **old_agbcc copies an incoming pointer argument to another register whenever
+> it is used more than once.**
+
+`RealClearChain` uses its argument four times and the ROM uses r0 directly, so
+old_agbcc is excluded. Five spellings were tried against it -- a named-field
+struct, plain casts, an early `return`, and two load orderings -- and all five
+produce the copy.
+
+So the class stays open as a question about which compiler built that region,
+and it is NOT a per-file Makefile rule away. What the previous round got right
+is the free test: a conditional branch with no `push` rules out gcc-2.96.
+
+**The general lesson, and it is the second time this month.** The
+branch-over-pool class was declared CERTAIN on a compiler-behaviour claim that
+was never tested against the compiler actually in use. This entry was written
+the same way -- old_agbcc produced the right prologue on the first try and the
+conclusion was drawn from that one observation, without checking whether the
+rest of its output could be reached. **One matching feature is not a matching
+compiler.** Compile the whole function and diff it before naming a toolchain.
 
 ## The accessible pool, measured
 
