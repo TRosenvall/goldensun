@@ -11994,3 +11994,61 @@ measurement could not have come out any other way once the claim was acted on.
 When a class is declared CERTAIN, the test that would falsify it is to
 transcribe one member and look at the generated asm -- not to count the
 already-matching corpus, which by construction contains only what was attempted.
+
+## gcc-2.96 pushes lr in ANY Thumb function with a conditional branch
+
+A third flag/toolchain fact readable off the ROM without screening, alongside
+the `pop {r4, r5, r6, pc}` and `-fcall-used-r4` entries above.
+
+    int  Leaf(int *p)   { return p[3] + 1; }        ->  ldr / add / bx lr
+    void A(int **p)     { if (p[3]) p[3][2] = 0; }  ->  push {lr} / ... /
+                                                         pop {r0} / bx r0
+
+One `if`, no calls, three instructions of work, and the prologue appears. It is
+not an interwork artifact -- without `-mthumb-interwork` the push is still there
+and only the return changes, to `pop {pc}`.
+
+> **A ROM function that contains a conditional branch and NO `push` was not
+> compiled by gcc-2.96.**
+
+`RealClearChain` at 0x080f9a30 is the specimen: a sixteen-instruction
+doubly-linked-list unlink, `ldr r3, [r0, #0x2c]` first and `bx r14` last.
+old_agbcc compiles the same C to the ROM's shape -- no prologue, `bx lr`, every
+branch and store in order -- differing only by a leading `add r2, r0, #0` and a
+rotation of which temp holds which pointer.
+
+## The `audio` class is "needs old_agbcc", not "cannot be C"
+
+The census keeps 39 functions under `audio` and the reason was never written
+down beyond "hand-written assembly". Two things are now established about
+`asm/rom_f9000`:
+
+- **Some of its functions are ordinary C.** `RealClearChain` is a textbook
+  unlink; `ply_patt` is a three-line dispatcher.
+- **They were built by old_agbcc**, which the Makefile already drives for
+  `src/lib/m4a/%.o` and three `src/lib/agb_flash` rules. Adding a per-file rule
+  is the same shape of change.
+
+`tryc.py` screens with gcc-2.96 only, so a candidate here has to be screened by
+hand against old_agbcc until that changes.
+
+**The class still needs sorting one by one.** Not every body is C:
+`Func_80f9f3c` takes its arguments in r4 and r5 with no prologue -- no C
+signature expresses that -- and `ply_patt` ends `b ply_goto`, a sibling call
+gcc-2.96 does not emit. The push test above answers the first question for free.
+
+## The accessible pool, measured
+
+After the branch-over-pool correction, applying every reject that has been
+established -- parked, r8-r12/r14 outside the push/pop, a repeated expensive
+constant, `const_remat`, `precompute` -- to the whole tree leaves **twelve**
+candidates in 12-160 instructions, and nine of those are `asm/rom_f9000`.
+
+The three that are not are `OvlFunc_957_2008f94`, `Func_801a66c` and
+`Func_8026e80`; the last two are parked here at 105 and 87 differing, both on
+allocation or layout.
+
+That is the honest state of the worklist and it is why recent rounds return one
+elevation or none. **The next real gains are in relaxing a reject, not in
+working the list**: the duplicate-constant reject alone removes 85 of the 173
+precompute-class candidates and every one of the 158 call-dominated scripts.
