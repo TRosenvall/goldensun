@@ -11031,3 +11031,29 @@ scratch register receives the result.
 length with the instruction sequence aligned and the diff is a column of
 `mov rN` against `mov rM`, stop. One probe, then park -- the three above cost
 between four and seven screens each to arrive at the same place.
+
+## The fuzzy lead pool is exhausted at 0.60 -- what the next round should do
+
+`tools/fuzzy_solved.py` at `--min-ratio 0.60` now returns **two** clean leads,
+and both were worked this round and parked. Everything else on the list carries
+DUP-CONST or FAKEMATCH.
+
+That is not the tool failing; it is the tool having done its job. Batches
+167-171 took **eighteen** elevations off it, most at one to three screens each,
+and the compounding effect means the ranking still improves every round as
+exemplars land. It should keep being re-run.
+
+But it can no longer carry a round on its own. The pools that remain, from
+`tools/census.py`:
+
+* **`multi`, 655 functions** -- excluded from the worklist only because their
+  blocker is unknown until a split, and a split is byte-neutral by construction.
+  Batches 164-166 took roughly a dozen elevations out of it. This is the obvious
+  next place.
+* **`branch-over-pool`, 495** -- of which ~277 have the pool as their only
+  predicted blocker; mostly large.
+* **`open`, 270** -- the nominal worklist.
+
+**Start the next round with a `multi` scan, not with `fuzzy_solved.py`.** Run
+the ranking as well, since it is cheap and still rising, but do not expect it to
+supply the round.
