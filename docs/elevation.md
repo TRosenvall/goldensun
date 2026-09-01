@@ -10902,3 +10902,27 @@ clean leads, and they still close in one or two screens.
 So when the clean list empties, **lower the ratio before changing method**. A
 0.70 lead that is clean has been more productive than a 0.90 lead that is
 flagged.
+
+## A reassigned local sometimes has to be SPLIT, not merged
+
+The merge lever says one register running through two unrelated values means one
+variable. `OvlFunc_882_20090a4` is the counter-case, and the discriminator is
+the push list.
+
+Its ROM runs r5 through `0x35` and then `0x36` — the merge lever's usual shape.
+Written as one reassigned local it is 78 lines against 80 with 64 differing;
+written as two separate locals it is **80 lines and 8**. gcc coalesces the
+single variable's two live ranges into one register and then needs one FEWER
+callee-saved register than the ROM, and the two missing lines are that
+register's save and restore.
+
+**So when the ROM spends a callee-saved register the source has to force, two
+variables can be what creates the demand.** The merge lever still holds when the
+register count already agrees; check the prologue first. A push the ROM has and
+we lack is the signal to split, exactly as a push we have and the ROM lacks is
+the signal to merge.
+
+That function also needed `-ffixed-r7`: the ROM holds four stack-argument
+constants in r5, r6, r8 and r10, skipping r7, and gcc's `REG_ALLOC_ORDER`
+reaches r7 before r8. Reserving it fixed the prologue outright and moved the
+first difference from instruction 0 to instruction 1.

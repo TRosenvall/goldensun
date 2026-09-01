@@ -1,44 +1,5 @@
 	.include "macros.inc"
 
-@ LoadItemIcons
-@ r0 = list. Loads panel set 4 into each of the 32 nodes whose list entry is
-@ non-zero, then hides the empty ones with Func_a3d24. The Func_a3e28 of the
-@ item screen; only the panel set differs.
-.thumb_func_start Func_80a68a8  @ 0x080a68a8
-	push	{r5, r6, r7, lr}
-	mov	r7, r8
-	push	{r7}
-	ldr	r3, =iwram_3001f2c
-	ldr	r3, [r3]
-	mov	r8, r0
-	mov	r6, r3
-	add	r6, #0x48
-	mov	r5, r8
-	mov	r7, #0x1f
-.La68bc:
-	ldrh	r1, [r5]
-	add	r5, #2
-	cmp	r1, #0
-	beq	.La68d0
-	ldr	r3, [r6]
-	mov	r0, #4
-	ldrb	r2, [r3, #0xe]
-	mov	r3, #0
-	bl	_Func_801bcd4
-.La68d0:
-	sub	r7, #1
-	add	r6, #4
-	cmp	r7, #0
-	bge	.La68bc
-	mov	r0, r8
-	bl	Func_80a3d24
-	pop	{r3}
-	mov	r8, r3
-	pop	{r5, r6, r7}
-	pop	{r0}
-	bx	r0
-.func_end Func_80a68a8
-
 @ FilterItemList
 @ r0 = character record, r1 = destination, r2 = filter.
 @ Walks the 32-entry list at record+0x58 -- halfword ids at stride 4, masked
