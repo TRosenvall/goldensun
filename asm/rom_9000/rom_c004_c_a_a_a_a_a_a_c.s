@@ -1,86 +1,6 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ FindFreeEntitySlot
-@ Returns the first unused entity in the 0x40-slot table at [iwram_1e64]
-@ (stride 0x70), or 0 when the table is full. A slot counts as free when its
-@ script pointer at +0x00 is null.
-.thumb_func_start NewActor  @ 0x0800c0cc
-	push	{lr}
-	ldr	r3, =iwram_3001e64
-	ldr	r2, [r3]
-	ldr	r3, [r2]
-	mov	r0, #0
-	mov	r1, #0
-	b	.Lc0e4
-.Lc0da:
-	add	r1, #1
-	add	r2, #0x70
-	cmp	r1, #0x3f
-	bgt	.Lc0ea
-	ldr	r3, [r2]
-.Lc0e4:
-	cmp	r3, #0
-	bne	.Lc0da
-	mov	r0, r2
-.Lc0ea:
-	pop	{r1}
-	bx	r1
-.func_end NewActor
-
-@ DestroyEntity
-@ r0=entity. Destroys the entity's actors according to the draw kind in the low
-@ nibble of +0x54 -- kind 1 is the single actor at +0x50, kind 2 is an array of
-@ up to four -- each released with DeleteSprite, then DMA zero-fills the entity's
-@ 0x70 bytes to return the slot to the table. No-op on a null pointer.
-.thumb_func_start DeleteActor  @ 0x0800c0f4
-	push	{r5, r6, r7, lr}
-	mov	r7, r0
-	sub	sp, #4
-	cmp	r7, #0
-	beq	.Lc13e
-	mov	r3, r7
-	add	r3, #0x54
-	ldrb	r3, [r3]
-	mov	r2, #0xf
-	and	r2, r3
-	cmp	r2, #1
-	beq	.Lc112
-	cmp	r2, #2
-	beq	.Lc11a
-	b	.Lc12e
-.Lc112:
-	ldr	r0, [r7, #0x50]
-	bl	DeleteSprite
-	b	.Lc12e
-.Lc11a:
-	ldr	r5, [r7, #0x50]
-	mov	r6, #3
-.Lc11e:
-	ldmia	r5!, {r0}
-	cmp	r0, #0
-	beq	.Lc128
-	bl	DeleteSprite
-.Lc128:
-	sub	r6, #1
-	cmp	r6, #0
-	bge	.Lc11e
-.Lc12e:
-	mov	r0, sp
-	mov	r3, #0
-	str	r3, [r0]
-	mov	r1, r7
-	ldr	r3, =REG_DMA3SAD
-	ldr	r2, =0x8500001c
-	stmia	r3!, {r0, r1, r2}
-	sub	r3, #0xc
-.Lc13e:
-	add	sp, #4
-	pop	{r5, r6, r7}
-	pop	{r0}
-	bx	r0
-.func_end DeleteActor
-
 @ SpawnEntity
 @ r0=packed descriptor (bits 12+ = draw kind, bits 0-11 = resource id),
 @ r1=x, r2=y, r3=z (16.16). Returns the new entity, or 0 if the table is full.
@@ -290,4 +210,3 @@
 	pop	{r1}
 	bx	r1
 .func_end CreateActor
-

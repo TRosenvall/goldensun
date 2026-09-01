@@ -10329,3 +10329,68 @@ right and only the encoding differs.
 **Do not spend screens hunting a narrowing spelling for a `!= 0` byte test.**
 Probe the compiler once; if the fold happens, the shape is a property of the
 source's TYPE somewhere upstream, not of the comparison.
+
+## The merge lever CHAINS: one variable can be counter, result AND index
+
+`Func_8005810` scans 16 slots, collects the free indices into a stack array, and
+then returns one of them. The ROM keeps **r5** for the loop counter, then for
+the result, then for a modulo result, then for the final array read. Four roles,
+one register.
+
+Merging them one at a time is measurable at each step:
+
+| source | lines | differing |
+|---|---|---|
+| separate `i`, `r`, and an inline `v[Random() % cnt]` | 43 | 35 |
+| drop the named base pointer (see below) | 43 | 21 |
+| single exit instead of three `return`s | 42 | 21 |
+| counter and result merged into one `unsigned int r` | 42 | **13** — first diff moves from instruction 3 to 30 |
+| the modulo index merged into `r` as well | 43 | **match** |
+
+The last step is the one worth remembering: `r = Random() % cnt; r = v[r];`
+matches, while `idx = Random() % cnt; r = v[idx];` — naming the index in its own
+local, which is the ROM's `mov r5, r0` read literally — is 26 differing, WORSE
+than not naming it at all.
+
+**So the merge lever is not a single swap.** When the ROM runs one register
+through several unrelated values, try merging all of them into one variable, and
+re-measure after each. And naming a value the ROM demonstrably holds is only
+right if it goes into the variable that already owns that register.
+
+## A named base pointer for a stack array costs a callee-saved register
+
+The same function shows the inverse of "name the pointer". Written with an
+explicit walking pointer over a stack array —
+
+    int v[16]; int *q;
+    q = v;
+    ... *q++ = i;
+    ... later, v[0] and v[idx]
+
+— gcc materialises the frame address once into a callee-saved register and walks
+with a *copy*: `mov r6, sp` at entry and `mov r0, r6` before the loop, with r6
+held live across two calls. The ROM has neither; it re-derives `sp` at each of
+the three sites (`mov r1, sp` for the loop, `ldr r5, [sp, #0]`, `mov r2, sp`).
+
+Writing `v[cnt] = i;` instead and deleting `q` took 35 differing to 21 and
+removed both moves. `v[cnt++] = i;` is byte-identical to the two-statement form.
+
+**A stack array does not need a named base.** `sp` is always available, so gcc
+re-derives it for free; naming it creates a pseudo that competes for r4-r7. This
+is the opposite of the heap/global case, where naming the base is what produces
+the ROM's single pool load — the discriminator is whether the base costs
+anything to rematerialise.
+
+## Reading the solved sibling first: DeleteActor matched on the first screen
+
+`DeleteActor` shares a `.s` with `Actor_SetAnimAndSpeed`, which was elevated in
+an earlier batch and has the identical opening — a null guard, then
+`switch (*(unsigned char *)(e + 0x54) & 0xf)` with cases 1 and 2, case 2 walking
+a four-pointer list backwards with `*list++`. Copying that structure and adding
+the tail gave an exact match with no iteration at all.
+
+The tail is `DMA3_CLEAR(e, 0x70)` from `include/dma.h`: the ROM's
+`ldr r2, =0x8500001c` decodes as `0x85000000 | (size / 4)` with `size/4 = 0x1c`,
+and the macro's own `u32 value` local is the function's otherwise-unexplained
+`sub sp, #4`. **When a ROM tail is `stmia r3!, {r0, r1, r2} / sub r3, #0xc`,
+decode the control word before writing anything — the macro already exists.**
