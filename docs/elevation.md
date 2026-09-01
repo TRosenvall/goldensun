@@ -11074,3 +11074,35 @@ because constant-range folding removes it before the shift can be emitted.**
 Recognise it from the ROM side -- a `lsl #24` or `lsl #16` whose result is only
 compared against zero -- and do not re-probe; the byte case's ten measurements
 cover the halfword case by the same argument.
+
+## A run of constant-offset stores: gcc keeps ONE offset, some ROMs keep two
+
+`Func_80bb588` zeroes 24 contiguous bytes, fully unrolled in the ROM. Written as
+24 explicit `u[K] = 0;` statements the instruction COUNT is exact -- 98 against
+98 -- and the whole residue is the address bookkeeping between stores:
+
+    rom    add r2,r1,r0 / strb / add r0,#2 / add r2,r1,r4 / strb / add r4,#2 ...
+    ours   add r2,r1,r0 / strb / add r0,#1 / add r2,r1,r0 / strb / add r0,#1 ...
+
+Two offset registers each stepping by 2, alternating, against one stepping by 1.
+
+That pattern is the signature of a strength-reduced loop over a stride-2 pair,
+so the loop forms are the obvious hypothesis. **They are wrong, and it is worth
+recording so nobody re-derives it:**
+
+| source | lines (rom 98) | differing |
+|---|---|---|
+| 24 explicit `u[K] = 0;` | **98** | 56 |
+| two alternating named offset locals | 72 | 94 |
+| `for (i = 0; i < 12; i++) { u[0x131+i*2]=0; u[0x132+i*2]=0; }` | 34 | 94 |
+| the same loop with `-funroll-loops` | 75 | 89 |
+
+Unrolling gives 75 lines, not 98, so the ROM is not an unrolled loop. And named
+offset locals are worse than literals, because both values are compile-time
+known and gcc folds them back into immediates -- the same fold recorded for
+`OvlFunc_882_20090a4`'s bound, arriving from the other direction.
+
+**So the explicit form is right and the bookkeeping is not reachable through
+it.** When a run of constant-offset stores matches on count but not on offset
+registers, do not spend screens on loop shapes; the count agreeing is the signal
+that the statement form is already correct.
