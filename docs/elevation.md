@@ -10846,3 +10846,19 @@ is worth one probe and then a park.
 Note also that `2008d0c`'s exemplar contains the identical angle expression and
 matched with it. The spelling is not the variable; the surrounding register
 pressure is.
+
+## Loop initialiser order, confirmed a second time
+
+`Func_80aac84` (batch 168) established that once a loop's initialisers are both
+visible, their ORDER is observable in the output. `Func_80a9b94` confirms it on
+a plain `do`/`while` with no `goto` rewrite involved:
+
+    rom    mov r5, #0x0 / add r6, #0x48        counter first
+    ours   add r6, #0x48 / mov r5, #0x0        pointer first
+
+Swapping the two source statements — `i = 0;` before `q = ...;` — is the whole
+difference between 2 differing and an exact match, on a 33-line function that
+was otherwise correct on the first screen.
+
+So this is not a `goto`-loop phenomenon. **When a diff is two lines and both are
+loop setup, try the other order before anything else.** It costs one screen.
