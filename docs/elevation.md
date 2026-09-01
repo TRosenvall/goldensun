@@ -11819,3 +11819,70 @@ dominating block. `OvlFunc_932_200a6c0` needs eight, and gcc spills all of them:
 > more than two or three, and past that the spill costs more than the
 > interleave. Apply it to the specific constants the diff names, never to every
 > constant in the function.
+
+## Stack-argument materialisation
+
+A call with more than four arguments passes the rest on the stack. When the ROM
+materialises two stack arguments into two registers before storing either, gcc
+will not follow:
+
+    rom    mov r3, #0x14 / mov r2, #0x29 / str r3, [sp] / str r2, [sp, #4]
+    ours   mov r3, #0x14 / str r3, [sp] / mov r3, #0x29 / str r3, [sp, #4]
+
+gcc accumulates outgoing arguments and emits a move-then-store per argument,
+reusing one register; the original build evaluated all arguments into pseudos
+first. Three specimens: `ovl_7b9cb4/200a6c0.c` (six sites),
+`ovl_78b2ac/2008ef8.c` (two), `ovl_7b8cb0/2008904.c` (one).
+
+**The discriminator is what the first stack argument is**, and it explains why
+most sites match:
+
+- both stack arguments the SAME value -- matches (the ROM uses one register too)
+- the first already in a register (a variable) -- matches; gcc has nothing to
+  move, so its habit never shows
+- both distinct literals -- FAILS
+
+`ovl_7b8cb0/2008904.c` is the case worth copying from: seven of its eight
+six-argument calls match because the original code passes a FLAG VARIABLE -- one
+that is zero on that path -- as both stack arguments rather than a literal zero.
+When a ROM stores the same register to both stack slots and a nearby flag is
+provably zero there, pass the flag.
+
+Naming the literal in a dominating block makes it much worse (137 lines against
+140, and 130 against 140 for the other operand): the local needs a register the
+function does not have.
+
+## Four levers that took one function from 158 differing to 7
+
+`OvlFunc_970_2008da4`, in order of what each was worth:
+
+1. **A write-only local the ROM stores to the stack is `volatile`.** The ROM
+   computes three BG control words and stores each to a stack halfword nothing
+   reads, as well as to the register. Declared plainly, gcc keeps the value in a
+   register and drops the frame -- 158 differing. `volatile unsigned short t;`
+   restores the frame and the stores: **158 -> 35**.
+
+2. **Naming a stored value stops the pooling** (batch 176's rule, twice more):
+   `n = 0x81 << 4; REG_BLDALPHA = n;` gives `mov`/`lsl` where the literal pools,
+   **35 -> 26**, and the pool entry it removes takes a skip jump with it.
+   `n = 0x2648; REG_BLDCNT = n;` is **15 -> 7** by the same mechanism.
+
+3. **The offset belongs in the load.** `*(int *)(b + (0x9a << 1) + 0xc)` folds
+   to one 0x140 offset and gcc addresses `[r2, #0]`; naming the base keeps the
+   ROM's `[r1, #0xc]`. **26 -> 15**.
+
+Worth noting that (2) fired twice and each time the gain was larger than the one
+instruction it changed, because removing a pool ENTRY can remove a whole pool
+and its skip jump. When a function is near-exact and carries a `b` to the next
+label, the cheapest thing to try is naming whatever literal is in the pool.
+
+## gcc narrows a mask that the ROM kept wide
+
+`OvlFunc_970_2008da4` writes `(x & ~0xc) | 4` to a byte field ten times. The ROM
+builds `~0xc` as -13, deriving it from a 2 that is already live (`sub r5, #0xf`).
+gcc emits `mov r5, #0xf3` -- the same mask narrowed to byte width, legal because
+the result is stored with `strb`, and one instruction either way.
+
+`& -13` instead of `& ~0xc` is byte-identical: the narrowing happens on the
+value's mode, not on how the constant is spelled. This is gcc doing an
+optimisation the original build did not, and there is no flag for it.
