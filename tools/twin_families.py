@@ -24,10 +24,43 @@ If you extend this, check the positive control first.
 import argparse
 import os
 import re
+import sys
 from collections import defaultdict
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import filtered
+import shapesib
 
 START = re.compile(r"^\.thumb_func_start(?:_noalign)? (\S+)")
 END = re.compile(r"^\.func_end")
+
+
+def dup_expensive(path, name):
+    """Expensive constants the function REPEATS -- the duplicate-constant hoist.
+
+    Batch 173 lost a fully-unparked 61-instruction family to this after the
+    family list offered it with no warning, while tools/fuzzy_solved.py had
+    carried the same check since batch 169. A family is only a two-for-one if
+    its shape is reachable at all, so the check belongs on both lists.
+    """
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    try:
+        funcs = shapesib.functions(os.path.join(root, path))
+    except OSError:
+        return []
+    for n, b in funcs:
+        if n != name:
+            continue
+        body = [l for l in b if l.strip()
+                and not l.strip().startswith((".", "@", "/*"))]
+        vals = filtered.expensive_constants(body)
+        seen, dup = set(), set()
+        for v in vals:
+            if v in seen:
+                dup.add(v)
+            seen.add(v)
+        return sorted(dup)
+    return []
 
 
 def shape(buf):
@@ -86,7 +119,9 @@ def main():
           f"covering {covered} functions\n")
     for cnt, n, v in out[:25]:
         free = [x for x in v if not any(x[0].endswith(q) for q in parked)]
-        print(f"  {cnt} members  {n:>3} insns  {len(free)} unparked")
+        dup = dup_expensive(v[0][1], v[0][0]) if v else []
+        warn = ("  <- DUP-CONST " + ",".join(dup)) if dup else ""
+        print(f"  {cnt} members  {n:>3} insns  {len(free)} unparked{warn}")
         for nm, p in v:
             tag = "" if not any(nm.endswith(q) for q in parked) else "  [PARKED]"
             print(f"      {nm:<26} {p}{tag}")

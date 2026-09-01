@@ -11159,3 +11159,31 @@ the cutscene is the fall-through and therefore the `if` body:
 That is the third function closed by this reading. The tell is in the ROM and
 costs nothing to check: **which way does the conditional branch jump?** Forward
 over the long block means the long block is the body.
+
+## A family is only a two-for-one if its SHAPE is reachable
+
+`tools/twin_families.py` offered `OvlFunc_954_2008974` / `OvlFunc_956_2008c5c`
+as a fully-unparked 61-instruction pair -- the ideal-looking lead. It came out
+at the ROM's exact 63 lines and 29 differing on the duplicate-constant hoist,
+which batch 169 had already measured as unreachable in straight-line code.
+
+The list had no warning, while `tools/fuzzy_solved.py` has carried exactly that
+check since batch 169. Both lists now do, sharing
+`filtered.expensive_constants`. Running it immediately flags several of the top
+families, including two of the three-member ones.
+
+**Two members multiply whatever the shape costs, in both directions.** A family
+whose shape is blocked is not a two-for-one, it is two parks -- so the
+reachability checks belong on the family list at least as much as on the
+ranking.
+
+## Initialiser order, FOURTH instance
+
+`Func_8096cdc` came in at the ROM's exact length with 2 differing, and closed on
+`i = 0;` before `pw = &ewram_200048a;` rather than after. That is the same
+reading as `Func_80aac84`, `Func_80a9b94` and `Func_80a9cf8`, now across a
+`goto` loop, two plain `do`/`while` loops, and here a `do`/`while` whose other
+initialiser is a global's ADDRESS rather than a pointer or a constant.
+
+Four for four, and every one of them was two lines from a match. It stays a
+first check.
