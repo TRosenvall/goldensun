@@ -11886,3 +11886,63 @@ the result is stored with `strb`, and one instruction either way.
 `& -13` instead of `& ~0xc` is byte-identical: the narrowing happens on the
 value's mode, not on how the constant is spelled. This is gcc doing an
 optimisation the original build did not, and there is no flag for it.
+
+## The duplicate-constant search is CLOSED -- thirteen flags
+
+`OvlFunc_941_2009394` is 53 lines with exactly one residue: `0x81 << 1` passed
+to two calls eleven apart, which the ROM rebuilds and gcc hoists into a
+callee-saved register. That makes it the ideal probe, and it was used to finish
+the flag search batch 175 started:
+
+    -fno-gcse  -fno-rerun-cse-after-loop  -fno-strength-reduce
+    -fno-strict-aliasing  -fno-cse-follow-jumps  -fno-cse-skip-blocks
+    -fno-force-mem  -fno-caller-saves  -fno-function-cse  -fno-inline
+
+all inert; `-fno-schedule-insns2`, `-fno-expensive-optimizations` and
+`-fno-omit-frame-pointer` all WORSE. Thirteen flags, no reach. The sharing is
+cse.c's local constant propagation, gcc-2.96 exposes no switch for it, and
+batch 175 already ruled out separating the two uses by parameter mode.
+
+**The selection consequence is the important half.** A scan for call-dominated
+functions with no stack arguments and no high registers returns 158 candidates
+and EVERY ONE repeats an expensive constant. The pure-cutscene-script class --
+four elevations across batches 176 and 177 -- is exhausted, and what remains of
+it is all this wall. The DUP-CONST reject in `pickable.py`, `filtered.py`,
+`family_siblings.py` and `lowpressure.py` is correct and is a hard skip.
+
+## Scope a name as tightly as the ROM's live range
+
+Naming a stored value to keep it out of the constant pool is a recorded lever
+(batch 176; twice more in `ovl_7fa4ec/2008da4.c`). `Func_8095938` shows it has a
+cost that depends entirely on scope. The function needs three halfword stores of
+zero to use `mov` rather than a pooled constant:
+
+| where the name is declared | result vs a 136-line ROM |
+|---|---|
+| one `int z = 0;` at function scope | 143 lines, 142 differing |
+| `int z1/z2/z3 = 0;` inside each arm that uses it | 137 lines, 25 differing |
+
+At function scope the local outlives every call in the body and gcc spills it.
+Declared inside the arm, its live range is two instructions and the lever is
+free. **The name is not the lever -- the live range is.** The same bound applies
+to the basic-block lever (`ovl_7b9cb4/200a6c0.c`: four locals fit, eight spill).
+
+## A duplicate LABEL costs no bytes, and tryc counts it as a line
+
+`Func_8095938` screened at "137 against 136, 23 differing", which reads as one
+missing instruction plus a shifted tail. It is neither. The extra line is
+`.L20: .L21:` -- two labels at one address, emitting nothing -- so the
+instruction counts are equal, and the 23 are ONE store scheduled two
+instructions late plus the shift it causes.
+
+`make compare` was the only way to find that out: the file was placed, built,
+and failed, and the generated `.s` had to be read beside the reference.
+
+> When a screen is within a line or two and the diff looks like a pure shift,
+> check for a duplicate label before believing the count, and read the generated
+> asm rather than the normalised diff.
+
+That test also re-confirmed the batch-172 stale-object trap FROM THE OTHER SIDE:
+after removing the `.c` and restoring the `.s`, `make compare` still failed
+until the `.o` was deleted by hand. The object is built from whichever source
+existed last, and make does not notice the swap in either direction.
