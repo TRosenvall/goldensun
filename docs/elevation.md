@@ -11057,3 +11057,20 @@ But it can no longer carry a round on its own. The pools that remain, from
 **Start the next round with a `multi` scan, not with `fuzzy_solved.py`.** Run
 the ranking as well, since it is cheap and still rising, but do not expect it to
 supply the round.
+
+## The narrowing-shift fold is about the FOLD, not about `signed char`
+
+`Func_801f730` was parked on `ldrb` + `lsl #24` + `cmp #0`, with ten spellings
+probed directly against gcc-2.96 and none producing the shift. The decisive
+probe was `(p[0] << 24) != 0`, which gcc folds to `p[0] != 0` because it knows
+the loaded value's range.
+
+`Func_80788c4` shows the same wall one width up: `ldrh` + `lsl #16` + `cmp #0`,
+in a compaction loop that is otherwise exact at the ROM's 65 lines.
+
+So the earlier park should not be read as something about `signed char` or about
+byte loads. **Any narrowing shift placed before a zero test is unreachable,
+because constant-range folding removes it before the shift can be emitted.**
+Recognise it from the ROM side -- a `lsl #24` or `lsl #16` whose result is only
+compared against zero -- and do not re-probe; the byte case's ten measurements
+cover the halfword case by the same argument.
