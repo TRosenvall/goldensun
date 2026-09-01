@@ -11759,3 +11759,63 @@ Long functions are not harder in proportion to their length. A 130-instruction
 script with 41 calls is 41 easy transcriptions and one or two real questions;
 the work scales with the number of DISTINCT residues, not with size. **When a
 band empties, raise the ceiling before changing method.**
+
+## The callee's RETURN TYPE can fix every call site at once
+
+`OvlFunc_974_20088c4` is a 232-line debug-setup script: 53 calls to two
+functions, each with three constant arguments. It screened at the ROM's exact
+length with **159 of 232 lines differing** -- every call, the same way:
+
+    rom    mov r1, #E / mov r2, #j / mov r0, #S / bl __GiveDjinni
+    ours   mov r0, #S / mov r1, #E / mov r2, #j / bl __GiveDjinni
+
+The ROM sets r0 LAST. Declaring the two callees `int` instead of `void` --
+nothing else changed, and neither result is used -- matches all 53.
+
+| declaration | result |
+|---|---|
+| `extern void __GiveDjinni(int, int, int);` | 159 differing |
+| `extern void __GiveDjinni();` (withheld) | 159 differing |
+| `extern int __GiveDjinni(int, int, int);` | **exact** |
+
+The recorded form of this lever (batch 93, refined in 94) is about the presence
+of a prototype. The return type is a separate knob and it is the stronger one:
+withholding the prototype did nothing here. gcc reserves r0 for a value-returning
+call and so evaluates the r0 argument last; for a `void` call r0 is just another
+argument register and goes first.
+
+> **When EVERY call in a function has its arguments in the wrong order, look at
+> the return types before anything else.** One declaration fixed 53 sites; no
+> amount of statement reordering would have.
+
+Related and already recorded from the other direction: the epilogue tell
+(`pop {r1}` means the enclosing function is declared non-void). Both are the
+same fact -- gcc treats r0 as reserved whenever a return value exists, declared
+or not.
+
+## Order switch cases by the ROM's LABEL ADDRESSES, not numerically
+
+`OvlFunc_917_20092f4` dispatches two `switch` statements through gcc-generated
+jump tables and then cross-jumps their tails into each other -- case 0 of the
+first switch ends `mov r0, #8 / b .L1488`, and `.L1488` is in the middle of case
+0 of the SECOND switch. Two arms also fall through into later cases.
+
+All of that comes free from a plain `switch`, but only if the cases are written
+in the order their labels appear in the ROM. The first switch's arms are laid
+out 0,1,2,3,4,5,6,8,9,10 then 7 and 11 sharing; the second's are 0,2,3,4 then 1
+then 5. Written numerically, the fall-throughs are wrong and the tails do not
+merge.
+
+Do NOT hand-write the dispatch: the `ldr r3, [r3, r2] / mov pc, r3` with an
+inline `.word` table is what gcc emits for contiguous cases.
+
+## The basic-block lever is bounded by the register file
+
+Batch 176 broke the arg-interleave wall by assigning four constants in a
+dominating block. `OvlFunc_932_200a6c0` needs eight, and gcc spills all of them:
+136 lines and 28 differing becomes 144 and 142.
+
+> The lever's cost is a live range. A `push {lr}` function has nowhere to put
+> more than two or three, and past that the spill costs more than the
+> interleave. Apply it to the specific constants the diff names, never to every
+> constant in the function.
