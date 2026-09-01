@@ -241,3 +241,84 @@ Func_80ad318	Menu_TeardownFieldSprites	read	Menus	src/menu/menu_sprite.c	Deletes
 Func_80ad5f4	SetActorScale	read	Menus	src/menu/menu_field.c	Stores one slot's value in the field actor scale table at state+0x244.
 Func_80ad658	Menu_StopFieldTasks	read	Menus	src/menu/menu_field.c	Stops the field tasks in slots 0x89 through 0x8c.
 Func_80ae88c	Menu_LoadSummonSprites	read	Menus	src/menu/menu_sprite.c	Allocates and uploads the two sheets at .Laed4c and .Laedcc, the same shape as Menu_LoadStatusSprites.
+Func_80b5ad4	Battle_DmaViaR3	read	Battle	src/battle/battle_main.c	A DMA3 transfer issued through a register-pinned trampoline, the interworking call shape this bank uses in several places.
+Func_80b5b14	NullSub_80b5b14	read	Battle	src/battle/battle_main.c	Empty body.
+Func_80b5e10	NullSub_80b5e10	read	Battle	src/battle/battle_main.c	Empty body.
+Func_80b606c	Battle_FormatName	read	Battle	src/battle/battle_text.c	Builds an eight-byte name string into a stack buffer, padding the unused tail.
+Func_80b60a0	Battle_WaitFade	read	Battle	src/battle/battle_main.c	Spins a frame at a time on the two EWRAM fade flags and the halfword at iwram_3001f64.
+Func_80b6378	Battle_GetTargetList	read+callee	Battle	src/battle/battle_target.c	Collects the eligible target ids for the current action into an eight-entry buffer and returns the count.
+Func_80b63b0	Battle_ClearOverlayBuf	read	Battle	src/battle/battle_main.c	Calls the RAM-resident clear over the 0x10-byte overlay block at ewram_2002224.
+Func_80b6c90	Battle_CreateEnemyOverlays	read+family	Battle	src/battle/battle_sprite.c	Builds a 0x1c-byte descriptor for group 3 and creates the sprite overlays with the enemy-side flag.
+Func_80b6cb0	Battle_CreatePartyOverlays	read+family	Battle	src/battle/battle_sprite.c	The party-side twin of Battle_CreateEnemyOverlays, identical but for the trailing 0.
+Func_80b6cd0	GetBattleActorSprite	read	Battle	src/battle/battle_sprite.c	Returns the sprite pointer at +0x14 of the current battle actor.
+Func_80b6cdc	Battle_CountReadyUnits	read	Battle	src/battle/battle_main.c	Walks the battle state's unit records counting those whose ready flag is set.
+Func_80b6e30	Battle_PreloadUnitGFX	read	Battle	src/battle/battle_sprite.c	Preloads the sprite graphics for one battle slot from the state block's resource list.
+Func_80b7410	GetBattlePositionOffset	read	Battle	src/battle/battle_layout.c	Reads a signed (x, y) pair out of the .Lc2a62 table for a formation index.
+Func_80b7514	Battle_CountEnemies	read	Battle	src/battle/battle_main.c	Counts the occupied enemy slots, ids 0x80 through 0x85.
+Func_80b770c	Battle_FindSlotFor	read	Battle	src/battle/battle_target.c	Searches a halfword list for a unit id, biasing enemy ids by 0x78 first.
+Func_80b7b30	Battle_DeleteActorSprites	read+callee	Battle	src/battle/battle_sprite.c	Deletes every sprite hanging off the current battle actor, resolving each through GetActorSpriteByKind.
+Func_80b7e04	Battle_ClearSpriteRefs	read	Battle	src/battle/battle_sprite.c	Zeroes the four sprite reference words at +0x28 of a record, if the record exists.
+Func_80b7e24	Battle_ReleaseActorSprites	read+callee	Battle	src/battle/battle_sprite.c	Switches on the actor kind nibble at +0x54 and clears the sprite references belonging to that kind.
+Func_80b7e60	Battle_PrepareUnitSprite	read+callee	Battle	src/battle/battle_sprite.c	Preloads a slot's graphics and returns its battle actor ready for use.
+Func_80b7e7c	Battle_ReleaseAllSprites	read	Battle	src/battle/battle_sprite.c	Battle teardown: releases every combatant's sprite. Corrected in batch 01 -- it does not take the arguments its inherited annotation claimed.
+Func_80b7eb4	GetBattleUnitRecord	read	Battle	src/battle/battle_main.c	Indexes the battle state's 0x2c-byte unit records from +0x80.
+Func_80b7ed8	Battle_SetupViewMatrix	read	Battle	src/battle/battle_camera.c	Builds the battle view matrix from the look vectors at .Lc2a7c, choosing a variant on a flag.
+Func_80b7f20	Battle_MoveActorTo	read+callee	Battle	src/battle/battle_camera.c	Runs PhysMove on a unit's actor toward a destination in the view's frame.
+Func_80b7f70	GetActorSpriteByKind	read	Battle	src/battle/battle_sprite.c	Returns one of an actor's sprite pointers, selected by the kind nibble at +0x54 and an index.
+Func_80b7f9c	Battle_SetViewAngles	read	Battle	src/battle/battle_camera.c	Writes the view record's three vectors plus its pitch and yaw.
+Func_80b8064	BattleActor_StepBack	read+family	Battle	src/battle/anim_actor.c	Stops an actor, sets its two speed words and walks it backward, then sets its animation. One of five near-identical step routines differing only in the speeds.
+Func_80b80b8	Battle_LerpActorPos	read	Battle	src/battle/battle_camera.c	Interpolates an actor record's position words toward a target over the stored step count.
+Func_80b8144	BattleActor_ResetMotion	read	Battle	src/battle/anim_actor.c	Resets an actor's speeds, its 0x48 angle word and the byte at +0x5a to their defaults.
+Func_80b8178	BattleActor_StepForwardSlow	read+family	Battle	src/battle/anim_actor.c	The slow forward member of the step family: speeds 0x10000 and 0x40000.
+Func_80b81c8	BattleActor_StepBackSlow	read+family	Battle	src/battle/anim_actor.c	The slow backward member of the step family.
+Func_80b8394	BattleActor_SetIdleAnim	read	Battle	src/battle/anim_actor.c	Stops the current battle actor and puts it in animation 2.
+Func_80b83b0	NullSub_80b83b0	read	Battle	src/battle/battle_main.c	Empty body.
+Func_80b83b4	Battle_LerpActorPosB	read	Battle	src/battle/battle_camera.c	A second interpolator over a different field set of the same record.
+Func_80b8418	BattleActor_PlayHitFlash	read	Battle	src/battle/anim_actor.c	Adds a sprite layer to the current actor, runs its animation and waits the frames out.
+Func_80b845c	Battle_MoveActorToB	read+family	Battle	src/battle/battle_camera.c	The variant of Battle_MoveActorTo that also runs Func_80b8530 on arrival.
+Func_80b86ec	Battle_PollCameraKeys	read	Battle	src/battle/battle_camera.c	Reads gKeyHeld against the view record and nudges the camera. One of two identical copies in this bank.
+Func_80b8808	IsEnemyUnitId	read	Battle	src/battle/battle_main.c	Classifies a unit id: party ids 0-7 give 0, enemy ids 0x80-0x85 give their index.
+Func_80b8888	Battle_ShowUnitMessage	read+callee	Battle	src/battle/battle_text.c	Opens the battle message for a unit, routing party and enemy ids through different text hooks.
+Func_80b8b48	Battle_QueueAnimCmd	read	Battle	src/battle/battle_main.c	Fills an animation command record from a queued battle command.
+Func_80b8ec4	Battle_PlayDissolve	read+callee	Battle	src/battle/battle_sprite.c	Sets the unit's sprite animation and runs the tile-scramble dissolve over it.
+Func_80b8f08	Battle_PickRandomTarget	read+callee	Battle	src/battle/battle_target.c	Builds the candidate list for a command and picks one at random.
+Func_80b98b4	Battle_FadePaletteRow	read+family	Battle	src/battle/battle_draw.c	Adds a signed delta to each channel of one palette row, clamping. Byte-for-byte the same routine as Menu_FadePaletteRow in rom_a1000.
+Func_80b9a44	GetBattleSlotOffset	read	Battle	src/battle/battle_main.c	Maps a unit id to its offset in the battle state block, taking a different base for enemy ids.
+Func_80b9a70	Battle_FindSlotByKey	read	Battle	src/battle/battle_main.c	Scans the state block's slot table for one matching the given key.
+Func_80b9acc	Battle_PollCameraKeysB	read+family	Battle	src/battle/battle_camera.c	The second copy of Battle_PollCameraKeys; the ROM has both.
+Func_80b9b2c	NullSub_80b9b2c	read	Battle	src/battle/battle_main.c	Empty body.
+Func_80ba27c	Battle_ShowResultText	read+callee	Battle	src/battle/battle_text.c	Runs the end-of-action text sequence: opens the line, waits for the prompt, then the follow-up.
+Func_80bace8	Battle_SetSpriteFlags	read	Battle	src/battle/battle_sprite.c	Copies the flag bytes from a command record into the actor's sprite record.
+Func_80bb8d8	Battle_SetEndFlag	read	Battle	src/battle/battle_main.c	Writes 1 to the third word of the block at iwram_3001ee4.
+Func_80bb8e8	Battle_KillUnit	read+callee	Battle	src/battle/battle_main.c	Zeroes a unit's HP, runs its death handling and deletes its battle actor.
+Func_80bb928	Battle_MarkUnitActed	read	Battle	src/battle/battle_main.c	Sets bit 0 of the word at +0x16c of a unit record.
+Func_80bbabc	Battle_CountQueueEntries	read	Battle	src/battle/battle_main.c	Counts the populated entries of one of the battle state's queues, indexed off the caller's offset.
+Func_80bbae8	IsSpecialMove	read	Battle	src/battle/battle_move.c	A switch listing specific move ids (0x1f, 0x20, 0x3c, 0x45 and others) that take a different code path. What they have in common is not established here.
+Func_80bd3c8	MoveTargetsAll	read+callee	Battle	src/battle/battle_move.c	Returns true for move 0x7e outright, otherwise reads the targeting byte at +9 of the move record.
+Func_80bd7dc	Battle_BeginTurnPhase	read	Battle	src/battle/battle_turn.c	Sets the phase word at state+0x800 if it is still clear.
+Func_80bd808	Battle_StartTurnTask	read+callee	Battle	src/battle/battle_turn.c	Starts Func_80bd898 as the turn task and records its handle in the state block.
+Func_80bdfec	Battle_ResetTurnPhase	read	Battle	src/battle/battle_turn.c	Clears the three phase words at state+0x7fc, +0x800 and +0x804.
+Func_80be070	Battle_GetTargetsForMove	read+callee	Battle	src/battle/battle_target.c	Builds the target list for a move's targeting kind and returns how many entries it produced.
+Func_80bf65c	Battle_TickAllStatus	read+family	Battle	src/battle/status.c	Runs the per-unit status tick twenty times -- once per combatant slot. The counterpart to the TickStatusCounter family.
+Func_80bf674	NullSub_80bf674	read	Battle	src/battle/battle_main.c	Empty body.
+Func_80c0098	Battle_InitOrderTable	read	Battle	src/battle/battle_turn.c	Fills a table with the ascending byte pattern 0x03020100 through the RAM-resident fill routine.
+Func_80c0184	Battle_SelectBGVariant	read	Battle	src/battle/battle_draw.c	Picks a background variant from .Lc5a30 using the counter at the head of the block at iwram_3001ef8, bounded at 0x1f.
+Func_80c01bc	Battle_UpdateScroll	read	Battle	src/battle/battle_draw.c	Feeds the current scroll values into the background update hook each frame.
+Func_80c0298	Battle_ResetBG0Scroll	read	Battle	src/battle/battle_draw.c	Writes zero to BG0VOFS.
+Func_80c08a8	Battle_AllocEffectBlock	read	Battle	src/battle/battle_draw.c	Reserves the 0x2a0-byte EWRAM block under tag 0xa and stores it at iwram_3001f00.
+Func_80c08e0	Battle_FreeEffectBlock	read	Battle	src/battle/battle_draw.c	Releases the tag-0xa block Battle_AllocEffectBlock reserved.
+Func_80c0e38	Battle_FadeIn	read+family	Battle	src/battle/battle_draw.c	Steps BLDCNT and the blend weights up over successive frames.
+Func_80c0e70	Battle_FadeOut	read+family	Battle	src/battle/battle_draw.c	The mirror of Battle_FadeIn, in the same file.
+Func_80c0df4	Battle_GetActorXZ	read	Battle	src/battle/battle_camera.c	Reads a battle actor's x and z position words out of its record.
+Func_80c0ea8	Battle_SetBlendAll	read	Battle	src/battle/battle_draw.c	Writes 0xbf to BLDCNT, enabling the blend across every layer.
+Func_80c0eb8	Battle_ResetMatrix	read	Battle	src/battle/battle_camera.c	Resets a matrix to identity through the register-pinned unrolled store.
+Func_80c0edc	TileFromPixels	read	Battle	src/battle/battle_layout.c	Divides a pixel coordinate by sixteen to give a tile coordinate.
+Func_80c1084	Battle_ApplyShakeOffset	read	Battle	src/battle/battle_draw.c	Applies the next signed offset from the shake table .Lc5c10 to the battle view.
+Func_80c16d0	Battle_StopPreAnimTask	read+callee	Battle	src/battle/battle_main.c	Stops Task_BlitPreAnim and its companion, then releases their block through the RAM-resident routine.
+Func_80c1a14	Battle_ResetCamera	read+callee	Battle	src/battle/battle_camera.c	Calls the camera setter with both arguments zero.
+Func_80c1fa8	Battle_PickEncounterVariant	read	Battle	src/battle/battle_main.c	Chooses one of an encounter's listed variants at random from the .Lc5c38 table.
+Func_80c2368	GetEnemyGroupSize	read	Battle	src/battle/battle_main.c	Returns the top three bits of byte 3 of an eight-byte .Lc7420 row -- the group's member count.
+Func_80c2384	GetEnemyGroupId	read	Battle	src/battle/battle_main.c	Returns the first halfword of a .Lc7420 row, falling back to row 0 above index 0xab.
+Func_80c23a0	GetEnemyGroupEntry	read	Battle	src/battle/battle_main.c	Returns a pointer into the .Lc7420 row for an encounter index, bounded at 0xab.
+Func_80c2470	GetItemBattleEffect	read	Battle	src/battle/battle_move.c	Masks an item id to 0x1ff and reads the battle effect byte out of its info record.
+Func_80c2a08	NullSub_80c2a08	read	Battle	src/battle/battle_main.c	Empty body.

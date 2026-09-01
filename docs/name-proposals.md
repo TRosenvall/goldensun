@@ -23,7 +23,7 @@ fact is worse than an honest placeholder.
 
 451 elevated functions carry a real name already; **3294 still carry a `Func_`/`OvlFunc_` placeholder**, and those are the naming job.
 
-This file proposes **218** of them (6.6%).
+This file proposes **299** of them (9.1%).
 
 ## Actor engine — 7 functions
 
@@ -36,6 +36,92 @@ This file proposes **218** of them (6.6%).
 | `Func_800d8e8` | `0x0800d8e8` | `ActorCmd_Delete` | read+family | Actor engine | Script opcode: deletes the actor and returns 0. Joins the ActorCmd_* family already named in this bank. | `src/field/actor_script.c` |
 | `Func_800d924` | `0x0800d924` | `Actor_IsBlockedAt` | read+callee | Actor engine | Walks 64 actor records at iwram_3001e64 (stride 0x70), skipping empty, non-collidable (+0x59 & 1) and self, asking Func_800eba0 for radius overlap. Returns -1 on the first hit. | `src/field/actor_collision.c` |
 | `Func_800d98c` | `0x0800d98c` | `Actor_FindBlockerAt` | read+callee | Actor engine | Twin of Actor_IsBlockedAt, identical but for returning the overlapping record or NULL. | `src/field/actor_collision.c` |
+
+## Battle — 81 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_80b5ad4` | `0x080b5ad4` | `Battle_DmaViaR3` | read | Battle | A DMA3 transfer issued through a register-pinned trampoline, the interworking call shape this bank uses in several places. | `src/battle/battle_main.c` |
+| `Func_80b5b14` | `0x080b5b14` | `NullSub_80b5b14` | read | Battle | Empty body. | `src/battle/battle_main.c` |
+| `Func_80b5e10` | `0x080b5e10` | `NullSub_80b5e10` | read | Battle | Empty body. | `src/battle/battle_main.c` |
+| `Func_80b606c` | `0x080b606c` | `Battle_FormatName` | read | Battle | Builds an eight-byte name string into a stack buffer, padding the unused tail. | `src/battle/battle_text.c` |
+| `Func_80b60a0` | `0x080b60a0` | `Battle_WaitFade` | read | Battle | Spins a frame at a time on the two EWRAM fade flags and the halfword at iwram_3001f64. | `src/battle/battle_main.c` |
+| `Func_80b6378` | `0x080b6378` | `Battle_GetTargetList` | read+callee | Battle | Collects the eligible target ids for the current action into an eight-entry buffer and returns the count. | `src/battle/battle_target.c` |
+| `Func_80b63b0` | `0x080b63b0` | `Battle_ClearOverlayBuf` | read | Battle | Calls the RAM-resident clear over the 0x10-byte overlay block at ewram_2002224. | `src/battle/battle_main.c` |
+| `Func_80b6c90` | `0x080b6c90` | `Battle_CreateEnemyOverlays` | read+family | Battle | Builds a 0x1c-byte descriptor for group 3 and creates the sprite overlays with the enemy-side flag. | `src/battle/battle_sprite.c` |
+| `Func_80b6cb0` | `0x080b6cb0` | `Battle_CreatePartyOverlays` | read+family | Battle | The party-side twin of Battle_CreateEnemyOverlays, identical but for the trailing 0. | `src/battle/battle_sprite.c` |
+| `Func_80b6cd0` | `0x080b6cd0` | `GetBattleActorSprite` | read | Battle | Returns the sprite pointer at +0x14 of the current battle actor. | `src/battle/battle_sprite.c` |
+| `Func_80b6cdc` | `0x080b6cdc` | `Battle_CountReadyUnits` | read | Battle | Walks the battle state's unit records counting those whose ready flag is set. | `src/battle/battle_main.c` |
+| `Func_80b6e30` | `0x080b6e30` | `Battle_PreloadUnitGFX` | read | Battle | Preloads the sprite graphics for one battle slot from the state block's resource list. | `src/battle/battle_sprite.c` |
+| `Func_80b7410` | `0x080b7410` | `GetBattlePositionOffset` | read | Battle | Reads a signed (x, y) pair out of the .Lc2a62 table for a formation index. | `src/battle/battle_layout.c` |
+| `Func_80b7514` | `0x080b7514` | `Battle_CountEnemies` | read | Battle | Counts the occupied enemy slots, ids 0x80 through 0x85. | `src/battle/battle_main.c` |
+| `Func_80b770c` | `0x080b770c` | `Battle_FindSlotFor` | read | Battle | Searches a halfword list for a unit id, biasing enemy ids by 0x78 first. | `src/battle/battle_target.c` |
+| `Func_80b7b30` | `0x080b7b30` | `Battle_DeleteActorSprites` | read+callee | Battle | Deletes every sprite hanging off the current battle actor, resolving each through GetActorSpriteByKind. | `src/battle/battle_sprite.c` |
+| `Func_80b7e04` | `0x080b7e04` | `Battle_ClearSpriteRefs` | read | Battle | Zeroes the four sprite reference words at +0x28 of a record, if the record exists. | `src/battle/battle_sprite.c` |
+| `Func_80b7e24` | `0x080b7e24` | `Battle_ReleaseActorSprites` | read+callee | Battle | Switches on the actor kind nibble at +0x54 and clears the sprite references belonging to that kind. | `src/battle/battle_sprite.c` |
+| `Func_80b7e60` | `0x080b7e60` | `Battle_PrepareUnitSprite` | read+callee | Battle | Preloads a slot's graphics and returns its battle actor ready for use. | `src/battle/battle_sprite.c` |
+| `Func_80b7e7c` | `0x080b7e7c` | `Battle_ReleaseAllSprites` | read | Battle | Battle teardown: releases every combatant's sprite. Corrected in batch 01 -- it does not take the arguments its inherited annotation claimed. | `src/battle/battle_sprite.c` |
+| `Func_80b7eb4` | `0x080b7eb4` | `GetBattleUnitRecord` | read | Battle | Indexes the battle state's 0x2c-byte unit records from +0x80. | `src/battle/battle_main.c` |
+| `Func_80b7ed8` | `0x080b7ed8` | `Battle_SetupViewMatrix` | read | Battle | Builds the battle view matrix from the look vectors at .Lc2a7c, choosing a variant on a flag. | `src/battle/battle_camera.c` |
+| `Func_80b7f20` | `0x080b7f20` | `Battle_MoveActorTo` | read+callee | Battle | Runs PhysMove on a unit's actor toward a destination in the view's frame. | `src/battle/battle_camera.c` |
+| `Func_80b7f70` | `0x080b7f70` | `GetActorSpriteByKind` | read | Battle | Returns one of an actor's sprite pointers, selected by the kind nibble at +0x54 and an index. | `src/battle/battle_sprite.c` |
+| `Func_80b7f9c` | `0x080b7f9c` | `Battle_SetViewAngles` | read | Battle | Writes the view record's three vectors plus its pitch and yaw. | `src/battle/battle_camera.c` |
+| `Func_80b8064` | `0x080b8064` | `BattleActor_StepBack` | read+family | Battle | Stops an actor, sets its two speed words and walks it backward, then sets its animation. One of five near-identical step routines differing only in the speeds. | `src/battle/anim_actor.c` |
+| `Func_80b80b8` | `0x080b80b8` | `Battle_LerpActorPos` | read | Battle | Interpolates an actor record's position words toward a target over the stored step count. | `src/battle/battle_camera.c` |
+| `Func_80b8144` | `0x080b8144` | `BattleActor_ResetMotion` | read | Battle | Resets an actor's speeds, its 0x48 angle word and the byte at +0x5a to their defaults. | `src/battle/anim_actor.c` |
+| `Func_80b8178` | `0x080b8178` | `BattleActor_StepForwardSlow` | read+family | Battle | The slow forward member of the step family: speeds 0x10000 and 0x40000. | `src/battle/anim_actor.c` |
+| `Func_80b81c8` | `0x080b81c8` | `BattleActor_StepBackSlow` | read+family | Battle | The slow backward member of the step family. | `src/battle/anim_actor.c` |
+| `Func_80b8394` | `0x080b8394` | `BattleActor_SetIdleAnim` | read | Battle | Stops the current battle actor and puts it in animation 2. | `src/battle/anim_actor.c` |
+| `Func_80b83b0` | `0x080b83b0` | `NullSub_80b83b0` | read | Battle | Empty body. | `src/battle/battle_main.c` |
+| `Func_80b83b4` | `0x080b83b4` | `Battle_LerpActorPosB` | read | Battle | A second interpolator over a different field set of the same record. | `src/battle/battle_camera.c` |
+| `Func_80b8418` | `0x080b8418` | `BattleActor_PlayHitFlash` | read | Battle | Adds a sprite layer to the current actor, runs its animation and waits the frames out. | `src/battle/anim_actor.c` |
+| `Func_80b845c` | `0x080b845c` | `Battle_MoveActorToB` | read+family | Battle | The variant of Battle_MoveActorTo that also runs Func_80b8530 on arrival. | `src/battle/battle_camera.c` |
+| `Func_80b86ec` | `0x080b86ec` | `Battle_PollCameraKeys` | read | Battle | Reads gKeyHeld against the view record and nudges the camera. One of two identical copies in this bank. | `src/battle/battle_camera.c` |
+| `Func_80b8808` | `0x080b8808` | `IsEnemyUnitId` | read | Battle | Classifies a unit id: party ids 0-7 give 0, enemy ids 0x80-0x85 give their index. | `src/battle/battle_main.c` |
+| `Func_80b8888` | `0x080b8888` | `Battle_ShowUnitMessage` | read+callee | Battle | Opens the battle message for a unit, routing party and enemy ids through different text hooks. | `src/battle/battle_text.c` |
+| `Func_80b8b48` | `0x080b8b48` | `Battle_QueueAnimCmd` | read | Battle | Fills an animation command record from a queued battle command. | `src/battle/battle_main.c` |
+| `Func_80b8ec4` | `0x080b8ec4` | `Battle_PlayDissolve` | read+callee | Battle | Sets the unit's sprite animation and runs the tile-scramble dissolve over it. | `src/battle/battle_sprite.c` |
+| `Func_80b8f08` | `0x080b8f08` | `Battle_PickRandomTarget` | read+callee | Battle | Builds the candidate list for a command and picks one at random. | `src/battle/battle_target.c` |
+| `Func_80b98b4` | `0x080b98b4` | `Battle_FadePaletteRow` | read+family | Battle | Adds a signed delta to each channel of one palette row, clamping. Byte-for-byte the same routine as Menu_FadePaletteRow in rom_a1000. | `src/battle/battle_draw.c` |
+| `Func_80b9a44` | `0x080b9a44` | `GetBattleSlotOffset` | read | Battle | Maps a unit id to its offset in the battle state block, taking a different base for enemy ids. | `src/battle/battle_main.c` |
+| `Func_80b9a70` | `0x080b9a70` | `Battle_FindSlotByKey` | read | Battle | Scans the state block's slot table for one matching the given key. | `src/battle/battle_main.c` |
+| `Func_80b9acc` | `0x080b9acc` | `Battle_PollCameraKeysB` | read+family | Battle | The second copy of Battle_PollCameraKeys; the ROM has both. | `src/battle/battle_camera.c` |
+| `Func_80b9b2c` | `0x080b9b2c` | `NullSub_80b9b2c` | read | Battle | Empty body. | `src/battle/battle_main.c` |
+| `Func_80ba27c` | `0x080ba27c` | `Battle_ShowResultText` | read+callee | Battle | Runs the end-of-action text sequence: opens the line, waits for the prompt, then the follow-up. | `src/battle/battle_text.c` |
+| `Func_80bace8` | `0x080bace8` | `Battle_SetSpriteFlags` | read | Battle | Copies the flag bytes from a command record into the actor's sprite record. | `src/battle/battle_sprite.c` |
+| `Func_80bb8d8` | `0x080bb8d8` | `Battle_SetEndFlag` | read | Battle | Writes 1 to the third word of the block at iwram_3001ee4. | `src/battle/battle_main.c` |
+| `Func_80bb8e8` | `0x080bb8e8` | `Battle_KillUnit` | read+callee | Battle | Zeroes a unit's HP, runs its death handling and deletes its battle actor. | `src/battle/battle_main.c` |
+| `Func_80bb928` | `0x080bb928` | `Battle_MarkUnitActed` | read | Battle | Sets bit 0 of the word at +0x16c of a unit record. | `src/battle/battle_main.c` |
+| `Func_80bbabc` | `0x080bbabc` | `Battle_CountQueueEntries` | read | Battle | Counts the populated entries of one of the battle state's queues, indexed off the caller's offset. | `src/battle/battle_main.c` |
+| `Func_80bbae8` | `0x080bbae8` | `IsSpecialMove` | read | Battle | A switch listing specific move ids (0x1f, 0x20, 0x3c, 0x45 and others) that take a different code path. What they have in common is not established here. | `src/battle/battle_move.c` |
+| `Func_80bd3c8` | `0x080bd3c8` | `MoveTargetsAll` | read+callee | Battle | Returns true for move 0x7e outright, otherwise reads the targeting byte at +9 of the move record. | `src/battle/battle_move.c` |
+| `Func_80bd7dc` | `0x080bd7dc` | `Battle_BeginTurnPhase` | read | Battle | Sets the phase word at state+0x800 if it is still clear. | `src/battle/battle_turn.c` |
+| `Func_80bd808` | `0x080bd808` | `Battle_StartTurnTask` | read+callee | Battle | Starts Func_80bd898 as the turn task and records its handle in the state block. | `src/battle/battle_turn.c` |
+| `Func_80bdfec` | `0x080bdfec` | `Battle_ResetTurnPhase` | read | Battle | Clears the three phase words at state+0x7fc, +0x800 and +0x804. | `src/battle/battle_turn.c` |
+| `Func_80be070` | `0x080be070` | `Battle_GetTargetsForMove` | read+callee | Battle | Builds the target list for a move's targeting kind and returns how many entries it produced. | `src/battle/battle_target.c` |
+| `Func_80bf65c` | `0x080bf65c` | `Battle_TickAllStatus` | read+family | Battle | Runs the per-unit status tick twenty times -- once per combatant slot. The counterpart to the TickStatusCounter family. | `src/battle/status.c` |
+| `Func_80bf674` | `0x080bf674` | `NullSub_80bf674` | read | Battle | Empty body. | `src/battle/battle_main.c` |
+| `Func_80c0098` | `0x080c0098` | `Battle_InitOrderTable` | read | Battle | Fills a table with the ascending byte pattern 0x03020100 through the RAM-resident fill routine. | `src/battle/battle_turn.c` |
+| `Func_80c0184` | `0x080c0184` | `Battle_SelectBGVariant` | read | Battle | Picks a background variant from .Lc5a30 using the counter at the head of the block at iwram_3001ef8, bounded at 0x1f. | `src/battle/battle_draw.c` |
+| `Func_80c01bc` | `0x080c01bc` | `Battle_UpdateScroll` | read | Battle | Feeds the current scroll values into the background update hook each frame. | `src/battle/battle_draw.c` |
+| `Func_80c0298` | `0x080c0298` | `Battle_ResetBG0Scroll` | read | Battle | Writes zero to BG0VOFS. | `src/battle/battle_draw.c` |
+| `Func_80c08a8` | `0x080c08a8` | `Battle_AllocEffectBlock` | read | Battle | Reserves the 0x2a0-byte EWRAM block under tag 0xa and stores it at iwram_3001f00. | `src/battle/battle_draw.c` |
+| `Func_80c08e0` | `0x080c08e0` | `Battle_FreeEffectBlock` | read | Battle | Releases the tag-0xa block Battle_AllocEffectBlock reserved. | `src/battle/battle_draw.c` |
+| `Func_80c0df4` | `0x080c0df4` | `Battle_GetActorXZ` | read | Battle | Reads a battle actor's x and z position words out of its record. | `src/battle/battle_camera.c` |
+| `Func_80c0e38` | `0x080c0e38` | `Battle_FadeIn` | read+family | Battle | Steps BLDCNT and the blend weights up over successive frames. | `src/battle/battle_draw.c` |
+| `Func_80c0e70` | `0x080c0e70` | `Battle_FadeOut` | read+family | Battle | The mirror of Battle_FadeIn, in the same file. | `src/battle/battle_draw.c` |
+| `Func_80c0ea8` | `0x080c0ea8` | `Battle_SetBlendAll` | read | Battle | Writes 0xbf to BLDCNT, enabling the blend across every layer. | `src/battle/battle_draw.c` |
+| `Func_80c0eb8` | `0x080c0eb8` | `Battle_ResetMatrix` | read | Battle | Resets a matrix to identity through the register-pinned unrolled store. | `src/battle/battle_camera.c` |
+| `Func_80c0edc` | `0x080c0edc` | `TileFromPixels` | read | Battle | Divides a pixel coordinate by sixteen to give a tile coordinate. | `src/battle/battle_layout.c` |
+| `Func_80c1084` | `0x080c1084` | `Battle_ApplyShakeOffset` | read | Battle | Applies the next signed offset from the shake table .Lc5c10 to the battle view. | `src/battle/battle_draw.c` |
+| `Func_80c16d0` | `0x080c16d0` | `Battle_StopPreAnimTask` | read+callee | Battle | Stops Task_BlitPreAnim and its companion, then releases their block through the RAM-resident routine. | `src/battle/battle_main.c` |
+| `Func_80c1a14` | `0x080c1a14` | `Battle_ResetCamera` | read+callee | Battle | Calls the camera setter with both arguments zero. | `src/battle/battle_camera.c` |
+| `Func_80c1fa8` | `0x080c1fa8` | `Battle_PickEncounterVariant` | read | Battle | Chooses one of an encounter's listed variants at random from the .Lc5c38 table. | `src/battle/battle_main.c` |
+| `Func_80c2368` | `0x080c2368` | `GetEnemyGroupSize` | read | Battle | Returns the top three bits of byte 3 of an eight-byte .Lc7420 row -- the group's member count. | `src/battle/battle_main.c` |
+| `Func_80c2384` | `0x080c2384` | `GetEnemyGroupId` | read | Battle | Returns the first halfword of a .Lc7420 row, falling back to row 0 above index 0xab. | `src/battle/battle_main.c` |
+| `Func_80c23a0` | `0x080c23a0` | `GetEnemyGroupEntry` | read | Battle | Returns a pointer into the .Lc7420 row for an encounter index, bounded at 0xab. | `src/battle/battle_main.c` |
+| `Func_80c2470` | `0x080c2470` | `GetItemBattleEffect` | read | Battle | Masks an item id to 0x1ff and reads the battle effect byte out of its info record. | `src/battle/battle_move.c` |
+| `Func_80c2a08` | `0x080c2a08` | `NullSub_80c2a08` | read | Battle | Empty body. | `src/battle/battle_main.c` |
 
 ## Battle / status — 12 functions
 
