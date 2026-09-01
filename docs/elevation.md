@@ -10394,3 +10394,84 @@ The tail is `DMA3_CLEAR(e, 0x70)` from `include/dma.h`: the ROM's
 and the macro's own `u32 value` local is the function's otherwise-unexplained
 `sub sp, #4`. **When a ROM tail is `stmia r3!, {r0, r1, r2} / sub r3, #0xc`,
 decode the control word before writing anything — the macro already exists.**
+
+## A ref built from a LINE RANGE can be short, and it lies quietly
+
+`Func_8006088`'s reference was extracted with `sed -n '225,265p'` on the `.s`.
+The function is longer than that range, so tryc compared against a truncated
+reference and reported "rom 40 lines, ours 45" — a five-instruction excess that
+does not exist. Two spellings were screened against that phantom before the
+ref was rebuilt with
+
+    awk '/^\.thumb_func_start NAME/,/^\.func_end NAME/' file.s
+
+which gave "rom 45 lines" and inverted which spelling looked better.
+
+**Never build a screening ref from a line range.** Use the function markers.
+A short ref does not error; it just moves the length disagreement somewhere
+plausible.
+
+## Two defects can CANCEL, and then the length agrees for the wrong reason
+
+On the corrected reference, `Func_8006088` screens two ways:
+
+| bit extraction | lines | differing |
+|---|---|---|
+| `(sio >> 4) & 3` — three instructions, WRONG | 45 (exact) | 12 |
+| `(sio << 26) >> 30` — two instructions, the ROM's | 44 | 21 |
+
+The wrong spelling has the ROM's exact length and the better count, because its
+extra instruction cancels a `mov r0, r2` that gcc does not emit anywhere in the
+function. The correct spelling exposes the missing move and the one-line offset
+cascades through everything after the join.
+
+**A better differing count from a compensating pair of errors is not progress,
+and length agreement is not evidence when two independent defects can cancel.**
+Read what the ROM's instructions actually ARE for each region before trusting
+either number.
+
+## A counter the ROM masks ONCE is `unsigned int`, not `unsigned char`
+
+`Func_80bf4c4` decrements a byte field twice and the ROM writes
+`add r3, #0xf8` and `add r3, #0xff` — adding 248 and 255 — then masks to a byte
+exactly once at the end with `lsl #24 / lsr #24`.
+
+| local type | what gcc emits |
+|---|---|
+| `unsigned char` | a `lsl/lsr` truncation after EVERY store — two extra instructions per site |
+| `int` | `sub r2, #8`, and a signed `ble` where the ROM has `bls` |
+| `unsigned int`, written `v = v + 0xf8` | the ROM's `add #0xf8` and `bls`, no truncation |
+
+So when the ROM accumulates in a wide register and masks once, the source's
+variable is WIDE and the mask is an explicit cast at the point the ROM applies
+it. The additive spelling matters too: `v - 8` on an `unsigned int` gives `sub`,
+`v + 0xf8` gives the ROM's `add`.
+
+## The copy-then-modify tell is PER SITE, and the instruction count decides
+
+The same function has two decrement sites. The ROM spells them differently:
+
+    site 1   add r3, #0xf8 / strb r3 / mov r2, r3            (three)
+    site 2   mov r3, r2 / add r3, #0xff / strb r3 / mov r2, r3 (four)
+
+Site 2 is the recorded copy-then-modify shape and `t = v + 0xff; *p = t; v = t;`
+matches it instruction for instruction — 29 differing down from 38. Applying the
+same spelling to site 1 OVERSHOOTS to 49 lines against 47, because site 1 is
+three instructions: r3 already holds the value from the entry compare's
+`mov r3, r2`, so there is no copy-in to ask for.
+
+**Count the instructions at each site before applying the tell.** The shape
+looks identical at both; the arithmetic does not.
+
+## The birth-statement lever: scope narrowed by a second negative
+
+`Func_80a3354` computes a loop's base address, and the ROM forms it AFTER
+setting up the loop's stored value and counter while ours forms it immediately.
+That is exactly the birth-statement shape, and neither moving the assignment
+after `i = 3;` nor naming the offset first changes anything (54 lines, 27
+differing, both).
+
+With `OvlFunc_901_2008c1c` that is two negatives. The lever's demonstrated scope
+is a pointer **computed from a base in straight-line code**, where its birth
+statement decides which register it gets. It does not reach a pointer copied out
+of a high register, and it does not reach a loop's base address.
