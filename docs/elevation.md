@@ -11187,3 +11187,26 @@ initialiser is a global's ADDRESS rather than a pointer or a constant.
 
 Four for four, and every one of them was two lines from a match. It stays a
 first check.
+
+## A named constant cannot create register pressure
+
+Three functions this batch tried to reproduce a ROM that spends a register on a
+literal, by naming that literal in a local. All three failed the same way, and
+the failure is worth stating once rather than rediscovering:
+
+| function | the ROM holds | naming it gave |
+|---|---|---|
+| `OvlFunc_882_20090a4` | a loop bound in a callee-saved register | 11 differing, worse than the literal's 5 |
+| `Func_80bb588` | two offset registers stepping by 2 | 72 lines against 98 -- folded to immediates |
+| `Func_8019944` | a zero parked in r12 across the loop | no change; folded at both stores |
+
+Constant folding runs before register allocation, so by the time allocation
+happens a named compile-time constant and a literal are the same RTL. **A ROM
+that spends a register on a literal is not asking for a local** -- it is showing
+you an allocation decision the source has no vocabulary for, which is the same
+conclusion the scratch-register and callee-saved-copy walls reach from their own
+directions.
+
+The corollary is useful in the other direction: when naming a value DOES change
+the output, the value was not compile-time known -- so the lever is really about
+blocking a fold or pinning a live range, never about "asking for a register".
