@@ -11624,3 +11624,65 @@ list from `{r5, r6, r7, lr}` to `{r5, r6, lr}`, but gcc still recognises
 `g = gBuffer` as loop-invariant and hoists the initialisation. `-fno-gcse` is
 **inert**, which is the diagnostic: the motion belongs to `loop.c`, not global
 CSE, and gcc-2.96 has no switch for it.
+
+## gcc will ADD a callee-saved register to share a constant
+
+Batch 175 parked three functions on duplicate-constant CSE, and all three had
+callee-saved registers already committed. That suggested a reading: gcc shares a
+repeated constant only when a register happens to be spare, so a function whose
+ROM pushes nothing but `lr` should be safe.
+
+`OvlFunc_953_200a904` was screened to test exactly that -- ten calls, `push
+{lr}` alone, one constant (`0xd6 << 1`) passed to three consecutive calls -- and
+the reading is wrong:
+
+    rom    push {r14}       ... mov r2, #0xd6 / lsl r2, #0x1   (three times)
+    ours   push {r5, r14}   mov r5, #0xd6 / lsl r5, #0x1 ... mov r2, r5  (x3)
+
+gcc adds r5, its push and its pop, to avoid rebuilding a two-instruction
+constant three times. The length comes out IDENTICAL -- the hoist plus the wider
+prologue exactly pays for the three rebuilds -- and 25 of 34 lines differ.
+
+> **A zero-pressure ROM push list is no protection.** The duplicate-constant
+> reject is about the constant, not about pressure, and is right to be a hard
+> skip in every ranking.
+
+All five flag groups are inert, as they were on the batch-175 three.
+
+## Pool scaffolding cuts both ways
+
+`Func_80f6148` is two lines SHORT of its ROM because the ROM contains two `b`
+instructions to the immediately-following label -- jumps over a literal pool
+emitted mid-function. `Func_801bd98` is one line LONG for the same reason with
+the sign flipped: OUR output has the `b`, stepping over the pool gcc placed
+before `=0x3ff` and `=0xfffffc00`, and the ROM's pool is elsewhere.
+
+> A one-line difference in EITHER direction, adjacent to a `b` whose target is
+> the next label, is constant-pool placement and not a source problem. `tryc.py`
+> normalises pool loads and cannot see where a pool sits; this is the shape that
+> costs.
+
+## A run of separate constant ANDs on one loaded byte is the BITFIELD tell
+
+`Func_801bd98`'s tail does one `ldrb [r0, #5]`, four separate ANDs with `~0xc`,
+`~0x20`, `~0x10` and `0x3f`, and one `strb`. Written as four `&=` statements gcc
+folds all four masks into a single `& 3` -- it does NOT fold them when they are
+four assignments to four different bitfields of the same byte, because each is a
+separate insert.
+
+The same function shows how gcc picks the access width: a 16-bit field at +8
+declared `unsigned short f8a : 10, f8b : 2, f8c : 4;` is reached as
+`ldrb [r0,#9] & 0xf`, an `ldrh [r0,#8]` read-modify-write, and
+`ldrb [r0,#9] & ~0xc` -- **the smallest load that covers each field**, which is
+why one struct produces a mix of byte and halfword accesses that looks
+inconsistent in the disassembly.
+
+## The m4a bodies can never be C
+
+`asm/rom_f9000/*` contains functions with NO prologue that read r4 and r5 as
+implicit inputs (`Func_80f9f3c` is the clearest: it opens with
+`ldrb r1, [r4, #0x12]` and ends `bx lr`, never having written r4). They are
+hand-written assembly with a private calling convention, which is why the census
+keeps `audio` as its own class. Every scan in this tree kept offering them;
+`tools/lowpressure.py` now rejects any body that reads r4-r7 before writing it
+and never pushes it.

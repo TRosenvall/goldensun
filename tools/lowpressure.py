@@ -63,6 +63,33 @@ def push_regs(ins):
     return []
 
 
+WRITE = re.compile(r"^\s*(?:mov|add|sub|ldr|ldrb|ldrh|ldrsb|ldrsh|lsl|lsr|asr|and|orr|eor|neg|mul|bic|mvn)\s+(r[0-9]+)")
+READ_ONLY = re.compile(r"\br([4-7])\b")
+
+
+def reads_unset_callee_saved(ins):
+    """True if the body reads r4-r7 before ever writing it and never pushes it.
+
+    The m4a engine bodies under asm/rom_f9000 do this -- no prologue at all, and
+    r4/r5 arrive as implicit inputs from the caller. They are hand-written
+    assembly with a private calling convention and NO C signature can express
+    them, which is why the census keeps `audio` as its own class. Every scan in
+    this tree kept offering them until this check existed.
+    """
+    if any(re.search(r"^\s*push\b", l) for l in ins):
+        return False
+    written = set()
+    for l in ins:
+        m = WRITE.match(l)
+        ops = l.split(None, 1)[1] if " " in l.strip() else ""
+        for r in READ_ONLY.findall(ops):
+            if "r" + r not in written:
+                return True
+        if m:
+            written.add(m.group(1))
+    return False
+
+
 def main():
     limit, lo, hi = 25, 20, 120
     for i, a in enumerate(sys.argv):
@@ -91,6 +118,8 @@ def main():
             body_only = [l for l in ins
                          if not re.search(r"^\s*(push|pop)\b", l)]
             if any(HIGH.search(l) for l in body_only):
+                continue
+            if reads_unset_callee_saved(ins):
                 continue
             vals = filtered.expensive_constants(ins)
             if len(vals) != len(set(vals)):
