@@ -74,3 +74,81 @@ Func_80b27b0	UnitHasCondition	read	Town UI	src/menu/sanctum.c	Answers one of sev
 Func_80b2884	GetSanctumMessageId	read	Town UI	src/menu/sanctum.c	Offsets a base message id by the gap between _MSG_d24 and one of _MSG_d2e/_MSG_d38/_MSG_d42, chosen by the state byte at iwram_3001f2c+0x3aa.
 Func_80f037c	BuildAffineRampTable	read	Graphics	src/graphics/affine.c	Fills a 512-word buffer in four runs -- 32 words of 0x01ff01ff, 240 stepping by 0x00020002 from 0x00010000, 48 more of 0x01ff01ff and 192 zeroes. A packed pair of 16-bit ramps.
 Func_80f7db4	InitDictionary	read	Compression	src/compress/dictionary.c	Initialises the 0x400-entry dictionary at ewram_2004c00, writing each entry's index alongside a zeroed link field.
+Func_8010704	Map_CopyRect	read	Map rendering	src/map/map_view.c	Block-copies a w by h rectangle inside the 128-word-wide gBuffer from (sx,sy) to (dx,dy), a row at a time.
+Func_8011568	Map_UploadBG1	read	Map rendering	src/map/map_view.c	Sets BG1CNT to 0x682 and DMAs 0x9600 bytes of gBuffer to the BG1 map at 0x6006a00.
+Func_801161c	Map_UploadBG1Tiles	read	Map rendering	src/map/map_view.c	The tile-data twin: BG1CNT 0x501, 0x8000 bytes from ewram_2038000 to 0x6008000.
+Func_8011590	Map_StartView	read	Map rendering	src/map/map_view.c	Brings up the map view: installs the per-frame hook Func_801179c, uploads the background and waits out the fade.
+Func_801173c	Map_LoadViewData	read	Map rendering	src/map/map_view.c	Loads and LZ-decompresses file _FILE_d5 into gBuffer, then installs the view's hooks.
+Func_80118a8	Map_ClearMarker	read	Map rendering	src/map/map_view.c	Writes 0 to the halfword at +0x22 of marker record i (12-byte stride) in the table at iwram_3001e70.
+Func_80118c0	Map_SetMarker	read	Map rendering	src/map/map_view.c	The mirror of Map_ClearMarker, writing 1 into the same halfword.
+Func_8011984	Map_AddRedrawHook	read	Map rendering	src/map/map_view.c	Registers Func_801179c as a per-frame hook, but only while the state byte at +0xfc is zero.
+Func_80119a8	Map_RemoveRedrawHook	read	Map rendering	src/map/map_view.c	The unregister half of Map_AddRedrawHook, gated on the same byte.
+Func_8011ae0	Map_AddCursorHook	read	Map rendering	src/map/map_view.c	Registers Func_80119cc as a per-frame hook, unconditionally.
+Func_8011af0	Map_RemoveCursorHook	read	Map rendering	src/map/map_view.c	Unregisters Func_80119cc.
+Func_8011b00	Map_AllocMarkerTable	read	Map rendering	src/map/map_view.c	Reserves the 0xb4-byte EWRAM block under tag 0x1c and zeroes its four marker rows.
+Func_8011be0	Map_StartTask	read	Map rendering	src/map/map_view.c	Starts Func_8011bf4 at priority 200 << 4.
+Func_8011bc8	Map_StopTask	read	Map rendering	src/map/map_view.c	Stops Func_8011bf4 and releases the tag-0x1c block.
+Func_8011ce0	GetTileHeightFixed	read	Map rendering	src/map/terrain.c	Sign-extends the byte at the pointer and shifts it left 19 -- a tile height into the engine's fixed-point scale.
+Func_8011f3c	GetTileHeightFixedAt	read	Map rendering	src/map/terrain.c	The same conversion taking the address as an integer rather than a pointer. One of three spellings of one operation in this bank.
+Func_8011f48	GetTileHeightFixedPtr	read	Map rendering	src/map/terrain.c	The third spelling, loading through a named local first. Kept distinct because the ROM has three separate routines.
+Func_8012038	GetLayerTileAt	read	Map rendering	src/map/terrain.c	Reads the tile byte for a layer at a world position, indexing gBuffer through the layer's 0x30-byte block at +0x130.
+Func_80120b4	GetCollisionAt	read	Map rendering	src/map/terrain.c	Returns the top two bits of byte 1 of the 4-byte gBuffer cell covering (x/16, y/16) -- the cell's collision class.
+Func_8012204	GetTerrainAt	read	Map rendering	src/map/terrain.c	Resolves a 3D position to a terrain code: a 64x64 cell index into the map at 0x6005000, then a sub-cell nibble out of ewram_202c800.
+Func_80122ac	IsWalkableTerrain	read+callee	Map rendering	src/map/terrain.c	Returns 0 for terrain codes 5 through 12 and -1 otherwise -- the walkability test over GetTerrainAt.
+Func_80122c8	GetGroundHeightAt	read+callee	Map rendering	src/map/terrain.c	Combines the terrain code with the height byte from ewram_2020000 for the 32x32 coarse cell, writing the adjusted ground height out.
+Func_8012330	SetCameraTarget	read	Map rendering	src/map/camera.c	Writes the three camera words at +4/+8/+0xc of the view record, skipping any argument that is negative.
+Func_8012d70	SetLayerGroupAnim	read	Sprites	src/sprite/sprite.c	Walks a layer group's ten sprite entries and points each at the requested animation in the group's sprite info.
+Func_8012de8	InitLayerGroupSprites	read	Sprites	src/sprite/sprite.c	Binds a layer group's ten sprite entries to a sprite resource via InitSpriteLayer.
+Func_800be20	GetSpriteTileCount	read	Sprites	src/sprite/sprite.c	Sums the tile counts of a sprite's parts from its info block, bounded by the part count at info[5].
+Func_800be70	ScrambleSpriteTiles	read	Sprites	src/sprite/sprite.c	Permutes one step of a sprite's VRAM tiles through the .L1314c order table -- the dissolve effect's per-step worker.
+Func_800befc	RunSpriteScramble	read+callee	Sprites	src/sprite/sprite.c	Drives ScrambleSpriteTiles four steps a frame across all 0x80 steps, waiting a frame between groups.
+Func_800c0c4	NullSub_800c0c4	read	Field	src/field/field.c	Empty body.
+Func_800c0c8	NullSub_800c0c8	read	Field	src/field/field.c	Empty body, immediately after NullSub_800c0c4.
+Func_800c46c	Actor_InstallScript13590	read	Actor engine	src/field/actor_script.c	Installs the script at .L13590 on an actor. What that script does is not established here; the name should follow it, as Camera_SetTarget did for 0x135f0.
+Func_800c47c	Actor_InstallScript135A8	read	Actor engine	src/field/actor_script.c	Installs the script at .L135a8. Same caveat as Actor_InstallScript13590.
+Func_800c48c	Actor_InstallScript135C0	read	Actor engine	src/field/actor_script.c	Installs the script at .L135c0. Same caveat.
+Func_800c49c	Actor_InstallScript135D8	read	Actor engine	src/field/actor_script.c	Installs the script at .L135d8. Same caveat.
+Func_800c548	Sprite_SetSelectField	read	Sprites	src/sprite/sprite.c	Writes the two-bit selector inside the sprite byte at +5 as a bitfield. Which selector it is is not established; this is the batch-71 narrow-constant specimen.
+Func_800c570	Sprite_SetFlag1D	read	Sprites	src/sprite/sprite.c	Writes the single-bit field inside the sprite byte at +0x1d. Same caveat as Sprite_SetSelectField.
+Func_800c5b4	StartFieldRender	read	Field	src/field/field.c	Registers the two per-frame field hooks Func_800c62c and Func_800c880, opens the panel and unblanks.
+Func_800c5fc	StopFieldRender	read	Field	src/field/field.c	Unregisters both field hooks and restores the blend register.
+Func_800c628	ReturnTrue_800c628	read	Field	src/field/field.c	Returns 1 unconditionally. A predicate stub; nothing in the body says what it is standing in for.
+Func_800c87c	ReturnTrue_800c87c	read	Field	src/field/field.c	Returns 1 unconditionally, the twin of ReturnTrue_800c628.
+Func_800d304	RunFromRAM_800a494	read	Boot / system	src/system/ram_exec.c	The specific run-from-RAM call for Func_800a494, the same trampoline shape as RunRAMRoutine.
+Func_800d8e8	ActorCmd_Delete	read+family	Actor engine	src/field/actor_script.c	Script opcode: deletes the actor and returns 0. Joins the ActorCmd_* family already named in this bank.
+Func_800ea60	HandleMapCursorInput	read	Map rendering	src/map/map_view.c	Reads gKeyPress against the map view's slot record and moves the selection. The exact control mapping is not fully established.
+Func_80c90e4	Anim_InitContext	read	Battle animation	src/battle/anim_engine.c	Zeroes the counter and coordinate words at +0x7790..+0x779c of the animation context block. Which counters they are is not established here.
+Func_80c9138	Anim_StepCounters	read	Battle animation	src/battle/anim_engine.c	Advances the same +0x7790 counter group by one step per call.
+Func_80c91a4	Anim_DmaWindowRegs	read	Battle animation	src/battle/anim_engine.c	Disables DMA3, then re-arms it to feed gBuffer into the window registers at 0x04000040 -- a per-scanline window effect.
+Func_80ccbdc	Anim_Teardown	read	Battle animation	src/battle/anim_engine.c	Stops the animation task and its blit task, releases the tag, and runs the RAM-resident cleanup.
+Func_80cd418	Anim_ApplyWindowRegs	read	Battle animation	src/battle/anim_engine.c	Copies WIN0H/WIN0V/WIN1H/WIN1V/WININ straight out of the context block at +0x77bc onward into the hardware.
+Func_80cd488	Anim_ApplyBG2Affine	read	Battle animation	src/battle/anim_engine.c	Writes the two words at context +0x77d0/+0x77d4 into the BG2 reference-point registers at 0x04000028.
+Func_80cd4b4	Anim_UploadPalette	read	Battle animation	src/battle/anim_engine.c	Uploads the animation's BG palette from the layer table at iwram_3001e74.
+Func_80cd508	Anim_RunRAMBlit	read	Battle animation	src/battle/anim_engine.c	Calls the RAM-resident blit routine against the context block at +0x7818.
+Func_80cdd14	Anim_RunRegSequence	read	Battle animation	src/battle/anim_engine.c	Drives a register-animation sequence: arms the destination, then steps it frame by frame. The precise effect is not established here.
+Func_80d6960	Anim_EndWithMode1	read	Battle animation	src/battle/anim_engine.c	Calls Func_80cdb24 with mode 1 and then AnimEnd -- the tail shared by one group of animations.
+Func_80dbb98	NullSub_80dbb98	read	Battle animation	src/battle/anim_engine.c	Empty body.
+Func_80dbb9c	Anim_DmaScanlineTable	read	Battle animation	src/battle/anim_engine.c	Re-arms DMA3 from the context block at +0x6980 to feed a per-scanline table.
+Func_80df8b8	BattleActor_StepForward	read	Battle animation	src/battle/anim_actor.c	Sets a battle actor's two speed words to 0x20000 and 0x80000 and starts it travelling, then sets its animation.
+Func_80dfddc	Anim_BlitTiles	read	Battle animation	src/battle/anim_engine.c	Copies an n by m tile block between two buffers, row-major, with the source stride carried separately.
+Func_80e3944	Anim_MoveWithDrop	read+callee	Battle animation	src/battle/anim_actor.c	Runs PhysMove between two records and then lowers the destination's y by 0x10.
+Func_80e3994	Anim_CallVia	read	Battle animation	src/battle/anim_engine.c	Calls Func_8000888 through a register-held pointer with an explicit bx, the ARM/Thumb interworking trampoline.
+Func_80e3a14	Anim_PollSkip	read	Battle animation	src/battle/anim_engine.c	Reads gKeyHeld once the context's counter at +0x24 passes 0x7f -- the skip poll. The discarded read is in the ROM too.
+Func_80e72e0	Anim_DmaContextBlock	read	Battle animation	src/battle/anim_engine.c	Another re-armed DMA3 out of the animation context block, same shape as Anim_DmaWindowRegs.
+Func_80f2b6c	NullSub_80f2b6c	read	Screen effects	src/effects/effects.c	Empty body.
+Func_80f2eb8	NullSub_80f2eb8	read	Screen effects	src/effects/effects.c	Empty body.
+Func_80f37ec	StopEffectTask	read	Screen effects	src/effects/effects.c	Stops Func_80f2f10 and releases the tag-0x20 block.
+Func_80f3804	Effect_RenderToBuffer	read	Screen effects	src/effects/effects.c	Runs the effect kernel over the module block, passing the block and the halfway point at +0x1000 as the two working buffers.
+Func_80f3824	Effect_RenderToBufferSmall	read	Screen effects	src/effects/effects.c	The same call with a 0x400-byte split instead of 0x1000.
+Func_80f3844	Effect_SetMode	read	Screen effects	src/effects/effects.c	Writes the mode halfword at the head of the module block, if the block exists.
+Func_80f3898	ClampBrightness	read	Screen effects	src/effects/effects.c	Clamps to 0..0x1f, the GBA blend-coefficient range.
+Func_80f38ac	ClampScale	read	Screen effects	src/effects/effects.c	Clamps to at most 0x7c00, leaving negatives alone.
+Func_80f40b4	DivS16	read	Math	src/math/fixed.c	Signed 16-bit divide built out of sign-extended shifts, with the operands pinned to r0 and r3.
+Func_80f40d0	DivFixed8	read	Math	src/math/fixed.c	Returns (a << 8) / b -- an 8.8 fixed-point divide.
+Func_80f40e8	ReciprocalFixed16	read	Math	src/math/fixed.c	Returns 0x10000 / x, the 16.16 reciprocal.
+Func_80f954c	GetMusicFadeState	read	Sound	src/sound/music.c	Returns the fade-state byte at ewram_2003000, the flag WaitMusicFade spins on.
+Func_80f9570	SetSoundFlagByte	read	Sound	src/sound/music.c	Writes ewram_2003040, XORing rather than assigning when bit 7 of the argument is set.
+Func_80f9594	GetSoundState303C	read	Sound	src/sound/music.c	Returns the byte at ewram_200303c. What it tracks is not established here.
+Func_80f95a0	WaitMusicFade	read+callee	Sound	src/sound/music.c	Spins a frame at a time until the fade-state byte clears, giving up after 300 frames.
+Func_80fa260	NullSub_80fa260	read	Sound	src/sound/music.c	Empty body.
+Func_80fb790	NullSub_80fb790	read	Sound	src/sound/music.c	Empty body.
