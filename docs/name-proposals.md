@@ -23,7 +23,7 @@ fact is worse than an honest placeholder.
 
 451 elevated functions carry a real name already; **3294 still carry a `Func_`/`OvlFunc_` placeholder**, and those are the naming job.
 
-This file proposes **782** of them (23.7%).
+This file proposes **876** of them (26.6%).
 
 ## Data objects — 46 of 622 named
 
@@ -653,6 +653,116 @@ blocks and tables our own files reference.
 | `Func_801c2f0` | `0x0801c2f0` | `Menu2_ResetAndWait` | read+callee | Option menu | Resets the option menu block and waits a frame for the redraw. | `src/ui/option_menu.c` |
 | `Func_801c304` | `0x0801c304` | `Menu2_Open` | read+callee | Option menu | Brings the option menu up: builds its nodes, draws the arrows, starts its task and selects the first entry. | `src/ui/option_menu.c` |
 
+## Overlay / actor common — 38 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `OvlFunc_882_2008064` | `0x02008064` | `StepRandomWander` | read+family | Overlay / actor common | A random-wander state machine switching on the actor's state halfword at +0x64. Two copies. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_883_200db48` | `0x0200db48` | `SetSpriteBitFields` | read+family | Overlay / actor common | Writes the packed bitfields inside a sprite's bytes at +5 and +9. Six copies; the batch-71 narrow-constant shape. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_884_2008030` | `0x02008030` | `TurnTowardTarget` | read+family | Overlay / actor common | Turns an actor one step toward its target: atan2 to the bearing, clamped to a fixed maximum change per frame. Eleven byte-identical copies, one per overlay that embeds it. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_885_2008030` | `0x02008030` | `TurnTowardTarget` | read+family | Overlay / actor common | Turns an actor one step toward its target: atan2 to the bearing, clamped to a fixed maximum change per frame. Eleven byte-identical copies, one per overlay that embeds it. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_886_2008030` | `0x02008030` | `TurnTowardTarget` | read+family | Overlay / actor common | Turns an actor one step toward its target: atan2 to the bearing, clamped to a fixed maximum change per frame. Eleven byte-identical copies, one per overlay that embeds it. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_886_2008088` | `0x02008088` | `StepEntityMotion` | read+family | Overlay / actor common | Advances an entity's position and its two auxiliary fields, switching on its state halfword. Two copies. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_887_2008030` | `0x02008030` | `TurnTowardTarget` | read+family | Overlay / actor common | Turns an actor one step toward its target: atan2 to the bearing, clamped to a fixed maximum change per frame. Eleven byte-identical copies, one per overlay that embeds it. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_896_2008314` | `0x02008314` | `TurnTowardTarget` | read+family | Overlay / actor common | Turns an actor one step toward its target: atan2 to the bearing, clamped to a fixed maximum change per frame. Eleven byte-identical copies, one per overlay that embeds it. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_907_2008030` | `0x02008030` | `TurnTowardTarget` | read+family | Overlay / actor common | Turns an actor one step toward its target: atan2 to the bearing, clamped to a fixed maximum change per frame. Eleven byte-identical copies, one per overlay that embeds it. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_909_2008030` | `0x02008030` | `TurnTowardTarget` | read+family | Overlay / actor common | Turns an actor one step toward its target: atan2 to the bearing, clamped to a fixed maximum change per frame. Eleven byte-identical copies, one per overlay that embeds it. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_910_2008030` | `0x02008030` | `TurnTowardTarget` | read+family | Overlay / actor common | Turns an actor one step toward its target: atan2 to the bearing, clamped to a fixed maximum change per frame. Eleven byte-identical copies, one per overlay that embeds it. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_910_2008974` | `0x02008974` | `SetSpriteBitFields` | read+family | Overlay / actor common | Writes the packed bitfields inside a sprite's bytes at +5 and +9. Six copies; the batch-71 narrow-constant shape. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_911_2008114` | `0x02008114` | `TurnTowardTarget` | read+family | Overlay / actor common | Turns an actor one step toward its target: atan2 to the bearing, clamped to a fixed maximum change per frame. Eleven byte-identical copies, one per overlay that embeds it. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_914_2008cb4` | `0x02008cb4` | `SetSpriteBitFields` | read+family | Overlay / actor common | Writes the packed bitfields inside a sprite's bytes at +5 and +9. Six copies; the batch-71 narrow-constant shape. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_918_200985c` | `0x0200985c` | `StepActorPhysics` | read+family | Overlay / actor common | Integrates an actor's three velocity components into its position. Four copies. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_921_20080d8` | `0x020080d8` | `TurnTowardTarget` | read+family | Overlay / actor common | Turns an actor one step toward its target: atan2 to the bearing, clamped to a fixed maximum change per frame. Eleven byte-identical copies, one per overlay that embeds it. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_927_20089dc` | `0x020089dc` | `SetSpriteSelect` | read+family | Overlay / actor common | Writes the two-bit selector inside the sprite byte at +9 through the actor's sprite pointer at +0x50. Three copies. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_927_20089f4` | `0x020089f4` | `SpawnPropActor` | read+family | Overlay / actor common | Creates a prop actor, sets its sprite flags, seeds its idle timer and its selector. Three copies. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_927_2008a4c` | `0x02008a4c` | `SetActorSpriteSelect` | read+family | Overlay / actor common | The variant of SetSpriteSelect that also writes the actor byte at +0x23. Three copies. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_927_2008ab0` | `0x02008ab0` | `SetDrawAngleFromVel` | read+family | Overlay / actor common | Sets a draw record's angle halfword from the actor's velocity. Four copies. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_927_200ac0c` | `0x0200ac0c` | `SetSpriteBitFields` | read+family | Overlay / actor common | Writes the packed bitfields inside a sprite's bytes at +5 and +9. Six copies; the batch-71 narrow-constant shape. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_932_2008040` | `0x02008040` | `TurnTowardTarget` | read+family | Overlay / actor common | Turns an actor one step toward its target: atan2 to the bearing, clamped to a fixed maximum change per frame. Eleven byte-identical copies, one per overlay that embeds it. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_936_200ba3c` | `0x0200ba3c` | `SetSpriteBitFields` | read+family | Overlay / actor common | Writes the packed bitfields inside a sprite's bytes at +5 and +9. Six copies; the batch-71 narrow-constant shape. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_939_2009840` | `0x02009840` | `SetSpriteBitFields` | read+family | Overlay / actor common | Writes the packed bitfields inside a sprite's bytes at +5 and +9. Six copies; the batch-71 narrow-constant shape. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_943_2008030` | `0x02008030` | `StepRandomWander` | read+family | Overlay / actor common | A random-wander state machine switching on the actor's state halfword at +0x64. Two copies. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_956_200937c` | `0x0200937c` | `StepEntityMotion` | read+family | Overlay / actor common | Advances an entity's position and its two auxiliary fields, switching on its state halfword. Two copies. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_964_20089dc` | `0x020089dc` | `SetSpriteSelect` | read+family | Overlay / actor common | Writes the two-bit selector inside the sprite byte at +9 through the actor's sprite pointer at +0x50. Three copies. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_964_20089f4` | `0x020089f4` | `SpawnPropActor` | read+family | Overlay / actor common | Creates a prop actor, sets its sprite flags, seeds its idle timer and its selector. Three copies. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_964_2008a4c` | `0x02008a4c` | `SetActorSpriteSelect` | read+family | Overlay / actor common | The variant of SetSpriteSelect that also writes the actor byte at +0x23. Three copies. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_964_2008ab0` | `0x02008ab0` | `SetDrawAngleFromVel` | read+family | Overlay / actor common | Sets a draw record's angle halfword from the actor's velocity. Four copies. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_964_2009068` | `0x02009068` | `StepActorPhysics` | read+family | Overlay / actor common | Integrates an actor's three velocity components into its position. Four copies. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_965_20089dc` | `0x020089dc` | `SetSpriteSelect` | read+family | Overlay / actor common | Writes the two-bit selector inside the sprite byte at +9 through the actor's sprite pointer at +0x50. Three copies. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_965_20089f4` | `0x020089f4` | `SpawnPropActor` | read+family | Overlay / actor common | Creates a prop actor, sets its sprite flags, seeds its idle timer and its selector. Three copies. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_965_2008a4c` | `0x02008a4c` | `SetActorSpriteSelect` | read+family | Overlay / actor common | The variant of SetSpriteSelect that also writes the actor byte at +0x23. Three copies. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_965_2008ab0` | `0x02008ab0` | `SetDrawAngleFromVel` | read+family | Overlay / actor common | Sets a draw record's angle halfword from the actor's velocity. Four copies. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_965_2008cf0` | `0x02008cf0` | `StepActorPhysics` | read+family | Overlay / actor common | Integrates an actor's three velocity components into its position. Four copies. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_968_20080e0` | `0x020080e0` | `SetDrawAngleFromVel` | read+family | Overlay / actor common | Sets a draw record's angle halfword from the actor's velocity. Four copies. | `src/overlays/common/actor_common.c` |
+| `OvlFunc_968_200896c` | `0x0200896c` | `StepActorPhysics` | read+family | Overlay / actor common | Integrates an actor's three velocity components into its position. Four copies. | `src/overlays/common/actor_common.c` |
+
+## Overlay / cutscene common — 10 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `OvlFunc_881_20084a0` | `0x020084a0` | `PlaceActorPairWithSound` | read+family | Overlay / cutscene common | Positions two map actors relative to each other and plays a sound. Two copies. | `src/overlays/common/cutscene_common.c` |
+| `OvlFunc_881_20084f0` | `0x020084f0` | `PlaceActorPairWithSound` | read+family | Overlay / cutscene common | Positions two map actors relative to each other and plays a sound. Two copies. | `src/overlays/common/cutscene_common.c` |
+| `OvlFunc_884_20083b4` | `0x020083b4` | `RunFlaggedActorMessage` | read+family | Overlay / cutscene common | Opens a cutscene and delivers one of several actor messages depending on the party's progress flags. Two copies. | `src/overlays/common/cutscene_common.c` |
+| `OvlFunc_884_2008444` | `0x02008444` | `RunFlaggedActorMessage` | read+family | Overlay / cutscene common | Opens a cutscene and delivers one of several actor messages depending on the party's progress flags. Two copies. | `src/overlays/common/cutscene_common.c` |
+| `OvlFunc_893_2008054` | `0x02008054` | `RunEarthquakeEvent` | read+family | Overlay / cutscene common | The scripted earthquake: flag gate, looping sound, camera shove and the engine shake call, paced by the two delays in the map block. Two copies. | `src/overlays/common/cutscene_common.c` |
+| `OvlFunc_894_2008054` | `0x02008054` | `RunEarthquakeEvent` | read+family | Overlay / cutscene common | The scripted earthquake: flag gate, looping sound, camera shove and the engine shake call, paced by the two delays in the map block. Two copies. | `src/overlays/common/cutscene_common.c` |
+| `OvlFunc_945_2008e14` | `0x02008e14` | `RunActorCutsceneSeq` | read+family | Overlay / cutscene common | A flag-gated cutscene: open, deliver a message, animate and walk an actor, wait for arrival, close. Four copies differing in slots, messages and destinations. | `src/overlays/common/cutscene_common.c` |
+| `OvlFunc_945_2008ee0` | `0x02008ee0` | `RunActorCutsceneSeq` | read+family | Overlay / cutscene common | A flag-gated cutscene: open, deliver a message, animate and walk an actor, wait for arrival, close. Four copies differing in slots, messages and destinations. | `src/overlays/common/cutscene_common.c` |
+| `OvlFunc_945_2008fac` | `0x02008fac` | `RunActorCutsceneSeq` | read+family | Overlay / cutscene common | A flag-gated cutscene: open, deliver a message, animate and walk an actor, wait for arrival, close. Four copies differing in slots, messages and destinations. | `src/overlays/common/cutscene_common.c` |
+| `OvlFunc_945_2009078` | `0x02009078` | `RunActorCutsceneSeq` | read+family | Overlay / cutscene common | A flag-gated cutscene: open, deliver a message, animate and walk an actor, wait for arrival, close. Four copies differing in slots, messages and destinations. | `src/overlays/common/cutscene_common.c` |
+
+## Overlay / effect common — 26 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `OvlFunc_881_200bfb4` | `0x0200bfb4` | `SineEffectActor` | read+family | Overlay / effect common | A 32-frame effect actor riding on a parent: each frame it advances a counter, offsets itself by a sine of that counter, and deletes itself past frame 0x1f. Seven copies. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_881_200c004` | `0x0200c004` | `SineEffectActorMirror` | read+family | Overlay / effect common | The mirror half of SineEffectActor, offsetting the opposite way. Seven copies, each sitting immediately after its partner. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_882_200c378` | `0x0200c378` | `SineEffectActor` | read+family | Overlay / effect common | A 32-frame effect actor riding on a parent: each frame it advances a counter, offsets itself by a sine of that counter, and deletes itself past frame 0x1f. Seven copies. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_882_200c3c8` | `0x0200c3c8` | `SineEffectActorMirror` | read+family | Overlay / effect common | The mirror half of SineEffectActor, offsetting the opposite way. Seven copies, each sitting immediately after its partner. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_883_200dcc4` | `0x0200dcc4` | `SineEffectActor` | read+family | Overlay / effect common | A 32-frame effect actor riding on a parent: each frame it advances a counter, offsets itself by a sine of that counter, and deletes itself past frame 0x1f. Seven copies. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_883_200dd14` | `0x0200dd14` | `SineEffectActorMirror` | read+family | Overlay / effect common | The mirror half of SineEffectActor, offsetting the opposite way. Seven copies, each sitting immediately after its partner. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_884_200a39c` | `0x0200a39c` | `SineEffectActor` | read+family | Overlay / effect common | A 32-frame effect actor riding on a parent: each frame it advances a counter, offsets itself by a sine of that counter, and deletes itself past frame 0x1f. Seven copies. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_884_200a3ec` | `0x0200a3ec` | `SineEffectActorMirror` | read+family | Overlay / effect common | The mirror half of SineEffectActor, offsetting the opposite way. Seven copies, each sitting immediately after its partner. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_887_20095e8` | `0x020095e8` | `SineEffectActor` | read+family | Overlay / effect common | A 32-frame effect actor riding on a parent: each frame it advances a counter, offsets itself by a sine of that counter, and deletes itself past frame 0x1f. Seven copies. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_887_2009638` | `0x02009638` | `SineEffectActorMirror` | read+family | Overlay / effect common | The mirror half of SineEffectActor, offsetting the opposite way. Seven copies, each sitting immediately after its partner. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_897_200ae0c` | `0x0200ae0c` | `SineEffectActor` | read+family | Overlay / effect common | A 32-frame effect actor riding on a parent: each frame it advances a counter, offsets itself by a sine of that counter, and deletes itself past frame 0x1f. Seven copies. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_897_200ae5c` | `0x0200ae5c` | `SineEffectActorMirror` | read+family | Overlay / effect common | The mirror half of SineEffectActor, offsetting the opposite way. Seven copies, each sitting immediately after its partner. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_914_2008abc` | `0x02008abc` | `PaletteFadeStep` | read+family | Overlay / effect common | Drives one step of a palette fade across the two palette banks and re-uploads them. Four copies. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_914_2008b24` | `0x02008b24` | `FadeColorToward` | read+family | Overlay / effect common | Moves one 15-bit colour toward the fade target: red up by r/(rate*4), green and blue down by their own rate fraction, clamped. Four copies. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_914_2008bcc` | `0x02008bcc` | `UploadFadePalettes` | read+family | Overlay / effect common | DMAs both 0x1c0-byte palette halves into the transition block and re-arms the panel. Four copies. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_915_2008c8c` | `0x02008c8c` | `PaletteFadeStep` | read+family | Overlay / effect common | Drives one step of a palette fade across the two palette banks and re-uploads them. Four copies. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_915_2008cf4` | `0x02008cf4` | `FadeColorToward` | read+family | Overlay / effect common | Moves one 15-bit colour toward the fade target: red up by r/(rate*4), green and blue down by their own rate fraction, clamped. Four copies. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_915_2008d9c` | `0x02008d9c` | `UploadFadePalettes` | read+family | Overlay / effect common | DMAs both 0x1c0-byte palette halves into the transition block and re-arms the panel. Four copies. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_916_2008e64` | `0x02008e64` | `PaletteFadeStep` | read+family | Overlay / effect common | Drives one step of a palette fade across the two palette banks and re-uploads them. Four copies. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_916_2008ecc` | `0x02008ecc` | `FadeColorToward` | read+family | Overlay / effect common | Moves one 15-bit colour toward the fade target: red up by r/(rate*4), green and blue down by their own rate fraction, clamped. Four copies. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_916_2008f74` | `0x02008f74` | `UploadFadePalettes` | read+family | Overlay / effect common | DMAs both 0x1c0-byte palette halves into the transition block and re-arms the panel. Four copies. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_917_2009768` | `0x02009768` | `PaletteFadeStep` | read+family | Overlay / effect common | Drives one step of a palette fade across the two palette banks and re-uploads them. Four copies. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_917_20097d0` | `0x020097d0` | `FadeColorToward` | read+family | Overlay / effect common | Moves one 15-bit colour toward the fade target: red up by r/(rate*4), green and blue down by their own rate fraction, clamped. Four copies. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_917_2009878` | `0x02009878` | `UploadFadePalettes` | read+family | Overlay / effect common | DMAs both 0x1c0-byte palette halves into the transition block and re-arms the panel. Four copies. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_969_200a15c` | `0x0200a15c` | `SineEffectActor` | read+family | Overlay / effect common | A 32-frame effect actor riding on a parent: each frame it advances a counter, offsets itself by a sine of that counter, and deletes itself past frame 0x1f. Seven copies. | `src/overlays/common/effect_common.c` |
+| `OvlFunc_969_200a1ac` | `0x0200a1ac` | `SineEffectActorMirror` | read+family | Overlay / effect common | The mirror half of SineEffectActor, offsetting the opposite way. Seven copies, each sitting immediately after its partner. | `src/overlays/common/effect_common.c` |
+
+## Overlay / map common — 16 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `OvlFunc_882_200810c` | `0x0200810c` | `SetFlagAndEditMap` | read+family | Overlay / map common | Sets a progress flag and copies in the tiles that flag reveals. Two copies. | `src/overlays/common/map_query.c` |
+| `OvlFunc_882_2008134` | `0x02008134` | `ClearFlagAndEditMap` | read+family | Overlay / map common | The inverse of SetFlagAndEditMap, restoring the original tiles. Two copies. | `src/overlays/common/map_query.c` |
+| `OvlFunc_883_2008d70` | `0x02008d70` | `SetFlagAndEditMap` | read+family | Overlay / map common | Sets a progress flag and copies in the tiles that flag reveals. Two copies. | `src/overlays/common/map_query.c` |
+| `OvlFunc_883_2008d98` | `0x02008d98` | `ClearFlagAndEditMap` | read+family | Overlay / map common | The inverse of SetFlagAndEditMap, restoring the original tiles. Two copies. | `src/overlays/common/map_query.c` |
+| `OvlFunc_890_2008238` | `0x02008238` | `ApplyFlaggedMapEdits` | read+family | Overlay / map common | Runs a series of flag-gated map tile edits, one CopyMapTiles per progress flag. Four copies. | `src/overlays/common/map_query.c` |
+| `OvlFunc_890_20082cc` | `0x020082cc` | `ApplyFlaggedMapEdits` | read+family | Overlay / map common | Runs a series of flag-gated map tile edits, one CopyMapTiles per progress flag. Four copies. | `src/overlays/common/map_query.c` |
+| `OvlFunc_890_2008360` | `0x02008360` | `ApplyFlaggedMapEdits` | read+family | Overlay / map common | Runs a series of flag-gated map tile edits, one CopyMapTiles per progress flag. Four copies. | `src/overlays/common/map_query.c` |
+| `OvlFunc_890_20083f4` | `0x020083f4` | `ApplyFlaggedMapEdits` | read+family | Overlay / map common | Runs a series of flag-gated map tile edits, one CopyMapTiles per progress flag. Four copies. | `src/overlays/common/map_query.c` |
+| `OvlFunc_895_200807c` | `0x0200807c` | `GetEntrancesForArea` | read+family | Overlay / map common | Selects the entrance table for the current area from a run of local label tables. Two copies. | `src/overlays/common/map_query.c` |
+| `OvlFunc_895_20080ec` | `0x020080ec` | `GetEntrancesForArea` | read+family | Overlay / map common | Selects the entrance table for the current area from a run of local label tables. Two copies. | `src/overlays/common/map_query.c` |
+| `OvlFunc_898_2008314` | `0x02008314` | `ResolveEntityInteraction` | read+family | Overlay / map common | Resolves what the player is facing to an interaction kind and its flag. Two copies. | `src/overlays/common/map_query.c` |
+| `OvlFunc_901_2008400` | `0x02008400` | `ResolveEntityInteraction` | read+family | Overlay / map common | Resolves what the player is facing to an interaction kind and its flag. Two copies. | `src/overlays/common/map_query.c` |
+| `OvlFunc_964_200a3a0` | `0x0200a3a0` | `RunMapEditStep` | read+family | Overlay / map common | One cutscene map-edit step: fetch an actor, copy a tile rect and call the overlay's shared step helper. Four copies. | `src/overlays/common/map_query.c` |
+| `OvlFunc_964_200a410` | `0x0200a410` | `RunMapEditStep` | read+family | Overlay / map common | One cutscene map-edit step: fetch an actor, copy a tile rect and call the overlay's shared step helper. Four copies. | `src/overlays/common/map_query.c` |
+| `OvlFunc_964_200a480` | `0x0200a480` | `RunMapEditStep` | read+family | Overlay / map common | One cutscene map-edit step: fetch an actor, copy a tile rect and call the overlay's shared step helper. Four copies. | `src/overlays/common/map_query.c` |
+| `OvlFunc_964_200a52c` | `0x0200a52c` | `RunMapEditStep` | read+family | Overlay / map common | One cutscene map-edit step: fetch an actor, copy a tile rect and call the overlay's shared step helper. Four copies. | `src/overlays/common/map_query.c` |
+
 ## Overlay / map query — 36 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
@@ -693,6 +803,15 @@ blocks and tables our own files reference.
 | `OvlFunc_965_2008244` | `0x02008244` | `FillMapRectCollisionByte` | named | Overlay / map query | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FillMapRectCollisionByte, one of eighteen identical copies -- one per overlay, byte-for-byte the same body. Se | `src/overlays/common/map_query.c` |
 | `OvlFunc_968_20084f4` | `0x020084f4` | `FillMapRectCollisionByte` | named | Overlay / map query | Split out of that .s; the sibling parts stay as assembly and keep their slots in the overlay's linker script. FillMapRectCollisionByte, one of eighteen identical copies -- one per overlay, byte-for-byte the same body. Se | `src/overlays/common/map_query.c` |
 | `OvlFunc_common1_2018` | `` | `FindEntityAtPosition` | named | Overlay / map query | First in the run, ahead of the _b piece, in the THREE overlay.ld scripts that name this object; the _b piece keeps the .data, .data1 and .bss sections. BYTE-IDENTICAL TWIN of OvlFunc_968_200832c in overlays/rom_7f2f14; t | `src/overlays/common/map_query.c` |
+
+## Overlay / text common — 4 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `OvlFunc_974_2008180` | `0x02008180` | `DispatchMessageRange` | read+family | Overlay / text common | Forwards a first-message id and the span to the next range to the overlay's message dispatcher. Four copies, one per message range. | `src/overlays/common/text_common.c` |
+| `OvlFunc_974_2008198` | `0x02008198` | `DispatchMessageRange` | read+family | Overlay / text common | Forwards a first-message id and the span to the next range to the overlay's message dispatcher. Four copies, one per message range. | `src/overlays/common/text_common.c` |
+| `OvlFunc_974_20081b8` | `0x020081b8` | `DispatchMessageRange` | read+family | Overlay / text common | Forwards a first-message id and the span to the next range to the overlay's message dispatcher. Four copies, one per message range. | `src/overlays/common/text_common.c` |
+| `OvlFunc_974_20081d8` | `0x020081d8` | `DispatchMessageRange` | read+family | Overlay / text common | Forwards a first-message id and the span to the next range to the overlay's message dispatcher. Four copies, one per message range. | `src/overlays/common/text_common.c` |
 
 ## Overlay 946 scripts — 74 functions
 
