@@ -1,68 +1,65 @@
-/* Func_80bf574  --  NOT MATCHING
+/* Func_80bf574 (0x080bf574) -- NON-MATCHING.
+ * Blocker class: A ZERO-EXTENSION GCC KNOWS IT DOES NOT NEED.
  *
- * Source asm: goldensun/asm/rom_b5000/rom_bbb0c_a_c_c_a.s
- * Best screen: 8 instructions in disagreeing regions, of 25 (streams same length).
+ * 24 lines against the ROM's 25 -- ONE SHORT -- with 16 differing. The twelfth
+ * and last TickStatusCounter; its ten siblings in rom_bbb0c_a_c_c_a_a.c and its
+ * eleventh in rom_bbb0c_a_c_c_a_b.c all matched this round and last.
  *
- * BLOCKER CLASS: constant-CSE.  The two byte offsets this function uses are
- * 0x146 (written `0xa3 << 1`, which is how the ROM builds it: `mov r3, #0xa3 /
- * lsl r3, #1`) and 0x147.  They differ by one, and gcc SEES that:
+ * The batch-178 double-read lever IS working here -- the ROM's
+ * `ldrb r2, [r1] / mov r3, r2 / cmp r3, #0` comes out right. What is missing is
+ * one instruction further on:
  *
- *      rom   ldr r1, =0x147        <- fresh from the literal pool
- *      rom   add r2, r0, r1
- *      ours  add r0, #0x1          <- derived from the 0x146 already in hand
- *      ours  add r2, r1, r0
+ *     rom    strb r3, [r1] / lsl r3, #0x18 / lsr r3, #0x18 / cmp r3, #0
+ *            ... strb r3, [r2]          <- stores the ZERO-EXTENDED value
  *
- * Because gcc wants r0 for that arithmetic, it also copies the _GetUnit result
- * out of r0 into r1 (`mov r1, r0`), which the ROM never does, and the copy
- * drags a further register renaming through the rest of the body.
+ *     ours   lsl r3, r2, #0x18 / strb r2, [r1] / cmp r3, #0
+ *            ... strb r2, [r3]          <- stores the raw value
  *
- * WHAT WAS TRIED
+ * This function differs from its eleven siblings in one way: after the counter
+ * reaches zero it writes that value into a companion byte at 0x147, rather than
+ * writing a separately-materialised zero. The ROM therefore needs the counter
+ * zero-extended -- `lsl`+`lsr` in place -- and both tests it and stores it.
  *
- *  1. Naming both offsets as locals (`k = 0xa3 << 1; off = 0x147;`).  8 of 25.
- *  2. Inlining both offset expressions with no locals at all.  Identical
- *     output, 8 of 25 -- gcc relates the two constants either way.
+ * gcc will not produce the pair, because it is right not to: `strb` truncates
+ * on its own, so the raw register serves the store, and a test for zero needs
+ * only the three-operand `lsl` into a scratch. The ROM's compiler materialised
+ * a value gcc can prove is unnecessary. There is no source spelling for "please
+ * compute this redundantly".
  *
- * THREE SPELLINGS THAT DID EACH FIX A REAL PIECE and are kept below, since
- * without them this sits at 17 of 25:
+ * MEASURED (rom 25 lines):
+ *   `if (*p != 0) goto fail; *(u+0x147) = *p;`        24 lines, 16 differing
+ *   the positive form, `if (*p == 0) { store; return 1; }`
+ *                                                     24, 16  (byte-identical)
+ *   an `unsigned char v = *p` between store and test  24, 20
+ *   an `int n = *p` between store and test            24, 20 -- and here gcc
+ *     emits a fresh `ldrb` reload rather than the truncation, which is the
+ *     same instruction count and a different wrong answer
  *
- *  - Shared-exit `goto fail`, not two `return 0`s.  The ROM has one epilogue
- *    reached by `mov r0, #1 / b L1` from the success path and by falling into
- *    `L0: mov r0, #0` from both failures.
- *  - `t = t + 0xff` rather than `t = t - 1`.  The ROM's `add r3, #0xff` is not
- *    a peephole for the subtract; writing the subtract emits `sub r2, #0x1`.
- *  - Narrowing IN PLACE as its own statement, `t = (unsigned char)t;` before
- *    the test.  Written as a cast inside the condition, the narrowed value
- *    becomes a new temporary and gcc emits the three-operand
- *    `lsl r3, r2, #0x18` where the ROM has the destructive `lsl r3, #0x18`.
+ * The two named-intermediate spellings are WORSE for the reason batch 178
+ * established: naming collapses the double read that the first half of the
+ * function depends on, and the diff moves from line 9 back to line 2.
+ *
+ * WHAT IS RIGHT: the `mov`+`lsl` construction of the even 0xa3<<1 offset, the
+ * pooled 0x147 companion offset, the CSEd double read, the `add r3, #0xff`
+ * decrement rather than `(*p)--`, the inverted `bne` guard that distinguishes
+ * this sibling from the others, and the shared `mov r0, #0` exit.
  */
 extern unsigned char *_GetUnit(void);
 
 int Func_80bf574(void)
 {
-    unsigned char *p;
-    unsigned char *q;
-    unsigned char *r;
-    unsigned int k;
-    unsigned int off;
-    int v;
-    int t;
+	unsigned char *u;
+	unsigned char *p;
 
-    p = _GetUnit();
-    k = 0xa3 << 1;
-    q = p + k;
-    v = *q;
-    t = v;
-    if (t == 0)
-        goto fail;
-    t = t + 0xff;
-    *q = t;
-    t = (unsigned char)t;
-    if (t != 0)
-        goto fail;
-    off = 0x147;
-    r = p + off;
-    *r = t;
-    return 1;
+	u = _GetUnit();
+	p = u + (0xa3 << 1);
+	if (*p == 0)
+		goto fail;
+	*p = *p + 0xff;
+	if (*p != 0)
+		goto fail;
+	*(u + 0x147) = *p;
+	return 1;
 fail:
-    return 0;
+	return 0;
 }

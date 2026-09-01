@@ -12321,3 +12321,106 @@ function's address:
 > For a multi-function TU: the marker at the first address proves the TU was
 > compiled from C, and the remaining symbols at their exact ROM addresses prove
 > the layout. Do not read a missing marker on functions 2..N as a failure.
+
+## The CSEd-second-read shape is a SELECTOR, and it is read off the assembly
+
+Batch 178's lever came with something no other lever in this notebook has: a
+signature visible in the reference itself, before any C is written. A load into
+rA immediately followed by `mov rB, rA` is the tell.
+
+`tools/cse_reload.py` reports it. At the time of writing, **344 remaining
+functions show it and 89 of those are already parked** — and the parked ones are
+the better hunting ground, because a park that recorded "a redundant copy we
+cannot produce" was usually one spelling away from matching.
+
+Two confirmations outside the family that produced the lever, both first-screen:
+
+- `Func_80b06ec` — four `ldrb r2, [r0] / mov r3, r2 / cmp r3, #0` groups, parked
+  at four lines short. Its park had even written down *"that `mov` is the
+  signature of the value being read into one variable and TESTED THROUGH
+  ANOTHER"* and then not acted on it.
+- `Func_801cee0` — three of them, one per switch arm, parked at three lines
+  short.
+
+The count is a hint, not a promise: a load-then-copy also appears at a jump
+table's `mov pc, r3`, at a return value reloaded from the stack, and wherever
+the allocator simply wanted a different register. Read the function. What the
+shape is *reliably* good at is the opposite direction — **a body that comes out
+short against a reference showing it is missing reads, and the fix is to remove
+a name rather than add one.**
+
+## A COUNT IS NOT A DISTANCE
+
+`Func_801cee0` produced two candidate spellings and the better one has more
+differing lines:
+
+    shared join via `break`         48 lines, 4 differing
+    store-and-return arms           48 lines, 17 differing
+
+The 4 are two inverted conditional branches — `bls join / b exit` where the ROM
+has `bhi exit / b join`, in two of three arms. That is a real difference in
+control flow, and it was source-inert across the plain `break`, an explicit
+`goto inc`, an explicit `goto out`, and three jump-optimisation flags.
+
+The 17 are one register rotation: the ROM holds the pointer in r1 and the
+offset-then-value in r2, and we do the reverse, consistently, in every one of
+the seventeen. The control flow is exact.
+
+> **A residue of N identical differences is closer than a residue of two
+> different ones.** Rank a screen by how many DISTINCT causes its diff has, not
+> by the line count. The park keeps the structurally exact version.
+
+The corollary is about which lever to reach for. The 4-differing version had
+already consumed every branch-shape probe available; the 17-differing version
+has one open question (the rotation) and it is a known class with known
+specimens. The second is where a future round can make progress.
+
+## Cross-jumping is a SYMPTOM of argument order
+
+`Func_801bcd4` dispatches through a jump table to five loaders, two of which are
+the same function called with different constants. gcc merges those two arms and
+the ROM does not:
+
+    rom    mov r2, r4 / mov r0, r5 / mov r1, #0x3a / bl LoadInventoryIcon
+           mov r2, r4 / mov r0, r5 / mov r1, #0x2a / bl LoadInventoryIcon
+
+    ours   mov r0, r6 / mov r1, #0x3a / b L11
+           mov r0, r6 / mov r1, #0x2a / L11: mov r2, r4 / bl LoadInventoryIcon
+
+jump.c merges common SUFFIXES. The ROM sets r2, then r0, then r1, so the only
+suffix the two arms share is the `bl` itself and nothing merges. We set r0, r1,
+r2, which makes `mov r2, r4 / bl` a two-instruction common suffix — long enough.
+
+> **Do not look for a way to disable cross-jumping. Look at the argument order
+> that made the suffix long enough to merge.** The merge is downstream.
+
+Here the fix is not available: the recorded return-type lever moves r0 relative
+to the other argument registers when the callee returns a value, and declaring
+the callees `int` — all five, or only the merged one — is byte-identical to the
+`void` version. The lever cannot make r2 be chosen first.
+
+## The gState fold has a cosmetic half and a real half
+
+Two different things wear the same appearance and only one of them costs
+instructions.
+
+**Cosmetic.** `gState` is an absolute symbol (`wram.sym`: `gState = 0x02000240`),
+so a reference to it canonicalises as either `=gState` or `=0x2000240` depending
+on whether gcc emits a relocation or the folded value. `tryc` counts that as a
+differing line and it is worth nothing.
+
+**Real.** Written `*(int *)(gState + (0xfa << 1))` gcc folds base and offset into
+ONE pool entry, `ldr r3, =gState+500`. The ROM builds it at runtime:
+
+    ldr r3, =0x2000240 / mov r1, #0xfa / lsl r1, #0x1 / add r3, r1
+
+That is three instructions, and a local `g = gState;` restores them.
+`Player_ExitStairs` went from 69 lines to the ROM's exact 72 on that one change.
+
+> Before chasing a pool-entry difference, check the LENGTH. If the bodies are
+> the same length the pool spelling is canonicalisation and there is nothing
+> there. If yours is three short beside it, the base needs naming.
+
+**And naming the offset undoes it.** Adding `k = 0xfa << 1;` alongside the named
+base folds the address again — 71 lines and 65 differing. The base wants a name;
+the offset must stay an expression.
