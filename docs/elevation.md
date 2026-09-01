@@ -11686,3 +11686,76 @@ hand-written assembly with a private calling convention, which is why the census
 keeps `audio` as its own class. Every scan in this tree kept offering them;
 `tools/lowpressure.py` now rejects any body that reads r4-r7 before writing it
 and never pushes it.
+
+## The arg-interleave wall IS reachable -- the basic-block lever, first success
+
+`OvlFunc_921_2008384` reached the ROM's exact 133 lines with eight differing,
+and all eight were four copies of the recorded arg-interleave shape:
+
+    rom    mov r1, #0x80 / mov r0, #0x8 / lsl r1, #0x1 / mov r2, #0x28
+    ours   mov r1, #0x80 / lsl r1, #0x1 / mov r0, #0x8 / mov r2, #0x28
+
+The ROM splits the two-instruction build of an argument around another
+argument's `mov`. Batch 42 read `local-alloc.c` and concluded the split comes
+from `update_equiv_regs` declining to keep an equivalence when the pseudo is
+live in more than one basic block -- so **assigning the constant in a block that
+DOMINATES the call, and holds none of its uses, forces the split**. Several
+functions have been parked on this since, every one of them straight-line, and
+`src/non_matching/ovl_7cb2c0/200bdec.c` says explicitly that a call does not
+create the block the lever needs.
+
+This function has two early-return `if`s before the affected calls, so the entry
+block genuinely dominates them. Declaring four locals, assigning the four
+constants at the top, and passing the locals matches:
+
+```c
+    e1 = 0x80 << 1;  e2 = 0xd0 << 8;  e3 = 0x19999;  e4 = 0xc0 << 6;
+    if (__GetFlag(0x881) != 0) { ... return; }
+    if (__GetFlag(0x82b) != 0) { ... return; }
+    ...
+    __MapActor_Emote(8, e1, 0x28);
+```
+
+Eight differing to zero. **The wall is not the interleave -- it is the absence
+of a dominating branch.** When a function has one, the lever works, and it is
+worth checking the control-flow graph before parking anything on this class.
+
+Note this does NOT contradict "naming a constant cannot create register
+pressure" (batch 172). That entry is about a ROM holding a literal in a register
+for its own sake; this is about where gcc is willing to REBUILD one.
+
+## Naming a stored value stops the halfword-store pooling -- and can delete a pool skip
+
+Batch 175 recorded that gcc pools a small literal stored through a halfword
+pointer, and that this is normal output rather than a `_CONST_*` tell.
+`OvlFunc_921_2008384` is the case where the ROM does NOT pool it:
+
+| spelling | result |
+|---|---|
+| `*(short *)a = 0xa;` | `ldr r3, =0xa`, 135 lines against 133, 66 differing |
+| `*(unsigned short *)a = 0xa;` | identical |
+| `n = 0xa; *(short *)a = n;` | **`mov r3, #0xa`, 133 lines, 10 differing** |
+
+Naming the value takes it out of the pool. The two-line gain is the interesting
+part and it is not the `mov`/`ldr` swap: removing the pool ENTRY removed a whole
+pool, and with it the `b <next label>` gcc had been emitting to step over it.
+
+> A pooled constant costs more than its own instruction. If a function is one or
+> two lines long next to a pool skip, look for a pool entry to eliminate.
+
+Together with batch 175's entry the rule is: gcc pools a small literal at a
+halfword store **when it is written as a literal**, and does not when it is
+written through a named local. The ROM tells you which.
+
+## Extending the band is cheaper than mining the parks
+
+Two consecutive rounds returned one elevation and then none, because the clean
+20-120 instruction band was worked out -- eight functions left, four of them
+m4a. Raising the ceiling to 260 instructions returned **thirteen fresh clean
+candidates**, most of them zero-callee-saved cutscene scripts, and the first one
+tried matched.
+
+Long functions are not harder in proportion to their length. A 130-instruction
+script with 41 calls is 41 easy transcriptions and one or two real questions;
+the work scales with the number of DISTINCT residues, not with size. **When a
+band empties, raise the ceiling before changing method.**
