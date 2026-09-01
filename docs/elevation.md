@@ -11946,3 +11946,51 @@ That test also re-confirmed the batch-172 stale-object trap FROM THE OTHER SIDE:
 after removing the `.c` and restoring the `.s`, `make compare` still failed
 until the `.o` was deleted by hand. The object is built from whichever source
 existed last, and make does not notice the swap in either direction.
+
+## The branch-over-pool class was never blocked -- 501 functions reopened
+
+`tools/poolblocked.py` reported 501 of 1979 remaining functions -- a quarter of
+the corpus -- as CERTAIN, and `census.py` counted them the same way. The premise:
+
+> "old_agbcc emits a function's constant pool at `.func_end` and never in the
+>  middle. That `b` is a real instruction we cannot produce."
+
+**That premise is about old_agbcc**, which in this tree builds five m4a and
+agb_flash objects and nothing else. Every elevated function is compiled by
+gcc-2.96, and gcc-2.96 emits mid-body pools with skip jumps routinely.
+Compiling a plain transcription of `Func_80bad7c` -- no lever applied -- gives
+two of them:
+
+        b       .L10
+    .L19:
+        .align  2, 0
+    .L18:
+        .word   256
+        .word   iwram_3001e74
+    .L3:
+
+The supporting measurement ("mid-function pools appear in ZERO of the elevated
+translation units") was true and circular: the tool rejected every candidate
+that would have one, so none was ever attempted, so the count stayed at zero.
+
+**A third of the class has no pool at all.** `.pool_aligned` is a macro that
+flushes pending literals and emits nothing when there are none. The test looked
+for the directive with code after it and counted the MARKER, not the data.
+`CreateSpriteLayer` was reported blocked on two empty markers whose `b`
+instructions are a loop-entry jump and a branch to the epilogue. Splitting the
+501 by whether data actually precedes the marker gives roughly 167 empty and 334
+real (the boundary moves with how far back you look; a hand count with a wider
+window gave 235/266).
+
+So: **zero certain blockers in the class.** Treat a reported function as a
+candidate that will need pool placement watched, and remember that placement
+follows the pool's CONTENTS -- removing one entry by naming a stored value
+removed a whole pool and its skip jump in `OvlFunc_921_2008384` and twice in
+`ovl_7fa4ec/2008da4.c`.
+
+**The general lesson is about how a blocker class gets recorded.** This one was
+adopted on a compiler-behaviour claim plus a corpus measurement, and the
+measurement could not have come out any other way once the claim was acted on.
+When a class is declared CERTAIN, the test that would falsify it is to
+transcribe one member and look at the generated asm -- not to count the
+already-matching corpus, which by construction contains only what was attempted.

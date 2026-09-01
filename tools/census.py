@@ -37,8 +37,14 @@ WHAT THE CLASSES MEAN, and how much to trust each line:
                    Nobody has read them one by one to say which is which, so do
                    not read this count as 51 recoverable functions. They also
                    assemble into the ROM today and block nothing.
-  branch-over-pool CERTAIN. The function BRANCHES OVER its own literal pool and
-                   old_agbcc only emits one at .func_end. This file DEFERS to
+  branch-over-pool NOT A BLOCKER -- CORRECTED. The function branches over its own
+                   literal pool. This was counted as CERTAIN on the premise that
+                   the compiler cannot emit a mid-body pool; that premise is
+                   about old_agbcc, and gcc-2.96 emits them routinely (see
+                   tools/poolblocked.py, which now demonstrates it). These are
+                   candidates like any other -- expect to fight over pool
+                   placement, which follows the pool's CONTENTS and is therefore
+                   reachable from C. The original test is still This file DEFERS to
                    tools/poolblocked.py rather than reimplementing the test,
                    because two looser definitions were tried here and both were
                    wrong:
