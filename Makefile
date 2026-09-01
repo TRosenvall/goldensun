@@ -240,6 +240,19 @@ asm/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_c_c_c_c_b.o: src/overlays/rom_7e3e0
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# OvlFunc_969_20083a0 is a velocity integrator: three `int` fields at +0x08,
+# +0x0c and +0x10 are advanced by three more at +0x44, +0x48 and +0x4c, and the
+# last statement writes through a POINTER read out of the struct at +0x50. At
+# -O2 strict aliasing lets gcc assume that pointer cannot alias the struct, so
+# it hoists the `ldr r1, [r5, #0x50]` three instructions early to hide its
+# latency. The ROM leaves the load where the source puts it. Five differing
+# lines -> two, and those two are `bl __divsi3` against `bl _divsi3_RAM`, which
+# this overlay's ld already resolves with `__divsi3 = _divsi3_RAM;`.
+asm/overlays/rom_7f6e64/ovl_314_a_a_a_c.o: src/overlays/rom_7f6e64/ovl_314_a_a_a_c.c
+	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 
 # One translation unit matches only with GLOBAL CSE turned off. Its inner loop
 # steps a value by a constant, and at -O2 gcc sinks the constant's pool load
