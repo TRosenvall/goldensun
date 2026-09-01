@@ -11347,3 +11347,63 @@ and the two functions differ across their entire first half. The tree's
 `_a/_b/_c` splits keep genuinely related routines adjacent, and every ranking
 here is blind to that adjacency. **Before ranking anything, look at what is
 already solved in the target's own family.**
+
+## `ldmia rN!, {rM}` for ONE word, outside a loop, is an explicit `*p++`
+
+`Func_8011590` reads two adjacent pointer globals and the ROM does it like this:
+
+    ldr   r3, =iwram_3001e6c
+    ldmia r3!, {r5}          <- one word, post-incrementing
+    ldr   r7, [r3, #0x0]
+
+An `ldmia` with a single register in the list is not a block move; it is a load
+with writeback, and gcc-2.96 emits it when the source **walks a pointer**.
+Indexing the same two slots gives the plain form and, here, the opposite order:
+
+| spelling | result vs a 46-line ROM |
+|---|---|
+| `a = p[0]; base = p[1];` | 46 lines, 2 differing -- `ldr r7,[r3,#4]` then `ldr r5,[r3,#0]` |
+| `q = p; a = *q++; base = *q;` | **matches** |
+
+Two things follow. The obvious one is the spelling. The less obvious one is that
+the two globals had to be reached through **one** declaration
+(`extern unsigned char *iwram_3001e6c[];`) rather than two separate `extern`s at
+their own addresses -- gcc cannot know two independent externs are four bytes
+apart, so it would pool both. Adjacent globals that the ROM reaches from a
+single pool entry are one array, and `wram.sym` confirms the addresses.
+
+## An offset belongs in the LOAD, not in the address, when the ROM keeps a bare base
+
+`Func_80058ac` reads a halfword out of a 16-byte stack buffer:
+
+    rom    mov r3, sp / ldrh r3, [r3, #0x8]
+    ours   add r3, sp, #0x8 / ldrh r3, [r3, #0x0]
+
+Same two instructions, but the ROM's base register is the buffer itself and the
+offset rides in the load. `*(unsigned short *)(buf + 8)` on an
+`unsigned char buf[0x10]` folds the offset into the address. Declaring the
+buffer with the type it is actually read as -- `unsigned short buf[8]` -- and
+writing `buf[4]` matches.
+
+This is the same materialisation question as the named-index rule, pointed the
+other way. There, naming a sum forced it into an index register. Here, letting
+the ACCESS carry the offset keeps it out of the address computation. The
+discriminator is in the ROM: **if the base register holds a bare pointer and the
+constant rides in the load, the source indexed a typed array; if the constant is
+added into the register first, the source did pointer arithmetic on bytes.**
+
+## A caller and a callee can disagree about the prototype, and the ROM shows it
+
+`Func_80058ac` masks its argument to 16 bits at entry (`lsl #16 / lsr #16`),
+which says its parameter is a `u16`. Its caller `Func_8005a78` passes the value
+**unmasked**. Declaring the callee `unsigned short` at the call site adds a
+mask the ROM does not have, two extra instructions; declaring it `int` matches.
+
+So the two translation units did not share a prototype -- the caller either had
+none, or had one with a wider parameter. That is ordinary for this era, and it
+means **a callee's parameter type is a per-call-site fact, not a global one**.
+Do not propagate a definition's narrow parameter type into the `extern` at a
+call site unless the caller's assembly actually narrows.
+
+The tell is cheap to read: a mask at the *callee's* entry and no mask at the
+*caller's* call site is exactly this disagreement.
