@@ -23,7 +23,7 @@ fact is worse than an honest placeholder.
 
 451 elevated functions carry a real name already; **3294 still carry a `Func_`/`OvlFunc_` placeholder**, and those are the naming job.
 
-This file proposes **299** of them (9.1%).
+This file proposes **432** of them (13.1%).
 
 ## Actor engine — 7 functions
 
@@ -176,6 +176,20 @@ This file proposes **299** of them (9.1%).
 |---|---|---|---|---|---|---|
 | `Func_80f7db4` | `0x080f7db4` | `InitDictionary` | read | Compression | Initialises the 0x400-entry dictionary at ewram_2004c00, writing each entry's index alongside a zeroed link field. | `src/compress/dictionary.c` |
 
+## Debug menu — 9 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_80251d4` | `0x080251d4` | `PackCoordPair` | read | Debug menu | Masks both arguments to ten bits and stores them as a packed coordinate pair. Which coordinates is not established by the body. | `src/ui/debug_menu.c` |
+| `Func_80284dc` | `0x080284dc` | `Debug_StartMenuTask` | read | Debug menu | Reserves the debug menu's EWRAM block and starts Func_8028194 as its task. | `src/ui/debug_menu.c` |
+| `Func_802851c` | `0x0802851c` | `Debug_MenuTick` | read | Debug menu | The debug menu's per-frame update over its box handle and entry count. | `src/ui/debug_menu.c` |
+| `Func_802899c` | `0x0802899c` | `Debug_BuildMenuBar` | read+callee | Debug menu | Populates the debug menu bar with its options and steps the fade in. | `src/ui/debug_menu.c` |
+| `Func_80289e8` | `0x080289e8` | `Debug_ApplyWarp` | read | Debug menu | Applies the selected warp destination from .L3740f into the two EWRAM coordinate halfwords. | `src/ui/debug_menu.c` |
+| `Func_8028aa8` | `0x08028aa8` | `Debug_ShowMessage` | read+callee | Debug menu | Opens message _MSG_c7b in the debug window. | `src/ui/debug_menu.c` |
+| `Func_8028b80` | `0x08028b80` | `Debug_ShowSmallText` | read+callee | Debug menu | Closes the debug window and redraws it with the small-text renderer. | `src/ui/debug_menu.c` |
+| `Func_8028edc` | `0x08028edc` | `Debug_StartWarpMenu` | read | Debug menu | Starts Debug_WarpMenu at priority 0xc80. | `src/ui/debug_menu.c` |
+| `Func_80294d0` | `0x080294d0` | `NullSub_80294d0` | read | Debug menu | Empty body. | `src/ui/debug_menu.c` |
+
 ## Field — 5 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
@@ -191,6 +205,12 @@ This file proposes **299** of them (9.1%).
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
 |---|---|---|---|---|---|---|
 | `Func_80f037c` | `0x080f037c` | `BuildAffineRampTable` | read | Graphics | Fills a 512-word buffer in four runs -- 32 words of 0x01ff01ff, 240 stepping by 0x00020002 from 0x00010000, 48 more of 0x01ff01ff and 192 zeroes. A packed pair of 16-bit ramps. | `src/graphics/affine.c` |
+
+## Inventory UI — 1 function
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_8025180` | `0x08025180` | `GetItemDisplayFlags` | read | Inventory UI | Reads the display flag bytes out of an item record at +2 and +0xc. | `src/ui/inventory_ui.c` |
 
 ## Map rendering — 24 functions
 
@@ -323,6 +343,31 @@ This file proposes **299** of them (9.1%).
 | `Func_80ad658` | `0x080ad658` | `Menu_StopFieldTasks` | read | Menus | Stops the field tasks in slots 0x89 through 0x8c. | `src/menu/menu_field.c` |
 | `Func_80ae88c` | `0x080ae88c` | `Menu_LoadSummonSprites` | read | Menus | Allocates and uploads the two sheets at .Laed4c and .Laedcc, the same shape as Menu_LoadStatusSprites. | `src/menu/menu_sprite.c` |
 
+## Name entry — 3 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_801d0f0` | `0x0801d0f0` | `Menu4_Stop` | read | Name entry | Stops Func_801cf48 and releases the tag-0x14 block. | `src/ui/name_entry.c` |
+| `Func_801d980` | `0x0801d980` | `Menu4_Start` | read | Name entry | Reserves the 0x628-byte EWRAM block under tag 0x14 and starts the module's task. | `src/ui/name_entry.c` |
+| `Func_801d9bc` | `0x0801d9bc` | `Menu4_Stop2` | read+family | Name entry | The second stop routine, against Func_801d94c rather than Func_801cf48. | `src/ui/name_entry.c` |
+
+## Option menu — 12 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_801a778` | `0x0801a778` | `Menu2_Reset` | read | Option menu | Zeroes the option menu block's cursor and count fields. | `src/ui/option_menu.c` |
+| `Func_801a7c0` | `0x0801a7c0` | `Menu2_AddPoint` | read | Option menu | Appends an (x, y) pair to the sixteen-entry point arrays at +0x354 and bumps the count. | `src/ui/option_menu.c` |
+| `Func_801a90c` | `0x0801a90c` | `NullSub_801a90c` | read | Option menu | Empty body. | `src/ui/option_menu.c` |
+| `Func_801a968` | `0x0801a968` | `Menu2_StartTask` | read | Option menu | Starts Func_801a98c at priority 200 << 4. | `src/ui/option_menu.c` |
+| `Func_801a97c` | `0x0801a97c` | `Menu2_StopTask` | read | Option menu | Stops Func_801a98c. | `src/ui/option_menu.c` |
+| `Func_801b148` | `0x0801b148` | `Menu2_UnlinkNode` | read | Option menu | Removes a node from the option menu's linked list. | `src/ui/option_menu.c` |
+| `Func_801b1ec` | `0x0801b1ec` | `Menu2_SetCursorPos` | read | Option menu | Writes the cursor's two coordinate halfwords at block +0x396. | `src/ui/option_menu.c` |
+| `Func_801b228` | `0x0801b228` | `Menu2_DrawArrows` | read+callee | Option menu | Draws both menu arrow cursors, left and right. | `src/ui/option_menu.c` |
+| `Func_801b398` | `0x0801b398` | `Menu2_RunCursor` | read | Option menu | The cursor loop: reads gKeyPress and gKeyRepeat, moves the selection and redraws each frame. | `src/ui/option_menu.c` |
+| `Func_801ba34` | `0x0801ba34` | `Menu2_BuildOptionList` | read | Option menu | Builds a six-entry option id list from the record at block +0x348 and hands it to the battle text layer. | `src/ui/option_menu.c` |
+| `Func_801c2f0` | `0x0801c2f0` | `Menu2_ResetAndWait` | read+callee | Option menu | Resets the option menu block and waits a frame for the redraw. | `src/ui/option_menu.c` |
+| `Func_801c304` | `0x0801c304` | `Menu2_Open` | read+callee | Option menu | Brings the option menu up: builds its nodes, draws the arrows, starts its task and selects the first entry. | `src/ui/option_menu.c` |
+
 ## Overlay 974 / debug — 1 function
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
@@ -388,6 +433,31 @@ This file proposes **299** of them (9.1%).
 |---|---|---|---|---|---|---|
 | `Func_8005b64` | `0x08005b64` | `SetupSoundChannelEntry` | read | Save / sound | Clears a sixteen-byte entry, seeds it from the eight-byte template at .L79b8, and hands it to Func_8005868 for the given channel. SUBSYSTEM UNCERTAIN -- it sits in the flash-save file but the record it fills was read as a sound-channel struct at elevation time. Re-check before renaming. | `src/save/save.c` |
 
+## Save UI — 8 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_801f704` | `0x0801f704` | `GetSaveSlotState` | read | Save UI | Reads the state byte for the current save slot out of the flash scratch block. | `src/ui/save_ui.c` |
+| `Func_801f9b4` | `0x0801f9b4` | `Save_ShowResultMessage` | read | Save UI | Picks between the two save result messages _MSG_0a and _MSG_0b and shows it. | `src/ui/save_ui.c` |
+| `Func_801fa3c` | `0x0801fa3c` | `Save_WriteAndConfirm` | read+callee | Save UI | Writes the save header and payload, then reports the outcome through the message pair. | `src/ui/save_ui.c` |
+| `Func_801fb48` | `0x0801fb48` | `Save_AskOverwrite` | read+callee | Save UI | Puts up the yes/no prompt before overwriting a slot and plays the confirm sound. | `src/ui/save_ui.c` |
+| `Func_801fba8` | `0x0801fba8` | `Save_LoadSlot` | read+callee | Save UI | Reads a slot back through the flash layer and reports success or failure. | `src/ui/save_ui.c` |
+| `Func_801fc84` | `0x0801fc84` | `Save_ConfirmLoad` | read+callee | Save UI | The yes/no confirmation wrapped around Save_LoadSlot. | `src/ui/save_ui.c` |
+| `Func_801fd84` | `0x0801fd84` | `Save_StartTask` | read | Save UI | Starts Func_801fd34 at priority 0xc80. | `src/ui/save_ui.c` |
+| `Func_801fd98` | `0x0801fd98` | `Save_StopTask` | read | Save UI | Stops Func_801fd34. | `src/ui/save_ui.c` |
+
+## Save menu — 7 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_801c3e8` | `0x0801c3e8` | `Menu3_Close` | read | Save menu | Closes the menu's box and stops its own task. | `src/ui/save_menu.c` |
+| `Func_801c428` | `0x0801c428` | `Menu3_CloseBox` | read | Save menu | Closes the box held at block +0x230 without stopping the task. | `src/ui/save_menu.c` |
+| `Func_801c458` | `0x0801c458` | `Menu3_Select` | read | Save menu | Forwards the selection to the party layer and returns 0. | `src/ui/save_menu.c` |
+| `Func_801c924` | `0x0801c924` | `Menu3_Refresh` | read | Save menu | A pure forward to the save menu's redraw. | `src/ui/save_menu.c` |
+| `Func_801c930` | `0x0801c930` | `Menu3_AllocBlock` | read | Save menu | Reserves the 0x1004-byte EWRAM block under tag 0x13 and zeroes its header. | `src/ui/save_menu.c` |
+| `Func_801c9bc` | `0x0801c9bc` | `NullSub_801c9bc` | read | Save menu | Empty body. | `src/ui/save_menu.c` |
+| `Func_801c9c8` | `0x0801c9c8` | `Menu3_Tick` | read | Save menu | The save menu's per-frame update over its 0x400-byte slot array. | `src/ui/save_menu.c` |
+
 ## Screen effects — 8 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
@@ -425,6 +495,16 @@ This file proposes **299** of them (9.1%).
 | `Func_8012d70` | `0x08012d70` | `SetLayerGroupAnim` | read | Sprites | Walks a layer group's ten sprite entries and points each at the requested animation in the group's sprite info. | `src/sprite/sprite.c` |
 | `Func_8012de8` | `0x08012de8` | `InitLayerGroupSprites` | read | Sprites | Binds a layer group's ten sprite entries to a sprite resource via InitSpriteLayer. | `src/sprite/sprite.c` |
 
+## Start menu — 5 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_8021360` | `0x08021360` | `GetStartMenuEntry` | read | Start menu | Returns an entry from .L37206 or .L37216 depending on a flag, bounded at index 8. | `src/ui/start_menu.c` |
+| `Func_8021750` | `0x08021750` | `StartMenu_AddIconOption` | read+callee | Start menu | Allocates a sprite for an option's icon and adds the option to the start menu. | `src/ui/start_menu.c` |
+| `Func_8021848` | `0x08021848` | `StartMenu_ResetOptions` | read | Start menu | Clears the option table at .L37250 through the RAM-resident fill. | `src/ui/start_menu.c` |
+| `Func_80219c8` | `0x080219c8` | `StartMenu_DrawOption` | read | Start menu | Draws one start-menu option using the layout table at .L37280. | `src/ui/start_menu.c` |
+| `Func_8021a18` | `0x08021a18` | `StartMenu_BuildPalette` | read | Start menu | Expands the packed palette at .L372c0 into the caller's buffer. | `src/ui/start_menu.c` |
+
 ## Town UI — 9 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
@@ -438,4 +518,112 @@ This file proposes **299** of them (9.1%).
 | `Func_80b26cc` | `0x080b26cc` | `GrantShopStock` | read | Town UI | Flag-gated once per shop id: sets the visited flag, walks that shop's 0x42-byte row in .Lb41ac and hands each listed entry to _Func_8078ad0. | `src/menu/shop.c` |
 | `Func_80b27b0` | `0x080b27b0` | `UnitHasCondition` | read | Town UI | Answers one of several per-unit condition questions selected by the second argument -- downed at +0x38, the signed byte at +0x131, the byte at +0x140 and so on. Which condition each index means is not established by this body. | `src/menu/sanctum.c` |
 | `Func_80b2884` | `0x080b2884` | `GetSanctumMessageId` | read | Town UI | Offsets a base message id by the gap between _MSG_d24 and one of _MSG_d2e/_MSG_d38/_MSG_d42, chosen by the state byte at iwram_3001f2c+0x3aa. | `src/menu/sanctum.c` |
+
+## UI panels — 8 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_801c0c8` | `0x0801c0c8` | `NullSub_801c0c8` | read | UI panels | Empty body; one of five consecutive empty subs in this file. | `src/ui/panel.c` |
+| `Func_801c17c` | `0x0801c17c` | `UI_FreeTiles` | read | UI panels | A pure forward to the OBJ tile free routine. | `src/ui/panel.c` |
+| `Func_801c188` | `0x0801c188` | `UI_CreatePanel` | read | UI panels | Allocates a panel's handle, tiles and graphics and fills in its record. | `src/ui/panel.c` |
+| `Func_801c21c` | `0x0801c21c` | `UI_ReleasePanelTiles` | read | UI panels | Releases a panel's OBJ tile allocation. | `src/ui/panel.c` |
+| `Func_801c2d0` | `0x0801c2d0` | `UI_StepFade` | read | UI panels | Advances the fade by one step and waits a frame. | `src/ui/panel.c` |
+| `Func_801c2e4` | `0x0801c2e4` | `UI_Refresh` | read | UI panels | A pure forward to the panel refresh routine. | `src/ui/panel.c` |
+| `Func_801ff14` | `0x0801ff14` | `Menu5_Stop` | read | UI panels | Stops the panel task and deletes its sprites. | `src/ui/panel.c` |
+| `Func_8020088` | `0x08020088` | `Menu5_Stop2` | read+family | UI panels | The same teardown against a different task and sprite set. | `src/ui/panel.c` |
+
+## UI sprites — 15 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_801eb64` | `0x0801eb64` | `UI_CreateIconSprite` | read+callee | UI sprites | Uploads an icon and registers it as a sprite, returning zero if the upload fails. First of five near-identical creators differing only in which loader they call. | `src/ui/ui_sprite.c` |
+| `Func_801eb90` | `0x0801eb90` | `UI_CreateItemIconSprite` | read+family | UI sprites | The LoadInventoryIcon member of the UI_Create*Sprite family. | `src/ui/ui_sprite.c` |
+| `Func_801ebd8` | `0x0801ebd8` | `UI_CreateOldIconSprite` | read+family | UI sprites | The LoadOldUIIcon member of the family; it also clears the byte at +0xf of the result. | `src/ui/ui_sprite.c` |
+| `Func_801ec24` | `0x0801ec24` | `UI_CreateBannerSprite` | read+family | UI sprites | The LoadUIBanner member of the family. | `src/ui/ui_sprite.c` |
+| `Func_801edcc` | `0x0801edcc` | `UI_ResetSpriteRec` | read | UI sprites | Zeroes a UI sprite record's fields, if the record exists. | `src/ui/ui_sprite.c` |
+| `Func_801eddc` | `0x0801eddc` | `UI_SetSpritePriority` | read | UI sprites | Writes the complement of the argument into the priority byte at +0xf. | `src/ui/ui_sprite.c` |
+| `Func_80209b0` | `0x080209b0` | `UI_CreateCursorSprite` | read | UI sprites | Allocates a sprite slot and uploads the cursor sheet at Data_310a4. | `src/ui/ui_sprite.c` |
+| `Func_8020aec` | `0x08020aec` | `UI_UploadCursorGFX` | read+family | UI sprites | Uploads 0x80 bytes of cursor graphics from Data_310a4 to a slot. | `src/ui/ui_sprite.c` |
+| `Func_8020b00` | `0x08020b00` | `UI_UploadArrowGFX` | read+family | UI sprites | The Data_317e4 twin of UI_UploadCursorGFX. | `src/ui/ui_sprite.c` |
+| `Func_80215e0` | `0x080215e0` | `UI_LoadIconSheet` | read | UI sprites | Allocates scratch, LZ-decompresses an icon sheet from Data_31864 into it, uploads it and frees the scratch. | `src/ui/ui_sprite.c` |
+| `Func_8021ab0` | `0x08021ab0` | `UI_LoadStatusIcon` | read+family | UI sprites | Decompresses a status icon into scratch, uploads it to a slot and frees the scratch. One of three identical loaders differing only in the decompressor. | `src/ui/ui_sprite.c` |
+| `Func_8021af0` | `0x08021af0` | `UI_LoadInventoryIcon` | read+family | UI sprites | The inventory-icon member of that loader trio. | `src/ui/ui_sprite.c` |
+| `Func_8021b30` | `0x08021b30` | `UI_LoadMoveIcon` | read+family | UI sprites | The move-icon member of that loader trio. | `src/ui/ui_sprite.c` |
+| `Func_8021c64` | `0x08021c64` | `UI_LoadFontSheet` | read | UI sprites | Loads file _FILE_f1, decompresses it into IWRAM scratch and uploads it as sprite graphics. | `src/ui/ui_sprite.c` |
+| `Func_8022a38` | `0x08022a38` | `UI_CreateMoveIconSprite` | read+family | UI sprites | Allocates a slot, loads a move icon into it and registers the sprite. | `src/ui/ui_sprite.c` |
+
+## UI text — 18 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_8017a64` | `0x08017a64` | `GetStringWidth` | read | UI text | Measures a string in pixels using the width table at Data_32224. | `src/ui/text.c` |
+| `Func_8018790` | `0x08018790` | `UI_DrawBufferedString` | read+callee | UI text | Buffers a string id and draws the result at the given position. | `src/ui/text.c` |
+| `Func_801999c` | `0x0801999c` | `UI_PollTextAdvanceHeld` | read+family | UI text | Text advance on a held key, gated on the music fade state. Paired with the press variant next door. | `src/ui/text.c` |
+| `Func_80199ec` | `0x080199ec` | `UI_PollTextAdvancePress` | read+family | UI text | The gKeyPress twin of UI_PollTextAdvanceHeld. | `src/ui/text.c` |
+| `Func_8019ba0` | `0x08019ba0` | `BufferStringLine` | read+callee | UI text | Buffers a string id with the line flag set. | `src/ui/text.c` |
+| `Func_801c46c` | `0x0801c46c` | `SetTextSpeed` | read | UI text | Writes the text-speed byte at gState+0x205 from a flag word. | `src/ui/text.c` |
+| `Func_801ca1c` | `0x0801ca1c` | `BuildPartyStatusList` | read | UI text | Builds a per-member status list into the caller's buffer from gState and the table at .L36750. | `src/ui/text.c` |
+| `Func_801cae0` | `0x0801cae0` | `SetTextPalette` | read+callee | UI text | Writes four blended entries into the text palette at 0x50001e8 through Func_801cbd4. | `src/ui/text.c` |
+| `Func_801cbd4` | `0x0801cbd4` | `BlendPaletteEntry` | read | UI text | Blends two colour masks through the ARM helper Func_8000888 and returns the result; SetTextPalette calls it four times. | `src/ui/text.c` |
+| `Func_801e7c0` | `0x0801e7c0` | `UI_DrawMessage` | read | UI text | Draws a message id into a box at the given offset, using the box's stored size. | `src/ui/text.c` |
+| `Func_801e858` | `0x0801e858` | `UI_DrawStringTemp` | read | UI text | Allocates a scratch buffer, renders a string into it, draws it and frees the buffer. | `src/ui/text.c` |
+| `Func_801e8b0` | `0x0801e8b0` | `UI_DrawStringInWindow` | read+family | UI text | The window-targeted variant of UI_DrawStringTemp. | `src/ui/text.c` |
+| `Func_801e9a0` | `0x0801e9a0` | `UI_DrawNumber` | read+callee | UI text | Formats a number into a sixteen-byte stack buffer with PrintNum and draws it. | `src/ui/text.c` |
+| `Func_801e9d4` | `0x0801e9d4` | `UI_DrawNumberInWindow` | read+family | UI text | The window-targeted member of the UI_DrawNumber trio. | `src/ui/text.c` |
+| `Func_801ea08` | `0x0801ea08` | `UI_DrawNumberText` | read+family | UI text | The third member, drawing through UIDrawText rather than the window path. | `src/ui/text.c` |
+| `Func_8020b14` | `0x08020b14` | `UI_DrawMenuLabel` | read | UI text | Draws one menu label string into the UI block's current window. | `src/ui/text.c` |
+| `Func_8021e48` | `0x08021e48` | `UI_ShowTextAndWait` | read+callee | UI text | Opens a text box and spins until the text has finished printing. | `src/ui/text.c` |
+| `Func_80228bc` | `0x080228bc` | `UI_FormatNumberString` | read+callee | UI text | Renders a number into gStringBuffer with FormatDecimalString and copies it out as halfwords. | `src/ui/text.c` |
+
+## UI windows — 47 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_8015ec0` | `0x08015ec0` | `UI_UnlinkWindow` | read | UI windows | Removes a window record from the window list held in the UI block at iwram_3001e8c. | `src/ui/window.c` |
+| `Func_8015ef4` | `0x08015ef4` | `UI_LinkWindow` | read | UI windows | The insert half of UI_UnlinkWindow, in the same file. | `src/ui/window.c` |
+| `Func_8016230` | `0x08016230` | `UI_ClearWindow` | read | UI windows | Clears a window's tile and attribute buffers and re-runs its two layout hooks. | `src/ui/window.c` |
+| `Func_8016478` | `0x08016478` | `UI_CloseAndFree` | read+callee | UI windows | Redraws a window's rect one last time and then releases its chain. | `src/ui/window.c` |
+| `Func_8016498` | `0x08016498` | `UI_RedrawWindowRect` | read | UI windows | Re-runs the tile fill over a window's stored rect, reading position and size from +8 through +0xe. | `src/ui/window.c` |
+| `Func_80164ac` | `0x080164ac` | `UI_FreeWindowChain` | read+callee | UI windows | Walks a window's child chain releasing each in turn. | `src/ui/window.c` |
+| `Func_801656c` | `0x0801656c` | `UI_ListTail` | read | UI windows | Follows a singly-linked list to its last node and returns it. | `src/ui/window.c` |
+| `Func_8016584` | `0x08016584` | `UI_ListAppend` | read | UI windows | Appends a node using the tail pointer cached at +4, updating both. | `src/ui/window.c` |
+| `Func_8016594` | `0x08016594` | `UI_ReleaseWindow` | read+callee | UI windows | Unlinks a window and frees its OBJ tile allocation if it holds one. | `src/ui/window.c` |
+| `Func_801671c` | `0x0801671c` | `UI_ClearTextLayer` | read | UI windows | Fills the 0xf00-byte text map at 0x6002500 with zero. | `src/ui/text.c` |
+| `Func_8016738` | `0x08016738` | `UI_FillTextLayer4` | read+family | UI windows | The same fill with 0x44444444 -- palette index 4 across the layer. | `src/ui/text.c` |
+| `Func_8016758` | `0x08016758` | `UI_ResetTextLayer` | read+callee | UI windows | Finds the text window record and clears its layer. | `src/ui/text.c` |
+| `Func_80167ac` | `0x080167ac` | `UI_CopyWindowRect` | read | UI windows | Copies the three rect halfwords from one window record to another. | `src/ui/window.c` |
+| `Func_80167d8` | `0x080167d8` | `UI_SetWindowState2` | read | UI windows | Writes state 2 into the halfword at +0x1c of a window record. | `src/ui/window.c` |
+| `Func_8016868` | `0x08016868` | `UI_UpdateMessage` | read | UI windows | Advances a message record: consumes pending characters and updates its flag word. | `src/ui/text.c` |
+| `Func_8017004` | `0x08017004` | `UI_UpdateWindowAnim` | read | UI windows | Steps a window's open/close animation through its three size halfwords. | `src/ui/window.c` |
+| `Func_8017364` | `0x08017364` | `UI_IsTextDone` | read | UI windows | Reports whether the text object at UI block +0x620 has finished printing. | `src/ui/text.c` |
+| `Func_8017394` | `0x08017394` | `UI_IsBoxIdle` | read | UI windows | True when a box's two pending counters at +0x16 and +0x1a are both zero. | `src/ui/window.c` |
+| `Func_80173ac` | `0x080173ac` | `UI_TickPanel` | read | UI windows | The per-frame panel update over the UI block's +0xea8 field group. | `src/ui/window.c` |
+| `Func_8017464` | `0x08017464` | `UI_StartPanelTask` | read | UI windows | Uploads the panel sprite sheet and starts Func_801789c as its task. | `src/ui/window.c` |
+| `Func_80174d8` | `0x080174d8` | `UI_CloseActiveBox` | read | UI windows | Closes the box held in the first slot of the block at iwram_3001ee4. | `src/ui/window.c` |
+| `Func_80175a0` | `0x080175a0` | `UI_PrintAndWait` | read+callee | UI windows | Prints the queued battle text and spins a frame at a time until UI_IsTextDone agrees. | `src/ui/text.c` |
+| `Func_8017620` | `0x08017620` | `UI_SetTextFlags` | read | UI windows | Sets the text control bytes at UI block +0x12fa from the caller's flag bits. | `src/ui/text.c` |
+| `Func_801789c` | `0x0801789c` | `UI_TickAll` | read+callee | UI windows | The UI task body: runs the window, message and panel updates in order. | `src/ui/window.c` |
+| `Func_8019000` | `0x08019000` | `UI_DrawWindowTiles` | read | UI windows | Writes a window's border and fill tiles from its size and palette fields. | `src/ui/window.c` |
+| `Func_80197b4` | `0x080197b4` | `UI_ClearHandle` | read | UI windows | Zeroes a handle word if it is set, returning the pointer. | `src/ui/window.c` |
+| `Func_80197c4` | `0x080197c4` | `UI_CloseAllBoxes` | read+callee | UI windows | Closes every open box in the UI block and waits out the close animation. | `src/ui/window.c` |
+| `Func_8019854` | `0x08019854` | `UI_SetBoxRect` | read | UI windows | Writes a box's four rect halfwords at +8 through +0xe. | `src/ui/window.c` |
+| `Func_8019a54` | `0x08019a54` | `UI_StepBoxScroll` | read | UI windows | Advances a box's scroll counters at +0x14/+0x16 toward the target at +0x18. | `src/ui/window.c` |
+| `Func_8019e48` | `0x08019e48` | `UI_ClosePortrait` | read+callee | UI windows | Closes the portrait box currently held by the UI block. | `src/ui/window.c` |
+| `Func_801a5a0` | `0x0801a5a0` | `NullSub_801a5a0` | read | UI windows | Empty body. | `src/ui/window.c` |
+| `Func_801ce6c` | `0x0801ce6c` | `Menu_TickBlinkCounter` | read | UI windows | Advances the blink counter at +0x574 and wraps it past 0x20000. | `src/ui/window.c` |
+| `Func_801cf44` | `0x0801cf44` | `NullSub_801cf44` | read | UI windows | Empty body. | `src/ui/window.c` |
+| `Func_801e260` | `0x0801e260` | `UI_FillRect` | read | UI windows | Fills a rectangle of the window map with a constant, row by row. | `src/ui/window.c` |
+| `Func_801e418` | `0x0801e418` | `NullSub_801e418` | read | UI windows | Empty body. | `src/ui/window.c` |
+| `Func_801ee68` | `0x0801ee68` | `UI_FillMapRect` | read | UI windows | Fills a halfword rectangle of a tilemap with a constant, taking the stride from the caller. | `src/ui/window.c` |
+| `Func_801eea0` | `0x0801eea0` | `UI_BuildPartyRows` | read+callee | UI windows | Builds one status row per living party member, sized by GetPartySize. | `src/ui/window.c` |
+| `Func_801ef08` | `0x0801ef08` | `UI_StepBoxAnim` | read | UI windows | Advances a box's open/close animation by one frame through its five leading fields. | `src/ui/window.c` |
+| `Func_801f5d4` | `0x0801f5d4` | `UI_CloseStatusBox` | read | UI windows | Closes the status box held at iwram_3001e90 and releases its block. | `src/ui/window.c` |
+| `Func_801f5f0` | `0x0801f5f0` | `UI_DrawStatusRow` | read | UI windows | Draws one party status row into its window from the record's size fields. | `src/ui/window.c` |
+| `Func_801fda8` | `0x0801fda8` | `UI_DrawBoxFrame` | read | UI windows | Draws a box's border tiles around the given rect. | `src/ui/window.c` |
+| `Func_8020a60` | `0x08020a60` | `UI_DrawWinContents` | read | UI windows | Draws a window's interior from its size halfwords. | `src/ui/window.c` |
+| `Func_8021bc8` | `0x08021bc8` | `GetDefaultUIPalette` | read | UI windows | Returns Data_73968[0]; any non-zero index is forced to zero, so the table has one live entry. | `src/ui/window.c` |
+| `Func_8021c34` | `0x08021c34` | `UI_CreateDebugBox` | read | UI windows | Creates a UI box and draws the fixed string at .L37300 into it. | `src/ui/window.c` |
+| `Func_8021dfc` | `0x08021dfc` | `UI_SetBG1Priority3` | read+family | UI windows | Sets BG1's priority bits to 3. | `src/ui/window.c` |
+| `Func_8021e14` | `0x08021e14` | `UI_ClearBG1Priority` | read+family | UI windows | Clears BG1's priority bits. | `src/ui/window.c` |
+| `Func_8021e28` | `0x08021e28` | `UI_ResetBG0AndIntr` | read | UI windows | Zeroes BG0VOFS and reinstalls the interrupt handler. | `src/ui/window.c` |
 

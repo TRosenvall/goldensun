@@ -322,3 +322,142 @@ Func_80c2384	GetEnemyGroupId	read	Battle	src/battle/battle_main.c	Returns the fi
 Func_80c23a0	GetEnemyGroupEntry	read	Battle	src/battle/battle_main.c	Returns a pointer into the .Lc7420 row for an encounter index, bounded at 0xab.
 Func_80c2470	GetItemBattleEffect	read	Battle	src/battle/battle_move.c	Masks an item id to 0x1ff and reads the battle effect byte out of its info record.
 Func_80c2a08	NullSub_80c2a08	read	Battle	src/battle/battle_main.c	Empty body.
+Func_8015ec0	UI_UnlinkWindow	read	UI windows	src/ui/window.c	Removes a window record from the window list held in the UI block at iwram_3001e8c.
+Func_8015ef4	UI_LinkWindow	read	UI windows	src/ui/window.c	The insert half of UI_UnlinkWindow, in the same file.
+Func_8016230	UI_ClearWindow	read	UI windows	src/ui/window.c	Clears a window's tile and attribute buffers and re-runs its two layout hooks.
+Func_8016478	UI_CloseAndFree	read+callee	UI windows	src/ui/window.c	Redraws a window's rect one last time and then releases its chain.
+Func_8016498	UI_RedrawWindowRect	read	UI windows	src/ui/window.c	Re-runs the tile fill over a window's stored rect, reading position and size from +8 through +0xe.
+Func_80164ac	UI_FreeWindowChain	read+callee	UI windows	src/ui/window.c	Walks a window's child chain releasing each in turn.
+Func_801656c	UI_ListTail	read	UI windows	src/ui/window.c	Follows a singly-linked list to its last node and returns it.
+Func_8016584	UI_ListAppend	read	UI windows	src/ui/window.c	Appends a node using the tail pointer cached at +4, updating both.
+Func_8016594	UI_ReleaseWindow	read+callee	UI windows	src/ui/window.c	Unlinks a window and frees its OBJ tile allocation if it holds one.
+Func_801671c	UI_ClearTextLayer	read	UI windows	src/ui/text.c	Fills the 0xf00-byte text map at 0x6002500 with zero.
+Func_8016738	UI_FillTextLayer4	read+family	UI windows	src/ui/text.c	The same fill with 0x44444444 -- palette index 4 across the layer.
+Func_8016758	UI_ResetTextLayer	read+callee	UI windows	src/ui/text.c	Finds the text window record and clears its layer.
+Func_80167ac	UI_CopyWindowRect	read	UI windows	src/ui/window.c	Copies the three rect halfwords from one window record to another.
+Func_80167d8	UI_SetWindowState2	read	UI windows	src/ui/window.c	Writes state 2 into the halfword at +0x1c of a window record.
+Func_8016868	UI_UpdateMessage	read	UI windows	src/ui/text.c	Advances a message record: consumes pending characters and updates its flag word.
+Func_8017004	UI_UpdateWindowAnim	read	UI windows	src/ui/window.c	Steps a window's open/close animation through its three size halfwords.
+Func_8017364	UI_IsTextDone	read	UI windows	src/ui/text.c	Reports whether the text object at UI block +0x620 has finished printing.
+Func_8017394	UI_IsBoxIdle	read	UI windows	src/ui/window.c	True when a box's two pending counters at +0x16 and +0x1a are both zero.
+Func_80173ac	UI_TickPanel	read	UI windows	src/ui/window.c	The per-frame panel update over the UI block's +0xea8 field group.
+Func_8017464	UI_StartPanelTask	read	UI windows	src/ui/window.c	Uploads the panel sprite sheet and starts Func_801789c as its task.
+Func_80174d8	UI_CloseActiveBox	read	UI windows	src/ui/window.c	Closes the box held in the first slot of the block at iwram_3001ee4.
+Func_80175a0	UI_PrintAndWait	read+callee	UI windows	src/ui/text.c	Prints the queued battle text and spins a frame at a time until UI_IsTextDone agrees.
+Func_8017620	UI_SetTextFlags	read	UI windows	src/ui/text.c	Sets the text control bytes at UI block +0x12fa from the caller's flag bits.
+Func_801789c	UI_TickAll	read+callee	UI windows	src/ui/window.c	The UI task body: runs the window, message and panel updates in order.
+Func_8017a64	GetStringWidth	read	UI text	src/ui/text.c	Measures a string in pixels using the width table at Data_32224.
+Func_8018790	UI_DrawBufferedString	read+callee	UI text	src/ui/text.c	Buffers a string id and draws the result at the given position.
+Func_8019000	UI_DrawWindowTiles	read	UI windows	src/ui/window.c	Writes a window's border and fill tiles from its size and palette fields.
+Func_80197b4	UI_ClearHandle	read	UI windows	src/ui/window.c	Zeroes a handle word if it is set, returning the pointer.
+Func_80197c4	UI_CloseAllBoxes	read+callee	UI windows	src/ui/window.c	Closes every open box in the UI block and waits out the close animation.
+Func_8019854	UI_SetBoxRect	read	UI windows	src/ui/window.c	Writes a box's four rect halfwords at +8 through +0xe.
+Func_801999c	UI_PollTextAdvanceHeld	read+family	UI text	src/ui/text.c	Text advance on a held key, gated on the music fade state. Paired with the press variant next door.
+Func_80199ec	UI_PollTextAdvancePress	read+family	UI text	src/ui/text.c	The gKeyPress twin of UI_PollTextAdvanceHeld.
+Func_8019a54	UI_StepBoxScroll	read	UI windows	src/ui/window.c	Advances a box's scroll counters at +0x14/+0x16 toward the target at +0x18.
+Func_8019ba0	BufferStringLine	read+callee	UI text	src/ui/text.c	Buffers a string id with the line flag set.
+Func_8019e48	UI_ClosePortrait	read+callee	UI windows	src/ui/window.c	Closes the portrait box currently held by the UI block.
+Func_801a5a0	NullSub_801a5a0	read	UI windows	src/ui/window.c	Empty body.
+Func_801a778	Menu2_Reset	read	Option menu	src/ui/option_menu.c	Zeroes the option menu block's cursor and count fields.
+Func_801a7c0	Menu2_AddPoint	read	Option menu	src/ui/option_menu.c	Appends an (x, y) pair to the sixteen-entry point arrays at +0x354 and bumps the count.
+Func_801a90c	NullSub_801a90c	read	Option menu	src/ui/option_menu.c	Empty body.
+Func_801a968	Menu2_StartTask	read	Option menu	src/ui/option_menu.c	Starts Func_801a98c at priority 200 << 4.
+Func_801a97c	Menu2_StopTask	read	Option menu	src/ui/option_menu.c	Stops Func_801a98c.
+Func_801b148	Menu2_UnlinkNode	read	Option menu	src/ui/option_menu.c	Removes a node from the option menu's linked list.
+Func_801b1ec	Menu2_SetCursorPos	read	Option menu	src/ui/option_menu.c	Writes the cursor's two coordinate halfwords at block +0x396.
+Func_801b228	Menu2_DrawArrows	read+callee	Option menu	src/ui/option_menu.c	Draws both menu arrow cursors, left and right.
+Func_801b398	Menu2_RunCursor	read	Option menu	src/ui/option_menu.c	The cursor loop: reads gKeyPress and gKeyRepeat, moves the selection and redraws each frame.
+Func_801ba34	Menu2_BuildOptionList	read	Option menu	src/ui/option_menu.c	Builds a six-entry option id list from the record at block +0x348 and hands it to the battle text layer.
+Func_801c0c8	NullSub_801c0c8	read	UI panels	src/ui/panel.c	Empty body; one of five consecutive empty subs in this file.
+Func_801c0cc	NullSub_801c0cc	read	UI panels	src/ui/panel.c	Empty body.
+Func_801c0d0	NullSub_801c0d0	read	UI panels	src/ui/panel.c	Empty body.
+Func_801c0d4	NullSub_801c0d4	read	UI panels	src/ui/panel.c	Empty body.
+Func_801c0d8	NullSub_801c0d8	read	UI panels	src/ui/panel.c	Empty body.
+Func_801c17c	UI_FreeTiles	read	UI panels	src/ui/panel.c	A pure forward to the OBJ tile free routine.
+Func_801c188	UI_CreatePanel	read	UI panels	src/ui/panel.c	Allocates a panel's handle, tiles and graphics and fills in its record.
+Func_801c21c	UI_ReleasePanelTiles	read	UI panels	src/ui/panel.c	Releases a panel's OBJ tile allocation.
+Func_801c2d0	UI_StepFade	read	UI panels	src/ui/panel.c	Advances the fade by one step and waits a frame.
+Func_801c2e4	UI_Refresh	read	UI panels	src/ui/panel.c	A pure forward to the panel refresh routine.
+Func_801c2f0	Menu2_ResetAndWait	read+callee	Option menu	src/ui/option_menu.c	Resets the option menu block and waits a frame for the redraw.
+Func_801c304	Menu2_Open	read+callee	Option menu	src/ui/option_menu.c	Brings the option menu up: builds its nodes, draws the arrows, starts its task and selects the first entry.
+Func_801c3e8	Menu3_Close	read	Save menu	src/ui/save_menu.c	Closes the menu's box and stops its own task.
+Func_801c428	Menu3_CloseBox	read	Save menu	src/ui/save_menu.c	Closes the box held at block +0x230 without stopping the task.
+Func_801c458	Menu3_Select	read	Save menu	src/ui/save_menu.c	Forwards the selection to the party layer and returns 0.
+Func_801c46c	SetTextSpeed	read	UI text	src/ui/text.c	Writes the text-speed byte at gState+0x205 from a flag word.
+Func_801c924	Menu3_Refresh	read	Save menu	src/ui/save_menu.c	A pure forward to the save menu's redraw.
+Func_801c930	Menu3_AllocBlock	read	Save menu	src/ui/save_menu.c	Reserves the 0x1004-byte EWRAM block under tag 0x13 and zeroes its header.
+Func_801c9bc	NullSub_801c9bc	read	Save menu	src/ui/save_menu.c	Empty body.
+Func_801c9c0	NullSub_801c9c0	read	Save menu	src/ui/save_menu.c	Empty body.
+Func_801c9c4	NullSub_801c9c4	read	Save menu	src/ui/save_menu.c	Empty body.
+Func_801c9c8	Menu3_Tick	read	Save menu	src/ui/save_menu.c	The save menu's per-frame update over its 0x400-byte slot array.
+Func_801ca1c	BuildPartyStatusList	read	UI text	src/ui/text.c	Builds a per-member status list into the caller's buffer from gState and the table at .L36750.
+Func_801cae0	SetTextPalette	read+callee	UI text	src/ui/text.c	Writes four blended entries into the text palette at 0x50001e8 through Func_801cbd4.
+Func_801cbd4	BlendPaletteEntry	read	UI text	src/ui/text.c	Blends two colour masks through the ARM helper Func_8000888 and returns the result; SetTextPalette calls it four times.
+Func_801ce6c	Menu_TickBlinkCounter	read	UI windows	src/ui/window.c	Advances the blink counter at +0x574 and wraps it past 0x20000.
+Func_801cf44	NullSub_801cf44	read	UI windows	src/ui/window.c	Empty body.
+Func_801d0f0	Menu4_Stop	read	Name entry	src/ui/name_entry.c	Stops Func_801cf48 and releases the tag-0x14 block.
+Func_801d980	Menu4_Start	read	Name entry	src/ui/name_entry.c	Reserves the 0x628-byte EWRAM block under tag 0x14 and starts the module's task.
+Func_801d9bc	Menu4_Stop2	read+family	Name entry	src/ui/name_entry.c	The second stop routine, against Func_801d94c rather than Func_801cf48.
+Func_801e260	UI_FillRect	read	UI windows	src/ui/window.c	Fills a rectangle of the window map with a constant, row by row.
+Func_801e418	NullSub_801e418	read	UI windows	src/ui/window.c	Empty body.
+Func_801e7c0	UI_DrawMessage	read	UI text	src/ui/text.c	Draws a message id into a box at the given offset, using the box's stored size.
+Func_801e858	UI_DrawStringTemp	read	UI text	src/ui/text.c	Allocates a scratch buffer, renders a string into it, draws it and frees the buffer.
+Func_801e8b0	UI_DrawStringInWindow	read+family	UI text	src/ui/text.c	The window-targeted variant of UI_DrawStringTemp.
+Func_801e9a0	UI_DrawNumber	read+callee	UI text	src/ui/text.c	Formats a number into a sixteen-byte stack buffer with PrintNum and draws it.
+Func_801e9d4	UI_DrawNumberInWindow	read+family	UI text	src/ui/text.c	The window-targeted member of the UI_DrawNumber trio.
+Func_801ea08	UI_DrawNumberText	read+family	UI text	src/ui/text.c	The third member, drawing through UIDrawText rather than the window path.
+Func_801eb64	UI_CreateIconSprite	read+callee	UI sprites	src/ui/ui_sprite.c	Uploads an icon and registers it as a sprite, returning zero if the upload fails. First of five near-identical creators differing only in which loader they call.
+Func_801eb90	UI_CreateItemIconSprite	read+family	UI sprites	src/ui/ui_sprite.c	The LoadInventoryIcon member of the UI_Create*Sprite family.
+Func_801ebd8	UI_CreateOldIconSprite	read+family	UI sprites	src/ui/ui_sprite.c	The LoadOldUIIcon member of the family; it also clears the byte at +0xf of the result.
+Func_801ec24	UI_CreateBannerSprite	read+family	UI sprites	src/ui/ui_sprite.c	The LoadUIBanner member of the family.
+Func_801edcc	UI_ResetSpriteRec	read	UI sprites	src/ui/ui_sprite.c	Zeroes a UI sprite record's fields, if the record exists.
+Func_801eddc	UI_SetSpritePriority	read	UI sprites	src/ui/ui_sprite.c	Writes the complement of the argument into the priority byte at +0xf.
+Func_801ee68	UI_FillMapRect	read	UI windows	src/ui/window.c	Fills a halfword rectangle of a tilemap with a constant, taking the stride from the caller.
+Func_801eea0	UI_BuildPartyRows	read+callee	UI windows	src/ui/window.c	Builds one status row per living party member, sized by GetPartySize.
+Func_801ef08	UI_StepBoxAnim	read	UI windows	src/ui/window.c	Advances a box's open/close animation by one frame through its five leading fields.
+Func_801f5d4	UI_CloseStatusBox	read	UI windows	src/ui/window.c	Closes the status box held at iwram_3001e90 and releases its block.
+Func_801f5f0	UI_DrawStatusRow	read	UI windows	src/ui/window.c	Draws one party status row into its window from the record's size fields.
+Func_801f704	GetSaveSlotState	read	Save UI	src/ui/save_ui.c	Reads the state byte for the current save slot out of the flash scratch block.
+Func_801f9b4	Save_ShowResultMessage	read	Save UI	src/ui/save_ui.c	Picks between the two save result messages _MSG_0a and _MSG_0b and shows it.
+Func_801fa3c	Save_WriteAndConfirm	read+callee	Save UI	src/ui/save_ui.c	Writes the save header and payload, then reports the outcome through the message pair.
+Func_801fb48	Save_AskOverwrite	read+callee	Save UI	src/ui/save_ui.c	Puts up the yes/no prompt before overwriting a slot and plays the confirm sound.
+Func_801fba8	Save_LoadSlot	read+callee	Save UI	src/ui/save_ui.c	Reads a slot back through the flash layer and reports success or failure.
+Func_801fc84	Save_ConfirmLoad	read+callee	Save UI	src/ui/save_ui.c	The yes/no confirmation wrapped around Save_LoadSlot.
+Func_801fd84	Save_StartTask	read	Save UI	src/ui/save_ui.c	Starts Func_801fd34 at priority 0xc80.
+Func_801fd98	Save_StopTask	read	Save UI	src/ui/save_ui.c	Stops Func_801fd34.
+Func_801fda8	UI_DrawBoxFrame	read	UI windows	src/ui/window.c	Draws a box's border tiles around the given rect.
+Func_801ff14	Menu5_Stop	read	UI panels	src/ui/panel.c	Stops the panel task and deletes its sprites.
+Func_8020088	Menu5_Stop2	read+family	UI panels	src/ui/panel.c	The same teardown against a different task and sprite set.
+Func_80209b0	UI_CreateCursorSprite	read	UI sprites	src/ui/ui_sprite.c	Allocates a sprite slot and uploads the cursor sheet at Data_310a4.
+Func_8020a60	UI_DrawWinContents	read	UI windows	src/ui/window.c	Draws a window's interior from its size halfwords.
+Func_8020aec	UI_UploadCursorGFX	read+family	UI sprites	src/ui/ui_sprite.c	Uploads 0x80 bytes of cursor graphics from Data_310a4 to a slot.
+Func_8020b00	UI_UploadArrowGFX	read+family	UI sprites	src/ui/ui_sprite.c	The Data_317e4 twin of UI_UploadCursorGFX.
+Func_8020b14	UI_DrawMenuLabel	read	UI text	src/ui/text.c	Draws one menu label string into the UI block's current window.
+Func_8021360	GetStartMenuEntry	read	Start menu	src/ui/start_menu.c	Returns an entry from .L37206 or .L37216 depending on a flag, bounded at index 8.
+Func_80215e0	UI_LoadIconSheet	read	UI sprites	src/ui/ui_sprite.c	Allocates scratch, LZ-decompresses an icon sheet from Data_31864 into it, uploads it and frees the scratch.
+Func_8021750	StartMenu_AddIconOption	read+callee	Start menu	src/ui/start_menu.c	Allocates a sprite for an option's icon and adds the option to the start menu.
+Func_8021848	StartMenu_ResetOptions	read	Start menu	src/ui/start_menu.c	Clears the option table at .L37250 through the RAM-resident fill.
+Func_80219c8	StartMenu_DrawOption	read	Start menu	src/ui/start_menu.c	Draws one start-menu option using the layout table at .L37280.
+Func_8021a18	StartMenu_BuildPalette	read	Start menu	src/ui/start_menu.c	Expands the packed palette at .L372c0 into the caller's buffer.
+Func_8021ab0	UI_LoadStatusIcon	read+family	UI sprites	src/ui/ui_sprite.c	Decompresses a status icon into scratch, uploads it to a slot and frees the scratch. One of three identical loaders differing only in the decompressor.
+Func_8021af0	UI_LoadInventoryIcon	read+family	UI sprites	src/ui/ui_sprite.c	The inventory-icon member of that loader trio.
+Func_8021b30	UI_LoadMoveIcon	read+family	UI sprites	src/ui/ui_sprite.c	The move-icon member of that loader trio.
+Func_8021bc8	GetDefaultUIPalette	read	UI windows	src/ui/window.c	Returns Data_73968[0]; any non-zero index is forced to zero, so the table has one live entry.
+Func_8021c34	UI_CreateDebugBox	read	UI windows	src/ui/window.c	Creates a UI box and draws the fixed string at .L37300 into it.
+Func_8021c64	UI_LoadFontSheet	read	UI sprites	src/ui/ui_sprite.c	Loads file _FILE_f1, decompresses it into IWRAM scratch and uploads it as sprite graphics.
+Func_8021dfc	UI_SetBG1Priority3	read+family	UI windows	src/ui/window.c	Sets BG1's priority bits to 3.
+Func_8021e14	UI_ClearBG1Priority	read+family	UI windows	src/ui/window.c	Clears BG1's priority bits.
+Func_8021e28	UI_ResetBG0AndIntr	read	UI windows	src/ui/window.c	Zeroes BG0VOFS and reinstalls the interrupt handler.
+Func_8021e48	UI_ShowTextAndWait	read+callee	UI text	src/ui/text.c	Opens a text box and spins until the text has finished printing.
+Func_80228bc	UI_FormatNumberString	read+callee	UI text	src/ui/text.c	Renders a number into gStringBuffer with FormatDecimalString and copies it out as halfwords.
+Func_8022a38	UI_CreateMoveIconSprite	read+family	UI sprites	src/ui/ui_sprite.c	Allocates a slot, loads a move icon into it and registers the sprite.
+Func_8025180	GetItemDisplayFlags	read	Inventory UI	src/ui/inventory_ui.c	Reads the display flag bytes out of an item record at +2 and +0xc.
+Func_80251d4	PackCoordPair	read	Debug menu	src/ui/debug_menu.c	Masks both arguments to ten bits and stores them as a packed coordinate pair. Which coordinates is not established by the body.
+Func_80284dc	Debug_StartMenuTask	read	Debug menu	src/ui/debug_menu.c	Reserves the debug menu's EWRAM block and starts Func_8028194 as its task.
+Func_802851c	Debug_MenuTick	read	Debug menu	src/ui/debug_menu.c	The debug menu's per-frame update over its box handle and entry count.
+Func_802899c	Debug_BuildMenuBar	read+callee	Debug menu	src/ui/debug_menu.c	Populates the debug menu bar with its options and steps the fade in.
+Func_80289e8	Debug_ApplyWarp	read	Debug menu	src/ui/debug_menu.c	Applies the selected warp destination from .L3740f into the two EWRAM coordinate halfwords.
+Func_8028aa8	Debug_ShowMessage	read+callee	Debug menu	src/ui/debug_menu.c	Opens message _MSG_c7b in the debug window.
+Func_8028b80	Debug_ShowSmallText	read+callee	Debug menu	src/ui/debug_menu.c	Closes the debug window and redraws it with the small-text renderer.
+Func_8028edc	Debug_StartWarpMenu	read	Debug menu	src/ui/debug_menu.c	Starts Debug_WarpMenu at priority 0xc80.
+Func_80294d0	NullSub_80294d0	read	Debug menu	src/ui/debug_menu.c	Empty body.
