@@ -23,7 +23,7 @@ fact is worse than an honest placeholder.
 
 451 elevated functions carry a real name already; **3294 still carry a `Func_`/`OvlFunc_` placeholder**, and those are the naming job.
 
-This file proposes **571** of them (17.3%).
+This file proposes **619** of them (18.8%).
 
 ## Actor engine — 7 functions
 
@@ -176,7 +176,7 @@ This file proposes **571** of them (17.3%).
 |---|---|---|---|---|---|---|
 | `Func_80f7db4` | `0x080f7db4` | `InitDictionary` | read | Compression | Initialises the 0x400-entry dictionary at ewram_2004c00, writing each entry's index alongside a zeroed link field. | `src/compress/dictionary.c` |
 
-## Debug menu — 9 functions
+## Debug menu — 10 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
 |---|---|---|---|---|---|---|
@@ -189,6 +189,7 @@ This file proposes **571** of them (17.3%).
 | `Func_8028b80` | `0x08028b80` | `Debug_ShowSmallText` | read+callee | Debug menu | Closes the debug window and redraws it with the small-text renderer. | `src/ui/debug_menu.c` |
 | `Func_8028edc` | `0x08028edc` | `Debug_StartWarpMenu` | read | Debug menu | Starts Debug_WarpMenu at priority 0xc80. | `src/ui/debug_menu.c` |
 | `Func_80294d0` | `0x080294d0` | `NullSub_80294d0` | read | Debug menu | Empty body. | `src/ui/debug_menu.c` |
+| `Func_809c3a4` | `0x0809c3a4` | `Debug_FieldMenu` | read | Debug menu | The field debug menu: reads gKeyHeld, allocates its block and runs Func_809c314. | `src/ui/debug_menu.c` |
 
 ## Field — 5 functions
 
@@ -214,7 +215,7 @@ This file proposes **571** of them (17.3%).
 | `Func_8093710` | `0x08093710` | `Camera_Shake` | read | Field / camera | Runs the camera shake, waiting a frame per step. | `src/field/camera.c` |
 | `Func_80941dc` | `0x080941dc` | `NullSub_80941dc` | read | Field / camera | Empty body. | `src/field/camera.c` |
 
-## Field / cutscene — 35 functions
+## Field / cutscene — 37 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
 |---|---|---|---|---|---|---|
@@ -253,6 +254,8 @@ This file proposes **571** of them (17.3%).
 | `Func_8093168` | `0x08093168` | `Field_ShowPromptAndWait` | read+callee | Field / cutscene | Opens a text prompt and spins until it has finished printing. | `src/field/cutscene.c` |
 | `Func_80931d4` | `0x080931d4` | `Field_ClosePortraitIfAny` | read+callee | Field / cutscene | Closes the portrait box unless the lookup returns -1. | `src/field/cutscene.c` |
 | `Func_8096b28` | `0x08096b28` | `Field_RunFlaggedMessage` | read+callee | Field / cutscene | Opens a cutscene and delivers one of two messages depending on a flag. | `src/field/cutscene.c` |
+| `Func_80984c0` | `0x080984c0` | `Field_EndSequence` | read+callee | Field / cutscene | Plays the closing sound and stops the sequence task. | `src/field/cutscene.c` |
+| `Func_8099810` | `0x08099810` | `Field_StartSequenceTask` | read | Field / cutscene | Starts Func_8099678 as the field sequence task. | `src/field/cutscene.c` |
 
 ## Field / effects — 14 functions
 
@@ -283,7 +286,7 @@ This file proposes **571** of them (17.3%).
 | `Func_8091814` | `0x08091814` | `Field_PartyHasMove` | read+callee | Field / field move | True when the requested member is present and knows the requested move. | `src/field/field_move.c` |
 | `Func_8091858` | `0x08091858` | `Field_RefreshMoveFlags` | read+callee | Field / field move | Recomputes which field moves the party can currently use into the global state. | `src/field/field_move.c` |
 
-## Field / map — 51 functions
+## Field / map — 87 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
 |---|---|---|---|---|---|---|
@@ -338,6 +341,53 @@ This file proposes **571** of them (17.3%).
 | `Func_8096d2c` | `0x08096d2c` | `Actor_SetBobScript` | read | Field / map | Installs the bobbing script and seeds its phase from a sine lookup. | `src/field/map_actor.c` |
 | `Func_8096f14` | `0x08096f14` | `Actor_FlickerOnFlag2` | read+family | Field / map | Applies the colour swap only while bit 1 of the frame counter is set. | `src/field/map_actor.c` |
 | `Func_8096f50` | `0x08096f50` | `Actor_FlickerOnFlag1` | read+family | Field / map | The bit-0 twin of Actor_FlickerOnFlag2. | `src/field/map_actor.c` |
+| `Func_809728c` | `0x0809728c` | `Actor_SetPosFields` | read | Field / map | Writes an actor's three position words at +8, +0xc and +0x10. | `src/field/map_actor.c` |
+| `Func_8097a10` | `0x08097a10` | `CallVia8000888R4` | read+family | Field / map | The r4-pinned variant of the ARM interworking trampoline around Func_8000888. | `src/field/map_actor.c` |
+| `Func_8097a54` | `0x08097a54` | `Actor_RestartIdleScript` | read | Field / map | Reinstalls the idle script at .La0128 once an actor has stopped moving. | `src/field/map_actor.c` |
+| `Func_8097b54` | `0x08097b54` | `GetDPadDirection` | read | Field / map | Maps the four direction bits of gKeyHeld through .L9f0f8 to a facing value. | `src/field/map_event.c` |
+| `Func_8097b70` | `0x08097b70` | `Actor_StepAlongPath` | read | Field / map | Advances an actor one step along its stored path record. | `src/field/map_actor.c` |
+| `Func_8098184` | `0x08098184` | `Actor_WaitArrive` | read+callee | Field / map | Waits for an actor's movement to finish and squares up its position. | `src/field/map_actor.c` |
+| `Func_8099018` | `0x08099018` | `Actor_FlickerColorswap` | read | Field / map | Applies the colour swap on alternate frames from the global frame counter. | `src/field/map_actor.c` |
+| `Func_8099040` | `0x08099040` | `Actor_SetBobScriptB` | read+family | Field / map | Installs the bobbing script at Data_9f0b0, null-checked. Second of three routines installing that same script. | `src/field/map_actor.c` |
+| `Func_80990cc` | `0x080990cc` | `Actor_SpawnBobAt` | read+callee | Field / map | Places an actor at a polar offset and gives it the bobbing script. | `src/field/map_actor.c` |
+| `Func_80992f0` | `0x080992f0` | `Actor_SineOffset` | read+callee | Field / map | Returns a sine-scaled offset through the ARM trampoline. | `src/field/map_actor.c` |
+| `Func_8099340` | `0x08099340` | `Actor_SpawnBobRing` | read+callee | Field / map | Places a ring of bobbing actors around a centre using vec3_translate. | `src/field/map_actor.c` |
+| `Func_80993b0` | `0x080993b0` | `Actor_StepOrbit` | read | Field / map | Advances an actor around its orbit by one step. | `src/field/map_actor.c` |
+| `Func_8099920` | `0x08099920` | `Actor_LerpFields` | read | Field / map | Interpolates an actor record's fields toward a target set. | `src/field/map_actor.c` |
+| `Func_80999a8` | `0x080999a8` | `Actor_SetRandomBobScript` | read+family | Field / map | The third Data_9f0b0 installer, seeding the phase from Random. | `src/field/map_actor.c` |
+| `Func_8099d18` | `0x08099d18` | `Actor_CopyPosFields` | read | Field / map | Copies the three position words from one actor record to another. | `src/field/map_actor.c` |
+| `Func_809a44c` | `0x0809a44c` | `DrawActor_SetAngle` | read | Field / map | Writes the draw record's angle halfword at +0x1e. | `src/field/map_draw.c` |
+| `Func_809a65c` | `0x0809a65c` | `DrawActor_UpdateAngle` | read+family | Field / map | Recomputes a draw record's angle from its actor. | `src/field/map_draw.c` |
+| `Func_809a6b8` | `0x0809a6b8` | `DrawActor_Project` | read+callee | Field / map | Projects an actor into screen space with cos and sin and hands the result to the draw layer. | `src/field/map_draw.c` |
+| `Func_809a890` | `0x0809a890` | `Actor_ApplyStoredPos` | read | Field / map | Pushes an actor's stored position at +0x18 into the engine's setter. | `src/field/map_actor.c` |
+| `Func_809ad70` | `0x0809ad70` | `Actor_IdleFlicker` | read | Field / map | Nudges a resting actor's palette at random from the table at .L9f160. | `src/field/map_actor.c` |
+| `Func_809ad90` | `0x0809ad90` | `Actor_StartIdleFlicker` | read+callee | Field / map | Sets a field actor's idle animation speed and starts the flicker. | `src/field/map_actor.c` |
+| `Func_809ade8` | `0x0809ade8` | `Actor_ClearIdleFlicker` | read+family | Field / map | Clears the flicker state bytes at +0x5b and +0x6c. | `src/field/map_actor.c` |
+| `Func_809ae3c` | `0x0809ae3c` | `GetMapActorName` | read | Field / map | Returns a map actor's display name id. | `src/field/map_actor.c` |
+| `Func_809b0b0` | `0x0809b0b0` | `Actor_ClearAnimTable` | read | Field / map | Zeroes an actor's halfword animation table. | `src/field/map_actor.c` |
+| `Func_809b0dc` | `0x0809b0dc` | `Actor_SetSpriteOffset` | read | Field / map | Writes a sprite record's offset halfword and its companion word. | `src/field/map_actor.c` |
+| `Func_809b364` | `0x0809b364` | `Actor_DeleteIfFlagged` | read+family | Field / map | Deletes an actor when the gState flag it watches is clear. First of two copies. | `src/field/map_actor.c` |
+| `Func_809b3d8` | `0x0809b3d8` | `Actor_DeleteIfFlaggedB` | read+family | Field / map | The second copy, differing only in which flag it reads. | `src/field/map_actor.c` |
+| `Func_809b588` | `0x0809b588` | `Field_UpdateFlickerState` | read | Field / map | Refreshes the global flicker state from gState and the frame counter. | `src/field/map_actor.c` |
+| `Func_809b5dc` | `0x0809b5dc` | `Actor_RunIfFlagged` | read+callee | Field / map | Runs the actor's handler only while its gState flag is set. | `src/field/map_actor.c` |
+| `Func_809b648` | `0x0809b648` | `Field_ShowAreaName` | read+callee | Field / map | Opens the area-name banner for the current map. | `src/field/map_load.c` |
+| `Func_809ba34` | `0x0809ba34` | `Actor_GetLayerIndex` | read | Field / map | Returns the signed layer byte at +0x41 of an actor record. | `src/field/map_actor.c` |
+| `Func_809ba5c` | `0x0809ba5c` | `Actor_ResetScale` | read | Field / map | Writes 1.0 in 8.24 into both scale words at +0xc and +0x10. | `src/field/map_actor.c` |
+| `Func_809ba70` | `0x0809ba70` | `Actor_SetSpriteAnim` | read | Field / map | Sets the animation on the sprite an actor record points at. | `src/field/map_actor.c` |
+| `Func_809ba7c` | `0x0809ba7c` | `Actor_SetSpeedFields` | read | Field / map | Writes an actor's speed word at +0x34 and clears the halfword at +0x3a. | `src/field/map_actor.c` |
+| `Func_809bb34` | `0x0809bb34` | `Actor_DeleteSprite` | read | Field / map | Deletes an actor's sprite if it has one. | `src/field/map_actor.c` |
+| `Func_809bcd4` | `0x0809bcd4` | `Map_FreeTileAlloc` | read | Field / map | Releases the OBJ tile allocation recorded at the head of gBuffer. | `src/field/map_load.c` |
+
+## Field / minimap — 6 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_8097608` | `0x08097608` | `Minimap_Stop` | read+callee | Field / minimap | Stops the minimap task and releases the actor it was tracking. | `src/field/minimap.c` |
+| `Func_8097868` | `0x08097868` | `Minimap_Tick` | read | Field / minimap | The minimap's per-frame update over the global state bytes at +0x28a and +0x294. | `src/field/minimap.c` |
+| `Func_80978c4` | `0x080978c4` | `Minimap_UpdateArrow` | read+callee | Field / minimap | Recomputes the minimap arrow's direction from the stored angle. | `src/field/minimap.c` |
+| `Func_8097948` | `0x08097948` | `Minimap_ProjectAngle` | read+callee | Field / minimap | Projects an angle into the minimap's three output components. | `src/field/minimap.c` |
+| `Func_8097a7c` | `0x08097a7c` | `Minimap_Start` | read+callee | Field / minimap | Starts Minimap_Tick as a task. | `src/field/minimap.c` |
+| `Func_8097adc` | `0x08097adc` | `Minimap_Close` | read+callee | Field / minimap | Stops the minimap task and restores the UI colour. | `src/field/minimap.c` |
 
 ## Field / particles — 3 functions
 
@@ -347,7 +397,7 @@ This file proposes **571** of them (17.3%).
 | `Func_8092708` | `0x08092708` | `Particle_StepLinear` | read+family | Field / particles | The straight-line member of the particle stepping pair. | `src/field/particle.c` |
 | `Func_809294c` | `0x0809294c` | `NullSub_809294c` | read | Field / particles | Empty body. | `src/field/particle.c` |
 
-## Field / transition — 13 functions
+## Field / transition — 14 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
 |---|---|---|---|---|---|---|
@@ -364,6 +414,7 @@ This file proposes **571** of them (17.3%).
 | `Func_80912a8` | `0x080912a8` | `ClampScaleField` | read+family | Field / transition | Clamps to at most 0x7c00. The duplicate of ClampScale in rom_f2000. | `src/field/transition.c` |
 | `Func_8091540` | `0x08091540` | `Field_AddFadeHook` | read+family | Field / transition | Installs Func_80912b8 as a per-frame hook. | `src/field/transition.c` |
 | `Func_8091550` | `0x08091550` | `Field_RemoveFadeHook` | read+family | Field / transition | Removes it again. | `src/field/transition.c` |
+| `Func_809748c` | `0x0809748c` | `Field_OpenTransitionPanel` | read+callee | Field / transition | Opens the transition panel with the map state's stored parameters. | `src/field/transition.c` |
 
 ## Field / weather — 7 functions
 
@@ -660,7 +711,7 @@ This file proposes **571** of them (17.3%).
 | `Func_80fa260` | `0x080fa260` | `NullSub_80fa260` | read | Sound | Empty body. | `src/sound/music.c` |
 | `Func_80fb790` | `0x080fb790` | `NullSub_80fb790` | read | Sound | Empty body. | `src/sound/music.c` |
 
-## Sprites — 9 functions
+## Sprites — 11 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
 |---|---|---|---|---|---|---|
@@ -673,6 +724,8 @@ This file proposes **571** of them (17.3%).
 | `Func_8012de8` | `0x08012de8` | `InitLayerGroupSprites` | read | Sprites | Binds a layer group's ten sprite entries to a sprite resource via InitSpriteLayer. | `src/sprite/sprite.c` |
 | `Func_8096c24` | `0x08096c24` | `CountFreeSpriteTiles` | read | Sprites | Counts the free entries of the 512-byte gSpriteAllocTable. | `src/sprite/sprite.c` |
 | `Func_8096c48` | `0x08096c48` | `Sprite_FreePair` | read | Sprites | Releases two sprite tile allocations, skipping either if null. | `src/sprite/sprite.c` |
+| `Func_809b804` | `0x0809b804` | `Sprite_UpdatePair` | read+callee | Sprites | Runs both per-actor sprite update passes in order. | `src/sprite/sprite.c` |
+| `Func_809b86c` | `0x0809b86c` | `Sprite_UpdateFromActor` | read+callee | Sprites | Pushes an actor's transform into its sprite through the engine's update call. | `src/sprite/sprite.c` |
 
 ## Start menu — 5 functions
 

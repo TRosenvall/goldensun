@@ -602,3 +602,51 @@ Func_8096f8c	Effect_ResetSlotsB	read+family	Field / effects	src/field/field_effe
 Func_80970f8	Effect_MoveSlot	read+callee	Field / effects	src/field/field_effect.c	Moves one effect slot's actor along a polar offset.
 Func_8097174	Effect_WaitSlot	read	Field / effects	src/field/field_effect.c	Spins a frame at a time until an effect slot's counter clears.
 Func_8097194	Effect_StopSlot	read+callee	Field / effects	src/field/field_effect.c	Stops one effect slot: halts its task, releases its sprite tiles and clears the slot.
+Func_809728c	Actor_SetPosFields	read	Field / map	src/field/map_actor.c	Writes an actor's three position words at +8, +0xc and +0x10.
+Func_809748c	Field_OpenTransitionPanel	read+callee	Field / transition	src/field/transition.c	Opens the transition panel with the map state's stored parameters.
+Func_8097608	Minimap_Stop	read+callee	Field / minimap	src/field/minimap.c	Stops the minimap task and releases the actor it was tracking.
+Func_8097868	Minimap_Tick	read	Field / minimap	src/field/minimap.c	The minimap's per-frame update over the global state bytes at +0x28a and +0x294.
+Func_80978c4	Minimap_UpdateArrow	read+callee	Field / minimap	src/field/minimap.c	Recomputes the minimap arrow's direction from the stored angle.
+Func_8097948	Minimap_ProjectAngle	read+callee	Field / minimap	src/field/minimap.c	Projects an angle into the minimap's three output components.
+Func_8097a10	CallVia8000888R4	read+family	Field / map	src/field/map_actor.c	The r4-pinned variant of the ARM interworking trampoline around Func_8000888.
+Func_8097a54	Actor_RestartIdleScript	read	Field / map	src/field/map_actor.c	Reinstalls the idle script at .La0128 once an actor has stopped moving.
+Func_8097a7c	Minimap_Start	read+callee	Field / minimap	src/field/minimap.c	Starts Minimap_Tick as a task.
+Func_8097adc	Minimap_Close	read+callee	Field / minimap	src/field/minimap.c	Stops the minimap task and restores the UI colour.
+Func_8097b54	GetDPadDirection	read	Field / map	src/field/map_event.c	Maps the four direction bits of gKeyHeld through .L9f0f8 to a facing value.
+Func_8097b70	Actor_StepAlongPath	read	Field / map	src/field/map_actor.c	Advances an actor one step along its stored path record.
+Func_8098184	Actor_WaitArrive	read+callee	Field / map	src/field/map_actor.c	Waits for an actor's movement to finish and squares up its position.
+Func_80984c0	Field_EndSequence	read+callee	Field / cutscene	src/field/cutscene.c	Plays the closing sound and stops the sequence task.
+Func_8099018	Actor_FlickerColorswap	read	Field / map	src/field/map_actor.c	Applies the colour swap on alternate frames from the global frame counter.
+Func_8099040	Actor_SetBobScriptB	read+family	Field / map	src/field/map_actor.c	Installs the bobbing script at Data_9f0b0, null-checked. Second of three routines installing that same script.
+Func_80990cc	Actor_SpawnBobAt	read+callee	Field / map	src/field/map_actor.c	Places an actor at a polar offset and gives it the bobbing script.
+Func_80992f0	Actor_SineOffset	read+callee	Field / map	src/field/map_actor.c	Returns a sine-scaled offset through the ARM trampoline.
+Func_8099340	Actor_SpawnBobRing	read+callee	Field / map	src/field/map_actor.c	Places a ring of bobbing actors around a centre using vec3_translate.
+Func_80993b0	Actor_StepOrbit	read	Field / map	src/field/map_actor.c	Advances an actor around its orbit by one step.
+Func_8099810	Field_StartSequenceTask	read	Field / cutscene	src/field/cutscene.c	Starts Func_8099678 as the field sequence task.
+Func_8099920	Actor_LerpFields	read	Field / map	src/field/map_actor.c	Interpolates an actor record's fields toward a target set.
+Func_80999a8	Actor_SetRandomBobScript	read+family	Field / map	src/field/map_actor.c	The third Data_9f0b0 installer, seeding the phase from Random.
+Func_8099d18	Actor_CopyPosFields	read	Field / map	src/field/map_actor.c	Copies the three position words from one actor record to another.
+Func_809a44c	DrawActor_SetAngle	read	Field / map	src/field/map_draw.c	Writes the draw record's angle halfword at +0x1e.
+Func_809a65c	DrawActor_UpdateAngle	read+family	Field / map	src/field/map_draw.c	Recomputes a draw record's angle from its actor.
+Func_809a6b8	DrawActor_Project	read+callee	Field / map	src/field/map_draw.c	Projects an actor into screen space with cos and sin and hands the result to the draw layer.
+Func_809a890	Actor_ApplyStoredPos	read	Field / map	src/field/map_actor.c	Pushes an actor's stored position at +0x18 into the engine's setter.
+Func_809ad70	Actor_IdleFlicker	read	Field / map	src/field/map_actor.c	Nudges a resting actor's palette at random from the table at .L9f160.
+Func_809ad90	Actor_StartIdleFlicker	read+callee	Field / map	src/field/map_actor.c	Sets a field actor's idle animation speed and starts the flicker.
+Func_809ade8	Actor_ClearIdleFlicker	read+family	Field / map	src/field/map_actor.c	Clears the flicker state bytes at +0x5b and +0x6c.
+Func_809ae3c	GetMapActorName	read	Field / map	src/field/map_actor.c	Returns a map actor's display name id.
+Func_809b0b0	Actor_ClearAnimTable	read	Field / map	src/field/map_actor.c	Zeroes an actor's halfword animation table.
+Func_809b0dc	Actor_SetSpriteOffset	read	Field / map	src/field/map_actor.c	Writes a sprite record's offset halfword and its companion word.
+Func_809b364	Actor_DeleteIfFlagged	read+family	Field / map	src/field/map_actor.c	Deletes an actor when the gState flag it watches is clear. First of two copies.
+Func_809b3d8	Actor_DeleteIfFlaggedB	read+family	Field / map	src/field/map_actor.c	The second copy, differing only in which flag it reads.
+Func_809b588	Field_UpdateFlickerState	read	Field / map	src/field/map_actor.c	Refreshes the global flicker state from gState and the frame counter.
+Func_809b5dc	Actor_RunIfFlagged	read+callee	Field / map	src/field/map_actor.c	Runs the actor's handler only while its gState flag is set.
+Func_809b648	Field_ShowAreaName	read+callee	Field / map	src/field/map_load.c	Opens the area-name banner for the current map.
+Func_809b804	Sprite_UpdatePair	read+callee	Sprites	src/sprite/sprite.c	Runs both per-actor sprite update passes in order.
+Func_809b86c	Sprite_UpdateFromActor	read+callee	Sprites	src/sprite/sprite.c	Pushes an actor's transform into its sprite through the engine's update call.
+Func_809ba34	Actor_GetLayerIndex	read	Field / map	src/field/map_actor.c	Returns the signed layer byte at +0x41 of an actor record.
+Func_809ba5c	Actor_ResetScale	read	Field / map	src/field/map_actor.c	Writes 1.0 in 8.24 into both scale words at +0xc and +0x10.
+Func_809ba70	Actor_SetSpriteAnim	read	Field / map	src/field/map_actor.c	Sets the animation on the sprite an actor record points at.
+Func_809ba7c	Actor_SetSpeedFields	read	Field / map	src/field/map_actor.c	Writes an actor's speed word at +0x34 and clears the halfword at +0x3a.
+Func_809bb34	Actor_DeleteSprite	read	Field / map	src/field/map_actor.c	Deletes an actor's sprite if it has one.
+Func_809bcd4	Map_FreeTileAlloc	read	Field / map	src/field/map_load.c	Releases the OBJ tile allocation recorded at the head of gBuffer.
+Func_809c3a4	Debug_FieldMenu	read	Debug menu	src/ui/debug_menu.c	The field debug menu: reads gKeyHeld, allocates its block and runs Func_809c314.
