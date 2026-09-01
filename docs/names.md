@@ -161,12 +161,12 @@ Recording only the name would launder a guess into a fact.
 | `Field_Growth` | `` | — | read | struct Obj { int f0; int x; int y; int z; }; struct PActor { unsigned char pad00[0x55]; unsigned char f55; }; extern unsigned int iwram_3001 |
 | `Field_Growth_Target` | `` | — | read | Slotted between rom_97b54_a_c_a_a.o and the rest of stage1.ld. THE READ-MODIFY-WRITE AT +0x23 HAS TO BE SPELLED OUT COMPLETELY -- pointer, l |
 | `Field_MindRead` | `` | — | read | #include "dma.h" struct T { unsigned char pad[0x290]; unsigned short f290; unsigned short f292; }; extern void *galloc_ewram(int tag, int si |
-| `Func_8003e10` | `0x08003e10` | — | read | Func_8003e10, the whole of goldensun/asm/rom_c0/rom_3d04_c.s. so no linker-script change was needed. Copies the ARM routine Func_8001dc8 int |
-| `Func_8005810` | `0x08005810` | — | read | extern unsigned char *iwram_3001f1c; extern int Func_8005b24(void); extern int Random(void); int Func_8005810(void) { int v[16]; unsigned ch |
-| `Func_80058ac` | `0x080058ac` | — | read | #include "gba/types.h" #include "gba/io.h" #include "dma.h" extern unsigned char *iwram_3001f1c; extern void ReadFlash(unsigned short sector |
-| `Func_8005a78` | `0x08005a78` | — | read | #include "gba/types.h" #include "gba/io.h" #include "dma.h" extern unsigned char *iwram_3001f1c; extern unsigned int Func_8005b24(void); ext |
-| `Func_8005b64` | `0x08005b64` | — | read | #include "gba/types.h" #include "gba/io.h" #include "dma.h" struct SoundChan { unsigned char f0[7]; unsigned char f7; unsigned short f8; uns |
-| `Func_80060e8` | `0x080060e8` | — | read | #include "gba/types.h" #include "gba/io.h" #include "dma.h" struct SndState { 0x00 |
+| `Func_8003e10` | `0x08003e10` | `RunRAMRoutine` | read | Func_8003e10, the whole of goldensun/asm/rom_c0/rom_3d04_c.s. so no linker-script change was needed. Copies the ARM routine Func_8001dc8 int |
+| `Func_8005810` | `0x08005810` | `PickFreeSaveSlot` | read | extern unsigned char *iwram_3001f1c; extern int Func_8005b24(void); extern int Random(void); int Func_8005810(void) { int v[16]; unsigned ch |
+| `Func_80058ac` | `0x080058ac` | `VerifySaveSector` | read | #include "gba/types.h" #include "gba/io.h" #include "dma.h" extern unsigned char *iwram_3001f1c; extern void ReadFlash(unsigned short sector |
+| `Func_8005a78` | `0x08005a78` | `LoadSaveData` | read | #include "gba/types.h" #include "gba/io.h" #include "dma.h" extern unsigned char *iwram_3001f1c; extern unsigned int Func_8005b24(void); ext |
+| `Func_8005b64` | `0x08005b64` | `SetupSoundChannelEntry` | read | #include "gba/types.h" #include "gba/io.h" #include "dma.h" struct SoundChan { unsigned char f0[7]; unsigned char f7; unsigned short f8; uns |
+| `Func_80060e8` | `0x080060e8` | `UpdateSoundStateChecksum` | read | #include "gba/types.h" #include "gba/io.h" #include "dma.h" struct SndState { 0x00 |
 | `Func_800be20` | `0x0800be20` | — | read | extern unsigned char *_GetSpriteInfo(int id); int Func_800be20(int id, unsigned int idx, int count) { unsigned char *info; unsigned char *ip |
 | `Func_800be70` | `0x0800be70` | — | read | struct SpriteSlot { unsigned short size; unsigned short vramOffset; }; extern struct SpriteSlot gSpriteSlots[]; extern unsigned char scrambl |
 | `Func_800c548` | `0x0800c548` | — | read | Func_800c548 and Func_800c570, the whole of goldensun/asm/rom_9000/rom_c004_c_a_c_a.s. no linker-script change was needed. Two guarded bit-s |
@@ -237,15 +237,15 @@ Recording only the name would launder a guess into a fact.
 | `Func_80289e8` | `0x080289e8` | — | read | extern signed char L3740f[] __asm__(".L3740f"); extern short ewram_200200c; extern short ewram_2002010; extern int Func_801f77c(int a); exte |
 | `Func_8028aa8` | `0x08028aa8` | — | read | extern unsigned char *iwram_3001f38; extern int _MSG_c7b; extern void Func_80164d4(void *w, int a, int b, int c, int d); extern void Func_80 |
 | `Func_8028b80` | `0x08028b80` | — | read | extern unsigned char *iwram_3001f38; extern void Func_8016478(void *w); extern void DrawSmallText(int id, void *w, int x, int y); void Func_ |
-| `Func_80782a0` | `0x080782a0` | — | read | void Func_80782a0(void *unit, int n) { void *r5; int r0; int r1; int r2; int r3; r5 = unit; r2 = 0x34; r3 = *(short *)((char *)r5 + r2); r0  |
-| `Func_8078320` | `0x08078320` | — | read | void Func_8078320(void *unit, int n) { void *r5; int r0; int r1; int r2; int r3; r5 = unit; r2 = 0x36; r3 = *(short *)((char *)r5 + r2); r2  |
-| `Func_8078500` | `0x08078500` | — | read | extern unsigned int gState; extern int FindEmptyInventorySlot(int id); extern int Func_80796c4(short *buf); int Func_8078500(void) { short b |
+| `Func_80782a0` | `0x080782a0` | `SetUnitHP` | read | void Func_80782a0(void *unit, int n) { void *r5; int r0; int r1; int r2; int r3; r5 = unit; r2 = 0x34; r3 = *(short *)((char *)r5 + r2); r0  |
+| `Func_8078320` | `0x08078320` | `SetUnitPP` | read | void Func_8078320(void *unit, int n) { void *r5; int r0; int r1; int r2; int r3; r5 = unit; r2 = 0x36; r3 = *(short *)((char *)r5 + r2); r2  |
+| `Func_8078500` | `0x08078500` | `PartyHasInventorySpace` | read | extern unsigned int gState; extern int FindEmptyInventorySlot(int id); extern int Func_80796c4(short *buf); int Func_8078500(void) { short b |
 | `Func_807882c` | `0x0807882c` | `GetEquippedItemInfo` | read | Func_807882c  --  0x0807882c, from asm/rom_77000/rom_78414_c_c_a_c_a.s. The same scan as GetEquippedItem next door, but it returns the item  |
-| `Func_8078948` | `0x08078948` | — | read | PARKED, AND NOW MATCHED, on the same lever as LoadStatusIcon. It sat at 22 of 23 instructions with one pair swapped in the argument setup fo |
-| `Func_8079754` | `0x08079754` | — | read | A LEAF FUNCTION, matched on the first screen. Adds a delta to the signed byte at gState+0x11c, clamps it to 0..0x1c, stores it back and retu |
-| `Func_80797fc` | `0x080797fc` | — | read | extern void *GetEnemyInfo(int id); extern void *GetPCBaseStats(int id); extern unsigned char L88e38[] __asm__(".L88e38"); int Func_80797fc(i |
-| `Func_80798b4` | `0x080798b4` | — | read | Slotted between rom_79460_c_c_c_a_a.o and the rest of stage1.ld. Looks up an enemy's row in a 24-byte-stride table and returns its first wor |
-| `Func_80798e0` | `0x080798e0` | — | read | extern void *GetUnit(int id); extern void *GetEnemyInfo(int id); extern void Func_80797fc(int a, unsigned char *b, int *out); struct EnemyRo |
+| `Func_8078948` | `0x08078948` | `RemoveInventoryItem` | read | PARKED, AND NOW MATCHED, on the same lever as LoadStatusIcon. It sat at 22 of 23 instructions with one pair swapped in the argument setup fo |
+| `Func_8079754` | `0x08079754` | `AddPsynergyPoints` | read | A LEAF FUNCTION, matched on the first screen. Adds a delta to the signed byte at gState+0x11c, clamps it to 0..0x1c, stores it back and retu |
+| `Func_80797fc` | `0x080797fc` | `GetBaseStatSpread` | read | extern void *GetEnemyInfo(int id); extern void *GetPCBaseStats(int id); extern unsigned char L88e38[] __asm__(".L88e38"); int Func_80797fc(i |
+| `Func_80798b4` | `0x080798b4` | `GetEnemyStatRowWord` | read | Slotted between rom_79460_c_c_c_a_a.o and the rest of stage1.ld. Looks up an enemy's row in a 24-byte-stride table and returns its first wor |
+| `Func_80798e0` | `0x080798e0` | `GetUnitStatSpread` | read | extern void *GetUnit(int id); extern void *GetEnemyInfo(int id); extern void Func_80797fc(int a, unsigned char *b, int *out); struct EnemyRo |
 | `Func_8079c8c` | `0x08079c8c` | — | read | Slotted between rom_79460_c_c_c_c_a_c_c_a_a.o and the rest of stage1.ld. BRANCH POLARITY. The non-null path is the FALL-THROUGH: written as  |
 | `Func_8079d1c` | `0x08079d1c` | — | read | Func_8079d1c  --  0x08079d1c Cut out of goldensun/asm/rom_77000/rom_79460_c_c_c_c_a_c_c_a_c.s. Rolls for a weapon's unleash: the chance is t |
 | `Func_8079d7c` | `0x08079d7c` | — | read | Func_8079d7c  --  0x08079d7c Cut out of goldensun/asm/rom_77000/rom_79460_c_c_c_c_a_c_c_a_c_c.s. Maps a status or class id to a numeric weig |
@@ -360,15 +360,14 @@ Recording only the name would launder a guess into a fact.
 | `Func_80aac84` | `0x080aac84` | — | read | typedef unsigned short u16; void Func_80aac84(int add) { int i, j, row, base; int idx, b, g, r, v; int mask; unsigned int c; row = 15; i = 0 |
 | `Func_80aca04` | `0x080aca04` | — | read | extern char *iwram_3001f2c; extern void Func_80acab8(int win, int a, int b, int id, int s0, int s1, int s2, int s3, int s4); int Func_80aca0 |
 | `Func_80ad5f4` | `0x080ad5f4` | — | read | Field actor scale table: store one slot's value. Split out of asm/rom_a1000/rom_ad274_c_a.s, which holds six functions; the neighbours are a |
-| `Func_80b010c` | `0x080b010c` | — | read | OpenShopState: allocate the module's 0xa70-byte block, DMA-clear it, reserve six OBJ tile slots and register the per-frame task.  Matched on |
-| `Func_80b06ec` | `0x080b06ec` | `UI_DrawIconRow` | read | Func_80b06ec -- 0x080b06ec, from Copies four groups of four bytes into a 2x2 tile layout -- offsets 0, 1, 0x1e, 0x1f from a destination that |
-| `Func_80b0744` | `0x080b0744` | — | read | #include "dma.h" extern unsigned char L_b3e80[] __asm__(".Lb3e80"); extern unsigned char *galloc_ewram(int index, int size); extern void Fun |
-| `Func_80b0840` | `0x080b0840` | — | read | #include "gba/types.h" #include "gba/io.h" #include "dma.h" extern char *iwram_3001ebc[]; extern void _Func_8091200(int a, int b); extern vo |
-| `Func_80b10cc` | `0x080b10cc` | — | read | Func_80b10cc  --  0x080b10cc, cut from DrawRowText: emit a row's label and its number, skipping both if the row count is zero. DECLARE gStat |
-| `Func_80b19cc` | `0x080b19cc` | — | read | extern unsigned char *_GetItemInfo(int item); int Func_80b19cc(int item) { int v; v = (short)*(unsigned short *)_GetItemInfo(item); if ((_Ge |
-| `Func_80b26cc` | `0x080b26cc` | — | read | extern unsigned char Lb41ac[] __asm__(".Lb41ac"); extern int _GetFlag(int id); extern void _SetFlag(int id); extern void _Func_8078ad0(int a |
-| `Func_80b27b0` | `0x080b27b0` | — | read | extern void *_GetUnit(int id); int Func_80b27b0(int id, int kind) { unsigned char *u; int r; u = (unsigned char *)_GetUnit(id); r = 0; if (k |
-| `Func_80b2884` | `0x080b2884` | — | read | Slotted between the _a and _c pieces in goldensun/stage1.ld. Shifts a message id by a per-language offset chosen from a signed byte at iwram |
+| `Func_80b010c` | `0x080b010c` | `StartShopSession` | read | OpenShopState: allocate the module's 0xa70-byte block, DMA-clear it, reserve six OBJ tile slots and register the per-frame task.  Matched on |
+| `Func_80b0744` | `0x080b0744` | `UI_BuildNumberSprite` | read | #include "dma.h" extern unsigned char L_b3e80[] __asm__(".Lb3e80"); extern unsigned char *galloc_ewram(int index, int size); extern void Fun |
+| `Func_80b0840` | `0x080b0840` | `UI_LoadPanelGfx` | read | #include "gba/types.h" #include "gba/io.h" #include "dma.h" extern char *iwram_3001ebc[]; extern void _Func_8091200(int a, int b); extern vo |
+| `Func_80b10cc` | `0x080b10cc` | `UI_ShowShopMessage` | read | Func_80b10cc  --  0x080b10cc, cut from DrawRowText: emit a row's label and its number, skipping both if the row count is zero. DECLARE gStat |
+| `Func_80b19cc` | `0x080b19cc` | `GetItemSellPrice` | read | extern unsigned char *_GetItemInfo(int item); int Func_80b19cc(int item) { int v; v = (short)*(unsigned short *)_GetItemInfo(item); if ((_Ge |
+| `Func_80b26cc` | `0x080b26cc` | `GrantShopStock` | read | extern unsigned char Lb41ac[] __asm__(".Lb41ac"); extern int _GetFlag(int id); extern void _SetFlag(int id); extern void _Func_8078ad0(int a |
+| `Func_80b27b0` | `0x080b27b0` | `UnitHasCondition` | read | extern void *_GetUnit(int id); int Func_80b27b0(int id, int kind) { unsigned char *u; int r; u = (unsigned char *)_GetUnit(id); r = 0; if (k |
+| `Func_80b2884` | `0x080b2884` | `GetSanctumMessageId` | read | Slotted between the _a and _c pieces in goldensun/stage1.ld. Shifts a message id by a per-language offset chosen from a signed byte at iwram |
 | `Func_80b606c` | `0x080b606c` | — | read | Slotted between the _a and _c pieces in goldensun/stage1.ld. Narrows four halfword characters into a four-byte buffer, substituting '_' (0x5 |
 | `Func_80b60a0` | `0x080b60a0` | — | read | extern unsigned int iwram_3001e74; extern unsigned int ewram_2002024; extern unsigned int ewram_2002224; extern unsigned short iwram_3001f64 |
 | `Func_80b6378` | `0x080b6378` | — | read | extern char *iwram_3001e74; extern int Func_80b6a60(unsigned short *buf); int Func_80b6378(void) { unsigned short buf[8]; char *p; int i; in |
@@ -405,8 +404,8 @@ Recording only the name would launder a guess into a fact.
 | `Func_80cd508` | `0x080cd508` | — | read | Ten instructions. Clears eight bytes at +0x7818 into the block whose address lives at iwram_3001eec, through Func_80008d4 on the `_call_via_ |
 | `Func_80dfddc` | `0x080dfddc` | — | read | void Func_80dfddc(unsigned char *src, unsigned char *dst, int n, int m) { int i; int j; int srcoff; int k; unsigned char *p; unsigned char * |
 | `Func_80e3994` | `0x080e3994` | — | read | extern int Func_8000888(int, int); static inline int call_via(int (*f)(int, int), int a, int b) { register int _a __asm__("r0") = a; registe |
-| `Func_80f037c` | `0x080f037c` | — | read | Placed in the run in goldensun/stage1.ld. Fills a 512-word buffer in four runs: 32 words of 0x01ff01ff, 240 words of a value stepping by 0x0 |
-| `Func_80f7db4` | `0x080f7db4` | — | read | The .s is split in two around this function: the earlier functions move to rom_f6008_c_a.s and the later ones stay in rom_f6008_c.s, which a |
+| `Func_80f037c` | `0x080f037c` | `BuildAffineRampTable` | read | Placed in the run in goldensun/stage1.ld. Fills a 512-word buffer in four runs: 32 words of 0x01ff01ff, 240 words of a value stepping by 0x0 |
+| `Func_80f7db4` | `0x080f7db4` | `InitDictionary` | read | The .s is split in two around this function: the earlier functions move to rom_f6008_c_a.s and the later ones stay in rom_f6008_c.s, which a |
 | `GetJupiterDjinni` | `` | — | read | extern unsigned char gState[]; extern unsigned char *iwram_3001f30; extern unsigned char *MapActor_GetActor(int slot); extern void Func_8095 |
 | `GetMoveDisplayEffect` | `` | — | read | extern int _Func_8079ef8(int a); int GetMoveDisplayEffect(unsigned char *m) { int t; int k; int r; r = 0; t = m[1] & 0xf; if (t == 1) r = 1; |
 | `GetNumDjinn` | `` | — | read | extern int Func_80796c4(unsigned short *buf); extern unsigned char *GetUnit(int id); int GetNumDjinn(int which) { unsigned short buf[16]; un |
@@ -1375,5 +1374,6 @@ Recording only the name would launder a guess into a fact.
 | `call_via_r4` | `` | — | read | extern int Func_80008ac(int a, int b); extern int Func_8000888(int a, int b); static inline int call_via_r4(int (*f)(int, int), int a, int b |
 | `Func_800d924` | `0x0800d924` | `Actor_IsBlockedAt` | read+callee | extern unsigned char *iwram_3001e64; extern int Func_800eba0(void *p, int x, int b, int y); int Func_800d924(unsigned char *a, int b) { unsi |
 | `Func_800d98c` | `0x0800d98c` | `Actor_FindBlockerAt` | read+callee | extern unsigned char *iwram_3001e64; extern int Func_800eba0(void *p, int x, int b, int y); unsigned char *Func_800d98c(unsigned char *a, in |
+| `Func_80b06ec` | `0x080b06ec` | `UI_DrawDigit` | read+callee | Func_80b06ec -- 0x080b06ec, from Copies four groups of four bytes into a 2x2 tile layout -- offsets 0, 1, 0x1e, 0x1f from a destination that |
 
-1341 functions: 93 named, 1246 read, 2 read+callee
+1341 functions: 93 named, 1245 read, 3 read+callee
