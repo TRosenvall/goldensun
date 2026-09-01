@@ -10966,3 +10966,40 @@ be computed next round — functions that were below threshold can rise as their
 nearest neighbour gets solved. **Re-run the ranking every round rather than
 working from a saved list**, and do not write off a function because it ranked
 poorly before its family had a member.
+
+## The `goto`-loop lever, fourth instance -- and it fits the recorded rule
+
+`Func_80a9d3c` walks a sprite array and tests a parallel flags byte with the
+loop counter. gcc strength-reduced the flags access into its own walking pointer
+with a precomputed end address (`add r3, r5, #4`), where the ROM keeps the
+counter and indexes `ldrb r3, [r2, r6]` with it. Rewriting the loop with `goto`
+matched.
+
+That is the batch-170 discriminator behaving exactly as stated: **the rewrite
+pays when gcc applied a loop TRANSFORMATION -- reversal or strength reduction --
+not merely a hoist.** Here it was strength reduction of a second induction
+variable, and the rewrite recovered it.
+
+The same function also needed an `int` intermediate for a halfword store of `8`:
+`*(unsigned short *)(x + 6) = 8;` POOLS the constant (`ldr r3, =0x8`) where the
+ROM has `mov r3, #0x8`. The narrowed HImode rule says only `0` and values
+>= 0x8000 need the local; this is a third exception to that, alongside the two
+already recorded, so **check the halfword exception on any small constant stored
+through a `short *`, not just on 0.**
+
+## Changing three things at once cost a round's worth of signal
+
+`Func_80df9d0` screened at 5 differing. Three fixes were obvious from the diff,
+all three were applied together, and the result was **9** — worse. Measured
+individually afterwards:
+
+    named loop bound      11   worse
+    offset-first pointer   4   better
+    split load/store       3   better
+    the two good ones      2
+
+The recorded rule "change ONE thing at a time, or you will discard three correct
+fixes" has a second failure mode worth naming: applied together, a change that
+HELPS and a change that HURTS cancel, and the combined number tells you nothing
+about either. A batch of three that scores worse than the baseline is not
+evidence that all three are wrong.
