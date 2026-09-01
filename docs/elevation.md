@@ -11407,3 +11407,55 @@ call site unless the caller's assembly actually narrows.
 
 The tell is cheap to read: a mask at the *callee's* entry and no mask at the
 *caller's* call site is exactly this disagreement.
+
+## The loop-order lever applies to the INCREMENT, not just the initialiser
+
+Batch 171 recorded initialiser order as three-for-three and made it a first
+check. `OvlFunc_899_200c704` is the same lever in the increment block:
+
+    rom    add r0, #0x1 / add r2, #0x10
+    ours   add r2, #0x10 / add r0, #0x1
+
+Written `for (i = 0; i <= 0x24; i++) { ...; t += 0x10; }` the pointer bump lives
+in the body and lands first. Moved into the increment clause,
+`for (i = 0; i <= 0x24; i++, t += 0x10)`, it matches -- 2 differing to exact, at
+the ROM's exact length both ways. General form:
+
+> When a small residue sits in a loop's SETUP or its INCREMENT and the
+> instructions are right but ordered wrong, the source controls it. A bump
+> written in the body and the same bump written in the increment clause are not
+> the same program to gcc.
+
+## A pooled small constant through a halfword store is NORMAL
+
+Two independent confirmations now: `Func_8091eb0`'s `ldr r2, =0x21` and
+`OvlFunc_970_20092ac`'s `ldr r3, =0x30`. Both are eight-bit immediates a `mov`
+could build, both are stored through a halfword pointer, and in both cases
+**gcc pools the plain literal by itself** -- our output has the same `ldr` the
+ROM does.
+
+The recorded pooled-constant tell ("`ldr r0, =0x89` for a value an eight-bit
+`mov` builds means the source names a linker symbol") therefore has an
+exception. Before adding an entry to `const.sym`, check whether writing the
+plain literal already pools it. `Func_809b364` is the case where the symbol IS
+needed -- there the constant feeds a `cmp`, not a `strh`.
+
+## Adjacent globals from one pool entry work backwards too
+
+Batch 174 established that two globals the ROM reaches from a single pool entry
+are one array. `Func_80c0130` is the same thing at a NEGATIVE offset: it reaches
+`iwram_3001e78` as `mov r3, r2 / sub r3, #0x88` off `iwram_3001f00`'s pool
+address. `extern unsigned char iwram_3001f00[];` with
+`*(unsigned char **)(iwram_3001f00 - 0x88)` produces it exactly, and this is the
+same spelling already used elsewhere in the tree
+(`*(unsigned char **)(iwram_3001f30 - 0x64)`).
+
+Two more things that function reproduces for free, both worth knowing before
+reaching for a lever:
+
+- **A second DMA's base derived from the first.** The ROM's DMA3 transfer uses
+  `add r3, #0x24` off `&REG_DMA0SAD` rather than a fresh `&REG_DMA3SAD` pool
+  load. Writing `DMA0_SET(...)` followed by `DMA3_SET(...)` produces it -- gcc's
+  constant CSE finds `0x40000d4 = 0x40000b0 + 0x24` on its own.
+- **A register destination derived from another register's address**, likewise:
+  `add r1, #0x14` off `&REG_BG2CNT` comes from plainly writing `&REG_BG2PA`.
