@@ -10148,3 +10148,77 @@ That is four functions now where "one register for two unrelated values means
 ONE variable" closed or nearly closed the diff, and one (`Func_8099070`) where
 the ROM genuinely uses two registers and merging is worse. The discriminator is
 the ROM, not a preference: count the registers before choosing.
+
+## An address local's BIRTH STATEMENT decides whether it gets its own register
+
+`OvlFunc_886_20090c0` sat at 4 differing of 60 with everything aligned except a
+scratch register: the ROM builds `0xc0 << 13` in **r2** and then reuses r2 for
+the byte pointer, while ours built the constant in r1 because r2 was already
+claimed by the pointer.
+
+The ROM's own order is unambiguous:
+
+    ldr r3, =0x6666 / mov r2, #0xc0 / str [r5,#0x18] / str [r5,#0x1c]
+    ldr r3, [r5,#0xc] / lsl r2, #0xd / add r3, r2
+    mov r2, r5                        <- the pointer is born HERE
+    str r3, [r5,#0xc] / str r3, [r5,#0x3c] / add r2, #0x64
+
+Three placements of `q = a + 0x64;` were measured, changing nothing else:
+
+| where `q` is assigned | differing |
+|---|---|
+| before the `+0xc` update | 4 |
+| **between the two int stores** | **1** (and that one is the linker alias) |
+| after both int stores | 10 |
+
+So this is finer than "POINTER BIRTH ORDER decides which register each pointer
+gets", which is about the order of several pointers relative to each other.
+Here there is ONE pointer, and what matters is the **statement gap** it is born
+in. Born too early it holds a callee-saved register through the constant's live
+range and pushes the constant elsewhere; born too late gcc rebuilds the address
+after the stores instead of before them.
+
+**Read `mov rN, <base>` in the ROM as a statement position, not as a detail of
+addressing.** When a diff is "one scratch register is wrong and nothing else
+is", try moving the address local's assignment one statement at a time.
+
+## A THIRD signature for the aliasing class: an address computation that FLOATS
+
+The two recorded signatures are a reload that vanished and a load that sank.
+`OvlFunc_886_20090c0` adds a third, and it is not about a load at all.
+
+With strict aliasing on, gcc knows the later `*(short *)q = ...` stores cannot
+touch the `int` fields at +0xc and +0x3c, so it is free to hoist `add r2, #0x64`
+above them; the ROM keeps it below. `-fno-strict-aliasing` reinstates the
+dependence and the `add` lands where the ROM has it -- 7 differing to 4, with no
+source change. `-fno-schedule-insns`, `-fno-schedule-insns2`,
+`-fno-rerun-cse-after-loop` and `-fno-gcse` all leave it alone or make it worse.
+
+So the tell is not only "a load that should be there is missing". It is also
+**an address computation scheduled across stores of a different width**. That
+widens what `tools/aliastell.py` should be looking for; the tool's docstring
+already says it cannot find the sunk-load form, and this form is invisible to it
+too, because there is no re-read to key on.
+
+## The interleave is narrower than "this ROM likes r0 early"
+
+`OvlFunc_927_200a1b0` is a 108-instruction cutscene script that comes out at
+exactly 108 with SIX differing, all one shape: `mov r0, #0x12` has to land
+before the `lsl` that finishes r1's split build.
+
+The useful observation is what does NOT differ. The same ROM issues four calls
+to a FOUR-argument callee with the same split-constant arguments, and every one
+of them puts `mov r0, #0x12` last, after all the shifts -- exactly as ours does.
+Only the two- and three-argument calls interleave.
+
+That rules out the reading "the ROM was compiled with a different scheduler" and
+points at argument LOADING order, which is consistent with no scheduler flag
+touching it: `-fno-schedule-insns`, `-fno-rerun-cse-after-loop`, `-fno-gcse`,
+`-fno-strict-aliasing`, `-fno-defer-pop` and `-fno-expensive-optimizations` all
+leave it at 6, and `-fno-schedule-insns2` takes it to 52.
+
+It also confirms the guarded/straight-line split from the other direction: this
+function has NO conditional branch, so the naming lever has nothing to
+rematerialise across, and naming the split builds -- the spelling that works on
+guarded sites -- is exactly inert. **`tools/filtered.py` should not have offered
+it**: the filter counts calls and instructions and says nothing about guards.

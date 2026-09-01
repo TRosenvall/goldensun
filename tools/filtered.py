@@ -15,6 +15,15 @@ rejects a candidate if ANY of these hold:
   * fewer than 8 calls      -- arithmetic-heavy bodies hit instruction
                                selection rather than the documented levers
 
+It does NOT reject a function with no conditional branch, because plenty of
+straight-line functions have been elevated. But it REPORTS the branch count,
+because the argument-interleave and constant-CSE levers both need a dominating
+branch to rematerialise across, and a straight-line candidate whose residue
+turns out to be an interleave has nowhere to go. OvlFunc_927_200a1b0 was offered
+by this filter, came out at exactly the ROM's 108 lines with six differing, and
+every one of the six was a straight-line interleave -- unreachable. Read the
+`br` column before picking.
+
 Detector note carried over from the doc: a `mov rN, #imm` followed by a later
 `lsl rN, #k` counts as ONE constant even when other instructions sit between
 them. Requiring adjacency is what let the first version pass the very function
@@ -85,7 +94,10 @@ def passes(body):
     vals = expensive_constants(ins)
     if len(vals) != len(set(vals)):
         return None
-    return n, calls
+    # not a reject -- a warning column; see the module docstring
+    cond = sum(1 for l in ins
+               if re.search(r"\bb(?:eq|ne|ge|gt|le|lt|hi|ls|cs|cc|mi|pl)\b", l))
+    return n, calls, cond
 
 
 if __name__ == "__main__":
@@ -99,8 +111,11 @@ if __name__ == "__main__":
                 continue
             r = passes(body)
             if r:
-                rows.append((r[1], r[0], name, s, bool(shapesib.kin(s))))
+                rows.append((r[1], r[0], r[2], name, s, bool(shapesib.kin(s))))
     rows.sort(key=lambda r: (-r[0], r[1]))
     print("%d candidates pass the filter\n" % len(rows))
-    for calls, n, name, s, haskin in rows[:25]:
-        print("  %2d calls %3di %-28s %s%s" % (calls, n, name, s, "  [kin]" if haskin else ""))
+    for calls, n, cond, name, s, haskin in rows[:25]:
+        print("  %2d calls %3di %2dbr %-28s %s%s%s"
+              % (calls, n, cond, name, s,
+                 "  [kin]" if haskin else "",
+                 "  <- NO GUARD" if cond == 0 else ""))
