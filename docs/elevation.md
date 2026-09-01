@@ -10818,3 +10818,31 @@ flagged.
 
 A flagged lead is not worthless; the rest of the function may still be exact.
 But expect a park unless there is a guard between the repeats.
+
+## Two functions, one exemplar, two-line residues pointing OPPOSITE ways
+
+`OvlFunc_928_2008d0c` and `OvlFunc_957_2008de8` are both variants of the solved
+`OvlFunc_946_2009a44`, both come out at the ROM's exact length, and both sit at
+exactly **2 differing** — on the placement of one constant build relative to a
+neighbouring memory operation.
+
+    2008d0c   rom  mov r3, #0x80 / ldrh r1, [r5, #6]     constant EARLIER
+              ours ldrh r1, [r5, #6] / mov r3, #0x80
+
+    2008de8   rom  str r3, [r6, #8] / mov r1, #0xf0      constant LATER
+              ours mov r1, #0xf0    / str r3, [r6, #8]
+
+Between them, six spellings were measured — operands swapped in the sum, the
+constant named in a local, the mask named, the expression written inline in the
+call, the halfword read named first, and the whole statement moved above the
+vector stores. Every one is inert or worse, in both functions.
+
+**The pairing is the finding.** If a source construct controlled where an
+independent constant build lands, one of the two would have yielded to it —
+they want opposite things and the same spellings were available to both. So
+this is the scheduler, not a missing lever, and a two-line residue of this shape
+is worth one probe and then a park.
+
+Note also that `2008d0c`'s exemplar contains the identical angle expression and
+matched with it. The spelling is not the variable; the surrounding register
+pressure is.
