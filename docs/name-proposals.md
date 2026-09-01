@@ -21,7 +21,9 @@ status effect a counter belongs to, say — the name carries an `Unk<offset>`
 suffix and the `Why` column says so. That is deliberate: a guess dressed as a
 fact is worse than an honest placeholder.
 
-Covering **42 of 1341** elevated functions (3%).
+451 elevated functions carry a real name already; **3294 still carry a `Func_`/`OvlFunc_` placeholder**, and those are the naming job.
+
+This file proposes **53** of them (1.6%).
 
 ## Actor engine — 2 functions
 
@@ -30,10 +32,11 @@ Covering **42 of 1341** elevated functions (3%).
 | `Func_800d924` | `0x0800d924` | `Actor_IsBlockedAt` | read+callee | Actor engine | Walks 64 actor records at iwram_3001e64 (stride 0x70), skipping empty, non-collidable (+0x59 & 1) and self, asking Func_800eba0 for radius overlap. Returns -1 on the first hit. | `src/field/actor_collision.c` |
 | `Func_800d98c` | `0x0800d98c` | `Actor_FindBlockerAt` | read+callee | Actor engine | Twin of Actor_IsBlockedAt, identical but for returning the overlapping record or NULL. | `src/field/actor_collision.c` |
 
-## Battle / status — 11 functions
+## Battle / status — 12 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
 |---|---|---|---|---|---|---|
+| `Func_80bf208` | `0x080bf208` | `RollStatusRecovery` | read | Battle / status | With five or fewer turns left, rolls (luck*3 - turnsLeft*5 + strength) * 0x28f against RPGRandom() & 0xffff. The reason every TickStatusCounter rolls at all. | `src/battle/status.c` |
 | `Func_80bf250` | `0x080bf250` | `TickStatusCounterUnk132` | named | Battle / status | Counter at unit+0x132, companion signed byte 0x133, recovery strength 0x1e. Which status effect this is is not established by the body. | `src/battle/status.c` |
 | `Func_80bf2b4` | `0x080bf2b4` | `TickStatusCounterUnk134` | named | Battle / status | Counter 0x134, companion 0x135, strength 0x14. Effect identity not established by the body. | `src/battle/status.c` |
 | `Func_80bf318` | `0x080bf318` | `TickStatusCounterUnk136` | named | Battle / status | Counter 0x136, companion 0x137, strength 0x14. Effect identity not established by the body. | `src/battle/status.c` |
@@ -76,30 +79,50 @@ Covering **42 of 1341** elevated functions (3%).
 |---|---|---|---|---|---|---|
 | `OvlFunc_974_20088c4` | `0x020088c4` | `DebugGiveAllDjinn` | read | Overlay 974 / debug | 53 calls: GiveDjinni then SetDjinni for elements 0-3 across four party slots, then CalcStats on all four. A test fixture, not reachable play. | `src/overlays/ovl_974/debug_djinn.c` |
 
-## Party / equipment — 2 functions
+## Party — 4 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
 |---|---|---|---|---|---|---|
+| `Func_8077f40` | `0x08077f40` | `InitStartingParty` | read | Party | Sets flag 0x20 then runs Func_8079ae8 and CalcStats over units 0, 1 and 5 -- the three starting members recomputed together. | `src/party/party.c` |
+| `Func_8078228` | `0x08078228` | `NullSub_8078228` | read | Party | Empty body. Named as a null sub so the ROM slot is accounted for rather than silently dropped. | `src/party/party.c` |
+| `Func_8078ecc` | `0x08078ecc` | `GetPartyLeaderSlot` | read | Party | A pure tail call to Func_80792c4. The name follows that callee and should be revisited when it is named; nothing in this body claims more. | `src/party/party.c` |
+| `Func_80796c4` | `0x080796c4` | `GetPartyMemberIds` | read | Party | Fills the caller's buffer with one id per living party member, taken from gState+0x1f8, and returns the count. Null buffer returns zero. | `src/party/party.c` |
+
+## Party / equipment — 3 functions
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_807845c` | `0x0807845c` | `CanUseItem` | read | Party / equipment | Returns 1 for anything Func_8078480 says is not class-restricted, otherwise defers to CanEquipItem. The permissive wrapper around the class-mask test. | `src/party/item.c` |
 | `Func_807882c` | `0x0807882c` | `GetEquippedItemInfo` | read | Party / equipment | The same scan as GetEquippedItem but returns the ItemInfo record rather than the slot index, and takes the unit directly instead of looking it up. | `src/party/item.c` |
 | `GetEquippedItem` | `` | `GetEquippedItem` | named | Party / equipment | Keeps the ROM's own name; body agrees -- scans the 15 slots at unit+0xd8 for the first equipped entry (0x200) whose info record carries the requested kind, returns the slot index or -1. | `src/party/item.c` |
 
-## Party / inventory — 2 functions
+## Party / inventory — 3 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
 |---|---|---|---|---|---|---|
+| `Func_8077330` | `0x08077330` | `GetItemContainer` | read | Party / inventory | Picks the item container: argument zero gives the party's shared block at ewram_200024c, anything else gives unit 0x83's. Func_807a550 walks the result at +8. | `src/party/inventory.c` |
 | `Func_8078500` | `0x08078500` | `PartyHasInventorySpace` | read | Party / inventory | Returns 1 if the lead unit or any listed member has a free slot -- FindEmptyInventorySlot returning anything other than 0xf. | `src/party/inventory.c` |
 | `Func_8078948` | `0x08078948` | `RemoveInventoryItem` | read | Party / inventory | Reads the item in the slot, delegates the removal to Func_80788c4, and on success notifies Func_8078ad0 and the UI hook _Func_8091858. | `src/party/inventory.c` |
 
-## Party / stats — 6 functions
+## Party / save — 1 function
+
+| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
+|---|---|---|---|---|---|---|
+| `Func_80773f4` | `0x080773f4` | `CopyRecordBytes` | read | Party / save | Copies n bytes between two buffers in whichever direction the fourth argument selects -- the save/load direction switch, one routine serving both. | `src/party/record.c` |
+
+## Party / stats — 9 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
 |---|---|---|---|---|---|---|
 | `Func_80782a0` | `0x080782a0` | `SetUnitHP` | read | Party / stats | Clamps the argument to 0..maxHP (unit+0x34), stores it as current HP (unit+0x38), then recomputes the 0..0x4000 bar fraction at unit+0x14. | `src/party/stats.c` |
 | `Func_8078320` | `0x08078320` | `SetUnitPP` | read | Party / stats | The PP twin of SetUnitHP: clamps to 0..maxPP (unit+0x36), stores current PP (unit+0x3a), and refreshes the same bar fraction from HP. | `src/party/stats.c` |
 | `Func_8079754` | `0x08079754` | `AddPsynergyPoints` | read | Party / stats | Adds a delta to the signed byte at gState+0x11c and clamps it to 0..0x1c. Which counter this is is not established by the body. | `src/party/stats.c` |
+| `Func_80797ec` | `0x080797ec` | `GetClassStatEntry` | read | Party / stats | Indexes .L88db8 as a four-wide table: row times four plus column. A plain accessor; the table's meaning is not established here. | `src/party/stats.c` |
 | `Func_80797fc` | `0x080797fc` | `GetBaseStatSpread` | read | Party / stats | Fills four output stats, each ten times a packed byte. Ids above 7 read the enemy row via GetEnemyInfo and .L88e38 at stride 24; ids 0-7 read the unit's own block at +0x24. | `src/party/stats.c` |
+| `Func_807987c` | `0x0807987c` | `GetBaseStat` | read | Party / stats | One stat of the four GetBaseStatSpread produces, divided back down by ten. Out-of-range indices return zero. | `src/party/stats.c` |
 | `Func_80798b4` | `0x080798b4` | `GetEnemyStatRowWord` | read | Party / stats | Looks up the unit's enemy row in .L88e38 (24-byte stride, clamped at 0x2b) and returns its first word. | `src/party/stats.c` |
 | `Func_80798e0` | `0x080798e0` | `GetUnitStatSpread` | read | Party / stats | Builds the full stat spread for a unit, taking the enemy table branch when unit+0x129 is zero and the class branch otherwise. | `src/party/stats.c` |
+| `Func_8079ae8` | `0x08079ae8` | `RefreshUnitClass` | read | Party / stats | Recomputes the unit's class byte at +0x129 from its id and Djinn block, then refreshes the derived stats. Paired with CalcStats at every call site. | `src/party/stats.c` |
 
 ## Save / flash — 3 functions
 

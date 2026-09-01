@@ -106,6 +106,40 @@ def added_sources():
     return [p for p in out if p.endswith(".c") and "/non_matching/" not in p]
 
 
+def all_sources():
+    """EVERY elevated .c, not just the ones we added.
+
+    added_sources() is scoped to what goes back upstream, which is the right
+    set for the evidence table. The NAMING universe is larger: 2404 functions
+    came in with Coaltergeist's tree before BASE, most already named but some
+    still `Func_`. --subsystems counts against this set instead.
+    """
+    out = []
+    for root, _, files in os.walk(os.path.join(ROOT, "src")):
+        rel = os.path.relpath(root, ROOT).replace(os.sep, "/")
+        if "/non_matching" in "/" + rel or rel.startswith("src/lib"):
+            continue
+        for f in files:
+            if f.endswith(".c"):
+                out.append(rel + "/" + f)
+    return sorted(out)
+
+
+PLACEHOLDER = re.compile(r"^(Func_|OvlFunc_|sub_)")
+
+
+def naming_universe():
+    """(still placeholder-named, already named) across every elevated .c."""
+    place = named = 0
+    for p in all_sources():
+        for f in defined_functions(p):
+            if PLACEHOLDER.match(f):
+                place += 1
+            else:
+                named += 1
+    return place, named
+
+
 def defined_functions(path):
     body = open(os.path.join(ROOT, path), errors="replace").read()
     body = re.sub(r"/\*.*?\*/", "", body, flags=re.S)
@@ -179,7 +213,8 @@ def main():
     ov_ann, main_ann = annotations()
     prop = proposals()
     rows = []
-    for path in added_sources():
+    sources = all_sources() if "--subsystems" in sys.argv else added_sources()
+    for path in sources:
         m = re.search(r"src/overlays/(rom_[0-9a-f]+|common)/", path)
         ovdir = m.group(1) if m else None
         origin = overlay_origin(ovdir) if ovdir else None
@@ -288,9 +323,12 @@ def emit_subsystems(rows):
     for r in have:
         groups.setdefault(r["subsystem"], []).append(r)
     done = len(have)
-    total = len(rows)
-    print("Covering **%d of %d** elevated functions (%.0f%%).\n"
-          % (done, total, 100.0 * done / total if total else 0))
+    place, already = naming_universe()
+    print("%d elevated functions carry a real name already; **%d still carry a "
+          "`Func_`/`OvlFunc_` placeholder**, and those are the naming job.\n"
+          % (already, place))
+    print("This file proposes **%d** of them (%.1f%%).\n"
+          % (done, 100.0 * done / place if place else 0))
     for sub in sorted(groups):
         g = sorted(groups[sub], key=lambda r: r["function"])
         print("## %s — %d function%s\n" % (sub, len(g), "" if len(g) == 1 else "s"))
