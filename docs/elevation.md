@@ -10475,3 +10475,60 @@ With `OvlFunc_901_2008c1c` that is two negatives. The lever's demonstrated scope
 is a pointer **computed from a base in straight-line code**, where its birth
 statement decides which register it gets. It does not reach a pointer copied out
 of a high register, and it does not reach a loop's base address.
+
+## The gState offset build is worth 50 differences on its own
+
+`Func_8095fcc` screened at 51 lines against 54 with 53 differing — a diff that
+reads like a wrong function. The entire cause was one expression:
+`*(int *)(gState + (0xfa << 1))` folds to a single pooled symbol,
+`ldr r3, =gState+500`, where the ROM builds the offset and adds it:
+
+    mov r1, #0xfa / lsl r1, #1 / add r3, r1
+
+Naming the offset first — `off = 0xfa << 1; ... gState + off` — restored the
+three instructions and took the function to **54 lines and 3 differing**, with
+the whole body already exact underneath.
+
+The rule was on record; what is new is the SIZE of the symptom. Three missing
+instructions at the top shifted every subsequent line, so the screen reported a
+near-total mismatch for a function that was three instructions from done.
+
+**When a screen's differing count is close to its line count, check the first
+few instructions for a folded symbol offset before reading any further.**
+
+## One function can need BOTH register-offset operand orders
+
+`Func_80bac6c` has three search loops over the same base. The ROM encodes two of
+them offset-first and one base-first:
+
+    loops 1 and 3   ldrsh r3, [r2, r5]   r2 = offset, r5 = base
+    loop 2          ldrsh r3, [r0, r2]   r0 = base,   r2 = offset
+
+The recorded rule — `base + off` gives base-first, `off + (int)base` gives
+offset-first — applies per access, not per function. Writing loops 1 and 3 as
+`*(short *)(off + (int)g)` and leaving loop 2 as `q + off` moved the first
+difference from instruction 16 to 24 and took 36 differing to 34.
+
+**Do not pick one spelling for a whole function.** Read the operand order at
+each site; a function that mixes them is not evidence that the rule is wrong.
+
+## A counter-example to the `goto`-loop lever, and what separates the cases
+
+The `goto`-loop lever is recorded as taking `Func_8090584` from 95 differing to
+3 where no flag helped. `Func_80bac6c` is the opposite: its loop 2 keeps an
+index and rebuilds `i * 2 + 0x64` every iteration while gcc strength-reduces to
+a walking pointer — exactly the shape the lever is for — and the rewrite is
+**much worse**, 67 lines against 62 and 51 differing, applied to that loop
+alone.
+
+Flags do not help either: `-fno-strength-reduce` is 65 lines and 51 differing,
+and `-fno-move-all-movables` is byte-identical to no flag at all.
+
+The distinguishing feature is how much the loop hoists. `Func_8090584` had a
+pointer, two mask constants, a base address and three store values hoisted out;
+the `goto` rewrite recovered all of them at once and its own cost was small
+against that. Here exactly one constant and one induction variable are involved,
+and the rewrite's overhead — five instructions — exceeds what it recovers.
+
+**Count what the ROM rebuilds inside the loop before reaching for the rewrite.**
+One induction variable is not enough to pay for it.
