@@ -23,7 +23,7 @@ fact is worse than an honest placeholder.
 
 451 elevated functions carry a real name already; **3294 still carry a `Func_`/`OvlFunc_` placeholder**, and those are the naming job.
 
-This file proposes **130** of them (3.9%).
+This file proposes **218** of them (6.6%).
 
 ## Actor engine — 7 functions
 
@@ -143,11 +143,99 @@ This file proposes **130** of them (3.9%).
 | `Func_80f40d0` | `0x080f40d0` | `DivFixed8` | read | Math | Returns (a << 8) / b -- an 8.8 fixed-point divide. | `src/math/fixed.c` |
 | `Func_80f40e8` | `0x080f40e8` | `ReciprocalFixed16` | read | Math | Returns 0x10000 / x, the 16.16 reciprocal. | `src/math/fixed.c` |
 
-## Menus — 1 function
+## Menus — 89 functions
 
 | Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |
 |---|---|---|---|---|---|---|
+| `Func_80a1050` | `0x080a1050` | `Menu_LeaveMapView` | read | Menus | Tears down the map-view hook and clears the two menu-open flags at 0x166 and 0x152. | `src/menu/menu_main.c` |
+| `Func_80a1070` | `0x080a1070` | `Menu_EnterMapView` | read | Menus | The mirror: sets both menu-open flags, installs the map redraw hook and returns the task handle. | `src/menu/menu_main.c` |
+| `Func_80a10d0` | `0x080a10d0` | `Menu_OpenBox` | read | Menus | Opens a UI box into a caller-held slot, reusing the existing box when the flag bit 0x100 is set rather than recreating it. | `src/menu/menu_box.c` |
+| `Func_80a1114` | `0x080a1114` | `Menu_CloseBox` | read | Menus | Closes the box held in the slot and nulls the slot, if there is one. | `src/menu/menu_box.c` |
+| `Func_80a14f0` | `0x080a14f0` | `Menu_DrawNumber` | read | Menus | Counts a value's decimal digits up to fifteen and hands the count to the number-drawing primitive. | `src/menu/menu_draw.c` |
+| `Func_80a172c` | `0x080a172c` | `Menu_CreateIconSprite` | read | Menus | Allocates a sprite slot, uploads the icon sheet at .Laea4c and registers the sprite. | `src/menu/menu_sprite.c` |
+| `Func_80a1778` | `0x080a1778` | `Menu_CreateCursorSprite` | read | Menus | The same allocate-and-upload against .Laea4c, returning the slot; used for the menu's movable cursor. | `src/menu/menu_sprite.c` |
+| `Func_80a17c4` | `0x080a17c4` | `Menu_LayoutNode` | read | Menus | Recomputes one grid node's width, height and two positions from its record. | `src/menu/menu_grid.c` |
+| `Func_80a1804` | `0x080a1804` | `Menu_ClearTextArea` | read | Menus | Calls the text-area primitive with a zero rect. Note the ROM reads an uninitialised argument here and the C reproduces it. | `src/menu/menu_draw.c` |
 | `Func_80a1814` | `0x080a1814` | `Menu_CreatePanel` | read | Menus | Builds a 13x5 window at g+0x10, attaches a text layer, stores the handle at g+0x14, writes both OBJ priorities and the 0xff/0 no-selection sentinel. Returns the window. | `src/menu/panel.c` |
+| `Func_80a195c` | `0x080a195c` | `Menu_TeardownPanel` | read | Menus | Deletes the panel's sprites, stops the panel task and releases the state block. | `src/menu/menu_main.c` |
+| `Func_80a19a0` | `0x080a19a0` | `Menu_PanelTask` | read | Menus | The panel's per-frame task: walks the eight actor sprites in the state block and updates their bitfields. | `src/menu/menu_main.c` |
+| `Func_80a1bc8` | `0x080a1bc8` | `NullSub_80a1bc8` | read | Menus | Empty body. | `src/menu/menu_main.c` |
+| `Func_80a1bcc` | `0x080a1bcc` | `Menu_LayoutGridDefault` | read+callee | Menus | Calls Menu_LayoutGrid with the default origin (0x6c, 0x28) and eight columns. | `src/menu/menu_grid.c` |
+| `Func_80a1bdc` | `0x080a1bdc` | `Menu_LayoutGrid` | read | Menus | Places every node in the state block's 0x48 list on a grid of the given origin and column count. | `src/menu/menu_grid.c` |
+| `Func_80a1c2c` | `0x080a1c2c` | `Menu_PlaceGridNode` | read | Menus | Positions one node from its index: row times 16 plus y into +8, column times 16 plus x into +6, with the index wrapped at 0x1f. | `src/menu/menu_grid.c` |
+| `Func_80a1cb0` | `0x080a1cb0` | `Menu_RefreshGrid` | read | Menus | Re-runs the per-node layout across the grid for the given mode. | `src/menu/menu_grid.c` |
+| `Func_80a21b0` | `0x080a21b0` | `Menu_DrawPageDots` | read | Menus | Draws the page indicator: total divided by page size, rounded up, one tile from 0x31 per page. | `src/menu/menu_draw.c` |
+| `Func_80a2268` | `0x080a2268` | `Menu_SetWindowRect` | read | Menus | Writes a window's position and size halfwords and selects its tile bank. | `src/menu/menu_box.c` |
+| `Func_80a23c0` | `0x080a23c0` | `Menu_DrawCoins` | read | Menus | Draws the party's coin total from gState+0x10 with its label. | `src/menu/menu_draw.c` |
+| `Func_80a23f4` | `0x080a23f4` | `Menu_SetNodeRect` | read | Menus | Writes a node's four position and size halfwords at +8/+0xa/+0xc/+0xe, if the node exists. | `src/menu/menu_grid.c` |
+| `Func_80a2408` | `0x080a2408` | `Menu_SetDirtyFlag` | read | Menus | Sets the redraw byte at +0xea6 of the menu's window block. | `src/menu/menu_main.c` |
+| `Func_80a2420` | `0x080a2420` | `Menu_ClearDirtyFlag` | read | Menus | The mirror of Menu_SetDirtyFlag on the same byte. | `src/menu/menu_main.c` |
+| `Func_80a2438` | `0x080a2438` | `Menu_PlayConfirm` | read | Menus | Plays the confirmation sound and returns 1 so it can stand in as a predicate. | `src/menu/menu_main.c` |
+| `Func_80a2444` | `0x080a2444` | `Menu_WaitStartTask` | read | Menus | Per-frame task: on the 0x08 key it plays sound 0x71, sets flag 0x150 and stops itself. | `src/menu/menu_main.c` |
+| `Func_80a2474` | `0x080a2474` | `Menu_StartWaitStart` | read+callee | Menus | Clears flag 0x150 and starts Menu_WaitStartTask at priority 0xc80. | `src/menu/menu_main.c` |
+| `Func_80a2490` | `0x080a2490` | `Menu_StopWaitStart` | read+callee | Menus | Stops Menu_WaitStartTask if flag 0x150 is still clear. | `src/menu/menu_main.c` |
+| `Func_80a24ac` | `0x080a24ac` | `Menu_SetTextColorF` | read | Menus | Selects text colour 15. Which palette entry that is is not established here, so the name carries the number. | `src/menu/menu_draw.c` |
+| `Func_80a24b8` | `0x080a24b8` | `Menu_SetTextColor2` | read | Menus | Selects text colour 2. Same caveat. | `src/menu/menu_draw.c` |
+| `Func_80a24c4` | `0x080a24c4` | `Menu_SetTextColor4` | read | Menus | Selects text colour 4. Same caveat. | `src/menu/menu_draw.c` |
+| `Func_80a345c` | `0x080a345c` | `Menu_ResetGridIcons` | read | Menus | Walks all 32 grid nodes writing icon index 0xd into each. | `src/menu/menu_grid.c` |
+| `Func_80a34c0` | `0x080a34c0` | `Menu_ClosePanel` | read+callee | Menus | The close sequence: reset the icons, tear down the panel, wait out the fade and close the boxes. | `src/menu/menu_main.c` |
+| `Func_80a38a8` | `0x080a38a8` | `Menu_SelectEntry` | read | Menus | Moves the selection to the given entry, refreshing the box and the cursor sprite. | `src/menu/menu_main.c` |
+| `Func_80a3c98` | `0x080a3c98` | `Menu_EndCursorAnim` | read | Menus | Restores the cursor sprite's idle animation and stops the cursor task. | `src/menu/menu_sprite.c` |
+| `Func_80a3cf8` | `0x080a3cf8` | `Menu_ShowMessage` | read | Menus | Clears the message box held at state+0x10c and opens the given message id into it. | `src/menu/menu_draw.c` |
+| `Func_80a3d24` | `0x080a3d24` | `Menu_FillGridFromList` | read | Menus | Copies a halfword list into the grid nodes, re-laying out each as it goes. | `src/menu/menu_grid.c` |
+| `Func_80a3e88` | `0x080a3e88` | `Menu_ShowUnitItems` | read | Menus | Builds the item grid for one unit and opens the description box against it. | `src/menu/menu_main.c` |
+| `Func_80a3eec` | `0x080a3eec` | `NullSub_80a3eec` | read | Menus | Empty body. | `src/menu/menu_main.c` |
+| `Func_80a4110` | `0x080a4110` | `GetMenuGridEntry` | read | Menus | Bounds-checked lookup into the three-by-three table at .Laf2e4; out of range gives zero. | `src/menu/menu_grid.c` |
+| `Func_80a413c` | `0x080a413c` | `GetMenuRowHeight` | read | Menus | Returns 0x1e or 0x26 depending on the second argument. The first argument is unused, in the ROM as well. | `src/menu/menu_grid.c` |
+| `Func_80a45cc` | `0x080a45cc` | `Menu_DrawStatDelta` | read | Menus | Draws a stat comparison line, switching text colour to 0xe when the leading byte is -1. | `src/menu/menu_draw.c` |
+| `Func_80a4754` | `0x080a4754` | `Menu_BreakRandomItem` | read | Menus | Picks an equipped item at random, breaks it, plays the break sound and refreshes the row. | `src/menu/menu_main.c` |
+| `Func_80a47b4` | `0x080a47b4` | `Menu_OpenSubBox` | read+callee | Menus | Opens the sub-box for a menu index through Menu_OpenBox and primes its contents. | `src/menu/menu_box.c` |
+| `Func_80a4db4` | `0x080a4db4` | `Menu_DrawValueWithUnit` | read | Menus | Draws a three-digit value and then the unit string that follows it, from .Laf224/.Laf228. | `src/menu/menu_draw.c` |
+| `Func_80a4e20` | `0x080a4e20` | `Menu_SetCursorRectA` | read+callee | Menus | Calls Menu_SetNodeRect with (0xd, 5, 0x11, 0xa). One of six fixed-argument variants in adjacent files, distinguished only by the y offset and the column count. | `src/menu/menu_grid.c` |
+| `Func_80a4e44` | `0x080a4e44` | `Menu_SetCursorRectB` | read+callee | Menus | Menu_SetNodeRect with (0xd, 3, 0x11, 0xa). | `src/menu/menu_grid.c` |
+| `Func_80a4e68` | `0x080a4e68` | `Menu_SetCursorRectC` | read+callee | Menus | The third of the six Menu_SetNodeRect variants in this run of adjacent files. | `src/menu/menu_grid.c` |
+| `Func_80a4e90` | `0x080a4e90` | `Menu_SetCursorRectD` | read+callee | Menus | Menu_SetNodeRect with (0xd, 0, 0x11, 6). | `src/menu/menu_grid.c` |
+| `Func_80a4eb8` | `0x080a4eb8` | `Menu_SetCursorRectE` | read+callee | Menus | Menu_SetNodeRect with (0xd, 0, 0x11, 7). | `src/menu/menu_grid.c` |
+| `Func_80a4ee0` | `0x080a4ee0` | `Menu_SetCursorRectF` | read+callee | Menus | Menu_SetNodeRect with (0xd, 0, 0x11, 3). | `src/menu/menu_grid.c` |
+| `Func_80a5534` | `0x080a5534` | `Menu_LoadStatusSprites` | read | Menus | Allocates sprite slots and uploads the two sheets at .Laebcc and .Laeb4c for the status screen. | `src/menu/menu_sprite.c` |
+| `Func_80a5578` | `0x080a5578` | `Menu_GetSelectedUnit` | read | Menus | Resolves the cursor index to a unit record and writes it out. One of three near-identical resolvers in this bank, differing in which state offset they read. | `src/menu/menu_main.c` |
+| `Func_80a5780` | `0x080a5780` | `ReturnTrue_80a5780` | read | Menus | Returns 1 unconditionally; one of six such predicate stubs in this bank. | `src/menu/menu_main.c` |
+| `Func_80a5784` | `0x080a5784` | `NullSub_80a5784` | read | Menus | Empty body. | `src/menu/menu_main.c` |
+| `Func_80a6384` | `0x080a6384` | `Menu_OpenGridFor` | read+callee | Menus | Lays out the grid for one unit's entries and returns the resulting count. | `src/menu/menu_grid.c` |
+| `Func_80a63dc` | `0x080a63dc` | `ReturnTrue_80a63dc` | read | Menus | Returns 1 unconditionally. | `src/menu/menu_main.c` |
+| `Func_80a63e0` | `0x080a63e0` | `NullSub_80a63e0` | read | Menus | Empty body. | `src/menu/menu_main.c` |
+| `Func_80a6874` | `0x080a6874` | `Menu_CloseSubmenu` | read+callee | Menus | Closes the submenu's UI box and tears down its panel. | `src/menu/menu_box.c` |
+| `Func_80a68a8` | `0x080a68a8` | `Menu_FillGridFromMoves` | read | Menus | Copies a move list into the grid nodes and lays each one out, the move-screen twin of Menu_FillGridFromList. | `src/menu/menu_grid.c` |
+| `Func_80a6a00` | `0x080a6a00` | `Menu_GetSelectedUnitMoves` | read | Menus | The move-screen resolver of the Menu_GetSelectedUnit trio. | `src/menu/menu_main.c` |
+| `Func_80a735c` | `0x080a735c` | `Menu_IsItemSelectable` | read | Menus | Reads the move record behind an item and answers whether the menu may select it. | `src/menu/menu_main.c` |
+| `Func_80a8034` | `0x080a8034` | `Menu_OpenStatusPanel` | read+callee | Menus | Builds the status panel through Menu_CreatePanel and primes its four rows. | `src/menu/menu_main.c` |
+| `Func_80a8904` | `0x080a8904` | `Menu_SpinDelay` | read | Menus | A 256-iteration empty loop with an asm barrier -- a busy wait, present in the ROM. | `src/menu/menu_main.c` |
+| `Func_80a8b8c` | `0x080a8b8c` | `Menu_GetSelectedUnitStats` | read | Menus | The stats-screen resolver of the Menu_GetSelectedUnit trio. | `src/menu/menu_main.c` |
+| `Func_80a9370` | `0x080a9370` | `ReturnTrue_80a9370` | read | Menus | Returns 1 unconditionally. | `src/menu/menu_main.c` |
+| `Func_80a9374` | `0x080a9374` | `Menu_ShowUnitMoves` | read+callee | Menus | Resets the grid icons and refills the grid from the selected unit's move list. | `src/menu/menu_main.c` |
+| `Func_80a939c` | `0x080a939c` | `NullSub_80a939c` | read | Menus | Empty body. | `src/menu/menu_main.c` |
+| `Func_80a99b0` | `0x080a99b0` | `Menu_MoveCursorDir` | read | Menus | Steps the cursor's column and row for a direction key, switching on the raw key bits (0x40 and friends). | `src/menu/menu_grid.c` |
+| `Func_80a9a58` | `0x080a9a58` | `ReturnTrue_80a9a58` | read | Menus | Returns 1 unconditionally. | `src/menu/menu_main.c` |
+| `Func_80a9b94` | `0x080a9b94` | `Menu_LayoutGridB` | read | Menus | A second grid layout routine with the same shape as Menu_LayoutGrid but driven off a different node list. | `src/menu/menu_grid.c` |
+| `Func_80a9bd8` | `0x080a9bd8` | `Menu_PlaceGridNodeB` | read | Menus | The per-node half of Menu_LayoutGridB; identical arithmetic to Menu_PlaceGridNode with x and y swapped. | `src/menu/menu_grid.c` |
+| `Func_80a9cbc` | `0x080a9cbc` | `Menu_RefreshGridB` | read | Menus | Re-runs Menu_LayoutNode across the second grid's nodes. | `src/menu/menu_grid.c` |
+| `Func_80a9cf8` | `0x080a9cf8` | `Menu_OpenGridBoxes` | read | Menus | Creates one UI box per populated node of the second grid and returns how many it made. | `src/menu/menu_box.c` |
+| `Func_80a9d3c` | `0x080a9d3c` | `Menu_ApplyGridFlags` | read | Menus | Walks the second grid applying a caller-supplied per-node flag byte and re-laying each node out. | `src/menu/menu_grid.c` |
+| `Func_80a9dc4` | `0x080a9dc4` | `Menu_CountGridEntries` | read | Menus | Counts the grid nodes whose byte at +0xe is set. | `src/menu/menu_grid.c` |
+| `Func_80a9e34` | `0x080a9e34` | `Menu_ResetGridAndIcon` | read+callee | Menus | Resets the grid and then sets icon 0xd, the pair used when a submenu closes. | `src/menu/menu_grid.c` |
+| `Func_80a9e44` | `0x080a9e44` | `NullSub_80a9e44` | read | Menus | Empty body. | `src/menu/menu_main.c` |
+| `Func_80a9f0c` | `0x080a9f0c` | `ReturnTrue_80a9f0c` | read | Menus | Returns 1 unconditionally. | `src/menu/menu_main.c` |
+| `Func_80aa448` | `0x080aa448` | `Menu_ShowItemMove` | read+callee | Menus | Takes the move id packed in an item's info at +0x28 (masked to 0x3fff) and shows that move's description. | `src/menu/menu_main.c` |
+| `Func_80aa460` | `0x080aa460` | `Menu_ShowMoveDesc` | read | Menus | Looks up a move record and drives the description panel from its kind and flag bytes. | `src/menu/menu_main.c` |
+| `Func_80aa538` | `0x080aa538` | `WrapIndex` | read | Menus | Returns (a + b) % b -- the cursor wrap used throughout the grid code. | `src/menu/menu_grid.c` |
+| `Func_80aa544` | `0x080aa544` | `Menu_FindEntryOffset` | read | Menus | Scans the halfword table at state+0x134 for the entry matching the biased index. | `src/menu/menu_grid.c` |
+| `Func_80aac84` | `0x080aac84` | `Menu_FadePaletteRow` | read | Menus | Adds a signed delta to each of the red, green and blue channels of one palette row, clamping each. | `src/menu/menu_draw.c` |
+| `Func_80ab2ec` | `0x080ab2ec` | `Menu_DrawStatRowEx` | read | Menus | Six-argument forwarder to the five-argument row drawer Func_80ab21c, reordering as it goes. | `src/menu/menu_draw.c` |
+| `Func_80aca04` | `0x080aca04` | `Menu_OpenStatWindow` | read | Menus | Opens one of two stat windows, selected by the first argument, with a nine-argument layout call. | `src/menu/menu_box.c` |
+| `Func_80ad318` | `0x080ad318` | `Menu_TeardownFieldSprites` | read | Menus | Deletes the field sprites held in the menu state block and stops their task. | `src/menu/menu_sprite.c` |
+| `Func_80ad5f4` | `0x080ad5f4` | `SetActorScale` | read | Menus | Stores one slot's value in the field actor scale table at state+0x244. | `src/menu/menu_field.c` |
+| `Func_80ad658` | `0x080ad658` | `Menu_StopFieldTasks` | read | Menus | Stops the field tasks in slots 0x89 through 0x8c. | `src/menu/menu_field.c` |
+| `Func_80ae88c` | `0x080ae88c` | `Menu_LoadSummonSprites` | read | Menus | Allocates and uploads the two sheets at .Laed4c and .Laedcc, the same shape as Menu_LoadStatusSprites. | `src/menu/menu_sprite.c` |
 
 ## Overlay 974 / debug — 1 function
 

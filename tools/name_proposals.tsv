@@ -152,3 +152,92 @@ Func_80f9594	GetSoundState303C	read	Sound	src/sound/music.c	Returns the byte at 
 Func_80f95a0	WaitMusicFade	read+callee	Sound	src/sound/music.c	Spins a frame at a time until the fade-state byte clears, giving up after 300 frames.
 Func_80fa260	NullSub_80fa260	read	Sound	src/sound/music.c	Empty body.
 Func_80fb790	NullSub_80fb790	read	Sound	src/sound/music.c	Empty body.
+Func_80a1050	Menu_LeaveMapView	read	Menus	src/menu/menu_main.c	Tears down the map-view hook and clears the two menu-open flags at 0x166 and 0x152.
+Func_80a1070	Menu_EnterMapView	read	Menus	src/menu/menu_main.c	The mirror: sets both menu-open flags, installs the map redraw hook and returns the task handle.
+Func_80a10d0	Menu_OpenBox	read	Menus	src/menu/menu_box.c	Opens a UI box into a caller-held slot, reusing the existing box when the flag bit 0x100 is set rather than recreating it.
+Func_80a1114	Menu_CloseBox	read	Menus	src/menu/menu_box.c	Closes the box held in the slot and nulls the slot, if there is one.
+Func_80a14f0	Menu_DrawNumber	read	Menus	src/menu/menu_draw.c	Counts a value's decimal digits up to fifteen and hands the count to the number-drawing primitive.
+Func_80a172c	Menu_CreateIconSprite	read	Menus	src/menu/menu_sprite.c	Allocates a sprite slot, uploads the icon sheet at .Laea4c and registers the sprite.
+Func_80a1778	Menu_CreateCursorSprite	read	Menus	src/menu/menu_sprite.c	The same allocate-and-upload against .Laea4c, returning the slot; used for the menu's movable cursor.
+Func_80a17c4	Menu_LayoutNode	read	Menus	src/menu/menu_grid.c	Recomputes one grid node's width, height and two positions from its record.
+Func_80a1804	Menu_ClearTextArea	read	Menus	src/menu/menu_draw.c	Calls the text-area primitive with a zero rect. Note the ROM reads an uninitialised argument here and the C reproduces it.
+Func_80a195c	Menu_TeardownPanel	read	Menus	src/menu/menu_main.c	Deletes the panel's sprites, stops the panel task and releases the state block.
+Func_80a19a0	Menu_PanelTask	read	Menus	src/menu/menu_main.c	The panel's per-frame task: walks the eight actor sprites in the state block and updates their bitfields.
+Func_80a1bc8	NullSub_80a1bc8	read	Menus	src/menu/menu_main.c	Empty body.
+Func_80a1bcc	Menu_LayoutGridDefault	read+callee	Menus	src/menu/menu_grid.c	Calls Menu_LayoutGrid with the default origin (0x6c, 0x28) and eight columns.
+Func_80a1bdc	Menu_LayoutGrid	read	Menus	src/menu/menu_grid.c	Places every node in the state block's 0x48 list on a grid of the given origin and column count.
+Func_80a1c2c	Menu_PlaceGridNode	read	Menus	src/menu/menu_grid.c	Positions one node from its index: row times 16 plus y into +8, column times 16 plus x into +6, with the index wrapped at 0x1f.
+Func_80a1cb0	Menu_RefreshGrid	read	Menus	src/menu/menu_grid.c	Re-runs the per-node layout across the grid for the given mode.
+Func_80a21b0	Menu_DrawPageDots	read	Menus	src/menu/menu_draw.c	Draws the page indicator: total divided by page size, rounded up, one tile from 0x31 per page.
+Func_80a2268	Menu_SetWindowRect	read	Menus	src/menu/menu_box.c	Writes a window's position and size halfwords and selects its tile bank.
+Func_80a23c0	Menu_DrawCoins	read	Menus	src/menu/menu_draw.c	Draws the party's coin total from gState+0x10 with its label.
+Func_80a23f4	Menu_SetNodeRect	read	Menus	src/menu/menu_grid.c	Writes a node's four position and size halfwords at +8/+0xa/+0xc/+0xe, if the node exists.
+Func_80a2408	Menu_SetDirtyFlag	read	Menus	src/menu/menu_main.c	Sets the redraw byte at +0xea6 of the menu's window block.
+Func_80a2420	Menu_ClearDirtyFlag	read	Menus	src/menu/menu_main.c	The mirror of Menu_SetDirtyFlag on the same byte.
+Func_80a2438	Menu_PlayConfirm	read	Menus	src/menu/menu_main.c	Plays the confirmation sound and returns 1 so it can stand in as a predicate.
+Func_80a2444	Menu_WaitStartTask	read	Menus	src/menu/menu_main.c	Per-frame task: on the 0x08 key it plays sound 0x71, sets flag 0x150 and stops itself.
+Func_80a2474	Menu_StartWaitStart	read+callee	Menus	src/menu/menu_main.c	Clears flag 0x150 and starts Menu_WaitStartTask at priority 0xc80.
+Func_80a2490	Menu_StopWaitStart	read+callee	Menus	src/menu/menu_main.c	Stops Menu_WaitStartTask if flag 0x150 is still clear.
+Func_80a24ac	Menu_SetTextColorF	read	Menus	src/menu/menu_draw.c	Selects text colour 15. Which palette entry that is is not established here, so the name carries the number.
+Func_80a24b8	Menu_SetTextColor2	read	Menus	src/menu/menu_draw.c	Selects text colour 2. Same caveat.
+Func_80a24c4	Menu_SetTextColor4	read	Menus	src/menu/menu_draw.c	Selects text colour 4. Same caveat.
+Func_80a345c	Menu_ResetGridIcons	read	Menus	src/menu/menu_grid.c	Walks all 32 grid nodes writing icon index 0xd into each.
+Func_80a34c0	Menu_ClosePanel	read+callee	Menus	src/menu/menu_main.c	The close sequence: reset the icons, tear down the panel, wait out the fade and close the boxes.
+Func_80a38a8	Menu_SelectEntry	read	Menus	src/menu/menu_main.c	Moves the selection to the given entry, refreshing the box and the cursor sprite.
+Func_80a3c98	Menu_EndCursorAnim	read	Menus	src/menu/menu_sprite.c	Restores the cursor sprite's idle animation and stops the cursor task.
+Func_80a3cf8	Menu_ShowMessage	read	Menus	src/menu/menu_draw.c	Clears the message box held at state+0x10c and opens the given message id into it.
+Func_80a3d24	Menu_FillGridFromList	read	Menus	src/menu/menu_grid.c	Copies a halfword list into the grid nodes, re-laying out each as it goes.
+Func_80a3e88	Menu_ShowUnitItems	read	Menus	src/menu/menu_main.c	Builds the item grid for one unit and opens the description box against it.
+Func_80a3eec	NullSub_80a3eec	read	Menus	src/menu/menu_main.c	Empty body.
+Func_80a4110	GetMenuGridEntry	read	Menus	src/menu/menu_grid.c	Bounds-checked lookup into the three-by-three table at .Laf2e4; out of range gives zero.
+Func_80a413c	GetMenuRowHeight	read	Menus	src/menu/menu_grid.c	Returns 0x1e or 0x26 depending on the second argument. The first argument is unused, in the ROM as well.
+Func_80a45cc	Menu_DrawStatDelta	read	Menus	src/menu/menu_draw.c	Draws a stat comparison line, switching text colour to 0xe when the leading byte is -1.
+Func_80a4754	Menu_BreakRandomItem	read	Menus	src/menu/menu_main.c	Picks an equipped item at random, breaks it, plays the break sound and refreshes the row.
+Func_80a47b4	Menu_OpenSubBox	read+callee	Menus	src/menu/menu_box.c	Opens the sub-box for a menu index through Menu_OpenBox and primes its contents.
+Func_80a4db4	Menu_DrawValueWithUnit	read	Menus	src/menu/menu_draw.c	Draws a three-digit value and then the unit string that follows it, from .Laf224/.Laf228.
+Func_80a4e20	Menu_SetCursorRectA	read+callee	Menus	src/menu/menu_grid.c	Calls Menu_SetNodeRect with (0xd, 5, 0x11, 0xa). One of six fixed-argument variants in adjacent files, distinguished only by the y offset and the column count.
+Func_80a4e44	Menu_SetCursorRectB	read+callee	Menus	src/menu/menu_grid.c	Menu_SetNodeRect with (0xd, 3, 0x11, 0xa).
+Func_80a4e68	Menu_SetCursorRectC	read+callee	Menus	src/menu/menu_grid.c	The third of the six Menu_SetNodeRect variants in this run of adjacent files.
+Func_80a4e90	Menu_SetCursorRectD	read+callee	Menus	src/menu/menu_grid.c	Menu_SetNodeRect with (0xd, 0, 0x11, 6).
+Func_80a4eb8	Menu_SetCursorRectE	read+callee	Menus	src/menu/menu_grid.c	Menu_SetNodeRect with (0xd, 0, 0x11, 7).
+Func_80a4ee0	Menu_SetCursorRectF	read+callee	Menus	src/menu/menu_grid.c	Menu_SetNodeRect with (0xd, 0, 0x11, 3).
+Func_80a5534	Menu_LoadStatusSprites	read	Menus	src/menu/menu_sprite.c	Allocates sprite slots and uploads the two sheets at .Laebcc and .Laeb4c for the status screen.
+Func_80a5578	Menu_GetSelectedUnit	read	Menus	src/menu/menu_main.c	Resolves the cursor index to a unit record and writes it out. One of three near-identical resolvers in this bank, differing in which state offset they read.
+Func_80a5780	ReturnTrue_80a5780	read	Menus	src/menu/menu_main.c	Returns 1 unconditionally; one of six such predicate stubs in this bank.
+Func_80a5784	NullSub_80a5784	read	Menus	src/menu/menu_main.c	Empty body.
+Func_80a6384	Menu_OpenGridFor	read+callee	Menus	src/menu/menu_grid.c	Lays out the grid for one unit's entries and returns the resulting count.
+Func_80a63dc	ReturnTrue_80a63dc	read	Menus	src/menu/menu_main.c	Returns 1 unconditionally.
+Func_80a63e0	NullSub_80a63e0	read	Menus	src/menu/menu_main.c	Empty body.
+Func_80a6874	Menu_CloseSubmenu	read+callee	Menus	src/menu/menu_box.c	Closes the submenu's UI box and tears down its panel.
+Func_80a68a8	Menu_FillGridFromMoves	read	Menus	src/menu/menu_grid.c	Copies a move list into the grid nodes and lays each one out, the move-screen twin of Menu_FillGridFromList.
+Func_80a6a00	Menu_GetSelectedUnitMoves	read	Menus	src/menu/menu_main.c	The move-screen resolver of the Menu_GetSelectedUnit trio.
+Func_80a735c	Menu_IsItemSelectable	read	Menus	src/menu/menu_main.c	Reads the move record behind an item and answers whether the menu may select it.
+Func_80a8034	Menu_OpenStatusPanel	read+callee	Menus	src/menu/menu_main.c	Builds the status panel through Menu_CreatePanel and primes its four rows.
+Func_80a8904	Menu_SpinDelay	read	Menus	src/menu/menu_main.c	A 256-iteration empty loop with an asm barrier -- a busy wait, present in the ROM.
+Func_80a8b8c	Menu_GetSelectedUnitStats	read	Menus	src/menu/menu_main.c	The stats-screen resolver of the Menu_GetSelectedUnit trio.
+Func_80a9370	ReturnTrue_80a9370	read	Menus	src/menu/menu_main.c	Returns 1 unconditionally.
+Func_80a9374	Menu_ShowUnitMoves	read+callee	Menus	src/menu/menu_main.c	Resets the grid icons and refills the grid from the selected unit's move list.
+Func_80a939c	NullSub_80a939c	read	Menus	src/menu/menu_main.c	Empty body.
+Func_80a93a0	NullSub_80a93a0	read	Menus	src/menu/menu_main.c	Empty body, immediately after NullSub_80a939c.
+Func_80a99b0	Menu_MoveCursorDir	read	Menus	src/menu/menu_grid.c	Steps the cursor's column and row for a direction key, switching on the raw key bits (0x40 and friends).
+Func_80a9a58	ReturnTrue_80a9a58	read	Menus	src/menu/menu_main.c	Returns 1 unconditionally.
+Func_80a9b94	Menu_LayoutGridB	read	Menus	src/menu/menu_grid.c	A second grid layout routine with the same shape as Menu_LayoutGrid but driven off a different node list.
+Func_80a9bd8	Menu_PlaceGridNodeB	read	Menus	src/menu/menu_grid.c	The per-node half of Menu_LayoutGridB; identical arithmetic to Menu_PlaceGridNode with x and y swapped.
+Func_80a9cbc	Menu_RefreshGridB	read	Menus	src/menu/menu_grid.c	Re-runs Menu_LayoutNode across the second grid's nodes.
+Func_80a9cf8	Menu_OpenGridBoxes	read	Menus	src/menu/menu_box.c	Creates one UI box per populated node of the second grid and returns how many it made.
+Func_80a9d3c	Menu_ApplyGridFlags	read	Menus	src/menu/menu_grid.c	Walks the second grid applying a caller-supplied per-node flag byte and re-laying each node out.
+Func_80a9dc4	Menu_CountGridEntries	read	Menus	src/menu/menu_grid.c	Counts the grid nodes whose byte at +0xe is set.
+Func_80a9e34	Menu_ResetGridAndIcon	read+callee	Menus	src/menu/menu_grid.c	Resets the grid and then sets icon 0xd, the pair used when a submenu closes.
+Func_80a9e44	NullSub_80a9e44	read	Menus	src/menu/menu_main.c	Empty body.
+Func_80a9f0c	ReturnTrue_80a9f0c	read	Menus	src/menu/menu_main.c	Returns 1 unconditionally.
+Func_80aa448	Menu_ShowItemMove	read+callee	Menus	src/menu/menu_main.c	Takes the move id packed in an item's info at +0x28 (masked to 0x3fff) and shows that move's description.
+Func_80aa460	Menu_ShowMoveDesc	read	Menus	src/menu/menu_main.c	Looks up a move record and drives the description panel from its kind and flag bytes.
+Func_80aa538	WrapIndex	read	Menus	src/menu/menu_grid.c	Returns (a + b) % b -- the cursor wrap used throughout the grid code.
+Func_80aa544	Menu_FindEntryOffset	read	Menus	src/menu/menu_grid.c	Scans the halfword table at state+0x134 for the entry matching the biased index.
+Func_80aac84	Menu_FadePaletteRow	read	Menus	src/menu/menu_draw.c	Adds a signed delta to each of the red, green and blue channels of one palette row, clamping each.
+Func_80ab2ec	Menu_DrawStatRowEx	read	Menus	src/menu/menu_draw.c	Six-argument forwarder to the five-argument row drawer Func_80ab21c, reordering as it goes.
+Func_80aca04	Menu_OpenStatWindow	read	Menus	src/menu/menu_box.c	Opens one of two stat windows, selected by the first argument, with a nine-argument layout call.
+Func_80ad318	Menu_TeardownFieldSprites	read	Menus	src/menu/menu_sprite.c	Deletes the field sprites held in the menu state block and stops their task.
+Func_80ad5f4	SetActorScale	read	Menus	src/menu/menu_field.c	Stores one slot's value in the field actor scale table at state+0x244.
+Func_80ad658	Menu_StopFieldTasks	read	Menus	src/menu/menu_field.c	Stops the field tasks in slots 0x89 through 0x8c.
+Func_80ae88c	Menu_LoadSummonSprites	read	Menus	src/menu/menu_sprite.c	Allocates and uploads the two sheets at .Laed4c and .Laedcc, the same shape as Menu_LoadStatusSprites.
