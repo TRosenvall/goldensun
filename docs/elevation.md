@@ -10532,3 +10532,44 @@ and the rewrite's overhead — five instructions — exceeds what it recovers.
 
 **Count what the ROM rebuilds inside the loop before reaching for the rewrite.**
 One induction variable is not enough to pay for it.
+
+## SELECTION IS THE LEVER: rank by similarity to a SOLVED function
+
+Two consecutive rounds produced zero elevations. Both picked candidates on size
+and call count, and both landed on register-allocation and scheduling walls.
+The rounds that produced elevations had something else in common, and it was not
+the size of the function: `DeleteActor` matched on the first screen because its
+own `.s` already held the solved `Actor_SetAnimAndSpeed` with the same opening.
+
+**The exact-skeleton tools are exhausted, and that is now measured.**
+`tools/match_shapes.py` reports 0 leads, and `--near 1`, `--near 2` and
+`--near 3` all report 0 as well; `tools/solved_twins.py` reports 0 across 0
+templates. Every remaining function that is a constants-only variant of an
+elevated one has been taken.
+
+But "no exact twin" is not "no usable template". `tools/fuzzy_solved.py` ranks
+every remaining function by the best difflib ratio between its skeleton and any
+solved function's, bucketed by length with a mnemonic-overlap prefilter so the
+quadratic part stays small. It reports **26 leads at ratio >= 0.80**.
+
+The first three were taken in one round and **all three matched on the FIRST
+screen with no iteration at all**:
+
+| function | ratio | exemplar |
+|---|---|---|
+| `TextBox` | 0.986 | `DialogueBox`, same `.s` stem — same body, one argument differs |
+| `OvlFunc_924_2009bf0` | 0.977 | `OvlFunc_924_2009420`, same overlay — same cutscene, different slot and constants |
+| `OvlFunc_926_2008484` | 0.971 | `OvlFunc_939_2008764`, another overlay — including its recorded two-spellings-for-two-increments detail |
+
+Compare that against the two dry rounds: eight functions screened, every one
+reaching exact length, none matching.
+
+> **A ratio above 0.95 is worth more than any tractability heuristic.** Size,
+> call count and branch count predict how hard a function is to READ. Similarity
+> to a solved function predicts whether the answer already exists.
+
+The ratio is a lead, not a proof — the exemplar's `.c` still has to be read, and
+the third of these needed its branch polarity inverted against the exemplar's.
+But the reading is minutes rather than a round.
+
+**Run `tools/fuzzy_solved.py` before any other candidate scanner.**
