@@ -10573,3 +10573,61 @@ the third of these needed its branch polarity inverted against the exemplar's.
 But the reading is minutes rather than a round.
 
 **Run `tools/fuzzy_solved.py` before any other candidate scanner.**
+
+## `x <<= 16; x >>= 2;` is not the same spelling as `(short)x << 14`
+
+`Func_80782a0` stores a clamped value as a halfword and then uses it shifted.
+The ROM does the widening in place, after the store:
+
+    strh r0, [r5, #0x38] / lsl r0, #0x10 / ... / asr r0, #0x2
+
+Written as a cast — `r0 = (short)r0 << 14;` — gcc computes the shift into a
+SECOND register and hoists it above the store: `lsl r3, r0, #0x10 / strh r0,... /
+asr r0, r3, #0x2`, five differing at exact length. `-fno-schedule-insns2` takes
+that to four and still does not close it.
+
+Writing the two shifts as two statements on an `int`
+
+    r0 <<= 16;
+    r0 >>= 2;
+
+matches outright. The cast asks for a value; the shift pair asks for an
+operation on a register, and only the second gets the in-place form.
+
+**When the ROM widens a just-stored halfword with a shift PAIR, write two shift
+statements.** A cast to `short` is the natural reading and it is the wrong one.
+
+## `-fno-schedule-insns2`: read the SIGNATURE, not the flag
+
+The recorded warning is that this flag is "an actively misleading probe", from a
+round where on every function it moved the first differing position back to ~1
+and multiplied the count (3 → 15, 17 → 41, 8 → 25, 2 → 23).
+
+`Func_8078320` is the opposite case and it is worth naming, because the warning
+as written would have stopped the elevation. Its residue was three lines — a
+`strh` and the `ldrsh` after it in the wrong order — and the flag closed it
+**outright**, with no other line disturbed and no change to where the diff
+began. `SCHED2_CFLAGS` already exists for exactly this, on one prior function.
+
+So the discriminator is the shape of what the flag does, not the flag:
+
+* first difference jumps back toward instruction 1 and the count multiplies →
+  the flag is destroying the evidence; put it down.
+* the residue closes or shrinks with nothing else moving → it is the answer,
+  and post-reload scheduling really was the difference.
+
+The sibling `Func_80782a0` shows the other half of the rule: the same flag on a
+similar-looking residue took 5 differing to 4 and did NOT close it, and the real
+fix was a source spelling. **A flag that improves but does not close a small
+residue is still the wrong answer.**
+
+## Solved-sibling pairs come nearly free, and `fuzzy_solved.py` finds them
+
+`Func_80782a0` and `Func_8078320` sit in one `.s`, share a solved exemplar
+(`UpdateStatBarPercent`), and appeared in `tools/fuzzy_solved.py` as two
+separate leads at 0.906 and 0.897. Solving the first gave the second for two
+edits — the clamp's field offsets and the forwarded store.
+
+That is the second round in a row where the fuzzy ranking produced elevations at
+one or two screens each, against two prior rounds that produced none. Six of the
+seven elevations across those two rounds came off its list.
