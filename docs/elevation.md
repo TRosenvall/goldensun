@@ -10727,3 +10727,50 @@ wrong path. So: **build in the container with `AGBCC_DIR=/opt/agbcc`, and know
 that it feeds five library objects only.** If those objects are already current
 the variable never gets used, which is why an incremental build appears to work
 without it.
+
+## The duplicate-constant hoist has a THIRD presentation: the PRE-SHIFT base
+
+Two parks this batch showed gcc commoning a repeated argument value. A third,
+`OvlFunc_959_200a06c`, shows it commoning something the earlier descriptions
+would not catch.
+
+Its three `__MapActor_SetPos` calls pass `0xac<<18, 0xb0<<15`, `0xb0<<18,
+0xb0<<15`, `0xb4<<18, 0xc0<<15`. gcc does not hoist a shifted value — it hoists
+`mov r5, #0xb0`, the eight-bit immediate underneath two *different* shifted
+results, and shifts copies of it at each site. The ROM writes `mov r1, #0xb0`
+and `mov r2, #0xb0` separately.
+
+So the repeated thing need not be an argument, or even a value that appears in
+the ROM twice. **Check for a repeated 8-bit immediate across argument sites, not
+just a repeated argument.** All three specimens were found only from the
+prologue after screening, which is a poor way to learn it.
+
+## A `// fakematch` exemplar must not be copied, and the tool now says so
+
+`tools/fuzzy_solved.py` offered `OvlFunc_925_200aeb8` as the exemplar for
+`OvlFunc_959_200a06c` at ratio 0.865. That file is marked `// fakematch` and
+gets its match by pinning thirteen locals with
+`__asm__ volatile ("" : "+r" (x))`.
+
+Copying it would have produced a match and propagated the hack into a target
+that needs nothing of the kind — the target is a nine-call straight-line
+cutscene. The tool now tags such exemplars `<- FAKEMATCH, do not copy`.
+
+**A high ratio against a fakematch is worse than no lead at all**, because the
+spelling it suggests will work.
+
+## `(unsigned short)(v - 1) <= 1` is not `unsigned short w = v - 1; w <= 1`
+
+`OvlFunc_922_20095dc` guards on a halfword minus one. The ROM subtracts as a
+full word and narrows only at the comparison:
+
+    ldrh r3, [r3] / sub r3, #1 / lsl r3, #16 / mov r2, #0x80 / lsl r2, #9 / cmp r3, r2
+
+Declaring the intermediate `unsigned short` makes gcc materialise the wrap
+instead — `ldr r2, =0xffff / add r3, r2`, plus a separate `add r2, #1` for the
+bound — three differing at exact length. Keeping the value an `int` and casting
+inside the condition gives the ROM's `sub` and its `lsl #16` against `1 << 16`.
+
+Same family as the `x <<= 16; x >>= 2;` reading: **a narrow TYPE asks gcc to
+produce a narrow value; a cast inside a comparison only asks it to compare
+narrowly.** The ROM's `lsl #16` immediately before a `cmp` is the second form.

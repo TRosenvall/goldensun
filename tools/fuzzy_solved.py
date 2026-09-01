@@ -32,6 +32,14 @@ WHAT IT DOES NOT DO
 A ratio is a lead, never a proof. The exemplar's .c has to be read before it is
 copied -- match_shapes.py's docstring records what a genuinely loose match cost
 when that step was skipped. This is deliberately a RANKING, not a filter.
+
+FAKEMATCH EXEMPLARS ARE MARKED. Some elevated files match only because they
+force gcc's register allocation with `__asm__ volatile ("" : "+r" (x))` on
+every local, and are labelled `// fakematch` at the top. Copying one produces a
+match and propagates the hack into a function that may not need it -- this tool
+offered exactly that for OvlFunc_959_200a06c, whose target turned out to need
+no such thing. Those exemplars now print with a FAKEMATCH tag; read the target
+on its own terms before borrowing anything from them.
 """
 import collections
 import difflib
@@ -40,6 +48,15 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import match_shapes
+
+
+def is_fakematch(src):
+    """True if the exemplar's .c forces its match with inline-asm register pins."""
+    try:
+        head = open(os.path.join(match_shapes.ROOT, src), errors="replace").read(4000)
+    except OSError:
+        return False
+    return "fakematch" in head.lower()
 
 
 def flatten(m):
@@ -103,8 +120,9 @@ def main():
     print("ratio insn  function / file")
     print("            exemplar to read")
     for r, name, path, n, ex in rows[:top]:
+        tag = "  <- FAKEMATCH, do not copy" if is_fakematch(ex[1]) else ""
         print(" %.3f %3d  %-28s %s" % (r, n, name, path))
-        print("            %-28s %s" % (ex[0], ex[1]))
+        print("            %-28s %s%s" % (ex[0], ex[1], tag))
 
 
 if __name__ == "__main__":
