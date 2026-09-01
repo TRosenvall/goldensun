@@ -10774,3 +10774,47 @@ inside the condition gives the ROM's `sub` and its `lsl #16` against `1 << 16`.
 Same family as the `x <<= 16; x >>= 2;` reading: **a narrow TYPE asks gcc to
 produce a narrow value; a cast inside a comparison only asks it to compare
 narrowly.** The ROM's `lsl #16` immediately before a `cmp` is the second form.
+
+## NAMING a repeated constant can be worse than leaving it inline
+
+`OvlFunc_927_200a078` passes `0xc0 << 11` to two calls, and the ROM builds it
+once into r8 and holds it across the intervening work — the exact shape that
+usually means a named local, and its solved exemplar
+(`OvlFunc_927_2009ef0`) does name it.
+
+Here naming it is 2 differing at exact length, and the difference is
+argument-setup order:
+
+    rom    mov r2, #0x86 / mov r3, #0xc0 / lsl r3, #11
+    ours   mov r3, #0xc0 / mov r2, #0x86 / lsl r3, #11
+
+Writing the literal at BOTH call sites matches outright. gcc's own CSE produces
+the single build in r8 by itself; the named local additionally fixes when that
+build happens, and it fixes it wrongly. Moving the assignment earlier is much
+worse again (125 lines, 122 differing, both placements tried).
+
+**So a constant held in a callee-saved register across calls is not by itself
+evidence for a named local.** gcc will common two plain literals into exactly
+that. Name it only when the plain spelling fails — and note this is the inverse
+of the duplicate-constant parks in this same batch, where gcc's hoist is what
+has to be prevented. Same mechanism; whether it is right depends on the ROM.
+
+## `tools/fuzzy_solved.py` now warns before the C is written
+
+Two failure modes cost rounds and both are now flagged on the lead list.
+
+**FAKEMATCH exemplars.** Some elevated files match only by pinning locals with
+`__asm__ volatile ("" : "+r" (x))` and are labelled `// fakematch`. Copying one
+works, which is the problem — it propagates the hack into a target that may not
+need it. Two of eleven current leads carry such an exemplar.
+
+**DUP-CONST targets.** Batch 169 lost three functions to the duplicate-constant
+hoist, and `tools/filtered.py` already computed exactly the notion of
+"expensive constant" that predicts it. The detector reuses that function
+verbatim rather than reimplementing it, reading the real instruction text —
+`match_shapes` collapses every immediate to one letter, so the skeleton the
+ranking runs on cannot see this at all. Three of eleven current leads are
+flagged.
+
+A flagged lead is not worthless; the rest of the function may still be exact.
+But expect a park unless there is a guard between the repeats.

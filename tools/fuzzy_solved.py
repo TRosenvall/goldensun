@@ -48,6 +48,31 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import match_shapes
+import filtered
+import shapesib
+
+
+def dup_expensive(path, name):
+    """Expensive constants the TARGET repeats -- the duplicate-constant hoist.
+
+    Reads the real instruction text, not the skeleton: match_shapes collapses
+    every immediate to one letter, so the skeleton cannot see this at all.
+    """
+    body = None
+    for n, b in shapesib.functions(os.path.join(match_shapes.ROOT, path)):
+        if n == name:
+            body = [l for l in b if l.strip()
+                    and not l.strip().startswith((".", "@", "/*"))]
+            break
+    if body is None:
+        return []
+    vals = filtered.expensive_constants(body)
+    seen, dup = set(), set()
+    for v in vals:
+        if v in seen:
+            dup.add(v)
+        seen.add(v)
+    return sorted(dup)
 
 
 def is_fakematch(src):
@@ -121,7 +146,9 @@ def main():
     print("            exemplar to read")
     for r, name, path, n, ex in rows[:top]:
         tag = "  <- FAKEMATCH, do not copy" if is_fakematch(ex[1]) else ""
-        print(" %.3f %3d  %-28s %s" % (r, n, name, path))
+        dup = dup_expensive(path, name)
+        warn = ("  <- DUP-CONST %s" % ",".join(dup)) if dup else ""
+        print(" %.3f %3d  %-28s %s%s" % (r, n, name, path, warn))
         print("            %-28s %s%s" % (ex[0], ex[1], tag))
 
 
