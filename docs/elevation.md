@@ -10088,3 +10088,28 @@ anomalous to scan for. It is visible only in the DIFF. The practical rule is to
 try `ALIAS_CFLAGS` whenever a small residue is a load sitting on the wrong side
 of a store of a different width, whether or not the detector offered the
 function.
+
+## Mirror the ROM's control flow, including which arm falls through
+
+Two functions this round turned on it, in opposite directions.
+
+`Func_8099070`: the ROM's `beq` jumps to a one-line arm and FALLS THROUGH to the
+main block, so the main block is the `if` body. Written as an early return for
+the small case -- which reads far more naturally -- the arms swap and everything
+after diverges. **29 differing to 7 on that alone.**
+
+`Func_80b27b0`: a chain of four `if (kind == N) { if (test) goto set; }` blocks
+converging on one assignment, with the last arm branching out rather than
+falling through. Transcribed as `goto` exactly as the ROM lays it out, it matched
+on the first screen -- 47 instructions, no iteration.
+
+The reading is not new but the emphasis is: **when a function is a chain of
+guarded tests converging on one result, write the gotos.** Restructuring it into
+early returns or `else if` is a different program to gcc even when it is the same
+program to a reader, and the cost shows up as a whole-function divergence rather
+than a local one.
+
+Note this is the same rule the `Func_80ae99c` park bounds: layout tells you which
+arm falls through WHEN GCC EMITS A BRANCH, and says nothing when gcc if-converts
+instead. Chains of tests around calls and loads always branch; two bare constant
+assignments may not.
