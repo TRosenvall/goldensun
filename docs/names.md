@@ -34,6 +34,18 @@ Recording only the name would launder a guess into a fact.
 
 | Function | Address | Proposed | Basis | Evidence |
 |---|---|---|---|---|
+| `Func_80bf250` | `0x080bf250` | `TickStatusCounterUnk132` | named | was needed and the linker script is unchanged. TickStatusCounter, ten times. Each decrements one per-combatant status counter in the persist |
+| `Func_80bf2b4` | `0x080bf2b4` | `TickStatusCounterUnk134` | named | was needed and the linker script is unchanged. TickStatusCounter, ten times. Each decrements one per-combatant status counter in the persist |
+| `Func_80bf318` | `0x080bf318` | `TickStatusCounterUnk136` | named | was needed and the linker script is unchanged. TickStatusCounter, ten times. Each decrements one per-combatant status counter in the persist |
+| `Func_80bf37c` | `0x080bf37c` | `TickStatusCounterUnk138` | named | was needed and the linker script is unchanged. TickStatusCounter, ten times. Each decrements one per-combatant status counter in the persist |
+| `Func_80bf3bc` | `0x080bf3bc` | `TickStatusCounterUnk139` | named | was needed and the linker script is unchanged. TickStatusCounter, ten times. Each decrements one per-combatant status counter in the persist |
+| `Func_80bf400` | `0x080bf400` | `TickStatusCounterUnk13A` | named | was needed and the linker script is unchanged. TickStatusCounter, ten times. Each decrements one per-combatant status counter in the persist |
+| `Func_80bf440` | `0x080bf440` | `TickStatusCounterUnk13B` | named | was needed and the linker script is unchanged. TickStatusCounter, ten times. Each decrements one per-combatant status counter in the persist |
+| `Func_80bf484` | `0x080bf484` | `TickStatusCounterUnk13C` | named | was needed and the linker script is unchanged. TickStatusCounter, ten times. Each decrements one per-combatant status counter in the persist |
+| `Func_80bf4c4` | `0x080bf4c4` | `TickStatusCounterUnk13D` | named | was needed and the linker script is unchanged. TickStatusCounter, ten times. Each decrements one per-combatant status counter in the persist |
+| `Func_80bf524` | `0x080bf524` | `TickStatusCounterUnk13E` | named | was needed and the linker script is unchanged. TickStatusCounter, ten times. Each decrements one per-combatant status counter in the persist |
+| `Func_80bf54c` | `0x080bf54c` | `TickStatusCounterUnk13F` | named | Func_80bf54c -- 0x080bf54c, the whole of linker script is unchanged. The eleventh TickStatusCounter, and the simplest: decrement one status  |
+| `GetEquippedItem` | `` | `GetEquippedItem` | named | GetEquippedItem  --  0x080787dc, from asm/rom_77000/rom_78414_c_c_a_c_a.s. Scans a unit's 15-entry item array (unit + 0xd8, one halfword eac |
 | `OvlFunc_879_20081c0` | `0x020081c0` | `LoadTitleSprite` | named | OvlFunc_879_20081c0  --  0x020081c0 Cut out of goldensun/asm/overlays/rom_779188/ovl_30_c_c_b.s. Loads the cursor sprite: allocate a scratch |
 | `OvlFunc_880_20092c8` | `0x020092c8` | `Crc16Ccitt` | named | unsigned int OvlFunc_880_20092c8(unsigned int n, unsigned char *p) { unsigned int crc; unsigned int i; int j; crc = 0xffff; i = 0; if (n !=  |
 | `OvlFunc_883_200806c` | `0x0200806c` | `FindEntityAtPosition` | named | Split out of that .s; the _c part stays as assembly and keeps its slot in FindEntityAtPosition. Scans entity slots 8..0x41 -- the map-object |
@@ -161,8 +173,6 @@ Recording only the name would launder a guess into a fact.
 | `Func_800c570` | `0x0800c570` | — | read | Func_800c548 and Func_800c570, the whole of goldensun/asm/rom_9000/rom_c004_c_a_c_a.s. no linker-script change was needed. Two guarded bit-s |
 | `Func_800c5b4` | `0x0800c5b4` | — | read | Func_800c5b4  --  0x0800c5b4, was goldensun/asm/rom_9000/rom_c004_c_a_c_c_a.s. script's existing line for that object now picks up this file |
 | `Func_800d304` | `0x0800d304` | — | read | Slotted between the _a and _c pieces in goldensun/stage1.ld; the _c piece keeps the .rodata blob. Copies an ARM routine into RAM, runs it, a |
-| `Func_800d924` | `0x0800d924` | — | read | extern unsigned char *iwram_3001e64; extern int Func_800eba0(void *p, int x, int b, int y); int Func_800d924(unsigned char *a, int b) { unsi |
-| `Func_800d98c` | `0x0800d98c` | — | read | extern unsigned char *iwram_3001e64; extern int Func_800eba0(void *p, int x, int b, int y); unsigned char *Func_800d98c(unsigned char *a, in |
 | `Func_800ea60` | `0x0800ea60` | — | read | extern int _GetFlag(int); extern unsigned char *iwram_3001ebc; extern volatile unsigned int gKeyPress; int Func_800ea60(unsigned int arg) {  |
 | `Func_800eba0` | `0x0800eba0` | — | read | int Func_800eba0(int *a, int ra, int *b, int rb) { int dx; int dy; int dz; int r; int lim; dx = (*a++ - *b++) >> 16; dy = (*a++ - *b++) >> 1 |
 | `Func_8010704` | `0x08010704` | — | read | extern unsigned int gBuffer[]; void Func_8010704(int sx, int sy, int w, int h, int dx, int dy) { unsigned int *src; unsigned int *dst; unsig |
@@ -230,7 +240,7 @@ Recording only the name would launder a guess into a fact.
 | `Func_80782a0` | `0x080782a0` | — | read | void Func_80782a0(void *unit, int n) { void *r5; int r0; int r1; int r2; int r3; r5 = unit; r2 = 0x34; r3 = *(short *)((char *)r5 + r2); r0  |
 | `Func_8078320` | `0x08078320` | — | read | void Func_8078320(void *unit, int n) { void *r5; int r0; int r1; int r2; int r3; r5 = unit; r2 = 0x36; r3 = *(short *)((char *)r5 + r2); r2  |
 | `Func_8078500` | `0x08078500` | — | read | extern unsigned int gState; extern int FindEmptyInventorySlot(int id); extern int Func_80796c4(short *buf); int Func_8078500(void) { short b |
-| `Func_807882c` | `0x0807882c` | — | read | Func_807882c  --  0x0807882c, from asm/rom_77000/rom_78414_c_c_a_c_a.s. The same scan as GetEquippedItem next door, but it returns the item  |
+| `Func_807882c` | `0x0807882c` | `GetEquippedItemInfo` | read | Func_807882c  --  0x0807882c, from asm/rom_77000/rom_78414_c_c_a_c_a.s. The same scan as GetEquippedItem next door, but it returns the item  |
 | `Func_8078948` | `0x08078948` | — | read | PARKED, AND NOW MATCHED, on the same lever as LoadStatusIcon. It sat at 22 of 23 instructions with one pair swapped in the argument setup fo |
 | `Func_8079754` | `0x08079754` | — | read | A LEAF FUNCTION, matched on the first screen. Adds a delta to the signed byte at gState+0x11c, clamps it to 0..0x1c, stores it back and retu |
 | `Func_80797fc` | `0x080797fc` | — | read | extern void *GetEnemyInfo(int id); extern void *GetPCBaseStats(int id); extern unsigned char L88e38[] __asm__(".L88e38"); int Func_80797fc(i |
@@ -320,7 +330,7 @@ Recording only the name would launder a guess into a fact.
 | `Func_80a10d0` | `0x080a10d0` | — | read | extern void _Func_8016498(void *p); extern void *_CreateUIBox(int a, int b, int c, int d, int e); int Func_80a10d0(void **slot, int a, int b |
 | `Func_80a14f0` | `0x080a14f0` | — | read | extern void _Func_801e9d4(int a, int n, int b, int c, int d); void Func_80a14f0(int a0, int a1, int a2, int a3) { int v; int n; v = a0; n =  |
 | `Func_80a17c4` | `0x080a17c4` | — | read | translation unit and the linker script is untouched. Resets a sprite's animation state: sets a flag byte, copies a 9-bit field from +6 into  |
-| `Func_80a1814` | `0x080a1814` | — | read | extern void Func_80a10d0(void *p, int b, int c, int d, int e, int f); extern char *Func_80a1778(void *q, int b, int c); void *Func_80a1814(u |
+| `Func_80a1814` | `0x080a1814` | `Menu_CreatePanel` | read | extern void Func_80a10d0(void *p, int b, int c, int d, int e, int f); extern char *Func_80a1778(void *q, int b, int c); void *Func_80a1814(u |
 | `Func_80a195c` | `0x080a195c` | — | read | extern int iwram_3001f2c; extern int _Func_80796c4(void *out); extern void _DeleteSprite(void *s); extern void StopTask(void *fn); extern vo |
 | `Func_80a19a0` | `0x080a19a0` | — | read | struct Sprite { unsigned char pad00[9]; unsigned char b0 : 2, b2 : 2, b4 : 4; }; struct Blk { unsigned char pad000[0x114]; struct Sprite *ac |
 | `Func_80a1bdc` | `0x080a1bdc` | — | read | extern char *iwram_3001f2c; extern void Func_80a1c2c(void *node, int i, int x, int y, int cols); void Func_80a1bdc(int x, int y, int cols) { |
@@ -351,7 +361,7 @@ Recording only the name would launder a guess into a fact.
 | `Func_80aca04` | `0x080aca04` | — | read | extern char *iwram_3001f2c; extern void Func_80acab8(int win, int a, int b, int id, int s0, int s1, int s2, int s3, int s4); int Func_80aca0 |
 | `Func_80ad5f4` | `0x080ad5f4` | — | read | Field actor scale table: store one slot's value. Split out of asm/rom_a1000/rom_ad274_c_a.s, which holds six functions; the neighbours are a |
 | `Func_80b010c` | `0x080b010c` | — | read | OpenShopState: allocate the module's 0xa70-byte block, DMA-clear it, reserve six OBJ tile slots and register the per-frame task.  Matched on |
-| `Func_80b06ec` | `0x080b06ec` | — | read | Func_80b06ec -- 0x080b06ec, from Copies four groups of four bytes into a 2x2 tile layout -- offsets 0, 1, 0x1e, 0x1f from a destination that |
+| `Func_80b06ec` | `0x080b06ec` | `UI_DrawIconRow` | read | Func_80b06ec -- 0x080b06ec, from Copies four groups of four bytes into a 2x2 tile layout -- offsets 0, 1, 0x1e, 0x1f from a destination that |
 | `Func_80b0744` | `0x080b0744` | — | read | #include "dma.h" extern unsigned char L_b3e80[] __asm__(".Lb3e80"); extern unsigned char *galloc_ewram(int index, int size); extern void Fun |
 | `Func_80b0840` | `0x080b0840` | — | read | #include "gba/types.h" #include "gba/io.h" #include "dma.h" extern char *iwram_3001ebc[]; extern void _Func_8091200(int a, int b); extern vo |
 | `Func_80b10cc` | `0x080b10cc` | — | read | Func_80b10cc  --  0x080b10cc, cut from DrawRowText: emit a row's label and its number, skipping both if the row count is zero. DECLARE gStat |
@@ -377,17 +387,6 @@ Recording only the name would launder a guess into a fact.
 | `Func_80b9acc` | `0x080b9acc` | — | read | extern int iwram_3001e80[]; extern volatile int gKeyHeld; extern void Func_80c0a24(int a, int b, int c, int d, int e); void Func_80b9acc(voi |
 | `Func_80bace8` | `0x080bace8` | — | read | struct Q { unsigned char pad00[5]; unsigned char f5; unsigned char pad06[0x16 - 6]; unsigned char f16; }; struct Spr { unsigned char pad00[0 |
 | `Func_80be070` | `0x080be070` | — | read | extern int Func_80b6c08(int kind, unsigned short *buf); int Func_80be070(unsigned int a) { unsigned short buf[8]; int kind; int n; int i; ki |
-| `Func_80bf250` | `0x080bf250` | — | read | was needed and the linker script is unchanged. TickStatusCounter, ten times. Each decrements one per-combatant status counter in the persist |
-| `Func_80bf2b4` | `0x080bf2b4` | — | read | was needed and the linker script is unchanged. TickStatusCounter, ten times. Each decrements one per-combatant status counter in the persist |
-| `Func_80bf318` | `0x080bf318` | — | read | was needed and the linker script is unchanged. TickStatusCounter, ten times. Each decrements one per-combatant status counter in the persist |
-| `Func_80bf37c` | `0x080bf37c` | — | read | was needed and the linker script is unchanged. TickStatusCounter, ten times. Each decrements one per-combatant status counter in the persist |
-| `Func_80bf3bc` | `0x080bf3bc` | — | read | was needed and the linker script is unchanged. TickStatusCounter, ten times. Each decrements one per-combatant status counter in the persist |
-| `Func_80bf400` | `0x080bf400` | — | read | was needed and the linker script is unchanged. TickStatusCounter, ten times. Each decrements one per-combatant status counter in the persist |
-| `Func_80bf440` | `0x080bf440` | — | read | was needed and the linker script is unchanged. TickStatusCounter, ten times. Each decrements one per-combatant status counter in the persist |
-| `Func_80bf484` | `0x080bf484` | — | read | was needed and the linker script is unchanged. TickStatusCounter, ten times. Each decrements one per-combatant status counter in the persist |
-| `Func_80bf4c4` | `0x080bf4c4` | — | read | was needed and the linker script is unchanged. TickStatusCounter, ten times. Each decrements one per-combatant status counter in the persist |
-| `Func_80bf524` | `0x080bf524` | — | read | was needed and the linker script is unchanged. TickStatusCounter, ten times. Each decrements one per-combatant status counter in the persist |
-| `Func_80bf54c` | `0x080bf54c` | — | read | Func_80bf54c -- 0x080bf54c, the whole of linker script is unchanged. The eleventh TickStatusCounter, and the simplest: decrement one status  |
 | `Func_80c0098` | `0x080c0098` | — | read | Writes two ramps of packed byte-index words -- 0x03020100, 0x07060504, ... -- 64 words then 56 words, and then clears 0x220 bytes past the e |
 | `Func_80c01bc` | `0x080c01bc` | — | read | extern int iwram_3001ef8; extern short iwram_3001ad0[]; extern void Func_80c0cec(int a, int b, int c, int d); void Func_80c01bc(void) { int  |
 | `Func_80c08a8` | `0x080c08a8` | — | read | Slotted between rom_bffb8_a_c_a_a.o and the rest of stage1.ld. Allocates a 0x2a0-byte EWRAM block, zeroes it, and clears a field of the iwra |
@@ -408,7 +407,6 @@ Recording only the name would launder a guess into a fact.
 | `Func_80e3994` | `0x080e3994` | — | read | extern int Func_8000888(int, int); static inline int call_via(int (*f)(int, int), int a, int b) { register int _a __asm__("r0") = a; registe |
 | `Func_80f037c` | `0x080f037c` | — | read | Placed in the run in goldensun/stage1.ld. Fills a 512-word buffer in four runs: 32 words of 0x01ff01ff, 240 words of a value stepping by 0x0 |
 | `Func_80f7db4` | `0x080f7db4` | — | read | The .s is split in two around this function: the earlier functions move to rom_f6008_c_a.s and the later ones stay in rom_f6008_c.s, which a |
-| `GetEquippedItem` | `` | — | read | GetEquippedItem  --  0x080787dc, from asm/rom_77000/rom_78414_c_c_a_c_a.s. Scans a unit's 15-entry item array (unit + 0xd8, one halfword eac |
 | `GetJupiterDjinni` | `` | — | read | extern unsigned char gState[]; extern unsigned char *iwram_3001f30; extern unsigned char *MapActor_GetActor(int slot); extern void Func_8095 |
 | `GetMoveDisplayEffect` | `` | — | read | extern int _Func_8079ef8(int a); int GetMoveDisplayEffect(unsigned char *m) { int t; int k; int r; r = 0; t = m[1] & 0xf; if (t == 1) r = 1; |
 | `GetNumDjinn` | `` | — | read | extern int Func_80796c4(unsigned short *buf); extern unsigned char *GetUnit(int id); int GetNumDjinn(int which) { unsigned short buf[16]; un |
@@ -1349,7 +1347,7 @@ Recording only the name would launder a guess into a fact.
 | `OvlFunc_974_2008198` | `0x02008198` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 | `OvlFunc_974_20081b8` | `0x020081b8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
 | `OvlFunc_974_20081d8` | `0x020081d8` | — | read | Overlay 974: four of the seven message-range dispatch stubs. Whole-part conversion of asm/overlays/rom_7fcd20/ovl_30_a_c_a_c_c_a_c.s -- it h |
-| `OvlFunc_974_20088c4` | `0x020088c4` | — | read | extern void __Func_801776c(int a, int b); extern int __GiveDjinni(int slot, int elem, int n); extern int __SetDjinni(int slot, int elem, int |
+| `OvlFunc_974_20088c4` | `0x020088c4` | `DebugGiveAllDjinn` | read | extern void __Func_801776c(int a, int b); extern int __GiveDjinni(int slot, int elem, int n); extern int __SetDjinni(int slot, int elem, int |
 | `OvlFunc_974_2008bb8` | `0x02008bb8` | — | read | Stocks the four party members and recomputes their stats. __GiveItemTo IS DELIBERATELY LEFT UNDECLARED -- do not add a prototype. With one,  |
 | `OvlFunc_974_2008f14` | `0x02008f14` | — | read | split was needed; the .c replaces the .s at the same stem and the three overlay scripts that reference the .o are unchanged. Stocks the four |
 | `OvlFunc_974_20090a8` | `0x020090a8` | — | read | extern void __Func_8079664(int a); extern void __AddPartyMember(int a); extern void __SetMinLevel(int a, int b); extern void __CalcStats(int |
@@ -1375,5 +1373,7 @@ Recording only the name would launder a guess into a fact.
 | `call_via_r3` | `` | — | read | struct Obj { int f0; int f4; int f8; int fc; }; struct Ent { unsigned char pad0[8]; int f8; int fc; int f10; unsigned char pad14[4]; int f18 |
 | `call_via_r4` | `` | — | read | extern int iwram_3001e70; extern int iwram_3001af4; extern void *galloc_ewram(int a, int b); extern int Func_8000888(int a, int b); extern v |
 | `call_via_r4` | `` | — | read | extern int Func_80008ac(int a, int b); extern int Func_8000888(int a, int b); static inline int call_via_r4(int (*f)(int, int), int a, int b |
+| `Func_800d924` | `0x0800d924` | `Actor_IsBlockedAt` | read+callee | extern unsigned char *iwram_3001e64; extern int Func_800eba0(void *p, int x, int b, int y); int Func_800d924(unsigned char *a, int b) { unsi |
+| `Func_800d98c` | `0x0800d98c` | `Actor_FindBlockerAt` | read+callee | extern unsigned char *iwram_3001e64; extern int Func_800eba0(void *p, int x, int b, int y); unsigned char *Func_800d98c(unsigned char *a, in |
 
-1341 functions: 81 named, 1260 read
+1341 functions: 93 named, 1246 read, 2 read+callee

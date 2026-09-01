@@ -139,6 +139,31 @@ def annotations():
     return ov, main
 
 
+PROPOSALS = os.path.join(ROOT, "tools", "name_proposals.tsv")
+
+
+def proposals():
+    """function -> {proposed, basis, subsystem, home, why} from the TSV.
+
+    The TSV is the accumulating rename decision. It OUTRANKS an annotation's
+    proposed identifier, because a row here was written with the body in view
+    and with its family beside it, which is the whole argument for deferring
+    the rename in the first place.
+    """
+    out = {}
+    if not os.path.exists(PROPOSALS):
+        return out
+    for line in open(PROPOSALS, errors="replace"):
+        if line.startswith("#") or not line.strip():
+            continue
+        f = line.rstrip("\n").split("\t")
+        if len(f) < 6:
+            continue
+        out[f[0]] = {"proposed": f[1], "basis": f[2], "subsystem": f[3],
+                     "home": f[4], "why": f[5]}
+    return out
+
+
 def own_description(path):
     """The prose WE wrote in the file header, minus the provenance boilerplate."""
     head = open(os.path.join(ROOT, path), errors="replace").read().split("*/")[0]
@@ -152,6 +177,7 @@ def own_description(path):
 
 def main():
     ov_ann, main_ann = annotations()
+    prop = proposals()
     rows = []
     for path in added_sources():
         m = re.search(r"src/overlays/(rom_[0-9a-f]+|common)/", path)
@@ -189,15 +215,27 @@ def main():
                 basis = "read" if basis in ("none", "call-trace", "annotation") else basis
                 note = mine
 
+            pr = prop.get(fn)
+            subsystem = home = why = ""
+            if pr:
+                proposed = pr["proposed"]
+                basis = pr["basis"]
+                subsystem, home, why = pr["subsystem"], pr["home"], pr["why"]
+
             rows.append({"function": fn,
                          "address": f"0x{addr:08x}" if addr else "",
                          "file": path, "proposed": proposed,
-                         "basis": basis, "note": note})
+                         "basis": basis, "note": note,
+                         "subsystem": subsystem, "home": home, "why": why})
 
     if "--doc" in sys.argv:
         print(DOC_HEADER)
     if "--json" in sys.argv:
         print(json.dumps(rows, indent=1))
+        return
+
+    if "--subsystems" in sys.argv:
+        emit_subsystems(rows)
         return
 
     order = {"named": 0, "read": 1, "call-trace": 2, "annotation": 3, "none": 4}
@@ -215,6 +253,55 @@ def main():
               f"{r['basis']} | {note} |")
     print(f"\n{len(rows)} functions: "
           + ", ".join(f"{v} {k}" for k, v in sorted(counts.items())))
+
+
+SUB_HEADER = """# Name proposals by subsystem
+
+**Generated — do not hand-edit.** Regenerate with:
+
+    python3 tools/name_evidence.py --subsystems > docs/name-proposals.md
+
+The source of truth is `tools/name_proposals.tsv`. `docs/names.md` holds the
+EVIDENCE for every elevated function; this holds the DECISION for those that
+have one, grouped the way a rename pass would actually be run — by subsystem,
+so that a family sharing a body gets one name rather than one name per batch.
+
+Style follows this tree's own conventions: `PascalCase` for a plain routine,
+`Subsystem_Verb` where a module owns it (`Actor_TravelTo`, `MapActor_SetIdle`,
+`UI_SellMenu`, `Anim_Judgment`), `g*` for globals. The upstream decomp's `src/`
+was not read.
+
+Read the `Basis` column before trusting a row; `docs/attribution.md` records
+that the inherited annotation corpus gets mechanism right and purpose wrong
+often enough to matter. Where the code does not establish an identity — which
+status effect a counter belongs to, say — the name carries an `Unk<offset>`
+suffix and the `Why` column says so. That is deliberate: a guess dressed as a
+fact is worse than an honest placeholder.
+"""
+
+
+def emit_subsystems(rows):
+    """docs/name-proposals.md: only rows that HAVE a proposal, by subsystem."""
+    have = [r for r in rows if r.get("subsystem")]
+    print(SUB_HEADER)
+    groups = {}
+    for r in have:
+        groups.setdefault(r["subsystem"], []).append(r)
+    done = len(have)
+    total = len(rows)
+    print("Covering **%d of %d** elevated functions (%.0f%%).\n"
+          % (done, total, 100.0 * done / total if total else 0))
+    for sub in sorted(groups):
+        g = sorted(groups[sub], key=lambda r: r["function"])
+        print("## %s — %d function%s\n" % (sub, len(g), "" if len(g) == 1 else "s"))
+        print("| Function | Address | Proposed | Basis | ROM area | Why the name | Suggested home |")
+        print("|---|---|---|---|---|---|---|")
+        for r in g:
+            why = r["why"].replace("|", "\\|")
+            print("| `%s` | `%s` | `%s` | %s | %s | %s | `%s` |"
+                  % (r["function"], r["address"], r["proposed"], r["basis"],
+                     r["subsystem"], why, r["home"]))
+        print()
 
 
 if __name__ == "__main__":

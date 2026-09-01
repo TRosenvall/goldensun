@@ -1,0 +1,42 @@
+# Proposed identifiers for elevated functions. Source of truth; consumed by
+# tools/name_evidence.py, which fills the `Proposed` column of docs/names.md
+# and generates docs/name-proposals.md grouped by subsystem.
+#
+# Renaming is still deferred (see docs/names.md). This file is the accumulating
+# decision, not the rename itself. A bulk rename is byte-neutral -- names do not
+# survive objcopy -- so `make compare` proves any eventual application of it.
+#
+# Columns, tab-separated:
+#   function   the current symbol
+#   proposed   the identifier to rename it to
+#   basis      read | named | read+callee | read+family  (see docs/names.md)
+#              read+callee  purpose pinned by reading an already-elevated callee
+#              read+family  purpose pinned by a sibling that shares the body
+#   subsystem  what part of the ROM it belongs to
+#   home       where it would live under a semantic layout
+#   why        one line: what in the body justifies the name
+#
+# A function whose identity the code does not establish gets an Unk<offset> or
+# Unk<n> suffix and says so in `why`. Do not guess a game-facing name.
+#
+#function	proposed	basis	subsystem	home	why
+GetEquippedItem	GetEquippedItem	named	Party / equipment	src/party/item.c	Keeps the ROM's own name; body agrees -- scans the 15 slots at unit+0xd8 for the first equipped entry (0x200) whose info record carries the requested kind, returns the slot index or -1.
+Func_807882c	GetEquippedItemInfo	read	Party / equipment	src/party/item.c	The same scan as GetEquippedItem but returns the ItemInfo record rather than the slot index, and takes the unit directly instead of looking it up.
+Func_8078870	GetEquippedItemId	read	Party / equipment	src/party/item.c	Third member of the trio; same scan, returns the item id masked to 0x1ff. Still parked, named here so the three are renamed together.
+OvlFunc_974_20088c4	DebugGiveAllDjinn	read	Overlay 974 / debug	src/overlays/ovl_974/debug_djinn.c	53 calls: GiveDjinni then SetDjinni for elements 0-3 across four party slots, then CalcStats on all four. A test fixture, not reachable play.
+Func_80a1814	Menu_CreatePanel	read	Menus	src/menu/panel.c	Builds a 13x5 window at g+0x10, attaches a text layer, stores the handle at g+0x14, writes both OBJ priorities and the 0xff/0 no-selection sentinel. Returns the window.
+Func_800d924	Actor_IsBlockedAt	read+callee	Actor engine	src/field/actor_collision.c	Walks 64 actor records at iwram_3001e64 (stride 0x70), skipping empty, non-collidable (+0x59 & 1) and self, asking Func_800eba0 for radius overlap. Returns -1 on the first hit.
+Func_800d98c	Actor_FindBlockerAt	read+callee	Actor engine	src/field/actor_collision.c	Twin of Actor_IsBlockedAt, identical but for returning the overlapping record or NULL.
+Func_80bf208	RollStatusRecovery	read	Battle / status	src/battle/status.c	With five or fewer turns left, rolls (luck*3 - turnsLeft*5 + strength) * 0x28f against RPGRandom() & 0xffff. The reason every TickStatusCounter rolls at all.
+Func_80bf250	TickStatusCounterUnk132	named	Battle / status	src/battle/status.c	Counter at unit+0x132, companion signed byte 0x133, recovery strength 0x1e. Which status effect this is is not established by the body.
+Func_80bf2b4	TickStatusCounterUnk134	named	Battle / status	src/battle/status.c	Counter 0x134, companion 0x135, strength 0x14. Effect identity not established by the body.
+Func_80bf318	TickStatusCounterUnk136	named	Battle / status	src/battle/status.c	Counter 0x136, companion 0x137, strength 0x14. Effect identity not established by the body.
+Func_80bf37c	TickStatusCounterUnk138	named	Battle / status	src/battle/status.c	Counter 0x138, no companion, strength 0x1e. Effect identity not established by the body.
+Func_80bf3bc	TickStatusCounterUnk139	named	Battle / status	src/battle/status.c	Counter 0x139 -- odd, so pooled rather than built with mov+lsl. Strength 0x3c.
+Func_80bf400	TickStatusCounterUnk13A	named	Battle / status	src/battle/status.c	Counter 0x13a, strength 0x46 -- the highest in the family, so the easiest effect to shake off early.
+Func_80bf440	TickStatusCounterUnk13B	named	Battle / status	src/battle/status.c	Counter 0x13b (odd, pooled), strength 0x28.
+Func_80bf484	TickStatusCounterUnk13C	named	Battle / status	src/battle/status.c	Counter 0x13c, strength 0x32.
+Func_80bf4c4	TickStatusCounterUnk13D	named	Battle / status	src/battle/status.c	Counter 0x13d, and the one real variant: a 3-bit count with a carry above it, brought under 8 first, decremented only when the low bits are set, failed outright above 7.
+Func_80bf524	TickStatusCounterUnk13E	named	Battle / status	src/battle/status.c	Counter 0x13e, and the only member with no recovery roll and no companion -- hence the bare push {lr} prologue.
+Func_80bf54c	TickStatusCounterUnk13F	named	Battle / status	src/battle/status.c	Twelfth family member, in its own TU: counter 0x13f (odd, pooled), no companion, no recovery roll.
+Func_80b06ec	UI_DrawIconRow	read	Town UI	src/menu/shop_ui.c	Draws four 2x2-tile icons across a 30-column tilemap: 32-byte source rows at .Lb3d40 + a*32, destination from .Lb413c[c], writing +0/+1/+30/+31 and advancing by four. A zero byte blanks the rest of that icon.
