@@ -1,92 +1,104 @@
-/* Func_8020b64 -- asm/rom_15000/rom_20198_c_c_c_a_a_a_a_c.s
+/* Func_8020b64 (0x08020b64) -- NON-MATCHING.
+ * Blocker class: A COPY CHAIN COLLAPSED BY THE FIRST cse PASS.
  *
- * BLOCKER: REGISTER ROTATION. 47 of 61, LENGTH EXACT.
+ * SIX instructions in disagreeing regions of 61, with EVERY REGISTER IN THE
+ * ROM'S PLACE. The previous park recorded 47 of 61 and called it a register
+ * rotation; both halves of that were wrong, and both corrections matter.
  *
- * Builds a display string in a 0x14-byte stack buffer: copy a NUL-terminated
- * source, append control bytes 8 and 2, pad with 0x5f out to width 7, append
- * 8, 0xf and a terminator, then call Func_801e858(buf, a, 0, -2).
+ * Builds a small display string: copy a null-terminated source into a stack
+ * buffer, append two control bytes, pad with 0x5f out to offset 7, append two
+ * more and a terminator, then hand it to the text layer.
  *
- * TWO TELLS WERE READ CORRECTLY and together they took it from 56 differing at
- * 58 lines to 47 at 61 -- the length is now exact and the block structure,
- * including the `b L2` over the else-arm and all three labels, lines up:
+ * CORRECTION 1 -- THE ROTATION WAS THE PARK'S OWN LOCALS. It carried `base`,
+ * `p` and `count` as named locals. Deleting all three and writing plain
+ * `buf[n]` indexing with a natural `while (n < 7)` pad loop lets gcc's strength
+ * reduction create the cursor itself, and lets `n`'s final value (`mov r4, #7`)
+ * and the trip count (`sub r4, r3, r4`) fall out on their own. The registers
+ * then land exactly where the ROM has them -- c in r2, t in r3, n in r4, the
+ * cursor in r5, the argument in r6, the buffer in r0.
  *
- *   1. THE CHARACTER IS TWO NAMES. The ROM shuffles it through two registers
- *      at both sites -- `ldrb r2, [r1] / mov r3, r2` before the loop and
- *      `ldrb r3, [r1] / mov r2, r3 / mov r3, r2` inside it. That double move
- *      is a QImode value round-tripping through an SImode pseudo, i.e. an
- *      `unsigned char` holding the byte and an `int` carrying the test.
- *      Writing both made the loop body the right length.
+ * This is the recorded "a local that only holds an ADDRESS can cost the
+ * ordering -- delete it" lever, and it moved a FOUR-register rotation. The
+ * notebook's line that "nothing has moved a rotation of more than two
+ * registers" is now false and should be struck.
  *
- *   2. THE BUFFER BASE IS ITS OWN NAME. `mov r0, sp / mov r5, r0` keeps the
- *      base in one register and walks another, so the source has a base
- *      pointer and a separate cursor -- not one pointer used for both. The
- *      else-arm reloads the base (`.L20b8c: mov r0, sp`), which is why the C
- *      below assigns it in BOTH arms.
+ * CORRECTION 2 -- "47 of 61" WAS A POSITIONAL ARTIFACT. The two streams differ
+ * in length, so a positional comparison counts every instruction after the
+ * first insertion as differing. The aligned count is 6.
  *
- * WHAT REMAINS is the rotation, and every difference is an instance of it:
+ * > ANY PARK QUOTING A POSITIONAL COUNT ON A FUNCTION WITH A LENGTH MISMATCH IS
+ * > OVERSTATING ITS DISTANCE. The parked set should be re-ranked on aligned
+ * > counts before anything else is written off.
  *
- *     rom    c->r2  t->r3  n->r4  p->r5  a->r6  buf->r0
- *     ours   c->r0  t->r3  n->r2  p->r4  a->r6  buf->r5
+ * WHAT REMAINS, and it is one instruction:
  *
- * `t` and `a` agree; the other four are permuted. Same class as
- * src/non_matching/rom_77000/8079664.c and rom_b5000/80c0228.c. Nothing in
- * this batch has moved a rotation of more than two registers, and the
- * assignment-position lever that fixed an r0/r1 pair on Func_80d66cc is
- * recorded there as not reaching callee-saved pairs.
+ *     rom    ldrb r2, [r1] / mov r3, r2   ... mov r3, r2 / add r5, #0x1
+ *     ours   ldrb r3, [r1] / mov r2, r3   ... add r5, #0x1
  *
- * NOTE ON THE SCREEN: this reference keeps its pool inside the function, so
- * per docs/elevation.md the count is advisory in both directions. The 47 is
- * reported here as what tryc said, not as a verified byte count -- the
- * function was never installed, because a whole-function rotation is not a
- * near miss worth a build cycle.
+ * The mechanism is pinned down from RTL dumps rather than inferred. The
+ * expander output contains the ROM's three-instruction chain verbatim --
+ * load-destination, then `c`, then `t` -- and it survives the jump pass intact.
+ * THE FIRST cse PASS COLLAPSES IT TO TWO, folding the load's destination pseudo
+ * into `c`; a later pass flips which of the two owns the load. By regmove only
+ * two pseudos remain, so the allocator never sees three and cannot produce the
+ * ROM's redundant copy.
+ *
+ * So this is pseudo-creation and copy-collapse in cse_main, NOT allocation, and
+ * the read-count lever cannot reach it: a genuine second textual read is
+ * byte-identical to the single read here, because cse folds both to the same
+ * two insns.
+ *
+ * The scheduling half -- `add r5, #1` landing in the load-use slot -- is
+ * downstream of the same count: the ROM has three instructions to fill that
+ * slot and we have two. --no-sched2 is worse, so it is not independent.
+ *
+ * MEASURED, thirty spellings, aligned counts (rom 61 lines):
+ *   the previous park, with base/p/count locals            32
+ *   `unsigned char c` alone, no `t`                        11
+ *   `unsigned char c; int t; c = *src; t = c;`              6  <- kept
+ *   two textual reads `c = *src; t = *src;`                 6  (identical)
+ *   three names in the chain                                6  (identical)
+ *   `t = c & 0xff`, `unsigned int t`, `uchar t`             6  each
+ *   an explicit cursor plus array-indexed tail              6
+ *   assignment-in-condition `while ((c = *src) != 0)`      11
+ *   an un-rotated `goto test;` loop                        22
+ *   a store placed between load and copy as an alias barrier 10
+ * FLAGS, all inert at 6: -fno-strict-aliasing,
+ *   -fno-cse-follow-jumps, -fno-cse-skip-blocks,
+ *   -fno-expensive-optimizations, -fno-thread-jumps.
+ * Worse: --no-rerun-cse (16), -fno-gcse (30), -fno-strength-reduce (27).
  */
-extern void Func_801e858(char *buf, int a, int b, int c);
+void Func_801e858(unsigned char *dest, int b, int c, int d);
 
 void Func_8020b64(int a, unsigned char *src)
 {
-    char buf[0x14];
-    char *base;
-    char *p;
-    int n;
-    int count;
-    unsigned char c;
-    int t;
+	unsigned char buf[0x14];
+	unsigned char c;
+	int t;
+	int n;
 
-    c = *src;
-    t = c;
-    n = 0;
-    if (t != 0) {
-        base = buf;
-        p = base;
-        do {
-            *p = c;
-            src++;
-            c = *src;
-            t = c;
-            p++;
-            n++;
-        } while (t != 0);
-    } else {
-        base = buf;
-    }
-    base[n] = 8;
-    n++;
-    base[n] = 2;
-    n++;
-    if (n <= 6) {
-        p = base + n;
-        count = 7 - n;
-        do {
-            count--;
-            *p = 0x5f;
-            p++;
-        } while (count != 0);
-        n = 7;
-    }
-    base[n] = 8;
-    n++;
-    base[n] = 0xf;
-    n++;
-    base[n] = 0;
-    Func_801e858(base, a, 0, -2);
+	n = 0;
+	c = *src;
+	t = c;
+	while (t != 0) {
+		buf[n] = c;
+		src++;
+		c = *src;
+		t = c;
+		n++;
+	}
+	buf[n] = 8;
+	n++;
+	buf[n] = 2;
+	n++;
+	while (n < 7) {
+		buf[n] = 0x5f;
+		n++;
+	}
+	buf[n] = 8;
+	n++;
+	buf[n] = 0xf;
+	n++;
+	buf[n] = 0;
+	Func_801e858(buf, a, 0, -2);
 }
