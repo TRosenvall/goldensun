@@ -12598,3 +12598,40 @@ stream; it has no idea another object needs a symbol the file also defined. Only
 trailing data stays with the function it follows. Split such a file by hand into
 a `.c` for the code and a `.s` for the data, and give each its own linker-script
 line.
+
+## A re-loaded immediate after a join is TWO locals, not one
+
+`OvlFunc_941_2008210` has a guarded prologue and then a join, and both halves
+pass 0x15 as a stack argument. One shared local for it is the obvious reading
+and it is wrong by 18 instructions. The shared pseudo's live range spans the
+whole function, so `allocno_compare` ranks it below the short-lived pair locals,
+gcc gives it r10, and each of the eight stack-argument sites pays
+
+    ours   mov r3, r10 / str r3, [sp]
+    rom    str r5, [sp]
+
+The reference states the answer plainly, in a way worth learning to see:
+
+    rom    ...
+           mov  r5, #0x15        <- inside the if body
+           ...
+           b    .Ljoin
+    .Ljoin:
+           mov  r5, #0x15        <- AGAIN, on a path where r5 already holds it
+
+**gcc does not re-materialise a value it kept live across a branch.** A second
+`mov rN, #imm` on a path where rN already holds imm therefore means the original
+had a SECOND VARIABLE, whose live range begins at that assignment. Splitting the
+if-body's uses into their own pair shortened both ranges, lifted them above the
+pair locals, and put the hot values in r5/r6 with one `str` per site. Exact.
+
+This is the read-count rule turned around. The read-count rule says a load
+followed by `mov rB, rA` is a CSEd second read of ONE object. This says a
+re-materialised CONSTANT after a join is a second OBJECT. Loads collapse toward
+one variable; constants split into several. In both cases the count of
+materialisations in the ROM is the count of source-level things, and the
+register rotation around it is the symptom, not the cause.
+
+Cheap check in the other direction: if you have written one local for a value
+the ROM materialises twice, you have merged two. Live range picks the register,
+not value identity.
