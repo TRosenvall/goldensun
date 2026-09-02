@@ -47,6 +47,42 @@
  * saying they are should be read with that correction. What they share is the
  * SYMPTOM -- exact instruction sequence, different register assignment -- and
  * that symptom evidently has more than one cause.
+
+ * UPDATE, batch 181 -- THE INSTRUCTION ORDER IS NOW EXACT and only the
+ * registers differ. Five aligned of six.
+ *
+ * The store's operand order was the reachable half. The ROM has
+ * `str r0, [r2, r4]` -- INDEX first, base second -- and every earlier attempt
+ * produced `str r0, [base, index]`. That is the recorded pointer-typed-operand
+ * lever: which register lands in the first slot is decided by WHICH SOURCE
+ * OPERAND CARRIES THE POINTER TYPE, not by the order of the addition. Giving
+ * the byte offset the pointer type and holding the table base as an
+ * `unsigned int` swaps them:
+ *
+ *     base = (unsigned int)gPtrs;
+ *     k = (unsigned char *)(((unsigned int)p >> 22) & m);
+ *     *(void **)(k + base) = p;
+ *
+ * Naming the mask in its own local then puts `mov r1, #0x4` BEFORE the shift,
+ * where the ROM has it. With both, the emitted sequence is instruction-for
+ * -instruction the ROM's:
+ *
+ *     rom    ldr r4,=gPtrs / mov r1,#4 / lsr r2,r0,#22 / and r2,r1 / str r0,[r2,r4]
+ *     ours   ldr r1,=gPtrs / mov r2,#4 / lsr r3,r0,#22 / and r3,r2 / str r0,[r3,r1]
+ *
+ * WHAT REMAINS is the uniform rotation: the ROM allocates r4, r1, r2 where we
+ * allocate r1, r2, r3. The ROM skips r3 entirely and reaches past r0 to r4 for
+ * the base, which is what a FOURTH pseudo taking r3 would produce -- but
+ * nothing in the source creates one, and adding one costs an instruction.
+ *
+ * The note above that this shares a cause with FindEntityAtPosition still
+ * stands corrected: it does not. What is now clear is that the SYMPTOM this
+ * park recorded was two problems stacked, and one of them was the operand
+ * order, which was reachable all along.
+ *
+ * TRIED against the rotation, all 5 aligned of 6: the mask named or inline;
+ * the shift split into its own statement; the base assigned before or after
+ * the index; the base typed `void **` and cast at the store.
  */
 extern void *gPtrs[];
 
