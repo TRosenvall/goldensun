@@ -1292,10 +1292,12 @@ SECTIONS {
 		asm/rom_b0000/rom_b0070_c_c_a_c_b.o(.text)
 		asm/rom_b0000/rom_b0070_c_c_a_c_c.o(.text)
 		asm/rom_b0000/rom_b0070_c_c_b.o(.text)
-		asm/rom_b0000/rom_b0070_c_c_c.o(.text)
+		asm/rom_b0000/rom_b0070_c_c_c_b.o(.text)
+		asm/rom_b0000/rom_b0070_c_c_c_c.o(.text)
 		src/rom_b0000/dummy.o(.text)
 
-		asm/rom_b0000/rom_b0070_c_c_c.o(.rodata)
+		asm/rom_b0000/rom_b0070_c_c_c_b.o(.rodata)
+		asm/rom_b0000/rom_b0070_c_c_c_c.o(.rodata)
 	} > rom
 
 	rom_b5000 : ALIGN(0x1000) {

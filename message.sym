@@ -173,3 +173,11 @@ _MSG_813 = 0x0813;
  * tell, and _Func_8017658's first argument is a message id everywhere else in
  * the tree. */
 _MSG_ad0 = 0x0ad0;
+
+/* Added in batch 182, same argument as _MSG_810 and _MSG_ad0 above.
+ * Func_80b3284 (the inn) holds 0xd1c in a callee-saved register and reaches
+ * 0xd1d..0xd20 with `add r0, #K`. With a plain integer gcc folds each site to
+ * its own `ldr r0, =0xd1f`, loses the high register entirely and the push list
+ * changes; it will spend a callee-saved register on a SYMBOL address and not on
+ * an integer it can rematerialise. Consumer is Func_80b04dc, a message sink. */
+_MSG_d1c = 0x0d1c;

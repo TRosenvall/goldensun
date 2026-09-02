@@ -122,4 +122,9 @@ extern int _MSG_813;
 extern int _MSG_ad0;
 #define MSG_ad0 ((int)&_MSG_ad0)
 
+// batch 182: the inn's message run. Held in a callee-saved register by the ROM
+// and reached with add #K; a plain integer is rematerialised per site instead.
+extern int _MSG_d1c;
+#define MSG_d1c ((int)&_MSG_d1c)
+
 #endif // _MESSAGE_H_
