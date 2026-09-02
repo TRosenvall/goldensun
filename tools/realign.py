@@ -34,7 +34,12 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOCKER = ["docker", "run", "--rm", "-v", ROOT + ":/work", "-w", "/work",
           "goldensun-build", "sh", "-c"]
-START = re.compile(r"^\.thumb_func_start\s+(\S+)\s+@\s+0x0*([0-9a-fA-F]+)")
+START = re.compile(r"^\.thumb_func_start\s+(\S+)(?:\s+@\s+0x0*([0-9a-fA-F]+))?")
+# Overlay .s files mostly carry NO address comment on the marker -- the address
+# lives in the symbol itself, OvlFunc_<overlay>_<addr>. Indexing only on the
+# comment made 33 of 60 overlay parks look like they had no assembly left, i.e.
+# like stale parks for already-elevated functions. They were not.
+NAMEADDR = re.compile(r"^(?:OvlFunc_\d+|Func|sub)_([0-9a-fA-F]{6,8})$")
 
 
 def index_asm():
@@ -44,9 +49,15 @@ def index_asm():
         try:
             for line in open(s, errors="replace"):
                 m = START.match(line)
-                if m:
-                    out[int(m.group(2), 16)] = (m.group(1),
-                                                os.path.relpath(s, ROOT))
+                if not m:
+                    continue
+                fn = m.group(1)
+                rel = os.path.relpath(s, ROOT)
+                if m.group(2):
+                    out[int(m.group(2), 16)] = (fn, rel)
+                nm = NAMEADDR.match(fn)
+                if nm:
+                    out.setdefault(int(nm.group(1), 16), (fn, rel))
         except OSError:
             pass
     return out

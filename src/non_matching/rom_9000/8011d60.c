@@ -36,6 +36,33 @@
  * levers -- int parameters with the guard cast, and the first multiply
  * operand-flipped -- are in src/non_matching/rom_9000/8011e88.c and they all
  * transferred; what does not transfer is the allocation.
+
+ * UPDATE, batch 181 -- RE-MEASURED ALIGNED: THREE of 28, not 22.
+ *
+ * The "22 of 28" above is a POSITIONAL count on streams of different lengths,
+ * which reports every instruction after the first insertion as differing.
+ * tryc.py --align gives 3, and the residue is exactly two adjacent moves plus
+ * the operand order they force on the subtraction:
+ *
+ *     rom    mov r5, r2                    ... sub r3, r5, r1
+ *     ours   mov r5, r1 / mov r1, r2       ... sub r3, r1, r5
+ *
+ * WHY THE ROM ONLY MOVES ONE. The max block writes `m` into r2, so whichever
+ * parameter sits in r2 -- `b` -- must be relocated, and `a` in r1 is untouched
+ * by that block and can stay. Both versions put `m` in r2. The ROM relocates
+ * only `b`; gcc relocates `a` as well, into the callee-saved register it is
+ * already pushing for `b`, which costs the extra move and flips the
+ * subtraction's operands.
+ *
+ * `t = b; t -= a;` is the best spelling found and is what is kept below.
+ * `u = (b - a) + 0xf;` as one expression is byte-identical to it. Splitting the
+ * bias into its own statement instead (`u = t; u += 0xf;`) is WORSE -- 25 lines
+ * and 8 aligned, three short, the same collapse the two negatives recorded
+ * above produce.
+ *
+ * So the family's verdict is unchanged but its distance is not: this is three
+ * instructions from a match, not twenty-two, and the whole of it is one
+ * allocator decision about a parameter that never needed to move.
  */
 int HeightTile_4(signed char *p, int a, int b)
 {
@@ -50,7 +77,8 @@ int HeightTile_4(signed char *p, int a, int b)
     m = A;
     if (B > A)
         m = B;
-    t = b - a;
+    t = b;
+    t -= a;
     u = t + 0xf;
     if (u == 0xf)
         return m;
