@@ -714,6 +714,35 @@ def main():
             if nrefs == 1:
                 mine = text_size(r.stdout + "\n\t.text\n\t.align\t2, 0\n")
                 refsz = text_size(reftxt)
+            # A POOL-ENTRY COUNT CHECK THAT DOES NOT NEED THE REFERENCE TO
+            # ASSEMBLE. text_size(ref) returns None whenever the reference
+            # cannot be assembled standalone -- which is most overlay
+            # references, since they name local data labels and external
+            # symbols -- and the size comparison below then SILENTLY does
+            # nothing. That is a false-positive generator: gcc spelling two
+            # separate `.word`s for one repeated value assembles four bytes
+            # larger than the ROM, whose `=value` shorthand lets gas SHARE one
+            # entry, and resolve_pools() normalises both to `=value` so the
+            # instruction streams agree exactly.
+            #
+            # OvlFunc_924_2009c9c screened OK this way: ours emitted
+            # `.word 598` and `.word 0x256` -- the same value twice -- against
+            # the ROM's single shared slot.
+            ourpool = [l.split(None, 1)[1].strip()
+                       for l in r.stdout.splitlines()
+                       if l.strip().startswith(".word")]
+            refvals = set(re.findall(r"\bldr\s+r\d+,\s*=(\S+)", reftxt))
+            if ourpool and len(ourpool) > len(refvals):
+                print(f"  !! {name}: instructions match but OUR POOL HAS "
+                      f"{len(ourpool)} entries and the reference needs "
+                      f"{len(refvals)}.")
+                print(f"     gas shares one slot per distinct value; two "
+                      f"`.word`s for one value is 4 bytes")
+                print(f"     larger and WILL fail make compare. Ours: "
+                      f"{', '.join(ourpool)}")
+                ok = False
+                continue
+
             if mine is not None and refsz is not None and mine != refsz:
                 print(f"  !! {name}: instructions match but .text differs -- "
                       f"ours 0x{mine:x}, reference 0x{refsz:x}")
@@ -722,8 +751,18 @@ def main():
                 print(f"     src/non_matching/ovl_7b8cb0/2008360.c.")
                 ok = False
                 continue
-            note = "" if nrefs == 1 else "  [size check skipped: ref has "
-            note += "" if nrefs == 1 else f"{nrefs} functions]"
+            # Say when the size check did NOT run. It was previously silent
+            # whenever the reference would not assemble, which reads as
+            # "verified" and is not.
+            if nrefs != 1:
+                note = f"  [size check skipped: ref has {nrefs} functions]"
+            elif refsz is None:
+                note = "  [size check SKIPPED: reference does not assemble " \
+                       "standalone]"
+            elif mine is None:
+                note = "  [size check SKIPPED: our output does not assemble]"
+            else:
+                note = ""
             print(f"  OK {name}  ({len(got)} lines){note}")
             # A CLEAN INSTRUCTION STREAM IS NOT A CLEAN FUNCTION when the ROM
             # keeps its literal pool INSIDE the function body. Pool loads are
