@@ -731,11 +731,20 @@ def main():
             ourpool = [l.split(None, 1)[1].strip()
                        for l in r.stdout.splitlines()
                        if l.strip().startswith(".word")]
+            # COUNT BOTH FORMS ON THE REFERENCE. A hand-written .s may spell a
+            # pool entry as `=value`, and it may ALSO carry an explicit
+            # `.word` under a local label that a `ldr rD, .L116fc` refers to --
+            # the shape a mid-function pool takes. Counting only the `=` form
+            # under-counts the reference and fails a real match:
+            # Func_8011644's reference holds thirteen words, twelve `=` and one
+            # `.word 0`, and the first version of this check called it twelve.
             refvals = set(re.findall(r"\bldr\s+r\d+,\s*=(\S+)", reftxt))
-            if ourpool and len(ourpool) > len(refvals):
+            refwords = re.findall(r"^\s*\.word\s+(\S+)", reftxt, re.M)
+            refcount = len(refvals) + len(set(refwords))
+            if ourpool and len(ourpool) > refcount:
                 print(f"  !! {name}: instructions match but OUR POOL HAS "
                       f"{len(ourpool)} entries and the reference needs "
-                      f"{len(refvals)}.")
+                      f"{refcount}.")
                 print(f"     gas shares one slot per distinct value; two "
                       f"`.word`s for one value is 4 bytes")
                 print(f"     larger and WILL fail make compare. Ours: "

@@ -147,7 +147,6 @@
  * none of them show is a case where a value living in a HIGH register has to be
  * copied down into that same window, which is what this function needs.
  */
-*/
 struct Actor {
     unsigned char pad00[6];
     unsigned short facing;
