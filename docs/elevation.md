@@ -2160,6 +2160,33 @@ a red herring; the load width is the thing, and it follows the width of the
 eventual store. Checking the pool and not the instruction is how this looked
 solved for about ten minutes.
 
+**PARTLY REACHED, batch 182 -- and the above is the reason the escape is
+narrow.** The width follows the eventual store, so anything that keeps the value
+inside the store's expression narrows. What does NOT narrow is an `int` local
+whose live range crosses a basic-block boundary, because the value has to exist
+in a register before the block that stores it:
+
+    int inval;
+    inval = 0xffff;              /* the function's FIRST statement */
+    ...
+    if (v != -1) { ... *slot = inval; }      ->  ldr rN, =0xffff / strh
+
+Assigned inside the arm, or inside the guarded body, gcc folds it straight back
+to a HImode `const_int` -1, commons it with the `mov #1 / neg` from the `!= -1`
+test, and stores from that register instead -- three instructions short. It is
+the DOMINATING BLOCK that does the work, exactly as in the arg-interleave lever,
+not the `int` type on its own.
+
+Worth 27 aligned down to 9 on `FieldMove_NoTarget`
+(`src/non_matching/rom_8a000/8096810.c`). The corpus template that was already
+there and unnoticed is `src/rom_9000/rom_ea54_c_b.c`: `rv = 0xfc88;` at the top
+of the function, `p[0xc1] = rv;` in a guarded arm.
+
+Separately, the constant-ZERO case has its own escape and does not need a
+dominating block -- see "Halfword constant ZERO" later in this file. Between the
+two, 1b is no longer "no formulation reaches it"; it is "the value must live in
+a register the store cannot narrow into".
+
 ### 2. Register birth order
 
     rom    ldr r2, =0xd98 / add r1, r3, r2
