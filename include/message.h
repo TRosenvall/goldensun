@@ -105,4 +105,21 @@ extern int _MSG_2440;
 extern int _MSG_2880;
 #define MSG_2880 ((int)&_MSG_2880)
 
+// batch 182: Func_80b595c's four battle-result ids. 0x810 is buildable as
+// 0x81 << 4, so a plain constant makes gcc synthesise it where the ROM pools
+// it -- see the note in message.sym.
+extern int _MSG_810;
+#define MSG_810 ((int)&_MSG_810)
+extern int _MSG_811;
+#define MSG_811 ((int)&_MSG_811)
+extern int _MSG_812;
+#define MSG_812 ((int)&_MSG_812)
+extern int _MSG_813;
+#define MSG_813 ((int)&_MSG_813)
+
+// batch 182: Func_80b1868's prompt id. Same tell as the block above -- 0xad0 is
+// 0xad << 4, so a plain constant makes gcc synthesise it where the ROM pools it.
+extern int _MSG_ad0;
+#define MSG_ad0 ((int)&_MSG_ad0)
+
 #endif // _MESSAGE_H_

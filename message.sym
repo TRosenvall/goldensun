@@ -148,3 +148,28 @@ _MSG_f76 = 0x0f76;
  *
  * Named by value, asserting the namespace only -- the convention this file
  * already uses for the shiftable ids below. */
+
+/* Added in batch 182. Func_80b595c narrates a battle result with four ids in a
+ * run -- 0x810 and 0x811 inside its loop, 0x812 and 0x813 in the two tail arms.
+ * The ROM pools ALL FOUR as separate `ldr rX, =` loads.
+ *
+ * 0x810 is the tell. It is 0x81 << 4, so gcc BUILDS it -- `mov r0, #0x81 /
+ * lsl r0, #0x4` -- and pools only what it cannot build in two cheap
+ * instructions. The ROM spends a pool word on it anyway, which is the same
+ * argument the batch-68 note below makes: gcc will take a pool entry for a
+ * SYMBOL address and not for an integer it can synthesise, so the original
+ * source had a symbol here.
+ *
+ * The namespace is identified by the consumer: all four flow to _Func_80175a0,
+ * which is the same message sink the ids above feed. */
+_MSG_810 = 0x0810;
+_MSG_811 = 0x0811;
+_MSG_812 = 0x0812;
+_MSG_813 = 0x0813;
+
+/* Added in batch 182 alongside the block above, same argument. Func_80b1868
+ * has `ldr r0, =0xad0` in front of _Func_8017658; 0xad0 is 0xad << 4, so gcc
+ * synthesises it and pools only what it cannot. The pool word is the symbol
+ * tell, and _Func_8017658's first argument is a message id everywhere else in
+ * the tree. */
+_MSG_ad0 = 0x0ad0;
