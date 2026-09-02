@@ -12424,3 +12424,150 @@ That is three instructions, and a local `g = gState;` restores them.
 **And naming the offset undoes it.** Adding `k = 0xfa << 1;` alongside the named
 base folds the address again — 71 lines and 65 differing. The base wants a name;
 the offset must stay an expression.
+
+## ONE EXPRESSION, NOT TWO STATEMENTS, when a large add follows an operation
+
+This is the mirror of "write a derivation as its own statement", and getting the
+two the wrong way round cost a park for four batches.
+
+    rom    lsl r3, #0x6 / mov r5, r3 / add r5, #0xe6
+
+The `mov` is not about the shift. **Thumb has no three-operand add for an
+immediate above 7**, so `+ 0xe6` must be destructive, which means the shift
+result and the biased value have to be two separate pseudos. Whether they are is
+decided by the statement structure:
+
+    ang = X << 6;
+    ang += 0xe6;              /* ONE pseudo -- `+=` reassigns; gcc folds the copy */
+
+    ang = (X << 6) + 0xe6;    /* TWO pseudos -- the ROM's three instructions */
+
+> When the ROM has `<op> rX, #n / mov rY, rX / add rY, #K` with **K > 7**, write
+> it as ONE expression. The `+=` form collapses to a single pseudo.
+
+It generalises past shifts to any value feeding a large add. The precedent was
+already in the tree and unnoticed: `src/rom_9000/rom_1219c_b.c` writes
+`off = ((layer & 3) << 2) + 0x28;` and emits exactly `lsl / mov / add`.
+
+`OvlFunc_939_20092a4` was parked on this in batch 177 with the opposite reading
+-- that the named-intermediate lever could not reach it because "a shift's input
+and output are not simultaneously live". True, and irrelevant: the add is what
+needs them live, not the shift.
+
+## Halfword constant ZERO: the pooling class has a fix
+
+The notebook lists halfword constant pooling as unsolved. For the constant-zero
+case it is not. Storing a literal `0` to a `short` lvalue is ALWAYS a pool load:
+
+    short *p;  *p = 0;                    ->  ldrh r3, .Ln  /  .word 0
+
+Seven spellings measured on `Func_80b8db8`, every one producing the pool load:
+`short *`, `unsigned short *`, a struct field, an `int h : 16` bitfield, `&= 0`,
+and both signednesses of the pointer. **Only a register-allocated local
+escapes:**
+
+    short zero = 0;  *p = zero;           ->  mov r3, #0  /  strh
+
+`int v = 0; *p = (short)v;` works identically. The mechanism is that the `movhi`
+expander `force_const_mem`s a CONST_INT when the destination is memory; a local
+gives it a register source instead.
+
+**And watch what else that pool drags in.** The `ldrh` needs its pool within
+range, so `arm_reorg` dumps the pool mid-function and inserts a branch over it --
+which reads as an unrelated redundant jump.
+
+> A stray jump-to-next-label in Thumb output is usually a POOL DUMP, not a
+> jump-optimisation failure. Find the early pool user and remove it.
+
+## PROMOTE_MODE: no type on a HImode local can give you `lsr`
+
+`arm.h` contains
+
+    else if (MODE == HImode)  UNSIGNEDP = TARGET_MMU_TRAPS != 0;
+
+and `TARGET_MMU_TRAPS` is 0 in this configuration. **Every HImode local promotes
+to SImode SIGN-extended, whatever it was declared.** So when the ROM has
+`lsr rD, #0x10` and we emit `asr`, no amount of `unsigned short` on the local
+will fix it -- `OvlFunc_960_2008ce4`'s park had recorded "declaring it unsigned
+is not enough" and was right without knowing why.
+
+The fix is on the READ side: assign the halfword into an `unsigned int` before
+the use, which forces a zero-extending read.
+
+    u = n;  *(volatile unsigned short *)ADDR = u;      /* lsr */
+
+`(t << 16) >> 16` at the point of use is equivalent.
+
+## A REGISTER SHARED BETWEEN TWO STORES IS NOT EVIDENCE OF A SOURCE VARIABLE
+
+Three parks in one batch had kept a local because the ROM reused one register
+across two nearby stores, and in all three the local was the whole problem.
+
+`OvlFunc_931_2008d08` is the cleanest: its park read `mov r2, #0x14` serving two
+stores as "a CARRIED value -- one `int k` shared". Six spellings of that local --
+`int`, `unsigned char`, `short`, `unsigned short`, and both declaration orders --
+measured **exactly 7 aligned every time**. Deleting it and writing the literal
+twice matched.
+
+That identical-count pattern is itself the tell, and the notebook already states
+the rule: when unrelated spellings all give the same count, the variable's
+EXISTENCE is the problem, not its form. gcc will reuse a materialised constant
+across nearby stores on its own.
+
+The same deletion closed `OvlFunc_931_200807c` (two locals holding only
+addresses) and half of `OvlFunc_964_20094ac` (a named value carrying a
+read-modify-write).
+
+## Two smaller shapes from the same batch
+
+**A dead four-byte stack local survives -O2 as a `char` array, not as a struct.**
+With `struct { u8 a,b,c,d; }` gcc merges the four zero stores into one
+`str r3, [sp]`; with `char buf[4]` it emits `mov r2, sp` and four `strb`, which
+is the ROM. The `mov rX, sp` is forced because Thumb `strb` has no sp-relative
+form, so it is the byte-granular analogue of the recorded address-taken tell.
+
+**When gcc reuses a compared-against-zero register as a stored constant and the
+ROM does not, overwrite that variable before the stores.** Writing
+`if (p == 0) { buf[0] = 0; ... }` lets CSE reuse the compared pointer register as
+the zero -- it knows `p == 0` on that path -- which keeps p's pseudo live to the
+last store and inverts the allocation. Assigning `p = buf` FIRST kills the
+equivalence.
+
+## RANK PARKS ON ALIGNED REGIONS, NOT POSITIONAL COUNTS
+
+A positional diff compares instruction *i* to instruction *i*. The moment one
+side has an extra instruction, everything after it reports as differing, so the
+one number the screen prints is useless on exactly the functions where reading
+the whole listing is least practical.
+
+`tryc.py --align` reports disagreeing REGIONS. `tools/realign.py` re-measures the
+whole parked set with it. The difference is not cosmetic:
+
+    Func_8020b64      recorded 47 of 61   ->  aligned  6
+    HeightTile_4      recorded 22 of 28   ->  aligned  3
+    OvlFunc_939_20092a4  recorded 38 of 55 -> aligned  2, and then MATCHED
+
+It also **inverts recorded flag comparisons**. `OvlFunc_952_2008264`'s park
+measured the default at 33 and `-fno-rerun-cse-after-loop` at 57 and concluded
+the flag was a net loss; on aligned counts the flag is BETTER, 8 against 9, and
+it makes all three of that function's pool loads exact.
+
+> Any park quoting a positional count on a function with a length mismatch is
+> overstating its distance, possibly by an order of magnitude. Re-measure before
+> writing anything off.
+
+## GREP A .s FOR `.section` BEFORE CONVERTING IT WHOLE
+
+`asm/rom_8a000/rom_92950_c_c_c_c.s` held one function AND a `.section .rodata`
+block exporting `.L9ed80`, which `stage1.ld` pulls on its own line and another
+translation unit references. Replacing the file with a `.c` dropped the data and
+the link failed with an undefined reference.
+
+**The screen cannot catch this.** `tryc.py` compares one function's instruction
+stream; it has no idea another object needs a symbol the file also defined. Only
+`make compare` found it.
+
+`tools/split_s.py` does not solve it either: it cuts at FUNCTION boundaries, so
+trailing data stays with the function it follows. Split such a file by hand into
+a `.c` for the code and a `.s` for the data, and give each its own linker-script
+line.
