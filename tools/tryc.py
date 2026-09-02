@@ -797,14 +797,24 @@ def main():
         # matched the literal string "divsi3" and so said nothing about
         # OvlFunc_882_2008064, whose single differing line was
         # `bl __umodsi3` against `bl _umodsi3_RAM`.
-        hlp = next((h for h in ("divsi3", "udivsi3", "modsi3", "umodsi3")
+        # ORDER MATTERS AND IT IS LONGEST-FIRST. "modsi3" is a SUBSTRING of
+        # "umodsi3" and "divsi3" of "udivsi3", so a shorter name earlier in the
+        # tuple wins the `next()` for a line that is really about the longer
+        # one -- the hint then names the WRONG alias, which is worse than no
+        # hint because it is a line someone would paste into overlay.ld.
+        hlp = next((h for h in ("umodsi3", "udivsi3", "modsi3", "divsi3")
                     for a, b in zip(exp, got)
                     if a != b and h in a and h in b), None)
         if hlp:
             print(f"     -- `__{hlp}` vs `_{hlp}_RAM` is the LINKER ALIAS, not "
-                  f"the C: add")
-            print(f"        `__{hlp} = _{hlp}_RAM;` to this overlay's "
-                  f"overlay.ld. See src/overlays/rom_7a5214/ovl_17ec_c_b.c.")
+                  f"the C.")
+            print(f"        CHECK FIRST whether `__{hlp} = _{hlp}_RAM;` is "
+                  f"already in this overlay's")
+            print(f"        overlay.ld -- several already have it, and then "
+                  f"this line is the only")
+            print(f"        difference and there is no real one. Otherwise add "
+                  f"it. See")
+            print(f"        src/overlays/rom_7a5214/ovl_17ec_c_b.c.")
         # A NEAR-MISS WITH AN INLINE POOL IS AS UNPROVEN AS A CLEAN ONE.
         # Func_801edec screened XX with ONE differing line -- and that line was
         # only this tool printing a symbol name where the reference prints its
