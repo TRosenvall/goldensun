@@ -12844,3 +12844,52 @@ check costs one command.
 (The probe could not place r7: with a frame pointer live it was reserved
 throughout. Its position above is carried over from the existing notes and the
 corpus, both of which are consistent with it sitting between r6 and r8.)
+
+## Constant CSE inside ONE basic block: closed, with a number
+
+The notebook has called repeated-constant CSE its single most valuable open
+question. One sub-case of it is now closed, not by another spelling sweep but by
+reading two cost functions in the build image.
+
+`arm_rtx_costs`, Thumb branch, `CONST_INT` with `outer == SET`, returns **0** for
+a value below 256, `COSTS_N_INSNS(2)` for a shiftable value at or above 256, and
+`COSTS_N_INSNS(3)` otherwise. In this tree `COSTS_N_INSNS(N)` is `N * 4 - 2`, so
+those are 6 and 10 — *not* 8 and 12, which is what you get from the more common
+`N * 4` definition and is worth checking before quoting.
+
+`cse.c`'s `COST` macro scores a pseudo `REG` at **1** and sends anything else to
+`notreg_cost`, which returns `rtx_cost (x, SET) * 2`. So:
+
+| the constant | rtx_cost | CSE COST | against a pseudo's 1 |
+|---|---|---|---|
+| below 256 | 0 | **0** | constant wins — always rematerialised |
+| shiftable, ≥ 256 | 6 | **12** | register wins — always CSEd |
+| other, ≥ 256 | 10 | **20** | register wins — always CSEd |
+
+Two things follow.
+
+First, this is the mechanism behind the corpus rule that a bare `mov rN, #imm8`
+is rematerialised for free and must not be counted as a repeat. **The boundary is
+literally `< 256`**, and `filtered.py`'s duplicate detector is right to treat a
+`mov`+`lsl` pair as expensive and a bare `mov` as free.
+
+Second, and this is the closure: the COST is a property of the `const_int`, and
+every C spelling of the same value folds to the same `const_int` before cse runs.
+**Within a single basic block, a repeated constant of 256 or more is unreachable
+from C for this compiler.** Not "we have not found the spelling" — there is no
+spelling. Stop sweeping and park it.
+
+This does NOT touch the cases that are reachable, and the distinction is the
+whole practical point:
+
+- repeats separated by a control-flow boundary are the `CSE_CFLAGS` shape when
+  one use dominates the other, and need no flag at all when the uses are in
+  mutually exclusive arms;
+- repeats of *different* values are the split lever;
+- repeats below 256 are free and were never a blocker.
+
+Only "same value, 256 or more, one straight-line block" is closed. That is the
+shape `OvlFunc_959_200cf60` is parked on, measured at `-da`: by `.03.cse` — the
+FIRST cse pass — the repeats are already collapsed, and `.09.cse2`, the rerun
+`-fno-rerun-cse-after-loop` disables, is byte-identical to it. The flag cannot
+help because the damage is done before it runs.
