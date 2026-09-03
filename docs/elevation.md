@@ -13501,3 +13501,157 @@ question — those files were never C.
 
 A corollary for planning: **there is no cheap way to predict which of the
 remaining functions will need parking.** Parking is the outcome of an attempt.
+
+## Constant rematerialisation needs a DOMINATING BRANCH, because cprop is cross-block
+
+The ROM often rebuilds the same two-instruction constant (`mov rN, #C / lsl rN,
+#n`) at each of several call sites, where gcc builds it once, parks it in a
+callee-saved register and copies. That shape is sometimes reachable and
+sometimes not, and **which one it is can be decided by inspection, before any
+spelling is tried.**
+
+Two passes are involved and only the second can undo the commoning.
+
+**cse1 commons the repeat unconditionally.** MEASURED on the solved
+`OvlFunc_953_200a3e0`, whose source names `y1..y6` all `= 0x93 << 2`: only ONE
+`(set (reg) (const_int 588))` survives `.03.cse`; the other five become copies
+carrying `REG_EQUAL`. **So separate named locals do NOT defeat CSE.** The
+folklore that they do is false, and it is worse than useless — on
+`OvlFunc_953_200a5f0` the named-local spellings measured 40 and 41 against 29
+for plain literals.
+
+**What restores the constants at their uses is gcse's constant propagation, and
+cprop is strictly CROSS-BLOCK.** Read from `gcse.c`: `cprop_insn` skips a use
+when `! oprs_not_set_p (reg_used->reg_rtx, insn)`, with gcc's own comment *"If
+the register has already been set in this block, there's nothing we can do."*
+And `find_avail_set` only accepts a set available at the START of the block
+(`TEST_BIT (cprop_avin[BLOCK_NUM (insn)], ...)`).
+
+So the test is one question: **is there a branch that DOMINATES the repeated
+uses?**
+
+- `OvlFunc_953_200a3e0` — yes. Its coordinate assignments sit in block 0, above
+  a leading `if (__GetFlag(5))`, and its uses sit in later blocks. cprop
+  restores six separate constant sets; each pseudo then satisfies
+  `REG_N_REFS == 2 && REG_BASIC_BLOCK < 0`, `update_equiv_regs` marks it
+  replaceable, and all twelve coordinate pseudos vanish. That file gets
+  `push {lr}` alone.
+- `OvlFunc_953_200a5f0` — no. Its only branch is *after* every constant use, so
+  all three uses live in block 0. MEASURED: `.17.lreg` reads *"Register 35 used
+  4 times across 28 insns in block 0"*, and `.18.greg` says `;; 0 regs to
+  allocate` with `35 in 5`. Parked.
+
+**The rule: if the ROM rebuilds the same multi-instruction constant at two or
+more sites, look for a branch that dominates them. If the only branch is after
+them, or there is none, the shape is unreachable — park immediately and do not
+sweep spellings.**
+
+This is the second consequence of the batch-152 straight-line boundary. That
+entry noted only that `REG_BASIC_BLOCK < 0` never holds in a branchless
+function. The constant-remat consequence is the larger half.
+
+Checked so nobody repeats it: a scan of all 3105 generated `asm/**/*.s` for a
+function that rebuilds the same `mov #C / lsl #n` pair twice inside one basic
+block finds exactly three, and all three are high-register-pressure spill cases,
+not constant remat. There is no solved precedent for the shape.
+
+### The fakematch escape, and where it goes
+
+Where the tree accepts a fakematch, the idiom is
+`register unsigned int rq __asm__("rN") = K;` plus
+`__asm__ volatile ("" : : "r" (rq));`. Two things about it, both MEASURED on
+`OvlFunc_938_2009450`:
+
+**It does not go on every site, and putting it everywhere is worse.** All four
+sites barriered: 3 differing. The parameter barriered instead: 2. Site one left
+plain: exact. The reason is that the first call already gets the ROM's
+interleave for free — the parameter copy `mov r5, r0` is itself the instruction
+that lands in the `mov r1,#0xc0 / lsl r1,#8` gap, and forcing r0 there pushes
+the copy to the top. **Barrier sites 2..n, never site 1, when a parameter is
+saved to a callee-saved register.**
+
+**Both halves are load-bearing.** The `register __asm__("rN")` declaration ALONE
+is inert: without the volatile barrier it measured fourteen, identical to plain
+literals. The barrier is what defeats cse1; the register pin is what places the
+`mov` in the gap.
+
+**Correction to the existing note that "the hoist happens at expand".** That is
+true of the POOL-LOAD form only. For the `mov`+`lsl` form, `.00.rtl` shows
+expand emitting four *independent* `(set (reg) (const_int 49152))` — one per
+site, because Thumb cannot encode the constant and each argument is
+`force_reg`'d — and the hoist is cse1's, via `cse.c`'s `COST` macro at line 509:
+a pseudo costs 1, a `const_int` goes through `notreg_cost` and costs more on
+Thumb, so at a copy insn CSE always prefers the register. Seven flags swept
+(`-fno-rerun-cse-after-loop`, `-O1`, `-fno-expensive-optimizations`,
+`-fno-gcse`, `-fno-strength-reduce`, `-fno-schedule-insns2`, `-fno-peephole2`):
+all identical. That closes the "maybe some CSE flag reaches it" question for the
+shifted-constant class the same way it is already closed for the pool class.
+
+## The LICM lever has TWO HALVES and both are load-bearing
+
+Hoisted expressions land at the **END** of the preheader. When the ROM emits a
+plain copy *after* a hoisted computation, promoting that computation to an
+explicit local is **necessary but not sufficient** — with the local written in
+the wrong place the residue is byte-identical to leaving it inline.
+
+MEASURED on `OvlFunc_945_2009144`, a clean three-point curve:
+
+| spelling | disagreeing |
+|---|---|
+| four box bounds inline in the `if` | 2 |
+| bounds as locals, written AFTER the pointer setup | 2 |
+| bounds as locals, written BEFORE the pointer setup | **0** |
+
+Once the expression is a source statement, the preheader keeps **source order**
+through sched2: the five computations are mutually independent, so
+`rank_for_schedule` falls through to the original insn number.
+
+**Promote AND sweep the position.** This is the same shape as the general "every
+name-the-value lever has a placement" rule, but it is worth stating separately
+because the failure mode is silent — the promoted-but-misplaced spelling scores
+exactly what the inline spelling scored, which reads as "the lever did nothing"
+rather than "the lever is half-applied".
+
+## A named local also shows up with NO CALL in sight
+
+The existing rule reads: *one load kept across a call is a named local; two
+loads of the same field are direct field reads.* There is a third face, and it
+needs no call at all.
+
+**Eager versus lazy issue across a short-circuit chain.** MEASURED on
+`OvlFunc_945_2009144`: the ROM issues
+
+    mov  r7, #0xa
+    ldrsh r2, [r0, r7]
+    mov  r7, #0x12
+    ldrsh r4, [r0, r7]
+
+back to back, **before any `cmp`**. Written inline inside the `&&` chain, gcc
+sinks the second load past the x-tests — which is exactly what the short circuit
+licenses — and 22 positions differ. Naming both loads takes it to 2.
+
+**A load issued before its own guard has been evaluated is a named local.** The
+discriminator is not a call; it is that the ROM did work the short circuit would
+have skipped.
+
+## r4 used but NOT pushed is `-fcall-used-r4` working, not a wall
+
+The existing entry says a prologue that pushes r4 and keeps a value in it across
+a call means the TU was built **without** `-fcall-used-r4`. The converse is also
+a shape you will meet, and it is not a blocker.
+
+MEASURED on `Func_80f377c`: `push {lr}` with r4 unsaved (`00b5`, `041c`), while
+r4 holds the allocated block pointer across three inline-asm blocks that bind
+r0–r3. It is legitimate because **r4 is dead before the next `bl`** — under
+`-fcall-used-r4` gcc may use it at no prologue cost.
+
+**Check the liveness before filing a missing push as a flag-group problem.**
+Only r4 kept live *across a call* implicates the flag.
+
+## Not a source tell: `neg`+`add` instead of `sub`
+
+Thumb-1's three-address `sub rd, rn, #imm` only encodes an imm3. A subtraction
+of a constant ≥ 8 with the source operand still live therefore has to route the
+constant through a register, giving `mov rN, #12 / neg rN, rN / add rN, r0`
+where the C plainly said `x - 12`. Likewise `x + 12` gets the two-address
+`mov r6, r0 / add r6, #12`. Neither is a spelling signal — do not chase either.
