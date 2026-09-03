@@ -13782,3 +13782,91 @@ of a constant ≥ 8 with the source operand still live therefore has to route th
 constant through a register, giving `mov rN, #12 / neg rN, rN / add rN, r0`
 where the C plainly said `x - 12`. Likewise `x + 12` gets the two-address
 `mov r6, r0 / add r6, #12`. Neither is a spelling signal — do not chase either.
+
+## `do { } while (0)` IS A SCHEDULING BARRIER
+
+READ from `haifa-sched.c`, `sched_analyze_insn` (~line 3714): if any
+`NOTE_INSN_LOOP_BEG`, `LOOP_END`, `EH_REGION` or `SETJMP` note was collected
+before an insn, `schedule_barrier_found` fires and that insn gets a
+`REG_DEP_ANTI` on **every** prior register use and set.
+
+So a macro body wrapped in `do { } while (0)` — this tree's `SET_IO` and
+`SET_PALETTE` — **splits one basic block into two scheduling regions without
+emitting a single instruction.** Everything before the macro is scheduled to
+exhaustion first.
+
+**This is the lever for "sched2 put my prologue filler in the wrong hole".**
+
+### And it reaches a residue that source order cannot
+
+The existing rule says a sched2 residue of two adjacent independent insns is a
+source-order tie-break. There is a second case that looks the same and is not.
+MEASURED on `Func_80c0700`, from `.23.sched2` with `-fsched-verbose=6`:
+
+    prio(sub sp,#4)     = prio(str [r6]) + 2     via mov r6, sp
+    prio(add r5,r0,r3)  = prio(str [r6]) + 4     the add reads r3; the IME
+    prio(ldr =REG_IME)  = prio(str [r6]) + 4     pool load writes it
+
+`rank_for_schedule` compares `INSN_PRIORITY` **first**, so `add r5` beats
+`sub sp` by a **fixed +2 gap that no source rewrite can close** — the WAR is
+unavoidable because local-alloc puts both pool constants in r3. The ROM's order
+was therefore proof of a *barrier*, not of a tie-break.
+
+**If a sched2 residue is NOT two adjacent independent instructions but a FIXED
+PRIORITY GAP, look for a missing barrier — a `do/while(0)` macro — not for a
+source-order swap.**
+
+## `strh r3, [r3]` is a SOURCE IDIOM: grep before theorising
+
+A volatile store whose **value register is the same register that holds the port
+address** is not an allocator artefact. It is `SET_IO(REG_IME, REG_ADDR_IME)` —
+storing the port's own address into the port. `REG_ADDR_IME` has 0 in its low
+bit, so this disables interrupts while saving the `mov rN, #0`, reusing a
+register that already holds the address.
+
+This tree already had it, with a comment, in `SetIntrHandler`
+(`src/rom_c0/rom_2e00_c_c_b.c`). It still cost hours of theorising about the
+register allocator on `Func_80c0700`.
+
+**When an instruction looks like a compiler quirk, grep the tree for a solved
+instance of the shape before reasoning about a pass.** The corpus is the
+cheapest oracle available and it is consulted last far too often.
+
+## An ARGUMENT LIST is an ordering device
+
+`REG_ALLOC_ORDER` is `{3,2,1,0,12,14,4,5,6,7,…}`, so local-alloc hands a
+store-address pseudo **r1** whenever r1 is free. `set_preference` in `global.c`
+then unwraps `(set (reg 51) (plus (reg 34) 1604))` — `GET_RTX_FORMAT(PLUS)[0]`
+is `'e'`, so `src` becomes `reg 34`, whose `reg_renumber` is already 1 — giving
+the base pointer a **hard-reg preference for r1**. That costs a callee-saved
+register.
+
+When the ROM needed r1 *busy* across an address computation, the natural
+spelling is **putting the assignment inside the argument list**:
+
+    f(pal, (void *)0x50000c0, *(int *)(g + 0x644) = v, 0x80);
+
+gcc precomputes the earlier arguments into pseudos before expanding the later
+one, so the earlier argument's pseudo stays live across the store, the address
+pseudo falls through to r0, and one fewer callee-saved register is needed.
+
+**An assignment written as an argument keeps the earlier argument pseudos alive
+across it. That is a register-pressure lever, not a style choice.**
+
+## A `*/` inside a comment silently turns the rest of the file into code
+
+Writing `EH_REGION_*/SETJMP` in a header comment closed the comment 600
+characters early. The compiler then reported four *"missing terminating `'`
+character"* errors — because possessive apostrophes in the remaining prose were
+now being lexed as character constants — and a *"malformed floating constant"*
+on the text `.23.sched2`.
+
+**None of the reported errors were at the actual fault, and all of them pointed
+at innocent punctuation.** The diagnosis that fits every symptom at once is
+"the comment ended early"; chasing the apostrophes individually would have
+mangled the prose and never fixed it.
+
+Pass names, dump suffixes and RTL note names get written into these headers
+constantly, and `EH_REGION_*` is exactly the kind of token that ends in `*`.
+**Before landing a header comment, check it contains no `*/` other than its
+own terminator.**
