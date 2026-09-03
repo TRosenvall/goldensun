@@ -13277,3 +13277,73 @@ two labels, assemble both sides and `cmp` before treating it as a diff:**
 
 `make compare` remains the authority, but this settles it without touching the
 build.
+
+## A read of r9 with no defining write is a STATIC CHAIN — the original was nested
+
+New class, read out of the compiler and confirmed from the caller.
+`gcc-2.96/gcc/config/arm/arm.h` sets `STATIC_CHAIN_REGNUM` to r8 under ARM and
+**r9 under Thumb**. So a Thumb function that *reads* r9 without ever defining it
+is reading a static chain pointer, and the original source declared it as a
+**nested function**.
+
+The tell is a triple, and all three parts should be present:
+
+1. r9 saved in the prologue and restored in the epilogue;
+2. a `mov rX, r9` that **no instruction in the function ever defines**;
+3. a lone stack slot that nothing reads back.
+
+**The caller settles it, and gives the corpus-wide grep:**
+
+    add rN, sp, #K
+    mov r9, rN
+    bl  <target>
+
+That is gcc handing a callee a pointer into the caller's own frame.
+`Func_8016018` does it before each of its three calls to `Func_8015fb8`.
+
+**A standalone translation unit cannot declare a nested function**, so the chain
+has to be transcribed rather than expressed: an uninitialised `register` bound
+to r9, copied into a **`volatile`** stack slot as the first statement. The
+`volatile` is load-bearing — without it gcc dead-store-eliminates the slot *and*
+the whole r9 save/restore with it (12 differing → 2), and pointer indirection
+does not substitute for it.
+
+**Treat that transcription as provisional.** If the caller is in the same parent
+`.s` — as it was here — then once that piece is elevated the pair can be written
+the way the original almost certainly was, with the callee nested inside the
+caller, and both the register binding and the volatile slot disappear. Record
+the intent in the file header so the next person does not preserve a workaround
+that has stopped being necessary.
+
+Distinguish this from the recorded note that a dead `mov rN, r14` after
+`push {lr}` means an uninitialised read. That one is about r14 and about garbage;
+this is about r9 and about a real, caller-supplied value.
+
+## Correction: a gcc pool CAN mix a symbol with integer constants
+
+A recorded sweep claims that no gcc-generated literal pool in this tree mixes a
+symbol with integer constants. `Func_8015fb8` is a counterexample on both sides —
+five constants and a function address in one pool — and gcc's reference-order
+emission reproduced the ROM's pool byte for byte.
+
+That weakens the "pool layout is uncontrollable" worry for the mixed case, at
+least when reference order and pool order coincide.
+
+## Grep on CALLEE NAMES and the GLOBAL, not on the target's stem
+
+The habit of looking for a solved neighbour before writing anything paid twice
+this round with zero-iteration matches, and `Func_80a3e28` sharpened *how* to
+look. Its stem-sibling is literally the function it tail-calls, and that sibling
+was **less** useful — it walks the same array to clear slots rather than to make
+this call. The useful neighbour was in a different bank: a solved function
+calling **both** of this one's callees over the same global's node array, with
+the same post-increment read, the same skip-if-zero guard and the same
+descending counter.
+
+**Callee-set identity beats filename adjacency.** Grep for the callee names and
+for the global, then read what comes back.
+
+One negative worth recording so nobody builds it into a tool: "has an
+already-elevated sibling in the same family" is **not** a useful ranking signal —
+726 of 764 remaining candidates have one. It is a near-universal working habit,
+not a discriminator.
