@@ -13127,3 +13127,55 @@ its immediates differ. One glance at the two bytes decides it.
 `Func_8077f70`'s first screen was 26 of 123 because a solved function in the
 same bank turned out to be verbatim its middle two-thirds. That is the single
 largest first-screen improvement recorded in this file, and it cost one grep.
+
+## The selection filter was calibrated on the wrong functions
+
+`tools/filtered.py` returned FOUR candidates out of 1,251 unparked functions,
+which read like the pipeline was exhausted. It was not. The filter's thresholds
+had never been checked against this project's own record, and measured over the
+3,474 compiler-output `.s` files in the tree they are wrong in the large:
+
+| the filter rejects | share of ALREADY-MATCHED functions it would have rejected |
+|---|---|
+| fewer than 8 calls | **85%** |
+| outside 40–120 instructions | **77%** |
+| uses r8–r11 | 8% |
+
+Median matched size is **21 instructions** — below the filter's own floor of 40.
+So `calls >= 8` would have thrown away five sixths of this project's successes,
+and the size band nearly as many. Those numbers describe the functions whoever
+wrote the filter happened to be working on, not the ones that yield.
+
+`--wide` is a second ranking that keeps only the checks that survive contact
+with the record: hand-written assembly excluded, a same-block repeated expensive
+constant excluded (proved unreachable — within one basic block a constant ≥ 256
+always loses to a pseudo in `cse.c`'s cost model), everything else ranked by
+size, smallest first. r8–r11 and the call count are *reported*, not rejected.
+That is **768 candidates** where the old filter offered four.
+
+**The general lesson is about tooling, not about this filter.** A screen whose
+thresholds are set from the cases in front of you at the time will quietly
+narrow to those cases and then report the work as finished. Check a selection
+rule against the outcomes it is supposed to predict before believing it.
+
+## Hand-written assembly is not an elevation candidate, and the test is PER FILE
+
+Two patterns that gcc-2.96 cannot emit:
+
+    mov r12, lr  ...  bx r12     saving the link register in ip instead of a
+                                 push/pop frame
+    bl .Lnnnn                    branch-and-link to a LOCAL label, usually
+                                 inside another function
+
+Verified against ground truth: **zero** of the 3,474 compiler-output `.s` files
+contain either, while 38 unparked functions do. Twelve are the MP2K sound driver
+in `asm/rom_f9000/rom_f95e0.s`, which ships as hand-written assembly in real GBA
+titles and was never C to begin with.
+
+**Test the FILE, not the function.** A `.s` builds one object, and an object is
+either compiled or assembled — never both — so one hand-written routine condemns
+its whole translation unit. Checking per function lets the small helpers
+through, and they are exactly the ones that hurt: a five-instruction multiply
+helper with no calls and no `r12` idiom of its own sorts to the very TOP of a
+size-calibrated ranking while being just as unreachable as the driver around it.
+File-scoping the test removed 28 such entries from the head of `--wide`.

@@ -65,6 +65,48 @@ NEG = re.compile(r"\bneg\s+(r\d+),\s*(r\d+)")
 WRITE = re.compile(r"\b(?:mov|add|sub|ldr|ldrb|ldrh|lsl|lsr|asr|and|orr|eor|neg|mul|bic)\s+(r\d+)")
 LABEL = re.compile(r"^\s*\.?\w+:")
 
+# gcc-2.96 CANNOT emit either of these, so a function containing one was never
+# compiled from C and is not an elevation candidate at any effort.  Verified
+# against ground truth: ZERO of the 3,474 compiler-output .s files in this tree
+# contain either pattern, while 38 unparked functions do.
+#
+#   mov r12, lr ... bx r12   -- saving the link register in ip instead of a
+#                               push/pop frame.  gcc always emits push {lr} and
+#                               pops into a scratch to `bx`.
+#   bl .Lnnnn                -- branch-and-link to a LOCAL label, usually inside
+#                               a different function.  No C construct produces a
+#                               call to a label.
+#
+# Twelve of the 38 are the MP2K sound driver in asm/rom_f9000/rom_f95e0.s, which
+# ships as hand-written assembly in real GBA titles and was never C to begin
+# with.  They are small and call-light, so a size-calibrated filter offers them
+# first -- which is exactly why this check has to run before the size band.
+HANDASM = re.compile(r"\bmov\s+r12,\s*lr\b|\bbx\s+r12\b|\bbl\s+\.L")
+
+_handasm_file = {}
+
+
+def hand_written(path):
+    """True if this .s was assembled by hand rather than compiled.
+
+    THE TEST IS PER FILE, NOT PER FUNCTION, and that distinction matters. A .s
+    builds one object, and an object is either compiled or assembled -- never
+    both -- so one hand-written routine condemns its whole translation unit.
+    Checking per function lets the small helpers through: `umul3232H32` is five
+    instructions with no calls and no r12 idiom of its own, so it sorts to the
+    very TOP of a size-calibrated ranking while being just as unreachable as the
+    driver around it.
+    """
+    hit = _handasm_file.get(path)
+    if hit is None:
+        try:
+            with open(path, errors="ignore") as f:
+                hit = bool(HANDASM.search(f.read()))
+        except OSError:
+            hit = False
+        _handasm_file[path] = hit
+    return hit
+
 
 def constant_sites(body):
     """{value key: [line index of each materialisation]}.
@@ -270,14 +312,87 @@ def passes(body):
     return n, calls, cond, dup
 
 
+def wide(body, path=None):
+    """A ranking calibrated on what this project has ACTUALLY matched.
+
+    The filter above was written for one hard class and its thresholds were
+    never checked against the corpus. Measured over the 3,474 compiler-output
+    .s files in the tree:
+
+        85% of matched functions make FEWER than 8 calls
+        77% of matched functions fall OUTSIDE the 40-120 instruction band
+        median matched size is 21 instructions -- below the 40 floor
+        only 8% use r8-r11
+
+    So `calls >= 8` would have rejected five sixths of this project's own
+    successes, and the size band nearly as many. Those criteria describe the
+    functions the filter's author was working on at the time, not the ones that
+    yield.
+
+    This mode keeps only the checks that survive contact with the record:
+
+      * hand-written assembly is excluded (unreachable from C at any effort)
+      * a same-block repeated expensive constant is excluded (proved
+        unreachable: within one basic block a constant >= 256 always loses to a
+        pseudo in cse.c's cost model)
+      * everything else is ranked by SIZE, smallest first, because that is what
+        the corpus says converges
+
+    r8-r11 and the call count are reported, not rejected.
+    """
+    if path is not None and hand_written(path):
+        return None
+    lines = [l for l in body if l.strip() and not l.strip().startswith(("@", "/*"))]
+    ins = [l for l in lines if not l.strip().startswith(".")]
+    n = len(ins)
+    if n < 4:
+        return None
+    dup = duplicate_class(lines)
+    if dup == "block":
+        return None
+    calls = sum(1 for l in ins if re.search(r"\bbl\s+", l))
+    high = any(HIGH.search(l) for l in ins)
+    cond = sum(1 for l in ins
+               if re.search(r"\bb(?:eq|ne|ge|gt|le|lt|hi|ls|cs|cc|mi|pl)\b", l))
+    return n, calls, cond, dup, high
+
+
 if __name__ == "__main__":
     parked = pickable.parked()
+    if "--wide" in sys.argv:
+        rows = []
+        for s in glob.glob("asm/**/*.s", recursive=True):
+            if os.path.exists(s[:-2].replace("asm/", "src/", 1) + ".c"):
+                continue
+            for name, body in shapesib.functions(s):
+                if name in parked:
+                    continue
+                r = wide(body, s)
+                if r:
+                    rows.append((r[0], r[1], r[2], r[3], r[4], name, s))
+        # sort on the numeric fields only -- dup is None or a string, and a
+        # bare tuple sort reaches it on ties
+        rows.sort(key=lambda r: (r[0], r[1], r[2]))
+        lim = 30
+        for a in sys.argv:
+            if a.startswith("--top="):
+                lim = int(a.split("=", 1)[1])
+        print("%d candidates, smallest first (calibrated on the corpus)\n"
+              % len(rows))
+        for n, calls, cond, dup, high, name, s in rows[:lim]:
+            print("  %4di %2dc %2dbr %-30s %s%s%s"
+                  % (n, calls, cond, name, s,
+                     "  [%s]" % dup if dup else "",
+                     "  [r8-r11]" if high else ""))
+        raise SystemExit(0)
     rows = []
     for s in glob.glob("asm/**/*.s", recursive=True):
         if os.path.exists(s[:-2].replace("asm/", "src/", 1) + ".c"):
             continue
         for name, body in shapesib.functions(s):
             if name in parked:
+                continue
+            if hand_written(s):
                 continue
             r = passes(body)
             if r:
