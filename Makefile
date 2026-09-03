@@ -312,6 +312,14 @@ asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c_c_c_c_c_b.o: src/overlays/rom_7ef4f4/
 # each arm.  The boundary exists, so this is the reachable half of the
 # constant-CSE rule -- gcc still hoists the id into r5 and pays a push, and
 # -fno-rerun-cse-after-loop is the only flag that undoes it (-fno-gcse does not).
+# OvlFunc_901_20088a8: the same read-then-set-the-same-flag shape as its two
+# neighbours in ovl_314_c_c_a_a_c_c_a_c_c_a_a_b.c, here on flag 0x308.  27
+# aligned regions at -O2, 4 with -fno-rerun-cse-after-loop.
+asm/overlays/rom_797990/ovl_314_c_c_a_a_c_c_a_c_c_a_a_c.o: src/overlays/rom_797990/ovl_314_c_c_a_a_c_c_a_c_c_a_a_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 asm/overlays/rom_7b9cb4/ovl_30_a_c_c_a_a_c_c_b.o: src/overlays/rom_7b9cb4/ovl_30_a_c_c_a_a_c_c_b.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
