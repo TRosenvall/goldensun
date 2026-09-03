@@ -12799,8 +12799,8 @@ hands out call-saved registers in numerical order, so that an r8/r9 diff is
 "adjacent allocnos" and an r9/r10 diff is one step. That is wrong, and it has
 been mis-sizing every estimate of how far a register diff is from closing.
 
-Measured, not read — the tree ships no compiler source, so this was settled with
-a probe (`scratch/regorder/p.c`): seven values, each born at a distinct point and
+Settled twice, and the second time corrected a working assumption worth more
+than the fact itself. First with a probe (`scratch/regorder/p.c`): seven values, each born at a distinct point and
 each live across a call, so the allocator must rank them and hand out call-saved
 registers strictly in priority order. Compiled with the production flags, the
 assignment by birth order came out
@@ -12821,6 +12821,25 @@ Reading that highest-priority-first, the order gcc hands them out is
 four and six trading places, not adjacent ones, and an r9/r10 difference is a
 two-place move in the priority sort. When a park says "the registers are one
 apart so this is nearly closed", check which two.
+
+**AND THE COMPILER SOURCE IS IN THE BUILD IMAGE, which this notebook has been
+treating as unavailable.** `/opt/camelot-gcc/gcc-2.96/gcc/` and
+`/opt/camelot-gcc/agbcc/gcc/` are both present — `config/arm/arm.h`, `global.c`,
+`local-alloc.c`, `combine.c`, `thumb.md`, all of it. So every citation in this
+file carried on trust from a fingerprint list can simply be read:
+
+    docker run --rm goldensun-build sh -c 'sed -n "989,996p" \
+      /opt/camelot-gcc/gcc-2.96/gcc/config/arm/arm.h'
+
+`REG_ALLOC_ORDER` is `{3, 2, 1, 0, 12, 14, 4, 5, 6, 7, 8, 10, 9, 11, 13, 15,
+...}`. The call-saved run is **4, 5, 6, 7, 8, 10, 9, 11** — matching the probe
+exactly, and placing r7, which the probe could not. (r4 is call-used here under
+`-fcall-used-r4`, so it is skipped.)
+
+**Check the source before recording a compiler claim.** Several notes in this
+file cite `arm.h:989`, `global.c:allocno_compare` and `calls.c:805` from memory
+of a fingerprint list. They happen to be right; that was not guaranteed, and the
+check costs one command.
 
 (The probe could not place r7: with a frame pointer live it was reserved
 throughout. Its position above is carried over from the existing notes and the
