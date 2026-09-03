@@ -1,9 +1,11 @@
 # Batch 187
 
-Five elevated, one parked. **Three of the five matched on the first candidate
-with zero probing**, and all three came from the same step: grepping the corpus
-for a solved neighbour before writing anything. The round's findings are mostly
-about how to find that neighbour, plus a new blocker class.
+Six elevated, one parked. **Three matched on the first candidate with zero
+probing**, all three from the same step: grepping the corpus for a solved
+neighbour before writing anything. The round produced a new blocker class (the
+static chain), the first source-level equivalent this notebook has for
+`-fno-gcse`, and a rule about which duplicate blocks gcc will and will not
+merge.
 
 ## Function breakdown
 
@@ -14,6 +16,7 @@ about how to find that neighbour, plus a new blocker class.
 | 3 | `Func_8015fb8` | `0x08015fb8` | [rom_15e8c_a_c_a_a_b.c](src/rom_15000/rom_15e8c_a_c_a_a_b.c) | **a static chain — the original was a nested function** |
 | 4 | `Func_80bd850` | `0x080bd850` | [rom_bbb0c_…_a_c_b.c](src/rom_b5000/rom_bbb0c_a_c_a_a_c_b.c) | the static-chain recipe, generalised |
 | 5 | `Func_8078af8` | `0x08078af8` | [rom_78a8c_c_a_b.c](src/rom_77000/rom_78a8c_c_a_b.c) | callee-grep + loop rotation |
+| 6 | `OvlFunc_899_2008690` | `0x02008690` | [ovl_30_a_c_a_c_c_a_c.c](src/overlays/rom_794ac0/ovl_30_a_c_a_c_c_a_c.c) | **gcse hashes the alias set**; store placement decides cross-jumping |
 
 Parked: `Func_80979a4` (13 of 45).
 
@@ -117,6 +120,55 @@ built with that optimisation on**.
 > **hard-register conflict**, and the lever is whatever puts a value there.
 > Sixteen unrelated spellings tying at exactly 13 is that signature.
 
+## GCSE HASHES THE MEMORY ALIAS SET
+
+The round's most reusable finding, and the first source-level equivalent this
+notebook has for `-fno-gcse`.
+
+`gcse.c`'s `hash_expr_1` folds `MEM_ALIAS_SET` into the expression hash, so two
+loads of the **same address** land in different buckets — and are never compared
+at all — whenever their alias sets differ. gcc-2.96 assigns a **distinct alias
+set per struct tag**: probed, two struct tags over the same address get
+different sets, while a bare `short *` and an `unsigned short *` share one.
+
+> **When the ROM RELOADS a field that gcse would otherwise common, reach the two
+> reads through DIFFERENT STRUCT TAGS.**
+
+Verified against the flag — `-fno-gcse` on the single-alias-set spelling
+reproduces exactly the same reload. Worth **49 instructions**. It depends on
+strict aliasing being **on**, so a file using it must never fall under an
+`-fno-strict-aliasing` rule; with the flag the same source grows from 316 bytes
+to 344.
+
+## WHERE THE STORE GOES DECIDES WHAT GCC CROSS-JUMPS
+
+"Duplicated ROM code means duplicated source" is right, but "let gcc decide what
+to merge" is **not passive**. Read from `jump.c`: cross-jumping runs once, after
+scheduling; for a simple jump it first tries the block that *falls through into*
+the target label, and only then the pairwise search — which is gated on the
+label's uid being below a maximum **fixed at pass entry**. Any label the pass
+itself creates fails that test and is never searched pairwise.
+
+> **Write the store inside each innermost branch.** The first merge folds the
+> arms' identical stores into a *new* join label; from then on the arms can only
+> be compared against whatever falls into that join, never against each other.
+> The `if` bodies survive as separate copies — which is the ROM.
+
+Writing the store after the `if/else` leaves a **pre-existing** label, the
+pairwise search runs, and gcc collapses the duplicates: **93 differing against
+0**. The sibling `OvlFunc_899_20085bc` matched by accident of already having the
+right shape; this one fails at 93 without the rule.
+
+## A large diff can be several blockers stacked
+
+Two of my own candidates for `OvlFunc_899_2008690` tied at **exactly 91**, which
+the notebook's rule correctly reads as "the residue is not in the variables you
+are changing". But my follow-up guess — wrong arm order — was wrong, and
+reordering the arms alone made it *worse* (93). The deficit was two independent
+facts: gcse commoning a reload (49) and cross-jumping collapsing an arm (29).
+**An identical tie says the residue is structural; it does not say the structure
+is one thing.**
+
 ## Other mechanisms worth keeping
 
 **Inline asm cross-jumps.** An emitted veneer tail reached from two arms is
@@ -170,7 +222,9 @@ function pushes no low register but does push a high one.
   `5c4695205413df7db52b9a184815a07783999971`. Every address checked against the
   linked ELF, `.gcc2_compiled.` present in each object.
 - Four splits, each verified byte-neutral before any `.c` landed. No new
-  `CSE_CFLAGS` or other flag-group rules — every match is at stock `-O2`.
+  flag-group rules — every match is at stock `-O2`. One file
+  (`ovl_30_a_c_a_c_c_a_c.c`) **must never** be moved under an
+  `-fno-strict-aliasing` rule; its header says so.
 - Three functions were attempted by hand and **set aside rather than parked**
   (`Func_80c0700` at 25 of 45, `Func_80ba918` at 29 of 50, `Func_80da24c`
   structurally wrong at one spelling). One to three spellings is not enough
