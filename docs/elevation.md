@@ -13179,3 +13179,101 @@ through, and they are exactly the ones that hurt: a five-instruction multiply
 helper with no calls and no `r12` idiom of its own sorts to the very TOP of a
 size-calibrated ranking while being just as unreachable as the driver around it.
 File-scoping the test removed 28 such entries from the head of `--wide`.
+
+## Duplicated ROM code means duplicated SOURCE — write it out
+
+Three results this round say the same thing from different angles, and it runs
+against the instinct to factor.
+
+**A shared third block in a two-arm ROM is evidence of CROSS-JUMPING, not of a
+shared source block.** `OvlFunc_899_20085bc` is a plain two-level `if/else` with
+both inner arms written out in full. gcc cross-jumps the two identical B copies
+— same block, same successor — producing exactly the ROM's layout, and it does
+**not** merge the two A copies even though they are byte-identical too. One
+merge happened and one did not. Hand-performing the merge with a `goto` is
+measurably worse. Write the duplicate and let gcc decide.
+
+**A `static` helper is not the same as duplicated source.** Factoring
+`OvlFunc_969_200b7c4`'s repeated three-field test into a function called twice
+went to **37** differing. gcc-2.96 inlines it but shares the two copies'
+structure differently than it shares two written-out copies.
+
+**And a dead statement is source too.** That function opens with a compare, a
+branch, and a single load whose destination is redefined on the very next
+instruction — the residue of a complete test whose result is overwritten by the
+next statement. gcc does not delete the dead non-volatile load. **An isolated
+compare-and-branch whose only guarded instruction is a load into a register that
+is immediately redefined means a whole statement was dead in the source.**
+Transcribe it; do not explain it away as an optimisation artefact.
+
+## Branch polarity has a THIRD face: boolean MATERIALISATION
+
+For one predicate gcc-2.96 emits three shapes that are not interchangeable:
+
+    ok = (A && B && C);                    false-first — the 0 is hoisted to the
+                                           TOP of the compare chain, 1 out of line
+    ok = 1; if (!(A && B && C)) ok = 0;    a third shape again
+    if (A && B && C) ok = 1; else ok = 0;  true-first — the 1 sits INSIDE the last
+                                           compare's block, 0 out of line
+
+So the recorded "which side of the `if` carries the exit picks the condition"
+extends to flag variables: **which literal is OUT OF LINE tells you whether the
+source was an expression-assignment or an `if/else` statement.** The expression
+form puts the default out of line; the statement form puts the else arm out.
+
+Two cheap things that are *not* levers on this shape, both measured: De Morgan
+rewriting compiled byte-identically to the and-form, and the flag's type is free
+(`int` and `unsigned char` both match). Do not spend a round on either.
+
+## A large early deficit is NOT diagnosed by branch polarity
+
+Worth recording as a negative, because it was my working hypothesis and it cost
+a round. On `OvlFunc_899_20085bc` I assumed a 55-of-88 deficit starting early
+meant the arms were in the wrong order. Reordering them bought **one**
+instruction. The deficit was the tail.
+
+**Polarity errors show up as isolated single-instruction REPLACEs.** A large
+contiguous deficit means a structural misreading — the wrong statement shape,
+not the wrong condition.
+
+## Correction: literals stored through a halfword lvalue ALWAYS pool
+
+The recorded 1b table says small values in roughly 1..0x7fff need no local
+because they emit `mov`. Measured on `OvlFunc_899_20085bc`, that is wrong for
+anything stored through a halfword lvalue: storing a literal `5` through a
+`short *` pools it and costs four bytes of pool, and only `int five = 5;` gives
+the ROM's `mov`. Both the `5` site and the `0` site needed it.
+
+The honest rule for this compiler: **every literal stored through a halfword
+lvalue pools, and the escape is always an `int` local.** The recorded
+counter-examples were `u16` *struct members of a wider object*, which may reach
+a different pattern than a `strh` through a pointer — that wants a corpus
+re-check before the section is rewritten, so it is flagged here rather than
+edited there.
+
+Related, and needing no construct at all: the pooled HImode **zero** falls out of
+the natural store-then-retest, because cse store-forwards the second read to an
+HImode constant. The `unsigned short` struct-or-array trick recorded elsewhere is
+unnecessary when the ROM itself re-reads the field.
+
+## `tryc.py` has a fourth label false-negative: the jump-over-pool join
+
+When a jump-over-pool's target lands on the **same address** as an existing join
+label, gcc emits two labels there and the reference — being a disassembly —
+can only show one. `--align` reports two differing instructions and the output
+is byte-identical.
+
+**When the entire residue is a `b Lx / Lx:` pair with no instruction between the
+two labels, assemble both sides and `cmp` before treating it as a diff:**
+
+    docker run --rm -v "$PWD:/work" -w /work goldensun-build bash -c '
+      arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o /tmp/a.o <ref-only.s>
+      /opt/gcc296/xgcc -B/opt/gcc296/ -O2 -mthumb -mthumb-interwork -mcpu=arm7tdmi \
+        -fno-builtin -nostdinc -ffreestanding -fcall-used-r4 -Iinclude -S -o /tmp/f.s <cand.c>
+      arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o /tmp/f.o /tmp/f.s
+      arm-none-eabi-objcopy -O binary -j .text /tmp/a.o /tmp/a.bin
+      arm-none-eabi-objcopy -O binary -j .text /tmp/f.o /tmp/f.bin
+      cmp /tmp/a.bin /tmp/f.bin && echo IDENTICAL'
+
+`make compare` remains the authority, but this settles it without touching the
+build.
