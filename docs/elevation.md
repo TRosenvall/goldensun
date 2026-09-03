@@ -13030,3 +13030,100 @@ The recorded advice is now three-way, and the tell for each is different.
   the latch plus two `continue` paths at the bottom — and no single `for` or
   `while` produces that shape. More predecessors than just the latch means the
   original had a label.
+
+## `-fsched-verbose=6` is the standard probe for blocker class 5
+
+Class 5 has always been recorded as "nothing I tried moved it". It does not have
+to be. `-fsched-verbose=6` prints the ready list with each insn's priority, and
+`rank_for_schedule` returns on priority first — so the table says directly
+whether a scheduling gap is one tie-break away or structurally impossible.
+
+`Func_8077f70` is the first park in the class backed by that table rather than
+by an exhausted search. The store that must move has priority 34; the shift that
+takes its slot has 36. The only way our store reaches 36 is an ANTI-DEPENDENCE
+on that shift — reading the register the shift writes. The shift writes exactly
+one register, and our store's source is a different one, so **no C spelling that
+keeps this instruction set can create the dependence**. `.20.ce2` already holds
+the ROM's order; sched2 sinks the store afterwards.
+
+Run it before writing "nothing moves it". A proof and an exhausted search read
+the same in a park and are worth very different things to the next reader.
+
+## Loop-invariant motion: the SECOND pass is what gets you
+
+`loop.c` moves a movable when `threshold * savings * lifetime >= insn_count`,
+and then subtracts 3 from the threshold **after each move**. So hoisting one
+invariant makes the next one cheaper, and gcc runs the loop optimiser twice.
+
+`Func_8077f70`'s `.08.loop` dumps show a pooled constant refused on pass 1 in
+both the inner and the outer loop, then moved on pass 2 — because pass 1 had
+hoisted a mask first and shrunk the loop by two instructions. Those two verdicts
+bracket the threshold at 15..17, so defeating the hoist by growing the loop would
+need 18 instructions, which a 13-instruction loop cannot reach. Confirmed by
+construction: `-fno-rerun-loop-opt` on the plain `for` reproduces the `goto`
+version exactly.
+
+**Amendment to the `goto` note: a backward `goto` denies ALL invariant motion,
+not only the motion you wanted stopped.** Where the ROM keeps something outside
+the loop, the `goto` must be paired with hoisting that thing by hand. On this
+function `goto` alone is 15 and `goto` plus the hand-hoisted mask is 7.
+
+## Two qualifiers on tells that were stated too broadly
+
+**A pooled small constant whose consumer is a HALFWORD STORE is blocker 1b, not
+a symbol.** The recorded tell says a pooled value that `mov` could build means
+the source named a linker symbol. `Func_8077f70` pools a 16 — and so does our
+own compiler, for the same store, with no symbol involved. Check the consumer
+before adding anything to a `.sym` file.
+
+**The `[offset]` question is inert at `ldrsh` sites.** Thumb `ldrsh` has no
+immediate-offset form, so the offset must reach a register whichever way it is
+written; bare literals and per-block offset locals give byte-identical output,
+measured A/B on six sites. The recorded warning about per-block offset locals is
+about offsets that could otherwise fold into a load *immediate*. At an `ldrsh`
+site there is nothing to police.
+
+## Do not disable sched2 while testing the declaration lever
+
+Leaving a callee implicitly declared was worth 18 → 9 on `Func_8077f70`, across
+four calls where the ROM fills r1 before r0. But under `--no-sched2` **both**
+forms come out wrong and equal. The ROM's argument order is produced by sched2
+*fed* the implicit declaration's operand order — not by the declaration alone.
+Testing the two together hides the lever.
+
+## Two shift statements beat a `(short)` cast
+
+For an in-place sign extension, `x = (short)x;` builds a sign-extend pattern
+with a clobber and reload hands it a scratch register, giving a three-register
+`lsl / asr`. Written as `x <<= 16; x >>= 16;` on the same variable, gcc emits the
+ROM's destructive two-register pair. Worth 7 → 4 on `Func_8077f70`, and it also
+stopped an unrelated store from being sunk.
+
+## Write the redundant compare — the `else if` chain IS the spelling
+
+When the ROM re-tests a scalar against a value it has already tested in an
+earlier arm, that reads like redundant codegen and invites a tidier nesting. It
+is not redundant: it is the literal shape of
+
+    if      (y == K && !a && !b) { ... }
+    else if (y == K && a)        { ... }
+
+Nesting the second arm under one shared `y == K` — the version a reviewer would
+prefer — **loses the compare**. `OvlFunc_924_200a1cc` matched on its first
+spelling because the chain was written out longhand. The shared tails cross-jump
+on their own afterwards; no `goto` and no lever is needed.
+
+## Check the immediates before naming a shifted constant
+
+The reflex when the ROM interleaves `mov / mov / lsl / lsl` for two shifted
+arguments is to name both as locals. That is right only when the two immediates
+DIFFER. `OvlFunc_924_200a1cc` got the interleave free from bare shifted literals
+because both constants share the same `mov` byte and gcc batches identical
+values; a sibling calling the same helper needed the locals precisely because
+its immediates differ. One glance at the two bytes decides it.
+
+## Grep the corpus for a solved neighbour before writing anything
+
+`Func_8077f70`'s first screen was 26 of 123 because a solved function in the
+same bank turned out to be verbatim its middle two-thirds. That is the single
+largest first-screen improvement recorded in this file, and it cost one grep.
