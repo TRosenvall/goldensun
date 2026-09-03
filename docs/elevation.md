@@ -12893,3 +12893,85 @@ shape `OvlFunc_959_200cf60` is parked on, measured at `-da`: by `.03.cse` — th
 FIRST cse pass — the repeats are already collapsed, and `.09.cse2`, the rerun
 `-fno-rerun-cse-after-loop` disables, is byte-identical to it. The flag cannot
 help because the damage is done before it runs.
+
+## Blocker 1b, the actual mechanism — and READ THE RIGHT COMPILER TREE
+
+Two corrections, one of which invalidates how 1b was explained earlier in this
+file (not what to do about it — the recipe was right — but why).
+
+**THERE ARE TWO COMPILER SOURCE TREES IN THE IMAGE AND THEY DISAGREE.**
+`/opt/gcc296`, which is what `tools/tryc.py` and the build actually drive, is
+built from **`/opt/camelot-gcc/gcc-2.96/`**. The other tree,
+`/opt/camelot-gcc/agbcc/`, is a different compiler: it does not define
+`REG_ALLOC_ORDER` at all, and its halfword-move pattern has different
+constraints. **Reading the agbcc copy gives the wrong answer.** Some passes are
+byte-identical between them — `local-alloc.c`'s `update_equiv_regs` gate is the
+same rule at line 886 in gcc-2.96 and 868 in agbcc, so the `Func_80a5b94` park's
+claim stands — but do not assume it. Cite `gcc-2.96`.
+
+**1b IS A CONSTRAINT-ORDERING FACT, NOT A LIVE-RANGE FACT.** In
+`gcc-2.96/gcc/config/arm/arm.md`, the Thumb halfword-move pattern's source
+operand constraint string is `"l,mn,l,*h,*r,I"`. Alternative 1 accepts `n`, any
+`CONST_INT`, and emits a load from the pool. The `I` alternative — the one that
+would give `mov rN, #imm` — is LAST. recog takes the FIRST matching
+alternative, so **for a HImode `const_int` the `mov` alternative is
+unreachable**, and every halfword store of a literal goes to the pool. That is
+why it reaches down to the value 1, and to 0.
+
+So the escape is not "assign it in a dominating block". The escape is **making
+the value SImode** — an `int` local — so that it is set by the *word* move
+pattern and stored through a subreg. Measured in isolation: `*(short *)p = 1;`
+and `*(short *)p = 0;` both pool; `int one = 1; *(short *)p = one;` gives
+`mov r3, #1`.
+
+The dominating-block effect recorded earlier in this file is real but it is a
+SECOND, separate question — once the value is an `int`, *where* it is assigned
+decides which register it lands in, which is ordinary blocker 2. Conflating the
+two made 1b look mysterious. Restated:
+
+1. **Is the stored constant an `int` local?** If not, it pools. Always. This is
+   the whole of 1b and it is not negotiable from source in any other way.
+2. **Then** place the assignment to get the register the ROM used — that is
+   birth order, and `.17.lreg` will tell you what happened.
+
+And one case that needs neither: `OvlFunc_951_200973c` reproduces
+`ldr r3, =0xffff / strh` from the plainest possible spelling on a `short` struct
+field, because there the ROM *wants* the pooled form. Check which side you are
+on before reaching for the `int`.
+
+## `mov rB, rA` after a pool load decides whether a global wants a pointer local
+
+Two directions of the same lever, both now attested, with the ROM printing the
+answer.
+
+`loop.c`'s `move_movables` hoists a loop-invariant only when
+`threshold * savings * lifetime >= insn_count`, and `threshold` is
+`(loop_has_call ? 1 : 2) * (1 + n_non_fixed_regs)`. A global read ONCE inside a
+loop has `lifetime == 1` — the address set and its use are adjacent — so in a
+large loop it can never clear the bar and gcc rematerialises the pool load at
+the use. **When the ROM holds a global's address in a callee-saved register
+across a loop but dereferences it only once, LICM did not put it there; the
+source did, as a pointer local initialised before the loop.**
+
+When LICM *does* hoist, it inserts a copy — `ldr rA, =sym` then `mov rB, rA` —
+because the pre-loop uses and the in-loop uses are separate pseudos. A pointer
+local makes them one pseudo and the copy disappears.
+
+So the tell is the copy itself:
+
+| ROM shows | means | write |
+|---|---|---|
+| `ldr rA, =sym` reloaded at each use | LICM declined | a pointer local |
+| `ldr rA, =sym` then `mov rB, rA` | LICM hoisted and copied | leave it a bare global |
+
+`OvlFunc_951_200973c` has both in one function and needed both spellings — the
+`-da` `.08.loop` dump prints the decision per insn ("move-insn savings N",
+"not desirable"), so this is readable rather than guessable.
+
+Related qualification to the recorded un-rotated-loop entry: `stmt.c`'s
+`expand_end_loop` carries a Cygnus-local transform that turns
+`start: if (test) goto end; body; goto start` into the ROM's un-rotated shape by
+itself. So **`for (init; ; inc)` with a trailing `break` produces it with no
+`goto` spelling at all** — and the hand-written backward `goto` is actively
+worse, because it is not a natural loop to `loop.c` and gets no invariant motion
+whatsoever. Try the `for` first.
