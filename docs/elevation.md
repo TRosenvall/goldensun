@@ -12635,3 +12635,118 @@ register rotation around it is the symptom, not the cause.
 Cheap check in the other direction: if you have written one local for a value
 the ROM materialises twice, you have merged two. Live range picks the register,
 not value identity.
+
+## The join-split lever, bounded from both sides
+
+Batch 182 found that a constant re-materialised after a join is two locals.
+Batch 183 spent five functions finding out exactly when that is true, and the
+boundaries matter more than the rule, because the rule is cheap to try and its
+failure modes all look like near-misses.
+
+**IT HAS A SWITCH-ARM FORM.** `FieldMove_Target` repeats `gState + 0x24a` in two
+mutually exclusive `switch` arms. All three spellings are distinguishable:
+
+| spelling | result |
+|---|---|
+| folded inline | one pool word `=gState+586`; the ROM has two words and an `add` — 11 |
+| one shared local | range spans the switch, priority drops, diff moves into the prologue — 13 |
+| **one local per arm** | defeats the fold AND keeps the range short — **exact** |
+
+Note the cost runs backwards from the usual dominance rule: naming the value
+ADDS an instruction pair here, and that pair is what the ROM has.
+
+**IT IS INERT WHEN BOTH USES ALREADY LEFT THE ASSIGNMENT'S BLOCK.**
+`OvlFunc_898_20084a0` was flagged on `0xcccc`, but both uses already sit in
+different basic blocks from the assignment, so one local is rematerialised at
+each site anyway — one local and a split pair compile BYTE-IDENTICALLY. The
+split is only needed when the shared range spans the join and forces a
+high-numbered register. **Check the push list before splitting**: the signature
+is r10 (or another high register) plus an extra `mov` at every use.
+
+**IT CANNOT SEPARATE TWO VARIABLES HOLDING THE SAME CONSTANT.** `Func_8021390`
+wants `0` before a call and `0` inside the guard, materialised twice. Constant
+propagation folds two source variables holding 0 back to one `const_int` long
+before allocation, so no spelling reaches it — five assignment positions, two
+separate named zeros, and five types all measured exactly 36. Proved by
+construction: change only the pre-call argument from `0` to `9` and gcc's whole
+allocation flips to the ROM's two-materialisation shape. **The split is about
+VARIABLES; the fold is about VALUES, and the fold wins.**
+
+**AND IT IS NOT THE ONLY THING THAT LOOKS LIKE IT.** See the next section.
+
+## Two shapes that look identical: [split] and [cse]
+
+Both are "a constant built more than once with a label in between", and the fix
+for one is inert on the other. `tools/filtered.py` now separates them, and the
+test is WHAT is repeated:
+
+    a repeated `mov rN, #imm8` feeding a STACK-ARGUMENT slot
+        -> two source VARIABLES; split the local          (OvlFunc_941_2008210)
+
+    a repeated POOLED id consumed as a register argument by a `bl`
+        -> one source LITERAL that rerun-CSE commons;
+           unreachable from source, needs CSE_CFLAGS      (OvlFunc_920_2008304)
+
+On the second, four constant-facing spellings — separate named locals, the equal
+spelling `0x181 << 1`, explicit `== 0`, and goto-raised label use counts — all
+left the SAME 6 instructions in 4 regions, because constant propagation folds
+any name back to the same `const_int`. **For a pooled constant there is no
+source-level split.**
+
+Two refinements to the recorded guard/set note while we were there. The
+`GetFlag(id)` / `SetFlag(id)` pair does NOT have to be in one block or even one
+arm — `OvlFunc_920_2008304` has the guard before a join and the set after it,
+twice, once per arm of the outer if/else, and the pass commons both. And
+`-fno-gcse`, `-fno-cse-follow-jumps`, `-fno-thread-jumps` and
+`-fno-expensive-optimizations` all leave the `mov r0, rN` copies in place, so
+**`-fno-gcse` not helping is positive evidence FOR `CSE_CFLAGS`**, not evidence
+that the shape is unreachable.
+
+## A dominating-block local can beat the flag
+
+The recorded advice for a CSEd constant is to reach for
+`-fno-rerun-cse-after-loop` and keep the literals. `OvlFunc_898_20084a0` is the
+counter-example. With literals gcc CSEs `0xcccc` into a callee-saved register
+and grows a `push` the ROM lacks — 12 aligned. The flag removes the hoist (6)
+and leaves three argument-scheduling residues it cannot touch. Naming
+`s = 0xcccc` in the dominating block fixes BOTH, with no flag at all, because a
+rematerialised pseudo has low `rtx_cost` and drops out of
+`precompute_register_parameters` — which is what lets `mov r0, #2` land between
+the two pool loads.
+
+**When one constant is both CSEd and mis-scheduled, try the local before the
+flag.** The flag only addresses the first half. Two more applications of the
+same lever on the same function (`t`, then `u`/`v` assigned before an `if` and
+used inside it) took it 4 → 2 → exact.
+
+## Identical counts across unrelated spellings: now look at a SIGNATURE
+
+The notebook already says identical counts across unrelated spellings indict the
+variable's existence. `OvlFunc_901_20088a8` extends where to look next. Four
+spellings — a named zero, a narrower zero, a hoisted zero, a named slot — all
+measured EXACTLY 2. The residue was not in any variable. It was in a
+**declaration**: `__Func_8092c40` returns a value, and marking the callee `int`
+makes r0 live out of the previous call, which changes what
+`precompute_register_parameters` may reorder across. The two instructions were
+an argument fill order, and the fix was one word in an `extern`.
+
+So the ladder, when several unrelated spellings tie exactly:
+1. delete the variable — it does not exist;
+2. **check every callee's return type** — `void` versus `int` moves argument
+   ordering, not just the epilogue;
+3. check the build flags.
+
+Only after all three is it a wall.
+
+## Working note: tryc.py needs the container
+
+`tools/tryc.py` resolves the compiler from `GCC296_DIR`, defaulting to
+`/opt/gcc296`, which exists **only inside the build image**. There is no local
+gcc-2.96 in this tree. Screening therefore runs as
+
+    docker run --rm -v "$PWD:/work" -w /work goldensun-build sh -c \
+      'python3 tools/tryc.py <cand.c> --ref <file.s> --align'
+
+which is still the screen and still must not touch the build. The failure when
+run outside is a bare `FileNotFoundError` on `/opt/gcc296/xgcc`, which reads
+like a broken tool rather than a wrong working directory.
