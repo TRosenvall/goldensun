@@ -13415,3 +13415,49 @@ halfword type and `convert_to_integer` distributes it into HImode, where it fold
 to a subtract. The ROM's pooled load and add needs the value parked in an `int`
 local first — the same SImode escape as 1b, but protecting an **addend** rather
 than a stored literal. The sibling arm's `+ 1` needs no local.
+
+## Constant hoisting out of a loop is arithmetic, and the threshold is 15
+
+`loop.c` computes `threshold = (has_call ? 1 : 2) * (1 + n_non_fixed_regs)` and
+moves a movable when `threshold * savings * lifetime >= insn_count`. For a Thumb
+function containing a call that threshold is **15** — measured from `.08.loop`,
+which says *moved* at 15 real insns and *not desirable* at 16.
+
+A constant that `expand` creates for a store has `savings 1, lifetime 1`, so:
+
+> **A loop of ≤ 15 RTL insns hoists every such constant into a callee-saved high
+> register; a loop of ≥ 16 hoists none.**
+
+If the ROM keeps a constant *inside* a loop while hoisting others, count the RTL
+insns before trying spellings.
+
+Two corollaries. **The count must clear the threshold on BOTH loop passes** —
+`-frerun-loop-opt` is on at `-O2` and the dump prints two counts, so anything
+that moves an insn out on pass 1 buys nothing; one candidate shrank 16 → 15 on
+pass 1 and pass 2 then hoisted the constant that should have stayed. And **the
+cheap, output-neutral way to add an RTL insn is a narrowing temporary**: read a
+byte field into an int-width local and store back through an `unsigned char`
+one — two RTL insns at loop time, both folded away by combine. Every other way
+of adding an insn was either deleted before `loop` ran or survived into the
+output.
+
+## An `and` accumulating into the wrong register is a SUBREG question
+
+The Thumb `and` pattern ties its destination to its first input. When that input
+is a `(subreg:SI (reg:QI ...))` — which is what masking a byte field directly
+produces — `regmove` refuses the tie and inserts its copy on the *other* operand,
+so the mask lands in the destination instead of the value.
+
+Loading the byte into an **int-width local first** makes the operand a plain
+`REG`, the tie lands on the value, and the ROM's order comes out. Swapping the
+operands in the source (`mask & p[k]` instead of `p[k] & mask`) changes nothing —
+byte-for-byte identical. **This is a subreg-versus-register question, not an
+operand-order one.**
+
+Related, and separate: **which of two preheader constants gets which high
+register is source assignment order** — the second-assigned wins the
+lower-numbered register — and the *gap* between the two assignments matters on
+its own. Assigning them adjacently let a later pass build one of them an
+instruction shorter than the ROM; putting a third initialiser between them
+restored the ROM's form. A full permutation sweep of the preheader initialisers
+is cheap and was what closed the last two instructions.

@@ -1,6 +1,6 @@
 # Batch 187
 
-Six elevated, one parked. **Three matched on the first candidate with zero
+Seven elevated, one parked. **Three matched on the first candidate with zero
 probing**, all three from the same step: grepping the corpus for a solved
 neighbour before writing anything. The round produced a new blocker class (the
 static chain), the first source-level equivalent this notebook has for
@@ -17,6 +17,7 @@ merge.
 | 4 | `Func_80bd850` | `0x080bd850` | [rom_bbb0c_…_a_c_b.c](src/rom_b5000/rom_bbb0c_a_c_a_a_c_b.c) | the static-chain recipe, generalised |
 | 5 | `Func_8078af8` | `0x08078af8` | [rom_78a8c_c_a_b.c](src/rom_77000/rom_78a8c_c_a_b.c) | callee-grep + loop rotation |
 | 6 | `OvlFunc_899_2008690` | `0x02008690` | [ovl_30_a_c_a_c_c_a_c.c](src/overlays/rom_794ac0/ovl_30_a_c_a_c_c_a_c.c) | **gcse hashes the alias set**; store placement decides cross-jumping |
+| 7 | `Func_808b98c` | `0x0808b98c` | [rom_8b674_c_a_b.c](src/rom_8a000/rom_8b674_c_a_b.c) | **constant hoisting is loop-size arithmetic, threshold 15** |
 
 Parked: `Func_80979a4` (13 of 45).
 
@@ -169,6 +170,48 @@ facts: gcse commoning a reload (49) and cross-jumping collapsing an arm (29).
 **An identical tie says the residue is structural; it does not say the structure
 is one thing.**
 
+## CONSTANT HOISTING IS LOOP-SIZE ARITHMETIC, AND THE THRESHOLD IS 15
+
+Read from `loop.c`: the move threshold is
+`(has_call ? 1 : 2) * (1 + n_non_fixed_regs)`, and a movable is taken when
+`threshold * savings * lifetime >= insn_count`. For a Thumb function containing
+a call that threshold is **15** — measured, not inferred, since `.08.loop` says
+*moved* at 15 real insns and *not desirable* at 16.
+
+A constant `expand` creates for a store has savings 1 and lifetime 1, so:
+
+> **A loop of ≤ 15 RTL insns hoists every such constant into a callee-saved high
+> register. A loop of ≥ 16 hoists none.**
+
+That single boundary was `Func_808b98c`'s whole blocker — the ROM keeps one
+constant inside the loop and two outside, reachable only at ≥ 16 with the other
+two written as pre-loop locals.
+
+Two corollaries, both measured. **The count must clear the threshold on both
+loop passes** (`-frerun-loop-opt` is on at `-O2`, and the dump prints two
+counts): one candidate hoisted a constant on pass 1, shrinking the loop 16 → 15,
+and pass 2 then hoisted the one that should have stayed. And **the cheap,
+output-neutral way to add an RTL insn is a narrowing temporary** — reading a byte
+field into an int-width local and storing back through an `unsigned char` one
+costs two RTL insns at loop time and combine folds both away. Every other way of
+adding an insn (an extra pointer IV, a re-read, a dead counter, an extra copy)
+was either deleted before the loop pass or survived into the output.
+
+**Regmove's two-operand tie is lost to a subreg**, and the same temporary fixes
+it. The Thumb `and` pattern ties its destination to its first input; when that
+input is a subreg of a byte register — what masking a byte field directly
+produces — regmove refuses the tie and inserts the copy on the *other* operand,
+so the mask ends up in the destination. An int-width local makes the operand a
+plain register and the tie lands correctly. **An `and` accumulating into the
+wrong register is a subreg-versus-register question, not an operand-order one** —
+swapping the operands is byte-identical.
+
+**Which of two preheader constants gets which high register is source order**
+(the second-assigned wins the lower-numbered register), and the *gap* between
+them matters separately: assigning the two adjacently let a later pass build one
+of them a byte shorter than the ROM, and putting a third initialiser between them
+restored it.
+
 ## Other mechanisms worth keeping
 
 **Inline asm cross-jumps.** An emitted veneer tail reached from two arms is
@@ -215,13 +258,11 @@ function pushes no low register but does push a high one.
 
 ## State
 
-- **1,857 functions remain in assembly** — 633 unparked and 294 parked in the
-  main ROM, 607 unparked and 323 parked across the overlays. 3,499 elevated
-  `.c` files.
+- **1,856 functions remain in assembly.** 3,500 elevated `.c` files.
 - `make clean && make -j8 && make compare` green; SHA1
   `5c4695205413df7db52b9a184815a07783999971`. Every address checked against the
   linked ELF, `.gcc2_compiled.` present in each object.
-- Four splits, each verified byte-neutral before any `.c` landed. No new
+- Five splits, each verified byte-neutral before any `.c` landed. No new
   flag-group rules — every match is at stock `-O2`. One file
   (`ovl_30_a_c_a_c_c_a_c.c`) **must never** be moved under an
   `-fno-strict-aliasing` rule; its header says so.
