@@ -22,3 +22,6 @@ SetBG2Wide:
 
 	.text
 	.align	2, 0
+
+	.text
+	.align	2, 0

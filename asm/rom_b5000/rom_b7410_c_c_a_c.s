@@ -79,3 +79,6 @@ Func_80b80b8:
 
 	.text
 	.align	2, 0
+
+	.text
+	.align	2, 0

@@ -14,3 +14,6 @@ OvlFunc_common1_16f8:
 
 	.text
 	.align	2, 0
+
+	.text
+	.align	2, 0

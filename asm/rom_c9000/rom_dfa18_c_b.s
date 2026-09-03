@@ -18,3 +18,6 @@ Anim_BruteForce:
 
 	.text
 	.align	2, 0
+
+	.text
+	.align	2, 0

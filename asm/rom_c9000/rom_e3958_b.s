@@ -22,3 +22,6 @@ GetBattleActorPos:
 
 	.text
 	.align	2, 0
+
+	.text
+	.align	2, 0

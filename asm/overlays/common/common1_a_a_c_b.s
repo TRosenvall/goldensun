@@ -56,3 +56,6 @@ OvlFunc_common1_1490:
 
 	.text
 	.align	2, 0
+
+	.text
+	.align	2, 0

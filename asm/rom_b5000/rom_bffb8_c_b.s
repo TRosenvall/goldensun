@@ -21,3 +21,6 @@ Func_80c0edc:
 
 	.text
 	.align	2, 0
+
+	.text
+	.align	2, 0

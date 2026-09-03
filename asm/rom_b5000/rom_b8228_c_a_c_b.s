@@ -42,3 +42,6 @@ Func_80b8ec4:
 
 	.text
 	.align	2, 0
+
+	.text
+	.align	2, 0

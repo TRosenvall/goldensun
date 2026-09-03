@@ -90,3 +90,6 @@ Func_80b595c:
 
 	.text
 	.align	2, 0
+
+	.text
+	.align	2, 0

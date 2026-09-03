@@ -51,3 +51,6 @@ Func_80f037c:
 
 	.text
 	.align	2, 0
+
+	.text
+	.align	2, 0

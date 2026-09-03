@@ -18,3 +18,6 @@ Anim_AcidBite:
 
 	.text
 	.align	2, 0
+
+	.text
+	.align	2, 0

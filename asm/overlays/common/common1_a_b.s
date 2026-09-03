@@ -50,3 +50,6 @@ OvlFunc_common1_14f4:
 
 	.text
 	.align	2, 0
+
+	.text
+	.align	2, 0

@@ -98,3 +98,6 @@ Func_80b60a0:
 
 	.text
 	.align	2, 0
+
+	.text
+	.align	2, 0

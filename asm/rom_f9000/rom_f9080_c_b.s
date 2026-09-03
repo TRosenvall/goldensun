@@ -20,3 +20,6 @@ Func_80f9594:
 
 	.text
 	.align	2, 0
+
+	.text
+	.align	2, 0

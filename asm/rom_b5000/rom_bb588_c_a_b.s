@@ -40,3 +40,6 @@ Func_80bb8e8:
 
 	.text
 	.align	2, 0
+
+	.text
+	.align	2, 0

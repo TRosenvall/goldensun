@@ -135,3 +135,6 @@ Func_80b3284:
 
 	.text
 	.align	2, 0
+
+	.text
+	.align	2, 0
