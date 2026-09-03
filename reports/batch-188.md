@@ -62,8 +62,8 @@ output the moment a function outgrows the short-branch range:
     bl  .Le65f8      <- long branch, ~2700 lines forward
     .Le4f7a:
 
-**Hand-written assembly was 76 functions across 30 files. It is actually 28
-across 5.** Forty-eight functions had been wrongly excluded.
+**Hand-written assembly was 126 functions across 23 files. It is actually 76
+across 5.** Fifty functions, in eighteen whole files, had been wrongly excluded.
 
 The methodology error matters more than the count. That tell *was* verified —
 against 3,474 compiler-output files, none of which contain it. But gcc writes

@@ -97,9 +97,12 @@ LABEL = re.compile(r"^\s*\.?\w+:")
 # The tell was "verified" against 3,474 compiler-OUTPUT .s files, none of which
 # contain it -- but that proves nothing, because gcc writes `b` and lets gas
 # choose the encoding. The corpus being classified is DISASSEMBLY, a different
-# alphabet. Checking ground truth in the wrong alphabet excluded 48 perfectly
-# ordinary functions from the candidate pool, and they skewed large precisely
-# because long branches need a large function.
+# alphabet. Checking ground truth in the wrong alphabet excluded 50 perfectly
+# ordinary functions -- 18 whole files -- from the candidate pool, and they
+# skewed large precisely because long branches need a large function.
+#
+# Counted: the buggy pattern matched 23 files / 126 functions; the fixed one
+# matches 5 files / 76 functions.
 HANDASM = re.compile(r"\bmov\s+r12,\s*lr\b|\bbx\s+r12\b")
 
 # A CALL IS NOT ALWAYS A `bl`. gcc-2.96 makes a Thumb indirect call by putting
