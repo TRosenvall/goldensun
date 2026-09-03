@@ -12791,3 +12791,37 @@ it says a `bl` intervenes. That is worth checking before spending a sweep on
 declaration orders, as `OvlFunc_964_20090c4`'s park did — 34 placements, 28
 declaration orders and 8 flags all left the same floor, because the question was
 never where the assignment sat.
+
+## The call-saved allocation order is NOT monotonic: r10 comes before r9
+
+Every register-birth-order note in this file up to batch 183 reads as if gcc
+hands out call-saved registers in numerical order, so that an r8/r9 diff is
+"adjacent allocnos" and an r9/r10 diff is one step. That is wrong, and it has
+been mis-sizing every estimate of how far a register diff is from closing.
+
+Measured, not read — the tree ships no compiler source, so this was settled with
+a probe (`scratch/regorder/p.c`): seven values, each born at a distinct point and
+each live across a call, so the allocator must rank them and hand out call-saved
+registers strictly in priority order. Compiled with the production flags, the
+assignment by birth order came out
+
+    a1 (longest-lived, lowest priority)  -> r11
+    a2                                   -> r9
+    a3                                   -> r10
+    a4                                   -> r8
+    a5                                   -> r6
+    a6 (shortest, highest priority)      -> r5
+    a7                                   -> stays in r0, dies into the call
+
+Reading that highest-priority-first, the order gcc hands them out is
+
+    r5, r6, [r7], r8, r10, r9, r11
+
+**r10 is handed out BEFORE r9.** So a diff showing r8 and r9 swapped is allocnos
+four and six trading places, not adjacent ones, and an r9/r10 difference is a
+two-place move in the priority sort. When a park says "the registers are one
+apart so this is nearly closed", check which two.
+
+(The probe could not place r7: with a frame pointer live it was reserved
+throughout. Its position above is carried over from the existing notes and the
+corpus, both of which are consistent with it sitting between r6 and r8.)
