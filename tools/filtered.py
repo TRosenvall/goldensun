@@ -81,7 +81,26 @@ LABEL = re.compile(r"^\s*\.?\w+:")
 # ships as hand-written assembly in real GBA titles and was never C to begin
 # with.  They are small and call-light, so a size-calibrated filter offers them
 # first -- which is exactly why this check has to run before the size band.
-HANDASM = re.compile(r"\bmov\s+r12,\s*lr\b|\bbx\s+r12\b|\bbl\s+\.L")
+# NOTE the absence of `bl .L` here. It was in this list and it was WRONG.
+#
+# Thumb encodes a long unconditional branch as a BL pair, and the disassembler
+# that produced asm/ renders that pair as `bl <label>`. So `bl .Lxxxx` in these
+# files is a JUMP, not a call, and it appears in ordinary compiled code as soon
+# as a function grows past the short-branch range. The giveaway shape is a
+# conditional branch hopping over it:
+#
+#       cmp r0, #0x1a
+#       beq .Le4f7a        <- skip
+#       bl  .Le65f8        <- long branch, ~2700 lines forward
+#   .Le4f7a:
+#
+# The tell was "verified" against 3,474 compiler-OUTPUT .s files, none of which
+# contain it -- but that proves nothing, because gcc writes `b` and lets gas
+# choose the encoding. The corpus being classified is DISASSEMBLY, a different
+# alphabet. Checking ground truth in the wrong alphabet excluded 48 perfectly
+# ordinary functions from the candidate pool, and they skewed large precisely
+# because long branches need a large function.
+HANDASM = re.compile(r"\bmov\s+r12,\s*lr\b|\bbx\s+r12\b")
 
 # A CALL IS NOT ALWAYS A `bl`. gcc-2.96 makes a Thumb indirect call by putting
 # the return address in ip and branching through a register:
