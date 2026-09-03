@@ -258,7 +258,9 @@ function pushes no low register but does push a high one.
 
 ## State
 
-- **1,856 functions remain in assembly.** 3,500 elevated `.c` files.
+- **1,855 functions remain in assembly** — 632 unparked and 294 parked in the
+  main ROM, 606 unparked and 323 parked across the overlays. 3,501 elevated
+  `.c` files.
 - `make clean && make -j8 && make compare` green; SHA1
   `5c4695205413df7db52b9a184815a07783999971`. Every address checked against the
   linked ELF, `.gcc2_compiled.` present in each object.
