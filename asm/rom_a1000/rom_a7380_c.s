@@ -715,6 +715,7 @@
 .func_end Func_80a8578
 
 	.section .rodata
+	.global .Laf2fc
 
 .Laf2fc:
 	.incrom 0xaf2fc, 0xaf304
