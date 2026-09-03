@@ -312,6 +312,13 @@ asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c_c_c_c_c_b.o: src/overlays/rom_7ef4f4/
 # each arm.  The boundary exists, so this is the reachable half of the
 # constant-CSE rule -- gcc still hoists the id into r5 and pays a push, and
 # -fno-rerun-cse-after-loop is the only flag that undoes it (-fno-gcse does not).
+# OvlFunc_932_200a804: flag id 0x908 read twice with the first use dominating
+# the second -- the guard/set shape.  34 aligned regions at -O2, exact here.
+asm/overlays/rom_7b9cb4/ovl_30_a_c_c_a_c_c_a_a_a_c_a_c_a_b.o: src/overlays/rom_7b9cb4/ovl_30_a_c_c_a_c_c_a_a_a_c_a_c_a_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 # OvlFunc_933_2008cd0: three tier flags read and written in mutually exclusive
 # arms.  36 differing at -O2, exact with -fno-rerun-cse-after-loop.
 asm/overlays/rom_7bc690/ovl_4e4_a_c.o: src/overlays/rom_7bc690/ovl_4e4_a_c.c
