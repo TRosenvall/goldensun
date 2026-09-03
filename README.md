@@ -26,9 +26,9 @@ own rather than using the SDK's.
 
 This corrects an earlier claim here that agbcc was the right compiler. It is
 not, and the difference is not cosmetic: agbcc never emits Thumb register-offset
-addressing (768 functions need it) and never allocates `lr` in leaf functions
-(117 more). Everything currently matching was built with agbcc and **will need
-re-verifying** against gcc-2.96.
+addressing, and never allocates `lr` in leaf functions. That re-verification is
+done — **everything now matching is built with gcc-2.96**, and agbcc is used only
+for the two SDK library groups described under Prerequisites.
 
 See [docs/matching.md](docs/matching.md) for the evidence and workflow, and
 [docs/attribution.md](docs/attribution.md) for where the identification came
@@ -37,27 +37,28 @@ from.
 > **macOS users:** the compiler cannot be built or run on macOS. The build runs
 > in a Linux container — see [docs/building-on-macos.md](docs/building-on-macos.md).
 
-* **79 functions are fully decompiled and matching** — built from C rather than
-  assembly, with the ROM still byte-identical. Most are one-line dispatch
-  wrappers converted in bulk; the rest are small accessors and entity-script
-  opcodes. See [docs/matching.md](docs/matching.md) for the technique, including
-  the `pop {r0}` tell for a void return and the two traps when splitting a `.s`.
+* **3,505 source files are fully decompiled and matching** — built from C rather
+  than assembly, with the ROM still byte-identical. **1,851 functions remain in
+  assembly**: 1,234 not yet attempted, and 617 attempted and parked.
+* Functions that got close but did not match are **parked** under
+  [src/non_matching/](src/non_matching/) rather than deleted. Each park records
+  the blocker class, every spelling measured and what it cost, so the next
+  attempt starts from evidence instead of from scratch. There are 534 of them.
 * C sources use the structs in [include/](include/) rather than raw offset
   arithmetic — the two compile identically, so matching is no excuse for
   unreadable code. `include/entity.h` names only fields that are actually
   established and leaves the rest as honest padding.
-* `Func_b074` is in progress (23 of ~61 instructions aligned).
-* `Func_b168` needs rewriting; it is the largest of the split functions and
-  calls out to other code, so it cannot be byte-compared without linking.
 
-**The main obstacle is identified and diagnosed.** This agbcc build never emits
-Thumb's register-offset addressing mode (`ldr rD, [rB, rI]`), which the ROM uses
-in **818 of 2259 functions — 36.2%**. It is a gap in the reconstruction rather
-than hand-written assembly: 96.1% of those functions also carry agbcc's own
-`-mthumb-interwork` epilogue, so they were certainly compiled. **The fix is to
-patch the pattern into agbcc's Thumb machine description**, which would unlock
-about a third of the ROM at once. Until then, choose candidates by grepping the
-mode out first. See [docs/matching.md](docs/matching.md).
+**The old "main obstacle" here is resolved.** This section used to say that the
+compiler never emitted Thumb's register-offset addressing mode, that this
+blocked about a third of the ROM, and that the fix was to patch agbcc's machine
+description. That diagnosis was an artefact of using the wrong compiler:
+gcc-2.96 emits the mode, and functions needing it match routinely.
+
+The working method, the blocker classes that are actually open, and every lever
+found so far are in [docs/elevation.md](docs/elevation.md), which is the file to
+read before attempting a function. [HANDOFF.md](HANDOFF.md) indexes the batch
+reports in [reports/](reports/); its last row is the current state of play.
 
 ### Annotation
 
@@ -137,10 +138,20 @@ The short version:
 ```sh
 docker build -t goldensun-build -f tools/Dockerfile .
 docker run --rm --security-opt seccomp=unconfined \
-    -v "$PWD:/work" -w /work goldensun-build make compare
+    -v "$PWD:/work" -w /work goldensun-build \
+    make AGBCC_DIR=/opt/agbcc -j8 compare
 ```
 
-The image builds both compilers itself and keeps them out of your working tree.
+The image builds both compilers itself and keeps them out of your working tree,
+at `/opt/gcc296` and `/opt/agbcc`.
+
+**`AGBCC_DIR=/opt/agbcc` is not optional.** The Makefile defaults to
+`tools/agbcc`, and if you have ever installed agbcc on the host that directory
+holds a **host** binary — a Mach-O one on macOS — which cannot run under Linux.
+Without the override the container finds it first and the SDK library files fail
+to build. `GCC296_DIR` needs no override: the image installs gcc-2.96 where the
+Makefile already looks.
+
 See "Determinism" below for what that `--security-opt` flag is doing.
 
 The list below is what a NATIVE Linux build needs instead.
@@ -150,8 +161,13 @@ Required software:
 * GNU make
 * GNU binutils targeting ARM/Thumb (arm-none-eabi)
 * C compiler such as GCC or Clang, targeting host architecture (not ARM/Thumb)
-* Python 3, for `tools/asmdiff.py`
-* **agbcc**, for the decompiled C (see below)
+* Python 3, for the screening and selection tools in [tools/](tools/) —
+  `tryc.py` (screen a candidate against the reference without touching the
+  build), `filtered.py` (pick candidates), `neighbour.py` (find the solved
+  function a candidate most resembles) and `split_s.py` (cut one function out of
+  a multi-function `.s`)
+* **patched gcc-2.96**, which compiles all the decompiled C (see below)
+* **agbcc**, which compiles only two SDK library groups (see below)
 
 To install the base dependencies on Debian or Ubuntu:
 
@@ -159,10 +175,23 @@ To install the base dependencies on Debian or Ubuntu:
 apt install make gcc binutils-arm-none-eabi python3
 ```
 
-### Installing agbcc
+### Installing the compilers
 
-agbcc is the reconstruction of the Nintendo AGB SDK compiler, maintained by the
-pret project. Build it and install it into this repository:
+**This project needs two, and they do different jobs.** The container built from
+`tools/Dockerfile` installs both, so the steps below are only for a native Linux
+build.
+
+**gcc-2.96 compiles all the decompiled C** — every file under [src/](src/), which
+is 935 of the Makefile's build rules. It is the patched arm-elf dev snapshot
+described above, and the Makefile looks for it at `tools/gcc296` (override with
+`GCC296_DIR`). It is what `docs/matching.md` and `docs/elevation.md` mean by
+"the compiler"; if you are decompiling, this is the one.
+
+**agbcc compiles two SDK library groups and nothing else** — the M4A sound
+driver and the `agb_flash` save library, six rules in total, all of them
+invoking `old_agbcc` rather than the default `agbcc`. Those files came from
+Nintendo's SDK and were built with the SDK compiler, so they still need it.
+The Makefile looks for it at `tools/agbcc` (override with `AGBCC_DIR`):
 
 ```
 git clone https://github.com/pret/agbcc
@@ -170,9 +199,14 @@ cd agbcc && ./build.sh
 ./install.sh ../goldensun
 ```
 
-That produces `tools/agbcc/` containing three compilers: `agbcc` (the default),
-`old_agbcc` (an earlier variant — pokeemerald uses it for the SDK library files)
-and `agbcc_arm` (for ARM rather than Thumb code).
+That produces `tools/agbcc/` containing three compilers: `agbcc`, `old_agbcc`
+(the earlier variant this project actually uses) and `agbcc_arm`.
+
+> **If you are building in the container**, pass `AGBCC_DIR=/opt/agbcc` on the
+> make command line. The checked-in `tools/agbcc` may be a host binary — a
+> Mach-O one if you installed it on macOS — which will not run under Linux, and
+> the default would find it first. The full invocation is in
+> [CLAUDE.md](CLAUDE.md) and in `docs/building-on-macos.md`.
 
 ## Build
 

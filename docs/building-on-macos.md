@@ -129,22 +129,38 @@ It relaxes one syscall filter on a container that only compiles code from your
 own checkout. If you would rather not, omit it and rely on the `git status`
 check below instead.
 
-You are now at a Linux shell with the repo at `/work`. Run `make`, `make
-compare`, anything else, normally. Edits made on the Mac appear immediately
-inside; build outputs appear on the Mac. Only the *execution* is Linux.
+You are now at a Linux shell with the repo at `/work`. Edits made on the Mac
+appear immediately inside; build outputs appear on the Mac. Only the *execution*
+is Linux.
+
+**Pass `AGBCC_DIR=/opt/agbcc` to every `make`.** The image installs both
+compilers under `/opt`, and gcc-2.96 -- which builds all the decompiled C -- is
+already where the Makefile looks. agbcc is not: the Makefile defaults to
+`tools/agbcc`, and if you have ever run agbcc's own `install.sh` on the Mac then
+that directory holds a **Mach-O** binary, which cannot run under Linux. Without
+the override the SDK library files fail to build:
+
+```sh
+make AGBCC_DIR=/opt/agbcc -j8
+make AGBCC_DIR=/opt/agbcc compare
+```
 
 For one-off commands without an interactive shell:
 
 ```sh
 docker run --rm --security-opt seccomp=unconfined \
-    -v "$PWD:/work" -w /work goldensun-build make compare
+    -v "$PWD:/work" -w /work goldensun-build \
+    make AGBCC_DIR=/opt/agbcc -j8 compare
 ```
 
-A shell alias is worth having:
+A shell alias is worth having, with the override baked in so you cannot forget
+it:
 
 ```sh
-alias gsmake='docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build make'
+alias gsmake='docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build make AGBCC_DIR=/opt/agbcc'
 ```
+
+Then `gsmake -j8` and `gsmake compare` behave as you would expect.
 
 **After any build, run `git status`.** Every generated `.s` is tracked, so a
 compile that came out differently shows up immediately as a modified file naming
