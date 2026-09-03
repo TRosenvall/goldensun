@@ -7699,6 +7699,89 @@ Both directions are worth checking whenever a halfword store is involved. In
 this function the tell was three `ldr r3, =0x0` against three `mov r3, #0`,
 which reads like noise until the rule is applied.
 
+### Why it pools: an ALTERNATIVE-ORDERING artefact, not a value-range one
+
+READ from gcc-2.96, so the rule no longer has to be taken on faith.
+`*thumb_movhi_insn` (`config/arm/arm.md:4318`) lists alternative 1, `"l" <- "mn"`,
+**before** alternative 5, `"l" <- "I"`. The `n` constraint accepts any
+`CONST_INT`, so reload takes alternative 1 at zero reload cost and the constant
+goes to the minipool — **even for values `I` would happily encode.**
+`CONST_OK_FOR_THUMB_LETTER` (`arm.h:1096`) is `0..255`; `0x63` qualifies, and
+still pools.
+
+This matters because it says the rule has **no exceptions to hunt for**. There
+is no small-value escape hatch, no threshold below which the literal survives.
+Every HImode literal pools, and the `int` intermediate is the only lever.
+
+### A pooled halfword constant FAKES the jump-over-pool false negative
+
+`*thumb_movhi_insn`'s `pool_range` is only **64**, so an `ldrh rN, .LCn` drags
+the whole minipool up before the epilogue and gcc emits a real `b .L` over it.
+
+MEASURED on `Func_8015f30`: an intermediate candidate's residue read as
+`ldr r3, =0x63` **plus** a bare `b L0 / L0:` pair with nothing between the
+labels — which is exactly the shape of the recorded screen false negative. It
+was not one. The branch was a *consequence* of the pooled constant, and fixing
+the constant deleted it.
+
+**Before filing a trailing `b Lx / Lx:` as a false negative, grep the generated
+`.s` for `ldrh rN, .L`.** If one is there, the branch is real and the constant
+is the bug.
+
+### The `int` intermediate often needs a SECOND name: the destination pointer
+
+The bare intermediate buys the `mov` and then costs it back. MEASURED on
+`Func_8015f30`: `int v = 0x63; *(unsigned short *)(p + 0x12b6) = v;` gets the
+`mov`, but the extra pseudo makes sched2 hoist the address pool load above the
+preceding `strb` and rotates r3 through the block — **7 to 10 differing across
+five placements** (at declaration, after the call, before the preceding store,
+adjacent, block-scoped; plus one shared `v` for all three stores, worse still).
+
+Naming the lvalue's pointer as well, **in ROM order — pointer statement first,
+then the value** — pins the address computation to its own statement:
+
+    q = (unsigned short *)(p + 0x12b6);
+    v = 0x63;
+    *q = v;
+
+and the block returns to ROM order. 0 differing.
+
+**Two remedies, and the ROM tells you which.** The recorded remedy from
+`src/overlays/rom_7c460c/ovl_314_c_a_c_c_b.c` — *"assign at the top so it is
+live across the calls"* — **did not transfer**, giving 9 differing here with
+`mov r6, #0x63` and a grown prologue. The discriminator:
+
+- value **live across a call** → assign at the top;
+- value **materialised into a just-freed register beside its own store** → name
+  the pointer and the value adjacently, pointer first.
+
+In `Func_8015f30` the ROM materialises `0x63` into the r3 just freed by
+`add r2, r4, r3`, which is the second case.
+
+## A third DMA-helper signature: ONE SLOT SHARED BY TWO TRANSFERS
+
+The recorded pair is `mov r0, sp / str r3, [r0]` for `DMA3_CLEAR`/`DMA3_FILL`,
+versus a fill value stored wherever gcc likes for `DMA3_SET`. There is a third,
+and it is what a function does when **two transfers share one stack slot**:
+
+    mov  r5, sp
+    str  r3, [r5]
+    mov  r0, r5
+
+— the address in a **pseudo**, the store through the pseudo, and only then a
+copy into r0. That is a named `volatile` slot object plus a plain pointer local,
+handed to `DMA3_SET` twice. Two `DMA3_CLEAR`/`DMA3_FILL` expansions instead give
+`sub sp, #8` — two slots — and store through the r0 hardreg, so the prologue's
+stack adjustment alone distinguishes them.
+
+Two sub-levers, both MEASURED on `Func_8015f30`:
+
+- **The `volatile` belongs on the OBJECT, not the pointer.** Without it gcc folds
+  `*slot` back to `[sp]` (2 differing). `vu32 *slot` over a plain object does not
+  help (5 differing).
+- **`slot = &value;` has a placement.** Before the `bl` it hoists
+  `sub sp, #4 / mov r5, sp` into the prologue (6 differing); after it, exact.
+
 The same edit also fixed WHERE `mov r2, #0xf` landed relative to a store,
 because naming the constants gives gcc separate values to schedule rather than
 one shared pool entry.
