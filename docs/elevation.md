@@ -12750,3 +12750,44 @@ gcc-2.96 in this tree. Screening therefore runs as
 which is still the screen and still must not touch the build. The failure when
 run outside is a bare `FileNotFoundError` on `/opt/gcc296/xgcc`, which reads
 like a broken tool rather than a wrong working directory.
+
+## A NEGATIVE multiplier is what selects the shift chain
+
+When the ROM expands a constant multiply as a chain of shifts and adds where a
+pool load and a `mul` would plainly be cheaper, that is not gcc preferring
+shifts. `expand_mult` calls `synth_mult` on the ABSOLUTE value and negates
+afterwards, and the cost budget it passes down comes from the NEGATIVE `MULT`.
+So `x * 6553` gives `ldr r3, =0x1999 / mul` and only `x * -6553` gives the
+seven-instruction chain ending in a `neg`.
+
+**Read the sign off the ROM: a `neg` closing a shift chain means the source
+multiplier was negative.** `OvlFunc_964_20090c4` has both spellings in one
+function, which makes it a clean internal control.
+
+Two cautions from the same expression:
+
+- `C - x*k` and `x*-k + C` are indistinguishable in an ISOLATED probe — both
+  fold to `ldr C / sub`. Only under the real function's register pressure does
+  the negative-multiplier form keep the ROM's `neg` + `add` pair. **Isolated
+  probes are not safe for sign questions**; put the expression back in the
+  function before believing a tie.
+- **A statement break stops the distribution.** `(r - 5) * 0x3332` folds to
+  `r * 0x3332 - 65530` and emits `mul` then `ldr =0xffff0006 / add`. Written as
+  `t = r; t -= 5; vx = t * 0x3332;` it gives the ROM's `sub #5 / mov / mul`.
+  This is the mirror of the one-expression-not-two rule, and which direction to
+  go is decided by whether the ROM distributed — not by which reads better.
+
+## `mov rLow, rHigh` before a store is a SECOND reload
+
+A `mov rLow, rHigh` immediately before a store whose base is that same high
+register looks like a register-allocation quirk. It is a re-read of a pointer
+already committed to a callee-saved register, and gcc emits it **only when a
+call sits between the pointer's definition and its use**. With the definition
+adjacent to the store, reload inherits the scratch and stores through it
+directly, one instruction shorter.
+
+So the instruction is evidence about CONTROL FLOW, not about statement order:
+it says a `bl` intervenes. That is worth checking before spending a sweep on
+declaration orders, as `OvlFunc_964_20090c4`'s park did — 34 placements, 28
+declaration orders and 8 flags all left the same floor, because the question was
+never where the assignment sat.
