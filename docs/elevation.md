@@ -12975,3 +12975,58 @@ itself. So **`for (init; ; inc)` with a trailing `break` produces it with no
 `goto` spelling at all** — and the hand-written backward `goto` is actively
 worse, because it is not a natural loop to `loop.c` and gets no invariant motion
 whatsoever. Try the `for` first.
+
+## Halfword addressing: `ldrsh` and `ldrh` want OPPOSITE spellings
+
+Two functions in batch 185 landed on the same question from opposite sides, and
+together they replace the vague "the offset belongs in the load" advice with a
+rule that says which way to go.
+
+**Signed** halfword loads have no immediate-offset form in Thumb-1. The
+sign-extending load pattern therefore takes a generic memory operand plus a
+scratch and decides at output time: an address that is a **PLUS of two
+registers** emits a single `ldrsh`; anything else must materialise a zero into
+the scratch and emit a `mov rZ, #0` beside it. Two extra instructions for a
+bare-register address, none for a register pair.
+
+**Unsigned** halfword loads *do* have a register-offset form, and gcc takes it
+whenever the address is a PLUS of two live pseudos. So the same source shape
+that saves two instructions on `ldrsh` costs two on `ldrh`.
+
+    ROM has  add rA, rB, rC / ldrsh rD, [rA]      -> offset as a LITERAL in the
+             i.e. mov rZ,#0 beside it                address expression
+    ROM has  bare ldrsh rD, [rB, rC]              -> offset as a NAMED VARIABLE
+
+    ROM has  add rA, rB, rC / ldrh rD, [rA]       -> address as its own pseudo
+                                                     (hard: gcc folds it back)
+    ROM has  bare ldrh rD, [rB, rC]               -> offset as a NAMED VARIABLE
+
+`OvlFunc_899_200a564` is the `ldrsh` case and closed on it.
+`src/non_matching/rom_15000/801b424.c` is the `ldrh` case and is parked on it:
+three spellings, including a pointer local assigned either side of the offset
+increment, all measure exactly 12, because gcc folds `q = p + off; *(u16 *)q`
+straight back into the register-offset mode.
+
+One trap worth naming: `mov rN, #K / lsl rN, #n` appears in the ROM **either
+way**, because Thumb `add` immediate stops at 255 and gcc must build any larger
+offset in a register regardless. **That pair is not evidence of a named offset
+variable.** Read the load's addressing form, not the offset build.
+
+## When a backward target has extra predecessors, write the `goto`
+
+The recorded advice is now three-way, and the tell for each is different.
+
+- **To get the un-rotated loop shape** — `b body / inc: / body: ... bne inc` —
+  write `for (init; ; inc)` with a trailing `break`. `expand_end_loop` carries a
+  Cygnus-local transform that does exactly this rewrite. A hand-written `goto`
+  here is WORSE (27 against 11 on `OvlFunc_951_200973c`) because it is not a
+  natural loop and gets no invariant motion at all.
+- **To DENY loop-invariant motion** — write the `goto`, for that same reason.
+  `Debug_TransferTest` and `Func_801b424` both needed it: gcc hoisted a poll
+  address out of the loop, took an extra callee-saved register, and dropped the
+  per-iteration rebuild the ROM has.
+- **The structural tell for the second case**: count the predecessors of the
+  backward target. `Func_801b424`'s loop head is branched to from THREE places —
+  the latch plus two `continue` paths at the bottom — and no single `for` or
+  `while` produces that shape. More predecessors than just the latch means the
+  original had a label.
