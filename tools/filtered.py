@@ -102,26 +102,53 @@ def constant_sites(body):
     return pos
 
 
+POOLDATA = re.compile(r"^\s*\.(?:align|word|byte|hword|short|pool|ltorg|4byte)\b")
+
+
 def _site_kind(body, i):
     """Where the value built at line i ends up: "sp", "call", or "other".
 
     Walk forward to whichever comes first -- a stack-slot store, a `bl`, or a
-    label. THE THREE-WAY ANSWER MATTERS. An earlier version returned a boolean,
-    "reaches a bl" against "everything else", which quietly swept STRUCT OFFSETS
-    into the split bucket: an offset feeding `add` and `ldrsh` reaches neither a
-    stack slot nor a call, so it read as the split shape and sent a screen
-    looking for a local that did not exist. OvlFunc_939_2009668 has no stack
-    frame at all -- `push {r5, lr}` and no sp adjustment -- and splitting its
-    offsets was actively harmful, 33 aligned to 38.
+    real label. THE THREE-WAY ANSWER MATTERS. An early version returned a
+    boolean, "reaches a bl" against "everything else", which swept STRUCT
+    OFFSETS into the split bucket: an offset feeding `add` and `ldrsh` reaches
+    neither a stack slot nor a call, so it read as the split shape and sent a
+    screen looking for a local that did not exist.
+
+    A MID-FUNCTION LITERAL POOL IS NOT A LABEL FOR THIS PURPOSE. gcc dumps a
+    pool in the middle of a function and branches over it whenever a load's
+    pool_range is short -- an HImode constant's is 64 bytes -- and the pool
+    carries its own `.L` label. Treating that as a terminator stopped the walk
+    before it ever reached the `bl`, so EVERY BRANCH-OVER-POOL FUNCTION READ AS
+    [offset] WHEN IT WAS [cse]. OvlFunc_932_200a804 is the specimen: classified
+    [offset], actually a guard/set pair that CSE_CFLAGS closed. Pool directives
+    and the labels that introduce them are therefore skipped.
     """
-    for l in body[i:i + 12]:
+    n = len(body)
+    j = i
+    while j < min(i + 12, n):
+        l = body[j]
         t = l.strip()
+        if POOLDATA.match(l):
+            j += 1
+            continue
         if LABEL.match(l):
+            # a label is a real basic-block boundary only if what follows is
+            # code; if it introduces pool data, skip the whole run
+            k = j + 1
+            while k < n and (not body[k].strip() or POOLDATA.match(body[k])):
+                if POOLDATA.match(body[k]):
+                    break
+                k += 1
+            if k < n and POOLDATA.match(body[k]):
+                j = k
+                continue
             return "other"
         if re.search(r"\bstr\s+r\d+,\s*\[sp", t):
             return "sp"
         if re.search(r"\bbl\s+", t):
             return "call"
+        j += 1
     return "other"
 
 
