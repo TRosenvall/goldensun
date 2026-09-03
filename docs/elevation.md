@@ -13347,3 +13347,71 @@ One negative worth recording so nobody builds it into a tool: "has an
 already-elevated sibling in the same family" is **not** a useful ranking signal —
 726 of 764 remaining candidates have one. It is a near-universal working habit,
 not a discriminator.
+
+## gcse hashes the MEMORY ALIAS SET — different struct tags defeat commoning
+
+The most reusable finding in batch 187, and the first source-level equivalent
+this notebook has for `-fno-gcse`.
+
+`gcse.c`'s `hash_expr_1` folds `MEM_ALIAS_SET` into the expression hash. Two
+loads of the **same address** therefore land in different buckets — and are never
+compared at all — whenever their alias sets differ. And gcc-2.96 assigns a
+**distinct alias set per struct tag**: probed, two different struct tags over the
+same address get different sets, while a bare `short *` and an `unsigned short *`
+share one.
+
+> **When the ROM RELOADS a field that gcse would otherwise common, reach the two
+> reads through DIFFERENT STRUCT TAGS** — or through a struct tag and a bare
+> pointer of another type.
+
+Verified against the flag: `-fno-gcse` on the single-alias-set spelling
+reproduces exactly the same reload. Worth 49 instructions on
+`OvlFunc_899_2008690`.
+
+**It depends on strict aliasing being ON.** A file using this must never fall
+under an `-fno-strict-aliasing` rule — with the flag the same source grows from
+316 bytes to 344. Check the Makefile before relying on it.
+
+## Where the store goes decides what gcc cross-jumps
+
+"Duplicated ROM code means duplicated source" is right, but "let gcc decide what
+to merge" is **not passive** — store placement decides it.
+
+Read from `jump.c`: cross-jumping runs **once**, after scheduling. For a simple
+jump it first tries to merge against the block that *falls through into* the
+target label, and only then runs the pairwise `jump_chain` search — which is
+gated on the target label's uid being below a maximum **fixed at pass entry**.
+So any label the pass itself creates fails that test and its chain is never
+searched pairwise.
+
+> **Write the store inside each innermost branch.** The first merge folds every
+> arm's identical store into a *new* join label; from then on the arms can only
+> be compared against whatever physically falls into that join, never against
+> each other. The last arm's `else` body absorbs the other `else` bodies and the
+> `if` bodies survive as separate copies — which is what the ROM has.
+
+Writing the store *after* the `if/else`, or after the switch, leaves the arms
+jumping to a **pre-existing** label, the pairwise search runs, and gcc collapses
+the duplicates. 93 differing against 0 on the same function.
+
+The sibling `OvlFunc_899_20085bc` matched by accident of already having the
+right shape; this one fails at 93 without the rule.
+
+## A large diff can be several blockers stacked
+
+`OvlFunc_899_2008690` had two candidates tie at **exactly 91**, which the
+notebook's own rule reads as "the residue is not in the variables you are
+changing". That was right, but the follow-up guess — wrong arm order — was
+wrong, and reordering the arms alone made it *worse* (93).
+
+The deficit was two independent structural facts: gcse commoning a reload (49)
+and cross-jumping collapsing an arm (29). **An identical tie across spellings
+says the residue is structural; it does not say the structure is one thing.**
+
+## Blocker 1b also protects an ADDEND
+
+With a store written inside its branch, a written `+ 0xffff` is converted to the
+halfword type and `convert_to_integer` distributes it into HImode, where it folds
+to a subtract. The ROM's pooled load and add needs the value parked in an `int`
+local first — the same SImode escape as 1b, but protecting an **addend** rather
+than a stored literal. The sibling arm's `+ 1` needs no local.
