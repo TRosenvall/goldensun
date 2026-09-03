@@ -36,6 +36,3 @@ Func_80b5ad4:
 
 	.text
 	.align	2, 0
-
-	.text
-	.align	2, 0

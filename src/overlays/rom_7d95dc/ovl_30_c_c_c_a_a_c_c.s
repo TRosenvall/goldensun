@@ -186,6 +186,3 @@ OvlFunc_953_2009a4c:
 
 	.text
 	.align	2, 0
-
-	.text
-	.align	2, 0

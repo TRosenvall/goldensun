@@ -27,6 +27,3 @@ Unk_080D655C:
 
 	.text
 	.align	2, 0
-
-	.text
-	.align	2, 0

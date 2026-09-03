@@ -28,6 +28,3 @@ Func_80b11a4:
 
 	.text
 	.align	2, 0
-
-	.text
-	.align	2, 0

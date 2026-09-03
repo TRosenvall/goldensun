@@ -3273,6 +3273,3 @@ MP2K_event_null:
 
 	.text
 	.align	2, 0
-
-	.text
-	.align	2, 0

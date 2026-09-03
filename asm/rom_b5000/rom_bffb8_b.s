@@ -22,6 +22,3 @@ Func_80c0ea8:
 
 	.text
 	.align	2, 0
-
-	.text
-	.align	2, 0

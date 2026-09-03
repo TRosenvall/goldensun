@@ -18,6 +18,3 @@ Func_80b2110:
 
 	.text
 	.align	2, 0
-
-	.text
-	.align	2, 0

@@ -80,6 +80,3 @@ OvlFunc_common1_3e4:
 
 	.text
 	.align	2, 0
-
-	.text
-	.align	2, 0

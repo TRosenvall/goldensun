@@ -18,6 +18,3 @@ Anim_Unused_SonicWave:
 
 	.text
 	.align	2, 0
-
-	.text
-	.align	2, 0

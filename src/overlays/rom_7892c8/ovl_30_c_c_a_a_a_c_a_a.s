@@ -120,6 +120,3 @@ OvlFunc_888_20085cc:
 
 	.text
 	.align	2, 0
-
-	.text
-	.align	2, 0

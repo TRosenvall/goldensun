@@ -1,7 +1,8 @@
 # Batch 183
 
-Five elevated, three parked, one selection tool rewritten, and one long-standing
-factual claim in this notebook corrected by measurement.
+Seven elevated, four parked, one selection tool rewritten twice, and two
+long-standing assumptions in this notebook corrected — one about the compiler,
+one about where the compiler's own source lives.
 
 The round began with the candidate pipeline **empty** — `tools/filtered.py`
 returned zero, and a relaxed sweep at ≥4 calls also returned zero, which made
@@ -19,9 +20,14 @@ without anyone noticing that the filter still rejected the shape.
 | 3 | `FieldMove_Target` | `0x08096960` | [rom_944ec_…_a_b.c](src/rom_8a000/rom_944ec_a_c_c_a_a_a_a_b.c) | new `[join]` candidate | the join-split's **switch-arm form**, one local per arm |
 | 4 | `OvlFunc_920_2008304` | `0x02008304` | [ovl_30_c_a_c_c_a_c_c_c.c](src/overlays/rom_7a6ae4/ovl_30_c_a_c_c_a_c_c_c.c) | new `[join]` candidate | `CSE_CFLAGS` — the *other* shape the marker conflates |
 | 5 | `OvlFunc_932_200a934` | `0x0200a934` | [ovl_30_…_a_c_b.c](src/overlays/rom_7b9cb4/ovl_30_a_c_c_a_c_c_a_a_a_c_a_c_b.c) | new `[cse]` candidate | first candidate, no flag — the marker was wrong |
+| 6 | `OvlFunc_933_2008cd0` | `0x02008cd0` | [ovl_4e4_a_c.c](src/overlays/rom_7bc690/ovl_4e4_a_c.c) | new `[split]` candidate | `CSE_CFLAGS`; **blocker 1b at the value 1** |
+| 7 | `OvlFunc_939_2009668` | `0x02009668` | [ovl_314_…_c_b.c](src/overlays/rom_7c460c/ovl_314_c_a_c_c_c_c_c_b.c) | new `[split]` candidate | delete an address-only local; **blocker 1b in reverse** |
 
 Parked: `Func_8021390` (36 of 97), `OvlFunc_964_20090c4` (13 real of 116),
-`Func_8021228` (15 of 126).
+`Func_8021228` (15 of 126), `Func_80a5b94` (32 of 118).
+
+Five of the seven came from the candidate list that did not exist at the start of
+the round.
 
 ## THE FILTER WAS REJECTING THE SHAPE IT SHOULD HAVE BEEN OFFERING
 
@@ -52,12 +58,59 @@ left the *same* 6 instructions in 4 regions, because constant propagation folds
 any name back to the same `const_int`. **For a pooled constant there is no
 source-level split.** The filter now emits `[split]` and `[cse]` separately.
 
-And then function 5 showed the classifier is still only a hint.
+Then function 7 showed the *new* test was wrong too, and in the more damaging
+direction. `_site_kind`'s predecessor answered "reaches a `bl`" against
+"everything else", so a **struct offset** — feeding an `add` or an `ldrsh`
+index, reaching neither a stack slot nor a call — read as the split shape.
+**Seventeen of the twenty-six candidates were labelled `[split]` on that basis;
+exactly one actually is.** `OvlFunc_939_2009668` has no stack frame at all,
+`push {r5, lr}` and no `sp` adjustment, so there was nothing for the lever to
+act on, and giving each block its own offset local went 33 aligned to **38**.
+gcc-2.96 Thumb already builds a shiftable constant with `mov`/`lsl` from a bare
+literal, so plain literals on a named base are what reproduce the ROM's
+per-block rebuild. The classifier is now three-way — `[split]`, `[cse]`,
+`[offset]` — with "do not split these" attached to the third.
+
+And function 5 showed the `[cse]` half is still only a hint.
 `OvlFunc_932_200a934` was offered as `[cse]` and matched on the first candidate
 with no flag at all, because **its two sites are in mutually exclusive arms and
 rerun-CSE does not common across those**. The flag is for the guard/set shape,
 where one use dominates the other. Cheap check before reaching for a build rule:
 can either site reach the other?
+
+## BLOCKER 1b HAS A DIRECTION SWITCH, AND THE ROM SETS IT
+
+Two functions in this batch moved 1b, in opposite directions, and together they
+turn it from a blocker into a lever.
+
+`OvlFunc_933_2008cd0` shows **1b reaches down to the value 1**. Writing
+`*(short *)(p + K) = 1;` narrows to a HImode `const_int`, and although
+`thumb.md`'s `*movhi_insn` has an `I` alternative that would give `mov r3, #1`,
+the value arrives through `force_reg` from the `movhi` expander and comes out of
+the literal pool: `ldrh r3, .L10` with `.word 1`, where the ROM has `mov r3, #1`.
+A pool word holding **1** looks absurd enough to be misread as a scheduling
+artefact. Its escape is three separate locals in the dominating block.
+
+`OvlFunc_939_2009668` shows the same mechanism wanted from the other end. There
+the ROM *has* `mov r3, #0xa / strh`, a literal at the store gives the pooled
+`ldrh`, and `int t = 0xa;` **in the entry block** is worth 19 of 123.
+
+Set beside the `FieldMove_NoTarget` park earlier in this batch — where an `int`
+local crossing a block boundary was the thing that *forced* an unwanted
+`ldr rN, =0xffff` — all three are one rule read from different sides:
+
+> The load width follows the width of the eventual store, so a value that must
+> exist in a register **before** the storing block cannot narrow. When the ROM
+> pools the constant, keep the value inside the store's expression. When the ROM
+> has `mov` + `strh`, hoist it into a dominating block.
+
+The ROM tells you which way to set the switch. That is the whole of 1b now.
+
+One symptom not to chase, from the same function: at 123 instructions its early
+return degraded from `bne <epilogue>` to `beq .LCB31 / b .L2 @long jump`, purely
+because the spurious pool words had pushed the epilogue out of conditional-branch
+range. **The long jump was a symptom of 1b, not a branch-polarity problem**, and
+it closed when the pool words did.
 
 ## THE JOIN-SPLIT LEVER, BOUNDED FROM BOTH SIDES
 
@@ -216,13 +269,35 @@ since fixing either in isolation costs more than it saves.
 
 ## State
 
-- **1,879 functions remain in assembly.**
+- **1,877 functions remain in assembly** — 647 unparked and 291 parked in the
+  main ROM, 618 unparked and 321 parked across the overlays. 3,479 elevated `.c`
+  files in the tree.
 - `make clean && make -j8 && make compare` green; SHA1
   `5c4695205413df7db52b9a184815a07783999971`. Every address in the breakdown
   table checked against the linked ELF, `.gcc2_compiled.` present in each object.
-- Three splits taken this batch, each verified byte-neutral with `make compare`
-  green *before* any `.c` landed. Two new `CSE_CFLAGS` rules in the Makefile.
-- Subagents contributed four of the five matches and all three parks. One agent
-  claim — the `REG_ALLOC_ORDER` fact — was checked independently before being
-  recorded, and turned out to be right; the check was still worth doing, because
-  the source it cited is not in this tree and could not have been read.
+- Four splits taken, each verified byte-neutral with `make compare` green
+  *before* any `.c` landed. Three new `CSE_CFLAGS` rules in the Makefile.
+- Subagents contributed six of the seven matches and all four parks. Two agent
+  claims about compiler internals were checked before being recorded, and both
+  held: `REG_ALLOC_ORDER`'s non-monotonic tail, and the `update_equiv_regs`
+  gate at `local-alloc.c:868`. The checking was still the right call — one of
+  them turned up the fact that the source was readable at all.
+
+## What the round says about method
+
+Three of this batch's corrections were to things *this notebook already said*,
+and none of them were found by looking for errors. They fell out of doing the
+work:
+
+- the selection filter rejected the shape the previous batch had just solved,
+  because nobody re-read the filter after changing the rule;
+- the replacement marker then conflated three shapes, and the largest bucket was
+  wrong, because "reaches a `bl`" was tested instead of "reaches a stack slot";
+- blocker 1b was recorded as unreachable in one direction and unremarkable in
+  the other, when it is one mechanism with a switch the ROM sets.
+
+The common thread is that each was a note written once, from one function, and
+never measured against a second. The parks are better than the notes for exactly
+this reason: a park carries its measurements, so the next reader can see what was
+tried and what it cost. **A finding stated without its table is a finding that
+cannot be corrected.**
