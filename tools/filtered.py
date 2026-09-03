@@ -102,25 +102,68 @@ def constant_sites(body):
     return pos
 
 
-def duplicate_class(body):
-    """None if no value repeats; "join" if every repeat spans a label; "block"
-    if any value repeats inside one straight-line run.
+def _consumed_as_call_arg(body, i):
+    """True if the value built at line i reaches a `bl` as a register argument
+    without being stored to the stack first.
 
-    "block" is the hard class the filter was built to reject. "join" is the
-    batch-182 lever -- gcc does not re-materialise a value it kept live across a
-    branch, so a repeat with a label between two of its sites is TWO source
-    variables, and splitting the local closes it.
+    Cheap and deliberately local: walk forward to the next `bl` and stop at any
+    label. A pooled flag id loaded into r0 and passed straight to a call is the
+    CSE_CFLAGS shape; a constant that lands in a stack slot is the split shape.
+    """
+    for l in body[i:i + 12]:
+        t = l.strip()
+        if LABEL.match(l):
+            return False
+        if re.search(r"\bstr\s+r\d+,\s*\[sp", t):
+            return False
+        if re.search(r"\bbl\s+", t):
+            return True
+    return False
+
+
+def duplicate_class(body):
+    """None if no value repeats, else one of "block", "cse", "split".
+
+    "block" -- some value repeats inside one straight-line run. The hard class
+    the filter was built to reject: CSE if the uses are close, PRE hoisting if
+    one dominates the other, and neither yields to spelling.
+
+    Everything else has a label between the repeats, and batches 182-183 split
+    that case in two. WHAT IS REPEATED decides which:
+
+    "split" -- a repeated small immediate feeding a STACK-ARGUMENT slot. gcc
+        does not re-materialise a value it kept live across a branch, so this is
+        TWO source variables and splitting the local closes it
+        (OvlFunc_941_2008210, 18 differing to exact).
+
+    "cse"   -- a repeated POOLED id consumed as a register argument by a `bl`.
+        This is one source literal that gcc's rerun-CSE pass commons, and the
+        source cannot reach it: constant propagation folds any name back to the
+        same const_int. Four unrelated spellings of OvlFunc_920_2008304's flag
+        id all measured identically. The answer is a CSE_CFLAGS rule in the
+        Makefile, not a source change.
+
+    The two look identical without this test -- both are "a constant built more
+    than once with a label in between" -- and two independent screens reached
+    the same refinement on the same day, which is why it lives in code now
+    rather than in the notebook.
     """
     pos = constant_sites(body)
     reps = {k: sorted(v) for k, v in pos.items() if len(v) > 1}
     if not reps:
         return None
     labels = [i for i, l in enumerate(body) if LABEL.match(l)]
-    for idxs in reps.values():
+    kinds = set()
+    for key, idxs in reps.items():
         if not any(any(idxs[j] < L < idxs[j + 1] for L in labels)
                    for j in range(len(idxs) - 1)):
             return "block"
-    return "join"
+        kinds.add("cse" if all(_consumed_as_call_arg(body, i) for i in idxs)
+                  else "split")
+    # a function showing both gets the more actionable label: the split is a
+    # source change we can make, the CSE flag is a build-rule change we can make
+    # too, and doing the source one first is free either way
+    return "split" if "split" in kinds else "cse"
 
 
 def expensive_constants(body):
@@ -190,11 +233,13 @@ if __name__ == "__main__":
             if r:
                 rows.append((r[1], r[0], r[2], name, s, bool(shapesib.kin(s)), r[3]))
     rows.sort(key=lambda r: (-r[0], r[1]))
-    njoin = sum(1 for r in rows if r[6] == "join")
-    print("%d candidates pass the filter (%d of them [join])\n" % (len(rows), njoin))
+    nsplit = sum(1 for r in rows if r[6] == "split")
+    ncse = sum(1 for r in rows if r[6] == "cse")
+    print("%d candidates pass the filter (%d [split], %d [cse])\n"
+          % (len(rows), nsplit, ncse))
     for calls, n, cond, name, s, haskin, dup in rows[:25]:
         print("  %2d calls %3di %2dbr %-28s %s%s%s%s"
               % (calls, n, cond, name, s,
                  "  [kin]" if haskin else "",
-                 "  [join]" if dup == "join" else "",
+                 ("  [%s]" % dup) if dup else "",
                  "  <- NO GUARD" if cond == 0 else ""))
