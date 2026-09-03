@@ -127,4 +127,10 @@ extern int _MSG_ad0;
 extern int _MSG_d1c;
 #define MSG_d1c ((int)&_MSG_d1c)
 
+// batch 182: the level-up box's three-string run. 0xc20 is 0xc2 << 4, so a
+// literal is synthesised rather than pooled, and the +1/+2 sites stop being
+// derived from the base once the value lives in a register.
+extern int _MSG_c20;
+#define MSG_c20 ((int)&_MSG_c20)
+
 #endif // _MESSAGE_H_

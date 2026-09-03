@@ -181,3 +181,12 @@ _MSG_ad0 = 0x0ad0;
  * changes; it will spend a callee-saved register on a SYMBOL address and not on
  * an integer it can rematerialise. Consumer is Func_80b04dc, a message sink. */
 _MSG_d1c = 0x0d1c;
+
+/* Added in batch 182. OvlFunc_973_20080ec draws strings 0xc20..0xc22 into a
+ * level-up box. 0xc20 is 0xc2 << 4, so a plain literal makes gcc build it with
+ * `mov / lsl` where the ROM pools it -- and the knock-on is larger than the two
+ * instructions: with the value in a register cse's `related_value` no longer
+ * derives 0xc21 and 0xc22 from the base, so the `add r0, r5, #1` / `add r5, #2`
+ * pair goes too and the r5/r6/r7 assignment rotates. Only the base is named;
+ * the +1 and +2 are real arithmetic in the ROM. */
+_MSG_c20 = 0x0c20;
