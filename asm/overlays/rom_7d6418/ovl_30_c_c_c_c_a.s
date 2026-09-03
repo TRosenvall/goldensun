@@ -1105,125 +1105,10 @@
 	bx	r0
 .func_end OvlFunc_951_20096a8
 
-@ 104 instructions. Not one of the recognised overlay shapes,
-@ so this is a CALL TRACE rather than a description -- what it does with
-@ these is not characterised here.
-@
-@   PlaySound, SetSlotAnimation, GetSlotEntityChecked, SetEntityAnimation
-@   GetSlotEntityChecked, SetEntityAnimation, OvlFunc_e44 x3, GetSlotEntityChecked
-@   SetEntityAnimation, GetSlotEntityChecked, SetEntityAnimation, OvlFunc_e44 x3
-@   WaitFrames
-.thumb_func_start OvlFunc_951_200973c
-	push	{r5, r6, r7, lr}
-	ldr	r5, =.L2070
-	ldr	r3, =.L20c0
-	mov	r2, #0
-	str	r2, [r5, #8]
-	str	r2, [r5, #0x14]
-	str	r2, [r5, #0x20]
-	str	r2, [r5, #0x2c]
-	str	r0, [r3]
-	ldr	r3, =.L2134
-	str	r2, [r3]
-	ldr	r3, =0xffff
-	strh	r3, [r5, #2]
-	ldr	r3, =.L2130
-	ldr	r7, =ewram_2000434
-	mov	r6, r3
-	str	r2, [r3]
-	b	.L1766
-.L1760:
-	ldr	r3, [r6]
-	add	r3, #1
-	str	r3, [r6]
-.L1766:
-	ldr	r3, [r6]
-	cmp	r3, #0x32
-	bne	.L1776
-	mov	r0, #0x96
-	lsl	r0, #1
-	bl	__PlaySound
-	ldr	r3, [r6]
-.L1776:
-	cmp	r3, #0x10
-	bne	.L1816
-	ldr	r0, [r7]
-	mov	r1, #0x1d
-	bl	__MapActor_SetAnim
-	mov	r3, #0
-	strh	r3, [r5, #2]
-	ldr	r3, =0x14ccc
-	str	r3, [r5, #0x40]
-	mov	r3, #0x80
-	lsl	r3, #11
-	str	r3, [r5, #0x44]
-	ldr	r3, =0xfffe0000
-	str	r3, [r5, #0x48]
-	mov	r3, #0xf0
-	lsl	r3, #15
-	str	r3, [r5, #4]
-	mov	r3, #0x80
-	lsl	r3, #13
-	str	r3, [r5, #8]
-	mov	r3, #0x98
-	lsl	r3, #16
-	str	r3, [r5, #0xc]
-	mov	r3, #0x96
-	lsl	r3, #1
-	str	r3, [r5, #0x4c]
-	ldr	r3, =.L20c0
-	ldr	r3, [r3]
-	cmp	r3, #1
-	bne	.L17e6
-	mov	r0, #0x10
-	bl	__MapActor_GetActor
-	mov	r1, #3
-	bl	__Actor_SetAnim
-	mov	r0, #0x11
-	bl	__MapActor_GetActor
-	mov	r1, #0
-	bl	__Actor_SetAnim
-	mov	r0, #0xf
-	mov	r1, #1
-	bl	OvlFunc_951_2008e44
-	mov	r0, #0xe
-	mov	r1, #1
-	bl	OvlFunc_951_2008e44
-	mov	r0, #0xd
-	mov	r1, #1
-	bl	OvlFunc_951_2008e44
-	b	.L1816
-.L17e6:
-	mov	r0, #0xb
-	bl	__MapActor_GetActor
-	mov	r1, #3
-	bl	__Actor_SetAnim
-	mov	r0, #0xc
-	bl	__MapActor_GetActor
-	mov	r1, #0
-	bl	__Actor_SetAnim
-	mov	r0, #0xa
-	mov	r1, #1
-	bl	OvlFunc_951_2008e44
-	mov	r0, #9
-	mov	r1, #1
-	bl	OvlFunc_951_2008e44
-	mov	r0, #8
-	mov	r1, #1
-	bl	OvlFunc_951_2008e44
-.L1816:
-	mov	r0, #1
-	bl	__WaitFrames
-	ldr	r3, =.L2134
-	ldr	r3, [r3]
-	cmp	r3, #1
-	bne	.L1760
-	ldr	r3, =.L2138
-	ldr	r0, [r3]
-	pop	{r5, r6, r7}
-	pop	{r1}
-	bx	r1
-.func_end OvlFunc_951_200973c
+@ .bss objects below are reached from src/overlays/rom_7d6418/ovl_30_c_c_c_c_b.c
+@ (OvlFunc_951_200973c), which was split out of this file, as well as from the
+@ two functions above.  .lcomm makes them local, so they need .global to cross
+@ the object boundary.
 
 	.section .data
 	.global Events_GameBuildings
@@ -1270,6 +1155,11 @@ gLuckyFountainPrizes:
 	.incbin "overlays/rom_7d6418/orig.bin", 0x2062
 
 	.section .bss
+	.global .L2070
+	.global .L20c0
+	.global .L2130
+	.global .L2134
+	.global .L2138
 
 	.lcomm	.L2070, 0x50
 	.lcomm	.L20c0, 0x10
