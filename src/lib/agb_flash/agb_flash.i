@@ -1,10 +1,7 @@
+# 0 "src/lib/agb_flash/agb_flash.c"
+# 0 "<built-in>"
+# 0 "<command-line>"
 # 1 "src/lib/agb_flash/agb_flash.c"
-# 1 "<built-in>" 1
-# 1 "<built-in>" 3
-# 385 "<built-in>" 3
-# 1 "<command line>" 1
-# 1 "<built-in>" 2
-# 1 "src/lib/agb_flash/agb_flash.c" 2
 # 1 "include/gba/gba.h" 1
 
 
@@ -62,10 +59,10 @@ typedef struct {
 
 typedef fx32 matrix_t[4][3];
 # 9 "include/gba/gba.h" 2
-# 1 "tools/agbcc/include/stdint.h" 1
-# 31 "tools/agbcc/include/stdint.h"
-# 1 "tools/agbcc/include/limits.h" 1
-# 32 "tools/agbcc/include/stdint.h" 2
+# 1 "/opt/agbcc/include/stdint.h" 1
+# 31 "/opt/agbcc/include/stdint.h"
+# 1 "/opt/agbcc/include/limits.h" 1
+# 32 "/opt/agbcc/include/stdint.h" 2
 
 
 
