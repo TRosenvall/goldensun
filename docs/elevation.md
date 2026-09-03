@@ -13870,3 +13870,116 @@ Pass names, dump suffixes and RTL note names get written into these headers
 constantly, and `EH_REGION_*` is exactly the kind of token that ends in `*`.
 **Before landing a header comment, check it contains no `*/` other than its
 own terminator.**
+
+## `x |= 0xff` on a byte field is DELETED outside a loop, and survives inside one
+
+MEASURED on `Func_80ba918`. The same source text behaves differently in two
+places in one function:
+
+- **Outside the loop**, `q->f16 |= 0xff` compiled to `mov r3,#255 / strb r3`.
+  Combine folded `x | 0xff` to `0xff` and dropped the `ldrb` and the `orr`
+  entirely — six instructions short of the ROM.
+- **Inside the loop**, the identical text survived as `ldrb / orr / strb`,
+  because `loop.c` had already hoisted the literal into a pseudo before combine
+  ran, so combine only ever saw `(ior reg reg)`.
+
+**So a ROM read-modify-write with an all-ones mask OUTSIDE a loop proves the
+mask was a NAMED VARIABLE in the source. Inside a loop it proves nothing.**
+
+That also explains the high register: a named `int mask` is live across the
+`bl`, so global-alloc gives it a callee-saved register and every use costs a
+`mov rLow, r10`. The `r10` is a consequence of the naming, not a blocker.
+
+### The mirror of the orr-destination lever
+
+The documented cures for a constant landing in the destination — `*p = K | *p`,
+`*p = *p | K`, a narrow local, an `int` local — were all tried here and **all
+four scored identically**. When the second operand is a **register-held mask**
+rather than a literal, the fix is to name the **loaded value** instead of the
+constant:
+
+    t = q->f16;
+    q->f16 = t | mask;
+
+13 → 6 in one step, with `int t` and `unsigned char t` interchangeable. The
+existing entry covers only naming the constant; this is the case that applies
+whenever the ROM's mask arrives in a register.
+
+## A reload SCRATCH register is a statement-order tell
+
+The last residue was `mov r1, r10 / orr r3, r1` against the ROM's
+`mov r4, r10 / orr r3, r4`. READ from `.18.greg`: *"Spilling for insn 48. Using
+reg 1 for reload 0"* — **reload takes the lowest free register**, so the ROM
+choosing r4 means **r1 was already occupied at allocation time**. The only thing
+that could occupy it was a pointer assignment that sched2 had moved below the
+`orr`. Hoisting that statement above the read-modify-write took 6 → 0.
+
+**When the only residue is a scratch-register rotation, do not reach for
+allocation-order arithmetic. Ask which source statement the ROM must have
+evaluated EARLIER to make the low register busy, and hoist it — sched2 will put
+it back where the ROM shows it.** This is the LICM "promote AND sweep the
+position" rule one level down. Only the ordering constraint is real: three
+placements satisfying it all matched.
+
+## `pop {r1} / bx r1` names a return value — but `return x;` is not the spelling
+
+Second face of that entry. Writing the obvious `return s;` makes gcc
+const-propagate `s == 0` off the loop-exit edge and emit an extra `mov r0, #0`.
+What reproduces the ROM is an **`int` return type with no `return` statement at
+all**: r0 stays live at the epilogue and nothing is materialised.
+
+## The `sub` after the hoisted constants means an upward `for`, not a `do/while`
+
+An explicit `c--` statement lands in the preheader **before** the LICM hoists.
+A plain `for (j = 1; j < c; j++)` lets `check_dbra_loop` synthesise the
+countdown **after** them — which is the ROM's order. So the position of the
+loop's decrement relative to the hoisted constants distinguishes the two source
+forms.
+
+## Try the BARE register pin before the barrier
+
+The fakematch idiom has two strengths and the weaker one is often enough.
+Measured on two functions that pull in opposite directions:
+
+| function | bare `register __asm__` pin | pin + `__asm__ volatile` barrier |
+|---|---|---|
+| `OvlFunc_938_2009450` | 14 (inert — same as plain literals) | **0** |
+| `OvlFunc_884_2008780` | **0** | 8 and 6 (a regression) |
+
+The difference is **what the pin does to the pseudo**, read from the `-da`
+dumps. With plain literal arguments, expand puts any multi-insn constant into a
+pseudo already at `.00.rtl`, and `.03.cse` rewrites the later site to it. A
+hard-register declaration **removes the pseudo**, so there is nothing left to
+common and no barrier is needed. Where the constant still flows through a
+pseudo, the pin cannot help and the barrier is what works.
+
+**Try the bare pin first; reach for the barrier only if it is inert.** And note
+the barrier's cost is not local — on `OvlFunc_884_2008780` it perturbed the
+scheduler three instructions *upstream*, inside a call that plain literals had
+already matched.
+
+### Declaration order is argument-setup order
+
+READ from `.23.sched2`: three argument insns tie at priority 70; one wins on
+`INSN_DEPEND` count; the remaining pair ties 3-against-3 and falls through to
+**`INSN_LUID`** — the RTL chain order. **So the order pinned register variables
+are declared in is the order the argument setup comes out in.**
+
+### The return-type lever's mechanism
+
+An implicitly-declared (int-returning) callee carries
+`(set (reg:SI 0 r0) (call ...))`. That set is the next *real* write of r0, so it
+**truncates the dependent list** of the `mov r0,#0` feeding it — two dependents
+instead of three — and it loses a scheduling tie it would otherwise win.
+Declaring the callee `void` restores the third dependent (the next call's own
+`mov r0,#0`) and hands the decision back to LUID.
+
+Two callees in one function needed `void` for **two different reasons**: one for
+its own argument order, one for the r0 dependent count at the *previous* call
+site. That is why the lever has to be swept per callee rather than applied as a
+policy.
+
+**Corollary: when two ROM call sites with identical source shape schedule
+differently, do not hunt for a source difference.** It is the
+dependent-count/LUID tie resolving differently because of what *follows* each
+call. Reproduce one and the other usually falls out.
