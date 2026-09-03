@@ -1,191 +1,124 @@
 #!/usr/bin/env python3
-"""census.py -- classify every REMAINING function by the blocker that will
-stop it, using the predictive rules already established, so the shape of the
-work left is a measurement rather than an impression.
+"""census.py -- how many functions are left, by size and by status.
 
-WHY
+    python3 tools/census.py            # the table
+    python3 tools/census.py --list 1 20   # name the AVAILABLE ones in a band
 
-By batch 141 the easy end of the corpus is gone: solved_twins.py reports ZERO
-remaining functions with a solved twin, and rounds were being spent screening
-functions that the documented rules already predict cannot match. This counts
-the population each rule covers, once, in priority order.
+WHY THIS IS A TOOL AND NOT A ONE-LINER. This count was got wrong three times in
+one day, each time by a fresh throwaway script, and each time the number was
+plausible enough to publish. The three failures are all encoded below as tests
+the code must not regress:
 
-WHAT THE CLASSES MEAN, and how much to trust each line:
+1. COUNT FUNCTIONS BY `.thumb_func_start`, NOT BY `.func_end`. Hand-written .s
+   files do not reliably close their functions -- asm/rom_9000/rom_92b8.s has 9
+   starts and 6 ends. A parser that emits a function only when it sees an end
+   silently drops the rest, which undercounted hand-written assembly as 59 when
+   it is 76.
 
-  audio            src/lib/m4a and the rom_f9000 engine. Deliberately left as
-                   assembly; not a blocker.
-  arm              .arm_func_start rather than .thumb_func_start. 51 functions
-                   in 7 files, and they are the performance primitives: the LZ
-                   decompressors, the BlitFade family, division and integer
-                   sqrt, palette upload, FixupRamCode.
+2. A PARK IS NOT ONE FILE PER FUNCTION. Three shapes break the obvious mapping:
+   CLASS parks (arg_interleave_flat.c, tiny_reg_order.c) cover many functions at
+   once; some parks are named for a different address than their subject
+   (Func_80f0008's neighbourhood is parked in 20095d4.c); and some are named for
+   a source-file stem (rom_79c30.c). Matching park FILENAMES to addresses found
+   464 parked functions when the true figure is 659.
 
-                   TWO REASONS THEY ARE HERE, and they need separating before
-                   this line means anything:
+3. MATCH THE NAME AS A SUBSTRING. An overlay park cites its callees with the
+   thunk prefix, `__Func_808b868`, and `\bFunc_` does not match that -- `_` is a
+   word character, so there is no boundary before `F`. A word-boundary regex
+   also misses every park whose subject has a real name (CanRemoveItem,
+   UpdateScreenShake) rather than an address.
 
-                     * No ARM compile path exists. The Makefile has no
-                       agbcc_arm or -marm rule, and tools/agbcc/bin/agbcc_arm
-                       ships unused. That is fixable plumbing.
-                     * SOME OF THEM ARE PROBABLY HAND-WRITTEN and have no C to
-                       recover. BlitFade_Div2_ROM builds a mask by self-OR-shift,
-                       moves four registers at a time with ldm/stm, and folds a
-                       barrel shift into the AND operand; others use rrx, bxmi
-                       and post-indexed loads. That is not compiler output. For
-                       those, leaving the .s in place is CORRECT rather than a
-                       gap -- the same stance this project already takes on the
-                       39 m4a audio functions.
+   Substring matching can in principle over-count, by treating a park's citation
+   of some OTHER unsolved function as if that function were parked. Measured
+   against a hand check of the 1-20 band, it does not: it predicted 1 available
+   and the hand check found exactly 1. Prefer it, and re-run the hand check
+   below if you change anything here.
 
-                   Nobody has read them one by one to say which is which, so do
-                   not read this count as 51 recoverable functions. They also
-                   assemble into the ROM today and block nothing.
-  branch-over-pool NOT A BLOCKER -- CORRECTED. The function branches over its own
-                   literal pool. This was counted as CERTAIN on the premise that
-                   the compiler cannot emit a mid-body pool; that premise is
-                   about old_agbcc, and gcc-2.96 emits them routinely (see
-                   tools/poolblocked.py, which now demonstrates it). These are
-                   candidates like any other -- expect to fight over pool
-                   placement, which follows the pool's CONTENTS and is therefore
-                   reachable from C. The original test is still This file DEFERS to
-                   tools/poolblocked.py rather than reimplementing the test,
-                   because two looser definitions were tried here and both were
-                   wrong:
-
-                     "contains .pool"            518  -- counts pools that sit
-                                                        at the end, which is
-                                                        exactly what gcc does
-                     "data mid-body, code after" 562  -- FALSIFIED: 85 of the
-                                                        3494 already-MATCHING
-                                                        functions have data
-                                                        mid-body, and it is a
-                                                        switch JUMP TABLE.
-
-                   gcc emits mid-body data for jump tables and never for
-                   literal pools, so only the narrow test means anything.
-  precompute       PREDICTED, from HANDOFF.md's argument-precompute rule: a
-                   cheap `mov rN, #K` that is not the last setup line before a
-                   `bl`, in a block that also builds something expensive. The
-                   rule is implemented STRICTLY: two or more argument
-                   registers built by an expensive operation, plus a cheap
-                   `mov rN, #K` that is not the last setup line.
-
-                   MEASURED against the corpus that already matches: 84 of 3495
-                   -- 2.4% false positives. An earlier, looser version of this
-                   test (any cheap mov not last, one expensive value enough)
-                   flagged 526 of 3495, 15.1%, and inflated this line by about
-                   130 functions. The loose version also flagged single-argument
-                   calls like `__SetFlag(0xc0 << 2)`, where there is no ordering
-                   question at all.
-
-                   Even strictly, 84 matching functions have this shape, so it
-                   is not absolute -- see OvlFunc_965_200919c, which passes four
-                   arguments with two of them shifted and matches.
-  const-remat      PREDICTED. The same built constant is passed in two or more
-                   argument registers of one call; the ROM rebuilds it, gcc
-                   builds once and copies. Checked BEFORE precompute, because
-                   most of these calls also match the precompute shape and
-                   would otherwise be invisible -- an earlier ordering reported
-                   const-remat as ZERO for exactly that reason.
-  data-tail        NOT a codegen blocker. The .s carries data after .func_end
-                   that other translation units reference, so it needs a
-                   hand-split before it can be elevated at all.
-  multi            NOT a codegen blocker either -- the function shares a .s
-                   and needs a split first.
-  open             Nothing here predicts a blocker. THIS IS THE WORKLIST.
-
-The classes are checked in that order and each function is counted once, so
-`open` is a lower bound on what is reachable and every other line is an upper
-bound on what is not.
+VERIFY BEFORE QUOTING. `--list` prints the available functions in a band; for a
+small band, grep each name in src/non_matching/ by hand. If any listed function
+turns up there, this file has a bug -- fix it here rather than in a new script.
 """
-import os
-import re
-import sys
-import collections
+import os, re, sys, glob
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import poolblocked
+from filtered import hand_written
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FUNC = re.compile(r"\.(?:thumb_func_start(?:_noalign)?|arm_func_start) (\S+)")
-BLOCK = re.compile(r"((?:\t(?:mov|lsl|neg|ldr|add|sub)\t[^\n]*\n)+)\tbl\t")
-CHEAP = re.compile(r"\tmov\t(r[0-3]), #")
-EXP = re.compile(r"\t(?:lsl|neg)\t(r[0-3])|\tldr\t(r[0-3]), =")
-NEG = re.compile(r"\tneg\t(r\d+), (r\d+)")
+START = re.compile(r"^\s*\.(?:thumb_func_start(?:_noalign)?|arm_func_start)\s+(\S+)")
+END = re.compile(r"^\s*\.func_end\b")
+DIRECTIVE = re.compile(r"^\s*\.")
+LABEL = re.compile(r"^\s*\S+:")
+BUCKETS = [(1, 20), (21, 40), (41, 60), (61, 100),
+           (101, 200), (201, 400), (401, 800), (801, 10 ** 9)]
 
 
-def precompute(body):
-    """HANDOFF.md's rule, strictly: TWO OR MORE expensive argument values plus a
-    cheap constant that is not last. The "two or more" matters -- a call with a
-    single shifted argument is a different and smaller problem, and lumping the
-    two together is what inflated this class."""
-    for m in BLOCK.finditer(body):
-        lines = [l for l in m.group(1).split("\n") if l]
-        exp, cheap = set(), []
-        for i, l in enumerate(lines):
-            e = EXP.search(l)
-            if e:
-                exp.add(e.group(1) or e.group(2))
-            if CHEAP.match(l):
-                cheap.append(i)
-        if len(exp) >= 2 and cheap and cheap[-1] != len(lines) - 1:
-            return True
-    return False
+def n_insn(lines):
+    n = 0
+    for l in lines:
+        s = l.strip()
+        if not s or s.startswith(("@", "/*", "*")):
+            continue
+        if DIRECTIVE.match(l) or LABEL.match(l):
+            continue
+        n += 1
+    return n
 
 
-def const_remat(body):
-    """The same value built into two or more argument registers of one call."""
-    for m in BLOCK.finditer(body):
-        blk = m.group(1)
-        negs = NEG.findall(blk)
-        argnegs = [d for d, s in negs if d == s and int(d[1:]) < 4]
-        if len(argnegs) >= 2:
-            return True
-    return False
+def survey():
+    """[(insns, name, hand_written, parked)] for every function still in asm/."""
+    parks = "\n".join(open(p, errors="ignore").read()
+                      for p in glob.glob(os.path.join(ROOT, "src/non_matching/**/*.c"),
+                                         recursive=True))
+    rows = []
+    for root, _, files in os.walk(os.path.join(ROOT, "asm")):
+        for fn in sorted(files):
+            if not fn.endswith(".s"):
+                continue
+            path = os.path.join(root, fn)
+            lines = open(path, errors="ignore").readlines()
+            # a .s sitting beside a solved .c is compiler OUTPUT, not a target
+            if any(".gcc2_compiled." in l for l in lines[:40]):
+                continue
+            hw = hand_written(path)
+            starts = [(i, m.group(1)) for i, l in enumerate(lines)
+                      if (m := START.match(l))]
+            for k, (i, name) in enumerate(starts):
+                stop = starts[k + 1][0] if k + 1 < len(starts) else len(lines)
+                for j in range(i + 1, stop):
+                    if END.match(lines[j]):
+                        stop = j
+                        break
+                rows.append((n_insn(lines[i + 1:stop]), name, hw, name in parks))
+    return rows
 
 
 def main():
-    counts = collections.Counter()
-    blocked = {n for n, _ in poolblocked.scan()[0]}
-    for root, _, fs in os.walk(os.path.join(ROOT, "asm")):
-        for f in fs:
-            if not f.endswith(".s"):
-                continue
-            p = os.path.join(root, f)
-            rel = os.path.relpath(p, ROOT)
-            if os.path.exists(os.path.join(ROOT, rel.replace("asm/", "src/", 1)[:-2] + ".c")):
-                continue
-            t = open(p, errors="ignore").read()
-            starts = list(FUNC.finditer(t))
-            if not starts:
-                continue
-            multi = len(starts) > 1
-            for k, m in enumerate(starts):
-                end = starts[k + 1].start() if k + 1 < len(starts) else len(t)
-                body = t[m.start():end]
-                if "rom_f9000" in rel or "/m4a" in rel:
-                    counts["audio"] += 1
-                elif m.group(0).lstrip().startswith(".arm_func_start"):
-                    counts["arm"] += 1
-                elif m.group(1) in blocked:
-                    counts["branch-over-pool"] += 1
-                elif const_remat(body):
-                    counts["const-remat"] += 1
-                elif precompute(body):
-                    counts["precompute"] += 1
-                elif not multi and re.search(
-                        r"\.(section|incrom|word|byte|hword|space|align)\b",
-                        body[body.rindex(".func_end"):] if ".func_end" in body else ""):
-                    counts["data-tail"] += 1
-                elif multi:
-                    counts["multi"] += 1
-                else:
-                    counts["open"] += 1
-    total = sum(counts.values())
-    print(f"{total} remaining functions, by the blocker predicted to stop them\n")
-    for k, v in counts.most_common():
-        print(f"  {v:5d}  {100.0*v/total:5.1f}%  {k}")
-    print("\n`open` is the worklist. Everything above it is predicted or")
-    print("certain, and `multi` / `data-tail` need a split before anything else.")
-    return 0
+    rows = survey()
+    if "--list" in sys.argv:
+        k = sys.argv.index("--list")
+        lo, hi = int(sys.argv[k + 1]), int(sys.argv[k + 2])
+        sel = sorted(r for r in rows if lo <= r[0] <= hi and not r[2] and not r[3])
+        for c, name, _, _ in sel:
+            print(f"{c:4d}  {name}")
+        print(f"\n{len(sel)} available in {lo}-{hi}")
+        return
+    lab = lambda a, b: f"{a}-{b}" if b < 10 ** 9 else "800+"
+    print(f"{'size':>9} | {'total':>6} | {'hand-asm':>8} | {'parked':>6} | {'AVAILABLE':>9}")
+    print("-" * 9 + "-+-" + "-" * 6 + "-+-" + "-" * 8 + "-+-" + "-" * 6 + "-+-" + "-" * 9)
+    t = [0, 0, 0, 0]
+    for a, b in BUCKETS:
+        s = [r for r in rows if a <= r[0] <= b]
+        hw = sum(1 for r in s if r[2])
+        pk = sum(1 for r in s if r[3] and not r[2])
+        av = len(s) - hw - pk
+        t[0] += len(s); t[1] += hw; t[2] += pk; t[3] += av
+        print(f"{lab(a, b):>9} | {len(s):6d} | {hw:8d} | {pk:6d} | {av:9d}")
+    print("-" * 9 + "-+-" + "-" * 6 + "-+-" + "-" * 8 + "-+-" + "-" * 6 + "-+-" + "-" * 9)
+    print(f"{'TOTAL':>9} | {t[0]:6d} | {t[1]:8d} | {t[2]:6d} | {t[3]:9d}")
+    solved = (len(glob.glob(os.path.join(ROOT, "src/**/*.c"), recursive=True))
+              - len(glob.glob(os.path.join(ROOT, "src/non_matching/**/*.c"), recursive=True)))
+    print(f"\nmatched .c files in src/ (excl. parks): {solved}")
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
