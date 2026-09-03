@@ -102,23 +102,27 @@ def constant_sites(body):
     return pos
 
 
-def _consumed_as_call_arg(body, i):
-    """True if the value built at line i reaches a `bl` as a register argument
-    without being stored to the stack first.
+def _site_kind(body, i):
+    """Where the value built at line i ends up: "sp", "call", or "other".
 
-    Cheap and deliberately local: walk forward to the next `bl` and stop at any
-    label. A pooled flag id loaded into r0 and passed straight to a call is the
-    CSE_CFLAGS shape; a constant that lands in a stack slot is the split shape.
+    Walk forward to whichever comes first -- a stack-slot store, a `bl`, or a
+    label. THE THREE-WAY ANSWER MATTERS. An earlier version returned a boolean,
+    "reaches a bl" against "everything else", which quietly swept STRUCT OFFSETS
+    into the split bucket: an offset feeding `add` and `ldrsh` reaches neither a
+    stack slot nor a call, so it read as the split shape and sent a screen
+    looking for a local that did not exist. OvlFunc_939_2009668 has no stack
+    frame at all -- `push {r5, lr}` and no sp adjustment -- and splitting its
+    offsets was actively harmful, 33 aligned to 38.
     """
     for l in body[i:i + 12]:
         t = l.strip()
         if LABEL.match(l):
-            return False
+            return "other"
         if re.search(r"\bstr\s+r\d+,\s*\[sp", t):
-            return False
+            return "sp"
         if re.search(r"\bbl\s+", t):
-            return True
-    return False
+            return "call"
+    return "other"
 
 
 def duplicate_class(body):
@@ -141,12 +145,24 @@ def duplicate_class(body):
         source cannot reach it: constant propagation folds any name back to the
         same const_int. Four unrelated spellings of OvlFunc_920_2008304's flag
         id all measured identically. The answer is a CSE_CFLAGS rule in the
-        Makefile, not a source change.
+        Makefile, not a source change. NOTE it is a hint and not a verdict:
+        OvlFunc_932_200a934 was offered as [cse] and matched with no flag,
+        because its two sites are in mutually exclusive arms and rerun-CSE does
+        not common across those. The flag is for the guard/set shape, where one
+        use DOMINATES the other. Ask whether either site can reach the other.
 
-    The two look identical without this test -- both are "a constant built more
-    than once with a label in between" -- and two independent screens reached
-    the same refinement on the same day, which is why it lives in code now
-    rather than in the notebook.
+    "offset" -- a repeated shiftable constant that reaches neither a stack slot
+        nor a call, i.e. a STRUCT OFFSET feeding `add` or a `ldrsh` index. DO
+        NOT SPLIT THESE. gcc-2.96 Thumb builds a shiftable constant with
+        `mov`/`lsl` from a bare literal already, so plain literal offsets on a
+        named base reproduce the ROM's per-block rebuild; giving each block its
+        own offset local makes two locals holding one constant, which folds to a
+        single const_int kept live across the branch. OvlFunc_939_2009668 went
+        33 to 38 that way.
+
+    The three look identical without this test -- all are "a constant built more
+    than once with a label in between" -- and each fix is inert or harmful on
+    the other two.
     """
     pos = constant_sites(body)
     reps = {k: sorted(v) for k, v in pos.items() if len(v) > 1}
@@ -158,12 +174,19 @@ def duplicate_class(body):
         if not any(any(idxs[j] < L < idxs[j + 1] for L in labels)
                    for j in range(len(idxs) - 1)):
             return "block"
-        kinds.add("cse" if all(_consumed_as_call_arg(body, i) for i in idxs)
-                  else "split")
-    # a function showing both gets the more actionable label: the split is a
-    # source change we can make, the CSE flag is a build-rule change we can make
-    # too, and doing the source one first is free either way
-    return "split" if "split" in kinds else "cse"
+        sites = [_site_kind(body, i) for i in idxs]
+        if all(k == "call" for k in sites):
+            kinds.add("cse")
+        elif any(k == "sp" for k in sites):
+            kinds.add("split")
+        else:
+            kinds.add("offset")
+    # a function showing several gets the most actionable label, and "split" is
+    # the only one that is a source change we can make directly
+    for k in ("split", "cse", "offset"):
+        if k in kinds:
+            return k
+    return None
 
 
 def expensive_constants(body):
@@ -233,10 +256,10 @@ if __name__ == "__main__":
             if r:
                 rows.append((r[1], r[0], r[2], name, s, bool(shapesib.kin(s)), r[3]))
     rows.sort(key=lambda r: (-r[0], r[1]))
-    nsplit = sum(1 for r in rows if r[6] == "split")
-    ncse = sum(1 for r in rows if r[6] == "cse")
-    print("%d candidates pass the filter (%d [split], %d [cse])\n"
-          % (len(rows), nsplit, ncse))
+    tally = " ".join("%d [%s]" % (sum(1 for r in rows if r[6] == k), k)
+                     for k in ("split", "cse", "offset")
+                     if any(r[6] == k for r in rows))
+    print("%d candidates pass the filter (%s)\n" % (len(rows), tally))
     for calls, n, cond, name, s, haskin, dup in rows[:25]:
         print("  %2d calls %3di %2dbr %-28s %s%s%s%s"
               % (calls, n, cond, name, s,
