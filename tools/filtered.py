@@ -83,6 +83,24 @@ LABEL = re.compile(r"^\s*\.?\w+:")
 # first -- which is exactly why this check has to run before the size band.
 HANDASM = re.compile(r"\bmov\s+r12,\s*lr\b|\bbx\s+r12\b|\bbl\s+\.L")
 
+# A CALL IS NOT ALWAYS A `bl`. gcc-2.96 makes a Thumb indirect call by putting
+# the return address in ip and branching through a register:
+#
+#     mov r12, pc
+#     bx  r7
+#
+# A `bl`-only test walks straight past that, which matters because a call
+# clobbers the argument registers and is therefore a boundary for every
+# question this file asks about repeated constants. `mov r12, pc` is the
+# reliable marker: a bare `bx rN` is just as often a function RETURN
+# (`pop {r0}` / `bx r0`), so matching on `bx` alone would count every epilogue
+# as a call.
+#
+# Found while trying to prove a set of functions unreachable: two sites the
+# tool reported as separated by neither a label nor a call were in fact
+# arguments rebuilt for two successive indirect calls.
+CALL = re.compile(r"\bbl\s+|\bmov\s+r12,\s*pc\b")
+
 _handasm_file = {}
 
 
@@ -188,7 +206,7 @@ def _site_kind(body, i):
             return "other"
         if re.search(r"\bstr\s+r\d+,\s*\[sp", t):
             return "sp"
-        if re.search(r"\bbl\s+", t):
+        if CALL.search(t):
             return "call"
         j += 1
     return "other"
@@ -300,7 +318,7 @@ def passes(body):
         return None
     if any(HIGH.search(l) for l in ins):
         return None
-    calls = sum(1 for l in ins if re.search(r"\bbl\s+", l))
+    calls = sum(1 for l in ins if CALL.search(l))
     if calls < 8:
         return None
     dup = duplicate_class(lines)
@@ -350,7 +368,7 @@ def wide(body, path=None):
     dup = duplicate_class(lines)
     if dup == "block":
         return None
-    calls = sum(1 for l in ins if re.search(r"\bbl\s+", l))
+    calls = sum(1 for l in ins if CALL.search(l))
     high = any(HIGH.search(l) for l in ins)
     cond = sum(1 for l in ins
                if re.search(r"\bb(?:eq|ne|ge|gt|le|lt|hi|ls|cs|cc|mi|pl)\b", l))

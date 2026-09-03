@@ -13461,3 +13461,43 @@ its own. Assigning them adjacently let a later pass build one of them an
 instruction shorter than the ROM; putting a third initialiser between them
 restored the ROM's form. A full permutation sweep of the preheader initialisers
 is cheap and was what closed the last two instructions.
+
+## The block-duplicate test is a SELECTION filter, not an unreachability proof
+
+Batch 184 proved that a repeated constant of 256 or more **within one basic
+block** is unreachable from C, because `cse.c` scores a pseudo at 1 and any
+larger constant at 12 or 20, so the register always wins. That proof is sound.
+
+`filtered.py`'s `duplicate_class` returning `"block"` is **not** evidence that a
+function is in that class, and an attempt to classify the remaining corpus on it
+failed completely. Of 1,234 unparked functions it flagged 406; after three
+rounds of tightening, the number that survived scrutiny was **zero**. Every
+single one dissolved. The false-positive classes, in the order they were found:
+
+**1. A call between the two sites.** A call clobbers the argument registers, so a
+constant used as an argument is rebuilt at each site whatever cse would prefer.
+Three consecutive calls taking the same two constants look exactly like a
+straight-line triple materialisation. 250 of the 406.
+
+**2. The same value needed in several registers AT ONCE.** `f(-1, -1, -1, 0)`
+emits three `mov`/`neg` pairs into r0, r1 and r2 with nothing between them. They
+are simultaneously live, so cse *cannot* merge them — this is the most ordinary
+code there is. 139 of the remaining 156.
+
+**3. An INDIRECT call, which a `bl` test does not see.** gcc-2.96 calls through a
+register with `mov r12, pc / bx rN`. Two sites reported as separated by neither a
+label nor a call turned out to be arguments rebuilt for two successive indirect
+calls. `filtered.py` now recognises this (see `CALL`), but the lesson is the
+general one.
+
+Also dissolved: seven `REG_DMA3SAD` repeats, which are simply `include/dma.h`'s
+macro invoked twice — each invocation binds the base register afresh.
+
+**The rule to take from this:** the marker says "this shape is worth a look", and
+nothing more. **Unreachability is established per function, by measurement, not
+by a pattern match over the listing.** The only class that can honestly be
+excluded without an attempt is hand-written assembly, which is a different
+question — those files were never C.
+
+A corollary for planning: **there is no cheap way to predict which of the
+remaining functions will need parking.** Parking is the outcome of an attempt.
