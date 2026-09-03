@@ -13581,11 +13581,55 @@ expand emitting four *independent* `(set (reg) (const_int 49152))` — one per
 site, because Thumb cannot encode the constant and each argument is
 `force_reg`'d — and the hoist is cse1's, via `cse.c`'s `COST` macro at line 509:
 a pseudo costs 1, a `const_int` goes through `notreg_cost` and costs more on
-Thumb, so at a copy insn CSE always prefers the register. Seven flags swept
+Thumb, so at a copy insn CSE always prefers the register.
+
+**There is no flag to find, and that is READ, not swept.** The responsible pass
+is the FIRST `cse_main`, which in `toplev.c:2917` sits inside the plain
+`optimize > 0` block with **no `-f` flag gating it at all**;
+`flag_rerun_cse_after_loop` guards only the *second* call, at line 3095. The
+dumps agree: `.02.jump` still carries one `const_int` per use, `.03.cse` has
+already demoted the later sites to `REG_EQUAL` notes, and `.07.gcse` changes
+nothing further. Eleven flags have now been swept across two functions
 (`-fno-rerun-cse-after-loop`, `-O1`, `-fno-expensive-optimizations`,
-`-fno-gcse`, `-fno-strength-reduce`, `-fno-schedule-insns2`, `-fno-peephole2`):
-all identical. That closes the "maybe some CSE flag reaches it" question for the
-shifted-constant class the same way it is already closed for the pool class.
+`-fno-gcse`, `-fno-strength-reduce`, `-fno-schedule-insns2`, `-fno-peephole2`,
+`-fno-cse-follow-jumps`, `-ffixed-r5`, `-ffixed-r5 -ffixed-r6`,
+`-fno-schedule-insns`) with no effect on the class — but the sweeps were never
+the argument. **Stop sweeping flags on this class.**
+
+### Anchor EVERY argument of a call you anchor any argument of
+
+The launder is **per call site, not per constant** — counterintuitive, and it
+decides how many launders a fakematch needs. MEASURED on
+`OvlFunc_927_200a004`, whose clean floor is 13 of 43:
+
+| laundered | disagreeing |
+|---|---|
+| nothing | 13 |
+| the second site only | 13 |
+| the two repeated constants, both sites (the CSE-necessary minimum) | 4 |
+| minimum + the `1` | 2 |
+| minimum + the `-1` | 2 |
+| **every argument of both affected calls** | **0** |
+
+Laundering the CSE-necessary minimum removes the CSE residue and a **sched2**
+residue takes its place, because gcc's natural interleave was already the ROM's
+— the function's third call site comes out exact with no help at all. Anchoring
+*some* arguments of a call perturbs that interleave, leaving the un-anchored
+`neg r1` and `mov r3, #1` floating above the anchored shifts. **A partially
+laundered argument list is strictly worse than none.** `--no-sched2` on the
+partial forms gives 14, confirming sched2 is the reorderer and that suppressing
+it is not the fix.
+
+**Launder the FIRST occurrence, never the second.** Laundering only the later
+site left 13 — bit-identical to no launder. From `.03.cse`: CSE substitutes into
+the launder's own *initialiser* (`set (reg _t) (const_int …)` becomes
+`set (reg _t) (reg 32)`) before the asm ever sees the value. The asm makes the
+value opaque *downstream of the assignment*, which is too late. Anchor the first
+site and every later occurrence rebuilds naturally.
+
+Six launders on a 43-instruction function is within house norms, not an outlier:
+47 of the 97 fakematch files carry five or more, and the precedent in this same
+overlay carries seven.
 
 ## The LICM lever has TWO HALVES and both are load-bearing
 

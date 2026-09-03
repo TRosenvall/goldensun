@@ -110,3 +110,4 @@ OvlFunc_882_2008398  src/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_c_c_a_b.c
 OvlFunc_882_20083cc  src/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_c_c_a_c_b.c
 OvlFunc_882_2008400  src/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_c_c_a_c_c_b.c
 OvlFunc_938_2009450  src/overlays/rom_7c37ac/ovl_30_c_c_c_c_c_c_c_b.c
+OvlFunc_927_200a004  src/overlays/rom_7b4558/ovl_30_c_c_c_a_a_c_c_a.c
