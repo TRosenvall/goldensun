@@ -14344,3 +14344,23 @@ almost nothing.
 `N instruction(s) in disagreeing regions` line is the honest figure; the count in
 the header is an alignment artefact whenever the lengths differ. That candidate
 was correct on the first try and could easily have been thrown away.
+
+## Pin DECLARATION order is argument order
+
+Recorded before as "declaration order is argument-setup order" for pinned
+registers, and worth restating precisely because the wording invites the wrong
+reading: it is the order of the **declarations**, not the order the arguments
+appear in the call.
+
+MEASURED on `OvlFunc_932_2008c9c`, the last two instructions of the match. The
+ROM sets `mov r0, #0xa` first and the two pooled constants after:
+
+    register int v1 __asm__("r1") = 0x3333;   /* r0 lands three slots late */
+    register int v2 __asm__("r2") = 0x1999;
+    register int v0 __asm__("r0") = 0xa;
+
+    register int v0 __asm__("r0") = 0xa;      /* exact */
+    register int v1 __asm__("r1") = 0x3333;
+    register int v2 __asm__("r2") = 0x1999;
+
+The call site is written the same way in both. Only the declaration order moved.
