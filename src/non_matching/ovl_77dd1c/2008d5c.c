@@ -57,6 +57,25 @@
  * A volatile asm on `s[9]` emits a real extra load, which it must -- an "r"
  * operand on a memory expression is a load, not a barrier on one.
  *
+ * BATCH 209 -- THREE MORE SPELLINGS AND A FLAG DIAGNOSTIC, all negative, so the
+ * source axis on this site is now closed. Seven structurally distinct forms tie
+ * at 2: the constant initialised in its declaration, assigned separately inside
+ * the block, declared at function scope and assigned twenty instructions
+ * earlier, pinned to r3, the OR's operands swapped, the whole thing split into
+ * `&=` then `|=`, and the negation itself named in a second local. That is a
+ * real tie by this tree's own standard -- they vary declaration, assignment,
+ * operand order and statement count, not just the order of statements over one
+ * skeleton.
+ *
+ * THE FLAGS SAY IT IS SCHED2 AND THAT SCHED2 IS OTHERWISE RIGHT.
+ * `--no-rerun-cse` leaves it at 2, so CSE is not involved. `--no-schedule-insns2`
+ * gives 27 differing from instruction 16 -- turning the post-reload scheduler off
+ * does not put this pair back, it breaks correct work elsewhere. THE ROM'S
+ * STREAM IS NOT GCC'S UNSCHEDULED STREAM. That is the same finding, arrived at
+ * from a different residue, as src/non_matching/rom_8a000/809802c.c reached on
+ * where the prologue's `sub sp` lands, and it puts the two sites in one
+ * category: a sched2 decision with no source handle and no flag that isolates it.
+ *
  * NEXT: the class is "an immediate mov scheduled ahead of an independent load".
  * docs/elevation.md records that a pin orders two movs of immediates and does
  * NOT order two independent loads; this is the mixed case and it appears to
