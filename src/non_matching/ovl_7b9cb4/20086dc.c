@@ -47,11 +47,26 @@
  * two argument movs around a store and the do-while form does not. So each
  * spelling fixes what the other breaks.
  *
- * NEXT: the question is whether the counter can reach r5 without a pin. It
- * would if the BASE were the thing pinned and the counter simply inherited the
- * register when the base died -- which is what the ROM's own allocation looks
- * like. Pinning the base alone, with the counter and pointer left free, was not
- * tried; only base+pointer+counter together were. That is the cheap next test.
+ * BATCH 214, SECOND ROUND -- THAT TEST IS NOW RUN AND IT FAILS. The idea was
+ * that the counter might reach r5 without a pin if the BASE were pinned there
+ * and the counter simply inherited the register when the base died, which is
+ * what the ROM's allocation looks like. It does not happen:
+ *
+ *     base pinned to r5 alone                  82 differ, 96 lines
+ *     base pinned to r5, pointer to r6         66 differ, 97 lines
+ *
+ * Both are worse than the 35 of 100 above. With the counter free gcc gives it
+ * r7 and advances the base in place rather than producing the pointer in a new
+ * register, so the three-register shape never forms. THE COUNTER'S REGISTER IS
+ * NOT INHERITED; it has to be named, and naming it is what costs the entry
+ * guard. The tension is real and both horns are now measured.
+ *
+ * NEXT: the remaining idea is to make gcc prove the first iteration runs while
+ * the counter is still pinned -- the guard exists only because a pinned
+ * register defeats that proof. Nothing in docs/elevation.md covers forcing a
+ * bottom-tested loop with a pinned induction variable, and the do-while
+ * spelling that removes the guard costs three instructions elsewhere. This may
+ * simply be a shape where the pin and the loop form cannot both be had.
  */
 extern unsigned char *iwram_3001e70;
 extern int L5238 __asm__(".L5238");
