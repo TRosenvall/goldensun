@@ -51,6 +51,15 @@
  * in between, so it will appear on its own once the body is the right length,
  * and cannot be forced from the source.
  *
+ * THAT NEXT STEP IS ALREADY ANSWERED, AND NEGATIVELY. Pinning ONLY the register
+ * that holds the shared value at each site -- r1 alone at the first call, r1
+ * and r2 at the second, r2 alone at the third -- is BYTE-IDENTICAL to pinning
+ * the whole argument triple: 158 lines, the same eight short. So the overshoot
+ * is not caused by pinning registers that did not need it. Forcing the reload
+ * is itself what removes the instructions, and the ROM is longer than the
+ * reloaded form by eight, which means something ELSE in the ROM accounts for
+ * those eight and the hoist was never the whole story.
+ *
  * NEXT: the question is how to make gcc reload a POOL constant at each use
  * without the pin's side effects. The batch-195 case that worked
  * (src/overlays/rom_7a37f0/ovl_30_c_c_c_a_c_a_a_a_b.c, also a pooled 0x3333
