@@ -13838,6 +13838,33 @@ register where there is none -- against register pressure it pays exactly what
 an ordinary `int` local pays (`src/non_matching/overlays/common1_148.c`
 measures that one: the pin lands on the same 4 differing as the int local).
 
+### A SECOND CURE FOR THE CROSSED CASE: write the SHIFTS in the MOVS' order
+
+The volatile-asm barrier is the general answer and has closed a dozen crossed
+sites since batch 206. It is not free -- it is unavailable where the ROM spills
+r8-r11 (batch 207), and on `OvlFunc_959_200a5f8` it is actively wrong for a
+different reason. That function passes stack arguments, so its prologue carries
+a `sub sp, #8` with SIX body instructions hoisted above it, and a volatile asm
+at the top of the body is a full scheduling barrier that stops the hoist. The
+two defects are in tension: barrier gives 7 of 65, no barrier gives 3.
+
+**What works costs nothing.** The movs are slaved to the shift order AS WRITTEN
+IN THE SOURCE, so write the shifts in the order the MOVS need:
+
+    rom     mov r0 / mov r1 / mov r2 / lsl r1 / lsl r2 / lsl r0
+    source  q0 = K; q1 = K; q2 = K; q0 <<= a; q1 <<= b; q2 <<= c;
+                                    ^^^^^^^^ ROM's MOV order, not its shift order
+
+The movs then come out r0, r1, r2 as required, and sched2 lands the shifts in
+the ROM's order on its own. Nothing blocks the frame adjustment. Exact.
+
+**TRY THIS BEFORE REACHING FOR A BARRIER.** It cannot reach every crossed site
+-- the barrier is still what closes the three-register fills where two movs are
+out of place, and the negation forms -- but it has no side effects, and a
+function that carries a `sub sp` in its prologue is a positive reason to prefer
+it. The tell for the conflict is a residue that gets WORSE when the barrier goes
+in, with `sub sp` leading the diff.
+
 ### HAZARD: a pin assigned BEFORE a call and used AFTER it is silently dropped
 
 The rematerialisation lever works because r0-r3 are call-clobbered, so a
