@@ -34,6 +34,30 @@
  * per the rule recorded in batch 168 that flag is not the answer here, and the
  * two spellings that move the count at all both move it the wrong way.
  *
+ * BATCH 204 -- THE SCHEDULING BARRIER DOES NOT REACH THIS, and the reason
+ * bounds a lever that had just worked elsewhere. `do { } while (0)` closed
+ * seven of eleven differing lines in src/non_matching/overlays/200db90.c, whose
+ * blocker this park's own text describes in nearly the same words. It is inert
+ * here, in three forms, all byte-identical to the 2 already recorded:
+ *
+ *     a barrier immediately before the `ang = ...` statement          2
+ *     the 0x80 << 6 named in a local WITH a barrier after it          2
+ *     that local pinned to r3, which is the register the ROM uses     2
+ *
+ * THE DIFFERENCE IS WHAT THE BARRIER HAS TO SEPARATE. In 200db90 the hoist
+ * crossed STATEMENT BOUNDARIES -- two loads belonging to the last statement had
+ * migrated up past three stores -- and a barrier between those statements put
+ * them back. Here the two instructions are the operands of ONE expression,
+ * `*(unsigned short *)(p + 6) + (0x80 << 6)`, and there is no statement
+ * boundary between them to place a barrier on. Naming one operand in its own
+ * statement does not help either, because the scheduler settles their order
+ * after the source shape is gone.
+ *
+ * So the barrier orders STATEMENTS, not the operands within one. That is
+ * consistent with what it is -- a scheduling-region split -- and it is the
+ * cheap test for whether to reach for it: is there a statement boundary the
+ * two instructions belong to opposite sides of?
+ *
  * NEXT: nothing source-level. If the exemplar's context is ever characterised
  * well enough to say WHICH of the two differences (the guard, or the fetched
  * actor) frees the scheduler, this closes with it.
