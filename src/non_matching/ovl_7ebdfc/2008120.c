@@ -62,6 +62,29 @@
  *   `ldrsh` and then `lsl #16 / lsr #16`, which is a signed load zero-extended
  *   -- a short field assigned to an unsigned short variable, not a u16 field.
  *
+ * BATCH 196 -- THE PIN DOES NOT REACH IT, measured in four forms. The pin
+ * closed the structurally identical site in
+ * src/overlays/rom_7b8cb0/ovl_30_c_c_c_c_c_c_c_c_c_a_c_b.c (also a mov/neg
+ * pair split around another argument), so it was the obvious thing to try:
+ *
+ *     all three argument registers pinned, ROM assignment order   3 (WORSE)
+ *     r0 and r2 pinned, r1 left a literal                         2
+ *     r0 pinned alone                                             2
+ *     all three pinned, the neg moved before the two zeros        2
+ *     r1 and r2 pinned, r0 left a literal                         3 (WORSE)
+ *
+ * WHY IT DIFFERS FROM THE SITE THAT FELL. There the interleaved argument was
+ * `mov r1, #2` -- a DISTINCT value, with the mov/neg pair on r2 to order it
+ * against. Here the two interleaved arguments are r0 and r1 and BOTH RECEIVE
+ * ZERO, and neither has a consumer of any kind; only r2 has the neg. So there
+ * is no operation anywhere whose order the source can set to place them, which
+ * is the batch-195 rule seen from its other side: mov order follows the order
+ * of consuming operations, and a mov with NO consumer has nothing to follow.
+ *
+ * That makes this a genuinely different sub-case from the one the pin closed,
+ * and the distinction is cheap to check before spending screens: does each
+ * interleaved argument have an operation consuming it?
+ *
  * NEXT: nothing at the source level. This is one instruction on the wrong side
  * of a mechanism that is settled.
  */
