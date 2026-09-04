@@ -79,15 +79,26 @@
  *     OvlFunc_883_2008dc0   matched on the FIRST screen, batch 198
  *     OvlFunc_883_2008e54   matched on the FIRST screen, batch 198
  *
- * ELEVEN MEMBERS REMAIN and each should be a short job: the bodies are trivial,
- * the only work is reading each call's argument order off the ROM.
+ * EIGHT OF FOURTEEN ARE NOW DONE, every one on its FIRST screen: 200bdec
+ * (batch 194), 2008dc0 / 2008e54 / 2008e84 (batch 198), and 2008f5c / 2008f8c /
+ * 200881c / 20088ac / 20099bc (batch 199).
  *
- *   OvlFunc_881_200a81c   ovl_77a7c8    OvlFunc_899_2008428   ovl_794ac0
- *   OvlFunc_883_2008e84   ovl_780898    OvlFunc_921_20099bc   ovl_7a7298
- *   OvlFunc_883_2008f5c   ovl_780898    OvlFunc_942_2008144   ovl_7c6bac
- *   OvlFunc_883_2008f8c   ovl_780898    OvlFunc_944_2008468   ovl_7ca63c
- *   OvlFunc_884_200881c   ovl_784360    OvlFunc_959_2008bac   ovl_7e7574
- *   OvlFunc_884_20088ac   ovl_784360
+ * SIX REMAIN, each a short job -- the bodies are trivial and the only work is
+ * reading each call's argument order off the ROM:
+ *
+ *   OvlFunc_881_200a81c   ovl_77a7c8    OvlFunc_942_2008144   ovl_7c6bac
+ *   OvlFunc_899_2008428   ovl_794ac0    OvlFunc_944_2008468   ovl_7ca63c
+ *   OvlFunc_959_2008bac   ovl_7e7574
+ *
+ * (That is five names; the fourteenth, OvlFunc_883_2008e84, is done. The
+ * original list is preserved above in the MEMBERS block.)
+ *
+ * ONE MEMBER IS NOT LIKE THE OTHERS AND IT DID NOT MATTER. OvlFunc_921_20099bc
+ * opens a cutscene and runs a map transition rather than playing a sound and
+ * blitting a table; its body has nothing in common with the rest. The class was
+ * defined by its OPCODE SET, not by what the functions do, and the blocker was
+ * identical anyway. Shape grouping found a real class even though it says
+ * nothing about behaviour.
  *
  * THE LESSON IS THE ONE BATCHES 193-197 KEPT FINDING, and this is its largest
  * instance: a conclusion drawn from one lever's mechanism was recorded as a
