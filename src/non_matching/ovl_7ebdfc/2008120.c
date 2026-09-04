@@ -1,3 +1,37 @@
+/* BATCH 207 -- THE BARRIER LEVER IS NOT AVAILABLE HERE, AND THE REASON IS THE
+ * REASON THIS FUNCTION IS HARD. Batch 206 corrected the crossed-mov entry: a
+ * volatile asm consuming the first mov reaches transpositions that no operand
+ * spelling can, because the order is decided in the post-reload scheduler. This
+ * residue is exactly that shape -- a mov/neg pair the ROM splits around two
+ * other arguments -- so it was the obvious thing to try. It makes the function
+ * WORSE BY AN ORDER OF MAGNITUDE: 2 of 48 becomes 45 of 46.
+ *
+ * MEASURED, four forms, and they separate the two levers cleanly:
+ *
+ *     r2 pinned, no barrier                         2   (unchanged)
+ *     r0 and r2 pinned, ROM assignment order        2   (unchanged)
+ *     r0, r1, r2 pinned, ROM assignment order       3
+ *     r2 pinned + volatile asm on r2               45   and 46 lines, 2 SHORT
+ *     plain int local + volatile asm on it         45   identical to the above
+ *
+ * The pins are inert, confirming batch 196. THE BARRIER IS ACTIVE AND HARMFUL,
+ * and it is not the pins that carry it -- the plain local scores the same.
+ *
+ * WHY. The barrier splits the block into two scheduling regions, which shortens
+ * every live range crossing the split. This function's ROM prologue is
+ * `push {r5, r6, lr} / mov r6, r10 / mov r5, r8 / push {r5, r6}` -- it SPILLS
+ * TWO HIGH REGISTERS, and that spill is correct and must be reproduced. Shorten
+ * the ranges and gcc no longer needs them, so the spill disappears and the whole
+ * allocation is renumbered. The two instructions the function loses are the two
+ * the spill costs.
+ *
+ * So the general rule, measured across five functions in batch 207 and written
+ * up in docs/elevation.md: THE BARRIER IS ONLY AVAILABLE WHERE THE ROM DOES NOT
+ * USE r8-r11. This function uses them in eight instructions. Do not spend
+ * another attempt on the barrier here; the park stands on the same grounds it
+ * always did, now with the one remaining lever ruled out by measurement rather
+ * than by not having been tried.
+ */
 /* OvlFunc_961_2008120 -- NOT MATCHING. 2 of 48 lines, same length.
  *
  * Source asm: goldensun/asm/overlays/rom_7ebdfc/ovl_30_c_c_c_a.s

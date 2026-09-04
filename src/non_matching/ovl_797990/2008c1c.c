@@ -1,3 +1,32 @@
+/* BATCH 207 -- THE BARRIER LEVER IS RULED OUT BY MEASUREMENT, not by omission.
+ * This park closes by saying "source position does not reach post-reload
+ * scheduling of a copy", and it is right. Batch 206 found a lever that DOES
+ * reach post-reload scheduling -- a volatile asm consuming the value, which
+ * forces it materialised at that point -- so this residue, a `mov r2, r8` landing
+ * one instruction late, was the obvious place to spend it.
+ *
+ * MEASURED:
+ *
+ *     q = s; (a copy born in the gap), no barrier          2   (as before)
+ *     volatile asm on s directly, before the mask store   10
+ *     q = s; then a volatile asm on q, before the store   65   and 74 lines
+ *
+ * The copy alone is inert, exactly as this park already recorded. The barrier is
+ * active and it destroys the function.
+ *
+ * WHY, and it is the same cause as in src/non_matching/ovl_7ebdfc/2008120.c,
+ * measured in the same round: the barrier shortens every live range crossing the
+ * split, and THIS FUNCTION'S CORRECTNESS DEPENDS ON A LONG ONE. The sprite
+ * pointer lives in r8 across four calls -- that is what `mov r2, r8` IS -- and
+ * once the range is cut, gcc stops using r8 at all and the allocation is
+ * renumbered from instruction 6 onward.
+ *
+ * The rule, measured across five functions and written up in docs/elevation.md:
+ * THE BARRIER IS ONLY AVAILABLE WHERE THE ROM DOES NOT USE r8-r11. Five
+ * instructions here. Note the irony worth keeping: the residue is a copy OUT OF
+ * a high register, so the very thing that makes the site interesting is the
+ * thing that makes the lever unusable.
+ */
 /* OvlFunc_901_2008c1c -- asm/overlays/rom_797990/ovl_314_c_c_a_a_c_c_c_c_a_a.s
  * OvlFunc_898_2009090 -- asm/overlays/rom_793768/ovl_314_c_c_c_a_c_a_c_c_a.s
  *

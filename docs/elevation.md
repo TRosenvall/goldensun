@@ -13738,6 +13738,45 @@ constraint is a scheduling one -- when it appears to work it is because the
 schedule happened to agree, not because it was expressed. The barrier closes
 that call too.
 
+**THE BARRIER IS ONLY AVAILABLE WHERE THE ROM DOES NOT USE r8-r11.** This is
+the sharpest boundary on it and it is worth checking before writing the line.
+Measured on five functions, and the split is total:
+
+    OvlFunc_960_2008838   hi-reg insns 0   barrier reaches the site
+    OvlFunc_939_2008ff0   hi-reg insns 0   barrier reaches the site
+    OvlFunc_948_2008b68   hi-reg insns 0   barrier reaches the site
+    OvlFunc_961_2008120   hi-reg insns 8   barrier REWRITES THE FUNCTION
+    OvlFunc_901_2008c1c   hi-reg insns 5   barrier REWRITES THE FUNCTION
+
+The mechanism follows from what the barrier is. Splitting the block into two
+scheduling regions shortens every live range that crossed the split. Where the
+ROM's own allocation DEPENDS on those ranges being long -- which is exactly what
+a `mov r5, r8 / push {r5, r6}` prologue records -- shortening them removes the
+spill, and the function comes out two instructions SHORT with the whole
+allocation renumbered. On `2008120` that is 2 of 48 becoming 45 of 46; on
+`2008c1c`, 2 of 75 becoming 65 of 74. In both, the residue the barrier was
+aimed at is real and the cure costs an order of magnitude more than it buys.
+
+Note which way round this runs, because it is the opposite of the usual reading
+of high registers. Elsewhere r8-r11 traffic is a tell that GCC hoisted something
+it should not have, and pinning removes it -- that is what happened in both
+`2008ff0` and `2008b68`, whose parks record an eight-instruction spill that the
+pins deleted. By the time the barrier went in, those functions had no
+high-register traffic left to disturb. Here the ROM ITSELF spills, the spill is
+correct, and it must be preserved.
+
+**So: read the ROM's high-register count first. Zero means the barrier is
+available. Non-zero means it is not, whatever the residue looks like.**
+`tools/templated.py` already prints this as its `hi` column, computed for a
+different reason -- it ranks candidates and warns that high-register traffic
+predicts an intractable allocation residue. The same number answers this
+question, so no new screen is needed.
+
+The pin is unaffected by any of this: on `2008120` an r2 pin alone leaves the
+score exactly where the plain literal had it, and on `2008c1c` a plain copy
+local does the same. Pins are cheap in a high-pressure function; barriers are
+not.
+
 **Scope, measured, so this does not get over-read in the other direction.** The
 barrier does not go on every site: on `2008b68` the two barriers alone, applied
 while an earlier divergence was still open, scored WORSE than the park's
