@@ -319,6 +319,23 @@ asm/overlays/rom_7b9cb4/ovl_30_a_c_c_a_c_c_a_a_a_c_a_c_a_b.o: src/overlays/rom_7
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# CSE_CFLAGS, batch 219.  OvlFunc_948_20097ac tests save bit 0x220 and then sets
+# it, and the ROM rebuilds `mov r0, #0x88 / lsl r0, #2` at BOTH sites.  At -O2
+# the second CSE pass hoists that id into a callee-saved register and keeps it
+# live across the __GetFlag call.  That one extra live value costs a fifth
+# callee-saved register, so the actor coordinate the ROM parks in r8 is pushed
+# out to r10 and the prologue grows from `push {r7}` to `push {r6, r7}` --
+# 63 differing of 62, exact with the flag.  Three source spellings were measured
+# (cast store, typed field, the id written as a plain 0x220 at both sites) and
+# all three produce IDENTICAL output, because the constant is folded before CSE
+# ever runs: the rematerialisation is a pass-level property, not a source-level
+# one.  The named template src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_c_c_c.c
+# carries the same rule for the same reason.
+asm/overlays/rom_7d30e0/ovl_30_c_a_c_c_a_a_c_c_c_c_c_c_c_c_b.o: src/overlays/rom_7d30e0/ovl_30_c_a_c_c_a_a_c_c_c_c_c_c_c_c_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 # OvlFunc_924_20094cc: flag id 0x256 tested before the guard branch and set
 # after it -- the guard/set shape, first use dominating.  Prologue a register
 # wider at -O2, exact here.
