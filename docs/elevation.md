@@ -14450,3 +14450,41 @@ the only way gcc reads a signed byte, and one function can use both:
 and widens afterwards. Both are signed byte reads and both compare the same, so
 the difference is invisible in the semantics and shows up only as two extra
 instructions — easy to dismiss as noise.
+
+## "N spellings tie" is only evidence if the spellings differ in STRUCTURE
+
+`OvlFunc_881_200b2f0` was parked at 4 of 99 with the claim that the `-1`
+triple's `mov` order was unreachable, on the strength of **six spellings tying
+at exactly 4**. The park was wrong, and the reason is worth more than the
+function.
+
+All six kept the three assignments together and the three negations together,
+and varied only the order *within* those two groups:
+
+    p0 = 1; p1 = 1; p2 = 1; p3 = 0;    /* six permutations of this half */
+    p2 = -p2; p1 = -p1; p0 = -p0;      /* and of this one */
+
+Interleaving them matches:
+
+    p0 = 1; p0 = -p0;
+    p1 = 1; p1 = -p1;
+    p2 = 1; p2 = -p2;
+    p3 = 0;
+
+Six permutations inside one shape are not six unrelated spellings — they are one
+spelling tried six times. **A tie is evidence of a wall only when the spellings
+differ structurally**: different grouping, different statement boundaries,
+different variables, not merely a different order over the same skeleton.
+
+The practical test before writing a park: can you name the structural assumption
+every attempt shared? If you can, that assumption is the next thing to vary, and
+the park is premature.
+
+## The `-1` triple is fully reachable
+
+Batch 148 recorded it as an unbroken class; that was amended once to "reachable
+by pinning" when the negations were reproduced, with the `mov` order still
+believed out of reach. Both halves are now reachable, by pinning the four
+argument registers and interleaving each assignment with its own negation.
+`pickable.py`'s three-or-more-`neg` rejection has no remaining basis beyond
+cost.

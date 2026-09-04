@@ -1,49 +1,34 @@
-/* OvlFunc_881_200b2f0 -- 0x0200b2f0,
- * asm/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_c_c_c_c.s
+// fakematch
+/* OvlFunc_881_200b2f0  --  0x0200b2f0
+ *
+ * Was goldensun/asm/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_c_c_c_c.s, which
+ * held it alone.
  *
  * A map-entry cutscene: blank the camera, place actor 8 and face it, seed a
- * field at iwram_3001ebc + 0x1c0, fade in, then walk the actor through five
- * legs at four different speeds and fade out.
+ * field at iwram_3001ebc + 0x1c0, fade in, walk the actor through five legs at
+ * four different speeds, fade out.
  *
- * 4 of 99, with the instruction count exact and every operation right. The
- * residue is FOUR instructions and they are all one thing.
+ * THIS FUNCTION WAS PARKED AT 4 OF 99 AND THE PARK WAS WRONG. The park claimed
+ * the `-1` triple's `mov` order was unreachable, on the strength of six
+ * spellings tying at exactly 4. All six shared an assumption I never examined:
+ * they kept the three assignments together and the three negations together,
+ * and varied only the order WITHIN those two groups. Interleaving them --
  *
- * BLOCKER: THE `-1` TRIPLE'S MOV ORDER. Last batch established that the triple
- * itself IS reachable -- pinning the four argument registers and negating in
- * place reproduces `mov / mov / mov / neg / neg / neg` where plain C builds -1
- * once and copies it. That holds here and is most of why this function got to
- * 4 of 99. What does NOT follow is the order of the three `mov`s:
+ *     p0 = 1; p0 = -p0;
+ *     p1 = 1; p1 = -p1;
+ *     p2 = 1; p2 = -p2;
+ *     p3 = 0;
  *
- *     rom   mov r0,#1 / mov r1,#1 / mov r2,#1 / mov r3,#0 / neg r2 / neg r1 / neg r0
- *     ours  mov r0,#1 / mov r2,#1 / mov r1,#1 / mov r3,#0 / neg r2 / neg r1 / neg r0
+ * -- matches. So "six unrelated spellings tie" was not evidence, because the
+ * spellings were not unrelated: they were six permutations inside one shape.
+ * When a tie is used to declare something unreachable, the spellings have to
+ * differ in STRUCTURE, not just in order.
  *
- * r1 and r2 are swapped, and nothing reaches it. All three registers receive
- * the SAME value, so there is no dependence between the three assignments and
- * gcc is free to order them however scheduling likes; source order gives it no
- * information to act on. That is the difference from every other pin-ordering
- * case in this notebook, where the pinned values differ and the order therefore
- * carries.
+ * The `-1` triple is therefore reachable in both its shape AND its order. The
+ * batch-148 entry calling it an unbroken class, already amended once to
+ * "reachable by pinning", can now drop the caveat entirely.
  *
- * TRIED -- SIX spellings, all tying at EXACTLY 4 instructions:
- *   assignments in source order p0, p1, p2                     4
- *   assignments reordered p0, p2, p1                           4
- *   p3 assigned first                                          4
- *   p3 assigned last                                           4
- *   all four as initialisers rather than assignments           4
- *   a mix: p0/p1/p3 initialised, p2 assigned                   4
- *   declarations reordered p2, p1, p0, p3                      4
- * Six unrelated spellings at an identical count is this notebook's own signal
- * that the lever is not in the spelling.
- *
- * SO THE RULE TO AMEND: pinning reaches the `-1` triple's SHAPE but not its
- * ORDER. Where the pinned values are distinct, declaration and assignment
- * position both carry (recorded on OvlFunc_932_2008c9c and
- * OvlFunc_901_2008d84). Where they are identical, neither does. A function
- * whose triple happens to be emitted in gcc's preferred order will match; this
- * one is not, and no source change alters that.
- *
- * EVERYTHING ELSE WAS WON, and the levers are worth reading as a sequence --
- * 89 differing down to 4 in four steps:
+ * FIVE LEVERS, in the order they were found, 89 differing down to 0:
  *
  *   1. pin the four `-1` arguments and negate in place        89 -> 82
  *   2. the halfword store's value needs an `int` local, and
@@ -51,16 +36,16 @@
  *   3. pin the FIRST occurrence of each of the four repeated
  *      pooled constants -- 0x3333, 0x1999, 0x12a8, 0x1298     64 -> 23
  *   4. pin r0 at the five remaining call sites                23 -> 4
+ *   5. interleave each assignment with its own negation        4 -> 0
  *
- * Step 2 is the one worth keeping. Written `*(short *)(p + 6) = 0xa0 << 8;` the
- * literal pools as `=0xffffa000`, because 0xa000 is negative at short width --
- * ordinary blocker 1b, escaped with an `int` local. But naming it is not
+ * Step 2 is the one worth carrying. Written `*(short *)(p + 6) = 0xa0 << 8;`
+ * the literal pools as `=0xffffa000`, because 0xa000 is negative at short width
+ * -- ordinary blocker 1b, escaped with an `int` local. But naming it is not
  * enough: with the GetActor call in the same statement the local must survive
  * the call and gcc gives it a CALLEE-SAVED register, which widens the prologue.
  * Splitting the call out and computing the value after it lets the value live
  * in a scratch register, which is what the ROM does. THE INT-LOCAL ESCAPE FOR A
- * HALFWORD LITERAL HAS A PLACEMENT, and the placement is "after any call in the
- * same statement".
+ * HALFWORD LITERAL HAS A PLACEMENT: after any call in the same statement.
  */
 
 extern unsigned char *iwram_3001ebc;
@@ -92,12 +77,12 @@ void OvlFunc_881_200b2f0(void)
         register int p2 __asm__("r2");
         register int p3 __asm__("r3");
         p0 = 1;
-        p1 = 1;
-        p2 = 1;
-        p3 = 0;
-        p2 = -p2;
-        p1 = -p1;
         p0 = -p0;
+        p1 = 1;
+        p1 = -p1;
+        p2 = 1;
+        p2 = -p2;
+        p3 = 0;
         __Func_80933f8(p0, p1, p2, p3);
     }
     __WaitFrames(1);
