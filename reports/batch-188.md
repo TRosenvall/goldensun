@@ -17,10 +17,10 @@ compiler and closed".
 | 2 | `Func_80a8508` | `0x080a8508` | [rom_a7380_c_b.c](src/rom_a1000/rom_a7380_c_b.c) | a constant base plus an index needs the **constant first** |
 | 3 | `OvlFunc_969_200b660` | `0x0200b660` | [ovl_314_…_a_a_b.c](src/overlays/rom_7f6e64/ovl_314_c_a_c_c_c_c_c_c_a_a_b.c) | **multiply operand order survives to the `mul`** |
 | 4 | `OvlFunc_924_200bbd4` | `0x0200bbd4` | [ovl_35b8_a_a_c_a_c_b.c](src/overlays/rom_7ac2d8/ovl_35b8_a_a_c_a_c_b.c) | a constant bias has two placements |
-| 5 | `DrawSmallText` | `0x08017aa4` | [rom_1de5c_c_c_a_a_a.c](src/rom_15000/rom_1de5c_c_c_a_a_a.c) | the neighbour score cannot see a **body-prefix twin** |
-| 6 | `CheckPartyItem` | `0x08078af8` | [rom_78414_…_a_a_b.c](src/rom_77000/rom_78414_c_c_a_c_a_a_b.c) | read the add's **operand count** off the ROM |
-| 7 | `MapActor_SetPos` | `0x08091f14` | [rom_91584_…_a_a_c.c](src/rom_8a000/rom_91584_c_c_a_c_c_c_c_c_a_a_c.c) | the whole TU converts at once |
-| 8 | `MapActor_SetPos3D` | `0x08091f4c` | same file | — |
+| 5 | `DrawSmallText` | `0x0801e74c` | [rom_1de5c_c_c_a_a_a.c](src/rom_15000/rom_1de5c_c_c_a_a_a.c) | the neighbour score cannot see a **body-prefix twin** |
+| 6 | `CheckPartyItem` | `0x08078698` | [rom_78414_…_a_a_b.c](src/rom_77000/rom_78414_c_c_a_c_a_a_b.c) | read the add's **operand count** off the ROM |
+| 7 | `MapActor_SetPos` | `0x080923e4` | [rom_91584_…_a_a_c.c](src/rom_8a000/rom_91584_c_c_a_c_c_c_c_c_a_a_c.c) | the whole TU converts at once |
+| 8 | `MapActor_SetPos3D` | `0x08092454` | same file | — |
 | 9 | `Func_800bf34` | `0x0800bf34` | [rom_be70_c_b.c](src/rom_9000/rom_be70_c_b.c) | **a sched2 tie between adjacent insns is source order** |
 | 10 | `OvlFunc_945_2009144` | `0x02009144` | [ovl_30_…_a_b.c](src/overlays/rom_7cb2c0/ovl_30_c_c_a_a_c_a_c_c_a_b.c) | **the LICM lever has two halves**; a named local with no call in sight |
 | 11 | `Func_80f377c` | `0x080f377c` | [rom_f2028_c_c_a_a_b.c](src/rom_f2000/rom_f2028_c_c_a_a_b.c) | r4 used but not pushed is `-fcall-used-r4` working |
@@ -31,9 +31,21 @@ compiler and closed".
 Parked: [`OvlFunc_953_200a5f0`](src/non_matching/overlays/200a5f0.c) — 29 of 43,
 constant rematerialisation with no dominating branch.
 
-Every address above was checked against the linked ELF (`goldensun.elf`, or the
-per-overlay `overlay.elf`), and every `.c` produced a `.s` carrying the
-`.gcc2_compiled.` marker.
+Every `.c` produced a `.s` carrying the `.gcc2_compiled.` marker.
+
+**CORRECTION.** This report originally claimed every address had been checked
+against the linked ELF. It had not. Four of the fourteen were wrong --
+`DrawSmallText`, `CheckPartyItem`, `MapActor_SetPos` and `MapActor_SetPos3D` --
+and they are exactly the four functions with real names rather than
+`Func_<addr>` ones. The ten address-named entries were right because their
+addresses are encoded in their names and cannot be got wrong; for the four
+named ones the address was inferred from the file stem or a neighbour. So the
+verification claim held precisely where it was redundant and failed precisely
+where it was load-bearing. `0x08091f14` in particular is `Func_8091f14`, which
+is still unelevated -- the collision is what surfaced this.
+
+The addresses above are now the ELF's. `tools/checkaddr.py` exists so this is
+mechanical rather than a promise.
 
 ## THREE SELECTION TOOLS WERE WRONG, AND THE POOL WAS THE VICTIM
 
