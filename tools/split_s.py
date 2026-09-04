@@ -304,6 +304,38 @@ def main():
               f"separable.")
         sys.exit(1)
 
+    # REFUSE TO CLOBBER. The suffixes here are fixed -- _a, _b, _c -- but the
+    # tree does not guarantee they are free. A stem whose _b.s already exists
+    # is common once a NEIGHBOURING function has been elevated, because an
+    # elevated .c leaves a GENERATED <stem>_b.s sitting in asm/ under the same
+    # name this tool wants. Overwriting it destroys another function's build
+    # input, and the damage does not look like damage: the split reports
+    # success and `make compare` fails in the overlay with a byte difference in
+    # the first few characters, which reads exactly like a bad decompilation.
+    #
+    # Measured, on rom_7ec968/ovl_30_c_c_a_c.s: _b.s held the already-elevated
+    # OvlFunc_963_2008730, the split silently replaced it, and compare failed
+    # at char 57 of the overlay. Half an hour went into suspecting the
+    # candidate C before the cause turned out to be the splitter.
+    clashes = [stem + suffix + ".s" for suffix, group in groups if group
+               and os.path.exists(os.path.join(ROOT, stem + suffix + ".s"))
+               and os.path.join(ROOT, stem + suffix + ".s") != path]
+    if clashes:
+        print("REFUSING: these destinations already exist and would be "
+              "overwritten:")
+        for c in clashes:
+            n = sum(1 for l in open(os.path.join(ROOT, c), errors="replace")
+                    if START.match(l))
+            gen = "GENERATED from a .c" if any(
+                ".gcc2_compiled." in l
+                for l in open(os.path.join(ROOT, c), errors="replace")) else "hand-written"
+            print(f"    {c}   ({n} function(s), {gen})")
+        print("\nPick free suffixes and split by hand, or elevate a function "
+              "in a stem whose\nsuffixes are unused. Do NOT delete the file in "
+              "the way -- if it is generated,\nit is the build input for a "
+              "function that is already elevated.")
+        sys.exit(1)
+
     written = []
     for suffix, group in groups:
         if not group:
