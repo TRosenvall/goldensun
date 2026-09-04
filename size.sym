@@ -1,0 +1,53 @@
+/* size.sym -- SIZES OF ROUTINES THE GAME COPIES INTO RAM AND RUNS THERE.
+ *
+ * WHY THIS FILE EXISTS, and why these are not const.sym entries.
+ *
+ * A few functions allocate a scratch buffer, DMA the bytes of an ARM routine
+ * into it, call it there, and free the buffer. The byte count is the SIZE of
+ * that routine -- the distance to the next symbol -- so in the original source
+ * it was a link-time value, not a literal. gcc-2.96 therefore has no constant
+ * to build and emits a pool load, which is what the disassembly shows:
+ *
+ *     ldr r5, =0x278        rather than   mov r5, #0x9e / lsl r5, #2
+ *     ldr r5, =0x9c         rather than   mov r5, #0x9c
+ *     ldr r5, =0x7c         rather than   mov r5, #0x7c
+ *
+ * The last two are the strongest form of the tell const.sym's header
+ * describes: an eight-bit `mov` builds either one, and the ROM pools it anyway.
+ *
+ * THE VALUES ARE VERIFIED ARITHMETIC, not guesses. asm/rom_15000/rom_15430.s
+ * holds three consecutive ARM routines, and each size is the gap to the next:
+ *
+ *     Func_8015afc @ 0x08015afc   size 0x278  -> Func_8015d74
+ *     Func_8015d74 @ 0x08015d74   size 0x9c   -> Func_8015e10
+ *     Func_8015e10 @ 0x08015e10   size 0x7c   -> 0x08015e8c, its .func_end
+ *
+ * WHY NOT WRITE THE SUBTRACTION IN C, which would need no symbols at all.
+ * Measured: `(unsigned)(Func_8015d74 - Func_8015afc)` with both declared
+ * `extern unsigned char []` emits TWO pool words and a runtime `sub`. gcc
+ * cannot fold a difference of two external symbols, and the assembler never
+ * gets the chance because the routines live in a separately assembled ARM
+ * file. So a single symbol carrying the size is what reproduces the ROM, and
+ * it is also what the original source must have had.
+ *
+ * CRITERION 2 for the first of them, measured on DecompressIcon with every
+ * other instruction in the function already exact. Eight literal spellings --
+ * `0x278`, `0x278u`, `0x27 * 0x10 + 8`, `(unsigned)(0x9e << 2)`,
+ * `sizeof(int) * 158`, a `const unsigned` initialiser, an `unsigned short`
+ * local and a `volatile` round-trip -- all emit `mov #0x9e / lsl #2`. The last
+ * two are worse than the rest, costing two and four extra instructions.
+ *
+ * The ROM's own counterexample: it BUILDS 632 with `mov #0x9e / lsl #2` at four
+ * unrelated sites (rom_7ac2d8, rom_7c7b9c, rom_7ddb88, rom_f4000) and POOLS it
+ * only in the two functions that copy this decoder. Same value, same ROM, two
+ * treatments, split along exactly the boundary the identification predicts.
+ *
+ * NAMED FOR THE ROUTINE MEASURED, which is the one thing established here. An
+ * absolute assignment in a linker script emits no bytes, so a wrong name costs
+ * nothing and a wrong value fails `make compare` at once. Both users --
+ * DecompressIcon and LoadIcon -- match with these and the build is green.
+ */
+
+_SIZE_8015afc = 0x278;
+_SIZE_8015d74 = 0x9c;
+_SIZE_8015e10 = 0x7c;

@@ -16,6 +16,7 @@ INCLUDE "message.sym"
 INCLUDE "file_table.sym"
 INCLUDE "area.sym"
 INCLUDE "const.sym"
+INCLUDE "size.sym"
 
 SECTIONS {
 	header : {
@@ -370,7 +371,8 @@ SECTIONS {
 		asm/rom_15000/rom_19ebc_a_c_c_c_c_b.o(.text)
 		asm/rom_15000/rom_19ebc_a_c_c_c_c_c.o(.text)
 		asm/rom_15000/rom_19ebc_b.o(.text)
-		asm/rom_15000/rom_19ebc_c.o(.text)
+		asm/rom_15000/rom_19ebc_c_b.o(.text)
+		asm/rom_15000/rom_19ebc_c_c.o(.text)
 		asm/rom_15000/rom_1a66c_a_a_a.o(.text)
 		asm/rom_15000/rom_1a66c_a_a_b.o(.text)
 		asm/rom_15000/rom_1a66c_a_b.o(.text)
@@ -543,7 +545,8 @@ SECTIONS {
 		asm/rom_15000/rom_23178_c_c_c.o(.text)
 
 		asm/rom_15000/rom_29910.o(.rodata)
-		asm/rom_15000/rom_19ebc_c.o(.rodata)
+		asm/rom_15000/rom_19ebc_c_b.o(.rodata)
+		asm/rom_15000/rom_19ebc_c_c.o(.rodata)
 		asm/rom_15000/rom_310a4.o(.rodata)
 		asm/rom_15000/rom_22a7c.o(.rodata)
 		asm/rom_15000/rom_317e4.o(.rodata)

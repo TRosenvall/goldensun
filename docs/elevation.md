@@ -14866,3 +14866,97 @@ and two entries already on file closed the rest:
 **The tell that a residue is layout and not arithmetic**: the differing lines
 are whole blocks appearing in a different order, with the instructions inside
 each block already matching. Diff by block before trying to respell anything.
+
+## A pooled constant may be a ROUTINE'S LENGTH — check the neighbouring symbols
+
+`area.sym`, `message.sym` and `file_table.sym` cover id spaces; `const.sym`
+covers pooled values belonging to none of them. Batch 216 adds a fourth kind and
+`size.sym` to hold it: **the SIZE of a routine the game copies into RAM and runs
+there**, which appears in the source as a link-time value and therefore always
+pools.
+
+The shape to recognise: allocate a scratch buffer, DMA a blob into it, call it,
+free it. If the byte count is pooled where gcc would build it, check whether it
+is the **gap to the next symbol**. On `DecompressIcon` and `LoadIcon` all three
+counts are:
+
+    Func_8015afc @ 0x08015afc   0x278 to the next
+    Func_8015d74 @ 0x08015d74   0x9c  to the next
+    Func_8015e10 @ 0x08015e10   0x7c  to its own .func_end
+
+**WRITING THE SUBTRACTION IN C DOES NOT WORK.** `(unsigned)(Func_8015d74 -
+Func_8015afc)`, both declared `extern unsigned char []`, emits TWO pool words and
+a runtime `sub` -- gcc cannot fold a difference of two external symbols, and the
+assembler never gets the chance when they live in a separately assembled file.
+A single symbol carrying the size is what reproduces the ROM.
+
+**THE CONFIRMATION TO LOOK FOR is the ROM disagreeing with itself.** 632 is
+BUILT with `mov #0x9e / lsl #2` at four unrelated sites and POOLED only in the
+two functions that copy this decoder. Same value, two treatments, split along
+the meaning boundary -- that is what turns a pooled constant from a puzzle into
+a tell. Look for it before adding any symbol.
+
+## A PIN CAN FORCE gcc INTO A HIGH REGISTER, and sometimes that is the match
+
+`templated.py` ranks on `hi`, the count of r8-r11 references, because high
+register traffic predicts an intractable residue. That still holds as a ranking
+heuristic, but it must not be read as "r8 means unreachable".
+
+`LoadIcon` keeps the DMA control word `0x84000000` in **r8** across three
+transfers, with `mov r7, r8 / push {r7}` to save it. Writing the transfers with
+`dma.h`'s `DMA3_COPY`, which rebuilds the word per call, is **six instructions
+SHORTER than the ROM** and needs no r8 at all. Hoisting the shared word into a
+local pinned to r8 and passing the whole control word through `DMA3_SET` is what
+makes gcc reach for the high register and emit the ROM's prologue.
+
+So when the ROM uses a high register and we do not, the question is not how to
+relieve pressure but **what value the ROM is keeping alive that we are
+rebuilding**. Pin that value to the high register the ROM uses.
+
+## THE FRAME SIZE IS A DIAGNOSTIC, and dma.h's inlines each cost a stack word
+
+`sub sp, #N` disagreeing is not a scheduling residue -- it counts the function's
+stack objects, so it identifies a WRONG NUMBER OF LOCALS before any instruction
+is compared. Check it first.
+
+`Func_8091494` screens with `sub sp, #0x8` against the ROM's `#0x4` because
+`DMA3_FILL` and `DMA3_CLEAR` each declare their own `u32 value`; using both
+inlines allocates two words. One local plus two `DMA3_SET` calls is the shape.
+Two further rules came out of that local, both measured:
+
+  * **Assign it late.** At the top of the function it emits `mov r5, sp` before
+    the first call; the ROM emits it immediately before the first store.
+  * **PIN IT, do not barrier it.** Unpinned, gcc keeps the pointer in r5 for the
+    DMA argument and still writes the store as `str r3, [sp]`, folding an
+    address it can prove equals the frame pointer. Pinning forces the store
+    through the register. A barrier was tried instead and cost five lines.
+
+**gcc will fold a pointer back to `sp` whenever it can prove the equality.** A
+pin is the only thing measured that stops it.
+
+## DO NOT NAME AN INTERMEDIATE THAT IS CONSUMED IMMEDIATELY
+
+The tree's usual advice is to name a value to pin down where it lives or to stop
+a fold. The reverse case is real and `OvlFunc_948_200a290` is the clean example.
+
+It calls `__MapActor_GetActor` nine times and writes through each result.
+Assigning each to a local gives `mov r3, r0 / add r3, #0x59 / strb` at every
+site -- **the name is what buys the value a register of its own**, so the return
+value gets copied into it. Using the call expression directly,
+`__MapActor_GetActor(8)[0x59] = v;`, lets gcc advance the return register in
+place, which is the ROM's `add r0, #0x59 / strb r5, [r0, #0x0]`.
+
+The test is whether the value outlives its use. A result consumed by the very
+next operation should stay anonymous; one that must survive a call, or land in a
+particular register, gets a name.
+
+## A GREEN SCREEN SAYS NOTHING ABOUT HOW THE TEXT IS TRANSPLANTED
+
+`tryc.py` compiles the WHOLE scratch file. Batch 216 assembled a matched
+function's `.c` from its scratch file with `tail -n +2` to drop a leading line,
+which silently dropped `#include "dma.h"` as well; the screen had been exact and
+the link failed on three undefined `DMA3_SET` references.
+
+Copy the screened body verbatim and prepend the comment, rather than slicing the
+screened file by line number. The build catches this one, but it costs a cycle
+and it looks like a decompilation error when it is a transcription error.
