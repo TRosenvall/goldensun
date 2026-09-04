@@ -18,6 +18,41 @@
  * resolves to the identical word at link time. tryc compares disassembly text
  * and cannot see that. Do not spend attempts on it.
  *
+ * ============ BATCH 205: THE ORDERING CLOSES, THE FUNCTION DOES NOT ============
+ *
+ * TWO OF THE THREE LINES ARE NOW CLOSED, and the third is not what this park
+ * says it is. Read the last section before trusting the advice above.
+ *
+ * 1. THE DMA STAGING ORDER YIELDS. Splitting the helper's `_src` declaration
+ *    from its assignment and pinning the fill value to r3 puts the ROM's order
+ *    back -- `mov r0, sp` before the pool load. A `do { } while (0)` barrier in
+ *    the same place does NOT: it moves the first difference later without
+ *    reducing the count, which is the batch-204 boundary again, since these two
+ *    instructions are operands of one store rather than separate statements.
+ *
+ * 2. THE PIN DECIDES THE REGISTER, THE TYPE DECIDES THE POOL WORD. Pinning the
+ *    value as `u16` produced `ldr r3, =0xffffe0e0`: 0xe0e0 is negative as a
+ *    signed halfword and reached the pool sign-extended. Declaring the pinned
+ *    temporary `unsigned int` keeps the word at 0xe0e0.
+ *
+ * 3. THE ADVICE "DO NOT SPEND ATTEMPTS ON IT" IS WRONG, AND COSTLY. With the
+ *    two above applied, tools/tryc.py reports ONE remaining line -- exactly the
+ *    `ldr r5, =0x214` against `ldr r5, =_FUNC_80158E8_SIZE` this park calls "not
+ *    a real difference at all". It was landed on that basis and
+ *    `make compare` FAILED: compare-rom, not merely a per-overlay cmp. The
+ *    change was reverted and the tree restored.
+ *
+ *    So the two are NOT interchangeable in the built ROM, whatever the symbol
+ *    arithmetic suggests. What this measurement establishes is only that the
+ *    bytes differ once everything else agrees; it does not say whether the
+ *    symbol resolves to another value, or whether tryc normalises away some
+ *    further difference that compare can see. Either way the next attempt must
+ *    be gated on `make compare` and not on tryc reaching 1.
+ *
+ *    That is the general point worth carrying: a park may assert a difference
+ *    is cosmetic, and tryc cannot check such an assertion -- it compares
+ *    disassembly text. Only the build can, and it is cheap to ask.
+ *
  * THE DMA SHAPE IS NOT IN include/dma.h, AND THAT IS THE USEFUL FINDING.
  * The ROM stages a HALFWORD (`strh` at sp+2) and passes 0x810000a0 -- a 16-bit
  * fill. dma.h has DMA3_SET, DMA3_CLEAR and DMA3_FILL, and all three stage a
