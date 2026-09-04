@@ -56,7 +56,8 @@ SECTIONS {
 		asm/overlays/common/common1_a_a_a_a_b.o(.text)
 		asm/overlays/common/common1_a_a_a_a_c_a.o(.text)
 		asm/overlays/common/common1_a_a_a_a_c_b.o(.text)
-		asm/overlays/common/common1_a_a_a_a_c_c_a_a_a.o(.text)
+		asm/overlays/common/common1_a_a_a_a_c_c_a_a_a_b.o(.text)
+		asm/overlays/common/common1_a_a_a_a_c_c_a_a_a_c.o(.text)
 		asm/overlays/common/common1_a_a_a_a_c_c_a_a_b.o(.text)
 		asm/overlays/common/common1_a_a_a_a_c_c_a_b.o(.text)
 		asm/overlays/common/common1_a_a_a_a_c_c_a_c.o(.text)
@@ -117,6 +118,7 @@ __divsi3 = _divsi3_RAM;
  * rather than the exported data symbol -- silently wrong code.  These give the
  * same addresses a name gcc cannot collide with.  Emit no bytes.
  * See docs/elevation.md, "A short .LN extern can be captured by gcc's labels". */
+_TBL_L10 = .L10;
 _TBL_L2 = .L2;
 _TBL_L3 = .L3;
 _TBL_L11 = .L11;
