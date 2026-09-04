@@ -95,6 +95,17 @@
  *     precompute_register_parameters bind, and two independent POOL LOADS turn
  *     out to order the same way two independent movs do.
  *
+ * A SECOND, OLDER CLASS NOTE FOR THE SAME BLOCKER EXISTED AND HAS NOW BEEN
+ * DELETED. src/non_matching/ovl_780898/2008dc0.c opened with "THIS FILE STANDS
+ * FOR A GROUP OF SEVEN" and listed seven of the fourteen members under the same
+ * "argument-setup ordering" blocker. Every one of its seven is elevated, so it
+ * was fully stale and is gone; this file is the surviving record.
+ *
+ * That two notes described one blocker, under two names, is worth remembering
+ * when reading the park directory: tools/stale_parks.py reports 27 functions
+ * that appear in more than one park file. A park found by grep is not
+ * necessarily the only park for that function.
+ *
  * This file is kept rather than deleted: the shape description, the discovery
  * method and the member list are the record of how a fourteen-function class
  * was found, closed for the wrong reason, and reopened.
