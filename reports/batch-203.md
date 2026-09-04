@@ -38,6 +38,31 @@ Nine measurements against the loop's *shape* and its *flags*, all identical, and
 a one-word type change removed the reversal. **The lever is the type, not the
 loop.**
 
+> ### Correction, batch 204
+>
+> **The unsigned-counter finding above is not new, and this section overstated
+> what was done.** `src/non_matching/ovl_7ac2d8/200adcc.c` — a park for the
+> twin of the function this was measured on — has existed since August and
+> already records it, with a better statement of the tell: the ROM's `bls` is
+> itself the evidence, because an unsigned branch on a loop counter means the
+> counter is unsigned. It was derived here a second time without looking.
+>
+> That park is also **better**: it screens at 5 of 24 where the batch-203
+> candidate screened at 9 and 10, because it additionally knows that assigning
+> the counter *before* the source pointer is worth four instructions. And its
+> diagnosis of the remaining defect is different and correct — **constant
+> derivation**, gcc deriving the source pointer from the save target rather
+> than taking a third pool entry, not the register-role rotation claimed below.
+>
+> The batch-203 park has been rewritten to carry the better body and defer to
+> the older one. The claim that it "parks both functions" was also wrong: a
+> separate park for the twin already existed.
+>
+> The cause was a process failure, not a compiler one — these two were triaged
+> out of `shape_groups.py` and `src/non_matching` was never grepped for their
+> names first. The nine spellings and four flags reported above were real
+> measurements, but they were spent re-deriving something already written down.
+
 ## A SECOND PLACE THE PIN DOES NOT REACH
 
 Both parks come down to the same thing, and it is not placement:
