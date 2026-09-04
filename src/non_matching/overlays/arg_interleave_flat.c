@@ -48,65 +48,54 @@
  * OvlFunc_899_2008428 was already characterised individually in
  * tools/pick_candidates.py's r0-mid table as a "no"; it is the same defect.
  *
- * ===================== RESOLVED, BATCH 198 =====================
+ * ================= CLOSED, BATCH 200 -- ALL FOURTEEN =================
  *
- * THE CLASS IS REACHABLE. Everything above is an accurate description of the
- * shape and of why the levers available when it was written could not touch it.
- * Its conclusion -- "these need a compiler-level answer, not a source-level
- * one" -- is wrong, and it is the most expensive wrong conclusion in this
- * directory, because it told the candidate ranker to keep refusing fourteen
- * functions.
+ * Everything above the RESOLVED banner is an accurate description of the shape
+ * and of why the levers available when it was written could not touch it. Its
+ * conclusion -- "these need a compiler-level answer, not a source-level one" --
+ * was wrong, and it was the most expensive wrong conclusion in this directory,
+ * because it told the candidate ranker to keep refusing fourteen functions.
  *
- * A REGISTER PIN CLOSES THE SHAPE. Assigning the argument registers through
- * `register int qN __asm__("rN")` in the ROM's own order places the displaced
- * `mov` inside the other register's build:
+ * ALL FOURTEEN ARE NOW ELEVATED, EVERY ONE ON ITS FIRST SCREEN:
  *
- *     q1 = 0xcb;  q0 = 0;  q1 <<= 1;  q2 = 0x2d7;
- *     __Func_809218c(q0, q1, q2);
+ *     batch 194   OvlFunc_945_200bdec   (before this note was re-read)
+ *     batch 198   OvlFunc_883_2008dc0, 2008e54, 2008e84
+ *     batch 199   OvlFunc_883_2008f5c, 2008f8c
+ *                 OvlFunc_884_200881c, 20088ac
+ *                 OvlFunc_921_20099bc
+ *     batch 200   OvlFunc_899_2008428, OvlFunc_942_2008144,
+ *                 OvlFunc_944_2008468, OvlFunc_959_2008bac,
+ *                 OvlFunc_881_200a81c
  *
- * The reasoning above is about the BASIC-BLOCK lever, which moves a value by
- * putting it in a block that dominates the call, and which therefore needs a
- * branch. A pin does not go through basic blocks at all -- it names the hard
- * register, so the placement is decided at the assignment rather than by
- * liveness. `REG_BASIC_BLOCK (regno) < 0` never becomes true and never needs
- * to.
+ * THE FIX, for the record: pin the argument registers and assign them in the
+ * ROM's own order. A pin names the hard register, so the placement is decided
+ * at the assignment. The basic-block lever the note reasoned from needs a block
+ * that DOMINATES the call, which these branchless functions cannot provide --
+ * that reasoning was correct about that lever and is simply not the only route.
  *
- * CONFIRMED, not assumed:
+ * WHAT THE CLASS TAUGHT, beyond the fourteen functions:
  *
- *     OvlFunc_945_200bdec   elevated in batch 194, before this note was
- *                           re-read -- the class was already broken and nobody
- *                           had connected it back here
- *     OvlFunc_883_2008dc0   matched on the FIRST screen, batch 198
- *     OvlFunc_883_2008e54   matched on the FIRST screen, batch 198
+ *   - SHAPE GROUPING BY OPCODE SET WORKS EVEN THOUGH IT IGNORES BEHAVIOUR.
+ *     OvlFunc_921_20099bc opens a cutscene and runs a map transition where the
+ *     rest play a sound and blit a table; its body has nothing in common with
+ *     them, and it was grouped correctly anyway, because the blocker is a
+ *     property of the instruction sequence anit is not of what the sequence is for.
  *
- * EIGHT OF FOURTEEN ARE NOW DONE, every one on its FIRST screen: 200bdec
- * (batch 194), 2008dc0 / 2008e54 / 2008e84 (batch 198), and 2008f5c / 2008f8c /
- * 200881c / 20088ac / 20099bc (batch 199).
+ *   - "SCREENED TO CONFIRM RATHER THAN ASSUMED" IS NOT ENOUGH. The note did
+ *     screen, and reported real numbers. Every variant it ran changed the
+ *     SOURCE, which is exactly what the mechanism it had correctly identified
+ *     rules out. Measuring from inside the closed set produces false
+ *     confidence; the question to ask is whether the measurements can reach
+ *     outside the thing being tested.
  *
- * SIX REMAIN, each a short job -- the bodies are trivial and the only work is
- * reading each call's argument order off the ROM:
+ *   - THE INTERLEAVED NEIGHBOUR CAN BE A LOAD. OvlFunc_944_2008468's is
+ *     `ldr r2, =0x1410000`. The shape does not care.
  *
- *   OvlFunc_881_200a81c   ovl_77a7c8    OvlFunc_942_2008144   ovl_7c6bac
- *   OvlFunc_899_2008428   ovl_794ac0    OvlFunc_944_2008468   ovl_7ca63c
- *   OvlFunc_959_2008bac   ovl_7e7574
+ *   - ONE MEMBER NEEDED A SECOND LEVER. OvlFunc_942_2008144 also carried a
+ *     precompute_register_parameters bind, and two independent POOL LOADS turn
+ *     out to order the same way two independent movs do.
  *
- * (That is five names; the fourteenth, OvlFunc_883_2008e84, is done. The
- * original list is preserved above in the MEMBERS block.)
- *
- * ONE MEMBER IS NOT LIKE THE OTHERS AND IT DID NOT MATTER. OvlFunc_921_20099bc
- * opens a cutscene and runs a map transition rather than playing a sound and
- * blitting a table; its body has nothing in common with the rest. The class was
- * defined by its OPCODE SET, not by what the functions do, and the blocker was
- * identical anyway. Shape grouping found a real class even though it says
- * nothing about behaviour.
- *
- * THE LESSON IS THE ONE BATCHES 193-197 KEPT FINDING, and this is its largest
- * instance: a conclusion drawn from one lever's mechanism was recorded as a
- * fact about C. The note even says "SCREENED TO CONFIRM RATHER THAN ASSUMED"
- * -- and it was, but every screen it ran varied the SOURCE, which is exactly
- * what the mechanism it had identified rules out. Screening more variants of
- * the thing you have proved cannot work is not confirmation.
- *
- * This file is kept rather than deleted because the shape description and the
- * member list are still the fastest way to work the rest.
+ * This file is kept rather than deleted: the shape description, the discovery
+ * method and the member list are the record of how a fourteen-function class
+ * was found, closed for the wrong reason, and reopened.
  */
