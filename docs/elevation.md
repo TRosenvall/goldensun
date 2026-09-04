@@ -13638,6 +13638,57 @@ function that rebuilds the same `mov #C / lsl #n` pair twice inside one basic
 block finds exactly three, and all three are high-register-pressure spill cases,
 not constant remat. There is no solved precedent for the shape.
 
+### CORRECTED: a CALL-CLOBBERED PIN reaches this class without any branch
+
+The analysis above is right about the passes and wrong about the conclusion.
+"Park immediately and do not sweep spellings" cost real functions, and the
+boundary is not where it says.
+
+MEASURED on `OvlFunc_963_2008334` (elevated, `src/overlays/rom_7ec968/
+ovl_30_c_c_a_c_c.c`): sixty instructions, **not one conditional branch
+anywhere**, and the ROM rebuilds `mov #0x80 / lsl #9` at each of two calls plus
+three more constants at four others. By the rule above this is unreachable.
+The plain spelling behaves exactly as predicted -- 35 of 60, length already
+exact, the constants hoisted into r5/r6, `push {r5, r6, lr}`, later calls fed
+by `mov r1, r5`. Inline literals instead of named locals are BYTE-IDENTICAL,
+confirming the cse1 half of the analysis.
+
+Pinning the argument registers matches on the first try:
+
+    register int p0 __asm__("r0");
+    register int p1 __asm__("r1");
+    register int p2 __asm__("r2");
+    p1 = 0x80; p2 = 0x80; p0 = 8; p1 <<= 9; p2 <<= 8;
+    __MapActor_SetSpeed(p0, p1, p2);
+
+repeated per call, with the assignment order read off the ROM.
+
+**Why the rule mis-stated its own boundary.** What the shape needs is for the
+constant to be DEAD at the next use, so nothing can be copied forward. A
+dominating branch is one way to arrange that, and it was the only way anyone had
+tried, so it got written down as the requirement. It is not. `r0`-`r3` are
+CALL-CLOBBERED: a constant pinned there cannot survive a `bl`, so gcc has no
+choice but to rebuild it, and no branch is involved. The pin arranges deadness
+directly.
+
+So the inspection test keeps its value but flips its verdict: **no dominating
+branch means the ordinary spellings are hopeless -- go straight to a
+call-clobbered pin, do not sweep.** The branch case still works and needs no
+pin, so prefer the plain form where a dominating branch exists; a pin is a
+fakematch and costs an entry in `fakematch.txt`.
+
+The scan quoted above -- three instances, all spill cases -- was looking for
+solved precedent among GENERATED asm and could not have found this one, because
+until now no such function had been solved.
+
+Scope, so this is not over-read. The pin makes the pinned register's own value
+dead across a call. It does NOT order two other movs the post-allocation
+scheduler may swap (`src/non_matching/ovl_7ac2d8/200cf44.c` measures that
+boundary over seven structurally distinct forms), and it does NOT buy a live
+register where there is none -- against register pressure it pays exactly what
+an ordinary `int` local pays (`src/non_matching/overlays/common1_148.c`
+measures that one: the pin lands on the same 4 differing as the int local).
+
 ### The fakematch escape, and where it goes
 
 Where the tree accepts a fakematch, the idiom is
