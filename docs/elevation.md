@@ -14105,3 +14105,66 @@ The pointer bump ahead of it stays duplicated because the two arms order it
 differently against the stack-argument store, so the merge cannot begin any
 earlier. **Duplicate the whole tail and let cross-jumping take back what it
 wants — do not pre-share it.**
+
+## PICK TARGETS BY TEMPLATE, NOT BY SIZE — `tools/templated.py`
+
+Two consecutive rounds went **0-for-6** choosing targets by size, smallest
+first. That heuristic is spent: with ~3,520 functions matched, the size-ordered
+head of the list is uniformly structural — allocation-order disagreements and
+scheduling residues — because the ones that fall to a spelling are gone.
+
+The heuristic that *has* worked, seven rounds running, is **callee-set
+identity**: `neighbour.py` finds a solved file sharing the target's callees and
+globals, and that file hands over the struct layout, the argument order and the
+idiom. But it was only ever run **after** a target was chosen.
+
+`tools/templated.py` inverts it — score every remaining function by its best
+available neighbour *first*, and work the ones that already have a worked
+example. `score = |shared symbols| / |target's symbols|`, so **1.00 means every
+callee and global the function touches already appears together in one solved
+file**. 931 candidates have some neighbour; 14 score 1.00.
+
+The first 1.00 candidate tried, `OvlFunc_959_200c704`, matched. **Size is
+reported but deliberately not ranked on** — a 90-instruction function with a
+perfect template beats a 50-instruction one with none, and if that stops holding
+the tool should be struck rather than tuned.
+
+### `do { } while (0)` used deliberately, and it earned its keep
+
+The barrier finding from `Func_80c0700` was recorded as an observation; this is
+the first time it was reached for on purpose. The shape: a pool load that the
+ROM emits **after** a call, which gcc hoists **above** it because the target
+register is callee-saved and survives the call.
+
+    do { msg = 0x2411; } while (0);
+
+emits no instruction, splits the scheduling region, and stops the hoist — 4
+differing down to 2. **When the ROM materialises a constant after a call and you
+cannot keep it there, the construct that costs nothing is the loop note.**
+
+### Measure a fakematch's scaffolding by REMOVING it, not by adding it
+
+`OvlFunc_959_200c704` ended with three pin blocks, a barrier and a two-step
+constant, which looks like a lot. Each was then deleted from the *finished* file
+in turn:
+
+| removed | differing |
+|---|---|
+| the pin on the repeated `0xb0 << 8` call | 32 |
+| the `do{}while(0)` barrier | 4 |
+| the pin on the unrelated `__MapActor_Emote` call | 2 |
+| nothing (as landed) | **0** |
+
+Every piece is load-bearing, and the sizes say what each is *for* — the first is
+the actual CSE defeat, the rest are scheduling. Building a fakematch up
+lever-by-lever tells you what helped; tearing it down afterwards tells you what
+is still needed, and those are different questions. **Do the teardown before
+landing one.**
+
+### The largest step was ordinary C, not the fakematch
+
+Worth stating because the fakematch is the eye-catching part: the single biggest
+gain, 30 differing down to 6, came from noticing that the ROM holds `0x2411` in
+a callee-saved register and reaches the second message with `add r5, #1`. That
+is a **named local, incremented** — two separate literals give two pool loads
+and no `push {r5}` at all. Nothing to do with inline asm.
