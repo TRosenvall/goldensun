@@ -17,7 +17,8 @@ SECTIONS {
 		asm/overlays/rom_7795e8/ovl_30_a_b.o(.text)
 		asm/overlays/rom_7795e8/ovl_30_b.o(.text)
 		asm/overlays/rom_7795e8/ovl_30_c_b.o(.text)
-		asm/overlays/rom_7795e8/ovl_30_c_c_a_a_a.o(.text)
+		asm/overlays/rom_7795e8/ovl_30_c_c_a_a_a_a.o(.text)
+		asm/overlays/rom_7795e8/ovl_30_c_c_a_a_a_b.o(.text)
 		asm/overlays/rom_7795e8/ovl_30_c_c_a_a_b.o(.text)
 		asm/overlays/rom_7795e8/ovl_30_c_c_a_a_c_b.o(.text)
 		asm/overlays/rom_7795e8/ovl_30_c_c_a_a_c_c.o(.text)
@@ -30,7 +31,8 @@ SECTIONS {
 	} > overlay
 
 	.data : {
-		asm/overlays/rom_7795e8/ovl_30_c_c_a_a_a.o(.data)
+		asm/overlays/rom_7795e8/ovl_30_c_c_a_a_a_a.o(.data)
+		asm/overlays/rom_7795e8/ovl_30_c_c_a_a_a_b.o(.data)
 		asm/overlays/rom_7795e8/ovl_30_c_c_a_a_b.o(.data)
 		asm/overlays/rom_7795e8/ovl_30_c_c_a_a_c_b.o(.data)
 		asm/overlays/rom_7795e8/ovl_30_c_c_a_a_c_c.o(.data)
