@@ -319,6 +319,14 @@ asm/overlays/rom_7b9cb4/ovl_30_a_c_c_a_c_c_a_a_a_c_a_c_a_b.o: src/overlays/rom_7
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# OvlFunc_924_20094cc: flag id 0x256 tested before the guard branch and set
+# after it -- the guard/set shape, first use dominating.  Prologue a register
+# wider at -O2, exact here.
+asm/overlays/rom_7ac2d8/ovl_f84_a_c_c_c_c_a_c.o: src/overlays/rom_7ac2d8/ovl_f84_a_c_c_c_c_a_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 # OvlFunc_935_20088a8: flag id 0x9a8 tested before the guard branch and set
 # after it -- the guard/set shape, first use dominating.  Three instructions at
 # -O2, exact here.

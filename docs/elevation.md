@@ -14364,3 +14364,24 @@ ROM sets `mov r0, #0xa` first and the two pooled constants after:
     register int v2 __asm__("r2") = 0x1999;
 
 The call site is written the same way in both. Only the declaration order moved.
+
+## Read each condition code separately — one guard can mix signedness
+
+The recorded rule is that a condition code is a signedness statement:
+`bls`/`bhi`/`bcs`/`bcc` mean unsigned. What is easy to miss is that **adjacent
+tests in the same guard can differ**, and assuming one signedness for the whole
+guard costs an instruction and, worse, silently changes the semantics.
+
+`OvlFunc_924_20094cc` guards on three comparisons in a row:
+
+    sub r5, #0x54 / cmp r5, #7  / bhi   <- UNSIGNED: x in [0x54, 0x5b]
+    cmp r3, #0xd3              / ble   <- signed
+    cmp r3, #0xdb              / bgt   <- signed
+
+The first is the standard one-sided range check — subtract the low bound and
+compare **unsigned**, so a value below the range wraps to a huge number and
+fails. Written with a plain `int` it compiles to `bgt`, which does not check the
+low end at all: the code still builds, still looks right, and is wrong.
+
+The two that follow are ordinary signed comparisons on a different field. So one
+guard, two signednesses, three lines apart.
