@@ -1,5 +1,6 @@
-/* OvlFunc_932_200b668 -- 0x0200b668,
- * asm/overlays/rom_7b9cb4/ovl_30_c_a.s
+/* OvlFunc_932_200b668 -- 0x0200b668, and its twin
+ * OvlFunc_932_200b5ac -- 0x0200b5ac,
+ * both in asm/overlays/rom_7b9cb4/ovl_30_c_a.s
  *
  * Swings an actor through a quarter turn: snap its facing to a 0x4000 boundary,
  * step 0x180000 along it to find the orbit centre, snap that to a 0x100000
@@ -43,9 +44,18 @@
  * the other order lets gcc pick its own and it picks wrong. Cheap, and easy to
  * miss because both orders look equally natural in source.
  *
+ * THE TWIN LANDS IDENTICALLY, which is the strongest evidence here that this is
+ * the allocator and not the source. OvlFunc_932_200b5ac is the same routine
+ * rotating the other way -- `+ 0x4000` where this one has `- 0x4000`, anim 5
+ * for 6, and `ang += 0x400` for `-=`. Written to the same shape it screens at
+ * 86 of 86 instructions with FIVE differing and the SAME r8/r10 rotation at
+ * four sites. Two independently written functions reaching the identical
+ * residue by the identical mechanism is not a spelling accident.
+ *
  * This is a good REG_ALLOC_ORDER probe, like OvlFunc_919_200805c: the residue
  * is two registers and nothing else, so if that hypothesis is ever tested this
- * should go to zero and nothing else can move.
+ * should go to zero and nothing else can move -- and the twin gives a free
+ * second reading of the same experiment.
  */
 
 struct Actor {
@@ -87,6 +97,37 @@ void OvlFunc_932_200b668(struct Actor *a)
         a->f8 = v[0];
         a->f10 = v[2];
         a->f6 = ang - 0x4000;
+        __WaitFrames(1);
+    }
+    __PlaySound(0xe9);
+}
+
+void OvlFunc_932_200b5ac(struct Actor *a)
+{
+    int v[3];
+    int ang;
+    int sx;
+    int sz;
+    int i;
+
+    ang = (a->f6 + (0x80 << 7)) & 0xc000;
+    v[0] = a->f8;
+    v[1] = a->fc;
+    v[2] = a->f10;
+    __vec3_translate(0xc0 << 13, ang, v);
+    sx = (v[0] + (0x80 << 12)) & 0xfff00000;
+    sz = (v[2] + (0x80 << 12)) & 0xfff00000;
+    ang += 0x80 << 8;
+    __Actor_SetAnim(a, 5);
+    __PlaySound(0xb8);
+    for (i = 15; i >= 0; i--) {
+        ang += 0x80 << 3;
+        v[0] = sx;
+        v[2] = sz;
+        __vec3_translate(0xc0 << 13, ang, v);
+        a->f8 = v[0];
+        a->f10 = v[2];
+        a->f6 = ang + (0x80 << 7);
         __WaitFrames(1);
     }
     __PlaySound(0xe9);
