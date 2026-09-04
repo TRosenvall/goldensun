@@ -52,6 +52,29 @@
  * four sites. Two independently written functions reaching the identical
  * residue by the identical mechanism is not a spelling accident.
  *
+ * RETESTED after three sibling parks fell to register pins. The reasoning that
+ * produced this park -- "six spellings tie, therefore the allocator" -- is
+ * exactly the reasoning that was wrong on OvlFunc_881_200b2f0,
+ * OvlFunc_943_2009a98 and OvlFunc_919_200805c, so the claim below is NOT
+ * trustworthy on its original evidence and has been re-examined.
+ *
+ * Four pin forms tried, none better than the 5 already recorded:
+ *   `__asm__ ("" : "+r" (sx), "+r" (sz))` launder after the two saves   78
+ *   the loop counter pinned to r8 alone                                 40
+ *   sx and sz pinned to r9 and r10                                      17, 83 lines
+ *   sx, sz AND the loop counter pinned                                  50
+ *
+ * The third is the interesting one: it gets the instruction COUNT exact, which
+ * none of the ordering spellings did, so the pins are acting -- they are simply
+ * not acting the way the ROM's allocation went. That is weak evidence for the
+ * allocator and much better evidence than the original tie was, but it is still
+ * four attempts rather than a proof.
+ *
+ * So: the park stands, and the honest statement is "resisted four pin forms and
+ * seven ordering spellings", not "unreachable". OvlFunc_919_200805c had the
+ * same shape and the same tie and DID fall to a pin, so the two are not the
+ * same class merely because they look alike.
+ *
  * This is a good REG_ALLOC_ORDER probe, like OvlFunc_919_200805c: the residue
  * is two registers and nothing else, so if that hypothesis is ever tested this
  * should go to zero and nothing else can move -- and the twin gives a free
