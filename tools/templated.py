@@ -102,11 +102,19 @@ def main():
                         best, bestf = sc, path
             if bestf:
                 rows.append((best, len(syms), n, name, os.path.relpath(s, ROOT), bestf))
-    rows.sort(key=lambda r: (-r[0], r[2]))
+    # Ties break on SHARED-SYMBOL COUNT, not on size. A 1.00 built from TWO
+    # shared symbols means the function calls one thing and reads one global and
+    # some solved file happens to do both -- close to coincidence, and it says
+    # almost nothing about body shape. Ten symbols at 0.90 is a far stronger
+    # template. Measured: OvlFunc_948_2009694 was taken from BELOW three
+    # 2-symbol 1.00 entries and matched, while what those entries offer is
+    # still untested. Rows under three shared symbols are marked `?`.
+    rows.sort(key=lambda r: (-r[0], -r[1], r[2]))
     print("%d candidates have a solved neighbour\n" % len(rows))
     print("score syms insns  function                      neighbour")
     for sc, ns, n, name, s, f in rows[:top]:
-        print("%.2f  %3d  %4d   %-28s %s" % (sc, ns, n, name, f))
+        print("%.2f%s%3d  %4d   %-28s %s"
+              % (sc, " ?" if ns < 3 else "  ", ns, n, name, f))
 
 
 if __name__ == "__main__":
