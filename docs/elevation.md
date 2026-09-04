@@ -13838,6 +13838,32 @@ register where there is none -- against register pressure it pays exactly what
 an ordinary `int` local pays (`src/non_matching/overlays/common1_148.c`
 measures that one: the pin lands on the same 4 differing as the int local).
 
+### HAZARD: a pin assigned BEFORE a call and used AFTER it is silently dropped
+
+The rematerialisation lever works because r0-r3 are call-clobbered, so a
+constant pinned there cannot survive a `bl` and gcc must rebuild it. The same
+fact is a BUG GENERATOR when the ROM does NOT rebuild it. Measured on
+`OvlFunc_883_20092bc`:
+
+    { PIN2;
+      q1 = (int)gScript;                                  <-- assigned here
+      *(void **)(__MapActor_GetActor(0x16) + 0x6c) = fn;   <-- call clobbers r1
+      q0 = 0x16;
+      __MapActor_SetBehavior(q0, q1); }                    <-- used here
+
+The `ldr r1, =gScript` IS NOT EMITTED AT ALL. The function comes out one
+instruction short and the callee is entered with r1 never written. gcc sees a
+dead store to a hard register and deletes it; unlike a pseudo, a pin is not
+something it can reload, so nothing takes its place.
+
+**The tell is a function one instruction SHORT with an argument register never
+written.** A length undershoot is normally read as gcc commoning something; here
+it means an argument vanished. Read WHICH instruction is missing, not the count.
+
+The rule: **a pinned register's live range must not cross a call.** Assign it
+after the last call before its use, or do not pin that site at all -- on the
+function above, plain literals with no pin are exact.
+
 ### The fakematch escape, and where it goes
 
 Where the tree accepts a fakematch, the idiom is
