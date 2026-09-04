@@ -13983,3 +13983,68 @@ policy.
 differently, do not hunt for a source difference.** It is the
 dependent-count/LUID tie resolving differently because of what *follows* each
 call. Reproduce one and the other usually falls out.
+
+## AN ARM FUNCTION IS NOT ATTEMPTABLE — there is no ARM build path
+
+**This build compiles no ARM code at all.** Every one of the 935 gcc-2.96 rules
+passes `-mthumb`, and **none of the 3,517 solved files is ARM**. So a
+`.arm_func_start` function cannot be elevated without first establishing a
+compile path that does not exist, and there is no precedent to copy.
+
+That is a structural fact rather than a heuristic, which is why `census.py`
+gives ARM its own column instead of folding it into hand-written assembly.
+
+**14 ARM functions across 4 files** were being reported as *available*, and they
+are the entire reason the 1–20 and 21–40 bands looked like they still had work
+in them. They did not: both bands are now **0 available**.
+
+### The ARM ones are hand-written anyway — the tells
+
+Checked by hand, all six ARM functions under 40 instructions are plainly
+hand-assembled, and the tells are worth keeping because the Thumb-oriented
+`HANDASM` test sees none of them:
+
+- **Three-way width selection by predication.** `UploadPalette_ROM` picks byte,
+  halfword or word from one `cmp` with `ldrccb` / `ldreqh` / `ldrgt`, then
+  stores the same way. gcc-2.96 never emits that.
+- **`rrx`.** `Func_8015570` uses rotate-right-extended. gcc essentially never
+  generates it.
+- **A constant table read via `adr` + `ldm`.** `Func_8015d74` and `Func_8015e10`
+  load three masks from a hand-laid `.word` table next to the code. gcc uses
+  `ldr rN, =const` and a literal pool.
+- **Self-modifying / relocating code.** `FixupRamCode_ROM` walks memory
+  rewriting **Thumb BL instruction pairs** to relocate code copied to RAM, and
+  `Func_80f0024` rewrites its own branch table after computing a load offset.
+- **`_ROM` suffix plus `func_end_emit_size`.** These are routines copied to RAM
+  at runtime, with their sizes exported for the copier — the whole family is
+  deliberately hand-written.
+
+### `Func_80f0008` is the sharp case, and it is worth reading
+
+Seven instructions, `smull` + two `smlal`, then `(hi << 16) | (lo >> 16)`. That
+is exactly a three-term fixed-point dot product returning `acc >> 16`, and it
+looks like ordinary C:
+
+    long long acc = (long long)b * a;
+    acc += (long long)c * d;
+    acc += (long long)e * f;
+    return acc >> 16;
+
+**gcc-2.96 compiles that to `smull`/`smlal` under `-marm`** — so the shape is
+reachable in principle. It still cannot match, and the reason is one register
+pair:
+
+    ROM:   smull r12, r0, r1, r0      <- accumulator in (r12, r0)
+    ours:  smull r4,  r5, r1, r0      <- accumulator in (r4, r5), so r5 must be saved
+
+The ROM's pair is call-clobbered, so it needs **no prologue**; gcc's is
+callee-saved, so it emits `stmfd`/`ldmfd` and the stack argument load shifts by
+8. `HARD_REGNO_MODE_OK` (`arm.h:965`) puts **no** alignment constraint on ARM
+DImode, so that is not the obstacle — but a DImode value still occupies
+**consecutive** registers, and r12's successor is r13/sp, not r0. **A gcc DImode
+value can never live in (r12, r0)**, so the ROM's `smull` is not gcc output at
+whatever allocation. Hand-written.
+
+The general lesson: `-marm` compiling cleanly is not evidence the original was
+C. Check whether the register assignment is one the machine description can even
+express.
