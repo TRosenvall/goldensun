@@ -14048,3 +14048,60 @@ whatever allocation. Hand-written.
 The general lesson: `-marm` compiling cleanly is not evidence the original was
 C. Check whether the register assignment is one the machine description can even
 express.
+
+## The return-type lever is about WHETHER the call writes r0, not what width
+
+`BuildDraw2DFuncs` matched only once its callee was declared to return a value.
+Declared `void` it is 8 differing, with `mov r0, #0x2e` emitted one slot too
+early in both arms of an `if`/`else`; declared to return anything at all it is
+exact.
+
+MEASURED, and the indifference is the finding: **`int`, `unsigned int`, `char`,
+`short`, `void *`, `long`, and leaving the callee undeclared entirely all
+match. Only `void` fails.**
+
+That is the mechanism recorded on `OvlFunc_884_2008780` seen from the other
+side. An int-returning callee carries `(set (reg:SI 0 r0) (call ...))`, which is
+the next *real* write of r0 and therefore truncates the dependent list of the
+`mov r0` feeding it, changing how the argument-setup scheduling tie resolves.
+There `void` was what was needed; here it is anything but.
+
+**So do not read meaning into which non-void type wins — pick the type the
+callee actually has.** The only bit that reaches the scheduler is whether the
+call writes r0.
+
+## A register live across a call is NOT always a named local
+
+The recorded rule — *one load kept across a call is a named local* — has a
+false-positive shape, and it is worth knowing because the instinct runs the
+wrong way.
+
+`BuildDraw2DFuncs` loads `gPtrs`' address in each arm of an `if`/`else` and
+keeps it in a **callee-saved register across the second call**, which is exactly
+the named-local silhouette. It is not one. MEASURED:
+
+| spelling | disagreeing |
+|---|---|
+| `void **p = gPtrs;` hoisted above the branch | 33 |
+| the same local assigned separately inside each arm | 28 |
+| **no local at all — `gPtrs[...]` read directly** | **8** |
+
+The register genuinely is live across the call, but that is gcc's own doing once
+both arms need the address. **Check whether the liveness is forced by the
+control flow before concluding the source named the value.**
+
+## How much of a duplicated tail has to be duplicated in the source
+
+"Duplicated ROM code means duplicated source" is already recorded; this
+quantifies where to stop. In `BuildDraw2DFuncs`, both arms of the `if`/`else`
+end with the same call, load and store:
+
+- sharing the trailing store between the arms → **28** of 52
+- writing the second call **and** the trailing store inside **both** arms → **8**
+
+gcc then cross-jumps the common suffix back into a single block on its own,
+which is why the ROM shows one shared tail even though the source repeats it.
+The pointer bump ahead of it stays duplicated because the two arms order it
+differently against the stack-argument store, so the merge cannot begin any
+earlier. **Duplicate the whole tail and let cross-jumping take back what it
+wants — do not pre-share it.**
