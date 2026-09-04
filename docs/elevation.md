@@ -14272,3 +14272,37 @@ basic block**, their order is still visible and the assignment order decides.
 assignment order before concluding allocation order. For values initialised far
 apart, do not bother — that is the allocator.** The cheap discriminator is
 whether the two `mov`s are neighbours in the ROM.
+
+## Teardown found ONE pin where four pieces had been added
+
+`OvlFunc_882_200be48` matched on the first candidate but for a single
+instruction — `lsl r1, #5` one slot early, because the ROM defers the shift past
+every other argument setup and emits it last before the `bl`.
+
+The first form that worked pinned all three argument registers **and** used a
+two-step constant. Removing pieces one at a time from the *finished* file:
+
+| scaffolding | differing |
+|---|---|
+| r0 + r1 + r2 pinned, two-step | 0 — the first thing that worked |
+| r1 + r2 pinned, two-step | 2 |
+| r0 + r1 pinned, two-step | 0 |
+| r0 + r2 pinned, no two-step | 0 |
+| **r0 pinned alone, no two-step** | **0** — landed |
+| r2 pinned alone | 2 |
+
+**r0 was the whole lever; the other three pieces were habit.** Pinning the slot
+argument forces it into place early, which leaves the shift as the only work
+left before the call, so gcc emits it last on its own.
+
+Neither plain two-step reaches this: assigning `v = 0x80;` before the two
+intervening stores and `v <<= 5;` after them measures the same 2, and so does
+the compact form. Argument evaluation order is not something the source can
+state, which is what the pin is standing in for.
+
+**This is the third consecutive round in which the *anchor every argument* rule
+has had to be bounded.** It came from a case where partial anchoring perturbed a
+correct interleave, and it keeps being read as unconditional. The reliable form
+is: **anchor the argument that participates, and let the teardown find which one
+that is.** Adding pins is cheap and always "works"; the teardown is what tells
+you which one you actually needed.
