@@ -103,6 +103,7 @@ LABEL = re.compile(r"^\s*\.?\w+:")
 #
 # Counted: the buggy pattern matched 23 files / 126 functions; the fixed one
 # matches 5 files / 76 functions.
+ARM_START = re.compile(r"^\s*\.arm_func_start(?:_noalign)?\s+(\S+)")
 HANDASM = re.compile(r"\bmov\s+r12,\s*lr\b|\bbx\s+r12\b")
 
 # A CALL IS NOT ALWAYS A `bl`. gcc-2.96 makes a Thumb indirect call by putting
@@ -124,6 +125,48 @@ HANDASM = re.compile(r"\bmov\s+r12,\s*lr\b|\bbx\s+r12\b")
 CALL = re.compile(r"\bbl\s+|\bmov\s+r12,\s*pc\b")
 
 _handasm_file = {}
+_arm_file = {}
+
+# ARM FUNCTIONS ARE NOT ATTEMPTABLE, AND THE HAND-ASM TEST CANNOT SEE THEM.
+#
+# This build compiles no ARM code at all: every one of the 935 gcc-2.96 rules
+# passes -mthumb, and none of the 3,518 solved files is ARM. So a
+# `.arm_func_start` function cannot be elevated without a build path that does
+# not exist.
+#
+# They are hand-written besides, but HANDASM will not say so -- it looks for
+# `mov r12, lr` and `bx r12`, which are Thumb-era idioms. The ARM ones announce
+# themselves differently: three-way transfer-width selection by predication
+# (ldrccb/ldreqh/ldrgt), `rrx`, constant tables read via adr+ldm instead of a
+# literal pool, and code that rewrites Thumb BL pairs to relocate itself.
+# Rather than chase those, reject on the directive, which is exact.
+#
+# WHY THE ROM HAS ARM AT ALL: these routines are staged in ROM and DMA-copied
+# into IWRAM to run there -- see LoadMapCode in src/rom_c0/rom_2e00_c_b.c, which
+# copies FixupRamCode_ROM using the size the .s exports and then calls it. IWRAM
+# is a 32-bit bus with no waitstates, where ARM beats Thumb; ROM is 16-bit,
+# where it would need two fetches per instruction and lose. Everything that
+# actually executes from ROM is Thumb.
+#
+# The test is PER FUNCTION, not per file: rom_15430.s and rom_2544.s each hold
+# ARM and Thumb functions side by side.
+
+
+def arm_functions(path):
+    """Names declared with `.arm_func_start` in this .s."""
+    hit = _arm_file.get(path)
+    if hit is None:
+        hit = set()
+        try:
+            with open(path, errors="ignore") as f:
+                for line in f:
+                    m = ARM_START.match(line)
+                    if m:
+                        hit.add(m.group(1))
+        except OSError:
+            pass
+        _arm_file[path] = hit
+    return hit
 
 
 def hand_written(path):
@@ -372,6 +415,7 @@ def wide(body, path=None):
     This mode keeps only the checks that survive contact with the record:
 
       * hand-written assembly is excluded (unreachable from C at any effort)
+      * ARM functions are excluded by the caller (no ARM build path exists)
       * a same-block repeated expensive constant is excluded (proved
         unreachable: within one basic block a constant >= 256 always loses to a
         pseudo in cse.c's cost model)
@@ -433,6 +477,8 @@ if __name__ == "__main__":
             if name in parked:
                 continue
             if hand_written(s):
+                continue
+            if name in arm_functions(s):
                 continue
             r = passes(body)
             if r:
