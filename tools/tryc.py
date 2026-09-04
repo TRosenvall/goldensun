@@ -738,9 +738,39 @@ def main():
             # under-counts the reference and fails a real match:
             # Func_8011644's reference holds thirteen words, twelve `=` and one
             # `.word 0`, and the first version of this check called it twelve.
-            refvals = set(re.findall(r"\bldr\s+r\d+,\s*=(\S+)", reftxt))
-            refwords = re.findall(r"^\s*\.word\s+(\S+)", reftxt, re.M)
-            refcount = len(refvals) + len(set(refwords))
+            # COUNT PER POOL, NOT PER FUNCTION. gas shares one slot per
+            # distinct value WITHIN ONE POOL, and a function can have several:
+            # `.pool_aligned` mid-body, plus the implicit one inside
+            # `.func_end`. Thumb PC-relative loads are FORWARD-ONLY, so a value
+            # used on both sides of a pool boundary needs a slot in each, and a
+            # whole-function `set()` under-counts the reference by exactly
+            # those repeats.
+            #
+            # That mis-fire rejected OvlFunc_952_2008108, whose instructions
+            # matched: `0x969` is used once before the mid-body pool and once
+            # after, the ROM spends five slots and so did we, and this check
+            # called the reference four. `make compare` passed. A screen that
+            # rejects a correct function is the same defect as one that passes
+            # a wrong one, and this file has now done both.
+            # Counting per pool is monotone: the sum over segments is never
+            # LESS than the whole-file distinct count, so this change can only
+            # ever remove a rejection, never add one. Measured across the 1090
+            # hand-written .s still in the tree, it raises the count on 372 and
+            # leaves 718 alone. The guard stays a cheap backstop, not a verdict;
+            # `make compare` is the verdict.
+            segs, cur = [], []
+            for line in reftxt.splitlines():
+                cur.append(line)
+                if re.match(r"\s*\.(pool_aligned|pool|ltorg|func_end)\b", line):
+                    segs.append("\n".join(cur))
+                    cur = []
+            if cur:
+                segs.append("\n".join(cur))
+            refcount = 0
+            for seg in segs:
+                vals = set(re.findall(r"\bldr\s+r\d+,\s*=(\S+)", seg))
+                words = set(re.findall(r"^\s*\.word\s+(\S+)", seg, re.M))
+                refcount += len(vals) + len(words)
             if ourpool and len(ourpool) > refcount:
                 print(f"  !! {name}: instructions match but OUR POOL HAS "
                       f"{len(ourpool)} entries and the reference needs "

@@ -1,0 +1,95 @@
+	.include "macros.inc"
+
+@ Cutscene: roughly 81 instructions of straight-line script --
+@ 2 turns, 1 animation change, 1 dialogue line, 4 timed pauses.
+@ Characterised structurally rather than beat by beat.
+@ Message bases 0x2241, 0x2245.
+@ Reads save bit 0x966.
+@ Sets save bits 0x966, 0x967.
+.thumb_func_start OvlFunc_952_2008264
+	push	{r5, r6, lr}
+	mov	r5, r0
+	bl	__CutsceneStart
+	bl	__Func_808e118
+	ldr	r0, =0x966
+	bl	__GetFlag
+	cmp	r0, #0
+	bne	.L320
+	ldr	r0, =0x966
+	bl	__SetFlag
+	ldr	r0, =0x967
+	bl	__SetFlag
+	mov	r1, #0x80
+	mov	r0, r5
+	lsl	r1, #7
+	mov	r2, #0
+	bl	__Func_8092adc
+	mov	r0, #0
+	mov	r1, #0x78
+	mov	r2, #0x60
+	bl	__Func_80921c4
+	mov	r1, #0xc0
+	lsl	r1, #8
+	mov	r2, #0
+	mov	r0, #0
+	bl	__Func_8092adc
+	mov	r0, #0x14
+	bl	__CutsceneWait
+	ldr	r6, =0x2241
+	mov	r0, r6
+	bl	__MessageID
+	mov	r1, #0
+	mov	r0, r5
+	bl	__Func_8092c40
+	mov	r0, #0
+	mov	r1, #0
+	bl	__Func_8091c7c
+	cmp	r0, #0
+	bne	.L2d8
+	mov	r0, #0xa
+	bl	__CutsceneWait
+	add	r0, r6, #1
+	bl	__MessageID
+	b	.L2de
+.L2d8:
+	add	r0, r6, #2
+	bl	__MessageID
+.L2de:
+	mov	r1, #0
+	mov	r0, r5
+	bl	__ActorMessage
+	mov	r0, #0xa
+	bl	__CutsceneWait
+	mov	r1, #3
+	mov	r0, r5
+	bl	__MapActor_DoAnim
+	mov	r0, #0x14
+	bl	__CutsceneWait
+	mov	r1, #0x80
+	mov	r2, #0x80
+	mov	r0, r5
+	lsl	r1, #9
+	lsl	r2, #8
+	bl	__MapActor_SetSpeed
+	mov	r1, #0x40
+	mov	r0, r5
+	neg	r1, r1
+	mov	r2, #0
+	bl	__Func_8092304
+	mov	r0, r5
+	mov	r1, #0
+	mov	r2, #0x30
+	bl	__Func_8092304
+	b	.L32e
+.L320:
+	ldr	r0, =0x2245
+	bl	__MessageID
+	mov	r0, r5
+	mov	r1, #0
+	bl	__Func_8092c40
+.L32e:
+	bl	__CutsceneEnd
+	pop	{r5, r6}
+	pop	{r0}
+	bx	r0
+.func_end OvlFunc_952_2008264
