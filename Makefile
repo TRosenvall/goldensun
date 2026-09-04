@@ -532,6 +532,20 @@ asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_c_b.o: src/rom_77000/rom_79460_c_c_c_c_a
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# A THIRD -fno-gcse SHAPE: a HOISTED LOAD in front of a SWITCH.  Batch 215.
+# OvlFunc_945_200812c re-loads its state counter inside each of thirteen switch
+# arms; at -O2 the global pass loads it once in the entry block instead, and the
+# resulting one-instruction shift makes 147 of 157 lines differ.  Six source
+# shapes were tried against it (per-case tails, an inverted guard, per-arm
+# pointers, a "memory" clobber, and both signed/unsigned counter types) and none
+# moved it, which is what separates a flag from a spelling.  -O1 removes the
+# hoist too but disagrees with the ROM in the entry block and the jump-table
+# setup, so it is the wrong answer here.
+asm/overlays/rom_7cb2c0/ovl_30_a_c_c_a_a_b.o: src/overlays/rom_7cb2c0/ovl_30_a_c_c_a_a_b.c
+	$(GCC296_CC) $(GCSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 asm/rom_8a000/rom_9a44c_a_a_a_b.o: src/rom_8a000/rom_9a44c_a_a_a_b.c
 	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)

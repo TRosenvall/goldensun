@@ -14741,3 +14741,128 @@ believed out of reach. Both halves are now reachable, by pinning the four
 argument registers and interleaving each assignment with its own negation.
 `pickable.py`'s three-or-more-`neg` rejection has no remaining basis beyond
 cost.
+
+## `-fno-gcse` has a THIRD shape: a load HOISTED in front of a switch
+
+The two `-fno-gcse` rules already in the Makefile are a shared CONSTANT hoisted
+into a callee-saved register and a sunk LOAD. Batch 215 adds a third symptom on
+`OvlFunc_945_200812c`: a thirteen-way switch whose arms each re-load the value
+they bump, where at `-O2` the global pass loads it ONCE in the entry block above
+the jump table. Every arm then shifts by one instruction — **147 of 157 lines
+differ for that one hoisted load**.
+
+**The bar for calling something a flag rather than a spelling.** Six
+structurally different sources were measured against the hoist and none moved
+it: a separate tail per case instead of a shared `goto`; an inverted guard in
+the one arm that reaches the tail with no intervening call; recomputing the
+pointer inside each arm; a `__asm__ volatile ("" ::: "memory")` immediately
+before the switch; and the value typed both `short` and `unsigned short`. One
+failed spelling is not evidence. Six that share no structural assumption is.
+
+**Do not reach for `-O1` because it also works.** It did here — and it settled
+EIGHT LINES WORSE, because it additionally reorders the entry block and the
+jump-table setup. Measure both before writing a rule. Six further flags
+(`-fno-rerun-cse-after-loop`, `-fno-strict-aliasing`, `-fno-strength-reduce`,
+`-fno-expensive-optimizations`, `-fno-cse-follow-jumps`, `-fno-cse-skip-blocks`)
+layered on top changed nothing, which is what pins the choice to `-fno-gcse`
+alone rather than to a family.
+
+## The narrow-store table gains a fourth row: a PINNED `short` local pools
+
+The narrow-store section above ends with a "where it does not reach" note about
+a block where the ROM pools a value we `mov` and `mov`s a value we pool.
+`OvlFunc_945_200812c` is exactly that shape — a byte store of zero the ROM
+POOLS (`ldr r2, =0x0`) and, in the same function, a halfword store of zero the
+ROM builds with `mov r3, #0`.
+
+Twelve spellings were measured on the pooled one. The bare literal, casts
+through `char *` / `unsigned char *` / `volatile unsigned char *`, named locals
+of type `int` / `char` / `unsigned char` / `short` with and without a barrier, a
+local assigned in a dominating block, a local assigned in every predecessor of
+the join, and a `static const` — **eleven give `mov`**. The twelfth is exact:
+
+    register short hz __asm__("r2");
+    ...
+    hz = 0;
+    __asm__ volatile ("" : : "r" (hz));
+    p3 = a + 0x62;
+    *p3 = hz;
+
+**The pin is what does it, not the width.** The same `short` unpinned still
+`mov`s, and an `int` pinned to the same register also `mov`s. So the table's
+exclusion is not wrong — it was about the unpinned spellings, and it still holds
+for those. Add the pinned-narrow-local row beside it.
+
+## Try PINS before the crossed-shift barrier — and know where they stop
+
+The crossed mov/shift cure on record is the volatile-asm barrier, with the
+statement-reordering cure as a no-side-effect alternative. There is a third, and
+it should be tried first when the crossed values are CALL ARGUMENTS.
+
+On `OvlFunc_932_20087e8` two locals pinned to `r0` and `r1` were added to
+rematerialise a constant passed twice to one call. They also produced the ROM's
+crossed order — `mov r0 / mov r1 / mov r2` against `lsl r2 / lsl r0 / lsl r1` —
+**with no barrier anywhere**. Seven instructions exact in one step.
+
+**Where pins stop.** `OvlFunc_945_200812c` has the same crossed shape in two
+argument fills and pins are not enough: gcc re-fuses each `mov` with its own
+`lsl` and the barrier is still needed. The difference is what sits inside the
+crossing. In `20087e8` every crossed value is an argument being BUILT. In
+`200812c` a plain register copy — `mov r0, r5` — is wedged between the first
+shift and the second, and a pin cannot order a value that is merely COPIED
+against values that are BUILT.
+
+So: **pins first, barrier only if the pairs re-fuse.** Cheaper than measuring a
+barrier, and strictly safer, since pins do not perturb the schedule elsewhere.
+
+## Keeping a register-to-register COPY needs BOTH ends pinned
+
+Batch 214's `20089c0` park recorded that a pin says *where* a value lives and
+cannot say it must be **copied** rather than used in place. That is true of ONE
+pin. It is not true of two.
+
+`OvlFunc_932_20087e8` materialises a data label into `r2`, stores through `r2`,
+and only then copies it to `r5` for the loop that follows:
+
+    ldr r2, =.L5238 / ldr r3, =0x0 / strh r3, [r2] / mov r5, r2
+
+One pointer local is loaded straight into `r5` and the copy vanishes — one
+instruction short, everything after it shifted. Two locals, the source pinned to
+`r2` and the destination pinned to `r5`, keep it:
+
+    register unsigned short *t __asm__("r2");
+    register unsigned short *q __asm__("r5");
+    t = (unsigned short *)L5238;
+    *t = 0;
+    q = t;
+
+**Both pins are load-bearing.** Free either end and gcc coalesces the pair back
+into one pseudo and the copy goes again. Naming both ends of a copy is how you
+say "copy this", and it is the general form of the one-instruction-short tell.
+
+## BLOCK LAYOUT FOLLOWS SOURCE ORDER — spell the ROM's order with `goto`
+
+gcc lays basic blocks out in the order the source expands them. When the ROM's
+order is not the order nested `if`/`else` would produce, no rearrangement of the
+conditions reaches it; the blocks have to be named.
+
+`OvlFunc_971_200808c` is 64 instructions whose arithmetic was right almost
+immediately and which still missed by 45. All 45 were layout. The ROM's order is
+
+    entry -> [set arm] -> [BODY] -> [clear arm] -> [join] -> return 0
+
+with the join's `bne` reaching BACKWARD into the body — the body sits BETWEEN
+the two arms of an `if`/`else` although it is textually after both. Writing the
+two arms and the body as `goto` targets in the ROM's own order took 45 to 27,
+and two entries already on file closed the rest:
+
+  * `if (x == y) return 1; return 0;` is the **return-a-boolean** idiom and gcc
+    if-converts it to seven branchless instructions (`eor / neg / orr / lsr /
+    sub`). Invert to `if (x != y) goto out0; return 1;`.
+  * Every zero return must reach ONE label. Separate `return 0` statements let
+    gcc hoist a `mov r0, #0` above the first test so a path can fall through
+    with the value already set.
+
+**The tell that a residue is layout and not arithmetic**: the differing lines
+are whole blocks appearing in a different order, with the instructions inside
+each block already matching. Diff by block before trying to respell anything.
