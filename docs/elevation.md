@@ -14243,3 +14243,32 @@ the other side, and it now has three data points pulling in different
 directions — `BuildDraw2DFuncs` (liveness forced by control flow, do not name),
 `OvlFunc_959_200c704` (genuinely named and incremented), and this one (hoisted).
 The order of the first use separates all three.
+
+## Register swap: sweep ASSIGNMENT order when the two values start together
+
+Two functions this round ended with a two-register swap and nothing else, and
+they are **not** the same class — the difference is how far apart the two values
+are initialised.
+
+**`OvlFunc_926_2008db4` — adjacent initialisation, source has a vote.** The ROM
+opens with `mov r6, #0 / mov r5, #8`, the counter first. Measured:
+
+| spelling | differing |
+|---|---|
+| `n = 8; for (i = 0; …)` | 6 |
+| `i = 0; n = 8; for (; …)` | **0** |
+| `for (i = 0, n = 8; …)` | **0** |
+| swapping the two **declarations** | 6 — no effect |
+
+**`OvlFunc_932_200b668` and its twin — far-apart initialisation, allocator
+wins.** One value is set before a call and the other after; six spellings tie at
+5 and declaration order is equally inert. Parked.
+
+Both have inert declaration order, because local-alloc orders by priority rather
+than pseudo number. But where the two initialisations sit **adjacently in one
+basic block**, their order is still visible and the assignment order decides.
+
+**So: for a register swap between two values initialised adjacently, sweep the
+assignment order before concluding allocation order. For values initialised far
+apart, do not bother — that is the allocator.** The cheap discriminator is
+whether the two `mov`s are neighbours in the ROM.
