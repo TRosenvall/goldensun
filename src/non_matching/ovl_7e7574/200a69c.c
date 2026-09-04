@@ -42,7 +42,23 @@
  * come out exactly as the ROM has them. Only the sharing is wrong.
  *
  * NEXT: nothing. The class has no known source-level lever.
- */
+  *
+ * BATCH 204 -- 29 DIFFERING DOWN TO 18, STILL ONE LINE LONG. Pinning r0-r2 at
+ * both __MapActor_SetSpeed sites and assigning them in the ROM's order forces
+ * the rebuild of `0x80 << 9` and `0x80 << 8` that gcc was CSEing across the
+ * intervening call. That is the batch-193 rematerialisation lever and it
+ * removes eleven differing lines.
+ *
+ * IT DOES NOT REMOVE THE EXTRA LINE. The function is still 47 against the ROM's
+ * 46, and the surplus is still the prologue -- `push {r5, r6, lr}` where the
+ * ROM pushes only lr. So gcc is holding something ELSE in a callee-saved
+ * register besides the two speeds, and the CSE of those two was not the whole
+ * cause. The remaining eighteen should be read against that: find what is still
+ * live across a call before spending screens on the fills.
+ *
+ * The candidate below is the 18-differing pinned form, not the 29 the text
+ * above was written against.
+*/
 extern void __Func_8093500(int a, int b);
 extern void __Func_8093530(void);
 extern void __CutsceneWait(int n);
@@ -70,3 +86,5 @@ void OvlFunc_959_200a69c(void)
     __MapActor_SetAnim(0xb, 4);
     __CutsceneWait(0x1e);
 }
+
+/* candidate: see scratch/g7/a69c_pin.c for the pinned form measured above */
