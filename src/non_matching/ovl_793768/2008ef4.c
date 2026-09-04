@@ -39,6 +39,14 @@
  * override the allocator's choice for a value that is not being written at the
  * point the pin names.
  *
+ * AN EXACT TWIN EXISTS AND IS ALSO PARKED BY THIS FILE.
+ * OvlFunc_901_2008a80, in asm/overlays/rom_797990/ovl_314_c_c_a_a_c_c_a_c_c_a_c_c.s,
+ * is INSTRUCTION-FOR-INSTRUCTION IDENTICAL to this function -- same prologue,
+ * same three held parameters, same calls, same tail. It was read during batch
+ * 203 and deliberately NOT attempted: the same C produces the same four
+ * differing lines, and screening it again would only re-measure this wall.
+ * Solving either one solves both.
+ *
  * NEXT: this is an allocation-ORDER question, not a placement one. The thing to
  * find is what makes gcc prefer r5 for the first parameter rather than the
  * second -- likely the order in which the two are first REFERENCED after the
