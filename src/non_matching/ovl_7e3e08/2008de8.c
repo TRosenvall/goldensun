@@ -32,6 +32,35 @@
  * screens nowhere near. That lever is now worth checking first on anything
  * that indexes gState.
  *
+ * BATCH 196 -- THE RESIDUE IS A THREE-INSTRUCTION ROTATION, not one misplaced
+ * build, and a scheduling barrier MOVES it without reducing it. That is new
+ * and it sharpens what "scheduling wall" means here. The ROM runs
+ *
+ *     str r3, [r6, #8] / mov r1, #0xf0 / ldrh r3, [r5, #6] / lsl r1, #8
+ *
+ * -- the halfword load sits BETWEEN the constant's mov and its shift. Adding
+ * `do { } while (0)` after the third vector store fixes the `mov r1` placement
+ * that this park was written about, and the residue becomes the `ldrh` instead,
+ * still 2 of 84. `__asm__ volatile("")` in the same place is byte-identical to
+ * it. So one barrier buys the first instruction and loses the second; the three
+ * instructions cannot all be placed at once.
+ *
+ * MEASURED THIS ROUND, all against the ROM's 84 lines:
+ *
+ *     as written (no barrier, no pin)                    2 differing
+ *     barrier after the stores                           2  (residue moves to the ldrh)
+ *     __asm__ volatile("") after the stores              2  (identical to the barrier)
+ *     r1 pinned, mask shifted in its own statement       85 lines, 61 differing
+ *     r1 pinned, shift written inline in the mask         4
+ *     barrier + the load named into a local + r1 pinned  85 lines, 59
+ *     barrier + the load named into a local, no pin       3
+ *
+ * THE PIN IS NOT THE LEVER HERE and this is the fifth measured case of one
+ * costing rather than reaching. The reason fits the rule from batch 195: a pin
+ * places the mov of the register it names, and what this site needs is a LOAD
+ * INTO A DIFFERENT REGISTER placed between that mov and its shift. Nothing
+ * about naming r1 says where r3's load goes.
+ *
  * NEXT: nothing source-level. See the companion park for the same conclusion
  * reached from the other side.
  */
