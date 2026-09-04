@@ -14385,3 +14385,30 @@ low end at all: the code still builds, still looks right, and is wrong.
 
 The two that follow are ordinary signed comparisons on a different field. So one
 guard, two signednesses, three lines apart.
+
+## An uninitialised pin moves its assignment
+
+Companion to "pin declaration order is argument order". Declaration order sets
+*where* each `mov` lands, but a `register` declaration **with an initialiser**
+pins that `mov` to the declaration point — which is sometimes too early and
+cannot be moved by reordering the declarations alone.
+
+MEASURED on `OvlFunc_901_2008d84`, the last instruction of the match. The ROM
+sets r2 last, after the shift:
+
+    mov r1, #0x80 / mov r0, #0x12 / lsl r1, #7 / mov r2, #0x14
+
+`register int p2 __asm__("r2") = 0x14;` puts that `mov` before the shift no
+matter where the declaration sits relative to the others, because the shift is a
+*statement* and the initialiser is not. Splitting them —
+
+    register int p2 __asm__("r2");
+    p0 <<= 7;
+    p2 = 0x14;
+
+— places it where the ROM has it.
+
+**So the pin has two independent knobs: the declaration's position sets the
+register's place in the ordering, and the assignment's position sets when the
+value is materialised.** Reach for the second when the first cannot go late
+enough.
