@@ -155,3 +155,5 @@ OvlFunc_883_2008e84  src/overlays/rom_780898/ovl_30_c_c_c_a_a_a_c_c_c_a_a_a_c.c
 OvlFunc_883_2008f5c  src/overlays/rom_780898/ovl_30_c_c_c_a_a_a_c_c_c_a_a_c_b.c
 OvlFunc_883_2008f8c  src/overlays/rom_780898/ovl_30_c_c_c_a_a_a_c_c_c_a_a_c_c.c
 OvlFunc_884_200881c  src/overlays/rom_784360/ovl_30_c_a_a_a_c_c_c_c_c_a.c
+OvlFunc_884_20088ac  src/overlays/rom_784360/ovl_30_c_a_a_a_c_c_c_c_c_c_c.c
+OvlFunc_921_20099bc  src/overlays/rom_7a7298/ovl_30_c_c_c_c_c_c_c_a_b.c
