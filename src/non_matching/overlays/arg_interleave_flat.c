@@ -79,7 +79,7 @@
  *     OvlFunc_921_20099bc opens a cutscene and runs a map transition where the
  *     rest play a sound and blit a table; its body has nothing in common with
  *     them, and it was grouped correctly anyway, because the blocker is a
- *     property of the instruction sequence anit is not of what the sequence is for.
+ *     property of the instruction sequence and not of what the sequence is for.
  *
  *   - "SCREENED TO CONFIRM RATHER THAN ASSUMED" IS NOT ENOUGH. The note did
  *     screen, and reported real numbers. Every variant it ran changed the
