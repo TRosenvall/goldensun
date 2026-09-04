@@ -48,12 +48,54 @@
  * OvlFunc_899_2008428 was already characterised individually in
  * tools/pick_candidates.py's r0-mid table as a "no"; it is the same defect.
  *
- * WHAT WOULD RETIRE ALL FOURTEEN AT ONCE: any construct that reaches the
- * straight-line case. Batch 42 concluded that is unreachable in plain C given
- * how update_equiv_regs is written, so the honest reading is that these need a
- * compiler-level answer, not a source-level one. They are the single largest
- * argument for reading gcc's source rather than generating more variants.
+ * ===================== RESOLVED, BATCH 198 =====================
  *
- * No C body is given here because every member's C is trivial and correct --
- * what fails is where gcc places one `mov`.
+ * THE CLASS IS REACHABLE. Everything above is an accurate description of the
+ * shape and of why the levers available when it was written could not touch it.
+ * Its conclusion -- "these need a compiler-level answer, not a source-level
+ * one" -- is wrong, and it is the most expensive wrong conclusion in this
+ * directory, because it told the candidate ranker to keep refusing fourteen
+ * functions.
+ *
+ * A REGISTER PIN CLOSES THE SHAPE. Assigning the argument registers through
+ * `register int qN __asm__("rN")` in the ROM's own order places the displaced
+ * `mov` inside the other register's build:
+ *
+ *     q1 = 0xcb;  q0 = 0;  q1 <<= 1;  q2 = 0x2d7;
+ *     __Func_809218c(q0, q1, q2);
+ *
+ * The reasoning above is about the BASIC-BLOCK lever, which moves a value by
+ * putting it in a block that dominates the call, and which therefore needs a
+ * branch. A pin does not go through basic blocks at all -- it names the hard
+ * register, so the placement is decided at the assignment rather than by
+ * liveness. `REG_BASIC_BLOCK (regno) < 0` never becomes true and never needs
+ * to.
+ *
+ * CONFIRMED, not assumed:
+ *
+ *     OvlFunc_945_200bdec   elevated in batch 194, before this note was
+ *                           re-read -- the class was already broken and nobody
+ *                           had connected it back here
+ *     OvlFunc_883_2008dc0   matched on the FIRST screen, batch 198
+ *     OvlFunc_883_2008e54   matched on the FIRST screen, batch 198
+ *
+ * ELEVEN MEMBERS REMAIN and each should be a short job: the bodies are trivial,
+ * the only work is reading each call's argument order off the ROM.
+ *
+ *   OvlFunc_881_200a81c   ovl_77a7c8    OvlFunc_899_2008428   ovl_794ac0
+ *   OvlFunc_883_2008e84   ovl_780898    OvlFunc_921_20099bc   ovl_7a7298
+ *   OvlFunc_883_2008f5c   ovl_780898    OvlFunc_942_2008144   ovl_7c6bac
+ *   OvlFunc_883_2008f8c   ovl_780898    OvlFunc_944_2008468   ovl_7ca63c
+ *   OvlFunc_884_200881c   ovl_784360    OvlFunc_959_2008bac   ovl_7e7574
+ *   OvlFunc_884_20088ac   ovl_784360
+ *
+ * THE LESSON IS THE ONE BATCHES 193-197 KEPT FINDING, and this is its largest
+ * instance: a conclusion drawn from one lever's mechanism was recorded as a
+ * fact about C. The note even says "SCREENED TO CONFIRM RATHER THAN ASSUMED"
+ * -- and it was, but every screen it ran varied the SOURCE, which is exactly
+ * what the mechanism it had identified rules out. Screening more variants of
+ * the thing you have proved cannot work is not confirmation.
+ *
+ * This file is kept rather than deleted because the shape description and the
+ * member list are still the fastest way to work the rest.
  */
