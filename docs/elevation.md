@@ -14960,3 +14960,99 @@ the link failed on three undefined `DMA3_SET` references.
 Copy the screened body verbatim and prepend the comment, rather than slicing the
 screened file by line number. The build catches this one, but it costs a cycle
 and it looks like a decompilation error when it is a transcription error.
+
+## A PIN CANNOT ASK FOR A SPILL
+
+Batch 210 recorded that a pin assigned BEFORE a call and used AFTER it is
+silently dropped. Batch 217 found the corollary that matters: that hazard also
+blocks the one use that would make a pin a spill tool.
+
+`CreateSpriteLayer`'s residue is a variable the ROM SPILLS (`mov r4, #0 /
+str r4, [sp]` before a call, `ldr r4, [sp]` after) and gcc keeps in a register.
+Pinning it to r4 -- the very register the ROM spills from, and one that is
+call-clobbered under this tree's `-fcall-used-r4` -- changes nothing, because
+the pin spans the call and is dropped. Measured against the parked body: 62
+differing with the pin, 45 without.
+
+Two neighbouring tools were measured on the same site and neither substitutes:
+
+  * **A BARRIER proves liveness, not spilling.** It forces the value to exist
+    across the call and gcc satisfies it in a callee-saved register. 63.
+  * **`volatile` IS NOT A SPILL.** It does produce the frame and the
+    store/reload, but every later access goes through memory too, so the
+    function grows accesses the ROM does not have. 56, and LONGER than the ROM.
+
+So a spill remains the one allocation outcome no source construct commands.
+
+## Do not put TWO COMPETING PINS on one register
+
+The one-variable-two-ranges entry says a register carrying two values of
+different types can be named by two `register` declarations on the same
+register. `InitSprites` looks like that case -- r5 holds a zero across two DMA
+writes, then a buffer size -- and pinning BOTH is worse than pinning one.
+
+With both pinned the allocator puts a third value in r4 and shifts the size out
+of place (`lsr r2, r5, #0x2` against the ROM's destructive `lsr r5, #0x2`), four
+lines. Pinning only the first and leaving the second free lets gcc pick r5 by
+itself and the block comes out exact.
+
+**One pin plus a free choice beats two pins** unless both ranges are
+simultaneously constrained. A pin is a constraint on the allocator, and two
+constraints on one register leave it less room, not more.
+
+## COMPUTE the bounds of a folded range -- reading them off the digits fails
+
+The unsigned range idiom encodes `lo` as a NEGATED constant and `hi - lo` as a
+span, so recovering the C bounds is arithmetic:
+
+    lo = 2**32 - neg          hi = lo + span
+    source:  x > lo - 1  &&  x < hi + 1
+
+On `OvlFunc_913_200a88c` three of five boxes were first written with an upper
+bound read off the hex digits and all three were wrong, because adding the span
+carries into the next digit: `0xC00001 + 0x51FFFE` is `0x111FFFF`, not
+`0xC51FFFF`.
+
+**THE TELL IS UNAMBIGUOUS AND CHEAP.** A wrong bound shows up as a wrong SPAN
+constant, not as a wrong branch -- `ldr r1, =0xb91fffe` against the ROM's
+`=0x51fffe` says the bound is wrong while the idiom is right. Check the span
+constant first; if it matches, the bounds are right.
+
+Write the upper bound with the operator the ROM compares with: `<= 0x248ffff`
+and `< 0x2490000` are the same in C and different in the emitted `cmp`.
+
+## A dispatch that branches with `bhi` is switching on an UNSIGNED value
+
+`cmp r3, #2 / bhi` in a switch tree means the switch expression is unsigned;
+`bgt` means signed. On `OvlFunc_913_200a974` the counter declared `int` shifts
+the whole function, and `unsigned int` fixes it.
+
+One condition code identifies the type of a global. Check it before treating a
+dispatch mismatch as a structural problem -- it is the cheapest possible fix and
+it is invisible in the instruction mnemonics alone.
+
+## A CROSS-JUMPED TAIL MAY SHARE LESS THAN IT LOOKS
+
+When two arms jump to a common label, the shared block is only what is
+*identical*. On `OvlFunc_913_200a974` both arms load the counter themselves and
+only the compare-and-decrement is shared; writing the load once in the shared
+block leaves the function two instructions short.
+
+The test is to read what the shared block USES rather than what it does: if it
+consumes a register the arms each set, that setting belongs in the arms.
+
+## The two crossed-site cures, BOTH NEEDED IN ONE FUNCTION
+
+`OvlFunc_913_200a974` settles the question of which cure to reach for by
+containing both, four instructions apart:
+
+  * One site falls to the **barrier-free reordering** -- writing the counter
+    load between the constant's `mov` and its `lsl` puts the load where the ROM
+    has it, with no side effects.
+  * The other does **not**. Reading the byte into a local first still leaves
+    `mov r3, #0xd` ahead of the `ldrb`; only a barrier on the loaded value holds
+    the order.
+
+So the ladder stands as recorded -- pins, then reordering, then barrier -- and
+the presence of both in one function is the reason none of the three can be
+promoted to a default.
