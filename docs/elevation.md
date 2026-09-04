@@ -14306,3 +14306,41 @@ correct interleave, and it keeps being read as unconditional. The reliable form
 is: **anchor the argument that participates, and let the teardown find which one
 that is.** Adding pins is cheap and always "works"; the teardown is what tells
 you which one you actually needed.
+
+## Screen candidates on HIGH-REGISTER USE, not just template quality
+
+`templated.py` reliably gets the *data model* right — struct layouts, argument
+orders and extern blocks come free from a good neighbour. It does **not**
+predict whether the residue will be tractable, and two strong templates in a row
+went nowhere before this was noticed.
+
+Counting `r8`–`r11` references in the target's body separates them cleanly.
+Measured across one round's candidate list:
+
+| function | syms | insns | r8–r11 uses | outcome |
+|---|---|---|---|---|
+| `OvlFunc_955_2009898` | 9 | 123 | **27** | abandoned, 117 of 126 |
+| `OvlFunc_968_2008cc8` | 11 | 138 | **17** | parked, 104 of 140 |
+| `OvlFunc_925_200b060` | 7 | 148 | 17 | untried |
+| `OvlFunc_935_20088a8` | 7 | 59 | **0** | **elevated, first candidate** |
+| `OvlFunc_943_2009a98` | 7 | 75 | **0** | — |
+
+High-register traffic means the function needs more values live than the low
+registers hold, and that is exactly the pressure the allocation-order parks are
+made of. A count of zero, with a narrow `push`, says the residue will be about
+spelling rather than about the allocator.
+
+**Rank on the template, then filter on `hi == 0`.** The two are independent
+questions and both are cheap to ask before writing a line of C.
+
+## A "60 of 60" screen can be three instructions
+
+`OvlFunc_935_20088a8` reported *60 differing of 60* at plain -O2 — an apparently
+total mismatch — when exactly **three** instructions disagreed. One extra
+instruction near the top shifts every later line by one, and difflib then aligns
+almost nothing.
+
+**Read the itemised regions, not the headline number.** The trailing
+`N instruction(s) in disagreeing regions` line is the honest figure; the count in
+the header is an alignment artefact whenever the lengths differ. That candidate
+was correct on the first try and could easily have been thrown away.
