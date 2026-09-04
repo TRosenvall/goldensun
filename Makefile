@@ -419,6 +419,20 @@ asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a_c_a.o: src/overlays/rom_7f2f14/ovl_30
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# OvlFunc_968_20094f4 is the THIRD function caught by that same mis-scoped
+# ovl_30_c_a_c_a_c_a% wildcard.  14 differing at -O1, EXACT at -O2.  Worth
+# noting how it was found: tools/tryc.py reported the -O1 diff and then warned
+# that the flags came from a wildcard rule which "may belong to a neighbouring
+# TU that only shares a name prefix", and suggested re-screening with -O2.
+# That warning is what turned a plausible 14-instruction residue into a
+# one-line Makefile fix.  Three instances now; the wildcard itself is still
+# not narrowed, because an explicit rule beats it without disturbing whatever
+# genuinely needs -O1.
+asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a_c_c_b.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a_c_c_b.c
+	$(GCC296_CC) $(GCC296_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 
 # OvlFunc_962_2008a78: gcc deletes three reloads of a pointer field across
 # byte/bitfield stores into the pointed-to struct, coming out three instructions
