@@ -51,3 +51,18 @@
 _SIZE_8015afc = 0x278;
 _SIZE_8015d74 = 0x9c;
 _SIZE_8015e10 = 0x7c;
+
+/* _SIZE_800a418 -- the size of Func_800a418, copied into RAM by InitSprites.
+ *
+ * A DIFFERENT ROUTINE THAT HAPPENS TO BE THE SAME LENGTH as Func_8015e10, and
+ * that is the useful part: two distinct symbols with the value 0x7c, each
+ * pooled in the function that copies its own routine. A single shared
+ * `_CONST_7c` would have matched the bytes and asserted something false.
+ *
+ * asm/rom_9000/rom_92b8.s holds Func_800a418 @ 0x0800a418 and Func_800a494 @
+ * 0x0800a494, so the size is the gap, exactly as for the rom_15430.s three.
+ * 0x7c fits an eight-bit `mov` and InitSprites pools it, which is criterion 1
+ * of const.sym's tell met literally.
+ *
+ * VALIDATED: InitSprites matches at 63 lines and `make compare` passes. */
+_SIZE_800a418 = 0x7c;

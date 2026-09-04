@@ -44,7 +44,34 @@
  * which is what puts a zero in a register at all; and the whole initialisation
  * block including the conditional `GetCachedSpriteGFX`.
  *
- * NEXT: nothing source-level for the spill.
+ * THREE MORE SPELLINGS, batch 217, all measured against the body below and all
+ * WORSE. They are recorded because each one closes a direction that looks
+ * obvious from the blocker description:
+ *
+ *     the body below (unchanged)                     66 lines, 45 differing
+ *     `sel` PINNED to r4, the register the ROM        61 lines, 62 differing
+ *       spills FROM
+ *     a barrier on `sel` before the call              67 lines, 63 differing
+ *     `sel` declared `volatile`                       65 lines, 56 differing
+ *
+ * THE PIN RESULT IS THE USEFUL ONE. Pinning to the very register the ROM
+ * spills from does not produce a spill -- the pin is DROPPED, because it is
+ * assigned before a call and used after it, which is the batch 210 hazard. So
+ * that hazard also blocks the one use that would turn a pin into a spill tool:
+ * A PIN CANNOT ASK FOR A SPILL.
+ *
+ * `volatile` does force a frame and a store/reload, but it is not a spill --
+ * every later access goes through memory too, including the loop assignment
+ * and the null test, so the function grows accesses the ROM does not have.
+ *
+ * The barrier proves the value is live across the call and gcc still satisfies
+ * it in a register rather than a frame slot.
+ *
+ * NEXT: nothing source-level for the spill. Reading the generated assembly for
+ * a NEIGHBOURING register is the lever that has twice unblocked this class and
+ * is still untried here -- the question to answer is which value the ROM keeps
+ * alive across that call that we are rebuilding, since that is what takes the
+ * register gcc is currently handing to the slot pointer.
  */
 extern unsigned char *_GetSpriteInfo(int id);
 extern unsigned char *iwram_3001e5c;
