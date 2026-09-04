@@ -39,6 +39,25 @@
  *   - --no-rerun-cse (5), --O1 (7), --no-sched2 (7).  No flag group reaches
  *     it, so this is not the per-file-flags class.
  *
+ * THE RE-ATTACK BELOW WAS TRIED IN BATCH 204 AND FAILS. Both forms are much
+ * WORSE than the 5 already recorded, and both make the function LONGER than the
+ * ROM, which the 5-differing candidate never does:
+ *
+ *     a common base pointer, `b = 0x5000000` with `b + 0x28` etc.
+ *                                              28 lines against 24, 21 differing
+ *     the source derived as `s = d + 1`        26 lines against 24, 17 differing
+ *
+ * The reason is visible once measured: the ROM wants THREE INDEPENDENT POOL
+ * ENTRIES, and every construct that relates the addresses to each other pushes
+ * gcc further toward deriving them, which is the defect. A common base is more
+ * relation, not less. The idea was pointing the wrong way.
+ *
+ * What would help is the opposite -- something that stops gcc noticing the
+ * three literals are close together -- and no C construct for that is known.
+ * The remaining question is whether the original source had these addresses
+ * behind something opaque, a macro expanding to a cast per use or three
+ * separate declarations, rather than three inline literals in one function.
+ *
  * Re-attack idea not yet tried: give the three addresses a common symbolic
  * base so they are offsets from one symbol rather than three literals.  That
  * changes what lands in the pool, so it needs the pool checked as well as the
