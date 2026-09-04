@@ -15182,3 +15182,98 @@ all ten.
 The general form: if the ROM could have folded a constant offset into the base
 and did not, the base is being held for another reason -- usually because it is
 live on a path where the index is not.
+
+## INVERT THE TEST when a destructive op sources a COPY instead of the original
+
+`Func_808c30c` reads unmistakably as `d = amount; if (scaled) { ... }` -- the
+fallback copy sits above the compare, which is exactly gcc's shape for a hoisted
+single-instruction else arm. Written that way it is 15 differing, and the fault
+is three instructions: the multiply reads the COPY where the ROM reads the
+parameter.
+
+With `d = amount` DOMINATING the multiply, CSE merges the two into one quantity
+and rewrites the operand. That is not cosmetic. It drops the parameter's in-loop
+reference count from three to two, which demotes it below the walking pointer
+and the counter in the allocator's priority order and ROTATES THREE REGISTERS
+THROUGH THE WHOLE FUNCTION -- fifteen differences from one substitution.
+
+Writing the fallback as the THEN arm (`if (scaled == 0) { d = amount; } else
+{ ... }`) keeps the assignment off the multiply's dominator path. gcc still
+hoists the one-instruction arm above the compare, so the EMITTED shape is
+byte-identical either way -- but the RTL operand stays the parameter.
+
+**WHEN A DESTRUCTIVE OP SOURCES A COPY WHERE THE ROM SOURCES THE ORIGINAL, THAT
+IS CSE QUANTITY MERGING AND THE FIX IS CFG-SHAPED, NOT EXPRESSION-SHAPED.** And
+whenever a hoisted single-instruction arm is visible in the ROM, SCREEN BOTH
+POLARITIES -- the emitted code does not reveal which one the source used.
+
+A seven-flag sweep was rejected here (`-fno-gcse`, `-fno-cse-follow-jumps`,
+`-fno-cse-skip-blocks`, `-fno-thread-jumps`, `-fno-expensive-optimizations`,
+`-fno-regmove`, `-fno-rerun-cse-after-loop` all leave 14-15; all four CSE flags
+together reach 12). The residue LOOKS like a `-fno-gcse` park and is not one.
+
+## A LABEL-NUMBER COLLISION, and the trick that moves gcc's counter
+
+A cross-object data label like `.L10` collides when gcc's OWN first branch label
+in that translation unit takes the same number: the pool's `.word .L10` then
+captures the LOCAL label. The instruction stream is byte-identical and the
+defect lives entirely in the RELOCATION TABLE, so `tryc.py` screens it clean and
+only `tools/objcmp.py` sees it (`R_ARM_ABS32 .text` against `R_ARM_ABS32 .L10`).
+
+**THE DOCUMENTED REMEDY IS THE LINKER ALIAS** (`_TBL_L10 = .L10;` beside the
+existing ones), and it is what should be used: absolute assignments emit no
+bytes, and siblings already do it.
+
+**THE OTHER FIX, recorded because it is the only known way to move gcc's label
+numbering:** a statement that merely ALLOCATES LABEL NUMBERS, placed above the
+first branch, shifts the whole numbering off the collision with byte-identical
+output. `do { } while (0);` shifts by 4; an empty `else { }` on the first `if`
+shifts by 1. DO NOT SHIP IT where an alias will do -- the construct has no
+meaning to a reader, its effect is invisible, and any edit that adds or removes
+a branch silently breaks it. Keep it for a collision an alias cannot reach.
+
+## Two more placement levers
+
+  * **OPERAND ORDER CAN BE A TYPE QUESTION.** Where the ROM has a two-operand
+    `add r2, r6` and gcc gives the three-operand `add r2, r6, r2`, no reordering
+    of a POINTER-typed expression reaches it -- the frontend canonicalises the
+    pointer operand to the front. Doing the arithmetic in `int` and casting back
+    puts the other value first and produces the ROM's form.
+  * **A CONSTANT MAY NEED A DIFFERENT BASIC BLOCK.** A size constant written as
+    a literal at its call schedules one slot early; named and assigned in a
+    DOMINATING block it rematerialises in the ROM's phase. Assigned in the SAME
+    block as the call it is catastrophic (49 of 59). This is the "rebuilt: a
+    local in a dominating block" row, and the failure mode when it is misplaced
+    is much worse than the one it fixes.
+
+## ONE-VARIABLE-TWO-RANGES IS REAL AND NOT FREE
+
+On `OvlFunc_936_200b864` the ROM builds `-13` by SUBTRACTING FROM THE ZERO IT
+HAS JUST STORED (`mov r3, #0 / strb / sub r3, #0xd`) rather than `mov #0xd /
+neg`. Writing `v = 0; *p = v; v -= 13;` reproduces it: 46 differing to 14.
+
+Reusing that SAME variable again for a later store OVERSHOOTS -- 31 differing,
+and the function comes out a line SHORT. A second, separate local is exact.
+
+**Each reuse has to be one the ROM actually made.** The lever is not "share a
+variable to save a register"; it is "share exactly where the ROM shared".
+
+## tryc's "size check skipped" makes its verdict weaker than it looks
+
+`tryc.py` prints `[size check skipped: ref has N functions]` whenever the
+reference holds more than one function -- and then its OK covers ONLY the
+instruction stream. `Func_801b5c0` screened OK that way against a SEVEN-function
+reference. Combined with the pool-order blindness recorded last batch, the rule
+is simple: **if tryc says "size check skipped" OR warns that the pool is inside
+the function, run `tools/objcmp.py` before touching the build.**
+
+## What justifies a per-file FLAG RULE
+
+`OvlFunc_948_20097ac` needs `-fno-rerun-cse-after-loop`. The bar it clears is
+not "no spelling was found" but something stronger: **three source forms were
+measured and all three produce IDENTICAL output**, because the constant involved
+is folded before CSE ever runs. The rematerialisation the ROM shows is a
+PASS-LEVEL property, and no source text can reach it.
+
+Use that test before adding a rule. "I could not find a spelling" is not
+evidence; "the spellings provably cannot differ" is.
