@@ -319,6 +319,14 @@ asm/overlays/rom_7b9cb4/ovl_30_a_c_c_a_c_c_a_a_a_c_a_c_a_b.o: src/overlays/rom_7
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# OvlFunc_883_200d950: three flag ids cleared before the branch and one set
+# inside an arm -- the guard/set shape, first use dominating.  85 differing at
+# -O2 with a prologue four registers wider, exact here.
+asm/overlays/rom_780898/ovl_30_c_c_c_c_c_a_a_c.o: src/overlays/rom_780898/ovl_30_c_c_c_c_c_a_a_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 # OvlFunc_933_2008cd0: three tier flags read and written in mutually exclusive
 # arms.  36 differing at -O2, exact with -fno-rerun-cse-after-loop.
 asm/overlays/rom_7bc690/ovl_4e4_a_c.o: src/overlays/rom_7bc690/ovl_4e4_a_c.c
