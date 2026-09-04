@@ -14214,3 +14214,32 @@ buys nothing and only adds scaffolding a teardown would have to justify.
 Read the rule as: *anchor every argument that participates in the interleave you
 are fixing.* Where that is the whole list, anchor the whole list; where it is
 not, the teardown will say so.
+
+## A hoisted constant and a named local look IDENTICAL — read the first use
+
+A constant living in a callee-saved register across several calls is the
+recorded signature of *"one load kept across a call is a named local"*. It is
+also what gcc produces on its own when it hoists a literal it sees reused. The
+two are indistinguishable from the register allocation alone, and guessing wrong
+is expensive: on `OvlFunc_927_2009c34`, naming them measured **80 differing of
+92** where plain literals measured **8 of 90**.
+
+**The tell is where the FIRST use goes.**
+
+    ROM      mov r3, #1 / str r3, [sp] / ... / mov r8, r3
+    named    mov r3, #1 / mov r8, r3   / ... / mov r3, r8 / str r3, [sp]
+
+The ROM stores the literal **straight to its destination** and only afterwards
+copies it into a high register for the later sites. A named local is
+materialised into its register *first*, and every use — including the first —
+is fed from there.
+
+So: **if the first use is direct and the register copy comes after, the source
+had a literal and gcc hoisted it. If the first use already goes through the
+register, the source named it.**
+
+This is the same question as the `Func_80b280c`-style pressure reading seen from
+the other side, and it now has three data points pulling in different
+directions — `BuildDraw2DFuncs` (liveness forced by control flow, do not name),
+`OvlFunc_959_200c704` (genuinely named and incremented), and this one (hoisted).
+The order of the first use separates all three.
