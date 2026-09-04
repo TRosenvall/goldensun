@@ -13638,6 +13638,62 @@ function that rebuilds the same `mov #C / lsl #n` pair twice inside one basic
 block finds exactly three, and all three are high-register-pressure spill cases,
 not constant remat. There is no solved precedent for the shape.
 
+## CORRECTED: the "same-value movs" class is really MOV ORDER SLAVED TO SHIFT ORDER
+
+Batch 192 closed `OvlFunc_881_200b2f0` and explained a transposed pair of `mov`s
+by saying that **all the registers receive the same value, so nothing orders
+them**. That explanation has been carried since and it is WRONG. Measured on a
+minimal reproducer -- an `extern void f(int,int,int)` and nothing else:
+
+    q1 = 0x80; q2 = 0x80; q2 <<= 9; q0 = 9; q1 <<= 10;   ->  mov r2 / mov r1 / lsl r2 / mov r0 / lsl r1
+    q1 = 0x81; q2 = 0x80; q2 <<= 9; q0 = 9; q1 <<= 10;   ->  mov r2 / mov r1 / lsl r2 / mov r0 / lsl r1
+
+**DIFFERENT VALUES BEHAVE IDENTICALLY.** Equality of the constants has nothing
+to do with it, so any park whose reasoning rests on "the same value, so nothing
+orders them" is resting on a coincidence of the case it was written from.
+
+THE ACTUAL RULE: **gcc emits the two `mov`s in the order their consuming SHIFTS
+appear.** Shift r2 first and `mov r2` goes first; shift r1 first and `mov r1`
+goes first. Source assignment order, declaration order, a `do { } while (0)`
+barrier, `__asm__ volatile("")`, building one constant in two steps, and
+deriving one operand from the other were all measured and are all INERT --
+seven forms, byte-identical.
+
+    q1 = 0x80; q2 = 0x80; q1 <<= 10; q2 <<= 9; q0 = 9;   ->  mov r1 / mov r2 / lsl r1 / lsl r2 / mov r0
+
+### The trap: the mov order and the shift order cannot be set independently
+
+The ROM shape that stalled two functions wants the `mov`s in one order and the
+shifts in the OTHER:
+
+    target   mov r1 / mov r2 / lsl r2 / mov r0 / lsl r1
+
+Writing the third argument INLINE while the second stays pinned does break the
+coupling -- `f(q0, q1, 0x80 << 9)` gives `mov r1` first -- but it takes the tail
+with it:
+
+    f(q0, q1, 0x80 << 9)                     ->  mov r1 / mov r2 / mov r0 / lsl r1 / lsl r2
+    f(q0, q1 << 10, q2)  and three others    ->  mov r2 / mov r1 / lsl r2 / mov r0 / lsl r1
+
+So there are TWO reachable states and they are mutually exclusive: the `mov`
+pair correct with the tail wrong, or the tail correct with the pair swapped.
+The ROM is a third. This is structurally the same two-state trap measured on
+`src/non_matching/ovl_7ac2d8/200cf44.c`, reached from a different direction.
+
+**Diagnostic value:** the cheap test is to compare the ROM's mov order against
+its shift order. If they AGREE, the site is ordinary and needs no lever. If they
+are CROSSED, no arrangement of pins, barriers or statement order reaches it, and
+the function should be parked on that basis rather than swept. Two functions,
+`src/non_matching/ovl_7c460c/2008ff0.c` at 2 of 157 and
+`src/non_matching/ovl_7d30e0/2008b68.c`, stalled here in consecutive rounds.
+
+Still open: why the batch-192 interleave DID close `OvlFunc_881_200b2f0`. That
+site interleaves each `mov` with the `neg` that consumes it, which is the same
+shape as a shift consuming a mov, so it should be subject to this rule too. The
+`__Func_8012330(-1, -1, 0xe666)` call in `2008b68` is written in exactly that
+interleaved form and still comes out swapped. One of the two cases has a
+property the other lacks and it has not been identified.
+
 ### CORRECTED: a CALL-CLOBBERED PIN reaches this class without any branch
 
 The analysis above is right about the passes and wrong about the conclusion.

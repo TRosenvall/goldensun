@@ -1,3 +1,13 @@
+/* CORRECTION, next round: the "same value" reasoning below is WRONG.
+ * A minimal reproducer shows DIFFERENT constants transpose identically, so
+ * equality of the values is a coincidence of this case. The real rule is that
+ * gcc emits the two movs in the order their consuming SHIFTS appear, and the
+ * ROM here wants the movs and the shifts in OPPOSITE orders -- which is
+ * unreachable, because writing the argument inline flips the mov pair and
+ * takes the tail with it. Two mutually exclusive states, the ROM a third.
+ * See "the same-value movs class is really MOV ORDER SLAVED TO SHIFT ORDER"
+ * in docs/elevation.md. The park stands; its diagnosis is superseded.
+ */
 /* OvlFunc_939_2008ff0  --  0x02008ff0  [asm/overlays/rom_7c460c/ovl_314_c_a_c_a.s]
  *
  * NOT MATCHING. Best screen 2 of 157, LENGTH EXACT. The candidate kept below
