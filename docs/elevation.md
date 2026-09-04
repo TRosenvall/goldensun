@@ -14168,3 +14168,49 @@ gain, 30 differing down to 6, came from noticing that the ROM holds `0x2411` in
 a callee-saved register and reaches the second message with `add r5, #1`. That
 is a **named local, incremented** — two separate literals give two pool loads
 and no `push {r5}` at all. Nothing to do with inline asm.
+
+## A call between two uses does NOT guarantee the constant is rebuilt
+
+The recorded false-positive list for the repeated-constant blocker says: *"A
+call between the two sites — calls clobber the argument registers, so a constant
+used as an argument is rebuilt at each site whatever cse would prefer."* That
+was the largest of the three classes, 250 of the 406 originally suspected.
+
+**It is only true when the constant lives in a call-clobbered register.** If gcc
+has spare callee-saved registers, it will spend them to keep the constant across
+the call and feed the later site with a copy.
+
+MEASURED on `OvlFunc_891_2009b44`, which has `0x3333` and `0x1999` at two
+`__MapActor_SetSpeed` calls with a `bl` between them:
+
+    rom     ldr r1, =0x3333   ldr r2, =0x1999      -- rebuilt at BOTH sites
+    plain   ldr r5, =0x3333   ldr r6, =0x1999      -- once, then mov r1,r5 / mov r2,r6
+
+I read the intervening call as excusing the rebuild and wrote plain C. It came
+out **seven instructions LONG with two extra callee-saved registers**.
+
+### The marker is a WIDER PROLOGUE, not a `mov`
+
+This is why the case is easy to miss. The familiar symptom of the constant-hoist
+blocker is `mov rN, rM` where the ROM rebuilds. Here the copies are there too,
+but the *loud* signal is the prologue: `push {r5, r6, r7, lr}` plus an r11 save
+against the ROM's `push {r5, r6, lr}`.
+
+**When a straight-line candidate comes out LONGER than the ROM with extra
+callee-saved registers, look for a hoisted constant before looking anywhere
+else.** Three spellings were tried first — naming the coordinates, transforming
+them in place, reordering the statements — and all three made it worse, because
+none of them addressed the actual cause.
+
+### Anchor the arguments that participate, not the whole list
+
+The recorded rule is *"anchor every argument of any call you anchor any argument
+of"*, learned where partial anchoring perturbed an already-correct interleave.
+It is not unconditional. Here, pinning the two constants gave 24 differing and
+adding a third pin on the same call's `r0` argument gave **exactly 24** — the
+slot argument does not participate in the perturbed interleave, so pinning it
+buys nothing and only adds scaffolding a teardown would have to justify.
+
+Read the rule as: *anchor every argument that participates in the interleave you
+are fixing.* Where that is the whole list, anchor the whole list; where it is
+not, the teardown will say so.
