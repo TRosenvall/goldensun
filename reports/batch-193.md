@@ -155,9 +155,19 @@ code before quoting a park's number as a starting point.
 briefly contained one. The mechanism: `git rm` the hand-written `.s`, then the
 build **regenerates a file at that same path** while compiling the new `.c`, so
 the next `git add` re-adds it as a modification. This is almost certainly how
-the **~315 tracked `.s` files carrying `.gcc2_compiled.`** got there, in
-contradiction of BRANCH.md. Still awaiting a decision; no `.gitignore` entry
-covers them.
+the tracked `.s` files carrying `.gcc2_compiled.` got there, in contradiction
+of BRANCH.md. Still awaiting a decision; no `.gitignore` entry covers them.
+
+> **Correction, batch 194.** This report first gave that count as "~315". The
+> real figure is **3,496 generated `.s` files tracked under `asm/`**, out of
+> 4,616 tracked `.s` in total, against **3,545** elevated `.c` files. That is
+> very close to one generated `.s` per elevated function, which means this is
+> not a stray handful that escaped notice -- it is the tree's standing state,
+> and has been for a long time. The earlier number came from a partial count
+> and should not have been published without being checked the way the census
+> was. Whether BRANCH.md's prohibition is being violated wholesale or is
+> narrower than it reads is a question for the maintainer, but the scale of it
+> was misreported here.
 
 ## The pool of remaining work in this class
 
