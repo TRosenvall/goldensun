@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""crossed.py -- reject functions whose ROM crosses mov order against shift order.
+"""crossed.py -- flag functions whose ROM crosses mov order against shift order.
 
     python3 tools/crossed.py OvlFunc_922_2009154 [more names...]
 
@@ -18,17 +18,34 @@ cannot be set independently: writing the third argument inline flips the mov
 pair and takes the tail with it. Two mutually exclusive reachable states, the
 ROM a third.
 
-So this is a PRE-FILTER, not a diagnosis. It costs one pass over the .s and it
-is worth running before choosing a target, because three of the first five
-candidates ranked by tools/templated.py carried the shape -- which is why two
-consecutive rounds stalled on it after long per-function sweeps.
+CORRECTED: THE SHAPE IS REACHABLE AND THIS TOOL NO LONGER REJECTS ANYTHING.
+Both functions this was built to catch are now elevated, and so is a third it
+reported AVOID. One line closes the site -- a volatile asm on the FIRST mov the
+ROM issues, placed straight after its assignment:
 
-A CLEAN result is not a promise the function will match; it only means this
-particular wall is absent.
+    q1 = 0xdc; __asm__ volatile ("" : : "r" (q1)); q2 = 0x9d; q2 <<= 3; ...
 
-Validated against the two functions known to carry it,
-src/non_matching/ovl_7c460c/2008ff0.c and src/non_matching/ovl_7d30e0/2008b68.c,
-both of which it flags. An earlier version reported both CLEAN because it split
+It consumes the register, so the mov must be materialised before it, and it
+produces nothing, so gcc has no value to copy forward in place of the immediate.
+The mov order was never decided by the source, which is why every operand-level
+spelling tied; it is decided in the post-reload scheduler, and a scheduling
+barrier is the thing that reaches it. See "CORRECTED AGAIN: a VOLATILE ASM ON
+THE FIRST MOV reaches the crossed case" in docs/elevation.md.
+
+So a BARRIER verdict is a ROUTE, NOT A REJECTION: it says this function has a
+site that will sit two instructions from done until the barrier goes in, and
+where to put it. Run it before choosing a target for that reason, not to skip
+the candidate. A CLEAN result is not a promise the function will match; it only
+means this particular site is absent.
+
+The exit status is 1 when any crossed site was found. That is a "there is one
+here" signal for scripting; it is NOT a recommendation to skip, and nothing
+should treat it as one.
+
+Validated against the two functions this was built from,
+src/overlays/rom_7c460c/ovl_314_c_a_c_a.c and
+src/overlays/rom_7d30e0/ovl_30_c_a_c_c_a_a_a_c_a_c_a.c, both of which it flags
+and both of which now match. An earlier version reported both CLEAN because it split
 call blocks on `startswith('bl ')` and the disassembly separates the mnemonic
 with a TAB, so nothing ever split and the whole function collapsed into one
 block. A filter that passes the cases it exists to catch is worse than no
@@ -77,6 +94,21 @@ def crossed_sites(body):
 
 
 def find(name):
+    # A .s path is accepted in place of a function name. This exists so the tool
+    # stays testable: every function it was validated against has since been
+    # elevated, its listing removed from asm/, and a bare name lookup now reports
+    # NOT FOUND for all three. Recover one and pass the file:
+    #
+    #   git show 182f93e4^:asm/overlays/rom_7eaf28/ovl_314_c_a_c_c_c_c_c_c_c_c_c_c_c_a.s > /tmp/a.s
+    #   git show e336f4f1^:asm/overlays/rom_7c460c/ovl_314_c_a_c_a.s                      > /tmp/b.s
+    #   git show e336f4f1^:asm/overlays/rom_7d30e0/ovl_30_c_a_c_c_a_a_a_c_a_c_a.s        > /tmp/c.s
+    #   python3 tools/crossed.py /tmp/a.s /tmp/b.s /tmp/c.s     # all three BARRIER
+    #
+    # A filter that passes the cases it exists to catch is worse than no filter,
+    # and an earlier version of this file did exactly that. Check any change here
+    # against those three before trusting it.
+    if name.endswith(".s") and os.path.exists(name):
+        return name
     for s in glob.glob(os.path.join(ROOT, "asm/**/*.s"), recursive=True):
         txt = open(s, errors="ignore").read()
         if ".thumb_func_start " + name in txt:
@@ -95,12 +127,14 @@ def main():
             continue
         lines = open(path, errors="ignore").read().split("\n")
         i = next(k for k, l in enumerate(lines)
+                 if ".thumb_func_start " in l) if name.endswith(".s") else \
+            next(k for k, l in enumerate(lines)
                  if ".thumb_func_start " + name in l)
         j = next((k for k in range(i + 1, len(lines))
                   if ".func_end" in lines[k]), len(lines))
         n = crossed_sites(lines[i + 1:j])
         bad += 1 if n else 0
-        print("%-28s crossed-sites=%d  %s" % (name, n, "CLEAN" if not n else "AVOID"))
+        print("%-28s crossed-sites=%d  %s" % (name, n, "CLEAN" if not n else "BARRIER"))
     return 1 if bad else 0
 
 

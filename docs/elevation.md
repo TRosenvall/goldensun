@@ -13682,10 +13682,14 @@ The ROM is a third. This is structurally the same two-state trap measured on
 
 **Diagnostic value:** the cheap test is to compare the ROM's mov order against
 its shift order. If they AGREE, the site is ordinary and needs no lever. If they
-are CROSSED, no arrangement of pins, barriers or statement order reaches it, and
-the function should be parked on that basis rather than swept. Two functions,
-`src/non_matching/ovl_7c460c/2008ff0.c` at 2 of 157 and
+are CROSSED, no arrangement of pins, ~~barriers~~ or statement order reaches it,
+and the function should be parked on that basis rather than swept. Two
+functions, `src/non_matching/ovl_7c460c/2008ff0.c` at 2 of 157 and
 `src/non_matching/ovl_7d30e0/2008b68.c`, stalled here in consecutive rounds.
+
+**THE SENTENCE ABOVE IS WRONG ABOUT BARRIERS AND ABOUT PARKING, and it is left
+standing only because `tools/crossed.py` was built from it. Read the next
+subsection before acting on it.** Both functions it names are now elevated.
 
 Still open: why the batch-192 interleave DID close `OvlFunc_881_200b2f0`. That
 site interleaves each `mov` with the `neg` that consumes it, which is the same
@@ -13693,6 +13697,56 @@ shape as a shift consuming a mov, so it should be subject to this rule too. The
 `__Func_8012330(-1, -1, 0xe666)` call in `2008b68` is written in exactly that
 interleaved form and still comes out swapped. One of the two cases has a
 property the other lacks and it has not been identified.
+
+### CORRECTED AGAIN: a VOLATILE ASM ON THE FIRST MOV reaches the crossed case
+
+The two-state trap above is real and every measurement in it holds. The
+conclusion drawn from it -- park, do not sweep -- does not, and it cost two
+functions for two rounds. Both are now elevated:
+`src/overlays/rom_7c460c/ovl_314_c_a_c_a.c` (2 of 157 to exact) and
+`src/overlays/rom_7d30e0/ovl_30_c_a_c_c_a_a_a_c_a_c_a.c`, plus
+`src/overlays/rom_7eaf28/ovl_314_c_a_c_c_c_c_c_c_c_c_c_c_c_a_b.c`, which
+`crossed.py` reports as `AVOID` and which matched anyway.
+
+The lever is one line, placed after the FIRST mov the ROM issues:
+
+    q1 = 0xdc; __asm__ volatile ("" : : "r" (q1)); q2 = 0x9d; q2 <<= 3; ...
+
+**Why the seven forms in the 2008ff0 park could not find it.** Every one of them
+varied something the SOURCE controls -- operand order, pin presence, pin scope,
+how the two mov/shift chains interleave. The mov order is not decided there. It
+is decided in the post-reload scheduler, which orders the pair by which shift
+consumes first, exactly as that park worked out. An operand rewrite cannot
+express "materialise this one first"; a volatile asm can, because it CONSUMES
+the register (so the mov must precede it) and PRODUCES nothing (so there is no
+value for gcc to copy forward instead of rebuilding the immediate). That second
+half is the point -- the park had already measured that introducing a real
+dependence emits `mov rN, rM` rather than the immediate
+(`src/non_matching/ovl_793768/2008e0c.c`), and correctly rejected every
+construct that would. It asked in its closing paragraph for a construct with
+both properties. This is that construct; nobody tried it.
+
+So the inspection test keeps its diagnostic value and loses its verdict:
+**CROSSED means go straight to a volatile-asm barrier on the first mov. It does
+not mean park.** `tools/crossed.py` prints `BARRIER` rather than `AVOID` for
+this reason; its verdict is a route, not a rejection.
+
+This also answers half the "still open" question below it. The batch-192
+interleave closed `OvlFunc_881_200b2f0` and did not close the `-1, -1, 0xe666`
+call in `2008b68` because the interleave is an operand-level device and the
+constraint is a scheduling one -- when it appears to work it is because the
+schedule happened to agree, not because it was expressed. The barrier closes
+that call too.
+
+**Scope, measured, so this does not get over-read in the other direction.** The
+barrier does not go on every site: on `2008b68` the two barriers alone, applied
+while an earlier divergence was still open, scored WORSE than the park's
+baseline. That was an artifact -- everything after the first difference is
+misaligned, so a correct downstream fix counts as noise -- and it is a trap
+worth naming on its own. **The differing count is only meaningful for the FIRST
+divergence. Fix that, then judge anything applied after it.** With the earlier
+residue closed, tearing the same two barriers back out gives 5 differing at
+precisely the two sites they serve.
 
 ### CORRECTED: a CALL-CLOBBERED PIN reaches this class without any branch
 
