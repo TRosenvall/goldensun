@@ -52,6 +52,52 @@
  * with differing predecessors is not reachable by declarations. Worth checking
  * against before spending seven screens on one, as this cost.
  *
+ * BATCH 194: THE PIN DOES NOT REACH IT EITHER, and this is a THIRD measured
+ * boundary of that lever rather than another failed spelling. The pin closed
+ * five parks in batch 193, three of them in this same blocker family, so it
+ * was the obvious next thing. Six structurally distinct forms:
+ *
+ *   1. r0 and r1 both pinned, uninitialised, assigned in the ROM's order
+ *                                          -- 2 differ, unchanged
+ *   2. both pinned, INITIALISED at function scope, p0 declared first
+ *                                          -- worse: both movs hoist above the
+ *                                             call entirely
+ *   3. r1 pinned ALONE, to force the zero  -- 2 differ, unchanged
+ *   4. r0 pinned ALONE, uninitialised      -- 2 differ, unchanged
+ *   5. r0 pinned alone, initialised at its declaration
+ *                                          -- 2 differ, unchanged
+ *   6. both pinned, the zero passed through `p1 | 0`
+ *                                          -- 2 differ, unchanged
+ *
+ * Four of those six are BYTE-IDENTICAL to the seven declaration spellings
+ * above. gcc emits `mov r1, #0 / mov r0, #19` no matter which register is
+ * pinned, whether the pin carries an initialiser, or in which order the
+ * assignments are written.
+ *
+ * ONE THING DOES MOVE IT, and it is worth recording precisely because it does
+ * not finish the job. A real data dependence orders the pair:
+ *
+ *     p0 = 0x13;  p1 = p0 - 0x13;          -- gives `mov r0, #19 / mov r1, r0`
+ *
+ * The ORDER is now the ROM's. The second instruction is not: a dependence is
+ * carried in a register, so gcc emits a register copy where the ROM has an
+ * immediate. That is not a spelling problem, it is what a dependence IS. The
+ * two requirements are in direct conflict -- the only construct found that
+ * orders two independent movs is one that stops them being independent.
+ *
+ * SO THE BOUNDARY IS SHARPER THAN "the pin is inert here". The pin's knobs
+ * move the PINNED REGISTER'S OWN mov relative to other instructions. They do
+ * not decide which of two independent movs is emitted first, and pinning BOTH
+ * does not help -- confirmed here on r0/r1 and independently in
+ * src/non_matching/ovl_7ac2d8/200cf44.c, where seven forms including three
+ * that pin both bases all leave the post-allocation scheduler to choose. This
+ * park is now the second measurement of the same wall from a different angle.
+ *
+ * The join diagnosis above still stands and is not superseded: this call sits
+ * after a three-way join whose predecessors differ, so there is no single
+ * preceding call whose return type could decide r0's liveness. What batch 194
+ * adds is that the pin does not route around that, and why.
+ *
  * Everything else here needed no lever and is worth keeping: the branch
  * polarity falls out of writing the flag-clear case as the `if` body, and the
  * final `*p = 0` is a plain literal -- unlike src/overlays/rom_794ac0/
