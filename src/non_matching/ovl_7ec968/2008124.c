@@ -67,6 +67,16 @@
  * something it then has to undo around every call, and it spends
  * instructions doing so -- the function grows by one.
  *
+ * C SCOPE IS NOT THE LEVER, tried first thing next round. Declaring the base
+ * INSIDE the if-block -- `{ unsigned char *h = gState; ... }`, a real nested
+ * scope rather than a second function-scope local -- is BYTE-IDENTICAL to the
+ * kept form at 104 of 144. gcc's liveness analysis had already worked out that
+ * the second local dies at the end of the block; narrowing the C scope tells
+ * it nothing it did not know. So the difference is not about scope, and the
+ * remaining candidates are that the ROM's base is a different EXPRESSION
+ * (recomputed per use rather than held) or that the two blocks never shared a
+ * base in the source at all.
+ *
  * NEXT: problem 1 is the one to solve first, because 2 and 3 may be
  * consequences of the base's lifetime rather than separate choices. The
  * question is how to write a gState base that is dead at the end of a block
