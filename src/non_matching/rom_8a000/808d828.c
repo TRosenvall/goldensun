@@ -62,7 +62,33 @@
  * INSTALL NOTE: this TU needs an ALIAS_CFLAGS rule in the Makefile when it is
  * elevated. It is parked rather than installed because 4 differing is not a
  * match, and adding a flag rule for a non-matching TU would be misleading.
- */
+  *
+ * BATCH 198 -- THE REMAINING FOUR ARE THE LOAD-INTERLEAVE SHAPE, which is
+ * measured unreachable elsewhere, so this park should not be swept again
+ * without a new lever. Lining the ROM up shows the load sitting INSIDE the
+ * offset's two-instruction build:
+ *
+ *     mov r3, #0xb8 / ldr r2, [r5, #0x8] / lsl r3, #1 / add r3, r8 / strh
+ *
+ * That is the same shape as src/non_matching/ovl_7e3e08/2008de8.c, where seven
+ * forms were measured and none reduced the residue: a pin places the mov of the
+ * register it NAMES, and this needs a LOAD INTO A DIFFERENT REGISTER placed
+ * between that mov and its shift. Nothing in the source addresses that.
+ *
+ * Tried here and WORSE, 4 differing to 5: naming the store address in a local,
+ * which is docs/elevation.md's "name the address, not the offset" lever. It is
+ * the right lever for the `add r3, r8 / strh r2, [r3, #0]` half -- the ROM
+ * folds the offset into the base where we keep the register-offset form -- but
+ * applying it moves the load further from the mov and costs more than it buys.
+ * The two halves of this residue want opposite things.
+ *
+ * NOTE FOR WHOEVER FINISHES IT: this TU is not currently built with
+ * ALIAS_CFLAGS. No Makefile rule matches rom_8d5dc, so elevating this function
+ * needs an explicit -fno-strict-aliasing rule added alongside the existing ones
+ * at Makefile:239. The 4-of-94 figure above is measured WITH that flag forced
+ * by hand through tryc.
+ *
+*/
 extern int iwram_3001ebc;
 extern void *FindMapActorEvent(int kind, int arg);
 extern void CutsceneStart(void);
