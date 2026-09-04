@@ -14412,3 +14412,41 @@ matter where the declaration sits relative to the others, because the shift is a
 register's place in the ordering, and the assignment's position sets when the
 value is materialised.** Reach for the second when the first cannot go late
 enough.
+
+## Two pool loads and a SUBTRACT mean two symbol addresses
+
+gcc folds literal arithmetic. So a ROM sequence like
+
+    ldr r3, =0xcc6 / ldr r2, =0xc9b / sub r3, r2 / add r5, r3
+
+— two pool loads and a runtime subtraction to compute a compile-time 0x2b —
+cannot have come from two integer constants. It is the **difference of two
+symbol addresses**, which gcc has no way to fold.
+
+In this tree the message ids are absolute symbols in `message.sym`, and the
+established idiom is `extern int _MSG_xxx;` with `(int)(&_MSG_xxx)`. Written
+that way the two pool loads and the subtract fall out exactly.
+
+**The reading matters beyond the instructions.** `msg += _MSG_cc6 - _MSG_c9b`
+says the source shifts whatever the caller passed by the distance between two
+known lines — an offset from a base, not an assignment. Reading it as
+`msg = 0xcc6` compiles to a single pool load and loses the meaning as well as
+the match.
+
+Missing ids are a one-line addition to `message.sym`; that is existing practice
+for this family.
+
+## Two signed byte reads, two instruction sequences — the source picks
+
+`ldrsb` has no immediate-offset form, so a signed byte read through it needs its
+offset in a register first (`mov r1, #0` and then `[r3, r1]`). But that is not
+the only way gcc reads a signed byte, and one function can use both:
+
+    +0x3a9   mov r1, #0 / ldrsb r1, [r3, r1]          <- straight into an int
+    +0x3ac   ldrb r3, [r3] / lsl r3, #24 / asr r3, #24 <- via a signed char local
+
+**gcc picks on where the value lands.** Read straight into an `int` it uses
+`ldrsb`; assigned to a `signed char` **local** first, it emits the unsigned load
+and widens afterwards. Both are signed byte reads and both compare the same, so
+the difference is invisible in the semantics and shows up only as two extra
+instructions — easy to dismiss as noise.

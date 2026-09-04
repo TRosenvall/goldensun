@@ -190,3 +190,4 @@ _MSG_d1c = 0x0d1c;
  * pair goes too and the r5/r6/r7 assignment rotates. Only the base is named;
  * the +1 and +2 are real arithmetic in the ROM. */
 _MSG_c20 = 0x0c20;
+_MSG_cf1 = 0x0cf1;
