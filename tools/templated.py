@@ -42,6 +42,7 @@ from filtered import hand_written, arm_functions
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 START = re.compile(r"^\s*\.(thumb|arm)_func_start(?:_noalign)?\s+(\S+)")
 END = re.compile(r"^\s*\.func_end\b")
+HIREG = re.compile(r"\br(?:8|9|10|11)\b")
 
 
 def solved_sets():
@@ -100,8 +101,17 @@ def main():
                     sc = shared / float(len(syms))
                     if sc > best:
                         best, bestf = sc, path
+            # r8-r11 traffic is the single best predictor of an INTRACTABLE
+            # residue, and it is independent of template quality. A function
+            # needing more values live than the low registers hold is where the
+            # allocation-order parks come from. Measured on one round's list:
+            # 27 uses -> abandoned at 117 of 126, 17 -> parked at 104 of 140,
+            # ZERO -> elevated on the first candidate. Rank on the template,
+            # then filter on hi == 0.
+            hi = sum(1 for l in body if HIREG.search(l))
             if bestf:
-                rows.append((best, len(syms), n, name, os.path.relpath(s, ROOT), bestf))
+                rows.append((best, len(syms), n, hi, name,
+                             os.path.relpath(s, ROOT), bestf))
     # Ties break on SHARED-SYMBOL COUNT, not on size. A 1.00 built from TWO
     # shared symbols means the function calls one thing and reads one global and
     # some solved file happens to do both -- close to coincidence, and it says
@@ -111,10 +121,10 @@ def main():
     # still untested. Rows under three shared symbols are marked `?`.
     rows.sort(key=lambda r: (-r[0], -r[1], r[2]))
     print("%d candidates have a solved neighbour\n" % len(rows))
-    print("score syms insns  function                      neighbour")
-    for sc, ns, n, name, s, f in rows[:top]:
-        print("%.2f%s%3d  %4d   %-28s %s"
-              % (sc, " ?" if ns < 3 else "  ", ns, n, name, f))
+    print("score syms insns  hi  function                      neighbour")
+    for sc, ns, n, hi, name, s, f in rows[:top]:
+        print("%.2f%s%3d  %4d %3d  %-28s %s"
+              % (sc, " ?" if ns < 3 else "  ", ns, n, hi, name, f))
 
 
 if __name__ == "__main__":
