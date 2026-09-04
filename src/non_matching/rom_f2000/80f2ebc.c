@@ -43,4 +43,17 @@
  * (36 lines with -mlong-calls, 35 without) and via a const function pointer
  * (35).  The division has to stay a `/` for the surrounding code to come out
  * right; the symbol is the only thing wrong with it.
+ *
+ * RE-EXAMINED IN BATCH 219 AND THE ANALYSIS ABOVE STANDS.  Batch 218 elevated
+ * Func_80903bc, whose ROM also reaches divsi3_RAM through `bl _call_via_rN`,
+ * by holding the helper in a FUNCTION-POINTER LOCAL -- and that looked like it
+ * ought to unblock this pair, since this ROM's call is likewise indirect
+ * (`ldr r1, =divsi3_RAM / bl _call_via_r10`).  IT DOES NOT TRANSFER, for the
+ * reason already recorded two paragraphs up: there the pointer call IS the
+ * whole computation, whereas here the surrounding loop only comes out right
+ * when the division is written as `/`, and the pointer spelling was measured at
+ * 35 lines against the ROM's 36.  The indirect CALL FORM is not what is
+ * missing here -- `-mlong-calls` already produces it -- the POOLED SYMBOL NAME
+ * is.  Do not re-try the function-pointer route; try the per-object
+ * `objcopy --redefine-sym` rule described above, as a deliberate change.
  */
