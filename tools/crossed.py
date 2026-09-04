@@ -78,7 +78,14 @@ def crossed_sites(body):
             m = re.match(r"mov\s+r([0-3]),\s*#", s)
             if m:
                 movs.append(m.group(1))
-            m = re.match(r"lsl\s+r([0-3]),", s)
+            # THE CONSUMING OP IS NOT ALWAYS A SHIFT. What orders the movs is
+            # whichever instruction consumes each one first, and for a negative
+            # argument that is `neg`, not `lsl`. Scanning for `lsl` alone missed
+            # the __Func_80933f8 site in OvlFunc_909_200979c and the
+            # __Func_8012330 site in OvlFunc_931_20087b8 -- both real crossings
+            # in the negation form, both needing the same barrier, and both
+            # reported CLEAN. `asr` and `lsr` are included for the same reason.
+            m = re.match(r"(?:lsl|lsr|asr|neg)\s+r([0-3]),", s)
             if m:
                 lsls.append(m.group(1))
         shifted = [r for r in movs if r in lsls]
