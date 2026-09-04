@@ -34,7 +34,37 @@
  * `b`-less joins.
  *
  * NEXT: nothing source-level.
- */
+  *
+ * BATCH 205 -- THE PIN IS INERT HERE, MEASURED AT EIGHT SITES.
+ *
+ * The two differing pairs are, by instruction number rather than by prose:
+ *
+ *     70/71    rom  mov r1, #0x3 / mov r0, #0x8      ours the reverse
+ *    136/137   rom  mov r1, #0x8 / mov r0, #0x8      ours the reverse
+ *
+ * Pinning r0 and r1 and assigning them in the ROM's order changes NOTHING --
+ * not at the two sites alone, and not with all EIGHT calls of both long arms
+ * pinned. Byte-identical to the unpinned form in both cases, same count, same
+ * first difference.
+ *
+ * THIS BOUNDS THE PIN FURTHER THAN BATCH 197 DID. That batch ordered three
+ * argument registers by pinning, on a call whose fills the ROM ran backwards,
+ * and concluded a pin orders independent movs. It does not order these. The
+ * difference is not yet identified; what is established is that "a pin orders
+ * independent movs" is too strong as stated, and the 200a1c4 case should be
+ * read as three-register argument setup rather than as a general rule.
+ *
+ * Note the second pair: both registers receive 0x8, so this is also the
+ * same-value case from batch 192, where nothing in the source orders them.
+ * The first pair is NOT -- 3 and 8 are distinct -- so the two sites fail for
+ * what may be two different reasons.
+ *
+ * A CORRECTION TO THIS PARK'S OWN TEXT: it describes the residue as "the THIRD
+ * call of a four-call arm". The differing instructions carry anims 3 and 8,
+ * which are the SECOND and FOURTH calls of those arms, not the third. Picking
+ * sites from that description rather than from the instruction numbers wasted
+ * the first attempt here.
+*/
 extern void __MapActor_SetAnim(int slot, int anim);
 extern void __WaitFrames(int n);
 
