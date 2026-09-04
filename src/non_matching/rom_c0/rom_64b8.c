@@ -79,7 +79,28 @@
  * three-or-more out to two, which is not worth a build-system change on its
  * own; it is recorded here so that whoever finds a way through the loop case
  * knows these three come with it.
- */
+  *
+ * BATCH 198 -- THE PIN DOES NOT REACH THIS CLASS, and the reason is worth
+ * having beside the three members in preheader_load_merge.c. Batches 193-197
+ * closed a long run of parks by pinning an argument register, on the principle
+ * that a pin AVOIDS a pass rather than arguing with it. That principle has a
+ * boundary and this is on the far side of it:
+ *
+ *     the loaded value pinned to r3 (call-clobbered)   byte-identical to base
+ *     the loaded value pinned to r0                    one WORSE, 23 of 25
+ *
+ * A pin decides WHICH register holds a value and where its own write sits
+ * relative to other pinned writes. It says nothing about WHERE IN THE CONTROL
+ * FLOW a load is performed, and this residue is entirely that -- gcc factors
+ * two loads that reach the same test into one at the merge point, where the ROM
+ * performs the load on both incoming paths. The register is not the variable.
+ *
+ * The r3 result is the informative one: r3 is call-clobbered and the loop body
+ * contains a WaitFrames call, so if pinning could force a reload anywhere it
+ * would force one here. It does not, because the merged load already sits after
+ * the call in the merged block.
+ *
+*/
 #include "gba/types.h"
 
 extern u32 ewram_2002080;
