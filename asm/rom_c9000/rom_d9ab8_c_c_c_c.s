@@ -3389,8 +3389,10 @@
 
 .Leea08:
 	.incrom 0xeea08, 0xeea20
+	.global .Leea20
 .Leea20:
 	.incrom 0xeea20, 0xeea2c
+	.global .Leea2c
 .Leea2c:
 	.incrom 0xeea2c, 0xeea38
 .Leea38:
