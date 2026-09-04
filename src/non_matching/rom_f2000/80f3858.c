@@ -31,7 +31,32 @@
  *
  * The rest of the function -- the three scaled base additions feeding
  * Func_80f2ebc -- is byte-exact, including the interleaved lsl/add pairs.
- */
+  *
+ * BATCH 205 -- WRITING THE DERIVATION EXPLICITLY IS MUCH WORSE, not better.
+ *
+ * This park calls itself the mirror image of ovl_7ac2d8/200adcc.c: there the
+ * ROM loads two pool constants and gcc derives one from the other, here the
+ * ROM derives (`add r1, #1`) and gcc loads two. The natural move is therefore
+ * to write the derivation into the source, and docs/elevation.md records that
+ * deriving is reachable when the first value is genuinely CONSUMED before the
+ * increment -- which it is here, `add r3, r4, r1` precedes `add r1, #1`.
+ *
+ * It does not work. Both spellings measured:
+ *
+ *     off = 0x3001; p[off] = frames; off += 1; p[off] = 0;   26 lines, 20 differing
+ *     the same with `off++`                                  26 lines, 20 differing
+ *
+ * against 28 lines and 7 differing for the two plain literal indices kept
+ * below. The function comes out TWO INSTRUCTIONS SHORT, so gcc is not merely
+ * ordering things differently -- naming the offset lets it fold both stores
+ * through one address computation and drop work the ROM does.
+ *
+ * So the mirror framing does not carry a lever with it. The reachable-derivation
+ * rule is about a value that must survive as a VARIABLE across its uses; here
+ * naming it gives gcc a strength-reduction opportunity it takes, and the ROM's
+ * `add r1, #1` is a consequence of how it held the offset rather than something
+ * the source asked for.
+*/
 extern char *iwram_3001ed0;
 extern void Func_80f2ebc(void *a, void *b, void *c, int n);
 
