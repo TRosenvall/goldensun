@@ -433,6 +433,22 @@ asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a_c_c_b.o: src/overlays/rom_7f2f14/ovl_
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# OvlFunc_968_2009150 is the FOURTH function under the same mis-scoped
+# ovl_30_c_a_c_a_c_a% wildcard.  It had been PARKED at 14 differing, which is
+# exactly what the wrong flag costs: at -O2 the same unchanged candidate is 6,
+# and the six turned out to be three ordinary transpositions that levers
+# already on file close.  Two of the three were only visible once the flags
+# were right.
+#
+# That is the fourth false residue and the second false PARK from this one
+# wildcard, so the pattern is worth stating plainly: when a park's TU sits
+# under a wildcard rule, re-screen at the default flags BEFORE reading the
+# residue as evidence about the source.  tools/tryc.py prints the warning.
+asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a_c_c_a_b.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a_c_c_a_b.c
+	$(GCC296_CC) $(GCC296_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 
 # OvlFunc_962_2008a78: gcc deletes three reloads of a pointer field across
 # byte/bitfield stores into the pointed-to struct, coming out three instructions
