@@ -53,6 +53,26 @@
  * 4 differing instead of 1, first diff moves earlier (21 vs 24).  The narrow
  * local forces its own truncation sequence.  Constant-mode locals are
  * exhausted here; the remaining 1 instruction is pool-vs-immediate placement.
+ *
+ * THE PIN LEVER DOES NOT ESCAPE THIS EITHER, and that is worth having measured.
+ * A register pin is a different mechanism from every local tried above -- it
+ * names the hard register instead of asking the allocator for one -- and the
+ * ROM's `mov r3, #0x63` is literally a value in r3, so it looked like the
+ * shape this lever is for.  It is not:
+ *
+ *     register int w __asm__("r3"); w = 0x63;   1 -> 4 differ
+ *     register int w __asm__("r3") = 0x63;      1 -> 9 differ, and 29 lines
+ *
+ * The uninitialised form lands on exactly the 4 that a plain `int w` gives.
+ * That is the tell: the pin is not being ignored, it is paying the SAME cost,
+ * because the cost was never about which register or how it was requested --
+ * it is that any named value must be LIVE ACROSS the store and this function
+ * has nothing to spare there.  The initialised form is worse still, moving the
+ * assignment up to the declaration and lengthening the function.
+ *
+ * So the precondition stated above governs the PIN as well as the int local:
+ * both buy operand mode with one live register, and neither is free where
+ * there is no headroom.  A pin is not a way around register pressure.
  */
 extern int iwram_3001ebc;
 extern unsigned char gState[];
