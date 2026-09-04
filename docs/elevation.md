@@ -15056,3 +15056,129 @@ containing both, four instructions apart:
 So the ladder stands as recorded -- pins, then reordering, then barrier -- and
 the presence of both in one function is the reason none of the three can be
 promoted to a default.
+
+## tryc.py HAS TWO BLIND SPOTS, and tools/objcmp.py exists for them
+
+`tryc.py` compares INSTRUCTION STREAMS and normalises every PC-relative load to
+`=value` so that pool PLACEMENT cannot cause false diffs. That normalisation
+hides two real things, and batch 218 hit both in one round:
+
+  * **POOL ORDER — a false PASS.** `Func_80982dc` screens with 86 instructions
+    against 86, 196 bytes against 196 and ZERO differing mnemonics, and fails
+    `make compare`. Its nine pool words are the ROM's nine, ROTATED: gcc emitted
+    the last one first. A ROM `.s` reaches constants with `ldr rX, =value`, so
+    the ASSEMBLER pools them in INSTRUCTION order; gcc emits its own `.word`
+    list in ITS order. Every `ldr [pc, #N]` then points four bytes further.
+  * **DUPLICATE LABELS — a false FAIL.** `OvlFunc_928_2008500` screens at "6
+    differ" and is byte-identical: gcc put its pool-dump target and its epilogue
+    label at one address, and a disassembly can only show one label there.
+
+    python3 tools/objcmp.py <candidate.c> <reference.s> [--func NAME]
+
+compares size, every encoding and every relocation. **Run it whenever tryc's own
+`!!` warning says the reference keeps its pool inside the function** -- that
+warning marks precisely the cases where the normalisation can hide something. It
+does not replace tryc (which tells you WHICH instruction is wrong while you
+iterate) or `make compare` (which sees layout and linker-script mistakes).
+
+**WRITE AND BUILD ONE FUNCTION AT A TIME.** Batch 218 wrote two into the build
+together and went red; because both screened clean, neither could be blamed and
+it took a bisect to find which. The minute saved is not worth it.
+
+## THE TWO NAMING RULES ARE ONE RULE
+
+Batch 216: do not name an intermediate consumed immediately -- the name buys it
+a register. Batch 218's `OvlFunc_897_200935c` is the exact inverse: its four
+switch arms store through one global, and unnamed, the address is computed AFTER
+the call into a scratch register, which makes each arm's store textually
+identical to the early-return path's and lets cross-jumping merge them -- two
+lines short. A named pointer per arm puts the address in a callee-saved register
+before the call and the merge stops.
+
+**NAME A VALUE THAT MUST SURVIVE SOMETHING** -- a call, or a register choice you
+need. **DO NOT NAME ONE WHOSE ONLY ROLE IS TO BE CONSUMED IMMEDIATELY.** Both
+batches are the same rule seen from its two sides.
+
+## A POOLED SMALL CONSTANT IS NOT AUTOMATICALLY A SYMBOL
+
+The `area.sym`/`const.sym` tell says a pooled value an eight-bit `mov` could
+build names a symbol. `OvlFunc_928_2008500` shows the tell firing and being
+WRONG: `(int)&_AREA_00` reproduces the pool TEXT, and a bare literal `0` is what
+matches -- it gives a NARROW pool reference (`ldrh` against `.word 0`) encoding
+the same halfword, and that single token fixes three residues at once (the pool
+dumps inside the function with the ROM's branch over it, `.word 0` sorts ahead
+of a symbol whose instruction comes earlier, and the address temporary is forced
+into `ip`).
+
+Ten spellings around that temporary tied at EXACTLY 27 differing; the exact tie
+is the tell that the variable was never the problem. MEASURE the literal before
+reaching for a symbol.
+
+This contradicts `src/non_matching/ovl_7d6418/2008dd0.c` ("byte stores have no
+QImode analogue of the halfword pooling exception. MEASURED: they do not"). One
+plainly does; that park needs re-measuring with a bare `0`.
+
+## LET gcc CROSS-JUMP A SHARED TAIL -- do not write the share as a `goto`
+
+Where two arms end in the same code, writing the share explicitly as a `goto`
+into a common label CONSTRAINS THE ALLOCATOR in a way cross-jumping does not.
+On `OvlFunc_911_200a6cc` the explicit form never beat 2 differing across six
+configurations -- limit pinned, limit free, bound named and pinned, bound named
+free, bound assigned early, and a barrier keeping the limit live -- because the
+bound's pool load kept landing in the register the limit had just vacated.
+Writing both arms out in full and letting jump.c merge the identical tails is
+exact. gcc merges them either way; only one way lets it choose registers first.
+
+## `do { } while (0)` IS A SCHEDULING BARRIER THAT EMITS NOTHING
+
+On `OvlFunc_880_2008154` the last five differing lines were purely the order of
+two independent pool loads. Wrapping a pair of statements in `do { } while (0)`
+splits the block into two scheduling regions and closes it, at zero instruction
+cost. The volatile-asm barrier was tried at both plausible points and lands the
+load too early (9 differing) or still needs help (3).
+
+Reach for this before the asm barrier when the residue is the ORDER OF TWO
+INDEPENDENT SETUP SEQUENCES rather than a mov/shift crossing.
+
+## DO NOT PASS A COMPUTED VALUE AS AN INLINE'S ARGUMENT
+
+gcc evaluates an inline's arguments BEFORE the inlined body. On
+`OvlFunc_880_2008154` that hoisted an expression above the interrupt guard the
+inline installs -- an argument is not "at the call site", it is before
+everything the inline does. Specialising a second inline that builds the value
+at its point of use took 50 differing to 38.
+
+## WIDEN A VARIABLE SO AN EXPLICIT CAST SURVIVES
+
+Held as `u16`, a counter has its narrowing folded away at tree level and gcc
+compares the register directly. Where the ROM keeps the UN-folded zero extension
+(`lsl rX, #0x10 / lsr rY, #0x10`), the variable must be `int` with explicit
+`(u16)` casts at the use sites. 38 differing to 5 on `OvlFunc_880_2008154`.
+
+## Three smaller entries from batch 218
+
+  * **A NAMED BYTE OFFSET BLOCKS REASSOCIATION.** `off = idx * 4 + 0x14;` then
+    `*(T **)(p + off)` keeps the ROM's separate `add`; written as one expression
+    gcc folds the constant into the load's displacement instead.
+  * **STATEMENT ORDER DECIDES REGISTER NAMING.** On `Func_808bd24`, fetching one
+    global before another rather than after is 12 differing against 24 -- a
+    reordering that changes nothing semantically.
+  * **A MAIN-ROM FUNCTION CAN REACH `divsi3_RAM` LEGITIMATELY** when the ROM
+    calls it INDIRECTLY: a function-pointer local holding `divsi3_RAM` emits
+    `bl _call_via_rN` and side-steps the `__divsi3` alias blocker that parks
+    `src/non_matching/rom_8a000/809088c.c`. Writing `/` would not. Also on that
+    function: **the callee's RETURN TYPE decides r0 fill order for a DIRECT
+    call**, not only an indirect one -- `extern int StopTask(void *)` fills r0
+    last and matches where `extern void` fills it first.
+
+## When a ROM folds a constant into the INDEX, the BASE is a real variable
+
+`Func_80b5a0c` keeps `s + 2` in `ip` across three paths and folds `0x64` into
+the index register (`strh r2, [r5, r3]`, r3 = 0x64 + 2*idx). Collapsing that to
+the obvious single pointer `(short *)(s + 0x66)` is TEN INSTRUCTIONS SHORT;
+writing the base out as its own variable and indexing `p[0x32 + ...]` recovers
+all ten.
+
+The general form: if the ROM could have folded a constant offset into the base
+and did not, the base is being held for another reason -- usually because it is
+live on a path where the index is not.
