@@ -16246,3 +16246,102 @@ So: an EXTRA relocation in the candidate refutes nothing on its own. What
 refutes a symbol is a relocation pointing somewhere the ROM does not; what
 confirms one is `make compare`. That function needed `_CONST_a1` after ten
 literal spellings all emitted `mov r0, #0xa1`, and compare is what settled it.
+
+## THE POOL'S ORDER DISCRIMINATES A LITERAL FROM A SYMBOL
+
+`OvlFunc_909_200a1bc` is the counterweight to `_CONST_a1`, which entered
+const.sym on the strength of the same surface tell. Read the two together.
+
+Its four byte stores read `ldr r5, [pc, #60]` off a MID-FUNCTION pool whose
+words are `[0, 0x2410000, 0x2960000, 0xfffc0000]`. The zero sorts FIRST --
+ahead of a constant whose own `ldr` is forty-five instructions EARLIER.
+`add_minipool_forward_ref` keeps the pool sorted by `max_address`, so an entry
+can only sort ahead of an earlier reference when ITS OWN reference is NARROW:
+gcc routes the QImode zero through an HImode temp with a 64-byte pool range,
+against the ROM's displacement of 60. That narrowness is also what dumps the
+pool mid-body with the ROM's `b` over it.
+
+`(int)&_CONST_0` reproduces the REGISTER and the PLACEMENT and still fails: it
+sorts the zero THIRD and moves all eleven words to the end, four bytes short.
+
+**So when a pooled small value looks like a symbol, read the pool's ORDER, not
+only its contents.** An entry sitting ahead of an earlier reference is evidence
+of a narrow-mode literal, and it is evidence the register allocation alone
+cannot give.
+
+## A HOMOGENEOUS RESIDUE IS ONE LEVER, NOT N PROBLEMS
+
+On `OvlFunc_896_2009450` the uniform fill left thirteen differing lines across
+six sites, and every one was the same fault -- `mov r0` needing to sit BETWEEN
+the `mov r1` and its `lsl`. One reading fixed all six.
+
+Before grinding through a residue site by site, check whether the differing
+lines share a shape. Thirteen lines of one fault are cheaper to read than to
+bisect, and the count is not the difficulty.
+
+## A SIBLING'S DECLARATION OF A SHARED CALLEE IS NOT AUTOMATICALLY RIGHT
+
+`OvlFunc_896_2009450` calls an intra-overlay function that a sibling file
+declares as returning `int`. Declaring it `int` here costs 16 differing;
+`void` matches. Whether the call writes r0 truncates the dependent list of the
+`mov r0` feeding it and flips an argument-setup scheduling tie.
+
+Copy a neighbour's callee signatures as a starting point, then measure the ones
+whose return value you do not use.
+
+## SOMETIMES EVERY PIN IS LOAD-BEARING
+
+`OvlFunc_930_20081ec` needed 46 pins and NOT ONE is removable -- every one was
+tried individually under objcmp and every one fails. The usual result is a
+third to a half inert.
+
+"N pins is a size, not a set" has been about WHICH subset survives; a function
+whose answer is "all of them" is a real data point, not a failed sweep. Run the
+sweep anyway -- the cost is one screen per site and the alternative is shipping
+scaffolding you cannot justify.
+
+## `__Func_8092c40` WANTS THE DESCENDING FILL
+
+Four functions now (`OvlFunc_966_2008218`, `OvlFunc_910_20085dc`,
+`OvlFunc_938_2009494`, `OvlFunc_952_20097e8`) have this callee as the LONE site
+needing `q1 = 0; q0 = N;` while every other site takes the uniform ascending
+fill. On two of them it was the entire residue.
+
+Write it descending on sight, then measure the rest.
+
+## ONE SCRATCH-REGISTER PIN CAN SETTLE TWO DISTANT CLUSTERS
+
+On `OvlFunc_891_2008150` the closing store block was twelve differing because
+`REG_ALLOC_ORDER` is `{3, 2, 1, 0, ...}`: gcc takes r3 for the offset and r2
+for the address, and the ROM has them the other way.
+`register int *d __asm__("r3")` closes it -- AND fixes two `ldrsh` index
+registers forty instructions earlier, as a side effect of the allocation it
+forces.
+
+When a residue looks like two unrelated clusters, try a scratch pin on one
+before attacking the other: six spellings of the earlier cluster measured inert
+on its own.
+
+## A PARTIAL REORDER IS A PRIORITY TIE, NOT A BARRIER PROBLEM
+
+The recorded `do { } while (0)` lever ENDS a scheduling region. That is the
+wrong tool when the ROM shows a PARTIAL reorder -- some insns moved, others not.
+
+On `OvlFunc_952_20097e8` the ROM emits a `strh` before its `ldr` while still
+hoisting the address load above both. With two dependent stores the load
+outranks the `strh`; with one they tie and the lower LUID wins. The cure is to
+wrap ONLY THE SECOND store, not the region: every whole-region spelling -- a
+bare barrier between the stores, one around the first, one around both -- costs
+696 differing.
+
+**If the ROM's reorder is partial, you are looking at a tie, and the fix is to
+change what ties, not to end the region.**
+
+## COPY THE SCREENED BODY VERBATIM, NEVER BY PATTERN
+
+Extracting a candidate's body by slicing from the first `extern` dropped a
+`struct` definition sitting above it, and the build failed on incomplete types.
+An earlier instance sliced an `#include` off a file the same way.
+
+Find the first line of the body and copy from THAT LINE NUMBER. A pattern that
+looks like the start of the code is not the start of the code.
