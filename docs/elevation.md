@@ -16615,3 +16615,60 @@ sizing line that sorts functions into worth-the-lever and out-of-reach is
 sorting by ONE lever. Barriers remain the wrong tool at an interleaved site --
 7 differing at any placement, because they reschedule the neighbouring `ldr`s
 too.
+
+## Two byte stores that may alias cost a scheduling slot; two struct tags buy it back
+
+Sharpens the `-fno-strict-aliasing` entries and the `rank_for_schedule` entries,
+and adds a step to the latter that was not recorded.
+
+`OvlFunc_883_200b2b0` and `OvlFunc_883_200b380` each came down to ONE `mov`
+wedged between two independent byte stores. Read out of `haifa-sched.c` in the
+build image, not inferred.
+
+**The missing step.** The recorded reading of `rank_for_schedule` is that it
+compares `INSN_PRIORITY` first and falls through to insn order. Between those
+two there is a CLASS test, and it decides this case. Instructions are classed:
+
+    1  data dependence on the last-scheduled insn
+    2  anti- or OUTPUT dependence
+    3  independent, or latency 1
+
+and the highest class wins, **before** the dependent-count tie-break. Here all
+four ready candidates tie at priority 13, so priority decides nothing.
+
+Through `unsigned char *` both stores sit in ALIAS SET 0, which aliases
+everything, so the second store carries an OUTPUT DEPENDENCE on the first. Its
+cost is 2, so the "latency of one" escape in class 3 does not apply: the store
+is class 2 and loses outright to the independent `mov` at class 3 -- before its
+NINE dependents against three would have won it the slot.
+
+**The cure, and the part that is new: it takes BOTH sides.** gcc-2.96 gives a
+distinct alias set per struct tag. Reaching the two bytes through two DIFFERENT
+tags removes the dependence, both go class 3, and the dependent count then picks
+the store -- the ROM's order.
+
+Casting either one back to a char pointer regresses (2 and 3 differing
+respectively). So this is NOT the recorded "a `char` lvalue is alias set 0 and
+cannot move past the other stores" lever, which uses set 0 to PIN a store in
+place -- this is the opposite direction, and it is not "name one field" either:
+
+> **THE PAIR MUST SIT IN TWO DISTINCT NAMED ALIAS SETS** before the dependence
+> graph will put them adjacent.
+
+**It also makes register pins evaporate**, which is "a pin can be a symptom of a
+different defect" at its sharpest. Before the alias reading, three parameters
+came out of local-alloc rotated and `register int __asm__("r8")` +
+`__asm__("r10")` took the screen 8 -> 2, with ANY TWO of the three working --
+the exact profile of a real lever. With the struct tags in, all three measure
+EXACTLY ZERO and none ships.
+
+**Standing hazard.** A TU matched this way must NEVER fall under an
+`-fno-strict-aliasing` rule: that flag destroys precisely the separation the
+match depends on. `ALIAS_CFLAGS` exists in the Makefile for the opposite case,
+with a note that applying it globally fails -- so the two levers are live in the
+same tree and pull in opposite directions. Check which one a TU needs before
+adding it to either group.
+
+Corroboration: two agents reached these two functions independently, by
+different routes, and converged on this mechanism. Their two candidates for
+`200b380` are different source and produce identical objects.
