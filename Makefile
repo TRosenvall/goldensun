@@ -277,6 +277,11 @@ asm/overlays/rom_7f6e64/ovl_314_a_a_a_c.o: src/overlays/rom_7f6e64/ovl_314_a_a_a
 # NOT a general key -- do not reach for it without reading the diff first.
 GCSE_CFLAGS := $(GCC296_CFLAGS) -fno-gcse
 
+asm/rom_8a000/rom_8ba38_a_c_b.o: src/rom_8a000/rom_8ba38_a_c_b.c
+	$(GCC296_CC) $(GCSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 # -fno-schedule-insns2 : OvlFunc_945_2009978 hoists `mov r0,#0x8f / lsl r0,#4`
 # above the gState[0x22b] store at -O2.  The post-reload scheduler is what does
 # it; the named-shifted-local lever does not reach it, and -O1 matches too but
