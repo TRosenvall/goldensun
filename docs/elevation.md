@@ -15277,3 +15277,104 @@ PASS-LEVEL property, and no source text can reach it.
 
 Use that test before adding a rule. "I could not find a spelling" is not
 evidence; "the spellings provably cannot differ" is.
+
+## DO NOT NAME A LOOP-INVARIANT -- and a park that got this backwards
+
+A loop-invariant constant written as a NAMED local is cheap for gcc to
+rematerialise per iteration, so it does -- `mov`/`lsl` inside the loop. Written
+as a BARE INLINE LITERAL it becomes a pool reference, and `loop.c` hoists pool
+loads into the preheader. If the ROM hoists it, do not name it.
+
+`Func_8098a84` measured NINE spellings -- `int`, `unsigned short`, three
+placements of the assignment, an explicit read-add-write, a signed store, a
+named halfword temp, a file-scope `static const` -- and every named form tied at
+16 differing. Only the bare literal reached it.
+
+The shared assumption behind all nine is that a loop-invariant must be NAMED so
+it survives the call inside the loop. It is exactly backwards: naming it is what
+makes it cheap enough to rebuild, and only an unnamed one is worth hoisting.
+
+**THIS REFUTED A PARK.** `Func_809a3c4` (the twin) sat at 16 of 62 asserting the
+hoist was unreachable -- "gcc prices `mov`+`lsl` below a pool load, and nothing
+in the C reaches that decision" -- having measured three placements, ALL NAMED.
+The pricing argument was correct and the conclusion wrong, because that choice
+is not made until AFTER the constant has become a pool entry, and whether it
+does is decided by naming.
+
+Two rules follow, and they apply to every park in the tree:
+
+  * **A PARK IS A HYPOTHESIS, and the cheapest thing that can refute one is a
+    SIBLING LANDING.** When a function matches, re-read the parks that share its
+    shape before moving on.
+  * **A park that measured N spellings has only ruled out what those N SHARED.**
+    State the shared assumption explicitly in the park, or the next reader will
+    re-measure the same class.
+
+## THE VARIABLES *ARE* THE ALLOCATION
+
+gcc-2.96 has NO live-range splitting. One C variable becomes one pseudo, and
+global-alloc gives that pseudo a callee-saved register if ANY part of its range
+crosses a call -- even when the sub-range that matters dies immediately.
+
+So which C variable holds which value is directly observable in the register
+class, and it is a first-class lever rather than a stylistic choice.
+
+On `OvlFunc_956_20093c0` the whole residue was this. Writing two
+logically-distinct reads as the SAME variable, with a third re-read as a
+separate short-lived one, produced both the ROM's `mov r5, r0` copy in the first
+block and no copy in the second. The other assignment costs the copy and comes
+out a line SHORT (74 differing); naming a counter temp to force it only
+RELOCATES the copy into the other block (49); pinning is far worse (84 of 86).
+
+When a copy appears or fails to appear and no amount of statement reordering
+moves it, ask WHICH VARIABLE the value belongs to, not where the statement sits.
+
+## A shared MIDDLE must be shared IN SOURCE
+
+Batch 219 recorded "let gcc cross-jump a shared tail rather than writing the
+share as a `goto`". That entry is about a shared TAIL. The opposite holds for a
+shared MIDDLE:
+
+`jump.c` merges blocks that are IDENTICAL. A middle block reached from two arms
+with a DIFFERING CONSTANT is not identical, so it can never be produced by
+cross-jumping. On `OvlFunc_971_2008d68`, writing both arms out in full lets gcc
+constant-propagate the id and the ROM's register phi never appears at all -- 62
+differing. Write the shared middle ONCE.
+
+**AND WHICH PAIR gcc MERGES IS DECIDED BY SOURCE BLOCK ORDER.** With both early
+returns inline, gcc cross-jumped the two EARLY RETURNS together and left the
+shared block its own tail copy (54 differing); the ROM does the opposite. One
+`goto` placing the last arm's early return AFTER the shared block flips which
+pair merges. Note that `goto` is on the UNSHARED arm -- which is what keeps this
+consistent with the tail rule rather than contradicting it.
+
+## A byte-wide `-1` is a MODE artefact, not a spelling
+
+With a `char *`, `*p = *p - 1;` compiles the `-1` in QImode and gcc canonicalises
+it to `add rX, #0xff`, where a ROM doing the obvious thing has `sub rX, #0x1`.
+
+FOUR syntactically distinct decrements -- `*p = *p - 1`, `(*p)--`, `*p -= 1`,
+`*p = *p + -1` -- all lower to the same QImode `plus -1` and all emit the same
+wrong instruction. The cure is to change the MODE, by naming the loaded byte in
+an `int`:
+
+    int n = *p;
+    *p = n - 1;
+
+**THE ASYMMETRY IS THE TELL.** The INCREMENT needs no such treatment: `+1`
+survives QImode intact. So this is not "narrow arithmetic needs a name" -- it is
+specifically that a NEGATIVE addend is canonicalised into an unsigned byte add
+and a positive one is not. Scope the temp to the arm, matching the ROM's live
+range.
+
+## Before writing up a tell, GREP THE PARKS FOR IT
+
+The epilogue tell -- `pop {r1} / bx r1` rather than `pop {r0} / bx r0` meaning
+r0 carries a return value, so the function is non-void -- was written up as new
+in batch 220 and was ALREADY on file in
+`src/non_matching/rom_15000/8019908.c` ("a reliable void/non-void tell"), and in
+use by a second park.
+
+One `grep` over `src/non_matching/` would have caught it. The cost of the
+duplicate is not the wasted paragraph; it is that two records of the same rule
+drift apart and a later reader cannot tell which is current.
