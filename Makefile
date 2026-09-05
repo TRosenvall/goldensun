@@ -656,6 +656,26 @@ asm/overlays/rom_7a67d8/ovl_30_c_a_c_c.o: src/overlays/rom_7a67d8/ovl_30_c_a_c_c
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
 CSE_CFLAGS := $(GCC296_CFLAGS) -fno-rerun-cse-after-loop
+
+# -frerun-loop-opt is on at -O2, and pass 2 is what reverses a counting loop.
+# Func_801ff58 needs pass 1 (the giv reduction that produces the ROM's
+# strength-reduced pointers) but NOT pass 2 (which reverses its counter).
+# Mechanism: pass 1 reduces the subscript givs into independent bivs, so pass 2
+# sees giv_count == 0, sets no_use_except_counting, and check_dbra_loop reverses
+# a loop it otherwise could not -- the loop HAS a call, so that flag is the only
+# way through the outer gate.
+#
+# The recorded cure for check_dbra_loop is a backward `goto`. That is WRONG
+# here: it costs 57 differing, because it also destroys the giv reduction the
+# ROM depends on. -fno-strength-reduce is not a substitute either -- it kills
+# both passes, 60 differing. Use `goto` when you want NO loop optimisation, and
+# this flag when you want pass 1 but not pass 2.
+RERUNLOOP_CFLAGS := $(GCC296_CFLAGS) -fno-rerun-loop-opt
+
+asm/rom_15000/rom_1fe2c_c_a_b.o: src/rom_15000/rom_1fe2c_c_a_b.c
+	$(GCC296_CC) $(RERUNLOOP_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 # OvlFunc_901_2008804 reads and then sets the same save flag, 0x307. At plain
 # -O2 gcc hoists the id into r5 across the call, paying a push and a pop to save
 # one pool load; the ROM loads it twice. 29 differing lines become none.
