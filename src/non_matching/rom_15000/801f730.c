@@ -1,3 +1,31 @@
+/* ============================================================================
+ * CORRECTION -- THE BLOCKER RECORDED BELOW IS REFUTED. Residue is now 3, not 8.
+ *
+ * This park (and docs/elevation.md, twice, naming this function) states that
+ * `ldrb` + `lsl #24` before `cmp #0` is unreachable from C, generalising to any
+ * narrowing shift before a zero test. That is WRONG.
+ *
+ * WHAT DECIDES IT IS THE INDUCTION FORM, not the type or the comparison. The
+ * ten probes recorded below all varied the operand type or the test; none
+ * varied how the address is walked. Isolated A/B in one file, same flags, same
+ * semantics (scratch_elev/b235/f801f77c/probe_giv.c):
+ *
+ *   walking POINTER  (p += 0x40; p[0])   ->  mov r3,#0 / ldrsb r3,[r2,r3] / cmp
+ *   walking INDEX    (k += 0x40; p[k])   ->  ldrb r3,[r2] / lsl r3,#24 /
+ *                                            add r2,r2,#64 / cmp r3,#0
+ *
+ * The second is the ROM's sequence INCLUDING the interleaved `add` this park
+ * blamed on the scheduler. Written that way the function goes 8 differing -> 3.
+ *
+ * REMAINING RESIDUE (3): one register. The ROM lets the loop counter reuse the
+ * register the offset constant died in; the counter init is ordinary code while
+ * the giv init is emitted at the END of the preheader, so the two ranges
+ * overlap. Seven spellings and every flag group measured inert on it.
+ *
+ * Candidate at scratch_elev/b235/f801f77c/f801f730_sibling.c. Its sibling
+ * Func_801f77c, in the same .s, is now ELEVATED by exactly this route.
+ * ============================================================================
+ */
 /* Func_801f730 (0x0801f730) -- NON-MATCHING.
  * Blocker class: a byte test gcc-2.96 will not spell the ROM's way.
  *
