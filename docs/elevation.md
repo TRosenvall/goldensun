@@ -16574,3 +16574,44 @@ callee-saved register into a rematerialised scratch one. The rule already says
 to read which of the two the ROM does; the trap worth naming is that a NAMED
 LOCAL IS NOT A NEUTRAL WAY TO ASK. Where gcc already carries a value unaided,
 leaving it as a bare repeated literal is what preserves the carry.
+
+## The straight-line "out of reach" boundary is a boundary ON A LEVER, not on the shape
+
+Two entries above state it. The batch-152 BOUNDARY says "a function with no
+branches is out of reach", reasoning that a straight-line function has exactly
+one basic block so there is no different block to assign the constant in. The
+sizing under "Argument-setup order: the zero interleaved into a shifted build"
+carries it forward: of 248 functions with the shape, "150 have a conditional
+branch before the site and are worth the lever. 98 are straight-line at every
+site and are, for now, out of reach."
+
+**Both are correct about the dominating-block lever and wrong as a statement
+about the shape.** `OvlFunc_956_200a0f0` has such a site that is straight-line --
+deep inside a single `r == 0` block, no branch to dominate from -- and it
+matched, through a SECOND AND INDEPENDENT CURE:
+
+    { PIN2; q0 = 0; q1 = 0x80 << 8; __MapActor_SetSpeed(q0, q1, 0x80 << 7); }
+
+A pinned WHOLE-VALUE fill with the ZERO WRITTEN FIRST, pinning r0 and r1 only
+and leaving the third argument bare.
+
+Why no branch is needed: seed `mov`s sort by first-consumer position, so the
+split build puts `lsl r2` first and therefore `mov r2` first, which is
+backwards. The whole-value spelling makes both seeds depth-2, so they TIE and
+break by ARGUMENT ORDER instead -- and the zero is the depth-1 statement placed
+by hand between the two shifts. Nothing is hoisted, so nothing needs dominating;
+the order is settled inside the call's own argument list. The dominating-block
+lever moves a value to a different block; this one changes what ties.
+
+**Do not read this as the 98 being cured.** It is one counterexample, and the
+same function bounds it: a SECOND `__MapActor_SetSpeed` with IDENTICAL arguments
+wants the OPPOSITE spelling -- the split build, r0 unpinned -- and site 3's form
+there costs 108. Eighteen spellings were measured across that one block. The
+cure is site-specific and the discriminator (what else the site is interleaved
+with) is not yet characterised.
+
+What IS established: "straight-line" no longer justifies not trying, and a
+sizing line that sorts functions into worth-the-lever and out-of-reach is
+sorting by ONE lever. Barriers remain the wrong tool at an interleaved site --
+7 differing at any placement, because they reschedule the neighbouring `ldr`s
+too.
