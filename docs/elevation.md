@@ -15378,3 +15378,182 @@ use by a second park.
 One `grep` over `src/non_matching/` would have caught it. The cost of the
 duplicate is not the wasted paragraph; it is that two records of the same rule
 drift apart and a later reader cannot tell which is current.
+
+## A CONSTANT USED TWICE ACROSS CALLS, and the three different cures
+
+Batch 221 hit this three times independently, which is the only reason it is
+worth its own section: **the cure is not the same one twice.**
+
+The shape: a value costing two instructions (`mov` + `lsl`) or a pool load, used
+at two or more call sites on ONE straight-line path. `cse_main` commons it into
+a pseudo; because the uses straddle calls, the allocator must give that pseudo a
+CALLEE-SAVED register. Once r5-r7 are spoken for, gcc reaches into r8-r11 and
+the function grows a high-register prologue and epilogue the ROM does not have.
+
+**IT READS AS A LENGTH DIFFERENCE FIRST** -- 150 against 142, 198 against 184,
+243 against 238 -- and only afterwards as hundreds of differing lines. A
+candidate that is LONG by an even number with `mov rN, r8` in the prologue is
+this class until proven otherwise.
+
+**NO FLAG REACHES IT.** Measured on two functions: `-fno-gcse`,
+`-fno-cse-follow-jumps`, `-fno-expensive-optimizations`, `-fno-force-mem` and
+`-fno-rerun-cse-after-loop` all produce output BYTE-IDENTICAL to the default.
+This is `cse_main`, not separable at -O2. Do not conflate it with the
+second-pass case that `-fno-rerun-cse-after-loop` DOES reach (`CSE_CFLAGS`,
+143 -> 114 on `OvlFunc_890_20089f4`).
+
+Which cure applies is decided by HOW MANY USES there are:
+
+  * **Two uses -- PIN THE ARGUMENT REGISTER.** A value assigned to a hard
+    call-clobbered register is dead across the next `bl`, so gcc has nothing to
+    carry it in and must rematerialise. On `OvlFunc_943_200a9d4`, pinning two
+    `SetSpeed` fills dropped one long-lived value and pinning four
+    `__Func_80921c4` fills dropped the other with all the r8 traffic: 150 -> 143.
+  * **Three or so uses -- LOWER THE REFERENCE COUNT INSTEAD.** One named local
+    per duplicated value, assigned in the dominating block, takes each pseudo to
+    `REG_N_REFS == 2`, and local-alloc then rematerialises at the use rather
+    than holding it live. `OvlFunc_954_2009214`: 191 differing -> 14. ONE named
+    local per value is enough; naming both copies buys nothing.
+  * **When neither is enough -- pins everywhere, but MINIMISE BY MEASUREMENT.**
+    `OvlFunc_885_20092a0` needed thirteen. Strip each candidate pin one at a
+    time: 23 sites gave 11 inert (all 11 removable together) and 12
+    load-bearing under a second round. Never ship scaffolding chosen by eye.
+
+**AND THE INVERSE, inside one of the same functions.** In
+`OvlFunc_954_2009214`, `0x94 << 1` is used at FOUR sites and the ROM DOES keep
+it in r5 throughout. Naming it costs 77 differing; left a bare literal, CSE
+hoists it with the ROM's own interleaved placement.
+
+So the rule is **not "name duplicated constants"** but *name the ones gcc should
+NOT hoist and leave the ones it should* -- the same polarity as the
+loop-invariant rule, appearing twice in OPPOSITE directions in one function.
+
+## The cross-jump rule INVERTED: a call after the if/else is a SCHEDULING lever
+
+The standing rule is to put a call in every arm and let `jump.c` cross-jump it.
+On `OvlFunc_916_2008a90` the call must go AFTER the if/else instead, and the
+mechanism is not cross-jumping at all -- the cross-jumped tail is the same five
+instructions either way. What changes is the order INSIDE the arms.
+
+`sched2` breaks a priority tie on the number of dependent insns in
+`rank_for_schedule` BEFORE falling through to insn order. With the call in the
+arm, argument 3's `mov r2, #0` sits in the same block and hands one shift a
+third dependent (an output dependence), so that shift issues first and the other
+sinks into the tail. With the call outside, the block ends earlier, both shifts
+tie at two dependents, insn order wins, and the ROM's order appears.
+
+**Screen both placements whenever two arms differ only in constants and the
+residue is an ORDER difference inside the arms.** Ten spellings on that function
+sat at a 23-differing plateau varying operand order, naming, casts and flags --
+all of them sharing the assumption that the call had to be duplicated.
+
+## A table walk's guard: a separate `if`, not a `while`
+
+When the ROM's preheader loads the SAME halfword TWICE -- once in a memory-form
+`ldrsh` for the guard and once as a raw `ldrh` for the body -- the source did
+not use a `while`.
+
+A `while` lets `jump.c`'s `duplicate_loop_exit_test` copy the latch test into
+the preheader, and CSE then serves guard and body from one load. A hand-written
+`if (...) return;` before a `do { } while` is generated independently, so the
+guard takes the memory form and PRE inserts the raw load separately. Worth 80
+differing -> 27 on `OvlFunc_916_2008a90`.
+
+## Splitting a shift off its load swaps two callee-saved registers
+
+A third remedy for "everything is right but two callee-saved registers are
+swapped", and it costs nothing to try:
+
+    x = *(short *)(p + 0xa) << 16;   /* r6 = [+0xa], r5 = [+0x12] */
+    y = *(short *)(p + 0x12) << 16;
+
+    x = *(short *)(p + 0xa);         /* r5 = [+0xa], r6 = [+0x12] */
+    y = *(short *)(p + 0x12);
+    x <<= 16;
+    y <<= 16;
+
+Both forms emit the SAME EIGHT INSTRUCTIONS IN THE SAME ORDER -- only the
+register numbers differ. Birth order is identical in both, and DECLARATION ORDER
+IS INERT (`int x, y`, `int y, x` and block-local all measure the same). So this
+is neither the pointer-birth-order rule nor the statement-order rule; the
+statement order does not change. What changes is HOW MANY RTL INSNS EACH
+PSEUDO'S DEFINITION IS SPLIT INTO AT EXPAND, which reorders the allocator's work
+list.
+
+## The extern's ELEMENT TYPE decides whether a symbol+offset folds into the pool
+
+    extern unsigned char gState[];
+    *(short *)(gState + (0xe1 << 1))   /* folds to ONE pool word =gState+450 */
+
+    extern short gState[];
+    gState[0xe1]                       /* does NOT fold: base materialised,
+                                          offset built and added at run time */
+
+Forcing the base through a named local is BYTE-IDENTICAL to the byte-offset
+form, so it is not "give the symbol its own register" -- the declared element
+type is doing the work.
+
+**THE TELL: a candidate that comes out SHORT, carrying a folded `=sym+offset`
+where the ROM has a bare symbol followed by `mov`/`lsl`/`add`.** Each folded
+site is three instructions where the ROM has six. Measured on
+`OvlFunc_886_2008368` (parked): 139 lines -> 145 against the ROM's 143.
+
+## An earlier USE of a literal serves as the interleave lever's definition
+
+The interleave lever is documented as needing a NAMED LOCAL in a dominating
+block. It does not.
+
+On `OvlFunc_890_20089f4`, a site with BARE LITERALS comes out in the ROM's order
+because an EARLIER site already used that same value: CSE rewrites the later
+literals as a reference to the earlier pseudo, that pseudo is never allocated a
+hard register, and the rematerialisation at the use interleaves. Cheaper to try
+than naming, and it is why the guarded half of that function fell so easily.
+
+It also explains the boundary exactly: the lever cannot reach a function's FIRST
+occurrence of a value, because nothing can define it ahead of there. That park
+sits at five instructions for precisely that reason.
+
+## The static-chain class: PROVE it by compiling a nested function
+
+`docs/elevation.md` already describes the static-chain shape (r9 read with no
+defining write, saved and restored, one stack slot never read back). Batch 221
+adds how to CONFIRM it and what to do about it.
+
+Confirm it by writing the body as a GENUINE GCC NESTED FUNCTION inside a
+stand-in parent. On `Func_80b9554` that emits byte-identical output to the ROM
+-- prologue, the `mov r7, r2` copy, the `mov r2, #0x1` and the pool word
+included. That is proof, not inference.
+
+**DO NOT SHIP THE NON-NESTED TRANSCRIPTION even when it is byte-exact.** Faking
+a static chain from a non-nested function requires reading a hard register that
+nothing writes, laundering a pointer through `__asm__ __volatile__` so `flow.c`
+cannot see the frame slot as dead, and relying on that asm's placement to order
+two moves. None of it is checkable and any nearby edit breaks it silently. The
+fix is a WHOLE-FILE job: elevate the caller and write the nested functions
+inside it, at which point all the scaffolding disappears.
+
+Two things learned from the attempt that are about the CLASS, not the hack:
+the chain slot's VALUE cannot be a named C variable (a named value takes r2 from
+the ADDRESS, because gcc's chain slot is a NEGATIVE frame offset that fails
+`memory_address_p` and so the address is forced into a pseudo FIRST), and
+pinning the frame pointer to r7 MISCOMPILES, because a saved r9 is still in the
+allocation pool.
+
+## A candidate's FLAGS DEPEND ON THE PATH YOU SCREEN IT FROM
+
+`tryc.py` and `objcmp.py` derive per-file flags from the Makefile by path. The
+same candidate therefore gets DIFFERENT FLAGS depending on where it sits:
+
+  * run against the ORIGINAL `.s` path, it inherits that object's rule --
+    `objcmp` prints `(built with: O1)`;
+  * run from a scratch directory, it gets the tree default -O2.
+
+One file, two answers, and the difference decides whether it looks like a match.
+This is how the FOURTH mis-scoped -O1 wildcard was found: `rom_78603c/
+ovl_30_c_c_a_c_a%` captured a split product on PREFIX ALONE, and
+`OvlFunc_885_20092a0` is exact at -O2 and 32 encodings wrong at -O1. An explicit
+non-pattern rule overrides a wildcard without narrowing it -- see Makefile:289,
+which now records four instances of this trap.
+
+**When a split product's name shares a prefix with a flag wildcard, check the
+wildcard BEFORE screening.**
