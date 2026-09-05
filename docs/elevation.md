@@ -15694,3 +15694,124 @@ Two rules follow:
   * **A TOOL'S DOCUMENTED USAGE IS NOT ITS BEHAVIOUR.** This usage was written
     into agent briefs and into this file, and repeated for two batches, on the
     strength of a comment in the source rather than a test.
+
+## "N PINS" IS A SIZE, NOT A SET
+
+Minimising pins by stripping each site individually and deleting everything
+inert is not sound, and batch 222 measured both ways it fails.
+
+**Individually-inert pins are not jointly removable.** On
+`OvlFunc_942_2008ba0`, SIX pins are inert one at a time and removing all six
+together costs 211 differing. On `OvlFunc_941_2009448`, four are individually
+inert and all four together fails at 69; every 2- and 3-subset had to be
+measured to find the incompatible pair. **Re-verify the survivors AS A SET.**
+
+**And the answer is not unique.** Greedy stripping to fixpoint from BOTH ENDS
+of the site list on `OvlFunc_942_2008ba0` converges on fourteen pins each time
+but keeps DIFFERENT SETS: pins sharing a value are mutually substitutable, and
+exactly one of each same-value chain must survive. So "minimised to N pins"
+names a count and a property, not a canonical answer, and two reviewers can
+disagree on the set while both being right.
+
+## ONE PIN AT THE FIRST USE COVERS THE LATER ONES
+
+The converse of "an earlier USE serves as the interleave lever's definition":
+an earlier PINNED use serves as its DESTRUCTION.
+
+On `OvlFunc_941_2009448`, dropping the pin on the FIRST `__MapActor_Emote`
+costs 303 of 303; dropping it on the SECOND is inert -- with the first use
+written straight into the argument register there is no pseudo left for CSE to
+hand the second site. Same for one of five `0xa0 << 7` sites and one of four
+`0x80 << 7`.
+
+This is why the shipped pin sets are smaller than the number of repeated uses,
+and it is the mechanism behind "N pins is a size, not a set" above.
+
+## THE REFERENCE-COUNT CURE CANNOT SPLIT A CONSTANT SHARED ACROSS SITES
+
+The named-local cure lowers `REG_N_REFS` so local-alloc rematerialises. It has
+a hard boundary: on `OvlFunc_955_20096d4`, giving each of five
+`__Func_80933f8` sites its OWN named local per argument is BYTE-IDENTICAL to
+bare literals. CSE commons the five `-1` pseudos back together before
+`REG_N_REFS` is ever consulted.
+
+**Naming a value more times cannot separate uses that CSE will re-merge.** Only
+a hard call-clobbered destination, dead across the next `bl`, forces
+rematerialisation. Naming works when it lowers the ref count of ONE value's
+uses; it does nothing when the value is shared across call sites.
+
+## INSIDE A PINNED FILL, THE SHIFT'S POSITION IS SOURCE ORDER
+
+The recorded rule is "write the movs in the ROM's order and let sched2 re-land
+the shifts". That holds ONLY WHEN THE `lsl` COMES LAST.
+
+Where the ROM emits the shift BETWEEN two movs, the source statement must sit
+there too. On `OvlFunc_883_200af14` this was fourteen residual pairs, every one
+an adjacent transposition: 28 differing -> 0. `OvlFunc_941_2009448` needs the
+same at all eight `__Func_8092adc` sites, 25 differing against 9.
+
+## A ONE-STATEMENT PINNED FILL CAN REPLACE A SCHEDULING BARRIER
+
+The established fill writes one statement per machine instruction
+(`q0 = 0x86; q2 = 0xf0; q2 <<= 16;`). That form emits the seed `mov`s SORTED BY
+THE POSITION OF EACH SEED'S FIRST CONSUMER, so for some ROMs it can never
+produce the required order, and the usual escape is an `__asm__ volatile`
+barrier.
+
+Writing the whole value in one statement instead -- `q0 = 0x86 << 18;
+q1 = -1; q2 = 0xf0 << 16;` -- needs no barrier. Each large constant splits into
+mov+shift AFTER expand, so every seed mov has a dependent and sits at DEPTH 2
+while every shift, neg and small mov sits at depth 1. `sched` takes the depth-2
+class first, ties broken by insn order, which is argument order.
+
+On `OvlFunc_955_20096d4` this matched all five `__Func_80933f8`, both
+`__Func_80933d4` and all three `__MapActor_SetSpeed` sites, and removed nine
+volatile-asm barriers. Try it before reaching for a barrier.
+
+## A SCHEDULING REGION IS ENDED BY A LOOP, NOT BY A LABEL
+
+`do { } while (0)` is recorded here as a scheduling barrier that emits nothing.
+`OvlFunc_941_2009448` pins down WHY, and it matters because the obvious cheaper
+spellings do not work.
+
+sched2 was hoisting `ldr r5, =0x254e` nine slots above the ROM's placement and
+reversing the literal pool with it -- a byte difference `tryc` cannot see. It
+was the only insn sched2 moved across a call, because r5 held the only
+call-saved value and so was the only one with no anti-dependence pinning it.
+
+    do { } while (0)      ends the region      9 differing -> 2
+    while (0) ;           byte-identical
+    goto B; B: ;          INERT
+    if (0) ;   ;   { }    INERT
+
+So it is **not** label-shifting -- a bare label in the same place does nothing.
+What bounds the region is the loop note `jump.c` leaves behind. This is also
+why it is legitimate to ship, unlike the label-shifting hack refused in batch
+219: it is a structural marker, not a coincidence of numbering.
+
+Ending a region has a cost: the following call's argument group loses the
+scheduler that was reversing it, and may need a pin of its own.
+
+## A MEMBER STORE AND A CAST STORE ARE NOT THE SAME STORE
+
+When the offset is past the store's scaled immediate range the address must be
+built, and WHICH IS EMITTED FIRST, the address or the value, depends on how the
+lvalue is written:
+
+    *(short *)(p + 0x64) = v;   /* ADDRESS first: `p + 0x64` is a C expression
+                                   expand_expr forces into a pseudo before the
+                                   RHS is touched */
+    p->goalFacing = v;          /* VALUE first: a COMPONENT_REF is a MEM whose
+                                   address is legitimized at emit time */
+
+Same family as "a store address can be hoisted above the call in its own
+right-hand side", but reached on `OvlFunc_942_2008ba0` WITH NO CALL AT ALL --
+what decides it is expression versus member offset. Naming the RHS into a temp
+cures the cast form, and is inert once the member form is used.
+
+## tryc ALSO IGNORES POSITIONAL -O FLAGS
+
+Alongside the `-f` defect fixed above: `-O0` passed positionally to `tryc` on
+an exact candidate still reports OK. Only the `--O1` switch and the
+Makefile-derived groups reach the optimisation level. **Any `-O` probe through
+tryc is meaningless** -- drive `xgcc` directly.

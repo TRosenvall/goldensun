@@ -280,9 +280,26 @@ def _site_kind(body, i):
 def duplicate_class(body):
     """None if no value repeats, else one of "block", "cse", "split".
 
-    "block" -- some value repeats inside one straight-line run. The hard class
-    the filter was built to reject: CSE if the uses are close, PRE hoisting if
-    one dominates the other, and neither yields to spelling.
+    "block" -- some value repeats inside one straight-line run. CSE if the uses
+    are close, PRE hoisting if one dominates the other.
+
+    THIS WAS A HARD REJECT AND IS NOW ONLY A WARNING (batch 222). It rested on
+    src/non_matching/ovl_7c5efc/2009394.c, which called itself the canonical
+    small specimen of the class and closed its search after thirteen flags with
+    "neither yields to spelling". That function is now byte-exact. The
+    assumption all thirteen measurements shared is that the lever had to be a
+    FLAG; none of them tried writing the argument into a hard register, and two
+    PIN3 blocks plus a `do { } while (0)` close it.
+
+    Batch 222 landed six more functions of exactly this shape, five of them
+    dominated by it. The cure is chosen by the ROM's PROLOGUE: `push {lr}`
+    alone means no value survives a call, every repeat is rebuilt, and only
+    pins work -- named locals measure WORSE there, up to 275 lines against a
+    271-line baseline. See docs/elevation.md, "A CONSTANT USED TWICE ACROSS
+    CALLS" and "THE PROLOGUE PICKS THE CURE".
+
+    Rejecting on it was dropping roughly 158 candidates, which is why this is a
+    warning column now and not a filter.
 
     Everything else has a label between the repeats, and batches 182-183 split
     that case in two. WHAT IS REPEATED decides which:
@@ -387,9 +404,8 @@ def passes(body):
     if calls < 8:
         return None
     dup = duplicate_class(lines)
-    if dup == "block":
-        return None
-    # not a reject -- a warning column; see the module docstring
+    # "block" is NOT a reject any more -- see duplicate_class's docstring; the
+    # park it rested on is byte-exact and the class yields to a pin.
     cond = sum(1 for l in ins
                if re.search(r"\bb(?:eq|ne|ge|gt|le|lt|hi|ls|cs|cc|mi|pl)\b", l))
     return n, calls, cond, dup
@@ -432,8 +448,7 @@ def wide(body, path=None):
     if n < 4:
         return None
     dup = duplicate_class(lines)
-    if dup == "block":
-        return None
+    # "block" is NOT a reject any more -- see duplicate_class's docstring.
     calls = sum(1 for l in ins if CALL.search(l))
     high = any(HIGH.search(l) for l in ins)
     cond = sum(1 for l in ins
