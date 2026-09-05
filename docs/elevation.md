@@ -16537,3 +16537,40 @@ What FIXES a mapping between two parallel overlays is the address arithmetic,
 not the order the labels appear in a diff. Here both overlays declare a trio of
 4-byte cells at matching relative offsets -- `0x200b38c/-4/-8` against
 `0x200b694/-4/-8` -- and the diff order merely agrees with that.
+
+## The `goto`-loop lever's SIGNATURE IS NECESSARY, NOT SUFFICIENT
+
+Sharpens "Selecting for the `goto`-loop lever: grep for a constant rebuilt in
+the loop" above. That entry says to select on a loop-invariant the ROM rebuilds
+every iteration. `OvlFunc_897_2008e30` has the signature twice over -- loop 1
+rebuilds `mov r2,#0x80 / lsl r2,#8` each pass, loop 2 reloads `ldr r2,=0x1999`
+each pass -- and the lever is ACTIVELY WRONG there: the `goto` rewrite collapses
+the register assignment, drops r10 from the push, and costs **102 of 105**
+against 0 for the plain `do/while`.
+
+The reason the ROM rebuilds them is not that gcc hoisted and needs stopping.
+gcc-2.96 does not hoist either one from a plain `do/while` to begin with,
+because each body contains a call (`__CutsceneWait`) and the invariant feeds
+only a memory read-modify-write.
+
+**The signature tells you the ROM did not hoist. It does not tell you that gcc
+WILL.** Confirm the plain loop actually hoists before reaching for the rewrite;
+if it does not, the lever has nothing to undo and only damage to do.
+
+## Naming a value gcc already CARRIES destroys the carry
+
+Sharpens "REBUILT or CARRIED: read which, then place the local accordingly"
+above, from the carried side.
+
+`OvlFunc_897_2008e30` adds `-0x28f` at four sites. Written as four bare
+`+= -0x28f;`, gcc hoists the literal into **callee-saved r7** before the second
+loop -- exactly where the ROM has it. Written as `int d = -0x28f;` assigned
+before the loop, gcc gives `d` a LOW register, reloads it from the pool inside
+the body, drops r10 from the push and moves the actor pointer to r7: **102 of
+105**.
+
+Naming it did the opposite of the intent -- it moved a value out of a
+callee-saved register into a rematerialised scratch one. The rule already says
+to read which of the two the ROM does; the trap worth naming is that a NAMED
+LOCAL IS NOT A NEUTRAL WAY TO ASK. Where gcc already carries a value unaided,
+leaving it as a bare repeated literal is what preserves the carry.
