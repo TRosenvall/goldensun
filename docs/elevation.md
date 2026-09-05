@@ -10424,6 +10424,15 @@ and source position does not reach that.
 
 ## Negative: `ldrb` + `lsl #24` before a `cmp #0` is not reachable
 
+> **CORRECTED (batch 234): IT IS REACHABLE.** What decides it is the INDUCTION
+> FORM, not the operand type or the comparison. A walking POINTER
+> (`p += 0x40; p[0]`) emits `ldrsb`; a walking INDEX (`k += 0x40; p[k]`) emits
+> `ldrb` + `lsl #24` + the interleaved `add` this entry blamed on the
+> scheduler. Isolated A/B in one file, same flags, same semantics. The ten
+> probes recorded below all varied the type or the test; NONE varied how the
+> address is walked. `Func_801f77c` is elevated by this route and the sibling
+> park drops from 8 differing to 3.
+
 `Func_801f730` tests a byte in a loop and the ROM spells it
 `ldrb r3, [r2] / lsl r3, #24 / cmp r3, #0`. Ten shapes were compiled directly
 under this tree's flags and none produces it: plain and signed `char *`, a cast
@@ -11169,6 +11178,10 @@ the ranking as well, since it is cheap and still rising, but do not expect it to
 supply the round.
 
 ## The narrowing-shift fold is about the FOLD, not about `signed char`
+
+> **CORRECTED (batch 234).** The generalisation to "any narrowing shift before
+> a zero test is unreachable" does not hold -- see the correction on the
+> `ldrb` + `lsl #24` entry above. The induction form decides it.
 
 `Func_801f730` was parked on `ldrb` + `lsl #24` + `cmp #0`, with ten spellings
 probed directly against gcc-2.96 and none producing the shift. The decisive
@@ -15466,6 +15479,13 @@ all of them sharing the assumption that the call had to be duplicated.
 
 ## A table walk's guard: a separate `if`, not a `while`
 
+> **CORRECTED (batch 234): READ THAT PAIR AS A FLAG TELL FIRST.** On
+> `Func_808d394` the `ldrsh` + `ldrh` pair is present and `while` versus
+> `if` + `do`/`while` are BYTE-IDENTICAL -- both OK under `-fno-gcse`, both
+> 73 lines / 77 differing without it. What restores the pair is the FLAG:
+> gcse is what deletes the redundant-looking second load. Guard spelling is
+> the second hypothesis, not the first.
+
 When the ROM's preheader loads the SAME halfword TWICE -- once in a memory-form
 `ldrsh` for the guard and once as a raw `ldrh` for the body -- the source did
 not use a `while`.
@@ -16707,3 +16727,76 @@ adding it to either group.
 Corroboration: two agents reached these two functions independently, by
 different routes, and converged on this mechanism. Their two candidates for
 `200b380` are different source and produce identical objects.
+
+## gcc-2.96 CANNOT EMIT TWO IDENTICAL `add rN, sp, #K` IN ONE BASIC BLOCK
+
+A blocker class, counted over the tree rather than argued -- the same evidence
+shape as the recorded `add rHIGH, rN` class:
+
+| corpus | files containing the pattern |
+|---|---|
+| ROM disassembly | **37** |
+| gcc-generated (3753 total) | **0** |
+
+Local CSE always commons two `&local` argument setups and there is NO `-fno-`
+for the local pass (17 flags swept, all inert). **Three escapes were chased into
+the compiler source and all are closed:**
+
+- block-scoped slot reuse returns the SAME `p->slot` rtx, so cse commons anyway;
+  and under `-fstrict-aliasing` reuse needs equal alias sets, so two types give
+  two slots and a larger frame than the ROM's;
+- gcc-2.96 does NOT rematerialise a frame address -- with the high registers
+  fixed it spills and reloads, and `update_equiv_regs` only substitutes at
+  `REG_N_REFS == 2`;
+- jump2 cross-jumping REFUSES to merge a tail ending in a call (minimal probe:
+  three `mov`s + `bl` not merged, a tail of stores merged), so duplicating the
+  call into both arms kills the commoning but ships both copies.
+
+**Check this before spending screens on two stack-object arguments in one
+block.** Parked example: `src/non_matching/ovl_7892c8/200a7d4.c`, 4 differing.
+
+A near miss recorded there so it is not re-derived: a DISCARDED
+struct-returning call leaks one stack slot per call site and reproduces the
+ROM's uncommoned `add r0,sp,#N` in exactly the right positions -- but the
+callees take that register as a real object pointer, so it is wrong for a
+right-looking reason.
+
+## objcmp CAN REPORT A BYTE-IDENTICAL MATCH AS FAILING
+
+`objcmp` compares relocations by SYMBOL NAME. `src/lib/call_via.s` defines
+`_call_via_fp` and `_call_via_r11` at one label -- `nm` shows both `T` at
+`0x2c` -- and gcc emits `fp` where the ROM's disassembly writes `r11`. So a
+function calling through r11 reports:
+
+    XX RELOCATIONS differ
+
+with **SIZE and ENCODINGS silent**, which means the bytes are identical.
+
+**The silence of the SIZE and ENCODINGS lines is the tell.** If objcmp complains
+only about relocations, compare the symbol names by hand before believing it.
+This is the authority tool, so a false negative here is worse than one anywhere
+else: it can send someone to park a function that already matches. Anything
+previously screened against a `_call_via_*` target deserves a second look.
+
+`Func_80c0be4` and `Func_80c0cec` are both byte-identical and were landed on
+that basis.
+
+## THE INTERLEAVE SCAN FINDS A SHAPE, AND SHAPE IS NOT DIAGNOSIS
+
+`tools/guarded_interleave.py` and the bucket driver built on it select on a
+SILHOUETTE. Of nine functions aimed at that bucket across batches 233-234,
+**eight had a different cause**:
+
+| flagged as | actually was |
+|---|---|
+| interleave | one zero in the wrong register |
+| interleave | loop preheader / induction form |
+| interleave, no memory ops | a constant built in a loop; all memory ops |
+| interleave | a constant commoned across two call sites |
+| interleave | both sites already correct from a bare call |
+| interleave | symbol pools hoisted out of a loop |
+
+The hit rate is real and these are functions nobody would otherwise have
+picked -- keep running it. But it is a TRIAGE FILTER, not a classifier, and the
+first move on any hit is to DIAGNOSE, not to apply the class cure.
+
