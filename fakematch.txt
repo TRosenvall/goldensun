@@ -255,3 +255,4 @@ OvlFunc_924_200ca08 src/overlays/rom_7ac2d8/ovl_35b8_a_a_c_a_c_c_b.c
 OvlFunc_953_200a964 src/overlays/rom_7d95dc/ovl_30_c_c_c_c_a_c_c_c.c
 OvlFunc_943_200bc88 src/overlays/rom_7c7b9c/ovl_30_c_c_b.c
 OvlFunc_885_2009760 src/overlays/rom_78603c/ovl_30_c_c_a_c_a_c_c_b.c
+OvlFunc_881_200a274 src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_c_b.c
