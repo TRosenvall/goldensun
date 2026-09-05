@@ -17,6 +17,7 @@ INCLUDE "file_table.sym"
 INCLUDE "area.sym"
 INCLUDE "const.sym"
 INCLUDE "size.sym"
+INCLUDE "label.sym"
 
 SECTIONS {
 	header : {

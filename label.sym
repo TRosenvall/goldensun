@@ -1,0 +1,37 @@
+/* label.sym -- C-spellable names for assembler-local `.L` data labels.
+ *
+ * WHY THIS FILE EXISTS
+ *
+ * Hand-written asm in this tree refers to its data tables by the labels the
+ * original disassembly produced -- `.La0108`, `.L10` and so on. A `.L` name is
+ * not a C identifier, so an elevated function that indexes one of those tables
+ * has no way to name it.
+ *
+ * The overlays already solve this, each in its own overlay.ld:
+ *
+ *     _TBL_L10 = .L10;
+ *
+ * and the C side spells it `extern short L10[] __asm__("_TBL_L10");`. This
+ * file is the same device for code outside the overlays, which links through
+ * stage1.ld and had nowhere to put such an assignment.
+ *
+ * An absolute assignment in a linker script EMITS NO BYTES, so an entry here
+ * cannot change the ROM. A wrong NAME costs nothing; a wrong TARGET fails to
+ * link.
+ *
+ * THE BAR FOR ADDING ONE: the label must already be `.global` in the asm that
+ * defines it (otherwise the assembler discards it and the link fails), and the
+ * C file must genuinely need to index the table. Do not add an alias to avoid
+ * understanding what a table is -- name it properly in the .c once its meaning
+ * is known.
+ *
+ * BEWARE SHORT NAMES. docs/elevation.md records a label-number COLLISION: a
+ * cross-object `.LN` with a small N can be captured by gcc's own branch labels
+ * in the referencing object, which is silently wrong code and invisible to
+ * tryc because it lives in the relocation table. The `_TBL_` prefix exists to
+ * make the C-side name uncollidable; keep it.
+ */
+
+/* Func_8097384 indexes an eight-entry table of pointers selected by a chain of
+ * flag tests. Defined and exported at asm/rom_8a000/rom_97384_c_c_c_c.s:5. */
+_TBL_a0108 = .La0108;
