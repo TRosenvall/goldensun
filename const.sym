@@ -129,3 +129,38 @@ _CONST_1f = 0x1f;
  * used instead, exactly as this file's header describes. If that id space is
  * ever identified, this belongs in its own .sym and should move. */
 _CONST_1 = 0x1;
+
+/* _CONST_a1 -- the first argument of __Func_8091f90 in OvlFunc_959_2009e94.
+ *
+ * The ROM writes `ldr r0, =0xa1 / mov r1, #0x1f`, pooling a value an eight-bit
+ * `mov` builds in one instruction -- the tell this file exists for. The
+ * counterexample sits four instructions away: `__Func_8091eb0(0x62, 3)` in the
+ * same function writes `mov r0, #0x62`, so gcc is plainly willing to use the
+ * immediate form here for a similar value.
+ *
+ * THE HALFWORD EXCEPTION WAS CHECKED FIRST, as this file's header requires, and
+ * does not apply: a `short` prototype, a `(short)` cast and a `short` local all
+ * emit `mov`, so the constant never meets a halfword.
+ *
+ * TEN LITERAL SPELLINGS MEASURED, all giving `mov r0, #0xa1` and leaving the
+ * function one instruction and four pool bytes short:
+ *
+ *     0xa1                  0xa1u                 0xa0 | 1
+ *     0x50 * 2 + 1          int local             short local
+ *     (short) cast          short prototype       unsigned prototype
+ *     no prototype
+ *
+ * The eleventh, a `volatile int` local, does reach the pool but spills a frame
+ * slot and costs 174 differing -- it is a different construct, not a spelling.
+ *
+ * A NOTE ON THE RELOCATION CHECK, because it reads the wrong way here. objcmp
+ * shows the REFERENCE carrying no relocation at that pool word, which elsewhere
+ * in this tree refutes a symbol hypothesis. It does not refute one here: the
+ * reference is a DISASSEMBLY, so a symbol in the original was baked to its
+ * value before the .s was written, and the assembled reference cannot carry a
+ * relocation for it either way. The symbol spelling therefore shows as a
+ * PHANTOM relocation, and `make compare` is the authority -- which is exactly
+ * the phantom class already recorded for linker-resolved names.
+ */
+
+_CONST_a1 = 0xa1;
