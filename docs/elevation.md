@@ -16451,3 +16451,89 @@ with it. `split_s.py` rewrote all three section references correctly.
 
 Check the `.s`, not the linker script. The script names sections the object MAY
 contribute, not sections it does.
+
+## CHECK WHETHER THE TOOL EXISTS BEFORE WRITING IT -- FOURTH REPEAT
+
+`OvlFunc_956_2009a0c` turned out to be a solved function with one immediate
+changed, I generalised that into `tools/twins.py`, and **the tool already
+existed**. `tools/solved_twins.py` has been here since 29 August doing precisely
+the same thing -- remaining functions searched against solved ones, matched on
+the mnemonic stream only, no registers or immediates -- with its own heading in
+this file, alongside `find_twins.py`, `twin_families.py`, `twin_finder.py` and
+`find_families.py`.
+
+The claim that "nothing was looking for these" was published in a commit, a
+batch report and a HANDOFF row before I checked. All three are corrected.
+
+**CLAUDE.md says to grep this file before writing anything up as a new finding,
+and I did grep it -- for the phrasings of my own conclusions, which of course
+were not in it.** I never grepped it for the CONCEPT before building. Searching
+for what you have already decided to say is not searching; it returns nothing
+and feels like confirmation.
+
+This is the same class as "Ad-hoc candidate scans MUST reuse
+`pickable.parked()`" above, which was already logged as the THIRD repeat when it
+was written. That entry is about re-deriving a park; this is about rebuilding a
+whole tool. The generalisation both want: **before writing any tool or scan,
+grep `tools/` by CAPABILITY and this file by CONCEPT, in the vocabulary someone
+else would have used, not your own.** `ls tools/ | grep -i twin` would have
+ended it in one command.
+
+The duplicate was also strictly WORSE, which is the usual shape of a
+reimplementation: it used a 40-instruction floor where `solved_twins.py` uses
+12, and that floor hid a real hit -- `OvlFunc_924_2008ffc` at 36 instructions,
+which the existing tool finds and mine did not.
+
+What survived was the WORK, not the tooling claim: four twin pairs, all four
+byte-exact, each costing a handful of substitutions. Which is what
+`solved_twins.py`'s own entry already said it would.
+
+## A PARTIAL PIN CAN BE WORSE THAN NO PIN AT ALL
+
+On `OvlFunc_955_20099bc`, pinning **only q0** at `__Func_80933f8` measures
+**20 differing -- against 8 for no pins anywhere**.
+
+It is not a partial win. With r0's value forced into the hard register the
+block's register pressure drops far enough that CSE's `-1` pseudo now survives
+allocation into a **callee-saved** register, so the ROM's per-site
+`mov r1,#1 / neg r1,r1` becomes a spill-and-copy: one extra instruction, and
+every following relocation shifts.
+
+The recorded rules -- "pin the first use", "one pin at the first use covers the
+later ones" -- say WHICH SITE to pin. This one is about **how far along the
+argument list**: a pin set must REACH THROUGH any constant the site shares with
+a later site, or it hands that constant to CSE with less pressure than before.
+
+A pin set that gets worse is not evidence that pins are the wrong lever. Extend
+it before abandoning it.
+
+## POOL-ALIGNMENT PADDING ABSORBS A SMALL ODD LENGTH CHANGE
+
+A second, independent mechanism for the recorded "constant-CSE length tell can
+cancel itself out", and this one has nothing to do with the prologue trade.
+
+`OvlFunc_936_200a008` sat at 1720/1720 bytes and 685/685 encodings while still
+376 differing. Two extra `movs` were paid for exactly by two `.short 0x0000`
+slugs the ROM emits to align its literal pools.
+
+So on any function with MID-FUNCTION POOLS, a small odd length change can be
+swallowed whole by alignment padding and the "our stream is shorter" signature
+simply never appears. Two separate causes now produce the same false negative,
+which is enough to stop treating an equal length as information at all.
+
+## A `.L####` NAME IS AN ADDRESS, NOT AN IDENTITY
+
+The disassembler numbers local labels by ADDRESS, so the same name recurs in
+completely unrelated overlays. Resolving `OvlFunc_911_200a7ac` against its twin
+required three `.L` cells, and a bare `grep -rn '^\.L3694:' asm/` finds a
+definition in `rom_7ef4f4` that has nothing whatever to do with a function in
+`rom_79e5c0`. Taken at face value it makes a correct mapping look wrong.
+
+**Resolve such a label INSIDE its own overlay.** They are typically declared
+`.global` plus `.lcomm` in one file of that overlay and reached from C as
+`extern int L3694 __asm__(".L3694");`.
+
+What FIXES a mapping between two parallel overlays is the address arithmetic,
+not the order the labels appear in a diff. Here both overlays declare a trio of
+4-byte cells at matching relative offsets -- `0x200b38c/-4/-8` against
+`0x200b694/-4/-8` -- and the diff order merely agrees with that.

@@ -1,4 +1,4 @@
-# Batch 229 — some functions are already solved, and nothing was looking
+# Batch 229 — three functions were already solved, and the tool that says so already existed
 
 Eight functions. Three of them cost almost nothing, because they are the same
 code as functions this project had already matched. Finding that out was worth
@@ -25,27 +25,31 @@ against `0x20ed`. Copying the solved candidate and changing that constant was
 byte-exact on the **first screen**: no pin re-derived, no fill re-ordered, no
 statement moved.
 
-That became `tools/twins.py`. The existing rankers, `neighbour.py` and
-`templated.py`, both score on **shared symbols** — "is there a worked example
-nearby". Good question, different question: two functions can share every callee
-and have unrelated bodies. twins.py asks the strict one, **is there a solved
-function with the identical opcode sequence**, with a signature of mnemonics
-only. Operands and registers are discarded deliberately, because a twin differs
-precisely in its operands.
+**I then wrote a tool to generalise that, and the tool already existed.**
+`tools/solved_twins.py` has been in this repository since 29 August and does
+precisely the same thing — searches remaining functions against solved ones,
+matching on the mnemonic stream only, no registers or immediates — and
+`docs/elevation.md` documents it under its own heading, alongside
+`find_twins.py`, `twin_families.py`, `twin_finder.py` and `find_families.py`.
+The original claim here, that nothing was looking for these, was false.
 
-It rediscovered the known pair unprompted — that is the validation — and found
-three more. Two are cashed here: `OvlFunc_954_2008974` (61 instructions, eight
-operands changed) and `OvlFunc_956_2008c5c` (106 instructions, eight operands
-and one symbol). Both byte-exact on the first screen.
+CLAUDE.md says to grep elevation.md before writing anything up as a new finding.
+I did grep it — for the phrasings of my own conclusions, which of course were not
+in it. I did not grep it for the CONCEPT before building. Searching for what you
+have already decided to say is not searching.
 
-**This is a thin seam, not a new method.** Only 4 twins exist among 1268 unsolved
-functions. But each is nearly free, and nothing had been looking for them. The
-solved corpus is read from GENERATED `.s`, because the hand-written `.s` a solved
-function came from is deleted at landing — the generated file is both the only
-copy left and the right thing to compare against.
+The duplicate has been deleted. It was also strictly worse: it used a
+40-instruction floor where `solved_twins.py` uses 12, and that floor hid a real
+hit — `OvlFunc_924_2008ffc` at 36 instructions, which the existing tool finds
+and mine did not.
 
-The remaining twin, `OvlFunc_911_200a7ac`, is left for next batch: its diff is
-almost entirely a different jump table and a different `gScript_` symbol.
+What survives is the work, not the tooling claim. Four twin pairs were found and
+all four are byte-exact: `OvlFunc_956_2009a0c` (one immediate),
+`OvlFunc_954_2008974` (eight operands), `OvlFunc_956_2008c5c` (eight operands and
+one symbol), and `OvlFunc_911_200a7ac` (no operand differences at all — only
+names). Each cost a handful of substitutions rather than a screening run. That
+part is real, and it is what `solved_twins.py`'s own entry predicted: "a hit is
+the cheapest elevation there is".
 
 ## What a correct symbol looks like, twice
 
