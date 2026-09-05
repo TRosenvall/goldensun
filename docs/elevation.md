@@ -16040,3 +16040,99 @@ coincidence, and marks them `?`. Two functions this batch had such a neighbour:
 So a three-symbol 1.00 is not evidence either way. **Rank the candidates by
 shared-callee count yourself before trusting it**, and check whether the
 neighbour is a split sibling.
+
+## THE UNIFORM FILL IS A DEFAULT, NOT A LAW
+
+Recorded above as "do not transcribe the ROM's shift order". Three functions in
+batch 225 confirmed it and one BOUNDED it, so the rule now has a procedure.
+
+`OvlFunc_881_200a274`: fourteen sites emit non-ascending fills in the ROM --
+`ldr r2 / mov r0 / ldr r1`, `mov r1 / mov r0 / lsl r1 / mov r2`, a five-way
+interleave -- and writing every fill uniformly is BYTE-IDENTICAL to
+transcribing each. `OvlFunc_921_20099e8`: 57 sites, at least six distinct
+emitted orders, uniform sufficed at all of them.
+
+`OvlFunc_966_2008218` is the counter-example. Uniform worked at 26 of 27 sites;
+`__Func_8092c40(0x16, 0)` genuinely needs the DESCENDING fill
+(`q1 = 0; q0 = 0x16;`), and with the other thirty sites pinned it was the only
+residue -- 2 differing.
+
+**The procedure: write every fill uniform, then measure the residue and
+transcribe only the sites that survive.** That is cheaper than transcribing
+everything, and it leaves a file whose fills mean something.
+
+## A WIDE PUSH DOES NOT AUTOMATICALLY MEAN NAMED LOCALS -- READ WHAT IT KEEPS
+
+"The prologue picks the cure" is about CONTENT, not width.
+`OvlFunc_921_20099e8` pushes `{r5, r6, r7, lr}`, which by width alone says
+named locals. The three saved registers hold a base pointer and the two bit
+masks of a `&= 0xfe` / `|= 1` pair, each used twice hundreds of instructions
+apart. Every script constant is rebuilt at every use, so it is a PIN function
+with 57 pins, and plain C spills r8-r11 into r5-r7 at entry (466 encodings
+differ).
+
+So: list what each saved register actually holds before choosing. A wide push
+carrying only a pointer and two masks behaves like a narrow one for everything
+else.
+
+## THE cprop HAZARD IS SCOPED TO A RE-READ
+
+The recorded rule says a held message base needs
+`register int m __asm__("r5")` because gcse's cprop destroys a plain `int`.
+Batch 225 pinned down its scope with three shapes in one batch:
+
+  * **`add r0, r5, #6` -- m is RE-READ and stays live.** cprop has a constant
+    to propagate, the pin is REQUIRED (`OvlFunc_883_200acb0`).
+  * **`add r5, #3` -- m is REDEFINED in place.** cprop has nothing to
+    substitute at the second site, a plain `int m` survives -O2, and the pin is
+    measurably INERT (`OvlFunc_949_2008980`).
+  * **A re-read INSIDE THE ARMS OF AN `if`/`else`.** cprop propagates into
+    SUCCESSOR blocks, so those uses need the pin where same-block re-reads do
+    not (`OvlFunc_941_20084a8`).
+
+And where the ROM's last use is the destructive `add r5, #k`, write `m += k;`
+rather than passing `m + k` -- gcc emits the destructive form only when the
+variable is dead after it.
+
+## TWO BITFIELD SITES CAN WANT OPPOSITE THINGS
+
+On `OvlFunc_887_2008f90`, four lines apart:
+
+    *p = 0xfe & *p;                       /* AND: no local needed, and
+                                             flipping the operands is inert  */
+    unsigned char bit = 1; *p = bit | *p; /* ORR: needs the narrow local      */
+
+A commutative op puts the CONSTANT in the destination only when it survives as
+a distinct QImode pseudo; an `int` local or a bare literal is folded and gcc
+emits the operands the other way round. Same shape, different requirement --
+read each site, do not generalise from the neighbour four lines up.
+
+## A POINTER-RETURNING CALL WHOSE RESULT DIES IMMEDIATELY MUST NOT BE NAMED
+
+    __MapActor_GetActor(0x14)[0x5a] &= 0xfe;   /* add r0, #0x5a in place */
+    p = __MapActor_GetActor(0x14); p[0x5a] &= 0xfe;   /* costs mov rN, r0 */
+
+Thumb's `add reg, imm8` is destructive, so a named local forces gcc to preserve
+the base. Only a result that is genuinely live later -- across a `cmp` and
+branch, say -- wants a local. `OvlFunc_921_20099e8` pays one copy per site at
+four sites; `OvlFunc_948_200a334` measured the same thing as its whole length
+gap.
+
+Related: a HImode store of a constant goes through the POOL even for ZERO
+(`ldr r3, =0x0`). An `int` intermediate gives the ROM's `mov r3, #0` -- 92
+differing on `OvlFunc_887_2008f90`.
+
+## A WILDCARD THAT IS WRONG THREE TIMES IN FOUR IS A MISSPELLED LIST
+
+`Makefile`'s `rom_78603c/ovl_30_c_c_a_c_a%` applied `-O1` and appeared as 30
+identical duplicate blocks. It matched FOUR translation units, and THREE of
+them had each needed an explicit `-O2` override added after `-O1` broke them,
+on three separate occasions. A fourth split product would have needed a fourth.
+
+It has been narrowed to one explicit rule naming `ovl_30_c_c_a_c_a_b`, its only
+genuine member, so new split children fall to the tree default. `make compare`
+is the proof that nothing else relied on it.
+
+**When a prefix trap fires for the third time, stop overriding and go count
+what the pattern actually matches.** The check is two commands: list the `.c`
+files sharing the prefix, then grep for existing explicit overrides of them.
