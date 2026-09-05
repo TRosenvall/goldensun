@@ -15915,3 +15915,128 @@ the C file must genuinely need to index the table. An absolute assignment emits
 no bytes, so a wrong name costs nothing and a wrong target fails to link. Keep
 the `_TBL_` prefix -- it is what stops the label-number collision recorded
 above.
+
+## WHICH LOCAL, NOT HOW MANY
+
+The recorded stack-argument rule says the `str` operands tell you HOW MANY
+values want names. `OvlFunc_922_20092cc` adds the harder half: WHICH pseudo
+each named value shares with the rest of the body.
+
+A C local gets ONE pseudo for the whole function, so its hard register is
+chosen once and every use inherits it. That function needs r3 for the value
+stored to `[sp]` in its first half and r3 for the value stored to `[sp,#4]` in
+its second, because the ROM holds a different member of the pair in r5 on each
+side. So the split is by **REBUILT-VERSUS-HELD, not by argument position**:
+
+  * one local for every value the ROM REBUILDS at each site,
+  * one for the second member of a fresh pair,
+  * one for every value the ROM HOLDS across calls.
+
+Splitting by argument position instead keeps the length exact and costs 26
+differing -- **every one an r2/r3 swap, and all of them in the first half**,
+because in the second half the position split and the rebuilt/held split
+happen to coincide.
+
+**THAT ASYMMETRY IS THE DIAGNOSTIC.** When a function is exact in one half and
+register-swapped in the other, ask which pseudo the value shares with the rest
+of the body, not which argument slot it sits in.
+
+## A ROM LOOP WITH THE TEST AT THE TOP IS NOT A `while`
+
+    L: test / bne END / body / b L          <- ROM
+    b Ltest / Lbody: body / Ltest: test / beq Lbody   <- gcc's `while`
+
+`expand_end_loop` ROTATES a `while` into a bottom-test loop, one instruction
+longer, and the whole tail shifts. `for (;;) { if (!c) break; ... }` lowers
+identically and is no help. The spelling that suppresses the rotation is
+
+    do { if (c != 1) break; ... } while (1);
+
+Worth 262 lines and 111 differing -> exact on `OvlFunc_943_200bc88`. A
+`goto`-back spelling is byte-identical; prefer the `do`/`while (1)` form, since
+the tree reserves `goto` for joins with several real predecessors.
+
+Related but distinct, from `OvlFunc_924_200ca08`: when the loop is a re-ask
+whose two entries differ by a constant, `while (1)` with the `break` IN THE
+MIDDLE and a variable carrying the differing value puts gcc's loop label where
+the ROM has it. A duplicated preamble plus a `while` leaves the cross-jumper
+merging back only as far as the call, several instructions short.
+
+## A COMMUTATIVE OP TIES ITS DESTINATION TO WHICHEVER OPERAND IS WRITTEN FIRST
+
+On `OvlFunc_943_200bc88` the same held constant is OR-ed into a byte at two
+sites, and the ROM emits them with OPPOSITE tied operands:
+
+    orr r3, r6          /* r6 still live: the VALUE is the destination     */
+    orr r6, r3 / strb r6  /* r6 dies here: the CONSTANT is the destination */
+
+`orr` is commutative with two register operands, so gcc ties the destination to
+whichever operand is WRITTEN FIRST in the source. One shared variable therefore
+needs two different source orders:
+
+    r[0x5a] |= one;                       /* first site  */
+    one |= r[0x5a]; r[0x5a] = one;        /* second site */
+
+And the shared variable must be `register int one __asm__("r6")` -- as a plain
+`int`, gcse's cprop substitutes the constant back into the second block and
+rematerialises it there.
+
+## DO NOT TRANSCRIBE THE ROM'S SHIFT ORDER
+
+Recorded already as "write the shifts in the MOVS' order"; `OvlFunc_953_200a668`
+is the clearest case and shows the trap in its strongest form.
+
+Five `__MapActor_SetSpeed` sites take the SAME constant pair. The ROM emits
+three of them as `mov r1 / mov r2 / mov r0 / lsl r1 / lsl r2` and the other two
+as `mov r1 / mov r2 / lsl r2 / mov r0 / lsl r1`. Writing each site to match its
+own EMITTED order gives the two odd ones REVERSED MOVS. Writing all five with
+the same uniform source form makes all five exact -- **sched2 produces both
+emitted orders from one spelling**, depending on surrounding context.
+
+**A site that looks different from its siblings in the ROM is not necessarily
+different in the source.** Try the uniform form before transcribing a
+difference.
+
+## THE ONE-AT-A-TIME PIN LIST IS A SET OF CANDIDATES, NOT OF REMOVALS
+
+Third and sharpest measurement of "N pins is a size, not a set", from
+`OvlFunc_953_200a668`: of 22 pinned sites, TEN are individually inert, removing
+all ten is 169 lines against 164, and a greedy pass takes out only EIGHT --
+**the last two break once the other eight are gone**, having been inert only
+while those were present.
+
+So: strip one at a time to get CANDIDATES, then remove greedily, re-testing
+after each drop, and stop at the fixpoint. `OvlFunc_943_200bc88` needed the
+same (15 candidates, 14 removable) and converges on different SETS depending on
+which end of the list you sweep from.
+
+## WHEN A FUNCTION HAS A TWIN, DIFF THE DISASSEMBLY FIRST
+
+`OvlFunc_953_200a964` is byte-identical to `OvlFunc_953_200a668` in everything
+but TWO CONSTANTS -- a message id and one call argument. Taking the finished
+sibling and substituting them matched on the first screen.
+
+Screening it independently would have re-derived fourteen pins, a shift-order
+correction at three sites and a greedy minimisation over twenty-two candidates
+to arrive at the same file. One `diff` of the two function bodies costs a
+single command.
+
+Record the levers in ONE of the twins and point the other at it, so the two
+records cannot drift apart.
+
+## templated.py's 1.00 ROWS BUILT ON THREE SYMBOLS
+
+The tool's own docstring says rows under three shared symbols are close to
+coincidence, and marks them `?`. Two functions this batch had such a neighbour:
+
+  * `OvlFunc_895_20097c0` -- the 1.00 pick was in a different overlay and
+    genuinely weak; ranking every solved file that calls one of its callees by
+    shared-callee count found a same-directory sibling whose recorded lever
+    transferred directly and was worth 36 differing lines.
+  * `OvlFunc_922_20092cc` -- the 1.00 pick was RIGHT, but for a reason the
+    score does not express: it is the immediately preceding sibling in the same
+    split of the same overlay.
+
+So a three-symbol 1.00 is not evidence either way. **Rank the candidates by
+shared-callee count yourself before trusting it**, and check whether the
+neighbour is a split sibling.
