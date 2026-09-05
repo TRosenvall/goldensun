@@ -15395,12 +15395,29 @@ the function grows a high-register prologue and epilogue the ROM does not have.
 candidate that is LONG by an even number with `mov rN, r8` in the prologue is
 this class until proven otherwise.
 
-**NO FLAG REACHES IT.** Measured on two functions: `-fno-gcse`,
-`-fno-cse-follow-jumps`, `-fno-expensive-optimizations`, `-fno-force-mem` and
-`-fno-rerun-cse-after-loop` all produce output BYTE-IDENTICAL to the default.
-This is `cse_main`, not separable at -O2. Do not conflate it with the
-second-pass case that `-fno-rerun-cse-after-loop` DOES reach (`CSE_CFLAGS`,
-143 -> 114 on `OvlFunc_890_20089f4`).
+**CORRECTED -- THIS WAS FIRST PUBLISHED AS "NO FLAG REACHES IT" AND THAT WAS
+MEASURED WITH A BROKEN TOOL.** `tools/tryc.py` silently discarded bare `-f`
+flags passed on the command line (see "A DROPPED FLAG AND AN INERT FLAG LOOK
+THE SAME" below), so a sweep of four flags reported the baseline four times and
+read as a strong negative result. Re-measured on `OvlFunc_943_200a9d4` with the
+tool fixed:
+
+    baseline                        150 lines, 146 differing
+    -fno-gcse                       150, 146   inert
+    -fno-cse-follow-jumps           150, 146   inert
+    -fno-force-mem                  150, 146   inert
+    -fno-expensive-optimizations    147, 117   NOT INERT
+
+So three of the four are genuinely inert and the fourth is not. What survives
+is the weaker, true statement: **no flag reaches the ROM.**
+`-fno-expensive-optimizations` removes some of the commoning -- five lines of
+it -- but still leaves the function five lines long and 117 differing, where
+the pin cure is exact. The pin is still the answer; "cse_main is not separable
+at -O2" is still the right reading. It is the blanket claim that was wrong.
+
+Do not conflate any of this with the second-pass case that
+`-fno-rerun-cse-after-loop` DOES reach (`CSE_CFLAGS`, 143 -> 114 on
+`OvlFunc_890_20089f4`).
 
 Which cure applies is decided by HOW MANY USES there are:
 
@@ -15648,3 +15665,32 @@ under the old diagnosis became byte-identical when removed, and were dropped.
 
 So when a park's central diagnosis changes, its REJECTED levers are not still
 rejected and its ACCEPTED scaffolding is not still needed. Re-measure both.
+
+## A DROPPED FLAG AND AN INERT FLAG LOOK THE SAME
+
+`tools/tryc.py` accepted a bare `-f` flag on the command line, validated it,
+and then compiled without it. The append loop iterates `adjust`, the
+MAKEFILE-DERIVED set, never `sys.argv`; `check_opts` only validates `--`
+options, so `-fno-gcse` sailed through and changed nothing.
+
+The failure mode is worse than a crash would have been. Every run reported the
+baseline, so sweeping four or five flags produced four or five identical
+numbers -- which reads as the strong, quotable result "no flag reaches this
+class". Batch 221 published exactly that, in the report, the HANDOFF row and
+this file, and three of the flags happened to be genuinely inert, which made
+the wrong claim look corroborated.
+
+**Fixed: bare `-f` flags are now honoured AND ECHOED** as `(extra flags: ...)`.
+The echo is the actual fix. Silence was the defect, because a dropped flag and
+an inert flag are indistinguishable in the output.
+
+Two rules follow:
+
+  * **A NEGATIVE RESULT NEEDS A POSITIVE CONTROL.** Before believing "this flag
+    changes nothing", run one flag that MUST change the output --
+    `-fno-omit-frame-pointer` is a good probe, it widens the push -- and check
+    the number actually moves. A sweep where every row is identical to the
+    baseline is evidence the sweep is broken, not evidence about the compiler.
+  * **A TOOL'S DOCUMENTED USAGE IS NOT ITS BEHAVIOUR.** This usage was written
+    into agent briefs and into this file, and repeated for two batches, on the
+    strength of a comment in the source rather than a test.

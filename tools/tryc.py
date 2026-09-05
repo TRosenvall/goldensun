@@ -654,6 +654,26 @@ def main():
     if "--cflags" in sys.argv:
         cflags += sys.argv[sys.argv.index("--cflags") + 1].split()
 
+    # A BARE -f FLAG ON THE COMMAND LINE USED TO BE SILENTLY DROPPED, and that
+    # is worth more than a comment because it invalidated published findings.
+    # The loop above iterates `adjust`, the MAKEFILE-DERIVED set -- never
+    # sys.argv -- so `tryc cand.c --ref r.s -fno-gcse` passed check_opts (which
+    # only validates `--` options) and then compiled with the DEFAULT flags.
+    # Every such run reported the baseline, so a sweep of four or five flags
+    # came back "all byte-identical to the default" and read as the strong
+    # result "no flag reaches this", when nothing had been varied at all.
+    # Batch 221's constant-CSE entry was measured this way and had to be
+    # re-measured.
+    #
+    # They are honoured now, AND ECHOED, because silence was the actual defect:
+    # a dropped flag and an inert flag are indistinguishable in the output.
+    argv_f = [a for a in sys.argv[1:] if a.startswith("-f")]
+    for a in argv_f:
+        if a not in cflags:
+            cflags = cflags + [a]
+    if argv_f and not quiet:
+        print("  (extra flags: %s)" % " ".join(argv_f))
+
     # --ref lets a scratch .c be tested against any .s, which is what makes
     # the order PROVE FIRST, SPLIT SECOND possible. Most targets sit inside a
     # multi-function .s that has to be split into _a/_b/_c and wired into the

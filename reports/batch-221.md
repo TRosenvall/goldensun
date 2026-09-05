@@ -27,12 +27,18 @@ into r8–r11 and the function grows a high-register prologue and epilogue the R
 does not have. It reads as a length difference first — 150 against 142, 198
 against 184, 243 against 238 — and only then as hundreds of differing lines.
 
-**No flag reaches it.** Measured across two functions: `-fno-gcse`,
-`-fno-cse-follow-jumps`, `-fno-expensive-optimizations`, `-fno-force-mem` and
-`-fno-rerun-cse-after-loop` all produce output byte-identical to the default.
-This is `cse_main`, which is not separable at -O2. (`-fno-rerun-cse-after-loop`
-*does* reach a related second-pass case — see `OvlFunc_890_20089f4` below — so
-the two must not be conflated.)
+**No flag reaches it.** — *CORRECTED IN BATCH 222; the sweep behind this
+sentence was invalid.* `tools/tryc.py` silently discarded bare `-f` flags
+passed on the command line, so every row of the sweep was the baseline
+recompiled. Re-measured with the tool fixed, on `OvlFunc_943_200a9d4`:
+`-fno-gcse`, `-fno-cse-follow-jumps` and `-fno-force-mem` are genuinely inert
+(150 lines, 146 differing, unchanged), but **`-fno-expensive-optimizations` is
+not** — it gives 147 lines and 117 differing. What survives is the weaker
+claim: no flag reaches *the ROM*, since that spelling is still five lines long
+and 117 differing where the pin cure is exact. The cure shipped in this batch
+and the byte-exact results are unaffected; only this reasoning was wrong.
+(`-fno-rerun-cse-after-loop` *does* reach a related second-pass case — see
+`OvlFunc_890_20089f4` below — so the two must not be conflated.)
 
 Three cures, and which one applies is decided by how many uses there are:
 
