@@ -317,6 +317,18 @@ asm/overlays/rom_78603c/ovl_30_c_c_a_c_a_c_b.o: src/overlays/rom_78603c/ovl_30_c
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# A FIFTH, and the SECOND one in this very directory -- which is the point.
+# The same ovl_30_c_c_a_c_a% wildcard has now caught two different split
+# products in a row, so a new split under rom_78603c should be assumed captured
+# until checked.  OvlFunc_885_2009760 is EXACT at -O2 and 51 of 218 encodings
+# wrong at -O1, with a moved relocation.  Measured, not inferred: objcmp
+# against the ORIGINAL asm path prints `(built with: O1)` and fails, while the
+# same candidate on a scratch path is byte-identical.
+asm/overlays/rom_78603c/ovl_30_c_c_a_c_a_c_c_b.o: src/overlays/rom_78603c/ovl_30_c_c_a_c_a_c_c_b.c
+	$(GCC296_CC) $(GCC296_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 
 # OvlFunc_932_2008b3c / _2008bd8: a flag id used once before an if and once in
 # each arm.  The boundary exists, so this is the reachable half of the
