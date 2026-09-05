@@ -16603,18 +16603,53 @@ by hand between the two shifts. Nothing is hoisted, so nothing needs dominating;
 the order is settled inside the call's own argument list. The dominating-block
 lever moves a value to a different block; this one changes what ties.
 
-**Do not read this as the 98 being cured.** It is one counterexample, and the
-same function bounds it: a SECOND `__MapActor_SetSpeed` with IDENTICAL arguments
-wants the OPPOSITE spelling -- the split build, r0 unpinned -- and site 3's form
-there costs 108. Eighteen spellings were measured across that one block. The
-cure is site-specific and the discriminator (what else the site is interleaved
-with) is not yet characterised.
+### Re-derived: the wall hid 230 functions, and the cure is simpler than the above
 
-What IS established: "straight-line" no longer justifies not trying, and a
-sizing line that sorts functions into worth-the-lever and out-of-reach is
-sorting by ONE lever. Barriers remain the wrong tool at an interleaved site --
-7 differing at any placement, because they reschedule the neighbouring `ldr`s
-too.
+Written first from one counterexample. A proper re-screen -- REUSING
+`tools/guarded_interleave.py` rather than writing a detector -- resized it:
+
+| | count |
+|---|---|
+| carry the interleave shape | 546 |
+| guarded sites only (the branch cure applies) | 314 |
+| straight-line only (the recorded "98") | **83** |
+| MIXED: at least one straight-line site | **147** |
+
+`guarded_interleave.py` selects on `g and not u`, so the 147 MIXED functions
+were excluded as well -- **one straight-line site was enough to wall off a whole
+function**. 83 + 147 = **230** were behind a boundary that only ever applied to
+one lever.
+
+**And the general cure is simpler than the hand-placed zero above.** That is a
+SPECIAL CASE. The general form is the UNIFORM WHOLE-VALUE ASCENDING FILL: one
+statement per argument, `q0/q1/q2` in order, shifted constants written whole
+(`0x96 << 2`), never as a `mov`+`lsl` pair. Hand-placing the zero matters only
+when other work is scheduled into the block, which is why it was load-bearing on
+`OvlFunc_956_200a0f0` and is not in general.
+
+Proof by the cheapest cases: `OvlFunc_943_2009c14` has NO CONDITIONAL BRANCH AT
+ALL and five interleave sites, exact on the first screen.
+`OvlFunc_954_2008270` closes the `neg` variant straight-line from a BARE CALL,
+no pins at all.
+
+Refinement: **pin the single-instruction arguments and leave the split build
+bare.** Dropping the split build's own pin measured inert everywhere; dropping
+the interleaved argument's pin costs 2-3. Pin size stays per-site and
+unpredictable -- two sites of identical shape in one function wanted 2 pins and
+1. And a PARTIAL pin is worse than none here too: two drops scored 90 and 91 and
+were three lines LONGER, because the pin was also holding off constant-CSE on a
+value shared with a later site.
+
+Still true from the first reading: barriers are the wrong tool at an interleaved
+site (7 differing at any placement, because they reschedule the neighbouring
+`ldr`s), and the cure remains site-specific enough that a second
+`__MapActor_SetSpeed` with IDENTICAL arguments can want the opposite spelling --
+on `200a0f0` that costs 108.
+
+**Re-run the scan immediately before committing to a target.** It excludes a
+function by testing whether `src/**.c` exists while the `.s` stays in `asm/`
+until landing, so a solved function looks unsolved for the whole window. Two
+targets were worked to 2-differing before their concurrent elevation surfaced.
 
 ## Two byte stores that may alias cost a scheduling slot; two struct tags buy it back
 
