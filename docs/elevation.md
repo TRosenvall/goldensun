@@ -15815,3 +15815,103 @@ Alongside the `-f` defect fixed above: `-O0` passed positionally to `tryc` on
 an exact candidate still reports OK. Only the `--O1` switch and the
 Makefile-derived groups reach the optimisation level. **Any `-O` probe through
 tryc is meaningless** -- drive `xgcc` directly.
+
+## gcse's CPROP IS WHAT KILLS A HELD CONSTANT
+
+`add rD, rN, #k` off a pooled constant is a POSITIVE TELL FOR A NAMED LOCAL.
+`cse.c` only relates two `CONST` values through `get_related_value`, which
+needs a `SYMBOL_REF`, so two independent `CONST_INT`s can NEVER produce that
+add. If the ROM does
+
+    ldr r5, =0x1c45
+    mov r0, r5          ... 118 instructions ...
+    add r0, r5, #6
+
+then the source held one value in a variable, and two literals cannot reach it.
+
+**But a plain `int m` does not survive -O2 either.** gcse's cprop pass
+substitutes the constant into the later block and cse folds `m + 6` to
+`0x1c4b`, giving two independent pool loads and no held register at all --
+228 of 237 encodings wrong on `OvlFunc_883_200acb0`.
+
+Isolated on a four-line probe: **the fold fires only when the function has more
+than one basic block**, because `gcse.c` bails at `n_basic_blocks <= 1`. The
+same two statements with no intervening `if` keep the register, which is why
+this does not show up on small specimens.
+
+TWO CURES, and the source-level one is preferred:
+
+  * `register int m __asm__("r5")` -- cprop will not substitute a constant into
+    a hard register, so the pseudo stays live. Needs no build change.
+  * adding the object to `GCSE_CFLAGS` with a plain `int m` -- also matches, but
+    it changes flags for the whole translation unit.
+
+## THE FIRST-USE PIN RULE HAS A BOUNDARY: ADJACENT SITES
+
+"One pin at the first use covers the later ones" holds WHEN A BRANCH SEPARATES
+THE SITES. When two calls using the same value sit ADJACENT IN ONE BASIC BLOCK,
+both need pinning.
+
+On `OvlFunc_948_200a334`, two `__StartTask` calls build `0xc8 << 4` back to
+back: pinning only the first leaves 2 differing, only the second leaves 15,
+and both are needed. With the first written straight into r1 the second still
+finds a live pseudo and emits `mov r1, r5`.
+
+Read the block structure before deciding how many pins a repeated value needs.
+
+## THE ONE-STATEMENT FILL IS NOT A RANKING
+
+The one-statement pinned fill (`q0 = 0x86 << 18;`) is recorded above as a way
+to avoid a scheduling barrier. It is **not** better than the per-instruction
+form; the two encode DIFFERENT FILLS and the ROM decides which is wanted.
+
+    q1 = 0xa0; q0 = 0xb; q1 <<= 7; q2 = 0;   /* mov r0 BETWEEN mov and lsl */
+    q1 = 0xa0 << 7; q0 = 0xb; q2 = 0;        /* seeds first, then the rest */
+
+Measured worse in both directions: the one-statement form costs 25 differing on
+`OvlFunc_941_2009760` and 11 on `OvlFunc_948_200a334` (identical to no pins at
+all), because both ROMs emit the `lsl` or the slot `mov` mid-group, which only
+per-instruction statements can express. Look at where the ROM puts the shift,
+then pick the form.
+
+## THE ELEMENT-TYPE FOLD LEVER, SECOND FORM
+
+Already recorded: the extern's declared element type decides whether
+`symbol + offset` folds into one pool word. A second shape of the same lever,
+from `Func_8097384`:
+
+    extern unsigned char *iwram_3001ebc;
+    (&iwram_3001ebc)[5]        /* FOLDS: ldr r3, =iwram_3001ebc+20, then a
+                                  `sub r3, #0x14` to get back to the base */
+
+    extern unsigned char *iwram_3001ebc[];
+    iwram_3001ebc[5]           /* base stays bare, both globals reached with
+                                  immediate offsets, as the ROM does */
+
+So it is not only byte-offset versus subscript -- ADDRESS-OF-A-SCALAR versus a
+DECLARED ARRAY does it too. **The tell is the same in both forms: a folded
+`=sym+offset` in our output where the ROM has a bare symbol, with the length
+one instruction over.** It is fine for one file to declare the symbol as an
+array while others declare it as a scalar; both are true of the address.
+
+## BLOCK LAYOUT IS SOURCE ORDER, AND `goto` LOSES IT
+
+For a ladder of guarded blocks, writing `if (cond == 0) goto L;` lets jump
+optimisation invert a later test and pull its block up as the fallthrough --
+three blocks in the wrong place on `OvlFunc_910_20081e4`. Nested `if`/`else`,
+with the then-arm carrying the rest of the ladder, expands in the ROM's order.
+
+Reserve the `goto` for a join that genuinely has several predecessors.
+
+## label.sym -- naming a `.L` table from non-overlay code
+
+Hand-written asm names its data tables with assembler-local `.L` labels, which
+are not C identifiers. Each overlay solved this in its own `overlay.ld`
+(`_TBL_L10 = .L10;`); code linking through `stage1.ld` had nowhere to put such
+an assignment, so `label.sym` exists and is INCLUDEd there.
+
+The bar: the label must already be `.global` in the asm that defines it, and
+the C file must genuinely need to index the table. An absolute assignment emits
+no bytes, so a wrong name costs nothing and a wrong target fails to link. Keep
+the `_TBL_` prefix -- it is what stops the label-number collision recorded
+above.
