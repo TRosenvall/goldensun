@@ -16136,3 +16136,113 @@ is the proof that nothing else relied on it.
 **When a prefix trap fires for the third time, stop overriding and go count
 what the pattern actually matches.** The check is two commands: list the `.c`
 files sharing the prefix, then grep for existing explicit overrides of them.
+
+## MATCH THE ROM'S LOOP SHAPE -- AND MY EARLIER RULE WAS TOO STRONG
+
+Batch 224 recorded "a ROM loop with the test at the top is not a `while`; use
+`do { if (!c) break; ... } while (1);`". Two functions in batch 226 point in
+opposite directions and the rule needs restating. There are THREE cases and the
+ROM's shape is visible by eye:
+
+**Bottom test, entry jump** -- `b .Ltest / .Lbody: body / .Ltest: test / bne
+.Lbody`. This IS `expand_end_loop`'s own rotation, so a plain `while` is
+exactly right. On `OvlFunc_910_20085dc` the do/while(1) cure costs 22 differing.
+
+**Top test, backward branch** -- `.L: test / bne END / body / b .L`. No natural
+loop reaches this: `expand_end_loop` rotates every one of them. TWO cures exist
+and WHICH ONE APPLIES IS FUNCTION-SPECIFIC:
+
+    do { if (c != 1) break; ... } while (1);    exact on OvlFunc_943_200bc88
+                                                111 differing on OvlFunc_926_200a7ec
+    label: if (c == 1) { ...; goto label; }     exact on OvlFunc_926_200a7ec
+
+On the second function `while`, `for (;;)` + break and do/while(1) all fail --
+the first two byte-for-byte identically -- and only the `goto` survives, because
+it is not a natural loop and `expand_end_loop` never sees it.
+
+**MEASURE BOTH TOP-TEST SPELLINGS.** The one-line rule I wrote was drawn from a
+single function and does not generalise.
+
+## WHAT A PIN IS FOR, NOT WHERE THE BLOCKS ARE
+
+The recorded first-use rule has an "adjacent sites in one basic block both need
+pinning" boundary. `OvlFunc_950_200813c` shows the boundary is a symptom rather
+than the rule: the function has NO BRANCH AT ALL, one basic block end to end,
+and the first-use rule still holds for two constants while both sites of a
+third are load-bearing.
+
+The distinction is WHAT EACH PIN IS DOING. A second pin that only destroys a
+CSE the first already destroyed is inert. A second pin that buys ARGUMENT
+ORDERING is not, because no earlier pin can supply that. Read the job, not the
+position.
+
+And the polarity is not fixed either. On `OvlFunc_952_2008674` one value has
+the documented order (first load-bearing, second inert) while another is
+REVERSED -- its two sites straddle an if/else join, so the earlier pinned use
+does not serve as the later one's destruction.
+
+## SCAFFOLDING THAT MEASURES INERT MUST NOT SHIP
+
+`OvlFunc_952_2008674` carried four named locals through its pin sweep. Each was
+byte-identical when removed, individually AND combined -- gcc commons all four
+itself. They were dropped.
+
+This is the easy discipline to skip, because leaving them costs nothing at the
+build. It is not free: a local that measures inert is a FALSE CLAIM about what
+the ROM required, and the next reader takes it as evidence. Strip and re-measure
+named locals the same way pins are stripped.
+
+## A `_MSG_` SYMBOL'S TELL IS A LENGTH DIFFERENCE, AND ONLY FOR SHIFTED BYTES
+
+On `OvlFunc_926_200a7ec` four message ids sit in one function and only ONE
+needs the symbol spelling. `0x17e0` is `0xbf << 5`, so gcc synthesises it as
+`mov`+`lsl` -- two instructions where the ROM has one pooled load, and that
+single extra line is the whole tell. The other three ids are not
+shifted-byte-representable, so gcc pools them as plain literals unaided.
+
+**The question is not "is this an id" but "can gcc build it with mov+lsl".** If
+it can, the ROM's pooled load means a symbol; if it cannot, a literal already
+pools and nothing is needed.
+
+## `int` VERSUS `unsigned char` FOR A BIT-MANIPULATION LOCAL
+
+On `OvlFunc_932_2009398`, widening the two bit locals from `unsigned char` to
+`int` was worth 24 differing down to 2. With `unsigned char` gcc allocated them
+to the ROM's own registers AND chose the wrong tied destination at three of
+four `and`/`orr` sites; the wider type fixed the allocation and three
+destinations together.
+
+Note this cuts against the recorded narrow-local rule for a commutative `orr`
+(`unsigned char one = 1;` on `OvlFunc_887_2008f90`). Both are real: the narrow
+type is what puts the constant in the destination at a SINGLE site, and the
+wide type is what fixes ALLOCATION when several sites share the locals. Measure
+both when a bit-manipulation block is close but the registers are wrong.
+
+## A SAME-FILE CALLEE NEVER BLOCKS A SPLIT
+
+`.thumb_func_start` expands to `.global \sym` (include/macros.inc), so every
+function a hand-written `.s` defines is already exported. A function that calls
+its own file's sibling can therefore be split out on its own, and the call
+becomes an ordinary cross-object `bl`.
+
+Worth knowing because it looks like a blocker: a screening pass on
+`OvlFunc_932_2009398` concluded all three functions in its `.s` had to be
+elevated together for exactly this reason. They did not.
+
+## THE RELOCATION CHECK CANNOT REFUTE A SYMBOL, ONLY CONFIRM A LITERAL
+
+Recorded above: "a symbol hypothesis is settled by relocations, not by line
+count". That is right when the reference DOES carry a relocation and a
+candidate lacks it, or vice versa. It has one blind spot, met on
+`OvlFunc_959_2009e94`.
+
+**The reference `.s` is a DISASSEMBLY.** A symbol in the original was resolved
+to its value before the `.s` was written, so the assembled reference cannot
+carry a relocation for it either way. A correct symbol spelling therefore shows
+as a PHANTOM relocation the reference "lacks", which reads exactly like the
+refutation case.
+
+So: an EXTRA relocation in the candidate refutes nothing on its own. What
+refutes a symbol is a relocation pointing somewhere the ROM does not; what
+confirms one is `make compare`. That function needed `_CONST_a1` after ten
+literal spellings all emitted `mov r0, #0xa1`, and compare is what settled it.
