@@ -42,7 +42,9 @@ SECTIONS {
 		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a_c_a_b.o(.text)
 		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a_c_a_c.o(.text)
 		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a_c_b.o(.text)
-		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a_c_c.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a_c_c_a.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a_c_c_b.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a_c_c_c.o(.text)
 		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_b.o(.text)
 		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_c_a.o(.text)
 		asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_c_b.o(.text)
@@ -77,3 +79,9 @@ SECTIONS {
  * calls the RAM-resident copy through the stub .export_func umodsi3_RAM makes.
  * These are different functions at different addresses. Emits no bytes. */
 __umodsi3 = _umodsi3_RAM;
+
+/* `.L5160` is a data table exported (.global) from ovl_30_c_c.s and referenced
+ * from five other objects in this overlay. `.L5160` is not spellable as a C
+ * identifier, so elevated code needs a name for it. Emits no bytes.
+ * See docs/elevation.md, "A short .LN extern can be captured by gcc's labels". */
+_TBL_5160 = .L5160;
