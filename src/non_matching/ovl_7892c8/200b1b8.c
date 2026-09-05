@@ -42,6 +42,27 @@
  * three differing lines without changing the length -- the extra register is
  * something else.
  *
+ * BATCH 221 -- THE ONE-VARIABLE LEVER DOES NOT TRANSFER ACROSS TYPES, and this
+ * is the useful boundary. Batch 220's OvlFunc_956_20093c0 established that
+ * writing two logically-distinct values as the SAME C variable is what makes
+ * gcc share a register, because gcc-2.96 has no live-range splitting. That is
+ * exactly the shape here -- the ROM shares r5 between the coordinate and the
+ * sprite pointer -- so it looked like the answer. It is not:
+ *
+ *     v7  one `int` variable, the byte accesses cast to a pointer   83 of 75, 82
+ *     v8  one pointer variable, the coordinate cast at the call     83 of 75, 82
+ *
+ * BOTH CAST DIRECTIONS PRODUCE BYTE-IDENTICAL OUTPUT, which is itself the
+ * finding: to gcc they are the same program, and the casts cost more than the
+ * shared register saves. The batch 220 lever works when the two values have the
+ * SAME TYPE and one variable is therefore natural; where the types differ, a
+ * shared variable has to be bought with casts and the trade is a loss.
+ *
+ * So the ROM's r5 sharing here is NOT reachable by naming at all -- it is the
+ * allocator coalescing two ranges that C cannot express as one object without
+ * paying for it. That is a stronger statement than the park's original "next
+ * step" and it closes the direction rather than leaving it open.
+ *
  * NEXT: the question is which value gcc is keeping alive that the ROM is not.
  * The two-range sharing in v4 is the right shape and did not reduce the count,
  * which means gcc is not honouring it -- reading the generated assembly again
