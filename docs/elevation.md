@@ -16302,12 +16302,18 @@ scaffolding you cannot justify.
 
 ## `__Func_8092c40` WANTS THE DESCENDING FILL
 
-Four functions now (`OvlFunc_966_2008218`, `OvlFunc_910_20085dc`,
-`OvlFunc_938_2009494`, `OvlFunc_952_20097e8`) have this callee as the LONE site
-needing `q1 = 0; q0 = N;` while every other site takes the uniform ascending
-fill. On two of them it was the entire residue.
+SIX functions now (`OvlFunc_966_2008218`, `OvlFunc_910_20085dc`,
+`OvlFunc_938_2009494`, `OvlFunc_952_20097e8`, `OvlFunc_891_2008614`,
+`OvlFunc_962_2008240`) have this callee as the LONE site needing
+`q1 = 0; q0 = N;` while every other site takes the uniform ascending fill. On
+two of them it was the entire residue.
 
 Write it descending on sight, then measure the rest.
+
+**The tell is binary, not graded.** On `OvlFunc_962_2008240` the ASCENDING fill
+at this site measured BYTE-IDENTICAL to leaving the site UNPINNED ALTOGETHER.
+Ascending here is not a weaker pin, it is a non-pin -- which is why the site
+either matches or contributes its full residue, with nothing in between.
 
 ## ONE SCRATCH-REGISTER PIN CAN SETTLE TWO DISTANT CLUSTERS
 
@@ -16345,3 +16351,103 @@ An earlier instance sliced an `#include` off a file the same way.
 
 Find the first line of the body and copy from THAT LINE NUMBER. A pattern that
 looks like the start of the code is not the start of the code.
+
+## THE CONSTANT-CSE LENGTH TELL CAN CANCEL ITSELF OUT
+
+The recorded procedure opens by reading a LENGTH difference: a constant used
+twice across calls is commoned by cse_main into a callee-saved register, the
+wider push and its spills add lines at entry, and plain C therefore comes out
+LONGER than the ROM. Five batches opened with that read.
+
+`OvlFunc_962_2008240` came out at **770 lines against the ROM's 770** -- an
+exact length match -- **with 710 of them differing**. The widened prologue cost
+precisely what the removed rematerialisations saved, and the two cancelled.
+
+So a length match does NOT mean the class is absent, and the tell is a
+one-way test: LONGER proves constant-CSE, EQUAL proves nothing.
+
+**Read the diff text instead, and count `mov rN, r5..r11` copies by
+DESTINATION.** The wide push plus an r8-r11 staging push at entry, then one
+`mov` per use through the body, names the held values directly -- seven of them
+here. That read survives the cancellation the length read does not, so it is
+the better first diagnostic in every case, not just this one.
+
+## POOL POSITION IS SET BY THE MODE OF THE REFERENCE
+
+`add_minipool_forward_ref` keeps the pool sorted by max_address, and max_address
+comes from the REFERENCE's range, not from where the constant appears in the
+source. A narrow reference -- an HImode temp with a 64-byte range -- is forced
+to sort EARLY, ahead of entries whose own references are further back.
+
+`Func_80982dc` had been PARKED on this and the park was wrong. Its residue was a
+pool ROTATION: nine words, all present and correct, `0x2090` moved from last to
+first. The park had measured THREE spellings of the final store, found all three
+produced byte-identical pool orders, and concluded the order was not driven by
+source at all -- **"NEXT: nothing source-level"**.
+
+The agreement was real; the inference was not. All three spellings left the
+constant in the SAME MODE. The ROM loads it with a word `ldr` and stores only
+the low halfword, so a direct `short` store makes it HImode, narrow, and it
+sorts FIRST. An `int` intermediate widens the reference and it sorts last:
+**18 differing encodings to 2**. The last two were an adjacent swap -- the ROM
+forms the store's ADDRESS before loading the value -- and binding the address to
+its own pointer first closed it.
+
+The control is what makes this general: address-first but with a CAST instead of
+an `int` local is straight back to 18 differing. The two levers are independent
+and it is the LOCAL'S MODE doing the work.
+
+**A pool-order residue is not a dead end, and `tryc` cannot see this class at
+all** -- it normalises PC-relative loads, so objcmp is the only screen that
+measures it. When the pool's contents are right and its ORDER is wrong, vary the
+MODE of each pooled constant's reference before concluding anything.
+
+## A SIBLING'S CURE CAN BE ACTIVELY WRONG
+
+Recorded above: one scratch-register pin can settle two distant clusters, found
+on `OvlFunc_891_2008150`'s closing store block. Its file-sibling
+`OvlFunc_891_2008614` closes with THE SAME BLOCK -- same two words, same two
+offsets -- and there the same pin costs **14 differing** where plain casts are
+exact; an offset-clobber variant costs 12 and loses a line.
+
+The reference shows why: the ROM's register roles are INVERTED between them. The
+sibling has r3 carrying the address; this one has r3 carrying the offset and
+then the value, with r2 as the address. Same source shape, opposite allocation.
+
+This does not retract the scratch-pin lever -- it bounds it. The pin is right
+when the roles are what it was measured on. **Read the block's register roles in
+the reference in front of you; a neighbour's fix is a hypothesis, not a patch.**
+
+## AN INDEX INTO A SHAPE IS ITSELF A MEASUREMENT
+
+"A measurement is only valid in the shape it was taken in" has a sharper edge
+than it looks, and it cost a near-miss.
+
+A screening run left `drop_fwd.json` -- eighteen pin-site INDICES to remove --
+next to the `cand2.c` it had built from them. `cand2.c` verifies byte-exact. But
+re-running that drop set against the current `exact_v1.c` does not reproduce
+`cand2.c` and is not exact: the list names index 93 where the file now holds
+only 76 pin blocks. The source had been revised between the sweep and the save,
+so every index past the edit re-bound to a DIFFERENT site.
+
+**Nothing errors.** An out-of-range index is simply never matched; an in-range
+one unpins whatever now sits there. The rebuilt candidate looks like a finished
+minimisation and is not. Unlike a differing count, an index carries no evidence
+of having gone stale.
+
+Minimise from a candidate you have CONFIRMED EXACT, using it as its own base --
+never from a saved index list plus a source you have not re-verified produces
+it. Re-run that way, `OvlFunc_941_2008828` ships **all 76 pins, none
+removable**.
+
+## A `.data` LINE IN THE LINKER SCRIPT IS NOT EVIDENCE OF DATA
+
+`asm/overlays/rom_7ddb88/ovl_30_c_c_c_c_a_c.o` is named in its overlay script
+for `.data` and `.data1` as well as `.text`, which reads like the data-carrying
+case the split tools warn about. The file carries no data: `split_asm.py`'s dry
+run reports "carries data: no" and "label exports: none needed", and the jump
+table of `.L` words inside it belongs entirely to the FIRST function and stays
+with it. `split_s.py` rewrote all three section references correctly.
+
+Check the `.s`, not the linker script. The script names sections the object MAY
+contribute, not sections it does.
