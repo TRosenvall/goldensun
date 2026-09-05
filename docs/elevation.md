@@ -15557,3 +15557,94 @@ which now records four instances of this trap.
 
 **When a split product's name shares a prefix with a flag wildcard, check the
 wildcard BEFORE screening.**
+
+## THE PROLOGUE PICKS THE CURE
+
+The constant-CSE section above gives three cures and says the use count chooses
+between them. That is not quite the right question. **Read the ROM's prologue
+first**, because it tells you how many values the ROM was willing to keep:
+
+  * `push {lr}` alone -- the ROM spends NO callee-saved register anywhere, so
+    every repeated constant is rebuilt at every use. ONLY PINS WORK. On
+    `OvlFunc_896_2008d5c` the named-local cure measured 208 lines and 199
+    differing against plain C's 207/195: WORSE. A named local buys the value a
+    pseudo that local-alloc is happy to keep live, which is the opposite of
+    what is wanted.
+  * `push {r5, lr}` -- one register, and it is usually holding a base pointer,
+    not a constant. Still a pin function. `OvlFunc_895_2008d1c`.
+  * A wider push -- the ROM does keep constants, so a named local per
+    duplicated value may be right, and some values must stay bare literals so
+    CSE hoists them. `OvlFunc_954_2009214` needs both directions at once.
+
+## PIN THE FIRST USE, NOT THE LATER ONES
+
+Corollary of "an earlier USE serves as the definition", and the single most
+expensive mistake available in this class.
+
+On `OvlFunc_895_2008d1c`, `0x9999` appears at four sites. Pinning the three
+`__MapActor_SetSpeed` sites and leaving the one `__Func_80933d4` site open
+still measured 242 lines and 229 differing, with `ldr r5, =0x9999` in the
+prologue and a widened `push {r5, r6, lr}` that displaced the base pointer out
+of r5 and shifted the entire function. Pinning that FIRST site took it to 241
+lines and 3 differing in one step.
+
+`OvlFunc_896_2008d5c` measures the same asymmetry from the other end: unpinning
+the FOURTH `0x101` site costs 2 differing lines, because three earlier pinned
+sites already force rematerialisation; unpinning the FIRST costs 180.
+
+**The earliest use IS the definition. Break that one.** Pinning later sites
+while the first is left open buys nothing.
+
+## A STORE ADDRESS CAN BE HOISTED ABOVE THE CALL IN ITS OWN RIGHT-HAND SIDE
+
+    *(short *)(n + 0x64) = (__Random() % 0xa) + 5;
+
+`0x64` is past the halfword store's 5-bit scaled offset range, so the address
+needs its own `mov`/`add`. gcc forms that address BEFORE evaluating the
+right-hand side -- which here contains two calls -- so the address has to
+survive them, and it takes a CALLEE-SAVED REGISTER to do it.
+
+Naming the right-hand side first forces it into a pseudo before the address is
+formed:
+
+    r = (__Random() % 0x3c) + 0x1e;
+    *(short *)(n + 0x66) = r;
+
+On `OvlFunc_888_200b1b8` this alone took 79 lines to 75 -- the ROM's length --
+and 74 differing to 52, after three batches of looking at the wrong thing.
+
+**But check whether the ROM WANTS a value held across those calls before doing
+it to every such store.** In that function, naming BOTH stores' right-hand
+sides frees the callee-saved register entirely and comes out 7 lines SHORT: the
+ROM really does keep one value there. The two stores need opposite treatment.
+
+## A SYMBOL HYPOTHESIS IS SETTLED BY RELOCATIONS, NOT BY LINE COUNT
+
+`const.sym` says a pooled small value means the source named a symbol. Checking
+that claim with `tryc` DOES NOT WORK: tryc normalises every PC-relative load to
+`=value`, so a symbol and a literal look identical to it, and the score can
+move the wrong way and endorse a wrong answer.
+
+On `OvlFunc_888_200b1b8` the ROM pools a zero and holds it in r8 across two
+call pairs -- const.sym's tell exactly. Spelling it `(int)&_CONST_0` scored
+BETTER by tryc, 16 differing against 17. It is wrong: `objcmp` shows the
+REFERENCE OBJECT CARRIES NO RELOCATION AT THAT POOL WORD, while the symbol
+spelling adds an `R_ARM_ABS32` the ROM does not have.
+
+**If the ROM's pool word were a symbol, the reference object would carry a
+relocation for it. Look.** This also confirms from a second angle what
+`src/non_matching/rom_15000/801965c.c` records: a pooled zero is ordinary gcc
+output and no `_CONST_0` belongs in const.sym.
+
+## A MEASUREMENT IS ONLY VALID IN THE SHAPE IT WAS TAKEN IN
+
+`OvlFunc_888_200b1b8` recorded "pinning the map actor to r6 is WORSE (80 lines,
+78 differing)" and attributed it to the batch 210 pin-cannot-span-a-call
+hazard. That measurement was taken before the hoisted store address was found.
+With the hoist fixed, the SAME pin is load-bearing and worth 16 differing.
+
+The converse happened in the same file: two `r5` pins that were load-bearing
+under the old diagnosis became byte-identical when removed, and were dropped.
+
+So when a park's central diagnosis changes, its REJECTED levers are not still
+rejected and its ACCEPTED scaffolding is not still needed. Re-measure both.
