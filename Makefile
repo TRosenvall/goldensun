@@ -297,6 +297,21 @@ asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c_a_a_a.o: src/overlays/rom_7f2f14/ovl_
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# NARROWED: rom_7ef4f4/ovl_30_a_c_c_c_c_c% was THIRTY identical -O1 pattern
+# rules for a stem holding six TUs, four of which already had explicit rules
+# overriding it. Only the two below ever took -O1. The pattern's real effect
+# was to capture every FUTURE TU under the stem: OvlFunc_965_2009238 measures
+# 286 differing at -O1 and byte-identical at -O2, and would have screened green
+# and built red. Same defect narrowed in rom_78603c/ovl_30_c_c_a_c_a% earlier.
+asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c_b.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c_c_b.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c_c_b.c
+	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c_c_a_b.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c_c_a_b.c
 	$(GCC296_CC) $(GCC296_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
@@ -901,10 +916,6 @@ asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
@@ -1054,10 +1065,6 @@ asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.o: src/overlays/rom_7b7f1c/ovl_
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
@@ -1213,10 +1220,6 @@ asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
@@ -1366,10 +1369,6 @@ asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.o: src/overlays/rom_7b7f1c/ovl_
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
@@ -1525,10 +1524,6 @@ asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
@@ -1678,10 +1673,6 @@ asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.o: src/overlays/rom_7b7f1c/ovl_
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
@@ -1837,10 +1828,6 @@ asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
@@ -1990,10 +1977,6 @@ asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.o: src/overlays/rom_7b7f1c/ovl_
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
@@ -2149,10 +2132,6 @@ asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
@@ -2302,10 +2281,6 @@ asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.o: src/overlays/rom_7b7f1c/ovl_
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
@@ -2461,10 +2436,6 @@ asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
@@ -2614,10 +2585,6 @@ asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.o: src/overlays/rom_7b7f1c/ovl_
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
@@ -2773,10 +2740,6 @@ asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
@@ -2926,10 +2889,6 @@ asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.o: src/overlays/rom_7b7f1c/ovl_
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
@@ -3085,10 +3044,6 @@ asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
@@ -3238,10 +3193,6 @@ asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.o: src/overlays/rom_7b7f1c/ovl_
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
@@ -3397,10 +3348,6 @@ asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
@@ -3550,10 +3497,6 @@ asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.o: src/overlays/rom_7b7f1c/ovl_
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
@@ -3709,10 +3652,6 @@ asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
@@ -3862,10 +3801,6 @@ asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.o: src/overlays/rom_7b7f1c/ovl_
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
@@ -4021,10 +3956,6 @@ asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
@@ -4174,10 +4105,6 @@ asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.o: src/overlays/rom_7b7f1c/ovl_
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
@@ -4333,10 +4260,6 @@ asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
@@ -4486,10 +4409,6 @@ asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.o: src/overlays/rom_7b7f1c/ovl_
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
@@ -4814,10 +4733,6 @@ asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
@@ -4967,10 +4882,6 @@ asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.o: src/overlays/rom_7b7f1c/ovl_
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
@@ -5126,10 +5037,6 @@ asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
@@ -5279,10 +5186,6 @@ asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.o: src/overlays/rom_7b7f1c/ovl_
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
@@ -5462,10 +5365,6 @@ asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
@@ -5615,10 +5514,6 @@ asm/overlays/rom_7b7f1c/ovl_30_c_c_a_c_c_c_c_b_%.o: src/overlays/rom_7b7f1c/ovl_
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a%.c
-	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
-	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
-	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
-asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.o: src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
