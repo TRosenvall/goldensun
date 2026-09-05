@@ -233,6 +233,11 @@ O1_CFLAGS := $(subst -O2,-O1,$(GCC296_CFLAGS))
 # NOT elevated: that object is named by many overlay linker scripts, so
 # splitting it touches all of them. See src/non_matching notes in batch 69.
 ALIAS_CFLAGS := $(GCC296_CFLAGS) -fno-strict-aliasing
+
+asm/rom_a1000/rom_ad274_a.o: src/rom_a1000/rom_ad274_a.c
+	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 # OvlFunc_957_2008ee0 re-reads its counter halfword after two `int` stores; at
 # -O2 strict aliasing lets gcc keep the first read. 20 differing lines -> 1.
 asm/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_c_c_c_c_b.o: src/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_c_c_c_c_b.c
