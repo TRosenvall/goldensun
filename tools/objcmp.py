@@ -34,6 +34,7 @@ things.
 It is not a substitute for `make compare`, which remains the gate: this checks
 one function in isolation and cannot see linker-script or layout mistakes.
 """
+import glob
 import os
 import re
 import subprocess
@@ -46,6 +47,64 @@ GCC = os.environ.get("GCC296_DIR", "/opt/gcc296")
 AS = ["arm-none-eabi-as", "-mcpu=arm7tdmi", "-mthumb-interwork", "-I" + os.path.join(ROOT, "include")]
 START = re.compile(r"^\s*\.(thumb|arm)_func_start(?:_noalign)?\s+(\S+)")
 ENC = re.compile(r"^\s*[0-9a-f]+:\t([0-9a-f ]+?)\s*\t")
+
+
+# ---------------------------------------------------------------------------
+# TWO NAMES FOR ONE SYMBOL. src/lib/call_via.s defines _call_via_fp and
+# _call_via_r11 at ONE label -- nm shows both `T` at 0x2c -- and gcc emits `fp`
+# where the ROM's disassembly writes `r11`. Comparing relocations by NAME
+# therefore reported byte-identical functions as failing, with SIZE and
+# ENCODINGS silent. That is the worst kind of false negative: this file is the
+# authority, so it can send someone to park a function that already matches.
+# Func_80c0be4 and Func_80c0cec were both landed after checking by hand.
+#
+# Two names are treated as one symbol ONLY when the linked ELF proves they
+# resolve to the SAME ADDRESS, so a genuinely wrong symbol still fails.
+_ALIASES = None
+
+
+def _alias_addrs():
+    global _ALIASES
+    if _ALIASES is None:
+        _ALIASES = {}
+        elfs = [os.path.join(ROOT, "goldensun.elf")]
+        elfs += sorted(glob.glob(os.path.join(ROOT, "overlays", "*", "*.elf")))
+        for e in elfs:
+            if not os.path.exists(e):
+                continue
+            try:
+                out = subprocess.run(["arm-none-eabi-nm", e],
+                                     capture_output=True, text=True).stdout
+            except Exception:
+                continue
+            for ln in out.splitlines():
+                f = ln.split()
+                if len(f) == 3:
+                    _ALIASES.setdefault(f[2], f[0].lower())
+    return _ALIASES
+
+
+def same_symbol(x, y):
+    """True only if the linked ELF resolves both names to one address."""
+    m = _alias_addrs()
+    return x in m and y in m and m[x] == m[y]
+
+
+def reloc_diff(a_rel, b_rel):
+    """(really_differs, [(refname, ourname), ...] aliased pairs)."""
+    if a_rel == b_rel:
+        return False, []
+    if len(a_rel) != len(b_rel):
+        return True, []
+    aliased = []
+    for ra, rb in zip(a_rel, b_rel):
+        if ra == rb:
+            continue
+        if list(ra)[:2] == list(rb)[:2] and same_symbol(ra[2], rb[2]):
+            aliased.append((ra[2], rb[2]))
+            continue
+        return True, aliased
+    return False, aliased
 
 
 def cflags_for(ref):
@@ -149,8 +208,12 @@ def main():
             if x != y:
                 print("     first at index %d: ref %s  ours %s" % (i, x, y)); break
         bad = 1
-    if a_rel != b_rel:
+    rel_bad, aliased = reloc_diff(a_rel, b_rel)
+    if rel_bad:
         print("  XX RELOCATIONS differ"); print("     ref ", a_rel); print("     ours", b_rel); bad = 1
+    elif aliased:
+        for x, y in aliased:
+            print("  ~~ relocation %s / %s is ONE symbol (same address in the linked ELF)" % (x, y))
     if not bad:
         print("  OK %s -- %d bytes, %d encodings and %d relocations identical"
               % (name, a_sz, len(a_enc), len(a_rel)))
