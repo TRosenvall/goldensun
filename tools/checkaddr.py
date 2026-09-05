@@ -34,7 +34,26 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CACHE = os.path.join(ROOT, "scratch", "addrcheck", "syms.txt")
 # a report row:  | 7 | `Name` | `0x080923e4` | ...
-ROW = re.compile(r"\|\s*\d+\s*\|\s*`([A-Za-z_]\w*)`\s*\|\s*`(0x[0-9a-fA-F]+)`")
+# WHAT COUNTS AS AN ADDRESS ROW, and why this is fussier than it looks.
+#
+# Originally: `| N | `Name` | `0xADDR` |`, with the leading number column
+# REQUIRED. That silently skipped every table without a numbered first column --
+# a Parked table, a carried-forward table -- while still exiting 0, which is the
+# exact failure this file exists to prevent, one table over.
+#
+# Making the number column optional then over-corrected and produced two FALSE
+# POSITIVES in batch-52, which is the more instructive half. That report has a
+# second table whose cells read "`0x9a7` loaded for two `__GetFlag` calls" -- the
+# backticked value is a CONSTANT, not an address, and the row shape is otherwise
+# identical. Its real address rows meanwhile are written `0200805c` with NO `0x`
+# prefix, so they matched neither the old pattern nor the loosened one.
+#
+# So two independent discriminators are needed, and neither alone is enough:
+#   - the prefix is OPTIONAL, because reports write addresses both ways;
+#   - the cell must contain NOTHING BUT the backticked value, i.e. a `|` has to
+#     follow it. That is what separates an address cell from a prose cell that
+#     happens to open with a hex literal.
+ROW = re.compile(r"\|(?:\s*\d+\s*\|)?\s*`([A-Za-z_]\w*)`\s*\|\s*`(?:0x)?([0-9a-fA-F]{6,8})`\s*\|")
 
 
 def build_syms():
