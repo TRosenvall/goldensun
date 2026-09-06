@@ -4625,6 +4625,19 @@ does pool a literal 0 on a cross-jumped tail — versus any other small value,
 where a pool load still means a symbol.
 
 ## `-ffixed-r7`: when the ROM spends r8 and you spend r7
+> **FALSE-POSITIVE CLASS (batch 242).** This signature -- the ROM saves a high
+> register and you do not, gap about four -- fires on `OvlFunc_945_200c254` and
+> is WRONG there: reserving r7 would give three call-crossing registers where
+> the ROM has four.
+>
+> **Discriminator: COUNT the ROM's callee-saved registers against yours.** Same
+> count, rotated -> the flag. One MORE -> a live-range conflict, cured in source
+> by making the shorter-lived value born earlier. That is the high-register form
+> of "two constants in DIFFERENT registers means they are simultaneously live".
+>
+> The same batch has the counter-example from the other side:
+> `OvlFunc_951_20084bc` finds this flag ENTIRELY INERT because it already saves
+> r8, and that inertness is what justified shipping its pin instead.
 
 `OvlFunc_945_200d6dc` needs three callee-saved registers. gcc takes r5, r6, r7.
 The ROM takes r5, r6 and **r8** — which is not free in thumb: it costs
@@ -14694,6 +14707,20 @@ made of. A count of zero, with a narrow `push`, says the residue will be about
 spelling rather than about the allocator.
 
 **Rank on the template, then filter on `hi == 0`.** The two are independent
+
+> **CORRECTED (batch 242): `hi` COUNTS REFERENCES, NOT VALUES, and that inverts
+> its verdict on some functions.** `OvlFunc_951_20084bc` scores 31 -- the worst
+> end of that table -- and matched in twelve screens, because THIRTY of the 31
+> are the same reference: one pseudo's reload copy, repeated once per call site.
+> A count of distinct high-register VALUES would have said 1.
+>
+> High traffic predicts trouble when it means PRESSURE, and pressure needs
+> several values, not one value read many times. `templated.py` now reports a
+> `hiv` column beside `hi` -- the number of DISTINCT high registers the body
+> mentions. Read `hi` high with `hiv` low as "one constant placed
+> deliberately", which is cheap; `hi` high with `hiv` at 3 or 4 is the real
+> reject. Both columns are kept, because the original has a measured track
+> record and this correction rests on one function.
 questions and both are cheap to ask before writing a line of C.
 
 ## A "60 of 60" screen can be three instructions
@@ -17452,3 +17479,105 @@ Four tools carried it -- `objcmp.py`, `tryc.py`, `protolever.py`,
 `sweep_decls.py` -- and all now use context managers. **If a screen returns a
 surprising number, re-run it before believing it.** A one-off bad score is
 cheaper to re-test than to park.
+
+## AN ALL-CHEAP CALL SITE NEEDS NO ORDERING PIN
+
+A site whose arguments are all bare `mov rN, #imm8` does not need a pin for
+ORDERING. Measured on `OvlFunc_903_200867c`: 133 of its 186 sites are all-cheap
+and NOT ONE appears in any fixpoint, from any drop direction. Re-running
+minimisation from the 53 expensive-argument sites alone converges on the
+identical 42 pins.
+
+So the test prunes a sweep at zero cost -- here 186 candidate sites down to 53.
+The mechanism is already recorded twice (a bare `mov #imm8` is rematerialised
+free, so naming works against a POOL LOAD and not against a cheap mov); what is
+new is that the same test governs the PIN SET, not just the constant ranking.
+
+**THE EXCEPTION IS THE DESCENDING-FILL CALLEES, AND IT IS WHY THEY ARE RECORDED
+BY NAME.** `__Func_8092c40` and `__Func_8093054` are reached by CALLEE NAME
+regardless of argument cost. Batch 240 recorded an all-cheap site that did need
+a pin and it was `__Func_8092c40(1, 0)`; batch 242 saw the same thing again on
+a different function. Checked rather than assumed: `OvlFunc_903_200867c` calls
+NEITHER of those callees, zero sites, while both counter-example files call one
+of them.
+
+So: prune all-cheap sites from the ordering sweep, but never prune a site whose
+callee is on the descending-fill list.
+
+## UNIFY A STRUCT TAG TO *ADD* A DEPENDENCE
+
+"Two byte stores that may alias cost a scheduling slot; two struct tags buy it
+back" SPLITS tags to REMOVE a dependence. This is the mirror, and it decides at
+a different step.
+
+`OvlFunc_953_2009688`'s residue was one transposition worth 2 encodings.
+`-fsched-verbose=8`: the pair TIES on priority at 96 and both are class 3, so
+`rank_for_schedule` falls through to DEPENDENT COUNT -- the narrow tag gives the
+halfword store five dependents against the shift's seven, and it loses.
+Declaring the two neighbouring word fields IN THE SAME TAG makes them conflict,
+the store gains exactly those two insns, seven ties seven, and insn order picks
+the ROM's.
+
+**The lever is the STRUCT DEFINITION, not the access spelling:** wide tag with a
+cast is 0, narrow tag with the same cast is 2.
+
+Note the alias hazard runs both ways within one batch: `-fno-strict-aliasing` is
+281 differing on this function and byte-identical on `OvlFunc_968_200ca2c`.
+
+## THE CALLER'S OWN RETURN TYPE REACHES sched2
+
+`pop {r1}` means non-void, and `return x;` is not the spelling. Both hold. The
+addition is a SECOND effect: declaring `s32` with NO return statement also fixes
+an argument-setup order forty bytes earlier, at a call that has nothing to do
+with the return value.
+
+From `-fsched-verbose=8` on `Func_80b7aac`: the `ldr` and the `add` tie at
+priority 65, because `arm_adjust_cost` returns 1 for any data dependence into a
+CALL_INSN, so load latency buys nothing. `rank_for_schedule` decides on
+dependent count -- and the EPILOGUE is the second dependent, because the return
+`unspec_volatile` takes a dep on the last writer of whichever register
+`thumb_exit` will pop into. VOIDmode offers r0; a size<=4 return offers r1.
+
+So the epilogue's scratch register decides argument order at an unrelated call.
+The recorded entry justifies this spelling by a spurious `mov r0,#0`; this
+function does not have one at all, so look for the effect even when that tell is
+absent.
+
+## WHEN THE SPLITTER REFUSES, EXPORT THE LABEL AND GATE THAT ALONE
+
+`split_s.py` refuses a cut that would separate a `.L` label from its user,
+because a `.L` symbol does not reach the object symbol table and the link would
+fail. The fix is `.global .L<name>`, which emits no bytes.
+
+**Gate the export BY ITSELF before splitting.** `make compare` must stay green
+with only the export in the tree; that keeps a layout error and a codegen error
+separable, and it is the same discipline as building a split in assembly before
+the `.c` goes in.
+
+And when the `.s` carries a real `.data` section, let the splitter rewrite the
+linker script rather than hand-repointing the one `.data` line. The tool emits
+one line per piece, with the section landing in the piece that holds it; the
+others get `.data` lines for sections they lack, which is harmless. Hand-aiming
+is not, because **an unmatched `.ld` entry is not an error** -- a wrong aim drops
+every blob in that overlay silently.
+
+## TWO LEVERS WHOSE DIRECTION IS THE OPPOSITE OF THE USUAL
+
+**A loop addend can want the LITERAL, not a named local.** On
+`OvlFunc_968_200ca2c`, naming it is 175 differing and TWO INSTRUCTIONS SHORT:
+the named pseudo loses global-alloc priority to the hot counter, gets no
+register, and reload rematerialises the constant inside the loop, so the size
+stays right and only the shape moves. The "shorter output means something live
+is missing" signal points at it, and the cure is to STOP naming the value.
+
+**High-register pins can be harmful, and deleting them is the lever.** On the
+same function the template's r8+r10 recipe measures 154; r8 alone 66; r10 alone
+154; NEITHER zero. gcc reaches those registers unaided in call-saved order, and
+forcing them reserves them function-wide, pushing the allocator into r9 and into
+swapping two others. Hard-pinning two pointers there also produced WRONG CODE --
+gcc reused a pinned register for the loop counter.
+
+Related, and cheap to check first: declaration order was COMPLETELY INERT on
+that function -- all 5040 permutations of its seven locals score identically. It
+is the usual first thing to reach for when two pointers land in swapped
+registers, and here it was a symptom rather than a cause.

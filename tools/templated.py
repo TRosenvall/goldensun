@@ -103,16 +103,34 @@ def main():
                     sc = shared / float(len(syms))
                     if sc > best:
                         best, bestf = sc, path
-            # r8-r11 traffic is the single best predictor of an INTRACTABLE
-            # residue, and it is independent of template quality. A function
-            # needing more values live than the low registers hold is where the
-            # allocation-order parks come from. Measured on one round's list:
-            # 27 uses -> abandoned at 117 of 126, 17 -> parked at 104 of 140,
-            # ZERO -> elevated on the first candidate. Rank on the template,
-            # then filter on hi == 0.
+            # r8-r11 traffic predicts an INTRACTABLE residue, independently
+            # of template quality: a function needing more values live than the
+            # low registers hold is where the allocation-order parks come from.
+            # Measured on one round's list: 27 uses -> abandoned at 117 of 126,
+            # 17 -> parked at 104 of 140, ZERO -> elevated on the first
+            # candidate.
+            #
+            # BUT `hi` COUNTS REFERENCES, NOT VALUES, AND THAT INVERTS ITS
+            # VERDICT ON SOME FUNCTIONS. OvlFunc_951_20084bc scores 31 -- the
+            # worst end of that table -- and matched in twelve screens, because
+            # THIRTY of the 31 are the same reference: one pseudo's reload copy
+            # repeated once per call site. A count of distinct high-register
+            # VALUES would have said 1.
+            #
+            # So `hiv` is reported beside it: how many DISTINCT high registers
+            # the body mentions. High traffic means trouble when it means
+            # PRESSURE, and pressure needs several values, not one value read
+            # many times. Read `hi` high with `hiv` low as "one constant placed
+            # deliberately", which is cheap; `hi` high with `hiv` at 3 or 4 is
+            # the real reject.
+            #
+            # Both are reported rather than replacing one with the other: the
+            # original column has a measured track record and this correction
+            # rests on a single function.
             hi = sum(1 for l in body if HIREG.search(l))
+            hiv = len({m.group(0) for l in body for m in [HIREG.search(l)] if m})
             if bestf:
-                rows.append((best, len(syms), n, hi, name,
+                rows.append((best, len(syms), n, hi, hiv, name,
                              os.path.relpath(s, ROOT), bestf))
     # Ties break on SHARED-SYMBOL COUNT, not on size. A 1.00 built from TWO
     # shared symbols means the function calls one thing and reads one global and
@@ -123,10 +141,10 @@ def main():
     # still untested. Rows under three shared symbols are marked `?`.
     rows.sort(key=lambda r: (-r[0], -r[1], r[2]))
     print("%d candidates have a solved neighbour\n" % len(rows))
-    print("score syms insns  hi  function                      neighbour")
-    for sc, ns, n, hi, name, s, f in rows[:top]:
-        print("%.2f%s%3d  %4d %3d  %-28s %s"
-              % (sc, " ?" if ns < 3 else "  ", ns, n, hi, name, f))
+    print("score syms insns  hi hiv  function                      neighbour")
+    for sc, ns, n, hi, hiv, name, s, f in rows[:top]:
+        print("%.2f%s%3d  %4d %3d %3d  %-28s %s"
+              % (sc, " ?" if ns < 3 else "  ", ns, n, hi, hiv, name, f))
 
 
 if __name__ == "__main__":
