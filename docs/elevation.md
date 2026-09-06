@@ -776,9 +776,18 @@ Same for the tail. Caught in batch 82 on `ovl_30_c_c_c_c_c_c`.
 
 > **ALSO REACHABLE BY NAMING THE DESTINATION ADDRESS (batch 237).** Where every
 > spelling in this section costs a second call to recompute the object,
-> `bp = &GetActor(t)->f23; *bp |= 2;` is exact. That is
-> "## Name the store's DESTINATION pointer when the ROM computes the address
-> first" in its read-modify-write case -- the two sections are one lever.
+> `bp = &GetActor(t)->f23; *bp |= 2;` is exact.
+>
+> **CORRECTED (batch 240): that is NOT the same lever as "## Name the store's
+> DESTINATION pointer", and this banner originally claimed it was.** Measured on
+> `OvlFunc_930_2008c30`, same single call and same address computation:
+> `->f5a |= 1` and `e->f5a |= 1` are both ZERO, while the named-pointer form
+> `bp = &e->f5a; *bp |= 1;` is 2, as are four other pointer spellings, and the
+> recorded narrow-local remedy is 4. The discriminator is AGGREGATE MEMBER
+> REFERENCE versus dereferenced pointer -- not address computation, not value
+> width. Reach for the TYPED FIELD first. The batch-237 result stands for its
+> own case, where the plain form cost a second call to recompute the object;
+> what does not stand is the generalisation.
 
 Thumb's two-operand `orr` makes the destination one of the operands, so the ROM
 tells you which side of the source expression gcc kept:
