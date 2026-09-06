@@ -850,6 +850,27 @@ asm/overlays/rom_79b154/ovl_30_c_a_a_c_a_c_c_c.o: src/overlays/rom_79b154/ovl_30
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# OvlFunc_964_200a0a4 materialises one flag id FOUR times; at -O2 the two uses
+# in the else arm common into a callee-saved register plus a copy. It is the
+# recorded "GetFlag(id) guarding a block that ends in a committing call" shape,
+# so it wants CSE_CFLAGS -- and the first instance where the committing call is
+# __ClearFlag rather than __SetFlag, with the two guard/act pairs in OPPOSITE
+# arms of one if/else.
+#
+# THIS RULE IS EXPLICIT ON PURPOSE, AND MUST NOT BECOME A NARROWING OF THE
+# WILDCARD BELOW. That -O1 pattern captures this stem (`%` = `_a_b`), which is
+# the recorded prefix trap -- but ovl_30_c_c_c_a_a_b.c is GREEN under it, so
+# narrowing the pattern would break a working sibling. An explicit rule beats a
+# pattern rule in GNU make, which is why this is safe as written.
+#
+# Measured on the final C: the inherited -O1 is 150 encodings differing, plain
+# -O2 is 89, and -O2 -fno-rerun-cse-after-loop is exact. -fno-gcse alone does
+# not reach it.
+asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a_a_b.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a_a_b.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
