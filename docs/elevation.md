@@ -8728,6 +8728,25 @@ So a ROM that builds the same constant twice with no label or branch between the
 two builds -- most visibly, the same value passed as several arguments of one
 call -- is not reachable by any spelling of that constant.
 
+> **REFUTED (batch 242), and verified from the generated output rather than a
+> report.** `OvlFunc_945_200c254` produces exactly this shape. Its ROM has
+> `ldr r5, =0xa01b` / `ldr r0, =0xa01b` adjacent, and the `.s` gcc generates
+> from the landed `.c` has `ldr r5, .L14+16` / `ldr r0, .L14+16` on adjacent
+> lines with no label and no branch between them -- one basic block, one pool
+> word, loaded twice into two registers.
+>
+> The "ZERO of 3235" measurement was true of the corpus when it was taken. The
+> CONCLUSION drawn from it -- "not reachable by any spelling" -- was not, and
+> that is the part that cost parks.
+>
+> The spelling needs BOTH halves together, which is why a one-lever sweep never
+> found it: a call-clobbered pin on the literal site, AND the named copy
+> assigned AFTER that call. Either alone leaves 4 of 350, because the pin cannot
+> beat CSE while a callee-saved copy is still live where the pin is set.
+>
+> `src/non_matching/ovl_7ac2d8/20090c0.c` is parked on this class and should be
+> re-screened.
+
 It is a small class: three functions in the whole remaining tree
 (`OvlFunc_924_20090c0`, `Field_Carry_Target`, `InitWorldMap`). Recorded so the
 next person recognises it in one screen rather than twenty.
