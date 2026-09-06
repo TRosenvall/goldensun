@@ -258,6 +258,31 @@ asm/overlays/rom_7f6e64/ovl_314_a_a_a_c.o: src/overlays/rom_7f6e64/ovl_314_a_a_a
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# OvlFunc_947_20093b0 damps three velocity components and writes them back.
+# The residue was two loads hoisted above stores, and -fsched-verbose=8 reads
+# out why: the store and the load TIE on priority, reload_completed has killed
+# the register-pressure test, and rank_for_schedule falls through to dependent
+# count -- 5 against 4 -- so the load wins. The missing dependence is a memory
+# one that strict aliasing deletes: the halfword pair is `unsigned short *`,
+# the stores are `int`, and DIFFERENT_ALIAS_SETS_P returns early. Collapsing
+# the sets restores it and fixes BOTH hoists at once.
+#
+# NO STRUCT-TAG SPELLING SUBSTITUTES HERE, and that is the general point.
+# Alias sets can only REMOVE dependences -- true_dependence consults them
+# before memrefs_conflict_p -- and two (plus (reg) K) addresses are provably
+# distinct anyway. The recorded "give each store its own struct tag" lever buys
+# SEPARATION, which is the opposite of what this wants, and measures inert. The
+# only source-level escape is a volatile on both sides of each pair, which
+# short-circuits above the alias test; that spelling is also byte-identical and
+# is recorded in the file, but the flag is the honest description.
+#
+# The file's other function was re-measured UNDER the flag rather than assumed
+# unaffected: still exact, so the flag costs it nothing.
+asm/overlays/rom_7d0e88/ovl_314_c_a_c_c.o: src/overlays/rom_7d0e88/ovl_314_c_a_c_c.c
+	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 
 # One translation unit matches only with GLOBAL CSE turned off. Its inner loop
 # steps a value by a constant, and at -O2 gcc sinks the constant's pool load
