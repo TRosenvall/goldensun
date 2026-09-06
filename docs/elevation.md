@@ -1773,6 +1773,21 @@ across the BACK EDGE -- so the value is live around the loop and gcc keeps it in
 a callee-saved register instead of rematerialising. `OvlFunc_935_2008b8c` is
 2 of 51 with the literal at the call site, 7 with the value assigned before the
 loop, and 9 with it assigned in the block that jumps into the loop.
+
+> **BOUNDED (batch 239): that is true of the SPLIT-PAIR form, not of the
+> COPY-DIRECTION form, and the boundary is the CALL'S OWN BLOCK rather than the
+> loop.** `OvlFunc_924_20095e0` measures three placements of the same two
+> assignments: entry block exact, **top of the loop body, inside the loop, also
+> exact**, and adjacent to the calls in the same block 34 encodings plus
+> relocations, i.e. identical to naive. Note the evidence above is two
+> placements both OUTSIDE the loop, so it never tested the inside.
+>
+> The real edge is that once assignment and both uses share ONE basic block,
+> gcse's cprop substitutes the constant back and the name is gone. So this is
+> the named-local MIRROR of the pin rule: for a PIN an intervening call is as
+> good as a branch, but for a NAME a branch is required and a call is not
+> enough -- the adjacent placement has three calls between assignment and use
+> and still folds.
 So the clause is: a dominating block that is **not part of the loop the call
 sits in**.
 
@@ -12870,6 +12885,18 @@ run outside is a bare `FileNotFoundError` on `/opt/gcc296/xgcc`, which reads
 like a broken tool rather than a wrong working directory.
 
 ## A NEGATIVE multiplier is what selects the shift chain
+> **A POSITIVE ONE DOES TOO, AND A NAMED LOCAL BUYS THE `mul` BACK (batch
+> 239).** Probed in isolation under production flags: `return 0x50 * d;` gives
+> `lsl / add / lsl` with no `mul` at all, while `int k = 0x50; return k * d;`
+> gives `mov r3,#80 / mul r0,r0,r3`, and two uses of `k` hold the 80 in a
+> PUSHED callee-saved register. gcc-2.96 does not constant-propagate a named
+> local into a MULT before expand, so the local survives as a pseudo, the `mul`
+> pattern is used instead of `synth_mult`'s chain, and CSE then commons the
+> constant across both sites.
+>
+> Read it forwards: `mov rN, #K` into a callee-saved register followed by two
+> `mul`s REPORTS A NAMED LOCAL IN THE SOURCE. Worth 68 of 87 encodings on
+> `Func_80df90c` and 86 on `Func_80b82c4`.
 
 When the ROM expands a constant multiply as a chain of shifts and adds where a
 pool load and a `mul` would plainly be cheaper, that is not gcc preferring
@@ -13013,6 +13040,16 @@ FIRST cse pass — the repeats are already collapsed, and `.09.cse2`, the rerun
 help because the damage is done before it runs.
 
 ## Blocker 1b, the actual mechanism — and READ THE RIGHT COMPILER TREE
+> **A BITFIELD IS A SECOND ROUTE OUT, AND THE TELL DOUBLES AT HALFWORD
+> CONTAINER WIDTH (batch 239).** The recorded mask-width rule is stated for a
+> BYTE container; it holds at halfword width too, where hand-masking produces
+> BOTH a narrowed `mov`/`lsl` for the clear-mask AND an `ldrh` for the
+> value-mask pooled at halfword width, against the ROM's two full `ldr`s. A
+> 9-bit bitfield fixes both at once, because `store_bit_field` builds both
+> masks at int width, so neither is ever a HImode `const_int` and the
+> constraint ordering that IS 1b never applies. 140 of 145 differing to 2.
+> This section's recorded escape is "make the value SImode"; the bitfield is a
+> second route to that.
 
 Two corrections, one of which invalidates how 1b was explained earlier in this
 file (not what to do about it — the recipe was right — but why).
@@ -17021,3 +17058,118 @@ A `solved_twins.py` zero is not the end of the search. Neither is a twin miss a
 family miss: one function this round was solved off an idiom-grep that found a
 **parked** function carrying the exact preamble. A park blocked on something
 unrelated is still a correct idiom template.
+
+## THE RESIDUE'S RELOCATION LINE SORTS THE TWO PIN JOBS, WITH NO MIDDLE
+
+A pin does one of two jobs: it defeats CSE (forcing a rematerialisation the ROM
+performs), or it buys an argument ordering. Which one a given site is doing has
+until now been read off the residue's shape by eye. `objcmp` already prints the
+answer.
+
+Drop each required pin one at a time and read the RELOCATION line:
+
+    ORDERING job    small encoding count, SIZE and RELOCATIONS both SILENT
+    CSE loss        23-600 encodings, RELOCATIONS ALWAYS differing
+
+Mechanism: a lost rematerialisation moves every following `bl`, so every
+relocation offset moves. A pure argument transposition moves no byte offset at
+all.
+
+**SIZE is not the discriminator.** On `OvlFunc_895_2008f8c` it is silent on 16
+of the 38 genuine CSE losses. Measured there over all 48 required pins and
+confirmed independently on `OvlFunc_891_2008c8c`, whose four pins are all
+ordering jobs, each costing exactly 2 when dropped, additive over all sixteen
+subsets.
+
+## NOMINATE PIN CANDIDATES BY CALL-SITE FAMILY, NOT ONLY BY REPEATED CONSTANT
+
+The recorded nomination rule -- sites whose argument list carries a constant the
+ROM builds more than once -- is a CSE rule. It therefore systematically misses
+the SINGLETON member of a uniform call-site family, which needs the same pin for
+ORDERING rather than for rematerialisation.
+
+`OvlFunc_895_2008f8c` calls one callee 31 times with the same argument shape.
+Thirty sites are nominated by the recorded rule; the one whose shifted byte is
+used only once is not. Adding "same callee AND same argument shape" nominates
+exactly three extras and makes the set exact WITH NO RESIDUE READ AT ALL -- and
+it minimises back to the same 48 pins the residue-driven route found.
+
+Worth trying first on a call-dense function: it replaces a diagnostic loop with
+a grep.
+
+## THE DESTRUCTIVE-ADD RULE IS A LOW-REGISTER RULE
+
+Recorded: where the ROM's last use is a destructive `add rN, #k`, write
+`m += k`, because gcc emits the destructive form only when the variable is dead
+after it.
+
+It does not reach r8-r11. Thumb-1 has no `add r8, #1`, so the destructive form
+costs `mov` + `add` -- EXACTLY what the fold costs. The tie the low-register
+case wins is a dead heat, and gcc takes the fold. `m += 1` is one line short in
+every placement.
+
+Try the bare register pin first, per the recorded order; on
+`OvlFunc_895_2008258` it is inert. Only `__asm__ __volatile__("" : "+r"(m))`
+closes it.
+
+**AND THE BARRIER'S POSITION IS PART OF THE LEVER.** Outside the pinned fill it
+acts as a fill-order anchor in its own right and REVERSES the pair. It must sit
+immediately before the read of the barriered value. Its non-local cost also runs
+further than recorded -- the doc has three instructions upstream, this measured
+EIGHT, across a whole `bl`.
+
+## A SHIFT-ADD CHAIN MUST NOT HAVE A NAMED TARGET
+
+Assigning a shift-add product to a variable hands `expand_mult` a target pseudo,
+so the accumulator and the result are two pseudos and the last add comes out
+three-operand. Written INLINE in the argument list there is no target, the
+accumulator IS the result, and that is what lets a HIGH register be the second
+operand of a two-operand `add`.
+
+Measured on `OvlFunc_924_2009db4`: named target gives `mov r1,r11 / add r5,r3,r1`
+where inline gives the ROM's `add r5, r11` with every add destructive.
+
+This is the opposite polarity to most naming levers, and worth checking whenever
+a high register appears as the second operand of a two-operand arithmetic
+instruction.
+
+## THE `goto`-LOOP LEVER: TWO SPECIMENS EITHER SIDE OF THE RECORDED RULE
+
+The discriminator is recorded -- look for a rebuilt invariant in the loop BODY --
+and batch 239 has one function on each side, in one overlay.
+
+`OvlFunc_891_2008c8c`: the lever is ACTIVELY HARMFUL, 202 of 242 differing and
+SIXTEEN BYTES SHORT, because this ROM hoists the pair into each preheader, so
+`goto` throws the hoist away. The park `ovl_78c76c/2008098.c` rebuilds its stack
+pair in the body and NEEDS the lever.
+
+And a function can want it on one loop and not the other. In
+`OvlFunc_924_200a030` the INNER loop wants `goto` and the outer does not:
+leaving the outer a real `do`/`while` keeps its LICM, so two constants still
+arrive in high registers unaided. Both loops rewritten is 152 differing; only
+the inner is exact. So hand-name only what LICM will NOT lift, rather than
+applying the lever's blanket corollary to every constant in sight.
+
+## A SOLVED CANDIDATE IN scratch_elev/ IS INDISTINGUISHABLE FROM AN ABANDONED ONE
+
+`OvlFunc_924_20095e0` was finished by batch 236 -- body, forty screened
+variants, a write-up and its own new finding -- and batch 236 shipped five other
+functions without it. No `src/` file, no report row, no entry here. Nothing in
+the tree recorded it as done, so it looked unattempted to every later round and
+`templated.py` kept offering it as a 1.00 candidate. It was re-solved from
+scratch three batches later.
+
+The batch report is what makes a solved function real. When a round ends with
+more matches than it lands, write down which ones are outstanding.
+
+## BYTE-IDENTITY DOES NOT SINGLE OUT A SPELLING
+
+Two agents were accidentally given the same two functions and worked them
+independently. They produced DIFFERENT source -- one naming a multiplier `k`,
+the other naming it `s` and assigning it after both lookups -- and both are
+byte-identical to the ROM.
+
+Worth stating once, plainly, because the whole method can encourage the opposite
+belief: matching proves the compiler emits these bytes from this source, not
+that the original author wrote it. Where two spellings both match, prefer the
+one that reads as ordinary code.
