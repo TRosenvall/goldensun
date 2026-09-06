@@ -667,6 +667,11 @@ asm/overlays/rom_7a67d8/ovl_30_c_a_c_c.o: src/overlays/rom_7a67d8/ovl_30_c_a_c_c
 
 CSE_CFLAGS := $(GCC296_CFLAGS) -fno-rerun-cse-after-loop
 
+asm/overlays/rom_7d768c/ovl_30_c_a_a_c_c_c_c_c_a_a.o: src/overlays/rom_7d768c/ovl_30_c_a_a_c_c_c_c_c_a_a.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 # -frerun-loop-opt is on at -O2, and pass 2 is what reverses a counting loop.
 # Func_801ff58 needs pass 1 (the giv reduction that produces the ROM's
 # strength-reduced pointers) but NOT pass 2 (which reverses its counter).
