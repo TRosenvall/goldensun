@@ -8465,6 +8465,21 @@ through a temporary produces byte-identical output. The rule is only about not
 introducing a NAMED variable that outlives the join.
 
 ## Stack arguments must be named PER CALL SITE
+> **NOT GENERAL (batch 245).** On `OvlFunc_936_200b2a4`, 92 per-site locals
+> across 46 calls is BYTE-IDENTICAL to three shared ones -- gcc commons them
+> straight back. What this rule turns on is whether the VALUES are distinct, not
+> whether the sites are.
+>
+> **AND THE NAMING LEVER HAS A FIRST-USE FORM, exactly like the pin rule.** Only
+> 10 of 49 named slots there are load-bearing -- precisely the first site at
+> which each variable takes each value -- and the other 39 revert to literals
+> individually AND all together at zero cost.
+>
+> That file nevertheless SHIPS fully named, deliberately against "inert
+> scaffolding must not ship": that rule exists because an inert PIN is unnatural
+> and misleads a reader about what carries weight, while a consistently named set
+> of stack-argument locals is ordinary C and naming ten of forty-nine would read
+> as arbitrary. The measurement is in its header instead.
 
 The existing note says the two stack arguments of a six-argument call want to
 be named locals. `OvlFunc_954_20081a8` sharpens it: sharing one pair of locals
@@ -17829,3 +17844,96 @@ rule. On `OvlFunc_888_200a90c` the ROM HOLDS the constant in a callee-saved
 register across the call, so one shared `int` is exactly what matches.
 
 Read the count off the push list rather than assuming one local per site.
+
+## A `void f(void)` PROTOTYPE REACHES BACKWARD
+
+The recorded rule is FORWARD -- the deferral is caused by the PRECEDING call's
+return type -- and a recorded table proves the parameter list is irrelevant.
+Neither covers a ZERO-ARGUMENT callee acting on a call that comes BEFORE it.
+
+On `OvlFunc_968_20089c8` three such callees each cost 2 when dropped, and never
+at their own site; one breaks a site TWO CALLS FURTHER BACK.
+
+It is the RETURN TYPE, not the missing line, and the controls separate those:
+
+    extern void f();       empty list      0
+    extern int  f(void);                   2
+    no declaration at all                  2
+
+Declared `int`, the call becomes a `call_value` carrying an explicit SET of r0
+rather than a bare CLOBBER, so sched2 sees an output dependence it otherwise
+lacks and loses the freedom to swap the preceding fill's pair. Effects are
+independent and additive.
+
+Two riders: **a pin does not immunise a site against this** -- both broken sites
+were already pinned -- and the same declaration shape is inert four times in the
+SAME function's opening block, so it is positional rather than per-callee.
+
+## THE ACCESSOR LEVER IS SYMMETRIC, WITH A SIZE TELL IN BOTH DIRECTIONS
+
+Recorded: a repeated accessor call is a source-level repeat, and caching it is
+wrong where the ROM repeats. The converse holds and is worth the same weight.
+
+    ROM repeats, you cache      SHORT   (117 differing, 8 bytes short)
+    ROM caches,  you repeat     LONG    (131 differing, 36 bytes long)
+
+Both polarities landed in one batch. The countable test picks the side before
+anything is compiled: HOW MANY `bl`s SIT BETWEEN THE STORES. One accessor call
+for eleven field accesses means the source cached; one per store means it did
+not.
+
+## A CARRIED COUNTER-DERIVED VALUE IS NOT A SECOND SOURCE VARIABLE
+
+`OvlFunc_926_2008bf4` and `_2008cd4` share a `.s` and hold both shapes of one
+loop, which is what makes this decidable:
+
+    ROM carries the value in a register   inline exact,  named counter also exact
+    ROM recomputes it inline              inline exact,  named counter 91, 4 LONG
+
+The asymmetry, not a direction rule: a hand-written counter ALWAYS becomes the
+carried register -- the recomputing function's variant reproduces its sibling's
+loop instruction-for-instruction, in a body whose ROM has no such register --
+while the inline expression leaves gcc free and it chooses per body.
+
+So RECOMPUTED IS DECISIVE (no named counter) and CARRIED IS UNDECIDABLE. Write
+it inline either way; that is the only spelling reaching both shapes.
+
+A coefficient-sign explanation was tried and REJECTED -- a four-way control
+builds the carried register in all four, and `-fno-strength-reduce` is
+byte-identical -- so no pass is named here.
+
+## WITHOUT AN INVARIANT OR A GIV, `goto` AND `do`/`while` ARE INDISTINGUISHABLE
+
+Including to the register allocator. On `GetMercuryDjinni`, 32 form combinations
+all give the identical 58 differing.
+
+The `goto` lever is recorded as acting through `loop.c`, and the loop-note
+weighting of `REG_N_REFS` is a separate consequence one would expect to move
+allocation anyway. IT DOES NOT.
+
+**Read the loop bodies for a hoistable invariant before spending a sweep on an
+allocator residue.** Where there is none, the loop form is not the lever and 32
+compiles will say so slowly.
+
+## A POOL-LOADED ZERO FEEDING A `strb` IS A LICM ARTEFACT, NOT A MODE TELL
+
+`GetVenusDjinni`'s ROM has a hoisted `ldr r3,=0`, which reads exactly like the
+recorded halfword-literal pooling and invites writing a literal. Measured
+backwards: the literal gives `mov r3,#0` and comes out TWO INSTRUCTIONS SHORT.
+
+The pool word comes from WHERE the constant was hoisted to, not from the store's
+mode. The source wants a named local.
+
+## NEAR-TWIN DOES NOT MEAN CHEAP -- FAMILY TRANSFERS SHAPE, NOT MECHANISM
+
+Elemental siblings, same-bank neighbours and same-`.s` file-mates have supplied
+the cheapest wins on record. `GetMercuryDjinni` and `GetVenusDjinni` are both
+near-twins of an already-solved `GetMarsDjinni`, and both PARKED.
+
+Its levers did not merely fail to transfer -- they INVERTED. Its gState tail
+wants two locals; one twin wants one, because both loads are adjacent. Its
+gState offset must be built destructively; the other twin's is non-destructive.
+
+That is sufficient-not-necessary appearing between functions that genuinely ARE
+twins, which is the strongest form of it on record. Take the STRUCT LAYOUT, the
+PROTOTYPES and the IDIOM from a twin; re-measure every lever.
