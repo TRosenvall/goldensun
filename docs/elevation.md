@@ -774,6 +774,12 @@ Same for the tail. Caught in batch 82 on `ovl_30_c_c_c_c_c_c`.
 
 ## `orr rd, rs` -- which operand becomes the destination
 
+> **ALSO REACHABLE BY NAMING THE DESTINATION ADDRESS (batch 237).** Where every
+> spelling in this section costs a second call to recompute the object,
+> `bp = &GetActor(t)->f23; *bp |= 2;` is exact. That is
+> "## Name the store's DESTINATION pointer when the ROM computes the address
+> first" in its read-modify-write case -- the two sections are one lever.
+
 Thumb's two-operand `orr` makes the destination one of the operands, so the ROM
 tells you which side of the source expression gcc kept:
 
@@ -6279,6 +6285,22 @@ came up. When the ROM builds a halfword constant with `mov`(+`lsl`) and ours
 pools it, the fix is one of these two and they are not interchangeable.
 
 ## The commoned-constant tell has TWO remedies and they are not interchangeable
+
+> **THERE IS A THIRD (batch 236): a CALL-CLOBBERED PIN.** `OvlFunc_939_2008d30`
+> and `_2008eb0` are one specimen of each half of this section's guessed
+> distinction, in ONE file, and the guess does not predict the remedy. On the
+> flag-group shape the r0 pin is exact TOO, so "the fix is the flag group, not
+> the C" is too strong. On the separate-locals shape the locals leave the hoist
+> untouched (8 of 95) and so do all three CSE flags -- only the pin is exact.
+>
+> Mechanism, hence general: naming a value says only that the value EXISTS, and
+> gcc may still keep one copy in a call-saved register. Binding it to r0-r3 says
+> WHERE it lives, and nothing in r0-r3 survives a `bl`, so a later use must be
+> rebuilt. That is ABI, not overlay-specific.
+>
+> It also decides LANDING SHAPE: a TU takes one flag group, so where a file's
+> two functions want different remedies, the pin is what lets the file ship
+> whole. Screen it before parking on "neither recorded remedy takes".
 
 An added push holding a constant used more than once is a reliable tell (batch
 127). What fixes it is not:
@@ -13446,6 +13468,16 @@ not a discriminator.
 
 ## gcse hashes the MEMORY ALIAS SET — different struct tags defeat commoning
 
+> **BOUNDED (batch 238): this lever buys SEPARATION, and cannot substitute for
+> `-fno-strict-aliasing` when the residue needs a dependence ADDED.** Alias sets
+> can only REMOVE dependences -- `true_dependence` consults them before
+> `memrefs_conflict_p` -- and two `(plus (reg) K)` addresses are provably
+> distinct regardless. So when a load has been hoisted above a store and you
+> want it held DOWN, giving each its own tag is the wrong direction and measures
+> inert. The only source-level escape is `volatile` on BOTH sides of the pair,
+> which short-circuits above the alias test; the flag is usually the honest
+> description. See `src/overlays/rom_7d0e88/ovl_314_c_a_c_c.c`.
+
 The most reusable finding in batch 187, and the first source-level equivalent
 this notebook has for `-fno-gcse`.
 
@@ -15868,6 +15900,18 @@ TWO CURES, and the source-level one is preferred:
 
 ## THE FIRST-USE PIN RULE HAS A BOUNDARY: ADJACENT SITES
 
+> **BOUNDED (batch 236).** The boundary is ADJACENCY, not the basic block. In
+> `OvlFunc_954_20093e4` two same-value `-1` sites sit in ONE basic block with no
+> branch anywhere between them, and ONE pin suffices -- because three calls
+> intervene, and **a call that clobbers the pinned hard register is as good as a
+> branch**. Read this section's "one basic block" as "no clobber between them".
+>
+> The same function bounds it from the other side: pinning the SECOND site is
+> also exact, but needs a different spelling -- whole-value `q1 = -1` fails there
+> (22 differing) and only the split build works. Breaking the EARLIEST occurrence
+> destroys the CSE class outright so any spelling reaching the register works;
+> breaking a later one must out-compete a class that already exists.
+
 "One pin at the first use covers the later ones" holds WHEN A BRANCH SEPARATES
 THE SITES. When two calls using the same value sit ADJACENT IN ONE BASIC BLOCK,
 both need pinning.
@@ -16800,3 +16844,180 @@ The hit rate is real and these are functions nobody would otherwise have
 picked -- keep running it. But it is a TRIAGE FILTER, not a classifier, and the
 first move on any hit is to DIAGNOSE, not to apply the class cure.
 
+
+## A ONE-LEVER-AT-A-TIME SWEEP CAN CALL A LEVER HARMFUL AND BE WRONG
+
+Recorded already: individually-inert pins are not jointly removable (the
+subtractive mirror), and a change that helps plus one that hurts can cancel.
+This is the third case and the expensive one -- non-additivity in ADDITION.
+
+`OvlFunc_942_2008e40`, three levers measured as a full 2x2x2:
+
+    none 21    r 156    s 159    one 19
+    r+s   2    r+one 156    s+one 159    r+s+one  0
+
+A one-at-a-time sweep reports **two of the three as actively harmful**, and the
+natural response to +135 differing is to revert. It costs you the function.
+
+Mechanism: `r` and `s` are two halves of ONE statement about live ranges. The
+ROM keeps one pointer live across three re-reads, so the pointer that is NOT
+re-read must be a different pseudo from the one that is; either half alone hands
+local-alloc an inconsistent assignment and it spends a call-saved register to
+resolve it.
+
+Recogniser: when a lever that SHOULD be right measures much worse, ask whether
+it is half of a statement, and try its other half before discarding it.
+
+## A PIN SET CAN NEED A HOLE, AND THE HOLE IS WHERE THE ROM ITSELF COMMONS
+
+Recorded: "name the ones gcc should NOT hoist" -- the polarity, in its naming
+form. The PIN form, at REGION granularity, is this.
+
+`OvlFunc_954_2008db8` takes 18 pins of 92 candidate sites, and five calls must
+be left BARE, because that region is where the ROM performs its own CSE.
+Pinning there destroys it.
+
+    no pins at all                396 differing
+    the five bare-region pins ALONE   401  <- WORSE than no pins
+    all 92 pins                   347
+    18 pins + carve + typed halfword    0
+
+Nothing here is diagnosable one lever at a time: the pins alone are worse than
+nothing and the carve alone is worth 26. This confirms the recorded "a pin set
+that gets worse is not evidence pins are wrong -- extend it" and adds its second
+half: **extend, THEN carve out the region the ROM commons in.**
+
+## A POOL-ORDER RESIDUE IS NOT ALWAYS A MODE QUESTION
+
+"## POOL POSITION IS SET BY THE MODE OF THE REFERENCE" covers pooled constants
+whose references differ in mode. When two are referenced in the SAME mode,
+`max_address` cannot separate them and the tie breaks on **source statement
+order -- reversed**, because sched2 swaps the adjacent pair.
+
+Two `int` stores to adjacent fields is the minimal case. Worth 10 differing
+encodings at IDENTICAL size and encoding count, plus a whole literal-pool
+rotation, and the cure is a one-line statement swap. `tryc` cannot see the class
+at all. Check the same-mode tie before varying types.
+
+## A `char` LVALUE PINS A BYTE STORE TOO EARLY
+
+"## Strict aliasing can SINK a store, and a `char *` lvalue pins it" runs in one
+direction. This is the other.
+
+A byte store inside a loop whose counter is spilled across a call: through
+`unsigned char *` the store is alias set 0, so it conflicts with the counter's
+own spill slot and sched2 may not hoist the reload above it. The ROM does.
+Giving the byte a struct member hands the store that member's alias set and the
+reload moves. Three controls, everything else held fixed: revert only the byte
+store 9 differing; `-fno-strict-aliasing` 9; sched2 off 124.
+
+**This makes strict aliasing LOAD-BEARING for the file, which is a landing
+constraint.** Such a TU must never fall under an `ALIAS_CFLAGS` rule -- the
+opposite of the usual direction, and easy to break later with a directory
+wildcard. Record it in the file header. See
+`src/overlays/rom_7b0400/ovl_314_c_c_c_a_c_c_c.c`.
+
+## THE `goto` LOOP DOES NOT HAVE TO COST THE INDUCTION VARIABLES
+
+The recorded trade-off is real -- `goto` stops the invariant being hoisted and
+gives up the strength-reduced givs a `for` would build -- but it is not forced.
+When the ROM wants BOTH (rebuilds an invariant in the loop AND carries an
+increment in one block), take the `goto` and **write the second counter by
+hand**:
+
+    for + derived index     239 differing
+    goto + derived index    223
+    goto + `who++` written    0
+
+That extends the recorded corollary -- anything set up before the loop had to be
+written there -- from the preheader into the body.
+
+## "A POINTER-RETURNING CALL WHOSE RESULT DIES IMMEDIATELY MUST NOT BE NAMED" IS TOO STRONG
+
+Measured: the anonymous form is 580 differing where the recorded
+`p += K; *p op= C;` -- which KEEPS the name and still consumes the pointer -- is
+exact. What the ROM asks for is CONSUMPTION, not anonymity. Reach for the
+consume form before the anonymous one.
+
+## A TEMPLATE LEVER CAN BE WORSE THAN USELESS, NOT MERELY INERT
+
+Sufficient-not-necessary is usually confirmed from the inert side: copy a
+lever, measure zero, drop it. `Func_80b2f4c` confirms it from the harmful side.
+Its template's entire headline finding concerns a byte-wide `-1` needing an
+int-typed name; the sibling does not decrement at all, and transplanting the
+lever costs 25 encodings and four bytes.
+
+Re-measure-don't-transplant is usually framed as avoiding waste. It is also
+avoiding damage, and the damage does not announce itself -- you get a plausible
+file that is simply wrong.
+
+Related: ROM ADJACENCY DOES NOT CARRY A SPELLING OVER either. The function 116
+bytes earlier in the same region can hand over the struct and the prototype
+verbatim and still want the OPPOSITE arithmetic placement (48 differing for the
+wrong choice).
+
+## objcmp's THIRD FALSE NEGATIVE: one alias map for a tree of separate links
+
+`_alias_addrs` built ONE flat name->address map, main ROM first, filled with
+`setdefault`. Every overlay that divides carries `__divsi3 = _divsi3_RAM;` in
+its own `.ld`, but the flat map had already bound `__divsi3` to the main ROM's
+copy and `setdefault` never let the overlay rebind it. **Every overlay function
+that divides reported `XX RELOCATIONS differ` with SIZE and ENCODINGS silent,
+on a byte-identical object** -- indistinguishable from a real park.
+
+Fixed by keeping one map PER ELF. The obvious alternative -- pool all addresses
+per name, alias if the sets intersect -- would have been a FALSE POSITIVE
+generator, because **overlays share address space**: a real collision exists at
+`02008000` between `__start_overlay` and `_OvlFunc_879_2008054` in different
+overlays. The right question is whether SOME SINGLE LINK resolves both names to
+one address.
+
+The three shapes to know, all of which report a byte-identical object as
+failing: the `_call_via_*` veneer aliases, the objdump zero-run elision (cured
+by `-z`), and this one.
+
+Audited for false parks when fixed: none. No park states relocations as its
+blocker. Two parks mention the alias and both are correctly reasoned -- one is
+a MAIN ROM function where the overlay remedy genuinely does not transfer (one
+link, 110 asm files reference `__divsi3` directly), and the other is blocked on
+scheduling for 6 of its 8 differing.
+
+Owed, and not closed by that fix: `overlays/rom_793768/overlay.ld` and
+`overlays/rom_7bc690/overlay.ld` are both missing the alias their own
+`imports.s` already exports.
+
+## A SPLIT IS SCAFFOLDING -- COLLAPSE IT IN THE BATCH THAT FINISHES THE FILE
+
+A split exists so one function can land while its file-siblings are still
+assembly. When the last sibling lands, the split has no remaining reason to
+exist, and leaving it costs a permanent extra TU and extra `.ld` lines.
+
+Two collapses in three batches (a two-function file and a five-function one).
+Both needed a check `objcmp` CANNOT perform -- its `--func` cannot isolate a
+function inside a multi-function candidate, so it compares a one-function
+reference against a whole compiled candidate. Write a whole-object comparison
+and run it against the pre-split reference recovered from the parent commit.
+
+**A RECOMBINATION IS NOT A CONCATENATION.** One TU forces one return type and
+one struct. Merging may force already-landed siblings to change spelling --
+subscripts to members, `int` to `struct X *` -- and they must be RE-SCREENED
+after the retype, not assumed still exact. Where two functions read one field
+at different signedness, a union is the WRONG fix: gcc-2.96 aligns it to 4, the
+struct grows, and the `sub sp` moves with it. Use the narrower member plus a
+cast at the other function's sites.
+
+Practical note: the report and HANDOFF must cite the CURRENT path. A collapse
+moves functions, and the path in the landing commit goes dead.
+
+## THE SOLVED TREE'S GENERATED `.s` IS A CORPUS, AND IT IS GREPPABLE
+
+`asm/**/*.s` beside a solved `src/**/*.c` is gcc's own output for thousands of
+solved TUs. Grepping it for the SHAPE of a residue -- not for a symbol -- finds
+functions where gcc already emits what you want, and their `.c` files are the
+templates. The notebook says to grep for an idiom and to look up a shape in the
+solved corpus, but never names the generated tree as the thing to grep.
+
+A `solved_twins.py` zero is not the end of the search. Neither is a twin miss a
+family miss: one function this round was solved off an idiom-grep that found a
+**parked** function carrying the exact preamble. A park blocked on something
+unrelated is still a correct idiom template.
