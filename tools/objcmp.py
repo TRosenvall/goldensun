@@ -64,9 +64,32 @@ _ALIASES = None
 
 
 def _alias_addrs():
+    """One name->address map PER ELF, not one map for the whole tree.
+
+    This used to be a single flat dict filled with setdefault, main ROM first.
+    That is wrong twice over, and both ways matter:
+
+    FALSE NEGATIVE, which is the one that bit. Every overlay that divides
+    carries `__divsi3 = _divsi3_RAM;` in its own .ld. The flat map bound
+    __divsi3 to the main ROM's copy and setdefault never let the overlay
+    rebind it, so the alias was invisible and EVERY overlay function that
+    divides reported `XX RELOCATIONS differ` -- with SIZE and ENCODINGS silent
+    -- on a byte-identical object. That is a third shape of "objcmp can report
+    a byte-identical match as failing", with a different cause from the
+    _call_via_ one, and it is a shape that looks exactly like a real park.
+
+    FALSE POSITIVE, which merging the maps would have introduced. Overlays
+    SHARE address space: two unrelated symbols in two different overlays sit
+    at the same address routinely. Any scheme that pools addresses across ELFs
+    would call those two names one symbol.
+
+    Keeping the maps separate answers the only question worth asking -- did
+    SOME SINGLE LINK resolve both names to one address -- and answers it
+    without either error.
+    """
     global _ALIASES
     if _ALIASES is None:
-        _ALIASES = {}
+        _ALIASES = []
         elfs = [os.path.join(ROOT, "goldensun.elf")]
         elfs += sorted(glob.glob(os.path.join(ROOT, "overlays", "*", "*.elf")))
         for e in elfs:
@@ -77,17 +100,22 @@ def _alias_addrs():
                                      capture_output=True, text=True).stdout
             except Exception:
                 continue
+            m = {}
             for ln in out.splitlines():
                 f = ln.split()
                 if len(f) == 3:
-                    _ALIASES.setdefault(f[2], f[0].lower())
+                    m[f[2]] = f[0].lower()
+            if m:
+                _ALIASES.append(m)
     return _ALIASES
 
 
 def same_symbol(x, y):
-    """True only if the linked ELF resolves both names to one address."""
-    m = _alias_addrs()
-    return x in m and y in m and m[x] == m[y]
+    """True only if ONE linked ELF resolves both names to the same address."""
+    for m in _alias_addrs():
+        if x in m and y in m and m[x] == m[y]:
+            return True
+    return False
 
 
 def reloc_diff(a_rel, b_rel):
