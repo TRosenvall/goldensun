@@ -15232,6 +15232,12 @@ Reach for this before the asm barrier when the residue is the ORDER OF TWO
 INDEPENDENT SETUP SEQUENCES rather than a mov/shift crossing.
 
 ## DO NOT PASS A COMPUTED VALUE AS AN INLINE'S ARGUMENT
+> **BOUNDED (batch 241): this is a PLACEMENT lever with two directions, not a
+> prohibition.** `OvlFunc_960_2008594`'s ROM computes the value ABOVE the
+> interrupt guard, so it MUST be the argument; building it inside the inline
+> costs 212 encodings, four bytes and every relocation moved. The discriminator
+> is WHERE THE ROM PUTS THE COMPUTATION -- above the inline's expansion, pass it
+> in; inside, build it inside.
 
 gcc evaluates an inline's arguments BEFORE the inlined body. On
 `OvlFunc_880_2008154` that hoisted an expression above the interrupt guard the
@@ -17069,6 +17075,29 @@ family miss: one function this round was solved off an idiom-grep that found a
 unrelated is still a correct idiom template.
 
 ## THE RESIDUE'S RELOCATION LINE SORTS THE TWO PIN JOBS, WITH NO MIDDLE
+> **THIRD BOUND (batch 241), and this one hits the MECHANISM.** The mechanism
+> stated below -- "a pure argument transposition moves no byte offset at all" --
+> has a counter-example. On `OvlFunc_926_200aad0` site 166 the constant is used
+> exactly ONCE, the encoding count is unchanged, and the only defect is a
+> two-instruction transposition; yet dropping the pin measures 25 differing WITH
+> RELOCATIONS DIFFERING. Moving the pool-loading `ldr` two bytes makes gcc dump
+> the second literal pool one instruction earlier, which shifts every following
+> `bl`.
+>
+> So the relocation line sorts pin jobs by **EFFECT, not by cause**. Read the
+> encoding count too.
+>
+> **SECOND BOUND (batch 240): the partition is PER-CHANGE.** Every single change
+> partitions cleanly, but AGGREGATE measurements sit numerically inside the CSE
+> band with relocations silent -- ten fills flipped to descending measured 24,
+> the ROM's emitted order across four fills measured 10, both silent. Subset
+> drops measure 2/4/6/8/10 exactly, so an aggregate residue of 4, 6 or 8 with
+> relocations silent is simply two to four ordering pins.
+>
+> The bands have now held across 308 drops with nothing in 4-9 for a SINGLE
+> dropped pin, so the rule is real. But a wrong FILL ORDER lands in that gap
+> freely (4 and 5 under two permutations of one site). Treat it as fast triage,
+> not as a classifier.
 > **SHARPENED (batch 240), on 138 pins against the 48 it was found on:**
 >
 >     ORDERING (relocations silent)   52 pins   EXACTLY 2 or 3 encodings
@@ -17317,3 +17346,90 @@ Take the `.include` lines only, then the tail's own comment block. Checked by
 reading the two pieces' heads after the cut, and by confirming instruction-line
 counts are conserved exactly across the split (393 = 233 + 160 on
 `ovl_35b8_a_a_c_a_c_a.s`).
+
+## ONE MATERIALISATION IS NOT ONE VARIABLE
+
+The exact converse of "a re-loaded immediate after a join is TWO locals". A
+SINGLE `mov rN, #0` can serve two roles and still be two variables in the
+source, when both assignments sit in the same basic block.
+
+`OvlFunc_896_2008f8c`: one `mov r5,#0` serves two byte stores AND arrives at
+the loop as the counter.
+
+    one variable    485 insns, 373 differing
+    two variables   EXACT
+
+The long live range drops the counter below the actor pointer in allocno
+priority, gcc gives it a HIGH register, and `strb`, `add #imm` and `cmp #imm`
+all need a low one, so every use pays a reload copy. Written as two, gcc STILL
+emits only one `mov` -- both sit in one 174-instruction block and it coalesces
+the copy away.
+
+The extra local's type is inert, and splitting into three ties. Only the COUNT
+matters. So a single materialisation is not evidence of a single variable; what
+is evidence is a live range short enough to keep its register.
+
+## WHEN A PIN MAKES THE OUTPUT SHORTER, SOMETHING THAT SHOULD BE LIVE IS MISSING
+
+A CSE kill that shortens the function is a REGISTER-PRESSURE signal, not a
+wrong pin.
+
+On `OvlFunc_953_2009298` the only residue at one stage was a two-site CSE worth
+12 of 334. Pinning it cost THIRTY: removing the pseudo dropped register
+pressure, a held address moved out of a high register into a low one, and three
+`mov rN, rHIGH / ldr` reload pairs collapsed to a single `ldr` -- six
+instructions short.
+
+The cure is to restore the pressure HONESTLY -- here by splitting a recycled
+local into the two variables it should have been -- not to remove the pin.
+
+## REPETITION ALONE FORCES A BASE INTO A REGISTER
+
+The recorded reading of `add rN, #K` off a held base is that it is a positive
+tell for a NAMED LOCAL, that two independent `CONST_INT`s can NEVER produce
+that add, and that deriving requires a RUNTIME use of the base. All three are
+too strong.
+
+`OvlFunc_969_200be9c` derives `0x2002` from a held `0x80<<6` with `add r6, #2`,
+where both are plain literals in separate calls' argument lists and there is no
+variable anywhere. Isolated on a three-function probe:
+
+    base repeated 4x    held in a register + `add #2`, nothing pooled
+    base used once      the derived constant is POOLED
+    base absent         the derived constant is POOLED
+
+REPETITION ALONE IS ENOUGH. No runtime consumer and no mutated variable are
+required, so `add rN, #K` is not by itself evidence of a named local.
+
+## A COMPOUND ASSIGNMENT EVALUATES THE CALL ONCE -- THE TWO-CALL TRAP
+
+The recorded rule for a read-modify-write on a call's result is "do not name
+the pointer". That is right and it is only half.
+
+`OvlFunc_926_200aad0` needs its `GetActor(0)->f5a` sites to evaluate the call
+ONCE and leave it ANONYMOUS, and only a compound assignment does both:
+
+    X = 0xfe & X   (X the call expression)   398 differing -- emits TWO bl's
+    naming the pointer                       400 differing
+    `&=`                                     428 -> 34, size and count exact
+
+Written longhand the call appears on both sides and gcc calls it twice, which
+widens the prologue. The recogniser is a prologue one register too wide on a
+function whose only candidate value is a call result.
+
+## AN UNFLUSHED WRITE CAN SCORE A CANDIDATE WRONGLY
+
+`open(p, "w").write(s)` followed by handing `p` to a subprocess does not
+guarantee the file is closed first. CPython refcounting usually closes it at
+once, which is why the pattern has almost always worked -- but "almost" is the
+wrong guarantee for a screening tool, where a short read yields a
+plausible-but-wrong score.
+
+Observed twice: an identical source scored 12 differing on the first compile and
+0 on the next two within one process; and `objcmp` reported 124 differing once
+on a function that returned OK on six consecutive re-runs.
+
+Four tools carried it -- `objcmp.py`, `tryc.py`, `protolever.py`,
+`sweep_decls.py` -- and all now use context managers. **If a screen returns a
+surprising number, re-run it before believing it.** A one-off bad score is
+cheaper to re-test than to park.
