@@ -147,7 +147,20 @@ def one_function(ref, name):
 
 
 def dump(obj):
-    d = subprocess.run(["arm-none-eabi-objdump", "-d", obj],
+    # -z (--disassemble-zeroes) is REQUIRED, not cosmetic. Without it objdump
+    # ELIDES A RUN OF IDENTICAL WORDS as a single "...", the encoding regex
+    # below does not match that line, and the list silently comes up short --
+    # so objcmp invents differing "places" for a BYTE-IDENTICAL function and
+    # exits 1. Func_80b0574 hit this: 4 phantom places, proven identical by
+    # `make compare`. It needs a run objdump will elide, so it bites at three or
+    # more zero pool words (the relocation placeholders of the symbol-address
+    # technique) and not at one or two, which is why it went unnoticed.
+    #
+    # The tell, if this ever regresses: a differing COUNT with NO
+    # "first at index" line. That line is printed only when a zipped pair
+    # differs, so its absence means the streams agree everywhere they overlap
+    # and the entire delta is length.
+    d = subprocess.run(["arm-none-eabi-objdump", "-dz", obj],
                        capture_output=True, text=True).stdout
     enc = [m.group(1).strip() for m in (ENC.match(l) for l in d.splitlines()) if m]
     r = subprocess.run(["arm-none-eabi-objdump", "-r", obj],
