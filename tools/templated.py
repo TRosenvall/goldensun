@@ -37,7 +37,7 @@ import glob
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from neighbour import symbols_of
-from filtered import hand_written, arm_functions
+from filtered import hand_written, arm_functions, generated
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 START = re.compile(r"^\s*\.(thumb|arm)_func_start(?:_noalign)?\s+(\S+)")
@@ -72,7 +72,9 @@ def main():
     rows = []
     for s in glob.glob(os.path.join(ROOT, "asm/**/*.s"), recursive=True):
         lines = open(s, errors="ignore").readlines()
-        if any(".gcc2_compiled." in l for l in lines[:40]):
+        # NOT a substring search for ".gcc2_compiled." -- hand-written prose
+        # mentions it, and that silently hid 126 functions from this ranking.
+        if generated(s, lines):
             continue
         if hand_written(s):
             continue

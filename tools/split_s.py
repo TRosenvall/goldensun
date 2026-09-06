@@ -25,6 +25,9 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from filtered import generated
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 START = re.compile(r"\s*\.(?:thumb_func_start(?:_noalign)?|arm_func_start)\s+(\S+)",
                    re.IGNORECASE)
@@ -326,9 +329,8 @@ def main():
         for c in clashes:
             n = sum(1 for l in open(os.path.join(ROOT, c), errors="replace")
                     if START.match(l))
-            gen = "GENERATED from a .c" if any(
-                ".gcc2_compiled." in l
-                for l in open(os.path.join(ROOT, c), errors="replace")) else "hand-written"
+            gen = ("GENERATED from a .c"
+                   if generated(os.path.join(ROOT, c)) else "hand-written")
             print(f"    {c}   ({n} function(s), {gen})")
         print("\nPick free suffixes and split by hand, or elevate a function "
               "in a stem whose\nsuffixes are unused. Do NOT delete the file in "

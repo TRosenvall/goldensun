@@ -56,7 +56,7 @@ turns up there, this file has a bug -- fix it here rather than in a new script.
 import os, re, sys, glob
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from filtered import hand_written
+from filtered import hand_written, generated
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 START = re.compile(r"^\s*\.(thumb|arm)_func_start(?:_noalign)?\s+(\S+)")
@@ -91,8 +91,10 @@ def survey():
                 continue
             path = os.path.join(root, fn)
             lines = open(path, errors="ignore").readlines()
-            # a .s sitting beside a solved .c is compiler OUTPUT, not a target
-            if any(".gcc2_compiled." in l for l in lines[:40]):
+            # a .s sitting beside a solved .c is compiler OUTPUT, not a
+            # target. NOT a substring search -- hand-written prose mentions
+            # the string, and that silently hid 126 functions here too.
+            if generated(path, lines):
                 continue
             hw = hand_written(path)
             starts = [(i, m.group(1), m.group(2)) for i, l in enumerate(lines)
