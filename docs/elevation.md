@@ -17069,6 +17069,15 @@ family miss: one function this round was solved off an idiom-grep that found a
 unrelated is still a correct idiom template.
 
 ## THE RESIDUE'S RELOCATION LINE SORTS THE TWO PIN JOBS, WITH NO MIDDLE
+> **SHARPENED (batch 240), on 138 pins against the 48 it was found on:**
+>
+>     ORDERING (relocations silent)   52 pins   EXACTLY 2 or 3 encodings
+>     CSE loss (relocations differ)   86 pins   10 to 1633 encodings
+>
+> The CSE floor is **10**, not the 23 first recorded, and the ordering band is
+> tighter than "small": a residue of **4 to 9 belongs to neither band and did
+> not occur once** across 138 drops. SIZE was silent on 47 of the 86 CSE
+> losses, so it still says nothing.
 
 A pin does one of two jobs: it defeats CSE (forcing a rematerialisation the ROM
 performs), or it buys an argument ordering. Which one a given site is doing has
@@ -17091,6 +17100,21 @@ ordering jobs, each costing exactly 2 when dropped, additive over all sixteen
 subsets.
 
 ## NOMINATE PIN CANDIDATES BY CALL-SITE FAMILY, NOT ONLY BY REPEATED CONSTANT
+> **BOUNDED (batch 240): IT DOES NOT SCALE UNAIDED.** On a 1649-instruction
+> function the rule nominates 4 extras, all 4 survive minimisation and each
+> costs 2-3 when dropped -- so the rule is right -- but the family set ALONE
+> leaves 39 differing, and 29 after the descending fills. A strong first pass,
+> not a substitute for the residue loop. The uncomfortable version: at the size
+> where it would save the most, it saves least.
+>
+> **AND A FAMILY WHOSE ARGUMENTS ARE ALL CHEAP IS NOMINATED BY NEITHER RULE.**
+> On `OvlFunc_966_20087c4` the entire residue after the family set was one site
+> whose two arguments are bare `mov #imm8`: no repeated constant for the CSE
+> rule, no expensive shape for the family rule, and it needs an ordering pin
+> anyway. Widening to EVERY multi-argument site (136 pins, uniform ascending)
+> leaves exactly the same two encodings -- the strongest evidence yet that
+> uniform ascending is CORRECT and not merely cheaper, being simultaneously
+> right at 135 of 136 sites.
 
 The recorded nomination rule -- sites whose argument list carries a constant the
 ROM builds more than once -- is a CSE rule. It therefore systematically misses
@@ -17182,3 +17206,114 @@ Worth stating once, plainly, because the whole method can encourage the opposite
 belief: matching proves the compiler emits these bytes from this source, not
 that the original author wrote it. Where two spellings both match, prefer the
 one that reads as ordinary code.
+
+## A TWO-SITE CSE CLASS IS BROKEN FROM EITHER END
+
+"## PIN THE FIRST USE, NOT THE LATER ONES" is the right default and is not the
+whole story. Measured on `OvlFunc_963_20083c4`, on a value with exactly two
+uses separated by a join:
+
+    neither pinned    130 differing, relocations differ (CSE lost)
+    first only          2 differing, relocations silent
+    SECOND only       EXACT
+    both              EXACT -- so the FIRST pin is the inert one
+
+A call-clobbered destination dead across the next `bl` cannot be fed by a
+commoned pseudo either, so killing the class's LAST end kills it as thoroughly
+as its first. What is asymmetric is the FILL ORDER: the second site
+independently wants a particular argument order, and once that pin exists for
+ordering it does the CSE job for free.
+
+Practical consequence: a first-use pin CAN be the redundant one, so the sweep
+must be allowed to remove it -- which it only is if it runs to a fixpoint
+rather than stopping at the first exact candidate.
+
+## A LIVE GIV IN THE ROM PROVES THE LOOP IS ORDINARY
+
+The `goto`-loop selection rule looks for an invariant the ROM rebuilds inside
+the loop. That test has a false-positive mode: **a single-use invariant is not
+a `goto` tell**, because gcc-2.96 declines to hoist an invariant used once --
+rematerialising a shift beats spending a callee-saved register -- so a
+single-use invariant is rebuilt in an ordinary loop too.
+
+The converse is cheaper and decisive. Strength reduction is exactly what a
+`goto` loop turns off, so **if the ROM carries a strength-reduced induction
+variable, the loop is ordinary**. Look for a register initialised to a stride
+and stepped by it each iteration.
+
+Measured on `OvlFunc_924_200b948`, which carries one: the transplanted `goto`
+loop is 130 differing and 24 bytes SHORT; an ordinary `do`/`while` is exact.
+
+## NAMING A CONSTANT CAN REMOVE A CALLEE-SAVED REGISTER, NOT ADD ONE
+
+The usual direction is that naming a value gcc already carries costs a
+register. The reverse happens, and the bound is the constant's
+REMATERIALISATION COST.
+
+Naming a pooled bias on `OvlFunc_924_200b860` DROPPED the push set and
+rematerialised its `ldr` twice inside the loop -- 96 differing and four bytes
+short. A single `ldr` from the pool loses to a register the moment it has a
+pseudo; a two-instruction `mov`/`lsl` build does not, which is why the
+recorded lever works on shifted constants and inverts on pooled ones.
+
+Related, and the reason the pin looked right for a while: with a real loop LICM
+hoists both constants ITSELF, in loop-discovery order, which is the ROM's
+order. Naming one converts it from a hoist into a preheader assignment emitted
+BEFORE the hoist -- so naming does not order the pair, it INVERTS it. The
+residue that results is two permuted `mov rHIGH` copies that NO SOURCE ORDER
+CAN FLIP, and it carries the ordering signature (small count, size and
+relocations silent) while being unreachable by any pin.
+
+## SUBSCRIPT THE ARRAY AS DECLARED
+
+Two escapes from the `symbol+offset` pool fold are recorded: change the
+extern's element type and index it, or let the index carry a loop variable.
+Neither covers a DECLARED element type with a CONSTANT index, and there the two
+C-equivalent spellings are not equivalent to gcc-2.96:
+
+    gState[0xf9 << 1] = 1;          EXACT
+    *(gState + (0xf9 << 1)) = 1;    55 differing, one insn SHORT
+
+`gState[498]` and `gState[0xf9 * 2]` also tie at zero, so it is the TREE SHAPE
+and not the literal. **And the cast form is not a subscript** -- casting the
+array before indexing folds exactly like the pointer form, because the cast
+decays the array before the index applies.
+
+`OvlFunc_956_200a330` carries both polarities, which is what makes it
+convincing: its halfword guard NEEDS a local base (147 differing without it),
+and its byte store must NOT go through that base -- carrying it across the body
+takes a fifth callee-saved register, 156 differing and four bytes longer.
+
+## PROTOTYPES ARE PER-SITE, NOT PER-FILE
+
+The recorded "these callees want no prototype" lists are per-callee. On
+`OvlFunc_956_200a330` two callees in one family want theirs WITHHELD because
+the ROM puts r0 last, while a third, overlay-local, puts r0 in the MIDDLE and
+REQUIRES one. A template's r0-last list can be right about the callees it
+shares and silent about the one it does not.
+
+Withhold or supply per SITE, and measure; on that function 8 of 16 prototypes
+tested were load-bearing.
+
+## `__Func_8093054` IS A SECOND DESCENDING CALLEE BY NAME
+
+Joining `__Func_8092c40`. Site 90 of `OvlFunc_938_2008360`: the ROM emits the
+second argument before the first. It is CSE-nominated, which makes it easy to
+pin and get wrong -- pinned ASCENDING measures exactly the same as unpinned.
+
+Two cautions from the same batch. `__Func_8092c40` wanted descending FOUR
+TIMES in one function, against the recorded lone site. And it was proved a SITE
+property internally on `OvlFunc_966_20087c4`: two calls with identical
+arguments 106 apart, one wanting no pin at all and the other wanting
+descending. Never write the fill direction from the callee name alone.
+
+## COPY THE `.include` LINES, NOT THE FILE HEAD
+
+When splitting a `.s` by hand, the header comment block describes the FIRST
+function in the file. Copying the head into the TAIL piece leaves a description
+of a function that piece no longer contains.
+
+Take the `.include` lines only, then the tail's own comment block. Checked by
+reading the two pieces' heads after the cut, and by confirming instruction-line
+counts are conserved exactly across the split (393 = 233 + 160 on
+`ovl_35b8_a_a_c_a_c_a.s`).
