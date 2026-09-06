@@ -286,3 +286,4 @@ OvlFunc_925_200af18  src/overlays/rom_7b0400/ovl_314_c_c_c_a_c_c_c.c
 OvlFunc_925_200b1c0  src/overlays/rom_7b0400/ovl_314_c_c_c_a_c_c_c.c
 OvlFunc_895_2008258  src/overlays/rom_78dee8/ovl_30_c_c_a_a_c.c
 OvlFunc_895_2008f8c  src/overlays/rom_78dee8/ovl_30_c_c_c_a_c_c_a_c.c
+SetBattleActorKnockback  src/rom_b5000/rom_b8228_a_a_a.c
