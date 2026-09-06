@@ -773,6 +773,13 @@ Decide on FUNCTIONS AND SECTIONS, not on whether the text is empty:
 Same for the tail. Caught in batch 82 on `ovl_30_c_c_c_c_c_c`.
 
 ## `orr rd, rs` -- which operand becomes the destination
+> **SECOND PRESENTATION (batch 244): NAME THE RESULT, NOT THE CONSTANT.** On
+> `OvlFunc_888_200a90c` the documented `unsigned char m = 1; lv |= m;` spelling
+> is 611 differing. What matches is naming the IOR's RESULT --
+> `u = q[K] | 1; q[K] = u;` -- so the result is its own pseudo. Operand order is
+> NOT the lever: `1 | q[K]` is byte-identical. Worth re-screening two-line `orr`
+> parks with, since the recorded spelling is the one they will already have
+> tried.
 
 > **ALSO REACHABLE BY NAMING THE DESTINATION ADDRESS (batch 237).** Where every
 > spelling in this section costs a second call to recompute the object,
@@ -6931,6 +6938,12 @@ byte/halfword/word displacements are 31/62/124. Above that the lever is not a
 candidate and the difference is a park, not a spelling problem.
 
 ## The same call is spelled both ways in the same ROM
+> **ITS NAMED EXAMPLE IS WRONG, AND THE PARK IS RETIRED (batch 244).** This
+> entry cites `OvlFunc_965_2008eac`, and `src/non_matching/overlays/2008eac.c`
+> parked it saying "there is no source spelling that separates them". A
+> four-register pin does; the function is elevated. The GENERAL claim here --
+> that the reuse belongs to the TU -- still stands, so the section is kept and
+> only the example is struck.
 
 `Func_80933f8(-1, -1, -1, 0)` appears in both `OvlFunc_965_2008eac` and
 `Func_8094428`. In the first the ROM builds -1 three separate times and our
@@ -13609,6 +13622,24 @@ not a discriminator.
 > distinct regardless. So when a load has been hoisted above a store and you
 > want it held DOWN, giving each its own tag is the wrong direction and measures
 > inert. The only source-level escape is `volatile` on BOTH sides of the pair,
+> **A THIRD ESCAPE (batch 244): A UNION MEMBER ACCESS, AND IT WORKS FOR ANY
+> MODE.** The `char`-lvalue escape cannot emit a halfword store; `volatile` is
+> heavy. A union restores the dependence in the source. It is NOT "unions alias
+> everything" -- five controls on `GetMarsDjinni`:
+>
+>     union{void*; u16} on the halfword store, plain other side   exact
+>     the same tag on the POINTER store, plain halfword           exact
+>     two DIFFERENT union tags, one per side                      exact
+>     union{int; u16}, other side a pointer store              2 differ
+>     the same union, other side respelled as int                 exact
+>     struct{void*; u16} on BOTH sides                         5 differ
+>
+> A `COMPONENT_REF` of a UNION carries the union's alias set, and
+> `record_component_aliases` makes every member type's set a SUBSET of it, so
+> `alias_sets_conflict_p` conflicts against any access whose type is a member --
+> and only those. A `COMPONENT_REF` of a STRUCT carries the FIELD's set, which is
+> why the struct spelling is inert. Same subset machinery the "distinct alias set
+> per struct tag" entry uses for SEPARATION, read the other way.
 > which short-circuits above the alias test; the flag is usually the honest
 > description. See `src/overlays/rom_7d0e88/ovl_314_c_a_c_c.c`.
 
@@ -15902,6 +15933,13 @@ Two rules follow:
     strength of a comment in the source rather than a test.
 
 ## "N PINS" IS A SIZE, NOT A SET
+> **AND MINIMAL IN WIDTH AS WELL AS IN COUNT (batch 244).** Every minimisation
+> recorded here strips whole SITES; none asks whether a pinned site needs all
+> its arguments named. On `OvlFunc_928_20085f4` none of the six does -- all six
+> drop the third register at zero cost and three need only r0, giving nine named
+> registers where the template form ships eighteen. Those sites need the slot
+> `mov` scheduled ahead of the expensive argument's build, and naming r0 alone
+> does that. About two extra compiles per surviving pin.
 > **AND IT IS MINIMAL ONLY WITH RESPECT TO A FLAG GROUP (batch 243).** This
 > section records non-uniqueness and joint inertness; it does not record this.
 > On `OvlFunc_896_200a400` a both-ends greedy fixpoint gives SEVENTEEN pins
@@ -17727,3 +17765,67 @@ the build red.
 
 Put the file edit and the placement in SEPARATE invocations, or make the
 placement conditional on the edit's exit status.
+
+## A LARGE HEX MASK IS UNSIGNED, AND THAT IS WHAT LETS gcc NARROW IT
+
+A mask literal above `INT_MAX` is typed `unsigned int` by C89, and combine then
+narrows it to the store's mode. The damage lands in the POOL WORD, not the
+instruction stream -- so `tryc`'s `=value` normalisation is blind to it and only
+`objcmp` catches it.
+
+Measured on `OvlFunc_933_2009180`, whose ROM pools `0xfffff000` for a mask
+feeding a halfword store:
+
+    & 0xfffff000     gcc pools 0xf000     WRONG
+    & ~0xfff         exact
+    & -0x1000        exact
+    & (int)0xfffff000  exact
+    & 0xfffff000u    WRONG
+
+**The named-`int` cure prescribed by the neighbouring mask entry is actively
+wrong here** -- it costs a register. Try the signed spelling first; it is free.
+
+This is the same C89 rule already recorded at "a large unsigned literal makes
+the COMPARISON unsigned", reaching a different pass.
+
+## A REPEATED ACCESSOR CALL IS A SOURCE-LEVEL REPEAT -- AND IT IS PER-FUNCTION
+
+Where the ROM emits one `bl` to an accessor per field store, the source called
+it once per store. Caching the result costs 117 differing and eight instructions
+short on `OvlFunc_918_20098b8`, and 44 on `OvlFunc_965_2008eac`.
+
+It is NOT a property of the callee. The near-identical `OvlFunc_968_200ca2c`
+DOES cache. **Count the `bl`s between the stores** -- the tell is countable, not
+stylistic.
+
+## THE NOMINATION SCREEN IS "EXPENSIVE AND COMMONED", NOT "EXPENSIVE"
+
+A pin at an expensive-argument site that is NOT a CSE site can HURT: two such
+sites on `OvlFunc_888_200a90c` cost 3 and 2. Nominate on the intersection.
+
+Related, from the same function: TWO REWRITTEN SITES MUST NOT SHARE THEIR
+TEMPORARIES -- 650 differing against exact. One name is one pseudo, and its two
+disjoint ranges fused across about seventy call sites in a single basic block,
+buying a fourth callee-saved register. That is the recorded "a variable with
+disjoint live ranges should be two variables" reached in STRAIGHT-LINE code
+rather than in mutually exclusive branches.
+
+## PINNING r0 ALONE ORDERS A POOLED r1
+
+On a `mov r0,#0 / ldr r1,=K` transposition, pinning the CHEAP argument alone is
+exact; pinning only the pooled one leaves the residue unchanged.
+
+That cures from the cheap side where the recorded rule ("a POOLED argument also
+needs naming in the entry block") cures from the pool side. It also sharpens "A
+PARTIAL PIN CAN BE WORSE THAN NO PIN AT ALL": on a two-argument site whose other
+argument is POOLED there is no constant left for CSE to re-home, so the partial
+pin is a COMPLETE cure rather than a half one.
+
+## THE HImode-`int` LOCAL COUNT IS READ OFF THE PUSH LIST
+
+The recorded table gives ONE shared `int` local coalescing across a call as the
+failure mode, with four separate locals matching. That is directional, not a
+rule. On `OvlFunc_888_200a90c` the ROM HOLDS the constant in a callee-saved
+register across the call, so one shared `int` is exactly what matches.
+
+Read the count off the push list rather than assuming one local per site.
