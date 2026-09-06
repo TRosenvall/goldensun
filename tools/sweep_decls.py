@@ -135,7 +135,8 @@ def selftest():
     if r.returncode:
         print("SELFTEST SKIPPED: cannot recover the pre-split assembly")
         return 0
-    open(ref, "w").write(r.stdout)
+    with open(ref, "w") as _f:
+        _f.write(r.stdout)
 
     lines = open(os.path.join(ROOT, SELFTEST_C), errors="replace").read().split("\n")
     stripped = [l for l in lines if "__MapActor_SetBehavior(" not in l
@@ -144,15 +145,17 @@ def selftest():
         print("SELFTEST BROKEN: the declaration it strips is no longer there")
         return 1
     var = os.path.join(TMP, "selftest.c")
-    open(var, "w").write("\n".join(stripped))
+    with open(var, "w") as _f:
+        _f.write("\n".join(stripped))
 
     if verdict(screen(var, ref))[0]:
         print("SELFTEST FAILED: matches WITHOUT the declaration, so this case "
               "no longer discriminates and proves nothing")
         return 1
     at = next(i for i, l in enumerate(stripped) if l.startswith("extern"))
-    open(var, "w").write("\n".join(
-        stripped[:at] + ["extern void __MapActor_SetBehavior();"] + stripped[at:]))
+    with open(var, "w") as _f:
+        _f.write("\n".join(
+            stripped[:at] + ["extern void __MapActor_SetBehavior();"] + stripped[at:]))
     if not verdict(screen(var, ref))[0]:
         print("SELFTEST FAILED: cannot re-find a match that is known to exist")
         return 1
@@ -192,7 +195,8 @@ def main():
             """Screen one generated variant; record a match or an improvement."""
             nonlocal found, checked
             checked += 1
-            open(var, "w").write(body)
+            with open(var, "w") as _f:
+                _f.write(body)
             ok, delta = verdict(screen(var, ref))
             if ok:
                 hits.append((rel, label, ref))

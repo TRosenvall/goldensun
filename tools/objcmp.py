@@ -219,7 +219,16 @@ def main():
     tmp = "/tmp/objcmp"
     os.makedirs(tmp, exist_ok=True)
     refs = os.path.join(tmp, "ref.s")
-    open(refs, "w").writelines(one_function(ref, name))
+    # Context manager, not a bare open().write(): the file MUST be closed
+    # before the assembler reads it. CPython refcounting usually closes it
+    # at once, which is why this has almost always worked -- but "almost"
+    # is the wrong guarantee for the authority tool, where a short read
+    # yields a plausible wrong score and sends someone to park a function
+    # that already matches. One such non-reproducing false negative was
+    # observed (a matching function reporting 124 differing once, then OK
+    # on six consecutive re-runs).
+    with open(refs, "w") as f:
+        f.writelines(one_function(ref, name))
     subprocess.run(AS + ["-o", os.path.join(tmp, "ref.o"), refs],
                    capture_output=True)
 

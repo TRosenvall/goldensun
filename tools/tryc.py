@@ -541,7 +541,10 @@ def text_size(asm_text, cflags_unused=None):
     import tempfile
     with tempfile.TemporaryDirectory() as d:
         sp, op = os.path.join(d, "t.s"), os.path.join(d, "t.o")
-        open(sp, "w").write(asm_text)
+        # Closed before the assembler reads it -- see the note in
+        # tools/objcmp.py; a short read here scores a candidate wrongly.
+        with open(sp, "w") as f:
+            f.write(asm_text)
         r = subprocess.run(["arm-none-eabi-as", "-mcpu=arm7tdmi",
                             "-mthumb-interwork", "-I", os.path.join(ROOT, "include"),
                             "-o", op, sp], capture_output=True, text=True)

@@ -32,7 +32,8 @@ DECL = re.compile(r"^extern\s+void\s+([A-Za-z_]\w*)\s*\([^;]*\);\s*$", re.M)
 
 def screen(text, ref, tag):
     tmp = f"scratch/_protolever_{os.getpid()}.c"
-    open(tmp, "w").write(text)
+    with open(tmp, "w") as _f:
+        _f.write(text)
     out = subprocess.run(["python3", "tools/tryc.py", tmp, "--ref", ref,
                           "--quiet"], capture_output=True, text=True).stdout
     os.unlink(tmp)
