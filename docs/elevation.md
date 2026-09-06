@@ -7000,6 +7000,22 @@ discipline as the "a zero component means the regex is broken" rule -- both are
 about not letting a number pass without something checking it against reality.
 
 ## The source-order lever does not reach commutative operands
+> **BOUNDED (batch 243): OPERAND order cannot, but STATEMENT order can, whenever
+> one operand is a live-in parameter.** This section's advice is confirm and
+> park. On `Func_80a46b4` twelve spellings of the commutative expression are
+> exactly inert, as predicted -- and moving an UNRELATED assignment one
+> statement earlier is exact.
+>
+> From the RTL dumps: with the mask first, combine has already forward-propagated
+> the parameter copy, so the hard register cannot take the tie and the pool load
+> becomes the destination. With the other assignment first the copy survives and
+> the tie lands on the value. `can_combine_p` refuses to substitute a hard
+> register under `SMALL_REGISTER_CLASSES` unless `all_adjacent`, and the
+> intervening pair breaks adjacency.
+>
+> What is decided is whether combine gets to DELETE THE PARAMETER COPY. Look for
+> it wherever the ROM spends an extra `mov rN, rPARAM` before a two-operand
+> data-processing instruction.
 
 Assignment order picks registers for two independent values, and that lever has
 now paid off repeatedly. It has a boundary worth knowing: it does NOT reach the
@@ -8950,6 +8966,24 @@ evidence.
 `tools/dupfuncs.py` -- lists the duplicate groups above.
 
 ## When gcc HOISTS a repeated constant, exactly: dominance
+> **BOUNDED (batch 243): A REAL TWO-ARMED `if/else` DEFEATS THE HOIST, at default
+> flags.** Verified with a four-variant probe reading gcc's own output:
+>
+>     straight line           push {r5,lr}     1 pool load    HOISTS
+>     one-armed `if`          push {r5,r6,lr}  1 pool load    HOISTS
+>     real two-armed if/else  push {r5,lr}     2 pool loads   REBUILDS
+>     if/else, empty else     push {r5,r6,lr}  1 pool load    HOISTS
+>
+> The discriminator is ONE-ARMED VERSUS TWO-ARMED -- not label presence, not
+> distance, not intervening call count -- and an empty `else` does not count,
+> because gcc collapses it before the question is asked. The recorded "a branch"
+> row was measured with a one-armed `if`.
+>
+> `tools/blocked_cse.py`, `tools/script_candidates.py` and the selection filter
+> below currently reject candidates repeating a pool constant across a branch.
+> Those doing it across a REAL `if/else` are reachable at default flags;
+> `OvlFunc_907_2008584` was one of them. This does not unblock the
+> straight-line script band, which has no diamond to offer.
 
 Probed directly, five variants, and the rule is clean:
 
@@ -15868,6 +15902,16 @@ Two rules follow:
     strength of a comment in the source rather than a test.
 
 ## "N PINS" IS A SIZE, NOT A SET
+> **AND IT IS MINIMAL ONLY WITH RESPECT TO A FLAG GROUP (batch 243).** This
+> section records non-uniqueness and joint inertness; it does not record this.
+> On `OvlFunc_896_200a400` a both-ends greedy fixpoint gives SEVENTEEN pins
+> under the tree default and NINETEEN under `-fno-gcse` -- the same seventeen
+> plus two -- and the seventeen-pin set compiled under `-fno-gcse` is two
+> instructions short and 16 aligned.
+>
+> **MINIMISE UNDER THE FLAG GROUP YOU WILL SHIP.** Where a set is exact under
+> both, ship that one: the landing then survives a later change to the TU's
+> flags.
 
 Minimising pins by stripping each site individually and deleting everything
 inert is not sound, and batch 222 measured both ways it fails.
@@ -17603,3 +17647,83 @@ Related, and cheap to check first: declaration order was COMPLETELY INERT on
 that function -- all 5040 permutations of its seven locals score identically. It
 is the usual first thing to reach for when two pointers land in swapped
 registers, and here it was a symptom rather than a cause.
+
+## THE PIN SET'S HOLES ARE READABLE, NOT SEARCHABLE
+
+Recorded practice finds a hole by trial: pin a region, measure worse, carve it
+out. It does not need searching.
+
+**Wherever the ROM supplies an argument via `mov rLOW, rHIGH`, gcc commoned that
+value**, so a pin there would only rematerialise it -- the site is a hole BY
+CONSTRUCTION. Walk the reference with a symbolic register file and print the
+set.
+
+On `OvlFunc_953_2009cd4` that is 36 holes over six registers. "Every argument
+site minus those 36" is 138 pins and lands **130 differing with the first 472 of
+710 encodings already exact**, from a standing start -- against 632 for no pins
+and 641 for all pins. It turns the opening move from a search into a
+computation.
+
+**BUT A PIN CONSTRAINS ORDER; IT DOES NOT BY ITSELF DEFEAT CSE.** Five sites on
+that function are holes by the register test and must be pinned ANYWAY, because
+the commoned value is still delivered by the copy and the pin removes only
+ordering freedom. A control pinning two of three arguments and leaving the
+commoned one bare also matches, so that third pin is inert.
+
+**The hole test NOMINATES; it does not DECIDE.**
+
+## A MAKEFILE FLAG CHANGE DOES NOT REBUILD THE OBJECT
+
+The `.o` does not depend on the Makefile. After adding or editing a flag rule,
+`make` sees the object as up to date and silently keeps the one built under the
+OLD flags -- `make -n` will say "is up to date" in as many words.
+
+The failure mode is convincing: a correct rule, a red compare, and the natural
+conclusion that the flag does not help or the C is wrong. On
+`OvlFunc_964_200a0a4` deleting the `.o` and `.s` and rebuilding gave a green
+compare with no other change.
+
+**Force the object to rebuild before believing any result that follows a flag
+change.**
+
+Related, from the same landing: where a directory's wildcard captures your stem
+with the wrong flags, DO NOT narrow the wildcard if a sibling is green under it.
+An explicit rule beats a pattern rule in GNU make; write the explicit rule and
+say why in a comment.
+
+## TWO CALLEE-SAVED REGISTERS SWAPPED: PIN EITHER MEMBER
+
+Residue shape: the same instructions, the same order, the same length, with two
+held constants ranked the other way round -- e.g. `mov r1,r8` where the ROM has
+`adds r1,r6,#0`.
+
+All three recorded remedies for the family are inert AT THE IDENTICAL COUNT,
+which is itself the recorded "several spellings, one number" tell: every
+declaration permutation, `register int` with no label, and splitting the shift
+off the build all measure the same. A hard register on EITHER member of the pair
+is exact; pinning a non-member is not.
+
+This is not the cprop hazard -- both constants stay callee-saved in every
+spelling, only the numbering moves.
+
+## A DECLARATION/USE PAIRING CAN COST AN INSTRUCTION WITH NO FOLD TO SEE
+
+`extern unsigned char *sym;` makes the symbol BE a pointer, so reading through
+it is two `ldr`s where the ROM has one. `extern unsigned char sym[];` is exact.
+
+It is the recorded element-type lever with a DIFFERENT SYMPTOM: nothing folds,
+the pool word is identical, and the excess is a bare extra dereference -- so the
+recorded tell does not find it. When an otherwise-finished function is a small
+fixed number of instructions long and each excess is a load, check the extern's
+declared type before touching anything else.
+
+## A GUARDED EDIT DOES NOT GUARD WHAT FOLLOWS IT
+
+A `python3 - <<PY` edit that asserts on its anchor is safe for the file it
+edits: a wrong anchor aborts and nothing is written. It does NOT protect the
+rest of the shell invocation. A `cp` and `rm` placed after such a heredoc still
+ran when the assertion fired, landing a `.c` with no Makefile rule and turning
+the build red.
+
+Put the file edit and the placement in SEPARATE invocations, or make the
+placement conditional on the edit's exit status.
