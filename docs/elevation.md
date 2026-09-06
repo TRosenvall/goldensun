@@ -12299,8 +12299,30 @@ In all three the r8 came out with no lever: a zero live across two calls, a
 pointer argument live across a loop's call. **Write the C and let the allocator
 find the high register.**
 
-r12 (ip) and r14 (lr) holding a value ARE a real wall -- no C expresses either --
-so the reject is kept for those two and only those.
+~~r12 (ip) and r14 (lr) holding a value ARE a real wall -- no C expresses either --
+so the reject is kept for those two and only those.~~
+
+> **STRUCK (batch 243). THIS IS FALSE, AND THE PARAGRAPH BELOW DIAGNOSES ITS OWN
+> NEXT SENTENCE.** `Func_80209d0` matched from ordinary C with NO register pin
+> of any kind, and the `.s` gcc generated for it holds the outer counter in `ip`
+> and a constant in `lr`:
+>
+>     mov ip, r2      cmp ip, r4      add ip, ip, r3
+>     mov lr, r3      mov r1, lr
+>
+> including `add ip, ip, rN`, which this reject also called impossible.
+>
+> Corpus measurement over the generated tree: **67 TUs use `ip` as a value, 18
+> use `lr`, and there are 7 `add ip, ip, rN` sites.** Write the C and let the
+> allocator find the register -- the same conclusion the r8/r10 half already
+> reached, now extended to all four.
+>
+> **WHY IT SURVIVED, AND THE GREP HAZARD TO REMEMBER: gcc emits `ip`, `sl`,
+> `fp`, `lr`; the ROM disassembly prints `r12`, `r10`, `r11`, `r14`.** The same
+> scan spelled `r12`/`r14` returns **14 and 0** -- which reads as clean proof of
+> a wall. The falsifying measurement WAS available and WAS run in the wrong
+> vocabulary. Any corpus grep over generated `.s` for a high register must use
+> `reg_names`, not the disassembly's numbers.
 
 **How this happened is the same shape as the branch-over-pool correction.** The
 reject was a heuristic ("avoid allocation fights") that hardened into a
