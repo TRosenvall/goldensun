@@ -307,6 +307,36 @@ asm/rom_8a000/rom_8ba38_a_c_b.o: src/rom_8a000/rom_8ba38_a_c_b.c
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# OvlFunc_896_200978c holds a message id in a local and later uses `m + 1`
+# inside a nested `if`. Under the default -O2 the whole thing collapses to two
+# pool loads, against the ROM's `ldr r6,=0x10b0 / adds r0,r6,#0 / … adds
+# r0,r6,#1` -- 17 aligned differences, all of them that one defect plus its
+# pool wake.
+#
+# The mechanism was read out of the compiler rather than guessed. cse.c:6572
+# ends a cse block only at a CODE_LABEL, so the assignment and the later `m+1`
+# share ONE cse block across the conditional jump and `related_value` produces
+# the add. It is gcse's cprop that then substitutes across the CFG edge and
+# kills the register -- so cse WANTS the register form here and gcse takes it
+# away, which is why this is a gcse rule and not a cse one.
+#
+# Reduced to two eight-line probe functions: with the use in a nested `if`,
+# default -O2 gives `ldr r0,=0x10b1` and -fno-gcse gives `add r0, r6, #1`;
+# with the use in the same straight-line run, both give the add. Six other
+# cse-family flags are byte-identical to the default, so this is the specific
+# pass and not a general key.
+#
+# `volatile` does NOT substitute for the flag here -- it costs a stack frame
+# and 526 encodings -- so the recorded preference for a spelling over a rule
+# is unavailable rather than declined.
+#
+# The .s was split so this rule covers a TU holding this ONE function; its
+# three file-siblings keep the tree default.
+asm/overlays/rom_78ef88/ovl_314_c_c_a_c_a_a_c_c_b.o: src/overlays/rom_78ef88/ovl_314_c_c_a_c_a_a_c_c_b.c
+	$(GCC296_CC) $(GCSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 # -fno-schedule-insns2 : OvlFunc_945_2009978 hoists `mov r0,#0x8f / lsl r0,#4`
 # above the gState[0x22b] store at -O2.  The post-reload scheduler is what does
 # it; the named-shifted-local lever does not reach it, and -O1 matches too but
