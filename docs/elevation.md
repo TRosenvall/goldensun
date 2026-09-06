@@ -17937,3 +17937,123 @@ gState offset must be built destructively; the other twin's is non-destructive.
 That is sufficient-not-necessary appearing between functions that genuinely ARE
 twins, which is the strongest form of it on record. Take the STRUCT LAYOUT, the
 PROTOTYPES and the IDIOM from a twin; re-measure every lever.
+
+## THE PIN IS AN EVICTION DEVICE, NOT AN ORDERING ONE
+
+Six consecutive matches on functions carrying four distinct high registers, and
+the same mechanism in every one. **gcc reaches the ROM's high-register
+assignment UNAIDED.** It gets the COUNT right and the MEMBERSHIP wrong, because
+`gcse` commons values the ROM REMATERIALISES and then has nothing left for the
+values the ROM HOLDS.
+
+> **YOU-HAVE-MORE-REGISTERS IS A COMMONING TELL, NOT A PRESSURE PROBLEM.**
+
+It is the mirror of the recorded "SAME COUNT, rotated -> flag; ONE MORE -> live
+range" entry, which is the ROM-has-more direction. When WE spend the extra
+register -- and the first differing encoding is then usually the PUSH MASK
+ITSELF -- the cause is candidate supply.
+
+**THE CURE IS TO DELETE CANDIDATES, NOT TO PIN REGISTERS.** Pin the ROM's
+*rebuilt* constants to r0-r2 so they leave the commoning pool; leave the ROM's
+*held* values as plain locals. The allocator then picks the ROM's set itself.
+Worth 273 differing -> 16 in one step on `OvlFunc_943_2008ca0`; the extra
+callee-saved register vanishes by itself once its tenant does.
+
+**NOT ONE of the six matched functions ships a hard-register pin on r8-r11.**
+The lever that solves a high-register problem never mentions a high register.
+
+Corollary for target selection: `templated.py`'s `hiv` column was read as "3 or
+4 is the real reject". Tested deliberately, it went 6 for 6. `hiv` reads largely
+as a proxy for SIZE, and size was never the reject.
+
+## EVICTION PINS COMPETE FOR THE SAME REGISTER -- ADD THEM AS A SET
+
+The docs carry the removal-side rule ("re-verify survivors AS A SET") and
+nothing on the addition side. The addition side is just as real and costs more.
+
+`OvlFunc_928_20089dc`, two rebuilt constants needing eviction:
+
+| pins | differing |
+|---|---|
+| none | 68, size and count already right |
+| one rebuilt constant pinned | 171, FOUR BYTES SHORT |
+| the other pair pinned | 184, FOUR BYTES SHORT |
+| **both** | **4** |
+
+Visible in both failure diffs: with only one pinned, THE OTHER CONSTANT MOVES
+INTO THE REGISTER THE FIRST PIN JUST FREED, and the value the ROM holds is
+pooled again. Each pin alone is strictly WORSE than none.
+
+**A greedy one-at-a-time ADD pass therefore rejects both pins and reports the
+function blocked at 68** -- a false park on a function four encodings from
+exact. A wrong removal costs a worse candidate; a wrong addition costs the whole
+function.
+
+## THE HOLE TEST IS ABOUT REMATERIALISABILITY, NOT ABOUT THE COPY
+
+The recorded rule says a `mov rLOW, rHIGH` argument is a hole in the pin set by
+construction. Read literally it is wrong. On `OvlFunc_945_200e110` twenty-two
+sites take their actor argument that way and TEN ARE PINNED in the final set --
+because a `bl` RESULT CANNOT BE REMATERIALISED, so the copy is forced and the
+pin costs nothing.
+
+Applied only to REBUILDABLE values the test is exact: 21 nominated, one hole, 20
+pins, four differing at exact size with identical relocations on the first
+screen. Pinning that one hole is the confirmation -- its tenant vanishes and the
+push mask becomes the first differing encoding.
+
+## REBUILT LOOP-INVARIANT CONSTANTS NOMINATE THE `goto` REWRITE; THEY DO NOT DECIDE IT
+
+The blockquoted rule "if the ROM rebuilds a loop-invariant constant inside the
+loop body, the source's loop was not a `while`/`for`" **is not sound in that
+direction**, and it cost a round its first three candidates.
+
+`OvlFunc_968_200c610`: the ROM reloads `0x4ccc` and `0x17ffc` from the pool at
+both sites inside the outer loop, and the source's loops are `do { } while`. The
+`goto` spelling CREATED the hoist rather than removing it. With no loop notes,
+`gcse` hoists `&t` early enough that `cse2` rewrites every field store to
+`mov r2, r8 / str r3, [r2, #8]` where the ROM has `str r3, [sp, #0x18]` -- which
+also makes `&t` the hottest call-crossing value and hands it r8 instead of the
+ROM's r11. With real loops, `loop.c` hoists into the pre-header AFTER `cse1` has
+emitted the sp-relative stores, and both defects vanish together. Worth 38
+differing -> 17 in one step.
+
+This is a third entry for the counter-example table, and it fails for a NEW
+reason: not that the rewrite's overhead exceeds what it recovers, but that
+**`goto` mode introduces hoists real-loop mode never had.**
+
+**Screen both spellings. They cost one screen each.**
+
+## `hi` COUNTS PROLOGUE/EPILOGUE BOILERPLATE -- SUBTRACT THE SAVE/RESTORE PAIRS
+
+Reported independently by three functions, all giving the same number: **8 of
+the high-register references are prologue/epilogue save/restore pairs** that any
+four-high-register frame carries. `OvlFunc_945_2009b34`'s 26 references are
+really 18; `OvlFunc_928_20089dc`'s 31 are really 23.
+
+The counter should SUBTRACT save/restore pairs rather than have its threshold
+nudged. `hi` counts references, not values; judge pressure by DISTINCT high
+registers holding DISTINCT values.
+
+## A THIRD ARM FOR THE `-ffixed-r7` DISCRIMINATOR
+
+The entry records "same count, rotated -> the flag; one more -> a live range".
+`OvlFunc_945_200e110` is same count, rotated, **AND THE FLAG IS WRONG**: r7 is
+one of the seven registers the ROM spends, so reserving it leaves six (230
+differing).
+
+Same count plus rotated implies only that MEMBERSHIP is wrong. Check for a
+CSE-class difference first -- it is cheap, and it was the answer here. Second
+false-positive strike on that entry, failing for a different reason than the
+first.
+
+## TWO DEFECTS CAN CANCEL IN THE LENGTH -- LENGTH IS NOT EVIDENCE
+
+`OvlFunc_968_200c968` was parked reading "90 lines against the ROM's 90", which
+made the residue look like pure allocation. It was a spurious early `mov r0, #0`
+paying for a missing second `ldr`. Second instance of the cancelling-length
+rule, and the reason the park sat for as long as it did.
+
+**Trust the differing-encoding count and the first-diff position, not the
+length.** A candidate matching the ROM's instruction count is not evidence on
+its own.

@@ -24,6 +24,13 @@ The snapshot is not authoritative. This file and `git rev-parse` are:
   rather than checking out.
 - `git checkout` is denied by project policy — use `git restore`.
 - `git restore src/lib` before staging; the build dirties `.i` files there.
-- Compiler-generated `.s` files appear in `asm/` beside every `src/**/*.c` and
-  must **never** be committed. `make clean` removes them; `git add -A asm` will
-  sweep them up, so stage asm paths explicitly.
+- A generated `.s` appears in `asm/` beside every `src/**/*.c`, and it **is
+  tracked** — staging it with the `.c` is the tree's convention, inherited from
+  upstream with 2,535 such files. Converting a function deletes its hand-written
+  `.s` and the next build writes a generated one to the same path, so git reports
+  it as *modified*; that is correct, not compiler output leaking in. Verify with
+  `python3 tools/asmfacts.py --asm-pairs`, which fails if an elevated `.c` lacks
+  its sibling `.s`. See "The generated `.s` beside the `.c` IS tracked" in
+  docs/elevation.md — this was got backwards twice.
+- `git add -A asm` still sweeps up unrelated build output, so stage asm paths
+  explicitly.
