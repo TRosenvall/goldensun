@@ -18101,3 +18101,70 @@ overlap, and `--unlinked` is the one that sees it.
 Not fixed here, deliberately. Each one needs its function re-verified as actually
 matching once genuinely linked -- landing it is a normal gated round, not a
 one-line edit -- and the tree is green meanwhile.
+
+## A HALFWORD STORE POISONS A LATER NARROW CONSTANT ACROSS A CALL
+
+The recorded halfword entries cover constants `mov #imm8` CANNOT build ("An
+HImode constant >= 0x8000 costs a mid-function pool AND a branch", and the
+"Halfword constant pooling" section). This is a different effect and the
+constant is ZERO, which `mov` builds trivially.
+
+Minimal repro (`scratch_elev/b248/probe/p2.c`-`p6.c`), differing only in whether
+a FOURTH halfword store is present before the call:
+
+    void t3(struct S *s) { s->a=0; s->b=0; s->c=0;         h(); g554()[0x55]=0; }
+    /* mov r5, #0 -- what the ROM has */
+
+    void t1(struct S *s) { s->a=0; s->b=0; s->c=0; s->d=0; h(); g554()[0x55]=0; }
+    /* ldrh r5, .L3 + a mid-function `.word 0` and a branch around it */
+
+gcc commons the later byte-store zero with the earlier HALFWORD store's zero and
+then rematerialises it in HImode out of a pool: +8 bytes and +3 encodings.
+
+FOUR DISCRIMINATORS, EACH MEASURED:
+
+| condition | pools? |
+|---|---|
+| halfword store BEFORE the call | yes |
+| halfword store AFTER the call | no |
+| halfword LOAD rather than a store | no |
+| later constant a DIFFERENT value (7, not 0) | no |
+| halfword store of a NON-CONSTANT (`s->d = n`) | **yes** |
+
+That last row is the important one: it is the presence of the HImode `strh`
+INSN that poisons the later constant, not an HImode literal. So the tell is
+structural and you cannot spot it by looking for a pooled halfword value.
+
+NOTHING AT THE C LEVEL BREAKS THE COMMONING. `int` locals, `unsigned char`
+locals, casts, reordering the stores, bitfields and separate pointer chains were
+all measured and ALL still pool. Treat this as a genuine floor for any function
+that zeroes a `short` field and later zeroes a byte across a call; the only
+escapes found so far cost something else (a readback that pins the base in a
+callee-saved register across the calls -- see
+src/non_matching/ovl_7f2f14/200a47c.c, where that readback IS the residue).
+
+## WHEN A `for`+`break` FAILS TO ROTATE, THE BODY IS INLINE -- HOIST IT WITH A `goto`
+
+The recorded entry says `for (init;;inc)` with a trailing `break` produces the
+rotation "with no `goto` spelling at all", and that a hand-written `goto` is
+actively worse. Both halves can be true and still leave you stuck, because the
+SAME source shape goes both ways.
+
+A landed neighbour's `for (j = 0; j < i; j++) { if (...) { ...; break; } }`
+rotates -- guard plus do-while, body out of line. A textually equivalent loop in
+OvlFunc_968_200a47c does NOT: it emits `b .Ltest / inc: / test: cmp / bge` with
+the body INLINE between the test and the latch.
+
+Bisected: caching the actor pointer, shrinking the body, the outer loop bound and
+the surrounding branches are ALL INERT. What flips it is writing the body as an
+out-of-line block reached by `goto`, placed in the source WHERE THE ROM PUTS IT
+(before the third branch). That single edit went 174 -> 155 differing and
+unlocked everything after it; removing it from the finished file costs 44.
+
+**The tell is not the loop keyword, it is where the body sits.** If the emitted
+body is inline between the test and the latch, hoisting it out with a `goto`
+restores the rotation AND the ROM's block order at once.
+
+MECHANISM HYPOTHESIS, UNTESTED AND LABELLED AS SUCH: `duplicate_loop_exit_test`
+bailing when the scanned exit block contains a `CALL_INSN`. Nobody has checked
+this against the compiler source; do not repeat it as fact.
