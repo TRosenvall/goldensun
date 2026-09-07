@@ -5742,6 +5742,60 @@ This also subsumes `-fno-strength-reduce` in these cases, and does it without
 that flag's cost — measured at one extra callee-saved register on both functions
 it was tried on.
 
+## A loop-invariant hoisted by loop.c is ALWAYS the last insn of the preheader
+
+The companion rule to the `goto`-loop lever above, and a hard floor when it
+bites. `move_movables` inserts every hoisted movable with
+
+    emit_insn_before (pat, loop_start)
+
+— *every* branch of it (loop.c:1825, 1890, 1982, 1991, 2024, 2028, 2047, 2055).
+`loop_start` is the `NOTE_INSN_LOOP_BEG`, and `expand_start_loop` emits that
+note and the loop's top label back to back, so **no C statement can be placed
+between them**. A hoisted invariant therefore lands after every source-level
+preheader statement, and no statement order can put a preheader assignment
+after it.
+
+> **If the ROM has a hoisted loop invariant sitting BEFORE a loop-variable
+> initialisation, no statement order reaches it.** The init has to be created by
+> a pass that runs after `move_movables` — `strength_reduce`'s giv initialiser
+> (`emit_iv_add_mult`) or `check_dbra_loop`'s re-emitted biv init — or it is a
+> floor.
+
+Both escape routes are narrow. `strength_reduce` refuses cheap givs: the loop
+dump prints `giv of insn NNN not worth while, 0 vs 65` for a shift-by-constant,
+so `acc = i << 20` stays in the body and never reaches the preheader.
+`check_dbra_loop` re-emits only the loop's **comparison** biv, so it does
+nothing for an accumulator.
+
+`OvlFunc_968_200c2bc` sits on this at 2 of 271 — every register role the ROM's,
+the encoding count exact — over one `mov` pair.
+`scratch_elev/b251/c2bc/final/NOTES.md` has the 30-variant sweep.
+
+### Two gcse claims to distrust
+
+Both of these were written up as findings in this tree and both are wrong; they
+cost a batch.
+
+* **`insert_insn_end_bb` is not how gcse places ordinary insertions.**
+  `pre_edge_insert` (gcse.c:4440) calls it only for `EDGE_ABNORMAL`. Everything
+  else goes through `insert_insn_on_edge`, and `commit_one_edge_insertion`
+  (flow.c:1656) then picks one of three points: the **head of the destination**
+  if the destination has one predecessor, the end of the source if the source
+  has one successor, otherwise it splits the edge. "gcse always appends last" is
+  not a rule that exists.
+* **A register copy in the preheader is usually loop.c's, not gcse's.** What
+  gcse does to a redundant in-loop address is rewrite it in place — the dump
+  logs `COPY-PROP: Replacing reg N in insn M with reg K` — leaving a copy
+  *inside* the loop for `move_movables` to hoist.
+
+**Read the dumps rather than the pass names.** `xgcc -da` in the build image
+writes `<file>.07.gcse` and `<file>.08.loop`; the loop dump names every movable
+it moves (`Insn 366: regno 105 (life 21), savings 1  moved to 647`) and every
+biv with the insn that initialises it. Chasing an insn's provenance by grepping
+insn numbers through `.03.cse` → `.07.gcse` → `.08.loop` → `.18.greg` →
+`.23.sched2` settles in minutes what costs a batch to guess at.
+
 ## Apply `volatile` at the USE SITE, not to the declaration
 
 Where one read of a field must not be commoned with an earlier one, qualifying
