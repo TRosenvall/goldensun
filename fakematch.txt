@@ -375,3 +375,4 @@ OvlFunc_955_2009424  src/overlays/rom_7ddb88/ovl_30_c_c_c_c_c_b.c
 OvlFunc_884_2008940  src/overlays/rom_784360/ovl_30_c_a_c_c_c_a_a.c
 OvlFunc_884_2008bbc  src/overlays/rom_784360/ovl_30_c_a_c_c_c_a_a.c
 OvlFunc_925_2008b24  src/overlays/rom_7b0400/ovl_314_c_c_c_a_c_c_a_a_b.c
+OvlFunc_923_20091b4  src/overlays/rom_7aa430/ovl_1150_c_c_a.c
