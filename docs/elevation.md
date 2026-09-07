@@ -18269,3 +18269,52 @@ blocked.
 
 Order the search by MECHANISM SIZE, not by cost of trying: control flow, then
 alias, then allocation, then order.
+
+## A THIRD PIN DEVICE: A PIN THAT DEFEATS CONSTANT PROPAGATION SO A SPLIT CAN TAKE
+
+Two pin devices are recorded: the ORDERING pin, which decides emission order at a
+call site, and the EVICTION pin, which removes a value from the commoning pool so
+the allocator picks the ROM's set. This is a third, and it is the reason a
+recorded blocker class was wrong.
+
+`Func_8021390` is the "dominance contradiction" -- one constant with a dominating
+use and a guarded use, where the ROM rebuilds it and gcc hoists. The park
+concluded no source form separates them, on twelve flags being byte-identical.
+The flag evidence was sound; the conclusion was not.
+
+| spelling | differing |
+|---|---|
+| park's best | 37 of 97 |
+| `register int z __asm__("r6")` on the body zeros ALONE | 11 |
+| a second plain local for the call argument ALONE | 37 (inert) |
+| **both** | **5** |
+
+The pin PLACES NOTHING. It stops cprop folding the two locals back into one
+pseudo, which is what lets the split survive to reload. Splitting a value into
+two locals is a recorded lever; what is new is that the split can be UNDONE
+before it reaches the allocator, and that a hard register is what prevents that.
+
+**Tell:** you split a value into two locals, the split measures INERT, and the
+dumps show one pseudo where you wrote two. Pin one of them and re-measure before
+concluding the split is not the lever.
+
+Worth re-screening the other recorded instances of the class --
+`OvlFunc_952_200be40`, `OvlFunc_891_2008098` -- and the sibling `Func_8021488`.
+
+## READ THE SIGN OF `-fno-schedule-insns2`, NOT JUST THE NUMBER
+
+The same routine family gave opposite verdicts on the same day, and the
+diagnostic separates them in one compile.
+
+- The eighteen-copy block-push park: `-fno-schedule-insns2` IMPROVED the window,
+  7 -> 4. sched2 owned the residue, and alias set 0 used as a scheduling device
+  closed it.
+- `OvlFunc_895_20087d0`, the same routine: the flag makes it WORSE, 44 -> 63 and
+  10 -> 37. sched2 is already producing the ROM's order. Alias had nothing to
+  buy, and all TWENTY one-member-union subsets over the seven candidate fields
+  measured EXACTLY 44 -- not one encoding moved.
+
+> An improvement says sched2 owns the residue and an alias lever may reach it.
+> A regression says sched2 is already right and alias is the wrong axis.
+
+Family membership does not predict the axis. Run the diagnostic per function.
