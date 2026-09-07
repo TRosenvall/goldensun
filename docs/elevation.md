@@ -18057,3 +18057,47 @@ rule, and the reason the park sat for as long as it did.
 **Trust the differing-encoding count and the first-diff position, not the
 length.** A candidate matching the ROM's instruction count is not evidence on
 its own.
+
+## TEN ELEVATED `.c` FILES CONTRIBUTE NOTHING TO THE ROM -- PRE-EXISTING DEBT
+
+`python3 tools/asmfacts.py --unlinked` reports ten sources whose `.o` no linker
+script references. The build is green and `make compare` passes, because the ROM
+never needed them: make never even COMPILES them, since nothing depends on their
+`.o`. Verified by compiling each by hand and reading `nm --defined-only`:
+
+| file | defines |
+|---|---|
+| `src/rom_b0000/dummy.c` | nothing -- a deliberate documented placeholder, ignore it |
+| `src/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c_a_a.c` | `OvlFunc_888_20085cc` |
+| `src/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_a.c` | `OvlFunc_943_2008a48`, `OvlFunc_943_2008af0` |
+| `src/overlays/rom_7d95dc/ovl_30_c_c_c_a_a_c_c.c` | `OvlFunc_953_2009a4c` |
+| `src/rom_c0/rom_447c_a_b.c` | `atan2` |
+| `src/rom_f9000/rom_f9ef8_b.c` | `Func_80fa260` |
+| `src/rom_f9000/rom_f9ef8_c_a_b.c` | `m4aSoundMain` |
+| `src/rom_f9000/rom_f9ef8_c_a_c_b.c` | `m4aMPlayContinue` |
+| `src/rom_f9000/rom_f9ef8_c_b.c` | `MusicPlayerJumpTableCopy` |
+| `src/rom_f9000/rom_f9ef8_c_c_b.c` | `Func_80fb790` |
+
+**THREE OF THEM HAVE A LINKER LINE NAMING A `src/` PATH**, which is the
+documented batch-244 error class -- the rule is `asm/%.o: src/%.c`, so the object
+only ever exists under `asm/`, and an unmatched `.ld` entry is silently ignored
+rather than being an error:
+
+    overlays/rom_7892c8/overlay.ld:28   src/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c_a_a.o(.text)
+    overlays/rom_7c7b9c/overlay.ld:29   src/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_a.o(.text)
+    overlays/rom_7d95dc/overlay.ld:39   src/overlays/rom_7d95dc/ovl_30_c_c_c_a_a_c_c.o(.text)
+
+A `src/` path in a `.ld` is NOT wrong by itself -- 249 such lines exist and
+almost all are legitimate (`exports.o`, `imports.o`, `crt0.o`, `src/lib/*` are
+hand-written support TUs built from `src/`). The defect is specifically a `src/`
+path naming an ELEVATED FUNCTION TU. Those three are the search.
+
+**WHY `--asm-pairs` DOES NOT CATCH THIS.** It flags an untracked `.s` only when
+the `.s` EXISTS on disk. These files are never built, so no `.s` is ever written,
+so they pass silently. The two checks have a blind spot exactly where they
+overlap, and `--unlinked` is the one that sees it.
+
+**Consequence for the count: the elevated total is overstated by up to nine.**
+Not fixed here, deliberately. Each one needs its function re-verified as actually
+matching once genuinely linked -- landing it is a normal gated round, not a
+one-line edit -- and the tree is green meanwhile.
