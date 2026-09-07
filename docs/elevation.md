@@ -18168,3 +18168,50 @@ restores the rotation AND the ROM's block order at once.
 MECHANISM HYPOTHESIS, UNTESTED AND LABELLED AS SUCH: `duplicate_loop_exit_test`
 bailing when the scanned exit block contains a `CALL_INSN`. Nobody has checked
 this against the compiler source; do not repeat it as fact.
+
+## A UNION MEMBER ACCESS IS ALIAS SET 0, AND THE MEMBER LIST IS IRRELEVANT
+
+The batch-244 entry under "gcse hashes the MEMORY ALIAS SET" records the union
+escape, but its "and only those" clause -- that a union conflicts against
+accesses whose type is one of its MEMBERS -- is wrong, and so is the neighbouring
+claim that the only source-level escape is `volatile` on BOTH sides.
+
+gcc-2.96's C front end computes `lang_get_alias_set` by walking OUT through every
+`COMPONENT_REF`/`ARRAY_REF` and returning a flat **0** the moment any step's
+object has `UNION_TYPE`. `record_component_aliases` and the subset machinery are
+never consulted. Alias set 0 conflicts with EVERYTHING, which is why the lever
+works -- and it means the member list cannot matter.
+
+Controls, all on one finished base, against an `unsigned short` load:
+
+| wrapper on the `int` store | result |
+|---|---|
+| `union { int w; unsigned short h; }` | EXACT |
+| `union { int w; long l; }` -- no related member | EXACT |
+| `union { int w; }` -- ONE member, nothing to be a subset of | **EXACT** |
+| `struct { int w; }` | 8 differing |
+| no wrapper | 8 differing |
+
+A ONE-MEMBER UNION CANNOT CONFLICT "AGAINST ANY ACCESS WHOSE TYPE IS A MEMBER"
+with an `unsigned short` load, and it is byte-identical anyway. The struct
+control is the discriminator: same single member, same layout, 8 differing. It
+is the UNION-NESS that flattens the set, not the membership.
+
+And on the same function `volatile` on both sides measures 131 differing and
+EIGHT BYTES LONG, so it is not merely a worse escape here, it is not an escape
+at all.
+
+Practical: reach for the union whenever a dependence must be restored in source,
+and do not spend time choosing its members.
+
+## THE PERMUTATION SWEEP MUST RUN LAST -- A SECOND SPECIMEN
+
+Recorded already for the pin strip. It holds for the ALIAS lever too, and on the
+same function: from 169 differing, hoisting `__sin` out of the `if` gives 14, the
+union gives 6, and only THEN does permuting the three opening reads reach exact.
+Run before the union, the sweep's six orderings measure 6, 6, 6, 7, 10 and the
+best available is 14 -- nothing under it exists to find, so the function reads
+blocked.
+
+Order the search by MECHANISM SIZE, not by cost of trying: control flow, then
+alias, then allocation, then order.
