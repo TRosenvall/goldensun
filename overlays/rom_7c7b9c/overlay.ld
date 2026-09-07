@@ -61,20 +61,20 @@ SECTIONS {
 		asm/overlays/rom_7c7b9c/ovl_30_c_b.o(.text)
 		asm/overlays/rom_7c7b9c/ovl_30_c_c_a.o(.text)
 		asm/overlays/rom_7c7b9c/ovl_30_c_c_b.o(.text)
-		asm/overlays/rom_7c7b9c/ovl_30_c_c_c.o(.text)
+		asm/overlays/rom_7c7b9c/ovl_30_c_c_c_a.o(.text)
 		src/overlays/rom_7c7b9c/imports.o(.text)
 	} > overlay
 
 	.data : {
 		asm/overlays/rom_7c7b9c/ovl_30_c_c_a.o(.data)
 		asm/overlays/rom_7c7b9c/ovl_30_c_c_b.o(.data)
-		asm/overlays/rom_7c7b9c/ovl_30_c_c_c.o(.data)
+		asm/overlays/rom_7c7b9c/ovl_30_c_c_c_b.o(.data)
 	} > overlay
 
 	.bss : {
 		asm/overlays/rom_7c7b9c/ovl_30_c_c_a.o(.bss)
 		asm/overlays/rom_7c7b9c/ovl_30_c_c_b.o(.bss)
-		asm/overlays/rom_7c7b9c/ovl_30_c_c_c.o(.bss)
+		asm/overlays/rom_7c7b9c/ovl_30_c_c_c_b.o(.bss)
 	} > overlay
 
 	/DISCARD/ : {
