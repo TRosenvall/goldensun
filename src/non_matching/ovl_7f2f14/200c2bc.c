@@ -1,51 +1,70 @@
 /* OvlFunc_968_200c2bc -- 0x0200c2bc,
  * asm/overlays/rom_7f2f14/ovl_30_c_c_a_c_c.s
  *
- * 110 differing of 271, AT THE ROM'S EXACT ENCODING COUNT (271 against 271).
- *      first at index 34: ref 469a  ours 4699
- *      relocations differ -- offsets only, the shift from the encodings above
- * Best candidate: scratch_elev/b249/c2bc/e2bc_c.c. The directory holds 75
- * screened variants plus ref_*.s for all three functions and o.sh / t.sh /
- * batch.sh, which rebuild any measurement.
+ * TWO differing encodings of 271, at the ROM's EXACT encoding count, with
+ * EVERY REGISTER ROLE ALREADY THE ROM'S.
+ *      first at index 163: ref 46ca  ours 4693
+ * Best candidate: scratch_elev/b250/trio/final/e2bc_BEST.c.
  *
- * THE FLOOR MOVED: the previous round left this at 265 lines against 275 and
- * 205 DIFFERING. This is 110 at exact length. The next attempt should start
- * from e2bc_c.c, NOT from scratch and NOT from the 205 candidate. The 75
- * variants also rule out the whole statement-order family: the p_a_* and p_b_*
- * sweeps are 24 orderings each of two blocks and every one lands at 205-206,
- * so ORDERING IS NOT THE REMAINING LEVER.
+ * FLOOR HISTORY: 205 -> 110 -> 2. Start from e2bc_BEST.c. Starting over has
+ * now cost two rounds and is the single most expensive mistake available here.
  *
- * WHAT IS KNOWN TO SEPARATE IT FROM ITS SOLVED SIBLINGS (the family in
- * src/overlays/rom_7f2f14/ovl_30_c_c_c_c_a.c, whose header documents the
- * levers that DID work for 200c610/200c7c0/200c968):
+ * ITS TWO FILE-MATES ARE ALREADY MATCHED and are waiting on this one:
+ *      OvlFunc_968_200c048  628 bytes, 290 encodings, 20 relocations
+ *      OvlFunc_968_200c520  208 bytes,  93 encodings,  9 relocations
+ * They sit in scratch_elev/b250/trio/final/ as e048_MATCH.c and e520_MATCH.c,
+ * and final/merged.c holds all three in ROM order with both still
+ * instruction-identical inside the merged TU. c2bc is in the MIDDLE of the .s,
+ * so landing the other two alone would need an awkward three-way split; the
+ * file lands WHOLE the moment these two encodings close.
  *
- *   1. The inner loop is a ROTATED `while (i <= 7 && k <= 3)` whose base/z
- *      initialisers gcc must sink BELOW the guard.
- *   2. The SECOND outer loop copies the struct pointer into a SECOND high
- *      register (`mov r10, r9`) and stores fields THROUGH IT, while the first
- *      loop stores sp-relative -- the same address in two roles in one
- *      function.
+ * THE RESIDUE, in loop 2's preheader:
+ *      ROM    mov r2,#0 / mov r8,r2 / mov r10,r9 / mov r11,r2
+ *      ours   mov r2,#0 / mov r8,r2 / mov r11,r2 / mov r10,r9
+ * One adjacent pair, transposed.
  *
- * LIVE HYPOTHESIS, EXPLICITLY UNTESTED. The last screening run ended on the
- * idea that `base` and `z` ARE NOT SOURCE STATEMENTS AT ALL -- that they are a
- * GIV and a hoisted loop invariant which loop.c manufactures in the preheader,
- * below the guard, from an expression written inside the loop body. If that is
- * right, every candidate so far has been wrong in kind rather than in detail,
- * because all 75 write them as statements and then try to place them. The test
- * is cheap: write the loop with the expression INLINE at its use and let loop.c
- * hoist it, rather than naming base/z anywhere. NOBODY HAS RUN THAT YET.
+ * BLOCKER CLASS: GCSE INSERTION POINT, not allocation. The count is exact and
+ * the register assignment is the ROM's throughout.
+ *
+ * THE PREVIOUSLY RECORDED HYPOTHESIS IS REFUTED. `base`/`z` are NOT a GIV and a
+ * hoisted invariant. What actually held the function was `q = tp`: gcc
+ * COALESCES two names for one address -- the recorded "if the two pointers
+ * genuinely hold the same address, this lever has nothing to work with" -- which
+ * freed r9 and let gcse hoist 0x17ffc there. Writing plain `t.f8 = ...` lets
+ * GCSE MANUFACTURE THE SECOND REGISTER ITSELF, and that alone was 114 -> 12.
+ *
+ * ALSO LOAD-BEARING in the current candidate: `tp = &t` assigned THIRD (birth
+ * order); `m = i + 0x1a` named before `n`; and a FRESH n2/s4/s5 for the second
+ * __CopyMapTiles site.
+ *
+ * WHY STATEMENT ORDER CANNOT REACH IT -- read out of
+ * /opt/camelot-gcc/gcc-2.96/gcc/gcse.c in the build image. `insert_insn_end_bb`
+ * appends with `emit_insn_after (pat, BLOCK_END)` -- ALWAYS LAST -- unless the
+ * block ends in a jump or a call, which is the other arm of that `if`. A
+ * gcse-hoisted `&t` copy therefore cannot be moved before a preceding source
+ * assignment by any spelling. 14 spellings measured, all 2 or worse; earlier, 48
+ * permutations of two blocks all landed 205-206. ORDERING IS EXHAUSTED. Do not
+ * run another sweep.
+ *
+ * THE REMAINING FREEDOM, as hypotheses to TEST rather than conclusions:
+ *   1. have the `mov r11, r2` assignment created by a pass LATER than gcse, so
+ *      it lands after the hoisted copy;
+ *   2. stop the r10 copy being gcse-hoisted at all -- an ordinary source
+ *      assignment created before gcse runs is never touched by
+ *      insert_insn_end_bb, and normal ordering applies again. This fights the
+ *      114 -> 12 lever above, so it needs the second register manufactured some
+ *      other way;
+ *   3. change how the preheader block ENDS. Always-last is conditional on the
+ *      block not ending in a jump or call, so a source shape that puts a call
+ *      at the end of that block moves the insertion point.
  *
  * MEASURED WORSE: the split-condition `do` + `break` form is 270 lines, 224
- * differing, with the frame grown to 0x3c by a spill. Do not re-spend it.
+ * differing, frame grown to 0x3c by a spill.
  *
- * BLOCKER CLASS as currently understood: loop-form / induction-variable
- * placement, not allocation -- the encoding COUNT is already exact and the
- * relocation list differs only by the offsets the encoding differences produce.
- *
- * LANDING SHAPE IF CLOSED: the .s holds THREE functions -- OvlFunc_968_200c048
- * (~282 insns), this one, and OvlFunc_968_200c520 (~90 insns) -- and closing
- * all three lands src/overlays/rom_7f2f14/ovl_30_c_c_a_c_c.c WHOLE, with no
- * split and no linker edit. 200c520 is the smallest and was never attempted;
- * it is the cheapest way to start the next session on this file.
- * The overlay.ld line MUST KEEP its asm/ path.
+ * LANDING SHAPE WHEN CLOSED: src/overlays/rom_7f2f14/ovl_30_c_c_a_c_c.c holding
+ * all three in ROM order. No split, no linker edit -- overlay.ld:91 already
+ * names asm/overlays/rom_7f2f14/ovl_30_c_c_a_c_c.o(.text) and MUST KEEP its
+ * asm/ path. The .s carries no data, and the only pooled symbols are gState,
+ * iwram_3001ebc and iwram_3001e40, all already extern in the tree.
+ * makefile_flags() is empty, so plain -O2.
  */
