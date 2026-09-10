@@ -2411,6 +2411,10 @@ asm/overlays/rom_79e5c0/ovl_30_c_a_c.o: src/overlays/rom_79e5c0/ovl_30_c_a_c.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+asm/overlays/rom_79e5c0/ovl_30_c_a_a_c_a_a_a_c_c_a_b.o: src/overlays/rom_79e5c0/ovl_30_c_a_a_c_a_a_a_c_c_a_b.c
+	$(GCC296_CC) $(GCSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7bf5a8/ovl_2e0_c_a_c.o: src/overlays/rom_7bf5a8/ovl_2e0_c_a_c.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
