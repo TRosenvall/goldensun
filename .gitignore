@@ -36,3 +36,6 @@ toDelete/
 # personal automation helper, not part of the decomp
 type-foo.applescript
 type-foo.sh
+
+# funcindex.py cache -- derivable, safe to delete
+tools/.funcindex.json

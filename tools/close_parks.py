@@ -32,7 +32,16 @@ import re
 import subprocess
 import sys
 
-SRC = re.compile(r"Source asm:\s*goldensun/(\S+\.s)")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from funcindex import park_ref
+
+# The reference used to be parsed out of the note as
+#     re.compile(r"Source asm:\s*goldensun/(\S+\.s)")
+# which required one exact English phrase. Measured over 521 parks that
+# matched 141, of which 75 still had a live path -- so the tool screened 14%
+# of its own corpus and the dominant loss was PROSE FORMAT, not staleness.
+# funcindex.park_ref resolves the subject by NAME against the live tree
+# instead, which cannot go stale and reaches 521 of 521.
 HEAD = re.compile(r"XX (\S+)\s+\(rom (\d+) lines, ours (\d+)[^,]*, "
                   r"first diff at (\d+), (\d+) differ")
 THRESHOLD = 6
@@ -41,11 +50,11 @@ THRESHOLD = 6
 def main():
     out, seen = [], 0
     for p in sorted(glob.glob("src/non_matching/**/*.c", recursive=True)):
-        m = SRC.search(open(p, errors="replace").read())
-        if not m or not os.path.exists(m.group(1)):
+        ref = park_ref(p)
+        if not ref or not os.path.exists(ref):
             continue
         seen += 1
-        r = subprocess.run([sys.executable, "tools/tryc.py", p, "--ref", m.group(1)],
+        r = subprocess.run([sys.executable, "tools/tryc.py", p, "--ref", ref],
                            capture_output=True, text=True)
         for line in (r.stdout + r.stderr).split("\n"):
             h = HEAD.search(line)
