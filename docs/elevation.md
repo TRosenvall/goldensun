@@ -18318,3 +18318,34 @@ diagnostic separates them in one compile.
 > A regression says sched2 is already right and alias is the wrong axis.
 
 Family membership does not predict the axis. Run the diagnostic per function.
+
+## A PIN-INDUCED MISCOMPILE IS A LOCAL MINIMUM THAT CANNOT REACH ZERO
+
+The recorded pin rule is "DO NOT PIN r8-r11". It needs a companion for the
+CALLEE-SAVED LOW registers, and r7 in particular, because two independent
+instances turned up in one week and both produced a BETTER objcmp number than
+the correct spelling.
+
+| function | pin | number | what it actually emitted |
+|---|---|---|---|
+| `OvlFunc_895_20087d0` family | `register unsigned char *p __asm__("r7")` | 123 -> **78** | `add r7, sp, #0x10` later reused the register for `&s`, so every later read hit the stack struct |
+| `OvlFunc_890_2009ca8` | the split zero pinned to r7 | 5 -> **3** | `strb r7, [r3]` stores the POINTER, because `f` is also in r7 and gcse commoned the other zero into the pinned pseudo |
+
+Both look like convergence. The first came out at the ROM's exact length; the
+second is the best number any spelling of that function produced.
+
+**The structural fact that makes this safe to reason about: a miscompiled
+candidate can never reach zero differing.** If our bytes equalled the ROM's
+bytes, our program would BE the ROM's program. So a pin-induced miscompile is a
+LOCAL MINIMUM with a floor above zero -- it will absorb a whole round looking
+like the most promising branch and then stop.
+
+> **A lower objcmp number is not evidence when a pin is involved.** After any pin
+> on a callee-saved register, read the emitted operand at the store or call you
+> were trying to fix, and check the register is not also carrying something else.
+> `grep` the generated `.s` for a SECOND definition of the pinned register.
+
+Why r7 specifically: it is callee-saved, it is low (so Thumb can use it
+everywhere), and gcc also reaches for it as the frame pointer expression
+(`mov r7, sp`). That combination makes it the register most likely to be doing
+two jobs at once.
