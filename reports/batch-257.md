@@ -141,10 +141,29 @@ check.
 
 | | |
 |---|---|
-| matched | **4,280** (75.0% by function count) |
-| unattempted | 948 |
-| parked (still in asm) | 478 |
+| matched | **4,280** (75.7% of the 5,655 elevatable) |
+| remaining, hand-written thumb | 1,375 |
+| &nbsp;&nbsp;of which parked | 478 |
+| &nbsp;&nbsp;of which UNATTEMPTED | 897 |
+| ARM, never elevatable | 51 (excluded -- the ROM is `-mthumb`) |
 | park files | 530, resolving to 500 distinct subjects |
+
+**Correction.** An earlier draft of this table said "948 unattempted" and "75.0%".
+Both were wrong: the 948 included the 51 ARM functions, which cannot have come
+from C at all and are not work. The figures above exclude them.
+
+Two older carried-forward numbers do not survive checking either, and are
+retired here rather than propagated. "650 parked" was never a park-file count --
+`src/non_matching` held 518 files at batch 254, 528 at the start of this round and
+530 now, so it was most likely an over-count that included callees named inside
+park prose, which is a mistake this log has recorded once before. "694
+unattempted" plus that 650 sums to 1,344 against a measured 1,383 remaining at the
+same commit, so the split was wrong even where the total was close.
+
+The total itself is healthy and is the number to trust: **tracked hand-written
+`.thumb_func_start` symbols went 1,383 -> 1,375 across this batch, exactly -8 for
+the eight functions elevated.** Splits move functions between files and create
+none, so the pool only ever shrinks by what is elevated.
 
 The park-file arithmetic is worth reading once: 530 files, 500 distinct subjects,
 478 of those still in `asm/`. So **22 park files describe functions that have since
