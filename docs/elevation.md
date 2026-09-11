@@ -18349,3 +18349,134 @@ Why r7 specifically: it is callee-saved, it is low (so Thumb can use it
 everywhere), and gcc also reaches for it as the frame pointer expression
 (`mov r7, sp`). That combination makes it the register most likely to be doing
 two jobs at once.
+
+## A RELOAD SCRATCH REGISTER IS ROUND ROBIN OVER A SET THE SOURCE CONTROLS
+
+Two functions in one batch stalled where EVERY differing encoding was a reload
+scratch -- `movs r3, #10` against the ROM's `movs r2, #10` in a thumb `ldrsh`,
+and the same shape inside a `mov rHIGH, const`. No spelling of the differing
+site moves it, because the site is not where the decision is made.
+
+Read out of gcc-2.96 `reload1.c`: `spill_cost[]` is zeroed per insn, so free low
+registers all tie at 0; `find_reg`'s tie-break is `inv_reg_alloc_order`, so **r3
+wins every tie**; the winners become `used_spill_regs`, sorted ascending into
+`spill_regs[]`; and `allocate_reload_reg` then picks per insn by **round robin
+over that array**. All ties therefore give the singleton `{r3}` and every scratch
+in the function is r3. The ROM's `r3,r3,r2,r3,r2,r3` is exactly the round robin
+over `{r2, r3}`.
+
+> **Discriminator: when the only residue is a reload scratch, count
+> `Using reg N` in `.18.greg`. If they are all ONE register while the reference
+> alternates two, the SPILL SET IS TOO NARROW. Add a reload somewhere else and
+> never touch the differing site.**
+
+The cure on both functions was **one line, 500 bytes from the defect**: an
+iwram whole-word store written as a single expression instead of through named
+locals puts the offset out of range for a thumb `str`, so reload materialises the
+address -- one extra reload, the first in the function, which takes r2. The
+`.18.greg` diff is a single line, six `Using reg 3` becoming one `Using reg 2`
+plus six `Using reg 3`. The same spelling closed both functions, in different
+overlays, with different residues.
+
+Worth the entry because one of them survived **182 measured perturbations at
+exactly 4 differing**, 70 of them ties, before the mechanism was read instead of
+searched for.
+
+## A PIN CAN BE NEEDED AT THE END OF THE LADDER, WHERE NO SEARCH WILL FIND IT
+
+Every minimisation routine in this tree searches DOWNWARD from "all sites
+pinned" -- drop one, re-measure, keep the fixpoint. That structurally cannot find
+a pin that must be ADDED to an already-minimal set.
+
+`OvlFunc_953_2008710`'s last two encodings were a transposition at a site that is
+completely INERT to all six fill orders, both pin widths, no pin at all, and
+every barrier placement. What closes it is a pin at a DIFFERENT site twenty
+instructions earlier.
+
+> If the residue is two or three encodings at a site that measures inert to
+> everything, stop working that site. Look for a pin to ADD upstream.
+
+Its ordering analogue, found the same week on `OvlFunc_945_200d0e4`: **three
+individually INERT fill orders were worth 7 TOGETHER.** A fill-order sweep that
+changes one site at a time will report every site inert while the set is
+load-bearing -- the same failure mode as the recorded "eviction pins must be
+added as a set", one level up.
+
+## HELD CONSTANTS ARE FOUND BY EVICTING THE EARLIEST OCCURRENCE
+
+The recorded `int v = 0x5b` rule works from the HELD side: name the value the ROM
+keeps. This is the complement and is often cheaper.
+
+Where the ROM rebuilds the FIRST occurrence of a constant inline and holds the
+rest, pinning that ONE site makes gcc pick the callee-saved register for the
+remainder by itself. On `OvlFunc_953_2008710` the first `0x3000` is the only one
+that needs touching.
+
+## A MULTI-PREDECESSOR BLOCK STOPS cse_main's EBB -- A BARRIER DOES NOT
+
+Two results from the same week, pointing the same way from opposite directions:
+
+* `OvlFunc_956_2009f90`: a wait loop written as a guarded `do{}while` with the
+  guard's address expression WRITTEN OUT AGAIN is worth 140 -> 15. The join
+  stops cse_main's extended basic block, so `loop.c` hoists the body's copy
+  afterwards rather than cse commoning it with the guard's. A named `short *p`
+  instead commons the two AND loses r8 from the push mask -- the named local is
+  not a weaker version of the lever, it IS the defect.
+* `OvlFunc_945_2009190`: `do { } while (0)` between two constants is INERT
+  against their merge.
+
+> **Control flow is the lever for a CSE-class problem. An ordering barrier is
+> not.** A barrier orders; only a real join separates CSE classes.
+
+## TWO PLACEMENT LEVERS FOR CONSTANTS THAT HAVE NO ORDINARY SITE
+
+* **A constant used only inside `if` conditions needs a statement-expression
+  pin.** There is no statement to attach an ordinary pin to, so:
+  `if (({ PIN1; q0 = 0x84f; __GetFlag(q0); }) == 0)`. Worth 93 -> 79 over six
+  sites on `OvlFunc_953_2008710`.
+* **A run of script-pointer uses wants a LOCAL, not pins.** Pinning emits
+  `ldr r1, =Sym` at every use; dropping the pins is also wrong (586 differing);
+  `s = Sym;` reassigned once per run is right.
+
+## THE HOLE TEST NEEDS A DEFINITION-SIDE CLAUSE
+
+The recorded rule marks a pin-set hole wherever the ROM SUPPLIES an argument via
+`mov rLOW, rHIGH`. It must also mark the other direction.
+
+On `OvlFunc_945_200d2f4` one site's r3 is both the fourth argument AND the source
+of an r8 live range (`mov r8, r3`). Pinning it evicts the tenant: 333 differing,
+two instructions short -- worth 291 to get right.
+
+> A site is a hole if the ROM reads an argument out of a high register **or
+> writes one into one** in the same window. `holes.py` should mark `rLOW` on
+> `mov rHIGH, rLOW` as well.
+
+## SMALLER RESULTS FROM THE SAME BATCH
+
+* **`adds rN, #1` is a LIVE-ACROSS-A-CALL tell, not a `use_related_value` one.**
+  The recorded reading of that shape is the related-value rule. On
+  `OvlFunc_945_200d0e4` the increment simply has to happen before the intervening
+  call: moving it there is 45 -> 6, and moving it inside the pin block 6 -> 4.
+* **A backward `goto` hides a loop from `loop.c`** -- worth 197 -> 114 across nine
+  search loops, and NOT equivalent to `-fno-strength-reduce`, which breaks the
+  one loop the ROM does reduce.
+* **The searched-for constant is a local, not a literal.** cse folds it in a
+  one-predecessor peeled test and cannot inside the loop, which is exactly a
+  `cmp r3, #0x17` / `cmp r3, r1` pair. Another 197 -> 114.
+* **Local arrays lay out in REVERSE declaration order**, and moving a
+  zero-initialisation across a loop changes the frame size.
+* **`__Func_8092a1c` wants its pooled pointer nominated FIRST.** Third
+  independent site, with the `(int)`/`(void *)` casts inert -- promoted from a
+  per-function observation to a CALLEE rule.
+
+## TWO HARNESS TRAPS THAT PRODUCED FALSE LEVER READINGS
+
+* **`b .L… / .pool_aligned / .L…:` IS A POOL JUMP, NOT CONTROL FLOW.**
+  `draft_script.py` reads it as a join with unreliable registers, and on
+  `OvlFunc_926_2009494` that splits one `__CutsceneWait(0x14)` in half. Checking
+  the literal pools match in FIRST-USE ORDER is what substitutes for the
+  PC-relative offsets `tryc.py` cannot see.
+* **A generator whose knobs replace a one-line call with a multi-line pin block
+  RENUMBERS EVERY LATER SITE.** Several sweeps silently measured the wrong site.
+  The symptom is a lever that "works" in one base and inverts in another; the
+  cause was an off-by-six index. Key the generator off the UNMODIFIED body.
