@@ -18544,3 +18544,133 @@ probe.
 Also: a pooled word in a HImode or QImode store is a **type** question before it
 is a symbol one -- `int k = 0x4e` gives the `mov`, and only if that fails is the
 `_AREA_*` symbol tell worth checking.
+
+## gcc-2.96 NEVER SYNTHESIZES A CONSTANT MULTIPLY AT THIS TREE'S FLAGS
+
+The ROM is full of `synth_mult` shift-and-add ladders. Our gcc will not produce
+one. `n * 6553` compiles to `ldr r3, =6553 / mul`; so does `n * 13`, so it is not
+a threshold effect -- it was probed directly rather than inferred. The ladder
+comes back byte-for-byte **only when the shifts and adds are written out in the
+source**.
+
+> A `mul` against a pooled constant in OUR output, where the ROM has a run of
+> `lsl`/`add`, is a SOURCE-LEVEL question. It is not a codegen blocker.
+
+The residue signature is distinctive -- one pooled word plus a `mul`, against a
+shift/add chain -- and it is worth re-screening existing parks against, because
+any park showing it has been filed under the wrong class. On `OvlFunc_905_2008bd0`
+writing the ladder out went from **ten instructions short of the ROM to the exact
+length**, which is what exposed the real blocker (a register-role alternation in
+the running sum) underneath it.
+
+## THE SIZE OF AN -O1 RESIDUE SAYS NOTHING ABOUT ITS CAUSE
+
+`OvlFunc_968_2009218` is the **fifth** function caught by the mis-scoped
+`rom_7f2f14/ovl_30_c_a_c_a_c_a%` wildcard, after `20090cc` (34 differing at -O1),
+`2009048`, `20094f4` (14) and `2009150` (14 -- which had been **parked** at that
+number). At -O1 the finished source is **157 of 300 differing**; at -O2 it is
+exact. A one-line Makefile rule.
+
+> A 157-instruction residue looked like a hard park and was a flags bug. The
+> magnitude of an -O1 diff carries NO information about whether the cause is
+> codegen or flags.
+
+The failure mode this creates is worth naming, because it is silent in the
+direction that matters: **the object screens GREEN under `tools/tryc.py` and
+builds RED.** The screen reads the wildcard's flags, which belong to a
+neighbouring TU that only shares a name prefix. The remedy stays an explicit rule
+rather than narrowing the wildcard -- an explicit rule beats the pattern rule
+without disturbing whatever genuinely needs -O1. Five instances now.
+
+## GCC SPENDING ONE MORE CALLEE-SAVED REGISTER THAN THE ROM IS A LIVE-RANGE SYMPTOM FIRST
+
+A near-miss worth the space, because the wrong answer was good enough to ship.
+`OvlFunc_944_20087b0` opened `push {r5, r6, r7, lr}` against the ROM's
+`push {r5, r6, lr}`, with the ROM spending r5/r6/r8/r10 and genuinely **skipping**
+r7. That is the recorded shape for `-ffixed-r7`, and the flag measured
+**268 -> 45 with the size becoming exact**. It was still wrong.
+
+The extra register came from ONE local holding the results of *two*
+`__MapActor_GetActor` calls, so its live range spanned the function. Giving the
+first call its own local is **45 -> 6 and drops r7 with no flag**. At the finished
+source `-ffixed-r7` is INERT.
+
+> Re-measure a register-pressure flag AFTER the structural fix, never before. A
+> flag that is merely compensating for a live range reads as a strong lever.
+
+The general form: one more callee-saved register than the ROM is a live-range
+question first and a flag question second. The tell that it was compensation is
+that the flag went inert once the live range was split -- a flag that is genuinely
+right stays right.
+
+## TRANSFER A FILE-MATE'S IDIOM, THEN RE-DERIVE ITS COMPARISON
+
+The file-mate heuristic paid twice more this round, but `OvlFunc_905_2008ecc`
+shows where transferring VERBATIM is exactly wrong.
+
+The head is the signed-divide-by-`0x100000` idiom and the same-directory sibling
+`src/overlays/rom_799abc/ovl_30_c_c_a_a_a_b.c` already writes it longhand.
+Transferred verbatim it sat at 170 of 187 and two instructions long. The cause was
+one comparison:
+
+> `if (x <= (0 - 1))` and `if (x < 0)` are NOT the same instructions.
+
+`<= (0 - 1)` compiles here to `mov r6,#1 / neg r6,r6 / cmp r3,r6 / bgt` -- four
+instructions and a callee-saved register -- against the ROM's `cmp r3,#0 / bge`.
+Swapping it went **170 -> EXACT**. The sibling's spelling is correct for the
+sibling's ROM shape. Transfer the idiom; re-derive the comparison from THIS
+function's branch.
+
+## A COUPLED PAIR CAN CANCEL IN THE LENGTH
+
+`OvlFunc_954_2008540` parks at 42 differing **at the ROM's exact length**, with
+exact push mask, exact relocation order and exact pool order. Two defects, equal
+and opposite in instruction count:
+
+* the ROM **spills** the first actor to `[sp,#8]` where gcc has a genuinely free
+  callee-saved register (r6 -- `e` and `flag` are both born after it dies);
+* `spd` gets a pre-branch home write in ours that the ROM does not make.
+
+So the size line reads solved and is not, and attacking either alone moves the
+length and makes the residue worse. The way out is to find a spelling that
+decouples them at **+0 instructions** -- for this function, a pre-branch reference
+for the 0xcccc allocno (0x4ccc and 0xccc both cost +2, `0x80 << 8` costs +1).
+
+> An exact length with a large differing count is a candidate for a cancelling
+> pair, not evidence of being close.
+
+## local_alloc RUNS FIRST, SO BLOCK-LOCAL CONSTANTS OUTBID LONG-LIVED LOCALS
+
+A stack-argument value sitting in r8-r11 with a `mov` before every `str rN,[sp]`
+reads as an ordering problem. It is an allocation one. `local_alloc` runs before
+`global_alloc`, so constants written as literals inside an else branch are
+BLOCK-LOCAL quantities and take r5/r6 first, forcing the long-lived stack-arg
+local out to r8.
+
+Giving the pointer and the two constants **one variable each spanning the branch**
+makes them global allocnos, and the arguments then take r6/r5 by themselves. Worth
+292 -> 251 with prologue and epilogue becoming exact. Read out of the `.17.lreg`
+and `.18.greg` dumps rather than inferred -- which is the only way to tell this
+apart from the ordering problem it imitates.
+
+## real_pins() UNDERCOUNTS WHEN PINS HIDE BEHIND A MACRO
+
+`tools/funcindex.py:real_pins()` strips comments and counts `register ... __asm__("rN")`
+DECLARATIONS. A file that pins through
+
+    #define PIN1 register int q0 __asm__("r0")
+    #define PIN2 PIN1; register int q1 __asm__("r1")
+
+therefore reads as exactly 4 pins whether the macros are used once or two hundred
+times -- and reads 4 even if they are never used at all. Both files landed in
+batch 257 use PIN1..PIN4 with 20+ invocations each; one showed `real_pins() == 4`
+with **zero** pins inside either function body.
+
+For a fakematch decision the question is whether the macros are INVOKED:
+
+    grep -nE '\bPIN[1-4]\b' file.c | grep -v '#define'
+
+The comment-stripping in `real_pins()` is still correct and still necessary --
+elevated files document their lever tables in prose headers. It is the macro
+indirection that defeats the count, and the fix for a caller is to check uses, not
+declarations.
