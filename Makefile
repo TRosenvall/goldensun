@@ -568,6 +568,20 @@ asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a_c_c_a_b.o: src/overlays/rom_7f2f14/ov
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# OvlFunc_968_2009218 is the FIFTH function caught by the same mis-scoped
+# ovl_30_c_a_c_a_c_a% wildcard.  157 differing of 300 at -O1, EXACT at -O2 --
+# by far the widest -O1 residue of the five, which is worth stating plainly:
+# the size of the residue carries NO information about whether the cause is a
+# codegen problem or a flags problem.  A 157-instruction diff looks like a hard
+# park and was a one-line Makefile fix.  Five instances now and the wildcard is
+# still not narrowed, for the reason given above: an explicit rule beats it
+# without disturbing whatever genuinely needs -O1.
+asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a_c_c_a_c.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a_c_c_a_c.c
+	$(GCC296_CC) $(GCC296_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+
 
 # OvlFunc_962_2008a78: gcc deletes three reloads of a pointer field across
 # byte/bitfield stores into the pointed-to struct, coming out three instructions
