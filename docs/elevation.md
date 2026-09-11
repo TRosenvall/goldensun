@@ -18480,3 +18480,67 @@ two instructions short -- worth 291 to get right.
   RENUMBERS EVERY LATER SITE.** Several sweeps silently measured the wrong site.
   The symptom is a lever that "works" in one base and inverts in another; the
   cause was an off-by-six index. Key the generator off the UNMODIFIED body.
+
+## A REGISTER-ROLE SWAP BETWEEN TWO LOCAL QUANTITIES IS ARITHMETIC, AND THE REF COUNT IS THE KNOB
+
+Where two *local* values land in each other's registers, the outcome is not a
+preference to be nudged -- it is computed. `QTY_CMP_PRI` in gcc-2.96
+`local-alloc.c` is
+
+    floor_log2(refs) * refs / span
+
+On `OvlFunc_881_200a4a8` the address scored 4054 and the mask 3030, so the
+address won the register the ROM gives the mask. The mask needed **seven** refs
+to overtake it.
+
+**The knob is an `asm` statement used as a REF-COUNT ADJUSTER, not as a fence:**
+
+| spelling | refs added | result |
+|---|---|---|
+| `__asm__ volatile ("" : "+r" (n))` | **two** -- one use, one set | 33 -> **19** |
+| `__asm__ volatile ("" : : "r" (n))` | **one** -- use only | **100** |
+
+The input-only form is the cleanest possible proof that the mechanism is the ref
+COUNT and not the barrier: same fence, same placement, one fewer ref, and the
+number gets five times worse. Placement of the barrier is then a second,
+independent lever (19 / 17 / 14).
+
+> Count the refs on both quantities, compute the priority, and work out how many
+> refs the loser needs. Then add exactly that many with `"+r"`.
+
+## A MID-FUNCTION POOL DUMP THE ROM LACKS IS A LENGTH SYMPTOM
+
+On the same function, 132 of 165 differing encodings were shifted `ldr [pc]`
+entries around a literal pool gcc dumped mid-function and the ROM did not.
+
+That reads like a pool or control-flow problem and is neither: **a twelve-byte
+shortfall elsewhere in the function was pushing the pool out of reach.** Fixing
+the length dissolved all 132.
+
+> Before chasing a spurious mid-function pool, check the SIZE. `arm_reorg`
+> dumps early only because something upstream made the reach too long.
+
+## FILL ORDER CAN BE INERT TO EVERY PERMUTATION, AND A BARRIER THERE CAN COST A REGISTER
+
+`OvlFunc_890_200a614` has a shift-built argument site where **all 48 fill-order
+permutations measure EXACTLY 21** -- not one encoding moves. So a `mov`-order
+residue is not always a fill-order problem, and a sweep will not find it.
+
+Worse, an ordering barrier at that site **cost a callee-saved register**: r10
+dropped out of the mask and the count went 21 -> 285. The barrier is not a free
+probe.
+
+## TWO METHOD NOTES THAT INVALIDATE MEASUREMENTS
+
+* **`objcmp`'s differing count is useless when the instruction count is off by
+  one.** It compares POSITIONALLY, so a single insertion or deletion shifts
+  every later encoding and the number becomes noise. Get the length right first,
+  then read the count. (The aligned edit distance is the number to steer by until
+  then.)
+* **"One local per call site" INVERTED between bases on the same function.** A
+  lever measured on an earlier base must be re-measured after any structural
+  change, not carried forward.
+
+Also: a pooled word in a HImode or QImode store is a **type** question before it
+is a symbol one -- `int k = 0x4e` gives the `mov`, and only if that fails is the
+`_AREA_*` symbol tell worth checking.
