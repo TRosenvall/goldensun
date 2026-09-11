@@ -221,6 +221,19 @@ _AREA_b6 = 0xb6;
 _AREA_00 = 0x0;
 _AREA_02 = 0x2;
 _AREA_04 = 0x4;
+
+/* 0x05 is a low id reaching __Func_8091f90's FIRST argument, not a __SetDestMap
+ * destination -- a third consumer, and the reason it is listed separately here.
+ * The header above says ids 0x00-0x0f never appear in comparisons and do appear
+ * as __SetDestMap destinations; this extends that to a second consumer rather
+ * than contradicting it.  __Func_8091f90's first argument is an area id on
+ * independent evidence: seven elevated files already pass one (_AREA_51, _AREA_4d,
+ * _AREA_4f, _AREA_56, _AREA_6f, _AREA_89, _AREA_3a) and rom_7b9cb4/
+ * ovl_30_a_c_c_a_a_a_a_c_c_b.c declares it `void __Func_8091f90(int id, int b)`.
+ * The ROM shape here -- `ldr r5, =5` then `mov r0, r5` -- is the same shape as
+ * `ldr r5, =0xbb`/`mov r0, r5` at rom_7f6e64/ovl_314_c_a_c_c_a_c_c.s:1372, whose
+ * _AREA_bb is already in this table.  Used by OvlFunc_884_2009274. */
+_AREA_05 = 0x5;
 _AREA_2d = 0x2d;
 _AREA_3a = 0x3a;
 _AREA_bb = 0xbb;
