@@ -403,3 +403,4 @@ OvlFunc_918_2008334  src/overlays/rom_7a5214/ovl_314_c_a_a.c
 OvlFunc_common1_148  src/overlays/common/common1_a_a_a_a_a_c_a_c.c
 OvlFunc_common1_190  src/overlays/common/common1_a_a_a_a_a_c_a_c.c
 OvlFunc_common1_2c4  src/overlays/common/common1_a_a_a_a_a_c_a_c.c
+OvlFunc_936_200a6c0  src/overlays/rom_7c097c/ovl_30_c_c_c_a_c_c_c_c_c_c.c
