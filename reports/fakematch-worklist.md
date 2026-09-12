@@ -124,6 +124,32 @@ assembly, not new debt on functions that were already fine.
 They also carry the same note in their headers, so the debt is visible at the
 point of use and not only here.
 
+## An eighth, added in batch 258: OvlFunc_968_2009808
+
+A different device from the other seven -- not a register pin but a single
+`__asm__ volatile ("" ::: "memory")`, and it costs **zero instructions**.
+
+    rom   str r6, [r5, #0x44]  /  ldr r0, [r5, #8]
+    ours  ldr r0, [r5, #8]     /  str r6, [r5, #0x44]
+
+Same base, different constant offsets, so gcc proves non-overlap and sched2
+hoists the load -- it feeds a pinned r0 call argument and is on the critical
+path, while the store is a dead end. Twelve axes were measured and are listed in
+the file header; the informative ones are that `-fno-schedule-insns2` REGRESSES
+(2 -> 23, so sched2 is already right) and that every alias spelling is inert,
+because the disambiguation is by OFFSET, not by type. Aliasing is structurally
+the wrong lever for this shape.
+
+**What would retire it:** a source shape where the two accesses genuinely
+may-alias -- two pointers gcc cannot prove equal. The function already calls
+`__MapActor_GetActor(0)` twice, so re-fetching is in this code's idiom, but a
+second call costs a `bl` and the length is already exact. That is the specific
+thing to look for, and it is narrower than the question the other seven pose.
+
+This one was previously parked too, and had been parked at the WRONG number
+(23, screened at a wildcard's -O1) with a blocker class built entirely on that
+wrong output. See docs/elevation.md.
+
 ## The 97 inherited ones
 
 `fakematch.txt` lists 97 more, all of which arrived with the tree in a single
