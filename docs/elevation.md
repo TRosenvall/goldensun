@@ -18674,3 +18674,66 @@ The comment-stripping in `real_pins()` is still correct and still necessary --
 elevated files document their lever tables in prose headers. It is the macro
 indirection that defeats the count, and the fix for a caller is to check uses, not
 declarations.
+
+## makefile_flags() SAYS WHAT THE BUILD WILL DO, NOT WHAT A TU SHOULD BE SCREENED AT
+
+Batch 257 recorded that a mis-scoped `-O1` wildcard can make a TU look like a hard
+park, and that the remedy is to CHECK `makefile_flags` before screening. That is
+right, and it is only half of it. `OvlFunc_968_2009808` is the same defect one
+turn further on, and worse: its park note had checked `makefile_flags`, believed
+the answer, and wrote
+
+> THIS TU BUILDS AT -O1 and must be screened with `--O1`.
+
+naming the `ovl_30_c_a_c_a_c_a%` wildcard -- the wrong one; the file is caught by
+`ovl_30_c_a_c_a_c_c%`. It then built an entire blocker class on the -O1 output: a
+theory about where `sub sp, #8` lands relative to the prologue, cross-references
+to two other parks, and three measured fill orders "all 23 because the `sub sp`
+displacement swamps them". At -O2 the residue is **2**, and none of that structure
+exists.
+
+> Check `makefile_flags`, then treat a non-default answer as a QUESTION rather
+> than an authority. A park that inherits a wildcard's `-O1` and then records
+> `-O1` as correct entrenches the error permanently, because every later reader
+> sees a measured table and a named blocker class.
+
+**The cheap standing check.** Sweep every park for a TU whose flags come from a
+wildcard rather than an explicit rule -- `tryc.WILDCARD_HITS` already records
+this as a side effect of `makefile_flags`. Over 530 parks it takes seconds and
+returned **8** hits, 4 of them `-O1`. Two moved sharply when re-screened:
+
+    OvlFunc_968_2009808   23 at -O1  ->  2 at -O2  ->  EXACT      (elevated)
+    OvlFunc_927_2009078   72 at -O1  -> 32 at -O2, length exact   (park corrected)
+
+The script is `scratch_elev/b260/sweep.py`. One implementation note, because it
+timed out twice before it ran: `funcindex._newest()` walks `asm/` and `src/` on
+EVERY call, so 530 parks means 530 full tree walks. The tree does not change
+during a sweep, so pin it once:
+
+    _n = funcindex._newest(); funcindex._newest = lambda: _n
+
+## ALIASING IS THE WRONG LEVER WHEN TWO ACCESSES SHARE A BASE
+
+The recorded alias-set-0 device (batch 250) demotes a load so it cannot be
+hoisted over a store. It looks applicable whenever a load and a store are swapped.
+It is not, and `OvlFunc_968_2009808` is the clean counter-example:
+
+    rom   str r6, [r5, #0x44]  /  ldr r0, [r5, #8]
+    ours  ldr r0, [r5, #8]     /  str r6, [r5, #0x44]
+
+Same base register, different CONSTANT offsets. gcc disambiguates these by
+offset arithmetic, not by type, so the alias set never enters the decision.
+Measured: `-fno-strict-aliasing` inert, `volatile` on the store inert, `volatile`
+on the load inert, both volatile WORSE, declared struct instead of raw
+`*(int *)(a + n)` casts inert.
+
+> Before reaching for an alias lever, ask what actually separates the two
+> accesses. If it is a constant offset off one base, no alias spelling can
+> reach it -- the question is scheduling PRIORITY, not dependence.
+
+Here the load feeds a pinned r0 call argument and sits on the critical path while
+the store is a dead end, which is why sched2 lifts it. `-fno-schedule-insns2`
+REGRESSES 2 -> 23, so by the sign rule sched2 is already right and the residue is
+a priority question inside it. Statement order was inert across four permutations,
+confirming it is not a LUID tie. Only a zero-cost `__asm__ volatile ("" ::: "memory")`
+reaches the ROM's order, and that is shipped as a fakematch.

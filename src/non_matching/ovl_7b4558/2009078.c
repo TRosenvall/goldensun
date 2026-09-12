@@ -1,6 +1,34 @@
 /*
  * OvlFunc_927_2009078 -- asm/overlays/rom_7b4558/ovl_30_c_c_a_c_a_a.s
  *
+ * ### CORRECTION, batch 258 -- EVERY NUMBER BELOW THIS LINE WAS MEASURED AT THE
+ * ### WRONG OPTIMISATION LEVEL AND IS UNRELIABLE.
+ *
+ * This TU is caught by the mis-scoped rom_7b4558/ovl_30_c_c_a_c_a% wildcard,
+ * which applies O1_CFLAGS. Re-measured on the source below:
+ *
+ *     -O1   72 differing of 80, ours 81 instructions  <- what the notes below saw
+ *     -O2   32 differing of 80, ours 80 instructions, LENGTH EXACT
+ *
+ * So "80 lines against 79 -- ONE OVER" is an -O1 artifact; at -O2 the length is
+ * already right and the extra instruction the note builds its whole argument on
+ * does not exist. The "TRIED AND REJECTED" table below was measured against the
+ * -O1 output and must be re-run before any of it is trusted.
+ *
+ * The residue that IS real, at -O2, is a systematic register-role swap -- the
+ * ROM reads through r6 where we read through r5, e.g. ROM `ldr r3, [r6, #8]`
+ * (68b3) against our `ldr r3, [r5, #8]` (68ab), repeated across most of the 32.
+ * That is the recorded QTY_CMP_PRI / ref-count class, so the note's headline
+ * ("callee-saved register roles") was pointing the right way even though its
+ * evidence was not.
+ *
+ * This was found by sweeping all parks for TUs whose flags come from a wildcard
+ * rather than an explicit rule (scratch_elev/b260/sweep.py). See
+ * src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c_a_a_c_b.c, which was parked the same
+ * way and turned out to be two instructions from exact.
+ *
+ * --- original note follows, at -O1 ---
+ *
  * BLOCKER: callee-saved register roles. 80 lines against 79 -- ONE OVER. The
  * ROM puts the actor in r6 and the position delta in r5; we do the reverse,
  * and the extra instruction follows from that.
