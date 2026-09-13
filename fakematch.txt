@@ -417,3 +417,4 @@ GetMercuryDjinni  src/rom_8a000/rom_944ec_a_c_a_c_c_c.c
 OvlFunc_968_2009780  src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c_a_a_c_a.c
 OvlFunc_964_2009fdc  src/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a_a_a.c
 OvlFunc_964_200a040  src/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a_a_a.c
+OvlFunc_932_200ad58  src/overlays/rom_7b9cb4/ovl_30_a_c_c_a_c_c_a_c_c_c_a.c
