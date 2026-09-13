@@ -19238,3 +19238,65 @@ a pinned assignment and each `bl` into a call, from a callee-arity table. It
 produced zero manual cases and took the function from 369 differing to 11, both
 remaining sites being one call that needed hand work. Reusable for any
 cutscene-shaped function.
+
+
+## THIS gcc BUILD CANNOT EMIT A FLOATING LITERAL. SPELL IT AS AN INTEGER.
+
+Measured directly under this tree's flags:
+
+    return 0.0;   ->  .long 0x0, 0x0            correct
+    return 1.0;   ->  .long 0x3ff00000, 0x0     correct
+    return 2.5;   ->  .long 0xafafafaf, 0x0     GARBAGE
+    return -1.0;  ->  .long 0xafafafaf, 0x0     GARBAGE
+    return 1.5f;  ->  .word 0x80000000          GARBAGE, and a DIFFERENT wrong value
+
+Only `dconst0` and `dconst1` survive. Every other DFmode constant comes out as the
+uninitialised pattern `0xafafafaf`; SFmode comes out as `0x80000000`, so the two
+modes fail differently and a grep for one will miss the other.
+
+> Any soft-float ROM constant must be spelled as a 64-bit INTEGER BIT PATTERN with
+> the function typed `long long`. `long long`/`unsigned long long` pool correctly
+> and give the ROM's exact `ldr r1, .L+4 / ldr r0, .L` pair -- the word order works
+> out because ARM's mixed-endian double puts the high word at word 0, which is
+> also a little-endian `long long`'s low word.
+
+This is why `OvlFunc_common2_304` sat at 37 with a `double` return even once its
+loop was right.
+
+**Swept, and the tree is clean**: `afafafaf` appears in no tracked file under
+`asm/` or `src/`. That is the expected result -- `make compare` would have caught
+it -- but it is worth knowing the hazard exists and is silent at compile time.
+Re-run `git grep -l 'afafafaf' -- 'asm/**/*.s'` after any float-shaped work.
+
+## volatile FOR LOOP MEM PROMOTION GOES ON THE DECLARATION, NOT THE USE SITE
+
+gcc's `load_mems` hoists a memory location into a register across a loop. On
+`OvlFunc_common2_304` that promotion cost a `push {r6}` and renamed the frame
+pointer r5->r6, and it is reachable only by `volatile` **on the declaration**:
+
+    volatile int exp;        29 -> EXACT
+    pointer local             51
+    cast at both accesses     56
+    cast in the loop only     25
+
+That is a boundary on the recorded "apply `volatile` at the USE SITE" rule --
+which holds for a single access and does not hold for loop MEM promotion.
+
+**The alias lever cannot reach this promotion at all.** Five type-punning
+spellings all stayed at 29: an `int` member in the union, a `char c[8]` member,
+signed `int lo/hi` words, the variable in its own `union { int; char[4]; }`, and
+reordering the loop body. `load_mems` compares constant offsets off one known
+base, so no aggregate or alias-set work makes the other stores look like they
+might hit it.
+
+Two smaller results from the same function:
+
+* **A 64-bit value read back a word at a time wants ONE 64-bit object and a
+  union.** gcc cannot forward a DImode store to a SImode load, and that failure to
+  forward IS the ROM's re-read. Two `int lo, hi` members made it six instructions
+  short; one `long long` with a `w.hi` union view was worth 52 -> 30.
+* **`if (cond) do { ... } while (cond);` is not `while (cond) { ... }`.** As a
+  plain `while`, gcc gives the body and the exit test two address pseudos and
+  copies between them inside the loop. The `if`+`do` form produces the ROM's
+  preheader pair and one base for the whole loop, which is what frees the high
+  register for the loop bound.
