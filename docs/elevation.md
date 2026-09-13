@@ -19300,3 +19300,48 @@ Two smaller results from the same function:
   copies between them inside the loop. The `if`+`do` form produces the ROM's
   preheader pair and one base for the whole loop, which is what frees the high
   register for the loop bound.
+
+
+## A THIRD LEVER FOR THE ADJACENT PAIR: SINK A LATER STORE INTO BOTH ARMS
+
+Alongside "delay the consumer" (the alias device delaying a ready time) and
+"promote the producer" (promoting an anti-dependence to a true one), there is a
+third way to break a `rank_for_schedule` tie: **give the insn you want to win an
+extra DEPENDENT.**
+
+On `Func_80974d8` the pair tied at every step the ranker consults -- priority 6-6,
+class 3-3, dependent count 1-1 -- and the store won on `INSN_LUID`. Moving a later
+`out[1] = 0;` from after the `if/else` into BOTH arms makes it a dependent of the
+load, so `INSN_DEPEND(load)` becomes 2 against the store's 1 and the load takes
+the slot one step before LUID is ever reached.
+
+> Cross-jumping runs in `.25.jump2`, AFTER scheduling, so it merges the duplicated
+> tails back into one. The lever costs ZERO instructions -- same 49 encodings.
+
+That makes it cheap to try: **a statement after an `if/else` is a schedulable
+resource for both arms**, and sinking it is free wherever cross-jumping can merge
+it back.
+
+Two details about `rank_for_schedule` worth recording, both read from
+`-fsched-verbose=5`:
+
+* `if (link == 0 || insn_cost (...) == 1) class = 3` -- a **cost-1 data dependence
+  on the last-scheduled insn does not demote you**. Being in `INSN_DEPEND` of the
+  previous insn is not automatically a penalty.
+* On ARM, `arm_adjust_cost` returns 0 for `REG_DEP_ANTI` and `REG_DEP_OUTPUT`, so
+  an anti-dependence contributes nothing to the producer's longest-path priority.
+  That is the same fact the "promote the producer" lever exploits, seen from the
+  other side.
+
+This also explains a park's correct-but-unexplained observation that retyping the
+two accesses as a struct was byte-identical: `out[0]` and `out[1]` are constant
+offsets off one base, so no type spelling reaches them -- the recorded "aliasing is
+the wrong lever when two accesses share a base" rule. The dependent-count device
+works precisely because the duplicated store hits the SAME offset as the load, so
+there is no alias question at all.
+
+Also isolated cleanly here: **the LUID lever and the register-allocation cost are
+separable.** Naming the load buys the ROM's exact instruction order and pays for it
+with a pure r0/r2 role swap that no declaration order, assignment order or variable
+reuse could unwind (a 60-ordering topological sweep bottomed out at 5). The
+dependent-count device gets the same order for free.
