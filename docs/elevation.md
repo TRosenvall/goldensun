@@ -19058,3 +19058,53 @@ one, because "the rest are exact" hid the second. They interact: fixing only the
 named site leaves the other, and the minimal fix is r0+r1 at BOTH. A residue that
 moves to a different call site when you fix the first is not a new problem; it is
 the same problem, under-dosed.
+
+
+## A POOL-LOAD ORDER RESIDUE IS USUALLY LUID, NOT POOL ARITHMETIC
+
+`Func_8028920`'s park called its blocker "POOL LOAD ORDER inside a constant
+computation". The `.26.mach` fixup list settles it in one look:
+
+    ;; SImode fixup for i39; addr 28,  range (0,1020): `*.L37403'
+    ;; SImode fixup for i95; addr 118, range (0,1020): `*.L373f7'
+
+Both entries SImode, and the pool words already in the ROM's order. **Pool content
+and order were never wrong.** Nothing about `add_minipool_forward_ref` applied. The
+real class is the instruction ORDER of a pool load, decided by a sched2 LUID
+tie-break -- which the `.23.sched2` ready lists print directly:
+
+    ;; Ready list (t = 0): 39  30   -> 30   (prio 7 vs 5)
+    ;; Ready list (t = 1): 39  32   -> 32   (prio 6 vs 5)
+    ;; Ready list (t = 2): 39  34   -> 34   (prio 5 vs 5, TIE)
+    ;; Ready list (t = 3): 41  39   -> 39
+
+> Before reaching for pool arithmetic, read the fixup list. If both entries are
+> the same mode and already in the ROM's order, the pool is innocent and the
+> question is WHEN the load is emitted.
+
+A tie falls through to `INSN_LUID`, smaller first, so the only fix is to emit the
+load earlier in RTL -- and on this function that took **two** namings, each fixing
+exactly one instruction:
+
+* **Name the base** (`t = L37403;`) to move the load's LUID ahead of the second
+  shift. It must sit AFTER the call: named in the entry block it stays live across
+  the call and costs a callee-saved register (the recorded over-naming trap, 58
+  lines against 52). This is a counter-example to the note that pool-load order
+  needs a basic-block boundary -- here it needed a STATEMENT boundary in the right
+  block.
+* **Name the index** (`j = idx + k;`) to fix the `ldrsb`'s operand order. An
+  `extern char t[]` ARRAY_REF expands the address straight into the MEM as
+  `(plus base index)`, but a POINTER VARIABLE expands into its own pseudo, and
+  when combine folds that pseudo back into the MEM it emits `(plus index base)` --
+  `ldrsb r3,[r3,r2]` for the ROM's `[r2,r3]`. Naming the index makes the sum a
+  single pseudo before the address, so the expander builds `(plus base index)` in
+  place and combine never rewrites it.
+
+Base-only is 1 of 51; index-only is 2 and swaps the `add` instead; **both together
+are exact**. Nine earlier single-lever spellings all stalled at 2, which is the
+same shape as the recorded "two levers can each measure worse alone" result: here
+each is an improvement alone, and neither is sufficient.
+
+Also measured and worth not re-deriving: on the file-mate `Func_80288a8` the
+loop's `+0xe`-before-`+0xc` store order LOOKS like a source tell and is not --
+swapping it is byte-identical.
