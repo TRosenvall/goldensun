@@ -1,4 +1,51 @@
 /*
+ * ### BATCH 259 -- THE REMAINING 16 IS PROVED UNREACHABLE FROM C.
+ *
+ * Best residue: 16 of 34 under -fno-strict-aliasing, size and encoding count
+ * exact (the tree default is 26 and four bytes short). The flag is required and
+ * would be the TWENTIETH $(GCC296_CC) $(ALIAS_CFLAGS) rule in the Makefile, not
+ * the fifth -- an earlier note here said four, which was wrong.
+ *
+ * The whole 16 is pool ORDER plus its register cascade:
+ *     ours     [0, ffff, 1ff, fe00]
+ *     the ROM  [ffff, 0, 1ff, fe00]
+ *
+ * Three steps close it off. This is a proof, not a survey, so do not re-run the
+ * spelling sweep below it.
+ *
+ * 1. ORDER IS ARITHMETIC. add_minipool_forward_ref (arm.c:4820) sorts by
+ *    address + pool_range and merges only on value AND mode. The ROM's addresses
+ *    are ffff@4 and 0@8, so max(ffff) < max(0) forces ffff's range <= 88.
+ *
+ * 2. THE HEAD MUST BE NARROW, AND THE BOUND IS MEASURED. The .26.mach dump says
+ *    ";; Emitting minipool after insn 229; address 92", so a head entry with
+ *    max_address <= 92 gets the ROM's mid-function pool and its branch; anything
+ *    larger dumps after `bx r0`. Confirmed by construction: writing the zero as
+ *    (int)&_AREA_00 makes all four entries SImode, head 1024, and the pool moves
+ *    after the epilogue with no branch. That disqualifies the symbol reading of
+ *    the zero by construction rather than by score.
+ *
+ * 3. NOTHING CAN SUPPLY A NARROW 0xffff HERE. *thumb_zero_extendhisi2 (range 60)
+ *    needs its operand already in a constant-pool MEM, and arm.h:1807
+ *    THUMB_LEGITIMATE_CONSTANT_P accepts every CONST_INT, so gcc never
+ *    force_const_mem's an integer on thumb -- that pattern can never reference a
+ *    literal. That leaves *thumb_movhi_insn (range 64), whose only producer is an
+ *    int-typed 0xffff meeting a halfword lvalue. This function stores no halfword
+ *    equal to 0xffff, and a HImode `& 0xffff` is all-ones for the mode so fold and
+ *    simplify_binary_operation both delete it -- measured: with an unsigned short
+ *    mask the two masked stores compile to two BARE stores. The mask can
+ *    therefore only ever be SImode, which is exactly what the pool shows.
+ *
+ * WHAT WOULD CHANGE THE ANSWER: only a source shape that gives this function a
+ * halfword store of 0xffff, or a different constant set entirely. If the ROM's
+ * source had one, it is not visible in the disassembly.
+ *
+ * Readout tool: scratch_elev/b262/Func_80b0a20/b262_modes.py prints score, pool
+ * words and .26.mach fixup modes on one line. (The older b261 sidebyside script
+ * has an IndentationError and does not run.)
+ *
+ * --- earlier notes follow; the 30-row spelling table is superseded by the proof
+ * --- above, and the score of 1 it inherited was a tryc pool-normalisation artifact
  * ### CORRECTION, batch 258 -- THE RECORDED SCORE OF 1 WAS WRONG.
  *
  * objcmp at tree default, three runs:

@@ -18948,3 +18948,39 @@ LOAD first -- and its ROM has the load first too. It was never a counter-example
 
 > A "function X does this from the same source shape" claim is about X's OUTPUT.
 > Read X's generated `.s` before believing it, not X's source.
+
+
+## THE POOL HEAD'S RANGE IS MEASURABLE, AND THAT TURNS POOL ORDER INTO ARITHMETIC
+
+`add_minipool_forward_ref` (arm.c:4820) sorts the minipool by
+`address + pool_range` and merges entries only on value AND mode. So pool order is
+decided by the MODES of the entries, and the first entry is whichever has the
+smallest maximum address.
+
+The bound on the head is readable, not guessable. A `-da` dump's `.26.mach` prints
+
+    ;; Emitting minipool after insn 229; address 92
+
+which is the epilogue barrier's address in gcc's own model. A ROM whose pool sits
+MID-FUNCTION, with a `.pool_aligned` and a `b` over it, is therefore an upper
+bound on the head entry's range: head `max_address <= 92` for a leaf of that size.
+Anything larger dumps the pool after the return.
+
+> That turns "which mode is the first pool word" from a guess into arithmetic --
+> and it retires the `const.sym` symbol reading of a pooled zero wherever the
+> ROM's pool is mid-function. Writing the zero as a symbol makes every entry
+> SImode with a head range of 1024, which moves the pool past the epilogue. You
+> can disqualify that reading by construction instead of by score.
+
+Two companion facts, both measured on `Func_80b0a20`:
+
+* **`force_const_mem` never fires for an integer on thumb.** `arm.h:1807`
+  `THUMB_LEGITIMATE_CONSTANT_P` accepts every `CONST_INT`, so the range-60
+  `*thumb_zero_extendhisi2` slot is unreachable for a literal. The pool-order
+  table in this file lists that row without saying no C can reach it.
+* **A HImode constant can never be an AND mask of value `0xffff`.** All-ones for
+  the mode folds away at both tree and RTL level -- an `unsigned short` mask of
+  `0xffff` compiles to bare stores. So the halfword-exception lever runs ONE WAY:
+  it can narrow `0x1ff`, `0xfe00` or a zero used as an insert keep-mask, but never
+  `0xffff`. Companion to the note that a pooled zero can be a leftover halfword
+  mask from a neighbouring field store.
