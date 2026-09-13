@@ -18850,3 +18850,30 @@ This is also why the recorded claim "source order picks the REGISTERS for two
 independent values; it does not pick the emission order" is true: the register
 move is reload's, not the allocator's, which is exactly why the emitted listing
 looks otherwise untouched.
+
+
+## olevel.py AND objcmp.py FILTER ONLY THE REFERENCE -- NEVER POINT THEM AT A MERGED TU
+
+Recorded because it cost a round and produced a confidently wrong brief.
+
+`objcmp.py --func NAME` cuts NAME out of the REFERENCE and compiles the WHOLE
+candidate. `scratch_elev/b260/olevel.py` inherits that behaviour. Point either at a
+candidate holding two functions and the comparison is 44 reference instructions
+against 88 candidate ones -- a meaningless number that *looks* like a real
+measurement.
+
+That is exactly what happened to `OvlFunc_964_2009fdc`. It was screened against a
+two-function park file and read as **"54 differing, 84 instructions against the
+ROM's 44"**, which was written up as *"not a lever problem, a wrong-shape problem
+-- the candidate is nearly twice the ROM's length"* and put in an agent's brief as
+a instruction to rewrite from the disassembly. The park was never twice the ROM's
+length. Measured per function at -O2 it was **14 of 44**, and both functions closed
+on one lever.
+
+> A candidate with more instructions than the reference, in a ratio suspiciously
+> close to the number of functions in the file, is the tell. Extract the single
+> function first, or use `scratch_elev/b251/lowp/wholecmp.py`, which filters
+> NEITHER side.
+
+The general form: a screening tool's *scope* is part of its contract, and a
+mismatched scope does not error -- it returns a plausible number.

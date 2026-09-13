@@ -906,6 +906,16 @@ asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a_a_b.o: src/overlays/rom_7ed0a0/ovl_30_c
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+
+# OvlFunc_964_2009fdc and OvlFunc_964_200a040 are caught by the
+# rom_7ed0a0/ovl_30_c_c_c_a_a% wildcard below with % = _a_a.  38 encodings differ
+# at -O1 across the object, EXACT at -O2.  Explicit rule, not a narrowed wildcard
+# -- the ovl_30_c_c_c_a_a_a_b.o rule directly above is the precedent.
+asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a_a_a.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a_a_a.c
+	$(GCC296_CC) $(GCC296_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
