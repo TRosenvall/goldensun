@@ -642,6 +642,15 @@ asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c_a_a_c_b.o: src/overlays/rom_7f2f14/ov
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+
+# OvlFunc_968_2009780 is the file-mate of 2009808 above and sits in the SAME
+# mis-scoped rom_7f2f14/ovl_30_c_a_c_a_c_c% wildcard.  15 differing at -O1, EXACT
+# at -O2.  Its park claimed "NO LEVER IS AVAILABLE" and it closed on an r0 pin.
+asm/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c_a_a_c_a.o: src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c_a_a_c_a.c
+	$(GCC296_CC) $(GCC296_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 asm/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_c_a_c.o: src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_c_a_c.c
 	$(GCC296_CC) $(FIXEDR7_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
