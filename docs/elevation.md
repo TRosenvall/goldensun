@@ -4766,9 +4766,32 @@ where there is not even a statement boundary to reason about:
 * `__Func_8012330(0x80 << 10, 0x80 << 10, 0x80 << 9)` — gcc commons the two
   `0x20000`s.
 
-**Corpus test: 0 of the generated `.s` files contain two consecutive
-`neg rN, rN`.** So two `-1` arguments to one call is unreachable for this
-compiler — not merely unreached. Check that before spending screens.
+> **RETRACTED, batch 258. This claim was false and it was the dangerous kind of
+> false — it told the reader to stop before screening.**
+>
+> The claim was: *"Corpus test: 0 of the generated `.s` files contain two
+> consecutive `neg rN, rN`, so two `-1` arguments to one call is unreachable for
+> this compiler — not merely unreached. Check that before spending screens."*
+>
+> Re-measured over the current generated output: **105** consecutive
+> `neg rN, rN` pairs. The table further down this file already said **2 of
+> 2987** and the contradiction sat unnoticed. `OvlFunc_905_2008ce0` calls the
+> very example named just above — `__Func_8012330` — with `(-1, -1, 0xe666)`,
+> and dominating-block locals produce the ROM's
+> `mov r0,#1 / mov r1,#1 / neg r0,r0 / neg r1,r1` exactly. The agent that closed
+> it reported it would have parked the function on the strength of this
+> paragraph.
+>
+> Two `-1` arguments to one call are REACHABLE. The lever is a dominating-block
+> local per repeated constant, as the "IT ALSO DEFEATS CONSTANT-CSE" section
+> below already describes.
+>
+> The general lesson is about the form, not the fact. A corpus count is evidence
+> about what the compiler *has been asked to emit so far*, and turning it into
+> "unreachable — not merely unreached" converts a sampling observation into a
+> proof. Nothing in the corpus can license that. Where this file says a shape is
+> unreachable, it must name the compiler mechanism that forbids it, as the
+> `move2add`/`CODE_LABEL` and `expand_assignment` entries do.
 
 `tools/blocked_cse.py` misses this: it looks at pool constants and
 statement-level repeats, not at repeats *within one argument list*, and it let
