@@ -18810,3 +18810,43 @@ instruction-exact.
 Same mechanism as the four existing `ALIAS_CFLAGS` rules in the Makefile; this
 would be a fifth if the function closes. Worth screening for directly: a pointer
 field read AFTER a narrow store through that same pointer.
+
+
+## A THIRD OWNER: RELOAD, WHERE THE WHOLE ALLOCATION TOOLKIT IS INERT
+
+Batch 258 said to check which pass owns a quantity before doing `QTY_CMP_PRI`
+ref-count arithmetic -- `local_alloc` or `global_alloc`. There is a third answer,
+and it is **neither**.
+
+A Thumb `ldrsh`/`ldrsb` needs a zero offset, and that zero is the
+`(clobber (scratch:SI))` of `*thumb_extendhisi2_insn`:
+
+    (insn 20 ... (set (reg:SI 37) (sign_extend:SI (mem:HI (reg/v:SI 33) 6)))
+                 (clobber (scratch:SI))  ... {*thumb_extendhisi2_insn}
+
+It never becomes an allocno. So **no ref-count adjuster, no live-range split and
+no `QTY_CMP_PRI` reasoning can reach it** -- the entire batch-258 toolkit is inert
+here. So is a pin: there is no variable to pin, because the offset constant-folds
+away and dies before allocation. `OvlFunc_881_200811c`'s park had measured exactly
+that and recorded it as "byte-identical to the unpinned form" without drawing the
+conclusion.
+
+**Reload fills it, and reload takes the lowest hard register free AT THAT
+INSTRUCTION.** The only source-level handle is therefore the liveness of the
+competing register: make the lower register busy across the load, and reload steps
+up to the next one. On `OvlFunc_881_200811c`, reading the UNSIGNED halfword before
+the SIGNED one starts the competing pseudo's live range one insn earlier
+(`.17.lreg`: `used 2 times across 3 insns` -> `across 4 insns`), r1 is busy at the
+`ldrsh`, and `Using reg 1 for reload 0` becomes `Using reg 4 for reload 0`.
+Emission order is unchanged -- the `ldrsh` still precedes the `ldrh`.
+
+> **The tell, in order.** The quantity appears in `.17.lreg` ONLY inside a
+> `(clobber (scratch:SI))`; it is missing from `;; N regs to allocate`, from
+> `;; Register N in M.`, and from `.18.greg`'s `;; Register dispositions:`; and
+> `.18.greg` says `Using reg N for reload 0`. When you see that line, stop
+> counting references and go look at what else could be live there.
+
+This is also why the recorded claim "source order picks the REGISTERS for two
+independent values; it does not pick the emission order" is true: the register
+move is reload's, not the allocator's, which is exactly why the emitted listing
+looks otherwise untouched.
