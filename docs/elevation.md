@@ -19389,3 +19389,73 @@ byte-identical to the bare named pointer with no pin at all. Once the variable i
 assigned by a real statement, the lever IS that assignment's LUID and the pin adds
 nothing. Assignment order still bites -- reversing it costs the two encodings
 straight back.
+
+
+## A PIN THAT MISCOMPILES IS A PIN THAT IS UNDER-DOSED
+
+Batch 257 recorded that a pin-induced miscompile is a local minimum that cannot
+reach zero, on two instances. `OvlFunc_890_2009ca8` shows the other half of that
+rule, and it changes what to do about it.
+
+Three zero-stores in a straight-line tail, from a baseline of 5 of 456:
+
+| spelling | differing |
+|---|---|
+| baseline | 5 |
+| bare pin on the first site alone | **3 -- and it MISCOMPILES** |
+| bare pin on the second site alone | 5 (inert) |
+| **both pins** | **0** |
+
+The pair does not merely score better than the single pin -- it **repairs** it.
+With the second zero holding its own hard register there is no pseudo left for
+gcse to common into the first's register, so the wrong-value store cannot form.
+
+> The pin that looks BEST by count is the one that miscompiles, and the cure is
+> another pin rather than fewer. Do not read a miscompile as "this axis is
+> wrong"; read it as "this axis is half-applied".
+
+That sits with the batch-260 result that the r0 pin alone does not kill
+repeated-constant CSE (15 before and after) while the pair does, and the batch-260
+result that a cheap argument moves only as a pair. Three separate shapes now where
+**one pin has nothing to be ordered against.**
+
+This also disproves, for a fourth time, the "no basic block to put cprop at"
+ceiling -- here on the park that stated it most explicitly.
+
+## THE OFFSET IS NAMED, NOT THE BASE -- AND NAMED AT EVERY READ
+
+`*(short *)(gState + (0xe1 << 1))` folds `gState+450` into one pooled word, where
+the ROM keeps `ldr r3, =gState` and rebuilds `mov r2,#0xe1 / lsl #1 / add`. The
+`off` idiom for this is already recorded. The new part:
+
+> The offset assignment must be REPEATED at each read. One hoisted assignment lets
+> cse share the offset and the rebuild collapses again.
+
+## AN ACCUMULATOR RE-ZEROED WHERE IT IS ALREADY ZERO IS A SECOND VARIABLE
+
+The ROM has a `mov r5,#0` inside a block guarded by `cmp r5,#0 / beq`. Reusing the
+outer variable makes gcc delete that store -- correctly, since the value is
+provably already zero. The instruction is only recoverable by giving the inner
+block **its own local**.
+
+## STACK-SLOT LITERALS vs NAMED LOCALS: THE DISCRIMINATOR IS REACH, NOT VALUE
+
+Batch 257 found literals correct for thirteen call sites sharing the same small
+argument pair in one run. Here the opposite holds at three shapes, and named
+locals are worth 133 of 182. The rule that reconciles them:
+
+> Literals win when ONE commoned pair serves a long run inside ONE block. Named
+> locals win when each site, or each guarded block, builds its own.
+
+Measured: with literals the four blocks sharing `(2,1)` put 2 in r6 and 1 in r5 and
+then coalesced an accumulator's `= 1` into the slot register; naming them gives
+2->r5, 1->r6 and the accumulator's own `mov r5,#1` returns.
+
+## GREEDY PIN MINIMISATION, RE-TESTED AFTER EVERY DROP
+
+25 candidate pins cut to 7, and the survivors are not what the push-mask tell
+pointed at: all four `__ClearFlag` pins, every `__SetFlag` pin and 13 of 20
+`__GetFlag` pins are inert once the rest are in place. What survives is **the FIRST
+read of each repeated id and nothing else** -- an independent confirmation of
+"launder the first occurrence, never the second", now for bare eviction pins as
+well as for asm launders.
