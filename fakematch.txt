@@ -413,3 +413,4 @@ OvlFunc_968_2009218  src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_a_c_c_a_c.c
 OvlFunc_884_2009274  src/overlays/rom_784360/ovl_30_c_a_c_c_c_a_c_a.c
 OvlFunc_884_20095b4  src/overlays/rom_784360/ovl_30_c_a_c_c_c_a_c_a.c
 OvlFunc_968_2009808  src/overlays/rom_7f2f14/ovl_30_c_a_c_a_c_c_a_a_c_b.c
+GetMercuryDjinni  src/rom_8a000/rom_944ec_a_c_a_c_c_c.c
