@@ -31,5 +31,16 @@ gated on the build and compare both passing.
 
 - push, or switch branches (see BRANCH.md)
 - read another decompilation's `src/`
-- commit compiler-generated `.s` files from `asm/`
+- hand-edit a generated `.s` in `asm/` instead of fixing the `.c` beside it
 - write AppleScript files
+
+Note on the third: this line used to read *"commit compiler-generated `.s` files
+from `asm/`"*, which contradicted
+[docs/elevation.md](docs/elevation.md) — see "The generated `.s` beside the `.c`
+IS tracked — commit it". The tree carries **3,914** tracked `.s` files bearing
+gcc's own banner, and `.gitignore` deliberately does not cover `.s`. Converting a
+function deletes its hand-written `.s` and the next build writes a generated one
+to the same path, so git reports it as *modified*; that is expected and the new
+file belongs in the commit. Following the old wording through batches 257–259 left
+17 elevated files without their generated `.s`, which is how the contradiction was
+found.
