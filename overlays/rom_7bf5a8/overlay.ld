@@ -71,13 +71,13 @@ SECTIONS {
 		asm/overlays/common/common2_c_c_c_c_c_c_c_b.o(.text)
 		asm/overlays/common/common2_c_c_c_c_c_c_c_c_b.o(.text)
 		asm/overlays/common/common2_c_c_c_c_c_c_c_c_c_b.o(.text)
-		asm/overlays/common/common2_c_c_c_c_c_c_c_c_c_c.o(.text)
+		asm/overlays/common/common2_c_c_c_c_c_c_c_c_c_c_a.o(.text)
 	} > overlay
 
 	.data : {
 		asm/overlays/rom_7bf5a8/ovl_170_c_c.o(.data)
 		asm/overlays/rom_7bf5a8/ovl_b8c_c_c.o(.data)
-		asm/overlays/common/common2_c_c_c_c_c_c_c_c_c_c.o(.data)
+		asm/overlays/common/common2_c_c_c_c_c_c_c_c_c_c_b.o(.data)
 		asm/overlays/rom_7bf5a8/ovl_30_c_c.o(.data)
 		asm/overlays/rom_7bf5a8/ovl_2e0_c_c_c.o(.data)
 	} > overlay

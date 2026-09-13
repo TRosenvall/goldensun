@@ -19459,3 +19459,53 @@ pointed at: all four `__ClearFlag` pins, every `__SetFlag` pin and 13 of 20
 read of each repeated id and nothing else** -- an independent confirmation of
 "launder the first occurrence, never the second", now for bare eviction pins as
 well as for asm launders.
+
+
+## A goto INTO A BLOCK IS THE LEVER FOR ROM BLOCK ORDER -- AND DUPLICATING THE TAIL IS NOT
+
+The ROM's block order on `OvlFunc_common2_618` is denormal / NaN / shared-tail /
+finite. No `if / else if` chain emits that: gcc puts the fall-through tail BELOW
+the last arm.
+
+Duplicating the tail into all three arms DOES give the ROM's layout, via jump2
+cross-jumping. It also breaks the loop: with the tail duplicated, `loop.c`'s
+`load_mems` promotes a field into a register across the normalising loop and
+destroys the ROM's per-iteration `ldr / sub / str` -- 15 differing to 21.
+
+> ONE copy of the tail, written inside one arm and entered from the other by
+> `goto`, gives the ROM's layout AND the ROM's loop. 15 -> 7.
+
+That is the complement of the recorded "cross-jumping merges FORWARD, the ROM
+merges BACKWARD" entry: there the `goto` created a merge, here it avoids a
+duplication that would have cost something elsewhere.
+
+**A shared tail is cross-jumped by HARD REGISTER, so a block-scoped local splits
+it.** The ROM stores one arm's pair from r3/r4 where the others use r5/r6. A park
+note claiming "a separate union does not stop it" was wrong: a union declared
+INSIDE the arm is never live with the loop's variable and gets the scratch pair.
+42 -> 40.
+
+**A 64-bit `& CONST` test narrows to a bitfield extract unless the branch is
+written out.** When the mask's low word is zero, combine folds `(q & MASK) != 0`
+into `(hi >> n) & 1`. Writing `if (q & MASK) k = 1; else k = 0;` keeps the DImode
+compare, and cse then deletes the `mov #0` arm via `record_jump_equiv` --
+reproducing the ROM's reuse of an or-of-halves as the boolean.
+
+## THE OFFSET-0 / sp SUBSTITUTION: MECHANISM, COST, AND THE ONE THING THAT BLOCKS IT
+
+Batch 151 recorded that a base pointer to a local gets replaced by `sp` at offset 0
+while non-zero offsets keep the pseudo. The mechanism: `.00.rtl` has
+`(set (reg N) (addressof:SI (reg/v:DI M)))`, `purge_addressof` reduces it to a
+plain `(set (reg N) sp)` copy, and cse2's `canon_reg` then substitutes `sp` for the
+BARE base of `(mem (reg N))` while `+4`, `+6`, `+7` keep the pseudo.
+
+It costs **two** instructions, not one: the sp-based store is provably frame
+memory, so sched2 hoists a following load above it, where the ROM's unknown-base
+store keeps the dependence.
+
+Measured inert -- wrapper struct, `*(unsigned int *)p`, casting the pointer from
+three different union members, plain `register`, and a `volatile` store. High-word
+-first is worse.
+
+> A USER HARD REGISTER is the one thing `canon_reg` will not substitute. That is
+> what the pin is for here, and it is why no spelling reaches it.
