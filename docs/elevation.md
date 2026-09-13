@@ -19185,3 +19185,56 @@ The dosage question resolved as NEITHER of the two obvious readings -- not "only
 the wrong site" (that is the 10), and not "all four sites" (the symmetric all-four
 form is 30 differing at 37 encodings against 39; it shortens the function). It is
 **the wrong site plus its immediate predecessor, with the `and` pair left alone.**
+
+
+## A TEXT+DATA .s CANNOT BE ELEVATED IN PLACE -- THE BLOB NEEDS ITS OWN STEM
+
+`asm/%.o: src/%.c` builds the object from the `.c`, so if a `.s` carries both
+functions and a `.section .data` blob, elevating the text **silently drops the
+data**. The layout gate catches it, but only if the data is moved first.
+
+The shape that works, from `OvlFunc_924_200ae6c`:
+
+* split at the data boundary using the tree's own letter convention -- `_a` for
+  the text (which becomes the `.c`), `_b` for a data-only `.s`;
+* point the two linker lines at the two new stems separately: `_a.o(.text)` and
+  `_b.o(.data)`, each keeping its `asm/` prefix and its position;
+* **export every `.L` label the data defines** with `.global`, because the
+  elevated `.c` now references them across a TU boundary. `ovl_e20_c_c_c_c_c_c_c_c.s`
+  in the same overlay is the precedent, exporting fourteen of them;
+* gate the layout ALONE -- data moved, labels exported, text still `.s` -- before
+  the `.c` lands.
+
+The export is not cosmetic. Before it, the merged object compared with every
+encoding byte identical and two relocations still wrong: the reference resolved
+`.L5e70` against `.data` as a same-TU local, ours emitted an external reference.
+After the export the relocations match too.
+
+## FOUR MORE RESULTS FROM A 763-INSTRUCTION CUTSCENE FUNCTION
+
+* **Per-loop locals decide HIGH-register allocation, and the push list does not
+  warn you.** Three loops written against one shared `x/y/z/w` set put the counter
+  in r10 and the pointer in r9 where the ROM has r8 and r10 -- but the push list
+  MATCHED, so the recorded "count your locals" diagnostic never fired. Giving each
+  loop its own locals moved 583 differing to 489 on that one change. The tell is in
+  the ROM, not in our output: it uses DIFFERENT registers for the same role in
+  different loops, which means distinct allocnos, which means distinct source
+  variables.
+* **The r0 pin alone does not kill repeated-constant CSE.** On three calls sharing
+  `0xc6 << 2`: plain literals 15 differing, bare r0 pin alone STILL 15 (the
+  constant still flows through a pseudo), r1+r0 pins 6, and splitting r1 into
+  `= 0xc6` / `<<= 2` with the r0 assignment between them is exact.
+* **A pin that is exact in isolation can be globally harmful.** One call site
+  wanted r1 and r2 pinned; pinning BOTH forced r4 into the allocation and took the
+  whole function from 6 differing to 610. Pinning r1 alone closed it, and the r0
+  pin at the same site was inert. Probe pins in the REAL function, never only in a
+  standalone probe.
+* **`neg`+`add` versus `sub` is a spelling.** `0xffffcccd - x` gives
+  `sub rD, rK, rX`; `-x - 0x3333` gives the ROM's `neg r2, r2` / `add r2, r3`.
+
+**Method note.** 370 instructions of straight-line cutscene script were generated
+by a ~40-line parser that turns each `mov`/`lsl`/`neg`/`ldr =` in the listing into
+a pinned assignment and each `bl` into a call, from a callee-arity table. It
+produced zero manual cases and took the function from 369 differing to 11, both
+remaining sites being one call that needed hand work. Reusable for any
+cutscene-shaped function.
