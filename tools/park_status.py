@@ -44,14 +44,34 @@ DIFF = [
 BLOCK = re.compile(r"BLOCKER(?:\s+CLASS)?:\s*([^\n]{3,70})", re.I)
 
 
+# Lines that describe what ONE LEVER was worth, rather than what the park scores.
+# "Worth 0 differing on its own" is a statement that a lever is INERT, and taking
+# the minimum over the whole file turned that into a park scored at 0 -- which is
+# how GetMercuryDjinni was selected as an already-matching function that was
+# really 17 differing. The header above already records this class of error twice;
+# this is the third, and the cause each time was reading lever prose as a score.
+LEVER = re.compile(r"\b(worth|on its own|alone|by itself|buys|costs|gains?)\b", re.I)
+
+
 def parse(path):
     t = open(path, errors="ignore").read()
+    # A park's own score lives in its HEADER, not in the lever table that follows.
+    # Scan the first block comment only; fall back to the whole file for the few
+    # parks that record the number lower down.
+    head = t.split("*/", 1)[0] if t.lstrip().startswith("/*") else t
     best = None
-    for rx in DIFF:
-        for m in rx.finditer(t):
-            v = int(m.group(1))
-            if v <= 400 and (best is None or v < best):
-                best = v
+    for scope in (head, t):
+        for rx in DIFF:
+            for m in rx.finditer(scope):
+                line = scope[scope.rfind("\n", 0, m.start()) + 1:
+                             scope.find("\n", m.end()) if scope.find("\n", m.end()) != -1 else len(scope)]
+                if LEVER.search(line):
+                    continue          # a lever delta, not the park's score
+                v = int(m.group(1))
+                if v <= 400 and (best is None or v < best):
+                    best = v
+        if best is not None:
+            break
     m = BLOCK.search(t)
     cls = re.sub(r"\s+", " ", m.group(1)).strip(" .-") if m else None
     code = re.sub(r"//[^\n]*", "", re.sub(r"/\*.*?\*/", "", t, flags=re.S))

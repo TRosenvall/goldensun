@@ -1019,6 +1019,20 @@ asm/overlays/rom_7b4558/ovl_30_c_c_a_c_a_c_b.o: src/overlays/rom_7b4558/ovl_30_c
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# OvlFunc_927_2009078 is swallowed by the rom_7b4558/ovl_30_c_c_a_c_a% wildcard
+# below, which applies O1_CFLAGS.  67 of 80 differing at -O1, EXACT at -O2.
+#
+# This one is the INVERSE of the usual hazard.  The documented failure is a TU
+# that screens green and builds red; here tryc.py and objcmp.py both READ the
+# wildcard, so the function screened RED at 67 and had been parked on that
+# number since.  A default screen would never have found it.  The rule must stay
+# ABOVE the wildcard's block, like the three siblings above it.
+asm/overlays/rom_7b4558/ovl_30_c_c_a_c_a_a.o: src/overlays/rom_7b4558/ovl_30_c_c_a_c_a_a.c
+	$(GCC296_CC) $(GCC296_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+
 asm/overlays/rom_7b4558/ovl_30_c_c_a_c_a%.o: src/overlays/rom_7b4558/ovl_30_c_c_a_c_a%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
