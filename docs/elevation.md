@@ -19022,3 +19022,39 @@ as the first: it regresses **2 -> 17** here while alias is the only axis that
 works. sched2 gets 82 of 84 right and one tie wrong, so the flag measures the 82.
 The amendment -- diagnostic for a REGION, not for a single adjacent pair -- now has
 two supporting cases.
+
+
+## A CHEAP ARGUMENT CANNOT BE MOVED ALONE -- BUT IT CAN BE MOVED AS A PAIR
+
+Batch 259 recorded that a cheap constant argument cannot be repositioned by source
+spelling: `rtx_cost(CONST_INT, SET)` is 0 below 256, `precompute_register_parameters`
+only precomputes above cost 2, so the cheap argument is always emitted last and
+always carries the HIGHEST `INSN_LUID` of the group.
+
+That is true of a SINGLE name. It is false of a PAIR, and `OvlFunc_942_20087dc`
+is the counterexample. Measured, where 2 is exact:
+
+| variant | score |
+|---|---|
+| plain literals (baseline) | 6 |
+| pin r0 alone | 6, and **8 when applied at both sites -- WORSE than doing nothing** |
+| pin r1/r2 alone | 6 (inert) |
+| **pin r0 AND r1, declared r0 first** | **2 -- EXACT** |
+| pin all three, order r1,r2,r0 | 6 |
+| pin all three, order r2,r1,r0 | **8 (worse)** |
+
+> The cheap argument cannot be given a lower LUID than the expensive one unless
+> the expensive argument's own materialisation is ALSO removed from the
+> precompute path. One pin has nothing to be ordered against. Pin the pair, and
+> declare them in argument order.
+
+Declaration order is the whole lever here and the wrong order is actively harmful
+-- r0,r1,r2 exact; r1,r2,r0 and r1,r0,r2 inert at 6; r2,r1,r0 worse at 8. (For a
+bare pin it is ASSIGNMENT order that sets the LUID, since a bare declaration emits
+no insn; with an initialiser, as here, the two coincide.)
+
+**Dosage note.** This function had TWO defective call sites and the park named only
+one, because "the rest are exact" hid the second. They interact: fixing only the
+named site leaves the other, and the minimal fix is r0+r1 at BOTH. A residue that
+moves to a different call site when you fix the first is not a new problem; it is
+the same problem, under-dosed.
