@@ -19345,3 +19345,47 @@ separable.** Naming the load buys the ROM's exact instruction order and pays for
 with a pure r0/r2 role swap that no declaration order, assignment order or variable
 reuse could unwind (a 60-ordering topological sweep bottomed out at 5). The
 dependent-count device gets the same order for free.
+
+
+## THE HOISTED-INVARIANT FLOOR HAS A THIRD ESCAPE: STOP IT BEING A MOVABLE
+
+The recorded entry -- "a loop-invariant hoisted by loop.c is ALWAYS the last insn
+of the preheader" -- says that when the ROM has a hoisted invariant BEFORE a
+loop-variable init, no statement order reaches it, and names only
+`strength_reduce`'s giv init and `check_dbra_loop` as escapes. There is a third.
+
+**Give the value a real statement so loop.c never treats it as a movable.** On
+`Func_80babdc`, `.08.loop` logs `Insn 37: regno 37 (life 16), savings 1 moved to
+199` and `.19.flow2` shows the hoisted order sched2 then passes through untouched.
+Writing `short *p = buf;` BEFORE `i = 1` makes the frame address an ordinary insn
+with the lower LUID; sched2 issues the constant first on priority (it has a
+dependent), leaves the two `mov`s tied, and breaks the tie on `INSN_LUID` -- the
+ROM's order.
+
+## WHEN A LUID LEVER "COSTS INSTRUCTIONS", DIFF THE .s BEFORE ABANDONING IT
+
+The same park had already tried that lever and recorded it as costing "a second
+pseudo and two instructions". It costs neither. It costs a **HImode-literal pool**,
+and the diagnosis was off by one mechanism:
+
+`short buf[2]` is four bytes, so with no explicit address-taking gcc-2.96 expands
+it into a single **SImode pseudo** reached by `and`/`ior` inserts; `purge_addressof`
+later rewrites those as MEM stores but the constant stays in the SImode pseudo and
+emits `mov r3,#255`. Writing `p = buf` takes the address at expansion, `buf` goes
+to the stack, and the store becomes `(set (mem:HI ...) (reg:HI))` with a HImode
+constant -- and `*thumb_movhi_insn` has no immediate alternative, so you get
+`ldrh r3,.L7` + `.word 255` + a branch around the pool. Exactly the three extra
+encodings, and nothing to do with the lever.
+
+The already-recorded `int`-intermediate rule fixes that, and the two levers
+compose to EXACT.
+
+> A lever that appears to cost instructions may be paying for something unrelated.
+> Diff the two generated `.s` files before concluding the lever failed.
+
+**Pins were INERT here**, which is a useful negative for the newly-mapped pin
+rules: `__asm__("r6")` alone, and `__asm__("r6")` + `__asm__("r8")`, both measured
+byte-identical to the bare named pointer with no pin at all. Once the variable is
+assigned by a real statement, the lever IS that assignment's LUID and the pin adds
+nothing. Assignment order still bites -- reversing it costs the two encodings
+straight back.

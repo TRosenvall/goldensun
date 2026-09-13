@@ -1,4 +1,37 @@
-/* Func_80bac6c (0x080bac6c) -- NON-MATCHING.
+/*
+ * ### PROGRESS, batch 261 -- LOOP 3 IS NOW EXACT, preheader and body.
+ *
+ * Verified baseline first: 33 differing of 57 ENCODINGS, ref 124 bytes against
+ * ours 128, first diff at index 18. The note's "34 differing" counts LINES, not
+ * encodings -- worth knowing before comparing numbers below.
+ *
+ * Candidate with loop 3 closed: scratch_elev/b264/Func_80babdc/nb_v4_loop3_off_last.c
+ * Three things got it there, all recorded in docs/elevation.md:
+ *   * the HImode-literal rule applied to the 0xff store gives the ROM's mov r0,#0xff;
+ *   * an UNSIGNED up-counter stops check_dbra_loop reversing the loop, giving the
+ *     ROM's cmp r1,#0x13 / bls;
+ *   * the sched2 LUID tie-break orders the preheader -- u2 = 0; n = 0xff;
+ *     off = 0xbb << 2; with the OFFSET LAST reproduces
+ *     mov r2,#0xbb / mov r1,#0 / mov r0,#0xff / lsl r2,#2.
+ *
+ * The total does not fall (35) because everything downstream is displaced by
+ * loop 1's pool. That is a cascade, not a regression.
+ *
+ * TWO OPEN ITEMS for whoever takes this next:
+ *   (a) The ROM word-loads 0xfe in BOTH loop 1 (ldr r1, .Lbac94) and loop 2
+ *       (ldr r3, =0xfe) where we emit ldrh. const.sym's header names the
+ *       halfword-expression case as the one exception to the pooled-small-value
+ *       tell -- but that exception describes OUR output, not the ROM's, so the
+ *       symbol tell stands and 0xfe here looks like a const.sym entry. objcmp
+ *       CANNOT settle this: a symbol adds an R_ARM_ABS32 the reference .s lacks.
+ *       Only make compare can.
+ *   (b) Loop 2's strength reduction is this park's own blocker and is untouched.
+ *
+ * Its file-mate Func_80babdc was elevated in batch 261, so this function now sits
+ * alone in asm/rom_b5000/rom_b9b30_c_a_c_c.s -- closing it converts that file
+ * WHOLE with no further split.
+ *
+ * --- original note follows ---
  * Blocker class: loop strength reduction gcc performs and the ROM does not.
  *
  * 62 lines against the ROM's 62, 34 differing, with the first twenty-three
