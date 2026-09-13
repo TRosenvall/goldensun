@@ -19147,3 +19147,41 @@ Two smaller results from the same file:
   `union { u64 v; struct { u32 lo, hi; } w; }` is one `ldr`/`cmp`; any spelling
   that touches the whole 64-bit value makes gcc hoist both words out of the
   branch. Worth 10 instructions.
+
+
+## andsi3 AND iorsi3 ARE NOT SYMMETRIC IN arm.md, SO `&=` AND `|=` GET DIFFERENT OPERAND ROLES
+
+`OvlFunc_947_2009fd4` differed in exactly one instruction -- `orr r5,r3` against
+our `orr r3,r5` -- on a byte that the source masks and then ORs. The C is
+symmetric; the machine description is not.
+
+Under `TARGET_THUMB`, `andsi3` calls `force_reg (SImode, operands[2])` for any
+operand 2 that is not a `CONST_INT`; `iorsi3` calls `force_reg` **only** in the
+`CONST_INT` branch. A QI-narrowed mask reaches the expander as
+`(subreg:SI (reg:QI n) 0)`, so the `and` gets a plain `(reg:SI)` and the `ior`
+keeps the subreg. `regmove_optimize` then bails on the `ior` -- it starts with
+`if (GET_CODE (src) != REG) continue;` -- so the `and` sites get
+`copy_src_to_dest` copies that local_alloc coalesces into the ROM's `and r5, r3`,
+and the `ior` sites get nothing.
+
+**Reordering the C operands cannot fix it.** `fold_rtx` canonicalises a known
+-constant operand to position 2 unconditionally, and `block_alloc`'s tie loop
+skips operand 2 whenever `n_matching_alts == recog_data.n_alternatives` -- true for
+the single-alternative `*thumb_iorsi3` with its `%0`. So local_alloc can only tie
+the destination to operand 1, and every spelling of `x |= k` is the same
+instruction.
+
+> The lever is to keep the mask in SImode so both OR sites share one pseudo, and
+> to make the last site's `ior` WRITE INTO THE MASK VARIABLE: `m |= *p; *p = m;`
+> puts the mask in the one position local_alloc will tie, and because the mask is
+> dead afterwards the copy folds out.
+
+And this is the batch-258 pairing rule again, with a new wrinkle: **site 1 must
+also stay SImode**, or it narrows to QI, takes its own `(reg:QI)` for the
+constant, and materialises the `1` twice. An `int` temp at site 1 measures INERT
+alone; the site-2 self-OR measures 10 alone; together they are 0.
+
+The dosage question resolved as NEITHER of the two obvious readings -- not "only
+the wrong site" (that is the 10), and not "all four sites" (the symmetric all-four
+form is 30 differing at 37 encodings against 39; it shortens the function). It is
+**the wrong site plus its immediate predecessor, with the `and` pair left alone.**
