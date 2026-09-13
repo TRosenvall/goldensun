@@ -19509,3 +19509,45 @@ three different union members, plain `register`, and a `volatile` store. High-wo
 
 > A USER HARD REGISTER is the one thing `canon_reg` will not substitute. That is
 > what the pin is for here, and it is why no spelling reaches it.
+
+
+## THE [sp,#0] FOLD IS CSE2, AND volatile ON THE OBJECT BEATS IT
+
+An earlier park called this unreachable -- "the offset-0 store folds to `[sp,#0]`
+where the ROM stores through `mov r2, sp`". It is reachable.
+
+The fold is done by **pass 09 cse2**: absent from `.00.rtl` and `.03.cse`, present
+in `.09.cse2`. It replaces a **bare-REG** address with its known frame equivalent
+and leaves `(plus REG 4)` alone -- which is exactly why offset 0 comes out `[sp]`
+while every other offset keeps the pointer.
+
+> `volatile` **on the object** defeats it, and no pointer local is needed at all.
+> This is the recorded DMA sub-lever -- *the `volatile` belongs on the OBJECT, not
+> the pointer* -- in a different costume.
+
+Everything else measured at 3 differing: a pointer local to the union, a pointer
+local assigned late, a plain `*(u32 *)` cast, word 0 as a bitfield member, swapping
+through a different member, a `u64` member for alignment, a second addressable
+local, and returning through a cast. A pointer assigned in the ENTRY block does fix
+it -- a different cse2 extended basic block -- but costs a seventh callee-saved
+register and a longer push, 192 lines against 208.
+
+A consequence worth knowing, not a lever: once the image is memory-resident,
+`get_best_mode` picks the narrowest containing mode per field -- word at +4,
+HALFWORD at +6, BYTE at +7 -- and Thumb has no SP-relative `ldrh`/`ldrb`, which is
+where the ROM's `mov r0, sp` comes from. Declaring the fields narrower changes
+nothing; leaving the image in registers makes all three SImode.
+
+## WHICH ARM IS THE THEN ARM DECIDES WHAT STAYS LIVE
+
+Worth 82 instructions on `OvlFunc_common2_44c`, from a rounding test.
+
+The ROM's `cmp r1,#0x80 / bne` falls through INTO the tie case and reaches 0x100 as
+`add r3,#1` on the 0xff still live in r3. Writing the test as `!=` with the
+increment in the `else` inverts the fallthrough; gcc loses the live 0xff and pays
+`mov r3,#0x80 / lsl r3,#1` for a constant Thumb cannot build in one insn -- and
+those two extra instructions move every block boundary after them.
+
+> An arm swap is not cosmetic. The fall-through arm inherits whatever the compare
+> left live, and a constant rebuilt from scratch is two instructions that displace
+> everything downstream.
