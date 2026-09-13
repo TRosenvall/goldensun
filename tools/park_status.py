@@ -52,9 +52,29 @@ BLOCK = re.compile(r"BLOCKER(?:\s+CLASS)?:\s*([^\n]{3,70})", re.I)
 # this is the third, and the cause each time was reading lever prose as a score.
 LEVER = re.compile(r"\b(worth|on its own|alone|by itself|buys|costs|gains?)\b", re.I)
 
+# A park note routinely cites OTHER functions' scores -- "Func_809b0dc, the other
+# function with this symptom, goes from 1 differing". Scoring 80b0a20 at 1 off that
+# sentence is the fourth distinct way this parser has read someone else's number as
+# the park's own. A line naming a function that is not this park's subject is not
+# reporting this park's score.
+FNNAME = re.compile(r"\b((?:Ovl)?Func_[0-9a-f_]+|[A-Z]\w{3,})\b")
 
-def parse(path):
+
+def _about_another(line, subject):
+    """True if LINE names a function other than SUBJECT."""
+    for n in FNNAME.findall(line):
+        if n.startswith(("Func_", "OvlFunc_")) and n != subject:
+            return True
+    return False
+
+
+def parse(path, subject=None):
     t = open(path, errors="ignore").read()
+    if subject is None:
+        m = re.search(r"([0-9a-f]{6,8})\.c$", os.path.basename(path))
+        suf = "_" + m.group(1) if m else None
+        subject = next((n for n in re.findall(r"\b(?:Ovl)?Func_[0-9a-f_]+\b", t)
+                        if suf and n.endswith(suf)), None)
     # A park's own score lives in its HEADER, not in the lever table that follows.
     # Scan the first block comment only; fall back to the whole file for the few
     # parks that record the number lower down.
@@ -67,6 +87,8 @@ def parse(path):
                              scope.find("\n", m.end()) if scope.find("\n", m.end()) != -1 else len(scope)]
                 if LEVER.search(line):
                     continue          # a lever delta, not the park's score
+                if _about_another(line, subject):
+                    continue          # another function's number, not this park's
                 v = int(m.group(1))
                 if v <= 400 and (best is None or v < best):
                     best = v

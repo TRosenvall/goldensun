@@ -18877,3 +18877,74 @@ on one lever.
 
 The general form: a screening tool's *scope* is part of its contract, and a
 mismatched scope does not error -- it returns a plausible number.
+
+
+## THE -fno-schedule-insns2 SIGN RULE HAS A COUNTEREXAMPLE: SCOPE IT TO REGIONS
+
+The recorded rule -- *improves ⇒ sched2 owns the residue and alias may reach it;
+regresses ⇒ sched2 is already right and alias is the wrong axis* -- held across a
+dozen functions and then failed cleanly on `OvlFunc_928_2008d0c`.
+
+There, `-fno-schedule-insns2` **regresses 2 -> 21**, which by the rule says alias
+is the wrong axis. **Alias was the only axis that worked**, and it closed the
+function exactly.
+
+The reason is scope. The rule's supporting cases all had sched2 owning a
+multi-instruction window. Here sched2 gets 93 of 95 encodings right and exactly
+one tie wrong, so turning it off measures sched2's OTHER work -- the 93 it was
+getting right -- and tells you nothing about the one it was not.
+
+> **Amendment.** The sign rule is diagnostic when the residue is a REGION. For a
+> single adjacent pair, it measures the wrong thing. Read the ready list instead:
+> `-fsched-verbose=5` on the `.23.sched2` dump prints priority and dependent
+> counts per insn, and a tie there is the whole answer.
+
+Also settled on that function, and worth knowing generally: **this tree's
+ARM/Thumb config never runs sched1.** No `.21.sched` dump is produced, which is
+why `-fno-schedule-insns` measures inert everywhere. Every scheduling question
+here is sched2.
+
+## TO CREATE A MEMORY DEPENDENCE, THE AGGREGATE MUST CONTAIN THE STORE'S TYPE
+
+The mirror image of the batch-250 device. That one removes a dependence by putting
+a load and a store in two distinct named alias sets. This one CREATES a dependence
+so a load cannot issue in the same cycle as a store.
+
+In gcc-2.96 a `COMPONENT_REF` load takes the AGGREGATE'S alias set, and
+`record_component_aliases` makes each member type a subset of it. So a conflict
+against an `int` store needs the aggregate to contain an `int` member -- a `char`
+member is not enough, because `char` being a subset of the aggregate does nothing
+for a conflict against `int`. Measured on `OvlFunc_928_2008d0c`:
+
+| spelling of the halfword read | differing |
+|---|---|
+| raw `*(unsigned short *)(p + 6)` | 2 |
+| `struct { unsigned short h; }` | 2 |
+| `union { unsigned short h; }` | 2 |
+| `union { unsigned short h; char c[2]; }` | 2 |
+| `union { int w; unsigned short h; }` | **EXACT** |
+| `struct { unsigned short h, pad; int w; }` | **EXACT** |
+| the declared `struct Actor` | **EXACT** |
+
+Why it works: the dependence makes the load ready one cycle later, so the ready
+list at the contested slot holds only the constant, and the constant takes it.
+
+> A reload-generated insn is spliced in immediately before its use, so it can
+> NEVER have a LUID below an insn that already precedes it. That is why no
+> statement order, named local, pin or barrier can win a `rank_for_schedule` tie
+> against one -- the only reachable variable is the READY TIME, and only a memory
+> dependence moves that.
+
+`-fno-strict-aliasing` is the flag reading of the same fact and also reaches EXACT
+here. Do not add the rule -- the source form carries it.
+
+## CHECK AN EXEMPLAR'S GENERATED .s, NOT ITS SOURCE
+
+`OvlFunc_928_2008d0c`'s park named `OvlFunc_946_2009a44` as a matching function
+that emits the constant first from the same expression shape, and built its
+"the surrounding register pressure is the variable" framing on that. The
+exemplar's generated `.s` emits `ldrh r1,[r5,#6] / mov r3,#128 / lsl r3,#6` -- the
+LOAD first -- and its ROM has the load first too. It was never a counter-example.
+
+> A "function X does this from the same source shape" claim is about X's OUTPUT.
+> Read X's generated `.s` before believing it, not X's source.
