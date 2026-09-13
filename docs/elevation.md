@@ -18984,3 +18984,41 @@ Two companion facts, both measured on `Func_80b0a20`:
   it can narrow `0x1ff`, `0xfe00` or a zero used as an insert keep-mask, but never
   `0xffff`. Companion to the note that a pooled zero can be a leftover halfword
   mask from a neighbouring field store.
+
+
+## THE ALIAS DEVICE CAN RAISE A PRIORITY, NOT ONLY DELAY A READY TIME
+
+`OvlFunc_928_2008d0c` and `OvlFunc_957_2008de8` wanted OPPOSITE orderings and the
+same device delivered both. That retires the first one's "the pairing is the
+finding" reading and gives the mechanism properly.
+
+On 2008d0c the new memory dependence worked by **delaying** the load's ready time,
+so the constant took the contested slot. On 2008de8 the load's ready time is
+irrelevant -- it is absent from the contested ready list either way. There the
+device works by **raising the store's priority**:
+
+    insn 43   str r3,[r6,#8]    prio 37 -> 39
+    insn 46   ldrh r3,[r5,#6]   prio 37    37     (dep count 4 -> 6)
+    insn 210  mov r1,#0xf0      prio 37    37     (reload-generated)
+
+Raw-cast, all three sit at priority 37 -- a genuine three-way tie. Insns 43 and 46
+were ALREADY joined by an edge, an **anti-dependence** (43 reads r3, 46 rewrites
+it) -- but **an anti-dependence has link cost zero**, so it contributes nothing to
+43's longest-path priority. The struct spelling promotes that same edge to a
+**true memory dependence of cost 2**, and 43's priority becomes 39. The tie
+disappears: the store wins outright on priority and the tie-break is never
+consulted.
+
+> Where two insns are already joined by an anti- or output dependence, promoting
+> that edge to a TRUE dependence raises the PRODUCER's priority by the link cost.
+> That is why one device reaches residues pointing in opposite directions --
+> delay the consumer, or promote the producer.
+
+On 2008de8 the angle read is the whole lever and the other loads' spelling is
+inert: struct on the vec loads only 2, struct on the angle read only EXACT.
+
+**Second counterexample to the `-fno-schedule-insns2` sign rule**, same signature
+as the first: it regresses **2 -> 17** here while alias is the only axis that
+works. sched2 gets 82 of 84 right and one tie wrong, so the flag measures the 82.
+The amendment -- diagnostic for a REGION, not for a single adjacent pair -- now has
+two supporting cases.
