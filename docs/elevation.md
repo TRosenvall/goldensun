@@ -557,9 +557,17 @@ a direct statement about the MODE of each operand:
 | `*thumb_zero_extendhisi2` | 60 | prints **`ldr`** for a pool label, not `ldrh` |
 | `*thumb_movqi_insn` | 32 | |
 
-A HImode `CONST_INT` is emitted into the pool sign-extended, so a HImode mask of
-`-0x4000` appears as `.word 0xffffc000` — the pool word is four bytes wide
-whatever the mode, and its value alone does not tell you the mode.
+A HImode `CONST_INT` is emitted into the pool as the FRONT END'S CONSTANT, so a
+HImode mask of `-0x4000` appears as `.word 0xffffc000` — the pool word is four
+bytes wide whatever the mode, and its value alone does not tell you the mode.
+
+*Amended, batch 258.* This used to say "emitted into the pool sign-extended",
+which over-generalises: the sign follows the C **type**, not the mode. A
+`short`-typed `~0x3fff` gives `.word -16384`, but an `unsigned short`-typed
+`0xffff` gives `.word 65535`, not `.word -1`. The final clause above was always
+the operative one and is unchanged — **the value alone does not tell you the
+mode**, in either direction. Do not read a positive `.word 0x0000ffff` as
+evidence of SImode any more than a negative one as evidence of HImode.
 
 An early narrow constant therefore sorts *before* a late wide one, and a
 symbol's address always sorts late. `Func_800c5b4` matched instruction for
@@ -18760,3 +18768,45 @@ REGRESSES 2 -> 23, so by the sign rule sched2 is already right and the residue i
 a priority question inside it. Statement order was inert across four permutations,
 confirming it is not a LUID tie. Only a zero-cost `__asm__ volatile ("" ::: "memory")`
 reaches the ROM's order, and that is shipped as a fakematch.
+
+
+## A POOLED CONSTANT CAN CARRY A NEIGHBOURING FIELD STORE'S MODE
+
+gcc-2.96 expands an ordinary struct-field store as a mode-typed read-modify-write
+bitfield insert -- `old & mask | value`, with mask 0 for a full-width field. So a
+halfword field store `b->f6 = x` creates `(set (reg:HI) (const_int 0))` purely as
+the insert's mask, and CSE then reuses that HImode zero for an unrelated byte
+store `a->fc = 0` via a `subreg:QI`.
+
+> The pooled zero is a leftover halfword MASK, not the zero the source appears to
+> write. That is why no spelling or placement of the visible statement moves it.
+
+`Func_80b0a20` survived several rounds of zero-placement experiments for this
+reason. Bisection confirms it: `a->fc = 0` alone, or placed before any halfword
+store, gives `mov r3, #0`; only once a halfword field store precedes it does the
+zero become a pool entry. This belongs with the "pool width is a TYPE question"
+family, with the extra wrinkle that the type in question may belong to a
+different statement.
+
+The practical consequence is about pool ORDER. gcc sorts the minipool by
+`max_address`, so a HImode entry (range 0-64) always sorts before an SImode one
+(range 0-1020). Reading the `.26.mach` fixup list out of a `-da` dump gives the
+modes directly:
+
+    ;; HImode fixup for i41;  addr 6,  range (0,64):   0x0
+    ;; SImode fixup for i19;  addr 10, range (0,1020): 0xffff
+
+That is the readout to take when pool order differs and no spelling moves it.
+
+## A POINTER RE-READ AFTER A HALFWORD STORE THROUGH IT IS AN ALIAS CASE
+
+The cleanest `ALIAS_CFLAGS` signature seen so far. The ROM re-reads `a->p` after
+a `b->f16` store; at `-O2` strict aliasing proves a `u16` store cannot alias a
+`struct B *` load, so gcc keeps the pointer live in a register instead. On
+`Func_80b0a20`, `-fno-strict-aliasing` is **26 -> 16 differing with the size and
+encoding count going exact** (72/32 -> 76/34), and the whole tail becomes
+instruction-exact.
+
+Same mechanism as the four existing `ALIAS_CFLAGS` rules in the Makefile; this
+would be a fifth if the function closes. Worth screening for directly: a pointer
+field read AFTER a narrow store through that same pointer.

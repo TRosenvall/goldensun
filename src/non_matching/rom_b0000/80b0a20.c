@@ -1,4 +1,51 @@
-/* Func_80b0a20  --  0x080b0a20, asm/rom_b0000/rom_b0070_a_a_c_c_a_a.s
+/*
+ * ### CORRECTION, batch 258 -- THE RECORDED SCORE OF 1 WAS WRONG.
+ *
+ * objcmp at tree default, three runs:
+ *
+ *     XX SIZE  ref 76 bytes, ours 72
+ *     XX ENCODINGS differ in 26 place(s) (ref 34, ours 32)
+ *        first at index 4: ref 4c0b  ours 7343
+ *
+ * The "1" came from tools/tryc.py, which NORMALISES pool words -- and a pool
+ * defect is exactly what this function's blocker is, so the screen erased the
+ * evidence. tools/park_status.py then inherited the number from this note.
+ * docs/elevation.md already records that tryc is blind to pool-word differences;
+ * this is what that blindness costs when the note is believed.
+ *
+ * BIGGEST LEVER FOUND: -fno-strict-aliasing (ALIAS_CFLAGS), 26 -> 16, with size
+ * and encoding count going EXACT (72/32 -> 76/34) and the entire tail from
+ * strh r3,[r5,#0x16] to strb r2,[r3,#0x14] instruction-exact. The ROM re-reads
+ * a->p after the b->f16 store; at -O2 strict aliasing proves a u16 store cannot
+ * alias a struct B * load and gcc keeps the pointer in r5. Same mechanism as the
+ * four existing ALIAS_CFLAGS rules. If this closes it needs a fifth -- and note
+ * the split means Func_80b09fc is in a DIFFERENT TU and must not get the flag.
+ * Best candidate: scratch_elev/b261/Func_80b0a20/BEST_80b0a20_residue16_needs_ALIAS_CFLAGS.c
+ *
+ * THE REMAINING 16 IS ONE THING: the 0xffff pool entry is SImode in ours and must
+ * be HImode. From the .26.mach minipool fixup list:
+ *
+ *     ;; HImode fixup for i41;  addr 6,  range (0,64):   0x0
+ *     ;; SImode fixup for i19;  addr 10, range (0,1020): 0xffff
+ *
+ * gcc sorts the minipool by max_address, so our HImode entry (max 70) always
+ * sorts first, giving [0, ffff, 1ff, fe00]. The ROM's is [ffff, 0, 1ff, fe00].
+ * Every other difference cascades from which constant lands in which register.
+ *
+ * WHERE OUR HImode ZERO COMES FROM, and why no spelling moved it: gcc-2.96
+ * expands every struct-field store as a mode-typed read-modify-write bitfield
+ * insert. The halfword store b->f6 = x creates (set (reg:HI) (const_int 0)) as
+ * the insert's MASK, and CSE reuses that HImode zero for the byte store
+ * a->fc = 0 via a subreg:QI. The pooled zero is a leftover halfword mask, not
+ * the source's zero. Bisection confirms it: a->fc = 0 alone, or before any
+ * halfword store, gives mov r3, #0.
+ *
+ * So the open question is narrow and stated: make the 0xffff entry HImode, or
+ * stop the zero from becoming a pool entry at all. Full 30-row measured table
+ * below the line; everything in it was measured UNDER -fno-strict-aliasing
+ * against a baseline of 16.
+ *
+ * --- original note follows; its score of 1 is superseded ---
  *
  * BLOCKER CLASS: the width of a pooled ZERO, and the setup order that follows
  * from it.
