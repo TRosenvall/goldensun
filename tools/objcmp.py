@@ -146,6 +146,11 @@ def cflags_for(ref):
         flags += ["-fno-rerun-cse-after-loop"]
     if "no-interwork" in adjust:
         flags = [a for a in flags if a != "-mthumb-interwork"]
+    if "call-saved-r4" in adjust:
+        # See tryc.makefile_flags: COMMON2_CFLAGS also substitutes
+        # -fcall-used-r4 -> -fcall-saved-r4, and dropping that scored every
+        # common2 park against a prologue gcc could not emit.
+        flags = ["-fcall-saved-r4" if a == "-fcall-used-r4" else a for a in flags]
     for a in sorted(adjust):
         if a.startswith("-f") and a not in flags:
             flags += [a]

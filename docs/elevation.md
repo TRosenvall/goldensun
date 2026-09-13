@@ -19108,3 +19108,42 @@ each is an improvement alone, and neither is sufficient.
 Also measured and worth not re-deriving: on the file-mate `Func_80288a8` the
 loop's `+0xe`-before-`+0xc` store order LOOKS like a source tell and is not --
 swapping it is byte-identical.
+
+
+## A SINGLE ADJACENT PAIR CAN TIE ON DEPENDENT COUNT, BEFORE LUID EVER RUNS
+
+Batch 259 said a single adjacent pair falls through `rank_for_schedule` to
+`INSN_LUID`. There is a step in between, and `OvlFunc_common2_254` lands on it:
+the two stores tie on priority (133/133) and on class, and the tie is settled by
+**dependent count**, where one store wins 6 to 5. LUID order was already the
+ROM's, so reaching LUID would have WON -- the pair never got there.
+
+The asymmetry has a cause worth knowing:
+
+> A store of a HARD-REGISTER ARGUMENT keeps an anti-dependence on every later
+> CALL until an explicit set of that register kills `reg_last_uses`.
+
+Here `r2` is redefined by `add r2, sp, #0x10` -- the third argument of an inner
+call -- and so drops its dependences on the last two calls; `r3` is never
+redefined and keeps all four. The already-matching sibling `common2_28c` ties 5-5
+because its sign flip contributes exactly one insn setting each register. That
+replaces the park's "genuinely a scheduling coin flip" with a mechanism.
+
+**A third lever for the adjacent-store class: remove the tie instead of winning
+it.** Two `int` fields are two SImode stores sched2 may reorder; an 8-byte object
+given a 64-BIT TYPE becomes one `*thumb_movdi_insn` that emits both halves in ROM
+order. Measured: `struct { int lo, hi; }` 2 differing, `long long` **EXACT**,
+`double` **EXACT**. This sits alongside the alias device rather than replacing it.
+
+Two smaller results from the same file:
+
+* **Commutative operand order in a 64-bit expression is a REGISTER-ALLOCATION
+  lever, not a scheduling one.** Writing `(x & 1) | (x >> 1)` rather than
+  `(x >> 1) | (x & 1)` went from 109 disagreeing instructions to 26 -- and none of
+  the change was in the arithmetic. It altered how many low registers the loop
+  body needs, pushing a pseudo into `HI_REGS` and renaming three values across the
+  whole function.
+* **Read only the word you compare.** Testing `u.w.hi` through a
+  `union { u64 v; struct { u32 lo, hi; } w; }` is one `ldr`/`cmp`; any spelling
+  that touches the whole 64-bit value makes gcc hoist both words out of the
+  branch. Worth 10 instructions.

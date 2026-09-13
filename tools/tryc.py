@@ -160,7 +160,17 @@ def makefile_flags(src_rel):
             out.add("O1")
             hit = True
         if "COMMON2_CFLAGS" in recipe:
+            # COMMON2_CFLAGS makes TWO changes, not one:
+            #   $(subst -fcall-used-r4,-fcall-saved-r4,
+            #     $(filter-out -mthumb-interwork,$(GCC296_CFLAGS)))
+            # Recording only "no-interwork" lost the r4 substitution, and since
+            # -fcall-used-r4 means gcc never pushes r4, every common2 function
+            # whose ROM pushes r4 screened ~28 differing with the FIRST diff at
+            # index 0 (ref b570 push {r4,..} against ours b560 push {r5,..}).
+            # That is every common2 park, scored against a prologue it could
+            # never have produced.
             out.add("no-interwork")
+            out.add("call-saved-r4")
             hit = True
         # Every OTHER per-file flag group. These were invisible here until
         # three parked functions turned out to have been screened at the wrong
@@ -645,6 +655,8 @@ def main():
         cflags = cflags + ["-fno-rerun-cse-after-loop"]
     if "no-interwork" in adjust:
         cflags = [a for a in cflags if a != "-mthumb-interwork"]
+    if "call-saved-r4" in adjust:
+        cflags = ["-fcall-saved-r4" if a == "-fcall-used-r4" else a for a in cflags]
     # The newer per-file groups are recorded as the literal flag they add, so
     # they append directly. Anything already present (e.g. the user also passed
     # --no-sched2) is not added twice.
