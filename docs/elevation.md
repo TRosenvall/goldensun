@@ -19711,3 +19711,67 @@ afterwards keeps the tree order and emits the ROM's.
 
 > Any residue that is only the operand order of a commutative op on a pointer is
 > unreachable in pointer form. Move the arithmetic to integers.
+
+
+## "NAMING THE MASK IS CATASTROPHIC" IS TYPE-SPECIFIC, NOT A RULE ABOUT NAMING
+
+Batch 142 recorded that naming a mask rewrites the function. Measured on
+`CheckEquipmentCritBoost`:
+
+    int mask             47 differing
+    short mask           47 differing
+    unsigned short mask  EXACT
+
+The cause is the C front end's bitwise shortening. `unsigned short load &
+unsigned short mask` narrows to a **HImode** AND -- and that is what lets the ROM's
+TWO `ldrh` of the same slot survive, because the guard load is `(mem:HI)` while
+the call-argument load is `(zero_extend:SI (mem:HI))`: different value numbers, so
+CSE keeps both. With `int` or `short` the common type is `int`, the AND stays
+SImode, both loads become the same `zero_extend` expression, CSE folds them to one,
+and the allocator then takes r10 and drops a spill.
+
+> Match the mask's type to the loaded type's SIGNEDNESS and naming costs nothing.
+> Mismatch it and naming rewrites the function.
+
+## check_dbra_loop's ESCAPE ONLY FIRES IF THE HOIST HAPPENS IN THE SAME LOOP PASS
+
+The recorded entry -- "the `sub` after the hoisted constants means an upward `for`"
+-- is incomplete. `loop_optimize` runs TWICE, and inside one `scan_loop` the order
+is `move_movables` -> `strength_reduce` -> `check_dbra_loop`.
+
+On this function the ascending `for` DID reverse the loop, but in **pass 1**, while
+the movable only cleared its threshold in **pass 2** -- so the hoist landed BEHIND
+the synthesised init and the escape silently failed at 2 differing.
+
+Read `.08.loop` for BOTH passes. The failing signature is
+`Insn N: regno R (life 1) ... not desirable` plus `Reversed loop` in pass 1, then
+`(life 2) ... moved to ...` in pass 2. The matching one has the move and the
+reversal in pass 1 together.
+
+**Why the lifetime differs between passes -- the `has_call` "potential lossage"
+rule.** At loop.c:866-899, when a loop contains a call and an invariant pseudo has
+exactly one use, `scan_loop` substitutes the source into the use and turns the
+defining insn into `NOTE_INSN_DELETED`. But `m->lifetime` was already computed at
+the earlier insn, so pass 1 sees `lifetime == 1`. In pass 2 the leftover NOTE still
+consumes a luid -- `compute_luids` increments for every non-line note -- so the
+same register measures `lifetime == 2` and clears the bar.
+
+> A movable that is "not desirable" in pass 1 and moved in pass 2 is usually ONE
+> LUID short, and the missing luid is an insn the previous pass deleted.
+
+For this target `threshold = (has_call ? 1 : 2) * (1 + n_non_fixed_regs)` = 23,
+`savings` = 1, `insn_count` = 27: `23 * 1 * 1 < 27` fails and `23 * 1 * 2 >= 27`
+passes. The whole park hinged on one luid.
+
+And the two levers compose in a way worth stating: naming the mask is ALSO what
+supplies the extra luid, because the named variable leaves an in-loop copy whose
+live range already spans two luids in pass 1. So the recorded "give the value a
+real statement" escape works here not by removing the hoist but by **moving it one
+pass earlier**.
+
+Eliminated cleanly on this function: every condition spelling (`x & M`,
+`(x & M) != 0`, `(x & M) == M`, `!((x & M) == 0)`, mask-first) is byte-identical
+RTL, because `fold` canonicalises the constant to operand 1. And sched2 is not a
+lever here at all -- after reload the register-weight test is skipped, both insns
+have priority 0, zero in-block dependents and class 3, so `INSN_LUID` is the only
+discriminator and there is no non-LUID path to the swap.
