@@ -19590,3 +19590,55 @@ you were actually chasing is a measurement, not a candidate.
 -- the function lives in `ovl_30_c_a_c_a_a.s`. `tools/funcindex.py` resolves a
 function to its current file by name and is why the wrong path cost nothing; a
 park's recorded PATH is not evidence.)*
+
+
+## ONLY TAG IDENTITY SEPARATES ALIAS SETS -- A SHARED TAG IS WORTH NOTHING
+
+The recorded device says the pair must sit in "two distinct named alias sets". The
+sharpest statement of what that means, from `OvlFunc_882_2008d5c`, with everything
+else held fixed:
+
+| spelling | differing |
+|---|---|
+| both bytes plain `unsigned char` (the park) | 4 |
+| a tag on the first byte only | 4 |
+| a tag on the second byte only | 4 |
+| **ONE shared tag carrying BOTH bytes** | **4** |
+| **two DISTINCT tags** | **2** |
+
+A struct `COMPONENT_REF` takes the FIELD's alias set, and both fields are
+`unsigned char` -- so one tag holding both changes nothing at all. Adding an `int`
+member to that shared tag is also inert.
+
+> It is the TAG, not the struct-ness, and not the member types. Two accesses need
+> two different tags or the device does nothing.
+
+**And a trap that comes with it: ARM's `STRUCTURE_SIZE_BOUNDARY` is 32.** Typing a
+byte pointer as `struct FB *` with one `unsigned char` member makes `sizeof` **4**,
+not 1, so `f += 0x23` emits `adds r6, #140`. On this function that blew register
+pressure into r8 and took the candidate to 151 differing.
+
+> A struct tag adopted purely for its ALIAS SET must not be allowed to own the
+> pointer arithmetic. Cast at the USE SITE and keep the pointer `unsigned char *`.
+
+## THE CLASS TEST DECIDES BEFORE THE DEPENDENT-COUNT TIE-BREAK
+
+Read live from `.23.sched2` with `-fsched-verbose=5`. Two insns tie on priority at
+27. One is ANTI-dependent on the preceding store (class 2); the other is
+MEMORY-dependent on it at cost 2 (class 1). **Higher class wins before dependent
+count is consulted**, so the constant took the slot even though the load had five
+dependents to its two.
+
+`rank_for_schedule` is priority -> class -> dependent count -> LUID, and it is
+worth knowing that the class step can invert what the dependent-count step would
+have decided.
+
+## NAME WHICHEVER OPERAND THE ROM PUTS IN THE SECOND REGISTER
+
+Two adjacent byte read-modify-writes, one line apart, wanted OPPOSITE spellings.
+`q->f09 |= 0xc;` wants the LOADED BYTE named --
+`{ unsigned char t = q->f09; q->f09 = t | 0xc; }` is exact, and eleven other
+spellings all measure 2. The sister site one line below wants the CONSTANT named.
+
+> Do not look for one spelling for a repeated shape. Name whichever operand the
+> ROM puts in the SECOND register, per site.
