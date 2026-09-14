@@ -19551,3 +19551,42 @@ those two extra instructions move every block boundary after them.
 > An arm swap is not cosmetic. The fall-through arm inherits whatever the compare
 > left live, and a constant rebuilt from scratch is two instructions that displace
 > everything downstream.
+
+
+## BRANCH POLARITY: THE LEVER IS WHICH STATEMENT IS THE THEN ARM, NOT THE CONDITION
+
+`OvlFunc_965_200a6fc` parked at 2 of 29 on `bge L0 / b L2` against
+`blt L2 / b L0`, with the conclusion "no spelling of the CONDITION reaches it".
+That conclusion is false, and the reason is worth stating as a rule.
+
+All three parked attempts wrote the inner then arm as the RETURN:
+
+    if (d >= K) return;        ->  blt <call> / b <out>     2 of 29
+
+Writing the CALL as the inner then arm flips it:
+
+    if (d < K) goto call;      ->  bge <out> / b <call>     EXACT
+
+The condition, the constants, the operand order and the instruction count were all
+already right. Only the identity of the statement in the then arm mattered.
+
+> Before concluding "gcc normalises the pair in its jump optimiser", SWAP WHICH
+> STATEMENT SITS IN THE THEN ARM. This is the batch-261 result (*which arm is the
+> then arm decides what stays live*) generalised: there the swap decided liveness,
+> here it decides fall-through direction, at zero instruction cost.
+
+**And one route to it is a diagnostic that can never ship.** The recorded
+"put the call in every arm and cross-jump it" lever gets the polarity right
+immediately -- its residue is ONLY the unmerged duplicate `bl`, 8 of 29. That
+residue is unfixable, because **jump2 cross-jumping refuses to merge a tail ending
+in a call** (already recorded elsewhere in this file). So the duplicate-call form
+REVEALS the correct polarity and cannot deliver it; converting the duplicate into
+one call entered by `goto` keeps the polarity and drops the second `bl`.
+
+That is a useful shape in general: a lever that scores badly but fixes the thing
+you were actually chasing is a measurement, not a candidate.
+
+*(Bookkeeping: that park's header named `ovl_30_c_a_c_a.s`, which does not exist
+-- the function lives in `ovl_30_c_a_c_a_a.s`. `tools/funcindex.py` resolves a
+function to its current file by name and is why the wrong path cost nothing; a
+park's recorded PATH is not evidence.)*
