@@ -425,3 +425,6 @@ OvlFunc_890_2009ca8  src/overlays/rom_78b2ac/ovl_30_c_c_a_c_b_c.c
 OvlFunc_890_200a108  src/overlays/rom_78b2ac/ovl_30_c_c_a_c_b_c.c
 OvlFunc_common2_618  src/overlays/common/common2_c_c_c_c_c_c_c_c_c_c_a.c
 OvlFunc_882_2008d5c  src/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_c_c_a_c_c_c_c.c
+GetFlag  src/rom_77000/rom_79338_a.c
+SetFlag  src/rom_77000/rom_79338_a.c
+ClearFlag  src/rom_77000/rom_79338_a.c

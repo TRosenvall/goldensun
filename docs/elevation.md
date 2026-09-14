@@ -19775,3 +19775,56 @@ RTL, because `fold` canonicalises the constant to operand 1. And sched2 is not a
 lever here at all -- after reload the register-weight test is skipped, both insns
 have priority 0, zero in-block dependents and class 3, so `INSN_LUID` is the only
 discriminator and there is no non-LUID path to the swap.
+
+
+## THE FLAG-ACCESSOR FAMILY: THE BLOCKER IS combine_regs, AND IT NEEDS TWO DIFFERENT CURES
+
+This file opens by recording that the FIRST batch attempted on this project took
+five small flag accessors and matched none of them. `GetFlag`, `SetFlag` and
+`ClearFlag` are now closed, and the blocker was never "which register the shift
+lands in".
+
+**The mechanism is `combine_regs` in local-alloc.c.** `*thumb_ashlsi3` has two
+alternatives, so `must_match_0` stays -1 and `n_matching_alts` != `n_alternatives`
+-- which means `block_alloc`'s tie loop does NOT skip operand 1. That operand
+carries a `REG_DEAD` note (the parameter's last use), so `combine_regs` ties the
+shift result into the parameter's quantity, which already holds
+`qty_phys_copy_sugg = r0` from the entry copy. The same tie then fires on
+`*thumb_lshrsi3` and pulls the byte index into the same quantity. Two ties, one
+quantity, one register -- hence the destructive `lsl r0, #0x14 / lsr r0, #0x17`.
+
+The ROM has the two values in different registers, so both ties failed in the
+original build. `combine_regs` refuses only when the insn has no `REG_DEAD`, or
+when `reg_qty` is -1 -- neither reachable from C in a straight-line accessor.
+
+> The cure is to break the two ties SEPARATELY and BY DIFFERENT MEANS. An empty
+> `asm volatile` reading the parameter AFTER the shift kills the first `REG_DEAD`;
+> making the byte index a HARD REGISTER kills the second, because `combine_regs`
+> returns 0 whenever the source is a hard reg. A pin and a barrier are not
+> interchangeable here -- each addresses one tie.
+
+**And the prerequisite is worth more than the pins: the AND's operand order.** The
+family's parked root cause blamed "the base address is materialised too early".
+That is a consequence. Writing `gFlags[i] & bit` puts the load first in the RTL and
+gcc hoists the whole address computation ahead of the mask -- 11 of 13 differing.
+Naming the loaded byte and writing `b & bit`, value first and mask second, restores
+the ROM's order and reaches 3 of 13 **with no pins at all**.
+
+> Read the AND's destination in the ROM to pick the operand order: `and r3, r2`
+> accumulates into the loaded byte, so the loaded byte is the first operand.
+
+Twelve shift/index spellings measured byte-identical to each other at 3 of 13,
+which confirms the family note's "the shift form is not separately reachable" and
+now explains it. Eight `-fno-` flags eliminated. The reload-scratch owner was
+excluded by reading the expander: `extzv` (arm.md:2535) makes a fresh pseudo, not a
+`match_scratch`, so there is no scratch to own.
+
+**A volatile asm is a sched2 barrier that pins a pool load to one side.** `SetFlag`
+and `ClearFlag` differ ONLY in where `ldr r1, =gFlags` lands. SetFlag's ROM has it
+before the shift, so the mask must be split into `bit = 1; bit <<= bp;` with the
+barrier between them; ClearFlag's has it after, so no split. Statement order alone
+is completely inert to this.
+
+**Sibling worth re-running:** `asm/rom_77000/rom_79338_c_a.s` holds five more
+byte/nibble accessors parked on the identical blocker. The two-tie break plus the
+value-first AND order should apply mechanically.
