@@ -19828,3 +19828,61 @@ is completely inert to this.
 **Sibling worth re-running:** `asm/rom_77000/rom_79338_c_a.s` holds five more
 byte/nibble accessors parked on the identical blocker. The two-tie break plus the
 value-first AND order should apply mechanically.
+
+
+## A PRIORITY-FLOOR WALL: WHEN BOTH ADJACENT-PAIR DEVICES HAVE NOWHERE TO ATTACH
+
+A new blocker class, distinct from the flippable tie, proved on
+`OvlFunc_957_2008a54` (parked at 3 of 48).
+
+> A store whose operands die in it and which has no in-block dependent has
+> `INSN_PRIORITY` **1** -- the floor -- because `add_branch_dependences` links it
+> to the block-ending branch with `REG_DEP_ANTI`, and `arm_adjust_cost` returns 0
+> for anti-dependences.
+
+That produces a two-sided contradiction. The ROM needs a load to win an earlier
+contest, which requires `p(shift) > p(store)`; and it needs the store to win a
+later one, which requires `p(store) > p(shift)`. No source emitting that
+instruction set in those registers can satisfy both.
+
+**What makes it a WALL rather than an unmeasured tie is that each recorded device
+is unreachable by construction:**
+
+* **The alias device** needs the store to be the PRODUCER of the new edge. Here the
+  conflicting read PRECEDES the store, so any memory conflict is an
+  anti-dependence at cost 0 and changes no priority. Reordering so the load could
+  depend on the store contradicts the ROM, which loads first.
+* **Promoting an anti-edge** needs an anti-edge. There is none: the store's
+  registers are untouched by everything after it, and nothing else touches memory.
+* **Adding a dependent** works mechanically, but the block ends at the first
+  compare -- so any dependent is a REAL extra instruction. Sinking a statement into
+  both arms cannot reach a block that PRECEDES the branch, and cross-jumping only
+  merges block TAILS.
+
+> Before spending a round on an adjacent pair, check that the device you intend has
+> somewhere to attach. A first-block store ahead of the first branch has nowhere.
+
+## A LITERAL STORED TO A vu16 NEVER REACHES THE SHIFTABLE-CONSTANT SPLIT
+
+Thumb's `movhi` expander does `force_reg (HImode, operands[1])` for a store to
+memory, so `REG_BLDCNT = 0x3f42` materialises the constant in **HImode** and comes
+out as a 4-byte `ldrh` from the pool. Only an SImode `(set (reg) (const_int))`
+reaches `*thumb_movsi_insn`'s `K` alternative -- the `define_split` that emits a
+`mov`/`lsl` pair -- and because `I`/`K` precede the pool alternative, SImode also
+turns a large constant into the ROM's 2-byte `ldr rN, =CONST`.
+
+> So a ROM that builds a HALFWORD store's value with `mov`+`lsl` is telling you the
+> value came from an `int` LOCAL, not from a literal in the store.
+
+Worth 45 -> 3 on that function; `int` on only one of the two stores is 7.
+
+## WHEN A ROM SPLITS A define_split PAIR, THAT IS PROOF SCHED2 RAN
+
+`mov r2,#0x80` and `lsl r2,#5` are two adjacent insns produced by ONE
+`define_split` at `.19.flow2`. If the ROM has an unrelated insn BETWEEN them,
+nothing but sched2 can have put it there.
+
+That retires `-fno-schedule-insns2` as an option for that function without needing
+to score it -- and on `2008a54` scoring it is actively misleading, because the flag
+makes the contested block exact while collapsing six other arms (their pre-sched
+order lets cross-jumping merge a load and store out of all six).
