@@ -428,3 +428,8 @@ OvlFunc_882_2008d5c  src/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_c_c_a_c_c_c_c.c
 GetFlag  src/rom_77000/rom_79338_a.c
 SetFlag  src/rom_77000/rom_79338_a.c
 ClearFlag  src/rom_77000/rom_79338_a.c
+GetFlagByte  src/rom_77000/rom_79338_c_a.c
+SetFlagByte  src/rom_77000/rom_79338_c_a.c
+IncFlagByte  src/rom_77000/rom_79338_c_a.c
+DecFlagByte  src/rom_77000/rom_79338_c_a.c
+GetFlagNybble  src/rom_77000/rom_79338_c_a.c

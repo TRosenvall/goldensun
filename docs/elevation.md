@@ -19886,3 +19886,48 @@ That retires `-fno-schedule-insns2` as an option for that function without needi
 to score it -- and on `2008a54` scoring it is actively misleading, because the flag
 makes the contested block exact while collapsing six other arms (their pre-sched
 order lets cross-jumping merge a load and store out of all six).
+
+
+## A COPY IN THE ROM CAN BE A CSE ARTIFACT, NOT A SOURCE VARIABLE
+
+`IncFlagByte`'s ROM loads into r2, copies to r3, compares the copy, then adds from
+r2. That reads unmistakably like two named locals. It is not.
+
+Every two-name spelling has the copy coalesced away. **Reading the location THREE
+TIMES and naming nothing is exact** -- cse1 makes the single load and leaves the
+copy behind:
+
+    if (p[i] <= 0xfe)
+        p[i] = p[i] + 1;
+    return p[i];
+
+Measured: no locals **EXACT**; `unsigned char v` 7; `unsigned int v, w` 7; a named
+result as well 13 and two instructions long; early-return form 10; assigning back
+through the index 7. The sibling `DecFlagByte` is the same shape and closed on the
+same spelling with no further work.
+
+> A redundant-looking `mov` between a load and its use is evidence of ONE source
+> expression read more than once, not of two variables. Try naming LESS before
+> naming more.
+
+(The comparison must also be unsigned -- the ROM's `bhi` against a signed `bgt` is
+one of the seven.)
+
+## ONE PIN LOAD-BEARING, A SECOND PIN HARMFUL, IN THE SAME FUNCTION
+
+`GetFlagNybble` needed its base pointer pinned: unpinned, gcc hoists the pool load
+ahead of the index computation and puts it in the wrong register, 8 differing;
+pinned, 2.
+
+The remaining two were the first two instructions swapped -- a cheap `mov r1, #4`
+hoisted above the `lsl`. Pinning the shift variable to r1 measures **10, worse than
+doing nothing**. Moving the existing barrier to sit BETWEEN the shift and the mask
+constant is exact.
+
+    base pointer pinned + barrier after the shift    EXACT
+    ... plus the shift variable pinned               10
+
+> The recorded "try the bare pin first" rule is about reaching for a pin before a
+> barrier. It does NOT mean a second pin is the next thing to try once one pin is
+> already in place -- and barrier PLACEMENT is a separate lever from barrier
+> presence.
