@@ -19642,3 +19642,72 @@ spellings all measure 2. The sister site one line below wants the CONSTANT named
 
 > Do not look for one spelling for a repeated shape. Name whichever operand the
 > ROM puts in the SECOND register, per site.
+
+
+## "RIGHT SHAPE, TWO HARD REGISTERS EXCHANGED" IS AN ALLOCNO-PRIORITY TIE
+
+`Func_80170c4`'s park was labelled "a copy elided at a shared exit" -- and the
+label was CORRECT as a description of the symptom. It was still a dead end as a
+lever selector, because the problem was never cross-jumping. The park's own second
+attempt already reproduced the ROM's shared exit exactly, 24 lines against 24, with
+every block boundary in place; its "8 differing" was ONE defect counted eight
+times, r4 and r5 exchanged.
+
+`global.c:allocno_compare` sorts by `floor_log2(n_refs) * n_refs / live_length`
+descending and hands out `REG_ALLOC_ORDER` in that order. Read off `.17.lreg` /
+`.18.greg`:
+
+| | pointer pseudo | the other pseudo | result |
+|---|---|---|---|
+| separate intermediate local | 5 refs / 14 = **0.714** | 4 refs / 12 = 0.667 | pointer->r4 -- wrong |
+| parameter reassigned instead | 5 refs / 16 = 0.625 | 4 refs / 11 = **0.727** | pointer->r5 -- ROM |
+
+Deleting the intermediate local and reassigning the PARAMETER collapses two
+pseudos into one, which LENGTHENS the pointer's live range 14->16 and SHORTENS the
+other's 12->11. Same reference counts, opposite verdict.
+
+> When a residue is "the right shape with two hard registers exchanged", it is an
+> allocno-priority tie. The levers are REFERENCE COUNT and LIVE LENGTH, not
+> control flow. Four spellings that changed neither number all stayed at 8.
+
+## A TERNARY IS ONE INSTRUCTION SHORTER THAN A DIAMOND
+
+`*p = c ? A : B;` makes gcc hoist the then-arm's pool load above the `cmp` and
+conditionally overwrite it -- four instructions. The ROM has a real diamond, five:
+`cmp / beq / ldr / b / ldr`.
+
+Writing `if (c) *p = A; else *p = B;` puts the identical store in both arms, and
+**jump2 cross-jumping merges them back**, reconstructing the diamond at zero cost.
+Four sites, exactly four instructions, on `Func_80170f8`: 105 -> 7.
+
+The companion move is cheaper than the recorded "add a dependent" lever: with
+`p++` after the join, sched2 picked the wrong insn because the other chain had the
+longer critical path. Putting `p++` inside BOTH arms moves it out of the contested
+block entirely, and cross-jumping merges it for free. 7 -> 0.
+
+> You do not need an artificial dependent if you can move the insn OUT of the
+> contested block.
+
+## WRITE THE MULTIPLY; DO NOT HAND-ROLL THE ACCUMULATOR
+
+A running `t += h - 2` is reassociated by `fold` to `(t + h) - 2`, which frees the
+`-2` from the loop-invariant set and costs two insns per iteration
+(`add r3,r0,r7 / sub r0,r3,#2`) against the ROM's one. Writing the index expression
+out as a multiply and letting `loop.c` strength-reduce it hoists the invariant into
+the inner preheader exactly as the ROM does.
+
+On `Func_8017248` that was 121 differing -> 12, **and it also fixed a spill to
+`[sp]` and a `mov r14, r3`** -- those were downstream register-pressure effects of
+the hand-rolled accumulator, not independent defects.
+
+## OPERAND ORDER IN A COMMUTATIVE add IS SET BY THE C FRONT END
+
+`c-typeck.c:build_binary_op` rewrites `int + pointer` to `pointer + int`. So a ROM
+`add r5, r3, r2` with the offset first is **unreachable while the expression is
+written as pointer arithmetic** -- no pointer spelling produces it.
+
+Writing the address as plain integer arithmetic and casting to the pointer
+afterwards keeps the tree order and emits the ROM's.
+
+> Any residue that is only the operand order of a commutative op on a pointer is
+> unreachable in pointer form. Move the arithmetic to integers.
