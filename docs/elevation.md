@@ -19931,3 +19931,30 @@ constant is exact.
 > barrier. It does NOT mean a second pin is the next thing to try once one pin is
 > already in place -- and barrier PLACEMENT is a separate lever from barrier
 > presence.
+
+
+## A STALE PARK IS FINDABLE MECHANICALLY: ITS SUBJECT RESOLVES TO kind="c"
+
+Batch 258 counted 24 park files describing already-elevated functions, from the
+arithmetic 519 files -> 489 distinct subjects -> 465 still in `asm/`. Counting them
+is not the same as finding them. `tools/funcindex.py` does both, and the check is
+three lines:
+
+    idx = funcindex.index(force=True)
+    s   = funcindex.park_subject(park)
+    if idx.get(s, {}).get("kind") == "c":  # already elevated -> stale
+
+The mechanism is that `_build()` marks a name `kind="c"` when the `.s` defining it
+has a `.c` sibling -- and after a function is elevated, its `.s` is regenerated
+from that `.c`, so the symbol arrives via `.type NAME,function` instead of
+`.thumb_func_start`. **A park whose reference `.s` holds ZERO `.thumb_func_start`
+is the tell**, and it is what surfaced the first of these.
+
+31 park files were retired this way, covering 29 distinct subjects, every one
+verified present in a linked ELF before deletion. Nine of the 31 had gone stale in
+the preceding two batches -- so this is not a one-off cleanup but a **standing
+check worth running after any batch**, especially one that closes a family.
+
+> Do not reason from a park file without checking that its subject is still in
+> `asm/`. The note can be perfectly accurate about a function that no longer needs
+> it.
