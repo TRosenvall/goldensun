@@ -20939,3 +20939,59 @@ out by hand.
 `asm/<stem>.s` from the `.c` at its original name; after the `.c` moved to the
 `_a` stem, that file was left behind, referenced by nothing, and committed. Check
 `git status` for a generated `.s` whose `.c` no longer exists.
+
+
+## `s8` IS UNSIGNED IN THIS TREE -- SPELL `signed char` FOR AN `ldrsb`
+
+`include/gba/types.h` has `typedef char s8;` and Camelot's code is built with
+`__CHAR_UNSIGNED__`, so **`s8` gives `ldrb`**. A field the ROM reads with
+`ldrsb` needs `signed char` written out.
+
+    s8 f1;            ->  ldrb  r3, [r6, #1]
+    signed char f1;   ->  mov r3, #1 / ldrsb r3, [r6, r3]     (the ROM)
+
+Worth 35 differing of 70 on `InitAnimContext`, and two instructions of length,
+because the sign extension changes the loop's comparison too.
+
+> This is a trap in the OPPOSITE direction to the usual one. The type is NAMED
+> `s8`, so it reads as signed at every glance; the header even documents the
+> choice, and the `M4A_SIGNED_CHAR` branch beside it is the reminder. Whenever a
+> byte field feeds a comparison, check the ROM's load form before choosing the
+> type -- `ldrb`/`ldrsb` is the only evidence, and `s8` is not it.
+
+## USE THE TREE'S STRUCTS -- A HAND-ROLLED ONE REPRODUCES OFFSETS BUT NOT TYPES
+
+`Sprite_AddLayer` sat at 2 differing of 70 through every spelling of one
+statement: the ROM loaded a halfword field one slot earlier than we did, which
+read as an unreachable sched2 placement.
+
+It was not. `src/rom_9000/rom_b798_c_a_a_a.c` -- a **file-mate** -- already
+defines `struct SpriteHost`, `struct SpriteInfo` and `struct SpritePart` with
+real field names and types. My hand-rolled version had the right OFFSETS and the
+wrong TYPES: `*(u16 *)(info + 2)` where the tree has `u16 unk_02`. Adopting the
+existing definitions is exact.
+
+**gcc schedules a typed field load differently from a cast dereference.** A
+struct of `u8 padNN[]` plus casts is not equivalent to the real thing, even when
+every offset matches.
+
+CLAUDE.md already says to check `docs/structs.md` before inventing a struct.
+This is what it buys, and the cost of skipping it is a residue that looks like a
+compiler wall.
+
+## READ PAST THE FORMATTING WHEN DIFFING TWO INSTRUCTION STREAMS
+
+A side-by-side diff of a generated `.s` against a hand-disassembled one is
+mostly noise:
+
+    ldr r2,[r6,#0x58    |    ldr r2,[r6,#88]        hex against decimal
+    and r3,r2           |    and r3,r3,r2           two-operand against three
+    ldr r3,=0xfff       |    ldr r3,.L12            pool spelling
+
+On `InitAnimContext` eleven of twelve diff lines were formatting and accounted
+for **none** of the differing encodings. The twelfth -- `lsr` against `asr` --
+was the whole residue.
+
+Normalise before comparing (`sed 's/,[[:space:]]*/,/g'` and reading the mnemonic
+only), or work from `objcmp --show`'s encoding indices. Otherwise a two-encoding
+residue looks like a rewrite.
