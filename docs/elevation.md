@@ -20187,3 +20187,59 @@ re-derivation.
 Note also that `tools/elevation_candidates.py`'s "blocked by" column is about
 screening predictors, NOT about whether a park exists. It is not a proxy for
 "unattempted".
+
+
+## A NO-OP `else` ARM SURVIVES -- A COUNTER-EXAMPLE TO "NO SPELLING REINTRODUCES A REDUNDANT INSTRUCTION"
+
+Three parks cited the standing rule that *where the ROM contains a provably
+redundant instruction, no source spelling reintroduces it*. All three were wrong,
+and the counter-example is small.
+
+`GetEnemyAttackAnimParam`'s fallback value is 0, so `else r = 0;` is semantically a
+no-op. Every spelling that lets gcc SEE it as one is deleted outright and lands
+four instructions short (13 of 17):
+
+    if (v == 0) v = 0;              deleted
+    if (v == 0) return 0; return v; deleted
+    v ? v : 0                       deleted
+
+Written as the `else` arm of a two-armed `if` it SURVIVES, because the arms are
+separate assignments to a block-spanning variable and nothing merges them before
+allocation.
+
+> The rule holds for an instruction gcc can prove redundant WITHIN one expression.
+> It does not hold across two arms of a branch: the arms are separate assignments
+> and the redundancy is only visible after they are joined, which is after
+> allocation.
+
+## THE STATEMENT-LEVEL-BRANCH LEVER HAS TWO SHAPES, AND THE ROM SAYS WHICH
+
+The recorded entry gives only `v = ...; if (v) return 1; return 0;`. Three
+functions in one file needed BOTH shapes, and picking the wrong one costs
+instructions in a way that reads like a different blocker.
+
+**Initialise then override** -- `r = 0; if (cond) r = 1;` -- when the ROM sets the
+CONSTANT FIRST (`mov r1,#0 / cmp / beq / mov r1,#1 / mov r0,r1`). Because `r` is
+written in two blocks it is a global-allocator quantity, takes r1, and the closing
+`mov r0,r1` is real rather than noise.
+
+**Explicit two-armed else** -- `if (v != 0) r = v; else r = FALLBACK;` -- when the
+ROM sets the VARIABLE FIRST (`mov r0,r3 / cmp r3,#0 / bne / mov r0,#1`). The other
+spellings fail measurably: initialise-then-override emits the constant before the
+compare, and `r = v; if (v == 0) r = FALLBACK;` lets gcc coalesce `r` with `v` and
+DROPS the ROM's `mov r0,r3` entirely (17 of 19). Only the two-armed form keeps `v`
+live in its own register across the compare -- that copy IS the separation.
+
+> Read which of the two the ROM writes first, the constant or the variable, and
+> pick the shape from that.
+
+Also measured there: a mask written **in an `if` condition** survives, where the
+same mask as `(b & 1) != 0` in a `return` is rewritten to `lsl #31 / lsr #31` --
+which was the five-instruction shortfall one of those parks had recorded without
+identifying.
+
+And a free win worth repeating: declaring a packed record as a **struct with
+bitfields** and indexing it gave the ROM's `ldr r3 / lsl r2 / add r2,r3` where
+pointer arithmetic on `unsigned char *` gave `ldr r2 / lsl r3 / add r3,r3,r2`. One
+struct served all three functions with no hand-written shifting, and the field
+widths fell straight out of the ROM's three extractions.
