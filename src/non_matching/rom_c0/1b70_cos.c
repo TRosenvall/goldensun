@@ -1,4 +1,4 @@
-/* cos and sin  --  0x08002322 and 0x0800232a, asm/rom_c0/rom_1b70.s
+/* cos  --  0x0800231c, asm/rom_c0/rom_1b70.s
  *
  * BLOCKER CLASS: HAND-WRITTEN ASSEMBLY. Not a codegen problem. Do not screen
  * these, and do not spend a round on them.
@@ -31,6 +31,9 @@
  * size and shape and knows nothing about hand-written code, so without a park
  * file it will keep offering them at the top of every candidate list. That is
  * the whole purpose of this file.
+ *
+ * `sin` HAS ITS OWN PARK at 1b70_sin.c -- park_subject() returns one subject
+ * per file, so a single park covering both would leave `sin` reading as cold.
  *
  * SEE ALSO src/non_matching/rom_c0/2dd8.c, which proves the same thing about
  * gfree/free two files away by a different and cheaper route -- a literal pool
