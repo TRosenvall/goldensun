@@ -21111,3 +21111,41 @@ short until all three were named.
 
 **The tell is a load into a register that is then only moved to r0..r3.** It is
 easy to read as noise.
+
+
+## find_reg NEVER TAKES A FRESH REGISTER IN PASS 0 -- WHICH IS WHY ROTATIONS RESIST SPELLING
+
+`global.c`'s `find_reg` runs two passes over `REG_ALLOC_ORDER`, and pass 0 is
+set up like this:
+
+    COPY_HARD_REG_SET (used, used1);
+    IOR_COMPL_HARD_REG_SET (used, regs_used_so_far);
+    IOR_HARD_REG_SET (used, allocno[num].regs_someone_prefers);
+
+`IOR_COMPL_HARD_REG_SET(used, regs_used_so_far)` marks **everything not yet
+used** as unavailable. The comment says it outright: *"we never allocate a
+register for the first time in pass 0"*.
+
+So gcc first tries to pack an allocno into a register the function is ALREADY
+using, and only reaches a fresh one in pass 1. **Which registers a function ends
+up spread across is therefore decided by the ORDER allocnos are processed** --
+`allocno_compare`, priority then allocno number -- not by anything the
+statements say.
+
+That is why a whole-function register rotation resists source spelling. Three
+functions this session ended there with five-plus competing values
+(`GetLocationName`, `UpdateScreenEdge_V`, `Func_80f6038`), and between them
+roughly fifteen spellings moved nothing.
+
+`allocno_compare`'s formula is the local-alloc one with the size factor moved:
+
+    floor_log2 (n_refs) * n_refs / live_length * 10000 * size
+
+-- `size` MULTIPLIES after the division here, where `local-alloc.c` has it
+inside the numerator before dividing.
+
+> **The practical consequence is a targeting rule, not a lever.** A function
+> whose ROM prologue saves NO high registers has few enough live values that
+> this never arises. `mov rN, r8` / `push` before the body is the tell, and it
+> is visible in the first three lines of the `.s`. Prefer targets without it
+> until someone finds a handle on the processing order.
