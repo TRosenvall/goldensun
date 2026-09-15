@@ -49,7 +49,7 @@ SECTIONS {
 	.data : {
 		asm/overlays/rom_7b8cb0/ovl_30_c_c_c_c_c_c_c_c_c_c_c_b.o(.data)
 		asm/overlays/rom_7b8cb0/ovl_30_c_c_c_c_c_c_c_c_c_c_c_c_b.o(.data)
-		asm/overlays/rom_7b8cb0/ovl_30_c_c_c_c_c_c_c_c_c_c_c_c_c.o(.data)
+		asm/overlays/rom_7b8cb0/ovl_30_c_c_c_c_c_c_c_c_c_c_c_c_c_a.o(.data)
 	} > overlay
 
 	/DISCARD/ : {
