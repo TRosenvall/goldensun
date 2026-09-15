@@ -21149,3 +21149,48 @@ inside the numerator before dividing.
 > this never arises. `mov rN, r8` / `push` before the body is the tell, and it
 > is visible in the first three lines of the `.s`. Prefer targets without it
 > until someone finds a handle on the processing order.
+
+
+## `.18.greg`'s "N regs to allocate" LIST IS THE PROCESSING ORDER, NOT JUST A COUNT
+
+    ;; 10 regs to allocate: 40 38 41 39 36 124 34 35 33 32
+
+The pseudos are printed **in the order global_alloc will process them** -- the
+result of `allocno_compare`, priority first and allocno number as the tie-break.
+Read with `.15.regmove` (which names each pseudo: `(set (reg/v:SI 32) (reg:SI 0
+r0))` is the first parameter) it tells you exactly which value gcc places first
+and therefore which gets the earlier slot in `REG_ALLOC_ORDER`.
+
+That is the handle for the register-rotation class. Combined with find_reg's
+pass-0 rule -- gcc only takes a register it is *already using* in pass 0 -- the
+final assignment is a function of this order and nothing in the statements.
+
+**Five size-exact parks now sit on it**, which is the useful summary: the
+readings are right and only the allocation differs.
+
+| function | instructions | differing |
+|---|---|---|
+| `Func_80165d8` | 74 = 74 | 30 (three single-use parameters) |
+| `Func_80f6038` | 52 = 52 | 40 (seven values) |
+| `GetPortrait`  | 60 = 60 | 51 (index vs pointer) |
+| `GetLocationName` | 63 vs 61 | bracketed to two |
+| `Sprite_SetAnim` | 83 vs 77 | index vs pointer |
+
+`Func_80165d8` is the smallest specimen -- THREE values, one use each, nothing
+else competing -- and is the right place to test a hypothesis first.
+
+## A TARGETING FILTER FOR THE CURRENT POOL
+
+A function whose ROM prologue saves NO high register has few enough live values
+that the rotation class never arises. The tell is `mov rN, r8` (or r9/r10/r11)
+before the `push`, in the first three lines of the `.s`.
+
+Applied to the cold candidate list it leaves **5 of 49**. That number is the
+honest state of the main-ROM pool: what remains is dominated by functions whose
+residue is allocator behaviour rather than anything the source says, and picking
+without the filter means picking into that class.
+
+> Thumb `strh` and `strb` cannot take a high register, so a value the ROM parks
+> in r8..r12 needs a `mov` to a low register before every narrow store. That is
+> why a rotation involving one high register moves far more encodings than the
+> rotation itself -- on `Func_80165d8`, thirty for one decision.
