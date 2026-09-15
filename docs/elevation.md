@@ -20995,3 +20995,57 @@ was the whole residue.
 Normalise before comparing (`sed 's/,[[:space:]]*/,/g'` and reading the mnemonic
 only), or work from `objcmp --show`'s encoding indices. Otherwise a two-encoding
 residue looks like a rewrite.
+
+
+## `i != N` RATHER THAN `i < N` DECIDES THE EXIT TEST **AND** STRENGTH REDUCTION
+
+    for (i = 0; i < 6; i++)     add r6,#1 / cmp r6,#5 / ble
+                                and `i + 0x80` becomes a SECOND induction
+                                variable (`add r5, r5, #1`)
+
+    for (i = 0; i != 6; i++)    add r6,#1 / cmp r6,#6 / bne
+                                and `i + 0x80` is RECOMPUTED in the body
+                                (`mov r5, r6 / add r5, #0x80`)  -- the ROM
+
+The exit test is the obvious half and is easy to spot. **The second is not**,
+and it is the reason this is worth a section: with the `<` bound gcc strength-
+reduces a derived value into its own IV; with the `!=` bound it leaves it an
+ordinary expression recomputed each iteration -- which COSTS an instruction per
+iteration, so it never looks like the optimisation you are missing.
+
+On `Func_80d6750` one loop bound was worth four encodings across two loops and
+closed the function.
+
+**Read the ROM's exit test before writing the loop.** `cmp rX, #N / bne` against
+`cmp rX, #N-1 / ble` is the whole tell, and it is visible without any dumps.
+
+Inert on that function: `unsigned int i`, the derived value named in its own
+local, both together. Worse: `do { } while (i != N)` is four bytes short (the
+rotation drops the entry test), and `(i | 0x80)` for `i + 0x80` is eight bytes
+long -- gcc rebuilds the constant in the body instead of adding it.
+
+## AN INPUT REGISTER'S CLOBBER DECIDES WHETHER A CONSTANT IS COMMONED
+
+`include/dma.h`'s `DMA3_SET` binds the transfer count to **r2 as an input** and
+clobbers only `"memory", "r0"`. Two calls with the same count therefore share
+one pool load, because gcc knows r2 survives the asm:
+
+    rom    ldr r1,=0x6004000 / ldr r2,=0x85001000 / stmia r3!,{r0,r1,r2}
+    ours   ldr r1,=0x6004000 /                      stmia r3!,{r0,r1,r2}
+
+Adding `"r2"` to that clobber list reproduces the ROM's second load exactly.
+**Measured tree-wide: DMA3_SET is used by 29 files, and rebuilding all of them
+with the widened clobber leaves `make compare` GREEN** -- no matched function
+depends on the narrower list.
+
+> The change is **not** in the tree, deliberately. It completes no function on
+> its own -- `Func_80d67dc` still ends two encodings out -- and declaring an
+> INPUT register clobbered is a fiction about the asm, not a fact about the
+> hardware. Shipping a shared header on that basis for no landing is not worth
+> it. The measurement is recorded in
+> `src/non_matching/rom_c9000/80d67dc.c` so whoever closes the last two can make
+> the change with the evidence already in hand.
+
+**The general point survives the specific case:** when a constant that the ROM
+reloads is commoned in your output, look at what the surrounding inline asm
+claims to clobber before looking at the C.
