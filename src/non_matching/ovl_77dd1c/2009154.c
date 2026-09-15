@@ -1,4 +1,31 @@
-/* OvlFunc_882_2009154  --  0x02009154   PARKED
+/*
+ * ### BATCH 264 -- THREE MORE ELIMINATIONS. The reload-alternative wall holds.
+ *
+ * Re-measured from the shipped body: still 2 of 160, unchanged.
+ *
+ * The obvious reading of the residue is that the ROM accumulates INTO r8
+ * (`mov r8, r0` then `add r8, r2`) where we compute into r2 and move
+ * (`add r2, r2, r0` then `mov r8, r2`) -- i.e. the batch-259 compound-assignment
+ * shape, where each step must be a compound assignment on ONE variable to get
+ * the destructive two-operand form. It is not reachable that way:
+ *
+ *     t = p + 0x23;                                    2  (the shipped form)
+ *     t = p; t += 0x23;                                2  gcc folds them back
+ *     t = p; t = t + 0x23;                             2  likewise
+ *     t = p; asm volatile("":"+r"(t)); t += 0x23;      2  the separator is inert
+ *     t = p; asm volatile("":: "r"(t)); t += 0x23;     2  likewise
+ *
+ * That is consistent with this note's own finding below -- the blocker is
+ * reload's alternative selection, where the low-register and high-register
+ * alternatives each cost two reloads and reload takes the earlier one. A source
+ * form that separates the two statements cannot change which alternative reload
+ * picks, because the choice is made after the statements have been folded.
+ *
+ *   The compound-assignment lever works where the ACCUMULATOR is a pseudo gcc
+ *   may keep in one register. It does not reach a case where the register class
+ *   itself is what reload is choosing.
+ *
+ * --- original note follows ---
  *   [asm/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_c_c_c_a_c.s, 2nd of 2]
  *
  * BLOCKER CLASS: AN INSTRUCTION gcc-2.96 CANNOT EMIT.

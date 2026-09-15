@@ -1,4 +1,50 @@
-/* OvlFunc_898_2008e0c  [ovl_793768]
+/*
+ * ### BATCH 264 -- THE SCHEDULING FAMILY IS RULED OUT BY MEASUREMENT.
+ *
+ * Still 2 of 44, same length, and the residue is unchanged: two cheap constant
+ * arguments swapped at the ONE call that follows the if/else-if/else join.
+ *
+ *     rom   mov r0, #0x13 / mov r1, #0
+ *     ours  mov r1, #0    / mov r0, #0x13
+ *
+ * The same argument pair at the EARLIER __MapActor_SetAnim call, inside the
+ * first arm, comes out correct -- so this is about the join, as the class said.
+ *
+ * WHAT IS NEW: -fno-schedule-insns2 IS INERT (still 2). The swap is therefore
+ * NOT sched2 -- the two movs are emitted in that order before scheduling ever
+ * runs. That rules out the whole adjacent-pair toolkit at a stroke: the alias
+ * device, promote-the-producer and add-a-dependent all operate on sched2's
+ * ready list, and there is no sched2 decision here to influence.
+ *
+ * MEASURED AND INERT AT 2 (eighteen spellings):
+ *   named slot local assigned at the call            named slot initialised at top
+ *   slot used at BOTH call sites                     slot + named zero, both sites
+ *   named zero only (9, WORSE)                       slot + zero, this site only
+ *   no prototype                                     int return type
+ *   u8 first parameter                               explicit return after the call
+ *   PIN pair r0 then r1                              PIN pair r1 then r0
+ *   -fno-schedule-insns2                             (all 2 unless noted)
+ * WORSE: a third argument 9; deriving the zero from *p 9; sinking the call into
+ * all three arms 27 and three instructions long -- cross-jumping does NOT merge
+ * it, because the arms differ before the call.
+ *
+ * The pin pair is worth noting specifically. Batch 260 established that a cheap
+ * constant argument cannot be repositioned alone but CAN as a pair -- that case
+ * had one SHIFTED argument, which precompute_register_parameters hoists, giving
+ * the pin something to be ordered against. Here BOTH arguments are cheap
+ * (0x13 and 0, each below 256, each rtx_cost 0), so neither is precomputed, the
+ * pinned assignments are coalesced into the argument stores, and the pin has
+ * nothing to act on. Confirmed by reading the generated .s: the pinned form is
+ * instruction-identical to the unpinned one.
+ *
+ *   The pin-pair lever needs ONE EXPENSIVE ARGUMENT. Two cheap arguments are a
+ *   different shape and it does not reach them.
+ *
+ * NEXT: the question is what makes expand_call emit the pair in argument order
+ * at one site and reverse order at another in the same function. Reading the
+ * .00.rtl for both call sites side by side is the unspent step.
+ *
+ * --- original note follows ---
  *
  * Source asm: goldensun/asm/overlays/rom_793768/ovl_314_c_c_c_a_a_c_c.s
  *
