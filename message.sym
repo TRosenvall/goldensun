@@ -12,6 +12,13 @@ _MSG_19 = 0x19;
 _MSG_1a = 0x1a;
 
 /* shiftable __MessageID IDs (named by value; pending semantic names) */
+/* _MSG_b20 -- Func_80a15f0 passes it to _Func_801e7c0 beside 0xb1c and
+ * 0xb1d, which gcc pools on its own because they are not shiftable. 0xb20
+ * IS shiftable (0xb2 << 4), so gcc builds it with `mov r0,#178 / lsl r0,#4`
+ * and the ROM's single `ldr r0, =0xb20` is one instruction shorter -- the
+ * pool tell, in the exact shape this section exists for. The two literal
+ * neighbours in the same function are the internal control. */
+_MSG_b20 = 0xb20;
 _MSG_b33 = 0xb33;
 _MSG_c7b = 0xc7b;
 _MSG_c9b = 0x0c9b;
