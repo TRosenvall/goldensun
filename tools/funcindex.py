@@ -257,9 +257,13 @@ def park_for(name, force=False):
     """
     global _PARKMAP
     if _PARKMAP is None or force:
+        # Refresh the index ONCE, then build the map against it. Passing force
+        # down into every park_subject call re-walks asm/ and src/ per park
+        # file -- 470 full directory walks, minutes instead of seconds.
+        index(force)
         _PARKMAP = {}
-        for p in parks(force):
-            subj = park_subject(p, force)
+        for p in parks():
+            subj = park_subject(p)
             if subj:
                 _PARKMAP.setdefault(subj, []).append(p)
     return _PARKMAP.get(name, [])

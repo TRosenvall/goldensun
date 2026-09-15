@@ -435,3 +435,5 @@ DecFlagByte  src/rom_77000/rom_79338_c_a.c
 GetFlagNybble  src/rom_77000/rom_79338_c_a.c
 ModifyHP  src/rom_77000/rom_77320_c_c_c_a.c
 ModifyPP  src/rom_77000/rom_77320_c_c_c_a.c
+Func_80198dc       src/rom_15000/rom_1908c_c_a_c_c_b.c
+Func_8019d0c       src/rom_15000/rom_1908c_c_c_b_b.c
