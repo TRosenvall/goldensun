@@ -1,3 +1,22 @@
+/*
+ * ### BATCH 267 -- THE MULTIPLY READING IS CONFIRMED, AND A SIBLING PARK WAS WRONG.
+ *
+ * The note below ends "the multiply is `r * (x + c * 2)` with r first, because
+ * Thumb's two-operand `mul` puts the result in the first operand's register."
+ * That is now confirmed exact in two siblings: Func_8079c30 and Func_8079c5c
+ * both close on `r * a * c`, with the call's result LEFTMOST, and both are
+ * elevated. Their shared park (rom_77000/rom_79c30.c) had concluded the
+ * opposite -- "nothing at the expression level ... a compiler difference rather
+ * than a source one" -- after four probes that all put the result on the RIGHT.
+ * It is retired.
+ *
+ * So this file's remaining blocker really is the argument-setup order and the
+ * two-operand subtract, and not the multiply. Re-measured this batch at 15 of
+ * 26 with the candidate below; prototype variations on Func_8079b24 (int vs
+ * void), binding the fourth argument into a local before the clamp, and the
+ * clamp written as a ternary are all INERT at 15.
+ */
+
 /* Func_8079bf8  --  0x08079bf8, asm/rom_77000/rom_79460_c_c_c_c_a_c_c_a_a.s
  *
  * BLOCKER CLASS: argument setup order plus a two-operand subtract.
