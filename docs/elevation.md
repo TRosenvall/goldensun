@@ -20006,3 +20006,31 @@ and closed on the same one-line change.
 
 > Identical score AND identical shape counts AND the same file is a twin tell.
 > Write one, and the second is a copy with the offsets changed.
+
+
+## WHICH CONSTANT GETS WHICH REGISTER IS DECIDED BY WHAT IS STILL UNFINISHED
+
+`Func_80108c4` had a 7-of-14 residue at exact length, and all seven were one
+defect: two constants in opposite registers, because gcc hoisted a pool load
+above a `mov`.
+
+    rom   mov r2,#0xe0 / ldrh r1 / ldr r3,=0xf1ff / lsl r2,#4
+    ours  ldr r2,=0xf1ff / ldrh r1 / mov r3,#224  / lsl r3,#4
+
+**Moving the shift one statement earlier -- ahead of the second constant's
+assignment -- is exact**, with no pin.
+
+The instructive part is that the source order is NOT the ROM's order. The ROM
+emits the pool load BETWEEN the `mov` and the `lsl`, and writing the source that
+way is what produces the 7. gcc reorders in either case.
+
+> What the source controls is not the emission order directly -- it is WHICH
+> VALUE IS STILL UNFINISHED when the pool load is placed. Finish the cheap
+> constant's shift first and it keeps the register it started in.
+
+Pinning either constant also reaches exact, and is not needed. Prefer the
+statement order.
+
+Also confirming the recorded operand-order rule at two sites at once: both ANDs
+here accumulate into the CONSTANT (`and r2, r0`, `and r3, r1`), so the masks are
+the named accumulators and the loaded value is the second operand at both.
