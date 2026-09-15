@@ -45,7 +45,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 GCC = os.environ.get("GCC296_DIR", "/opt/gcc296")
 AS = ["arm-none-eabi-as", "-mcpu=arm7tdmi", "-mthumb-interwork", "-I" + os.path.join(ROOT, "include")]
-START = re.compile(r"^\s*\.(thumb|arm)_func_start(?:_noalign)?\s+(\S+)")
+START = re.compile(r"^\s*\.(thumb|arm)_func_start(?:_noalign)?\s+(\S+)", re.I)
 ENC = re.compile(r"^\s*[0-9a-f]+:\t([0-9a-f ]+?)\s*\t")
 
 

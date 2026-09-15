@@ -20076,3 +20076,62 @@ begins with an unconditional branch INTO the bottom test --
 test to the top and every instruction after it is displaced: on `NewActor` that
 was 16 of 19. Writing `goto test;` before a `do { ... test: ; } while (cond);`
 gives the ROM's entry and took it to 7.
+
+
+## TWO .s FILES SPELLED THE DIRECTIVE `.thumb_func_Start` AND WERE INVISIBLE TO EVERY CENSUS
+
+`asm/rom_8a000/rom_93304_c_a.s` and `asm/rom_a1000/rom_a1814_c_a_a_c_a_c_a_a_a.s`
+used a capital S. GAS resolves user macro names case-insensitively, so both files
+assembled correctly and the ROM matched -- **the bug was silent in the build and
+loud only in the tooling.**
+
+Forty tools under `tools/` scan for that directive and every one of them is
+case-sensitive. The consequences were not cosmetic:
+
+* `objcmp --func Func_a1c6c` died with "not found in <ref.s>", which reads like a
+  missing function rather than a tool bug -- while `showfunc.py` found it, so the
+  two tools disagreed;
+* `funcindex` returned NOT FOUND for both, so they were absent from every
+  resolution, every park sweep and the stale-park detector;
+* **the remaining-functions census was short by two.** Every "pool" figure
+  published before this fix undercounts by 2.
+
+**The fix is in the `.s`, not in the tools.** Lowercasing the directive in those
+two files is byte-neutral -- same macro, same expansion, `make compare` green --
+and repairs all forty scanners at once. Patching forty regexes would have left the
+next tool to be written broken again.
+
+`re.IGNORECASE` was added to `objcmp.py`'s `START` and `funcindex.py`'s `HAND` as
+a guard against recurrence, but those are belt-and-braces; the canonical spelling
+is the fix.
+
+> A tool that cannot find a function in a file `showfunc.py` can read is a TOOL
+> bug until proven otherwise. Two tools disagreeing about the same file is the
+> tell.
+
+## A TRAILING `mov r0, rX` MEANS THE RESULT WAS BORN WHILE THE CALL'S RETURN WAS LIVE
+
+`Func_8078480`'s park sat at 4 of 25 and was one instruction SHORT: gcc kept the
+result in r0 throughout and deleted the ROM's closing `mov r0, r2`.
+
+local_alloc's copy suggestion from the `(set (reg 0) (pseudo))` return move makes
+the result pseudo prefer r0. If r0 is free when that pseudo is born, the preference
+wins and the closing move disappears. Moving ONE statement fixes it:
+
+    info = GetItemInfo(itemId);
+    category = 0;          /* born HERE, while info is still live in r0 */
+    kind = info->kind;
+
+Now the result's live range overlaps the pointer's, r0 is unavailable, and it falls
+to r2 in `REG_ALLOC_ORDER {3,2,1,0,...}` -- reproducing the ROM exactly.
+
+> When a function ends `mov r0, rX` and ours is exactly one instruction short
+> there, the result variable was assigned while the call's return value was STILL
+> LIVE. Move the result's initialising assignment up, between the call and the last
+> use of its return value.
+
+**The window is exactly one statement wide.** Pushing the assignment one step
+further, ABOVE the call, makes the result live across it and forces a callee-saved
+register -- `push {r5, r14}`, 26 lines against 25. This sharpens the recorded
+"register allocation follows ASSIGNMENT position, not declaration order" into a
+checkable form.

@@ -67,7 +67,7 @@ CACHE = os.path.join(ROOT, "tools", ".funcindex.json")
 # Hand-written disassembly marks functions with .thumb_func_start/.arm_func_start.
 # gcc-generated .s (the sibling of an elevated .c) marks them with .type NAME,function
 # -- note gcc emits a space after the directive, hence \s+ rather than a literal tab.
-HAND = re.compile(r"^\s*\.(?:thumb|arm)_func_start(?:_noalign)?\s+(\S+)", re.M)
+HAND = re.compile(r"^\s*\.(?:thumb|arm)_func_start(?:_noalign)?\s+(\S+)", re.M | re.I)
 GEN = re.compile(r"^\s*\.type\s+(\S+?)\s*,\s*function", re.M)
 
 

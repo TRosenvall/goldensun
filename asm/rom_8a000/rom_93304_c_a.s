@@ -115,7 +115,7 @@
 	bx	r1
 .func_end BattleIntro
 
-.thumb_func_Start Func_942e0
+.thumb_func_start Func_942e0
 	push	{r5, r6, lr}
 	mov	r6, r8
 	push	{r6}
