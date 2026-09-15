@@ -229,6 +229,42 @@ def park_subject(park, force=False):
     return fallback
 
 
+_PARKMAP = None
+
+def parks(force=False):
+    """Every park file under src/non_matching/, recursively."""
+    out = []
+    for root, _d, fs in os.walk(os.path.join(ROOT, "src", "non_matching")):
+        for f in sorted(fs):
+            if f.endswith(".c"):
+                out.append(os.path.join(root, f))
+    return out
+
+
+def park_for(name, force=False):
+    """The park file(s) about FUNCTION `name`, or [] if it is genuinely cold.
+
+    THE INVERSE OF park_subject, AND THE ONE CALLERS ACTUALLY WANT. Two rounds
+    running, a sweep asked `park_subject(symbol)` -- passing a NAME where the
+    function takes a PATH -- got None for every symbol, and reported live parks
+    as cold targets. Four agents were briefed on already-parked functions once
+    and a fifth re-derived a two-batch-old park from scratch.
+
+    Globbing for the name does not work either: park filenames use at least
+    four conventions (rom_a3480.c, 8020150.c, 80c23c0.c, a class name like
+    arg_interleave_flat.c with no address at all), so the only reliable key is
+    what park_subject resolves each file to. Build that map once and index it.
+    """
+    global _PARKMAP
+    if _PARKMAP is None or force:
+        _PARKMAP = {}
+        for p in parks(force):
+            subj = park_subject(p, force)
+            if subj:
+                _PARKMAP.setdefault(subj, []).append(p)
+    return _PARKMAP.get(name, [])
+
+
 def park_ref(park, force=False):
     """The .s that currently holds a park's subject. None if it cannot be found.
 
@@ -253,6 +289,15 @@ def main():
         print("%d functions indexed  (%d from C, %d still in asm)"
               % (len(idx), c, len(idx) - c))
         print("cache: %s" % (CACHE if os.path.exists(CACHE) else "(not written)"))
+        return 0
+
+    if args[0] == "--parkfor":
+        bad = 0
+        for name in args[1:]:
+            hits = park_for(name, force)
+            print("%-32s %s" % (name, ", ".join(os.path.relpath(h, ROOT)
+                                                for h in hits) or "COLD (no park)"))
+            bad += 0 if hits else 1
         return 0
 
     if args[0] == "--park":
