@@ -609,7 +609,7 @@ SECTIONS {
 		asm/rom_77000/rom_77320_c_b.o(.text)
 		asm/rom_77000/rom_77320_c_c_a.o(.text)
 		asm/rom_77000/rom_77320_c_c_b.o(.text)
-		asm/rom_77000/rom_77320_c_c_c.o(.text)
+		asm/rom_77000/rom_77320_c_c_c_a.o(.text)
 		asm/rom_77000/rom_78414_a_b.o(.text)
 		asm/rom_77000/rom_78414_a_c.o(.text)
 		asm/rom_77000/rom_78414_b.o(.text)
@@ -697,7 +697,7 @@ SECTIONS {
 
 		asm/rom_77000/rom_77320_c_c_a.o(.rodata)
 		asm/rom_77000/rom_77320_c_c_b.o(.rodata)
-		asm/rom_77000/rom_77320_c_c_c.o(.rodata)
+		asm/rom_77000/rom_77320_c_c_c_b.o(.rodata)
 		asm/rom_77000/rom_79008_c.o(.rodata)
 		asm/rom_77000/rom_78a8c_c_c.o(.rodata)
 		asm/rom_77000/rom_78ee8_c.o(.rodata)

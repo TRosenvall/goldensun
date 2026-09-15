@@ -19958,3 +19958,51 @@ check worth running after any batch**, especially one that closes a family.
 > Do not reason from a park file without checking that its subject is still in
 > `asm/`. The note can be perfectly accurate about a function that no longer needs
 > it.
+
+
+## A REGISTER-ROLE SWAP CAN BE DECIDED BY PASS OWNERSHIP, NOT PRIORITY
+
+Batch 258 recorded a quantity being DEMOTED into `global_alloc` and losing an
+auction it could not win. `ModifyHP`/`ModifyPP` are the mirror image: a quantity
+PROMOTED into `local_alloc`, taking the register the other one needed before
+priority ever runs.
+
+    .17.lreg:  Register 35 used 6 times across 9 insns; set 2 times
+               Register 36 used 3 times across 4 insns IN BLOCK 0; set 1 time
+    .18.greg:  35 in 2   36 in 3        ;; Register 36 in 3.   <- local_alloc
+
+The maximum is block-local and dies once, so `local_alloc` takes it -- and
+`local_alloc` runs FIRST and hands out `REG_ALLOC_ORDER`'s head, r3. The running
+value spans blocks, falls through to `global_alloc`, and gets what is left. The
+ROM has them the other way round, which also turns its destructive `add r3, r5`
+into our `add r2, r2, r5`.
+
+> When two locals exchange registers, check whether ONE OF THEM IS BLOCK-LOCAL.
+> If it is, priority never runs -- local_alloc has already spent the register
+> before global_alloc sees either of them. The `;; Register N in M.` line in
+> `.18.greg` is the tell.
+
+**No honest form reaches it here**, because every restructuring that changes which
+variable is block-local also changes the LENGTH -- three shorter clamp shapes all
+came out 52 bytes against 56, which is gcc collapsing the clamp into fewer
+branches rather than emitting the ROM's.
+
+**And "pin either member" is right for THIS sub-case.** Batch 258 recorded that
+the phrase is too loose, because for a swap decided by global_alloc PRIORITY,
+pinning the low-priority member only half-fixes it. For a swap decided by pass
+OWNERSHIP both work -- pinning either variable removes it from the contest
+entirely. Measured: the running value pinned to r3 EXACT, the maximum pinned to
+r2 EXACT.
+
+> Which member to pin depends on WHICH PASS decides the swap. Priority: pin the
+> high-priority member. Ownership: either will do.
+
+## TWINS COST BARELY MORE THAN ONE FUNCTION -- LOOK FOR THEM IN THE RANKER
+
+`tools/elevation_candidates.py` gave `ModifyHP` and `ModifyPP` the SAME score, the
+same instruction count, the same call and branch counts, and the same file. They
+differ only in two field offsets. Both screened at the same 9 of 26 from one draft
+and closed on the same one-line change.
+
+> Identical score AND identical shape counts AND the same file is a twin tell.
+> Write one, and the second is a copy with the offsets changed.
