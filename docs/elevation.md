@@ -20873,3 +20873,58 @@ the other side by 0x10000 before believing it.
 is ONE `short` field, not two. The subtraction's result is truncated by the
 `strh` that stores it, so gcc takes the cheaper unsigned load there. Declaring
 two fields, or making it `unsigned short`, both break the test.
+
+
+## DMA3_CLEAR vs DMA3_SET: WHO OWNS THE ZERO WORD
+
+`DMA3_CLEAR(dst, size)` declares its own `u32 value;` **inside the macro**.
+Inlined in a loop, gcc gives that a stack slot, writes it through `sp` every
+iteration, and never needs a register for its address. So a ROM that hoists the
+source address into a callee-saved register cannot have come from it:
+
+    rom    mov r7, sp          (outside the loop)
+           ...
+           mov r2, r10 / str r2, [r7]      the zero, stored THROUGH r7
+    ours   mov r3, r8  / str r3, [sp]      stored through sp, address never held
+
+`Func_8005c68` is four instructions short with `DMA3_CLEAR` and exact with:
+
+    u32 value;  u32 *q;
+    q = &value;                      /* hoisted out of the loop */
+    for (...) { *q = 0;  DMA3_SET(q, p, 0x85000010); ... }
+
+**Both halves matter.** Switching to `DMA3_SET` alone is 63 of 65; adding the
+POINTER is exact. The pointer is what makes the address loop-invariant *and*
+gives the store and the asm operand the same register -- which is the extra
+callee-saved register in the ROM's prologue.
+
+> The prologue push is the cheap tell for this whole class. Count the ROM's
+> saved registers against yours before reading any of the body: a register you
+> do not spend is a value the ROM is carrying that your reading has not found.
+
+## GREP A `.s` FOR `.section .rodata` BEFORE DELETING IT
+
+Converting a function deletes its hand-written `.s`. If that `.s` also carried a
+**data** section, the data goes with it and the symbols vanish.
+
+`Func_8005c68`'s `.s` carried `.global .L79b0` / `.L79b8` and 92 bytes of string
+literals. **Neither `tryc` nor `objcmp` can see this** -- they compare one
+function -- and both reported a clean exact match. The LINKER caught it:
+
+    (rom_1b70+0x3c24): undefined reference to `.L79b0'
+
+The linker-script grep run to check the `.text` line printed the `.rodata` line
+directly beneath it, and it was not acted on. **Reading the stem's lines is not
+the check; grepping the `.s` is.**
+
+The fix is the recorded text/data split: the `.c` takes an `_a` stem, the data
+moves to an `_b.s` holding only the `.section .rodata`, and the linker script's
+two lines point at them in their original positions. Prefer this to emitting the
+blob from C whenever it is more than a handful of readable words -- `.incrom`
+keeps the bytes exact by construction, where a C initialiser has to be counted
+out by hand.
+
+**A failed landing can leave an orphan.** The first build generated
+`asm/<stem>.s` from the `.c` at its original name; after the `.c` moved to the
+`_a` stem, that file was left behind, referenced by nothing, and committed. Check
+`git status` for a generated `.s` whose `.c` no longer exists.
