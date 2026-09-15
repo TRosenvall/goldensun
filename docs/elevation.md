@@ -3623,6 +3623,46 @@ point at the same thing from different sides -- this one, that one, and "two
 results of the same call need two pointer variables" -- and none of them is
 "always name it" or "never name it". Read what the ROM does with r0 first.
 
+## The explicit `i = 0; if (i < n) { do {} while }` guard SPELLS a shape, it does not improve one
+
+Two measurements, same idiom, same array (the `gState+0x1f8` party roster), same
+two-pointer search, opposite sign:
+
+| function | `for` | hand guard |
+|----------|-------|------------|
+| `AddPartyMember` (0x0807961c) | 34 lines, 23 differing | 38, 31 -- WORSE |
+| `OvlFunc_971_2008f30`         | 45 lines, 29 differing | **EXACT** |
+
+Both stand. What differs is which shape the `for` already produced.
+
+gcc compiles `for (i = 0; i < n; ...)` to either a guard (`cmp / bge`) followed
+by a do-while, or a rotation with the test at the bottom shared with the loop
+entry. It picks the second when the body OPENS with an early exit, because the
+exit test and the entry test merge -- and when it does, the loop's invariant
+setup (here the array base) lands BEFORE the guard instead of inside it.
+
+`2008f30` has that shape: `if (*q++ == 0xff) goto ret0;` is the first statement,
+gcc merged it with the guard, and the base was hoisted above. The hand guard
+un-merges them and the base sinks. `807961c` has no second early exit, its `for`
+already gave the guard-first shape, and spelling the guard out only added lines.
+
+**So read the ROM first.** If the ROM has a standalone `cmp / b<cond>` guard and
+ours does not, the hand guard is the lever. If both already have it, the hand
+guard costs four instructions and buys nothing.
+
+Note in both functions that `if (n > 0)` is NOT the same as `i = 0; if (i < n)`
+-- gcc compares the variable and does not fold the constant. On `2008f30` that
+is the difference between 8 differing and exact.
+
+## `goto <label>` over `break` has now decided two loops
+
+`AddPartyMember` (27 -> 23) and `OvlFunc_971_2008f30` (29 -> 12, and it is what
+brought the length to exact). Both are searches with an early exit whose target
+is the shared `return 0` tail. `break` makes gcc structure the exit as a fall-out
+of the loop; the explicit label makes it a branch to the tail, which is what the
+ROM has. Cheap to try on any loop whose ROM exit branches straight to the
+epilogue's constant.
+
 ## `bls`/`b` where the ROM has one `bhi` can be a LENGTH symptom
 
 A Thumb conditional branch reaches ±254 bytes. A switch whose default target is
