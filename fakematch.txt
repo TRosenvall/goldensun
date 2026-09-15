@@ -438,3 +438,4 @@ ModifyPP  src/rom_77000/rom_77320_c_c_c_a.c
 Func_80198dc       src/rom_15000/rom_1908c_c_a_c_c_b.c
 Func_8019d0c       src/rom_15000/rom_1908c_c_c_b_b.c
 Func_809a7f4       src/rom_8a000/rom_9a44c_a_c_b.c
+OvlFunc_945_200c13c  src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_a_c_a.c
