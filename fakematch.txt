@@ -440,3 +440,7 @@ Func_8019d0c       src/rom_15000/rom_1908c_c_c_b_b.c
 Func_809a7f4       src/rom_8a000/rom_9a44c_a_c_b.c
 OvlFunc_945_200c13c  src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_a_a_a_c_a.c
 OvlFunc_931_2008d58  src/overlays/rom_7b8cb0/ovl_30_c_c_c_c_c_c_c_c_c_c_c_c_c.c
+OvlFunc_881_20097fc  src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_c_b.c
+OvlFunc_881_2009888  src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_c_b.c
+OvlFunc_881_2009938  src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_c_b.c
+OvlFunc_881_20099e8  src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_c_b.c
