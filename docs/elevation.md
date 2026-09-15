@@ -20668,3 +20668,33 @@ swaps the two three-instruction constant builds into the ROM's order:
 
 Naming only part of it is only part of the effect, and reversing the operands of
 the OR is worse than leaving it alone.
+
+
+## A POOLED SMALL CONSTANT THAT MEETS A HALFWORD IS NOT A SYMBOL
+
+`SetTextColor`'s ROM emits `ldr r2, .L1e72c` with `.word 0xf` -- a pooled value
+an eight-bit `mov` could build, which is the standard tell for a named symbol
+and would normally send you to `const.sym`.
+
+It is that file's own **documented exception**: the constant is an operand of a
+HALFWORD expression (the `and` feeds a `strh`), gcc narrows the AND to HImode,
+and a HImode constant goes to the pool. gcc's text prints `ldrh r2, .L3`, which
+GAS folds to the same `ldr` encoding the ROM has.
+
+A plain `c & 0xf` reproduces the pool exactly, so **no `_CONST_f` entry is
+warranted**. `const.sym`'s bar requires that no literal spelling reproduce the
+pool; running that check is the difference between a symbol and a shape.
+
+**The shape is two orderings, and both matter:**
+
+* **The mask must stay a HALFWORD expression.** `c &= 0xf;` as its own statement
+  makes the AND SImode, gcc builds 0xf with `mov r2, #0xf`, the pool word
+  disappears, and the function comes out 24 bytes against 28. Assigning through
+  a `u16` local keeps it HImode.
+* **The base must be named BEFORE the value.** With the base spelled inline gcc
+  emits the address arithmetic first and the mask second; the ROM masks first.
+
+> Note the interaction with the recorded "reassign the parameter" lever: here
+> reassigning the parameter is exactly what *breaks* the match, because it
+> changes the expression's mode. The levers are not additive -- check what each
+> one does to the TYPE of the expression it touches.
