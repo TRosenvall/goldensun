@@ -20760,3 +20760,50 @@ picks. Neither is a local-alloc quantity.
 > `.17.lreg`'s `;; Register N in M.` names every quantity local-alloc placed.
 > If the register you are arguing about is in neither, it belongs to reload or
 > to argument set-up, and no amount of re-spelling the locals will move it.
+
+
+## WHICH OPERAND COMES FIRST DECIDES A DESTRUCTIVE `mul`'s DESTINATION
+
+Thumb `mul rd, rm` is `rd = rd * rm`, so the operand gcc puts first becomes the
+destination and gets the copy. **The source controls that by operand order**,
+and a sweep that varies parenthesisation instead will not find it.
+
+    a * r * c      ->  mov r3, r0 / mul r3, r3, r6     (result copied)
+    r * a * c      ->  mov r3, r6 / mul r3, r0         (the ROM: `a` copied)
+
+`Func_8079c5c` and `Func_8079c30` both close on the second, exact on the first
+try, where `r` is the call's result named in its own local.
+
+**This retired a park that had concluded the function was unreachable.** Batch
+56 recorded the blocker correctly -- "the operand gcc puts FIRST becomes the
+destination, and it does not take that from the source" -- measured four
+spellings at 4 of 19 each, and closed with "nothing at the expression level.
+This wants either a gcc flag that disables commutative canonicalisation -- none
+is known -- or ... a compiler difference rather than a source one."
+
+The four spellings were `c * (a * f())`, the same with the call named, the same
+with the inner product also named, and `a *= t; c *= a;`. **Three of the four
+are the same expression tree**; all four put the call's result on the RIGHT of
+the inner multiply. None tried it on the left.
+
+> The lesson is about the SWEEP, not the multiply. Varying how much is NAMED and
+> how it is BRACKETED changes neither the tree nor the operand order. Before
+> concluding "the source cannot control this", check that the probes actually
+> differ in the dimension being blamed.
+
+Folding the product into separate statements is worse in both functions --
+`r *= a;` or `r = a * r;` come out two instructions SHORT, because gcc then
+commutes the second multiply into the first's register and drops a copy. The
+single flat expression is what keeps both copies.
+
+## A SIGNED DIVIDE BY A POWER OF TWO IS `/ N`, NOT A SHIFT
+
+    cmp r0, #0 / bge .L / ldr r3, =0xffff / add r0, r3 / .L: asr r0, #16
+
+is gcc's expansion of `x / 0x10000` on a signed `int` -- bias by `2^n - 1` when
+negative, then arithmetic shift. `Func_8079bf8` next door has the same shape
+with `0x1ff` and `asr #9`, i.e. `/ 0x200`.
+
+Writing it as `>> 16` drops the bias and comes out short; writing the
+conditional in the source is wrong for the same reason. **There is nothing to
+write but the division.**
