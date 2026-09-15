@@ -20308,3 +20308,159 @@ exactly.
 Six init/declaration orderings were inert, which is its own small result: the
 recorded "two plain local inits are emitted in source order" lever does not reach
 a loop-invariant hoist.
+
+
+## A CROSS-FUNCTION LITERAL POOL PROVES A .s IS HAND-ASSEMBLED
+
+gcc-2.96 builds its minipool **per function** in `arm_reorg` and emits it with a
+local label inside that function -- `ldr r1, .L4` with `.L4: .word gPtrs` before
+`.Lfe1`. It never emits the assembler's `ldr rX, =sym`, so GAS never gets the
+chance to merge two identical literals. **Two functions that both load the same
+symbol therefore produce TWO pool words and two relocations.** One word serving
+both is not something any source text can produce.
+
+`gfree` and `free` occupy 0x08002dd8..0x08002e00 exactly, and the single word at
+0x08002dfc is reached from both:
+
+    4c08 @ 0x08002dd8  ->  (0x2dd8 + 4 & ~3) + 32  =  0x2dfc
+    4c02 @ 0x08002df0  ->  (0x2df0 + 4 & ~3) +  8  =  0x2dfc
+
+That closed three residues at once across two park files -- an extra `cmp`, a
+`push {lr}` on a leaf, and a whole-function register rotation -- none of which
+were ever going to yield, because the target is not compiler output.
+
+**THE DETECTOR IS CHEAP AND WORTH RUNNING BEFORE A HARD PARK.** Scan a thumb
+function's ROM bytes for `0x4800..0x4FFF` (`ldr Rd,[pc,#imm8*4]`), resolve
+`((a + 4) & ~3) + imm8*4`, and flag any target at or past the next
+`.thumb_func_start`. Over all 293 hand-disassembled thumb functions carrying a
+ROM address it returns FOUR: `gfree`, plus `MPlayJumpTableCopy`, `m4aSoundVSync`
+and `MP2KPlayerMain`, which are the known hand-written MP2K driver. Nothing else
+in the candidate pool is affected, so this is a targeted check, not a cull.
+
+**ONE TRAP, AND IT COSTS THREE FALSE POSITIVES IF YOU SKIP IT.** Exclude pool
+words before reading halfwords as code. The low halfword of the word
+`0x02004c00` is `0x4c00`, a perfectly valid `ldr r4,[pc,#0]`. Reading it as code
+accused `Func_80f7e34`, `GetVenusDjinni` and `Field_Whirlwind`, all three
+ordinary compiler output. Collect every pool target in a first pass, then rescan
+skipping those four-byte spans.
+
+**A SECOND, INDEPENDENT TEST FROM THE SAME CASE: a pushless conditional branch
+does not occur in this tree.** Of 4,339 functions in generated `.s`, 581 are
+pushless, and SIX of those contain any local branch -- all six an unconditional
+`b` hopping a literal pool. Zero contain a conditional branch. So a leaf that
+branches and still returns `bx lr` with no `push` is hand-written.
+
+> Do not reach for this from the r4 evidence. A function that writes r4 without
+> pushing it is NOT hand-written -- that is `-fcall-used-r4`, and the notebook
+> already records the mistake.
+
+## gcc-2.96 FORWARDS A VOLATILE OBJECT'S VALUE IN A REGISTER
+
+Reading a `volatile` local straight back after storing to it emits **no load**:
+
+    chain = _chain;      /* str to the slot          */
+    q = chain;           /* NO ldr -- mov from the register */
+
+The output of `Func_80270d8` has no read of `sp+0x80` anywhere, and the
+`mov r5, r2` that takes the value is emitted BEFORE the `str` that writes the
+slot. So the second read is free while still being a **separate use for the
+scheduler**, which is exactly what it is good for.
+
+That matters because `volatile` is otherwise the heavy lever. Here it buys two
+distinct things at once and neither costs an instruction: the object stays
+un-eliminated (the recorded static-chain requirement), and a value derived from
+it is kept out of the register the binding reserved.
+
+## A `register` BINDING PUTS ITS REGISTER IN THE SAVE MASK, AND RELOAD THEN SPENDS IT
+
+An uninitialised `register x __asm__("r9")` makes gcc save and restore r9. It
+also makes r9 **cheap**: it is already in `live_regs_mask`, so reload hands it
+out to an unrelated long-lived value **ahead of r6**, out of allocation order.
+
+In `Func_80270d8` that is worth 17 of 27 encodings, and it reads like "a register
+rotation" if you only diff the numbers. The fix is not to fight the allocator:
+derive the competing value from the **volatile object** rather than from a plain
+copy of the register variable, and r9 stays reserved. 17 -> 4.
+
+## AN INDUCTION VARIABLE'S FINAL FORM IS EVIDENCE ABOUT THE PASS, NOT THE STATEMENT
+
+`Func_808c2dc`'s loop reads `ldrb r0, [r6] / add r6, #1` against a counter that
+goes DOWN -- a textbook walking pointer. Transcribing it as one is **worse**: the
+honest `do { } while (--n)` over `unsigned char *p` measures 18 differing of 21
+and comes out four bytes short. The ascending index the file-mate uses,
+`gState[(0xfc << 1) + i]` under `for (i = 0; i < n; i++)`, is **exact on the
+first candidate**.
+
+The pointer is `strength_reduce`'s and the countdown is the loop optimiser's.
+Writing a pass's OUTPUT back into C hands it something it cannot re-derive.
+
+> This qualifies the recorded walking-index/walking-pointer lever, it does not
+> overturn it. That lever says which form gcc EMITS for a given source. **It does
+> not invert**: seeing the pointer form in the ROM is not evidence the source
+> held a pointer. Batch 264's reversed loop was the same shape of mistake.
+
+## POOL ORDER AND ALLOCNO PRIORITY CAN DEMAND OPPOSITE MODES FOR ONE OPERAND
+
+The local-alloc priority formula is, verbatim (`local-alloc.c:1496`):
+
+    floor_log2 (n_refs) * n_refs * qty.size / (death - birth)
+
+**`size` is in the NUMERATOR**, so a HImode quantity is penalised 2x against an
+SImode one.
+
+`Func_8019d0c`'s pool is `0x3e7, &iwram_3001e8c, 0x12ec` -- `0x3e7` FIRST,
+although its `ldr` is the fourth instruction. `add_minipool_forward_ref` sorts by
+`address + pool_range`; an SImode word (range 1020) loaded at address 6 can never
+sort ahead of a symbol loaded at address 0, so `0x3e7` has to be
+`*thumb_movhi_insn`, range 64. **But HImode then halves its allocation priority**,
+and that is precisely the r2/r3 exchange the function has to pin. Nineteen
+spellings plateau at the same residue, the base at 3 refs / 5 insns and the value
+at 3 refs / 8 insns in every one.
+
+Two corrections come with it:
+
+* **A `short` LOCAL does not give you HImode** -- ARM's `PROMOTE_MODE` widens it,
+  and six `short`/`unsigned short` spellings measured unchanged. A bare literal
+  at the store does, and so does a `register short` declaration.
+* **`ldrh rX, .Label` in gcc's text assembles to a plain `ldr rX, [pc, #N]`** --
+  GAS folds it. The pool-order table's row saying `*thumb_movhi_insn` "prints
+  `ldrh`" is about gcc's TEXT only. **A ROM disassembly showing `ldr` from a pool
+  label is not evidence against HImode.** This cost a detour.
+
+And a working note: **read pool order out of `baserom.gba`, not the `.s`.** The
+reference spells one word as an explicit `.L<addr>` label and the others as
+`=value`, which hides the real layout.
+
+## sched2 OWNS ADJACENT PRE-CALL SETUP, AND STATEMENT ORDER BARELY TOUCHES IT
+
+`Func_80270d8` came out with `mov r2, #0x34` and `sub r5, #8` swapped, and stayed
+swapped through six spellings: naming the count, naming the address constant,
+`(u32 *)chain - 2`, indexing the buffer, and hoisting the offset into a local
+before the call. `-fno-schedule-insns2` moves them; `-fno-schedule-insns` and
+`-fno-peephole2` do not.
+
+What fixed it was moving **the arithmetic**, not the pointer: read the value into
+a plain local before the call, do the subtraction after it, and sched2 hoists the
+`sub` back to exactly the ROM's slot. Writing `q = chain - 8` before the call and
+`p = (u32 *)q` after does NOT work and still measures 2. **It is where the
+arithmetic sits that matters.**
+
+## `park_for(name)` -- ASK WHETHER A TARGET IS PARKED BY SYMBOL, NOT BY GLOB
+
+`funcindex.park_subject()` takes a park **path** and returns the symbol. Two
+rounds running, a sweep called it with a **name** -- got `None` for everything,
+and reported live parks as cold targets. Four agents were briefed on
+already-parked functions once; a fifth re-derived a two-batch-old park.
+
+Globbing the symbol does not work either: park filenames use at least four
+conventions (`rom_a3480.c`, `8020150.c`, `80c23c0.c`, and class names such as
+`arg_interleave_flat.c` with no address at all), and a function can have a park
+under TWO of them at once -- `Func_80198dc` had both `80198dc.c` and
+`rom_198dc.c`. The only reliable key is what `park_subject` resolves each file
+to, so build that map once and index it:
+
+    python3 tools/funcindex.py --parkfor Func_808c2dc
+
+Run over the candidate list it says **8 of the top 10 are already parked**. The
+"blocked by" column was never a park-existence proxy, and the ranking does not
+know about parks at all.
