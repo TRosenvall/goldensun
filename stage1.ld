@@ -68,7 +68,7 @@ SECTIONS {
 		asm/rom_c0/rom_56cc_a_c.o(.text)
 		asm/rom_c0/rom_56cc_b.o(.text)
 		asm/rom_c0/rom_56cc_c_b.o(.text)
-		asm/rom_c0/rom_56cc_c_c.o(.text)
+		asm/rom_c0/rom_56cc_c_c_a.o(.text)
 		asm/rom_c0/rom_5cf8_a_a_a_a_b.o(.text)
 		asm/rom_c0/rom_5cf8_a_a_a_a_c.o(.text)
 		asm/rom_c0/rom_5cf8_a_a_a_b.o(.text)
@@ -95,7 +95,7 @@ SECTIONS {
 		asm/rom_c0/rom_2e00_c_c_b.o(.rodata)
 		asm/rom_c0/rom_45e8_c_c_c_c_c.o(.rodata)
 		asm/rom_c0/rom_49a8_c_c_c_c_c.o(.rodata)
-		asm/rom_c0/rom_56cc_c_c.o(.rodata)
+		asm/rom_c0/rom_56cc_c_c_b.o(.rodata)
 		src/lib/agb_flash/agb_flash_data.o(.rodata)
 
 		. += 0x1000;
