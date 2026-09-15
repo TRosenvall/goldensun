@@ -14305,6 +14305,38 @@ is inert: without the volatile barrier it measured fourteen, identical to plain
 literals. The barrier is what defeats cse1; the register pin is what places the
 `mov` in the gap.
 
+**...but that is true of the POOL form only. For `mov`+`neg`, the pin alone is
+enough.** Two functions, both landed:
+
+| function | commoned value | what it took |
+|---|---|---|
+| `OvlFunc_945_200c13c` | three `-1` in one argument list | two pins, NO barrier |
+| `OvlFunc_931_2008d58` | two `-1` at calls 3 and 7 | ONE pin, NO barrier |
+
+The difference is what cse1 has to work with. For a pooled constant it demotes
+the later sites to `REG_EQUAL` notes, and only a construct that CONSUMES the
+register brings the immediate back -- hence the barrier. For `mov rN,#1 /
+neg rN,rN` there is no pool load and nothing to demote: cse1 simply forms one
+pseudo and copies it out, and declaring the destination a hard register means
+there is no pseudo to form.
+
+**So on a commoned SMALL constant, try the bare pin before the barrier.** It is
+strictly less scaffolding, and on `2008d58` the barrier is actively wrong -- it
+MOVES the transposition (r1/r2 instead of r0/r2) rather than closing it.
+
+**One pin can cover several sites.** `2008d58` commons `-1` at two calls four
+instructions apart; pinning only the FIRST is exact, and the second keeps its
+own `mov r0,#1 / neg r0,r0` as a plain literal. Once no shared pseudo is formed
+there is nothing for later sites to copy from. Pin the earliest site and
+re-measure before adding more.
+
+**It bounds the named-local reading, it does not overturn it.** The `2008d58`
+park had concluded that a named local needs a dominating block to rematerialise
+from -- "the lever needs a guard", contrasted against `OvlFunc_891_200a244`
+where the same naming works. That holds. The guard is what a NAMED LOCAL needs;
+a hard-register declaration needs nothing, because it never creates the pseudo
+the guard was there to split.
+
 **Correction to the existing note that "the hoist happens at expand".** That is
 true of the POOL-LOAD form only. For the `mov`+`lsl` form, `.00.rtl` shows
 expand emitting four *independent* `(set (reg) (const_int 49152))` — one per
