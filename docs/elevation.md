@@ -21049,3 +21049,65 @@ depends on the narrower list.
 **The general point survives the specific case:** when a constant that the ROM
 reloads is commoned in your output, look at what the surrounding inline asm
 claims to clobber before looking at the C.
+
+
+## THUMB CANNOT `mov` AN IMMEDIATE INTO r8..r11 -- WHICH REGISTER A CONSTANT LANDS IN COSTS INSTRUCTIONS
+
+    mov r7, #0x28              one instruction   (low register)
+    mov r3, #0x28 / mov r8, r3 two               (high register)
+
+So a constant that gcc parks in a HIGH callee-saved register costs an extra
+instruction **at every site that materialises it**, and the ROM putting it in a
+low one is not a cosmetic difference.
+
+`Func_80a15f0` passes a different y to the same callee in three blocks. Written
+as ONE reused local, gcc gives it a high register and the function comes out
+**four bytes long** -- three extra `mov` pairs. **Three separate locals** keep
+each in r7 and the length falls out: 130 differing to 52.
+
+> Counting instructions is not enough to spot this; you have to look at WHICH
+> register. A function that is a few instructions long around repeated constants
+> is worth checking for `mov rN, #imm / mov rHIGH, rN` pairs before anything
+> else.
+
+## THE SHIFTABLE-CONSTANT POOL TELL, AND THE CONTROL THAT MAKES IT SAFE
+
+gcc builds a Thumb constant inline when it is a **shifted byte** and pools it
+otherwise. So a ROM that POOLS a shiftable constant is one instruction shorter
+than gcc's inline build, and that is a symbol tell -- the same shape as the
+small-constant tell, one step up.
+
+`Func_80a15f0` passes 0xb1c, 0xb1d and 0xb20 to the same callee:
+
+    0xb1c, 0xb1d   not shiftable   gcc pools them   -> literals reproduce
+    0xb20          0xb2 << 4       gcc builds it    -> `mov r0,#178 / lsl r0,#4`
+                                   the ROM pools it -> `ldr r0, =0xb20`
+
+`_MSG_b20` in message.sym's "shiftable __MessageID IDs" section closes it.
+
+**The two literal neighbours in the same function are the internal control, and
+that is what makes the entry defensible.** They reproduce as plain literals in
+the same three-block sequence, so the claim is "this one constant gcc CAN build
+and the ROM chose not to", not "this id space wants symbols". Before adding a
+`.sym` entry, look for a constant of the OTHER kind nearby that already
+reproduces -- if there is one, you have a control; if every constant in the
+function needs a symbol, you probably have the wrong diagnosis.
+
+Expect ONE differing encoding afterwards: the reference's pool word is a literal
+where yours is a relocation. They resolve identically at link, and `make
+compare` is what settles it. (`Makefile`'s `ld_sym_deps` already rebuilds
+stage1.o when a `.sym` changes -- that staleness used to surface as a bogus
+"undefined reference".)
+
+## NAME EVERY VALUE A CALL TAKES WHEN THE ROM LOADS IT SOMEWHERE ELSE FIRST
+
+    rom    ldrsh r5, [r7, r3] / mov r1, r6 / mov r0, r5 / bl f
+    ours   ldrsh r0, [r7, r3] / mov r1, r6 /              bl f
+
+Passing `s->f34` straight as the argument loads it into the argument register
+and saves the `mov`; the ROM's extra copy says the source named it. One
+instruction per site -- `Func_80a153c` had three such sites and was four bytes
+short until all three were named.
+
+**The tell is a load into a register that is then only moved to r0..r3.** It is
+easy to read as noise.
