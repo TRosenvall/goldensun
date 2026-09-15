@@ -3579,6 +3579,50 @@ site; over five arms of a switch that was ten. This is the *opposite* of the
 usual advice (name the value to force a copy), so check which way the ROM went
 before reaching for either.
 
+## ...but a call result FEEDING a chain must go through a named local
+
+The companion case, and it runs the other way. `OvlFunc_948_2009df8` calls
+`__MapActor_GetActor(n)` and divides a field of the result:
+
+```c
+v = __MapActor_GetActor(0xb)->f8 / 0x100000;   /* ldr r3, [r0, #8] ... in r3 */
+```
+
+```c
+p = __MapActor_GetActor(0xb);                  /* ldr r0, [r0, #8] ... in r0 */
+v = p->f8 / 0x100000;
+```
+
+The ROM runs the whole signed divide in r0 -- the register the call returned in.
+Inlined, the load lands in r3 and the 0xfffff pool temp in r2; named, the load
+lands in r0 and the temp in r3. **18 differing to EXACT**, and six of those
+eighteen were an argument-setup order that was never an independent residue --
+it fell out with the register choice.
+
+THE DISCRIMINATOR between this and the section above is what the pointer's use
+does with it:
+
+| the use                                    | write it     |
+|--------------------------------------------|--------------|
+| address arithmetic (offset past the store's immediate range, then a store) | INLINE |
+| a load whose offset folds into the `ldr`   | NAMED        |
+
+In the store case the named `p` has to survive into the address computation, so
+gcc copies it (`mov r2, r0 / add r2, #0x64`) and the name costs two instructions
+per site. In the load case there is no address computation at all -- offset 8
+folds into the `ldr` -- so the name costs nothing, and what it buys is the load
+destination taking r0.
+
+Same result through `int *p` with `p[2]`, so it is the BINDING that moves the
+register, not the struct type.
+
+This is the read side of "reassign the parameter to keep a value in its argument
+register": a value arriving in r0 stays in r0 when the source gives it a name,
+and gets moved when the source treats it as a subexpression. Three rules now
+point at the same thing from different sides -- this one, that one, and "two
+results of the same call need two pointer variables" -- and none of them is
+"always name it" or "never name it". Read what the ROM does with r0 first.
+
 ## `bls`/`b` where the ROM has one `bhi` can be a LENGTH symptom
 
 A Thumb conditional branch reaches ±254 bytes. A switch whose default target is
