@@ -20135,3 +20135,55 @@ further, ABOVE the call, makes the result live across it and forces a callee-sav
 register -- `push {r5, r14}`, 26 lines against 25. This sharpens the recorded
 "register allocation follows ASSIGNMENT position, not declaration order" into a
 checkable form.
+
+
+## READ THE PREHEADER AS A PASS BOUNDARY
+
+The recorded floor says a loop-invariant hoisted by `loop.c` is ALWAYS the last
+insn of the preheader, and names `emit_iv_add_mult` and `check_dbra_loop` as two
+narrow exits. `Func_80a3480` shows the first of those is reachable cheaply, and
+gives the rule a usable form:
+
+> If the ROM puts an insn AFTER the hoisted invariant, that insn CANNOT be a
+> source statement -- no statement order reaches past `move_movables`. It was
+> created by a later pass. Stop spelling it and let strength reduction build it.
+
+Measured. The ROM's preheader ends `mov r8,r2 / add r7,#0x48`, where `mov r8,r2`
+is the hoisted constant (`.08.loop`: *"Insn 73: regno 60 (life 1), move-insn
+savings 1 moved to 128"*) and the `add` follows it -- so that add is
+`strength_reduce`'s giv initialiser via `emit_iv_add_mult`, not a statement.
+
+The park wrote the walk as `*slot++`, which makes the cursor a USER variable whose
+init is a preheader statement and therefore necessarily BEFORE the hoisted
+constant. That is the 5-of-30 floor, and no statement reordering reaches it.
+Writing the walk as `slot[i]` leaves only the index biv in the source;
+`strength_reduce` then creates the cursor itself and places its init last, and
+flow's auto-inc pass still folds the update back into `ldmia r7!, {r5}`.
+
+Two independent spellings reach EXACT (a base pointer plus `((T **)(base+off))[i]`,
+and a typed cursor plus `slot[i]`), which is the sign the mechanism is real rather
+than a scheduling coincidence.
+
+This is the inverse of the recorded note that "the offset-inside-the-loop lever has
+no purchase on strength_reduce deciding to CREATE an induction pointer": you cannot
+make it create one, but you CAN stop competing with it by not writing the cursor
+yourself.
+
+## A PARK'S FILENAME IS NOT PREDICTABLE -- RESOLVE, DO NOT GLOB
+
+Park files use at least three naming conventions for the same thing:
+`rom_a3480.c`, `rom_78480.c`, `8020150.c`, `80c23c0.c`. A glob on the full address
+misses the shortened forms, and a glob on the short form misses the others.
+
+Picking targets for one round, I checked for existing parks with a filename glob
+and told four agents their targets were COLD. Four of the six had parks. The
+agents found them anyway, but the briefs were wrong and could have cost a round of
+re-derivation.
+
+> Use `funcindex.park_subject()` over `src/non_matching/**/*.c` and check
+> membership by SYMBOL. That is what the function exists for, and it is the same
+> primitive the stale-park sweep uses.
+
+Note also that `tools/elevation_candidates.py`'s "blocked by" column is about
+screening predictors, NOT about whether a park exists. It is not a proxy for
+"unattempted".
