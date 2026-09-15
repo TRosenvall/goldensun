@@ -20243,3 +20243,68 @@ bitfields** and indexing it gave the ROM's `ldr r3 / lsl r2 / add r2,r3` where
 pointer arithmetic on `unsigned char *` gave `ldr r2 / lsl r3 / add r3,r3,r2`. One
 struct served all three functions with no hand-written shifting, and the field
 widths fell straight out of the ROM's three extractions.
+
+
+## A .rodata BLOB CAN BE EMITTED FROM C -- NO SPLIT, NO LINKER EDIT
+
+Batches 260 and 261 landed text+data files by REHOMING the blob to its own stem and
+repointing the linker lines. There is a cheaper route when the blob is small and
+its contents are known:
+
+    const int L73854[4] __asm__(".L73854") = { 0x5a, 0x5b, 0x5c, 0x5d };
+
+gcc-2.96 emits `.global .L73854` / `.section .rodata` / `.align 2, 0` / four
+`.word`s -- byte-identical to the `.incrom`, and the `.text` is unchanged by the
+array's presence. **Both linker lines stay verbatim**, `.o(.text)` and
+`.o(.rodata)`, and there is no split at all. Verified through the link:
+`.L73854` lands at 0x08073854, exactly its `.incrom` address, with `make compare`
+green.
+
+> Rehome the blob when it is large, opaque, or an `.incbin` of real data. Emit it
+> from C when it is a handful of words you can read. The asm-name form
+> `__asm__(".Lxxxx")` is the same idiom 550+ landed files already use for
+> referencing such symbols -- here it DEFINES one.
+
+**A tooling trap comes with it:** `tryc.py` on such a candidate prints a false
+pool warning -- it reads the `.rodata` `.word`s as a literal pool ("OUR POOL HAS 4
+entries and the reference needs 0"). It is wrong, because the reference's words
+come from `.incrom`, which tryc does not expand. Screen the FUNCTION-ONLY file
+with tryc/objcmp and let `make compare` settle the data.
+
+## THE WALKING-INDEX CORRECTION EXTENDS TO SIGN EXTENSION
+
+Batch 234 recorded that a walking POINTER gives `ldrsb` where a walking INDEX
+gives `ldrb` + `lsl #24`, for a `!= 0` byte test. The same split decides a SIGNED
+BYTE ARGUMENT:
+
+    p++;  (signed char)*p     ->  mov r0,#0 / ldrsb r0,[r5,r0]
+    k++;  (signed char)b[k]   ->  ldrb / lsl #24 / asr #24        (the ROM)
+
+`strength_reduce` turns the index back into the identical `add r5,#1` induction
+variable, so nothing but the load form changes. The recorded "`signed char` local
+-> unsigned load" lever is INERT here -- measured, no change.
+
+## A NAMED CONSTANT CAN COST A WHOLE CALLEE-SAVED REGISTER
+
+`m = 0x10; ... f(..., m)` gives the constant an allocno that competes for a
+callee-saved register, and gcc then spends TWO high registers. Written as the
+literal, loop-invariant motion hoists it on its own, the callee-saved pool is
+exhausted earlier, and the next value falls to CALLER-SAVE -- producing the ROM's
+`str r4,[sp,#4] / bl / ldr r4,[sp,#4]` and its `sub sp,#8`. Worth 33 differing to
+2. `-fno-caller-saves` confirms the mechanism.
+
+> This is the near-inverse of "naming a value gcc already CARRIES destroys the
+> carry". Here NOT naming it is what produces the carry, because the hoist is free
+> and the allocno is not.
+
+## A REVERSED LOOP IS THE COMPILER'S, NOT THE SOURCE'S
+
+A ROM loop reading `mov r6,#3 / sub r6,#1 / cmp r6,#0 / bge` looks like a
+source-level countdown. Writing it as one -- both `i = 3; do {...} while (i >= 0);`
+and `for (i = 3; i >= 0; i--)` -- sticks two instructions off. It is
+`check_dbra_loop` reversing an ASCENDING loop: `for (i = 0; i < 4; i++)` matches
+exactly.
+
+Six init/declaration orderings were inert, which is its own small result: the
+recorded "two plain local inits are emitted in source order" lever does not reach
+a loop-invariant hoist.
