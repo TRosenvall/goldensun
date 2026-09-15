@@ -20807,3 +20807,69 @@ with `0x1ff` and `asr #9`, i.e. `/ 0x200`.
 Writing it as `>> 16` drops the bias and comes out short; writing the
 conditional in the source is wrong for the same reason. **There is nothing to
 write but the division.**
+
+
+## `.call_via` IS math.h's MACRO, NOT gcc's VENEER -- AND THE RELOCATIONS TELL YOU WHICH
+
+This tree has **two** different indirect-call sequences and they are not
+interchangeable:
+
+    bl _call_via_r3            gcc's veneer, from an ordinary C function pointer
+    .align 2, 0
+    mov r12, pc                include/math.h's `fx32_multiply`, written as
+    bx  r5                     inline asm
+
+`Func_809a7f4`'s first candidate used a plain `int (*fp)(int,int)` and produced
+the first where the ROM has the second.
+
+**The tell is the RELOCATIONS.** The veneer form carries an `R_ARM_THM_CALL` to
+`_call_via_rN`; the macro form carries none, because `mov ip, pc / bx rN` needs
+no symbol. `objcmp` prints the relocation lists side by side, and that was the
+fastest route to the answer -- faster than reading either instruction stream.
+
+> **Do not grep for `call_via` to tell them apart.** The substring matches inside
+> `bl _call_via_r3`, which is the OTHER form, and a scan for it reported 20
+> generated files as using the macro when none of them did. Grep for
+> `mov ip, pc` or `mov r12, pc`.
+
+`include/math.h` also declares `sin`, `cos` and `Func_8000888`
+(IWRAM_Fastcall_FX32_Multiply). **A ROM doing cos/sin followed by an indirect
+call wants `#include "math.h"` and `fx32_multiply`, not a hand-rolled pointer.**
+
+## COMPUTE BOTH PRODUCTS BEFORE EITHER STORE
+
+    a->f8  = b->f8  + fx32_multiply(m, cos(ang));     62 differing
+    a->f10 = b->f10 + fx32_multiply(m, sin(ang));
+
+    x = fx32_multiply(m, cos(ang));                    5 differing
+    y = fx32_multiply(m, sin(ang));
+    a->f8  = b->f8  + x;
+    a->f10 = b->f10 + y;
+
+Written as two self-contained statements gcc stores the first sum immediately
+after the first call and **never needs a third callee-saved register**. The ROM
+keeps the first product across the second call and does both loads and both
+stores afterwards, so the source named both products first. The prologue's
+register push is the quick tell: a third saved high register means a value is
+being carried across a call that a statement-at-a-time reading would have
+already consumed.
+
+## A HALFWORD COMPARE SHIFTS BOTH SIDES LEFT 16
+
+    mov r1, #0xca / lsl r1, #15 ... lsl r3, #16 / cmp r3, r1
+
+is **not** a comparison against 0x650000. gcc compares a value it has truncated
+to 16 bits by shifting BOTH operands left 16, so the constant reads as
+`0xca << 15 >> 16` = **0x65**. Written as `a->f64 == 0x65` it comes out exactly.
+
+Read any `lsl rX, #16` immediately before a `cmp` as the truncation, and divide
+the other side by 0x10000 before believing it.
+
+## ONE `short` FIELD, TWO LOAD FORMS
+
+    ldrsh r3, [r5, r1]     the `!= 0` test
+    ldrh  r2, [r5]         the decrement
+
+is ONE `short` field, not two. The subtraction's result is truncated by the
+`strh` that stores it, so gcc takes the cheaper unsigned load there. Declaring
+two fields, or making it `unsigned short`, both break the test.
