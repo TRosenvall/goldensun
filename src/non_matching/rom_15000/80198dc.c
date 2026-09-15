@@ -1,4 +1,36 @@
 /*
+ * ### BATCH 265 -- ADDITIONS. The prior note below is intact and still correct;
+ * ### its "allocation shifted one register down, whole" reading is confirmed.
+ *
+ * Re-measured from a fresh draft: 7 of 20 encodings (the note's "12 differing"
+ * counted a different candidate). The residue now has TWO parts, and the second
+ * is not in the note:
+ *
+ *     rom   add r1,#1 / stmia r3!,{r0} / strh r0,[r2] / add r2,#2
+ *     ours  add r1,#1 / strh r0,[r2]   / stmia r3!,{r0} / add r2,#2
+ *
+ * THE TWO STORES ARE SWAPPED, and that is a separate defect from the register
+ * rotation. They go through DIFFERENT pointer types (`int *` and `short *`), so
+ * they sit in different alias sets and sched2 may order them freely.
+ *
+ *   This is the recorded alias device running BACKWARDS. The usual lever gives
+ *   two accesses two distinct tags so one cannot be hoisted over the other.
+ *   Here they ALREADY have distinct tags, and that is the problem.
+ *
+ * NEW MEASUREMENTS (20 encodings unless noted), none of which the note covers:
+ *     stores written in the opposite source order      52 bytes against 44
+ *     `*q = z; q++;` split instead of `*q++ = z;`      48 bytes against 44
+ *     named zero local                                  7 (inert)
+ *     unsigned char* second pointer with a cast         7 (inert)
+ *     both increments folded into the stores            7 (inert)
+ *
+ * NEXT, and it is unspent: make the two stores ALIAS. Batch 262 established that
+ * only TAG IDENTITY separates alias sets -- one aggregate carrying both an int
+ * and a short member should stop the halfword store being hoisted above the word
+ * store. The note's levers are all about the register rotation and none of them
+ * touch this.
+ *
+ * --- prior note follows, unchanged ---
  * Func_80198dc (ClearCallbackTable) -- asm/rom_15000/rom_1908c_c_a_c_c_b.s
  *
  * NOTE: this function was SPLIT OUT of a seven-function file this round, so it

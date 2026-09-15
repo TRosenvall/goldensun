@@ -20034,3 +20034,45 @@ statement order.
 Also confirming the recorded operand-order rule at two sites at once: both ANDs
 here accumulate into the CONSTANT (`and r2, r0`, `and r3, r1`), so the masks are
 the named accumulators and the loaded value is the second operand at both.
+
+
+## A `cmp #C / blt` THAT RESISTS EVERY `<` SPELLING IS A switch RANGE TEST
+
+`Func_80a3ce4` returns 1 for a four-value range. Its second test is
+`cmp r0, #0xc1 / blt`, and **no spelling of the condition reaches it** -- every
+one canonicalises to `cmp r0, #0xc0 / ble`:
+
+    if (id < 0xc1)     if (id <= 0xc0)     if (0xc1 > id)
+    if (!(id >= 0xc1)) if (id >= 0xc1)     -- all identical output
+
+With the `goto`-to-a-shared-zero form the structure was otherwise
+instruction-identical -- the push, both branches, both `mov`s, the join -- and
+only that one compare/branch pair differed, **2 of 10**. Writing the range as a
+**switch** is EXACT:
+
+    switch (id) { case 0xc1: case 0xc2: case 0xc3: case 0xc4: return 1; }
+    return 0;
+
+`expand_switch` emits the bounds check itself rather than folding a user
+comparison, so the low bound survives as `0xc1` with a `blt`.
+
+> A compare against C that you cannot produce from any `<`/`<=` spelling of C is
+> the tell. Four consecutive cases cost nothing extra -- gcc emits the same two
+> compares, not a jump table.
+
+The `||` form is 9 of 10 and the two-arm if/else forms are 2, 5 or 6 depending on
+polarity, so this is not reachable by shuffling arms either.
+
+## `goto` INTO A LOOP'S BOTTOM TEST REPRODUCES THE UNROTATED while
+
+Recorded for arm order already; it applies to loop rotation too. A ROM whose loop
+begins with an unconditional branch INTO the bottom test --
+
+    mov r0,#0 / mov r1,#0 / b .test
+    .body: ... / ldr r3,[r2]
+    .test: cmp r3,#0 / bne .body
+
+-- is gcc's UNROTATED `while`. Written as a plain `while`, gcc peels the first
+test to the top and every instruction after it is displaced: on `NewActor` that
+was 16 of 19. Writing `goto test;` before a `do { ... test: ; } while (cond);`
+gives the ROM's entry and took it to 7.
