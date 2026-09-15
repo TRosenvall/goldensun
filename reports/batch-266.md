@@ -107,10 +107,10 @@ const.sym's header asks for, run rather than assumed.
 | function | residue | class |
 |---|---|---|
 | `Func_942e0` | 2 of 52 | sched2 places a bare `mov #15` early |
-| `Func_80cd52c` | 36 of 48 | `check_dbra_loop` reverses our loop |
-| `Func_80a8578` | 11 of 60 | local-alloc priority tie |
+| `Func_80cd52c` | 36 of 48 | `check_dbra_loop`; registers are global_alloc |
+| `Func_80a8578` | 11 of 60 | global_alloc (corrected, batch 267) |
 | `Func_80919d8` | 6 of 56 | pool load hoisted above a call |
-| `Func_8028ef0` | 20 of 73 | local-alloc tie, **single basic block** |
+| `Func_8028ef0` | 20 of 73 | reload scratch choice (corrected, batch 267) |
 
 Every one reaches the ROM's exact instruction count. `Func_8028ef0` has no
 branches at all, which makes it the cleanest specimen of the tie and the worst
@@ -126,20 +126,44 @@ transcription reproduces its prologue exactly, so the chain half is closed; what
 is open is that its loop is entirely unoptimised, and every flag tried makes the
 function SHORTER rather than longer.
 
-## STOP SWEEPING: four functions on one local-alloc decision
+## CORRECTED IN BATCH 267: they are NOT all one local-alloc decision
 
-`Func_942e0`, `Func_80cd52c`, `Func_80a8578` and `Func_8028ef0` all end on a
-local-alloc decision that no source spelling moves, and all four report
-`;; 0 regs to allocate` in `.18.greg`. Between them they have absorbed roughly
-forty measured spellings this batch.
+**What this section originally claimed is wrong and is left here corrected
+rather than deleted.** It said `Func_942e0`, `Func_80cd52c`, `Func_80a8578` and
+`Func_8028ef0` all end on a local-alloc decision and "all four report
+`;; 0 regs to allocate` in `.18.greg`". That line was measured on `Func_942e0`
+and assumed for the rest. Measured on all of them:
 
-**The next step is not a fifth sweep.** Read `local-alloc.c`'s `qty_compare_1`
-for the ordering and `find_free_reg` for how a quantity picks from
-`REG_ALLOC_ORDER` once ordered, and find what feeds the decision besides the
-published priority formula. Four independent specimens are now available to test
-any hypothesis against, which is more than any single function could offer, and
-`Func_8028ef0` -- one basic block, two anonymous temps exchanged -- is the one to
-start from.
+```
+Func_942e0    ;; 0 regs to allocate                      <- local-alloc
+Func_8028ef0  ;; 0 regs to allocate                      <- local-alloc
+Func_80a8578  ;; 5 regs to allocate: 37 33 36 35 32      <- global_alloc
+Func_80cd52c  ;; 7 regs to allocate: 37 41 33 32 34 35 36  <- global_alloc
+Func_80919d8  ;; 5 regs to allocate: 35 34 50 32 33      <- global_alloc
+```
+
+Three of the five are **global_alloc**, so the recommendation to read
+`local-alloc.c` was pointed at the wrong file for those three; global.c's
+`allocno_compare` and `find_reg` are the place.
+
+And for `Func_8028ef0` -- the one offered as the cleanest specimen -- the
+differing registers **are not allocator quantities at all**. `.17.lreg` assigns
+its two named values to hard regs 10 and 8, *already the ROM's registers*. The
+r2/r3 exchange is argument setup plus the scratch reload picks for a pool load:
+`.15.regmove` carries `(set (reg:SI 3 r3) (const_int 14))`, a hard register
+chosen when the argument is materialised, and the 0x99b never becomes a pseudo
+at all.
+
+**The rule this produces is the useful part:** read `.18.greg`'s "regs to
+allocate" line before calling anything a local-alloc tie, and read `.17.lreg`'s
+`;; Register N in M.` lines to check whether the registers under argument are
+quantities at all. Four functions were grouped on one diagnosis from one
+measurement, and that is how a wrong lead gets published.
+
+The local-alloc read was still worth doing and produced a real correction to the
+notebook -- **local-alloc runs two passes and the published priority formula is
+only the second**, never consulted for any quantity that has a hard-register
+copy suggestion (parameters, arguments, return values). See docs/elevation.md.
 
 ## Tooling: multi-function parks hide cold targets
 
@@ -168,7 +192,8 @@ reason.
 
 ## Not done
 
-* The four-function local-alloc read, above. It is the largest single item.
+* ~~The four-function local-alloc read~~ -- DONE in batch 267, and it corrected
+  this report; see the corrected section above.
 * `Func_80e73a0`'s parent is unidentified; the grep is
   `add rN, sp, #K / mov r9, rN / bl Func_80e73a0`.
 * `8021390`'s `_MSG_1b` build-input question and

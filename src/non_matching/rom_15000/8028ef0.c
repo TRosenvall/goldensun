@@ -1,3 +1,38 @@
+/*
+ * ### BATCH 267 CORRECTION -- TWO CLAIMS BELOW ARE WRONG.
+ *
+ * 1. `;; 0 regs to allocate` IS true for this function, measured. But the note
+ *    below groups it with Func_80a8578 and Func_80cd52c and says all four
+ *    report it. They do not:
+ *
+ *        Func_942e0    ;; 0 regs to allocate           <- local-alloc
+ *        Func_8028ef0  ;; 0 regs to allocate           <- local-alloc
+ *        Func_80a8578  ;; 5 regs to allocate: 37 33 36 35 32
+ *        Func_80cd52c  ;; 7 regs to allocate: 37 41 33 32 34 35 36
+ *        Func_80919d8  ;; 5 regs to allocate: 35 34 50 32 33
+ *
+ *    Three of the five are global_alloc, and grouping them cost a wrong
+ *    conclusion in reports/batch-266.md, corrected there.
+ *
+ * 2. THE DIFFERING REGISTERS HERE ARE NOT ALLOCATOR QUANTITIES AT ALL. The
+ *    local-alloc dump assigns `name` to hard reg 10 and the 0xe value to hard
+ *    reg 8 -- BOTH ALREADY THE ROM'S REGISTERS. The r2/r3 exchange is in
+ *    ARGUMENT SETUP and the reload scratch for the pool load: `.15.regmove`
+ *    shows `(set (reg:SI 3 r3) (const_int 14))` -- a hard register chosen when
+ *    the argument is materialised -- and the 0x99b never becomes a pseudo at
+ *    all, it is an operand of `(plus (reg 36) (const_int 2459))` that reload
+ *    turns into a pool load with a scratch it picks itself.
+ *
+ *    So the blocker class below is wrong. It is not a priority tie; it is which
+ *    scratch reload takes, downstream of argument-setup order. That is a
+ *    different and probably more tractable problem, and the measurements below
+ *    (which spellings are inert) remain valid evidence for it.
+ *
+ * READ `.18.greg`'s "regs to allocate" LINE BEFORE CALLING ANYTHING A
+ * LOCAL-ALLOC TIE, and read `.17.lreg`'s `;; Register N in M.` lines to check
+ * whether the registers you are arguing about are quantities at all.
+ */
+
 /* Func_8028ef0 -- 0x08028ef0, asm/rom_15000/rom_23178_a_c_a.s (single-function
  * file, so it would convert WHOLE with no split).
  *

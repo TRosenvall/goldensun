@@ -1,3 +1,24 @@
+/*
+ * ### BATCH 267 CORRECTION -- THIS IS global_alloc, NOT local-alloc.
+ *
+ * The note below says `.18.greg` reports `;; 0 regs to allocate` for this
+ * function, so that both values are local allocnos decided by local-alloc's
+ * priority formula. THAT WAS NOT MEASURED, it was carried over from
+ * Func_942e0, where it IS true. Measured here:
+ *
+ *     ;; 5 regs to allocate: 37 33 36 35 32
+ *
+ * and `.15.regmove` identifies reg 33 as the second PARAMETER (`set (reg/v:SI
+ * 33) (reg:SI 1 r1)`) and reg 36 as `base + 0x21a` (`plus (reg 35)
+ * (const_int 538)`). Both are in that list, so BOTH ARE GLOBAL ALLOCNOS and
+ * neither is decided by the formula quoted below. The reasoning about n_refs
+ * and live ranges is against the wrong pass and should be ignored; the
+ * MEASUREMENTS below are still good.
+ *
+ * The right place to read is global.c -- `allocno_compare`, the conflict graph,
+ * and `find_reg` -- not local-alloc.c.
+ */
+
 /* Func_80a8578 -- 0x080a8578, asm/rom_a1000/rom_a7380_c_c.s (single-function
  * file, so it would convert WHOLE with no split).
  *
@@ -48,7 +69,8 @@
  * the same lever (move the arithmetic, not the pointer) does not apply, because
  * there is no arithmetic to move.
  *
- * NEXT: this is the third function this session to end on a local-alloc
+ * NEXT (SUPERSEDED -- see the batch-267 correction at the top of this file):
+ * this is the third function this session to end on a local-alloc
  * priority tie that no source spelling moves (with Func_942e0 and
  * Func_80cd52c). All three have .18.greg saying `;; 0 regs to allocate`. The
  * useful next step is not another spelling sweep -- it is reading

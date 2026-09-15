@@ -20698,3 +20698,65 @@ pool; running that check is the difference between a symbol and a shape.
 > reassigning the parameter is exactly what *breaks* the match, because it
 > changes the expression's mode. The levers are not additive -- check what each
 > one does to the TYPE of the expression it touches.
+
+
+## local-alloc RUNS TWO PASSES, AND THE PRIORITY FORMULA IS ONLY THE SECOND
+
+The notebook has been reasoning about register choices with
+`floor_log2(n_refs) * n_refs * size / (death - birth)` as if it decided every
+local allocation. It does not. `block_alloc` (gcc-2.96 `local-alloc.c`) sorts
+and allocates **twice**:
+
+1. **Suggested quantities first.** `qsort(..., qty_sugg_compare_1)`, then for
+   every quantity with `qty_phys_num_sugg != 0 || qty_phys_num_copy_sugg != 0`,
+   `find_free_reg(..., just_try_suggested = 1)`. These never reach step 2.
+2. **Everything else**, sorted by `qty_compare_1` -- the published formula.
+
+**A copy between a hard register and a pseudo creates the suggestion**
+(`combine_regs`, the `ureg < FIRST_PSEUDO_REGISTER` and
+`sreg < FIRST_PSEUDO_REGISTER` arms): `qty_phys_copy_sugg` when the copy may be
+saved, `qty_phys_sugg` otherwise. So **every parameter, every argument set-up,
+and every return value is a suggested quantity** and is allocated before the
+formula is consulted at all.
+
+`QTY_CMP_SUGG` is `copy_sugg_count` if non-zero, else `sugg_count *
+FIRST_PSEUDO_REGISTER` -- so copy-suggested quantities sort ahead of
+arithmetic-suggested ones, and **fewer** suggestions sorts first (most
+restrictive first).
+
+`qty_compare_1` breaks an exact priority tie by **qty number**, which
+`alloc_qty` assigns as `next_qty++` in the order pseudos are first encountered
+scanning the block. That is the only tie-break; there is nothing else in it.
+
+`find_free_reg` then walks `REG_ALLOC_ORDER` and takes the first register not in
+`first_used`, skipping call-clobbered ones when `n_calls_crossed != 0` unless
+`accept_call_clobbered`. It marks the register live only **between birth and
+death**, so allocation is interval-based, not whole-function.
+
+## CHECK WHICH PASS OWNS A REGISTER BEFORE CALLING IT A LOCAL-ALLOC TIE
+
+Batch 266 grouped four functions as "one local-alloc decision" on the strength of
+`;; 0 regs to allocate` measured on ONE of them. Measured on all five:
+
+    Func_942e0    ;; 0 regs to allocate                        local-alloc
+    Func_8028ef0  ;; 0 regs to allocate                        local-alloc
+    Func_80a8578  ;; 5 regs to allocate: 37 33 36 35 32        global_alloc
+    Func_80cd52c  ;; 7 regs to allocate: 37 41 33 32 34 35 36  global_alloc
+    Func_80919d8  ;; 5 regs to allocate: 35 34 50 32 33        global_alloc
+
+**Three of five were global_alloc.** A quantity named in that list is global.c's
+(`allocno_compare`, the conflict graph, `find_reg`); local-alloc's formula has
+nothing to do with it.
+
+**And the register under argument may not be a quantity at all.**
+`Func_8028ef0`'s `.17.lreg` assigns its two named values to hard regs 10 and 8 --
+already the ROM's registers. Its whole residue is an r2/r3 exchange between a
+constant materialised straight into an argument register (`.15.regmove` carries
+`(set (reg:SI 3 r3) (const_int 14))`) and a pool load whose scratch **reload**
+picks. Neither is a local-alloc quantity.
+
+> Two dump lines settle it, and both are cheap:
+> `.18.greg`'s `;; N regs to allocate` names every GLOBAL allocno;
+> `.17.lreg`'s `;; Register N in M.` names every quantity local-alloc placed.
+> If the register you are arguing about is in neither, it belongs to reload or
+> to argument set-up, and no amount of re-spelling the locals will move it.
