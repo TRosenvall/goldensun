@@ -1,62 +1,6 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ ApplyPriceModifier
-@ r0.. = parameters. Func_2281c for the adjusted price, then _Func_c10e8.
-.thumb_func_start Func_80270ac  @ 0x080270ac
-	push	{r5, lr}
-	mov	r5, r9
-	push	{r5}
-	sub	sp, #8
-	mov	r5, sp
-	mov	r3, r9
-	str	r3, [sp, #4]
-	mov	r0, r5
-	mov	r3, #0xff
-	strh	r3, [r5]
-	bl	Func_802281c
-	mov	r0, r5
-	mov	r1, #1
-	bl	_Func_80c10e8
-	add	sp, #8
-	pop	{r3}
-	mov	r9, r3
-	pop	{r5}
-	pop	{r0}
-	bx	r0
-.func_end Func_80270ac
-
-@ DrawMenuLabel
-@ r0.. = parameters. Measures with Func_1965c and emits with Func_17aa4.
-.thumb_func_start Func_80270d8  @ 0x080270d8
-	push	{r5, r6, lr}
-	mov	r6, r9
-	push	{r6}
-	sub	sp, #0x84
-	mov	r2, r9
-	mov	r6, sp
-	add	r3, sp, #0x80
-	mov	r5, r2
-	str	r2, [r3]
-	mov	r1, r6
-	mov	r2, #0x34
-	sub	r5, #8
-	ldr	r0, =0x80d
-	bl	Func_801965c
-	ldr	r3, [r5]
-	mov	r0, r6
-	ldr	r1, [r3, #0x44]
-	mov	r2, #0
-	mov	r3, #4
-	bl	Func_8017aa4
-	add	sp, #0x84
-	pop	{r3}
-	mov	r9, r3
-	pop	{r5, r6}
-	pop	{r1}
-	bx	r1
-.func_end Func_80270d8
-
 @ RunMainMenuScreen
 @ r0.. = parameters. 2004 lines and THE LARGEST FUNCTION IN rom_15000.
 @ The top-level in-game menu: opens windows with CreateUIBox, allocates glyph
