@@ -20902,7 +20902,7 @@ callee-saved register in the ROM's prologue.
 > saved registers against yours before reading any of the body: a register you
 > do not spend is a value the ROM is carrying that your reading has not found.
 
-## GREP A `.s` FOR `.section .rodata` BEFORE DELETING IT
+## RUN `tools/datacheck.py` BEFORE DELETING A `.s`
 
 Converting a function deletes its hand-written `.s`. If that `.s` also carried a
 **data** section, the data goes with it and the symbols vanish.
@@ -20917,8 +20917,19 @@ The linker-script grep run to check the `.text` line printed the `.rodata` line
 directly beneath it, and it was not acted on. **Reading the stem's lines is not
 the check; grepping the `.s` is.**
 
+**There is now a tool, because grepping by hand is what failed.**
+
+    python3 tools/datacheck.py asm/rom_c0/rom_56cc_c_c.s
+    python3 tools/datacheck.py --all
+
+It reports the data sections, the functions, and any `.global` exports, and it
+skips generated `.s` (nothing to split) and data-only `.s` (nothing to lose).
+Run over the whole tree it finds **79 hand-disassembled `.s` files that carry
+both code and data** -- so this is not a one-off, it is a standing hazard on
+roughly one target in fifteen.
+
 The fix is the recorded text/data split: the `.c` takes an `_a` stem, the data
-moves to an `_b.s` holding only the `.section .rodata`, and the linker script's
+moves to an `_b.s` holding only the data section, and the linker script's
 two lines point at them in their original positions. Prefer this to emitting the
 blob from C whenever it is more than a handful of readable words -- `.incrom`
 keeps the bytes exact by construction, where a C initialiser has to be counted
