@@ -1,3 +1,22 @@
+/*
+ * ### BATCH 268 -- THE STRUCT-TYPING LEVER IS INERT HERE. Measured, so that the
+ * new docs entry ("use the tree's structs, not hand-rolled offsets", which
+ * closed Sprite_AddLayer's last two) does not send anyone back to this file.
+ *
+ * Rewritten against the tree's real definitions -- `struct SpriteHost` and
+ * `struct SpritePart` from src/rom_9000/rom_b798_c_a_a_a.c, with the two
+ * previously-cast byte stores as NAMED u8 FIELDS (`p->unk_26`, `layer->unk_05`)
+ * rather than `p[0x26]` and `layer[5]`, and `struct Actor` widened from the
+ * rom_7ed0a0 and rom_7d95dc definitions:
+ *
+ *     unpinned   15 differing   (unchanged)
+ *     pinned      2 differing   (unchanged, and the same two instructions)
+ *
+ * So the residue below is NOT a typing artefact. It really is sched2 placing a
+ * bare `mov #15` ahead of an adjacent independent store, and the fact that
+ * typing the store's destination does not move it is worth knowing.
+ */
+
 /* Func_942e0 -- 0x080942e0, asm/rom_8a000/rom_93304_c_a.s
  *
  * BLOCKER CLASS: sched2 PLACEMENT OF A BARE CONSTANT. Two encodings of 52,
