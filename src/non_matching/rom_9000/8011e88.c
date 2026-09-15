@@ -1,3 +1,49 @@
+/*
+ * ### BATCH 267 -- THE RESIDUE IS IDENTIFIED DOWN TO THE PSEUDO, AND THE
+ * BORN-ORDER THEORY IS DEAD.
+ *
+ * `.18.greg` reports `;; 6 regs to allocate: 32 47 56 33 35 34`, and neither of
+ * the two swapped values is in that list -- both are LOCAL-ALLOC quantities.
+ * `.15.regmove` names them:
+ *
+ *     (set (reg:SI 52) (plus (reg/v:SI 33) (const_int -8)))   t - 8   -> r2
+ *     (set (reg:SI 53) (minus (reg/v:SI 36) (reg/v:SI 35)))   c - b   -> r3
+ *
+ * and the ROM wants exactly the opposite. Both have two refs and near-identical
+ * ranges, so `qty_compare_1`'s priority ties and the tie-break is QTY NUMBER --
+ * the order `alloc_qty` first meets them scanning the block. Whichever is met
+ * first is allocated first and takes r3, REG_ALLOC_ORDER's head.
+ *
+ * SO THE THEORY WAS: get `t - 8` met first and the pair flips. IT DOES NOT
+ * WORK, and five spellings say so, all 4 differing unchanged:
+ *
+ *     b + ((c - b) * (t - 8)) / 8                    6   (worse)
+ *     d = c - b;  b + ((t - 8) * d) / 8              4
+ *     d = c - b;  e = t - 8;  b + (e * d) / 8        4
+ *     e = t - 8;  c = *p << 19;  b + (e * (c-b)) / 8 4
+ *     e = t - 8;  c = *p << 19;  d = c-b; (e * d)    4
+ *
+ * The RTL confirms the reorder actually happened -- in the third and fourth the
+ * `minus` insn really does precede the `plus` -- and the allocation does not
+ * move. The load `c = *p << 19` is scheduled ahead of everything in the arm
+ * regardless of where the statement sits, because it heads a memory dependence
+ * chain, so `c`'s quantity is always met first whatever the source says.
+ *
+ * WHAT THE ROM'S ARM ACTUALLY LOOKS LIKE, for the next person:
+ *
+ *     rom    ldrsb r3 / lsl r2, r3, #19 / mov r3, r1 / sub r2, r4 / sub r3, #8
+ *     ours   ldrsb r3 / mov r2, r1 / lsl r3, r3, #19 / sub r3,r3,r4 / sub r2,r2,#8
+ *
+ * Note the ROM shifts INTO r2 while we shift in place -- same swap seen from
+ * the other side, not a separate defect.
+ *
+ * NEXT: this is a local-alloc qty-number tie that source order provably cannot
+ * reach, because the scheduler fixes the order before local-alloc runs. Either
+ * find something that changes the two quantities' PRIORITY (a third reference
+ * to one of them, a different live range), or accept it. Do not spend another
+ * round on statement order -- that axis is now exhausted with five measurements.
+ */
+
 /* HeightTile_A -- asm/rom_9000/rom_11ce0_a_c_c_a_c_c.s
  *
  * BLOCKER: two subexpressions swapped between r2 and r3. 4 of 39, LENGTH
