@@ -20464,3 +20464,102 @@ to, so build that map once and index it:
 Run over the candidate list it says **8 of the top 10 are already parked**. The
 "blocked by" column was never a park-existence proxy, and the ranking does not
 know about parks at all.
+
+
+## NAMING A CONSTANT IS NOT ENOUGH IF gcc CAN STILL SEE IT IS A CONSTANT
+
+Batch 264 recorded that a named constant can cost a whole callee-saved register.
+`Func_80cd52c` bounds that: the ROM spends r8 on **-1**, with
+`mov r1,#1 / neg r1,r1 / mov r8,r1` in the preheader and `mov r2,r8 / mov r3,r8`
+at the two argument sites, paying a four-instruction r8 save/restore for it.
+
+`m = -1;` does **not** reproduce it. gcc rematerialises the constant at each use
+-- `mov r3,#1 / mov r2,#1 / neg r2,r2 / neg r3,r3` inside the loop -- never
+allocates r8 at all, and comes out 92 bytes against 104.
+
+    m = 0;
+    m--;            /* 92 -> 104 bytes; r8 is now spent on the value */
+
+Writing the same value as an **arithmetic result** defeats the constant
+propagation that makes rematerialisation look free, and the value survives into
+a register.
+
+> **The lever is not the NAME, it is whether gcc can still see a constant.**
+> Batch 264's case worked from the name alone because the value there was
+> expensive to rebuild. -1 is two instructions, cheap enough that remat always
+> wins until the constant stops being one.
+
+## A STORE OF A PARAMETER REGISTER UNDER A GUARD ON THAT PARAMETER IS A SUBSTITUTED CONSTANT
+
+`CloseUIBox`'s else arm does `strh r7, [r5, #0x18]`, where r7 is the second
+parameter. It is **not** a field being assigned from the argument. That arm is
+reached only when the parameter is zero, gcc knows it, and substitutes the
+register it already has rather than materialising the constant. Written as the
+plain `b->f18 = 0;` it is byte-identical.
+
+Reading it as a copy of the argument invents a field relationship that is not in
+the source. The same substitution shows up on a call argument -- `Func_80cd52c`
+passes `str r2,[sp]` where r2 is a value just proved zero by the branch above it.
+
+**The tell is the guard, not the store:** look at what the branch that reaches
+the store proved about that register.
+
+## WHEN THE ROM REALLY DOES CARRY A THIRD INDUCTION VARIABLE
+
+Batch 265 says transcribing `strength_reduce`'s output is a mistake. The
+converse case exists and `Func_80cd52c` is it: the ROM increments **three**
+variables in one loop -- `add r4,#1` (the counter), `add r7,#2` (an s16 offset)
+and `add r5,#1` (a byte pointer). Writing the s16 access as an index and letting
+strength reduction derive the offset gives only two and is **96 bytes against
+104**, measured on both `[0x12 + i]` and `+ 0x24 + i * 2`.
+
+**The tell that the extra variable is real:** all three increments are present,
+and none is derivable from another by a constant the addressing mode could have
+folded. `p` and `off` here differ by both a scale and a base, so no single
+register could serve both.
+
+## -fno-schedule-insns2 CAN MAKE A FUNCTION WORSE, AND THAT IS A RESULT
+
+`SCHED2_CFLAGS` exists with two rules and `Makefile:340` describes the symptom
+("hoists `mov r0,#0x8f / lsl r0,#4`"), so it is the obvious move whenever an
+adjacent pair comes out swapped. On `Func_942e0` it is **worse**: 2 differing ->
+15 on every pinned candidate, 15 -> 21 unpinned.
+
+**That is evidence, not a dead end.** It says the ROM was built with sched2 ON
+and its order IS the scheduled order, so the residue is a priority tie *inside*
+the pass. Measure the flag before adding a rule for it -- a rule that makes four
+other functions worse is the recorded hazard at `Makefile:181`.
+
+## SPLIT THE BASE FROM THE OFFSET TO STOP gcc FOLDING IT INTO THE POOL WORD
+
+`*(int *)(gState + (0xfa << 1))` folds the whole offset into the pool word and
+emits ONE instruction. The ROM computes it at runtime in four:
+
+    ldr r3, =gState / mov r0, #0xfa / lsl r0, #1 / add r3, r0
+
+Two statements is what stops the fold:
+
+    gs = gState;
+    gs += 0xfa << 1;
+
+This is not invented for one function -- it is the idiom **198 landed sites**
+already use, and `mov r2,#250 / lsl r2,r2,#1` in
+`src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_c_c_b.c` is byte for byte
+`Func_942e0`'s `mov r0,#0xfa / lsl r0,#1`. Grep the generated `.s` for
+`ldr rX, .L / mov rY,#K / lsl rY / add rX,rX,rY` when a pool-folded address is
+one instruction short.
+
+## A PARK ABOUT TWO FUNCTIONS REGISTERS ONLY ONE OF THEM
+
+`park_subject()` returns exactly ONE subject per park file, so a single park
+covering a pair leaves the second function resolving as a **cold target**. That
+is how `sin` came back to rank 8 of the candidate list immediately after `cos`
+was parked. **One park file per function** -- the convention `2dd8.c` / `2df0.c`
+already follows for `gfree`/`free` -- and this is the reason for it.
+
+Widening `park_for()` to register every name a park's header mentions was tried
+and **reverted**: the `NAME` regex matches ordinary prose, and `sin`, `cos` and
+`free` are English words as well as symbols, so 57 park files claimed `free`. A
+false positive there makes an elevatable function look permanently parked and
+removes it from every future candidate list, which is strictly worse than the
+missed park it fixes.
