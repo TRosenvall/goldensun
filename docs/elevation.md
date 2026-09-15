@@ -20563,3 +20563,108 @@ and **reverted**: the `NAME` regex matches ordinary prose, and `sin`, `cos` and
 false positive there makes an elevatable function look permanently parked and
 removes it from every future candidate list, which is strictly worse than the
 missed park it fixes.
+
+
+## A BARE POOL LOAD FLOATS ABOVE A CALL, AND THE ARGUMENT ORDER FOLLOWS IT
+
+Two specimens this session, same shape:
+
+    Func_80919d8   rom   bl _Func_8019908 / ldr r5, =0x97d / mov r1,#1 / mov r0,r5
+                   ours  ldr r5, .L10+4 / bl _Func_8019908 / mov r0,r5 / mov r1,#1
+
+    Func_80a8578   rom   bl Func_8004938 / mov r5, r0 / ldr r0, =0xbe6 / ...
+                   ours  bl Func_8004938 / ldr r3, .L7+8 / mov r5, r0 / ...
+
+In both, the ROM finishes the preceding statement -- which FREES A REGISTER --
+and only then loads the pool constant, into the register just freed. We hoist
+the load above the statement, so it has to take a different register, and
+everything downstream shifts.
+
+**The argument fill order at the following call follows the load, not the
+prototype.** `Func_80919d8` fills r0 LAST at one call and FIRST at the next, in
+one function -- which normally reads as evidence about declarations. It is not
+here: three return-type combinations on both callees measured 7, 7 and 6 against
+a baseline of 6. **Check the pool load's position before reaching for the
+prototype lever.**
+
+> The batch-265 sched2 lever -- move the ARITHMETIC in the source -- does not
+> reach this class. There is no arithmetic: the hoisted insn is a bare load with
+> no dependence, so sched2 may place it anywhere and chooses earliest.
+
+`-fno-schedule-insns2` is **worse** on both (13 against 6; 15 against 2 on
+`Func_942e0`). That is the useful measurement, not a dead end: it says the ROM
+was built with sched2 ON and its placement IS the scheduled one, so this is a
+priority decision inside the pass and not a case for a `SCHED2_CFLAGS` rule.
+
+**The open question is what gives a pool load a lower sched2 priority than the
+call setup around it.** Two specimens share it; read `haifa-sched.c`'s
+`rank_for_schedule` rather than sweeping a third function's spellings.
+
+## THE BASE/OFFSET SPLIT IS NOT ABOUT COMMONING -- A SINGLE USE FOLDS TOO
+
+Batch 266 recorded `gs = gState; gs += K;` as the way to stop gcc folding an
+offset into the pool word. Both cases there used the base TWICE, which left open
+whether the split was really about commoning the symbol.
+
+It is not. `Func_809233c` reads `gState + 0x1f4` exactly **once**, and
+`*(int *)(gState + (0xfa << 1))` still folds to a single instruction where the
+ROM spends four. Two statements stop the fold either way.
+
+The same lever also applies to a base used at **two different offsets**, where
+the symptom is different and easier to miss: gcc pools `gState + 0x234` as one
+word and derives the second address with `sub r3, #64`, so the function comes out
+SHORT rather than merely differently addressed.
+
+## ASSIGN A BASE WHERE THE ROM LOADS IT, NOT AT THE TOP OF THE FUNCTION
+
+`Func_8091f14`'s `ldr r6, =gState` sits at the join label after a conditional
+call, not in the prologue. Written at the top of the C, the value is live across
+that call, has the longest live range in the function, and local-alloc's
+priority formula puts it LAST -- r8 where the ROM has r6, **rotating three
+registers** and costing 20 of the function's differing encodings.
+
+Moving one assignment down the source fixed the whole rotation: 30 -> 10.
+
+> A `ldr rX, =symbol` inside a basic block is a statement about WHERE THE VALUE
+> IS BORN. Read it as a position, the same way a preheader load is read as a
+> pass boundary.
+
+## FILL ORDER ALSO FOLLOWS THE CALLEE'S OWN RETURN TYPE ON THE LAST CALL
+
+The recorded rule says the r0 deferral is caused by the **preceding** call's
+return type. `Func_8091f14` is a case it does not reach: the mismatch is on the
+LAST call in the function, whose result is unused, and there is no following
+call whose argument setup could be deferred.
+
+Making the preceding callees (`Func_808adf0`, `GetFieldActor`, `Func_809537c`)
+return `int` is INERT -- all three still 2 differing. What moves it is **the
+called function's own return type**: `int Func_808b320(...)` is exact, and so is
+dropping its prototype entirely.
+
+Prefer the explicit `int` to the implicit declaration. The tree declares this
+callee `void` elsewhere and that is not a contradiction to fix -- a callee's
+return type is a **per-call-site fact** about what the original TU declared.
+
+## REASSIGN THE PARAMETER TO KEEP A VALUE IN ITS ARGUMENT REGISTER
+
+`Func_8091f14`'s ROM computes `a & 0xff` into r0 and calls straight out of it. A
+separate local lands in r3 and costs a `mov r0, r3`:
+
+    c = a & 0xff;  ...  f(c);      ->  and r3,r0,#255 / mov r0,r3 / bl
+    a &= 0xff;     ...  f(a);      ->  and r0,r0,#255 / bl          (the ROM)
+
+Worth 16 differing on its own. **When the ROM's argument is computed in the
+argument register itself, the source modified the parameter.**
+
+## NAME THE WHOLE RIGHT-HAND SIDE TO PUT THE VALUE BEFORE THE ADDRESS
+
+`*(u16 *)(gs + 0x234) = (b + 0x12c) | m;` builds the destination address first;
+the ROM builds the value first. Hoisting the ENTIRE right-hand side into a local
+swaps the two three-instruction constant builds into the ROM's order:
+
+    v = (b + 0x12c) | m;  *(u16 *)(gs + 0x234) = v;      2 differing
+    v = b + 0x12c;        *(u16 *)(gs + 0x234) = v | m;  4
+    *(u16 *)(gs + 0x234) = m | (b + 0x12c);             11
+
+Naming only part of it is only part of the effect, and reversing the operands of
+the OR is worse than leaving it alone.
