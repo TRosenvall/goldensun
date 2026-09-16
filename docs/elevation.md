@@ -14324,6 +14324,69 @@ there is no pseudo to form.
 strictly less scaffolding, and on `2008d58` the barrier is actively wrong -- it
 MOVES the transposition (r1/r2 instead of r0/r2) rather than closing it.
 
+### A pin defeats cse1 where no spelling of locals can
+
+`OvlFunc_953_200a5f0` was parked with the corpus's strongest do-not-attempt
+note: a read of `gcse.c` concluding the shape is UNREACHABLE, after six
+local-variable spellings, a ten-way return-type sweep, six argument spellings,
+fifteen flags and a scan of all 3105 generated `.s` for precedent.
+
+The read is correct and the verdict was too strong. It established that cse1
+commons a repeated constant unconditionally, that separate named locals do NOT
+defeat it, and that the only pass which restores such constants -- gcse's cprop
+-- is strictly CROSS-BLOCK, so a function whose only branch sits after every use
+can never get them back. All of that holds.
+
+But every step is about what happens to a PSEUDO, and a `register` declaration
+means **no pseudo is formed for cse1 to common.** 29 differing to 2 on the first
+pinned candidate.
+
+**So "no source construct can move this" needs qualifying: no spelling of
+ORDINARY locals can. Read such a conclusion as pointing AT a pin, not away from
+one** -- the cleaner the cse1 argument, the better a pin will work, because the
+argument is precisely that the value reaches cse1 as a pseudo.
+
+### Anchor the whole argument list even when only one constant is commoned
+
+On the same function r2 holds the only commoned constant (`0xd6 << 1`, three
+sites). Pinning r2 alone is **twelve worse** than pinning all three argument
+registers. The recorded "anchor every argument of a call you anchor any argument
+of" rule governs the defeat of cse1, not just interleaves.
+
+### Pin the minimum EACH SITE needs, not the maximum any site needed
+
+`OvlFunc_881_20097fc` and its three siblings are one park's cluster and call
+`__MapActor_SetSpeed(8, ...)` in the same position. `20097fc` needs all three
+argument registers pinned; the other three need **r0 alone**. Its SetSpeed is
+followed by `__Func_80921c4` with two more pool loads, the siblings' by a store,
+so the interleave being fixed is not the same one. The first working form pinned
+all three everywhere and was two pins heavy; only the teardown found it.
+
+### A pool-size mismatch can be pointing at another function's statement
+
+The literal pool is per TRANSLATION UNIT. On that cluster, dropping a named zero
+made `tryc` report *"our pool has 23 entries and the reference needs 20"* against
+`20097fc` -- a function that does not contain the store that caused it. The extra
+words came from the three siblings. **When a pool count is wrong and the
+instructions match, look at the whole TU, not the named function.**
+
+## A halfword store of a literal goes to the POOL; name it as an `int`
+
+`*g = 0` through a `short *` narrows the constant to HImode, and Thumb HImode
+constants go to the literal pool -- gcc emits `ldr r3, =0x0` where the ROM has
+`mov r3, #0`. An `int` local assigned 0 and then stored keeps SImode and the
+`mov` comes back.
+
+Same narrowing as the recorded `SetTextColor` note (*"a pooled small constant
+that meets a halfword is not a symbol"*), from the other side: there the ROM
+pools and gcc must be made to pool, here the ROM builds inline and gcc must be
+stopped. One mechanism, both directions. **Read which side the ROM is on before
+deciding the constant is a symbol.**
+
+Thumb-1 `ldrsh` has NO immediate form, so a signed halfword read always appears
+as a register-offset load (`mov r2, #0 / ldrsh r3, [r5, r2]`). That pair is not
+evidence of an index variable -- it is what `*(short *)p` compiles to.
+
 **One pin can cover several sites.** `2008d58` commons `-1` at two calls four
 instructions apart; pinning only the FIRST is exact, and the second keeps its
 own `mov r0,#1 / neg r0,r0` as a plain literal. Once no shared pseudo is formed
