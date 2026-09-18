@@ -666,6 +666,15 @@ asm/rom_77000/rom_77320_c_c_b.o: src/rom_77000/rom_77320_c_c_b.c
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# NewActor's `ldr r3, [r2]` sits BEFORE `mov r0, #0` in the ROM; sched2 hoists the
+# zero-cost mov above the load and no source spelling reaches it (twelve statement
+# orders, both loads volatile, two-return and while-loop shapes, all measured in
+# batch 271). Third file in the tree to need this flag.
+asm/rom_9000/rom_c004_c_a_a_a_a_a_a_a.o: src/rom_9000/rom_c004_c_a_a_a_a_a_a_a.c
+	$(GCC296_CC) $(SCHED2_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 asm/rom_f0000/rom_f0254_a_b.o: src/rom_f0000/rom_f0254_a_b.c
 	$(GCC296_CC) $(GCSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
