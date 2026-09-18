@@ -1,3 +1,37 @@
+/* ==================== SOLVED IN BATCH 271, NOT YET LANDED ====================
+ *
+ *   OK OvlFunc_964_2009458 -- 84 bytes, 35 encodings and 6 relocations identical
+ *
+ * NOT LANDED ONLY BECAUSE OF THE PER-ROUND FUNCTION BUDGET. Its .s
+ * (asm/overlays/rom_7ed0a0/ovl_30_a_c_c_a_a_a.s -- the path in the header below is
+ * STALE, the file split) holds this function alone and carries no data section, so
+ * landing needs no split at all. Verified candidate: scratch_elev/b271/regalloc/a9.c.
+ *
+ * THE LEVER: PUT THE SHARED STORE IN BOTH ARMS.
+ *
+ * Keeping `*q = v` after the join makes `v` a GLOBAL allocno. local-alloc then
+ * hands the arm's local (the loaded byte) r3 first and `v` takes r2 -- which is
+ * the entire three-instruction residue this park was stuck on. Writing the store
+ * inside each arm makes the result block-local, the mask/result quantity wins the
+ * priority sort and takes r3, the loaded byte gets r2, and jump2 CROSS-JUMPING
+ * merges the two identical `strb r3, [r0]` tails back into the ROM's single shared
+ * store at zero cost.
+ *
+ * So the duplicated store is not in the emitted code and costs nothing -- it
+ * exists only to change where the value is born.
+ *
+ * THE TWIN ALREADY KNEW. OvlFunc_964_20094ac is solved in
+ * src/overlays/rom_7ed0a0/ovl_30_a_c_c_a_a_b.c using exactly this shape; the
+ * finding never made it back to this file. Two independent exact spellings were
+ * measured (both pin-free): the one banked, and a `v = 0xf7; v &= t;` accumulator
+ * with the per-arm store.
+ *
+ * MEASURED: per-arm store with a plain `v = 0xf7 & t`, 3; a named `int m = 0xf7`
+ * with the SHARED store, 4; `v = 0xf7; v &= t` with the shared store, 7; the store
+ * literal reused as the mask variable, 13/15 at 37 lines; no `t` intermediate with
+ * the per-arm store, 23.
+ */
+
 /* OvlFunc_964_2009458 -- NOT MATCHING. 3 of 36, same length.
  *
  * Source asm: goldensun/asm/overlays/rom_7ed0a0/ovl_30_a_c_c_a_a.s

@@ -102,3 +102,57 @@ int HeightTile_A(signed char *p, int t)
     c = *p << 19;
     return b + ((t - 8) * (c - b)) / 8;
 }
+
+/* ==================== BATCH 271 -- 4 DIFFERING TO 2, AND THE TIE THEORY IS ALSO DEAD ====================
+ *
+ * The four register-swapped lines this park is named for are now EXACT
+ * (`lsl r2, r3, #0x13 / mov r3, r1 / sub r2, r4 / sub r3, #0x8`). Best candidate
+ * scratch_elev/b271/regalloc/c7.c, 39 lines against 39, 2 encodings differing,
+ * NO PINS.
+ *
+ * THE CONTEST WAS NEVER BETWEEN TWO 2-REFERENCE QUANTITIES. The batch-267 reading
+ * above has `t - 8` and `c - b` tying on priority so that qty NUMBER decides. Read
+ * out of .17.lreg / .18.greg, that is not what happens. local-alloc sorts by
+ *
+ *     QTY_CMP_PRI = floor_log2(n_refs) * n_refs * size / (death - birth)
+ *
+ * and `*thumb_ashlsi3` lets combine_regs tie the shift result into the dying
+ * `ldrsb` temp, after which the `minus` ties into THAT -- making one
+ * SIX-REFERENCE quantity (temp + c + c-b) with priority ~1.5. No 2-reference
+ * quantity in a five-insn block can beat it. It takes r3 first and `t - 8` gets
+ * what is left.
+ *
+ * Which is why all five spellings above measured 4: they moved the INSNS and never
+ * touched a REFERENCE COUNT. That is the general lesson -- when the priority
+ * formula is the thing deciding, statement order is the wrong knob.
+ *
+ * THE CURE IS TO STOP THE TIE by making the shift's destination a GLOBAL pseudo
+ * (combine_regs returns 0 when reg_qty[sreg] == -1): reuse the existing global `a`
+ * for the third sample, and write the subtraction as the accumulator `a -= b` so
+ * the destructive two-operand `sub r2, r4` survives. Block 4 then holds only two
+ * tiny locals, which land on r3 in sequence exactly as the ROM does.
+ *
+ * WHAT BLOCKS THE LAST TWO, and it is a hard stop rather than an unswept space:
+ *
+ *     rom   mov r0, r3 / mul r0, r2
+ *     ours  mov r0, r2 / mul r0, r3
+ *
+ * The mult's RTL operand 1 is always the SECOND source operand, so `(t-8) * a`
+ * gives op1 = `a`, and the only spelling giving op1 = `t-8` is `a * (t-8)`. Both
+ * were dumped: the two .17.lreg streams are IDENTICAL except for that operand
+ * order. But global.c's set_preference prefers on XEXP(src,0) for
+ * `(set prod (mult X Y))`, so with op1 = `a` the mult ties prod to `a` and the
+ * globals land ROM-correct (a->r2, b->r4, t->r1); with op1 = the local `t-8` that
+ * tie disappears, `a` (priority 0.82) picks before `t` (0.57) and steals r1, `t`
+ * needs r4, and a `mov r4, r1` appears. Flipping it would need `a`'s reference
+ * count down to 4 or `t`'s priority above 0.82, neither reachable without changing
+ * the emitted instructions.
+ *
+ * MEASURED THIS ROUND (39 lines unless noted): the banked form, 2; the same with
+ * `u = t-8; u * a`, 2; `a * (t - 8)`, 36 at 40 lines; `a * u`, 36 at 40 lines;
+ * `u` computed before `a -= b`, 35 at 40; `u` before the shift, 26; reuse `a` with
+ * `(t-8)*(a-b)`, 13 at 40; a shared multiplier across both arms, 39 at 42 lines.
+ *
+ * PINS ARE STRICTLY WORSE HERE -- `register int a __asm__("r2")` is 28 at 40
+ * lines, and pinning both a->r2 and u->r3 is also 28. Do not spend a fakematch row.
+ */
