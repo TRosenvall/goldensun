@@ -5067,6 +5067,28 @@ the first differing position back to ~1 and multiplied the count: 3 → 15,
 17 → 41, 8 → 25, 2 → 23. **It is never the answer to a one-instruction
 scheduling difference, and it destroys the evidence you were reading.**
 
+### ...but it IS the answer on `NewActor`, and that is now three files
+
+The warning above and batch 266's "none is a case for a SCHED2_CFLAGS rule" were
+both drawn from functions where the flag multiplied the count. `NewActor`
+(0x0800c0cc) is the counterexample: 2 differing with the flag off, **EXACT** with
+it on, and it is the third file in the tree to carry `SCHED2_CFLAGS`.
+
+The ROM loads before it materialises the zero --
+`ldr r3, [r2] / mov r0, #0 / mov r1, #0` against our `mov r0, #0 / ldr r3, [r2]`
+-- and sched2 hoists the zero-cost `mov` above the load. Nothing at the source
+level reaches it: all twelve statement orders of the four opening assignments,
+both loads as `volatile int`, a two-return shape, and a plain `while` loop all
+leave the same two adjacent instructions transposed.
+
+**So the discriminator is the SIZE of the residue, not its shape.** The flag
+destroys the evidence when it is reached for against a *large* scheduling-shaped
+residue -- that is what the section above measured. Against a residue of exactly
+two adjacent instructions, where the ROM's order is the *unscheduled* order, it
+can be the honest answer. Try it last, and only when a source sweep has already
+established that nothing else moves.
+
+
 ## Name the store's DESTINATION pointer when the ROM computes the address first
 
 Distinct from the operand-order lever. Where the ROM computes `dst = base + K`
@@ -14342,6 +14364,26 @@ But every step is about what happens to a PSEUDO, and a `register` declaration
 means **no pseudo is formed for cse1 to common.** 29 differing to 2 on the first
 pinned candidate.
 
+### The bound on that: a RELOAD-created value cannot be pinned
+
+`OvlFunc_969_200db90` is where the pin cannot help, and the reason is worth
+knowing before spending a fakematch row. Its tail insns all have identical
+priority, so order falls to LUID, and the constant's LUID is not the source's to
+set -- `flow2` shows reload materialising `-512` immediately before the add:
+
+    (insn 80  (set (reg r3) (zero_extend (mem:HI (reg r6)))))   <- the ldrh
+    (insn 113 (set (reg:SI 1 r1) (const_int -512)))             <- RELOAD-created
+    (insn 82  (set (reg r3) (plus (reg r3) (reg r1))))
+
+cse and reload discard any earlier materialisation, so source position is
+irrelevant. Confirmed for a plain `int` assigned before the tail AND for a split
+`register int bias __asm__("r1")` -- in both, the dump still shows a high-numbered
+reload insn between the load and the add.
+
+**A pin binds a PSEUDO. If the value you are arguing about is created by reload,
+there is no pseudo at the point you care about and no pin can reach it.** Check
+`flow2` for a high insn number on the constant before reaching for one.
+
 **So "no source construct can move this" needs qualifying: no spelling of
 ORDINARY locals can. Read such a conclusion as pointing AT a pin, not away from
 one** -- the cleaner the cse1 argument, the better a pin will work, because the
@@ -20647,6 +20689,73 @@ Two corrections come with it:
 * **A `short` LOCAL does not give you HImode** -- ARM's `PROMOTE_MODE` widens it,
   and six `short`/`unsigned short` spellings measured unchanged. A bare literal
   at the store does, and so does a `register short` declaration.
+## An HImode pool load is what puts a pool in the MIDDLE of a function
+
+The folding note below says a disassembled `ldr` from a pool label is not evidence
+against HImode. The consequence is bigger than the caution.
+
+An HImode pool fixup has the narrow **32..60 byte** range, so `arm_reorg` cannot
+carry it to the end-of-function barrier and `dump_table` manufactures a pool
+mid-function -- **with a `b` over it**. An SImode fixup reaches the end and the
+pool lands after the epilogue with no branch.
+
+`OvlFunc_951_2008dd0` was parked at 20 of 57, exactly ONE INSTRUCTION SHORT, on a
+pooled zero spelled as an SImode symbol. Making it an `unsigned short` local
+byte-stored twice emits `ldrh r2, .L10 / b .L11 / .word 0` at the ROM's position
+and the function is exact -- and it retired the `_AREA_00` entry the park was
+resting on.
+
+**When a function is exactly one instruction short and the ROM has a mid-function
+pool, the missing instruction is probably that `b`, and the question is the MODE of
+something in the pool.** That park had reached for a symbol and got a correct pool
+in the wrong place. Every generated mid-function pool in this tree -- 206 of them,
+found by scanning for `b .LN` followed by a label and `.align 2, 0` -- is driven by
+exactly this.
+
+## A missing ANTI-DEPENDENCY looks exactly like a scheduling priority problem
+
+`Func_8096d84`'s park read its residue as gcc sinking a load toward its use and
+swept statement orders. The sched2 dump says the load is **ready from t=1** with
+priority 0, so it loses every slot until nothing else is left -- the ROM's order
+is not a priority difference at all. The ROM's load must precede the `strh`
+because of an anti-dependency that **gcc never built**: the load is `char *` and
+the store is `unsigned short`, different alias sets, so `-fstrict-aliasing`
+disambiguates them and frees the load to sink.
+
+Route EITHER access through a union and the dependence appears --
+`c_get_alias_set` returns 0 for a direct union access, which conflicts with
+everything:
+
+    union PtrPun { char *p; unsigned short h; };
+    o = ((union PtrPun *)(a + 0x68))->p;      /* pun the load,  or */
+    ((union PtrPun *)(a + 0x64))->h = t;      /* pun the store -- either works */
+
+A single-member union works too. `-fno-strict-aliasing` on the TU also matches
+(`ALIAS_CFLAGS` exists), but the union is preferable: it is one function's problem,
+not the translation unit's.
+
+**`volatile` does NOT create the dependence** -- the obvious first try, measured,
+still 4 differing. Nor does retyping the pointer, because gcc-2.96 canonicalises
+pointer alias sets per target.
+
+**The tell to separate the two cases: read whether the insn is READY EARLY with low
+priority (an alias problem) or becomes ready LATE (a real dependence chain).** Only
+the second is a scheduling question.
+
+### The same lever works on a STORE, via the struct
+
+`OvlFunc_945_20082f4` sat at 3 of 36 with an address copy one slot late, and the
+dump shows a genuine tie whose tie-break falls through to source order -- with the
+address insn created by reload glued to its use, so no statement order reaches it.
+Reading the object through a STRUCT with named byte fields instead of
+`unsigned char *s` with `s[9]` / `s[0x15]` changes the store's alias set and the
+scheduler lands the ROM's order.
+
+That is the recorded "a typed field load schedules differently from a cast
+dereference" rule applying to a store. **Second time in three batches that a
+residue read as an unreachable sched2 placement was a TYPE problem** -- try the
+types before the schedule.
+
 * **`ldrh rX, .Label` in gcc's text assembles to a plain `ldr rX, [pc, #N]`** --
   GAS folds it. The pool-order table's row saying `*thumb_movhi_insn` "prints
   `ldrh`" is about gcc's TEXT only. **A ROM disassembly showing `ldr` from a pool
