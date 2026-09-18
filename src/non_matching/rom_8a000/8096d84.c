@@ -1,3 +1,46 @@
+/* ==================== SOLVED IN BATCH 271, NOT YET LANDED ====================
+ *
+ * EXACT and verified three ways:
+ *   OK Func_8096d84 -- 88 bytes, 41 encodings and 3 relocations identical
+ *
+ * NOT LANDED ONLY BECAUSE OF THE ROUND BUDGET. asm/rom_8a000/rom_96cdc_a_a_c.s
+ * holds Func_8096ddc as well, so landing needs a two-way text split (no data
+ * section -- datacheck is clean). Land this first next round.
+ *
+ * THE PARK'S DIAGNOSIS WAS WRONG ABOUT THE CAUSE. It read this as gcc sinking the
+ * load toward its use, a scheduling priority problem. The sched2 dump says insn 21
+ * (`ldr r6, [r5, #0x68]`) is READY FROM t=1 and simply has priority 0, so it loses
+ * every slot until nothing else is left. The ROM's order is not a priority
+ * difference at all -- it is an ANTI-DEPENDENCY: the load must precede the `strh`
+ * to a+0x64.
+ *
+ * gcc never built that dependency because `char *` (the load) and
+ * `unsigned short` (the store) are in different alias sets, so -fstrict-aliasing
+ * disambiguated them and freed the load to sink. Route either access through a
+ * UNION -- c_get_alias_set returns 0 for a direct union access, which conflicts
+ * with everything -- and the anti-dependency appears, pinning the load ahead of
+ * the store. No pins, no flags.
+ *
+ * THREE BYTE-IDENTICAL SPELLINGS, pick on readability:
+ *   - pun the LOAD:  `o = ((union PtrPun *)(a + 0x68))->p;`  with
+ *                    `union PtrPun { char *p; unsigned short h; };`
+ *   - the same with a single-member union `{ char *p; }`
+ *   - pun the STORE instead, keeping the load plain:
+ *                    `((union PtrPun *)(a + 0x64))->h = t;`
+ *
+ * -fno-strict-aliasing on the whole TU also matches with NO source change, and
+ * ALIAS_CFLAGS already exists in the Makefile -- but the union is preferable: this
+ * is one function's problem, not the translation unit's.
+ *
+ * MEASURED AND REJECTED, both still 4 differing: `o = (char *)*(volatile int *)(a
+ * + 0x68)` -- VOLATILE DOES NOT CREATE THE DEPENDENCY, worth knowing because it is
+ * the obvious first try; and retyping `o` as `unsigned short *` with the load as
+ * `*(unsigned short **)`, because gcc-2.96 canonicalises pointer alias sets
+ * per-target so that still does not conflict with `unsigned short`.
+ *
+ * The verified candidates are scratch_elev/b271/sched/D2.c, D4.c and D5.c.
+ */
+
 /* Func_8096d84 -- asm/rom_8a000/rom_96cdc_a_a.s
  *
  * BLOCKER: POST-RELOAD SCHEDULING of a single load. 4 of 42, LENGTH EXACT.

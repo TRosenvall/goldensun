@@ -66,3 +66,51 @@ void Field_Move(void)
     Func_809748c();
     Func_80981b0(r);
 }
+
+/* ==================== CLOSED IN BATCH 271: THE SOURCE CANNOT REACH THIS ====================
+ *
+ * Still 3 lines / 2 encodings, and the residue is exactly the adjacent
+ * transposition described above. What is new is that it is now decided from the
+ * scheduler rather than guessed at, and the answer rules the source out.
+ *
+ * sched2 ready lists for BB0:
+ *
+ *     t=0  ready {77 (sub sp), 10}  -> 10   ldr r3, =.LC0      (occupies t0-1)
+ *     t=2                           -> 12   ldr r3, [r3]       (t2-3)
+ *     t=4  ready {77, 14}           -> 14   ldr r5, [r3+0x10]  <- ROM picks 77 here
+ *     t=6                           -> 77   sub sp, #0xc
+ *     t=7                           -> 16   bl Func_8097384
+ *
+ * At t=4 both are ready and the scheduler ranks by priority, the longest path to
+ * the end of the block. On arm7tdmi the ldsched model gives a load a 2-cycle
+ * result cost, while arm_adjust_cost's "call insns do not incur a stall" rule
+ * makes any true dependence INTO a CALL_INSN cost 1. So
+ *
+ *     priority(14) = 2 + priority(mov r0, r5)
+ *     priority(77) = 1 + priority(bl) = 1 + priority(mov r0, r5)
+ *
+ * -- the bl -> mov r0,r5 link being an output/anti dep of cost 0. `sub sp`
+ * therefore loses by EXACTLY ONE UNIT, structurally, for any source that loads
+ * the caster from memory. Nothing in C changes either term: the frame size is
+ * fixed at 0xc, `sub sp` has no successor but the first call, and the load's only
+ * consumer is the argument `mov`.
+ *
+ * A TIE DOES NOT HELP EITHER. Replacing the load with `add r5, #0x10` (cost 1, so
+ * the priorities tie) breaks the tie toward the LARGER LUID -- still not `sub sp`.
+ * To win, `sub sp` would need priority strictly greater, i.e. +2, which is
+ * unreachable.
+ *
+ * MEASURED THIS ROUND, all byte-identical to the baseline at 2 encodings:
+ * `int buf[3]` instead of `char buf[12]`; a `struct F { int a, b, c; }` instead of
+ * the array; the array declared after the locals with a dead initialiser;
+ * volatile on the global (`*(char * volatile *)&iwram_3001f30`); volatile on the
+ * slot; and `#define G (*(char **)0x3001f30)`, an absolute address instead of an
+ * extern symbol.
+ *
+ * WORSE: a VLA (`int n = 12; char buf[n];`) at 28 lines and 26 differing, with
+ * `push {r5, r6, r7, lr}` and two `mov rX, sp`. That was the only construct found
+ * that puts a stack adjust mid-body, and it costs a frame pointer.
+ *
+ * DO NOT SWEEP THIS AGAIN. If it is ever to move it needs a compiler-side change,
+ * not a spelling.
+ */

@@ -107,3 +107,49 @@ void OvlFunc_969_200db90(unsigned char *a)
     v += *p;
     *p = v;
 }
+
+/* ==================== CLOSED IN BATCH 271: A PIN CANNOT REACH THIS ====================
+ *
+ * Still 2 of 41. This park's own conclusion -- "a pin orders two independent movs
+ * but not two independent loads" -- is right, and the reason is now readable
+ * rather than inferred, which turns it from an open question into a closed one.
+ *
+ * From -fsched-verbose=5, every insn in the tail has IDENTICAL priority 36 (the
+ * three stores, the ldrh and the constant), so the order is decided purely by
+ * LUID. And the constant's LUID cannot be moved, because it is not an expand-time
+ * insn. flow2 shows:
+ *
+ *     (insn 80  (set (reg r3) (zero_extend (mem:HI (reg r6)))))   <- the ldrh
+ *     (insn 113 (set (reg:SI 1 r1) (const_int -512)))             <- RELOAD-created
+ *     (insn 82  (set (reg r3) (plus (reg r3) (reg r1))))          <- the add
+ *
+ * RELOAD MATERIALISES -512 IMMEDIATELY BEFORE THE ADD, so it is always emitted
+ * after the ldrh, and it additionally acquires a dependence on whatever precedes
+ * it -- insn 80's INSN_DEPEND list is `119 118 86 82 113`, and the verbose log
+ * shows 113 entering the ready list only once 80 is scheduled.
+ *
+ * SOURCE POSITION OF THE CONSTANT IS IRRELEVANT, because cse and reload discard
+ * any earlier materialisation. Verified directly: with `int bias = 0xfffffe00`
+ * assigned BEFORE the tail read, and again with
+ * `register int bias __asm__("r1");` declaration split from assignment -- the
+ * batch-269 bare-pin lever -- flow2 still shows the constant as a high-numbered
+ * reload insn between the ldrh and the add.
+ *
+ * SO DO NOT ADD A FAKEMATCH ROW FOR THIS ONE. The pin is destroyed before
+ * scheduling; no number of pins can reach it. That is worth stating explicitly
+ * given how well the bare pin has worked elsewhere in batches 269-271.
+ *
+ * MEASURED: `bias` as a plain int assigned before the tail, 2 (unchanged); the
+ * pinned form, 2 (unchanged); `*p = *p - 0x200;`, 2; `{ int h; h = 0xfffffe00;
+ * h = h + (int)*p; *p = h; }`, 2; `{ int h; h = 0xfffffe00; *p = *p + h; }`, 2.
+ *
+ * AND THREE THAT ARE WORSE, which makes the park's current spelling load-bearing
+ * rather than merely equivalent: `*p += 0xfffffe00;`, `{ int h = *p; *p = h +
+ * 0xfffffe00; }`, and the fully-spelled-out halfword version are ALL 42 lines and
+ * 11 differing. The named-int-intermediate form is one line SHORTER than the
+ * obvious spellings and is what holds the length at 41.
+ *
+ * NOTE FOR LANDING WHENEVER IT IS SOLVED: datacheck says this .s carries .bss AND
+ * .data, so it needs a TEXT/DATA split, not just a text split. The twin
+ * OvlFunc_925_200b460 is in asm/overlays/rom_7b0400/ovl_314_c_c_c_c.s.
+ */
