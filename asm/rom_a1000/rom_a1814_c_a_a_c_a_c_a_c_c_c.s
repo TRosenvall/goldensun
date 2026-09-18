@@ -1,25 +1,6 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ SyncObjPaletteToBg
-@ Takes no arguments. DMA3-copies OBJ palette bank 0 (0x5000200) down into BG
-@ bank 14 (0x50001C0), plus one further colour. Keeps the text drawn into the
-@ tilemap the same colours as the sprites drawn over it.
-.thumb_func_start Func_80a22f4  @ 0x080a22f4
-	ldr	r3, =REG_DMA3SAD
-	ldr	r0, =0x5000200
-	ldr	r1, =0x50001c0
-	ldr	r2, =0x80000010
-	stmia	r3!, {r0, r1, r2}
-	sub	r3, #0xc
-	add	r1, #0x1c
-	ldr	r0, =0x50001e8
-	ldr	r2, =0x80000001
-	stmia	r3!, {r0, r1, r2}
-	sub	r3, #0xc
-	bx	lr
-.func_end Func_80a22f4
-
 @ ShowNodeRun
 @ r0 = count, r1 = first index, r2 = unused, r3 = x, arg5 = y.
 @ Hides all 32 nodes at state+0x48 by setting each one's +0x05 to 0x0D, then
