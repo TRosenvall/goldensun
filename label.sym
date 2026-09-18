@@ -35,3 +35,31 @@
 /* Func_8097384 indexes an eight-entry table of pointers selected by a chain of
  * flag tests. Defined and exported at asm/rom_8a000/rom_97384_c_c_c_c.s:5. */
 _TBL_a0108 = .La0108;
+
+/* LoadUIBanner (0x0801a32c) selects a graphics-table base with a four-way
+ * switch, and its literal pool holds FOUR entries that are all the address of
+ * Data_31864.
+ *
+ * Four identical pool words cannot come from one symbol referenced four times.
+ * gcc-2.96 tail-merges identical basic blocks, so one symbol in all four arms
+ * collapses the function to NINE instructions and folds the switch away
+ * entirely; the ROM has TWENTY-NINE with all four arms intact. Both numbers are
+ * measured. So the source referenced four DISTINCT names that resolve to one
+ * address, and these are three of them (the fourth arm is the default and keeps
+ * Data_31864 itself).
+ *
+ * WHAT IS PROVEN AND WHAT IS NOT. That there were four distinct symbols at this
+ * address is a fact about the ROM, with an in-function control. What they were
+ * CALLED is not recoverable, and these names are placeholders chosen to say only
+ * what is known -- the selector values 1..3 that reach them. Renaming them later
+ * costs nothing; the assignments emit no bytes.
+ *
+ * Assigned from the symbol rather than from 0x08031864 so they cannot drift.
+ *
+ * This stretches this file's charter, which is `.L` labels. It is here because
+ * the header's reason for the file holds exactly -- code outside the overlays
+ * links through stage1.ld and has nowhere else to put an absolute assignment.
+ */
+_UIBANNER_1 = Data_31864;
+_UIBANNER_2 = Data_31864;
+_UIBANNER_3 = Data_31864;
