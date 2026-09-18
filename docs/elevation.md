@@ -15169,6 +15169,51 @@ register's place in the ordering, and the assignment's position sets when the
 value is materialised.** Reach for the second when the first cannot go late
 enough.
 
+## N IDENTICAL pool entries in one function mean N DISTINCT source symbols
+
+`LoadUIBanner` (0x0801a32c) is a four-way switch whose literal pool holds four
+entries that are all the address of `Data_31864`. Measured both ways:
+
+| source | result |
+|---|---|
+| three distinct externs plus the default | 29 instructions against 29, 3 differing -- the symbol NAMES only |
+| one symbol in all four arms | **NINE** instructions |
+
+gcc-2.96 tail-merges identical basic blocks, so one name in all four arms makes
+the arms identical, merges them, and folds the switch away. The ROM keeps all
+four arms, so the source cannot have referenced one symbol four times.
+
+**So repeated identical pool words are a POSITIVE statement about the source.**
+Do not read them as redundancy in the ROM or as something the assembler failed to
+fold -- they are the tell that N names existed. The fix is N absolute assignments
+in a `.sym` (`_NAME = ExistingSymbol;`), which emit no bytes.
+
+Two things this settles about `.sym` scope, because a park declined this
+elevation on the opposite belief:
+
+- **`.sym` files DO hold addresses.** `wram.sym` is 275 lines of them, and
+  `label.sym` exists specifically to name DATA LABEL addresses. "The .sym files
+  hold id values, not addresses" is false.
+- **Assign from the symbol, not from the literal address** -- `_UIBANNER_1 =
+  Data_31864;`, matching `label.sym`'s own `_TBL_a0108 = .La0108;`. It cannot
+  drift if the blob moves, and it reduces the claim from "a symbol lives at
+  0x08031864" to "this name aliases that one", which is all the ROM proves.
+
+Keep proven and unproven apart in the comment. That four distinct symbols existed
+is a fact with an in-function control; what they were CALLED is not recoverable,
+so the names are placeholders. Renaming later is free, which is exactly why
+asserting them is safe.
+
+### objcmp cannot verify an aliased symbol, and that is not a defect
+
+The relocations name `_UIBANNER_1` where the reference names `Data_31864`. The
+names differ; the resolved addresses do not. `objcmp` compares relocation names,
+so it reports a difference on a function whose linked bytes are identical.
+
+**When a candidate differs only in relocation NAMES that resolve to one address,
+`make compare` is the only authority available.** Do not read objcmp's
+relocation diff as a defect, and do not chase it.
+
 ## Two pool loads and a SUBTRACT mean two symbol addresses
 
 gcc folds literal arithmetic. So a ROM sequence like
