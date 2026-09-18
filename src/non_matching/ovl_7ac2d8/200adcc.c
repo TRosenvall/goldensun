@@ -84,3 +84,12 @@ void OvlFunc_924_200adcc(void)
         } while (i <= 5);
     }
 }
+
+/* BATCH 271: the symbolic-base re-attack this park names is now MEASURED, on the
+ * twin. See src/non_matching/ovl_7ac2d8/200a648.c -- THREE INDEPENDENT extern
+ * symbols (not a common base with offsets) remove the derivation outright,
+ * because an extern's value is unknown at compile time and gcc has no difference
+ * to compute. It does not close the function: underneath is a two-register
+ * transposition on the save pair that four source spellings do not move, and the
+ * count stays at 5. Do not spend another round on the pool; the open question
+ * here is the transposition. */
