@@ -14384,6 +14384,63 @@ reload insn between the load and the add.
 there is no pseudo at the point you care about and no pin can reach it.** Check
 `flow2` for a high insn number on the constant before reaching for one.
 
+## DUPLICATE A SHARED STORE INTO BOTH ARMS to make its value block-local
+
+A store written once after an if/else join makes the stored value a GLOBAL
+allocno. local-alloc then allocates the arm's own local first and the shared value
+takes whatever is left -- which reads as an arbitrary register swap and is not.
+
+Write the store inside EACH arm instead. The value becomes block-local, wins the
+priority sort in its own block, and **jump2 cross-jumping merges the two identical
+tails back into one store**, so the duplicate never reaches the output. It costs
+nothing and only changes where the value is born.
+
+`OvlFunc_964_2009458`: three instructions of residue to EXACT, no pins. Its solved
+twin `OvlFunc_964_20094ac` already used the shape.
+
+**The shape to recognise:** an if/else whose arms compute a value, one store after
+the join, and a residue that is purely which of two registers holds what.
+
+## ONE LOAD, TWO VARIABLES when a value is both a guard and a loop bound
+
+`OvlFunc_882_200a09c`'s ROM wants `ldrb r3, [r3]` -- address and loaded value in
+one register -- AND a surviving `mov r1, r3`. Its park tried a double read (guard
+on the field, body on a local). That does produce the copy, but it gives the two
+loads **one shared address pseudo spanning two blocks**, which becomes a global
+allocno, conflicts with the block-local loaded value already in r3, and is pushed
+to r2.
+
+    c = o->f27;                       /* one load                      */
+    if (c != 0) { i = c; ... do { } while (--i != 0); }
+
+One load, two variables: the address is referenced once, dies at the load, stays
+block-local and reuses r3; `c` spans into the loop-setup block; and the copy
+survives because `i` is multi-block, so `combine_regs` refuses to tie it
+(`reg_qty[sreg] == -1`). Using ONE variable for both roles deletes the copy -- that
+is why the park's `n = p->f27; if (n != 0)` measured 23.
+
+## When the PRIORITY FORMULA decides, statement order is the wrong knob
+
+local-alloc sorts by `QTY_CMP_PRI = floor_log2(n_refs) * n_refs * size /
+(death - birth)`. A residue that looks like two 2-reference quantities tying often
+is not: `combine_regs` ties chains together, and on `HeightTile_A`
+`*thumb_ashlsi3` ties the shift result into the dying `ldrsb` temp and the `minus`
+into that, making **one six-reference quantity** (~1.5 priority) that no
+2-reference quantity in a five-insn block can beat.
+
+Five statement-order spellings all measured 4 there, because they moved INSNS and
+never touched a REFERENCE COUNT. **Read the reference counts before reordering
+statements.** The cure is to break the tie -- making the shift's destination a
+global pseudo (`combine_regs` returns 0 when `reg_qty[sreg] == -1`) took it 4 to 2.
+
+### `set_preference` keys on the FIRST source operand
+
+For `(set prod (mult X Y))`, `global.c`'s `set_preference` prefers on
+`XEXP (src, 0)`. RTL operand 1 is the SECOND source operand, so `(t-8) * a` and
+`a * (t-8)` produce identical `.17.lreg` streams except for that order -- and
+opposite global assignments. Worth knowing before concluding a multiply's operand
+order is free: it is not, and it can be the only thing left.
+
 **So "no source construct can move this" needs qualifying: no spelling of
 ORDINARY locals can. Read such a conclusion as pointing AT a pin, not away from
 one** -- the cleaner the cse1 argument, the better a pin will work, because the
