@@ -7824,9 +7824,10 @@ Three functions matched on the first screen this way, all three previously
 parked or blocked on exactly this floor: `OvlFunc_937_200807c`,
 `OvlFunc_937_20080e4` (whose park called it "the cleanest example so far
 because every other difference is gone") and `OvlFunc_899_2008048`.
-`Func_80a3ce4`, the function this document used to STATE the floor, also
-matches as a switch; it is not elevated only because its `.s` holds four
-functions and the other three are still assembly.
+`Func_80a3ce4`, the function this document used to STATE the floor, is now
+ELEVATED as a switch -- `src/rom_a1000/rom_a1814_c_a_c_c_c_c_a_c_b.c`, after the
+split its park was waiting on. Its two stale park files were deleted in batch 271;
+if you are reading an old reference to them, the landed file carries the reasoning.
 
 **Scope, measured rather than assumed.** 242 `cmp #K / blt` sites sit in 158
 unelevated functions. That is the population where this can apply -- not a
