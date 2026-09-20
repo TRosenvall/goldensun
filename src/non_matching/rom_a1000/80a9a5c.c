@@ -58,3 +58,38 @@
  *
  * The verified candidate is scratch_elev/b272/C/a9a5c_v6.c; the fallback is a9a5c_v7.c.
  */
+
+extern unsigned int iwram_3001f2c;
+extern int _MSG_b24;
+extern void _GetUnit(int id);
+extern void Func_80a9cbc(void);
+extern void Func_80a345c(void);
+extern void _Func_801e7c0(int id, unsigned int win, int x, int y);
+extern void Func_80a9aec(unsigned int win, unsigned int list);
+extern void WaitFrames(int n);
+extern void Func_80a3e28(unsigned int list, int flag);
+extern void Func_80a9c18(unsigned int list);
+
+void Func_80a9a5c(unsigned int win, unsigned int id, unsigned int skip)
+{
+    unsigned int base;
+    unsigned int list;
+    int msg;
+
+    base = iwram_3001f2c;
+    _GetUnit(id);
+    Func_80a9cbc();
+    Func_80a345c();
+    msg = (int)&_MSG_b24;
+    _Func_801e7c0(msg, win, 0, 0);
+    _Func_801e7c0(msg + 1, win, 0, 0x20);
+    _Func_801e7c0(msg + 2, win, 0, 0x10);
+    _Func_801e7c0(msg + 3, win, 0, 0x30);
+    list = base + (0xe4 << 1);
+    Func_80a9aec(win, list);
+    if (skip == 0) {
+        WaitFrames(1);
+        Func_80a3e28(list, 1);
+        Func_80a9c18(list);
+    }
+}
