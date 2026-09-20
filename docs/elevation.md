@@ -14696,6 +14696,115 @@ address must be computed BEFORE the load it conflicts with, and only a separate 
 statement per group puts it there. Assigning all four pointers up front also fails, at 82:
 **the interleaving is the lever, not the pointers.**
 
+## A `struct` INSTEAD OF `unsigned char *` IS A REGISTER-ALLOCATION LEVER
+
+With `unsigned char *` plus hand-written byte offsets, `strength_reduce` folds the whole
+address into ONE pointer giv. With a typed struct member array it keeps the ROM's BASE
+REGISTER + STEPPING INTEGER OFFSET split, which costs one more callee-saved register and
+reproduces the ROM's push list.
+
+On `Func_80b2e30` all four `unsigned char *` address spellings measured IDENTICALLY at 76
+differing, as did `-fno-strict-aliasing`, `-fno-gcse`, `-fno-rerun-cse-after-loop` and
+`-fno-expensive-optimizations`. The struct was exact.
+
+**This refutes `src/non_matching/rom_b0000/80b280c.c`'s conclusion** that the class "needs a
+differently configured gcc rather than a different C" -- and the fix was that park's own
+closing note, a struct declaration listed as "NOT tried, and worth one screen".
+
+So "gcc re-derives its own induction variables and the source has no vote" holds **for the
+`unsigned char *` typing only**. When every expression spelling measures identical, the
+variable you have not varied may be the TYPE.
+
+### Two pointer ROLES can be ONE source variable
+
+`StartRain` needed the second allocation's buffer pointer and the per-entry walk pointer to be
+the same local: separate variables 46 differing, shared 9. **The tell is a callee-saved
+register serving two unrelated roles either side of a `gfree`.**
+
+This is the other side of batch 274's "distinct call results want distinct variables", and the
+two together mean: read which register the ROM spends, then decide. Neither is the default.
+
+## A `sub sp, #N` LARGER THAN THE ADDRESS-TAKEN LOCALS IS A CALLER-SAVE SLOT
+
+Under `-fcall-used-r4`, `str r4, [sp]` before a call plus `ldr r4, [sp]` after it, **with r4
+absent from the push list**, is `caller-save.c` -- not a spill. It means that value's allocno
+lost every callee-saved register.
+
+**Read the push list and the frame size together before touching spellings.** A frame larger
+than the locals account for is information about allocation, not about storage.
+
+## A four-term `&&` RANGE CHAIN MUST BE PARENTHESISED INTO PAIRS
+
+Written flat, `fold_truthop` folds only the FIRST pair; the second is left-associated against
+the accumulated test, never becomes adjacent siblings, and `fold_range_test` never fires on it.
+So the second delta gets two signed compares against a pooled bound instead of the biased
+`add / cmp / bhi`.
+
+`(A && B) && (C && D)` closes it -- 95 differing to 26 on `Func_808ee0c`. The failure is
+**silent and asymmetric**: the first half of the test is right and the second is not. Two
+`if (...) continue;` statements measure identically, i.e. they do not help either.
+
+## `goto` INTO A `do/while` IS THE LOOP FORM for an entry-jump
+
+A ROM shape of `b ENTRY / TOP: update / ENTRY: body / bne TOP` is
+
+    goto entry;
+    do { update; entry: body; } while (cond);
+
+and is NOT reachable from `while (1) { body; if (x) break; update; }`, which lays the body
+first. 67 differing to 33 on `Func_80286a0`.
+
+**Only the `goto` matters, not the keyword** -- `for (;;)` with a `break` and
+`while (cond)` wrapped the same way are byte-identical to the `do/while`.
+
+## Invariant loads belong INSIDE the loop
+
+A source statement before the loop lands before the GUARD; written inside, loop-invariant
+motion drops it into the PREHEADER, which is after the guard -- and that is usually where the
+ROM has it. Same shape as the recorded giv-initialiser rule, now for a plain invariant.
+
+## `(x & (1 << n)) == 0` IS FOLDED to `((x >> n) & 1) == 0`
+
+`fold` does it because the AND's operand is literally a `LSHIFT_EXPR` of 1. Assign the shift to
+a named `int bit` first and the fold is blocked, restoring the ROM's
+`mov r2, #1 / lsl r2, r0 / and r3, r2`.
+
+### And put the early-exit constant in the TEXTUALLY LAST block
+
+`if (n > 4) return -1;` emits the -1 inline and branches over it. The ROM branches AWAY and
+lets the constant fall through into the epilogue, which is what `if (n <= 4) { ... } else`
+gives. Companion to the `goto`-placement rules: those are about where a target lands, this is
+about which arm the fall-through constant sits in.
+
+## A `(u16)` CAST BEFORE A MASK settles the `_CONST_1f` class
+
+`(u16)((c << 16) >> 21) & 0x1f` makes the mask a **HImode** pool entry (`*thumb_movhi_insn`,
+`pool_range` 64), which forces the ROM's mid-function pool and its `b`-over-pool at **zero**
+extra instructions.
+
+This document calls the `(int)&_CONST_1f` reading a convincing false lead -- "right text, wrong
+bytes", because an SImode symbol has range 1020 and the pool moves to the end. And
+`const.sym`'s `_CONST_1f` entry lists `unsigned short t; (t >> 5) & 0x1f` as a near miss "not
+close enough to count" **because it prints `ldrh`**.
+
+**Batch 79's own finding settles that objection: Thumb-1 has no PC-relative `ldrh`, so gas
+assembles `ldrh rN, .L` to the identical halfword.** The near miss was a match all along and
+was rejected on a disassembly artefact. `Func_80f61e8` is the first validated instance. No
+`_CONST_1f` symbol is needed for this class.
+
+## `DMA3_SET` and `DMA3_COPY` are not synonyms
+
+`DMA3_SET`'s extra `"r0"` clobber is what produces a second `mov r0, rN` before a following
+call; with `DMA3_COPY` gcc knows r0 still holds the value and the function comes out one
+instruction SHORT. 46 differing to 11 on `Task_BlitLuckyWheelsAnim`.
+
+## AMENDMENT: screen a pin on r0 ALONE first
+
+`OvlFunc_942_20087dc`'s entry records pin-r0-alone as inert and r0+r1 as the minimum, and
+generalises it to "pin the pair". **That is not a property of the class.** On
+`Task_BlitLuckyWheelsAnim` r0 alone is EXACT and r1 alone is inert -- the asymmetry runs the
+other way. Screen r0 alone first, then the pair.
+
 ## A PARK IS A FILE-MATE SOURCE
 
 Four functions across batches 273--274 landed off `src/non_matching/` files rather than
