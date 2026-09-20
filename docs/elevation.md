@@ -14515,6 +14515,67 @@ single `tx` compare gives `tx` a different reference count, so there is no tie a
 the order never mattered. The park read that as "the allocator just prefers the
 other way round in the twin". It is a tie in one function and not in the other.
 
+## ASSIGN A VALUE TWICE to push it out of local-alloc into global-alloc
+
+The usual reflex is to give a value its own name so it becomes block-local.
+`UploadBGPalette` needs the opposite, and it is the same machinery run backwards.
+
+With a separate result local, `.17.lreg` reports `Register 36 used 8 times ... in
+block 4; set 1 time` and local-alloc gives it **r0**. `.18.greg` then has hard reg 0
+in the multiplier's conflict set, so the multiplier is pushed to r4, only r1/r2/r3
+remain as loop scratch, the three products spill to r8/r9/r10, and the prologue grows
+two high-register moves.
+
+Reusing the input variable for the result gives `set 2 times; dies in 2 places`,
+which **local-alloc cannot form into a single quantity**. It falls through to
+global-alloc, lands in r4, and the multiplier gets r0 -- the ROM's deal.
+
+**So a value assigned ONCE is a local-alloc quantity and a value assigned TWICE is a
+global-alloc allocno.** When a value is in the wrong register and the ROM's choice
+looks like a global one, try reusing an existing variable instead of naming a new
+one.
+
+### Thumb's `mulsi3` is DESTRUCTIVE: split mask-then-multiply
+
+`r = (c & 0x1f) * amount` expands to `(mult amount masked)`, and because Thumb's
+multiply is destructive regmove cannot tie the product to the dying mask -- reload
+pays `mov r2, r4 / mul r2, r2, r3` at every site. Written as two statements,
+
+    r = c & 0x1f;
+    r *= amount;
+
+the mask pseudo IS the product pseudo and you get the ROM's `mul r3, r0`. Worth ten
+instructions across three channels on `UploadBGPalette`.
+
+### `expand_assignment` forces the store's ADDRESS into a register first
+
+`REG_BLDCNT = 0x3f42;` creates the *address* pseudo (0x4000050) before the value's,
+so the address takes the lower-numbered register. Naming the value first --
+`int v = 0x3f42;` before the statement -- creates its pseudo earlier and reverses the
+pair. 16 differing to 8 on `OvlFunc_951_2008880`.
+
+This is the same pseudo-numbering family as the declaration-order tie above: what
+decides is WHEN a pseudo is created, and a store's address counts as one.
+
+## An ANTI-dependence gives an insn NO priority, which can make an order unreachable
+
+`rank_for_schedule` compares `INSN_PRIORITY` first and returns before any tie-break.
+Priority is the longest path to the end of the block through **true** dependences, so
+an insn whose only successor is reached by an anti-dependence inherits nothing.
+
+On `OvlFunc_951_2008880`, `add r5, #2` is ready at the contested slot with priority
+**1** against three competitors at **2**; its only successor is the call, via a cost-0
+anti-dependence (the call neither reads nor writes r5). For the ROM's order it would
+need priority >= 3, which requires a TRUE dependence onto the `strh` that follows --
+i.e. that store would have to read r5, and in the ROM it reads only r3 and r7.
+
+**So when the ROM's order needs an insn that has no true successor to inherit
+priority from, no source spelling can reach it.** Check this before assuming an
+adjacent transposition is an alias problem: here the missing edge is a REGISTER
+dependence, not a memory one, so a union, a typed field and `-fno-strict-aliasing`
+are all irrelevant. And `-fno-schedule-insns2` is actively wrong when the ROM's order
+is itself a *scheduled* order rather than the unscheduled one.
+
 ### Corollary: a split declaration and initialiser are NOT equivalent
 
 `Func_80a32b8` needs the constant 1 as a named local, and the recorded form is
