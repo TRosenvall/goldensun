@@ -199,3 +199,25 @@ _MSG_d1c = 0x0d1c;
  * the +1 and +2 are real arithmetic in the ROM. */
 _MSG_c20 = 0x0c20;
 _MSG_cf1 = 0x0cf1;
+
+/* Added in batch 274, the same argument as _MSG_ad0, _MSG_c20 and _MSG_810 above
+ * and verified the same way. All four values below are `byte << n`, so
+ * thumb_shiftable_const makes gcc synthesise them with mov/lsl and it can pool
+ * ONLY what it cannot build -- a pool word holding such a value therefore cannot
+ * have come from a const_int at all. That is a structural impossibility rather
+ * than an argument from what the ROM happened to choose, which is what separates
+ * these from the pooled-constant cases that need a hoist argument.
+ *
+ * _MSG_c90 and _MSG_ca0 come with an internal control: Func_80b1470's neighbour
+ * 0xc8f is ODD and therefore unshiftable, and it reproduces as a plain literal in
+ * the same function. Same tell, same function, one pooled and one not.
+ *
+ * Consumers: Func_80b1470 and Func_80b153c (_MSG_c90, _MSG_ca0) reach
+ * _Func_8017658, the same message sink _MSG_ad0 feeds. Func_80a5614 (_MSG_75) and
+ * Func_80a56c8 (_MSG_182) reach _Func_801e7c0. _MSG_182 is additionally required by
+ * Func_80b110c in rom_b0000 -- two independent functions in two ROM regions, which
+ * is the strongest corroboration any entry in this file has. */
+_MSG_75  = 0x0075;
+_MSG_182 = 0x0182;
+_MSG_c90 = 0x0c90;
+_MSG_ca0 = 0x0ca0;

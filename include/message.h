@@ -133,4 +133,17 @@ extern int _MSG_d1c;
 extern int _MSG_c20;
 #define MSG_c20 ((int)&_MSG_c20)
 
+
+// Added in batch 274. Each is `byte << n` (0x75<<0, 0xc1<<1, 0xc9<<4, 0xca<<4), so
+// gcc can never pool them as const_ints -- the pool word in the ROM is therefore a
+// symbol by construction. See message.sym for the consumers and the 0xc8f control.
+extern int _MSG_75;
+#define MSG_75 ((int)&_MSG_75)
+extern int _MSG_182;
+#define MSG_182 ((int)&_MSG_182)
+extern int _MSG_c90;
+#define MSG_c90 ((int)&_MSG_c90)
+extern int _MSG_ca0;
+#define MSG_ca0 ((int)&_MSG_ca0)
+
 #endif // _MESSAGE_H_
