@@ -13215,6 +13215,21 @@ Three consequences worth keeping:
   change. Reaching for a pin on an argument pair that ties at t=0 is the wrong tool
   by construction -- check the return types first.
 
+### THREE functions in one batch turned on a callee's return type
+
+`OvlFunc_898_2008e0c` (sched2 dependent counts, above), `Func_80a8cc0` and
+`Func_80218dc` (both `precompute_register_parameters`, via the recorded argument-order
+table: for an argument needing a precompute a VOID callee emits `r2, r0, r1` and an
+INT callee `r2, r1, r0`). All three were parked, and all three were parked for
+batches.
+
+**Two distinct passes, one source cause.** So the check is worth running EARLY on any
+argument-order residue, not as a last resort -- and note that "the no-prototype
+lever" is the OPPOSITE change: removing a declaration gives an implicit `int`. Both
+of the `precompute` parks had tried that and concluded the source could not reach
+the ordering.
+
+
 ## A difference COUNT is not a difference: read the pairs, not the number
 
 The same park recorded, and acted on for three batches:
@@ -14466,6 +14481,51 @@ block-local and reuses r3; `c` spans into the loop-setup block; and the copy
 survives because `i` is multi-block, so `combine_regs` refuses to tie it
 (`reg_qty[sreg] == -1`). Using ONE variable for both roles deletes the copy -- that
 is why the park's `n = p->f27; if (n != 0)` measured 23.
+
+## A PRIORITY TIE between two locals is broken by DECLARATION ORDER
+
+`OvlFunc_948_2009308`'s park concluded its residue was "not something the source
+expresses". It is, and the route is exact.
+
+`.18.greg` printed `;; 8 regs to allocate: 41 44 38 32 33 36 34 35`. Reading the
+pseudo identities off `.17.lreg`, the order puts `w` (pseudo 34) before `tx` (35),
+so `w` takes r6 and `tx` gets r7 -- the ROM wants the reverse. A third value, `ty`,
+leads legitimately because it has THREE references and wins the priority formula
+outright. But `tx` and `w` both have TWO references and their priorities tie as
+truncated ints, so `allocno_compare` falls through to its documented last resort:
+
+    /* If regs are equally good, sort by allocno, so that the results of qsort
+       leave nothing to chance. */
+    return v1 - v2;
+
+-- ascending pseudo number. And **gcc assigns pseudo numbers to locals in
+DECLARATION ORDER.** The park declared `p, g, w, tx, ty, v, q` and got 32..38, so
+`w`(34) < `tx`(35) and `w` won the tie. Moving `w` below the ints makes `tx` 34 and
+`w` 37, the tie flips, and all four differing instructions resolve at once.
+
+**THE DISCRIMINATOR, and why the park missed it: the declaration that must move is
+the one belonging to the OTHER MEMBER OF THE TIE, not any neighbouring
+declaration.** The park did measure "declaration order swapped" -- but it swapped
+`w` before `g`, and `g` is not the competitor. Identify the tie from `.17.lreg`
+first, then move one of the two.
+
+It also explains that park's twin, `OvlFunc_948_200941c`, which matches with the
+ORIGINAL declaration order: there the three-value range test sits on `ty` and the
+single `tx` compare gives `tx` a different reference count, so there is no tie and
+the order never mattered. The park read that as "the allocator just prefers the
+other way round in the twin". It is a tie in one function and not in the other.
+
+### Corollary: a split declaration and initialiser are NOT equivalent
+
+`Func_80a32b8` needs the constant 1 as a named local, and the recorded form is
+"declared at the top, with its initialiser". Measured here: `int one = 1;` at the
+top is EXACT, a bare literal is 3 differing, and `int one;` at the top with
+`one = 1;` inside the guarded block is **22** -- far worse than the literal,
+because the extra pseudo shifts register numbering from line 4 onward and rewrites
+the whole offset chain.
+
+So splitting it is not merely inert, it is harmful. Same mechanism as above: a
+declaration is a pseudo-number event, and pseudo numbers decide ties.
 
 ## When the PRIORITY FORMULA decides, statement order is the wrong knob
 
