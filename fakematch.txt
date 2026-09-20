@@ -446,3 +446,11 @@ OvlFunc_881_2009938  src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_c_b.
 OvlFunc_881_20099e8  src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_a_a_a_a_c_c_b.c
 OvlFunc_953_200a5f0  src/overlays/rom_7d95dc/ovl_30_c_c_c_c_a_c_a_c_c_a.c
 NewActor           src/rom_9000/rom_c004_c_a_a_a_a_a_a_a.c
+OvlFunc_881_200b84c  src/overlays/rom_77a7c8/ovl_30_c_c_a_c_a.c
+OvlFunc_945_200812c  src/overlays/rom_7cb2c0/ovl_30_a_c_c_a_a_b.c
+OvlFunc_911_200a7ac  src/overlays/rom_79e5c0/ovl_30_c_c_a_c.c
+OvlFunc_913_200a974  src/overlays/rom_7a04ac/ovl_30_c_c_c_c_a_c.c
+OvlFunc_960_2008c00  src/overlays/rom_7eaf28/ovl_314_c_c_a_a_b.c
+Func_80f4028  src/rom_f4000/rom_f4008_a_a_c.c
+LoadIcon  src/rom_15000/rom_19ebc_c_b.c
+DecompressIcon  src/rom_15000/rom_20198_c_c_c_c_a_a.c

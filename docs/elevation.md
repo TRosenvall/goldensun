@@ -14482,6 +14482,58 @@ survives because `i` is multi-block, so `combine_regs` refuses to tie it
 (`reg_qty[sreg] == -1`). Using ONE variable for both roles deletes the copy -- that
 is why the park's `n = p->f27; if (n != 0)` measured 23.
 
+## HOW TO PLACE A BLOCK BEFORE ITS DOMINATOR: put the `goto` in an `else` arm
+
+`if (c) goto L;` can never leave `L`'s code where you wrote it when `L` has one
+predecessor. `cleanup_cfg` / `try_merge_blocks` runs at the **sibling** pass -- dump
+`.01.sibling`, BEFORE `.02.jump` -- and merges the intermediate `[b L]` block with `L`,
+physically relocating `L`'s code to the jump site.
+
+The escape hatch:
+
+    if (!c) { ... } else goto L;
+
+`jump.c`'s `follow_jumps` runs unconditionally at the top of its loop, before every
+other rule, and tensions the conditional straight onto `L`, so no single-successor
+block ever exists and nothing moves. On `Func_80b110c` that one change went from 56
+differing to 53 with the whole CFG laid out as the ROM has it.
+
+The recorded "a two-instruction block reached by `goto` is DUPLICATED INLINE" is the
+same phenomenon seen from the outside; this is the mechanism and the cure.
+
+### `bne FAR / b EXIT` needs the same shape
+
+`if (c) goto FAR; return;` gives `beq EXIT / b FAR` instead, because `follow_jumps`
+retargets the drop-through conditional to the exit. Write
+`if (!c) return; else goto FAR;`.
+
+### Where an if/else's STORE lives decides whether `ce` fires
+
+`.14.ce` if-converts arms that are single register sets; it declines arms containing a
+memory store. On `Func_801ea3c`, a merged variable stored after the join let `ce` hoist
+the else-arm load above the branch and drop the ROM's `b`; putting the STORE inside each
+arm made `ce` decline, and `jump2` then cross-jumped the two identical `strh` tails into
+the join -- the ROM's shape.
+
+Same machinery as "duplicate a shared store into both arms", reached from the other
+direction, and free for the same reason: cross-jumping undoes the duplication.
+
+## LOOP SPELLING -- pointer against index -- is a register-allocation lever
+
+An index-based inner loop lets `loop`'s strength reduction build the destination
+pointer and keep its base in a register. A hand-written running pointer lets cse fold
+the frame-address pseudo, and reload then picks the `add rd, sp, #imm` encoding.
+
+**`add rX, r4, #imm` against `add rX, sp, #imm` is the readable tell.** On
+`Func_801ea3c`, seventeen pointer spellings and five `-fno-*` flags all failed on that
+one instruction; switching the copy to `out[i + 2] = p[i]` fixed it.
+
+The reverse also occurs: on `Func_80b7548`, `.09.cse2` folds an address giv's initial
+value `p + 0x64` into `base + 0x66` where the ROM keeps `base + offset-iv`. Forcing an
+`ldrsh` at loop-pass time (copy through an `s32`) makes `(mem (reg))` an illegal
+address so `loop.c` cannot build an address giv at all -- which reproduces the ROM's
+form exactly, though that function fails elsewhere.
+
 ## A PRIORITY TIE between two locals is broken by DECLARATION ORDER
 
 `OvlFunc_948_2009308`'s park concluded its residue was "not something the source
@@ -14514,6 +14566,38 @@ ORIGINAL declaration order: there the three-value range test sits on `ty` and th
 single `tx` compare gives `tx` a different reference count, so there is no tie and
 the order never mattered. The park read that as "the allocator just prefers the
 other way round in the twin". It is a tie in one function and not in the other.
+
+## `volatile` ON A DMA FILL WORD REPLACES THE TWO-PIN IDIOM
+
+`src/rom_9000/rom_b798_c_c_a_b.c` records `DMA3_SET` plus a caller-owned zero plus TWO
+REGISTER PINS as what produces `mov r4, sp / str r5, [r4]` -- the pins existing only to
+stop cse folding `*v = 0` back into `str rX, [sp]`.
+
+Declaring the fill word `volatile u32` blocks that fold by itself and is byte-identical
+to the pinned form. `InitActors` landed on it with no scaffolding at all. Ladder: two
+`DMA3_CLEAR` 71 of 72 (`sub sp, #8` for two slots against the ROM's one); `DMA3_SET`
+with a caller-owned zero 11; plus two pins 5; one pin 0; **volatile and no pins 0**.
+
+**This can REMOVE debt rather than add it** -- rare enough to be worth saying. b798
+itself and `src/rom_c0/rom_56cc_c_c_a.c` are the same class and should be re-tested.
+
+### Naming a load is a different lever from ordering declarations
+
+Batch 272 found a priority tie broken by declaration order. `Func_80b0958` is the
+complement: with the competing load left ANONYMOUS, no declaration order reached the
+ROM (five differing at best); once it was NAMED, **all six permutations matched**.
+
+**The discriminator is whether the competing value is a named pseudo at all.** An
+anonymous load has no allocno to tie with, so there is no tie for an order to break.
+Name it first, then order if there is still a contest.
+
+### And sometimes two uses of one register need ONE variable
+
+`Func_809c314`'s preheader was 18 differing because the ROM keeps the player pointer in
+r0, leaving r2 free as reload's scratch. Reusing the LOOP'S OWN variable for it -- which
+already owned r0 -- fixed all eighteen. Naming the id, declaring the getter `void`, a
+separate local and moving its declaration all measured exactly 18. The variable IDENTITY
+is the lever; this is "two results of one call need two variables" run in reverse.
 
 ## ASSIGN A VALUE TWICE to push it out of local-alloc into global-alloc
 
@@ -15437,6 +15521,47 @@ matter where the declaration sits relative to the others, because the shift is a
 register's place in the ordering, and the assignment's position sets when the
 value is materialised.** Reach for the second when the first cannot go late
 enough.
+
+## `ldr rX, =<byte << n>` IS ALWAYS A SYMBOL -- the firmest `.sym` tell there is
+
+`thumb_shiftable_const` plus the `K`-constraint split in `arm.md` mean gcc-2.96
+**always** builds a `0xff << n` value as `mov` + `lsl`. It cannot pool a `const_int`
+of that form at all. So a pool load of such a value in the ROM is a structural
+impossibility for a literal, and the source must have named a symbol.
+
+`Func_80b110c` needs `_MSG_182` on exactly this basis -- 0x182 is `0xc1 << 1`. That is
+a much stronger argument than the usual *"gcc never pools a constant it can build with
+a `mov`"*, which only says the ROM's choice was unusual. **Prefer this tell when it
+applies, and say which tell you are relying on when you propose a `.sym` entry.**
+
+Note the new shape it licensed: 0x182 is a message-id **BASE** added to a parameter
+(`arg1 + 0x182`), not an id. `message.sym`'s shiftable-ids section covers bases too.
+
+## A QImode literal store also goes to the POOL
+
+Companion to the HImode rule. Thumb's `movqi` has no immediate alternative, so gcc
+calls `force_const_mem` and a plain `p[off] = 0;` becomes `ldr r3, =0 / strb`.
+
+That makes the two readable apart: on `Func_80a602c` the byte store's `mov r3, r8` is
+an int VARIABLE and the same function's `strb` zero is a LITERAL. Reading which is
+which is how the preheader came from 73 differing to 46.
+
+### ...but the HImode/SImode distinction in a POOL LOAD is invisible in bytes
+
+Verified with the assembler: `ldrh r1, .L1` assembles to `4900`, which is exactly
+`ldr r1, [pc, #0]`. So "make the stored constant an `int` variable" is **not** a
+byte-level lever on the load itself, and `tryc` is right to normalise the two
+mnemonics.
+
+What IS real is the pool POSITION -- an HImode fixup's narrow 32..60 byte range is what
+forces a mid-function dump with a `b` over it, which is what batch 271's
+`OvlFunc_951_2008dd0` finding rests on. Both statements stand; keep them apart.
+
+**And the `int`-local form has a counter-case.** On `Func_80118d8` the store sits in a
+loop, the `int` local becomes a fifth loop-invariant global allocno and drags r9 into
+the prologue -- 81 differing against the bare literal's 37 -- while a typed `short`
+STRUCT FIELD is exact. The `int` local works where the store is the only consumer, not
+where the constant becomes a hoistable invariant.
 
 ## N IDENTICAL pool entries in one function mean N DISTINCT source symbols
 
