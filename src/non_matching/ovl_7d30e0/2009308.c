@@ -1,3 +1,47 @@
+/* ==================== SOLVED IN BATCH 272, HELD ON COST ====================
+ *
+ *   OK OvlFunc_948_2009308 -- 132 bytes, 59 encodings and 5 relocations identical
+ *
+ * Verified candidate: scratch_elev/b272/D/t3pin1.c (or t3pin2.c, byte-identical).
+ * NOT LANDED because it needs ONE REGISTER PIN, i.e. a fakematch.txt row, and batch
+ * 272 landed thirteen functions with only debt-free levers. Landing this is a
+ * decision about debt, not about evidence.
+ *
+ * TO LAND: the .s (asm/overlays/rom_7d30e0/ovl_30_c_a_c_c_a_a_c_c_c_a_c_c_c_c_c_c_a_a.s
+ * -- the header below cites the pre-split parent) holds OvlFunc_948_200938c as well,
+ * so it needs a two-way split. No data section.
+ *
+ * THE PARK'S DIAGNOSIS WAS WRONG: it concluded the residue was "not something the
+ * source expresses". IT IS DECLARATION ORDER.
+ *
+ * .18.greg prints `;; 8 regs to allocate: 41 44 38 32 33 36 34 35`. Off .17.lreg,
+ * pseudo 34 is `w` and 35 is `tx`, so `w` is processed first and takes r6 while `tx`
+ * gets r7 -- the ROM wants the reverse. `ty` leads legitimately with THREE references.
+ * But `tx` and `w` both have TWO, their priorities tie as truncated ints, and
+ * allocno_compare falls through to its documented last resort:
+ *
+ *     /* If regs are equally good, sort by allocno ... *\/  return v1 - v2;
+ *
+ * -- ascending pseudo number. gcc numbers locals in DECLARATION ORDER, and the park
+ * declared `p, g, w, tx, ty, v, q` (32..38), so w(34) < tx(35) and `w` won. Moving
+ * `w` BELOW the ints makes tx 34 and w 37, the tie flips, and all four differing
+ * instructions resolve at once.
+ *
+ * THE PARK DID MEASURE "declaration order swapped" AND STILL MISSED IT, because it
+ * swapped `w` before `g` -- and `g` is not the competitor. The declaration that must
+ * move belongs to the OTHER MEMBER OF THE TIE, which you read off .17.lreg.
+ *
+ * It also explains this park's twin, OvlFunc_948_200941c, which matches with the
+ * ORIGINAL order: there the three-value range test sits on `ty` and the single `tx`
+ * compare gives `tx` a different reference count, so there is no tie and the order
+ * never mattered. The park read that as the allocator simply preferring the other way
+ * round in the twin.
+ *
+ * PIN MINIMUM IS ONE SITE, down from the park's two. Removing the pin entirely is 63
+ * lines and 62 differing, so it is load-bearing; keeping it at either __GetFlag or
+ * __SetFlag alone is byte-identical.
+ */
+
 /* OvlFunc_948_2009308  --  0x02009308  [asm/overlays/rom_7d30e0/ovl_30_c_a_c_c_a_a_c_c_c_a_c_c_c_c_c_c_a.s]
  *
  * NOT MATCHING. Best 4 of 58, LENGTH EXACT, and ITS TWIN IS ELEVATED --
