@@ -13186,6 +13186,54 @@ So the ladder, when several unrelated spellings tie exactly:
    ordering, not just the epilogue;
 3. check the build flags.
 
+### The mechanism, and why a pin can never reach it
+
+`OvlFunc_898_2008e0c` gives the return-type lever its explanation, after three
+batches (108, 194, 264) and thirty-one spellings failed on 2 of 41. The fix was
+one line -- `extern void __CutsceneEnd(void);` -- on a call the park had left
+**undeclared**, so C89 gave it an implicit `int`.
+
+The two argument movs have equal priority and are both ready at t=0, so
+`rank_for_schedule` falls through to *"prefer the insn which has more later insns
+that depend on it"*. The tail's `(unspec_volatile [(return)] 1)` takes a dependence
+on the last **SET** of every register:
+
+| callee | insn emitted | effect |
+|---|---|---|
+| implicitly `int` | `*call_value_insn` with `(set (reg:SI 0 r0) (call ...))` | a real SET displaces `mov r0,#K` as `reg_last_sets[0]`, so the return depends on the r1 arg and not the r0 arg -- **4 dependents against 3**, r1 goes first |
+| `void` | plain `*call_insn`, r0 only CLOBBERED | clobbers go to `reg_last_clobbers`, which the `UNSPEC_VOLATILE` handler never walks -- counts **tie at 4**, `INSN_LUID` breaks it in source order, ROM's pair falls out |
+
+Three consequences worth keeping:
+
+- **An undeclared call is an `int` call.** "Prototype every callee" is not enough;
+  the prototype has to say `void`.
+- **It is scoped to the BASIC BLOCK.** Dropping the `void` on the call one step
+  earlier in the same block is also 2; dropping it on a call in a different block is
+  inert.
+- **This is why the pin family could never reach it.** A pin binds a REGISTER, and
+  the ready-list choice here is made on DEPENDENT COUNTS, which a pin does not
+  change. Reaching for a pin on an argument pair that ties at t=0 is the wrong tool
+  by construction -- check the return types first.
+
+## A difference COUNT is not a difference: read the pairs, not the number
+
+The same park recorded, and acted on for three batches:
+
+> *"`-fno-schedule-insns2` IS INERT (still 2). The swap is therefore NOT sched2 ...
+> That rules out the whole adjacent-pair toolkit at a stroke."*
+
+The flag is still 2 differing -- and they are two **different instructions**. With
+sched2 off the argument pair is CORRECT and the diff moves to the prologue block,
+where the ROM is itself scheduled. It was sched2 all along, and the elimination
+argument built on the count was worthless.
+
+**A lever that looks inert may be fixing one thing and breaking another.** Before
+concluding a pass is uninvolved, diff the DIFFERING PAIRS between the two runs, not
+their totals. This is the second time a count has misled this corpus -- see also the
+label false negative, where `tryc` reports 19 differing for a function whose bytes
+are identical.
+
+
 Only after all three is it a wall.
 
 ## Working note: tryc.py needs the container
@@ -21441,6 +21489,30 @@ depends on the narrower list.
 reloads is commoned in your output, look at what the surrounding inline asm
 claims to clobber before looking at the C.
 
+
+## ...and the fix is to change WHICH VALUE gets exiled, not to avoid r8
+
+The recorded rule below says a constant parked in r8..r11 costs a `mov` pair at
+every site. `Func_80b8f58` shows the cheap way out when the competitor is a loop
+counter.
+
+Two loop-carried values competed for r7/r8, ordered by global-alloc priority
+`floor_log2(n_refs) * freq / live_length`. The mask `0x1f`, left as an anonymous
+CSE'd constant, is a COMPILER pseudo whose live range ends at its last `and` --
+SHORTER than the counter's, which reaches the bottom-of-loop test. Shorter range,
+higher priority: the mask won r7 and the **counter** was exiled to r8, where each
+decrement became `mov r3,#1 / neg r3 / add r8,r3 / mov r3,r8` against the ROM's
+`sub r7, #1`.
+
+Giving the mask a **named user variable** lengthens its range and reorders the
+allocno list from `36 37 35 32 60 33` to `36 37 35 32 33 39` -- counter before mask
+-- and the ROM's decrement falls out. 40 differing to 15, and the rest to exact with
+the chained-channel form.
+
+**So when a loop counter lands in a high register, look for an anonymous constant
+competing with it and give that constant a name.** A pin on the mask is
+byte-identical to the named variable, so this costs no fakematch row -- checked, not
+assumed.
 
 ## THUMB CANNOT `mov` AN IMMEDIATE INTO r8..r11 -- WHICH REGISTER A CONSTANT LANDS IN COSTS INSTRUCTIONS
 
