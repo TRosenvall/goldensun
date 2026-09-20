@@ -14518,6 +14518,160 @@ the join -- the ROM's shape.
 Same machinery as "duplicate a shared store into both arms", reached from the other
 direction, and free for the same reason: cross-jumping undoes the duplication.
 
+## A `goto` LOOP SUPPRESSES STRENGTH REDUCTION ENTIRELY
+
+A `goto`-built loop has no `NOTE_INSN_LOOP_BEG`, so `loop_optimize` never sees it and
+`strength_reduce` never runs.
+
+`Func_80b1470`'s ROM recomputes its array address at BOTH access sites
+(`lsl r3, r5, #1 / add r3, #0xd8`) and carries only `i*2` across the back edge -- no giv
+at all, just gcse PRE of the multiply. Every structured spelling reduces it instead:
+
+| spelling | differing |
+|---|---|
+| `for` + `break` | 82 |
+| `for` with a compound condition | 82 |
+| `while` with an inner `break` | 84 |
+| a named pointer (`it = u->items; it[i]`) | 70 |
+| a named offset, all three parenthesisations | 71 |
+| byte-cast address | 84 |
+| **a `goto` loop** | **1** (a pool word) |
+
+`loop.c:4544` shows why nothing at the expression level reaches it: reduction fires when
+`v->lifetime * threshold * benefit < insn_count`, with
+`threshold = (has_call ? 1 : 2) * (3 + n_non_fixed_regs)` (~17), `lifetime` 1 for a
+DEST_ADDR giv, and two address givs COMBINING to benefit 15 -- 255 against 28, so it
+reduces unconditionally. `.08.loop` names it: `giv at 125 reduced to (reg:SI 74)`.
+
+**So when the ROM RECOMPUTES a loop address that gcc reduces to a pointer, and no
+structured spelling reaches it, the loop was written with `goto`.**
+`-fno-strength-reduce` is the wrong tool -- it disables the pass for the whole TU.
+
+## WHICH BIV'S INCREMENT COMES LAST DECIDES THE PREHEADER ORDER
+
+`loop.c` PREPENDS bivs to its list as it finds them, so the biv whose increment appears
+**last** in the source is processed **first** and gets its giv initialiser emitted first.
+
+On `Func_801c7fc`, moving `j++` after `count++` made the `moves` giv init lead the inner
+preheader; `u` then dies there, and **every reload in the function** switched to the ROM's
+r0/r3 instead of r4/r3. One statement swap, 57 differing to exact.
+
+**When the residue is "every reload register is wrong" in a function with two induction
+variables, ask which increment is written last** -- not anything about the values.
+
+Related, same function: `out[count]` must be SUBSCRIPTED by the biv rather than reached
+through an `o = out + count` pointer, because the giv initialiser is then
+`(plus (mult count 4) out)` -- the ROM's `add r6, r3, r0` operand order. A pointer gives
+the operands the other way round.
+
+## `reload_cse_move2add`: the SPACING between two address assignments
+
+This is why a ROM derives one address constant from another (`mov #0x8d / lsl #2 / ... /
+sub #0x10`) instead of building both. It only fires when reload gives both constants the
+**same hard register**.
+
+On `Func_801ffd8`, with the two `base + K` assignments adjacent, reload gave their reloads
+different registers and move2add could not fire -- gcc built both constants separately, 82
+lines against 81. **Inserting an unrelated single-instruction statement between them** put
+both reloads in r1 and move2add rewrote the second as the ROM's `sub r1, #0x10`.
+
+A named offset local (`k = 0x234; ... k -= 0x10;`) spells the ROM's instructions but steals
+the base register's allocation -- 81 lines, 13 differing. **The lever is the spacing, not
+the arithmetic.**
+
+## `synth_mult` CAPS AT THREE OPERATIONS: a long shift/add chain is COMPOSITE
+
+Measured directly against this build:
+
+| multiplier | result |
+|---|---|
+| `t*3`, `t*63`, `t*1023` | synthesised, 2 ops |
+| `t*12`, `t*504` | synthesised, 3 ops |
+| `t*13` | `mov #13 / mul` |
+| `t*819`, `t*6552`, `t*6553` | POOL LOAD + `mul` |
+
+So a nine-operation shift/add chain in the ROM **cannot** come from a single multiply --
+every factor has to be under the cap. `Func_8092624`'s chain needs
+`u = t*12 + t; -(u*504 + t)`, and note gcc does NOT fold `t*12 + t` into `t*13`, which is
+what makes the split expressible at all.
+
+**Corollary:** a `mul` whose destination is the CONSTANT's register (`ldr r3, =K /
+mul r3, r0`) is the ordinary above-the-cap constant multiply. That is not a case for the
+destructive-`mulsi3` lever, which is for a mask meeting a multiply.
+
+## A LOOP-INVARIANT LITERAL 0 IS EMITTED AFTER the source-order preheader statements
+
+So when the ROM's preheader wants the stored constant BEFORE a counter or pointer init --
+`mov r1, #0 / mov r6, #0xff / add r2, r5, r3` -- no arrangement of a `*q = 0` loop reaches
+it. The constant has to be a NAMED LOCAL, assigned first. `Func_801e318` and
+`Func_8016670` both needed this, in the same trailing-clear-loop shape.
+
+Related and separate: `i = 0` as a STATEMENT rather than a `for`-init, when the ROM's
+preheader puts the counter's zero before a pointer init. Three functions this batch.
+
+## An `unsigned` counter with `<= N` blocks `check_dbra_loop` and still spells `bls`
+
+It matches neither arm of the gate (`LT || (LE && no_use_except_counting)`), so the loop
+stays ascending. A signed `int` with `<= N` reverses to `mov #N / bge`, and `!= N` and
+`< N` both reverse too. Third batch running where this decided a landing.
+
+## DO NOT CACHE A REPEATED READ: the redundant `mov` is the tell
+
+A redundant `mov rX, rY` after a constant build, or between a load and its `cmp`, is a
+real source feature. Caching the value in a local REMOVES the instruction.
+
+| function | shape | cached | re-read |
+|---|---|---|---|
+| `Func_80a9e48` | `info[0xc]` tested twice | -- | exact first screen |
+| `Func_80a5614` | `*p` tested then masked | 55 differing | **1** |
+| `Func_8016670` | `s->f6` read three times | 93 lines, 53 differing (one short) | **exact** |
+
+On the third, gcse turns the redundant load into the ROM's `mov r2, r3`, which IS the
+missing instruction. Five caching spellings measured identically.
+
+**So the instinct to hoist a repeated field read into a local is the wrong reflex here.**
+Count the dereferences in the ROM first.
+
+### And a `&= ~0xc` on a byte wants a 2-BIT BITFIELD
+
+Six mask spellings -- `x[9] &= ~0xc`, an `int v` temp, `0xfffffff3`, `-13`, signed/short
+masks, a named `int m` -- are ALL inert at 51 differing and all give four instructions. The
+ROM's five (`mov #0xd / ldrb / neg / mov r2, r1 / and`) need the QImode mask pseudo that
+only a bitfield STORE creates.
+
+Also: two `& K` masks on one byte must be SPLIT across statements, because
+`(x & 0xf) & ~0xc` folds to `x & 3`. And `(x & 1) == 1` folds to `!= 0`, so naming the bit
+first preserves the ROM's `cmp #1`.
+
+## A SINGLE EXIT with a `ret` local, for two different reasons
+
+`Func_80b1e80`: an early `return ret` kept the value in r5 and built no frame at all, 86 of
+87. Wrapping the body in one `if` spilled it to `[sp]` exactly as the ROM does. **So a
+`sub sp, #4` on a function with no arrays and no address-taken locals is evidence about
+CONTROL FLOW** -- read the frame size before the registers.
+
+`Func_80b153c`: sat at 1 differing through ELEVEN spellings, the missing instruction being a
+reload copy `mov r1, r8`. The residue was reload's `find_equiv_reg` reusing a still-live r0;
+the extra variable changes the pressure enough that it cannot. **A one-instruction residue
+at a call-result copy is a pressure symptom, not a spelling one.**
+
+## Four stack addresses in callee-saved registers means NAMED POINTERS, INTERLEAVED
+
+`Func_80bffb8`'s `mov r9, r0 / mov r1, r9` per slot is unreachable from plain locals (gcc
+keeps them in registers and emits no `sub sp`), from a local array (71 lines against 93), or
+from `volatile` locals accessed without pointers (91 -- the copies are simply missing). The
+address must be computed BEFORE the load it conflicts with, and only a separate `p = &x;`
+statement per group puts it there. Assigning all four pointers up front also fails, at 82:
+**the interleaving is the lever, not the pointers.**
+
+## A PARK IS A FILE-MATE SOURCE
+
+Four functions across batches 273--274 landed off `src/non_matching/` files rather than
+elevated ones: `Func_80b0958` (structs), `Func_808f1c0` (a mask lever, first compile),
+`Func_8098c08` (every callee prototype), `Func_8016670` (a whole struct, one pointer
+retype). A park carries a worked candidate and its measurements even when its own function
+is unsolved. **Grep `src/non_matching/` for your area before writing declarations.**
+
 ## LOOP SPELLING -- pointer against index -- is a register-allocation lever
 
 An index-based inner loop lets `loop`'s strength reduction build the destination
