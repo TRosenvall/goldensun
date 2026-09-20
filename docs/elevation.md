@@ -14579,7 +14579,7 @@ A named offset local (`k = 0x234; ... k -= 0x10;`) spells the ROM's instructions
 the base register's allocation -- 81 lines, 13 differing. **The lever is the spacing, not
 the arithmetic.**
 
-## `synth_mult` CAPS AT THREE OPERATIONS: a long shift/add chain is COMPOSITE
+## `synth_mult`: PROBE THE MULTIPLIER -- the operation count is NOT the criterion
 
 Measured directly against this build:
 
@@ -14598,6 +14598,38 @@ what makes the split expressible at all.
 **Corollary:** a `mul` whose destination is the CONSTANT's register (`ldr r3, =K /
 mul r3, r0`) is the ordinary above-the-cap constant multiply. That is not a case for the
 destructive-`mulsi3` lever, which is for a mask meeting a multiply.
+
+### CORRECTION (batch 275): there is no three-operation cap
+
+The table above was read as a rule -- "synthesised at or below three operations, `mul`
+above" -- and **that is false.** Measured directly in batch 275:
+
+| multiplier | result |
+|---|---|
+| `x * 400` | **synthesised in FIVE ops**: `lsl #1 / add / lsl #3 / add / lsl #4` |
+| `x * 504` | synthesised in three: `lsl #6 / sub / lsl #3` |
+| `x * 100` | `mov r3, #100 / mul` |
+| `x * 13` | `mov r3, #13 / mul` |
+| `x * 6553` | pool load + `mul` |
+
+`400` synthesises in five while `100` -- which decomposes the same way, `25 << 2` against
+`25 << 4` -- uses `mul`. So the decision is a COST comparison inside `synth_mult`, not an
+operation budget, and it is not predictable from the operand's shape.
+
+**PROBE THE SPECIFIC MULTIPLIER before splitting it.** One `xgcc -S` on a two-line file
+answers it:
+
+    int f(int x) { return x * 400; }
+
+What survives from the original finding is the CONSEQUENCE, not the cap: when the ROM's
+chain is longer than what gcc synthesises for that multiplier, the source is composite --
+`Func_8092624`'s nine-operation chain still needed `u = t*12 + t; -(u*504 + t)`, verified
+byte-identical. And gcc still does not fold `t*12 + t` into `t*13`, which is what makes such
+a split expressible.
+
+Recorded as a correction rather than an edit because the wrong version was published in
+batch 274 and may have been relied on.
+
 
 ## A LOOP-INVARIANT LITERAL 0 IS EMITTED AFTER the source-order preheader statements
 

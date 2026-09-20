@@ -1873,7 +1873,11 @@ SECTIONS {
 	rom_f6000 : ALIGN(0x1000) {
 		src/rom_f6000/exports.o(.text)
 		asm/rom_f6000/rom_f6008_b.o(.text)
-		asm/rom_f6000/rom_f6008_c_a.o(.text)
+		asm/rom_f6000/rom_f6008_c_a_a.o(.text)
+		asm/rom_f6000/rom_f6008_c_a_b.o(.text)
+		asm/rom_f6000/rom_f6008_c_a_c.o(.text)
+		asm/rom_f6000/rom_f6008_c_a_d.o(.text)
+		asm/rom_f6000/rom_f6008_c_a_e.o(.text)
 		asm/rom_f6000/rom_f6008_c_b.o(.text)
 		asm/rom_f6000/rom_f6008_c.o(.text)
 
