@@ -454,3 +454,4 @@ OvlFunc_960_2008c00  src/overlays/rom_7eaf28/ovl_314_c_c_a_a_b.c
 Func_80f4028  src/rom_f4000/rom_f4008_a_a_c.c
 LoadIcon  src/rom_15000/rom_19ebc_c_b.c
 DecompressIcon  src/rom_15000/rom_20198_c_c_c_c_a_a.c
+Func_80b2da8       src/rom_b0000/rom_b0070_c_c_a_c_c_a_b.c

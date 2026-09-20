@@ -85,3 +85,30 @@ int Func_80b280c(void)
     }
     return count;
 }
+
+/* ==================== BATCH 275: THIS PARK'S CONCLUSION IS REFUTED ====================
+ *
+ * This file concludes "SO THIS IS THE ALLOCATION-ORDER CLASS ... needs a differently
+ * configured gcc rather than a different C". That is WRONG, and the fix is this park's OWN
+ * closing note -- a struct declaration for iwram_3001f2c, listed here as "NOT tried, and
+ * worth one screen".
+ *
+ * DECLARING THE STATE BLOCK AS A `struct` INSTEAD OF `unsigned char *` IS A
+ * REGISTER-ALLOCATION LEVER. With `unsigned char *` plus hand-written byte offsets,
+ * strength_reduce folds the whole address into ONE pointer giv; with a typed struct member
+ * array it keeps the ROM's BASE REGISTER + STEPPING INTEGER OFFSET split, which costs one
+ * more callee-saved register and reproduces the ROM's push list.
+ *
+ * Demonstrated on Func_80b2e30, landed in batch 275 (src/rom_b0000/rom_b0070_c_c_a_c_c_a_c.c):
+ * all four `unsigned char *` address spellings measured IDENTICALLY at 76 differing, as did
+ * four flags, and the struct was exact.
+ *
+ * SO THE EARLIER READING HERE IS HALF RIGHT. "gcc re-derives its own induction variables and
+ * the source has no vote" holds FOR THE `unsigned char *` TYPING ONLY. The variable that was
+ * never varied is the TYPE, not the expression.
+ *
+ * Func_80b280c and Func_80b2b10 are the same idiom (base `s+2`, offset `0xdb << 2`) and
+ * should be re-attempted with a struct. src/non_matching/rom_b5000/80c1f50.c carries the
+ * same "strength reduction creates a pointer the ROM does not have" blocker and is a third
+ * candidate.
+ */
