@@ -254,3 +254,31 @@ _MSG_ca0 = 0x0ca0;
  * NOT added, because its function is parked and nobody has run the register
  * measurement above against it -- which is the test it actually has to pass. */
 _MSG_53a = 0x053a;
+
+/* Added in batch 278 for OvlFunc_884_2008248, a cutscene that reaches __MessageID
+ * three times as a BASE PLUS ARITHMETIC -- `m`, `m + 3`, `m + 4`. That is the shape
+ * _MSG_810/811/812/813 and _MSG_c20 already describe ("only the base is named; the
+ * +1 and +2 are real arithmetic in the ROM"), and it is why only 0x1197 is named
+ * here.
+ *
+ * NOT the shiftability argument: 0x1197 is odd, so gcc pools it either way and the
+ * pool load is no evidence by itself. This is the register/length class, and on this
+ * function the evidence is unusually strong -- STRONGER than the pooled-register
+ * argument that _MSG_53a rests on:
+ *
+ *   with the literal, the function comes out a DIFFERENT LENGTH. Every relocation
+ *   offset after the first __MessageID shifts by two, so the literal is not "a few
+ *   encodings off", it is structurally wrong.
+ *
+ *   with the symbol, 140 encodings against the ROM's 140, every relocation identical,
+ *   and ONE remaining difference: the pool word, ref 0x00001197 against our 0x00000000
+ *   placeholder, which this assignment fills.
+ *
+ * AND IT REPLACES SCAFFOLDING RATHER THAN MERELY IMPROVING A COUNT. The alternative
+ * that reaches the same bytes is `register int m __asm__("r5")` -- a pin, and a
+ * fakematch row. A pin asserts nothing about the original source; a message base is
+ * what the original plainly had. This entry is added on the batch-272 rule that an
+ * entry is worth adding when it COMPLETES a function, which this one does, where
+ * _MSG_2080 / _SIZE_80f0024 / _TBL_7a828 remain deliberately unadded because they do
+ * not. */
+_MSG_1197 = 0x1197;
