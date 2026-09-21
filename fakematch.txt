@@ -457,3 +457,5 @@ DecompressIcon  src/rom_15000/rom_20198_c_c_c_c_a_a.c
 Func_80b2da8       src/rom_b0000/rom_b0070_c_c_a_c_c_a_b.c
 Task_BlitLuckyWheelsAnim  src/rom_f6000/rom_f6008_c_a_b.c
 OvlFunc_949_2008728  src/overlays/rom_7d4af4/ovl_30_c_c_a_c_c_c_c_c_c_c_c_a_b.c
+OvlFunc_898_2008ef4  src/overlays/rom_793768/ovl_314_c_c_c_a_c_a_a_c_a_c.c
+OvlFunc_901_2008a80  src/overlays/rom_797990/ovl_314_c_c_a_a_c_c_a_c_c_a_c_c.c
