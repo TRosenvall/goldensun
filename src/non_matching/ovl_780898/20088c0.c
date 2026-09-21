@@ -247,6 +247,127 @@
  * tools/ if another function this size comes up.
  * ======================================================================== */
 
+/* ============================ BATCH 278 UPDATE ============================
+ *
+ * 25 differing encodings of 135 (objcmp), down from 44. Length still exact at 142/142, every
+ * instruction positionally aligned. Candidate C below is replaced with the new best.
+ * RESIDUE (A) IS SOLVED OUTRIGHT. Residue (B) remains, but is now priced rather than open.
+ *
+ * ===== THE NEW LEVER, AND IT IS GENERAL =====
+ *
+ * MOVING A DEFINITION LATER UNTIL THE VALUE IS BLOCK-LOCAL TAKES IT OUT OF THE greg PRIORITY
+ * RACE ENTIRELY. `local_alloc` runs BEFORE `global_alloc`, so a quantity whose whole live range
+ * sits inside one basic block never enters the priority list at all -- and here local_alloc gave
+ * it the ROM's register directly.
+ *
+ * Concretely: split the abs temp off as `aa`, and place `w = aa + b;` BEFORE the `v[2]` / `sz`
+ * stores. That makes `w`'s definition late enough that its range is confined to basic block 16.
+ * Dispositions then come out `42 in 6, 125 in 5, 77 in 5, 136 in 7` -- `w` in r6, the 0xff local
+ * in r5, and `&v[0]`, now hard-conflicting with both, forced to r7. All three are the ROM's.
+ *
+ * THE PLACEMENT IS LOAD-BEARING: the same `aa` split with `w = aa + b` AFTER the stores stays at
+ * 37. This is the batch-277 "where a value is ASSIGNED is an axis separate from whether it is
+ * NAMED" rule, with a mechanism attached -- the axis is which PASS gets to allocate it.
+ *
+ * ===== THE ARITHMETIC, AND WHAT IT RETIRES =====
+ *
+ * The batch-277 priority formula is confirmed EXACTLY on this function too: 22 of 22 allocnos in
+ * monotone descending order, read straight off `.17.lreg`. On the old baseline the greg line
+ * `;; 22 regs to allocate: 45 50 39 44 41 135 37 42 75 35 34 36 38 40 73 43 60 59 76 46 47 33`
+ * is reproduced term for term, including:
+ *
+ *     135  16 refs / 83 insns = 0.771   <- &v[0], the frame address (this park's old "136")
+ *      37  10 refs / 40 insns = 0.750   <- i
+ *      42  12 refs / 56 insns = 0.643   <- w
+ *
+ * SO TWO OF THIS PARK'S CONCLUSIONS ARE WRONG AND SHOULD BE RETIRED:
+ *   * "the residue is a coin-flip in allocno_compare" -- the gap is 0.771 against 0.643, not a
+ *     tie. And `allocno_compare` breaks ties on ALLOCNO NUMBER, lower first, with
+ *     allocno(42) < allocno(135), so EQUALITY WOULD HAVE SUFFICED.
+ *   * "nothing sayable in C shifted it" -- a source change shifted it.
+ *
+ * The integer thresholds were computed ((int)(prio*10000) >= 7710): keep 12 refs and the live
+ * length must fall to 46 from 56; 13 refs needs 50; 14 needs 54; 15 needs 58, which 56 already
+ * passes.
+ *
+ * AND ONE ROUTE IS PROVED DEAD, which is worth having: all 16 of pseudo 135's references were
+ * enumerated from the RTL -- two sets, one per `if` arm, plus fourteen uses (`v[0]=i` twice, the
+ * loop copy, `n=v[0]`, `v[2]=px`, `v[3]`, `v[4]=pz`, `v[2]=(a<<16)+px`, `v[2]>>=20`,
+ * `v[4]=sz>>20`, and two reloads for each of the two 2008244 calls) -- and EVERY ONE MAPS TO AN
+ * INSTRUCTION THE ROM ALSO HAS. 135 cannot lose a reference, so lowering it is not available.
+ *
+ * ===== RESIDUE (B): MECHANISM CONFIRMED, AND NOW PRICED OUT =====
+ *
+ * The exact insn is `(insn 55 (set (reg/v:SI 35) (reg/v:SI 36)))` carrying `REG_DEAD (reg 36)`.
+ * `global_conflicts` processes REG_DEAD notes BEFORE marking the set live, so the base is
+ * provably not live when the giv's set is marked: no conflict, the copy preference is honoured,
+ * and the ROM's `mov r4, r1` is deleted. Both land in r4.
+ *
+ * THE CONVERSE IS NOW DEMONSTRATED, not merely hoped for. Probe `p1.c` adds one genuine base use
+ * after the loop (`v[1] = (int)tbl;`), which takes the base to 4 refs / 38 insns, makes it
+ * conflict with the giv, and THE ROM'S COPY SURVIVES (`ldr r5, .L17+4` ... `mov r4, r5`). So
+ * this park's instruction -- "give the base a use that lives past the giv init" -- is a real,
+ * working lever.
+ *
+ * IT SIMPLY CANNOT BE PAID FOR HERE, and that is arithmetic rather than opinion. The ROM's own
+ * r1 has exactly THREE references (the pool load, the peeled `ldr r3,[r1,r5]`, and `mov r4,r1`),
+ * so the ROM's base is a 3-ref allocno too. Getting the ROM's assignment needs `i` (0.750) off
+ * r1, which needs the base allocated before it, and the base's ceiling is:
+ *     3 refs -> 1*3/L > 0.750 needs L <= 3, but its range already spans ~10 insns. Impossible.
+ *     4 refs -> 2*4/L > 0.750 needs L <= 10, but the fourth reference must sit AFTER the giv
+ *               init to create the conflict at all, which forces L >= 11 -> 0.727.
+ * THE TWO REQUIREMENTS ARE MUTUALLY EXCLUSIVE.
+ *
+ * SO THE ROM'S `i`-IN-r5 DID NOT COME FROM ALLOCNO PRIORITY. It is a HARD-REGISTER exclusion:
+ * `i` and the giv both conflict with hard r1 because the loop's `ldrsh` zero occupies r1 there,
+ * and THAT ZERO IS ASSIGNED BY local_alloc, before greg. Our `i` takes r1 first, so our zero is
+ * pushed to r5 and the giv is free to coalesce onto the base. The two states are self-consistent
+ * fixed points, and the entry point is local_alloc's choice for the loop's zero pseudo -- NOT
+ * anything in the greg priority list.
+ *
+ * NEXT: that local_alloc choice. And note the shape of what solved residue (A) -- forcing a
+ * LOCAL allocation rather than winning a global race is evidently the productive axis on this
+ * function.
+ *
+ * ===== THE 22 REMAINING PAIRS, BY ROOT CAUSE =====
+ *
+ * B -- base/walker split, 14 pairs. Ours hoists `ldr r4, =<search table>` above the model-id
+ *   `ldrsh`; the ROM loads it into r1 afterwards. We have no `mov r4, r1` and spend the slot on
+ *   `mov r12, r3`. Downstream: `i` r1<->r5, the loop's `ldrsh` zero r5<->r1, the const 7
+ *   r12<->r6, the frame-address copy r6<->r12, and `str r5,[r7,#0]` <-> `str r1,[r7,#0]`.
+ * C -- the px load, 6 pairs. Ours puts `*(int*)(e+8)` in r1, the ROM in r3, so the ROM can emit
+ *   `mov r12, r3` immediately while ours defers `mov r12, r1` past `ldr r3,[r0,#0xc]`. Plausibly
+ *   downstream of B (our r1 is `i`'s register); untested.
+ * D -- camx, 2 pairs. ROM `asr r5, r3, #0x14 / add r2, r5, r0`; ours `asr r2, r3, #0x14 /
+ *   add r2, r0`. Ours lets local-alloc combine the sum's destination with the dying camx. Three
+ *   tail spellings tried, none moved it.
+ *
+ * ===== MEASURED THIS ROUND (diff-region count; old baseline 42) =====
+ *   `aa` split, `w = aa + b` BEFORE v[2]/sz      22   <- best, below
+ *   cam sums named                               22   (ties, no gain)
+ *   cam reads inlined                            24
+ *   `aa` accumulates, `w = aa >> 4`              26
+ *   v[2]/sz hoisted above the a-block            29 (141 long)
+ *   `aa` split, `w = aa + b` AFTER v[2]/sz       37
+ *   `aa` split, add after the shifts             37
+ *   `w = b; w = w + aa`                          37
+ *   b-block before a-block                       51
+ *   v[2]/sz hoisted, other order                 59 (144)
+ *   cam sums into px/pz                          64 (147)
+ *   a-load, b-block, v[2], sz, then abs(a)       66
+ *
+ * LOOP SPELLINGS ARE INERT -- `tp = tbl` inside the else arm, before the `if`, an `int *` walker,
+ * a second symbol reference, indexed `tbl + i*4` with no walker, mutating `tbl` itself, `i++`
+ * before the sentinel store, and the sentinel through a reused temp ALL give exactly 22.
+ * DO NOT RE-RUN THEM.
+ *
+ * STILL REQUIRED FROM EARLIER ROUNDS: the local array spelled DIRECTLY (not through a pointer);
+ * the `if (c) {X} else {loop; X}` block layout; separate temps for the h pair -- and that now
+ * EXTENDS TO THE `a` PAIR, since `aa` must be distinct from `w`; the split of
+ * `w = (w+b)>>4`, which must now be `w = aa + b;` ... `w = w >> 4;` with the add before the
+ * stores; and the named cam temps.
+ * ======================================================================== */
+
 extern unsigned char *iwram_3001e70;
 extern unsigned char L61d0[] __asm__(".L61d0");
 extern int L61e8[] __asm__(".L61e8");
@@ -270,6 +391,7 @@ int OvlFunc_883_20088c0(int slot)
     int camx, camz;
     int tc;
     int sz;
+    int aa;
 
     base = iwram_3001e70;
     e = __MapActor_GetActor(slot);
@@ -310,15 +432,13 @@ done:
         t2 = -t2;
     h = (t1 + t2) >> 4;
     a = L61e8[n * 4];
-    w = a;
-    if (a < 0)
-        w = -a;
+    aa = a;
+    if (a < 0) aa = -a;
     b = L61e8[n * 4 + 2];
-    if (b < 0)
-        b = -b;
+    if (b < 0) b = -b;
+    w = aa + b;
     v[2] = (a << 16) + px;
     sz = (L61e8[n * 4 + 1] << 16) + pz;
-    w = w + b;
     v[2] = v[2] >> 20;
     v[4] = sz >> 20;
     w = w >> 4;

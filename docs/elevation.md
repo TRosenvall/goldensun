@@ -22881,3 +22881,84 @@ declarations to match moved nothing (144 against 140 on `Func_801f088`): **the
 slot order is a CONSEQUENCE of the allocation, not a handle on it.** Both that and
 the separate finding that spill-slot order follows declaration order are true, and
 neither gives you the allocation.
+
+## MOVE A DEFINITION LATER UNTIL THE VALUE IS BLOCK-LOCAL -- IT LEAVES THE greg RACE ENTIRELY
+
+`local_alloc` runs BEFORE `global_alloc`. A quantity whose whole live range sits inside one
+basic block never enters greg's priority list at all, so it is not competing with
+anything -- and `local_alloc` may hand it the ROM's register directly.
+
+That is a different move from raising a priority, and it is available when raising one is
+impossible.
+
+`OvlFunc_883_20088c0` (the x15 duplicate group) is the specimen. Its dominant residue was a
+frame address at priority **0.771** against a width value at **0.643**, and the frame
+address could not be lowered -- all sixteen of its references were enumerated from the RTL
+and **every one maps to an instruction the ROM also has**, so it cannot lose a reference.
+Winning the race was arithmetically unavailable.
+
+Splitting the abs temp off and placing the addition **before** two intervening stores made
+the width value's definition late enough that its range is confined to one block.
+`local_alloc` gave it r6, the ROM's register; the neighbouring local took r5; and the frame
+address, now hard-conflicting with both, was forced to r7. All three matched, and the
+residue fell from 42 to 22.
+
+**THE PLACEMENT IS LOAD-BEARING** -- the same split with the addition *after* the stores
+stays at 37. This is the recorded "where a value is ASSIGNED is an axis separate from
+whether it is NAMED" rule with a mechanism attached: **the axis is which PASS gets to
+allocate it.**
+
+### How to use it
+
+1. Compute the priorities (`floor_log2(refs) * refs / live_length`, both inputs in
+   `.17.lreg`).
+2. If the value you need to win cannot win -- because the competitor's references are all
+   real ROM instructions and cannot be reduced -- **stop trying to win.** Ask instead
+   whether the value's definition can move late enough to be block-local.
+3. Check `.18.greg`'s dispositions: a value that has left the race no longer appears in the
+   `regs to allocate` list.
+
+### Two corrections this produced, both worth reading
+
+- **`allocno_compare` ties break on ALLOCNO NUMBER, lower first.** So a residue described as
+  "adjacent allocnos, a coin-flip" is not one: if the value you want has the lower allocno
+  number, **equality suffices** and you need to close the gap, not beat it.
+- **A "coin-flip in allocno_compare" is a description of not having computed the gap.** On
+  this function it was 0.771 against 0.643 -- not close -- and a source change moved it. The
+  formula is what turns that judgement into a number.
+
+## WHEN THE PRIORITY FORMULA DOES **NOT** APPLY -- READ THE FRAME SIZES FIRST
+
+The formula answers "which of these two values wins a register". That is not always the
+question.
+
+`OvlFunc_916_2008098`'s residue is that gcc hoists **five** pool constants out of an inner
+loop where the ROM hoists **three**. The two extra live values spill four more stack slots,
+so the frame is `add sp, #0x14` against the ROM's `add sp, #0x8`, and the surplus loads and
+stores are the whole difference. There is no allocno contest to price.
+
+**So compare the frame sizes before reaching for the arithmetic.** A frame larger than the
+ROM's means the ROM keeps FEWER values live, which is a LICM or live-range question; a frame
+of the same size with registers permuted is the priority question. Different residues,
+different tools.
+
+### And one more entry point, below both of them
+
+On the same x15 function, residue (B) turned out not to be an allocno-priority problem
+either. The ROM's `i`-in-r5 comes from a **hard-register exclusion**: the loop's `ldrsh` zero
+occupies r1, and **that zero is assigned by `local_alloc`, before greg**. Whichever value
+takes r1 first determines the rest, and the two states are self-consistent fixed points.
+
+The arithmetic proved the greg route closed -- reaching the ROM's assignment needs a 3-ref
+base to score above 0.750, which needs a live length under 4 where its range already spans
+ten insns; and going to 4 refs requires the extra reference to sit *after* the giv init to
+create the conflict at all, forcing the length up and the score back down. **The two
+requirements are mutually exclusive**, which is a clean way to state a dead end.
+
+**So there are three distinct allocation entry points, and they want different moves:**
+
+| symptom | pass | move |
+|---|---|---|
+| registers permuted, same frame | `global_alloc` priority | raise/lower a priority, or make the value block-local |
+| frame LARGER than the ROM's | LICM / live ranges | keep fewer values live |
+| a copy the ROM has is deleted, or a hard register is wrong from the start | `local_alloc` | change which value claims the register first |
