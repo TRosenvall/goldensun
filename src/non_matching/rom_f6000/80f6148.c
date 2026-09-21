@@ -1,104 +1,114 @@
-/* Func_80f6148 (0x080f6148) -- NON-MATCHING.
- * Blocker class: register allocation ORDER, plus an inline constant pool.
+/* Func_80f6148 (0x080f6148) -- NON-MATCHING, 20 encodings of 76.
+ * Blocker class: register allocation ORDER -- a three-register permutation.
  *
- * Darkens two palette regions by one step per channel. 76 lines against the
- * ROM's 78, and the two residues are independent.
+ * Darkens two palette regions by one step per channel. Re-screened in batch 276
+ * with the (u16) cast lever; RESIDUE 1 IS NOW SOLVED and the park's old
+ * conclusion, "NEXT: nothing source-level", IS REFUTED. Encodings went from
+ * 74/76 to 76 vs the ROM's 76, both mid-function pool skips now appear, and no
+ * _CONST_1f symbol is needed. The function now lives alone in
+ * asm/rom_f6000/rom_f6008_c_a_c.s after batch 275's split, so it needs no split
+ * to land if the last 20 ever close.
  *
- * RESIDUE 1 -- THE TWO MISSING LINES ARE POOL SCAFFOLDING. Each loop's third
- * clamp ends like this in the ROM:
+ * WHAT SOLVED RESIDUE 1 -- A (u16) CAST BEFORE THE MASK. `(u16)(t >> 21) & 0x1f`
+ * makes the mask a HImode pool entry (*thumb_movhi_insn, pool_range 64), which
+ * forces the pool into the middle of the function and produces the ROM's
+ * `b`-over-pool at zero extra instructions. Validated in the same round on the
+ * file-mate Func_80f61e8 (src/rom_f6000/rom_f6008_c_a_d.c).
  *
- *     mov r4, #0x0
- *     b .Lf6184
- *         .align 2, 0
- *     .Lf617c: .word 0x1f
- *         .pool
- *     .Lf6184:
+ * AND TWO ARTEFACTS ARE RETIRED WITH IT. docs/elevation.md called the
+ * `(int)&_CONST_1f` reading "a convincing false lead", and const.sym's own
+ * _CONST_1f entry rejected `unsigned short t; (t >> 5) & 0x1f` because it PRINTS
+ * `ldrh`. Thumb-1 has no PC-relative `ldrh`, so gas assembles that to the
+ * identical halfword -- the objection was reading a disassembly artefact, not a
+ * difference. Anyone re-reading those two notes should read this one with them.
  *
- * That `b` jumps to the immediately following label. It is not control flow --
- * it is gcc emitting a literal pool in the middle of the function and inserting
- * a jump to step over it. Our version places its pools at the end, so the two
- * jumps do not exist and we come out exactly two lines short.
+ * TWO MORE SOURCE LEVERS LANDED, taking 58 to 20:
  *
- * WORTH READING OFF ANY DIFF: **a ROM `b` to the immediately-following label,
- * with an aligned `.word` between them, is a pool skip.** tryc.py already warns
- * that it normalises pool loads and cannot see where a pool sits; this is what
- * that warning costs in practice -- a two-line deficit that reads like a
- * missing statement and is not one. See also the `_CONST_1f` entry in
- * const.sym, which records a function in this class that screened at ONE
- * difference and still failed `make compare`.
+ *   `b = 0x1f; b &= c;` AS TWO STATEMENTS, masking into the DESTINATION. This
+ *   makes the mask pseudo the same pseudo as `b`, so set_in_loop > 1 and
+ *   loop-invariant motion can no longer hoist it -- which is what gives the
+ *   ROM's in-loop `mov r4, #0x1f / and r4, r2`. 58 -> 56.
  *
- * RESIDUE 2 -- ALLOCATION ORDER. The ROM keeps the walking pointer, the counter
- * and the mask in r5/r6/r7; gcc uses r0/r4/r5. THERE ARE NO CALLS IN THIS
- * FUNCTION, so nothing forces callee-saved registers and both choices are
- * equally valid -- gcc simply starts allocating at r0 and the original build
- * started higher. That is the REG_ALLOC_ORDER hypothesis recorded in HANDOFF,
- * and this function is the cleanest specimen of it yet: no calls, no spills, no
- * other residue, and every one of the 71 differing lines is the same three
- * registers renamed.
+ *   `t = c << 16;` AS A NAMED VARIABLE, with `b` computed BETWEEN `r` and `g`.
+ *   56 -> 34 -> 20, and with it the prologue `push {r5,r6,r7,lr}` and all three
+ *   loop-carried registers (r5 = p, r6 = i, r7 = the pooled mask).
  *
- * MEASURED (rom 78 lines):
- *   plain `& 0x1f` on all three channels             74, 76
- *   `(int)&_CONST_1f` on the two SHIFTED channels
- *     and the literal on the third                   76, 71  <- best
+ * RESIDUE 2 IS WHAT IS LEFT, and it is now small and precisely stated: 20
+ * encodings, 10 per loop, a THREE-REGISTER PERMUTATION inside about 14
+ * instructions. Ours reuses r3 for both channel extractions and spells
+ * `sub r0, r3, #1` three-operand; the ROM keeps `t` in r3, `r` in r0, `g` in r1
+ * and decrements all three in place. Same instruction count, same eight hard
+ * registers, same peak liveness. The REG_ALLOC_ORDER reading still stands for
+ * this part -- but it is no longer "every one of the 71 differing lines".
  *
- * The `_CONST_1f` split is right and is what const.sym describes: the ROM has
- * `ldr r7, =0x1f` hoisted for the two shifted extractions and a separate
- * `mov r4, #0x1f` materialised inside the loop for the unshifted one. Written
- * with three plain literals gcc shares one register for all three and the
- * function is four lines short instead of two.
+ * MEASURED, about 55 spellings, all plateauing at 20 (rom 76 encodings):
+ *   6 channel orders                        20 / 22 / 26 / 32 / 34 / 40 / 56
+ *   6 clamp orders                          20 / 24 / 28 / 32 / 34 / 34
+ *   `c` as u32 / int / u16                  20 / 20 / 26
+ *   `t` as u32 / int                        20 / 20
+ *   inline vs separated decrements          inline required; full separation
+ *                                           costs the prologue, 54-56
+ *   `b--` / `b -= 1` / `b = b - 1`          all 20
+ *   store `((r<<10)|(g<<5))|b`               20
+ *   store `b|(g<<5)|(r<<10)`                 44
+ *   -fno-schedule-insns2                     63
+ *   -fno-rerun-cse-after-loop                62
  *
- * WHAT IS RIGHT: the literal transcription `(((c << 16) >> 26) & mask) - 1` with
- * `c` UNSIGNED -- the `lsl #16` before each `lsr` is real and comes from the
- * shift pair being written that way, not from any cast; the three `cmp / bge /
- * mov #0` clamps; the `(r << 10) | (g << 5) | b` recombination; and the two
- * do/while loops with the counter incremented before the store.
- *
- * NEXT: nothing source-level. This one is worth re-screening first if anyone
- * ever rebuilds gcc with REG_ALLOC_ORDER starting at r4.
+ * NEXT: the three-register permutation, and it wants allocno_compare / find_reg
+ * read against `.18.greg` rather than more spellings -- 55 of them are now on
+ * file and the plateau is flat. Belongs with the other global_alloc parks
+ * (Func_80a8578, Func_80cd52c, Func_80919d8, Func_80a6794, Func_808b090).
  */
-extern int _CONST_1f;
+#include "gba/types.h"
 
 void Func_80f6148(void)
 {
-    unsigned short *p;
-    unsigned int c;
-    int r;
-    int g;
-    int b;
-    int i;
+	u16 *p;
+	u32 c;
+	u32 t;
+	int r;
+	int g;
+	int b;
+	int i;
 
-    p = (unsigned short *)0x5000140;
-    i = 0;
-    do {
-        c = *p;
-        r = (((c << 16) >> 26) & (int)&_CONST_1f) - 1;
-        g = (((c << 16) >> 21) & (int)&_CONST_1f) - 1;
-        b = (c & 0x1f) - 1;
-        if (r < 0)
-            r = 0;
-        if (g < 0)
-            g = 0;
-        if (b < 0)
-            b = 0;
-        i++;
-        *p = (r << 10) | (g << 5) | b;
-        p++;
-    } while (i != 0x10);
-    p = (unsigned short *)0x5000202;
-    i = 0;
-    do {
-        c = *p;
-        r = (((c << 16) >> 26) & (int)&_CONST_1f) - 1;
-        g = (((c << 16) >> 21) & (int)&_CONST_1f) - 1;
-        b = (c & 0x1f) - 1;
-        if (r < 0)
-            r = 0;
-        if (g < 0)
-            g = 0;
-        if (b < 0)
-            b = 0;
-        i++;
-        *p = (r << 10) | (g << 5) | b;
-        p++;
-    } while (i != 0xef);
+	p = (u16 *)0x5000140;
+	i = 0;
+	do {
+		c = *p;
+		t = c << 16;
+		r = ((u16)(t >> 26) & 0x1f) - 1;
+		b = 0x1f;
+		b &= c;
+		g = ((u16)(t >> 21) & 0x1f) - 1;
+		b -= 1;
+		if (r < 0)
+			r = 0;
+		if (g < 0)
+			g = 0;
+		if (b < 0)
+			b = 0;
+		i++;
+		*p = (r << 10) | (g << 5) | b;
+		p++;
+	} while (i != 0x10);
+	p = (u16 *)0x5000202;
+	i = 0;
+	do {
+		c = *p;
+		t = c << 16;
+		r = ((u16)(t >> 26) & 0x1f) - 1;
+		b = 0x1f;
+		b &= c;
+		g = ((u16)(t >> 21) & 0x1f) - 1;
+		b -= 1;
+		if (r < 0)
+			r = 0;
+		if (g < 0)
+			g = 0;
+		if (b < 0)
+			b = 0;
+		i++;
+		*p = (r << 10) | (g << 5) | b;
+		p++;
+	} while (i != 0xef);
 }
