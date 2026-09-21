@@ -221,3 +221,36 @@ _MSG_75  = 0x0075;
 _MSG_182 = 0x0182;
 _MSG_c90 = 0x0c90;
 _MSG_ca0 = 0x0ca0;
+
+/* Added in batch 276 for Func_80a6a98, which reaches _Func_801e7c0 -- the same
+ * message sink _MSG_75 and _MSG_182 feed from the neighbouring Func_80a5614 and
+ * Func_80a56c8.
+ *
+ * NOTE WHICH ARGUMENT THIS RESTS ON, because it is NOT the shiftability one that
+ * batch 274's four entries rest on. 0x53a is odd-but-one (0x53a >> 1 = 0x29d,
+ * still over eight bits), so thumb_shiftable_const FAILS and gcc pools it either
+ * way. The pool load is therefore no evidence at all here. That puts this entry
+ * with the older majority of this file rather than with the batch-274 group.
+ *
+ * WHAT IS THE EVIDENCE IS THE REGISTER THE POOLED WORD LANDS IN, and the mechanism
+ * is a pass boundary. A CONST_INT is materialised by RELOAD, immediately before its
+ * user, so it takes whatever register reload has free -- here r2, just freed by
+ * `and r0, r2` -- and sched2 cannot then hoist the load above the `and`. A
+ * SYMBOL_REF is a real pseudo allocated at greg time, gets r3, and the ROM's
+ * `ldr r0,=0x1ff / ldr r3,=0x53a / and / add r0,r3 / ldr r1,[r7,#0x2c] / mov r2,#0
+ * / mov r3,#0` falls out whole. Measured: 8 differing with the literal, 1 (the
+ * value alone) with the symbol, and FOUR literal spellings tie at 8 -- both operand
+ * orders, a named `int base` hoisted before the `if`, and the callee redeclared to
+ * return int. So it is not a spelling that is missing.
+ *
+ * Corroboration: Func_80a63e4, in the other half of this stem, pools the same
+ * 0x53a into the same _Func_801e7c0.
+ *
+ * THE COROLLARY IS A CORRECTION TO MY OWN BATCH-275 NOTE. I withheld _MSG_b24
+ * there on the ground that 0xb24 is not shiftable and so "fails the convention".
+ * That reasoning was wrong: shiftability is one sufficient argument in this file,
+ * not the entry criterion, and roughly half the existing entries (_MSG_cf1,
+ * _MSG_c7b, _MSG_b33, _MSG_1c79, _MSG_22a3 ...) are unshiftable. _MSG_b24 is still
+ * NOT added, because its function is parked and nobody has run the register
+ * measurement above against it -- which is the test it actually has to pass. */
+_MSG_53a = 0x053a;

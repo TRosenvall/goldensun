@@ -66,3 +66,24 @@ _SIZE_8015e10 = 0x7c;
  *
  * VALIDATED: InitSprites matches at 63 lines and `make compare` passes. */
 _SIZE_800a418 = 0x7c;
+
+/* _SIZE_8015430 -- the size of Func_8015430, copied into RAM by DecompressString.
+ *
+ * asm/rom_15000/rom_15430.s holds Func_8015430 @ 0x08015430 and Func_8015570 @
+ * 0x08015570, so the size is the gap: 0x140. Same file and same arithmetic as the
+ * three entries at the top, and a fourth routine out of it.
+ *
+ * CRITERION 1 IS MET IN ITS STRONG FORM. 0x140 is 0xa0 << 1, so
+ * thumb_shiftable_const makes gcc BUILD it -- `mov r1, #0xa0 / lsl r1, #1` -- and a
+ * pool word holding such a value cannot have come from a const_int at all. The ROM
+ * pools it. CRITERION 2 as well: eight literal spellings (0x140, 320,
+ * (unsigned)320, 0xa0 << 1, 0x50 << 2, sizeof(int) * 80, 4 * 80, 0x13f + 1) all
+ * emit that same mov/lsl pair.
+ *
+ * And the literal is worse than two instructions. A compile-time-constant size
+ * lets gcc fold the whole DMA control word to a single pooled 0x84000050, which
+ * deletes the register the ROM shares between the length argument and the DMA
+ * word -- 1 differing becomes 98.
+ *
+ * VALIDATED: DecompressString matches at 107 encodings and `make compare` passes. */
+_SIZE_8015430 = 0x140;
