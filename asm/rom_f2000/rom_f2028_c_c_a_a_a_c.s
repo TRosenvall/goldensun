@@ -1,58 +1,6 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ ComputePaletteStep
-@ r0 = the current palette, r1 = the target, r2 = the destination, r3 = frames.
-@ For each of 0x600 halfword components it stores `(target - current) / frames`
-@ -- the per-frame increment the fade will add. Func_af0 supplies the signed
-@ quotient, so a negative delta steps down correctly.
-@
-@ 0x600 is 1536, which is 512 colours times THREE components. The fade engine
-@ keeps red, green and blue in separate halfwords precisely so this division can
-@ carry a fractional result per channel; Func_f3078 is what packs them back into
-@ the 5:5:5 the hardware wants.
-.thumb_func_start Func_80f2ebc  @ 0x080f2ebc
-	push	{r5, r6, r7, lr}
-	mov	r7, r10
-	mov	r6, r8
-	push	{r6, r7}
-	sub	sp, #4
-	mov	r7, r0
-	mov	r6, r1
-	mov	r5, r2
-	mov	r8, r3
-	cmp	r3, #0
-	ble	.Lf2efa
-	ldr	r1, =divsi3_RAM
-	ldr	r2, =0x5ff
-	mov	r10, r1
-.Lf2ed8:
-	mov	r1, #0
-	ldrsh	r3, [r7, r1]
-	mov	r1, #0
-	ldrsh	r0, [r6, r1]
-	str	r2, [sp]
-	sub	r0, r3
-	mov	r1, r8
-	bl	_call_via_r10
-	ldr	r2, [sp]
-	sub	r2, #1
-	strh	r0, [r5]
-	add	r7, #2
-	add	r6, #2
-	add	r5, #2
-	cmp	r2, #0
-	bge	.Lf2ed8
-.Lf2efa:
-	add	sp, #4
-	pop	{r3, r5}
-	mov	r8, r3
-	mov	r10, r5
-	pop	{r5, r6, r7}
-	pop	{r0}
-	bx	r0
-.func_end Func_80f2ebc
-
 @ UploadFadedPalette
 @ The per-frame task Func_f377c registers at sort key 0xC80. Advances the fade by
 @ one step and queues the result into the transfer list at ewram_2090 with
