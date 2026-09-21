@@ -34,6 +34,19 @@ the code must not regress:
    and the hand check found exactly 1. Prefer it, and re-run the hand check
    below if you change anything here.
 
+5. MATCH THE DIRECTIVE CASE-INSENSITIVELY. Four functions in the ROM are
+   declared `.thumb_Func_start` or `.thumb_func_Start` with the wrong case --
+   GAS accepts them and the bytes are identical. README.md has said since the
+   rom_8a000 miscount that "any tool that walks these files needs a
+   case-insensitive match", and this file did not have one, so it reported TOTAL
+   1260 where funcindex.py (which uses re.I, and is right) reported 1262. The
+   two still in asm/ are Func_a1f74 and Func_97f80.
+
+   Found in batch 277 the same way the earlier four were: a subagent read a file
+   this tool had told me held four functions and found five. THE CROSS-CHECK
+   THAT CATCHES IT is census TOTAL against funcindex's "still in asm" count --
+   they must agree, and they had silently disagreed by two.
+
 4. AN ARM FUNCTION IS NOT ATTEMPTABLE. This build has no ARM compile path at
    all -- every one of the 935 gcc-2.96 rules passes -mthumb, and NONE of the
    3,517 solved files is ARM. So a `.arm_func_start` function cannot be
@@ -59,7 +72,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from filtered import hand_written, generated
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-START = re.compile(r"^\s*\.(thumb|arm)_func_start(?:_noalign)?\s+(\S+)")
+START = re.compile(r"^\s*\.(thumb|arm)_[Ff]unc_[Ss]tart(?:_noalign)?\s+(\S+)")
 END = re.compile(r"^\s*\.func_end\b")
 DIRECTIVE = re.compile(r"^\s*\.")
 LABEL = re.compile(r"^\s*\S+:")
