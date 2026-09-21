@@ -456,3 +456,4 @@ LoadIcon  src/rom_15000/rom_19ebc_c_b.c
 DecompressIcon  src/rom_15000/rom_20198_c_c_c_c_a_a.c
 Func_80b2da8       src/rom_b0000/rom_b0070_c_c_a_c_c_a_b.c
 Task_BlitLuckyWheelsAnim  src/rom_f6000/rom_f6008_c_a_b.c
+OvlFunc_949_2008728  src/overlays/rom_7d4af4/ovl_30_c_c_a_c_c_c_c_c_c_c_c_a_b.c
