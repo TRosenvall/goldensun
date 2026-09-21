@@ -22198,3 +22198,374 @@ without the filter means picking into that class.
 > in r8..r12 needs a `mov` to a low register before every narrow store. That is
 > why a rotation involving one high register moves far more encodings than the
 > rotation itself -- on `Func_80165d8`, thirty for one decision.
+
+## `unsigned char *` PINS A REGISTER **CLASS** -- A SECOND, DIFFERENT COST OF THE SAME TYPING
+
+Batch 275 recorded that a `struct` instead of `unsigned char *` is a
+register-allocation lever, and explained it through `strength_reduce`: a char
+pointer plus hand-written offsets is one expression, so the whole address folds
+into a single pointer giv and the base register dies. That is real, and it is not
+the only way the typing costs a register.
+
+`Func_80c1ebc` (batch 276) is the second mechanism. Declaring the unit pointer
+`struct U *` rather than `unsigned char *` went **63 differing to 7** and dropped
+the push list from `{r5,r6,r7,lr}` to the ROM's `{r5,r6,lr}` -- and no induction
+variable is involved at all.
+
+The mechanism is REGISTER CLASS:
+
+- With `unsigned char *u`, the peeled `u[0]` read compiles to a direct
+  `ldrb [r6, #0]`. **Thumb's `ldrb` base must be a LOW register**, so that single
+  use pins `u`'s preferred class to `LO_REGS` for the whole function.
+- Through `u->name[k]`, the peel goes via the materialised pointer, leaving `u`
+  used only in `mov` and `add`. `HI_REGS` becomes admissible, gcc takes **r12**,
+  and no low register has to be saved for it.
+
+So the two costs are distinguishable from the symptom:
+
+| symptom | pass | fix |
+|---|---|---|
+| a base register the ROM keeps is gone, address recomputed as one pointer | `loop` / `strength_reduce` | struct typing, or a `goto` loop |
+| the push list is one register WIDER than the ROM's | `local-alloc` class preference | struct typing (moves the value to r8..r12) |
+
+**A push list one register too wide, with no other residue, is a class problem
+and the `.17.lreg` line to read is the preferred-class field, not the order.**
+
+### ...and its first NEGATIVE, which bounds the lever
+
+`Func_80a6794` (batch 276) is the control. `g` retyped as a full `struct St *`
+with named fields emits **byte-for-byte the same output** as `unsigned char *`
+plus hand offsets. Its residue is a `global_alloc` reference-count priority --
+`g` has 10 references and `box` 6, so `g` is processed first and takes r8 -- and
+the struct lever has nothing to reach there.
+
+**The struct lever works on `strength_reduce` and on register CLASS. It does not
+work on `global_alloc` priority.** Do not reach for it when `.18.greg` shows the
+contest decided on reference counts; four of the five parks in that class now
+have the measurement on file (`Func_80a8578`, `Func_80cd52c`, `Func_80919d8`,
+`Func_80a6794`, `Func_808b090`).
+
+## A POOLED CONSTANT'S **REGISTER** IS A TELL FOR A SYMBOL -- INDEPENDENTLY OF SHIFTABILITY
+
+The recorded tell for a build-input symbol is structural: `ldr rX, =<byte << n>`
+IS ALWAYS A SYMBOL, because `thumb_shiftable_const` means gcc would have BUILT
+that value with `mov`/`lsl` and can only pool what it cannot build. That argument
+is an impossibility proof and it is the strongest one available.
+
+It also covers only shiftable values, which is a minority. `Func_80a6a98` (batch
+276) supplies a second, weaker tell for the rest.
+
+0x53a is unshiftable (`0x53a >> 1 = 0x29d`, still over eight bits), so gcc pools
+it either way and **the pool load is no evidence at all**. What discriminates is
+the REGISTER the pooled word lands in, and the reason is a pass boundary:
+
+- A `CONST_INT` is materialised by **reload**, immediately before its user, so it
+  takes whatever register reload has free -- here r2, just freed by `and r0, r2`
+  -- and **sched2 cannot then hoist the load above the `and`**.
+- A `SYMBOL_REF` is a real pseudo allocated at **greg** time, gets r3, and the
+  ROM's `ldr r0,=0x1ff / ldr r3,=0x53a / and / add r0,r3 / ldr r1,[r7,#0x2c] /
+  mov r2,#0 / mov r3,#0` falls out whole.
+
+Measured: **8 differing with the literal, 1 (the value alone) with the symbol**,
+and four literal spellings tie at 8 -- both operand orders, a named `int base`
+hoisted before the `if`, and the callee redeclared to return `int`. So it is not a
+spelling that is missing.
+
+**A pooled constant that lands in a register the ROM does not use, where the
+value is unshiftable and no spelling moves it, is positive evidence for a
+symbol.** Require the register measurement, not just the pool load.
+
+> And a correction this produced: I withheld `_MSG_b24` in batch 275 on the ground
+> that 0xb24 is unshiftable and so "fails the convention". That was wrong.
+> Shiftability is one sufficient argument in `message.sym`, not its entry
+> criterion -- roughly half the existing entries are unshiftable. The test an
+> unshiftable candidate has to pass is the register measurement above.
+
+## A REDUNDANT POOL LOAD IN THE ROM MEANS THAT SITE IS NOT THE SAME SOURCE EXPRESSION
+
+`DecompressString` holds 0xffff in r9 across its loop and uses it twice, then
+materialises a **second** 0xffff from the pool inside another arm. Reading that as
+one constant and spelling `+ 0xffff` at all three sites gives `loop.c` a single
+invariant with three references: it hoists, the third pool load disappears, and --
+because three in-loop references outrank the reader pointer's two -- the
+constant's allocno is now processed first and **r9/r10 swap across the entire
+function**. 41 differing, only one pair of which is at the constant itself.
+
+Writing `- 1` at the single site keeps it a one-use `CONST_INT` that reload
+rematerialises in place. Both defects close at once.
+
+**A value the ROM pools twice is two source expressions, and the cost of merging
+them is whole-function, not local.** Corollary: when a register swap spans a
+function and one pair of the diff sits at a constant, suspect the constant is the
+cause and not a casualty.
+
+## `int` WITH A BARE `return;` -- THE `pop {r1}` TELL
+
+`Func_80c1ebc` matched everything but two encodings until its return type changed
+from `void` to `int`, with every `return;` left valueless. `return 0;` does NOT
+work -- it shifts the relocation.
+
+The tell is in the epilogue. The ROM does `pop {r1} / bx r1`, not
+`pop {r0} / bx r0`. **r0 is the return register, so a function that declares a
+return value is the only thing that makes r0 unavailable as the scratch for the
+pop.** Read the register in a `pop`/`bx` pair before assuming a `void` signature:
+the declaration carries information even where no value is ever produced.
+
+The inverse is equally usable, and settled a different question in the same round:
+`OvlFunc_969_200b6d0`'s `pop {r0} / bx r0` **proves** it is `void`, which is why
+the single-exit `ret`-local lever cannot apply to it (there is no return value for
+the local to carry).
+
+## THE SINGLE-EXIT `ret`-LOCAL LEVER NEEDS A NON-`void` FUNCTION
+
+Recorded in batch 274 off `Func_80b153c`: a single exit with a `ret` local can
+force a `sub sp, #4` and stop `find_equiv_reg` reusing a live r0. It is not a
+general pressure knob.
+
+`OvlFunc_969_200b6d0` is the measured negative, against a 49-differing baseline:
+
+| form | differing / lines |
+|---|---|
+| `ok = 1; if (GetFlag == 0 && ...) ok = 0; if (ok) {...}` | 97 / 101 |
+| the nested-`if` form of the same | 97 / 101 |
+| `ok` set only around the `q != 0` test | 59 / 99 |
+
+Every flag-variable form pays for itself in the top guard, which already matched.
+**Check the epilogue's `pop` register first: if the function is `void`, this lever
+has nothing to work with.**
+
+## WHERE A VALUE IS ASSIGNED IS A LEVER SEPARATE FROM WHETHER IT IS NAMED
+
+`OvlFunc_969_200b6d0`'s second residue closed on `int id = 0x8e << 1;` assigned
+**before the first guard**. The identical assignment placed immediately before the
+call it feeds is back at the old number.
+
+That park had already measured "the literal `0x11c` instead of `0x8e << 1` is
+inert" and concluded the value was not the problem. It was testing the spelling.
+**The axis it had not varied was the BIRTHPLACE.** Where a value is born is
+already recorded as a lever for loop preheaders (a loop-invariant literal 0 is
+emitted after the source-order preheader statements); this is the same lever in
+straight-line code, across a guard.
+
+## PAIR A LEVER WITH ANOTHER BEFORE DISCARDING IT -- INTERACTIONS FLIP SIGN
+
+`Func_808a5f8`, against a 30-differing baseline:
+
+| change | differing |
+|---|---|
+| first `gState` explicit build alone | 31 (worse) |
+| second alone | 78 (much worse) |
+| **both together** | **28 (better)** |
+
+A one-lever-at-a-time hill climb rejects each half and never finds the pair. This
+is the search-procedure counterpart of "a difference COUNT is not a difference":
+there, an equal count can hide two changes cancelling; here, two worse counts can
+hide a better pair.
+
+**At 100+ instructions, measure the obvious pairings of any two levers that
+address the same value, even when each measures worse alone.**
+
+## THE PICKABILITY PREDICTOR IS A **NEIGHBOUR**, NOT AN INSTRUCTION COUNT
+
+`tools/pickable.py` rejects anything over 120 instructions as having "too many
+independent residues to converge", which leaves **570 of 605** remaining
+unattempted functions unpickable. Batch 276 tested four targets at 101-107.
+
+| target | instructions | elevated same-stem twin? | result |
+|---|---|---|---|
+| `Func_8090488` | 101 | yes (`Func_80903bc`) | EXACT, **1 candidate** |
+| `OvlFunc_916_2008980` | 101 | yes (this directory's lever set) | EXACT, **2 candidates** |
+| `Func_801fe2c` | 107 | no | 35 of 110 after ~22 |
+| `Func_808a5f8` | 103 | no | 26 of 113 after ~12 |
+
+The two with twins converged inside the 2-8 candidate range the sub-100 rounds
+averaged. **Size did not predict the outcome; the neighbour did**, in all four
+cases.
+
+The cut-off's stated REASON is also wrong. The cost at this size is not additive
+-- it is **combinatorial**: more levers must be right simultaneously, and they
+interact with sign changes (see the section above), so the incremental search
+stalls rather than accumulating residues. Where the two failures stalled, they
+stalled at 75-80% matched with every remaining item priced and two cited to a
+dump line.
+
+**Raise the cut-off for any function with an elevated same-stem neighbour before
+relaxing it generally.** That selector is what carried this round.
+
+## TWO CONSTRAINTS ON `tools/objcmp.py` WORTH KNOWING BEFORE YOU TRUST IT
+
+1. **It derives its cflags from the Makefile rule for the `.c` path**, so it
+   cannot screen a park that needs `CSE_CFLAGS` and is not in the Makefile yet.
+   Batch 276 worked around it with a seven-line wrapper that monkeypatches
+   `tryc.makefile_flags` to return `{"no-rerun-cse"}` and then execs
+   `tools/objcmp.py` unmodified. Worth building properly the next time a
+   `CSE_CFLAGS` park needs measuring.
+2. **It compares relocations OBJECT-WIDE.** A candidate file holding two
+   functions reports `RELOCATIONS differ` even when both functions' bytes match.
+   The "one function per candidate file" rule is load-bearing, not advisory.
+
+## A MUTUAL EXCLUSION IS A RESULT -- STATE IT FROM THE CONSTRAINT, NOT THE COUNT
+
+Two batch-276 parks are blocked by two source forms that cannot coexist, and both
+are provable from a machine constraint rather than a measurement plateau. That is
+worth more than another spelling, and it is the form a park conclusion should take.
+
+`Func_808b090`. The ROM's `add r3, r4, rOff / mov rZ, #0 / ldrsh rD, [r3, rZ]`
+needs the address to be `(plus (reg) (const_int))`, which is **invalid for Thumb
+HImode** -- there is no immediate `ldrsh` -- so gcc is forced to materialise the
+whole thing in one register, which is what emits the `mov #0` and the `add`. That
+requires LITERAL offsets. But the base must ALSO be in a register or
+`gState + 448` folds to a single pool word; the only things that achieve that are
+an explicit base variable or a REGISTER offset -- and a register offset makes the
+address `(plus reg reg)`, which IS valid, so gcc folds it and the two instructions
+vanish again.
+
+`Func_801fe2c`. An explicit `int k` index biv gives the ROM's `ldrsb [k, p]`
+addressing, but makes the loop-top test and the body load syntactically identical,
+so cse1 commons them and a split `ldrb` + `lsl`/`asr` appears. `p[0x2c + i]` kills
+the commoning, but then `loop.c` folds the invariant `p` into the giv's additive
+term -- `.08.loop` says so directly:
+
+    Insn 33: giv reg 42 src reg 38 benefit 4 lifetime 1 replaceable mult 1 add (plus:SI (reg/v:SI 35)
+
+reg 35 is the `p` parameter. **`p` can never survive as a separate base register
+from that spelling**, so the addressing is unreachable, not unfound. 22 candidates
+and seven byte-identical expression spellings agree.
+
+## A REASSIGNED **PARAMETER** IS A GLOBAL ALLOCNO
+
+The recorded rule is that a value assigned ONCE is a local-alloc quantity and
+TWICE is a global-alloc allocno. A parameter's incoming value counts as the first
+assignment, so **one reassignment is enough**.
+
+`Func_80ab21c`: `fill <<= 12;` reproduces the ROM's
+`mov rHi, rArg / mov rLo, rHi / lsl #0xc / mov rHi, rLo`, where
+`tile = fill << 12;` collapses to one `lsl` plus one `mov`. 34 differing against
+88, and it also takes the line count from 106 to the ROM's 107.
+
+**When the ROM shuttles a parameter through a high register before using it,
+reassign the parameter rather than naming a new local.**
+
+## A HImode OR QImode STORE TARGET TRUNCATES A MASK IN THE RHS
+
+`*p = (v & 0xffff0fff) | x;` through a `u16 *` emits `& 0xfff`. gcc narrows the
+mask to the STORE's mode, and no amount of rewriting the mask constant changes it.
+Assigning into an SImode local first and storing that keeps the ROM's 32-bit mask:
+
+    v = v & 0xffff0fff;
+    v = v | fill;
+    *p = v;
+
+**Where the ROM masks with a value WIDER than the store, look at the store's mode
+-- not at nonzero-bits, and not at the constant.**
+
+Coupled to it: `unsigned` for `lsr` and mask preservation are two halves of one
+choice. `unsigned v` alone narrows the mask; `int v` alone gives `asr` where the
+ROM has `lsr`; `unsigned v` PLUS the separate SImode assignment statements gives
+both. On `Func_80ab21c` those two were 88 differing each and 5 together.
+
+## THE `goto`-LOOP / LICM LEVER HAS **TWO SIGNS** -- ASK WHERE THE ROM'S INVARIANT LIVES
+
+A `goto` loop suppresses `strength_reduce` and LICM entirely (no
+`NOTE_INSN_LOOP_BEG`). That is recorded. What batch 276 adds is that **the lever is
+wanted in both directions, and the two cases were in the same round**:
+
+| function | ROM's invariant address | form that matches |
+|---|---|---|
+| `Func_8016f2c` | RECOMPUTED inside the loop | `goto` loop with an explicit `w++` -- suppresses LICM |
+| `Func_80ab21c` | HOISTED into the preheader | ordinary loop, pointer NAMED in source order before the offset |
+
+In the second case the extra detail matters: LICM **appends** to the preheader, so
+when the ROM wants the hoisted pool load FIRST there, naming the pointer in source
+order is what puts it there (2 differing against 5).
+
+**So the question to ask of a ROM invariant address is not "which loop form" but
+WHETHER IT IS INSIDE OR OUTSIDE.** Then pick the form, and if it is outside, check
+the preheader ORDER as well.
+
+On `Func_8016f2c` the `for` form cost both halves at once -- `check_dbra_loop`
+reversed the counter to `mov r3, #7` AND LICM hoisted the address -- for 100
+differing against the `goto` form's 33.
+
+## A CROSS-JUMP RESIDUE IS DOWNSTREAM OF REGISTER ALLOCATION
+
+gcc-2.96 cross-jumps only in the POST-RELOAD pass. So two tails merge exactly when
+their ALLOCATION is identical, and a residue that looks like "the ROM has two
+copies of this block and we have one" is not a control-flow question.
+
+`Func_8016f2c` stores 1 to `base[0xea3]` at two sites. Naming the value `int one`:
+
+| where | differing |
+|---|---|
+| both sites | 32 |
+| neither site | 33 |
+| **only the `f18 != f1a` site** | **exact** |
+
+**Do not look for a control-flow spelling. Make the two blocks allocate
+differently -- one named local at one of them -- and the merge goes away.** The
+count barely moves while you are working on the wrong axis, which is what makes
+this one easy to misread.
+
+## AN ARGUMENT-FILL-ORDER DIFFERENCE CAN BE A CONSEQUENCE RATHER THAN A CAUSE
+
+A callee's RETURN TYPE deciding argument fill order is real and is now on file for
+five functions. It is also the first thing everyone reaches for, and on
+`Func_80bf5a8` it was wrong.
+
+Half that function's 24-differing residue was `_Func_807a3a8` filling r2 before r1.
+**All four combinations of `void`/`int` on the two callees measured 24 differing
+with IDENTICAL pairs** -- fully inert. The arg order corrected itself when the
+r1/r2 ALLOCATION was fixed by moving one statement (`d = &rec->l;` before
+`n = rec->l.count;`).
+
+**Diff the pairs before spending a round on the return-type lever. If the same two
+registers are also swapped somewhere else in the function, the allocation is the
+cause and the call site is merely where you noticed it.** This is the
+count-vs-difference discipline applied to a specific lever.
+
+## NEW BLOCKER CLASS: CSE-SHARED EXPENSIVE CONSTANTS ACROSS SIBLING CALLS
+
+`Func_80aad10` is the first specimen. Two indirect calls in one basic block pass
+the same pool-sized constants -- 0x6004000, 0x2000, 0x5000080 -- and gcc shares
+them where the ROM re-materialises them. Cost: +4 prologue, +4 epilogue, +4 setup
+`mov`s, and the called function pointer pushed out of r6 into r8, so all three
+sites become `bl _call_via_r8`.
+
+The mechanism, and why CHEAP constants are immune:
+
+- `precompute_register_parameters` makes a pseudo for each EXPENSIVE constant
+  argument. `.00.rtl` carries six SEPARATE constant sets.
+- Local CSE then substitutes the earlier pseudo at the later site: `.03.cse` shows
+  `(set (reg:SI 0 r0) (reg:SI 44))` with `REG_EQUAL (const_int 100679680)`.
+- `.18.greg` puts those pseudos in r9/r10/r11, where they must live across the
+  calls.
+- A cheap 8-bit constant (0x80 here) goes STRAIGHT to the hard argument register
+  with no pseudo, so `invalidate_for_call` kills it and it is correctly
+  re-materialised at both sites. **The split is on constant cost, not on value.**
+
+Verified in ROM bytes rather than inferred: at 0x080aad10-0x080aae14 both
+0x6004000 loads point at the same pool word 0x080aadd4 and both 0x5000080 loads at
+0x080aaddc, while 0x2000 is BUILT with `movs #128 / lsls #6` twice.
+
+And isolated by a diagnostic worth copying: with the second call site's constants
+deliberately PERTURBED so nothing can be shared, the whole body lines up
+instruction-for-instruction and the only residue is the perturbation itself.
+**When one class of defect dominates a function, break the mechanism on purpose to
+prove nothing else is wrong.** That turns "93 differing" into "one known cause".
+
+Four argument spellings (int-typed pointers, `volatile` destinations, an
+unprototyped function pointer, int-returning pointer types) are all 93 differing,
+and pinning the constants into caller-saved hard registers is WORSE (83). So there
+is no source route and no fakematch route.
+
+### The targeting note
+
+**Before attempting a function that makes repeated indirect calls with the same
+VRAM address or DMA length, grep for `_call_via_rN` alongside a repeated pool-sized
+literal.** If the ROM re-materialises the literal where we would share it, this
+class is why, and no argument spelling will move it.
+
+Two untested handles for anyone wanting to break it: whether a constant can be made
+cheap enough to skip `precompute_register_parameters`, and whether
+`-fno-cse-follow-jumps` or `-fno-cse-skip-blocks` suppresses the sharing without
+collateral.
