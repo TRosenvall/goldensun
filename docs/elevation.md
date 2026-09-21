@@ -22818,3 +22818,66 @@ The two still in assembly are `Func_a1f74` and `Func_97f80`; one is a
   forms cost 3 to 6, because gcc held the bare 0 in r8 across both calls unaided.
   The discriminator between the two cases is not yet identified; the note is in
   both files.
+
+## gcc-2.96's `global_alloc` PRIORITY FORMULA, CONFIRMED -- REGISTER PERMUTATIONS ARE ARITHMETIC
+
+The largest blocked class in this corpus is a register permutation with the
+structure already exact, and until batch 277 the honest advice was "read
+`.18.greg` and hope". The formula is:
+
+    priority = floor_log2(REG_N_REFS) * REG_N_REFS / REG_LIVE_LENGTH
+
+**Both inputs are printed verbatim by `-da` in `.17.lreg`**, as
+`Register N used R times across L insns`. So this is computable from a dump, not
+inferred.
+
+Two details that matter:
+
+- **`REG_N_REFS` is LOOP-WEIGHTED**, `+= loop_depth + 1`. A reference at depth 2
+  is worth 3, at depth 1 worth 2, at depth 0 worth 1.
+- **A def counts as a ref.**
+
+Validated on `Func_801ef68`: it predicted `.18.greg`'s `;; 19 regs to allocate:`
+line **in full, every allocno, in all five variants checked**.
+
+### What it is for: knowing when to stop, and what to change
+
+`Func_801ef68` sat at 32 differing with three locals permuted across r0/r5/r6, and
+**eleven spellings measured exactly 32**. The arithmetic says why:
+
+| local | refs | live length | priority |
+|---|---|---|---|
+| `i` | 20 | 112 | 4·20/112 = **0.714** |
+| `p` | 12 | 64 | 3·12/64 = **0.5625** |
+| `y` | 7 | 25 | 2·7/25 = **0.560** |
+
+`p` and `y` were tied to within **0.4%**. No local respelling was ever going to
+separate them, and the formula says so before you spend the round.
+
+It also says what WOULD work, as a target rather than a guess. On `Func_801f088`
+the ROM keeps a masked value in r10 and spills another local; ours does the
+reverse, at 0.287 against 0.229 — so that value **needs either one more depth-2
+reference or a live length under 94.** That is checkable.
+
+### Two levers the formula makes obvious
+
+**`i = n;` AS A MERGE-POINT COPY** is the cheapest known way to shorten a loop
+index's live range. Writing `n = 1; if (c) { ...; n = 0; } i = n;` starts `i` at
+the `if`'s merge point: 12 refs / 96 insns became 12 / 40, i.e. 0.375 → 0.900,
+moving it from 11th to 4th in the allocation order. An `if/else` writing the index
+in both arms is far worse (80 differing) and a ternary costs three instructions.
+
+**A "DEAD" INITIALISER CANNOT BUY PRIORITY.** A bare `y = 0;` before a loop is
+deleted outright, and moving the extra reference AFTER the loop *ballooned* the
+live length from 25 to 78 and made things worse. **The extra reference must be
+inside the loop, or it is not a lever.** This is the trap that makes naive
+"add a reference to raise its priority" attempts backfire.
+
+### Reading spill slots, and why they are not a lever
+
+gcc assigns spill slots in **ascending pseudo number to descending `sp` offset**.
+So a ROM's slot layout reads directly as a declaration order. But reordering the
+declarations to match moved nothing (144 against 140 on `Func_801f088`): **the
+slot order is a CONSEQUENCE of the allocation, not a handle on it.** Both that and
+the separate finding that spill-slot order follows declaration order are true, and
+neither gives you the allocation.
