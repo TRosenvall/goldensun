@@ -27,6 +27,13 @@
  * meets a halfword. If it does, the literal is the answer and adding an entry
  * here would be wrong.
  *
+ * SECOND ATTESTED INSTANCE (batch 277), which is what makes this a rule rather
+ * than an anecdote: Func_80b9470 pools 0xf at 0x080b949e -- `4b0d`, resolving to
+ * `.word 0x0000000f` at 0x080b94d4, one of only two genuine small-value pool
+ * words in the tree. A plain `& 0xf` on a value read by `ldrh` reproduces it
+ * EXACTLY, with no relocation. No _CONST_f was added and none should be.
+ * See src/non_matching/rom_b5000/80b9470.c.
+ *
  * NAMED BY VALUE, asserting nothing about meaning, exactly as message.sym's own
  * header describes its unidentified entries. An absolute assignment in a linker
  * script emits no bytes, so a wrong NAME costs nothing and a wrong VALUE fails
@@ -86,6 +93,17 @@ _CONST_200 = 0x200;
  * exception above -- but as `ldrh`, a halfword load, where the ROM has `ldr`.
  * Close enough to be worth recording as a near miss and not close enough to
  * count.
+ *
+ * CORRECTION (batch 276): THAT OBJECTION WAS A DISASSEMBLY ARTEFACT, and this
+ * entry is not needed. Thumb-1 HAS NO PC-RELATIVE `ldrh`, so gas assembles that
+ * spelling to the identical halfword -- the near miss was a match all along.
+ * What actually reproduces the ROM's mid-function pool and its `b`-over-pool is
+ * a `(u16)` cast BEFORE the mask, which makes the mask a HImode pool entry
+ * (*thumb_movhi_insn, pool_range 64) at zero extra instructions. Validated on
+ * Func_80f61e8 (src/rom_f6000/rom_f6008_c_a_d.c, landed) and on Func_80f6148,
+ * whose whole pool residue it closed (src/non_matching/rom_f6000/80f6148.c).
+ * docs/elevation.md's matching "convincing false lead" note is corrected there
+ * too. Anyone reading this paragraph should read those two files with it.
  *
  * The reference must be INLINE, `(t >> 21) & (int)&_CONST_1f`. Held in a local
  * it costs an extra callee-saved register and the function comes out worse
