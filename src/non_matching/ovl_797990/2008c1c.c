@@ -85,3 +85,52 @@
  *
  * Best C: scratch/J8c1c.c.
  */
+
+/* ============================ BATCH 278 UPDATE ============================
+ *
+ * BEST IS NOW 2 DIFFERING OF 75, and the residue is priced and terminal.
+ *
+ * Reconstructed from this park at 5 of 75; naming the two stack arguments for __Func_8010704
+ * as separate locals (the ROM uses two registers there: `mov r3,#3 / mov r2,#0x10`) reached 2.
+ * Everything else is exact -- both MapActor_GetActor/PlaySound, all four __CopyMapTiles sites
+ * sharing one `r5 = 2`, both __CutsceneWait, the __Func_8010704 stack pair, both bit-twiddles
+ * and the tail call.
+ *
+ * THE ONE REMAINING PAIR, at position 57:
+ *
+ *     rom   and r3, r2 / mov r2, r8    / strb r3, [r6]
+ *     ours  and r3, r2 / strb r3, [r6] / mov r2, r8
+ *
+ * WHY IT CANNOT MOVE. `p` (a + 0x23) and `s + 9` are both `unsigned char` accesses, so both sit
+ * in ALIAS SET 0 and `ldrb r3, [r2, #9]` carries a true memory dependence on `strb r3, [r6]`.
+ * That gives `strb` and `mov r2, r8` the SAME priority -- both one step from the `ldrb` -- and
+ * the tie falls to INSN_LUID, where `strb` is earlier in source order.
+ *
+ * AND UNLIKE ITS SIBLING OvlFunc_898_2008ef4 (elevated in batch 278, where the same kind of
+ * sched2 LUID tie WAS movable by two argument pins), THERE IS NO PIN AVAILABLE HERE: r2 is
+ * call-clobbered across the block, and pinning it costs 20 differing. The dependence cannot be
+ * broken by typing either, because A CHARACTER LVALUE ALIASES EVERYTHING regardless of what
+ * struct it is reached through -- so the recorded "a union or typed struct field cures a
+ * missing anti-dependence" escape does not apply to `unsigned char` accesses.
+ *
+ * MEASURED, all against the 2-of-75 baseline:
+ *   park's C, literals for the 8010704 stack pair            5
+ *   two named locals for that stack pair                     2   <- best
+ *   `*p = m & *p;` + `s[9] = 0xc | s[9];`                    2
+ *   `s[9] |= 0xc;`                                           2
+ *   `*(s + 9) = *(s + 9) | 0xc;`                             2
+ *   loaded byte through a named `int` temp                   4
+ *   pin r2 for `s` before the mask store                    20
+ *   pin r2 + pin r3 for the masked value                    21
+ *   re-derive `s` from `a` at the second use                74
+ *
+ * A LANDING NOTE FOR WHOEVER SOLVES IT. OvlFunc_898_2009090 and OvlFunc_901_2008c1c are a
+ * dupfuncs x2 pair but they are NOT identical: they differ in exactly one relocation, the tail
+ * call, which targets OvlFunc_898_2008ef4 in one and OvlFunc_901_2008a80 in the other. Both of
+ * those are now real elevated symbols as of batch 278. So THIS PAIR MUST LAND AS TWO FILES, not
+ * a shared body -- the same trap as the Func_809088c / Func_80f2ebc pair, which differed in one
+ * loop bound.
+ *
+ * NEXT: nothing. Two spellings of the store and two pin sets are on file and the tie is priced.
+ * ======================================================================== */
+
