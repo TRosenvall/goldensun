@@ -22569,3 +22569,252 @@ Two untested handles for anyone wanting to break it: whether a constant can be m
 cheap enough to skip `precompute_register_parameters`, and whether
 `-fno-cse-follow-jumps` or `-fno-cse-skip-blocks` suppresses the sharing without
 collateral.
+
+## TARGET BY DUPLICATE GROUP -- `tools/dupfuncs.py` IS A SELECTOR, NOT A CURIOSITY
+
+`tools/dupfuncs.py` reports **16 duplicate groups covering 46 of the remaining
+functions, 30 of which would come free**. It existed for many batches before
+being used for targeting. Batch 277 landed three pairs off it, so a third of that
+round's yield was a twin riding along on another function's solution.
+
+Two rules learned immediately:
+
+1. **VERIFY THE TWIN, DON'T ASSUME IT.** Normalise every `.L<hex>` to a serial
+   token, collapse whitespace, then diff the instruction streams. Of three pairs,
+   two were identical and the third differed in **exactly one constant** (a loop
+   bound, 0x540 against 0x600). That one lands as two files, not a shared body.
+2. **VERIFY EACH MEMBER AGAINST ITS OWN REFERENCE.** `objcmp` each twin against
+   its own `.s` rather than inferring the second from the first. It costs one
+   command and it is the difference between a checked landing and a guess.
+
+The biggest group is `OvlFunc_883_20088c0` at **x15**, all fifteen hosts holding
+exactly one function so every copy lands with no split. It is unsolved but sits at
+42 of 142 at full length -- see `src/non_matching/ovl_780898/20088c0.c`.
+
+> And a caution on that park: its candidate C had never been updated to implement
+> its own recorded levers, and its update block's symbol names belonged to a
+> DIFFERENT member of the group. **In a duplicate group, check which copy a note
+> was written against.** Numbers from two copies are not comparable if the source
+> was not.
+
+## A POOLED `sfp+K` TEMP ADDRESS CANNOT BE KEPT UNCOMMONED
+
+`Func_80b9470`. `.00.rtl` holds TWO separate `(plus virtual-stack-vars -16)`, one
+per `&tmp` call argument; cse1 commons them into one pseudo; `.08.loop` then always
+hoists it (`threshold*savings*lifetime` = 20*1*10 against `insn_count` 27). The
+result is an extra global allocno.
+
+**Eight spellings intended to keep the two uses separate were byte-identical to
+each other**: a `struct` temp, `char tmp[N]` with array decay, a `union` with two
+members at offset 0, typed against `void *` parameters, and a pointer local
+assigned twice, once before each use. cse commons `(plus sfp K)` regardless of
+spelling.
+
+**So: if the ROM rematerialises `mov r0, sp` at each use and the function has no
+spare callee-saved register, it is allocation-blocked. Stop there.** Nineteen
+flags singly and six in pairs did not beat the default either.
+
+## A LOCAL ARRAY SPELLED DIRECTLY IS NOT THE SAME AS THE SAME ARRAY THROUGH A POINTER
+
+`OvlFunc_883_20088c0`, 79 differing to 54, and it is what makes the length exact.
+
+With `int *p = v;` gcc's dead-store elimination DELETES `v[2] = (a<<16)+px`: it
+proves `sp+8` cannot alias the table symbol, so the store is dead against the
+later `v[2] = v[2]>>20`. Spelled as the array, both stores survive -- which is the
+ROM's `str r0,[r7,#8]` appearing twice.
+
+**When the ROM stores the same slot twice with a table load in between, spell the
+array.** Note this supersedes a recorded reading of the same residue as a
+store-ORDER effect on a CSE: the reload is unconditional (the abs clobbers the
+loaded register), and what the order controls is whether the first store survives
+DSE.
+
+## `if (c) {X} else {loop; X}` AND `if (!c) {loop} X` ARE DIFFERENT BLOCK LAYOUTS
+
+Not stylistic variants. The first gives the ROM's out-of-line loop with a `b` back
+to a cross-jumped shared tail, PLUS a stray frame-address materialisation in the
+arm that looks empty; the second inlines the loop behind an inverted branch and
+cannot be recovered from.
+
+**This is the lever for an `add rN, sp, #K` that appears duplicated in two
+successors** -- the apparently-pointless copy is what is left of the then-block
+after jump2 cross-jumped its real content away.
+
+## NESTING A RETRY LOOP AS A REAL INNER LOOP IS A THREE-IN-ONE LEVER
+
+`Func_80a1e38` is the strongest case in the corpus against one-lever-at-a-time
+search. **Twenty-one single local changes all left 110 differing** -- five
+declaration orders, four increment spellings, five positions for a `= 0`, three
+pointer-copy variants, a `volatile` parameter, an address-of. The restructure went
+to **0**.
+
+    while (cats[j] != 0xff) { ...; if (best) { move } else j++; }    110
+    for (j = 0; cats[j] != 0xff; j++) { for (;;) { ...;
+                               if (best == 0) break; move } }       exact
+
+The two compile to the SAME control flow. What differs is downstream:
+
+- `n`'s reference depth rises, so `n` beats the `list` parameter for r11 and
+  `list` spills to the ROM's `sp+0xc`;
+- `j` becomes a genuine BIV, so `cats + j`'s giv initialiser is emitted by
+  `strength_reduce` AFTER the LICM hoists;
+- a bare r2/r3 role swap in a compare corrects itself.
+
+**When a residue spans register allocation AND a preheader order AND an
+argument-register swap at once, the loop STRUCTURE is the common cause.** Read this
+with the `goto`-loop rule from the other end: there the ROM wants NO biv, here it
+wants one, and the loop has to be a real loop for `strength_reduce` to see it.
+
+## cse1 SUBSTITUTES THE NEAREST BRANCH-PROVEN ZERO -- GIVE IT A NEARER ONE
+
+`Func_80a1fd4`. `*col = 0;` compiled to `str <left>`, because `left` was the
+nearest pseudo cse could prove zero at that point. That extended `left`'s live
+range across a call, so `ALLOCNO_CALLS_CROSSED > 0` excluded every call-used
+register -- r1 **and r4** under `-fcall-used-r4` -- costing a fourth high register
+and eight instructions. `.18.greg` showed `left` conflicting with pseudos in a
+branch it has no business being live in.
+
+**THE TELL: a `str <callee-saved reg>` where the ROM has `str r0` after a
+`mov r0, #0`, together with a push list one register too wide.** That is a
+zero-substitution problem, not a spilling problem.
+
+**THE FIX IS A NEARER ZERO, NOT A BLOCK.** `ret = 0;` moved above the stores is a
+zero the function already needed. A named `int z = 0;` fails at every declaration
+position -- cse merges it into `left`'s qty, canonicalises to `left`, and deletes
+`z`. `volatile` fails too. So the lever is the ORDER of an assignment you were
+going to write anyway.
+
+## A HImode CONSTANT STORE POOLS; THE SAME STORE THROUGH A STRUCT FIELD DOES NOT
+
+`*(unsigned short *)(x + K) = 1` emits a pooled `ldrh`. `s->f222 = 1` through a
+typed struct pointer with a far field emits `mov rN, #1 / strh`. Probed in
+isolation to confirm it is the TYPING and not the offset.
+
+That extends the recorded "HImode and QImode literal stores both pool" rule with
+its cure for the far-offset case, and it interacts with the symbol tell:
+
+### Reading a ROM literal pool: HImode entries sort BEFORE SImode
+
+Measured twice. Pool entries are **not in reference order**. A `.word 1` from an
+`ldrh` landed at pool offset 0 ahead of an `0x151` referenced earlier in the insn
+stream. So `Func_80a1d08`'s pool `[1, 0x151, 0x222]` says the `1` is a HALFWORD
+entry -- and that alone revealed that a following `strb` of the same value was
+SHARING it, which is why the ROM shows `mov r3,#1 / strh` beside `ldr r1,=1 /
+strb`.
+
+**A pooled small constant feeding a `strb` can be a shared HImode pool entry, and
+that is NOT the symbol tell.** `const.sym`'s `_CONST_1` reproduces the byte store
+but leaves a fourth pool word; the plain literal plus a struct halfword field
+matched exactly.
+
+## THE "THREE NAMED LOCALS" CONSTANT LEVER -- AMENDED IN BOTH DIRECTIONS
+
+The recorded scope was "three named locals each assigned the SAME two-instruction
+constant", flagged "not general", with a negative cited where the constants
+DIFFER. Both halves need widening, and the precondition needs stating.
+
+- **It fires on many sites, not three.** Four sites on one function (16 differing
+  to 0) and nine on another, seven of them the same constant pair repeated.
+- **It fires where the constants DIFFER, and that is the cure for the `mov r0`
+  interleave.** `SetPos(0x19, 0x8c<<18, 0xaa<<18)` -- two different constants --
+  emitted `mov r1 / mov r2 / lsl r1 / lsl r2 / mov r0` against the ROM's
+  `mov r1 / mov r2 / mov r0 / lsl r1 / lsl r2`, and naming the two coordinates as
+  locals closed it. `.00.rtl` shows why: `precompute_register_parameters` SKIPS an
+  argument that is already a `REG`, so no pseudo is emitted ahead of the
+  hard-register fills, the cheap `r0 = K` keeps a lower luid than the split `lsl`,
+  and sched2's priority tie breaks toward it.
+- **THE PRECONDITION IS THE ONE ALREADY WRITTEN DOWN, and it is the whole test:
+  the assignments must sit in a block that a branch DOMINATES.** Named locals in
+  the same basic block as their use do not help -- cse1 commons them and cprop is
+  cross-block only -- and they actively HURT: naming block-0 coordinates created
+  live pseudos that pushed a value into r8 and widened the push list (27
+  differing). Splitting the treatment, named locals for the guarded blocks and
+  BARE LITERALS for block 0, went 27 to 11.
+
+So one mechanism covers the duplicate-constant shape and the interleave shape, and
+the pin is the fallback **for block 0 specifically** rather than the default. One
+function needed a pin at exactly one of its twelve call sites where the
+neighbouring fakematch pins three.
+
+## COUNTING: MATCH THE DIRECTIVE CASE-INSENSITIVELY, AND CROSS-CHECK THE TOOLS
+
+Four functions in the ROM are declared `.thumb_Func_start` or `.thumb_func_Start`
+with the wrong case. GAS accepts them; the bytes are identical. README.md has said
+since an earlier miscount that **any tool walking these files needs a
+case-insensitive match** -- and `census.py` did not have one, so every TOTAL it
+printed, including figures published in batch reports, was two low.
+
+`funcindex.py` uses `re.I` and was right. **The cross-check is census TOTAL against
+funcindex's "still in asm" count: they must agree.** They had silently disagreed by
+two.
+
+It surfaced because a subagent read a file this tool said held four functions and
+found five. **When a tool's count and a listing disagree, the tool is the suspect.**
+The two still in assembly are `Func_a1f74` and `Func_97f80`; one is a
+39-instruction target in a band the table had reported as empty.
+
+## SMALLER LEVERS, EACH OF WHICH CLOSED A FUNCTION IN BATCH 277
+
+- **`while (i != x)` GIVES TWO LOADS OF ONE FIELD.** `loop.c`'s
+  `duplicate_loop_exit_test` COPIES the exit test to the loop front and runs at
+  pass 08, AFTER cse1 and gcse, so the copy is never available to fold and LICM
+  then hoists it into the preheader. A guarded `do/while` is 16 differing; the
+  plain `while` is exact. **Two reads of one field in a loop condition are not
+  necessarily a CSE problem** -- a park had concluded `volatile` was the only cure
+  and booked itself as a future fakematch.
+- **REUSING THE SOURCE VARIABLE AS THE ACCUMULATOR IS A REGISTER LEVER**, worth 29
+  of 54. `local_alloc` priority is roughly references over live length, so a
+  short-lived value is the HIGHEST-priority local and takes the first register,
+  forcing a global counter out. Recombining back into that same variable stretches
+  it across the body, drops it to the LOWEST priority, and the ROM's map falls out.
+  **When a ROM reuses a dead value's register as an accumulator, suspect one
+  variable, not two.**
+- **`x *= scale;` AS ITS OWN STATEMENT**, not `x = (c & m) * scale;`. Separate
+  statements on one variable are ONE pseudo, so the AND's destination is already
+  the `mul`'s destination and Thumb's earlyclobber needs no copy. 38 to 31.
+- **A BYTE INDEX PAST THE 5-BIT OFFSET WANTS THE INDEX NAMED, NOT THE ADDRESS.**
+  `p[arg + K]` folds the base in and spends three instructions; `idx = arg + K;`
+  then `p[idx]` gives the ROM's two-instruction register-offset form. Fixed a
+  LENGTH in one edit, 38 differing to 3.
+- **`fold_truthop` FOLDS A THREE-TERM COMPARISON CHAIN INTO A RANGE TEST, and
+  `unsigned char` does NOT block it** -- gcc folds in QImode instead. Nested `if`s
+  block the fold but let gcc hoist the shared assignment above the compares. **A
+  ROM shape of N forward branches into a SHARED TAIL ASSIGNMENT that the success
+  path jumps over needs explicit `goto`s**; three structured forms measured 76, 74
+  and 75.
+- **`unsigned char b` IS what buys a QImode range test** in the other direction:
+  `b == 0x2e || b == 0x2f || b == 0x35` on an `unsigned char` folds in QImode to
+  the ROM's `add r3,#0xd2 / lsl r3,#24 / cmp`, where `int b` folds in SImode to
+  `sub r3,#0x2e / cmp r3,#1`. The `<= 1` needs the shift and the `== 0x35` does
+  not -- that asymmetry is the tell for which mode folded.
+- **TWO SEQUENTIAL LOOPS SHARE ONE COUNTER -- and the spill pairs are EVIDENCE for
+  it.** Worth 135 differing to 0. The shared counter is what puts the counter in
+  r4, which is CALL-CLOBBERED under `-fcall-used-r4`, producing the ROM's
+  `str r4,[sp,#0]` / `ldr r4,[sp,#0]` pairs around three calls. With a separate
+  counter the second loop takes a free r7 and both pairs vanish. **If a ROM saves a
+  low register around calls in a function with two loops, suspect one counter.**
+- **THE ROM INITIALISES A LOOP COUNTER FROM A LIVE VARIABLE ALREADY HOLDING ZERO**,
+  twice in one `.s`. `for (i = ret; i < cnt; i++)` emits `ldr r2,[sp,#4] /
+  cmp r2,r8 / bge` and was required. **If a loop entry compares two registers
+  instead of loading a literal zero, look for a live zero to start from.**
+- **`ldrsh` VS `ldrh` IS DECIDED BY THE VARIABLE'S WIDTH, NOT THE FIELD'S.** A
+  halfword whose consumers are a call argument and a `strh` source wants an `int`
+  local holding an unsigned read, with the sign extension written as a cast AT THE
+  POINT OF USE -- which also keeps the extension inside the guard where the ROM has
+  it, rather than ahead of the branch.
+- **SPILL-SLOT ORDER IS DECLARATION ORDER** -- the declaration-order tie-break
+  showing up in the frame rather than in a register.
+- **NAME THE DOUBLY-USED LOAD, AND LEAVE THE OTHER LOAD INLINE BETWEEN ITS USES.**
+  Unnamed, aliasing forces a reload; naming BOTH reorders the block (21 differing);
+  naming one with the intervening store moved is 20. The lever is the naming
+  TOGETHER WITH what separates the uses.
+- **`move_movables` ON A CALL-FREE THUMB INNER LOOP: threshold < 31.** Measured
+  from a refused `life 1, savings 1` movable in a 31-insn pass-2 loop. With the
+  recorded 23 for a loop WITH a call, that brackets the
+  `n_non_fixed_regs`-derived threshold for the next function in this class.
+- **A CONDITIONAL LEVER, recorded as a negative.** One overlay exemplar's rule that
+  "the held zero must be a named `int` written immediately before the first store"
+  is FALSE on a neighbour: bare `0` literals were exact there and all four named
+  forms cost 3 to 6, because gcc held the bare 0 in r8 across both calls unaided.
+  The discriminator between the two cases is not yet identified; the note is in
+  both files.
