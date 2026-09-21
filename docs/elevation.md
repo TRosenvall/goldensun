@@ -22962,3 +22962,139 @@ requirements are mutually exclusive**, which is a clean way to state a dead end.
 | registers permuted, same frame | `global_alloc` priority | raise/lower a priority, or make the value block-local |
 | frame LARGER than the ROM's | LICM / live ranges | keep fewer values live |
 | a copy the ROM has is deleted, or a hard register is wrong from the start | `local_alloc` | change which value claims the register first |
+
+## A FOURTH AND FIFTH ALLOCATION ENTRY POINT, AND HOW TO TELL WHICH YOU HAVE
+
+Batch 277 gave the `global_alloc` priority formula; batch 278 found that a value can leave
+that race, that LICM keeping too many values live is a different problem, and then two more
+below both. The full triage:
+
+| symptom | pass | move |
+|---|---|---|
+| registers permuted, same frame | `global_alloc` priority | raise/lower, or make the value block-local |
+| frame LARGER than the ROM's | LICM / live ranges | keep fewer values live |
+| a copy the ROM has is deleted; a hard register wrong from the start | `local_alloc` | change which value claims it first |
+| an address pseudo cannot get r3 for no visible reason | **a DEAD INSN from `combine`** | (see below) |
+| only reload scratch registers rotate, structure exact | **`order_regs_for_reload`** | nothing source-level |
+
+### A `REG_UNUSED` insn still takes a hard register
+
+**gcc-2.96 runs no flow pass between `combine` and allocation.** So an insn `combine` has
+made dead is still present at `.17.lreg`, `local_alloc` still assigns it a register — r3
+first, per ARM's `REG_ALLOC_ORDER` — and `.18.greg` still shows it as a conflict.
+
+On `OvlFunc_923_2009bc8` the chain is visible end to end: expand emits
+`(set (reg:QI T) (subreg:QI (reg:SI zero)))`, cse1 rewrites it to `(const_int 0)`, combine
+substitutes the subreg into the store and leaves T `REG_UNUSED` — and T then holds r3 against
+the address pseudo that needs it. Two independent pseudos show the identical conflict list
+including hard `3`.
+
+**Diagnose it by grepping `.17.lreg` for `REG_UNUSED` and cross-checking the `conflicts`
+lines in `.18.greg`.** The competitor is not a real value at all, which is why no spelling of
+the real values moves it.
+
+### Reload's own register ordering is below all of this
+
+On `CheckSpecialExits` every allocno matched the ROM — e→r5 through z0→r11, both spill slots
+at the ROM's offsets — and the residue was four `ldrsh` pairs where only the SCRATCH
+registers rotate. Thumb has no immediate-offset `ldrsh` and a high-register destination needs
+an output reload, so **both the offset and the destination are reload registers**, chosen by
+`order_regs_for_reload`. Sixteen spellings, all 10 or worse.
+
+**If the structure and every named value's register already match and only scratch registers
+differ, stop.**
+
+## `-fno-strict-aliasing` IS THE "ROM RELOADS A POINTER FIELD" LEVER
+
+Probed directly against gcc-2.96 rather than inferred. With strict aliasing on, gcc **always**
+caches `x->ptrfield` — across a store to a `char` field, to an `int` field, to a pointer field
+of the pointee, and to a pointer field of the same parent struct. With `-fno-strict-aliasing`
+it reloads, as the ROM does.
+
+**No source-level type change reaches this** — `unsigned char`, `unsigned short` and
+`unsigned int` bitfield containers were all measured.
+
+So it is a genuinely different thing from the recorded **DO NOT CACHE A REPEATED READ** rule,
+which is about scalar reads you can simply re-write in the source. A repeated *pointer field*
+read is the flag. `ALIAS_CFLAGS` already exists in the Makefile for it.
+
+## TWO CALL IDIOMS, AND ONLY ONE COMES FROM PLAIN C
+
+- `bl _call_via_rN` is what gcc emits for an ordinary function-pointer local.
+- `.call_via rN` expands (per `include/macros.inc`) to `mov r12, pc / bx rN`, which gcc-2.96
+  **never** emits. It needs the `static inline int call_via(...)` inline-asm helper, already
+  used by about ten accepted files, **none of which has a fakematch row** — established
+  practice here, not scaffolding.
+
+**They can appear in the same function**, and on `OvlFunc_923_2009cb4` they do: every site of
+one callee uses the helper and every other indirect call is a plain pointer. Do not assume one
+idiom per function.
+
+**And the helper's clobber list is a tuning knob**, which is not recorded anywhere else:
+`"memory","r12"` 73; adding `"r2"` **45**; `+"r4"` 48; `+"r2","r3"` 65; `+"r2","r4"` 58.
+Without `"r2"` gcc treats the veneer as not clobbering r2 and parks the function pointer
+there, where the ROM parks it in r4 and keeps r3 live across — so r3 must NOT be clobbered.
+
+## THE LOOP-WEIGHTING CUTS BOTH WAYS -- AN EXTRA IN-LOOP REFERENCE IS A COST
+
+`REG_N_REFS` is weighted `+= loop_depth + 1`, so one reference at depth 1 is worth two. That
+is a lever when you need a value's priority raised, and a **tax** when you don't.
+
+`OvlFunc_883_200dd68` is one instruction from exact and cannot get there, because the two
+routes cost each other exactly:
+
+- The pointer-walk spelling produces the ROM's address chain — but gives the pooled zero one
+  extra **in-loop** use, so refs go 6 → 8, `floor_log2` goes 2 → 3, and priority goes
+  12/92 = 0.130 → **24/92 = 0.261**, overtaking the loop index at 27/142 = 0.190. The two swap
+  r7/r8 and that costs `mov r1, r8` in the loop — exactly the instruction the walk saved.
+- Eleven walk spellings all held the zero at 8 refs. Naming the zero restores 6 but LICM then
+  hoists it into the preheader where it takes a global register (139).
+
+Both routes assemble to the same size. **Before adopting a spelling that adds a reference
+inside a loop, price it: at depth it counts treble.**
+
+## SMALLER FINDINGS FROM BATCH 278
+
+- **A bitfield insertion is not an expression store.** The recorded rule that a HImode/QImode
+  store target truncates a mask in the RHS is true of an *expression*; `store_bit_field`
+  builds the read-modify-write in **SImode**, so a contiguous bit range written as a BITFIELD
+  keeps the ROM's 32-bit mask. Two independent instances in one batch. And a single
+  `(v & 0xf) & ~0xc | 4` store can be **two adjacent bitfield writes to one byte**, which emits
+  exactly one `ldrb`/`strb` pair carrying both ANDs.
+- **A caller-save `str rN,[sp]` / `ldr rN,[sp]` pair in the ROM is a SPEC, not noise.** It says
+  that allocno is last in priority order among the LO-class contenders, which pins the relative
+  order of every other one — and the move it implies is to **lengthen** a live range, not
+  shorten it.
+- **A named local wrapping ONE of two identical constants** splits a CSE that survives into
+  allocation. Which one you name matters; the other is inert.
+- **Reusing a variable as its own accumulator** picks which side of a commutative `and` is tied
+  to the output, where no operand reordering inside the expression can. But for a *sum* feeding
+  a store, a FRESH variable is the lever and reusing one inverts the operands — read which side
+  the ROM ties.
+- **Two similar blocks can want DIFFERENT statement order.** On one function both symmetric
+  orderings measured 17 and 22 and the asymmetric one 13.
+- **The "three named locals" lever has two more measured negatives** (59 and 181 differing),
+  both where the constants' uses were not behind a dominating branch. Its precondition really
+  is the whole test.
+- **`-fno-rerun-cse-after-loop` can ICE** (`decode_rtx_const`, `varasm.c:3421`), which matters
+  because it is a member of the `CSE_CFLAGS` group several files already use.
+- **`tryc` masking `ldrh <pool-label>` against `ldr <pool-label>` is CORRECT** — gas assembles
+  both to the same halfword, Thumb-1 having no PC-relative `ldrh`. Third time this has come up.
+  Do not spend candidates on it.
+
+## THE SELECTOR, REFINED: CALL FAMILY BEATS STEM DISTANCE
+
+The neighbour criterion held again — but two of six agents reported that **stem adjacency was
+the wrong measure of it**.
+
+- The best neighbour for one target was *the function it calls on its first line*, and it
+  supplied three idioms that would not have come out of the listing.
+- Another target's 12-component stem neighbour was twelve lines of unrelated arithmetic and
+  gave almost nothing, while the real source was found by **grepping `src/` for two callee
+  names** and turned up a file in a different directory entirely.
+- A third pair of targets was solved from a park in an unrelated directory that was **the same
+  function body**, found the same way.
+
+**So check the call family, not the stem:** grep for the target's callees across `src/` and
+`src/non_matching/`. It is cheaper than stem comparison and it predicted the outcomes that stem
+distance got wrong.
