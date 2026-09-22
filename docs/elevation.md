@@ -23781,3 +23781,65 @@ DEST_REG givs.** `src/non_matching/rom_b5000/80b9ec0.c`'s reduction is a **DEST_
 giv — an address computation rather than a value — and three spellings of the address
 all failed to stop it. Check which kind of giv you have in `.08.loop` before
 reaching for the lever.
+
+## `do { } while (0)` PLANTS TWO TOTAL SCHEDULING BARRIERS — the mechanism behind a device this tree already used
+
+Batch 282, `OvlFunc_918_2009004`. Confirmed at `haifa-sched.c:3714` onward: a
+`NOTE_INSN_LOOP_BEG` / `LOOP_END` sets `schedule_barrier_found`, which makes the next
+real insn **depend on every prior use, set and clobber of every register** and calls
+`flush_pending_lists`. The comment in the source is explicit that loop, eh and setjmp
+notes are scheduling barriers while range notes are not.
+
+`do { } while (0)` emits exactly those loop notes. **Plain `{ … }` does not** — it
+emits only `NOTE_INSN_BLOCK_BEG/END`, which the same file deliberately excludes from
+the ordinary note list.
+
+Two consequences, and they pull in opposite directions:
+
+- **The tree's deliberate `do { } while (0);` barrier device — used in 52 landed
+  files — is now explained rather than merely observed.** It is a *total* barrier, not
+  a hint.
+- **Any macro body wrapped in the conventional `do { } while (0)` plants two
+  unintended total barriers around itself.** On `OvlFunc_918_2009004` a `CALL_VIA_R4`
+  macro did this, and a constant build that had been combined into the macro's own
+  argument copy could then never be hoisted into the ROM's interleave — visible in
+  `.19.flow2` as the insns sitting *after* `note NOTE_INSN_LOOP_BEG`. Replacing the
+  wrapper with `{ … }`, with `if (1) { … } else (void)0`, or with no braces at all and
+  function-scope temporaries, all work identically.
+
+**When a macro body needs to schedule with its surroundings, do not wrap it in
+do-while.**
+
+### The corollary trap: a scheduling difference can be the ABSENCE of scheduling
+
+That park had recorded its residue as "a single four-instruction sched2 interleave".
+With `-fno-schedule-insns2` the output was **instruction-for-instruction identical in
+that window** — so sched2 was doing nothing there at all. The ROM's order was the
+sched2 fill and ours was a barriered non-schedule.
+
+**The one-line test: run `-fno-schedule-insns2`. If the window does not change, sched2
+is not the culprit and something is barriering it.** Look for a `do { } while (0)`, a
+macro that hides one, or a `volatile`.
+
+## DELETING A SOURCE WITHOUT ADDING ITS REPLACEMENT GIVES A GREEN BUILD OFF A STALE `.o`
+
+Batch 282, and it is a hazard in the workflow rather than in the ROM. Converting a
+function means writing `src/<stem>.c` and deleting `asm/<stem>.s`. If the write fails
+or is skipped and the delete still happens, **`make` has no rule to rebuild that object
+and silently links the `.o` left from the previous build.** `make -j8 && make compare`
+then reports `goldensun.gba: OK` on a tree that does not contain the source of its own
+ROM, and a fresh clone would not build at all.
+
+It happened here because a guard assertion in a write script tripped while the `rm` sat
+on the next shell line, so the delete ran and the write did not.
+
+**Order the two operations so the delete cannot happen first**, and check the object
+actually recompiled — the build log naming your `.c` is the proof:
+
+    test -s src/<stem>.c && rm -f asm/<stem>.s     # not two separate lines
+    # then confirm the build log contains: xgcc ... -o asm/<stem>.s src/<stem>.c
+
+This is the same family as batch 279's lesson that a green `make compare` does not
+prove a commit is complete — **the build reads the working tree, and the working tree
+can be missing a file the object was built from.** `git status` catches the commit case;
+only reading the build log catches this one.
