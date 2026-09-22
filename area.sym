@@ -267,3 +267,22 @@ _AREA_15 = 0x15;
  * CRITERION 2 MEASURED: the literal spelling emits `movs r0, #109` and leaves the function
  * one pool word short, 3 differing. */
 _AREA_6d = 0x6d;
+
+/* Added in batch 281 for OvlFunc_921_2008b70, and it COMPLETES that function --
+ * which, with _AREA_32 in place, also completes the WHOLE of
+ * asm/overlays/rom_7a7298/ovl_30_c_c_c_c_c_a_a_a_c_c_a.s, whose other function
+ * OvlFunc_921_2008f90 is byte-exact without it. Without this line the function is
+ * 1 differing encoding plus 1 extra relocation and nothing else.
+ *
+ * THE IN-FUNCTION CONTROL IS THE STRONGEST KIND THIS FILE CAN HAVE: THE VERY NEXT
+ * ID, ALREADY PROVISIONED. The function opens `ldr r3, =0x32 / cmp r2, r3` against
+ * the area halfword at gState+0x1C0, and THREE INSTRUCTIONS LATER does
+ * `ldr r3, =0x33 / cmp r2, r3` -- and _AREA_33 has been in this table since batch
+ * 68 (line 70). So the control is not merely a constant of the same kind in the
+ * same function; it is the same comparison, against the adjacent id, in the same
+ * three-instruction window, already accepted into this table. Declining 0x32 while
+ * keeping 0x33 would be incoherent.
+ *
+ * Same criterion as _AREA_05, _AREA_bb, _AREA_15 and _AREA_3a above: the value fits
+ * an eight-bit mov and the ROM pools it anyway. */
+_AREA_32 = 0x32;
