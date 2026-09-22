@@ -70,7 +70,6 @@
  * _AREA_33 has been in area.sym since batch 68.  That is area.sym's own
  * criterion with its own in-function control sitting three instructions away:
  * the SAME comparison, against the NEXT id, already provisioned.  The
- * top-level `__asm__(".equ _AREA_32, 0x32");` below is the measurement shim
  * (per _MSG_1299's note); replace it with the area.sym line when the entry is
  * approved.  With the shim the function is byte-exact, so this symbol COMPLETES
  * its function -- the condition this tree adds a symbol on.
@@ -128,7 +127,6 @@
  *     SELECTOR's register.  Assigning `sel = 3` in the sel==4 arm and passing
  *     `sel, sel` makes both tails identical and gcc merges them.
  */
-__asm__(".equ _AREA_32, 0x32");
 typedef struct { unsigned char _bytes[704]; } GlobalState;
 extern GlobalState gState;
 extern unsigned char iwram_3001ebc[];
