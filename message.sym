@@ -282,3 +282,34 @@ _MSG_53a = 0x053a;
  * _MSG_2080 / _SIZE_80f0024 / _TBL_7a828 remain deliberately unadded because they do
  * not. */
 _MSG_1197 = 0x1197;
+
+/* Added in batch 279 for Func_80b2328, and it is the SAME SHAPE AND SAME MODULE as
+ * _MSG_d1c above -- read the two together. That entry records: "Func_80b3284 (the
+ * inn) holds 0xd1c in a callee-saved register and reaches 0xd1d..0xd20 with
+ * `add r0, #K`. With a plain integer gcc folds each site to its own
+ * `ldr r0, =0xd1f`, loses the high register entirely and the push list changes; it
+ * will spend a callee-saved register on a SYMBOL address and not on an integer it
+ * can rematerialise."
+ *
+ * Func_80b2328 does exactly that with 0xcbe, held in r11 and reaching 0xcbf / 0xcc0
+ * / 0xcc1 by `add r0, #K`, and that one register decision is what forces `slot` to
+ * the stack at sp+0xc -- every other difference (141 encodings) cascades from it.
+ *
+ * NOT the shiftability argument: 0xcbe is 0x65f << 1 and 0x65f exceeds eight bits,
+ * so gcc pools it either way.
+ *
+ * THE PASS TRACE IS ON FILE, which is stronger than the usual measurement for this
+ * class. With a named `int msg = 0xcbe`, `.03.cse` ALREADY emits the ROM's shape --
+ * `(set (reg 92) (plus (reg/v 41) (const_int 1)))` carrying `REG_EQUAL 3263`,
+ * because cse1 keeps the `plus` as cheaper. `.07.gcse` then undoes it:
+ * "CONST-PROP: Replacing reg 41 in insn 229 with constant (const_int 3262)", and
+ * again at insns 273 and 354, because cprop_insn skips only uses in the SAME basic
+ * block as the def. With bare literals the relation never forms at all -- `.03.cse`
+ * shows four independent (set (reg) (const_int)).
+ *
+ * So the integer route is destroyed by gcse specifically, and the alternative to
+ * this entry was a -fno-gcse Makefile rule PLUS rewriting the array accesses as
+ * named offsets to replace the global CSE that flag removes. This entry is the
+ * cheaper and more honest of the two, and it completes the function: 177 encodings
+ * against 177 with one pool word left, which this assignment fills. */
+_MSG_cbe = 0x0cbe;

@@ -126,6 +126,8 @@ extern int _MSG_ad0;
 // and reached with add #K; a plain integer is rematerialised per site instead.
 extern int _MSG_d1c;
 #define MSG_d1c ((int)&_MSG_d1c)
+extern int _MSG_cbe;
+#define MSG_cbe ((int)&_MSG_cbe)
 
 // batch 182: the level-up box's three-string run. 0xc20 is 0xc2 << 4, so a
 // literal is synthesised rather than pooled, and the +1/+2 sites stop being
