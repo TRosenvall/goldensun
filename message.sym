@@ -313,3 +313,41 @@ _MSG_1197 = 0x1197;
  * cheaper and more honest of the two, and it completes the function: 177 encodings
  * against 177 with one pool word left, which this assignment fills. */
 _MSG_cbe = 0x0cbe;
+
+/* Added in batch 279 for DataTransferMenu, and IT RESTS ON A NEW FORM OF THE TELL:
+ * A DUPLICATE POOL WORD. Worth reading, because tools/pool.py and friends key on
+ * shiftability and would never flag this one -- 0xc76 is unshiftable, so a pooled
+ * literal looks identical to a pooled symbol at the instruction.
+ *
+ * DataTransferMenu's pool is SEVEN words at 0x08028d58 holding SIX distinct values,
+ * and the repeated one is 0xc76 (verified by decoding baserom.gba directly at
+ * landing, not taken on report):
+ *
+ *     0x08028d58  0x03001f38
+ *     0x08028d5c  0x00000c76   <- referenced from two StartTask priority sites
+ *     0x08028d60  0x08028aa9
+ *     0x08028d64  0x0000ffff
+ *     0x08028d68  0x00000c77
+ *     0x08028d6c  0x08028b81
+ *     0x08028d70  0x00000c76   <- referenced only from DrawSmallText's id
+ *
+ * Eleven `ldr rN,[pc,#imm]` references resolve to those seven words, so every OTHER
+ * value is deduplicated across its references. `force_const_mem` deduplicates SImode
+ * const_int per function, so TWO WORDS FOR ONE VALUE MEANS THE TWO OPERANDS ARE
+ * DIFFERENT OBJECTS -- one a const_int, one a SYMBOL_REF. That is a structural
+ * impossibility argument of the same kind as the `byte << n` one, not an argument
+ * from what the ROM happened to choose.
+ *
+ * All seven are SImode (the last reference is 140 bytes away, far past movhi's
+ * 64-byte pool_range) and they sort by first-reference address, so it is one
+ * minipool rather than two.
+ *
+ * WHICH OF THE TWO IS THE SYMBOL IS SETTLED INDEPENDENTLY: the StartTask side is
+ * already landed as a plain literal in src/rom_15000/rom_23178_a_a_a_a_c_b.c
+ * (`StartTask(Func_8028194, 0xc76)`), so the DrawSmallText id is the symbol. Nearest
+ * named neighbour is _MSG_c7b at the top of this file.
+ *
+ * VALIDATED: the function is 150 encodings against the ROM's 150 with every one of
+ * the ROM's 30 relocations present, and the single remaining difference is that pool
+ * word, which this assignment fills. */
+_MSG_c76 = 0xc76;

@@ -148,4 +148,7 @@ extern int _MSG_c90;
 extern int _MSG_ca0;
 #define MSG_ca0 ((int)&_MSG_ca0)
 
+extern int _MSG_c76;
+#define MSG_c76 ((int)&_MSG_c76)
+
 #endif // _MESSAGE_H_
