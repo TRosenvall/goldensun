@@ -279,6 +279,8 @@ extern int _FILE_d6;
 #define FILE_d6 ((int)&_FILE_d6)
 extern int _FILE_d7;
 #define FILE_d7 ((int)&_FILE_d7)
+extern int _FILE_e6;
+#define FILE_e6 ((int)&_FILE_e6)
 extern int _FILE_e7;
 #define FILE_e7 ((int)&_FILE_e7)
 extern int _FILE_f0;

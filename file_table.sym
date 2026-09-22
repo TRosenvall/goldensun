@@ -130,6 +130,34 @@ _FILE_d4 = 0xd4;
 _FILE_d5 = 0xd5;
 _FILE_d6 = 0xd6;
 _FILE_d7 = 0xd7;
+/* _FILE_e6 added in batch 282 for OvlFunc_956_2008da4, and it COMPLETES that
+ * function: with `(int)&_FILE_e6` the function is byte-exact at 623 encodings and
+ * 116 relocations; with the literal 0xe6 it is 6 differing encodings AND 4 bytes
+ * short.  That is the condition this tree adds a symbol on.
+ *
+ * ARITHMETIC: 0xe6 = 230 fits an eight-bit `mov`, so gcc will always synthesise it
+ * and no literal spelling can pool it.  The ROM pools it.
+ *
+ * IN-FUNCTION CONTROL, and it is unusually broad: ELEVEN other small constants in
+ * the same function reproduce as plain literals (0x7f, 0x27, 0x53, 0x56, 0x55,
+ * 0x4a, 0x12, 0x11, 0x13, 0x3d, 0x49) and FIVE larger ones (0x144, 0x950, 0x360,
+ * 0x368, 0x370) reproduce as mov+lsl rather than pooling.  So this function
+ * synthesises everything it can and pools exactly this one value.
+ *
+ * CROSS-FUNCTION CONTROL: OvlFunc_common1_1fb4 is called from exactly three sites
+ * tree-wide and each one does `ldr r0, =` an under-256 value -- =0xe4
+ * (rom_7db0c8/ovl_30_c_c_c_c_a_a_a.s:326), =0xe5
+ * (rom_7ddb88/ovl_30_c_c_c_c_a_c_a.s:507) and =0xe6 here.
+ *
+ * NAMESPACE, checked rather than assumed: OvlFunc_common1_1fb4(arg) passes arg
+ * straight to __GetFile(arg) (src/overlays/common/common1_c_a_c_c_b.c), so this is
+ * the FILE id space and not the area space -- and _FILE_e7 and _FILE_e8 below are
+ * adjacent values already admitted on this same evidence.
+ *
+ * _FILE_e4 and _FILE_e5 are the same tell at the other two call sites.  Neither
+ * COMPLETES its function yet, so both are reported and withheld -- the separation
+ * batch 281 drew between evidence quality and completion. */
+_FILE_e6 = 0xe6;
 _FILE_e7 = 0xe7;
 _FILE_f0 = 0xf0;
 _FILE_f1 = 0xf1;
