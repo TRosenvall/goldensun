@@ -1,8 +1,32 @@
 /* OvlFunc_921_2009fa4 -- NON-MATCHING, 1 ENCODING OF 199.  Size identical (452
  * both) and relocations identical.  THE CLOSEST PARK IN THE PROJECT.
  *
- * Blocker class: reload copying from a live address pseudo where the ROM
- * recomputes the frame address.
+ * Blocker class: gcse (PRE).  BATCH 282 LOCATED IT TO THE INSN, where this park had
+ * said only "reload copying from a live address pseudo".
+ *
+ * At .00.rtl the latch site is
+ * `(insn 350 (set (reg:SI 118) (plus:SI (reg:SI 28 virtual-stack-vars) (const_int -12))))`
+ * followed by `(insn 352 (set (reg/v:SI 2 r2) (reg:SI 118)))`, and site 1 has the
+ * identical shape with pseudo 72.  At .03.cse insn 350 STILL HOLDS THE `plus`.  At
+ * .07.gcse ITS SOURCE HAS BECOME `(reg:SI 56)` -- the long-lived `&v[0]` pseudo that
+ * lands in r5 -- and .09.cse2 propagates 56 into the r2 set, giving `mov r2, r5`.
+ *
+ * The ROM's `add r2, sp, #8` is that pseudo LEFT SEPARATE with 2 refs in one block, so
+ * update_equiv_regs substitutes the frame address into its single use.  The ordering
+ * around the residue already matches the ROM exactly; only the one instruction differs.
+ *
+ * `-fno-gcse` IS THE ONLY THING THAT TOUCHES THIS INSTRUCTION AND IT IS WORSE -- SO A
+ * FLAG ROW IS ARGUED AGAINST HERE, the way batch 281 argued against
+ * -fno-strength-reduce.  It keeps the pseudos separate but local-alloc then gives the
+ * site-2 pseudo its own register, producing `add r5, sp, #8 / mov r2, r5`: still one
+ * encoding wrong PLUS an extra instruction (ref 192 / ours 193).
+ *
+ * 36 NEW SPELLINGS IN BATCH 282, floor 1 throughout: a typed `register int *q2`
+ * instead of `register int q2` + cast; dropping the q2 pin and passing `v` or `&v[0]`
+ * with q0/q1 still pinned; q2 assigned first / last / between the shifts;
+ * `(int)&v[0]` against `(int)v`; a `do{}while(0)` at `step:` -- each crossed with four
+ * site-1 spellings.  Site 1 may be `v`, `&v[0]` or a named `int *vs = v` (all keep 1);
+ * PINNING SITE 1 AS WELL COSTS 2 (3 of 199).
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/ovl_7a7298/2009fa4.c \

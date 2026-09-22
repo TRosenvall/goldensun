@@ -1,8 +1,56 @@
 /* OvlFunc_887_2008578 -- NON-MATCHING, 4 ENCODINGS OF 453.  Size 1172 = 1172,
  * relocations identical, instruction count 453 = 453.
  *
- * Blocker class: a COMPLEMENTARY SCRATCH-REGISTER RENAME (r2 <-> r3) at two
- * adjacent sites.  Allocation, not spelling.
+ * Blocker class: reload's ROUND-ROBIN SPILL-REGISTER COUNTER.  BATCH 282 CORRECTED
+ * THIS PARK'S ATTRIBUTION: it is NOT local-alloc, and REG_ALLOC_ORDER is not what
+ * decides it.
+ *
+ * BOTH INSTRUCTIONS ARE RELOAD-CREATED.  .18.greg / .19.flow2 show
+ * `(insn 1351 (set (reg:SI 2 r2) (reg/v:SI 10 sl)))` -- UID 1351, MANUFACTURED BY
+ * RELOAD as a high-to-low copy because `zero` lives in r10 and *thumb_movsi_insn
+ * cannot store from a high register -- and the same shape for `g` in r9.  NEITHER IS
+ * A LOCAL-ALLOC QUANTITY, so QTY_CMP_PRI -- the priority formula this park originally
+ * reasoned from -- NEVER SEES THEM.
+ *
+ * What decides them is allocate_reload_reg, reload1.c:4925-4945:
+ *
+ *       /* I is the index in spill_regs.
+ *          We advance it round-robin between insns to use all spill regs
+ *          equally, so that inherited reloads have a chance
+ *          of leapfrogging each other.  *\/
+ *       i = last_spill_reg;
+ *       for (count = 0; count < n_spills; count++)
+ *         { i++; if (i >= n_spills) i -= n_spills; regnum = spill_regs[i]; ...
+ *
+ * with `i = last_spill_reg` at :5003 and `last_spill_reg = i` on success at :4937.
+ * `last_spill_reg` IS FUNCTION-SCOPED STATE ADVANCING ONCE PER SUCCESSFUL
+ * RELOAD-REGISTER ALLOCATION.  An exactly complementary r2<->r3 swap across two
+ * consecutive high-to-low copies is a PHASE DIFFERENCE IN THAT COUNTER, decided by
+ * every earlier reload in the function -- which is precisely why 112 spellings at the
+ * two sites were inert and why the identical construct 60 instructions later is right
+ * (the phase has rotated back into agreement).
+ *
+ * TWO COROLLARIES WORTH THE ROW:
+ *   AN IDENTICAL INSTRUCTION STREAM UP TO THE DIVERGENCE DOES NOT IMPLY IDENTICAL
+ *   RELOAD STATE.  objcmp's first difference is index 129 with everything before it
+ *   equal, yet the counter is out of phase -- inherited and shared reloads advance
+ *   last_spill_reg WITHOUT EMITTING AN INSTRUCTION.
+ *
+ *   THE ONLY HANDLE IS THE COUNT OF RELOAD-REGISTER ALLOCATIONS *EARLIER* IN THE
+ *   FUNCTION.  That reframes the target from "find the right spelling for these two
+ *   stores" to "find an earlier site where an equally-matching spelling costs one more
+ *   or one fewer reload".
+ *
+ * The obvious alternative was ruled out: r3 IS free at the first copy
+ * (`str r3,[r6,#8]` immediately precedes and kills it), and -fno-schedule-insns2
+ * leaves the whole region unchanged, so reload-time order equals final order.
+ *
+ * 36 NEW SPELLINGS IN BATCH 282, none better than 4 and most catastrophic: an r3 or r2
+ * pinned temp for the `zero` store 409 of 453 and -8 BYTES (the pin destroys the
+ * pooled-zero / struct HalfWord arrangement this park's own header documents); a
+ * pinned `register unsigned char **gp` in r2 or r3 for `g[0]` 361/362 and +4 bytes; a
+ * pinned `register unsigned char *b2` in r1 with `g[0]` hoisted 314 and +4; an `int c3`
+ * r3 carrier for the 0x8d << 18 store 4 (inert); dropping the first `do{}while(0)` 5.
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/ovl_787e04/2008578.c \

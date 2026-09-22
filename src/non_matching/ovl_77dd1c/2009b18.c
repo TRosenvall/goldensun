@@ -14,9 +14,41 @@
  *     rom   lsl r1,#0x4 / str r6,[r5] / mov r0,r7 / mov r9,r2 / bl __StartTask
  *     ours  lsl r1,#0x4 / mov r0,r7 / str r6,[r5] / mov r9,r2 / bl __StartTask
  *
- * Both insns are class-3 against the last-scheduled insn and BOTH HAVE EXACTLY ONE
- * DEPENDENT (the call), so the tie falls to INSN_LUID -- and sched1 has already
- * placed the argument copy above the store.
+ * CORRECTED IN BATCH 282 -- THIS PARK'S ORIGINAL DIAGNOSIS WAS WRONG.  It said "both
+ * have exactly one dependent (the call), so the tie falls to INSN_LUID".  IT IS
+ * SETTLED ONE STEP EARLIER, AT rank_for_schedule's DEPENDENT COUNT.  From the sched2
+ * region table for bb5:
+ *
+ *   ;;  584 173 0 3 169 2 ... : 1570 600      <- str r6,[r5]   TWO dependents
+ *   ;;  597 173 0 1 169 1 ... : 1570 614 600  <- mov r0, r7     THREE dependents
+ *
+ * Equal priority, both class 3 against `lsl r1,#4`.  597's THIRD dependent, insn 614,
+ * is THE SECOND __StartTask's OWN `mov r0, fp` -- a write-after-write output
+ * dependence on r0.  Higher count wins, so LUID -- which would have picked the store,
+ * since LUID(584) < LUID(597) -- IS NEVER CONSULTED.
+ *
+ * SO THE BLOCKER IS THAT THE *NEXT* CALL'S ARGUMENT-REGISTER WRITE INFLATES THE
+ * DEPENDENT COUNT OF *THIS* CALL'S ARGUMENT WRITE.  That reframes the target: the
+ * handle is not this call site's spelling at all.
+ *
+ * THE READING WAS TESTED AND IT HOLDS.  A `do{}while(0)` between the two __StartTask
+ * blocks removes 614 from the graph, the counts become 3 against 3, LUID decides, and
+ * the target pair comes out in the ROM's order EXACTLY --
+ * `lsl r1,#4 / str r6,[r5] / mov r0,r7 / mov r9,r2`.  But the same collapse costs two
+ * collateral swaps and is STRICTLY WORSE (4 encodings PLUS a relocation difference):
+ * the barrier absorbs cross-barrier deps, so `ldr r5,=.L57fc` loses the seven later
+ * `str ...,[r5]` dependents it had (9 -> 4) while `ldr r2,=.L57f8` keeps its
+ * `mov r9,r2` (7 -> 5), the two pool loads swap, and the pool order swaps with them.
+ *
+ * NEW MEASUREMENTS, none better than 2: six spellings interleaving the two stores into
+ * the pinned mov/lsl pair -- SO BATCH 281'S SPLIT-THE-PINNED-PAIR LEVER IS INERT HERE,
+ * because sched2 fully renormalises the order; q0 also pinned with a cast function
+ * pointer 340 of 545 and +4 bytes; nine barrier positions (4, 4, 4, 4, 12, 2, 7, 7 and
+ * 4+reloc); an 80-variant cross of four store spellings x two first-call spellings x
+ * barrier/none x five second-call spellings, where the second call tolerates EXACTLY
+ * ONE spelling (a local function pointer, an unpinned literal, or `q1 << 4` inside the
+ * argument each cost 13-15); and `volatile` on either or both globals plus
+ * volatile-casts on either or both zero stores, all six inert.
  *
  * THE rank_for_schedule TIE-BREAK CHAIN, for this whole class: priority ->
  * (pre-reload only) reg-weight -> class relative to the last-scheduled insn ->

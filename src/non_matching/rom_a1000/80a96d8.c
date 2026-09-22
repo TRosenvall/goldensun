@@ -1,6 +1,38 @@
-/* Func_80a96d8 -- NON-MATCHING, 10 encodings of 319, SIZE DELTA ZERO (728 = 728).
+/* Func_80a96d8 -- NON-MATCHING, 4 encodings of 319 (was 10; advanced in batch 282), SIZE DELTA ZERO (728 = 728).
  * Relocation lists identical in symbol AND order except two entries, both
  * consequences of the single residue below.
+ *
+ * ADVANCED IN BATCH 282 FROM 10 TO 4 OF 319, and the file below is the 4.  ONE LINE
+ * did it:
+ *
+ *     StopTask(Func_80a19a0);
+ *     __asm__ volatile ("");
+ *
+ * That empty volatile asm stops sched2 hoisting the NEXT statement's argument
+ * precompute above the StopTask call.  It takes window 2 from 5 encodings to 2 AND
+ * FIXES THE POOL-LITERAL ORDER -- which proves the two pool-word differences at
+ * indices 314/315, and the offset at 299, were CONSEQUENCES OF THE SCHEDULE rather
+ * than a pool problem.  The same barrier placed before `msg = 0xb06;` measures
+ * identically at 4.
+ *
+ * (An empty `__asm__ volatile ("")` is a lighter tool than `do { } while (0);` --
+ * batch 282 established that the latter plants TWO TOTAL barriers via
+ * NOTE_INSN_LOOP_BEG/LOOP_END, see docs/elevation.md.  Reach for the empty asm when
+ * one directional barrier is wanted.)
+ *
+ * BOTH REMAINING WINDOWS ARE AT THE LIST-SCHEDULING FLOOR, re-derived from
+ * haifa-sched.c and the dumps:
+ *   - idx 27-28: insns 41 and 55 are prio 3, depend_count 2, same class -- a PURE
+ *     LUID TIE, and precompute_register_parameters iterates args[] FORWARD, so arg0's
+ *     `add` always precedes arg3's `mov`.  New negative: the two-statement constant
+ *     trick that closed Func_80b3050 does NOT transfer here (`r = 1; r <<= 4;` gives
+ *     10 and a reloc mismatch), because 15 is a one-insn constant and
+ *     const-propagation re-creates it at the fill.
+ *   - idx 44-45: both prio 42, and one has depend_count 3 against the other's 2, so
+ *     DEPEND_COUNT DECIDES BEFORE LUID and no source ordering reaches it.
+ *     `prio(ldr r5) = prio(ldr r0) + 1` is structural: both anchor on the next call's
+ *     fill insns, and arm_adjust_cost's load-feeding-a-call cost of 1 is what costs
+ *     the pool load its point.
  *
  * Blocker class: sched2 ready-list ranking in the prologue -- two slips, both in
  * haifa-sched.c's rank_for_schedule.  NOT structural, NOT pool, NOT register
