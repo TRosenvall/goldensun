@@ -385,3 +385,19 @@ _MSG_c76 = 0xc76;
  * assignments fill. */
 _MSG_1075 = 0x1075;
 _MSG_1076 = 0x1076;
+
+/* Added in batch 280 for OvlFunc_899_2009ba0. Same criterion as _MSG_2624 and _MSG_2399
+ * above: the ROM holds the base in a callee-saved register and reaches the next id as
+ * `add r0, r5, #4`, where a literal -- or a plain local -- folds to TWO pool loads and
+ * loses the held register. Not a new class.
+ *
+ * ONLY THE BASE IS NAMED. 0x129f in the same function stays a bare literal, which is the
+ * same split _MSG_c20's entry describes ("the +1 and +2 are real arithmetic in the ROM").
+ *
+ * A NOTE ON VERIFYING THIS CLASS, worth having: objcmp ASSEMBLES THE CANDIDATE DIRECTLY,
+ * so it cannot see a linker-script definition -- the bind-mount trick docs/elevation.md
+ * records for `tryc` does not carry over. The equivalent for the authority tool is a
+ * top-level `__asm__(".equ _MSG_1299, 0x1299");` in the candidate, which resolves the pool
+ * word identically. With that shim the function is exact at 281 encodings; without it the
+ * sole difference is `ldr r5, =0x1299` against `ldr r5, =_MSG_1299`. */
+_MSG_1299 = 0x1299;
