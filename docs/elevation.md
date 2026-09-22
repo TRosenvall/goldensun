@@ -23634,3 +23634,51 @@ construct with a genuinely variable size, which is what identifies the shape as
 `tbl[sz - 2]` — so in the fixed-size case the ROM's `4` is not a literal either,
 and what holds it is still unknown. Do not spend a budget on spellings here; four
 are on file and flat.
+
+## tryc's COUNT IS NOISE ON ANY FUNCTION CONTAINING A JUMP TABLE
+
+Batch 281, `OvlFunc_945_200aff0`. `tryc` reports a **byte-identical** object as
+"rom 330 lines, ours 331, **230 differ**". Every one of the 230 is tryc's own label
+renumbering — `bne L7` against `bne L8`. The two sides emit the 54 jump-table words
+with different internal label orders, so tryc's positional label map diverges at the
+first table and never re-synchronises.
+
+`objcmp` cuts the function out through `.func_end`, jump tables included, and
+compares all 309 encodings (branch offsets are *in* the encodings) and all 125
+relocations, 54 of them the table words. **`objcmp` is right and `tryc` is not.**
+
+Together with batch 280's pool finding this gives the rule in both directions:
+
+| situation | tryc says | truth |
+|---|---|---|
+| pool has moved | 3 differ | 218 of 295 — the count UNDERSTATES |
+| jump table present | 230 differ | byte-identical — the count OVERSTATES |
+
+**Neither direction is a distance.** Check for `mov pc, rN` or a run of `.word .L`
+before trusting any tryc number, exactly as you check where the pool sits.
+
+## THE HImode CONSTANT-STORE RULE HAS NO SINGLE DIRECTION — IT VARIES WITHIN ONE FUNCTION
+
+Three batch-280/281 findings look contradictory and are not:
+
+- **Batch 280, `OvlFunc_943_200a618`:** a pooled zero for byte stores must be the
+  **BARE LITERAL**; `int zero = 0;` destroys it (69 differing).
+- **Batch 281, `OvlFunc_899_200a758`:** a halfword store of `5` must be routed
+  through **a dedicated `short *` plus an `int` value local**; the bare literal
+  pools it and no spelling of the literal escapes, because `*thumb_movhi_insn`
+  lists `mn` (the `ldrh`) *before* `I` (the `mov`) and the `movhi` expander's
+  "sign-extend a constant into an SImode reg" branch is **`TARGET_ARM` only**.
+- **Batch 281, `OvlFunc_971_20092e0`:** **within one function**, four halfword
+  stores of `0x54/0x41/0x4c/0x4b` are bare literals that correctly pool, while the
+  halfword stores of `0` and `2` need an `int` local to get the ROM's `mov`.
+
+So the discriminator is **not magnitude** — `0x54` is 84, also below 256 — and it is
+not the mode alone either. `*thumb_movhi_insn` alternative 5 (`l` ← `I`) prints
+`mov`, alternative 1 (`l` ← `mn`) pools, and the Thumb `movhi` expander `force_reg`s
+the constant for a memory destination. **Which alternative reload picks was not
+determined by any of the three functions.**
+
+The practical rule until someone settles it: **read the ROM's instruction at each
+halfword store site individually.** `strh` fed by `mov` wants an `int` local; `strh`
+fed by a pool load wants the bare literal; and one function can need both. Do not
+generalise from a sibling store in the same function, let alone a sibling function.
