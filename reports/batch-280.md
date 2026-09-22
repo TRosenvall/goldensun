@@ -199,7 +199,12 @@ The large bands are the project now.
   `-fno-rerun-loop-opt` for `OvlFunc_951_2008ac8`, `-fcall-saved-r4` for `OvlFunc_970_2008f80`,
   `ALIAS_CFLAGS` for `OvlFunc_882_200c41c`.
 - **The fakematch convention question**, quantified at about 20 of 181 PIN-using files unbooked.
-- **One permanent fakematch row nobody can remove:** `Func_808d9a4`'s byte table is a global symbol
-  whose name starts with a dot (`.L9e680`), which no C identifier can name.
+- ~~**One permanent fakematch row nobody can remove:** `Func_808d9a4`'s byte table is a global symbol
+  whose name starts with a dot (`.L9e680`), which no C identifier can name.~~ **RETRACTED in batch
+  281 — this was false.** `extern const unsigned char tbl[] __asm__(".L9e680");` names it, the park's
+  own C had been doing exactly that all along, and the construct appears in six landed files where it
+  is not consistently booked as fakematch debt. Verified independently on `.Lb4146` and `.Lb4ab2`,
+  where `objcmp` confirms the relocation matches byte-for-byte. Nothing about `Func_808d9a4` is
+  blocked by naming.
 - `OvlFunc_948_2009308`'s one pin, from batch 272.
 - **One target never attempted:** `OvlFunc_945_200aff0` (agent G ran out of budget).

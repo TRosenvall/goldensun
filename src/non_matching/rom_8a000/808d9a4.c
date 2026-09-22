@@ -55,13 +55,24 @@
  * constant of its kind at that site, so it has NO IN-FUNCTION CONTROL.  Noting
  * the absence of a control explicitly, because that absence is the reason.
  *
- * ONE FAKEMATCH ROW THAT NO SPELLING REMOVES -- FLAG THIS BEFORE PICKING THE
- * FUNCTION UP.  Its 6-entry byte table is a GLOBAL SYMBOL WHOSE NAME STARTS
- * WITH A DOT: `nm goldensun.elf` gives `0809e680 T .L9e680`, defined in
- * asm/rom_8a000/rom_8d9a4_c_c_c_c_c.s.  No C identifier can name it, so
- * `extern const unsigned char tbl[] __asm__(".L9e680");` is required.  That is
- * a permanent fakematch row for this function, independent of everything else
- * above.
+ * A DOT-PREFIXED GLOBAL, AND THE CLAIM THIS PARK ORIGINALLY MADE ABOUT IT WAS
+ * WRONG.  Its 6-entry byte table is a global symbol whose name starts with a dot:
+ * `nm goldensun.elf` gives `0809e680 T .L9e680`, defined in
+ * asm/rom_8a000/rom_8d9a4_c_c_c_c_c.s.  This park used to say "No C identifier can
+ * name it" and reports/batch-280.md published it as "one permanent fakematch row
+ * nobody can remove".  BOTH HALVES ARE FALSE, and the contradiction was sitting in
+ * this very file -- the C below has always used
+ * `extern const unsigned char tbl[] __asm__(".L9e680");`, which names it exactly.
+ *
+ * Batch 281 verified the mechanism independently on `.Lb4146` and `.Lb4ab2` in
+ * rom_b0000, where objcmp confirms the relocation is byte-for-byte the reference's
+ * R_ARM_ABS32.  And the construct is already in LANDED files -- six of them under
+ * src/overlays/rom_77a7c8/ -- where it is not consistently booked in
+ * fakematch.txt, so it is not established as fakematch debt either.
+ *
+ * So the asm-name attribute is an ordinary spelling for a symbol whose name is not
+ * a valid C identifier, and this function carries no special naming burden.  The
+ * real blockers are (a), (b) and the two symbols above.
  *
  * NEXT: (a) only.  It wants gcc-2.96's jump.c / cfg layout read against the
  * .19.flow2 dump to find whether ANY input produces test1/test2/body1/body2,

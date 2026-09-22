@@ -349,6 +349,16 @@ SCHED2_CFLAGS := $(GCC296_CFLAGS) -fno-schedule-insns2
 # gcc spend r8 and the length matches exactly (55 -> 59 lines, the ROM's count).
 # -fno-omit-frame-pointer also reserves r7 but adds frame setup (61 lines), so
 # it is the register reservation that is wanted and not the frame.
+#
+# CAUTION ADDED IN BATCH 281 -- THIS IS NOT THE GENERAL CURE FOR "THE ROM SPENDS
+# r8 WHERE gcc REACHES FOR r7".  The comment above reads as if it were, and on
+# OvlFunc_969_200c8d8 it is wrong: -ffixed-r7 was probed on two different
+# candidate shapes and both times it forces a stack spill and grows the frame to
+# #0xc.  That function's r7-vs-r9 prologue difference is a LIVE-RANGE problem and
+# the cure was source-level -- splitting one reused pointer into four, because
+# local-alloc orders quantities SHORTEST-LIVED FIRST (local-alloc.c:1480) and a
+# branchless function never reaches global-alloc at all.  Reach for this row only
+# when a live-range reading has been done and has come back empty.
 FIXEDR7_CFLAGS := $(GCC296_CFLAGS) -ffixed-r7
 
 # THREE MIS-SCOPED O1 WILDCARDS.  rom_7f2f14/ovl_30_c_a_c_a_c_c% and
