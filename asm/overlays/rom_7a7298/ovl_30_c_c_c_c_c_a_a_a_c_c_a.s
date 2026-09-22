@@ -2,8 +2,6 @@
 	.file	"ovl_30_c_c_c_c_c_a_a_a_c_c_a.c"
 	.code	16
 .gcc2_compiled.:
-	.equ _AREA_32, 0x32
-	.code	16
 .text
 	.align	2, 0
 	.global	OvlFunc_921_2008b70

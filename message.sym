@@ -435,3 +435,32 @@ _MSG_1299 = 0x1299;
  * arithmetically unreachable global_alloc priority inversion. Evidence quality and
  * completion are separate tests and this file requires both. */
 _MSG_d27 = 0x0d27;
+
+/* Added in batch 282 for Func_80bf678, and the entry exists because a batch-281 PARK
+ * WAS WRONG ABOUT ITS OWN REASON FOR WITHHOLDING. That park recorded this symbol with
+ * the strongest in-function control yet seen and then declined it "because 8 encodings
+ * remain ... it does not COMPLETE the function". Batch 282 closed those 8, so it DOES
+ * complete the function, and on this tree's own stated criterion -- evidence AND
+ * completion -- it qualifies. Measured: byte-exact with the symbol, 263 differing and
+ * +1 instruction with a plain 0x820 literal.
+ *
+ * THE CONTROL IS THE STRONGEST ON FILE AND WAS RE-DERIVED INDEPENDENTLY. This function
+ * passes SEVENTEEN message ids and 0x820 is THE ONLY SHIFTABLE ONE. The other sixteen
+ * -- 0x81d, 0x81e, 0x821, 0x883, 0x886, 0x887, 0x888, 0x889, 0x88a, 0x88b, 0x88c,
+ * 0x88d, 0x88e, 0x891, 0x892, 0x897 -- are all unshiftable, gcc pools each of them, and
+ * ALL SIXTEEN reproduce as plain literals in the reference's exact pool order. So the
+ * claim is narrow and checkable: THIS ONE CONSTANT gcc CAN BUILD and the ROM chose not
+ * to. It is not "this id space wants symbols".
+ *
+ * THE ARITHMETIC: 0x820 == 0x82 << 4 is thumb_shiftable_const, so the K-constraint split
+ * in arm.md (~line 3859) makes gcc emit `movs r0,#130 / lsls r0,r0,#4`. And
+ * CONST_OK_FOR_THUMB_LETTER(...,'K') is consulted on the CONST_INT VALUE ALONE, so NO
+ * SOURCE SPELLING REACHES A POOL LOAD -- which is what makes this a symbol rather than a
+ * spelling problem. Same shape as _MSG_b20 (Func_80a15f0) and _MSG_810..813 (batch 182).
+ *
+ * A NOTE ON THE LANDED FILE, because batch 282 also found the opposite mistake: the
+ * landed src/rom_b5000/rom_bbb0c_c_b.c carries NO `__asm__(".equ _MSG_820, 0x820");`
+ * shim. A verification shim belongs in the scratch candidate only -- batch 281 left one
+ * in a landed file alongside its area.sym line, which meant nm reported the symbol twice
+ * and the .sym line was never actually exercised. */
+_MSG_820 = 0x820;
