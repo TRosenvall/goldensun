@@ -401,3 +401,37 @@ _MSG_1076 = 0x1076;
  * word identically. With that shim the function is exact at 281 encodings; without it the
  * sole difference is `ldr r5, =0x1299` against `ldr r5, =_MSG_1299`. */
 _MSG_1299 = 0x1299;
+
+/* Added in batch 281 for Func_80b2b10, and it COMPLETES both that function and the
+ * whole of asm/rom_b0000/rom_b0070_c_c_a_c_c_a_a.s -- which is the bar batch 280's
+ * three withheld candidates (_MSG_2644, _MSG_920, _MSG_970) each failed. With this
+ * line the file is byte-identical at 1024/1024 bytes with relocations identical;
+ * without it Func_80b2b10 never reaches exact, because two independent pool loads
+ * appear AND the r8/r9/r10 register roles rotate.
+ *
+ * THE ARITHMETIC IS THE ESTABLISHED ONE. The ROM holds 0xd27 in callee-saved r8 and
+ * reaches 0xd28/0xd29/0xd2a/0xd2b as `mov r0, r8 / add r0, #1`, `#2`, `#3`, `#4`.
+ * With a plain integer gcc folds each site to its own `ldr r0, =0xd29` -- cse's
+ * related_value no longer derives the neighbours from a base it did not keep. That
+ * is verbatim _MSG_c20's recorded mechanism ("the `add r0, r5, #1` / `add r5, #2`
+ * pair goes too") and _MSG_d1c's ("holds 0xd1c in a callee-saved register and
+ * reaches 0xd1d..0xd20 with `add r0, #K`").
+ *
+ * THE IN-FUNCTION CONTROL IS PRESENT AND IT IS THE RIGHT KIND. 0xd26 appears TWICE
+ * in the same function as a plain `ldr r0, =0xd26` and reproduces byte-exact as a
+ * bare literal. So message ids in this function are pooled literals in general, and
+ * 0xd27 is distinguished ONLY by the `+K` arithmetic -- which is precisely the
+ * discrimination this file's criterion asks for, rather than shiftability.
+ *
+ * Consumers are Func_80b28d4 / Func_80b2928, the same message sinks _MSG_d1c and
+ * _MSG_c20 were added for. _MSG_d24, used in the file's other function as
+ * `(int)&_MSG_d24` and `(int)&_MSG_d24 + 1`, was already present and needed nothing.
+ *
+ * A SIBLING CANDIDATE WAS WITHHELD IN THE SAME ROUND, and the contrast is the point:
+ * _MSG_cc3 = 0x0cc3 for Func_80b24e4 has the same `ldr r5, =0xcc3 / ... / add r5, #1`
+ * shape and FOUR in-function controls (0xcc5, 0xc9e, 0xca6, 0xca1, all plain pool
+ * literals reproducing byte-exact), so its evidence is arguably stronger than this
+ * one's -- but it does NOT complete its function, which is still blocked by an
+ * arithmetically unreachable global_alloc priority inversion. Evidence quality and
+ * completion are separate tests and this file requires both. */
+_MSG_d27 = 0x0d27;
