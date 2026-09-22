@@ -23281,3 +23281,47 @@ alongside a real symbol and a leftover bitfield insert mask.
 - **Search generated `asm/` for a ROM instruction pattern and read back to its `.c`.** That found a
   donor in one step where a name search would not have. And **diffing a solved function's `-da`
   dump against yours** explains a schedule difference directly — stronger than diffing its source.
+
+## THERE IS NO SIZE CEILING, AND THE WAY I MISCOUNTED IS WORTH KNOWING
+
+In batch 280 I briefed seven agents that "no batch has attempted the 201-400 instruction band",
+and told the user that the largest thing the project had landed was around 400 bytes. **Both were
+false.** An agent caught it by finding a landed, byte-exact **334-instruction** function
+(`OvlFunc_953_2009688`, `src/overlays/rom_7d95dc/ovl_30_c_c_c_a_a_c_a_c.c`) whose own header
+documents the whole derivation.
+
+The true distribution of **landed** functions:
+
+| | count |
+|---|---|
+| over 200 instructions | **148** |
+| over 300 instructions | **90** |
+| largest | **1,939** (`OvlFunc_926_200aad0`) |
+
+### Why every scan I wrote missed them
+
+**A landed function's `.s` is gcc output, and gcc writes `.type NAME,function` — not
+`.thumb_func_start`.** That directive only exists in hand-written disassembly. So a scan keyed on
+`thumb_func_start`, which is every scan in `tools/` and every throwaway I wrote, can only ever see
+functions that are **still in assembly**. Pointed at landed code it returns zero, and zero reads
+as "never done".
+
+The check that catches it: **count both patterns.** If a scan of `asm/` for landed work returns
+nothing at all, the pattern is wrong, not the corpus.
+
+### What follows for targeting
+
+- **Size is not a filter.** `tools/pickable.py`'s 120-instruction cut-off was already shown wrong
+  by batch 276; this shows it was wrong by an order of magnitude, not by a factor.
+- **The residue does not scale with instruction count** — it scales with the number of REPEATED
+  EXPENSIVE CONSTANTS. Batch 280's four 338-392 instruction functions came in at 132/134/95/107
+  differing and three of them fell to 4/2/18 on ONE mechanical pass (pin every all-constant call
+  site). More instances of one defect, not a new defect.
+- **What IS different at that size** is that the last handful of differences are cross-block and
+  do not respond to local devices — which is where a basic-block boundary as a *global* lever
+  earns its place.
+
+> The general lesson is the one this project keeps relearning: **when a tool reports that something
+> has never been done, check that the tool can see it.** The same shape produced the
+> `census.py` case-sensitivity undercount in batch 277 and the `dupfuncs.py` exact-identity floor in
+> batch 278.
