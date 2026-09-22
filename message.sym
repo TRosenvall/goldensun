@@ -351,3 +351,37 @@ _MSG_cbe = 0x0cbe;
  * the ROM's 30 relocations present, and the single remaining difference is that pool
  * word, which this assignment fills. */
 _MSG_c76 = 0xc76;
+
+/* Added in batch 280 for OvlFunc_896_2008390 and OvlFunc_896_20086f4, which reach
+ * __Func_801776c and __MessageID with a base and `base - 1` / `base - 2`. Neither value
+ * is shiftable, so the pool load alone proves nothing -- but this pair comes with an
+ * INTERNAL CONTROL and a MECHANISM, which is more than this class usually gets.
+ *
+ * THE CONTROL: the third function landed alongside them, OvlFunc_918_200869c, needs the
+ * IDENTICAL technique for the same shape, and its symbol `_AREA_2d` ALREADY EXISTS in
+ * area.sym:237. With it that function is exact; spelling it as a bare 0x2d gives
+ * `movs r0, #45`, 246 encodings against 247, and the pool word gone. So the shape is
+ * validated by a pre-existing entry in the same group of four functions.
+ *
+ * THE MECHANISM, read out of `.23.sched2` and worth recording because docs/elevation.md
+ * states this effect without explaining it ("a pool load of a SYMBOL is not hoisted,
+ * where a pool load of an int constant is"):
+ *
+ *   with a const_int, the pool load carries NO dependence on the preceding call, so it
+ *   is ready at the top of the block and wins on priority (83 against 82);
+ *   with a SYMBOL_REF, the pool load BECOMES A DEPENDENT OF THE CALL and cannot move
+ *   above it -- the call's dependence list gains the load's insn.
+ *
+ * And the priority tie is structurally unbreakable in C:
+ *     priority(mov r1,#1) = 1 + priority(call) = 2 + priority(mov r0,r5)
+ *     priority(ldr)       = cost(2) + priority(mov r0,r5)
+ * -- always equal, with the load then winning the dependent-count tie-break. So the
+ * symbol is not a preference here, it is the only spelling that reproduces the ROM.
+ *
+ * Measured: as a const_int, 2 aligned differing instructions and no spelling moves it --
+ * every pin permutation, unpinning either call, an inner scope for the local, sharing it
+ * with a neighbour, a bare-literal pair, and -fno-schedule-insns2 (110 differing) all
+ * fail. As a symbol, the single remaining difference is the pool word, which these
+ * assignments fill. */
+_MSG_1075 = 0x1075;
+_MSG_1076 = 0x1076;
