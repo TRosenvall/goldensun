@@ -257,3 +257,13 @@ _AREA_be = 0xbe;
  * The halfword exception recorded in const.sym does NOT apply: this is a word `ldr`
  * feeding `mov r0, r5`, not an `ldrh`. */
 _AREA_15 = 0x15;
+
+/* Added in batch 280 for OvlFunc_943_200a618, feeding the same __Func_8091f90 first
+ * argument as _AREA_05, _AREA_bb and _AREA_15 above, and meeting this file's stated
+ * criterion the same way: 0x6d is 109, which gcc builds with `movs r0, #109`, and THE ROM
+ * POOLS IT. A pool word holding a value the compiler can build in one instruction cannot
+ * have come from a const_int.
+ *
+ * CRITERION 2 MEASURED: the literal spelling emits `movs r0, #109` and leaves the function
+ * one pool word short, 3 differing. */
+_AREA_6d = 0x6d;
