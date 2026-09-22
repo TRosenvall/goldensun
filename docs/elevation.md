@@ -23098,3 +23098,56 @@ the wrong measure of it**.
 **So check the call family, not the stem:** grep for the target's callees across `src/` and
 `src/non_matching/`. It is cheaper than stem comparison and it predicted the outcomes that stem
 distance got wrong.
+
+## `find_reg` RUNS TWO PASSES -- A SIXTH THING THAT DECIDES AN ALLOCATION
+
+The priority formula says who is *processed* first. It does not say whether a register is
+available, and gcc-2.96's `find_reg` (global.c) makes that a separate decision:
+
+    COPY_HARD_REG_SET (used, used1);
+    IOR_COMPL_HARD_REG_SET (used, regs_used_so_far);
+    IOR_HARD_REG_SET (used, allocno[num].regs_someone_prefers);
+
+- **PASS 0** considers only hard registers **already handed out**, and skips any register a
+  later *conflicting* allocno prefers (the `;; N preferences:` lines).
+- **PASS 1** drops both restrictions and walks `REG_ALLOC_ORDER` (`arm.h:989` =
+  `3,2,1,0,12,14,4,5,6,7,...`).
+
+Copy and plain preferences may then override `best_reg`.
+
+**So priority decides who reaches a register first; pass 0 decides whether a FRESH one is
+taken at all.** That is why values pile onto r3 on a function with several short-lived
+quantities, and why a value another allocno *prefers* can be unavailable even though nothing
+holds it yet.
+
+Worked example (`OvlFunc_883_20088c0`): by the time the loop index is processed,
+`regs_used_so_far` is `{r0,r2,r3,r7}`; `used1` kills r3 (a hard conflict), r2 and r7 (held by
+earlier allocnos) and the non-LO registers; and the one remaining pass-0 candidate, r0, is in
+`regs_someone_prefers` because a LATER allocno prefers it. Pass 0 comes back empty, pass 1
+runs, and the index takes r1 — which is not where the ROM has it.
+
+**Read `;; N preferences:` alongside `;; N conflicts:` before concluding a register was
+free.**
+
+## A `(clobber (scratch:SI))` IS NOT AN ALLOCNO -- AND ITS REGISTER IS RELOAD'S
+
+Thumb's `*thumb_extendhisi2_insn` carries `(clobber (scratch:SI))`. A bare `scratch` has **no
+register number**, so it gets no `Register N used R times` line, no allocno, and no priority.
+`local_alloc` never sees it.
+
+The `mov rN, #0` that appears beside such an `ldrsh` is that scratch, and it is filled by
+**reload**. `.18.greg`'s trailing log names it:
+
+    Spilling for insn 87.
+    Using reg 5 for reload 0
+
+Those strings are printed only from `reload1.c` (`find_reload_regs`, `allocate_reload_reg`),
+which runs **after** `global_alloc`.
+
+**So that register is DOWNSTREAM of every allocno's assignment, not upstream of it.** If the
+ROM's zero is in a different register from yours, the thing to change is whatever holds the
+register you want — the zero follows. Chasing the zero itself is chasing a consequence.
+
+> This retired a "next step" recorded in a park and acted on for a full round. When a residue's
+> register belongs to a `scratch`, check `.17.lreg` for an actual `Register N` line before
+> treating it as something source can address.

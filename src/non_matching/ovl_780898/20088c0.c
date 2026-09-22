@@ -368,6 +368,114 @@
  * stores; and the named cam temps.
  * ======================================================================== */
 
+/* ============================ BATCH 279 UPDATE ============================
+ *
+ * UNREACHABLE-WITH-EVIDENCE. 25 differing encodings of 135, 142/142, UNCHANGED. Nine new
+ * spellings measured, none beat it. The candidate below is untouched from batch 278.
+ *
+ * THIS ROUND'S JOB WAS TO ATTACK THE ENTRY POINT THE BATCH-278 BLOCK NAMED, AND THAT ENTRY
+ * POINT DOES NOT EXIST. Recorded plainly because I am the one who wrote it down and then sent
+ * an agent at it.
+ *
+ * The batch-278 block concluded: "the entry point is local_alloc's choice for the loop's
+ * ldrsh zero". IT IS NOT A local_alloc CHOICE, because the zero IS NOT A PSEUDO. In
+ * `.17.lreg` the loop's model-id read is
+ *
+ *     (insn 87 ... (parallel[ (set (reg/v:SI 39) (sign_extend:SI (mem:HI (reg:SI 63) 11)))
+ *                             (clobber (scratch:SI)) ] ) 162 {*thumb_extendhisi2_insn}
+ *
+ * -- a bare `(scratch:SI)`. No register number, so no "Register N used R times across L insns"
+ * line and NO ALLOCNO. local_alloc never sees it. The `mov r1,#0` / `mov r5,#0` is that
+ * scratch, filled by RELOAD, and `.18.greg`'s own trailing log says so verbatim:
+ *
+ *     Spilling for insn 29.      <- the peeled ldrsh
+ *     Using reg 1 for reload 0
+ *     Spilling for insn 87.      <- the loop ldrsh
+ *     Using reg 5 for reload 0
+ *
+ * Both strings are printed ONLY from reload1.c (find_reload_regs, allocate_reload_reg), which
+ * runs AFTER global_alloc. So the zero is DOWNSTREAM of `i`'s register, not upstream: at insn
+ * 87 our `i` holds r1 so reload takes r5, and in the ROM `i` holds r5 so reload takes r1.
+ * Nothing in the source reaches it directly.
+ *
+ * ===== NEW AND GENERAL: find_reg RUNS TWO PASSES, AND PASS 0 IS THE INTERESTING ONE =====
+ *
+ * From gcc-2.96's global.c:
+ *
+ *     COPY_HARD_REG_SET (used, used1);
+ *     IOR_COMPL_HARD_REG_SET (used, regs_used_so_far);
+ *     IOR_HARD_REG_SET (used, allocno[num].regs_someone_prefers);
+ *
+ * PASS 0 considers only hard registers ALREADY HANDED OUT, and skips any register a later
+ * CONFLICTING allocno prefers (the `;; N preferences:` lines). PASS 1 drops both restrictions
+ * and walks REG_ALLOC_ORDER (arm.h:989 = 3,2,1,0,12,14,4,5,6,7,...). Copy and plain
+ * preferences may then override best_reg.
+ *
+ * SO PRIORITY DECIDES WHO REACHES A REGISTER FIRST; PASS 0 DECIDES WHETHER A FRESH ONE IS
+ * TAKEN AT ALL. That is why everything piles onto r3 on this function, and why `e` keeps r0.
+ * Worth having generally -- it is a sixth thing that can decide an allocation, and it is not
+ * in the priority formula.
+ *
+ * Traced here and reproduced exactly: order 41 45 50 39 44 40 136 37 ... gives
+ * regs_used_so_far = {r0,r2,r3,r7} by the time `i` (37) is processed; used1 kills r3 (hard),
+ * r2 (39), r7 (136) and the non-LO registers; the lone pass-0 candidate r0 sits in
+ * regs_someone_prefers because `e` (34) prefers it and is later. Pass 0 empty -> pass 1 -> r1.
+ *
+ * ===== THE MECHANISM IS VALIDATED BY CONSTRUCTION, AND THE PRICE IS IMPOSSIBLE =====
+ *
+ * Probe q5.c forces pri(36) above pri(37) (8 refs/24 = 1.000 against 30/52 = 0.577). The base
+ * DOES land in r1, `i` DOES move off it, AND THE POOL LOAD STOPS HOISTING -- giving the ROM's
+ * exact `mov r1,#0 / ldrsh r2,[r3,r1] / ldr r1,=table`. So the reading is right, and the ROM's
+ * un-hoisted pool load is confirmed as an anti-dependence CONSEQUENCE of base-in-r1 rather
+ * than a source-order effect.
+ *
+ * It simply cannot be afforded. Reference counts are fixed by the ROM's own listing (depth-1
+ * refs doubled): base 3, `e` 7, walker 7, `i` 10; current live lengths 10 / 32 / 28 / 40, so
+ * priorities 0.300 / 0.4375 / 0.500 / 0.750. Requiring 3/L36 > 14/L34, 3/L36 > 14/L35 and
+ * 14/L35 >= 30/L37, with L36 >= 10 measured as a floor, gives
+ *
+ *     L34 >= 47 (is 32),  L35 >= 47 (is 28),  L37 >= 101 (is 40)
+ *
+ * and `i` DIES AT INSTRUCTION 40 OF 142. Every one of those is a live-length increase that
+ * costs instructions the object does not have -- it is already 142/142 positionally aligned.
+ *
+ * AND THERE IS A SECOND, INDEPENDENT BLOCKER. 35 (walker) and 36 (base) must CONFLICT or the
+ * giv coalesces and `mov r4, r1` dies anyway. Right after `tp = tbl` the two sit in ONE cse
+ * equivalence class, so any added `tbl` reference there is attributed to the WALKER, not the
+ * base -- measured: q1.c took 35 from 7 to 9 refs while 36 stayed at 3. Only a reference AFTER
+ * the loop is cse-proof (the batch-278 probe p1.c, L36 = 38), and clearing 0.750 from there
+ * needs 10 refs on a 3-ref value.
+ *
+ * MEASURED THIS ROUND (diff-regions; baseline 22, objcmp 25):
+ *   declaration order swapped (tbl before tp)        142 / 22   inert
+ *   camx sum named alone                             142 / 22   inert
+ *   camx sum through a second temp                   142 / 22   inert
+ *   cam reads swapped (0x140 first)                  142 / 29
+ *   both cam reads before both shifts                142 / 35
+ *   two (int)tbl stores before tp = tbl              146 / 40
+ *   three stores before                              147 / 41
+ *   three stores after tp = tbl                      146 / 43
+ *   five stores (the q5 validation probe)            149 / 48
+ *
+ * CONCLUSIONS CHANGED:
+ *   * RETIRED: "the entry point is local_alloc's assignment of the loop's ldrsh zero" -- it is
+ *     a reload scratch with no allocno, chosen after greg.
+ *   * REFRAMED: "`i`-in-r5 is a hard-register exclusion" is right in FORM but wrong about the
+ *     agent -- the exclusion is allocnos 34/35/36 occupying r0/r4/r1, via find_reg's pass 0.
+ *   * CORRECTED: the batch-278 base-priority ceiling stopped at 4 refs; 5 refs at L <= 13 would
+ *     clear 0.750 (2*5/13 = 0.769). It still does not help, because every extra reference is an
+ *     extra instruction.
+ *   * CONFIRMED: residues C (px load r1 against r3) and D (camx r5 against r2) are DOWNSTREAM.
+ *     Four further tail spellings moved D not at all.
+ *
+ * NEXT: NOTHING SOURCE-LEVEL. Three rounds have taken this 101 -> 42 -> 25 and the remaining
+ * 25 are now priced against three simultaneous live-length requirements that each cost
+ * instructions a positionally-aligned object cannot spend. THE FIFTEEN COPIES ARE NOT
+ * AVAILABLE THIS WAY. Do not spend a fourth round on spellings; if this is ever revisited it
+ * needs a differently configured compiler, and that claim is now backed by find_reg's own
+ * arithmetic rather than asserted.
+ * ======================================================================== */
+
 extern unsigned char *iwram_3001e70;
 extern unsigned char L61d0[] __asm__(".L61d0");
 extern int L61e8[] __asm__(".L61e8");
