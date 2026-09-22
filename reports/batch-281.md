@@ -8,7 +8,7 @@ status` clean.
 | | |
 |---|---|
 | elevated | **15** |
-| parked | **16** |
+| parked | **20** |
 | `.sym` entries added | **2** (`_MSG_d27`, `_AREA_32`) — three more reported and withheld |
 | whole-file conversions | **5** |
 | **fakematch debt added** | 12 |
@@ -178,11 +178,20 @@ caught on read-back and amended.
 
 **4,513 from C / 1,197 in asm** against batch 280's 4,498 / 1,212 — exactly **+15/−15**, the
 **sixteenth consecutive reconciling batch**. `census.py` TOTAL 1197 agrees with `funcindex` exactly.
-**510 park files** (+16). `fakematch.txt` **500 rows** (+12). `dupfuncs.py` unchanged at 8 groups / 29
+**514 park files** (+20). `fakematch.txt` **500 rows** (+12). `dupfuncs.py` unchanged at 8 groups / 29
 functions / 21 free, still a floor.
 
-**460 available**, of which **126 in 201–400**, **81 in 401–800** and **61 above 800**. Only 22 remain
+**454 available**, of which **124 in 201–400**, **79 in 401–800** and **61 above 800**. Only 21 remain
 under 100 instructions.
+
+> **Corrected after publication.** This section first said 510 parks and 460 available, because I
+> published the batch without writing parks for four functions that had been attempted with real
+> measurements — `Func_80b3050` (10 of 193, size *and* relocations *and* count identical),
+> `Func_80b24e4` (126 of 204), `OvlFunc_956_200876c` (115 of 297, size and count exact) and
+> `OvlFunc_969_200c23c` (616 of 677). Since `census.py` matches park files by name, all four were being
+> counted as never-touched. **The arithmetic is what caught it:** 15 landed + 16 parked against 45
+> targets leaves 14, and I had named only 10 as unopened. That reconciliation belongs *before*
+> publishing, not after. With the four parks written it is 15 + 20 + 10 = 45 exactly.
 
 ## Open, and all of these are the user's call
 
@@ -204,7 +213,7 @@ under 100 instructions.
   no `ALIAS_CFLAGS` row is needed for the two 882 functions it read.
 - **The fakematch convention question**, ~20 of 181 PIN-using files unbooked.
 - `OvlFunc_948_2009308`'s one pin, from batch 272.
-- **Eight targets were never opened** (`OvlFunc_899_200afd4`, `OvlFunc_956_2009474`, `OvlFunc_956_2008da4`,
+- **Ten targets were never opened** (`OvlFunc_899_200afd4`, `OvlFunc_956_2009474`, `OvlFunc_956_2008da4`,
   `Func_80b0aac`, `Anim_Bind`, `Anim_PsyphonSeal`, `Anim_AstralBlast`, `Anim_PlanetDiver`,
   `BaseAnim_ParticleCloud`, `Anim_Unused_Fizz`) — recorded as unattempted rather than parked, since a
   12%-complete transcription carries no finding. Batch 280's carried-forward `OvlFunc_945_200aff0` landed
