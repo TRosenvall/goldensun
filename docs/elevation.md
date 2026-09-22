@@ -23682,3 +23682,67 @@ The practical rule until someone settles it: **read the ROM's instruction at eac
 halfword store site individually.** `strh` fed by `mov` wants an `int` local; `strh`
 fed by a pool load wants the bare literal; and one function can need both. Do not
 generalise from a sibling store in the same function, let alone a sibling function.
+
+## A POOLED ZERO REACHING A `strb` IS THE `struct HalfWord` CASE
+
+**This was already in the tree and not in this file, and an agent rediscovered it
+the hard way in batch 281.** It is recorded in
+`src/overlays/rom_7b9cb4/ovl_30_a_c_c_a_c_c_a_a_a_c_a_c_a_b.c` from batch ~275.
+
+When the ROM has `ldr r5, =0 / add r0,#0x55 / strb r5,[r0]` — a *pooled* zero
+feeding a **byte** store — no ordinary spelling reproduces it. `*thumb_movqi_insn`'s
+alternative 1 is `"l" <- "m"` (memory only, **no `n`**), so **a QImode constant can
+never pool.** Only HImode can. Six spellings all give `mov`: bare `0`, `short z = 0`,
+`unsigned short z = 0`, `unsigned char z = 0`, a pointer-named form, and a reused
+`int`. `volatile short` gives the pool load but costs a stack slot.
+
+The fix is a one-field struct:
+
+    struct HalfWord { unsigned short v; };
+    struct HalfWord z;
+    z.v = 0;
+    q[0x55] = z.v;
+
+**`PROMOTE_MODE` widens a plain `short` local to SImode but not a struct field**, so
+the value stays HImode, pools, and reaches the `strb`.
+
+**The one-line search that finds this class:** grep generated `asm/` for a
+`ldrh rN, .L` immediately followed by a `strb`.
+
+## THE `.call_via r4` CLOBBER LIST IN THE LANDED TEMPLATE IS WRONG IN BOTH DIRECTIONS
+
+`src/rom_8a000/rom_97384_c_c_a_b.c` lists `"memory", "lr", "r12"`. Batch 281
+measured both halves of that wrong on `OvlFunc_918_2009004`:
+
+- **`lr` is NOT clobbered.** `mov r12, pc / bx r4` puts the return address in
+  **r12**, so `lr` survives — and the ROM proves it by keeping a pointer in `lr`
+  *across both calls*. Listing `"lr"` makes gcc refuse to use it: **worth 12
+  regions.**
+- **`r2` and `r3` ARE clobbered.** The ARM callee clobbers r0–r3. Without them gcc
+  happily kept a base pointer in r2 across the call — **a real miscompile, not just
+  a mismatch.** Adding them is what moved the value into `lr` and matched the ROM.
+
+Adding `"r2"` alone was independently worth 2 encodings on `OvlFunc_924_200d5c0`,
+and the same lever is recorded in `src/non_matching/ovl_7aa430/2009cb4.c`.
+
+**Form matters too.** Use a macro over a **function-scope**
+`register int (*fv)(int,int) __asm__("r4")` — an inline function rematerialises the
+callee address at every call site. Binding it once and assigning
+`fv = Func_8000888;` *immediately before the first call* put the single
+`ldr r4, =…` exactly where the ROM has it, worth 11 regions in one step. That is the
+tree's first shared-`r4` two-call site.
+
+## POOL ORDER IS A READOUT OF EACH CONSTANT'S MODE
+
+Cheaper than reading the pool's *position*, and it tells you which constants need
+the `int` carrier **before** you touch a register.
+
+`OvlFunc_887_2008578`'s mid-function pool is ordered
+`0, iwram_3001ebc, 0x555, 0x28a0000, 0x2160000`. Sorting by `max_address` (insn
+address + `pool_range`) reproduces that order **only if** `0` is HImode (range 64)
+**and `0x555` is SImode (1020)**. With `0x555` HImode it sorts first — which is what
+the candidate did. Adding the `int` carrier for `0x555` *alone* moved the pool to the
+ROM's position.
+
+So: **read the ROM's pool order, infer each word's mode from where it sits, and let
+that decide which constants get an `int` carrier.**
