@@ -1,65 +1,142 @@
-/* Func_80bf678 -- NON-MATCHING, 504 encodings of 530, size 1328 against the ROM's 1324 (+4).
+/* Func_80bf678 -- NON-MATCHING, 8 encodings of 530, SIZE DELTA ZERO (1324 bytes
+ * both), and all 118 relocation offsets identical to the reference EXCEPT the one
+ * documented symbol-tell word.  This is the closest park of batch 281.
  *
- * READ THIS FIRST: THIS IS AN EARLY-STAGE TRANSCRIPTION, NOT AN ANALYSED PARK.
- * No blocker class has been isolated. It is committed because the structural
- * reading is worth more than re-doing it from scratch, and because an honest
- * record of how far a target actually got is better than silence about it.
- * Do not read the difference count as a near miss and do not quote it as a
- * measured plateau -- nothing here has been driven to a plateau.
+ * Blocker class: a sched2 load-hoist across two frame stores that gcc declines to
+ * perform.  ONE instruction out of place in one 7-instruction window.
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_b5000/80bf678.c \
  *     asm/rom_b5000/rom_bbb0c_c.s --func Func_80bf678
- * The reference holds TWO functions, so a split is required to land this one.
+ * The reference holds TWO functions plus a data tail, so a split is required.
  *
- * HOW IT GOT HERE, AND WHY IT STOPPED. Batch 281 assigned this to an agent that
- * landed its first target byte-exact (Func_80ba6ac, src/rom_b5000/rom_b9b30_c_a_a_c.c)
- * and then delegated the remaining four to parallel workers. Those workers
- * produced partial candidates and the round ended before any of them converged.
- * Two of the four never got past a skeleton and are NOT parked at all --
- * Func_80a96d8 and Func_80a90bc reached 36 of 319 and 32 of 303 encodings
- * respectively, i.e. they are unfinished transcriptions rather than attempts, and
- * are recorded as UNATTEMPTED in reports/batch-281.md rather than dressed up as
- * parks.
+ * (This park replaces an EARLY transcription committed at 504 of 530 with no
+ * blocker isolated.)
  *
- * WHAT IS ALREADY KNOWN ABOUT THIS BANK, and it is a lot -- start here, not from
- * the disassembly:
+ * TWO EXTRA SPLIT REQUIREMENTS, neither performed:
+ *   1. The data tail defines `.Lc35bc:` (ROM 0x0c35bc, contents {1, 2}) and the C
+ *      references it by name, so the .s keeping that data needs
+ *      `.global .Lc35bc` -- exactly the precedent in asm/rom_b5000/rom_c1a34_c.s,
+ *      which carries `.global .Lc5c38` for src/rom_b5000/rom_c1a34_a_a_a_a_a.c.
+ *   2. _MSG_820 would need adding to message.sym (below).
  *
- * src/rom_b5000/rom_b9b30_c_a_a_c.c (landed in the same round) carries four
- * levers, three of them new, and its file-neighbours are this function's
- * neighbours:
+ * ================================================================
+ * SYMBOL TELL -- REPORTED, NOT ADDED, AND ITS CONTROL IS THE STRONGEST ON FILE
+ * ================================================================
  *
- *   - A NAMED MULTIPLIER LOCAL SUPPRESSES loop.c's giv STRENGTH REDUCTION.
- *     `off = n * 16;` as a named local makes the pseudo REG_USERVAR_P, flipping
- *     strength_reduce's `v->lifetime * threshold * benefit < insn_count` test
- *     (loop.c ~4500). Worth 231 -> 179 there. AND -fno-strength-reduce is
- *     STRICTLY WORSE (34 -> 59) because it also kills the reduction in loops that
- *     already match -- so this class has a source cure and wants no flag row.
- *   - AN INTERMEDIATE VALUE SPELLED AS A VARIABLE IS NOT FREE. Inlining a bound
- *     instead of naming it was worth 202 -> 18 there, because the name forced the
- *     value into r4 where the ROM wanted ip. Read whether the ROM SPENDS a
- *     register on a value before naming it. This is the counterweight to every
- *     naming lever in docs/elevation.md and it is easy to get backwards.
- *   - A HImode CONSTANT STORE FORCES AN EARLY POOL DUMP, and it HIDES: GAS renders
- *     *thumb_movhi_insn alt 1's `ldrh` as a 2-byte pc-relative `ldr`, so it looks
- *     SImode in the disassembly. Route it through an `int` shared by both arms of
- *     an if/else, with `continue` for the no-store path so combine cannot fold the
- *     constant back into the store.
- *   - The tree's assignment-as-expression idiom from
- *     src/rom_b5000/rom_bffb8_a_c_a_a_b.c reproduced a 20-instruction palette loop
- *     byte-exact on the FIRST compile.
+ *     _MSG_820 = 0x820;
  *
- * ALSO CHECK src/non_matching/rom_b5000/80ba2c0.c BEFORE SPENDING A BUDGET HERE.
- * It defines the REDUNDANT-COPY PRESSURE class -- the ROM being LESS optimal than
- * gcc, carrying a redundant pointer copy that costs it a high register and forces
- * a parameter to spill. Nine spellings were measured and gcc coalesces or reverts
- * every one. If you see a ROM spill gcc does not make, check for that shape before
- * treating it as a spelling problem.
+ * 0x820 == 0x82 << 4 is thumb_shiftable_const, so the K-constraint split in arm.md
+ * (~line 3859) makes gcc BUILD it as `movs r0,#130 / lsls r0,r0,#4`; the ROM spends
+ * a pool word.  CONST_OK_FOR_THUMB_LETTER(...,'K') is consulted on the CONST_INT
+ * value alone, so NO SOURCE SPELLING REACHES A POOL LOAD.
  *
- * NEXT: re-derive from the disassembly with the four levers above applied from the
- * first candidate rather than discovered. Given the size (+4 and -20 bytes
- * respectively across these two parks), start by settling the POOL and the FRAME,
- * which are the two hard binary signals, before reading any register.
+ * THE IN-FUNCTION CONTROL IS UNUSUALLY STRONG AND WAS RE-VERIFIED INDEPENDENTLY.
+ * This function passes SEVENTEEN message ids and 0x820 is THE ONLY SHIFTABLE ONE.
+ * The other sixteen -- 0x81d, 0x81e, 0x821, 0x883, 0x886, 0x887, 0x888, 0x889,
+ * 0x88a, 0x88b, 0x88c, 0x88d, 0x88e, 0x891, 0x892, 0x897 -- are all unshiftable,
+ * and ALL SIXTEEN reproduce as plain literals in the correct pool slots in the
+ * reference's exact pool order.  So the claim is "this one constant gcc CAN build
+ * and the ROM chose not to", not "this id space wants symbols".  Same shape as
+ * _MSG_b20 (Func_80a15f0) and _MSG_810..813 (batch 182).
+ *
+ * WITHHELD ANYWAY, because it does not COMPLETE the function -- 8 encodings remain,
+ * about 5 after the symbol.  That is this tree's line and it is applied here against
+ * the strongest evidence yet seen, which is the point: _MSG_d27 went in this same
+ * batch on WEAKER evidence because it completed its file.  Evidence quality and
+ * completion are separate tests.
+ *
+ * ================================================================
+ * THE POOL WAS NOT THE BLOCKER -- contrary to the briefing's prior
+ * ================================================================
+ *
+ * It fell out of the structure with no lever at all.  The reference has one interior
+ * chunk of 6 words at 0x080bf91c-0x80bf934 (iwram_3001e74, 0x897, .Lc35bc, 0x820,
+ * 0x81d, 0x821) and an end chunk of 13 at 0x080bfb70.  THE INTERIOR DUMP IS FORCED:
+ * the first pool constant is loaded at 0x080bf686 and the next barrier after
+ * `b .Lbf93a` is ~0x080bfb4e, 1224 bytes away and past the 1020 pool_range, so gcc
+ * dumps at the last usable barrier.  Both chunks reproduced exactly and at the exact
+ * byte offsets from candidate 4 onward.  No HImode-store lever was needed.
+ *
+ * ================================================================
+ * THE RESIDUE -- one window, reference 0x080bf7f0-0x080bf7fc
+ * ================================================================
+ *
+ *   ref                          ours
+ *   ldr  r3, =.Lc35bc            ldr  r3, =.Lc35bc
+ *   ldr  r1, [sp, #4]            ldr  r4, [r3, #4]
+ *   ldr  r4, [r3, #4]            ldr  r3, [r3, #0]
+ *   ldr  r3, [r3, #0]            str  r3, [sp, #12]
+ *   str  r3, [sp, #12]           str  r4, [sp, #16]
+ *   str  r4, [sp, #16]           ldr  r1, [sp, #4]
+ *   ldrb r3, [r1]                ldrb r3, [r1]
+ *
+ * One instruction -- the reload of the spilled `f` pointer -- sits five slots later;
+ * everything before and after is byte-identical.  The `ldr r1,[sp,#4] -> ldrb ->
+ * cmp -> beq` chain has the longer critical path so it SHOULD win the ready list;
+ * ours schedules it adjacent to its use.  sp+4 against sp+12/16 are disambiguable,
+ * so the hoist is legal either way.  Diagnostic: -fno-schedule-insns2 moves the
+ * whole function to 103 mismatched slots, confirming sched2 is the pass and that
+ * suppressing it is not the cure.
+ *
+ * ================================================================
+ * FIVE FINDINGS WORTH CARRYING, all measured
+ * ================================================================
+ *
+ * 1. THE EPILOGUE POP REGISTER READS OFF THE FUNCTION'S OWN RETURN MODE.
+ *    thumb_exit (arm.c ~8215) sets regs_available_for_popping from
+ *    GET_MODE_SIZE (DECL_MODE (DECL_RESULT (decl))): VOIDmode gives r0|r1|r2 and
+ *    picks r0, size <= 4 gives r1|r2 and picks r1.  SO A ROM EPILOGUE ENDING
+ *    `pop {r1} / bx r1` IN AN INTERWORKING THUMB FUNCTION THAT SAVES HIGH REGISTERS
+ *    IS DIRECT EVIDENCE THE FUNCTION RETURNS A VALUE, even with no `return`
+ *    statement anywhere.  It is a READ, not a guess.  Compare
+ *    src/non_matching/ovl_7fb4a8/2008860.c, where the same tell (a MISSING
+ *    `mov r0, #0`) was worth 53 -> 30.
+ *
+ * 2. LIVE-RANGE INFLATION FROM VARIABLE REUSE ACROSS TWO HALVES OF A FUNCTION IS
+ *    THE DOMINANT ALLOCATION BLOCKER AT THIS SIZE, AND DECLARATION ORDER IS INERT.
+ *    Four separate splits (id, i, side, amt) took 146 -> 37, while SIX
+ *    declaration-order permutations moved nothing.  One C variable is one pseudo
+ *    whose live_length is the SUM of all its ranges, so reusing a counter in a
+ *    second loop 250 instructions away silently halves its priority.  Direction
+ *    matters both ways: splitting `amt` paid 18, splitting hp/mx in the same edit
+ *    COST 18.
+ *
+ * 3. CROSSJUMPING MERGES IDENTICAL `p = arr;` TAILS, AND MOVING THE ASSIGNMENT ONE
+ *    STATEMENT EARLIER IN ONE ARM DEFEATS IT -- 242 ENCODINGS IN ONE EDIT
+ *    (388 -> 146), the largest lever in this function.  The ROM has three copies of
+ *    `mov rX,sp / adds rX,#12 / str rX,[sp]`; gcc merged ours to two.  Writing the
+ *    then-arm as `order[0]=2; sel=order; order[1]=1;` makes the tails differ.  Jump
+ *    optimisation runs BEFORE sched2, so THE PRE-SCHEDULING STATEMENT ORDER IS WHAT
+ *    CROSSJUMPING SEES, even though the ROM's scheduled output shows the store back
+ *    in the middle.
+ *
+ * 4. A LOCAL AGGREGATE INITIALIZER'S CODE IS EMITTED AT ITS BLOCK'S ENTRY, NOT
+ *    WHERE IT IS USED.  `int order[2] = {1,2}` at function scope put the rodata
+ *    block copy in the prologue, ~370 bytes early.  An inner block placed it
+ *    exactly where the ROM has it.
+ *
+ * 5. A COMPILER-GENERATED RODATA LABEL IS THE RIGHT SPELLING FOR SUCH AN
+ *    INITIALIZER, AND IT FIXES SIZE.  Writing {1,2} inline emits 8 bytes of our own
+ *    .rodata, which arm-none-eabi-size's text field counts -- that was the entire
+ *    persistent "+8 bytes".  Referencing .Lc35bc via __asm__ and assigning a 2-int
+ *    struct produces the reference's exact ldr/ldr/str/str block copy, the exact
+ *    .Lc35bc reloc, and byte-exact size.  Element-wise assignment instead destroys
+ *    the block copy (334, -16 bytes).
+ *
+ * Func_80bf5a8 in src/rom_b5000/rom_bbb0c_a_c_c_a_c_b.c is an EXACT-MATCHING
+ * template for this function's first two loops.  Its "d = &rec->l; before
+ * n = rec->l.count;" lever reproduced here (reversing it costs 41) but needed one
+ * refinement this function exposes: `i = 0;` belongs BETWEEN them, worth 9.
+ *
+ * Forty probe variants are on file in scratch with their numbers.  Return-type
+ * probes were worth 37 -> 17 in aggregate (Func_80bbabc, _SetDjinni,
+ * Anim_MoveIntro, _ModifyHP, _ModifyPP as int, plus `int Func_80bf678(void)`),
+ * while five other callees as int were exactly inert.
+ *
+ * NEXT: read .23.sched2's ready-list priorities for the one window.  The agent that
+ * got here explicitly declined to claim a spelling without that, which is the right
+ * call at 8 of 530.
  */
 typedef unsigned char u8;
 
@@ -87,19 +164,19 @@ extern int *GetBattleActor(int a);
 extern u8 *_GetUnit(int id);
 extern void Func_80bdfec(void);
 extern void Func_80bd808(int a);
-extern void Func_80bbabc(int a, int b);
+extern int Func_80bbabc(int a, int b);
 extern void _PlaySound(int a);
 extern void _Actor_SetAnim(int a, int b);
 extern void _Actor_SetAnimSpeed(int a, int b);
-extern void _SetDjinni(int a, int b, int c);
+extern int _SetDjinni(int a, int b, int c);
 extern void _Func_807a3a8(int a, int b, int c);
 extern void _CalcStats(int id);
-extern void Anim_MoveIntro(int a, int b, int c, int d);
+extern int Anim_MoveIntro(int a, int b, int c, int d);
 extern void Func_80be02c(void);
 extern void Func_80c0774(int a, int b, int c);
 extern int Func_80b6c08(int kind, unsigned short *buf);
-extern void _ModifyHP(int a, int b);
-extern void _ModifyPP(int a, int b);
+extern int _ModifyHP(int a, int b);
+extern int _ModifyPP(int a, int b);
 extern void _Func_8019908(int a, int b);
 extern void _Func_80175a0(int a);
 extern void WaitTextPrompt(void);
@@ -117,14 +194,14 @@ extern int Func_80bf484(int a);
 extern int Func_80bf4c4(int a);
 extern int Func_80bf524(int a);
 extern int Func_80bf54c(int a);
+extern int _MSG_820;
+struct Pair { int a; int b; };
+extern struct Pair Lc35bc __asm__(".Lc35bc");
 
-void Func_80bf678(void)
+int Func_80bf678(void)
 {
-    int order[2] = {1, 2};
-    unsigned short buf[14];
     u8 *g;
     u8 *f;
-    int *sel;
     struct Rec *rec;
     struct List *d;
     struct Djinni *p;
@@ -137,11 +214,16 @@ void Func_80bf678(void)
     int side;
     int i;
     int n;
+    int m;
     int id;
     int e;
     int hp;
     int mx;
     int amt;
+    int amt2;
+    int uid;
+    int j;
+    int turn;
 
     g = iwram_3001e74;
     f = g + 0x44;
@@ -149,8 +231,8 @@ void Func_80bf678(void)
     for (side = 0; side < sides; side++) {
         rec = _Func_8077330(side);
         d = &rec->l;
-        n = rec->l.count;
         i = 0;
+        n = rec->l.count;
         if (i < n) {
             p = d->e;
             do {
@@ -198,22 +280,27 @@ void Func_80bf678(void)
         }
     }
     Func_80c0774(2, *(unsigned short *)(iwram_3001e74 + (0xc9 << 3)), 0);
+    {
+    struct Pair order;
+    unsigned short buf[14];
+    int *sel;
+    order = Lc35bc;
     if (*f != 0) {
         if (*(g + 0x50) != 0) {
-            order[0] = 2;
-            order[1] = 1;
-            sel = order;
+            order.a = 2;
+            sel = &order.a;
+            order.b = 1;
         } else {
-            sel = order;
+            sel = &order.a;
         }
     } else {
-        sel = order;
+        sel = &order.a;
     }
-    for (side = 0; side < 2; side++) {
-        n = Func_80b6c08(sel[side], buf);
-        for (i = 0; i < n; i++) {
-            id = buf[i];
-            u = _GetUnit(id);
+    for (turn = 0; turn < 2; turn++) {
+        m = Func_80b6c08(sel[turn], buf);
+        for (j = 0; j < m; j++) {
+            uid = buf[j];
+            u = _GetUnit(uid);
             r = u + (0xa2 << 1);
             if (*r != 0)
                 *r = *r + 0xff;
@@ -226,11 +313,11 @@ void Func_80bf678(void)
                         amt = *w;
                         if (hp + amt > mx)
                             amt = mx - hp;
-                        _ModifyHP(id, amt);
-                        _Func_8019908(id, 1);
+                        _ModifyHP(uid, amt);
+                        _Func_8019908(uid, 1);
                         _Func_8019908(amt, 5);
                         if (*(short *)(u + 0x38) == *(short *)(u + 0x34))
-                            _Func_80175a0(0x820);
+                            _Func_80175a0((int)&_MSG_820);
                         else
                             _Func_80175a0(0x81d);
                         _PlaySound(0xaf);
@@ -242,12 +329,12 @@ void Func_80bf678(void)
                     hp = *(short *)(u + 0x3a);
                     mx = *(short *)(u + 0x36);
                     if (hp != mx) {
-                        amt = *w;
-                        if (hp + amt > mx)
-                            amt = mx - hp;
-                        _ModifyPP(id, amt);
-                        _Func_8019908(id, 1);
-                        _Func_8019908(amt, 5);
+                        amt2 = *w;
+                        if (hp + amt2 > mx)
+                            amt2 = mx - hp;
+                        _ModifyPP(uid, amt2);
+                        _Func_8019908(uid, 1);
+                        _Func_8019908(amt2, 5);
                         if (*(short *)(u + 0x3a) == *(short *)(u + 0x36))
                             _Func_80175a0(0x821);
                         else
@@ -257,80 +344,81 @@ void Func_80bf678(void)
                     }
                 }
             }
-            if (Func_80bf574(id) != 0) {
-                Func_80b78e4(id, GetBattleActor(id));
-                _Func_8019908(id, 1);
+            if (Func_80bf574(uid) != 0) {
+                Func_80b78e4(uid, GetBattleActor(uid));
+                _Func_8019908(uid, 1);
                 _Func_80175a0(0x889);
                 WaitTextPrompt();
             }
-            if (Func_80bf250(id) != 0) {
-                Func_80b78e4(id, GetBattleActor(id));
-                _Func_8019908(id, 1);
+            if (Func_80bf250(uid) != 0) {
+                Func_80b78e4(uid, GetBattleActor(uid));
+                _Func_8019908(uid, 1);
                 _Func_80175a0(0x887);
                 WaitTextPrompt();
             }
-            if (Func_80bf2b4(id) != 0) {
-                Func_80b78e4(id, GetBattleActor(id));
-                _Func_8019908(id, 1);
+            if (Func_80bf2b4(uid) != 0) {
+                Func_80b78e4(uid, GetBattleActor(uid));
+                _Func_8019908(uid, 1);
                 _Func_80175a0(0x888);
                 WaitTextPrompt();
             }
-            if (Func_80bf318(id) != 0) {
-                Func_80b78e4(id, GetBattleActor(id));
-                _Func_8019908(id, 1);
+            if (Func_80bf318(uid) != 0) {
+                Func_80b78e4(uid, GetBattleActor(uid));
+                _Func_8019908(uid, 1);
                 _Func_80175a0(0x886);
                 WaitTextPrompt();
             }
-            if (Func_80bf37c(id) != 0) {
-                Func_80b78e4(id, GetBattleActor(id));
-                _Func_8019908(id, 1);
+            if (Func_80bf37c(uid) != 0) {
+                Func_80b78e4(uid, GetBattleActor(uid));
+                _Func_8019908(uid, 1);
                 _Func_80175a0(0x88b);
                 WaitTextPrompt();
             }
-            if (Func_80bf3bc(id) != 0) {
-                Func_80b78e4(id, GetBattleActor(id));
-                _Func_8019908(id, 1);
+            if (Func_80bf3bc(uid) != 0) {
+                Func_80b78e4(uid, GetBattleActor(uid));
+                _Func_8019908(uid, 1);
                 _Func_80175a0(0x88a);
                 WaitTextPrompt();
             }
-            if (Func_80bf400(id) != 0) {
-                Func_80b78e4(id, GetBattleActor(id));
-                _Func_8019908(id, 1);
+            if (Func_80bf400(uid) != 0) {
+                Func_80b78e4(uid, GetBattleActor(uid));
+                _Func_8019908(uid, 1);
                 _Func_80175a0(0x88e);
                 WaitTextPrompt();
             }
-            if (Func_80bf440(id) != 0) {
-                Func_80b78e4(id, GetBattleActor(id));
-                _Func_8019908(id, 1);
-                Func_80b7aac(id);
+            if (Func_80bf440(uid) != 0) {
+                Func_80b78e4(uid, GetBattleActor(uid));
+                _Func_8019908(uid, 1);
+                Func_80b7aac(uid);
                 _Func_80175a0(0x88d);
                 WaitTextPrompt();
             }
-            if (Func_80bf484(id) != 0) {
-                Func_80b78e4(id, GetBattleActor(id));
-                _Func_8019908(id, 1);
-                Func_80b7aac(id);
+            if (Func_80bf484(uid) != 0) {
+                Func_80b78e4(uid, GetBattleActor(uid));
+                _Func_8019908(uid, 1);
+                Func_80b7aac(uid);
                 _Func_80175a0(0x883);
                 WaitTextPrompt();
             }
-            if (Func_80bf4c4(id) != 0) {
-                Func_80b78e4(id, GetBattleActor(id));
-                _Func_8019908(id, 1);
+            if (Func_80bf4c4(uid) != 0) {
+                Func_80b78e4(uid, GetBattleActor(uid));
+                _Func_8019908(uid, 1);
                 _Func_80175a0(0x88c);
                 WaitTextPrompt();
             }
-            if (Func_80bf524(id) != 0) {
-                Func_80b78e4(id, GetBattleActor(id));
-                _Func_8019908(id, 1);
+            if (Func_80bf524(uid) != 0) {
+                Func_80b78e4(uid, GetBattleActor(uid));
+                _Func_8019908(uid, 1);
                 _Func_80175a0(0x891);
                 WaitTextPrompt();
             }
-            if (Func_80bf54c(id) != 0) {
-                Func_80b78e4(id, GetBattleActor(id));
-                _Func_8019908(id, 1);
+            if (Func_80bf54c(uid) != 0) {
+                Func_80b78e4(uid, GetBattleActor(uid));
+                _Func_8019908(uid, 1);
                 _Func_80175a0(0x892);
                 WaitTextPrompt();
             }
         }
+    }
     }
 }
