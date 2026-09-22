@@ -61,18 +61,26 @@
  * both measured with tools/objcmp.py against the reference with its two pooled
  * area ids spelled as symbols.
  *
- * SYMBOL TELL -- ONE NEW .sym LINE IS NEEDED AND IS *NOT* ADDED HERE:
- *
- *     _AREA_32 = 0x32;          (area.sym)
+ * SYMBOL TELL -- `_AREA_32 = 0x32;` IS IN area.sym, ADDED BY THE SAME BATCH-281
+ * COMMIT THAT LANDED THIS FILE.
  *
  * 2008b70 opens `ldr r3, =0x32 / cmp r2, r3` against the area halfword at
  * gState+0x1C0, immediately followed by `ldr r3, =0x33 / cmp r2, r3` -- and
- * _AREA_33 has been in area.sym since batch 68.  That is area.sym's own
- * criterion with its own in-function control sitting three instructions away:
- * the SAME comparison, against the NEXT id, already provisioned.  The
- * (per _MSG_1299's note); replace it with the area.sym line when the entry is
- * approved.  With the shim the function is byte-exact, so this symbol COMPLETES
- * its function -- the condition this tree adds a symbol on.
+ * _AREA_33 has been in area.sym since batch 68.  That is area.sym's own criterion
+ * with its own in-function control sitting three instructions away: the SAME
+ * comparison, against the NEXT id, already provisioned.  Declining 0x32 while
+ * keeping 0x33 would be incoherent.  With it this function is byte-exact, so the
+ * symbol COMPLETES its function -- the condition this tree adds a symbol on.
+ *
+ * THIS PARAGRAPH USED TO SAY THE LINE WAS "NOT ADDED HERE" AND TO DESCRIBE A
+ * `__asm__(".equ _AREA_32, 0x32");` MEASUREMENT SHIM as still present.  Both were
+ * stale -- carried over verbatim from the agent's verification candidate when the
+ * file landed.  The shim WAS present and WAS redundant: nm reported _AREA_32
+ * twice, once global-absolute from the linker script and once local-absolute from
+ * this object, so the area.sym line was never actually exercised.  Batch 282
+ * removed the shim (build and compare green, one symbol now) and corrected this
+ * text.  A VERIFICATION SHIM BELONGS IN THE SCRATCH CANDIDATE, NEVER IN THE
+ * LANDED FILE.
  *
  * THE LEVER OF THE FILE -- SPLIT THE PINNED mov/lsl PAIR IN THE SOURCE.  This
  * is new, it is general, and it took OvlFunc_921_2008f90 from 40 normalised
