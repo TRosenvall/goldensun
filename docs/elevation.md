@@ -23554,3 +23554,83 @@ of them correctly, so the expectation for this band is "exact or one window", no
 "a long tail."** Defects are highly redundant, which is what makes size an
 advantage rather than a penalty — once you find the root cause, it pays 20–50
 lines at a time.
+
+## `lsr #31 / add / asr #17` IS `(x / 2) >> 16`, NOT `x / 0x20000`
+
+Found in batch 281 on `Anim_ShiningStar` and worth 73 aligned lines by itself.
+Grepped absent from this file before writing (`asr #17`, `lsr.*31` in a division
+context, `131072`, `rounding bias`, `signed halving`).
+
+A signed `x / 131072` needs a `+131071` bias before the shift, which gcc emits as
+a compare-and-add or a wider add. The ROM's three instructions are something
+different:
+
+    lsr r3, r2, #31        /* the sign bit ...            */
+    add r2, r3             /* ... as a +1 bias for /2     */
+    asr r2, #17            /* then >>16, merged by combine */
+
+That is the bias for a division by **2**, followed by an arithmetic shift of 16,
+which `combine` folds into one `asr #17`. So the source is `(x / 2) >> 16` — a
+halving division whose result is then shifted — and NOT a single division by
+`0x20000`.
+
+**What makes this certain rather than plausible is an asymmetry in one loop.** The
+same loop computes a sine term and a cosine term from the same angle: the sine
+term is `(t / 2) >> 16` and shows all three instructions, while the cosine term is
+a plain `t >> 16` and shows a single `asr #16`. If the ROM had meant one division
+by `0x20000` both terms would look alike.
+
+Read it the other way when diagnosing: **a `lsr #31 / add` pair immediately before
+an `asr #N` means a signed division by 2 composed with a shift of `N-1`, not a
+division by `1 << N`.**
+
+## `((char **)&sym)[0]` REPRODUCES `ldmia r3!, {r1}` WITHOUT A WALKING POINTER
+
+Batch 281, the `rom_c9000` animation idiom. Where a ROM reads consecutive pointers
+out of a table and the first read prints as `ldmia r3!, {r1}` (a post-incrementing
+load), the instinct is to write a walking pointer. **The plain array subscript is
+enough** — gcc's own addressing choice produces the `ldmia` for element 0 and
+`ldr r3, [r3]` / `ldr r2, [r6, #8]` for the neighbours:
+
+    st   = ((char **)&iwram_3001eec)[0];               /* ldmia r3!, {r1}        */
+    pal  = ((char **)&iwram_3001eec)[1];               /* ldr r3, [r3]           */
+    gfx  = ((char **)&iwram_3001eec)[2];               /* ldr r2, [r6, #8]       */
+    view = *(char **)((char *)&iwram_3001eec - 0x6c);  /* mov r3,r6 / sub r3,#0x6c */
+
+A 16-instruction prologue of exactly this shape matched on the FIRST compile, in
+every register, across five functions. The negative-offset member (`view`) uses the
+`&sym - 0x6c` lever already recorded for `Func_80d6504`, and it appears in all five
+prologues — which is good evidence that a symbol-relative negative offset is how
+this whole bank reaches a structure that sits *below* the symbol it names.
+
+### The bank itself, for whoever picks it up
+
+`rom_c9000` is the battle-animation bank and it is **not** untouched — it holds 137
+landed `.c` files and 20 parks. But every landed file is a small split-tail (2,738
+lines total, largest 186), so what is untouched is the **large entry points**: the
+`Anim_*` and `BaseAnim_*` functions, 300–800 instructions each, ~74 of them
+available. They share the skeleton above, so the bank should be worked as an idiom
+rather than function by function. Donors that carried batch 281's first attempt:
+`src/rom_c9000/rom_cc5d8_a_a_b.c` (the same idiom including a pinned
+`Func_8001af8` DMA block that transplanted verbatim and was correct first time),
+`src/rom_c9000/rom_de974_c_c_c_c_c_c_c_c_c_c_b.c`, and
+`src/non_matching/rom_c9000/80d6504.c`.
+
+Struct shapes inferred and reusable: the particle record at `st + 0xe1*128` is 7
+ints `{x, y, z, dx, dy, dz, startFrame}` (stride 0x1c); `gBuffer` is an array of
+28-byte draw records whose fields 3 and 4 are screen x and y; the descriptor has
+`[2]` = self id, `+0x24` = `short[]` of target ids, `[5]` = target count.
+
+### And one caution that is new to this bank
+
+**A named `int` local is NOT always enough to stop constant propagation into an
+address.** The ROM builds a halfword load's register offset as `mov r3,#4 /
+sub r3,#2 / ldrh r1,[r2,r3]`; gcc folds the `-2` into the pool symbol and emits
+`ldrh r1,[r3,#4]`. Naming `int four = 4` and assigning it at four different scopes
+all produced the identical wrong fold. The existing named-multiplier lever is
+specific to `MULT` (pre-`expand` `synth_mult`) and **does not generalise to a
+constant used in an address**. A sibling function in the same file has the same
+construct with a genuinely variable size, which is what identifies the shape as
+`tbl[sz - 2]` — so in the fixed-size case the ROM's `4` is not a literal either,
+and what holds it is still unknown. Do not spend a budget on spellings here; four
+are on file and flat.
