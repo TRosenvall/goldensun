@@ -609,6 +609,19 @@ Two consequences worth having in mind before touching a pool-placement park:
 - **A wide first entry pushes the whole pool to the end of the function.** This
   is what makes an `int` local for a constant actively harmful when the ROM's
   pool is mid-body — it converts a 64-byte range into a 1020-byte one.
+  **BATCH 280 MEASURED THE CONVERSE, AND IT IS THE MORE USEFUL HALF AT SIZE.**
+  When the ROM's pool is *at the end*, THE `int` LOCAL IS REQUIRED, and above
+  ~250 instructions it is often the only thing that makes the SIZE match at all.
+  `Func_808e680`: `*(unsigned short *)(iw + (0xb8 << 1)) = 0x3e7;` makes 0x3e7 a
+  HImode entry with a 32–60 byte range, so it becomes the pool's first entry and
+  `arm_reorg` dumps early — **216 differing encodings with that interior pool
+  against 5 with a single end pool, same C except one constant.** Routing it
+  through an `int` local makes the load SImode and the pool goes to the end (2
+  pools / 752 bytes → 1 pool / 748, 14 words in the reference's exact order);
+  `Func_808e23c` the same, 3 pools / 652 → 1 pool / 632. **And it needs pairing:
+  the `int` local ALONE was WORSE** (5 → 10), paying only once hoisted above the
+  dominating branch. Same lever, two placements, opposite signs — so read WHERE
+  THE ROM'S POOL IS before deciding which direction you want.
 - **A short-range first entry can also SPLIT the pool**, leaving later
   references to a second pool after the epilogue. `OvlFunc_962_200816c` needs
   exactly that and is parked on it: the split requires the head entry's
@@ -23325,3 +23338,219 @@ nothing at all, the pattern is wrong, not the corpus.
 > has never been done, check that the tool can see it.** The same shape produced the
 > `census.py` case-sensitivity undercount in batch 277 and the `dupfuncs.py` exact-identity floor in
 > batch 278.
+
+## Batch 280 — the 250–400 instruction band, and what a difference count is worth there
+
+Batch 280 was the first batch aimed deliberately at large functions. Nineteen
+landed, including a 397-instruction / 1148-byte function byte-exact and four
+whole-file conversions. The band is **more tractable than the 100-instruction
+one, not less** — but only if you stop reading the difference count as a
+distance.
+
+### A NORMALISED DIFFERENCE COUNT IS NOT A DISTANCE TO EXACT WHEN THE POOL HAS MOVED
+
+This is the single most expensive lesson of the batch and it cost two parks.
+
+`OvlFunc_969_200bbc8` was reported at **"3 differing"** and measures **218 of
+295** under `objcmp`. Both numbers are correct. The instruction counts are 295
+against 293 — a delta of two — so roughly **216 of the 218 are the same
+instructions with shifted `ldr [pc, #N]` offsets**, and the −4 bytes is one pool
+word. That is `tryc`'s documented blind spot #1 seen from the other side.
+
+Three normalised differences with a displaced pool is a **much worse** position
+than three real ones, because the pool is one structural fact that has to be
+fixed before any of the three can be trusted. The corollary for reporting:
+**quote `objcmp`, and quote the reference count beside the difference count.**
+`OvlFunc_common1_5e4` was reported at "202 of 277" and measures 232 of **263** —
+the reference count itself disagreed, which is how a mismatched baseline
+announces itself if you are printing it.
+
+### The count is nearly useless as a search signal at this size
+
+Difference counts here are dominated by **cascades**, and one root cause
+routinely spends 20–50 lines:
+
+| function | root cause | lines it spent |
+|---|---|---|
+| `OvlFunc_881_20086ec` | two extra pool words | twelve conditional branches |
+| `OvlFunc_881_200acb4` | 31 CSE'd constants | 111 of 129 |
+| `OvlFunc_881_200a8e8` | constant CSE | eight high-register copies, four register roles |
+
+Intermediate readings lie outright: candidate `t3_c` scored 221 against `t3_d`'s
+223 while `t3_d` was strictly better in the window under test. **Navigate by
+windows, not by counts** — which requires normalising pool offsets and branch
+targets in the diff first (batch 280's `od3.sh`; the raw diff for one 397-
+instruction candidate was 129 lines of which ~100 were `ldr [pc, #N]` offsets).
+
+### The dominant blocker class at this size is CSE OF REPEATED POOL CONSTANTS, not allocation
+
+Long straight-line cutscene scripts repeat the same emotion id / speed pair /
+coordinate 2–5 times **inside a single basic block** — calls do not end a block.
+gcc commons every one; the ROM commons none. This accounted for 111/129 on
+`OvlFunc_881_200acb4` and ~110/169 on `OvlFunc_881_200a8e8`, and **argument pins
+are its only cure in this tree's idiom.** That is why those two ship 25 and 13
+pins respectively: **the pin count scales with the script's repetition, not with
+any defect in the reading.** It is also why every flag probe was worse — the
+commoning is cse1/gcse, not cse2 (`-fno-rerun-cse-after-loop` 183,
+`-fno-gcse` 180, `-fno-cse-follow-jumps` 169 inert,
+`-fno-expensive-optimizations` 179, against a 169 baseline).
+
+### Register permutations at this size are usually SYMPTOMS
+
+Every one of `OvlFunc_881_200a8e8`'s nine wrong register roles cleared the moment
+the constant CSEs went. A full `.17.lreg`/`.18.greg` derivation correctly showed
+allocno 101 could not take r6 because two long-lived local pseudos holding
+`0x17710000` and `0xd580000` had claimed r6 and r8 — correct, and completely
+beside the point once the cause was removed.
+
+**Read the hard-register conflict list to identify WHICH value is squatting,
+then go fix why it exists, not where it sits.**
+
+### PINNING AND UN-PINNING ARE BOTH LEVERS AND THE LADDER MUST TEST BOTH DIRECTIONS
+
+`OvlFunc_881_200acb4`, in three steps:
+
+    129 -> 18   PINNING 31 repeated-pool-constant sites in one step
+     18 ->  6   UN-PINNING q1 at nine of them, so the mov/lsl pair stays
+                expanded and sched2 can slot the pinned `mov r0` BETWEEN the
+                mov and the lsl.  Pinned, the pair stays adjacent and the r0
+                fill lands after it.
+      6 ->  0   REMOVING the last pin block entirely.  The second
+                __Func_80933f8(0x1e580000, -1, 0xdc80000, 1) is byte-exact
+                written PLAIN; five pinned orders all leave `negs r1` and
+                `ldr r2` transposed.
+
+**A pin that is inert is not free — one of them was actively wrong.** Two greedy
+rounds found 8 individually-inert pins, but dropping all 8 *jointly* broke it
+(the `rom_7d95dc` shape); a proper greedy kept 4 of the 8.
+
+### A SUBSET PIN IS ORDER-SENSITIVE WHERE A FULL PIN IS NOT
+
+This qualifies batch 273's "write every pinned fill uniformly ascending."
+`OvlFunc_924_200a318` pins q1/q2/q3 only, leaving q0 to expand from a CSE'd
+`0xd2 << 18`: **ascending `q1,q2,q3` FAILS at 4 differing; `q2,q1,q3` is exact.**
+The chain order of pinned fills is the source order, and this ROM wants r2 before
+r1. Batch 273's rule holds when the pin set is **q0-first-and-complete**, not
+when q0 is deliberately excluded. (`PIN4` at those sites destroys the CSE the ROM
+has and rematerialises the constant twice.)
+
+### SWITCH vs IF-CHAIN IS VISIBLE IN THE BRANCH POLARITY
+
+`cmp #0xa / beq` is a `switch`; `cmp #0xa / bne` is an `if` / `else if`. Reading
+that on `OvlFunc_924_200a318` fixed all 25 branch-structure differences at once
+(29 → 4). Read the polarity before guessing the construct.
+
+### ELEVEN-ARGUMENT CALLS: NAME THE STACK ARGUMENTS
+
+`__Func_80931ec(5,7,0xd,2,0xc,8,9,4,4,3,0)` with literals emits seven `mov`/`str`
+pairs alternating through r3 — anti-dependences pin the order. With `v1..v7` as
+named locals each constant is a pseudo, local-alloc gives each its own register,
+the two `4`s share one by CSE, and sched2 groups all the movs ahead of all the
+strs — the ROM's shape, including its use of r4 and r5. Worth 20 differing;
+nothing else reached it.
+
+### ONE VARIABLE SERVING TWO DISJOINT BRANCHES — and merging is not always the answer
+
+Three instances, and **the priority formula predicted one before it was tried.**
+`Func_808e23c`: merging the outer-loop counter with the `Func_8091d84` result
+lifts `REG_N_REFS` 7→10 and `REG_LIVE_LENGTH` 54→60, so priority goes 0.259 →
+0.5, passing `best` (0.326) and `size` (0.267). Predicted `ptr r5 > j r6 >
+best r7 > size r8`; that is exactly the ROM. 50 → 37, and a 60-instruction
+search loop went exact. `Func_80ba2c0` confirms the same lever *negatively* —
+splitting two such values costs 130 against 51.
+
+**And the reverse defect lives in the same function.** Reusing one variable for
+the inner count *and* a call result made the inner count cross a call, which
+excludes it from r4 in `find_reg` PASS 0 and produced a caller-save
+`str r4,[sp]`/`ldr r4,[sp]` pair plus a third spill slot. Separating them
+removed both (92 → 72).
+
+**Merging and splitting are both levers; which one applies is decided per value
+by whether it crosses a call.**
+
+### A POOLED ZERO CAN BE A HImode CONSTANT RATHER THAN A SYMBOL
+
+Counterexample to leaning on `area.sym`/`const.sym` for every pooled literal.
+`OvlFunc_943_200a618` loads `0` **from the pool** for two byte stores while
+storing 1 and 2 at the same offsets with `movs`, and its ROM splits the pool into
+**three** chunks with `b`s only 248 and 356 bytes apart, where its file-mate
+reaches an end-of-function pool from 726. Cause: `*thumb_movhi_insn` alternative
+1 prints `ldrh`, which GAS assembles as a two-byte pc-relative `ldr`, and carries
+`pool_range 64` against `movsi`'s 1020 — while `MINIPOOL_FIX_SIZE` still rounds
+it to a full word. **One such fix clamps `max_address` for the entire pool.**
+
+**The spelling is the BARE LITERAL.** `int zero = 0;` destroys it (69 differing).
+A `_CONST_0` symbol gives the right two-byte `ldr` but a range-1020 fix, so the
+pool does not split. **Check for a halfword store before inventing a symbol.**
+That one edit took 69 → 0 and simultaneously dissolved an r5/r6 allocation swap
+that a full `.17.lreg`/`.18.greg` analysis had priced as a 5× unreachable gap —
+the second time this batch the formula was right and the *axis* was wrong.
+
+### Three smaller idioms, each measured
+
+- **A separate pointer local PER `gState` site**, not per function —
+  `Func_808e680`, four sites: 39 → 9. Reusing one variable lengthens its live
+  range, the strength-reduced pointer lands in a long-lived scratch register and
+  the loop preheader mis-schedules. This extends the `gs = gState; gs += 0xfa << 1;`
+  idiom: **it is per-site.**
+- **A 16-bit memory-to-memory copy needs TWO `int` temps, one per copy.** The
+  direct form gives gcc the DEST offset as the base of its constant chain
+  (`0x1c0 → +0x80 → +2`); a temp gives the SOURCE (`0x240 → −0x80 → +2`, the
+  ROM). `unsigned short v` produces `mov r0,#0 / ldrsh rX,[r3,r0]`; `int v` gives
+  the ROM's `ldrh rX,[r3,#0]`. One *shared* temp still coalesces the value into
+  the address register. 11 → 6.
+- **A named pointer to a stack struct is ALL-OR-NOTHING.** `cp = &c; cp->f8` for
+  a 0x54-byte context: 119 → 51 — but ONE direct `c.f8` anywhere reverts the
+  whole function to frame-relative addressing (measured 119, identical to having
+  no `cp` at all).
+
+### ANTI-TELL: `ldrsh rX, [rBase, rZero]` with a materialised zero is NORMAL
+
+Three sites in `Func_808e680` reproduce it unaided. It is the ordinary gcc
+output for a signed-short read at a computed address. It looks like a defect and
+is not.
+
+### NEW PARK CLASS — REDUNDANT-COPY PRESSURE, where the ROM is LESS optimal than gcc
+
+`Func_80ba2c0`. The ROM spills a parameter to `sp+0xc` and reloads it nine
+times; ours keeps it in r11, so the frame is 0x68 not 0x6c and every
+`ldr rX,[sp,#0xc]` is `mov rX,r11`. The cause is exactly one register of
+pressure: **the ROM's loop carries a redundant copy of a context pointer into
+r8** (`mov r8, r7` in the preheader, `mov r3, r8` in the body — three
+instructions per iteration where two suffice), which takes the fourth high
+register and forces the parameter out. gcc, being correct, makes no such copy.
+
+To reproduce it, a source construct would have to make gcc hold a *second* live
+copy of a pointer it already has in a register, across a loop, with no other
+instruction added. Nine spellings tried; **gcc coalesces or reverts every one**,
+and coalescing is the correct behaviour. Recorded as a class so it is not
+re-attacked as a spelling hunt.
+
+### VERIFYING A SYMBOL TELL: BUILD A SYMBOLISED COPY OF THE REFERENCE
+
+`objcmp` compares an unlinked object against a hand-written `.s` that spells the
+symbol as its literal, so a *correct* candidate reports "N encodings + M
+relocations differ." Three of four targets in one agent's set did. **Copy the
+reference `.s` and rewrite `ldr r0, =0x3a` to `=_AREA_3a`**, then compare against
+that — it turns "2 places differ" into `OK`. Recommended as the standard move
+whenever the only surviving differences are pool words with `R_ARM_ABS32`
+relocations under them. (The in-candidate equivalent, per `_MSG_1299`'s note, is
+a top-level `__asm__(".equ _MSG_1299, 0x1299");` shim.)
+
+### READ THE COMPILER'S OWN SOURCE — IT IS IN THE IMAGE AND WAS UNUSED
+
+Both of the hardest levers this batch came from reading `arm.md`, `arm.c` and
+`loop.c` **in the build container**. That turned "gcc will not split this pool"
+from a dead end into a measurement that matched the ROM to within 4 bytes. It had
+been sitting in the image unused for 279 batches.
+
+### What to expect from this band
+
+`OvlFunc_881_200acb4` (397 instructions) landed **exactly**; `OvlFunc_881_200a8e8`
+(363) is one sched2 window away; both started at 129 and 169 normalised
+differences and reached ≤ 6 in about 25 substantive candidates. **At 400
+instructions there are hundreds of scheduling ties and sched2 resolves nearly all
+of them correctly, so the expectation for this band is "exact or one window", not
+"a long tail."** Defects are highly redundant, which is what makes size an
+advantage rather than a penalty — once you find the root cause, it pays 20–50
+lines at a time.
