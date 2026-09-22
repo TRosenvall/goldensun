@@ -23151,3 +23151,133 @@ register you want — the zero follows. Chasing the zero itself is chasing a con
 > This retired a "next step" recorded in a park and acted on for a full round. When a residue's
 > register belongs to a `scratch`, check `.17.lreg` for an actual `Register N` line before
 > treating it as something source can address.
+
+## THE sched2 TIE-BREAK, COMPLETE: PRIORITY, THEN DEPENDENT COUNT, THEN LUID
+
+The notes previously went straight from priority to `INSN_LUID`. There is a term between them, and
+batch 279 hit it on three separate functions.
+
+`rank_for_schedule` compares, in order:
+
+1. **priority** (`.23.sched2`'s `prio` column);
+2. **forward dependent count** — *more dependents wins*;
+3. `INSN_LUID` — source order.
+
+Measured: two insns at identical priority 68 and identical cost 2, decided by three dependents
+against two. The third dependent was a `REG_DEP_OUTPUT` from a later write, which is easy to miss
+when counting by eye.
+
+Two corroborations that the mechanism was read right, both worth copying as technique:
+
+- **Adding a trailing call raises BOTH counts by one and is therefore inert.** A change that
+  should do nothing, and does.
+- **gcc's Thumb pool is emitted in SCHEDULED-INSN ORDER**, so when two pool words looked permuted
+  it was the *schedule*, not the pool.
+
+### Three ways to move it, in ascending cost
+
+- **Assignment order**, when the fills are in one sched2 region. `q0 = N;` written textually FIRST
+  gives `mov r0` the lowest LUID in the priority-1 group. Worth **80 differing → 0** on one
+  function, with no other edit.
+- **A memory dependence**, when there is a memory operand to work with. See the next section.
+- **A basic-block boundary** — `do { } while (0);` re-regions the scheduler. Needed where an r0
+  fill cannot win on dependent count at all (below).
+
+### Why an r0 argument fill can never win on dependent count
+
+**A call SETS r0 and only USES r1/r2.** So r0-fills accumulate no anti-dependences, while r1/r2
+fills accumulate one per later call. On one function the dump showed **10 forward dependents
+against 3**. That asymmetry is structural: if the ROM wants an r0 fill first and the fills are in
+one region with r1/r2 live, neither assignment order nor a pin will do it, and a block boundary is
+the only lever left.
+
+## THE ALIAS SET MUST CHANGE AT THE ACCESS, NOT GLOBALLY
+
+Batch 278 introduced `-fno-strict-aliasing` as the "ROM reloads a pointer field" lever. Batch 279
+shows the flag and a cast are **not interchangeable**.
+
+`OvlFunc_927_2008ae8`'s last two encodings were a sched2 tie that LUID structurally could not win:
+`store_bit_field` **always** masks and shifts the value before reading the destination, so the
+value load's LUID is always lower. The handle is the DAG.
+
+- Read as a struct field of a *different* struct type, strict aliasing proves the load cannot alias
+  the preceding byte store, so it is ready early and independent — 8 differing.
+- Read through a **char pointer** it lands in alias set 0, the memory dependence appears, and the
+  ROM's order falls out — **0**.
+- **`-fno-strict-aliasing` does NOT substitute**: still 2 differing, *and* it breaks an unrelated
+  store pair.
+
+So: use the flag when the ROM re-reads a pointer field throughout a function; use a **char-pointer
+cast at the one access** when you need a single dependence edge. A union on the table works the
+same way, and that widens a recorded rule — the note said a union cures a missing *anti*-dependence;
+it cures a missing **true** dependence too, because the rule is about alias **sets**.
+
+## CHECK THE BLOCK STRUCTURE BEFORE MOVING LIVE RANGES
+
+`OvlFunc_927_2008ae8` looked like **five** allocation defects at 56 differing: wrong frame size, two
+values swapped between high registers, three long-lived values in the wrong slots. The priority
+formula had been computed and predicted greg's order exactly, and no amount of moving live ranges
+closed it.
+
+**Duplicating a call into both arms of an `if`/`else`, instead of selecting its argument with a
+ternary, dropped it to 8 in one step** — because gcc's cross-jumping then merges only the tail and
+stops exactly where the ROM's duplicated `mov r2, r6` sits.
+
+All five were **one cross-jump defect upstream of allocation**. The formula was right and the axis
+was wrong. That is the same shape as the recorded rule that a cross-jump residue is downstream of
+allocation, seen from the other end: a *structural* difference can present as several allocation
+differences at once.
+
+## TWO MORE SYMBOL TELLS, AND ONE ANTI-TELL
+
+The strongest tell on file is shiftability — gcc pools only what it cannot build. Batch 279 adds
+one that reaches the unshiftable case, and one that cuts the other way.
+
+### A DUPLICATE POOL WORD is a symbol tell
+
+`force_const_mem` **deduplicates SImode `const_int` per function**. So two pool words holding the
+same value mean the two operands are *different rtx objects* — one a `const_int`, one a
+`SYMBOL_REF`.
+
+`DataTransferMenu`'s pool is seven words holding six distinct values, with `0xc76` twice; eleven
+pc-relative references resolve to those seven words, so every other value is shared. The value is
+unshiftable, so the instruction alone proves nothing and `tools/pool.py` would never flag it.
+*Which* reference is the symbol was settled independently — a landed file already passes the same
+value as a plain literal elsewhere.
+
+**Decode the pool out of `baserom.gba` and count distinct values against word count.**
+
+### A pooled SHIFTABLE constant can be a HImode tell, not a symbol tell
+
+`& (short)0x800` makes the AND HImode, so the mask goes to the pool as `ldrh rN, .L / .word 2048`
+— which prints as the ROM's `ldr rN, =0x800`. Without the cast gcc synthesises `mov`/`lsl`.
+
+Since shiftability is the strongest symbol argument, **check the MODE before reading a symbol into
+a pooled shiftable value.** This is the third distinct thing a mid-function pool entry can mean,
+alongside a real symbol and a leftover bitfield insert mask.
+
+## SMALLER FINDINGS FROM BATCH 279
+
+- **An inner scope is the only handle on spill-slot order.** `expand_decl` numbers function-scope
+  locals before any statement, so a function-scope local always gets a pseudo number below a
+  compiler-generated temp's, and slots go ascending pseudo → descending `sp`. A NESTED BLOCK pushes
+  it past. That turns a recorded non-lever into a lever.
+- **`goto` into a `do/while` is a SCHEDULING lever as well as a loop shape.** The loop's
+  `NOTE_INSN_LOOP_BEG` rides on the `b` into the test and acts as a barrier, reordering the code
+  *before* it — it flipped two argument fills at exactly the call sites followed by such a loop,
+  while sites without one were right from the start.
+- **The ldrh/ldrsh blocked sub-class is narrower than recorded.** It is blocked when the SAME
+  variable is read twice; ONE SIGNED READ MASKED THREE WAYS reproduces the ROM's `ldrsh` *and*
+  `ldrh`, where one signed plus one unsigned variable CSEs to a single load (54 differing).
+- **Two similar blocks can want different statement order**, and a per-case BLOCK-LOCAL beats both
+  an inline expression (94 differing) and one function-scope local (88, and sixteen instructions
+  short) — the function-scope one spends a callee-saved register in every arm.
+- **Re-run the greedy drop after every structural change.** On one function, getting a mask right
+  (`neg r3, r3` is −13, and −13 == `~12`, not `~13`) made four separate pieces of scaffolding
+  inert — two pin pairs, a barrier and two register pins.
+- **The three-named-locals precondition fails cleanly when there is no branch at all.** One
+  function's whole pre-loop region is ONE basic block across ~20 `bl`s — calls do not end a basic
+  block — so there is nothing for the lever to dominate from.
+- **Search generated `asm/` for a ROM instruction pattern and read back to its `.c`.** That found a
+  donor in one step where a name search would not have. And **diffing a solved function's `-da`
+  dump against yours** explains a schedule difference directly — stronger than diffing its source.
