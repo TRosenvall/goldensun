@@ -23746,3 +23746,38 @@ ROM's position.
 
 So: **read the ROM's pool order, infer each word's mode from where it sits, and let
 that decide which constants get an `int` carrier.**
+
+## A NAMED MULTIPLIER LOCAL SUPPRESSES ONE LOOP'S giv STRENGTH REDUCTION — the source cure for a class that otherwise wants a flag
+
+Batch 281, `Func_80ba6ac` (landed), worth 231 → 179. The mechanism, confirmed in
+`loop.c`'s `strength_reduce`:
+
+    if (! v->replaceable && ! bl->eliminable && REG_USERVAR_P (v->dest_reg))
+      benefit -= copy_cost;
+    ...
+    if ( ! flag_reduce_all_givs && v->lifetime * threshold * benefit < insn_count
+        && ! bl->reversed )        /* -> v->ignore = 1, giv NOT reduced */
+
+with `threshold = (loop_info->has_call ? 1 : 2) * (3 + n_non_fixed_regs)`
+(loop.c:3862). **Naming the multiplier makes the pseudo `REG_USERVAR_P`, so `benefit`
+loses `copy_cost` and the product falls below `insn_count`** — the giv is ignored and
+gcc recomputes the product in the loop, which is what the ROM does.
+
+**The asymmetry is what makes this a source cure rather than a flag row.**
+`-fno-strength-reduce` sets `v->ignore` for *every* giv in the translation unit, so
+it also kills the reduction in loops that **already match** — measured at 34 → 59
+differing regions on the function above, i.e. **strictly worse**. Naming one
+multiplier suppresses exactly one loop's giv.
+
+**So no `-fno-strength-reduce` row should be added anywhere for this class.** Two
+batch-281 parks reached this class and could only move it with the flag
+(`src/non_matching/rom_c9000/cfef4_ShiningStar.c` measured 115 → 107 with it); the
+named local is their answer.
+
+### One real limit on it
+
+`loop.c:4502` gates `REG_USERVAR_P` on `v->dest_reg`, so **it only fires for
+DEST_REG givs.** `src/non_matching/rom_b5000/80b9ec0.c`'s reduction is a **DEST_ADDR**
+giv — an address computation rather than a value — and three spellings of the address
+all failed to stop it. Check which kind of giv you have in `.08.loop` before
+reaching for the lever.

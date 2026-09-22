@@ -107,6 +107,20 @@
  *    aligned). NO Makefile row was added, and one should not be added on
  *    115 -> 107 alone -- find the source cure first.
  *
+ *    THE SOURCE CURE WAS FOUND LATER IN THE SAME BATCH AND IS NOT A FLAG.  A NAMED
+ *    MULTIPLIER LOCAL (`off = i * 280;`) makes the pseudo REG_USERVAR_P, so
+ *    strength_reduce's benefit loses copy_cost and
+ *    `v->lifetime * threshold * benefit < insn_count` flips -- the giv is ignored
+ *    and gcc recomputes the product in the loop, which is the ROM's i*5, *7, *8.
+ *    It suppresses exactly ONE loop's giv, where -fno-strength-reduce kills every
+ *    giv in the TU including the loops that already match (measured strictly worse
+ *    elsewhere: 34 -> 59).  See docs/elevation.md and the landed
+ *    src/rom_b5000/rom_b9b30_c_a_a_c.c, where it was worth 231 -> 179.
+ *    CHECK FIRST that the reduction here is a DEST_REG giv and not a DEST_ADDR one
+ *    -- loop.c:4502 gates REG_USERVAR_P on v->dest_reg, and the lever is inert on
+ *    DEST_ADDR givs (src/non_matching/rom_b5000/80b9ec0.c is that case).
+ *    THIS IS THE FIRST THING TO TRY ON THIS PARK.
+ *
  * 2. CSE OF A REPEATED POOL CONSTANT, as the batch-280 class predicts, BUT the
  *    argument-pin cure does not apply because these are not call arguments. The
  *    ROM loads =gBuffer from the pool TWICE and keeps `jbase` in r11 across
