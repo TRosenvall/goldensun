@@ -182,3 +182,31 @@ _CONST_1 = 0x1;
  */
 
 _CONST_a1 = 0xa1;
+
+/* _CONST_0 added in batch 283 for OvlFunc_970_2008430, and it COMPLETES that function:
+ * byte-identical with it (1796 bytes, 694 encodings, 195 relocations), and without it
+ * 2 differing encodings at size 1792 -- exactly the 4-byte missing pool word.
+ *
+ * THIS FILE HAD NO ZERO ENTRY BEFORE NOW, which is why the line is worth a note. The
+ * ROM has `ldr r0, =0` feeding __SetDestMap where a literal gives `mov r0, #0`, and
+ * docs/elevation.md's generalised tell says explicitly that it "holds all the way down
+ * to zero" -- a pooled zero is a symbol.
+ *
+ * THE HALFWORD EXCEPTION WAS CHECKED AND DOES NOT APPLY. That exception is what makes
+ * a pooled small constant a MODE artefact rather than a symbol, and batch 280 found a
+ * pooled zero that was exactly that (a HImode fix whose bare literal was required --
+ * see src/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a_c_c_a_c.c). Here the operand is
+ * an SImode CALL ARGUMENT, not a halfword or byte store, so there is no HImode path to
+ * account for it.
+ *
+ * IN-FUNCTION CONTROL IS STRONG: this same function passes a literal 0 in many other
+ * argument slots -- __Func_8092adc(...,0), __ActorMessage(1,0), __Func_8092c40(1,0),
+ * __Func_8091c7c(0,0) -- and EVERY ONE reproduces as `mov rN, #0`. So the function
+ * synthesises zero everywhere except at this one call, which is the discrimination this
+ * file's criterion asks for.
+ *
+ * DIRECT PRECEDENT FOR THE SAME CALLEE: src/overlays/rom_77a7c8/ovl_30_c_c_a_c_a.c:106
+ * uses `__SetDestMap((int)&_CONST_2, 0x1b)`. And unlike that entry's recorded `.word`
+ * mismatch, this one folds absolute and comes out BYTE-IDENTICAL -- worth knowing that
+ * the zero case is cleaner than its own precedent. */
+_CONST_0 = 0x0;
