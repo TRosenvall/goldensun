@@ -1,3 +1,61 @@
+/* WHOLE-FILE CONVERSION of asm/overlays/rom_7d6418/ovl_30_c_c_c_a_c_a_a_a_a.s --
+ * OvlFunc_951_20081d8 is its only function and datacheck.py reports no data section,
+ * so no split and no linker change.  277 instructions, 740 bytes, 296 encodings and
+ * 61 relocations identical.
+ *
+ * `_AREA_bd` is already in area.sym:130 and nothing needed adding.  Against the tree
+ * reference this object reports 1 differing encoding -- that pool word, the
+ * relocation placeholder -- and against a symbolised copy it is OK.  CONTROL: with a
+ * literal 0xbd instead of the symbol the function collapses to 293 instructions and
+ * -8 bytes, so the pool load IS the symbol tell rather than a formatting choice.
+ *
+ * Was parked at 9 of 296.  Three findings closed it.
+ *
+ * ================================================================
+ * A BARE `__asm__ volatile ("")` PLACED *BEFORE* THE STATEMENT WHOSE TWO CHAINS MUST
+ * NOT SWAP IS A CHEAP, REPEATABLE sched2 PHASE LEVER -- AND THE POSITION MATTERS IN
+ * ONE DIRECTION ONLY
+ * ================================================================
+ *
+ * Two of them did 8 -> 6 -> 4.  Mechanism read out of haifa-sched.c's
+ * rank_for_schedule: with priorities equal, THE CLASS RELATIVE TO
+ * `last_scheduled_insn` DECIDES BEFORE `depend_count` AND LONG BEFORE `INSN_LUID`.
+ * In the first window the `ldr r3,=0x3f42` reload was anti-dependent on the preceding
+ * `str r2,[r3]` (class 2) while `ldr r1,=0x4000050` had dep 0 (class 3) and won; the
+ * barrier changed WHICH INSN WAS LAST-SCHEDULED at the sort.
+ *
+ * A BARRIER PLACED *AFTER* THE STATEMENT FIXES THE REGISTER ORDER BUT KILLS THE
+ * ldr/mov INTERLEAVE (8 -> 6, then stuck).  So this is not a symmetric tool -- put it
+ * before the statement you are protecting.
+ *
+ * ================================================================
+ * loop.c HOISTS INVARIANTS WITH `emit_insn_before (..., loop_start)`, SO A HOISTED
+ * INVARIANT CAN NEVER PRECEDE PREHEADER CODE.  THE CURE IS TO MAKE THE POINTER A
+ * STRENGTH-REDUCED giv INSTEAD OF PREHEADER CODE.
+ * ================================================================
+ *
+ * That is why 112 barrier, pin and carrier spellings could not put `mov r8, r5` (the
+ * hoisted -1) before `adds r6, r7, #0` (`p = q`): no source construct reorders them,
+ * because one is emitted before the loop start and the other is the loop start.
+ *
+ * Writing the loop over an INDEX (`q[i]`) instead of a walking pointer means
+ * `strength_reduce` emits the `p = q` init -- and strength_reduce runs AFTER
+ * move_movables, so the invariant lands first, which is the ROM's order.
+ * `maybe_eliminate_biv` then rewrites `i == 0` back into the ROM's `cmp r6, r7`.
+ * THIS WAS THE SINGLE EDIT FROM 2 TO 0.
+ *
+ * Negative control worth keeping: naming the -1 in a local (`nm = -1`) at four
+ * positions all gave 28, because cse merges it with the earlier -1 pseudo and the copy
+ * disappears entirely.
+ *
+ * RE-RUNNING THE DROP LADDER PAID AGAIN.  The park's
+ * `__asm__ volatile ("" : : "r" (beta))` BEFORE `ba = BLDALPHA` became INERT once the
+ * new bare barrier landed, and is dropped.  Everything shipped is load-bearing on
+ * single drop: barrier 1 -> 6, barrier 2 -> 6, the trailing "r"(beta) barrier -> 2,
+ * the bld/bc carriers -> 287, the alpha carrier -> 226, the beta carrier -> 253.
+ *
+ * No per-file Makefile flag override applies to this stem.
+ */
 /* OvlFunc_951_20081d8 -- NON-MATCHING, 9 encodings of 296 against the tree
  * reference; 8 against a symbolised copy, the difference being one pool word under
  * an already-provisioned .sym symbol.  SIZE AND RELOCATIONS EXACT.  277 instructions.
@@ -82,7 +140,6 @@ int OvlFunc_951_20081d8(void)
     unsigned char *g;
     unsigned char *h;
     unsigned char *r;
-    signed char *p;
     signed char *q;
     int bld;
     int alpha;
@@ -91,15 +148,17 @@ int OvlFunc_951_20081d8(void)
     volatile unsigned short *bc;
     int d;
     int x;
+    int i;
 
     g = gState;
     if (*(short *)(g + (0xe0 << 1)) == (int)(&_AREA_bd)) {
         *(int *)(iwram_3001ebc + (0xe0 << 1)) = 0x100;
+        __asm__ volatile ("");
         bld = 0x3f42;
         bc = BLDCNT;
         *bc = bld;
+        __asm__ volatile ("");
         beta = 0x80c;
-        __asm__ volatile ("" : : "r" (beta));
         ba = BLDALPHA;
         *ba = beta;
         __asm__ volatile ("" : : "r" (beta));
@@ -177,22 +236,22 @@ int OvlFunc_951_20081d8(void)
     __ActorMessage(8, 0);
     if (*q == -1)
         goto tail;
-    p = q;
+    i = 0;
     do {
-        if (p == q)
+        if (i == 0)
             __MessageID(0xe2f);
         else
             __MessageID((int)(&_MSG_e30));
-        x = OvlFunc_951_2008d70(*p);
+        x = OvlFunc_951_2008d70(q[i]);
         __Func_8019908(x, 2);
         __ActorMessage(8, 0);
         __Func_808f1c0(x, 3);
         __Func_8091a58(x, 0);
         __CutsceneWait(0xa);
         __Func_8092adc(0, 0xc0 << 8, 0);
-        p++;
+        i++;
         __CutsceneWait(0x1e);
-    } while (*p != -1);
+    } while (q[i] != -1);
 tail:
     r = gState;
     r[0x96 << 1] = 0xfe;
