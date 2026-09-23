@@ -1,7 +1,24 @@
-/* BaseAnim_Tackle -- NON-MATCHING, 47 encodings of 402.  SIZE EXACT (916 bytes),
- * INSTRUCTION COUNT EXACT (402), FRAME EXACT (`sub sp, #0x48`), and the relocation
- * list has THE SAME 50 SYMBOLS IN THE SAME ORDER with only three offsets differing
- * by 2 and 4 bytes downstream of the instruction permutations.  382 instructions.
+/* BaseAnim_Tackle -- NON-MATCHING, 12 ENCODINGS OF 402 (was 47; advanced in batch
+ * 283).  SIZE EXACT (916 bytes), INSTRUCTION COUNT EXACT (402), FRAME EXACT
+ * (`sub sp, #0x48`), AND RELOCATIONS NOW MATCH EXACTLY -- objcmp prints no
+ * RELOCATIONS-differ line at all, where at 47 it had three offsets adrift.
+ * 382 instructions.
+ *
+ * The C below is the 12.  Nothing structural remains: the CSE class is gone and the
+ * register-role class is gone.  Blocker is now post-reload scheduling alone, four
+ * windows:
+ *
+ *   @58  (d0/d1 loads)  ROM groups `adds r2,#184 / adds r3,#188 / ldr / ldr / str /
+ *                       str / ldr r1,[sp,#16]`; ours emits the same seven per-pointer
+ *   @75  ROM `mov r0,r9` then `ldr r1,=gBuffer`; ours reversed
+ *   @221 first _call_via_r4: ROM `ldr r4,[sp,#24] / mov r1,r9 / ldr r0,[sp,#32]`;
+ *        ours reversed -- AND THE OTHER THREE _call_via_r4 SITES MATCH
+ *   @305 ROM `add r7,sp,#36` then `add r6,r9`; ours reversed
+ *
+ * All four are 2-4 instruction permutations with NO SOURCE STATEMENT TO REORDER --
+ * the competing operand is a compiler-generated invariant (`add r7,sp,#36` = &pos,
+ * `ldr r1,=gBuffer`) in three of them, which is exactly where the statement-order
+ * lever below runs out.  -fno-schedule-insns2 is 266, so sched2 is required.
  *
  * THIS IS THE BEST POSITION ANY rom_c9000 ANIMATION ENTRY POINT HAS REACHED.  Batch
  * 281 went 0-for-9 in this bank; batch 282 got here with the three handles that
@@ -80,11 +97,29 @@
  * there the same constant has ~6 uses, gcc DOES keep it in a register, and the ROM
  * then uses register-offset loads instead of an add.
  *
- * TWO ESCAPE ROUTES AND THEY EXCLUDE EACH OTHER: an explicit `slot` local gets the
- * spill slot but shares the constant; letting loop-invariant motion create it in the
- * preheader (post-CSE, so a fresh constant) gets the two pool loads but the pseudo
- * then stays in a register and the frame drops to 0x44.  Measured 204 / 238 / 238.
- * Not reachable from C with any lever on file.
+ * ~~TWO ESCAPE ROUTES AND THEY EXCLUDE EACH OTHER ... Not reachable from C with any
+ * lever on file.~~  **STRUCK IN BATCH 283 -- THE ROUTE EXISTS AND NO LABEL IS
+ * NEEDED.**  This park's open question was whether the ROM's source had a label
+ * between the two 0x7828 sites to break cse1's extended-BB reach.  It does not need
+ * one:
+ *
+ *     A PINNED CALL-CLOBBERED REGISTER BREAKS cse1's CONSTANT SHARING, because
+ *     cse1's `invalidate_for_call` kills the equivalence at the intervening call.
+ *
+ *         { register int k3 __asm__("r3");
+ *           k3 = 0x7828;
+ *           GetBattleActorPos3((*(Desc **)(base + k3))->ids[0], &hit); }
+ *
+ * Measured 47 -> 46, and it produced the ROM's TWO SEPARATE POOL LOADS from one
+ * word.  The same form works for a SYMBOL in a register-offset load
+ * (`register char *tb __asm__("r4")` for Data_ede48, 23 -> 20) where the recorded
+ * `ix + (char *)Data_ede48` operand-order lever was inert twice.
+ *
+ * AND THE LICM ROUTE'S FAILURE IS NOW UNDERSTOOD RATHER THAN OBSERVED: with no
+ * `slot` local at all it measures 110 at frame 0x44 because THE ADDRESS IS SUNK INTO
+ * THE LOOP BODY, not hoisted to the preheader -- so it was never the "two pool
+ * loads" route this park assumed.  (The old measurements 204 / 238 / 238 stand as
+ * measurements; only the conclusion drawn from them was wrong.)
  *
  * POST-RELOAD SCHEDULING AROUND THE PINNED `base`, about 20 across four windows.
  * Every one is the placement of a `mov rX, r9` / `add rX, r9` relative to a
@@ -101,9 +136,47 @@
  *
  * No .sym entry is warranted.  No per-file Makefile flag override applies.
  *
- * NEXT: the CSE window.  Both escapes are measured and exclude each other, so this
- * wants a reading of why cse1's extended-BB reach covers those two sites -- a label
- * between them would break it, and whether the ROM's source has one is the question.
+ * ================================================================
+ * THREE MORE BANK-WIDE LEVERS FOUND IN BATCH 283, all measured here
+ * ================================================================
+ *
+ * A BLOCK-SCOPED DECLARATION GETS A LATER PSEUDO NUMBER THAN A COMPILER TEMP, AND
+ * THEREFORE A LOWER SPILL SLOT.  The declaration-order rule above is about the outer
+ * decl list and does not cover a CSE temp competing for a slot.  When `&hit` is
+ * passed directly as a call argument, the temp holding it spills at the LOWEST slot
+ * and steals `slot`'s 0x08.  Moving `Desc **slot` into a block opened AFTER that
+ * statement made `slot` the later pseudo and swapped them back: 37 -> 32.  The rule:
+ * `expand_decl` runs in CODE ORDER, so a nested block's local outranks any temp
+ * created before the block opens.
+ *
+ * "ASSIGN THE `base + K` POINTER LAST" IS A REPEATABLE STATEMENT-ORDER LEVER, and it
+ * is now the highest-yield one in this bank -- 26 -> 12 came ENTIRELY from statement
+ * ordering inside regions.  The ROM's sched2 consistently places the `add rX, r9`
+ * that completes a `base + K` address immediately before its first use; gcc places it
+ * early.  Declaring the pointer but ASSIGNING it after the other setup statements in
+ * the same region reaches it.  Four hits: `j = 0` before `p = base + (0xe1<<7)`
+ * (26 -> 23); `frame = 0` before `slot = base + 0x7828` (20 -> 15); `i = 0` before
+ * `p = ...` (15 -> 14); and a named `msk = 0xff` inserted between them to give the
+ * hoisted mask a source position (14 -> 12).
+ *
+ * `&x` PASSED DIRECTLY AS A CALL ARGUMENT, WITH THE POINTER LOCAL ASSIGNED
+ * AFTERWARDS, IS A DIFFERENT SHAPE FROM PASSING THE LOCAL.  `f(..., &hit);
+ * hitp = &hit;` gives the ROM's compute-into-reg / copy-to-arg / store-to-slot;
+ * `hitp = &hit; f(..., hitp)` gives compute / store / reload.  Worth 46 -> 37 and it
+ * landed that whole nine-instruction window exactly.  Measured negatives: `hitp`
+ * kept AND `&hit` passed (46); `slot` assigned before the call (229, count dropped to
+ * 400).
+ *
+ * MORE MEASURED NEGATIVES FROM BATCH 283, do not re-run: an r4 pin on `slot`'s
+ * constant (inert at both 20 and 23); an r3 pin on `frame = 0`'s zero (inert); a
+ * `char *tbl` table local (inert); swapping d0/d1 assignment order (15, worse);
+ * swapping q0p/q1p assignment order (15, worse); an explicit `vec3_t *pp = &pos`
+ * local (148, and size grew 4); `bp = base` before Func_80df9d0 (310).
+ *
+ * NEXT: four sched2 permutations where the competing operand is compiler-generated,
+ * so there is no source statement to reorder.  At 12 of 402 with size, count, frame
+ * and relocations all exact, this wants .23.sched2's ready list read at each window
+ * -- not more spellings.
  */
 #include "gba/types.h"
 #include "gba/io.h"
