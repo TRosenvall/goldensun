@@ -506,3 +506,4 @@ OvlFunc_947_200975c  src/overlays/rom_7d0e88/ovl_1528_a_a_c_a_b.c
 OvlFunc_970_2008430  src/overlays/rom_7fa4ec/ovl_30_c_c_c_a_c_c_c_c_a_b.c
 OvlFunc_951_20081d8  src/overlays/rom_7d6418/ovl_30_c_c_c_a_c_a_a_a_a.c
 OvlFunc_947_200a74c  src/overlays/rom_7d0e88/ovl_2580_c_c.c
+Anim_Break         src/rom_c9000/rom_d82b0_b.c
