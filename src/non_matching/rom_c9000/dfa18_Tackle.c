@@ -178,6 +178,113 @@
  * and relocations all exact, this wants .23.sched2's ready list read at each window
  * -- not more spellings.
  */
+/* BaseAnim_Tackle -- NON-MATCHING, 47 encodings of 402.  SIZE EXACT (916 bytes),
+ * INSTRUCTION COUNT EXACT (402), FRAME EXACT (`sub sp, #0x48`), and the relocation
+ * list has THE SAME 50 SYMBOLS IN THE SAME ORDER with only three offsets differing
+ * by 2 and 4 bytes downstream of the instruction permutations.  382 instructions.
+ *
+ * THIS IS THE BEST POSITION ANY rom_c9000 ANIMATION ENTRY POINT HAS REACHED.  Batch
+ * 281 went 0-for-9 in this bank; batch 282 got here with the three handles that
+ * batch wrote down.  Progression: 355 -> 311 -> 204 -> 147 -> 57 -> 47.
+ *
+ * Verify with:
+ *   python3 tools/objcmp.py src/non_matching/rom_c9000/dfa18_Tackle.c \
+ *     asm/rom_c9000/rom_dfa18_c_c_c_c_a.s
+ * ONE function, no .rodata -- CONVERTS WHOLE when it lands, no split, no data work.
+ * Data_ede48 is external (.incdata in asm/rom_c9000/rom_eda78.s).
+ *
+ * ================================================================
+ * THE BIGGEST LEVER IN THIS BANK IS NOT A PIN -- IT IS DECLARATION ORDER, AND THE
+ * ROM'S STACK LAYOUT TELLS YOU THE SOURCE'S DECLARATION ORDER DIRECTLY
+ * ================================================================
+ *
+ * The frame grows downward, so declared ARRAYS get the high offsets in REVERSE
+ * declaration order (the rule already in src/non_matching/rom_c9000/cf2a0_Revive.c),
+ * and SPILLED SCALARS then fill downward in ASCENDING PSEUDO NUMBER -- i.e. in
+ * DECLARATION ORDER.  So READING THE ROM'S SLOTS HIGH TO LOW GIVES YOU THE SOURCE'S
+ * DECLARATION ORDER.
+ *
+ * This ROM reads `ctx(0x20), d1(0x1c), d0(0x18), view(0x14), gfx(0x10), hitp(0x0c),
+ * slot(0x08)` -- so declare `ctx, d1, d0, view, gfx, hitp, slot`, noting `d1` BEFORE
+ * `d0` even though `d0` is used first.  One reorder took 204 -> 147 and landed THE
+ * ENTIRE SEVEN-SLOT MAP EXACTLY.  Before it the map was correct in relative order but
+ * 4 bytes low; adding the seventh spilled local snapped it into place.  Unspilled
+ * locals consume a pseudo but no slot, so they can sit anywhere.
+ *
+ * ================================================================
+ * FIVE MORE, all measured
+ * ================================================================
+ *
+ * `base` IS r9 HERE, NOT r10 OR r11, AND THE PIN IS STILL LOAD-BEARING -- removing it
+ * now that everything else is right costs 47 -> 224.  Also pin the FRAME COUNTER: the
+ * ROM keeps it in r11 and the inner particle counter in r8, and gcc will give `frame`
+ * a stack slot and `slot` r11 unless told otherwise.  The r11 pin is what freed the
+ * seventh spill slot.
+ *
+ * `hitp = &hit` AS A REAL POINTER LOCAL -- the ROM spills the ADDRESS and loads
+ * `hit.x` indirectly through it inside the loop.
+ *
+ * WRITE DESTRUCTIVE SHIFTS AS SEPARATE STATEMENTS.  `sz = (sz >> 4) + 2;` gives
+ * `asr r3,r5,#4 / add r5,r3,#2`; `sz >>= 4; sz += 2;` gives the ROM's
+ * `asr r5,#4 / add r5,#2`.
+ *
+ * A CONSTANT INDEX INTO A DATA SYMBOL GETS FOLDED INTO THE POOL WORD AND objcmp
+ * CANNOT SEE IT.  `(char *)Data_ede48 + (h - 2)` emitted `ldr r3, =Data_ede48-2` -- a
+ * WRONG ADDEND ON AN R_ARM_ABS32 while every instruction read correctly, and
+ * objcmp's relocation dump PRINTS NO ADDENDS so it shows as matching symbols.
+ * Hoisting the index to a local (`ix = h - 2;`) fixes it.  THIS IS A REAL objcmp
+ * BLIND SPOT and belongs beside the tryc ones.
+ *
+ * NAMING A STRUCT FIELD INTO A LOCAL BEFORE A 6-ARGUMENT INDIRECT CALL was worth
+ * 57 -> 47 on its own (`int hx = hitp->x;`).  Naming a SECOND field in the same call
+ * was worth 57 -> 114.  APPLY ONE FIELD AT A TIME AND MEASURE -- this is not a
+ * general "name everything" rule.
+ *
+ * THIS BANK HAS BOTH DISPATCH SHAPES.  Tackle dispatches on `variant` with a
+ * `switch` + BARE `default:` (a balanced comparison tree), and Anim_UnleashIntro's
+ * recorded "write `case 4:` alongside `default:`" lever is the OPPOSITE of what is
+ * wanted here -- a bare `default:` is what suppresses the jump table.  Its sibling
+ * BaseAnim_HauntAttack is an if/else-if chain.  Read the branch polarity per function.
+ *
+ * ================================================================
+ * THE 47, in two named components
+ * ================================================================
+ *
+ * CONSTANT REMATERIALISATION, about 16 in one window.  The ROM materialises 0x7828
+ * FOUR TIMES, each `ldr rX,=0x7828 / add rX, r9` -- a DESTRUCTIVE ADD(4), which
+ * requires the constant's register to die at the add.  Ours shares it between the
+ * last two sites, so it survives and gcc must emit `mov r1, r9 / adds r3, r1, r5`
+ * (three-operand, all-lo).  The mechanism: gcc's cse1 shares a large CONST_INT
+ * across an EXTENDED basic block and there is no label between the two sites.
+ * BaseAnim_HauntAttack is the in-bank control proving this is CSE and not noise --
+ * there the same constant has ~6 uses, gcc DOES keep it in a register, and the ROM
+ * then uses register-offset loads instead of an add.
+ *
+ * TWO ESCAPE ROUTES AND THEY EXCLUDE EACH OTHER: an explicit `slot` local gets the
+ * spill slot but shares the constant; letting loop-invariant motion create it in the
+ * preheader (post-CSE, so a fresh constant) gets the two pool loads but the pseudo
+ * then stays in a register and the frame drops to 0x44.  Measured 204 / 238 / 238.
+ * Not reachable from C with any lever on file.
+ *
+ * POST-RELOAD SCHEDULING AROUND THE PINNED `base`, about 20 across four windows.
+ * Every one is the placement of a `mov rX, r9` / `add rX, r9` relative to a
+ * neighbouring pool or spill load, AND THE DIRECTION IS INCONSISTENT -- the ROM puts
+ * the r9 copy earlier at two sites and later at two others.
+ * -fno-schedule-insns2 is far worse (47 -> 266), so sched2 is required and is what
+ * permutes these.
+ *
+ * MEASURED NEGATIVES, do not re-run: unpinned `base` 224; `hitp` hoisted to the top
+ * of the function 367; a region-C `Desc *` named local 229; `slot` reused across
+ * regions C and D 234; `slot` assigned before region C 229; `slot` assigned inside
+ * the loop body 238; a named `int co = 0x7828` in region C inert;
+ * `ix + (char *)Data_ede48` inert; dropping the q0p/q1p address locals inert.
+ *
+ * No .sym entry is warranted.  No per-file Makefile flag override applies.
+ *
+ * NEXT: the CSE window.  Both escapes are measured and exclude each other, so this
+ * wants a reading of why cse1's extended-BB reach covers those two sites -- a label
+ * between them would break it, and whether the ROM's source has one is the question.
+ */
 #include "gba/types.h"
 #include "gba/io.h"
 #include "file_table.h"
@@ -253,7 +360,6 @@ void BaseAnim_Tackle(void *context, int variant)
     unsigned char *gfx;
     vec3_t *hitp;
     Desc **slotA;
-    Desc **slot;
     unsigned char *pt;
     DrawFn *q0p;
     DrawFn *q1p;
@@ -327,16 +433,19 @@ void BaseAnim_Tackle(void *context, int variant)
         {
             int *ab = (int *)_GetBattleActor((*s2)->ids[0]);
             int *src = (int *)*ab;
-            Part *p = (Part *)(base + (0xe1 << 7));
+            Part *p;
+            int msk;
             register int i __asm__("r8");
             i = 0;
+            msk = 0xff;
+            p = (Part *)(base + (0xe1 << 7));
             do {
             p->x = src[2];
             p->y = src[3] + (0xa0 << 12);
             p->z = src[4];
             p->dx = (Random() & 0x1ff) << 11;
-            p->dy = ((Random() & 0xff) - 0x40) << 11;
-            p->dz = ((Random() & 0xff) - 0x80) << 11;
+            p->dy = ((Random() & msk) - 0x40) << 11;
+            p->dz = ((Random() & msk) - 0x80) << 11;
             if (p->x > 0) {
                 p->dx = -p->dx;
             }
@@ -346,10 +455,16 @@ void BaseAnim_Tackle(void *context, int variant)
             } while (i != 0x40);
         }
     }
+    {
+        register int k3 __asm__("r3");
+        k3 = 0x7828;
+        GetBattleActorPos3((*(Desc **)(base + k3))->ids[0], &hit);
+    }
     hitp = &hit;
-    GetBattleActorPos3((*(Desc **)(base + 0x7828))->ids[0], hitp);
-    slot = (Desc **)(base + 0x7828);
+    {
+    Desc **slot;
     frame = 0;
+    slot = (Desc **)(base + 0x7828);
     do {
         if (frame <= 0xe) {
             GetBattleActorPos3((*slot)->f8, &apos);
@@ -368,10 +483,12 @@ void BaseAnim_Tackle(void *context, int variant)
             d0(ctx, gBuffer + k * 0x3c0, hx / 2 - 0x10, apos.y - 0x28, 0x14, 0x30);
         }
         if (frame >= 8 && frame <= 0x3f) {
-            Part *p = (Part *)(base + (0xe1 << 7));
-            int j = 0;
+            Part *p;
+            int j;
             InitMatrixStack();
             MatrixSetLook(view, view + 0xc);
+            j = 0;
+            p = (Part *)(base + (0xe1 << 7));
             do {
                 int sz = p->life;
                 if (sz > 0) {
@@ -383,8 +500,12 @@ void BaseAnim_Tackle(void *context, int variant)
                     h = sz * 2;
                     ix = h - 2;
                     pos.x = pos.x >> 1;
-                    d0(ctx, gfx + *(unsigned short *)((char *)Data_ede48 + ix),
+                    {
+                    register char *tb __asm__("r4");
+                    tb = (char *)Data_ede48;
+                    d0(ctx, gfx + *(unsigned short *)(tb + ix),
                        pos.x - sz / 2, pos.y - sz, sz, h);
+                    }
                     Func_80e38b8(p, 0x3c, -0x200);
                     p->life = p->life - 1;
                 }
@@ -398,6 +519,7 @@ void BaseAnim_Tackle(void *context, int variant)
         WaitFrames(1);
         frame++;
     } while (frame != 0x3c);
+    }
     StopTask(Task_BlitAnim);
     gfree(0x2f);
     gfree(0x2e);
