@@ -23985,3 +23985,58 @@ and made eight relocations byte-exact.
 hoisting three invariants into a seven-instruction preheader. Three others **rebuild a
 constant inside the body**, which means they are `goto` loops with no loop notes and no
 LICM — writing them as `do/while` hoists those constants and is wrong.
+
+## `use_related_value` ONLY FIRES FOR `CONST`, NEVER A BARE `CONST_INT`
+
+Batch 283, `Func_80bfba4`, and this is the compiler line behind every `_MSG_*` base-symbol
+entry in `message.sym`. `cse.c:1637`:
+
+    /* If this is a constant with symbolic value,
+       and it has a term with an explicit integer value,
+       link it up with related expressions.  */
+    if (GET_CODE (x) == CONST)
+
+`CONST` is `(const (plus (symbol_ref) (const_int)))`. **A bare `CONST_INT` never gets a
+related-value chain at all** — so when a ROM reaches neighbouring ids by register
+arithmetic (`subs r1, r5, #3` / `adds r1, r5, #3` off a register holding the base), *no
+plain-literal spelling can ever produce it*. Measured: with `msg = 0x828` gcc emits two
+separate pool loads; with `(int)&_MSG_828` it emits the ROM's exact two instructions.
+
+This converts the base-symbol tell from a pattern that works to a mechanism that must
+work, and it bounds the claim usefully: the neighbours themselves (`0x825`, `0x82b`) stay
+plain literals, because they are pool words elsewhere in the same function.
+
+## COUNT THE ROM'S HARD REGISTERS TO DECIDE WHETHER A REUSED COUNTER IS ONE VARIABLE
+
+Two batch-283 functions reached opposite conclusions, and the discriminator is mechanical
+rather than stylistic:
+
+- `Anim_Break`'s ROM keeps **one** counter in r8 across three unrelated loops and one in
+  r11 across two. Splitting them per region cost a spill slot each time (314 of 359).
+- `Func_80bfba4`'s ROM uses **three different** hard registers — r7, r4, r6 — for its loop
+  counters. One pseudo gets one hard register, so those cannot be one C variable;
+  splitting `i` into three was worth 160 → 150.
+
+**One pseudo gets one hard register.** So read the ROM's counter registers: one register
+across several loops means one variable, and distinct registers mean distinct variables.
+This also resolves the apparent tension with "split reused locals per region" — that rule
+is about **values**, and this one is about **counters**, and both are settled by the same
+observation.
+
+## READ `.18.greg`'s TWO LISTS RATHER THAN GUESSING AN ALLOCATION
+
+`xgcc … -dg` writes `<file>.c.18.greg`, and two lines in it answer most allocation
+questions directly:
+
+- `;; N regs to allocate:` **is** `global_alloc`'s priority order.
+- `;; Register dispositions:` gives the final hard-register assignment.
+
+Batch 283 used this to identify a three-step chain — a function pointer taking r4, which
+pushed a coordinate to r10, which spilled `base` — rather than inferring it from output.
+The pseudo in question sat at position 30 of 46 with `{5,6,7,8,9,10}` already taken and r11
+free, which is the whole explanation in one line.
+
+**And the corollary that settles "is this a spill or an address-taken local":** expand-time
+slots are always allocated **above** reload's. A value whose slot sits *below* the parameter
+spill is a reload spill, not an address-taken local — which is why `(void)&x;` failed to
+reproduce it and `volatile` reproduced the shape at the cost of the frame.
