@@ -23913,3 +23913,75 @@ mnemonic **against the reference**. `objcmp` sees through it; `tryc` cannot.
 
 That makes three: the pool understates, a jump table overstates, and this one is a false
 positive on a single instruction.
+
+## A LONG-LIVED LOCAL HOLDING A *SYMBOL ADDRESS* REACHES `ldr rX,=sym / sub rX,#K`
+
+Batch 283, `Func_801c49c`. This resolves — **for the symbol case** — the shape recorded
+above as *"a `sub rN,#K` applied to a pooled constant … is not currently reachable"* (the
+`Func_80160fc` inverse-constant entry).
+
+The function needs `ldr r0,=0xb1e / sub r0,#2` and `… sub r0,#1` **three independent
+times off one pool word**:
+
+| spelling | result |
+|---|---|
+| plain literals `0xb1e`, `0xb1c`, `0xb1d` | three pool words, pool **order** wrong |
+| `(int)&_MSG_b1e`, `… - 2`, `… - 1` written **inline** | base wins r6, a real variable spills, frame grows |
+| `int mb = (int)&_MSG_b1e;` **at the top of the function**, used at all three sites | the ROM's shape: one pool word, `ldr r0,.L+8` ×3, frame unchanged, **11-word pool matching the ROM word-for-word** |
+
+**Mechanism.** gcc-2.96 splits `SYMBOL_REF + offset` into `base_pseudo ± K`
+(`LEGITIMATE_CONSTANT` rejects symbol+offset for Thumb), and cse commons the three base
+loads into one pseudo. `global.c` prices an allocno at roughly `n_refs / live_length`, so
+three refs over a *short* range beats a loop variable's seven refs over the whole loop —
+the base wins a callee-saved register and pushes a real variable to the stack.
+**Stretching the symbol local's live range to the whole function inverts that priority:
+the allocno is denied a hard register, and because it carries a `reg_equiv_constant`,
+reload rematerialises `ldr rX,=sym` at every use instead of spilling.**
+
+**The position of the assignment is the whole lever** — inline at each use measured 60
+lines worse than at the top.
+
+## THE EMPTY-ASM BARRIER IS A SCHEDULING TOOL ONLY — IT CANNOT TOUCH cse
+
+An important bound on a device this file recommends in several places. `cse.c:5745`
+flushes the equivalence table only when:
+
+    GET_CODE (PATTERN (insn)) == ASM_OPERANDS
+
+A no-operand `asm volatile("")` emits `(asm_input "")`, and **adding a clobber wraps it
+in a `PARALLEL`** — neither is `ASM_OPERANDS`, so neither flushes anything. Measured on
+`Func_801c49c`: `__asm__ volatile("")`, `… ::: "memory"`, and `… "i"(0) : "memory"` all
+failed to break a cse equivalence class. The `"i"(0)` form *does* produce `ASM_OPERANDS`
+and *does* flush — and cost more than it saved.
+
+So when a residue is cse commoning something the ROM rematerialises, **do not reach for a
+barrier.** The tools that work on cse are the ones that change what cse can see: a pinned
+**call-clobbered** register (`invalidate_for_call`), or a live-range change that alters
+which pseudo is `qty_first_reg`.
+
+### The class itself, for recognition
+
+`cse1` deletes insns setting a fresh pseudo to `0` and has `canon_reg` replace their uses
+with the class's `qty_first_reg` — so where the ROM rematerialises `mov rN, #0` several
+times, gcc substitutes whatever live pseudo already holds zero. `COST(pseudo) = 1` against
+`notreg_cost(const_int 0)` means **the register always wins once it is in the table.**
+Two batch-283 functions in `rom_15000`/`rom_f2000` end on exactly this.
+
+## A BLOCK BETWEEN A LOOP'S `b test` AND ITS BODY MEANS THE LOOP LIVES *AFTER* THE ENCLOSING LOOP
+
+Batch 283, `StartTitleScreen`. gcc-2.96 has **no block-reordering pass**
+(`flag_reorder_blocks` is 0 and `-O2` does not set it), so physical order in the ROM is
+source order. When a continue-block sits *between* a loop's `b <test>` and its body, the
+loop was written **after** the enclosing loop and entered by a `goto`; `jump.c` then
+collapses `goto LT` → `goto LTT` and deletes the trampoline.
+
+Reproducing it needs the loop **and everything after it** lifted out of the enclosing
+`else if` body. That one restructure took a function from 407 to 363 differing encodings
+and made eight relocations byte-exact.
+
+### And loops in one function can be a mix — the tell is whether a constant is rebuilt in the body
+
+`StartTitleScreen` has five. The main frame loop is a real `for(;;)`, with `loop.c`
+hoisting three invariants into a seven-instruction preheader. Three others **rebuild a
+constant inside the body**, which means they are `goto` loops with no loop notes and no
+LICM — writing them as `do/while` hoists those constants and is wrong.
