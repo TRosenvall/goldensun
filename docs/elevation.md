@@ -23843,3 +23843,73 @@ This is the same family as batch 279's lesson that a green `make compare` does n
 prove a commit is complete — **the build reads the working tree, and the working tree
 can be missing a file the object was built from.** `git status` catches the commit case;
 only reading the build log catches this one.
+
+## DO NOT PIN A POINTER YOU DEREFERENCE AT AN OFFSET TO A HIGH REGISTER
+
+Batch 283, `Anim_DeathPlunge`, and it **corrects the advice this file and several agent
+briefings had been giving.** "Pin `base` to its high register" is right for a value
+consumed **whole** and wrong for a struct pointer.
+
+`register int *p __asm__("r9")` puts a hard hi-reg *inside the MEM address*, and reload
+then reloads **the whole address**:
+
+    mov r3, r9 / add r3, #0x10 / ldr r3, [r3]     <- pinned
+    mov r4, r9 / ldr r3, [r4, #0x10]              <- unpinned, and the ROM's form
+
+An **unpinned** pseudo that `global_alloc` happens to put in r9 gets the second form.
+Removing one such pin went **62 windows / 249 lines → 18 windows / 73 lines**, with the
+size becoming exact — the largest single step of that session.
+
+> **PIN** `base`, frame counters, loop counters — values consumed whole (`add rX, base`).
+> **DO NOT PIN** a struct pointer you dereference at an offset.
+
+## COMPILER-CREATED PSEUDOS LAND AT THE LOWEST SPILL SLOTS
+
+The corollary that makes a ROM slot map readable. Declared **arrays** take the high
+offsets in reverse declaration order; **spilled scalars** fill downward in declaration
+order (the batch-282 rule); and **strength-reduced IVs and loop-invariant hoists sit
+BELOW every source local.**
+
+So anything under the last declared scalar is gcc's, not the original author's — which is
+how you tell a giv from a source variable when reading the map, before writing a line.
+
+## THE SHAPE OF AN INDUCTION EXPRESSION DECIDES STRENGTH REDUCTION — AND IT IS THE SHIFT, NOT THE ALGEBRA
+
+Batch 283, `Anim_Unused_ElementOrbs`. Same value, three spellings:
+
+| spelling | reduced? |
+|---|---|
+| `frame * (i * 8 + 0x100)` | **no** |
+| `frame * ((i + 0x20) << 3)` | **yes** — size became exact, 236 → 166 window-lines |
+| `frame * ((i + 0x20) * 8)` | **no** — identical to the unreduced form |
+
+The algebra is identical in all three; only the `<< 3` reaches `loop.c`. **And
+hand-reducing the giv yourself is worse than finding the shape** — writing the ROM's
+accumulators literally with register pins fixed the structure but grew the frame
+0x34 → 0x3c.
+
+Note the direction can run either way. The named-multiplier lever recorded above
+*suppresses* reduction; here the ROM reduces **more** than gcc does, so that lever is the
+wrong tool and `flag_reduce_all_givs` is off by default. Read which side you are on first.
+
+## LOAD AN INDIRECT-CALL TARGET AT THE CALL SITE, NOT INTO A HOISTED LOCAL
+
+`f = (DrawFn)fns[0]; f(...)` gives `_call_via_r5`/`_call_via_r6`;
+`(*(DrawFn *)&fns[0])(...)` gives the ROM's **`_call_via_r4`** — r4 is call-clobbered
+under `-fcall-used-r4`, so the ROM reloads it from `[sp,#N]` immediately before each
+`bl`. On one function this made the relocation symbol list identical in order
+(42 → 36 windows); on a sibling it **cost two instructions**. Measure per function.
+
+## A THIRD tryc BLIND SPOT: `ldrh rX, label` AND `ldr rX, label` ASSEMBLE IDENTICALLY
+
+GAS rewrites the halfword pc-relative form, so both become the same
+`ldr rX, [pc, #N]`. **A text diff between a generated `.s` and a reference can therefore
+show a mnemonic difference where the bytes are identical**, and a batch-283 candidate was
+burned "fixing" exactly that.
+
+This does **not** retire the diagnostic: grepping a *generated* `.s` for `ldrh rN, .L`
+is still a valid way to see that gcc made a HImode fix. What is invalid is diffing that
+mnemonic **against the reference**. `objcmp` sees through it; `tryc` cannot.
+
+That makes three: the pool understates, a jump table overstates, and this one is a false
+positive on a single instruction.
