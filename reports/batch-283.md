@@ -13,16 +13,24 @@ Gated on a clean `make clean && make -j8 && make compare` → `goldensun.gba: OK
 | new tooling | **`tools/parkcheck.py`** |
 | agents | 8, at 5 targets each = 40 |
 
+**The landings concentrated in three of the eight agents**, and one agent produced four of
+the six:
+
 | agent | bank | landed | parked |
 |---|---|---|---|
-| F | overlays 899 / 970 / 947 | **3** | 0 |
-| A | `rom_c9000` animations | **1** (Anim_Break) | 1 |
+| F | overlays 899 / 970 / 947 | **4** | 0 |
+| A | `rom_c9000` animations | **1** (`Anim_Break`) | 1 (`Anim_Drain`) |
 | C | overlay 951 | **1** | 0 |
-| D | overlays 930 / 952 / rom_b9b30 | **1** | 3 |
+| D | overlays 930 / 952 / `rom_b9b30` | 0 | 3 — but one is **EXACT** |
 | B | `rom_c9000` animations | 0 | 5 |
+| G | `rom_c9000` (Tackle, Spore) | 0 | 1 new + 1 advanced |
 | E | `rom_15000` menus | 0 | 2 |
-| G | `rom_c9000` (Tackle, Spore) | 0 | 2 |
-| H | mixed | 0 | 2 |
+| H | `rom_c9000` / `rom_b5000` | 0 | 2 new + 1 advanced |
+
+I first wrote this table from my launch notes, which credited agent D with a landing; the
+commit record shows all three of D's results are parks, and agent F's fourth
+(`OvlFunc_947_200a74c`) landed in a separate commit I had counted against the wrong agent.
+**The commits are the record, not the launch log.**
 
 **6 landed + 15 parked + 2 advanced = 23 of 40 targets accounted for, so 17 were never
 opened.** That is the highest unopened count of the session and it is a direct consequence of
