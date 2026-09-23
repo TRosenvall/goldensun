@@ -89,7 +89,7 @@ SECTIONS {
 		asm/overlays/rom_7d0e88/ovl_1528_c_c_c_c_c_c.o(.data)
 		asm/overlays/rom_7d0e88/ovl_1440_c_c_b.o(.data)
 		asm/overlays/rom_7d0e88/ovl_2580_c_b.o(.data)
-		asm/overlays/rom_7d0e88/ovl_2580_c_c.o(.data)
+		asm/overlays/rom_7d0e88/ovl_2580_c_c_dat.o(.data)
 	} > overlay
 
 	.bss : {
