@@ -11,26 +11,30 @@ Gated on a clean `make clean && make -j8 && make compare` → `goldensun.gba: OK
 | retired | 1 park (became a landing) |
 | `.sym` entries added | **1** (`_CONST_0`) |
 | new tooling | **`tools/parkcheck.py`** |
-| agents | 8, at 5 targets each = 40 |
+| agents | **8 briefs at 5 targets each = 40; TEN agent instances ran** |
 
-**The landings concentrated in three of the eight agents**, and one agent produced four of
-the six:
+**Eight briefs, but TEN agent instances ran** — the `rom_c9000` animation brief was worked by
+three agents after the mid-batch authentication failure, so an agent-letter is not a unit of
+work here. Landings concentrated in four briefs, one of which produced three:
 
-| agent | bank | landed | parked |
+| brief | bank | landed | parked / advanced |
 |---|---|---|---|
-| F | overlays 899 / 970 / 947 | **4** | 0 |
-| A | `rom_c9000` animations | **1** (`Anim_Break`) | 1 (`Anim_Drain`) |
-| C | overlay 951 | **1** | 0 |
-| D | overlays 930 / 952 / `rom_b9b30` | 0 | 3 — but one is **EXACT** |
-| B | `rom_c9000` animations | 0 | 5 |
-| G | `rom_c9000` (Tackle, Spore) | 0 | 1 new + 1 advanced |
-| E | `rom_15000` menus | 0 | 2 |
-| H | `rom_c9000` / `rom_b5000` | 0 | 2 new + 1 advanced |
+| F | overlays 899 / 970 / 947 | **3** | 0 (two targets probed, not advanced) |
+| A | overlay 951 | **1** (`OvlFunc_951_20081d8`) | 3 moved, no new park |
+| C ×3 | `rom_c9000` animations | **1** (`Anim_Break`) | 3 new + 1 advanced (`HauntAttack`) |
+| D | overlays 947 / 930 / 952, `rom_b5000` | **1** (`OvlFunc_947_200a74c`) | 3 new, one of them **EXACT** |
+| H | `rom_c9000` animations | 0 | 5 new |
+| G | `rom_15000` menus | 0 | 2 new |
+| B | `rom_c9000` (Tackle, Spore) | 0 | 1 new + 1 advanced (`Tackle` 47 → 12) |
+| E | `rom_b5000` / `rom_a1000` | 0 | 1 new (`Func_80bfba4`) |
 
-I first wrote this table from my launch notes, which credited agent D with a landing; the
-commit record shows all three of D's results are parks, and agent F's fourth
-(`OvlFunc_947_200a74c`) landed in a separate commit I had counted against the wrong agent.
-**The commits are the record, not the launch log.**
+**This table is the third version and the first one built from the agent transcripts.** I wrote
+it first from my launch notes, which credited a landing to the wrong brief; I then "corrected"
+it by moving `OvlFunc_947_200a74c` from D to F on the strength of a commit *subject* that read
+"Park three from agent D" — but D landed one **and** parked three, four results from five
+targets, and its report says so in its first section. **A commit subject is a summary, not the
+record; the transcript is the record.** Two wrong attributions in a row on the same cell is the
+argument for reading the source rather than the label.
 
 **6 landed + 15 parked + 2 advanced = 23 of 40 targets accounted for, so 17 were never
 opened.** That is the highest unopened count of the session and it is a direct consequence of
