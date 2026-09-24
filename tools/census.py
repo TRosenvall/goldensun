@@ -62,6 +62,37 @@ the code must not regress:
    via adr+ldm rather than a literal pool, and a routine that rewrites Thumb BL
    pairs in memory to relocate code copied to RAM.
 
+6. A PARK'S SUBJECT IS WHAT IT DEFINES, NOT EVERY NAME IT MENTIONS. This file
+   used `name in parks` against the concatenated text of every park, which
+   counts a function as parked when some OTHER park merely cites it -- in an
+   `extern` prototype for a callee, or in prose about a file-mate ("Anim_Haunt
+   is function 4 of 5; Anim_PlanetDiver is 3", ".rodata belongs to
+   BaseAnim_Breath, not to this function"). That reported 677 parked and 417
+   available when the figures are 522 and 572: OVER 150 FUNCTIONS THAT NOBODY
+   HAS EVER ATTEMPTED WERE BEING COUNTED AS ALREADY TRIED.
+
+   Filename matching (the version before it) found 464 -- an undercount, which
+   is why substring matching was adopted. BOTH WERE WRONG AND THE FIX IS THE
+   UNION, not a choice between them: park_subjects() plus match_stem() combine
+   four signals, and the filename signal is load-bearing (it is the only thing
+   that sees rom_c9000/80ccaec.c parking Func_80cd52c's neighbour, whose header
+   opens with a batch note rather than a subject line).
+
+   HAND-CHECKED two ways before the change. Ten disputed names sampled at
+   random were all citations -- four `extern` prototypes, six prose mentions of
+   a neighbour -- and none was a park. Then the ORPHAN-PARK INVARIANT: every
+   park file should have at least one function attributed to it, and only 11 of
+   531 do not. Re-run both if you touch this.
+
+   THE ORPHAN CHECK ALSO FOUND FOUR STALE PARKS whose subject has since been
+   elevated and which should have been retired at landing: Func_80f6038,
+   Func_80f4100, Func_80a22f4, OvlFunc_881_2009888. Those are a separate defect
+   from the counting, and they are why the invariant is worth keeping.
+
+   Found in batch 284 because tools/pickable.py and this file DISAGREED about
+   seven functions, pickable calling them available. Two tools disagreeing is
+   the cheapest bug detector this project has; prefer it to trusting either.
+
 VERIFY BEFORE QUOTING. `--list` prints the available functions in a band; for a
 small band, grep each name in src/non_matching/ by hand. If any listed function
 turns up there, this file has a bug -- fix it here rather than in a new script.
@@ -92,11 +123,59 @@ def n_insn(lines):
     return n
 
 
+DEFN = re.compile(r"^[A-Za-z_][\w\s\*]*?\b([A-Za-z_]\w*)\s*\([^;]*?\)\s*\{", re.M)
+
+
+def park_subjects():
+    """The set of function names that are actually PARKED.
+
+    NOT a substring search over park text -- see lesson 6 in the module
+    docstring. A park's subject is what it DEFINES or what its header names,
+    never every identifier it happens to mention.
+
+    Three signals, union:
+      * a function DEFINED in the park's code (comments stripped first)
+      * a function named in the park header's first two lines, which is where
+        this corpus puts the subject ("/* NAME -- NON-MATCHING, N of M")
+      * for a CLASS park -- one sitting at the top level of src/non_matching/
+        rather than in a bank directory -- every function it names, because
+        covering many functions at once is what a class park is for
+    """
+    subjects, stems = set(), []
+    for path in glob.glob(os.path.join(ROOT, "src/non_matching/**/*.c"),
+                          recursive=True):
+        text = open(path, errors="ignore").read()
+        code = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+        code = re.sub(r"//[^\n]*", "", code)
+        subjects |= {m.group(1) for m in DEFN.finditer(code)}
+        head = "\n".join(text.split("\n")[:2])
+        subjects |= {w for w in re.findall(r"[A-Za-z_]\w*", head)}
+        if os.path.dirname(path) == os.path.join(ROOT, "src/non_matching"):
+            subjects |= set(re.findall(r"[A-Za-z_]\w*", text))
+        stems.append(os.path.basename(path)[:-2])
+    return subjects, stems
+
+
+def match_stem(name, stems):
+    """Does a park FILENAME name this function?
+
+    The signal census used before substring matching, and insufficient ALONE
+    (it found 464) but necessary in the union: src/non_matching/rom_c9000/
+    80cd52c.c parks Func_80cd52c and its header opens with a batch note rather
+    than the subject line, so nothing else here sees it. Stems are either a
+    bare address (80cd52c, 2008c1c) or address_Name (d82b0_Drain).
+    """
+    low = name.lower()
+    for st in stems:
+        for part in st.lower().split("_"):
+            if len(part) >= 4 and low.endswith(part):
+                return True
+    return False
+
+
 def survey():
     """[(insns, name, hand_written, parked)] for every function still in asm/."""
-    parks = "\n".join(open(p, errors="ignore").read()
-                      for p in glob.glob(os.path.join(ROOT, "src/non_matching/**/*.c"),
-                                         recursive=True))
+    parked, stems = park_subjects()
     rows = []
     for root, _, files in os.walk(os.path.join(ROOT, "asm")):
         for fn in sorted(files):
@@ -119,7 +198,8 @@ def survey():
                         stop = j
                         break
                 rows.append((n_insn(lines[i + 1:stop]), name, hw,
-                             name in parks, kind == "arm"))
+                             name in parked or match_stem(name, stems),
+                             kind == "arm"))
     return rows
 
 
