@@ -1,3 +1,84 @@
+/* ============================================================================
+ * BATCH 284 UPDATE -- NOW 8 ENCODINGS OF 402, DOWN FROM 12.  SIZE STILL EXACT
+ * (916 bytes), INSTRUCTION COUNT STILL EXACT (402), FRAME STILL EXACT
+ * (`sub sp, #0x48`), RELOCATIONS STILL EXACT (objcmp prints no RELOCATIONS
+ * line).  TWO of the four sched2 windows this park named are CLOSED, and the
+ * thing that closed them is a lever that was not on file:
+ *
+ *     WHERE A sched2 WINDOW IS A PERMUTATION AGAINST A COMPILER-GENERATED
+ *     OPERAND, GIVE THAT OPERAND A SOURCE STATEMENT BY PINNING IT TO THE HARD
+ *     REGISTER THE ROM USES.  sched2's ready-list tie-break is INSN ORDER, so
+ *     an operand that gets its own earlier statement gets a lower insn UID and
+ *     sched2 then emits it first.
+ *
+ * This park's own words were "2-4 instruction permutations with NO SOURCE
+ * STATEMENT TO REORDER -- the competing operand is a compiler-generated
+ * invariant ... which is exactly where the statement-order lever runs out."
+ * THAT CONCLUSION IS WRONG AND IS STRUCK: the statement-order lever does not
+ * run out, it needs a pinned register to create the statement.
+ *
+ *   @75  CLOSED (12 -> 10).  ROM `mov r0,r9` then `ldr r1,=gBuffer`; gcc fills
+ *        r0 last.  Fix:
+ *            { register unsigned char *b0 __asm__("r0");
+ *              b0 = base;
+ *              Func_80df9d0(b0, gBuffer, 0x28, arg2); }
+ *   @305 CLOSED (10 -> 8).  ROM `add r7,sp,#36` (&pos, gcse-hoisted) then
+ *        `add r6,r9`; ours reversed.  Fix: declare `register vec3_t *pp
+ *        __asm__("r7")` in the j-loop block and assign `pp = &pos;` BETWEEN
+ *        `j = 0;` and `p = (Part *)(base + (0xe1 << 7));`, then pass `pp`.
+ *        The PIN is what makes this work: this park already recorded an
+ *        unpinned `vec3_t *pp = &pos` local as 148 with the size 4 bytes
+ *        larger -- unpinned it takes a spill slot, pinned to the ROM's own r7
+ *        it does not.
+ *
+ * THE SAME r0 EDIT LANDED Anim_Vine IN THIS BATCH (its last two encodings were
+ * `ldr r0,=Task_BlitAnim` against `lsl r1,#3`), so this is a bank-wide lever,
+ * not a Tackle detail.
+ *
+ * THE REMAINING 8, two windows, both still permutations:
+ *
+ *   @58 (6)  the d0/d1 spill pair.  ROM groups `adds r2,#184 / adds r3,#188 /
+ *            ldr r2,[r2] / ldr r3,[r3] / str r2,[sp,#24] / str r3,[sp,#28] /
+ *            ldr r1,[sp,#16]`; ours completes d0 before starting d1.  The
+ *            competing insns are RELOAD-GENERATED SPILL STORES, which no source
+ *            statement can precede -- this is where the pin lever genuinely
+ *            does run out, and it is a different situation from @75/@305 where
+ *            the competing operand was a VALUE.
+ *            MEASURED INERT at 8, do not re-run: pinned r2/r3 on the two LOADED
+ *            VALUES (`register DrawFn z0 __asm__("r2")` etc.); pinned r2/r3 on
+ *            the two POINTERS q0p/q1p; dropping the q0p/q1p locals entirely.
+ *            MEASURED WORSE: swapping the d0/d1 assignment order (11);
+ *            swapping the q0p/q1p assignment order (11).
+ *   @224 (2) first `_call_via_r4`: ROM `ldr r4,[sp,#24] / mov r1,r9 /
+ *            ldr r0,[sp,#32]`, ours has the two spill RELOADS reversed, and the
+ *            other three call sites match.  Same reload-generated problem.
+ *            MEASURED INERT at 8: a pinned r4 `f0 = d0;` statement before the
+ *            call.  MEASURED WORSE: pinned r4 + pinned r0 together (14);
+ *            a pinned r1 `b1 = base;` statement (16).
+ *
+ * So both survivors are permutations of RELOAD OUTPUT rather than of expanded
+ * source values.  That is a sharper statement of the blocker than "sched2", and
+ * it says what a next attempt would need: a way to change the order in which
+ * reload emits a spill store / reload pair, which C does not expose.
+ *
+ * Verify with:
+ *   python3 tools/objcmp.py src/non_matching/rom_c9000/dfa18_Tackle.c \
+ *     asm/rom_c9000/rom_dfa18_c_c_c_c_a.s --func BaseAnim_Tackle
+ *
+ * (That recipe is repeated here deliberately.  parkcheck.py reads only the FIRST
+ * comment block, so a park whose newest header is prepended above the old one has to
+ * carry the recipe in the NEW block or the tool reports it UNCHECKABLE -- which is
+ * exactly what happened to this file on its first parkcheck run in batch 284.)
+ *
+ * NOTE ON THIS FILE: everything below the next line is the batch-283 header and
+ * body.  The stale duplicate of the batch-282 header that used to follow it -- 107
+ * lines claiming 47 encodings, and carrying the already-struck "Not reachable from
+ * C with any lever on file" paragraph -- WAS DELETED IN BATCH 284.  It had survived
+ * two advances of this park, and a second header claiming a superseded number is
+ * exactly what parkcheck.py exists to stop: the tool reads the FIRST claim, so a
+ * stale second one is invisible to it and misleads only humans.
+ * ============================================================================
+ */
 /* BaseAnim_Tackle -- NON-MATCHING, 12 ENCODINGS OF 402 (was 47; advanced in batch
  * 283).  SIZE EXACT (916 bytes), INSTRUCTION COUNT EXACT (402), FRAME EXACT
  * (`sub sp, #0x48`), AND RELOCATIONS NOW MATCH EXACTLY -- objcmp prints no
@@ -178,113 +259,6 @@
  * and relocations all exact, this wants .23.sched2's ready list read at each window
  * -- not more spellings.
  */
-/* BaseAnim_Tackle -- NON-MATCHING, 47 encodings of 402.  SIZE EXACT (916 bytes),
- * INSTRUCTION COUNT EXACT (402), FRAME EXACT (`sub sp, #0x48`), and the relocation
- * list has THE SAME 50 SYMBOLS IN THE SAME ORDER with only three offsets differing
- * by 2 and 4 bytes downstream of the instruction permutations.  382 instructions.
- *
- * THIS IS THE BEST POSITION ANY rom_c9000 ANIMATION ENTRY POINT HAS REACHED.  Batch
- * 281 went 0-for-9 in this bank; batch 282 got here with the three handles that
- * batch wrote down.  Progression: 355 -> 311 -> 204 -> 147 -> 57 -> 47.
- *
- * Verify with:
- *   python3 tools/objcmp.py src/non_matching/rom_c9000/dfa18_Tackle.c \
- *     asm/rom_c9000/rom_dfa18_c_c_c_c_a.s
- * ONE function, no .rodata -- CONVERTS WHOLE when it lands, no split, no data work.
- * Data_ede48 is external (.incdata in asm/rom_c9000/rom_eda78.s).
- *
- * ================================================================
- * THE BIGGEST LEVER IN THIS BANK IS NOT A PIN -- IT IS DECLARATION ORDER, AND THE
- * ROM'S STACK LAYOUT TELLS YOU THE SOURCE'S DECLARATION ORDER DIRECTLY
- * ================================================================
- *
- * The frame grows downward, so declared ARRAYS get the high offsets in REVERSE
- * declaration order (the rule already in src/non_matching/rom_c9000/cf2a0_Revive.c),
- * and SPILLED SCALARS then fill downward in ASCENDING PSEUDO NUMBER -- i.e. in
- * DECLARATION ORDER.  So READING THE ROM'S SLOTS HIGH TO LOW GIVES YOU THE SOURCE'S
- * DECLARATION ORDER.
- *
- * This ROM reads `ctx(0x20), d1(0x1c), d0(0x18), view(0x14), gfx(0x10), hitp(0x0c),
- * slot(0x08)` -- so declare `ctx, d1, d0, view, gfx, hitp, slot`, noting `d1` BEFORE
- * `d0` even though `d0` is used first.  One reorder took 204 -> 147 and landed THE
- * ENTIRE SEVEN-SLOT MAP EXACTLY.  Before it the map was correct in relative order but
- * 4 bytes low; adding the seventh spilled local snapped it into place.  Unspilled
- * locals consume a pseudo but no slot, so they can sit anywhere.
- *
- * ================================================================
- * FIVE MORE, all measured
- * ================================================================
- *
- * `base` IS r9 HERE, NOT r10 OR r11, AND THE PIN IS STILL LOAD-BEARING -- removing it
- * now that everything else is right costs 47 -> 224.  Also pin the FRAME COUNTER: the
- * ROM keeps it in r11 and the inner particle counter in r8, and gcc will give `frame`
- * a stack slot and `slot` r11 unless told otherwise.  The r11 pin is what freed the
- * seventh spill slot.
- *
- * `hitp = &hit` AS A REAL POINTER LOCAL -- the ROM spills the ADDRESS and loads
- * `hit.x` indirectly through it inside the loop.
- *
- * WRITE DESTRUCTIVE SHIFTS AS SEPARATE STATEMENTS.  `sz = (sz >> 4) + 2;` gives
- * `asr r3,r5,#4 / add r5,r3,#2`; `sz >>= 4; sz += 2;` gives the ROM's
- * `asr r5,#4 / add r5,#2`.
- *
- * A CONSTANT INDEX INTO A DATA SYMBOL GETS FOLDED INTO THE POOL WORD AND objcmp
- * CANNOT SEE IT.  `(char *)Data_ede48 + (h - 2)` emitted `ldr r3, =Data_ede48-2` -- a
- * WRONG ADDEND ON AN R_ARM_ABS32 while every instruction read correctly, and
- * objcmp's relocation dump PRINTS NO ADDENDS so it shows as matching symbols.
- * Hoisting the index to a local (`ix = h - 2;`) fixes it.  THIS IS A REAL objcmp
- * BLIND SPOT and belongs beside the tryc ones.
- *
- * NAMING A STRUCT FIELD INTO A LOCAL BEFORE A 6-ARGUMENT INDIRECT CALL was worth
- * 57 -> 47 on its own (`int hx = hitp->x;`).  Naming a SECOND field in the same call
- * was worth 57 -> 114.  APPLY ONE FIELD AT A TIME AND MEASURE -- this is not a
- * general "name everything" rule.
- *
- * THIS BANK HAS BOTH DISPATCH SHAPES.  Tackle dispatches on `variant` with a
- * `switch` + BARE `default:` (a balanced comparison tree), and Anim_UnleashIntro's
- * recorded "write `case 4:` alongside `default:`" lever is the OPPOSITE of what is
- * wanted here -- a bare `default:` is what suppresses the jump table.  Its sibling
- * BaseAnim_HauntAttack is an if/else-if chain.  Read the branch polarity per function.
- *
- * ================================================================
- * THE 47, in two named components
- * ================================================================
- *
- * CONSTANT REMATERIALISATION, about 16 in one window.  The ROM materialises 0x7828
- * FOUR TIMES, each `ldr rX,=0x7828 / add rX, r9` -- a DESTRUCTIVE ADD(4), which
- * requires the constant's register to die at the add.  Ours shares it between the
- * last two sites, so it survives and gcc must emit `mov r1, r9 / adds r3, r1, r5`
- * (three-operand, all-lo).  The mechanism: gcc's cse1 shares a large CONST_INT
- * across an EXTENDED basic block and there is no label between the two sites.
- * BaseAnim_HauntAttack is the in-bank control proving this is CSE and not noise --
- * there the same constant has ~6 uses, gcc DOES keep it in a register, and the ROM
- * then uses register-offset loads instead of an add.
- *
- * TWO ESCAPE ROUTES AND THEY EXCLUDE EACH OTHER: an explicit `slot` local gets the
- * spill slot but shares the constant; letting loop-invariant motion create it in the
- * preheader (post-CSE, so a fresh constant) gets the two pool loads but the pseudo
- * then stays in a register and the frame drops to 0x44.  Measured 204 / 238 / 238.
- * Not reachable from C with any lever on file.
- *
- * POST-RELOAD SCHEDULING AROUND THE PINNED `base`, about 20 across four windows.
- * Every one is the placement of a `mov rX, r9` / `add rX, r9` relative to a
- * neighbouring pool or spill load, AND THE DIRECTION IS INCONSISTENT -- the ROM puts
- * the r9 copy earlier at two sites and later at two others.
- * -fno-schedule-insns2 is far worse (47 -> 266), so sched2 is required and is what
- * permutes these.
- *
- * MEASURED NEGATIVES, do not re-run: unpinned `base` 224; `hitp` hoisted to the top
- * of the function 367; a region-C `Desc *` named local 229; `slot` reused across
- * regions C and D 234; `slot` assigned before region C 229; `slot` assigned inside
- * the loop body 238; a named `int co = 0x7828` in region C inert;
- * `ix + (char *)Data_ede48` inert; dropping the q0p/q1p address locals inert.
- *
- * No .sym entry is warranted.  No per-file Makefile flag override applies.
- *
- * NEXT: the CSE window.  Both escapes are measured and exclude each other, so this
- * wants a reading of why cse1's extended-BB reach covers those two sites -- a label
- * between them would break it, and whether the ROM's source has one is the question.
- */
 #include "gba/types.h"
 #include "gba/io.h"
 #include "file_table.h"
@@ -396,7 +370,11 @@ void BaseAnim_Tackle(void *context, int variant)
     LoadVFXFile(FILE_99, base, 1, 0);
     arg2 = 0x90;
     arg2 <<= 1;
-    Func_80df9d0(base, gBuffer, 0x28, arg2);
+    {
+        register unsigned char *b0 __asm__("r0");
+        b0 = base;
+        Func_80df9d0(b0, gBuffer, 0x28, arg2);
+    }
     LoadVFXFile(FILE_bd, base, 1, 1);
     switch (variant) {
     case 0:
@@ -485,16 +463,18 @@ void BaseAnim_Tackle(void *context, int variant)
         if (frame >= 8 && frame <= 0x3f) {
             Part *p;
             int j;
+            register vec3_t *pp __asm__("r7");
             InitMatrixStack();
             MatrixSetLook(view, view + 0xc);
             j = 0;
+            pp = &pos;
             p = (Part *)(base + (0xe1 << 7));
             do {
                 int sz = p->life;
                 if (sz > 0) {
                     int h;
                     int ix;
-                    Func_80e3944(p, &pos);
+                    Func_80e3944(p, pp);
                     sz >>= 4;
                     sz += 2;
                     h = sz * 2;

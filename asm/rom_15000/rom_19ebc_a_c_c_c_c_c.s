@@ -1,7 +1,11 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ LoadNamedGraphic
+@ LoadPortrait
+@ (This header read `LoadNamedGraphic` until batch 284.  The prose was off by one
+@ function: `.thumb_func_start LoadPortrait` below is the authority, and the same
+@ off-by-one had rom_19ebc_a_c_c_a.s labelled `LoadPortrait` while it held
+@ LoadOldUIIcon -- that file is now compiler output so its comment is moot.)
 @ r0 = id, r1, r2, r3 = placement. Allocates the tag-0x11 block, fetches asset
 @ 0xF0 with GetFile, decompresses with LoadIcon, DMA3s it into place and
 @ reserves tiles with UploadSpriteGFX / AllocSpriteSlot.

@@ -1,3 +1,41 @@
+/* Func_80bfba4 -- NON-MATCHING, 174 encodings of 454 (was 232; advanced in batch 284).
+ * SIZE EXACT (1044 bytes), INSTRUCTION COUNT EXACT (454 = 454), 60/60 relocation NAMES
+ * AND ORDER IDENTICAL with 5 offsets shifting (was 7).
+ *
+ * Verify with:
+ *   python3 tools/objcmp.py src/non_matching/rom_b5000/80bfba4.c \
+ *     asm/rom_b5000/rom_bbb0c_c_c.s --func Func_80bfba4
+ *
+ * BATCH 284: TWO CHANGES, AND THEY ARE SYNERGISTIC -- NEITHER WORKS ALONE.
+ *
+ *     for (j = 3; j != -1; j--)          -- was j >= 0
+ *         arr[j] = 0;
+ *     ...
+ *     idx += 0x12c;                      -- was unit + (0x12c + idx) inline, twice
+ *
+ * `j != -1` ALONE IS WORSE (456 instructions, 372 positional).  `idx += 0x12c` alone is
+ * this park's earlier FINALplain (452 instructions, 422 positional).  TOGETHER they give
+ * 454 = 454 and 174.  THE PARK HAD BOTH HALVES ON FILE AND NEVER CROSSED THEM -- which is
+ * the strongest argument yet for sweeping COMBINATIONS of recorded levers rather than
+ * ablating them one at a time.
+ *
+ * THE RANKING NUMBERS IN THE BATCH-283 HEADER BELOW (35 register-blind against 29) ARE
+ * NOT REPRODUCIBLE AND SHOULD NOT BE USED.  An independent register-blind measure
+ * (registers -> R, numerics -> #, difflib alignment) scores the batch-283 body 80 and the
+ * earlier FINALplain 116 -- i.e. it ranks them the OPPOSITE way round -- and scores this
+ * body 52.  Whatever normalisation produced 35/29 is not recoverable from the file, so
+ * treat those two numbers as unverifiable.  THAT IS A DIRECT CAUTION AGAINST BATCH 283'S
+ * HEADLINE, which cited this park's "35 register-blind" as evidence that a positional
+ * count carries no ordering information: the DIRECTION of that claim survives (size and
+ * count already agree here, so positional distance is not a distance) but the SPECIFIC
+ * NUMBERS DO NOT, because no recorded recipe reproduces them.
+ *
+ * BLOCKER UNCHANGED: loop.c `strength_reduce` declining one giv, which gates
+ * maybe_eliminate_biv.  The ROM spills and reloads `&arr[0]` through [sp] -- the
+ * documented shape -- and pinning the 0x108 constant to r0 (four spellings) made it
+ * worse.
+ * ============================================================================
+ */
 /* Func_80bfba4 -- NON-MATCHING, 232 encodings of 454 positionally -- BUT READ THE NEXT
  * PARAGRAPH BEFORE USING THAT NUMBER.  SIZE EXACT (1044 bytes both), INSTRUCTION COUNT
  * EXACT (454 = 454), BOTH POOL CHUNKS REPRODUCE WITH IDENTICAL CONTENTS AND ORDER
@@ -226,7 +264,7 @@ int Func_80bfba4(struct Ctx *ctx)
         flag = 1;
     rec = _Func_8077330(id > 7);
     d = &rec->l;
-    for (j = 3; j >= 0; j--)
+    for (j = 3; j != -1; j--)
         arr[j] = 0;
     for (;;) {
         sel = -1;
@@ -275,8 +313,9 @@ int Func_80bfba4(struct Ctx *ctx)
             }
         }
         if (idx >= 0) {
-            if (*(s8 *)(unit + (0x12c + idx)) < max)
-                *(s8 *)(unit + (0x12c + idx)) = max;
+            idx += 0x12c;
+            if (*(s8 *)(unit + idx) < max)
+                *(s8 *)(unit + idx) = max;
         }
         _CalcStats(id);
         off = 0x48;

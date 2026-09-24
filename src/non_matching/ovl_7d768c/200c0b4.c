@@ -1,3 +1,39 @@
+/* OvlFunc_952_200c0b4 -- NON-MATCHING, 29 encodings of 270 (was 37; advanced in batch
+ * 284).  Size equal (652 bytes), 270 = 270 encodings, 48/48 relocation names and order
+ * identical with 3 offsets shifting.
+ *
+ * Verify with:
+ *   python3 tools/objcmp.py src/non_matching/ovl_7d768c/200c0b4.c \
+ *     asm/overlays/rom_7d768c/ovl_30_c_c.s --func OvlFunc_952_200c0b4
+ *
+ * THE BODY THIS REPLACES HAD UNDEFINED BEHAVIOUR, and it invalidated one of the park's
+ * own recorded refutations.  It declared `unsigned short *hp;` and NEVER ASSIGNED IT,
+ * then read `h = *hp;` -- a load through an uninitialised pointer.  So the header's
+ * claim that "an `unsigned short *hp` alias pointer was tried and refuted" is VOID: the
+ * test never aliased anything.  Replacing it with `h = *(unsigned short *)p;` is
+ * 37 -> 33 and fixes the r5/r6 role swap outright.
+ *
+ * A PARK BODY THAT DOES NOT DO WHAT ITS HEADER SAYS IT DOES CAN RETIRE A LEVER THAT WAS
+ * NEVER ACTUALLY TESTED.  parkcheck.py compares the header's NUMBER to the body's
+ * number and would not have caught this -- both were self-consistent at 37.  The defect
+ * was in what the body MEANT, which only reading it finds.
+ *
+ * SECOND CHANGE, 33 -> 29: `*(short *)(o + (int)bp)` rather than `*(short *)(bp + o)`.
+ * The header records that `o + bp` was tested and gcc canonicalised it the same way --
+ * correct -- and THE EXPLICIT `(int)` CAST IS THE WHOLE DIFFERENCE: `o + bp` is still
+ * pointer-plus-integer so fold puts the pointer first, while int + int preserves source
+ * order into the RTL `plus` and the ARM backend prints operands in rtx order.
+ * `(unsigned int)o + (unsigned int)bp` measures the same 29.
+ *
+ * Remaining 29 in five clusters: the ldrh/ldrsh merge (10), sp+16 commoning (5+5), two
+ * transpositions (2+2), the final store's register roles (5).  BLOCKER UNCHANGED: the
+ * HImode load merge in COMBINE, plus PRE on the frame-address `plus`.  An alias-set
+ * change cannot reach a combine merge -- already measured in batch 283.
+ *
+ * This park legitimately KEEPS its `_AREA_8b` shim: a park is self-verifying, and only
+ * a LANDED file must not carry one.
+ * ============================================================================
+ */
 /* OvlFunc_952_200c0b4 -- NON-MATCHING, 37 encodings of 270.  Size equal (652 bytes),
  * 270 = 270 encodings, 261 instructions against 260.
  *
@@ -143,7 +179,6 @@ int OvlFunc_952_200c0b4(void)
     int eight;
     int mask;
     unsigned short h;
-    unsigned short *hp;
     int ev;
     int t;
     int t2;
@@ -164,7 +199,7 @@ int OvlFunc_952_200c0b4(void)
     ev = *(short *)p;
     if (ev == 0x5a) {
         __SetFlag(0x962);
-        h = *hp;
+        h = *(unsigned short *)p;
     }
     if (h == 0x5b) {
         __SetFlag(0x962);
@@ -228,11 +263,11 @@ int OvlFunc_952_200c0b4(void)
                 o = 0;
                 k = n;
                 do {
-                    u = __GetUnit(*(short *)(bp + o));
+                    u = __GetUnit(*(short *)(o + (int)bp));
                     u->f38 = u->f34;
                     u->f3a = u->f36;
                     k--;
-                    __UpdateStatBarPercent(*(short *)(bp + o));
+                    __UpdateStatBarPercent(*(short *)(o + (int)bp));
                     o += 2;
                 } while (k != 0);
             }
@@ -258,11 +293,11 @@ int OvlFunc_952_200c0b4(void)
                 o = 0;
                 k = n;
                 do {
-                    u = __GetUnit(*(short *)(bp + o));
+                    u = __GetUnit(*(short *)(o + (int)bp));
                     u->f38 = u->f34;
                     u->f3a = u->f36;
                     k--;
-                    __UpdateStatBarPercent(*(short *)(bp + o));
+                    __UpdateStatBarPercent(*(short *)(o + (int)bp));
                     o += 2;
                 } while (k != 0);
             }
