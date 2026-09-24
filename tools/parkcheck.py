@@ -30,10 +30,25 @@ UNCHECKABLE rather than silently skipped -- an unverifiable claim is a defect to
 
 HOW IT READS THE CLAIM.  The first "N ... of M" in the header, where M matches the
 reference's own encoding count.  Size-only and prose-only parks report NO CLAIM.
+
+RUN IT IN THE CONTAINER.  objcmp.py needs /opt/gcc296/xgcc, which exists only inside
+goldensun-build.  On the host objcmp dies with FileNotFoundError, and until batch 284
+this tool read that empty stdout as "objcmp produced no encoding line" and reported
+UNCHECKABLE -- i.e. IT BLAMED EVERY PARK FOR A MISSING COMPILER.  An agent lost time
+to that, reasonably concluding the corpus was unverifiable when the corpus was fine.
+It now refuses to run at all when the compiler is absent, and reports a per-park
+objcmp failure as TOOLING rather than folding it in with real park defects.
+
+A TOOL THAT CANNOT RUN MUST SAY SO INSTEAD OF REPORTING FAILURES, because a blanket
+"UNCHECKABLE: 531" is indistinguishable from a real finding and invites exactly the
+wrong conclusion. The distinction matters for a live number: 485 of these parks
+genuinely lack a recipe and 46 genuinely carry one, and on the host the old code
+printed the same verdict for both.
 """
 import os, re, subprocess, sys, glob
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+GCC = os.path.join(os.environ.get("GCC296_DIR", "/opt/gcc296"), "xgcc")
 VERIFY = re.compile(r"objcmp\.py\s+(\S+)\s+\\?\s*\n?\s*(\S+\.s)(?:\s+--func\s+(\S+))?", re.M)
 CLAIM  = re.compile(r"(\d+)\s+(?:differing\s+)?encodings?\s+of\s+(\d+)", re.I)
 CLAIM2 = re.compile(r"NON-MATCHING,\s*(\d+)\s+of\s+(\d+)", re.I)
@@ -59,7 +74,11 @@ def check(path):
     cmd = [sys.executable, os.path.join(ROOT, "tools", "objcmp.py"), path, ref]
     if func:
         cmd += ["--func", func]
-    out = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT).stdout
+    r = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT)
+    out = r.stdout
+    if r.returncode != 0 and "differ" not in out and " OK " not in out:
+        first = (r.stderr.strip().splitlines() or ["no stderr"])[-1]
+        return ("TOOLING", f"objcmp failed to run: {first}", None, None)
     if " OK " in out:
         got = (0, None)
     else:
@@ -76,6 +95,14 @@ def check(path):
 
 
 def main():
+    if not os.path.exists(GCC):
+        sys.stderr.write(
+            f"parkcheck: {GCC} not found -- objcmp cannot compile anything here.\n"
+            "This tool must run INSIDE the build container, or every park would be\n"
+            "reported UNCHECKABLE for a reason that has nothing to do with the parks:\n\n"
+            '  docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \\\n'
+            "      goldensun-build python3 tools/parkcheck.py [path ...]\n")
+        return 2
     paths = sys.argv[1:] or sorted(glob.glob(os.path.join(ROOT, "src/non_matching/**/*.c"), recursive=True))
     paths = [os.path.relpath(p, ROOT) for p in paths]
     tally = {}
@@ -83,7 +110,7 @@ def main():
     for p in paths:
         status, detail, _, _ = check(p)
         tally[status] = tally.get(status, 0) + 1
-        if status in ("MISMATCH", "UNCHECKABLE"):
+        if status in ("MISMATCH", "UNCHECKABLE", "TOOLING"):
             bad.append((status, p, detail))
         print(f"  {status:<12} {p}  {detail}")
     print()
