@@ -3,7 +3,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_15000/8017658.c \
- *     asm/rom_15000/rom_15e8c_c_c_a.s --func Func_8017658
+ *     asm/rom_15000/rom_15e8c_c_c_a_a.s --func Func_8017658
  *
  * ITS .s HOLDS ONLY THIS FUNCTION AND Func_801776c (parked at 6 of 137, next door), IS
  * CLEAN OF `.section` DATA, AND SO CONVERTS WHOLE THE MOMENT BOTH MATCH -- no linker edit.
@@ -22,13 +22,13 @@
  * 60 BUT LEAVES THE MERGE, so CSE_CFLAGS does not reach this either.
  */
 /* Func_8017658 (OpenTextBoxAt) -- NON-MATCHING, 109 encodings of 127 against
- * asm/rom_15000/rom_15e8c_c_c_a.s.  SIZE EXACT (276 bytes both).  128 instructions
+ * asm/rom_15000/rom_15e8c_c_c_a_a.s.  SIZE EXACT (276 bytes both).  128 instructions
  * against 127 -- ONE over.  All six relocations sit 2-4 bytes off, which is that
  * one instruction, not six independent errors.
  *
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py <this> \
- *     asm/rom_15000/rom_15e8c_c_c_a.s --func Func_8017658
+ *     asm/rom_15000/rom_15e8c_c_c_a_a.s --func Func_8017658
  *
  * NO SHIM, NO asm, NO PIN.  Plain C throughout.
  *
