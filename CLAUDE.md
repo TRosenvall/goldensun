@@ -24,8 +24,14 @@ against `baserom.gba`.
 
 There is no Docker daemon. The environment's setup script builds the same
 toolchain natively at `/opt/gcc296` and `/opt/agbcc`, so drop the `docker run`
-wrapper and run `make AGBCC_DIR=/opt/agbcc ...` directly (`tools/tryc.py` finds
-`/opt/gcc296` on its own). `setarch -R` works here, so builds are deterministic.
+wrapper and run make directly -- `GCC296_DIR` too, which the Docker image set
+for you and nothing sets here (without it make looks in `tools/gcc296` and fails
+with Error 127):
+
+    make GCC296_DIR=/opt/gcc296 AGBCC_DIR=/opt/agbcc -j8 && \
+      make GCC296_DIR=/opt/gcc296 AGBCC_DIR=/opt/agbcc compare
+
+`tools/tryc.py` finds `/opt/gcc296` on its own. `setarch -R` works here, so builds are deterministic.
 
 `baserom.gba` lives in the private repo `TRosenvall/my-roms`. At session start,
 attach it with the add_repo tool, clone it to `/home/user/my-roms`, and run
