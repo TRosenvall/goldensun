@@ -26,6 +26,24 @@
  * (`mov r7,r0`; `ldr r2,=.L49`; `mov r2,#13`) issued one slot EARLIER than the ROM's.  Ten
  * statement-order and operand-order spellings moved none of them, and the reason is worth
  * carrying: THEY MOVE INSNS AND NEVER TOUCH A REFERENCE COUNT.
+ *
+ * BATCH 286 SCHED2 READOUT of the first two (-da -fsched-verbose=5, .23.sched2,
+ * insn numbers from that dump; body unchanged, still 7 of 217):
+ *   t=41, ready {41 strb [r6,#6], 24 mov r7,r0}: BOTH prio 68, both class 3
+ *     (41's dep on the just-issued `mov r3,#1` costs 1), and 24 wins on the
+ *     dependent-count step, 11 against 4.  p(24) = 1 + p(ldr r3,[r7,#8]) and
+ *     p(mov r3,#4) = 1 + p(strb [r6,#7]) = 1 + p(ldr r3,[r7,#8]) through the r3
+ *     ANTI edge, so the two are tied STRUCTURALLY by the reuse of r3.
+ *   t=47, ready {63 ldr r3,[r7,#8], 61 ldr r2,=.L49}: both prio 67; 63 is ANTI-
+ *     dependent on the just-issued strb [r6,#7] and anti costs 0 in
+ *     arm_adjust_cost, so insn_cost != 1 puts it in CLASS 2 against 61's 3.
+ *   So the ROM needs a real priority edge, not a tie flip.  Measured this batch:
+ *   `struct Ent ent;` appended to struct Actor (alias-subset, hoping to turn
+ *   the byte stores into true producers for the act loads) INERT at 7; the f6
+ *   and/or f7 store through `(unsigned char *)e` 480 bytes / 178 (the byte
+ *   constant CSEs with the later `|= 1` / `| 4`); `__asm__ volatile("")`
+ *   barriers splitting the block with the call result copied after them
+ *   (act = a) 22-33, because the extra pseudos move the allocation.
  */
 /* PARK -- OvlFunc_common1_1078, asm/overlays/common/common1_a_a_a_a_c_c_a_c.s.
  *
