@@ -40,7 +40,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_a1000/80a96d8.c \
- *     asm/rom_a1000/rom_a8604_c_a_a.s --func Func_80a96d8
+ *     asm/rom_a1000/rom_a8604_c_a_a_c.s --func Func_80a96d8
  * The reference holds THREE functions and this is the last, so a split is required.
  * Its pool is at the end and the candidate reproduces that; there was never a pool
  * problem.
@@ -203,7 +203,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_a1000/80a96d8.c \
- *     asm/rom_a1000/rom_a8604_c_a_a.s --func Func_80a96d8
+ *     asm/rom_a1000/rom_a8604_c_a_a_c.s --func Func_80a96d8
  * The reference holds THREE functions and this is the last, so a split is required.
  * Its pool is at the end and the candidate reproduces that; there was never a pool
  * problem.

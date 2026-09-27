@@ -219,6 +219,12 @@ _MSG_cf1 = 0x0cf1;
  * is the strongest corroboration any entry in this file has. */
 _MSG_75  = 0x0075;
 _MSG_182 = 0x0182;
+/* _MSG_af7 -- Func_80a9598 (batch 287) uses it as `m`, then `m + 1`, beside the
+ * already-admitted _MSG_182 in the same function. As a CONST_INT the `ldr r5,=0xaf7`
+ * is hoisted above the preceding call by sched2 (a constant set after reload has no
+ * dependence on the call); as a symbol it stays. Four literal spellings tie at 8-9
+ * differing; with the symbol the function is byte-identical. Named by value. */
+_MSG_af7 = 0x0af7;
 _MSG_c90 = 0x0c90;
 _MSG_ca0 = 0x0ca0;
 
