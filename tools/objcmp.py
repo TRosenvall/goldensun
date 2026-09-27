@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """objcmp.py -- compare a candidate .c against a reference .s AT THE OBJECT LEVEL.
 
-    python3 tools/objcmp.py <candidate.c> <reference.s> [--func NAME]
+    python3 tools/objcmp.py <candidate.c> <reference.s> [--func NAME | --whole]
 
 Run it INSIDE the build container. Exits non-zero on any difference.
 
@@ -30,6 +30,16 @@ tells you whether you are actually done. USE THIS BEFORE TOUCHING THE BUILD
 whenever tryc's own `!!` warning says the reference keeps its pool inside the
 function -- that warning marks exactly the cases where its normalisation hides
 things.
+
+--whole compares the ENTIRE translation unit: the reference .s assembled as the
+build assembles it, against the candidate compiled with the build's trailing
+`.text / .align 2, 0` append, then a per-function breakdown by symbol. Use it
+for a whole-file conversion. Two green --func runs on two separate candidate
+files say nothing about the TU you ship: batch 285's OvlFunc_932_200b738
+matched alone and read 43 differing once pasted beside its sibling, because
+one statement had moved. --whole also sees section-tail alignment fill, which
+the size+encodings check of --func cannot (the zero-vs-nop tail after the last
+function).
 
 It is not a substitute for `make compare`, which remains the gate: this checks
 one function in isolation and cannot see linker-script or layout mistakes.
@@ -204,6 +214,89 @@ def dump(obj):
     return enc, rel, int(size)
 
 
+FUNCLAB = re.compile(r"^([0-9a-f]+) <([^>]+)>:$")
+
+
+def dump_by_function(obj):
+    """{name: [encodings]} in object order, split at objdump's symbol labels.
+
+    Local labels (.L*, $t/$d mapping symbols) never head a block in objdump's
+    output for these objects, so every block is a function or a data label.
+    """
+    d = subprocess.run(["arm-none-eabi-objdump", "-dz", obj],
+                       capture_output=True, text=True).stdout
+    out, cur = [], None
+    for l in d.splitlines():
+        m = FUNCLAB.match(l)
+        if m:
+            cur = (m.group(2), [])
+            out.append(cur)
+            continue
+        m = ENC.match(l)
+        if m and cur is not None:
+            cur[1].append(m.group(1).strip())
+    return out
+
+
+def whole(src, ref, tmp):
+    refo, cs, cando = (os.path.join(tmp, n) for n in ("ref.o", "cand.s", "cand.o"))
+    p = subprocess.run(AS + ["-I" + os.path.dirname(os.path.abspath(ref)),
+                             "-o", refo, ref], capture_output=True, text=True)
+    if p.returncode:
+        sys.exit("objcmp: reference failed to assemble\n" + p.stderr)
+    flags, adjust = cflags_for(ref)
+    p = subprocess.run([os.path.join(GCC, "xgcc")] + flags + ["-S", "-o", cs, src],
+                       capture_output=True, text=True)
+    if p.returncode:
+        sys.exit("objcmp: compile failed\n" + p.stderr)
+    with open(cs, "a") as f:
+        f.write("\n\t.text\n\t.align\t2, 0\n")
+    p = subprocess.run(AS + ["-o", cando, cs], capture_output=True, text=True)
+    if p.returncode:
+        sys.exit("objcmp: candidate failed to assemble\n" + p.stderr)
+    if adjust:
+        print("  (built with: %s)" % ", ".join(sorted(adjust)))
+
+    a_enc, a_rel, a_sz = dump(refo)
+    b_enc, b_rel, b_sz = dump(cando)
+    ra, rb = dump_by_function(refo), dump_by_function(cando)
+    bad = 0
+    names_a, names_b = [n for n, _ in ra], [n for n, _ in rb]
+    if names_a != names_b:
+        print("  XX FUNCTIONS/ORDER differ\n     ref  %s\n     ours %s" % (names_a, names_b))
+        bad = 1
+    fb = dict(rb)
+    for n, ea in ra:
+        eb = fb.get(n)
+        if eb is None:
+            print("  XX %-28s missing from candidate" % n); continue
+        if ea == eb:
+            print("  ok %-28s %d encodings" % (n, len(ea)))
+        else:
+            k = sum(1 for x, y in zip(ea, eb) if x != y) + abs(len(ea) - len(eb))
+            first = next((i for i, (x, y) in enumerate(zip(ea, eb)) if x != y), None)
+            print("  XX %-28s %d of %d differ (ours %d)%s" % (
+                n, k, len(ea), len(eb),
+                "" if first is None else ", first at index %d" % first))
+            bad = 1
+    if a_sz != b_sz:
+        print("  XX SIZE  ref %d bytes, ours %d" % (a_sz, b_sz)); bad = 1
+    if a_enc != b_enc and not bad:
+        # Everything per-function agreed, so the delta is outside any function:
+        # the section tail, which is exactly what --func cannot see.
+        print("  XX ENCODINGS differ outside every function (section tail / fill)")
+        bad = 1
+    rel_bad, aliased = reloc_diff(a_rel, b_rel)
+    if rel_bad:
+        print("  XX RELOCATIONS differ"); print("     ref ", a_rel); print("     ours", b_rel); bad = 1
+    for x, y in aliased:
+        print("  ~~ relocation %s / %s is ONE symbol (same address in the linked ELF)" % (x, y))
+    if not bad:
+        print("  OK whole file -- %d bytes, %d encodings and %d relocations identical"
+              % (a_sz, len(a_enc), len(a_rel)))
+    return bad
+
+
 def main():
     argv = sys.argv[1:]
     name = None
@@ -211,10 +304,18 @@ def main():
         i = argv.index("--func")
         name = argv[i + 1]
         del argv[i:i + 2]          # drop BOTH the flag and its value
+    is_whole = "--whole" in argv
     args = [a for a in argv if not a.startswith("--")]
     if len(args) != 2:
         sys.exit(__doc__.strip().splitlines()[2].strip())
     src, ref = args
+    if is_whole:
+        if name is not None:
+            sys.exit("objcmp: --whole and --func are exclusive")
+        import atexit, shutil, tempfile
+        tmp = tempfile.mkdtemp(prefix="objcmp-")
+        atexit.register(shutil.rmtree, tmp, True)
+        sys.exit(whole(src, ref, tmp))
     if name is None:
         names = [m.group(2) for m in (START.match(l) for l in open(ref, errors="ignore")) if m]
         if len(names) != 1:
