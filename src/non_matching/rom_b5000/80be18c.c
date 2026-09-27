@@ -1,4 +1,4 @@
-/* Func_80be18c -- 0x080be18c, asm/rom_b5000/rom_bbb0c_a_c_a_c_c.s
+/* Func_80be18c -- 0x080be18c, asm/rom_b5000/rom_bbb0c_a_c_a_c_c_c.s
  *
  * NOT ATTEMPTED, DELIBERATELY. This is a GCC NESTED FUNCTION and writing a
  * standalone transcription now would produce a file the next round deletes.

@@ -49,7 +49,10 @@ import os, re, subprocess, sys, glob
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GCC = os.path.join(os.environ.get("GCC296_DIR", "/opt/gcc296"), "xgcc")
-VERIFY = re.compile(r"objcmp\.py\s+(\S+)\s+\\?\s*\n?\s*(\S+\.s)(?:\s+--func\s+(\S+))?", re.M)
+# `\` line continuations are allowed before the .s AND before --func: a recipe
+# split as `... REF.s \` / `--func NAME` used to lose the --func and fail on
+# every multi-function .s ("holds N functions; pass --func NAME").
+VERIFY = re.compile(r"objcmp\.py\s+(\S+)\s+\\?\s*\n?\s*(\S+\.s)(?:\s+(?:\\\s+)?--func\s+(\S+))?", re.M)
 CLAIM  = re.compile(r"(\d+)\s+(?:differing\s+)?encodings?\s+of\s+(\d+)", re.I)
 CLAIM2 = re.compile(r"NON-MATCHING,\s*(\d+)\s+of\s+(\d+)", re.I)
 
