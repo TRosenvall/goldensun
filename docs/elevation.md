@@ -24040,3 +24040,44 @@ free, which is the whole explanation in one line.
 slots are always allocated **above** reload's. A value whose slot sits *below* the parameter
 spill is a reload spill, not an address-taken local — which is why `(void)&x;` failed to
 reproduce it and `volatile` reproduced the shape at the cost of the frame.
+
+## Batch 286: five mechanisms read out of the compiler
+
+**The pre-header load merge is sched2 plus cross-jumping, and an empty do-while stops it.**
+In `.19.flow2` the pre-header is already in the ROM's order. sched2 then moves the loop
+counter's `mov #0` into the load-use stall, so the pre-header load becomes the last insn before
+the loop's unconditional `b`; jump2's `find_cross_jump` (jump.c:1428) compares backwards from
+that jump and from the loop label, finds two identical loads, and sinks one into the loop.
+`do { } while (0);` between the load and the counter's initialisation is a total scheduling
+barrier (haifa-sched.c:3714, batch 282) and emits nothing. Func_80064b8, OvlFunc_956_20081c8
+and Func_8012350 all landed on it, retiring `src/non_matching/preheader_load_merge.c`.
+**When cross-jumping merges a pair the ROM keeps apart, first check whether sched2 created the
+matching tail.**
+
+**Exactly three local-alloc quantities: a sorting bug, not a rule.** `block_alloc`
+(local-alloc.c) hand-sorts a block with three quantities instead of calling qsort, calling
+`qty_compare(0,1)`, `qty_compare(1,2)`, `qty_compare(0,1)` with quantity NUMBERS rather than
+`qty_order[]` slots. The 0/1 swap runs twice and cancels, so quantity 0 is allocated first
+whatever its priority. Traced under gdb in `find_free_reg`. The lever is the count: move one
+pseudo out of the block (OvlFunc_924_2009164) and two or four-plus sort correctly.
+
+**Nested functions.** gcc-2.96 Thumb's STATIC_CHAIN_REGNUM is r9. A function that saves r9,
+reads it and never writes it, whose every caller does `add rN, sp, #K / mov r9, rN` before its
+`bl`, is a nested function. Write it nested inside the caller in one TU: gcc compiles the inner
+function when its body closes, so it is emitted just before its parent, and the chain save
+needs no `register` binding and no volatile slot (Func_8016018 / Func_8015fb8). Its symbol
+becomes the local `name.0`, which objcmp cannot pair; use `make compare`.
+
+**`duplicate_loop_exit_test` (jump.c) copies an exit block of 20 insns or fewer, and which
+jump pass does it decides the loop.** At jump1, the copy happens before loop.c and the loop is
+"ignored due to multiple entry points" -- never strength-reduced. If the exit is over 20 at
+jump1 and under 20 after loop.c, the later jump pass copies it: the ROM's pre-check plus a
+duplicated found-block on a reduced loop. Anything that changes the exit block's insn count
+at expand -- an HImode struct-field store (and/ior on subregs, 27 insns) against a plain u16
+store (17) in GiveInnateMove -- is the lever.
+
+**A `void` callee does not set r0 in RTL**, so the next write to r0 depends on the pre-call
+argument copy into r0 instead of on the call. That changes the copy's dependent count, which
+is rank_for_schedule's tiebreak after priority and class. Declaring the callee `int` (result
+unused) reordered argument moves in Func_8017c8c and the caller's own `mov r0,rN` in
+Func_801eadc.
