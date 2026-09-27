@@ -1,41 +1,6 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ WaitForMapTransition
-@ Takes no arguments. Blocks with WaitFrames(1) until both transition counters at
-@ [iwram_1e70]+0x04 and +0x08 have fallen to 0xFF or below, giving up after
-@ 0x12C (300) frames. Clears the state word at +0x0C before returning either
-@ way.
-.thumb_func_start Func_8012350  @ 0x08012350
-	push	{r5, r6, lr}
-	ldr	r3, =iwram_3001e70
-	ldr	r5, [r3]
-	ldr	r3, [r5, #4]
-	mov	r6, #0
-	b	.L1236e
-.L1235c:
-	mov	r0, #1
-	bl	WaitFrames
-	mov	r3, #0x96
-	add	r6, #1
-	lsl	r3, #1
-	cmp	r6, r3
-	bge	.L12378
-	ldr	r3, [r5, #4]
-.L1236e:
-	cmp	r3, #0xff
-	bgt	.L1235c
-	ldr	r3, [r5, #8]
-	cmp	r3, #0xff
-	bgt	.L1235c
-.L12378:
-	mov	r3, #0
-	str	r3, [r5, #0xc]
-	pop	{r5, r6}
-	pop	{r0}
-	bx	r0
-.func_end Func_8012350
-
 @ RenderAffineMap
 @ r0, r1 = arguments forwarded to the renderer hook. Allocates 0x27C bytes under
 @ tag 0x31 and DMA-copies the ARM affine rasteriser Func_9e7c (rom_92b8.s) into
@@ -992,4 +957,3 @@
 	bl	WaitFrames
 	b	.L126fe
 .func_end Debug_SpriteTest
-
