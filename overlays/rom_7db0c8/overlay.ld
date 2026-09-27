@@ -69,7 +69,8 @@ SECTIONS {
 		asm/overlays/common/common1_c_a_c_b.o(.text)
 		asm/overlays/common/common1_c_a_c_c_a_a.o(.text)
 		asm/overlays/common/common1_c_a_c_c_a_b.o(.text)
-		asm/overlays/common/common1_c_a_c_c_a_c.o(.text)
+		asm/overlays/common/common1_c_a_c_c_a_c_b.o(.text)
+		asm/overlays/common/common1_c_a_c_c_a_c_c.o(.text)
 		asm/overlays/common/common1_c_a_c_c_b.o(.text)
 		asm/overlays/common/common1_c_b.o(.text)
 		asm/overlays/common/common1_c_c_a.o(.text)
@@ -123,3 +124,4 @@ _TBL_L3 = .L3;
 _TBL_L11 = .L11;
 _TBL_L12 = .L12;
 _TBL_L13 = .L13;
+_TBL_L16 = .L16;

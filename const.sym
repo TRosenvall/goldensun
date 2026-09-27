@@ -210,3 +210,11 @@ _CONST_a1 = 0xa1;
  * mismatch, this one folds absolute and comes out BYTE-IDENTICAL -- worth knowing that
  * the zero case is cleaner than its own precedent. */
 _CONST_0 = 0x0;
+
+/* _CONST_b -- OvlFunc_879_2008054 (batch 288) passes it to __Func_8002f3c, and the ROM
+ * POOLS it: `ldr r0, =0xb`. A literal gives `mov r0, #0xb` with nothing else changing,
+ * and the argument is a plain int (no halfword expression, so the exception above does
+ * not apply). The same callee takes a pooled 0xc at two other ROM sites
+ * (asm/rom_f4000/rom_f4008_c_c_c.s, asm/rom_f6000/rom_f6008_c_a_e.s). With the symbol,
+ * every instruction is identical. Named by value. */
+_CONST_b = 0xb;

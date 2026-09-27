@@ -3,7 +3,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/ovl_common/common1_1ecc.c \
- *     asm/overlays/common/common1_c_a_c_c_a_c.s --func OvlFunc_common1_1ecc
+ *     asm/overlays/common/common1_c_a_c_c_a_c_c.s --func OvlFunc_common1_1ecc
  *
  * Allocates the 0x7170-byte work block (__galloc_ewram id 0x3b), records the seven
  * arguments at +0xde..+0xec, mirrors actor b about actor a on x (unless flag 0x109),
