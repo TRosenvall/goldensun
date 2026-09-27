@@ -20,6 +20,18 @@ against `baserom.gba`.
     docker run --rm -v "$PWD:/work" -w /work goldensun-build sh -c \
       'make AGBCC_DIR=/opt/agbcc -j8 && make AGBCC_DIR=/opt/agbcc compare'
 
+### In a Claude Code on the web session
+
+There is no Docker daemon. The environment's setup script builds the same
+toolchain natively at `/opt/gcc296` and `/opt/agbcc`, so drop the `docker run`
+wrapper and run `make AGBCC_DIR=/opt/agbcc ...` directly (`tools/tryc.py` finds
+`/opt/gcc296` on its own). `setarch -R` works here, so builds are deterministic.
+
+`baserom.gba` lives in the private repo `TRosenvall/my-roms`. At session start,
+attach it with the add_repo tool, clone it to `/home/user/my-roms`, and run
+`ln -sf /home/user/my-roms/goldensun.gba baserom.gba`. Check its SHA1 is the
+target below. Never copy the ROM into this repo or commit it.
+
 `AGBCC_DIR=/opt/agbcc` is required in-container: the checked-in `tools/agbcc` is
 a Mach-O binary and will not run there. Target SHA1:
 `5c4695205413df7db52b9a184815a07783999971`.
