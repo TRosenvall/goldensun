@@ -5,7 +5,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_8a000/808ce74.c \
- *       asm/rom_8a000/rom_8ba38_a_c_a.s --func Func_808ce74
+ *       asm/rom_8a000/rom_8ba38_a_c_a_a.s --func Func_808ce74
  *
  * Built from the landed sibling Func_808bd24 (src/rom_8a000/rom_8ba38_a_a_a_c_a_b.c):
  * derived `&iwram_3001ebc - 0x4c`, signed `/ 0x200000` and `/ 0x100000`,
