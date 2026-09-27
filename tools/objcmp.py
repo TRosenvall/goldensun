@@ -221,8 +221,12 @@ def main():
             sys.exit("objcmp: %s holds %d functions; pass --func NAME" % (ref, len(names)))
         name = names[0]
 
-    tmp = "/tmp/objcmp"
-    os.makedirs(tmp, exist_ok=True)
+    # A private directory per run: a fixed /tmp/objcmp let two concurrent
+    # runs (parallel agents) overwrite each other's ref.o/cand.o and report
+    # each other's scores.
+    import atexit, shutil, tempfile
+    tmp = tempfile.mkdtemp(prefix="objcmp-")
+    atexit.register(shutil.rmtree, tmp, True)
     refs = os.path.join(tmp, "ref.s")
     # Context manager, not a bare open().write(): the file MUST be closed
     # before the assembler reads it. CPython refcounting usually closes it
