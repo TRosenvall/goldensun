@@ -1,4 +1,4 @@
-/* Func_808fe38 -- 0x0808fe38 -- asm/rom_8a000/rom_8d9a4_c_c_a_a.s
+/* Func_808fe38 -- 0x0808fe38 -- asm/rom_8a000/rom_8d9a4_c_c_a_a_c.s
  *
  * BLOCKER: ARGUMENT FILL ORDER at two calls. 9 of 43.
  *

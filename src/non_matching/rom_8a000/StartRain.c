@@ -1,4 +1,4 @@
-/* StartRain -- asm/rom_8a000/rom_944ec_a_a_a_a_c_c_a_a.s (7 functions).
+/* StartRain -- asm/rom_8a000/rom_944ec_a_a_a_a_c_c_a_a_c.s (7 functions).
  *
  * NOT MATCHING: 4 differing of 95 encodings, LENGTH IDENTICAL, relocations identical.
  * Candidate below.

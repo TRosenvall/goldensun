@@ -1,4 +1,4 @@
-/* Func_808f498 -- 0x0808f498 -- asm/rom_8a000/rom_8d9a4_c_c_a_a.s
+/* Func_808f498 -- 0x0808f498 -- asm/rom_8a000/rom_8d9a4_c_c_a_a_c.s
  *
  * BLOCKER: gcc CSEs the IO register addresses; the ROM loads each fresh.
  * 12 of 54, LENGTH EXACT.
