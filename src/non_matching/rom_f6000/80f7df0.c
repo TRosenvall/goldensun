@@ -1,4 +1,4 @@
-/* Func_80f7df0 -- asm/rom_f6000/rom_f6008_c.s
+/* Func_80f7df0 -- asm/rom_f6000/rom_f6008_c_c_a.s
  *
  * BLOCKER: base-plus-offset addressing that gcc folds into pointers.
  * 27 of 30, two lines short.

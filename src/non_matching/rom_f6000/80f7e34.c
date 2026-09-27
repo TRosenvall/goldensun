@@ -1,6 +1,6 @@
 /* Func_80f7e34  --  NOT MATCHING
  *
- * Source asm: goldensun/asm/rom_f6000/rom_f6008_c.s
+ * Source asm: goldensun/asm/rom_f6000/rom_f6008_c_c_a.s
  * Best screen: 15 instructions in disagreeing regions, of 21 (rom 21, ours 24).
  *
  * BLOCKER CLASS: CSE across a possibly-aliasing store -- gcc caches, the ROM

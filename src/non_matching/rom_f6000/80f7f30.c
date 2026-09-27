@@ -1,4 +1,4 @@
-/* Func_80f7f30 -- 0x080f7f30 -- asm/rom_f6000/rom_f6008_c.s
+/* Func_80f7f30 -- 0x080f7f30 -- asm/rom_f6000/rom_f6008_c_c_c.s
  *
  * BLOCKER: register-offset loads where the ROM builds addresses.
  * 10 of 31, LENGTH EXACT.

@@ -1966,9 +1966,13 @@ SECTIONS {
 		asm/rom_f6000/rom_f6008_c_a_d.o(.text)
 		asm/rom_f6000/rom_f6008_c_a_e.o(.text)
 		asm/rom_f6000/rom_f6008_c_b.o(.text)
-		asm/rom_f6000/rom_f6008_c.o(.text)
+		asm/rom_f6000/rom_f6008_c_c_a.o(.text)
+		asm/rom_f6000/rom_f6008_c_c_b.o(.text)
+		asm/rom_f6000/rom_f6008_c_c_c.o(.text)
 
-		asm/rom_f6000/rom_f6008_c.o(.rodata)
+		asm/rom_f6000/rom_f6008_c_c_a.o(.rodata)
+		asm/rom_f6000/rom_f6008_c_c_b.o(.rodata)
+		asm/rom_f6000/rom_f6008_c_c_c.o(.rodata)
 	} > rom
 
 	rom_f9000 : ALIGN(0x1000) {
