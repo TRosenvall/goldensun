@@ -1,4 +1,6 @@
-/* OvlFunc_923_2009cb4 (0x02009cb4) -- NON-MATCHING, 43 of 153.
+/* OvlFunc_923_2009cb4 (0x02009cb4) -- NON-MATCHING, 40 of 153 (43 before batch 289).
+ * BATCH 289: the ROM epilogue is `pop {r1}`, so this returns `int` (no return statement);
+ * that alone takes it 43 -> 40, measured on its byte-identical twin OvlFunc_924_200d244.
  * Blocker class: global_alloc -- two high registers transposed.
  *
  * asm/overlays/rom_7aa430/ovl_1a3c_a_c_a_a.s (2 functions after batch 278's split, so landing
@@ -62,7 +64,7 @@ static inline int call_via(int (*f)(int, int), int a, int b)
     return _a;
 }
 
-void OvlFunc_923_2009cb4(unsigned char *a)
+int OvlFunc_923_2009cb4(unsigned char *a)
 {
     unsigned char *p;
     unsigned char *spr;
