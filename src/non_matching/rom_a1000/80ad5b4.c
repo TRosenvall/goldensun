@@ -1,4 +1,4 @@
-/* Func_80ad5b4  --  0x080ad5b4, asm/rom_a1000/rom_ad274_c_a_a.s
+/* Func_80ad5b4  --  0x080ad5b4, asm/rom_a1000/rom_ad274_c_a_a_c_c.s
  *
  * BLOCKER CLASS: literal pool ORDERING.  A new one -- this is the first
  * function in the corpus to need both a pooled SYMBOL and a pooled INTEGER
