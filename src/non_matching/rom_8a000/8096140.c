@@ -2,6 +2,10 @@
  * `arm-none-eabi-nm goldensun.elf | grep GetVenusDjinni` -> 08096140 T
  * GetVenusDjinni.  NOT inferred from the .s stem.)
  *
+ * BATCH 287: the split below is STALE. rom_944ec_a_c_a_c_c_a.s was split for
+ * Func_8096048 (now C); GetVenusDjinni sits FIRST in rom_944ec_a_c_a_c_c_a_c.s with
+ * Func_809641c after it, so split THAT file at GetVenusDjinni instead.
+ *
  * PARKED four instructions short (292 of the ROM's 296 lines; objcmp 294
  * encodings against 301, 716 bytes against 732).  The first nine instructions
  * -- the whole prologue including the r8/r9/r10 save list -- are exact, and the
