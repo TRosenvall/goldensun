@@ -1,4 +1,4 @@
-/* Func_801cc50 -- asm/rom_15000/rom_1ca1c_a_a_c.s
+/* Func_801cc50 -- asm/rom_15000/rom_1ca1c_a_a_c_c_a_a.s
  *
  * BLOCKER: REGISTER ALLOCATION around a THREE-SITE .call_via
  *
