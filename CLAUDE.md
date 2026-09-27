@@ -29,7 +29,8 @@ gated on the build and compare both passing.
 
 ## Never
 
-- push, or switch branches (see BRANCH.md)
+- switch branches (see BRANCH.md)
+- push anywhere but `origin trosenvall/elevate`, or force-push
 - read another decompilation's `src/`
 - hand-edit a generated `.s` in `asm/` instead of fixing the `.c` beside it
 - write AppleScript files

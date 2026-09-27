@@ -19,7 +19,11 @@ The snapshot is not authoritative. This file and `git rev-parse` are:
 
 ## Standing rules
 
-- **Never push.** Origin is a personal fork kept for preservation.
+- **Push after every commit:** `git push -u origin trosenvall/elevate`. Work
+  now runs in Claude Code on the web, whose container is ephemeral — a commit
+  that is not pushed is lost when the session ends. Push only this branch, and
+  never force-push. On a transient network failure retry with backoff
+  (2s, 4s, 8s, 16s); if the push is rejected as non-fast-forward, stop and ask.
 - **Never switch branches.** If `HEAD` is not `trosenvall/elevate`, stop and ask
   rather than checking out.
 - `git checkout` is denied by project policy — use `git restore`.
