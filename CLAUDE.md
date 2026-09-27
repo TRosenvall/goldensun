@@ -14,6 +14,10 @@ against `baserom.gba`.
    grep it before writing anything up as a new finding.
 3. **[HANDOFF.md](HANDOFF.md)** — the batch index. The last row is the current
    state of play.
+4. **[docs/web-session-286-289.md](docs/web-session-286-289.md)** — the handoff from
+   the web session that ran batches 286-289 (122 functions): how it orchestrated
+   agents, every non-function tree change, the mistakes and their guards, the
+   mechanisms found, the decisions waiting on the owner, and the open work.
 
 ## Build and verify
 
