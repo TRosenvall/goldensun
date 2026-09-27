@@ -93,6 +93,25 @@ the code must not regress:
    seven functions, pickable calling them available. Two tools disagreeing is
    the cheapest bug detector this project has; prefer it to trusting either.
 
+7. A PARK'S SUBJECT IS THE FIRST IDENTIFIER IN ITS HEADER, NOT EVERY NAME IN THE
+   FIRST TWO LINES. Lesson 6's fix took every identifier from the header's first
+   two lines, which also captured NEIGHBOURS a park mentions in its opening
+   sentence -- "its file-mate DrawText stays in assembly", "Func_8028574 is the
+   caller". Sixteen functions were counted parked that way; nine had never been
+   attempted (DrawText, CreateSprite, SoundMain, StartEarthquake, Func_8028574,
+   OvlFunc_897_200b30c, OvlFunc_925_200b460, OvlFunc_947_2008cc0,
+   StartThunder2), understating "unattempted" by that much.
+
+   The other seven were legitimate subjects that match_stem missed because its
+   parts are shorter than its >= 4 guard: 4cc.c, fac.c, common1_78.c. So the
+   guard is now anchored instead of lengthened -- a part of 3+ may match as a
+   bare suffix, any length matches after an underscore.
+
+   Found in batch 290 when a handoff from a cloud session warned that census
+   over-counted parked, citing the lesson-6 mechanism. The mechanism it named
+   was already fixed; the SYMPTOM was still real by a different route. A stale
+   explanation for a live symptom is worth checking rather than dismissing.
+
 VERIFY BEFORE QUOTING. `--list` prints the available functions in a band; for a
 small band, grep each name in src/non_matching/ by hand. If any listed function
 turns up there, this file has a bug -- fix it here rather than in a new script.
@@ -135,8 +154,8 @@ def park_subjects():
 
     Three signals, union:
       * a function DEFINED in the park's code (comments stripped first)
-      * a function named in the park header's first two lines, which is where
-        this corpus puts the subject ("/* NAME -- NON-MATCHING, N of M")
+      * THE FIRST identifier in the park header, which is where this corpus puts
+        the subject ("/* NAME -- NON-MATCHING, N of M") -- see lesson 7
       * for a CLASS park -- one sitting at the top level of src/non_matching/
         rather than in a bank directory -- every function it names, because
         covering many functions at once is what a class park is for
@@ -148,8 +167,14 @@ def park_subjects():
         code = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
         code = re.sub(r"//[^\n]*", "", code)
         subjects |= {m.group(1) for m in DEFN.finditer(code)}
-        head = "\n".join(text.split("\n")[:2])
-        subjects |= {w for w in re.findall(r"[A-Za-z_]\w*", head)}
+        # THE FIRST identifier only. Taking every identifier in the first two
+        # lines captured NEIGHBOURS a park mentions in its opening sentence
+        # ("its file-mate DrawText stays asm"), which counted them parked
+        # without anyone having attempted them -- lesson 7.
+        head = "\n".join(text.split("\n")[:3])
+        first = re.search(r"[A-Za-z_]\w*", re.sub(r"^[\s/*]+", "", head))
+        if first:
+            subjects.add(first.group(0))
         if os.path.dirname(path) == os.path.join(ROOT, "src/non_matching"):
             subjects |= set(re.findall(r"[A-Za-z_]\w*", text))
         stems.append(os.path.basename(path)[:-2])
@@ -164,11 +189,22 @@ def match_stem(name, stems):
     80cd52c.c parks Func_80cd52c and its header opens with a batch note rather
     than the subject line, so nothing else here sees it. Stems are either a
     bare address (80cd52c, 2008c1c) or address_Name (d82b0_Drain).
+
+    Matching is anchored so a short part cannot match loosely: a part of three
+    or more characters may match as a bare suffix, and a part of any length
+    matches only when the name ends with "_" + part. Without the underscore
+    rule the >= 4 guard missed legitimate subjects whose address is short --
+    4cc.c parks OvlFunc_common1_4cc, fac.c parks OvlFunc_common1_fac, and
+    common1_78.c parks OvlFunc_common1_78.
     """
     low = name.lower()
     for st in stems:
         for part in st.lower().split("_"):
-            if len(part) >= 4 and low.endswith(part):
+            if not part:
+                continue
+            if len(part) >= 3 and low.endswith(part):
+                return True
+            if low.endswith("_" + part):
                 return True
     return False
 
