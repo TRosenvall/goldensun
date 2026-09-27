@@ -1,4 +1,13 @@
 	.include "macros.inc"
+	.global .Leec5f
+	.global .Leec63
+	.global .Leec68
+	.global .Leec70
+	.global .Leec74
+	.global .Leec7d
+	.global .Leec86
+	.global .Leec98
+	.global .Leeca1
 	.include "gba.inc"
 
 @ Sub_e0564

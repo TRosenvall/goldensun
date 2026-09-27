@@ -1,4 +1,5 @@
 	.include "macros.inc"
+	.global .Lf0a5c
 	.include "gba.inc"
 
 @ RunCreditRoll

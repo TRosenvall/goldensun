@@ -1,4 +1,8 @@
 	.include "macros.inc"
+	.global .Leedb2
+	.global .Leedb8
+	.global .Leedbe
+	.global .Leedca
 	.include "gba.inc"
 
 @ PlayNumberAnimation
