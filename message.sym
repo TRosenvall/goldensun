@@ -464,3 +464,40 @@ _MSG_d27 = 0x0d27;
  * in a landed file alongside its area.sym line, which meant nm reported the symbol twice
  * and the .sym line was never actually exercised. */
 _MSG_820 = 0x820;
+
+/* Added in batch 285 for OvlFunc_973_20084b0, and it is the BASE-PLUS-ARITHMETIC shape
+ * with the mechanism now named rather than inferred. The function reaches two message
+ * ids off one running base:
+ *
+ *     __Func_801e7c0(id + (int)&_MSG_333, box, 0x78, 0);
+ *     id += (int)&_MSG_53a;
+ *
+ * cse.c:1637's `use_related_value` FIRES ONLY FOR `CONST`, NEVER FOR A BARE `CONST_INT`
+ * (established in batch 283), so when a ROM reaches neighbouring ids by register
+ * arithmetic off a base, NO PLAIN-LITERAL SPELLING CAN PRODUCE IT. That converts this
+ * family of entries from "a pattern that works" into a mechanism that must.
+ *
+ * IN-FUNCTION CONTROL, which is the test this file actually applies:
+ *   * _MSG_53a is ALREADY ADMITTED (:256) and is used THREE LINES AWAY in the SAME
+ *     function, in the same `id +=` arithmetic, at the ADJACENT pool word (ours 0x230
+ *     and 0x234, the reference's own literal offsets). Declining 0x333 while keeping
+ *     0x53a would be incoherent -- the same argument that admitted _AREA_32 in batch
+ *     281 next to an _AREA_33 that had been in the table since batch 68.
+ *   * Every other constant of similar magnitude in the function reproduces as a PLAIN
+ *     LITERAL: 0x500, 0x3ff, 0x800, 0x200, 0x10f, 0x10d, 0x100.
+ *   * It COMPLETES its function AND its whole .s -- both OvlFunc_973_2008214 and
+ *     OvlFunc_973_20084b0 go byte-identical with it, so
+ *     asm/overlays/rom_7fc720/ovl_30_c_a_c_c_c_a_a_c.s converts WHOLE.
+ *
+ * MEASURED, and the pair is what is decisive rather than either half: plain literals for
+ * both give 4 differing encodings, _MSG_53a alone gives 26, _MSG_333 alone gives 24, and
+ * both together give 0. TWO CHANGES EACH WORSE THAN THE BASELINE AND DECISIVE TOGETHER --
+ * the combination-sweep lesson from batch 284's Func_80bfba4, where a park held both
+ * halves of a cure on file and never crossed them.
+ *
+ * Not shiftability: 0x333 is odd, so gcc pools it either way and the pool load is no
+ * evidence on its own. This is the register/arithmetic class.
+ *
+ * The landed file carries NO `.equ` shim -- verified with nm that the symbol resolves
+ * exactly once, so this line is genuinely exercised. */
+_MSG_333 = 0x0333;
