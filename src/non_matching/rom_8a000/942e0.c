@@ -17,7 +17,7 @@
  * typing the store's destination does not move it is worth knowing.
  */
 
-/* Func_942e0 -- 0x080942e0, asm/rom_8a000/rom_93304_c_a.s
+/* Func_942e0 -- 0x080942e0, asm/rom_8a000/rom_93304_c_a_c.s
  *
  * BLOCKER CLASS: sched2 PLACEMENT OF A BARE CONSTANT. Two encodings of 52,
  * size exact (116 bytes, 52 instructions), and everything else aligned.
