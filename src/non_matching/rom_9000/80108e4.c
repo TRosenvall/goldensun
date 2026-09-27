@@ -3,7 +3,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_9000/80108e4.c \
- *     asm/rom_9000/rom_108e4.s --func Func_80108e4
+ *     asm/rom_9000/rom_108e4_a.s --func Func_80108e4
  *
  * Landing needs the same text/data split as its file-mate Func_8010e14 -- see that park's
  * header for the shape, which is already established in this bank.

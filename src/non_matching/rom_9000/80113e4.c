@@ -6,7 +6,7 @@
  * scratchpad K/Func_80113e4.c from batch 286.)
  *
  * Verify with:
- *   python3 tools/objcmp.py src/non_matching/rom_9000/80113e4.c asm/rom_9000/rom_108e4.s --func Func_80113e4
+ *   python3 tools/objcmp.py src/non_matching/rom_9000/80113e4.c asm/rom_9000/rom_108e4_c.s --func Func_80113e4
  *
  * The .s holds ten functions (Func_80108e4 .. Func_80114a0); this one needs a split.
  *

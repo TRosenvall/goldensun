@@ -5,7 +5,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_9000/8010e14.c \
- *     asm/rom_9000/rom_108e4.s --func Func_8010e14
+ *     asm/rom_9000/rom_108e4_c.s --func Func_8010e14
  *
  * EVERY BLOCK MATCHES LINE FOR LINE: the two signed /0x200000 biases, the five
  * GetFile/DecompressLZ/DMA3_COPY groups, DMA3_FILL, the 20x15 ramp loop, prologue and

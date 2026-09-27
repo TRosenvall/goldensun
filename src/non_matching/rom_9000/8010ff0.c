@@ -3,7 +3,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_9000/8010ff0.c \
- *     asm/rom_9000/rom_108e4.s --func Func_8010ff0
+ *     asm/rom_9000/rom_108e4_c.s --func Func_8010ff0
  *
  * Landing needs the same text/data split as its file-mates -- see 8010e14.c's header.
  *
