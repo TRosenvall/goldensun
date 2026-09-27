@@ -9,7 +9,17 @@
  *     data sections : .rodata
  *     functions     : Func_801d9d4, StartMenu_Main, Func_801dd28
  *     EXPORTS       : .L367c9, .L367cc, .L367ce, .L367d0, .L367d6, .L36750
- * Six exported labels, and the data sits ENTIRELY BELOW all three functions (functions to
+ * CORRECTION (batch 290): SIX exported labels is WRONG -- THE SPLIT NEEDS SEVEN.
+ * `.L367dc` is defined in that same `.rodata` at line 586 with NO `.global`, and it is
+ * referenced by `ldr r3, =.L367dc` from BOTH Func_801d9d4 (line 159) AND StartMenu_Main
+ * (line 276).  It resolves today only because it is file-local; the moment EITHER of those
+ * two functions leaves this .s, the data object must carry `.global .L367dc` or the link
+ * fails.  datacheck.py's EXPORTS line lists only labels that are ALREADY .global, so it
+ * cannot see this -- read the .rodata for label definitions too, not just its .global lines.
+ * (split_s.py would refuse and name it, which is the backstop; this note is so the next
+ * reader does not have to discover it that way.)
+ *
+ * The data sits ENTIRELY BELOW all three functions (functions to
  * line 549, then .align 2,0 and a .word 0xf000, then .section .rodata at 566 with seven
  * .incrom ranges spanning 0x36750-0x367e4).  So it is a CLEAN TAIL CUT with no data
  * interleaved between functions -- but matching all three still needs the rehome.
