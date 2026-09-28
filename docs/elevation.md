@@ -1507,6 +1507,28 @@ Measured on a 455-instruction park: objcmp reports 485 of 510, `--align` reports
 instructions in disagreeing regions of 500. The second number is the one that ranks
 variants. `tools/realign.py` re-measures an existing park the same way.
 
+### `--align` IS BLIND TO THE LITERAL POOL, SO IT CAN READ ZERO WHILE BYTES DIFFER
+
+`tryc.py:363` drops `.word` and `.align` lines from the aligned view on purpose -- the
+comment there says "drop the pool itself". So `--align` compares INSTRUCTIONS and cannot see
+a pool-ordering or pool-content defect at all. **objcmp stays mandatory for the verdict; it
+is not merely the more conservative number.**
+
+The case that shows it, from batch 293: **the literal pool is ordered by the constant's
+MODE.** A constant reaching a halfword store stays HImode, and gcc places its pool word
+FIRST, ahead of every SImode word -- rotating the whole pool and shifting every relocation
+after it. On `Func_808d5dc` that was the last 15 of 18 differing encodings **while `--align`
+reported zero differing instructions.** An `int` carrier for the stored value fixes it by
+making the constant SImode.
+
+It runs in both directions. On a neighbouring function the same mechanism had to be used in
+reverse -- an `int k = 0x28` to keep a constant OUT of the pool, where the ROM has
+`mov r3,#0x28`.
+
+So the working rule is: rank variants with `--align`, but confirm with objcmp before
+believing a candidate is finished, and if objcmp reports differences that `--align` cannot
+see, suspect the pool before suspecting anything subtler.
+
 ## Pointer arithmetic: the ROM's `add` says which form to write
 
 Two ways to reach `base + off`, and the ROM tells you which it wants before you
