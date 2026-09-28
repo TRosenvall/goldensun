@@ -36,6 +36,53 @@ SECTION = re.compile(r"^\s*\.section\s+(\.[\w.]+)", re.M)
 FUNC = re.compile(r"^\s*\.(?:thumb|arm)_func_start(?:_noalign)?\s+(\S+)", re.M | re.I)
 GLOBAL = re.compile(r"^\s*\.global\s+(\S+)", re.M)
 DATA_SECTIONS = (".rodata", ".data", ".bss")
+LABEL_DEF = re.compile(r"^(\.L\w+):")
+LABEL_REF = re.compile(r"\.L\w+")
+START = re.compile(r"^\s*\.(?:thumb|arm)_func_start(?:_noalign)?\s+(\S+)", re.I)
+
+
+def split_requirements(path):
+    """Per function: which DATA labels it reads, and which of those lack `.global`.
+
+    WHY THIS IS NOT THE `EXPORTS` LINE ABOVE. That line lists the labels the file
+    ALREADY exports, which is not the set a split REQUIRES -- and the two sets can be
+    disjoint. Measured in batch 292 on asm/rom_c9000/rom_c91dc_c_c_c_c_c_c.s: EXPORTS
+    named `.Leded6` and `.Lededc`, both already global and NEITHER read by
+    BaseAnim_SonicWave, while the two labels it does read (`.Ledee8`, `.Ledefc`) are
+    not global and are exactly what the split must export. Reporting the first set
+    where a reader needs the second is worse than reporting nothing.
+
+    Three files in that one batch needed exports the EXPORTS line did not name (five,
+    one and five respectively), and in two other files the assigned function needed
+    ZERO exports while a file-mate needed one -- so the answer is per FUNCTION, not per
+    file. Getting it wrong costs a failed link with N undefined references, which is
+    the same class of failure this tool exists to prevent: batch 285 shipped a rehome
+    that exported the two labels its own function read and needed five, because three
+    more were read by the function that stayed in assembly.
+
+    A label defined inside the function's own body is a branch target and disappears
+    with the conversion; only labels defined in the DATA region count here.
+    """
+    lines = open(path, errors="ignore").readlines()
+    dstart = None
+    for i, l in enumerate(lines):
+        m = SECTION.match(l)
+        if m and any(m.group(1).startswith(d) for d in DATA_SECTIONS):
+            dstart = i
+            break
+    if dstart is None:
+        return None
+    exported = set(GLOBAL.findall("".join(lines)))
+    data_labels = {m.group(1) for l in lines[dstart:] if (m := LABEL_DEF.match(l))}
+    starts = [(i, m.group(1)) for i, l in enumerate(lines) if (m := START.match(l))]
+    out = []
+    for k, (i, name) in enumerate(starts):
+        stop = starts[k + 1][0] if k + 1 < len(starts) else dstart
+        body = "".join(lines[i:stop])
+        reads = sorted({r for r in LABEL_REF.findall(body) if r in data_labels})
+        need = [r for r in reads if r not in exported]
+        out.append((name, reads, need))
+    return out
 
 
 def inspect(path):
@@ -83,9 +130,22 @@ def main():
         print("    data sections : %s" % ", ".join(sorted(set(secs))))
         print("    functions     : %s" % ", ".join(funcs))
         if syms:
-            print("    EXPORTS       : %s" % ", ".join(syms))
+            print("    EXPORTS       : %s  (already global -- NOT the set a split needs)"
+                  % ", ".join(syms))
         print("    -> converting a function here needs a TEXT/DATA SPLIT; the "
               "data must keep its own object.")
+        req = split_requirements(p)
+        for name, reads, need in (req or []):
+            if not reads:
+                print("    %-28s reads no data label -> split needs NO new export"
+                      % name)
+            elif need:
+                print("    %-28s reads %s" % (name, ", ".join(reads)))
+                print("    %-28s *** SPLIT MUST EXPORT: %s" %
+                      ("", " ".join(".global " + r for r in need)))
+            else:
+                print("    %-28s reads %s (all already global) -> no new export"
+                      % (name, ", ".join(reads)))
     if args[0] == "--all":
         print("\n%d .s files carry both code and data." % bad)
     return 1 if bad else 0
