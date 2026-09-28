@@ -1,9 +1,37 @@
 /* ScreenTransitionIn  --  asm/rom_8a000/rom_8d9a4_c_c_a_c_c_a.s  (0x0808fefc)
+ * NON-MATCHING, 60 encodings of 309.  SIZE AND COUNT NOW EXACT -- 708 bytes and 309 entries both sides, with the pool dumped twice
+ * in the ROM's two places, so the 28-byte gap the earlier park called an artefact is CLOSED.
+ * DOWN FROM 147.  `--align` 35 of 302, from 60.
  *
- * NON-MATCHING: 147 encodings of 309 differ (objcmp).
- * Working distance: 60 instructions in disagreeing regions of 302 (tryc --align).
- * THE 60 IS A TRUE DISTANCE -- instruction COUNT is exact (302 == 302). objcmp's 147/309
- * and its "SIZE ref 708 ours 680" are pool-placement artefacts, see POOL below.
+ * CARRIES ONE VERIFICATION SHIM, legitimate in a park and NOT to be landed:
+ * `__asm__(".equ _CONST_50, 0x50")`, absolute in-TU.  The agent's own recommendation, which I
+ * accept, is NOT to add a const.sym row on this evidence -- the symbol may be standing in for a
+ * third source reference nobody has found, since a HImode carrier does reproduce the pool and
+ * only loses the register to local-alloc.c:886's REG_N_REFS == 2 deletion rule.
+ *
+ * (Claim line first on purpose: parkcheck reads the FIRST `N encodings of M`.)
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/808fefc.c \
+ *     asm/rom_8a000/rom_8d9a4_c_c_a_c_c_a.s --func ScreenTransitionIn
+ *
+ * NON-MATCHING: 60 encodings of 309 differ (objcmp --whole).  Was 147.
+ * Working distance: 35 instructions in disagreeing regions of 302 (tryc --align).  Was 60.
+ *
+ * *** THE SIZE AND THE ENCODING COUNT ARE NOW BOTH EXACT: 708 bytes and 309 entries on
+ * both sides, with the literal pool DUMPED TWICE in the same two places as the ROM. ***
+ * The previous revision read that 28-byte gap as an artefact to be ignored until the
+ * instruction stream matched.  It was not an artefact -- it was the measurement that
+ * mattered, and closing it is what moved the whole function.  See B below.
+ *
+ * objcmp --whole, verbatim:
+ *   XX ScreenTransitionIn           60 of 309 differ (ours 309), first at index 57
+ *   XX RELOCATIONS differ
+ * The reloc difference is ONE extra R_ARM_THM_CALL StartTask (we emit five `bl StartTask`,
+ * the ROM four -- cluster 4 below) plus the 2-byte offset drift that extra call causes in
+ * four later relocations.  Nothing else in the list differs in type or symbol, and
+ * _CONST_50 carries NO relocation (see SHIMS).
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -11,98 +39,157 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/tryc.py src/non_matching/rom_8a000/808fefc.c --ref asm/rom_8a000/rom_8d9a4_c_c_a_c_c_a.s --align
  *
- * Whole-file conversion: one function, no data section (datacheck; grep -ci func_start == 1).
- * No pins, no flags, no volatile beyond the two I/O reads. ZERO shims.
+ * Whole-file conversion: one function, no data section.
  *
- * STRUCTURE, read out of the ROM
- *   r0 is packed: mode = (a >> 8) & 0xff (asr -> signed int), lo = a & 0xff. The 0xff is ONE
- *     named mask used twice and the ROM has the COPY (mov r3,#0xff / mov r6,r3 / and r2,r3 /
- *     and r6,r0) -- the batch-292 shared-mask shape.
- *   cmp #4 / bls + a 5-word table -> switch (mode) with cases 0..4; default, case 0 and case 4
- *     all fall into the shared tail.
- *   The gDMATaskCount push appears FOUR times -> one static inline, identical body at each
- *     site (cases 1, 2, 3 and the tail). Saved IME lands in r5 for case 1 and the tail, r6 for
- *     cases 2 and 3, because r6's `lo` is dead by then.
- *   r7 = *(void **)iwram_3001e70 is loaded in the prologue AND AGAIN at the top of case 4, off
- *     the still-live pool register. Same pseudo, two defs -> in source it is ONE variable
- *     assigned twice; the computed jump of the table breaks cse's extended basic block, which
- *     is why the second assignment survives. Writing it that way is required, not optional.
+ * SHIMS -- code only, leading comment stripped, in the two classes:
+ *   `register ... __asm__` declarations               0
+ *   `__asm__(".equ ...")` lines                       1   -- `.equ _CONST_50, 0x50`
+ * The `.equ` is a VERIFICATION SHIM and must not land: if _CONST_50 is admitted it belongs
+ * in const.sym, and the shim would duplicate the definition (batch 293's lesson).  With the
+ * shim in this translation unit the symbol is absolute and emits NO relocation, which is why
+ * the pool word compares clean against the reference's plain `.word 0x50`.  WHETHER IT
+ * SHOULD BE ADMITTED IS AN OWNER DECISION -- see the note under C.
  *
- * THE DECISIVE LEVER: A HImode STORE OF A LITERAL GOES THROUGH THE POOL; AN int LOCAL DOES NOT.
- *   `*(u16 *)(t + 0x534) = 0x3f;`            -> ldr r3,.Lp / ldrh r3,.Lp / strh   (2 insns)
- *   `int k; k = 0x3f; *(u16 *)(t+0x534) = k;` -> mov r3,#0x3f / strh              (ROM's form)
- *   thumb's movhi has no CONST_INT alternative, so expand calls force_const_mem; an SImode
- *   pseudo truncated by the strh never reaches that path. Measured in isolation (t1.c f1..f6):
- *   `int v` and `unsigned v` + (u16) cast both give the mov; a cast, a volatile store and a
- *   struct u16 member all still pool. QImode (strb) literals are NOT affected -- they always
- *   give `mov`. This is what took the first candidate from the pool-load noise it started in.
+ * STRUCTURE: unchanged from the previous revision and still believed correct -- the packed r0,
+ * the five-entry jump table, the four copies of the gDMATaskCount push as one static inline,
+ * and r7 reloaded at the top of case 4 off the still-live pool register.  Not restated.
  *
- * AND ITS BOUNDARY, WHICH IS WORTH AS MUCH: WHERE THE ASSIGNMENT SITS DECIDES THE REGISTER.
- *   Written as initialisers at the top of the case block, the int locals are born BEFORE
- *   `bl AllocGlobal1F`, so their ranges cross the call and global-alloc hands them
- *   callee-saved HIGH registers -- one extra `push {r7}` / `mov r7,r8` and r9/r10/r11 in use
- *   where the ROM has three high regs. Measured on the whole function:
- *       initialisers at block top (three ints live across the call)   142
- *       same ints assigned immediately before their stores             75
- *       `z = 0;` moved to after the FIRST store of the case-2 group    68
- *       the same move applied to case 3                                60
- *   So the lever is not "name the constant", it is "name it and give birth to it one store
- *   later". Sharing one `zero`/`n` pair across all three cases instead of per-case locals is
- *   137 -- long live ranges again.
+ * ============================================================================
+ * BATCH 294: THE 28-INSTRUCTION CASE-4 CLUSTER HAS A SOURCE ROUTE.  60 -> 35.
+ * ============================================================================
+ * The previous revision's cluster 4 -- "the one cluster I could not find any source route
+ * to" -- is solved, and so is cluster 3.  Three mechanisms were needed.
  *
- * MEASURED INERT AT 60 (each a single drop from this file)
- *   a union member access on the s+0x14 load (alias set 0)          60
- *   dropping volatile from the DISPCNT read                        60
- *   0x534 through a named u16 * pointer / a char * cast            60
- *   storing 0x536 before 0x534                                     60
- *   case 4's two strh from literals instead of from `n`             60
- *   `u16 z` instead of `int z` in case 4                           60
- * MEASURED WORSE
- *   `dispcnt | field` instead of `field | dispcnt` in the inline   111
- *   both I/O reads volatile (it DOES reverse the load order, but
- *     leaves the two values in each other's registers)              75
- *   a `u32 v` temp for the field read before the task setup        124
- *   case 4 `z = 0;` before `n = 0x50;`                             128 at length 299
- *   a `void (*fn)(void)` for the two StartTask arms                129 at length 296 --
- *     positive evidence the ROM is TWO calls with jump2 merging only the `bl`, not one
- *     indirect call: the ROM duplicates `mov r1,#0xc8 / lsl r1,#4` in both arms.
+ * A. *** A ONE-MEMBER u16 STRUCT LOCAL IS A HImode PSEUDO, AND ASSIGNING A LITERAL TO IT
+ *    GOES THROUGH THE POOL. ***  `promote_mode` promotes only INTEGER_TYPE, ENUMERAL_TYPE,
+ *    BOOLEAN_TYPE, CHAR_TYPE, REAL_TYPE and OFFSET_TYPE; a RECORD_TYPE falls to
+ *    `default: break` and keeps its own mode.  So `struct HWord { unsigned short v; }` gets a
+ *    HImode pseudo where a bare `unsigned short` local is promoted to SImode (arm.h:597,
+ *    batch 293's finding 5).  A HImode pseudo whose destination is a HIGH register has no
+ *    matching alternative in `*thumb_movhi_insn` -- alternative 5 is `l <- I`, LOW register
+ *    only -- so the literal is forced to memory and reaches the high register as
+ *    `ldr rL, .Lpool / mov rH, rL`, which is exactly what the ROM writes for case 4's 0.
+ *      case 4's z as `int`                    60 align / 147 objcmp / 680 bytes
+ *      case 4's z as `struct HWord`           71 align / 159 objcmp / 704 bytes
+ *    The two numbers disagree in SIGN.  The struct is right and align says it is wrong.
  *
- * THE REMAINING 60, IN FIVE CLUSTERS, AND WHAT PASS OWNS EACH
- *  1. 4 x 3 rows, the inline's two loads (12).  The ROM loads [r7,#0x14] into r3 FIRST and
- *     DISPCNT into r1; we load DISPCNT into r3 first. `orr r3,r1` in both, so the ROM ties the
- *     field to the destination. Writing the operands the other way round moves the ORDER but
- *     not the REGISTERS (see 75 above), which says this is combine's commutative
- *     canonicalisation on pseudo NUMBER, downstream of a sched2 interleave that puts
- *     `add r2,r1` between the loads in the ROM and before both in ours. Not reached from
- *     source by any of the six spellings tried.
- *  2. case 2, rom[88:98] (16).  The ROM's move2add chain is 0x528 -> +2 -> +0xc (0x536) with
- *     0x534 pool-loaded into r3 and r3 then REUSED for the value 0x3f. Ours chains
- *     0x52a -> +0xa -> +0x2 and keeps value and address in the opposite registers.
- *     reload_cse_move2add can only chain constants that land in the SAME hard register, so
- *     this is local-alloc, not the pass itself.
- *  3. case 3, rom[156:163] (8) -- same shape, one register apart.
- *  4. case 4, rom[218:232] + rom[250:266] (28, the largest).  The ROM POOL-LOADS 0 into r8 and
- *     0x50 into r9 before the calls (`ldr r1,=0x0` / `ldr r3,=0x50` over `.word` entries) and
- *     keeps a separate `mov r3,#0x50` for the two strh; we get `mov` for both and r8/r9 the
- *     other way round. gcc DOES produce exactly that split of one int constant into an SImode
- *     `mov` for the strh and a pooled HImode load for the strb -- reproduced in t3.c/t4.c k4 --
- *     but only when no call separates them; with calls in between the constant stays in a
- *     callee-saved register and is never rematerialised from a pool. `signed char`, `short`,
- *     `u16` and `static const int` carriers all measured (t4.c k1..k4): none puts the pooled
- *     load BEFORE the calls. This is the one cluster I could not find any source route to.
- *  5. the StartTask arms, rom[237:246] (6) -- jump2 find_cross_jump merges the ROM's `bl` and
- *     not ours; the function-pointer spelling that does merge loses 6 instructions.
+ * B. *** WHY THAT CLOSES THE POOL GAP: A HImode POOL LOAD HAS pool_range 64, NOT 1020. ***
+ *    `*thumb_movhi_insn`'s pool_range attribute is `*,64,*,*,*,*`; `*thumb_movsi_insn`'s is
+ *    1020.  One HImode pool reference forces `arm_reorg` to dump the minipool at the next
+ *    barrier -- here the barrier after case 4's `b` -- and everything still needed after that
+ *    point is emitted AGAIN in the pool at the end of the section.  That is the ROM's
+ *    two-pool layout and its duplicated words, and it is the whole 28-byte size gap.
+ *    It also settles what the ROM's `ldr r1,.L900f4 @ 0` is: the ROM's pool word sits about
+ *    0x28 bytes from its load -- inside the 64-byte HImode window, nowhere near the 1020-byte
+ *    SImode one -- so the ROM's 0 IS a HImode pool load.  (The `ldr`/`ldrh` mnemonic is not
+ *    evidence either way: gas assembles both identically over a pool word.)
  *
- * POOL (why objcmp's numbers look so much worse than the distance)
- *   The ROM dumps its literal pool TWICE: once at the barrier after case 4's `b`, and again at
- *   the end of the section, so ~7 constants appear in both pools -- that is the whole 28-byte
- *   size gap (708 vs 680) and it is why objcmp counts 309 encodings against our 302. gcc puts
- *   one pool at the end here. Pool placement is downstream of the instruction stream, so this
- *   should resolve itself with the five clusters above rather than needing its own lever;
- *   do not spend budget on it first.
+ * C. *** local-alloc.c:886 DELETES A POOLED CONSTANT THAT HAS EXACTLY TWO REFERENCES. ***
+ *    This is why case 4's 0x50 would not stay in r9 through eleven earlier spellings.
+ *      if (REG_N_REFS (regno) == 2 && REG_BASIC_BLOCK (regno) < 0
+ *          && rtx_equal_p (XEXP (note, 0), SET_SRC (set)))
+ *        reg_equiv_replace[regno] = 1;
+ *    `update_equiv_regs` then either replaces the single use with the equivalent outright or,
+ *    failing that, MOVES the initialising insn to sit just before the use (local-alloc.c:962).
+ *    Case 4's 0 has three references (its set, `t[0x53b]`, `t[0x53d]`) and survives to win r8.
+ *    Case 4's 0x50 has TWO (its set and `t[0x53a]`), so its load is moved past the calls,
+ *    lands in the SECOND pool, and the allocator never sees an allocno to give r9 to.  The
+ *    threshold is a raw count here because there are no loops; inside one it would be
+ *    weighted by loop_depth + 1 (flow.c:4948).
+ *    A pooled SYMBOL escapes the rule: `reg_equiv_replacement` is then a SYMBOL_REF,
+ *    `validate_replace_rtx` cannot put one into a `strb`, and the move-before-use branch does
+ *    not fire either, so the pseudo survives to allocation and takes r9.
+ *      case 4's 0x50 as `int`                 r8/r9 hold the two constants the wrong way up
+ *      case 4's 0x50 as `struct HWord`        its load is moved after the calls
+ *      case 4's 0x50 as `(int)&_CONST_50`     the ROM's r9, and rom[250:266] -- the
+ *                                             16-instruction strb block -- goes to ZERO
+ *    OWNER DECISION.  const.sym's criterion 1 is met (the ROM pools a value one `mov` could
+ *    build) and criterion 2 is now MEASURED rather than asserted: fourteen spellings of case
+ *    4's two carriers are recorded here and in the inert list, and none reproduces both the
+ *    pool and the allocation.  Against admitting it: mechanism B shows the ROM's word is a
+ *    HImode pool entry, and a HImode carrier is a literal spelling that DOES reproduce the
+ *    pool -- it just loses the register to the REG_N_REFS==2 rule.  So the symbol may be
+ *    standing in for a third source reference I have not found.  I would not add the entry
+ *    on this evidence alone.
+ *
+ * D. *** CASE 3's 0x52a GOES THROUGH ITS OWN u16 * LOCAL. ***  41 -> 35 align, 128 -> 60
+ *    objcmp, and it is what made the SIZE and the COUNT exact.  Written
+ *    `*(u16 *)(t + 0x52a) = hi;` the offset is derived from 0x528 by reload_cse_move2add in
+ *    the same hard register; with the address in its own local it is materialised from the
+ *    pool into a different register, which is what the ROM has and what move2add cannot chain
+ *    across.  The same spelling at case 2's 0x534, case 2's 0x52a, case 2's 0x536, case 3's
+ *    0x528 and case 4's two stores is inert or worse.  It is load-bearing at exactly one site.
+ *
+ * E. THE INLINE'S TWO LOADS: READ DISPCNT INTO A u32 TEMP FIRST, THEN OR THE FIELD INTO IT.
+ *      *task++ = *(u16 *)(s + 0x14) | *(vu16 *)(0x80 << 19);        45 align
+ *      u32 d = *(vu16 *)(0x80 << 19); *task++ = *(u16*)(s+0x14)|d;  41 align
+ *    This is NOT the operand-order lever the previous revision measured (`dispcnt | field`
+ *    was 111).  The OR's operand order stays field-first; what changes is the order the two
+ *    MEMs are READ in, and that fixes the registers at all four sites -- the ROM's
+ *    `ldrh r3,[r7,#0x14]` / `ldrh r1,[r0]` with the field tied to the OR's destination.
+ *    Only a one-instruction sched2 interleave is left at each site.
+ *
+ * ADDED TO THE INERT LIST (each a single drop from the 35 / 60 file unless noted; the
+ * previous revision's list still stands and is not restated)
+ *   case 4 decl order `int z; int n;`                                   inert
+ *   case 4 assign order z before n                                     128 align (much worse)
+ *   case 4's two strh from the literal 0x50 instead of from k            inert
+ *   case 4's halfword stores via a u16 index / plain 0x100 and 0x102 /
+ *     w[0] and w[1] off one base / two separate u16 * locals
+ *                                              inert / inert / 134 objcmp / 166 objcmp
+ *   case 2's 0x534, 0x52a or 0x536 through its own u16 * local
+ *                                              inert / 127 objcmp / 119 objcmp
+ *   case 3's 0x528 through its own u16 * local                          inert
+ *   case 2's 0x528/0x52a/0x536 off one u16 * base, 0x534 apart          241 objcmp (worse)
+ *   the task cursor as (u32)queue + count*12 + 4                        inert
+ *   the task cursor as count*12 + 4 + (u32)queue                        inert
+ *   the task cursor as &queue->tasks[count]                             inert
+ *   the task cursor built in two statements                              53 align (worse)
+ *   the inline's field read into a u32 temp first                        97 align (worse)
+ *   the inline's OR by compound assignment into a u32                    97 align (worse)
+ *   the inline's DISPCNT read non-volatile                               inert
+ *   the inline's field read volatile as well                             inert
+ *   the inline's store split from the increment                          inert
+ *   BOTH case-4 constants as pooled symbols                              45 align, and the
+ *     pool does NOT split: an SImode symbol load has pool_range 1020, so it cannot force the
+ *     early dump.  The HImode carrier for the 0 is what splits the pool; the symbol for the
+ *     0x50 is what wins r9.  Neither alone reaches 35.  A COUPLED PAIR.
+ *   both case-4 constants as HImode structs with 0x50 given a third
+ *     reference (k = h50.v)                                             67 align
+ *   the two strh reading h50.v directly (three refs, no k)              117 align, 724 bytes
+ *   a two-member u16 struct carrying both case-4 constants              138 align, 672 bytes
+ *   carriers assigned after WaitFrames, or after SetIntrHandler
+ *                                                         71 / 73 align, 121 align (worse)
+ *
+ * THE REMAINING 35, IN FOUR CLUSTERS
+ *  1. `add r2, r1` one position earlier than the ROM's, at all four inline sites (8 of the
+ *     35).  Pure sched2 ordering: the ROM interleaves the task-cursor add between the two
+ *     halfword loads, we put it before both.  Four spellings of the cursor do not move it.
+ *  2. case 2, rom[88:98] (about 11).  The ROM pool-loads 0x534 into r3 and reuses r3 for the
+ *     value 0x3f, chaining 0x528 -> +2 -> +0xc for the other three offsets; we chain all four
+ *     in r1 and hold the value in r2.  Six spellings tried.  The previous revision's reading
+ *     -- move2add chains only within ONE hard register, so this is local-alloc -- is
+ *     confirmed; and since case 3 (D) DOES have a source route, the class is not closed,
+ *     only this instance of it.
+ *  3. case 4, rom[218:232] (about 11).  Both pooled loads land in r8 and r9 correctly now and
+ *     the strb block is exact.  What is left: the ROM builds 0x102 independently
+ *     (`mov r1,#0x81 / lsl r1,#1`) where move2add gives us `add r1,#2`, so we are ONE
+ *     instruction short here, and the strh's value and address registers are swapped.
+ *  4. the StartTask arms, rom[237:246] (about 5) plus the one extra relocation.  jump2's
+ *     find_cross_jump merges the ROM's two `bl StartTask` into one and not ours.  The
+ *     function-pointer spelling that does merge loses six instructions and is already on the
+ *     previous revision's worse list.  The only cluster with no identified mechanism.
  */
 #include "gba/types.h"
 #include "gba/io.h"
+
+/* VERIFICATION SHIMS, scratch only -- const.sym has no entry for either yet. */
+__asm__(".equ _CONST_50, 0x50");
+extern int _CONST_50;
+
+struct HWord {
+    unsigned short v;
+};
 
 struct DmaTransfer {
     const void *src;
@@ -152,7 +239,10 @@ static inline void QueueDispcntDma(struct DmaQueue *queue, unsigned char *s)
     if (count < 32) {
         task = (u32 *)(count * 12 + (u32)queue + 4);
         *(u16 *)queue = count + 1;
-        *task++ = *(u16 *)(s + 0x14) | *(vu16 *)(0x80 << 19);
+        {
+        u32 d = *(vu16 *)(0x80 << 19);
+        *task++ = *(u16 *)(s + 0x14) | d;
+    }
         *task++ = 0x80 << 19;
         *task = 0x80 << 10;
     }
@@ -215,8 +305,12 @@ void ScreenTransitionIn(int a, int b)
 
         t = AllocGlobal1F();
         *(u16 *)(t + 0x528) = lo;
-        hi = 0x20;
-        *(u16 *)(t + 0x52a) = hi;
+        {
+            u16 *w = (u16 *)(t + 0x52a);
+
+            hi = 0x20;
+            *w = hi;
+        }
         Func_80907b0(0xf);
         WaitFrames(1);
         StartTask(Task_Transition300, 0xc8 << 4);
@@ -229,15 +323,17 @@ void ScreenTransitionIn(int a, int b)
     }
     case 4:
     {
+        int k;
         int n;
-        int z;
+        struct HWord h0;
 
         s = *(unsigned char **)&iwram_3001e70;
         t = AllocGlobal1F();
-        n = 0x50;
-        z = 0;
-        *(u16 *)(s + (0x80 << 1)) = n;
-        *(u16 *)(s + (0x81 << 1)) = n;
+        h0.v = 0;
+        n = (int)&_CONST_50;
+        k = 0x50;
+        *(u16 *)(s + (0x80 << 1)) = k;
+        *(u16 *)(s + (0x81 << 1)) = k;
         WaitFrames(1);
         if (lo == 0)
             StartTask(Func_80903bc, 0xc8 << 4);
@@ -245,9 +341,9 @@ void ScreenTransitionIn(int a, int b)
             StartTask(Func_8090488, 0xc8 << 4);
         SetIntrHandler(1, 0, Func_8090584);
         t[0x53a] = n;
-        t[0x53b] = z;
+        t[0x53b] = h0.v;
         t[0x53c] = b;
-        t[0x53d] = z;
+        t[0x53d] = h0.v;
         break;
     }
     }

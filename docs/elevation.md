@@ -14838,6 +14838,40 @@ it. The constant has to be a NAMED LOCAL, assigned first. `Func_801e318` and
 Related and separate: `i = 0` as a STATEMENT rather than a `for`-init, when the ROM's
 preheader puts the counter's zero before a pointer init. Three functions this batch.
 
+## A ONE-MEMBER STRUCT KEEPS ITS MODE WHERE A NARROW LOCAL DOES NOT
+
+Two agents in batch 294 hit opposite sides of one mechanism, and together they give a rule.
+
+**The problem.** ARM's `PROMOTE_MODE` (`arm.h:597`) gives HImode `UNSIGNEDP = TARGET_MMU_TRAPS
+!= 0`, so a narrow local does not keep the signedness you declared: `unsigned short saved = ...`
+emits **`ldrsh`**. Declaring `unsigned` does not save you, and the usual advice is to use an
+`int`. (Note this is the mirror of the rule for FIELDS, where `signed char` rather than `s8` is
+what gives `ldrsb`.)
+
+**The escape.** `promote_mode` (`explow.c`) switches on the TYPE CODE and widens only
+`INTEGER_TYPE`, `ENUMERAL_TYPE`, `BOOLEAN_TYPE`, `CHAR_TYPE`, `REAL_TYPE` and `OFFSET_TYPE`.
+A `RECORD_TYPE` falls through to `default` and **keeps its own mode**. So a one-member struct --
+`struct { unsigned short h; } v;` -- is a genuine HImode pseudo where a bare `unsigned short`
+local is not. A one-member union works identically.
+
+**What that buys, measured.** `Func_807a664` was parked at 31 differing with its whole residue
+attributed to `combine`'s `simplify_comparison` rewriting `(v << 16) != 0` back to `v != 0`,
+because `nonzero_bits` knew the upper half was zero after a zero-extending `ldrh`. Four
+spellings -- `(short)v`, `(unsigned short)v`, `v << 16`, `v != 0` -- all measured exactly 31,
+and the park concluded no source spelling could make the upper half unknown.
+
+The struct carrier defeats it at **zero cost**. `nonzero_bits`' REG fast path is guarded by
+`reg_last_set_mode[REGNO (x)] == mode` (`combine.c:7992`, and again at 8390), which a HImode
+pseudo under an SImode query fails. The `-dr` dump shows `(set (reg:HI 37) (mem:HI ...))` via
+`*thumb_movhi_insn` and the test reading `(ashift:SI (subreg:SI (reg:HI 37) 0) 16)` -- a
+paradoxical SUBREG. The ROM's `lsl r3, r2, #16` survives. **31 -> 15, and 8 with one further
+lever.**
+
+So the park's premise was half right: it was right that the LOAD cannot be changed, and wrong
+that the load is the only thing `nonzero_bits` looks at. **The form of the DESTINATION decides
+what the compiler knows about the value.** Reach for a one-member struct or union whenever a
+residue turns on gcc knowing a narrow value's upper half is clear.
+
 ## gcse PRE's JOIN-POINT FORM: the source must NOT name the value
 
 The existing notes on the duplicate-constant hoist cover PRE lifting a value to a

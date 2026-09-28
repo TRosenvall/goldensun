@@ -1,155 +1,154 @@
 /* Func_807a664 -- 0x0807a664, asm/rom_77000/rom_79460_c_c_c_c_c_c.s
+ * NON-MATCHING, 8 encodings of 143.  A TRUE DISTANCE, and the closest park in the tree: 316 bytes, 143 encodings and all ten
+ * relocations exact -- objcmp prints neither a SIZE nor a RELOCATIONS line.  DOWN FROM 31.
+ * `--align` 18 of 145, from 27.
  *
- * NON-MATCHING: 31 encodings of 143 differ (objcmp).
- *
- * objcmp --func Func_807a664, verbatim:
- *   XX ENCODINGS differ in 31 place(s) (ref 143, ours 143)
- *      first at index 66: ref 1c04  ours 1c01
- * No SIZE line and no RELOCATIONS line: 316 bytes both sides, 143 encodings both
- * sides, all 10 relocations identical in type, symbol AND offset.  By the project's
- * rule (size and count both match) 31 is a TRUE DISTANCE.
- *
- * ONE CAVEAT ON THAT, so the next reader is not misled: a mnemonic-level count of the
- * two streams is 135 ROM instructions against our 134, with one compensating pool or
- * padding word, which is why objcmp's encoding totals still agree at 143.  The single
- * missing instruction is named under RESIDUE below.
- *
- * tryc --align says 27 instructions in disagreeing regions of 145, and that is the
- * figure that ranked every variant below -- objcmp's positional count moved the wrong
- * way twice.
+ * (Claim line first on purpose: parkcheck reads the FIRST `N encodings of M`.)
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_77000/807a664.c \
  *     asm/rom_77000/rom_79460_c_c_c_c_c_c.s --func Func_807a664
  *
- * THE SPLIT, derived independently of the brief and confirmed by datacheck:
- * the .s holds Func_807a664, Func_807a7a0 and a .rodata run of eight .incrom blobs
- * (.L84a8c .. .L8926c, 0x84a8c-0x89624).  NEITHER function reads any data label --
- * every pool word in both is ewram_2001078, gState, ewram_2000438, 0x6774, 0x222,
- * 0x952 or a plain 0.  The ten names on the EXPORTS line are already .global and
- * are read from OTHER files (.L84b1c, for instance, by rom_79460_c_c_c_a_c_c.s's
- * Func_80799b0).  So the boundary is crossed by NO label in either direction and
- * the split needs ZERO new exports; the whole .rodata run must stay with the
- * remaining .s (which keeps Func_807a7a0, itself parked at src/non_matching/
- * rom_77000/807a7a0.c).
+ * NON-MATCHING: 8 encodings of 143 differ (objcmp).  Was 31.
  *
- * MIRROR OF THE PARKED Func_807a7a0: that one restores the party from the staging
- * buffer, this one saves it.  Its park was the source of the struct layout.
+ * objcmp --func Func_807a664, verbatim:
+ *   XX ENCODINGS differ in 8 place(s) (ref 143, ours 143)
+ *      first at index 89: ref 1818  ours 18c0
+ * Still no SIZE line and no RELOCATIONS line: 316 bytes both sides, 143 encodings both
+ * sides, all 10 relocations identical in type, symbol AND offset.  TRUE DISTANCE.
+ * tryc --align says 18 instructions in disagreeing regions of 145 (was 27).
  *
- * FIVE CONSTRUCTS, each measured by a single drop against the variant before it
- * (objcmp differing / tryc --align):
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_77000/807a664.c \
+ *     asm/rom_77000/rom_79460_c_c_c_c_c_c.s --func Func_807a664
  *
- * 1. LOOPS 1 AND 2 ARE INDEXED COUNT-UP LOOPS, NOT POINTER WALKS.  Writing
- *    `for (n = 0; n <= 14; n++) *p++ = u->items[n];` lets loop.c create the source
- *    cursor as a giv, so its preheader is the ROM's two-instruction
- *    `mov r2,r7 / add r2,#0xd8` and check_dbra_loop reverses the counter to the
- *    ROM's `mov r5,#0xe / sub r5,#1 / bge`.  Written `src = u->items;` with a
- *    pointer walk, that expression appears TWICE in the source (loop 1 and loop 3)
- *    and gcse hoists ONE u+0xd8 pseudo across the whole body; it then crosses the
- *    GetItemInfo call, takes a high register, and pushes s222 onto the stack --
- *    `sub sp,#8` against the ROM's `sub sp,#4`.  Only loop 3 derives u+0xd8 in the
- *    source, which is why the ROM computes it a second time after loop 2.
- *      pointer walk in loop 1     131 / 100  at 312 bytes (4 short)
- *      indexed loop 1             133 /  94  at 304 bytes -- and the spill is gone
- *    The positional count got WORSE here while the shape got right; the align
- *    figure and the `sub sp` are what say it is progress.
+ * THE SPLIT is unchanged and needs ZERO exports -- see the previous revision of this
+ * header, and datacheck's per-function output.  The .rodata run stays with the remaining
+ * .s, which keeps the (also parked) Func_807a7a0.
  *
- * 2. *** gState IS READ THROUGH A POINTER LOCAL. ***  `g = gState;` and then
- *    `*(short *)(g + 0x220)` / `(g + 0x222)`.  Written against the array directly,
- *    gcc folds both into one pool word `gState+544` and reaches the second with an
- *    offset of 2 -- five instructions cheaper than the ROM.  With the local, cse's
- *    use_related_value (cse.c:1637) keeps the bare symbol in a register and derives
- *    both addresses from it, giving the ROM's `ldr r3,=gState / mov r0,#0x88 /
- *    lsl r0,#2 / add r2,r3,r0` and the separately pooled 0x222 (0x220 is shiftable,
- *    0x222 is not).  This is the single biggest lever in the function and it is what
- *    makes the object the right SIZE.
- *      gState + 0x220 directly    133 /  94  at 304 bytes
- *      g = gState first            60 /  85  at 316 bytes -- size and count exact
+ * ============================================================================
+ * BATCH 294: THE MISSING `lsl` IS REACHED, AND IT COST NOTHING.  31 -> 15 -> 8.
+ * ============================================================================
  *
- * 3. LOOP 3 HAS ITS OWN COUNTER.  Sharing one `n` with loops 1 and 2 puts the
- *    counter in the register the ROM gives to `cnt`.  The ROM's loop-3 counter is
- *    r6 where loops 1 and 2 count in r5, so it is a second variable.
- *      one shared n                60 /  85
- *      separate j for loop 3       55 /  81
+ * The previous revision of this park concluded that the ROM's
+ *     ldrh r2,[r4] / lsl r3,r2,#16 / cmp r3,#0
+ * was "unreachable by arithmetic, not merely unbeaten", on the reasoning that our value's
+ * only producer is a zero-extending halfword load, so combine's nonzero_bits can always
+ * see nonzero_bits(v) == 0xffff and simplify_comparison's ASHIFT case always drops the
+ * shift.  The reasoning about nonzero_bits is right.  The conclusion was wrong, because
+ * THE LOAD IS NOT THE ONLY THING THAT SETS THE PSEUDO'S KNOWN BITS -- THE FORM OF THE
+ * DESTINATION DOES TOO.
  *
- * 4. `cnt = 0;` IS WRITTEN BEFORE `src` AND `dst`, and the outer counter is `int`.
- *    Each is worth one instruction's worth of ordering; both are in the final file.
- *      cnt = 0 after the cursors   60 /  85
- *      cnt = 0 before them         60 /  84
- *      unsigned int i              60 /  85
- *      int i                       59 /  84
+ * 7. *** LOOP 3's VALUE IS A ONE-MEMBER u16 STRUCT, NOT AN int. ***  `struct ItemSlot
+ *    { unsigned short id; }`, a local `v` of that type, `v.id = *src++;` and
+ *    `if ((v.id << 16) != 0)`.
+ *      int v, any of four spellings of the test    31 / 27
+ *      struct ItemSlot v                          15 / 25   <- the lsl appears
  *
- * 5. THE ZERO-FILL ADVANCES `base` ITSELF and keeps a SEPARATE countdown.
- *    `base += cnt; m = 15 - cnt; do { m--; *base++ = 0; } while (m != 0);`
- *    The ROM's `add r0, r3, r0` writes the sum back into the base register, so the
- *    base variable is the cursor.  Reusing `cnt` as the countdown as WELL is a
- *    regression -- the two halves do not compose:
- *      dst = base + cnt, separate m        53 /  78
- *      base += cnt,      separate m        50 /  69   <- in the file
- *      dst = base + cnt, cnt counts down   58 /  83
- *      base += cnt,      cnt counts down   57 /  83
- *      `do { *dst++ = 0; } while (--m)`    53 /  78
+ *    THE MECHANISM, as far as I verified it -- and I am explicit below about where the
+ *    verification stops, because my first write-up of it was wrong:
+ *      - combine.c:10749, simplify_comparison's ASHIFT case, drops `(v << 16) != 0` exactly
+ *        when `nonzero_bits (operand, SImode) & ~(0xffffffff >> 16) == 0`, i.e. when no bit
+ *        at or above 16 is possible.  (`! equality_comparison_p` is 0 for NE/EQ.)  That part
+ *        of the old diagnosis is confirmed against the source.
+ *      - A one-member `unsigned short` struct local is a GENUINE HImode PSEUDO, not an
+ *        SImode one.  `promote_mode` widens only INTEGER_TYPE, ENUMERAL_TYPE, BOOLEAN_TYPE,
+ *        CHAR_TYPE, REAL_TYPE and OFFSET_TYPE; a RECORD_TYPE falls through to
+ *        `default: break` and keeps its own mode.  So the promotion that makes a bare
+ *        `unsigned short` local an SImode pseudo (arm.h:597, batch 293's finding 5) does not
+ *        happen here.  VERIFIED in the -dr dump of probe2.c's q1:
+ *            (insn 27 (set (reg:HI 37) (mem:HI (reg/v:SI 32))))   *thumb_movhi_insn -> ldrh
+ *        and the compare reads
+ *            (ashift:SI (subreg:SI (reg:HI 37) 0) (const_int 16))
+ *        -- a PARADOXICAL SUBREG of a narrow pseudo, where the `int` spelling gives a plain
+ *        SImode pseudo set by (zero_extend:SI (mem:HI)).
+ *      - nonzero_bits' REG case answers 0xffff from `reg_last_set_nonzero_bits[regno]`
+ *        through a fast path guarded by `reg_last_set_mode[regno] == mode`.  With a HImode
+ *        pseudo and an SImode query that guard fails, and the answer comes from one of the
+ *        fallbacks (get_last_value, or the global reg_nonzero_bits) instead.
+ *      - WHAT I DID NOT DO: single-step which fallback fires.  Do not treat the last bullet
+ *        as established.  It is also NOT true that the `int` spelling always loses the shift:
+ *        in a call-free, loop-free standalone function an `int` carrier keeps it too
+ *        (probe3.c r4).  The struct is what makes the shift survive IN THIS LOOP, where the
+ *        cursor is incremented and the value is also stored; the isolated-function behaviour
+ *        is different and is not the measurement that matters.
+ *      - A `union { unsigned short h; }` member behaves identically (probe3.c r5).
+ *      - It costs nothing: the struct is one halfword, it stays in a register, and the store
+ *        `*dst++ = v.id` is the same `strh` as before.
  *
- * 6. *** `v` IN LOOP 3 IS `int`, AND IT CASCADES. ***  This is worth more than
- *    everything above it put together and it moved the first differing encoding from
- *    index 17 to index 66 -- i.e. it fixed the whole gState block's register
- *    assignment as a side effect, not just its own loop.
- *      short v            50 /  69   (ldrsh with a zero register, count matches)
- *      unsigned short v   69 /  45   at 320 bytes (two instructions long)
- *      int v              31 /  27   <- in the file
+ *    The isolated proof is scratch_elev/b294/F/probe2.c q1, whose loop is
+ *    INSTRUCTION-FOR-INSTRUCTION the ROM's, registers included:
+ *        ldrh r2,[r0] / lsl r3,r2,#16 / add r0,#2 / cmp r3,#0 / beq / strh r2,[r1] /
+ *        add r5,#1 / add r1,#2 / sub r4,#1 / cmp r4,#0 / bge
  *
- * SHIMS: none.  No `register ... __asm__`, no `__asm__ ("")`, no flags.
+ * 8. *** LOOP 3's RUNNING COUNT REUSES `n`, LOOPS 1 AND 2's COUNTER. ***  The ROM keeps
+ *    the count in r5 -- the register loops 1 and 2 count in -- and gives loop 3's own
+ *    index r6.  With a separate `cnt` we got that pair the other way round and NOTHING
+ *    moved it: all 119 permutations of the five int declarations measure exactly 15
+ *    (see INERT below).  Sharing the pseudo forces the register instead of asking for it.
+ *      separate int cnt                           15 / 25
+ *      the count reuses n                          8 / 18   <- in the file
  *
- * RESIDUE: ONE INSTRUCTION, and it is named.  A mnemonic histogram of both streams
- * (135 ROM instructions against our 134) differs in exactly three places:
- *   ldr   rom 9  ours 7      <- both are the pooled zeros, NOT a difference: gcc
- *   ldrh  rom 6  ours 8         prints a HImode pool word as `ldrh rD,.Lxx` and gas
- *                               assembles it to the same `ldr rD,[pc,#N]` as the
- *                               ROM's `ldr rD,=0` (batch 292's correction to 1b).
- *   lsl   rom 3  ours 2      <- the real one.
- * The ROM's loop-3 test is `ldrh r2,[r4] / lsl r3,r2,#16 / cmp r3,#0`; ours is
- * `ldrh r3,[r1] / cmp r3,#0`.  The `lsl` is a HImode compare against a value whose
- * upper half is UNKNOWN.  Ours comes straight out of a zero-extending `ldrh`, so
- * combine.c's simplify_comparison sees nonzero_bits(v) == 0xffff and rewrites
- * `(v << 16) != 0` back to `v != 0`.  Four spellings of the shift are therefore
- * byte-identical to no shift at all: `(short)v != 0`, `(unsigned short)v != 0`,
- * `v << 16`, and `v != 0` all measure 31 / 27 exactly.
+ * Constructs 1-6 are unchanged from the previous revision and are not restated; note only
+ * that construct 6 ("`v` in loop 3 is `int`") is SUPERSEDED by construct 7 -- `int` beat
+ * `short` and `unsigned short`, but a struct beats `int`.
  *
- * The corpus says where the ROM's form comes from and why it is out of reach here.
- * `ldrh / lsl #16 / cmp #0` occurs in 17 places across the 4,297 generated .s files;
- * the two in this very bank are src/rom_77000/rom_77320_c_c_a.c and _c_c_b.c, and
- * in both the shifted operand is an `int` that came out of a CLAMP (`if (r0 > K)
- * r3 = K; else if (r0 < 0) r3 = 0; else r3 = r0;`) and was stored through a
- * `short *` -- its upper half genuinely unknown, so the shift survives.  Our value's
- * only producer is the halfword load, so no source spelling can make its upper half
- * unknown while keeping the `ldrh`.  Every route that does make it unknown (a HImode
- * carrier, a signed source pointer, a separate int test variable) either restores
- * `ldrsh` plus a hoisted zero register or costs two instructions -- eleven variants,
- * all recorded above.
+ * SHIMS: none.  Zero `register ... __asm__` declarations, zero `__asm__(".equ ...")`
+ * lines, no flags, no pins.
  *
- * ALSO MEASURED INERT (each against the 50 / 69 or 31 / 27 baseline):
- *   `base = cnt + base` to flip the commutative add's operand order   inert
- *   the tail written `*p++ = s220; *p++ = s222;`                      inert
- *   `__asm__ ("")` between the two tail stores                        50 / 70 (worse)
- *   s220/s222 declared first, or declared `int`                       inert
- *   s222 read before s220                                            52 / 70 (worse)
- *   loop 3 reading `base[j]` instead of `*src++`                      53 / 68
- *   `(v & 0xffff) != 0`                                              88 differ, 328 bytes
- *   `short h` carrier with an `int` test variable                     50 / 69
- *   `short *src`                                                      50 / 69
+ * ADDED TO THE INERT LIST (each a single drop from the 8 / 18 file unless noted)
+ *   ALL 119 PERMUTATIONS of `int i; int n; int j; int cnt; int m;`      15 each, from 15
+ *     -- declaration order does not break an allocno tie in this function.  Measured
+ *     exhaustively, not sampled; do not spend budget on decl order here again.
+ *   base = (unsigned short *)((int)base + n * 2)                        inert
+ *   base = (unsigned short *)(n * 2 + (int)base)                        inert
+ *   base = (unsigned short *)((char *)base + n * 2)                     inert
+ *   the doubled count in its own int local, written first in the add    inert
+ *   base = &base[n]                                                     inert
+ *   m seeded as `m = n; m = 15 - m;`                                    inert
+ *   the tail pair as p[0]/p[1] instead of *p and p[1]                   inert
+ *   a trailing p++ after the last tail store                            inert
+ *   ewram_2000438 declared with a bound [2]                             inert
+ *   -fno-regmove                                                        inert (diagnostic)
+ *   the fill loop's store before its decrement                          9 (worse)
+ *   the fill countdown reusing n as well (one pseudo for all three)      9 -- it DOES buy
+ *     the ROM's `sub r5, r3, r5`, and loses the pooled zero's register and position
+ *   dst = base + n instead of base += n                                10 (worse)
+ *   `short *src` + the struct carrier                                  measured, worse
+ *   loop 3 written as a source count-down (j = 14; j >= 0; j--)         inert
+ *   --no-sched2                                                        55 (much worse:
+ *     positive evidence sched2 is doing the right work here)
  *
- * REMAINING BLOCKERS, in the order they appear:
- *   a. loop 3's register assignment.  ROM src=r4, dst=r1, counter=r6; ours src=r1,
- *      dst=r2, counter=r4.  First differing encoding, index 66, is `mov r4,r0`
- *      against `mov r1,r0` -- the same three pseudos, rotated.
- *   b. the missing `lsl`, above.  Unreachable by arithmetic, not merely unbeaten.
- *   c. `add r0, r3, r0` against `add r0, r0, r3` in the zero-fill: one encoding, the
- *      commutative operand order, and `cnt + base` does not move it.
- *   d. `sub r5, r3, r5` against `sub r3, r3, r5`: the ROM gives `m` the register
- *      `cnt` just vacated.
- *   e. `ldr r0, =ewram_2000438` is one position earlier in the ROM and lands in r0
- *      rather than r2.
+ * TWO CORRECTIONS TO THE PREVIOUS REVISION, both load-bearing
+ *  i. "The whole residue is one instruction" was never true of this park, and the brief
+ *     that quoted it inherited the error.  What is true is that the MNEMONIC HISTOGRAMS
+ *     differed in one place; the ENCODING residue at 31 was mostly loop 3's register
+ *     assignment, which the old blocker list itself put first.  The two are different
+ *     measurements and only the second is the distance.
+ * ii. The old inert entry `short *src  50 / 69` and `short h carrier  50 / 69` were
+ *     recorded against the pre-`int v` baseline.  Re-measured coupled with `int v` they
+ *     give 50 / 69 again -- so those two entries were, unusually, right in isolation.
+ *     The entry that was NOT right in isolation is `m` reusing `cnt`: recorded as a
+ *     regression (57 / 83), it is worth 15 -> 9 once construct 7 has landed, and it is
+ *     the only spelling that reaches the ROM's `sub r5, r3, r5`.
+ *
+ * THE REMAINING 8, all in two places, and none of them arithmetic
+ *   a. the zero-fill's `add r0, r3, r0` against our `add r0, r0, r3` (1 encoding).  The
+ *      RTL plus-operand order, not the source's: six spellings of the advance, including
+ *      three that take the pointer out of pointer arithmetic entirely so the C front end's
+ *      pointer_int_sum cannot force the pointer first, all emit the identical insn.
+ *      -fno-regmove does not move it either, so it is not the tie-up pass.
+ *   b. `sub r5, r3, r5` against `sub r3, r3, r5` plus the two fill-loop insns that follow
+ *      it (3 encodings): the ROM gives `m` the register `n` has just vacated, we give it
+ *      the register that held the constant 15.  Reusing `n` for `m` too gets the sub
+ *      exactly right and then costs the pooled zero its register and its position, for a
+ *      net loss of one.  A coupled lever with nothing to couple to yet.
+ *   c. `ldr r0, =ewram_2000438` sits one position earlier in the ROM and in r0 rather
+ *      than r2 (3 encodings, plus the two ldrh that read through it).  sched2 hoists it
+ *      above `add r8, r2` in the ROM; --no-sched2 makes the whole function much worse, so
+ *      this is the scheduler making a different choice, not a missing source shape.
  */
 extern unsigned short ewram_2001078[];
 extern unsigned short ewram_2000438[];
@@ -161,6 +160,10 @@ extern void CalcStats(unsigned int pc);
 extern void Func_807a628(int a, int b);
 extern void SetFlag(int id);
 extern void Func_807808c(int a);
+
+struct ItemSlot {
+	unsigned short id;
+};
 
 struct Unit {
 	unsigned char pad00[0xd8];
@@ -181,9 +184,8 @@ void Func_807a664(void)
 	int i;
 	int n;
 	int j;
-	int cnt;
 	int m;
-	int v;
+	struct ItemSlot v;
 
 	p = ewram_2001078;
 	if (*p != 0x6774) {
@@ -202,19 +204,19 @@ void Func_807a664(void)
 					u->items[n] = 0;
 			}
 			base = u->items;
-			cnt = 0;
+			n = 0;
 			src = base;
 			dst = base;
 			for (j = 0; j <= 14; j++) {
-				v = *src++;
-				if (v != 0) {
-					*dst++ = v;
-					cnt++;
+				v.id = *src++;
+				if ((v.id << 16) != 0) {
+					*dst++ = v.id;
+					n++;
 				}
 			}
-			if (cnt <= 14) {
-				base += cnt;
-				m = 15 - cnt;
+			if (n <= 14) {
+				base += n;
+				m = 15 - n;
 				do {
 					m--;
 					*base++ = 0;
