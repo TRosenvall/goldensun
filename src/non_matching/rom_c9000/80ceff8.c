@@ -114,8 +114,16 @@
  *      callee-saved pseudo (r6) and copies `mov r0,r6` at each site; the ROM has
  *      `mov r0,#0xa0 / lsl r0,#19` at all three.  r0 IS CALL-CLOBBERED, which is
  *      why the ROM must rebuild -- the pin reproduces that by construction.
- *      This is the AnimStart2 "rebuild the shifted constant per site" lever
- *      reached with a pin instead of per-site inline bodies.
+ *      TWO SPELLINGS REACH IT AND THE SPLIT IS PER SITE.  Sites 2 and 3 take the
+ *      batch's separate-inline-bodies lever -- each its OWN `static inline` with
+ *      the literal written INSIDE the body -- and that is what this file uses, at
+ *      2, with no pin.  SITE 1 DOES NOT: an inline body there gives 4, because
+ *      site 1 is the one whose argument setup the ROM interleaves with
+ *      `ldr r6,=Func_8001af8` and `adds r5,#128`, and only a pinned r0/r1 pair
+ *      orders those.  So the inline-bodies lever and the pin are interchangeable
+ *      on a PLAIN repeated-constant site and are NOT interchangeable where the
+ *      site's argument setup is also interleaved -- prefer the inline body, which
+ *      costs no shim, and fall back to the pin only where ordering is at stake.
  *  (b) 273 (*) count 288  `(*(State **)(base + 0x7828))->ids[0]` written INLINE
  *      inside the frame loop, NOT the `slot` local used in the prologue.  The
  *      ROM keeps `r7 = base+0x7828` for the prologue's two uses, then REUSES r7
@@ -189,14 +197,32 @@
  * `0xcc` go through the pool this way, so the two `REG_BG2PA` stores need no
  * shim at all.  Discount this pair whenever norm.py shows it.
  *
- * SHIMS THIS FILE USES, for fakematch.txt -- all FIVE (the draft header said four and listed five; the body has five) are pinned hard registers,
- * there are NO PIN MACROS, no `"+r"` barriers, no `volatile` beyond the io.h
- * register macros, no DMA3_SET and no `.equ`:
+ * SHIMS THIS FILE USES, for fakematch.txt -- THREE, all pinned hard registers.
+ * There are NO PIN MACROS, no `"+r"` barriers, no `volatile` beyond the io.h
+ * register macros and the `volatile u16 *dst` in the Func_8001af8 / CopyFn
+ * signature (which is the landed Anim_Break's own signature, not a shim of
+ * ours), no DMA3_SET and no `.equ`:
  *   1. `register int q0 __asm__("r0")`   copy site 1   (with q1)
  *   2. `register void *q1 __asm__("r1")` copy site 1
- *   3. `register int q0 __asm__("r0")`   copy site 2
- *   4. `register int q0 __asm__("r0")`   copy site 3
- *   5. `register void *tf __asm__("r0")` StartTask
+ *   3. `register void *tf __asm__("r0")` StartTask
+ *
+ * HEADER-VS-BODY CORRECTION (checked at the encoding level, twice).  An earlier
+ * draft of this header claimed FIVE pins and listed pins on copy sites 2 and 3.
+ * Those two are GONE from the body: sites 2 and 3 now take separate `static
+ * inline` bodies with the literal written inside each, which is batch 292's
+ * separate-inline-bodies lever, and they are shim-free at the same 2 of 291.
+ * `grep -c 'register .*__asm__'` on the body is 3, and the file still scores
+ * `XX ENCODINGS differ in 2 place(s) (ref 291, ours 291)` with NO SIZE line and
+ * NO relocation difference.  BOOK THREE ROWS, NOT FIVE.
+ *
+ * AND THE SUBSTITUTION IS PER SITE, WHICH IS A NEW LIMIT ON THAT LEVER.  Copy
+ * site 1 does NOT accept an inline body -- it gives 4 of 291, because site 1 is
+ * the one whose argument setup the ROM interleaves with `ldr r6,=Func_8001af8`
+ * and `adds r5,#128`, and only the pinned r0/r1 pair orders those.  So an inline
+ * body and a register pin are interchangeable on a PLAIN repeated-constant site
+ * and NOT interchangeable where the site's argument setup is also interleaved.
+ * Prefer the inline body (no shim); fall back to the pin where ordering is at
+ * stake.
  *
  * No `.sym` proposal is warranted: the residue is a scheduler rank inside the
  * function, not a symbol boundary, and no symbol name would change it.
@@ -239,6 +265,21 @@ extern void Func_80cd52c(void);
 extern void WaitFrames(unsigned int n);
 extern void gfree(int tag);
 
+static inline void Copy0(CopyFn f, void *src)
+{
+    f((volatile u16 *)(0xa0 << 19), src, 0x80);
+}
+
+static inline void Copy1(CopyFn f, void *src)
+{
+    f((volatile u16 *)(0xa0 << 19), src, 0x80);
+}
+
+static inline void Copy2(CopyFn f, void *src)
+{
+    f((volatile u16 *)(0xa0 << 19), src, 0x80);
+}
+
 void BaseAnim_Spasm(void *context, int mode)
 {
     vec3_t pos;
@@ -276,20 +317,10 @@ void BaseAnim_Spasm(void *context, int mode)
     }
     DecompressLZ(data, base);
     data = GetFile(FILE_8d);
-    {
-        register int q0 __asm__("r0");
-        q0 = 0xa0;
-        q0 <<= 19;
-        copy((volatile u16 *)q0, data, 0x80);
-    }
+    Copy1(copy, data);
     if (mode == 2) {
         data = GetFile(FILE_68);
-        {
-            register int q0 __asm__("r0");
-            q0 = 0xa0;
-            q0 <<= 19;
-            copy((volatile u16 *)q0, data, 0x80);
-        }
+        Copy2(copy, data);
     }
     GetBattleActorPos3((*slot)->ids[0], &pos);
     if (mode == 0) {
