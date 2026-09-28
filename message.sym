@@ -253,6 +253,25 @@ _MSG_ca0 = 0x0ca0;
  * the shiftable-id bases above cover. */
 _MSG_66  = 0x0066;
 
+/* _MSG_2930 -- base of a nine-message run in OvlFunc_971_2008b94, held in r6 for the
+ * whole function.
+ *
+ * THE INTERNAL CONTROL IS AN ENCODING LIMIT, AND IT IS EXACT.  The ROM derives EIGHT
+ * ids off the base as `add r0, r6, #K` for K in 1..7 (plus the bare r6), and reaches
+ * the NINTH -- 0xd past the base -- as its own `ldr r0, =0x293d`, in the same
+ * function, feeding the same __MessageID.  Thumb's `add rd, rn, #imm3` encodes only
+ * 0..7, so every id the short form can reach IS derived and the one id it cannot
+ * reach is pooled.  That is precisely what a symbol base predicts and what a plain
+ * integer cannot produce: use_related_value (cse.c:1637) fires for a CONST and never
+ * for a bare CONST_INT.
+ *
+ * Measured both ways: as `m = 0x2930;` the function is 177 encodings of 175 differing
+ * at 180 instructions and 492 bytes against the ROM's 468 -- five extra instructions
+ * and 24 extra bytes, because each id becomes its own constant.  As
+ * `m = (int)&_MSG_2930;` it is ONE encoding of 175, and that one is the pool word
+ * itself, which the link resolves. */
+_MSG_2930 = 0x2930;
+
 /* Added in batch 276 for Func_80a6a98, which reaches _Func_801e7c0 -- the same
  * message sink _MSG_75 and _MSG_182 feed from the neighbouring Func_80a5614 and
  * Func_80a56c8.

@@ -8,7 +8,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/ovl_7fb4a8/2008860.c \
- *     asm/overlays/rom_7fb4a8/ovl_30_a_c_c_c_a_c_c_a.s --func OvlFunc_971_2008860
+ *     asm/overlays/rom_7fb4a8/ovl_30_a_c_c_c_a_c_c_a_a.s --func OvlFunc_971_2008860
  * The reference holds FOUR functions (this is the 3rd), so a SPLIT is required.
  *
  * THE RESIDUE, five classes, all register-role:
