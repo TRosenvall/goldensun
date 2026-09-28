@@ -14838,6 +14838,24 @@ it. The constant has to be a NAMED LOCAL, assigned first. `Func_801e318` and
 Related and separate: `i = 0` as a STATEMENT rather than a `for`-init, when the ROM's
 preheader puts the counter's zero before a pointer init. Three functions this batch.
 
+### READING THE COMPILER SOURCE DOES NOT NEED THE CONTAINER
+
+gcc-2.96's sources are on the HOST at
+
+    /Users/timothyrosenvall/gs_project/camelot-gcc/gcc-2.96/gcc/
+
+byte-identical to the in-container `/opt/camelot-gcc/gcc-2.96/gcc/` (checked with `cmp`). So a
+brief can tell an agent to grep and read the passes directly, with no `docker run` round-trip
+per file -- which matters, because several of this session's best results came from four or five
+compiler-source reads and the container hop makes that expensive enough to discourage.
+
+**One warning about that directory's siblings.** The same listing contains `pokedecomp/agbcc`
+and a `pokedecomp copy` -- another decompilation's toolchain. Its *compiler sources* are the same
+upstream gcc and are fine to read; its `src/` is not, and CLAUDE.md's "never read another
+decompilation's `src/`" applies there in full. Two agents this batch found these trees via a
+filesystem-wide `find` and both correctly left them alone; the paths are named here so nobody has
+to rediscover which half is in bounds.
+
 ## `if_convert` IS A BLOCKER CLASS, AND NO FLAG REACHES IT
 
 The register-allocation blocker list has a member that is really a CFG pass. `if_convert`
