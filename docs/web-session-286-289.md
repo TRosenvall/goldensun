@@ -204,7 +204,22 @@ Each is written up with its evidence in the batch report named; the five biggest
   into a range test; a local per limit keeps the ROM's shape.
 - An `int` carrier keeps a zero-extension combine would drop; a pooled halfword zero is
   REG_EQUIV (block-local `{ int z = 0; ... }` after the address fixes it).
-- A libcall with a constant divisor means the divisor was a variable at expand.
+- A libcall with a constant divisor means the divisor was a variable at expand --
+  **ONLY IF THE DIVISOR IS A POWER OF TWO.** Corrected in batch 292 by direct
+  measurement, after one agent relied on this as written and another contradicted it.
+  thumb-1 has no high-part multiply, so gcc-2.96's only strength-reduction path for a
+  constant divisor is the shift path, which needs a power of two. Compiled with the
+  project's own flags, `k / N` and `k % N` against a literal versus an `int d = N;`:
+
+  | divisor | literal | variable | so a libcall ... |
+  |---|---|---|---|
+  | 2, 4, 16 | expands INLINE, no libcall | libcall | ... DOES prove a variable |
+  | 3, 10, 100 | libcall | libcall | ... proves NOTHING; output is byte-identical |
+
+  For the non-power-of-two cases the two spellings differ only in the `.file`
+  directive. Both agents were right about their own function -- one was reasoning about
+  a divisor of 2, where the rule holds, and the other about 10, where it does not.
+  The rule was simply stated too broadly. Check the value before using it as evidence.
 
 **Source shapes**
 - **gcc nested functions are in the ROM**: r9 saved, read and never written, and every caller
