@@ -7064,6 +7064,24 @@ destination first. gcc copies the operand on the RIGHT of the C expression:
 Multiplication commutes, so both are correct and only one matches. Read which
 value the ROM's `mov` copies and put the OTHER one on the right.
 
+### THE SPELLING DOES NOT TRANSFER BETWEEN SITES, EVEN IN ONE BANK
+
+Read the ROM's `mov` at EVERY site. Do not carry a working spelling from one site to
+another that looks structurally identical, and do not state this lever as "order X gives
+destination Y" -- it has no fixed direction.
+
+`Field_Whirlwind` and `Field_Halt` (both rom_8a000, batch 292) emit the same
+`mov r0, r<i> / mul r0, r3` from the same interpolation, and want OPPOSITE source orders:
+Whirlwind needs `i * (to - from)`, Halt needs `(to - from) * i`. What differs is whether
+the counter already needs a `mov` of its own -- Whirlwind's `i` is in r8, Halt's in r7 --
+so the same C order produces different copies. Two structurally identical sites, one bank,
+opposite spellings. Try both, always.
+
+This is also a warning about restating the rule in briefs. Compressed to "the ROM's
+`mul rD,rS` destination is the readout", it sounds deterministic and an agent will
+transfer the spelling. The procedure above -- read the `mov`, invert it -- is the rule;
+the direction is not.
+
 ## The no-prototype lever works best on a callee used MANY times the same way
 
 Batch 130 recorded that dropping a callee's prototype flips gcc's argument-setup
