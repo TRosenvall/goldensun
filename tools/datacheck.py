@@ -28,6 +28,9 @@ import os
 import re
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from filtered import generated       # noqa: E402  -- the ONE correct "is this gcc's output?" test
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECTION = re.compile(r"^\s*\.section\s+(\.[\w.]+)", re.M)
 FUNC = re.compile(r"^\s*\.(?:thumb|arm)_func_start(?:_noalign)?\s+(\S+)", re.M | re.I)
@@ -38,7 +41,14 @@ DATA_SECTIONS = (".rodata", ".data", ".bss")
 def inspect(path):
     """(data_sections, exported_syms, funcs) for one .s, or None if generated."""
     text = open(path, errors="ignore").read()
-    if ".gcc2_compiled." in text:
+    # NOT `".gcc2_compiled." in text`. That is a SUBSTRING search, and hand-written
+    # disassembly discusses the string in its `@` prose ("text through UIDrawText and
+    # .gcc2_compiled."), so the substring test called 19 hand-written files "generated"
+    # and SILENTLY PASSED THEM -- including files carrying .rodata, which is the one
+    # thing this tool exists to catch. filtered.py had already found and fixed exactly
+    # this trap (see its `generated` docstring: 72 files, 126 functions, three tools);
+    # the fix did not reach here. Reuse that function rather than re-derive the test.
+    if generated(path, text.splitlines(True)):
         return None                      # generated from a .c; not ours to split
     secs = [s for s in SECTION.findall(text)
             if any(s.startswith(d) for d in DATA_SECTIONS)]
