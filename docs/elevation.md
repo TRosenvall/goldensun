@@ -9952,6 +9952,25 @@ because the two streams keep re-synchronising by accident.
 versions disagree, compare where they FIRST diverge and how localised the
 residue is, and keep the one whose remaining problem you can name.
 
+### A TRUE DISTANCE IS NECESSARY BUT NOT SUFFICIENT -- check instruction KINDS too
+
+The rule elsewhere in this file is that a differing count is only a distance to exact
+when SIZE and INSTRUCTION COUNT both match, because otherwise the streams have
+misaligned and everything past the shortfall is being counted. That rule is about
+rejecting counts that are meaningless. It does not promote the ones that survive it.
+
+`Func_80a414c` (batch 292) is the counter-example. One variant measured **234 of 363
+with size and count both matching** -- a true distance by the rule -- against the
+shipped candidate's 347, which is NOT a true distance (361 encodings / 828 bytes
+against 363 / 832). The 234 was the WORSE candidate: it had a `mul` where the ROM has
+`lsl / add`. Same length, same instruction count, wrong arithmetic.
+
+So a true distance says the count means something, not that the candidate is closer.
+The tie-breaker between two survivors is whether the instruction KINDS agree, and the
+reading that settled it here was an ALIGNED ROW comparison: 367 of 382 rows identical
+once register names and label numbers are normalised, with about six real instruction
+items differing. Prefer that over either raw count when the two disagree.
+
 ## The `neg` interleave family is SOLVED as a class -- it was the missing guard
 
 `src/non_matching/ovl_7c460c/2008c74.c` carried an eleven-function family with
