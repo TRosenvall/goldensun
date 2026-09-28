@@ -217,6 +217,33 @@ _MSG_cf1 = 0x0cf1;
  * Func_80a56c8 (_MSG_182) reach _Func_801e7c0. _MSG_182 is additionally required by
  * Func_80b110c in rom_b0000 -- two independent functions in two ROM regions, which
  * is the strongest corroboration any entry in this file has. */
+/* _MSG_50 and _MSG_51 -- the two ids Func_801b010 passes to _Func_801e7c0, the message
+ * sink this file already names four times (see _MSG_b20, _MSG_182 and the batch-276 note).
+ *
+ * THE TELL IS STRUCTURAL AND ALREADY VERIFIED CORPUS-WIDE.  gcc-2.96 never pools an SImode
+ * constant it can build with a single `mov` -- imm8 covers 0..255 -- and a scan of every
+ * tracked .s bearing gcc's banner for an `ldr rX, .Lnn` whose pool word is a plain decimal
+ * 1-255 gives ZERO hits in 4,282 files (measured in batch 291 for _MSG_66).  The ROM has
+ * `ldr r0, =0x51` and `ldr r0, =0x50` anyway, into r0, the first argument.
+ *
+ * MEASURED BOTH WAYS.  As literals the function is 142 encodings against the ROM's 144 and
+ * 304 bytes against 312 -- the residue is exactly the two MISSING POOL WORDS, not a code
+ * difference.  As `(int)&_MSG_50` / `(int)&_MSG_51` the instruction stream is identical and
+ * the only objcmp difference is the pool words carrying relocation placeholders, which the
+ * link resolves.  So they COMPLETE the function, which is the bar.
+ *
+ * NAMESPACE BY CONSUMER, NOT BY VALUE: 0x50 and 0x51 also exist as _FILE_50/_FILE_51 and
+ * _AREA_50/_AREA_51, so the bytes cannot decide.  _Func_801e7c0's first argument is a
+ * message id everywhere else in the tree.
+ *
+ * A CAUTION FROM THE SAME BATCH THAT DOES NOT APPLY HERE, recorded so the two are not
+ * confused: a pooled small constant is NOT symbol evidence when the SAME constant appears
+ * both pooled and mov-ed within one function -- that is reload rematerialising a REG_EQUIV
+ * pseudo, and an agent nearly filed a .sym row on it before the evidence dissolved.  Neither
+ * of these two ids appears as a `mov` anywhere in this function. */
+_MSG_50  = 0x0050;
+_MSG_51  = 0x0051;
+
 _MSG_75  = 0x0075;
 _MSG_182 = 0x0182;
 /* _MSG_af7 -- Func_80a9598 (batch 287) uses it as `m`, then `m + 1`, beside the
