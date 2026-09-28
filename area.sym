@@ -143,6 +143,13 @@ _AREA_99 = 0x99;
 _AREA_9c = 0x9c;
 _AREA_34 = 0x34;
 _AREA_35 = 0x35;
+/* _AREA_3d -- OvlFunc_926_200be58.  The in-function control is 44 to 1: that function
+ * pools EXACTLY ONE small constant, `ldr r3, =0x3d`, against 44 mov-built immediates, and the
+ * value is compared against the halfword at gState+0x1C0 this file exists for.  A literal
+ * spelling is 263 instructions against the ROM's 265 -- the pool load collapses into the `cmp`
+ * -- so it is unreachable rather than merely equal, and the symbol completes the function
+ * (1 differing encoding and 1 extra relocation, both the pool word). */
+_AREA_3d = 0x3d;
 _AREA_3e = 0x3e;
 _AREA_3f = 0x3f;
 _AREA_40 = 0x40;

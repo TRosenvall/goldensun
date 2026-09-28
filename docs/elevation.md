@@ -1567,6 +1567,10 @@ So the working rule is: rank variants with `--align`, but confirm with objcmp be
 believing a candidate is finished, and if objcmp reports differences that `--align` cannot
 see, suspect the pool before suspecting anything subtler.
 
+**And `--align` can INVERT a verdict, not merely under-report it.** On one declaration-order
+change the aligned figure went 119 -> 121, a regression, while encodings went 265 -> 261 and bytes
+600 -> 592. objcmp was right. When the two disagree in SIGN, take the one that moved the length.
+
 ## Pointer arithmetic: the ROM's `add` says which form to write
 
 Two ways to reach `base + off`, and the ROM tells you which it wants before you
@@ -7204,6 +7208,20 @@ This is also a warning about restating the rule in briefs. Compressed to "the RO
 `mul rD,rS` destination is the readout", it sounds deterministic and an agent will
 transfer the spelling. The procedure above -- read the `mov`, invert it -- is the rule;
 the direction is not.
+
+**Which operators the procedure covers, measured rather than assumed.** It applies to `mul` and
+to `|`, and not to `and` or `add`:
+
+| operator | result |
+|---|---|
+| `mul` | the lever, no fixed direction -- read the ROM's `mov` per site |
+| `|` | **also a lever** -- on a byte-field read-modify-write, `(src & 0xc) \| (o->f9 & ~0xc)` beat the other order 39 against 71 |
+| `and` | inert -- `0x1f & v` and `v & 0x1f` are identical |
+| `add` | inert -- five spellings identical; what worked was changing the expression's TYPE, not the operand order |
+
+And the procedure still only *narrows* the search: on three separate functions across batches 293
+and 294 it pointed the WRONG way, and the indicated spelling lost (71 against 73 once,
+254 of 262 against 119 another time). Read the `mov`, then measure both.
 
 ## The no-prototype lever works best on a callee used MANY times the same way
 
@@ -14837,6 +14855,46 @@ it. The constant has to be a NAMED LOCAL, assigned first. `Func_801e318` and
 
 Related and separate: `i = 0` as a STATEMENT rather than a `for`-init, when the ROM's
 preheader puts the counter's zero before a pointer init. Three functions this batch.
+
+### `MOVE_RATIO` ON THIS TARGET IS 2, NOT 15
+
+`expr.c` defines it as `2` when any `movstr*` pattern exists, and `arm.md:5084` defines
+`movstrqi`, so the 2 branch is taken. The `(optimize_size ? 3 : 15)` figure that usually gets
+quoted is the `#else` and does not apply here. Consequence: *any* 8-byte block move goes through
+`movstrqi` and never `move_by_pieces`, which is what makes a thumb `ldmia`/`stmia` pair into an
+outgoing argument area mean **partial** aggregate passing (`partial = 4` on a 24-byte struct).
+Getting this wrong cost one agent a wrong reading -- an 8-byte 5th argument, which actually takes
+DImode from `compute_record_mode` and never reaches `emit_block_move` at all.
+
+### `precompute_register_parameters` IS THE ARGUMENT-FILL LEVER
+
+`calls.c:850` copies any argument whose `rtx_cost > 2` into a pseudo **before**
+`load_register_parameters` runs. So a cheap argument's `mov` gets the LARGEST LUID and sched2
+leaves it last -- the mechanism behind a whole class of "the ROM fills r0 first and we fill it
+last" residues.
+
+Two levers follow, both decisive on one function (8 -> 6 -> 0):
+
+1. Assign the expensive arguments to locals **at the top of the function**, so they are already
+   REGs and precompute skips them. Immediately before the call does NOT work -- they must be far
+   enough back that cse propagates the constant into the copy.
+2. For a `mov` early / `lsl` late signature, split the statement **and** add a `"+r"` barrier,
+   because cse folds a bare split straight back.
+
+Related trap: **identical constant arguments to one call are a cse2 commoning problem, not a
+scheduling one.** Three identical arguments become four instructions where the ROM has six, and
+only distinct hard registers or a `"+r"` barrier **per argument** stops it -- one barrier leaves
+the third commoned.
+
+### THE const.sym HALFWORD EXCEPTION NEEDS A POOL-PLACEMENT TEST
+
+A HImode pool entry gets a short `pool_range`, splitting gcc's single end-of-function pool into a
+mid-body dump. So a HImode literal spelling can reproduce the `ldr =K` tell and still be badly
+wrong: on one function it measured 190 of 284 for exactly that reason, where the symbol form gives
+an SImode entry in instruction order and one end pool, at 2 of 284.
+
+**Rule: if the reference `.s` has a single pool after `.func_end`, a HImode pool word is wrong
+even though it reproduces the tell.**
 
 ### READING THE COMPILER SOURCE DOES NOT NEED THE CONTAINER
 
