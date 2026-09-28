@@ -14838,6 +14838,35 @@ it. The constant has to be a NAMED LOCAL, assigned first. `Func_801e318` and
 Related and separate: `i = 0` as a STATEMENT rather than a `for`-init, when the ROM's
 preheader puts the counter's zero before a pointer init. Three functions this batch.
 
+## gcse PRE's JOIN-POINT FORM: the source must NOT name the value
+
+The existing notes on the duplicate-constant hoist cover PRE lifting a value to a
+**dominating** use, where per-use naming cannot touch it. The join case runs the other way and
+the remedy is inverted: **delete the name.**
+
+`Debug_PaletteEditor` (batch 294) has four redraw entry points that each arrive with
+`row << 12` and `row << 5` already in registers. Those are not source variables -- they are
+gcse's own PRE edge insertions. Hand-written `rowhi`/`rowlo` locals make `rowhi` *available*
+on every edge into the redraw block, and PRE then hoists `rowhi + 0xd1` as well, because the
+A- and B-key branches rejoin redraw without touching `rowhi` and the sum is therefore
+partially redundant. Computing both shifts from `row` inside the block instead gives PRE an
+operand that IS killed on the row branches and not on the A/B path, so it hoists the two
+shifts onto exactly the ROM's five edges and leaves `add r0,#0xd1` in the block.
+
+**273 -> 124 aligned, the largest single lever on that function by a factor of five.**
+
+**`-fno-gcse` is not the diagnostic** -- it measured 374 against 281, i.e. worse in a way that
+tells you nothing about placement. Read the dump instead: `.07.gcse` prints
+`PRE: redundant insn N (expression K) in bb B` and a `PRE/HOIST: edge (a,b)` line per
+insertion. **Count those edges against the number of entry points the ROM's block actually
+has.** If the ROM has five and you have three, you have named something PRE wanted to compute.
+
+Two corollaries measured on the same function: once the PRE shape is right, several invented
+locals that had previously paid become **byte-identical** to not having them (a named mask was
+worth 45 under the wrong structure and is worth 0 under the right one), and the frame size the
+park had been chasing comes free. So fix the PRE shape before crediting any naming lever in a
+function with a join.
+
 ## An `unsigned` counter with `<= N` blocks `check_dbra_loop` and still spells `bls`
 
 It matches neither arm of the gate (`LT || (LE && no_use_except_counting)`), so the loop
