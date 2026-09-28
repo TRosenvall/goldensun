@@ -5827,6 +5827,38 @@ outranks the short-lived value that beats it in the ROM. The cause is in
 `find_reg`'s conflict/preference pass. Recognise it in one screen rather than
 ten: **same instruction stream, one register rotation, parameter one slot low.**
 
+### `n_refs` IS LOOP-DEPTH WEIGHTED — NEVER COUNT SOURCE REFERENCES BY HAND
+
+Every formula on this page that takes `n_refs` takes a WEIGHTED count, not a count of
+appearances in the source. `flow.c:4948`, and again at 4436, 5115 and 5556:
+
+    REG_N_REFS (regno) += (optimize_size ? 1 : pbi->bb->loop_depth + 1);
+
+This project builds at `-O2`, not `-Os`, so `optimize_size` is 0 and **each reference
+contributes `loop_depth + 1`**: 1 at the top level, 2 inside one loop, 3 inside two.
+
+**The consequence for every register-allocation park that quotes a reference count:** a
+figure read out of a `-da` dump (`.17.lreg`, `.18.greg`) is already weighted and is
+correct; a figure someone counted by reading the C is not, and any threshold computed from
+it is wrong by a factor of up to the nesting depth. When a park says "it would need five
+references", check which kind of number that is before believing it.
+
+Batch 293 found this the expensive way. A park had pinned `Func_80191cc`'s blocker to
+local-alloc's caller-save retry, which needs `4 * calls_crossed < n_refs` (`local-alloc.c`
+:2072), counted three or four source references for the quantity, and concluded it needed
+five — a brief was written around closing that gap. Both halves were wrong. With one call
+crossed the threshold is `n_refs > 4`, which at loop depth 2 is **two** raw references; and
+the dump said the quantity already had **15**:
+
+    Register 124 used 15 times across 25 insns in block 8; set 2 times; crosses 1 call
+
+The inequality was satisfied by a wide margin and adding references could not have helped.
+What actually decided it was that the retry is a FALLBACK, reached only when the first
+`find_free_reg` walk returns −1 — and that walk starts from `call_used_reg_set`, found r6
+free, and stopped before r4 was ever considered.
+
+So: read `n_refs` from the dump, and treat a hand-counted reference total as a guess.
+
 ## A parameter and a loop counter can be the SAME variable
 
 `Func_8092708` sat at 33 of 115 with every difference an r5↔r6 exchange between

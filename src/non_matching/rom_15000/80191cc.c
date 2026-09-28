@@ -1,142 +1,227 @@
-/* Func_80191cc (0x080191cc) -- NON-MATCHING: 485 encodings of 510 differ (objcmp).
- * THAT NUMBER IS NOT A DISTANCE: reference 510 instructions / 1152 bytes, ours 520 /
- * 1176, so the streams misalign at index 1 and objcmp reports the whole tail.  The
- * honest measure is an instruction-stream diff with registers and immediates
- * normalised: 478 reference instructions, 344 of them identical, ~203 differing (t1n.s in scratch).
+/* Func_80191cc (0x080191cc) -- NON-MATCHING, but 171 -> 57 aligned this batch.
+ * NON-MATCHING, 309 encodings of 510.  NOT a distance (ref 1152 bytes / 510 encodings against ours 1156 / 512, so two encodings over).
+ * READ `--align` INSTEAD: 57 instructions in disagreeing regions of 500, DOWN FROM 171, and the
+ * normalised LENGTH now matches at 500. objcmp's 309 is a positional count against a stream that
+ * is two encodings long and carries no ranking information here.
+ *
+ * (The claim line is first on purpose: parkcheck reads the FIRST `N encodings of M` in
+ *  the header, and a drop ladder below is full of `N of M` strings whose earliest is the
+ *  ladder's worst rung.)
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/80191cc.c \
- *     asm/rom_15000/rom_1908c_a.s --whole
+ *     asm/rom_15000/rom_1908c_a.s --func Func_80191cc
+ * Distance while iterating (the number that ranks variants here):
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/tryc.py src/non_matching/rom_15000/80191cc.c \
+ *     --ref asm/rom_15000/rom_1908c_a.s --align
+ *
+ * MEASUREMENTS (batch 293, brief G).  Use --align; objcmp's count is positional
+ * and this stream is 2 encodings long, so objcmp is still not a distance.
+ *   tryc --align : 57 instructions in disagreeing regions, of 500
+ *                  (rom 500 lines, ours 500 -- LENGTH NOW MATCHES)
+ *   objcmp       : 309 of 510 differ (ours 512); size ref 1152, ours 1156
+ *   previous park: --align 171 of 500 ; objcmp 485 of 510 (ours 520 / 1176)
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/tryc.py src/non_matching/rom_15000/80191cc.c \
+ *     --ref asm/rom_15000/rom_1908c_a.s --align
  *
  * asm/rom_15000/rom_1908c_a.s holds THIS FUNCTION ONLY and no data section, so
  * landing it is a plain whole-file conversion: no split, no linker-script change.
  *
- * SHIM PRESENT (must be booked in fakematch.txt if this ever lands as written):
- *   __asm__ ("")   after the first Func_8003dec call.  Without it jump2's
- *   find_cross_jump merges the two identical `ldrb r1,[e+0xf] / mov r0,o /
- *   bl Func_8003dec` tails into one; the ROM keeps both (two R_ARM_THM_CALL
- *   relocations against Func_8003dec at 0x428 and 0x436).  `do { } while (0)` in
- *   the same place does NOT stop the merge -- measured, it leaves one call.
+ * ===================== SHIMS: THREE, needing fakematch rows =====================
+ *   1. register struct Ent *e __asm__("r6")   -- the cursor pin.  THE load-bearing
+ *      one: 171 -> 121 on its own.  See THE BLOCKER below for why nothing else
+ *      reaches it.
+ *   2. __asm__ ("")  at the end of case 4     -- stops jump2's find_cross_jump
+ *      merging case 4's `sub r3,#2 / strb r3,[o+4] / b tail` with case 7's
+ *      identical tail.  The ROM keeps both copies.  81 -> 70.
+ *   3. __asm__ ("")  after the first Func_8003dec call -- stops the same pass
+ *      merging the two identical `ldrb r1,[e+0xf] / mov r0,o / bl Func_8003dec`
+ *      tails; the ROM keeps both (two R_ARM_THM_CALL relocations against
+ *      Func_8003dec at 0x428 and 0x436).  `do { } while (0)` there does NOT stop
+ *      the merge -- measured, it leaves one call.  Inherited from the old park.
  *
- * ============================ THE BLOCKER ============================
- * REGISTER ALLOCATION, and it is local-alloc (local-alloc.c find_free_reg) that
- * decides it, not global-alloc.
+ * ================= THE BLOCKER, AND THE CORRECTED ARITHMETIC =================
+ * The previous park and batch 293's brief both said the blocker was local-alloc's
+ * caller-save inequality `4 * calls_crossed < n_refs` (CALLER_SAVE_PROFITABLE,
+ * regs.h:184), and that the byte-7 bitfield accumulator in case 2 "has three or
+ * four" references where five were needed.  BOTH HALVES OF THAT ARE WRONG.
  *
- * The ROM's long-lived values are
- *     r6 = e (list cursor)   r7 = o (= e + 0x10)   r9 = base   r10 = q   r11 = i
- *     r5 = the byte-5 bitfield accumulator in case 2
- *     r4 = the byte-7 bitfield accumulator in case 2, CALLER-SAVED across __umodsi3
- *     r8 = e->f8 held across __umodsi3
- * Ours gets
- *     r4 = e (caller-saved around EVERY call in the loop: 17 str/ldr pairs)
- *     r7 = o   r8 = q   r9 = i   r10 = base   r5, r6 = the two byte accumulators
- * and never touches r11.  Every `[r6,#N]` vs `[r4,#N]` line and every
- * `str r4,[sp]` / `ldr r4,[sp]` pair in the diff is downstream of that one swap.
+ * (a) REFERENCES ARE LOOP-DEPTH WEIGHTED AT -O2.  flow.c:4948 (and 4435, 5115,
+ *     5556) is
+ *         REG_N_REFS (regno) += (optimize_size ? 1 : pbi->bb->loop_depth + 1);
+ *     Every case body here sits inside two nested loops, so each reference adds
+ *     3, not 1.  The raw-count threshold for one crossed call is therefore
+ *     4/3 -> TWO raw references, not five.  This changes the arithmetic for every
+ *     register-allocation park in the corpus that quoted a raw reference count.
  *
- * WHY, with the arithmetic.  `e` is pseudo 34 and `o` pseudo 35 (read off
- * t1v.c.17.lreg / .18.greg: insn 42 sets reg/v 34 from (mem:SI (reg/v 33)), which
- * is `e = *(struct Ent **)q`).  The greg dump's allocation order is
- *     ;; 10 regs to allocate: 740 747 71 36 35 34 37 33 32 38
- * so `o` is allocated before `e`.  `e`'s class is LO_REGS (it is a load base), and
- * global.c find_reg puts call_used_reg_set into `used1` for any allocno with
- * calls_crossed != 0 -- with -fcall-used-r4 that removes r0-r3, r4, r12, r14, so
- * the only candidates are r5, r6, r7.  local-alloc has ALREADY taken r5 and r6 for
- * the two case-2 byte accumulators (they are block-local quantities, and
- * local_alloc runs first and is never overridden), `o` then takes r7, and `e` finds
- * nothing.  find_reg only then falls to its caller-save retry
- * (global.c:1150, CALLER_SAVE_PROFITABLE(n_refs, calls) == 4*calls < n_refs,
- * regs.h:184), which succeeds for `e` because it has many refs -- and hands it r4.
+ * (b) THE INEQUALITY WAS ALREADY SATISFIED.  -da dump t.c.17.lreg says of the
+ *     byte-7 accumulator (pseudo 124):
+ *         Register 124 used 15 times across 25 insns in block 8;
+ *                     set 2 times; crosses 1 call; pref LO_REGS.
+ *     4 * 1 < 15 is true with enormous margin.  Adding references cannot help.
  *
- * So the lever is not `e` at all: it is stopping local-alloc from spending TWO
- * callee-saved low registers in case 2.  local-alloc's own caller-save retry
- * (local-alloc.c:2072, same CALLER_SAVE_PROFITABLE macro) is what puts the ROM's
- * byte-7 accumulator in r4; it needs 4*calls_crossed < n_refs, and with exactly one
- * call crossed (__umodsi3) that means the quantity must have at least FIVE
- * references.  Ours has three or four.  That is the arithmetic to beat, and the
- * next attempt should aim straight at it.
+ * WHAT ACTUALLY DECIDES IT is that local-alloc's caller-save retry is a FALLBACK,
+ * not a preference.  local-alloc.c find_free_reg starts with
+ *         COPY_HARD_REG_SET (used, call_used_reg_set);
+ * for any quantity with n_calls_crossed != 0, walks REG_ALLOC_ORDER
+ * {3,2,1,0,12,14,4,5,6,7,8,10,9,11}, and only reaches the
+ * `if (! accept_call_clobbered && flag_caller_saves && ... )` retry at
+ * local-alloc.c:2072 when that first walk RETURNS -1.  With -fcall-used-r4 the
+ * first walk sees r5, r6, r7.  byte-5 (pseudo 133, 45 refs) takes r5; byte-7 then
+ * finds r6 FREE and stops there.  r4 is never considered.
  *
- * WHAT MOVED THE NEEDLE (measured, normalised-diff equal-count out of 478):
- *   - `o->mode = 0;` written BEFORE `o->c6 = 2;` instead of after: 337 -> 342.
- *     This is the reason it matters: both bitfield writes mask with 0x3f, cse2
- *     shares one pseudo for the constant, and whichever write comes first forces
- *     gcc to COPY the constant (`mov r4, r3` in the ROM) instead of consuming it
- *     in place.  With `mode` first, ours emits the copy too -- the ROM's
- *     three-quantity shape (constant, byte-5 value, byte-7 value) appears, and the
- *     whole __umodsi3 caller-save block collapses to the ROM's.  This is batch
- *     292's "naming a common subexpression can remove a copy the ROM keeps" lever
- *     running through a bitfield MASK rather than a source expression.
- *   - `signed char` not `s8` for the two signed table reads (s8 is plain char,
- *     which is unsigned here): turns `ldrb` into the ROM's `ldrsb`.
- *   - `*(volatile u16 *)(base + 0x12b6)`: the ROM loads that halfword TWICE in
- *     case 2 from one cse'd address (`ldrh r3,[r1]` then `ldrh r0,[r1]`).  Without
- *     volatile cse2 replaces the second with `mov r0,r3`.
+ * So r6 has to be gone BEFORE local-alloc runs, and the only two ways a pseudo
+ * escapes local-alloc are REG_BASIC_BLOCK < 0 or REG_N_DEATHS != 1
+ * (local-alloc.c:362) -- neither reachable for a straight-line case body.  That
+ * leaves global-alloc, and global-alloc cannot supply r6 either:
+ *     allocno_compare (global.c:598) ranks on
+ *         floor_log2 (n_refs) * n_refs / live_length * 10000 * size
+ *     e (pseudo 34): 146 refs / 389 insns -> 7*146/389 = 2.627
+ *     o (pseudo 35): 153 refs / 372 insns -> 7*153/372 = 2.879
+ *   so `;; 10 regs to allocate: ... 35 34 ...` -- o is allocated FIRST, takes the
+ *   one remaining callee-saved low register (r7), and e falls through find_reg's
+ *   own caller-save retry (global.c:1150) into r4 with seventeen str/ldr pairs.
+ *   To flip that order from source you need e's n_refs above 160 (+5 source uses
+ *   of `e` inside the double loop) or o's live_length above 408 (+36 insns), and
+ *   the ROM's 500-instruction stream has room for neither.
  *
- * WHAT WAS INERT OR WORSE (all measured):
- *   - declaration-order permutation (e/o before base/q): INERT, exactly 337/210,
- *     confirming docs/elevation.md's rule that it only matters on an exact tie.
- *   - a named `y = e->f8;` before the % expression, to reproduce the ROM's
- *     `mov r8, r3`: 342 -> 316.  WORSE.  The ROM does hold e->f8 in r8 across
- *     __umodsi3 while we reload it after, but forcing it with a local costs more
- *     than it buys; it must fall out of the allocation, not be written.
- *   - `o->mode = 0;` moved after the `o->f4` store: 342 -> 336.
- *   - `o->mode = 0;` first of all five byte writes: 338.
- *   - `o->mode` between c4 and c5: 339.
+ * VERDICT ON THE BRIEF'S QUESTION: the reference-count route is PROVABLY DEAD --
+ * not because the inequality is out of reach but because it is already met and is
+ * not what is being tested.  A register pin on the cursor is the only lever found
+ * that reaches r6, and once it does, EVERY OTHER REGISTER FALLS OUT FOR FREE:
+ *   byte-7 -> r4 (local-alloc's retry, confirmed in t.c.18.greg: `124 in 4`)
+ *   o -> r7, base -> r9, q -> r10, i -> r11, and r8 to the case-2 e->f8 carrier,
+ *   which is exactly the ROM, prologue and epilogue included.
+ * Pinning `o` to r7 as well is a REGRESSION (57 -> 102): o reaches r7 unaided.
  *
- * ================= WHAT IS ESTABLISHED, AND IS REUSABLE =================
- * 1. The walk is the landed neighbour's.  src/rom_15000/rom_1908c_c_a_c_a.c
- *    (Func_80197c4) already walks `iwram_3001e8c + (0xa0 << 3)` in steps of 0x24
- *    eight times testing `*(u16 *)(q + 0x16)`; copy that spelling, including the
- *    `(0xa0 << 3)`.
+ * ===================== WHAT MOVED THE NEEDLE (single drops) =====================
+ *   171 -> 121  register pin `e` to r6 (shim 1).  Pinning both e and o: 123.
+ *   121 ->  90  `{ u32 y = e->f8; o->f4 = y + L33e60[...] + 2; }` in case 2.
+ *               THIS IS THE COUPLED PAIR the brief warned about.  The old park
+ *               measured this same hoist as a REGRESSION (342 -> 316 on its old
+ *               metric) and wrote it off; with the pin in place it is worth 31.
+ *               It gives the ROM's `ldrb r3,[e+8]` BEFORE __umodsi3 and its
+ *               `mov r8,r3` / `mov r2,r8`, which consumes r8 and so pushes
+ *               base/q/i from r10/r8/r9 onto the ROM's r9/r10/r11.
+ *    90 ->  81  case 5's two `- 1` through an `int v` temp:
+ *                 v = e->f6 + (...) - 1;  o->x = v;
+ *               An assignment whose RHS is a bare VAR_DECL cannot be distributed
+ *               by convert.c's trunc1 shortening, so the -1 stays SImode
+ *               (`sub r1,#1`) instead of being narrowed into the field's mode
+ *               (`ldr r2,=0xffff / add r1,r2`, and `add r3,#0xff` for the u8).
+ *               NOTE the ROM shortens where the operand is itself narrow --
+ *               case 8's `e->f6 - 8` really is `ldr r3,=0xfff8 / add r2,r3` --
+ *               so this is not a blanket rule, only for `narrow + wide - const`.
+ *    81 ->  70  `__asm__ ("")` at the end of case 4 (shim 2).  At the end of
+ *               case 7 instead: 72.  Case 4 is the right end.
+ *    70 ->  68  loop PREHEADER order: `e = *(struct Ent **)q;` before
+ *               `fc = iwram_3001800;`.  (The same swap at the loop BOTTOM is
+ *               inert -- measured twice, at 70 and at 57.)
+ *    68 ->  65  `q += 0x24;` before `i++;` in the outer loop's increment.
+ *    63 ->  60  `{ u32 y = e->f8; ... }` in case 17 AND in both
+ *               `y + L33ee8[e->fc & 0xf]` sites at once.  Doing case 14/15/16
+ *               alone is a regression (64) -- another coupled set.
+ *    60 ->  57  a named `u32 ix = e->fc & 0xf;` index temp alongside those y's.
+ *
+ * ===================== WHAT WAS INERT OR WORSE (all measured) =====================
+ * Add these to the old park's list rather than re-testing them.
+ *   INERT: `0xf & e->fc` instead of `e->fc & 0xf` (tried at 90 and again at 70);
+ *     `e->fc % 0x10` for the same mask; `int fc` / `int sel` instead of u32;
+ *     `sel = (fc & 0x1c) >> 2`; a named `volatile u16 *p` for base+0x12b6;
+ *     `y` hoisted to function scope; `(signed char)L33eb0[i]` or a second
+ *     `extern signed char L33eb0s[] __asm__(".L33eb0")` in place of
+ *     `*(signed char *)(L33eb0 + i)` (all three spellings measure the same, and
+ *     the separate decl costs the pointer CSE across case 4's two halves);
+ *     `o->f4 = y + (L33e60[...] + 2)` and `2 + y + L33e60[...]`;
+ *     named index temps in case 18 and case 4; swapping case 18's second add.
+ *   WORSE: `u8 y` instead of `u32 y` in case 2 (70 -> 109);
+ *     naming the case-2 table byte as well (`u32 tb = L33e60[...]`) (57 -> 102);
+ *     splitting case 2's add (`z = y + tb; o->f4 = z + 2;`) (57 -> 102);
+ *     u32-index temps in cases 17/14-16 WITHOUT the y hoist (60 -> 78);
+ *     pinning `o` to r7 (57 -> 102).
+ *   BUILD FLAGS ARE ALREADY RIGHT: --no-sched2 166, --no-rerun-cse 79, --O1 270,
+ *     against 57 for the production flags.  Do not propose a Makefile group.
+ *
+ * ===================== THE REMAINING 57, BY ROOT CAUSE =====================
+ * 1. FOURTEEN LINES ARE ONE UNEXPLAINED FACT: the ROM's frame is `sub sp,#0x18`
+ *    with the 8-byte Func_8003d28 struct at sp+0x10; ours is `sub sp,#0x10` with
+ *    it at sp+0x8.  caller-save.c setup_save_areas allocates one 4-byte slot per
+ *    call-used hard register in `hard_regs_used`, i.e. per call-used register
+ *    holding a pseudo with REG_N_CALLS_CROSSED > 0.  Ours has exactly two --
+ *    r4 (the byte-7 accumulator) and r2 (the .L33e60 pointer), verified from
+ *    t.c.18.greg -- so 8 bytes, and the struct lands at 8.  The ROM stores r4 at
+ *    sp+0 and r2 at sp+4 and puts the struct at 0x10, which under the same
+ *    descending-regno allocation means FOUR slots: {r0, r1, r2, r4}.  So the
+ *    ROM's compile has two more call-crossing quantities, in r0 and r1, that are
+ *    never actually spilled anywhere in its 500 instructions.  Nothing found puts
+ *    them there.  THIS IS THE NEXT LEVER and it is worth 14 of the 57.
+ * 2. Case 4's .L33eb0 pointer: the ROM has it in r4 with a caller-save pair
+ *    (`str r4,[sp]` / two `ldr r4,[sp]`), ours in r5 with none -- and the ROM's
+ *    `e->f8 + tablebyte` accumulator is in r5 where ours is r3.  Same shape as
+ *    (1): for local-alloc to refuse r5 there, r0-r3 must all be busy over the
+ *    accumulator's four-insn range, which is what (1)'s two extra quantities
+ *    would do.  Note the margin: that pointer has 3 raw refs = 9 weighted and
+ *    crosses 2 calls, so 4*2 = 8 < 9 -- the ROM's r4 there is profitable by ONE.
+ *    ~14 lines, and probably the same fix as (1).
+ * 3. Cases 17 / 14-16 / 18 each carry one extra `mov r2, r3`: for
+ *    `(set (reg D) (and (reg V) (reg C)))` gcc gave D the CONSTANT's pseudo
+ *    (t.c.17.lreg insn 1106: `(set (reg 530) (and (subreg (reg 527)) (reg 530)))`
+ *    where insn 1103 set 530 = 15), so reload matched operand 0 against the
+ *    commuted operand 2 and the value had to be copied out of r3.  The ROM's
+ *    destination is the VALUE, giving `mov r2,#0xf / and r3,r2`.  Source operand
+ *    order does not reach this.  ~12 lines.
+ * 4. `sel` is r0 in the ROM and r1 here, with the base+0x12b6 address taking the
+ *    other one; and the loop-bottom `ldr r3,[r3]` / `ldr r6,[r6]` are in the
+ *    opposite order.  ~12 lines, one cluster, and it too smells of (1).
+ * 5. Three lines: `mov r2,r8 / add r3,r2,r3` in the ROM against our `add r3,r8`.
+ *    The ROM's add destination is a third pseudo, forcing the low-register
+ *    3-operand form; every attempt to name that third value made things worse.
+ *
+ * ======== WHAT IS STILL ESTABLISHED FROM THE PREVIOUS PARK (unchanged) ========
+ * 1. The walk is the landed neighbour's -- src/rom_15000/rom_1908c_c_a_c_a.c
+ *    (Func_80197c4) walks `iwram_3001e8c + (0xa0 << 3)` in steps of 0x24 eight
+ *    times testing `*(u16 *)(q + 0x16)`; copy that spelling, `(0xa0 << 3)` too.
  * 2. THE INNER LOOP'S ENTRY IS A `goto` INTO THE BODY.  The ROM jumps to the
  *    BOTTOM block, and that block computes `sel = (frame >> 2) & 7` BEFORE the
- *    `cmp e,#0`.  A plain `while (e) { sel = ...; ... }` puts sel at the top of the
- *    body instead.  `goto test;` into a do-while, with `test:` immediately before
- *    the `while (e != 0)`, is what places it where the ROM has it.
- * 3. THE STACK STRUCT NEEDS NO SPECIAL TYPE, and this cost half a session to
- *    establish, so it is written down here.  The ROM fills the three 16-bit fields
- *    of the 8-byte stack struct passed to Func_8003d28 with plain `strh` in two
- *    cases and with SImode read-modify-write against 0xffff0000 / 0xffff in the
- *    third -- same address, which looks like one variable with two store modes.
- *    IT IS NOT A TYPE DIFFERENCE.  gcc-2.96 emits the RMW form whenever it has NOT
- *    already materialised the struct's address in a register, and `strh` once it
- *    has (the address is needed for the call anyway).  A four-way probe
- *    (scratch_elev/b292/H/probe.c: `struct {u16 w,h,a,p;}` vs
- *    `struct {u32 w:16; u32 h:16; u32 a:16; u32 p:16;}`) compiles to BYTE-IDENTICAL
- *    output -- plain u16 members are correct, and the bitfield spelling buys
- *    nothing.  The pooled 0xffff of that RMW is then reused by cse as the -1 of
- *    `e->fc - 1` later in the same case, which is why the ROM writes
- *    `add r3, r5` there instead of `sub r3, #1`; that falls out for free.
- * 4. THE OBJ SUB-OBJECT AT +0x10 IS BITFIELDED, and these masks are read straight
- *    off the ROM:
+ *    `cmp e,#0`.  `goto test;` into a do-while is what places it there.
+ * 3. THE STACK STRUCT NEEDS NO SPECIAL TYPE.  Plain u16 members give the ROM's
+ *    mixture of `strh` and SImode read-modify-write against 0xffff0000 / 0xffff;
+ *    gcc emits the RMW form whenever it has not already materialised the struct's
+ *    address in a register.  A four-way probe (u16 members vs u32 bitfields)
+ *    compiles BYTE-IDENTICAL.  The pooled 0xffff of that RMW is reused by cse as
+ *    the -1 of a later `e->fc - 1` in the same case.
+ * 4. THE OBJ SUB-OBJECT AT +0x10 IS BITFIELDED, masks read off the ROM:
  *      +0x05 byte : c0:2 (0x03) c2:2 (0x0c) c4:1 (0x10) c5:1 (0x20) c6:2 (0xc0)
  *      +0x06/7    : x:9 via ldrh/strh with 0x1ff and 0xfffffe00,
  *                   pri:5 via BYTE ops on +7 (mask 0x3e), mode:2 (mask 0xc0)
  *      +0x08 half : tile:10 with 0x3ff / 0xfffffc00
- *    The byte-unit-vs-halfword-unit choice in the ROM is exactly gcc's smallest
- *    unit containing the field, which is the evidence they are bitfields and not
- *    hand-written masks.  Every byte-5 and byte-7 sequence in the candidate below
- *    matches the ROM instruction for instruction.
- * 5. ONE RESIDUAL TYPING QUESTION.  The ROM loads the 0x1ff and 0x3ff value masks
- *    with `ldr` (SImode) where the bitfield spelling below gives `ldrh` (HImode) --
- *    about eight encodings.  stor-layout.c get_best_mode picks HImode for a 9-bit
- *    field at bit offset 48 and store_bit_field then converts the value to HImode.
- *    Writing those two fields as explicit masks on raw casts
- *    (`*(u16 *)&o->x6 = (v & 0x1ff) | (*(u16 *)&o->x6 & ~0x1ff)`, the bank's own
- *    idiom) does give SImode constants but cost far more elsewhere: measured
- *    292/300 against this file's 344/203.  Do not repeat that whole-file swap;
- *    apply it to ONE field at a time if it is tried again.
- * 6. The switch is `switch (e->state)` over cases 2..18 with 3 and 13 absent
- *    (`sub r3,#2 / cmp r3,#0x10 / bls` plus a 17-word table).  The ROM's case-body
- *    ORDER is 2, 5, 6, 7, 4, 17, 14/15/16, 18, 8, <shared block>, 9/10/11/12, and
- *    that is the order below; the shared block that cases 6 and 8 branch to when
- *    e->fc == 0 is a LABEL between case 8 and case 9, reached by goto -- writing it
- *    twice and letting cross-jumping merge it does not put it there.
- * 7. Callee shapes confirmed by use: UploadSpriteGFX and Func_8003d28 return int,
- *    Random returns unsigned (the ROM's `lsr #16` after *3 is unsigned), sin/cos
- *    take and return int and the ROM takes `>> 14` as an arithmetic shift.
- *    Func_8003dec's r1 is written before r0, so `void` was NOT tried and is the
- *    first thing to try next time (this bank inverts the int-return lever).
+ *    The byte-unit-vs-halfword-unit choice is gcc's smallest unit containing the
+ *    field, which is the evidence they are bitfields and not hand masks.
+ * 5. `o->mode = 0;` BEFORE `o->c6 = 2;`.  Both mask with 0x3f, cse2 shares one
+ *    pseudo for the constant, and this order forces gcc to COPY it (the ROM's
+ *    `mov r4,r3`) instead of consuming it.  Still load-bearing.
+ * 6. `*(volatile u16 *)(base + 0x12b6)`: the ROM loads that halfword TWICE in
+ *    case 2 from one cse'd address; without volatile cse2 replaces the second
+ *    with `mov r0,r3`.
+ * 7. `signed char`, not `s8` (s8 is plain char, unsigned here), for the signed
+ *    table reads: turns `ldrb` into the ROM's `ldrsb`.
+ * 8. `ldrh rD, <label>` against the ROM's `ldr rD, =K` over the same pool word is
+ *    NOT a difference -- Thumb-1 has no PC-relative ldrh and gas assembles both
+ *    to `ldr rD,[pc,#N]`.  The old park's "mask-load width residue of about eight
+ *    encodings" was entirely this artefact; it is gone from the count.
+ * 9. The switch is `switch (e->state)` over cases 2..18 with 3 and 13 absent.
+ *    The ROM's body ORDER is 2, 5, 6, 7, 4, 17, 14/15/16, 18, 8, <shared>,
+ *    9/10/11/12, and the shared block cases 6 and 8 reach when e->fc == 0 is a
+ *    LABEL between case 8 and case 9, entered by goto.
+ *10. Callee shapes: UploadSpriteGFX and Func_8003d28 return int, Random returns
+ *    unsigned, sin/cos take and return int with `>> 14` arithmetic.  Func_8003dec
+ *    as `void` is what this file uses and it is correct -- the old park listed
+ *    trying it as future work.
  */
 
 #include "gba/types.h"
@@ -189,12 +274,13 @@ void Func_80191cc(void)
 {
     u8 *base;
     u8 *q;
-    struct Ent *e;
+    register struct Ent *e __asm__("r6");
     struct Spr *o;
     u32 fc;
     u32 sel;
     int i;
     u16 t;
+    int v;
     struct Req s;
 
     base = iwram_3001e8c;
@@ -202,8 +288,8 @@ void Func_80191cc(void)
     i = 0;
 L1:
     if (*(u16 *)(q + 0x16) & 1) {
-        fc = iwram_3001800;
         e = *(struct Ent **)q;
+        fc = iwram_3001800;
         goto test;
         do {
             o = &e->spr;
@@ -223,15 +309,17 @@ L1:
                 o->c5 = 1;
                 o->mode = 0;
                 o->c6 = 2;
-                o->f4 = e->f8 + L33e60[iwram_3001800 % 0x50] + 2;
+                { u32 y = e->f8; o->f4 = y + L33e60[iwram_3001800 % 0x50] + 2; }
                 o->c0 = 0;
                 o->pri = 0;
                 break;
             case 5:
                 if ((iwram_3001800 & 1) == 0)
                     break;
-                o->x = e->f6 + ((((Random() * 3) >> 16) + ((Random() * 3) >> 16)) >> 1) - 1;
-                o->f4 = e->f8 + ((((Random() * 3) >> 16) + ((Random() * 3) >> 16)) >> 1) - 1;
+                v = e->f6 + ((((Random() * 3) >> 16) + ((Random() * 3) >> 16)) >> 1) - 1;
+                o->x = v;
+                v = e->f8 + ((((Random() * 3) >> 16) + ((Random() * 3) >> 16)) >> 1) - 1;
+                o->f4 = v;
                 break;
             case 6:
                 if (e->fc == 0)
@@ -262,21 +350,22 @@ L1:
                 o->x = e->f6 + *(signed char *)(L33eb0 + t * 2);
                 t = e->fc % 0x14;
                 o->f4 = e->f8 + L33eb0[t * 2 + 1] - 2;
+                __asm__ ("");
                 break;
             case 17:
                 e->fc = e->fc + 1;
-                o->f4 = e->f8 - L33ee8[e->fc & 0xf];
+                { u32 y = e->f8; u32 ix = e->fc & 0xf; o->f4 = y - L33ee8[ix]; }
                 break;
             case 14:
             case 15:
             case 16:
                 e->fc = e->fc + 1;
-                o->f4 = e->f8 + L33ee8[e->fc & 0xf];
+                { u32 y = e->f8; u32 ix = e->fc & 0xf; o->f4 = y + L33ee8[ix]; }
                 break;
             case 18:
                 e->fc = e->fc + 1;
                 o->x = e->f6 - *(signed char *)(L33ee8 + (e->fc & 0xf));
-                o->f4 = e->f8 + L33ee8[e->fc & 0xf];
+                { u32 y = e->f8; u32 ix = e->fc & 0xf; o->f4 = y + L33ee8[ix]; }
                 break;
             case 8:
                 if (e->fc == 0)
@@ -317,8 +406,8 @@ L1:
             sel = (fc >> 2) & 7;
         } while (e != 0);
     }
-    i++;
     q += 0x24;
+    i++;
     if (i != 8)
         goto L1;
 }
