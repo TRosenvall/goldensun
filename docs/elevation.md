@@ -2242,6 +2242,37 @@ a red herring; the load width is the thing, and it follows the width of the
 eventual store. Checking the pool and not the instruction is how this looked
 solved for about ten minutes.
 
+> **CORRECTION, batch 292: for a PC-RELATIVE POOL LOAD the `ldrh`/`ldr` pair is
+> COSMETIC, and "ruled out -- do not repeat this experiment" was resting on a
+> text-level false negative.**
+>
+> Thumb-1 has no PC-relative `ldrh` encoding. gas assembles `ldrh rD, <label>` to
+> the same `ldr rD, [pc, #N]` word as `ldr rD, <label>`. Assembled and
+> disassembled to be sure:
+>
+>     ldr  r3, .Lp   ->  4b01   ldr r3, [pc, #4]
+>     ldrh r4, .Lp   ->  4c01   ldr r4, [pc, #4]
+>
+> They differ only in the destination register field. So a candidate showing
+> `ldrh rD, .Lxx` against the ROM's `ldr rD, =K` over the same `.word` is ALREADY
+> byte-identical there, and any remaining difference is elsewhere.
+> `Func_80b6148` (batch 292) landed byte-identical with 13 of 13 relocations while
+> carrying NINE such loads, and its already-landed twin `Func_80b60a0` has the
+> same pair.
+>
+> Three agents in one batch each hit this independently, one after chasing it as a
+> phantom, and "fixing" it with `SET_IO` cost 325 differing on a neighbouring
+> function. So the instruction above was actively harmful: it told readers a
+> cosmetic difference was a wall and not to look again.
+>
+> **SCOPE, because this does not generalise.** The equivalence holds only for the
+> PC-relative pool form. A `ldrh rD, [rN, #imm]` or `ldrh rD, [rN, rM]` against a
+> word load from memory IS a genuinely different instruction, and the
+> store-width-narrowing mechanism this section describes is real for those. The
+> rule is: **check pool-load-width residues at the ENCODING level with objcmp, not
+> in the disassembly text.** If objcmp reports no difference at that offset, there
+> is nothing there to fix.
+
 **PARTLY REACHED, batch 182 -- and the above is the reason the escape is
 narrow.** The width follows the eventual store, so anything that keeps the value
 inside the store's expression narrows. What does NOT narrow is an `int` local
