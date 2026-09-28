@@ -19,9 +19,22 @@
  * IT IS REACHABLE FROM SOURCE: `__asm__ ("" : "+r" (v))` on the surviving copy.  The
  * barrier defeats cse2 for ONE VALUE, where the flag defeats it for the whole
  * translation unit -- which is exactly the per-site/per-file distinction this file
- * needed.  Found for a repeated pool constant in overlay 971 in the same batch and
- * carried here.  Barriers on both `x` and `z`: 10 -> 2.  Measured singly: `z` alone
- * is worth 5, `x` alone 3 (7 of 187).
+ * needed.  Barriers on both `x` and `z`: 10 -> 2.  Measured singly: `z` alone is worth
+ * 5, `x` alone 3 (7 of 187).
+ *
+ * WHAT CLASS OF PROBLEM THE BARRIER ACTUALLY SOLVES -- corrected in batch 292, because
+ * the first version of this note got it wrong.  It said the barrier had been "found for
+ * a repeated pool constant in overlay 971".  On a repeated CONSTANT the barrier is
+ * INERT in every placement, measured over several in batch 292, and the mechanism says
+ * why: `"+r"` expands to a copy in and a copy out, so the pseudo reaching the asm still
+ * carries the known constant.  A barrier can make a value opaque DOWNSTREAM of itself;
+ * it cannot un-know a constant UPSTREAM of itself.
+ *
+ * What it does solve is this file's class: a COPY DIRECTION -- which register a load
+ * targets when cse2 collapses a temp into the surviving copy -- and live ranges
+ * generally.  The overlay-971 result should be read the same way, not as a constant
+ * case.  So reach for the barrier when the residue is "the right instructions through
+ * the wrong registers", and not when it is "a constant built once and copied".
  *
  * ================== THE MECHANISM, read out of the -da dumps ==================
  *   expand    (set L (mem p.x)) / (set T L)   ; T = copy_to_suggested_reg for the sdiv
