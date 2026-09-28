@@ -14949,6 +14949,43 @@ the conversion is cancelled.
 **A trap in the same function:** `dead_or_predicable`'s "no memory reference" test runs BEFORE
 reload, so spill `ldr`s visible in the final assembly do not protect a block from being moved.
 
+### A FLAG RECORDED AS INERT ALONE CAN BE LOAD-BEARING IN A PAIR
+
+The coupled-lever warning applies to FLAGS, not only to source constructs, and the Makefile's own
+notes are the counter-example. It records `-fno-expensive-optimizations` as leaving things in place
+in two separate comments. On `Func_80ab314` (batch 294), byte-exact:
+
+| flags | differing | size |
+|---|---|---|
+| none | 225 | 716 |
+| `-fno-gcse` | 89 | 716 |
+| `-fno-expensive-optimizations` | **280** (worse) | 712 |
+| **both** | **22** | **720 = the ROM's** |
+
+Each alone is a regression against the pair. The mechanisms are independent, which is why:
+gcse's cprop kills a pseudo and removes the ROM's `ldr r3,=0xc32 / mov r8,r3` preheader, the whole
+length deficit; and `flag_expensive_optimizations` gates `reload_cse_regs`, which keeps a constant
+in a register across two stores and rewrites the ROM's `add r3,r1 / strb r2,[r3]`.
+
+**So "tried and inert" in the Makefile or a park means tried ALONE.** Before concluding a flag is
+useless, try it beside the one that already helps.
+
+### THE `expand_end_loop` ROLL HAS A BOUNDARY: `break` FOR THE FIRST EXIT, `goto` FOR THE REST
+
+`stmt.c:2371-2490` scans from the top for jumps to the loop's own `end_label`, **keeps updating
+`last_test_insn` at each one**, stops thirty insns after the first, and then rolls everything up to
+it. So which exits are spelled `break` decides how much gets rolled:
+
+- `if (c) break;` with an **empty body** makes the rolled block exactly `[redraw, WaitFrames, test]`
+  -- entered by an unconditional branch, left by a conditional one -- and the arm's body lands
+  after the loop, where its `goto end_label` becomes the fall-through.
+- Writing **all** the exits as `break` makes their jumps qualify too, and the roll swallows a whole
+  arm that the ROM keeps separate. Worth 83 against 22 on one function.
+
+The rolled layout also explains a second-order effect: a block reached only by the backward branch
+starts a new extended basic block, which is why such a ROM has two un-merged loads of the same
+global where a candidate commons them.
+
 ### ONE VARIABLE PER REGION, OR ONE SHARED -- BOTH ARE LEVERS AND THE DIRECTION IS PER FUNCTION
 
 Batch 294 found the splitting direction paying three times: two locals for one repeated
@@ -14961,6 +14998,38 @@ So this is not a rule with a direction; it is a knob. **Count the pseudos the RO
 usage implies and match that count** -- a value the ROM keeps in two registers across a region
 boundary wants two locals, and one it keeps in a single register across three loops wants one.
 Both readings are available from the ROM's text before any compile.
+
+## DEFEATING `nonzero_bits`: THREE ROUTES, AND THE FAMILY IS THE POINT
+
+A large class of residues is gcc knowing a narrow value's high bits are clear and therefore
+deleting a shift, a mask or a compare the ROM has. `combine`'s `simplify_comparison` and
+`simplify_and_const_int` both consult `reg_nonzero_bits`, and
+`set_nonzero_bits_and_sign_copies` **unions over every SET of the pseudo** -- which is the handle.
+Three routes are now measured, and they are alternatives rather than competitors:
+
+1. **A one-member struct or union carrier** (batch 294). `promote_mode` widens only
+   INTEGER/ENUMERAL/BOOLEAN/CHAR/REAL/OFFSET types, so a `RECORD_TYPE` keeps its own mode and the
+   pseudo is genuinely HImode. `nonzero_bits`' REG fast path is guarded by
+   `reg_last_set_mode == mode` (`combine.c:7992`), which a HImode pseudo under an SImode query
+   fails. Took one park from 31 to 8 at zero cost.
+2. **VARIABLE REUSE, to add a set with unknown high bits** (batch 294). Because the union is over
+   every set, giving the carrier one more set whose value gcc cannot bound restores the ROM's
+   shape. Reusing the variable that had held `(unsigned int)&gState` adds a SYMBOL_REF set with
+   unknown `nonzero_bits` and a HImode compare's `lsl/lsl/cmp` pair returns BYTE-EXACT. A clean
+   `int` carrier fails precisely because both its sets are `ldrh`s that union to 0xffff.
+3. **A genuinely unknown producer** -- a value out of a clamp, a division, a call. This is the
+   route the corpus already used (17 sites in 4,297 generated files), and it is the one that
+   usually costs instructions if you have to manufacture it.
+
+**A declared `unsigned short` carrier is NOT on the list** and cannot be: ARM's `PROMOTE_MODE`
+(`arm.h:597`) makes it `ldrsh`, measured three ways.
+
+### THE OPERAND'S OWN TYPE SETS A RANGE TEST'S SUBTRACTION MODE
+
+`v == 0x14 || v == 0x15` over an `unsigned short` dereference makes `build_range_check` do the
+subtraction **in unsigned short**, so `-0x14` becomes `0xffec`, has no `sub #imm8` form, and
+POOLS. The ROM's `sub r3,#0x14` is an int subtraction under a HImode compare, which is
+`(unsigned short)(w - 0x14) <= 1` with `w` an `int`.
 
 ## A ONE-MEMBER STRUCT KEEPS ITS MODE WHERE A NARROW LOCAL DOES NOT
 
