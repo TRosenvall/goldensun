@@ -1678,7 +1678,8 @@ SECTIONS {
 		asm/rom_b5000/rom_c1a34_a_a_c_c_a_b.o(.text)
 		asm/rom_b5000/rom_c1a34_a_a_c_c_b.o(.text)
 		asm/rom_b5000/rom_c1a34_a_b.o(.text)
-		asm/rom_b5000/rom_c1a34_a_c.o(.text)
+		asm/rom_b5000/rom_c1a34_a_c_b.o(.text)
+		asm/rom_b5000/rom_c1a34_a_c_c.o(.text)
 		asm/rom_b5000/rom_c1a34_b.o(.text)
 		asm/rom_b5000/rom_c1a34_c.o(.text)
 
