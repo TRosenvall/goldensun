@@ -241,6 +241,49 @@ _MSG_cf1 = 0x0cf1;
  * both pooled and mov-ed within one function -- that is reload rematerialising a REG_EQUIV
  * pseudo, and an agent nearly filed a .sym row on it before the evidence dissolved.  Neither
  * of these two ids appears as a `mov` anywhere in this function. */
+/* _MSG_cae .. _MSG_cb4 -- a seven-id run in Func_80b1f4c, all reaching Func_80b0574.
+ * Worth 66 differing -> 0: they ARE the function, which is the "completes it" half of the bar.
+ *
+ * THE IN-FUNCTION CONTROL IS FOUR-FOLD AND IT IS THE STRONGEST IN THIS FILE.  The same
+ * function, in the same run, into the same sink, also uses 0xcab, 0xcac, 0xcb5 and 0xcb6 --
+ * and each of those four reproduces BYTE-EXACT AS A PLAIN LITERAL, measured by dropping each
+ * one individually.  So this is not "pooled constants look like symbols"; it is eleven ids
+ * side by side where exactly seven need to be symbols and four provably must not.
+ *
+ * TWO MECHANISMS, both impossibility arguments rather than preferences, and both verified in
+ * the compiler source in the container:
+ *
+ *   1. 0xcb0 is shiftable (0xcb << 4), so as a literal gcc emits `mov r5,#0xcb / lsl r5,#4`
+ *      where the ROM pools it.  That is this file's existing argument, and the other ten ids
+ *      are unshiftable and pool either way.
+ *
+ *   2. THE OTHER SIX ARE AN IF-CONVERSION GATE.  ifcvt.c's noce_try_store_flag_constants
+ *      opens with `GET_CODE (if_info->a) == CONST_INT && GET_CODE (if_info->b) == CONST_INT`,
+ *      so a SYMBOL_REF in either arm bails it out.  Two things ride on that gate: 0xcae and
+ *      0xcaf have `diff == 1`, and ARM's STORE_FLAG_VALUE is 1 (arm.h:2516), so the test
+ *      `diff == STORE_FLAG_VALUE` fires and gcc rewrites the arm as `0xcae + (flag != 0)`,
+ *      emitting a neg/orr/lsr #31/add idiom the ROM does not have; and the same gate blocks a
+ *      speculation that hoists each chain arm's constant load above its own test and inverts
+ *      the branch, one instruction shorter per arm than the ROM.
+ *
+ *      THE INTERNAL CONTROL IS ARITHMETIC: the function's other three constant pairs have
+ *      `diff == 2`, fall off that chain under STORE_FLAG_VALUE == 1, and keep the ROM's
+ *      branches -- which is exactly why those ids stay literals.
+ *
+ * NO FLAG REACHES IT, and this was checked rather than assumed: there is no
+ * -fno-if-conversion in gcc-2.96.  The string appears twice in toplev.c and BOTH are comments
+ * (lines 2872 and 3230); the calls there are unguarded, and no "if-conversion" entry exists in
+ * the f_options table.  Measured alternatives: -fno-thread-jumps 66, -fno-cse-follow-jumps 66,
+ * -fno-expensive-optimizations 82, -fno-gcse 117, -fno-schedule-insns2 worse and it does not
+ * remove the idiom. */
+_MSG_cae = 0x0cae;
+_MSG_caf = 0x0caf;
+_MSG_cb0 = 0x0cb0;
+_MSG_cb1 = 0x0cb1;
+_MSG_cb2 = 0x0cb2;
+_MSG_cb3 = 0x0cb3;
+_MSG_cb4 = 0x0cb4;
+
 _MSG_50  = 0x0050;
 _MSG_51  = 0x0051;
 
