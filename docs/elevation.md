@@ -1483,6 +1483,30 @@ variant tried afterwards, so it could not rank them.
 which does fall as a candidate improves. Default to it above about fifty
 instructions.
 
+### ELEVEN AGENTS HAVE REBUILT THIS TOOL INSTEAD OF FINDING IT
+
+`scratch_elev/*/*/norm.py` exists in eleven agent scratch directories across batches
+238-292 -- hand-rolled scripts that normalise registers, immediates, 2-vs-3-operand
+forms, pool references and branch labels, then diff the two streams. That is `--align`,
+reimplemented, repeatedly, by agents who had been told to grep this file.
+
+The cause is not this section; it is the BRIEF. Every brief written for these batches
+described `tryc.py` as "for screening only" and named only `objcmp.py` as the authority,
+which is true about verdicts and actively misleading about diagnosis. An agent follows a
+brief over a 24,000-line document. Two agents in batch 292 alone rebuilt it, and one of
+them had to, because its objcmp number moved the wrong way (574 -> 575) on a change that
+was really 329 -> 309.
+
+**So a brief for a function over about fifty instructions must name three things, not
+one:** `objcmp.py` for the verdict, `tryc.py --align` for the distance while iterating,
+and `--ref` for pointing a scratch candidate at any `.s`:
+
+    python3 tools/tryc.py <candidate.c> --ref <reference.s> --align
+
+Measured on a 455-instruction park: objcmp reports 485 of 510, `--align` reports 171
+instructions in disagreeing regions of 500. The second number is the one that ranks
+variants. `tools/realign.py` re-measures an existing park the same way.
+
 ## Pointer arithmetic: the ROM's `add` says which form to write
 
 Two ways to reach `base + off`, and the ROM tells you which it wants before you
