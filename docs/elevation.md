@@ -1470,6 +1470,44 @@ The same code with two `goto` targets: 42. Nothing else changed.
 Short functions have one exit and never raise the question, which is why this
 did not surface in the first 36 batches. See reports/large-functions.md.
 
+## `.call_via` IS AN INLINE VENEER gcc NEVER EMITS -- A STRUCTURAL BLOCKER CLASS
+
+`include/macros.inc` expands `.call_via reg` to
+
+    .align 2, 0
+    mov r12, pc
+    bx  \reg
+
+-- four bytes of INLINE interworking veneer. gcc-2.96 with `-mthumb-interwork` calls through
+a function pointer as `bl _call_via_rN`, which is also four bytes and a completely different
+encoding. **So a ROM site with the inline form cannot be reached from a C function-pointer
+call, and no spelling changes that.**
+
+This was settled against the ROM itself rather than argued from the disassembly. At
+`LoadMapActors`' site the bytes in `baserom.gba` are `fc 46 18 47` -- `mov ip, pc` / `bx r3`
+-- preceded by the `00 00` the macro's `.align` emits. Spot-checked in three banks, and the
+site counts match the `.s` annotations exactly: `Func_800d340` has 13 in both, `Anim_Cast` 6
+in both, with the `bx` register varying (`18 47` = r3, `50 47` = r10, `30 47` = r6).
+
+**The corpus check is the decisive half: 33 hand-written `.s` files contain `.call_via` and
+ZERO generated ones do.** gcc has never produced it in 4,300+ files, so this is not a
+spelling that has gone unfound.
+
+**As of batch 293 this affects 17 of the 249 still-available functions**, several of them
+large: `Func_80ad6d4` (1274 instructions, 1 site), `Func_8090a5c` (806, 3), `ActorCmd_Player`
+(804, 2), `Func_80f3078` (797, 3), `UpdateActors` (683, **31 sites**), `ActorCmd_Player_World`
+(554, 2), `Func_808bec0` (470), `OvlFunc_923_200a030` (354), `LoadMapData` (345, 2),
+`Func_800b388` (339, 5), `Func_800d340` (338, **13**), `CreateBattleSpriteOverlays` (266, 3),
+`Func_800c62c` (263, 2), `Func_80c11ec` (259, 4), `Func_8093c00` (237),
+`Anim_Cast` (234, 6), `Func_80111b4` (228, 4).
+
+**Do not assign these to a survey brief.** A function with a single site might still be worth
+a dedicated attempt if someone finds a route to the inline form -- `-mcallee-super-interworking`
+and friends are unexplored, and the original source may have used a macro or inline asm there --
+but one with 31 sites is not a decompilation target under the current toolchain. Treat this the
+way `census.py` already treats ARM functions and hand-written assembly: a structural fact, not
+a difficulty.
+
 ## Use `--align` on anything long
 
 `tryc.py`'s headline count is POSITIONAL -- instruction *i* against instruction
