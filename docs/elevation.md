@@ -24148,6 +24148,34 @@ arithmetic (`subs r1, r5, #3` / `adds r1, r5, #3` off a register holding the bas
 plain-literal spelling can ever produce it*. Measured: with `msg = 0x828` gcc emits two
 separate pool loads; with `(int)&_MSG_828` it emits the ROM's exact two instructions.
 
+### BUT `reload_cse_move2add` CHAINS BARE `CONST_INT`s, SO "DERIVED BY `add`" IS NOT BY ITSELF SYMBOL EVIDENCE
+
+The statement above is true **of cse**, and it is easy to over-read into "any `add`-derived
+neighbour proves a symbol". It does not. `reload_cse_move2add` runs AFTER reload and will
+happily chain bare literals — batch 293 watched a candidate derive `0x139` from `0x138` with
+`add r2, r2, #1` six times over, with no symbol anywhere.
+
+**The discriminator is which register the derivation runs through.** `move2add` is
+per HARD REGISTER: it can only chain when the previous constant is still live in the SAME
+register. So:
+
+| what the ROM shows | what it proves |
+|---|---|
+| neighbours derived by `add` through ONE register, repeatedly | nothing — `move2add` reaches this from literals |
+| neighbours derived off a base held in a CALLEE-SAVED register across calls | a symbol, per the cse mechanism above |
+| each offset materialised fresh in a DIFFERENT register (r4, r7, r0, r1 …) | the ROM is DEFEATING move2add, which literals cannot do |
+
+That third row is how the batch-293 function was read: the ROM rotates registers precisely so
+`move2add` cannot chain, and the source-level remedy ran backwards — naming the offsets in
+`int` locals to force distinct pseudos made it much *worse* (178 of 209, it spills).
+
+So when a `.sym` proposal rests on "the ROM derives its neighbours with `add`", check the
+register first. The strongest arguments in `message.sym` do not rest on that alone:
+`_MSG_66`'s is the pooling tell (gcc never pools a constant one `mov` can build — zero
+counterexamples in 4,282 files), `_MSG_2930`'s is Thumb's `imm3` field partitioning which ids
+can be reached at all, and `_MSG_cae`..`_MSG_cb4`'s is an if-conversion gate with a four-fold
+in-function control.
+
 This converts the base-symbol tell from a pattern that works to a mechanism that must
 work, and it bounds the claim usefully: the neighbours themselves (`0x825`, `0x82b`) stay
 plain literals, because they are pool words elsewhere in the same function.
