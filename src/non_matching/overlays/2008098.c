@@ -4,6 +4,13 @@
  *
  * Source asm: goldensun/asm/overlays/rom_7a37f0/ovl_30_c_c_c_a_a_a.s
  *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/overlays/2008098.c \
+ *     asm/overlays/rom_7a37f0/ovl_30_c_c_c_a_a_a_a.s --func OvlFunc_916_2008098
+ *
+ * NON-MATCHING: 78 encodings of 86 differ (objcmp).
+ *
  * BLOCKER CLASS: loop-invariant motion of ADDRESS CONSTANTS, and the register
  * pressure it causes. Status: 88 lines against the ROM's 84.
  *
@@ -113,3 +120,35 @@ void OvlFunc_916_2008098(int col, int row, int w, int h, int page, int x0, int y
         src += 0x80 - w;
     }
 }
+
+/* ============================================================================
+ * BATCH 290: THE VERDICT IS UPGRADED FROM "UNREACHABLE WITH EVIDENCE" TO
+ * UNREACHABLE WITH THE INEQUALITY, and the missing confirmation is supplied.
+ *
+ * This park closes with "nothing source-level" plus the note that
+ * `-fno-loop-optimize` DOES NOT EXIST in this cc1, so the diagnosis could not be
+ * confirmed from the other side.  IT CAN BE CONFIRMED FROM THE COMPILER'S SOURCE,
+ * WHICH IS IN THE BUILD CONTAINER at /opt/camelot-gcc/gcc-2.96/gcc/loop.c and had
+ * not been opened for this park.
+ *
+ *   move_movables hoists when  threshold * savings * m->lifetime >= insn_count
+ *                                                          (loop.c:1803)
+ *   threshold = (has_call ? 1 : 2) * (1 + n_non_fixed_regs) (loop.c:651)
+ *
+ * THIS INNER LOOP CONTAINS NO CALL, so threshold takes the DOUBLED form, about 30,
+ * while insn_count for a ~22-instruction inner loop is about 22.  `30 >= 22` holds
+ * UNCONDITIONALLY, and no source spelling moves any term in the right direction --
+ * lengthening a constant's lifetime or raising its use count only ENLARGES the
+ * product.  So the hoist is not merely unbeaten here, it is arithmetically forced.
+ *
+ * That also lines up with HANDOFF.md's REG_ALLOC_ORDER hypothesis: `n_non_fixed_regs`
+ * is the only term that could change the outcome, and it is a target property rather
+ * than anything a source file controls.
+ *
+ * SEE ALSO src/non_matching/rom_9000/80105d4.c and its file-mates, where the same
+ * inequality produces the TWO-STAGE hoist: loop_optimize scans loops innermost-first,
+ * so stage one moves a constant into the MIDDLE loop's body, where its lifetime then
+ * spans the innermost loop and move_movables moves it AGAIN.  That family is the
+ * conditional-body cousin of this one; this park's body is unconditional.
+ * ============================================================================
+ */
