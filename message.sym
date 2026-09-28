@@ -228,6 +228,31 @@ _MSG_af7 = 0x0af7;
 _MSG_c90 = 0x0c90;
 _MSG_ca0 = 0x0ca0;
 
+/* _MSG_66 -- the base of the eight starting-PC name strings (0x66..0x6d), read by
+ * ResetPCs as `_DecompressString2(base + i, buf)` for i in 0..7.
+ *
+ * THE CONTROL HERE IS CORPUS-WIDE AND STRUCTURAL, not a judgement about which
+ * spelling looked better. gcc-2.96 never pools an SImode constant it can build with
+ * a single `mov`: imm8 covers 0..255, so a bare 0x66 is always materialised inline.
+ * Scanning every tracked .s bearing gcc's banner for an `ldr rX, .Lnn` whose pool
+ * word is a plain decimal 1-255 gives ZERO hits in 4,282 files. The ROM nonetheless
+ * pools it (`ldr r0, =0x66 / add r0, r6, r0`), so the value in the C cannot have
+ * been a literal -- only a symbol, resolved by the linker, reaches that encoding.
+ *
+ * IN-FUNCTION CONTROL, three ways, all matching gcc's rules exactly: the same
+ * function's 0x1ff pools (over imm8), 0x4000 builds as `mov #128 / lsl #7`
+ * (shiftable), and 0 pools as a HImode store constant. Only 0x66 is a mov-able
+ * literal the ROM pools anyway.
+ *
+ * THE NAMESPACE IS DECIDED BY USE, NOT BY BYTES: 0x66 also exists as _AREA_66 and
+ * _FILE_66, so the value alone cannot choose. area.sym's space is the halfword at
+ * gState+0x1C0 that 61 functions COMPARE; this value is never compared, it is added
+ * to an index and passed as the first argument of _DecompressString2 -- whose
+ * parameter is already named `msg` in the landed
+ * src/rom_b5000/rom_b5a0c_c_c_a_a_a_a_a_b.c. That is the same base-plus-index shape
+ * the shiftable-id bases above cover. */
+_MSG_66  = 0x0066;
+
 /* Added in batch 276 for Func_80a6a98, which reaches _Func_801e7c0 -- the same
  * message sink _MSG_75 and _MSG_182 feed from the neighbouring Func_80a5614 and
  * Func_80a56c8.
