@@ -1,6 +1,6 @@
 /* Func_80a51d0 -- NOT MATCHING
  *
- * Source asm: goldensun/asm/rom_a1000/rom_a4f08.s
+ * Source asm: goldensun/asm/rom_a1000/rom_a4f08_c.s
  * Best screen: 50 instructions against the ROM's 49, 24 differing.
  *
  * BLOCKER CLASS: how many times an indirect global is re-read, and then

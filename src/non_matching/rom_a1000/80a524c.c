@@ -5,7 +5,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py /tmp/claude-0/-home-user-goldensun/ad08b1ee-c1a0-56c8-b3c2-c0ff6481844c/scratchpad/b287/V/Func_80a524c.park.c \
- *     asm/rom_a1000/rom_a4f08.s --func Func_80a524c
+ *     asm/rom_a1000/rom_a4f08_c.s --func Func_80a524c
  *
  * FRESH TARGET (batch 287).  asm/rom_a1000/rom_a4f08.s holds 4 functions + .rodata.
  *

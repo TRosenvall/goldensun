@@ -8,7 +8,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_b5000/80bb7c0.c \
- *     asm/rom_b5000/rom_bb588_a.s --func Func_80bb7c0
+ *     asm/rom_b5000/rom_bb588_a_c.s --func Func_80bb7c0
  *
  * NOTE THE SIZE LINE: this park is 8 BYTES SHORT with 115 instructions against 119, so
  * the 97 is NOT a distance to exact -- most of it is the stream shifting past the four
