@@ -14838,6 +14838,54 @@ it. The constant has to be a NAMED LOCAL, assigned first. `Func_801e318` and
 Related and separate: `i = 0` as a STATEMENT rather than a `for`-init, when the ROM's
 preheader puts the counter's zero before a pointer init. Three functions this batch.
 
+## `if_convert` IS A BLOCKER CLASS, AND NO FLAG REACHES IT
+
+The register-allocation blocker list has a member that is really a CFG pass. `if_convert`
+speculatively moves a block, which spills something, which changes the frame size and shifts
+every `[sp,#N]` after it -- so it presents as a register/frame problem and is not one. There is
+no `-fno-if-conversion` in gcc-2.96 (the string appears twice in `toplev.c` and both are
+comments at unguarded call sites; no `f_options` entry exists), and `-fno-gcse`,
+`-fno-cse-skip-blocks` and `-fno-schedule-insns2` all leave the motion in place. **The lever is
+source-level or nothing.**
+
+Two gates a source change can actually reach:
+
+**1. The insn-count gate counts the WRONG BLOCK, and the comment says so while the code does
+not.** `ifcvt.c:1763`:
+
+    /* ELSE is small.  */
+    if (count_bb_insns (then_bb) > BRANCH_COST)
+      return FALSE;
+
+It counts `then_bb`. So to cancel an IF-CASE-2 conversion you make the **THEN** block bigger,
+not the ELSE block, whatever the comment implies. Read `.14.ce`, which prints
+`IF-CASE-2 found, start N, else M` and `Conversion succeeded`.
+
+**2. The MERGE_SET / TEST_LIVE intersection.** `find_if_case_2` -> `dead_or_predicable`
+(`ifcvt.c:1721`, `:1831`) cancels when the moved block sets something still live at the test.
+That is reachable from source by changing how many pseudos carry a value: `Func_801de5c` went
+**350 -> 279** on the single change from `while ((ch = *text++) != 0) { op = ch; ... }` to
+`while ((op = *text++) != 0) { ch = op; ... }`. With two pseudos the conversion succeeds and
+speculatively hoists a 14-instruction block above `cmp op,#0x1e`, spilling a pointer and adding
+a sixth frame word (`sub sp,#0x48` against `#0x44`). With one, MERGE_SET meets TEST_LIVE and
+the conversion is cancelled.
+
+**A trap in the same function:** `dead_or_predicable`'s "no memory reference" test runs BEFORE
+reload, so spill `ldr`s visible in the final assembly do not protect a block from being moved.
+
+### ONE VARIABLE PER REGION, OR ONE SHARED -- BOTH ARE LEVERS AND THE DIRECTION IS PER FUNCTION
+
+Batch 294 found the splitting direction paying three times: two locals for one repeated
+`&gState` (140 -> 132), a separate counter per loop (495 -> 459), and one variable per role in
+the `if_convert` case above (350 -> 279). Batch 291 found the merging direction paying on
+`ResetPCs`, where ONE counter serving all three inner loops was worth 81 -> 56 because it made
+the counter inherit the outer loop's call-crossing conflict.
+
+So this is not a rule with a direction; it is a knob. **Count the pseudos the ROM's register
+usage implies and match that count** -- a value the ROM keeps in two registers across a region
+boundary wants two locals, and one it keeps in a single register across three loops wants one.
+Both readings are available from the ROM's text before any compile.
+
 ## A ONE-MEMBER STRUCT KEEPS ITS MODE WHERE A NARROW LOCAL DOES NOT
 
 Two agents in batch 294 hit opposite sides of one mechanism, and together they give a rule.
