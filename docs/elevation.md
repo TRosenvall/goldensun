@@ -25447,3 +25447,57 @@ stored value `0x258` from it, and then re-materialises every later offset from
 scratch — while gcc does the mirror image, keeping `0x22c` live to derive the later
 *offsets* and paying a pool word for the value. Same mechanism, opposite direction,
 and the direction is the thing to control.
+
+## `RELOCATIONS differ` is TWO different findings — read the symbol SEQUENCE
+
+objcmp prints both relocation lists when they disagree, and which kind of
+disagreement it is tells you where to look:
+
+- **Same symbols, same order, different OFFSETS** — a size shift. Something earlier
+  is longer or shorter; the relocations are collateral and carry no information of
+  their own.
+- **Symbols REORDERED** — a BLOCK LAYOUT difference, and this is the useful case.
+  On `OvlFunc_971_2008398` it is how the real blocker was found: the reordering says
+  the ROM puts the whole wait/poll group **above** the loop head, which no amount of
+  staring at register names would have revealed.
+
+Check the sequence before concluding anything from a relocation mismatch. (And
+separately from both: an alias-only or zero-addend absolute difference is benign —
+see the entry on underscore-aliased symbols.)
+
+## A matching instruction COUNT is not evidence of being closer
+
+The clearest example in the corpus, on `OvlFunc_971_2008580`. Pinning the loop
+variable makes the count match the reference **exactly** — 256 against 256, a true
+distance — and it is **far worse**: a distance of 221 at 47.7% aligned, against the
+shipped variant's 262 encodings at 66.0% aligned.
+
+So "size and count both match" qualifies a difference count as a *distance*; it does
+not rank two candidates. When choosing between variants, compare the aligned figure
+or the hunk structure, never the count alone. This is the ninth misleading
+measurement recorded in three batches, and the park header says so explicitly so
+nobody picks the wrong candidate from the count.
+
+## Three smaller levers, all measured
+
+**A named local CREATES a CSE, which is the easy direction.**
+`src/non_matching/ovl_7fa4ec/20092ac.c` records duplicate-constant CSE as having "no
+known source-level lever" — true for *defeating* one. Creating one is trivial and
+useful: a named `size` local was worth 12 encodings on `OvlFunc_971_2008398`
+(196 -> 184) by keeping the value in low r7 instead of r8.
+
+**If/else ARM POLARITY is fixed by the ROM's branch direction.** A `bhi` means the
+source tested the other way first. Writing the arms backwards cost 11 of 35
+encodings on `OvlFunc_968_2009af0` and presented as a dozen unrelated *register*
+differences — so when registers look scrambled around a branch, check the polarity
+before chasing allocation.
+
+**A `neg`-built mask means a BITFIELD.** `q[9] = (q[9] & ~0xc) | 8` folds to
+`mov #243`; the ROM's `mov #0xd / neg` comes from a bitfield or a wider
+intermediate. They are not interchangeable in context — only the bitfield form flips
+the held-constant allocation.
+
+Also confirmed a second time, now for an IWRAM entry point: **a function-pointer
+local defeats devirtualization** (`xfer = iwram_3001388; xfer(...)`), where casting
+the symbol at the call site gives a direct `bl`. First recorded for
+`src/rom_c9000/rom_e0524.c`.
