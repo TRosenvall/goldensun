@@ -24859,3 +24859,105 @@ Two tooling notes from the sweep, both of which cost a wasted run:
   4 of those name a reference `.s` that no longer exists. That bounds every
   mechanical sweep over parks to under a fifth of them until the recipes are
   backfilled.
+
+## Loop-invariance by construction: a PREHEADER ordering lever
+
+`Func_80e6d3c`'s entire residue was 18 of 166 between
+`_UpdateSprite(*list++, ...)` and `_UpdateSprite(list[i], ...)`, with size,
+instruction count and relocations identical either way. The difference is **not
+in the loop body** — both spellings strength-reduce to the ROM's
+`ldmia rX!, {r0}`. It is in the **preheader**, and it is *which* invariants
+`loop.c` is allowed to hoist.
+
+With `*list++` the list initialisation is expand-order and sits ahead of
+`loop_start`, so `move_movables`' insertion point places the other hoist after
+it. Indexing makes the base a **second invariant**, so all three hoists emerge
+in loop.c's own scan order — which is the ROM's. Confirmed not scheduling:
+`-fno-schedule-insns2` gives the same relative order.
+
+This is distinct from every "where the assignment sits" note in this document,
+all of which concern expand order **inside one block**. When a residue is a
+preheader ordering and the body is already right, ask which expressions are
+invariant, not where the statements are.
+
+## One variable per region, in BOTH directions — and switch arms are regions
+
+The twin-file lever "split a shared constant into two named locals" has a
+mirror: **one local shared across several sites is as damaging as one constant
+shared across two.** Confirmed on three functions in one brief:
+
+- three sites sharing one `int v` → 19 of 179; separate `v`/`w`/`y` → exact
+- one shared `t`/`q` pair across five loops → 26 of 165; block-scope per loop → correct
+- **switch arms are regions too**: one shared pair of stack-argument locals across
+  the arms is wrong — bare literals 6, one shared pair 8, per-arm exact. Neither
+  the shared pair's declaration order nor its assignment order moves it (11 both
+  ways).
+
+That last case corrects a note in the elevated
+`src/overlays/rom_78b2ac/ovl_30_c_c_a_c_b_a_c_a_b.c` claiming the four
+`__CopyMapTiles` calls share two named locals. True for straight-line code, false
+across switch arms.
+
+**The boundary of the splitting lever:** three separately named `int` locals for
+`__Func_8012330(0x10000, 0x10000, 0x10000)` produce **identical output** — no
+split at all — because `precompute_register_parameters` has already reduced the
+three identical `CONST_INT`s to a single pseudo before allocation runs. Register
+pins are the only remedy found there.
+
+## The "+r" barrier is POSITIONAL on a repeated constant, not inert
+
+This document said the barrier is inert and sometimes destructive on a repeated
+pool constant. **Corrected: it depends entirely on which site carries it.** On
+`OvlFunc_945_200b364`, a barrier on the **first, dominating** `__GetFlag(0x928)`
+is byte-exact; on the second site it is worth nothing (3 of 177, unchanged).
+
+cse records the equivalence when it processes the **defining** site, so a barrier
+there means there is never an equivalence to propagate downstream. This is
+consistent with the earlier finding that a barrier cannot un-know a constant
+*upstream* of itself — it just means the useful placement is the dominating use,
+which is also where the bare register pin belongs.
+
+What makes the shared constant *cost* an instruction is `local-alloc.c:886`'s
+`REG_N_REFS (regno) == 2` rule: two pseudos with two references each both
+rematerialise into a bare `ldr r0, =0x928`, while one pseudo with three
+references misses that test and survives in a callee-saved register.
+
+## Name the expensive argument WHERE — two rules, not one
+
+`precompute_register_parameters` (`calls.c:850`) motivated "assign expensive
+arguments to locals at the TOP of the function". That is half of it:
+
+- **Top of function** when the goal is **commoning** — cse needs room.
+  `__MapActor_SetSpeed(9, 0xcccc, 0x6666)`, 3 of 177.
+- **Adjacent block scope** when the goal is **lowering one cheap argument's
+  LUID** — that needs adjacency, and top-of-function does not work at all.
+  `{ int pr = 0x90 << 3; StartTask(Func_80f0538, pr); }`, 8 of 165.
+
+## The `|` operand-order lever's premise was wrong: the handle is the CARRIER
+
+`0x80 | p[0x59]`, `p[0x59] | 0x80` and `p[0x59] |= 0x80` are **byte-identical**,
+because `commutative_operand_precedence` canonicalises the `CONST_INT` into
+operand 1 before anything downstream sees it. What flips the two-address `orr`'s
+register roles is whether the operand is a `CONST_INT` or a **pseudo**:
+`{ int k = 0x80; p[0x59] |= k; }` is worth 2 of 177. So do not sweep spellings of
+a commutative `|`; introduce a carrier instead.
+
+## To move a giv out of a high register, raise a rival's n_refs by SHARING
+
+`global.c:607`'s `floor_log2(n_refs) * n_refs / live_length` decides which of two
+givs gets a low register when only some can. `Func_80f0678`'s 16×6 nest needs
+three outer accumulators and only two fit, because `add r3, r7, r6` is a
+three-operand Thumb add; the loser goes to r14 and costs `mov r2, r14` before
+every add. Naming a common subexpression and using it in **both** terms flips the
+priority — 19 of 165. Three algebraic respellings *without* the sharing are all
+inert (23 each). **It is the reference count, not the algebra.** The existing "it
+is the SHIFT, not the algebra" rule governs *whether* loop.c reduces a giv; it
+does not extend to giv order or register choice.
+
+## r12 and lr are allocatable in Thumb
+
+`arm.h:773` leaves indices 12 and 14 clear in `FIXED_REGISTERS`,
+`REG_ALLOC_ORDER` (`arm.h:989`) lists them 5th and 6th, and
+`CONDITIONAL_REGISTER_USAGE` fixes only the FP registers for Thumb. So a ROM
+`mov r12, r14` / `add r14, r3` is **not** evidence of a different toolchain, and
+a candidate can reproduce it.
