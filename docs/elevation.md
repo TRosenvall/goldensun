@@ -26104,3 +26104,56 @@ twins the byte-level tool structurally cannot.
 
 And the payoff runs both ways — the fix found on the new function took the existing park from 16
 to 14, verified against its own reference rather than inferred from the twin.
+
+## Interleaving a dead mask between two inserts reaches what `volatile` reaches, pin-free
+
+`src/non_matching/rom_9000/800b168.c` parks on gcc folding away the ROM's dead
+`& 0xffff0000` in an affine insert, and its header lists two statements, four statements and
+named mask locals as all inert. **Putting the OTHER word's insert between the two reaches it:**
+
+```c
+blk.w[0] = …;
+blk.w[1] = blk.w[1] & 0xffff0000;   /* the dead mask, between the two writes */
+blk.w[0] = …;
+```
+
+Worth **+9 instructions** (388 -> 397, 812 -> 832 bytes) on `Func_8028194`, and it reaches
+**exactly what `volatile int w[2]` reaches — pin-free.** That makes it a candidate answer to
+`800b168.c`'s own open NEXT line, which has been waiting on this question; it is recorded there
+as untested on that function.
+
+The residue it does not reach: the ROM keeps the dead mask inside a **single** load/store
+expression, which neither a barrier nor `volatile` reproduces.
+
+Related, from the same function: a walking `int *` for a three-word OAM write gives the ROM's
+`stmia r0!, {r3}` — but only in **one** of the two arms. Doing it in both costs a fourth high
+register.
+
+## Pointer bumps in a `for`-increment versus the body is a CORRECTNESS question, not a style one
+
+On `Func_800d340` the two pointer bumps belong in the `for`-increment. Written as body
+statements they are **a bug**, not merely worse codegen, because the `continue` target sits
+above all three bumps — so a `continue` skips them and the loop walks the wrong entry. The
+candidate read four instructions short, which is what exposed it.
+
+Worth checking whenever a loop has both a `continue` and pointer arithmetic: the instruction
+count can be the thing that catches a semantic error.
+
+## The REG_ALLOC_ORDER experiment is now the single most-cited open question
+
+**78 park files now name `REG_ALLOC_ORDER`**, and three separate briefs in batch 300 independently
+concluded their residue was that class. The pattern is consistent across banks: a structurally
+correct reconstruction with size, instruction count and relocation sequence all exact, differing
+only in which of two values takes a register and which spills — with every downstream difference
+following from that one decision.
+
+Several of those parks are one pairwise swap from exact, and the recorded decisive experiment is
+the same for all of them: **rebuild gcc-2.96 with `REG_ALLOC_ORDER` starting at 4** and re-measure.
+`Func_80f62b8` is the cheapest instrument for it (a single uniform r0/r1 exchange, no confounding
+shape difference, and a falsifiable prediction already written into its park). Two further
+measured facts to carry into that experiment:
+
+- a **pin is the wrong instrument** for these swaps — it makes the value a hard register, grows the
+  frame, and scores worse, while source-level low copies are coalesced away by `cprop_insn`;
+- **hand-writing the ROM's coalescings is worse still**, because it deletes the competing allocnos
+  instead of raising pressure.
