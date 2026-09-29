@@ -522,6 +522,25 @@ _MSG_1076 = 0x1076;
  * sole difference is `ldr r5, =0x1299` against `ldr r5, =_MSG_1299`. */
 _MSG_1299 = 0x1299;
 
+/* _MSG_2644 and _MSG_920 -- ADMITTED IN BATCH 295, having been withheld in batch 280.
+ *
+ * The note below records that batch 280 withheld _MSG_2644, _MSG_920 and _MSG_970 for one
+ * reason only: none of them COMPLETED its function.  Two of the three now do.  With these
+ * lines OvlFunc_881_200a8e8 is byte-identical at 972 bytes / 381 encodings / 90 relocations
+ * and Func_808e680 at 748 bytes / 311 encodings / 51 relocations; without them each file has
+ * exactly one differing pool word and its relocation and nothing else.
+ *
+ * This is the disposition batch 282 already set for _MSG_820: a symbol whose evidence was
+ * always good and whose function was not yet closed is admitted when the function closes, not
+ * re-argued.  _MSG_970 stays withheld -- its function is still open.
+ *
+ * What closed the two functions was NOT the symbol: each had a callee declared `extern void`
+ * that this tree DEFINES as `int` (Func_8096b28 at src/rom_8a000/rom_944ec_a_c_c_a_b.c:16 and
+ * Func_80a10d0 at src/rom_a1000/rom_a1050_c_a_b.c:4), and in both cases a sibling file in the
+ * same directory already documented that lever. */
+_MSG_920  = 0x0920;
+_MSG_2644 = 0x2644;
+
 /* Added in batch 281 for Func_80b2b10, and it COMPLETES both that function and the
  * whole of asm/rom_b0000/rom_b0070_c_c_a_c_c_a_a.s -- which is the bar batch 280's
  * three withheld candidates (_MSG_2644, _MSG_920, _MSG_970) each failed. With this

@@ -14949,6 +14949,66 @@ the conversion is cancelled.
 **A trap in the same function:** `dead_or_predicable`'s "no memory reference" test runs BEFORE
 reload, so spill `ldr`s visible in the final assembly do not protect a block from being moved.
 
+### THE int-RETURN LEVER, FINALLY EXPLAINED -- IT IS A DEPENDENT COUNT
+
+The lever has been used for many batches on the observation that declaring a callee `int`
+rather than `void` changes the order of argument register writes. The mechanism, read out of
+`.23.sched2` in batch 295:
+
+A **void** call is `*call_insn` and **never SETS r0** -- it only `(use)`s it. So
+`reg_last_sets[r0]` still names the call's own r0 *argument fill*, and the next insn defining
+r0 takes a `REG_DEP_OUTPUT` on that fill. **The r0 fill therefore carries one more
+`INSN_DEPEND` entry than every other fill of the same call.**
+
+`rank_for_schedule` keys on priority, then class against `last_scheduled_insn`, then
+**dependent count**, then `INSN_LUID`. Every argument fill has priority `1 + priority(call)`,
+because `arm_adjust_cost` returns 1 for *any* true dependence into a `CALL_INSN` regardless of
+producer latency -- so priority always ties, and the dependent count decides, putting r0 first.
+
+Declared `int`, the call is `*call_value_insn`, it SETS r0, the output dependence attaches to
+the call instead, the counts tie, and `INSN_LUID` decides.
+
+Measured dependent counts, void against int: 2/2 → **1/2** on one window; 2/**3** → 2/2 at two
+call sites of another. That is why the lever's DIRECTION is per callee -- it depends on which
+way the LUID order happens to fall once the counts tie.
+
+**Second route, for callees that really are void:** an empty barrier *after* the call equalizes
+the counts the same way. Not free -- at one site it was worth 4 → 2, at another it cost 4 → 7,
+because it also detached a copy from its producer and let the pair sink below the call.
+
+**And check the tree before assuming a callee is void.** Two parks in one batch declared a
+callee `extern void` that this tree DEFINES as `int`, and in both cases a sibling file in the
+same directory already documented the lever for that exact callee. A cheap corpus sweep:
+grep each park's `extern void F(...)` against `int F(` definitions under `src/`.
+
+### AN EMPTY `__asm__ volatile ("")` BEATS PRIORITY ARITHMETIC, AND IS NOT A FAKEMATCH HERE
+
+When a sched2 residue is a contest between insns from **different statements**, the empty
+barrier is a route *even when the priority arithmetic is provably unreachable* -- because a
+traditional asm (`ASM_INPUT`, no operands) is analysed as using and clobbering every hard
+register, so the ready list the two insns would have competed in never forms. It does not close
+the priority gap; it removes the contest. One park had proved its window unreachable by
+arithmetic, correctly, and its 19-spelling list omitted this one.
+
+Note the bookkeeping distinction, which is load-bearing: `__asm__ ("" : "+r" (x))` is classed as
+a fakematch at docs/elevation.md's shim list, but an **empty** `__asm__ volatile ("")` is not --
+five of the six landed files using one carry no `fakematch.txt` row. So a landing can use the
+empty barrier and remain shim-free for booking purposes.
+
+### COUNT SHIMS WITH `tools/shimcount.py`, NEVER WITH grep
+
+Six counts in one session were wrong, always for one of three reasons: a header that DESCRIBES
+its shims or tabulates every spelling tried (a file-wide grep counts the prose, and stripping
+only the LEADING comment is not enough -- the tables are usually in a later block); a header
+sentence saying there are NO shims matching a grep FOR shims; or pins hiding in a `#define PIN4`
+macro, so an anchored `^\s*register` finds none while the body is full of `{ PIN4; ... }`. One
+file read as 0 pins and carries 33.
+
+`tools/shimcount.py` strips every comment, resolves the PIN macros' arity through their own
+chaining, counts the two classes separately, and cross-checks `fakematch.txt`. Its first
+`--all` run found **52 landed files carrying a fakematch-class shim with no row**, out of 507
+that carry one.
+
 ### A `CSE_CFLAGS` ROW IS ROUTINE IN THIS TREE, NOT AN EXPENSIVE DECISION
 
 Measured, because I had been treating it as one and deferring work on that basis:
