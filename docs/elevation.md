@@ -25940,3 +25940,47 @@ declaration-order rule.
 Also from that function: an `else` arm needs its **own destination variable**.
 `else u = 0;` is deleted by cse's jump equivalence and costs six instructions;
 `else du = 0;` survives, worth 353 -> 360 encodings.
+
+## Pointers split, counters unify — and the two are converse, so measure
+
+Two functions in the same bank, same family, same batch, wanted **opposite** treatment of
+their loop variables:
+
+- **`Anim_Flare`** needed **two separate `Part *` walkers** for its two loops — 42 -> 23.
+  One reused pointer landed in a high register and grew a staging copy per access.
+- **`Anim_Confuse`** needed **one counter shared across both sin loops AND the inner draw
+  loop** — 56 -> 22. Separate counters put the draw counter in r11 and the output pointer
+  in a low register.
+
+So "one variable per region" and "one variable across regions" are both real levers, and
+which applies is not predictable from the family, the bank, or the loop structure. Measure
+both directions.
+
+**And the wrong one had a MATCHING instruction count.** `Anim_Confuse`'s separate-counter
+variant matched the reference's count exactly while being 34 encodings further away — a
+live instance of the warning that a matching count does not rank candidates.
+
+## An embedded assignment inside an argument controls which load comes first
+
+`Anim_Flare` closed on writing the width load *inside* argument 3:
+
+```c
+fn(ctx, base + Data_edeb2[idx], q->x - ((w = Data_ede9f[idx]) >> 1),
+   q->y + Data_edeab[idx], w, Data_edea5[idx]);
+```
+
+Argument 2 expands first, so `Data_edeb2` takes the first `ldr` and the assembler pools it
+where the ROM does; `w` stays one pseudo, so the count holds. **Hoisting `w` to its own
+statement reverses the pool order** — a RELOCATIONS difference `tryc` cannot see at all,
+worth 16 of 290 — and **inlining it twice costs eight instructions**, because gcc stops
+CSEing the `ldrb`, spills two symbol addresses, and degrades an indirect call to
+`bl _call_via_r7`.
+
+So an embedded assignment is a pool-ORDER lever, and the failure mode it guards against is
+invisible to every screen except objcmp's relocation list.
+
+Smaller results from the same brief: `sin(ang) * (0x40 - frame*2)` rather than the reverse,
+because Thumb's `mulsi3` seeds the destination from the non-call operand; an inner angle
+written as a giv (`int b = (frame << 9) + (n << 14);` with no `b += 0x4000`); and loading a
+field into a local *before* assigning a function-pointer local, worth 20 -> 6 through
+reload inheritance.
