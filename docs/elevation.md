@@ -25367,6 +25367,19 @@ is confounded. Do not treat such a function as unverifiable — `Func_8091a58` l
 on exactly this basis, with two pool words differing in objcmp and a green compare.
 
 ## A callee-saved register the ROM zeroes and NEVER READS is its own blocker class
+> **BOUNDED (batch 299): `OvlFunc_928_2009148` is NOT in this class, and it was cited
+> here as one of the two founding examples.** gcc emits all five of that function's r8
+> instructions itself — the zero is one of three zero pseudos its own constant CSE
+> creates, and r8 appears only at that exact register pressure. The proof came from the
+> wrong direction: retyping the loop actor to `unsigned char *` shortened the body by six
+> instructions **and dropped the r8 push**. It then went byte-exact.
+>
+> **The discriminator: a register written from a CSEd constant and never read is not this
+> class.** Before concluding the class applies, check whether the value is one the
+> compiler would have materialised anyway at that pressure — if relieving the pressure
+> removes the register, it was never a dead store the ROM chose. `OvlFunc_925_200835c`,
+> the other founding example, still stands: there the zero survived all eight shapes.
+
 
 Found in two of five targets in one brief, so it is not a curiosity.
 
@@ -25818,3 +25831,50 @@ link-cable packet pump (`REG_SIOCNT` bits 4-5), and `volatile` on its two polled
 globals was worth 242 -> 250 aligned. The same shape as the `LoadGS1TitleGFX` state
 read: a global the ROM reloads on every pass through a wait loop is `volatile` in the
 original.
+
+## Two readings of a loop that were wrong, and what they actually were
+
+Both were recon I passed to a brief as fact, and both were corrected by measurement.
+
+**"Irreducible loop" — it was not.** `OvlFunc_922_200a094`'s `.L21c6` looked like a
+second entry into the `.L2184` body, reached both by a `b` and by fallthrough, which no
+`while`/`for` produces. It is in fact a **`do`/`while` with a `goto` into the middle of
+the body** — single-entry, and the `b .L21c6` *is* that `goto`. Written as a `while` with
+a comma condition, `expand_end_loop`'s rotation drags the body's leading `break` into the
+condition block: 57 differing. The function is now at **2 of 199** with size and count
+exact.
+
+**An aliasing store between a read and the arguments is a lever.** On that same function
+`a->f30 = …` kills the `v[0]`/`v[2]` loads, so the ROM reloads them — moving two
+assignments took **28 → 2** and fixed the r8/r9/r10 roles at the same time. When a
+reference reloads a value you have cached, look for the store that invalidates it before
+looking at the allocator.
+
+## A narrow-typed LOCAL is what keeps a zero-extension alive
+
+`(short)(dir - (unsigned short)ang)` has its extension **deleted by combine**. Assigning
+through an `unsigned short` local first — `uu = ang;` — forces it to survive. Used twice
+on `OvlFunc_899_200c8c8`.
+
+**And it fixed the frame as a side effect, which is the transferable part.** Nine
+spellings aimed *directly* at `sub sp, #8` against `#4` all failed; the frame turned out
+to be downstream of the two missing instructions, not of any variable's storage. So when
+a frame is one word wrong, fix the instruction count first and re-measure the frame —
+do not attack the frame.
+
+## Two more levers from the same brief
+
+**Two spellings of the same object defeat a gcse merge.** Writing a vec3 through the
+array name in a loop while reading it through a pointer stops gcse commoning the two
+loads across an if/else merge point: **43 → 2**. One spelling everywhere is usually
+right; two spellings are the tool when a merge point is the problem.
+
+**A dominating-block local for a repeated constant sends the pseudo down local-alloc's
+`REG_EQUIV` path**, so the constant is *rematerialised* at the argument slot rather than
+held. Measured on `OvlFunc_916_2008c2c`: assigned one statement before the call it
+coalesces into r1 instead; assigned inside the tail it wins a register and costs two
+instructions. Placement is the whole lever.
+
+**Offsets that are not fields.** On `OvlFunc_common1_1928`, the reference's 0xa and 0x12
+are the **high halves of the ints at 8 and 0x10**, not separate members. A half-word
+access at `field + 2` is this shape, and declaring a member there gives the wrong struct.
