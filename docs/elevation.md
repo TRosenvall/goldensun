@@ -26214,3 +26214,60 @@ best spelling before judging it.
 
 (`GCSE_CFLAGS` already exists; this is the seventh park it improves and the first where the
 mechanism is named. Still an owner decision.)
+
+## A spelling that measures neutral on a WRONG BASE is untested, not disproved
+
+The sharpest methodological point of batch 300, from `Func_80a35f8`. An operand flip
+(`sel * 2 + (int)roster` rather than the reverse) measured **completely inert** when tried
+three rounds earlier — and **closed the function** when tried again on the corrected base.
+
+So a measurement only disproves a spelling *against the base it was measured on*. When a park
+lists a lever as inert, that is evidence about the base that park was at, not about the lever.
+Re-try the promising inert ones after any large step. This is why the park convention of
+recording inert spellings must also record **the figure they were measured at** — an inert
+entry without a base is nearly useless.
+
+Two related cautions from the same brief: **r9 in a reference is often gcse PRE's temp, not a
+source variable** — on that function the r7/r9/sp-slot triple is PRE inserting a recomputation
+on the loop-exit edge, so naming `sel * 2` reproduces none of it and *lowers* pressure enough
+that another value stops spilling. And a **named offset is hoisted iff its constant fits
+`adds rN, #imm8`** — 0xd8 does, 0x208 does not — which is the test for when the named-offset
+lever is safe.
+
+## When the ROM re-derives an offset, the second site must differ in its RHS
+
+On `Func_80a112c`: writing `s2 + 0xd8` at both sites lets gcse common the whole sum, and the
+spill slot then holds the wrong value so reload renumbers the prologue. Writing
+`slot * 2 + 0xd8` at the **second** site leaves gcse only the `slot * 2` subexpression — which
+is exactly what the ROM shares. **Renaming the destination does nothing; the right-hand side
+has to differ.** Worth 76 -> 66 differing and moved the first divergence from index 8 to 50.
+
+## A source pointer init where the ROM has a giv shows up as a PREHEADER transposition
+
+`Anim_Hail` closed on one edit: index `gBuffer[i]` rather than walk a pointer. A source-level
+`g = gBuffer` is born *before* the hoisted constants, where indexing makes the base a
+`strength_reduce` giv init created *after* `move_movables` — so the two orders differ in the
+preheader, not the body.
+
+**The signature is therefore a preheader transposition between a pool load and a hoisted
+constant.** When you see that, suspect a source pointer init where the ROM has an induction
+variable, and index instead of walking.
+
+## A guarded loop's shape decides whether the guard keeps its own pool load
+
+On `Anim_Venus` the ids loop must be a `while`, not `if (c) { do … } while (c)`.
+`duplicate_loop_exit_test` runs **after** gcse, so the copied guard keeps the ROM's indexed
+`ldr r3,[r7,r3]` and its own pool load while the body gets a separately hoisted address. The
+hand-written guarded form denies gcse that structure. This also brought size and instruction
+count to exact, which is the tell that the difference was structural rather than allocation.
+
+## Do not state an aligncmp figure as a park's claim
+
+Three park drafts in batch 300 put their **aligncmp** number in the
+`NON-MATCHING, N of M encodings differ.` line, which is the line `parkcheck` re-measures with
+**objcmp** — so each one tripped the MISMATCH check the moment it was installed (claims 63 /
+body 199, claims 29 / body 301, claims 2 / body 271).
+
+The claim line is objcmp's figure by definition. Put the aligned figure in the prose right
+after it, with the reason the objcmp count saturates. All three now read correctly, and the
+MISMATCH check earned its keep three times in one batch.
