@@ -41,7 +41,7 @@
  *
  * DELIBERATELY STATIC AND LOCAL rather than added to include/dma.h. One function's
  * evidence does not justify a shared-header change, and 29 files use the existing
- * helpers. Promote it if a second function needs it; DO NOT retrofit DMA3_COPY16,
+ * helpers. PROMOTED in batch 299 (Func_80a7478 was the second function). DO NOT retrofit DMA3_COPY16,
  * which the rest of the tree depends on keeping its current promise.
  *
  * MEASURED, at object level: "+l" on the count alone is 44 bytes and 5 places;
@@ -51,21 +51,8 @@
  */
 #include "dma.h"
 
-/* DMA3_COPY16 without the promise that the transfer preserves src and count. */
-static inline void DMA3_COPY16_RW(void *src, void *dst, u32 size)
-{
-    register vu32 *_base __asm__("r3") = &REG_DMA3SAD;
-    register void *_src __asm__("r0") = src;
-    register void *_dst __asm__("r1") = dst;
-    register u32 _cnt __asm__("r2") = 0x80000000 | (size / 4);
-    __asm__ volatile (
-        "stmia\tr3!, {r0, r1, r2}\n\t"
-        "sub\tr3, #0xc"
-        : "+l" (_src), "+l" (_cnt)
-        : "l" (_base), "l" (_dst)
-        : "memory"
-    );
-}
+/* DMA3_COPY16_RW moved to include/dma.h in batch 299 -- Func_80a7478 became the
+ * second function needing it, which is the condition the note above set. */
 
 void Func_80a22f4(void)
 {

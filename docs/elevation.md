@@ -25706,3 +25706,56 @@ Three cases in a single brief, all caught by measuring instead of reading:
 
 Two other references in the same brief checked out, so this is not universal. But
 prose is a lead, never evidence — the same standing rule as a park's stated blocker.
+
+## The DMA helper that withdraws its promise is now in include/dma.h
+
+`DMA3_COPY16_RW` was written local-and-static in
+`src/rom_a1000/rom_a1814_c_a_a_c_a_c_a_c_c_b.c` with an explicit standing note: *one
+function's evidence does not justify a shared-header change; promote it if a second
+function needs it.* `Func_80a7478` is that second function, so it is promoted
+(batch 299), and the gate proves the move byte-neutral.
+
+**What it is for:** without the `"+l"` outputs, `reload_cse_move2add` derives the
+later transfers from operands it believes the `stmia` preserved. Both outputs are
+load-bearing — measured at object level, `"+l"` on the count alone or on the source
+alone each leaves the *other* constant strength-reduced.
+
+**And the legal form is not a compromise:** the `"+l"` form and an illegal form
+clobbering `"r0","r2"` measure **identically**, so there is no reason to reach for the
+illegal one.
+
+**Do not retrofit `DMA3_COPY16` itself** — 29 files use the existing helpers and depend
+on it keeping its current promise. Adding a new helper is safe; changing an existing
+one is the thing batch 295 measured at 51 of 82 landed users changing.
+
+## Three more small levers, measured
+
+**A pointer written at the top of an inner loop body, incremented at the bottom of the
+outer one.** On `Func_80aafb8` this is what produces the ROM's exact 13-slot
+`sub sp, #0x34`. Both alternatives give `0x30`, for *opposite* reasons: the inline
+three-term expression because gcc never strength-reduces on the outer index (and costs
+8 instructions an iteration), and a declared `row` local because **a declared local
+steals a high slot** — which is the declaration-order rule showing up as a frame-size
+difference rather than a permutation.
+
+**Do not cache a struct slot the ROM re-derives.** `BaseAnim_Tentacle`'s reference
+computes `base + 0x7828` three times, each with its own pool word. Writing
+`(*(State **)(base + 0x7828))` out at every use was worth 177 -> 191 aligned. The
+instinct to hoist a repeated address is wrong when the ROM did not.
+
+**Three comparisons on one variable need not be the same comparison.** On
+`Func_80b88d0` they are `#7` unsigned, `#0x7f` *signed*, and `#7` unsigned. Read each
+branch's condition off the reference separately; assuming a uniform predicate on a
+variable is a silent error that presents as scattered register differences.
+
+## r14 can be an inner-loop counter, so keep `"lr"` out of a clobber list
+
+On `Func_80c11ec` the ROM allocates **r14 as an inner-loop counter**. Any inline-asm
+clobber list naming `"lr"` therefore forces gcc to save and restore it, and the loop
+comes out differently. This is the counterpart to the note that r12 and lr are
+allocatable in Thumb: it is not merely that gcc *may* use them, it is that the ROM
+*does*, and an over-broad clobber list silently takes the register away.
+
+That function is also the first seen carrying **both** indirect-call forms at once:
+four inline `.call_via rN` through r6/r9, plus `bl _call_via_r3` and two
+`bl _call_via_r11`.

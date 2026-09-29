@@ -123,4 +123,35 @@ static inline u16 UnknownDMAPrefix(void) {
     return dma[5];
 }
 
+/* DMA3_COPY16 without the promise that the transfer preserves src and count.
+ *
+ * PROMOTED to this header in batch 299, on the standing instruction left where it was
+ * first written (src/rom_a1000/rom_a1814_c_a_a_c_a_c_a_c_c_b.c): "Promote it if a
+ * second function needs it."  Func_80a7478 is that second function -- without this
+ * form, reload_cse_move2add derives the later transfers from the preserved operands.
+ *
+ * The "+l" outputs are what withdraw the promise, and they are LOAD-BEARING BOTH:
+ * measured at object level, "+l" on the count alone or on the source alone each
+ * leaves the other constant strength-reduced.  The legal "+l" form and an illegal
+ * form clobbering "r0","r2" score IDENTICALLY, so there is no reason to prefer the
+ * illegal one.
+ *
+ * DO NOT retrofit DMA3_COPY16 itself -- the rest of the tree depends on it keeping
+ * its current promise, and 29 files use the existing helpers.
+ */
+static inline void DMA3_COPY16_RW(void *src, void *dst, u32 size)
+{
+    register vu32 *_base __asm__("r3") = &REG_DMA3SAD;
+    register void *_src __asm__("r0") = src;
+    register void *_dst __asm__("r1") = dst;
+    register u32 _cnt __asm__("r2") = 0x80000000 | (size / 4);
+    __asm__ volatile (
+        "stmia\tr3!, {r0, r1, r2}\n\t"
+        "sub\tr3, #0xc"
+        : "+l" (_src), "+l" (_cnt)
+        : "l" (_base), "l" (_dst)
+        : "memory"
+    );
+}
+
 #endif // _DMA_H_
