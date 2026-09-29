@@ -5087,6 +5087,51 @@ ROM's `add rN, sp, #imm` instructions, sort them, and declare in the opposite
 order. It costs one edit and removes a whole class of "right code, wrong
 offsets" diffs.
 
+### Extended to SPILLED SCALARS, with a partition -- and it reads out the source
+
+The section above is about address-taken buffers. The same rule governs spilled
+SCALARS, and on `BaseAnim_SpecialAttack` (3,070 instructions) it came with a
+partition that turns the slot map into a reading of the original source:
+
+**Declared locals take the HIGH offsets in declaration order -- first declared,
+highest. Compiler temps and the outgoing-argument words take the LOW offsets.**
+Proved with a swap probe on two adjacent declarations.
+
+Two things follow, and both are worth more than the ordering itself.
+
+**A reference `.s` PUBLISHES THE DECLARATION ORDER of its spilled locals.** Read
+the slot map top-down and you have the source's declaration block, for free,
+before writing a line. On that function it gave
+`context, subanim, base, ctx, frame, view, gfx, bgx, bgvx, nframes, pA, pB, fnp,
+sav24..sav48, tgt, pS`, then the temps below.
+
+**A value spilled BELOW the compiler temps was NEVER A DECLARED VARIABLE.** A
+declared local cannot land under a CSE temp, so if the ROM spills some value into
+the low region, the original source did not name it -- it wrote the expression out
+at each use site and cse unified them. That is how two surplus slots on that
+function were diagnosed: `pv = &vin` had no ROM slot at all (the ROM does
+`add r1, sp, #0x94` inline), and `ax = pA->x / 2` was spilled to `[sp,#0xc]`,
+*below* the temps, so `pA->x / 2` had to be written at all four use sites instead.
+Deleting both locals and reordering the rest to the published order took the frame
+from `0xc0` to the ROM's `0xb8` with all 26 offsets matching.
+
+**The two edits are coupled:** the reorder is worth nothing while the frame is
+still wrong, and worth 123 instructions once it is right. Do not measure either
+alone and conclude it is inert.
+
+### Do NOT bisect on the frame TOTAL: it is not monotone in code removed
+
+An appealing-looking plan -- stub out subsets of a switch's arms and binary-search
+the `sub sp, #N` total to find which arm demands the extra slots -- **is invalid,
+and I proposed it before measuring it.** Deleting code changes which pseudos cross
+calls, so the allocator re-decides globally and removing a *single* arm can RAISE
+the frame by seven slots. Measured on the function above: baseline `0xc0`; blanking
+arm 1 alone `0xdc`; arm 3 alone `0xe0`; arm 4 alone `0xbc`; arms 1+4 `0xb4`; all
+fourteen `0xac`. No monotone search survives that.
+
+Bisect on the **slot map** instead -- the set of distinct `[sp,#N]` offsets, which
+is comparable element by element against the reference -- not on their total.
+
 ## POINTER BIRTH ORDER decides which register each pointer gets
 
 Assigning several address locals up front is not the same as assigning each one
@@ -25077,3 +25122,36 @@ batches — after `--align` reading 10 on a byte-identical function, a line-leve
 `.s` diff reporting 33 of 33 when 13 were byte-identical, a substring grep
 counting `@` prose, and a register-masking normalizer reading 90.7% on a 96%-wrong
 reconstruction. On this family, objcmp and `make compare` are the only screens.
+
+## objcmp's difference COUNT saturates; its verdict does not
+
+`tools/objcmp.py` compares encodings **index by index with no alignment**, so as
+soon as one instruction is missing or extra, every index after it differs. The
+consequence matters for anyone using the count to track progress on a large
+function:
+
+**Verified on `BaseAnim_SpecialAttack`: three materially different candidates --
+the first revision, a declaration-reorder variant, and a two-declaration swap
+probe -- all read EXACTLY 3250 of 3380**, despite hundreds of changed spill-slot
+offsets between them. The count had saturated and could not see any of it.
+
+So: **objcmp remains the authority on byte-exactness** -- `OK` means byte-exact
+and nothing else settles that -- but **its count is not a progress metric while
+the instruction count differs.** On a function with a true distance (size AND
+count equal) the count is meaningful, which is the case the rest of this document
+is written around; on a long reconstruction that is still short or long by a few
+instructions, it is nearly blind.
+
+The fix is an alignment-tolerant comparison, and the discipline established this
+batch is that any such helper **must state its masking rules beside every number**
+-- because the first one built here masked registers, branch targets AND pool
+constants and reported 90.7% on a reconstruction whose encodings were 96% wrong.
+The replacement (`align.py`, scratch) states: raw 16/32-bit encodings compared
+verbatim, insert/delete alignment only, no masking; sole looseness is that
+relocated words read 0 in both streams. On that scale the same four candidates
+read 49.7%, 49.6%, 51.0% and 54.6% -- i.e. it resolves exactly the progress the
+saturated count could not.
+
+This is the seventh misleading measurement recorded in two batches, and the first
+one in the tool this document calls the authority. The authority claim is still
+correct; it was just never a claim about the count.

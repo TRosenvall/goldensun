@@ -1,7 +1,6 @@
-/* BaseAnim_SpecialAttack (0x080e47b8) -- NON-MATCHING, 3250 encodings of 3380
- * differ.  THE LONGEST FUNCTION IN THE TREE at 3,070 ROM instructions, and the
- * first attempt on it.  Zero shims: no register pin, no __asm__, production
- * flags only.
+/* BaseAnim_SpecialAttack (0x080e47b8) -- NON-MATCHING, 3233 encodings of 3380
+ * differ.  THE LONGEST FUNCTION IN THE TREE at 3,070 ROM instructions.  Zero
+ * shims: no register pin, no __asm__, production flags only.  Second pass.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -9,100 +8,104 @@
  *       src/non_matching/rom_c9000/e47b8_SpecialAttack.c asm/rom_c9000/rom_e47b8.s \
  *       --func BaseAnim_SpecialAttack
  *
- * NOT a true distance: size is 7792 against 7808 and the count is 3072 against
- * 3070, so this is 16 bytes short and two instructions long.  The frame is
- * `sub sp, #0xc0` against the ROM's `#0xb8` -- two surplus spill slots -- and
- * that is the very first difference, at index 7.
+ * STATE: size 7796 against 7808 (12 bytes short), count 3377 against 3380 (3
+ * short).  THE FRAME IS NOW THE ROM'S -- `sub sp, sp, #184` = 0xb8 -- and all 26
+ * distinct [sp,#N] offsets match the reference exactly.  The first divergence has
+ * moved from index 7 to index 41, and the leading ~40 instructions are exact.
  *
- * ================== WHAT IS ACTUALLY ESTABLISHED ==================
- * The credible evidence that the reconstruction is semantically close is the
- * RELOCATIONS, which were measured independently of any shape metric:
- *   - the R_ARM_THM_CALL sequence matches IN ORDER 207 of 217 times (95.4%)
- *   - the R_ARM_ABS32 symbol multiset has nothing MISSING, one surplus gBuffer
- *     pool word
- * So the right calls happen in the right order, and no code is absent.  Of the
- * ten disagreeing call relocations, eight are a `Func_80008d4` function pointer
- * landing in r7 where the ROM uses r5.
+ * ================== THE SLOT MAP IS THE OBSERVABLE, NOT THE FRAME ==================
+ * SPILL-SLOT ORDER IS DECLARATION ORDER, ONE FOR ONE.  Declared locals take the
+ * HIGH offsets in declaration order (first declared = highest); compiler temps and
+ * the outgoing-argument words take the low offsets.  Proved here with a swap probe
+ * on two adjacent declarations.
  *
- * TWO relocation counts are LOWER than the ROM's (_SetBattleActorKnockback 2
- * against 3, _call_via_r4 42 against 43) and the cause is worth keeping:
- * CROSS-JUMPING MERGES THAT FIRE HERE AND NOT IN THE ROM, because our arms are
- * MORE identical than the ROM's.  Worked out at asm:3349 against asm:3390 -- the
- * ROM's first knockback arm reaches base+0x77a8 as `sub r5,#0x80` off the 0x7828
- * it already holds, while its third arm does `ldr r3,=0x77a8`, so jump.c can only
- * merge from `mov r3,#8`.  DO NOT "fix" those arms to look alike; the difference
- * between them is load-bearing.
+ * The consequence is large and reusable: A REFERENCE .s PUBLISHES THE ORIGINAL
+ * DECLARATION ORDER OF ITS SPILLED LOCALS.  Read the slot map top-down and you
+ * have the source's declaration block.  For this function that is, from the top:
+ *   context, subanim, base, ctx, frame, view, gfx, bgx, bgvx, nframes, pA, pB,
+ *   fnp, sav24..sav48, tgt, pS
+ * then the compiler temps -- `subanim-2` at 0x14, `subanim-4` at 0x10, two more at
+ * 0x0c and 0x08 -- then the two outgoing-argument words at 0x04 and 0x00.
  *
- * ================== A METRIC THAT FLATTERS -- READ THIS FIRST ==================
- * The attempt reported "structural match 2785/3070 = 90.7% with registers masked,
- * 60.9% without" and concluded "the residue is register allocation, not
- * semantics".  THE ARITHMETIC IS RIGHT AND THE CONCLUSION DOES NOT FOLLOW, so it
- * is recorded here as a caution rather than as a finding.
+ * THE FIRST REVISION'S SLOT ANNOTATIONS WERE WRONG AND THAT IS WHAT HID THIS.  It
+ * marked `pv` as sp+0x08 and `ax` as sp+0x0c; 0x14 and 0x10 demonstrably hold the
+ * two `subanim` bias temps, so the ROM's DECLARED block ends at `pS` (0x18).
  *
- * The normalizer behind those numbers (`scratch_elev/b296/pfx2.py`, gitignored)
- * masks, under `--noreg`: every register (so `ldr r3,[r0,r4]` is equal to
- * `ldr r7,[r1,r2]`), every branch TARGET (any `beq` equals any `beq`), every
- * POOL CONSTANT (`ldr r3,=0x77a8` equals `ldr r3,=gBuffer` -- different values
- * AND different symbols count as matching), and every `[sp,#off]`.  What survives
- * is the opcode and inline immediates.  So 90.7% says the instruction MIX AND
- * ORDER are broadly right; it cannot separate allocation from semantics, because
- * masking registers also masks whether the right values reach the right places.
- * The honest headline is the objcmp figure: 3250 of 3380.
+ * The two surplus slots were two DECLARED LOCALS, not an arm and not a statement:
+ *   - `pv` (= &vin) had a declared slot here; the ROM has none for it and
+ *     materialises the address inline, `add r1, sp, #0x94` (asm:593).
+ *   - `ax` (= pA->x / 2) had a declared slot here; the ROM DOES spill that value,
+ *     but to [sp,#0xc] (asm:1949) -- BELOW the CSE temps.  A declared local can
+ *     never land below a CSE temp, so `ax` was not a variable in the original:
+ *     `pA->x / 2` was written at its four use sites and cse unified them.
+ * So the fix was to reorder the declaration block to the ROM's published order and
+ * delete both locals.  Both changes are needed: the reorder is worth NOTHING until
+ * the frame closes, and then it is worth 123 instructions.
  *
- * This is the FOURTH flattering metric found in two batches -- after `--align`
- * on a byte-identical function reading 10, a line-level `.s` diff reporting 33 of
- * 33 when 13 were byte-identical, and `grep -c thumb_func_start` counting `@`
- * prose.  Any normalizer built to make a big residue legible must be reported
- * with its masking rules beside its number.
+ * ================== THE BISECTION I WAS TOLD TO RUN CANNOT WORK ==================
+ * The plan was to binary-search the twelve dispatch arms by stubbing subsets and
+ * reading `sub sp, #N`.  FRAME SIZE IS NOT MONOTONE IN CODE REMOVED, so no such
+ * search is valid.  Measured, blanking the 14 non-empty arms:
+ *   none 0xc0 | arm1 0xdc | arm3 0xe0 | arm4 0xbc | arm6 0xc4 | arm7 0xe0
+ *   arm5 or arm9 0xc0 | 1,3 0xdc | 1,4 0xb4 | 3,4 0xbc | 1,3,4 0xb4
+ *   1,3,4,5 0xb8 | 1,3,4,5,6,7,9 0xb8 | all 14 0xac
+ * Removing ONE arm RAISES the frame by up to seven slots, because deleting code
+ * changes which pseudos cross calls and the allocator re-decides globally.  Use
+ * the SLOT MAP -- a set, comparable element by element -- not the frame total.
  *
- * ================== THREE LEVERS THAT PAID ==================
- * 3266 -> 3250 differ, and all three are reusable elsewhere:
- *   1. A two-sided range test on a SPILLED counter wants the unsigned biased
- *      form.  `frame >= 4 && frame <= 0xf` emits four instructions; the ROM has
- *      `sub r3,#4 / cmp #11 / bhi`.  fold_range_test builds that from
- *      `a == K || a == K+1` but not from a >=/<= pair on a variable it has
- *      spilled, because a reload separates the comparisons before fold sees them.
- *   2. Default-then-override is not an if/else.
- *      `yb = 0; if (subanim != 0xc) yb = 0xa0 << 13;` -- the if/else costs an
- *      extra `b` over the join.  Same shape at asm:1217 and asm:1236.
- *   3. A conditional ARGUMENT is a duplicated call, not a ternary -- 17
- *      instructions in the Asura arm.
- * Counterpart negative: inlining `(6 - frame) * 6` into duplicated arms raises
- * the shape figure but costs nine instructions.  Shape is not the target.
+ * ================== objcmp's DIFFERENCE COUNT SATURATES ==================
+ * objcmp compares index by index with no alignment, so once one instruction is
+ * missing everything after it differs.  Verified: this park's first revision, the
+ * reorder-only variant and the swap probe ALL read EXACTLY 3250 despite hundreds
+ * of changed slot offsets between them.  objcmp remains the authority on
+ * byte-exactness -- OK is OK -- but ITS COUNT IS NOT A PROGRESS METRIC while the
+ * instruction count differs.
  *
- * ================== THE FRAME IS BRACKETED, AND BOTH SIDES ARE WORSE ==================
- * `#0xc0` against `#0xb8`, two surplus slots.  Merging scalars goes to 0xd0 and
- * 3298 differ; the documented per-region split across all twelve dispatch arms
- * goes to 0xc4 and 3271 differ at 3065 instructions.  So the ROM has neither
- * fewer nor more distinct scalars than the flat form -- the two slots come from
- * somewhere else, and the one-variable-per-region rule does not reach them.
+ * For a sensitive figure, `scratch_elev/b296c/align.py` (gitignored) aligns the two
+ * raw encoding streams with an LCS.  MASKING RULES: NONE -- raw 16/32-bit
+ * encodings compared verbatim, only insert/delete alignment tolerated, so a pool
+ * load whose offset moved still counts as a difference; the single looseness is
+ * that relocated words read as 0 in both streams and so compare equal.
+ *   first revision      0xc0   1681/3380 equal (49.7%)   652 hunks
+ *   reorder only        0xc0   1677/3380 (49.6%)         648
+ *   pv+ax removal only  0xb8   1724/3380 (51.0%)         646
+ *   both (this file)    0xb8   1847/3380 (54.6%)         603
  *
- * ================== SPLIT SHAPE, AND ONE CLAIM TO RE-CHECK ==================
- * Text/DATA split.  The `.s` holds exactly ONE function, and its .rodata is four
- * labels over a contiguous, isolated run at 0xeedd0..0xeedf4 -- 4, 14, 8 and 10
- * bytes -- wholly this object's.  stage1.ld names the object twice, :1904 for
- * .text and :1968 for .rodata.  datacheck requires all four exported:
- * .Leedd0, .Leedd4, .Leede2, .Leedea.
+ * ================== THE NEXT DIVERGENCE, AND IT CASCADES ==================
+ * At the LoadVFXFile(..., gBuffer, ...) chain, gcse hoists `gBuffer` into r5 and
+ * then feeds every call with `adds r1, r5, #0`, where the ROM reloads
+ * `ldr r1, =gBuffer` from a single pool word at each site.  Diagnostic only and
+ * FLAG-CONDITIONAL, NOT PRODUCTION: `-fno-gcse` gives eight separate pool words
+ * and frame 0xa8.
  *
- * The attempt concluded that because landing deletes all the text, "there is no
- * .s left to hang .global off, so all four labels must be defined from C" as
- * const arrays (with the note that a 4-byte element type pads .Leede2 and shifts
- * the last two blobs).  I DOUBT THAT and have not spent a build on it: a
- * rodata-only .s can carry `.global .Leedd0` perfectly well, which would keep the
- * ordinary route available.  Settle it at landing time, not from this note.
+ * The knock-on is global.  With r5 tied up we use r4 wherever the ROM uses r5
+ * (`ldr r4,[sp,#92]` against the reference's `ldr r5,[sp,#92]`), which is very
+ * likely the same cause as the eight `Func_80008d4` pointers landing in r7 where
+ * the ROM uses r5, recorded in the first revision.  It also explains the known
+ * surplus gBuffer pool word -- 9 against the ROM's 8 -- now localised to this
+ * chain.
  *
- * ================== HONEST ASSESSMENT AND THE NEXT MOVE ==================
- * Not landable and not one round away.  What remains is roughly 285 instructions
- * of genuine shape residue spread over 344 one- and two-instruction hunks, plus a
- * global allocation difference, on a function with 238 basic blocks, 21 loops and
- * r8-r11 in use.
+ * SO THE NEXT MOVE IS THAT CHAIN, not another whole-function re-spelling and not
+ * individual arms: find the spelling that stops gcse keeping gBuffer in a
+ * call-saved register.  If it flips the r4/r5 pairing globally it should move a
+ * large block at once.
  *
- * The next move is NOT another whole-function re-spelling -- three were tried and
- * the two bracketing ones were worse.  The twelve dispatch arms are independent,
- * so the move is a PER-ARM BISECTION: compile each arm against its own window of
- * the reference and find which one spills.  That converts one 3,070-instruction
- * problem into twelve tractable ones, and it is the only route here that gets
- * cheaper rather than more expensive as it proceeds.
+ * ================== CARRIED FORWARD FROM THE FIRST REVISION ==================
+ * Still valid, and not re-derived here:
+ *   - The RELOCATION evidence that the reconstruction is semantically close: the
+ *     R_ARM_THM_CALL sequence matched in order 207 of 217, with nothing missing
+ *     from the R_ARM_ABS32 symbol multiset.
+ *   - Two call counts come out LOWER than the ROM's because CROSS-JUMPING MERGES
+ *     fire here and not in the ROM -- our arms are MORE identical than the ROM's.
+ *     Do not make those arms look alike.
+ *   - Three levers that paid: a two-sided range test on a spilled counter wants
+ *     the unsigned biased form (fold_range_test cannot build it from a >=/<= pair
+ *     once a reload separates the comparisons); default-then-override is not an
+ *     if/else; a conditional ARGUMENT is a duplicated call, not a ternary.
+ *   - A register-masking normalizer read 90.7% on this reconstruction when objcmp
+ *     said 96% of encodings were wrong.  It masked branch targets and pool
+ *     constants too.  Any helper metric must state its masking rules; align.py
+ *     above states that it has none.
  */
 #include "decls.h"
 
@@ -115,16 +118,20 @@ void BaseAnim_SpecialAttack(void *context, int subanim)
     vec3_t vout;                 /* sp+0x7c */
     vec3_t vp;                   /* sp+0x70 */
     DrawFn fns[2];               /* sp+0x68 */
-    vec3_t *pv;                  /* sp+0x08 = &vin  */
-    vec3_t *pS;                  /* sp+0x18 = &vstep */
-    DrawFn *fnp;                 /* sp+0x34 = &fns[0] */
-    vec3_t *pA;                  /* sp+0x3c = &posA */
-    vec3_t *pB;                  /* sp+0x38 = &posB */
     unsigned char *base;         /* sp+0x5c */
     void *ctx;                   /* sp+0x58 */
-    unsigned char *gfx;          /* sp+0x4c */
+    int frame;                   /* sp+0x54 */
     void *view;                  /* sp+0x50 */
+    unsigned char *gfx;          /* sp+0x4c */
+    int bgx;                     /* sp+0x48 */
+    int bgvx;                    /* sp+0x44 */
+    int nframes;                 /* sp+0x40 */
+    vec3_t *pA;                  /* sp+0x3c = &posA */
+    vec3_t *pB;                  /* sp+0x38 = &posB */
+    DrawFn *fnp;                 /* sp+0x34 = &fns[0] */
+    int sav24, sav28, sav2c, sav34, sav48;   /* sp+0x30..0x20 */
     int *tgt;                    /* sp+0x1c */
+    vec3_t *pS;                  /* sp+0x18 = &vstep */
     int **tbl;
     int **pp;
     int *actor;
@@ -133,14 +140,8 @@ void BaseAnim_SpecialAttack(void *context, int subanim)
     Part *p;
     ClearFn clr;
     FillFn fill;
-    int frame;                   /* sp+0x54 */
-    int nframes;                 /* sp+0x40 */
-    int bgx;                     /* sp+0x48 */
-    int bgvx;                    /* sp+0x44 */
-    int ax;                      /* sp+0x0c */
     int i, j, k, n, cnt;
     int h, yb, sx, sy, a, b;
-    int sav24, sav28, sav2c, sav34, sav48;
 
     tbl = (int **)iwram_3001eec;
     pp = tbl;
@@ -232,10 +233,9 @@ void BaseAnim_SpecialAttack(void *context, int subanim)
         q++;
     } while (i != 0x40);
     _Actor_SetAnimSpeed(actor, 0);
-    pv = &vin;
-    pv->x = actor[2];
-    pv->y = actor[3] + (0xa0 << 15);
-    pv->z = actor[4];
+    vin.x = actor[2];
+    vin.y = actor[3] + (0xa0 << 15);
+    vin.z = actor[4];
     sav24 = actor[9];
     sav28 = actor[10];
     sav2c = actor[11];
@@ -382,9 +382,9 @@ void BaseAnim_SpecialAttack(void *context, int subanim)
     /* asm:885 -- T5: target record and the 6-frame approach step */
     tgt = (int *)*_GetBattleActor((*(State **)(base + 0x7828))->ids[0]);
     pS = &vstep;
-    pS->x = (tgt[2] - pv->x) / 6;
-    pS->y = (tgt[3] - pv->y + (0xf0 << 13)) / 6;
-    pS->z = (tgt[4] - pv->z) / 6;
+    pS->x = (tgt[2] - vin.x) / 6;
+    pS->y = (tgt[3] - vin.y + (0xf0 << 13)) / 6;
+    pS->z = (tgt[4] - vin.z) / 6;
     /* asm:927 -- T6a */
     i = 0;
     q = (Part *)(base + (0xe1 << 7));
@@ -656,7 +656,6 @@ void BaseAnim_SpecialAttack(void *context, int subanim)
             gfree(0x2f);
             gfree(0x2e);
             if ((unsigned)frame <= 0x17) {
-                ax = pA->x / 2;
                 a = frame * 0x20 - 0xe8;
                 b = frame * 0x10 - 0x30;
                 if (a > 0) {
@@ -666,11 +665,11 @@ void BaseAnim_SpecialAttack(void *context, int subanim)
                     b -= 0x68;
                 }
                 BuildDraw2DFuncEx(0x2f, 7, 7, 3, 2);
-                ((DrawFn)gPtrs[0xbc / 4])(ctx, gBuffer, ax - 8,
+                ((DrawFn)gPtrs[0xbc / 4])(ctx, gBuffer, pA->x / 2 - 8,
                                           a + b - 0x68, 0x11, 0x68);
-                ((DrawFn)gPtrs[0xbc / 4])(ctx, gBuffer, ax - 8,
+                ((DrawFn)gPtrs[0xbc / 4])(ctx, gBuffer, pA->x / 2 - 8,
                                           a + b, 0x11, 0x68 - b);
-                ((DrawFn)gPtrs[0xbc / 4])(ctx, ewram_20106e8, ax - 0x11,
+                ((DrawFn)gPtrs[0xbc / 4])(ctx, ewram_20106e8, pA->x / 2 - 0x11,
                                           a + 0x2f, 0x22, 0x41);
                 gfree(0x2f);
                 if (frame == 8) {
@@ -983,12 +982,12 @@ void BaseAnim_SpecialAttack(void *context, int subanim)
         }
         /* asm:3272 -- the common per-frame tail */
         if (subanim <= 7 && frame <= 5) {
-            Func_80e3944(pv, &vp);
+            Func_80e3944(&vin, &vp);
             vp.x = vp.x / 2;
             fns[1](ctx, ewram_2013c56, vp.x - 0xa, vp.y - 4, 0x14, 0x28);
-            pv->x += pS->x;
-            pv->y += pS->y;
-            pv->z += pS->z;
+            vin.x += pS->x;
+            vin.y += pS->y;
+            vin.z += pS->z;
         }
         if (frame == 3) {
             _Func_80bd7dc(-1);
