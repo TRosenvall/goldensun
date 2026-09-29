@@ -26051,3 +26051,56 @@ Two of brief H's three references were wrong about their own function, continuin
 
 That is seven prose comments wrong about their own functions across three batches. A NAMED
 function is not a understood function.
+
+## RETIRED for single-block constants: the `REG_EQUIV` dominating-block lever
+
+Batch 299 recorded that a dominating-block local for a repeated constant "sends the pseudo
+down local-alloc's `REG_EQUIV` path, so the constant is rematerialised". **That is a
+GLOBAL-alloc lever only, and it does not apply to a constant whose live range lies inside one
+basic block.**
+
+`local-alloc.c`'s `update_equiv_regs` does double `REG_LIVE_LENGTH` — but the comment
+immediately above that line says *"Note that the statement below does not affect the priority
+in local-alloc!"*. Measured accordingly on `OvlFunc_923_200a030`: naming the rounding constant
+and hand-writing both divisions reproduces the ROM's schedule exactly, leaves all four
+registers unchanged, and is **inert at 14 in four placements**. The four candidates tie under
+`QTY_CMP_PRI` and the tie breaks on qty NUMBER — so what decides it is **RTL creation order**,
+not live range, and no placement of a local reaches RTL creation order.
+
+Keep the batch-299 entry for the global-alloc case; do not reach for it when the constant lives
+and dies in one block.
+
+## `allocno_compare` has NO frequency term — and that can disprove a source reading
+
+`global.c`'s `allocno_compare` is `floor_log2(n_refs) * n_refs / live_length * size`. **There is
+no basic-block frequency factor**, unlike the local-alloc formula quoted elsewhere in these
+notes. And `find_reg` reaches a call-clobbered register only on a retry, gated by
+`CALLER_SAVE_PROFITABLE(REFS, CALLS)` = `(4 * CALLS < REFS)` (`regs.h:184`).
+
+Those two facts together let you **disprove a hypothesis about the source** rather than sweep
+for a lever. On `OvlFunc_957_200909c` the ROM keeps its loop counter in r4 and caller-saves it
+around every call in the loop — nine `str r4,[sp]`/`ldr r4,[sp]` pairs the candidate does not
+have, so the excess is a *deficit* of spills. But a byte read once at the top and used once in
+the tail has refs = 2 against a dozen calls: `4 * CALLS < REFS` is false for it, so it can never
+out-prioritise a counter and must spill, exactly as the candidate does. **Therefore the source
+reading is wrong** — either the ROM's source references that byte more than twice, or a high
+register holds something derived from it with more uses. That is a question about the source, not
+a lever to sweep.
+
+Corollary, measured: **hand-writing the ROM's coalescings makes it worse** (377 of 403 against
+368), because hand-coalescing *deletes* the competing allocnos instead of raising pressure.
+
+## Finding a twin by CALLEE FINGERPRINT, which the byte tool cannot do
+
+`OvlFunc_923_200a030` turned out to be an exact structural twin of the existing park
+`src/non_matching/ovl_7ac2d8/200d5c0.c`: normalising `.L<addr>` labels and two per-overlay script
+symbols leaves **one differing line in 378** — the callee name — with no constant differing.
+
+**`dupfuncs.py` does not pair them**, because it matches bytes and three relocated symbols
+differ. The pairing came from grepping `src/` for the four-callee fingerprint
+(`__vec3_translate` + `__TestCollision` + `__Func_8092158` + `Func_8000888`), which hits exactly
+one park. So: when a function has a distinctive *set* of callees, grep for the set. It reaches
+twins the byte-level tool structurally cannot.
+
+And the payoff runs both ways — the fix found on the new function took the existing park from 16
+to 14, verified against its own reference rather than inferred from the twin.

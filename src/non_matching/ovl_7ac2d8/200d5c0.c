@@ -62,6 +62,77 @@
  * measuring 23 of 371, and 67 regions while measuring 303.  Both correct; neither a
  * distance.
  */
+
+/* BODY IMPROVED IN BATCH 300, 16 -> 14 of 371, by a fix found on its TWIN
+ * OvlFunc_923_200a030: `i = 0;` written BEFORE `mask = 0xf;` in the loop setup, plus
+ * dropping the site-2 barrier that then becomes inert.  The high-register copy and the
+ * zero move swap with the source statement order; nothing about the mask expression
+ * reaches it.  Measured on this function against its own reference, not inferred from
+ * the twin. */
+/* OvlFunc_924_200d5c0 -- NON-MATCHING, 16 ENCODINGS OF 371.  Size equal, count
+ * equal.
+ *
+ * Blocker class: a scratch-register rotation in two signed-division blocks.
+ *
+ * Verify with:
+ *   python3 tools/objcmp.py src/non_matching/ovl_7ac2d8/200d5c0.c \
+ *     asm/overlays/rom_7ac2d8/ovl_35b8_a_c_c_a.s
+ * ONE function in the reference -- it CONVERTS WHOLE, no split.
+ *
+ * THE RESIDUE:
+ *
+ *     rom   mov r2,r11 / ldr r3,[r2,#8] ... ldr r0,=0xfffff ... mov r1,r11 ...
+ *     ours  mov r1,r11 / ldr r3,[r1,#8] ... ldr r2,=0xfffff ... mov r0,r11 ...
+ *
+ * plus `ldrh r6,[r1,r3]` against `ldrh r6,[r3,r1]` -- same two registers, the `plus`
+ * operands canonicalised the other way.
+ *
+ * MEASURED: five table-indexing spellings (the byte-offset form was worth 18 -> 16;
+ * `i[tp]`, `*(tp+i)`, `*(i+tp)` all inert), three cell-destination spellings
+ * (`g += t*4` inert at 16; applying it to BOTH sites WORSE at 33).  Flag probes all
+ * inert or harmful: -fno-gcse 89 against 90, -fno-cse-skip-blocks 310,
+ * -fno-cse-follow-jumps 90, -fno-rerun-cse-after-loop 91, -fno-schedule-insns2 148,
+ * -fno-strict-aliasing inert.  NO PER-FILE FLAG ROW IS IMPLIED.
+ *
+ * ================================================================
+ * TWO MECHANISMS THIS FUNCTION ESTABLISHED, both read out of the compiler
+ * ================================================================
+ *
+ * `define_peephole` IN arm.md:523 EXPLAINS `mov rX,#N / add rX,sp` AGAINST
+ * `add rX,sp,#N`.  IT IS A PEEPHOLE, so it fires only when the two insns end up
+ * ADJACENT IN THE OUTPUT -- so the ROM's two-instruction form IS NOT A SOURCE FACT
+ * AT ALL, it is sched2 having separated them.  This retired what had looked like a
+ * structural blocker here.
+ *
+ * `update_equiv_regs` (local-alloc.c) DOES `REG_LIVE_LENGTH (regno) *= 2;` FOR ANY
+ * PSEUDO WITH A CONSTANT REG_EQUIV.  Global-alloc priority is
+ * floor_log2(n_refs) * freq / live_length, so LENGTHENING A POOLED SYMBOL'S LIVE
+ * RANGE BY HOISTING ITS ASSIGNMENT TO A NAMED LOCAL DEMOTES IT BELOW ITS
+ * COMPETITORS.  Hoisting `gb = gBuffer;` to the top of the function took 336 -> 90
+ * differing and handed `ang` the r6 the ROM gives it.
+ *
+ * And the converse: PINNING A POOLED SYMBOL TO A *CALL-CLOBBERED* REGISTER
+ * REPRODUCES THE ROM'S REMATERIALISATION where CSE otherwise commons it --
+ * `{ register int g __asm__("r1"); ... g = (int)gBuffer; ... }` at both sites gives
+ * the ROM's two `ldr r1, =gBuffer` loads, because a hard register cannot survive the
+ * intervening `bl` so cse1 has nothing to common into.  THE ORDER MATTERS: the
+ * assignment must come AFTER the index computation, or the load lands in an earlier
+ * basic block -- 15 instructions early, not a scheduling slip.
+ *
+ * THE call_via CLOBBER LIST IS CONFIRMED AS A LEVER A SECOND TIME: adding "r2"
+ * moved the Func_8000888 pointer from r2 to the ROM's r4, worth 2 encodings.  Same
+ * finding as src/non_matching/ovl_7aa430/2009cb4.c, and see
+ * src/non_matching/ovl_7a5214/2009004.c from this same batch for the fuller
+ * correction to that clobber list.
+ *
+ * STACK-SLOT ORDER FOLLOWS C DECLARATION ORDER EXACTLY.  Reversing four
+ * declarations moved the first divergence from instruction 14 to 33 IN ONE EDIT --
+ * worth checking before reading any register.
+ *
+ * A MEASUREMENT NOTE FROM THIS FUNCTION: it read as "3 disagreeing regions" while
+ * measuring 23 of 371, and 67 regions while measuring 303.  Both correct; neither a
+ * distance.
+ */
 extern unsigned int gState;
 extern unsigned int gKeyHeld;
 extern unsigned int gKeyPress;
@@ -168,7 +239,7 @@ void OvlFunc_924_200d5c0(void)
       cell1 = (unsigned char *)(t * 4 + g); }
     __vec3_translate(0x80 << 14, ang, p);
     { register int g __asm__("r1"); int t;
-      t = (p[2] / 0x100000) * 128 + p[0] / 0x100000; __asm__ volatile ("" : : "r" (t));
+      t = (p[2] / 0x100000) * 128 + p[0] / 0x100000;
       g = (int)gBuffer;
       cell2 = (unsigned char *)(t * 4 + g); }
     if (cell1[2] != e->f4 && cell2[2] == e->f4 && e->f0 == 0)
@@ -235,8 +306,8 @@ void OvlFunc_924_200d5c0(void)
     if (cell2[2] == e->f4 && e->f18 == 0) {
         __Actor_SetAnim(actor, 0x12);
         __PlaySound(0xf1);
-        mask = 0xf;
         i = 0;
+        mask = 0xf;
         for (;;) {
             if ((i & mask) == 0)
                 OvlFunc_924_200d158(actor);
