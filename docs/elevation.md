@@ -25365,3 +25365,50 @@ relocation difference is alias-only, and let `make compare` be the arbiter.**
 objcmp is still the authority on the encodings; it is only the relocation list that
 is confounded. Do not treat such a function as unverifiable — `Func_8091a58` landed
 on exactly this basis, with two pool words differing in objcmp and a green compare.
+
+## A callee-saved register the ROM zeroes and NEVER READS is its own blocker class
+
+Found in two of five targets in one brief, so it is not a curiosity.
+
+`OvlFunc_925_200835c`'s reference mentions `r6` exactly three times —
+`push {r5, r6, lr}`, `mov r6, #0`, `pop {r5, r6}`. **It is written once and never
+read.** `OvlFunc_928_2009148` is the same with `r8`: the prologue save, one
+`mov r8, r2` after a zero, and the epilogue restore, nothing else.
+
+gcc-2.96 under production flags will not emit that. Constant propagation finds the
+zero and deletes the def, in **all eight source shapes measured**: a variable
+returned at the end, a `"+r"` barrier after the loop, the zero consumed at one
+site, the zero consumed at all nine post-loop zero sites, a two-biv loop, an
+index-plus-offset loop, and a hard-register declaration at both block and function
+scope. Every one gave 204 encodings and `push {r5, lr}`.
+
+**The cost is not one instruction.** The dead `mov` owns the push/pop mask, so the
+frame differs, and the literal pool shifts by 4 bytes — which turns nine
+`ldr rX,[pc,#N]` into differences. On `925` that one missing instruction is
+responsible for the whole visible residue bar 8 encodings. When the register is
+HIGH the cost is worse: `928` also loses four prologue/epilogue instructions
+(`mov r7,r8 / push {r7}`, `pop {r3} / mov r8,r3`) that we would never emit.
+
+**Screen for it early:** grep the reference for each callee-saved register. Three
+hits — push, one write, pop — means this class, and the function cannot be closed
+without solving it. It is worth knowing before spending a round on the residue.
+
+### Sub-finding: cse DELETES an empty `"+r"` asm whose operand is a known constant
+
+This is the mechanism behind the standing note that a barrier "cannot un-know a
+constant upstream of itself" — and it is stronger than that wording suggests. Read
+off the dumps: the `asm_operands` insn is present in `.00.rtl` and **gone by
+`.03.cse`**. gcc-2.96's CSE does not merely see through the barrier, it removes the
+insn. So a barrier is not a way to keep a constant alive in a register, in any
+placement.
+
+### Sub-finding: `-fno-cse-skip-blocks` restores a rebuild but changes the push mask
+
+On `OvlFunc_959_200cda0` it is the ONLY flag of six measured that restores the
+ROM's repeated `mov #224` rebuild rather than a commoned offset — but it also drops
+r7 from the push mask (`push {r5,r6,lr}` against the ROM's `{r5,r6,r7,lr}`), so it
+is not usable there. The Makefile mentions the flag only in a comment and no file
+uses it; this is the first measurement of what it does on this corpus. For the
+record the others: `-fno-gcse` 164, `-fno-cse-follow-jumps` /
+`-fno-expensive-optimizations` / `-fno-thread-jumps` 171, `-fno-rerun-cse-after-loop`
+174 but it converts the ROM's first `ldrsh` into `ldrh` plus a sign-extend.
