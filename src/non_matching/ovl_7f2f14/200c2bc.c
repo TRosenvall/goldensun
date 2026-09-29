@@ -1,5 +1,5 @@
 /* OvlFunc_968_200c2bc -- 0x0200c2bc,
- * asm/overlays/rom_7f2f14/ovl_30_c_c_a_c_c.s
+ * asm/overlays/rom_7f2f14/ovl_30_c_c_a_c_c_c_a.s
  *
  * TWO differing encodings of 271, at the ROM's EXACT encoding count, with
  * EVERY REGISTER ROLE ALREADY THE ROM'S.
@@ -9,7 +9,18 @@
  * FLOOR HISTORY: 205 -> 110 -> 2. Start from e2bc_BEST.c. Starting over has
  * now cost two rounds and is the single most expensive mistake available here.
  *
- * ITS TWO FILE-MATES ARE ALREADY MATCHED and are waiting on this one:
+ * ITS TWO FILE-MATES WERE LANDED SEPARATELY IN BATCH 300 rather than waiting any
+ * longer for this one.  They had been matched since batch 250 and held here on the
+ * plan of converting the file whole, but fifty batches passed, and meanwhile census
+ * counted them as AVAILABLE -- one was handed to a batch-300 brief as an unattempted
+ * target, which is how this was noticed.  A finished candidate parked in a header is
+ * invisible to every tool in the tree.
+ *
+ * The file is now split three ways: OvlFunc_968_200c048 and OvlFunc_968_200c520 are
+ * C, and this function keeps asm/overlays/rom_7f2f14/ovl_30_c_c_a_c_c_c_a.s to
+ * itself.  Closing it now converts the last third rather than the whole file.
+ *
+ * Originally (batch 250): its two file-mates were matched and waiting on this one:
  *      OvlFunc_968_200c048  628 bytes, 290 encodings, 20 relocations
  *      OvlFunc_968_200c520  208 bytes,  93 encodings,  9 relocations
  * They sit in scratch_elev/b250/trio/final/ as e048_MATCH.c and e520_MATCH.c,
@@ -87,4 +98,148 @@
  * asm/ path. The .s carries no data, and the only pooled symbols are gState,
  * iwram_3001ebc and iwram_3001e40, all already extern in the tree.
  * makefile_flags() is empty, so plain -O2.
- */
+  *
+ * NON-MATCHING, 2 of 271 encodings differ.
+ * Verify with (recipe added in batch 300; this park never had one, which is why
+ * parkcheck could not report its figure):
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *       goldensun-build python3 tools/objcmp.py \
+ *       src/non_matching/ovl_7f2f14/200c2bc.c \
+ *       asm/overlays/rom_7f2f14/ovl_30_c_c_a_c_c_c_a.s --func OvlFunc_968_200c2bc
+*/
+
+/* BODY REPLACED IN BATCH 300.  parkcheck caught this park's header lying about its
+ * own body: the header claimed 2 of 271 while the body measured 271.  The 2-of-271
+ * candidate was sitting in scratch_elev/b250/trio/final/e2bc_BEST.c, named in the
+ * header but never installed -- so for fifty batches this park carried a worse body
+ * than the one it described, and no tool could see the discrepancy because the park
+ * had no Verify recipe either. */
+/* Declarations inlined from the batch-250 scratch header hdr.h in batch 300. */
+struct P {
+    int f0;
+    int f4;
+    int f8;
+    int fc;
+    unsigned char pad10[0x18 - 0x10];
+    unsigned short f18;
+    unsigned char pad1a[0x1c - 0x1a];
+    void *f1c;
+    unsigned char pad20[0x22 - 0x20];
+    unsigned short f22;
+    unsigned char pad24[0x28 - 0x24];
+};
+
+extern char *iwram_3001ebc;
+extern unsigned int iwram_3001e40;
+
+extern unsigned int __Random(void);
+extern void __CutsceneStart(void);
+extern void __CutsceneEnd(void);
+extern void *__MapActor_GetActor(int slot);
+extern void __Actor_SetSpriteFlags(void *a, int f);
+extern void __Func_8092950(int a, int b);
+extern void __Func_8091ff0(int a);
+extern void __MapTransitionIn(void);
+extern void __WaitMapTransition(void);
+extern void __CutsceneWait(int n);
+extern void __PlaySound(int id);
+extern void __WaitFrames(int n);
+extern void __CopyMapTiles(int a, int b, int c, int d, int e, int f);
+extern void __Func_8091e9c(int n);
+extern void OvlFunc_968_2008118(int a, int b, int c, int d,
+                                int e, int f, int g, struct P *p);
+
+
+void OvlFunc_968_200c2bc(void)
+{
+    struct P t;
+    char *p;
+    unsigned int i;
+    unsigned int j;
+    unsigned int k;
+    int acc;
+    int n;
+    int m;
+    int n2;
+    int s4;
+    int s5;
+    int s0;
+    int s1;
+    int s2;
+    int s3;
+    struct P *tp;
+    struct P *q;
+
+    p = iwram_3001ebc;
+    *(int *)(p + (0xe0 << 1)) = 0x202;
+    __CutsceneStart();
+    __Actor_SetSpriteFlags(__MapActor_GetActor(0), 0);
+    __Func_8092950(0, 0xf);
+    __Func_8091ff0(0xaa);
+    __MapTransitionIn();
+    __WaitMapTransition();
+    __CutsceneWait(0x28);
+    __PlaySound(0xa2);
+    j = 0;
+    i = 0;
+    tp = &t;
+    acc = 0;
+    do {
+        t.f8 = (__Random() * 2 >> 16) * 0x4ccc + 0x17ffc;
+        t.fc = (__Random() * 2 >> 16) * 0x4ccc + 0x17ffc;
+        t.f22 = (__Random() * 0x1000 >> 16) + (0xf8 << 8);
+mid:
+        k = 0;
+        while (k <= 3 && i <= 7) {
+            OvlFunc_968_2008118(((__Random() * 7 >> 16) << 19) + (0xd8 << 18),
+                                0, (0xc0 << 14) + acc + (k << 18), 0, 0, 0,
+                                0x88 << 16, tp);
+            k++;
+        }
+        __WaitFrames(3);
+        if (i == 3) {
+            if (j <= 2) {
+                j++;
+                goto mid;
+            }
+        }
+        n = i + 3;
+        s0 = 3;
+        s1 = 1;
+        __CopyMapTiles(0x30, n, 0x36, n, s0, s1);
+        acc += 0x80 << 13;
+        i++;
+    } while (i <= 9);
+    s2 = 5;
+    s3 = 2;
+    __CopyMapTiles(0x6f, 5, 0x75, 5, s2, s3);
+    __CopyMapTiles(0x6f, 0xa, 0x75, 0xa, s2, s3);
+    __CopyMapTiles(0x6f, 7, 0x6f, 5, s2, s3);
+    __CopyMapTiles(0x6f, 7, 0x6f, 0xa, s2, s3);
+    i = 0;
+    acc = 0;
+    do {
+        t.f8 = (__Random() * 2 >> 16) * 0x4ccc + 0x17ffc;
+        t.fc = (__Random() * 2 >> 16) * 0x4ccc + 0x17ffc;
+        t.f22 = (__Random() * 0x1000 >> 16) + (0xf8 << 8);
+        k = 0;
+        while (k <= 3 && i <= 7) {
+            OvlFunc_968_2008118(((__Random() * 7 >> 16) << 19) + (0xc0 << 18),
+                                0, (0xc0 << 14) + acc + (k << 18), 0, 0, 0,
+                                0x88 << 16, tp);
+            k++;
+        }
+        __WaitFrames(3);
+        m = i + 0x1a;
+        n2 = i + 3;
+        s4 = 3;
+        s5 = 1;
+        __CopyMapTiles(0x37, m, 0x30, n2, s4, s5);
+        acc += 0x80 << 13;
+        i++;
+    } while (i <= 9);
+    __PlaySound(0x121);
+    __CutsceneWait(0x3c);
+    __Func_8091e9c(0x15);
+    __CutsceneEnd();
+}

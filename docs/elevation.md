@@ -25878,3 +25878,65 @@ instructions. Placement is the whole lever.
 **Offsets that are not fields.** On `OvlFunc_common1_1928`, the reference's 0xa and 0x12
 are the **high halves of the ints at 8 and 0x10**, not separate members. A half-word
 access at `field + 2` is this shape, and declaring a member there gives the wrong struct.
+
+## A finished candidate parked in a header is invisible to every tool in the tree
+
+Batch 300 found `OvlFunc_968_200c048` in the AVAILABLE pool and handed it to a brief as
+unattempted. It had been **byte-exact since batch 250** — fifty batches — sitting in
+`scratch_elev/b250/trio/final/e048_MATCH.c`, named in a sibling park's header, along with
+a second matched function in the same `.s`.
+
+The plan had been reasonable: three functions in one file, two matched, land it whole when
+the third closed. But the third never closed, and in the meantime:
+
+- `census.py` counted both matched functions as available, because they had no `.c`;
+- the park had **no `Verify with:` recipe**, so `parkcheck` never looked at it;
+- and its body was **not** the candidate its header described — the header claimed 2 of
+  271 while the body measured **271**. The 2-of-271 candidate was the `e2bc_BEST.c` the
+  header named but which was never installed.
+
+So a park can be wrong in three independent ways at once, and none of them is visible
+without a recipe. **Rules that follow:**
+
+1. **Never leave a matched candidate in scratch.** Land it, or split the file and land
+   it. `scratch_elev/` is gitignored — a finished function there is one `rm -rf` from
+   gone, and it is counted as unattempted work by every tool meanwhile.
+2. **A park's body must BE its best candidate.** If the header names a better file, that
+   file belongs in the park. parkcheck's MISMATCH check exists for exactly this and it
+   caught it the moment a recipe was added.
+3. **Read the park headers of a reference's file-mates before starting work.** A park can
+   carry a sibling's finished candidate, its split shape, and its bank's idioms.
+
+All three functions are now resolved: two landed by splitting the file three ways, and the
+park carries the real 2-of-271 body with a recipe.
+
+## Two stack-slot values in two registers means two named locals; one register means literals
+
+Read the ROM's **register count** at a pair of `str [sp]` argument stores, not the values:
+
+```
+ref   mov r3,#0x18 / mov r2,#9   / str r3,[sp] / str r2,[sp,#4]
+ours  mov r3,#0x18 / str r3,[sp] / mov r3,#9   / str r3,[sp,#4]
+```
+
+Two live registers means the source named both values; one register reused means literals.
+At one site this alone was worth **105 -> 5**, because the one-register form also
+mis-scheduled every later argument pair in the same block.
+
+This sharpens the standing discriminator between the batch-257 result (literals) and the
+batch-295 result (named locals) — they are both right, and the register count at the
+stores is how you tell which applies. Confirmed alongside it: **one variable set per
+guarded block**, since three save-bit blocks used three different register assignments for
+the same constants.
+
+## Inner-scope declaration is a spill-slot ordering lever
+
+Declaring cursors **inside** the block that uses them, in the ROM's order, put all 17
+spill slots on the reference's offsets in one step on `OvlFunc_896_200c49c`. The mechanism
+is that gcc assigns slots in pseudo-number order, and pseudo numbers follow **per-block
+declaration expansion** — so block scope is a second, finer control on top of the
+declaration-order rule.
+
+Also from that function: an `else` arm needs its **own destination variable**.
+`else u = 0;` is deleted by cse's jump equivalence and costs six instructions;
+`else du = 0;` survives, worth 353 -> 360 encodings.
