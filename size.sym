@@ -87,3 +87,17 @@ _SIZE_800a418 = 0x7c;
  *
  * VALIDATED: DecompressString matches at 107 encodings and `make compare` passes. */
 _SIZE_8015430 = 0x140;
+
+/* _SIZE_80155d0 -- added in batch 298 to complete DrawText, which is byte-exact with
+ * it and 3 instructions short without it.  Same file and same method as the rows
+ * above: asm/rom_15000/rom_15430.s:123 starts the ARM routine Func_80155d0 at
+ * 0x080155d0 and line 345 starts the next ARM routine at 0x080158e8, so the length is
+ * 0x318.  Arithmetic re-derived independently before admission.
+ *
+ * Criterion 1 in its STRONG form: 0x318 is 0xc6 << 2, so gcc BUILDS the value and the
+ * ROM pools it -- the pool load is the tell, not merely positional evidence.
+ * Criterion 2 is the DMA word: with a plain literal, gcc folds `0x84000000 | (len/4)`
+ * into a single pooled 0x840000c6 and the whole block comes out three instructions
+ * short.  DrawText allocates 0x318 bytes, DMAs this ARM routine in, calls the buffer
+ * and frees it. */
+_SIZE_80155d0 = 0x318;

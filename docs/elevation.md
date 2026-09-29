@@ -25644,3 +25644,65 @@ reached by negative index** — `(&iwram_3001e80)[-5]`, `[-4]` — which pools t
 symbol with the ROM's zero addend and aligned a whole 22-instruction prologue. A
 reference that loads one symbol and reaches neighbours by small negative offsets is
 this shape.
+
+> **BOUNDED (batch 298), and the bound is the symbol's USE COUNT.** Both
+> `(&sym)[-N]` and `*(T *)((char *)&sym - N)` **fold the addend** at -O2 when the
+> symbol has only ONE use — so the negative-index spelling reproduces the ROM's
+> zero-addend pool word plus a separate `sub` only when the symbol is read at least
+> twice, which is why it worked on the function above (three bases) and on
+> `Func_80d6504`. With a single use, what reproduces the ROM is putting the address
+> in a **named pointer local first**. Worth 250 → 155 differing on
+> `Anim_MoveIntro`. Check the use count before choosing the spelling.
+
+## Distribute the shift by hand when the ROM does not fold it
+
+The strongest lever of batch 298, and it paid on two functions including one that had
+already been parked after a **450-spelling sweep**.
+
+`((win->x + (u16)(win->w - 2)) << 3) + 4` has two distinct failure modes. A `u16`
+local zero-extends and costs four instructions. Written inline, `fold`'s `associate:`
+merges `0xfffe << 3 | 4` into a single pooled `0x7fff4`. Writing the shift
+**distributed by hand**:
+
+```c
+(win->x << 3) + ((u16)(win->w - 2) << 3) + 4
+```
+
+leaves `fold` nothing to move, and `combine` then folds the two shifts back together
+itself — arriving at the ROM's form. On `DrawText` that took the aligned figure from
+83.4% to **99.2%**.
+
+**The transfer is the point.** `src/non_matching/rom_15000/8018efc.c` was parked on
+exactly this blocker after 450 spellings, *every one of which left the constant inside
+the shift*. Dropping the two distributed expressions in, with nothing else changed,
+took it from **86 of 119 (and not a distance — 123 instructions against 119) to 17 of
+119 with size AND count matching.**
+
+So when a residue involves a pooled constant that looks like a folded
+shift-plus-offset, the question is not which spelling of the expression to try next —
+it is whether `fold` has anything left to associate.
+
+## Three indirect calls want THREE function-pointer locals, not one
+
+One shared `CopyFn` local for three indirect call sites emits `bl _call_via_fp`, and
+**re-assigning the same variable does not help** because gcc CSEs it. Three distinct
+locals give `bl _call_via_r3` at all three sites, which is what the ROM has — and on
+`Anim_Unused_ScreenMelt` it made the relocation set match the reference exactly.
+
+This extends the existing note that a function-pointer local defeats
+devirtualization: the number of locals is itself a lever, not just their presence.
+
+## Reference `@` prose is wrong about its own function often enough to distrust
+
+Three cases in a single brief, all caught by measuring instead of reading:
+
+- `Anim_Unused_ScreenMelt`: the prose's "175 instructions" is the `.s` **line** count;
+  the object has **186** encodings.
+- `Anim_MoveIntro`: the prose describes one behaviour; the function is a **four-way
+  dispatch** on r2, and its 4th parameter is used by one arm only.
+- `DrawText`: the prose calls `Func_8004938` a font fetch. It is an **allocator** —
+  the ROM allocates 0x318 bytes, DMAs an ARM routine in, calls the buffer, frees it.
+  And r1 is one character, not a run.
+
+Two other references in the same brief checked out, so this is not universal. But
+prose is a lead, never evidence — the same standing rule as a park's stated blocker.

@@ -1,3 +1,52 @@
+/* Func_8018efc -- NON-MATCHING, 17 of 119 encodings differ.
+ * Reference asm//rom_15000/rom_18cac_a_c.s.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *       goldensun-build python3 tools/objcmp.py \
+ *       src/non_matching/rom_15000/8018efc.c \
+ *       asm//rom_15000/rom_18cac_a_c.s --func Func_8018efc
+ *
+ * IMPROVED IN BATCH 298 FROM 86 TO 17, and it is now a TRUE DISTANCE -- count 119 ==
+ * 119, where the previous revision was 123 against 119 at 268 bytes against 260.
+ * PIN-FREE.
+ *
+ * The previous revision was parked after a 450-SPELLING SWEEP, and every spelling in
+ * it left the constant INSIDE the shift.  The fix came from DrawText in the same
+ * batch and is now documented: DISTRIBUTE THE SHIFT BY HAND.  Dropping the two
+ * distributed expressions in changed nothing else.
+ * The remaining 17 are one r6/r7 role swap.
+ */
+/* *** BATCH-298f UPDATE, DROP THIS IN OVER src/non_matching/rom_15000/8018efc.c ***
+ * The ONLY change from the tracked park is the two sprite-position expressions,
+ * with the shift DISTRIBUTED BY HAND:
+ *     s->x = (win->x << 3) + ((unsigned short)(win->w - 2) << 3) + 4;
+ *     s->y = (win->y << 3) + ((unsigned char)(win->h - 2) << 3) - 1;
+ * (the `cx` / `cy` locals are now unused and can be deleted).
+ *
+ *   before:  86 encodings of 119 differ, ours 123, 268 bytes against 260
+ *            -- counts AND size disagree, so 86 was never a distance
+ *   after:   17 encodings of 119 differ, ours 119, SIZE AND COUNT BOTH MATCH
+ *            -- 17 IS a distance
+ *
+ * The park's own blocker section is what this retires: "the whole residue is
+ * FOUR EXTRA INSTRUCTIONS, the zero-extensions of `cx` and `cy`", after a
+ * 450-spelling sweep of casts and `<< 3` vs `* 8`.  Every one of those spellings
+ * left the CONSTANT INSIDE the shift, so fold's `associate:` had something to
+ * move; writing the distribution out leaves it nothing, and combine folds the
+ * two `<< 3`s back into the ROM's one.  Validated independently on the file-mate
+ * DrawText, where the same lever took 83.4% -> 99.2% aligned-equal and left one
+ * pool word.
+ *
+ * THE REMAINING 17 ARE ONE REGISTER-ROLE SWAP plus two small things:
+ *   - `win` in r7 and the base/queue pointer in r6 in the ROM; the other way
+ *     round here.  13 of the 17 are that swap.
+ *   - one adjacent schedule swap, `ldrh r3, [r7, #8]` against `ldr r1, =0xfffe`.
+ *   - `strh r1, [r5, r2]` against ours `strh r1, [r2, r5]` -- the base/index
+ *     order on the indexed halfword store.
+ * Three probes were INERT (all 17): swapping the `base` / `p` declaration order,
+ * `*(unsigned short *)(p + pos * 2)`, and both together.
+ */
 /* Func_8018efc -- 0x08018efc, asm/rom_15000/rom_18cac_a.s (2 functions: DrawText first, so
  * NON-MATCHING: 86 encodings of 119 differ (objcmp; ours 123, four zero-extensions long).
  * landing needs a split).
@@ -105,10 +154,8 @@ void Func_8018efc(struct Win *win, unsigned int ch, unsigned int x, unsigned int
         s = &n->spr;
         if (*q == 0x63)
             *q = AllocSpriteSlot();
-        cx = win->w - 2;
-        s->x = ((cx + win->x) << 3) + 4;
-        cy = win->h - 2;
-        s->y = ((cy + win->y) << 3) - 1;
+        s->x = (win->x << 3) + ((unsigned short)(win->w - 2) << 3) + 4;
+        s->y = (win->y << 3) + ((unsigned char)(win->h - 2) << 3) - 1;
         n->x = s->x;
         n->y = s->y;
         n->next = 0;
