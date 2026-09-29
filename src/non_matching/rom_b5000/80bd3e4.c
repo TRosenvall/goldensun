@@ -45,7 +45,33 @@
  *
  * MEASURED (rom 32 lines): the spelling below, 24 lines, 8 aligned of 32, and
  * every one of the eight outside the body.
- */
+  *
+ * ==================== VERDICT RETRACTED, BATCH 300 ====================
+ * This park concluded its 8-instruction prologue/epilogue residue was NOT
+ * REACHABLE -- "nothing in the source to recover it from".  That is wrong.
+ *
+ * Func_80bd3e4 IS A GNU C NESTED FUNCTION inside Func_80bd424.  Written nested,
+ * it is BYTE-IDENTICAL, 32 of 32.  gcc-2.96 Thumb's STATIC_CHAIN_REGNUM is r9,
+ * and the tell is in the CALLER: each of Func_80bd424's three pick cases does
+ * `add r3, sp, #0x1c / mov r9, r3 / bl Func_80bd3e4`.  The "dead" `str r3,[sp]`
+ * this park could not explain is the STATIC CHAIN SLOT, and the frame exists to
+ * hold it.  A five-line control reproduces both sides verbatim.
+ *
+ * IT CANNOT LAND ALONE.  A nested function must share its parent's translation
+ * unit, so Func_80bd3e4 and Func_80bd424 land together in one object, and
+ * Func_80bd424 is not yet exact (402 of 417 -- see
+ * src/non_matching/rom_b5000/80bd424.c).  Retire this park when that one closes;
+ * the text cut goes between Func_80bd424 and Func_80bd7a4, not between these two.
+ *
+ * NON-MATCHING, 8 of 32 encodings differ.
+ * Verify with (recipe added in batch 300; this park had none, so parkcheck could not
+ * report its figure -- note the figure is for the function AS WRITTEN HERE,
+ * standalone; written NESTED inside Func_80bd424 it is byte-identical):
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *       goldensun-build python3 tools/objcmp.py \
+ *       src/non_matching/rom_b5000/80bd3e4.c \
+ *       asm/rom_b5000/rom_bbb0c_a_a_c.s --func Func_80bd3e4
+*/
 extern int _RPGRandom(void);
 
 int Func_80bd3e4(unsigned char *p)

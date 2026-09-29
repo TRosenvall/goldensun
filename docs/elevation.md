@@ -26157,3 +26157,60 @@ measured facts to carry into that experiment:
   frame, and scores worse, while source-level low copies are coalesced away by `cprop_insn`;
 - **hand-writing the ROM's coalescings is worse still**, because it deletes the competing allocnos
   instead of raising pressure.
+
+## GNU C NESTED FUNCTIONS are in this ROM, and r9 is the tell
+
+`Func_80bd3e4` is a **nested function** inside `Func_80bd424`. Written nested it is
+**byte-identical, 32 of 32** — where as a standalone function it had been parked at 8 of 32
+with the verdict that its prologue/epilogue residue was "not reachable … nothing in the source
+to recover it from". That verdict is retracted.
+
+**The tell is in the CALLER, and it is r9.** gcc-2.96 Thumb's `STATIC_CHAIN_REGNUM` is r9, so a
+nested call looks like:
+
+```
+add r3, sp, #0x1c
+mov r9, r3            <- the static chain
+bl  Func_80bd3e4
+```
+
+And the "dead" `str r3,[sp]` that park could not explain **is the chain slot** — the frame exists
+to hold it. So: an unexplained frame word plus a caller writing r9 before a `bl` means a nested
+function, and the callee's mysterious prologue is the chain being received.
+
+**Landing constraint, new to this tree:** a nested function must share its parent's translation
+unit, so the pair lands **together in one object** and a text cut may not be placed between them.
+Here the cut goes between `Func_80bd424` and the next function instead.
+
+**A related but DISTINCT case:** `Func_80f07f0` also reserves a frame it barely addresses —
+`sub sp, #0x2c` with three words used and eight allocated and never touched. Same *symptom*, but
+the static-chain cause is **excluded**: no r9 read, no chain-setting caller, no nested callee. Do
+not assume the nested explanation from an unexplained frame alone.
+
+## objcmp's `--func` filters only the REFERENCE — and now says so when that matters
+
+`--func` compares the **whole candidate object**, which is why the standing rule is one function
+per candidate file. A nested function breaks that invariant silently: the source holds one
+function, the object holds two symbols (gcc emits the inner as `name.0`), and the figure covers
+both. On `Func_80bd424` that read **431 of 417** where the per-symbol truth was **402 against
+417** — a plausible, authoritative-looking, wrong number.
+
+`tools/objcmp.py` now prints a loud warning when the candidate object holds more than one
+function, names them, and says the figures cover all of them. Verified to fire on the nested case
+and to leave ordinary single-function candidates untouched.
+
+## A source spelling can FLIP with a flag
+
+On `Func_80f07f0`, gcse's `one_cprop_pass` is the named blocker — cprop is global where cse stops
+at the loop-top join, so it rewrites the ROM's held constants back and combine folds the pair.
+Under `-fno-gcse` the ROM's pack loop is reproduced essentially verbatim (284 of 290, 54.8%).
+
+**But the best spelling is not the same in both worlds.** Production flags want the add-first
+correction (50.7%, shipped); `-fno-gcse` wants a subtract-first temporary, which measures 48.3%
+*under production*. So a flag experiment does not merely change the score of a fixed candidate —
+it can change which candidate is best, and a flag-conditional figure measured on the
+production-best spelling understates what the flag would give. Measure the flag against its own
+best spelling before judging it.
+
+(`GCSE_CFLAGS` already exists; this is the seventh park it improves and the first where the
+mechanism is named. Still an owner decision.)

@@ -354,6 +354,21 @@ def main():
 
     if adjust:
         print("  (built with: %s)" % ", ".join(sorted(adjust)))
+    # --func filters the REFERENCE to one function but compares the WHOLE candidate
+    # object, which is why the rule is ONE FUNCTION PER CANDIDATE FILE. A GNU C
+    # NESTED FUNCTION breaks that invariant silently: the source holds one function,
+    # the object holds two symbols (gcc emits the inner one as `name.0`), and the
+    # figure then covers both -- reported as 431 of 417 on Func_80bd424 in batch 300,
+    # where the per-symbol truth was 402 against 417. Say so rather than let a
+    # plausible wrong number stand.
+    cand_funcs = [n for n, _ in dump_by_function(os.path.join(tmp, "cand.o"))]
+    if len(cand_funcs) > 1:
+        print("  !! CANDIDATE OBJECT HOLDS %d FUNCTIONS: %s" %
+              (len(cand_funcs), ", ".join(cand_funcs)))
+        print("     --func filters only the REFERENCE, so every figure below covers")
+        print("     ALL of them. A `name.0` symbol means a GNU C nested function.")
+        print("     Split the candidate, or measure per symbol.")
+
     a_enc, a_rel, a_sz = dump(os.path.join(tmp, "ref.o"))
     b_enc, b_rel, b_sz = dump(os.path.join(tmp, "cand.o"))
 
