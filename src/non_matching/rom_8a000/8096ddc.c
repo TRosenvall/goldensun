@@ -1,36 +1,80 @@
 /* Func_8096ddc -- NON-MATCHING, 11 encodings of 146 (objcmp: ENCODINGS differ in 11
  * place(s), ref 146 / ours 146).  LENGTH EXACT.  The .s (asm/rom_8a000/rom_96cdc_a_a_c_c.s)
- * holds only this function -- whole-file, no split.  Two mid-function pools (a HImode 0 and
- * a HImode 0xfffffc00) both reproduce.
+ * holds only this function and tools/datacheck.py is silent on it -- whole-file, no split,
+ * no exports beyond Func_8096ddc.  Two mid-function pools (a HImode 0 and a HImode
+ * 0xfffffc00) both reproduce.
  *
  * Verify with:
- *   python3 tools/objcmp.py src/non_matching/rom_8a000/8096ddc.c asm/rom_8a000/rom_96cdc_a_a_c_c.s --func Func_8096ddc
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *       goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/8096ddc.c asm/rom_8a000/rom_96cdc_a_a_c_c.s --func Func_8096ddc
  *
- * Levers that got it here (fresh, batch 287):
- *  - struct Sprite bitfields from rom_8d9a4_c_a_c_c_c_c_a_c.c (c5/c6 at +5, f08:10 / b10:2 at
- *    +8) plus a d6:2 at +7: the `sub #0x21`/`and 0x3f`/`orr 0x40` byte-5 sequence, the pooled
- *    0xfffffc00 tile insert and both +9 priority RMWs come out exactly.
- *  - `unsigned short zero` stored into two byte fields gives the pooled `ldr r1,=0 / mov r8`.
- *  - THE ROM's `mov r3,r0 / add r3,#0x55 / strb r2,[r3] / add r3,#0xf / strh r2,[r3]` CHAIN
- *    needs BOTH (a) a pointer local stepped `q += 0xf` and (b) the stores done as members of a
- *    BLKmode struct (struct B1/H1, 12 bytes): a plain member store to a BLKmode struct goes
- *    through store_bit_field (direct_store[QI/HI] is false on thumb), whose `x & 0` folds to
- *    ONE SImode zero shared by the strb and strh -- which is the ROM's r2.  Raw
- *    `*(u8 *)q = 0; *(u16 *)q = 0` gives a QI and a HI pseudo instead, and the HI one pools.
- *    Written as `o->f55 = 0; o->f64 = 0` (no q) the two address pseudos land in r1/r3 and
- *    reload's move2add never sees the chain (20 of 146).
- *  - Statement order inside the `o != 0` block: 1260 permutations screened, best 11.
+ * ===== BATCH 295: THE BLOCKER IS NOW FULLY LOCATED, AND IT IS CLOSED =====
  *
- * RESIDUE (11 encodings, three pieces):
- *  1. q/zero swap: ROM q=r3 zero=r2, ours q=r2 zero=r3.  q is set twice so it dies twice and
- *     local-alloc refuses it (REG_N_DEATHS != 1); the SImode zero is local and takes r3
- *     first; global then gives q r2.  Splitting q into two locals makes both local but loses
- *     the chain (17).  Re-deriving q from o in two steps, declaring q elsewhere, typing it
- *     struct B1 *: all 11.
- *  2. sched2 tie: ROM emits `mov r1,#0x21 / neg r1,r1` BEFORE `strh r3,[r5,#8]` (tile store),
- *     ours after.
- *  3. tryc also shows the second pool as `b L3 / L3: / L1:` against the ROM's `b L1`; that is
- *     only a label-naming artifact (same bytes), objcmp does not count it.
+ * The residue is the r2/r3 swap between the walk pointer `q` and the shared SImode
+ * zero, plus two sched2 ties that follow it.  Read out of .17.lreg / .18.greg:
+ *
+ *   reg 40  q          8 refs / 7 insns  in block 2, set 2 times, DIES IN 2 PLACES,
+ *                      pref STACK_REG   -> GLOBAL allocno, gets r2
+ *   reg 52  dead QI 0  2 refs / 2 insns, REG_UNUSED, pref LO_REGS -> LOCAL, gets r3
+ *   reg 54  SImode 0   6 refs / 10 insns, pref LO_REGS            -> LOCAL, gets r3
+ *
+ * TWO GATES, BOTH AT local-alloc.c:362-368.  A pseudo is eligible for local-alloc
+ * only if REG_BASIC_BLOCK >= 0 AND REG_N_DEATHS == 1 AND (reg_alternate_class ==
+ * NO_REGS OR ! CLASS_LIKELY_SPILLED_P (reg_preferred_class)).  `q` fails BOTH the
+ * death test (the `q += 0xf` chain sets it twice) and the class test.
+ *
+ * NEW AND REUSABLE -- THE STACK_REG GATE.  An address pseudo set by
+ * `(set (reg) (plus (reg) (const_int N)))` and used as a memory base gets
+ * `pref STACK_REG` when N is NOT a valid `add rd, sp, #imm` operand, and
+ * `pref BASE_REGS` when it is.  Measured on a four-line isolate: o+0x55 STACK_REG,
+ * o+0x54 BASE_REGS, o+0x64 BASE_REGS, o+0x65 STACK_REG -- it is the CONSTANT, not the
+ * mode of the store (both a QImode and a HImode base show the same split).
+ * reg_class_size[STACK_REG] == 1, so the default CLASS_LIKELY_SPILLED_P is TRUE and
+ * local-alloc refuses the pseudo.  The ROM's offset is 0x55, so the walk pointer is
+ * global by construction.  Controls: a one-death walk pointer at offset 0x55 is still
+ * global (`pref STACK_REG`, 17 differ); the same spelling at offset 0x54 is LOCAL
+ * (`pref BASE_REGS`) -- that one is a diagnostic only, it stores to the wrong byte.
+ *
+ * WHY THE SWAP IS UNREACHABLE FROM SOURCE.  For `q` (global) to get r3, no LOCAL
+ * quantity may hold r3 anywhere in q's live range [q's set .. the strh].  But the
+ * shared SImode zero is born INSIDE that range and is local, so it takes r3 unless
+ * some other local already holds r3 there -- and any local holding r3 there conflicts
+ * with q as well.  The two escapes are (a) make q local -- closed by the STACK_REG
+ * gate above, or (b) make the SImode zero non-local.  (b) needs the zero to span two
+ * blocks or die twice, and every source route to that also stops the zero being SHARED
+ * between the strb and the strh, which is the thing that produces the ROM's single
+ * `mov r2, #0`.  Measured: a plain `int z = 0` in the walk gives the strh its own
+ * pooled HImode zero (22 differ, and loop.c hoists a loop-invariant int zero -- 148
+ * encodings when declared in the loop); a BLKmode zero store after the `s == 0` branch
+ * does NOT get cse'd together with the walk's zero (reg 54 stays block-local, 11).
+ *
+ * ISOLATING THE REST.  With `register unsigned char *q __asm__("r3")` -- a class-1
+ * shim, recorded here as a DIAGNOSTIC, not a proposed landing -- the count is
+ * 11 -> 6 at the same 146 encodings, and the whole remaining residue is two sched2
+ * ties: (1) `ldr r5,[r0,#0x50]` belongs between `mov r2,#0` and the strb, ours puts it
+ * after `ldr r1,=0x0` (4 encodings), and (2) `mov r1,#0x21 / neg r1,r1` belongs before
+ * `strh r3,[r5,#8]`, ours puts it after (2 encodings).  So the register swap is worth 5
+ * and the ties 6.  All SEVEN positions of `s = o->f50;` in the guarded block read 6
+ * under the pin -- source order does not reach tie (1).
+ *
+ * NO FLAG ROUTE.  -fno-expensive-optimizations is the only production-flag candidate
+ * that touches this (it controls regclass.c:1161's two-pass prefclass/altclass
+ * computation, which is what could make reg_alternate_class NO_REGS and satisfy the
+ * local-alloc gate).  Measured: --align 53 -> 94, i.e. much worse; -fno-schedule-insns2
+ * 53 -> 97; the pair fails to compile.  Nothing reaches local-alloc's eligibility test.
+ *
+ * DELTA to the inert list (all at 146 encodings unless noted): a second address local
+ * instead of the chain, `q2 = q + 0xf`, and `((struct H1 *)(q + 0xf))` / `&q[0xf]` all
+ * 17 -- in every one of them the zero DOES move to r2 and the f64 address DOES get r3,
+ * and only the f55 address is left in r1, which is the cleanest statement of the
+ * blocker.  Also inert at 11: `struct B1 { unsigned int v : 8; }`, `{ unsigned char v : 8; }`,
+ * `struct H1 { unsigned int v : 16; }`, `{ unsigned short v : 16; }`, all four
+ * combinations, a `struct B1 *` walk pointer, and BLK-u8 + PLAIN-u16 (the plain
+ * `*(unsigned short *)q = 0` still shares the SImode zero here -- same as the
+ * 200a440 park's note).  Worse: plain-u8 + BLK-u16 23, `((struct H1 *)q)->v = zero` 13,
+ * `((struct B1/H1 *)q)->v = zero` for both 144 encodings, the HI store written first
+ * with `q -= 0xf` 86, a function-scope `int z` 24, BLKmode stores of 0 for BOTH
+ * `s->f26` and `s->f28[0x16]` 12.
  */
 struct Sprite {
     unsigned char pad00[5];

@@ -7400,6 +7400,29 @@ discipline as the "a zero component means the regex is broken" rule -- both are
 about not letting a number pass without something checking it against reality.
 
 ## The source-order lever does not reach commutative operands
+> **CORRECTED (batch 295): the boundary is the Thumb PATTERN'S ARITY, not the
+> operator.** This section named `&`, `^`, `+` and `*` as equally unreachable.
+> The right test is one lookup in `arm.md`:
+> `*thumb_andsi3_insn`, `*thumb_iorsi3` and `*thumb_xorsi3` constrain operand 1
+> to `"%0"` -- two-address, genuinely unreachable, and for those three the
+> section holds. `*thumb_addsi3` alternative 3 is a real three-register
+> `add %0,%1,%2` and IS reachable: `Func_807a664` lands on a THIRD destination
+> variable with the operands written in the order you want. `*thumb_mulsi3`
+> emits `mov %0,%1 ; mul %0,%0,%2`, which is why the mul lever is about the
+> inserted `mov` and not about the operands -- reconciling batch 294's
+> correction 3, which recorded `add` as inert for the MUL lever. Both are true:
+> the mul lever asks which operand becomes the destination, a question only a
+> two-address pattern has.
+>
+> The mechanism for the reachable case is `expand_binop` (`optabs.c:657-669`),
+> which swaps commutative operands when `target == op1`. So `x = x + y` and
+> `x = y + x` both give `add x,x,y`; only `z = y + x` gives `add z,y,x`. A
+> separate destination alone is not enough -- it is the destination AND the
+> operand order.
+>
+> **Usable screen:** look the pattern up first. `"%0"` on operand 1 -> park it.
+> A three-register alternative -> try ONE spelling, not twelve.
+
 > **BOUNDED (batch 243): OPERAND order cannot, but STATEMENT order can, whenever
 > one operand is a live-in parameter.** This section's advice is confirm and
 > park. On `Func_80a46b4` twelve spellings of the commutative expression are
@@ -24655,3 +24678,145 @@ argument copy into r0 instead of on the call. That changes the copy's dependent 
 is rank_for_schedule's tiebreak after priority and class. Declaring the callee `int` (result
 unused) reordered argument moves in Func_8017c8c and the caller's own `mov r0,rN` in
 Func_801eadc.
+
+## A relocation FORM is not a residue: objcmp compares UNLINKED objects
+
+`Func_808ce74` landed (batch 295) with objcmp reporting **one differing encoding
+of 121 and a relocation mismatch**. Both were the same artefact. The reference
+leaves `0` in the word at 0xfc and carries `R_ARM_ABS32 ewram_2020000`; our
+object places `0x02020000` there with no relocation. `wram.sym:137` defines
+`ewram_2020000 = 0x02020000` and the REL addend is 0, so **the linker writes the
+same four bytes either way** and the linked output is identical.
+
+objcmp cannot see this, because it compares object files before the link. So:
+
+- When the ONLY residue is a word that a relocation would fill, and the symbol's
+  value is known and the addend is 0, **the function may already be exact.** Do
+  not park it -- take it to `make compare`, which is the project's real gate.
+- This is the same discipline already used for every `.sym` landing, where
+  objcmp shows a differing pool word and the compare proves the link resolves
+  it. The new part is that it applies to a relocation's *presence*, not only to
+  a symbol's *value*.
+- The reverse does not hold. A differing word with a NON-zero addend, a
+  different symbol, or a different relocation type is a real difference.
+
+A related trap in the same function: the two spellings are not interchangeable.
+`ldr rN, =ewram_2020000` is a local-alloc pseudo and consumes **no step** of
+reload's spill-register round robin (`reload1.c:5003` starts the search at
+`last_spill_reg`, `4937` advances it); the literal
+`#define ewram_2020000 ((unsigned char *)0x02020000)` makes reload materialise
+the constant, which advances the rotation one step and changes which register a
+LATER reload in the same function receives. Here that was worth the last
+encoding. Precedent for the literal spelling: `src/rom_9000/rom_1219c_a_a_b.c:3`.
+
+## The local-alloc REFUSAL is a lever, and STACK_REG is a gate you cannot open
+
+`local-alloc.c:362-368` refuses a pseudo -- leaving it to the global allocator --
+unless it dies exactly once AND its class is not likely-spilled. Both halves are
+usable, in opposite directions.
+
+**As a lever (worth a landing, `Func_80a77a4`):** passing an expression straight
+to a call keeps it local; naming it in a variable that is read in two places
+makes `REG_N_DEATHS == 2`, so local-alloc refuses it and it becomes a *global*
+allocno. Global allocation is ordered by `allocno_compare` and can therefore be
+made to happen FIRST, and a global allocno copied into `r0` for an argument
+carries `preferences: 0`, which `find_reg`'s preference pass (`global.c:1103`)
+honours **over** `REG_ALLOC_ORDER`. Net effect: the value takes r0 instead of r2
+and the block's sched2 order follows for free. 8 of 76 -> 0.
+
+**As a gate (closes two functions, `Func_8096ddc` and `OvlFunc_884_200a440`):**
+an address pseudo set by `(set (reg) (plus (reg) (const_int N)))` and used as a
+memory base gets `pref STACK_REG` when N is **not** a valid `add rd, sp, #imm`
+operand, and `pref BASE_REGS` when it is. Isolated on four one-line variants:
+`+0x55` STACK_REG, `+0x54` BASE_REGS, `+0x64` BASE_REGS, `+0x65` STACK_REG --
+it is the **constant**, not the store's mode. `reg_class_size[STACK_REG] == 1`,
+so `CLASS_LIKELY_SPILLED_P` is true and the pseudo is refused **even when it
+dies exactly once** (measured both ways). A walk pointer at a ROM-fixed odd
+offset is therefore a global allocno by construction, and no source spelling
+changes that.
+
+## allocno_compare is reachable, but usually only through a shim
+
+`global.c:598` ranks global allocnos by `floor_log2(n_refs) * n_refs /
+live_length`. Because `n_refs` is loop-depth weighted (`flow.c:4948`) and
+`live_length` is pinned at both ends by the ROM's own instructions, the ratio is
+mostly not yours to set -- but it decides the allocation ORDER, and therefore
+which pseudo gets the low register.
+
+`LoadPortrait` needed `id` to outrank `b` and got there with
+`__asm__("" : : "r" (id))`, which emits no instruction and moves `id` from 7
+refs / 47 insns to 9 / 48 -- 0.56 against 0.41. Twelve differences closed at
+once. **It is booked in `fakematch.txt`**, and the reason to book rather than
+keep digging is itself a result: the pin-free route was shown *structurally*
+closed. The four thresholds were `n_refs(id) >= 8`, `live_length(id) <= 33`,
+`n_refs(b) <= 4`, `live_length(b) >= 41`, and every reference those need already
+IS an operand of the ROM's 71 instructions. The only free lever would be a
+reference that costs no instruction, which C does not have. `regs_may_share` --
+the one route that merges two pseudos into a single allocno and SUMS their
+`n_refs` -- is written only at `loop.c:1832`, so a loopless function cannot
+reach it.
+
+**Convention:** 19 of the 20 landed files carrying an operand-bearing empty
+`__asm__` barrier are booked in `fakematch.txt`. A bare `__asm__ volatile ("")`
+with no operands is not a shim; once it names an operand it manufactures a
+reference, and that is a fakematch.
+
+## A one-member UNION is a per-MEM alias escape, and it beats -fno-strict-aliasing
+
+`c-common.c:3329-3345`: `lang_get_alias_set` walks out through `COMPONENT_REF`
+and `ARRAY_REF` and returns alias set **0** as soon as a component's containing
+type is a `UNION_TYPE`. The comment states this is a deliberate GCC extension
+permitting type-punning *"provided the access is directly through the union"* --
+so a POINTER-to-member form does **not** get set 0. That is the trap.
+
+Why it changes the schedule: `arm_adjust_cost` returns 0 outright for ANTI and
+OUTPUT dependences, so those edges contribute nothing to priority; a true
+load-after-store dep returns 1 only when the load's address mentions the
+constant pool, `stack_pointer_rtx`, `frame_pointer_rtx` or
+`hard_frame_pointer_rtx` (`THUMB_HARD_FRAME_POINTER_REGNUM` is 7, `arm.h:898`).
+A missing MEMORY dependence is therefore a missing 1-point priority edge, not a
+tie -- and it moves instructions that no amount of source reordering will move.
+
+On `common1_1078` (7 of 217 -> 2) the union is **strictly better than the
+flag**: `-fno-strict-aliasing` reaches only 7 -> 6 and breaks two other pairs by
+letting the DMA queue's count store alias the task stores, while the union is
+scoped to one field. Reach for it when the residue is a load that has floated
+above a store it should depend on.
+
+## Three screens that are not screens
+
+All three cost real agent time in batch 295.
+
+1. **A line-level diff of generated `.s` files is not an object-level screen.**
+   Screening whether a header change would disturb its landed users reported 33
+   of 33 files changed; at the object level **13 were byte-identical** -- the
+   only difference was `.L10` renumbering to `.L9`. Diff objects, not listings.
+2. **`--align` is unusable on a function with a mid-function literal pool.** On
+   `Func_8096ddc` tryc reports "140 lines, 53 differ" against objcmp's **11**,
+   because the pool's label naming (`b L3 / L3: / L1:`) shifts the whole tail.
+   The converse also happens: `--align` reported **10 instructions in
+   disagreeing regions on a byte-identical function** (`Func_807a664`). objcmp
+   is the authority in both directions.
+3. **A substring grep over hand-written asm counts PROSE.**
+   `grep -c thumb_func_start` on `asm/rom_15000/rom_19ebc_a_c_c_c_c_c.s` returns
+   2, and one of the hits is an `@` comment discussing the directive. Anchor it:
+   `grep -cE '^[[:space:]]*\.?thumb_func_start'`. This is the third time this
+   exact class has bitten -- it is also what silenced 19 files in
+   `datacheck.py`'s generated-file guard.
+
+Also, on reading dumps: `reload1.c`'s `Using reg R` lines do **not** predict the
+register the insn finally emits (insn 92 dumped as `reg 2`, emitted r1). Use
+them to see that a reload happened, not to see where it landed.
+
+## Decided: dma.h's helpers stay `static inline` (batch 295)
+
+The standing question was whether `DMA3_CLEAR` / `DMA3_FILL` / `DMA3_COPY`
+should become macros so a caller's inlining matches. Screened at the OBJECT
+level across all 82 landed users: a macro form changes **51 of them** --
+`DMA3_CLEAR` 20 of 33, `DMA3_FILL` 1 of 4, `DMA3_COPY` 33 of 53. So the change
+cannot be made in place. If a future function needs the macro form, it must
+arrive as a **second, differently-named macro** adopted per site. This is why
+`SomethingSaveHeader` remains parked at 2 of 156.
+
+**Indentation:** zero of 4,331 landed `.c` files use a leading tab. Expand
+drafts before landing them.

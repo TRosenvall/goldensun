@@ -4,7 +4,7 @@
  * InitPlayerPos, Debug_PaletteEditor), so landing needs a split.
  *
  * Verify with:
- *   python3 tools/objcmp.py src/non_matching/rom_8a000/808ce74.c \
+ *   python3 tools/objcmp.py src/rom_8a000/rom_8ba38_a_c_a_a_b.c (landed in batch 295) \
  *       asm/rom_8a000/rom_8ba38_a_c_a_a.s --func Func_808ce74
  *
  * Built from the landed sibling Func_808bd24 (src/rom_8a000/rom_8ba38_a_a_a_c_a_b.c):

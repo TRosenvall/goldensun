@@ -1,50 +1,82 @@
 /* OvlFunc_884_200a440 (0x0200a440) -- NON-MATCHING, 12 encodings of 136 differ, SAME LENGTH
  * (ref 136 encodings / 292 bytes; ours identical length, all relocations identical).
  *
- * asm/overlays/rom_784360/ovl_30_c_c_c_a_a_c_c_c.s (1 function).
+ * asm/overlays/rom_784360/ovl_30_c_c_c_a_a_c_c_c.s (1 function).  tools/datacheck.py is
+ * silent on it: no data sections, whole-file conversion, no exports beyond the function.
+ * (The batch-295 brief called this OvlFunc_876_200a440; the .s and this header are right,
+ * it is 884.)
  *
  * Verify with:
- *   python3 tools/objcmp.py src/non_matching/ovl_784360/200a440.c asm/overlays/rom_784360/ovl_30_c_c_c_a_a_c_c_c.s --func OvlFunc_884_200a440
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *       goldensun-build python3 tools/objcmp.py src/non_matching/ovl_784360/200a440.c asm/overlays/rom_784360/ovl_30_c_c_c_a_a_c_c_c.s --func OvlFunc_884_200a440
  *
- * FAMILY: a near-twin of OvlFunc_887_200968c (identical but for the
- * leading __PlaySound) and of the parked OvlFunc_883_200dd68 / OvlFunc_882_200c41c
- * (src/non_matching/ovl_780898/200dd68.c, ovl_77dd1c/200c41c.c), whose "CHAIN" residue
- * this is: the ROM writes a->f55 / a->f64 through ONE address register,
- *     mov r3,r0 / add r3,#0x55 / strb r2,[r3] / add r3,#0xf / strh r2,[r3]
- * The tail here differs from those parks (f50->f9 bits 2-3 := 2 on both actors, and
- * the second block wants the bitfield BEFORE f6c; the first block after it).
+ * FAMILY: a near-twin of OvlFunc_887_200968c (identical but for the leading __PlaySound)
+ * and of the parked OvlFunc_883_200dd68 / OvlFunc_882_200c41c
+ * (src/non_matching/ovl_780898/200dd68.c, ovl_77dd1c/200c41c.c).  Batch 295 established
+ * that it is ALSO the exact twin of src/non_matching/rom_8a000/8096ddc.c
+ * (Func_8096ddc, 11 of 146): same two residues, same allocnos, same gate.  Fix one and
+ * the other follows.
  *
- * THE CHAIN IS MOVE2ADD (reload1.c:8840 reload_cse_move2add), NOT cse. It turns
- * "mov rX,r0 / add rX,#0x64" into "add rX,#0xf" when rX still holds r0+0x55 -- so it
- * needs BOTH address pseudos in the SAME hard register.
+ * ===== BATCH 295: THE BLOCKER IS FULLY LOCATED AND IT IS CLOSED =====
  *
- * WHAT THIS CANDIDATE SOLVES (vs. the 200dd68 park's two exclusive routes): the walk
- * spelling gets the chain, and a BLKmode struct at the walk pointer keeps the SI zero
- * shared by the strb and strh (the batch-287 "BLKmode members share one SImode zero"
- * rule) -- a plain u8* / u16* walk instead binds the strh to the pooled HImode zero
- * (79 differ).  Instruction count now equals the ROM's; what is left is r2/r3 swapped
- * on the walk pointer and the zero, plus one-slot schedule shifts that follow.
+ * From .17.lreg / .18.greg, exactly parallel to Func_8096ddc:
+ *   reg 37  p (walk ptr)  8 refs / 7 insns in block 2, set 2 times, DIES IN 2 PLACES,
+ *                         pref STACK_REG   -> GLOBAL allocno, gets r2
+ *   reg 50  dead QI 0     2 refs / 2 insns, REG_UNUSED, pref LO_REGS -> LOCAL, r3
+ *   reg 52  SImode 0      6 refs / 10 insns, pref LO_REGS            -> LOCAL, r3
  *
- * THE BLOCKER, read from .17.lreg / .18.greg: store_fixed_bit_field (the BLKmode field
- * store) leaves a REG_UNUSED "(set (reg:QI) (const_int 0))"; local-alloc gives that dead
- * QI r3 (1-insn life, top priority), and the SI zero also gets r3 locally (no overlap
- * with the dead QI).  The walk pointer p is GLOBAL -- two deaths; and a+0x55 on its own
- * prefers STACK_REG (the add needs its tied alternative, LO costs 8, CLASS_LIKELY_SPILLED,
- * local-alloc.c:362) -- and conflicts with r3 through both, so global gives it r2.  The
- * ROM has p in r3 and the zero in r2.  Same "dead QImode zero steals an address register"
- * as
- * batch 287's Func_809b450 park.
+ * The park's own diagnosis ("the dead QImode zero steals an address register", "the add
+ * needs its tied alternative ... CLASS_LIKELY_SPILLED, local-alloc.c:362") was RIGHT.
+ * What batch 295 adds is WHY the walk pointer prefers STACK_REG, and that it cannot be
+ * avoided at this offset:
  *
- * INERT: all 24 orders of {f14 copy, s = f50, walk, f68}; declaring p at 6 positions;
- * p[0]/p+0xf/(ZH*)(p+0xf) spellings (16); an int zero local in the walk (loop.c hoists
- * it: 300 bytes); a->f64 = a->f55 = 0 (17); u8 store + BLK u16 store (21);
- * BLK u8 store + plain u16 store (12, same).
- * Progression: direct fields 23 -> tail order (block 0: f6c then bitfield; block 1:
- * bitfield then f6c) 17 -> BLKmode walk 12.
+ * THE STACK_REG GATE.  An address pseudo set by `(set (reg) (plus (reg) (const_int N)))`
+ * and used as a memory base gets `pref STACK_REG` when N is NOT a valid `add rd, sp, #imm`
+ * operand and `pref BASE_REGS` when it is.  Measured on a four-line isolate: +0x55
+ * STACK_REG, +0x54 BASE_REGS, +0x64 BASE_REGS, +0x65 STACK_REG -- the CONSTANT, not the
+ * store's mode.  reg_class_size[STACK_REG] == 1 so the default CLASS_LIKELY_SPILLED_P is
+ * TRUE, and local-alloc.c:362-368 refuses the pseudo even when it dies exactly once.
+ * The ROM's a->f55 sits at 0x55, so the walk pointer is a global allocno by construction.
  *
- * NEXT: a spelling whose f55 store has no dead QI but still shares the SI zero with the
- * f64 strh -- or one that makes the walk pointer LOCAL (one death, non-STACK_REG pref), so
- * local-alloc places it before the dead QI.
+ * WHY THE r2/r3 SWAP IS UNREACHABLE FROM SOURCE.  For a global p to get r3, no LOCAL
+ * quantity may hold r3 anywhere in p's live range.  The shared SImode zero is born INSIDE
+ * that range and is local, so it takes r3 (first in REG_ALLOC_ORDER 3,2,1,0,...) unless
+ * another local holds r3 there -- and any local that does also conflicts with p.  So the
+ * two escapes are (a) make p local, closed by the gate above, or (b) make the SImode zero
+ * non-local.  (b) requires the zero to span two blocks or die twice, and every source
+ * route to that also stops it being SHARED between the strb and the strh, which is what
+ * produces the ROM's single `mov r2, #0`.  Measured on the twin: a plain `int z = 0`
+ * gives the strh its own pooled HImode zero (22 differ; loop.c hoists it if declared in
+ * the loop, 148 encodings), and a BLKmode zero store after the `s == 0` branch is NOT
+ * cse'd together with the walk's zero.
+ *
+ * So the park's "NEXT" is answered, both halves negative: there is no spelling whose f55
+ * store lacks the dead QI while still sharing the SI zero, and there is no spelling that
+ * makes the walk pointer LOCAL at offset 0x55.
+ *
+ * WHAT IS LEFT, ISOLATED.  On the twin, pinning the walk pointer with
+ * `register unsigned char *q __asm__("r3")` reads 11 -> 6 and shows the whole remainder
+ * is two sched2 ties: the `ldr r5,[r0,#0x50]` slot inside the store chain (4 encodings)
+ * and `mov r1,#0x21 / neg r1,r1` belonging before `strh r3,[r5,#8]` (2 encodings).  HERE
+ * the same pin is NOT free -- it costs 4 instructions (140 encodings, 300 bytes, 131
+ * differ) at all three declaration scopes tried, because this function's extra
+ * __PlaySound call and the `w` base pointer contend for r3.  So on this function the pin
+ * is not even usable as a diagnostic; use the twin for that.
+ *
+ * Of this function's 12, ten are the chain block and two are the `neg r1,r1` tie -- the
+ * same 5 + 6 split as the twin plus one extra encoding from the different tail.
+ *
+ * DELTA to the inert list: the two-address spellings (`p2 = a + 0x64` independently, or
+ * `p2 = p + 0xf`, or `((struct ZH *)(p + 0xf))`) all move the ZERO to r2 and give the f64
+ * address r3 correctly, and leave only the f55 address in r1 -- that is the cleanest
+ * statement of the blocker and is worth keeping over the bare "16" the park records.
+ * Also inert: every bitfield spelling of the ZB/ZH carrier members (`unsigned int v : 8`,
+ * `unsigned char v : 8`, `unsigned int v : 16`, `unsigned short v : 16`, and all four
+ * combinations), and BLK-u8 + PLAIN-u16 -- confirming the park's "12, same" and adding
+ * that the plain `*(unsigned short *)p = 0` still shares the SImode zero.
+ * NO FLAG ROUTE: -fno-expensive-optimizations is the only production-flag candidate that
+ * touches regclass's altclass computation (regclass.c:1161) and on the twin it is much
+ * worse (--align 53 -> 94); -fno-schedule-insns2 53 -> 97.
  */
 struct SpriteSlot {
     unsigned short size;
