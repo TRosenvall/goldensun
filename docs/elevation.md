@@ -26271,3 +26271,72 @@ body 199, claims 29 / body 301, claims 2 / body 271).
 The claim line is objcmp's figure by definition. Put the aligned figure in the prose right
 after it, with the reason the objcmp count saturates. All three now read correctly, and the
 MISMATCH check earned its keep three times in one batch.
+
+## The named constant base: same block needs no flag, straddling a join needs more than one
+
+Two functions in one brief bound the batch-298 named-base finding from both sides, and together
+they correct its implied remedy.
+
+**Same basic block, two or more uses — works with NO flag.** `int msg = 0xb06; f(msg,…);
+f(msg+1,…);` reproduces `ldr r5,=0xb06 / mov r0,r5 / add r0,r5,#1` on the first try, and the
+reason is mechanical: gcse's `cprop_insn` gates on `oprs_not_set_p` **before** availability, and
+**a call does not end a basic block** — so a base whose uses sit in one block survives cprop
+untouched. Worth 294 -> 52 on `Func_80a8114`.
+
+**Straddling a join — cprop folds it, and `-fno-gcse` is NOT the remedy.** On `Func_80a7a34` the
+two uses straddle a `_GetFlag` join; the `plus … -3` insn survives `.03.cse` and `.04.addressof`
+and is gone by `.07.gcse`. But `-fno-gcse` there reads **354 of 385 with the first difference at
+index 7** — it breaks four other things. So the flag is not the answer to this shape, which
+corrects what batch 298 implied.
+
+Check which side of a join the uses fall on before reaching for anything.
+
+## A whole-function low-register ROTATION is one missing short-lived quantity
+
+On `Func_80a8114`, spelling out a byte truncation — `int raw = f() << 24; n = (unsigned)raw >> 24;
+if (raw == 0)` rather than `n = (unsigned char)f(); if (n == 0)` — keeps **three** registers where
+the compact form keeps two. That one missing quantity had **rotated every low register in the
+function by +1**, showing as 15 hunks that all collapsed together. 42 -> 13.
+
+**So a uniform low-register rotation is a symptom, not the problem.** Fix the first hunk and the
+rotation goes with it; do not chase the renames. (The counterpart already recorded for
+`Func_80f62b8` is a rotation from a *genuine* allocation tie — the discriminator is whether the
+instruction COUNT also differs. A missing quantity changes the count; a tie does not.)
+
+## Jump-table arm BODIES are emitted in SOURCE order
+
+`emit_case_nodes` lays the dispatch out sorted by value, and this is the other half: the **arm
+bodies** come out in the order the `case` labels appear in the source. `Func_80a5cc0`'s ROM order
+is **0, 1, 3, 2, 4** — writing the arms that way took the size from 804 to exactly 800.
+
+So a switch whose dispatch is right but whose body block order is wrong is a source-order
+question, and the ROM's body order is readable straight off the reference.
+
+## The shiftability tell needs a MODE, and the disassembly cannot give you one
+
+An important qualification to the pool tells. gcc-2.96 Thumb:
+
+- **always splits** a `thumb_shiftable_const` **SImode** constant into `mov` + `lsl`;
+- **always pools** an **HImode** one.
+
+And a Thumb `ldrh rN, <pcrel>` assembles to **the same encoding** as `ldr rN, [pc, #x]`. So a
+reference's `ldr rN, =K` **does not tell you which mode it was** — which means a pooled shiftable
+constant is a symbol candidate only if it is SImode, and if it is HImode then gcc pooling it is
+ordinary behaviour with nothing to infer.
+
+This is consistent with the batch-297 audit (27 pooled shiftable values ≥ 256 are `ldrh`) and with
+the `<256` criterion surviving twice, but it sharpens what the tell claims: **pooled + shiftable +
+SImode** implies a symbol; **pooled + shiftable + HImode** implies nothing. Recover the mode from
+what the value is assigned to, never from the pool load.
+
+On `Func_80a5cc0` this is the last blocker: the ROM's `ldr r1,=0xaf0` is an **unsplit SImode
+argument**, which no spelling reaches.
+
+## Two small idioms
+
+`x != 0` **as a value** needs the idiom written out — `(unsigned)(-d | d) >> 31`. `!!x`, `x ? 1 : 0`
+and an unsigned local all produce a branch instead. Worth 335 -> 294.
+
+**A named local for the last argument reverses argument-setup order**, and sched2 tie-breaks on
+`INSN_LUID`, so `{ int pri = 0xc80; StartTask(fn, pri); }` took the final 2 encodings to 0 where a
+`0xc80u` suffix, a `(void *)` cast and a changed prototype all failed.
