@@ -1,4 +1,37 @@
-/* Func_80b9554 -- 0x080b9554  [asm/rom_b5000/rom_b8228_c_a_c_c_a_c_a.s]
+/* !! DO NOT "LAND" THIS: IT MEASURES 0 OF 81 AND IS STILL A PARK. !!
+ *
+ * Flagged in the batch-297a frontier sweep, which measured it byte-identical
+ * (176 == 176 bytes, 7 == 7 relocations) and nearly filed it as a free landing.
+ * It is not one, for two independent reasons:
+ *   1. It is a deliberate park in the gcc-NESTED-FUNCTION class, and it cannot
+ *      land alone -- it must land together with Func_80b9724 and Func_80b9604.
+ *   2. It carries 1 register pin, so a landing would also need a fakematch.txt
+ *      row.
+ * Its `Verify with:` recipe also names a stale `.s`, which is why parkcheck has
+ * not been reporting the 0.
+ *
+ * A park measuring 0 is therefore NOT sufficient evidence of a landing.  Check
+ * whether the park says it is waiting on siblings before acting on the figure.
+ *
+ * Verify with (this recipe lives in the FIRST comment block deliberately --
+ * parkcheck's header_of() matches only the leading /* ... *\/ and will not see a
+ * recipe placed in a later block):
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *       goldensun-build python3 tools/objcmp.py \
+ *       src/non_matching/rom_b5000/80b9554.c \
+ *       asm/rom_b5000/rom_b8228_c_a_c_c_a_c_a_c_c_c.s --func Func_80b9554
+ *
+ * It measures 0 encodings of 81.
+ */
+/* Func_80b9554 -- 0x080b9554  [asm/rom_b5000/rom_b8228_c_a_c_c_a_c_a_c_c_c.s]
+ *
+ * Verify with (recipe added in batch 297; the path above was stale by three
+ * split suffixes, which is why parkcheck reported this park UNCHECKABLE and
+ * nobody saw that it measures 0):
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *       goldensun-build python3 tools/objcmp.py \
+ *       src/non_matching/rom_b5000/80b9554.c \
+ *       asm/rom_b5000/rom_b8228_c_a_c_c_a_c_a_c_c_c.s --func Func_80b9554
  *
  * PARKED DELIBERATELY, NOT FOR LACK OF A MATCH. The body below is BYTE-EXACT --
  * tools/objcmp.py reports 176 bytes, 81 encodings and 7 relocations identical.
