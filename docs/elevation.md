@@ -25006,3 +25006,74 @@ prologue and control flow, not one local instruction run — forcing them means
 transcribing all 11 instructions, which is transcription rather than
 decompilation. A function whose only unreachable part is a short local sequence
 is a different case and should still be attempted.
+
+## The cutscene-script family: pin, minimise, and mind the fill direction
+
+`OvlFunc_952_200a014` — **2,805 instructions, the largest function elevated so
+far** — landed byte-exact (7468 bytes, 2837 encodings, 875 relocations). It is
+the third member of this family to land, after
+`src/overlays/rom_7d768c/ovl_30_c_a_a_c_c_c_c_c_a_b.c` (744 instructions) and
+`src/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c_c_a_a.c`. All three are booked in
+`fakematch.txt`; pins are the family's lever, not a shortcut.
+
+**Recognising the family:** thousands of instructions but almost no control flow
+— here 869 calls, 326 of them `__CutsceneWait`, against **11** conditional
+branches, 21 labels, **no `sub sp` frame** and **no r8-r11**. When a function
+looks like that, the work is argument order, not allocation, and it is tractable
+at any length. Screen it by counting conditionals, not instructions.
+
+**MINIMISE THE PINS; do not ship the first working set.** Starting from "pin
+every site with an argument outside 0..255" gave 174 sites and was *already*
+byte-exact. A greedy last-to-first removal, re-screened after every drop, found
+**29 of them inert**; a second full round over the survivors dropped nothing.
+Final: **145 sites / 432 pins, at a fixpoint.** The inert ones cluster
+(`__Func_8092adc` alone accounted for 23), so a first working set can easily be
+20% larger than necessary. Automate the reduction — a pin that changes nothing is
+a false claim about what the match needs.
+
+**The fill direction is per-callee, and the template's rule needed narrowing.**
+The 744-instruction precedent recorded "no site wants the descending fill". Seven
+sites here do, six of them `__Func_8092c40` — and the discriminator is context,
+not the callee alone: it wants `q1 = 0; q0 = N;` at exactly the six of its eight
+sites whose call is followed by the `__Func_8091c7c` test, while the two that end
+a block want **no pin at all**. So the uniform ascending fill remains the default
+and the exceptions are real; check any callee that appears many times.
+
+**A `|=` / `&=` pair on one byte can pull opposite ways.** Both
+`__MapActor_GetActor(0x14)[0x5a]`, four instructions apart: inline gets the `and`
+right and the `orr` wrong. The narrow-local recipe closes it — but naming the
+pointer at **both** sites costs 2,529 differing. Name it at the site that needs
+it and nowhere else. This is the one-variable-per-region rule again, at the
+granularity of a single statement.
+
+**A dependent-count tie can be unreachable from source, and the empty barrier is
+the answer.** The last two encodings were `rank_for_schedule` falling through
+priority (all three insns tied at 35) and class to "prefer the insn which has
+more later insns that depend on it". Read off `-fsched-verbose=8`: each `mov` has
+3 dependents — both calls plus an output dep on the later same-register `mov` —
+and the `strh` has 2, so the store can never be lifted. Every pin arrangement,
+both fill orders, both widths, every statement order, seven upstream pins and four
+inner-call pins all failed. `__asm__ volatile ("")` between the store and the
+argument fill splits the scheduling region and lands it. Legal here only because
+the function uses no r8-r11, which is the standing condition on that barrier.
+
+**A hypothesis about the prologue that was wrong, recorded because it was
+plausible.** The 744-instruction precedent has `push {lr}` and keeps no constant
+anywhere; this one has `push {r5, lr}`, so the natural prediction was "exactly one
+commoned constant survives in r5". It does not. **r5 holds `&iwram_3001ebc`** —
+the ADDRESS of a global pointer, hoisted by gcse across one block that reads
+`[r5]` three times over two calls. The other 13 references to that symbol each sit
+alone in their own basic block and rebuild the address. So a saved register in
+this family means a hoisted address, not a commoned literal, and our compile
+reproduces it unasked.
+
+**`tryc` reports DIRTY on a byte-exact file here — verified.** It says
+"2826 lines, ours 2827, first diff at 2811, 16 differ" while objcmp says
+identical. gcc puts the final `if`'s pool-skip label immediately before that
+`if`'s join label, two label definitions at one address, and the positional count
+cascades from there. This is the documented "a DIRTY screen that opens on a LABEL
+is a false negative", and it is the **fifth** misleading metric recorded in two
+batches — after `--align` reading 10 on a byte-identical function, a line-level
+`.s` diff reporting 33 of 33 when 13 were byte-identical, a substring grep
+counting `@` prose, and a register-masking normalizer reading 90.7% on a 96%-wrong
+reconstruction. On this family, objcmp and `make compare` are the only screens.
