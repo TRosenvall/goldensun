@@ -24807,6 +24807,21 @@ with no operands is not a shim; once it names an operand it manufactures a
 reference, and that is a fakematch.
 
 ## A one-member UNION is a per-MEM alias escape, and it beats -fno-strict-aliasing
+> **BOUNDED (batch 298): it reaches SCHEDULING only, NOT loop-invariant motion.**
+> This entry is correct as written — it is about `arm_adjust_cost` and a missing
+> 1-point dependence edge in sched2 — but it does not generalise to LICM, and
+> someone will try it there. On `Func_801b664` five forms were measured (a
+> pointer cast, a packed embedded union, a 4-short union at the field, and a
+> store-side union at the node) and **all five were byte-identical to no union at
+> all.** sched2 and `loop_invariant_p` reach alias sets through different code;
+> only `volatile` (or the flag) reaches the latter. There `volatile` on two
+> loop-invariant fields was worth **145 encodings** (156 -> 11).
+>
+> And `-fno-strict-aliasing` was NOT the better route on that function, contrary
+> to what this entry says for the scheduling case: measured at instruction level
+> the flag leaves residue in BOTH the loop and the tail, where `volatile` leaves
+> it only in the tail. The tree's `ALIAS_CFLAGS` group does not cover that file.
+
 
 `c-common.c:3329-3345`: `lang_get_alias_set` walks out through `COMPONENT_REF`
 and `ARRAY_REF` and returns alias set **0** as soon as a component's containing
@@ -25320,3 +25335,33 @@ POOLS was named in the original (see the batch-297 corpus check — zero SImode 
 loads of a plain 1–255 value across all 4,342 generated `.s`). `Anim_Cast` turned
 up an instance: `ldr r6, =0xc9` where `_FILE_c9` is missing from `file_table.sym`
 while `_FILE_c8`, `_FILE_ca` and `_FILE_cb` all exist.
+
+## An embedded union at an odd halfword offset breaks the layout AND looks like a win
+
+The trap, found on `Func_801b664`. ARM's `STRUCTURE_SIZE_BOUNDARY` is 32, so a
+one-`short` union **pads to 4 bytes and is 4-aligned**. Place one at an odd
+halfword offset — 0x396 — and every later field shifts by 4.
+
+What makes this dangerous is that it *scored better*: **154 of 199 with the size
+matching**, against the correct layout's 156. A residue count and a size check both
+endorsed a structurally wrong struct.
+
+**The only tell was the pool constants**: the candidate pooled 0x3a2 and 0x3a6
+where the reference has 0x39e and 0x3a2. So before believing a gain from a struct
+change, read the pool constants and check they still name the ROM's offsets. This
+is the eighth misleading measurement recorded in three batches, and the first where
+the misleading signal was the residue count itself agreeing with a size match.
+
+## Underscore-aliased symbols confound objcmp's RELOCATION check, not its verdict
+
+Several functions reach their callees through the tree's underscore aliases
+(`_Func_801776c`, `_GetUnit`). Where the reference names one spelling and the
+candidate emits the other, objcmp reports RELOCATIONS differ while the link
+resolves both to the same address through `aliases.txt`.
+
+This is the same benign class as a zero-addend `R_ARM_ABS32` against a `.sym` id,
+and it is handled the same way: **get the ENCODINGS to zero, state that the
+relocation difference is alias-only, and let `make compare` be the arbiter.**
+objcmp is still the authority on the encodings; it is only the relocation list that
+is confounded. Do not treat such a function as unverifiable — `Func_8091a58` landed
+on exactly this basis, with two pool words differing in objcmp and a green compare.
