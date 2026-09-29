@@ -25155,3 +25155,62 @@ saturated count could not.
 This is the seventh misleading measurement recorded in two batches, and the first
 one in the tool this document calls the authority. The authority claim is still
 correct; it was just never a claim about the count.
+
+## A symbol address held in a register is cse1's pool-constant equivalence, and source cannot reach it
+
+Found on `BaseAnim_SpecialAttack`, where the ROM reloads `ldr r1, =gBuffer` from a
+pool word at each of 22 sites while our compile holds it in r5 and feeds every
+call `adds r1, r5, #0`.
+
+**The mechanism.** The Thumb backend materialises a symbol address at EXPAND time
+as a constant-pool `MEM` (`*.LC4`, its own alias set) carrying
+`REG_EQUAL (symbol_ref "gBuffer")`. `cse1` commons it through its pool-constant
+equivalence, and **a `bl` does not invalidate that**, because the value lives in a
+pseudo and a `(symbol_ref)` is a constant. Read off the dumps: at `.00.rtl` the
+loads are separate pseudos with one use each — the ROM's shape — and by `.03.cse`
+the second is already gone.
+
+**Why no spelling reaches it.** Every reference to one symbol resolves to the SAME
+`force_const_mem` entry, because the symbol hashes to it. So there is no source
+form that produces a second pool entry: not `&sym[0]`, not a distinct block-scope
+local per site (cse merges them), not two locals split across the sites, and not
+any placement of the assignment — top of function, above a guard, or immediately
+before first use. All measured inert.
+
+**And the register choice is not a source question either.** At `.17.lreg` the
+insn does carry a genuine `REG_EQUIV (symbol_ref ...)`, so reload *could*
+rematerialise the address at every use — exactly the ROM's shape. Global-alloc
+claims the register first, which is an `allocno_compare` priority decision
+reachable through register pressure, not through source text. **Forcing it
+requires a pin.** That makes this a blocker class: when the ROM rebuilds a symbol
+address at each use and your compile holds it in a call-saved register, either pin
+it or accept it — do not spend a round on spellings.
+
+**What IS worth doing:** naming the address as one shared pointer local across a
+call chain does not break the hold, but it removed a surplus pool word (9 → 8,
+the ROM's count) and moved 3.4 points of aligned residue on that function. Declare
+it LAST so it cannot perturb the spill-slot map.
+
+### A flag that changes your symptom for an unrelated reason is worse than no evidence
+
+The pass before this one diagnosed the hold as **gcse**, citing `-fno-gcse` as
+confirmation because it produced the ROM's 8 pool words instead of 9. That was a
+coincidence: `-fno-gcse` does not touch the hold at all — the asm under it is
+still `ldr r5, .L382+16 / mov r1, r5 … mov r0, r5`, byte-for-byte the production
+shape — and its pool-word count changed because the flag moved the FRAME, which
+re-regioned the pools.
+
+`.07.gcse` changes nothing at those insns; `.03.cse` does all of it. So before
+crediting a flag with confirming a pass, check that the flag changed **the thing
+you are attributing**, not a number that happens to move with it. The `-da` dump
+for the pass you suspect is the check, and it is cheap.
+
+### Reading table element widths off an unscaled index
+
+`ldrb r3, [r0, r2]` on a counter that is **not** shifted says the table is bytes;
+the neighbouring `lsl r3, r1, #1 / ldrh r1, [r2, r3]` says that table is
+halfwords. Two tables read that way on `BaseAnim_SpecialAttack` were declared
+`unsigned short` and are bytes — fixing them took `ldrb` to the reference's exact
+25 and removed 4 spurious `ldrh`. Note this was **neutral on every residue
+metric**, so a metric-driven search would never have found it: the index scaling
+is the evidence, not the difference count.

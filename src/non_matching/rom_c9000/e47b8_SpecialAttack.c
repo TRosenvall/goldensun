@@ -1,6 +1,6 @@
-/* BaseAnim_SpecialAttack (0x080e47b8) -- NON-MATCHING, 3233 encodings of 3380
+/* BaseAnim_SpecialAttack (0x080e47b8) -- NON-MATCHING, 3080 encodings of 3380
  * differ.  THE LONGEST FUNCTION IN THE TREE at 3,070 ROM instructions.  Zero
- * shims: no register pin, no __asm__, production flags only.  Second pass.
+ * shims: no register pin, no __asm__, production flags only.  Third pass.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -8,104 +8,145 @@
  *       src/non_matching/rom_c9000/e47b8_SpecialAttack.c asm/rom_c9000/rom_e47b8.s \
  *       --func BaseAnim_SpecialAttack
  *
- * STATE: size 7796 against 7808 (12 bytes short), count 3377 against 3380 (3
- * short).  THE FRAME IS NOW THE ROM'S -- `sub sp, sp, #184` = 0xb8 -- and all 26
- * distinct [sp,#N] offsets match the reference exactly.  The first divergence has
- * moved from index 7 to index 41, and the leading ~40 instructions are exact.
+ * PROGRESS ON THIS FUNCTION MUST BE READ WITH tools/aligncmp.py, NOT objcmp's
+ * count -- the count saturates while the instruction count differs (three earlier
+ * candidates all read exactly 3250 despite hundreds of changed slot offsets).
+ *   pass 1   0xc0   1681/3380 = 49.7%   652 hunks   objcmp 3250
+ *   pass 2   0xb8   1847/3380 = 54.6%   603 hunks   objcmp 3233
+ *   pass 3   0xb8   1959/3380 = 58.0%   588 hunks   objcmp 3080   <- this file
+ * Size 7788 against 7808, count 3374 against 3380, first divergence index 41.
+ * Frame `sub sp, sp, #184` (0xb8) and all 26 [sp,#N] offsets match the reference;
+ * ANY change that moves either is wrong -- it is one grep of the generated asm.
  *
- * ================== THE SLOT MAP IS THE OBSERVABLE, NOT THE FRAME ==================
- * SPILL-SLOT ORDER IS DECLARATION ORDER, ONE FOR ONE.  Declared locals take the
- * HIGH offsets in declaration order (first declared = highest); compiler temps and
- * the outgoing-argument words take the low offsets.  Proved here with a swap probe
- * on two adjacent declarations.
+ * ================== CORRECTION: IT IS cse1, NOT gcse ==================
+ * Pass 2 attributed the gBuffer hold to gcse and cited `-fno-gcse` as confirming
+ * it.  BOTH WERE WRONG, and the correction is the main result of pass 3.
  *
- * The consequence is large and reusable: A REFERENCE .s PUBLISHES THE ORIGINAL
- * DECLARATION ORDER OF ITS SPILLED LOCALS.  Read the slot map top-down and you
- * have the source's declaration block.  For this function that is, from the top:
- *   context, subanim, base, ctx, frame, view, gfx, bgx, bgvx, nframes, pA, pB,
- *   fnp, sav24..sav48, tgt, pS
- * then the compiler temps -- `subanim-2` at 0x14, `subanim-4` at 0x10, two more at
- * 0x0c and 0x08 -- then the two outgoing-argument words at 0x04 and 0x00.
+ * The production `-da` dumps settle it.  At .00.rtl the two loads are SEPARATE
+ * pseudos with one use each -- the ROM's shape:
+ *     (insn 102 (set (reg:SI 81) (mem/u/f:SI (symbol_ref/u:SI ("*.LC4")) 4)))
+ *     (insn 114 (set (reg:SI 82) (mem/u/f:SI (symbol_ref/u:SI ("*.LC4")) 4)))
+ * By .03.cse insn 114 is ALREADY GONE and insn 122 reads (reg:SI 81).
+ * .07.gcse changes nothing there.
  *
- * THE FIRST REVISION'S SLOT ANNOTATIONS WERE WRONG AND THAT IS WHAT HID THIS.  It
- * marked `pv` as sp+0x08 and `ax` as sp+0x0c; 0x14 and 0x10 demonstrably hold the
- * two `subanim` bias temps, so the ROM's DECLARED block ends at `pS` (0x18).
+ * `-fno-gcse` does NOT break the hold: under it the asm is still
+ * `ldr r5, .L382+16 / mov r1, r5 ... mov r0, r5`, byte-for-byte the production
+ * shape.  Its 8-against-9 gBuffer pool words -- the signal pass 2 read as
+ * confirmation -- came from POOL RE-REGIONING after that flag moved the frame to
+ * 0xa8, nothing to do with the hold.  A flag that changes the symptom you are
+ * counting for an unrelated reason is worse than no evidence.
  *
- * The two surplus slots were two DECLARED LOCALS, not an arm and not a statement:
- *   - `pv` (= &vin) had a declared slot here; the ROM has none for it and
- *     materialises the address inline, `add r1, sp, #0x94` (asm:593).
- *   - `ax` (= pA->x / 2) had a declared slot here; the ROM DOES spill that value,
- *     but to [sp,#0xc] (asm:1949) -- BELOW the CSE temps.  A declared local can
- *     never land below a CSE temp, so `ax` was not a variable in the original:
- *     `pA->x / 2` was written at its four use sites and cse unified them.
- * So the fix was to reorder the declaration block to the ROM's published order and
- * delete both locals.  Both changes are needed: the reorder is worth NOTHING until
- * the frame closes, and then it is worth 123 instructions.
+ * WHY NO SOURCE SPELLING REACHES IT.  The Thumb backend materialises gBuffer at
+ * EXPAND time as a constant-pool MEM (`*.LC4`, alias set 4) carrying
+ * REG_EQUAL (symbol_ref "gBuffer").  cse commons it through its pool-constant
+ * equivalence, and a `bl` does not invalidate that, because the value lives in a
+ * pseudo and a (symbol_ref) is a constant.  All 22 ROM sites share ONE
+ * force_const_mem entry -- the same symbol always hashes to the same *.LC4 -- so
+ * no spelling of the argument can produce a second pool entry.
  *
- * ================== THE BISECTION I WAS TOLD TO RUN CANNOT WORK ==================
- * The plan was to binary-search the twelve dispatch arms by stubbing subsets and
- * reading `sub sp, #N`.  FRAME SIZE IS NOT MONOTONE IN CODE REMOVED, so no such
- * search is valid.  Measured, blanking the 14 non-empty arms:
- *   none 0xc0 | arm1 0xdc | arm3 0xe0 | arm4 0xbc | arm6 0xc4 | arm7 0xe0
- *   arm5 or arm9 0xc0 | 1,3 0xdc | 1,4 0xb4 | 3,4 0xbc | 1,3,4 0xb4
- *   1,3,4,5 0xb8 | 1,3,4,5,6,7,9 0xb8 | all 14 0xac
- * Removing ONE arm RAISES the frame by up to seven slots, because deleting code
- * changes which pseudos cross calls and the allocator re-decides globally.  Use
- * the SLOT MAP -- a set, comparable element by element -- not the frame total.
+ * At .17.lreg insn 102 does carry a genuine REG_EQUIV (symbol_ref "gBuffer"), so
+ * reload COULD rematerialise it at every use, which is exactly the ROM's shape.
+ * Global-alloc hands it r5 first instead, and that is an allocno_compare priority
+ * decision reachable only through register pressure, not through source text.
+ * FORCING IT WOULD REQUIRE A PIN, and none is used here.
  *
- * ================== objcmp's DIFFERENCE COUNT SATURATES ==================
- * objcmp compares index by index with no alignment, so once one instruction is
- * missing everything after it differs.  Verified: this park's first revision, the
- * reorder-only variant and the swap probe ALL read EXACTLY 3250 despite hundreds
- * of changed slot offsets between them.  objcmp remains the authority on
- * byte-exactness -- OK is OK -- but ITS COUNT IS NOT A PROGRESS METRIC while the
- * instruction count differs.
+ * Measured and inert, all production flags, all leaving the hold intact:
+ * `&gBuffer[0]`; a distinct block-scope local per site (cse merges them, as
+ * documented); two locals split across the chain; and the assignment placed at the
+ * top of the function, above the guard `if`, and immediately before first use.
+ * A `((Part*)0x02010000)` macro reads 57.3%/596 but DELETES ALL EIGHT gBuffer
+ * relocations -- rejected, it is not the same object.
+ * Diagnostic only, non-production: -fno-gcse 48.1%/650; -fno-cse-follow-jumps
+ * 57.1%/601 at frame 0xb8; -fno-rerun-cse-after-loop 49.4%/664;
+ * -fno-expensive-optimizations 39.0%/643; -ffixed-r4 48.7%/636; -fcall-saved-r4
+ * 49.3%/652.  None removes the hold.
  *
- * For a sensitive figure, `scratch_elev/b296c/align.py` (gitignored) aligns the two
- * raw encoding streams with an LCS.  MASKING RULES: NONE -- raw 16/32-bit
- * encodings compared verbatim, only insert/delete alignment tolerated, so a pool
- * load whose offset moved still counts as a difference; the single looseness is
- * that relocated words read as 0 in both streams and so compare equal.
- *   first revision      0xc0   1681/3380 equal (49.7%)   652 hunks
- *   reorder only        0xc0   1677/3380 (49.6%)         648
- *   pv+ax removal only  0xb8   1724/3380 (51.0%)         646
- *   both (this file)    0xb8   1847/3380 (54.6%)         603
+ * ================== WHAT DID MOVE, AND IT IS NOT THE HOLD ==================
+ * Naming the chain's gBuffer as ONE shared pointer local (`Part *gb`, declared
+ * LAST so it cannot perturb the slot map) across the 13 chain sites is worth
+ * 54.6% -> 58.0% and 603 -> 588 hunks.  The hold survives -- it is merely hoisted
+ * one call earlier -- so the gain is from the naming, not from breaking it.  It
+ * also removes the surplus gBuffer pool word: 9 -> 8, the ROM's count.
  *
- * ================== THE NEXT DIVERGENCE, AND IT CASCADES ==================
- * At the LoadVFXFile(..., gBuffer, ...) chain, gcse hoists `gBuffer` into r5 and
- * then feeds every call with `adds r1, r5, #0`, where the ROM reloads
- * `ldr r1, =gBuffer` from a single pool word at each site.  Diagnostic only and
- * FLAG-CONDITIONAL, NOT PRODUCTION: `-fno-gcse` gives eight separate pool words
- * and frame 0xa8.
+ * Three controls, because a 3.4-point move on a helper metric deserves them:
+ *   (a) naming the UNRELATED constant 1 at the same 13 sites is byte-for-byte
+ *       identical to the baseline (1847/603) -- so this is specific to gBuffer,
+ *       not naming noise;
+ *   (b) it is dose-dependent -- all 13 sites 58.0%, omitting the Func_80df9d0
+ *       site 54.8%, omitting the FILE_99 site 55.7%, and extending to all 30 uses
+ *       in the function 52.2% WITH THE FRAME BROKEN to 0xbc (rejected);
+ *   (c) the hunk classes that improve are structural (same-mnemonics-different-
+ *       operands 126 -> 115; "other" 372 -> 358 hunks) while pure register
+ *       substitution is UNCHANGED at 176 hunks.
  *
- * The knock-on is global.  With r5 tied up we use r4 wherever the ROM uses r5
- * (`ldr r4,[sp,#92]` against the reference's `ldr r5,[sp,#92]`), which is very
- * likely the same cause as the eight `Func_80008d4` pointers landing in r7 where
- * the ROM uses r5, recorded in the first revision.  It also explains the known
- * surplus gBuffer pool word -- 9 against the ROM's 8 -- now localised to this
- * chain.
+ * ================== THE r4/r5 HYPOTHESIS IS DEAD ==================
+ * Pass 2 predicted that breaking the hold would flip an r4/r5 pairing globally.
+ * It does not, and the pairing was never the shape of the problem.  Register
+ * histograms over objdump text on BOTH sides (the .s text is useless here -- gcc
+ * prints `lsl r0, r0, #7` where the reference prints `lsl r0, #7`):
+ *     ref   r0 687  r1 547  r2 594  r3 1114  r4  66  r5 400  r6 121  r7 116
+ *     ours  r0 668  r1 439  r2 541  r3 1127  r4 277  r5 324  r6 111  r7 166
+ * r4 is +211 where the hold can account for ~22.  The substitution hunks show a
+ * DIFFUSE permutation -- r5->r7 29, r5->r4 28, r0->r5 22, r6->r5 19, r2->r0 17,
+ * r6->r7 15 -- not one pair.  High-register traffic is EQUAL (ref 177, ours 180),
+ * so we are not spilling more; the same values sit in different registers.  This
+ * is the corpus-wide REG_ALLOC_ORDER class, on the largest available instrument.
  *
- * SO THE NEXT MOVE IS THAT CHAIN, not another whole-function re-spelling and not
- * individual arms: find the spelling that stops gcse keeping gBuffer in a
- * call-saved register.  If it flips the r4/r5 pairing globally it should move a
- * large block at once.
+ * The hold itself is worth AT MOST ~40 of the differing encodings -- 21
+ * `adds rN, r5, #0`, one insert at index 48, and the index-41/45 pool
+ * displacement (our block is 2 bytes longer, so gcc dumps the second minipool one
+ * instruction early: ref `bl / b / .short 0 / pool`, ours `b / pool / bl`).
+ * About 3% of the residue.  Pass 2's expectation that it would "move a large
+ * block at once" was wrong.
  *
- * ================== CARRIED FORWARD FROM THE FIRST REVISION ==================
- * Still valid, and not re-derived here:
- *   - The RELOCATION evidence that the reconstruction is semantically close: the
- *     R_ARM_THM_CALL sequence matched in order 207 of 217, with nothing missing
- *     from the R_ARM_ABS32 symbol multiset.
- *   - Two call counts come out LOWER than the ROM's because CROSS-JUMPING MERGES
- *     fire here and not in the ROM -- our arms are MORE identical than the ROM's.
- *     Do not make those arms look alike.
- *   - Three levers that paid: a two-sided range test on a spilled counter wants
- *     the unsigned biased form (fold_range_test cannot build it from a >=/<= pair
- *     once a reload separates the comparisons); default-then-override is not an
- *     if/else; a conditional ARGUMENT is a duplicated call, not a ternary.
- *   - A register-masking normalizer read 90.7% on this reconstruction when objcmp
- *     said 96% of encodings were wrong.  It masked branch targets and pool
- *     constants too.  Any helper metric must state its masking rules; align.py
- *     above states that it has none.
+ * ================== THE MIX IS NOW ALMOST EXACT ==================
+ * Mnemonic deltas against the reference: bl -3 (the three cross-jump merges),
+ * add +1, asr +2, b +1, bgt +1, bhi -1, ble +1, cmp +1, lsl -3, lsr +2, str +2,
+ * sub -1, ldr -1.  IGNORE the ldrh +13 / ldr -13 pair: those are `ldrh rD, .Lxx`
+ * pool loads, which assemble to the SAME Thumb-1 encoding as `ldr rD, .Lxx`
+ * (docs/elevation.md:2309).
+ * Of the 588 hunks, 232 are net-zero insert/delete pairs and 176 are pure register
+ * substitution.  SO THE RESIDUE IS REGISTER ASSIGNMENT PLUS LOCAL INSTRUCTION
+ * ORDERING, NOT CODE SHAPE.  The relocation multiset now differs from the
+ * reference only by _call_via_r5 x8 -> _call_via_r7 x8, one _call_via_r4, and the
+ * known _SetBattleActorKnockback cross-jump merge.
+ *
+ * ================== SECOND FINDING: TWO BYTE TABLES ==================
+ * Data_edeca and Data_eded0 are BYTE tables, not unsigned short.  Reference
+ * asm/rom_c9000/rom_e47b8.s:1905,1908 reads them with `ldrb r3, [r0, r2]` on the
+ * UNSCALED counter, immediately after the halfword read of Data_edebe
+ * (`lsl r3, r1, #1 / ldrh r1, [r2, r3]`), which independently confirms the
+ * neighbour is genuinely halfword.  Declaring both `unsigned char` takes ldrb to
+ * exactly the ROM's 25 and removes 4 spurious ldrh.  It is NEUTRAL on aligncmp,
+ * so a metric-driven search would never have found it.
+ * Pass 3 flagged this as needing re-screening because decls.h might be shared
+ * across this directory's parks.  IT IS NOT: decls.h is used by this park alone
+ * (checked), having been added with the park in 6925b736, so there is nothing to
+ * re-screen and it is applied here.
+ *
+ * ================== NEXT ==================
+ * Not this chain -- it is closed, and closed for a mechanical reason rather than
+ * for want of spellings.  Two candidates, in order:
+ *   1. The three cross-jump merges (bl -3).  Our arms are MORE identical than the
+ *      ROM's, so jump.c merges where the ROM could not; the first revision worked
+ *      out one case at asm:3349 against asm:3390.  Do NOT make those arms look
+ *      alike -- the differences between them are load-bearing.
+ *   2. The REG_ALLOC_ORDER question.  This function is now the best instrument in
+ *      the corpus for it: the instruction mix is within +/-3 per mnemonic while
+ *      176 hunks are pure register substitution, so a change there is visible
+ *      without any confounding shape difference.
+ *
+ * ================== CARRIED FORWARD ==================
+ *   - The spill-slot rule this function produced: declared locals take the HIGH
+ *     offsets in declaration order, temps and outgoing-arg words the low ones, so
+ *     a reference .s PUBLISHES its declaration order and a value spilled below the
+ *     temps was never a declared variable.  See docs/elevation.md.
+ *   - Do not bisect on the frame TOTAL: it is not monotone in code removed.
+ *   - Three levers that paid in pass 1: the unsigned biased two-sided range test
+ *     on a spilled counter; default-then-override rather than if/else; a
+ *     conditional ARGUMENT as a duplicated call rather than a ternary.
+ *   - RELOCATION evidence of semantic completeness: 207 of 217 THM_CALL in order,
+ *     nothing missing from the ABS32 multiset.
  */
 #include "decls.h"
 
@@ -142,6 +183,7 @@ void BaseAnim_SpecialAttack(void *context, int subanim)
     FillFn fill;
     int i, j, k, n, cnt;
     int h, yb, sx, sy, a, b;
+    Part *gb;
 
     tbl = (int **)iwram_3001eec;
     pp = tbl;
@@ -155,34 +197,35 @@ void BaseAnim_SpecialAttack(void *context, int subanim)
     } else {
         AnimStart(0);
     }
+    gb = gBuffer;
     REG_BLDALPHA = 0x1010;
     LoadVFXFile(FILE_73, gfx, 0, 0);
     LoadVFXFile(FILE_96, base, 1, 0);
-    LoadVFXFile(FILE_99, gBuffer, 1, 0);
-    Func_80df9d0(gBuffer, base + (0xa2 << 7), 0x28, 0x90 << 1);
+    LoadVFXFile(FILE_99, gb, 1, 0);
+    Func_80df9d0(gb, base + (0xa2 << 7), 0x28, 0x90 << 1);
     if (subanim == 5 || subanim == 0x17) {
-        LoadVFXFile(FILE_7d, gBuffer, 1, 0);
+        LoadVFXFile(FILE_7d, gb, 1, 0);
     } else if (subanim == 0xc) {
-        LoadVFXFile(FILE_a9, gBuffer, 1, 0);
+        LoadVFXFile(FILE_a9, gb, 1, 0);
     } else if (subanim == 6 || subanim == 0x1b) {
-        LoadVFXFile(FILE_ce, gBuffer, 1, 0);
+        LoadVFXFile(FILE_ce, gb, 1, 0);
         LoadVFXFile(FILE_c4, ewram_2010c56, 1, 0);
     } else if (subanim == 0x1f) {
-        LoadVFXFile(FILE_79, gBuffer, 1, 1);
+        LoadVFXFile(FILE_79, gb, 1, 1);
     } else if (subanim == 8) {
-        LoadVFXFile(FILE_c3, gBuffer, 1, 1);
+        LoadVFXFile(FILE_c3, gb, 1, 1);
     } else if (subanim == 0xe) {
-        LoadVFXFile(FILE_6f, gBuffer, 1, 0);
+        LoadVFXFile(FILE_6f, gb, 1, 0);
     } else if (subanim == 0x1e) {
-        LoadVFXFile(FILE_ce, gBuffer, 1, 0);
+        LoadVFXFile(FILE_ce, gb, 1, 0);
     } else if (subanim == 0x10) {
-        LoadVFXFile(FILE_b8, gBuffer, 1, 0);
+        LoadVFXFile(FILE_b8, gb, 1, 0);
     } else if (subanim == 0x14) {
-        LoadVFXFile(FILE_b4, gBuffer, 1, 0);
+        LoadVFXFile(FILE_b4, gb, 1, 0);
     } else if (subanim == 0x21 || subanim == 0x22) {
-        LoadVFXFile(FILE_53, gBuffer, 1, 0);
+        LoadVFXFile(FILE_53, gb, 1, 0);
     } else if (subanim != 0xb && subanim != 0x20) {
-        LoadVFXFile(FILE_9e, gBuffer, 1, 0);
+        LoadVFXFile(FILE_9e, gb, 1, 0);
     }
     switch (subanim) {
     case 0: case 4: case 7: case 8: case 9: case 10: case 11: case 12:
