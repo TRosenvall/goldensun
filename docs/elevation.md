@@ -25299,3 +25299,24 @@ This is a difference of ORDER, not of goal — the intent here is pure elevation
 first and asm removal in later passes, arriving at the same place. Worth knowing
 when offering work to them: our 8 fakematch functions in the offerable set need
 de-pinning before they are usable there.
+
+## An IO-register constant wants OPPOSITE spellings in different functions
+
+Two frontier functions in the same batch needed contradictory treatment of a
+constant written to a `vu16` hardware register:
+
+- `Anim_Cast` needed `0x100` routed through an `s32` local, which gets the ROM's
+  `mov` / `lsl` pair.
+- `LoadGS1TitleGFX` needed its constants written **straight at the `vu16`**, which
+  gets the ROM's pool loads.
+
+**The tell is whether the ROM pools the value or synthesises it**, and it is
+visible in the reference before you write anything: a `ldr rN, =K` means route it
+through a local of the wider type; a `mov` / `lsl` pair means write it at the
+register. Do not carry a spelling across banks on the strength of one function.
+
+This also interacts with the `<256` pool tell: a sub-256 constant that the ROM
+POOLS was named in the original (see the batch-297 corpus check — zero SImode pool
+loads of a plain 1–255 value across all 4,342 generated `.s`). `Anim_Cast` turned
+up an instance: `ldr r6, =0xc9` where `_FILE_c9` is missing from `file_table.sym`
+while `_FILE_c8`, `_FILE_ca` and `_FILE_cb` all exist.
