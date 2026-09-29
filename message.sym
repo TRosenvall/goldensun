@@ -133,6 +133,30 @@ _MSG_25dc = 0x25dc;
  * never spends the register -- the symbol address is what makes it derive. */
 _MSG_261c = 0x261c;
 _MSG_2624 = 0x2624;
+
+/* _MSG_96a and _MSG_978 -- added in batch 297 to complete Func_8091a58, which is
+ * byte-exact with them and 5 encodings out without them.
+ *
+ * NOTE THE EVIDENCE CLASS, because the usual tell does NOT apply: 0x96a and
+ * 0x978 are both UNSHIFTABLE, so gcc pools them either way and the reference's
+ * pool load is no evidence at all.  What justifies them is the in-function
+ * use_related_value shape: the ROM holds each base in a CALLEE-SAVED register and
+ * reaches the rest of the run by arithmetic on it -- `add r0,r7,#4`, `add r0,r7,#1`,
+ * `add r0,r7,#2`, `add r0,r5,#1`.  A plain int is constant-propagated and gcc never
+ * spends the register.
+ *
+ * The internal control is what makes this more than a positional claim: two OTHER
+ * ids in the SAME function, 0x977 and 0x96b, stay plain literals and are equally
+ * unshiftable.  So the discrimination is not "pooled therefore named" -- it is the
+ * register-plus-arithmetic shape, present for these two and absent for those two.
+ *
+ * Scope is exact and was measured: the symbol must go at ALL THREE 0x96a sites or
+ * the pool carries one word too many (SIZE 456 against 452); 0x96b stays a literal.
+ * The resulting objcmp relocation difference is benign -- a zero-addend
+ * R_ARM_ABS32 against an absolute .sym id links to the same word -- and
+ * `make compare` is the proof, not the argument. */
+_MSG_96a = 0x096a;
+_MSG_978 = 0x0978;
 /* _MSG_26e3 -- justification recorded in the batch-297 audit, which found this
  * was the ONLY row in any .sym with none on file anywhere.  It is load-bearing
  * (28 differing instructions without it) and it is UNSHIFTABLE, so the pool load

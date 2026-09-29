@@ -183,7 +183,7 @@ frontier	Task_ScreenWindowTransition	0x0808f52c	available
 frontier	ScreenTransitionIn	0x0808fefc	parked
 frontier	Func_8090a5c	0x08090a5c	available
 frontier	Func_80912b8	0x080912b8	parked
-frontier	Func_8091a58	0x08091a58	available
+they_lack	Func_8091a58	0x08091a58	clean
 frontier	Func_8092c40	0x08092c40	available
 frontier	Func_80930bc	0x080930bc	available
 frontier	Func_8093fa0	0x08093fa0	parked
