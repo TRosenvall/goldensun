@@ -25412,3 +25412,38 @@ uses it; this is the first measurement of what it does on this corpus. For the
 record the others: `-fno-gcse` 164, `-fno-cse-follow-jumps` /
 `-fno-expensive-optimizations` / `-fno-thread-jumps` 171, `-fno-rerun-cse-after-loop`
 174 but it converts the ROM's first `ldrsh` into `ldrh` plus a sign-extend.
+
+## Splitting a global-pointer load from its offset add is a SCHEDULING lever
+
+And the position of the OTHER prologue chain is what decides it. On
+`OvlFunc_933_20092fc` this single ordering took the residue from 17 encodings to
+**zero**:
+
+```c
+m = iwram_3001ebc;          /* the global load, early          */
+slot = gState.something;    /* the OTHER chain, in between     */
+o = *(T **)(m + 0x1e0);     /* the offset add, late            */
+```
+
+Interleaving the two prologue chains is what makes local-alloc give the iwram value
+its own register and lets sched2 weave them. **All five other orderings of those
+three statements fail.** So when a prologue has two independent chains and the
+registers come out wrong, try the six orderings before reaching for a pin — a pin on
+`0xc0 << 9` was needed at an intermediate stage on that function and proved inert
+once the ordering was right.
+
+## gcc reaches a stored CONSTANT from the address offset already in a register
+
+An idiom worth recognising on sight, because it cuts both ways. Where a function
+stores a constant near an address whose byte offset is already live, gcc derives the
+value from the offset: `add r3, #0x2c` for the value `0x258` beside offset `0x22c`;
+`add r2, #0x44` for `0x204` beside `0x1c0`; `add r0, #0x3f` for flag `0x201` beside
+offset `0x1c2`.
+
+Recognising it took `OvlFunc_934_2009984` from 55 differing to 8. **Failing to
+control its DIRECTION is the entire residue of `OvlFunc_933_2009638`**: there the
+ROM materialises the offset `0x22c`, consumes it in the address add, reaches the
+stored value `0x258` from it, and then re-materialises every later offset from
+scratch — while gcc does the mirror image, keeping `0x22c` live to derive the later
+*offsets* and paying a pool word for the value. Same mechanism, opposite direction,
+and the direction is the thing to control.
