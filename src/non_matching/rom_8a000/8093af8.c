@@ -3,7 +3,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_8a000/8093af8.c \
- *     asm/rom_8a000/rom_93304_a_c_c_c_c.s --func Func_8093af8
+ *     asm/rom_8a000/rom_93304_a_c_c_c_c_a.s --func Func_8093af8
  *
  * BLOCKER: RELOAD-SCRATCH ROUND-ROBIN *PHASE*, in the RELOAD pass.  ALL 29 differing
  * encodings trace to ONE decision: at insn 192 the constant -0x2fff gets r2 where the ROM

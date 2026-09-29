@@ -3,7 +3,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_8a000/8093e28.c \
- *     asm/rom_8a000/rom_93304_a_c_c_c_c.s --func Func_8093e28
+ *     asm/rom_8a000/rom_93304_a_c_c_c_c_a.s --func Func_8093e28
  *
  * BLOCKER: CALLEE-SAVED ROLE PERMUTATION in `global_alloc`, and DECLARATION ORDER IS
  * MEASURED INERT AGAINST IT.  Every one of the 48 differing encodings is the same

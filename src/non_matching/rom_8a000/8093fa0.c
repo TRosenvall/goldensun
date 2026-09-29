@@ -4,7 +4,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_8a000/8093fa0.c \
- *     asm/rom_8a000/rom_93304_a_c_c_c_c.s --func Func_8093fa0
+ *     asm/rom_8a000/rom_93304_a_c_c_c_c_a.s --func Func_8093fa0
  *
  * A POOLED `1` IN THIS BANK IS `_CONST_1`, AND IT ALREADY EXISTS -- const.sym:149, with its
  * validation note at const.sym:140.  NO NEW SYMBOL IS NEEDED.  The ROM's

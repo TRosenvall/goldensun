@@ -1,4 +1,4 @@
-/* Func_8094154 -- 0x08094154, asm/rom_8a000/rom_93304_a_c_c_c_c.s
+/* Func_8094154 -- 0x08094154, asm/rom_8a000/rom_93304_a_c_c_c_c_a.s
  *
  * Converts a field actor's world position to screen coordinates: subtract the
  * camera origin at iwram_3001e70 + 0xe4 with its low 16 bits masked off, divide
