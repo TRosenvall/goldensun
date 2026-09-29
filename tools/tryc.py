@@ -682,7 +682,18 @@ def main():
     #
     # They are honoured now, AND ECHOED, because silence was the actual defect:
     # a dropped flag and an inert flag are indistinguishable in the output.
-    argv_f = [a for a in sys.argv[1:] if a.startswith("-f")]
+    # The VALUE of --cflags must be skipped here: it is itself an argv entry
+    # beginning with "-f" whenever it carries flags, so a naive scan appended the
+    # whole quoted string as ONE option. cc1 then died on a bogus option and the
+    # run reported nothing varied -- which is the same false-negative this block
+    # exists to prevent, arriving by the other door. Batch 295 measured three
+    # flag PAIRS that never reached the compiler this way.
+    skip = set()
+    if "--cflags" in sys.argv:
+        skip.add(sys.argv.index("--cflags") + 1)
+    argv_f = [w for i, a in enumerate(sys.argv)
+              if i >= 1 and i not in skip and a.startswith("-f")
+              for w in a.split()]
     for a in argv_f:
         if a not in cflags:
             cflags = cflags + [a]

@@ -38,6 +38,9 @@ GLOBAL = re.compile(r"^\s*\.global\s+(\S+)", re.M)
 DATA_SECTIONS = (".rodata", ".data", ".bss")
 LABEL_DEF = re.compile(r"^(\.L\w+):")
 LABEL_REF = re.compile(r"\.L\w+")
+FUNC_END = re.compile(r"^\s*\.(?:thumb_|arm_)?func_end\b", re.I)
+# Asm line comments start with `@`; a label named in prose is not a read.
+COMMENT = re.compile(r"@.*")
 START = re.compile(r"^\s*\.(?:thumb|arm)_func_start(?:_noalign)?\s+(\S+)", re.I)
 
 
@@ -77,8 +80,23 @@ def split_requirements(path):
     starts = [(i, m.group(1)) for i, l in enumerate(lines) if (m := START.match(l))]
     out = []
     for k, (i, name) in enumerate(starts):
-        stop = starts[k + 1][0] if k + 1 < len(starts) else dstart
-        body = "".join(lines[i:stop])
+        # Stop at this function's own `.func_end` when it has one. Running to the
+        # NEXT .thumb_func_start swallows the following function's `@` doc-comment
+        # block, and since LABEL_REF matches inside comments, prose that merely
+        # NAMES a label was reported as a read. Brief A's Func_80f0678 was asked
+        # for three exports where the body references exactly one: the extra two
+        # were named in Func_80f07f0's comment. Over-exporting is the safe
+        # direction, so this never broke a link -- it wasted agent rounds, because
+        # the output was being handed to briefs as "the exact export list".
+        limit = starts[k + 1][0] if k + 1 < len(starts) else dstart
+        stop = limit
+        for j in range(i, limit):
+            if FUNC_END.match(lines[j]):
+                stop = j + 1
+                break
+        # Strip `@`-to-end-of-line before matching, for the same reason: a label
+        # discussed in a comment is not a label the code reads.
+        body = "".join(COMMENT.sub("", l) for l in lines[i:stop])
         reads = sorted({r for r in LABEL_REF.findall(body) if r in data_labels})
         need = [r for r in reads if r not in exported]
         out.append((name, reads, need))
