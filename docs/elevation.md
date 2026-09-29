@@ -24820,3 +24820,42 @@ arrive as a **second, differently-named macro** adopted per site. This is why
 
 **Indentation:** zero of 4,331 landed `.c` files use a leading tab. Expand
 drafts before landing them.
+
+## The int-return lever does not survive a blind tree-wide sweep
+
+Batch 295 swept it mechanically, because a park declaring `extern void F(...)`
+for a function the tree defines as `int` is both a documentation error and a
+known codegen lever. Both halves of the result are worth keeping.
+
+**The documentation error is widespread: 250 parks carry 445 return-type
+declarations that disagree with the tree's own definition**, 146 of them the
+`void`-declared/non-void-defined case. These should be corrected as
+documentation. They are NOT a harvest queue.
+
+**As a lever, blind application is worthless.** Of the 36 parks that both carry
+a runnable `Verify with:` recipe and declare `void` for a non-void function --
+67 declaration sites -- flipping every one to its true type and re-measuring
+moved exactly **one** park, `Func_80ba2c0`, and moved it by **one** encoding
+(205 -> 204). Everything else was unchanged. One spot check ran the other way
+hard: `BaseAnim_StatDown` goes to 502 differing and changes size.
+
+This is consistent with the mechanism rather than a refutation of it. The lever
+works through a DEPENDENT COUNT -- a void call is `*call_insn` and never sets
+r0, so the r0 fill carries one more `INSN_DEPEND` entry, and that decides
+`rank_for_schedule` only when priority and class have already tied. No tie, no
+effect. So the lever is worth trying **when the residue is already known to be a
+sched2 ordering at a call**, and is not worth trying otherwise. Its direction
+also remains per callee.
+
+Two tooling notes from the sweep, both of which cost a wasted run:
+
+- **`objcmp --func` and `--whole` print different formats.** `--func` says
+  `ENCODINGS differ in N place(s) (ref M, ours K)`; `--whole` says
+  `N of M differ`. A parser written against one silently returns None on the
+  other, and a sweep that drops None reports "nothing changed" rather than
+  failing. Any automated sweep should assert that its baseline parses before
+  trusting a negative.
+- **Only 120 of 664 parks have a recipe an automated sweep can run at all**, and
+  4 of those name a reference `.s` that no longer exists. That bounds every
+  mechanical sweep over parks to under a fifth of them until the recipes are
+  backfilled.
