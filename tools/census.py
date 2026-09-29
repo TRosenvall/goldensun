@@ -209,9 +209,33 @@ def match_stem(name, stems):
     return False
 
 
+def unmatchable_names():
+    """Functions enrolled in unmatchable.txt: PERMANENTLY not attemptable.
+
+    This is a structural fact like ARM, not a heuristic, so it gets its own
+    column rather than being folded into hand-asm -- the same reasoning lesson 4
+    gives for ARM. It exists because `gfree` was reported AVAILABLE and handed to
+    the owner as a pickable target in batch 296 while already being unmatchable:
+    census classified by FILE (hand_written) and never consulted the ledger that
+    records per-FUNCTION verdicts. 32 of gfree's 33 siblings in the same blocker
+    class were masked only because their files happen to read as hand-written.
+    """
+    path = os.path.join(ROOT, "unmatchable.txt")
+    if not os.path.exists(path):
+        return set()
+    out = set()
+    for line in open(path, errors="ignore"):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        out.add(line.split()[0])
+    return out
+
+
 def survey():
     """[(insns, name, hand_written, parked)] for every function still in asm/."""
     parked, stems = park_subjects()
+    unmatch = unmatchable_names()
     rows = []
     for root, _, files in os.walk(os.path.join(ROOT, "asm")):
         for fn in sorted(files):
@@ -235,7 +259,7 @@ def survey():
                         break
                 rows.append((n_insn(lines[i + 1:stop]), name, hw,
                              name in parked or match_stem(name, stems),
-                             kind == "arm"))
+                             kind == "arm", name in unmatch))
     return rows
 
 
@@ -245,28 +269,32 @@ def main():
         k = sys.argv.index("--list")
         lo, hi = int(sys.argv[k + 1]), int(sys.argv[k + 2])
         sel = sorted(r for r in rows
-                     if lo <= r[0] <= hi and not r[2] and not r[3] and not r[4])
-        for c, name, _, _, _ in sel:
+                     if lo <= r[0] <= hi and not r[2] and not r[3] and not r[4]
+                     and not r[5])
+        for c, name, _, _, _, _ in sel:
             print(f"{c:4d}  {name}")
         print(f"\n{len(sel)} available in {lo}-{hi}")
         return
     lab = lambda a, b: f"{a}-{b}" if b < 10 ** 9 else "800+"
     hdr = (f"{'size':>9} | {'total':>6} | {'hand-asm':>8} | {'ARM':>4} | "
-           f"{'parked':>6} | {'AVAILABLE':>9}")
+           f"{'unmatch':>7} | {'parked':>6} | {'AVAILABLE':>9}")
     rule = "-" * 9 + "-+-" + "-" * 6 + "-+-" + "-" * 8 + "-+-" + "-" * 4 + "-+-" \
-           + "-" * 6 + "-+-" + "-" * 9
+           + "-" * 7 + "-+-" + "-" * 6 + "-+-" + "-" * 9
     print(hdr); print(rule)
-    t = [0, 0, 0, 0, 0]
+    t = [0, 0, 0, 0, 0, 0]
     for a, b in BUCKETS:
         s = [r for r in rows if a <= r[0] <= b]
         hw = sum(1 for r in s if r[2])
-        arm = sum(1 for r in s if r[4] and not r[2])
-        pk = sum(1 for r in s if r[3] and not r[2] and not r[4])
-        av = len(s) - hw - arm - pk
-        t[0] += len(s); t[1] += hw; t[2] += arm; t[3] += pk; t[4] += av
-        print(f"{lab(a, b):>9} | {len(s):6d} | {hw:8d} | {arm:4d} | {pk:6d} | {av:9d}")
+        unm = sum(1 for r in s if r[5] and not r[2])
+        arm = sum(1 for r in s if r[4] and not r[2] and not r[5])
+        pk = sum(1 for r in s if r[3] and not r[2] and not r[5] and not r[4])
+        av = len(s) - hw - unm - arm - pk
+        t[0] += len(s); t[1] += hw; t[2] += arm; t[3] += pk; t[4] += av; t[5] += unm
+        print(f"{lab(a, b):>9} | {len(s):6d} | {hw:8d} | {arm:4d} | {unm:7d} | "
+              f"{pk:6d} | {av:9d}")
     print(rule)
-    print(f"{'TOTAL':>9} | {t[0]:6d} | {t[1]:8d} | {t[2]:4d} | {t[3]:6d} | {t[4]:9d}")
+    print(f"{'TOTAL':>9} | {t[0]:6d} | {t[1]:8d} | {t[2]:4d} | {t[5]:7d} | "
+          f"{t[3]:6d} | {t[4]:9d}")
     solved = (len(glob.glob(os.path.join(ROOT, "src/**/*.c"), recursive=True))
               - len(glob.glob(os.path.join(ROOT, "src/non_matching/**/*.c"), recursive=True)))
     print(f"\nmatched .c files in src/ (excl. parks): {solved}")
