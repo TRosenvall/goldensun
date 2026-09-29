@@ -24961,3 +24961,48 @@ does not extend to giv order or register choice.
 `CONDITIONAL_REGISTER_USAGE` fixes only the FP registers for Thumb. So a ROM
 `mov r12, r14` / `add r14, r3` is **not** evidence of a different toolchain, and
 a candidate can reproduce it.
+
+## Thumb cannot reuse a shift's flags, and any conditional costs a prologue
+
+Two related limits, found on `gfree` (11 instructions, the last available
+function in the 1-20 band) and both confirmed by mechanism AND corpus, which is
+the standard the `.call_via` retraction set.
+
+**1. Every Thumb conditional branch carries its own `cmp`.** `cbranchsi4`
+(`arm.md:5152`) and `*negated_cbranchsi4` (`5187`) unconditionally
+`output_asm_insn ("cmp\t%1, %2")` before the branch, and operand 1 is
+constrained to a plain `register_operand` — so there is no shift-in-compare
+form. The entire `*_compare0` family, which fuses an arithmetic result with the
+flag set, is gated on `TARGET_ARM`, and so is the `cmpsi` expander itself
+(`5225`). The one Thumb `define_peephole` in the file is about `add rd, sp, #imm`.
+So a ROM sequence like `lsr r3, r1, #22 / beq` — testing the shift's own Z flag
+with no `cmp` — is not something this code generator will produce.
+
+**2. Any function containing a conditional branch pays `push {lr}`.** Measured
+directly under the production flags: a leaf that only stores returns with a bare
+`bx lr`, and the same leaf with one `if` gets
+`push {lr}` … `pop {r0}` / `bx r0`. Three extra instructions, on every function
+with a branch.
+
+**The corpus check is the decisive half**, and it is emphatic: **0 of 4,323
+generated `.s` files** contain a function that has a conditional branch, does
+not push lr, and returns with a bare `bx lr`. **33 hand-written ones do** — and
+the names say what they are: `sin`, `m4aSoundVSync`, `MP2K_event_endtie`,
+`ply_pend`, `BlitFade_*_ROM`, `UploadPalette_ROM`, `DecompressLZ16_ROM`,
+`FixupRamCode_ROM`. Nintendo's MP2K driver and hand-written ROM routines, which
+were never C. 32 of the 33 were already enrolled in `unmatchable.txt` or parked;
+`gfree` was the only one census still called available, and it is now enrolled.
+
+**Screen:** if a ROM function has a conditional branch but no `push` and returns
+`bx lr`, stop and check this first — it is very likely original hand-written
+assembly, not a C function you have not cracked yet.
+
+**What this does NOT say.** Per the `.call_via` retraction, the machine
+description bounds the code generator, not the source language: inline asm can
+force sequences gcc would never choose, and this tree does that in
+`include/dma.h` and in the `call_via_r4` helper. The reason `gfree` is enrolled
+rather than forced is that its unreachable properties are the *whole function's*
+prologue and control flow, not one local instruction run — forcing them means
+transcribing all 11 instructions, which is transcription rather than
+decompilation. A function whose only unreachable part is a short local sequence
+is a different case and should still be attempted.
