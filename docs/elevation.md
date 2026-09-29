@@ -25984,3 +25984,70 @@ because Thumb's `mulsi3` seeds the destination from the non-call operand; an inn
 written as a giv (`int b = (frame << 9) + (n << 14);` with no `b += 0x4000`); and loading a
 field into a local *before* assigning a function-pointer local, worth 20 -> 6 through
 reload inheritance.
+
+## A closer SIZE can be a wrong program — the `s8` sign trap
+
+`s8` in this tree is `char`, and **`char` is UNSIGNED on ARM.** On `LoadMapData` the four
+per-layer scroll bytes need explicit `signed char`; spelled `s8` they are unsigned, which is
+a genuine sign bug.
+
+**And the buggy spelling measures better.** It hits the reference's size *exactly* (868
+bytes), 376 encodings, 71.1% aligned — against the correct program's 868-vs-876 and 75.6%.
+So a size match endorsed a wrong program while the right one looked worse on that axis.
+
+This is the same class as batch 298's odd-offset union (which scored 154 against the correct
+layout's 156) and batch 298's count-matching pin (256 == 256 while 47.7% aligned against
+66.0%). Three instances now, and the shape is always the same: **a metric improves because
+the program changed meaning, not because it got closer.** When a figure improves after a
+type change, check the type is still right before keeping it.
+
+## stage1.ld can name an object in a section its `.s` does not have
+
+`asm/rom_9000/rom_108e4_a.o` is named at `stage1.ld:224` for `(.text)` **and at :291 for
+`(.rodata)`**, while the `.s` itself has no data section at all. `datacheck.py` cannot see
+this — it reads the `.s`, and the `.s` is silent.
+
+So **a split's linker work is not fully determined by `datacheck`**: grep the scripts for the
+object stem as well, and expect a section row that looks spurious to be load-bearing (an
+empty output section still has to be placed). `InitWorldMap`'s landing needs two `stage1.ld`
+edits, not one.
+
+## A constant the ROM keeps in a register across two uses
+
+Two of brief H's three functions have the same residue class, and it is the top item on both:
+the ROM holds a constant in a register across two uses, where gcc-2.96 constant-propagates it
+and re-folds at each site. On `InitWorldMap` it is the 0x284 DMA count, which the ROM builds
+as `ldr =0x284 / mov #0x84 / lsr #2 / lsl #24 / orr` — five instructions — where gcc folds to
+one pooled word. On `LoadMapData` it is the 0x194 state size, rematerialised twice.
+
+**Every spelling tried is byte-identical** — named local, literal, shifted form. So one result
+here would close part of two functions, which makes it worth more than either alone. Note this
+is distinct from the documented "named base" case, where gcc *cannot* chain plain `CONST_INT`s:
+here the value is a single constant with two uses, not a base with derived offsets.
+
+## `.call_via rN` into an ARM callee that returns through r12
+
+`LoadMapData`'s `.call_via r9` looked like the structural wall, since no generated `.s` contains
+the macro. It is reachable, and the reason is the callee's convention: `Func_8000888` is ARM and
+returns with `add r12,#1 / bx r12`, **never touching lr** — which is exactly why the ROM can keep
+a live coordinate in r14 across the call.
+
+So the inline-asm shim reaches it, but **its clobber list must not name `"lr"`** — and the landed
+sibling's list does. That is the counterpart to the batch-299 finding that r14 can be an
+inner-loop counter: here it is a live value across a call, and an over-broad clobber list would
+silently take it away.
+
+## "Named means understood" does not hold
+
+Two of brief H's three references were wrong about their own function, continuing the pattern:
+
+- `Func_801d108`: the prose names three callees as "fades" — none is a fade (box dividers,
+  message text, OAM attach) — gives "395 lines" where the reader wants 388 instructions, and
+  omits the entire second half of the function.
+- `InitWorldMap`: the prose describes the prologue accurately for ~80 of 331 instructions and
+  then stops, omitting two affine matrices, two allocations, the whole 3-D set-up with four
+  indirect calls, a code-to-RAM DMA, two `StartTask` calls and a 256-entry table fill.
+- `LoadMapData`'s prose, by contrast, is unusually accurate.
+
+That is seven prose comments wrong about their own functions across three batches. A NAMED
+function is not a understood function.
