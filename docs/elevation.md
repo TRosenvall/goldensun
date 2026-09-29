@@ -25501,3 +25501,66 @@ Also confirmed a second time, now for an IWRAM entry point: **a function-pointer
 local defeats devirtualization** (`xfer = iwram_3001388; xfer(...)`), where casting
 the symbol at the call site gives a direct `bl`. First recorded for
 `src/rom_c9000/rom_e0524.c`.
+
+## Pinned blocks must be MINIMISED, and a pin written across a call can vanish
+
+Two things from `OvlFunc_891_20096dc` (257 encodings, landed with 33 pins).
+
+**Minimise to a fixpoint.** The first working set was 37 pins in 17 blocks; measuring
+each block individually found **three entirely inert** (`__Func_80933d4`,
+`__MapActor_TravelTo`, `__Func_801776c`), giving 33 in 14. This is the second batch
+running in which a first working pin set was ~10-20% larger than the match needs.
+A pin that changes nothing is a false claim about what the match requires, so tear
+each one down before shipping.
+
+**Order matters, and getting it wrong is silent.** The `r3` pin on a halfword had to
+be written **after** the actor pointer was named. Written across the call, *both*
+instructions silently disappeared — no error, no warning, just two missing
+instructions. This is the hazard
+`src/overlays/.../ovl_30_c_c_c_a_a_a_c_c_c_a_c_c_c.c` already records, now seen a
+second time.
+
+**A pooled constant can force a SECOND literal pool into the middle of a function.**
+Naming one stored halfword that was otherwise pooled was worth 21 encodings directly
+— and six more as secondary damage, because the extra pool word had pushed gcc into
+emitting a second mid-function pool. When a residue includes a cluster of
+`ldr rN,[pc,#N]` differences, check whether your pool COUNT matches before reading
+anything into the individual loads.
+
+## Name walking variables by ROLE, not by AXIS
+
+`Func_80f62b8` is a Bresenham-style plotter, and its sibling park
+`src/non_matching/rom_c9000/80cde90.c` — the same algorithm — concluded from the
+ROM's two arms putting *different* axes in r0 that "the ROM's four coordinate values
+CANNOT be two pseudos", and went looking for four.
+
+**Four measures 69. Two do it** — if they are named by role, the *scanned* coordinate
+and the *dithered* one, rather than by axis. Written that way the entire residue
+collapses to a single uniform r0↔r1 exchange: 24 encodings, with nothing else
+differing anywhere in the function.
+
+That also makes this function **the cheapest instrument in the corpus** for the open
+`REG_ALLOC_ORDER` question in `HANDOFF.md`: one clean register exchange, no
+confounding shape difference, 191 instructions. Note the sibling park's
+reference-count argument also **double-counted** — it counted the two ±1 arms twice,
+and the dithered coordinate has *fewer* references, not more.
+
+## Two more blockers named by their pass
+
+`OvlFunc_883_200aa54`: **cse.c, not gcse.** Two repeated flag ids hoisted into
+callee-saved registers; `-fno-cse-skip-blocks` and `-fno-rerun-cse-after-loop` each
+remove both, `-fno-gcse` does not. That is the third time in three batches a
+hold that looked like gcse turned out to be cse — check `.03.cse` before `.07.gcse`.
+(Flag figures are diagnostic: under `-fno-rerun-cse-after-loop` it reads 211 aligned
+but 241 instructions, so neither state is exact and no flag row is warranted.)
+
+`OvlFunc_970_2008b34`: **loop.c's `check_dbra_loop`** reverses the drift loop. The
+tell is in the pool — ours carries `0x0059ffa6` / `0xffffcccd` where the ROM carries
+`0x0059ffff` / `0x00003333` — and that one reversal takes the step's callee-saved
+register, kills the spill, and shrinks the frame from 8 to 4. Six spellings flat.
+
+**Tooling note:** each `docker run` is a fresh container, so `-da` dumps and `-S`
+output must be produced and read **in a single invocation**, or written under the
+mounted workspace. Wrappers that patch `tryc.CFLAGS` are the way to get
+flag-conditional figures out of objcmp, which otherwise takes its flags from the
+Makefile.
