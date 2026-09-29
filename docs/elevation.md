@@ -25759,3 +25759,62 @@ allocatable in Thumb: it is not merely that gcc *may* use them, it is that the R
 That function is also the first seen carrying **both** indirect-call forms at once:
 four inline `.call_via rN` through r6/r9, plus `bl _call_via_r3` and two
 `bl _call_via_r11`.
+
+## CONFIRMED TWICE, and a proposed refutation that failed: the `<256` pool tell holds
+
+The criterion underwriting ~299 `.sym` rows — *gcc-2.96 does not SImode-pool a constant
+an 8-bit `mov` can build, so a pooled sub-256 value identifies a symbol in the original*
+— was challenged in batch 299 and **survives**. Measured over all generated `.s`,
+honouring `.LN+offset`:
+
+```
+loads of a generated pool word holding 0-255 : 196
+  ldrh (HImode -- the documented exception)  : 193
+  ldr  (SImode -- would refute the criterion):   3
+```
+
+All three `ldr` hits are `common2_*` words holding 0 — the **DImode halves of 64-bit
+constants** in the long-long support code, which the batch-297 audit had already
+identified. Not SImode `CONST_INT`s, so not counterexamples. Two independent
+measurements now agree.
+
+**The proposed refutation failed on the `.LN+offset` trap, and that is the third
+recorded instance of that exact bug.** The claim was that gcc's pools *hold* `.word 0`
+94×, `.word 1` 14×, `.word 2` 6× and `.word 128` 4×. Pool **contents** are not the
+question — the question is how those specific words are LOADED. Concretely, in
+`asm/overlays/rom_77a7c8/ovl_30_c_c_a_c_b.s` the value 12 sits at `.L5+0` and is loaded
+by `ldrh r1, .L5`; the `ldr` loads in that function are `.L5+4`, `+8`, `+12`, `+16`,
+`+20`, holding 67108944, 16193 and so on. A regex capturing `.L5` out of `.L5+4`
+attributes five large-value loads to the small word and manufactures a refutation.
+
+**Any pool measurement must resolve `.LN+offset` to the right word.** The batch-297
+audit says its own first pass had this bug; the batch-299 attempt had it; and the pass I
+ran to check the batch-299 attempt had it too, reporting 580 false SImode hits before I
+looked at a single actual pool. Look at one concrete pool before believing any
+aggregate.
+
+## A `neg`-built mask does NOT by itself mean a bitfield — the POOLED inverse does
+
+Corrects the batch-298 entry. `& ~0xc` applied to an **int-promoted `unsigned char`**
+produces the same `mov #0xd / neg` that a bitfield produces, so the `neg` is not
+discriminating.
+
+**The reliable tell is a POOLED inverse mask** — e.g. `.word 0xfffffc00` — which only
+`store_bit_field`'s SImode path emits. So: `neg` alone means "a complement of a small
+mask", which several source forms give; a pooled wide inverse means a genuine bitfield.
+
+Keep the rest of the batch-298 entry: the complement's **form** rather than its width is
+still what to read, and one function can want a bitfield and a plain `&=` twenty lines
+apart.
+
+## Two smaller tells
+
+**A byte load from a stack slot names the local's type.** On
+`CreateBattleSpriteOverlays`, `ldrb` off a frame slot says the local is `unsigned char`,
+not an `int` holding a small value — the slot width is the declaration.
+
+**`volatile` on globals a link-cable poll re-reads.** `Func_800655c` is the two-player
+link-cable packet pump (`REG_SIOCNT` bits 4-5), and `volatile` on its two polled EWRAM
+globals was worth 242 -> 250 aligned. The same shape as the `LoadGS1TitleGFX` state
+read: a global the ROM reloads on every pass through a wait loop is `volatile` in the
+original.
