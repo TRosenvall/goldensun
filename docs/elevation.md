@@ -25564,3 +25564,54 @@ output must be produced and read **in a single invocation**, or written under th
 mounted workspace. Wrappers that patch `tryc.CFLAGS` are the way to get
 flag-conditional figures out of objcmp, which otherwise takes its flags from the
 Makefile.
+
+## gcc-2.96 NEVER chains plain CONST_INTs — only symbol+offset
+
+Proved rather than inferred, on `Func_80a8914`. A five-call probe in one basic block
+with no join, passing five nearby literals, **pools all five separately**. cse's
+`related_value` chains a `SYMBOL_REF` plus an offset; it does not relate two
+`CONST_INT`s.
+
+The consequence is a positive identification rule: **a ROM sequence like
+`ldr r0, =0xb0e` followed later by `sub r0, #0x17` cannot have come from five
+literals in the source.** The base must have been a named local. So when a reference
+derives several nearby constants from one held value, stop looking for a spelling of
+the literals and name the base.
+
+On that function the named base also revealed that a six-site r9/r10/r11 constant
+residue was **downstream collateral, not its own defect** — all six vanished once the
+base stayed live in r5. Worth remembering before attacking a scattered
+constant-allocation residue directly.
+
+One caveat that cost a round: `t = 0xb0e; t - 0x17; …` reproduces the ROM **only
+under `-fno-gcse`**, because gcse's cprop folds each `t - N` back to a literal over
+the real CFG. The same spelling keeps the subtractions in an isolated probe, which is
+exactly the kind of result an isolated probe gets wrong.
+
+## Do not hand-count a reference containing `.call_via`
+
+`tools/tryc.py` once skipped `.call_via` as a directive because it begins with a dot,
+and every function using it screened two instructions short per call site — the
+second cause in the `.call_via` retraction. **The same bug recurs in hand ledgers.**
+On `Func_80111b4` a hand count read the reference as 228 instructions instead of 236
+and made the candidate look 5 SHORT when it was 3 OVER — pointing the whole
+investigation the wrong way. objcmp was right throughout.
+
+`.call_via reg` is a MACRO from `include/macros.inc` that expands to two real
+instructions. Count references with a tool that expands it, or with objcmp's own
+figures, never by eye.
+
+## A pointer local assigned across a call gets a callee-saved register
+
+On `Func_80111b4`, `Func_80008ac`'s pointer local had to be assigned **after** the
+cos/sin calls. Assigned before, it lives across them, greg gives it a callee-saved
+register, and the call comes out as `bl _call_via_r6` where the ROM has
+`_call_via_r3`. The veneer register in a `bl _call_via_rN` is therefore a **readout of
+the allocation**, which makes it a free diagnostic: if the veneer number is wrong,
+the pointer's live range is wrong, and the fix is where it is assigned.
+
+Related, and also from that function: three IWRAM bases in the ROM were **one symbol
+reached by negative index** — `(&iwram_3001e80)[-5]`, `[-4]` — which pools the ROM's
+symbol with the ROM's zero addend and aligned a whole 22-instruction prologue. A
+reference that loads one symbol and reaches neighbours by small negative offsets is
+this shape.

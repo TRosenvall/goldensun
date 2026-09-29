@@ -1,7 +1,7 @@
 /* Func_801b664 (PagePartyListForward) -- 0x0801b664,
  * asm/rom_15000/rom_1aeec_a_a_c_a_c_c_c.s
  *
- * NON-MATCHING: 7 encodings of 200 differ (objcmp).
+ * NON-MATCHING: 2 encodings of 200 differ (objcmp).
  *
  * SIZE EXACT (428 bytes both).  INSTRUCTION COUNT EXACT (200 both).  So the 7
  * IS a true distance, not a saturated count.  All NINE relocations are the
@@ -113,33 +113,51 @@
  *   the wait loop written as an explicit if + do/while              inert
  *   a 4-short union on Node 0x14 on top of the volatile fix         inert (7)
  *
- * BLOCKER: A sched2 TIE IN THE PEELED TAIL BLOCK (.L1b6e4).  PASS .19.sched2.
- * Same instructions, same registers, one ordering.  The ROM issues the ty store
- * two slots after the p->f396 load and sinks the (pool-load, step-store) pair
- * to the END of the block; ours issues that pair EARLY and delays the ty store
- * past the p->f398 load:
+ * 3b. THE sched2 BARRIER GOES BETWEEN THE ty STORE AND THE f398 LOAD.
+ *    Worth 5 (7 -> 2).  A bare `do { } while (0);` there -- and region 2 then
+ *    ordered f1a BEFORE step -- is the whole remaining lever.  Measured, all at
+ *    exact length (200 of 200):
+ *      ty / barrier / f1a / step   (SHIPS)                   2
+ *      ty / barrier / step / f1a                             8
+ *      ty / step / barrier / f1a                             7
+ *      ty / f1a / barrier / step                             9
+ *      barrier at both positions                             9
+ *      `__asm__ volatile ("")` in place of the do/while      2  (identical)
+ *      a pointer local for &p->f398 hoisted above it      7, 9  (pools 0x398
+ *                                                as `ldr` for `mov`/`lsl`)
+ *      p->f398 read into a named local first             7, 9, 11
  *
- *   rom  ldrh f396 / mov #0xe6 / strh ty / lsl #2 / add / ldrh f398
- *        / strh f1a / ldr =0xfff4 / lsl r2,#16 / strh step
- *   ours ldrh f396 / mov #230 / ldr =0xfff4 / lsl / strh step / add
- *        / ldrh f398 / strh ty / strh f1a / lsl r2,#16
+ * BLOCKER: ONE ADJACENT TRANSPOSITION, 2 ENCODINGS.  PASS .19.sched2.
+ * Every other one of the 200 encodings is byte-identical, size is exact and the
+ * nine relocations are the ROM's nine in order.  The residue is a single swap:
  *
- * All three stores are DAG sinks, so all three have priority 0 and the order is
- * a tie broken below the priority formula.  The mechanism is the fill after the
- * p->f396 load: ours has the 0xfff4 pool load available as independent work and
- * spends the load-latency slots on it, which promotes the step store ahead of
- * the ty store.  Moving the step store later in the source DOES sink it (the
- * ty,f1a,step ordering) but then the f1a store -- whose operand is the most
- * recent load -- wins the slot the ROM gives to ty, for 11.  The two halves
- * trade off and no source order measured gives both.
+ *   rom  ldrh r2,[r3] / mov r1,#0xe6 / strh r2,[r5,#0x18] / lsl r1,#2 / ...
+ *   ours ldrh r2,[r3] / strh r2,[r5,#0x18] / mov r1,#230  / lsl r1,#2 / ...
  *
- * NOT TRIED, and the open route: a do{}while(0) boundary was tried around the
- * whole tail group and around the step store alone (7, 9) but NOT between the
- * ty store and the f398 load, which is where the contested slot actually is.
- * The alias-set-0 scheduling lever is the other candidate and is the one thing
- * that would add the missing 1-point edge -- but per lever 2 above, no union
- * form in this tree reached a MEM here, so it needs the char-pointer form at a
- * 16-bit access, which C cannot spell.
+ * The ROM spends the f396 load-latency slot on the FIRST instruction of the
+ * f398 address build and issues the ty store after it.  The barrier that buys
+ * the other 5 is also what forbids this: it ends region 1 at the ty store, so
+ * `mov r1,#0xe6` is region 2's first instruction and cannot move up.
+ *
+ * WHY IT IS A GENUINE VICE, not an untried spelling.  Without the barrier the
+ * whole tail is ONE region and the address build lands in the ROM's slot
+ * correctly -- but then the (pool-load, step-store) pair issues early and
+ * delays the ty store instead (7).  With the barrier the pair is pinned late
+ * and the address build is pinned later (2).  The two are the same lever pulled
+ * in opposite directions and the full cross was measured: three source orders
+ * of the three stores x four barrier positions, plus the asm-barrier form.
+ *
+ * The mechanism is the PRIORITY of the f396 load.  In one region its chain runs
+ * on through `lsl r2,#16 / asr / cmp / beq` (the wait-loop guard), so it
+ * outranks the address build and issues first, giving the ROM's fill.  The
+ * barrier truncates that chain to `ldrh -> strh ty`, and with the guard in the
+ * next region the load no longer outranks anything.  So the open route is a
+ * separation that pins the step store WITHOUT shortening the f396 load's chain
+ * -- i.e. something that re-regions only the step store while leaving the wait
+ * -loop guard in the f396 load's region.  Placing the barrier after the f1a
+ * store does exactly that and reads 9, because the address build then floats
+ * ABOVE the f396 load rather than into the slot after it.  Nothing in C
+ * measured here separates those three effects.
  *
  * FLAGS: tree default GCC296_CFLAGS, production.  No per-file Makefile rule; the
  * landing path is built by the generic `asm/%.o: src/%.c` cross-dir rule, the
@@ -212,8 +230,9 @@ void Func_801b664(struct Party *p)
                 } while (n->next != 0);
             }
             n->ty = p->f396;
-            n->step = -0xc;
+            do { } while (0);
             n->f1a = p->f398;
+            n->step = -0xc;
             while (n->ty != n->y)
                 WaitFrames(1);
             n = p->head;
