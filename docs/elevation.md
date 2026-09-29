@@ -14949,6 +14949,52 @@ the conversion is cancelled.
 **A trap in the same function:** `dead_or_predicable`'s "no memory reference" test runs BEFORE
 reload, so spill `ldr`s visible in the final assembly do not protect a block from being moved.
 
+### A `CSE_CFLAGS` ROW IS ROUTINE IN THIS TREE, NOT AN EXPENSIVE DECISION
+
+Measured, because I had been treating it as one and deferring work on that basis:
+`CSE_CFLAGS := $(GCC296_CFLAGS) -fno-rerun-cse-after-loop` (Makefile:777) is used by **189
+recipe lines across 88 distinct object targets**, and overlay `rom_7e7574` alone already carries
+three. Parks describing it as needing an owner decision, or saying an overlay "already has four
+rules", understate the existing use by more than an order of magnitude.
+
+That does not make a flag row the right answer -- a shim is still cheaper, because it costs no
+build change and is visible in the file it affects. But **do not defer a measurement on the
+belief that the flag itself is expensive.**
+
+### THE FLAG DOES NOT DO WHAT ITS NAME SUGGESTS, AND THE NARROWER FLAGS DO NOTHING
+
+I briefed an agent that `-fno-rerun-cse-after-loop` matters because `cse_main`'s `after_loop = 1`
+enables path extension through `flag_cse_follow_jumps` / `flag_cse_skip_blocks`. **That is wrong.**
+Both cse passes get those flags from `-O2` and `cse_main` passes them to
+`cse_end_of_basic_block` unconditionally. `after_loop` does exactly two things: it suppresses the
+`NOTE_INSN_LOOP_END` break and it flips `around_loop`.
+
+The consequence is that **there is no narrower flag to reach for**: on one function
+`-fno-cse-follow-jumps`, `-fno-cse-skip-blocks` and both together all measured 173, identical to
+no flag at all.
+
+What the flag actually does is let **gcse's cprop result stand**, and the cprop result IS the
+ROM's form. Dump counts of one constant's `(set (reg) (const_int …))` through the passes:
+`.00.rtl` 5, `.03.cse` **4**, `.07.gcse` **5**, `.08.loop` 5, `.09.cse2` **4**. So cse1 commons it
+too and cprop un-commons it; the flag only prevents cse2 from commoning it again. That is
+consistent with the standing note that cprop is the only restoring pass and is strictly
+cross-block.
+
+### "SPLIT THE LIVE RANGE ACROSS THE BRANCH" IS NOT A LEVER
+
+`cse_end_of_basic_block` scans `while (p && GET_CODE (p) != CODE_LABEL)`, so a cse block runs
+**through** a conditional branch on the fall-through and ends only at a `CODE_LABEL`. If the ROM
+has no label between the two uses -- and a ROM that reproduces its own shape will not -- then the
+two uses are necessarily in one cse block for *any* spelling, and manufacturing a label there
+needs a jump the ROM does not have. This is the closed argument for "no source route" on the
+commoned-constant class, and it is why per-use named locals are exactly inert: all such spellings
+expand to the identical sets at `.00.rtl`.
+
+**The shim that does work is a bare register pin on the DOMINATING use.** No pseudo is ever
+formed, and a call between the two uses lets `invalidate_for_call` drop the hard register. A
+`"+r"` barrier on the *later* use is exactly inert, because cse substitutes at the later use from
+the earlier pseudo. Three functions closed this way under production flags with one pin each.
+
 ### A FLAG RECORDED AS INERT ALONE CAN BE LOAD-BEARING IN A PAIR
 
 The coupled-lever warning applies to FLAGS, not only to source constructs, and the Makefile's own
