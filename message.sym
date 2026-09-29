@@ -1,5 +1,4 @@
 _MSG_LEARN_INNATE_MOVE = 0x1e;
-_MSG_09 = 0x09;
 _MSG_0a = 0x0a;
 _MSG_0b = 0x0b;
 _MSG_0c = 0x0c;
@@ -11,7 +10,24 @@ _MSG_18 = 0x18;
 _MSG_19 = 0x19;
 _MSG_1a = 0x1a;
 
-/* shiftable __MessageID IDs (named by value; pending semantic names) */
+/* __MessageID IDs (named by value; pending semantic names).
+ *
+ * HEADER CORRECTED, batch 297 audit: this block was labelled "shiftable", and
+ * 17 of its 49 rows are NOT shiftable -- _MSG_b33, _c7b, _c9b, _cc6, _d21, _d24,
+ * _d2d, _d2e, _d38, _d42, _d4c, _e19, _e23, _e39, _fbf, _1c79, _1fbb.  The file
+ * already knew (see the note below saying "roughly half the existing entries are
+ * unshiftable") but the label was never changed, and a reader who trusts it
+ * over-credits these rows with the pool tell they do not have.
+ *
+ * Shiftability is the tell for THIS section's original members only.  An
+ * unshiftable row needs its own argument, and it belongs in the .c that needs
+ * the symbol -- const.sym's criterion 2 says so explicitly.  The audit checked:
+ * of 51 load-bearing unshiftable rows, 50 do have one there.
+ *
+ * Also note that six blocks below (_MSG_b20's and the five following it) were
+ * each written about ONE function and have since accumulated 2-8 rows added by
+ * later batches.  The block's argument does not automatically extend to a row
+ * merely filed under it. */
 /* _MSG_b20 -- Func_80a15f0 passes it to _Func_801e7c0 beside 0xb1c and
  * 0xb1d, which gcc pools on its own because they are not shiftable. 0xb20
  * IS shiftable (0xb2 << 4), so gcc builds it with `mov r0,#178 / lsl r0,#4`
@@ -25,7 +41,6 @@ _MSG_c9b = 0x0c9b;
 _MSG_cc6 = 0x0cc6;
 _MSG_d21 = 0x0d21;
 _MSG_d24 = 0x0d24;
-_MSG_d2d = 0x0d2d;
 _MSG_d2e = 0x0d2e;
 _MSG_d38 = 0x0d38;
 _MSG_d42 = 0x0d42;
@@ -118,6 +133,17 @@ _MSG_25dc = 0x25dc;
  * never spends the register -- the symbol address is what makes it derive. */
 _MSG_261c = 0x261c;
 _MSG_2624 = 0x2624;
+/* _MSG_26e3 -- justification recorded in the batch-297 audit, which found this
+ * was the ONLY row in any .sym with none on file anywhere.  It is load-bearing
+ * (28 differing instructions without it) and it is UNSHIFTABLE, so the pool load
+ * is no evidence by this project's own doctrine -- see docs/elevation.md's entry
+ * on a pool word not being a tell when gcc would pool the value either way.
+ * What justifies it is the shape of its single use, in
+ * src/overlays/rom_7f21b8/ovl_30_c_c_a_c_a.c: the ROM takes the base into a
+ * register and reaches the rest of the run by arithmetic --
+ * `base = (int)(&_MSG_26e3); __MessageID(base); ... __MessageID(base + 1)` --
+ * which is the recorded use_related_value shape, the same argument as _MSG_261c
+ * above.  The gap was provenance, not substance; the row stands. */
 _MSG_26e3 = 0x26e3;
 _MSG_2880 = 0x2880;
 _MSG_28be = 0x28be;

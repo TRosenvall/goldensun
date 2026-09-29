@@ -25230,7 +25230,21 @@ licence**. Note the consequence for us specifically: most of this tree is not ou
 to license either, since the disassembly and structure came from gsret. What is
 distinctly ours is the C.
 
-So coordination is by pointers only, recorded in `docs/parallel-coverage.tsv`.
+**But the missing licence is NOT a blocker on sharing work, and calling it one was
+an overstatement.** Declining to licence is the SCENE STANDARD, and near-certainly
+deliberate rather than an oversight: `pret/pokered` (4,957 stars),
+`zeldaret/oot` (5,543), `pret/pokeemerald` (3,502) and even `pret/agbcc` — a gcc
+fork — all declare no licence. A decompilation is a derivative work of copyrighted
+material, so asserting a licence over it would claim ownership of something the
+project does not own. This repo follows that standard and adds no `LICENCE` file.
+
+The mechanism the scene actually uses is **contribution, not copying**. Opening a
+pull request against another project hands them the work directly, and the act of
+contributing carries the permission for that project to use it. So our 34 asm-free
+functions can be offered upstream without anybody licensing anything; what remains
+forbidden is lifting files in either direction.
+
+Coordination is therefore by pointers, recorded in `docs/parallel-coverage.tsv`.
 A reference to where something lives is a fact, not a reproduction.
 
 **The rule that matters is not the legal one.** Reading their implementation of a
