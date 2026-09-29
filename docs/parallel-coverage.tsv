@@ -1,0 +1,341 @@
+# parallel-coverage.tsv -- coordination metadata, NOT a source of solutions.
+#
+# WHAT THIS IS.  A second, independent Golden Sun decompilation exists at
+#   https://github.com/PascalPixel/alchemy
+# measured here at commit 8aa6b246ef306e9253b98ae7b4c27bf54607bacf (2026-09-29).
+# This file records, per function, whether that project has covered it.  It exists
+# so neither project wastes effort duplicating the other, and so we can offer them
+# work they lack.
+#
+# WHY IT IS ONLY POINTERS.  Every repository in this chain is UNLICENSED -- gsret/
+# goldensun (our upstream), this fork, and alchemy.  With no licence the default is
+# all rights reserved, so no code may be copied in either direction, and attribution
+# does not change that.  A reference to where something lives is a fact, not a
+# reproduction, so this file is safe where copied code would not be.
+#
+# DO NOT USE THIS TO WRITE OUR C.  Reading their implementation of a function and
+# then writing ours makes ours DERIVED from theirs even if no byte is copied, which
+# destroys the one thing `make compare` is evidence of: that our C is independent
+# work from our own disassembly.  This file deliberately carries NO pointers to
+# their sources for that reason.  Use it to decide WHAT to work on, never HOW.
+#
+# HOW IT WAS DERIVED.  Their not-yet-C set is exactly recoverable: recon/tbs/raw/
+# holds one file per function named by hex address, and recon/tbs/unidentified.s
+# carries `.incbin` spans for bytes they have not identified.  Joined against our
+# own goldensun.elf symbol table.
+#
+# KNOWN LIMITS, all of which understate what we have and they lack:
+#   - MAIN ROM ONLY.  Our overlay functions live at RAM addresses and cannot be
+#     joined by ROM offset, so no OvlFunc_* appears here at all.
+#   - 163 of their 462 not-done addresses matched no symbol of ours, most likely
+#     because the two projects drew function boundaries differently.  Worth
+#     resolving before trading work: a function we bounded wrongly would fail
+#     their build.
+#   - Only their raw/ set was joined; functions of ours sitting inside their
+#     unidentified spans are not counted.
+#
+# COLUMNS: status <TAB> function <TAB> address <TAB> note
+#   they_lack   we have elevated it, they have not -- offerable
+#   frontier    neither project has elevated it -- where to work
+# note: `clean` = no fakematch row, so asm-free and acceptable to their rules,
+# which forbid inline asm; `fakematch` = carries pins and would need de-pinning
+# first; `parked`/`available` = our own state for frontier rows.
+they_lack	__divsi3	0x080022ec	clean
+they_lack	WaitFrames	0x080030f8	fakematch
+they_lack	InitMatrixStack	0x080049ac	clean
+they_lack	MatrixReset	0x08004a94	fakematch
+they_lack	MatrixPitch	0x08004bd4	clean
+they_lack	MatrixYaw	0x08004c1c	clean
+they_lack	MatrixRoll	0x08004c6c	clean
+they_lack	MatrixTranslatev	0x08004cb4	clean
+they_lack	MatrixScalev	0x08004cf0	clean
+they_lack	MakeLookMatrix	0x08004fe4	clean
+they_lack	Func_801e318	0x0801e318	clean
+they_lack	Func_801ef68	0x0801ef68	clean
+they_lack	Func_801faa8	0x0801faa8	clean
+they_lack	Func_802281c	0x0802281c	clean
+they_lack	Debug_IconTest	0x08029554	clean
+they_lack	Func_8079b24	0x08079b24	clean
+they_lack	Func_807a664	0x0807a664	clean
+they_lack	Func_808e14c	0x0808e14c	clean
+they_lack	Func_808ee0c	0x0808ee0c	clean
+they_lack	Task_Transition300	0x08090658	clean
+they_lack	Func_80908e0	0x080908e0	clean
+they_lack	BattleIntro	0x080941e0	clean
+they_lack	Task_Rain	0x08094820	clean
+they_lack	StartSnow	0x08094da0	fakematch
+they_lack	Func_80981b0	0x080981b0	clean
+they_lack	Field_Ply	0x080994d0	fakematch
+they_lack	Func_809b364	0x0809b364	clean
+they_lack	Func_809b5dc	0x0809b5dc	clean
+they_lack	Field_Avoid	0x0809b698	clean
+they_lack	Func_809b8f4	0x0809b8f4	clean
+they_lack	Func_80a4f08	0x080a4f08	clean
+they_lack	Func_80a77a4	0x080a77a4	clean
+they_lack	Func_80b08b8	0x080b08b8	clean
+they_lack	Func_80b75dc	0x080b75dc	clean
+they_lack	Func_80b9b30	0x080b9b30	fakematch
+they_lack	Func_80ba6ac	0x080ba6ac	fakematch
+they_lack	Func_80ba978	0x080ba978	clean
+they_lack	Func_80bd850	0x080bd850	clean
+they_lack	Func_80c0774	0x080c0774	clean
+they_lack	Func_80c0eb8	0x080c0eb8	fakematch
+they_lack	Anim_Break	0x080d82b0	fakematch
+they_lack	StartGS1Credits	0x080f03f0	clean
+frontier	Func_8003e58	0x08003e58	available
+frontier	Func_80056cc	0x080056cc	parked
+frontier	Func_800615c	0x0800615c	parked
+frontier	Func_8006408	0x08006408	parked
+frontier	Func_800655c	0x0800655c	available
+frontier	Func_800a0f8	0x0800a0f8	available
+frontier	Func_800a494	0x0800a494	available
+frontier	UpdateSpriteAnim	0x0800aa0c	available
+frontier	UpdateSprite	0x0800b168	parked
+frontier	PreloadSpriteGFX	0x0800b6b8	parked
+frontier	Func_800c62c	0x0800c62c	available
+frontier	UpdateActors	0x0800cacc	available
+frontier	ActorCmd_Camera	0x0800daf0	parked
+frontier	ActorCmd_Wander	0x0800dd70	parked
+frontier	ActorCmd_Unk9	0x0800df04	parked
+frontier	ActorCmd_Player	0x0800ebec	available
+frontier	ActorCmd_Player_World	0x0800f2f8	available
+frontier	ActorCmd_Player_Climb	0x0800f7f4	parked
+frontier	LoadMapData	0x0800fb38	available
+frontier	CopyMapTiles	0x08010424	parked
+frontier	Func_8010560	0x08010560	parked
+frontier	Func_80105d4	0x080105d4	parked
+frontier	Func_8010788	0x08010788	parked
+frontier	Func_80108e4	0x080108e4	parked
+frontier	InitWorldMap	0x080109e8	available
+frontier	Func_8010ff0	0x08010ff0	parked
+frontier	Func_80113e4	0x080113e4	parked
+frontier	Func_80114a0	0x080114a0	parked
+frontier	Func_801179c	0x0801179c	parked
+frontier	Func_8011bf4	0x08011bf4	parked
+frontier	Func_8011f54	0x08011f54	parked
+frontier	TestCollision	0x080120dc	parked
+frontier	Debug_SpriteTest	0x08012518	available
+frontier	Func_8012b2c	0x08012b2c	parked
+frontier	Func_80155d0	0x080155d0	available
+frontier	Func_80158e8	0x080158e8	available
+frontier	Func_80164d4	0x080164d4	parked
+frontier	Func_80167e0	0x080167e0	parked
+frontier	AdvanceMsgText	0x080168f4	parked
+frontier	Func_8017e88	0x08017e88	available
+frontier	BufferString	0x08018038	available
+frontier	Func_8018850	0x08018850	parked
+frontier	Func_8018a50	0x08018a50	parked
+frontier	DrawText	0x08018cac	available
+frontier	Func_8018efc	0x08018efc	parked
+frontier	Func_801908c	0x0801908c	parked
+frontier	Func_80191cc	0x080191cc	parked
+frontier	Func_8019bfc	0x08019bfc	parked
+frontier	DrawInventoryIcon	0x0801a088	parked
+frontier	Func_801a7f4	0x0801a7f4	parked
+frontier	Func_801a98c	0x0801a98c	parked
+frontier	DisplayMenuArrowCursor	0x0801aeec	parked
+frontier	DisplayMenuArrowCursor2	0x0801b248	parked
+frontier	Func_801b810	0x0801b810	parked
+frontier	Func_801ba68	0x0801ba68	parked
+frontier	Func_801be80	0x0801be80	available
+frontier	Func_801c49c	0x0801c49c	parked
+frontier	Func_801d9d4	0x0801d9d4	parked
+frontier	Func_801dd28	0x0801dd28	parked
+frontier	Func_801de5c	0x0801de5c	parked
+frontier	Func_801f088	0x0801f088	parked
+frontier	Func_801f200	0x0801f200	available
+frontier	PrepareSaveHeader	0x0801f818	parked
+frontier	Func_8020244	0x08020244	available
+frontier	UI_NameEntry	0x08020bd8	available
+frontier	Func_8021228	0x08021228	parked
+frontier	Func_8021390	0x08021390	parked
+frontier	Func_8021488	0x08021488	parked
+frontier	MenuBar	0x08021e6c	available
+frontier	Func_8022a7c	0x08022a7c	parked
+frontier	Func_8022b44	0x08022b44	available
+frontier	Func_8023178	0x08023178	available
+frontier	Func_8023e70	0x08023e70	available
+frontier	Func_8024934	0x08024934	available
+frontier	Func_8025200	0x08025200	available
+frontier	Func_802592c	0x0802592c	available
+frontier	Func_8026080	0x08026080	available
+frontier	Func_8027114	0x08027114	available
+frontier	Func_8028194	0x08028194	available
+frontier	Func_8028574	0x08028574	parked
+frontier	YesNoMenu2	0x08028e54	parked
+frontier	Debug_WarpMenu_UI	0x08029094	parked
+frontier	Debug_FaceTest	0x0802977c	parked
+frontier	GetUnit	0x08077394	parked
+frontier	GameInit	0x08077d38	available
+frontier	Func_8078bf0	0x08078bf0	available
+frontier	InitEnemyUnit	0x08079460	parked
+frontier	RespawnAtSanctum	0x0808a6e4	available
+frontier	GameStart	0x0808a8e4	parked
+frontier	Func_808ae74	0x0808ae74	parked
+frontier	GetLocationName	0x0808b158	parked
+frontier	LoadMapActors	0x0808b3ec	parked
+frontier	Func_808bb2c	0x0808bb2c	parked
+frontier	FieldMain	0x0808c4f8	available
+frontier	Func_808d9a4	0x0808d9a4	parked
+frontier	Func_808e23c	0x0808e23c	parked
+frontier	Func_808e9c0	0x0808e9c0	parked
+frontier	Task_ScreenWindowTransition	0x0808f52c	available
+frontier	ScreenTransitionIn	0x0808fefc	parked
+frontier	Func_8090a5c	0x08090a5c	available
+frontier	Func_80912b8	0x080912b8	parked
+frontier	Func_8091a58	0x08091a58	available
+frontier	Func_8092c40	0x08092c40	available
+frontier	Func_80930bc	0x080930bc	available
+frontier	Func_8093fa0	0x08093fa0	parked
+frontier	Func_8094544	0x08094544	parked
+frontier	StartRain	0x08094ac8	parked
+frontier	Task_Snow	0x08094bbc	available
+frontier	StartEarthquake	0x0809509c	parked
+frontier	Func_8095c08	0x08095c08	parked
+frontier	Func_8096fb0	0x08096fb0	parked
+frontier	Task_08097644	0x08097644	available
+frontier	Field_Move_Target	0x08097c3c	parked
+frontier	Field_Douse	0x080999f0	available
+frontier	Field_Carry_Target	0x08099da4	available
+frontier	Field_Halt	0x0809abb4	parked
+frontier	Field_Catch	0x0809ae64	parked
+frontier	Func_809bcf8	0x0809bcf8	available
+frontier	Func_80a1ac0	0x080a1ac0	parked
+frontier	Func_80a24d0	0x080a24d0	parked
+frontier	Func_80a3ef0	0x080a3ef0	parked
+frontier	Func_80a414c	0x080a414c	parked
+frontier	Func_80a524c	0x080a524c	parked
+frontier	Func_80a5388	0x080a5388	parked
+frontier	Func_80a5cc0	0x080a5cc0	available
+frontier	Func_80a60d4	0x080a60d4	parked
+frontier	Func_80a6614	0x080a6614	parked
+frontier	Func_80a8604	0x080a8604	parked
+frontier	Func_80a9f10	0x080a9f10	available
+frontier	Func_80aa768	0x080aa768	available
+frontier	Func_80aafb8	0x080aafb8	available
+frontier	Func_80ab314	0x080ab314	parked
+frontier	Func_80ab5e4	0x080ab5e4	available
+frontier	Func_80acab8	0x080acab8	available
+frontier	Func_80ad40c	0x080ad40c	parked
+frontier	Func_80ad6d4	0x080ad6d4	available
+frontier	Func_80ae2f4	0x080ae2f4	available
+frontier	Func_80ae99c	0x080ae99c	parked
+frontier	Func_80ae9f0	0x080ae9f0	parked
+frontier	Func_80b0a20	0x080b0a20	available
+frontier	Func_80b0aac	0x080b0aac	available
+frontier	Func_80b1260	0x080b1260	parked
+frontier	Func_80b5534	0x080b5534	parked
+frontier	Debug_BattleTest	0x080b56e0	parked
+frontier	Func_80b5f0c	0x080b5f0c	parked
+frontier	BattleMain	0x080b63c8	available
+frontier	Func_80b6d30	0x080b6d30	parked
+frontier	GetWeaponType	0x080b6e7c	parked
+frontier	Func_80b7738	0x080b7738	parked
+frontier	CreateBattleSpriteOverlays	0x080b7b6c	available
+frontier	Func_80b8574	0x080b8574	parked
+frontier	Func_80b8c1c	0x080b8c1c	parked
+frontier	Func_80b9554	0x080b9554	parked
+frontier	Func_80b9724	0x080b9724	available
+frontier	Func_80b9dc4	0x080b9dc4	parked
+frontier	Func_80b9ec0	0x080b9ec0	parked
+frontier	Func_80ba2c0	0x080ba2c0	parked
+frontier	Func_80bac6c	0x080bac6c	available
+frontier	Func_80bae40	0x080bae40	available
+frontier	WaitTextPrompt	0x080bb65c	parked
+frontier	Func_80bb7c0	0x080bb7c0	parked
+frontier	Func_80bd424	0x080bd424	available
+frontier	Func_80bd898	0x080bd898	available
+frontier	Func_80be18c	0x080be18c	parked
+frontier	Func_80be378	0x080be378	available
+frontier	Func_80bfba4	0x080bfba4	parked
+frontier	Func_80c02a4	0x080c02a4	available
+frontier	AnimTransitionIn	0x080c08ec	parked
+frontier	Anim_Cast	0x080c1470	available
+frontier	Anim_MoveIntro	0x080c1798	available
+frontier	Func_80c1ffc	0x080c1ffc	parked
+frontier	Func_80c24f0	0x080c24f0	parked
+frontier	Anim_Ice	0x080c91dc	available
+frontier	Anim_Douse	0x080c972c	available
+frontier	BaseAnim_SonicWave	0x080c9ca8	parked
+frontier	BaseAnim_Spore	0x080ca1fc	parked
+frontier	BaseAnim_Bite_Sting	0x080ca60c	available
+frontier	Anim_DeathPlunge	0x080cb1a4	parked
+frontier	Anim_Unused_SabreRain	0x080cb4ec	parked
+frontier	Anim_EPowerUp	0x080cb7f8	parked
+frontier	Anim_ScreenShatter	0x080cbc0c	available
+frontier	Anim_DjinnSet	0x080cc5d8	parked
+frontier	BaseAnim_Tentacle	0x080ccc38	available
+frontier	Anim_SpiderWeb	0x080ccebc	parked
+frontier	DrawLine	0x080cde90	parked
+frontier	Anim_PlanetDiver	0x080ce034	available
+frontier	Anim_Haunt	0x080ce4e8	parked
+frontier	BaseAnim_HauntAttack	0x080ceb54	parked
+frontier	BaseAnim_Spasm	0x080ceff8	parked
+frontier	BaseAnim_Revive	0x080cf2b8	parked
+frontier	BaseAnim_Blob	0x080cf8e0	available
+frontier	Anim_Bind	0x080d05fc	available
+frontier	Anim_PsyphonSeal	0x080d0ad4	available
+frontier	Anim_AstralBlast	0x080d0ee0	available
+frontier	Anim_ShiningStar	0x080d1350	parked
+frontier	Anim_Procne	0x080d1714	available
+frontier	BaseAnim_Tiamat	0x080d2464	available
+frontier	Anim_Nereid	0x080d2d98	available
+frontier	Anim_Froth	0x080d33c0	available
+frontier	Anim_Whirlwind	0x080d3854	available
+frontier	Anim_Prism	0x080d3c80	available
+frontier	Anim_Plasma	0x080d41a4	available
+frontier	BaseAnim_Nova	0x080d4604	available
+frontier	Anim_Volcano	0x080d4ce8	available
+frontier	BaseAnim_ParticleCloud	0x080d52c8	available
+frontier	Anim_Unused_Fizz	0x080d5e54	available
+frontier	Anim_Cybele	0x080d6970	available
+frontier	Anim_Drain	0x080d85d0	parked
+frontier	BaseAnim_Heal	0x080d89ac	available
+frontier	BaseAnim_StatUp	0x080d91dc	available
+frontier	BaseAnim_StatDown	0x080d9ae8	parked
+frontier	Anim_Quake	0x080da2ac	available
+frontier	Anim_Fireball	0x080da6cc	available
+frontier	Anim_Frost	0x080dab74	available
+frontier	Anim_Ray	0x080db264	available
+frontier	BaseAnim_Blast	0x080db6e0	parked
+frontier	Anim_Unused_Haunt	0x080dc454	available
+frontier	Anim_Atalanta	0x080dc968	parked
+frontier	Anim_Bolt	0x080ddde0	available
+frontier	Anim_Djinni	0x080de2f8	available
+frontier	BaseAnim_ParticleSpray	0x080dea70	available
+frontier	BaseAnim_Tackle	0x080dfa48	available
+frontier	Anim_Mercury	0x080dfe2c	available
+frontier	Anim_Jupiter	0x080e01e4	available
+frontier	Anim_Venus	0x080e0564	available
+frontier	Anim_Mars	0x080e08c0	available
+frontier	Anim_Ground	0x080e1040	available
+frontier	Anim_Thor	0x080e15e8	available
+frontier	Anim_Spire	0x080e2538	available
+frontier	BaseAnim_RapidSlash	0x080e2974	available
+frontier	Anim_Gaia	0x080e302c	available
+frontier	BaseAnim_Attack	0x080e3aa0	available
+frontier	Anim_CriticalHit	0x080e40a4	available
+frontier	BaseAnim_SpecialAttack	0x080e47b8	parked
+frontier	Anim_Torch	0x080e6638	parked
+frontier	Anim_HelmSplitter	0x080e698c	parked
+frontier	Anim_Unsummon	0x080e6eac	available
+frontier	Func_80e7338	0x080e7338	parked
+frontier	BaseAnim_Meteor	0x080e7404	available
+frontier	Anim_Ramses	0x080e823c	available
+frontier	Anim_DragonCloud	0x080e89ec	available
+frontier	Anim_Annihilation	0x080e90a8	available
+frontier	Anim_Ragnarok	0x080e94b8	available
+frontier	Anim_TitanBlade	0x080e99c0	available
+frontier	Anim_Judgment	0x080ea0d8	available
+frontier	Anim_Kirin	0x080eb754	available
+frontier	BuildDraw2DFuncEx	0x080ed408	available
+frontier	Func_80f07f0	0x080f07f0	available
+frontier	Func_80f2028	0x080f2028	available
+frontier	LoadGS1TitleGFX	0x080f24a0	available
+frontier	StartTitleScreen	0x080f26ec	parked
+frontier	CamelotLogo	0x080f2d54	parked
+frontier	Func_80f3078	0x080f3078	available
+frontier	LuckyDiceMain	0x080f4168	available
+frontier	Func_80f6440	0x080f6440	available
+frontier	LuckyWheelsMain	0x080f7460	available
+frontier	Func_80f7f78	0x080f7f78	available

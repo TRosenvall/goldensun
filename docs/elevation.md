@@ -25214,3 +25214,74 @@ halfwords. Two tables read that way on `BaseAnim_SpecialAttack` were declared
 25 and removed 4 spurious `ldrh`. Note this was **neutral on every residue
 metric**, so a metric-driven search would never have found it: the index scaling
 is the evidence, not the difference count.
+
+## A parallel decompilation exists; coordinate by POINTERS, never by copying
+
+`https://github.com/PascalPixel/alchemy` is a second, independent Golden Sun
+decompilation — both games, same byte-exact standard, same toolchain lineage
+(camelot-gcc, pret's agbcc). It is openly AI-driven: every commit carries
+`Co-Authored-By: Claude Opus 5.5`, and it describes itself as "an automated,
+clean-room decompilation".
+
+**Every repository in this chain is UNLICENSED** — `gsret/goldensun` (our
+upstream), this fork, and alchemy. With no licence the default is all rights
+reserved, so no code may move in either direction, and **attribution is not a
+licence**. Note the consequence for us specifically: most of this tree is not ours
+to license either, since the disassembly and structure came from gsret. What is
+distinctly ours is the C.
+
+So coordination is by pointers only, recorded in `docs/parallel-coverage.tsv`.
+A reference to where something lives is a fact, not a reproduction.
+
+**The rule that matters is not the legal one.** Reading their implementation of a
+function and then writing ours makes ours **derived** from theirs even if no byte
+is copied — and that destroys the single thing `make compare` is evidence of, that
+our C is independent work from our own disassembly. `parallel-coverage.tsv`
+therefore carries **no pointers to their sources**, deliberately. Use it to decide
+WHAT to work on, never HOW.
+
+**Where we stand** (main ROM only, at their commit 8aa6b246): 42 functions
+elevated here that they have not done, 34 of them asm-free and so acceptable to
+their rules, which forbid inline asm; 257 functions neither project has elevated.
+Their coverage was extractable in one pass because of a structure worth copying as
+an IDEA: the ROM reaches their build only through `.incbin` scaffolding, sections
+are named by ROM address (`.unidentified.087fd4b9`), and each shrinks as it gains
+source. Ours needed the ELF symbol table plus an `asm/` walk plus the unmatchable
+ledger.
+
+### Their central concept, worth adopting: ORACLE LEAKAGE
+
+Their prohibition, verbatim:
+
+> "Oracle leakage (Goodhart's law, specification gaming) is any path by which the
+> expected answer steers the build or the count, so the comparison passes by
+> construction."
+
+Enforced by five invariants: ROMs reach the build only via `.incbin` scaffolding;
+**names are defined where their bytes appear**; the DONE count includes only real
+source; mismatches are fixed in source or stay as disassembly; and independent
+audits precede milestones.
+
+We have fragments of this — withheld symbols whose only evidence was positional
+(`_MSG_c30`, `_MSG_970`, `_LEN_2c4`, `_CONST_50`), the `const.sym` and
+`message.sym` admission criteria, the `fakematch.txt` ledger, "never hand-edit a
+generated `.s`" — but no unified frame and no audit. Their second invariant points
+at our `.sym` files, which define ROM-derived values centrally rather than where
+the bytes appear.
+
+Also worth taking as ideas: their **stopping rule** ("after 30 minutes or three
+attempts without a new idea, commit the draft and move on"), and **`calcrom` over
+linker maps** as an independent progress measure — ours is homegrown `census.py`,
+which produced two wrong counts in one day.
+
+### Where the two projects differ on method
+
+They forbid inline asm in game C outright, except a few reviewed macros, and tag
+compiler-steering idioms as fakematches. We are far more permissive: the
+2,805-instruction `OvlFunc_952_200a014` landed with **432 register pins**. Booked
+honestly, but by their standard it would not count as matched.
+
+This is a difference of ORDER, not of goal — the intent here is pure elevation
+first and asm removal in later passes, arriving at the same place. Worth knowing
+when offering work to them: our 8 fakematch functions in the offerable set need
+de-pinning before they are usable there.
