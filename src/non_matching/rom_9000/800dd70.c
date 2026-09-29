@@ -1,3 +1,42 @@
+/* ================ BATCH 297a DELTA -- ActorCmd_Wander ================
+ * RE-MEASURED: still 2 of 187 (ref 187 enc / 404 bytes / 13 rel, ours the same).
+ * The two are indices 123 and 135 and the park's "copy direction" reading is
+ * exactly right, but the SHAPE is worth stating precisely because it points the
+ * search:
+ *     122  ldr r3, [r7]        <- SAME in both
+ *     123  ref  1c19 mov r1, r3        ours  6839 ldr r1, [r7]
+ *     134  ldr r2, [r7, #8]    <- SAME in both
+ *     135  ref  1c14 mov r4, r2        ours  68bc ldr r4, [r7, #8]
+ * THE ROM LOADS ONCE AND COPIES; WE LOAD TWICE.  The barriers are what split the
+ * two reads of `p.x` into two loads, so the residue is the PRICE of the barrier,
+ * not an independent defect.
+ *
+ * SEVENTEEN NEW SPELLINGS, none better than 2 (all 187 enc / 404 bytes unless
+ * noted).  The whole point was to get one load plus a copy:
+ *     use `x` itself for the division, barrier before        9
+ *     use `x` for the division, no barrier                  10
+ *     use `x` for the division, barrier after the division  10
+ *     division first, `x = p.x` after, barriers             59  (189 enc)
+ *     division first, no barriers                           10
+ *     named div temp `tx`, barrier on tx before the copy     9
+ *     named div temp `tx`, barrier on tx after the copy      6
+ *     named div temp, barrier on x after the copy           71  (189 enc)
+ *     named div temp, barrier on x, div first                59  (189 enc)
+ *     barriers on BOTH x and tx                              6
+ *     input-only barrier `: : "r" (x)` + single load          8
+ *     x barrier only (z left bare)                           7
+ *     a third barrier on the pointer `a`                      2
+ * The one-load spellings all reintroduce the cse2 canonicalisation at index 122
+ * (make_regs_eqv promoting the surviving copy), which is the park's own
+ * mechanism seen from the other side: you can have ONE LOAD or you can have the
+ * ROM's COPY DIRECTION, and the barrier buys the second at the cost of the first.
+ *
+ * So 2 is the floor for this barrier-based route, and both barriers are
+ * verification shims -- if this ever lands they need fakematch.txt rows.  The
+ * park's own conclusion (the real answer is upstream of the barrier) stands.
+ * -- scratch_elev/b297a/t4
+ */
+
 /* ActorCmd_Wander (0x0800dd70) -- NON-MATCHING: 2 encodings of 187 differ (objcmp).
  *
  * Verify with:

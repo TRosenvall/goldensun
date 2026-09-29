@@ -1,3 +1,49 @@
+/* ===================== BATCH 297a DELTA -- Field_Halt =====================
+ * RE-MEASURED: still 2 of 191 (ref 191 enc / 444 bytes / 30 rel, ours the same),
+ * index 97: ref 2f0b `cmp r7, #0xb` against ours 2f0a `cmp r7, #0xa`, plus the
+ * branch.  The park's conclusion stands.  TWO THINGS ARE NEW.
+ *
+ * 1. THE BLOCKER IS NOT "A SEVENTH CALL-CROSSING ALLOCNO IS INEVITABLE".  IT IS
+ *    global-alloc CHOOSING TO ALLOCATE THE BOUND, and the dump says so.  With
+ *    `for (; i < n; i++)` and `n = 11`, x.c.17.lreg carries
+ *        (insn 37 ...) (set (reg/v:SI 39) (const_int 11 [0xb]))
+ *            (expr_list:REG_EQUIV (const_int 11 [0xb]) (nil))
+ *    -- i.e. the bound ALREADY HAS A REG_EQUIV CONSTANT NOTE, which is exactly
+ *    what reload needs to rematerialise `#0xb` into the compare and keep
+ *    combine's un-canonicalised `blt`.  It does not, because .18.greg hands the
+ *    pseudo a hard register first:
+ *        (insn 37 ...) (set (reg/v:SI 11 fp) (reg:SI 2 r2))
+ *            (expr_list:REG_EQUIV (const_int 11 [0xb]) (nil))
+ *        (jump_insn 101 ...) if_then_else (lt (reg/v:SI 7 r7) (reg/v:SI 11 fp))
+ *    reg_equiv_constant is only consulted for a pseudo that got NO hard register,
+ *    so the escape is not "find a spelling with six allocnos" but "make greg
+ *    decline this one".  fp (r11) is free in thumb at -O2, so there is no
+ *    pressure to make it decline, and an eighth allocno would have to be real
+ *    code.  That is a sharper and more checkable statement of the floor.
+ *
+ * 2. THE BOUND PLACEMENTS RE-MEASURED, confirming the park's numbers exactly:
+ *        bound literal (this file)                     2  (191 enc, 444 bytes)
+ *        const int n = 11 (folded away)                2  (191 enc)
+ *        n = 11 where this file puts it               179  (195 enc, 452 bytes)
+ *        n = 11 as the first statement                178  (195 enc)
+ *        n = 11 after the `if (p == 0) return`        180  (195 enc)
+ *        n = 11 immediately before the loop           180  (195 enc)
+ *        unsigned n, `i < (int)n`                     179  (195 enc)
+ *    NOTE the CFG fact the park did not record: the whole body after
+ *    `if (p == 0) return;` is at a LABEL -- the ROM emits `cmp r6,#0 / bne
+ *    .L9abea / b .L9ad52` -- so the loop IS in a jumped-to block and cse1
+ *    genuinely cannot fold a bound assigned before that branch.  That is why
+ *    naming the bound produces `blt` at all; the cost is purely greg's.
+ *
+ * 3. FLAG SWEEP, 12 toggles, none reaches index 97.  Still 2 with
+ *    -fno-cse-follow-jumps, -fno-expensive-optimizations, -fno-thread-jumps,
+ *    -fno-caller-saves, -fno-move-all-movables, -fno-reduce-all-givs,
+ *    -fno-unroll-loops.  WORSE: -fno-gcse 98 (189 enc), -fno-rerun-cse-after-loop
+ *    62, -fno-schedule-insns2 59, -fno-strength-reduce 46 (189 enc),
+ *    -fno-peephole 71.  (-fno-if-conversion is not an option this cc1 accepts.)
+ * -- scratch_elev/b297a/t2
+ */
+
 /* Field_Halt -- 0x0809abb4.  PARKED at 2 of 191.
  * ref: asm/rom_8a000/rom_9a44c_c_c_c.s
  *

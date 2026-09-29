@@ -1,3 +1,40 @@
+/* ================= BATCH 297a DELTA -- Func_80b6d30 =================
+ * RE-MEASURED: still 4 of 119 (ref 119 enc / 256 bytes / 7 rel, ours the same),
+ * first at index 23: ref 4654 `mov r4, sl` against ours 2400 `movs r4, #0`.
+ *
+ * NEW, AND IT IS THE DISCRIMINATOR THIS PARK NEEDED.  Residue (1) here is the
+ * SAME cse1 residue that batch 297a closed BYTE-EXACT on Func_80b9dc4
+ * (0x080b9dc4) with a single `__asm__ ("" : "+r" (v))` barrier at the copy.  The
+ * difference is WHICH REGISTER THE ZERO LIVES IN, and it decides whether the
+ * barrier is free:
+ *     Func_80b9dc4   `flag` is in r7, a LOW register  -> "+r" costs NOTHING
+ *                    (108 encodings before and after; 1 -> 0, exact)
+ *     Func_80b6d30   `ret`  is in sl, a HI register   -> every constraint class
+ *                    costs the same TWO instructions
+ * Measured here, each a single drop from this file (baseline 4 of 119):
+ *     "+r" before the loop            96   121 enc, 260 bytes
+ *     "+r" after `ret = 0`            96   121 enc
+ *     "+h" before the loop            96   121 enc
+ *     "+h" after `ret = 0`            96   121 enc
+ *     "+g" before the loop           103   121 enc
+ *     "+g" after `ret = 0`            98   121 enc
+ *     "+l" before the loop           100   123 enc, 264 bytes
+ *     "+l" after `ret = 0`           104   123 enc
+ * So the park's "the barrier costs two extra instructions" is confirmed AND the
+ * obvious escape -- ask for a HI-register constraint so no low-register round
+ * trip is needed -- DOES NOT WORK: "+h" is 121 encodings just like "+r".
+ * gcc-2.96 copies through a low register either way.  Nothing in the barrier
+ * family reaches this function; the park's floor of 4 stands.
+ *
+ * THE CFG FACT, for completeness: the ROM's `ret = 0` (`movs r1,#0 / mov sl,r1`)
+ * and `j = ret` (`mov r4, sl`) sit in ONE basic block with only `bl
+ * Func_80c2384` between them -- there is no label before the loop init -- so the
+ * jumped-to-block escape that the corpus exemplar
+ * src/rom_b5000/rom_b8228_c_a_c_c_a_c_a_c_b.c uses (its `for (i = ret; ...)` is
+ * in the ELSE arm, at .L3) is not available here either.
+ * -- scratch_elev/b297a/t3
+ */
+
 /* Func_80b6d30 (AssignBattlePositions) -- NON-MATCHING, 4 encodings of 119.
  * 0x080b6d30, the only function in asm/rom_b5000/rom_b5a0c_c_c_c_a_c.s (no data
  * section, so datacheck.py prints nothing and NO EXPORT is required), so landing

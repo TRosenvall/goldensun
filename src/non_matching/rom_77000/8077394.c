@@ -1,3 +1,54 @@
+/* ===================== BATCH 297a DELTA -- GetUnit =====================
+ * FIRST MEASUREMENT EVER RECORDED FOR THIS PARK: 16 encodings of 31 differ, and
+ * it IS a true distance -- ref 31 enc / 68 bytes / 2 rel, ours 31 / 68 / 2.
+ * The park quoted no objcmp figure and carried no `Verify with:` recipe, so
+ * tools/parkcheck.py reported it UNCHECKABLE and no ranking pass could see it.
+ *
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_77000/8077394.c \
+ *     asm/rom_77000/rom_77320_a_a_c_c_a.s --func GetUnit
+ *
+ * SPLIT SHAPE: the reference holds TWO functions (Func_8077348 @ 0x08077348 and
+ * GetUnit @ 0x08077394) and datacheck.py prints nothing -- no data section, so a
+ * landing is a TEXT-ONLY split with NO new export.
+ *
+ * ALL 16 ARE ONE PERMUTATION, and the counts already agree:
+ *     ref   1 mov r3, lr   (dead)     ours  1 mov r2, r0   (copy of `id`)
+ *     ref   id in r0, base in r2, k in r3
+ *     ours  id in r2, base in r3, k in r0
+ * Our 31st instruction is spent copying `id` out of r0 because `k` takes r0; the
+ * ROM spends its 31st on the dead `mov r3, lr` and leaves `id` in r0.
+ *
+ * THE PARK'S HYPOTHESIS IS NOT SOURCE-REACHABLE, and that is now measured rather
+ * than assumed.  It proposed "the original source read a variable before
+ * assigning it".  gcc-2.96 DELETES every such read -- all of these are exactly
+ * 16 of 31, i.e. byte-for-byte the same output as the plain file:
+ *     int k = k;                                   16
+ *     int u; k = u;                                16
+ *     int u; k = u; u = k;                         16
+ *     int u; register int u2 __asm__("lr"); k = u2; 16
+ * So an uninitialised read cannot produce the dead move; whatever does, it is not
+ * a variable this source can name.
+ *
+ * WHAT THE PERMUTATION IS REALLY ABOUT, and it is checkable: thumb's
+ * REG_ALLOC_ORDER starts 3, 2, 1, 0, so the multiplier SHOULD get r3 -- and it
+ * would, except that `k` is tied to r0 by the return-value copy, which outranks
+ * the allocation order.  `register int k __asm__("r3")` proves it: the multiply
+ * block then comes out EXACTLY as the ROM has it
+ * (`mov r3,#0xa6 / lsl r3,#1 / mul r3,r0`, ref indices 5-7), and the 27 that
+ * remain are (a) the one-instruction shift from the missing dead `mov r3, lr`
+ * and (b) a new `add r3,r3,r2 / mov r0,r3` pair at the end of the second block
+ * where the ROM has a single `add r0,r3,r2` -- the pin is too strong to release
+ * r3 for the result.  So a pin alone does not land it either, and it would need
+ * a fakematch row.
+ *
+ * ALSO MEASURED AND INERT (all 16): block-scoped `int k` per arm; two separate
+ * locals k and k2; `k` declared last; `k = 0xa6; k <<= 1; k *= id;`;
+ * `(int)base + k` operand order; a local `n = id` used throughout.
+ * WORSE: a named result variable with a single `return` (26).
+ * -- scratch_elev/b297a/t5
+ */
+
 /* GetUnit  --  0x08077394, asm/rom_77000/rom_77320_a_a_c_c_a.s
  *
  * BLOCKER CLASS: an uninitialised-pseudo copy in the prologue, plus the

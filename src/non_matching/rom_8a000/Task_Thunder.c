@@ -1,4 +1,4 @@
-/* Task_Thunder -- asm/rom_8a000/rom_944ec_a_a_a_a_c_c_a_a_c.s (7 functions).
+/* Task_Thunder -- asm/rom_8a000/rom_944ec_a_a_a_a_c_c_a_a_c_a.s (7 functions).
  *
  * NOT MATCHING: 18 differing of 117 encodings, LENGTH IDENTICAL. Candidate below.
  * INDICES 0-94 ARE EXACT; the whole residue is one pool load's position.

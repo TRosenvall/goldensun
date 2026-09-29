@@ -121,7 +121,7 @@ frontier	Func_80158e8	0x080158e8	available
 frontier	Func_80164d4	0x080164d4	parked
 frontier	Func_80167e0	0x080167e0	parked
 frontier	AdvanceMsgText	0x080168f4	parked
-frontier	Func_8017e88	0x08017e88	available
+they_lack	Func_8017e88	0x08017e88	clean
 frontier	BufferString	0x08018038	available
 frontier	Func_8018850	0x08018850	parked
 frontier	Func_8018a50	0x08018a50	parked
@@ -166,7 +166,7 @@ frontier	YesNoMenu2	0x08028e54	parked
 frontier	Debug_WarpMenu_UI	0x08029094	parked
 frontier	Debug_FaceTest	0x0802977c	parked
 frontier	GetUnit	0x08077394	parked
-frontier	GameInit	0x08077d38	available
+they_lack	GameInit	0x08077d38	clean
 frontier	Func_8078bf0	0x08078bf0	available
 frontier	InitEnemyUnit	0x08079460	parked
 frontier	RespawnAtSanctum	0x0808a6e4	available
@@ -189,7 +189,7 @@ frontier	Func_80930bc	0x080930bc	available
 frontier	Func_8093fa0	0x08093fa0	parked
 frontier	Func_8094544	0x08094544	parked
 frontier	StartRain	0x08094ac8	parked
-frontier	Task_Snow	0x08094bbc	available
+they_lack	Task_Snow	0x08094bbc	clean
 frontier	StartEarthquake	0x0809509c	parked
 frontier	Func_8095c08	0x08095c08	parked
 frontier	Func_8096fb0	0x08096fb0	parked
@@ -236,7 +236,7 @@ frontier	Func_80b8574	0x080b8574	parked
 frontier	Func_80b8c1c	0x080b8c1c	parked
 frontier	Func_80b9554	0x080b9554	parked
 frontier	Func_80b9724	0x080b9724	available
-frontier	Func_80b9dc4	0x080b9dc4	parked
+they_lack	Func_80b9dc4	0x080b9dc4	fakematch
 frontier	Func_80b9ec0	0x080b9ec0	parked
 frontier	Func_80ba2c0	0x080ba2c0	parked
 frontier	Func_80bac6c	0x080bac6c	available

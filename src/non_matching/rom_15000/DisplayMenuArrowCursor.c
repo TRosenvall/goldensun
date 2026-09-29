@@ -1,3 +1,112 @@
+/* DisplayMenuArrowCursor (EmitPartySprites) -- 0x0801aeec.
+ * NON-MATCHING: 6 encodings of 133 differ (objcmp).  WAS 16; batch 297a took it
+ * to 6 with one lever (below).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py <this file> \
+ *     asm/rom_15000/rom_1aeec_a_a_a_a_a.s --func DisplayMenuArrowCursor
+ *
+ * THE PREVIOUS RECIPE WAS STALE AND THAT IS WHY THIS PARK WAS NEVER RANKED.  It
+ * named asm/rom_15000/rom_1aeec_a_a_a_a.s, which does not exist; the reference is
+ * rom_1aeec_a_a_a_a_a.s (one more `_a`).  tools/parkcheck.py therefore reported
+ * UNCHECKABLE "reference not found" and the park stayed invisible to every
+ * ranking pass.  It is one of 32 parked frontier functions in that state.
+ *
+ * 6 IS A TRUE DISTANCE: ref 133 encodings / 292 bytes / 6 relocations, ours 133 /
+ * 292 / 6.
+ *
+ * SPLIT SHAPE: NONE NEEDED.  The reference holds exactly ONE function (anchored
+ * `grep -cE '^[[:space:]]*\.?thumb_func_start'` = 1) and tools/datacheck.py
+ * prints nothing for it -- no data section.  So this is a plain WHOLE-FILE
+ * conversion.  The two data labels it reads, `.L342f8` and `.L33ef8`, live in
+ * asm/rom_15000/rom_1aeec_c_c_b.s and are ALREADY `.global` there, so NO new
+ * export and NO linker alias is required.
+ *
+ * SHIMS: none.  No register pins, no barriers, no .equ, no volatile, no flag.
+ *
+ * ================== THE LEVER: 16 -> 6, TWO LOCALS OF DIFFERENT WIDTH =========
+ *
+ * The park's residue 1 (8 of its 16) was that each arm loaded `a[i].f0` TWICE
+ * where the ROM loads once and compares a COPY:
+ *     rom   ldrh r2, [r6, #0x3c] / mov r3, r2 / ldr r1, =.L342f8 / cmp r3, #0
+ *     ours  ldrh (compare) ... ldrh (add)
+ * The park had already traced WHY -- the compare load is `(set (reg:HI) (mem:HI))`
+ * and the add load is `(zero_extend:SI (mem:HI))`, two different RTL expressions
+ * that cse cannot merge -- and had tried "an int/uint/short/u16 local for the
+ * compare, for the add, for both".  What it had NOT tried is TWO LOCALS OF
+ * DIFFERENT WIDTH AT ONCE, which is what the ROM's load+copy pair actually is:
+ *
+ *     d = m->a[1].f0;        /* int  -- the zero_extend:SI load, the ADD's operand
+ *     e = d;                 /* u16  -- the HImode value, the COMPARE's operand
+ *     src = L342f8;
+ *     if (e != 0)
+ *         o->x = o->x + d;
+ *
+ * `e = d` is the ROM's `mov r3, r2`.  Measured, each a single drop from 16:
+ *     int d for the add,  memory compare                  57  (133 enc)
+ *     u16 d for the add,  memory compare                 113  (141 enc)
+ *     int d for the compare, memory add                   57  (133 enc)
+ *     u16 d for the compare, memory add                   16  (133 enc)  = park
+ *     int d + u16 e = d, compare on e, add on d            6  (133 enc)  <- THIS
+ *     int d + u16 e re-read from memory, compare on e      6  (133 enc)  (same)
+ *     u16 d + int c = d, compare on c, add on d           57  (133 enc)
+ * So the direction matters: the WIDE local must carry the ADD and the NARROW one
+ * the COMPARE.  The reverse (narrow carries the add) is 57.  Both spellings of
+ * the narrow local -- a copy `e = d` and a second read `e = m->a[1].f0` -- give 6,
+ * which is the evidence that cse does merge them once the modes line up.
+ *
+ * ================== THE REMAINING 6, AND THE PASS RESPONSIBLE ================
+ *
+ * Read off the side-by-side.  Two sites, and they are COUPLED:
+ *
+ *  (1) FOUR encodings, indices 21-25: ONE SCHEDULING ROTATION plus the two
+ *      register names that follow from it.
+ *          ref   21 ldrh r1,[r6,r2]   22 mov r5,r3   23 mov ip,r0  25 mov r3,ip
+ *          ours  21 mov r5,r3         22 mov ip,r0   23 ldrh r3,[r6,r2]  25 mov r1,ip
+ *      Index 27 `and r3, r1` is IDENTICAL in both -- the AND is commutative and
+ *      both sides reach it -- so the whole of (1) is: WHERE the `ldrh` sits and,
+ *      as a consequence, which register it targets.  In the ROM the load runs
+ *      BEFORE `mov r5, r3`, so r3 still holds the base and the load must take r1;
+ *      in ours the load runs after, r3 is dead, and the load takes r3.
+ *
+ *      PASS: sched2.  `-fno-schedule-insns` changes nothing (sched1 is inert
+ *      here); `-fno-schedule-insns2` gives 35 of 133, so the ROM is itself
+ *      scheduled and this is a rank/order difference inside sched2.  The order
+ *      follows INSN_LUID, i.e. statement order: `o = &m->a[i].oam;` is expanded
+ *      before `o->x = m->a[i].x;`, so o's two insns get the lower uids.
+ *
+ *      WHY SOURCE ORDER DOES NOT REACH IT.  To give the load a lower uid it has
+ *      to be an earlier statement, and naming it costs two instructions:
+ *          int x = m->a[i].x; ... o->x = x;          123 of 135 enc
+ *          unsigned short x   version                120 of 135 enc
+ *          int x and int y both hoisted              133 of 137 enc
+ *      Writing the stores through `m->a[i].oam.x` so that `o` is computed later
+ *      is far worse (132-143, 143-147 enc), and a `struct Arrow *a = &m->a[i];`
+ *      intermediate is 25-26 at the right length.  `o->y` before `o->x` is 52.
+ *      Declaration order does not touch it: five orders of
+ *      {o, src, f, d, e} all measure exactly 6.
+ *
+ *  (2) TWO encodings, indices 35 and 37: the `i` copy out of r8.
+ *          ref   mov r1, r8 / strb r3,[r5,#4] / cmp r1, #0
+ *          ours  mov r2, r8 / strb r3,[r5,#4] / cmp r2, #0
+ *      `i` lives in r8 (hi), so every touch needs a low reload register, and
+ *      which one it gets is allocate_reload_reg's ROUND-ROBIN over spill_regs
+ *      from last_spill_reg (reload1.c:5003, updated at 4937) -- a function of how
+ *      many reload-register allocations happened EARLIER in the function, which is
+ *      why it is coupled to (1): index 25 is itself a hi->lo reload.  This is the
+ *      same mechanism src/non_matching/rom_a1000/80a524c.c and
+ *      src/non_matching/rom_b5000/80b6d30.c both document.  Inert, measured:
+ *      `if (i)`, `if (i != 0)`, `if (0 != i)` and a local `n = i` are all 6;
+ *      `if (i > 0)` is 7.
+ *
+ * So the expected shape of a close is: fix (1) and (2) falls out with it.
+ *
+ * MEASURED INERT beyond the above (all still 6): the five declaration orders,
+ * the four `i`-test spellings, the `n = i` local.
+ * -- worked in scratch_elev/b297a/t6
+ */
+
 /* DisplayMenuArrowCursor (EmitPartySprites) -- NON-MATCHING.
  * NON-MATCHING: 16 encodings of 133 differ (objcmp).
  * asm/rom_15000/rom_1aeec_a_a_a_a.s.
