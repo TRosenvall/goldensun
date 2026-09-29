@@ -25527,23 +25527,52 @@ emitting a second mid-function pool. When a residue includes a cluster of
 `ldr rN,[pc,#N]` differences, check whether your pool COUNT matches before reading
 anything into the individual loads.
 
-## Name walking variables by ROLE, not by AXIS
+## Bresenham walking variables: ROLE naming is the mechanism, AXIS naming is the number
 
-`Func_80f62b8` is a Bresenham-style plotter, and its sibling park
-`src/non_matching/rom_c9000/80cde90.c` — the same algorithm — concluded from the
-ROM's two arms putting *different* axes in r0 that "the ROM's four coordinate values
-CANNOT be two pseudos", and went looking for four.
+**CORRECTED (batch 298, by the agent that first reported it).** The first version of
+this entry said role-naming collapsed `Func_80f62b8`'s residue to 24 encodings and
+treated axis-naming as the error. Both halves were wrong, and the correction is more
+useful than the claim:
 
-**Four measures 69. Two do it** — if they are named by role, the *scanned* coordinate
-and the *dithered* one, rather than by axis. Written that way the entire residue
-collapses to a single uniform r0↔r1 exchange: 24 encodings, with nothing else
-differing anywhere in the function.
+- **axis-named: 17 of 191.** The better number.
+- **role-named: 28 of 191.** The right *mechanism*, and the larger residue.
+- four separate pseudos: **69** — this is the measured negative to cite.
 
-That also makes this function **the cheapest instrument in the corpus** for the open
-`REG_ALLOC_ORDER` question in `HANDOFF.md`: one clean register exchange, no
-confounding shape difference, 191 instructions. Note the sibling park's
-reference-count argument also **double-counted** — it counted the two ±1 arms twice,
-and the dithered coordinate has *fewer* references, not more.
+Axis-naming wins those 11 encodings **by accident**. gcc makes one fixed choice
+(x to r0, y to r1) and it happens to be correct for the x-major arm, so only the
+y-major arm is wrong. Role-naming — the *scanned* coordinate and the *dithered* one —
+is what the ROM's two arms actually express, and it makes the whole residue ONE
+uniform cause instead of two.
+
+**The one cause was then proved rather than asserted**, which is the part worth
+keeping. A **blind textual r0↔r1 swap** over the two loop regions takes the
+role-named candidate from 28 differing to **6**, and `introduced 0` is the proof: the
+swap rewrites every r0 and r1 in those ranges without regard to content, so if either
+register held anything else the count would have risen. The surviving 6 are the
+already-named x-major divisor block order.
+
+**Why it does not close, read off the ROM.** Per arm the scanned coordinate has six
+instruction references and the dithered one five — and **in-loop they are equal at
+four each**, so the entire difference is the out-of-loop guard compare.
+`allocno_compare` therefore ranks the scanned one higher, allocates it first, and
+`REG_ALLOC_ORDER {3,2,1,0,…}` hands it r1. **One reference apart**, which is why none
+of sixteen spellings reaches it: `if (y0 != y1)` is inert because the two names hold
+the same value, and `while` is inert because loop rotation manufactures the same
+guard.
+
+**A falsifiable prediction, deliberately recorded so it can be struck.** Rebuilding
+with `REG_ALLOC_ORDER` starting `{3, 2, 0, 1, …}` should take the role-named body to
+**6** and make the axis-named body **worse**, since its accidental win becomes an
+accidental loss. If that is not what happens, this reading is wrong.
+
+**One caveat on the sibling correction.** The note that
+`src/non_matching/rom_c9000/80cde90.c` "double-counted" its reference argument stands,
+but the pseudo-to-axis identities behind it are **inferred** — from conflict sets,
+`preferences` lines and the emitted registers — not read from a dump.
+`global_alloc` does not print a pseudo-to-hard-register table; it emits only reload
+notes (`Register 78 now in 8.`). The allocation-ORDER line is quoted verbatim and is
+solid; the axis labelling is a lead. Four of the last five batches had a park's stated
+blocker wrong through exactly this kind of slippage.
 
 ## Two more blockers named by their pass
 
