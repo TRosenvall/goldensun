@@ -26340,3 +26340,70 @@ and an unsigned local all produce a branch instead. Worth 335 -> 294.
 **A named local for the last argument reverses argument-setup order**, and sched2 tie-breaks on
 `INSN_LUID`, so `{ int pri = 0xc80; StartTask(fn, pri); }` took the final 2 encodings to 0 where a
 `0xc80u` suffix, a `(void *)` cast and a changed prototype all failed.
+
+## SETTLED BY EXPERIMENT: `REG_ALLOC_ORDER` is CORRECT, and 78 parks name the wrong mechanism
+
+The most-cited open question in the tree is closed, negatively. Batch 300 recorded that **78 park
+files** name `REG_ALLOC_ORDER`, several claiming to be one pairwise register swap from exact, with
+a recorded decisive experiment: rebuild gcc-2.96 with a different order and re-measure. **Done.**
+
+### Method
+
+gcc-2.96 was rebuilt from the vendored source in a scratch tree — the production compiler at
+`/opt/gcc296` was never touched. Two hygiene steps mattered:
+
+1. **A baseline build first.** An unmodified rebuild must reproduce production output, or a later
+   difference is unattributable. It did: **54 of 54 landed functions object-identical.**
+2. **Compare at OBJECT level.** The baseline first appeared to differ on 7 of 54 — all pure label
+   renumbering (`.L15` → `.L16`), byte-identical once assembled. This is the documented
+   "a line-level `.s` diff is not a valid screen" trap, and I walked into it; the harness now
+   assembles both sides and compares bytes.
+
+A third trap: gcc-2.96's Makefile does **not** track `arm.h` as a prerequisite, so `make cc1` after
+editing it is a no-op — the rebuilt `cc1` was byte-identical to baseline. The objects consuming the
+macro (`regclass.c`, `local-alloc.c`, `global.c`, `reload1.c`, `regrename.c`, `recog.c`, `arm.c`)
+must be deleted by hand.
+
+### Result 1 — the order is right
+
+Changing `{3, 2, 1, 0, …}` to `{3, 2, 0, 1, …}` **breaks 17 of 54 byte-exact landed functions.**
+Those 17 match under the current order and stop matching under the swap, so **the ROM was compiled
+with r1 allocated before r0.** The order in `arm.h:989` is correct and must not be changed.
+
+That also disposes of the standing worry that the 4,362 matching functions might simply be
+insensitive to the order: 17 of a 54-function sample are sensitive, and they all agree with the
+current order.
+
+### Result 2 — the park's diagnosis was wrong, and the prediction is falsified
+
+`Func_80f62b8` was nominated as the cheapest instrument and carried an explicit falsifiable
+prediction: under the swapped order the role-named body should reach **6** and the axis-named body
+should get worse. Measured against its own reference, size and count exact throughout:
+
+| candidate | production | `{3, 2, 0, 1, …}` |
+|---|---|---|
+| axis-named | **17** | 28 — worse, as predicted |
+| role-named | 28 | **39** — predicted 6 |
+
+Half the prediction held and half failed decisively. **Swapping the order made BOTH variants
+worse**, so the r0/r1 exchange that park identified is not produced by the order array at all.
+
+### What this means for the 78 parks
+
+They are pointing at the wrong mechanism. A residue that looks like "the ROM put this value in r1
+and we put it in r0" is **not** an order question — the order is already the ROM's. It is a question
+about the **inputs** to allocation: `n_refs`, `live_length`, the conflict graph, and the allocno
+ordering those feed. The existing entries on `allocno_compare` (no frequency term),
+`CALLER_SAVE_PROFITABLE`, `qty_compare`, and the local-alloc `REG_N_DEATHS` refusal are the right
+places to look, and several parks already reach that conclusion independently.
+
+Two facts already measured remain true and are now better framed — they are not workarounds for a
+wrong order, they are the actual shape of the problem:
+
+- a **pin is the wrong instrument**: it makes the value a hard register, grows the frame, and
+  scores worse;
+- **hand-writing the ROM's coalescings is worse still**, because it deletes the competing allocnos
+  instead of raising pressure.
+
+**Do not re-run this experiment.** The harness is at `scratch_elev/regalloc/` (gitignored) if a
+different order is ever proposed, but the question as posed is answered.
