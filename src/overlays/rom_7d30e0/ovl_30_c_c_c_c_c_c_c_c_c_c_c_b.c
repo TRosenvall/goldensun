@@ -41,7 +41,7 @@ void OvlFunc_948_200a290(void)
 {
     int v;
     int c0, c1;
-    register int pr __asm__("r1");
+    int pr;
 
     v = 1;
     __MapActor_GetActor(8)[0x59] = v;

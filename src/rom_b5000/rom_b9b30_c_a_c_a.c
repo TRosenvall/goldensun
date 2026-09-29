@@ -97,7 +97,7 @@ int Func_80ba978(struct Src *s, int b)
     int base;
     int k;
     unsigned int zi;
-    register int b1 __asm__("r6");
+    int b1;
     int i;
     int j;
 

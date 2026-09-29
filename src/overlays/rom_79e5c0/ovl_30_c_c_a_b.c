@@ -39,7 +39,7 @@ int OvlFunc_911_200a6cc(unsigned char *a)
 {
     int x;
     int y;
-    register int lim __asm__("r1");
+    int lim;
 
     if (L369c != 0) {
         x = *(int *)(a + 8);
