@@ -27271,3 +27271,51 @@ Recorded with the other instances of the same class (a closer size being a wrong
 odd-offset union scoring better than the correct layout): **check that a gain did not come from
 deleting something real.** For calls specifically, count the `_call_via_rN` veneers on both sides
 before believing any figure.
+
+## A LITERAL EQUAL TO A VARIABLE'S KNOWN VALUE IS NOT INTERCHANGEABLE WITH IT
+
+On `ActorCmd_Player_World`, writing a literal `1` where the ROM stores the variable that happens
+to hold 1 let `jump.c` **cross-jump two arms the ROM keeps distinct** — the tails became identical
+only because the literal erased the difference. Storing the variable instead blocks the tail
+merge. Worth 105 → 94.
+
+This is the constructive twin of the recorded trap that a ROM computing a provably-constant index
+tells you the value is assigned on more than one path. Same underlying fact from the other side:
+**gcc's cross-jumping compares emitted tails, so anything that makes two tails textually equal
+invites a merge the ROM does not have.** When two arms should stay separate, check whether you
+have constant-folded away the thing that distinguished them.
+
+## A NARROWING SURVIVES ONLY IF ITS INTERMEDIATE HAS MORE THAN ONE SET
+
+`(unsigned short)heading - cur` written inline loses its zero-extension: combine proves the
+extension redundant and deletes it. Routing the value through a variable that has **three sets
+elsewhere in the function** keeps it, because combine can no longer prove the range.
+
+This is the reuse lever (one pseudo per declared variable, no SSA renaming) used for a completely
+different purpose than register inheritance — **to make a value un-foldable**. Worth knowing as a
+second application: reuse changes what the optimiser can prove about a value, not only where it
+lives. The two uses have different preconditions and should not be conflated.
+
+## Partial correction: `p[off] = 0;` does NOT always pool
+
+The recorded rule is that a plain narrowing store of zero goes through `force_const_mem`. Two
+functions today show the boundary:
+
+* On `ActorCmd_Player_World` the ROM's `*(unsigned char *)(spr + 0x26) = 0` **is** a QImode literal
+  that pools (`ldr r3,.Lf720 / .word 0 / .pool`), and that short-range fixup is what dumps the
+  pending five-word pool mid-function. Our candidate emits `mov r3,#0 / strb`, nothing forces the
+  dump, and that single missing pool word accounts for the **whole 4-byte size gap and the
+  1-encoding count gap** — roughly 20 of the 94 differing encodings are `ldr [pc,#N]` offsets
+  downstream of it, with matching relocation symbols.
+* But it does not always pool: where gcc has **already split the store** into `(set reg 0)` plus
+  `(set mem reg)` before the pool decision, no constant reaches `force_const_mem` at all.
+
+So the tell is not the source form — it is whether a single-insn constant store survives to the
+pool decision. **A missing pool word is a size-and-count defect, not a cosmetic one**, and it
+cascades into every later pc-relative offset, which is the same inflation that made another park's
+`-fno-*` figures read 146–174 when the real residue was 2–4 instructions.
+
+Also confirmed on this function: an unused **aggregate** gets a stack slot and an unused **scalar**
+does not (`int spare` came back 4 bytes short where three dead `vec3_t` closed a 40-byte hole), and
+the twin `ActorCmd_Player`'s 0x68 frame closes with the same declaration block — which is the
+`expand_decl` corollary confirmed from the frame side on two functions at once.
