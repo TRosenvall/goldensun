@@ -29,6 +29,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from filtered import generated
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DRY = False  # set by --dry-run; guards every mutation in this file
 START = re.compile(r"\s*\.(?:thumb_func_start(?:_noalign)?|arm_func_start)\s+(\S+)",
                    re.IGNORECASE)
 
@@ -152,16 +153,36 @@ def rewrite_ld(stem_rel, parts):
             for p in parts:
                 out.append(f"{indent}{p[:-2]}.o({section}){tail}")
         if hit:
-            open(ld, "w").write("\n".join(out))
+            if DRY:
+                print(f"  [dry-run] would rewrite {os.path.relpath(ld, ROOT)}")
+            else:
+                open(ld, "w").write("\n".join(out))
             touched.append(os.path.relpath(ld, ROOT))
     return touched
 
 
 def main():
-    if len(sys.argv) < 3:
+    global DRY
+    # STRICT ARGUMENT PARSING, AND WHY IT IS NOT OPTIONAL.
+    # This tool used to read sys.argv[1] and sys.argv[2] positionally with no flag
+    # handling at all, so `--dry-run` -- which a caller has every reason to expect
+    # of a tool that DELETES a tracked .s and REWRITES a linker script -- was
+    # silently ignored and the destructive split ran for real. A batch-302 agent
+    # under instructions to touch nothing outside its scratch directory destroyed
+    # three tracked files that way, and only recovered because it thought to check
+    # `git status` afterwards. An unrecognised flag now FAILS CLOSED.
+    args, flags = [], []
+    for a in sys.argv[1:]:
+        (flags if a.startswith("-") else args).append(a)
+    for f in flags:
+        if f in ("-n", "--dry-run"):
+            DRY = True
+        else:
+            sys.exit(f"unknown option {f}\n\n{__doc__}")
+    if len(args) < 2:
         sys.exit(__doc__)
-    rel = os.path.relpath(os.path.abspath(sys.argv[1]), ROOT)
-    target = sys.argv[2]
+    rel = os.path.relpath(os.path.abspath(args[0]), ROOT)
+    target = args[1]
     path = os.path.join(ROOT, rel)
 
     preamble, blocks = parse(path)
@@ -349,11 +370,18 @@ def main():
         while body and not body[-1].strip():
             body.pop()
         out = stem + suffix + ".s"
-        open(os.path.join(ROOT, out), "w").write(
-            "\n".join(preamble + body) + "\n")
+        if DRY:
+            print(f"  [dry-run] would write {out}  "
+                  f"({len(group)} function(s), {len(body)} lines)")
+        else:
+            open(os.path.join(ROOT, out), "w").write(
+                "\n".join(preamble + body) + "\n")
         written.append(out)
 
-    os.remove(path)
+    if DRY:
+        print(f"  [dry-run] would REMOVE {rel}")
+    else:
+        os.remove(path)
     touched = rewrite_ld(rel, written)
 
     print(f"{rel}  ->  {', '.join(written)}")
