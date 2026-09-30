@@ -1,0 +1,116 @@
+BaseAnim_RapidSlash -- 0x080e2974, asm/rom_c9000/rom_e28f4_c_c_a.s line 12,
+742 ROM instructions.  RECON ONLY -- NO CANDIDATE WAS COMPILED, so there is
+deliberately NO "N of M" line here.  Do not invent one.
+
+WHY IT STOPPED AT RECON: the middle of this function is a FOUR-DEEP nest whose
+bounds all come out of one table (see below), with six draw arms that differ only
+in an offset and are NOT tidied to look alike.  Reading it to the standard the
+rest of this batch used would have cost the Attack result.  The facts below are
+all verified off the asm or off a tool; nothing is guessed.
+
+SPLIT SHAPE (tools/datacheck.py + tools/split_s.py --dry-run):
+  datacheck prints NOTHING -> NO data section in this .s.  TEXT-ONLY SPLIT.
+  The one table the function reads, .Leed3e, lives in rom_e28f4_c_c_c.s and is
+  ALREADY `.global` there (asm/rom_c9000/rom_e28f4_c_c_c.s:5), so the split needs
+  NO NEW `.global` AT ALL.
+  The .s holds FOUR functions -- BaseAnim_RapidSlash (0x080e2974),
+  Anim_Gaia (0x080e302c), Func_80e38b8, Func_80e3908 -- and the target is the
+  FIRST, so --dry-run cuts TWO ways, not three:
+      rom_e28f4_c_c_a_b.s   BaseAnim_RapidSlash   (1 function,  802 lines)
+      rom_e28f4_c_c_a_c.s   the other three       (3 functions, 1143 lines)
+  Comes into C as src/rom_c9000/rom_e28f4_c_c_a_b.c.  --dry-run only; `make
+  compare` after the split is still owed.
+
+SIGNATURE: TWO PARAMETERS, `(void *context, int variant)`, and BOTH are spilled
+in the first eight instructions -- `str r1,[sp,#0x54]` before anything else, and
+`mov r6,r0` then eventually `[sp,#0x4c]`.  This is the Blob/Breath signature, NOT
+Attack's one-parameter form.
+
+FRAME 0x8c, and it is the ONE PLACE THIS FUNCTION BREAKS THE FAMILY PATTERN:
+  *** `base` IS SPILLED TO sp+0x50 AND RELOADED, over and over
+  (`ldr r0,[sp,#0x50]`, `ldr r4,[sp,#0x50]`, `ldr r2,[sp,#0x50]` ...). ***
+  In BaseAnim_Attack base is r11 for the whole function, in ParticleCloud and
+  Nova it is r9.  Here the ROM ITSELF spills it.  So DO NOT transplant a
+  high-register `base` pin or even the expectation of one: the thing to reproduce
+  is a base that LOSES its register.  Read that twice -- it inverts the instinct
+  every other function in this family trains.
+  Mapped slots: 0x54 variant, 0x50 base, 0x4c context, 0x44 g2, 0x40 cam,
+  0x3c (variant<<3), 0x38 (&vec at sp+0x74), 0x34, 0x30 (base+0x7828),
+  0x2c gPtrs, 0x28, 0x24, 0x20, 0x1c, 0x18, 0x14, 0x10, 0x0c, 0x08.
+  Aggregates sit above: sp+0x80, sp+0x74, sp+0x64, sp+0x60, sp+0x58.
+
+THE PROLOGUE IS THE FAMILY'S, WITH THE WALKING POINTER:
+  `ldr r2,=iwram_3001eec / mov r3,r2 / ldmia r3!,{r0} / ldr r3,[r3]` -- the
+  `g = iwram_3001eec; pp = g; base = *pp++; ctx = *pp;` spelling that PAID on
+  BaseAnim_Attack (lever 1 of its park).  Then `ldr r1,[r2,#8]` for g2 and
+  `sub r2,#0x6c / ldr r2,[r2]` for cam, the negative-offset lever.
+
+REG_BLDALPHA = 0x1010 IS A WORD POOL HERE (`.Le29e4 @ 0x1010`, and the .s
+carries the literal `.word 0x1010`), so BaseAnim_Blob's `int` CARRIER LEVER
+APPLIES UNCHANGED -- 0x101 > 255 means 0x1010 is not `thumb_shiftable_const` and
+the carrier reaches the pool.  Contrast BaseAnim_Attack, where the same lever is
+UNREACHABLE because its constants (0x1f80/0x1f81) are shiftable; see that park's
+blocker (A).  Write it `{ int bld = 0x1010; REG_BLDALPHA = bld; }`.
+
+*** THE STRUCTURAL KEY: .Leed3e IS A 7-BYTE-PER-VARIANT PARAMETER RECORD. ***
+Every bound, count and sub-selector in this function is a byte out of one table
+indexed by `variant * 7 + k`.  The ROM builds the index as
+`lsl r5,variant,#3 / sub r2,r5,variant` (that is variant*8 - variant) and then
+adds a small constant, and `variant<<3` is HOISTED TO sp+0x3c and reused at every
+site.  Verified k values in use: +0 (picks _FILE_b5 vs _FILE_b6), +1 (a 4-way
+palette selector -> _FILE_8d / _FILE_a0 / _FILE_b6 / _FILE_b4), +2 (the outer
+repeat count, spilled to sp+0x34), +3 (sp+0x20), +4 (the per-repeat stride,
+multiplied by the outer counter), +5 (the gate on the whole animation body --
+`if (tbl[variant*7+5] == 0)` skips to the epilogue), +6 (sp+0x24).
+  WRITE `int v7 = variant * 8 - variant;` AS ITS OWN STATEMENT and index
+  `Leed3e[v7 + k]` off it.  Two reasons, both already documented in this tree:
+  the derived value has MANY uses (batch 306's more-than-one-use precondition is
+  satisfied many times over), and the ROM demonstrably hoists `variant<<3` to a
+  stack slot rather than folding it, which is the batch-298 "distribute the shift
+  by hand" tell.  Do NOT write `variant * 7`; gcc's synth_mult will pick its own
+  shape and the ROM's is `<<3` then subtract.
+  The +1 selector's dispatch is emit_case_nodes over THREE case nodes
+  (`cmp r3,#1 / beq / cmp r3,#1 / bgt / cmp r3,#0 / beq / b` then `cmp r3,#2`),
+  i.e. a `switch` with cases 0, 1, 2 and a default -- the duplicated `cmp #1` is
+  gcc's own, exactly as in BaseAnim_Attack's file dispatch.
+
+TWO THINGS TO EXPECT AND NOT MISREAD:
+  1. r12 AND r14 ARE LOOP INVARIANTS THE ROM ALLOCATES, in the tile-copy double
+     loop at .Le2a12: `mov r12, 0xa2<<7` and `mov r14, 0x90<<1` set once outside,
+     compared against inside (`cmp r5,r14`).  Per elevation.md's Func_80c11ec
+     note, r12 and lr ARE allocatable in Thumb and the ROM does use them -- so
+     KEEP "lr" AND "r12" OUT OF ANY CLOBBER LIST, and do not read their presence
+     as inline asm.  Both are ordinary named locals assigned before the loop.
+  2. The copy loop's destination index is `(i/2) + row + (0xa2<<7)` with the
+     source a separate incrementing byte pointer, and `strb r2,[r4,r3]` is
+     register+register on a RELOADED base -- so the base is the spilled `base`,
+     reloaded inside the loop (`ldr r4,[sp,#0x50]`).  Another place the spill is
+     the thing to reproduce.
+
+LEVERS THAT SHOULD TRANSFER FROM BaseAnim_Attack'S PARK, in priority order:
+  1. The `ldmia` walking-pointer prologue (present in this ROM's first six
+     instructions -- it is the same shape).
+  2. Brace-scope the loop temporaries per region; there are at least five
+     disjoint `i/2`-style temporaries here and one function-level one will
+     inflate the allocno set the way it did on Attack.
+  3. TWO walking pointers where the ROM keeps two registers, one COUNTER where it
+     keeps one (`i` unifies across disjoint loops; the pointer does not).
+  4. The `int` carrier for 0x1010 (see above).
+  5. The particle seed loop at .Le2b08 is the SAME SHAPE as Attack's, including
+     the `mov r7,#0xff` NAMED MASK, three Random() calls with different
+     post-masks (`& 0xff`, `& 0xff` then `- 0x7f`, `& 0xff` then `- 0x7f`), the
+     `if (p->x > 0) p->vx = -p->vx;` and `p->t = -1`.  It walks gBuffer (not
+     base + 0xe1<<7 as Attack does) by 0x1c and the bound is `0xc0 << 2`.
+     Transplant Attack's loop and change the base, the shift (12 here, 10 there)
+     and the y bias (`0xc8 << 13`).
+  6. DO NOT PIN.  Both Func_8001af8-class sites here are single; the Blob
+     three-site pin has nothing to defeat, which is the precondition Attack's
+     park states and confirms.
+
+WHAT I WOULD EXPECT THE BLOCKER TO BE: the four-deep nest's counters.  The ROM
+uses r8 for the outer repeat index, r9 for a derived bound (`r10 + 2`), r10 for
+`r8 * tbl[v7+4]`, r11 for the hoisted `&vec`, and still spills base -- five high
+quantities in one region.  Getting that set right is the whole function, and on
+Attack the equivalent question was settled by writing the destination vec THROUGH
+ITS POINTER (that park's lever 4), which is exactly the shape r11 has here.  Try
+that FIRST.

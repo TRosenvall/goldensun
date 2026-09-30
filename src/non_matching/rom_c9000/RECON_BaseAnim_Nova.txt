@@ -1,0 +1,119 @@
+BaseAnim_Nova -- 0x080d4604, asm/rom_c9000/rom_d45ec_c_c.s line 12,
+776 ROM instructions -- the LARGEST of the four in this brief.  RECON ONLY --
+NO CANDIDATE WAS COMPILED, so there is deliberately NO "N of M" line here.
+Do not invent one.
+
+SPLIT SHAPE (tools/datacheck.py, then tools/split_s.py --dry-run):
+  The .s has a `.rodata` section and holds TWO functions -- BaseAnim_Nova and
+  Anim_Volcano (0x080d4ce8) -- so converting the target needs a TEXT/DATA SPLIT
+  with the data keeping its own object.
+  *** THE SPLIT MUST ADD TWO EXPORTS:  .global .Lee262   .global .Lee294 ***
+  Neither exists in asm/ today and split_s.py --dry-run REFUSES until they do.
+  Anim_Volcano in the same file reads three MORE labels (.Lee29a, .Lee29d,
+  .Lee2a9) -- LEAVE THOSE ALONE, they are not this function's and exporting them
+  is unnecessary churn.  Add the two, verify `make compare`, then split.
+  .Lee262 is read with `ldrh`, so it comes into C as
+      extern unsigned short Lee262[] __asm__(".Lee262");
+  The target is the FIRST function in the file.
+
+SIGNATURE: TWO PARAMETERS, `(void *context, int variant)`.  `variant` is SPILLED
+to sp+0x38 in the second instruction of the body and reloaded at every use
+(`ldr r2,[sp,#0x38]`, `ldr r1,[sp,#0x38]`) -- so this one is Nova's spilled
+scalar and NOT a register quantity.  `base` is r9 (`mov r9, r1`).  Frame 0x50.
+  Mapped slots seen in the prologue and first block: 0x38 variant, 0x34 ctx,
+  0x28 g2, 0x24 and 0x20 two derived ints set per variant arm, 0x3c fns[0],
+  0x30, 0x18 fp, 0x0c, 0x08; aggregate at sp+0x44.
+
+THE PROLOGUE IS THE FAMILY'S, WITH THE COPY:
+  `ldr r2,=iwram_3001eec / mov r3,r2 / ldmia r3!,{r1} / ldr r3,[r3]` then
+  `ldr r2,[r2,#8]` for g2 -- so `g` IS kept alive for the indexed read and the
+  separate `mov r3,r2` copy is needed.  Spell it
+  `g = iwram_3001eec; pp = g; base = *pp++; ctx = *pp; g2 = g[2];`
+  (the form that PAID as lever 1 of BaseAnim_Attack's park).  There is no
+  `- 0x6c` cam load in the prologue.
+
+*** THE OPENING IS A THREE-ARM VARIANT DISPATCH THAT ALSO CHOOSES THE
+AnimStart ARGUMENT, and every arm sets the SAME TWO SLOTS. ***
+  variant == 0 : AnimStart(1); sp+0x24 = 0x3c; sp+0x20 = 0x30
+  variant == 1 : AnimStart(0); sp+0x24 = 0x3c; sp+0x20 = 0x40
+  otherwise    : AnimStart(0); GetBattleActorPos2(slot->f8, &vec);
+                 sp+0x24 = vec.x / 2 (signed, the `lsr #31 / add / asr #1`
+                 idiom); sp+0x20 = vec.y + 0x30
+  The two slots are joined at .Ld4680/.Ld4682 with `str r3,[sp,#0x20]` SHARED by
+  all three arms and `str r2,[sp,#0x24]` duplicated per arm.  That asymmetry is
+  the BaseAnim_Breath / BaseAnim_Tentacle warning working in the documented
+  direction: gcc cross-jumped the tail on its own, so write the two stores in
+  each arm and DO NOT hoist either above the `if`.  Tidying the arms to look
+  alike is what destroys it.
+  Dispatch form: `cmp r2,#0 / bne` then `cmp r1,#1 / bne` on a RELOADED variant,
+  with no jump table and no duplicated compare -- an if-CHAIN, like
+  ParticleCloud and unlike Breath.
+
+REG_BLDALPHA = 0x1010 IS A WORD POOL (`.Ld46c0 @ 0x1010`, literal `.word
+0x1010` in the .s), so BaseAnim_Blob's `int` CARRIER LEVER APPLIES UNCHANGED:
+`{ int bld = 0x1010; REG_BLDALPHA = bld; }`.  0x1010 is not
+`thumb_shiftable_const` (0x101 > 255), which is WHY the carrier reaches the pool
+here and CANNOT on BaseAnim_Attack -- see that park's blocker (A) for the rule.
+
+THE fns[2] TAIL IS THE Attack/Breath SHAPE, with ONE gPtrs pool word held across
+both reads:
+  `ldr r5,=gPtrs / mov r3,r5 / add r3,#0xb8 / ldr r3,[r3] / str r3,[sp,#0x3c]`
+  ... `add r5,#0xbc / ldr r3,[r5] / mov r0,sp / add r0,#0x3c / str r0,[sp,#0x18]
+  / str r3,[r0,#4]`
+  i.e. `fns[0] = gPtrs[0x2e]; f1 = gPtrs[0x2f]; fp = fns; fp[1] = f1;` -- load f1
+  BEFORE `fp = fns`, and use the INDEX form, not `*(DrawFn *)(gPtrs + 0xb8)`,
+  because 0xb8/0xbc are past Thumb's `ldr rd,[rn,#imm]` range and gcc emits the
+  `add` on its own.  Note this function calls BuildDraw2DFuncEx only TWICE (one
+  pair), not eight times as Attack does -- there is no f4 x kind 2x2 here.
+
+*** THE STRUCTURAL KEY: .Lee262 IS A 5-HALFWORD-PER-RECORD TABLE INDEXED BY
+slot->f18, AND IT SUPPLIES THE LOOP BOUNDS. ***
+  The ROM builds the index as `lsl r3,r2,#2 / add r3,r2 / lsl r3,#1` (that is
+  f18*5, in halfwords -> *2 for bytes) and reads TWO entries from each record:
+      ((u16 *)Lee262)[f18 * 5 + 1]   -- the `+ 2` byte form, the OUTER gate
+                                        (`if (... == 0) goto epilogue`)
+      ((u16 *)Lee262)[f18 * 5]       -- the no-offset form, the INNER count
+  The inner one is re-read INSIDE the outer loop from a base kept in r4
+  (`ldrh r3,[r4,r3]` with `mov r4,r1` hoisted), which is the per-region caching
+  the Blob park's lever 4 describes -- ONE `Lee262` base local for the loop
+  region, written out longhand at the two uses outside it.
+  WRITE `int f5 = f18 * 4 + f18;` AS ITS OWN STATEMENT (the ROM's shape is
+  `<<2` then add, NOT a multiply -- do not write `f18 * 5` and let synth_mult
+  choose), and index off it.  Batch 306's more-than-one-use precondition is
+  satisfied.
+
+WHAT ELSE IS IN HERE (call census, for planning):
+  _call_via_r4 x4, Random x4, _call_via_r3 x3, AnimStart x3 (the three arms
+  above), sin x2, cos x2, __divsi3 x2, GetFile x2, LoadVFXFile x2, gfree x2,
+  _Func_80bd7dc x2, BuildDraw2DFuncEx x2, plus Func_80e3908, Func_80d6888,
+  Func_80cd52c, UpdateScreenShake, _SetBattleActorKnockback, _PlaySound,
+  StartTask/StopTask, GetBattleActorPos2, WaitFrames, AnimEnd.
+  *** THE sin/cos PARTICLE SEED LOOP at .Ld4746 IS THE RICHEST PART and it is
+  NOT the same shape as Attack's or RapidSlash's: ***
+      r6 = i * 2 ; a = Random() & 0xffff   (0xffff is a POOL word, `ldr r3,=0xffff`
+                                            -- a named `int` mask local, as
+                                            Anim_Fireball does it)
+      p->x =  r6 * sin(a)
+      p->y = -(r6 * cos(a))      (the negation is a separate `neg`, outside the mul)
+      p->t = i / 2 + 0x19        (signed halving, the lsr#31/add/asr#1 idiom)
+  bound 0x10, stride 0x1c.  `mul r3, r0` is a REGISTER multiply, so both operands
+  are variables and synth_mult is not involved -- write it as a plain product.
+  The SECOND loop (from .Ld47a8) re-derives base+0x7828 and the Lee262 count
+  EVERY iteration and holds `sp+0x20 << 16` in r11 across the whole thing; the
+  0x3ff mask on one Random() is another pool word wanting a named local.
+  THREE _call_via_r3 sites: two are the Func_8001af8 palette DMA in the two arms
+  of `variant == 1` / `variant == 2` (DIFFERENT BASIC BLOCKS, so per
+  BaseAnim_Attack's confirmed precondition the Blob r0/r2 pins have nothing to
+  defeat and this should be pin-free); the third is elsewhere and unread.
+
+LEVERS TO TRY FIRST, from BaseAnim_Attack's park (all measured there):
+  1. The `ldmia` walking-pointer prologue, in the WITH-`g`-copy form.
+  2. Write any vec destination THROUGH ITS POINTER, never `v.x` -- the single
+     change that closed Attack's frame to the ROM's exactly.  There is an
+     aggregate at sp+0x44 and a GetBattleActorPos2 destination, so this applies.
+  3. Brace-scope loop temporaries per region; one counter per group of disjoint
+     loops, two walking pointers where the ROM keeps two registers.
+  4. The `int` carrier for 0x1010, and named `int` mask locals for 0xffff and
+     0x3ff (all three are pool words in the ROM).
+  5. Do not pin anything on the first candidate.  Nine measured instances across
+     this tree say a pin is a per-function hypothesis, and Attack makes ten.

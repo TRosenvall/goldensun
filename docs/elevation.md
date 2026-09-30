@@ -27398,3 +27398,76 @@ pc-relative offset**.
   its pointer every iteration, is a **`goto` loop and invisible to loop.c**. The landed sibling
   `src/rom_a1000/rom_aa538_c_c_a_b.c` writes both its loops with `goto`, which is what identified
   it — read the sibling before choosing a loop form.
+
+## WRITE A VEC DESTINATION THROUGH ITS POINTER, NEVER AS `v.x` — a frame lever
+
+On `BaseAnim_Attack` this made the frame **byte-exact** — `sub sp, #0x5c` on both sides, every
+scalar slot on the ROM's offset — which closes the residue `BaseAnim_Breath`'s park records as
+"one extra spilled scalar".
+
+    mp->x += dx;      /* through the pointer  -- the ROM's shape */
+    mv.x  += dx;      /* sp-relative          -- costs the frame */
+
+Measured: frame 0x60 → 0x5c, size 1500 → 1496, count 671 → 669, aligned 49.6% → 54.4%.
+**Reading a component back is byte-identical either way, so it is the STORE that carries the
+lever.** The mechanism is a spill trade: written through the pointer, the temp pointer spills —
+exactly as the ROM spills it — and the frame counter keeps r9; written sp-relative, the temp
+holds a register and the counter spills instead.
+
+So a frame that is one scalar too large is worth checking against the *store form* of any vec or
+struct destination before hunting declaration order.
+
+## The `int` carrier for a pooled register write is CONDITIONAL — and it refutes the shiftability tell
+
+Recorded as a lever: give a `volatile u16 *` register write an `int` carrier so the constant lands
+as a **word** in the pool. It works **only where the constant is not `thumb_shiftable_const`**:
+
+* `0x1010` **pools**, and the carrier helps (`BaseAnim_RapidSlash`, `BaseAnim_Nova`).
+* `0x1f80` / `0x1f81` **cannot be pooled at all.** gcc-2.96's Thumb split rewrites every shiftable
+  SImode `CONST_INT` out of the pool *unconditionally*, so a `u16` carrier is byte-identical and
+  the lever has no purchase.
+
+**And this is a counter-example to the recorded shiftability tell** ("pooled + shiftable + SImode
+implies a symbol"): here the reference pool word carries **no relocation**, so it is not a symbol.
+The tell needs a further condition or it will send you looking for a symbol that does not exist —
+recorded alongside the earlier narrowing of that rule (HImode implies nothing, and the
+disassembly cannot tell you the mode).
+
+## Family expectations are per-function: four siblings, four answers
+
+The `BaseAnim_*` functions share a skeleton, which makes it tempting to carry a register map
+across them. Measured on four siblings in one batch:
+
+| function | base register | variant |
+|---|---|---|
+| `BaseAnim_Attack` | r11 | — |
+| `BaseAnim_RapidSlash` | **spilled** | — |
+| `BaseAnim_ParticleCloud` | r9 | r8 |
+| `BaseAnim_Nova` | r9 | **spilled** |
+
+Dispatch shape is per-function too, and must be read off the asm: `BaseAnim_Breath` is a real
+`switch` with a `.word` table; `ParticleCloud` and `Nova` are pure if-chains; and **`Attack` is a
+HYBRID** — no table, but `emit_case_nodes`' duplicated `cmp #2`, which **neither pure form can
+produce**. So the three-way dispatch tell (`.word` table ⇒ switch, `cmp/beq` run ⇒ if-chain,
+repeated `cmp #N` with `beq`/`bgt` ⇒ switch-as-binary-tree) needs a fourth entry: a duplicated
+range compare with no table means a mixed `if` / `switch`.
+
+What *does* transfer across all four: the `ldmia` walking-pointer prologue, verified in the opening
+six instructions of each.
+
+The three-copy-site pin is confirmed a **basic-block** lever rather than a family one — `Attack`'s
+two DMA sites are in different blocks, and pin-free reads 374 aligned against 4 pins at 372 with
+identical size and count. **Tenth instance of a pin not paying, and the first where the
+precondition was predicted in advance and then confirmed** — which is the difference between a
+warning and a usable rule.
+
+## A split's REQUIREMENTS DEPEND ON THE ORDER YOU CUT
+
+`rom_e3958_c_c_c_c_a.s` holds `BaseAnim_Attack` and `Anim_CriticalHit`. I briefed two agents that
+"a split for either puts the other in the same new `.s`". That is wrong for one order:
+`split_s.py --dry-run` cuts the file **three** ways, and splitting for `BaseAnim_Attack` leaves
+`Anim_CriticalHit` **alone** in `_c.s`, needing no split of its own — while cutting for
+CriticalHit first is the expensive order.
+
+So when two targets share a file, **dry-run both orders before sequencing**, and record which
+order leaves the other cheapest. A shared-file constraint is not symmetric.

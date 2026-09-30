@@ -1,0 +1,90 @@
+BaseAnim_ParticleCloud -- 0x080d52c8, asm/rom_c9000/rom_d5258_c_c_c_c_c_c_c.s
+line 12, 755 ROM instructions.  RECON ONLY -- NO CANDIDATE WAS COMPILED, so
+there is deliberately NO "N of M" line here.  Do not invent one.
+
+SPLIT SHAPE (tools/datacheck.py, then tools/split_s.py --dry-run):
+  The .s has a `.rodata` section and holds FOUR functions --
+  BaseAnim_ParticleCloud, Anim_Sleep (0x080d59b0), Anim_Curse (0x080d5c48),
+  Anim_Unused_Fizz (0x080d5e54).  So converting the target needs a TEXT/DATA
+  SPLIT with the data keeping its own object.
+  *** THE SPLIT MUST ADD ONE EXPORT:   .global .Lee2ae ***
+  datacheck attributes .Lee2ae to BaseAnim_ParticleCloud and to NO other function
+  in the file (the other three read no data label), and `.global .Lee2ae` does
+  not exist anywhere in asm/ today -- split_s.py --dry-run REFUSES the split
+  until it is added, because a `.L` symbol does not reach the object's symbol
+  table and the link would fail.  A `.global` emits no bytes: add it, verify
+  `make compare` is still green, and only THEN split, so the two changes stay
+  separable.  It comes into C as
+      extern unsigned char Lee2ae[] __asm__(".Lee2ae");
+  (width unconfirmed -- the single use is `ldr r3,=.Lee2ae` at ROM-relative
+  instruction 412; read the load off the asm before choosing the type, and note
+  batch 300's warning that the shiftability tell needs a MODE).
+  The target is the FIRST function in the file.
+
+SIGNATURE: TWO PARAMETERS, `(void *context, int variant)`.
+
+*** THE ONE FACT THAT MAKES THIS THE EASIEST OF THE THREE I DID NOT ATTEMPT:
+`variant` LIVES IN r8 FOR THE WHOLE FUNCTION and `base` LIVES IN r9. ***
+  `mov r8, r1` is the THIRD instruction of the body and `mov r9, r1` (after
+  `ldmia`) the sixth.  Neither is ever spilled.  Compare: RapidSlash SPILLS base
+  to sp+0x50, Nova spills variant to sp+0x38, Attack keeps base in r11.  Four
+  functions, four different answers -- which is the strongest single piece of
+  evidence in this batch that A REGISTER EXPECTATION IS NOT A FAMILY LEVER.
+
+FRAME 0x74.  Two slots are set in the prologue before anything else happens:
+  sp+0x44 = ctx (g[1], via the walking pointer) and sp+0x34 = 0x10, a literal
+  stored to its slot immediately.  That second one is a NAMED `int` LOCAL
+  INITIALISED AT THE TOP, i.e. exactly the "name the argument at the top"
+  idiom -- declare it early and let it take the slot; do not inline the 0x10.
+
+THE PROLOGUE IS THE FAMILY'S:
+  `ldr r3,=iwram_3001eec / ldmia r3!,{r1} / ldr r3,[r3]` -- note it uses NO
+  separate `mov r3,r2` copy here because `g` itself is never re-read (there is
+  no g[2] and no `- 0x6c` cam load in the prologue), so the walking pointer IS
+  the symbol register.  Spell it `pp = iwram_3001eec; base = *pp++; ctx = *pp;`
+  with NO separate `g` -- that is the DIFFERENCE from Attack, RapidSlash and
+  Nova, all three of which keep `g` alive for a later indexed read and therefore
+  need the extra copy.  Getting this wrong costs a `mov` and a pool word.
+
+*** THE VARIANT DISPATCH IS A PLAIN if-CHAIN, NOT A switch, AND NOT THE HYBRID
+BaseAnim_Attack NEEDS. ***  Verified off the asm: eight successive
+`mov rlo, r8 / cmp rlo, #N / bne` pairs for N = 0,1,2,3,4,5,7 selecting
+_FILE_a0 / _FILE_bb / _FILE_a3 / _FILE_c0 / _FILE_bb / _FILE_b7 / (0x18 ...).
+There is NO `.word` jump table and NO duplicated `cmp #N` -- so neither a switch
+(which would table over a contiguous 0..7) nor emit_case_nodes.  This is the
+THIRD dispatch shape in four functions: Breath is a real switch with a five-entry
+table, Attack is if/if/switch, this is a pure chain.  READ IT OFF THE ASM EVERY
+TIME; the brief's rule is right and the family gives no default.
+  The repeated `mov rlo, r8` before each `cmp` is the batch-306 tell for a
+  subject in a callee-saved HIGH register -- but here the ROM ITSELF does it, so
+  it is the TARGET, not the defect batch 306 fixed.  Do NOT brace-scope your way
+  out of it; `variant` is a parameter with a whole-function live range and the
+  ROM pays the `mov` eight times on purpose.
+
+WHAT ELSE IS IN HERE (call census, for planning):
+  Random x12, _call_via_r4 x5, LoadVFXFile x5, gfree x3, __divsi3 x3,
+  BuildDraw2DFuncEx x3, sin x2, cos x1, _call_via_r3 x2, StartTask/StopTask x2
+  each, plus MatrixYaw / MatrixPitch / MatrixTranslatev / MatrixSetLook /
+  InitMatrixStack / Func_80e3944 -- so there is a 3D transform block here that
+  Attack does not have (Attack has only InitMatrixStack + MatrixSetLook).
+  THREE __divsi3 calls means three signed divisions by a non-power-of-two; each
+  one is a hard ordering constraint and a good place to start reading.
+  Only TWO _call_via_r3 sites and both look like the Func_8001af8 palette DMA --
+  so per BaseAnim_Attack's confirmed precondition, CHECK WHETHER THEY SHARE A
+  BASIC BLOCK before reaching for Blob's r0/r2 pins.  If they are in different
+  blocks, this function is pin-free like Attack and Breath.
+
+LEVERS TO TRY FIRST, from BaseAnim_Attack's park (all measured there):
+  1. The walking-pointer prologue, in the no-separate-`g` form above.
+  2. Brace-scope every loop temporary per region; ONE counter per group of
+     disjoint loops, but TWO walking pointers where the ROM keeps two registers.
+  3. Write any vec destination THROUGH ITS POINTER, never as `v.x` -- that single
+     change closed the frame on Attack (0x60 -> 0x5c exact) and it is the lever
+     most likely to transfer, because the sp-relative spelling is what keeps both
+     the address and the slot live.
+  4. There is NO 0x1010 / REG_BLDALPHA word pool in this function (the pool
+     scan finds no `@ 0x` literal at all), so BaseAnim_Blob's `int` CARRIER
+     LEVER HAS NOTHING TO APPLY TO HERE.  That is a real negative: the lever the
+     brief calls "transfers to all four" applies to RapidSlash and Nova and NOT
+     to this one.
+  5. Do not pin anything on the first candidate.
