@@ -26626,3 +26626,57 @@ dead-value spellings. The value is genuinely dead *in its own object*.
 The next step is therefore **not** a way to preserve dead code: it is to find the live use. A ROM that
 computes something it does not consume locally is usually consuming it somewhere the translation unit
 boundary hides — a sibling function, or a store this reading has mis-typed.
+
+## A whole-function HIGH-register rotation is one extra allocno
+
+The counterpart to the batch-300 low-register finding, and it corroborates today's
+`REG_ALLOC_ORDER` experiment from a second direction. On `Anim_Ray`, an `if` guard in front of a
+`do`/`while` let gcse hoist `base + 0x7828` into a **fourth high-register allocno**, which rotated
+`base` r10→r11, `X` r9→r10 and `yy` r11→r9 across the whole function. Writing the loop as a `while`
+removed the allocno and the rotation went with it — the single biggest edit on that function.
+
+So: **a low-register rotation is one missing short-lived quantity; a high-register rotation is one
+EXTRA allocno.** Neither is a register-order problem, which is exactly what the order experiment
+showed independently. Look for the value that should not exist, or the one that should.
+
+And the converse is live in the same batch: **`Anim_Prism`'s identical-looking loop wants the
+opposite form** — `if` + `do`/`while` where Ray wants `while`. Fifth converse-in-one-family pair this
+week.
+
+## A value stored on three paths is gcse's PRE pseudo, not a source variable
+
+On `Anim_Plasma` the `t0 + 4` bound looked like a local. It is **gcse PRE's pseudo**, identifiable by
+**three stores of one value on three paths**. Declaring a local for it cost **58 encodings** and
+displaced the whole temp map.
+
+This is the same family as the `r9 is PRE's temp` finding, now with a sharper tell: count the stores
+and the paths. PRE inserts a computation on the edges where the expression is not available, so N
+paths give N stores of the same value — no source variable does that.
+
+## Thumb `mul` seeds the destination from the RIGHT operand
+
+Confirmed across all three `mul` sites of one function: `(a0 + 0x4000) * lane` rather than the
+reverse. This is consistent with the earlier note that `*thumb_mulsi3` emits `mov %0,%1 ; mul %0,%0,%2`
+and settles the operand order question for the multiply — the right operand becomes the destination
+seed.
+
+## A spilled pseudo whose REG_EQUIV is a constant gets RE-STORED by reload
+
+`Anim_Prism`'s dominant blocker, and the relocation list is what proves it: the reference carries **41
+relocation symbols against our 39, with both missing ones the same label**, and the six shared symbols
+sit in the ROM's *first* pool block where ours are in a later one. That pattern — a symbol appearing
+more times in the reference than any source-level read explains — means reload is re-storing a spilled
+pseudo from its `REG_EQUIV`.
+
+A named pointer versus a direct read is a genuine trade there (283/489 against 289/485 against
+277/498) and **neither reproduces the re-stores**, so the next move is the untested one: `fns[k]`
+indexed by a **byte offset** held in a high register with no `lsl #2`.
+
+## An honest non-result on the declaration-order rule
+
+Worth recording because it is evidence the rule is incomplete rather than evidence against it:
+`Anim_Plasma`'s four compiler-temp slots are in exactly the **opposite** order to the reference, with
+one counter sitting *below* the gcse pseudo — which the declaration-order rule says should not happen.
+Block-scoping it is **byte-identical**, so this function does not settle the direction either way. The
+`expand_decl` corollary recorded above is the likely reason temps behave differently from declared
+objects, but that is not yet measured for temps.
