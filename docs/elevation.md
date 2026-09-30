@@ -26943,3 +26943,89 @@ Two things to carry forward:
    census defect because the arithmetic was one function out, and in both cases the honest
    figure was smaller than the reported one. A batch that does not reconcile exactly has a
    defect somewhere; do not absorb the difference.
+
+## The gState offset as a NAMED LOCAL, built in its own statement — three for three
+
+gcc folds `SYMBOL_REF + CONST_INT` into **one pool word**. The ROM instead pools the bare
+symbol and materialises the offset separately, so any large-offset global read is short by
+the instructions that build the offset. The fix is to give the offset a name:
+
+    int k = 0x1c2;                       /* not  *(short *)((char *)gState + 0x1c2)  */
+    *(short *)((char *)gState + k)
+
+Three independent functions in batch 303, and it was decisive on all three:
+
+* `OvlFunc_969_200871c` — **landed byte-exact** at plain `-O2` on this lever
+* `OvlFunc_956_200804c` — 137 → 81
+* `OvlFunc_959_200d0e4` — 169 → 213 aligned in one edit, taking size AND count to exact
+
+On `OvlFunc_959_200d0e4` the offset must be built in **two statements** (`off = 0xe1;
+off <<= 1;`), and the deficit it repairs includes the **jump table's alignment `.short`** —
+the fold was costing three instructions plus an alignment directive, which is exactly the
+4-encoding/8-byte gap. **Try this first on any function reading a global at a large offset.**
+
+Two bounds, both measured:
+
+* **Live range matters as much as the name.** On `OvlFunc_959_200938c` one `k` live across
+  four calls costs an extra allocno (the ROM saves r8 alone, we saved r8 and r10);
+  **per-arm assignment** is the fix. The same per-arm split is also the workaround for the
+  ICE below.
+* **The barrier is the wrong tool for the same fold.** `200cda0.c`, the *first function in
+  the same file* as `200d0e4`, solves this fold with a `"+r"` barrier and books 15 pins.
+  Adding it to `200d0e4` measures **worse** — 215 instructions, 580 bytes, 145 aligned
+  (67.8%) against 213 of 214. It is right there because that function uses the offset
+  **twice** and cse chains them; it is wrong here because the offset is used **once**.
+  A sibling's shim is evidence about the sibling, not about the construct.
+
+## A real gcc-2.96 ICE: `decode_rtx_const`, varasm.c:3421
+
+Reproducible, and worth knowing before it eats a round. It fires when **one offset local is
+live into both arms** of an `if`/`else` that reads `gState`, and **only under
+`-fno-rerun-cse-after-loop`** — plain `-O2` compiles the same source without complaint. Six
+candidates on `OvlFunc_959_200938c` hit it.
+
+    Internal compiler error in decode_rtx_const, at varasm.c:3421
+
+So a crash under a per-file flag is not necessarily a bad candidate; it can be this. The
+per-arm assignment above is both the workaround and, independently, the better allocation.
+
+## A duplicate GROUP is worth more than its members, and `dupfuncs.py` under-reports it
+
+`tools/dupfuncs.py` finds functions with identical bodies so that solving one solves many.
+On the tree's largest remaining group it reports **x15**; a canonical scan that folds four
+things — the function's own name, local `.L` label *names*, the two table operands and the
+one callee — finds **seventeen**, all with **zero instruction differences**. dupfuncs demands
+byte identity and does not canonicalise relocated symbol or label names, so **its summary
+("8 duplicate groups, 21 functions would come free") is a LOWER bound.** Canonicalise before
+concluding two bodies differ.
+
+**Prove the transfer, do not predict it.** The batch-303 recipe was instantiated for all
+seventeen members and each was measured: every one reports the same figure and *the same
+three hunks and same seven encodings*. That is what makes "one solution lands seventeen"
+a fact rather than a hope.
+
+Two traps in the same family:
+
+* **An address suffix does not identify a member.** A 71-instruction function shares the
+  `_2008ba4` suffix and is a different routine — the same non-uniqueness of overlay
+  addresses that broke the census attribution. Check the instruction count first.
+* **A stale group figure outlives its group.** The older park for this routine claims
+  fifteen copies and cites larger x18 and x17 groups; those two are elevated and gone.
+  Re-run the tool rather than quoting a park's count.
+
+## The claim line is objcmp's figure AT PRODUCTION FLAGS, by definition — fourth occurrence
+
+`parkcheck` re-measures a park's `NON-MATCHING, N of M` line with objcmp at production
+flags. So N must be that number and nothing else. Quoting a **better** figure there — the
+one under a per-file flag, or aligncmp's — makes the park read as lying about its own body,
+which is the exact defect the tool exists to catch.
+
+Batch 303's `OvlFunc_959_200938c` claimed **49**, its figure under
+`-fno-rerun-cse-after-loop`, where production flags measure **137**. Three batch-301 drafts
+put their **aligncmp** figure there for the same reason. The park had even *documented* that
+parkcheck would re-measure 137 and still wrote 49 on the claim line.
+
+Quote the flag figure and the aligned figure anywhere else in the header, labelled. And a
+related hazard, hit in the same batch: **prepending an addendum pushes the `Verify with:`
+recipe out of the first comment block**, which is all `parkcheck` reads, turning three sound
+parks UNCHECKABLE. Merge an addendum INTO the first block.
