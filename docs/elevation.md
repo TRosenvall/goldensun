@@ -27029,3 +27029,59 @@ Quote the flag figure and the aligned figure anywhere else in the header, labell
 related hazard, hit in the same batch: **prepending an addendum pushes the `Verify with:`
 recipe out of the first comment block**, which is all `parkcheck` reads, turning three sound
 parks UNCHECKABLE. Merge an addendum INTO the first block.
+
+## REUSE A VARIABLE TO INHERIT ITS REGISTER — one pseudo per declared variable, no SSA renaming
+
+This closed the tree's largest duplicate group: **seventeen functions landed byte-exact from
+one three-line change**, after the candidate had sat at 7 of 135 with size, count and
+relocations already exact.
+
+**The mechanism.** gcc-2.96 allocates **one pseudo per declared C variable** and does no SSA
+renaming, so a variable with two *disjoint* live ranges is a **single quantity**, and
+`find_reg` picks one hard register for the whole thing. Therefore a later range can be made
+to **inherit** the register of an earlier one simply by reusing the variable:
+
+    -    int cx, cz;                 +    int cz;
+    -    cx = *(int *)(cam + (0x9e << 1)) >> 20;
+    +    i  = *(int *)(cam + (0x9e << 1)) >> 20;   /* i is the loop counter, already in r5 */
+
+`i` was the loop counter living in r5 — exactly where the ROM keeps the camera value. Reusing
+it put the second range in r5 and the function went to byte-exact.
+
+**And the register choice then FORCED THE SCHEDULE, not the reverse.** With the value in r5
+the load can target its own address register (`ldr r3,[r3]`) and the shift *must* move it out
+immediately (`asr r5,r3,#20`) because r3 is needed to rebuild the second address. With a fresh
+pseudo the allocator takes the lowest free register, the load coalesces with the variable
+rather than the address, and the shift defers and turns destructive — three slots later, same
+instruction count. **This is why every scheduling flag was inert**: the schedule was a
+consequence. When an ordering residue resists `-fno-schedule-insns*`, suspect the allocation
+that produced the order.
+
+**Two bounds, both measured.**
+
+* **It is not "reuse any variable".** The donor's *earlier* range must already land in the
+  ROM's target register. Reusing `ex`/`ez` instead — they live in `ip`/`lr` — costs six
+  instructions and breaks size and count (93 of 135, 296 bytes, 141 insns).
+* **Check the donor's signedness against its own uses.** `int i` gets the load destination
+  right and breaks the loop compare, because the ROM's `cmp r5,#5 / bhi` is **unsigned**
+  (`d808`, against `dc08` for `bgt`). Keeping `unsigned int i` satisfies both: the `>> 20` is
+  evaluated on the `*(int *)` expression before the assignment so it is still an `asr`, and
+  `i + w.p.x` promoting changes no instruction because the parameter is `int`.
+
+**How to spot the opportunity.** The residue is a register difference with the instruction
+count ALREADY EXACT, no flag moves it, declaration order is inert, and a pin makes it worse.
+Then look for a variable whose earlier live range already occupies the register the ROM wants,
+and whose range is disjoint from the value you need to place. The source reads as
+scratch-variable reuse, which is plausible hand-written 1990s C — but that is a reading, not a
+measurement, and a comment should say so.
+
+**A note on how this was found, because the framing was wrong.** I briefed it as base
+liveness: the ROM clobbers its address register, so make the base dead. **The ROM does not
+share a live base at all** — it rebuilds the address from r10 both times
+(`mov r3,#0x9e / lsl r3,#1 / add r3,r10`), and so did the baseline. What is dead at the ROM's
+load is the **computed address**, not the base. That is why the entire base-liveness family
+measured inert: two separate pointers, a derived second base, struct- and array-indexed reads,
+and an intervening use, all 7 or worse. Three earlier rejections of mine were right about the
+outcome and wrong about the reason — and a wrong reason keeps you searching the wrong space,
+which is the cost. An agent given that premise tested it, found it false, and said so; that
+disagreement was the whole result.
