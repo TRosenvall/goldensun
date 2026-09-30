@@ -1,10 +1,24 @@
 /* DisplayMenuArrowCursor (EmitPartySprites) -- 0x0801aeec.
- * NON-MATCHING: 6 encodings of 133 differ (objcmp).  WAS 16; batch 297a took it
- * to 6 with one lever (below).
+ * NON-MATCHING: 16 encodings of 133 differ (objcmp).
+ *
+ * *** CLAIM CORRECTED IN BATCH 305, AND THE IMPROVEMENT IT NAMED IS NOT IN THIS BODY. ***
+ * This line read "6 encodings of 133 differ.  WAS 16; batch 297a took it to 6 with one
+ * lever (below)".  parkcheck re-measures the body at 16, so the 6 was never written into
+ * the C -- the batch 282/283 failure mode a third time: a header advanced while its body
+ * was left behind.  The lever is still described below and should reproduce the 6; treat
+ * it as UNAPPLIED, not as established.
+ *
+ * WHY IT HID FOR SO LONG, and this is the transferable part: the recipe's candidate slot
+ * held the PLACEHOLDER `<this file>` rather than a path, so parkcheck could not parse it
+ * and reported UNCHECKABLE -- and an UNCHECKABLE park is never re-measured, so a header
+ * lying about its body cannot be caught.  Five other parks had the same placeholder and
+ * were fixed in the same pass.  A stale or unparseable recipe does not merely hide a
+ * figure; it disables the only check on that figure.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py <this file> \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/DisplayMenuArrowCursor.c \
  *     asm/rom_15000/rom_1aeec_a_a_a_a_a.s --func DisplayMenuArrowCursor
  *
  * THE PREVIOUS RECIPE WAS STALE AND THAT IS WHY THIS PARK WAS NEVER RANKED.  It
@@ -105,7 +119,17 @@
  * MEASURED INERT beyond the above (all still 6): the five declaration orders,
  * the four `i`-test spellings, the `n = i` local.
  * -- worked in scratch_elev/b297a/t6
- */
+  *
+ * *** BATCH-305 CORRECTION: THIS FILE ATTRIBUTES A RESIDUE TO sched1, AND sched1 DOES NOT
+ * *** RUN IN THIS BUILD.  Verified with -da at production flags: the dump sequence is
+ * *** 17.lreg 18.greg 19.flow2 20.ce2 23.sched2 25.jump2 26.mach -- there is NO sched1 dump,
+ * *** because flag_schedule_insns is off at -O2 here, so only the post-reload scheduler runs.
+ * *** Re-attribute to sched2 (rank_for_schedule), to combine, or to the ALLOCATION that fixed
+ * *** the order.  Relatedly, any "-fno-schedule-insns is inert" note below rules nothing out:
+ * *** that flag controls a pass that never runs.  The sched2 tie-break is priority ->
+ * *** dependent count (more wins) -> INSN_LUID (lower wins), and LUID preserves EXPAND order.
+ * *** See "sched1 DOES NOT RUN IN THIS BUILD" in docs/elevation.md.
+*/
 
 /* DisplayMenuArrowCursor (EmitPartySprites) -- NON-MATCHING.
  * NON-MATCHING: 16 encodings of 133 differ (objcmp).

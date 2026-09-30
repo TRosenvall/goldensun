@@ -145,7 +145,17 @@
  * 0x21c an object pointer whose +5 byte is set to 0xd, 0x25c u8 = ret, 0x260 +
  * unit u8 the remembered slot.  0x218/0x219/0x21a and the 0x1c8/0x208 pair agree
  * with src/non_matching/rom_a1000/80a96d8.c's view of the same block.
- */
+  *
+ * *** BATCH-305 CORRECTION: THIS FILE ATTRIBUTES A RESIDUE TO sched1, AND sched1 DOES NOT
+ * *** RUN IN THIS BUILD.  Verified with -da at production flags: the dump sequence is
+ * *** 17.lreg 18.greg 19.flow2 20.ce2 23.sched2 25.jump2 26.mach -- there is NO sched1 dump,
+ * *** because flag_schedule_insns is off at -O2 here, so only the post-reload scheduler runs.
+ * *** Re-attribute to sched2 (rank_for_schedule), to combine, or to the ALLOCATION that fixed
+ * *** the order.  Relatedly, any "-fno-schedule-insns is inert" note below rules nothing out:
+ * *** that flag controls a pass that never runs.  The sched2 tie-break is priority ->
+ * *** dependent count (more wins) -> INSN_LUID (lower wins), and LUID preserves EXPAND order.
+ * *** See "sched1 DOES NOT RUN IN THIS BUILD" in docs/elevation.md.
+*/
 struct Obj {
     unsigned char pad00[5];
     unsigned char f5;

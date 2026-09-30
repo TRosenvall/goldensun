@@ -19,7 +19,17 @@
  * Its frame also solves an unrelated park: src/non_matching/rom_c9000/cb1a4_EPowerUp.c's
  * State should be padded to 0x54 = 84 bytes (`sub sp, #0xf0` with all four slot
  * offsets right on the first try).
- */
+  *
+ * *** BATCH-305 CORRECTION: THIS FILE ATTRIBUTES A RESIDUE TO sched1, AND sched1 DOES NOT
+ * *** RUN IN THIS BUILD.  Verified with -da at production flags: the dump sequence is
+ * *** 17.lreg 18.greg 19.flow2 20.ce2 23.sched2 25.jump2 26.mach -- there is NO sched1 dump,
+ * *** because flag_schedule_insns is off at -O2 here, so only the post-reload scheduler runs.
+ * *** Re-attribute to sched2 (rank_for_schedule), to combine, or to the ALLOCATION that fixed
+ * *** the order.  Relatedly, any "-fno-schedule-insns is inert" note below rules nothing out:
+ * *** that flag controls a pass that never runs.  The sched2 tie-break is priority ->
+ * *** dependent count (more wins) -> INSN_LUID (lower wins), and LUID preserves EXPAND order.
+ * *** See "sched1 DOES NOT RUN IN THIS BUILD" in docs/elevation.md.
+*/
 /* Anim_MoveIntro (0x080c1798) -- NON-MATCHING.
  * NON-MATCHING: 155 encodings of 274 differ (objcmp).
  * SIZE AND INSTRUCTION COUNT BOTH MATCH -- 636 bytes against 636 and 274

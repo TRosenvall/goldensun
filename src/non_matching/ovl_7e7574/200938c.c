@@ -183,7 +183,17 @@
  *   SAME 0x182 offset -- is the right shape and was measured here at 149 of
  *   140 lines because this function has four more live values than that one.
  *   Try it again if the allocno pressure is ever reduced by other means.
- */
+  *
+ * *** BATCH-305 CORRECTION: THIS FILE ATTRIBUTES A RESIDUE TO sched1, AND sched1 DOES NOT
+ * *** RUN IN THIS BUILD.  Verified with -da at production flags: the dump sequence is
+ * *** 17.lreg 18.greg 19.flow2 20.ce2 23.sched2 25.jump2 26.mach -- there is NO sched1 dump,
+ * *** because flag_schedule_insns is off at -O2 here, so only the post-reload scheduler runs.
+ * *** Re-attribute to sched2 (rank_for_schedule), to combine, or to the ALLOCATION that fixed
+ * *** the order.  Relatedly, any "-fno-schedule-insns is inert" note below rules nothing out:
+ * *** that flag controls a pass that never runs.  The sched2 tie-break is priority ->
+ * *** dependent count (more wins) -> INSN_LUID (lower wins), and LUID preserves EXPAND order.
+ * *** See "sched1 DOES NOT RUN IN THIS BUILD" in docs/elevation.md.
+*/
 struct Slot {
     unsigned char pad00[0x18];
     int f18;

@@ -27136,3 +27136,85 @@ locals. The count stays exact at 371, so the six extra are register and schedule
 the header's stated NEXT plan, which used the hand-written form as a *schedule-neutral vehicle*
 for probing constant creation order — a vehicle that itself moves the schedule is not a control.
 **An inert result recorded without its figures cannot be audited; record the number.**
+
+## sched1 DOES NOT RUN IN THIS BUILD — 13 parks attribute a residue to a pass that never executes
+
+Verified directly, not inferred: compile anything with `-da` at the production flags and the
+dump sequence is
+
+    … 17.lreg  18.greg  19.flow2  20.ce2  23.sched2  25.jump2  26.mach
+
+**There is no sched1 dump.** `flag_schedule_insns` is off at `-O2` in this configuration, so
+only the post-reload scheduler ever runs. Two consequences, and both have already cost work:
+
+* **13 park files attribute a residue to "sched1"** (`grep -rl sched1 src/non_matching/`).
+  Every one of those attributions is wrong on its face. The residue is real; the pass named is
+  not. Re-attribute to **sched2** (`rank_for_schedule` after reload), to `combine`, or to the
+  allocation that fixed the order — see the register-inheritance section, where an ordering
+  residue turned out to be an allocation consequence.
+* **`-fno-schedule-insns` being "inert" is not evidence about anything.** It is recorded in 36
+  park files, usually as a ruled-out alternative. It controls a pass that never runs, so its
+  inertness is guaranteed a priori and rules nothing out. The only scheduling flag that carries
+  information here is `-fno-schedule-insns2`.
+
+And the inference that burned batch 305: *"-fno-schedule-insns2 is worse, therefore the residue
+is not sched2"* is **invalid**. Disabling the only scheduler makes the whole block worse; that
+says nothing about whether sched2 chose the specific order in question. To decide it, read
+`-fsched-verbose=5`, which prints priority, cost and `INSN_DEPEND` per insn.
+
+**What actually decides a sched2 tie**, read out of `rank_for_schedule`:
+
+    priority  →  dependent count (MORE dependents wins)  →  INSN_LUID (LOWER wins)
+
+and `INSN_LUID` is set at expand, so the last tie-break **preserves expand order**. Two things
+set expand order for call arguments: `calls.c`'s `precompute_register_parameters` hoists any
+register argument whose `rtx_cost(value, SET) > 2` into a pseudo *before any hard argument
+register is written*, walking arguments forward; and `load_register_parameters` then walks
+i = 0 upward. So for a tie between two argument setups, **argument 0 is always emitted first**
+and no spelling reorders it.
+
+That is the mechanism behind three separate "unreachable" findings now: `Anim_Froth`'s last 4
+(the pool is built by `machine_dependent_reorg` *after* sched2, so a symbol load still costs the
+same as a register copy at schedule time), `OvlFunc_881_200b9fc`'s last 2, and
+`OvlFunc_959_200d0e4`'s last 3 — where all three tied insns have priority 2 and exactly one
+dependent (the call), so LUID alone decides and the arm ends `bl / b` so the winner can never
+earn a second dependent.
+
+**The escape, when there is one, is the DEPENDENT-COUNT term, not the order.** A landed sibling
+in the same overlay inverts the identical tie because its callee *returns a value*: the
+`call_value`'s own `set r0` intercepts r0's dependency chain, giving that insn 3 dependents
+against 2. A `void` callee cannot do that. Corpus calibration across the 4,371 generated `.s`
+files: the ROM's order occurs 199 times against 335 for the opposite, so neither is anomalous
+and both are reachable — but only via the dependent count.
+
+## An UNPARSEABLE RECIPE DISABLES THE ONLY CHECK ON THE FIGURE IT HIDES
+
+`parkcheck` reads a park's `Verify with:` recipe to re-measure its claim. Six parks had a
+**placeholder** in the candidate slot — literally `<this file>` — so the recipe could not be
+parsed, the park reported UNCHECKABLE, and **it was therefore never re-measured**.
+
+Filling in the six paths immediately exposed a park whose header was lying about its own body:
+`DisplayMenuArrowCursor` claimed **6 of 133** and measures **16**. Its header even narrated the
+improvement ("WAS 16; batch 297a took it to 6 with one lever below") — the lever was written up
+and never written into the C. That is the batch 282/283 failure mode for the **third** time, and
+this instance hid indefinitely because the check that would have caught it could not run.
+
+It also surfaced a park at **4 encodings** (`ovl_7bdeb0/2009984.c`) that had been invisible to
+every ranking pass for the same reason.
+
+So the rule is stronger than "keep recipes current":
+
+* **A stale or unparseable recipe is not a documentation defect, it is a disabled test.** An
+  UNCHECKABLE park cannot be caught lying, so UNCHECKABLE should be triaged like a failure, not
+  like missing polish.
+* **Never write a placeholder into a recipe.** `<this file>` reads as obviously correct to a
+  human and is unparseable to the tool that matters.
+* When a park is improved by a fix described in prose, **run `parkcheck` before believing the
+  prose** — three of the three known instances of this failure were found by the tool and none
+  by reading.
+
+Related, and the reason this keeps happening in the other direction: **prepending a note to a
+park pushes the `Verify with:` recipe out of the first comment block**, which is all `parkcheck`
+reads, silently converting a sound park to UNCHECKABLE. That has now happened three times in one
+session to the same author. Merge a note INTO the first block, and re-run `parkcheck` on every
+park you touch — including ones you only annotated.

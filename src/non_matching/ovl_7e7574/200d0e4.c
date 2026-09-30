@@ -1,4 +1,95 @@
 /* OvlFunc_959_200d0e4 -- NON-MATCHING, 3 of 214 encodings differ.
+ *
+ * ============================================================================
+ * BATCH 305 UPDATE -- THE 3 IS CONFIRMED AND THE BLOCKER IS NOW NAMED TO THE
+ * LINE OF THE COMPILER.  THE PASS ATTRIBUTION BELOW IS RIGHT; ITS REASON WAS
+ * INCOMPLETE.  THIS IS A FLOOR, NOT A PARK AWAITING ONE MORE SPELLING.
+ * ============================================================================
+ *
+ * RE-MEASURED AS FOUND: objcmp 3 of 214, size 576 == 576, count 214 == 214,
+ * relocations identical, shimcount clean (exit 0).  The header's figure is TRUE.
+ *
+ * THE RESIDUE IS A THREE-WAY sched2 TIE THAT FALLS THROUGH TO INSN_LUID, AND
+ * THE LUID IT FALLS THROUGH TO WAS FIXED BY cse1 LONG BEFORE THE SCHEDULER.
+ *
+ * (1) sched2's ACTUAL NUMBERS, read off `-fsched-verbose=5` (columns are
+ *     insn / code / bb / dep / prio / cost, then INSN_DEPEND):
+ *         insn 508  lsl r1,#18   dep 1  prio 2  cost 1  dependents {213} = 1
+ *         insn 510  lsl r2,#15   dep 1  prio 2  cost 1  dependents {213} = 1
+ *         insn 208  mov r0,#25   dep 0  prio 2  cost 1  dependents {213} = 1
+ *     rank_for_schedule's order is PRIORITY, then DEPENDENT COUNT (more wins),
+ *     then INSN_LUID (lower wins).  All three insns tie on priority AND on
+ *     dependent count -- each has exactly one dependent, the call itself -- so
+ *     the LUID decides, and insn 208 has the HIGHEST LUID of the three, so it
+ *     goes last.  Note insn 208's DEP COUNT IS 0: it is ready from the top of
+ *     the block and still loses, which disposes of "it just needs to be ready
+ *     earlier".  Readiness is not the tie-break; LUID is.
+ *
+ *     THE DEPENDENT-COUNT TERM IS REAL AND IT IS THE ONLY OTHER WAY IN.  Proof
+ *     that it can beat LUID, from a LANDED function in another overlay,
+ *     src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_c_c_b.c: there
+ *     `lsl r1,r1,#4` (prio 77, 3 dependents) beats `ldr r0,.L3+4` (prio 77, 2
+ *     dependents) and is emitted first, because a later `r1 = 0` in the same
+ *     block chains back to the shift while the ldr's later-r0 counterpart is
+ *     intercepted by __StartTask's call_value `set r0`.  HERE THAT DOOR IS
+ *     SHUT: `mov r0,#25`'s only possible second dependent would be another r0
+ *     reader or writer after the call inside this basic block, and the ROM's
+ *     arm ends `bl __MapActor_SetPos / b .L5264` -- there is nothing there.
+ *
+ * (2) SO THE ONLY ROUTE IS LUID(mov r0) < LUID(lsl r1), i.e. the `mov r0,#25`
+ *     must be EMITTED FIRST.  It is not, and here is exactly why -- two passes,
+ *     both verified in the dumps.
+ *
+ *     EXPAND puts it first.  00.rtl for `__MapActor_SetPos(0x19, 0xda << 18,
+ *     0xf0 << 15)` reads, in order: `r0 = 25`, `r1 = 0x3680000`,
+ *     `r2 = 0x780000`, then the call -- arg0 FIRST, which is the order we want.
+ *
+ *     calls.c THEN HOISTS THE OTHER TWO ABOVE IT.  calls.c's
+ *     precompute_register_parameters copies any register argument whose
+ *     `rtx_cost (value, SET) > 2` into a pseudo BEFORE any hard argument
+ *     register is written.  0x3680000 and 0x780000 are not ARM-representable
+ *     immediates, so ARM's CONST_COSTS gives them 4; 25 is representable, so it
+ *     costs 2 and is NOT hoisted.  13.combine therefore reads
+ *         insn 204  reg61 = 0x3680000
+ *         insn 206  reg62 = 0x780000
+ *         insn 208  r0 = 25
+ *         insn 210  r1 = reg61        insn 212  r2 = reg62
+ *     and reload coalesces reg61->r1, reg62->r2 and splits their sets into
+ *     mov+lsl IN PLACE, so the pre-sched2 stream is
+ *         mov r1 / lsl r1 / mov r2 / lsl r2 / mov r0,#25.
+ *     THE TWO EXPENSIVE CONSTANTS JUMP THE CHEAP ONE.  That is the residue.
+ *
+ *     AND cse1 IS WHAT STOPS THE OBVIOUS FIX.  Naming the slot in a local
+ *     (`slot = 0x19;` immediately before the call) does emit the store first --
+ *     00.rtl insn 206 is `reg/v 34 = 25`, ahead of both precomputes, exactly
+ *     the LUID order the ROM needs.  cse1 then substitutes the constant into
+ *     the hard-register copy (`set r0, reg34` becomes `set r0, 25`, 03.cse insn
+ *     213) and the store dies as dead.  It does NOT do this to the two
+ *     expensive constants -- 03.cse keeps `set r1, reg62` and `set r2, reg63`
+ *     in REGISTER form, because a cost-4 constant is dearer than a register
+ *     while a cost-2 one is not.  THAT ASYMMETRY IS THE WHOLE BLOCKER: the
+ *     cheap constant is always folded back down to the argument-load site, and
+ *     the argument-load site is always after the hoisted expensive ones.
+ *     No C expression that evaluates to 25 can be made dear enough to survive
+ *     cse1 while still assembling to a single `mov r0,#25`.
+ *
+ * (3) MEASURED IN BATCH 305, ALL 3, all size- and count-exact (add these to the
+ *     nine spellings already listed further down; every one of them dies in the
+ *     cse1 fold above, which is why they are inert rather than merely unlucky):
+ *       `slot = 0x19;` in a local immediately before the call            3
+ *       the assignment INSIDE the argument list, `SetPos(slot = 0x19,..)` 3
+ *       the same, reusing the existing `off` variable as the carrier      3
+ *       `slot = 0x19;` hoisted ABOVE the `if (__GetFlag(...))`            3
+ *       x and y named in the if-body, slot left as the literal            3
+ *
+ * VERDICT: 3 of 214 is a FLOOR imposed by expand's argument precompute, cse1's
+ * cost-based fold, and sched2's LUID tie-break acting together, and the park
+ * should be read as closed against source spellings.  Anyone reopening it
+ * should attack the DEPENDENT-COUNT term, not the spelling -- i.e. ask whether
+ * the ROM's arm can legitimately contain a second r0 reference inside this
+ * basic block -- and should not spend another round on how to write 25.
+ * ============================================================================
+ *
  * UNATTEMPTED before batch 303 (recovered by the census address-suffix fix; the
  * park for the file's FIRST function, src/non_matching/ovl_7e7574/200cda0.c,
  * mentions this name only as an `extern` it calls -- it is NOT about it).

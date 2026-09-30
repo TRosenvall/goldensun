@@ -1,5 +1,193 @@
 /* OvlFunc_881_200b9fc -- 0x0200b9fc   (overlay 881, rom_77a7c8)
  *
+ * ============================================================================
+ * BATCH 305 UPDATE -- THE RESIDUE IS NOW ONE REGISTER-ALLOCATION CHOICE, AND
+ * A DELIBERATE DIAGNOSTIC REACHES diff=0.  THREE CLAIMS BELOW ARE SUPERSEDED.
+ * ============================================================================
+ *
+ * INSTALLED BODY RE-MEASURED AS FOUND: objcmp 2 of 579, size 1300 == 1300,
+ * count 579 == 579, relocations identical.  aligncmp: aligned-equal 578
+ * (99.8% of ref), 2 differing in 2 hunks.  shimcount clean (exit 0).
+ * The header's figure is TRUE.  This body stays -- it is still the best
+ * ranked candidate (2, and 578 aligned, against the shape below's 3/576).
+ *
+ * SUPERSEDED CLAIM 1 -- THE PASS IS sched2, NOT sched1.  sched1 DOES NOT RUN
+ *   IN THIS BUILD AT ALL.  A -da compile emits no sched1 dump (the pass list is
+ *   00.rtl 01.sibling 02.jump 03.cse 04.addressof 07.gcse 08.loop 09.cse2
+ *   10.cfg 12.life 13.combine 14.ce 15.regmove 17.lreg 18.greg 19.flow2 20.ce2
+ *   23.sched2 25.jump2 26.mach): flag_schedule_insns is off at -O2 here, so the
+ *   ONLY scheduler is sched2.  The old inference -- "-fno-schedule-insns2 is
+ *   worse, therefore not sched2" -- is invalid: turning sched2 off changes
+ *   EVERY block in the function, so it cannot acquit the pass at one site.
+ *   (-fno-schedule-insns2 on this body: 112 differing, size and count still
+ *   exact.  -fschedule-insns, which switches sched1 ON, is byte-identical.)
+ *
+ * SUPERSEDED CLAIM 2 -- tools/split_s.py DOES have --dry-run.  The header below
+ *   warns it "ignores the flag and performs the split".  It does not: DRY is a
+ *   module global set by -n/--dry-run and it guards every mutation.
+ *   `python3 tools/split_s.py --dry-run asm/overlays/rom_77a7c8/ovl_30_c_c_a_c_c.s
+ *    OvlFunc_881_200b9fc` prints and writes nothing:
+ *      would write ovl_30_c_c_a_c_c_a.s  (1 function,  82 lines)
+ *      would write ovl_30_c_c_a_c_c_b.s  (1 function, 608 lines)
+ *      would REMOVE ovl_30_c_c_a_c_c.s, would rewrite overlays/rom_77a7c8/overlay.ld
+ *   tools/datacheck.py on the reference is SILENT -- no data section, no label
+ *   needs .global.  Landing file: src/overlays/rom_77a7c8/ovl_30_c_c_a_c_c_b.c.
+ *
+ * SUPERSEDED CLAIM 3 -- "name the destination in a local" is NOT simply WORSE.
+ *   It is the KEY SHAPE.  It buys the ROM's ORDER OUTRIGHT and leaves exactly
+ *   one wrong register.  See below.
+ *
+ * ----------------------------------------------------------------------------
+ * WHY THE TWO INSTRUCTIONS ARE IN THE WRONG ORDER -- MECHANISM, FROM THE RTL
+ * ----------------------------------------------------------------------------
+ *
+ * (1) EXPAND.  calls.c's precompute_register_parameters hoists any register
+ *     argument whose `rtx_cost (value, SET) > 2` into a pseudo BEFORE any hard
+ *     argument register is touched, walking args FORWARD (arg0 first).  For
+ *     `__DecompressLZ(gScript..., (char *)buf + 0x1000)` BOTH args qualify --
+ *     arg0 is a SYMBOL_REF (ARM CONST_COSTS gives a symbol 6) and arg1 is a
+ *     PLUS -- so 00.rtl reads, verbatim:
+ *         insn 40  reg42 = MEM(*.LC2)          <- arg0, hoisted FIRST
+ *         insn 42  reg43 = 4096
+ *         insn 44  reg44 = reg33(buf) + reg43
+ *         insn 46  r0 = reg42                  (deleted by reload)
+ *         insn 48  r1 = reg44                  (deleted by reload)
+ *     reload coalesces reg42->r0, reg43->r2, reg44->r1 and the thumb constant
+ *     splitter turns reg43's set into `mov r2,#0x80 / lsl r2,#5` IN PLACE, so
+ *     the pre-sched2 stream is  ldr r0 / mov r2 / lsl r2 / add r1.
+ *     THE LDR IS FIRST BECAUSE arg0 IS PRECOMPUTED FIRST.  That is the whole
+ *     source of the transposition.
+ *
+ * (2) sched2.  Read straight off `-fsched-verbose=5` (the dependence table
+ *     prints insn/code/bb/dep/prio/cost and then INSN_DEPEND):
+ *         insn 40  ldr r0   prio 43  cost 2  dependents {49, 59, 89}  = 3
+ *         insn 44  add r1   prio 43  cost 1  dependents {49, 59, 89}  = 3
+ *     PRIORITY IS TIED and the DEPENDENT COUNT IS TIED, so rank_for_schedule
+ *     falls through to INSN_LUID and the LOWER LUID wins -- the ldr.  Trace:
+ *         Ready list after queue_to_ready:  40  44
+ *         Ready list (t =172):              44  40
+ *         --> scheduling insn <<<40>>>
+ *     (The list is sorted ascending and the LAST element is taken.)
+ *     Insn 59 is the first insn after the NOTE_INSN_LOOP_BEG that LOCK_IME's
+ *     `do {} while (0)` plants, and 89 ends the block; both are structural and
+ *     BOTH ARE SHARED, so no spelling can unbalance them.  The ROM's stream has
+ *     NO later write to r1 inside this basic block, so insn 44 can never earn a
+ *     fourth dependent.  THE BASELINE SHAPE CANNOT SCHEDULE THE ROM'S WAY.
+ *
+ * (3) THE TIE CAN GO THE OTHER WAY, AND A LANDED SIBLING PROVES IT.
+ *     src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_c_c_b.c (MATCHING) emits
+ *         mov r1,#200 / lsl r1,r1,#4 / ldr r0,.L3+4 / bl __StartTask
+ *     -- arg1's chain tail BEFORE the pool ldr, exactly the order we want.
+ *     Its table:  insn 86 (ldr r0) prio 77 dependents {147,93} = 2
+ *                 insn 168 (lsl r1) prio 77 dependents {147,98,93} = 3
+ *     168 wins on the DEPENDENT COUNT.  The extra dependent is insn 98, a later
+ *     `r1 = 0`; the ldr gets no matching later-r0 dependent because __StartTask
+ *     RETURNS A VALUE, so the call_value_insn's own `set r0` intercepts r0's
+ *     chain.  __DecompressLZ is void, and this function's block has no later r1
+ *     write, so neither half of that asymmetry is available here.
+ *     Corpus figure, for calibration: across the 4,371 generated .s files the
+ *     r1-set-then-pool-ldr-then-bl order occurs 199 times and the opposite 335.
+ *
+ * ----------------------------------------------------------------------------
+ * THE KEY SHAPE: NAME THE DESTINATION IN A LOCAL.  ORDER EXACT, ONE REGISTER.
+ * ----------------------------------------------------------------------------
+ *
+ *     char *dst;
+ *     dst = (char *)buf + (0x80 << 5);
+ *     __DecompressLZ(gScript_943__0200c4ec, dst);
+ *
+ * arg1 is now already a REG at precompute time, so only arg0 is hoisted and the
+ * pre-sched2 stream becomes  mov / lsl / add r1 / ldr r0 -- LUID(add) <
+ * LUID(ldr), and sched2 emits the ROM'S EXACT ORDER, right down to the pool
+ * displacement (`ldr r0, [pc, #264]`, matching the ROM; the installed body
+ * reads #268).  It measures 3 of 579, size and count exact, aligned 576
+ * (99.5%) in ONE hunk, and ALL THREE differing encodings are the same register:
+ *       ref   mov r2,#0x80 / lsl r2,r2,#5 / add r1,r7,r2
+ *       ours  mov r0,#0x80 / lsl r0,r0,#5 / add r1,r7,r0
+ * WHY r0: in the baseline the 0x1000 pseudo overlaps the symbol pseudo (which
+ * is coalesced to r0), so r0 is in its conflict set and find_reg takes r2.
+ * Moving the address computation ahead of the call ends that overlap, r0 is
+ * free, and REG_ALLOC_ORDER's first free register is r0.  The two requirements
+ * are in direct opposition: the conflict that buys r2 needs the ldr EARLY, and
+ * the order needs it LATE.
+ *
+ * *** DIAGNOSTIC, diff = 0.  DO NOT SHIP -- IT IS A PIN IN DISGUISE. ***
+ *   Add, to the key shape, an asm-label alias with a bogus third argument so
+ *   the 0x1000 pseudo inherits arg2's hard-register preference:
+ *       extern void __DecompressLZ3(const void *, void *, int)
+ *           __asm__("__DecompressLZ");
+ *       off2 = 0x80 << 5;
+ *       dst = (char *)buf + off2;
+ *       __DecompressLZ3(gScript_943__0200c4ec, dst, off2);
+ *   BYTE-IDENTICAL: diff=0, size 1300/1300, count 579/579, relocations same.
+ *   It is a fake -- it lies about a real game function's arity purely to move a
+ *   register -- and it is recorded ONLY because of what it proves: EVERY OTHER
+ *   BYTE OF THIS FUNCTION IS ALREADY RIGHT IN THE KEY SHAPE.  The whole
+ *   remaining problem is the sentence "the 0x1000 pseudo must be allocated r2".
+ *   (`register int off2 __asm__("r2")` does NOT work -- gcc-2.96 ignores a local
+ *   register asm variable that appears in no asm operand: still 3.)
+ *
+ * ----------------------------------------------------------------------------
+ * WHAT BATCH 305 RULES OUT (all size- and count-exact unless stated)
+ * ----------------------------------------------------------------------------
+ * ON THE KEY SHAPE, ALL 3 -- the address spelling is IRRELEVANT to the
+ * allocation; it only ever controlled the order:
+ *   destination in a fresh `char *dst`                                3
+ *   destination in the existing `off` (int, reused)                   3
+ *   destination named, then source named after it                     3
+ *   offset in its own local, then destination                         3
+ *   offset in `off`, then destination                                 3
+ *   offset built in TWO statements (`off2 = 0x80; off2 <<= 5;`)       3
+ *   offset local declared BEFORE `dst` (allocno order)                3
+ *   offset local as `unsigned int`                                    3
+ *   `dst = (char *)((0x80 << 5) + (int)buf)` (reversed add)           3
+ *   `dst = &((char *)buf)[0x80 << 5]`                                 3
+ *   destination as an `int` and cast at the call                      3
+ *   `0x1000` written literally instead of `0x80 << 5`                 3
+ *   `dst = off2 + (char *)buf`                                        3
+ *   `dst = (char *)buf; dst += off2;` (range extended backwards)      3
+ * SOURCE NAMED FIRST reverts to the baseline exactly (2, first diff at index
+ *   22) -- naming the source restores the r0 conflict AND the ldr's low LUID.
+ * THE REUSE-A-VARIABLE DONOR HUNT FAILED, and the failure is informative.
+ *   The lever needs a variable whose OTHER live range already lands in r2.
+ *   `off` (the gState offset) lands in r1 in the ROM -- `movs r1,#250 / lsls
+ *   r1,#1` at 0xd2 -- so it is the wrong donor.  Every other r2 in this
+ *   function belongs to a PushPal/PushTiles/PushFrame inline (count, task, the
+ *   DMA control words, `adds r2,r7,r0`), and an inline's locals get fresh
+ *   pseudos per instantiation, so they cannot be shared.  The one remaining
+ *   candidate -- sharing a variable with the `0xe4 << 1` offset, which the ROM
+ *   DOES hold in r2 (`movs r2,#228` at 0xe6) -- is CATASTROPHIC: naming that
+ *   offset at all REMOVES two instructions (577 of 579, 1296 bytes, 456
+ *   differing, relocations shifted), with or without the destination change.
+ *   That confirms this header's own lever-3 note: a POINTER base plus a
+ *   constant offset already emits the runtime add, and a named local there
+ *   costs instructions rather than buying them.
+ * FLAGS ON THE KEY SHAPE, all still 3, size and count exact:
+ *   -fno-caller-saves, -fno-regmove, -fno-gcse, -fno-strength-reduce,
+ *   -fno-expensive-optimizations, -fno-cse-follow-jumps, -fno-force-mem,
+ *   -fno-thread-jumps, -fno-function-cse, -fno-peephole, -fschedule-insns,
+ *   -fno-reorder-blocks, -fno-delete-null-pointer-checks.
+ *   WORSE: -fno-schedule-insns2 (112 differing); -fno-rerun-cse-after-loop
+ *   (585 differing, 1412 bytes, 621 encodings, relocations differ).
+ *   NO FLAG MOVES THE ALLOCATION.  A Makefile row cannot land this.
+ *
+ * NEXT, FOR WHOEVER PICKS THIS UP.  The question is now narrow and precise:
+ * make a conflict-free pseudo take r2 instead of REG_ALLOC_ORDER's first free
+ * register, WITHOUT an r0 conflict and WITHOUT lying about a callee's arity.
+ * Two untried directions, both honest: (a) find a value in THIS function that
+ * the ROM keeps in r2 across a range disjoint from the offset's -- the donor
+ * search above covered the declared locals and the inline bodies but not the
+ * possibility that one of the three PushFrame/PushPal/PushTiles inlines should
+ * be spelled so one of ITS locals is a function-level variable; (b) attack the
+ * dependent-count term instead of the allocation, by finding a spelling in
+ * which `__DecompressLZ`'s return value or a later r1 write legitimately exists
+ * inside this basic block, which is what the landed sibling in (3) has and this
+ * function lacks.  The superseded "goto into a do/while" and "move the call's
+ * statement boundary" suggestions are now pointless: the do/while barrier is
+ * already there (LOCK_IME) and it feeds BOTH sides of the tie equally.
+ * ============================================================================
+ *
+ *
  * NON-MATCHING, 2 of 579 encodings differ
  *
  * *** TWO INSTRUCTIONS FROM BYTE-EXACT. THIS IS THE CLOSEST PARK IN BATCH 302
@@ -155,7 +343,17 @@
  *
  * FINAL INSTALLED PATH:
  *   src/non_matching/ovl_77a7c8/200b9fc.c
- */
+  *
+ * *** BATCH-305 CORRECTION: THIS FILE ATTRIBUTES A RESIDUE TO sched1, AND sched1 DOES NOT
+ * *** RUN IN THIS BUILD.  Verified with -da at production flags: the dump sequence is
+ * *** 17.lreg 18.greg 19.flow2 20.ce2 23.sched2 25.jump2 26.mach -- there is NO sched1 dump,
+ * *** because flag_schedule_insns is off at -O2 here, so only the post-reload scheduler runs.
+ * *** Re-attribute to sched2 (rank_for_schedule), to combine, or to the ALLOCATION that fixed
+ * *** the order.  Relatedly, any "-fno-schedule-insns is inert" note below rules nothing out:
+ * *** that flag controls a pass that never runs.  The sched2 tie-break is priority ->
+ * *** dependent count (more wins) -> INSN_LUID (lower wins), and LUID preserves EXPAND order.
+ * *** See "sched1 DOES NOT RUN IN THIS BUILD" in docs/elevation.md.
+*/
 #include "gba/types.h"
 #include "gba/io.h"
 

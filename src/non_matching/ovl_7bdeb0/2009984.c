@@ -4,7 +4,8 @@
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py <this file> \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7bdeb0/2009984.c \
  *     asm/overlays/rom_7bdeb0/ovl_169c_a_c_c_b.s --func OvlFunc_934_2009984
  *   [that .s is the file's ONLY function -- anchored thumb_func_start count = 1.
  *   238 instructions.  tools/datacheck.py reports NO data section, so NO SPLIT

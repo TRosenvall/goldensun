@@ -159,7 +159,17 @@
  * kind (0/4 nothing, 1 -> 0xb63, 2 -> 0xb71..0xb74 by bit 10 of the caller's
  * flags, 3 -> 0xb65), and +0x18 four 4-byte slots whose byte 0 is the effect
  * kind and byte 1 the signed magnitude.
- */
+  *
+ * *** BATCH-305 CORRECTION: THIS FILE ATTRIBUTES A RESIDUE TO sched1, AND sched1 DOES NOT
+ * *** RUN IN THIS BUILD.  Verified with -da at production flags: the dump sequence is
+ * *** 17.lreg 18.greg 19.flow2 20.ce2 23.sched2 25.jump2 26.mach -- there is NO sched1 dump,
+ * *** because flag_schedule_insns is off at -O2 here, so only the post-reload scheduler runs.
+ * *** Re-attribute to sched2 (rank_for_schedule), to combine, or to the ALLOCATION that fixed
+ * *** the order.  Relatedly, any "-fno-schedule-insns is inert" note below rules nothing out:
+ * *** that flag controls a pass that never runs.  The sched2 tie-break is priority ->
+ * *** dependent count (more wins) -> INSN_LUID (lower wins), and LUID preserves EXPAND order.
+ * *** See "sched1 DOES NOT RUN IN THIS BUILD" in docs/elevation.md.
+*/
 extern unsigned char Laf21c[] __asm__(".Laf21c");
 extern unsigned char Laf220[] __asm__(".Laf220");
 

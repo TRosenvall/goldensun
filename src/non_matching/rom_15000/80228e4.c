@@ -18,7 +18,8 @@
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py <this file> \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/80228e4.c \
  *     asm/rom_15000/rom_21dfc_c_a.s --whole
  *
  * 145 IS NOT A DISTANCE.  Ours is 154 instructions against the ROM's 168, so
