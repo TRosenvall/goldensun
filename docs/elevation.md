@@ -26813,3 +26813,42 @@ the documented one-member-union escape and a `char *` cast — because the decis
 So the alias-escape family (union, `volatile`, pointer cast) is bounded a third way: it does not reach
 a decision gcc makes about a declaration. Recorded with the other two bounds — scheduling-only, and
 not reaching `loop_invariant_p`.
+
+## A park FILENAME must name a function, not rhyme with it — and a reconciliation that will not balance is the finding
+
+`census.py`'s `match_stem` splits a park filename on `_` and asks whether a function name ends with
+any part. Parts of three or more characters were accepted as a **bare suffix**, so installing
+`src/non_matching/rom_c9000/Anim_Ray.c` marked `BaseAnim_ParticleSpray` parked — it ends with those
+three letters and has nothing to do with the park.
+
+The false attribution was **eight functions wide**: every `Anim_*.c` park in the tree hid
+`UpdateSpriteAnim`, and `BattleMain`, `FieldMain`, `LuckyDiceMain`, `LuckyWheelsMain`,
+`MP2KPlayerMain` and `SoundMain` went the same way on a "main" part. Six are available work nobody
+had attempted, and they are not small — `LuckyDiceMain` 2,046 instructions, `BaseAnim_ParticleSpray`
+1,605, `FieldMain` 965, `LuckyWheelsMain` 948, `BattleMain` 645, `UpdateSpriteAnim` 544.
+
+The fix keeps the two kinds of part apart, because they sit differently inside a name:
+
+* an **address** part (all hex digits) still matches as a bare suffix — `Func_80cd52c` embeds `d52c`
+  after `80`, not after `_`, and requiring a boundary loses the whole address family
+* a **name** part (anything with a non-hex letter) must land on a **word boundary**: the name either
+  *is* the part, or ends with `_` + part
+
+This is the **third route** to the over-attribution `census.py` already documents twice — lesson 6
+(counting a function parked because some *other* park cites it) and lesson 7 (taking a neighbour named
+in a park's opening sentence). Each time the effect is identical: work that has never been attempted
+disappears from the list work is handed out from, and a re-offered or never-offered function looks
+exactly like a fresh one. Expect a fourth route; audit the whole attribution at once rather than
+patching the case in front of you.
+
+**The method lesson is the more transferable half.** The bug was found only because the batch
+reconciliation would not balance — 30 functions left the available pool against 29 accounted for by
+landings and parks. One function's worth of arithmetic was the entire signal, and chasing it surfaced
+six available functions and corrected two published figures. So reconcile every batch exactly, and
+treat a one-off discrepancy as a defect to locate rather than rounding to be absorbed; the numbers are
+the only instrument that watches the bookkeeping itself.
+
+Corollary for reported state: fixing an attribution rule **changes historical figures too**. Batch 300
+published 135 available / 725 parked for its own tree; re-measured under the corrected rule the same
+tree reads 140 / 720. Re-measure the previous batch's end state before quoting a delta, or the fix will
+look like new work.

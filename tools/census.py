@@ -190,19 +190,37 @@ def match_stem(name, stems):
     than the subject line, so nothing else here sees it. Stems are either a
     bare address (80cd52c, 2008c1c) or address_Name (d82b0_Drain).
 
-    Matching is anchored so a short part cannot match loosely: a part of three
-    or more characters may match as a bare suffix, and a part of any length
-    matches only when the name ends with "_" + part. Without the underscore
-    rule the >= 4 guard missed legitimate subjects whose address is short --
-    4cc.c parks OvlFunc_common1_4cc, fac.c parks OvlFunc_common1_fac, and
-    common1_78.c parks OvlFunc_common1_78.
+    Matching is anchored so a short part cannot match loosely, and the anchor
+    DEPENDS ON WHETHER THE PART IS AN ADDRESS, because the two kinds of part sit
+    differently in a function name:
+
+      * an ADDRESS part (all hex digits) may match as a bare suffix, because the
+        name embeds it without a separator -- 80cd52c.c parks Func_80cd52c, whose
+        "d52c" follows "80" and not "_". Requiring a boundary here would lose the
+        whole address family, which is most of this corpus.
+      * a NAME part (anything with a non-hex letter) must land on a WORD BOUNDARY:
+        the name either IS the part or ends with "_" + part.
+
+    Batch 301 is why the second clause exists. Parking Anim_Ray added the stem part
+    "ray", and BaseAnim_ParticleSpray ends with those three letters, so a function
+    NOBODY HAD ATTEMPTED was counted parked and vanished from the available list --
+    the same over-attribution as lessons 6 and 7, reached by a third route. A park
+    filename must name a function, not merely rhyme with it.
+
+    The hex carve-out still admits a coincidence in principle (a name part spelled
+    only from abcdef, like "face"), but every such part in this corpus is an actual
+    address, and the alternative loses 4cc.c -> OvlFunc_common1_4cc and
+    fac.c -> OvlFunc_common1_fac, which are real.
     """
     low = name.lower()
     for st in stems:
         for part in st.lower().split("_"):
             if not part:
                 continue
-            if len(part) >= 3 and low.endswith(part):
+            if all(c in "0123456789abcdef" for c in part):
+                if len(part) >= 3 and low.endswith(part):
+                    return True
+            elif low == part:
                 return True
             if low.endswith("_" + part):
                 return True
