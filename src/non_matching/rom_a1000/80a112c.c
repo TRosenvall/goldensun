@@ -1,6 +1,6 @@
 /* Func_80a112c -- 0x080a112c, asm/rom_a1000/rom_a1050_c_c_a.s (1 function, no data).
  *
- * NON-MATCHING, 20 of 411 encodings differ.  SIZE MATCHES (964 bytes) and the
+ * NON-MATCHING, 18 of 411 encodings differ.  SIZE MATCHES (964 bytes) and the
  * INSTRUCTION COUNT MATCHES (411 = 411), so the count IS a distance here.
  * Relocation sequence is identical, symbol for symbol.  Zero shims.
  *
@@ -113,7 +113,34 @@
  * ever made.  Forty-plus hunks of `adds r1,r6` vs `adds r1,r7` vanished with a
  * change to an addressing expression.  Do not chase a callee-saved register
  * assignment until the addressing modes are right.
- */
+  *
+ * BODY REPLACED IN BATCH 305e: 20 -> 18 of 411, count exact, relocations identical,
+ * aligncmp 395 of 411 (96.1%), 18 in 14 hunks (was 19 in 15).  Shimcount clean.  The change
+ * halves cluster C by reusing `n`, which already holds `0xa6 * 2` from Func_8004938(n), as
+ * the second copy()'s length -- the register-inheritance lever, reading as natural C.
+ *
+ * WHY THAT LEVER CANNOT REACH CLUSTER B -- a reason, not two failed probes.  The register
+ * map read off the asm shows every early local SPILLED TO THE STACK (`win` sp+20, `raw`
+ * sp+12, `info` sp+16, `s2` sp+8); the only register-resident locals are hi->r5, u->r8,
+ * id->r9, st->r10, mode->r11.  THERE IS NO r0 OR r4 DONOR IN THE FUNCTION, so the lever's
+ * precondition is unsatisfiable -- which is why this header's `n` (55) and `v` (52) attempts
+ * failed.  Do not retry donor hunting on cluster B.
+ *
+ * AND ONE PROBE THAT LOOKED LIKE A TEST IS NOT ONE.  Re-reading `item` from `info` in both
+ * arms reads 20 with a residue IDENTICAL LINE-FOR-LINE to the baseline, because gcse commons
+ * the re-read back -- an inert spelling, not evidence.  The genuine hoists all regress (fresh
+ * local 150 and 2 insns short, into `v` 34, into `n` 30), and hoisting the `+ 0x333` triggers
+ * the very call-sharing this park's lever 3 rejects.  So the "give `item` three references"
+ * route is BLOCKED by lever 3, not merely unmeasured.
+ *
+ * CLUSTER A IS A WALL, WITH A MECHANISM: the ROM needs the byte in a scratch register
+ * distinct from the sum (3-operand `add r6,r2,r3`); gcc coalesces the load into the
+ * destination (2-operand `add r6,r3`) unless the loaded pseudo OUTLIVES the add, and the ROM
+ * gives it no later use.  Three further spellings regress: shared byte temp 143, reusing
+ * `raw` 270 (2 long), named offset local plus temp 151.
+ * Remaining residue: cluster A 5, cluster B 11, cluster C 2.
+*/
+
 extern int iwram_3001f2c;
 extern unsigned char Laf20c[] __asm__(".Laf20c");
 
@@ -246,7 +273,7 @@ void Func_80a112c(int arg0, int id, int slot, int mode)
             _CalcStats(id);
             Func_80a15f0(u, old, box);
             copy = Func_8001af8;
-            copy(u, old, 0xa6 * 2);
+            copy(u, old, n);
             free(old);
         }
         break;

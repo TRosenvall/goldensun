@@ -171,6 +171,65 @@
  * So the guard shape is reachable and the guard's LOAD is not; the open
  * question is what keeps the two `*st` loads apart, and the honest answer is
  * that it is a CFG property we have not reproduced.
+ *
+ * ================================================================
+ * BATCH 305 BRIEF C -- NINE MORE MEASUREMENTS, ALL NEGATIVE.  Baseline
+ * re-confirmed as installed: 26 of 472, 1068 bytes both sides, differing at
+ * objcmp indices 205,206,208,212,226,285,349,350,351,352,353,354 (residue A)
+ * and 368-384 (residue B), exactly as described above.
+ * ================================================================
+ *
+ * RESIDUE A IS NOT REACHABLE BY MOVING THE SOURCE EXPRESSION AT ALL.  The
+ * header above proposes getting the row giv recorded first by making the row
+ * expression appear before the `sin`.  Three ways of doing that WITHOUT moving
+ * a pointer's live range across the three fns[0] calls -- which is what spilled
+ * `frame` last time -- are EXACTLY INERT: an `int row = k * 0x70;` written
+ * immediately before the `sin` with `q = (Part *)(base + row + (0xe1 << 7));`
+ * kept at the bottom reads 26 of 472 with THE SAME TWELVE INDICES, as does the
+ * same thing with `row` at function scope, and as does `k * (4 * 0x1c)` for the
+ * stride with the addend order swapped.  Byte-identical residues across four
+ * source shapes say loop.c derives the two givs from `k`'s uses in a canonical
+ * order of its own and does not follow the order the source writes them in, so
+ * the "record the row expression first" route is closed at the C level.  What
+ * the residue actually is: sp+0xc carries the ROW walker in the ROM (`adds
+ * r1,#112 / str r1,[sp,#12]`) and the ANGLE walker in ours (`adds r0,r0,r1`
+ * with r1 = 0x4000), with the r2/r3 swap at 205-208 and the sp+0xc/sp+0x10
+ * reads at 212/226/285 following from that one choice.
+ *
+ * RESIDUE B: EVERY WAY OF SPLITTING THE `st` SPELLING LOSES INSTRUCTIONS.  The
+ * ROM needs the guard to read `st` (one `ldr r0,[sp,#0x1c]`) and the loop's own
+ * preheader to re-derive `base + 0x7828` into r7 (three insns).  We emit the
+ * three-insn derivation in the GUARD and a one-insn copy in the preheader --
+ * same eight instructions, wrong distribution, because cse makes the preheader
+ * reuse the value the dominating guard block already computed.  Four further
+ * splits, none of which holds the count:
+ *   - actor condition via `st`, the body's two `->ids[i]` reads via a fresh
+ *     `State **sp4` assigned at the top of the actor body: 466 enc / 1056 bytes
+ *     (6 SHORT), and the pool order moves too.
+ *   - the same with `sp4` assigned in the actor loop's preheader: 466 / 1056.
+ *   - EVERYTHING in the actor loop via `st` (condition and both body reads):
+ *     461 / 1044, 11 SHORT -- the deepest loss of the four.
+ *   - condition left re-deriving (as installed) and only the BODY via `st`:
+ *     470 / 1064, 2 SHORT.
+ * Also measured: the reverse of the recorded explicit-guard form -- guard
+ * re-derives, `do {} while (i != (*st)->f14)` at the bottom -- 468 / 1060,
+ * 4 SHORT; and the explicit guard via `st` with the m-loop's own bound switched
+ * to the re-derived spelling to stop cse merging the two `*st` loads, which
+ * goes the other way: 473 / 1072, one LONG.  So the guard's load cannot be
+ * bought without paying somewhere else, and the recorded conclusion stands.
+ *
+ * THE COMMA-IN-CONDITION DEVICE DOES NOT HELP HERE, though it is what took
+ * Anim_Froth from 10 to 4 in this same batch (see that file's header for the
+ * mechanism: a variable assigned inside a while condition is one pseudo across
+ * duplicate_loop_exit_test's two copies of it, so both copies get one hard
+ * register, while the count is preserved because each copy keeps its own
+ * materialisation).  Applied to the actor condition as
+ * `while (sp3 = (State **)(base + 0x7828), i != (*sp3)->f14)` it is EXACTLY
+ * INERT -- 26 of 472, same twelve indices -- because LICM hoists the invariant
+ * assignment straight back out into the preheader and the guard copy keeps its
+ * own three-insn derivation regardless.  Worth knowing before it is tried
+ * again: the device only bites where the assigned value must be REMATERIALISED
+ * at each copy, which is true of a pool constant and false of a loop invariant.
  */
 #include "gba/types.h"
 #include "gba/io.h"

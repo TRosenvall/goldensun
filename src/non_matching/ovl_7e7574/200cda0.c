@@ -41,7 +41,29 @@
  * plus a sign-extend.  -fno-cse-skip-blocks IS the only flag that restores the
  * ROM's repeated `mov #224` rebuild, but it drops r7 from the push mask, so it is
  * unusable here.  All figures flag-conditional and diagnostic only.
- */
+  *
+ * BODY REPLACED IN BATCH 305e: 15 pins -> 9 at the IDENTICAL 19 of 184.  The pins buy
+ * exactly ONE cluster (the five-call argument setup); clusters H, I and R are identical
+ * line-for-line with and without them.  PIN-FREE WAS MEASURED AND COSTS 12: named locals
+ * reproduce every instruction, register and constant in all five calls and still read 31,
+ * the residue being 12 encodings of `mov r0` POSITION -- the pins work precisely BECAUSE
+ * they block constant propagation, and any pin-free spelling lets gcc fold so expand_call
+ * fixes the order.  Statement order inert (31 in three placements), -fno-schedule-insns
+ * inert, -fno-schedule-insns2 worse at 49.
+ *
+ * THE 3 BARRIERS ARE IRREPLACEABLE, a firm negative: SIX spellings of the twice-used
+ * `0xe0 << 1` -- reuse `off`, a fresh local, the `<<=` two-statement form, a short-index
+ * `&((short *)iwram)[0xe0]`, plain inline, and a pointer local -- ALL SIX come out 2
+ * instructions SHORT (182 of 184).  gcc commons the value 448 however it is spelled, so no
+ * source form rebuilds it; each barrier is individually load-bearing at 2 instructions.
+ * This park cannot land pin-free by any known route.
+ *
+ * CORRECTION to this header's own reading: its -fno-* figures of 146-174 are INFLATED BY A
+ * POOL-OFFSET CASCADE -- the first diff sits at index 1 (`ldr r5,[pc,#0x198]` against
+ * `#0x194`), so 4 bytes of missing text shifts every pc-relative load after it.  The real
+ * residue under those flags is 2-4 instructions, not 148 differences.
+*/
+
 typedef struct { unsigned char _bytes[704]; } GlobalState;
 extern GlobalState gState;
 extern unsigned char *iwram_3001ebc;
@@ -124,16 +146,16 @@ int OvlFunc_959_200cda0(void)
             __Func_80108c4(0xc0 << 4);
             if (__GetFlag(0x941) != 0) {
                 __MapActor_SetPos(0xc, 0, 0);
-                { PIN3; q0 = 0x10; q1 = 0xd8 << 17; q2 = 0xac << 17;
-                  __MapActor_SetPos(q0, q1, q2); }
-                { PIN3; q0 = 0x10; q1 = 0xa0 << 7; q2 = 0;
-                  __Func_8092adc(q0, q1, q2); }
-                { PIN3; q0 = 0xd; q1 = 0xe4 << 17; q2 = 0x90 << 17;
-                  __MapActor_SetPos(q0, q1, q2); }
-                { PIN3; q0 = 0xd; q1 = 0xa0 << 7; q2 = 0;
-                  __Func_8092adc(q0, q1, q2); }
-                { PIN3; q0 = 0x11; q1 = 0xe4 << 17; q2 = 0xa0 << 17;
-                  __MapActor_SetPos(q0, q1, q2); }
+                { PIN2; q0 = 0x10; q1 = 0xd8 << 17;
+                  __MapActor_SetPos(q0, q1, 0xac << 17); }
+                { PIN2; q0 = 0x10; q1 = 0xa0 << 7;
+                  __Func_8092adc(q0, q1, 0); }
+                { PIN2; q0 = 0xd; q1 = 0xe4 << 17;
+                  __MapActor_SetPos(q0, q1, 0x90 << 17); }
+                { PIN1; q0 = 0xd;
+                  __Func_8092adc(q0, 0xa0 << 7, 0); }
+                { PIN2; q0 = 0x11; q1 = 0xe4 << 17;
+                  __MapActor_SetPos(q0, q1, 0xa0 << 17); }
                 __Actor_SetSpriteFlags(__MapActor_GetActor(0x11), 0);
             }
         }

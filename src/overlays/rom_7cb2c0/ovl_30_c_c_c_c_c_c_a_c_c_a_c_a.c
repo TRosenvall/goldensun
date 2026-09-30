@@ -1,63 +1,93 @@
-/* NON-MATCHING, 6 of 696 encodings differ
+/* OvlFunc_945_200c8e8  --  0x0200c8e8
  *
- * OvlFunc_945_200c8e8  --  0x0200c8e8
- *
- * SIZE AND COUNT ARE BOTH EXACT (1728 bytes, 696 encodings, both sides), so
- * objcmp's 6 IS a distance and not a saturated figure.  aligncmp separately:
- * aligned-equal 690, 99.1% of ref, 6 differing in 6 hunks -- the two tools agree
- * because there is no insert/delete left anywhere in the function.
- *
- * shimcount.py: PIN-FREE.  No inline asm, no "+r" barrier, no flag override.
- * Nothing for fakematch.txt.
- *
- * SPLIT SHAPE: asm/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_c_c_a_c_a.s holds
- * this function ALONE (one .thumb_func_start) and datacheck.py reports no data,
- * so NO text/data split is needed and split_s.py has nothing to do.  No label
- * needs `.global` either: the four field-actor tables this function loads
- * (.L72a0, .L7300, .L7360, .L73c0) are ALREADY `.global` in
- * asm/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_c_c_c.s:12-15, so the
- * `__asm__(".L72a0")` externs below link as they stand.  The 26-entry jump table
- * is gcc's own and needs nothing.
+ * MATCHING.  1728 bytes, 696 encodings and 158 relocations identical, on
+ * objcmp --func AND objcmp --whole; aligncmp reads 696 aligned-equal, 100.0%,
+ * 0 hunks.  PLAIN -O2, no flag override, no pin, no inline asm -- shimcount.py
+ * prints no rows, so there is nothing for fakematch.txt.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/ovl_7cb2c0/200c8e8.c \
+ *     src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_c_c_a_c_a.c \
  *     asm/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_c_c_a_c_a.s --func OvlFunc_945_200c8e8
- * FINAL INSTALLED PATH: src/non_matching/ovl_7cb2c0/200c8e8.c
- * (If it ever matches, it belongs at
- *  src/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_a_c_c_a_c_a.c.)
  *
- * THE BLOCKER: global.c's allocno processing order, case 0x13 only.
- * The residue is ONE class and every instruction of it is a high-register name:
- *     ref  mov sl, r2 / mov r1, sl / mov r8, r2 / mov r3, r8 (x2) / mov r1, sl
- *     ours mov r8, r2 / mov r1, r8 / mov sl, r2 / mov r3, sl (x2) / mov r1, r8
- * t8 (0xc0 << 6) and t10 (0xe0 << 1) are SWAPPED between r8 and r10; t9
- * (0xd0 << 8) lands in r9 in both.  Thumb REG_ALLOC_ORDER gives a call-crossing
- * value r5, r6, r7, r8, r10, r9, r11, so the ROM processed t8 first and we
- * process t10 first.  `allocno_compare`'s formula
- * floor_log2(n_refs)*n_refs/live_length explains OUR answer exactly and predicts
- * that only an n_refs or live_length change can flip it: t10 has FOUR refs
- * (def + `t10` and `t10 - 0x60` in the same call + the case's last call) against
- * t8's three, so floor_log2(4)*4 = 8 beats floor_log2(3)*3 = 3 and t10 wins
- * despite the longer range.  For the ROM's order t8 must out-rank t10, which
- * needs t10 down to three refs or t8 up to four, and neither is expressible
- * here: the third t10 reference IS the `sub r2, #0x60` the ROM emits, and there
- * is no third site for t8.
- *   MEASURED INERT against this, all still 6 of 696:
- *     declaration order t8/t9/t10/m instead of m/t8/t9/t10
- *     a named temp for the derived value: `w = t10 - 0x60;` before the call
- *     a separate scratch base: `w = 0xe0 << 1; t10 = w; ... w - 0x60`
- *       (this one reproduces the ROM's r2-holds-0x1c0-then-subtracts shape
- *        LITERALLY and still does not move the allocation)
- *     one-statement `t8 = 0xc0 << 6;` vs the split `t8 = 0xc0; t8 <<= 6;`
- * This is the register-rotation class of elevation.md's "REGISTER ALLOCATION: it
- * is systematic, and it is not reachable from C", and the targeting rule there
- * names it in advance: the ROM prologue saves r8/r9/r10 (`mov r7, r10 / push`),
- * which is the tell.
+ * SPLIT: none.  `split_s.py --dry-run` says the .s "holds only
+ * OvlFunc_945_200c8e8 and no data; convert it directly, no split needed", and
+ * datacheck.py prints nothing.  No label needs `.global`: the four field-actor
+ * tables (.L72a0, .L7300, .L7360, .L73c0) are already `.global` in
+ * asm/overlays/rom_7cb2c0/ovl_30_c_c_c_c_c_c_c_c_c.s:12-15, so the
+ * `__asm__(".L72a0")` externs below link as they stand.  The 26-entry jump
+ * table is gcc's own.
  *
- * THE LEVERS THAT PAID, in the order they paid, with figures.  First draft:
- * 631 of 696, 709 encodings (13 OVER), 1760 bytes -- a saturated figure.
+ * WHAT CLOSED THE LAST SIX ENCODINGS -- ONE ARGUMENT, RESPELT.
+ *
+ * The park sat at 6 of 696 with size and count exact and no insert/delete: a
+ * pure high-register naming swap in case 0x13, six `mov` encodings, t8 and t10
+ * exchanged between r8 and r10 while t9 held r9 on both sides.  The park had
+ * attributed it to global.c's allocno order and called it unreachable, because
+ * `allocno_compare` predicted OUR answer.  THE ATTRIBUTION WAS TO THE WRONG
+ * ALLOCATOR.  Case 0x13 is straight-line, so it is ONE basic block (block 43)
+ * and its four values are assigned by LOCAL-ALLOC, not global.  gcc's own
+ * `-da` dumps say so outright: the .18.greg header lists "8 regs to allocate:
+ * 134 32 50 110 93 33 92 34" and case 0x13's pseudos are not among them --
+ * they already had reg_renumber set.  global.c never ranked them.
+ *
+ * With that fixed the lever is visible in the .17.lreg flow lines, which print
+ * local-alloc's two inputs directly.  Before (block 43):
+ *
+ *     m   (118)  8 refs / 88   t8  (119)  3 refs / 92
+ *     t9  (120)  5 refs / 116  t10 (121)  4 refs / 114
+ *
+ * t10's FOURTH reference was the `t10 - 0x60` written as the second argument
+ * of the case's `OvlFunc_945_200c890(9, ...)` call -- .17.lreg shows it as its
+ * own insn, `(set (reg 124) (plus (reg/v 121) (const_int -96)))`.  Spelling
+ * that argument as its own literal, `0xb0 << 1`, deletes the `plus` insn, and
+ * t10 drops to THREE refs (t8, t9 and m unchanged at 3 / 5 / 8).  That is the
+ * whole change -- one line -- and the order flips: t8 takes r8, t10 takes r10,
+ * t9 keeps r9, and the function is byte-identical.
+ *
+ * AND THE LITERAL COSTS NOTHING, which is the non-obvious half and the reason
+ * the park ruled this family out.  `0xb0 << 1` looks like `movs`+`lsls`, two
+ * instructions where the ROM has one -- so it reads as +1 encoding and a
+ * broken count.  It is not, because cse can reach 0x160 in ONE insn from the
+ * scratch register that still holds t10's 0x1c0, and prefers it: the emitted
+ * code is the ROM's own `mov sl, r2 / ... / subs r2, #0x60`.  The count stays
+ * 696.  So the constant's SOURCE moved from t10 to the scratch without moving
+ * a single instruction -- exactly the asymmetry the park had been hunting when
+ * it tried a separate scratch base and found it inert.
+ *
+ * WHY THE PARK'S FOUR NEGATIVES WERE INERT, now that the numbers are readable.
+ * Every one of them still leaves the `plus` reading t10, so n_refs stays 4:
+ *   - declaration order t8/t9/t10/m -- moves the pseudo NUMBER, not n_refs, and
+ *     the two are not tied, so the tie-break never runs.
+ *   - `w = t10 - 0x60;` as a named temp -- the `plus` still reads t10.
+ *   - `w = 0xe0 << 1; t10 = w; ... w - 0x60` -- w and t10 are equal constants,
+ *     so cse keeps one representative and the `plus` reads it again.  Measured
+ *     here as W1, and .17.lreg confirms t10 back at 4 refs.
+ *   - split vs one-statement `t8 = 0xc0 << 6` -- combine folds the shift either
+ *     way, so t8 is 3 refs in both.  Confirmed in the dumps.
+ * TWO MORE MEASURED HERE, both worse, both recorded so nobody repeats them:
+ *   - sharing ONE `t8` between case 0x12 and case 0x13 (the reuse-a-variable
+ *     lever): 8 of 696.  It does merge the two ranges into one quantity, and
+ *     that quantity then outranks nothing useful -- case 0x12's t8 moves OUT of
+ *     r8 into sl, so the lever costs two encodings in a case that already
+ *     matched.  The bound in elevation.md holds: the donor's earlier range must
+ *     land in the ROM's target register, and merging can move the DONOR.
+ *   - defining t10 at the top of the arm to lengthen its span: 16 of 696,
+ *     114 -> 128 and 8 -> 9 calls crossed.  Span is a weaker lever than n_refs
+ *     and it drags the arm's whole schedule.
+ *
+ * THE GENERAL RULE WORTH KEEPING.  A register residue inside ONE basic block
+ * is local-alloc's, not global's, and local-alloc's inputs are printed for
+ * free: compile with `-da` and read the `Register N used R times across L
+ * insns in block B` lines from the .17.lreg dump.  Do not model the formula --
+ * read the numbers, then change n_refs.  n_refs is the strong lever (it enters
+ * as floor_log2(R)*R) and the cheapest way to move it is to stop a DERIVED
+ * argument from reading the variable, which a plain literal does for free
+ * wherever cse can rematerialise the literal from a neighbour.
+ *
+ * THE LEVERS THAT PAID EARLIER, in the order they paid, with figures.  First
+ * draft: 631 of 696, 709 encodings (13 OVER), 1760 bytes -- a saturated figure.
  *
  * 1. ONE VARIABLE PER SWITCH ARM (block-scoped declarations), 709 -> 688
  *    encodings and the aligned figure 332 -> 179.  The first draft declared one
@@ -76,9 +106,7 @@
  *    in both, and cse1 commons them into r5 with an `adds r1, r5, #0` per site
  *    where the ROM rebuilds `mov r1, #0x81 / lsl r1, #1`.  NEITHER
  *    -fno-rerun-cse-after-loop NOR -fno-gcse NOR both together moves ONE byte of
- *    this (631/709 in all three) -- exactly what the two-part precondition
- *    predicts for the no-branch case, and worth recording because the same flag
- *    is what makes OvlFunc_936_2009930 byte-exact in this same batch.
+ *    this (631/709 in all three).
  *    What DOES reach it: declare the constant as a local ABOVE the switch and
  *    pass it by name.  The jump-table dispatch is the branch the lever needs, so
  *    gcc will not keep the value live across it and rematerialises at each site
@@ -87,12 +115,15 @@
  *    for free.  Applied to 0x80<<8, 0x81<<1, the eight case-0xb SetPos
  *    coordinates, 0xb0<<8, 0xd0<<8, 0xdb<<17, 0x98<<16 and the three -1s of
  *    case 0x18 (`mov`+`neg` is a split build exactly as `mov`+`lsl` is).
- *    A NEW BOUNDARY ON THE LEVER, measured here: it is PER SITE, not per
- *    constant.  __Func_8092adc(0xf, ab, 0) wants the named `ab`, and
+ *    A BOUNDARY ON THE LEVER: it is PER SITE, not per constant.
+ *    __Func_8092adc(0xf, ab, 0) wants the named `ab`, and
  *    OvlFunc_945_200c880(0x11, ab) four instructions later wants the LITERAL --
  *    the ROM does NOT interleave at that one call (`mov r1,#0xb0 / lsl r1,#8 /
  *    mov r0,#17`), and the named form puts `mov r0, #17` one slot early.  Worth
  *    2 encodings and 2 hunks on its own.  Read each site's order separately.
+ *    Case 0x13's second argument, above, is the mirror image of that boundary:
+ *    there the LITERAL is what the ROM wants, for an allocation reason rather
+ *    than a scheduling one.
  * 3. BUILD THE CONSTANT AFTER THE CALL, WHICH MEANS NAMING THE POINTER, 12 -> 6.
  *    `*(short *)(__MapActor_GetActor(0xd) + 6) = u;` with `u` assigned before
  *    the call makes `u` cross the call, so it takes r5 where the ROM uses the
@@ -114,6 +145,7 @@
  *    two `strh` back into the ROM's single one, so the duplication costs nothing.
  *    This is elevation.md's "Store INSIDE each arm, or gcc will speculate the
  *    cheap one", and it is the third recorded instance.
+ * 5. THE ARGUMENT RESPELLING ABOVE, 6 -> 0.
  *
  * Readings worth keeping:
  *  - `top:` before the switch plus `op = 0xe; goto top;` at the end of case 0x12
@@ -388,7 +420,7 @@ top:
         OvlFunc_945_200c890(8, 0xd0 << 1, 0xa4 << 1, 0);
         t10 = 0xe0; t10 <<= 1;
         t9 = 0xd0; t9 <<= 8;
-        OvlFunc_945_200c890(9, t10, t10 - 0x60, t9);
+        OvlFunc_945_200c890(9, t10, 0xb0 << 1, t9);
         t8 = 0xc0; t8 <<= 6;
         m = 0xcc;
         OvlFunc_945_200c890(0xa, 0xe3 << 1, 0xf8, t8);

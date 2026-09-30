@@ -1,14 +1,16 @@
-/* Anim_Froth -- 0x080d33c0, 510 instructions.  PARKED, VERY CLOSE.
+/* Anim_Froth -- 0x080d33c0, 510 instructions.  PARKED, FOUR ENCODINGS OUT.
  *
- * NON-MATCHING, 10 of 529 encodings differ.  objcmp's figure, and it is a TRUE
- * distance: SIZE matches exactly (1172 = 1172), the instruction COUNT matches
- * exactly (529 = 529), and RELOCATIONS are IDENTICAL -- objcmp prints neither a
- * SIZE nor a RELOCATIONS line, so the whole residue is ten instruction
- * encodings in two register-tie classes and nothing else.
+ * NON-MATCHING, 4 of 529 encodings differ (was 10; batch 305 brief C).  It is a
+ * TRUE distance and then some: SIZE matches (1172 = 1172), the instruction
+ * COUNT matches (529 = 529), RELOCATIONS are IDENTICAL, and tools/aligncmp.py
+ * reads 527 of 529 aligned-equal (99.6%).  The whole residue is ONE
+ * TWO-INSTRUCTION SWAP occurring at TWO call sites.  This is the closest
+ * non-matching function in the tree.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_c9000/d2d98_Froth.c \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/Anim_Froth.c \
  *     asm/rom_c9000/rom_d2d98.s --func Anim_Froth
  *
  * SPLIT SHAPE: TEXT-ONLY, ONE NEW EXPORT.  asm/rom_c9000/rom_d2d98.s holds SIX
@@ -25,57 +27,140 @@
  * clean), no per-file flag override.
  *
  * ================================================================
- * THE WHOLE REMAINING RESIDUE, IN TWO NAMED PIECES
+ * THE ONLY RESIDUE LEFT: THE ARGUMENT-SETUP ORDER OF BOTH StartTask CALLS
  * ================================================================
  *
- * (A) FOUR ENCODINGS: THE ARGUMENT-SETUP ORDER OF BOTH StartTask CALLS.  The
- *     ROM fills r1 before r0 at both sites --
+ * Four encodings, at objcmp indices 160/161 and 172/173, and aligncmp scores
+ * them as an INSERT/DELETE PAIR at each site -- i.e. a pure MOVE of one
+ * instruction past its neighbour, not a wrong instruction anywhere.  The ROM
+ * fills r1 before r0 at both sites --
  *
- *         adds r1, r5, #0          @ arg, from the shared 0x90 << 3
- *         ldr  r0, =Task_SpinCamera
- *         bl   StartTask
+ *     adds r1, r5, #0          @ arg, from the shared 0x90 << 3
+ *     ldr  r0, =Task_SpinCamera
+ *     bl   StartTask
  *
- *     -- and we emit the pool load first.  This is a sched2 tie between a load
- *     and an ALU copy that both feed the call, and it is NOT the "fill r0 last"
- *     shim class: the landed Anim_Confuse next door has the SAME `arg = 0x90;
- *     arg <<= 3;` idiom at two StartTask calls and its ROM emits `ldr r0,.L36 /
- *     mov r1,r6`, i.e. our order, byte-exact.  So the two ROM functions differ
- *     in a way the source does not express.
+ * -- and we emit the pool load first.  It is NOT the "fill r0 last" shim class:
+ * the landed Anim_Confuse next door has the SAME `arg = 0x90; arg <<= 3;` idiom
+ * at two StartTask calls and its ROM emits `ldr r0,.L36 / mov r1,r6`, i.e. OUR
+ * order, byte-exact.  So the two ROM functions differ in a way the source does
+ * not express.
  *
- *     MEASURED INERT (all still 10 of 529): `arg = 0x90 << 3;` as one
- *     statement; two separate `arg`/`arg2` locals; the shift inlined at both
- *     call sites with no local at all; `extern void StartTask(void (*)(void),
- *     int)`; `extern void StartTask(int, int)` with `(int)Task_SpinCamera`; and
- *     named `void *task1/task2` locals assigned immediately before each call.
- *     MEASURED WORSE: the task locals assigned at the top of the function
- *     (532 instructions, +3).
+ * WHY IT IS AN EXPAND-ORDER RESIDUE, NOT A SCHEDULING ONE.  On ARM the constant
+ * pool is built by machine_dependent_reorg, which runs AFTER sched2, so at
+ * schedule time the first argument is still `(set (reg r0) (symbol_ref))` -- a
+ * plain move with the same cost as the r1 copy, not a load.  The two insns
+ * therefore TIE on INSN_PRIORITY and on dependent count, and gcc-2.96's
+ * rank_for_schedule breaks that tie with `INSN_LUID (tmp) - INSN_LUID (tmp2)`,
+ * i.e. it PRESERVES EXPAND ORDER.  expand_call's load_register_parameters walks
+ * i = 0 .. num_actuals-1, so r0 is emitted first and no source spelling of the
+ * two arguments can change that.  The ROM's order needs the r1 move to carry
+ * the lower LUID, which this call shape cannot produce.
  *
- * (B) SIX ENCODINGS: THE REGISTER THE `.Lee1c4` POOL LOAD GETS AT THE TWO LOOP
- *     TAILS.  The ROM uses r2 at both; we use r4 at the inner tail (swapping
- *     with the `mov rN, sl` copy of the state pointer, which the ROM puts in
- *     r4) and r0 at the outer tail.  Operand POSITIONS match -- both emit
- *     `ldrb r3, [rTable, rIndex]` -- so it is purely which hard register each
- *     pseudo received, with r0, r2 and r4 all free at both points.
- *
- *     This is NOT the Anim_Fireball PLUS-canonicalisation lever, which looks
- *     identical on the surface and was tried here: `*(unsigned char *)(idx +
- *     (int)Lee1c4)` costs an instruction (528, 352 differ) and doing it to
- *     `flags[i]` as well costs three (526).  There the two PLUS operands were
- *     both pseudos needing reloads and the order decided the pick; here the
- *     table pseudo is already in the position the ROM has it.
- *
- *     MEASURED INERT: declaring `flags` first or last in the declaration list;
- *     `extern const unsigned char Lee1c4[]`; `unsigned char Lee1c4[][2]` with
- *     `[f18][0]` / `[f18][1]`.  MEASURED WORSE: a named `unsigned char *tbl =
- *     Lee1c4;` local, whether assigned before the frame loop (527, 335 differ)
- *     or at the top of the outer body (527, 334) -- the converse of the `flags`
- *     lever below, and the sharpest evidence that ONE named array pointer is
- *     wanted here and a SECOND one is not; and an explicit `int j` stepped by 2
- *     instead of `i * 2` (22 of 529).
+ * MEASURED INERT -- ALL STILL EXACTLY 4 of 529, SAME FOUR INDICES.  Twenty-one
+ * spellings and nine source positions:
+ *   spelling: `arg = 0x90 << 3;` as one statement; `arg = 0x480;`;
+ *     `arg *= 8;` and `arg = arg << 3;` for the shift; two separate `arg`/`arg2`
+ *     locals; the shift inlined at both call sites with no local at all;
+ *     `unsigned arg`; `extern void StartTask(void (*)(void), int)`;
+ *     `extern void StartTask(int, int)` with `(int)Task_SpinCamera`;
+ *     `extern void StartTask();` (no prototype at all); named `void *t1/t2`
+ *     locals assigned immediately before each call; `&Task_SpinCamera`;
+ *     `(void *)Task_SpinCamera`; the task symbols declared `extern char x[]`
+ *     so the argument is an array decay; and
+ *     `StartTask((arg <<= 3, Task_SpinCamera), arg)`, which forces arg's
+ *     computation into argument 0's own evaluation.
+ *   position: the `arg = 0x90; arg <<= 3;` pair moved before both
+ *     base+0x77ac/0x77b0 stores, between them, and split so the shift alone
+ *     sits immediately before the first call.
+ *   flags: -fno-schedule-insns2 (204 differ), -fno-schedule-insns,
+ *     -fno-cse-follow-jumps, -fno-peephole, -fno-delayed-branch (all 4);
+ *     -fno-force-mem (37), -fno-rerun-cse-after-loop (324, +4 insns),
+ *     -fno-expensive-optimizations (393, +6), -fno-caller-saves (389).
+ *     NOTHING moves indices 160/161/172/173.
+ * MEASURED WORSE: the task locals assigned at the top of the function (532
+ *   instructions, +3); reusing the counter/index local `n` as the task argument
+ *   (8 of 529 -- it breaks the table allocation described below).
  *
  * ================================================================
- * THE ONE THAT MATTERS: `signed char *flags = gBuffer;` IS A MISSING QUANTITY,
- * NOT A CONVENIENCE -- 62 SPAN TO 10
+ * WHAT CLOSED 10 DOWN TO 4: A COMMA-ASSIGNED INDEX AND TABLE PAIR IN THE
+ * OUTER LOOP CONDITION.  ONE STATEMENT, SIX ENCODINGS.
+ * ================================================================
+ *
+ * The six encodings that used to differ were the register the `.Lee1c4` pool
+ * load got at the two loop tails: the ROM uses r2 at BOTH, we used r4 at the
+ * inner tail (swapping with the `mov rN, sl` copy of the state pointer, which
+ * the ROM puts in r4) and r0 at the outer tail.  The function loads the table
+ * at FOUR sites and the ROM's registers are r2 (outer entry guard), r4 (the
+ * `frame == Lee1c4[...] - 0x10` test), r2 (inner tail), r2 (outer tail) -- so it
+ * is NOT one pseudo, it is four independent rematerialisations whose reload
+ * picks we had to rotate.  Ours were r2, r4, r4, r0.
+ *
+ * The fix is to write the OUTER while condition as
+ *
+ *     while (n = (*(State **)(base + 0x7828))->f18 * 2 + 1,
+ *            tbl = Lee1c4,
+ *            frame != tbl[n]) {
+ *
+ * with `unsigned char *tbl;` and `int n;` declared LAST.  That one statement
+ * fixes all six: the inner tail's two pseudos swap into the ROM's `mov r4, sl`
+ * / `ldr r2, =.Lee1c4`, and the outer tail's load becomes r2.
+ *
+ * WHY IT WORKS, IN TWO PARTS, BOTH OF WHICH ARE LOAD-BEARING.
+ *
+ * (a) `tbl` MAKES THE OUTER CONDITION'S TWO COPIES ONE PSEUDO.  The condition is
+ *     duplicated by duplicate_loop_exit_test into the entry guard and the loop
+ *     bottom, and a source variable assigned inside it is ONE declared C
+ *     variable, so gcc-2.96 -- one pseudo per variable, no SSA renaming -- gives
+ *     the whole thing ONE hard register, r2, at both copies.  The assignment
+ *     must be INSIDE the condition: a plain `tbl = Lee1c4;` before the loop is
+ *     held in a callee-saved register instead and the two pool loads collapse
+ *     (527, two instructions SHORT, 335 differ).  Re-assigning in the condition
+ *     keeps a pool load at each copy, so the COUNT is preserved at 529, and the
+ *     rotation this costs reload is what lands the inner tail as a side effect.
+ *
+ * (b) `n` KEEPS THE `+ 1` IN THE INDEX REGISTER.  With `tbl[... * 2 + 1]` and no
+ *     `n`, gcc reassociates to `(tbl + idx) + 1` and folds the 1 into the load's
+ *     immediate: `adds r3,r3,r2 / ldrb r3,[r3,#1]`.  The ROM keeps the 1 in the
+ *     index and uses the register-offset form: `adds r3,#1 / ldrb r3,[r2,r3]`.
+ *     Thumb-1 `ldrb rd,[rn,rm]` has NO immediate field, so the two forms cost
+ *     the same and gcc picks the immediate one whenever the base is a pointer
+ *     VARIABLE (with the bare symbol it cannot, which is why the base candidate
+ *     matched at indices 183/184).  Assigning the index to its own local puts
+ *     the `+ 1` inside n's computation, where combine cannot reach it.
+ *
+ * THE COMMA ORDER IS LOAD-BEARING: `n` FIRST, `tbl` SECOND.
+ *     n then tbl ......................  4 of 529   <- this file
+ *     tbl then n ...................... 10 of 529
+ *     tbl only, no n ..................  8 of 529  (183/184 and 491/493 are the
+ *                                       folded ldrb; 451/452/454/457 all match)
+ *     n reusing a dead donor instead of its own local: `arg` 9, `two` 9,
+ *                                       `mask` 458 (RELOC), `yb` 474 (+2 insns)
+ * And the device must be applied to the OUTER condition only:
+ *     inner condition too ............. 34 of 529
+ *     inner condition only ............ 11 of 529
+ *     both, incl. the -0x10 test ..... 335 of 529, 527 insns (2 SHORT)
+ * `tbl`/`n` DECLARATION POSITION IS INERT (first, last, and beside `flags` all
+ * read 4 of 529) -- no spill offset differs anywhere in the function, so the
+ * frame map recorded in lever (1) below is already exact.
+ *
+ * MEASURED AGAINST THE TABLE RESIDUE AND RULED OUT, BOTH DIRECTIONS OF THE
+ * Anim_Fireball PLUS-CANONICALISATION LEVER -- it looks identical on the surface
+ * and it costs an instruction whichever operand leads:
+ *   `*(unsigned char *)(idx + (int)Lee1c4)` .. 528, 352 differ  (recorded)
+ *   `*(unsigned char *)((int)Lee1c4 + idx)` .. 528, 352 differ  (new)
+ *   `*(Lee1c4 + idx)` at all three sites ..... 528, 352 differ  (new)
+ *   the same at the outer sites only ......... 528, 362 differ  (new)
+ * There the two PLUS operands were both pseudos needing reloads and the order
+ * decided the pick; here the table pseudo is already in the position the ROM has
+ * it (both emit `ldrb r3,[rTable,rIndex]`), and the ARRAY form is what keeps it
+ * there.  Also inert or worse: a named `unsigned char *tbl = Lee1c4;` held local
+ * (527, 335/334 differ, either position); `extern const unsigned char Lee1c4[]`;
+ * `unsigned char Lee1c4[][2]` with `[f18][0]`/`[f18][1]`; an explicit `int j`
+ * stepped by 2 instead of `i * 2` (22 of 529); declaring `flags` first or last.
+ *
+ * ================================================================
+ * THE ONE THAT MATTERS MOST: `signed char *flags = gBuffer;` IS A MISSING
+ * QUANTITY, NOT A CONVENIENCE -- 62 SPAN TO 10
  * ================================================================
  *
  * With the four flag accesses written as `gBuffer[i]` the candidate is ONE
@@ -119,6 +204,9 @@
  *     q = ...;`, worth 17 -> 10.  Written as two literal `Random() & 0xff` the
  *     constant is hoisted by loop.c and lands LAST in the preheader; a source
  *     local is materialised where the source puts it, which is second-to-last.
+ *     `mask` is NOT reusable as a second quantity: as the `k` modulus it reads
+ *     452 differ (+2 insns), as the 0x1f randomiser mask 468, as the
+ *     screen-shake temp 470 (+2).
  *
  * (4) TWO SEPARATE STORES FOR base+0x77ac, not a `?:`.  The ROM computes the
  *     address in BOTH arms and cross-jumps only `str r3,[r2]`; a single store
@@ -141,18 +229,29 @@
  * `d0 = 0xa0; copy = Func_8001af8; p = data; data += 0x80; d0 <<= 19;` block
  * transplanted verbatim, pin-free.
  *
+ * MEASURED INERT AND THEREFORE NOT WORTH RE-TRYING (all 10 of 529 on the old
+ * body, i.e. they neither helped nor hurt): a shared `int zero = 0;` local for
+ * the two base+0x77ac/0x77b0 stores (cse already makes that one `movs r2,#0`);
+ * hoisting the inner loop's `k` to function scope; declaring `arg` first or
+ * swapping `arg` and `frame`.  MEASURED WORSE: `two` reused for the
+ * base+(0xef<<7) store (531, +2 -- the ROM emits a fresh `movs r3,#2` there,
+ * exactly as Anim_Whirlwind records); a shared `int one = 1;` for the three
+ * 1-stores (527, -2); reusing `yb`, `two` or `arg` as the screen-shake temp
+ * (470/531, and 59 differ with the POOL ORDER changed).
+ *
  * ================================================================
  * WHERE TO GO NEXT
  * ================================================================
  *
- * Both residues are two-way ties between a pool-load pseudo and a reload copy,
- * with every candidate register free.  Nine source spellings were measured
- * against (A) and five against (B) and all are inert, so neither is reachable
- * by naming, ordering or typing at the C level.  The next thing worth trying is
- * a `-da` dump comparison of local-alloc's qty ordering against the landed
- * Anim_Confuse in the same bank, which has the SAME StartTask idiom resolving
- * the other way -- that pair is a controlled experiment on (A) and nothing else
- * in the corpus is.
+ * Only the StartTask argument order is left, and the analysis above says it is
+ * decided by expand's forward walk over the argument registers, which no
+ * spelling of THIS call reaches.  The one experiment still worth doing is a
+ * gcc-2.96 `-da` dump comparison of the .sched2 and .greg dumps against the
+ * landed Anim_Confuse in the same bank, which has the SAME StartTask idiom
+ * resolving the other way: that pair is a controlled experiment on this residue
+ * and nothing else in the corpus is.  If the dumps show the two insns tying on
+ * priority in both, the difference is upstream of the RTL we can author and the
+ * function should be shipped as a four-encoding park, not chased further.
  */
 #include "gba/types.h"
 #include "gba/io.h"
@@ -220,6 +319,8 @@ void Anim_Froth(void *context)
     int two;
     int arg;
     int frame;
+    unsigned char *tbl;
+    int n;
 
     g = iwram_3001eec;
     pp = g;
@@ -285,7 +386,7 @@ void Anim_Froth(void *context)
     StartTask(Task_BlitAnim, arg);
     _PlaySound(0xa4);
     frame = 0;
-    while (frame != Lee1c4[(*(State **)(base + 0x7828))->f18 * 2 + 1]) {
+    while (n = (*(State **)(base + 0x7828))->f18 * 2 + 1, tbl = Lee1c4, frame != tbl[n]) {
         void *cam;
         cam = iwram_3001e80;
         if ((unsigned)(frame - 0x11) <= 0x2e) {
