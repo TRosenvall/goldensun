@@ -27803,3 +27803,77 @@ called the top open item, now with a sharper statement of why per-variable work 
 * **Ternary versus `if`/`else` arm order is byte-identical three ways** in `DragonCloud`'s seed
   loops. It *looks* like `fold`'s ternary inversion and is not, which is worth knowing before
   spending a round on arm order: that inversion needs arms of **unequal complexity** to fire.
+
+## CONFIRMED TWICE: `.call_via rN` REPRODUCES BYTE-EXACTLY, IN A MAIN-ROM TU — 35 functions are unblocked
+
+The retraction of the "`.call_via` is a hard wall" claim is now backed by direct evidence in the main
+ROM, not only by the single overlay precedent. Two independent confirmations on `Func_80f3078`:
+
+**Codegen probe** (`docs/probe-call_via-r3.c`): the helper emits the macro's expansion verbatim at
+production flags — `.align 2, 0 / mov r12, pc / bx r3`. gcc appends a harmless `.code 16` (no bytes).
+
+**Object level**, from the aligncmp dump of three sites against the ROM's three:
+
+    ours  46fc  mov ip, pc      ref  46fc  mov ip, pc        IDENTICAL
+    ours  4710  bx r2           ref  4718  bx r3             register only
+    ours  0000  .short 0x0000   ref  0000  .short 0x0000     IDENTICAL
+
+**The `.align` fill halfword is present on both sides at the same place**, and the pool offset for the
+callee word agrees exactly. The only residue at the veneer is *which register holds the callee*. And
+mixing the inline veneer with ordinary `bl _call_via_rN` in one function blocks nothing.
+
+**The spelling depends on the SITE COUNT**, measured: binding the callee inside the helper — the
+single-site form that matched `Func_8097a10` — is **worse** on a three-site function (1712 → 1704
+bytes, 797 → 794 encodings). **Use the unpinned `bx %1` form for two or more sites.**
+
+### The queue this opens
+
+**35 remaining functions carry the inline veneer, 134 sites in total:**
+
+| sites | functions | note |
+|---|---|---|
+| 1 | **9** | cheapest — the exact shape `Func_8097a10` landed byte-exact on |
+| 2 | 9 | unpinned form |
+| 3 | 4 | unpinned form, confirmed above |
+| 4–6 | 11 | |
+| 13 | 1 | |
+| 31 | 1 | `UpdateActors` — see the cost note below |
+
+Two of the nine single-site functions are **`OvlFunc_924_200d5c0` and `OvlFunc_923_200a030`, parked at
+14 of 371**, so part of that residue may simply *be* the veneer — worth checking before spending a
+round on their allocation. And **`Func_808bec0` is single-site**: batch 302 declined to offer a figure
+for it on the retracted claim, so it is now actionable.
+
+**`UpdateActors` is reachable but expensive, and should not be a one-pass job.** 31 sites, one callee,
+across **five** binding registers (r7×16, r10×6, r8×6, r4×2, r3×1) fed by six `ldr` loads. Two of the
+five are **high** registers (12 of 31 sites), needing the enclosing-block `register … __asm__("rN")`
+form, and the heavy reuse is the sub-shape already flagged as hard. **Land a single-register main-ROM
+function first to bank the technique.**
+
+## An `int` temp can STOP a pool — a new sub-case
+
+Recorded as a lever: an `int` carrier makes a constant land as a word in the pool. On `Func_80f3078`
+the opposite happens — SImode `int` temps for the 5:5:5 masks measure **1712 → 1676, worse**, because
+the `int` local *stops* the pool and gcc synthesises `mov #248 / lsl #7` instead.
+
+So the carrier can push a constant **either way**, and with the unresolved `0x1010` contradiction and
+the "shiftable constants are rewritten out of the pool unconditionally" finding, the honest position is
+that **this lever has no reliable precondition yet and must be measured per site, both directions.**
+(The ROM's `ldr rN, =0x1f` on that function is still unexplained.)
+
+## LICM SPENDING: the ROM spends exactly one high register per switch arm
+
+`Func_80f3078`'s blocker is one allocation decision accounting for **76 of 84 missing bytes and 38 of
+42 missing instructions** — the ROM holds `dst` in r8, ours in r4 with caller-saves. But the cause is
+**upstream of the allocator**: loop-invariant motion hoists **two** invariants where the ROM hoisted
+**one**.
+
+The pattern is sharp enough to look for elsewhere: **the ROM spends exactly one high register per
+switch arm (always r11), leaving r8 free for the long-lived pointer.** Our candidate hoists the table
+*and* a constant in one arm (`mov fp, r3 / mov r8, r1`), consuming both. The same missing live value
+explains the frame being one word short.
+
+Ruled out by measurement: a pool defect (our pool holds the ROM's words in the ROM's order), a wrong
+program (every clamp bound, divisor and DMA flag word verified **inside the differing hunks**), and the
+`lsr`/`asr` splits — which fall out for free because **combine stops narrowing `ashiftrt` across a
+`bl`**, so no casts are needed.
