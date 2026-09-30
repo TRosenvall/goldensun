@@ -27617,3 +27617,127 @@ function needs it" (that promotion proved byte-neutral at the gate).
 So the promotion is the cheap path to a pin-free park here, and the same shape was already flagged on
 `Func_80c02a4`, whose 8 pins come from two local copies of dma.h-shaped helpers. **Two functions now
 want it**, which satisfies the standing condition.
+
+## UNRESOLVED CONTRADICTION: the `int` carrier for a pooled `vu16` register write
+
+Two functions in the same batch give **opposite** results for the same constant, and neither
+explanation the tree has offered separates them. Recording it unresolved rather than picking a side.
+
+* `BaseAnim_Attack` (brief B): an `int` carrier is needed for `0x1010` to land as a **word** in the
+  pool, and the lever is described as conditional on the constant not being
+  `thumb_shiftable_const`.
+* `Anim_Ragnarok` (brief A): the `int` carrier measures **3.6 aligned points NEGATIVE**. Plain
+  `REG_BLDALPHA = 0x1010;` produces the ROM's `ldr addr / ldr value / strh` unaided — gcc has no
+  PC-relative `ldrh`, so it pools the constant in SImode by itself.
+
+**Shiftability does not separate them: `0x1010` is unshiftable on both sides.** So the proposed
+precondition is not the discriminator, and the earlier warning that `ldr` and `ldrh` assemble to the
+same encoding for a PC-relative load (Thumb-1 has no PC-relative `LDRH`) means the *printed*
+mnemonic cannot settle it either.
+
+**Do not apply this lever on either function's authority.** Measure it per function, both ways, and
+if you find what separates the two cases, record it here — that is a real open question, not a gap
+in someone's diligence.
+
+**And a process caution, because this is how the contradiction surfaced.** I relayed brief B's
+finding to brief A mid-run as a lever to try. It did not generalise. Relaying a fresh single-function
+result between concurrent briefs propagates it faster than it can be validated — worth doing for
+*mechanisms* (a pass, a gate condition, a documented tie-break) and for *split shapes*, which are
+facts about files, but a one-function lever should travel with "measure it, it may not hold."
+
+## A COMPILER TEMP DATES THE DECLARATION ORDER — sharpening the spill-slot rule
+
+The spill-slot rule says declared locals take high offsets in declaration order while temps and
+outgoing-arg words take low offsets. `Anim_Ragnarok` and `Anim_Nereid` add a way to *read the
+boundary* rather than infer it:
+
+**the compiler temp created at a call sits at a known slot, and a temp cannot outrank a
+function-level declaration.** So when that temp's slot falls *between* two declared locals' slots,
+every local below it must be **block-scoped** rather than declared at function level. That produced
+the exact frame on both functions — worth 5.6 aligned points on Nereid and 3.1 on Ragnarok.
+
+So a frame that is right in size but wrong in order is readable: find the call temp, and everything
+the ROM places below it is scoped, not declared.
+
+## TWO QUANTITIES IN ONE LOOP CAN NEED OPPOSITE SPELLINGS
+
+`Anim_Ragnarok`, 77.9% → 81.5% aligned, and it is a caution against making any loop spelling uniform.
+
+Three index quantities written as `j *` expressions become loop.c **givs** in the ROM's own slots.
+The fourth, written identically, lets `fold` associate `b*68` into `j*0x154`, after which loop.c eats
+the **whole `&gBuffer[b*68+i]` address** — the reference spends 10 encodings there where we spend 4.
+Written as a plain accumulator (`b += 5`) neither reduction fires and the ROM's per-iteration form
+returns exactly.
+
+**Both uniform choices are worse** (77.9% and 80.8%), so the mixed spelling is the answer and the
+discriminator is what `fold` can associate, not what reads consistently. Two related facts from the
+same pair of functions:
+
+* **a `j *` expression, not an accumulator, is what gives the ROM's giv** in the general case
+  (63.2% → 68.8%, and the frame from 0x38 to 0x34 — the accumulator form spends a tenth spill word
+  on a strength-reduced pointer);
+* **the `t = -1` clearing loops walk an `int *`, not a `Part *`** — store offset `#0` with the base
+  already at the `t` field, which is why this tree carries both `extern Part ewram_2010018[]` and
+  `extern int ewram_2010018` for one address.
+
+And **Thumb `mul` puts the SECOND source operand in the destination** — `sin(t) * k`, not
+`k * sin(t)` — now confirmed on a third function.
+
+## A WRONG PROGRAM THAT IS RIGHT ON EVERY OTHER AXIS — read the hunk IMMEDIATES
+
+`Func_80bd898` carried a genuine reconstruction bug that survived size, count, relocation-sequence
+and aligned-figure scrutiny: four call offsets are derived from `x = timer << 2` as
+`x-0x14 … x-0x11` (that is, `d, d+1, d+2, d+3`), not from `d` directly. The first reading compiled
+to `subs r3,#37` where the ROM has `subs r3,#17` — **one hunk, a different program, plausible on
+every other axis.**
+
+It was found by **reading the immediates inside the differing hunks**, not by any aggregate figure.
+Add that to the ranking discipline: a small residue can be a wrong program, and the constants in a
+hunk are the cheapest place to see it. Related recorded instances — a closer size being a wrong
+program, a candidate measuring better on both axes by deleting a `_call_via` veneer, and an unsigned
+`s8` hitting the reference size exactly while being a sign bug.
+
+## `ldmia rX!` PLUS A COUNTDOWN is the walking-pointer tell
+
+Refines the recorded warning that `ldmia rX!, {rY}` does not prove a walking pointer (it is also
+what gcc emits for a strength-reduced subscript). The discriminator is **the loop-control
+instruction, not the load**:
+
+* `ldmia rX!` with a **`subs` / `cmp #0` / `bne` countdown** ⇒ a real walking pointer;
+* `ldmia rX!` with an **ascending compare against a bound** ⇒ a strength-reduced subscript, because
+  that is what a reduced subscript keeps.
+
+On `Func_80bd898` the countdown-plus-walking-pointer form was worth 18 encodings and 10 hunks,
+measured both ways.
+
+## COPY COALESCING IS THE TWO-VARIABLES LEVER RUN BACKWARDS, and it is the harder direction
+
+The recorded lever is "two variables where the ROM has one" — collapse them and the allocno count
+drops. `Func_80bd898`'s blocker is the inverse: **the ROM emits `adds r6,r5,#0` twice and we get one
+register**, because gcc legally coalesces `j = i` when `i` is dead at the copy.
+
+Attribution matters here: **a missing copy is a count difference, which no scheduler makes** (and
+sched1 does not run in this build anyway), and declaration order is inert. So the probe is to keep
+the donor **live past the copy** — the mirror image of the reuse lever, where you want a range to
+*end* so the register frees. Recorded so the two directions are not confused: reuse merges ranges
+that are disjoint; coalescing merges ranges you needed kept apart.
+
+## A `*/` INSIDE PARK PROSE SILENTLY CLOSES THE COMMENT
+
+New hazard, and it costs a compile rather than a measurement. Writing a glob or a path pair in park
+prose — `iwram_*/gData` — **terminates the comment block early**, so the rest of the header becomes
+code and the file fails to compile. It is easy to miss because the text reads naturally.
+
+Avoid `*/` in prose: write `iwram_* / gData` with a space, or name the two things separately. Worth
+screening a park you have just written prose into, since the failure appears as a compile error far
+from the actual line.
+
+## zsh WORD-SPLITTING — sixth occurrence, and the fix has not changed
+
+`set -- $spec`, `for n in $VAR`, and an interpolated `awk '/a/,/b/'` range all fail under zsh,
+because zsh does not word-split unquoted parameter expansions. Six recorded occurrences now, across
+several authors, each costing a wasted command or a silently wrong count.
+
+**The fix, every time: literal arguments, or `while read -r a b` from a here-doc or file.** If you
+catch yourself writing a loop over a whitespace-separated variable in this repo, stop and write the
+`while read` form.
