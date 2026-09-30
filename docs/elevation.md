@@ -28165,3 +28165,73 @@ ways:
 
 So neither figure dominates. **Record both, unfiltered, in the park** — which is what both of these
 parks do.
+
+## READ TWO SPILL MAPS TOGETHER — a function PAIR pins a declaration order neither pins alone
+
+The best new technique from batch 309, and it generalises to any near-sibling pair.
+
+The spill-slot map gives the declaration order of the locals that **spill**. A local that happens to
+stay in a register is **invisible in that map — yet it is still numbered**, so it still occupies a
+position in the order. On `Func_8025200` and `Func_802592c` a single order satisfies **both** maps:
+
+    s, top, prev_top, row, prev_row, gfx, [unit], boxA, nitems, keep, cy, cx
+
+Neither map alone determines it; together they do, because each function spills a different subset and
+the two subsets interleave. **So when two functions share a structure, derive the declaration order
+from both maps at once.**
+
+Two sharpenings of the rule from the same pair:
+
+* **A slot dates the DECLARATION, never the first assignment.** `cy` takes the higher slot than `cx` in
+  both functions even though `cx` is computed first.
+* **A gap in the aggregate layout is a declaration.** The 4 bytes at sp+0x4c between two arrays is a
+  bare `int` — an out-parameter passed by address. Do not treat an inter-array gap as padding.
+
+## A PARTITION DOES NOT TRANSFER WHOLESALE BETWEEN NEAR-SIBLINGS — it may need partly UNDOING
+
+`Func_8025200` and `Func_802592c` share ~265 instructions of identical code, and the variable
+partition still had to differ. Splitting nine reused locals per region took **8025200 from 781 to 712
+(55.2% → 63.4% aligned)**. Applying the same partition to its sibling was **wrong**: that function is
+two allocnos **long**, not short, so *merging* its walkers, counters and divide locals was the lever
+(853 → 849 encodings, 1904 → 1896 bytes, 46.4% → 50.5%).
+
+**And the non-additivity warning held exactly**: three pure *reorder* probes on 8025200 were all inert,
+while the whole partition applied at once produced the 69-encoding move. A reorder changes ranking; a
+partition changes the allocno **count**. Only the second is worth measuring as a unit.
+
+**A sign flip in the same pair, with its discriminator:** an explicit `& 0x3ff` on a `slot` store is
+required in one function and must be **dropped** in the other. The difference is where the value comes
+from — a **call return** in one, a **memory read** in the other. Provenance, not spelling.
+
+## Thumb `ldrsh`/`ldrsb` HAVE NO IMMEDIATE-OFFSET FORM — do not spend a probe
+
+`mov r0,#0x3a / ldrsh r3,[r1,r0]` is **ISA-forced**, not an instance of the index-local lever that took
+`Func_8018efc` from 17 to 2. Signed halfword and signed byte loads only exist in the register-offset
+form, so the `mov` is mandatory and no source spelling removes it.
+
+Bounds the named-offset/index-local lever a third way, alongside "the derived address needs more than
+one use" and "naming the pointer beats naming the offset". **Check the load's signedness before
+reading a `mov`+`ldr` pair as a missing lever.**
+
+Two more negatives from the same work, recorded so nobody re-spends them: **`u32` versus `u16` bitfield
+containers are byte-identical** — stop testing it; and **`0xf018` is a literal, not a symbol** (absent
+from every `*.sym`, and two landed files already spell it bare), so the pooled-constant tell does not
+fire on it.
+
+## KEEP A CHANGE ON ENCODING EVIDENCE WHEN THE FIGURES DISAGREE WITH IT
+
+On `Func_8025200` the OBJ element is walked by a pointer, not subscripted: the array form puts the `+4`
+into the giv base and emits `[r4,#0]/[r4,#4]/[r4,#2]` against the ROM's `[r4,#4]/[r4,#8]/[r4,#6]`.
+Switching to the pointer walk moved **both figures the wrong way** (768 → 779 encodings, 56.9% → 54.6%
+aligned) while making **the addressing exact**.
+
+It was kept on that evidence, and correctly. A figure is an aggregate over the whole function; an
+addressing mode matching instruction-for-instruction is **direct** evidence about the construct in
+front of you. When they disagree, the local evidence wins — the same principle as reading the
+immediates inside a hunk to catch a wrong program, and as the batch-309 pair where size-and-count and
+the aligned figure each turned out to be right once.
+
+**And a related identification:** there is **no `rowx2` variable** in that function. The ROM's three
+`mov / lsl / str` blocks are **gcse/PRE insertions on every edge that redefines `row`** — writing them
+by hand makes gcc cross-jump them away (+6 instructions). Same family as "a value stored on three paths
+is PRE's pseudo, not a source variable".
