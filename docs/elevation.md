@@ -1470,7 +1470,34 @@ The same code with two `goto` targets: 42. Nothing else changed.
 Short functions have one exit and never raise the question, which is why this
 did not surface in the first 36 batches. See reports/large-functions.md.
 
-## `.call_via` IS AN INLINE VENEER gcc NEVER EMITS -- A STRUCTURAL BLOCKER CLASS
+## WRONG -- STRUCK. `.call_via` IS REACHABLE; see the retraction below in this file
+
+**This section is false and its write-off cost 51 functions. Do not use it.** It is kept, struck,
+because it was cited for many batches and its reasoning is where the mistake lives.
+
+It is retracted in full further down this same document under **"RETRACTED: `.call_via rN` is a
+hard wall. It is reachable, and 51 functions were written off"** -- which records that the machine
+description bounds the CODE GENERATOR, not the source language (inline asm reaches the sequence,
+exactly as `include/dma.h` does for the DMA registers), and that `tryc.py` had been silently
+DROPPING the `.call_via` line because it begins with a dot, so every user screened two instructions
+short per call site and read as structurally unmatchable. `Func_8097a10` was subsequently elevated
+BYTE-EXACT through the helper.
+
+**THE RETRACTION NEVER STRUCK THIS HEADING, AND THAT COST REAL WORK TWICE IN ONE DAY.** In batch 302
+an agent declined to offer a figure for `Func_808bec0` on this section's authority. In batch 307 I
+read this section, screened 28 targets against it, and ordered a brief to ABANDON THREE VIABLE
+TARGETS -- `UpdateActors`, `ActorCmd_Player` and `Func_8090a5c`. The agent disproved the instruction
+three ways: it found the retraction; its own candidate compiled to `mov r12, pc / bx r4` twice,
+aligned-equal with the ROM; and `ActorCmd_Player_World`, already parked at 86.5% aligned, carries
+the same two sites. It kept its target and parked it at 795 of 833.
+
+**This is the third recorded instance of a correction that left the original claim standing** -- see
+also the struck `cmp #K / bge` section and the batch-305 note on `parkcheck` catching headers in both
+directions. The rule, now stated three times: **when you falsify a section, strike the section.** And
+when a doc section tells you to write work off, grep the document for a retraction of it before
+acting.
+
+### ~~Original section (FALSE)~~
 
 `include/macros.inc` expands `.call_via reg` to
 
@@ -27532,3 +27559,61 @@ of 54 landed functions).
 **The guard that caught it was measuring a SECOND function before writing the first up as a band
 finding.** One function cannot establish a band-wide claim, and a flag that improves a figure is a
 hypothesis about a mechanism, never the mechanism itself.
+
+## EVERY SWITCH HAS A `case 0` SHARING THE `default` ARM, AND THAT ARM COMES FIRST — transfers to 36 functions
+
+The largest single lever on `BuildDraw2DFuncEx` (six switches, ~4 instructions each), and the
+mechanism makes it predictable rather than a guess.
+
+`stmt.c`'s `balance_case_nodes` splits **three** nodes at the middle one, so `{1,2,3}` gives root 2
+and the balanced `cmp #2 / bhi` shape. **Four** nodes take the bisect branch: `i = (4+0+1)/2 = 2`
+moves the head once, the root becomes node 1, and **node 0 being an unsigned minimum collapses its
+test into the ROM's `bcc`**. So a ROM switch whose entry test is `bcc` on an unsigned selector is
+telling you there is a **fourth, lowest case you have not written** — usually `case 0:` sharing the
+`default` arm, written first.
+
+Two corollaries, both measured:
+
+* **Cases 1 and 2 need separate arms even with identical bodies.** `case 1: case 2:` merges into one
+  *range* node, which re-enters the three-node split and emits `bls`. **The duplication is
+  load-bearing**, and `jump.c` cross-jumps the identical bodies back together for free.
+* **Read the branch mnemonic first.** `bcc` means an unsigned selector and a likely missing node;
+  `bgt` means a signed selector and may be an ordinary three-node split. `Func_80bae40:852` is
+  exactly that trap.
+
+**Scope, which is why this is worth more than the park it came from:** 45 occurrences already exist
+in compiler-generated output (control: `src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_c_b.c`), and
+**46 occurrences across 33 hand-written files covering 36 distinct functions** — many already
+parked. **Re-screening those 34 others is probably worth more than any single new reconstruction.**
+
+Related and from the same function: **a flag-chosen DMA source is an `if`/`else` over two calls, not
+a ternary argument** (8 sites). Two expansions leave the register address above the differing data
+load, out of cross-jumping's tail reach — and it gives the pseudo **two sets**, which is why the ROM
+does not hoist it out of the eight-step loop. That is the batch-306 two-sets-prevent-a-hoist finding
+again, with the source shape that reaches it identified: the `if`/`else`, not the ternary.
+
+## A GREP FILTER THAT HIDES A DIAGNOSTIC LINE MANUFACTURES A FALSE CLAIM
+
+Recorded because it was caught by its author and is trivially repeatable. Filtering objcmp's output
+through `grep -E 'SIZE|ENCODINGS|first at'` **drops the `RELOCATIONS differ` line**, so a transcript
+showing no relocation complaint proves only that the grep removed it. On `BattleMain` that produced
+a published claim of "all 138 relocations match" when the truth was **symbol sequence 133 of 138,
+three pool-word blocks dumped early, and 134 of 138 offsets differing**.
+
+**The absence of a line in a filtered transcript is an absence of the filter, not of the defect.**
+Either read objcmp's output whole, or include every diagnostic line in the filter — and prefer the
+former when writing a figure into a header. This is the same family as the recorded traps that
+substring greps count `@` prose, that a line-level `.s` diff is not an object comparison, and that
+`tryc.py --full` desynchronises on one redundant label.
+
+## An owner decision with precedent: promote `DMA3_COPY_RW` to `include/dma.h`
+
+`BuildDraw2DFuncEx` parks at 718 of 781 (89.6% aligned, relocation sequence exact) carrying **4
+register pins** — and all four are the `register __asm__("rN")` lines of one *local* dma.h-style
+helper. **It is pin-free the moment `DMA3_COPY_RW` is promoted to the shared header**, which is
+exactly what batch 299 did for `DMA3_COPY16_RW` on the standing note "promote it if a second
+function needs it" (that promotion proved byte-neutral at the gate).
+
+So the promotion is the cheap path to a pin-free park here, and the same shape was already flagged on
+`Func_80c02a4`, whose 8 pins come from two local copies of dma.h-shaped helpers. **Two functions now
+want it**, which satisfies the standing condition.

@@ -1,0 +1,152 @@
+BATCH 307, BRIEF E -- recon for the three targets left WITHOUT a candidate.
+
+NO FIGURE IS INVENTED HERE.  None of these three was compiled, so none has an
+objcmp or aligncmp number.  Batch 302's precedent applies: a target left at
+recon gets facts, not a guessed distance.
+
+Budget went to BuildDraw2DFuncEx (see PARK_BuildDraw2DFuncEx.c), which took
+four drafts to reach 89.6% aligned with the relocation sequence exact and a
+single 3-instruction blocker.  That was the right call -- the lever it produced
+(below) transfers to 36 hand-written functions, two of them targets on this
+brief -- but it means the other three are recon only.
+
+========================================================================
+THE BATCH'S TRANSFERABLE LEVER, AND ITS BLAST RADIUS
+========================================================================
+A SMALL SWITCH'S DISPATCH SHAPE REPORTS ITS NODE COUNT, AND `case 0` IS
+USUALLY THE MISSING NODE.  Full derivation, with the stmt.c mechanism and the
+landed control file, is in PARK_BuildDraw2DFuncEx.c lever 1.  In brief:
+
+  cmp rX,#K / beq A / cmp rX,#K / bcc B / cmp rX,#K+1 / beq ... (lopsided)
+
+cannot come from a three-case switch whose middle node is not K, because
+balance_case_nodes splits three nodes AT THE MIDDLE ONE.  Read the shape as:
+the node the first `beq` tests is the tree ROOT; the `bcc`/`bgt` target is the
+root's LEFT subtree, not the default; and `bcc` vs `bgt` reports the
+selector's signedness (bcc = unsigned).
+
+Blast radius, measured by scanning every .s in asm/:
+  * 45 occurrences already in COMPILER-GENERATED files -- the shape is
+    reachable and already landed.  The cheapest control to read is
+    src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_c_b.c (cases 0,1,2,3,
+    unsigned selector); its own header already records that a signed selector
+    costs four more instructions.
+  * 46 occurrences in 33 HAND-WRITTEN files, across 36 distinct functions.
+    Those 36 are the candidates this lever may move.  Two are on this brief.
+
+========================================================================
+1. BufferString -- 0x08018038, asm/rom_15000/rom_17e88_a_a_c.s
+========================================================================
+706 instructions, 90 labels, 8 jump-table halfwords, 40 `bl` to 19 distinct
+targets.  Frame `sub sp, #0x84`.  r0 = string id, r1 = mode (the .s banner).
+The file holds ONE function and NO data section, so NO SPLIT IS NEEDED --
+unlike BuildDraw2DFuncEx.  That makes it cheaper to land than its size
+suggests.
+
+CARRIES THE LEVER, at asm/rom_15000/rom_17e88_a_a_c.s:111:
+      cmp r7, #1 / beq .L18166
+      cmp r7, #1 / bcc .L1813c
+      cmp r7, #2 / beq .L1813c
+      b .L18614
+`bcc` => the selector is UNSIGNED.  Here THREE nodes are correct, because the
+middle one is the root: nodes {0,1,2}, the middle split puts node 1 at the
+root, left = {0}, right = {2}, and node 0 is bounded below for an unsigned
+index so its test collapses into the `bcc`.  Cases 0 and 2 SHARE a body
+(.L1813c) and must still be written as SEPARATE ARMS -- writing `case 0:
+case 2:` cannot merge them (not adjacent), but writing `case 1:` anywhere but
+between them would change the tree.  So:
+      switch (sel) { case 0: <body>; break;
+                     case 1: <body>; break;
+                     case 2: <same body as case 0, written again>; break;
+                     default: ...; }
+and let jump.c cross-jump the two identical bodies, exactly as lever 2 in the
+park file describes.  Do this BEFORE measuring anything else: it is worth
+about four instructions and it moves the whole dispatch.
+
+Next thing to establish: the 8 jump-table halfwords near .s:221 (`.word 5`
+region) are the control-code dispatch, and a halfword table means gcc's
+`casesi` with a `.short` table -- check whether the ALIGNMENT `.short` before
+it is part of the table, which is the trap batch 303 recorded on
+OvlFunc_959_200d0e4.
+
+========================================================================
+2. Func_80bae40 -- 0x080bae40, asm/rom_b5000/rom_b9b30_c_c_c.s
+========================================================================
+736 instructions, 110 labels, 75 data words, 32 `bl` to 24 distinct targets.
+Frame `sub sp, #0x5c`.  r0 -> [sp,#0x1c], r1 -> r7 (a pointer, `ldrb r3,[r7]`
+immediately).  One function, no data section, NO SPLIT NEEDED.
+
+THE 75 DATA WORDS ARE ONE JUMP TABLE, gcc's own, at .s:194, reached by
+      ldr r2, =.Lbaf84 / lsl r3, r0, #2 / ldr r3, [r3, r2] / mov pc, r3
+guarded by a `bls` range check.  It is a 42+ entry contiguous table with heavy
+label reuse -- entries 0,1,2 all .Lbb304; 6,7 .Lbb088; 8,9 .Lbb0ac; and a long
+run of .Lbb142 which is the default.  A table this dense is gcc's `casesi`
+path, NOT the if-chain path, so it comes free from one `switch` over a
+contiguous case run AND IT MUST NOT BE HAND-WRITTEN OR EXPORTED.  Adjacent
+entries sharing a label mean the source pairs the cases (`case 6: case 7:`)
+there -- unlike the if-chain sites, a TABLE does merge same-label neighbours
+for free, so pairing is correct here and duplicating bodies would be wrong.
+That is the opposite of the advice for site 3 below; the discriminator is
+whether the dispatch is a table or an if-chain.
+
+ALSO CARRIES THE IF-CHAIN LEVER, at .s:852:
+      cmp r4, #2 / beq .Lbb4f4
+      cmp r4, #2 / bgt .Lbb4e8
+      cmp r4, #1 / beq .Lbb52c
+      b .Lbb53e
+`bgt`, not `bcc` => THIS selector is SIGNED, and the tree root is node 2 with
+a left subtree containing node 1 and a right subtree at .Lbb4e8 that tests
+[sp,#0x14] against 3 then 4.  So this is a nested pair of switches, and the
+outer one is the ordinary three-node middle split -- no `case 0` needed here.
+Recording it because the shape looks identical to the lopsided one and is not:
+READ THE BRANCH MNEMONIC BEFORE ASSUMING A MISSING NODE.
+
+The .s banner says the damage formula lives here and to read it before
+trusting any derived damage number.  Whoever takes it should expect the
+arithmetic, not the control flow, to be the hard part: 104 `add` and 51 `lsl`
+against 84 `cmp`.
+
+========================================================================
+3. Func_80a6ccc -- 0x080a6ccc, asm/rom_a1000/rom_a5534_c_c_c_a_c_c_c.s
+========================================================================
+746 instructions but only 51 labels -- the most LINEAR of the four, which is
+why it was the first alternative considered after BuildDraw2DFuncEx.  Frame
+`sub sp, #0x64`.  r0 -> [sp,#0x30], used immediately as `<< 2` and `<< 1`
+indices, so it is a character/party index.  46 `bl` to 24 distinct targets.
+One function, no data section, NO SPLIT NEEDED.  DOES NOT carry the switch
+lever -- it is not in the 36.
+
+WHY IT IS NOT AS CHEAP AS ITS LABEL COUNT SUGGESTS, and this is the useful
+finding: 169 `mov` and 56 `str` against 41 `cmp`.  The `mov`s are not
+arithmetic, they are register shuffling, and the tell is the idiom that
+repeats around EVERY call:
+      str r4, [sp, #8] / bl <something> / ldr r4, [sp, #8]
+`r4` holds `add r4, sp, #0x34`, a pointer to a local struct inside the
+100-byte frame, and it is spilled and reloaded across each call because
+r4 is CALLER-saved in this configuration (-fcall-used-r4).  So the real work
+on this function is the FRAME: getting the local aggregate at sp+0x34 the
+right size and shape, and getting `sp+0x34` to be the thing that lands in r4.
+An unused AGGREGATE gets a stack slot and an unused SCALAR does not
+(batch 306), so the frame is a direct read on the local declarations and a
+40-byte hole is a real signal, not noise.  Establish the struct at sp+0x34
+first; the 46 call signatures are mechanical once the frame is right.
+
+Also note `mov r9, r3 ... mov r10, r1 ... mov r11, r2` in the prologue region
+and r7 held across the whole function from `ldr r7, [r3]` where
+r3 = iwram_3001f2c -- so r7 is the global context pointer and should be a
+single local read once at the top, not re-read.
+
+========================================================================
+WHAT I WOULD DO NEXT, IN ORDER
+========================================================================
+1. BufferString.  No split, and the switch lever applies immediately.  Cheapest
+   of the three.
+2. Re-screen the OTHER 34 hand-written functions carrying the lopsided shape
+   against the lever.  Many are already parked; a park whose residue is four
+   instructions around a small switch is now a one-line change.  This is
+   likely worth more than any single new reconstruction.
+3. BuildDraw2DFuncEx's allocation cluster (park file, last section).  It cannot
+   land pin-free -- the 3-instruction combine residue is unreachable from C --
+   but with the two measured `"+r"` barriers it is 779 of 781 and one
+   instruction plus the allocation away, so it is a genuine landing route if a
+   fakematch row is acceptable.
