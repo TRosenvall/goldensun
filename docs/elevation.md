@@ -26913,11 +26913,21 @@ bank**. A park with no bank in its path — `ovl_common`, a top-level class park
 by design and is not gated.
 
 **It recovered 24 functions, and none of them was named in any park** — every one had been
-counted parked purely because some *other* overlay's park shared its address suffix. Thirteen
+counted parked purely because some *other* overlay's park shared its address suffix. **Sixteen**
 are the same duplicated routine (`OvlFunc_*_20088c0` and `_2008ba4`, 132 instructions each,
-appearing in a dozen overlays), and **eight of that family are ALREADY ELEVATED** in
-`src/overlays/`, so the remaining twelve have working templates in the tree and are the
-cheapest available work in the project. One is `OvlFunc_925_2009af0` at 1,876 instructions.
+appearing across a dozen overlays), which makes the family the cheapest available work in the
+project: **one solution transfers to all sixteen**. One other recovery is `OvlFunc_925_2009af0`
+at 1,876 instructions.
+
+**A correction to this entry, and it is the same mistake in miniature.** It first said eight of
+that family were ALREADY ELEVATED and the rest had working templates. That came from `grep -rl`
+over `src/overlays/`, which counts files that *mention* a name — and every hit was an `extern`
+declaration in a **caller**, not a definition. `census.py` reported all sixteen available and was
+right. **Whether a function is elevated is decided by whether its `.s` is compiler-generated, not
+by whether its name appears in `src/`** — `census.py`'s `generated()` is the predicate, and its
+docstring already warns that a substring search over source text hid 126 functions once. Writing
+that error into the same document whose headline finding was a different flavour of over-attribution
+is the argument for using the tool rather than a grep.
 
 Two things to carry forward:
 

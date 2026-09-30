@@ -60,9 +60,26 @@ docstring names as real.
 
 **The recovered work is unusually cheap.** Thirteen of the 24 are the same duplicated routine —
 `OvlFunc_*_20088c0` and `_2008ba4`, 132 instructions each, appearing in a dozen overlays — and
-**eight of that family are already elevated in `src/overlays/`**, so the remaining twelve have
-working templates in the tree. The 101–200 band went from 0 available to 20. The largest single
+**none of that family is elevated** — see the correction below, which replaces an earlier claim
+here that eight were. The 101–200 band went from 0 available to 20. The largest single
 recovery is `OvlFunc_925_2009af0` at 1,876 instructions.
+
+### CORRECTION to this section, made while briefing batch 303
+
+This report first said **eight of the duplicated family were already elevated**, so the rest had
+working templates. **That is wrong.** It came from `grep -rl` over `src/overlays/`, which counts
+files that *mention* the name — and every one of those hits is an `extern` declaration in a
+**caller** (`extern void OvlFunc_927_20088c0(int a);`), not a definition. `census.py` reports all
+sixteen as available, and it is right: **none of the family is elevated.**
+
+That is the substring-vs-definition trap `census.py`'s own docstring documents ("NOT a substring
+search -- hand-written prose mentions the string"), committed in the same batch whose headline
+finding was a different flavour of the same mistake. Screening for elevated work means asking
+whether a `.s` is compiler-generated, not whether a name appears in `src/`.
+
+**The recovery stands and the family is still the cheapest work in the tree**, for a different
+reason: the sixteen are the *same* 132-instruction routine duplicated across overlays, so one
+solution transfers to all sixteen. It is cheap because it is repeated, not because it is done.
 
 This is the **fourth route** to the over-attribution `census.py` documents (lesson 6: a park
 citing a function; lesson 7: a park's opening sentence naming a neighbour; batch 301: a name
