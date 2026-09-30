@@ -27218,3 +27218,56 @@ park pushes the `Verify with:` recipe out of the first comment block**, which is
 reads, silently converting a sound park to UNCHECKABLE. That has now happened three times in one
 session to the same author. Merge a note INTO the first block, and re-run `parkcheck` on every
 park you touch — including ones you only annotated.
+
+## TWO SETS PREVENT A HOIST — and CSE commoning them into one is what makes the value movable
+
+The usual reading of a loop-invariant residue is that we are missing a hoist. `UpdateSpriteAnim`
+is the other direction, and the mechanism is worth having because it inverts the intuition.
+
+The ROM has **no hoisted base** for its insertion-sort scan. The reference shows why: it computes
+`add r5, sp, #0x30` **twice, in two non-dominating arms**, so the pseudo has **two sets** and
+`scan_loop` refuses to treat it as invariant. Our candidate writes the address once as a single
+expression, CSE commons it to **one set**, and *one set is precisely what makes it movable* — so
+loop.c hoists it, spills it to sp+0, and adds a third giv. That is the whole +7 and the +4-byte
+frame.
+
+So when the ROM recomputes something you would naturally write once, **the duplication may be
+load-bearing**: it is how the ROM denies loop.c a movable. Reaching it means finding a source
+shape whose value genuinely has two sets in non-dominating arms — not writing the expression
+twice and letting CSE undo you.
+
+Attribution discipline that came with it: this is **not** sched2 (the extra insns are `mov`/`str`
+**defs**, not a reordering) and **not** `allocno_compare` (the quantity *count* differs, and a
+spelling can only move `n_refs`, `live_length` and declaration order — it cannot delete a
+quantity). Distinguishing "an extra quantity exists" from "the same quantities ranked differently"
+decides which of those two passes you are even arguing with.
+
+## Bound on the named-offset lever: THE USE COUNT OF THE DERIVED ADDRESS, not the spelling
+
+The `SYMBOL_REF + CONST_INT` lever ("give the offset a name") went three for three in batch 303
+and landed a function byte-exact. It has a precondition that one function demonstrates on both
+sides at once:
+
+* `iwram_3001e68 + 0xb8` **does** come out as the ROM's `add r5, #0xb8` — that address is read
+  **twice**.
+* the `gPtrs` read at a large offset does **not**, and neither escape reaches it: `int k = 0xd4`
+  and the two-statement `k = 0x35; (k << 2)` both measure **byte-identical** to the unfixed form
+  (589 / 1656 / 44.1%, three times). That address is read **once**, and the fold precedes the pool
+  decision.
+
+**So the discriminator is the use count of the derived address, not how it is spelled.** One use,
+no purchase; two or more, the lever applies. That also explains why the two-statement form — which
+was necessary on `OvlFunc_959_200d0e4` — is not a stronger version of the same trick: it helps with
+*when* the offset is materialised, not with whether the fold happens at all.
+
+## A better program can be a wrong program: the `_call_via` tell
+
+`UpdateSpriteAnim`'s cast-expression call to `Func_8000d30` measures **better on both axes** —
+1648 bytes against the ROM's 1640 and 680 encodings against 674, closer than the shipped candidate
+— and it is **wrong**. It emits a direct `bl Func_8000d30` where the ROM has a pool word plus
+`_call_via_r3`. The improvement is the removal of a veneer the ROM actually has.
+
+Recorded with the other instances of the same class (a closer size being a wrong program, an
+odd-offset union scoring better than the correct layout): **check that a gain did not come from
+deleting something real.** For calls specifically, count the `_call_via_rN` veneers on both sides
+before believing any figure.
