@@ -1,94 +1,99 @@
-/* Func_8018efc -- NON-MATCHING, 17 of 119 encodings differ.
- * Reference asm//rom_15000/rom_18cac_a_c.s.
+/* Func_8018efc -- NON-MATCHING, 2 of 119 encodings differ.
+ * Reference asm/rom_15000/rom_18cac_a_c.s.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *       goldensun-build python3 tools/objcmp.py \
  *       src/non_matching/rom_15000/8018efc.c \
- *       asm//rom_15000/rom_18cac_a_c.s --func Func_8018efc
+ *       asm/rom_15000/rom_18cac_a_c.s --func Func_8018efc
  *
- * IMPROVED IN BATCH 298 FROM 86 TO 17, and it is now a TRUE DISTANCE -- count 119 ==
- * 119, where the previous revision was 123 against 119 at 268 bytes against 260.
- * PIN-FREE.
+ * IMPROVED IN BATCH 305 FROM 17 TO 2.  SIZE AND COUNT BOTH MATCH (119 == 119),
+ * so 2 IS A TRUE DISTANCE.  aligncmp 99.2% aligned-equal, 2 differing in 2
+ * hunks.  PIN-FREE -- tools/shimcount.py reports nothing at all.
  *
- * The previous revision was parked after a 450-SPELLING SWEEP, and every spelling in
- * it left the constant INSIDE the shift.  The fix came from DrawText in the same
- * batch and is now documented: DISTRIBUTE THE SHIFT BY HAND.  Dropping the two
- * distributed expressions in changed nothing else.
- * The remaining 17 are one r6/r7 role swap.
- */
-/* *** BATCH-298f UPDATE, DROP THIS IN OVER src/non_matching/rom_15000/8018efc.c ***
- * The ONLY change from the tracked park is the two sprite-position expressions,
- * with the shift DISTRIBUTED BY HAND:
- *     s->x = (win->x << 3) + ((unsigned short)(win->w - 2) << 3) + 4;
- *     s->y = (win->y << 3) + ((unsigned char)(win->h - 2) << 3) - 1;
- * (the `cx` / `cy` locals are now unused and can be deleted).
+ * TWO LEVERS LANDED THE 15, both from batch 305's variable-reuse family:
  *
- *   before:  86 encodings of 119 differ, ours 123, 268 bytes against 260
- *            -- counts AND size disagree, so 86 was never a distance
- *   after:   17 encodings of 119 differ, ours 119, SIZE AND COUNT BOTH MATCH
- *            -- 17 IS a distance
+ * (1) MERGE `base` AND `q` INTO ONE VARIABLE -- worth 14 of the 17.
+ *     The park declared `unsigned char *base` and `unsigned short *q` and wrote
+ *     `q = (unsigned short *)(base + 0x12b6)`.  The ROM does NOT keep two
+ *     quantities: it emits `add r6, r2` (r2 = 0x12b6), i.e. it ADVANCES the
+ *     base pointer IN PLACE, so `base` and `q` are ONE variable in the source.
+ *     Writing them as one -- `q = (unsigned short *)p;` at the top, `q += 0x95b;`
+ *     at the point of use, and `(unsigned char *)q + 0x698` for the slot
+ *     subtraction -- collapses two allocnos into one, and that ONE allocno wins
+ *     the r6/r7 race against the `win` parameter that the two separate ones lost.
+ *     17 -> 3.  This is the r6/r7 role swap the previous park blamed for 13 of
+ *     its 17: it was never a scheduling or declaration-order problem, it was
+ *     TWO VARIABLES WHERE THE ROM HAS ONE.
  *
- * The park's own blocker section is what this retires: "the whole residue is
- * FOUR EXTRA INSTRUCTIONS, the zero-extensions of `cx` and `cy`", after a
- * 450-spelling sweep of casts and `<< 3` vs `* 8`.  Every one of those spellings
- * left the CONSTANT INSIDE the shift, so fold's `associate:` had something to
- * move; writing the distribution out leaves it nothing, and combine folds the
- * two `<< 3`s back into the ROM's one.  Validated independently on the file-mate
- * DrawText, where the same lever took 83.4% -> 99.2% aligned-equal and left one
- * pool word.
+ *     The three probes the old park recorded as inert (swapping the `base`/`p`
+ *     declaration order, `*(unsigned short *)(p + pos * 2)`, both together) were
+ *     inert for exactly this reason -- none of them changes the allocno COUNT.
  *
- * THE REMAINING 17 ARE ONE REGISTER-ROLE SWAP plus two small things:
- *   - `win` in r7 and the base/queue pointer in r6 in the ROM; the other way
- *     round here.  13 of the 17 are that swap.
- *   - one adjacent schedule swap, `ldrh r3, [r7, #8]` against `ldr r1, =0xfffe`.
- *   - `strh r1, [r5, r2]` against ours `strh r1, [r2, r5]` -- the base/index
- *     order on the indexed halfword store.
- * Three probes were INERT (all 17): swapping the `base` / `p` declaration order,
- * `*(unsigned short *)(p + pos * 2)`, and both together.
- */
-/* Func_8018efc -- 0x08018efc, asm/rom_15000/rom_18cac_a.s (2 functions: DrawText first, so
- * NON-MATCHING: 86 encodings of 119 differ (objcmp; ours 123, four zero-extensions long).
- * landing needs a split).
+ * (2) A SEPARATE INDEX LOCAL FOR THE HALFWORD STORE -- worth 1 more.
+ *     `idx = pos * 2; *(unsigned short *)(p + idx) = ch | 0xf000;` gives the
+ *     ROM's `strh r1, [r5, r2]`; the array form `((unsigned short *)p)[pos]`
+ *     gives `strh r1, [r2, r5]`.  With the scaled index still inside the address
+ *     expression gcc canonicalises the PLUS with the more complex operand first,
+ *     so the base/index order inverts.  Hoisting the multiply into its own
+ *     declared local leaves two plain registers and the source order survives.
+ *     `*(unsigned short *)(p + pos * 2)` WITHOUT the extra local is inert at 3 --
+ *     the local, not the pointer spelling, is the lever.  3 -> 2.
  *
- * NOT MATCHING: 86 differing of 119 encodings (ours 123) -- but that count is a SIZE ARTEFACT.
- * The first 45 lines match the ROM exactly (tryc: first diff at 46); the whole residue is
- * FOUR EXTRA INSTRUCTIONS, the zero-extensions of `cx` and `cy` (lsl #16/lsr #16 and
- * lsl #24/lsr #24), and everything after them only mismatches because it is shifted by 8 bytes.
+ * THE REMAINING 2 ARE ONE ADJACENT SCHEDULE SWAP AT THE HEAD OF BLOCK L2:
+ *     rom   ldrh r3, [r7, #0x8]   /  ldr r1, =0xfffe
+ *     ours  ldr r1, =0xfffe       /  ldrh r3, [r7, #0x8]
+ * Two independent loads that both feed the following `add r3, r1`, i.e. an exact
+ * sched2 priority tie.  Pre-sched2 (tools/tryc.py --no-sched2) our RTL order is
+ * `ldrh x / ldrh w / ldr const`, and sched2 hoists the constant load to the front
+ * of the block; the ROM's output equals a pre-sched2 order of
+ * `ldrh w / ldr const / ldrh x`, i.e. the ROM's sched2 sank the `win->x` load
+ * instead.  Note the file-mate pair at `ldr r1, =0xfffffe00 / ldrh r3, [r4, #0x6]`
+ * puts the constant FIRST in both ROM and ours, so "constant first" is gcc's
+ * normal answer for a two-insn tie and this three-insn group is the anomaly.
  *
- * Verify with:
- *   python3 tools/objcmp.py src/non_matching/rom_15000/8018efc.c asm/rom_15000/rom_18cac_a.s --func Func_8018efc
- *   python3 tools/tryc.py src/non_matching/rom_15000/8018efc.c --ref asm/rom_15000/rom_18cac_a.s --full
+ * MEASURED INERT ON THE REMAINING 2 -- do not re-try (26 builds):
+ *   * CONSTANT SPELLING: `0xfffe + win->w`, `win->w + 0xfffe`, `-2 + win->w` -- 2.
+ *   * REASSOCIATION of the x expression: `+ 4` moved to every position
+ *     ((x<<3) + 4 + (w2<<3); ((x<<3)+4) + (w2<<3); (x<<3) + ((w2<<3)+4);
+ *     4 + (x<<3) + (w2<<3)) -- all 2.
+ *   * STATEMENT POSITION: `s = &n->spr` before `q += 0x95b` -- 2;
+ *     `n->f5 = 2` after `q += 0x95b` -- 2.
+ *   * FLAGS, every one inert at 2: -fno-rerun-cse-after-loop, -fno-gcse,
+ *     -fno-strength-reduce, -fno-cse-follow-jumps, -fno-peephole,
+ *     -fno-schedule-insns (sched1), -fno-force-mem, -fno-thread-jumps,
+ *     -fno-if-conversion, -fno-delayed-branch, -fno-function-cse.
+ *     SO NO Makefile FLAG ROW SHOULD BE WRITTEN FOR THIS FILE.
  *
- * THE BLOCKER: the ROM computes the sprite x as
- *     ldrh w / ldr r1,=0xfffe / add r3,r1 / add r2,r3 (x) / lsl #3 / add #4 / and 0x1ff
- * i.e. `(u16)(w - 2)` as its OWN insn (0xfffe = -2 in HImode, so the arithmetic is unsigned
- * short), then `+ win->x`, with NO zero-extension -- the chain is HImode throughout and the
- * 9-bit bitfield store makes the extension unnecessary. The y byte is the same shape at u8
- * (`ldrb h / add #0xfe / add y`).
- *   - As a u16 local (below) the -2 stays separate but the local is PROMOTED to SImode, so its
- *     assignment zero-extends (store_expr on a SUBREG_PROMOTED target) and combine cannot drop
- *     the extension: the use is `(plus (zero_extend ..) x)`, four insns from the `& 0x1ff`.
- *   - Inline, the chain IS HImode (narrowed by convert_to_integer for the bitfield store) but
- *     fold's `associate:` (fold-const.c, split_tree) reassociates `(w + 0xfffe) + x` into
- *     `(w + x) + 0xfffe`, which combine then folds with the <<3/+4 into one pooled 0x7fff4.
- *     Measured: casts (u16)/(short)/(int)/(unsigned) on each of w-2, win->x and the whole
- *     expression, `<< 3` vs `* 8` (a 450-spelling sweep) -- ALL associate. An inline helper
- *     returning u16 extends like the local. Split_tree only refuses a conversion that changes
- *     signedness, but convert_to_integer picks an unsigned narrowing type whenever any operand
- *     is unsigned, so the two levels always end up the same type.
+ * MEASURED WORSE -- do not re-try:
+ *   * -fno-schedule-insns2 45, -fno-strict-aliasing 5,
+ *     -fno-expensive-optimizations 88 (and 116 insns).
+ *   * w-term first in the DISTRIBUTED form,
+ *     `((unsigned short)(win->w - 2) << 3) + (win->x << 3) + 4` -- 24, and it
+ *     does NOT even fix the target region: it still emits the constant load
+ *     first and additionally swaps the r2/r3 roles through the whole block.
+ *   * `((unsigned short)(win->w - 2) << 3) + 4 + (win->x << 3)` -- 23.
+ *   * `* 8` instead of `<< 3` -- 84 at 121 insns.
+ *   * THE UNDISTRIBUTED FORMS, which is the old park's rule re-confirmed from
+ *     the other side: `((win->x + (unsigned short)(win->w - 2)) << 3) + 4` -- 82
+ *     at 117 insns; the same with the w term first -- 82; the y analogues -- 59
+ *     at 120; both together -- 78.  The ROM emits only ONE `lsl #3`, which makes
+ *     the undistributed form look right, but combine folds the distributed
+ *     source's two shifts back into that one and the undistributed source loses
+ *     the range fold entirely.  DISTRIBUTE THE SHIFT BY HAND, still.
+ *   * SIZE-BREAKERS (reloc offsets move, so not distances at all): swapping the
+ *     `s->x` / `s->y` statements; `s = &n->spr` after the AllocSpriteSlot if;
+ *     routing the x value through any extra named local (`int xx`, or reusing
+ *     `idx` / `pos`) -- all four change the translation-unit size.
+ *   * `slot` computed after the AllocSpriteSlot if -- 13.
+ *   * an `int` local for `win->w` read in its own statement -- 252 bytes against
+ *     260; for `win->x` -- 11; both -- 252 bytes; reusing `pos` for the w read --
+ *     13; reusing `idx` -- 15.
  *
- * WHAT LANDED ON THE WAY (from 103 differing lines at the first tryc screen):
- *   - `(B7 *)n - (B7 *)(base + 0x698)` with `typedef unsigned char B7[7]`: the ROM's slot index
- *     is a bare `mul` by 0xb6db6db7 (exact division by 7, no shift). A struct of 7 bytes pads
- *     to 8 on ARM (asr #3); `(n - pool) << 2` gives mul/asr/lsl. Only a 7-byte ARRAY type works.
- *   - ONE POINTER FOR THE BASE AND THE NODE: the ROM loads iwram into r5, copies it to r6, and
- *     later reuses r5 for the node. `p = iwram; base = p; ... p = Func_8015e8c();` with the node
- *     accessed through p reproduces the two registers; a separate `n` gets one base register.
- *   - `y++; x++;` before `pos = ((win->y + y) << 5) + (win->x + x)`: the ROM increments the
- *     parameters in place (add r4,#1 / add r0,#1); `+ 1` inside the expression is folded.
- *   - `if (n->f5 == 0) n->f5 = mode` reloads the byte, as the ROM does.
- *   - `ldrh r2, .L` for the pooled 0x1ff and 0xfffe assembles to the same `ldr` encoding.
+ * WHAT IS LEFT.  One sched2 tie with no source handle found in 40 builds.  The
+ * group is three ready loads, not two, so the handle would have to change the
+ * DAG shape rather than the order -- and every spelling that changes the DAG
+ * shape here also changes the size.  Park it.
  */
 struct Spr {
     unsigned int a;
@@ -129,17 +134,15 @@ extern int Func_8016584(struct Win *, struct Node *);
 #define n ((struct Node *)p)
 void Func_8018efc(struct Win *win, unsigned int ch, unsigned int x, unsigned int y, int mode)
 {
-    unsigned char *base;
     unsigned char *p;
     struct Spr *s;
     unsigned short *q;
     int slot;
     unsigned int pos;
-    unsigned short cx;
-    unsigned char cy;
+    unsigned int idx;
 
     p = iwram_3001e8c;
-    base = p;
+    q = (unsigned short *)p;
     if (y > win->h - 2)
         return;
     if (x > win->w - 2)
@@ -148,9 +151,9 @@ void Func_8018efc(struct Win *win, unsigned int ch, unsigned int x, unsigned int
         p = (unsigned char *)Func_8015e8c();
         if (p == 0)
             return;
-        slot = (B7 *)n - (B7 *)(base + 0x698);
+        slot = (B7 *)n - (B7 *)((unsigned char *)q + 0x698);
         n->f5 = 2;
-        q = (unsigned short *)(base + 0x12b6);
+        q += 0x95b;
         s = &n->spr;
         if (*q == 0x63)
             *q = AllocSpriteSlot();
@@ -171,6 +174,7 @@ void Func_8018efc(struct Win *win, unsigned int ch, unsigned int x, unsigned int
         pos = ((win->y + y) << 5) + (win->x + x);
         if (pos >= 0x280)
             return;
-        ((unsigned short *)p)[pos] = ch | 0xf000;
+        idx = pos * 2;
+        *(unsigned short *)(p + idx) = ch | 0xf000;
     }
 }

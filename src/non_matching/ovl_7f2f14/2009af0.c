@@ -262,3 +262,41 @@ void OvlFunc_968_2009af0(void)
         }
     }
 }
+
+/* *** BATCH-305d ADDENDUM for src/non_matching/ovl_7f2f14/2009af0.c ***
+ *
+ * RE-MEASURED AS INSTALLED: 13 of 262, ref 262 / ours 262, no size or
+ * relocation difference.  The header figure is CONFIRMED.  STILL 13.
+ *
+ * BATCH 305's VARIABLE-REUSE LEVER DOES NOT REACH REGION (2), and the reason
+ * is worth recording because the preconditions looked perfect.  Region (2) is
+ * 6 of the 13: the `f` copy for __CopyMapTiles' sixth (stacked) argument wants
+ * r3 in the first arm and r2 in the second, and ours has them the other way
+ * round.  This park ALREADY declares donors pinned to exactly those two
+ * registers whose live ranges are disjoint from the loop -- `w` on r3 and `v`
+ * on r2, both dead after the outer `if (w <= 7 && ...)` test -- so reusing them
+ * for the copy needs NO new pin and costs no new fakematch shim:
+ *     w = f; ... __CopyMapTiles(m, 0x32, 0xf, 0x20, e1, w);   arm 1 only   13
+ *     v = f; ... __CopyMapTiles(m, 0x2d, 9,   0x20, e2, v);   arm 2 only   13
+ *     both arms together                                                   13
+ *     both arms, the arm-2 assignment after `e2 = 3`                       13
+ *     the donors SWAPPED (v on arm 1, w on arm 2)                         121
+ * The first four are not merely equal-scoring, they are BYTE-IDENTICAL to the
+ * installed park -- tools/tryc.py --full prints the same 13 lines in the same
+ * places.  gcc COALESCES the assignment straight into the argument store and
+ * discards the donor's pin, because the donor's only use is the argument
+ * itself.  RULE: the reuse-a-variable lever needs the donor to have a use of
+ * its OWN; a variable written only to be passed once is coalesced away and
+ * inherits nothing.  That is the boundary condition on batch 305's lever, and
+ * it also explains why this park's nine pinned-second-local combinations all
+ * bottomed out at 13.
+ *
+ * Regions (1) (2 encodings, `add r6, sp, #0x10` vs `mov r11, r1`) and (3)
+ * (5 encodings, the loop-bottom -1 and 0x1df temps) were not re-probed; the
+ * header's negatives on them stand.  Region (3) additionally cannot use the
+ * reuse lever: the 0x1df bound must be live across the whole loop, so it
+ * conflicts with `e2` (r1), which is WRITTEN inside the loop -- the donor's
+ * ranges are not disjoint, which is the lever's other precondition.
+ *
+ * Landing this park still costs a fakematch.txt row for its 15 pins.
+ */

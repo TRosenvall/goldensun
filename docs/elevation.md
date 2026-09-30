@@ -27085,3 +27085,54 @@ and an intervening use, all 7 or worse. Three earlier rejections of mine were ri
 outcome and wrong about the reason — and a wrong reason keeps you searching the wrong space,
 which is the cost. An agent given that premise tested it, found it false, and said so; that
 disagreement was the whole result.
+
+## Bound on the reuse lever: THE DONOR NEEDS A USE OF ITS OWN
+
+The register-inheritance lever above has a precondition that is easy to miss, found within the
+hour of recording the lever itself, on `OvlFunc_968_2009af0` (13 of 262).
+
+Its preconditions looked perfect: the region wanted a value in r3/r2, and the park already
+declared two dead-before-the-loop variables sitting in exactly r3 and r2. Reusing them is
+**byte-identical to the park in four placements** (13 both ways, the same 13 lines). The reason
+is mechanical: **gcc coalesces the assignment straight into the argument store and discards the
+donor**, because the donor's only use is the argument itself. Swapping the donors instead: 121.
+
+So the donor must have **a use of its own** — a variable written only in order to be passed
+once inherits nothing, because it is never really allocated. That also retroactively explains
+that park's nine pinned-second-local combinations all bottoming out at 13.
+
+The other precondition, from the same function's second region: **the donated range must not
+conflict with the value you are placing.** There the bound had to live across the whole loop
+while the intended donor was written *inside* it.
+
+So the full set of conditions for the lever is now four:
+
+1. the residue is a register or ordering difference with the instruction count ALREADY EXACT,
+   no flag moving it, declaration order inert, and a pin worse;
+2. the donor's EARLIER range already lands in the register the ROM wants (a donor in `ip`/`lr`
+   cost six instructions and broke size and count);
+3. the donor has a USE OF ITS OWN, not merely an assignment feeding one argument;
+4. the donor's range is genuinely DISJOINT from the range you need to place.
+
+And check the donor's signedness against its own uses — a signed counter fixed a load
+destination and broke an unsigned loop compare (`bhi` against `bgt`).
+
+## Two more park-header failures, and both directions are now recorded
+
+`OvlFunc_924_200d5c0` reported MISMATCH: *header claims 16, body measures 14*. Its body was
+improved 16 → 14 in batch 300 by a fix imported from its twin `OvlFunc_923_200a030`, and a note
+further down the same file says so — but the line 1 claim, the only one `parkcheck` reads, was
+never updated. **This is batches 282/283 inverted:** there a header was advanced and the body
+left behind; here the body was advanced and the header left behind. `parkcheck` catches both
+directions, which is the argument for running it on every park you touch rather than only on
+ones you rewrote. A park improved by a fix imported from a twin needs its claim line updated on
+**both** files — and that file also turns out to carry two copies of its original header.
+
+Separately, a header claim that **does not reproduce**. `OvlFunc_923_200a030`'s "(b)" section
+stated that hand-writing both signed divisions as `if (x < 0) x += rc; x >>= 20;` was "14,
+inert, in four placements". **It measures 20**, across seven spellings — the literal `0xfffff`,
+reversed division order, `0x100000 - 1`, and the rounding constant through each of four reused
+locals. The count stays exact at 371, so the six extra are register and schedule. That retires
+the header's stated NEXT plan, which used the hand-written form as a *schedule-neutral vehicle*
+for probing constant creation order — a vehicle that itself moves the schedule is not a control.
+**An inert result recorded without its figures cannot be audited; record the number.**

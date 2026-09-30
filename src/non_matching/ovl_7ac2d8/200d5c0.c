@@ -1,4 +1,14 @@
-/* OvlFunc_924_200d5c0 -- NON-MATCHING, 16 ENCODINGS OF 371.  Size equal, count
+/* OvlFunc_924_200d5c0 -- NON-MATCHING, 14 ENCODINGS OF 371.  Size equal, count
+ *
+ * CLAIM LINE CORRECTED IN BATCH 305 (was 16).  The body was improved 16 -> 14 in batch
+ * 300 by a fix imported from its twin, and the note below line 65 says so -- but THIS
+ * line, the only one parkcheck reads, was never updated, so parkcheck reported MISMATCH
+ * ("header claims 16, body measures 14").  Same failure mode as batches 282 and 283,
+ * INVERTED: there a header was advanced and the body left behind; here the body was
+ * advanced and the header left behind.  parkcheck catches both directions, and a park
+ * improved by a fix imported from a twin must have its claim line updated on BOTH.
+ * Note also that this file carries TWO copies of its original header (see line ~72);
+ * the later copy is historical and its 16 is left as written.
  * equal.
  *
  * Blocker class: a scratch-register rotation in two signed-division blocks.
@@ -327,3 +337,43 @@ void OvlFunc_924_200d5c0(void)
     *(int *)(base + (0xda << 1)) +=
         call_via(Func_8000888, *(int *)(base + (0xd8 << 1)), 0x80 << 14);
 }
+
+/* *** BATCH-305d ADDENDUM for src/non_matching/ovl_7aa430/200a030.c
+ *     (AND ITS TWIN src/non_matching/ovl_7ac2d8/200d5c0.c -- EDIT BOTH) ***
+ *
+ * RE-MEASURED AS INSTALLED: 14 of 371, ref 371 / ours 371, size silent.  The
+ * header figure is CONFIRMED and it is a true distance.  STILL 14.
+ *
+ * ONE HEADER CLAIM DOES NOT REPRODUCE -- CORRECT IT.  The "(b)" section says
+ * hand-writing both divisions as `if (x < 0) x += rc; x >>= 20;` "reproduces
+ * the ROM's schedule EXACTLY and leaves all four registers unchanged -- 14,
+ * inert, in four placements".  IT MEASURES 20, NOT 14.  Every hand-written
+ * spelling of the second division block costs 6 encodings on top of the 14:
+ *     literal 0xfffff at both divisions                        20
+ *     the two divisions written in reverse order               20
+ *     `0x100000 - 1` instead of 0xfffff                        20
+ *     the rounding constant through a reused existing local
+ *       (`j`, `off`, `idx`, `n` -- four separate builds)       20
+ * All six keep the count exact at 371, so the 6 extra are register/schedule,
+ * not size.  THE HAND-WRITTEN DIVISION IS NOT A NEUTRAL VEHICLE, so the
+ * header's "NEXT" plan -- probe the constant creation order with the schedule
+ * held fixed by the hand-written form -- rests on a vehicle that itself moves
+ * the schedule.  That plan is closed.
+ *
+ * THE COMPILER'S OWN DIVISION, with the creation order varied instead:
+ *     t = 128 * (p[2] / 0x100000) + p[0] / 0x100000            14  (inert)
+ *     t = p[0] / 0x100000 + (p[2] / 0x100000) * 128            19
+ *     t = (p[2] / 0x100000) * 128; t += p[0] / 0x100000;       16
+ *     idx = p[2]/0x100000; off = p[0]/0x100000; t = idx*128+off;   24
+ *     the same two assignments in reverse order                24
+ *     n = p[2]/0x100000; j = p[0]/0x100000; t = n*128+j;      177
+ * So reordering or naming the two dividends cannot move region (b) either:
+ * everything is 14 or worse.  Region (b) -- 8 of the 14 -- takes no source
+ * handle from the dividend side, the constant side, or the division spelling.
+ *
+ * ALSO NOTE, for anyone reading tools/tryc.py --full on this park: it prints
+ * "rom 375 lines, ours 376 ... 269 differ".  That is an ARTEFACT.  Ours emits
+ * one EXTRA LABEL (a redundant `.L7:` beside `.L8:`) which is not an encoding,
+ * so the line-level view desynchronises from there and calls everything after
+ * it different.  objcmp is right at 14 and the count is exact.  Use objcmp.
+ */
