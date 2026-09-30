@@ -27471,3 +27471,64 @@ CriticalHit first is the expensive order.
 
 So when two targets share a file, **dry-run both orders before sequencing**, and record which
 order leaves the other cheapest. A shared-file constraint is not symmetric.
+
+## THE 800+ BAND IS TWO POPULATIONS, AND INSTRUCTION COUNT IS THE WRONG AXIS
+
+First systematic work in the band that holds most of what remains. Full write-up in
+**[docs/band-800plus.md](band-800plus.md)**; the headline is that **branch density, not instruction
+count, is the axis that matters**.
+
+Three of four targets were 800+ instructions in **1–6 basic blocks**; `Anim_Ramses` has 54 branches
+and behaves like an ordinary function. They need different levers and should not share a brief.
+**Triage the remaining band by branch count before assigning anything.**
+
+**For the straight-line population one mechanism dominates: cse.c pass 1 commons repeated constants
+ACROSS CALLS.** Traced in the dumps — `00.rtl` holds four independent
+`(set (reg) (const_int 26214))`, and `03.cse` leaves one, rewriting the rest as register copies
+with `REG_EQUAL`. A call does not invalidate cse's constant table, so a 150–800-instruction block
+gives it seven repetitions of a constant where 200-instruction code gives two. The overflow lands
+in r8–r11 and costs the six-instruction Thumb high-save prologue. **Twelve flag and `-O` settings
+were measured and none reaches it**, so this is not a `CSE_CFLAGS` case.
+
+**Three of our best levers measure NEGATIVE here, and the reasons are the useful part:**
+
+* **Reuse-to-inherit-a-register is WORSE** (+8/+3 against +4/+1) because its first precondition —
+  instruction count already exact — fails. The lever is for placing a value, not for deleting one.
+* **One-variable-per-region is BYTE-IDENTICAL** to plain literals. **Region-scoping cannot reach a
+  pseudo the compiler invented**, and cse's commoned constant is exactly that. Both halves of the
+  allocation pair are useless when the competitor is not a source variable.
+* **Declaration order is inert**, for the same reason.
+
+What *did* move a candidate (+20/+10 → +4/+1) was changing **the set of long-lived quantities** —
+i.e. the program's shape, not its spelling.
+
+**A ranking refinement: rank size-and-count FIRST even while both are inexact.** On one candidate
+the +4/+1 version is **2.3 aligned points worse** than the +20/+10 one. So "when saturated, use
+aligncmp" is too crude — closeness in size and count still orders candidates above the aligned
+figure, and the aligned figure only breaks ties within that.
+
+**The cheapest early signal in this band is the DISTINCT-CONSTANT SET, not the relocation sequence.**
+One `grep | sort | uniq -c` proved every constant and call in an 834-instruction reconstruction, and
+surfaced a pooled zero worth 16 bytes and 5 encodings from one line (`z = 0; *p = z;`).
+And **`-da` is tractable by grep, not by reading** at this size (dumps run 145–445 KB) — go in
+following a named quantity.
+
+## RETRACTED IN-BATCH: `-ffixed-r8..r11` is NOT REG_ALLOC_ORDER evidence
+
+Worth recording because of how it nearly went wrong. `-ffixed-r8..r11` takes one 834-instruction
+candidate from +44/+19 to **+4/−2**, which looks like evidence that the original toolchain's Thumb
+allocation excluded the high bank — the tree's most-cited open question in a new form.
+
+**It is false, and a second function in the same batch disproves it**: that function's own reference
+*has* the high-save prologue and 45 high-register mentions. Tree-wide, **414 of 600 sampled asm
+files using high registers already have landed `.c` siblings**, so gcc-2.96 demonstrably produces
+high-register code in byte-matched output.
+
+`-ffixed` was **masking a commoning excess rather than fixing it** — it suppresses the symptom cse1
+created. No `FIXEDHIGH` Makefile row, and **these figures must not be cited as REG_ALLOC_ORDER
+evidence** (that question was already settled negatively by experiment: changing the order broke 17
+of 54 landed functions).
+
+**The guard that caught it was measuring a SECOND function before writing the first up as a band
+finding.** One function cannot establish a band-wide claim, and a flag that improves a figure is a
+hypothesis about a mechanism, never the mechanism itself.
