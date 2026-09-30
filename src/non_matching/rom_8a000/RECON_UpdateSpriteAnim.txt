@@ -1,0 +1,103 @@
+UpdateSpriteAnim -- 0x0800aa0c, asm/rom_9000/rom_a97c_c.s, 544 instructions.
+
+THIS IS RECON, NOT A PARK.  No candidate, no objcmp figure -- see the same
+statement in RECON_BattleMain.txt for why.  What is here is the verified split
+shape (which is the expensive part for this one), a correction to the function's
+identity, and the structural reading.
+
+WHY IT WAS NEVER OFFERED.  UpdateSpriteAnim was INVISIBLE to tools/census.py
+until batch 301: match_stem accepted any >=3-character part of a park FILENAME as
+a bare suffix, so EVERY `Anim_*.c` park in the tree marked it parked, because the
+name ends in "anim".  No prior work exists.  I verified everything below against
+the disassembly.
+
+=== THE NAME IS A MISNOMER, AND THE TREE ALREADY KNOWS IT ===
+
+**This function is a multi-line TEXT LABEL rasteriser, not a sprite-animation
+tick.**  The evidence is three-way and consistent:
+  1. The comment block immediately above `.thumb_func_start UpdateSpriteAnim` in
+     this very file calls it `RenderTextLabelToVram` and describes it in detail
+     (glyph metrics tables, control codes 0xEF..0xFF, an insertion sort by draw
+     order, a 1px outline pass, upload to OBJ VRAM at 0x6010000).  The same
+     comment appears at rom_9000/src/rom_a97c.s:103.
+  2. Its two callers' comments agree: asm/rom_9000/rom_b074_a_c.s:6 reads
+     "Renders the object's text label via UpdateSpriteAnim" and :9 "the rotation
+     halfword is negated when UpdateSpriteAnim reported a flip".
+  3. asm/rom_9000/rom_c880.s:8 cites "the same run-the-blitter-from-RAM trick as
+     UpdateSpriteAnim", which is step 1 of the rasteriser, not animation.
+`RenderTextLabelToVram` appears NOWHERE else in the tree -- only as this comment
+-- so the symbol name came from a map and the comment came from analysis, and the
+comment is the one the code supports.  DO NOT RENAME ANYTHING: the symbol is
+referenced by two `bl` sites in asm/rom_9000/rom_b074_a_c.s and by stage1.ld
+ordering, and renaming is an owner decision.  But anyone reading "UpdateSpriteAnim"
+and expecting a 30-line animation tick will mis-read the whole function, which is
+exactly the trap the census bug set up.
+
+=== SPLIT SHAPE (verified) -- THIS IS THE EXPENSIVE ONE ===
+
+A TEXT/DATA SPLIT IS REQUIRED, AND THE LINKER SCRIPT NAMES THE OBJECT TWICE.
+
+  * `grep -c func_start` = 1 (UpdateSpriteAnim alone), BUT tools/datacheck.py
+    reports a `.rodata` section and says:
+        -> converting a function here needs a TEXT/DATA SPLIT; the data must keep
+           its own object.
+  * `stage1.ld` names the object at **line 108 `(.text)` AND line 284
+    `(.rodata)`** -- this is the batch-300 double-naming case and it MUST be
+    honoured: the `(.text)` line goes to the `.c`'s object and the `(.rodata)`
+    line goes to the data-only object.  Getting this backwards moves the ROM and
+    looks identical to a bad decompilation at `make compare` time, so verify
+    `make compare` is green after the split and BEFORE writing any `.c`.
+  * The function ends at line 765 (`.func_end`) and the rodata block runs
+    769..786, so the cut is clean.
+  * **NINE LABELS NEED `.global` ON THE DATA HALF** (datacheck's list, and I
+    confirmed each is defined in the rodata block of this same file and
+    referenced from inside the function):
+        .global .L1307c   .global .L1308c   .global .L13094
+        .global .L1309c   .global .L130ac   .global .L130bc
+        .global .L130c4   .global .L130cc   .global .L1310c
+    None of them is referenced from any OTHER file (I grepped asm/ and src/), so
+    nine is the complete list and no existing `.global` can be reused.  In the
+    `.c` they are reached the established way, e.g.
+        extern signed char L1307c[] __asm__(".L1307c");
+    which is how four landed siblings reach `.L9f0d4` and how
+    asm/rom_15000/rom_20198_c_c_c_c_c.s:162 already exports `.L371f6`.
+  * The function's OWN two jump tables (at lines 133-151 and 223-264, targeting
+    `.Lab46`/`.Laa94`/`.Lace0`/`.Lad6c` and friends) are gcc's switch tables for
+    labels INSIDE the function.  They come free from a `switch` and must NOT be
+    exported or split out -- only the 0x1307c..0x1314c metrics block is data.
+
+=== SHAPE ===
+
+`sub sp, #0x38`, all four high registers saved, and `r1` is sign-extended on
+entry (`lsl r1,#16 / asr r7,r1,#16`) so the second parameter is a **`short`**:
+    int UpdateSpriteAnim(void *ctl, short style);
+Returns non-zero if any glyph carried the "special" flag.
+
+TWO SWITCHES, and they are what makes this function worth doing despite its size
+-- a jump table is the one construct where the disassembly hands you the case
+labels directly:
+  * the CONTROL-CODE dispatch at 0xaac8: 17 table entries with `.Laa94` as the
+    default appearing NINE times, guarded by `cmp r3, #0x10 / bhi .Lab5a`, so the
+    switch is on a value already reduced to 0..0x10 (bytes 0xEF..0xFF re-based).
+  * the FONT-KIND dispatch at 0xab80: 40+ entries with `.Lad6c` as the default,
+    selecting which of the 0x1307c..0x1314c metrics tables to index.
+Both need the `bhi` bound to survive, which means the switch value must be
+`unsigned` at the point of the test.
+
+The IWRAM relocation at the top is the first thing to get right and is
+self-contained: on first use it allocates a 0x2C4 arena with `galloc_iwram`, DMA-
+copies Func_9bb8..Data_9d9c into it, and caches the RAM entry point at
+`iwram_3001e68 + 0xb8` so the glyph blitter runs from RAM.  The cached pointer is
+tested first (`ldr r1,[r5] / cmp r1,#0 / bne .Laa62`), so the allocation is a
+one-shot guarded by a global -- write it as an `if`, and note the guard's shape:
+`bne .Laa62` with the allocation as the FALLTHROUGH, i.e. the allocation is the
+`if` body and the test is `== 0`.
+
+=== WHAT I DID NOT DO ===
+
+No candidate, no figure.  The order of work is: (1) do the text/data split and
+prove `make compare` green with the nine `.global`s and BOTH stage1.ld lines
+placed correctly -- that is a self-contained, verifiable deliverable on its own
+and is worth landing before any `.c` exists; (2) write the IWRAM-relocation
+prologue and the measure pass; (3) the two switches.  Steps 1 and 2 are low-risk;
+step 3 is where the function will be won or parked.

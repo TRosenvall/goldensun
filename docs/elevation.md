@@ -6031,7 +6031,39 @@ holding a compared load. `return -1;` does not produce that;
 `v = p[0]; if (v == -1) return v;` does. Costs one instruction and a whole-tail
 shift when missed.
 
-## `cmp #K / bge` and `cmp #K / blt` with K>0 are UNREACHABLE — a one-line screening test
+## WRONG — STRUCK. `cmp #K / bge` and `cmp #K / blt` with K>0 ARE reachable
+
+**This section's conclusion is false and its screening advice cost work. Do not use it.**
+It is kept, struck, because it was cited for many rounds and the reasoning below is where
+the mistake lives.
+
+**The control that settles it:** a scan of the 4,351 COMPILER-GENERATED `.s` files in this
+tree -- gcc's own output, so proof of what gcc-2.96 emits -- finds **21 surviving
+`cmp rN, #K` (K>0) followed by `bge`/`blt` sites in 15 files** (23 in 16 once batch 302's
+`OvlFunc_936_2009930` landed). The shape is not merely reachable; it is already in the tree
+two dozen times.
+
+**Why the `combine.c` reading below does not settle it.** The rewrite is real, but it is not
+the only route to a comparison. `stmt.c`'s `emit_case_nodes` emits a switch RANGE TEST
+directly as LT/GT and never reaches `simplify_comparison` at all. So:
+
+* **20 of the 21 are range tests, and every one of those 15 files uses a contiguous
+  `switch` case run.** Writing the range as a case run rather than an `if` is what reaches it.
+  `OvlFunc_936_2009930` was landed byte-exact this way in batch 302, and its two sites are
+  precisely the `cmp r3,#2 / bgt` + `cmp r3,#1 / blt` pair this section called a hard floor.
+* **1 of the 21 is a loop back-edge**, reached by a **named bound** --
+  `src/rom_8a000/rom_9a44c_c_c_a_a.c` lever 3, `n = 11; for (; i < n; i++)` -- because
+  combine only rewrites a constant it can SEE.
+
+**Two corrections were already in this document and this section was never struck**: see
+"CORRECTION: `cmp rN, #K / bge` with K > 0 IS reachable" and "A `cmp #C / blt` THAT RESISTS
+EVERY `<` SPELLING IS A switch RANGE TEST". A reader arriving here first got the excluding
+advice anyway. **The lesson is about the document, not the compiler: a correction that leaves
+the original claim standing has not landed.** When you falsify a section, strike the section.
+
+The original text follows, struck.
+
+### ~~Original section (FALSE)~~
 
 The signed-lower-bound residue has been recorded as "no spelling reaches it".
 The mechanism is now read out of the compiler, and it makes the class decidable
@@ -6052,12 +6084,16 @@ which never happens for these small bounds. Unsigned behaves the same way
 (`LTU`/`GEU` rewritten, `LEU`/`GTU` not). `cmp #0 / bge` is fine, because the
 rewrite is guarded by `const_op > 0`.
 
-> **Grep the ref for `cmp rN, #K` followed by `bge`/`blt` with K > 0. Each such
-> site is a hard floor of two instructions.** Decide before screening.
+> ~~**Grep the ref for `cmp rN, #K` followed by `bge`/`blt` with K > 0. Each such
+> site is a hard floor of two instructions.** Decide before screening.~~
+> **FALSE -- it is not a floor. Write the range as a switch case run, or name the bound.**
 
-**Measured: 33 of the 2274 remaining functions carry one, across 44 sites.** So
+~~**Measured: 33 of the 2274 remaining functions carry one, across 44 sites.** So
 it is a small class, not a wall — but it is worth excluding those 33 from a
-worklist rather than discovering the floor one screen at a time. The grep:
+worklist rather than discovering the floor one screen at a time.~~
+**DO NOT EXCLUDE THEM. Those 33 functions are ordinary targets**; the shape is a tell that
+the source uses a switch case run or a named bound, which is a LEVER, not a blocker. The grep
+is still worth running -- for that reason, not this one:
 
     cmp\trN, #K   immediately followed by   bge  or  blt   with K > 0
 
@@ -26852,3 +26888,48 @@ Corollary for reported state: fixing an attribution rule **changes historical fi
 published 135 available / 725 parked for its own tree; re-measured under the corrected rule the same
 tree reads 140 / 720. Re-measure the previous batch's end state before quoting a delta, or the fix will
 look like new work.
+
+## An overlay ADDRESS is not unique: the bank gate, and a fourth route to the same over-attribution
+
+Batch 301 fixed `census.py`'s stem matching by requiring a **name** part to land on a word
+boundary, and deliberately left an **address** part matching as a bare suffix, because
+`Func_80cd52c` embeds `d52c` after `80` and not after `_`. That carve-out was correct for the
+main ROM and wrong for the overlays, for a reason the address family hides:
+
+**Every overlay is loaded at the same base address.** So `OvlFunc_890_2008488` and
+`OvlFunc_917_2008488` are two entirely different functions that share the address `2008488`,
+and both end with `_2008488`. No anchoring rule can separate them — the address alone is
+genuinely ambiguous, and it is ambiguous under the underscore rule too.
+
+Installing one park for `OvlFunc_890_2008488` therefore marked `OvlFunc_917_2008488` parked:
+**1,122 instructions nobody had attempted, removed from the available list.** Found the same
+way as last time — the batch reconciliation came to 22 against 21 accounted for.
+
+**The fix is a bank gate.** A park carries the bank id from its directory
+(`src/non_matching/ovl_78b2ac/` → `78b2ac`), a function carries it from its own
+(`asm/overlays/rom_78b2ac/` → `78b2ac`; the `ovl_`/`rom_` prefixes name the same bank and only
+the id is comparable), and **a park in a known bank may only claim functions in that same
+bank**. A park with no bank in its path — `ovl_common`, a top-level class park — spans banks
+by design and is not gated.
+
+**It recovered 24 functions, and none of them was named in any park** — every one had been
+counted parked purely because some *other* overlay's park shared its address suffix. Thirteen
+are the same duplicated routine (`OvlFunc_*_20088c0` and `_2008ba4`, 132 instructions each,
+appearing in a dozen overlays), and **eight of that family are ALREADY ELEVATED** in
+`src/overlays/`, so the remaining twelve have working templates in the tree and are the
+cheapest available work in the project. One is `OvlFunc_925_2009af0` at 1,876 instructions.
+
+Two things to carry forward:
+
+1. **This is the fourth route to the over-attribution `census.py` documents.** Lesson 6, a park
+   *citing* a function; lesson 7, a park's opening sentence naming a neighbour; batch 301, a
+   name part matching as a bare suffix; batch 302, an address that is not unique. The pattern
+   across all four is that the attribution rule was generalised from the main ROM and the
+   overlays broke it. **Expect a fifth. Audit the whole attribution, not the case in front of
+   you, and verify a fix by checking that nothing LEGITIMATELY parked was lost** — here the
+   controls were `Func_80cd52c`, `OvlFunc_common1_4cc`, `_fac` and `_78`, all of which the
+   docstring names as real, and all of which still match.
+2. **The reconciliation is the instrument that catches these.** Two consecutive batches found a
+   census defect because the arithmetic was one function out, and in both cases the honest
+   figure was smaller than the reported one. A batch that does not reconcile exactly has a
+   defect somewhere; do not absorb the difference.

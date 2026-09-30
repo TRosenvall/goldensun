@@ -1,0 +1,139 @@
+BattleMain -- 0x080b63c8, asm/rom_b5000/rom_b5a0c_c_c_a_a_a_c_a.s, 645 instructions.
+
+THIS IS RECON, NOT A PARK.  There is NO candidate and therefore NO objcmp figure.
+Do not install it as src/non_matching/...; it carries no "NON-MATCHING, N of M"
+line because measuring one would require a body, and I judged a rushed 645-
+instruction body a wrong-program risk rather than a park.  What follows is the
+verified split shape plus the structural reading, so the next agent starts where
+I stopped instead of where I started.
+
+WHY IT WAS NEVER OFFERED.  BattleMain was INVISIBLE to tools/census.py until
+batch 301: match_stem accepted any >=3-character part of a park FILENAME as a
+bare suffix, so a park with a "main" part marked it parked.  Expect NO prior
+work, no park, no inherited measurement -- and be aware that a park in the tree
+may MENTION it without being about it.  I verified every claim below against the
+disassembly itself.
+
+=== SPLIT SHAPE (verified) ===
+
+A PLAIN 2-WAY TEXT SPLIT, NO EXTRA EXPORTS.
+
+  * `grep -c func_start` = 2: BattleMain FIRST, then Func_80b6a60.  BattleMain is
+    the leading cut, so
+        python3 tools/split_s.py asm/rom_b5000/rom_b5a0c_c_c_a_a_a_c_a.s BattleMain
+    writes _a (BattleMain -> the .c) and _b (Func_80b6a60); split_s does not
+    write empty parts, so there is no _c.
+  * tools/datacheck.py reports NO data section, so no text/data split.
+  * `stage1.ld` names the object EXACTLY ONCE, at line 1539, `(.text)` only --
+    I grepped the script for the stem, which is the batch-300 rule, and there is
+    NO `(.rodata)` line.  (Contrast Field_Carry_Target's object, which IS named
+    twice with no rodata in its `.s`; the check is not redundant.)
+  * No `.global` needed: `.thumb_func_start` in include/macros.inc already emits
+    `.global` for both functions.
+  * Run split_s, confirm `make compare` is still green BEFORE writing any .c.
+
+=== THE NAME IS CORRECT AND THE FILE'S OWN HEADER AGREES ===
+
+The comment block above func_start calls it "StartBattle -- THE MODULE'S ENTRY
+POINT, r0 = encounter id", and the body confirms it: the encounter id is stored
+to `*(int *)st` and read back for Func_80c02a4.  Unlike UpdateSpriteAnim (see
+the other recon file) there is no naming problem here.
+
+=== FRAME ===
+
+`sub sp, #0x44` (68 bytes).  Only FOUR slots are ever addressed:
+    sp+0    outgoing 5th argument (Func_80c0a24 takes five)
+    sp+4    a held pointer, `st + 0x44`   (the battle-mode flag byte)
+    sp+8    the galloc_ewram(0x2c, 0x20) record
+    sp+0xc  the encounter id (the incoming argument)
+That leaves sp+0x10 .. sp+0x44 -- FIFTY-TWO BYTES -- in the declared region, and
+only its FIRST WORD is ever written (`add r5, sp, #0x10 / str r7, [r5]`).
+THAT FIRST WORD IS `DMA3_CLEAR`'s OWN `u32 value;` LOCAL, whose address is taken,
+so it is an expand_decl object and lands in the declared region -- three
+DMA3_CLEAR call sites share it.  I could NOT account for the other forty-eight
+bytes and it is the first thing to settle, because a wrong frame size shifts
+every offset.  The cheap discriminator: three separate DMA3_CLEAR expansions
+give three `value` slots (12 bytes) if gcc does not share them, so count the
+slots in a trial compile before inventing an array.
+
+=== THE ALLOCATION PROLOGUE IS EXACT AND IS THE PLACE TO START ===
+
+Five `galloc_ewram` calls, in this order, and the FIFTH RESULT IS DISCARDED
+(r0 is overwritten by the next call's argument before it is used -- the callee
+stores it globally):
+    view = galloc_ewram(0x0c, 0x4c);      /* r10 */
+    st   = galloc_ewram(0x09, 0x82c);     /* r8  -- the battle state       */
+    en   = galloc_ewram(0x36, 0x7c8);     /* r6  -- six 0x14c enemy records */
+    p4   = galloc_ewram(0x2c, 0x20);      /* sp+8 */
+           galloc_ewram(0x0b, 0xa0 << 2); /* 0x280, result discarded */
+then `vp = view + 0xc` (r9), then the enemy block is cleared THROUGH A FUNCTION
+POINTER: `f = (int (*)(int, int))Func_80008d4; f(en, 0x7c8);`.  That is the
+`_call_via_r3` veneer and the idiom is landed twice in this very bank --
+src/rom_b5000/rom_b5a0c_c_c_a_a_a_b.c (a file-mate ancestor of this split) and
+src/rom_b5000/rom_b5a0c_a_a_b.c.  READ BOTH: the first records that the pointer's
+RETURN TYPE is the declaration that fixes argument order (`int (*)(int,int)`, not
+`void (*)(int,int)`, or gcc fills r0 before r1 where the ROM fills r1 first) and
+that a non-void return type is also what makes the epilogue `pop {r1} / bx r1`.
+BattleMain's epilogue IS `pop {r1} / bx r1` and it DOES return a value, so that
+half is free here.
+
+The three DMA clears are `DMA3_CLEAR` from include/dma.h and the counts confirm
+the sizes byte for byte:
+    0x85000013 -> 0x13 words = 0x4c  -> DMA3_CLEAR(view, 0x4c)
+    0x8500020b -> 0x20b words = 0x82c -> DMA3_CLEAR(st, 0x82c)
+    0x85000003 -> 3 words = 0xc     -> DMA3_CLEAR(galloc_ewram(0x25, 0xc), 0xc)
+
+=== REGISTER MAP (whole function) ===
+
+    r6  en, then the Func_80c1ffc result, then `st + 0x52`, then the enemy-loop
+        byte offset 0x2ec + i*0x10          -- FOUR disjoint roles
+    r7  the RETURN VALUE (and the enemy-loop index i earlier)
+    r8  st                                  -- live end to end
+    r9  view + 0xc, then &iwram_3001f64, then `st + 0x41`
+    r10 view, then &iwram_3001f64
+    r11 `st + 0x45`
+
+ONE VARIABLE, NOT TWO, CARRIES THE Func_80c1ffc RESULT AND THE _GetFlagByte
+RESULT.  This is the single most load-bearing structural fact I found and it is
+invisible unless you follow r6: `x = Func_80c1ffc(*(int *)st)` lands in r6, the
+`*pf != 0` block CLOBBERS r6 with `x = _GetFlagByte(0xfc << 2)`, and the later
+`Func_80c02a4(x, enc)` reads whichever of the two ran.  Two source variables
+cannot produce that.
+
+=== CONTROL FLOW ===
+
+One outer state loop at 0xb6736 and an inner per-combatant loop at 0xb67d6, with
+a SHARED TAIL at 0xb6a12 reached from FOUR places, each setting the return value
+differently -- so the source needs a `goto done` (the file-mate park
+src/non_matching/rom_15000/802106c.c uses exactly that shape and measured
+48 -> 23 for it, so the construct is established in the corpus, not a shortcut):
+    0xb696e  ret = *(int *)(st + 0x538)      (`mov r3,#0xa7 / lsl r3,#3`)
+    0xb6954  ret = *(int *)(st + 0x538)
+    0xb69b0  ret = -1                         (`mov r7,#1 / neg r7,r7`)
+    0xb6a00  ret = 0x3e7
+The inner loop additionally exits to 0xb6a00 from TWO places and to 0xb69b0 from
+one, i.e. it breaks out of two levels at once.  Write those as `goto`, not as
+flags: a flag adds an allocno and this function has all six callee-saved
+registers already spoken for.
+
+Two loop shapes are already pinned by the disassembly:
+  * the link-up wait at 0xb654a is a `while` with the counter incremented BEFORE
+    the call and the break setting `st[0x52] = 1`:
+        k = 0;
+        while ((*(unsigned short *)&iwram_3001f64 & 3) != 3) {
+            k++; WaitFrames(1);
+            if (k > 0x18) { st[0x52] = 1; break; }
+        }
+    r7 holds the constant 3 and r9 the constant 1 across it -- both loop.c
+    hoists, so do NOT name them; and note `add r5, #1` sits BEFORE `bl
+    WaitFrames`, which is the sched2-will-not-move-it-across-a-call rule.
+  * the 0x7c8-byte copy at 0xb657e ends `bls`, i.e. an UNSIGNED latch, where
+    Field_Carry_Target's and UI_NameEntry's copy loops end `ble`.  Read the
+    condition code before choosing the compare; it is the cheapest correctness
+    signal in the file.
+
+=== WHAT I DID NOT DO ===
+
+No candidate, no figure.  The two things standing between this recon and a park
+are (1) the forty-eight unexplained frame bytes and (2) the four-way goto tail,
+in that order.  Both are mechanical once (1) is settled by a trial compile.

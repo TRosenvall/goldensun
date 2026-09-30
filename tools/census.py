@@ -177,11 +177,30 @@ def park_subjects():
             subjects.add(first.group(0))
         if os.path.dirname(path) == os.path.join(ROOT, "src/non_matching"):
             subjects |= set(re.findall(r"[A-Za-z_]\w*", text))
-        stems.append(os.path.basename(path)[:-2])
+        # Carry the park's BANK alongside its stem. An overlay address is NOT
+        # unique tree-wide -- every overlay loads at the same base, so
+        # OvlFunc_890_2008488 and OvlFunc_917_2008488 share the address 2008488
+        # and a stem match on the address alone marks the wrong one parked.
+        stems.append((os.path.basename(path)[:-2], bank_id(path)))
     return subjects, stems
 
 
-def match_stem(name, stems):
+def bank_id(path):
+    """The hex bank id in a path's directory name, or None.
+
+    src/non_matching/ovl_78b2ac/2008488.c  -> "78b2ac"
+    asm/overlays/rom_78b2ac/ovl_30_x.s     -> "78b2ac"
+    asm/rom_a1000/rom_a47b4_a.s            -> "a1000"
+    The ovl_/rom_ prefixes name the same bank; only the id is comparable. Paths
+    with no such directory (ovl_common, top-level class parks) return None and
+    are treated as matching any bank, because they genuinely span banks.
+    """
+    d = os.path.basename(os.path.dirname(os.path.abspath(path)))
+    m = re.match(r"^(?:ovl|rom|overlays_rom)_([0-9a-f]+)$", d)
+    return m.group(1) if m else None
+
+
+def match_stem(name, stems, bank=None):
     """Does a park FILENAME name this function?
 
     The signal census used before substring matching, and insufficient ALONE
@@ -213,7 +232,17 @@ def match_stem(name, stems):
     fac.c -> OvlFunc_common1_fac, which are real.
     """
     low = name.lower()
-    for st in stems:
+    for st, stbank in stems:
+        # BANK GATE. Batch 302: installing a park for OvlFunc_890_2008488 at
+        # src/non_matching/ovl_78b2ac/2008488.c marked OvlFunc_917_2008488 parked --
+        # 1,122 instructions nobody had attempted, hidden from the available list --
+        # because overlays all load at the same base address, so the address suffix
+        # is shared. No anchoring rule can fix that; the address alone is ambiguous,
+        # so a park in a KNOWN bank may only claim functions in that SAME bank.
+        # A park with no bank in its path (ovl_common, a top-level class park)
+        # spans banks by design and is not gated.
+        if stbank and bank and stbank != bank:
+            continue
         for part in st.lower().split("_"):
             if not part:
                 continue
@@ -276,7 +305,7 @@ def survey():
                         stop = j
                         break
                 rows.append((n_insn(lines[i + 1:stop]), name, hw,
-                             name in parked or match_stem(name, stems),
+                             name in parked or match_stem(name, stems, bank_id(path)),
                              kind == "arm", name in unmatch))
     return rows
 

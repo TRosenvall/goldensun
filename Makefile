@@ -463,6 +463,22 @@ asm/overlays/rom_78c76c/ovl_30_c_c_a_c_c_a_a_c_a.o: src/overlays/rom_78c76c/ovl_
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# CSE_CFLAGS, batch 302.  OvlFunc_936_2009930 uses flag id 0x200 three times -- a
+# __GetFlag in the `t != 0` arm, then __SetFlag and __ClearFlag in the else arm with
+# the first DOMINATING the second.  That is the documented two-part precondition: the
+# mutually exclusive pair reloads on its own, the dominating pair inside one arm does
+# not, so gcc hoists `mov #0x80 / lsl #2` into r7 and pays a `push {r7}`; that one
+# extra allocno also rotates iwram_3001ebc's base and the __GetFlag(0x109) result
+# between r5 and r6.  At -O2 the candidate is 17 differing of 578 with SIZE AND COUNT
+# ALREADY EXACT; with the flag it is byte-exact at 1340 bytes, 578 encodings and 86
+# relocations.  -fno-gcse is byte-identical to the default (29 either way), so only
+# -fno-rerun-cse-after-loop reaches it, exactly as the rule predicts.  PIN-FREE:
+# nothing for fakematch.txt.
+asm/overlays/rom_7c097c/ovl_30_c_c_c_a_c_c_a_c_c.o: src/overlays/rom_7c097c/ovl_30_c_c_c_a_c_c_a_c_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 # OvlFunc_924_20094cc: flag id 0x256 tested before the guard branch and set
 # after it -- the guard/set shape, first use dominating.  Prologue a register
 # wider at -O2, exact here.
