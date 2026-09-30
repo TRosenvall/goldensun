@@ -27941,3 +27941,73 @@ linker had already written the value.
 
 So a park can be blocked on a **build-input** change rather than a `.c` change, and that belongs in the
 park header as a prerequisite — not discovered at landing time.
+
+## THE SPILL-SLOT MAP *IS* THE DECLARATION LIST — sort the offsets and read it off
+
+The spill-slot rule has been stated as "declared locals take high offsets in declaration order". The
+stronger, usable form, verified against the landed `Anim_Vine` (whose declarations land at
+sp+36/24/20/16/8):
+
+**Reload assigns slots in increasing pseudo number, `expand_decl` creates pseudos in declaration order
+after the parms, and `FRAME_GROWS_DOWNWARD` is in force — so sorting the reference's spilled-scalar
+offsets DESCENDING gives you the declaration order directly.**
+
+On `Anim_Djinni` that pinned every frame offset **before any register work** (530 → 527, first
+divergence index 18 → 29). Do it first: it is free, it is read off the reference, and it removes a
+whole class of later confusion.
+
+**And the slot order dates the PASS that created a pseudo.** On `Anim_CriticalHit` a slot sitting
+*below* a gcse-created pseudo proved a value could not be a declared local at all. Combined with the
+earlier finding that a call temp cannot outrank a function-level declaration, the frame is a timeline:
+anything below a compiler-made pseudo was made by a pass, not written by a programmer.
+
+## A REGISTER REPEATING ACROSS DISJOINT LOOPS DEFINES THE VARIABLE PARTITION — and the splits are NOT ADDITIVE
+
+Worth **527 → 56 on `Anim_Djinni` in one edit** (72.5% → 94.0%), and 43 → 23 plus 71.7% → 89.4% on
+`Anim_CriticalHit`. The reference's register reuse *is* the partition: a register appearing in several
+disjoint loops means those loops share one source variable.
+
+**The measurement warning is as important as the lever: the two walker splits are NOT ADDITIVE.**
+Measured alone, each read nearly inert — one was worth 3 — and **both together were worth 470.** So
+testing levers one at a time can hide the result entirely. When a partition hypothesis covers several
+variables, **apply the whole partition before concluding anything**; a per-lever sweep will report a
+wall that is not there. (This is the constructive counterpart to the recorded rule that a *partial*
+application of the stacked-argument lever is worse than none.)
+
+**A counter in r9 or r10 is the tell that it is shared across more loops than you wrote.**
+`allocno_compare` ranks by roughly `log2(n_refs) * n_refs / live_length`, so summing disjoint ranges
+*lowers* priority into the high registers, and Thumb-1 then pays two extra instructions per loop. **Our
+instruction stream being SHORT was the signature** — the opposite of the usual reading.
+
+Two smaller results from the same pair:
+
+* **Naming a ONE-USE subexpression can pay** (37 → 26). It buys nothing in allocation and everything
+  in **expand order**, which is sched2's tie-break. So the "don't name single-use values" instinct is
+  wrong when the residue is ordering rather than placement.
+* **A `_call_via_rN` veneer names the pointer's REGISTER CLASS.** A call-clobbered veneer register (r3)
+  proves the pointer cannot cross a call, which fixes *where the assignment may stand* — that removed a
+  60-instruction prologue rotation (43 of 707, first divergence 21 → 78).
+
+## A LINKER LINE CAN EXIST FOR A SECTION THE `.s` DOES NOT HAVE — 110 objects
+
+`stage1.ld` names `asm/rom_c9000/rom_e3958_c_c_c_c_a.o` twice, at line 1919 `(.text)` and line 1988
+`(.rodata)` — and that `.s` has **zero** data directives. Measured tree-wide: **110 objects have a
+`.rodata` linker line with no data section in their `.s`.**
+
+So **`datacheck.py` reporting "no data" does not mean "one linker line"**, and a split that rewrites
+only the `.text` row silently drops the other. `split_s.py`'s `rewrite_ld` already handles every
+section the original was listed under — which is why it must be used rather than editing by hand — but
+the figure is worth knowing before reviewing any split: **absence of a data section is not absence of a
+data line.**
+
+## One blocker, two functions — attack it as a class
+
+`Anim_Djinni` and `Anim_CriticalHit` both end in two calls through one pointer to `Func_80008d4` with
+length `0x80 << 7`. **The ROM's constant pseudo LOSES its hard register and reload rematerialises it,
+leaving r5 for the pointer; ours WINS r5 and pushes the pointer to r6.** That single decision is the
+entire `_call_via` discrepancy in both relocation tables — two rows each, both veneer registers,
+nothing missing or extra.
+
+Four spellings of the constant were byte-identical and lengthening the pointer's range measured worse.
+It is now a **named two-function pattern**, which makes it worth one focused attempt rather than two
+per-function rounds — the same argument that made the x17 duplicate family worth a dedicated brief.

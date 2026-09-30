@@ -1,0 +1,95 @@
+Anim_TitanBlade -- 0x080e99c0, asm/rom_c9000/rom_e7320_c_c.s line 4764,
+779 ROM instructions.  RECON ONLY -- NO CANDIDATE WAS COMPILED, so there is
+deliberately no "N of M" line here.  Do not invent one.
+
+The batch-308B brief said "report, don't act" for this file's export set.  Here
+is the report, all of it measured, none of it inferred.
+
+SPLIT SHAPE -- CONFIRMED, AND THE EXPORT SET IS LARGER THAN THE BRIEF SAID
+==========================================================================
+`python3 tools/datacheck.py asm/rom_c9000/rom_e7320_c_c.s` reports a .rodata
+section and EIGHT functions, so converting any one of them needs a TEXT/DATA
+SPLIT and the data must keep its own object:
+
+  Func_80e7338, Func_80e73a0, BaseAnim_Meteor, Anim_Ramses, Anim_DragonCloud,
+  Anim_Annihilation, Anim_Ragnarok, Anim_TitanBlade
+
+Anim_TitanBlade is the LAST of the eight, so a cut for it is TWO-WAY:
+
+  asm/rom_c9000/rom_e7320_c_c_a.s   the other seven functions  (asm as-is)
+  src/rom_c9000/rom_e7320_c_c_b.c   Anim_TitanBlade
+  asm/rom_c9000/rom_e7320_c_c_c.s   the .rodata tail
+
+`python3 tools/split_s.py asm/rom_c9000/rom_e7320_c_c.s Anim_TitanBlade
+--dry-run` REFUSES until the exports exist, and names three crossings:
+
+  _a.s references .Leef0c   (Anim_Ragnarok's, still in asm)
+  _b.s references .Leef12   (TitanBlade's own)
+  _b.s references .Leef18   (TitanBlade's own)
+
+The brief's two labels -- .Leef12 and .Leef18 -- are correct for THIS FUNCTION
+and they are NOT the whole requirement.  split_s.py's own remedy block lists
+TWELVE `.global` lines, and datacheck attributes every one of them:
+
+  BaseAnim_Meteor    .Leee76  .Leeea0  .Leeebc  .Leeeca
+  Anim_Ramses        .Leeed8  .Leeee1  .Leeeea  .Leeef8
+  Anim_Ragnarok      .Leef06  .Leef0c
+  Anim_TitanBlade    .Leef12  .Leef18
+
+Only .Leef0c actually crosses on THIS cut, but the tool asks for all twelve and
+that is the cheap outcome, not an inconvenience: A `.global` EMITS NO BYTES, so
+adding all twelve in ONE `make compare`-gated commit is byte-neutral and makes
+every LATER split of this file free of asm work.  Four of the eight functions in
+here are already parked in src/non_matching/rom_c9000 (Anim_DragonCloud,
+Anim_Annihilation, Anim_Ragnarok, and Anim_Ramses' neighbours), so the file will
+be cut more than once and the twelve-export commit pays for itself immediately.
+Do the exports FIRST, verify compare, and only then split -- that is the tree's
+recorded discipline and it keeps a layout mistake distinguishable from a bad
+decompilation.
+
+Func_80e7338, Func_80e73a0, Anim_DragonCloud and Anim_Annihilation read no data
+label and need nothing.
+
+LINKER SCRIPT: stage1.ld names this object TWICE -- line 1932 `(.text)` and
+line 1993 `(.rodata)`.  The .rodata line must end up on the piece that KEEPS the
+data, i.e. the _c piece.  The batch-300 hazard is live here.
+
+`tools/split_s.py` was run ONLY with `--dry-run`.  No file in the tree was
+touched by this recon.
+
+ORACLES, STRONGEST FIRST
+========================
+Anim_Ragnarok is the function IMMEDIATELY BEFORE this one in the same .s and is
+parked at 296 of 584 with size exact, all 49 relocations exact and the frame
+exact -- so its header is the family prologue for this file, already reconciled
+against this exact .rodata run and this exact linker entry.  Read it first.
+src/non_matching/rom_c9000/Anim_Annihilation.c and Anim_DragonCloud.c are two
+more parks from the same object.
+
+FROM BATCH 308B, THE TWO LEVERS THAT MOVED THE MOST AND WHY THEY APPLY HERE
+===========================================================================
+Both of this batch's big steps came from reading REGISTERS, not meaning, and
+both are cheap to try on a first candidate:
+
+1. THE SPILL-SLOT MAP IS THE DECLARATION LIST.  Reload assigns spill slots in
+   increasing pseudo number, expand_decl creates pseudos in declaration order
+   after the parms, and the frame grows DOWN -- so sort the reference's spilled
+   scalar offsets descending and that IS the declaration order, parameters
+   first.  Address-taken aggregates sit ABOVE all of them, also declaration
+   order descending.  On Anim_Djinni this pinned every offset in the function
+   before any register work; on Anim_CriticalHit a slot that sat BELOW a
+   gcse-created pseudo proved a local I had declared could not be declared at
+   all.
+
+2. A REGISTER THAT REPEATS ACROSS DISJOINT LOOPS DEFINES THE VARIABLE
+   PARTITION.  Worth 471 encodings on Anim_Djinni and 20 on Anim_CriticalHit.
+   Tabulate which hard register each loop's walker and each loop's counter uses;
+   loops that share a register share a variable, loops that do not each need
+   their own.  A COUNTER IN r9/r10 is the tell that it is shared across MORE
+   loops than you have written, because gcc-2.96 ranks allocnos by roughly
+   log2(n_refs)/live_length -- summing disjoint ranges LOWERS priority into the
+   high registers -- and Thumb-1 then pays two extra instructions per loop for
+   the placement.  Our stream being SHORT is the signature.
+
+Ragnarok is 584 encodings across many loops, so item 2 is likely to be worth
+more here than anything else on the list.

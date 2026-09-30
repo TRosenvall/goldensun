@@ -1,0 +1,643 @@
+/* Anim_Djinni -- 0x080de2f8, 696 ROM instructions (738 encodings).
+ *
+ * NON-MATCHING, 26 of 738 encodings differ.
+ *
+ * MEASUREMENT -- THIS COUNT IS A TRUE DISTANCE, NOT A SATURATED ONE.
+ * SIZE IS EXACT and the instruction COUNT IS EXACT (ref 738, ours 738), so the
+ * 26 is meaningful and ranks directly.  objcmp prints no SIZE line and the
+ * first differing index is 107.  aligncmp ranks within that:
+ *
+ *     aligned-equal 724 of 738 = 98.1%,  25 differing/ins/del in 12 hunks
+ *
+ * RELOCATIONS: 76 rows both sides, COMPLETE AND IN THE SAME SYMBOL SEQUENCE --
+ * every callee, every pooled symbol, both `__divsi3` sites, the five jump-table
+ * `.text` words and all four `_call_via` veneers present exactly once in the
+ * ROM's order.  TWO rows differ and both are `_call_via_rN` veneer REGISTERS
+ * (the last two: ref r5 / ours r6, the epilogue clear-helper pointer).  Every
+ * offset matches except the four rows inside the three residual hunks.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/Anim_Djinni.c \
+ *     asm/rom_c9000/rom_dd2ac_c_c_c.s --func Anim_Djinni
+ *
+ * SPLIT SHAPE: TEXT/DATA SPLIT, THREE WAYS, AND NINE NEW EXPORTS -- NONE OF
+ * THEM FOR THIS FUNCTION.  `tools/datacheck.py` says
+ * "Anim_Djinni reads no data label -> split needs NO new export", and
+ * `tools/split_s.py ... Anim_Djinni --dry-run` REFUSES until nine `.global`
+ * lines exist, all of them for the two functions that STAY IN ASM and lose
+ * file-local access to the .rodata tail when it leaves with the _c piece:
+ *
+ *   asm/rom_c9000/rom_dd2ac_c_c_c_a.s  Anim_Thorn + Anim_Bolt   (asm as-is)
+ *   src/rom_c9000/rom_dd2ac_c_c_c_b.c  THIS FILE
+ *   asm/rom_c9000/rom_dd2ac_c_c_c_c.s  the .rodata tail
+ *
+ *   for Anim_Thorn:  .global .Leeba6  .Leebae  .Leebb6  .Leebb9
+ *                            .Leebc0  .Leebc8
+ *   for Anim_Bolt:   .global .Leebd6  .Leebe2  .Leebe6
+ *
+ * Twelve further labels in that tail (.Leeb48 ... .Leeb96) are ALREADY
+ * `.global` from the split that landed Anim_Vine, so they need nothing.  DO NOT
+ * emit any blob from C: they sit in the middle of a 21-blob run and moving one
+ * out of the middle moves its address -- the rule Anim_Vine's landed note
+ * states for .Leeb96 in this very file.
+ *
+ * stage1.ld names this object TWICE -- line 1876 `(.text)` and line 1976
+ * `(.rodata)`.  The .rodata line must move to the _c piece; the batch-300
+ * hazard is live here and was checked by grepping the script for the stem.
+ * `split_s.py` was run ONLY with `--dry-run`.
+ *
+ * SHIMS: NONE.  `python3 tools/shimcount.py` reports zero rows for this file --
+ * PIN-FREE, no barriers, no per-file flag override, no fakematch.txt row.
+ *
+ * ================================================================
+ * THE ONE THAT MATTERS: THE SPILL-SLOT MAP IS A READOUT OF THE ROM'S
+ * DECLARATION ORDER, AND THE REGISTER ALLOCATOR THEN FOLLOWS
+ * ================================================================
+ *
+ * First candidate: 530 of 738, size and count ALREADY EXACT, relocations
+ * already complete and in order.  Everything after that was ordering, and the
+ * frame told me the order.  `sub sp, #0x6c` decomposes as
+ *
+ *   0x00-0x07  outgoing args        0x30-0x3b  v      (Func_80e3944 output)
+ *   0x08       a loop temp (-t)     0x3c-0x47  v2     (the burst's sin input)
+ *   0x0c       a compiler temp      0x48-0x53  delta
+ *              (&delta)             0x54-0x5f  tgt
+ *   0x10-0x2c  reload spill slots   0x60-0x6b  cur
+ *
+ * FRAME_GROWS_DOWNWARD IS IN FORCE IN THIS BUILD, so the FIRST-declared local
+ * gets the HIGHEST address.  That is checkable against a landed file rather
+ * than assumed: src/rom_c9000/rom_dd2ac_c_c_b.c (Anim_Vine, matching) declares
+ * `vec3_t a; vec3_t b; int p1; int p2; DrawFn d[2];` and its generated .s puts
+ * them at sp+36, sp+24, sp+20, sp+16, sp+8 -- declaration order, descending.
+ *
+ * So the five address-taken aggregates must be declared cur, tgt, delta, v2, v
+ * -- highest address first -- and that was right on the first candidate.
+ *
+ * THE NEW PART IS THE SPILL REGION.  Reload calls `alter_reg` in increasing
+ * PSEUDO number, pseudos are created by `expand_decl` in DECLARATION ORDER
+ * after the parms, and the frame grows down -- so the spill slots at
+ * 0x2c downward are the ROM's declaration order, one variable per slot, and
+ * they can simply be READ OFF THE REFERENCE:
+ *
+ *   0x2c  the `sel` parameter (parms get pseudos before locals)
+ *   0x28  base        0x1c  d0 (gPtrs[0x2e])
+ *   0x24  ctx         0x18  base2 (iwram_3001eec[2])
+ *   0x20  d1 (gPtrs[0x2f])   0x14  frames        0x10  a2 (the second actor)
+ *
+ * My first candidate declared base, ctx, base2, a2, d0, d1, frames and landed
+ * them at 0x28, 0x24, 0x20, 0x1c, 0x18, 0x14, 0x10 -- SAME RULE, WRONG ORDER,
+ * which is what confirmed the mechanism.  Reordering the declarations to
+ * base, ctx, d1, d0, base2, frames, a2 was worth 530 -> 527 and moved the first
+ * differing index from 18 to 29.  Small in encodings, decisive as a lever: it
+ * pins every spill offset in the function, and nothing else can move after.
+ *
+ * > A SPILLED SCALAR'S FRAME OFFSET IS ITS DECLARATION RANK.  Read the offsets
+ * > off the reference, sort them descending, and that IS the declaration list
+ * > -- parameters first.  Doing this before touching registers is what made
+ * > everything below measurable.
+ *
+ * ================================================================
+ * THE LEVERS THAT PAID, IN ORDER, WITH FIGURES
+ * ================================================================
+ *
+ * (1) THE ORACLE FIRST, AND IT IS WORTH MORE THAN ANY LEVER.
+ *     src/rom_c9000/rom_dd2ac_c_c_b.c (Anim_Vine) is the SAME STEM, matching,
+ *     and calls this function -- so its `Anim_Djinni(context, 4, f4, 4, &p1,
+ *     &p2)` fixes the signature for free, including that the 5th and 6th
+ *     arguments are the write-only `int *` at sp+0x8c and sp+0x90.
+ *     src/rom_c9000/rom_d9ab8_c_c_c_c_c_b.c (Anim_Fireball, matching) is the
+ *     same animation family and supplied, verbatim in shape: the
+ *     `pp = g; base = *pp++; ctx = *pp;` ldmia idiom, `(int *)*_GetBattleActor
+ *     (...)` with `extern int *_GetBattleActor(int)`, `extern void *gPtrs[]`
+ *     with `gPtrs[0x2e]` / `gPtrs[0x2f]` (NOT `iwram_3001f0c`, which would pool
+ *     the wrong symbol), `MatrixSetLook(cam, (char *)cam + 0xc)`,
+ *     `sin(a) * amp >> 6` with the magnitude named SECOND, the explicit
+ *     `(unsigned)(frame - K) <= N` range test, `w = C - (v.z - K) / 64` with
+ *     `Data_ede48[w - 1]` and `w * 2` last, and `REG_BLDALPHA = 0x1010`
+ *     written DIRECTLY -- no `int` carrier, which settles the recorded
+ *     contradiction for THIS function by measurement on a matching sibling.
+ *     First candidate on that base: 530 of 738 with size, count AND the whole
+ *     relocation sequence already exact, for one compile.
+ *
+ * (2) TWO WALKING POINTERS WHERE I HAD ONE, TWICE OVER: 527 -> 56, i.e.
+ *     471 encodings in a single edit, aligncmp 72.5% -> 94.0%.  THE LARGEST
+ *     STEP ON THIS FUNCTION BY AN ORDER OF MAGNITUDE.
+ *
+ *     This function walks `gBuffer` twice (the 0x40-entry seeding loop before
+ *     the frame loop, and the 0x20-entry draw loop inside it) and the
+ *     `base + (0xe1 << 7)` array twice (the t == 0x40 reseed and the t > 0x3f
+ *     sweep).  I gave each array ONE walker.  The reference gives the seeding
+ *     loop r7, the draw loop r6, the reseed r7 and the sweep r5 -- FOUR
+ *     quantities in three registers, which is not what one pseudo per array
+ *     can produce.
+ *
+ *     THE TELL IS THAT A REGISTER APPEARS TWICE AND A THIRD VALUE DOES NOT
+ *     FIT: reuse across the seeding loop and the reseed (both r7) is real and
+ *     wanted -- disjoint ranges, one pseudo, the recorded reuse lever -- but
+ *     the draw loop and the sweep each need a pseudo OF THEIR OWN, because
+ *     they are live simultaneously with the accumulators around them.  The
+ *     split is:
+ *
+ *       p   seeding loop AND the t == 0x40 reseed   (r7, inherited)
+ *       b   the 0x20-entry draw loop                (r6, block-scoped)
+ *       sw  the t > 0x3f sweep                      (r5)
+ *
+ *     Splitting only the draw loop was worth 3 (527 -> 526, 75.2%); splitting
+ *     only the sweep was not measured alone; BOTH TOGETHER were worth 470 more.
+ *     THAT IS THE RESULT: the two splits are not additive, they are a single
+ *     allocation, and a walker split measured one at a time reads as inert
+ *     when its partner is missing.  This is the sixth converse pair in the
+ *     record and the first where the pair had to be applied SIMULTANEOUSLY.
+ *
+ * (3) `i = 0;` BEFORE THE `base + K` WALKER, at both reseed and sweep, plus
+ *     `kind -= 4;` before `frames = 0x54;`, plus naming the second `sx`/`sz`
+ *     pair in declaration order sz-then-sx while assigning sx first:
+ *     56 -> 37, 94.0% -> 96.6%.  The first is Anim_Vine's recorded
+ *     "assign the base + K pointer LAST"; the reference materialises `mov r8,
+ *     rN` for the counter BEFORE the `adds r7, r2, r3` that forms the pointer,
+ *     at both sites.  The sz/sx part is the declaration-rank rule again applied
+ *     to two pseudos that never reach the frame: the reference puts the FIRST
+ *     shift computed (sx) in the HIGHER register r5 and the second (sz) in r4,
+ *     which is what declaring sz first and assigning sx first produces.
+ *
+ * (4) NAMING THE THIRD SHIFT: 37 -> 26, 96.6% -> 97.8%.  The velocity
+ *     integration reads `-p->x >> 7`, `-p->z >> 7` and `-p->y >> 7`; the x and
+ *     z values are used twice each (once in the add, once in the +-0x7ff range
+ *     test) so they were locals from the start, and the y value is used ONCE
+ *     and was inline.  Naming it anyway -- `sy` -- is worth eleven encodings.
+ *     THE MECHANISM IS EXPAND POSITION, NOT ALLOCATION: inline, the `ldr
+ *     [r6,#4]` is expanded inside the `p->vy = p->vy + ...` statement and so
+ *     lands after the vx work; named, it is its own statement next to the z
+ *     shift and sched2 pairs the two loads the way the ROM does.
+ *
+ *     > A ONE-USE SUBEXPRESSION CAN STILL WANT A NAME.  The usual rule is that
+ *     > a value used twice is a local and a value used once is not; here the
+ *     > name buys nothing in allocation and everything in EXPAND ORDER, which
+ *     > is sched2's tie-break.  Worth trying wherever the residue is two loads
+ *     > off one base appearing in the wrong order.
+ *
+ * (5) READING `d0` AND `d1` IN THE REFERENCE'S ORDER, i.e. `d0 = gPtrs[0x2e];`
+ *     BEFORE `d1 = gPtrs[0x2f];` while DECLARING d1 first: objcmp stays at 26
+ *     but aligncmp improves 722 -> 724 and the differing count 28 -> 25.
+ *     The declaration order is fixed by the spill map (d1 at 0x20, d0 at 0x1c)
+ *     and is NOT the same as the assignment order; separating the two is the
+ *     point.  Kept because objcmp cannot distinguish it and aligncmp can.
+ *
+ * ================================================================
+ * MECHANISMS READ OFF THE REFERENCE AND CONFIRMED BY THE FIRST CANDIDATE
+ * ================================================================
+ *
+ *   - THE FRAME LOOP IS A `while`, NOT A GUARDED do-while.  Its entry test is
+ *     `cmp r4, #0` against `frames` with t = 0 and its bottom test is
+ *     `cmp r10, r1`: that is jump.c's `duplicate_loop_exit_test` on a `for`/
+ *     `while`, exactly the recorded signature.  All FOUR inner loops are
+ *     un-guarded do-whiles and were written as such.
+ *
+ *   - `cam = iwram_3001e80;` IS DECLARED INSIDE THE FRAME LOOP BODY, one per
+ *     loop, and it is the recorded strongest lever doing its job on the first
+ *     candidate: the reference re-loads `ldr r5, [r3]` off the pooled global at
+ *     the TOP OF EVERY ITERATION and holds it in a callee-saved register across
+ *     `_PlaySound` and `InitMatrixStack`.  cse can never reuse a global's load
+ *     across a call, so only a pseudo can hold it, and only a pseudo declared
+ *     in the loop body is that pseudo.
+ *
+ *   - `Func_80d6888(st->f8, 7, -1, -1, 0)` INSIDE `if (t == 0)` COMPILES THE
+ *     LITERAL 0 OUT OF THE COMPARED REGISTER.  The reference emits
+ *     `str r1, [sp]` with r1 still holding t from the `cmp r1, #0`, while the
+ *     structurally identical call inside `if (t == 0x18)` emits
+ *     `mov r3, #0 / str r3, [sp]` and then `sub r3, #1` to build its -1.  That
+ *     is cse's `record_jump_equiv` making t == 0 a known equivalence inside the
+ *     then-block.  Writing the literal `0` at BOTH sites reproduces both forms;
+ *     writing `t` at the first site would be a different program.
+ *
+ *   - THE TWO ANGLE ACCUMULATORS IN THE DRAW LOOP ARE loop.c GIVS, not
+ *     accumulators, and the recorded `j *` rule gives them: the reference holds
+ *     `-t * (j * 32 + 256)` in r7 and `t * (j * 32 + 256)` in r9, each
+ *     incremented by a value RE-DERIVED IN THE LOOP (`ldr r4, [sp,#8]` for -t,
+ *     `mov r1, r10` for t, then `lsl #5`), which is what a giv with a variable
+ *     increment looks like.  `-t` occupies the sp+0x8 spill slot for exactly
+ *     this reason.
+ *
+ *   - `j / 8` IS RE-COMPUTED, NOT NAMED.  The reference emits the signed-
+ *     division correction `cmp r3,#0 / add r3,#7 / asr r3,#3` TWICE in the same
+ *     loop body, once for the entry guard and once for `+ 0x18`.  A named local
+ *     would emit it once.
+ *
+ *   - `(q->t >> 3) + 2` IS A SHIFT, NOT A DIVISION: `asr r0, #3` with no
+ *     correction, in a block guarded by `q->t >= 0`.  gcc-2.96 does not derive
+ *     non-negativity from that branch, so a `/ 8` here would add the
+ *     correction.  The neighbouring `- w / 2` DOES carry its correction
+ *     (`lsr r3, r0, #31 / add / asr #1`) and is therefore a real `/ 2`.  BOTH
+ *     SPELLINGS IN ONE EXPRESSION, and the printed correction says which.
+ *
+ *   - THE HIGH HALVES: `((short *)q)[1]` and `((short *)q)[3]`.  Thumb-1 has no
+ *     immediate-offset `ldrsh`, so the reference manufactures the offset --
+ *     `movs r7, #2 / ldrsh r2, [r5, r7]` -- and that register-offset form is
+ *     the tell for a signed short load at a non-zero constant offset.
+ *
+ *   - `bl _call_via_rN` OFF A POOLED SYMBOL ADDRESS MEANS THE SOURCE CALLED
+ *     THROUGH A POINTER.  Three of them here: the palette copy
+ *     (`Func_8001af8`), the two draw helpers out of `gPtrs`, and the epilogue
+ *     clear helper (`Func_80008d4`).  Each needs a local function-pointer
+ *     variable; a direct call would emit `bl Func_...`.
+ *
+ *   - `0xa0 << 19`, `0xef << 7`, `0xe1 << 7`, `0xf0 << 14`, `0x80 << 7` and
+ *     `0x90 << 3` are written as shifts because gcc-2.96's thumb constant
+ *     splitter emits `movs`+`lsls` for a shifted byte; the pooled ones
+ *     (0x77b4, 0x77b8, 0x7784, 0x7824, 0x7828, 0x6004000, 0xffff, 0x7ff,
+ *     0xffe, 0x27a, 0x1000, 0xa8, 0x1010) are not shifted bytes and reach the
+ *     pool on their own.  0xa8 IS a shifted byte and pools anyway; it is left
+ *     as a plain `0xa8 - t * 2` and is byte-exact, so nothing is owed there.
+ *
+ *   - `REG_BLDALPHA` twice, never `REG_BLDCNT`: 0x4000052 in this tree.
+ *
+ * ================================================================
+ * MEASURED AND INERT -- UNTESTED IS NOT DISPROVED, BUT THESE ARE TESTED
+ * ================================================================
+ * All of the following compiled to BYTE-IDENTICAL output to the base, 26 of
+ * 738 with the same 11-hunk aligncmp profile, i.e. the RTL never changed:
+ *   - `slot = (State **)(base + 0x7828);` moved before, between and after the
+ *     two `gPtrs` reads, and removed entirely in favour of writing
+ *     `(*(State **)(base + 0x7828))->f8` out at both uses.
+ *   - Anim_Fireball's explicit `ax`/`ay`/`az` locals for the three velocity
+ *     sums instead of `p->vx = p->vx + sx;` -- cse normalises them.
+ *   - `void **gp = gPtrs;` as a named base for the two pointer reads.
+ *   - the epilogue length as `0x4000`, as `n << 7` off a block-scoped local,
+ *     and as two separately-scoped locals.
+ *   - `ClearFn cl;` declared early rather than last.
+ * MEASURED WORSE: assigning `cl = Func_80008d4;` before the StopTask/gfree
+ * sequence instead of after it -- 26 -> 28.
+ *
+ * ================================================================
+ * THE BLOCKER, BY PASS: global_alloc/reload -- TWO REGISTER-ASSIGNMENT
+ * OUTCOMES WITH NO SOURCE HANDLE, 26 ENCODINGS IN THREE HUNKS
+ * ================================================================
+ *
+ * The residue is three hunks and not one of them changes the program.
+ *
+ * HUNK 1 (12 encodings, ref[107:119]).  The `gPtrs` / `base + 0x7828` block.
+ * Both streams contain THE SAME THIRTEEN INSTRUCTIONS; they are emitted in a
+ * different order, and the two `adds rN, #188` / `adds rN, #184` chains have
+ * their registers exchanged.  The reference does the destructive
+ * `adds r3, #0xbc` IN PLACE on the pooled `gPtrs` register and copies it to r2
+ * for the 0xb8 chain; we copy first and add on the copy.  Which chain keeps the
+ * original is local_alloc's choice about which use is last, and the eleven
+ * source orderings above -- including removing the `slot` local altogether --
+ * produce IDENTICAL RTL, so there is no statement order that reaches it.
+ *
+ * HUNK 2 (2 encodings, ref[381:383]).  `ldr r6, =gBuffer` and the `str r4,
+ * [sp,#8]` that spills `-t` are transposed in the draw loop's preheader.  Both
+ * `j = 0; b = gBuffer;` and `b = gBuffer; j = 0;` give the same output.
+ *
+ * HUNK 3 (12 encodings, ref[698:710]).  The epilogue.  The reference
+ * REMATERIALISES `movs r1, #0x80 / lsls r1, #7` at each of the two clear calls
+ * and spends r5 on the function pointer; we win r5 for the CONSTANT, hold
+ * 0x4000 across `bl StopTask` in it, and copy it into r1 twice -- so our
+ * pointer is pushed to r6 and both veneers become `_call_via_r6`.  That is the
+ * whole `_call_via` discrepancy in the relocation table.  The reference's form
+ * is what reload does when a pseudo with a constant REG_EQUIV FAILS to get a
+ * hard register: it rematerialises instead of spilling.  Ours succeeds, which
+ * is cheaper and wrong.  Writing the constant four different ways did not stop
+ * cse unifying the two occurrences into one pseudo, and lengthening the
+ * pointer's live range to outrank it measured WORSE (28).
+ *
+ * RULED OUT, with what was measured:
+ *   - NOT a mis-read program.  Size and instruction count are exact, all 76
+ *     relocations are present in the ROM's order, and I read the immediates
+ *     inside every differing hunk: there is not one constant, shift amount,
+ *     structure offset or branch condition that differs.  The only differing
+ *     relocation rows are two veneer register numbers.
+ *   - NOT sched1: it does not run in this build.
+ *   - NOT a FILE-STRUCTURE refusal: the split is understood, byte-neutral by
+ *     construction, and the nine exports are enumerated above and confirmed by
+ *     `split_s.py --dry-run`.
+ *   - NOT the pin class: shimcount is zero and no pin was tried.
+ *   - NOT declaration order: every spill offset in the function is exact, which
+ *     is the direct evidence that the declaration list is now the ROM's.
+ *
+ * NEXT MOVE: hunks 1 and 3 are the same class -- two pseudos competing for one
+ * hard register where the ROM's loser is rematerialised or copied.  The handle,
+ * if there is one, is a THIRD live quantity near each site raising the pressure
+ * by exactly one, not a restatement of what is already there.  Hunk 3 is the
+ * cheaper experiment because its region is eleven instructions long and its
+ * two competitors are named.
+ */
+#include "gba/types.h"
+#include "gba/io.h"
+#include "file_table.h"
+
+typedef int (*DrawFn)(void *ctx, void *src, int x, int y, int w, int h);
+typedef void (*CopyFn)(void *dst, void *src, int len);
+typedef void (*ClearFn)(void *dst, int len);
+
+typedef struct {
+    int f0, f4, f8, fc, f10, f14, f18, f1c, f20;
+    short ids[4];
+} State;
+
+typedef struct {
+    int x, y, z, vx, vy, vz, t;
+} Part;
+
+extern void *iwram_3001eec[];
+extern void *iwram_3001e80;
+extern void *gPtrs[];
+extern Part gBuffer[];
+extern unsigned short Data_ede48[];
+
+extern void AnimStart(int n);
+/* GetFile comes from file_table.h */
+extern int DecompressLZ(void *src, void *dst);
+extern void LoadVFXFile(int id, void *dst, int a, int b);
+extern int BuildDraw2DFuncEx(int idx, int a, int b, int c, int d);
+extern int *_GetBattleActor(int id);
+extern int Random(void);
+extern int sin(int a);
+extern int cos(int a);
+extern void StartTask(void *fn, int arg);
+extern void StopTask(void *fn);
+extern void Task_BlitAnim(void);
+extern void Func_80cd4b4(void);
+extern void InitMatrixStack(void);
+extern void MatrixSetLook(void *a, void *b);
+extern void MatrixTranslatev(vec3_t *v);
+extern void MatrixPush(void);
+extern void MatrixPop(void);
+extern void MatrixYaw(int a);
+extern void MatrixPitch(int a);
+extern void MatrixRoll(int a);
+extern int Func_80e3944(vec3_t *in, vec3_t *out);
+extern void Func_80e38b8(Part *p, int a, int b);
+extern void Func_80e3908(Part *p, int a, int b);
+extern void Func_80d6888(int id, int a, int b, int c, int d);
+extern void _PlaySound(int id);
+extern void WaitFrames(unsigned int n);
+extern void gfree(int tag);
+extern void Func_8001af8(void *dst, void *src, int len);
+extern void Func_80008d4(void *dst, int len);
+
+void Anim_Djinni(void *context, int kind, int mode, int sel, int *outx, int *outy)
+{
+    vec3_t cur;
+    vec3_t tgt;
+    vec3_t delta;
+    vec3_t v2;
+    vec3_t v;
+    void **g;
+    void **pp;
+    unsigned char *base;
+    void *ctx;
+    DrawFn d1;
+    DrawFn d0;
+    void *base2;
+    int frames;
+    State **slot;
+    int *a1;
+    int *a2;
+    void *f;
+    int fid;
+    int arg;
+    int t;
+    int i;
+    Part *p;
+    Part *q;
+    Part *sw;
+    CopyFn cp;
+    ClearFn cl;
+
+    g = iwram_3001eec;
+    pp = g;
+    base = (unsigned char *)*pp++;
+    ctx = *pp;
+    base2 = g[2];
+    *(State **)(base + 0x7828) = (State *)context;
+    AnimStart(0);
+    *(int *)(base + 0x77b4) = 0x18;
+    *(int *)(base + 0x77b8) = 0;
+    if (kind > 3) {
+        kind -= 4;
+        frames = 0x54;
+    } else {
+        frames = 0x40;
+    }
+    switch (kind) {
+    case 0:
+        fid = FILE_94;
+        break;
+    case 1:
+        fid = FILE_92;
+        break;
+    case 2:
+        fid = FILE_8e;
+        break;
+    default:
+        fid = FILE_90;
+        break;
+    }
+    f = GetFile(fid);
+    cp = Func_8001af8;
+    cp((void *)(0xa0 << 19), f, 0x80);
+    f = (char *)f + 0x80;
+    DecompressLZ(f, base);
+    LoadVFXFile(FILE_73, base2, 0, 0);
+    if (mode == 1) {
+        BuildDraw2DFuncEx(0x2e, 7, 7, 7, 3);
+        BuildDraw2DFuncEx(0x2f, 7, 7, 7, 2);
+    } else {
+        BuildDraw2DFuncEx(0x2e, 7, 7, 3, 3);
+        BuildDraw2DFuncEx(0x2f, 7, 7, 3, 2);
+    }
+    slot = (State **)(base + 0x7828);
+    d0 = (DrawFn)gPtrs[0x2e];
+    d1 = (DrawFn)gPtrs[0x2f];
+    a1 = (int *)*_GetBattleActor((*slot)->f8);
+    a2 = (int *)*_GetBattleActor((*slot)->ids[0]);
+    p = gBuffer;
+    i = 0;
+    do {
+        int ang = Random() & 0xffff;
+        int mag = (Random() & 0xff) + 0x80;
+        p->x = 0;
+        p->y = ((Random() & 0x1f) + 0x14) << 16;
+        p->z = 0;
+        p->vx = sin(ang) * mag >> 5;
+        p->vy = 0;
+        p->vz = cos(ang) * mag >> 5;
+        p->t = 0;
+        i++;
+        p++;
+    } while (i != 0x40);
+    *(int *)(base + (0xef << 7)) = 2;
+    *(int *)(base + 0x7784) = 0x4b;
+    arg = 0x90;
+    arg <<= 3;
+    StartTask(Task_BlitAnim, arg);
+    cur.x = a1[2];
+    cur.y = 0;
+    cur.z = a1[4];
+    switch (sel) {
+    case 0:
+        tgt.x = a2[2];
+        tgt.y = 0xf0 << 14;
+        tgt.z = a2[4];
+        break;
+    case 1:
+        tgt.x = a2[2];
+        tgt.y = 0xf0 << 14;
+        tgt.z = 0;
+        break;
+    case 2:
+        tgt.x = a1[2];
+        tgt.y = 0xf0 << 14;
+        tgt.z = a1[4];
+        break;
+    case 3:
+        tgt.x = a1[2];
+        tgt.y = 0xf0 << 14;
+        tgt.z = 0;
+        break;
+    case 4:
+        tgt.x = 0;
+        tgt.y = 0xf0 << 14;
+        tgt.z = 0;
+        break;
+    }
+    delta.x = (tgt.x - cur.x) / 0x28;
+    delta.y = (tgt.y - cur.y) / 0x28;
+    delta.z = (tgt.z - cur.z) / 0x28;
+    t = 0;
+    while (t != frames) {
+        void *cam = iwram_3001e80;
+        Part *b;
+        int j;
+        if (t > 0x4b) {
+            REG_BLDALPHA = (0xa8 - t * 2) | 0x1000;
+        }
+        if (t == 8) {
+            _PlaySound(0xd4);
+        }
+        InitMatrixStack();
+        MatrixSetLook(cam, (char *)cam + 0xc);
+        if ((unsigned)(t - 6) <= 0x27) {
+            cur.x += delta.x;
+            cur.y += delta.y;
+            cur.z += delta.z;
+        }
+        MatrixTranslatev(&cur);
+        if (t == 0) {
+            Func_80d6888((*(State **)(base + 0x7828))->f8, 7, -1, -1, 0);
+        }
+        if (t == 0x18) {
+            Func_80d6888((*(State **)(base + 0x7828))->f8, 0, -1, -1, 0);
+        }
+        j = 0;
+        b = gBuffer;
+        do {
+            if (t >= j / 8 && b->t == 0) {
+                int w;
+                MatrixPush();
+                switch (j & 3) {
+                case 0:
+                    MatrixYaw(t * (j * 32 + 256));
+                    break;
+                case 1:
+                    MatrixPitch(-t * (j * 32 + 256));
+                    break;
+                case 2:
+                    MatrixRoll(-t * (j * 32 + 256));
+                    break;
+                case 3:
+                    MatrixPitch(-t * (j * 32 + 256));
+                    MatrixRoll(-t * (j * 32 + 256));
+                    break;
+                }
+                Func_80e3944((vec3_t *)b, &v);
+                v.x >>= 1;
+                MatrixPop();
+                if (v.z <= 0xf9) {
+                    v.z = 0xfa;
+                }
+                if (v.z > 0x27a) {
+                    v.z = 0x27a;
+                }
+                w = 8 - (v.z - 0xfa) / 64;
+                d1(ctx, (char *)base2 + Data_ede48[w - 1], v.x - w / 2, v.y - w, w,
+                   w * 2);
+                Func_80e38b8(b, 0x3c, 0);
+                if (t >= j / 8 + 0x18) {
+                    int sz;
+                    int sx;
+                    int sy;
+                    sx = -b->x >> 7;
+                    sz = -b->z >> 7;
+                    sy = -b->y >> 7;
+                    b->vx = b->vx + sx;
+                    b->vy = b->vy + sy;
+                    b->vz = b->vz + sz;
+                    b->vx = b->vx * 62 / 64;
+                    b->vy = b->vy * 62 / 64;
+                    b->vz = b->vz * 62 / 64;
+                    if ((unsigned)(sx + 0x7ff) <= 0xffe
+                        && (unsigned)(sz + 0x7ff) <= 0xffe) {
+                        b->t = -1;
+                    }
+                }
+            }
+            j++;
+            b++;
+        } while (j != 0x20);
+        if ((unsigned)(t - 0x36) <= 0xf) {
+            v2.x = sin(t << 10) << 2;
+            v2.y = 0;
+            v2.z = 0;
+            Func_80e3944(&v2, &v);
+            *outx = v.x;
+            *outy = v.y;
+            v.x >>= 1;
+            d0(ctx, base, v.x - 0xa, v.y - 0x14, 0x14, 0x28);
+        }
+        if (t == 0x40) {
+            i = 0;
+            q = (Part *)(base + (0xe1 << 7));
+            do {
+                int ang = Random() & 0xffff;
+                int mag = (Random() & 0xff) + 0x80;
+                q->x = *outx << 15;
+                q->y = *outy << 16;
+                q->vx = sin(ang) * mag >> 6;
+                q->vy = cos(ang) * mag >> 5;
+                q->t = (Random() & 0xf) + 8;
+                i++;
+                q++;
+            } while (i != 0x40);
+        }
+        if (t > 0x3f) {
+            i = 0;
+            sw = (Part *)(base + (0xe1 << 7));
+            do {
+                if (sw->t >= 0) {
+                    int w = (sw->t >> 3) + 2;
+                    d0(ctx, (char *)base2 + Data_ede48[w - 1],
+                       ((short *)sw)[1] - w / 2, ((short *)sw)[3] - w, w, w * 2);
+                    Func_80e3908(sw, 0x3c, 0);
+                    sw->t = sw->t - 1;
+                }
+                i++;
+                sw++;
+            } while (i != 0x40);
+        }
+        *(int *)(base + 0x7824) = 1;
+        WaitFrames(1);
+        t++;
+    }
+    StopTask(Task_BlitAnim);
+    gfree(0x2f);
+    gfree(0x2e);
+    StopTask(Func_80cd4b4);
+    cl = Func_80008d4;
+    cl((void *)0x6004000, 0x80 << 7);
+    cl(ctx, 0x80 << 7);
+    REG_BLDALPHA = 0x1010;
+}
