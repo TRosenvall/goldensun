@@ -26457,3 +26457,67 @@ one pool word, no missing instruction.
 So a small size deficit alongside an exact count is worth checking against the pool before assuming
 code is absent. (The converse trap is already recorded: an exact count does not mean close — that
 function is still only 50.6% aligned.)
+
+## A one-digit asm-label extern can bind to gcc's OWN branch target — a wrong program, silently
+
+The capture hazard is real, and `OvlFunc_common1_1b08` is the measured case. That function needs
+**`.L4` and `.L5`** as asm-label externs, and its own generated assembly **defines both**:
+
+```
+.L2:  .L3:  .L4:  .L5:  .L10:  .L14:  .L19:  .L22:  .L24:  …  .L29:
+```
+
+So `extern int L4 __asm__(".L4");` binds to **gcc's branch target**, not the data label. That is a
+**wrong program with no build error and no link error** — the assembler resolves it to the wrong
+address and nothing complains. With ~29 gcc-generated labels in that function, no source spelling
+avoids the collision.
+
+**Screen for it before writing an asm-label extern:** if the label number is one or two digits,
+generate the candidate's `.s` and grep for a definition of that exact label. Four-digit labels
+(`.L16c0`, `.Lee064`) are safe in practice because gcc's counter does not reach them.
+
+The remedy is to rename the data label and export the new name — but that edits a **shared** data
+file which three overlays link, so it is an owner decision, not a candidate-level fix.
+
+## The stacked-argument pair rule
+
+From `OvlFunc_891_200905c`, which closed 136 → 0 on it: **one local per stacked argument, one set
+per call site, assigned in ascending argument order.** Every deviation was measured:
+
+- **sharing one pair across six sites** gets the registers backwards — and note this is
+  *global*-alloc, not local-alloc, deciding it;
+- **reversing the assignment order** gets the registers right and the *order* backwards (12
+  differing);
+- **naming only the fifth argument** is **worse than naming neither** (18 differing).
+
+That last one is the useful shape: a partial application of a lever can be worse than not applying
+it, so a lever measured "inert or worse" on one site is not evidence against the full rule.
+
+## Pointer signedness decides whether a range test stays HImode
+
+Same function: the range test is HImode, and **the pointer's signedness decides the form.**
+A `short *` gives the ROM's `sub r3, #3`; an `unsigned short *` folds `-3` to `0xfffd`, **pools
+it**, and then derives `0x10000` from the pool word — a different shape entirely. When a range test
+comes out with a pooled constant you did not expect, check the pointer type before the expression.
+
+## A hard pin can hold the register and still make things worse
+
+On `OvlFunc_880_2008de4` the ROM keeps `out` in **r11** where we spill it, which is why our frame is
+0x44 against 0x40 and every stack offset moves. An `__asm__("r11")` pin **does** hold it there — and
+aligned-equal **falls from 39.7% to 35.5%**, because something else then spills.
+
+So the lever is **reducing the competing pressure, not pinning**. This is now the third independent
+measurement of that conclusion (after a `global.c` pairwise swap and the hand-coalescing result),
+and together with today's `REG_ALLOC_ORDER` experiment it is the settled shape of this whole class.
+
+## Two more measured negatives worth not repeating
+
+**A `static inline` helper taking `unsigned int **` does not force a cursor to memory.** The ROM
+keeps its output cursor in memory (`ldr [sp,#0xc] / stmia r2!,{r3} / str r1,[sp,#0xc]` — stored back
+after each increment, never reloaded within a record), and wrapping the triple in the family's own
+helper idiom makes it **worse**, 33.5% → 23.6%, because gcc-2.96 sees through `*wp` after inlining.
+
+**One table, two access idioms in one function.** On `OvlFunc_880_2008de4` the item loop indexes by
+a **byte offset** (worth 33.9% → 39.1%) while the *other three scans of the same table* are genuine
+pointer walks. So "how does this function walk this table" has to be answered per loop, not per
+table — the fourth converse-in-one-function case recorded this week.

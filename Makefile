@@ -448,6 +448,21 @@ asm/overlays/rom_7d30e0/ovl_30_c_a_c_c_a_a_c_c_c_c_c_c_c_c_b.o: src/overlays/rom
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# CSE_CFLAGS, batch 301.  OvlFunc_891_200905c reads save bits 0x30a and 0x30b, and
+# the ROM RELOADS each from the pool a second time where -O2 hoists them into
+# callee-saved registers -- the same pool-constant CSE shape as the two rules above,
+# with a branch between the uses, which is the half -fno-rerun-cse-after-loop reaches
+# (-fno-gcse does not).  At -O2 the candidate reads 96 differing of 472 and 1120 bytes
+# against 1116, i.e. three instructions long and 94.7% aligned; with the flag it is
+# byte-exact at 1116 bytes, 472 encodings and 74 relocations.  The candidate also
+# carries 19 register pins in 17 PIN3 blocks, minimised to a fixpoint -- every one of
+# the 17 blocks was dropped and remeasured and NONE is inert, the cheapest drop costing
+# 3 encodings -- so it is booked in fakematch.txt as well.
+asm/overlays/rom_78c76c/ovl_30_c_c_a_c_c_a_a_c_a.o: src/overlays/rom_78c76c/ovl_30_c_c_a_c_c_a_a_c_a.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 # OvlFunc_924_20094cc: flag id 0x256 tested before the guard branch and set
 # after it -- the guard/set shape, first use dominating.  Prologue a register
 # wider at -O2, exact here.
