@@ -27990,6 +27990,36 @@ whole class of later confusion.
 earlier finding that a call temp cannot outrank a function-level declaration, the frame is a timeline:
 anything below a compiler-made pseudo was made by a pass, not written by a programmer.
 
+## A REGISTER REPEATING ACROSS DISJOINT LOOPS SUGGESTS THE PARTITION — but it is NOT PROOF, and the direction is not fixed
+
+**BOUNDED IN BATCH 309, and the bound matters as much as the lever.** Two things the original
+statement got wrong:
+
+**1. A shared hard register is not evidence of one variable.** On `BaseAnim_RapidSlash`, r8 appears in
+all three loops **precisely because those ranges do not conflict** — the allocator is free to reuse one
+register for three separate quantities. That is exactly the shape the lever invites you to read
+backwards. **Splitting** that counter into three was worth 41.0% → 47.3%, the largest step on the
+function.
+
+**2. The direction is not fixed, and one batch produced both.** From *identical r8 evidence*:
+
+| function | edit | worth |
+|---|---|---|
+| `BaseAnim_RapidSlash` | **split** one counter into three | 41.0% → 47.3% (+6.3) |
+| `Anim_TitanBlade` | **unify** nine counters into one | 52.2% → 60.8% (+8.6) |
+
+On `TitanBlade` the unification moved **size, count and aligned all toward the reference together**
+(−36 → −20, −17 → −9), with r8 ending at 37 references against the ROM's 38 — which is the kind of
+corroboration a single figure cannot give.
+
+**So try both directions. They are one edit apart and large either way**, and the register evidence
+alone does not tell you which. What *does* discriminate is the reference's **reference count** on that
+register: compare it against your candidate's.
+
+The original entry follows, and its non-additivity warning still holds exactly — three pure *reorder*
+probes were inert on `Func_8025200` while the whole partition at once moved 69 encodings.
+
+### ~~Original statement (too strong: "defines the partition")~~
 ## A REGISTER REPEATING ACROSS DISJOINT LOOPS DEFINES THE VARIABLE PARTITION — and the splits are NOT ADDITIVE
 
 Worth **527 → 56 on `Anim_Djinni` in one edit** (72.5% → 94.0%), and 43 → 23 plus 71.7% → 89.4% on
@@ -28235,3 +28265,40 @@ the aligned figure each turned out to be right once.
 `mov / lsl / str` blocks are **gcse/PRE insertions on every edge that redefines `row`** — writing them
 by hand makes gcc cross-jump them away (+6 instructions). Same family as "a value stored on three paths
 is PRE's pseudo, not a source variable".
+
+## WHEN TWO TRUSTED RULES CONFLICT: ACCESS COUNT BEAT SLOT ORDER BY 12
+
+A clean, measured collision between two rules this document states confidently, worth recording as a
+precedence rather than leaving both to be cited.
+
+On `BaseAnim_RapidSlash` the ROM's **slot map says `variant << 3` is a declared local** — it sits at
+0x3c, above two pass-created pseudos, and by the spill-slot rule that makes it a declaration.
+**Declaring it costs 12 encodings**, because the ROM **recomputes the subtraction at all nine sites**
+rather than holding the value.
+
+So the access-count rule ("reproduce the ROM's number of accesses, not a tidy single read") **won over
+the slot-order rule by 12 encodings**. The resolution is not that the slot rule is wrong — it is that
+**a slot tells you a quantity existed, not that the source held it in one place.** When they disagree,
+count the accesses.
+
+Two related bounds from the same function:
+
+* **The vec-store-through-pointer lever is CONDITIONAL on the pointer being a DECLARED quantity.** It
+  was decisive on `BaseAnim_Attack` and is **inert** on `RapidSlash` — and the slot map says why: the
+  pointer there sits at 0x18, *below* the pass-created pseudos, so gcc already makes it. Check the slot
+  before reaching for the lever.
+* **`variant*8 − variant` is BYTE-IDENTICAL to `variant*7`.** `synth_mult` already emits the ROM's
+  shape, so the hand-distribution a recon prescribed was unnecessary. Distribute by hand only where the
+  ROM does **not** fold it — the recorded distribute-the-shift lever — and verify the plain form first.
+
+## The `int`-carrier load-order table, now six functions
+
+The resolved discriminator (which of the two pool loads is emitted first) applied cleanly to a sixth
+function on first reading, which is what a usable rule looks like:
+
+| ROM order | functions | spelling |
+|---|---|---|
+| **value-first** | `BaseAnim_Blob`, `BaseAnim_RapidSlash` | use the `int` carrier |
+| **address-first** | `BaseAnim_Breath`, `Anim_Ragnarok`, `BaseAnim_Nova`, `Anim_TitanBlade` | write the store directly |
+
+Read it off the reference before writing the store; it is one line of asm and costs nothing.
