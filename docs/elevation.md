@@ -26256,8 +26256,27 @@ variable, and index instead of walking.
 ## A guarded loop's shape decides whether the guard keeps its own pool load
 
 On `Anim_Venus` the ids loop must be a `while`, not `if (c) { do … } while (c)`.
-`duplicate_loop_exit_test` runs **after** gcse, so the copied guard keeps the ROM's indexed
-`ldr r3,[r7,r3]` and its own pool load while the body gets a separately hoisted address. The
+`duplicate_loop_exit_test` copies the guard, so it keeps the ROM's indexed `ldr r3,[r7,r3]` and its
+own pool load while the body gets a separately hoisted address.
+
+> **ATTRIBUTION CORRECTED (batch 301), from the gcc source rather than inference.** This entry and the
+> one below said or implied `loop.c` / "after gcse". It is **`jump.c:1137`, called from
+> `jump_optimize`**, and its gate is
+> `NOTE_INSN_LOOP_BEG && any_uncondjump_p (next_nonnote_insn (insn)) && onlyjump_p (…)`.
+> That unconditional jump after the loop note is the RTL signature of a `while`/`for`
+> (`loop_beg / jmp <bottom test> / body / test / jmp back`), and **a `do`-`while` has no such jump, so
+> the transform can NEVER fire on one** — no spelling inside the body reaches it. That is the mechanism
+> behind the empirical result, which was right for the wrong reason.
+>
+> It also explains a loose end recorded as unexplained: because the copy happens in `jump_optimize`
+> **before** `loop.c`, the duplicated block is already outside the loop body when `strength_reduce`
+> runs — which is why the ROM re-derives indexed addresses there instead of walking them. A candidate
+> that misses the transform strength-reduces them into givs and loses two high registers, and that is a
+> CONSEQUENCE, not a separate defect to chase.
+>
+> **A checkable tell, from its bail conditions:** the duplicated region will be call-free, label-free
+> and at most 20 insns — it bails on `CODE_LABEL`, `CALL_INSN`, `NOTE_INSN_LOOP_BEG/CONT`,
+> `REG_RETVAL`/`REG_LIBCALL`, `ASM_OPERANDS`, or more than 20 insns. The
 hand-written guarded form denies gcse that structure. This also brought size and instruction
 count to exact, which is the tell that the difference was structural rather than allocation.
 
@@ -26724,3 +26743,73 @@ count** while degrading the shape.
 week — after a count-matching pin at 47.7% aligned, an odd-offset union scoring 154 against the
 correct layout's 156, and an unsigned `s8` hitting the reference's size exactly while being a sign
 bug. Rank by size-and-count first, then by aligned figure; never by the raw count alone.
+
+## `allocno_compare`, verbatim — and the only three inputs a spelling can move
+
+Read out of `global.c` rather than inferred:
+
+```
+(double) (floor_log2 (n_refs) * n_refs) / live_length * 10000 * size
+```
+
+**No frequency term** (unlike the local-alloc formula), and ties break on `v1 - v2` — the **allocno
+number**, which follows pseudo-register order and therefore first use.
+
+The practical consequence is worth more than the formula: **`n_refs`, `live_length` and declaration
+order are the only three inputs a source spelling can move.** That is why a declaration-order sweep is
+inert on a function whose residue is not a tie — the sweep moves the tie-break and nothing else. Before
+sweeping declarations, establish whether the two allocnos actually tie.
+
+This is also the formula the `REG_ALLOC_ORDER` experiment redirected everything toward: the order is
+correct, so a register difference is a difference in one of these three inputs.
+
+## `fold` canonicalises a pointer PLUS, and integer arithmetic escapes it
+
+`Anim_Fireball`'s last two encodings. `fp[k]` reached as `(char *)fp + k` is **canonicalised
+pointer-first**, so the MEM's `PLUS` operands come out reversed and reload hands the two address
+reloads the opposite registers — printed identically (`ldr r4,[r5,r0]`) with the values swapped.
+
+Writing it as **integer arithmetic**, `(*(DrawFn *)(k + (int)fp))`, is not canonicalised and is exact.
+Nine other spellings are inert, including a hard-register pin and three declaration permutations.
+
+This is the same family as the register-offset operand-order lever, with the mechanism named: when two
+address reloads come out in the wrong registers and the printed asm looks identical, suspect operand
+canonicalisation and move the expression into integer arithmetic. And note the converse — **the same
+lever COSTS instructions on `Anim_Froth`**, in the same bank.
+
+## Three call-argument rules, measured across twelve sites
+
+1. **Two plain-literal stack arguments are two named locals, declared in argument order.**
+   `{ int x = 0x16, y = 7; f(…, x, y); }` reproduces the ROM's `mov / mov / str / str` **including which
+   register each takes**; declaring them reversed is wrong. Narrow: only where **neither** value is
+   reused. Worth 77 → 42 across twelve sites.
+2. **A value used as an argument of call N and again at call N+1 is a named local declared BEFORE call
+   N.** This is pseudo **birth order**, not spelling — it has to be born while the previously held value
+   is still live so that the two conflict. Worth 28 → 17, and 303 → 129 on a sibling.
+3. **Two shiftable constants in one call need dominating-block locals**, or
+   `precompute_register_parameters` hoists them ahead of the cheap argument and sched2's LUID tie-break
+   puts `mov r0` last. A 116-cell sweep plateaus at 16–18 everywhere else and drops to 4 here — and it
+   **bought a cross-jump for free**, because with `mov r0` in the middle the two arms share a
+   three-instruction tail that gcc then merges.
+
+**52 `.s` files in the tree carry that third ROM shape and none had a `.c` sibling**, so it had never
+been reached before. That makes it worth trying early on any function whose call sites show two
+shiftable constants.
+
+## Equal-priority allocnos: make the live ranges exactly equal
+
+An adjacent transposition of two **equal-priority global allocnos** is fixed by declaring the pair
+together immediately before their first call, so births and deaths are one apart at both ends. The
+allocno-number tie-break then matches the ROM. Declaration order within the pair still matters — one
+order exact, the other 6 differing.
+
+## The alias decision for a dead store can be DECL-based, not type-based
+
+`Anim_AstralBlast`'s ROM keeps a **dead-store pair** alive only because it reads an *uninitialised*
+12-byte local through a pointer. gcc deletes both stores in **all five** spellings measured — including
+the documented one-member-union escape and a `char *` cast — because the decision here is made on the
+**DECL**, not the type.
+
+So the alias-escape family (union, `volatile`, pointer cast) is bounded a third way: it does not reach
+a decision gcc makes about a declaration. Recorded with the other two bounds — scheduling-only, and
+not reaching `loop_invariant_p`.

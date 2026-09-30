@@ -8,19 +8,19 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_c9000/Anim_Ray.c \
- *     asm/rom_c9000/rom_d9ab8_c_c_c_c_c.s --func Anim_Ray
+ *     asm/rom_c9000/rom_d9ab8_c_c_c_c_c_c.s --func Anim_Ray
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/aligncmp.py src/non_matching/rom_c9000/Anim_Ray.c \
- *     asm/rom_c9000/rom_d9ab8_c_c_c_c_c.s Anim_Ray -v
+ *     asm/rom_c9000/rom_d9ab8_c_c_c_c_c_c.s Anim_Ray -v
  *
- * SPLIT SHAPE.  asm/rom_c9000/rom_d9ab8_c_c_c_c_c.s holds FOUR functions --
+ * SPLIT SHAPE.  asm/rom_c9000/rom_d9ab8_c_c_c_c_c_c.s holds FOUR functions --
  * Anim_Quake, Anim_Fireball, Anim_Frost, Anim_Ray -- and Anim_Ray is the FOURTH
  * and last, so landing it is a two-way split of the stem:
  *
  *   asm/rom_c9000/rom_d9ab8_c_c_c_c_c_a.s   Quake + Fireball + Frost + ALL .rodata
  *   src/rom_c9000/rom_d9ab8_c_c_c_c_c_b.c   THIS FILE
  *
- * EXPORTS: ONE NEW.  `python3 tools/datacheck.py asm/rom_c9000/rom_d9ab8_c_c_c_c_c.s`
+ * EXPORTS: ONE NEW.  `python3 tools/datacheck.py asm/rom_c9000/rom_d9ab8_c_c_c_c_c_c.s`
  * reports a .rodata section whose already-global labels are `.Leea08`, `.Leea20`
  * and `.Leea2c` -- none of them Anim_Ray's.  Anim_Ray reads `.Leeadc`
  * (`.incrom 0xeeadc, 0xeeae2`, six bytes, indexed `[f18 * 2 + 1]`), so the asm
