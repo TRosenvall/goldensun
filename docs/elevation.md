@@ -27581,10 +27581,13 @@ Two corollaries, both measured:
   `bgt` means a signed selector and may be an ordinary three-node split. `Func_80bae40:852` is
   exactly that trap.
 
-**Scope, which is why this is worth more than the park it came from:** 45 occurrences already exist
-in compiler-generated output (control: `src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_c_b.c`), and
-**46 occurrences across 33 hand-written files covering 36 distinct functions** — many already
-parked. **Re-screening those 34 others is probably worth more than any single new reconstruction.**
+**CORRECTED IN BATCH 308 — THE BROAD RE-SCREEN DOES NOT EXIST.** This section said 46 occurrences
+across 33 hand-written files covering 36 distinct functions were worth re-screening, and that doing so
+was "probably worth more than any single new reconstruction". A **tight screen over all of `asm/`**
+then found that those other 34 functions carry a **different shape**, so looking for an out-of-range
+case in them **finds nothing**. The lever splits in two — see the CASE A / CASE B section below. What
+still applies to them is the fourth, **lowest** case, which is real and separate.
+`case_values_threshold()` is **5** in this build, probed.
 
 Related and from the same function: **a flag-chosen DMA source is an `if`/`else` over two calls, not
 a ternary argument** (8 sites). Two expansions leave the register address above the differing data
@@ -27877,3 +27880,64 @@ Ruled out by measurement: a pool defect (our pool holds the ROM's words in the R
 program (every clamp bound, divisor and DMA flag word verified **inside the differing hunks**), and the
 `lsr`/`asr` splits — which fall out for free because **combine stops narrowing `ashiftrt` across a
 `bl`**, so no casts are needed.
+
+## THE MISSING-CASE LEVER SPLITS IN TWO: CASE A is the threshold, CASE B is an out-of-range case
+
+Batch 307 found that a lopsided switch dispatch means a case you have not written. Batch 308 screened
+the whole tree and **split the finding in two**, which matters because only one half generalises.
+Recipe and scripts: **[docs/screen-missing-case.md](screen-missing-case.md)**,
+`tools/screen_missing_case.py`.
+
+**`case_values_threshold()` is 5 in this build** (probed). `expand_end_case` takes the decision-tree
+path only when `count < 5 || range > 10*count`.
+
+**CASE A — 3 or 4 dense nodes.** A tree here is explained *by the threshold alone* (`count < 5`), so
+the shape is normal. Batch 307's `bcc` reading still holds — four nodes bisect to root 1 and node 0's
+test collapses against an unsigned minimum — and the **fourth, lowest case is real**. But there is **no
+further hidden case**, and looking for one finds nothing.
+
+**CASE B — 5 or more nodes with span ≤ 10×count.** The formula says *table*, so a **decision tree
+where gcc would emit a table is itself the tell**, and the only thing that flips it is a case value far
+outside the span. On an unsigned selector that is **`case -1:`** (0xFFFFFFFF). On `BufferString` — 15
+dense labels over 0..0x1E — adding it was worth **124 bytes, 27 instructions, and all 34 phantom
+`.text` relocations in one edit.**
+
+A neat consequence: the `case -1:` test **vanishes** where the default has no body (jump.c deletes a
+conditional jump whose target is the following unconditional one) and **survives** where it does. Both
+shapes appear in this ROM twelve instructions apart, from the same construct.
+
+**The screen result, and it is a negative worth as much as the lever:** `BufferString`'s two switches
+are the **only CASE B sites in the tree**, and **zero compiler-generated files violate the rule**. So
+the 34 other functions batch 307 nominated are CASE A and will not yield an out-of-range case.
+Recorded because the screen's first run reported "0 generated sites" as a **detector bug, not a
+validation** — a screen that finds nothing must be shown to find the known positives first.
+
+**Two adjacent cases must be written as two DUPLICATED arms** — `group_case_nodes` merges contiguous
+nodes *that share a code_label*, so stacked labels become one range node. Duplicating the body gives
+two labels, two nodes, and jump.c cross-jumps them back (74.9% → 82.0% aligned, and it made size
+exact). **The discriminator is purely numeric:** `case 8: case 9:` **must stay stacked**, because the
+ROM's `cmp #9/bhi` + `cmp #8/bcs` *is* a range node.
+
+And a bound on batch 307's brace-scoping lever: **it applies to the SUBJECT of an arm, not its
+counters.** One shared counter with a block-scoped value is right here; brace-scoping the counters per
+case measures 79.3% against 82.8%.
+
+## `do { } while` VERSUS `for` — check_dbra_loop reverses a counter
+
+The three fixed-length copies in `BufferString` must be `do { } while (i <= 0xe)`. A `for` lets
+`check_dbra_loop` reverse the counter into a **down-counter**, which the ROM does not have (82.0% →
+82.8%, five spellings probed in isolation first). Add it to the loop-form set alongside
+`duplicate_loop_exit_test` (a `do`-`while` can never reach it) and the `goto` form (invisible to loop.c
+entirely): **three different passes care about which loop form you write, and they disagree.**
+
+## A landing prerequisite can be one line in a hand-written `.s`
+
+`BufferString` needs `asm/rom_15000/rom_15430.s:92` to carry
+`.func_end_emit_size Func_8015430, _FUNC_8015430_SIZE` — the same macro that file already uses twice.
+**The `orr r2,r5` in the prologue proves the size is the linker symbol rather than a literal**:
+measured both ways, the literal loses (1612 bytes and 742 instructions against 1620/745). The extra
+`R_ARM_ABS32` objcmp reports exists only because the reference `.s` is a disassembly in which the
+linker had already written the value.
+
+So a park can be blocked on a **build-input** change rather than a `.c` change, and that belongs in the
+park header as a prerequisite — not discovered at landing time.

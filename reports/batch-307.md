@@ -136,9 +136,10 @@ written.** Read the mnemonic first — `bgt` means signed and may be an ordinary
 Corollary: **cases 1 and 2 need separate arms even with identical bodies**; merging them makes one
 range node and emits `bls`, and `jump.c` cross-jumps the bodies back for free.
 
-**45 occurrences already exist in generated output and 46 across 33 hand-written files covering 36
-distinct functions**, many already parked. Re-screening those is likely worth more than any single
-new reconstruction.
+**CORRECTED BY BATCH 308:** a tight screen over all of `asm/` found the other 34 functions carry a
+**different** shape, so looking for an out-of-range case in them **finds nothing** — the broad
+re-screen opportunity does not exist. The fourth, *lowest* case still applies to them.
+See reports/batch-308.md.
 
 ## Traps and refinements
 
