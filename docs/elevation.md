@@ -27319,3 +27319,82 @@ Also confirmed on this function: an unused **aggregate** gets a stack slot and a
 does not (`int spare` came back 4 bytes short where three dead `vec3_t` closed a 40-byte hole), and
 the twin `ActorCmd_Player`'s 0x68 frame closes with the same declaration block — which is the
 `expand_decl` corollary confirmed from the frame side on two functions at once.
+
+## ONE VARIABLE PER SWITCH ARM — and it is the COMPLEMENT of the reuse lever, not a contradiction
+
+Worth 566 → 474 on `Func_80aa768`, and it resolves what looks like a direct conflict with the
+register-inheritance lever.
+
+**The mechanism.** A temporary declared at **function level** shares one pseudo whose
+`live_length` is the **sum of all its disjoint ranges**. On a 15-arm switch that inflates the
+allocno set enough that the switch subject won a callee-saved **high** register — costing a
+`mov rlo, r8` before each of fifteen `cmp n,#K`, a third high-register save, and a return-path
+rotation. **Brace-scoping the temporaries per `case`** dropped the subject to **r4 with
+caller-saves**, which is the ROM's `sub sp,#8 / str r4,[sp] / ldr r4,[sp]` frame, and the
+prologue then agrees instruction for instruction.
+
+Why r4 specifically: with `-fcall-used-r4` in this project's flags **no call-saved low register
+can be free**, so `find_reg` reaches r4 only through its `accept_call_clobbered` retry, gated on
+`CALLER_SAVE_PROFITABLE(n_refs, calls_crossed)`. Shortening the competitor's live length is what
+makes that retry fire.
+
+**The reconciliation, and this is the part to keep.** Reuse (batch 304) and region-splitting
+(here) look opposed — one merges variables, the other splits them — and they are not:
+
+* **reuse RAISES an allocno's priority** by giving a range the register an earlier range already
+  holds;
+* **region-splitting LOWERS a competitor's** by shrinking the `live_length` term that
+  `allocno_compare` divides by.
+
+Both act on the same formula from opposite ends. So the question is never "merge or split" in the
+abstract — it is *which allocno is winning a register it should not*, and whether you fix that by
+promoting yours or demoting the rival. One-variable-per-region and reuse-to-inherit are the two
+answers, and the earlier recorded pairs (one-variable-per-region versus counters-unify) are the
+same choice seen on loops rather than switch arms.
+
+## The named-offset lever has a SECOND mechanism: addressing, not pooling
+
+Recorded as a fix for gcc folding `SYMBOL_REF + CONST_INT` into one pool word. `Func_80aa768`
+shows it paying where **there is no symbol at all** — the base is a *loaded pointer*, so nothing
+could pool. Inline, `p[0x208 + idx]` folds to `(p + 0x208) + idx*2`; hoisted into its own
+statement it gives the ROM's **register+register** `ldrh r2,[r7,r3]`. Parenthesising is inert,
+because fold's `associate:` normalises it back.
+
+So the lever is really two: it fixes *pool-word folding* when the base is a symbol, and
+*addressing-mode selection* when the base is a pointer. In the same function it also deleted a
+three-instruction `ldrb / lsl #24 / asr #24` in favour of the ROM's single `ldrsb r3,[r2,r5]`.
+With the batch-306a bound (the derived address needs **more than one use**), the lever now has
+two mechanisms and one precondition, and the mechanism decides which residues it can reach.
+
+## An HImode literal store can pool, and it is expand/reload — not a later pass
+
+`*(u16 *)(p + 0x220) = 2;` (four sites) gives `ldrh r3, .L76 / strh` where the ROM gives
+`mov r3,#2 / strh`. Same instruction count, but **two `.short 2` pool entries plus two
+mid-function pool dumps** — the 4-byte size gap, and the reason an aligned figure understates the
+body.
+
+**What rules out the alternatives, measured rather than assumed:** gcc did *not* split the store
+into `(set reg 2)` + `(set mem reg)` — there is no `mov` near it and the constant arrives as a
+pool MEM, so no later pass ate a register. Counting pooled sites against `mov r3,#2` in the
+generated `.s`: production 4 pooled, `-fno-gcse` 4, `-fno-rerun-cse-after-loop` 4,
+`-fno-cse-follow-jumps` 4. So it is **not** gcse PRE commoning four identical constants, not
+cse-after-loop, not cse-follow-jumps. And `*thumb_movhi_insn` does carry a `mov %0,#%1`
+alternative, so the pattern is not the obstacle — **the constant never reaches it as a
+CONST_INT**.
+
+Together with the QImode instance found the same day, this is a **partial correction** to the
+recorded "a plain `p[off] = 0;` always pools": right about the outcome, wrong about the implied
+mechanism. The tell is whether a single-insn constant store survives to the pool decision, and a
+missing or extra pool word is a **size-and-count defect that cascades into every later
+pc-relative offset**.
+
+## Two more traps from the same function
+
+* **`char` is unsigned in this configuration**, and the wrong spelling is *shorter*: three sites
+  gave `ldrb [r7,#0x1c]` for the ROM's `mov r3,#0x1c / ldrsb r3,[r7,r3]`. So it scores better
+  while being wrong — the same class as a closer size being a wrong program.
+* **`duplicate_loop_exit_test`'s signature tells you the loop's SOURCE FORM.** A loop carrying the
+  guard, the bottom test and an offset giv is a real `while`; a loop with none of that, re-reading
+  its pointer every iteration, is a **`goto` loop and invisible to loop.c**. The landed sibling
+  `src/rom_a1000/rom_aa538_c_c_a_b.c` writes both its loops with `goto`, which is what identified
+  it — read the sibling before choosing a loop form.
