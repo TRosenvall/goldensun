@@ -27741,3 +27741,65 @@ several authors, each costing a wasted command or a silently wrong count.
 **The fix, every time: literal arguments, or `while read -r a b` from a here-doc or file.** If you
 catch yourself writing a loop over a whitespace-separated variable in this repo, stop and write the
 `while read` form.
+
+## A POINTER READ FROM A GLOBAL AND USED ACROSS A CALL MUST BE A SOURCE LOCAL — ONE PER LOOP
+
+Worth **630 → 139 of 770** on `Anim_Unused_Fizz`, and it is what made size and count **both exact**.
+The strongest single lever found in batch 307.
+
+**The tell is a proof, not a heuristic.** The ROM reuses `view` and `view + 0xc` *across an
+intervening call*. cse can **never** do that for a global's load, because a call clobbers memory —
+only a **pseudo** can hold a value across a call. So a global-derived pointer that survives a call
+in the reference *was a source local*, necessarily. Four candidates had been stuck 8 bytes short on
+the frame with every spill offset off by 8; this supplied the missing slot, and `view + 0xc` then
+supplied the second.
+
+**And it must be declared INSIDE EACH LOOP BODY, one per loop.** In Fizz, loop 1 keeps it in r5 and
+loop 2 spills it at sp+0x28 — **one pseudo cannot be both**, so a single function-level local cannot
+reproduce the frame. This is the one-variable-per-region rule applied to a value you would naturally
+hoist.
+
+Three smaller levers from the same function, all measured:
+
+* `(fp = fns)` written **inside** the `BuildDraw2DFuncs` argument (641 → 630);
+* naming the blit's **source pointer** (138 → 131) — and naming the **offset** instead measures 134
+  and is *worse*, which **bounds the named-offset lever**: the pointer is the thing to name here,
+  not the displacement;
+* `p->fc += dx >> 8` **field-first**, not `(dx >> 8) + p->fc` (127 → 118) — the two are *different
+  instructions*, not a formatting choice.
+
+The sibling-oracle trick held again: `Anim_Fireball`'s landed file put `Anim_Frost`'s first candidate
+at 49.9% aligned with a near-correct relocation sequence.
+
+## ONE ALLOCATION CLASS, TWO VICTIMS — why no per-variable spelling will reach it
+
+`Anim_Frost` and `Anim_DragonCloud` share a single residue: **the ROM SPILLS a variable that lives
+across the whole function** (`base` in Frost, `frame` in DragonCloud) where we keep it in r11. That
+one allocno explains the frame word, the entire count deficit (16 and ~25 reloads the ROM pays and
+we do not), and every hunk — **the register roles are already correct, only the names are rotated.**
+
+Two things make this worth recording as a class rather than two parks:
+
+1. **The ROM's choice is measurably worse than gcc's.** Its allocator was *forced*; ours is not. So
+   this is not a spelling we have failed to find — it is a difference in what the allocator was
+   working with.
+2. **Two instances with DIFFERENT victims.** The spilled variable is not a property of the variable;
+   it is *whoever is left over* after the per-loop allocnos claim the seven call-saved registers. So
+   **no per-variable spelling will find it** — the fix would have to change how many long-lived
+   quantities exist, which is the lever that worked in the 800+ band.
+
+Fifteen flags measured, none moves it. A block-local copy of the walker, an `int` carrier, and
+declaration order are all inert or blocked by the frame map. This is the class `HANDOFF.md` has
+called the top open item, now with a sharper statement of why per-variable work cannot close it.
+
+## Negatives worth keeping from the same corner
+
+* **The walker split is WRONG in `Anim_Unused_Fizz`** — measured three times on three different
+  bases (411, 411, 407 against 118). That is the exact converse of `Anim_Ray` in the same corpus,
+  and the **sixth** converse-in-one-family pair recorded here. Two sibling animations, opposite
+  answers, both correct.
+* **Counter-splitting cost `Anim_Frost` 466 → 388** — the complement lever applied where it does not
+  belong.
+* **Ternary versus `if`/`else` arm order is byte-identical three ways** in `DragonCloud`'s seed
+  loops. It *looks* like `fold`'s ternary inversion and is not, which is worth knowing before
+  spending a round on arm order: that inversion needs arms of **unequal complexity** to fire.
