@@ -26521,3 +26521,53 @@ helper idiom makes it **worse**, 33.5% → 23.6%, because gcc-2.96 sees through 
 a **byte offset** (worth 33.9% → 39.1%) while the *other three scans of the same table* are genuine
 pointer walks. So "how does this function walk this table" has to be answered per loop, not per
 table — the fourth converse-in-one-function case recorded this week.
+
+## objcmp's count can be inflated tenfold by ONE insert, even with size and count EXACT
+
+An important narrowing of the saturation rule. It was recorded that objcmp's count saturates *when
+the instruction count differs*. `Anim_Spire` shows it also inflates badly when size and count both
+**match**: **249 differing where the real figure is 64** (aligncmp 375 of 432, 86.8%), because a
+single inserted instruction at index 185 shifts everything after it while a matching delete
+elsewhere keeps the totals equal.
+
+So "size and count both match" qualifies a figure as a *distance* but does **not** mean the count is
+undistorted. **Whenever the hunks show an insert/delete pair, aligncmp is the ranking view** — check
+it even when the totals agree.
+
+## A `break` out of a do-while is not the same program as a `while` whose condition is that test
+
+Confirmed independently on a second function (`Anim_Mercury`, after `Anim_Venus`), and now with the
+tell stated: when the ROM emits a test **and its consequent block twice**, with the entry copy still
+using a register-offset load for what is textually index 0, that is `duplicate_loop_exit_test` — and
+**only the `while` form reaches it.** On Mercury the `do`-`while` + `break` form is **24 instructions
+short**, and rewriting it as a `while` whose condition *is* the hit test, with a `goto` for the exit,
+made size and instruction count exact in one edit.
+
+## A pooled constant's ORDER is decided by the final instruction stream, not the source
+
+A loop invariant hoisted by `move_movables` is born **after** every source statement in the
+preheader, so it loses the first `ldr` to a source-level pointer init. Naming the constant in a local
+*beforehand* wins the pool order.
+
+But it is not free: the named local has a longer live range, which flips its allocno rank. On
+`Anim_Mars` fixing the pool order swapped `r9`/`fp` and netted **+2**. So this is a trade to measure,
+not a lever to apply.
+
+Related, same family: **`ptr = SYMBOL;` inside a loop body is not the same as in its preheader** —
+gcc-2.96 will not always promote the address to a callee-saved register from inside the body. And on
+`Anim_Spire`, hoisting a table base into the outer loop's preheader was worth **65** and is what made
+size and count exact.
+
+## "Counters unify" reaches four and five loops — and the giv lever is its converse
+
+`Anim_Mars` unifies its counter across **four** loops (381 → 52 on that one edit, with size and count
+becoming exact simultaneously); `Anim_Mercury` across **five**. So the batch-300 finding scales well
+past the two-loop case it was found on.
+
+And the converse holds in the same family: **`Anim_Hail`'s preheader-transposition/giv lever is
+actively wrong for `Anim_Mars`'s inner particle loop** — 93 of 426 applying it. Two levers from two
+landed siblings in one bank, each wrong where the other is right. Measure both directions every time;
+the family does not predict which.
+
+Also settled here: `.Leec5a` belongs to **`Anim_Mercury` alone**, which answers the data question
+`Anim_Jupiter`'s park left open.
