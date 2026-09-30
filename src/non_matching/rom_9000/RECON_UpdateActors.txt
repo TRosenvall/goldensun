@@ -1,0 +1,156 @@
+*** CORRECTION APPLIED ON INSTALL -- THIS NOTE'S SITE COUNT IS WRONG. ***
+
+This recon states 11 inline .call_via sites across three registers (r3x8, r11x2, r2x1) and
+recommends re-ranking UpdateActors UP as a cheaper target than briefed.  BOTH are wrong, and the
+cause is the exact conflation the brief warned about.
+
+MEASURED, scoped to UpdateActors (asm/rom_9000/rom_ca6c_a_c_c.s lines 35-820, func_start to
+func_end), counting only lines matching ^[[:space:]]*\.call_via :
+
+    16  .call_via r7
+     6  .call_via r8
+     6  .call_via r10
+     2  .call_via r4
+     1  .call_via r3
+    --
+    31  total, and ZERO inline sites elsewhere in the file
+
+So the original brief was right: 31 sites, FIVE binding registers, and TWO of the five are HIGH
+(r8 and r10) covering 12 of the 31 sites, each needing the enclosing-block
+`register ... __asm__("rN")` form.
+
+WHAT WENT WRONG: the counts in this note (r3x8, r2x1) are counts of `bl _call_via_rN`, which is
+gcc's OWN output for a call through a function pointer and is freely reachable from C.  That is a
+DIFFERENT THING from the inline `.call_via rN` MACRO, which include/macros.inc expands to
+`.align 2,0 / mov r12, pc / bx \reg` and which gcc never emits.  This file contains both forms --
+four `bl _call_via_r3` sites before the first inline site -- so a grep that does not anchor on the
+leading dot mixes them.  Anchor on `^[[:space:]]*\.call_via`.
+
+DO NOT RE-RANK THIS TARGET UP.  The route is still confirmed byte-exact (Func_8097a10), the
+unpinned `bx %1` helper form still applies for >=2 sites, and the fakematch.txt row is still due
+only at landing -- but the cost is five helper/declaration variants plus a live-range problem at
+every register-group boundary, not a one-pass job.  The standing recommendation stands: land a
+single-register main-ROM function first to bank the technique.
+
+(For the record, my own first screen of this function was also unreliable for a related reason:
+`awk '/func_start NAME/,/func_end/'` with a `\s` class silently matches nothing under POSIX awk,
+and `grep -E '\s'` is a GNU extension.  Use [[:space:]] and verify a screen finds known positives
+before trusting a zero.)
+
+================================================================================
+ORIGINAL RECON BELOW -- its frame analysis and its sibling lead are unaffected.
+================================================================================
+
+BATCH 309, BRIEF C -- RECON for UpdateActors (0x0800cacc).
+
+NO FIGURE IS INVENTED HERE. This target was not compiled, so it has no objcmp
+and no aligncmp number. Batch 302's and 307's precedent applies: a target left
+at recon gets facts, not a guessed distance. Budget went to Func_80a6ccc and
+Func_80bae40, which is the priority order the brief set.
+
+========================================================================
+1. THE BRIEF'S SHIM ARITHMETIC IS WRONG, AND THE TARGET IS MUCH CHEAPER
+========================================================================
+The brief states: "31 sites, one callee, across FIVE binding registers (r7x16,
+r10x6, r8x6, r4x2, r3x1) fed by six loads, and two of the five are HIGH
+registers (12 of 31 sites)".
+
+MEASURED, in asm/rom_9000/rom_ca6c_a_c_c.s, UpdateActors spanning lines 35-820:
+
+    grep -c _call_via                       ->  11   (whole file)
+    grep -oE '_call_via_r[0-9]+' | uniq -c  ->   8 _call_via_r3
+                                                 2 _call_via_r11
+                                                 1 _call_via_r2
+
+ELEVEN sites, not 31. THREE binding registers, not five. The registers are
+r3, r11 and r2 -- r7, r10, r8 and r4 do NOT appear as veneer registers
+anywhere in the file. All 11 lie inside UpdateActors (lines 32, 73, 147, 161,
+203, 250, 305, 344, 374, 409, 508 relative to the function start), and the
+file contains no others, so there is no sibling function absorbing the
+difference.
+
+ONE HIGH REGISTER, NOT TWO, AND 2 SITES, NOT 12. Only r11 is a high register
+(r8-r11); r3 and r2 are low. So the enclosing-block
+`register ... __asm__("rN")` form is needed for 2 of 11 sites, not 12 of 31.
+
+The only other indirect call in the function is a single `bx r0` at line 785,
+which is the tail of the epilogue region and not a veneer site.
+
+WHY THIS MATTERS: the brief budgeted UpdateActors LAST on the strength of "31
+sites ... across FIVE binding registers ... two of the five are HIGH". The real
+shape is a third of that, with one high register. Whoever picks this up should
+re-rank it: on the shim dimension it is now comparable to the three-site
+function the brief mentions, not five times worse. The route itself is
+unaffected -- it is still CONFIRMED byte-exact in a main-ROM TU via
+Func_8097a10 (grep -rl Func_8097a10 src/), and the codegen probe at
+docs/probe-call_via-r3.c still applies, now to the r3 majority (8 of 11).
+
+The brief's guidance that still holds unchanged:
+  * use the UNPINNED `bx %1` helper form, since 11 >= 2 sites (binding inside
+    the helper is the single-site spelling and measured worse on a three-site
+    function);
+  * a shipped shim needs a fakematch.txt row AT LANDING only, so shimcount
+    warning on a park is correct;
+  * these 11 are the legitimate class -- the only route to a sequence gcc
+    cannot emit -- NOT a pin used to force an allocation decision (which has
+    measured worse ten times and has never been a landing route).
+
+========================================================================
+2. THE FRAME, AND IT IS FULLY ACCOUNTED FOR
+========================================================================
+`sub sp, #0x30` = 48 bytes. Note it is NOT the first instruction: the prologue
+loads iwram_3001e64 and derives three pointers BEFORE subtracting sp, which is
+worth knowing because it puts a pool load ahead of the frame setup and so ahead
+of index 7 in any objcmp stream.
+
+    sp+0x00, +0x04, +0x08   outgoing / spill  (5, 10 and 5 accesses)
+    sp+0x0c                  3 accesses
+    sp+0x10                  4 accesses
+    sp+0x14                 16 accesses   \
+    sp+0x18                 13 accesses    |  the hot three
+    sp+0x1c                 15 accesses   /
+    sp+0x20                  3 accesses
+    sp+0x24..0x30            an aggregate, 12 bytes, reached by the ONLY
+                             `add r1, sp, #0x24` in the function
+
+9 spill/arg slots * 4 = 36, plus the 12-byte aggregate = 48 = 0x30 EXACTLY.
+No hole. Sorting the scalar offsets DESCENDING gives the declaration order
+directly (sp+0x20 first, sp+0x00 last), with the aggregate at the top of the
+frame as the one expand-time allocation -- the same shape Func_80bae40 turned
+out to have, and the same reading that made that function's frame exact on the
+first candidate.
+
+CAUTION CARRIED FROM Func_80bae40: grep for `mov rN, sp` followed by
+`add rN, #K` as well as `add rN, sp, #K`. In Func_80bae40 a whole 24-byte
+array was addressed only by the first idiom and read as a frame hole until it
+was found. UpdateActors shows no such hole, but the check is cheap and the
+failure mode is a missing array.
+
+========================================================================
+3. SIZE AND SHAPE
+========================================================================
+683 instructions, 64 labels, one function, banner at rom_ca6c_a_c_c.s:35.
+r6 holds `*iwram_3001e64` from the prologue and is live across the function --
+so it is a source local read ONCE at the top, not re-read (lever 1: a pointer
+read from a global and used across a call must be a source local; cse can
+never reuse a global's load across a call because a call clobbers memory).
+The prologue immediately derives `r6+0x55` and `r6+0x56` into r1 and r2, i.e.
+two adjacent byte fields, which is the shape of a paired flag read.
+
+`asm/rom_9000/rom_ca6c_c_c.s:6` names a cut-down sibling of this function
+("target seeking is done ..." -- it takes no arguments). That sibling is the
+cheapest control to read for the veneer spelling before touching this one, and
+`asm/rom_9000/rom_c004_a.s:93` holds a `.word UpdateActors`, so the symbol is
+referenced as data and must keep its name.
+
+========================================================================
+4. WHAT I WOULD DO NEXT, IN ORDER
+========================================================================
+1. Re-rank UpdateActors UP. Section 1 removes two thirds of the shim cost that
+   put it last on this brief.
+2. Read the cut-down sibling in rom_ca6c_c_c.s first -- same module, same
+   context pointer, fewer sites, and it establishes the veneer spelling at low
+   cost before committing to 11 sites.
+3. Then UpdateActors with the unpinned `bx %1` helper, r3 first (8 of 11
+   sites), r2 next, and the enclosing-block register form for the 2 r11 sites
+   last. Expect the fakematch.txt row to be due only at landing.

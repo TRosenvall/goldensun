@@ -28100,3 +28100,68 @@ Fixed and gated byte-neutral. **Generalisable:** when objcmp reports a relocatio
 reference lacks, and the value is small enough that gcc would never pool it, the defect is in the
 reference `.s`, not the candidate — check `*.sym` for a symbol with that value before spending a round
 on the residue.
+
+## `bl _call_via_rN` AND `.call_via rN` ARE DIFFERENT THINGS — a grep that misses the dot conflates them
+
+This has now caused a wrong figure twice in two batches, in opposite directions, so it is worth its
+own entry.
+
+* **`bl _call_via_rN`** is gcc's **own output** for a call through a function pointer. It is freely
+  reachable from C, and 223 functions in `asm/` use it.
+* **`.call_via rN`** is a **macro** from `include/macros.inc` expanding to
+  `.align 2,0 / mov r12, pc / bx \reg` — a Thumb-to-ARM call into an IWRAM routine that gcc never
+  emits, and which needs the inline-asm helper.
+
+**Many files contain both.** `asm/rom_9000/rom_ca6c_a_c_c.s` has four `bl _call_via_r3` sites before
+its first inline site. So a grep for `call_via` without anchoring on the **leading dot** mixes the two
+and produces a number that means nothing.
+
+**Anchor on `^[[:space:]]*\.call_via`**, and scope by line range from `func_start` to `func_end`.
+Measured correctly, `UpdateActors` has **31 inline sites across five registers** — r7×16, r8×6,
+r10×6, r4×2, r3×1 — with **two of the five high** (r8, r10) covering 12 of the 31 sites. A batch-309
+recon reported 11 sites across three registers and recommended re-ranking the target *up* as cheaper
+than briefed; those were `bl` counts, and acting on them would have budgeted a one-pass job for
+something needing five helper variants plus a live-range problem at every register-group boundary.
+
+**Two regex traps that produced the other direction of error, both mine:**
+
+* **POSIX `awk` has no `\s` class.** `awk '/func_start NAME/,/func_end/'` piped to a `\s`-anchored
+  pattern silently matches **nothing** and prints 0 — which reads exactly like "this function is
+  clean". Use `[[:space:]]`.
+* **`grep -E '\s'` is a GNU extension** and is unreliable on macOS.
+
+The general rule, recorded before and re-earned here: **verify that a screen finds the known positives
+before trusting a zero it reports.** A batch-308 agent recorded the same lesson when its own detector
+reported "0 generated sites" as a bug rather than a validation.
+
+## A FRAME "HOLE" CAN BE A THIRD ARRAY ADDRESSED THROUGH A DIFFERENT IDIOM
+
+`Func_80bae40`'s frame appeared to have a 24-byte hole at sp+0x20. It is a **third array**, and it was
+invisible because it is addressed as
+
+    mov r0, sp
+    add r0, #0x20        <- NOT  add r2, sp, #K
+
+**Grep both idioms or you will lose a real array** and spend the round hunting a phantom hole. This
+sits with the other frame-reading rules: the spill-slot map read descending gives the declaration
+list, an unused aggregate gets a slot while an unused scalar does not, a call temp cannot outrank a
+function-level declaration, and aggregate declaration order is reversed from the frame.
+
+Related, from the same batch: `Func_80a6ccc`'s recon reported a "40-byte hole" that was simply **ten
+spill slots** — the frame decomposes 8 + 4 + 40 + 48 = 100 with nothing unexplained. **Two phantom
+holes in one batch**, both from reading a frame before reading the slot map.
+
+## RANKING, DEMONSTRATED IN BOTH DIRECTIONS IN ONE BATCH
+
+The rule is: rank **size-and-count first** even while both are inexact, and use the aligned figure
+only to break ties within that. Batch 309 produced a clean demonstration of why it needs stating both
+ways:
+
+* On `Func_80a6ccc`, candidate v1 looked **best on size and count** while being **28 aligned points
+  worse** — the aligned figure was right.
+* On `Func_80bae40`, the variable-partition lever took **size to exact and count from 8 short to 4**
+  while the aligned figure went **down** (35.7% → 35.4%) — size-and-count was right, and ranking on
+  aligned alone would have rejected the change that made size exact.
+
+So neither figure dominates. **Record both, unfiltered, in the park** — which is what both of these
+parks do.
