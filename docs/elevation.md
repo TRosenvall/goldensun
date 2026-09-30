@@ -26680,3 +26680,47 @@ one counter sitting *below* the gcse pseudo — which the declaration-order rule
 Block-scoping it is **byte-identical**, so this function does not settle the direction either way. The
 `expand_decl` corollary recorded above is the likely reason temps behave differently from declared
 objects, but that is not yet measured for temps.
+
+## `ldmia rX!, {rY}` does NOT prove a walking pointer
+
+A trap where the instruction points the wrong way. `Anim_PsyphonSeal`'s reference opens with
+`ldmia r3!, {r2}` — and the source is **array subscripts**, not a walking pointer. Writing it as
+subscripts was worth **437 → 351**.
+
+So an auto-incrementing load-multiple is what gcc *emits* for a subscripted access it has
+strength-reduced; it is not evidence about the source form. The earlier entry that a source pointer
+init versus a giv shows up as a preheader transposition is the reliable discriminator — read the
+preheader, not the load.
+
+## The "invariant live across a back edge keeps a callee-saved register" rule is bounded
+
+It does **not** hold for a **pool-loaded symbol with a single use**: four placements measured, all
+rematerialised rather than held. So when a symbol address is read once in a loop, expect it in a
+scratch register regardless of the back edge, and do not spend spellings trying to make it
+callee-saved.
+
+## A parameter the ROM REASSIGNS, and how to tell
+
+`Anim_Unsummon` needs `px = x; x += 0xa0 << 14; x /= 2;` — and the mechanism matters, because
+**`px = x` alone is inert** (copy-propagated away). It survives *only because `x` is then
+redefined*, and fp is written twice, which is why the arithmetic has to be two statements rather
+than one.
+
+**The tell is the spill map: a value at a LOWER slot than a declared local cannot be a parameter.**
+Parameters and declared locals occupy the declared region; anything below the compiler temps is
+neither. Seven negative spellings are recorded in that park, including three that read **closer by
+count** while degrading the shape.
+
+## Another demonstration that the lower number can be the worse candidate
+
+`Anim_PsyphonSeal`'s progression is worth quoting because it inverts twice:
+
+- the subscript lever took it to **351** — the lowest figure reached;
+- a second lever (two `GetFile` results as two locals) took it to **383**, which is **higher**;
+- but 383 is at **size 1036 = 1036 and count 459 = 459**, so it is a *true distance* and the 351
+  candidate was not.
+
+**The 351 was the lower number and the worse candidate.** This is the fourth instance recorded this
+week — after a count-matching pin at 47.7% aligned, an odd-offset union scoring 154 against the
+correct layout's 156, and an unsigned `s8` hitting the reference's size exactly while being a sign
+bug. Rank by size-and-count first, then by aligned figure; never by the raw count alone.
