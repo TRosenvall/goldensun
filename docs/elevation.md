@@ -26407,3 +26407,53 @@ wrong order, they are the actual shape of the problem:
 
 **Do not re-run this experiment.** The harness is at `scratch_elev/regalloc/` (gitignored) if a
 different order is ever proposed, but the question as posed is answered.
+
+## A materialised constant displacement the original compiler emits and ours folds
+
+On `Func_80f2028` the ROM stores every constant-index slot as **`mov r1,#0x18 / str r3,[r6,r1]`**
+where gcc-2.96 folds the same source to `str r3,[r6,#24]`. Twenty-six sites, and it is the dominant
+residue of that function.
+
+**Ten source spellings all fold** — `volatile`, a pointer cast, a zero-index local, a named offset
+used once, a named offset mutated by 4 and by 8, and others. And a corpus scan of all 3,914
+generated `.s` files found **12 sites of this shape and no in-range counterexample**: every one is
+`#224`/`#228` (out of `imm5 × 4` range, so forced) or a degenerate `#0`. So within range, our
+compiler never materialises the displacement and the ROM's does.
+
+It **is** reachable — `__asm__("" : "+r" (o))` on the **OFFSET** gives
+`mov r3,#24 / str r1,[r0,r3]` (laundering the *index* instead emits `lsl`/`add` scaffolding the ROM
+lacks). With all 26 laundered the function goes from 15 instructions short to 7 long, which bounds
+the rest of the residue at 7 — but **26 barriers is fakematch-class scaffolding and was not
+shipped.** The value here is the bound, not a landing.
+
+This is worth knowing before anyone spends a round on a store-offset residue: check whether the
+displacement is in `imm5 × 4` range first. If it is, no spelling reaches it.
+
+## The register-offset OPERAND ORDER is a lever, and a spill can be its consequence
+
+`Menu_Settings` took its instruction count from 504 to **exactly 500** on one change: the ROM loads
+index-first (`ldr r0,[r6,r7]`), and writing `*(void **)(off + (int)p)` rather than `p[off]` flips
+the operand order to match.
+
+**And it un-spilled a variable for free.** That spill was a *consequence* of the addressing form,
+not an independent problem — which is the same shape as the batch-300 finding that a frame is often
+downstream of a missing instruction. When a spill appears alongside an addressing-mode difference,
+fix the addressing first and re-measure before treating the spill as its own defect.
+
+Two smaller results from the same function: a `gState` exit chain wants a **mutated offset
+variable**, not a named pointer (a named pointer gives immediate offsets and cannot produce the
+ROM's form); and a u16 wrap test is `(v << 16) > (5 << 16)` with `0xa0 << 11` as the shifted build
+of `5 << 16`.
+
+Also confirmed as **inert**, now measured rather than assumed: `(signed char)p[N]` against
+`*(signed char *)(p + N)`.
+
+## A size difference can be one pool word, with no missing instruction
+
+`Menu_Settings` is 4 bytes short with the instruction **count exact at 500**. The whole difference
+is that the ROM pool-loads its stored zero (`ldr r2, .L1d594 @ 0`) where gcc emits `mov r2,#0` —
+one pool word, no missing instruction.
+
+So a small size deficit alongside an exact count is worth checking against the pool before assuming
+code is absent. (The converse trap is already recorded: an exact count does not mean close — that
+function is still only 50.6% aligned.)

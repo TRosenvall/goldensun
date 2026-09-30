@@ -34,9 +34,18 @@
  * SPLIT: anchored grep gives THREE functions in asm/rom_f2000/rom_f2028_a.s --
  * Func_80f2028, LoadGS1TitleGFX and StartTitleScreen -- so a three-way split.
  * datacheck.py reports nothing: no data section, no exports.  Worth knowing
- * before anyone starts: the other two are ALREADY PARKED
- * (src/non_matching/rom_f2000/StartTitleScreen.c and the Func_80f2028 park), so
- * the split should be done once for all three rather than three times.
+ * before anyone starts: the other two are now also parked
+ * (src/non_matching/rom_f2000/StartTitleScreen.c and 80f2028.c), so the split
+ * should be done once for all three rather than three times.
+ *
+ * CORRECTION (batch 301): when this note was written there was NO Func_80f2028
+ * park -- I asserted one that did not exist.  It exists now, created in batch 301.
+ * AND THE SPLIT SHOULD STILL WAIT: all three functions are non-matching
+ * (LoadGS1TitleGFX 196 of 251, StartTitleScreen 363 of 493, Func_80f2028 463 of
+ * 532), and a split only pays when a piece is ready to LINK.  The prerequisites
+ * are verified and clear -- datacheck silent, no data section, no exports to add,
+ * .Lf39ab already .global -- so when one of the three closes, cut all three at
+ * once into _a_a/_a_b/_a_c and delete the original.
  */
 #include "gba/types.h"
 #include "gba/io.h"
