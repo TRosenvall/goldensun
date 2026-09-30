@@ -1,0 +1,108 @@
+BaseAnim_RapidSlash -- 0x080e2974, asm/rom_c9000/rom_e28f4_c_c_a.s line 12,
+742 ROM instructions.  STILL RECON ONLY.  NO CANDIDATE WAS COMPILED IN BATCH
+308A EITHER, so there is deliberately NO "N of M" line here and no PARK_ file --
+do not invent one, and do not let a park-shaped file for this function exist
+until something has actually been measured.
+
+WHY IT STOPPED AT RECON AGAIN: batch 308A was told to prefer two well-understood
+functions over three shallow ones, and BaseAnim_ParticleCloud (81.5% aligned,
+frame exact) and BaseAnim_Nova (53.8% aligned, frame exact, relocation sequence
+exact) consumed the budget.  The existing RECON_BaseAnim_RapidSlash.txt is still
+the right starting document and everything in it stands.  This file records the
+FOUR things batch 308A learned that change how that recon should be read.
+
+--------------------------------------------------------------------------------
+1.  ITS `int` CARRIER ADVICE IS CORRECT, AND NOW IT IS CORRECT FOR A MEASURED
+    REASON RATHER THAN A VOID ONE.
+--------------------------------------------------------------------------------
+The recon says to write `{ int bld = 0x1010; REG_BLDALPHA = bld; }` and cites
+BaseAnim_Blob.  Blob's park justifies the carrier by claiming a direct store
+pools 0x1010 "as a HALFWORD and emits `ldrh`" while the ROM has a WORD pool.
+THAT REASON IS VOID: Thumb-1 has no PC-relative LDRH, so `ldr` and `ldrh`
+assemble to the same encoding for a pool load, which is exactly the point the
+batch brief already makes.
+
+What the carrier actually changes is WHICH OF THE TWO POOL LOADS COMES FIRST:
+a direct store expands the destination address before the source, so the ADDRESS
+pool load is emitted first; an `int` carrier makes the value a named SImode
+quantity that is expanded and allocated first, so the VALUE pool load is emitted
+first.  The ROM tells you which it wants, in one line:
+
+    BaseAnim_Blob        ldr r3,.Lcf954 @0x1010   THEN  ldr r2,=REG_BLDALPHA
+    BaseAnim_RapidSlash  ldr r3,.Le29e4 @0x1010   THEN  ldr r2,=REG_BLDALPHA
+    BaseAnim_Breath      ldr r2,=REG_BLDALPHA     THEN  ldr r3,.Ldbc6c @0x1010
+    Anim_Ragnarok        ldr r2,=REG_BLDALPHA     THEN  ldr r3,.Le9534 @0x1010
+    BaseAnim_Nova        ldr r2,=REG_BLDALPHA     THEN  ldr r3,.Ld46c0 @0x1010
+
+VALUE FIRST -> USE THE CARRIER.  ADDRESS FIRST -> WRITE THE STORE DIRECTLY.
+*** RapidSlash is VALUE FIRST (rom_e28f4_c_c_a.s, three lines after
+`bl AnimStart`), so the carrier IS right here -- keep it. ***  The measurements
+behind the rule are in PARK_BaseAnim_Nova.c: dropping the carrier on Nova moved
+objcmp 774 -> 674, size -48 -> -40, count -23 -> -20 and aligned 51.3% -> 53.8%
+all at once, and the same change on the installed Breath park moves objcmp
+647 -> 580 and aligned 61.7% -> 62.9%.
+
+--------------------------------------------------------------------------------
+2.  DO NOT HAND-DISTRIBUTE `variant * 7` AS `variant * 8 - variant` WITHOUT
+    CHECKING synth_mult FIRST.  The recon's reasoning is sound but the premise
+    needs testing on THIS constant.
+--------------------------------------------------------------------------------
+On BaseAnim_Nova the equivalent advice -- the recon there said to write
+`f18 * 4 + f18` rather than `f18 * 5` -- turned out to be UNNECESSARY: plain
+`f18 * 5` already makes synth_mult emit `lsl r3,r2,#2 / add r3,r2`, the ROM's
+exact shape, and the halfword scale supplies the following `lsl r3,#1`.
+So: compile `variant * 7` FIRST and read the emitted shape.  synth_mult may
+already produce `lsl rX,variant,#3 / sub rX,variant`.  Hand-distribution is only
+needed when it does not -- the batch-298 tell is about a MISMATCH, not about
+distributing on principle.  The thing the recon is right about and that IS worth
+doing unconditionally is making the derived index its own statement, because the
+ROM hoists `variant << 3` to sp+0x3c and reuses it at every site.
+
+--------------------------------------------------------------------------------
+3.  THE ARRAY-STRIDE SPELLING IS PER-FUNCTION AND MUST BE READ OFF THE SHIFT
+    DISTRIBUTION.  Two functions in this family needed OPPOSITE spellings of the
+    same gBuffer array.
+--------------------------------------------------------------------------------
+    BaseAnim_ParticleCloud  ROM: lsl r2,j,#6 / lsl r3,j,#9 / sub r3,r3,r2 /
+                                 lsl r3,#2 / add r7,r3,gBuffer
+                            = synth_mult(448) then a separate <<2, which is an
+                            `int *` subscript:  (Part *)((int *)gBuffer + j*448)
+                            A `Part *` subscript asks synth_mult for 1792 and
+                            gets ((j<<3)-j)<<8 -- the same algorithm, shifts
+                            distributed the other way.  WRONG.
+    BaseAnim_Nova           ROM: lsl r3,r2,#3 / sub r3,r2 / lsl r3,#2
+                            = synth_mult(0x1c), which is a plain `Part *`
+                            subscript: &gBuffer[cnt*row + i].  RIGHT.
+RapidSlash's copy loop and its particle seed loop each need this read
+separately; the recon already notes its seed loop walks gBuffer by 0x1c with
+bound 0xc0<<2, which is the `Part *` form, but its tile-copy loop is a byte
+pointer and is a different question.
+
+--------------------------------------------------------------------------------
+4.  THE RECON'S CLOSING GUESS -- "write the destination vec through its pointer
+    first" -- NEEDS A COMPANION RULE THAT BATCH 308A FOUND.
+--------------------------------------------------------------------------------
+BaseAnim_Attack's lever 4 says WRITE a vec destination through its pointer.
+BaseAnim_ParticleCloud needed the CONVERSE for a vec SOURCE: the four draw arms
+each read `mp->y` in the ROM (`ldr r3,[r5,#4]` four times) and reading it once
+into a local above the dispatch cost four instructions and the whole register
+assignment around them.  Per-arm reads were worth 75.0% -> 80.8% aligned and
+took the hunk count from 105 to 72, with size and count unchanged -- the largest
+single jump on that function.
+*** THE RULE THAT COVERS BOTH: reproduce the ROM's NUMBER OF ACCESSES, not a
+tidy single read.  Count the `ldr` instructions against the aggregate in the ROM
+before deciding whether to name a local. ***  RapidSlash has `&vec at sp+0x74`
+hoisted into r11 and a spilled `base` reloaded inside its copy loop, so both
+halves of the rule apply to it.
+
+--------------------------------------------------------------------------------
+WHAT IS STILL OWED FOR THIS FUNCTION
+--------------------------------------------------------------------------------
+Everything: a first candidate, an objcmp figure at production flags, an aligncmp
+figure, and a `make compare` after the split.  The split facts in the original
+recon were re-verified this batch only indirectly (the tool behaviour on the two
+sibling files matched what that recon predicted for its own); re-run
+tools/datacheck.py and tools/split_s.py --dry-run before touching the tree.
+Its recon says the split needs NO new `.global` because .Leed3e is already
+exported -- that is the one claim in it that is cheap to re-check and worth
+re-checking, because both other functions in this batch DID need exports.

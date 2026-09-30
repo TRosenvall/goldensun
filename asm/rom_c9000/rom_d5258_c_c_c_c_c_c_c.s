@@ -87,7 +87,7 @@
 	ldr	r0, =_FILE_8d
 	b	.Ld536e
 .Ld535a:
-	ldr	r5, =0xcd
+	ldr	r5, =_FILE_cd
 	mov	r1, #0x20
 	str	r1, [sp, #0x34]
 	mov	r0, r5

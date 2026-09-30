@@ -27621,7 +27621,36 @@ So the promotion is the cheap path to a pin-free park here, and the same shape w
 `Func_80c02a4`, whose 8 pins come from two local copies of dma.h-shaped helpers. **Two functions now
 want it**, which satisfies the standing condition.
 
-## UNRESOLVED CONTRADICTION: the `int` carrier for a pooled `vu16` register write
+## RESOLVED — the `int` carrier's discriminator is WHICH POOL LOAD COMES FIRST
+
+**Resolved in batch 308, one batch after being recorded as unresolved.** The carrier does not change
+whether the constant pools (`0x1010` is unshiftable either way) and not the mnemonic (already known
+void). **It changes which of the two pool loads is emitted first**, and therefore which register holds
+the destination address:
+
+    REG_BLDALPHA = 0x1010;                     ->  ADDRESS load first
+    { int b = 0x1010; REG_BLDALPHA = b; }      ->  VALUE   load first
+
+So read the reference's order and pick accordingly:
+
+| ROM order | functions | spelling |
+|---|---|---|
+| **value-first** | `BaseAnim_Blob`, `BaseAnim_RapidSlash` | **use the carrier** |
+| **address-first** | `BaseAnim_Breath`, `Anim_Ragnarok`, `BaseAnim_Nova` | **write the store directly** |
+
+**Measured, not inferred.** On `Nova` dropping the carrier moved all four figures at once — objcmp
+774 → 674, size −48 → −40, count −23 → −20, aligned 51.3% → 53.8%. `Anim_Ragnarok`'s 3.6-point
+negative is consistent. And it was **predicted, then measured on the already-installed `Breath` park**
+by changing only that one line: objcmp 647 → 580, aligned 61.7% → 62.9%, at +8 bytes and +3
+encodings.
+
+**Breath's park is deliberately NOT changed yet**: its two ranking views split (the count figure and
+the aligned figure disagree), so per the ranking discipline it should be re-ranked once its size goes
+exact. But **its stated reason for carrying the carrier is void**, and that is recorded in place.
+
+The original section follows, struck, because its framing is where the mistake was.
+
+### ~~Original section (recorded as unresolved)~~
 
 Two functions in the same batch give **opposite** results for the same constant, and neither
 explanation the tree has offered separates them. Recording it unresolved rather than picking a side.
@@ -28011,3 +28040,63 @@ nothing missing or extra.
 Four spellings of the constant were byte-identical and lengthening the pointer's range measured worse.
 It is now a **named two-function pattern**, which makes it worth one focused attempt rather than two
 per-function rounds — the same argument that made the x17 duplicate family worth a dedicated brief.
+
+## REPRODUCE THE ROM'S NUMBER OF ACCESSES, NOT A TIDY SINGLE READ
+
+`BaseAnim_ParticleCloud`'s four draw arms each re-read `mp->y`. Hoisting that into one local — the
+instinctively cleaner C — cost **4 instructions and the allocation around them**. Per-arm reads:
+75.0% → 80.8% aligned, hunks 105 → 72.
+
+**This is the converse of the `BaseAnim_Attack` lever and completes it.** There, a value had to be
+written *through its pointer* rather than read back; here, a value has to be read *as many times as
+the ROM reads it*. Both say the same thing from opposite ends: **the access count in the reference is
+source information, not an optimisation artefact.** Count the reads before deciding to hoist.
+
+Two related results from the same pair of functions:
+
+* **A call argument must not cross a call.** Splitting one variable into itself plus a block-scoped
+  copy in the two arms that call `LoadVFXFile` puts it in r0 — the ROM's register — lets `jump.c`
+  cross-join the two calls into the ROM's single one, and fixes the pool-word order as a side effect.
+* **AGGREGATE declaration order is REVERSED from the frame**: first-declared gets the **highest** sp
+  offset. Inert on `BaseAnim_Attack`, decisive here — so it is worth trying both directions rather
+  than assuming the scalar rule's direction carries over.
+
+## A POOL WORD THAT LOOKS LIKE GARBAGE CAN BE A FOLDED LOOP-ENTRY TEST
+
+`BaseAnim_Nova`'s reference carries `ldr r2, =0x1ffffff9`, which reads like a wrong constant. It is
+gcc solving the loop-entry test `0 == (n << 3) + 0x38`: **`0x1ffffff9 * 8 == -0x38`**. Write the
+natural loop and the word appears by itself.
+
+So before treating an unexplained pool constant as a defect, check whether it is the multiplicative
+inverse or a scaled form of a bound that appears elsewhere in the function. Recorded with the other
+constants-that-are-not-what-they-look-like: a u16 pooling **sign-extended**, `mov #3 / neg` meaning
+`& ~2`, and a pooled value below 256 being a tell for a symbol.
+
+## A FIGURE CAN IMPROVE FOR THE WRONG REASON — a spill is not progress
+
+Forcing `BaseAnim_Nova`'s two disjoint high-register quantities into one variable **spills** instead of
+winning r11, because `live_length` becomes the sum of both ranges. That is the **region-split** lever
+(lower a competitor) misapplied as the **reuse** lever (raise your own) — the two are not
+interchangeable, and this is the failure mode of confusing them.
+
+**And it improved size and count**, via the extra loads the spill introduces. Which is the point worth
+keeping: **size and count moving toward the reference is not evidence of progress if the mechanism is
+a spill you do not want.** Read *why* a figure moved, not just that it did. Same family as a closer
+size being a wrong program, and a candidate scoring better by deleting a veneer the ROM has.
+
+## A REFERENCE `.s` CAN CARRY A LITERAL WHERE THE ROM HAS A SYMBOL — and gcc proves which
+
+`asm/rom_c9000/rom_d5258_c_c_c_c_c_c_c.s` spelled `ldr r5, =0xcd` where `file_table.sym:125` defines
+`_FILE_cd = 0xcd`. Byte-neutral, but it made objcmp report `RELOCATIONS differ` on every candidate for
+that function **forever**, because our compiled `.c` emits the symbol and carries a relocation the
+reference did not.
+
+**The proof that the ROM's word is the symbol is a codegen argument, and it is decisive:** `0xcd` is
+8-bit-movable, so gcc would emit `mov r5,#0xcd` and the value would **never reach the pool at all**. A
+pool word holding 0xcd can therefore only have come from a *symbol* whose value happens to be 0xcd.
+The sibling call two lines above already uses `ldr r0, =_FILE_8d`, the same construct in symbol form.
+
+Fixed and gated byte-neutral. **Generalisable:** when objcmp reports a relocation our side has and the
+reference lacks, and the value is small enough that gcc would never pool it, the defect is in the
+reference `.s`, not the candidate — check `*.sym` for a symbol with that value before spending a round
+on the residue.
