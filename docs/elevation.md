@@ -26571,3 +26571,58 @@ the family does not predict which.
 
 Also settled here: `.Leec5a` belongs to **`Anim_Mercury` alone**, which answers the data question
 `Anim_Jupiter`'s park left open.
+
+## The declaration-order frame rule governs only objects allocated at `expand_decl`
+
+A necessary corollary, measured on `Func_80c02a4`. The rule that declared locals take the high frame
+offsets in declaration order applies to **objects `expand_decl` allocates** — and **a word-sized
+scalar is not one.**
+
+Measured: neither `u32 value;` nor `u32 value[1];` reaches the top slot **at any declaration
+position** — all three positions give `sp+4`. `unsigned char value[4]` lands at **0x90** and makes the
+whole frame agree offset-for-offset.
+
+So when a scalar refuses to move in the frame no matter where it is declared, that is not a failure of
+the rule — the rule never covered it. Give it an array type of the right width if the ROM puts it in
+the declared region.
+
+## A `u16` pools SIGN-EXTENDED
+
+`int` rather than `u16` for a stored tile value, because a `u16` constant is pooled **sign-extended**:
+`.word 0xfffff080` where the ROM has `.word 0x0000f080`. Two different pool words for what looks like
+the same value, and the mnemonics are identical — only the pool contents differ.
+
+## `mov #3 / neg` is `& ~2`, not `& ~3`
+
+An off-by-one that is **invisible in the mnemonics**. `Func_801f200`'s mask is `~2`; reading the
+`mov #3 / neg` pair as `~3` gives the same instruction sequence with a different program. Compute the
+complement rather than reading it off the constant: `neg` of 3 is `-3` = `0xfffffffd` = `~2`.
+
+## Confirmed: `stage1.ld` can name an object twice because of a DIFFERENT function in the file
+
+The batch-300 warning paid off immediately. On `asm/rom_a1000/rom_ad274_c_c_a.s`, `datacheck` reports
+no data requirement for the target function — but `stage1.ld` names the object at **line 1388
+`(.text)` and line 1440 `(.rodata)`**, because a *different* function in the same file carries a
+19-word jump table gcc places in `.rodata`.
+
+So a split must leave **both** script lines on the half that still holds that other function.
+`datacheck` cannot see this, because it reads the `.s` and the requirement belongs to the script. Grep
+the scripts for the object stem, every time.
+
+## Do not land a function carrying a LOCAL copy of a dma.h-shaped helper
+
+`Func_80c02a4` reaches its residue with two locally-defined DMA helpers (`DMA3_SET_RW`,
+`DMA3_FILL_AT`) contributing 8 pins. The right order is the one `DMA3_COPY16_RW` followed: **promote
+the helper to `include/dma.h` first**, on the evidence of a second function needing it, and only then
+land the function. Landing with a local copy creates the duplicate that promotion later has to
+unwind — and the gate proves the promotion byte-neutral, so there is no reason to defer it.
+
+## A dead value the ROM computes is a signal to find its LIVE use elsewhere
+
+`Func_80ae2f4` is 28 encodings short, and the `bl` sequence (46 against 46) isolates the deficit to
+two places — one of them a **dead `__modsi3` plus `sub r0, #5`** that our gcc deletes from all three
+dead-value spellings. The value is genuinely dead *in its own object*.
+
+The next step is therefore **not** a way to preserve dead code: it is to find the live use. A ROM that
+computes something it does not consume locally is usually consuming it somewhere the translation unit
+boundary hides — a sibling function, or a store this reading has mis-typed.
