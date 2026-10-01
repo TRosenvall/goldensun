@@ -28695,3 +28695,25 @@ So the frame-reading procedure is now three greps, not one: `sub sp, #imm` for t
 **`mov rX, sp` followed by `add rX, #K`** for aggregates addressed that way, and **`add rX, sp` plus a
 LOAD** to tell a spill from argument staging. Two phantom holes and one lost array have come from
 running only the first.
+
+## PUBLISH THE BATCH RECORD BEFORE STARTING THE NEXT BATCH — the index skipped two
+
+`HANDOFF.md` is the batch index and its last row is meant to be the current state of play. After batch
+310 was published, the row order read **307, 310** — batches **308 and 309 had neither a report nor a
+row**, because both were committed function-by-function as agents reported and the write-up was never
+done before the next batch started.
+
+The underlying work was fine: every commit was gated, and the findings went into this document as they
+were made. **What was lost was the index** — a reader following `HANDOFF.md` would jump straight from
+307 to 310 and miss fifteen parks, the `.call_via` confirmation, the `int`-carrier resolution, the
+two-spill-map technique and the partition-lever bound.
+
+**So: publish the report and the row for a batch before launching the next one.** The cost of catching
+up afterwards is that the narrative has to be reconstructed from commit messages, which is exactly the
+reconstruction this document exists to avoid. Both reports are now written and marked as written after
+the fact, because a catch-up report should say so rather than read as contemporaneous.
+
+Related, and the reason this matters more here than in most projects: **this tree's value is in the
+record, not only in the tree.** Three landings today came from re-reading a park that had recorded its
+own answer, and four doc sections were found to be writing off reachable work. An unindexed batch is a
+batch whose findings cannot be found.
