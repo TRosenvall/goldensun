@@ -28426,6 +28426,12 @@ one change, written once, moved both functions.**
 
 Both size- and count-exact, 98.9% and 99.2% aligned, pin-free.
 
+**BOUNDED IN BATCH 311: THE INITIALISER MUST BE LIVE.** `int yaw = 0;` was **byte-identical**, because
+the body overwrites it before any read — flow deletes the initialiser and **the range never grows**. The
+lever works only where the **initialised VALUE is what the function actually uses**. So it is not "put
+an `=` on the declaration"; it is "the value the pseudo carries from entry must be the value that is
+read".
+
 **The mechanism.** An `int` carrier initialised *at its declaration* makes its pseudo **live from
 function entry**. `allocno_compare`'s priority is `log2(n_refs) * freq / LIVE_LENGTH`, so a range
 starting at entry is the **longest** range and therefore the **lowest** priority: it is allocated last,
@@ -28717,3 +28723,53 @@ Related, and the reason this matters more here than in most projects: **this tre
 record, not only in the tree.** Three landings today came from re-reading a park that had recorded its
 own answer, and four doc sections were found to be writing off reachable work. An unindexed batch is a
 batch whose findings cannot be found.
+
+## THE POOL-ORDER RECIPE WAS INSUFFICIENT AS WRITTEN — gcc evaluates arguments RIGHT-TO-LEFT
+
+`Anim_Frost`'s park prescribes "name the source pointer first" to fix pool order. **As written it does
+not work**, and batch 311 found why: **gcc evaluates call arguments right-to-left**, so an expression
+left embedded in the argument list is referenced **last** — Frost's exact spelling still produced the
+reversed pair.
+
+**It must be a SEPARATE DECLARATION, PLACED FIRST.** And the precondition is narrower than recorded:
+**the lever bites only where TWO TABLES SHARE ONE DRAW SITE.** It is inert on a single-table arm and
+inert on `BaseAnim_StatUp`.
+
+Used correctly it was the largest lever on `BaseAnim_Heal` — 850 → 824 objcmp, 62.7% → **69.8%**
+aligned, frame 0x8c → 0x88 — and **it took the relocation sequence exact**, which showed the
+`_call_via_r2`/`r3` defect there was **downstream of pool order**, not an independent pin problem.
+
+## gcc's OWN LOOP-INVARIANT HOISTS OCCUPY FRAME SLOTS — count them, do not declare them
+
+`BaseAnim_StatUp`'s sp+0x24 holds the **hoisted address of a global**, proven by cse reaching a second
+global as that address + 0x88. It looks exactly like a declared local in the slot map and is not one.
+
+So the frame census has a fourth category alongside declared locals, compiler temps and
+outgoing-argument staging: **values loop.c hoisted**. Declaring one costs you the slot twice. This sits
+with the related readings — a slot below a gcse pseudo was never a declared local, a call temp cannot
+outrank a function-level declaration, and `update_equiv_regs` denies a **one-set** constant pseudo a
+slot entirely (**the gate is REG_N_SETS, not REG_N_REFS**).
+
+## EQUALITY CHAINS, NOT RANGE COMPARES, when the ROM's branch is UNSIGNED
+
+`variant <= 1` emits `ble` — **signed** — where the ROM has `bls`. Writing
+`variant == 0 || variant == 1 || …` lets `fold_range_test` build the **unsigned** range and produces the
+ROM's branch.
+
+So an unsigned-looking compare in the reference is a statement about the **source form**, not just the
+type: the range compare and the equality chain are different programs to gcc, and only one of them
+reaches `bls`. Recorded with the other condition-code tells — `ble` versus `bls` separated signed from
+unsigned loop bounds on three functions, and `bcc` on a switch selector means an unsigned minimum.
+
+## Family transfer: the seed counter and the particle counter are ONE source variable
+
+Confirmed independently on two `BaseAnim_*` functions in one batch — `BaseAnim_Heal` +5.5 aligned
+points, and on `BaseAnim_StatUp` it improved **size, count, objcmp and aligned all together**, which is
+the corroboration a single figure cannot give.
+
+**That makes it the second thing to transfer across this family**, after the `ldmia` walking-pointer
+prologue (now confirmed six siblings deep). Everything else in the family remains per-function: the
+register map (one keeps `variant` in r10, another spills it in the first instruction after `sub sp`),
+the dispatch shape, and **the aggregate declaration direction** — reversing it measured *worse* on
+`StatUp`, a third data point after inert on `Attack` and decisive on `ParticleCloud`. **Try both
+directions; do not carry the answer.**
