@@ -2018,11 +2018,15 @@ SECTIONS {
 		asm/rom_f0000/rom_f0254_b.o(.text)
 		asm/rom_f0000/rom_f0254_c_a.o(.text)
 		asm/rom_f0000/rom_f0254_c_b.o(.text)
-		asm/rom_f0000/rom_f0254_c_c.o(.text)
+		asm/rom_f0000/rom_f0254_c_c_a.o(.text)
+		asm/rom_f0000/rom_f0254_c_c_b.o(.text)
+		asm/rom_f0000/rom_f0254_c_c_c.o(.text)
 
 		asm/rom_f0000/rom_f0254_c_a.o(.rodata)
 		asm/rom_f0000/rom_f0254_c_b.o(.rodata)
-		asm/rom_f0000/rom_f0254_c_c.o(.rodata)
+		asm/rom_f0000/rom_f0254_c_c_a.o(.rodata)
+		asm/rom_f0000/rom_f0254_c_c_b.o(.rodata)
+		asm/rom_f0000/rom_f0254_c_c_c.o(.rodata)
 	} > rom
 
 	rom_f2000 : ALIGN(0x1000) {
