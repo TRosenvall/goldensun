@@ -335,7 +335,40 @@
  *    alone moved the veneer from `_call_via_r5` to the ROM's `_call_via_r3`,
  *    because the pointer no longer has to survive a call.
  *
- * 4. THE POOLED 0xcc / 0xaa / 0x1f, 3 encodings, UNEXPLAINED AND FLAGGED AS
+ * 4. THE POOLED 0xcc / 0xaa / 0x1f -- *** NOT A BLOCKER AND NOT 3 ENCODINGS.
+ *    RETRACTED IN BATCH 313: IT COSTS ZERO. ***
+ *
+ *    `ldrh rX, <pool>` against `ldr rX, <pool>` ON THE SAME POOL WORD is a
+ *    MNEMONIC-TEXT ARTEFACT WITH IDENTICAL ENCODINGS.  Thumb-1 has no
+ *    PC-relative halfword load at all, so GAS must encode a `ldrh rX,<label>`
+ *    pool reference as the same word load the reference listing prints as `ldr`.
+ *    The two listings differ; the two objects do not.
+ *
+ *    Measured independently by two agents in batch 313.  One proved it through a
+ *    clean aligncmp band (reference indices 42-67 aligned-equal across the
+ *    disagreeing mnemonics) and separately confirmed `ldrsh` 12/12 and `lsl`
+ *    60/60 exact, so carrier width cannot explain any delta.  The other found
+ *    `ldrh` 20 in its candidate against 6 in its reference, where the six DATA
+ *    loads match one-for-one and the other fourteen are pool loads -- and closed
+ *    it arithmetically: that candidate is +7 encodings in total, so fourteen
+ *    extra instructions is impossible.
+ *
+ *    So the 3 encodings this section claimed belong somewhere else, and the
+ *    section's own caution -- "do not write this up as a new mechanism without
+ *    reproducing it in a minimal probe" -- was right for a better reason than it
+ *    knew: there is no mechanism here to reproduce.
+ *
+ *    *** AND THE GENERAL CONSEQUENCE, which is the valuable half: A RUNG-8
+ *    PER-OPCODE HISTOGRAM MUST BE TAKEN OVER ENCODINGS (objdump -dz), NEVER OVER
+ *    LISTING TEXT. ***  This is the second listing-level aliasing found, after
+ *    `.call_via` (whose macro line expands to `mov r12,pc` + `bx`, so raw text
+ *    under-counts both by one per site).  A histogram over text will invent
+ *    opcode deltas that no object carries.
+ *
+ *    The original reading is kept below for the record, since its machine-
+ *    description reasoning is sound and only its conclusion was wrong.
+ *
+ *    THE POOLED 0xcc / 0xaa / 0x1f, 3 encodings, UNEXPLAINED AND FLAGGED AS
  *    SUCH.  `REG_BG2PA = 0xcc` gives us `ldrh r3, <pool>` where the ROM has
  *    `ldr r3, <pool>` -- same pool word (`.word 0xcc`), different load width.
  *    The halfword load is `*thumb_movhi_insn` having no immediate form and

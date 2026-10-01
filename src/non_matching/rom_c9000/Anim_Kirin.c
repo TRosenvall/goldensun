@@ -277,12 +277,32 @@
  *     the ROM's `ldr [+4] / ldr [+0] / str [+0] / str [+4]` -- HIGH WORD LOADED
  *     FIRST.  Two element assignments give low-then-high and cannot match.
  *     (The brief's 557 -> 579 note, holding on a fifth function.)
- *   - THE COMPARISON CENSUS IS MIXED AND MUST NOT BE IMPORTED:
- *     bne=33 beq=5 ble=16 bgt=8 bge=1 bhi=2, blt=0.
- *     33 `bne` against 27 signed -- Gaia's blanket `!=` rule would corrupt 27
- *     sites.  The two `bhi` are the two UNSIGNED range guards and they are the
- *     only places a cast belongs: `(unsigned)(frame - 0x18) <= 0x1f` and
- *     `(unsigned)(frame - 8) <= 0x17`.  Everything else is signed.
+ *   - *** THE RAW MNEMONIC CENSUS IS THE WRONG INSTRUMENT FOR LOOP FORM, AND
+ *     ON THIS FUNCTION IT POINTS THE WRONG WAY. ***  The raw counts are
+ *     bne=33 beq=5 ble=16 bgt=8 bge=1 bhi=2, blt=0 -- "33 bne against 27
+ *     signed", which reads as mixed and as a reason NOT to import Gaia's `!=`
+ *     rule.  THAT INFERENCE IS FALSE.  A mnemonic census counts COMPARISONS;
+ *     loop form is decided only by the BACKWARD EDGES.  Classified
+ *     (scratch_elev/b313g/backedge.py -- a branch whose target label is defined
+ *     EARLIER than the branch):
+ *         Anim_Kirin has 19 BACKWARD EDGES: 16 close on `bne`, 3 are
+ *         unconditional `b`, and ZERO CLOSE ON A SIGNED COMPARE.
+ *     So EVERY loop in this function is a `!=` loop and Gaia's rule transfers
+ *     COMPLETELY.  The 27 signed compares are clamps (`if (rate > 0x18)`),
+ *     signed-division corrections (`p->vy * 48 / 64`) and frame-phase tests
+ *     (`frame <= 0x95`) -- none of them closes a loop.
+ *     The candidate was already right on this axis because the loops were read
+ *     off the reference's actual back-edges rather than off the census; every
+ *     `do {...} while` in it is `!=`.  The census only ever endangered the
+ *     PROSE.  Measured the same way across brief G's four:
+ *         Anim_Kirin           19 back-edges, 16 bne,  0 signed, 3 b
+ *         BaseAnim_Meteor      23 back-edges, 20 bne,  1 signed, 2 b
+ *         Anim_Procne          19 back-edges, 15 bne,  0 signed, 4 b
+ *         BaseAnim_Bite_Sting  16 back-edges, 13 bne,  1 signed, 2 b
+ *     All four are `!=`-closing. Classify back-edges; never rank on mnemonics.
+ *     The two `bhi` ARE still the two UNSIGNED range guards and are the only
+ *     places a cast belongs: `(unsigned)(frame - 0x18) <= 0x1f` and
+ *     `(unsigned)(frame - 8) <= 0x17`.
  *   - `*(int *)(base + 0x77a8) = frame;` at `frame == 8` stores the VARIABLE
  *     (the ROM's `str r4,[r3]` reuses the compare's register), the Ragnarok rule.
  *   - the `wob` sin() shift is DUPLICATED IN BOTH ARMS, 6 for frame <= 8 and 5
@@ -305,6 +325,52 @@
  *     asr #6` bias), and `(unsigned)Random() % 0x30` as UNSIGNED (`__umodsi3`)
  *     while `i % 3` is SIGNED (`__modsi3`) eleven lines later.  Both remainders
  *     are in this function and they have different signedness.
+ *
+ * ================================================================
+ * TWO MNEMONIC-GREP TRAPS SCREENED, BOTH CLEAN, BOTH WORTH RECORDING
+ * ================================================================
+ *
+ * THE TYPE-CARRIER SCREEN PASSES.  Reference `ldrsh` = 6, ours = 6, and the six
+ * sites correspond one-for-one; `lsl #16` is 11 both sides and `lsr #16` is 0
+ * both sides.  So the `unsigned short v = *src++;` defect (which costs an
+ * `ldrsh` + `lsl #16` + `lsr #16` triple per site) is NOT present here: the
+ * `*(short *)((char *)p + 6)` spellings carry the right type already.
+ *
+ * BUT THE SAME GREP SHOWS `ldrh` 20 OURS AGAINST 6 REFERENCE, AND THAT IS NOT
+ * A DEFECT.  Our six DATA `ldrh` match the reference's six site for site.  The
+ * other fourteen are `ldrh rX, .LNNN` POOL LOADS, which ASSEMBLE IDENTICALLY to
+ * the `ldr rX, .LNNN` the reference listing prints -- the behaviour already
+ * recorded in src/non_matching/rom_c9000/80ecef4.c.  The arithmetic settles it
+ * independently: the candidate is +7 encodings in total, so fourteen extra
+ * instructions is impossible.
+ * *** THEREFORE A RUNG-8 PER-OPCODE HISTOGRAM MUST BE TAKEN OVER ENCODINGS
+ * (objdump -dz), NEVER OVER THE ASSEMBLER LISTING TEXT. ***  `ldr`/`ldrh` is a
+ * second listing-level aliasing on top of the known `.call_via` one.
+ *
+ * AND THE `.call_via` CORRECTION FACTOR FOR THIS FAMILY, since every one of
+ * brief G's four uses the macro and none of them has an expanded `mov ip,pc`
+ * in the listing.  A raw-text histogram under-counts `mov` AND `bx` by one per
+ * site:   Anim_Kirin 5,  BaseAnim_Meteor 9,  Anim_Procne 14,
+ *         BaseAnim_Bite_Sting 9.
+ * Expand the veneers before trusting a `mov` or `bx` column.
+ *
+ * ================================================================
+ * TWO MORE FRAME-IDIOM RESULTS, ONE NEGATIVE
+ * ================================================================
+ * THE SIXTH IDIOM, `mov rX,#K` THEN `add rX,sp` (immediate first), DOES NOT
+ * OCCUR IN ANY OF BRIEF G's FOUR -- zero sites across all four bodies.  The
+ * idiom is real and belongs in the recipe; it simply has no work here, so a
+ * frame reading of these four that omits it loses nothing.
+ *
+ * THE SEVENTH CLASSIFICATION CASE -- an ADDRESS-TAKEN SCALAR, which is neither
+ * an aggregate nor a sub-word scalar -- has exactly ONE sighting in brief G's
+ * four, and it is NOT in the `f(&a)` form: BaseAnim_Meteor's +0x094 is a 4-byte
+ * slot whose ADDRESS is computed (`mov r2,sp / add r2,#0x94`) and STORED into
+ * slot +0x03c, which is then the function's maxreload at 28 loads.  `p = &a`,
+ * not `f(&a)`.  Every `add rX,sp,#K`-into-an-argument-register site in all four
+ * functions resolves to a 12-byte vec3 (GetBattleActorPos3, Func_80e3944), so
+ * the `f(&a)` scalar form is absent here.  Both forms need the same handling in
+ * a classifier; only the second is a false aggregate at the grep.
  *
  * ================================================================
  * WHAT TO TRY NEXT -- the residue is 2 pass-created spill words

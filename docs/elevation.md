@@ -30304,3 +30304,160 @@ over-count and the unscoped-grep over-count.
     five register variants, two of them high (12 sites)**, and r8 doubles as a
     delta register. The existing advice to land a single-register veneer function
     first is confirmed.
+
+## Rung 8's instrument must read ENCODINGS, not listing text -- two listing-level aliases
+
+Found independently by two agents in batch 313, and it corrects a documented
+blocker attribution.
+
+**`ldrh rX, <pool>` against `ldr rX, <pool>` on the SAME POOL WORD is a
+mnemonic-text artefact with IDENTICAL ENCODINGS.** Thumb-1 has no PC-relative
+halfword load at all, so GAS must encode a `ldrh rX,<label>` pool reference as the
+same word load a reference listing prints as `ldr`. The listings differ; the
+objects do not.
+
+Two independent proofs:
+
+  * a clean **aligncmp band** — reference indices 42-67 aligned-equal *across* the
+    disagreeing mnemonics — plus `ldrsh` 12/12 and `lsl` 60/60 exact, so carrier
+    width cannot explain any delta;
+  * **`ldrh` 20 against 6** in another function, where the six *data* loads match
+    one-for-one and the other fourteen are pool loads — closed **arithmetically**:
+    that candidate is **+7 encodings in total, so fourteen extra instructions is
+    impossible.**
+
+**`Anim_Gaia`'s BLOCKER 4 attributed 3 encodings to this and is retracted** — it
+costs zero. Its own caution ("do not write this up as a new mechanism without a
+minimal probe") was right for a better reason than it knew: there is no mechanism
+to reproduce. The 3 encodings belong somewhere else.
+
+**The general rule, which is the valuable half:**
+
+> **A rung-8 per-opcode histogram must be taken over ENCODINGS (`objdump -dz`),
+> never over listing text.**
+
+Two listing-level aliases are now known, and both *invent* opcode deltas no object
+carries:
+
+| alias | effect on a text histogram |
+|---|---|
+| `ldrh`/`ldr` on a pool word | a phantom `ldrh` surplus and `ldr` deficit |
+| `.call_via` macro line | under-counts `mov` AND `bx` by one per site |
+
+Per-function `.call_via` correction factors measured: **5 / 9 / 9 / 14**. The
+fourteen is large enough to **invent or hide a whole lever** on its own.
+
+## The backward-edge census, now measured on eight functions -- the mnemonic ratio ran BACKWARDS
+
+Batch 311 recorded a per-function loop census as `grep -coE
+'\b(bne|blt|ble|bgt|bge)\b'`. Two agents classified actual **backward edges**
+instead (`tools/backedge.py`):
+
+| function | back edges | `bne` closures | signed closures |
+|---|---|---|---|
+| `Anim_Boreas` | 27 | 24 | **0** |
+| `Anim_Cybele` | 28 | 25 | 1 |
+| `Anim_Thor` | 24 | 21 | **0** |
+| `Anim_Judgment` | 29 | 25 | **0** |
+| `Anim_Kirin` | 19 | 16 | **0** |
+| `Anim_Procne` | 19 | 15 | **0** |
+| `BaseAnim_Meteor` | 23 | 20 | 1 |
+| `BaseAnim_Bite_Sting` | 16 | 13 | 1 |
+
+**95 of 96 conditional back edges across the first four are `bne`**, and only
+three signed closures exist in all eight. **`Anim_Gaia`'s all-`!=` rule transfers
+to every one of them** — where this document said it would corrupt 48 sites on one.
+
+**The mnemonic ratio did not merely fail, it ordered the functions almost exactly
+backwards.** The two it ranked *least* `bne`-dominated (`Anim_Procne` at 27/38 and
+`Anim_Kirin` at 33/27) are precisely the two with **zero** signed loop closures,
+and the one it ranked *most* `bne`-dominated is joint-weakest by back-edge. An
+agent's own words on the worst case: it had written *"the function Gaia's `!=`
+lever would damage most: 38 sites"* about a function with **zero** signed loop
+closures — it would have argued a correct lever out of the function that takes it
+most cleanly. It struck the claim in place rather than deleting it.
+
+**A separation worth keeping:** that agent's *candidate* was unaffected, because it
+read its loop forms off the reference's actual back edges. **The bad instrument
+endangered the prose, not the reconstruction.** A proxy corrupts what you write
+down before it corrupts what you build — which is exactly why a park's prose needs
+the same scepticism as its figure.
+
+## Batch 313 brief E: a histogram that localised a 153-encoding residue to ONE variable
+
+The clearest rung-8 payoff yet. `Anim_Boreas` reached **size EXACT at 3156 bytes**
+with the count saturated by one (1417/1416) and the relocation symbol sequence
+already correct. Its histogram read:
+
+    ldr -48 / mov +41        and nothing else above 6
+
+That is **one variable**: `frame`. The ROM reloads it from slot `0x28` **fifty
+times** where the candidate keeps it in r11 — and it also owns **every wrong
+`[sp,#imm]` field**, because the missing tenth slot shifts the other nine and all
+three aggregates with them. The delivered body already carries the ROM's aggregate
+order, so **adding that one slot is predicted to land the entire frame exactly.**
+
+A 153-encoding gap reduced to a single named quantity by one histogram column.
+
+Also measured there: three-aggregate declaration order took size 3168 → **3156
+exact** and count +7 → +1. And `-ffixed-r11` does **not** make `frame` spill — it
+moves to another register and costs 7, so no flag explains this residue.
+
+## Three corrections to `Anim_Gaia`'s levers, from its own family
+
+  * **Lever 9 — reading operand order out of an `and` — is UNSAFE**, and the
+    mechanism is a *use count*: a cost-1 mask used twice inside a
+    call-containing loop is hoisted by `loop.c` from a plain literal. That
+    inference would be wrong at **five** sites in a sibling. This joins the
+    operand-order family, which is now unanimous: **neither operand order nor
+    associativity at a commutative site is readable from the output** (`mul`,
+    `and`/`orr`, add grouping, and now this).
+  * **The two-aggregate layout rule does not generalise to three.** Measured both
+    ways: the **first-declared takes the LOWEST offset, and the remainder are laid
+    out in REVERSE declaration order above it.** So "aggregate order is reversed"
+    is right only from the second aggregate on.
+  * **The preheader-pointer lever does not apply to a loop's own giv** — only to a
+    loop-invariant base.
+
+## Split-shape: a THIRD function I mislabelled, and the asymmetry is in CUTS PAID
+
+**`Anim_Judgment` is not "1 function, no split"** — `datacheck.py` gives a
+TEXT/DATA split with 5 exports. That is the **third** function in this batch I
+listed as needing no split that needs one, all from the same defect: I counted
+`thumb_func_start` occurrences and never ran `datacheck.py`. **A one-function file
+can still need a TEXT/DATA split, and only `datacheck.py` knows.**
+
+The `Anim_Boreas`/`Anim_Cybele` split asymmetry, dry-run **both** ways:
+
+| order | parts | exports |
+|---|---|---|
+| Cybele first | 2 | 13 |
+| **Boreas first** | 3 | 31 |
+
+Same 31 exports either way — **the asymmetry is in how many CUTS you pay for**,
+and Boreas-first leaves Cybele in a one-function-no-data file needing **no split at
+all**. Recommendation: **Boreas first.** A fourth confirmation that split
+constraints are never symmetric, and the first where the *total* cost is identical
+and only the *number of operations* differs.
+
+## Aggregate re-derivations, and the difficulty order inverts again
+
+Brief E: **3/6/6/14 → 3/3/5/6**, each resolved block-aware with frame arithmetic
+balanced to the byte. **`Anim_Thor` is the hardest, not `Anim_Judgment`** — 30
+spilled scalars against 24, plus an 0x84-byte array. `Anim_Judgment`'s 46
+`str [sp]` sites make its **calls wide, not its frame deep**, which is the
+distinction the `sp0` column cannot draw on its own.
+
+Brief G: **6/10/14/19 → 5/7/8/10**, confirmed by closing the byte accounting
+exactly. Corrected order **`BaseAnim_Bite_Sting` < `Anim_Kirin` < `BaseAnim_Meteor`
+< `Anim_Procne`**, and my "heaviest frames left in the tree" claim is unsupported.
+
+Two further frame forms the recipe still lacked: **`add rX, sp` (register plus sp)**
+in both shifted and immediate-first orderings, **forced when the offset is not
+word-aligned** — `sp+0x14f` is inexpressible as `add rX,sp,#imm`. Meanwhile the
+`mov rX,#K / add rX,sp` idiom measured **zero sites across four functions**: real,
+but with no work in that population.
+
+And the seventh classification case has a form distinction: an address-taken scalar
+appeared not as `f(&a)` but as **`p = &a`** — a 4-byte slot whose *address* is
+stored into another slot, which then becomes that function's 28-load maxreload.

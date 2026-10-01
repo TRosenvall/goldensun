@@ -24,6 +24,16 @@ function cannot be installed this batch.
 
 SHIMS: tools/shimcount.py prints the filename and nothing else -- ZERO.
 
+.call_via SITES: 9, all UNEXPANDED -- a raw-text Rung-8 histogram under-counts
+`mov` AND `bx` by 9 each.  Take the histogram over ENCODINGS, not listing text.
+
+TYPE-CARRIER SCREEN: reference `ldrsh` = 10, `ldrb` = 38 (by far the most of the
+four -- that is the 84-byte table below), `ldrh` = 5, `lsl #16` = 1,
+`lsr #16` = 0.  THE REFERENCE HAS ESSENTIALLY NO 16-BIT SHIFT TRAFFIC, so this
+is the function where a stray `unsigned short` carrier would show up loudest:
+any `lsl #16` + `lsr #16` pair in a candidate is almost certainly a wrong
+carrier type, not a real expression.  Screen with one grep.
+
 =====================================================================
 *** THE MAXRELOAD 23 CARRIES NO REBUILD-vs-MIXED SIGNAL AT ALL. ***
 *** IT IS 23/23 AN ARRAY BASE ADDRESS.  THE BRIEF PREDICTED THIS. ***
@@ -144,21 +154,42 @@ DECLARATION ORDER TO START FROM:
   parameter, so Func_80e3944(in, out) gives the types for free.
 
 =====================================================================
-COMPARISON CENSUS -- PER FUNCTION
+LOOP FORM -- BY BACKWARD EDGE.  Right conclusion, wrong reason.
 =====================================================================
-  bne=23  beq=14  blt=4  ble=4  bgt=1  bge=2  bhi=4  bls=1
-  23 `bne` against 11 SIGNED compares -- THE MOST `bne`-DOMINATED OF THE FOUR
-  (Kirin 33/27, Meteor 38/33, Procne 27/38).  This is the one where Gaia's
-  blanket `!=` lever is most likely to pay, and the 11 signed sites are few
-  enough to hand-check afterwards.  FIVE unsigned guards (4 bhi + 1 bls), the
-  most of the four, which fits an 84-byte table indexed by a bounded variable.
+The raw census is bne=23 beq=14 blt=4 ble=4 bgt=1 bge=2 bhi=4 bls=1 -- 23 `bne`
+against 11 signed, the most `bne`-dominated of the four.  From that I concluded
+Gaia's `!=` lever is most likely to pay HERE.  The conclusion is right but the
+reasoning was not, and the RANKING it implied across the four was wrong.
+
+BACKWARD EDGES (scratch_elev/b313g/backedge.py):
+    16 backward edges: 13 close on `bne`, 2 unconditional `b`,
+    and ONE closes on a signed compare -- `bgt .Lcabfe` at line 702, a
+    three-instruction inner loop.
+So 13 of 14 conditional closures are `!=`.
+
+AND THAT IS NOT BETTER THAN ITS SIBLINGS -- it is slightly WORSE:
+    Anim_Kirin           19 edges, 16 bne, 0 signed   <- fully transferable
+    Anim_Procne          19 edges, 15 bne, 0 signed   <- fully transferable
+    BaseAnim_Meteor      23 edges, 20 bne, 1 signed
+    BaseAnim_Bite_Sting  16 edges, 13 bne, 1 signed
+Gaia's rule transfers to ALL FOUR, and the two it transfers to PERFECTLY are
+the two the raw census ranked as least `bne`-dominated.  The mnemonic ratio did
+not merely fail to help; it ordered the four almost exactly backwards.
+
+The five unsigned guards (4 `bhi` + 1 `bls`) are real and are not loop
+closures -- they fit the 84-byte table indexed by a bounded variable, and they
+are where the casts belong.
 
 =====================================================================
 RANK: THE EASIEST OF BRIEF G's FOUR, AND THE BRIEF HAD IT RIGHT
 =====================================================================
 Smallest frame (156), fewest true aggregates (5), no sub-word scalars, no loop
-sentinels, most `bne`-dominated, and the 23 reloads are a free consequence of
-one array subscript rather than 23 decisions.  Its one real cost is the 20-site
+sentinels, and the 23 reloads are a free consequence of one array subscript
+rather than 23 decisions.  (I originally also cited "most `bne`-dominated".
+STRIKE THAT -- by back-edge it is the joint-WEAKEST of the four for the `!=`
+rule, with one signed closure to hand-check.  The ranking stands on frame,
+aggregate count and the reload partition, which is where it should have rested
+in the first place.)  Its one real cost is the 20-site
 outgoing-argument traffic, which is bookkeeping, not structure.
 BLOCKED, though, behind the same seven-export commit as Anim_Procne -- so the
 right order for the next batch is: land ONE commit adding both export sets

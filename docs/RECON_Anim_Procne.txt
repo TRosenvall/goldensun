@@ -33,6 +33,18 @@ Same situation as BaseAnim_Bite_Sting; see its recon.
 
 SHIMS: tools/shimcount.py prints the filename and nothing else -- ZERO.
 
+.call_via SITES: 14 -- THE MOST OF BRIEF G's FOUR -- all UNEXPANDED in the
+listing.  A raw-text Rung-8 histogram UNDER-COUNTS `mov` AND `bx` BY 14 EACH
+here, which is large enough to invent or hide a whole lever.  Expand the
+veneers, and take the histogram over ENCODINGS rather than listing text
+(`ldrh rX,label` and `ldr rX,label` assemble identically).
+
+TYPE-CARRIER SCREEN: reference `ldrsh` = 11 (the most of the four), `ldrh` = 10,
+`lsl #16` = 7, `lsr #16` = 1.  With 11 `ldrsh` already in the REFERENCE, the
+usual screen inverts: here a candidate is more likely to be MISSING `ldrsh`
+than carrying spurious ones, so check the direction before concluding the
+carrier type is wrong.
+
 =====================================================================
 THE FRAME.  ACCOUNTING CLOSES TO THE BYTE: 0x164 = 356.
 =====================================================================
@@ -130,12 +142,31 @@ DECLARATION ORDER TO START FROM:
                        +0x104, +0x124, +0x144
 
 =====================================================================
-COMPARISON CENSUS -- PER FUNCTION
+LOOP FORM -- BY BACKWARD EDGE.
+*** I GOT THIS EXACTLY BACKWARDS FROM THE RAW CENSUS.  CORRECTED. ***
 =====================================================================
-  bne=27  beq=12  blt=1  ble=17  bgt=14  bge=6  bhi=3
-  27 `bne` against 38 SIGNED compares -- THE ONLY ONE OF BRIEF G's FOUR WHERE
-  SIGNED COMPARES OUTNUMBER `bne`.  This is the function Gaia's `!=` lever would
-  damage most: 38 sites.  Three `bhi` unsigned range guards.
+The raw mnemonic census is bne=27 beq=12 blt=1 ble=17 bgt=14 bge=6 bhi=3 -- 27
+`bne` against 38 SIGNED compares, the only one of brief G's four where signed
+compares outnumber `bne`.  From that I first wrote: "this is the function
+Gaia's `!=` lever would damage most: 38 sites."  THAT IS WRONG, AND IT IS WRONG
+IN THE MOST DANGEROUS DIRECTION -- it would have argued a correct lever out of
+the function that benefits from it most cleanly.
+
+A mnemonic census counts COMPARISONS.  Loop form is decided ONLY by the
+BACKWARD EDGES (scratch_elev/b313g/backedge.py):
+
+    19 backward edges: 15 close on `bne`, 4 are unconditional `b`,
+    and ZERO CLOSE ON A SIGNED COMPARE.
+
+EVERY LOOP IN Anim_Procne IS A `!=` LOOP.  Gaia's rule transfers COMPLETELY,
+with nothing to hand-check.  The 38 signed compares are clamps, signed-division
+corrections and frame-phase tests; not one of them closes a loop.  Procne has
+the LOWEST `bne` count and the HIGHEST signed count of the four and is
+simultaneously one of the two with ZERO signed loop closures -- which is the
+clearest possible demonstration that the two measurements are unrelated.
+
+The three `bhi` are the unsigned range guards and are the only places a cast
+belongs.
 
 =====================================================================
 REBUILD-vs-MIXED SCREEN: MIXED.
@@ -155,8 +186,11 @@ decision is worth the most, so MEASURE IT EARLY AND BOTH WAYS.
 RANK: THIS IS THE HARDEST OF BRIEF G's FOUR
 =====================================================================
 Largest frame (356), most true aggregates (10), most spilled scalars (24), two
-function-wide maxreload quantities, most signed compares (38), and the largest
-rebuild population.  It is also blocked behind a seven-export asm commit.
+function-wide maxreload quantities, and the largest rebuild population.
+(I originally also cited "most signed compares (38)" as a difficulty factor.
+STRIKE THAT: the back-edge classification above shows zero signed loop
+closures, so the signed compares are clamps and cost nothing structurally.
+The ranking still stands on the other five factors.)  It is also blocked behind a seven-export asm commit.
 Take it LAST on installability and FIRST on difficulty -- those are not in
 conflict here, they are the same conclusion: do not start it until the export
 commit has landed and `make compare` is green.
