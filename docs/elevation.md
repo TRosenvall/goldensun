@@ -28409,3 +28409,76 @@ And a concrete instance of the counting trap: `Func_80ad6d4` has **1 inline `.ca
 ordinary `bl _call_via_rN`** (r3×10, r5×3, r4×1). An unanchored grep answers **15**, of which 14 are the
 freely-reachable form. It is also a clean demonstration that **mixing the two forms in one function
 blocks nothing.**
+
+## INITIALISE AT THE DECLARATION TO *LOWER* AN ALLOCNO AND FORCE REMATERIALISATION — the third member of the family
+
+**The strongest new lever since register inheritance, and it closed a named two-function blocker:
+one change, written once, moved both functions.**
+
+    int clen = 0x80 << 7;      /* initialised AT its declaration -- that is the lever */
+    cl((void *)0x6004000, clen);
+    cl(ctx, clen);
+
+| function | before | after | relocations |
+|---|---|---|---|
+| `Anim_Djinni` | 26 of 738 | **16 of 738** | were 2 rows off, **now EXACT** (76 rows) |
+| `Anim_CriticalHit` | 19 of 707 | **15 of 707** | were 2 rows off, **now EXACT** (84 rows) |
+
+Both size- and count-exact, 98.9% and 99.2% aligned, pin-free.
+
+**The mechanism.** An `int` carrier initialised *at its declaration* makes its pseudo **live from
+function entry**. `allocno_compare`'s priority is `log2(n_refs) * freq / LIVE_LENGTH`, so a range
+starting at entry is the **longest** range and therefore the **lowest** priority: it is allocated last,
+**loses its hard register**, and because its `REG_EQUIV` is a constant, reload **rematerialises** it at
+each reference rather than spilling. That is exactly the ROM's form.
+
+**The park's reading was right and its handle was wrong.** It said "the reference's pseudo fails to get
+a hard register and reload rematerialises it" — correct. What was missing is that **the source handle is
+the INITIALISER POSITION, not the constant's spelling.** That is why four recorded spellings read inert:
+all were short-range forms, and **a body assignment *raises* the constant's priority.** Measured
+directly — `int clen;` then `clen = 0x80 << 7;` in the body is **inert at 26** with the veneers still in
+r6; the declaration initialiser gives **16** with r5. Declaration *rank* is free (three positions
+identical) and spelling is free (`0x4000` identical).
+
+**So the allocation family now has three members, and they do different things:**
+
+| lever | effect on priority | use when |
+|---|---|---|
+| **reuse a variable** to inherit its register | **RAISES** your range's | the count is already exact and a donor holds the ROM's register |
+| **one variable per region** | **LOWERS a competitor's** | a rival wins a callee-saved register it should not |
+| **initialise at the declaration** | **LOWERS YOUR OWN**, to force rematerialisation | the ROM rematerialises a constant you are holding in a register |
+
+**And the third does not substitute for the second.** It was measured on `Anim_Frost` and
+`Anim_DragonCloud` — the other named pair, whose ROM *spills* a whole-function-lived variable — and it
+does not reach them, for a stated reason: **it lowers a quantity, and their victim is already
+whole-function-lived.** They need a competitor *raised* so the walker is pushed off its low
+callee-saved register, which is region-splitting.
+
+## A CANDIDATE CAN FAKE A TRUE DISTANCE — both axes went exact and it was still wrong
+
+The sharpest instance yet of "a figure can improve for the wrong reason", and it was caught and
+**rejected** rather than banked.
+
+On `Anim_Unsummon` (415 of 432, saturated), moving one definition later made **both axes exact** —
+432 of 432 with no SIZE line, objcmp dropping to 381. A saturated figure apparently becoming a true
+distance is the single most persuasive-looking move in this whole method.
+
+**It is not progress.** Three independent checks say so:
+
+* the frame stayed `#32` against the ROM's `#0x24` — and the fourth word *is* that variable's spill slot;
+* the prologue still emits `mov r9, r1` where the ROM emits `mov r11, r1`;
+* **aligncmp went DOWN**, 273 → 271.
+
+The four "recovered" instructions are the cost of keeping another value live across the statements the
+definition moved past — **our work, in our places, that happens to total the ROM's deficit.** The park
+keeps the 428 form.
+
+**So size-and-count going exact is not sufficient either.** The ranking rule stands — rank
+size-and-count first, aligned within that — but **when a change makes both axes exact, check the frame
+and the prologue before believing it.** Those are structural and cannot be coincidentally totalled.
+
+Two park defects fixed in the same pass: `Anim_Unsummon`'s recipe **named a file that does not exist**
+(so it was unverifiable), and its recorded aligncmp figure was stale (271/432 in 80 hunks recorded;
+273/432 in 77 actual). And the old `Anim_Djinni` body's claim about its `gPtrs` hunk was **wrong** —
+the registers are *not* exchanged; both streams put the 0xbc chain in r3 and the 0xb8 chain in the copy
+r2, so it is pure interleaving. Sixteen statement orderings now measured there, all one RTL.

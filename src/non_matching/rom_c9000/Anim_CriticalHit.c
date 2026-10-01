@@ -1,24 +1,108 @@
 /* Anim_CriticalHit -- 0x080e40a4, 672 ROM instructions (707 encodings).
  *
- * NON-MATCHING, 19 of 707 encodings differ.
+ * NON-MATCHING, 15 of 707 encodings differ.   [batch 310c: was 19]
  *
  * MEASUREMENT -- THIS COUNT IS A TRUE DISTANCE.  SIZE IS EXACT (1612 bytes both
  * sides, objcmp prints no SIZE line) and the instruction COUNT IS EXACT
- * (707 / 707), so the 19 ranks directly.  First differing index 78.
- * aligncmp ranks within that:
+ * (707 / 707), so the 15 ranks directly.  First differing index 78.
+ * aligncmp ranks within that, SEPARATELY:
  *
- *     aligned-equal 697 of 707 = 98.6%,  16 differing/ins/del in 12 hunks
+ *     aligned-equal 701 of 707 = 99.2%,  12 differing/ins/del in 11 hunks
+ *     (was 697 of 707 = 98.6%, 16 differing in 12 hunks)
  *
- * RELOCATIONS: 84 rows both sides, COMPLETE AND IN THE SAME SYMBOL SEQUENCE.
- * TWO rows differ and both are `_call_via_rN` veneer REGISTERS -- the two
- * epilogue clear calls, ref r5 / ours r6.  Every other row matches in symbol
- * AND offset.
+ * RELOCATIONS: 84 rows both sides, AND THEY NOW MATCH EXACTLY -- objcmp prints
+ * no RELOCATIONS line at all.  The two `_call_via_r5` / `_call_via_r6` rows at
+ * 0x336 and 0x340 that were the whole recorded relocation discrepancy are
+ * closed; see BATCH 310C below.
  *
- * Verify with:
+ * Verify with (the delivered park body, runnable as written):
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/rom_c9000/Anim_CriticalHit.c \
+ *     scratch_elev/b310c/PARK_Anim_CriticalHit.c \
  *     asm/rom_c9000/rom_e3958_c_c_c_c_a.s --func Anim_CriticalHit
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/aligncmp.py \
+ *     scratch_elev/b310c/PARK_Anim_CriticalHit.c \
+ *     asm/rom_c9000/rom_e3958_c_c_c_c_a.s Anim_CriticalHit -v
+ * Installed path is src/non_matching/rom_c9000/Anim_CriticalHit.c; substitute it
+ * for the scratch path once this body replaces that file.
+ *
+ * SHIMS: NONE.  `python3 tools/shimcount.py` reports zero rows -- PIN-FREE, no
+ * register pin, no barrier, no per-file flag override, no fakematch.txt row.
+ *
+ * ================================================================
+ * BATCH 310C -- THE SHARED BLOCKER IS CLOSED, AND IT CLOSED ON BOTH FUNCTIONS
+ * FROM ONE CHANGE
+ * ================================================================
+ *
+ * THE PAIR HYPOTHESIS HELD.  The recorded blocker here was explicitly "the same
+ * blocker as Anim_Djinni's, in the same shape, on a DIFFERENT function".  One
+ * three-token change, written once and applied verbatim to both, moved both:
+ *
+ *     int clen = 0x80 << 7;          <-- a new local, INITIALISED AT ITS
+ *                                        DECLARATION
+ *     ...
+ *     cl(ctx, clen);
+ *     cl((void *)0x6004000, clen);
+ *
+ *     Anim_Djinni       26 -> 16 of 738, relocations now EXACT
+ *     Anim_CriticalHit  19 -> 15 of 707, relocations now EXACT
+ *
+ * > AN INT CARRIER INITIALISED AT ITS DECLARATION MAKES ITS PSEUDO LIVE FROM
+ * > FUNCTION ENTRY, WHICH IS HOW YOU MAKE A QUANTITY LOSE A HARD REGISTER.
+ * > allocno_compare's priority is log2(n_refs) * freq / LIVE_LENGTH, so a range
+ * > starting at entry is the LONGEST range and the LOWEST priority.  The pseudo
+ * > is allocated last, loses, and because its REG_EQUIV is a constant, reload
+ * > REMATERIALISES it at each reference rather than spilling it.  That is the
+ * > ROM's form.  The recorded reading -- "the reference's pseudo FAILS to get a
+ * > hard register and reload rematerialises it" -- was RIGHT; what was missing
+ * > was that the source handle is the INITIALISER POSITION, not the spelling of
+ * > the constant.
+ *
+ * WHY THE FOUR RECORDED SPELLINGS READ INERT.  They were all short-range forms
+ * -- `0x4000`, `0x80 << 7`, `n << 7` off a block-scoped local, two
+ * separately-scoped locals.  A body assignment or a block-scoped initialiser
+ * keeps the range SHORT, which RAISES the constant's priority: the exact
+ * opposite of what is wanted.  Measured on Anim_Djinni in this batch: `int
+ * clen;` declared with `clen = 0x80 << 7;` assigned in the epilogue is 26 with
+ * the veneers still r6; the same assignment moved earlier (before either
+ * `StopTask`) is also 26.  Only the declaration initialiser reaches it.
+ * DECLARATION RANK IS FREE (before `cl`, after `cl`, first in the whole list --
+ * all identical) and so is the SPELLING (`0x4000` identical).
+ *
+ * HUNK A IS NOW GONE.  Our clear-call block is byte-exact against the
+ * reference, both calls, including the asymmetric argument-0 schedule: the ROM
+ * puts a STACK RELOAD as argument 0 BEFORE the `lsl r1,#7` and a POOL LOAD as
+ * argument 0 AFTER it, this function has one of each, and we match both.  That
+ * asymmetry is the discriminator for Anim_Djinni's last two encodings, where
+ * argument 0 is a pool load and we still hoist it.
+ *
+ * ================================================================
+ * THE REMAINING 15 -- ELEVEN HUNKS, EVERY ONE A SINGLE-SLOT TRANSPOSITION
+ * ================================================================
+ *
+ * Twelve differing positions in eleven hunks, and every hunk is ONE instruction
+ * moved by ONE slot.  Same instructions, same registers, same roles, same
+ * immediates:
+ *
+ *   ref[78:80]    `ldr r2,[r2] / str r2,[sp,#0x38]` two slots early in ours
+ *                 -- the gPtrs block, the same class as Anim_Djinni's hunk 1,
+ *                 and 4 encodings here against 12 there.
+ *   ref[170]      `add r5, fp` one slot late in ours
+ *   ref[246]      `ldr r0,[pc,#392]` one slot late in ours (the 4862/4863
+ *                 encoding difference is the displacement moving with it, not
+ *                 a different operand)
+ *   ref[365]      `ldr r0,[sp,#0x34]` one slot late in ours
+ *   ref[465]      `add r5, fp` one slot late in ours -- the SAME instruction
+ *                 as ref[170] at a second site, which makes it a class of two
+ *                 rather than two accidents, and the first thing to look at
+ *                 next.
+ *
+ * `add r5, fp` is `base + <something>` with base in r11; both sites are loop
+ * preheaders.  The pair appearing identically at two disjoint sites is the
+ * recorded "a register repeating across disjoint loops suggests a partition" --
+ * and the recorded caution applies: it is NOT proof, the direction is not
+ * fixed, and a partition must be applied WHOLE before anything is concluded.
  *
  * ================================================================
  * SPLIT SHAPE -- AND A CORRECTION TO THE BRIEF THAT SENT ME HERE
@@ -257,38 +341,6 @@
  *   - `fp = d;` moved above `d[0] = ...`: 90.7%, worse than lever (3)'s 92.8%.
  *
  * ================================================================
- * THE BLOCKER, BY PASS: reload -- A CONSTANT THAT SHOULD HAVE LOST ITS
- * REGISTER, 5 ENCODINGS, PLUS FOUR SCHEDULING TRANSPOSITIONS
- * ================================================================
- *
- * Twelve hunks, sixteen differing positions, and not one changes the program.
- *
- * HUNK A (5 encodings, ref[363:370]) IS THE SAME BLOCKER AS Anim_Djinni's, in
- * the same shape, in the same batch, on a DIFFERENT function -- which is the
- * real finding here.  Both functions end with two calls through one pointer to
- * the same clear helper with the same `0x80 << 7` length:
- *
- *     ref:  movs r1,#0x80 / ldr r5,=Func_80008d4 / lsls r1,#7 ... bl via r5
- *           movs r1,#0x80 / lsls r1,#7 ...                       bl via r5
- *     ours: movs r5,#0x80 / lsls r5,#7 / ldr r6,=Func_80008d4
- *           adds r1,r5,#0 ... bl via r6 / adds r1,r5,#0 ... bl via r6
- *
- * cse unifies the two occurrences of 0x4000 into ONE pseudo.  In the reference
- * that pseudo FAILS to get a hard register and reload rematerialises it from
- * its constant REG_EQUIV at each use, leaving r5 for the function pointer; in
- * ours it WINS r5, is held across `bl StopTask`, and pushes the pointer to r6
- * -- which is the entire `_call_via_rN` discrepancy in both functions'
- * relocation tables.  Ours is cheaper and wrong.  On Anim_Djinni four spellings
- * of the constant (`0x4000`, `0x80 << 7`, `n << 7` off a block-scoped local,
- * two separately-scoped locals) were all byte-identical, and lengthening the
- * pointer's live range to outrank it measured WORSE.  Not retried here.
- *
- * HUNKS B-E (11 encodings) are pure sched2 transpositions: `ldr r2,[r2] /
- * str r2,[sp,#0x38]` two positions early in the gPtrs block, and `add r5,fp`
- * or `ldr r0,[pc,#...]` one position early at three loop preheaders.  Same
- * instructions, same registers, adjacent slots.  Lever (6) removed two of these
- * and the remaining ones did not move with any statement order tried.
- *
  * RULED OUT, with what was measured:
  *   - NOT a mis-read program.  Size and count exact; all 84 relocations present
  *     in the reference's order with only two veneer registers differing; I read
@@ -394,6 +446,7 @@ void Anim_CriticalHit(void *context)
     Part *p;
     Part *q;
     CopyFn cp;
+    int clen = 0x80 << 7;
     ClearFn cl;
 
     g = iwram_3001eec;
@@ -519,8 +572,8 @@ void Anim_CriticalHit(void *context)
         actor[18] = s48;
     }
     cl = Func_80008d4;
-    cl(ctx, 0x80 << 7);
-    cl((void *)0x6004000, 0x80 << 7);
+    cl(ctx, clen);
+    cl((void *)0x6004000, clen);
     *(int *)(base + (0xef << 7)) = 2;
     *(int *)(base + 0x7784) = 0x4b;
     REG_BG1CNT = 0x1f81;

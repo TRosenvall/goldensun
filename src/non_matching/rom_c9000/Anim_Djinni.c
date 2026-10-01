@@ -1,26 +1,137 @@
 /* Anim_Djinni -- 0x080de2f8, 696 ROM instructions (738 encodings).
  *
- * NON-MATCHING, 26 of 738 encodings differ.
+ * NON-MATCHING, 16 of 738 encodings differ.   [batch 310c: was 26]
  *
  * MEASUREMENT -- THIS COUNT IS A TRUE DISTANCE, NOT A SATURATED ONE.
  * SIZE IS EXACT and the instruction COUNT IS EXACT (ref 738, ours 738), so the
- * 26 is meaningful and ranks directly.  objcmp prints no SIZE line and the
- * first differing index is 107.  aligncmp ranks within that:
+ * 16 is meaningful and ranks directly.  objcmp prints no SIZE line and the
+ * first differing index is 107.  aligncmp ranks within that, SEPARATELY:
  *
- *     aligned-equal 724 of 738 = 98.1%,  25 differing/ins/del in 12 hunks
+ *     aligned-equal 730 of 738 = 98.9%,  15 differing/ins/del in 10 hunks
+ *     (was 724 of 738 = 98.1%, 25 differing in 12 hunks)
  *
- * RELOCATIONS: 76 rows both sides, COMPLETE AND IN THE SAME SYMBOL SEQUENCE --
- * every callee, every pooled symbol, both `__divsi3` sites, the five jump-table
- * `.text` words and all four `_call_via` veneers present exactly once in the
- * ROM's order.  TWO rows differ and both are `_call_via_rN` veneer REGISTERS
- * (the last two: ref r5 / ours r6, the epilogue clear-helper pointer).  Every
- * offset matches except the four rows inside the three residual hunks.
+ * RELOCATIONS: 76 rows both sides, AND THEY NOW MATCH EXACTLY -- objcmp prints
+ * no RELOCATIONS line at all.  Every callee, every pooled symbol, both
+ * `__divsi3` sites, the five jump-table `.text` words and all four `_call_via`
+ * veneers are present once, in the ROM's order, AT THE ROM'S OFFSETS, with the
+ * ROM'S VENEER REGISTERS.  The two `_call_via_r5` / `_call_via_r6` rows that
+ * were the whole recorded relocation discrepancy are closed -- see BATCH 310C
+ * below.
  *
- * Verify with:
+ * Verify with (the delivered park body, runnable as written):
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/rom_c9000/Anim_Djinni.c \
+ *     scratch_elev/b310c/PARK_Anim_Djinni.c \
  *     asm/rom_c9000/rom_dd2ac_c_c_c.s --func Anim_Djinni
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/aligncmp.py \
+ *     scratch_elev/b310c/PARK_Anim_Djinni.c \
+ *     asm/rom_c9000/rom_dd2ac_c_c_c.s Anim_Djinni -v
+ * Installed path is src/non_matching/rom_c9000/Anim_Djinni.c; substitute it for
+ * the scratch path once this body replaces that file.
+ *
+ * ================================================================
+ * BATCH 310C -- THE CLOSED BLOCKER, AND THE MECHANISM, WHICH IS NEW
+ * ================================================================
+ *
+ * THE RECORDED BLOCKER WAS THE EPILOGUE, 12 ENCODINGS AND BOTH VENEER ROWS.
+ * It is now 2 encodings and zero relocation rows.  The change is THREE TOKENS:
+ *
+ *     int clen = 0x80 << 7;          <-- a new local, INITIALISED AT ITS
+ *                                        DECLARATION
+ *     ...
+ *     cl((void *)0x6004000, clen);
+ *     cl(ctx, clen);
+ *
+ * > AN INT CARRIER INITIALISED AT ITS DECLARATION MAKES ITS PSEUDO LIVE FROM
+ * > FUNCTION ENTRY, WHICH IS HOW YOU MAKE A QUANTITY LOSE A HARD REGISTER.
+ * > allocno_compare's priority is log2(n_refs) * freq / LIVE_LENGTH, so a range
+ * > that starts at entry is the LONGEST range and therefore the LOWEST
+ * > priority.  The pseudo is allocated last, loses, and because its REG_EQUIV
+ * > is a constant, reload REMATERIALISES it at each reference instead of
+ * > spilling it.  That is exactly the ROM's form.
+ *
+ * Before: cse unified the two `0x80 << 7` argument constants into one pseudo,
+ * that pseudo WON r5 and was held across `bl StopTask`, the function pointer
+ * was pushed to r6, and both veneers came out `_call_via_r6`.  After: the
+ * carrier loses, reload emits `mov r1,#128 / lsl r1,#7` at BOTH call sites, the
+ * pointer takes r5, and both veneers are `_call_via_r5`.  Our epilogue is now
+ * instruction-for-instruction the ROM's except for ONE transposition.
+ *
+ * THE PRECONDITION IS THE INITIALISER POSITION AND NOTHING ELSE -- measured:
+ *   `int clen;` declared, then `clen = 0x80 << 7;` assigned in the epilogue
+ *       -- 26, veneers still r6.  INERT.  This is why the recorded
+ *       "`n << 7` off a block-scoped local" and "two separately-scoped locals"
+ *       rows read inert: a body assignment keeps the range SHORT, which is the
+ *       opposite of what is wanted.
+ *   `clen = 0x80 << 7;` assigned before `StopTask(Task_BlitAnim)`  -- 26, r6.
+ *   `clen = 0x80 << 7;` assigned before `StopTask(Func_80cd4b4)`   -- 26, r6.
+ *   `int clen = 0x80 << 7;` initialised at declaration             -- 16, r5.
+ * DECLARATION RANK IS FREE, measured: the carrier placed before `cl`, after
+ * `cl`, and first in the whole declaration list all give 16 with relocations
+ * exact.  It never reaches the frame, so it perturbs no spill offset.
+ * THE SPELLING IS FREE: `0x4000` gives 16 as well.
+ * A SECOND CARRIER IS INERT: `void *vram = (void *)0x6004000;` for the first
+ * call's destination, declared either side of `clen`, gives 16.
+ *
+ * ISOLATED ON A SIX-FUNCTION PROBE FIRST (scratch_elev/b310c/probe1.c and
+ * probe2.c), which is what made the rule legible: with the two clear calls and
+ * one intervening `StopTask`, the carrier assigned AFTER the StopTask gives
+ * r6, and the carrier initialised at declaration -- or assigned BEFORE the
+ * StopTask -- gives r5.  Writing the two calls as direct calls (no pointer)
+ * also materialises the constant once, so the shared pseudo is not an artefact
+ * of the indirect call.
+ *
+ * ================================================================
+ * THE REMAINING 16, BY HUNK -- ALL THREE ARE SCHEDULE ORDER, NO PROGRAM CHANGE
+ * ================================================================
+ *
+ * HUNK 1 (12 encodings, ref[107:119]).  The `gPtrs` / `base + 0x7828` block.
+ * CORRECTION TO THE OLD PARK BODY, WHICH WAS WRONG ABOUT THIS: the registers
+ * are NOT exchanged.  Both streams put the 0xbc chain in the ORIGINAL pooled
+ * register r3 and the 0xb8 chain in the copy r2, with the same `mov r2, r3`:
+ *
+ *   ref   ldr r3,=gPtrs / ldr r4,[sp,#0x28] / mov r2,r3 / ldr r7,=0x7828 /
+ *         add r3,#0xbc / ldr r3,[r3] / add r5,r4,r7 / str r3,[sp,#0x20] /
+ *         add r2,#0xb8 / ldr r2,[r2] / ldr r3,[r5] / ldr r0,[r3,#8] /
+ *         str r2,[sp,#0x1c]
+ *   ours  ldr r3,=gPtrs / mov r2,r3 / add r2,#0xb8 / ldr r2,[r2] /
+ *         str r2,[sp,#0x1c] / add r3,#0xbc / ldr r3,[r3] / ldr r4,[sp,#0x28] /
+ *         ldr r7,=0x7828 / str r3,[sp,#0x20] / add r5,r4,r7 / ldr r3,[r5] /
+ *         ldr r0,[r3,#8]
+ *
+ * SAME THIRTEEN INSTRUCTIONS, SAME REGISTERS, SAME ROLES.  The ROM interleaves
+ * the `base` reload, the 0x7828 pool load and `add r5` EARLY, between the two
+ * gPtrs chains; we run the gPtrs chains to completion first.  `ldr r4,[sp,#0x28]`
+ * is a RELOAD, so its RTL position is fixed by reload immediately before
+ * `add r5,r4,r7`, and the ROM's early placement is sched2 hoisting it above the
+ * two frame STORES -- which it may only do if sched2's aliasing lets a sp load
+ * cross a sp store.  No source statement order reaches it; five further
+ * orderings measured in this batch, ALL 16 and all relocations exact:
+ *     d1 read before d0, slot first                     16
+ *     d0, d1, then slot                                 16
+ *     d0, slot, d1                                      16
+ *     d1, slot, d0                                      16
+ *     d1, d0, then slot                                 16
+ * That is five on top of the eleven already recorded -- SIXTEEN orderings, one
+ * RTL.  Do not spend another compile on statement order here.
+ *
+ * HUNK 2 (2 encodings, ref[381:383]).  `ldr r6,=gBuffer` and the `str r4,[sp,#8]`
+ * that spills `-t` are transposed in the draw loop's preheader.  Unchanged.
+ *
+ * HUNK 3 (2 encodings, ref[704:706]).  ALL THAT IS LEFT OF THE OLD BLOCKER.
+ * In the FIRST clear call the ROM puts `lsl r1,#7` before `ldr r0,=0x6004000`
+ * and we put the pool load first:
+ *   ref   mov r1,#0x80 / ldr r5,=Func_80008d4 / lsl r1,#7 / ldr r0,=0x6004000
+ *   ours  mov r1,#128  / ldr r5,=Func_80008d4 / ldr r0,=0x6004000 / lsl r1,#7
+ * The SECOND clear call is byte-exact, and so is the WHOLE equivalent block in
+ * Anim_CriticalHit.  The discriminator read off both references: a POOL LOAD as
+ * argument 0 is scheduled AFTER the `lsl`, a STACK RELOAD as argument 0 BEFORE
+ * it -- Anim_CriticalHit's two calls take arg 0 from the stack then from the
+ * pool and show both orders, and we match both there.  Here the pool load
+ * follows `ldr r5`, so the ROM's choice is sched2 declining a second
+ * back-to-back load; ours takes it.  Two encodings of sched2 state inside
+ * reload-emitted code, downstream of hunks 1 and 2 -- not a source handle.
  *
  * SPLIT SHAPE: TEXT/DATA SPLIT, THREE WAYS, AND NINE NEW EXPORTS -- NONE OF
  * THEM FOR THIS FUNCTION.  `tools/datacheck.py` says
@@ -268,61 +379,11 @@
  *     and as two separately-scoped locals.
  *   - `ClearFn cl;` declared early rather than last.
  * MEASURED WORSE: assigning `cl = Func_80008d4;` before the StopTask/gfree
- * sequence instead of after it -- 26 -> 28.
+ * sequence instead of after it -- 26 -> 28.  That is the COMPLEMENT of the
+ * batch-310c fix and confirms its direction: lengthening the POINTER's range
+ * lowers the POINTER, lengthening the CONSTANT's range lowers the CONSTANT,
+ * and only the second is wanted.
  *
- * ================================================================
- * THE BLOCKER, BY PASS: global_alloc/reload -- TWO REGISTER-ASSIGNMENT
- * OUTCOMES WITH NO SOURCE HANDLE, 26 ENCODINGS IN THREE HUNKS
- * ================================================================
- *
- * The residue is three hunks and not one of them changes the program.
- *
- * HUNK 1 (12 encodings, ref[107:119]).  The `gPtrs` / `base + 0x7828` block.
- * Both streams contain THE SAME THIRTEEN INSTRUCTIONS; they are emitted in a
- * different order, and the two `adds rN, #188` / `adds rN, #184` chains have
- * their registers exchanged.  The reference does the destructive
- * `adds r3, #0xbc` IN PLACE on the pooled `gPtrs` register and copies it to r2
- * for the 0xb8 chain; we copy first and add on the copy.  Which chain keeps the
- * original is local_alloc's choice about which use is last, and the eleven
- * source orderings above -- including removing the `slot` local altogether --
- * produce IDENTICAL RTL, so there is no statement order that reaches it.
- *
- * HUNK 2 (2 encodings, ref[381:383]).  `ldr r6, =gBuffer` and the `str r4,
- * [sp,#8]` that spills `-t` are transposed in the draw loop's preheader.  Both
- * `j = 0; b = gBuffer;` and `b = gBuffer; j = 0;` give the same output.
- *
- * HUNK 3 (12 encodings, ref[698:710]).  The epilogue.  The reference
- * REMATERIALISES `movs r1, #0x80 / lsls r1, #7` at each of the two clear calls
- * and spends r5 on the function pointer; we win r5 for the CONSTANT, hold
- * 0x4000 across `bl StopTask` in it, and copy it into r1 twice -- so our
- * pointer is pushed to r6 and both veneers become `_call_via_r6`.  That is the
- * whole `_call_via` discrepancy in the relocation table.  The reference's form
- * is what reload does when a pseudo with a constant REG_EQUIV FAILS to get a
- * hard register: it rematerialises instead of spilling.  Ours succeeds, which
- * is cheaper and wrong.  Writing the constant four different ways did not stop
- * cse unifying the two occurrences into one pseudo, and lengthening the
- * pointer's live range to outrank it measured WORSE (28).
- *
- * RULED OUT, with what was measured:
- *   - NOT a mis-read program.  Size and instruction count are exact, all 76
- *     relocations are present in the ROM's order, and I read the immediates
- *     inside every differing hunk: there is not one constant, shift amount,
- *     structure offset or branch condition that differs.  The only differing
- *     relocation rows are two veneer register numbers.
- *   - NOT sched1: it does not run in this build.
- *   - NOT a FILE-STRUCTURE refusal: the split is understood, byte-neutral by
- *     construction, and the nine exports are enumerated above and confirmed by
- *     `split_s.py --dry-run`.
- *   - NOT the pin class: shimcount is zero and no pin was tried.
- *   - NOT declaration order: every spill offset in the function is exact, which
- *     is the direct evidence that the declaration list is now the ROM's.
- *
- * NEXT MOVE: hunks 1 and 3 are the same class -- two pseudos competing for one
- * hard register where the ROM's loser is rematerialised or copied.  The handle,
- * if there is one, is a THIRD live quantity near each site raising the pressure
- * by exactly one, not a restatement of what is already there.  Hunk 3 is the
- * cheaper experiment because its region is eleven instructions long and its
- * two competitors are named.
  */
 #include "gba/types.h"
 #include "gba/io.h"
@@ -405,6 +466,7 @@ void Anim_Djinni(void *context, int kind, int mode, int sel, int *outx, int *out
     Part *q;
     Part *sw;
     CopyFn cp;
+    int clen = 0x80 << 7;
     ClearFn cl;
 
     g = iwram_3001eec;
@@ -637,7 +699,7 @@ void Anim_Djinni(void *context, int kind, int mode, int sel, int *outx, int *out
     gfree(0x2e);
     StopTask(Func_80cd4b4);
     cl = Func_80008d4;
-    cl((void *)0x6004000, 0x80 << 7);
-    cl(ctx, 0x80 << 7);
+    cl((void *)0x6004000, clen);
+    cl(ctx, clen);
     REG_BLDALPHA = 0x1010;
 }

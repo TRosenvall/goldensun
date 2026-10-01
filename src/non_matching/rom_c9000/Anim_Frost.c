@@ -7,12 +7,13 @@
  * SHIMS: none.  `python3 tools/shimcount.py` is silent -- no register pins, no
  * `.equ`, no `asm volatile`, no per-file Makefile flag override.  Pin-free.
  *
- * Verify with:
+ * Verify with (the delivered park body, runnable as written; installed path
+ * is src/non_matching/rom_c9000/Anim_Frost.c):
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_c9000/Anim_Frost.c \
+ *     goldensun-build python3 tools/objcmp.py scratch_elev/b310c/PARK_Anim_Frost.c \
  *     asm/rom_c9000/rom_d9ab8_c_c_c_c_c_c.s --func Anim_Frost
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/aligncmp.py src/non_matching/rom_c9000/Anim_Frost.c \
+ *     goldensun-build python3 tools/aligncmp.py scratch_elev/b310c/PARK_Anim_Frost.c \
  *     asm/rom_c9000/rom_d9ab8_c_c_c_c_c_c.s Anim_Frost -v
  *
  * ================================================================
@@ -122,6 +123,60 @@
  *     only the register-offset LDRSH, so the ROM's `mov r0,#6 / ldrsh r3,[r5,r0]`
  *     falls out with no addressing-mode work at all.  NOT a lever site -- the
  *     `mov #K` is forced by the ISA, so do not read it as a named offset.
+ *
+ *
+ * ================================================================
+ * BATCH 310C -- RE-MEASURED AS INSTALLED, AND WHY THE NEW LEVER OF THAT BATCH
+ * DOES NOT REACH THIS BLOCKER
+ * ================================================================
+ *
+ * RE-MEASURE, as installed, no edits: 788 of 815 encodings, SIZE 1692/1776, COUNT 774/815 -- both axes still
+ * inexact, so the 788 still SATURATES.  aligncmp 466 of 815 (57.2%).
+ * Every figure in the header above reproduces exactly.  The header does not lie.
+ * `python3 tools/shimcount.py` emits three rows in the whole tree and none of
+ * them name this file: PIN-FREE confirmed.
+ *
+ * THE NEW LEVER, AND ITS DIRECTION.  Batch 310c closed the shared blocker of
+ * Anim_Djinni and Anim_CriticalHit -- a constant that the ROM rematerialises at
+ * each use while we held it in a callee-saved register -- with three tokens:
+ *
+ *     int clen = 0x80 << 7;     <-- INITIALISED AT ITS DECLARATION
+ *
+ * > AN INT CARRIER INITIALISED AT ITS DECLARATION MAKES ITS PSEUDO LIVE FROM
+ * > FUNCTION ENTRY, SO allocno_compare's log2(n_refs) * freq / LIVE_LENGTH PUTS
+ * > IT LAST.  It is allocated last, loses its hard register, and because its
+ * > REG_EQUIV is a constant reload REMATERIALISES it instead of spilling it.
+ * > A BODY ASSIGNMENT DOES THE OPPOSITE -- it keeps the range short and the
+ * > priority high.  Measured both ways on Anim_Djinni: declaration initialiser
+ * > 26 -> 16 with the relocations becoming exact, body assignment inert at 26.
+ * > Declaration RANK is free; the constant's SPELLING is free.
+ *
+ * WHY IT DOES NOT APPLY HERE, stated so it is not retried.  The lever LOWERS a
+ * quantity's priority.  The quantity that must lose here -- `base` -- is
+ * ALREADY whole-function-lived, which is already the longest range and the
+ * lowest priority available, and it still wins a register because there is one
+ * free when its turn comes.  There is nothing left to lower.
+ *
+ * WHAT THIS FUNCTION STILL NEEDS IS THE COMPLEMENT: RAISE A COMPETITOR SO THE
+ * LOOP WALKER IS PUSHED OFF ITS LOW CALLEE-SAVED REGISTER.  The recorded
+ * causality is that the ROM's walker sits HIGH, every `ldr rX,[walker,#imm]`
+ * then needs a LOW base, reload manufactures one copy per iteration, no low
+ * callee-saved register is free to be that scratch, and so reload spills the
+ * lowest-priority allocno -- the victim -- which is where its reloads and the
+ * missing frame word come from.  find_reg walks REG_ALLOC_ORDER low-first, so
+ * our walker takes the low register and the cycle never starts.  To reach it
+ * from source, a SHORT-RANGE, MANY-REFERENCE quantity must claim that low
+ * register before the walker's turn -- which is region-splitting a competitor
+ * (one variable per region), NOT reuse, and NOT the carrier.  The recorded
+ * caution is live: counter-splitting on Anim_Frost measured 466 -> 388, the
+ * complement applied where it does not belong, and partition splits are NOT
+ * ADDITIVE, so a whole partition must be applied before anything is concluded.
+ *
+ * THE OTHER HALF OF THE PAIR IS UNCHANGED AND STILL THE REASON TO BELIEVE THIS
+ * IS A CLASS: Anim_DragonCloud, which spills `frame` instead has the same one-allocno rotation with a DIFFERENT
+ * VICTIM, which is what shows the spilled variable is whoever is left over
+ * rather than any particular named local -- so no per-variable spelling reaches
+ * it, and the open item remains REG_ALLOC_ORDER.
  *
  * ================================================================
  * THE BLOCKER: `base` MUST BE SPILLED AND IS NOT -- ONE ALLOCNO, AND THE

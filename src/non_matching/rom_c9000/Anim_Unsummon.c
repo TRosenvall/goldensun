@@ -2,14 +2,99 @@
  * NON-MATCHING, 415 of 432 encodings differ.  SIZE 968 against the ROM's 976
  * (-8) and COUNT 428 against 432 (-4), so THAT FIGURE IS SATURATED, NOT A
  * DISTANCE -- read the four-instruction deficit below, not the 415.
- * tools/aligncmp.py puts it at 271 of 432 aligned-equal (62.7%, 80 hunks) and
+ * tools/aligncmp.py puts it at 273 of 432 aligned-equal (63.2%, 77 hunks) and
  * that number is NOT an objcmp number and must not be quoted as one.
+ *
+ * RE-MEASURED AS INSTALLED IN BATCH 310C: 415 of 432, size 968/976, count
+ * 428/432.  Every figure above reproduces exactly.  ONE CORRECTION -- the
+ * recipe in the previous body named
+ * `src/non_matching/rom_c9000/e6638_Unsummon.c`, WHICH DOES NOT EXIST.  The
+ * file is `src/non_matching/rom_c9000/Anim_Unsummon.c`.  The aligncmp figure
+ * was also recorded as 271 of 432 (62.7%, 80 hunks); as installed it is 273 of
+ * 432 (63.2%, 77 hunks).  Corrected recipe, runnable as written:
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/rom_c9000/e6638_Unsummon.c \
+ *     scratch_elev/b310c/PARK_Anim_Unsummon.c \
  *     asm/rom_c9000/rom_e6638_a_c_c.s --func Anim_Unsummon
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/aligncmp.py \
+ *     scratch_elev/b310c/PARK_Anim_Unsummon.c \
+ *     asm/rom_c9000/rom_e6638_a_c_c.s Anim_Unsummon -v
+ * Installed path is src/non_matching/rom_c9000/Anim_Unsummon.c.
+ *
+ * SHIMS: NONE.  `python3 tools/shimcount.py` reports zero rows for this file.
+ * SPLIT SHAPE: unchanged from the previous body -- see below.
+ *
+ * ================================================================
+ * BATCH 310C -- SIX NEW MEASURED NEGATIVES, AND ONE OF THEM IS THE TRAP
+ * ================================================================
+ *
+ * The blocker is the recorded near-tie: `ctx` and the `x` parameter pseudo
+ * both weigh 12 by flow.c's loop_depth, allocno_compare divides by
+ * live_length, and the x pseudo's range starts one insn earlier as a parameter
+ * so it loses by a hair.  r11 is LAST in REG_ALLOC_ORDER, so whoever holds fp
+ * is the lowest-priority winner -- the ROM's fp is the x pseudo, ours is ctx.
+ *
+ * (1) ctx's DECLARATION RANK IS INERT, three placements, all 415 of 432 with
+ *     size 968 and count 428, byte-identical to the base:
+ *       ctx declared immediately before `px`  (last among the pointers)  415
+ *       ctx declared last in the whole list                             415
+ *       ctx declared second, after `f1`                                 415
+ *     So the allocno tie-break here is NOT pseudo number.  This closes a route
+ *     the previous body left open: its seven measured negatives were all about
+ *     the `tab` local and none of them moved ctx itself.
+ *
+ * (2) MOVING ctx's DEFINITION LATER IS THE TRAP THE BRIEF NAMES, AND IT IS THE
+ *     MOST CONVINCING FALSE POSITIVE IN THIS FUNCTION'S RECORD.  The reasoning
+ *     was sound: shorten ctx's live range, raise its priority, and the x pseudo
+ *     becomes the lowest-priority winner and inherits fp.  Splitting
+ *     `base = (unsigned char *)*pp++; ctx = *pp;` and moving the `ctx = *pp;`
+ *     downward gives, by placement:
+ *
+ *       before `two = 2;`                 381 of 432   SIZE EXACT, COUNT EXACT
+ *       before the first `LoadVFXFile`    391 of 432   SIZE EXACT, COUNT EXACT
+ *       before `arg = 0x90;`              395 of 432   SIZE EXACT, COUNT EXACT
+ *
+ *     ALL THREE MAKE BOTH AXES EXACT -- 432 of 432 encodings and no SIZE line
+ *     from objcmp -- which turns a saturated 415 into what LOOKS like a true
+ *     distance of 381.  IT IS NOT PROGRESS.  Checked against the reference
+ *     before believing it:
+ *       - THE FRAME DID NOT GROW.  `sub sp, sp, #32` against the ROM's
+ *         `sub sp, #0x24`.  The recorded signature of the real flip is
+ *         "all four fall together with the frame going 0x20 -> 0x24", because
+ *         the fourth word IS ctx's spill slot.  ctx is still in a register.
+ *       - THE PROLOGUE IS STILL OURS, NOT THE ROM'S.  We emit `mov r9, r1`;
+ *         the ROM emits `mov r11, r1`.  The x pseudo still does not inherit fp,
+ *         so the one allocation decision this function turns on has not moved.
+ *       - aligncmp went DOWN, 273 -> 271 aligned-equal and 77 -> 85 hunks.
+ *     The four recovered instructions are the cost of keeping `pp` live across
+ *     the statements the definition was moved past -- OUR extra work, in OUR
+ *     places, that happens to total the ROM's deficit.  This is exactly the
+ *     recorded pattern that made the three `tab` rows read 430: a count that
+ *     moves toward the ROM while the shape moves away.  THIS FILE KEEPS THE 428
+ *     FORM, and the 381 must never be quoted as a distance.
+ *
+ *     > WHEN A SATURATED FIGURE SUDDENLY BECOMES EXACT ON BOTH AXES, CHECK THE
+ *     > FRAME SIZE AND THE PROLOGUE BEFORE BELIEVING IT.  A deficit of N
+ *     > instructions can be filled either by the ROM's N instructions or by N
+ *     > instructions of your own; only the reference's frame map and prologue
+ *     > tell you which.  aligncmp going down while objcmp goes down is the
+ *     > cheap second signal.
+ *
+ * (3) WHY BATCH 310C's NEW LEVER DOES NOT APPLY HERE, stated so it is not
+ *     retried.  That batch closed Anim_Djinni's and Anim_CriticalHit's shared
+ *     blocker with an int carrier INITIALISED AT ITS DECLARATION, which makes a
+ *     pseudo live from function entry and therefore the LOWEST-priority
+ *     allocno, so it loses its hard register and reload rematerialises it.  The
+ *     lever LOWERS a quantity.  Here the quantity that must lose -- the x
+ *     parameter pseudo -- ALREADY starts at function entry, so there is nothing
+ *     left to lower; what is needed is to RAISE ctx, and (1) and (2) are the two
+ *     obvious ways to do that and both fail.  The carrier trick is still the
+ *     cheapest known way to manufacture a lowest-priority long-lived quantity
+ *     and is worth remembering for any function whose reference rematerialises
+ *     a constant it could have held.
  *
  * THE RELOCATION SEQUENCE IS ALREADY THE ROM'S -- 46 relocations, same symbols
  * in the same order, every offset shifted by the missing 8 bytes.  Per batch
