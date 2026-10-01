@@ -28482,3 +28482,160 @@ Two park defects fixed in the same pass: `Anim_Unsummon`'s recipe **named a file
 273/432 in 77 actual). And the old `Anim_Djinni` body's claim about its `gPtrs` hunk was **wrong** —
 the registers are *not* exchanged; both streams put the 0xbc chain in r3 and the 0xb8 chain in the copy
 r2, so it is pure interleaving. Sixteen statement orderings now measured there, all one RTL.
+
+## NEW GATE: THE IMMEDIATE MULTISET — stricter than the distinct-constant set, same one command
+
+The distinct-constant set was recorded as the cheapest early signal in the 800+ band. **It has a blind
+spot that matters: it cannot see `mov`+`lsl` constants at all** — and in the straight-line population
+that is exactly where the whole residue lives.
+
+**Compare every `#imm` on both sides as a multiset (a `Counter`), not a set.** On two functions this
+proved the program without reading 200 hunks: every deficit was a `mov` base or an `lsl` shift,
+**ours-short-never-over**, which is a signature rather than a list of differences. Same cost as the set
+version.
+
+## A RUN OF CONSECUTIVE IDs IS A NAMED BASE PLUS LITERAL OFFSETS — and this is the CONVERSE of batch 307
+
+Caught by the constant gate in one command: the reference pools **3** message ids where a
+literal-per-id reconstruction pooled **27**. Worth **+56/+6 → +4/+3**.
+
+**The tell is the Thumb immediate-width split**: `add r0, r5, #k` for k ≤ 7, and
+`mov r0,r5` + `add r0,#k` for k > 7. The mechanism is that **cse's `use_related_value` is symbol-based
+and never rewrites one `CONST_INT` as another plus an offset** — so if the reference derives ids from a
+base, the base was a **source local**.
+
+**And this is the exact opposite of the batch-307 reading**, where pooled constants turned out to be
+cse's own invention and naming them was inert or worse. Both are real, so the discriminator matters:
+
+* **cse's invention** — the repeated constants are *identical*, commoned across calls, and the overflow
+  sits in r8–r11. Naming them cannot help, because region-scoping cannot reach a pseudo the compiler
+  invented.
+* **a source base** — the constants are *consecutive*, the reference pools far fewer than one per use,
+  and the stream shows the immediate-width split. Naming the base is the lever.
+
+**Count the pooled constants on both sides first.** Far fewer in the reference than uses means a base;
+the same few repeated means commoning.
+
+## AN EXACT COUNT IS NOT EVIDENCE OF A CORRECT PROGRAM — two defects of opposite sign cancelled
+
+Third instance of this family today and the cleanest. A first reconstruction read **count-exact at
+1029** while calling `__MapActor_GetActor` **three times too many** — two defects of opposite sign
+summing to zero. **The relocation sequence caught it**, and fixing it moved the figures *away* from
+exact.
+
+So the full ladder of "a figure can lie" is now:
+
+1. a closer **size** can be a wrong program;
+2. a lower **objcmp count** can be the worse candidate;
+3. **both axes going exact** can be our own work totalling the ROM's deficit (check the frame and
+   prologue — they are structural);
+4. **an exact count** can be two cancelling defects (check the **relocation sequence** — it counts
+   calls and symbols, which arithmetic cannot fake).
+
+Each of the four is checked by something *structural* rather than by another aggregate. That is the
+pattern: when a figure looks good, verify against something that cannot be summed.
+
+## The reuse precondition is "the SET is no longer in dispute", not "count already exact"
+
+`docs/band-800plus.md` records reuse-to-inherit as measuring **worse** in the straight-line population
+because its first precondition — instruction count already exact — fails. Narrowed: on
+`OvlFunc_959_200a7b0` merging two arms' bases into one variable went **+4/+3 → −4/−1** and improved the
+aligned figure and hunk count together, at a point where the count was still *not* exact.
+
+**So the real precondition is that the SET of quantities is settled** — close enough that you are no
+longer arguing about which values exist — not that the count has already hit zero. That is why it fails
+on a first draft and works a few levers in.
+
+## The smallest reproduction yet of the band's cse blocker — and it rules out three explanations
+
+`OvlFunc_886_2008658`'s reference builds `-1` **three separate times inside one call's argument setup**,
+three identical `CONST_INT`s **two instructions apart**, un-commoned.
+
+That is the whole band-doc blocker in four instructions, and it **rules out every distance-based,
+call-boundary-based and block-extent-based explanation** for why cse1 commons in our output and not the
+ROM's — the repetitions here are adjacent and within a single argument block. What remains is the
+**cost model** or the **RTL shape**. **Go into `03.cse` after those four instructions, not after a
+300-instruction block** — which makes this the right function to attack the band blocker on.
+
+Also from the same function: **`CSE_CFLAGS` is now NEGATIVE here, not merely inert**
+(`-fno-rerun-cse-after-loop` and `-O1` both measure worse), so no Makefile row. And its reference parks
+`&iwram_3001ebc` **in r8** — a second direct witness against the `-ffixed-r8..r11` theory retracted in
+batch 307.
+
+## The frame screen is `add rX, sp` PLUS A LOAD — not the `sub sp` immediate
+
+Independent second confirmation that frames in the straight-line 800+ population are **outgoing-argument
+space by default**: `OvlFunc_886_2008658`'s `sub sp, #0x1c` is entirely an **11-argument call block**, so
+the slot-map-as-declaration-list move yields nothing.
+
+**And it gives the better screen.** Do not read the `sub sp` immediate — look for **`add rX, sp`
+followed by a load**. A frame word that is only ever *stored* to is argument staging; one that is
+*loaded back* is a spill. That is the test that distinguishes the two populations, and it is cheaper
+than reading the prologue's high-register saves.
+
+## THE BAND'S AXIS IS WRONG AND ITS DUMP TEST INVERTS — and the pin IS the shape that denies cse1
+
+Two agents independently reworked `docs/band-800plus.md`'s model on the same day, and between them they
+replace its triage axis, fix its dump test, and **answer its open question by controlled experiment.**
+
+**1. Branch density cannot separate the tail.** Five functions with 3–4 branches each split into both
+populations. What separates them is the **reference's own wide-constant reuse fraction**, and it is a
+**gap, not a gradient**: two at **0.0%** (zero high-register mentions) against three at **20–24%**
+(37/39/53 mentions). The triage command is
+`grep -coE '\b(r8|r9|r10|r11|sl|fp)\b'` **on the reference** — right on 5 of 5. A second agent reached
+the same conclusion from a different pair: **grep the reference for the high-save prologue, and a
+reference WITHOUT one is the hard case.**
+
+**2. My branch-count triage was noisy, and both agents caught it.** `grep -c` on branch mnemonics
+over-counts: **14 of 18 branch targets across five references are pool skips or pool labels, only 4 are
+real tests**, and one function was over-counted by three. Worse, **register state carries across a pool
+skip** — misreading two of them cost four wrong argument fills. **Exclude unconditional jumps over
+`.pool`/`.pool_aligned` before counting branches.**
+
+**3. The pin IS the source shape that denies cse1 the commoning** — the band doc's open question,
+answered by a controlled experiment rather than inference. The byte-exact `OvlFunc_889_2008074` and a
+**mechanically pin-stripped copy of the same program** give **0 against 44** high-register mentions, and
+`push {r5,lr}` against `push {r5,r6,r7,lr}`.
+
+**4. The band doc's proposed test points at the wrong dump and inverts.** The solved candidate has
+*more* `const_int` mentions in `03.cse` (26 against 21). The clean signal is **`18.greg`**: the pinned
+version carries **zero** instances of the wide constants into global allocation where the pin-free one
+carries 13, 9 and 7.
+
+**5. A 20% reuse fraction does not mean the held quantities are constants.** One reference has 13 high
+ranges of which only **3 hold constants** — the other ten are loaded fields and derived addresses, so it
+wants a different lever entirely.
+
+**6. The smallest reproduction of the blocker is four instructions**: one reference builds `-1` three
+times inside a single call's argument setup, two instructions apart, un-commoned. That **rules out every
+distance-, call-boundary- and block-extent-based explanation**, leaving the cost model or the RTL shape.
+
+## `bl` TO A LOCAL LABEL IS A LONG BRANCH, NOT A CALL
+
+`OvlFunc_936_2008590` opens with `bl .L151c` to a label **1,520 instructions away**. Thumb-1's `b` has
+a ±2KB range and that function is 4KB, so **gcc emits `bl` for an ordinary branch and inverts the guard
+conditions to suit.** Reading it as a call would have cost the function outright.
+
+So in any function over ~2KB, **check whether a `bl` target is a local `.L` label before treating it as
+a callee** — and expect the surrounding condition senses to be inverted relative to the source.
+
+## Two more per-site bounds, and an overlay path hazard
+
+**The HImode carrier split is per SITE, not per constant.** Five of five non-zero halfword stores want
+an `int` carrier; only **one of three zero stores** does. The mechanism: Thumb-1 `ldrsh` has no
+immediate-offset form, so the reference is full of registers already holding 0 that cse hands to a
+nearby `strh` for free — **only the site with no `ldrsh` near it needs the carrier.** Sweeping it
+overshoots by 11 instructions. (This is now the fourth independent bound on the `int`-carrier family,
+after the load-order discriminator, the "it can STOP a pool" case, and shiftability.)
+
+**The read-once-global lever's discriminator is WHAT crosses the call.** One reference keeps the
+pointer's *value* across 400 calls — a local is forced; another keeps only the global's *address*, which
+is a constant cse commons for free, so naming it was byte-identical. **Same-looking evidence, opposite
+answers**: ask whether the value or the address survives the call.
+
+**And an overlay PATH hazard, which cost a park:** a park's recipe named
+`src/non_matching/ovl_78b2ac/2008488.c` for `OvlFunc_917_2008488` — a path that **already held
+`OvlFunc_890_2008488`'s park**, a different function sharing that address because every overlay loads at
+the same base. Installing there would have destroyed it. **Derive an overlay park's directory from the
+REFERENCE's bank, never from the address alone.** Same non-uniqueness that broke census attribution in
+batch 302 and needed a bank gate — it bites park *paths* as well as park *names*.
