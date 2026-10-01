@@ -232,6 +232,28 @@ _MSG_813 = 0x0813;
  * the tree. */
 _MSG_ad0 = 0x0ad0;
 
+/* Added in batch 315 for Func_80a524c, and ON THE HOIST ARGUMENT, NOT THE
+ * STRUCTURAL ONE -- the distinction this file draws elsewhere matters here.
+ *
+ * NEITHER VALUE IS SHIFTABLE.  0xad4 >> 2 is 0x2b5 and 0xb2c >> 2 is 0x2cb, and
+ * both multipliers exceed 8 bits, so thumb_shiftable_const does NOT apply and
+ * gcc would pool either as a plain const_int.  A pool word holding one of these
+ * is therefore NOT the symbol tell that _MSG_ad0, _MSG_c20 and the batch-274
+ * block rest on.  (The park proposing them claimed they were shiftable; that is
+ * wrong and is corrected here rather than inherited.)
+ *
+ * What justifies them is the weaker argument this file reserves for exactly this
+ * case, and it is measured: spelled as a CONST_INT each costs +6 ENCODINGS
+ * (indices 20-26 and 32-38 respectively), because gcc will spend a callee-saved
+ * register on a SYMBOL address and not on an integer it can rematerialise --
+ * the same reasoning as _MSG_d1c above.  Twelve encodings across two values,
+ * and Func_80a524c is byte-identical with them and 3 of 134 without.
+ *
+ * Consumer: Func_80a524c reaches _Func_801e7c0, the same message sink _MSG_182
+ * feeds, and _MSG_182 is already in this file for that reason. */
+_MSG_ad4 = 0x0ad4;
+_MSG_b2c = 0x0b2c;
+
 /* Added in batch 182, same argument as _MSG_810 and _MSG_ad0 above.
  * Func_80b3284 (the inn) holds 0xd1c in a callee-saved register and reaches
  * 0xd1d..0xd20 with `add r0, #K`. With a plain integer gcc folds each site to
