@@ -5,7 +5,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_c9000/cc5d8_DjinnSet.c \
- *     asm/rom_c9000/rom_cc5d8_a_a_a.s --func Anim_DjinnSet
+ *     asm/rom_c9000/rom_cc5d8_a_a_a_a.s --func Anim_DjinnSet
  * TWO functions in the reference; a text split is required.  NO .rodata in that TU --
  * .Lee058, .Lee05c and .Lee060 live in rom_cc5d8_c_c.s and are already covered by
  * stage1.ld:1825, so they are plain externs.

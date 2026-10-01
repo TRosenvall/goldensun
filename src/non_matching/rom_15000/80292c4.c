@@ -4,7 +4,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_15000/80292c4.c \
- *     asm/rom_15000/rom_23178_a_c_c_c.s --func Func_80292c4
+ *     asm/rom_15000/rom_23178_a_c_c_c_a.s --func Func_80292c4
  * SPLIT: rom_23178_a_c_c_c.s holds Func_8029274, Func_80292c4 and Func_802938c.
  *
  * Indices 0-15 are identical -- prologue, frame (0x24), both stack arrays at the

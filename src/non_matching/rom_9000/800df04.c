@@ -3,7 +3,7 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *       goldensun-build python3 tools/objcmp.py \
- *       src/non_matching/rom_9000/ActorCmd_Unk9.c asm/rom_9000/rom_d924_c_c_c.s \
+ *       src/non_matching/rom_9000/ActorCmd_Unk9.c asm/rom_9000/rom_d924_c_c_c_c.s \
  *       --func ActorCmd_Unk9
  *
  * SIZE 796 == 796, INSTRUCTIONS 367 == 367, RELOCATIONS IDENTICAL (28, same offsets,

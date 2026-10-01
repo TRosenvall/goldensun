@@ -8,7 +8,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_a1000/80a7d68.c \
- *     asm/rom_a1000/rom_a7380_a_c_a_c.s --func Func_80a7d68
+ *     asm/rom_a1000/rom_a7380_a_c_a_c_c.s --func Func_80a7d68
  *
  * NOTE THE REFERENCE PATH: moved into the `_a` part by batch 285's split of
  * rom_a7380_a_c.s to land Func_80a7f44.

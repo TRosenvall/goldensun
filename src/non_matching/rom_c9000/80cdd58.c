@@ -1,4 +1,4 @@
-/* InitRenderTilemapBG1 -- asm/rom_c9000/rom_cd508_c.s, 0x080cdd58, 107 ROM lines.
+/* InitRenderTilemapBG1 -- asm/rom_c9000/rom_cd508_c_a.s, 0x080cdd58, 107 ROM lines.
  *
  * NON-MATCHING: 2 encodings of 129 differ (objcmp).
  *
@@ -12,7 +12,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_c9000/cdd58_InitRenderTilemapBG1.c \
- *     asm/rom_c9000/rom_cd508_c.s --func InitRenderTilemapBG1
+ *     asm/rom_c9000/rom_cd508_c_a.s --func InitRenderTilemapBG1
  *
  * THE RESIDUE, exactly: ONE sched2 SWAP IN THE LOOP PREHEADER.
  *   rom  ... mov r0,#0 / mov r6,#0 / mov r12,r2 / mov r4,#0

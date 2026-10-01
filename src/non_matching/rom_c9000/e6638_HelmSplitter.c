@@ -5,7 +5,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_c9000/e6638_HelmSplitter.c \
- *     asm/rom_c9000/rom_e6638_a_c.s --func Anim_HelmSplitter
+ *     asm/rom_c9000/rom_e6638_a_c_a.s --func Anim_HelmSplitter
  * FOUR functions in the reference; a text split is required.
  *
  * NO DATA WORK, AND THE FIVE DOT-LABELS ARE REFERENCED RATHER THAN DEFINED HERE --

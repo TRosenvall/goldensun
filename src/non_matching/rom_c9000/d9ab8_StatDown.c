@@ -15,7 +15,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_c9000/d9ab8_StatDown.c \
- *     asm/rom_c9000/rom_d9ab8_c_c_c_c_a.s --func BaseAnim_StatDown
+ *     asm/rom_c9000/rom_d9ab8_c_c_c_c_a_a.s --func BaseAnim_StatDown
  * TWO functions; a TEXT-ONLY split is required (no .rodata in the file -- .Leea08,
  * .Leea20 and .Leea2c are .global in rom_d9ab8_c_c_c_c_c.s).  Element types confirmed from
  * the ROM's indexing: Leea08 is unsigned short[12] (`ldrh [r2,r3]`, r3 = idx*2, 24 bytes),

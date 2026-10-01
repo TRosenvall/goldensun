@@ -1,10 +1,10 @@
 /* OvlFunc_947_2008cc0 -- NON-MATCHING: 70 encodings of 86 differ (objcmp).
- * 0x02008cc0, asm/overlays/rom_7d0e88/ovl_314_a_c_c_c_c.s (1 of 2 functions).
+ * 0x02008cc0, asm/overlays/rom_7d0e88/ovl_314_a_c_c_c_c_c.s (1 of 2 functions).
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/overlays/2008cc0.c \
- *     asm/overlays/rom_7d0e88/ovl_314_a_c_c_c_c.s --func OvlFunc_947_2008cc0
+ *     asm/overlays/rom_7d0e88/ovl_314_a_c_c_c_c_c.s --func OvlFunc_947_2008cc0
  *
  * THIS FILE EXISTS ONLY SO THE FUNCTION IS COUNTED AND CHECKABLE. The analysis lives in
  * src/non_matching/overlays/2008098.c, which has always named this address and .s path on

@@ -3,7 +3,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_a1000/80a7850.c \
- *     asm/rom_a1000/rom_a7380_a_c_a_c.s --func Func_80a7850
+ *     asm/rom_a1000/rom_a7380_a_c_a_c_c.s --func Func_80a7850
  *
  * NOTE THE REFERENCE PATH: this function was in rom_a7380_a_c.s until batch 285 split that
  * file to land its neighbour Func_80a7f44.  It now lives in the `_a` part.

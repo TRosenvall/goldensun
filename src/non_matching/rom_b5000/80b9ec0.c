@@ -8,7 +8,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_b5000/80b9ec0.c \
- *     asm/rom_b5000/rom_b9b30_a_c.s --func Func_80b9ec0
+ *     asm/rom_b5000/rom_b9b30_a_c_c.s --func Func_80b9ec0
  * The reference holds TWO functions (Func_80b9dc4, Func_80b9ec0), so a split is
  * required to land this one.
  *
