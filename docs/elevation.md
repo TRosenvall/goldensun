@@ -29217,3 +29217,119 @@ Prerequisite worth repeating because it is what made the script safe: all 82 sit
 were verified **uniform first** — one call each, arguments a plain `q0..qn-1`
 sequence, no cross-references between the `q`s. A mechanical rewrite of
 non-uniform sites would have silently changed the program.
+
+## Batch 312 brief A -- the pin pass is SELECTIVE, and the band axis does not cover call-scripts
+
+### Step 1 refined: pin every WIDE-LITERAL call, not every call
+
+Batch 311 recorded "one blanket pin pass over every site with a literal argument
+outside 0..255" as step 1 for a pure-rebuild reference. Brief A measured the
+blanket pass against a **selective** one -- pin only calls carrying a literal
+outside 0..255 **or a shift** -- on two functions, and the selective pass won on
+both axes while using **half the pins**:
+
+| function | selective | blanket |
+|---|---|---|
+| `OvlFunc_899_200b6f8` | **92.8%** aligned, 123 edits, **159 pins** | 84.7% -> 92.8% path, 129 edits, 310 pins |
+| `OvlFunc_957_20093f8` | **94.0%** aligned, 203 edits, **316 pins** | 245 edits, 406 pins |
+
+Fewer pins AND fewer edits, so there is no trade to weigh. Step 1 now reads **pin
+every wide-literal call**. This matters beyond the figures because of the pin
+minimisation done in the same batch: pins are *evidence about the compiler*, and a
+pass that installs twice as many for a worse result is manufacturing bad evidence
+at both ends.
+
+### The 800+ band axis does NOT separate the call-script population -- WORK DENSITY does
+
+A real bound on `docs/band-800plus.md`'s triage axis, and the second time in two
+batches that an axis I propagated into a brief failed to separate its targets.
+
+High-register mentions across brief A's three ran **17 / 19 / 16** -- and the
+HARDEST of the three has the FEWEST. The axis that orders them correctly is **work
+density: the share of instructions that are neither a call nor argument-fill**:
+
+| function | work density | hand-write sites | verdict |
+|---|---|---|---|
+| `OvlFunc_899_200b6f8` | 3.8% | 20 | easiest |
+| `OvlFunc_957_20093f8` | 5.2% | 95 | middle |
+| `OvlFunc_913_2008d3c` | **11.3%** | **236** | **hardest** |
+
+`913` is only 9% longer than `957` but carries **2.4x the work instructions**, and
+hand-write sites track the density almost linearly. The reason the band axis fails
+here is structural: these are **cutscene scripts**, 3-ish instructions per call,
+where almost everything is argument-fill. High-register use measures the
+*wide-constant reuse fraction*, and a function that barely computes has nothing to
+reuse. The band axis is sound for the dense population it was derived on; it does
+not cover call-scripts.
+
+Collected with batch 311's frame-triad correction, the ranking rule is now: **no
+single axis covers the 800+ band.** Read the frame triad, then the reuse fraction,
+then work density, and let the function's *character* decide which dominates.
+`tools/triage_available.py` measures the first two; work density is the column it
+is missing.
+
+### A CONVERGING COUNT IS NOT A CONVERGING STREAM
+
+Hard-pinning the reference's own r8/r9/r10 assignment moved the encoding count
+from -4 to **-1** (1458 against 1459) while moving edit distance **18 the wrong
+way**. A new instance of ladder rung 2, and the sharpest phrasing of it yet: the
+count can walk toward zero while the instruction stream walks away. Rank on the
+positional figure when the two disagree and the count is not yet exact.
+
+### Relocation PARITY adjudicates the pooled-symbol question
+
+An important qualification to "a pooled constant gcc could never pool is a symbol".
+On `899` the named-zero spelling **does** buy the reference's pool word (25,
+matching) -- but `_AREA_00` and `_CONST_0` **each add a relocation the reference
+lacks**, and that function's relocations are already at **394 vs 394 in identical
+symbol order**. So neither spelling is admissible, and dropping the named zero
+regresses 94.4% -> 93.5% because the carrier is worth 15 edits elsewhere. Two
+separable facts pointing opposite ways.
+
+The rule stands -- a reference disassembly shows a resolved symbol as a bare word,
+so a pooled eight-bit-movable value still implies a relocation existed. What is
+added is the **adjudicator**: when relocation parity is already exact, a symbol
+spelling that adds an entry is wrong whatever the pool word says. Read the
+relocation count before adopting a symbol, not after.
+
+### Bounds measured byte-identical or negative
+
+  * **C block scope on a constant local is byte-identical** -- identical object,
+    identical hunk list. The declaration-placement family acts through
+    `REG_EQUIV` and allocation priority, **not through braces**. A third bound on
+    initialise-at-declaration, from a different direction than the other two.
+  * **Pool multiplicity is the evidence for a walked base; value adjacency is
+    not.** `957` and `913` both hold message ids in consecutive runs that look
+    exactly like a walked base, but the pool multiset shows each pooled exactly
+    once. The lever paid on `899` (+1.6 points, -3 pool words) where the tell is a
+    **pool word that is another pool word plus a small offset** -- a multiplicity
+    fact, cheap and available before writing a line.
+
+### Two structural findings
+
+  * **`913`'s six undefined `.L33xx` symbols are GLOBAL VARIABLES, not labels.**
+    They are loaded as addresses and dereferenced, and defined nowhere in the
+    file; `.L3394` is reached 12 times and caches a `__GetFlag` result. The
+    `extern ... __asm__(".L3f6c")` convention from the file-mate park applies.
+  * **The commutative-destination rule's discriminator is the constant's LAST
+    USE** -- that is the site where the constant becomes the destination,
+    confirmed at 8 sites in `957`. This sits correctly beside batch 311's bound:
+    both `mul` operand orders are byte-identical, so the rule cannot be read
+    BACKWARDS to recover source operand order, but *which site* makes the constant
+    the destination is determined, and last use determines it.
+
+### A split claim corrected, and the asymmetry is positional
+
+`src/non_matching/ovl_7e3e08/200909c.c` said a three-way split is needed "before
+any of them converts". True of itself, **false of `20093f8`** -- and the reason is
+positional: `200909c` is the MIDDLE of three, so cutting for it necessarily leaves
+a piece on each side, while `20093f8` is the LAST and needs only a **two-way** cut.
+That makes `20093f8` the CHEAPEST of the three to take, not an equal-cost sibling.
+Identical to the `BaseAnim_Attack` / `Anim_CriticalHit` asymmetry in batch 307
+where I asserted symmetry and was wrong: **dry-run BOTH orders.** Sixth instance of
+an unqualified claim excluding reachable work.
+
+Also confirmed: **`split_s.py --dry-run` is honoured** -- the destructive-dry-run
+defect recorded in this document does not reproduce, as expected since batch 302
+gave the flag a real implementation. The record of it stays as history, not as a
+live hazard.

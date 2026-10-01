@@ -116,6 +116,18 @@ def check(path):
     if not os.path.exists(os.path.join(ROOT, ref)):
         return ("UNCHECKABLE", f"reference {ref} not found", None, None)
     cm = CLAIM.search(hdr) or CLAIM2.search(hdr)
+    # A park with NO FUNCTION BODY still produces a number: objcmp compiles the
+    # empty translation unit and reports every one of the reference's encodings as
+    # differing.  That number is meaningless but indistinguishable from a real
+    # measurement, so a claim near it would be "verified" by nothing at all.
+    # Same family as a missing input printing "ENCODINGS EXACT" -- the input
+    # exists here, it is just empty.  Found on a batch-312 triage park that
+    # honestly claimed no figure and was measured at 2602 regardless.
+    nocomment = re.sub(r"/\*.*?\*/", " ", open(path, errors="replace").read(), flags=re.S)
+    nocomment = re.sub(r"//[^\n]*", " ", nocomment)
+    if not re.search(r"\)\s*\{", nocomment):
+        return ("NOBODY", "no function definition in the file -- nothing to measure",
+                None, None)
     cmd = [sys.executable, os.path.join(ROOT, "tools", "objcmp.py"), path, ref]
     if func:
         cmd += ["--func", func]

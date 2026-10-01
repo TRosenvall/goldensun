@@ -12,7 +12,14 @@
  * functions -- OvlFunc_957_2008f94 (111 instructions, already parked at
  * src/non_matching/ovl_7e3e08/2008f94.c), this one, and OvlFunc_957_20093f8
  * (2316 instructions, unattempted). A three-way split is needed before any of
- * them converts; taking this one alone means
+ * them converts -- TRUE OF THIS FUNCTION, FALSE OF 20093f8, corrected in batch
+ * 312.  The shape is not symmetric, and the asymmetry is positional: this one is
+ * the MIDDLE of three, so cutting for it necessarily leaves a piece on each side.
+ * 20093f8 is the LAST, so it needs only a TWO-way cut, which makes it the
+ * CHEAPEST of the three to take rather than an equal-cost sibling.  (Same
+ * asymmetry as the BaseAnim_Attack / Anim_CriticalHit pair in batch 307, where I
+ * asserted a split constraint was symmetric and it was not: dry-run BOTH orders.)
+ * Taking this one alone means
  *     ovl_30_c_c_c_a_a_a_a.s -> _a_a.s (2008f94) + _a_b.c (200909c) + _a_c.s (20093f8)
  * EXPORTS: OvlFunc_957_200909c; it takes the ADDRESS of its file-mate
  * OvlFunc_957_2008f94 (`__StartTask` / `__StopTask`), so that symbol must stay
