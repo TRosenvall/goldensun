@@ -144,7 +144,7 @@ test is the pair of -1 sentinels:
 
 ## 5. LEVERS TO TRY FIRST, IN THIS ORDER (from batch 307 brief F's own set)
 
-1.  THE BANK LEAD IS DIRECTLY APPLICABLE.  `src/non_matching/rom_15000/8018efc.c`
+1.  THE BANK LEAD IS DIRECTLY APPLICABLE.  `src/rom_15000/rom_18cac_a_c.c (LANDED; was src/non_matching/rom_15000/8018efc.c)`
     went 17 -> 2 on TWO levers and BOTH shapes are present in the 94-run above:
     a base pointer and a walking pointer that are ONE VARIABLE advanced in place,
     and a separate index local for a reg+reg halfword store.  The second loop's

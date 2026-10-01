@@ -4,7 +4,7 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/rom_15000/801b664.c \
+ *     src/rom_15000/rom_1aeec_a_a_c_a_c_c_c_b.c (LANDED; was src/non_matching/rom_15000/801b664.c) \
  *     asm/rom_15000/rom_1aeec_a_a_c_a_c_c_c.s --func Func_801b664
  * objcmp: "OK Func_801b664 -- 428 bytes, 200 encodings and 9 relocations identical".
  * Production flags, no per-file Makefile row, no extra switch.  NOT flag-conditional:

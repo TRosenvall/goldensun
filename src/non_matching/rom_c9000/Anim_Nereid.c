@@ -35,7 +35,7 @@
  * is two ways with the whole `.rodata` staying with the remainder.  A `.global`
  * emits no bytes: export both, run `make compare` BEFORE the split so the two
  * changes stay separable, then split.  NOTE that Anim_Froth
- * (src/non_matching/rom_c9000/Anim_Froth.c, 4 of 529, THE CLOSEST NON-MATCHING
+ * (src/rom_c9000/rom_d2d98_b.c (LANDED; was src/non_matching/rom_c9000/Anim_Froth.c), 4 of 529, THE CLOSEST NON-MATCHING
  * FUNCTION IN THE TREE) is the SECOND function in this same file and will need
  * `.global .Lee1c4` for its own cut -- export all three at once if both are
  * going to land, and coordinate the stem suffixes.

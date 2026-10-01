@@ -83,11 +83,11 @@
  *     DISTRIBUTED BY HAND                           99.2%   265
  * The four casts probed on the inline form -- (short)/(u16)/(int)(u16)/
  * (unsigned)(u16), on either operand -- are all EXACTLY equal, which confirms
- * src/non_matching/rom_15000/8018efc.c's conclusion that no cast reaches the
+ * src/rom_15000/rom_18cac_a_c.c (LANDED; was src/non_matching/rom_15000/8018efc.c)'s conclusion that no cast reaches the
  * reassociation; what it did not try is distributing the shift.
  *
  * *** THE SAME LEVER IS WORTH 86 -> 17 ON THE FILE-MATE. ***
- * src/non_matching/rom_15000/8018efc.c is parked on precisely this blocker
+ * src/rom_15000/rom_18cac_a_c.c (LANDED; was src/non_matching/rom_15000/8018efc.c) is parked on precisely this blocker
  * ("the whole residue is FOUR EXTRA INSTRUCTIONS, the zero-extensions of `cx`
  * and `cy`", after a 450-spelling sweep).  Substituting the two distributed
  * expressions into that park, with nothing else changed, takes it from

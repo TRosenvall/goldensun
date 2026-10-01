@@ -28,7 +28,7 @@
  * FIRST PINNED ASSIGNMENT.  All 25 mov-permutations and all 6 shift-order
  * permutations were inert at 2; only the barrier moved it.  It was also the only
  * thing that fixed the analogous site in this function's sibling
- * (src/non_matching/ovl_77dd1c/2009b18.c), where a 3-position x 7-spelling sweep
+ * (src/overlays/rom_77dd1c/ovl_30_c_c_c_c_a_a_a_c_c_a_c_c_a.c (LANDED; was src/non_matching/ovl_77dd1c/2009b18.c)), where a 3-position x 7-spelling sweep
  * found nothing.  This confirms batch 280's reading that these fills land BY
  * RELATION, NOT POSITION, and adds the handle for when relation-by-permutation runs
  * out.

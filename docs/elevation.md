@@ -25748,7 +25748,7 @@ leaves `fold` nothing to move, and `combine` then folds the two shifts back toge
 itself — arriving at the ROM's form. On `DrawText` that took the aligned figure from
 83.4% to **99.2%**.
 
-**The transfer is the point.** `src/non_matching/rom_15000/8018efc.c` was parked on
+**The transfer is the point.** `src/rom_15000/rom_18cac_a_c.c (LANDED; was src/non_matching/rom_15000/8018efc.c)` was parked on
 exactly this blocker after 450 spellings, *every one of which left the constant inside
 the shift*. Dropping the two distributed expressions in, with nothing else changed,
 took it from **86 of 119 (and not a distance — 123 instructions against 119) to 17 of

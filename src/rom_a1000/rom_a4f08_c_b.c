@@ -20,7 +20,7 @@
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80a524c.c \
+ *     goldensun-build python3 tools/objcmp.py src/rom_a1000/rom_a4f08_c_b.c (LANDED; was src/non_matching/rom_a1000/80a524c.c) \
  *     asm/rom_a1000/rom_a4f08_c.s --func Func_80a524c
  *
  * ============================= LANDING PREREQUISITES =============================

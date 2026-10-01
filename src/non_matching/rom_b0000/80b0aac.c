@@ -22,7 +22,7 @@
  * stage1.ld:1471 names asm/rom_b0000/rom_b0070_a_a_c_c_a_c_a.o(.text), one line.
  * NO NEW `.global` IS REQUIRED: checked mechanically, the function's block
  * references no `.L` label it does not itself define.
- * src/non_matching/rom_b0000/80b0fa4.c is the park for the OTHER function in this
+ * src/rom_b0000/rom_b0070_a_a_c_c_a_c_a_b.c (LANDED; was src/non_matching/rom_b0000/80b0fa4.c) is the park for the OTHER function in this
  * .s; it names no suffix of its own, so whichever lands first may take _b.
  *
  * WHAT THE BODY IS.  A two-level shop screen.  An outer loop opens the item list

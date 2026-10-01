@@ -36,7 +36,7 @@
  * correctly, why the resulting order was unreachable.  This is EXACTLY the trap
  * docs/elevation.md records at the int-return lever -- "check the tree before
  * assuming a callee is void" -- and the sibling park
- * src/non_matching/rom_c9000/Anim_Froth.c carried the same error at the same
+ * src/rom_c9000/rom_d2d98_b.c (LANDED; was src/non_matching/rom_c9000/Anim_Froth.c) carried the same error at the same
  * callee family in the same batch.  A CHEAP SWEEP THAT WOULD HAVE CAUGHT BOTH:
  * grep every park's `extern void F(...)` against include/ and against
  * `int F(` definitions under src/.

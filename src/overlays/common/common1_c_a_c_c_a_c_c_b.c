@@ -15,7 +15,7 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/ovl_common/common1_1ecc.c \
+ *     src/overlays/common/common1_c_a_c_c_a_c_c_b.c (LANDED; was src/non_matching/ovl_common/common1_1ecc.c) \
  *     asm/overlays/common/common1_c_a_c_c_a_c_c.s --func OvlFunc_common1_1ecc
  * (after landing, the same recipe against
  *  src/overlays/common/common1_c_a_c_c_a_c_c_b.c)

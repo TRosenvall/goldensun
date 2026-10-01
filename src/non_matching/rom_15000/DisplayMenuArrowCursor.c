@@ -109,7 +109,7 @@
  *      from last_spill_reg (reload1.c:5003, updated at 4937) -- a function of how
  *      many reload-register allocations happened EARLIER in the function, which is
  *      why it is coupled to (1): index 25 is itself a hi->lo reload.  This is the
- *      same mechanism src/non_matching/rom_a1000/80a524c.c and
+ *      same mechanism src/rom_a1000/rom_a4f08_c_b.c (LANDED; was src/non_matching/rom_a1000/80a524c.c) and
  *      src/non_matching/rom_b5000/80b6d30.c both document.  Inert, measured:
  *      `if (i)`, `if (i != 0)`, `if (0 != i)` and a local `n = i` are all 6;
  *      `if (i > 0)` is 7.

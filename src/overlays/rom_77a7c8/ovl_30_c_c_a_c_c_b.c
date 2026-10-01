@@ -16,7 +16,7 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/ovl_77a7c8/200b9fc.c \
+ *     src/overlays/rom_77a7c8/ovl_30_c_c_a_c_c_b.c (LANDED; was src/non_matching/ovl_77a7c8/200b9fc.c) \
  *     asm/overlays/rom_77a7c8/ovl_30_c_c_a_c_c.s --func OvlFunc_881_200b9fc
  *   OK OvlFunc_881_200b9fc -- 1300 bytes, 579 encodings and 45 relocations identical
  *   (reference path is the UNSPLIT .s as it stands today; after the text split

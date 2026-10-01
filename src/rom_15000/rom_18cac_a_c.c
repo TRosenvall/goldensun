@@ -3,7 +3,7 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *       goldensun-build python3 tools/objcmp.py \
- *       src/non_matching/rom_15000/8018efc.c \
+ *       src/rom_15000/rom_18cac_a_c.c (LANDED; was src/non_matching/rom_15000/8018efc.c) \
  *       asm/rom_15000/rom_18cac_a_c.s --func Func_8018efc
  * objcmp: "OK Func_8018efc -- 260 bytes, 119 encodings and 4 relocations identical".
  * Production flags, no per-file Makefile row, no extra switch.
@@ -71,7 +71,7 @@
  *   * `union HW { unsigned short v; };` with `((union HW *)&win->w)->v` is
  *     byte-identical to no change at all -- still 2 at indices 45/46.  This is a
  *     SECOND independent confirmation of the finding in
- *     src/non_matching/rom_15000/801b664.c's park, that a one-member union
+ *     src/rom_15000/rom_1aeec_a_a_c_a_c_c_c_b.c (LANDED; was src/non_matching/rom_15000/801b664.c)'s park, that a one-member union
  *     pointer-cast does not reach a MEM's alias set in this compiler.  Use the
  *     plain pointer cast.
  *

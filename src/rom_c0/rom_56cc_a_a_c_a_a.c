@@ -10,7 +10,7 @@
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_c0/8005920.c \
+ *     goldensun-build python3 tools/objcmp.py src/rom_c0/rom_56cc_a_a_c_a_a.c (LANDED; was src/non_matching/rom_c0/8005920.c) \
  *     asm/rom_c0/rom_56cc_a_a_c_a_a.s --func SomethingSaveHeader
  * objcmp: "OK SomethingSaveHeader -- 344 bytes, 156 encodings and 10 relocations
  * identical".  Production flags, no per-file Makefile row, no extra switch.

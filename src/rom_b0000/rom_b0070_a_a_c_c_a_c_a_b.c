@@ -7,7 +7,7 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/rom_b0000/80b0fa4.c \
+ *     src/rom_b0000/rom_b0070_a_a_c_c_a_c_a_b.c (LANDED; was src/non_matching/rom_b0000/80b0fa4.c) \
  *     asm/rom_b0000/rom_b0070_a_a_c_c_a_c_a.s --func Func_80b0fa4
  * (after landing, the same recipe against src/rom_b0000/rom_b0070_a_a_c_c_a_c_a_b.c)
  *

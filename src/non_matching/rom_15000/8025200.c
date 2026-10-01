@@ -151,7 +151,7 @@
  *    e.w[1] = 0x80 << 23, e.w[2] = 0, e.f.tile = UploadSprite2(...) and
  *    Func_8003dec(&e, 0xf0).  Reuse it; do not invent a struct.
  * D. CreateUIBox RETURNS A POINTER, and the box record is the struct Win of
- *    src/non_matching/rom_15000/8018efc.c: pad[8], w at +8, h at +0xa, x at +0xc,
+ *    src/rom_15000/rom_18cac_a_c.c (LANDED; was src/non_matching/rom_15000/8018efc.c): pad[8], w at +8, h at +0xa, x at +0xc,
  *    y at +0xe.  Reads at [r11,#8]/[r11,#0xc]/[r11,#0xe] confirm it.
  * E. iwram_3001f34 IS REACHED TWO WAYS IN THE SAME FUNCTION.  Early it is
  *    *(struct Ctx **)((char *)&iwram_3001e8c + 0xa8), which reuses the

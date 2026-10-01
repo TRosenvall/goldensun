@@ -1,6 +1,36 @@
 #!/usr/bin/env python3
 """Triage the unattempted functions on the axes that actually predict difficulty.
 
+*** AS OF BATCH 315 THE NAME LIST BELOW IS ENTIRELY STALE AND THIS TOOL WILL
+MISLEAD YOU.  AVAILABLE IS 0. ***
+
+Pass one closed the unattempted frontier: every function in the tree is now
+matched, permanently out of reach (hand-asm / ARM / unmatchable), or PARKED.  All
+37 names hardcoded here were taken in batches 311-313, so running this prints a
+table of targets that no longer exist as work.
+
+It is kept because the COLUMNS and their caveats are the reusable part -- what
+predicts difficulty, and the four separate ways a mechanical proxy has misled us
+here.  To use it again, refresh the list from `tools/census.py --list LO HI`.
+
+For PASS TWO (landing the parks) the ranking that matters is not difficulty but
+DISTANCE, and it is not in this file: sort parks by their claim line.  Something
+like
+
+    python3 - <<EOF
+    import sys, glob; sys.path.insert(0,"tools"); import parkcheck as pc
+    rows=[]
+    for f in glob.glob("src/non_matching/**/*.c", recursive=True):
+        flat = pc.header_of(f).replace("*"," ")
+        m = pc.CLAIM.search(flat) or pc.CLAIM2.search(flat)
+        if m: rows.append((int(m.group(1)), int(m.group(2)), f))
+    for n,t,f in sorted(rows)[:30]: print(n,"of",t,f)
+    EOF
+
+and note that a claim can be INFLATED BY POOL WORDS -- an objcmp "encoding" is a
+slot, and a pool word occupies one -- so a figure of 4 has twice been really 2.
+
+
 WHY THIS EXISTS.  Two rankings have been tried and both were wrong:
 
   * INSTRUCTION COUNT.  Batch 311 ranked five functions by length and the order was
