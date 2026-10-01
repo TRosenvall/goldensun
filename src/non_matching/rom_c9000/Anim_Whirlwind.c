@@ -7,10 +7,10 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_c9000/Anim_Whirlwind.c \
- *     asm/rom_c9000/rom_d2d98.s --func Anim_Whirlwind
+ *     asm/rom_c9000/rom_d2d98_c.s --func Anim_Whirlwind
  *
  * SPLIT SHAPE: TEXT/DATA SPLIT NEEDED.  tools/datacheck.py on
- * asm/rom_c9000/rom_d2d98.s reports a .rodata section and six functions
+ * asm/rom_c9000/rom_d2d98_c.s reports a .rodata section and six functions
  * (Anim_Nereid, Anim_Froth, Anim_Whirlwind, Anim_Prism, ColorCycleVFXPalette,
  * Anim_Plasma).  Anim_Whirlwind reads exactly ONE data label, so the split
  *   *** MUST EXPORT: .global .Lee1ca

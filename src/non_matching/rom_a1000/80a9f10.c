@@ -10,10 +10,10 @@
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py scratch_elev/b310b/PARK_Func_80a9f10.c \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80a9f10.c \
  *     asm/rom_a1000/rom_a8604_c_c_c_c_a_a.s --func Func_80a9f10
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/aligncmp.py scratch_elev/b310b/PARK_Func_80a9f10.c \
+ *     goldensun-build python3 tools/aligncmp.py src/non_matching/rom_a1000/80a9f10.c \
  *     asm/rom_a1000/rom_a8604_c_c_c_c_a_a.s Func_80a9f10 -v
  *
  * SPLIT SHAPE: NONE.  asm/rom_a1000/rom_a8604_c_c_c_c_a_a.s holds this one

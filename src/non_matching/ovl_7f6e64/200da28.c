@@ -7,7 +7,7 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *       goldensun-build python3 tools/objcmp.py \
- *       scratch_elev/b291/G/OvlFunc_969_200da28.park.c \
+ *       src/non_matching/ovl_7f6e64/200da28.c \
  *       asm/overlays/rom_7f6e64/ovl_314_c_c_c.s --func OvlFunc_969_200da28
  *
  * 48 IS A TRUE DISTANCE: SIZE 360 == 360, ENCODINGS 157 == 157, and the

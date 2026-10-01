@@ -16,11 +16,11 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     scratch_elev/b310c/PARK_Anim_Unsummon.c \
+ *     src/non_matching/rom_c9000/Anim_Unsummon.c \
  *     asm/rom_c9000/rom_e6638_a_c_c.s --func Anim_Unsummon
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/aligncmp.py \
- *     scratch_elev/b310c/PARK_Anim_Unsummon.c \
+ *     src/non_matching/rom_c9000/Anim_Unsummon.c \
  *     asm/rom_c9000/rom_e6638_a_c_c.s Anim_Unsummon -v
  * Installed path is src/non_matching/rom_c9000/Anim_Unsummon.c.
  *

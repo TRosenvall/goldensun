@@ -70,7 +70,7 @@
  * tools/split_s.py.
  *
  * Verify with (run it inside the build container; /opt/gcc296 is not on the host):
- *   python3 tools/objcmp.py scratch_elev/b290/A/Debug_BattleTest.park.c \
+ *   python3 tools/objcmp.py src/non_matching/rom_b5000/80b5368_Debug_BattleTest.c \
  *     asm/rom_b5000/rom_b5368_a.s --func Debug_BattleTest
  */
 extern volatile int gKeyRepeat;

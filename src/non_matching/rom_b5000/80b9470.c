@@ -90,6 +90,49 @@
  * what parkcheck used to lump into one UNCHECKABLE verdict.  A tree-wide sweep found
  * eight such parks; this is one of them.  The figure above is NOT re-measured by the
  * act of adding this line: run it.
+ *
+ * ================= BATCH 316: THE ARITHMETIC ABOVE IS WRONG =================
+ * Still 37 of 105, SIZE EXACT. The blocker class is right, the pricing is not.
+ * This park says "41 is `&tmp` (3 references)" and "38 is `n - 1` (2
+ * references)", i.e. it reads the contest as a near-tie and concludes "it is
+ * NOT a tie". *** `REG_N_REFS` IS LOOP-DEPTH WEIGHTED. *** gcc-2.96's flow.c
+ * does `REG_N_REFS (i) += loop_depth`, with loop_depth 1 at function level and
+ * +1 per enclosing loop, so a reference inside one loop counts 2 and inside two
+ * counts 3. `.17.lreg` prints the weighted figure, and it is:
+ *
+ *     41 (&tmp)   7 refs / 30 insns   floor_log2(7)*7/30 = 0.4667
+ *     38 (n - 1)  3 refs / 31 insns   floor_log2(3)*3/31 = 0.0968
+ *
+ * &tmp's two uses are both at loop depth 2 (weight 3 each, plus 1 for the def);
+ * `last`'s single use is at depth 1 (weight 2, plus 1). So it is not a tie by a
+ * factor of 4.8, and `allocno_compare` reproduces `.18.greg` exactly:
+ *   112 3.478 | 68 2.4 | 116 1.909 | 36 1.607 | 35 1.324 | 34 0.66 | 39 0.5 |
+ *   41 0.4667 | 37 0.4375 | 33 0.2286 | 32 0.1212 | 38 0.0968
+ *   `;; 12 regs to allocate: 112 68 116 36 35 34 39 41 37 33 32 38`.
+ * For 38 to win, 41 needs <= 2 refs, or live_length(41) > 144 in a 105-insn
+ * function, or 38 needs 8 refs. All three are out of reach. A TIE WOULD HAVE
+ * BEEN ENOUGH (allocno_compare breaks ties by allocno number and 38 < 41) --
+ * which is what made the old near-tie reading look workable. It is not a tie.
+ *
+ * THE RESIDUE, EXACTLY (side-by-side normalised listing, batch 316):
+ *   1. ROM `adds r3,r2,#0 / cmp r3,#53`, ours `cmp r2,#53` -- +1 instruction,
+ *      and it is why the ROM's pool carries a `.short` pad: 2 encodings, plus
+ *      every branch displacement after it.
+ *   2. ROM `mov r9,r7` / `mov r7,r9` for `n-1`, ours `add r3,sp,#4 /
+ *      str r7,[sp,#0] / mov r9,r3 / ldr r7,[sp,#0]`, and `sub sp,#20` against
+ *      `#16`. OUR `&tmp` SITS AT sp+4 ONLY BECAUSE THE SPILL SLOT TOOK sp+0,
+ *      which is why the ROM's `mov r0,sp` is free and our `mov r0,r9` is not.
+ *   3. prologue and second-call argument order -- sched2, downstream of 2.
+ * Items 2 and 3 are one fact. Item 1 is independent and survives everything.
+ *
+ * 54 CROSSED VARIANTS (9 spellings of the `== 0x35` test x 6 shapes/placements
+ * of `&tmp` and `last`), one container, 2.4 s. **36 of the 54 are BYTE-IDENTICAL
+ * to the base at 37**, including a second read of `mi[3]`, `(b|0)`, `(b^0x35)==0`,
+ * `b-0x35==0`, an `int` carrier, and `m = last` inside the inner loop (which
+ * raises 38's weighted refs but not enough). NEGATIVE: `t = &tmp` before
+ * `last = n-1` 78 (this park's declaration-order figure, reproduced); a `switch`
+ * 85; the test split into `if`/`else if` 100.
+ * **The "stop rather than continue through temp spellings" verdict STANDS.**
 */
 struct Act {
     short id;

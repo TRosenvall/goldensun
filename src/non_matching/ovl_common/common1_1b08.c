@@ -1,7 +1,7 @@
 /* OvlFunc_common1_1b08  --  0x0200?b08 in each of three overlays   [PARK DRAFT]
  *
  * NON-MATCHING, 442 of 454 encodings differ.  Reference
- * asm/overlays/common/common1_c_a_c_c_a_c_c.s, 2nd of THREE functions
+ * asm/overlays/common/common1_c_a_c_c_a_c_c_a.s, 2nd of THREE functions
  * (OvlFunc_common1_1928, this one, OvlFunc_common1_1ecc -- the other two are
  * already parked in src/non_matching/ovl_common/).  tools/datacheck.py prints
  * nothing: no data section in this .s, so no TEXT/DATA split and NO new exports.
@@ -13,7 +13,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *       goldensun-build python3 tools/objcmp.py \
  *       src/non_matching/ovl_common/common1_1b08.c \
- *       asm/overlays/common/common1_c_a_c_c_a_c_c.s --func OvlFunc_common1_1b08
+ *       asm/overlays/common/common1_c_a_c_c_a_c_c_a.s --func OvlFunc_common1_1b08
  *
  * NOT A DISTANCE: size 864 against 964 AND count 401 against 454, so objcmp's
  * 442 is saturated.  tools/aligncmp.py reads aligned-equal 152 of 454 (33.5%),

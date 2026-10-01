@@ -1,18 +1,39 @@
-/* OvlFunc_924_200d5c0 -- NON-MATCHING, 13 of 371 encodings differ.
+/* OvlFunc_924_200d5c0 -- NON-MATCHING, 12 of 371 encodings differ (was 13).
  * (objcmp PRODUCTION-FLAG figure: -O2 -mthumb -mthumb-interwork -mcpu=arm7tdmi
  *  -fno-builtin -nostdinc -ffreestanding -fcall-used-r4.  No flag row needed or
  *  wanted -- see the flag table below.)
  *
- * SIZE EXACT (ref 832 bytes = ours) and COUNT EXACT (ref 371, ours 371), so 13
+ * SIZE EXACT (ref 832 bytes = ours) and COUNT EXACT (ref 371, ours 371), so 12
  * IS A TRUE DISTANCE.  aligncmp separately: 360 of 371 aligned-equal (97.0%),
- * 12 differing/ins/del in 9 hunks.  WAS 14 AT BATCH 305; THIS BATCH CLOSED ONE.
+ * 12 differing/ins/del in 9 hunks.  WAS 14 AT BATCH 305, 13 AT BATCH 310.
+ *
+ * ***** BATCH 316: THE BYTE TWIN'S EDIT, PORTED AND MEASURED.  13 -> 12. *****
+ * tools/dupfuncs.py pairs this with OvlFunc_923_200a030
+ * (src/non_matching/ovl_7aa430/200a030.c), whose batch-316 work closed one
+ * encoding with a register pin on the `__vec3_translate` third argument:
+ *     was   __vec3_translate(0x80 << 14, ang, p);
+ *     now   { register int *q2 __asm__("r2"); q2 = p;
+ *             __vec3_translate(0x80 << 14, ang, q2); }
+ * MEASURED HERE, NOT ASSUMED -- brief D of this batch established that a
+ * duplicate group is a transfer opportunity WITH WORK ATTACHED and that a twin's
+ * figure can describe a different body entirely.  This twin's call site was
+ * textually identical, the port is the three lines above, and it reads
+ *     13 of 371 (first index 79)  ->  12 of 371 (first index 80)
+ * i.e. the SAME figure and the SAME first index as 200a030.  The two bodies
+ * remain in lockstep; an edit landed on either is still OWED on the other.
+ *
+ * ALSO FIXED THIS BATCH: the `Verify with:` recipe above pointed at
+ * `src/non_matching/ovl_7ac2d8/200d5c0.c`, a gitignored scratch path
+ * that no longer exists, so this park's figure was UNREPRODUCIBLE AS WRITTEN.
+ * It now names the installed file.  (The one remaining scratch_elev mention
+ * below is a pointer to deleted -da dumps, not a measurement recipe.)
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py scratch_elev/b310b/PARK_OvlFunc_924_200d5c0.c \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7ac2d8/200d5c0.c \
  *     asm/overlays/rom_7ac2d8/ovl_35b8_a_c_c_a.s --func OvlFunc_924_200d5c0
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/aligncmp.py scratch_elev/b310b/PARK_OvlFunc_924_200d5c0.c \
+ *     goldensun-build python3 tools/aligncmp.py src/non_matching/ovl_7ac2d8/200d5c0.c \
  *     asm/overlays/rom_7ac2d8/ovl_35b8_a_c_c_a.s OvlFunc_924_200d5c0 -v
  *
  * SPLIT SHAPE: NONE.  asm/overlays/rom_7ac2d8/ovl_35b8_a_c_c_a.s holds
@@ -310,7 +331,8 @@ void OvlFunc_924_200d5c0(void)
       t = (p[2] / 0x100000) * 128 + p[0] / 0x100000; __asm__ volatile ("" : : "r" (t));
       g = (int)gBuffer;
       cell1 = (unsigned char *)(t * 4 + g); }
-    __vec3_translate(0x80 << 14, ang, p);
+    { register int *q2 __asm__("r2"); q2 = p;
+      __vec3_translate(0x80 << 14, ang, q2); }
     { register unsigned char *g __asm__("r1"); int t;
       t = (p[2] / 0x100000) * 128 + p[0] / 0x100000;
       g = gBuffer;

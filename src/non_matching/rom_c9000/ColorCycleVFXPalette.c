@@ -3,7 +3,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_c9000/ColorCycleVFXPalette.c \
- *     asm/rom_c9000/rom_d2d98.s --func ColorCycleVFXPalette
+ *     asm/rom_c9000/rom_d2d98_c.s --func ColorCycleVFXPalette
  * and with -fno-gcse added to objcmp's flags it reports
  *   OK ColorCycleVFXPalette -- 184 bytes, 86 encodings and 5 relocations identical
  *
@@ -16,7 +16,7 @@
  * NOT LANDED because it would need a per-file GCSE_CFLAGS rule, and three
  * failed spellings do not meet docs/elevation.md's bar ("What justifies a
  * per-file FLAG RULE": the spellings must PROVABLY not differ). Also
- * asm/rom_c9000/rom_d2d98.s holds six functions plus .rodata, so landing it
+ * asm/rom_c9000/rom_d2d98_c.s holds six functions plus .rodata, so landing it
  * needs a split as well. Decision for the owner: flag row, or keep hunting.
  */
 extern int sin(int a);

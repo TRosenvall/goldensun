@@ -5,7 +5,7 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     scratch_elev/b291/C/Func_801ba68.park.c \
+ *     src/non_matching/rom_15000/801ba68.c \
  *     asm/rom_15000/rom_1aeec_a_a_c_c.s --func Func_801ba68
  *
  * tools/datacheck.py reports no data section for rom_1aeec_a_a_c_c.s, but the file

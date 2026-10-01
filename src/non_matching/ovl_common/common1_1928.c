@@ -1,5 +1,5 @@
 /* OvlFunc_common1_1928  --  the first of three functions in
- * goldensun/asm/overlays/common/common1_c_a_c_c_a_c_c.s, named by exactly three
+ * goldensun/asm/overlays/common/common1_c_a_c_c_a_c_c_a.s, named by exactly three
  * `overlay.ld` rows (rom_7db0c8, rom_7ddb88, rom_7e0928).
  *
  * NON-MATCHING, 193 of 222 encodings differ (ref 480 bytes / 222 encodings,
@@ -10,7 +10,7 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/overlays/common1_1928.c \
- *     asm/overlays/common/common1_c_a_c_c_a_c_c.s --func OvlFunc_common1_1928
+ *     asm/overlays/common/common1_c_a_c_c_a_c_c_a.s --func OvlFunc_common1_1928
  *
  * No data section in the file, so NO TEXT/DATA split: `datacheck` prints
  * nothing.  One external resolved by the asm-label extension:

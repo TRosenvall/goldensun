@@ -72,7 +72,7 @@
  * happens has not been isolated from the register-count defect above.
  *
  * Verify with (run it inside the build container; /opt/gcc296 is not on the host):
- *   python3 tools/objcmp.py scratch_elev/b290/A/Func_80b5534.park.c \
+ *   python3 tools/objcmp.py src/non_matching/rom_b5000/80b5534.c \
  *     asm/rom_b5000/rom_b5368_a.s --func Func_80b5534
  *
  * The .s holds FOUR functions (Debug_LoadPresetParty, Func_80b5534,

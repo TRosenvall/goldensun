@@ -1,4 +1,4 @@
-/* DrawLine -- asm/rom_c9000/rom_cd508_c_a.s, 0x080cde90, 202 ROM lines.
+/* DrawLine -- asm/rom_c9000/rom_cd508_c_a_c.s, 0x080cde90, 202 ROM lines.
  *
  * NON-MATCHING: 109 encodings of 205 differ (objcmp).
  *
@@ -19,7 +19,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_c9000/cde90_DrawLine.c \
- *     asm/rom_c9000/rom_cd508_c_a.s --func DrawLine
+ *     asm/rom_c9000/rom_cd508_c_a_c.s --func DrawLine
  *
  * THE FIVE REGIONS, exactly.
  *

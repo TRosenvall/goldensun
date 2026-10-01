@@ -1,116 +1,126 @@
-/* BaseAnim_Tackle -- NON-MATCHING, 8 ENCODINGS OF 402.  SIZE EXACT (916 bytes),
- * INSTRUCTION COUNT EXACT (402), FRAME EXACT (`sub sp, #0x48`), RELOCATIONS
- * EXACT (objcmp prints no RELOCATIONS line).  ONE function, no .rodata --
- * CONVERTS WHOLE when it lands, no split, no data work.
+/* BaseAnim_Tackle -- NON-MATCHING, 2 ENCODINGS OF 402 (was 8).  SIZE EXACT
+ * (916 bytes), INSTRUCTION COUNT EXACT (402), FRAME EXACT (`sub sp, #0x48`),
+ * RELOCATIONS EXACT.  ONE function, no .rodata -- CONVERTS WHOLE when it lands,
+ * no split, no data work.  PRODUCTION-FLAG FIGURE (the generic asm/%.o: src/%.c
+ * rule; no per-file flag group, no flag row).
  *
  * Verify with:
- *   python3 tools/objcmp.py src/non_matching/rom_c9000/dfa18_Tackle.c \
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/dfa18_Tackle.c \
  *     asm/rom_c9000/rom_dfa18_c_c_c_c_a.s --func BaseAnim_Tackle
- *   XX ENCODINGS differ in 8 place(s) (ref 402, ours 402)
- *      first at index 60: ref 33bc  ours 6812
+ *   XX ENCODINGS differ in 2 place(s) (ref 402, ours 402)
+ *      idx 223 ref 9c06 ldr | ours 9808 ldr
+ *      idx 225 ref 9808 ldr | ours 9c06 ldr
  *
- * BATCH 315 RE-OPENED THIS PARK'S "closed" MARK.  OUTCOME: ONE WINDOW IS CLOSED
- * WITH A STRUCTURAL ARGUMENT, THE OTHER IS OPEN WITH A NAMED MECHANISM AND A
- * CONCRETE NEXT STEP.  THE PARK'S DESCRIPTION OF BOTH WAS WRONG IN THE SAME WAY:
- * IT NAMED THE COMPETING INSNS WITHOUT READING THE DEPENDENCE TABLE.
+ * NOT POOL-INFLATED: both differing encodings are real instructions (checked
+ * with a disassembling per-index differ, batch 316).
  *
- * NOT POOL-INFLATED.  Every differing index was listed in batch 315, not just
- * the first.  All eight are real instructions -- no `.word` among them -- so the
- * figure is 8 of code:
- *   idx 60  ref 33bc adds | ours 6812 ldr      idx 61  ref 6812 ldr | ours 9206 str
- *   idx 62  ref 681b ldr  | ours 33bc adds     idx 63  ref 9206 str | ours 681b ldr
- *   idx 64  ref 9307 str  | ours 9904 ldr      idx 65  ref 9904 ldr | ours 9307 str
- *   idx 223 ref 9c06 ldr  | ours 9808 ldr      idx 225 ref 9808 ldr | ours 9c06 ldr
+ * ================= BATCH 316: WINDOW @58 IS CLOSED.  8 -> 2. =================
+ * THE EDIT, AND IT IS ONE DECLARATION:
+ *     was   DrawFn d1;  DrawFn d0;        d0 = *q0p;  d1 = *q1p;
+ *     now   DrawFn dfs[2];                dfs[0] = *q0p;  dfs[1] = *q1p;
+ * with the three `d0(...)` / one `d1(...)` call sites spelled `dfs[0](...)` /
+ * `dfs[1](...)`.  A two-member struct (`struct { DrawFn a, b; } dfs;`) is
+ * BYTE-IDENTICAL to the array, so the aggregate KIND is free; what matters is
+ * that the two pointers are ONE ADDRESSABLE OBJECT rather than two scalars.
+ * The array must keep the two scalars' DECLARATION SLOT: declared after `view`
+ * instead it reads 9, so the declaration-order rule still governs.
  *
- * ========== WINDOW @58 (SIX ENCODINGS) -- CLOSED, AND SHARPER THAN BEFORE ==========
- * ref   adds r2,#184 / adds r3,#188 / ldr r2,[r2] / ldr r3,[r3] /
- *       str r2,[sp,#24] / str r3,[sp,#28] / ldr r1,[sp,#16]
- * ours  adds r2,#184 / ldr r2,[r2] / str r2,[sp,#24] / adds r3,#188 /
- *       ldr r3,[r3] / ldr r1,[sp,#16] / str r3,[sp,#28]
+ * WHY, AND IT RETIRES THIS PARK'S OWN STRUCTURAL-IMPOSSIBILITY ARGUMENT.
+ * The previous header closed @58 like this: insn 1011 stores to an alias-set-0
+ * reload SPILL SLOT, insn 126 loads `(mem (reg r3) 19)`, true_dependence holds,
+ * so sched-deps emits a TRUE dependence 1011 -> 126; the ROM's order puts 126
+ * BEFORE 1011; sched2 cannot hoist an insn above its own producer; therefore
+ * the ROM's grouping is unschedulable and the blocker is reload's spill-store
+ * placement, one pass earlier.  EVERY STEP OF THAT IS SOUND ABOUT THE INSN
+ * CHAIN IT WAS READING -- AND IT WAS THE WRONG CHAIN.  Make the two pointers
+ * one addressable aggregate and insns 1011/1014 never exist: the values are
+ * read from a frame object by source-level loads, there is no spill-store/load
+ * pair to order, and the window comes out exact.
+ * *** A STRUCTURAL-IMPOSSIBILITY ARGUMENT IS ONLY AS GOOD AS ITS CLAIM THAT THE
+ * INSN CHAIN IS FORCED.  THIS PARK EVEN WROTE THE ESCAPE DOWN -- "the only route
+ * left is a source shape in which d0 and d1 are NOT both spilled at their defs"
+ * -- AND THEN DISMISSED IT ("the ROM does spill both, so that route is almost
+ * certainly closed too").  The ROM does put both in the frame.  It does not put
+ * them there AS SPILLED SCALARS. ***
+ * The park's own stack map was the evidence, unread: `d1(0x1c), d0(0x18)` are
+ * ADJACENT AND 4 APART, and their sources `q0p = pt+0xb8` / `q1p = pt+0xbc` are
+ * adjacent too.  TWO SCALARS WERE ONE OBJECT.
+ * Confirmation in the RTL: with the aggregate, the call's address operand reads
+ * `(subreg:SI (reg/v:DI 36) 1)` -- the 8-byte object is ONE DImode pseudo, which
+ * is exactly why the per-scalar spill stores disappeared.
+ * SUPERSEDED, do not re-read: the whole "WINDOW @58" section of the old header,
+ * including its inert list (pinned r2/r3 on the loaded values, pinned r2/r3 on
+ * q0p/q1p, dropping the q0p/q1p locals) and its worse list (swapping the d0/d1
+ * and q0p/q1p assignment orders).  All of it measured a chain that no longer
+ * exists.
  *
- * From .23.sched2 (-fsched-verbose=6), the block's dependence table:
- *      insn  code  dep  prio  cost   INSN_DEPEND
- *       114   173   0    16    2      188 138 120 1008
- *      1008   173   1    14    1      188 120 117
- *       117     5   1    13    1      188 123           (adds r2,#184)
- *       120     5   2     9    1      188 126           (adds r3,#188)
- *       123   173   1    12    2      188 138 135 1014 1011   (ldr r2,[r2])
- *      1011   173   1    10    2      188 174 150 138 135 126 (str r2,[sp,#24])
- *       126   173   2     8    2      188 138 137 1014        (ldr r3,[r3])
- *      1014   173   2     6    2      188 174 150 138 137     (str r3,[sp,#28])
- *
- * WHICH KEY ACTUALLY DECIDES: PRIORITY, NOT A TIE.  After insn 117 is scheduled
- * the choice is insn 123 (prio 12) against insn 120 (prio 9) and 123 wins at
- * rung 1 of rank_for_schedule.  BOTH COMPETITORS ARE SOURCE-LEVEL INSNS -- a
- * `ldr` of a struct field and an address add -- NOT the reload-generated spill
- * stores this park named.  Strike "the competing insns are RELOAD-GENERATED
- * SPILL STORES, which no source statement can precede" as a description of WHICH
- * insns compete.
- *
- * AND THE ROM'S ORDER IS NOT SCHEDULABLE AT ALL, WHICH IS THE REAL CLOSURE.
- * Read insn 1011's dependents: THEY INCLUDE INSN 126.  insn 1011 stores to
- * `(mem (plus (reg sp) 24))` with ALIAS SET 0 -- a reload spill slot, and set 0
- * CONFLICTS WITH EVERYTHING -- while insn 126 loads `(mem (reg r3) 19)`.
- * true_dependence therefore holds, so sched-deps emits a TRUE dependence
- * 1011 -> 126.  The ROM's order puts 126 BEFORE 1011.  SCHED2 CANNOT MOVE AN
- * INSN ABOVE ITS OWN PRODUCER, so no ready-list ranking, no priority change and
- * no pin can produce the ROM's grouping from this insn chain.  The ROM's shape
- * requires BOTH LOADS TO PRECEDE EITHER STORE IN THE CHAIN, and the chain order
- * is reload's: an output reload is emitted immediately after the insn that
- * defines the spilled value, so `ldr r2,[r2]` is always followed at once by
- * `str r2,[sp,#24]`.  THE BLOCKER IS RELOAD'S SPILL-STORE PLACEMENT, ONE PASS
- * EARLIER THAN sched2, and sched2 is merely downstream of it.  The brief's
- * alias-set lever is admissible here (there ARE MEMs in the window) but it
- * cannot help: the conflicting store is already in alias set 0, the widest
- * possible, and nothing in C narrows a reload spill slot.
- *   MEASURED INERT at 8, do not re-run: pinned r2/r3 on the two LOADED VALUES;
- *   pinned r2/r3 on the two POINTERS q0p/q1p; dropping the q0p/q1p locals.
- *   MEASURED WORSE: swapping the d0/d1 assignment order (11); swapping the
- *   q0p/q1p assignment order (11).
- *   The only route left is a source shape in which d0 and d1 are NOT both
- *   spilled at their defs -- and the ROM does spill both, so that route is
- *   almost certainly closed too.  Do not spend another brief on this window
- *   without first showing a chain in which 126 precedes 1011.
- *
- * ========== WINDOW @224 (TWO ENCODINGS) -- OPEN.  IT IS A LUID TIE. ==========
+ * ============ WINDOW @224 (THE SURVIVING TWO) -- OPEN, AND RE-DIAGNOSED ============
  * ref   ldr r4,[sp,#24] / mov r1,r9 / ldr r0,[sp,#32]
  * ours  ldr r0,[sp,#32] / mov r1,r9 / ldr r4,[sp,#24]
- * -- two spill reloads swapped around a matching `mov r1,r9`, and the other
- * three `_call_via_r4` sites match.  From .23.sched2:
- *      insn  code  dep  prio  cost   INSN_DEPEND
- *      1083   173   2    36    1      586 545 541
- *       541   173   4    35    2      586 550 545
- *       543   173   3    35    2      586 1089 550    (ldr r0,[sp,#32])
- *      1086   173   3    35    2      586 1095 550    (ldr r4,[sp,#24])
- * PRIORITY TIES AT 35 AND THE DEPENDENT COUNT TIES AT 3, so rank_for_schedule
- * falls through rung 4 (both relate identically to the last-scheduled insn) to
- * rung 6, INSN_LUID -- and LUID(543) < LUID(1086) because reload emitted the r0
- * input reload first.  THIS PARK CALLED IT "same reload-generated problem" as
- * @58.  IT IS NOT: @58 is blocked by a dependence that forbids the ROM's order,
- * @224 is a 3-3 TIE WITH NOTHING FORBIDDING IT.
- * AND BOTH COMPETITORS ARE MEM LOADS, so the batch-315 alias-set dependent-count
- * lever IS in scope in the ADDING direction: give insn 1086 a FOURTH dependent,
- * or take one off insn 543, and 1086 wins at rung 5 before LUID is reached.
- * 1086's dependents are {586, 1095, 550} -- 1095 is a later WRITE of r4, 550 the
- * indirect call; 543's are {586, 1089, 550}, 1089 being a later write of r0.
- * NEXT STEP: find a source shape that adds one later consumer or writer of the
- * r4 carrier inside this block (or removes 543's).  The coordinator's rule
- * applies -- an aliasing store must be LATER IN THE CHAIN than the load it is
- * meant to constrain.
- *   MEASURED INERT at 8: a pinned r4 `f0 = d0;` statement before the call.
- *   MEASURED WORSE: pinned r4 + pinned r0 together (14); a pinned r1
- *   `b1 = base;` statement (16).
+ * -- the other three `_call_via_r4` sites match.  From .23.sched2
+ * (-fsched-verbose=6) on the NEW candidate:
+ *      insn  prio  dep  INSN_DEPEND
+ *       549    35    3  594 1104 556     (ldr r0,[sp,#32]  = argument 0, `ctx`)
+ *       551    35    3  594 1107 556     (mov r1,r9        = argument 1)
+ *      1101    35    3  594 1110 556     (ldr r4,[sp,#24]  = the call target)
+ * WHICH TWO COMPETE AND WHICH RUNG: 549 against 1101.  Priority ties at 35; the
+ * CLASS rung ties at 3 (neither is in INSN_DEPEND of the last-scheduled insn);
+ * the DEPENDENT-COUNT rung ties at 3; INSN_LUID decides -- rank_for_schedule's
+ * last line, haifa-sched.c:4029-4113.  Note for every sched2 claim in this tree:
+ * the ladder is priority -> CLASS vs last_scheduled_insn -> dependent count ->
+ * INSN_LUID, and INSN_REG_WEIGHT is DEAD after reload (`!reload_completed`).
  *
- * ============ BATCH 315: EVERY `extern void` RE-SWEPT FROM THIS BASELINE ============
- * All TWENTY void callees swept to `extern int` (tools/sweep_variants.py).
- * INERT at 8: AnimStart, AnimEnd, Func_8001af8, Func_80d6888, Func_80df90c,
- * Func_80e38b8, GetBattleActorPos3, InitMatrixStack, MatrixSetLook, StartTask,
- * StopTask, Task_BlitAnim, WaitFrames, _Func_80bd7dc,
- * _SetBattleActorKnockback, gfree.  WORSE: Func_80cd52c 10,
- * UpdateScreenShake 10, Func_80df9d0 11, LoadVFXFile 15.
- * So the callee-return-type lever is EXHAUSTED on this function.
+ * WHY LUID CANNOT BE WON, AND WHY THE RESIDUE IS NOT A SCHEDULING PROBLEM.
+ * Insn 1101 is a RELOAD insn: the call's address operand is a spilled pseudo and
+ * reload1.c's `emit_reload_insns` emits input reloads IMMEDIATELY BEFORE the
+ * insn that needs them, while `load_register_parameters` (calls.c:1684-1696) has
+ * already emitted every argument fill ahead of the call -- forward, argument 0
+ * first, because *** LOAD_ARGS_REVERSED IS DEFINED BY NO TARGET IN THIS COMPILER
+ * *** (grep: calls.c's own #ifdef, tm.texi, ChangeLog.0, nothing else).  So
+ * LUID(1101) > LUID(549) is FORCED.
+ * AND THE STRONGER FACT: the ROM's order is 1101, 551, 549 -- the EXACT REVERSE
+ * of LUID order -- and NO READY-LIST RANKING CAN PRODUCE IT.  Grant 1101 the
+ * first slot by any means; last_scheduled_insn is then 1101, INSN_DEPEND(1101) =
+ * {594, 1110, 556} contains neither 549 nor 551, so both are class 3, both have
+ * three dependents, and LUID picks 549.  THE ROM PICKS 551.  Therefore the ROM's
+ * three insns were never simultaneously ready: its CHAIN ORDER differs, so its
+ * EXPAND order differs.
+ * *** @224 IS AN ARGUMENT-EXPANSION-ORDER QUESTION, NOT A SCHEDULING ONE.  Stop
+ * probing pins, alias sets and the schedule. ***
+ * NEXT STEP: find a spelling in which argument 0 (`ctx`) needs NO fill insn at
+ * its expand position, so the only fills emitted for this call are argument 1
+ * and the target.
  *
- * ============ THE LEVER THAT TOOK THIS PARK 12 -> 8, unchanged ============
+ * THE BRIEF'S ALIAS-SET NEXT STEP FOR @224 IS REFUTED AT THE RTL.  From
+ * .19.flow2: insn 541 `(set (mem/f:SI (plus (reg 13 sp) (const_int 4)) 0) ...)`,
+ * insn 543 `(set (reg r0) (mem:SI (plus (reg 13 sp) (const_int 32)) 0))`, insn
+ * 1086 `(set (reg r4) (mem:SI (plus (reg 13 sp) (const_int 24)) 0))`.
+ * *** ALL THREE MEMs ARE ALREADY IN ALIAS SET 0, THE WIDEST THERE IS. ***  No
+ * dependence exists between them not because of the alias sets but because of
+ * the ADDRESS comparison: sp-based MEMs at fixed, disjoint offsets, which
+ * memrefs_conflict_p excludes whatever the sets say.  A union member changes
+ * nothing.  SECOND BOUND ON THE ALIAS-SET LEVER, beside the pool-load bound:
+ * *** IT IS ALSO DEAD BETWEEN TWO FRAME MEMs AT CONSTANT DISJOINT OFFSETS. ***
+ *
+ * MEASURED THIS BATCH ON @224, all at the OLD baseline of 8 and all negative:
+ * the r4 pin POSITION-SWEPT -- immediately before the call 8 (inert, as the old
+ * header recorded); before GetBattleActorPos3, spanning both calls, at the loop
+ * top, taken from `*q0p`, and applied to both calls, ALL 16 WITH A RELOCATION
+ * DIFFERENCE (an r4 pin held across the site collides with `_call_via_r4`'s own
+ * r4); the unpinned control 8; r4+r0 pinned together 197.  Also 346/347/329 with
+ * relocation differences for `volatile` on one or both pointers and for calling
+ * through `(*q0p)(...)` at the site.  So the pin lever is genuinely exhausted
+ * here and the old header's single inert entry was not a one-at-a-time artefact.
+ *
+ * LEVER 5 (callee return type) IS EXHAUSTED, RE-SWEPT AT THE NEW BASELINE.
+ * A rejected list is only rejected at the baseline it was measured on, so all
+ * TWENTY `extern void` callees were re-flipped to `extern int` on the new
+ * candidate: 16 INERT at 2; WORSE Func_80cd52c 4, UpdateScreenShake 4,
+ * Func_80df9d0 5, LoadVFXFile 9.  Same verdict as at 8, now established at 2.
+ *
+ * ============ THE LEVERS THAT GOT THIS PARK HERE, all still true ============
  *     WHERE A sched2 WINDOW IS A PERMUTATION AGAINST A COMPILER-GENERATED
  *     OPERAND, GIVE THAT OPERAND A SOURCE STATEMENT BY PINNING IT TO THE HARD
  *     REGISTER THE ROM USES.
@@ -121,17 +131,22 @@
  *        `p = (Part *)(base + (0xe1 << 7));`, then passed.  The PIN is what
  *        works: an unpinned `vec3_t *pp = &pos` local measures 148 and 4 bytes
  *        larger, because unpinned it takes a spill slot.
- * The same r0 edit landed Anim_Vine, so this is bank-wide.
+ * The same r0 edit landed Anim_Vine, so this is bank-wide.  And the lever has a
+ * PRECONDITION, learned on OvlFunc_968_2009af0 this batch: the pin register must
+ * not be contested across a call in the pinned local's live range, or the frame
+ * grows and the figure explodes.
  *
  * ============ THE DECLARATION-ORDER AND PIN LEVERS, all unchanged ============
  * THE ROM'S STACK LAYOUT TELLS YOU THE SOURCE'S DECLARATION ORDER DIRECTLY.  The
  * frame grows downward, so declared ARRAYS get the high offsets in REVERSE
  * declaration order and SPILLED SCALARS then fill downward in ASCENDING PSEUDO
  * NUMBER, i.e. declaration order.  Reading the ROM's slots high to low gives
- * `ctx(0x20), d1(0x1c), d0(0x18), view(0x14), gfx(0x10), hitp(0x0c), slot(0x08)`
- * -- so declare `ctx, d1, d0, view, gfx, hitp, slot`, with `d1` BEFORE `d0` even
- * though `d0` is used first.  One reorder took 204 -> 147.  Unspilled locals
- * consume a pseudo but no slot, so they can sit anywhere.
+ * `ctx(0x20), dfs[1](0x1c), dfs[0](0x18), view(0x14), gfx(0x10), hitp(0x0c),
+ * slot(0x08)`.  AND READ THAT MAP FOR ADJACENCY, NOT JUST ORDER: two slots that
+ * are adjacent, same-sized and fed from adjacent sources are ONE AGGREGATE, and
+ * reading them as two spilled scalars is what cost this park several batches.
+ * One reorder took 204 -> 147.  Unspilled locals consume a pseudo but no slot,
+ * so they can sit anywhere.
  * A BLOCK-SCOPED DECLARATION GETS A LATER PSEUDO NUMBER THAN A COMPILER TEMP and
  * therefore a lower spill slot: moving `Desc **slot` into a block opened AFTER
  * the `&hit` statement made `slot` the later pseudo, 37 -> 32.
@@ -176,8 +191,15 @@
  * `vec3_t *pp = &pos` local 148 with size 4 larger; `bp = base` before
  * Func_80df9d0 310.
  *
+ *
+ * CAUTION ON EVERY NEGATIVE ABOVE: each was measured at the baseline current
+ * when it was taken (355, 204, 57, 47, 12 or 8), NOT at 2.  Batch 316 showed
+ * twice over that a list rejected at one baseline is UNTESTED at the next -- and
+ * that one-at-a-time testing is why @58 survived five batches.  Re-measure
+ * before quoting any of them as a floor.
+ *
  * No .sym entry is warranted.  No per-file Makefile flag override applies.
- * Progression: 355 -> 311 -> 204 -> 147 -> 57 -> 47 -> 12 -> 8.
+ * Progression: 355 -> 311 -> 204 -> 147 -> 57 -> 47 -> 12 -> 8 -> 2.
  */
 #include "gba/types.h"
 #include "gba/io.h"
@@ -248,8 +270,7 @@ void BaseAnim_Tackle(void *context, int variant)
 {
     register unsigned char *base __asm__("r9");
     void *ctx;
-    DrawFn d1;
-    DrawFn d0;
+    DrawFn dfs[2];
     char *view;
     unsigned char *gfx;
     vec3_t *hitp;
@@ -284,8 +305,8 @@ void BaseAnim_Tackle(void *context, int variant)
     pt = gPtrs;
     q0p = (DrawFn *)(pt + 0xb8);
     q1p = (DrawFn *)(pt + 0xbc);
-    d0 = *q0p;
-    d1 = *q1p;
+    dfs[0] = *q0p;
+    dfs[1] = *q1p;
     LoadVFXFile(FILE_73, gfx, 0, 0);
     LoadVFXFile(FILE_99, base, 1, 0);
     arg2 = 0x90;
@@ -366,8 +387,8 @@ void BaseAnim_Tackle(void *context, int variant)
     do {
         if (frame <= 0xe) {
             GetBattleActorPos3((*slot)->f8, &apos);
-            d0(ctx, base, apos.x / 2 - 0x10, apos.y - 0x30, 0x28, 0x20);
-            d1(ctx, base, apos.x / 2 - 0x10, apos.y - 0x10, 0x28, 0x20);
+            dfs[0](ctx, base, apos.x / 2 - 0x10, apos.y - 0x30, 0x28, 0x20);
+            dfs[1](ctx, base, apos.x / 2 - 0x10, apos.y - 0x10, 0x28, 0x20);
         }
         if (frame == 0xa) {
             Func_80d6888((*slot)->ids[0], 7, 5, 0, 8);
@@ -378,7 +399,7 @@ void BaseAnim_Tackle(void *context, int variant)
         if (frame >= 8 && frame <= 0x13) {
             int k = (frame - 8) / 2;
             int hx = hitp->x;
-            d0(ctx, gBuffer + k * 0x3c0, hx / 2 - 0x10, apos.y - 0x28, 0x14, 0x30);
+            dfs[0](ctx, gBuffer + k * 0x3c0, hx / 2 - 0x10, apos.y - 0x28, 0x14, 0x30);
         }
         if (frame >= 8 && frame <= 0x3f) {
             Part *p;
@@ -403,7 +424,7 @@ void BaseAnim_Tackle(void *context, int variant)
                     {
                     register char *tb __asm__("r4");
                     tb = (char *)Data_ede48;
-                    d0(ctx, gfx + *(unsigned short *)(tb + ix),
+                    dfs[0](ctx, gfx + *(unsigned short *)(tb + ix),
                        pos.x - sz / 2, pos.y - sz, sz, h);
                     }
                     Func_80e38b8(p, 0x3c, -0x200);

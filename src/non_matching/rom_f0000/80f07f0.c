@@ -15,21 +15,21 @@
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *       goldensun-build python3 tools/objcmp.py scratch_elev/b300j/q3.c \
- *     asm/rom_f0000/rom_f0254_c_c.s --func Func_80f07f0
+ *       goldensun-build python3 tools/objcmp.py src/non_matching/rom_f0000/80f07f0.c \
+ *     asm/rom_f0000/rom_f0254_c_c_c.s --func Func_80f07f0
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *       goldensun-build python3 tools/aligncmp.py scratch_elev/b300j/q3.c \
- *     asm/rom_f0000/rom_f0254_c_c.s Func_80f07f0
+ *       goldensun-build python3 tools/aligncmp.py src/non_matching/rom_f0000/80f07f0.c \
+ *     asm/rom_f0000/rom_f0254_c_c_c.s Func_80f07f0
  * (`tryc.py --align` is NOT usable on this file: the reference keeps its literal
  * pool inside the function, as the file-mate park already records.)
  *
  * ============================== SPLIT SHAPE ==============================
  *
- * asm/rom_f0000/rom_f0254_c_c.s holds THREE functions (Func_80f0614,
+ * asm/rom_f0000/rom_f0254_c_c_c.s holds THREE functions (Func_80f0614,
  * Func_80f0678, Func_80f07f0) AND a `.rodata` section, so converting anything in
  * it needs a TEXT/DATA SPLIT with the data keeping its own object.
  *
- * `python3 tools/datacheck.py asm/rom_f0000/rom_f0254_c_c.s`, re-run after batch
+ * `python3 tools/datacheck.py asm/rom_f0000/rom_f0254_c_c_c.s`, re-run after batch
  * 295's over-attribution fix, reports -- and this is CONFIRMED against the three
  * bodies, not taken on trust:
  *     Func_80f0614   reads .Lf1220

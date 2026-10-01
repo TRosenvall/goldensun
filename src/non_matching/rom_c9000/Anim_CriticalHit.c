@@ -18,11 +18,11 @@
  * Verify with (the delivered park body, runnable as written):
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     scratch_elev/b310c/PARK_Anim_CriticalHit.c \
+ *     src/non_matching/rom_c9000/Anim_CriticalHit.c \
  *     asm/rom_c9000/rom_e3958_c_c_c_c_a.s --func Anim_CriticalHit
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/aligncmp.py \
- *     scratch_elev/b310c/PARK_Anim_CriticalHit.c \
+ *     src/non_matching/rom_c9000/Anim_CriticalHit.c \
  *     asm/rom_c9000/rom_e3958_c_c_c_c_a.s Anim_CriticalHit -v
  * Installed path is src/non_matching/rom_c9000/Anim_CriticalHit.c; substitute it
  * for the scratch path once this body replaces that file.

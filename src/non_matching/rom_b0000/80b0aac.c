@@ -1,11 +1,11 @@
 /* Func_80b0aac -- NON-MATCHING, 530 of 550 encodings differ.
- * Unattempted before batch 302.  Reference asm/rom_b0000/rom_b0070_a_a_c_c_a_c_a.s.
+ * Unattempted before batch 302.  Reference asm/rom_b0000/rom_b0070_a_a_c_c_a_c_a_a.s.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *       goldensun-build python3 tools/objcmp.py \
  *       src/non_matching/rom_b0000/80b0aac.c \
- *       asm/rom_b0000/rom_b0070_a_a_c_c_a_c_a.s --func Func_80b0aac
+ *       asm/rom_b0000/rom_b0070_a_a_c_c_a_c_a_a.s --func Func_80b0aac
  *
  * NOT A DISTANCE.  Size 1236 against 1272 and count 533 against 550, so the 530
  * SATURATES and cannot rank anything.  The ranking figure is tools/aligncmp.py:
@@ -13,7 +13,7 @@
  * We are SEVENTEEN INSTRUCTIONS SHORT and ONE FRAME WORD SHORT (0x20 against 0x24).
  * tools/shimcount.py: 0 -- PIN-FREE.
  *
- * SPLIT SHAPE.  `python3 tools/datacheck.py asm/rom_b0000/rom_b0070_a_a_c_c_a_c_a.s`
+ * SPLIT SHAPE.  `python3 tools/datacheck.py asm/rom_b0000/rom_b0070_a_a_c_c_a_c_a_a.s`
  * prints NOTHING: no text/data split needed.  The .s holds TWO functions
  * (Func_80b0aac at 0x080b0aac, Func_80b0fa4 at 0x080b0fa4) and this one is the
  * FIRST, so split_s.py is a HEAD split: _a is empty and not written, the target

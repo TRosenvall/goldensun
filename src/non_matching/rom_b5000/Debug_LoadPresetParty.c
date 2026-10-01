@@ -1,11 +1,11 @@
 /* Debug_LoadPresetParty -- NON-MATCHING, 193 of 213 encodings differ.
- * Reference asm//rom_b5000/rom_b5368_a.s.
+ * Reference asm/rom_b5000/rom_b5368_a.s.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *       goldensun-build python3 tools/objcmp.py \
  *       src/non_matching//Debug_LoadPresetParty.c \
- *       asm//rom_b5000/rom_b5368_a.s --func Debug_LoadPresetParty
+ *       asm/rom_b5000/rom_b5368_a.s --func Debug_LoadPresetParty
  *
  * NOT a distance: ours is 210 instructions against 213 and 456 bytes against 460.
  * The FRAME SIZE IS EXACT and the slots are PERMUTED.  Shim-free.

@@ -63,14 +63,41 @@
  * src/non_matching/rom_b5000/80bd424.c).  Retire this park when that one closes;
  * the text cut goes between Func_80bd424 and Func_80bd7a4, not between these two.
  *
- * NON-MATCHING, 8 of 32 encodings differ.
- * Verify with (recipe added in batch 300; this park had none, so parkcheck could not
- * report its figure -- note the figure is for the function AS WRITTEN HERE,
- * standalone; written NESTED inside Func_80bd424 it is byte-identical):
+ * NON-MATCHING, 30 of 32 encodings differ STANDALONE -- and that figure is an
+ * ARTEFACT, not this function's distance.  The operative figure is the NESTED
+ * one, which is ZERO (see BATCH 316 below).
+ *
+ * *** THIS PARK CARRIED A WRONG FIGURE FROM BATCH 300 TO BATCH 316. ***
+ * The header claimed "8 of 32" while the body on disk measured 30 -- the body is
+ * byte-identical across that whole span, so the claim was stale from the moment
+ * the recipe was added, and `parkcheck.py` would have said MISMATCH on any day
+ * someone ran it on this file.  Nobody did.  A recipe is not verification; it is
+ * only the PRECONDITION for verification, and adding one to an old prose figure
+ * without re-measuring is how a wrong number survives sixteen batches.
+ *
+ * Verify with (the figure below is for the function AS WRITTEN HERE, standalone;
+ * written NESTED inside Func_80bd424 it is byte-identical):
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *       goldensun-build python3 tools/objcmp.py \
  *       src/non_matching/rom_b5000/80bd3e4.c \
  *       asm/rom_b5000/rom_bbb0c_a_a_c.s --func Func_80bd3e4
+ *
+ * ===== BATCH 316: THIS PARK IS SOLVED; ONLY ITS SIBLING IS LEFT =====
+ * Measured again under the nested recipe: as `Func_80bd3e4.0` inside
+ * src/non_matching/rom_b5000/80bd424.c this function is **30 of 30 with ZERO
+ * differing lines** -- byte-identical, the one halfword in this park's own
+ * "8 short" figure being an isolation artefact (an alignment pad that exists
+ * only when the function is assembled on its own). So the "8 of 32" figure
+ * describes a problem this function NO LONGER HAS, and nothing here is blocked
+ * on this park's prologue or frame.
+ *
+ * The landing is gated entirely on the sibling Func_80bd424, which batch 316
+ * moved from 399 instructions / 337 differing to **405 / 333** against the
+ * reference's 414 -- see the RESIDUE A correction in 80bd424.c, where the kept
+ * sign extension at info+0x35 turned out to be a spelling after all. When
+ * 80bd424 lands, both functions land in the SAME commit (they must stay in one
+ * object, since one is nested inside the other) and this park is retired
+ * without a separate candidate.
 */
 extern int _RPGRandom(void);
 

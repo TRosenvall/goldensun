@@ -65,6 +65,12 @@ GCC = os.path.join(os.environ.get("GCC296_DIR", "/opt/gcc296"), "xgcc")
 VERIFY = re.compile(r"objcmp\.py[\s\\]+([^\s\\]+)[\s\\]+(\S+\.s)(?:[\s\\]+--func\s+(\S+))?", re.M)
 CLAIM  = re.compile(r"(\d+)\s+(?:differing\s+)?encodings?\s+of\s+(\d+)", re.I)
 CLAIM2 = re.compile(r"NON-MATCHING,\s*(\d+)\s+of\s+(\d+)", re.I)
+# A third accepted phrasing, anchored the way CLAIM2 is.  Agents naturally write
+# "PARKED at 20 of 76" and neither pattern above matched it, so such a park
+# reported NO CLAIM and its figure went UNVERIFIED -- the checker's own
+# silent-unverifiability class.  Of 15 parks matching this, 11 already matched
+# CLAIM/CLAIM2 (no verdict change) and FOUR were being skipped.
+CLAIM3 = re.compile(r"PARKED\s+(?:AT\s+)?(\d+)\s+of\s+(\d+)", re.I)
 # A third accepted phrasing, anchored the same way CLAIM2 is anchored.  Agents
 # naturally write "PARKED at 20 of 76" and neither pattern above matches it, so
 # the park reported NO CLAIM and its figure went UNVERIFIED -- the same
@@ -108,7 +114,7 @@ def check(path):
             r"NO\s+(?:objcmp\s+)?(?:FIGURE|CANDIDATE)|"
             r"NOT\s+RECONSTRUCTED|TRIAGE\s+ONLY|NO\s+CANDIDATE\s+WRITTEN",
             flat, re.I)
-        claims = CLAIM.search(flat) or CLAIM2.search(flat) or CLAIM3.search(flat)
+        claims = CLAIM.search(flat) or CLAIM2.search(flat) or CLAIM3.search(flat) or CLAIM3.search(flat)
         if declares_none and not claims:
             return ("NOFIGURE", "triage park, no candidate and no figure claimed",
                     None, None)
@@ -120,7 +126,12 @@ def check(path):
         # That is a legitimate state and must NOT share a verdict with a park whose
         # figure simply cannot be re-measured -- UNCHECKABLE is the DANGEROUS bucket
         # and keeping it clean is the whole point of having it.
-        if re.search(r"objcmp\s+CANNOT\s+SCORE|objcmp\.py\s+has\s+no\s+mode", flat, re.I):
+        # Widened in batch 316: a park that honestly declares itself unscorable earns
+        # ALTVERIFY, but only with one of the phrasings below.  80bd424.c wrote
+        # "objcmp cannot isolate a nested parent" and came back UNCHECKABLE, which
+        # reads as a defect in the park rather than a property of the measurement.
+        if re.search(r"objcmp(?:\.py)?\s+(?:CANNOT|CAN'T|CAN\s+NOT)\s+(?:SCORE|ISOLATE|MEASURE)"
+                     r"|objcmp\.py\s+has\s+no\s+mode", flat, re.I):
             return ("ALTVERIFY",
                     "objcmp cannot score this by construction; park carries its own recipe",
                     None, None)
@@ -134,7 +145,7 @@ def check(path):
     ref = ref.strip("'\"")
     if not os.path.exists(os.path.join(ROOT, ref)):
         return ("UNCHECKABLE", f"reference {ref} not found", None, None)
-    cm = CLAIM.search(hdr) or CLAIM2.search(hdr) or CLAIM3.search(hdr)
+    cm = CLAIM.search(hdr) or CLAIM2.search(hdr) or CLAIM3.search(hdr) or CLAIM3.search(hdr)
     # A park with NO FUNCTION BODY still produces a number: objcmp compiles the
     # empty translation unit and reports every one of the reference's encodings as
     # differing.  That number is meaningless but indistinguishable from a real

@@ -7,12 +7,12 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_c9000/Anim_Plasma.c \
- *     asm/rom_c9000/rom_d2d98.s --func Anim_Plasma
+ *     asm/rom_c9000/rom_d2d98_c.s --func Anim_Plasma
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/aligncmp.py src/non_matching/rom_c9000/Anim_Plasma.c \
- *     asm/rom_c9000/rom_d2d98.s Anim_Plasma -v
+ *     asm/rom_c9000/rom_d2d98_c.s Anim_Plasma -v
  *
- * SPLIT SHAPE.  asm/rom_c9000/rom_d2d98.s holds SIX functions in this order --
+ * SPLIT SHAPE.  asm/rom_c9000/rom_d2d98_c.s holds SIX functions in this order --
  * Anim_Nereid, Anim_Froth, Anim_Whirlwind, Anim_Prism, ColorCycleVFXPalette,
  * Anim_Plasma.  Anim_Plasma is the SIXTH and last.  Anim_Prism (parked beside
  * this file as park_Anim_Prism.c) is the FOURTH, so the two together are a
@@ -24,7 +24,7 @@
  *   src/rom_c9000/rom_d2d98_d.c   Anim_Plasma  (THIS FILE)
  *
  * and stage1.ld's `.text` and `.rodata` lines for the stem each become four, in
- * that order.  `tools/datacheck.py asm/rom_c9000/rom_d2d98.s` reports a .rodata
+ * that order.  `tools/datacheck.py asm/rom_c9000/rom_d2d98_c.s` reports a .rodata
  * section with NO already-global labels, so both split-out C files need new
  * exports in the asm data piece:
  *   Anim_Plasma: `.global .Lee244 .Lee250 .Lee25e`

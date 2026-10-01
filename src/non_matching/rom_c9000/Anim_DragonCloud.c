@@ -11,11 +11,11 @@
  * is src/non_matching/rom_c9000/Anim_DragonCloud.c):
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     scratch_elev/b310c/PARK_Anim_DragonCloud.c \
+ *     src/non_matching/rom_c9000/Anim_DragonCloud.c \
  *     asm/rom_c9000/rom_e7320_c_c.s --func Anim_DragonCloud
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/aligncmp.py \
- *     scratch_elev/b310c/PARK_Anim_DragonCloud.c \
+ *     src/non_matching/rom_c9000/Anim_DragonCloud.c \
  *     asm/rom_c9000/rom_e7320_c_c.s Anim_DragonCloud -v
  *
  *

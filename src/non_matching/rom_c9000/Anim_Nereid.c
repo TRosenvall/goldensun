@@ -1,4 +1,4 @@
-/* Anim_Nereid (asm/rom_c9000/rom_d2d98.s:93, 0x080d2d98, 675 ROM instructions) --
+/* Anim_Nereid (asm/rom_c9000/rom_d2d98_a.s:93, 0x080d2d98, 675 ROM instructions) --
  * NON-MATCHING, 619 of 707 encodings differ.
  *
  * SIZE IS 1580 AGAINST THE ROM'S 1576 (+4) and COUNT IS 708 AGAINST 707 (+1),
@@ -20,7 +20,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_c9000/Anim_Nereid.c \
- *     asm/rom_c9000/rom_d2d98.s --func Anim_Nereid
+ *     asm/rom_c9000/rom_d2d98_a.s --func Anim_Nereid
  *
  * SPLIT SHAPE: TEXT/DATA SPLIT, TWO NEW EXPORTS.  tools/datacheck.py: the stem
  * has a `.rodata` section and Anim_Nereid reads `.Lee1ac` and `.Lee1b4` and

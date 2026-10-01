@@ -5,7 +5,7 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     scratch_elev/b291/C/Debug_FaceTest.park.c \
+ *     src/non_matching/rom_15000/802977c.c \
  *     asm/rom_15000/rom_23178_c_c_c_c.s --func Debug_FaceTest
  *
  * BLOCKER: global-alloc PRIORITY ORDER between two callee-saved high-register

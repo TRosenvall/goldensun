@@ -150,7 +150,7 @@
  * rom_c1a34_a_a_a_a_b.s and a whole-file conversion.
  *
  * Verify with (run it inside the build container; /opt/gcc296 is not on the host):
- *   python3 tools/objcmp.py scratch_elev/b290/A/Func_80c1afc.park.c \
+ *   python3 tools/objcmp.py src/non_matching/rom_b5000/80c1afc.c \
  *     asm/rom_b5000/rom_c1a34_a_a_a_a_b_a.s --func Func_80c1afc
  */
 struct U {

@@ -6,7 +6,7 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     scratch_elev/b291/C/Func_8018850.park.c \
+ *     src/non_matching/rom_15000/8018850.c \
  *     asm/rom_15000/rom_17e88_c_c.s --func Func_8018850
  *
  * NOTE: this file also needs a TEXT/DATA SPLIT before it can land --

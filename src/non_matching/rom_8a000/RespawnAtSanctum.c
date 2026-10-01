@@ -11,7 +11,7 @@
  * objcmp (authority), this file:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *       scratch_elev/b297b/RespawnAtSanctum/park_RespawnAtSanctum.c \
+ *       src/non_matching/rom_8a000/RespawnAtSanctum.c \
  *       asm/rom_8a000/rom_8a5f8_a_a.s --func RespawnAtSanctum
  *
  *   XX SIZE  ref 492 bytes, ours 508

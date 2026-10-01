@@ -1,11 +1,11 @@
 /* Anim_Unused_ScreenMelt -- NON-MATCHING, 185 of 186 encodings differ.
- * Reference asm//rom_c9000/rom_cfef4.s.
+ * Reference asm/rom_c9000/rom_cfef4.s.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *       goldensun-build python3 tools/objcmp.py \
  *       src/non_matching//Anim_Unused_ScreenMelt.c \
- *       asm//rom_c9000/rom_cfef4.s --func Anim_Unused_ScreenMelt
+ *       asm/rom_c9000/rom_cfef4.s --func Anim_Unused_ScreenMelt
  *
  * NOT a distance: ours is 192 instructions against 186 and 416 bytes against 404 --
  * SIX LONG, one cause.  Shim-free.

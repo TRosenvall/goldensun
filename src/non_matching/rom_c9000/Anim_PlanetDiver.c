@@ -35,10 +35,10 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_c9000/Anim_PlanetDiver.c \
- *     asm/rom_c9000/rom_cd508_c_a.s --func Anim_PlanetDiver
+ *     asm/rom_c9000/rom_cd508_c_a_c.s --func Anim_PlanetDiver
  *
  * SPLIT SHAPE: TEXT-ONLY, THREE WAYS, NO NEW EXPORTS, ONE LINKER LINE.
- * `python3 tools/datacheck.py asm/rom_c9000/rom_cd508_c_a.s` is SILENT and
+ * `python3 tools/datacheck.py asm/rom_c9000/rom_cd508_c_a_c.s` is SILENT and
  * exits 0 -- the file carries NO data section, so nothing can be stranded.  It
  * holds FOUR functions in this order:
  *

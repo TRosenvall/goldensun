@@ -1,11 +1,11 @@
 /* Anim_MoveIntro -- NON-MATCHING, 155 of 274 encodings differ.
- * Reference asm//rom_b5000/rom_c10e8_a_a_c_c.s.
+ * Reference asm/rom_b5000/rom_c10e8_a_a_c_c.s.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *       goldensun-build python3 tools/objcmp.py \
  *       src/non_matching//Anim_MoveIntro.c \
- *       asm//rom_b5000/rom_c10e8_a_a_c_c.s --func Anim_MoveIntro
+ *       asm/rom_b5000/rom_c10e8_a_a_c_c.s --func Anim_MoveIntro
  *
  * A TRUE DISTANCE: 636 == 636 bytes and 274 == 274 instructions.  Shim-free.
  * BLOCKER, loop.c's move_movables: it hoists (const_int 64) -- the dump says

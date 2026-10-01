@@ -10,7 +10,7 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/rom_a1000/80a5388.c asm/rom_a1000/rom_a4f08_c.s --func Func_80a5388
+ *     src/non_matching/rom_a1000/80a5388.c asm/rom_a1000/rom_a4f08_c_c.s --func Func_80a5388
  *
  * NOTE: rom_a4f08.s CARRIES A DATA SECTION and holds FOUR functions
  * (Func_80a4f08, Func_80a51d0, Func_80a524c, Func_80a5388), so landing this one needs a

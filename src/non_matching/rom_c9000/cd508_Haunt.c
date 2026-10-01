@@ -1,4 +1,4 @@
-/* Anim_Haunt (asm/rom_c9000/rom_cd508_c_a.s, 379 instructions) -- NON-MATCHING,
+/* Anim_Haunt (asm/rom_c9000/rom_cd508_c_a_c.s, 379 instructions) -- NON-MATCHING,
  * 343 encodings of 392, size 876 against the ROM's 884 (-8).
  *
  * Blocker class: global_alloc -- a whole-function register-role permutation whose
@@ -7,7 +7,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_c9000/cd508_Haunt.c \
- *     asm/rom_c9000/rom_cd508_c_a.s --func Anim_Haunt
+ *     asm/rom_c9000/rom_cd508_c_a_c.s --func Anim_Haunt
  * The reference holds FIVE functions, so a split IS required to land this one --
  * but rom_cd508_c.s has NO .rodata, so the split is text-only and clean.
  * Anim_Haunt is function 4 of 5; Anim_PlanetDiver is 3.

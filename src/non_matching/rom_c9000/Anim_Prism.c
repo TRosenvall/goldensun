@@ -7,16 +7,16 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_c9000/Anim_Prism.c \
- *     asm/rom_c9000/rom_d2d98.s --func Anim_Prism
+ *     asm/rom_c9000/rom_d2d98_c.s --func Anim_Prism
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/aligncmp.py src/non_matching/rom_c9000/Anim_Prism.c \
- *     asm/rom_c9000/rom_d2d98.s Anim_Prism -v
+ *     asm/rom_c9000/rom_d2d98_c.s Anim_Prism -v
  *
  * SIZE AND COUNT BOTH DIFFER, so objcmp's 475 is NOT a distance -- it saturates.
  * Rank revisions of this function with tools/aligncmp.py's aligned-equal figure.
  *
  * SPLIT SHAPE.  See park_Anim_Plasma.c beside this file: Anim_Prism is the FOURTH
- * of the SIX functions in asm/rom_c9000/rom_d2d98.s and Anim_Plasma the SIXTH, so
+ * of the SIX functions in asm/rom_c9000/rom_d2d98_c.s and Anim_Plasma the SIXTH, so
  * the two are one FOUR-WAY split of the stem and must land together.  This piece
  * needs `.global .Lee1d3 .Lee1f5 .Lee1fb .Lee207 .Lee214` added to the asm data
  * object; the data itself stays there.  `.Lee1f5` is six bytes indexed

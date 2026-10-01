@@ -1,100 +1,396 @@
-/* OvlFunc_925_2009af0  --  0x02009af0
+/* OvlFunc_968_2009af0 -- NON-MATCHING, 13 of 262 encodings differ.
+ * Reference asm/overlays/rom_7f2f14/ovl_30_c_a_c_c_c_c_a.s.
+ * PRODUCTION-FLAG FIGURE (this stem matches only the generic asm/%.o: src/%.c
+ * rule -- no O1, no per-file flag group), re-measured in batch 316 with
+ * tools/objcmp.py itself: the figure stands.
+ * NOT POOL-INFLATED -- all 13 are real instructions (batch 316).
  *
- * NOT RECONSTRUCTED, NO objcmp FIGURE EXISTS.  No candidate in this file, so no
- * "N of M" line to carry.  What follows is measurement of the REFERENCE.  Its
- * value is that this is the PUREST case of the commoning blocker in brief D's
- * five, and therefore the right function to test any future fix against.
- *
- * Reference sliced to ref_OvlFunc_925_2009af0.s in this directory, from
- * asm/overlays/rom_7b0400/ovl_314_c_c_c_a_c_c_a_a_c.s (1,876 instructions).
- * Note the function NAME's bank and the FILE it lives in disagree with the two
- * other rom_7b0400 objects that merely branch to it -- the park directory for
- * this one is derived from the reference's own file, which is the only safe
- * derivation (every overlay loads at the same base).
- *
- * Once a candidate exists:
+ * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/ovl_7b0400/2009af0.c \
- *     asm/overlays/rom_7b0400/ovl_314_c_c_c_a_c_c_a_a_c.s --func OvlFunc_925_2009af0
+ *     src/non_matching/ovl_7f2f14/2009af0.c \
+ *     asm/overlays/rom_7f2f14/ovl_30_c_a_c_c_c_c_a.s --func OvlFunc_968_2009af0
  *
- * ============== THE CLEANEST COMMONING TEST CASE IN THE BAND =================
+ * A TRUE DISTANCE: size silent (equal) and count 262 == 262, no relocation
+ * difference.  aligncmp 96.2%.
+ * SHIMS: 15 register pins, LOAD-BEARING -- pin-free is 255 of 262 and not a
+ * distance at all -- so a landing needs a fakematch.txt row.  Function split
+ * only, no new exports.
  *
- * 164 wide-constant builds -- the most of brief D's five, over three times
- * OvlFunc_964_200a59c's 41 -- covering 50 distinct values, of which 141 ARE
- * REBUILDS of a value the function already built.  And the reference makes only
- * TWO `mov rARG, rSAVED` copies in all 1,876 instructions.
- *
- *   reference            insns  wide builds  rebuilds  arg copies  saved defs
- *   OvlFunc_925_2009af0   1876      164        141          2          6
- *   OvlFunc_959_200b054   2123      116         97         57          3
- *   OvlFunc_924_200bd20   1210       73         42          5         14
- *   OvlFunc_888_200888c   1524       56         52          8          6
- *   OvlFunc_964_200a59c    993       41         38         10         21
- *
- * 141 rebuilds against 2 copies is as close to "rebuild everything, common
- * nothing" as the band offers, and it is the maximum contrast with what our
- * compiler does: on OvlFunc_964_200a59c, at a quarter the wide-build count, our
- * best candidate still makes 33 copies against that reference's 10.  Scaled by
- * wide builds, 925 is where the excess should be largest and easiest to read.
- * Any future flag, cost-model or expander change aimed at the mechanism in
- * repro_commoning.c should be measured HERE first.
- *
- * AND IT IS NOT A SOURCE-BASE FUNCTION, checked the sharp way.  Zero
- * `add rX, rSAVED, #k` and zero `mov rX,rSAVED / add rX,#k` in 1,876
- * instructions, so brief D's named-base reading is excluded outright rather
- * than merely unlikely -- the two readings really are converses and this one
- * sits entirely on the commoning side.  Contrast OvlFunc_959_200b054 in this
- * directory, which has 75 such uses and wants a completely different lever.
- *
- * TWO SYMBOLS ARE HELD IN REGISTERS, AND NOT CONSISTENTLY, which is a real
- * source-shape question to settle before transcription rather than after:
- *   r7 = iwram_3001ebc  (one `ldr r7, =iwram_3001ebc`)
- *   r6 = iwram_3001e70  (one `ldr r6, =iwram_3001e70`)
- * but iwram_3001ebc is ALSO reached through NINE separate pool loads elsewhere
- * in the same function, and iwram_3001e70 through two.  So the original does
- * not hold one function-scope pointer for either; it names a base over part of
- * the function and re-reads the global over the rest.  That is the same shape
- * OvlFunc_964_200a59c needed (where one gState base local was not enough and a
- * SECOND one had to be assigned deeper in, because the first's live range ended
- * at the dispatch).  Expect to need two or three scoped bases, not one, and
- * expect the `=gState+N` / `=iwram_3001ebc+N` fold if you use none.
- *
- * CONSTANT SET: 36 pool loads of 11 distinct values -- 0x101 twelve times,
- * iwram_3001ebc nine, 0xcccc four, 0x6666 three, iwram_3001e70 twice, and one
- * each of 0xffff0000, 0xffe00000, 0x881, 0x1999, 0x15d4, 0x105.  Eleven values
- * and 41 callees is one `grep | sort | uniq -c` away from settled (band doc
- * section 5), and that check should come first at this size.
- *
- * 0x101 TWELVE TIMES, EACH A SEPARATE POOL LOAD, is worth a note: it is pooled
- * rather than built, so by the mechanism in repro_commoning.c it lands in a
- * pseudo and OUR compiler will common it into a call-saved register.  The
- * reference reloads it twelve times.  Expect that single value to be worth
- * roughly eleven copies plus a register of pressure, and check it early -- it is
- * the most-repeated constant in the function and the cheapest thing to look at.
- *
- * 500 calls across 41 distinct callees.  `push {r5,r6,r7,lr}`, `sub sp,#8` with
- * FOUR `str rX,[sp,#K]` and ZERO `ldr rX,[sp,...]`: argument staging only, no
- * spill slot, a fourth confirmation of brief D's frame finding.
- *
- * TWELVE branches, EIGHT of them pool skips, none backward -- FOUR real branches
- * in 1,876 instructions.  Straight-line in the strict sense; the control flow is
- * not the work and should not be budgeted for.
- *
- * ONE EXCEPTIONAL BUILD, inspected so it is not misread as commoning:
- * `mov r5,#0x80 / lsl r5,#1 / str r5,[r3]` near the top is a STORE operand, not
- * a call argument, so the expander gives it a pseudo for the ordinary reason --
- * exactly what repro_commoning.c's f_narrow_pseudo control predicts.  It is one
- * of only five callee-saved wide builds across all five references and none of
- * the five is a counter-example to the mechanism.
- 
- *
- * *** RECIPE REFERENCE PATH CORRECTED ON INSTALL. *** This park's `Verify with:` line named
- * scratch_elev/b311d/ref_<NAME>.s -- the agent's own workspace copy of the reference. That
- * directory is GITIGNORED, so the recipe would have become unrunnable the moment the workspace
- * was cleaned, and parkcheck reported TOOLING on all five parks of this brief.  A recipe must
- * name a DURABLE path on both sides: the installed .c and the tracked asm/ reference.  This is a
- * third flavour of the same defect, after a literal `<this file>` placeholder (six parks) and a
- * recipe naming a file that does not exist -- all three make a park unverifiable, which means its
- * figure can never be caught lying.
+ * ===== BATCH 316: CLOSED, AND THE SUPPORT IS NOW A PROOF RATHER THAN A LIST ===
+ * The old summary closed this with "Measured and closed: pinning the loop
+ * variables, and a pinned-decrement idea that regresses to 104".  That is a
+ * tired author, not a proof, and one of the three regions was marked "NOT
+ * RE-PROBED".  Both gaps are now filled; see the BATCH 316 ADDENDUM at the foot
+ * of this file for the derivation.  In one sentence each:
+ *   (1) 2 encodings, idx 80-81 -- the r6 pin lever that the region was shaped for
+ *       is NOW PROBED, position-swept across every slot, and it FAILS because the
+ *       pin register is contested across the loop's four calls.
+ *   (3) 5-6 encodings, idx 178-183 -- NOT "allocator temps".  BOTH VALUES ARE
+ *       CONST_INT OPERANDS THAT NEVER BECOME PSEUDOS AT ALL, so there is no
+ *       allocno, no preferred class, no live range and no REG_EQUIV for any
+ *       source-level lever to act on.  That is a structural impossibility
+ *       argument, and it is the same mechanism as
+ *       src/non_matching/ovl_7aa430/200a030.c's region (b).
+ *   (2) 6 encodings, idx 156-170 -- keeps this header's own extensive negatives.
+ * Two levers recorded: if/else ARM POLARITY is fixed by the ROM's branch
+ * direction (`bhi` means the source tests the other way first), and writing it
+ * backwards cost 11 of 35 encodings while LOOKING like a dozen unrelated register
+ * diffs; and the `neg`-built mask means a BITFIELD (`q[9] = (q[9] & ~0xc) | 8`
+ * folds to `mov #243`, where a bitfield gives the ROM's `mov #0xd / neg`).
  */
+/* OvlFunc_968_2009af0  --  0x02009af0   [PARK DRAFT -- TRUE DISTANCE 13]
+ *   [asm/overlays/rom_7f2f14/ovl_30_c_a_c_c_c_c_a.s, 1st of 2]
+ *
+ * REFERENCE: 248 instructions / 262 encodings / 600 bytes.  Anchored
+ * thumb_func_start count = 2 (this one and OvlFunc_968_2009d48), and the .s has
+ * NO `.section .data` and NO `.incbin` -- tools/datacheck.py prints nothing and
+ * exits 0.  So landing needs a FUNCTION SPLIT ONLY: no data half, NO NEW
+ * EXPORTS, and the sibling OvlFunc_968_2009d48 stays as assembly in its own
+ * object keeping its linker slot.
+ *
+ * THIS IS THE STRONGEST RESULT IN THE BATCH AND ITS NUMBER IS REAL:
+ *   objcmp  XX ENCODINGS differ in 13 place(s) (ref 262, ours 262)
+ *           first at index 80: ref ae04 ours 468b
+ * SIZE IS SILENT AND THE INSTRUCTION COUNT IS EQUAL, so 13 IS A TRUE DISTANCE,
+ * not a saturated count -- unlike the other three functions in this batch.
+ * tools/tryc.py --full: "rom 258 lines, ours 258, first diff at 84, 13 differ",
+ * and tools/aligncmp.py reads aligned-equal 252 of 262 -- 96.2% -- with 12
+ * differing/ins/del in 8 hunks.  objcmp reports NO relocation difference and NO
+ * size difference: the only thing wrong with this object is 13 encodings.
+ *
+ * SHIMS: tools/shimcount.py reports `register pins : 15  via PIN1, PIN1, PIN3,
+ * PIN3` and flags `has a fakematch-class shim and NO fakematch.txt row`.
+ * A LANDING HERE COSTS A fakematch.txt ROW.  The pins are LOAD-BEARING, not
+ * decoration: the pin-free first draft reads 255 encodings against 262 (7
+ * short, count mismatch, so no distance at all), and the count only becomes
+ * exact once `f` is pinned to r11.  A pin-free match is NOT available here on
+ * anything tried.
+ *
+ * WHAT IT DOES.  A 480-frame particle/dust emitter cutscene, gated on the
+ * player standing in an 8-unit-wide strip: `(unsigned)(ent->fa - 0x134) <= 7`
+ * and `0x214 <= ent->f12 < 0x21c`, with save bit 0x300 unset.  It sets 0x300,
+ * swaps a map tile block, then runs 0x1e0 frames in which each frame scrolls
+ * a map pointer's +8 word by +0x3333, walks an emitter height `z` DOWN by
+ * 0x3333, and spawns one particle via OvlFunc_968_2008118 with two random
+ * 0.2-step offsets and a random 12-bit angle.  Two discrete events punctuate
+ * it: at frame 0xf0 exactly, `z` drops by a further 0x300000; and every 0x28
+ * frames a tile strip is copied, marching LEFT by 4 while frame <= 0xf0 and
+ * RIGHT by 4 after -- so the effect sweeps out and back.  It closes by
+ * snapping the scrolled word to a whole 16.16 unit, two __Func_8010704 calls,
+ * two sounds, a fade, and state 0x202.
+ *
+ * THE TWIN DID THE WORK, AND THIS IS WHY CLUSTERING PAYS.  The near-twin
+ * src/overlays/rom_7f2f14/ovl_30_c_c_a_a_c_a_a.c (OvlFunc_968_200a6f8, EXACT
+ * and landed) is the same emitter with different constants, and its header
+ * lists the levers already paid for.  Applied here, in the order applied and
+ * with the measured effect on the encoding count:
+ *   * `int` locals for the two `ldrsh` reads, pinned u->r5, v->r2, w->r3:
+ *     first diff index 16 -> 41.  Without the int locals the range fold stays
+ *     in HImode; the pins are what put the callee-saved set right.
+ *   * PIN3 on BOTH __Func_8012330 sites: 255 -> 260 encodings.  The ROM builds
+ *     `0x80 << 9` THREE separate times (six instructions); gcc CSEs it to one
+ *     register and two copies.  This is the twin's lever verbatim.
+ *   * `f = 4` as a LOCAL PINNED TO r11 for __CopyMapTiles' sixth argument:
+ *     260 -> 262, WHICH IS WHERE THE COUNT BECAME EXACT.  The pin matters
+ *     because r11 is contested -- gcc otherwise hoists the loop-invariant
+ *     0xcccc into r11 and rematerialises `f`, where the ROM does the opposite
+ *     (holds 4 in r11 and pool-loads 0xcccc TWICE inside the loop).  Pinning
+ *     `f` to r11 denies the hoist its register and both fall into place.
+ *     `m` pinned to r5 alongside it (the same register `u` uses earlier -- the
+ *     twin's trick of reusing one pin register for two disjoint live ranges).
+ *   * PIN1 on __GetFlag AND __SetFlag, with the result read into `u`:
+ *     262 encodings at 35 differing -> 17.  Same mechanism as PIN3 above: the
+ *     ROM rematerialises `0xc0 << 2` at both call sites, gcc CSEs it into r5
+ *     and thereby also displaces `m`.  One CSE, thirteen misaligned lines.
+ *   * THE IF/ELSE ARMS WERE WRITTEN BACKWARDS and that alone was 11 of the 35.
+ *     The ROM's `cmp r7, #0xf0 / bhi` puts the `i > 0xf0` case in the TAKEN
+ *     branch, so the SOURCE must test `i <= 0xf0` first; writing `if (i > 0xf0)`
+ *     makes gcc invert the condition and swap the arms.  Worth stating as a
+ *     rule: with a two-armed if/else, the ROM's branch POLARITY fixes which
+ *     arm the source writes first, and getting it wrong looks like a dozen
+ *     unrelated register diffs.
+ *   * `i = 0;` written OUT of the for-init so `f = 4` is the last setup
+ *     statement: 17 -> 16.
+ *   * a pinned local for __CopyMapTiles' FIFTH argument at each of the two
+ *     sites, e1->r2 and e2->r1 (the ROM's own registers): 16 -> 13.
+ *
+ * MEASURED INERT, so do not re-try these (24 builds):
+ *   * a second pinned local per site for the `f` COPY (the other half of the
+ *     twin's "separate local pair"): all nine register combinations, 13 at
+ *     best and 115-122 at worst.  Only the fifth argument wants a local here.
+ *   * pinning the loop variables to the registers the ROM uses -- i->r7, t->r9,
+ *     z->r8, and the combinations: t->r9 and z->r8 are exactly inert (13);
+ *     i->r7 REGRESSES to 181 differing and 260 encodings, and all three
+ *     together to 244.  The loop variables are already where the ROM puts them
+ *     and pinning them only disturbs the temps.
+ *   * a plain (unpinned) local for the fifth argument: 17, i.e. the pin and not
+ *     the local is what matters.
+ *
+ * THE BLOCKER, NAMED BY PASS: sched2 and local register allocation, on 13
+ * encodings in three spots, all of them REGISTER PERMUTATIONS OR ORDERING with
+ * no instruction added or removed:
+ *   (1) two lines: the ROM emits `add r6, sp, #0x10` before `mov r11, r1`, gcc
+ *       the other way round -- pure sched2 ordering of two independent moves;
+ *   (2) six lines: at each __CopyMapTiles site the `f` copy goes to r3 (ROM) or
+ *       r2 (gcc) in the first arm and r2 (ROM) or r3 (gcc) in the second, and
+ *       the ROM emits the copy BEFORE the `sub r5, #4`, gcc after;
+ *   (3) five lines: the loop bottom, where the ROM keeps the -1 for the `t--`
+ *       high-register decrement in r3 and the 0x1df bound in r1, and gcc uses
+ *       r1 and r2.  These are compiler TEMPS, not variables, so there is no
+ *       declaration to pin -- which is why the loop-variable sweep above was
+ *       inert.
+ *
+ * THAT LEFT ONE IDEA AND IT IS NOW CLOSED, MEASURED.  (3) looked like the only
+ * one of the three with a source handle: make the decrement constant a declared
+ * object by writing `d = -1;` before the loop and `t += d` in the for-increment,
+ * with `d` pinned.  ALL THREE register choices (r1, r2, r3) REGRESS HARD -- 104
+ * differing, and the encoding count falls back to 260, so the exact count is
+ * lost as well.  Taking `t--` out of the for-increment undoes the twin's
+ * `for (i = ...; i++, t--)` lever, which is the thing holding the loop bottom
+ * together.  DO NOT RE-TRY IT.  All three residues are now sched2 or allocator
+ * temps with no source handle.
+ *
+ * This stem matches only the generic `asm/%.o: src/%.c` Makefile rule -- no O1,
+ * no per-file flag group -- so every figure above is a PRODUCTION-FLAG figure
+ * at the tree default -O2.
+ */
+struct MapEnt {
+    unsigned char pad00[0xa];
+    short fa;
+    int fc;
+    unsigned char pad10[2];
+    short f12;
+};
+
+struct Cfg {
+    int f00;
+    int f04;
+    int f08;
+    int f0c;
+    unsigned char pad10[0x22 - 0x10];
+    unsigned short f22;
+    unsigned char pad24[4];
+};
+
+#define PIN1 register int q0 __asm__("r0")
+#define PIN2 PIN1; register int q1 __asm__("r1")
+#define PIN3 PIN2; register int q2 __asm__("r2")
+
+extern unsigned char *iwram_3001e70;
+extern unsigned char *iwram_3001ebc;
+extern unsigned int iwram_3001e40;
+
+extern void *__MapActor_GetActor(int slot);
+extern int __GetFlag(int id);
+extern void __SetFlag(int id);
+extern void __CutsceneStart(void);
+extern void __CutsceneEnd(void);
+extern void __CutsceneWait(int n);
+extern void __WaitFrames(int n);
+extern void __PlaySound(int id);
+extern void __CopyMapTiles(int a, int b, int c, int d, int e, int f);
+extern void __Func_8012330(int a, int b, int c);
+extern void __Func_8012350(void);
+extern void __Func_8010704(int a, int b, int c, int d, int e, int f);
+extern void __Func_8091e9c(int n);
+extern unsigned int __Random(void);
+extern void OvlFunc_968_2008118(int a, int b, int c, int d,
+                                int e, int f, int g, struct Cfg *s);
+
+void OvlFunc_968_2009af0(void)
+{
+    struct Cfg s;
+    struct MapEnt *a;
+    unsigned char *p;
+    register int u __asm__("r5");
+    register int v __asm__("r2");
+    register unsigned int w __asm__("r3");
+    unsigned int i;
+    int z;
+    int t;
+    register int m __asm__("r5");
+    register int f __asm__("r11");
+    register int e1 __asm__("r2");
+    register int e2 __asm__("r1");
+    int g;
+
+    p = iwram_3001e70 + (0xb2 << 1);
+    a = __MapActor_GetActor(0);
+    u = a->fa;
+    v = a->f12;
+    a->fc = 0;
+    w = u - 0x134;
+    if (w <= 7 && v >= 0x85 << 2 && v < 0x87 << 2) {
+        a->fc = 0xfffe0000;
+        { PIN1; q0 = 0xc0 << 2; u = __GetFlag(q0); }
+        if (!u) {
+            __CutsceneStart();
+            __PlaySound(0xa1);
+            { PIN1; q0 = 0xc0 << 2; __SetFlag(q0); }
+            __CopyMapTiles(0x1a, 0x21, 0x13, 0x21, 1, 1);
+            __CutsceneWait(0x1e);
+            __PlaySound(0xef);
+            { PIN3; q0 = 0x80 << 9; q1 = 0x80 << 9; q2 = 0x80 << 9;
+              __Func_8012330(q0, q1, q2); }
+            __CutsceneWait(0x14);
+            z = 0x90 << 17;
+            m = 0x1d;
+            t = 0x28;
+            i = 0;
+            f = 4;
+            for (; i <= 0x1df; i++, t--) {
+                *(int *)(p + 8) += 0x3333;
+                z -= 0x3333;
+                s.f00 = 2;
+                s.f08 = (__Random() * 3 >> 16) * 0x3333 + 0xcccc;
+                s.f0c = (__Random() * 3 >> 16) * 0x3333 + 0xcccc;
+                s.f22 = (__Random() * 0x1000 >> 16) + (0xf8 << 8);
+                OvlFunc_968_2008118(z, 0, 0x84 << 18, 0,
+                                    -((iwram_3001e40 & 1) * 3 << 16), 0,
+                                    0x8a << 16, &s);
+                if (i == 0xf0)
+                    z -= 0x300000;
+                if (t == 0) {
+                    t = 0x28;
+                    if (i <= 0xf0) {
+                        m -= 4;
+                        e1 = 3;
+                        __CopyMapTiles(m, 0x32, 0xf, 0x20, e1, f);
+                    } else {
+                        m += 4;
+                        e2 = 3;
+                        __CopyMapTiles(m, 0x2d, 9, 0x20, e2, f);
+                    }
+                }
+                __WaitFrames(1);
+            }
+            *(int *)(p + 8) += 0x80 << 8;
+            *(int *)(p + 8) = *(int *)(p + 8) / 0x10000 * 0x10000;
+            g = 0x20;
+            __Func_8010704(0xf, 0x20, 3, 1, 9, g);
+            __Func_8010704(0xc, 0x20, 3, 1, 0xf, g);
+            __PlaySound(0x90 << 1);
+            __PlaySound(0xbc);
+            { PIN3; q0 = -1; q1 = -1; q2 = 0xe666;
+              __Func_8012330(q0, q1, q2); }
+            __Func_8012350();
+            *(int *)(iwram_3001ebc + (0xe0 << 1)) = 0x202;
+            __Func_8091e9c(0xb);
+            __CutsceneEnd();
+        }
+    }
+}
+
+/* *** BATCH-305d ADDENDUM for src/non_matching/ovl_7f2f14/2009af0.c ***
+ *
+ * RE-MEASURED AS INSTALLED: 13 of 262, ref 262 / ours 262, no size or
+ * relocation difference.  The header figure is CONFIRMED.  STILL 13.
+ *
+ * BATCH 305's VARIABLE-REUSE LEVER DOES NOT REACH REGION (2), and the reason
+ * is worth recording because the preconditions looked perfect.  Region (2) is
+ * 6 of the 13: the `f` copy for __CopyMapTiles' sixth (stacked) argument wants
+ * r3 in the first arm and r2 in the second, and ours has them the other way
+ * round.  This park ALREADY declares donors pinned to exactly those two
+ * registers whose live ranges are disjoint from the loop -- `w` on r3 and `v`
+ * on r2, both dead after the outer `if (w <= 7 && ...)` test -- so reusing them
+ * for the copy needs NO new pin and costs no new fakematch shim:
+ *     w = f; ... __CopyMapTiles(m, 0x32, 0xf, 0x20, e1, w);   arm 1 only   13
+ *     v = f; ... __CopyMapTiles(m, 0x2d, 9,   0x20, e2, v);   arm 2 only   13
+ *     both arms together                                                   13
+ *     both arms, the arm-2 assignment after `e2 = 3`                       13
+ *     the donors SWAPPED (v on arm 1, w on arm 2)                         121
+ * The first four are not merely equal-scoring, they are BYTE-IDENTICAL to the
+ * installed park -- tools/tryc.py --full prints the same 13 lines in the same
+ * places.  gcc COALESCES the assignment straight into the argument store and
+ * discards the donor's pin, because the donor's only use is the argument
+ * itself.  RULE: the reuse-a-variable lever needs the donor to have a use of
+ * its OWN; a variable written only to be passed once is coalesced away and
+ * inherits nothing.  That is the boundary condition on batch 305's lever, and
+ * it also explains why this park's nine pinned-second-local combinations all
+ * bottomed out at 13.
+ *
+ * Regions (1) (2 encodings, `add r6, sp, #0x10` vs `mov r11, r1`) and (3)
+ * (5 encodings, the loop-bottom -1 and 0x1df temps) were not re-probed; the
+ * header's negatives on them stand.  Region (3) additionally cannot use the
+ * reuse lever: the 0x1df bound must be live across the whole loop, so it
+ * conflicts with `e2` (r1), which is WRITTEN inside the loop -- the donor's
+ * ranges are not disjoint, which is the lever's other precondition.
+ *
+ * Landing this park still costs a fakematch.txt row for its 15 pins.
+ */
+
+/* ============================ BATCH 316 ADDENDUM ============================
+ * An adversarial brief re-opened this park's "closed" mark.  THE 13 STANDS, but
+ * two of the three regions needed their support replaced, and one of those was
+ * recorded as never probed at all.
+ *
+ * ===== REGION (3), idx 178-183 -- THE OBJECT WAS MISIDENTIFIED =====
+ * The old text: "These are compiler TEMPS, not variables, so there is no
+ * declaration to pin -- which is why the loop-variable sweep above was inert",
+ * then one regressing probe (`d = -1;` with `t += d` in the for-increment, all
+ * three register choices 104 differing with the count falling to 260), then "all
+ * three residues are now sched2 or allocator temps with no source handle".
+ * "Allocator temp" is the wrong object, and that matters because it implies an
+ * allocator lever might exist.  What the window is:
+ *     rom   mov r3,#1 / ldr r1,=0x1df / neg r3,r3 / add r7,#1 / add r9,r3 /
+ *           cmp r7,r1
+ *     ours  mov r1,#1 / ldr r2,=0x1df / neg r1,r1 / add r7,#1 / add r9,r1 /
+ *           cmp r7,r2
+ * i.e. the ROM holds -1 in r3 and the loop bound in r1; ours holds -1 in r1 and
+ * the bound in r2 -- ONE STEP OF PHASE.  From the dumps:
+ *     .15.regmove / .17.lreg   (jump_insn ... (leu (reg/v:SI 7) (const_int 479)))
+ *     .19.flow2                (insn 667 (set (reg:SI 2 r2) (const_int 479)))
+ * *** THE 0x1df BOUND IS NEVER A PSEUDO. ***  It is a CONST_INT operand of
+ * `cbranchsi4` all the way through local-alloc and global-alloc, and the `mov`
+ * that carries it exists only from reload, which materialises an operand the
+ * pattern cannot take.  The -1 is the same: `t--` on an r9 pseudo cannot take an
+ * immediate, so reload materialises -1 into a low register as `mov rN,#1 /
+ * neg rN,rN`.
+ * THE STRUCTURAL ARGUMENT: a quantity that never becomes a pseudo has no
+ * allocno, no preferred or alternate class, no live range and no REG_EQUIV.
+ * Declaration order, register pins, live-range spelling, block scoping and every
+ * allocator lever in docs/elevation.md CANNOT REACH IT.  The only thing that can
+ * is reload's round-robin phase, which is set by how many reload registers were
+ * allocated EARLIER in the function -- nothing inside this window.
+ * *** CROSS-PARK: src/non_matching/ovl_7aa430/200a030.c's region (b) is the SAME
+ * MECHANISM, derived independently and in full ("NONE OF THE FOUR QUANTITIES IS
+ * A PSEUDO ... reload materialising an operand that does not fit the pattern").
+ * Two parks, two batches, one fact.  It deserves a name in docs/elevation.md:
+ * A CONST_INT OPERAND RELOAD MATERIALISES IS NOT AN ALLOCATION. ***
+ *
+ * ===== REGION (1), idx 80-81 -- SAID "NOT RE-PROBED".  NOW PROBED. =====
+ * `add r6, sp, #0x10` (loop.c hoisting `&s`; no source statement) against
+ * `mov r11, r1` (`f = 4`, which has one).  That is textbook dfa18_Tackle @305
+ * shape -- "where a sched2 window is a permutation against a compiler-generated
+ * operand, give that operand a source statement by pinning it to the hard
+ * register the ROM uses" -- so the r6 pin was the obvious untried move.  Six
+ * variants, `ps = &s;` position-swept across every slot in the setup block, plus
+ * the unpinned control:
+ *     between `i = 0` and `f = 4`      197, +12 bytes, RELOCDIFF
+ *     before `i = 0`                   197, +12 bytes, RELOCDIFF
+ *     after `f = 4`                    196, +12 bytes, RELOCDIFF
+ *     before `z = 0x90 << 17`          194, +12 bytes, RELOCDIFF
+ *     between `t = 0x28` and `i = 0`   197, +12 bytes, RELOCDIFF
+ *     unpinned control                 199, +12 bytes, RELOCDIFF
+ * Every one grows the frame by 12 bytes: a pinned r6 local is live across the
+ * loop's four calls, so r6 must be saved and `&s` re-derived.
+ * *** THAT IS A PRECONDITION ON THE PIN LEVER AND IT BELONGS IN
+ * docs/elevation.md BESIDE THE LEVER ITSELF: the pin register must not be
+ * CONTESTED ACROSS A CALL inside the pinned local's live range.  dfa18_Tackle's
+ * @75 and @305 wins both pin a register for a few straight-line statements with
+ * no call between; this site has four. ***
+ *
+ * ===== LEVER 5 (callee return type): SWEPT HERE FOR THE FIRST TIME =====
+ * All 12 `extern void` callees flipped to `extern int`: 9 INERT at 13; WORSE
+ * __Func_8010704 17, __Func_8012330 16, __Func_8012350 16.  Nothing.
+ *
+ * ===== ONE CORRECTION TO THIS HEADER'S OWN BOOKKEEPING =====
+ * It claims "every figure above is a PRODUCTION-FLAG figure at the tree default
+ * -O2", which is true, but it records NO FLAG PROBE AT ALL.  That is a gap, not
+ * a virtue: on the family at src/non_matching/rom_8a000/8096ddc.c a single flag
+ * probe READ AT THE INSTRUCTION (rather than at the figure) broke a closure two
+ * batches had signed off.  If this park is re-opened, probe
+ * -fno-schedule-insns2 and -fno-expensive-optimizations and read the DIFFERING
+ * INDICES, not the totals.
+ * ========================================================================== */

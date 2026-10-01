@@ -10,10 +10,10 @@
  * Verify with (the delivered park body, runnable as written; installed path
  * is src/non_matching/rom_c9000/Anim_Frost.c):
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py scratch_elev/b310c/PARK_Anim_Frost.c \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_c9000/Anim_Frost.c \
  *     asm/rom_c9000/rom_d9ab8_c_c_c_c_c_c.s --func Anim_Frost
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/aligncmp.py scratch_elev/b310c/PARK_Anim_Frost.c \
+ *     goldensun-build python3 tools/aligncmp.py src/non_matching/rom_c9000/Anim_Frost.c \
  *     asm/rom_c9000/rom_d9ab8_c_c_c_c_c_c.s Anim_Frost -v
  *
  * ================================================================

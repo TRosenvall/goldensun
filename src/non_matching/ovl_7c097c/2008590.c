@@ -12,7 +12,7 @@
  * Verify with (this file, where it sits today):
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     scratch_elev/b310g/PARK_OvlFunc_936_2008590.c \
+ *     src/non_matching/ovl_7c097c/2008590.c \
  *     asm/overlays/rom_7c097c/ovl_30_c_c_c_a_a_c_a_a_c_c.s --func OvlFunc_936_2008590
  * Intended install path is src/non_matching/ovl_7c097c/2008590.c; substitute that path
  * for the scratch one after the move.

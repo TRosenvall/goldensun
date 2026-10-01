@@ -1,33 +1,65 @@
-/* Func_80bd424 (ChooseAction)  --  0x080bd424.
- * NON-MATCHING, 431 of 417 encodings differ as objcmp prints it -- and that line
- * is NOT the measurement, for the reason in THE SYMBOL CAVEAT below.  The real
- * figures, per symbol:
+/* Func_80bd424 (ChooseAction)  --  0x080bd424.  NON-MATCHING.
+ * IMPROVED IN BATCH 316: 405 instructions+pool words against the reference's
+ * 414, 333 differing +/- lines, down from 399 / 337.  Func_80bd3e4 stays
+ * BYTE-IDENTICAL, 30 of 30, emitted as the nested local `Func_80bd3e4.0` ahead
+ * of its parent exactly where the ROM has it.  ZERO SHIMS.  Production flags.
  *
- *   Func_80bd424   ref 896 bytes / 417 encodings (400 instructions + 17 pool
- *                  words); ours 864 bytes / 402 encodings.  16 encodings SHORT,
- *                  so no count here is a distance.  Position-tolerant:
- *                  204 aligned-equal of 417 (48.9%).
- *   Func_80bd3e4   *** BYTE-IDENTICAL, 32 of 32 instructions, ***  emitted as the
- *                  nested function `Func_80bd3e4.0` ahead of its parent, exactly
- *                  where and how the ROM has it.  Only assembler syntax and
- *                  local label names differ in the text.
+ * Verify with (per symbol -- objcmp cannot isolate a nested parent, see THE
+ * SYMBOL CAVEAT below; this is the same recipe as the 80b9604 TU park):
+ *   R=asm/rom_b5000/rom_bbb0c_a_a_c.s
+ *   (head -2 $R; sed -n '3,513p' $R) > /tmp/refbd.s     # Func_80bd3e4+Func_80bd424
+ *   /opt/gcc296/xgcc -B/opt/gcc296/ -O2 -mthumb -mthumb-interwork -mcpu=arm7tdmi \
+ *     -fno-builtin -nostdinc -ffreestanding -fcall-used-r4 -Iinclude -S \
+ *     -o /tmp/cbd.s src/non_matching/rom_b5000/80bd424.c
+ *   printf '\n\t.text\n\t.align\t2, 0\n' >> /tmp/cbd.s
+ *   for f in refbd cbd; do arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork \
+ *     -Iinclude -o /tmp/$f.o /tmp/$f.s; arm-none-eabi-objdump -d \
+ *     --no-show-raw-insn /tmp/$f.o > /tmp/$f.txt; done
+ *   # then diff the two per symbol with branch targets and pool offsets normalised
+ *   # (scratch_elev/b316e/score.py does exactly this; scorebd.py is it with
+ *   #  FUNCS = ["Func_80bd3e4", "Func_80bd424"])
  *
- * ZERO SHIMS (tools/shimcount.py).  Production GCC296_CFLAGS, no flag added.
+ * *** RESIDUE A'S VERDICT WAS WRONG, AND IT WAS WRONG AGAINST THIS PARK'S OWN
+ * *** ITEM 3.  The park read the kept sign extension at info+0x35 as
+ * "not a spelling problem ... we cannot make it need one".  IT IS A SPELLING
+ * PROBLEM, and the spelling is the one item 3 already uses for the packed byte
+ * at unit+0x120: WRITE THE SHIFTS IN THE SOURCE.
  *
- * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *       goldensun-build python3 tools/objcmp.py scratch_elev/b300j/bd424_v5.c \
- *     asm/rom_b5000/rom_bbb0c_a_a_c.s --func Func_80bd424
- *   # and, because objcmp cannot isolate ours (see below), the per-symbol view:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *       goldensun-build python3 scratch_elev/b300j/flagcmp.py \
- *     scratch_elev/b300j/bd424_v5.c asm/rom_b5000/rom_bbb0c_a_a_c.s Func_80bd424
- *   # the nested function, against the reference text:
- *   diff <(sed -n '/thumb_func_start Func_80bd3e4/,/func_end Func_80bd3e4/p' \
- *            asm/rom_b5000/rom_bbb0c_a_a_c.s | grep '^\t') \
- *        <(sed -n '/^Func_80bd3e4.0:/,/^\.Lfe1:/p' scratch_elev/b300j/bd424_v5.s \
- *            | grep '^\t')
+ *     ROM, at all three sites:  add r3,#0x35 / ldrb r3,[r3] / lsl r3,#24 /
+ *                               asr r3,#24 / cmp r3,#0 (or #2)
+ *     was:  si[0x35] == 0            -> ldrb + cmp, combine folds the extension
+ *     now:  (si[0x35] << 24) >> 24 == 0
  *
+ * That is +6 instructions in exactly the right opcodes -- the per-opcode
+ * histogram over ENCODINGS goes `asrs` 1 -> 4 (reference 5) and `lsls` 9 -> 12
+ * (reference 15) -- so it is a real gain and not a measurement artefact.  Three
+ * spellings are BYTE-IDENTICAL to each other: the shifts on the existing `s8 *`,
+ * the same shifts through a separate `u8 *`, and a `struct { signed int f : 8; }`
+ * cast at the three sites.  The park says it tried "a `signed int f : 8`
+ * bitfield"; whatever it tried, this measures 333.
+ * INERT OR WORSE on this baseline: `(s8)` on a `u8` load, `*(s8 *)(info+0x35)`,
+ * `(si[0x35] | 0)` -- all byte-identical to the OLD 337.
+ *
+ * STILL 9 ENCODINGS SHORT, and the histogram now names them.  Reference against
+ * ours: ldr 32/29, ldrh 10/7, b 25/21, lsls 15/12, asrs 5/4, ldrsb 1/0, bge 1/0,
+ * bne 16/15, mov 34/33, pool words 14/13; and we are OVER on adds 18/14,
+ * ldrsh 13/11, ldrb 17/16, beq 27/26, bgt 4/3, movs 52/51.
+ *   * `ldrsh` 13 against 11 with `ldrh` 7 against 10 says two of our halfword
+ *     reads are signed where the ROM's are not.  CROSSED AND ALL NEGATIVE:
+ *     `p` as `u16 *` or `unsigned short *` (375 instructions, 379), `(u16)p[0]`
+ *     at the call arguments (394, 416), `(u16)p[0]` at `_GetUnit` only (383).
+ *     18 variants, three axes crossed; nothing beats 333.
+ *   * `int act` for `short act` is now exactly INERT (333, same instruction
+ *     count).  The park's item 2 evidence for `short` -- the reference's
+ *     `ldr r2, =1` pool load of an HImode constant -- still stands, so keep
+ *     `short`; but the park's "much worse" figure for the carrier no longer
+ *     reproduces on this baseline.
+ *   * `bge` 1 against 0 with `bgt` 4 against 3 is one more instance of item 6's
+ *     fused/split comparison rule, at a site item 6 did not reach.
+ *   * `b` 25 against 21 is four unconditional branches, i.e. four more
+ *     out-of-line arms or shared tails in item 4's shape.
+ * Those three are the next work and each is independently checkable off the
+ * histogram, which is the instrument this park was missing.
  * =========== THE FINDING: Func_80bd3e4 IS A NESTED FUNCTION ===========
  *
  * src/non_matching/rom_b5000/80bd3e4.c is parked at 8 of 32 with a byte-exact
@@ -331,7 +363,7 @@ void Func_80bd424(short *p, int flag)
             u16 *eq = (u16 *)(u + 0xd8);
             if ((*eq & 0x1ff) == 0) {
                 hit = 0;
-                if (si[0x35] == 0) {
+                if ((si[0x35] << 24) >> 24 == 0) {
                     t = 2;
                     p[3] = t;
                     t = 0x1fd;
@@ -392,9 +424,9 @@ void Func_80bd424(short *p, int flag)
                     t = 1;
                     p[3] = t;
                     p[4] = move;
-                    if (mi[9] > *(short *)(u + 0x3a) && si[0x35] != 0)
+                    if (mi[9] > *(short *)(u + 0x3a) && (si[0x35] << 24) >> 24 != 0)
                         goto next;
-                    if (u[0x13d] != 0 && si[0x35] == 2)
+                    if (u[0x13d] != 0 && (si[0x35] << 24) >> 24 == 2)
                         goto next;
                     act = 1;
                 } else {

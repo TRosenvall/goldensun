@@ -32,7 +32,7 @@
  *     asm/overlays/rom_7ed0a0/ovl_30_c_c_c_c_c_b.s --func OvlFunc_964_200a59c
  *   docker run --rm -v "$PWD:/work" -w /work goldensun-build sh -c \
  *     'GCC296_DIR=/opt/gcc296 python3 tools/aligncmp.py \
- *        scratch_elev/b311d/PARK_OvlFunc_964_200a59c.c \
+ *        src/non_matching/ovl_7ed0a0/200a59c.c \
  *        asm/overlays/rom_7ed0a0/ovl_30_c_c_c_c_c_b.s OvlFunc_964_200a59c'
  *   ref_OvlFunc_964_200a59c.s in this directory is the function sliced out of
  *   asm/overlays/rom_7ed0a0/ovl_30_c_c_c_c_c_b.s; it is not a tree file.

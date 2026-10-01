@@ -72,6 +72,39 @@
  * what parkcheck used to lump into one UNCHECKABLE verdict.  A tree-wide sweep found
  * eight such parks; this is one of them.  The figure above is NOT re-measured by the
  * act of adding this line: run it.
+ *
+ * ============ BATCH 316: THE LICM TEST, WITH ITS INEQUALITY ============
+ * Still 116 of 131 (ours 127). The blocker is right. The gate is not `savings`
+ * on its own -- `.08.loop` shows `savings 1` being accepted:
+ *     Insn 130: regno 73 (life 7), move-insn savings 1   MOVED
+ *     Insn 101: regno 61 (life 1), move-insn savings 1   not desirable
+ *     Insn  82: regno 51 (life 2), savings 2             MOVED
+ * `move_movables`' test is `threshold * savings * lifetime >= insn_count`, with
+ * threshold 20 and the inner loop at insn_count 31. So the mask needs only
+ * `savings * lifetime >= 2` -- LIFETIME 2 WOULD BE ENOUGH, which is this park's
+ * "life >= 2" intuition with the inequality behind it. Identified in `.07.gcse`:
+ *     insn 101 = (set (reg:SI 61) (const_int -256))                  the mask
+ *     insn 149 = (set (reg:SI 81) (plus (reg/v:SI 35) (const_int 64)))  u + 0x40
+ *
+ * WHY FORCING IT CASCADES, which this park could observe but not explain: a
+ * named `int mask` is hoisted on PASS 1 as `regno 43 (life 11) moved`, first.
+ * That removes one insn from the inner loop, and on PASS 3 `regno 81 (life 1)`
+ * -- `u + 0x40` -- then satisfies `20*1*1 >= insn_count` and is hoisted too,
+ * which the ROM does not do (it computes it inline: `adds r3,r0,#0 / adds r3,#64
+ * / ldrh`). The cascade is an insn_count threshold crossing and it is ONE INSN
+ * WIDE. That is why every forced spelling lands at 117-119 and none at 116.
+ *
+ * 38 VARIANTS, TWO AXES CROSSED (scratch_elev/b316e/v920c and v920d).
+ * BYTE-IDENTICAL at 116: all four `u + 0x40` spellings (`((u16 *)u)[0x20]`,
+ * `&u[0x40]`, a named `q = u + 0x40`), `& ~0xff`, `w = load; w &= 0xffffff00;`,
+ * `0xffffff00 & load` (gcc canonicalises `const & reg` back to `reg & const`, so
+ * OPERAND ORDER DOES NOT separate the constant from its use), `unsigned int` and
+ * `long` carriers, and dropping the `!= 0`.
+ * REGRESSIONS: the named mask at three placements 117; the load named ahead of
+ * the condition 119; the `||` arms swapped 119; mask and load both named 119.
+ * The `u`-access axis is COMPLETELY INERT, so the 2x2 cross adds nothing: the
+ * mask's `lifetime` is the only live variable and no C spelling moves it.
+ * **"move_movables' ordering, not a spelling" STANDS.**
 */
 struct Entry {
     unsigned short id;

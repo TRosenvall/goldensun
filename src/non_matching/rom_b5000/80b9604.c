@@ -229,6 +229,68 @@
  * FIGURE *** -- pass five hands this tree to another maintainer, and a
  * never-read union member is exactly the kind of thing that should not arrive
  * unexplained.
+ *
+ * ========== BATCH 316: THE ORDER MOVES, AND THE WALL CLOSES ==========
+ * Still 0 / 66 / 40, TOTAL 106 -- reproduced to the line with this park's own
+ * recipe. Two corrections and one closure.
+ *
+ * (1) *** `n_refs` IS LOOP-DEPTH WEIGHTED. *** The `allocno_compare` model above
+ * is right, but the figures fed to it are NOT source-level reference counts.
+ * gcc-2.96's flow.c does `REG_N_REFS (i) += loop_depth`, loop_depth 1 at
+ * function level and +1 per enclosing loop: a reference inside one loop counts
+ * 2, inside two 3. Control: scratch_elev/b316e/ctl_refs.c, where a `for` counter
+ * at depth 1 prints 7 refs and at depth 2 prints 11, exactly as the rule
+ * predicts. So "add a reference" is not the only move -- MOVING AN EXISTING
+ * REFERENCE DEEPER INTO A LOOP raises `n_refs` with no new reference.
+ *
+ * (2) *** THE ORDER IS MOVABLE, AND MOVING IT DOES WHAT THIS PARK PREDICTED. ***
+ * `.18.greg` for Func_80b9604 shows 41's conflict set is a strict SUBSET of
+ * 36's and their HARD-register conflicts are identical (both 0 2 3 13 14), so
+ * whichever of the two is allocated first takes r7 and the other takes r8 --
+ * the flip is purely `pri(41) > pri(36)`. A reference to `scratch` inside LOOP 1
+ * (depth 2) takes 41 from 3 refs to 6 and turns `;; 10 regs to allocate:
+ * 39 43 79 85 37 38 77 67 36 41` into `... 37 38 81 41 71 36`: 41 IS NOW FIRST,
+ * and 9604 goes 66 -> 61. Four independent spellings reproduce it. This is the
+ * first demonstration that the order moves at all.
+ *
+ * (3) AND THE WALL SURVIVES, NOW CLOSED ON ALL THREE SIDES BY ARITHMETIC RATHER
+ * THAN BY EXHAUSTION OF SPELLINGS:
+ *   * r41 = 4 with live_length <= 30 wins (8/29 = 0.2759 > 0.2632) -- this
+ *     park's R1, and it is RIGHT. What is new is WHERE the fourth reference has
+ *     to be: weight >= 2 means INSIDE A LOOP INSIDE 41's existing 29-insn range,
+ *     and the only loop in that range is loop 1, whose body the ROM shows has NO
+ *     access to `scratch` (`.Lb9630` is ewram_2002238, WaitFrames,
+ *     iwram_3001f64, the `& 3` test, nothing else). Every fourth reference
+ *     therefore costs an instruction the ROM does not have.
+ *   * r36 <= 3 wins (1*3/38 = 0.0789 < 0.1034) but needs 9604 to touch only TWO
+ *     parent variables. The ROM's own text shows FOUR distinct `(plus fp k)`
+ *     sites: `sub r7,#4` (scratch), `add r3,r8` (count), `sub r3,#0x14` (n),
+ *     `sub r2,#0xc` (list). Closed by the reference itself.
+ *   * live_length(36) > 96.7 wins. fp's last use is the `&list` computation,
+ *     which must precede `Func_8006408((int)(list + n))`; the ROM puts that at
+ *     insn ~61 of 131, so L36 <= ~60 in ANY faithful program. *** SO THE "OPEN
+ *     THREAD" ABOVE -- that the ROM must have differed in LIVE LENGTH -- IS
+ *     CLOSED, NOT OPEN: it cannot be the explanation. *** Nor can a flag: the
+ *     dispositions of 36 and 41 were read under fourteen flags and NONE gives
+ *     41 r7 with 36 r8 (-fno-gcse puts 41 in r3 and 36 in r9; -O1 the same;
+ *     every other flag leaves 36 in 7 and 41 in 8).
+ * The next maintainer should NOT spend another pass on source shapes for 9604's
+ * static-chain registers.
+ *
+ * (4) *** TWO FALSE IMPROVEMENTS, ONE OF THEM A ONE-WORD EDIT. *** The figure
+ * alone cannot see these; the MEMORY-ACCESS MULTISET can. Reference
+ * Func_80b9604 has **ldr 14, ldrh 6, str 2** (scratch_elev/b316e/memscreen.py).
+ *   * `if (count != 0)` for `if (scratch[0].i != 0)` reads **58**, from 66, at
+ *     the same 129 instructions -- and is WRONG: `ldr 13`. It reads the count
+ *     word ONCE where the ROM reads it twice (`ldr r2,[r3]` then `ldr r3,[r3]`).
+ *   * moving `count = scratch[0].i` inside the `if` reads **61** at 126
+ *     instructions, `ldr 13`. Same fault.
+ *   * `if (scratch == 0) return -1;` inside loop 1 flips the order and reads 60
+ *     at exactly 131 instructions -- and is a pure measurement device
+ *     (`ldr 15`, `cmp 16`).
+ * Of 30 crossed variants only five are MEM-OK and four of those only because an
+ * `ldr` removed by one axis is added back by the other. SCREEN THE MULTISET
+ * BEFORE BELIEVING ANY FIGURE ON THIS FUNCTION.
 */
 #include "gba/types.h"
 #include "gba/io.h"
