@@ -1,59 +1,88 @@
-/* OvlFunc_954_2008a3c -- NON-MATCHING, 17 encodings of 367 against the tree
- * reference; 16 against a symbolised copy.  SIZE AND RELOCATIONS EXACT.  348
- * instructions.
+/* OvlFunc_954_2008a3c -- NON-MATCHING, **14 ENCODINGS OF 367**, DOWN FROM 17.
+ * SIZE AND RELOCATION COUNT EXACT, 348 instructions, instruction count exact.
+ * Production flags, no per-file Makefile adjustment (checked).
+ * tools/shimcount.py: ZERO register pins.
  *
  * Verify with:
- *   python3 tools/objcmp.py src/non_matching/ovl_7db0c8/2008a3c.c \
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7db0c8/2008a3c.c \
  *     asm/overlays/rom_7db0c8/ovl_30_c_c_c_c_a_a_a.s
- * ONE function, no data section -- CONVERTS WHOLE when it lands.
+ * ONE function, no data section (tools/datacheck.py prints nothing) --
+ * CONVERTS WHOLE when it lands.
  *
- * ================================================================
- * SYMBOL TELL -- `_FILE_e4 = 0xe4;` REPORTED AND WITHHELD, with the strongest
- * control this bank can construct
- * ================================================================
+ * ========== BATCH 316: 17 -> 14, AND THE 17th WAS NEVER AN INSTRUCTION ==========
  *
- * This function builds TWENTY-THREE distinct values under 0x100 with `mov r0, #N`
- * (0xa, 0xd, 0xe, 0xf, 0x11-0x19, 0x24, 0x25, 0x2b, 0x2f, 0x3f, 0x40, 0x64, 0x7f,
- * 0xa2, 0xc4) and pools EXACTLY ONE: `ldr r0, =0xe4`.  That value is the argument to
- * OvlFunc_common1_1fb4, whose landed C (src/overlays/common/common1_c_a_c_c_b.c)
- * passes it straight to __GetFile(arg) -- so this is the FILE id space, checked
- * rather than assumed.  Two sibling callers pass 0xe5 and 0xe6, both pooled, and
- * _FILE_e6 was ADDED in batch 282 on this same evidence (it completed its function),
- * while _FILE_e7 and _FILE_e8 were already in file_table.sym.
+ * 1. THE PARK'S 17 WAS 16 INSTRUCTIONS PLUS ONE POOL WORD.  Encoding index
+ *    [365] is `.word 0x000000e4` in the reference against `.word 0x00000000`
+ *    in ours: the undefined `_FILE_e4`.  It is a POOL WORD, not an insn.
  *
- * Measured: with the symbol 16 of 367 and relocations exact; without it 17 plus a
- * relocation mismatch.  WITHHELD BECAUSE IT DOES NOT COMPLETE THE FUNCTION -- the
- * separation batch 281 drew between evidence quality and completion, and this is
- * better-evidenced than _MSG_d27, which went in.
+ * 2. **A NON-VOID RETURN TYPE ON OvlFunc_common1_1ecc IS WORTH 3.**
+ *    `extern void OvlFunc_common1_1ecc(...)` -> `extern int ...` takes the
+ *    figure from 17 to 14 and removes the whole cluster at [257..259]:
+ *        ref   movs r1,#8 / movs r2,#4 / movs r0,#0
+ *        ours  movs r0,#0 / movs r1,#8 / movs r2,#4
+ *    the three constant arguments of
+ *    `OvlFunc_common1_1ecc(0, 8, 4, 0xa3 << 19, 0xc0 << 16, 0x18, 0x19)`.
+ *    MECHANISM, and it is the brief's lever 2 exactly: a `void` call only
+ *    CLOBBERS r0, and a CLOBBER never becomes a last setter, so `movs r0,#0`
+ *    has no output dependence on the call and sched2 falls through the whole
+ *    ladder to INSN_LUID, which is the argument emission order r0,r1,r2.
+ *    Declaring a return value makes the call SET r0, the output dependence
+ *    appears, and r0's load sinks to last -- the ROM's order.
+ *    IT IS THE NON-VOIDNESS, NOT THE TYPE: int, short, char, long,
+ *    unsigned int and `unsigned char *` all give 14 (measured).  This is a
+ *    DECLARATION-ONLY change; the call's value is unused, so the C is
+ *    unchanged in meaning and nothing is fabricated.
  *
- * ================================================================
- * WHAT PAID, and one construct that became inert
- * ================================================================
+ * 3. THE SWEEP THAT FOUND IT, and what it rules out.  All 26 return-type
+ *    changes available in this file were measured; only 1ecc moves anything.
+ *    Re-swept AGAINST THE NEW 14 BASELINE (31 variants): 17 EXACTLY INERT,
+ *    none better.  Worse: __Func_8010704 27, __MapActor_SetExtra 18,
+ *    __Actor_SetAnim 16, __Actor_SetSpriteFlags 16, __StartTask -> void 16.
  *
- * NAMING THE 5TH AND 6TH ARGUMENTS OF THE 6-ARG MAP ROUTINES.  The ROM computes both
- * into two DISTINCT registers then stores both; gcc reuses one (`mov/str/mov/str`)
- * and, where a stack argument repeats a register argument's value, CSEs them into
- * one.  Dropping the `sa`/`iv2` carriers costs 117 (16 -> 133); dropping the
- * `two`/`twelve` carriers costs 268 (16 -> 284).  A repeated value shares ONE local
- * across two calls -- visible in the ROM as one callee-saved register spanning both.
+ * ================== THE REMAINING 13 ARE ONE CLUSTER ==================
  *
- * A BESPOKE SINGLE-REGISTER PIN IS A DIFFERENT TOOL FROM PIN4.  `PIN4` pinned r0-r3
- * and pushed the stack arguments into r4 (under -fcall-used-r4); a lone
- * `register int t3 __asm__("r3")` left r2 free and got the ROM's register.  PIN4 on a
- * call WITH STACK ARGUMENTS was catastrophic twice here (16 -> 164, 16 -> 207).
+ * [61..77], around
+ *     a = __MapActor_GetActor(0xa);  hi = 0x80 << 12;
+ *     *(int *)(a + 8) = (n << 20) + hi;
+ *     z = 0; a[0x55] = z; two = 2; a[0x23] = two; twelve = 0xc;
+ *     __Func_8010704(0xe, 0xd, 1, 1, n, twelve);
+ * Two reload copies out of HI registers pick different LO staging registers:
+ * `z` (which lives in r8) is staged in r1 by the ROM and r3 by us, and
+ * `twelve` (which lives in sl) in r3 by the ROM and r2 by us; the one-slot
+ * schedule shifts at [68..74] follow from that.  SAME CLASS AS
+ * src/non_matching/ovl_787e04/2008578.c and ovl_7ac2d8/200cfcc.c: a
+ * reload-stage register choice, which the brief's alias-set dependent-count
+ * lever provably cannot reach.
  *
- * AND THAT t3 PIN IS NOW INERT AND IS NOT SHIPPED.  It was worth 33 -> 24 when
- * introduced, and a later change -- computing the two `>> 20` values at their loads
- * rather than shifting at the call, 22 -> 16 -- removed the pressure that made it
- * pay.  THIRD INSTANCE THIS BATCH OF A CONSTRUCT WHOSE VALUE WENT TO ZERO AFTER AN
- * UNRELATED STRUCTURAL CHANGE.  Re-run the ladder after every one.
+ * MEASURED INERT AT 14 (16 variants): moving `twelve = 0xc` before `two = 2`;
+ * `two` first; two-step computed forms for `twelve` (0xc0>>4), `z` (2>>2) and
+ * `two` (8>>2); `twelve = two * 6`; a named temp for the (n<<20)+hi value;
+ * `register int twelve __asm__("r10")` (inert -- twelve is ALREADY in sl);
+ * `register int z __asm__("r8")` (inert -- z is already in r8); both local
+ * declaration orders; `hi = 0x80; hi <<= 12;`; `a[0x55]` through a named
+ * pointer.  WORSE: `z = 0` hoisted above the (a+8) store 18 (first moves to
+ * 57); `twelve` first 183; `z` last 183.
+ * FLAG SWEEP, 29 flags: EVERY ONE inert at the park figure except
+ * -fno-schedule-insns2 (91) and -fno-omit-frame-pointer (336).
  *
- * Loop-setup statement order was swept, not deduced.
+ * ============== `_FILE_e4` IS NOW DECISION-CRITICAL, NOT COSMETIC ==============
  *
- * No per-file Makefile flag override applies to this stem.
- *
- * NEXT: settle the _FILE_e4 decision, which is worth 1 encoding and the relocation
- * set; then the remaining 16 want .23.sched2 rather than spellings.
+ * The park reported this symbol and withheld it because it "does not complete
+ * the function".  That calculus has changed: the function is now 13
+ * instructions plus this one pool word.  `_FILE_e4` is NOT in file_table.sym
+ * (it is only mentioned in a comment there, line 159); `_FILE_e6`, `_FILE_e7`
+ * and `_FILE_e8` are.  With the symbol the figure is 13 and the relocation set
+ * is exact; without it, 14 plus a relocation mismatch.  If the [61..77] cluster
+ * falls, THIS WORD IS THE LAST THING BETWEEN THIS FUNCTION AND ZERO, so the
+ * owner's decision on it now gates a landing rather than one cosmetic encoding.
+ * The evidence is unchanged and is stronger than _MSG_d27's, which went in:
+ * this function builds TWENTY-THREE distinct values under 0x100 with
+ * `mov r0, #N` and pools EXACTLY ONE, `ldr r0, =0xe4`, and that value is the
+ * argument to OvlFunc_common1_1fb4, whose landed C
+ * (src/overlays/common/common1_c_a_c_c_b.c) passes it straight to
+ * __GetFile(arg)
  */
 extern unsigned char gState[];
 extern unsigned char *iwram_3001ebc;
@@ -84,7 +113,7 @@ extern void OvlFunc_common1_148(void);
 extern void OvlFunc_common1_488(void);
 extern void OvlFunc_common1_ea0(int a);
 extern void OvlFunc_common1_1608(int a, int b);
-extern void OvlFunc_common1_1ecc(int a, int b, int c, int d, int e, int f, int g);
+extern int OvlFunc_common1_1ecc(int a, int b, int c, int d, int e, int f, int g);
 extern void OvlFunc_common1_1fb4(int file);
 
 int OvlFunc_954_2008a3c(void)

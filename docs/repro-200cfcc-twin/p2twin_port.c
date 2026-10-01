@@ -1,44 +1,4 @@
-/* OvlFunc_923_2009a3c -- candidate produced in batch 316 by PORTING the body
- * of OvlFunc_924_200cfcc, which tools/dupfuncs.py reports as a BYTE-IDENTICAL
- * DUPLICATE of this function.
- *
- * **5 ENCODINGS OF 179, DOWN FROM 181.**  Instruction count exact
- * (179 = 179), size exact, pool identical, all relocations identical.
- * tools/shimcount.py: ZERO register pins, so no fakematch.txt row is needed.
- * Production flags, no per-file Makefile adjustment (checked).
- *
- * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/ovl_7aa430/2009a3c.c \
- *     asm/overlays/rom_7aa430/ovl_1a3c_a_a_a.s --func OvlFunc_923_2009a3c
- *   XX ENCODINGS differ in 5 place(s) (ref 179, ours 179)
- *      first at index 54: ref 4640  ours 189b
- *
- * WHY THIS REPLACES THE EXISTING PARK WHOLESALE.  The installed park
- * (src/non_matching/ovl_7aa430/2009a3c.c) carries a DIFFERENT body and its own
- * header says "181 of 177 -- SATURATED", figure withdrawn, "needs
- * re-measuring before its diagnosis is trusted".  Re-measured this batch
- * against this reference it is 172 differing instructions with nins 169/175
- * and +12 bytes, so the saturation is real.  Its recorded blocker -- "one
- * allocno too many, PLUS an unsolved pooled-zero construct" -- describes that
- * saturated body and does not apply to this one.
- *
- * The port is THREE RENAMES and nothing else:
- *   OvlFunc_924_200cfcc    -> OvlFunc_923_2009a3c
- *   gScript_924__0200de20  -> gScript_923__0200a7d0
- *   gScript_924__0200de38  -> gScript_923__0200a7e8
- * (offset order fixes the script pairing: de20 < de38 and a7d0 < a7e8).  The
- * reference's `=` operands are otherwise identical to 200cfcc's: 0x109,
- * 0x85000007, 0xffff8000, 0xfffff, REG_DMA3SAD, gBuffer, gState.
- *
- * THE REMAINING 5 ARE 200cfcc's RESIDUE, IDENTICALLY -- same count, same first
- * index 54.  See the corrected header of
- * src/non_matching/ovl_7ac2d8/200cfcc.c for the mechanism: cse.c:3652's
- * commutative canonicalisation puts gBuffer's register SECOND in the PLUS, and
- * reload.c's find_dummy_reload then takes its reload register from
- * XEXP (plus, 0).  Whatever closes 200cfcc closes this, and vice versa
- */
+/* port of 200cfcc's body to the duplicate OvlFunc_923_2009a3c */
 #include "dma.h"
 
 extern unsigned char gState[];

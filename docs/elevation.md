@@ -31470,3 +31470,137 @@ reach a park claim line.
 > **When installing a tool out of an agent's workspace, read its imports.** A
 > harness that works today because a gitignored directory happens to exist is not
 > installed, and a fork of the authority is not a convenience.
+
+## `REG_N_REFS` IS LOOP-DEPTH WEIGHTED -- which reprices every allocation claim in this tree
+
+The most consequential correction of batch 316, and it invalidates arithmetic I
+propagated myself. `flow.c` does:
+
+    REG_N_REFS (i) += loop_depth
+
+which is **1 at function level and +1 per enclosing loop**. A control
+(`scratch_elev/b316e/ctl_refs.c`) reproduces it exactly: a `for` counter prints
+**7 refs at depth 1 and 11 at depth 2**.
+
+**Every park that fed `allocno_compare` a SOURCE-LEVEL reference count has the
+wrong number**, and so did I. The worked case: a park argued "`&tmp` (3
+references)" against "`n-1` (2 references)" and concluded "NOT a tie". The real
+figures are **7/30 against 3/31 — not a tie by 4.8x**, because `&tmp`'s uses sit at
+depth 2. Its wall is real and **worse than priced**; a mere tie would have
+sufficed to break it (38 < 41). 78 crossed variants, byte-identical at 37.
+
+**And it is a LEVER, not only a correction:**
+
+> **Moving an EXISTING reference deeper into a loop raises `n_refs` with no new
+> reference.**
+
+That was demonstrated — a `scratch` reference placed in loop 1 took one allocno to
+6 refs, made it allocate first, and moved the nested TU **66 → 61**. The first time
+anyone has moved that allocation order at all.
+
+### And it CLOSES the nested TU's fp wall on all three sides
+
+The wall now has arithmetic on every face, which is what a closure needs:
+
+  * the two conflict sets are a **strict subset** relation with identical hard-reg
+    conflicts, so the flip is **purely order**;
+  * the order **can** be moved (above), but the fourth reference needs weight ≥2
+    **inside** the 29-insn range, whose only loop is loop 1 — and **the ROM's loop 1
+    provably has no `scratch` access**;
+  * and the **live-length thread this document recorded as OPEN is CLOSED**:
+    measured, a late parent reference drove L36 to **88**, short of the required
+    **96.7**, with refs rising faster than length.
+
+No flag reaches the ROM's assignment either (14 tested). **That is a closure by
+the standard this document demands**, replacing the "open thread" I recorded.
+
+## The loop-hoist gate is not `savings` -- it is a PRODUCT, and it cascades
+
+A park's blocker rested on `move_movables`' `savings > 1`. `.08.loop` **accepts
+`savings 1` at life 7**. The real gate is
+
+    threshold * savings * lifetime >= insn_count      (20, 31 here)
+
+so **lifetime 2 suffices**. And forcing the hoist is not a single event: it shrinks
+the loop until a second insn **also qualifies on pass 3** — **a cascade one insn
+wide**. 38 variants; nothing beat the baseline, but the gate is now stated
+correctly rather than as a threshold on the wrong term.
+
+## Two more false improvements, and a screen that catches them
+
+Both were one-word edits that improved the figure and were **wrong**:
+
+  * `if (count != 0)` for `if (scratch[0].i != 0)` reads **58 from 66 at identical
+    instruction count** — and `ldr 13` against the reference's **14**. It reads the
+    count word **once where the ROM reads it twice**.
+  * moving the assignment inside the `if` reads **61**, same fault.
+
+Of **30 crossed variants only 5 pass a memory-access screen, and 4 of those only by
+cancellation.** The honest figure is unchanged.
+
+> **The figure alone cannot see an access-count fault. Screen the per-opcode
+> memory counts (`ldr`/`str`/`ldrh`/`strh`/`ldrb`/`strb`) against the reference
+> before accepting ANY improvement.**
+
+That is now the fourth and fifth false improvement caught by this rule, after the
+63-against-66 case and the park that read a pointer once where the ROM read twice.
+**A better figure obtained by doing less work than the ROM is a wrong program**, and
+at this distance from zero it is a *likely* outcome of a random search rather than a
+rare one.
+
+## Duplicates need a PORT, not a shared fix
+
+`tools/dupfuncs.py` says two functions are duplicates, and the convenient reading
+is "whatever lands one lands both". Measured, that is wrong in an important way:
+the twin was **saturated at 181 of 177 with its figure withdrawn**, and porting the
+solved body across with **three renames** gives **5 of 179** — the identical
+residue. The twin needed **a port**, not a shared solution.
+
+So a duplicate group is a **transfer opportunity with work attached**, not a
+free ride: the body must actually be moved and re-measured, and until it is, the
+twin's figure describes a different body entirely. (Here that was worth
+**181 → 5** on a park nobody had assigned.)
+
+## Three more refuted blockers, and a declined closure
+
+  * A park blamed a dead `REG_UNUSED` QImode zero for taking r3. **Non-cause** —
+    `.17.lreg` shows it and the SImode zero **both** in r3, not conflicting. The
+    real chain is cse1 rewriting a pointer increment against the base, giving the
+    walk pointer two deaths and failing `local-alloc.c:362`. Fix: **two edits that
+    are each a regression** — splitting the walk reads 101, the r3 pin reads 121,
+    **together 8**, at zero length cost. **12 → 8**, and ported unchanged to a
+    sibling for the same gain.
+  * **"Round-robin spill-register counter" refuted**: the trace says `Using reg 3`
+    for that insn while the emitted copy is **r2** — it is set later, in
+    `choose_reload_regs`.
+  * **`local-alloc.c:1131` refuted** on another: its pseudo is **global, in r10**;
+    the mechanism is `reload.c`'s `find_dummy_reload` taking `XEXP(plus, 0)`.
+  * **They are DIFFERENT mechanisms, contrary to my brief**, which had grouped them
+    as one class.
+
+**And the agent declined to close either**, having the deciding code but **not a
+reachability proof in either direction** — which is exactly the standard this
+document asks for. A refuted diagnosis is not a closure; it is an open park with a
+better map.
+
+**Also measured:** all **14 pins added at plain call sites are exactly inert** — so
+**pinning a value to the register it already occupies creates no reload.** And my
+brief's warning that "a pin that helps one of these can badly hurt another"
+**inverted the result**: the r3 pin is 121 alone and **8 in company**.
+
+## `_FILE_e4`: the evidence was already accepted, and it stays WITHHELD
+
+Worth recording because the temptation was to admit it. `0xe4` is 8-bit movable, so
+`*thumb_movsi_insn` would emit `mov rX,#0xe4` and a pool word holding it can only
+be a relocation — the structural tell, and `file_table.sym` **already says so** for
+`_FILE_e4` and `_FILE_e5` alongside the admitted `_FILE_e6`.
+
+They were withheld for a different reason, stated there: **neither COMPLETES its
+function**, which is the separation batch 281 drew between **evidence quality and
+completion**. That condition is still unmet — the park is 13 instructions plus that
+one pool word, so admitting the symbol would leave 13 real differences and buy only
+the relocation line.
+
+> **A good structural argument is necessary and not sufficient for a symbol-table
+> entry. The completion condition is a separate test, and it is the one that stops
+> the table filling with well-argued guesses.**

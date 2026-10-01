@@ -1,32 +1,108 @@
-/* OvlFunc_897_200aeb0 (0x0200aeb0) -- NON-MATCHING, 12 encodings of 148 differ, SAME LENGTH
- * (ref 148 encodings; all relocations identical).
+/* OvlFunc_897_200aeb0 (0x0200aeb0) -- NON-MATCHING, **8 ENCODINGS OF 148**,
+ * DOWN FROM 12.  Instruction count exact (148 = 148), size exact (dsize 0),
+ * pool identical, all relocations identical.  A TRUE DISTANCE.
+ * Production flags, no per-file Makefile adjustment (checked).
  *
- * asm/overlays/rom_791794/ovl_30_c_c_c_a_a_c_c_c.s (1 function, no data -- no split needed).
+ * tools/shimcount.py: **1 register pin** (`p` to r3), load-bearing.
+ * A PINNED LANDING NEEDS A fakematch.txt ROW; there is none yet.
+ *
+ * asm/overlays/rom_791794/ovl_30_c_c_c_a_a_c_c_c.s is ONE function, no data
+ * (datacheck prints nothing) -- no split needed, CONVERTS WHOLE.
  *
  * Verify with:
- *   python3 tools/objcmp.py src/non_matching/ovl_791794/200aeb0.c asm/overlays/rom_791794/ovl_30_c_c_c_a_a_c_c_c.s --func OvlFunc_897_200aeb0
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_791794/200aeb0.c \
+ *     asm/overlays/rom_791794/ovl_30_c_c_c_a_a_c_c_c.s \
+ *     --func OvlFunc_897_200aeb0
+ *   XX ENCODINGS differ in 8 place(s) (ref 148, ours 148)
+ *      first at index 32
  *
- * FAMILY: the parked OvlFunc_887_200968c (src/non_matching/ovl_787e04/200968c.c) with a
- * leading __PlaySound(0x124) and a different tail -- f50->f9 bits 2-3 are COPIED from
- * __MapActor_GetActor(0xf)->f50 onto both new actors (fetched twice), not set to 2.
- * The loop is instruction-for-instruction the ROM's 887 loop, so it carries the
- * same 12-differing residue and nothing else: the "CHAIN"
- *     mov r3,r0 / add r3,#0x55 / strb r2,[r3] / add r3,#0xf / strh r2,[r3]
- * comes out with the walk pointer and the SI zero swapped (ours p=r2, zero=r3), plus
- * the one-slot schedule shifts that follow. See 200968c.c's header for the mechanism
- * (a dead REG_UNUSED QI zero left by store_fixed_bit_field takes r3 in local-alloc;
- * the global walk pointer then gets r2) -- everything there applies verbatim.
+ * FAMILY: OvlFunc_887_200968c (src/non_matching/ovl_787e04/200968c.c) with a
+ * leading __PlaySound(0x124) and a different tail.  THE 12 -> 8 FIX WAS FOUND
+ * THERE AND PORTED HERE UNCHANGED; the residue is 200968c's two sched2
+ * clusters shifted by 3.  The park's old "INERT / WORSE here" entries were
+ * recorded as BYTE SIZES (324, 332), which are not comparable to the figure
+ * and must not be inherited. *
+ * ================== BATCH 316: THE BLOCKER WAS MISFILED ==================
  *
- * The whole prologue, the PlaySound placement before `sub sp`, the whole tail with its
- * two GetActor(0xf) fetches, and the r8 pooled zero / r9 0x3f / r10 sp / r11 w roles
- * all match first time from the 887 park's body.
+ * The park said: "store_fixed_bit_field (the BLKmode field store) leaves a
+ * REG_UNUSED (set (reg:QI) (const_int 0)); local-alloc gives that dead QI r3
+ * (1-insn life, top priority)".  THE DEAD QI IS NOT A CAUSE.  `.17.lreg`
+ * block 2 shows pseudo 50 (the dead QI) and pseudo 52 (the SI zero) BOTH
+ * getting r3, and they do NOT conflict -- 50 is REG_UNUSED and dies at birth,
+ * and `;; 50 conflicts:` does not list 52.  The dead QI consumes no register,
+ * so removing it can free nothing, and every lever aimed at it was aimed at a
+ * non-cause.
  *
- * INERT / WORSE here: splitting the walk into two pointers so the second is local
- * (p = &a->f55; q = p + 0xf) -- 324 bytes with the BLK stores, the plain u8/u16 stores,
- * or BLK u8 + plain u16; the same with an int zero local shared by both stores --
- * 332 bytes (loop.c hoists it, as the 887 park found).
+ * THE REAL CHAIN, four steps, each read off a dump:
+ *   1. `.00.rtl` insn 82 is (set (reg 37) (plus (reg 37) (const_int 15))) --
+ *      the walk `p += 0xf`.  By `.03.cse` it reads
+ *      (set (reg 37) (plus (reg 34) (const_int 100))): **cse1 rewrites the
+ *      increment against the base `a`**.
+ *      CONTROL: writing `p = (unsigned char *)&a->f64;` instead of `p += 0xf;`
+ *      is BYTE-IDENTICAL to the old park body.  Both spellings reach reload as
+ *      the same RTL, which is why the walk spelling never mattered.
+ *   2. Reg 37 therefore has two disjoint live ranges, so REG_N_DEATHS == 2.
+ *   3. local-alloc.c:362 gates local allocation on
+ *      `REG_BASIC_BLOCK >= 0 && REG_N_DEATHS == 1 && (alternate == NO_REGS ||
+ *      ! CLASS_LIKELY_SPILLED_P (preferred))`.  Reg 37 fails it TWICE: two
+ *      deaths, and `pref STACK_REG`, where STACK_REG = {sp} has size 1 so
+ *      CLASS_LIKELY_SPILLED_P is true (regs.h:190).
+ *   4. local-alloc thus reaches the ZERO first and gives it r3 (r3 heads
+ *      REG_ALLOC_ORDER); global_alloc then puts the walk pointer in r2.
  *
- * NEXT: whatever closes 200968c closes this (and 200a440, 200dd68, 200c41c).
+ * ============ THE FIX IS TWO EDITS THAT ARE EACH A REGRESSION ============
+ *
+ * Neither edit works alone.  Measured on this body, as INSTRUCTIONS (encoding
+ * counts inflate here because a longer function moves every `ldr [pc,#N]`):
+ *
+ *   two address temps (p for f55, `&a->f64` direct for f64), no pin ... 101
+ *   `register unsigned char *p __asm__("r3")` on the single walk ....... 121
+ *   BOTH TOGETHER ....................................................... 8
+ *
+ * and the pair costs NOTHING in length (nins and pool identical, dsize 0),
+ * where each edit alone cost +2 instructions and +4 bytes.  This is the
+ * two-at-a-time law: splitting the walk gives the f64 address its own
+ * 1-set/1-death pseudo, and the r3 pin supplies the hard register that
+ * local-alloc's eligibility gate refuses to supply for the f55 one.  Together
+ * the ROM's assignment is reproduced EXACTLY -- walk pointer in r3, the shared
+ * SI zero in r2 -- and move2add chains the second address into `adds r3, #15`.
+ *
+ * WHY THE SPLIT ALONE LOOKS LIKE A REGRESSION, and this is the generalisable
+ * part: with the split and no pin, the f64 temp (pseudo 56) gets
+ * `pref BASE_REGS` -- LO_REGS and STACK_REG tie at cost 0, so regclass picks
+ * their union, which is NOT likely-spilled -- so it IS local-alloc eligible,
+ * wins r3, and correctly pushes the zero to r2.  The f55 temp (pseudo 49)
+ * keeps `pref STACK_REG`, falls through to global_alloc and lands in r1, so
+ * move2add cannot chain and the function grows.  **The right half of the
+ * answer was already visible inside a variant whose TOTAL had risen.**
+ *
+ * WHAT REMAINS AT 8 IS PURE sched2 PLACEMENT, in two clusters:
+ *   A. 6 of the 8.  `ldr r5, [r0, #0x50]` (`s = a->f50`) and `mov r8, r1` sit
+ *      in different slots; every register agrees.  The ROM issues the f50 load
+ *      immediately after `adds r3, r0, #0`; we issue it three slots later.
+ *      Rung: PRIORITY, not CLASS -- the load is independent of
+ *      `adds r3, r0, #0` (CLASS 3, which would win) but its result feeds only
+ *      `cmp r5, #0`, while `adds r3, #85` heads the strb/add/strh chain and so
+ *      carries the longer path.  To move it, the LOAD's priority must rise.
+ *   B. 2 of the 8.  `movs r1,#33 / negs r1,r1 / strh r3,[r5,#8]`: the ROM
+ *      hoists only the `movs` above the strh, we hoist the `negs` too.  Every
+ *      register agrees, so the only rung left is INSN_LUID.
+ *
+ * MEASURED INERT AT 8 (13 variants): `s = a->f50` at FIVE source positions
+ * (after p, after the stores, before the f14 copy, after f68, plus an extra
+ * f68 store) -- statement order is NOT the handle; the f8_a value through a
+ * named temp; and the brief's UNION alias-set device on BOTH the ZB and the ZH
+ * store (alias set 0 manufactures no useful dependence here, because the two
+ * competing insns are not a MEM/MEM pair).  WORSE: the f5 bitfields before the
+ * f8_a store 69, f28 before the bitfields 26, f7_b first 21, f5_c first 18,
+ * the f68 store above the zero stores 121.
+ *
+ * FLAG SWEEP, 29 flags, on the 12-figure body: 19 EXACTLY INERT,
+ * -fno-force-mem 26, -fno-strict-aliasing 45, -fno-regmove 49,
+ * -fno-schedule-insns2 80, -fno-expensive-optimizations 93, -fno-gcse 123.
+ * Not flag-conditional.  All `extern void` -> `extern int`: INERT.
  */
 struct SpriteSlot {
     unsigned short size;
@@ -99,7 +175,7 @@ void OvlFunc_897_200aeb0(struct Actor *c)
     struct Actor *a;
     struct Spr *s;
     unsigned char *w;
-    unsigned char *p;
+    register unsigned char *p __asm__("r3");
     int i;
 
     w = iwram_3001f30;
@@ -112,8 +188,7 @@ void OvlFunc_897_200aeb0(struct Actor *c)
             s = a->f50;
             p = &a->f55;
             ((struct ZB *)p)->b = 0;
-            p += 0xf;
-            ((struct ZH *)p)->h = 0;
+            ((struct ZH *)&a->f64)->h = 0;
             a->f68 = c;
             if (s != 0) {
                 __Sprite_SetAnim(s, 0);

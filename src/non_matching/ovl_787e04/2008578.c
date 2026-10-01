@@ -1,116 +1,107 @@
 /* OvlFunc_887_2008578 -- NON-MATCHING, 4 ENCODINGS OF 453.  Size 1172 = 1172,
  * instruction count 453 = 453, relocations identical.  A TRUE DISTANCE.
+ * Production flags, no per-file Makefile adjustment (checked).
  *
  * Verify with:
- *   python3 tools/objcmp.py src/non_matching/ovl_787e04/2008578.c \
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_787e04/2008578.c \
  *     asm/overlays/rom_787e04/ovl_30_c_a_c_a_c_c_c_c_c_c_c_c_c_c_c_a_a_a_c.s \
  *     --func OvlFunc_887_2008578
  *   XX ENCODINGS differ in 4 place(s) (ref 453, ours 453)
  *      first at index 129: ref 4653  ours 4652
  *
- * Blocker class: reload's ROUND-ROBIN SPILL-REGISTER COUNTER
- * (allocate_reload_reg, reload1.c:4925-4945; `last_spill_reg` is function-scoped
- * state advancing once per successful reload-register allocation).  Both residue
- * instructions are RELOAD-CREATED high-to-low copies -- `zero` lives in r10 and
- * `g` in r9, and *thumb_movsi_insn cannot store from a high register -- so
- * QTY_CMP_PRI never sees them and this is not a local-alloc quantity.
+ * tools/shimcount.py: 45 register pins across 15 PIN macro sites.  A pinned
+ * landing needs a fakematch.txt row; there is still none.
  *
- * BATCH 314 CONFIRMED THAT ATTRIBUTION AGAINST THE BRIEF'S `REG_N_SETS`
- * RE-READING, AND IT SURVIVES.  `zero` is set ONCE and used ONCE across many
- * calls, so REG_N_SETS == 1 and it is exactly the shape update_equiv_regs gates
- * on.  Every two-step computed form that makes it TWO-SET is INERT at 4:
- * `zero = 0; zero <<= 7;`, `zero = 1; zero -= 1;`, `zero = 1; zero >>= 1;`,
- * `zero = 0x80; zero &= 0;`, and the same treatments on `g` (`g = &g[0]`, a
- * do-while barrier, `t = *g`), singly and in combination.  So this is NOT a
- * one-set/two-set story in disguise.  Also measured: a do-while barrier on
- * `zero` costs 10, and DELETING the existing `do { } while (0);` costs 30 -- that
- * barrier is load-bearing and worth 26.
+ * ================== BATCH 316 CORRECTION TO THE BLOCKER ==================
  *
- * ================== PINS: 45, DOWN FROM 93, AND WHY THE REST STAY ==================
- * tools/shimcount.py reports 45 register pins across 15 PIN macro sites.  The
- * previous revision of this park carried 93 across 34 sites; batch 314 removed
- * 19 whole sites (they are now ORDINARY C CALLS with the constants folded back
- * into the argument list) with NO change to the distance -- 4, first 129,
- * size 0, relocations ok, identical on every figure.
+ * The park named `allocate_reload_reg`'s ROUND-ROBIN SPILL-REGISTER COUNTER
+ * (reload1.c:4925-4945, `last_spill_reg`) as the blocker.  THE FUNCTION'S OWN
+ * RELOAD TRACE REFUTES THAT FOR THE INSN THAT DIFFERS.
  *
- * A PER-SITE SWEEP ESTABLISHED WHICH 15 MUST STAY.  Control: `PIN<n>` replaced by
- * plain `int` temporaries, which removes only the register constraint and keeps
- * the block, the temporaries and the assignment order.  14 sites are
- * individually load-bearing (6 of them catastrophically: 323, 295, 286, 225,
- * 120, 105).  All 34 unpinned reads 425 of 453 and +12 bytes: the pins carry
- * essentially the whole function and it cannot be depinned wholesale.
+ * `.18.greg` prints exactly FIFTEEN reload-register allocations, and only two
+ * registers ever appear:
  *
- * *** THE 15th PIN IS LOAD-BEARING ONLY IN COMPANY, AND THIS IS A GENERAL LAW. ***
- * Dropping all 20 individually-inert pins at once costs 61 (4 -> 65).  Bisection
- * isolates it to a PAIR -- the two sites below, each INERT alone and 65 together,
- * with every subset containing both reading 65 and every subset missing either
- * reading 4:
+ *     insn   10  -> reg 3        insn  328  -> reg 3  (reload 2)
+ *     insn   25  -> reg 2        insn  353  -> reg 3
+ *     insn   37  -> reg 2        insn  359  -> reg 3
+ *     insn  117  -> reg 3        insn  371  -> reg 3
+ *     insn  381  -> reg 2        insn  385  -> reg 2
+ *     insn 1033/1039/1108/1114/1126 -> reg 3
  *
- *     q2 = 0xaa; q2 <<= 2;   ... __Func_8092158(q0, q1, q2)
- *     q2 = 0xaa; q2 <<= 2;   ... __Func_80921c4(q0, q1, q2)
+ * The residue at output index 129 is `.19.flow2` insn 1204,
+ * `(set (reg:SI 2 r2) (reg/v:SI 10 sl))`, feeding insn 328
+ * `(set (mem (plus (reg 6 r6) 12)) (reg:SI 2 r2))` -- i.e. `*(p6+0xc) = zero`.
+ * For insn 328 `allocate_reload_reg` printed `Using reg 3`, yet the EMITTED
+ * copy is r2.  So the register in the differing instruction was NOT produced
+ * by the round-robin the park names; only reload 2 of insn 328 went through
+ * allocate_reload_reg at all, and the copy that differs never appears in the
+ * trace.  It is set in `choose_reload_regs` (inheritance), one stage later.
  *
- * `grep -n 0xaa` returns exactly those two lines: they are the only two sites
- * that materialise the same constant (0x2a8).  MECHANISM -- this is
- * src/non_matching/rom_c9000/80cdd58.c's recorded `invalidate_for_call` lever
- * needing TWO pins instead of one.  cse1 unifies two pseudos holding the same
- * CONST_INT; the unified pseudo then crosses calls and local_alloc gives it a
- * CALLEE-SAVED register, which perturbs the allocation globally.  A hard
- * call-clobbered register is invalidated by invalidate_for_call, so EITHER pin
- * alone breaks the unification -- unification needs TWO UNPINNED PEERS.
- * CONTROL: with the pair unpinned and one site's constant changed 0xaa -> 0xab
- * so the two values differ, 65 collapses to 5.  That isolates the sharing of the
- * constant as the entire cause.
+ * WHY THIS MATTERS: every probe the park and batch 314 aimed at "the COUNT of
+ * reload-register allocations EARLIER in the function" was aimed at a
+ * mechanism that does not decide this insn.  That is the full explanation for
+ * their uniform inertness, measured again below.
  *
- * A SECOND, INDEPENDENT INSTANCE of the same law, found the same way.  Dropping
- * only the WIDEST pin at a site is individually inert at 32 of the 34 sites, but
- * combining eight of those costs 15, and bisection again isolates one pair:
+ * ============ BATCH 316 RE-SWEEPS AGAINST THE 45-PIN BASELINE ============
  *
- *     q1 = 0xc0; q2 = 0xc0; q1 <<= 9; q2 <<= 8;  __MapActor_SetSpeed(...)   x2
+ * The park warned its inert list was taken at 93 pins.  Both sweeps were
+ * re-run against the current body.  NEITHER FOUND AN IMPROVEMENT.
  *
- * `grep -n 0xc0` returns exactly those two lines -- again the only two sites
- * sharing materialised constants.
+ * 1. EVERY `extern void` -> `extern int` (42 variants, brief lever 2).
+ *    30 EXACTLY INERT at 4.  12 worse: __MapActor_SetPos 19,
+ *    __MapActor_SetAnim 12, __MapActor_SetSpeed 11, __Func_80921c4 11,
+ *    __Func_8093040 10, __Func_8092adc 9, __Func_8019aa0 8 (first moves to 83),
+ *    __MapActor_Jump 7, __Func_800c5fc 6 (first moves to 98), __ActorMessage 6,
+ *    __Func_809259c 6, __Func_8092b08 6, OvlFunc_887_20097e4 6.
+ *    The park recorded 13 wrong-way movers at 93 pins; at 45 pins it is 12.
+ *    Nothing reaches 3 or below, so the lever is live and unhelpful here.
  *
- * CONSEQUENCE FOR ANY DEPINNING PASS, AND IT IS THE REASON THE COUNT ABOVE IS
- * HONEST RATHER THAN MINIMAL: a pin whose job is to defeat cse unification of a
- * value occurring N times is load-bearing ONLY AS A GROUP.  Removing any one
- * leaves N-1 >= 1 pinned and nothing changes, so a cumulative greedy that
- * removes one pin at a time and requires byte-identity CANNOT SEE IT -- every
- * single step is genuinely inert and the cliff arrives only when the
- * last-but-one pin of the group goes.  Worse, a greedy that happens to try the
- * first of a pair before the second ACCEPTS the first, then REJECTS the second,
- * and reports a fixpoint one pin short.  The cheap guard: GROUP THE PIN SITES BY
- * THE VALUE THEY MATERIALISE (one grep per constant) AND REMOVE EACH GROUP AS A
- * UNIT.  A group of size N has one interesting removal, not N.
+ * 2. A 33-VARIANT PHASE SEARCH over everything that could add one reload
+ *    allocation before index 129.  28 EXACTLY INERT at 4:
+ *    - pinning each of FOURTEEN currently-plain call sites before the
+ *      divergence (__CutsceneStart, __MapActor_SetPos x4, __MapActor_SetAnim,
+ *      __Func_80118a8, __Func_800c5b4, __Func_8093304, __Func_8019aa0,
+ *      __CutsceneWait, __Func_800c5fc, __Actor_SetSpriteFlags x2) -- ALL 14
+ *      INERT, which is independent evidence that a pin on an argument register
+ *      the value already occupies creates NO reload at all;
+ *    - four of five `do { } while (0)` barrier placements;
+ *    - three two-step computed forms for `zero` (2>>2, 0x100>>9, 0x12-0x12);
+ *    - `register int zero __asm__("r10")` (inert: zero is already in sl);
+ *    - a named `g[0]`, a dead `g` re-read, a named `p6+8` base, a stored temp
+ *      for the zero, and reordering the `h` block.
+ *    Worse: `zero` declared earlier 8 (first 48), the p6 0x10/0xc store order 6,
+ *    a barrier after `m = 0xe52` 6 (first 82), `register int zero __asm__("r3")`
+ *    388, `register unsigned char **g __asm__("r9")` 352.
  *
- * Pushing past 45 is not free and was measured: width-reducing the 15 survivors
- * costs 15 (the 0xc0 pair), and `PIN3 -> only q0 pinned` on them costs 417.
- *
- * A pinned landing needs a fakematch.txt row; there is still none.
+ * 3. FLAG SWEEP, 29 flags.  Nothing helps.  -fno-rerun-cse-after-loop 7,
+ *    -fno-schedule-insns2 102, -fno-gcse 116, -fno-regmove 175,
+ *    -fno-force-mem 175, -fno-strict-aliasing 279.  Not flag-conditional.
  *
  * THE RESIDUE (unchanged):
  *
  *     ref                      ours
  *     str  r3, [r6, #8]        str  r3, [r6, #8]
- *     mov  r3, sl              mov  r2, sl
+ *     mov  r3, sl              mov  r2, sl        <- index 129
  *     str  r3, [r6, #12]       str  r2, [r6, #12]
  *     ldr  r3, [pc]            ldr  r3, [pc]
- *     ...two calls...
- *     mov  r2, r9              mov  r3, r9
+ *     ...__Func_800fe9c, __WaitFrames...
+ *     mov  r2, r9              mov  r3, r9        <- index 136
  *     ldr  r1, [r2, #0]        ldr  r1, [r3, #0]
+ *     ...
+ *     mov  r2, r9              mov  r2, r9        <- index 148, AGREES AGAIN
  *
- * The ROM uses r3 then r2; we use r2 then r3 -- a complementary swap across two
- * reload-created copies, i.e. a PHASE DIFFERENCE in last_spill_reg.  AN IDENTICAL
- * INSTRUCTION STREAM UP TO THE DIVERGENCE DOES NOT IMPLY IDENTICAL RELOAD STATE:
- * everything before index 129 is equal, yet the counter is out of phase, because
- * inherited and shared reloads advance last_spill_reg WITHOUT EMITTING AN
- * INSTRUCTION.  The only handle remains the COUNT of reload-register allocations
- * EARLIER in the function.  `p8 += 0` as an earlier-reload probe: inert.
+ * Two complementary reload copies out of HI registers (`zero` in sl, `g` in
+ * r9), and only r2/r3 are ever candidates, so this is a BINARY choice made
+ * twice.  The brief's alias-set dependent-count lever cannot reach it (not
+ * scheduling), and lever 2 and the phase search are now both exhausted.
  *
- * THE BRIEF'S ALIAS-SET DEPENDENT-COUNT LEVER CANNOT REACH THIS PARK: that lever
- * moves rank_for_schedule's dependent count and needs a MEM as one of two
- * COMPETING insns.  This residue is not scheduling at all -- it is a reload
- * spill-register choice, and -fno-schedule-insns2 was already shown to leave the
- * whole region unchanged.
+ * NEXT, AND IT IS A DIFFERENT PASS FROM THE ONE THE PARK NAMED: read
+ * `choose_reload_regs`'s INHERITANCE decision for `.19.flow2` insn 1204
+ * (reload1.c, `reg_last_reload_reg` / `reload_reg_free_for_value_p`).  The
+ * question is which register already "held" sl's value when reload reached
+ * insn 328.  That is the only unexamined mechanism left here
  */
 struct HalfWord { unsigned short v; };
 
