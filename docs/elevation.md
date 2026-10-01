@@ -31175,3 +31175,164 @@ maintainer:
 > A never-read union member, an invented symbol, a flag with no Makefile row — each
 > can produce a real number against a body that must not land. Say so in the park,
 > at the figure, not further down.
+
+## Batch 315: the sched2 ladder, corrected and bounded
+
+Four briefs independently worked scheduling residues and between them the ladder
+is now properly specified. **It has four rungs, not three, and one of them is
+dead.**
+
+    priority
+      -> CLASS RELATIVE TO last_scheduled_insn   (3 independent, 2 anti/output, 1 data; higher wins)
+        -> dependent count
+          -> INSN_LUID
+
+  * **The class rung was missing from this document entirely.** Derived from a
+    trace where an insn with FOUR dependents ranked BELOW one with THREE, because
+    the four-dependent insn anti-depends on the store just scheduled.
+  * **`INSN_REG_WEIGHT` — register pressure — is DEAD at sched2**, gated
+    `!reload_completed`. It is never a key in this build.
+  * **The class rung is SKIPPED at t=0**, because `last_scheduled_insn` is 0
+    (haifa-sched.c:5963). So a block's FIRST decision genuinely has one fewer rung
+    than its later ones — which is why a preheader contest and a body contest can
+    behave differently with identical-looking tables.
+
+**The consequence for parks, in both directions.** Any park concluding *"priority
+and dependent count both tie, therefore LUID decides"* has not accounted for the
+rung between them; and one park that **denied** being a LUID tie was refuted,
+because its evidence was a THIRD insn's position while the two actual competitors
+tie on priority and count and do fall through. **Name which two insns compete, and
+print the class column.**
+
+### The alias-set lever: the precondition is about WHICH RUNG, not whether it works
+
+I sent out a precondition mid-batch — "the aliasing store must be later in the
+chain than the load" — and it is wrong as stated. Corrected:
+
+  * **store BEFORE load** → a true dependence (cost 2), which moves **priority**;
+  * **load BEFORE store** → an anti-dependence, which adds a **dependent**.
+
+**Order picks the rung the lever acts on; it does not decide whether the lever
+works.** One function landed with the store *preceding* the load.
+
+### And a hard structural bound: NO POOL LOAD IS EVER A MEM FOR SCHEDULING
+
+**The literal pool is built after sched2.** `ldr r5,=0xb06` is
+`(set (reg r5) (const_int 2822))` at `.19.flow2` and only becomes a MEM at
+`.26.mach`. So in any tie between two pool loads there is **no MEM to widen or
+narrow**, and the alias-set lever is out of scope **by dump rather than by
+assertion**. That retires a whole family of attempts in one check.
+
+Two further scope facts, each worth one look before spending:
+
+  * **A hard-register destination is never a PRE candidate** — `hash_scan_set`
+    enters a set only when the dest regno is `>= FIRST_PSEUDO_REGISTER`
+    (gcse.c:1855-1866); at -O2 `expand_expr` discards any non-pseudo target
+    (expr.c:5896-5898); and `force_operand` in the ADDR_EXPR case is
+    unconditional, so `&local` as an argument always lands in a pseudo whatever a
+    pin says. Three predicted-inert pins measured inert.
+  * **`precompute_register_parameters` never touches an ADDRESS argument under
+    Thumb.** The gate is `rtx_cost(value, SET) > 2`, `COSTS_N_INSNS(N)` is
+    `N*4-2`, and `arm_rtx_costs` returns `COSTS_N_INSNS(1) == 2` for a PLUS — so an
+    address costs exactly 2 and is never hoisted. **Two parks inherited this
+    wrong.** (It does not disturb the batch-314 closure that cited the same
+    function: those arguments were *constants* costing 4.)
+
+## READ A FLAG PROBE AT THE INSTRUCTION, NOT AT THE FIGURE
+
+The method correction that broke the tree's closest closure. A park's `gcse (PRE)`
+attribution was doubted because `-fno-gcse` measures **71 of 199 and +4 bytes** —
+far worse. That refutes nothing: **`gcse_main` runs cprop and PRE in one loop**, so
+the flag removes a pass group the whole function depends on, and the aggregate
+figure is a global perturbation.
+
+Read **at the site** instead, the flag leaves the relevant expression alive — so
+the attribution holds, **and a second blocker is exposed behind it.** The residue
+is two blockers, one source-defeatable (cse1 starting a fresh path at a
+two-predecessor block) and one not yet (PRE commoning with the dominating
+occurrence).
+
+**And the landing mechanism is a pass earlier than either:** `local-alloc.c`
+`update_equiv_regs` substitutes a single-set/single-use pseudo's `REG_EQUIV` into
+its one use and deletes the set — which is **why every reload-level probe was
+inert.** Third instance this batch of a blocker living one pass earlier than its
+park claimed.
+
+> **A flag that makes the aggregate worse can still prove a mechanism at one
+> site.** Judge a probe by the instruction it was run to explain.
+
+## Two closures UPGRADED, which is a real result
+
+A park moved from "closed because we gave up" to "closed with a proof" stops a
+future batch spending a brief on it.
+
+  * **Rung 4 pinned equal for any source shape.** Both competitors are constant
+    materialisations with **no input registers**, so neither can ever carry a data
+    dependence — each is only ever class 3 or 2 — and both carry the same
+    `REG_DEP_OUTPUT` on the same empty-asm insn. No source shape can separate
+    them, and the pool-load fact above removes the alias route too.
+  * **The ROM's own order violates a true dependence.** At one site the ROM emits
+    an alias-set-0 spill store before the alias-set-19 load it produces, so
+    **sched2 cannot reach that order at all** — the real rung is reload's spill
+    placement. Closed structurally.
+
+A third closure **survives as a conclusion but failed as an argument**, and was
+rewritten: four of its load-bearing claims were wrong (it never named
+`REG_ALLOC_ORDER`, which is `{3,2,1,0,...}` at arm.h:989 and is the only reason
+"first allocated takes r3" holds; it mis-sourced a stack-register split that is
+actually `arm.md:496` alternative 6 with `regclass.c:1459` giving `'!'` **zero**
+cost; it credited `move2add` where **cse** does the re-base, absent in `00.rtl`
+and present from `03.cse`; and its diagnostic pin reads **128 of 133** on a
+sibling). **Keeping a right conclusion for wrong reasons is how a park survives
+scrutiny it should not.**
+
+Also closed there by **C89 rather than by the compiler**: the one shape that got a
+pointer into `LO_REGS` is a **wrong program**, because a `short` aligns to 0x10
+and not 0x0f.
+
+## The histogram is NOT the universal first instrument
+
+A correction to my own briefing. I told several briefs to start with the
+per-opcode histogram. Where **length is exact and the instruction multiset is
+identical**, it is **identically zero** and tells you nothing — which was the case
+for four parks in one brief. There, the diff-position list plus an allocator dump
+(preference, local-vs-global, hard-register disposition per pseudo) localised all
+four.
+
+**Pick the instrument by what the figures already say:** a length difference wants
+the histogram; an equal-length permutation wants positions and the dependence
+table; an allocation residue wants `.17.lreg` and `.18.greg`.
+
+## "A contradiction is a reason to test, not evidence of a bug"
+
+Five tree-side `int`/`void` declaration contradictions were swept on one function
+and **all five were inert**. With the 60 landed-file disagreements recorded
+earlier, the discipline is settled: a contradiction tells you **where to run one
+cheap experiment**, not that something is broken. Sweeping is ~3 seconds; the
+inference is free and usually wrong.
+
+## Depinning results, and the group census can be COMPLETE
+
+  * One park went **15 pins → 5** with sites inert singly, as value-groups **and**
+    jointly.
+  * Another's 45 and a third's 22 were **re-derived as minimal under
+    value-grouping** — not merely greedy fixpoints.
+  * And a **grep census of one function's constants proved the group check
+    complete**: its two recorded interacting pairs sit in the only groups large
+    enough to hold one, with nine singletons, so **no third pair can be hiding.**
+    That is the difference between "we grouped and found nothing more" and "there
+    is nothing more to find."
+
+## Smaller facts worth not re-deriving
+
+  * **`-fno-dce`, `-fnew-ra`, `-fno-loop-optimize`, `-fno-if-conversion` and
+    `-fno-cprop-registers` do not exist in this cc1.**
+  * A park's `-fno-schedule-insns2` "proof" was **49 differing, not 2** — a stale
+    figure that had been load-bearing for its conclusion.
+  * One function's reload phase **self-corrects at index 148**, so its residue is
+    **one pair of reload allocations, not a drift** — a bound that makes the
+    remaining search finite.
+  * A park at *8 short* is **already solved nested** (30 of 31 equal, the one
+    difference an isolation-artefact pad halfword) and is **blocked on a sibling**
+    at 366 of 417. **It must not be reissued as a small-residue target** — its
+    figure describes a different problem from the work it needs.

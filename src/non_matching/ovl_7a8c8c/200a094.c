@@ -1,138 +1,92 @@
-/* OvlFunc_922_200a094  --  0x0200a094, cut from
- * goldensun/asm/overlays/rom_7a8c8c/ovl_30_c_c_c_c_c_c_c_c.s.
- *
- * NON-MATCHING, 2 of 199 encodings differ.  Size 452 bytes and 199 encodings
- * both EXACT; the two are one swapped pair at index 142.  Re-measured as
- * installed in batch 305 -- the figure is current.
+/* OvlFunc_922_200a094 -- NON-MATCHING, 1 ENCODING OF 199.  ADVANCED FROM 2 TO 1
+ * IN BATCH 315 BY ONE STATEMENT.  Size 452 both, 199 instructions both,
+ * relocations identical.
  *
  * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7a8c8c/200a094.c \
+ *   python3 tools/objcmp.py src/non_matching/ovl_7a8c8c/200a094.c \
  *     asm/overlays/rom_7a8c8c/ovl_30_c_c_c_c_c_c_c_c.s --func OvlFunc_922_200a094
+ *   XX ENCODINGS differ in 1 place(s) (ref 199, ours 199)
+ *      first at index 142: ref aa02  ours 1c2a
  *
- * NEEDS A TEXT/DATA SPLIT, and the split MUST EXPORT `.global .L2464` -- the
- * function reads that table and `datacheck` names it as the one symbol the data
- * object has to publish.  No shims, no pins.
+ * STILL NEEDS A TEXT/DATA SPLIT EXPORTING `.global .L2464` (datacheck names it).
+ * ONE SHIM NOW: a single r2 register pin at the step site.  A pinned landing
+ * needs a fakematch.txt row.
  *
- * THE RESIDUE.  The ROM builds the loop's third argument as `add r2, sp, #8`
- * and issues it BEFORE `lsl r0, #0xd`; we issue `mov r2, r5` AFTER it:
+ * =============== THIS PARK AND ovl_7a7298/2009fa4.c ARE THE SAME FUNCTION ===============
+ * IN TWO OVERLAYS, AND MUST BE WORKED AS ONE.  Both are 452 bytes / 199
+ * encodings with the first difference at index 142 and ref `aa02`.  Neither park
+ * referenced the other; 2009fa4 carried an r2 pin at the step site that this one
+ * did not, which is the ENTIRE reason it read 1 and this read 2.
  *
- *     rom    ldr r1, [sp, #4] / add r2, sp, #0x8 / lsl r0, #0xd / bl
- *     ours   ldr r1, [sp, #4] / lsl r0, #0xd     / mov r2, r5   / bl
+ * ============== WHAT THE PREVIOUS HEADER GOT WRONG, AND IT WAS LOAD-BEARING ==============
+ * It concluded: "the next rung is NOT in this call ... Anything that does not
+ * move insn 374 is not worth compiling", having attributed the residue to
+ * loop.c's move_movables (later re-attributed to cse2) and to a LUID order it
+ * declared unreachable because gcc-2.96 has no switch for invariant motion.
+ * ONE STATEMENT MOVES IT:
  *
- * BATCH 305 READ THE RTL AND THE CAUSE IS NOT THE ARGUMENT SPELLING.  It is
- * loop.c's invariant motion, and the whole chain is visible in `-da` dumps of
- * this very file (four passes, one pseudo):
+ *     step:
+ *         { register int q2 __asm__("r2");
+ *           q2 = (int)v;
+ *           __vec3_translate(0x80 << 13, dir, (int *)q2); }
  *
- *   .00.rtl   precompute_register_parameters splits the call's arguments into
- *             two pseudos -- insn 372 = 0x100000, insn 374 = the address
- *             `(plus virtual-stack-vars -12)` -- then loads the hard regs in
- *             order, insn 376 = r0, 378 = r1, 380 = `(set r2 (reg 130))`.
- *             BOTH call sites look identical here, and so does the ROM's shape.
- *   .03.cse   insn 374 is still a real address computation:
- *             `(set (reg 130) (plus (reg 25 sfp) (const_int -12)))`.
- *   .08.loop  loop.c hoists the loop-invariant `(plus sfp -12)` into reg 61 and
- *             REWRITES insn 374 into a plain copy, `(set (reg 130) (reg 61))`.
- *   .09.cse2  copy-propagates reg 61 into insn 380 -- `(set r2 (reg 61))` --
- *             leaving insn 374 dead; combine deletes it.
+ * 2 -> 1.  The swapped pair at 142/143 (`add r2,sp,#8` before `lsl r0,#0xd` in
+ * the ROM, after it in ours) collapses to the ROM's own slot; only the ENCODING
+ * of the r2 set is left.  MEASURED, batch 315 (whole-object sweep == production
+ * here):
+ *     r2 only, assigned first                  1   <- installed
+ *     full q0/q1/q2 pin as in the twin         1
+ *     q0+q2 pinned                             1
+ *     q2 assigned LAST inside the block        2   -- the ORDER inside the
+ *                                                     block is what pays
+ *     the same pin at BOTH call sites          3, first diff moves to 57 -- WORSE
+ * The lesson for the bank: a hard-register pin on an ARGUMENT fixes the fill's
+ * position in the chain, and that is a DIFFERENT lever from the statement-order
+ * one, reachable even where the competing operand is compiler-generated.
  *
- * So the ROM keeps TWO insns for that argument (the address computation at
- * LUID 374, coalesced into r2, plus a deleted copy) and we keep ONE (the copy
- * at LUID 380).  sched2 then does the rest: the two candidates are equally
- * ready, so its tie-break is the ORIGINAL ORDER, and LUID 374 lands before the
- * r0 shift while LUID 380 lands after.  The residue is a LUID difference
- * produced by loop.c, not a scheduling preference -- which is why
- * -fno-schedule-insns2 does not fix it but destroys everything else (51 of 199).
+ * ================= THE RESIDUE, NOW IDENTICAL TO THE TWIN'S =================
+ *     ref   add  r2, sp, #8      (aa02)
+ *     ours  adds r2, r5, #0      (1c2a)
+ * r5 holds sp+8 on both sides and is the base of every v[] access.  The full
+ * mechanism, the discriminating probes and the PROOF THAT THE ROM'S INSTRUCTION
+ * IS REACHABLE are written up once, in the twin's header
+ * (src/non_matching/ovl_7a7298/2009fa4.c).  READ THAT BEFORE SPENDING ANYTHING
+ * HERE.  In one line: cse1 extends the address temp's live range across the call
+ * by reusing it for the step block's own v[] MEMs (defeatable from source), and
+ * gcse then commons it with the dominating computation (not yet defeated); the
+ * landing mechanism is local-alloc.c update_equiv_regs substituting a single-use
+ * REG_EQUIV `(plus sfp -12)` into the hard-r2 fill, NOT reload.
  *
- * WHAT THIS RULES OUT, all measured in batch 305:
+ * =============== CORRECTION TO THIS PARK'S READING OF THE RTL ===============
+ * The previous header said precompute_register_parameters splits the call's
+ * arguments into two pseudos and names insn 374 as its work.  IT DOES NOT TOUCH
+ * THE ADDRESS.  calls.c precompute_register_parameters gates the copy on
+ * `rtx_cost (args[i].value, SET) > 2`; cse.c:747 defines COSTS_N_INSNS(N) as
+ * N*4-2, and arm.c arm_rtx_costs RETURNS COSTS_N_INSNS(1) for PLUS under
+ * TARGET_THUMB, so rtx_cost of ANY plus is exactly 2 and the gate is always
+ * false here.  (The 0x100000 argument IS copied: a CONST_INT with outer==SET and
+ * thumb_shiftable_const true costs COSTS_N_INSNS(2) == 6.)  The address temp
+ * comes from expr.c's ADDR_EXPR case, whose `force_operand` is unconditional
+ * once expr.c:5896-5898 has discarded any non-pseudo target.
  *
- * 1. EVERY FLAG.  Nineteen swept at plain -O2 against the ref.  INERT, still
- *    exactly 2 of 199 at 452 bytes / 199 encodings: -fno-schedule-insns,
- *    -fno-strength-reduce, -fno-force-mem, -fno-caller-saves, -fno-peephole,
- *    -fno-cse-follow-jumps, -fno-cse-skip-blocks, -fno-thread-jumps,
- *    -fomit-frame-pointer, -fno-function-cse, -fno-delayed-branch,
- *    -fno-move-all-movables, -fno-reduce-all-givs.  WORSE: -fno-schedule-insns2
- *    51, -fno-gcse 70 (201 encodings, 456 bytes), -fno-expensive-optimizations
- *    166, -fno-rerun-cse-after-loop 177 (203 encodings, 460 bytes).
- *    -fno-move-all-movables is the interesting negative: it only disables the
- *    aggressive "move every movable" mode, not the ordinary profitability test,
- *    and the ordinary test is what fires here.  gcc-2.96 has NO switch for
- *    loop invariant motion, so the flag rung is CLOSED.
- * 2. SIX MORE ADDRESS SPELLINGS on top of the park's original six, every one
- *    exactly 2 of 199 with the same first difference at index 142:
- *      - a pointer local for every ELEMENT access with the array name kept at
- *        both calls (`p[0]`/`p[1]`/`p[2]`, `p = v` after the `k` build)
- *      - the same, but with the PRE-LOOP call also passing `p` and only the
- *        in-loop call passing `v` -- the ROM's own two forms written out
- *        literally.  Still 2.
- *      - an inner-block pointer at the in-loop call only,
- *        `{ int *pp = v; __vec3_translate(..., pp); }`
- *      - `&v[0]` at the in-loop call only
- *      - `(int *)(void *)v` at the in-loop call only
- *      - `int v[3]` declared inside the `for (;;)` body instead of at the top
- *    They are inert for one reason, and it is the reason to stop trying
- *    spellings: EVERY spelling of a local array's address expands to the same
- *    `(plus virtual-stack-vars -12)`, so they all arrive at insn 374 identical
- *    and loop.c makes the same decision about all of them.  `k << 1` for the
- *    first argument instead of the literal is 165 of 199 at 201 encodings --
- *    the split `mov`+`lsl` build is required there.
- * 3. NOT the argument-precompute class the park originally named.  Both sides
- *    precompute; the difference is downstream of it.
+ * =============== BATCH 315 NEGATIVES, RE-MEASURED FROM THIS BASELINE ===============
+ * ALL NINE `extern void` callees swept to `extern int` (tools/sweep_variants.py):
+ *   OvlFunc_922_200a014, __Actor_WaitMovement, __CutsceneEnd, __CutsceneStart,
+ *   __WaitFrames                                            INERT at 2 (pre-pin)
+ *   __vec3_translate 3, __Actor_SetAnim 4, __Actor_SetAnimSpeed 4,
+ *   __Actor_TravelTo 9                                       WORSE
+ * So the batch-315 callee-return-type lever does NOT pay on this function, and
+ * the previous header's hope that varying "the other three callees" would change
+ * move_movables' insn_count is retired along with the move_movables story.
  *
- * WHERE THE NEXT RUNG IS.  move_movables' profitability test is a function of
- * the LOOP as a whole -- its insn_count, the movable's lifetime and savings,
- * and `threshold`, which is `(loop has a call ? 1 : 2) * (3 + n_non_fixed_regs)`.
- * None of those is a property of how the address is written, and the loop body
- * already matches the ROM byte for byte, so the next rung is NOT in this call.
- * It is either (a) the callee return types, which the park already flagged and
- * which change the loop's insn_count -- `int __vec3_translate` was measured at
- * 3, worse, but the other three callees have not been varied -- or (b) some
- * statement in the loop body that is byte-neutral yet changes the movable's
- * lifetime.  Anything that does not move insn 374 is not worth compiling.
+ * NOT POOL-INFLATED: the one differing encoding is a real instruction.  Every
+ * differing index was listed; there is no `.word` among them.
  *
- * WHAT CLOSED THE OTHER 190, in the order it mattered:
- *
- * 1. THE LOOP IS NOT IRREDUCIBLE.  Batch 298 read `.L21c6` as a second entry
- *    into the `.L2184` body.  It is a `do`/`while` with a `goto` INTO the middle
- *    of the body -- single-entry, and the layout is exactly what gcc emits:
- *
- *        goto step;
- *        do { <height check, travel> step: <translate, probe>; } while (t != 0xff);
- *
- *    The `b .L21c6` that looked like a second entry is the `goto step`.  Written
- *    as `while ((translate, t = probe()) != 0xff) { body }` instead,
- *    `expand_end_loop`'s rotation drags the body's leading `if (...) break` up
- *    into the condition block and the two blocks come out split in the wrong
- *    place: 57 differing rather than 28.
- *
- * 2. AN ALIASING STORE BETWEEN THE READ AND THE ARGUMENTS.  The ROM loads
- *    `v[0]` and `v[2]` twice -- once into the saved target and once for
- *    `__Actor_TravelTo` -- because `a->f30 = ...` sits between them and kills
- *    the load.  With the stores written FIRST the two reads CSE, the saved
- *    target feeds the call directly, and r8/r9/r10 all shift.  Moving two
- *    assignments took 28 differing to 2 and fixed the high-register roles as a
- *    side effect: this was worth more than any declaration permutation.
- *
- * 3. THE ELSE BRANCH IS OUTSIDE THE LOOP.  `.L217c` (`a->f6 = dir`) sits
- *    between the pre-loop `b .L21c6` and the loop body, which only happens if
- *    the `while` is AFTER the if/else and the else ends in a `goto` past it --
- *    gcc threads the then-branch's `b <after the if>` straight through to the
- *    loop's entry jump.  Nesting the loop inside the then-branch puts the else
- *    block at the end instead.
- *
- * 4. `(unsigned short)dir == 0xffff`, not `(short)dir == -1`.  `dir` comes from
- *    an `ldrsh`, so gcc knows it is sign-extended and compares it directly
- *    (`mov r3, #1 / neg r3, r3 / cmp`).  The unsigned spelling is an AND
- *    against 0xffff, which `simplify_comparison` turns into the ROM's high-half
- *    compare `lsl r3, r2, #16 / cmp r3, =0xffff0000`.
- *
- * 5. `k = 0x80 << 12` as a named local.  The ROM holds 0x80000 in r11 across
- *    the vec3 setup and the height test, and rebuilds the same constant inside
- *    the loop -- so it is a local whose live range ends before the loop, and
- *    the in-loop comparison keeps the literal.
- *
- * 6. `h -= a->fc;` as its own statement, for the ROM's two-operand
- *    `sub r0, r3` with the destination on the call result.
+ * WHAT CLOSED THE OTHER 198 is unchanged and still load-bearing: the single-entry
+ * do/while with `goto step` into the middle of the body; the aliasing store
+ * placed between the two v[] reads; the else branch outside the loop;
+ * `(unsigned short)dir == 0xffff`; `k = 0x80 << 12` as a named local whose range
+ * ends before the loop; and `h -= a->fc;` as its own statement.
  */
 struct Actor {
     unsigned char pad00[6];
@@ -228,7 +182,9 @@ void OvlFunc_922_200a094(void)
             if (t != first)
                 goto blocked;
         step:
-            __vec3_translate(0x80 << 13, dir, v);
+            { register int q2 __asm__("r2");
+              q2 = (int)v;
+              __vec3_translate(0x80 << 13, dir, (int *)q2); }
             t = __Func_8012038(*q, v[0], v[2]);
         } while (t != 0xff);
         a->f30 = 0x80 << 10;
