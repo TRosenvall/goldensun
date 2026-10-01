@@ -5610,27 +5610,39 @@
 
 	.section .rodata
 
+.global .Leee76
 .Leee76:
 	.incrom 0xeee76, 0xeeea0
+.global .Leeea0
 .Leeea0:
 	.incrom 0xeeea0, 0xeeebc
+.global .Leeebc
 .Leeebc:
 	.incrom 0xeeebc, 0xeeeca
+.global .Leeeca
 .Leeeca:
 	.incrom 0xeeeca, 0xeeed8
+.global .Leeed8
 .Leeed8:
 	.incrom 0xeeed8, 0xeeee1
+.global .Leeee1
 .Leeee1:
 	.incrom 0xeeee1, 0xeeeea
+.global .Leeeea
 .Leeeea:
 	.incrom 0xeeeea, 0xeeef8
+.global .Leeef8
 .Leeef8:
 	.incrom 0xeeef8, 0xeef06
+.global .Leef06
 .Leef06:
 	.incrom 0xeef06, 0xeef0c
+.global .Leef0c
 .Leef0c:
 	.incrom 0xeef0c, 0xeef12
+.global .Leef12
 .Leef12:
 	.incrom 0xeef12, 0xeef18
+.global .Leef18
 .Leef18:
 	.incrom 0xeef18, 0xeef28

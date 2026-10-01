@@ -51,8 +51,20 @@
  *     src/rom_c9000/rom_e7320_c_c_b.c   Anim_TitanBlade
  *     asm/rom_c9000/rom_e7320_c_c_c.s   the .rodata tail
  *
+ * EXPORTS LANDED IN BATCH 311.  All twelve `.global` lines are now in
+ * asm/rom_c9000/rom_e7320_c_c.s, each immediately before its label (the house
+ * convention, from asm/rom_b5000/rom_b5368_c.s:7), in one build+compare-gated
+ * commit.  The dry-run now SUCCEEDS and prints exactly the three-way shape
+ * predicted below -- 7 functions / 1 function / 39-line data tail -- so that
+ * shape is verified rather than inferred, and EVERY LATER SPLIT OF THIS
+ * EIGHT-FUNCTION FILE IS NOW FREE OF ASM WORK.  The dry-run was confirmed to
+ * have written nothing (no split files, stage1.ld untouched), which matters
+ * because this is the tool whose --dry-run was silently ignored until batch
+ * 302 gave it a real flag.
+ *
+ * The refusal recorded below is the PRE-311 state, kept for the record:
  * `python3 tools/split_s.py asm/rom_c9000/rom_e7320_c_c.s Anim_TitanBlade
- * --dry-run` REFUSES until the exports exist -- "12 local label(s) would cross
+ * --dry-run` REFUSED until the exports existed -- "12 local label(s) would cross
  * files" -- and datacheck attributes every one of the twelve.  THE EXACT
  * `.global` LIST, in the order the tool prints it:
  *

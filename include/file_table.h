@@ -27,6 +27,8 @@ extern int _FILE_16;
 #define FILE_16 ((int)&_FILE_16)
 extern int _FILE_17;
 #define FILE_17 ((int)&_FILE_17)
+extern int _FILE_1a;
+#define FILE_1a ((int)&_FILE_1a)
 extern int _FILE_1c;
 #define FILE_1c ((int)&_FILE_1c)
 extern int _FILE_3f;
@@ -243,6 +245,8 @@ extern int _FILE_bd;
 #define FILE_bd ((int)&_FILE_bd)
 extern int _FILE_be;
 #define FILE_be ((int)&_FILE_be)
+extern int _FILE_bf;
+#define FILE_bf ((int)&_FILE_bf)
 extern int _FILE_c0;
 #define FILE_c0 ((int)&_FILE_c0)
 extern int _FILE_c1;

@@ -89,7 +89,7 @@
 	movs	r0, r1
 	pop	{r5, r6}
 	bx	lr
-.func_end Func_8015430
+.func_end_emit_size Func_8015430, _FUNC_8015430_SIZE
 
 .arm_func_start Func_8015570  @ 0x08015570
 	lsr	r3, r1, #8

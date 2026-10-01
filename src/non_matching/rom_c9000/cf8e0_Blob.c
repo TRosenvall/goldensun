@@ -118,8 +118,22 @@
  *     relocation FORM difference, NOT a residue -- objcmp compares unlinked
  *     objects -- but a literal `0xbf` is WRONG, because gcc emits `mov r7,#0xbf`
  *     for it and the ROM has `ldr r7,=0xbf`, a pool LOAD.  Only a symbol pools.
- *     LANDING THIS REQUIRES ADDING `_FILE_bf` TO include/file_table.h; the local
- *     `extern int _FILE_bf;` in this file is a placeholder for the measurement.
+ *     DONE IN BATCH 311.  `_FILE_bf = 0xbf;` is now in file_table.sym (which
+ *     stage1.ld INCLUDEs) and declared in include/file_table.h, so the symbol is
+ *     real and the local `extern int _FILE_bf;` below is no longer a placeholder
+ *     -- it can be dropped in favour of the header at landing time.  Gated:
+ *     an absolute symbol assignment emits no bytes, so the change is
+ *     byte-neutral and build+compare stayed green.
+ *
+ *     The note above says the table "jumps ba -> bb -> bd, skipping bc and bf",
+ *     which reads as though bf is not a file.  It is: the ROM's pool word is
+ *     `0x000000bf` and by this batch's own proof A POOLED EIGHT-BIT-MOVABLE WORD
+ *     IS A SYMBOL -- gcc emits `mov r7,#0xbf` for the literal, so a pool LOAD of
+ *     it can only come from a relocation.  file_table.sym was simply incomplete,
+ *     which is how it has always grown: it carries only the entries decompiled
+ *     code has needed so far, and its gaps are unreferenced files, not absent
+ *     ones.  I first read the gap the other way and removed my own header entry
+ *     as a fiction before the park's own argument corrected me.
  *   - THE if-CHAIN BEATS THE switch for the 7-way file selection, 48.5% against
  *     44.5% aligned, even though the switch gets the POOL ORDER right (the ROM
  *     emits _FILE_8d before _FILE_77 because variant 3 and the default share one

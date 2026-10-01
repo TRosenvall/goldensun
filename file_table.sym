@@ -113,6 +113,7 @@ _FILE_ba = 0xba;
 _FILE_bb = 0xbb;
 _FILE_bd = 0xbd;
 _FILE_be = 0xbe;
+_FILE_bf = 0xbf;
 _FILE_c0 = 0xc0;
 _FILE_c1 = 0xc1;
 _FILE_c2 = 0xc2;
