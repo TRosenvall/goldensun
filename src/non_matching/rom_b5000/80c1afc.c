@@ -1,4 +1,67 @@
-/* Func_80c1afc -- 0x080c1afc, from goldensun/asm/rom_b5000/rom_c1a34_a_a_a_a_b.s.
+/* Func_80c1afc (0x080c1afc) -- STILL PARKED at 20 of 158, AND THIS PARK'S
+ * DIAGNOSIS IS ONE OF THE FEW THAT SURVIVES RE-MEASUREMENT.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_b5000/80c1afc.c \
+ *     asm/rom_b5000/rom_c1a34_a_a_a_a_b_a.s --func Func_80c1afc
+ * Re-measured in batch 316c: 20 of 158, first difference at index 63, size and
+ * relocations identical.  The body on disk produces the header's figure.
+ *
+ * *** THE ARITHMETIC REPRODUCES EXACTLY FROM .17.lreg, FIGURE FOR FIGURE. ***
+ * Both numbers that matter were re-read off the dump rather than taken on
+ * trust, because a sibling park's "unreachable by arithmetic" proof turned out
+ * to have its two live lengths backwards.  This one does not:
+ *     pseudo  38 (counter j)   refs=7  live=28  ->  floor_log2(7)*7/28 = 0.500
+ *     pseudo 133 (offset giv)  refs=9  live=24  ->  floor_log2(9)*9/24 = 1.125
+ *     pseudo  66 (table base)  refs=5  live=24  ->  floor_log2(5)*5/24 = 0.417
+ * and .18.greg's own order confirms it: the allocation list is
+ *     ;; 21 regs to allocate: 81 130 138 37 39 43 41 40 133 42 46 34 38 47 66 ...
+ * with 133 ninth, 38 thirteenth, 66 fifteenth, and the dispositions
+ *     133 in 5   38 in 6   66 in 7
+ * All three cross the loop's two calls, so r0-r3 are out and r4 is out by
+ * -fcall-used-r4, which is why REG_ALLOC_ORDER reaches r5 first for them.
+ * The ROM needs 38 > 133 > 66, i.e. the counter above 1.125 and the giv
+ * between 0.417 and 0.500.
+ *
+ * THE WINDOW, STATED AS NUMBERS (this is the part the park left implicit):
+ *   - raise the counter: refs 8 -> 0.857, 9 -> 0.964, 10 -> 1.071,
+ *     ELEVEN -> 1.179, the first value that clears the giv.  Refs are
+ *     loop-depth weighted at (depth + 1), so +4 weighted refs is TWO MORE
+ *     IN-LOOP USES OF j, which are two instructions the ROM does not have.
+ *     Shortening the counter instead needs live_length <= 12 against a loop
+ *     that is already 11 instructions plus its preheader.
+ *   - lower the giv: refs 8 -> 1.000, 7 -> 0.583, SIX -> 0.500 (an exact tie
+ *     with the counter, which would be decided by qsort on equal keys -- not
+ *     something to rely on), 5 -> 0.417 (a tie with the BASE instead).  Its 9
+ *     weighted refs decompose as init(1) + increment set+use(4) + the TWO
+ *     `ldrh r0, [r6, r7]` loads(4), and the ROM shows both loads.
+ *     Lengthening it instead needs live_length in 55..64 against a 24-insn
+ *     range.
+ * So the reachable set is empty unless an instruction count changes, which is
+ * what the park said.  CLOSED, with a compiler-source citation and an
+ * arithmetic impossibility argument rather than a tired author's note.
+ *
+ * MEASURED IN BATCH 316c, on top of the park's own inert list -- all still 20:
+ *   `j = 0; do { ... j++; } while (j < 0x14);`            20
+ *   `while (j != 0x14)` instead of `< 0x14`               21
+ *   `j <= 0x13`                                           20
+ *   caching tbl[j] for the first call only                20 (confirms the
+ *                                                         park's "local copy")
+ *   `0x600 + tbl[j]` instead of `tbl[j] + 0x600`          20
+ *   `tbl[j + 0]` on the first read                        20
+ *   an `int k` counter instead of `unsigned int j`        22
+ *   an extra in-loop use of j (`if (j == 0x7fffffff)`)    95, +8 bytes,
+ *                                                         relocations differ --
+ *                                                         the direct test of
+ *                                                         "two more uses of j",
+ *                                                         and it costs exactly
+ *                                                         what the park said
+ * The last row is worth keeping: it is the park's prediction measured.
+ *
+ * ---- everything below is the park's own record and is unchanged ----
+ *
  *
  * NON-MATCHING: 20 encodings of 158 differ (objcmp).
  * Size and instruction count both agree (344 bytes, 158 encodings against 158,

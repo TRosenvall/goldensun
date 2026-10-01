@@ -1,4 +1,91 @@
-/* Func_80f6148 (0x080f6148) -- NON-MATCHING, 20 encodings of 76.
+/* Func_80f6148 (0x080f6148) -- STILL PARKED at 20 of 76, BUT THE BLOCKER CLASS
+ * WAS WRONG AND THE RESIDUE IS NOW A DIFFERENT, SMALLER, NAMED THING.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_f6000/80f6148.c \
+ *     asm/rom_f6000/rom_f6008_c_a_c.s --func Func_80f6148
+ * Re-measured in batch 316c: 20 of 76, first difference at index 5, size and
+ * relocations identical.  The park's figure reproduces from the body on disk.
+ *
+ * *** THE PARK CALLED THIS "register allocation ORDER -- a three-register
+ * permutation" AND SAID IT "WANTS allocno_compare / find_reg READ AGAINST
+ * .18.greg RATHER THAN MORE SPELLINGS".  IT IS NOT global_alloc's ORDER. ***
+ *
+ * It is LOCAL-ALLOC's destination/dying-source COMBINE, and it is visible by
+ * eye in the two `subs` forms:
+ *     rom    lsrs r0, r3, #26 / ands r0, r7 / ... / subs r0, #1
+ *     ours   lsrs r3, r1, #26 / ands r3, r7 / ... / subs r0, r3, #1
+ * The ROM carries each channel in ONE register from extraction through mask
+ * through decrement -- a TWO-operand `subs rN, #1`.  We compute the mask into a
+ * shared temporary and decrement into a second register -- a THREE-operand
+ * `subs rD, rN, #1`.  The register names are a CONSEQUENCE of that, not the
+ * cause: the shared temp is why `t` is squeezed out of r3 and why the second
+ * channel reuses the first channel's temp.
+ *
+ * AND THE IN-PLACE FORM IS SOURCE-REACHABLE.  Splitting the decrement off,
+ * `r = (u16)(t >> 26) & 0x1f;` then `r -= 1;`, produces exactly the ROM's
+ * two-operand `sub`.  The park filed this as "inline required; full separation
+ * costs the prologue, 54-56" and that is right about the cost but wrong about
+ * why: separation does not add pressure, it REMOVES it.  With single-pseudo
+ * channel chains gcc needs one fewer callee-saved register and emits
+ *     push {r5, r6, lr} / ldr r4, .L17+4 / ldrh r6, .L17 / mov r5, #0
+ * against the ROM's `push {r5, r6, r7, lr}` with p/i/mask in r5/r6/r7 and the
+ * blue channel in r4.  The ROM's peak liveness is EIGHT registers; the
+ * separated form's is seven.  So the function needs the in-place chains AND the
+ * ROM's eight-register pressure at the same time, and no spelling found here
+ * delivers both.
+ *
+ * THAT IS THE NEW, PRECISE STATEMENT OF THE RESIDUE.  Not "allocation order":
+ * "the in-place chain and the eighth live register are in conflict".
+ *
+ * MEASURED IN BATCH 316c (about 70 more variants on top of the park's 55):
+ *
+ *  SEPARATED DECREMENTS -- every placement, 54 to 74:
+ *    r and g separated, b block before / between / after        56 / 56 / 56
+ *    decrement order b,r,g and r,g,b                            56 / 56
+ *    only r separated / only g separated                        54 / 56
+ *    `r--` instead of `r -= 1`                                  56
+ *    mask as its own statement (`r = (u16)(t>>21); r &= 0x1f;`)  74, -16 bytes
+ *
+ *  REGISTER PINS -- all 25 subsets of {t=r3, r=r0, g=r1, c=r2, b=r4} of size
+ *  1-3, then every superset containing t,g,c up to all seven loop values:
+ *    pin t,g,c                                   *** 18 *** (first diff at 6)
+ *    pin t,r,g  /  pin t,r,g,c  /  +b,p,i         20 (first diff at 8)
+ *    pin t alone / t,b                            26
+ *    pin g, r, t+g, t+r, t+c, g+c ... (all else)  40-54
+ *  So a THREE-PIN variant beats the park by two encodings.  It is recorded, not
+ *  shipped: three fakematch-class pins for two encodings is a bad trade and it
+ *  is still not a landing.  It is in scratch_elev/b316c/v_p4d/t_tgc.c.
+ *  WHAT THE PINS TEACH is worth more than the two encodings.  `pin t,r,g` makes
+ *  indices 5-7 and 12 exact, including the ROM's `subs r0, #1` -- so the r
+ *  channel's in-place chain IS obtainable -- but it then breaks the store, which
+ *  the base already had right: pinning r to r0 lets the `(r << 10)` accumulator
+ *  combine with r and come out `lsls r0, r0, #10` against the ROM's
+ *  `lsls r3, r0, #10`.  `pin t,g,c` keeps the store and loses the g chain.
+ *  The two halves of the residue are reachable one at a time and not together.
+ *
+ *  STORE SPELLINGS, crossed against six pin sets -- COMPLETELY INERT, all 30
+ *  combinations reproduce their pin set's figure exactly:
+ *    `((r<<10)|(g<<5))|b`,  `(r<<10)|((g<<5)|b)`,  a named `int v` for the
+ *    word, and three separate `v |=` statements.
+ *
+ *  LOOP-CARRIED PINS ON THE SEPARATED-DECREMENT BRANCH, to buy the eighth
+ *  register back: pin p=r5,i=r6 is 44; +b=r4 is 36; +t=r3 is 32; +c is 32;
+ *  adding r and g makes it 69-71 and EIGHT BYTES LONGER.  Best on that branch
+ *  is 32, so the branch is dead -- the push list does not come back by pinning.
+ *
+ * NEXT, and it is now a specific question rather than "read the allocator":
+ * find a spelling that keeps each channel as ONE pseudo through extract/mask/
+ * decrement WITHOUT lowering peak liveness below eight.  Everything that makes
+ * the chains single-pseudo also frees a register.  The park's own list of ~55
+ * spellings plus the ~70 here is the evidence that it is not an easy spelling.
+ *
+ * -- scratch_elev/b316c/v_p4, v_p4b, v_p4c, v_p4d, v_p4e, v_p4f, v_p4g
+ *
+ * ---- everything below is the park's own record and is unchanged ----
+ *
  * Blocker class: register allocation ORDER -- a three-register permutation.
  *
  * Darkens two palette regions by one step per channel. Re-screened in batch 276

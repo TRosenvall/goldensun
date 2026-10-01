@@ -1,123 +1,92 @@
-/* InitMapActors -- 0x0808b674.  PARKED at 14 of 195.
- * ref: asm/rom_8a000/rom_8b674_a_a.s  (ONE function, NO data section --
- *      grep -ci func_start = 1; converts WHOLE FILE, no split needed)
- *
- * NON-MATCHING: 14 encodings of 195 differ (objcmp).
+/* InitMapActors -- 0x0808b674.  PARKED at 14 of 195, BUT THE PARK'S FILE COULD
+ * NEVER HAVE LANDED AND THIS ONE CAN.
+ * ref: asm/rom_8a000/rom_8b674_a_a.s  (ONE function, no data section; whole-file
+ *      conversion, no split -- confirmed again, tools/datacheck.py prints nothing)
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/808b674.c \
+ *     goldensun-build python3 tools/objcmp.py src/rom_8a000/rom_8b674_a_a.c \
  *     asm/rom_8a000/rom_8b674_a_a.s --whole
  *
- * IT IS A TRUE DISTANCE: ref 432 bytes / 195 encodings, ours 432 bytes / 195
- * encodings.  Control flow, frame, every call, every constant and every pool
- * entry but two are identical.
+ * *** THE CORRECTION: THE PARKED FILE DIFFERED IN ITS RELOCATIONS. ***
+ * The park recorded "14 encodings of 195 differ" and reported the pool entries as
+ * one of four clusters.  objcmp --whole on the parked body says
+ *     XX RELOCATIONS differ
+ * on top of the 14.  A relocation difference is a hard fail -- `make compare`
+ * cannot pass it -- so the park's 14 was not 14 away from a landing at all.  The
+ * park's own cluster (d) explains why: it chose the `b` before `a` source order
+ * because that "fixes the registers", and that puts ewram_200fe00 in the literal
+ * pool ahead of gBuffer, which is the reverse of the ROM.
  *
- * SHIM PRESENT -- ONE REGISTER PIN, AND IT IS LOAD-BEARING.
- *     register unsigned char *g __asm__("r8");
- * Removing it (everything else unchanged) is 50 of 195; keeping it is 14.  It
- * needs a fakematch.txt row if any version of this file lands.  Measured by
- * REMOVAL, not by addition, after every other lever was in place.  A pin on
- * `id` to r7 instead is much worse (189 of 195, 183 encodings) and the pair of
- * pins together worse still (190 of 195, 187) -- do not add the second.
+ * THIS FILE IS 14 WITH THE RELOCATIONS IDENTICAL.  Two changes, and the second is
+ * only worth anything once the first is in place:
+ *   1. `a = &gBuffer[i];` BEFORE `b = &ewram_200fe00[i];`  -- pool order follows
+ *      first reference, so this is what the ROM's pool wants.  ALONE it is 16 of
+ *      195 (relocations clean): it costs the two `ldrb` at [101]/[104], because
+ *      a and b come out in the opposite registers to the ROM.
+ *   2. the condition's two flag tests SWAPPED, `b->flags` before `a->flags`.
+ *      ALONE on the parked body it is meaningless; on top of (1) it takes 16
+ *      back to 14 by restoring the ROM's PAIRING of pointer to test, which is
+ *      exactly what the two `ldrb` encodings at [101]/[104] measure.  Both
+ *      tests are side-effect-free loads, so the swap is semantics-neutral.
  *
- * WHY THE PIN IS THERE.  The ROM saves exactly r8 and r10
- * (`mov r7, r10 / mov r6, r8 / push {r6, r7}`) and its five call-crossing
- * values sit in r5 (r/act), r6 (s/cam), r7 (id), r8 (g), r10 (arg).  Without
- * the pin gcc puts g in r7 and id in r8 -- the same five allocnos, two of them
- * exchanged.  global.c's allocno_compare ranks on
- * `floor_log2(n_refs) * n_refs / live_length`, and the two are within a few
- * percent of each other here: g has ~7 refs over the whole body, id ~4 refs
- * over about 60% of it.  Because g lands in a LOW callee-saved register the
- * whole body then uses three-operand `add rD, rN, rM` where the ROM uses
- * two-operand `add rD, rM` on r8, and that alone is most of the 50.
- * TRIED AND INERT for flipping the pair without a pin: reducing g's reference
- * count by deriving the zero-loop start from the bound (`lim = (int)g;
- * w = lim + 0xc;`) and by walking an `int *` instead (both 67, unchanged);
- * reading `id` before `g`, after `g`, and after `r = g + 0x200` (67-68);
- * a second pointer local for g's two late uses (67); reading `id` only just
- * before its first use (183 -- worse, it changes the whole head).
+ * Measured: parked body 14 + RELOCDIFF; (1) alone 16 clean; (1)+(2) 14 clean.
+ * This is the brief's "edits each a clear regression, jointly a gain" shape in
+ * miniature -- (1) alone LOOKS like a two-encoding regression and is the only
+ * version that can ever link.
  *
- * ------------------------------------------- THE SIX LEVERS THAT GOT IT HERE --
- * Baseline first candidate: 190 of 195 at 175 encodings.  Each number below is
- * the objcmp figure with that one lever removed from the shipped file.
+ * ------------------------------------------------ WHAT THE 14 STILL ARE ------
+ * Same four clusters, re-measured, with the park's own diagnoses tested:
  *
- * 1. A LOCAL `unsigned char *` BASE FOR gState, ONE PER REGION.  [175 encodings,
- *    ours 20 short]  `*(int *)(gState + 0x1f4)` folds symbol and offset into
- *    `ldr r3, =gState+500`; the ROM builds `mov r0, #0xfa / lsl r0, #1 /
- *    add r3, r0`.  docs/elevation.md "The gState offset must be BUILT, not
- *    folded".  The ROM loads the symbol THREE times, so this file has three
- *    locals -- `s0` for the 0x1f4 read, `s` for the block after Func_808b9f8,
- *    `s2` for the else arm's 0x1f2 write.  ONE local for all of them is worse
- *    (it becomes a sixth call-crossing allocno and pushes r9 as well).
+ *  a) [2] indices 30/32.  `movs r2, #0` and `mov ip, r8` in the opposite order.
+ *     A sched2 tie decided on the last rung, INSN_LUID: both are independent of
+ *     last_scheduled_insn (CLASS 3) and both have zero dependents inside the
+ *     preheader, so the pre-sched source order decides, and the loop body's zero
+ *     is hoisted to the END of the preheader and therefore always later than the
+ *     `lim` copy.  NOT reachable by naming the zero: `int z = 0;` before `lim`,
+ *     between `lim` and `w`, and after `w` all measure 185-186 (and +4 bytes) --
+ *     `z` becomes a call-crossing allocno and the whole frame changes.  Dropping
+ *     `lim` and comparing against `(int)g` directly is 166 and -4 bytes.
+ *     `w` before `lim` is 15 -- the park's lever 6 confirmed, worth 1.
  *
- * 2. A UNION ON BOTH HALFWORD STORES INTO THE RECORD AT g+0x200.  [67 -> ...]
- *    This is the single biggest step: 186 of 195 (193 encodings) down to 67 of
- *    195 (195 encodings) when the `*(short *)r = id` store became
- *    `((union hw *)r)->h = id`, and 20 -> 15 when the 0xffff store got one too.
- *    A union member access is ALIAS SET 0, which conflicts with everything, so
- *    the halfword stores stop floating past the neighbouring word stores in
- *    sched2.  As a side effect it also stopped cse reusing the `r+0xc` zero for
- *    the later QImode `act+0x55` store, which is what restores the ROM's
- *    `ldr r3, =0x0` pool load there (a QImode literal store pools --
- *    *thumb_movqi_insn's alternative ordering, same mechanism as the recorded
- *    HImode rule).  Without the unions that pooled zero is absent and a zero
- *    lives in r9 across three calls instead.
- *    NOT reachable any other way that was tried: `-fno-gcse`,
- *    `-fno-rerun-cse-after-loop` and `-fno-cse-follow-jumps` are all INERT on
- *    the zero (so it is cse1, which has no flag), a block-local `int zz = 0;`
- *    after the address is inert, a named `int` zero is inert, and an
- *    `__asm__ ("" : "+r" (zc))` barrier on the first zero makes it WORSE
- *    (191 encodings, 163 differing).
+ *  b) [5] indices 67-71.  The ROM copies g out of r8 and uses the REGISTER-OFFSET
+ *     load (`mov r0, r8 / ldr r5, [r0, r3]`); we fold (`add r3, r8 / ldr r5,
+ *     [r3]`).  INERT: `*(unsigned char **)(n + g)`, `*(unsigned char **)((int)g
+ *     + n)`, `*(unsigned char **)&g[n]`, `(unsigned char *)*(int *)(g + n)`.
+ *     WORSE: `((unsigned char **)g)[id + 5]` 16; and -- NEW -- folding `n` into
+ *     the subscript at all (`*(unsigned char **)(g + (id * 4 + 0x14))`, or
+ *     splitting it as `n = id * 4` plus a `+ 0x14` in the address) is 134 of 195
+ *     at FOUR BYTES SHORT: the named `n` is load-bearing, it is what keeps the
+ *     fifth call-crossing allocno and therefore the ROM's push list.
  *
- * 3. AN int CARRIER FOR THE 0xffff HALFWORD LITERAL.  `*(short *)(r + 2) =
- *    0xffff;` narrows to HImode -1 and pools `=0xffffffff`; the ROM pools
- *    `=0xffff`.  `m = 0xffff;` then storing `m` keeps the value 32-bit.
+ *  c) [2] indices 79/80.  `ldr r2, =0xfffff` against our `ldr r1`.  The park
+ *     called it "reload scratch rotation (allocate_reload_reg / last_spill_reg)".
+ *     IT IS NOT A RELOAD AT ALL -- it is an ordinary insn in the signed-division
+ *     expansion, and the register is local-alloc's.  The ROM reuses r2, which the
+ *     `asrs r2, r3, #20` two insns later also wants; we use r1 and leave r2 for
+ *     the shift.  INERT: splitting the two divisions into named locals (either
+ *     order, 14 and 23), `<< 7` instead of `* 128`, `128 * (...)` instead of
+ *     `(...) * 128`, parenthesising each division.
  *
- * 4. COPY-THEN-MODIFY FOR THE GROUND-HEIGHT ADD.  [worth 8: 33 -> 25]
- *    The ROM's `add r3, r0` ties the destination to the LOADED y, not to the
- *    height; `h = *(int *)(act + 0xc) + h;` gives `add r0, r3`.  A separate
- *    `y = *(int *)(act + 0xc); y += h;` gives the ROM's operand order.
- *    docs/elevation.md "A COPY-then-modify in the ROM means two named values".
+ *  d) [5] indices 90-96.  a and b exchanged plus one sched2 tie.  .17.lreg gives
+ *     the number instead of the story: the two pointers are both refs=2, and the
+ *     one with the SHORTER live length is allocated first and takes r2 --
+ *     live=5 against live=9 here.  Whichever is written second is the shorter,
+ *     and whichever is referenced first owns the earlier pool entry, so the two
+ *     requirements really are in conflict through one variable.  The park said a
+ *     shape getting both "was not found"; that is still true, and now it has a
+ *     mechanism rather than an observation.  INERT: declaration order of a and b,
+ *     `(struct Tile *)((char *)gBuffer + i * 4)`, plain pointer arithmetic.
+ *     WORSE: inlining either subscript into the condition (21-26), reordering the
+ *     0x1e0 test (22).
  *
- * 5. THE 0x1dc READ BEFORE THE `r+0xc` ZERO STORE.  [worth 2-3]  Source order
- *    is the opposite of the ROM's instruction order here: writing the zero
- *    store first lets sched2 hoist it three slots; writing the gState read
- *    first puts both where the ROM has them.
+ * SHIM: still ONE, `register unsigned char *g __asm__("r8")`, and still
+ * load-bearing (the park measured removal at 50 of 195).  Needs a fakematch.txt
+ * row if this lands.  tools/shimcount.py counts it.
  *
- * 6. `lim` ASSIGNED BEFORE `w` in the zero loop.  [worth 1]  Only the order of
- *    the two preheader assignments; the loop itself must be the `do/while` with
- *    an `int` carrying the address -- a `for` over the same ints is 168 of 195
- *    at 197 encodings, and the compare must be on `int`s, not on `int *`,
- *    because the ROM's `cmp r3, r12 / bge` is SIGNED.
- *
- * ----------------------------------------------- WHAT THE 14 STILL ARE ------
- * Four clusters, all register/addressing selection, none of them control flow:
- *
- *  a) [2]  the zero loop's preheader emits `mov r12, r8` and `mov r2, #0` in
- *     the opposite order to the ROM.  Pure sched2 tie.
- *  b) [5]  `act = *(unsigned char **)(g + n)`: the ROM copies g into a low
- *     register and uses the register-offset form (`mov r0, r8 /
- *     ldr r5, [r0, r3]`); we fold (`add r3, r8 / ldr r5, [r3]`).  Both are two
- *     instructions, so it is a cost tie, not a shape the source picks.  `&g[n]`
- *     and `(unsigned char *)*(int *)(g + n)` are both INERT; a true subscript
- *     `((unsigned char **)g)[id + 5]` is much worse (135 of 195, 193 encodings)
- *     because it changes the offset arithmetic.  This one is probably a
- *     consequence of g being pinned high -- the register-offset form needs both
- *     operands LOW, so gcc has to insert the copy, and it prices the fold the
- *     same.
- *  c) [2]  `ldr r2, =0xfffff` against our `ldr r1, =0xfffff`: reload scratch
- *     rotation (allocate_reload_reg / last_spill_reg).
- *  d) [5]  the gBuffer / ewram_200fe00 pair.  Source order `a` then `b` puts
- *     the POOL ENTRIES in the ROM's order but exchanges r1/r2; order `b` then
- *     `a` fixes the registers and exchanges the two pool entries.  Both cost
- *     about the same (22 against 20 at the point they were measured), and this
- *     file ships the second.  A source shape that gets both at once was not
- *     found: the pool order follows first reference, so the two requirements
- *     are in direct conflict unless something else references gBuffer earlier.
- *
- * -- worked in scratch_elev/b292/A
+ * -- re-measured in scratch_elev/b316c/v_p2, v_p2b, v_p2c
  */
+
 struct Tile {
     unsigned char f0;
     unsigned char f1;
@@ -195,9 +164,9 @@ void InitMapActors(unsigned char *arg)
     *(char *)(act + 0x22) = *(unsigned short *)(s + 0x1ec);
     i = *(int *)(act + 8) / 0x100000
         + *(int *)(act + 0x10) / 0x100000 * 128;
-    b = &ewram_200fe00[i];
     a = &gBuffer[i];
-    if (*(int *)(s + 0x1e0) != 0 && a->flags == 0xfd && b->flags == 0xfd) {
+    b = &ewram_200fe00[i];
+    if (*(int *)(s + 0x1e0) != 0 && b->flags == 0xfd && a->flags == 0xfd) {
         *(char *)(s + 0x1f2) = 1;
         h = _Func_8011f54(0, *(int *)(act + 8),
                           *(int *)(act + 0x10) - 0x100000) - 0x200000;
