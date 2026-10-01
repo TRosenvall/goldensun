@@ -30722,3 +30722,225 @@ found this is currently the only park in the class.
 living in it must be given its own name**, or the verdict decays into noise. This is
 the third such split (`NOFIGURE` for triage parks, `NOBODY` for bodyless ones, and
 now `ALTVERIFY`).
+
+## PASS TWO OPENS: five landings, and ALL FIVE PARKS HAD THEIR BLOCKER WRONG
+
+Pass one attempted every function in the tree. Pass two is landing the 831 parks,
+and its first batch is the strongest evidence yet for one rule:
+
+> **A park's FIGURE is evidence. Its DIAGNOSIS is a hypothesis — usually written at
+> the moment the author ran out of ideas, which is exactly when a wrong
+> attribution gets recorded as fact.**
+
+Five landings, five wrong diagnoses. This now has the same standing as a measured
+mechanism: batch 305 (both landings), batch 310 (all three), batch 314 (all five).
+
+| landed | was | the park blamed | what it actually was |
+|---|---|---|---|
+| `Func_8018efc` | 2 of 119 | "an exact sched2 priority tie falling to `INSN_LUID`" | **dependent count, one key earlier** |
+| `Func_809b450` | 2 of 145 | "sched2 tie. **UNREACHABLE FROM SOURCE — see PROOF**" | a struct shape, via **alias set 0** |
+| `OvlFunc_882_2009b18` | 2 of 545 | "**pre-reload** scheduling" | a sched1 misattribution; **one word** |
+| `OvlFunc_969_200cbec` | 2 of 1068 | a LUID tie | **dependent count**; a union |
+| `Anim_Froth` | 4 of 529 | "expand-order, no spelling reaches it" | **one word** |
+
+### THE DEPENDENT COUNT IS SOURCE-CONTROLLABLE THROUGH ALIAS SETS
+
+The most productive lever of the batch, and new. This document recorded sched2's
+tie-break as *priority → dependent count → `INSN_LUID`*, and recorded that **the
+only escape is the dependent-count term, via r0 interception by a `call_value`.**
+That is true but far too narrow:
+
+> **Whenever one competitor in the tie is a MEM, the dependent count is
+> source-controllable through its ALIAS SET — in BOTH directions.**
+
+  * **Adding** a dependent: `*(unsigned short *)&win->w` in place of `win->w` at one
+    site widens the load's alias set, it picks up anti-dependences on the block's
+    struct stores, reaches 3 dependents against 2, and **lands `Func_8018efc`.**
+    Three other spellings of the escape are equally exact.
+  * **Removing** one: `Func_809b450`'s park had `unsigned char *f28` with
+    `s->f28[0x16]`. A plain `unsigned char *` MEM lands in **alias set 0, which
+    conflicts with everything**, manufacturing a `REG_DEP_OUTPUT` onto a set-21
+    halfword store **it cannot actually alias**. Giving it a real shape —
+    `struct W16 { unsigned char pad[0x16]; unsigned char f16; } *f28;` — removes
+    the false dependence and **lands it.**
+
+**`alias set 0` is the thing to look for.** A `char *` or `void *` walk through
+memory conflicts with every other MEM in the function, so it invents dependences
+sched2 then obeys. That is why 26 probes and 11 flags were inert on one of these:
+every one tried to separate a priority that was dominated by a shared path.
+
+**Four parks rest on "the only escape is r0 interception" and must be re-read with
+the MEM case in mind.**
+
+### And the dependence table is a RUNG BELOW the positional figure
+
+The measurement hierarchy gains a level, and two of this batch's landings came
+straight off it:
+
+    size -> instruction and pool-word counts -> per-opcode histogram
+      -> call multiset -> positional figure -> THE DEPENDENCE TABLE
+
+`-fsched-verbose=6` prints the per-insn `INSN_DEPEND` list and dependence count.
+**For any adjacent-transposition residue, start there** — the positional figure
+tells you two encodings are swapped; only the dependence table tells you which key
+decided it.
+
+Worked example, `200cbec`: `-fsched-verbose=8` shows the store with **4 dependents**
+and the pool load with **5**, on equal priority 622. **It was never a LUID tie** —
+it was settled one key earlier, and LUID would have picked the store. Priority was a
+structural identity (both route through the same insn), and the load's three extra
+dependents are r1 output/anti links crossing two calls.
+
+### A wrong `extern` is INVISIBLE TO EVERY FIGURE WE CARRY
+
+Two landings came from **one word**: `extern void StartTask` → `extern int`, where
+this tree's own `include/task.h` declares `s32 StartTask`. A value-returning callee
+intercepts the r0 chain through its `call_value` set, which moves the dependent
+count — so the escape was available all along and **the declaration hid it.**
+
+One park's 21-spelling failure list contains **three** `StartTask` declarations and
+**every one returns void.** The return type was the one axis never varied.
+
+The reason this hides so well: a wrong return type changes **size, count, the
+opcode histogram, the call multiset and the relocation sequence not at all** — the
+call is emitted either way. **Cross-check every `extern` in a park against the
+tree's own headers before believing a scheduling blocker.**
+
+**But it is NOT a systematic unlock — measured.** A sweep of all 19 parks declaring
+`extern void __StartTask`/`__StopTask` found the change **inert on 18 of them** and
+one encoding **worse** on the nineteenth. The mechanism only pays where the sched2
+tie actually turns on that r0 chain. Recorded so the next batch does not chase it:
+**two one-word landings do not imply nineteen.**
+
+### A blocker can live ONE PASS EARLIER than the park says
+
+`global_alloc` was blamed for an allocation the dumps attribute to **local-alloc**.
+A halfword live across `__udivsi3` is single-block, so local-alloc owns it;
+`find_free_reg` for a call-crossing quantity excludes `call_used_reg_set`, leaving
+r4 (call-used here), r5, r6 and r7 — with r7 taken as the Thumb hard frame pointer.
+It takes **r5**, and the two quantities that needed r5/r6 inherit the conflict from
+a pass that had **already finished** before the one the park blamed. `.18.greg`
+prints the evidence directly: one function's conflict set contains hard reg 5 where
+its sibling's does not.
+
+**Read the conflict SETS, not just the allocation order** — the order was recorded
+correctly and the reason was still wrong.
+
+### The cheapest tell for a bad attribution
+
+`2009b18`'s blocker **line** said "pre-reload scheduling" while its own blocker
+**analysis**, further down the same park, worked post-reload. **A park whose
+headline contradicts its own body is self-refuting**, and that costs nothing to
+check. Worth a sweep of its own.
+
+### A LEVER CAN MEASURE INERT ONLY BECAUSE A PREREQUISITE IS MISSING
+
+`c = 0; t = 300;` rather than the reverse is worth two encodings — and is
+**byte-identical without a separate `u32 w` lever in place**. The old park filed it
+as inert, and that record was *honest*: it **was** inert in the state it was
+measured in.
+
+> **An "inert" entry in a park is conditional on everything else that was in the
+> body at the time. When a prerequisite lever lands, RE-RUN the inert list; do not
+> trust it.**
+
+The same gap runs the other way, found while depinning: **pins that are
+individually inert can be jointly load-bearing** (one pair cost 65 encodings
+together while each was free alone). A cumulative greedy pass finds a **local**
+fixpoint and is blind to both directions. Pass three should expect this.
+
+### And a FALSE IMPROVEMENT, caught by the access-count rule
+
+A variant measured **63 against the 66 kept** — better — and was **rejected**: it
+reads a pointer **once where the ROM reads it twice**, and its instruction count
+fell to 126 against 131. The recorded rule (*reproduce the ROM's NUMBER of
+accesses, not a tidy single read*) is what caught it.
+
+**A better figure obtained by doing less work than the ROM is a wrong program.**
+
+### Two more negatives worth keeping
+
+  * **`volatile` is NOT a scheduling barrier for memory in this gcc.** A store with
+    `MEM_VOLATILE_P` plainly set took **no dependence** on an earlier store in a
+    non-conflicting alias set, because **the alias check runs first.** Three
+    placements, all inert. So a `volatile` barrier cannot be used to force a
+    memory ordering — only an alias-set change can.
+  * **A `long long` return does intercept an r1 chain** (it sets `r0:DI` = r0+r1)
+    and removed one function's swapped pair — but **the declaration is TU-wide**: it
+    broke two other sites, and on a 24-site callee it cost 402 encodings and shifted
+    every relocation. The escape has to be **local to the one site.**
+  * **`-fno-if-conversion` and `-fno-cprop-registers` do not exist in this cc1.**
+
+## Two parks CLOSED by measurement rather than left hopeful
+
+Pass two needs honest negatives as much as landings — a park left saying "maybe the
+counts can be equalised" costs a future batch a whole brief. Two were closed to the
+gate line this batch.
+
+### `OvlFunc_968_200c2bc` — sched2 ruled out, and it can never help
+
+`-fno-schedule-insns2` gives **the same four-instruction order**, so sched2 is inert
+by measurement rather than by argument. And it cannot become relevant: **all three
+preheader moves have their consumers inside loop 2**, so within the block each has
+**zero dependents and priority 1**, and `rank_for_schedule` falls straight to LUID,
+which is emission order. There is no tie to win.
+
+The corroboration is the clean half of the same function: **loop 1's preheader is
+pure source order with no hoist, and the candidate matches it exactly.** So the gap
+is specifically **loop.c's insertion** into loop 2's preheader, not scheduling.
+
+The one unpriced route is making the accumulator worth promoting to a giv so
+`strength_reduce` emits its init after the movable — and gcc refuses at **benefit 0
+against cost 65**, with the accumulator having one use in loop 2, so the benefit
+cannot rise without an instruction the ROM does not have.
+
+Re-measured in the current body, the second-pointer route is **105 of 271**: cse
+proves the two pointers equal, substitutes, the copy dies, and r9 is freed for a
+pool constant. Note `-fno-gcse` is **not a usable probe** here — it reassigns r9/r10
+globally.
+
+### `OvlFunc_959_200d0e4` — closed at a COMPILE-TIME CONSTANT
+
+Three insns tie at priority 2 and **1 dependent** each, so LUID decides and the
+wrong one is highest. The dependent-count escape does **not** apply, and not for the
+reason the record would suggest: **the basic block is empty after the call.** The
+arm is `bl __MapActor_SetPos / b .L52ce`, and the jump is not a dependent and
+touches no argument register. Adding a second call would not help either — **a call
+clobbers r0, r1 and r2 alike, raising all three equally.** Making the callee
+value-returning is inert, because the true dependence already exists and the added
+output dependence dedups.
+
+And the LUID route is closed **in the shipped compiler source**:
+`precompute_register_parameters` hoists arguments with `rtx_cost > 2`; the two
+non-representable constants cost 4 and are precomputed, while `0x19` costs 2 and is
+emitted by `load_register_parameters` *after* every precompute. But
+**`SMALL_REGISTER_CLASSES` is `TARGET_THUMB` (arm.h:1061) and `*reg_parm_seen` is set
+at `i == 0` before any cost test, so the first clause of the gate's `||` is always
+true.**
+
+That is also *why* the park's `-fno-expensive-optimizations` probe was
+byte-identical: that flag can only reach `preserve_subexpressions_p()`, **the
+short-circuited clause.** An inert flag that had been sitting in an
+undifferentiated list now has a cause, which is the difference between "we tried it"
+and "it cannot work".
+
+**Both now say CLOSED, with the reason, rather than leaving a hope in the record.**
+
+## A harness failure that produces A PLAUSIBLE WRONG NUMBER, not an error
+
+Add to the shell-discipline list, because it is the most dangerous kind:
+
+> **BSD `sed` does not expand `\t` in a replacement.** A variant sweep applied **not
+> one substitution** and reported **all four spellings inert** at the baseline
+> figure.
+
+Nothing failed. No error, no empty output — four plausible measurements of a file
+that had never been edited. It was caught by grepping the generated file for the
+substitution, and the harness now **asserts exactly one hit and exits non-zero
+otherwise.**
+
+This is the same family as POSIX `awk` having no `\s` class and no `strtonum`
+(both fail silently), and as the `#0x`-keyed regex that cannot match the decimal
+immediates this tree prints. **Every generator must assert that its edit landed**,
+because an unapplied edit measures as a clean inert result — which is
+indistinguishable from a real bound and will be recorded as one.
