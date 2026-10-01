@@ -105,6 +105,18 @@ def check(path):
         if declares_none and not claims:
             return ("NOFIGURE", "triage park, no candidate and no figure claimed",
                     None, None)
+        # A park can be UNSCORABLE BY objcmp FOR A STRUCTURAL REASON and carry its
+        # own measurement recipe instead.  The known case is a gcc NESTED-FUNCTION
+        # whole-TU candidate: the nested functions are emitted as local symbols
+        # (`Func_80b9554.0`), so objcmp has no mode for it, and the park measures by
+        # assembling both sides and diffing normalised `objdump -d` instead.
+        # That is a legitimate state and must NOT share a verdict with a park whose
+        # figure simply cannot be re-measured -- UNCHECKABLE is the DANGEROUS bucket
+        # and keeping it clean is the whole point of having it.
+        if re.search(r"objcmp\s+CANNOT\s+SCORE|objcmp\.py\s+has\s+no\s+mode", flat, re.I):
+            return ("ALTVERIFY",
+                    "objcmp cannot score this by construction; park carries its own recipe",
+                    None, None)
         return ("UNCHECKABLE", "no `Verify with: objcmp.py ...` recipe in header", None, None)
     ref, func = vm.group(2), vm.group(3)
     # A recipe wrapped in `sh -c '...'` leaves the closing quote glued to the

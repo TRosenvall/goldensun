@@ -30598,3 +30598,127 @@ With three functions mislabelled "no split" this batch, the lesson is now
 mechanical: **run `datacheck.py` on every target while ASSIGNING work, not while
 installing it.** Two targets this batch could not have landed at any candidate
 quality because their exports did not exist yet.
+
+## Batch 314 brief A: a blocker diagnosis disproved one pass EARLIER than it claimed
+
+The nested-function whole TU (`Func_80b9724` with `Func_80b9554` and `Func_80b9604`
+nested inside it) moved on the strength of a corrected attribution:
+
+| | batch 287 park | now |
+|---|---|---|
+| `Func_80b9554` | 81/81, 0 differing | **81/81, 0 differing — EXACT, nested** |
+| `Func_80b9604` | 129 against 131, **84** differing | 129 against 131, **66** differing |
+| `Func_80b9724` | 182 against 181, 57 differing | 182 against 181, 57 differing |
+
+### The park blamed `global_alloc`; it is LOCAL-alloc, one pass earlier
+
+The park said `t` lands in r6 because "r5 is skipped as *preferred by another
+pseudo* in `find_reg`'s first pass". The allocation ORDER it recorded is right and
+the REASON is wrong: it is a **hard-register conflict**, and `.18.greg` prints it
+outright —
+
+    ;; 37 conflicts: ... 0 1 2 3 5 13 14      <- 9604: hard reg 5 present
+    ;; 37 conflicts: ... 0 1 2 3 13 14        <- 9554: no 5, and t IS in r5
+
+**The chain:** loop 2's `ewram_2002238` halfword is live across `__udivsi3`; its
+pseudo is single-block, so **local-alloc owns it**; `find_free_reg` for a
+call-crossing quantity excludes `call_used_reg_set`, leaving r4 (call-used under
+`-fcall-used-r4`), r5, r6 and r7 — and r7 is live as the Thumb hard frame pointer
+in `.17.lreg`. So it takes **r5** at both check sites, and `t`/`c` inherit the
+conflict from a pass that had already finished before the one the park blamed.
+
+**And the fix is source-level**, which is what the park had ruled out: naming the
+limit in a local `u32 w` makes the ewram read fall *after* `__udivsi3`, nothing
+crosses the call, local-alloc never takes r5, and `t`/`c` land in r5/r6 as in the
+ROM. **84 → 68**, with loop 1 and the post-loop-1 check going
+instruction-for-instruction exact.
+
+### A LEVER CAN MEASURE INERT ONLY BECAUSE A PREREQUISITE LEVER IS MISSING
+
+The sharpest methodological finding here. `c = 0; t = 300;` rather than the reverse
+is worth **68 → 66** — and it is **byte-identical without the `w` lever**. That is
+exactly why the old park filed it as inert, and the record was honest: it *was*
+inert, in the state it was measured in.
+
+So an "inert" entry in a park is **conditional on everything else that was in the
+body at the time.** When a prerequisite lever lands, the inert list must be
+**re-run, not trusted** — and seven further spellings here were re-confirmed
+byte-identical against the *new* baseline rather than taken from the old list.
+
+### The remaining 66 is ONE fact, and it is PRICED rather than asserted
+
+ROM: `t` r5, `c` r6, `&scratch` r7, fp **r8**, `&count` r9. Ours: fp r7,
+`&scratch` r8. fp's preferred class is `LO_REGS` and **cannot be otherwise** — the
+only hi-penalising reference is the single `(plus fp -4)`, and `*thumb_addsi3`'s hi
+alternatives are `*`-marked so `regclass` ignores them. fp reaches r8 only through
+`reg_alternate_class`, i.e. only if r5/r6/r7 all conflict, i.e. only if `&scratch`
+is allocated **before** fp. On `floor_log2(n_refs) * n_refs / live_length`, fp (5
+refs, ~60 insns) outranks `&scratch` (3 refs, ~55) **threefold** — so closing it
+needs **five references to `scratch` where the ROM shows two reads.**
+
+That is a wall with a number on it, which is the right way to record one. The same
+wall blocks the ROM's evaluation order: reading ewram first requires the halfword
+to cross the call, and dodging local-alloc requires it to be a *global* allocno —
+which it becomes the moment one variable serves both check sites, at which point it
+is allocated **first** and takes r5 itself.
+
+### A FALSE IMPROVEMENT, caught by the access-count rule
+
+`if (*scratch != 0) { count = *scratch; … }` measures **63** — better than the 66
+kept — and was **rejected**, because it reads `*scratch` **once where the ROM reads
+it twice**, and the instruction count falls to 126 against 131. The recorded rule
+(*reproduce the ROM's NUMBER of accesses, not a tidy single read*) is what caught
+it. A better figure obtained by doing less work than the ROM is a wrong program.
+
+### And one more count-is-blind instance
+
+Naming loop 2's `0x80` gives **181 against 181 — an EXACT instruction count** and
+measures **66** instead of 57. Exact count, nine positions worse.
+
+### `Func_80b9724`'s diagnosis SURVIVED, and two of its facts are one fact
+
+The `&lim`-unallocated and constant-1-hoist observations are **the same fact**: the
+ROM commons the two constant-1 uses (savings 2), `.08.loop` hoists it, pressure
+reaches nine and `&lim` loses its register. Naming the constant *forces* the hoist
+and is worse on every axis (189/122, 185/94), because **a named value is preserved
+across the use and costs a copy the ROM does not pay.**
+
+### The first flag sweep this TU has ever had
+
+The batch-287 park carried none. Default total **123 differing lines, and nothing
+beats it**: `-fno-gcse` 281, `-fno-rerun-cse-after-loop` 246, `-fno-strength-reduce`
+225, `-fno-rerun-loop-opt` 223, `-fno-expensive-optimizations` 217,
+`-fno-schedule-insns2` 177 (and it *breaks* the exact nested function),
+`-fno-regmove` / `-fno-optimize-register-move` 157 (also breaks it), `-fno-peephole`
+147, `-fno-force-mem` 327. Inert: `-fno-cse-follow-jumps`, `-fno-cse-skip-blocks`,
+`-fno-thread-jumps`, `-fomit-frame-pointer`, `-fno-delayed-branch`,
+`-fno-caller-saves`, `-fcaller-saves`, `-fno-function-cse`, `-fno-inline`,
+`-fno-defer-pop`. **`-fno-if-conversion` and `-fno-cprop-registers` do not exist in
+this cc1** — worth knowing before either is cited again.
+
+### Landing prerequisites, settled and clean
+
+  * `tools/datacheck.py` on the reference is **silent (rc 0)** → **no text/data
+    split needed**. The whole four-function file converts at once if the TU lands,
+    so the split question disappears entirely.
+  * `tools/shimcount.py` on the candidate: **0 pins** → **no `fakematch.txt` row**.
+
+So this TU is a clean three-function landing the moment the allocation fact yields.
+
+## `parkcheck.py` gains ALTVERIFY: unscorable BY CONSTRUCTION is not unverifiable
+
+This park is **unscorable by objcmp for a structural reason** — nested functions are
+emitted as local symbols (`Func_80b9554.0`), so objcmp has no mode for it — and it
+carries its own measurement recipe, assembling both sides and diffing normalised
+`objdump -d`.
+
+Before this batch that reported **UNCHECKABLE**, which is the verdict reserved for
+**a park whose figure cannot be re-measured at all**. Keeping that bucket clean is
+the entire point of having split it out, and a permanent false entry in it would
+mask the real ones. `ALTVERIFY` now names the legitimate state. A tree-wide sweep
+found this is currently the only park in the class.
+
+**The general rule:** when a verdict exists to flag danger, **anything legitimately
+living in it must be given its own name**, or the verdict decays into noise. This is
+the third such split (`NOFIGURE` for triage parks, `NOBODY` for bodyless ones, and
+now `ALTVERIFY`).
