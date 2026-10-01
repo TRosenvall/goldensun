@@ -1,11 +1,11 @@
 /* NintendoLogo -- NON-MATCHING, 24 of 202 encodings differ.
- * Reference asm//rom_f2000/rom_f2028_c_a.s.
+ * Reference asm/rom_f2000/rom_f2028_c_a.s.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *       goldensun-build python3 tools/objcmp.py \
  *       src/non_matching//NintendoLogo.c \
- *       asm//rom_f2000/rom_f2028_c_a.s --func NintendoLogo
+ *       asm/rom_f2000/rom_f2028_c_a.s --func NintendoLogo
  *
  * A TRUE DISTANCE: 484 == 484 bytes and 202 == 202 instructions.  Shim-free.
  * BLOCKER, local-alloc: both key-read quantities conflict with hard reg 3, so `k`

@@ -50,7 +50,19 @@ import re
 import subprocess
 import sys
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# OBJCMP_ROOT and OBJCMP_EXTRA are opt-in hooks for batch harnesses that measure
+# many variants in ONE container (see tools/sweep_variants.py).  Both DEFAULT TO
+# THE PREVIOUS BEHAVIOUR, so a plain invocation is unchanged -- this file is THE
+# AUTHORITY for figures and must not drift.
+#
+# They exist because a batch-315 harness carried a 403-line FORK of this file to
+# add exactly these two lines, and that fork then lived in a GITIGNORED scratch
+# directory that tools/sweep_variants.py imported.  A second copy of the
+# authority is worse than the broken import it caused: it can drift silently and
+# produce a figure nobody can reproduce.
+ROOT = (os.environ.get("OBJCMP_ROOT")
+        or os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(ROOT, "tools"))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 GCC = os.environ.get("GCC296_DIR", "/opt/gcc296")
@@ -150,6 +162,15 @@ def cflags_for(ref):
     import tryc
     adjust = tryc.makefile_flags(re.sub(r"^asm/", "src/", os.path.relpath(ref, ROOT))[:-2] + ".c")
     flags = ["-O1" if (a == "-O2" and "O1" in adjust) else a for a in tryc.CFLAGS]
+    # OBJCMP_EXTRA: append flags for a batch harness measuring many variants in one
+    # container.  Empty by default, so a plain invocation is unchanged.  Anything
+    # added here is recorded in `adjust`, which is what makes the output say the
+    # figure is NOT a production-flag figure -- a per-flag number must never reach
+    # a park claim line.
+    extra = os.environ.get("OBJCMP_EXTRA", "").split()
+    if extra:
+        flags += extra
+        adjust = set(adjust) | set(extra)
     if "no-sched2" in adjust:
         flags += ["-fno-schedule-insns2"]
     if "no-rerun-cse" in adjust:

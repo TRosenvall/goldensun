@@ -4,9 +4,18 @@ Usage: sweep.py BASE REF FUNC VARIANTDIR   -- measures BASE then every .c in VAR
 Prints: NAME ndiff first size reloc
 """
 import os, sys, subprocess, tempfile, glob
-sys.path.insert(0, "/work/scratch_elev/b314e"); sys.path.insert(0, "/work/tools")
+# Import THE AUTHORITY, tools/objcmp.py, not a copy of it.
+#
+# This line used to read `sys.path.insert(0, "/work/scratch_elev/b314e")` and
+# import a 403-line FORK of objcmp.py living in a GITIGNORED scratch directory.
+# It worked only while that directory happened to exist, would break on a fresh
+# clone, and -- worse -- meant figures came from a SECOND copy of the authority
+# that could drift from it silently.  The fork differed by exactly two
+# environment hooks, which are now in tools/objcmp.py itself, defaulting to the
+# previous behaviour.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault("OBJCMP_ROOT", "/work")
-import objcmp_x as O
+import objcmp as O
 
 base, ref, func, vdir = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 for p in (base, ref):

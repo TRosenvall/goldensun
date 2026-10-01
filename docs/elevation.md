@@ -31336,3 +31336,137 @@ inference is free and usually wrong.
     difference an isolation-artefact pad halfword) and is **blocked on a sibling**
     at 366 of 417. **It must not be reissued as a small-residue target** — its
     figure describes a different problem from the work it needs.
+
+## NEW LEVER: the ROM often COMPARES A REGISTER COPY, not the loaded value
+
+Read off three references independently in one brief:
+
+    ldrh r2,[r6,#0x3c] / mov r3,r2 / cmp r3,#0
+    ldrh r3            / mov r0,r3 / cmp r0,#7
+    ldrb r2            / mov r3,r2 / cmp r3,#0xff
+
+That `mov` is not noise and it is not a scheduling artefact. **The spelling that
+produces it is TWO LOCALS OF DIFFERENT WIDTH** — the wide one carries the
+arithmetic, the narrow one takes the compare — because **cse cannot substitute
+across a mode difference.** Worth **16 → 6** on `DisplayMenuArrowCursor`.
+
+**The precondition is the transferable half and it is strict: the surviving use
+must be genuinely WIDER than the compare.** Measured inert on two siblings in the
+same brief — 154 and 14 variants, floors confirmed — because in one the wide
+local's only use is a **byte store**, and in the other **both ends are the same
+width**, so the modes line up and cse substitutes anyway. **Check the widths
+before spending anything.**
+
+## A SOURCE-LEVEL COPY IS NOT A REGION SPLIT IN THIS COMPILER
+
+This retires a whole probe family, which is worth more than most positive
+results. Five placements of `short *e = d;` left the pseudo's reference count and
+live length **bit-identical at 7/44** — because **copy propagation deletes the
+split before flow ever measures it.**
+
+> **A live range cannot be shortened by introducing a copy of the same value. The
+> split has to come from a genuinely different VALUE.**
+
+So any park citing a copy-based range split as tried-and-failed has a *correct*
+negative that carries no information, and any plan to shorten a competitor's range
+that way is closed before it starts.
+
+## `allocno_compare` reproduces greg's order EXACTLY -- and one park had its lengths BACKWARDS
+
+`floor_log2(R) * R / L`, with R and L read off `.17.lreg`'s
+`Register N used R times across L insns`, was verified to reproduce `.18.greg`'s
+printed `;; N regs to allocate:` line **exactly on all ten allocnos** of one
+function. Combined with the earlier two-function check, the priority formula is
+**not an approximation here — it is the thing.**
+
+Which makes a guessed length a real defect, and one park's proof rested on one.
+Its **"UNREACHABLE BY ARITHMETIC"** argument turned on `live_length(38) >=
+live_length(39)`; the dump says **44 against 60**, so the range it called longer
+is **the shorter one**. The conclusion (an allocation tie no flag closes) survives,
+but the target stops being an impossibility and becomes **a number** — a specific
+reference count, or a specific live length. That is the difference between a closed
+park and a finite search.
+
+> **For any claim resting on allocation priority, measure BOTH R and L off
+> `.17.lreg`. A closure built on a guessed or inverted length is not a closure.**
+
+## Two more ways a park misdirects, both free to detect
+
+**A blocker line can be refuted by the park's own flag table.** One names `cse2`
+while the same header's `-fno-regmove (52)` makes **regmove** the pass placing the
+copy, with both cse flags inert at 26. **No new measurement is needed to break a
+closure like that — the contradiction is already inside the file.** Second
+instance, after a park whose line said "pre-reload scheduling" while its own
+analysis worked post-reload.
+
+**And "either X or Y" can be a two-at-a-time problem written as an exclusive or.**
+One park described its residue as *"either coalesces OR narrows — ONE register
+pair."* It is **two independent defects**, and crossing solved one of them:
+declaring a local a **full word** gives the ROM's `ldr r3,[r0]` outright. **The
+park had rejected that exact edit because the total ROSE to 32** — and 32 is the
+14 plus the positional shift caused by the still-missing second fix.
+
+That is now the **fifth** distinct way one-at-a-time testing has hidden a lever
+here, and the first where the rejected entry was *correct as half of a pair*:
+
+| shape | evidence |
+|---|---|
+| inert for want of a prerequisite | byte-identical alone, worth 2 once another landed |
+| pins jointly load-bearing, individually inert | 20 inert singly, 65 together |
+| edits each a clear regression, jointly a gain | 69/112/142 singly, 57 → 40 together |
+| two edits each exactly inert, jointly the whole residue | each 10; together 10 → 0 |
+| **a rejected-because-worse edit that is half of a two-part fix** | **rejected at 32; the rise was the missing second half** |
+
+## A park's BODY can be behind its HEADER -- third instance
+
+`DisplayMenuArrowCursor`'s diagnosis was **right**, and its 16 → 6 was **not a
+cross**: the header already named the lever and **the body on disk had never had
+it applied.** That is a different defect from a wrong diagnosis, and cheaper to
+find.
+
+> **Before crossing a park's inert list, check that its figure reproduces from the
+> body on disk.** If the header describes work the body does not contain, the
+> cheapest move is to apply what the header already says.
+
+`parkcheck` cannot catch this: it compares the claim figure to the measured body,
+and both agree when the header's *prose* is ahead of its *code*.
+
+## The alias-set cast does NOT generalise -- it changes ADDRESSING, not scheduling
+
+A bound on the batch's most productive lever. On one park
+`*(unsigned short *)&...` measured **116-119 with a relocation difference**,
+because it **destroyed a shared `m + i*0x34` address CSE.**
+
+> **Before casting for an alias set, check whether that load also participates in
+> an address CSE.** If it does, the cast buys a scheduling change and pays for it
+> with an addressing regression.
+
+Also recorded: **`"+r"` is not a universal isolator** (useless on one park), and
+the `PLUS` operand-order lever is **exactly inert where `fold` normalises a
+constant-minus-product**.
+
+## `tools/sweep_variants.py` imported a FORK of the authority -- my error
+
+I installed that tool from an agent's workspace without reading its imports. It did
+`sys.path.insert(0, "/work/scratch_elev/b314e")` and imported **a 403-line fork of
+`objcmp.py`** living in a **gitignored, untracked** directory. Consequences:
+
+  * it ran only while that scratch directory happened to exist, and would break on
+    a fresh clone or after a cleanup;
+  * and worse, **figures came from a second copy of the authority** — `objcmp.py`
+    is documented as THE AUTHORITY, and a duplicate that can drift from it
+    silently is a worse problem than the broken import.
+
+The fork differed by **exactly eleven diff lines**: two environment hooks,
+`OBJCMP_ROOT` and `OBJCMP_EXTRA`. Both are now in `tools/objcmp.py` itself,
+**defaulting to the previous behaviour**, and the tool imports the real one.
+Verified by running the authority on a known park before and after: identical
+output, `2 of 129` both times.
+
+`OBJCMP_EXTRA` records whatever it adds in `adjust`, which is what makes the output
+say the figure is **not** a production-flag figure — a per-flag number must never
+reach a park claim line.
+
+> **When installing a tool out of an agent's workspace, read its imports.** A
+> harness that works today because a gitignored directory happens to exist is not
+> installed, and a fork of the authority is not a convenience.

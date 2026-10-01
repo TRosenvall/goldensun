@@ -1,4 +1,4 @@
-/* Func_801908c -- 0x0801908c, asm/rom_15000/rom_18cac_c.s.
+/* Func_801908c -- 0x0801908c, asm/rom_15000/rom_18cac_c.s.   (PARK)
  *
  * ONE function, NO data section (datacheck.py exit 0, no EXPORTS line), so
  * landing this is a plain WHOLE-FILE conversion: no split, no export, no
@@ -8,85 +8,88 @@
  * distance -- ref 320 bytes / 151 instructions, ours 320 / 151, and BOTH
  * relocations identical in type, symbol and offset
  * (R_ARM_THM_CALL Func_8003d28 at 0xb4, R_ARM_ABS32 Data_366f8 at 0xf4).
- * tryc --align agrees at 23 of 152.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/801908c.c \
  *     asm/rom_15000/rom_18cac_c.s --whole
  *
- * ======================= WHAT IS ESTABLISHED =======================
  * The prototype and every struct here are FIXED BY A NEIGHBOUR, not guessed:
  * src/non_matching/rom_15000/80191cc.c calls Func_801908c(e) with struct Ent *,
  * and its struct Ent / struct Spr / struct Req are reused verbatim.  Every
  * bitfield mask in the ROM (0xc1 on byte 7 = pri:5 at bit 9, 0xfc on byte 5 =
  * c0:2, 0x1ff / 0xfffffe00 on the halfword at +6 = x:9) matches that park's
- * table 4 exactly, which is independent confirmation of the layout.
+ * table 4 exactly.
  *
- * THREE LEVERS LANDED, 30 -> 26 -> 22:
+ * THREE LEVERS LANDED, 30 -> 26 -> 22 (all still in the body, all re-measured):
+ *  1. `int g = 0x100;` BEFORE `struct Spr *o = &e->spr;`  (30 -> 26)
+ *  2. A BLOCK-LOCAL `{ u32 a = e->fc; ... }` PER SWITCH ARM, not one
+ *     function-scope local shared by arms 9 and 10.  (26 with, 30 without)
+ *  3. `u32 c = a; ... a = a + 1; e->fc = a;` -- the increment on a local that
+ *     is MODIFIED, with a separate copy carrying the index.  (26 -> 22)
  *
- * 1. INITIALISER ORDER: `int g = 0x100;` BEFORE `struct Spr *o = &e->spr;`
- *    30 -> 26 and moves objcmp's first difference from index 5 to index 13.
- *    The ROM interleaves the two initialisations as
- *    `mov r7,#0x80 / mov r5,r6 / sub sp,#8 / lsl r7,#1 / add r5,#0x10`;
- *    with `o` first, ours emits o's two insns before g's two.  This is
- *    declaration order mattering on an EXACT TIE, which is the narrow case
- *    docs/elevation.md allows.
+ * ======================= THE BLOCKER, RE-ATTRIBUTED =======================
  *
- * 2. A BLOCK-LOCAL `{ u32 a = e->fc; ... }` PER SWITCH ARM, not one function-
- *    scope local shared by arms 9 and 10.  26 with per-arm scope, 30 with the
- *    shared local.  One pseudo spanning two disjoint arms changes local-alloc's
- *    quantity order for the whole switch.  This is the brief's scope lever
- *    (`{ int t = 2; }` per block) on a loaded value rather than a constant.
+ * The old blocker line said "cse2 REWRITES THE GUARD".  That line is
+ * SELF-REFUTING against this file's own measurement further down, which reads
+ * "-fno-regmove (52) -- positive evidence that REGMOVE is the pass placing the
+ * copy".  Both cannot be the blocker, and `-fno-cse-follow-jumps` and
+ * `-fno-gcse` are recorded INERT at 26 while `-fno-rerun-cse-after-loop` only
+ * moves it to 34 (worse, not closed).  Read as "the copy's PLACEMENT is
+ * regmove's, and which operand the compare takes was fixed earlier".
  *
- * 3. `u32 c = a; ... a = a + 1; e->fc = a;` -- the increment must be on a
- *    local that is MODIFIED, with a separate copy carrying the index.  26 -> 22.
- *    The three-read spelling `if (e->fc <= 7) { g = tbl[...e->fc...]; e->fc += 1; }`
- *    also reaches 151 instructions but puts regmove's copy on the wrong side.
+ * THE REFERENCE, read off asm/rom_15000/rom_18cac_c.s rather than paraphrased.
+ * Arms 9 and 10 (.L190b6 / .L190c8) use a THREE-operand increment and keep the
+ * load live for the mask:
+ *     ldrh r2,[r6,#0xc] / add r3,r2,#1 / strh r3,[r6,#0xc]
+ *     mov r3,#0x1f / ldr r1,=Data_366f8 / and r3,r2 / lsl r3,#1 / ldrh r7,[r1,r3]
+ * Arms 11 and 12 (.L190da / .L190f0) make a COPY, compare the COPY, and use a
+ * TWO-operand in-place increment on the load:
+ *     ldrh r3,[r6,#0xc] / mov r0,r3 / cmp r0,#7 / bhi
+ *     add r3,#1 / ldr r2,=Data_366f8 / strh r3,[r6,#0xc]
+ *     lsl r3,r0,#2 / add r3,#0x20 / ldrh r7,[r2,r3]
+ * (arm 11 copies into r0, arm 12 into r1 -- distinct pseudos, which is the
+ * independent confirmation of lever 2's per-arm scope.)
  *
- * ============================ THE BLOCKER ============================
- * cse2 REWRITES THE GUARD to use the load pseudo instead of the copy, in arms
- * 11 and 12.  The ROM is
- *      ldrh r3,[r6,#0xc] / mov r0,r3 / cmp r0,#7 / bhi / add r3,#1 / strh r3
- *      ... lsl r3,r0,#2
- * -- the copy is compared AND indexed, and the load pseudo is incremented in
- * place (2-operand `add`).  Ours gets the copy and the roles right and compares
- * the ORIGINAL: `ldrh r2 / mov r3,r2 / cmp r2,#7 / ... add r2,#1 / lsl r3,#2`.
- * `c` and `a` hold the same value at the compare, so cse substitutes the load
- * pseudo there; the substitution is not blocked by declaration order (y1),
- * by comparing the member instead (y2), or by deriving `a` from `c` (y3) --
- * all three measure exactly 22.
+ * The 22 are: 10 in arms 11/12 (ours compares the LOAD, `cmp r2,#7`, where the
+ * ROM compares the COPY, `cmp r0,#7`) + 8 a pure r2<->r3 ROLE SWAP in arms 9/10
+ * (same instructions, same order, same count) + 2 a sched2 rotation of
+ * `ldr r2,=Data_366f8` past `strh r3,[r6,#0xc]`.
+ * A `__asm__ ("" : "+r" (c))` after `u32 c = a;` in each arm measures 12 of 151
+ * at exact size, count and relocations -- so the 10 ARE one substitution and
+ * nothing else.  THAT IS A MEASUREMENT DEVICE AND IT IS NOT IN THE CODE BELOW.
  *
- * PROOF THAT THIS IS THE WHOLE RESIDUE, and it is a SHIM, so it is NOT used:
- *   __asm__ ("" : "+r" (c));  after `u32 c = a;` in each arm measures
- *   12 of 151 at exact size, count and relocations.  That is the brief's
- *   "+r" barrier working on COPY DIRECTION -- its real class -- and it
- *   confirms the 10 arm-11/12 differences are one cse substitution and
- *   nothing else.  Left out of the candidate: a shim must be booked in
- *   fakematch.txt and this function does not need to land that way.
+ * *** BATCH-316b: THE CLUSTER'S SHARED IDIOM REACHES THIS PARK, AND IS INERT. ***
+ * `ldrh r3 / mov r0,r3 / cmp r0,#7` is the same shape as
+ * DisplayMenuArrowCursor's `ldrh r2 / mov r3,r2 / cmp r3,#0` and 8021cb8's
+ * `ldrb r2 / mov r3,r2 / cmp r3,#0xff`: THE ROM COMPARES A REGISTER COPY, NOT
+ * THE LOADED VALUE.  On DisplayMenuArrowCursor that idiom is worth 16 -> 6,
+ * spelled as TWO LOCALS OF DIFFERENT WIDTH -- the wide one carries the
+ * arithmetic, the narrow one the compare, so the two have different RTL modes
+ * and cse cannot substitute.  TRANSFERRED HERE AND MEASURED: it does nothing.
  *
- * THE OTHER 8 of the 22 are a pure r2<->r3 ROLE SWAP in arms 9 and 10:
- * the ROM gives the loaded value r2 and the increment/mask temp r3, ours the
- * reverse.  Same instructions, same order, same count.  With the barrier in
- * place these 8 are the ONLY remainder besides a two-instruction sched2
- * rotation of `ldr r2,=Data_366f8` past `strh r3,[r6,#0xc]`.
+ * 14-variant cross, one container, crossing type(arms 9/10 local) x type(the
+ * arms 11/12 copy local) x which local the guard compares:
+ *     a:u32  c:u32 / u16 / int / u8      22 / 22 / 24 / 23
+ *     a:u16  c:u32 / u16 / int / u8      22 / 22 / 24 / 23
+ *     a:int  c:u32 / u16 / int / u8      22 / 22 / 24 / 23
+ *     control, guard on the LOAD, c:u32  22  (= this body)
+ *     control, guard on the LOAD, c:u16  131, dsize +8, RELOCDIFF
+ * NOTHING BEATS 22.  The reason the narrow/wide trick fails here (and it is the
+ * transferable part) is that it needs the SURVIVING use to be WIDER than the
+ * compare.  In DisplayMenuArrowCursor the wide local fed an `o->x + d` add; here
+ * both ends are the same width, so the modes line up and cse substitutes.
  *
- * MEASURED INERT (all exactly 26 on the same base, so none of these is the
- * lever): `0x1f & v` instead of `v & 0x1f` -- the AND is a two-address
- * commutative op and BOTH orders give the same register roles, so the mul
- * lever's "read the ROM's mov and put the other operand on the right"
- * procedure does NOT carry over to `and` here; naming the masked index in a
- * local (30); `*(Data_366f8 + i)` instead of `Data_366f8[i]` (26);
- * `int` instead of `u32` for the arm locals (26); a `u16 *t = Data_366f8;`
- * local per arm (28, WORSE).
- * MEASURED WORSE: -fno-regmove (52) -- which is the positive evidence that
- * regmove is the pass placing the copy, and that it is placing nearly all of
- * it correctly; -fno-rerun-cse-after-loop (34); -fno-cse-follow-jumps and
- * -fno-gcse are both INERT at 26.
- * MEASURED SHORT (149 instructions, 2 under, so not distances): every
- * spelling that lets cse delete the copy outright -- a plain
- * `u32 a = e->fc; if (a <= 7) { e->fc = a + 1; g = tbl[...]; }` is 18 aligned
- * but two instructions short, and 18 there is NOT comparable to 22 here.
+ * MEASURED INERT (all exactly 26 on the lever-2 base, so none is the lever):
+ * `0x1f & v` instead of `v & 0x1f` -- the AND is a two-address commutative op
+ * and BOTH orders give the same register roles; naming the masked index in a
+ * local (30); `*(Data_366f8 + i)` (26); `int` instead of `u32` for the arm
+ * locals (26); a `u16 *t = Data_366f8;` local per arm (28, WORSE).
+ * MEASURED WORSE: -fno-regmove (52); -fno-rerun-cse-after-loop (34).
+ * MEASURED INERT: -fno-cse-follow-jumps, -fno-gcse (both 26).
+ * MEASURED SHORT (149 instructions, 2 under, so NOT comparable): every spelling
+ * that lets cse delete the copy outright, e.g. a plain
+ * `u32 a = e->fc; if (a <= 7) { e->fc = a + 1; g = tbl[...]; }`.
  *
  * NO SHIMS in the code below: no `register ... __asm__`, no `__asm__ ("")`,
  * no .equ, no per-file flags, no fakematch row.
