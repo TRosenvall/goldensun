@@ -8,11 +8,11 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *       goldensun-build python3 tools/objcmp.py \
  *       src/non_matching/rom_15000/Menu_Settings.c \
- *       asm/rom_15000/rom_1ca1c_c_c_a_a.s --func Menu_Settings
+ *       asm/rom_15000/rom_1ca1c_c_c_a_a_a.s --func Menu_Settings
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *       goldensun-build python3 tools/aligncmp.py \
  *       src/non_matching/rom_15000/Menu_Settings.c \
- *       asm/rom_15000/rom_1ca1c_c_c_a_a.s Menu_Settings -v
+ *       asm/rom_15000/rom_1ca1c_c_c_a_a_a.s Menu_Settings -v
  *
  * 444 IS NOT A DISTANCE.  Size and count both effectively match, so the ranking
  * figure here is aligncmp's aligned-equal, and the navigation figure is the
@@ -98,7 +98,7 @@
  * immediate, so every signed byte read here is `mov rN,#0 / ldrsb rD,[rB,rN]`.
  * The `mov #0` is NOT a residue and not a missing quantity -- it is the ISA.
  *
- * SPLIT: anchored grep gives THREE functions in asm/rom_15000/rom_1ca1c_c_c_a_a.s
+ * SPLIT: anchored grep gives THREE functions in asm/rom_15000/rom_1ca1c_c_c_a_a_a.s
  * -- Func_801d108, Menu_Settings, Func_801d94c -- so a three-way text split.
  * datacheck.py is SILENT: no data section and no exports to add.  The five `.L`
  * tables the function reads (.L367c9, .L367cc, .L367ce, .L367d0, .L367d6) live

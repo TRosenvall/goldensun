@@ -349,6 +349,20 @@ asm/overlays/rom_78ef88/ovl_314_c_c_a_c_a_a_c_c_b.o: src/overlays/rom_78ef88/ovl
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# GCSE_CFLAGS, batch 317.  Func_80f7e34's park said "gcc caches the load and the
+# ROM reloads it, and the only way to defeat that analysis is `volatile`, which
+# is a fakematch".  BOTH HALVES ARE WRONG.  gcc DOES reload -- it is gcse's PRE
+# that sinks the load, inserting two pre_insert_copies and putting the reloads on
+# the store edge only, which is a different pass from the cse the park named and
+# needs no volatile.  -fno-gcse alone is 10 of 21; CROSSED with distinct locals
+# for the two reloads it is byte-exact at 44 bytes, 21 encodings, 1 relocation.
+# The .s was split so this rule covers a TU holding this ONE function; its
+# file-sibling Func_80f7df0 keeps the tree default.
+asm/rom_f6000/rom_f6008_c_c_a_b.o: src/rom_f6000/rom_f6008_c_c_a_b.c
+	$(GCC296_CC) $(GCSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 # -fno-schedule-insns2 : OvlFunc_945_2009978 hoists `mov r0,#0x8f / lsl r0,#4`
 # above the gState[0x22b] store at -O2.  The post-reload scheduler is what does
 # it; the named-shifted-local lever does not reach it, and -O1 matches too but
@@ -502,6 +516,21 @@ asm/rom_9000/rom_d924_c_c_c_b.o: src/rom_9000/rom_d924_c_c_c_b.c
 # -fno-rerun-cse-after-loop reaches it, exactly as the rule predicts.  PIN-FREE:
 # nothing for fakematch.txt.
 asm/overlays/rom_7c097c/ovl_30_c_c_c_a_c_c_a_c_c.o: src/overlays/rom_7c097c/ovl_30_c_c_c_a_c_c_a_c_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+# CSE_CFLAGS, batch 317.  OvlFunc_936_20095b4 tests save bit 0x200 and then sets
+# it, and the ROM rebuilds `mov r0,#0x80 / lsl r0,#2` at BOTH sites.  At -O2 the
+# second CSE pass hoists the id into r6 and keeps it live across the __GetFlag
+# call, which pays a wider push/pop and two `mov r0,r6` copies -- 14 differing of
+# 18 with the COUNT ALREADY EXACT.  Byte-exact with the flag at 44 bytes, 18
+# encodings and 4 relocations.  -fno-gcse, -fno-cse-follow-jumps,
+# -fno-cse-skip-blocks and -fno-expensive-optimizations are all inert at 14;
+# -fno-schedule-insns2 is 13.  SAME SHAPE AND THE SAME FLAG ID 0x200 as
+# OvlFunc_936_2009930 directly above -- the fourth member of this family and the
+# reason the park's "the rule needs a third clause" was unnecessary.
+asm/overlays/rom_7c097c/ovl_30_c_c_c_a_a_c_a_c.o: src/overlays/rom_7c097c/ovl_30_c_c_c_a_a_c_a_c.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)

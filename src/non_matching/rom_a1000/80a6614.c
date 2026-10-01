@@ -6,7 +6,7 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80a6614.c \
- *     asm/rom_a1000/rom_a5534_c_c_a.s --func Func_80a6614
+ *     asm/rom_a1000/rom_a5534_c_c_a_c.s --func Func_80a6614
  *
  * FRESH TARGET (batch 290). The .s holds four functions -- Func_80a63e4,
  * Func_80a65e4, Func_80a6614, Func_80a6794 -- two of them already parked.

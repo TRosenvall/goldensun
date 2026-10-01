@@ -1,4 +1,4 @@
-/* Func_80f7df0 -- asm/rom_f6000/rom_f6008_c_c_a.s
+/* Func_80f7df0 -- asm/rom_f6000/rom_f6008_c_c_a_a.s
  *
  * BLOCKER: REGISTER ALLOCATION (four-way permutation, instructions exact)
  *

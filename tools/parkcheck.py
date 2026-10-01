@@ -71,6 +71,19 @@ CLAIM2 = re.compile(r"NON-MATCHING,\s*(\d+)\s+of\s+(\d+)", re.I)
 # silent-unverifiability class.  Of 15 parks matching this, 11 already matched
 # CLAIM/CLAIM2 (no verdict change) and FOUR were being skipped.
 CLAIM3 = re.compile(r"PARKED\s+(?:AT\s+)?(\d+)\s+of\s+(\d+)", re.I)
+# A fourth phrasing, and it MUST STAY LAST IN THE CHAIN.  Parks write their
+# figure as "NOT MATCHING, 4 of 19", "DOES NOT LAND -- 8 of 17", and other
+# variants none of the three patterns above match, so they reported NO CLAIM and
+# went unverified -- nineteen of them.
+#
+# MEASURED BEFORE ADDING, and the measurement is the reason for the ordering:
+# of the parks this pattern matches, 19 match it ALONE (pure gain), 162 also
+# match an earlier pattern and AGREE, and **11 also match an earlier pattern and
+# DISAGREE** -- it is greedier and picks up a different number in those headers.
+# So it is a FALLBACK ONLY.  Promote it ahead of CLAIM/CLAIM2/CLAIM3 and you
+# silently change the verified figure of eleven parks.
+CLAIM4 = re.compile(r"(?:NOT\s+MATCHING|DOES\s+NOT\s+LAND|NON-?MATCHING|PARKED)"
+                    r"[^0-9\n]{0,40}(\d+)\s+of\s+(\d+)", re.I)
 # A third accepted phrasing, anchored the same way CLAIM2 is anchored.  Agents
 # naturally write "PARKED at 20 of 76" and neither pattern above matches it, so
 # the park reported NO CLAIM and its figure went UNVERIFIED -- the same
@@ -114,7 +127,8 @@ def check(path):
             r"NO\s+(?:objcmp\s+)?(?:FIGURE|CANDIDATE)|"
             r"NOT\s+RECONSTRUCTED|TRIAGE\s+ONLY|NO\s+CANDIDATE\s+WRITTEN",
             flat, re.I)
-        claims = CLAIM.search(flat) or CLAIM2.search(flat) or CLAIM3.search(flat) or CLAIM3.search(flat)
+        claims = (CLAIM.search(flat) or CLAIM2.search(flat)
+                  or CLAIM3.search(flat) or CLAIM4.search(flat)) or CLAIM3.search(flat)
         if declares_none and not claims:
             return ("NOFIGURE", "triage park, no candidate and no figure claimed",
                     None, None)
@@ -145,7 +159,8 @@ def check(path):
     ref = ref.strip("'\"")
     if not os.path.exists(os.path.join(ROOT, ref)):
         return ("UNCHECKABLE", f"reference {ref} not found", None, None)
-    cm = CLAIM.search(hdr) or CLAIM2.search(hdr) or CLAIM3.search(hdr) or CLAIM3.search(hdr)
+    cm = (CLAIM.search(hdr) or CLAIM2.search(hdr)
+          or CLAIM3.search(hdr) or CLAIM4.search(hdr)) or CLAIM3.search(hdr)
     # A park with NO FUNCTION BODY still produces a number: objcmp compiles the
     # empty translation unit and reports every one of the reference's encodings as
     # differing.  That number is meaningless but indistinguishable from a real

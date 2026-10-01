@@ -1,4 +1,4 @@
-/* Func_801d108 (DrawDialScreen) -- 0x0801d108, asm/rom_15000/rom_1ca1c_c_c_a_a.s
+/* Func_801d108 (DrawDialScreen) -- 0x0801d108, asm/rom_15000/rom_1ca1c_c_c_a_a_a.s
  *
  * NON-MATCHING, 337 of 416 encodings differ.
  *
@@ -19,11 +19,11 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_15000/801d108.c \
- *     asm/rom_15000/rom_1ca1c_c_c_a_a.s --func Func_801d108
+ *     asm/rom_15000/rom_1ca1c_c_c_a_a_a.s --func Func_801d108
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/aligncmp.py \
  *     src/non_matching/rom_15000/801d108.c \
- *     asm/rom_15000/rom_1ca1c_c_c_a_a.s Func_801d108 -v
+ *     asm/rom_15000/rom_1ca1c_c_c_a_a_a.s Func_801d108 -v
  *
  * SPLIT SHAPE.  tools/datacheck.py is SILENT on rom_1ca1c_c_c_a_a.s: no data
  * section, so this is a plain function cut, not a text/data split.  The .s holds

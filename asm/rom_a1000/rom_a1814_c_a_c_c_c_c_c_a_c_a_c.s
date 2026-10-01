@@ -1,43 +1,6 @@
 	.include "macros.inc"
 	.include "gba.inc"
 
-@ CountInventory
-@ r0 = character id. Returns how many of the fifteen inventory halfwords at
-@ [record]+0xD8 have a non-zero item id in bits 0..8.
-@
-@ The inventory slot format, established here and in Func_a3d9c, Func_a3ddc and
-@ Func_a40ac, is one halfword per slot:
-@
-@     bits 0..8    the item id -- the same 0x1FF _Func_78414 masks with
-@     bit 9        set means the slot is locked (equipped, or a key item)
-@     bits 11..15  the quantity, less one
-@
-@ which is why rom_77000's _Func_788c4 decrements by 0x800: that is one unit.
-.thumb_func_start Func_80a3d6c  @ 0x080a3d6c
-	push	{r5, lr}
-	bl	_GetUnit
-	ldr	r4, =0x1ff
-	mov	r5, #0
-	add	r0, #0xd8
-	mov	r1, #0xe
-.La3d7a:
-	ldrh	r2, [r0]
-	mov	r3, r4
-	and	r3, r2
-	add	r0, #2
-	cmp	r3, #0
-	beq	.La3d88
-	add	r5, #1
-.La3d88:
-	sub	r1, #1
-	cmp	r1, #0
-	bge	.La3d7a
-	mov	r0, r5
-	pop	{r5}
-	pop	{r1}
-	bx	r1
-.func_end Func_80a3d6c
-
 @ FindInventoryItem
 @ r0 = character id, r1 = item id. Scans the fifteen inventory slots and returns
 @ the held quantity -- (slot >> 11) + 1 -- for the first match, or 0 when the

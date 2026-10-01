@@ -8,9 +8,9 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/ovl_7bc690/2009638.c \
- *     asm/overlays/rom_7bc690/ovl_4e4_c_c_c.s --func OvlFunc_933_2009638
+ *     asm/overlays/rom_7bc690/ovl_4e4_c_c_c_a.s --func OvlFunc_933_2009638
  *   docker run ... python3 tools/tryc.py --align \
- *     --ref asm/overlays/rom_7bc690/ovl_4e4_c_c_c.s src/non_matching/ovl_7bc690/2009638.c
+ *     --ref asm/overlays/rom_7bc690/ovl_4e4_c_c_c_a.s src/non_matching/ovl_7bc690/2009638.c
  *
  * LANDING NEEDS A SPLIT.  ovl_4e4_c_c_c.s holds TWO functions
  * (OvlFunc_933_2009638, OvlFunc_933_2009874) plus a trailing `.section .data`
@@ -87,7 +87,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *       goldensun-build python3 tools/objcmp.py \
  *       src/non_matching/ovl_7bc690/2009638.c \
- *       asm/overlays/rom_7bc690/ovl_4e4_c_c_c.s --func OvlFunc_933_2009638
+ *       asm/overlays/rom_7bc690/ovl_4e4_c_c_c_a.s --func OvlFunc_933_2009638
 */
 typedef struct { unsigned char _bytes[704]; } GlobalState;
 extern unsigned char iwram_3001ebc[];

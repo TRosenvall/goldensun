@@ -6,7 +6,7 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80a63e4.c \
- *     asm/rom_a1000/rom_a5534_c_c_a.s --func Func_80a63e4
+ *     asm/rom_a1000/rom_a5534_c_c_a_a.s --func Func_80a63e4
  *
  * FRESH TARGET (batch 290), ONE candidate plus one revision -- this is a first
  * structural reading, not a worked park. The .s holds four functions

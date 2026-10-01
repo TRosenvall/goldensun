@@ -610,3 +610,6 @@ OvlFunc_882_2009154  src/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_c_c_c_a_c_b.c
 Func_80f0678  src/rom_f0000/rom_f0254_c_c_b.c
 GetUnit  src/rom_77000/rom_77320_a_a_c_c_a_b.c
 Func_8005ee0  src/rom_c0/rom_5cf8_a_a_a_c_c_a_b.c
+Func_8015e8c  src/rom_15000/rom_15e8c_a_a.c
+Func_80a65e4  src/rom_a1000/rom_a5534_c_c_a_b.c
+OvlFunc_933_2009874  src/overlays/rom_7bc690/ovl_4e4_c_c_c_b.c
