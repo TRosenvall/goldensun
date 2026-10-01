@@ -90,10 +90,31 @@ count, because it creates the reference's NUMBER of long-lived quantities.
 That is the band-entry lever for the straight-line population: **count the
 reference's parked constants, then make your candidate hold that many.**
 
-**Declaration order -- inert.**  Permuting the eight declarations and
+**Declaration order -- inert FOR LOCAL-ALLOC-PLACED CONSTANTS ONLY; it DOES set
+the order of RELOAD SPILL SLOTS.**  Permuting the eight declarations and
 assignments into the reference's own r5..r11 order is byte-identical.
 Consistent with batch 305: values placed by LOCAL-alloc were never ranked by
 `allocno_compare`.
+
+NARROWED IN BATCH 311 (`Anim_Gaia`).  The measurement above was taken on a
+function whose quantities LOCAL-alloc placed in registers -- it says nothing
+about a function that SPILLS, and the unqualified heading it used to carry was
+read as covering both.  On `Anim_Gaia` a declaration reorder moved the aligned
+figure by two encodings -- noise, and on the figures alone it would have been
+written off as inert a second time -- while *correcting a seven-encoding spill
+slot misassignment*, after which the slot map matched the reference entry for
+entry.  Two consequences:
+
+  * **For a spilling function the ranking instrument is the spill-slot
+    access-count table, not the aligned figure.**  The aligned figure averages
+    a slot correction away; the slot map shows it directly.  This is the same
+    lesson as rung 2 of the figures-that-lie ladder, reached from the other
+    side: here the figure did not lie about a WORSE candidate, it stayed silent
+    about a BETTER one.
+  * The spill-slot lever has **no purchase on a function with no spills**, which
+    is why putting it in all eight briefs of batch 310 on two functions'
+    evidence was wrong.  Read the frame first (the three greps); only then is
+    the slot map a lever at all.
 
 **Lever 3, THE OFFSET AS A NAMED LOCAL -- still pays, unchanged.**  On 2008c28
 `h = 0xf0 << 8; *(short *)(q + 0x1e) = h;` keeps 0xf000 out of the pool, and

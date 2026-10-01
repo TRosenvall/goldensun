@@ -28866,3 +28866,293 @@ A fourth flavour appeared in the same batch: the recipe wrapped its whole comman
 `sh -c`, so the closing quote attached to the function name and objcmp searched for `NAME'`. **Write
 the plain `docker run … python3 tools/objcmp.py <cand> <ref> --func NAME` form** that the rest of the
 tree uses.
+
+## Batch 311 -- two more ways a figure lies, and a pooled small constant is a symbol
+
+### Rung 6: a MISSING INPUT can print the best possible verdict
+
+Brief E caught this in its own harness and it is the worst of the six because it
+fails in the *safe-looking* direction. A generator crashed, so the candidate `.c`
+never existed; objcmp emitted no verdict at all; and the harness's empty-string
+fallback printed **`SIZE EXACT / ENCODINGS EXACT`**. A measurement pipeline must
+**fail loudly on a missing file or a verdict-less run** -- never fall through to a
+default that reads like success. Every probe script we write gets this guard.
+
+This is the counterpart to `tools/split_s.py` silently ignoring `--dry-run`: in
+both cases the tool did nothing and said something reassuring.
+
+### Rung 7: an EXACT SIZE can be a coincidence -- two opposite errors in DIFFERENT UNITS
+
+`Anim_Gaia` measures **SIZE EXACT at 2188 bytes on both sides** while the
+encoding count is **saturated at 992 against 990**. objcmp prints no SIZE line,
+which reads like the strongest possible signal. It is arithmetic:
+
+    +2 instructions   = +4 bytes
+    -1 pool word      = -4 bytes
+                        -------
+                         0 bytes
+
+Rungs 3 and 4 were about two errors cancelling *in the same unit* (your own work
+totalling the ROM's deficit; two cancelling defects summing to an exact count).
+This is a cancellation **across units** -- text against pool -- which no single
+figure can separate, because size is the one number that adds them together.
+
+**The check is structural and cheap:** compare the pool-word count and the
+instruction count SEPARATELY, never their sum. `200cbec` in the same batch shows
+the honest case -- size exact *and* count exact *and* relocations identical, at
+which point `2 of 1068` is a true distance and worth one more push. Size exact
+with a saturated count is the opposite situation wearing the same clothes.
+
+### A pooled constant that gcc could never pool IS A SYMBOL
+
+The sharpest screen in this batch, and it is a proof rather than a heuristic.
+`*thumb_movsi_insn` decides pool-versus-`mov` **on the value**: anything gcc can
+load with one `mov #imm8` it will, so a small constant can never reach the pool
+by that route. Therefore a reference that **pools an eight-bit-movable word has a
+relocation there, not a literal** -- it is a symbol whose address happens to be
+small, or zero.
+
+On `OvlFunc_969_20088b4` writing `z2 = (int)&_AREA_00;` is what bought the exact
+count. `_CONST_0` is byte-identical to it, so the *encodings* cannot tell you
+which symbol it is -- only the relocation name differs, and the relocation
+sequence is the instrument that decides.
+
+Related, same gate, different mode: **the pooled-halfword defect is not about
+zero.** `*(short *)x = 0xa` pools `.word 0x0000000a` where the reference emits
+`movs r3,#10`. The gate is the MODE, not the value, so the existing
+pooled-halfword note generalises off zero.
+
+### A pin forces the REGISTER, not the REBUILD -- and it fights naming
+
+A register pin and a named long-lived quantity **conflict at exactly the sites
+where both apply**. Where a pinned value is also a named quantity, cse1 replaces
+the pin's own `q1 = K` with the commoned pseudo and the pin degrades to a copy of
+it. So the two levers cannot be stacked at one site, and a function whose
+reference *mixes* rebuilds with reuse copies will not go exact under either lever
+alone -- `20088b4` stays mixed for this reason, while `200cbec`, which rebuilds
+almost everything, went from -28/-14 to both axes exact under **one blanket pin
+pass over every literal argument outside 0..255**.
+
+**That blanket pass is the documented step 1 for a pure-rebuild reference**, and
+the screen that tells you which kind you have is cheap and comes before writing a
+line: the **pooled-constant multiset plus the reference's `mov rlo,rhigh` count.**
+Nothing reloaded more than ~3x and few reuse copies means pure rebuild; a value
+reloaded seven or eight times with ~30 reuse copies means mixed.
+
+### `REG_N_SETS` again -- and the two-step form that defeats `REG_EQUIV`
+
+Confirming the existing `REG_N_SETS`-not-`REG_N_REFS` finding from the other
+direction. `int q4000 = 0x80 << 7;` was **inert at all four of its sites**:
+one set earns a `REG_EQUIV` note and reload simply rematerialises the constant
+instead of giving the pseudo a register. The **two-step computed form**
+
+    q4000 = 0x80;  q4000 <<= 7;
+
+has two sets, carries no `REG_EQUIV`, and the pseudo gets its register. This is
+the actionable spelling behind "initialise at the declaration LOWERS your own" --
+the note, not the initialiser, is the mechanism.
+
+### Bounds found by measuring four spellings byte-identical
+
+A byte-identical pair is a *bound on a rule*, which is worth as much as a lever:
+
+  * **Both `mul` operand orders are byte-identical.** So the "second operand
+    lands in the destination" rule **cannot be read backwards at a commutative
+    site** to recover which operand the source named first. Do not infer operand
+    order from a `mul`.
+  * A **per-region blitter local** was inert, which bounds the Fizz
+    one-per-loop lever to its stated precondition: values read **from a global
+    across a call**. Absent the call, there is nothing cse could have reused, so
+    there is nothing for the lever to prevent.
+
+### Triage: the FRAME predicts difficulty, the instruction count does not
+
+My ordering of brief B's five by instruction count was wrong about which is
+hardest, and the agent's correction has a usable rule in it.
+`Anim_ScreenShatter` is 1,051 instructions -- 115 MORE than `Anim_Gaia` -- yet
+has frame 0x38, **no aggregates** and 8 spilled scalars, and should have been
+second, not third. `Anim_Kirin` is shorter but carries frame 0xb0, **6 aggregates
+with three `mov rX,sp`** and 22 scalars, and should have been last.
+
+**Rank by the frame triad, not by length.** Aggregates and `mov rX,sp` sites cost
+far more than instructions do, because each one is a quantity whose slot you must
+place and whose order is REVERSED relative to the scalars.
+
+### A per-function census that must NOT be carried between functions
+
+`Anim_Gaia`'s loops are **all `bne`** -- every loop is `!=`, not `<`, and that
+lever moved it 505 -> 528. `Anim_ScreenShatter` in the same family has **48
+signed comparisons against 16 `bne`**. Importing Gaia's `!=` rule there would
+corrupt 48 sites. Run the comparison census **per function** (`grep -coE
+'\b(bne|blt|ble|bgt|bge)\b'` on the reference) before applying any loop-shape
+lever. This is the same discipline as the one-function int-carrier lever that
+measured 3.6 points negative elsewhere: **mechanisms travel, per-function shapes
+do not.**
+
+### Two more flavours of unverifiable park, both caught on install
+
+Running total of ways a park's figure escapes checking: a `<this file>`
+placeholder (6 parks), a path that does not exist, the agent's own gitignored
+workspace (5 parks, and `Anim_Gaia` here made a fourth sighting), a note
+prepended ABOVE the `Verify with:` line (13 parks), and now:
+
+  * **`// fakematch` on line 1**, which pushed the header block off offset 0 and
+    made `parkcheck` report "no header comment" -- i.e. UNCHECKABLE. The marker
+    is also meaningless on a park: it flags a hack in a MATCHING file, and a park
+    is non-matching by definition.
+  * **a recipe wrapped in `sh -c '...'`**, whose closing quote glued itself to the
+    function name so objcmp searched for `NAME'`.
+
+`tools/parkcheck.py` now skips leading blank and `//` lines before looking for
+the header block, and strips shell quotes from the extracted reference and
+function name. Both were silent-unverifiability bugs in the checker itself, which
+is the one place they must not live. A tree-wide sweep found these two files were
+the only ones affected.
+
+### Discipline: do not cite a loop flag on a function with no loop
+
+`-fno-rerun-cse-after-loop` **was not tested** on either of brief E's two and
+must not appear in their notes: neither function has a loop. `20088b4` has one
+conditional and two pool skips; `200cbec` has two real conditionals and two pool
+skips. The flag remains unsettled on `OvlFunc_882_200b1ac`, which does have a
+loop and is the one place left to settle it.
+
+## Batch 311 -- the park sweep: eight figures that could never be caught lying, two of which were
+
+Splitting `parkcheck`'s one `UNCHECKABLE` verdict into **`NOFIGURE`** (a triage park
+with no candidate -- legitimate) and **`UNCHECKABLE`** (a park that CLAIMS an
+"N of M" figure but gives no way to re-measure it -- dangerous) made the dangerous
+class countable for the first time. A static sweep of all 823 park headers:
+
+    parks with a runnable recipe          354
+    triage / no figure claimed            461
+    no header comment at all                0
+    FIGURE CLAIMED, NO RECIPE               8
+
+Recipes were added to all eight and run. **Six confirmed exactly** -- including
+`ovl_77dd1c/2009154.c` at **2 of 160**, the closest park in the tree, which is
+reassuring precisely because it was the one most worth doubting. **Two were
+lying, and both turned out to be SATURATED** -- measuring *above* their own
+reference totals, so their real distance is unknown:
+
+| park | claimed | production | why |
+|---|---|---|---|
+| `ovl_7f6e64/200a200.c` | 90 of 138 | **148** | the 90 is a `-fno-gcse` figure and **there is no `-fno-gcse` Makefile row for that object** |
+| `ovl_7aa430/2009a3c.c` | 90 of 177 | **181** | no flag cited and no Makefile row -- unreproducible either way |
+
+Both claim lines are restated with the production figure and the withdrawal is
+recorded in the park itself.
+
+`200a200` is the per-flag claim-line defect sitting in a park's **first line** for
+several batches. The rule it breaks is already written down -- *a claim line
+carries the figure the build can reproduce; a flag-conditional measurement is a
+labelled row in the body* -- and the reason it survived is that nothing could run
+it. **A rule only binds where something re-measures it.** That is the general
+lesson of this sweep and the argument for the recipe requirement being mechanical
+rather than editorial.
+
+`2009a3c` is worse in one respect: its blocker diagnosis ("one allocno too many,
+plus an unsolved pooled-zero") rests on a figure that cannot be reproduced, so the
+diagnosis is now unconfirmed. **A saturated body cannot support an
+allocno-counting claim at all**, because saturation means the candidate's
+instruction stream has diverged far enough that per-encoding attribution is
+meaningless.
+
+## Batch 311 -- the switch material is inert where I predicted it would pay
+
+Brief C's triage inverted the brief's own expectation, mine, and it is a clean
+correction to the 800+ band triage axis.
+
+| target | insns | high-reg mentions | jump tables |
+|---|---|---|---|
+| `CalcStats` | 864 | **17** | **3** (27/8/6 entries) |
+| `Func_8024934` | 946 | 84 | 0 |
+| `FieldMain` | 965 | 102 | 0 |
+| `MenuBar` | 1037 | 115 | 0 |
+| `Func_8023e70` | 1201 | 96 | 0 |
+
+**All four menu/field targets have zero jump tables**; `MenuBar` has zero unsigned
+branches of any kind in 1,037 instructions. The only target with dispatches is
+the one with the *fewest* high-register mentions. So on this population the two
+axes are **inversely** related, and "menu code is switch-heavy" -- which is what
+put the switch material in the brief -- is false here. The high-register count
+remains the band's triage axis; dispatch count is not a second one, and it is not
+predictable from what the function appears to do.
+
+This is the second time the switch lever has been over-promoted (after the
+"transfers to 36 functions" claim that a tree-wide screen reduced to one). The
+pattern in both: a lever's *mechanism* was sound and its *population* was assumed.
+**Screen the population before writing the lever into a brief.**
+
+## Batch 311 -- `CalcStats`: gcse/PRE invents an allocno, and the inner parenthesis is load-bearing
+
+`CalcStats` reached **SIZE exact (2024 bytes), COUNT exact (864/864), prologue and
+epilogue byte-identical** with the same two high registers and no third, and
+**relocations 69 vs 69 in identical symbol order** -- at `834 of 927`, with the
+only relocation difference being where two literal-pool dumps land. The levers,
+most transferable first:
+
+  * **gcse/PRE was inventing the third high register.** `s + 0x28` occurs three
+    times in the reference and is **never commoned** there. Spelling it as an
+    explicit pointer lets `pre_insert_copies` hoist it function-wide (`mov r9,r2`
+    … `mov r2,r9`) -- an allocno the ROM does not have. Re-spelling as
+    `q = s + (0x28 + k * 8)` rebuilds the *identical* pointer via loop.c strength
+    reduction, which runs **after** gcse. **The inner parenthesis is
+    load-bearing**: it is what keeps the sum out of gcse's reach. This is a new
+    member of the allocation family -- *deny gcse the expression* -- and it
+    lowers your own count the way the other members do, but through a different
+    pass.
+  * **`(signed char)*p` folds to `ldrsb`; `(signed char)p[0]` does not.** The
+    reference uses both forms 40 instructions apart. Largest single gain in the
+    function (strict 526 -> 432). The two spellings are semantically identical C.
+  * **`(1 << d) & mask` must be split across two statements** or `fold` rewrites
+    it to `(mask >> d) & 1`.
+  * **`expand_divmod` keeps its dividend copy only if the dividend pseudo has more
+    than one set** -- the same `REG_N_SETS` gate as brief E's, in a third pass.
+  * **Three induction variables, not two, is what stops `check_dbra_loop`
+    reversing a loop.** Reversal is directly observable, so this one is cheap to
+    confirm.
+  * **`&=` narrowed to a byte picks the cheaper constant** (`mov #0xf6` against
+    `mov #0xa`/`neg`); a second int local blocks it. The sibling `& -4` block needs
+    no help because its result has three further uses -- **an extra use is the
+    discriminator**, which is the same shape as the donor-needs-a-use-of-its-own
+    precondition in the reuse lever.
+
+**Blocker: `global.c`'s priority ordering.** The reference gives the *outer* item
+index r5 and exiles the *inner* one to r8, paying four extra moves it need not.
+Our build makes the cheaper choice. Lengthening the inner index's live range moved
+26 strict lines the right way without flipping it.
+
+### A third bound on initialise-at-declaration
+
+The lever was **inert** here, and the reason sharpens the rule rather than just
+limiting it: `for (j = 0; …)` makes the declaration's store **dead**, so it is
+removed before `global.c` ever sees it. The lever only lowers priority **if the
+declaration's value is the one the body actually uses.** Collected with the
+earlier bound (`int yaw = 0;` is byte-identical when the body overwrites before
+any read), the rule is now: *initialise-at-declaration lowers your own priority
+exactly when the initialiser is LIVE -- and a loop that re-initialises the same
+variable kills it.*
+
+### Corrections to existing tree claims
+
+  * **`FieldMain` takes no arguments.** The `GameStart` park declares
+    `extern void FieldMain(int a)` and calls `FieldMain(k)`. r0 is overwritten
+    with `0x1b` before any read, so the parameter is fiction. Its `.s` annotation
+    also says "~600 instructions"; it is **965**.
+  * **`MenuBar`'s annotation reports "1157 lines" as a size.** That is the dump's
+    line count, not an instruction count -- it is **1,037** instructions. Its
+    `bl .gcc2_compiled.` "calls" are disassembler noise, not calls.
+  * **Both files that matched `FieldMain`/`MenuBar` by name are about other
+    functions** -- the name-match trap the brief warned about, hit anyway.
+  * **`Func_8023e70`, `Func_8024934` and `Func_8023178` are a three-member
+    family** in one `.s`, all unattempted, identical prologue and opening
+    sequence. One three-way split serves all three, and solving any one supplies
+    the other two's first ~40 instructions.
+  * **`Func_8024934`'s sp+0x58 is loaded once and never stored** -- not a local.
+    Three quarters of its 372-byte frame is aggregate invisible to the first
+    frame grep, and `add r2, sp, #0x174` points **one past the frame end**.
+
+**Recommended next target: `FieldMain`** -- 3 spill slots in 965 instructions, the
+only one of the four needing no split, and two *landed* callees at -0x38 and -0xac
+opening with the same `galloc_ewram(0x1b, 0xccc)`.

@@ -43,7 +43,19 @@
  * the only one under the old 120 cut-off, and it is the one that stalled -- because its
  * stem-mates in rom_8ba38_* are 20-byte stubs with nothing transferable. The other three all had
  * a real neighbour and all landed. Size predicted nothing; the neighbour predicted everything.
- */
+  *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/CheckSpecialExits.c \
+ *     asm/rom_8a000/rom_8ba38_a_a_a_c_a_c_a_a.s --func CheckSpecialExits
+ *
+ * RECIPE ADDED IN BATCH 311.  This park carried an "N of M" figure with no way to
+ * re-measure it, so its number could never be caught lying -- the dangerous half of
+ * what parkcheck used to lump into one UNCHECKABLE verdict.  A tree-wide sweep found
+ * eight such parks; this is one of them.  The figure above is NOT re-measured by the
+ * act of adding this line: run it.
+*/
 struct Box {
     short x0;
     short y0;

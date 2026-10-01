@@ -42,7 +42,19 @@
  *
  * NEXT: price the tx/ty contest with the batch-277 formula from `.17.lreg` before spelling
  * anything else.
- */
+  *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7aa430/2009cb4.c \
+ *     asm/overlays/rom_7aa430/ovl_1a3c_a_c_a_a.s --func OvlFunc_923_2009cb4
+ *
+ * RECIPE ADDED IN BATCH 311.  This park carried an "N of M" figure with no way to
+ * re-measure it, so its number could never be caught lying -- the dangerous half of
+ * what parkcheck used to lump into one UNCHECKABLE verdict.  A tree-wide sweep found
+ * eight such parks; this is one of them.  The figure above is NOT re-measured by the
+ * act of adding this line: run it.
+*/
 extern int Func_8000948(int a);
 extern int Func_8000888(int a, int b);
 extern int Func_80008ac(int a, int b);

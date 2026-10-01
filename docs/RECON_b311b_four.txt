@@ -1,0 +1,257 @@
+RECON -- BATCH 311 BRIEF B, the four targets NOT reconstructed
+==============================================================
+
+Anim_Gaia was taken to a measured park (scratch_elev/b311b/PARK_Anim_Gaia.c,
+SIZE EXACT, count 992/990, aligncmp 579 of 990 = 58.5%).  The four below were
+NOT reconstructed.  What follows is MEASURED structural reconnaissance only --
+no candidate was compiled for any of them, and no figure here is an objcmp or
+aligncmp figure.  Every number below came from a grep of the reference .s and
+can be re-derived in one command.
+
+This is deliberate: the brief says two well-understood functions beat five
+shallow ones, and after Gaia there was not budget to take a 1026-1474
+instruction function to the same depth.  A half-written candidate with an
+honest-looking objcmp line would have been worse than this.
+
+--------------------------------------------------------------------------
+0.  THE TRIAGE IN THE BRIEF IS WRONG ABOUT WHICH OF THESE IS HARDEST, AND
+    THE AXIS THAT CORRECTS IT IS THE FRAME, NOT THE INSTRUCTION COUNT
+--------------------------------------------------------------------------
+
+The brief ordered these by instruction count and said to work smallest-first.
+On the frame greps that ordering is wrong by a wide margin:
+
+  function             insns  frame   aggregates              spilled scalars
+  Anim_ScreenShatter   1051   0x38    NONE                    8
+  Anim_Gaia  (done)     936   0x48    2  (0x30, 0x38)         10
+  Anim_Neptune         1474   0x74    4  (0x28,0x48,0x58,0x64) 18
+  Anim_Kirin           1026   0xb0    6 + three `mov rX, sp`  22
+  Anim_Boreas          1340   0x14c   2  (0x3c, 0x4c)         12
+
+Anim_ScreenShatter is 115 instructions LONGER than Anim_Gaia and has a
+SMALLER frame, NO aggregates at all and TWO fewer spilled scalars.  It is the
+most tractable of the five and should have been second in the brief, not
+third.  Anim_Kirin, nominally the second smallest, has 22 spilled scalars and
+SEVEN stack aggregates -- it is the hardest of the five by this measure and
+should be last.
+
+Anim_Boreas's 0x14c frame is mostly one large declared array, not spill
+pressure: only 12 scalars are spilled and the two `add rX, sp` aggregates sit
+at 0x3c and 0x4c, so roughly 0x100 bytes above 0x4c is a single local buffer.
+Find its element stride before writing anything.
+
+RECOMMENDED ORDER FOR THE NEXT BATCH:
+  1. Anim_ScreenShatter   (smallest frame, no aggregates, best oracle)
+  2. Anim_Boreas          (12 scalars; the big frame is one array)
+  3. Anim_Neptune         (4 aggregates, 18 scalars, 169 high-reg mentions)
+  4. Anim_Kirin           (6 aggregates + 3 `mov rX,sp`, 22 scalars)
+
+--------------------------------------------------------------------------
+1.  A FREE PER-FUNCTION SIGNAL WORTH TAKING BEFORE WRITING ANY LOOP:
+    THE LOOP-COMPARISON CENSUS
+--------------------------------------------------------------------------
+
+This came out of Anim_Gaia and it paid there, so it is recorded as a method.
+Count the signed-comparison branches against `bne` in the reference:
+
+  function             bne   ble/blt/bge/bgt
+  Anim_Gaia            (all loops `bne`)      -- every one of 13 loops
+  Anim_Boreas           48    32
+  Anim_Kirin            33    25
+  Anim_Neptune          35    55
+  Anim_ScreenShatter    16    48
+
+In Anim_Gaia EVERY loop closes on `bne`, and writing `i < N` instead of
+`i != N` cost a `cmp #N-1 / ble` or, worse, a COUNTDOWN (`sub / cmp #0 / bge`)
+which also changes which quantity loop.c picks as the giv.  Converting all
+thirteen was part of a 505 -> 528 of 990 move.
+
+Anim_ScreenShatter is the OPPOSITE case -- 48 signed branches against 16
+`bne`.  Do NOT import Gaia's `!=` rule into it.  The census is per-function
+and it is one grep; take it first and write the loops to match.
+
+Caveat on the raw counts: `bhi`/`bls` on a biased subtraction
+(`sub r3, #K / cmp r3, #N / bhi`) is an unsigned range test
+`(unsigned)(x - K) <= N`, not a loop bound, and both appear here.  Count only
+the branches that close a backward edge.
+
+--------------------------------------------------------------------------
+2.  ORACLES, PER TARGET -- ALL FOUR HAVE A GOOD ONE AND TWO ARE IN THE SAME .s
+--------------------------------------------------------------------------
+
+Anim_ScreenShatter  asm/rom_c9000/rom_cb1a4.s:1245, 0x080cbc0c
+  SAME-FILE PARKED SIBLING: src/non_matching/rom_c9000/cb1a4_EPowerUp.c is
+  Anim_EPowerUp at 0x080cb7f8, lines 775-1234 of the SAME .s.  That park
+  already declares `galloc_iwram`, `iwram_3001e80`, `iwram_3001f0c`,
+  `gPtrs` as `unsigned char[]`, `Data_ede5c`, `CopyFn`, `DrawFn`, and the
+  `State` / `Part` structs.  Take its declaration block verbatim.
+  It is at 343 of 452 with its whole residue identified as ONE missing
+  spilled scalar, so read its blocker note too.
+  THE SPLIT IS TEXT/DATA AND IT NEEDS NEW EXPORTS -- CHECKED, NOT ASSUMED.
+  The .s holds four functions (Anim_Unused_SabreRain 397-764, Anim_EPowerUp
+  775-1234, Anim_ScreenShatter 1245-2418, and one before them) AND a
+  `.section .rodata` tail starting at line 2420 with eight labels
+  (.Ledf7f .Ledf83 .Ledf88 .Ledf90 .Ledfb1 .Ledfd2 .Lee016 .Lee037) and
+  NOT ONE `.global` line in the whole file.  Anim_ScreenShatter reads
+  `.Lee016` and `.Lee037`, so the remainder will need at least
+
+      .global .Lee016
+      .global .Lee037
+
+  immediately before those labels, and `tools/datacheck.py` must be run to
+  find which labels the other three functions read before the split is made.
+  Each export must be `make compare`-verified BEFORE the split.
+  `tools/split_s.py --dry-run` ALWAYS -- it deletes a tracked .s.
+  VERIFIED SIZES, which also confirm the loop bound: `.Lee016` is
+  0xee016..0xee037 and `.Lee037` is 0xee037..0xee058, i.e. 0x21 = 33 bytes
+  each, exactly the 0x21 iterations of the loop at `.Lcbe5a`.
+
+Anim_Kirin          asm/rom_c9000/rom_eb754_a.s:93, 0x080eb754
+  This is CLASS 3 in docs/battle-animations.md's dispatch table -- `Func_eb754`,
+  "120 + 96 frames, ascent then a descending wave front", and the doc records
+  that it is the ONE handler that generates only a SINGLE blitter.  The
+  single `BuildDraw2DFuncEx` call and the single `gPtrs + 0xb8` read in the
+  disassembly confirm it, so do not look for a second blit pointer.
+
+Anim_Neptune        asm/rom_c9000/rom_eb754_c_c.s:106, 0x080ec100
+  CLASS 6, `Func_ec100`, "244 + 144 frames, a figure flies in then five beams
+  fall".  docs/battle-animations.md explains the three `SetIntrHandler` calls
+  in full: this is the SPLIT-SCALE BACKGROUND handler -- `Func_ec0e0` restores
+  REG_BG2PA = 0x100 per frame while `Func_ec0f0`, armed on a VCOUNT-MATCH
+  interrupt via `Func_307c(2, line, fn)`, drops it to 0x80 so BG2 squashes
+  below the split.  Do not try to derive that from the instruction stream.
+
+Anim_Boreas         asm/rom_c9000/rom_d6970.s:1744, 0x080d765c
+  CLASS 10, `Func_d765c`, "288 + 146 frames, bombardment on fixed sites then
+  debris".  SAME-FILE SIBLING: Anim_Cybele at 0x080d6970 occupies lines
+  91-1651 of the same .s and is CLASS 5 (`Func_d6970`, "wave,
+  scatter-dissolve, reveal"), whose two documented techniques -- the shuffled
+  128-byte permutation dissolve and the every-fourth-frame palette
+  desaturation -- are described instruction-for-instruction in that doc.
+  34 `Random` calls in Boreas is the highest of the five by a factor of two;
+  expect the fixed-site table and the debris seeding to dominate.
+
+Nearest PARKS by distance, for levers rather than vocabulary: Anim_Froth
+(4 of 529), Anim_CriticalHit (15 of 707), Anim_Djinni (16 of 738),
+Anim_Unused_Fizz (118 of 770), Anim_Ragnarok (296 of 584).
+
+--------------------------------------------------------------------------
+3.  WHAT ANIM_GAIA PROVED THAT TRANSFERS, WITH ITS FIGURES
+--------------------------------------------------------------------------
+
+Full detail is in the header of scratch_elev/b311b/PARK_Anim_Gaia.c.  The four
+that are most likely to matter here:
+
+(a) `base + 0x7828` IS NOT A NAMED LOCAL in this bank.  Naming it buys an
+    extra spill slot and the whole frame and every slot reference goes wrong
+    -- 471 -> 505 of 990 to remove it.  Anim_Ragnarok's `slot` local is the
+    documented EXCEPTION, not the pattern.  All four targets read 0x7828
+    (Kirin 6 pooled references, ScreenShatter 1, and both others), so this
+    applies to every one of them.
+
+(b) A STACK AGGREGATE INITIALISED FROM A GLOBAL IS A STRUCT ASSIGNMENT, not
+    subscript stores -- 557 -> 579 of 990 on Gaia, the largest single move
+    after the frame.  The tell is loads-both-then-stores-both
+    (`ldr r4,[r3,#4] / ldr r3,[r3] / str / str`), which is `emit_block_move`,
+    plus DIRECT sp-relative stores with `add rX, sp` materialised LATER.
+    Anim_Kirin has the identical shape at `Data_edad8` -> sp+0x5c/0x60 and
+    Anim_ScreenShatter at `Data_edae0`; both are 8-byte `.incdata`
+    objects -- verified: rom_eda78.s has `Data_edad8, 0xedad8, 0xedae0` and
+    `Data_edae0, 0xedae0, 0xedae8`.
+    This is the single most transferable finding of the batch and it is free
+    to apply.
+
+(c) THE SPILL-SLOT ACCESS-COUNT TABLE IS THE RANKING INSTRUMENT, not the
+    aligned figure.  On Gaia a declaration reorder moved the aligned figure by
+    TWO encodings -- indistinguishable from noise, and the first pass wrote it
+    off as inert -- while actually correcting a 7-encoding slot misassignment.
+    The slot map caught it; nothing else did.  Build the reference's
+    `offset -> access count` table FIRST (one grep), carry it as a column
+    beside size, count and aligned, and drive on it.
+    NARROWING OF A RECORDED FINDING: docs/band-800plus.md section 3 says
+    declaration order is inert.  That was measured on constants placed by
+    LOCAL-alloc and does NOT cover reload spill slots, where declaration
+    order DOES set the assignment order.  Both statements are true.
+
+(d) A MASK CONSTANT MUST STAY INT-WIDE OR IT WILL NOT BE HOISTED.
+    `q[9] = (q[9] & ~0xc) | 4;` lets fold distribute the narrowing convert
+    over the AND; the mask becomes 0xf3, which is a one-instruction constant,
+    so loop.c does not hoist it.  Splitting the statements so the AND is not
+    under the convert keeps -13, which costs `mov`+`neg`, which is what makes
+    loop.c move it to the preheader.  THE MECHANISM IS PASS ORDER -- loop runs
+    before combine, so once the constant is a hoisted register the AND is
+    reg-reg and combine can no longer narrow it.  Any byte-field read-modify-
+    write with a negated mask is exposed to this.
+
+--------------------------------------------------------------------------
+4.  ANIM_SCREENSHATTER -- THE SETUP REGION IS ALREADY READ, SO START HERE
+--------------------------------------------------------------------------
+
+Lines 1-330 of the function were read.  Facts, so the next pass does not
+re-derive them:
+
+- IT ALLOCATES ITS OWN BUFFERS and does not read `iwram_3001eec`.  Three
+  `galloc_iwram` calls open the function: tag 0x27 size 0x782c -> slot
+  sp+0x28, tag 0x28 size 0x80<<7 -> sp+0x24, tag 0x29 size 0x302 -> (return
+  value unused in a slot).  Those are exactly the three sizes
+  docs/battle-animations.md tabulates, which confirms the reading.  Five
+  `gfree` calls at teardown.
+- `iwram_3001e74` is read into sp+0x14 and `iwram_3001e74 + 0x8c` into r9,
+  which is then held in a HIGH register across the whole setup and written at
+  `+0xc` and `+0x10`.  r9 is the candidate for a long-lived source local.
+- THE SLOT MAP, reference access counts, scalars descending:
+      0x28  the tag-0x27 state block   (the hot pointer)
+      0x24  the tag-0x28 render buffer
+      0x20  --
+      0x1c  blitB = gPtrs[0xbc/4]
+      0x18  blitA = gPtrs[0xb8/4]
+      0x14  iwram_3001e74[0]
+      0x10  --
+      0x0c  --
+  Only EIGHT scalars and no aggregates, so the declaration list is short.
+- BOTH blitters are built, unlike Kirin: `BuildDraw2DFuncEx(0x2e, 7, 7, 3, 1)`
+  then `(0x2f, 7, 7, 3, 2)`.  NOTE the differing fifth argument, 1 then 2 --
+  that is not the `BuildDraw2DFuncs` helper's 2-then-3 pattern, so it must be
+  written out, not delegated.
+- THERE ARE TWO IDENTICAL `gDMATaskCount` / `REG_IME` PUSH SEQUENCES, the
+  HBlank register queue docs/battle-animations.md describes for `Func_ea0d8`
+  (entries of {value, register, control}, capacity 0x20, pushed under an
+  REG_IME guard).  Each is a guarded `stmia r3!, {rN}` triple with a
+  `cmp r2, #0x1f / bgt` capacity check.  THEY ARE DUPLICATED IN THE ROM, so by
+  the bank's "duplicated ROM code means duplicated source" rule (stated in
+  src/rom_c9000/rom_ceb30_c_c_c_b.c) they are duplicated SOURCE, not a helper
+  -- write both out in full and let gcc cross-jump the common suffix.
+  The two pushes are {0x7741, 0x5000000, 0x20000} and
+  {0x1f81, REG_BG1CNT, 0x20000}.
+- A 0x10 x 8 NESTED FILL writes halfwords to 0x6003800 (a BG tilemap):
+  the inner body is `(base + row*0x200 + k*0x200) | (col*2 + k*2)` sign-
+  extended through `lsl #16 / asr #16`, so the carrier is a SIGNED SHORT and
+  the `lsl/asr` pair is NOT redundant -- it is `(short)` in the source.
+  Both loops close on `bne` against 8 and 0x10 respectively, so these two are
+  `!=` even though the function is `<`-dominant elsewhere.  The census is per
+  LOOP, not per function.
+- `Func_80008d4` and `Func_80008d8` are the two fills
+  docs/battle-animations.md lists (`Func_8d4(dst, n)` and
+  `Func_8d8(dst, n, v)`), both reached through a register, so both are
+  `CopyFn`-style function-pointer locals in the source -- the
+  `CopyFn copy = Func_...;` idiom from src/rom_c9000/rom_e0524.c.
+  THE DELIVERED GAIA PARK PROVES THE PLACEMENT RULE for these: assign the
+  pointer AFTER any intervening call, never before, or the veneer register
+  comes out call-saved (`_call_via_r5`) instead of the ROM's scratch one
+  (`_call_via_r3`).  ScreenShatter wants r3, r4, r5 and r7 veneers; four
+  distinct registers means four distinct live ranges, so expect one pointer
+  local per region, not one for the function.
+- The 0x21-iteration loop at `.Lcbe5a` reads `.Lee016` and `.Lee037` as
+  unsigned bytes in parallel, shifts both left 16, stores them at +0 and +4 of
+  a 0x1c-stride record and stores `(x + 0xffe00000) >> 2` and
+  `(y + 0xffc40000) >> 2` at +0xc and +0x10.  Both tables ARE 33 bytes
+  (verified above), so the pairing is confirmed.
+
+--------------------------------------------------------------------------
+5.  WHAT WAS NOT DONE, STATED PLAINLY
+--------------------------------------------------------------------------
+
+No candidate .c exists for Anim_ScreenShatter, Anim_Kirin, Anim_Boreas or
+Anim_Neptune.  Nothing above has been through objcmp, aligncmp, tryc or
+datacheck except the split-shape checks explicitly named.  The split shapes
+for the three stems other than Anim_Gaia's have NOT been dry-run.

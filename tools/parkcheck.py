@@ -69,6 +69,17 @@ CLAIM2 = re.compile(r"NON-MATCHING,\s*(\d+)\s+of\s+(\d+)", re.I)
 
 def header_of(path):
     s = open(path, errors="replace").read()
+    # Skip leading blank and `//` lines before looking for the /* ... */ block.
+    # A stray `// fakematch` above the header used to report "no header comment",
+    # i.e. UNCHECKABLE -- the same silent-unverifiability failure as a note
+    # prepended ABOVE the `Verify with:` line (batch 311, two parks).  An
+    # UNCHECKABLE park's figure can never be caught lying, so this must not be
+    # reachable by accident.
+    lines = s.split("\n")
+    i = 0
+    while i < len(lines) and (not lines[i].strip() or lines[i].lstrip().startswith("//")):
+        i += 1
+    s = "\n".join(lines[i:])
     m = re.match(r"/\*.*?\*/", s, re.S)
     return m.group(0) if m else ""
 
@@ -79,8 +90,29 @@ def check(path):
         return ("UNCHECKABLE", "no header comment", None, None)
     vm = VERIFY.search(hdr.replace("*", " "))
     if not vm:
+        # A TRIAGE park has no candidate, so there is no figure to check and no
+        # recipe to run.  That is a legitimate state and must NOT share a verdict
+        # with the dangerous one -- a park that DOES claim an "N of M" figure but
+        # gives no way to re-measure it, whose number can never be caught lying.
+        # Thirteen parks once hid in exactly that verdict.  Only report NOFIGURE
+        # when the header both declares the absence AND claims no figure.
+        flat = hdr.replace("*", " ")
+        declares_none = re.search(
+            r"NO\s+(?:objcmp\s+)?(?:FIGURE|CANDIDATE)|"
+            r"NOT\s+RECONSTRUCTED|TRIAGE\s+ONLY|NO\s+CANDIDATE\s+WRITTEN",
+            flat, re.I)
+        claims = CLAIM.search(flat) or CLAIM2.search(flat)
+        if declares_none and not claims:
+            return ("NOFIGURE", "triage park, no candidate and no figure claimed",
+                    None, None)
         return ("UNCHECKABLE", "no `Verify with: objcmp.py ...` recipe in header", None, None)
     ref, func = vm.group(2), vm.group(3)
+    # A recipe wrapped in `sh -c '...'` leaves the closing quote glued to the
+    # function name, and objcmp then reports "NAME' not found" -- a TOOLING
+    # verdict on a recipe a human can run as written (batch 311, two parks).
+    if func:
+        func = func.strip("'\"")
+    ref = ref.strip("'\"")
     if not os.path.exists(os.path.join(ROOT, ref)):
         return ("UNCHECKABLE", f"reference {ref} not found", None, None)
     cm = CLAIM.search(hdr) or CLAIM2.search(hdr)

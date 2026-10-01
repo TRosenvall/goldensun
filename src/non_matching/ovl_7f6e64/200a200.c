@@ -1,4 +1,14 @@
-/* OvlFunc_969_200a200 (0x0200a200) -- NON-MATCHING, 90 of 138, with -fno-gcse.
+/* OvlFunc_969_200a200 (0x0200a200) -- NON-MATCHING, 148 of 138 -- SATURATED
+ * UNDER PRODUCTION FLAGS.
+ *
+ * FIGURE RESTATED IN BATCH 311.  This line used to read "90 of 138, with
+ * -fno-gcse".  That 90 is real but it is NOT a production figure: there is no
+ * -fno-gcse row in the Makefile for this object, so nothing in the build ever
+ * compiles this body that way.  objcmp under production flags measures 148,
+ * which EXCEEDS the reference's 138 and is therefore saturated -- the distance
+ * is unknown, not 90.  A claim line must carry the figure the build can
+ * reproduce; a flag-conditional measurement belongs in the body as a labelled
+ * row, which is where the 90 now lives (see MEASURED, below).
  * Blocker class: TWO EXTRA ALLOCNOS -- a second frame base and a hoisted zero.
  *
  * asm/overlays/rom_7f6e64/ovl_314_c_a_c_c_c_a_a_c_c_c.s (1 function, so landing needs NO split).
@@ -53,7 +63,19 @@
  * no structural overlap and gave only the identity of the two +0x6c hooks.
  *
  * NEXT: remove the hoisted SImode zero. Not spelling.
- */
+  *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7f6e64/200a200.c \
+ *     asm/overlays/rom_7f6e64/ovl_314_c_a_c_c_c_a_a_c_c_c.s --func OvlFunc_969_200a200
+ *
+ * RECIPE ADDED IN BATCH 311.  This park carried an "N of M" figure with no way to
+ * re-measure it, so its number could never be caught lying -- the dangerous half of
+ * what parkcheck used to lump into one UNCHECKABLE verdict.  A tree-wide sweep found
+ * eight such parks; this is one of them.  The figure above is NOT re-measured by the
+ * act of adding this line: run it.
+*/
 struct SpriteSlot { unsigned short size; unsigned short vramOffset; };
 extern struct SpriteSlot gSpriteSlots[];
 

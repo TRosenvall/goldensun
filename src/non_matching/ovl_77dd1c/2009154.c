@@ -98,7 +98,19 @@
  * that changes reload's ordering without disturbing anything else, or evidence
  * that the ROM's function was built from different source than assumed. Do NOT
  * re-derive the 127 -> 2 path; it is above.
- */
+  *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_77dd1c/2009154.c \
+ *     asm/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_c_c_c_a_c.s --func OvlFunc_882_2009154
+ *
+ * RECIPE ADDED IN BATCH 311.  This park carried an "N of M" figure with no way to
+ * re-measure it, so its number could never be caught lying -- the dangerous half of
+ * what parkcheck used to lump into one UNCHECKABLE verdict.  A tree-wide sweep found
+ * eight such parks; this is one of them.  The figure above is NOT re-measured by the
+ * act of adding this line: run it.
+*/
 /* OvlFunc_882_2009154  --  0x02009154   *** PARKED at 2 of 160 ***
  *
  * Cut out of asm/overlays/rom_77dd1c/ovl_30_c_c_c_a_c_c_c_c_a_c.s, which holds

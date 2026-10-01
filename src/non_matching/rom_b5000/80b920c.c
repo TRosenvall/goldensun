@@ -60,7 +60,19 @@
  *
  * NEXT: move_movables' ordering, not a spelling. This is the third instance in this
  * `.s` of a residue that is decided inside one pass's cost comparison.
- */
+  *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_b5000/80b920c.c \
+ *     asm/rom_b5000/rom_b8228_c_a_c_c_a_c_a_c_c_a.s --func Func_80b920c
+ *
+ * RECIPE ADDED IN BATCH 311.  This park carried an "N of M" figure with no way to
+ * re-measure it, so its number could never be caught lying -- the dangerous half of
+ * what parkcheck used to lump into one UNCHECKABLE verdict.  A tree-wide sweep found
+ * eight such parks; this is one of them.  The figure above is NOT re-measured by the
+ * act of adding this line: run it.
+*/
 struct Entry {
     unsigned short id;
     unsigned short f2;

@@ -58,7 +58,19 @@
  * read against `.18.greg` rather than more spellings -- 55 of them are now on
  * file and the plateau is flat. Belongs with the other global_alloc parks
  * (Func_80a8578, Func_80cd52c, Func_80919d8, Func_80a6794, Func_808b090).
- */
+  *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_f6000/80f6148.c \
+ *     asm/rom_f6000/rom_f6008_c_a_c.s --func Func_80f6148
+ *
+ * RECIPE ADDED IN BATCH 311.  This park carried an "N of M" figure with no way to
+ * re-measure it, so its number could never be caught lying -- the dangerous half of
+ * what parkcheck used to lump into one UNCHECKABLE verdict.  A tree-wide sweep found
+ * eight such parks; this is one of them.  The figure above is NOT re-measured by the
+ * act of adding this line: run it.
+*/
 #include "gba/types.h"
 
 void Func_80f6148(void)

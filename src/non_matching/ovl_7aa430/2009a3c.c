@@ -1,4 +1,15 @@
-/* OvlFunc_923_2009a3c (0x02009a3c) -- NON-MATCHING, 90 of 177.
+/* OvlFunc_923_2009a3c (0x02009a3c) -- NON-MATCHING, 181 of 177 -- SATURATED.
+ *
+ * FIGURE RESTATED IN BATCH 311.  This line used to claim "90 of 177".  The
+ * first recipe this park ever carried was added in batch 311, and the first run
+ * of it measured 181 -- MORE than the reference's 177, so the body is saturated
+ * and the true distance is unknown.  The header cites no per-file flag, and no
+ * Makefile row exists for this object, so unlike 200a200 there is no flag that
+ * explains the gap: either the body drifted after the 90 was taken, or the 90
+ * was never a production figure.  It is unreproducible either way, so it is
+ * withdrawn rather than carried.  The analysis below is unaffected -- it is
+ * measurement of the REFERENCE -- but the blocker claim it rests on is now
+ * unconfirmed and this park needs re-measuring before its diagnosis is trusted.
  * Blocker class: one allocno too many, PLUS an unsolved pooled-zero construct.
  *
  * asm/overlays/rom_7aa430/ovl_1a3c_a_a_a.s (2 functions, so landing needs a split).
@@ -32,7 +43,19 @@
  * and deliberately NOT added, since it does not complete the function.
  *
  * NEXT: the pooled zero, jointly with 2009df8. The allocation is secondary.
- */
+  *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7aa430/2009a3c.c \
+ *     asm/overlays/rom_7aa430/ovl_1a3c_a_a_a.s --func OvlFunc_923_2009a3c
+ *
+ * RECIPE ADDED IN BATCH 311.  This park carried an "N of M" figure with no way to
+ * re-measure it, so its number could never be caught lying -- the dangerous half of
+ * what parkcheck used to lump into one UNCHECKABLE verdict.  A tree-wide sweep found
+ * eight such parks; this is one of them.  The figure above is NOT re-measured by the
+ * act of adding this line: run it.
+*/
 #include "dma.h"
 
 extern unsigned char gState[];

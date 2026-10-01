@@ -78,7 +78,19 @@
  * has no spare callee-saved register, the function is allocation-blocked and the
  * search should stop rather than continue through temp spellings -- eight of them
  * produce byte-identical objects.
- */
+  *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_b5000/80b9470.c \
+ *     asm/rom_b5000/rom_b8228_c_a_c_c_a_c_a_c_c_c.s --func Func_80b9470
+ *
+ * RECIPE ADDED IN BATCH 311.  This park carried an "N of M" figure with no way to
+ * re-measure it, so its number could never be caught lying -- the dangerous half of
+ * what parkcheck used to lump into one UNCHECKABLE verdict.  A tree-wide sweep found
+ * eight such parks; this is one of them.  The figure above is NOT re-measured by the
+ * act of adding this line: run it.
+*/
 struct Act {
     short id;
     short f2;
