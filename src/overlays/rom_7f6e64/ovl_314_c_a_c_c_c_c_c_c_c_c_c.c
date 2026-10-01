@@ -1,109 +1,165 @@
-/* OvlFunc_969_200cbec  --  0x0200cbec  --  PARK, TWO ENCODINGS SHORT OF EXACT
+/* OvlFunc_969_200cbec  --  0x0200cbec  --  MATCHING.  LANDED IN BATCH 314, BRIEF B.
+ * Was parked at "2 of 1068, ONE ADJACENT PAIR SWAPPED, sched2's tie-break".
+ * The park asked whoever reopened it to go straight to -fsched-verbose=8 on
+ * that one block and read the tie-break.  That was the right instruction, and
+ * what the dump says is NOT what the park assumed; see THE READING below.
  *
- * NON-MATCHING, 2 of 1068  (tools/objcmp.py, PRODUCTION FLAGS:
- *   -O2 -mthumb -mthumb-interwork -mcpu=arm7tdmi -fno-builtin -nostdinc
- *   -ffreestanding -fcall-used-r4 -Iinclude -- the tree default for this path.
- *   NO Makefile row is needed and none should be written.)
- *
- * SIZE   ref 2716 bytes, ours 2716  --  EXACT
- * COUNT  ref 1068 encodings, ours 1068  --  EXACT
- * RELOC  IDENTICAL, entry for entry, name and offset.  objcmp prints no
- *        RELOCATIONS line at all.
- * ALIGNCMP (tools/aligncmp.py, separately): 1067 aligned-equal of 1068 = 99.9%,
- *        2 differing/ins/del in 2 hunks.
- *
- * BOTH AXES ARE EXACT, so objcmp's count is a TRUE DISTANCE here and not
- * saturated: this candidate is TWO ENCODINGS from byte-identical, and the two
- * are ONE ADJACENT PAIR SWAPPED.  Everything else -- every constant, every
- * shift amount, every pool word, every relocation, the frame, the prologue and
- * the epilogue -- is already the reference's.
- *
- * THE ONE REMAINING DEFECT, STATED EXACTLY.  At the actor-3 coordinate adjust,
- * sched2 hoists the pool load one slot ahead of the store that precedes it:
- *     ref   add r3, r5  /  str r3, [r7, #8]  /  ldr r1, =0xffee0000
- *     ours  adds r3, r3, r5  /  ldr r1, [pc, #500]  /  str r3, [r7, #8]
- * objcmp index 646/647.  It is rank_for_schedule's tie-break, not a wrong
- * value: the two loads both resolve to the same pool word at +0x860.
+ * tools/objcmp.py, PRODUCTION FLAGS (-O2 -mthumb -mthumb-interwork
+ * -mcpu=arm7tdmi -fno-builtin -nostdinc -ffreestanding -fcall-used-r4
+ * -Iinclude -- the tree default for this path.  NO Makefile row is needed and
+ * none should be written):
+ *   OK OvlFunc_969_200cbec -- 2716 bytes, 1068 encodings and 274 relocations identical
+ * objcmp --whole agrees: OK whole file -- 2716 bytes, 1068 encodings, 274 relocations.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/ovl_7f6e64/200cbec.c \
- *     asm/overlays/rom_7f6e64/ovl_314_c_a_c_c_c_c_c_c_c_c_c.s --func OvlFunc_969_200cbec
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/aligncmp.py \
- *     src/non_matching/ovl_7f6e64/200cbec.c \
- *     asm/overlays/rom_7f6e64/ovl_314_c_a_c_c_c_c_c_c_c_c_c.s OvlFunc_969_200cbec
+ *     src/overlays/rom_7f6e64/ovl_314_c_a_c_c_c_c_c_c_c_c_c.c \
+ *     asm/overlays/rom_7f6e64/ovl_314_c_a_c_c_c_c_c_c_c_c_c.s --whole
  *
- * SPLIT SHAPE: NONE.  `grep -c thumb_func_start` on the reference is 1, so this
- * lands as a WHOLE-FILE conversion to
- * src/overlays/rom_7f6e64/ovl_314_c_a_c_c_c_c_c_c_c_c_c.c.  tools/datacheck.py
- * is SILENT, so NO `.global` list is required and the asm-label capture hazard
- * does not arise.  ONE linker row names the object, and the basename is unique
- * to this overlay directory (checked against every overlay.ld):
- * overlays/rom_7f6e64/overlay.ld:63.
- * tools/shimcount.py: 116 register pins over 63 sites (PIN2/PIN3/PIN4).
+ * SPLIT SHAPE: NONE.  grep -c thumb_func_start on the reference is 1 and
+ * tools/datacheck.py is SILENT, so this lands as a WHOLE-FILE conversion to
+ * src/overlays/rom_7f6e64/ovl_314_c_a_c_c_c_c_c_c_c_c_c.c with no .global
+ * list.  ONE linker row names the object and the basename is unique to this
+ * overlay directory: overlays/rom_7f6e64/overlay.ld:63.
+ * PINS: tools/shimcount.py reports 116 register pins over 63 PIN2/PIN3/PIN4
+ * sites, so THIS LANDING NEEDS ONE fakematch.txt ROW.  Pass three is depinning;
+ * the pin is declared, not hidden.
  *
- * ================= WHAT GOT IT HERE, IN ORDER, WITH FIGURES ================
+ * ================= WHAT LANDED IT: ONE TYPE AND A MECHANICAL RULE =========
+ *
+ *     union U66 { int i; short h; };
+ *
+ * and every one of the nineteen actor-adjust accesses written through it:
+ *     ((union U66 *)(p + 8))->i    += ...;
+ *     ((union U66 *)(p + 0x10))->i += ...;
+ *     ((union U66 *)(p + 0x66))->h  = zero;
+ * replacing the raw `*(int *)` / `*(short *)` casts.  Nothing else changed.
+ * The point is the ALIAS SET, not the syntax: a member access takes the
+ * record's set, and a union holding both widths puts the +8/+0x10 int stores
+ * and the +0x66 short store in CONFLICTING sets -- which is what a
+ * struct-typed actor would have given for free, and what the raw casts had
+ * taken away.
+ *
+ * ================= THE READING, FROM -da -fsched-verbose=8 ================
+ * The residue was
+ *     ref   add r3, r5  /  str r3, [r7, #8]  /  ldr r1, =0xffee0000
+ *     ours  add r3, r5  /  ldr r1, [pc, #500]  /  str r3, [r7, #8]
+ * at objcmp index 646/647, the actor-3 coordinate adjust.  From the sched2
+ * region table (t.c.23.sched2):
+ *
+ *   ;;  1590  173 0 4 622 2 ... : 2873 1875 1611 1593        <- str r3,[r7,#8]
+ *   ;;  2654  173 0 6 622 2 ... : 2873 2738 1615 1611 1597   <- r1=0xffee0000
+ *
+ * FOUR DEPENDENTS AGAINST FIVE, on EQUAL priority 622.  It was never an
+ * INSN_LUID tie: it is settled one key earlier, at rank_for_schedule's
+ * DEPENDENT COUNT, and LUID would have picked the store -- 1590 precedes 2654
+ * in the insn chain.  So the whole job was to move the count by ONE.
+ *
+ * PRIORITY IS STRUCTURALLY CLOSED and must not be re-attempted:
+ *     prio(1590) = 0 + prio(1593) = 0 + 2 + prio(1597)
+ *     prio(2654) = 2 + prio(1597)
+ * both route through insn 1597 (the `+=` add), so anything that lengthens or
+ * shortens that chain moves both together.  The ANTI dep 1590 -> 1593 is on r3
+ * and arm_adjust_cost charges it 0, which is why the two come out equal.
+ *
+ * 2654's three extra dependents are r1 OUTPUT/ANTI links that CROSS TWO CALLS:
+ * 1611 = actor-3's trailing OvlFunc_969_200d688, 1615 = the
+ * __MapActor_GetActor(0x17) call_value, 2738 = the later PIN4 `q1 = 0x200000`
+ * fill.  A void call never SETS r1 in RTL, so an r1 chain is NOT intercepted by
+ * a call the way an r0 chain is by a call_value -- which is why the int-return
+ * lever has no purchase on an r1 pair and why the fix had to come from the
+ * STORE's side.
+ *
+ * ================= MEASURED, AND WHY EACH ROUTE WAS TAKEN OR DROPPED ======
+ *   candidate                                                        differ
+ *   THIS FILE: union at all 19 sites                                   0
+ *   union on the +0x66 store at the actor-3 site ALONE                 0
+ *   union on the +8 store at the actor-3 site ALONE                    0
+ *   union on both at the actor-3 site                                  0
+ * All four land.  The uniform rule ships because it is a TYPE DECISION about
+ * the actor rather than a device aimed at one swap.
+ *
+ *   `extern long long OvlFunc_969_200d688(...)`                        4
+ * A DImode return SETS r0:DI = r0 AND r1, so the call DOES intercept the r1
+ * chain and this DID remove the 646/647 pair -- the direct confirmation that
+ * the r1 count is the operative term.  It is rejected because the callee's
+ * declaration is TU-wide and the same interception broke two other sites:
+ * 623/624 (actor-1's `mov r1,sl` against `adds r3,#0x66`) and 816/817 (actor-10,
+ * where the reference ITSELF puts the pool load first, so interception flips a
+ * site that was already right).
+ *   `extern long long __MapActor_GetActor(...)` via a cast macro at its 24
+ *   use sites                                                        402, +2 bytes
+ * A DI result in r0/r1 costs code at every use; the whole relocation list
+ * shifted.  Rejected outright.
+ *
+ *   `*(volatile int *)(p + 8) += 0xfffc0000;`   actor-3 site           2  INERT
+ *   `*(volatile int *)(p + 0x10) += 0xffee0000;` actor-3 site          2  INERT
+ *   `*(volatile short *)(p + 0x66) = zero;`      actor-3 site          2  INERT
+ * VOLATILE IS NOT A SCHEDULING BARRIER FOR MEMORY IN THIS gcc, and that is
+ * worth recording as a general negative.  The dump of the third variant shows
+ * insn 1607 as `(set (mem/v:HI (reg r3) 12) (reg:HI r2))` -- MEM_VOLATILE_P
+ * plainly set -- with LOG_LINKS `2660 1604 ANTI 1579` and NO dependence on the
+ * store 1590, because the two MEMs sit in alias sets 12 (short) and 11 (int).
+ * The alias check runs BEFORE volatility is ever consulted, so volatile buys
+ * nothing here and the union is the device that works.
+ *
+ *   `__asm__ __volatile__("")` between the two statements              24
+ *   `__asm__ __volatile__("" : "+r"(p))`                              410
+ *   the same on a named `dm`                                           35
+ * The barrier is a real device elsewhere in this tree; here it splits the
+ * scheduling region far too coarsely.  Byte-identical to this file and hence
+ * untested rather than disproved: naming the 0xffee0000 either side of the
+ * first statement, and spelling both `+=` out as `x = x + k`.
+ *
+ * ================= WHAT GOT IT TO TWO, IN ORDER, WITH FIGURES =============
  * First transcription (named held quantities, two pins): -12 / -10 / 82.9% / 152.
  *
  * 1. INT CARRIERS FOR THE TWO HALFWORD STORES, plus pins at the two 0x2015
  *    sites and the two 0x110 sites: -20 / -13 / 84.1% / 148.  `*(short *)x = 0xa`
  *    PUT THE TEN IN THE LITERAL POOL (`.word 0x0000000a`) because
  *    `*thumb_movhi_insn` has no immediate form; the reference has `movs r3, #10`.
- *    That is batch 306's pooled-zero defect firing on a NON-ZERO value, which is
- *    the generalisation worth recording -- the gate is the MODE, not the value.
+ *    That is batch 306's pooled-zero defect firing on a NON-ZERO value, and the
+ *    generalisation worth keeping is that the gate is the MODE, not the value.
  * 2. PINS AT THE 0x102 SITES (eight __MapActor_Surprise, one __MapActor_Emote):
  *    -16 / -11 / 84.9% / 141.
  * 3. PINS AT THE SEVEN 0x100 __MapActor_Emote SITES: -28 / -14 / 88.9% / 121.
  * 4. PIN EVERY REMAINING SITE WITH A LITERAL ARGUMENT OUTSIDE 0..255 -- 39 more
  *    sites, mechanically, ascending q0..q3 fills.  THIS IS THE STEP THAT DID IT:
  *    SIZE AND COUNT BOTH WENT EXACT AND THE RELOCATIONS WENT IDENTICAL, 26 of
- *    1068, 98.3% aligned, 23 hunks.  The documented starting shape
- *    ("pin every site with an argument outside 0..255") is exactly right for
- *    this function and should have been step 1.
+ *    1068.  The documented starting shape ("pin every site with an argument
+ *    outside 0..255") is exactly right for this function and should have been
+ *    step 1.
  * 5. THE TWO HALFWORD CARRIERS MUST NOT BE LIVE ACROSS THEIR OWN GetActor CALL.
- *    `c = 0xa0 << 7; *(short *)(__MapActor_GetActor(0x15) + 6) = c;` evaluates
- *    the call AFTER the carrier, so the carrier crosses a call and the allocator
- *    gives it a CALLEE-SAVED r5; the reference has the call-clobbered r3.
- *    Hoisting the call into its own statement first drops 26 -> 17 (99.2%).
- *    Both carriers needed their OWN pointer local: reusing the `+0x5a` pointer
- *    for one of them cost a relocation and went to 28.
+ *    Hoisting the call into its own statement first drops 26 -> 17.  Both
+ *    carriers needed their OWN pointer local: reusing the `+0x5a` pointer for
+ *    one of them cost a relocation and went to 28.
  * 6. FILL ORDER AT THE THREE PINNED OvlFunc_969_20088a8 SITES.  The reference
  *    fills r1 and its `lsl` BEFORE r0 at all three; ascending gave r0 first.
  *    Flipping to `q1 = ...; q0 = ...;` at those three: 17 -> 11.
- * 7. `dm` AND `dy` BACK TO BARE LITERALS AT THEIR FIRST SITE.  Naming them put
- *    the materialisation one slot early at three places.  The reference's own
- *    `ldr r6, =0xffe00000` sits INSIDE the first `+=` statement, i.e. cse made
- *    that pseudo from the literal -- so the literal is the source and the name
- *    was the defect.  11 -> 7, and with 6 together 17 -> 7 (99.6%).
+ * 7. `dm` AND `dy` BACK TO BARE LITERALS AT THEIR FIRST SITE.  The reference's
+ *    own `ldr r6, =0xffe00000` sits INSIDE the first `+=` statement, i.e. cse
+ *    made that pseudo from the literal -- so the literal is the source and the
+ *    name was the defect.  11 -> 7, and with 6 together 17 -> 7.
  * 8. `__Func_8092c40` WANTS THE DESCENDING FILL, by name.  `q1 = 0; q0 = 1;`
- *    at the one site: 7 -> 5.  This is the callee elevation.md already records
- *    by name and it reads correctly here with no further condition.
+ *    at the one site: 7 -> 5.
  * 9. THE TWO STACK ARGUMENTS OF THE SIX-ARGUMENT `__Func_8010704` AS TWO NAMED
- *    LOCALS: 5 -> 2 (99.9%).  The reference materialises BOTH into two scratch
+ *    LOCALS: 5 -> 2.  The reference materialises BOTH into two scratch
  *    registers (r3 = 0xa, r2 = 5) and then stores both; with literals our build
- *    reuses r3 for both, store-materialise-store.  Two names make two
- *    simultaneously live pseudos and the pair comes out right.
+ *    reuses r3 for both, store-materialise-store.
+ * 10. THE UNION, above: 2 -> 0.
  *
  * ================= WHICH MECHANISM DOMINATED ==============================
  * THE SAME cse1 CROSS-CALL COMMONING as this batch's 20088b4, and in the SAME
  * direction our build always errs -- WE COMMON, THE REFERENCE REBUILDS -- but
- * here it is almost the WHOLE residue rather than half of it, and the pooled-
- * constant multiset says so in one command:
- *
- *     reference pool loads:  iwram_3001ebc x3, 0xfff00000 x3, 0x2015 x2,
- *                            0x14d x2, everything else x1
- *
- * i.e. this reference holds almost nothing in a register and reloads instead,
- * which is why a blanket pin pass (step 4) took both axes exact in one step
- * while on 20088b4 the same blanket pass measured WORSE.  THE DISCRIMINATOR IS
- * THE REFERENCE'S OWN REUSE RATE, and it is cheap to measure before writing a
- * line: count `mov rlo, rhigh` in the reference against the number of wide
- * constant builds.  20088b4: 29 reuses, three ids reloaded 7-8 times each, so
- * it is MIXED and wants named quantities AND selective pins.  200cbec: 25 high-
- * register mentions in 1041 instructions, nothing reloaded more than three
- * times, so it is almost pure REBUILD and wants pins everywhere.
+ * here it is almost the WHOLE residue.  The reference's pool-load multiset says
+ * so in one command: iwram_3001ebc x3, 0xfff00000 x3, 0x2015 x2, 0x14d x2,
+ * everything else x1.  THE DISCRIMINATOR IS THE REFERENCE'S OWN REUSE RATE and
+ * it is cheap to measure before writing a line: count `mov rlo, rhigh` against
+ * the number of wide constant builds.  20088b4: 29 reuses, three ids reloaded
+ * 7-8 times each, so it is MIXED and wants named quantities AND selective pins.
+ * 200cbec: 25 high-register mentions in 1041 instructions, nothing reloaded
+ * more than three times, so it is almost pure REBUILD and wants pins everywhere.
  *
  * WHAT RULES OUT THE ALTERNATIVES.
  *   * NOT the allocator and NOT register pressure: the prologue, the epilogue
@@ -118,9 +174,8 @@
  *     `beq .L5094` guard at 453) and two POOL SKIPS (`b .L5010` at 402 and
  *     `b .L5458` at 848, each immediately before a `.pool_aligned`).  Reading
  *     either skip as control flow would have broken the if/else.
- *   * NOT sched1: it does not run in this build.  The one surviving defect is
- *     sched2's, and the three devices tried against it all measured worse --
- *     see the rejected rows.
+ *   * NOT sched1: it does not run in this build.  The -da sequence is
+ *     17.lreg 18.greg 19.flow2 20.ce2 23.sched2 25.jump2 26.mach.
  *
  * ================= THE FRAME IS NOT A DECLARATION LIST =====================
  * `sub sp, #8`, and all sixteen `[sp]` / `[sp, #4]` references are STORES
@@ -128,54 +183,23 @@
  * `mov rX, sp` anywhere in the reference.  So it is a two-word OUTGOING
  * ARGUMENT BLOCK for the six-argument `__CopyMapTiles` and `__Func_8010704`
  * calls, there are NO spill slots, and sorting the two offsets yields nothing.
- * All three greps were run.  This matches docs/recon-b310e-three.md's reading.
+ * All five frame greps were run.
  *
- * ================= PROBES MEASURED AND REJECTED, WITH FIGURES =============
- * Every row below is frame-correct (`sub sp, #8` on both sides throughout).
- *
- *   candidate                                   size  count  differ  aligned
- *   first transcription                          -12   -10     926    82.9%
- *   + carriers, 0x2015 and 0x110 pins            -20   -13     877    84.1%
- *   + 0x102 pins                                 -16   -11     668    84.9%
- *   + 0x100 Emote pins                           -28   -14     758    88.9%
- *   + blanket out-of-range pins                    0     0      26    98.3%
- *   + carrier liveness, both sites                 0     0      17    99.2%
- *   + 20088a8 fill flip and literal dm/dy          0     0       7    99.6%
- *   + 8092c40 descending fill                      0     0       5    99.7%
- *   THIS FILE (+ named stack args)                 0     0       2    99.9%
- *
+ * ================= OTHER PROBES MEASURED AND REJECTED =====================
  *   PINNING THE TWO CARRIERS TO r3 (`register int c3 __asm__("r3")`) -- the
  *   obvious way to ask for the reference's register -- is MUCH WORSE: -8 / -4 /
- *   902 differing / 97.4%.  It loses both axes.  The liveness fix in step 5 is
- *   the right route and the pin is the wrong one, which is worth a row because
- *   the pin LOOKS like the direct answer.
- *
+ *   902 differing.  It loses both axes.  The liveness fix in step 5 is the right
+ *   route and the pin is the wrong one, which is worth a row because the pin
+ *   LOOKS like the direct answer.
  *   BLOCK-SCOPING the two carriers (`{ int c; c = ...; }`) is BYTE-IDENTICAL to
  *   leaving them at function scope.  Inert, so UNTESTED as a lever, not
  *   disproved -- and consistent with the standing finding that region scoping
  *   cannot reach what the allocator decides.
- *
- *   DROPPING THE NAMED POINTER AT THE TWO `+= 3` BUMP SITES
- *   (`*(unsigned short *)(iwram_3001ebc + 0x1d8) += 3;` instead of a local)
- *   paid 26 -> 22: the reference consumes the loaded pointer in place
- *   (`adds r2, r2, r3`) and a name forces a second register (`adds r2, r1, r3`).
- *   It is IN this file.  That is the pointer-read-from-a-global lever reading in
- *   its NEGATIVE direction, and the discriminator is the documented one -- what
- *   crosses the call.  Here NOTHING crosses a call between the load and the
- *   store, so the local buys nothing and costs a register.
- *
- *   THREE DEVICES AGAINST THE LAST SWAP, ALL WORSE:
- *     `__asm__ __volatile__("")` between the two statements .. 24 differing, 98.8%
- *     `__asm__ __volatile__("" : "+r"(p))` ................... 410 differing, 98.3%
- *     the same on a named `dm` ............................... 35 differing, 97.8%
- *   And two that are BYTE-IDENTICAL to this file, hence inert and untested:
- *   naming the 0xffee0000 either before or after the first statement, and
- *   spelling both `+=` out as `x = x + k`.  The barrier is a real device
- *   elsewhere in this tree; here it splits the scheduling region too coarsely
- *   and costs far more than the pair it is meant to fix.  ANYONE REOPENING THIS
- *   SHOULD GO STRAIGHT TO -fsched-verbose=8 ON THAT ONE BLOCK AND READ THE
- *   TIE-BREAK, as was done for the 2,805-instruction sibling; guessing
- *   spellings has now been tried five ways and none reaches it.
+ *   DROPPING THE NAMED POINTER AT THE TWO `+= 3` BUMP SITES paid 26 -> 22: the
+ *   reference consumes the loaded pointer in place (`adds r2, r2, r3`) and a
+ *   name forces a second register.  It is IN this file.  The discriminator is
+ *   the documented one -- what crosses the call; here NOTHING crosses a call
+ *   between the load and the store, so the local buys nothing.
  *
  * ================= TRANSCRIPTION NOTES ====================================
  * 1041 reference instructions, 266 calls over 40 callees.  The if/else sets a
@@ -183,8 +207,7 @@
  * TWICE in the source even though only one of the two can run per pass; that is
  * the reference's shape, not a transcription artefact -- `flag` is the r8 range
  * the reference materialises at function ENTRY with a declaration initialiser
- * and reads once at the join, which is the declaration-initialised form showing
- * up in the ROM itself.
+ * and reads once at the join.
  *
  * `r = *(unsigned char **)((int)&iwram_3001ebc - 0x30);` is the tree's existing
  * idiom for the reference's `ldr r5, =iwram_3001ebc` ... `sub r5, #0x30`: gcc
@@ -251,6 +274,8 @@ extern void __WaitMapTransition(void);
              register int q1 __asm__("r1")
 #define PIN3 PIN2; register int q2 __asm__("r2")
 #define PIN4 PIN3; register int q3 __asm__("r3")
+
+union U66 { int i; short h; };
 
 void OvlFunc_969_200cbec(void)
 {
@@ -459,24 +484,24 @@ void OvlFunc_969_200cbec(void)
     __CopyMapTiles(0x5c, 0x56, 0xb, 0x48, 0x10, t14);
     __CopyMapTiles(0x13, 0x5c, 0x13, 0x44, t8, 0x15);
     p = __MapActor_GetActor(0);
-    *(int *)(p + 0x10) += 0xffe00000;
+    ((union U66 *)(p + 0x10))->i += 0xffe00000;
     zero = 0;
-    *(short *)(p + 0x66) = zero;
+    ((union U66 *)(p + 0x66))->h = zero;
     OvlFunc_969_200d688(p);
     p = __MapActor_GetActor(1);
-    *(int *)(p + 8) += 0xfffc0000;
-    *(int *)(p + 0x10) += 0xffe00000;
-    *(short *)(p + 0x66) = zero;
+    ((union U66 *)(p + 8))->i += 0xfffc0000;
+    ((union U66 *)(p + 0x10))->i += 0xffe00000;
+    ((union U66 *)(p + 0x66))->h = zero;
     OvlFunc_969_200d688(p);
     p = __MapActor_GetActor(2);
-    *(int *)(p + 8) += 0xfffc0000;
-    *(int *)(p + 0x10) += 0xffe00000;
-    *(short *)(p + 0x66) = zero;
+    ((union U66 *)(p + 8))->i += 0xfffc0000;
+    ((union U66 *)(p + 0x10))->i += 0xffe00000;
+    ((union U66 *)(p + 0x66))->h = zero;
     OvlFunc_969_200d688(p);
     p = __MapActor_GetActor(3);
-    *(int *)(p + 8) += 0xfffc0000;
-    *(int *)(p + 0x10) += 0xffee0000;
-    *(short *)(p + 0x66) = zero;
+    ((union U66 *)(p + 8))->i += 0xfffc0000;
+    ((union U66 *)(p + 0x10))->i += 0xffee0000;
+    ((union U66 *)(p + 0x66))->h = zero;
     OvlFunc_969_200d688(p);
     *(int *)(__MapActor_GetActor(0x17) + 0xc) = 0x380000;
     { PIN4; q0 = 0x1520000; q1 = 0x200000; q2 = 0xb40000; q3 = 0; __Func_80933f8(q0, q1, q2, q3); }
@@ -507,30 +532,30 @@ void OvlFunc_969_200cbec(void)
     __CopyMapTiles(0x5c, 0x56, 0xb, 0x44, 0x10, t14);
     p = __MapActor_GetActor(0);
     df = 0xfff00000;
-    *(int *)(p + 8) += df;
+    ((union U66 *)(p + 8))->i += df;
     OvlFunc_969_200d688(p);
     p = __MapActor_GetActor(1);
-    *(int *)(p + 8) += df;
+    ((union U66 *)(p + 8))->i += df;
     OvlFunc_969_200d688(p);
     p = __MapActor_GetActor(2);
-    *(int *)(p + 8) += df;
+    ((union U66 *)(p + 8))->i += df;
     OvlFunc_969_200d688(p);
     p = __MapActor_GetActor(3);
-    *(int *)(p + 8) += df;
+    ((union U66 *)(p + 8))->i += df;
     OvlFunc_969_200d688(p);
     p = __MapActor_GetActor(8);
     dh = 0x80;
     dh <<= 13;
-    *(int *)(p + 8) += dh;
+    ((union U66 *)(p + 8))->i += dh;
     OvlFunc_969_200d688(p);
     p = __MapActor_GetActor(9);
-    *(int *)(p + 8) += dh;
+    ((union U66 *)(p + 8))->i += dh;
     OvlFunc_969_200d688(p);
     p = __MapActor_GetActor(0xa);
-    *(int *)(p + 8) += 0xfff00000;
+    ((union U66 *)(p + 8))->i += 0xfff00000;
     OvlFunc_969_200d688(p);
     p = __MapActor_GetActor(0xb);
-    *(int *)(p + 8) += 0xfff00000;
+    ((union U66 *)(p + 8))->i += 0xfff00000;
     OvlFunc_969_200d688(p);
     { PIN4; q0 = 0x1420000; q1 = 0x200000; q2 = 0xb40000; q3 = 0; __Func_80933f8(q0, q1, q2, q3); }
     __Func_800fe9c();

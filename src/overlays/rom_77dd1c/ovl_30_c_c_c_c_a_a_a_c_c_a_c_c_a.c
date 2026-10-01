@@ -1,83 +1,94 @@
-/* OvlFunc_882_2009b18 -- NON-MATCHING, 2 ENCODINGS OF 545.  Size equal.
+/* OvlFunc_882_2009b18 -- MATCHING.  LANDED IN BATCH 314, BRIEF B.
+ * Was parked at "2 encodings of 545, sched2 LUID TIE on a call-argument copy --
+ * pre-reload scheduling, which no source construct in this idiom reaches".
+ * BOTH HALVES OF THAT BLOCKER LINE WERE WRONG; see THE CORRECTION below.
  *
- * Blocker class: sched2 LUID TIE on a call-argument copy -- pre-reload scheduling,
- * which no source construct in this idiom reaches.
+ * tools/objcmp.py, PRODUCTION FLAGS (the tree default for this path; NO
+ * ALIAS_CFLAGS row and no per-file Makefile override are needed):
+ *   OK OvlFunc_882_2009b18 -- 1412 bytes, 545 encodings and 149 relocations identical
+ * objcmp --whole agrees: OK whole file -- 1412 bytes, 545 encodings, 149 relocations.
  *
  * Verify with:
- *   python3 tools/objcmp.py src/non_matching/ovl_77dd1c/2009b18.c \
- *     asm/overlays/rom_77dd1c/ovl_30_c_c_c_c_a_a_a_c_c_a_c_c_a.s
- * ONE function in the reference -- it CONVERTS WHOLE, no split.  59 pin sites, so
- * one fakematch row if it lands.
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/overlays/rom_77dd1c/ovl_30_c_c_c_c_a_a_a_c_c_a_c_c_a.c \
+ *     asm/overlays/rom_77dd1c/ovl_30_c_c_c_c_a_a_a_c_c_a_c_c_a.s --whole
  *
- * THE RESIDUE, one pair at the first __StartTask:
+ * SPLIT SHAPE: NONE.  ONE function in the reference and tools/datacheck.py is
+ * SILENT, so it CONVERTS WHOLE to
+ * src/overlays/rom_77dd1c/ovl_30_c_c_c_c_a_a_a_c_c_a_c_c_a.c.
+ * PINS: tools/shimcount.py reports 97 register pins over 53 PIN2/PIN3/PIN4
+ * sites, so THIS LANDING NEEDS ONE fakematch.txt ROW.  Pass three is depinning;
+ * the pin is declared, not hidden.
  *
+ * ================= WHAT LANDED IT: ONE WORD ==============================
+ *
+ *     extern int __StartTask(void (*f)(void), int n);
+ *
+ * -- `int`, not `void`.  Nothing else in the file changed.
+ *
+ * ================= THE CORRECTION ========================================
+ * THE CALLEE IS NOT VOID AND THIS TREE SAYS SO.  include/task.h declares
+ *     s32 StartTask(taskfunc_t *task, u32 priority);
+ *     s32 _StartTask(taskfunc_t *task, u32 priority);
+ *     s32 __StartTask(taskfunc_t *task, u32 priority);
+ * The park declared `extern void __StartTask(...)` locally and then derived,
+ * correctly, why the resulting order was unreachable.  This is EXACTLY the trap
+ * docs/elevation.md records at the int-return lever -- "check the tree before
+ * assuming a callee is void" -- and the sibling park
+ * src/non_matching/rom_c9000/Anim_Froth.c carried the same error at the same
+ * callee family in the same batch.  A CHEAP SWEEP THAT WOULD HAVE CAUGHT BOTH:
+ * grep every park's `extern void F(...)` against include/ and against
+ * `int F(` definitions under src/.
+ *
+ * AND "pre-reload scheduling" WAS A sched1 MISATTRIBUTION.  sched1 does not run
+ * in this build: the -da dump sequence is 17.lreg 18.greg 19.flow2 20.ce2
+ * 23.sched2 25.jump2 26.mach, with no sched1 dump, because flag_schedule_insns
+ * is off at -O2.  The park's own body already analysed the residue POST-reload
+ * ("Post-reload, ties between two argument-setup insns fall through to LUID"),
+ * so the blocker LINE contradicted the blocker ANALYSIS.
+ *
+ * WHY THE ONE WORD IS ENOUGH, which the park had already worked out without
+ * noticing it had the answer.  The residue was
  *     rom   lsl r1,#0x4 / str r6,[r5] / mov r0,r7 / mov r9,r2 / bl __StartTask
  *     ours  lsl r1,#0x4 / mov r0,r7 / str r6,[r5] / mov r9,r2 / bl __StartTask
+ * and the park correctly found it settled at rank_for_schedule's DEPENDENT
+ * COUNT, not at INSN_LUID: from the sched2 region table for bb5, the store had
+ * TWO dependents and `mov r0,r7` had THREE, the third being THE SECOND
+ * __StartTask's OWN `mov r0,fp` -- an output dependence on r0.  A VOID call is
+ * `*call_insn` and never SETS r0, so reg_last_sets[r0] still names the FIRST
+ * call's r0 argument fill and the next r0 definition attaches to it.  Declared
+ * `int` the call is `*call_value_insn`, it SETS r0, that output dependence
+ * attaches to the CALL instead, the counts tie at 2-2, INSN_LUID decides, and
+ * LUID(store) < LUID(mov r0) gives the ROM's order.  The park had even MEASURED
+ * the collapse with a do{}while(0) barrier and seen the target pair come out
+ * exactly right -- it only rejected that route because the barrier cost two
+ * collateral swaps.  The int return buys the same collapse for free.
  *
- * CORRECTED IN BATCH 282 -- THIS PARK'S ORIGINAL DIAGNOSIS WAS WRONG.  It said "both
- * have exactly one dependent (the call), so the tie falls to INSN_LUID".  IT IS
- * SETTLED ONE STEP EARLIER, AT rank_for_schedule's DEPENDENT COUNT.  From the sched2
- * region table for bb5:
+ * ================= LEVERS THAT GOT IT TO TWO, STILL LOAD-BEARING ==========
+ * UN-PINNING IS A LEVER AT A SPECIFIC SITE.  This function's
+ * __MapActor_SetSpeed(0x16, ...) needs q2 LEFT UNPINNED
+ * (`__MapActor_SetSpeed(q0, q1, 0x80 << 9)`): 4 -> 2.  Six pinned spellings of
+ * that site all sat at 4 or 6.
  *
- *   ;;  584 173 0 3 169 2 ... : 1570 600      <- str r6,[r5]   TWO dependents
- *   ;;  597 173 0 1 169 1 ... : 1570 614 600  <- mov r0, r7     THREE dependents
+ * ================= MEASURED INERT OR WORSE ================================
+ * At 2: the store inside the pin block (3 placements); a comma-expression in
+ * either argument; a `volatile` store; `q1 = 0xc8 << 4` folded; a plain
+ * unpinned argument; a local function-pointer with q0 pinned; `volatile` on
+ * either or both globals plus volatile-casts on either or both zero stores (all
+ * six); six spellings interleaving the two stores into the pinned mov/lsl pair
+ * -- SO BATCH 281'S SPLIT-THE-PINNED-PAIR LEVER IS INERT HERE, because sched2
+ * fully renormalises the order.  WORSE: swapped store order 6, do{}while(0) 12,
+ * a "memory" clobber 14, a cast function pointer for q0 340 and +4 bytes, nine
+ * barrier positions (4, 4, 4, 4, 12, 2, 7, 7 and 4+reloc), an 80-variant cross
+ * of four store x two first-call x barrier/none x five second-call spellings.
+ * The `__asm__ volatile ("" : : "r" (q0))` barrier that took
+ * src/overlays/rom_7ac2d8/ovl_22c4_c_c_c_c_c.c to exact does NOT reach this
+ * site: a 3-position x 7-spelling sweep found nothing.  The barrier lever is
+ * site-specific rather than general.
  *
- * Equal priority, both class 3 against `lsl r1,#4`.  597's THIRD dependent, insn 614,
- * is THE SECOND __StartTask's OWN `mov r0, fp` -- a write-after-write output
- * dependence on r0.  Higher count wins, so LUID -- which would have picked the store,
- * since LUID(584) < LUID(597) -- IS NEVER CONSULTED.
- *
- * SO THE BLOCKER IS THAT THE *NEXT* CALL'S ARGUMENT-REGISTER WRITE INFLATES THE
- * DEPENDENT COUNT OF *THIS* CALL'S ARGUMENT WRITE.  That reframes the target: the
- * handle is not this call site's spelling at all.
- *
- * THE READING WAS TESTED AND IT HOLDS.  A `do{}while(0)` between the two __StartTask
- * blocks removes 614 from the graph, the counts become 3 against 3, LUID decides, and
- * the target pair comes out in the ROM's order EXACTLY --
- * `lsl r1,#4 / str r6,[r5] / mov r0,r7 / mov r9,r2`.  But the same collapse costs two
- * collateral swaps and is STRICTLY WORSE (4 encodings PLUS a relocation difference):
- * the barrier absorbs cross-barrier deps, so `ldr r5,=.L57fc` loses the seven later
- * `str ...,[r5]` dependents it had (9 -> 4) while `ldr r2,=.L57f8` keeps its
- * `mov r9,r2` (7 -> 5), the two pool loads swap, and the pool order swaps with them.
- *
- * NEW MEASUREMENTS, none better than 2: six spellings interleaving the two stores into
- * the pinned mov/lsl pair -- SO BATCH 281'S SPLIT-THE-PINNED-PAIR LEVER IS INERT HERE,
- * because sched2 fully renormalises the order; q0 also pinned with a cast function
- * pointer 340 of 545 and +4 bytes; nine barrier positions (4, 4, 4, 4, 12, 2, 7, 7 and
- * 4+reloc); an 80-variant cross of four store spellings x two first-call spellings x
- * barrier/none x five second-call spellings, where the second call tolerates EXACTLY
- * ONE spelling (a local function pointer, an unpinned literal, or `q1 << 4` inside the
- * argument each cost 13-15); and `volatile` on either or both globals plus
- * volatile-casts on either or both zero stores, all six inert.
- *
- * THE rank_for_schedule TIE-BREAK CHAIN, for this whole class: priority ->
- * (pre-reload only) reg-weight -> class relative to the last-scheduled insn ->
- * NUMBER OF DEPENDENT INSNS -> INSN_LUID.  Post-reload, ties between two
- * argument-setup insns fall through to LUID, which is exactly why source reordering
- * sometimes works and sometimes cannot.
- *
- * MEASURED, all inert at 2: the store inside the pin block (3 placements), a
- * comma-expression in either argument, a `volatile` store, `q1 = 0xc8 << 4` folded,
- * a plain unpinned argument, a local function-pointer with q0 pinned.  WORSE:
- * swapped store order 6, do{}while(0) 12, a "memory" clobber 14.
- *
- * UN-PINNING IS A LEVER AT A SPECIFIC SITE, AGAIN.  This function's
- * __MapActor_SetSpeed(0x16, ...) needed q2 LEFT UNPINNED
- * (`__MapActor_SetSpeed(q0, q1, 0x80 << 9)`): 4 -> 2.  Six pinned spellings of that
- * site all sat at 4 or 6.
- *
- * ONE THING THAT DID REACH A SIBLING'S ANALOGOUS SITE AND NOT THIS ONE: the
- * `__asm__ volatile ("" : : "r" (q0));` barrier after the first pinned assignment,
- * which took src/overlays/rom_7ac2d8/ovl_22c4_c_c_c_c_c.c to exact.  Here a
- * 3-position x 7-spelling sweep of it found nothing.  Worth knowing that the
- * barrier lever is site-specific rather than general.
- *
- * NO ALIAS_CFLAGS ROW IS NEEDED FOR THIS OVERLAY.  The known-open item for
- * OvlFunc_882_200c41c did not recur -- neither this function nor
- * src/non_matching/ovl_77dd1c/2008434.c shows a pointer-reload difference.
- *
- * No .sym entry is implied; no constant here has the in-function control the bar
- * requires.  No per-file Makefile flag override applies to this stem.
+ * No .sym entry is implied; no constant here has the in-function control the
+ * bar requires.
  */
 extern unsigned char L54b0[] __asm__(".L54b0");
 extern int L57f8 __asm__(".L57f8");
@@ -109,7 +120,7 @@ extern void __MapActor_WaitMovement(int slot);
 extern void __MapActor_WaitScript(int slot);
 extern void __MapActor_SetBehavior(int slot, unsigned char *s);
 extern void __MapActor_RunScript(int slot, unsigned char *s);
-extern void __StartTask(void (*f)(void), int n);
+extern int __StartTask(void (*f)(void), int n);
 extern void __StopTask(void (*f)(void));
 extern void __Func_8012330(int a, int b, int c);
 extern void __Func_809202c(void);
