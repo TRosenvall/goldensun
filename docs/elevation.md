@@ -30461,3 +30461,140 @@ but with no work in that population.
 And the seventh classification case has a form distinction: an address-taken scalar
 appeared not as `f(&a)` but as **`p = &a`** — a 4-byte slot whose *address* is
 stored into another slot, which then becomes that function's 28-load maxreload.
+
+## Batch 313 brief D: THE CALL MULTISET sees what size, count AND the histogram all miss
+
+A new instrument, and the cleanest demonstration of why the ladder needs it.
+
+On `OvlFunc_968_200b068` the **call multiset is already exact — 224 named calls
+against 224, every target at identical count** — and that is what caught a defect
+nothing else could see. Written as two self-contained switch arms, `jump.c`
+**cross-jumps the identical bodies**, and the object ends up with **two
+`bl 20087d8` where the ROM has three**.
+
+**A missing CALL was invisible to size, to the encoding count, and to the
+per-opcode histogram** — because the histogram counts `bl` as a *class*, so one
+`bl` to the wrong target is a perfect wash. Only a per-target count sees it. The
+fix is a **bare FALLTHROUGH** from one group of arms into the next, worth +1.4
+aligned points.
+
+> **Carry the CALL MULTISET — per-target `bl` counts, both sides — as a column.**
+> It is the only instrument in the set that is sensitive to *which* symbol a
+> call reaches, and the relocation sequence only partly covers it.
+
+Note how the ladder now reads as a hierarchy of resolutions, each blind to the
+next: size (a sum) → instruction and pool counts (separate sums) → the per-opcode
+histogram (a bag of opcodes) → the call multiset (a bag of *targets*) → the
+positional figure (a sequence). **Every level can be exact while the next is
+wrong.**
+
+Also already exact there: 5 dispatch sites and 5 tables of 26/21/11/17/20 entries,
+with the histogram at 1431 against 1435 (`b +3, bl −2, ldrsh +2, mov +1, add +1,
+sub −1`) where **the b/bl pair is long-branch encoding, not a defect** — a `bl` to
+a local label is a long branch, as recorded.
+
+**998 is explicitly not a distance** (the counts are unequal, so every index after
+the first insertion differs); the positional figure is the rank, and it moved
+**68.2% → 85.4%**.
+
+### Levers, measured in aligned points
+
+| lever | gain |
+|---|---|
+| `int *p` for the state store instead of `*(int*)(base+k) =` | **+7.1** |
+| a local pair per 5th/6th stack argument, **61 sites** | +4.8 |
+| `GetActor(n)->f = v` with no local where one field is written; `goto` tail | +2.3 |
+| bare FALLTHROUGH between arms (the missing-call fix above) | +1.4 |
+| pin r1/r2 on 11 `SetPos` sites carrying repeated shifted constants | +1.2 |
+| the offset as a **variable**, so the address is not folded to a symbol+addend pool word | +0.7 |
+| `_AREA_b5..ba` pooled comparisons + the `(unsigned int)0` idiom, as a pair | **−0.3** |
+
+**Measured exactly inert across three builds, every figure identical to the
+digit:** a `t = v - 0x12` HImode temp; `(unsigned short)(v - 0x12) <= 1`; and two
+declaration reorders. That last pair is a **bound**: this residue is not a
+declaration-order problem, and the slot material does not apply to it.
+
+## The switch lever does NOT pay on a measured dispatch population -- but the THRESHOLD does, read backwards
+
+**All 11 dispatch sites across brief D's four targets are TABLES**, so the
+out-of-range-case lever (which flips a *tree* into a table) has **zero
+applicability**. The tree-wide screen result stands, and this is the fourth
+population where that lever has no surface. **Stop briefing it as a lever.**
+
+But reading `case_values_threshold()` *backwards* produced two real results, and
+they correct brief C's correction:
+
+  * **A hidden case is proved by THE TABLE'S EXISTENCE, not by a branch
+    mnemonic.** One site has four distinct case bodies over a span of four, so
+    `count = 4 < 5` and the formula says **tree** — yet the ROM emits a **table**.
+    The region settles it: the fifth entry and the `bhi` target are the same
+    label. The source is `case 0x28: default:`.
+    **Two corrections fall out.** The default-sharing case is at the **TOP** of
+    the range here, not "the fourth, lowest"; and **`sub r3,#0x24` IS present**, so
+    brief C's *absence-of-`sub`* tell does **not** find this one.
+    **The robust tell is arithmetic:** derive the node count the table implies,
+    then test it against 5 **and** against range/10. A mnemonic — `bcc`, `bhi`, or
+    the presence of a `sub` — is a hint at best; the *formula* is the test.
+  * **A table can have a margin of ONE.** Another site: 100 entries, 90
+    default-filled, 10 nodes, range 99, and `10 × 10 = 100 ≥ 99`. **Nine nodes
+    instead of ten and the table vanishes.** That is a *check* to run against any
+    candidate that emits a table, not a lever to pull.
+
+### `minval` needs FOUR forms, not one
+
+A `sub`-only screen is wrong in three further ways. One function's site 1 uses
+**`add r3,#1`** (minval **−1**) and its site 2 adds a **pooled negative**
+(`=0xfffffe84`, minval `0x17c`). A `sub`-only reading calls both minval 0 and then
+hunts a lowest case that does not exist. And site 1's `case -1` is **the table's
+minimum**, not an instance of the out-of-range lever — same spelling, opposite
+role.
+
+## A frame class with no name: THE FRAME TOP
+
+`LuckyDiceMain`'s aggregate count goes **27 → eleven**, resolved by region reading:
+11 genuine objects, **4 sub-word `short` scalars** (sp+0xa0/a2/a4/a6, each base
+materialised separately for exactly one `strh`/`ldrh` at offset 0), and **3 sites
+that are not an object at all.**
+
+Those three are **`add rX, sp, #0x300` materialising the FRAME TOP**, with a pooled
+negative then added to reach sp+0xe0 and sp+0x78. **This class is not named
+anywhere in the document and it will always make a large frame look as though it
+has an object at its end.** Add it to the resolution list beside sub-word scalars,
+loop end sentinels, hidden register arguments, re-materialisation and
+address-taken scalars — **seven classes now, of which only re-materialisation is
+fixable by de-duplicating offsets.**
+
+**And a FIFTH frame grep:** **`add rX, sp` in its two-operand form (`rX += sp`)**,
+matched by neither `mov rX, sp` nor `add rX, sp, #K`. Two sites here, and brief E
+found the same form independently where the offset is not word-aligned
+(`sp+0x14f` cannot be an `add rX,sp,#imm`).
+
+The store-only phantom warning also held: two offsets read as store-only and are
+both **aggregate bases written through the materialised register**.
+
+## Where the loop-form levers have no surface at all
+
+The backward-edge census, which is now the instrument, also tells you when to stop
+looking: one function has **ONE backward edge** against 40 `cmp`, and another has
+**8 edges in 2,476 instructions**. `LuckyDiceMain` has 22 edges with **18 of 20
+closing on equality**, so `!=` applies there. **A low back-edge count is a positive
+result** — it rules the whole loop-form family out in one pass rather than leaving
+it as an untried possibility.
+
+`.call_via` histogram correction factors for these four: **0 / 1 / 2**, so only the
+first function's raw-text histogram is trustworthy at all.
+
+## Install cost is a real ranking axis, and it is independent of difficulty
+
+Brief D's four, by install cost rather than residue:
+
+  * **cheapest: `Func_80bbb0c`** — whole-file, no split, no exports;
+  * `OvlFunc_968_200b068` — no split, no data, no new exports, 2 register pins;
+  * **most expensive: `LuckyDiceMain`** — `.rodata` with `.incrom`, needing a
+    text/data split **plus four `.global` exports**, i.e. a gated asm commit
+    before any candidate can land.
+
+With three functions mislabelled "no split" this batch, the lesson is now
+mechanical: **run `datacheck.py` on every target while ASSIGNING work, not while
+installing it.** Two targets this batch could not have landed at any candidate
+quality because their exports did not exist yet.
