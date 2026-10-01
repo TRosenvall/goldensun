@@ -93,7 +93,18 @@ batch-304 signature exactly.  Merging them into one declared variable is
 points.  **The precondition that fails is the FIRST one -- the count is not
 already exact.**  Up here you are still arguing about HOW MANY registers there
 should be, and merging removes one quantity from the very set the size and
-count are measuring.  Reuse is an endgame lever; it is not a band-entry lever.
+count are measuring.  Reuse of CONSTANT ranges is an endgame lever; it is not a
+band-entry lever.
+
+QUALIFIED IN BATCH 312, and the discriminator is POINTER versus CONSTANT.  The
+measurement above merges two CONSTANT ranges, and the explanation it gives is
+exactly why that case needs the count already near-exact: merging removes a
+quantity THE COUNT MEASURES.  Merging two POINTER or COUNTER ranges does the
+opposite -- it raises a reference count and BUYS a register -- and it pays
+immediately.  On OvlFunc_882_200b1ac merging two pointer ranges took size from
++28 to -4, objcmp from 980 to 907, and DROPPED THE FRAME FROM FIVE SLOTS TO
+THREE, on a function whose count was nowhere near exact.  So lever 1 at band
+entry is live for pointers and counters, and endgame-only for constants.
 
 **Lever 2, ONE VARIABLE PER REGION -- inert, contrary to the brief's
 expectation.**  The brief predicted this would matter MORE at 800+ with many
@@ -110,6 +121,23 @@ constants and assigning them ALL AT THE TOP went +20/+10 -> +4/+1 on size and
 count, because it creates the reference's NUMBER of long-lived quantities.
 That is the band-entry lever for the straight-line population: **count the
 reference's parked constants, then make your candidate hold that many.**
+
+SCOPE, ADDED IN BATCH 312 BECAUSE THIS SECTION CONTRADICTED ANOTHER ONE.  "All at
+the top" is right for constants you want LONG-LIVED -- its whole mechanism is
+creating the reference's NUMBER of parked quantities.  It must NOT be applied to
+the int-carrier lever for a HImode constant store, which this same section gives
+and which requires THE OPPOSITE PLACEMENT: a carrier ADJACENT to its store yields
+the reference's `mov`/`lsl` pair, while the same carrier HOISTED to one set with
+five uses lets constant propagation push it back down and `0xffffe000` RETURNS TO
+THE POOL, loaded five times.  Measured on OvlFunc_951_2008e5c.
+
+The two instructions are not in conflict once scoped: hoist a constant whose job
+is to OCCUPY A REGISTER for a long range; keep a constant adjacent whose job is to
+SHAPE ONE STORE.  A third member of the family takes the hoisted placement for a
+different reason -- `-(0xc0 << 10)` written as a literal pools BOTH `0xfffd0000`
+and `0x2ffff`, while hoisting `t` and writing `-t` gives the reference's
+`neg r2, r4`.  So placement is per-lever and "all at the top" is not a blanket
+instruction.
 
 **Declaration order -- inert FOR LOCAL-ALLOC-PLACED CONSTANTS ONLY; it DOES set
 the order of RELOAD SPILL SLOTS.**  Permuting the eight declarations and

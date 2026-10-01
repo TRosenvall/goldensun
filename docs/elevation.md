@@ -29524,3 +29524,239 @@ labels, ~46 instructions per block, i.e. **branch-dense** by the band document's
 own axis, calling for the 500-instruction lever set rather than straight-line
 constant-reuse material. Zero loops (all eight `bne` branch forward off a non-zero
 `cmp`), so no loop flag may be cited for it either.
+
+## Batch 312 brief C -- and a briefing error of the opposite kind: I contradicted a section that was RIGHT
+
+Every other briefing error on this record has the same shape: a document section
+over-claims, I propagate it, and an agent measures it away. **This one is the
+inverse and is worth separating.** I told brief C that
+`-fno-rerun-cse-after-loop` was "still UNSETTLED" and that its loop-bearing target
+was "the one place left to settle it". This document already contained, at two
+places:
+
+  * *"`-fno-rerun-cse-after-loop` is not a loop phenomenon"* -- measured on
+    `OvlFunc_942_20086c8`, a straight-line script **with no loop at all**, where it
+    was the **only** one of six CSE-family flags that reached the function, and
+    which states plainly that **the name describes WHEN the pass runs, not what it
+    acts on**;
+  * *"`-fno-rerun-cse-after-loop` is not free, and LOOPS are where it costs."*
+
+So the question was settled, in the opposite direction from the one my brief
+assumed, and the brief sent an agent to re-settle it. I also recorded brief B's
+"has a loop is not the precondition" as a finding when it was a **re-confirmation**.
+
+The lesson is not "grep the doc" in general -- it is that **I wrote that
+instruction into all three briefs and did not follow it myself.** A premise in a
+brief is a claim, and it needs the same grep the brief demands of its agent.
+
+### The flag, now measured four ways with no correlation to loops
+
+| function | loops | result |
+|---|---|---|
+| `OvlFunc_942_20086c8` | **none** | the only one of six CSE flags that reaches it |
+| `OvlFunc_883_20095dc` | none | size AND count both exact |
+| `OvlFunc_882_200b1ac` | **one** | **byte-identical** |
+| `OvlFunc_883_200b4c8` | **one** | **byte-identical** |
+| `OvlFunc_951_2008e5c` | **two** | **actively WORSE** (+8 size, +7 count, -3.3 aligned) |
+
+Four behaviours, no correlation with loop presence in either direction.
+**Sweep it per function; no shape screen substitutes for the measurement.**
+
+And an instructive detail on *how* it can be inert: on `200b1ac` the flag is
+byte-identical **while genuinely taking effect**. Under `-da` it removes exactly
+two lines from `09.cse2` (`;; Processing block from 2 to 1192, 675 sets.` and one
+more), so the pass really is skipped -- **the dump file still exists either way, so
+a dump-presence check cannot detect this.** The only other change across all 20
+dumps is six insns losing a cached `INSN_CODE`, and those six insns *are* the loop
+body. cse2's entire reach there is a 7-instruction loop and it transforms nothing.
+
+## Lever 1 (reuse) pays at band ENTRY -- the discriminator is POINTER versus CONSTANT
+
+Against `docs/band-800plus.md` §3's "reuse is an endgame lever", and this is a
+sharpening rather than a contradiction, because the two cases differ in kind:
+
+  * **Merging two CONSTANT ranges removes a quantity the count measures** -- so it
+    needs the count already near-exact, which is the endgame precondition the band
+    doc recorded (and §3's own measurement showed it worse at band entry).
+  * **Merging two POINTER or COUNTER ranges raises a reference count and BUYS a
+    register** -- which pays immediately, at entry.
+
+On `200b1ac` merging two pointer ranges took size from **+28 to -4**, objcmp from
+**980 to 907**, and **dropped the frame from five slots to three.** That is a band
+-entry lever on a function whose count was nowhere near exact.
+
+## The indexed loop -- deny cse1 a hoisted address, and it is cse1 NOT gcse
+
+The best single edit of the batch. `q = &c->v[2]` gets commoned with an argument
+**940 instructions later** and parked in r11 function-wide; that fourth long-lived
+quantity *is* the extra push. Rewriting it as `c->v[k]` makes the pointer a product
+of **loop.c strength reduction**, which runs after cse1 and gcse, and `2008e5c`
+went from four high registers to **three, matching the reference's push list
+exactly.**
+
+**Attribution correction, and it is mine:** I recorded this family from batch 311
+as *gcse/PRE invents allocnos* and wrote that into the briefs. Here **`-fno-gcse`
+does not remove it** -- so on this function the culprit is **cse1**, not
+`pre_insert_copies`. Both passes can invent a long-lived address quantity and the
+source-level counter is the same (deny the pass the expression; let strength
+reduction rebuild it). But the *attribution* requires the flag, so: **run
+`-fno-gcse` before naming gcse.** The CalcStats case where gcse was confirmed used
+exactly that evidence; the briefs dropped the qualifier.
+
+## The int-carrier for HImode stores MUST BE ADJACENT -- resolving a contradiction inside the band doc
+
+`docs/band-800plus.md` §3 gives the int-carrier lever **and**, separately, advises
+assigning named constants "ALL AT THE TOP". **Those two instructions conflict, and
+the carrier is the one that is right:**
+
+  * carrier **adjacent** to its store -> the reference's `mov`/`lsl` pair;
+  * the same carrier **hoisted** to one set with five uses -> constant propagation
+    pushes it back down and `0xffffe000` **returns to the pool, loaded five times.**
+
+So the carrier's precondition is **adjacency**, and "all at the top" is not a
+general rule -- it is advice that happens to be safe only for constants no pass
+wants to propagate. Hoisting is the thing that kills this lever.
+
+**And the opposite placement is right for the negation lever:** `-(0xc0 << 10)`
+written as a literal pools **both** `0xfffd0000` and `0x2ffff`, while **hoisting**
+`t` and writing `-t` gives the reference's `neg r2, r4`. Two levers in the same
+family with opposite placement requirements, which is exactly why "all at the top"
+cannot be a blanket instruction.
+
+## Separated-axis exactness is necessary and STILL not sufficient
+
+Rung 8 said to split the instruction count by opcode. Brief C found the next layer:
+on `2008e5c` a candidate had **the instruction count and the pool-word count each
+separately exact** and was still **structurally wrong** -- its `struct Vec`
+assignment compiled to `ldmia`/`stmia` where the reference has three `ldr`/`str`
+pairs, and the two block-moves plus four instructions of pointer setup happened to
+total exactly 947.
+
+The lesson is the cheap part: **the loop body either matches the reference or it
+does not, and that is checkable by reading it, with no figure at all.** Figures
+rank candidates; they do not certify structure. When a small region is in question,
+read the region.
+
+## Frame triad corrected -- ANY FRAME OVER 508 BYTES WAS INVISIBLE
+
+A real defect in the procedure this document recommends, and in
+`tools/triage_available.py` which implements it.
+
+**Thumb-1 `sub sp,#imm` caps at 508 bytes.** A function with a larger frame cannot
+use that form at all and builds it through a register:
+
+    ldr r5, =0xfffffddc / add sp, r5        @ = -548
+    mov r3, #0x89 / lsl r3, #2 / add sp, r3 @ release
+
+With only the `sub sp,#imm` grep, such a function reports **frame 0 and reads as
+FRAMELESS** -- the exact opposite of the truth. `OvlFunc_880_20083cc` has a
+**548-byte frame with six stack aggregates**, making it the hardest frame of its
+group **while being six instructions shorter** than a sibling, and my triage ranked
+it easiest. **The missing grep is `(add|sub)\s+sp,\s*r[0-9]+`.**
+
+Re-running the fixed tool over all 37 unattempted functions: **two had invisible
+frames** -- `20083cc` at 548 bytes with 6 aggregates, and **`LuckyDiceMain` at 768
+bytes with 27 aggregates**, which had been sitting in the table as frameless. Only
+five are genuinely frameless. Limited reach, but it mis-ranked two of the harder
+functions as among the easiest.
+
+**Two further corrections to the triad as written here:**
+
+  * The second and third greps were **mis-assigned**. `mov rX, sp` does not appear
+    in `20083cc` at all; **`add rX, sp, #K` is the aggregate form** there. Count
+    both.
+  * **A FOURTH check is needed.** `str rX,[sp]` with **no matching load** is
+    outgoing argument space for a 5-or-more-argument call -- 14 such sites in
+    `2008e5c` and 10 in `20083cc` -- and it is invisible to all three greps
+    *because offset 0 forms no address*. Pairing stores against loads is the
+    discriminator; the raw count is the screen. The tool now reports it as `sp0`.
+
+## `tools/datacheck.py` under-reported a split export set -- the recipe would not link
+
+`LABEL_DEF` matched only `^(\.L\w+):`, so a data symbol **defined by `.lcomm`**,
+with no `LABEL:` line anywhere, was not in the label set and a function's read of
+it was never reported as crossing files. On `ovl_30_c_c_c_c_a.s` it named
+`.L2054` and `.L2057` while **`.L20d0` -- read twice, by the target and by its
+sibling, `.lcomm` with no `.global` -- was omitted entirely.** The correct export
+set is **three** symbols, and following the printed recipe would have **failed to
+link.**
+
+Fixed. Tree-wide reach, measured rather than assumed: **2 files, 4 symbols**
+(`.L20d0`, and `.L1af8/.L1c18/.L1c1a` in `rom_7fa4ec/ovl_30_c_c_c_c.s`). Small,
+and both would have been link failures discovered the hard way.
+
+## Two dump-reading traps that cost real time
+
+  * **gcc-2.96's `-da` dumps are NOT byte-comparable across runs.** Every dump
+    prints a raw heap pointer in `NOTE_INSN_BLOCK_BEG`/`_END`, and from `18.greg`
+    onward `NOTE_INSN_DELETED` prints an **uninitialised int**. There is a
+    four-line noise floor, and 206-line diffs downstream of local-alloc were
+    **entirely noise**. Filter both note forms or you will report a flag as
+    transformative when it changed six `INSN_CODE` fields.
+  * **Do not read a mid-pipeline dump as the output.** `09.cse2` shows a halfword
+    test as `movhi + ashl 16 + ashr 16`, which reads exactly like this document's
+    `ldrsh` defect and cost a four-variant spelling sweep. **`combine` merges them
+    afterwards**, and all four spellings already emitted the reference's
+    `mov r2,#0 / ldrsh r3,[r5,r2]`. There was never a defect.
+
+## The pooled-small-constant screen has a SECOND explanation, so it cannot name a symbol alone
+
+An important qualification, and the agent reached it by first getting it wrong and
+then assembling the code to check -- which is the right order.
+
+It initially recorded that GAS collapses `ldr rX,=K` for 8-bit `K` into a `mov`,
+and corrected a park on that basis. **Assembling proves otherwise: four `ldr [pc]`
+and four `.word`s.** So the eight pooled eight-bit-movable sites in `20083cc` are
+**real**, and the screen's precondition genuinely holds there.
+
+But the conclusion does not follow, because **`force_const_mem` on a spilled
+constant pseudo explains a pooled small constant just as well as a relocation
+does**, and `200b1ac` demonstrates that branch. So:
+
+> A pooled eight-bit-movable word means **either** a relocation **or** a spilled
+> constant pseudo. The screen identifies a *site worth reading*; it does not
+> identify a symbol, and **no `.sym` entry may be written on the strength of it.**
+
+Taken with brief A's relocation-parity finding, the rule now needs two checks
+before a symbol spelling is adopted: the relocation count must have room for it,
+and `force_const_mem` must be excluded.
+
+## `docs/ANALYSIS_OvlFunc_882_200b1ac.c` -- confirmed, with one correction
+
+Its "take it last" advice held, its `_umodsi3_RAM` non-residue is confirmed (nine
+of them), and its central claim that **the reused quantities are ADDRESSES, not
+constants** is confirmed from both sides: naming the constants did nothing (see the
+`REG_N_SETS` bound below), merging the pointers did everything.
+
+Wrong in one place: its reading that there is "ONE loop, ZERO if/else, three
+branches are SKIPS" misses that **each of those `b` instructions is a cse1
+BASIC-BLOCK BOUNDARY.** Six blocks, not one straight line -- and that is precisely
+why the same `~0xc` mask is built two different ways 290 instructions apart. A pool
+skip is still a block boundary to every pass that works per block.
+
+## Bounds measured byte-identical on brief C's two
+
+  * **The `REG_N_SETS` gate is inert on `200b1ac`, byte-identically.** Naming the
+    four commoned constants as one-set locals across 13 sites gives a `.s`
+    identical to the bare literals apart from `.file`. Its documented direction is
+    exactly what the function needs and **it does not deliver it** -- consistent
+    with the ANALYSIS doc's claim that the reused quantities are addresses.
+  * **Named zero locals do not create the pooled zero** -- three shapes, one object.
+  * **Declaration order inert on `2008e5c`, byte-identically, three ways.**
+  * **All six CSE-family flags byte-identical on `200b1ac`**, and nothing beats
+    baseline on `2008e5c`.
+  * `-fno-schedule-insns2` moves the output on both, **re-confirming sched2 runs.**
+  * **`-ffixed-r8..r11` gives size AND count exact on `200b1ac` at the best aligned
+    figure, and is NOT a route** -- it replicates the masking signature that
+    `band-800plus.md` §7 retracted, now on a second function, so **the retraction
+    stands stronger.** Same for `-fno-omit-frame-pointer` on `2008e5c` (best
+    aligned, worst count).
+
+## Two of brief C's three were branch-dense, not straight-line
+
+76 and 79 labels respectively. `band-800plus.md` §1 says that population wants the
+ordinary 500-instruction lever set, while my brief's levers section led with
+straight-line constant-reuse mechanisms. Combined with brief B's `20088ec` (61
+branches over 61 labels), **three of batch 312's nine targets were assigned
+straight-line material and are branch-dense.** The label count is one grep and
+belongs in the triage table.

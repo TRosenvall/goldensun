@@ -82,16 +82,52 @@ rows = []
 for n in names:
     paths = loc.get(n)
     if not paths:
-        rows.append((n, "NOT FOUND", 0,0,0,0,0,0,0,0,0,0,0,0.0)); continue
+        rows.append((n, "NOT FOUND", 0,0,0,0,0,0,0,0,0,0,0,0.0,0,0)); continue
     p = paths[0]
     body = slice_fn(p, n)
     txt = "\n".join(body)
     insns = sum(1 for l in body if re.match(r"^\t[a-z]", l))
-    # frame triad
+    # THE FRAME, and the first grep is NOT enough.
+    #
+    # Thumb-1 `sub sp,#imm` caps at 508 bytes, so a function with a LARGER frame
+    # cannot use that form at all and builds it via a register instead:
+    #     ldr r5, =0xfffffddc / add sp, r5      (= -548)
+    # With only the `sub sp,#imm` grep such a function reports frame 0 and reads
+    # as FRAMELESS.  That is exactly backwards -- it happened on
+    # OvlFunc_880_20083cc in batch 312, whose 548-byte frame with six aggregates
+    # makes it the HARDEST frame of its group while being SHORTER than its
+    # siblings, and the tool ranked it easiest.  ANY FRAME OVER 508 BYTES WAS
+    # INVISIBLE.
     m = re.search(r"sub\s+sp,\s*#(0x[0-9a-f]+|\d+)", txt)
     frame = int(m.group(1), 0) if m else 0
-    movsp = len(re.findall(r"mov\s+r\d+,\s*sp", txt))
+    if not frame and re.search(r"(?:add|sub)\s+sp,\s*r[0-9]+", txt):
+        # register-built frame: recover the size from the negative constant the
+        # register is loaded with.  Reported as a lower bound if not found.
+        for mm in re.finditer(r"=\s*(0x[fF][fF][0-9a-fA-F]{6})", txt):
+            v = int(mm.group(1), 16)
+            if v > 0x7fffffff:
+                frame = 0x100000000 - v
+                break
+        if not frame:
+            frame = -1   # register-built, size not recovered
+    # AGGREGATES.  `mov rX, sp` is only ONE of the two forms and is absent from
+    # 20083cc entirely; `add rX, sp, #K` is the other and is the one it uses.
+    # Count both (batch 312 correction).
+    movsp = (len(re.findall(r"mov\s+r\d+,\s*sp", txt))
+             + len(re.findall(r"add\s+r\d+,\s*sp,\s*#", txt)))
     addsp = len(re.findall(r"add\s+r\d+,\s*sp", txt))
+    # OUTGOING ARGUMENT SPACE, a FOURTH check the triad lacked: `str rX,[sp]`
+    # with no matching load is argument space for a 5+-argument call, and it is
+    # invisible to the other three because offset 0 forms no address.  Pairing
+    # against loads is the discriminator; the raw store count is the screen.
+    sp0 = len(re.findall(r"str\s+r\d+,\s*\[sp\]", txt))
+    # LABEL COUNT -- separates straight-line from branch-dense, which decides
+    # WHICH LEVER SET applies (band-800plus.md section 1).  Three of batch 312's
+    # nine targets were assigned straight-line constant-reuse material and were
+    # branch-dense (61, 76 and 79 labels); it is one grep and was missing here.
+    # NOTE a pool skip is still a basic-block boundary to every per-block pass,
+    # so these are NOT discountable the way the batch-310 branch-target count was.
+    labels = len(re.findall(r"^\.L\w+:", txt, re.M))
     # high registers
     hi = len(re.findall(r"\b(r8|r9|r10|r11|sl|fp)\b", txt))
     # pooled constants: ldr rX, =VALUE  -> multiset
@@ -117,17 +153,18 @@ for n in names:
     argfill = len(re.findall(r"^\t[a-z]+\s+r[0-3],", txt, re.M))
     work = max(insns - bl - argfill, 0)
     wd = (100.0 * work / insns) if insns else 0.0
-    rows.append((n, p, insns, frame, movsp, addsp, hi, maxreload, distinct, reuse, bne, signed, jt, wd))
+    rows.append((n, p, insns, frame, movsp, addsp, hi, maxreload, distinct, reuse, bne, signed, jt, wd, sp0, labels))
 
-print("%-26s %5s %6s %5s %4s %5s %5s %5s %4s %4s %4s %6s" %
-      ("function","insn","frame","movsp","hi","maxrl","distc","reuse","bne","sgn","jt","work%"))
+print("%-26s %5s %6s %5s %4s %5s %5s %5s %4s %4s %4s %6s %4s %4s" %
+      ("function","insn","frame","aggr","hi","maxrl","distc","reuse","bne","sgn","jt","work%","sp0","lbl"))
 # rank: pure-rebuild candidates first (low maxreload, low reuse), small frame, no aggregates
 def key(r):
     if r[1]=="NOT FOUND": return (9,0)
-    return (r[7] + r[9], r[3] + 100*r[4])
+    return (r[7] + r[9], (r[3] if r[3] > 0 else 600) + 100*r[4])
 for r in sorted(rows, key=key):
     if r[1]=="NOT FOUND":
         print("%-26s  NOT FOUND" % r[0]); continue
-    n,p,insns,frame,movsp,addsp,hi,maxrl,distc,reuse,bne,sgn,jt,wd = r
-    print("%-26s %5d %6s %5d %4d %5d %5d %5d %4d %4d %4d %5.1f" %
-          (n, insns, hex(frame), movsp, hi, maxrl, distc, reuse, bne, sgn, jt, wd))
+    n,p,insns,frame,movsp,addsp,hi,maxrl,distc,reuse,bne,sgn,jt,wd,sp0,labels = r
+    fs = "reg?" if frame == -1 else hex(frame)
+    print("%-26s %5d %6s %5d %4d %5d %5d %5d %4d %4d %4d %5.1f %4d %4d" %
+          (n, insns, fs, movsp, hi, maxrl, distc, reuse, bne, sgn, jt, wd, sp0, labels))

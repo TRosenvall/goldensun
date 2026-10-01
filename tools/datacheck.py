@@ -37,6 +37,14 @@ FUNC = re.compile(r"^\s*\.(?:thumb|arm)_func_start(?:_noalign)?\s+(\S+)", re.M |
 GLOBAL = re.compile(r"^\s*\.global\s+(\S+)", re.M)
 DATA_SECTIONS = (".rodata", ".data", ".bss")
 LABEL_DEF = re.compile(r"^(\.L\w+):")
+# A data symbol can also be DEFINED BY `.lcomm`, with no `LABEL:` line at all.
+# Matching only `LABEL:` under-reported the export set and the recipe it
+# printed would FAIL TO LINK: on ovl_30_c_c_c_c_a.s it named .L2054 and
+# .L2057 while .L20d0 -- read twice, by the target and by its sibling -- is
+# `.lcomm` with no `.global` and was omitted entirely.  The correct export set
+# there is THREE symbols.  Every non-global `.lcomm` symbol in the tree was
+# exposed to the same miss; 28 files carry the directive.  (Batch 312.)
+LCOMM_DEF = re.compile(r"^\s*\.l?comm\s+(\.L\w+)")
 LABEL_REF = re.compile(r"\.L\w+")
 FUNC_END = re.compile(r"^\s*\.(?:thumb_|arm_)?func_end\b", re.I)
 # Asm line comments start with `@`; a label named in prose is not a read.
@@ -77,6 +85,7 @@ def split_requirements(path):
         return None
     exported = set(GLOBAL.findall("".join(lines)))
     data_labels = {m.group(1) for l in lines[dstart:] if (m := LABEL_DEF.match(l))}
+    data_labels |= {m.group(1) for l in lines[dstart:] if (m := LCOMM_DEF.match(l))}
     starts = [(i, m.group(1)) for i, l in enumerate(lines) if (m := START.match(l))]
     out = []
     for k, (i, name) in enumerate(starts):
