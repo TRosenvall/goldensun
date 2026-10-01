@@ -1,7 +1,33 @@
-/* OvlFunc_883_200b4c8 -- NOT MATCHING
+/* OvlFunc_883_200b4c8 -- NON-MATCHING, 960 of 1027
  *
- * Source asm: goldensun/asm/overlays/rom_780898/ovl_30_c_c_c_a_a_a_c_c_c_c_c_c.s
+ * FIGURE ADDED IN BATCH 312, the first this park has ever carried: it said only
+ * "NOT MATCHING", so there was no number to check and nothing to rank it by.
+ * 960 is tools/objcmp.py's production-flag figure for the body below.
+ *
+ * Source asm: asm/overlays/rom_780898/ovl_30_c_c_c_a_a_a_c_c_c_c_c_c_c.s
  * Best screen: 1025 instructions against the ROM's 1027.
+ *
+ * RECIPE ADDED AND THE +0 SIZE RE-READ, BATCH 312.  This park carried no
+ * `Verify with:` recipe at all, and the reference path it named no longer
+ * existed -- the file was re-split and gained a `_c`, so even a reader who
+ * reconstructed the command by hand would have been told the function was not
+ * there.  Both fixed.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/overlays/200b4c8.c \
+ *     asm/overlays/rom_780898/ovl_30_c_c_c_a_a_a_c_c_c_c_c_c_c.s --func OvlFunc_883_200b4c8
+ *
+ * AND THE SIZE IS NOT THE GOOD NEWS IT LOOKS LIKE.  Production size here is
+ * EXACT at 2792 bytes both sides, which this file's framing reads as near-
+ * success.  The per-opcode histogram says otherwise: 26 EXTRA `mov` CANCELLING
+ * 29 MISSING `ldr`/`lsl`.  That is ~55 misplaced instructions summing to zero,
+ * and no figure we previously carried could see it -- comparing the instruction
+ * count against the pool-word count separately (the existing discipline) cannot
+ * reach an error that is `mov` against `lsl` INSIDE the instruction count.
+ * The instrument is the PER-OPCODE HISTOGRAM; see docs/elevation.md, ladder
+ * rung 8.  Treat the exact size as a coincidence until the histogram is flat.
  *
  * THIS IS A SCOUTING RESULT, not an abandoned attempt. It is the first function
  * of the 1000+ instruction band anyone has taken to a compile, and the point of

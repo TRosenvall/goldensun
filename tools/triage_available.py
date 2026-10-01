@@ -82,7 +82,7 @@ rows = []
 for n in names:
     paths = loc.get(n)
     if not paths:
-        rows.append((n, "NOT FOUND", 0,0,0,0,0,0,0,0, "")); continue
+        rows.append((n, "NOT FOUND", 0,0,0,0,0,0,0,0,0,0,0,0.0)); continue
     p = paths[0]
     body = slice_fn(p, n)
     txt = "\n".join(body)
@@ -106,10 +106,21 @@ for n in names:
     signed = len(re.findall(r"\b(blt|ble|bgt|bge)\b", txt))
     # jump tables
     jt = len(re.findall(r"\.word\s+\.L", txt))
-    rows.append((n, p, insns, frame, movsp, addsp, hi, maxreload, distinct, reuse, bne, signed, jt))
+    # WORK DENSITY -- the axis that orders the call-script population, which the
+    # high-register axis cannot (batch 312: high-reg ran 17/19/16 across three
+    # targets and the HARDEST had the FEWEST).  These are cutscene scripts at ~3
+    # instructions per call where almost everything is argument-fill, so a
+    # function that barely computes has no wide constants to reuse.  Approximated
+    # as: instructions that are neither a call nor a write to an argument
+    # register r0-r3.  Hand-write sites track this almost linearly.
+    bl = len(re.findall(r"^\t(bl|blx)\b", txt, re.M))
+    argfill = len(re.findall(r"^\t[a-z]+\s+r[0-3],", txt, re.M))
+    work = max(insns - bl - argfill, 0)
+    wd = (100.0 * work / insns) if insns else 0.0
+    rows.append((n, p, insns, frame, movsp, addsp, hi, maxreload, distinct, reuse, bne, signed, jt, wd))
 
-print("%-26s %5s %6s %5s %4s %5s %5s %5s %4s %4s %4s" %
-      ("function","insn","frame","movsp","hi","maxrl","distc","reuse","bne","sgn","jt"))
+print("%-26s %5s %6s %5s %4s %5s %5s %5s %4s %4s %4s %6s" %
+      ("function","insn","frame","movsp","hi","maxrl","distc","reuse","bne","sgn","jt","work%"))
 # rank: pure-rebuild candidates first (low maxreload, low reuse), small frame, no aggregates
 def key(r):
     if r[1]=="NOT FOUND": return (9,0)
@@ -117,6 +128,6 @@ def key(r):
 for r in sorted(rows, key=key):
     if r[1]=="NOT FOUND":
         print("%-26s  NOT FOUND" % r[0]); continue
-    n,p,insns,frame,movsp,addsp,hi,maxrl,distc,reuse,bne,sgn,jt = r
-    print("%-26s %5d %6s %5d %4d %5d %5d %5d %4d %4d %4d" %
-          (n, insns, hex(frame), movsp, hi, maxrl, distc, reuse, bne, sgn, jt))
+    n,p,insns,frame,movsp,addsp,hi,maxrl,distc,reuse,bne,sgn,jt,wd = r
+    print("%-26s %5d %6s %5d %4d %5d %5d %5d %4d %4d %4d %5.1f" %
+          (n, insns, hex(frame), movsp, hi, maxrl, distc, reuse, bne, sgn, jt, wd))

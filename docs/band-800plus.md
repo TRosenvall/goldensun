@@ -48,8 +48,9 @@ are call-saved low registers.  Overflow goes to r8-r11, which Thumb-1 cannot
 use as operands, so each one costs a `mov rlo, rhigh` **and** the six-
 instruction Thumb high-save prologue and its matching epilogue.
 
-**No flag reaches it.**  cse pass 1 is unconditional at -O1, -O2 and -Os.
-Measured on 2008c28, high-register mentions in the generated `.s`:
+**No flag reaches it ON 2008c28 -- and a flag DOES reach 20095dc.**  cse pass 1
+is unconditional at -O1, -O2 and -Os.  Measured on 2008c28, high-register
+mentions in the generated `.s`:
 
     -O2 baseline 47 | -fno-rerun-cse-after-loop 43 | -fno-gcse 47
     both 47 | -fno-cse-follow-jumps 47 | -fno-cse-skip-blocks 43
@@ -62,6 +63,26 @@ for a straight-line function in this band on the strength of the shape alone**
 -- lever 5's precondition (a save-flag id with one use dominating another) is
 absent, and on 2008c28 `-fno-rerun-cse-after-loop` measured WORSE (74.9% ->
 74.5% aligned).
+
+QUALIFIED IN BATCH 312, and the distinction matters because only the HEADING was
+wrong.  The careful sentence immediately above -- *do not write a row on the
+strength of the SHAPE ALONE* -- is correct and is reaffirmed.  What was wrong is
+the bald heading "No flag reaches it", which reads as a property of the band and
+is a measurement of ONE function.  On `OvlFunc_883_20095dc`
+`-fno-rerun-cse-after-loop` takes SIZE AND COUNT BOTH EXACT (5240/5240 and
+1996/1996, from -40/-17), worth 17 instructions, through the real `CSE_CFLAGS`
+group at Makefile line 835 -- so that row is build-reproducible, not a probe.
+
+And the flag is not predictable from the shape in either direction.  On
+`OvlFunc_883_200b4c8` -- SAME OVERLAY, same script shape, and unlike 20095dc it
+genuinely HAS a loop -- the flag is BYTE-IDENTICAL.  So "has a loop" is not the
+precondition either, which is the reading the flag's name invites.  SWEEP IT PER
+FUNCTION; it is one measurement and no shape screen substitutes for it.
+
+Two bounds from the same pass: under a blanket pin pass the flag is
+byte-identical, so the flag and the pin reach THE SAME commoning and do not
+compose; and `-fno-expensive-optimizations` is inert on 20095dc despite being the
+lever `200b4c8`'s own park records.
 
 ## 3. THE ESTABLISHED LEVERS: WHICH SURVIVE, WITH FIGURES
 

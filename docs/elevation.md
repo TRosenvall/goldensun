@@ -29333,3 +29333,194 @@ Also confirmed: **`split_s.py --dry-run` is honoured** -- the destructive-dry-ru
 defect recorded in this document does not reproduce, as expected since batch 302
 gave the flag a real implementation. The record of it stays as history, not as a
 live hazard.
+
+## Rung 8: an exact INSTRUCTION COUNT can be a coincidence -- the per-opcode histogram is what sees it
+
+The strongest finding of batch 312, and it defeats a discipline this document
+already carried.
+
+Rung 7 said: compare the instruction count and the pool-word count SEPARATELY,
+never their sum, because size adds them together. That is still right, and it is
+**not enough.** On `OvlFunc_883_20095dc`, `CSE_CFLAGS` gives an instruction count
+of **1996 against 1996 -- exact** -- with this histogram:
+
+    mov  +28
+    lsl  -22
+    neg   -4
+    ldr   -3
+    sub   +1
+    ----------
+          0
+
+**Fifty misplaced instructions summing to zero.** Separating instructions from
+pool words cannot reach this, because the error is `mov` against `lsl` *inside the
+instruction count itself*. Every rung so far has been a cancellation between two
+things we were already counting; this is a cancellation **between opcodes**, below
+the resolution of any total.
+
+**The instrument is the per-opcode histogram**, and it is one `grep | sort |
+uniq -c` per side. Confirmed on a second function in the same overlay:
+`OvlFunc_883_200b4c8` has production **size exact at 2792 bytes both sides** with
+**26 extra `mov` cancelling 29 missing `ldr`/`lsl`** -- and its park read that +0
+as near-success for several batches. That park's framing is now corrected in place.
+
+The contrast that makes the histogram's value concrete: the blanket-pin candidate
+for `20095dc` is **two instructions SHORT** -- a worse-looking total -- with
+`str -1, ldr -1` and **every other opcode exact**. The worse total is the better
+candidate, by a wide margin, and only the histogram says so. That is rung 2
+reappearing at opcode resolution.
+
+**Carry the histogram as a column** alongside size, count, pool words and
+relocations. A flat histogram with a non-zero total is close; a zero total with a
+ragged histogram is not close at all.
+
+## The pin pass: two agents, opposite results, and they are not the same experiment
+
+Batch 312's briefs A and B measured the pin pass concurrently and reported
+**opposite** conclusions. Recording the reconciliation rather than either result,
+because propagating one would have been wrong both ways -- and because relaying a
+one-function lever between concurrent briefs is a mistake already recorded here
+from batch 307.
+
+  * **Brief A (two call-scripts, work density 2.4-2.8%):** a SELECTIVE pass beat a
+    blanket one on both functions using HALF the pins -- 92.8% against the same
+    with 159 pins versus 310, and fewer edits.
+  * **Brief B (one dense function, `20095dc`):** selective pins measured
+    **NEGATIVE**. Pinning the max-reload pair made high-register use worse (42 ->
+    46) and copies worse (31 -> 33), and *every partial set was worse than both
+    endpoints* on size and count. Its conclusion: **the pass is all-or-nothing.**
+
+**They selected over different things.** Brief A selected over CALL SITES -- which
+calls get a pin at all -- in functions where almost every instruction is argument
+fill. Brief B selected over CONSTANTS -- which pooled values get pinned -- in a
+function that computes. Those are different experiments that happen to share a
+name, which is why both results are sound.
+
+Brief B also supplies the mechanism for its half, and it is the more general
+statement: **allocation is a zero-sum competition.** Removing one constant's
+allocno hands that register to the next in `global.c`'s priority order, so a
+partial constant-pinning set is not a partial version of the full one -- it is a
+different allocation problem. This also explains why `20088b4`'s mixed case
+resisted selective pinning last batch: *the thing being selected over is not local
+to the site.*
+
+So the rule is two rules:
+
+  * **Over call sites, select** -- pin the wide-literal calls, not every call.
+  * **Over constants, do not select** -- pin all of them or none, and read the
+    endpoints rather than searching the middle.
+
+A bound on the second, measured: **`ALL except 0xa00000` is byte-identical to
+`ALL`** -- a value at four sites that never survives a call has no allocno to
+remove, so excluding it is not a partial set at all. That is the shape of the only
+exception.
+
+## The pure/mixed screen I propagated was wrong on both halves
+
+I put "max pool reload plus `mov rlo,rhigh` count" in all three briefs of batch
+312 as the pure-rebuild/mixed discriminator. Brief B measured it apart:
+
+  * **`20095dc` reloads one value NINE times and is a PURE rebuild.** The reload
+    count carries **no** information.
+  * The raw copy count carries almost none: ten of another function's sixteen
+    copies are **one pointer**.
+
+**The copies must be PARTITIONED, and only one class carries signal** -- the
+multi-instruction/pooled-constant class:
+
+| reference | insns | prologue | addresses | imm8 | **multi-insn/pooled const** | pin residue |
+|---|---|---|---|---|---|---|
+| `20095dc` | 1996 | 4 | 5 | 4 | **0** | **2 opcodes** |
+| `2009410` | 1932 | 3 | 10 | 2 | 1 | — |
+| `20088ec` | 2800 | 2 | 0 | 2 | **7** | — |
+| `200b4c8` | 1024 | 4 | 5 | 6 | **11** | **17 opcodes** |
+
+Two points tie that class to the pin's reach (0 -> 2 opcodes of residue, 11 -> 17),
+so it does not merely classify, it **predicts**. `tools/triage_available.py`'s
+`reuse` column is the raw count and is therefore the weak form; the partition is
+what to compute before writing a line.
+
+## Third population failure in three batches -- screen the population, always
+
+**The eight-bit-movable-pooled-constant screen is INERT on all three of brief B's
+targets.** 120 distinct pooled values across them and the smallest numeric value
+is `0x101` in every one: **zero candidate sites.** The mechanism is sound and
+proved; this population simply has no small pooled constants.
+
+That is now three consecutive batches in which a sound mechanism was written into
+a brief without screening whether its targets carry the shape:
+
+  1. the switch lever, "transfers to 36 functions", reduced by a tree-wide screen
+     to one;
+  2. the switch material again in batch 311, inert on five menu/field functions
+     with zero jump tables between them;
+  3. the pooled-small-constant screen here, zero candidate sites in three
+     functions.
+
+**A mechanism's proof and its population are separate claims and need separate
+evidence.** The screen is cheap in every one of these cases -- one `grep | sort |
+uniq -c` -- and cheaper than the brief that cites it.
+
+## `-fno-rerun-cse-after-loop`: "has a loop" is NOT the precondition
+
+Retracted before it could become a band lever, and caught by the band document's
+own guard. The flag takes `OvlFunc_883_20095dc` to **size and count both exact**
+(5240/5240, 1996/1996, from -40/-17) and is worth 17 instructions there. On
+`OvlFunc_883_200b4c8` -- **same overlay, same shape, and it DOES have a loop** --
+it is **byte-identical**. So having a loop does not predict it and it must not be
+written up as a population lever; **sweep it per function.**
+
+Two further bounds from the same pass: under the blanket pin the flag is
+**byte-identical**, so the flag and the pin reach the same commoning and **do not
+compose**; and `-fno-expensive-optimizations` is **inert** on `20095dc` despite
+being the lever `200b4c8`'s park records.
+
+This also narrows `docs/band-800plus.md` §2's "no flag reaches it" for the
+straight-line population -- a flag does reach `20095dc`, via the real
+`CSE_CFLAGS` Makefile group, so that row is build-reproducible.
+
+## A normalisation trap that reads exactly like a wrong reconstruction
+
+`20095dc`'s constant set is **identical to the reference entry for entry** -- all
+49 distinct pooled values and symbols on both sides, nothing in one and not the
+other. But **the reference writes hex and gcc writes decimal**, so an
+un-normalised diff of the two pool lists reports **all 49 as differing on both
+sides**, which is indistinguishable from having reconstructed the wrong
+constants. **Normalise numerically before diffing a constant set.** The failure is
+silent and maximally misleading: it does not report "cannot compare", it reports
+total disagreement.
+
+## Undefined `.L` symbols are GLOBAL VARIABLES -- found independently by two agents
+
+Both of batch 312's reconstruction agents hit the same structural blocker in
+different overlays, which is what makes it worth recording as a class rather than
+two notes:
+
+  * `OvlFunc_913_2008d3c`: six `.L33xx` symbols, loaded as addresses and
+    dereferenced, defined nowhere in the file. `.L3394` is reached 12 times and
+    caches a `__GetFlag` result.
+  * `OvlFunc_911_20088ec`: `.L368c/3690/3694/3698/369c/36a0` loaded **23 times**,
+    undefined anywhere in the overlay and absent from every `.sym` file.
+
+These are **data symbols the disassembler named like labels**, not control-flow
+labels. The convention that reaches them is already in the tree:
+`extern unsigned char Lxxxx[] __asm__(".Lxxxx");`. **They need names before any C
+can be written**, so this is a prerequisite to those two functions rather than a
+residue in them.
+
+## Triage the script population by UNRESOLVED DRAFT LINES
+
+Brief B's own ordering rule, and it is the sharpest yet for the call-script
+population: `tools/draft_script.py` transcribes argument setup and calls
+mechanically, so what remains is the memory operations and over-guessed arities it
+could not resolve. On `200b4c8` that was **33 memory operations and 12 arities out
+of 264 calls**. Brief B's two un-reconstructed targets needed **185 and 352** hand
+fixes against `20095dc`'s ~110 -- which is where the cost actually sits, and it
+tracks neither instruction count nor work density directly.
+
+Also confirmed, and it reverses my ordering: **`20088ec` is not in the assigned
+population at all.** Its census is `b 18 | beq 35 | bne 8` -- 61 branches, 61
+labels, ~46 instructions per block, i.e. **branch-dense** by the band document's
+own axis, calling for the 500-instruction lever set rather than straight-line
+constant-reuse material. Zero loops (all eight `bne` branch forward off a non-zero
+`cmp`), so no loop flag may be cited for it either.
