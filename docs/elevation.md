@@ -28639,3 +28639,59 @@ answers**: ask whether the value or the address survives the call.
 the same base. Installing there would have destroyed it. **Derive an overlay park's directory from the
 REFERENCE's bank, never from the address alone.** Same non-uniqueness that broke census attribution in
 batch 302 and needed a bank gate — it bites park *paths* as well as park *names*.
+
+## THE `update_equiv_regs` GATE IS REG_N_SETS, NOT REG_N_REFS — and a frame word can own 41% of a residue
+
+`Anim_Ramses` (756 of 875, size −4, count −1, relocation symbol sequence exact entry-for-entry across
+all 71) has its entire aligned shortfall explained by **one frame word**.
+
+**The mechanism.** `local-alloc.c`'s `update_equiv_regs` gives a **one-set constant pseudo** a
+`REG_EQUIV`, after which `reload1.c` **never allocates a stack slot for it** — it rematerialises
+instead. Two such pseudos therefore cost the frame two words: ours is `0x50` where the ROM's is `0x54`,
+and **that single word shifts every `[sp,#N]` in 818 instructions.** That is the 41% that does not
+align — one fact, not four hundred.
+
+**And the gate is the SET count, not the reference count.** This document's existing treatment of
+`update_equiv_regs` is entirely about its `REG_N_REFS == 2` clause. Measured here: the **doubled-use
+probe made SIZE exact and COUNT +1 — the best pair in the whole probe table — with the frame still at
+`0x50`.** The slots never appeared, and the aligned figure fell 1.3 points. So adding references does
+not reach it; **changing the number of SETS does.**
+
+**Which gives a new standing instruction: carry FRAME SIZE as a column on every probe of a long
+function.** It is the fifth rung on the ladder of figures that lie, and the only one visible here:
+
+1. a closer **size** can be a wrong program;
+2. a lower **objcmp count** can be the worse candidate;
+3. **both axes exact** can be our own work totalling the ROM's deficit;
+4. an **exact count** can be two cancelling defects (the relocation sequence catches it);
+5. **the best size-and-count pair in a table** can leave the frame wrong — and a wrong frame invalidates
+   every `[sp,#N]` downstream of it.
+
+## A TWO-STEP COMPUTED CONSTANT, USED THE OTHER WAY ROUND
+
+    int ax = 0xa0;  ax <<= 16;      /* not  ax = 0xa0 << 16; */
+
+Worth −8/−3 → −4/−1 and 53.8% → 59.1% aligned on `Anim_Ramses`.
+
+This document already records that **gcc rematerialises a constant but keeps a COMPUTED value alive**.
+It uses that fact in one direction — to *avoid* holding a value. Here the ROM **does** hold it, so the
+same fact is used in reverse: **write the constant computed, in two steps, when the reference keeps it
+in a register.** Together with the declaration-initialiser lever (which *lowers* an allocno to force
+rematerialisation), the pair now covers both directions of the hold/rematerialise choice.
+
+Two smaller results from the same function: `void **p = iwram_3001ef0; base = p[-1];` through a declared
+pointer costs 2 instructions where the direct `iwram_3001ef0[-1]` is a constant `(symbol_ref + -4)` and
+costs 3; and `mask = 0xd; mask = -mask;` is needed because the obvious spelling lets `fold` narrow the
+AND to `movs r3,#0xf3`, **which scores while being wrong.**
+
+## The `mov rX, sp / add rX, #K` idiom is REAL and the `sub sp` grep misses it
+
+Confirmed independently on `LuckyWheelsMain`: **three aggregates at sp+0x54/0x38/0x30 closing exactly at
+116**, with sp+0x0c holding gcc's spilled *address* of one of them — and **the `sp, #imm` grep alone
+would have found none of it.** On `Func_80acab8` the same pass turned an apparent **92-byte hole** into
+one 96-byte short array plus two out-parameters, closing the frame exactly at 172.
+
+So the frame-reading procedure is now three greps, not one: `sub sp, #imm` for the total,
+**`mov rX, sp` followed by `add rX, #K`** for aggregates addressed that way, and **`add rX, sp` plus a
+LOAD** to tell a spill from argument staging. Two phantom holes and one lost array have come from
+running only the first.

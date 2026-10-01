@@ -6,7 +6,25 @@ Kept in the repo because it also documents a blocker for this project; see
 
 ---
 
-## Thumb backend never emits register-offset addressing (`ldr Rd, [Rb, Ro]`)
+## SCOPE QUALIFIED — this is about `agbcc`/`old_agbcc`, NOT the gcc296 this project builds with
+
+**Read this before acting on anything below.** The section is correct about the compilers it names and
+**false about the toolchain in current use.** Measured directly: **1,156 register-offset load sites
+across 401 COMPILER-GENERATED `.s` files** in this tree. The gcc296 at `$GCC296_DIR` emits
+`ldr Rd, [Rb, Ro]` freely, and several landed functions depend on it — indeed the reg+reg addressing
+mode is the *target* of a recorded lever ("the offset as a named local", which earns exactly this form).
+
+So the line below reading *"any function containing it currently cannot be matched"* **does not apply**.
+It was true of `agbcc`, which is a different compiler and is not what `make` uses.
+
+**This is the fourth doc section in one day whose unqualified heading would have written off reachable
+work** — after the `.call_via` blocker (retracted elsewhere but never struck, which cost work twice),
+the `cmp #K / bge` screening rule (false, 21 surviving sites), and the 36-function switch re-screen
+(measured away). The pattern is specific and worth naming: **a section that tells you to exclude
+functions must carry its own scope in its heading**, because the heading is what a reader greps and
+acts on. Everything retained below is still useful as history of the `agbcc` behaviour.
+
+### ~~Original heading: "Thumb backend never emits register-offset addressing"~~
 
 ### Summary
 
