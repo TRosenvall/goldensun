@@ -566,6 +566,7 @@
 	.incrom 0xf0a5c, 0xf11bd
 .Lf11bd:
 	.incrom 0xf11bd, 0xf1220
+.global .Lf1220
 .Lf1220:
 	.incrom 0xf1220, 0xf1770
 .Lf1770:
