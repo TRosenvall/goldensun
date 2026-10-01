@@ -31604,3 +31604,195 @@ the relocation line.
 > **A good structural argument is necessary and not sufficient for a symbol-table
 > entry. The completion condition is a separate test, and it is the one that stops
 > the table filling with well-argued guesses.**
+
+# Batch 316, briefs C and F: the dying-source combine, an aggregate as a lever, and the recipe that verified nothing
+
+## The destination/dying-source combine, in BOTH allocators, is what drags a chain onto r0
+
+One mechanism explained **four of five** residues in a single brief and produced
+both of its landings, so it is worth stating precisely.
+
+**local-alloc combines a destination with a dying source even for NON-COPY insns.**
+`global_alloc` then propagates the same preference through `expand_preferences`,
+and it can do so because **`global_conflicts` processes `REG_DEAD` *before*
+`mark_reg_store`** — a dying source does not conflict with the destination of the
+very insn that kills it. So wherever the destination carries a copy-suggestion for
+r0 from a closing `(set (reg 0 r0) res)`, the whole merged quantity takes r0 and
+whatever was in r0 (typically an incoming argument) is pushed out.
+
+Worked case, `GetUnit`. The park's source had one function-scope multiplier,
+`k = 0x14c; k *= id;`. Thumb's `mul` is destructive, so `*thumb_mulsi3` carries a
+`%0` matching constraint and local-alloc ties the constant's quantity to the
+product's. The final `res = k + base` then has its destination combined with its
+dying source — the product — and that destination is the returned value. The
+merged constant/product/sum quantity takes r0, `id` is pushed to r2, `base` takes
+r3. **That is the entire 16-encoding residue**, and the priority formula reproduces
+the order exactly off `.17.lreg`:
+
+| | allocno | refs | live | `floor_log2(R)*R/L` | gets |
+|---|---|---|---|---|---|
+| park | `k` | 8 | 16 | 1.500 | **r0** (prefs {0,3}) |
+| | `id` | 5 | 12 | 0.833 | r2 — r0 is gone |
+| ours | `id` | 5 | 13 | 0.769 | **r0** by its copy preference |
+| | `p` | 3 | 5 | 0.600 | r2 |
+| | `base` | 2 | 10 | 0.200 | r3 |
+
+> **The cure is not to change the preference — it is to make ONE SIDE INELIGIBLE
+> FOR THE COMBINE.** A multi-block pseudo cannot be combined by local-alloc at
+> all; a pinned hard register is not an allocno. Both landings in that brief are
+> that one move.
+
+Concretely: a **block-scoped** multiplier per arm is a single-block pseudo that
+local-alloc handles, and `REG_ALLOC_ORDER (3, 2, 1, 0)` hands it r3; a
+**function-scope** result is a multi-block pseudo local-alloc cannot merge the
+multiplier into. Alone they measure 16 and 15. Together, 0.
+
+### And the joint figure LOOKED like a regression, for a reason worth knowing
+
+The two edits together read **27** positionally against a park figure of 16. They
+are not worse — the stream is then 27 instructions against the ROM's 28, so every
+index after 0 shifts and the positional count collapses. Structurally it is
+**27 of 27 instructions exact**, one instruction short.
+
+> **When a candidate's instruction COUNT differs from the reference, the positional
+> figure is not a distance — it is a measure of the misalignment.** Read the count
+> first. This is the `aligncmp.py` case, and it is how a correct two-edit
+> combination can sit in a park's rejected list looking twice as bad as the
+> one-edit version it replaces.
+
+## A pin can LOSE a function by enabling a cross-jump the ROM does not have
+
+New, and the inverse of every pin result recorded above. `GetUnit` with
+`register int k __asm__("r3")` plus the transcribed move gets **every instruction
+right except the tail** and reads 17.
+
+The pin makes both arms' final adds **identical in early RTL** — `add r3,r3,r2`
+twice — and jump optimisation **cross-jumps them into one shared block**, costing a
+`mov r0,r3`. The ROM's two arms both end `add r0,r3,r2 / b` and are **not** merged,
+because before allocation they are different pseudos.
+
+> **A hard-register pin erases the distinction between two blocks that the ROM
+> keeps distinct, and cross-jumping is what charges you for it.** The park saw the
+> `add r3,r3,r2 / mov r0,r3` symptom and blamed "the pin is too strong to release
+> r3 for the result". The pin was not too strong; it was too EARLY.
+
+## A dead store to a pseudo is unreachable, and the proof has to be measured on the right stream
+
+`GetUnit`'s ROM carries a `mov r3, r14` whose destination is dead on every path.
+Six spellings — including `__builtin_return_address(0)` — all measure **byte-for-byte
+identical** to the version without them, because **gcc-2.96's flow1 deletes a dead
+store to a pseudo before local-alloc ever sees it.** The only destinations flow1
+refuses to delete are `global_regs`, fixed registers, and side-effecting insns —
+and a file-scope `register int x __asm__("r3")` would make r3 global and therefore
+**not allocatable**, contradicting a `mov r3,#0xa6` three instructions later. So the
+instruction is transcribed, like the r9 static-chain class.
+
+`register volatile int u __asm__("lr")` is **worse, not better**: the `volatile`
+forces a 4-byte frame (`sub sp,#4` / `add sp,#4`) and the copy is **still dropped**.
+
+> **The park had this right and proved it on the wrong shape.** Its measurement was
+> taken on a body where other things also differed, so "inert" was indistinguishable
+> from "swamped". The replacement proof is taken on the stream where that one copy
+> is the ONLY difference — which is the only place a one-instruction claim can be
+> made. **Before filing an instruction as unreachable, reduce the candidate until
+> that instruction is the sole difference.**
+
+## An aggregate is a lever, and it retired a four-step impossibility proof
+
+`dfa18_Tackle`'s window was closed with a chain that is **sound at every step** and
+was reading **the wrong insns**: insn 1011 stores to an alias-set-0 reload spill
+slot, insn 126 loads `(mem (reg r3) 19)`, `true_dependence` holds, sched-deps emits
+a true dependence 1011 → 126, the ROM's order puts 126 **before** 1011, sched2
+cannot hoist an insn above its own producer — therefore the grouping is
+unschedulable and the blocker is reload's spill placement, one pass earlier.
+
+The edit is one declaration:
+
+    was   DrawFn d1;  DrawFn d0;      d0 = *q0p;  d1 = *q1p;
+    now   DrawFn dfs[2];              dfs[0] = *q0p;  dfs[1] = *q1p;
+
+Make the two function pointers **one addressable object** and insns 1011/1014
+**never exist**: the values are read from a frame object by source-level loads,
+there is no spill-store/load pair to order, and the window comes out exact. 8 → 2.
+
+A two-member struct is **byte-identical** to the array, so the aggregate *kind* is
+free; what matters is one object instead of two scalars. The array must keep the
+two scalars' **declaration slot** — declared after the next local it reads 9, so
+the declaration-order rule still governs.
+
+> **A dependence proof is a proof about an insn chain, not about a function.** Every
+> step can hold while the chain itself is an artefact of the spelling. When a park
+> closes a window by reasoning about reload-created insns, the question to ask is
+> not "is the reasoning right" but **"can the source stop those insns from being
+> created at all"** — and merging two scalars into one addressable aggregate is the
+> cheapest way to find out.
+
+## A recipe is not verification
+
+`parkcheck.py` compiles the **installed body** and uses the `Verify with:` recipe
+only to find the reference `.s` and the `--func` name. That division has a
+consequence nobody had drawn: **a park's recipe can name a file that does not
+exist while its figure is still being verified every time the checker runs.**
+
+Measured this batch: **twenty** parks' recipes named gitignored `scratch_elev`
+paths, and **fourteen more** named a `.s` that no longer exists. The figures were
+never wrong. They were **unreproducible by a human following the recipe** — a
+quieter defect, and one no verdict reported.
+
+The second cause is this project's own success:
+
+> **Landing a function by split invalidates the `Verify with:` recipe of every
+> other park in the same `.s`.** `Func_80f0678` landed out of `rom_f0254_c_c.s`
+> this very session and left its sibling `80f07f0` naming a file that had ceased
+> to exist. **After any `split_s.py` landing, repoint the recipes of the parks that
+> shared the original `.s`.**
+
+Each of the 14 was repointed by finding the `.s` that now holds the symbol, and all
+re-measure to their claimed figures.
+
+### But one park WAS wrong, for sixteen batches
+
+`80bd3e4` claimed "8 of 32" while its body measured **30**, and the body is
+**byte-identical across that whole span**. So the claim was stale from the moment
+batch 300 added the recipe, and `parkcheck` would have said `MISMATCH` on any day
+anyone ran it on that file. **Nobody did.**
+
+> **A recipe is not verification; it is only the PRECONDITION for verification.**
+> Attaching one to an old prose figure without re-measuring is exactly how a wrong
+> number survives sixteen batches. When you add a recipe to a park that lacked one,
+> **run it**, and write down what it says — not what the prose said.
+
+## A park's figure is not a distance unless its RELOCATIONS are clean
+
+`InitMapActors` recorded 14 encodings of 195. `objcmp --whole` on that same body
+prints `XX RELOCATIONS differ` **on top of** the 14 — a hard fail `make compare`
+cannot pass. **Its "14 away" was not 14 away from anything.** The park chose one
+source order because it "fixes the registers", and that reverses the literal pool.
+
+The landing-shaped version is 14 **with relocations identical**, reached by two
+edits where the first alone *looks* like a two-encoding regression (16) and is the
+only version that can ever link.
+
+> **`--func` does not tell you about relocations.** Before trusting any park figure
+> as a distance — and certainly before ranking parks by it — confirm the relocations
+> with `--whole`. A figure measured without that check can be arbitrarily far from a
+> landing, in the one way that cannot be closed by more spellings.
+
+## Two more notes from the same brief
+
+**The MULT's operand order is fixed AT EXPAND, not by regmove.** `.00.rtl` already
+holds `(mult id c)` whichever way the C is written, so `-fno-regmove` is inert.
+Only the compound-assignment form `k *= id` keeps the constant as operand 1 — and
+once the two combine-breaking edits are in place, `c * id` and `k *= id` are
+byte-identical, so the spelling is free. **Contrast the PLUS case, where the
+operand order IS the lever** (`*thumb_addsi3`, rd follows operand 1): the two
+arithmetic operators are not interchangeable in this respect, because only the PLUS
+goes through `fold`'s commutative canonicalisation on the way to a matching
+constraint.
+
+**`shimcount.py` misses the inline-asm shim class entirely** and reported zero for
+both of this brief's landings. It counts `register ... __asm__` pins,
+`__asm__(".equ ...")` symbol declarations and empty `__asm__ volatile("")`
+barriers; a value-producing `__asm__ __volatile__("mov %0, lr" : "=l"(t))` is a
+**fourth class** and is invisible to it. Pin counts taken from that tool are lower
+bounds until this is fixed.
