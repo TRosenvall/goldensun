@@ -29911,3 +29911,159 @@ pair): **dry-run BOTH orders; split constraints are never symmetric.**
     `.global`-ed** in `rom_f6008_c_c_c.s`, and a landed sibling already lists them
     as its export set. **Only the C declaration is missing** — so unlike the two
     functions blocked on naming unknown data, this one needs one line.
+
+## Rung 9: EVERY AGGREGATE AXIS EXACT, INCLUDING A FLAT HISTOGRAM, AND STILL 146 POSITIONS WORSE
+
+Batch 313 brief A built the strongest separated-axis position anyone has
+constructed in this project, and it is **not** the best candidate:
+
+| | instruction count | encodings | per-opcode histogram | pool words | per-value pool multiplicity | objcmp |
+|---|---|---|---|---|---|---|
+| `blanket4` | **1048/1048 exact** | **1082/1082 exact** | **perfectly flat, zero ragged entries** | **exact** | **exact on all 28 values** | 422 |
+| the kept candidate | +1 | — | ragged (`mov +2 / ldr -1`) | exact | — | **276** |
+
+**Every aggregate axis exact, and 146 differing positions WORSE than a candidate
+with a ragged histogram.** Rung 8 introduced the per-opcode histogram as the
+instrument that sees through an exact count; this shows **the histogram is itself
+not sufficient**, and at full resolution. Rung 2's own qualifier — *a lower count
+can be the worse candidate when the count is not yet exact* — does not cover this,
+because here the count IS exact.
+
+The standing conclusion, and it is now load-bearing rather than cautionary:
+
+> **No amount of aggregate-axis exactness certifies a candidate.** Size, count,
+> pool words, pool multiplicity and a flat opcode histogram are all *necessary*
+> and jointly *insufficient*. Carry the POSITIONAL figure (`tools/aligncmp.py`,
+> or objcmp's differing-position count) alongside them, always, and when the two
+> disagree **rank on the positional figure.**
+
+Why the aggregate axes can all agree while positions do not: they are *multiset*
+comparisons. A candidate can hold exactly the right bag of instructions, pool
+words and pool loads and still place them in the wrong order — and ordering is
+the whole of a match. The histogram closed the gap between "same total" and "same
+bag"; nothing but a positional measure closes the gap between "same bag" and
+"same sequence".
+
+## The pin reconciliation needed one more qualifier: SITE PROPERTY versus CONSTANT IDENTITY
+
+Batch 312 recorded that two agents reached opposite conclusions on pinning
+because one selected over **call sites** and the other over **constants**, and
+concluded: *over call sites select, over constants do not.* Batch 313 brief A
+measured **blanket beating selective on every axis — 276 against 845 — including
+on selection's own axis**, with selective also worse than *no pins at all* on
+instruction count (−10 against +3).
+
+That is not a third contradiction. It is the missing qualifier, and the agent
+states it exactly:
+
+> **When the sites are chosen BY THE CONSTANTS THEY CARRY, selection over sites
+> IS selection over constants.**
+
+Batch 312's brief A selected by a **site property** (does this call carry a wide
+literal). Batch 313's brief A selected by **constant identity** (pin the six
+commoned values). Same word, opposite experiments, and the zero-sum mechanism
+governs the second: `lsl −7` shows seven builds vanishing into reuse elsewhere
+when a partial constant set is pinned.
+
+So the rule is about the **selection criterion**, not the unit:
+
+  * selecting on a **property of the site** → selection pays;
+  * selecting on the **identity of a constant** → all-or-nothing, because
+    allocation is zero-sum and a partial set is a different allocation problem.
+
+## BUILD MULTIPLICITY is the hold-versus-rebuild discriminator
+
+The cleanest screen found for the straight-line population, and it replaces a
+test that required reasoning:
+
+> A wide constant built **exactly once** lands in a callee-saved register and is
+> HELD. One built **more than once** goes straight to an argument register and is
+> REBUILT.
+
+It beats "survives a call" because it needs **no live-range reasoning** — one pass
+over the reference counting builds per value. It also screens the population in
+the same pass: of brief A's four, one holds **8**, one holds 2 partially, and
+**two hold ZERO** (every wide value rebuilt).
+
+That is why **my step 1 was wrong for one of the four and right for the other
+three**: the function holding eight needed **named constants BEFORE pins**, and
+pins alone could not reach it.
+
+**Corollary, and it corrects a survey method:** count held constants over the
+**whole register file**, not by scanning r8-r11. A held quantity is held wherever
+the allocator put it, and r5/r6/r7 are call-saved too. `docs/ANALYSIS_OvlFunc_884_20097c8.c`
+prescribed FIVE named constants from a high-register-only survey and was **low by
+three** — it missed three held in r5/r6/r7, and the number is the whole of that
+lever. Corrected in place.
+
+### A process failure of mine: three ANALYSIS docs exist and I cited one
+
+`docs/ANALYSIS_OvlFunc_884_20097c8.c` says in its own headline **"THE LEVER THIS
+ONE WANTS IS *NOT* PINS"** — and my brief for that very function led with the pin
+pass and never mentioned the doc. There are three `docs/ANALYSIS_*` files; I cited
+only the one I happened to remember. **Before assigning a target, `ls docs/ANALYSIS_*`
+and grep the tree for its name.** This is the same failure as contradicting a
+settled flag question in batch 312: the material existed and I did not look.
+
+## Work density needs a DATAFLOW classifier -- my metric is too crude
+
+Third layer of the same correction, and worth recording as a pattern rather than
+just a fix. The 800+ triage axis went: high-register use → *(fails on
+call-scripts)* → work density → *(fails on interleaved fills)*.
+
+Brief A re-measured work density with a **dataflow classifier** (constant-origin
+set per basic block) and got **2.9 / 6.8 / 6.3 / 6.4%** against my
+3.4 / 4.0 / 4.5 / 4.9 — **inverting the ranking**: the function I called easiest
+is the **hardest**, carrying 142 work instructions against another's 30.
+
+The defect is an **adjacency assumption**. These scripts *interleave* their
+argument fills:
+
+    mov r1,#imm / mov r2,#imm / lsl r1,#8 / lsl r2,#7 / bl
+
+so no `lsl` is adjacent to its own `mov`, and **173 of one function's 196 `lsl`
+read as "work"** to any peephole-style classifier. The same defect hits my
+`mov rlo,rhigh` column: genuine non-constant copies are **42/14/44/28**, and the
+function I listed as having the fewest has the **most**.
+
+**The axis that actually ranks this population is UNRESOLVED DRAFT LINES** — 44 /
+117 / 171 / 214 across brief A's four. That is the second independent
+confirmation (batch 312 brief B reached it from `draft_script.py`'s residue), so it
+is now the recommended ranking for call-scripts, and it is a *count of work to
+do* rather than a proxy for it.
+
+**The pattern to take from three failed axes:** every mechanical proxy I have
+built for difficulty has been defeated by a shape it could not see — and each
+replacement was itself too crude one layer down. A proxy ranks *where to look*; it
+does not rank difficulty. The honest instruments are the ones that count work
+directly.
+
+## Bounds measured byte-identical on brief A's four
+
+  * **A one-set local is byte-identical to the bare literal here**, which
+    sharpens the `REG_N_SETS` gate: it governs whether a value **earns a
+    register**, not whether cse1 **commons a pooled constant across call sites**.
+    Only a pin does the latter.
+  * **All 16 `and`/`orr` operand orders are byte-identical.** This *bounds* a
+    matching sibling's claim that "the inline expression gets `and` right and
+    `orr` wrong" — there a pointer was named at one of two sites and the pointer
+    setup moved; with it named at all four, operand order carries nothing.
+    Extends batch 311's `mul` bound: **operand order at a commutative site is not
+    readable from the output.**
+  * **Typing a pin is byte-identical** — a `register unsigned char *` slot clears
+    four warnings and changes no figure, because a pin's destination is
+    call-clobbered whatever its type. Free legibility.
+  * **Lever 1 as a one-site A/B:** leaving the single held-pointer site *unpinned*
+    is worth **553 differing positions** (829 → 276) against a −1 `ldr` cost.
+
+## The eight-bit-movable pooled screen: FIFTH consecutive population with no shape
+
+Inert on two of brief A's four (smallest pooled value `0x101`), one site each on
+the other two. With batch 312's three targets that is **five consecutive
+populations** where the mechanism is sound and the shape is absent.
+
+**Demoted from a lever to a conditional screen.** It stays in the document as
+proved mechanism — a pooled eight-bit-movable word means a relocation *or* a
+spilled constant pseudo — but it should no longer lead a brief. Run it only when
+the pooled multiset actually contains a small value, which is one
+`grep | sort | uniq -c` away and is the check I kept skipping.

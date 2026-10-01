@@ -41,7 +41,24 @@
  * keeps.  (That mechanism is now measured both ways -- see this batch's
  * PARK_OvlFunc_889_2008074.c and the pin/no-pin experiment written up with it.)
  *
- * PRESCRIPTION, in the order to try it:
+ * ### CORRECTED IN BATCH 313: THE COUNT IS EIGHT, NOT FIVE.
+ * The survey above looked only at r8-r11 and so missed THREE held constants
+ * carried in r5/r6/r7.  A candidate built to this prescription as written holds
+ * five where the ROM holds eight, which is the band doc's lever applied to the
+ * wrong number -- and the number is the whole of that lever.  With all EIGHT in
+ * place the function reconstructs to 276 of 1082, 97.3% aligned.
+ *
+ * The high-register-only survey is the reusable mistake here: a held quantity is
+ * held wherever the allocator put it, and r5/r6/r7 are call-saved too.  Count
+ * held constants by BUILD MULTIPLICITY over the whole register file -- a wide
+ * value built EXACTLY ONCE is held, one built more than once is rebuilt -- not by
+ * scanning the high registers.  That test needs no live-range reasoning at all.
+ *
+ * This doc's headline is otherwise CONFIRMED and was the batch's most valuable
+ * steer: the lever this function wants is NOT pins, and naming the constants had
+ * to come first.
+ *
+ * PRESCRIPTION, in the order to try it (read "EIGHT" for "FIVE" throughout):
  *   1. FIVE NAMED LONG-LIVED CONSTANTS, one per range above, each assigned in
  *      its own statement at the reference's own build point (ref 86, 103, 232,
  *      508, 515) and read at its sites -- the band doc's "make your candidate

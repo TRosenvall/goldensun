@@ -193,7 +193,27 @@ for n in names:
     # instructions per call where almost everything is argument-fill, so a
     # function that barely computes has no wide constants to reuse.  Approximated
     # as: instructions that are neither a call nor a write to an argument
-    # register r0-r3.  Hand-write sites track this almost linearly.
+    # register r0-r3.
+    #
+    # THIS COLUMN IS A PROXY AND IT IS TOO CRUDE.  Measured against a DATAFLOW
+    # classifier (constant-origin set per basic block) it gave 3.4/4.0/4.5/4.9
+    # where the truth is 2.9/6.8/6.3/6.4 -- INVERTING the ranking: the function it
+    # called easiest carries 142 work instructions against another's 30.  The
+    # defect is an ADJACENCY assumption: these scripts INTERLEAVE argument fills,
+    #     mov r1,#imm / mov r2,#imm / lsl r1,#8 / lsl r2,#7 / bl
+    # so no `lsl` sits beside its own `mov`, and 173 of one function's 196 `lsl`
+    # read as "work".  The `reuse` column has the same defect -- genuine
+    # non-constant copies were 42/14/44/28 where this tool listed the FEWEST for
+    # the function that has the MOST.
+    #
+    # THE AXIS THAT ACTUALLY RANKS THE CALL-SCRIPT POPULATION IS UNRESOLVED DRAFT
+    # LINES: what tools/draft_script.py cannot resolve (memory operations and
+    # over-guessed arities), confirmed independently twice, 44/117/171/214 across
+    # one brief's four.  It is a COUNT OF WORK TO DO rather than a proxy for it.
+    #
+    # Every mechanical proxy built here has been defeated by a shape it could not
+    # see, and each replacement was itself too crude one layer down.  USE THESE
+    # COLUMNS TO DECIDE WHERE TO LOOK; DO NOT RANK DIFFICULTY ON THEM.
     bl = len(re.findall(r"^\t(bl|blx)\b", txt, re.M))
     argfill = len(re.findall(r"^\t[a-z]+\s+r[0-3],", txt, re.M))
     work = max(insns - bl - argfill, 0)
