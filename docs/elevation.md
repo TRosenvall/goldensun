@@ -29156,3 +29156,64 @@ variable kills it.*
 **Recommended next target: `FieldMain`** -- 3 spill slots in 965 instructions, the
 only one of the four needing no split, and two *landed* callees at -0x38 and -0xac
 opening with the same `galloc_ewram(0x1b, 0xccc)`.
+
+## The tracked generated `.s` beside a landed `.c` IS A REGRESSION BASELINE
+
+Found while clearing batch 310's owed pin minimisation, and it applies to every
+edit we will ever make to landed code.
+
+Converting a function deletes its hand-written `.s` and the next build writes
+gcc's own output to the same path, which the tree tracks (3,914 such files). That
+file is therefore **a committed record of exactly what the current source
+compiles to.** So for any edit to landed code — a rename, a refactor, removing a
+pin, promoting a macro to a header, splitting a file — the check is:
+
+    save the generated .s, make, require it byte-identical
+
+One incremental rebuild, about 15 seconds, no `make compare` needed to know
+whether you changed the output. That is roughly twenty times cheaper than the
+full gate, which is the difference between a one-off spot check and a pass over
+82 sites.
+
+**`tools/tryc.py` refuses this comparison, and its refusal is correct but narrow.**
+It prints *"REFUSING: … is GENERATED, not the ROM's assembly. Comparing against it
+is a tautology."* That is right for the question tryc.py exists to answer — *does
+this candidate match the ROM?* — where comparing gcc's output to gcc's output
+proves nothing. But the regression question is a different one:
+
+> does this edit change the output from the known-good baseline?
+
+and there the tautology is **exactly the point**. Same two files, opposite
+reading. Do not let the guard's wording talk you out of the regression check; it
+is scoped to matching, not to this use. (This is the sixth time a correct but
+unqualified refusal in the tooling or the docs was read as covering more than it
+does — see the `.call_via` retraction, the agbcc register-offset claim, the
+`cmp #K/bge` section, my switch re-screen, and `parkcheck`'s single
+`UNCHECKABLE` verdict.)
+
+The full `make compare` remains the only authority for *landing*. This is a
+screen for *not having broken something*, which is a different job.
+
+### What the pin pass found, and why minimisation is not cosmetic
+
+`OvlFunc_889_2008074` landed with 233 pins across 82 sites. At a fixpoint it
+holds **157 pins across 53 sites — 29 sites and 76 pins were not load-bearing at
+all**, 35% of the sites and a third of the pins.
+
+That ratio is the argument. **A pin that is not load-bearing tells the next reader
+the compiler needed forcing where it did not**, so an un-minimised pin set
+overstates how resistant a function is — here by a third. Pins are evidence about
+the compiler, and unminimised pins are bad evidence. `tools/pinmin.py` carries the
+pass.
+
+**Method and its bound.** Cumulative greedy: walk the sites, tentatively unpin one
+while keeping every unpin already accepted, rebuild, accept only if the `.s` is
+unchanged. That gives a **true fixpoint — no SINGLE further removal is possible**,
+which is the property worth claiming. It is a **local** minimum and nothing more:
+a PAIR of pins could be jointly removable where neither is singly removable, and
+this pass cannot see that. Say "fixpoint", not "minimal".
+
+Prerequisite worth repeating because it is what made the script safe: all 82 sites
+were verified **uniform first** — one call each, arguments a plain `q0..qn-1`
+sequence, no cross-references between the `q`s. A mechanical rewrite of
+non-uniform sites would have silently changed the program.
