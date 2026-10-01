@@ -5,8 +5,8 @@
  * (Func_80b9470, parked separately, is the first; the .s ends with Func_80b9724's
  * pool, no data -- tools/datacheck.py is silent on it, so NO text/data split is
  * needed and the whole file converts in one commit if the TU lands).
- * Fresh in batch 287; improved in batch 314. Supersedes the r9-binding
- * transcription in src/non_matching/rom_b5000/80b9554.c.
+ * Fresh in batch 287; improved in batches 314 and 315.  Supersedes the
+ * r9-binding transcription in src/non_matching/rom_b5000/80b9554.c.
  *
  * objcmp CANNOT SCORE THIS: the nested functions are emitted as the local
  * symbols `Func_80b9554.0` and `Func_80b9604.1`. Measured instead by assembling
@@ -15,8 +15,8 @@
  * targets, pool offsets and `bl` targets normalised. Under the PRODUCTION flags:
  *
  *     Func_80b9554    81 of 81 instructions, 0 differing lines  -- EXACT, nested
- *     Func_80b9604   129 against 131, 66 differing +/- lines
- *     Func_80b9724   182 against 181, 57 differing +/- lines
+ *     Func_80b9604   129 against 131,  66 differing +/- lines
+ *     Func_80b9724   183 against 181,  40 differing +/- lines   (was 57)
  *
  * tools/shimcount.py reports 0 pins, so a landing would need no fakematch.txt
  * row.
@@ -41,126 +41,195 @@
  * restore) and `rng = gRNGState` read once are both required.
  *
  * ===================================================================
- * Func_80b9604: THE PARK'S OLD BLOCKER DIAGNOSIS WAS WRONG, AND THE CORRECTION
- * IS WORTH 18 LINES. The old header said `t` lands in r6 because "r5 is skipped
- * as preferred by another pseudo in find_reg's first pass". It is not a
- * preference, it is a HARD-REGISTER CONFLICT, and `.18.greg` prints it:
+ * THE ALLOCATION MODEL FOR THIS WHOLE TU IS `allocno_compare`, AND IT IS
+ * EXACTLY VERIFIABLE OFF `.17.lreg`.  Priority is
  *
- *     ;; 37 conflicts: ... 0 1 2 3 5 13 14      <- 9604, hard reg 5 present
- *     ;; 37 conflicts: ... 0 1 2 3 13 14        <- 9554, no 5, and t IS in r5
+ *     floor_log2(n_refs) * n_refs / live_length
  *
- * WHERE THE HARD r5 COMES FROM. 9604's loop 2 compares ewram_2002238 against a
- * limit whose computation calls __udivsi3, so the loaded halfword is live ACROSS
- * A CALL. Its pseudo is referenced in ONE basic block, so local-alloc owns it,
- * and find_free_reg for a call-crossing quantity excludes call_used_reg_set --
- * leaving r4 (call-used under -fcall-used-r4), r5, r6, r7, of which r7 is live
- * as the Thumb hard frame pointer in `.17.lreg`. So it takes r5, twice (once
- * per check site: `89 in 5`, `125 in 5` in the dispositions), and every global
- * live through those blocks -- t and c -- inherits a hard conflict with r5.
- * Everything else followed: t->r6, c->r7, fp->r5, &scratch->r8.
+ * and `.17.lreg` prints both inputs for every pseudo as
+ * `Register N used R times across L insns`.  Sorting that expression reproduces
+ * `.18.greg`'s `;; N regs to allocate:` line EXACTLY on BOTH 9604 and 9724, so
+ * any claim about "why this register" on this TU is checkable in one dump pass
+ * rather than argued.  Use it before writing any allocation story here.
  *
- * WHAT PAID: naming the limit in a local (`u32 w`). The read of ewram_2002238
- * then happens AFTER __udivsi3 instead of before it, nothing is live across the
- * call, local-alloc never takes r5, and `t`/`c` land in r5/r6 exactly as the ROM
- * has them. 9604 goes 84 -> 68 differing lines, and loop 1 plus the
- * post-loop-1 check become instruction-for-instruction EXACT. Writing
- * `c = 0; t = 300;` rather than the reverse is a further 68 -> 66; it is inert
- * without the `w` lever, which is why the old park recorded it as inert.
- *
- * WHAT THE REMAINING 66 IS, AND IT IS ONE THING. The whole residue is that the
- * ROM puts the frame-pointer copy in a HI register:
+ * ===================================================================
+ * Func_80b9604: 129 against 131, 66 differing, and THE PARK'S PRICING OF THE
+ * WALL WAS WRONG BY A FACTOR OF TWO.  The whole residue is still one fact --
+ * the ROM puts the static-chain copy in a HI register:
  *
  *     ROM   t r5   c r6   &scratch r7   fp r8   &count r9   ewram-temp r8
  *     ours  t r5   c r6   fp r7         &scratch r8   &count r9   ewram-temp r3
  *
- * The opcode multiset says the same: ROM `mov r7, r8` / `add r3, r8` /
- * `mov r3, r8` / `mov r2, r8` against our `subs r2, r7, #4` /
- * `adds r1, r1, r7` / `adds r3, r7, #0` / `adds r2, r7, #0`, and the ROM's two
- * surplus instructions (131 against 129) are exactly its two extra
- * `mov r8, r3` copies of the ewram halfword into the register fp vacated.
+ * and the ROM's two surplus instructions (131 against 129) are exactly its two
+ * extra `mov r8, r3` copies of the ewram halfword into the register fp vacated.
+ * The 66 breaks down as prologue 12, the -1 constant in r2 against r3 12 (two
+ * sites), the `count = *scratch` block 12, `mov r3,r8` against `adds r3,r7,#0`
+ * 4, and the ewram temp 26 (two sites).
  *
- * PRICED: fp's preferred class is LO_REGS and it cannot be anything else -- the
- * ONLY ref that penalises a hi register is the single `(plus fp -4)` that forms
- * &scratch, and `*thumb_addsi3`'s hi alternatives are `*`-marked so regclass
- * ignores them. So fp reaches r8 only through reg_alternate_class, i.e. only if
- * r5, r6 AND r7 all conflict at its turn -- which needs &scratch allocated
- * BEFORE fp. It is allocated after: the `.18.greg` order is
- * 39 43 79 85 37(t) 38(c) 77 67(&count) 36(fp) 41(&scratch), and on
- * floor_log2(n_refs)*n_refs/live_length fp (5 refs, ~60 insns) outranks
- * &scratch (3 refs, ~55) by a factor of three. Closing that needs &scratch to
- * carry FIVE references; 9604 reads `scratch` twice and the ROM shows no third
- * read. That is the wall.
+ * `.17.lreg` prices the flip:
  *
- * THE SAME WALL BLOCKS THE ROM'S EVALUATION ORDER. To read ewram first (as the
- * ROM does) the halfword must cross __udivsi3, and to avoid local-alloc's r5 it
- * must be a GLOBAL allocno -- which it becomes the moment one named variable
- * serves both loop-2 check sites (`;; 10 regs to allocate: 39 ...`, pseudo 39 is
- * it). But it is then allocated FIRST and takes r5 itself, putting t back in r6:
- * 4 refs over ~28 insns beats t's ~7 refs over ~105. Seven attempts to lower its
- * priority (u32/int/unsigned spellings, declaration first/last, t and c
- * initialised after the first call, `c`-before-`t`, a comma-expression decrement,
- * sharing the variable with the post-loop-1 check) were all BYTE-IDENTICAL to
- * the 84 baseline. Covering all four ewram sites with it lands the variable in
- * a hi register but costs instructions in loop 1, which the ROM does not pay:
- * 132 against 131, 103 lines.
+ *     36 (fp)        5 refs / 38 insns   pri = 2*5/38 = 0.2632
+ *     41 (&scratch)  3 refs / 29 insns   pri = 1*3/29 = 0.1034
+ *     67 (&count)    6 refs / 45 insns   0.2667
+ *     37 (t) 19/148 0.5135   38 (c) 17/150 0.4533   77 2/5 0.4
+ *     39 8/8 3.0   43 3/3, 79 2/2, 85 3/3 all 1.0 (tie -> allocno order)
  *
- * ALSO MEASURED AND REJECTED, all with the same normalisation:
- *   `if (ewram_2002238 > (w = ...))` 84 (the assignment-expression restores the
- *   ROM's order and with it the r5 theft); `int w` 70; a second variable for the
- *   halfword alongside `w` 84; `v`-only-at-one-site 84; `count = scratch[0]`,
- *   `&scratch[0]`, `&list[n]`, `((u32)count * 16 + ...)`, `if (scratch[0] != 0)`,
- *   and four declaration orders all inert at 66/68.
- *   `if (*scratch != 0) { count = *scratch; ... }` measures 63 but is a FALSE
- *   improvement: it reads *scratch once where the ROM reads it twice
- *   (`ldr r2, [r3]` then `ldr r3, [r3]`), and the count falls to 126.
- *   `(unsigned)(*scratch * 16 + ...)` 127/84.
+ * which is `;; 10 regs to allocate: 39 43 79 85 37 38 77 67 36 41` to the letter,
+ * with dispositions `36 in 7  37 in 5  38 in 6  41 in 8  67 in 9`.  fp is
+ * allocated one place BEFORE &scratch and takes r7; &scratch then finds r5, r6,
+ * r7, r9 gone and takes r8.  Swap those two turns and the ROM's assignment
+ * falls out, because &scratch's own conflict set already forbids everything but
+ * r7 at that point.
  *
- * ===================================================================
- * Func_80b9724: 182 against 181, 57 differing lines, and the park's allocation
- * diagnosis survives re-derivation. The ROM keeps g (iwram_3001e74) in r9 and
- * gives `&lim` NO register at all (`str r3, [sp, #0xc]` -- the pseudo went
- * unallocated and reload substituted its REG_EQUIV frame address); we give
- * `&lim` r5 and g r6. The ROM therefore holds EIGHT callee-saved values plus the
- * constant 1 hoisted into r0, and we hold seven and rematerialise the 1 inside
- * loop 1 -- one from the pool (`ldr r2, [pc]` + `.word 1`) in the `|= 1` arm and
- * `movs r3, #1` in the `& 1` arm. THE TWO ARE THE SAME FACT: the ROM's cse
- * commons the two constant-1 uses into one pseudo with savings 2, `.08.loop`
- * hoists it, pressure rises to nine and `&lim` loses its register; ours keeps
- * two uncommoned constants with savings 1 each, nothing hoists, and r5 is free
- * for `&lim`. Naming the constant forces the hoist and is worse every way
- * (`u16 one` 189/122, `int one` and `u32 one` 185/94), because a named value is
- * preserved across the use and costs a copy the ROM does not pay.
- *   Loop 2's 0x80 is the same shape: the ROM hoists it as a POOL LOAD
- *   (`ldr r6, .Lb987c` + `eors r3, r6`), and naming it gives `movs r6, #128`
- *   plus a preserving copy -- 181 against 181, an EXACT COUNT that measures 66
- *   instead of 57. Recorded as the cleanest instance in this corpus of the
- *   count-is-blind-to-position rule.
- *   ALSO MEASURED: `if (g[0x50] == 0) {...} else e->f4 |= 1;` 189/112 (the park
- *   predicted a spill and it is worse than that); `&list[i]` for loop 1 189/78;
- *   a hoisted `gp = g + 0x50` 186/145; `&list[n]` walked in loop 2 182/137;
- *   `scratch = Func_8004970(0x28)` before the lim computation 191/146.
- *   INERT at 57: `e->f4 = e->f4 | 1`, `e->f4++`, `(e->f4 & 1) != 0`, `u32 lim`,
- *   and three declaration orders for `lim`/`count`/`scratch` (the frame layout
- *   does not move).
+ * THE PARK SAID &scratch NEEDS FIVE REFERENCES.  It does not -- that figure came
+ * from guessed live lengths of ~60 and ~55.  The real lengths are 38 and 29, and
+ * &scratch has the SHORTER range, so FOUR references suffice: 2*4/29 = 0.2759
+ * beats fp's 0.2632.  The model admits five routes and prices each:
+ *
+ *     R1  &scratch 3 -> 4 refs with live_length <= 30   (8/LL > 0.2632)
+ *     R2  fp 5 -> 4 refs (pri 0.2105), then &scratch needs 4 refs, LL < 38
+ *     R3  fp 5 -> 3 refs  -> pri 0.0789 < 0.1034, no change to &scratch at all
+ *     R4  live_length(fp)      > 96.7   (it is 38, in a 129-insn function)
+ *     R5  live_length(&scratch) < 11.4  (it is 29, spanning loop 2)
+ *
+ * R4 and R5 are arithmetically out of reach.  R3 would need two of fp's four
+ * uses to disappear, and they are &scratch, &count, &n and &list -- all four are
+ * distinct `(plus fp k)` insns that C cannot merge.  R1/R2 need a FOURTH
+ * reference to `scratch` inside its existing 29-insn window; the ROM reads the
+ * frame slot exactly twice (`ldr r0,[r7,#0]` then `ldr r3,[r7,#0]`, with both
+ * derefs of the count word hanging off the second), so every spelling that adds
+ * one also adds an instruction the ROM does not have.  THAT, and not a
+ * reference count of five, is the wall.
+ *
+ * Also note: the ROM's own fp and &scratch have the SAME 5 and 3 references as
+ * ours, so the ROM's compilation must have differed in LIVE LENGTH, not in
+ * reference count.  Whatever source shape lengthened fp's range past 96 insns
+ * (or shortened &scratch's below 12) is the thing still to find; no spelling
+ * tried so far moves either number.
+ *
+ * WHAT PAID EARLIER AND IS KEPT: naming the limit in a local (`u32 w`), which
+ * stops the ewram halfword crossing __udivsi3 (84 -> 68), and writing
+ * `c = 0; t = 300;` rather than the reverse (68 -> 66; inert without `w`).
+ *
+ * MEASURED AGAINST THIS BASELINE AND INERT: `scratch[0]` for `*scratch`,
+ * `(int)&list[n]` and `(int)list + n*16` for `list + n`, `-1 ==` on both
+ * comparisons, and every extern return-type respelling (below).  NEGATIVE:
+ * `-fno-strict-aliasing` takes 9604 to 132/61 -- better on 9604 alone -- but it
+ * is not a production flag, it does NOT flip fp out of r7, and it costs 9724 108
+ * lines.  The batch-314 list (`if (ewram_2002238 > (w = ...))` 84, `int w` 70, a
+ * second halfword variable 84, `count = scratch[0]`, `&scratch[0]`, `&list[n]`,
+ * `((u32)count * 16 + ...)`, `if (scratch[0] != 0)` and four declaration orders)
+ * was re-crossed and still reads the same.
  *
  * ===================================================================
- * FLAGS, SWEPT ON THE WHOLE TU FOR THE FIRST TIME (the old park had no flag
- * figures at all). Totals are 9554 + 9604 + 9724 differing lines; the default is
- * 123. NOTHING BEATS THE DEFAULT, and the three that move 9604's count move it
- * the wrong way:
- *   -fno-gcse 281 (9604 127 insns, 9724 collapses to 164); -fno-rerun-cse-after-
- *   loop 246; -fno-strength-reduce 225; -fno-rerun-loop-opt 223;
- *   -fno-expensive-optimizations 217; -fno-schedule-insns2 177 (and it breaks
- *   9554's exactness, 10 lines); -fno-regmove = -fno-optimize-register-move 157
- *   (also breaks 9554, 8 lines); -fno-peephole 147; -fno-force-mem 327.
+ * Func_80b9724: 183 against 181, 40 differing -- down from 57, and the park's
+ * own diagnosis is what came true.  The ROM keeps g (iwram_3001e74) in r9 and
+ * gives `&lim` NO register (`str r3,[sp,#0xc]`), because its loop 1 holds NINE
+ * callee-saved values: the ninth is the constant 1, hoisted out of the loop.
+ * THREE SOURCE FACTS GET THAT HOIST, AND NONE OF THE THREE WORKS ALONE.
+ *
+ * (1) THE TWO CONSTANT-1 USES MUST SHARE A MODE.  `.08.loop` shows
+ *
+ *         (insn 161 (set (reg:HI 103) (const_int 1)))    <- the `|= 1` arm
+ *         (insn 189 (set (reg:SI 116) (const_int 1)))    <- the `& 1` arm
+ *
+ *     `combine_movables` merges two movables only when their `set_dest` modes
+ *     match, so these never combine, each keeps savings 1, and `move_movables`'
+ *     `savings > 1` test fails.  `e->f4 |= 1` is HImode because
+ *     `convert_to_integer` distributes the truncation down through BIT_IOR_EXPR;
+ *     `if (e->f4 & 1)` is a truth value, fold strips the conversion, and the and
+ *     stays SImode -- which also costs us a POOL WORD for the constant
+ *     (`ldrh r2,.Lpool` + `.word 1`), two differing encodings that are not code.
+ *     A CAST WILL NOT NARROW IT.  `(unsigned short)(e->f4 & 1)`, the same `!= 0`,
+ *     `== 1`, `& 1u`, `e->f4 % 2` and an `unsigned short m = e->f4 & 1;`
+ *     INITIALISATION are all byte-identical to the old baseline; `.00.rtl` still
+ *     shows `(and:SI (subreg:SI (reg:HI N)) (reg:SI M))`.  THE CONSTRUCT THAT
+ *     NARROWS IS THE COMPOUND ASSIGNMENT ITSELF -- `m = e->f4; m &= 1;`.
+ *
+ * (2) THE ARMS MUST BE IN THE ROM'S ORDER, `if (g->b[0x50] == 0) {...} else
+ *     e->f4 |= 1;`, so the mask arm falls through and the ior arm sits out of
+ *     line above the shared `strh`.
+ *
+ * (3) `g` MUST LEAVE ALIAS SET 0.  `unsigned char *` is alias set 0 and
+ *     conflicts with everything, which is what pins g in a lo register; a real
+ *     `struct G { unsigned char b[0x54]; } *` lets g reach r9 as the ROM has it.
+ *
+ * EACH OF THE THREE MEASURES NEGATIVE ON ITS OWN: the arm swap alone 189/181 and
+ * 112 (the park's own figure), the compound mask alone 184/181 and 69, `g` as a
+ * struct alone 185/181 and 142.  Swap + mask together are 183/181 and 48; adding
+ * the struct gives 42.  A one-at-a-time sweep scores all three as regressions,
+ * so A REJECTED-AS-NEGATIVE LIST ON THIS TU HAS TO BE RE-CROSSED, not re-run.
+ *
+ * (4) THE LAST TWO CAME FROM A UNION.  The ROM holds &sRPGRNGState in r4 across
+ *     the gRNGState read; sched2 instead pulls our volatile `ime = REG_IME` load
+ *     in front of the `scratch[1] = _RPGRandom()` store, because an `int` store
+ *     and a `short` volatile load do not conflict and the alias check runs
+ *     before volatility.  The aliasing store is EARLIER in the chain than the
+ *     load, which is the precondition for adding a dependent, and a UNION's
+ *     alias set conflicts with every member's: declaring the device buffer
+ *     `union SU { int i; unsigned short h; } *` is worth 42 -> 40.  The member
+ *     `h` is never read; it is there for the alias set.  IF THAT READS AS TOO
+ *     CONTRIVED TO SHIP, drop the union and the `.i` suffixes and the TU is at
+ *     42 instead of 40 with no other change.
+ *
+ * WHAT IS LEFT IN THE 40: `&lim` still gets r5 and an `add r5,sp,#12` the ROM
+ * does not pay (the ROM stores straight to `[sp,#12]`); the ROM re-loads
+ * `g->b[0x50]` every iteration where our typed struct lets gcc hoist the LOAD as
+ * well as the address (same instruction count, 5 differing lines); and the ROM's
+ * mask is `1 & f4` (`adds r3,r0,#0` + `ands r3,r2`) where ours is `f4 & 1`
+ * (`ands r3,r0`), one instruction fewer.  `unsigned short m = 1; m &= e->f4;`
+ * flips the operand order but collapses the function to 177/181 and 140.
+ *
+ * ALSO MEASURED AND REJECTED on the 42/40 baseline: `((unsigned char *)g)[0x50]`
+ * and `*(unsigned char *)&g->b[0x50]` to put that one reference back in alias
+ * set 0, both 183/48; a `struct G` with a real `short f52` 183/68; a hoisted
+ * `gp = g + 0x50` 187/118; `lim` computed after the allocation 189/132; `lim`
+ * assigned through `int *lp`, in two steps, as `u32`, or declared last, all
+ * inert; `count = 0` before `g = ...` 50; `g = ...` last 54;
+ * `e->f2 = g->b[gi]` with the index in a local, `g->b[0x48 + e->f0]`, the
+ * `sRPGRNGState`/`scratch[2]` store order, `int` for ime/rng, and
+ * `*(volatile short *)REG_ADDR_IME` for the IME read all inert or worse.
+ * The batch-314 list for 9724 was re-crossed and still reads the same.
+ *
+ * ===================================================================
+ * LEVER 3 DOES NOT REACH THIS TU.  Every extern in this file was respelled and
+ * measured, twice -- once on the batch-314 baseline and once on this one:
+ * WaitFrames as `void` and as `unsigned int`, free as `int` and as
+ * `void free(int *)`, Func_800651c and Func_8006358 as `int`, _RPGRandom as
+ * `unsigned int`, Func_80064f4 as `int` and `signed int`, Func_8006408 as `long`
+ * and `unsigned int`, Func_8004970 as `char *`, as `int` with a cast, and with
+ * an `unsigned int` parameter, Func_80063bc as `signed long`, and three
+ * combinations of those.  ALL BYTE-IDENTICAL.  None of these symbols appears in
+ * include/, and src/ carries both `void` and `int` spellings of WaitFrames,
+ * Func_80063bc and Func_8006408, so there is no header to settle them against.
+ *
+ * FLAGS, RE-SWEPT ON THIS BASELINE (the batch-314 sweep was on the old one).
+ * Totals are 9554 + 9604 + 9724; the default is 106 and NOTHING BEATS IT:
+ *   -fno-schedule-insns2 154 (and it breaks 9554's exactness, 10 lines);
+ *   -fno-regmove 146 (also breaks 9554, 8 lines); -fno-peephole 114;
+ *   -fno-gcse 233; -fno-rerun-cse-after-loop 215; -fno-strength-reduce 158;
+ *   -fno-rerun-loop-opt 176; -fno-expensive-optimizations 122;
+ *   -fno-force-mem 173; -fmove-all-movables 175 (it hoists, but it also wrecks
+ *   9554 and 9604); -freduce-all-givs 110; -fno-strict-aliasing 211.
  *   INERT: -fno-cse-follow-jumps, -fno-cse-skip-blocks, -fno-thread-jumps,
- *   -fomit-frame-pointer, -fno-delayed-branch, -fno-caller-saves, -fcaller-saves,
- *   -fno-function-cse, -fno-inline, -fno-defer-pop.
- *   -fno-if-conversion and -fno-cprop-registers do not exist in this cc1.
+ *   -fno-caller-saves, -fcaller-saves, -fno-function-cse, -fno-delayed-branch,
+ *   -fno-inline-functions.
+ *   -fno-if-conversion, -fno-cprop-registers and -fno-alias-check do not exist
+ *   in this cc1.
  * And sched1 DOES NOT RUN here: the -da sequence is 17.lreg 18.greg 19.flow2
- * 20.ce2 23.sched2 25.jump2 26.mach. Nothing above is a pre-reload scheduler
- * effect.
- */
+ * 20.ce2 23.sched2 25.jump2 26.mach.
+  *
+ * *** ONE CONSTRUCT HERE IS NOT SHIP-READY, FLAGGED DELIBERATELY. ***
+ * The union that buys the last 2 encodings (40 against 42) has a member that is
+ * NEVER READ -- it exists only to widen an alias set.  That is legal C and a
+ * legitimate MEASUREMENT, but it is contrived, and this TU is not landing at 40
+ * anyway.  A union-free body measuring 42 is kept at
+ * docs/variant-80b9604-nounion.c.  *** IF THIS TU EVER REACHES ZERO, DECIDE
+ * BETWEEN THEM DELIBERATELY RATHER THAN SHIPPING WHICHEVER HAS THE BETTER
+ * FIGURE *** -- pass five hands this tree to another maintainer, and a
+ * never-read union member is exactly the kind of thing that should not arrive
+ * unexplained.
+*/
 #include "gba/types.h"
 #include "gba/io.h"
 
@@ -175,9 +244,11 @@ struct E {
     short fe;
 };
 
-extern unsigned char *iwram_3001e74;
+struct G { unsigned char b[0x54]; };
+extern struct G *iwram_3001e74;
 extern unsigned short iwram_3001f64;
 extern unsigned short ewram_2002238;
+union SU { int i; unsigned short h; };
 extern unsigned int gRNGState;
 extern unsigned int sRPGRNGState;
 extern int Func_80063bc(int a, int b);
@@ -192,10 +263,10 @@ extern void free(void *p);
 
 int Func_80b9724(struct E *list, int n)
 {
-    int *scratch;
+    union SU *scratch;
     int lim;
     int count;
-    unsigned char *g;
+    struct G *g;
     struct E *e;
     int i;
     u32 ime;
@@ -264,8 +335,8 @@ int Func_80b9724(struct E *list, int n)
         }
         if (ewram_2002238 != 0x14)
             return -1;
-        count = *scratch;
-        if (*scratch != 0) {
+        count = scratch[0].i;
+        if (scratch[0].i != 0) {
             if (Func_8006408((int)(list + n)) == -1)
                 return -1;
             while (Func_80064f4() != 0) {
@@ -294,38 +365,42 @@ int Func_80b9724(struct E *list, int n)
     lim = (unsigned)(n * 16 + 0x13) / 0x14 * 0x14;
     scratch = Func_8004970(0x28);
     for (i = 0, e = list; i < n; i++, e++) {
-        e->f2 = g[e->f0 + 0x48];
-        if (g[0x50] != 0)
+        e->f2 = g->b[e->f0 + 0x48];
+        if (g->b[0x50] == 0) {
+            unsigned short m = e->f4;
+            m &= 1;
+            if (m != 0)
+                e->f4 = e->f4 + 1;
+        } else {
             e->f4 |= 1;
-        else if (e->f4 & 1)
-            e->f4 = e->f4 + 1;
+        }
     }
-    if (g[0x52] != 0)
+    if (g->b[0x52] != 0)
         goto fail;
-    if (g[0x50] == 0) {
-        scratch[0] = n;
-        scratch[1] = _RPGRandom();
+    if (g->b[0x50] == 0) {
+        scratch[0].i = n;
+        scratch[1].i = _RPGRandom();
         ime = REG_IME;
         SET_IO(REG_IME, REG_ADDR_IME);
         rng = gRNGState;
-        scratch[2] = rng;
+        scratch[2].i = rng;
         sRPGRNGState = rng;
         SET_IO(REG_IME, ime);
         if (Func_80b9554() < 0)
             goto fail;
         if (Func_80b9604() < 0)
             goto fail;
-        count = scratch[0];
+        count = scratch[0].i;
     } else {
         if (Func_80b9604() < 0)
             goto fail;
-        count = scratch[0];
-        scratch[0] = n;
+        count = scratch[0].i;
+        scratch[0].i = n;
         if (Func_80b9554() < 0)
             goto fail;
-        if (_RPGRandom() != scratch[1])
+        if (_RPGRandom() != scratch[1].i)
             goto fail;
-        sRPGRNGState = scratch[2];
+        sRPGRNGState = scratch[2].i;
     }
     for (i = 0; i < count; i++) {
         e = &list[n + i];
