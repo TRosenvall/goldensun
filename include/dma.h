@@ -81,6 +81,38 @@ static inline void DMA3_FILL(void *dst, u32 _value, unsigned size) {
     }
 }
 
+/* DMA3_FILL_OFS -- DMA3_FILL with the destination split into a BASE and an
+ * OFFSET.  Passing the offset as its own argument is what makes integrate.c's
+ * pre-copy cheap: it becomes `(set rN 64)`, the ROM's early `mov r1,#0x40`,
+ * while the `add` of the base moves into the body after `mov r0,sp`.  Needed to
+ * land Func_8005920 (SomethingSaveHeader).
+ *
+ * NAMED _OFS, NOT _AT, DELIBERATELY: src/non_matching/rom_b5000/80c02a4.c
+ * already defines a file-local `DMA3_FILL_AT` with a DIFFERENT signature
+ * (slot, value, dst, size).  Promoting this one as DMA3_FILL_AT would give the
+ * tree two meanings for one name -- harmless to the 82 landed DMA3 users today,
+ * but exactly the debt that makes a later rename pass ambiguous.  If that park
+ * ever lands, the two should be reconciled under one name then, with both
+ * signatures in view.
+ */
+static inline void DMA3_FILL_OFS(void *dst, unsigned off, u32 _value, unsigned size) {
+    u32 value;
+    register u32 * _src  __asm__("r0") = (&value);
+    *_src = _value;
+    {
+        register vu32 *_base __asm__("r3") = &REG_DMA3SAD;
+        register unsigned _dst  __asm__("r1") = (unsigned)(dst) + off;
+        register unsigned _cnt  __asm__("r2") = (unsigned)(0x85000000 | (size / 4));
+        __asm__ volatile (
+            "stmia\t%0!, {%1, %2, %3}\n\t"
+            "sub\t%0, #0xc"
+            :
+            : "l" (_base), "l" (_src), "l" (_dst), "l" (_cnt)
+            : "memory"
+        );
+    }
+}
+
 static inline void DMA3_COPY16(const void *src, void *dst, u32 size) {
     register vu32 *_base __asm__("r3") = &REG_DMA3SAD;
     register const void *_src  __asm__("r0") = src;
