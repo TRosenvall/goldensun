@@ -3015,10 +3015,13 @@
 
 	.section .rodata
 
+.global .Lee1ac
 .Lee1ac:
 	.incrom 0xee1ac, 0xee1b4
+.global .Lee1b4
 .Lee1b4:
 	.incrom 0xee1b4, 0xee1c4
+.global .Lee1c4
 .Lee1c4:
 	.incrom 0xee1c4, 0xee1ca
 .Lee1ca:
