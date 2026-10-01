@@ -28302,3 +28302,40 @@ function on first reading, which is what a usable rule looks like:
 | **address-first** | `BaseAnim_Breath`, `Anim_Ragnarok`, `BaseAnim_Nova`, `Anim_TitanBlade` | write the store directly |
 
 Read it off the reference before writing the store; it is one line of asm and costs nothing.
+
+## THE SPILL-SLOT LEVER HAS NO PURCHASE WHERE THERE ARE NO SPILLS — and the PROLOGUE tells you which
+
+**Bounds the "spill-slot map *is* the declaration list" lever, which was put into eight briefs on the
+strength of two functions.** Measured across the five low-branch 800+ targets of batch 310:
+
+| function | prologue | `sub sp` | high regs saved | frame holds |
+|---|---|---|---|---|
+| `OvlFunc_888_200888c` | `push {r5, lr}` | none | **0** | — |
+| `OvlFunc_959_200b054` | `push {r5, lr}` | `#8` | **0** | outgoing args only |
+| `OvlFunc_925_2009af0` | `push {r5,r6,r7,lr}` | `#8` | **0** | outgoing args only |
+| `OvlFunc_969_20092c8` | `push {r5,r6,r7,lr}` | none | **2** (r8, r10) | — |
+| `OvlFunc_883_200bfb0` | `push {r5,r6,r7,lr}` | `#0x1c` | **4** (r8–r11) | 7 words of outgoing args |
+
+**None of the five has a single spill slot.** Every `str rX,[sp,#K]` is **outgoing-argument staging**,
+and on `883` the entire `0x1c` is consumed by one **11-argument call site**. Verified independently:
+that function contains **zero `ldr rX,[sp…]`**, so nothing stored to the frame is ever reloaded — which
+is the definition of not-a-spill.
+
+So for this population **there is no slot map to sort**, and three recorded rules simply do not apply:
+the descending-offset declaration order, the pass-dating reading, and the "grep both `mov r0,sp /
+add r0,#K` and `add r2,sp,#K` or lose a real array" guard. (It follows that the two phantom frame holes
+found in batch 309 were in functions that genuinely spill — a **different population** from these.)
+
+**And it sharpens the band model with a tell that costs one line of asm.** The band doc says cse1's
+cross-call constant commoning overflows the three call-saved low registers; this shows **the overflow
+goes to r8–r11, not to the stack**, so the allocator never spills and the frame stays pure argument
+area. **Read the prologue's high-register saves to classify a function before choosing levers:**
+
+* **0 high saves** ⇒ no commoning overflow at all; frame is argument staging; the slot-map family is
+  inert.
+* **2–4 high saves** ⇒ overflow present and sitting in the high bank; still no spills, so the lever is
+  *still* inert, but the constant-commoning mechanism is live.
+* **spills present** ⇒ the slot-map family applies, and that is where it was validated.
+
+This is a better population test than branch count alone, and it is cheaper: one `grep` of the
+prologue against reading the whole function.
