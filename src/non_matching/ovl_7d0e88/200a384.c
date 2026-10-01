@@ -1,6 +1,28 @@
 /* OvlFunc_947_200a384  --  0x0200a384  [asm/overlays/rom_7d0e88/ovl_1528_c_c_c_c_a_c_c.s]
  *
- * NOT MATCHING. Best 44 of 100, ours 98 lines. The candidate below is that form.
+ * NON-MATCHING, 53 of 100.
+ *
+ * FIGURE CORRECTED IN BATCH 314.  The header claimed "Best 44 of 100".  The first
+ * run of its new recipe measures 53, so the 44 described a body this file no
+ * longer holds -- a figure kept from a candidate that was edited afterwards, which
+ * is the ordinary way a claim rots once nothing can re-run it.  53 is the
+ * production-flag number for the body below.
+ *
+ * RECIPE ADDED IN BATCH 314.  This park carried a figure ("Best 44 of 100") with
+ * no `Verify with:` line, so nothing could re-measure it and the number could
+ * never be caught lying -- the dangerous half of what parkcheck once lumped into
+ * one UNCHECKABLE verdict.  Found by a sweep that could not test this park at all
+ * because it had no recipe to run.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7d0e88/200a384.c \
+ *     asm/overlays/rom_7d0e88/ovl_1528_c_c_c_c_a_c_c.s --func OvlFunc_947_200a384
+ *
+ * "ours 98 lines" is an instruction count against the reference's 100, not an
+ * objcmp figure; the two are different axes and only the first line above is the
+ * claim.  The candidate below is that form.
  * The .s holds this function alone with no data tail, so no split is needed when
  * it is finished.
  *
