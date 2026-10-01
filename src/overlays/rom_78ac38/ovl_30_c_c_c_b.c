@@ -33,7 +33,35 @@
  * TWO linker rows name the object and BOTH must be updated, not one:
  * overlays/rom_78ac38/overlay.ld:21 `(.text)` and :26 `(.data)`.
  *
- * shimcount.py: 233 register pins across 82 PIN sites, and it flags
+ * PINS MINIMISED TO A FIXPOINT IN BATCH 312 -- owed since the landing.
+ * This function landed byte-exact with 233 pins across 82 PIN sites and the set
+ * was never reduced, which was recorded as owed.  It now holds 157 pins across
+ * 53 sites: TWENTY-NINE SITES, 76 PINS, WERE NOT LOAD-BEARING AT ALL -- 35% of
+ * the sites and a third of the pins.  Build and compare both green.
+ *
+ * That ratio is the reason minimising matters beyond tidiness: a pin that is not
+ * load-bearing tells the next reader the compiler needed forcing where it did
+ * not, and at 35% the un-minimised record would have badly overstated how
+ * resistant this function is.  The 53 that remain are now evidence.
+ *
+ * HOW IT WAS MEASURED, because the usual instrument does not apply.  For a
+ * LANDED function objcmp has nothing to compare against: converting the function
+ * replaced the ROM-side .s with gcc's own output.  tools/tryc.py REFUSES to
+ * compare against a generated .s, and it is right to, because for a MATCHING
+ * question that is a tautology.  The question here is a different one -- "does
+ * this edit change the output from the known-good baseline?" -- which is a
+ * REGRESSION check, and for that the tautology is exactly the point.  So the
+ * oracle was: save the generated .s, then require it byte-identical after a
+ * rebuild following each edit, at ~15s a cycle.
+ *
+ * The pass is CUMULATIVE GREEDY: walk the sites, tentatively unpin one while
+ * keeping every unpin already accepted, rebuild, accept only if the .s is
+ * unchanged.  So the result is a true fixpoint -- no SINGLE further removal is
+ * possible.  It is a LOCAL minimum and not claimed as more: a PAIR of pins could
+ * be jointly removable where neither is singly removable, and this pass cannot
+ * see that.  Script kept at scratchpad/pinmin/minimise.py with its log.
+ *
+ * shimcount.py now reports 157 register pins across 53 PIN sites, and it flags
  * `has a fakematch-class shim and NO fakematch.txt row`.  A fakematch.txt row
  * is therefore part of landing, as it is for the family's byte-exact sibling
  * src/overlays/rom_7d768c/ovl_30_c_a_a_c_c_c_c_c_c_b.c (2,805 instructions),
@@ -174,8 +202,7 @@ void OvlFunc_889_2008074(void)
       __Func_80921c4(q0, q1, q2); }
     { PIN3; q0 = 0xc; q1 = 0xa0 << 8; q2 = 0;
       __Func_8092adc(q0, q1, q2); }
-    { PIN2; q0 = 0x10003; q1 = 0x10006;
-      __StartThunder2(q0, q1); }
+    __StartThunder2(0x10003, 0x10006);
     __Func_8095240();
     __WaitFrames(0x3c);
     { PIN4; q0 = 0x80 << 17; q1 = -1; q2 = 0x99 << 18; q3 = 0;
@@ -186,8 +213,7 @@ void OvlFunc_889_2008074(void)
     *(int *)(p + (0xe0 << 1)) = 0;
     *(int *)(p + (0xe4 << 1)) = 0x20;
     __MapTransitionIn();
-    { PIN2; q0 = 0xcccc; q1 = 0x1999;
-      __Func_80933d4(q0, q1); }
+    __Func_80933d4(0xcccc, 0x1999);
     { PIN4; q0 = 0x80 << 17; q1 = -1; q2 = 0xfa << 17; q3 = 1;
       __Func_80933f8(q0, q1, q2, q3); }
     __CutsceneWait(0x14);
@@ -207,14 +233,11 @@ void OvlFunc_889_2008074(void)
       __Func_8012330(q0, q1, q2); }
     __Func_8012350();
     __CutsceneWait(0x3c);
-    { PIN1; q0 = 0x1122;
-      __MessageID(q0); }
-    { PIN3; q0 = 8; q1 = 0x81 << 1; q2 = 0;
-      __MapActor_Emote(q0, q1, q2); }
+    __MessageID(0x1122);
+    __MapActor_Emote(8, 0x81 << 1, 0);
     __CutsceneWait(0x3c);
     __ActorMessage(8, 0);
-    { PIN3; q0 = 9; q1 = 0xa0 << 7; q2 = 0;
-      __Func_8092adc(q0, q1, q2); }
+    __Func_8092adc(9, 0xa0 << 7, 0);
     __CutsceneWait(0x1e);
     __ActorMessage(9, 0);
     __CutsceneWait(0x1e);
@@ -266,8 +289,7 @@ void OvlFunc_889_2008074(void)
       __MapActor_SetPos(q0, q1, q2); }
     { PIN2; q0 = 0xc0 << 9; q1 = 0xc0 << 6;
       __Func_80933d4(q0, q1); }
-    { PIN4; q0 = 0xe0 << 15; q1 = -1; q2 = 0xa0 << 17; q3 = 1;
-      __Func_80933f8(q0, q1, q2, q3); }
+    __Func_80933f8(0xe0 << 15, -1, 0xa0 << 17, 1);
     __CutsceneWait(0x28);
     __MapActor_SetAnim(0, 2);
     __MapActor_SetAnim(1, 2);
@@ -281,14 +303,12 @@ void OvlFunc_889_2008074(void)
     __CutsceneWait(0x1e);
     { PIN3; q0 = 1; q1 = 0xc0 << 6; q2 = 0;
       __Func_8092adc(q0, q1, q2); }
-    { PIN3; q0 = 1; q1 = 0x80 << 1; q2 = 0;
-      __MapActor_Emote(q0, q1, q2); }
+    __MapActor_Emote(1, 0x80 << 1, 0);
     __CutsceneWait(0x32);
     { PIN3; q0 = 1; q1 = 0xc0 << 9; q2 = 0xc0 << 8;
       __MapActor_SetSpeed(q0, q1, q2); }
     __MapActor_SetAnim(1, 2);
-    { PIN3; q0 = 1; q1 = 0x69; q2 = 0xab << 1;
-      __Func_8092158(q0, q1, q2); }
+    __Func_8092158(1, 0x69, 0xab << 1);
     __MapActor_SetAnim(1, 1);
     __Func_80925cc(1, 2);
     __ActorMessage(1, 0);
@@ -308,8 +328,7 @@ void OvlFunc_889_2008074(void)
     __MapActor_SetAnim(1, 2);
     { PIN3; q0 = 1; q1 = 0x80 << 9; q2 = 0x80 << 8;
       __MapActor_SetSpeed(q0, q1, q2); }
-    { PIN3; q0 = 1; q1 = 0x67; q2 = 0xa0 << 1;
-      __Func_8092158(q0, q1, q2); }
+    __Func_8092158(1, 0x67, 0xa0 << 1);
     __MapActor_SetAnim(1, 1);
     } else {
     __CutsceneWait(0x3c);
@@ -319,8 +338,7 @@ void OvlFunc_889_2008074(void)
     { PIN3; q0 = 1; q1 = 0xc0 << 6; q2 = 0;
       __Func_8092adc(q0, q1, q2); }
     __MapActor_SetAnim(0, 2);
-    { PIN3; q0 = 0; q1 = 0x78; q2 = 0xaa << 1;
-      __Func_8092158(q0, q1, q2); }
+    __Func_8092158(0, 0x78, 0xaa << 1);
     __MapActor_SetAnim(0, 1);
     }
     __ActorMessage(0xc, 0);
@@ -338,8 +356,7 @@ void OvlFunc_889_2008074(void)
       __Func_8092adc(q0, q1, q2); }
     { PIN3; q0 = 0xd; q1 = 0xa0 << 8; q2 = 0;
       __Func_8092adc(q0, q1, q2); }
-    { PIN2; q0 = 0xc0 << 10; q1 = 0xc0 << 7;
-      __Func_80933d4(q0, q1); }
+    __Func_80933d4(0xc0 << 10, 0xc0 << 7);
     __Func_8093500(0xa, 1);
     __Func_8093530();
     __CutsceneWait(0x32);
@@ -369,17 +386,14 @@ void OvlFunc_889_2008074(void)
     __CutsceneWait(0x3c);
     { PIN2; q0 = 0x80 << 9; q1 = 0x80 << 6;
       __Func_80933d4(q0, q1); }
-    { PIN4; q0 = 0xd6 << 16; q1 = -1; q2 = 0xec << 17; q3 = 1;
-      __Func_80933f8(q0, q1, q2, q3); }
+    __Func_80933f8(0xd6 << 16, -1, 0xec << 17, 1);
     { PIN3; q0 = 0; q1 = 0x80 << 9; q2 = 0x80 << 8;
       __MapActor_SetSpeed(q0, q1, q2); }
     { PIN3; q0 = 1; q1 = 0x80 << 9; q2 = 0x80 << 8;
       __MapActor_SetSpeed(q0, q1, q2); }
-    { PIN2; q0 = 0; q1 = (int)ActorCmd_ARRAY_889__02008c00;
-      __MapActor_SetBehavior(q0, q1); }
+    __MapActor_SetBehavior(0, (int)ActorCmd_ARRAY_889__02008c00);
     __CutsceneWait(0x1e);
-    { PIN2; q0 = 1; q1 = (int)gScript_889__02008c64;
-      __MapActor_SetBehavior(q0, q1); }
+    __MapActor_SetBehavior(1, (int)gScript_889__02008c64);
     __MapActor_WaitScript(1);
     __Func_8092adc(0, 0, 0);
     __Func_8092adc(1, 0, 0);
@@ -391,8 +405,7 @@ void OvlFunc_889_2008074(void)
     __MapActor_SetAnim(8, 2);
     { PIN3; q0 = 8; q1 = 0x109; q2 = 0x1c7;
       __Func_8092158(q0, q1, q2); }
-    { PIN3; q0 = 8; q1 = 0xf6; q2 = 0x1c7;
-      __Func_8092158(q0, q1, q2); }
+    __Func_8092158(8, 0xf6, 0x1c7);
     __MapActor_SetAnim(8, 1);
     __CutsceneWait(0x1e);
     __Func_80925cc(9, 1);
@@ -414,11 +427,9 @@ void OvlFunc_889_2008074(void)
     __MapActor_SetAnim(0, 4);
     __MapActor_DoAnim(1, 4);
     __CutsceneWait(0x28);
-    { PIN3; q0 = 0xa; q1 = 0x81 << 1; q2 = 0;
-      __MapActor_Emote(q0, q1, q2); }
+    __MapActor_Emote(0xa, 0x81 << 1, 0);
     __CutsceneWait(0x32);
-    { PIN3; q0 = 1; q1 = 0xc0 << 6; q2 = 0;
-      __Func_8092adc(q0, q1, q2); }
+    __Func_8092adc(1, 0xc0 << 6, 0);
     __CutsceneWait(0xa);
     { PIN2; q1 = 0; q0 = 0xa;
       __Func_8092c40(q0, q1); }
@@ -428,8 +439,7 @@ void OvlFunc_889_2008074(void)
     __CutsceneWait(0x32);
     { PIN3; q0 = 8; q1 = 0x80 << 8; q2 = 0;
       __Func_8092adc(q0, q1, q2); }
-    { PIN3; q0 = 9; q1 = 0x80 << 8; q2 = 0;
-      __Func_8092adc(q0, q1, q2); }
+    __Func_8092adc(9, 0x80 << 8, 0);
     __CutsceneWait(0x28);
     __Func_80925cc(9, 1);
     __ActorMessage(9, 0);
@@ -440,8 +450,7 @@ void OvlFunc_889_2008074(void)
     __CutsceneWait(0x32);
     { PIN3; q0 = 8; q1 = 0x80 << 8; q2 = 0;
       __Func_8092adc(q0, q1, q2); }
-    { PIN3; q0 = 9; q1 = 0x80 << 8; q2 = 0;
-      __Func_8092adc(q0, q1, q2); }
+    __Func_8092adc(9, 0x80 << 8, 0);
     __CutsceneWait(0x28);
     __Func_80925cc(9, 1);
         *(unsigned short *)(iwram_3001ebc + (0xec << 1)) += 1;
@@ -467,8 +476,7 @@ void OvlFunc_889_2008074(void)
     __ActorMessage(8, 0);
     __CutsceneWait(0x14);
     __Func_80925cc(9, 1);
-    { PIN3; q0 = 9; q1 = 0xb0 << 8; q2 = 0;
-      __Func_8092adc(q0, q1, q2); }
+    __Func_8092adc(9, 0xb0 << 8, 0);
     __CutsceneWait(0x1e);
     __MapActor_DoAnim(9, 3);
     __CutsceneWait(0x32);
@@ -486,8 +494,7 @@ void OvlFunc_889_2008074(void)
     { PIN3; q0 = 8; q1 = 0xff; q2 = 0x1bd;
       __Func_80921c4(q0, q1, q2); }
     __CutsceneWait(0x28);
-    { PIN3; q0 = (int)Lea0; q1 = 0x2d; q2 = 0xb;
-      __Func_8010560(q0, q1, q2); }
+    __Func_8010560((int)Lea0, 0x2d, 0xb);
     __PlaySound(0xbc);
     __CutsceneWait(0x1e);
     { PIN3; q0 = 8; q1 = 0xff; q2 = 0xc3 << 1;
@@ -501,30 +508,24 @@ void OvlFunc_889_2008074(void)
       __Func_809218c(q0, q1, q2); }
     { PIN3; q0 = 0xa; q1 = 0xff; q2 = 0xe6 << 1;
       __Func_80921c4(q0, q1, q2); }
-    { PIN3; q0 = 0xa; q1 = 0x80 << 8; q2 = 0;
-      __Func_8092adc(q0, q1, q2); }
+    __Func_8092adc(0xa, 0x80 << 8, 0);
     __CutsceneWait(0x28);
     __MapActor_DoAnim(0xa, 3);
     __CutsceneWait(0x1e);
     __Func_809259c(0, 1);
     __Func_80925cc(1, 1);
     __CutsceneWait(0x28);
-    { PIN3; q0 = 0xa; q1 = 0xff; q2 = 0xc3 << 1;
-      __Func_809218c(q0, q1, q2); }
+    __Func_809218c(0xa, 0xff, 0xc3 << 1);
     scr = gScript_889__02008cb4;
-    { PIN2; q0 = 0; q1 = (int)scr;
-      __MapActor_SetBehavior(q0, q1); }
+    __MapActor_SetBehavior(0, (int)scr);
     __CutsceneWait(0x28);
-    { PIN2; q0 = 1; q1 = (int)scr;
-      __MapActor_SetBehavior(q0, q1); }
+    __MapActor_SetBehavior(1, (int)scr);
     __MapActor_WaitScript(1);
     { PIN3; q0 = 0xb; q1 = 0x81 << 1; q2 = 0;
       __MapActor_Emote(q0, q1, q2); }
-    { PIN3; q0 = 0xc; q1 = 0x81 << 1; q2 = 0;
-      __MapActor_Emote(q0, q1, q2); }
+    __MapActor_Emote(0xc, 0x81 << 1, 0);
     __CutsceneWait(0x28);
-    { PIN3; q0 = 0x80 << 10; q1 = 0xc0 << 10; q2 = 0x80 << 9;
-      __Func_8012330(q0, q1, q2); }
+    __Func_8012330(0x80 << 10, 0xc0 << 10, 0x80 << 9);
     __Func_8095240();
     __PlaySound(0x91);
     __CutsceneWait(0x1e);
@@ -535,10 +536,8 @@ void OvlFunc_889_2008074(void)
     { PIN3; q0 = -1; q1 = -1; q2 = 0xe666;
       __Func_8012330(q0, q1, q2); }
     __Func_8012350();
-    { PIN1; q0 = 0x12f;
-      __ClearFlag(q0); }
-    { PIN1; q0 = 0x879;
-      __SetFlag(q0); }
+    __ClearFlag(0x12f);
+    __SetFlag(0x879);
     __Func_8091e9c(1);
     __CutsceneEnd();
 }
