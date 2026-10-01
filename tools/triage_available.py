@@ -82,7 +82,7 @@ rows = []
 for n in names:
     paths = loc.get(n)
     if not paths:
-        rows.append((n, "NOT FOUND", 0,0,0,0,0,0,0,0,0,0,0,0.0,0,0)); continue
+        rows.append((n, "NOT FOUND", 0,0,0,0,0,0,0,0,0,0,0,0.0,0,0,0,0,0)); continue
     p = paths[0]
     body = slice_fn(p, n)
     txt = "\n".join(body)
@@ -113,8 +113,49 @@ for n in names:
     # AGGREGATES.  `mov rX, sp` is only ONE of the two forms and is absent from
     # 20083cc entirely; `add rX, sp, #K` is the other and is the one it uses.
     # Count both (batch 312 correction).
-    movsp = (len(re.findall(r"mov\s+r\d+,\s*sp", txt))
-             + len(re.findall(r"add\s+r\d+,\s*sp,\s*#", txt)))
+    # ...BUT a raw count of `add rX,sp,#K` OVER-REPORTS aggregates badly.
+    # Thumb-1 has NO sp-relative ldrh/strh/ldrb/strb, so EVERY SUB-WORD STACK
+    # SCALAR must materialise a base register too, and looks identical to an
+    # aggregate at this grep.  Measured on four functions in batch 313, the raw
+    # count gave 11/12/9/1 where the true aggregate counts are 1/4/0/0 -- and the
+    # difficulty ranking inverted, because I had assigned work by that number.
+    # This resolves SOME of them by FIRST USE of the materialised register -- a
+    # sub-word load/store means a sub-word scalar -- but the column is only an
+    # UPPER BOUND and must be read as one.  Checked against hand-measurement on
+    # the same four functions, this heuristic still gave 10/11/4/0 where careful
+    # REGION READING gave 1/4/0/0.  A mechanical first-use scan cannot see a
+    # base register that is re-used across blocks, passed on, or walked, so
+    # A TRUE AGGREGATE COUNT NEEDS THE REGION READ.  Use this column to decide
+    # WHERE to look, never to rank difficulty on its own -- which is exactly the
+    # mistake it was introduced to fix.
+    #
+    # The scan MUST be BLOCK-AWARE.  An agent's first-use scan crossed a loop
+    # head and misclassified a walking pointer as a scalar; stop at any label or
+    # branch rather than running on.  Note also that this listing writes small
+    # immediates in DECIMAL (`#8`, not `#0x8`).
+    SUBWORD = re.compile(r"^\t(ldr|str)(h|b|sh|sb)\b")
+    BLOCKEND = re.compile(r"^(\.L\w+:|\t(b|bl|bx|beq|bne|blt|ble|bgt|bge|bhi|bls|bcc|bcs)\b)")
+    lines = txt.split("\n")
+    aggr, subword, unresolved = 0, 0, 0
+    for i, ln in enumerate(lines):
+        m = re.match(r"\tadd\s+(r\d+),\s*sp,\s*#", ln)
+        if not m:
+            continue
+        reg = m.group(1)
+        verdict = None
+        for j in range(i + 1, min(i + 40, len(lines))):
+            if BLOCKEND.match(lines[j]):
+                break
+            if re.search(r"\b%s\b" % reg, lines[j]):
+                verdict = "sub" if SUBWORD.match(lines[j]) else "agg"
+                break
+        if verdict == "sub":
+            subword += 1
+        elif verdict == "agg":
+            aggr += 1
+        else:
+            unresolved += 1
+    movsp = len(re.findall(r"mov\s+r\d+,\s*sp", txt)) + aggr
     addsp = len(re.findall(r"add\s+r\d+,\s*sp", txt))
     # OUTGOING ARGUMENT SPACE, a FOURTH check the triad lacked: `str rX,[sp]`
     # with no matching load is argument space for a 5+-argument call, and it is
@@ -141,7 +182,11 @@ for n in names:
     bne = len(re.findall(r"\bbne\b", txt))
     signed = len(re.findall(r"\b(blt|ble|bgt|bge)\b", txt))
     # jump tables
+    # `.word .L` counts jump-table ENTRIES, not TABLES.  Calling this column "jt"
+    # cost a brief a bad premise ("33 jump tables" was 2 tables of 22 and 11
+    # entries).  Count dispatch SITES separately.
     jt = len(re.findall(r"\.word\s+\.L", txt))
+    tables = len(re.findall(r"^\t(?:mov|ldr|add)\s+pc\b", txt, re.M))
     # WORK DENSITY -- the axis that orders the call-script population, which the
     # high-register axis cannot (batch 312: high-reg ran 17/19/16 across three
     # targets and the HARDEST had the FEWEST).  These are cutscene scripts at ~3
@@ -153,10 +198,10 @@ for n in names:
     argfill = len(re.findall(r"^\t[a-z]+\s+r[0-3],", txt, re.M))
     work = max(insns - bl - argfill, 0)
     wd = (100.0 * work / insns) if insns else 0.0
-    rows.append((n, p, insns, frame, movsp, addsp, hi, maxreload, distinct, reuse, bne, signed, jt, wd, sp0, labels))
+    rows.append((n, p, insns, frame, movsp, addsp, hi, maxreload, distinct, reuse, bne, signed, jt, wd, sp0, labels, subword, unresolved, tables))
 
-print("%-26s %5s %6s %5s %4s %5s %5s %5s %4s %4s %4s %6s %4s %4s" %
-      ("function","insn","frame","aggr","hi","maxrl","distc","reuse","bne","sgn","jt","work%","sp0","lbl"))
+print("%-26s %5s %6s %5s %4s %5s %5s %5s %4s %4s %4s %6s %4s %4s %5s %3s %4s" %
+      ("function","insn","frame","agg<=","hi","maxrl","distc","reuse","bne","sgn","jt","work%","sp0","lbl","subw","?","tbl"))
 # rank: pure-rebuild candidates first (low maxreload, low reuse), small frame, no aggregates
 def key(r):
     if r[1]=="NOT FOUND": return (9,0)
@@ -164,7 +209,7 @@ def key(r):
 for r in sorted(rows, key=key):
     if r[1]=="NOT FOUND":
         print("%-26s  NOT FOUND" % r[0]); continue
-    n,p,insns,frame,movsp,addsp,hi,maxrl,distc,reuse,bne,sgn,jt,wd,sp0,labels = r
+    n,p,insns,frame,movsp,addsp,hi,maxrl,distc,reuse,bne,sgn,jt,wd,sp0,labels,subw,unres,tables = r
     fs = "reg?" if frame == -1 else hex(frame)
-    print("%-26s %5d %6s %5d %4d %5d %5d %5d %4d %4d %4d %5.1f %4d %4d" %
-          (n, insns, fs, movsp, hi, maxrl, distc, reuse, bne, sgn, jt, wd, sp0, labels))
+    print("%-26s %5d %6s %5d %4d %5d %5d %5d %4d %4d %4d %5.1f %4d %4d %5d %3d %4d" %
+          (n, insns, fs, movsp, hi, maxrl, distc, reuse, bne, sgn, jt, wd, sp0, labels, subw, unres, tables))

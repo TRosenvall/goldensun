@@ -29760,3 +29760,154 @@ straight-line constant-reuse mechanisms. Combined with brief B's `20088ec` (61
 branches over 61 labels), **three of batch 312's nine targets were assigned
 straight-line material and are branch-dense.** The label count is one grep and
 belongs in the triage table.
+
+## Batch 313 brief C -- the switch lever's two stated tells are BOTH WRONG
+
+Measured with compiled probes, preserved at `docs/repro-switch-table-vs-tree/{p1..p6}.c`
+with `asmof.sh`. Both corrections are to text I propagated into briefs, and both
+replace a *guessed* tell with a *mechanical* one.
+
+### Correction 1: the discriminator is not numeric -- STACKING DESTROYS A TABLE
+
+The recorded rule read: *"cases 1 and 2 need SEPARATE arms even with identical
+bodies, but `case 8: case 9:` MUST stay stacked; the discriminator is purely
+numeric."* It is not numeric in the case VALUES at all. The mechanism:
+
+  * **stacked** case labels sharing one body share ONE rtl label, so
+    `group_case_nodes` **merges them into a single RANGE node**;
+  * the table-versus-tree decision then counts nodes **after that merge**
+    against `case_values_threshold()`, which is **5** (re-probed, confirmed:
+    N=3,4 → tree; N=5,6 → table).
+
+So **stacking is what destroys a table.** Probe `p1`: a value set written as
+`case 10: case 11: case 12: case 13:` / `case 14: … case 21:` collapses to **2
+range nodes** and emits a **three-compare decision tree with NO table**. The same
+values with **one arm per case** (`p2`) emit the table.
+
+**And the disassembly CANNOT distinguish the two spellings.** Separate arms with
+identical bodies produce **coincident labels** — several `.L` names at one address
+— which a disassembler, knowing only addresses, prints as *the same name
+repeated*. That is why a ROM table shows entries 10-13 all naming one label.
+**A repeated label name in a jump table is NOT evidence of stacking.** The
+table-versus-tree *shape* is the only evidence for the source spelling, and it is
+decisive.
+
+### Correction 2: the `bcc` tell is backwards -- look for the ABSENCE OF A `sub`
+
+The recorded rule read: *"a `bcc` entry test on an unsigned selector means a
+fourth lowest case you have not written."* The real signal for a case sharing the
+default arm at the bottom of the range is **the table's base**, i.e. **the absence
+of a `sub` before the index**:
+
+  * no `sub` ⇒ `minval == 0` ⇒ a case node with value 0 exists;
+  * with `minval == 0` an unsigned selector needs only an **upper** bound, so the
+    entry test is a bare **`bhi`** — *not* a `bcc`;
+  * a **`bcc` is what the TREE form emits** (probe `p1`), which is the opposite
+    situation.
+
+Both of `Func_8023178`'s tables are entered by `bhi`, and the missing-case reading
+holds there via the base-0 evidence rather than via the branch mnemonic.
+
+### And "33 jump tables" was an ENTRY count
+
+`grep -c '.word .L'` counts table ENTRIES. Dispatch SITES are
+`grep -cE '^\t(mov|ldr|add)\tpc'`. Measured: `Func_8023178` **2 tables** (22 and
+11 entries = the 33), `Func_8026080` 1, `Func_8027114` 1, `Func_80f6440` 0. The
+mislabelled column cost a brief a bad premise. `tools/triage_available.py` now
+reports both.
+
+## The aggregate grep OVER-REPORTS, because Thumb-1 has no sp-relative sub-word access
+
+A correction to the frame procedure *within the same batch that fixed it*, and the
+more important half of the two.
+
+**Thumb-1 has no sp-relative `ldrh`/`strh`/`ldrb`/`strb`.** So **every sub-word
+stack scalar** must materialise a base register with `add rX, sp, #K` first — and
+at that grep it is **indistinguishable from an aggregate**. Measured against
+careful region reading:
+
+| function | raw `add rX,sp,#K` | TRUE aggregates |
+|---|---|---|
+| `Func_8023178` | 11 | **1** |
+| `Func_8026080` | 12 | **4** |
+| `Func_8027114` | 9 | **0** |
+| `Func_80f6440` | 1 | **0** |
+
+The difficulty ranking inverted: `Func_8026080` is the hardest of the four, not
+the middle, and `Func_8027114` is as clean as the one designated easy.
+
+**Resolve by FIRST USE of the materialised register**: a sub-word load/store means
+a sub-word SCALAR; a base used with varying offsets, passed on, or walked means a
+genuine AGGREGATE. **The scan must be BLOCK-AWARE** — the agent's own first-use
+scan crossed a loop head and misclassified a walking pointer (`&x[4]`, the start
+of a five-byte backwards zero fill) as a scalar, caught it, and re-ran every
+verdict block-aware.
+
+**A mechanical scan is not sufficient.** I implemented exactly that block-aware
+first-use scan in `tools/triage_available.py` and it still returned 10/11/4/0
+against the measured 1/4/0/0, because it cannot see a base register re-used across
+blocks, passed on, or walked. **The column is an UPPER BOUND and is now labelled
+`agg<=`.** Use it to decide where to look, never to rank — which is the mistake it
+was introduced to fix, repeated one layer down.
+
+### Two spelling traps that nearly reversed a finding
+
+  * **This listing writes small immediates in DECIMAL.** Grep `#8`, not `#0x8`.
+  * **A `[sp, #imm]` census cannot see a store made through a materialised base
+    register.** So every "loaded but never stored" slot is a PHANTOM until
+    re-checked against the `add rX, sp` sites. This is the third phantom-hole
+    mechanism recorded (after ten spill slots and a third array).
+
+## The "shared family prologue" is GENERIC and buys nothing
+
+Two parks built a scheduling argument on an "identical eight-instruction
+prologue", concluding that whichever sibling is solved first supplies the opening
+~40 instructions of the others and that the per-function cost divides by three.
+**Measured tree-wide, that sequence opens 338 of the 871 remaining
+`thumb_func_start` functions — 39% of the tree — and 93 of those sit in GENERATED
+`.s` files**, i.e. landed C already reproduces it incidentally. It is what
+gcc-2.96 emits for **any** Thumb function that uses r8-r11 and makes a call: a
+*consequence of register pressure in the body*, not a signature of a shared source
+file, and not something a reconstruction spells. A function in a different bank
+entirely opens with the same seven instructions.
+
+**So an identical prologue is worth nothing as family evidence.** What is real is
+narrower and was buried: the three functions in that one `.s` do all spill their
+arguments and then load `iwram_3001e8c` and call `AllocUploadSpriteGFX` — it is
+*that* sequence which is shared, and it does not extend to the wider family.
+
+**The transferable family evidence is SHARED DATA.** `Func_8023178` and
+`Func_8026080` both reference `.L373dc`, `.L373e0` and `.L373e4`, and theirs are
+the only two files in the tree that do. Shared read-only tables are worth naming
+once; a shared prologue is worth nothing. **Generalise: a family claim needs a
+shape that is RARE, and rarity is a tree-wide count, not an impression.**
+
+## There is NO single split serving a family -- the asymmetry is POSITIONAL
+
+`split_s.py` cuts out **one named target**, so the shape depends on which member
+you name:
+
+    first member named  -> 2-way
+    middle member named -> 3-way
+    last member named   -> 2-way
+
+Two parks asserted "one three-way split serves all three, do it ONCE", and I
+repeated it in batch 312's report and HANDOFF row. For `Func_8023178` the dry-run
+is **2-way**. **Each conversion is its own cut, and the cheapest order starts with
+an END member.** Third instance of this exact error (after the
+`BaseAnim_Attack`/`Anim_CriticalHit` pair, and the `200909c`/`20093f8` middle-last
+pair): **dry-run BOTH orders; split constraints are never symmetric.**
+
+## Three small structural facts worth keeping
+
+  * **An inverted entry test can be a BRANCH-RANGE artifact.** `Func_8026080`
+    branches `bls` to its table and `b` to the default, which reads like a source
+    difference; the span is **1,078 bytes** and Thumb-1 conditional branches reach
+    **±256**. Do not chase it source-side.
+  * **A pool skip can sit INSIDE a jump table** — `Func_8027114` has
+    `b` over `.word 0x60` / `.pool` and then `mov pc,r3`. Compiler data placement,
+    not source control flow.
+  * **`Func_80f6440`'s four undefined `.L` symbols are already defined and
+    `.global`-ed** in `rom_f6008_c_c_c.s`, and a landed sibling already lists them
+    as its export set. **Only the C declaration is missing** — so unlike the two
+    functions blocked on naming unknown data, this one needs one line.

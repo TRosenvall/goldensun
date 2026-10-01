@@ -51,6 +51,46 @@
  * RUN THEM BEFORE WRITING ANY C: a family of three where none is attempted
  * is the one configuration in which the per-function cost is divided by
  * three, and this brief's census fix is what made all three visible at once.
+ *
+ * ### CORRECTED IN BATCH 313 -- TWO CLAIMS ABOVE DO NOT HOLD.
+ *
+ * 1. THE SHARED PROLOGUE IS GENERIC AND BUYS NOTHING.  Measured tree-wide,
+ *    that exact seven-instruction sequence opens 338 OF THE 871 remaining
+ *    `thumb_func_start` functions in asm/ -- 39% of the tree -- and 93 of those
+ *    338 sit in GENERATED .s files, i.e. landed C already reproduces it
+ *    incidentally.  It is what gcc-2.96 emits for ANY Thumb function that uses
+ *    r8-r11 and makes a call: a CONSEQUENCE of register pressure in the body,
+ *    not a signature of a shared source file, and not something a
+ *    reconstruction spells at all.  Func_80f6440, a different bank entirely,
+ *    opens with the same seven instructions.  So "whichever is solved first
+ *    supplies the opening ~40 instructions of the other two" is FALSE, and the
+ *    "per-function cost is divided by three" scheduling argument built on it
+ *    must not be relied on.
+ *
+ *    What IS real is narrower: the three functions in THIS .s do all spill
+ *    their arguments and then load iwram_3001e8c and call
+ *    AllocUploadSpriteGFX.  That is a genuine shared opening -- but it is the
+ *    iwram_3001e8c/AllocUploadSpriteGFX sequence that is shared, NOT the
+ *    prologue, and it does not extend to the wider rom_23178 family
+ *    (Func_8026080 loads iwram_3001e74, a different global; Func_8027114 loads
+ *    no global at all before its first call).
+ *
+ * 2. THERE IS NO SINGLE SPLIT SERVING ALL THREE.  `split_s.py` cuts out ONE
+ *    NAMED TARGET, so the shape depends on which sibling you name:
+ *        first member named  -> 2-way
+ *        middle member named -> 3-way
+ *        last member named   -> 2-way
+ *    For Func_8023178 the dry-run is 2-WAY, not the three-way asserted here.
+ *    So "do it ONCE" is wrong; each conversion is its own cut, and the cheapest
+ *    order is an end member first.  This is the same positional asymmetry
+ *    recorded for the BaseAnim_Attack / Anim_CriticalHit pair: DRY-RUN BOTH
+ *    ORDERS rather than assuming symmetry.
+ *
+ * The genuinely transferable family evidence is SHARED DATA, not code shape:
+ * Func_8023178 and Func_8026080 both reference .L373dc, .L373e0 and .L373e4,
+ * and theirs are the only two files in the tree that do (all defined and
+ * `.global`-ed in asm/rom_15000/rom_23178_c_c_c_c.s).  Shared read-only tables
+ * are worth naming once; an identical prologue is worth nothing.
  * Func_8023e70 is the member to try FIRST despite being the largest,
  * because it is the only one of the three with a SINGLE argument (one
  * spill, one signature to get right) while Func_8023178 has three.
