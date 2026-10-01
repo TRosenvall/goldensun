@@ -1,83 +1,100 @@
-/* PARKED -- OvlFunc_934_2009984, --align 2 of 268 / objcmp 4 of 261
- * NON-MATCHING, 4 encodings of 261.  THIS IS A TRUE DISTANCE: ref 261 encodings
- * against ours 261, and tryc --align reads rom 268 lines / ours 268.
+/* PARKED -- OvlFunc_934_2009984.  NON-MATCHING, 4 ENCODINGS OF 261 against the
+ * tracked reference, OF WHICH ONLY 2 ARE INSTRUCTIONS.  TWO POOL WORDS AND THE
+ * RELOCATION SET ARE A REFERENCE-SIDE SPELLING ARTIFACT, NOT A CODE DEFECT.
  *
  * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/ovl_7bdeb0/2009984.c \
+ *   python3 tools/objcmp.py src/non_matching/ovl_7bdeb0/2009984.c \
  *     asm/overlays/rom_7bdeb0/ovl_169c_a_c_c_b.s --func OvlFunc_934_2009984
- *   [that .s is the file's ONLY function -- anchored thumb_func_start count = 1.
- *   238 instructions.  tools/datacheck.py reports NO data section, so NO SPLIT
- *   and no data export; the 10-word jump table at .L19b8 is gcc's own switch
- *   table, emitted from the `switch` below, not ROM data.]
+ *   XX ENCODINGS differ in 4 place(s) (ref 261, ours 261)
+ *      first at index 218: ref 2304  ours 2000
+ *   XX RELOCATIONS differ          <-- ours has 2 extra ABS32, at 0x250 and 0x26c
+ *
+ * BATCH 314 CORRECTED THIS PARK'S HEADLINE FIGURE.  The previous revision claimed
+ * "4 of 261" and reported no relocation problem at all, while its own prose said
+ * "RESIDUE: TWO ENCODINGS, ONE INSTRUCTION".  THE PROSE WAS RIGHT AND THE FIGURE
+ * WAS WRONG, and one cause explains both symptoms.  The reference spells the area
+ * test's two pooled constants as LITERALS --
+ *
+ *     line  21:   ldr  r3, =0x5e
+ *     line 163:   ldr  r3, =0x5f
+ *
+ * -- whereas this file spells them, correctly and per this park's own area.sym
+ * reasoning, as the symbols `_AREA_5e` / `_AREA_5f` (area.sym:86-87 defines
+ * `_AREA_5e = 0x5e;` and `_AREA_5f = 0x5f;`).  So our pool words are 0x00000000
+ * plus an R_ARM_ABS32 and the reference's are 0x0000005e / 0x0000005f with no
+ * relocation.  That accounts for the relocation line AND for 2 of the 4
+ * "differing encodings", which are POOL WORDS, not instructions.
+ *
+ * ONE asm/ LINE PER CONSTANT IS NEEDED BEFORE THIS CAN LAND, AND IT IS NOT A CODE
+ * CHANGE.  asm/overlays/rom_7bdeb0/ovl_169c_a_c_c_b.s needs
+ *
+ *     line  21:   ldr  r3, =0x5e   ->   ldr  r3, =_AREA_5e
+ *     line 163:   ldr  r3, =0x5f   ->   ldr  r3, =_AREA_5f
+ *
+ * which is the tree's OWN settled practice with tracked precedent --
+ * asm/overlays/rom_7b4558/ovl_30_c_c_a_a_b.s lines 44/46/48 carry
+ * `.word _AREA_44` / `_AREA_45` / `_AREA_46`, and 226 files under src/ already use
+ * `extern int _AREA_xx;` with `(int)&_AREA_xx`.  area.sym's assignments become
+ * absolute symbols in stage1.o, so the linker resolves `_AREA_5e` to 0x5e and THE
+ * SUBSTITUTION EMITS IDENTICAL BYTES.  Same class as the `.global .L2430` export
+ * that src/non_matching/ovl_7a7298/2009fa4.c needs.
+ *
+ * WITH THAT SUBSTITUTION MADE, THE FIGURE IS 2 OF 261 AND THE RELOCATIONS ARE
+ * CLEAN (measured against a workspace copy of the reference):
+ *
+ *   XX ENCODINGS differ in 2 place(s) (ref 261, ours 261)
+ *      first at index 218: ref 2304  ours 2000
  *
  * ========================= WHAT IS SETTLED =========================
- *
- * 1. THE AREA TEST IS TWO POOLED SYMBOLS, BOTH ALREADY IN area.sym.  The ROM
- *    does `ldr r3, =0x5e / cmp r1, r3` where `cmp r1, #0x5e` would do -- the
- *    area.sym criterion verbatim.  `_AREA_5e` and `_AREA_5f` are area.sym:86-87.
- *
- * 2. THE SUB-STATE SELECTOR IS A `switch`, cases 1..10 in three arms.  The ROM
- *    does `sub r3,#1 / cmp r3,#9 / bls / ldr r2,=table / lsl r3,#2 /
- *    ldr r3,[r3,r2] / mov pc,r3`, which is exactly gcc's dense-table form for
- *    a switch whose lowest case is 1.  Cases 1-4, 5-7 and 8-10 fall together.
- *
- * 3. `__SetFlag(0x201)` MUST NOT BE A FRESH POOL LOAD.  The ROM spells it
- *    `add r0, #0x3f` on the register that still holds the 0x1c2 byte offset of
- *    the sub-state field -- gcc reuses a constant already in a register and
- *    reaches the new one by a delta.  Getting it needs a FRESH base pointer
- *    local inside that switch arm (`g2 = (unsigned char *)&gState;`) so that
- *    arm re-materialises the base in a call-clobbered register, exactly as the
- *    ROM does with its second `ldr r3, =gState`.  Hoisting one function-wide
- *    `g` into r5 instead costs the delta AND the whole 0x5e-branch register
- *    map: 55 of 268 against 24.
- *
- * 4. ONE VARIABLE CARRIES FOUR ROLES IN r5.  The ROM's r5 holds, in turn, the
- *    literal 0 passed as the 6th argument of two OvlFunc_934_2008528 pairs, the
- *    `__GetFlag(0x205)` result, and 0xe.  Writing them as ONE local `t` (and
- *    the constant 4 as `four`, which lands in r6) is 22 of 268 -> 8.  Separate
- *    locals per role, in either declaration order, do not reach it.
- *
- * 5. THE ARGUMENT FILL IS r1,r2,r3 THEN r0.  Every OvlFunc_934_2008528 site
- *    fills r1/r2/r3 first and r0 LAST.  Pinning q1/q2 (and q3 where the 4th
- *    argument is not the reused 2) reproduces it; unpinned, gcc emits `mov r0`
- *    before the r1 fill.  8 of 268 -> 4.  The OvlFunc_common0_70 site fills
- *    r2, r1, r3, r0 -- a 4-wide pin in that order, and that order only.
- *
- * 6. `cmp r3, #1 / blt` IS NOT `sub < 1`.  Plain `if (sub < 1) return;`,
- *    `<= 0`, and `!(sub >= 1)` all canonicalise to `cmp #0 / ble`.  The ROM
- *    keeps the 1, which needs the constant behind a do{}while(0) barrier
- *    (`int one = 1; do { one = (int) one; } while (0);`).  4 -> 2.
+ * (1) the area test is two pooled area.sym symbols; (2) the sub-state selector is
+ * a `switch`, cases 1..10 in three arms, emitted as gcc's dense table; (3)
+ * `__SetFlag(0x201)` must reach its constant by a delta from the 0x1c2 byte
+ * offset already in a register, which needs a FRESH base pointer local inside
+ * that switch arm; (4) ONE variable carries four roles in r5 (22 -> 8); (5) the
+ * argument fill is r1,r2,r3 THEN r0 (8 -> 4); (6) `cmp r3,#1 / blt` is not
+ * `sub < 1` and needs the constant behind a do{}while(0) barrier (4 -> 2).
+ * tools/datacheck.py reports NO data section, so NO SPLIT and no data export;
+ * the 10-word table at .L19b8 is gcc's own switch table, not ROM data.
  *
  * ========================== WHAT IS OPEN ===========================
+ * THE RESIDUE IS ONE ADJACENT TRANSPOSITION of the argument fill at the third
+ * OvlFunc_934_2008528 site:
  *
- * RESIDUE: TWO ENCODINGS, ONE INSTRUCTION, AND IT IS local-alloc / postreload
- * SCHEDULING OF A SINGLE `mov r0, #0`.  At the third OvlFunc_934_2008528 site
- * (the 0x204 arm) the ROM emits
- *     mov r3,#0x2 / str r3,[sp] / mov r1,#0xd / mov r2,#0xf / mov r3,#0x4 /
- *     mov r0,#0x0 / str r5,[sp,#4]
- * and we emit the `mov r0,#0x0` one slot earlier, before `mov r3,#0x4`.
- * Measured and NOT it: pinning r0 explicitly; a do{}while(0) barrier on the 0;
- * a named local for the 0; pinning r3 to the literal 2 and re-reading it into
- * an int; dropping the q3 pin at that site; a 4-wide ascending pin.  All six
- * read 2 of 268.  The next thing to try is the declaration-order sweep of
- * {t, four} AFTER this site's pin width is fixed, not before -- the same
- * coupling src/non_matching/ovl_7bc690/2008e2c.c records for its loop.
+ *     [218] ref 2304 movs r3, #4  | ours 2000 movs r0, #0
+ *     [219] ref 2000 movs r0, #0  | ours 2304 movs r3, #4
  *
- * SHIMS: 15 register pins (shimcount), no fakematch.txt row yet.  That count is
- * high and pin-width minimisation at the three 2008528 sites was only carried
- * to the point that stopped improving the distance -- it has NOT been pushed to
- * a fixpoint from above.
-  *
- * NON-MATCHING, 4 of 261 encodings differ (a TRUE DISTANCE: size and count
- * both match; --align reads 2 instructions in disagreeing regions).
- * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *       goldensun-build python3 tools/objcmp.py \
- *       src/non_matching/ovl_7bdeb0/2009984.c \
- *       asm/overlays/rom_7bdeb0/ovl_169c_a_c_c_b.s --func OvlFunc_934_2009984
-*/
+ * BATCH 314 MEASURED 31 NEW SPELLINGS AT THAT SITE AND NONE REACHES 0.
+ * The park's suspected coupling IS DISPROVED: the {t, four} DECLARATION ORDER IS
+ * INERT ON EVERY PIN SHAPE, so it was not waiting on the pin width to be fixed.
+ *   base / swapped decls                               2
+ *   q0 pinned and assigned last                        2
+ *   pinned r3 carries the STACK argument, 5 orders      2
+ *   q1,q2,q3 ascending; q3 via `q3=2; q3<<=1`           2, BUT AT INDEX 214
+ *   q1,q2,q3 with q3 first / middle                     5 / 4
+ *   q0..q3 four-wide, r0 last / r0 before r3            7 / 6
+ *   no pins at the site / q3 only / q2+q3 / q0 only     4 / 6 / 6 / 4
+ *   `t` pinned to r5                                   44, relocations differ
+ *
+ * THE TWO DEFECTS ARE MUTUALLY EXCLUSIVE UNDER PINNING, which is the real finding
+ * and bounds the search.  `q1,q2,q3` ascending also reads 2, but its residue is a
+ * different pair AND a different KIND -- the transposition is FIXED and the
+ * carrier register for the stack argument breaks instead:
+ *
+ *     [214] ref 2302 movs r3, #2 | ours 2002 movs r0, #2
+ *     [215] ref 9300 str r3,[sp] | ours 9000 str r0,[sp]
+ *
+ * Reserving r3 for argument 4 is exactly what stops gcc materialising the stack
+ * argument in r3.  So r3 is under a two-sided constraint at this site and no
+ * pure pin shape can satisfy both ends; the next thing to try is a spelling that
+ * changes the ORDER WITHOUT RESERVING r3.
+ *
+ * THE BRIEF'S ALIAS-SET DEPENDENT-COUNT LEVER DOES NOT REACH THIS SITE.  It needs
+ * a MEM as one of the two COMPETING insns; here both are constant register sets
+ * (`movs r3,#4`, `movs r0,#0`).  The block's two stack stores are their common
+ * SUCCESSOR, not a competitor, so widening any alias set cannot separate them.
+ *
+ * SHIMS: 15 register pins (tools/shimcount.py), no fakematch.txt row yet.
+ */
 typedef struct { unsigned char _bytes[704]; } GlobalState;
 extern GlobalState gState;   /* GlobalState @ 0x02000240 */
 extern int _AREA_5e;

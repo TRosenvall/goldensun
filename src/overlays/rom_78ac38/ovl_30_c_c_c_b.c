@@ -33,7 +33,16 @@
  * TWO linker rows name the object and BOTH must be updated, not one:
  * overlays/rom_78ac38/overlay.ld:21 `(.text)` and :26 `(.data)`.
  *
- * PINS MINIMISED TO A FIXPOINT IN BATCH 312 -- owed since the landing.
+ * PINS MINIMISED IN BATCH 312 -- owed since the landing.  *** THE WORD
+ * "FIXPOINT" IS QUALIFIED BY BATCH 314: 157 IS A LOWER BOUND, NOT A MINIMUM. ***
+ * A single-pin cumulative greedy pass, which is what produced the 157, is
+ * PROVABLY insufficient -- batch 314 found that A PAIR OF PIN SITES CAN BE
+ * JOINTLY LOAD-BEARING WHILE EACH IS INDIVIDUALLY INERT, because cse1 unifies two
+ * pseudos holding THE SAME CONST_INT and unification needs TWO UNPINNED PEERS, so
+ * either pin alone is free and the pair together is not.  Offered one of such a
+ * pair first, a greedy ACCEPTS it, REJECTS the second, and stops ONE PIN SHORT.
+ * Re-run with pin sites GROUPED BY THE VALUE THEY MATERIALISE before treating any
+ * number here as minimal.  See tools/pinmin.py.
  * This function landed byte-exact with 233 pins across 82 PIN sites and the set
  * was never reduced, which was recorded as owed.  It now holds 157 pins across
  * 53 sites: TWENTY-NINE SITES, 76 PINS, WERE NOT LOAD-BEARING AT ALL -- 35% of

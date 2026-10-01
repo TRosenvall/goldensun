@@ -30944,3 +30944,118 @@ This is the same family as POSIX `awk` having no `\s` class and no `strtonum`
 immediates this tree prints. **Every generator must assert that its edit landed**,
 because an unapplied edit measures as a clean inert result — which is
 indistinguishable from a real bound and will be recorded as one.
+
+## Batch 314 brief E: THE INTERACTING-PINS LAW, and why a single-pin greedy is provably insufficient
+
+The most important result for **pass three**, measured and isolated rather than
+inferred. 218 variants.
+
+Batch 312's pin minimisation used a **cumulative greedy** pass and reported a
+"fixpoint" at 233 → 157 pins, carrying one caveat: a *pair* might be jointly
+removable where neither is singly removable. **The gap runs the other way too, and
+that direction is worse:**
+
+> **A PAIR OF PIN SITES CAN BE JOINTLY LOAD-BEARING WHILE EACH IS INDIVIDUALLY
+> INERT.**
+
+On one function, **20 of 34 pin sites were individually inert**. Dropping all 20
+jointly cost **65 encodings**. Bisection isolated it to a **single pair**: each free
+alone (4), **together 65**, with *every* subset containing both at 65 and *every*
+subset missing either at 4.
+
+### The mechanism makes it predictable rather than a surprise
+
+Those two sites were **the only two in the function materialising the same
+constant** (`q2 = 0xaa; q2 <<= 2`). cse1 unifies two pseudos holding the same
+`CONST_INT`; the survivor then crosses calls and takes a callee-saved register. So
+**a pin defeats that unification only IN COMPANY** — either pin alone leaves the
+other pseudo unpinned, and **unification needs two unpinned peers.**
+
+Control: break the shared value and the 65 **collapses to 5**. A **second
+independent instance** was then found by the same method — a width reduction,
+individually inert at 32 of 34 sites, one pair costing 15, **again the only two
+sites sharing a constant.**
+
+### Why greedy cannot see it, exactly
+
+Offered one of such a pair first, the pass **ACCEPTS** it (free alone), then
+**REJECTS** the second (now load-bearing), and reports a fixpoint **one pin short**
+— with no indication that the two were related.
+
+**THE GUARD: group pin sites by the value they materialise — one grep per distinct
+constant — and remove each group as a unit**, then run the single-site pass over
+what remains. `tools/pinmin.py` now carries this, and the landed function's header
+is qualified: **157 is a lower bound, not a minimum.**
+
+### And a depinning result delivered early
+
+`OvlFunc_887_2008578` goes **93 pins → 45 with no loss of figure** (4 of 453,
+verified on the production path), with **19 shim blocks replaced by ordinary C**.
+Pass three's work, done while chasing a landing.
+
+## An objcmp "ENCODING" CAN BE A POOL WORD -- and every lower rung is blind to it
+
+A seventh instrument finding, and it inflates figures rather than hiding defects.
+**Two parks' figures were overstated this way.** One tracked as *4 of 261* is
+**2 of 261** once the reference side's missing `_AREA_` spelling is supplied: two of
+the four "encodings" were **pool words**, and the same omission caused an
+undocumented relocation difference.
+
+So an objcmp figure counts *encoding slots*, and a pool word occupies one. **Size,
+the instruction count, the per-opcode histogram and the call multiset are all blind
+to this** — the pool word is not an instruction, so none of them sees it move. When
+a figure will not shrink, check whether some of it is **pool content rather than
+code.**
+
+## Flag-tested attributions: one fell, one survived
+
+Both checked against the flag that would settle them, which is the discipline the
+parks lacked:
+
+  * **"gcse (PRE), located to the insn" does NOT survive.** `-fno-gcse` gives
+    **71 of 199 and +4 bytes**, where the park recorded "1 wrong plus one extra
+    instruction". **The attribution rests on dumps alone**, and the residue is
+    reload rematerialisation. This is the third time a gcse attribution has failed
+    its own flag test (after one that was cse1, and one that was cse2).
+  * **"reload's round-robin spill-register counter" SURVIVES.** The subject
+    variable is one-set/one-use — exactly the `REG_N_SETS` case — and **all eight
+    two-step computed forms are inert.** So it is *not* a one-set/two-set story in
+    disguise, and that reading is ruled out rather than left open.
+
+### A structural bound on the new alias-set lever
+
+**It reaches none of these four**, and the reason is general: every residue here is
+either a **reload-stage decision** or a **tie between two constant register sets**,
+**never a MEM against a non-MEM**. The alias-set lever needs a MEM in the tie to
+have anything to widen or narrow. Worth checking first — it is one look at the two
+competing insns.
+
+## My pin counts were wrong on three of four parks
+
+I ranked the batch's targets with an ad-hoc regex (`register \w+ \w+ __asm__`) and
+reported 7, 15, 9 and 4 pins. `tools/shimcount.py` says **93, 15, 6 and 2** — the
+regex misses every **macro-expanded** PIN site, which is how the heaviest-pinned
+park in the batch read as the lightest.
+
+**`shimcount.py` is the authority for pins, the way `objcmp.py` is for figures.**
+An ad-hoc count of a thing a tool already measures is a defect waiting to be
+briefed, and this one understated a 93-pin function by a factor of thirteen.
+
+## Negatives recorded so they are not re-derived
+
+  * a buffer/pointer split: 75-76 (from 1);
+  * a loop.c strength-reduction reframing: 98 and −4 bytes;
+  * **declaration-order coupling inert on every pin shape** — that park's
+    prediction is false;
+  * **a two-sided r3 constraint**: fixing the transposition breaks the
+    stack-argument carrier, so **no pure pin shape satisfies both.** That is a
+    genuine shape conflict rather than a missing idea.
+
+## `tools/sweep_variants.py`: measure a whole directory in ONE container
+
+Installed from brief E. It measures **35 variants in about 3 seconds** by running
+one container over a directory, instead of paying container startup per trial —
+which is what made 218 measurements and two bisections affordable in one brief.
+
+**Use it for pass three's group sweeps.** The pin-grouping guard above needs a
+subset sweep per distinct constant, and that is only practical at this cost.

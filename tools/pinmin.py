@@ -19,9 +19,46 @@ the final result.
 METHOD.  Cumulative greedy single pass: walk the sites, tentatively unpin one
 while KEEPING every unpin already accepted, rebuild, and accept only if the .s
 is unchanged.  The result is a true fixpoint -- no single further removal is
-possible -- which is the property that was owed.  (Note it is a local, not
-global, minimum: a pair of pins might be jointly removable where neither is
-singly removable.  The pass reports that bound rather than claiming more.)
+possible -- which is the property that was owed.
+
+*** AND A SINGLE-PIN GREEDY IS PROVABLY INSUFFICIENT.  READ THIS BEFORE TRUSTING
+A FIXPOINT FROM THIS SCRIPT. ***
+
+Batch 314 measured the gap in BOTH directions, and the second is worse than the
+"local minimum" caveat this docstring used to carry:
+
+  * A PAIR CAN BE JOINTLY REMOVABLE where neither is singly removable -- the
+    caveat as originally stated.
+  * A PAIR CAN BE JOINTLY LOAD-BEARING WHERE EACH IS INDIVIDUALLY INERT.  On one
+    function 20 of 34 pin sites were individually inert; dropping all 20 cost 65
+    encodings, and bisection isolated it to a SINGLE PAIR -- each free alone (4),
+    together 65, with every subset containing both at 65 and every subset missing
+    either at 4.
+
+THE MECHANISM, which makes it predictable rather than a surprise: those two sites
+were the only two in the function materialising THE SAME CONSTANT.  cse1 unifies
+two pseudos holding the same CONST_INT, the survivor then crosses calls and takes
+a callee-saved register -- so A PIN DEFEATS THAT UNIFICATION ONLY IN COMPANY.
+Either pin alone leaves the other pseudo unpinned, and unification needs TWO
+UNPINNED PEERS.  Control: break the shared value and the 65 collapses to 5.  A
+second independent instance was found by the same method -- a width reduction,
+individually inert at 32 of 34 sites, one pair costing 15, again the only two
+sites sharing a constant.
+
+WHY GREEDY CANNOT SEE IT, exactly: offered one of such a pair first, the pass
+ACCEPTS it (free alone), then REJECTS the second (now load-bearing), and reports a
+fixpoint ONE PIN SHORT, with no indication the two were related.
+
+THE GUARD: GROUP PIN SITES BY THE VALUE THEY MATERIALISE -- one grep per distinct
+constant -- AND REMOVE EACH GROUP AS A UNIT, then run the single-site pass over
+what remains.  A fixpoint from this script WITHOUT that grouping is a LOWER BOUND
+on what can be removed, not a minimum, and must be reported as such.  The 233 ->
+157 result this script produced on OvlFunc_889_2008074 carries that caveat.
+
+tools/sweep_variants.py measures a whole directory of variants in ONE container
+(35 variants in ~3 seconds), which is what made 218 measurements and the
+bisections above affordable.  Use it for the group sweep rather than one rebuild
+per trial.
 """
 import re, subprocess, shutil, sys, os
 

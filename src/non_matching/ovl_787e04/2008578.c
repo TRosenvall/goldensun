@@ -1,67 +1,93 @@
 /* OvlFunc_887_2008578 -- NON-MATCHING, 4 ENCODINGS OF 453.  Size 1172 = 1172,
- * relocations identical, instruction count 453 = 453.
- *
- * Blocker class: reload's ROUND-ROBIN SPILL-REGISTER COUNTER.  BATCH 282 CORRECTED
- * THIS PARK'S ATTRIBUTION: it is NOT local-alloc, and REG_ALLOC_ORDER is not what
- * decides it.
- *
- * BOTH INSTRUCTIONS ARE RELOAD-CREATED.  .18.greg / .19.flow2 show
- * `(insn 1351 (set (reg:SI 2 r2) (reg/v:SI 10 sl)))` -- UID 1351, MANUFACTURED BY
- * RELOAD as a high-to-low copy because `zero` lives in r10 and *thumb_movsi_insn
- * cannot store from a high register -- and the same shape for `g` in r9.  NEITHER IS
- * A LOCAL-ALLOC QUANTITY, so QTY_CMP_PRI -- the priority formula this park originally
- * reasoned from -- NEVER SEES THEM.
- *
- * What decides them is allocate_reload_reg, reload1.c:4925-4945:
- *
- *       /* I is the index in spill_regs.
- *          We advance it round-robin between insns to use all spill regs
- *          equally, so that inherited reloads have a chance
- *          of leapfrogging each other.  *\/
- *       i = last_spill_reg;
- *       for (count = 0; count < n_spills; count++)
- *         { i++; if (i >= n_spills) i -= n_spills; regnum = spill_regs[i]; ...
- *
- * with `i = last_spill_reg` at :5003 and `last_spill_reg = i` on success at :4937.
- * `last_spill_reg` IS FUNCTION-SCOPED STATE ADVANCING ONCE PER SUCCESSFUL
- * RELOAD-REGISTER ALLOCATION.  An exactly complementary r2<->r3 swap across two
- * consecutive high-to-low copies is a PHASE DIFFERENCE IN THAT COUNTER, decided by
- * every earlier reload in the function -- which is precisely why 112 spellings at the
- * two sites were inert and why the identical construct 60 instructions later is right
- * (the phase has rotated back into agreement).
- *
- * TWO COROLLARIES WORTH THE ROW:
- *   AN IDENTICAL INSTRUCTION STREAM UP TO THE DIVERGENCE DOES NOT IMPLY IDENTICAL
- *   RELOAD STATE.  objcmp's first difference is index 129 with everything before it
- *   equal, yet the counter is out of phase -- inherited and shared reloads advance
- *   last_spill_reg WITHOUT EMITTING AN INSTRUCTION.
- *
- *   THE ONLY HANDLE IS THE COUNT OF RELOAD-REGISTER ALLOCATIONS *EARLIER* IN THE
- *   FUNCTION.  That reframes the target from "find the right spelling for these two
- *   stores" to "find an earlier site where an equally-matching spelling costs one more
- *   or one fewer reload".
- *
- * The obvious alternative was ruled out: r3 IS free at the first copy
- * (`str r3,[r6,#8]` immediately precedes and kills it), and -fno-schedule-insns2
- * leaves the whole region unchanged, so reload-time order equals final order.
- *
- * 36 NEW SPELLINGS IN BATCH 282, none better than 4 and most catastrophic: an r3 or r2
- * pinned temp for the `zero` store 409 of 453 and -8 BYTES (the pin destroys the
- * pooled-zero / struct HalfWord arrangement this park's own header documents); a
- * pinned `register unsigned char **gp` in r2 or r3 for `g[0]` 361/362 and +4 bytes; a
- * pinned `register unsigned char *b2` in r1 with `g[0]` hoisted 314 and +4; an `int c3`
- * r3 carrier for the 0x8d << 18 store 4 (inert); dropping the first `do{}while(0)` 5.
+ * instruction count 453 = 453, relocations identical.  A TRUE DISTANCE.
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/ovl_787e04/2008578.c \
  *     asm/overlays/rom_787e04/ovl_30_c_a_c_a_c_c_c_c_c_c_c_c_c_c_c_a_a_a_c.s \
  *     --func OvlFunc_887_2008578
+ *   XX ENCODINGS differ in 4 place(s) (ref 453, ours 453)
+ *      first at index 129: ref 4653  ours 4652
  *
- * THIS WAS THE BATCH'S HIGHEST-VALUE NEAR MISS.  Its file-mate OvlFunc_887_20083f8
- * IS exact and landed (src/overlays/rom_787e04/..._a_a_a_b.c), so the file was one
- * step from converting whole and was split two ways instead.  Four encodings.
+ * Blocker class: reload's ROUND-ROBIN SPILL-REGISTER COUNTER
+ * (allocate_reload_reg, reload1.c:4925-4945; `last_spill_reg` is function-scoped
+ * state advancing once per successful reload-register allocation).  Both residue
+ * instructions are RELOAD-CREATED high-to-low copies -- `zero` lives in r10 and
+ * `g` in r9, and *thumb_movsi_insn cannot store from a high register -- so
+ * QTY_CMP_PRI never sees them and this is not a local-alloc quantity.
  *
- * THE RESIDUE:
+ * BATCH 314 CONFIRMED THAT ATTRIBUTION AGAINST THE BRIEF'S `REG_N_SETS`
+ * RE-READING, AND IT SURVIVES.  `zero` is set ONCE and used ONCE across many
+ * calls, so REG_N_SETS == 1 and it is exactly the shape update_equiv_regs gates
+ * on.  Every two-step computed form that makes it TWO-SET is INERT at 4:
+ * `zero = 0; zero <<= 7;`, `zero = 1; zero -= 1;`, `zero = 1; zero >>= 1;`,
+ * `zero = 0x80; zero &= 0;`, and the same treatments on `g` (`g = &g[0]`, a
+ * do-while barrier, `t = *g`), singly and in combination.  So this is NOT a
+ * one-set/two-set story in disguise.  Also measured: a do-while barrier on
+ * `zero` costs 10, and DELETING the existing `do { } while (0);` costs 30 -- that
+ * barrier is load-bearing and worth 26.
+ *
+ * ================== PINS: 45, DOWN FROM 93, AND WHY THE REST STAY ==================
+ * tools/shimcount.py reports 45 register pins across 15 PIN macro sites.  The
+ * previous revision of this park carried 93 across 34 sites; batch 314 removed
+ * 19 whole sites (they are now ORDINARY C CALLS with the constants folded back
+ * into the argument list) with NO change to the distance -- 4, first 129,
+ * size 0, relocations ok, identical on every figure.
+ *
+ * A PER-SITE SWEEP ESTABLISHED WHICH 15 MUST STAY.  Control: `PIN<n>` replaced by
+ * plain `int` temporaries, which removes only the register constraint and keeps
+ * the block, the temporaries and the assignment order.  14 sites are
+ * individually load-bearing (6 of them catastrophically: 323, 295, 286, 225,
+ * 120, 105).  All 34 unpinned reads 425 of 453 and +12 bytes: the pins carry
+ * essentially the whole function and it cannot be depinned wholesale.
+ *
+ * *** THE 15th PIN IS LOAD-BEARING ONLY IN COMPANY, AND THIS IS A GENERAL LAW. ***
+ * Dropping all 20 individually-inert pins at once costs 61 (4 -> 65).  Bisection
+ * isolates it to a PAIR -- the two sites below, each INERT alone and 65 together,
+ * with every subset containing both reading 65 and every subset missing either
+ * reading 4:
+ *
+ *     q2 = 0xaa; q2 <<= 2;   ... __Func_8092158(q0, q1, q2)
+ *     q2 = 0xaa; q2 <<= 2;   ... __Func_80921c4(q0, q1, q2)
+ *
+ * `grep -n 0xaa` returns exactly those two lines: they are the only two sites
+ * that materialise the same constant (0x2a8).  MECHANISM -- this is
+ * src/non_matching/rom_c9000/80cdd58.c's recorded `invalidate_for_call` lever
+ * needing TWO pins instead of one.  cse1 unifies two pseudos holding the same
+ * CONST_INT; the unified pseudo then crosses calls and local_alloc gives it a
+ * CALLEE-SAVED register, which perturbs the allocation globally.  A hard
+ * call-clobbered register is invalidated by invalidate_for_call, so EITHER pin
+ * alone breaks the unification -- unification needs TWO UNPINNED PEERS.
+ * CONTROL: with the pair unpinned and one site's constant changed 0xaa -> 0xab
+ * so the two values differ, 65 collapses to 5.  That isolates the sharing of the
+ * constant as the entire cause.
+ *
+ * A SECOND, INDEPENDENT INSTANCE of the same law, found the same way.  Dropping
+ * only the WIDEST pin at a site is individually inert at 32 of the 34 sites, but
+ * combining eight of those costs 15, and bisection again isolates one pair:
+ *
+ *     q1 = 0xc0; q2 = 0xc0; q1 <<= 9; q2 <<= 8;  __MapActor_SetSpeed(...)   x2
+ *
+ * `grep -n 0xc0` returns exactly those two lines -- again the only two sites
+ * sharing materialised constants.
+ *
+ * CONSEQUENCE FOR ANY DEPINNING PASS, AND IT IS THE REASON THE COUNT ABOVE IS
+ * HONEST RATHER THAN MINIMAL: a pin whose job is to defeat cse unification of a
+ * value occurring N times is load-bearing ONLY AS A GROUP.  Removing any one
+ * leaves N-1 >= 1 pinned and nothing changes, so a cumulative greedy that
+ * removes one pin at a time and requires byte-identity CANNOT SEE IT -- every
+ * single step is genuinely inert and the cliff arrives only when the
+ * last-but-one pin of the group goes.  Worse, a greedy that happens to try the
+ * first of a pair before the second ACCEPTS the first, then REJECTS the second,
+ * and reports a fixpoint one pin short.  The cheap guard: GROUP THE PIN SITES BY
+ * THE VALUE THEY MATERIALISE (one grep per constant) AND REMOVE EACH GROUP AS A
+ * UNIT.  A group of size N has one interesting removal, not N.
+ *
+ * Pushing past 45 is not free and was measured: width-reducing the 15 survivors
+ * costs 15 (the 0xc0 pair), and `PIN3 -> only q0 pinned` on them costs 417.
+ *
+ * A pinned landing needs a fakematch.txt row; there is still none.
+ *
+ * THE RESIDUE (unchanged):
  *
  *     ref                      ours
  *     str  r3, [r6, #8]        str  r3, [r6, #8]
@@ -72,59 +98,19 @@
  *     mov  r2, r9              mov  r3, r9
  *     ldr  r1, [r2, #0]        ldr  r1, [r3, #0]
  *
- * The ROM uses r3 then r2; we use r2 then r3.  Both are three-register solutions of
- * the same shape, and REG_ALLOC_ORDER STARTS AT r3, so OURS IS THE NATURAL CHOICE
- * and the ROM's implies a conflicting quantity claimed r3 first.
+ * The ROM uses r3 then r2; we use r2 then r3 -- a complementary swap across two
+ * reload-created copies, i.e. a PHASE DIFFERENCE in last_spill_reg.  AN IDENTICAL
+ * INSTRUCTION STREAM UP TO THE DIVERGENCE DOES NOT IMPLY IDENTICAL RELOAD STATE:
+ * everything before index 129 is equal, yet the counter is out of phase, because
+ * inherited and shared reloads advance last_spill_reg WITHOUT EMITTING AN
+ * INSTRUCTION.  The only handle remains the COUNT of reload-register allocations
+ * EARLIER in the function.  `p8 += 0` as an earlier-reload probe: inert.
  *
- * WHAT SAYS THIS IS ONE ALLOCATION DECISION RATHER THAN A READING ERROR: THE
- * IDENTICAL SOURCE CONSTRUCT 60 INSTRUCTIONS LATER (`= 0x201` / `= 0x10`) MATCHES
- * EXACTLY.  That is the check to make before treating any permutation as a
- * structural problem.
- *
- * MEASURED FLOOR: 4, ACROSS 112 SPELLINGS.  Reusing an existing local as the
- * carrier; `register int __asm__("r3")` on either temp (19 and 4); naming g[0] (4);
- * naming the offset (15, 26); 0x1c0/0x1c8 literals against (0xe0<<1) (4); five
- * reorderings of the three p6 stores (5-7); `register int zero __asm__("r10")` (4);
- * `unsigned int zero` (4); a v10 int carrier for 0x2b30000 at four positions (4-7);
- * five do{}while(0) positions in that block (4-5).  Flags, diagnostic only:
- * -fno-cse-follow-jumps 4 (inert), -fno-schedule-insns2 78, -fno-gcse 425.
- *
- * EVERY SHIPPED DEVICE IS LOAD-BEARING, each measured by single drop:
- * `register int p8 __asm__("r8")` 406; `struct HalfWord z` 349; `int h = 0x555`
- * carrier 361; `register unsigned char bit __asm__("r6")` 192; four of five
- * do{}while(0) barriers 6/25/5/5.  Two devices were inert singly AND JOINTLY and
- * are dropped from the shipped file.  Path: 384 -> 386 -> 62 (pin pass) -> 49 (r8
- * pin) -> 29 (r6 pin) -> 24 (0x555 carrier) -> 14 -> 4.
- *
- * ================================================================
- * TWO RULES THIS FUNCTION ESTABLISHED
- * ================================================================
- *
- * POOL ORDER IS A READOUT OF EACH CONSTANT'S MODE, AND IT IS A CHEAPER SIGNAL THAN
- * THE POOL'S POSITION.  The ROM's mid-function pool is ordered
- * `0, iwram_3001ebc, 0x555, 0x28a0000, 0x2160000`.  Sorting by max_address (insn
- * address + pool_range) reproduces that order ONLY IF 0 is HImode (range 64) AND
- * 0x555 IS SImode (1020) -- with 0x555 HImode it sorts first, which is what the
- * candidate did.  Adding the `int` carrier for 0x555 ALONE moved the pool to the
- * ROM's position, 27 -> 24.  READ THE ROM'S POOL ORDER TO DECIDE WHICH CONSTANTS
- * NEED THE `int` CARRIER, BEFORE TOUCHING ANY REGISTER.
- *
- * A POOLED ZERO REACHING A `strb` IS THE `struct HalfWord` CASE.  The ROM has
- * `ldr r5, =0 / add r0,#0x55 / strb r5,[r0]`.  *thumb_movqi_insn's alternative 1 is
- * "l" <- "m" (memory only, no `n`), SO A QImode CONSTANT CAN NEVER POOL -- only
- * HImode can.  Six spellings gave `mov` (bare 0, short z, unsigned short z,
- * unsigned char z, pointer-named, a reused int); `volatile short` gives the pool
- * load but costs a stack slot.  The fix is
- * `struct HalfWord { unsigned short v; }; z.v = 0; q[0x55] = z.v;` -- PROMOTE_MODE
- * widens a plain `short` local to SImode BUT NOT A STRUCT FIELD.
- *
- * That second rule was ALREADY IN THE TREE, in
- * src/overlays/rom_7b9cb4/ovl_30_a_c_c_a_c_c_a_a_a_c_a_c_a_b.c from batch ~275, and
- * NOT in docs/elevation.md -- which cost the agent that rediscovered it real time.
- * It is now in the doc.  The one-line search that finds it:
- * grep asm/ for a generated `ldrh rN, .L` immediately followed by `strb`.
- *
- * No per-file Makefile flag override applies to this stem.
+ * THE BRIEF'S ALIAS-SET DEPENDENT-COUNT LEVER CANNOT REACH THIS PARK: that lever
+ * moves rank_for_schedule's dependent count and needs a MEM as one of two
+ * COMPETING insns.  This residue is not scheduling at all -- it is a reload
+ * spill-register choice, and -fno-schedule-insns2 was already shown to leave the
+ * whole region unchanged.
  */
 struct HalfWord { unsigned short v; };
 
@@ -209,9 +195,9 @@ void OvlFunc_887_2008578(void)
     __MapActor_SetPos(0xd, 0, 0);
     __MapActor_SetPos(0xe, 0, 0);
     __MapActor_SetPos(0xf, 0, 0);
-    { PIN3; q2 = 0; q1 = 0; q0 = 0x10; __MapActor_SetPos(q0, q1, q2); }
+    __MapActor_SetPos(0x10, 0, 0);
     __Actor_SetSpriteFlags(__MapActor_GetActor(0), 0);
-    { PIN2; q1 = 0x12; q0 = 0; __MapActor_SetAnim(q0, q1); }
+    __MapActor_SetAnim(0, 0x12);
     zero = 0;
     { unsigned char *r = (unsigned char *)p8;
       int h = 0x555;
@@ -219,16 +205,14 @@ void OvlFunc_887_2008578(void)
     z.v = 0;
     __MapActor_GetActor(0x11)[0x55] = z.v;
     __Actor_SetSpriteFlags(__MapActor_GetActor(0x11), 0);
-    { PIN3; q1 = 0x90 << 18; q2 = 0x28a0000; q0 = 0x11;
-      __MapActor_SetPos(q0, q1, q2); }
+    __MapActor_SetPos(0x11, 0x90 << 18, 0x28a0000);
     __Func_80118a8(7);
-    { PIN3; q2 = 0xac; q1 = 0x2160000; q2 <<= 18; q0 = 8;
-      __MapActor_SetPos(q0, q1, q2); }
+    __MapActor_SetPos(8, 0x2160000, (0xac) << 18);
     __Func_800c5b4();
     __Func_8093304(8);
     do { } while (0);
     m = 0xe52;
-    { PIN3; q1 = 1; q0 = m; q2 = 0; __Func_8019aa0(q0, q1, q2); }
+    __Func_8019aa0(m, 1, 0);
     __CutsceneWait(0x28);
     { PIN3; q0 = 0x80; q0 <<= 9; q1 = 0x80; q2 = 0x80; q1 <<= 9; q2 <<= 9;
       __Func_8012330(q0, q1, q2); }
@@ -258,39 +242,38 @@ void OvlFunc_887_2008578(void)
     __MapTransitionIn();
     __WaitMapTransition();
     __Func_8095268();
-    { PIN2; q1 = 4; q0 = 8; __MapActor_DoAnim(q0, q1); }
+    __MapActor_DoAnim(8, 4);
     __MessageID(m + 2);
     { PIN3; q2 = 0x3c; q0 = 0x9008; q1 = 0; __Func_8093040(q0, q1, q2); }
-    { PIN2; q1 = 2; q0 = 0; __Func_80925cc(q0, q1); }
+    __Func_80925cc(0, 2);
     __CutsceneWait(0x28);
-    { PIN2; q1 = 1; q0 = 8; __Func_80925cc(q0, q1); }
+    __Func_80925cc(8, 1);
     __CutsceneWait(0x28);
     { PIN3; q2 = 0x14; q0 = 0x9008; q1 = 0; __Func_8093040(q0, q1, q2); }
-    { PIN2; q1 = 2; q0 = 0; __Func_80925cc(q0, q1); }
+    __Func_80925cc(0, 2);
     __Func_80118c0(7);
     __CutsceneWait(0x14);
     __Func_80118a8(8);
     { PIN3; q1 = 0x80; q2 = 0x80; q0 = 0; q1 <<= 9; q2 <<= 8;
       __MapActor_SetSpeed(q0, q1, q2); }
     __MapActor_SetAnim(0, 0x13);
-    { PIN3; q1 = 0x22d; q2 = 0x2a7; q0 = 0; __Func_8092158(q0, q1, q2); }
+    __Func_8092158(0, 0x22d, 0x2a7);
     __Func_80118c0(8);
     __Func_80118a8(9);
-    { PIN3; q2 = 0xaa; q1 = 0x22b; q2 <<= 2; q0 = 0;
-      __Func_8092158(q0, q1, q2); }
+    __Func_8092158(0, 0x22b, (0xaa) << 2);
     __CutsceneWait(0x1e);
-    { PIN3; q1 = 0xd0; q2 = 0; q1 <<= 8; q0 = 8; __Func_8092adc(q0, q1, q2); }
+    __Func_8092adc(8, (0xd0) << 8, 0);
     __Actor_SetSpriteFlags(__MapActor_GetActor(0), 1);
     __MapActor_Jump(0, 4, 0);
     { PIN3; q2 = 0x2a2; q0 = 0; q1 = 0x21f; __Func_80921c4(q0, q1, q2); }
     __Func_8092b08(0, 3);
     { PIN3; q1 = 0x80; q2 = 0x28; q0 = 0; q1 <<= 7; __Func_8092adc(q0, q1, q2); }
-    { PIN2; q1 = 4; q0 = 8; __MapActor_DoAnim(q0, q1); }
+    __MapActor_DoAnim(8, 4);
     __CutsceneWait(0x14);
     { PIN2; q0 = 0x9008; q1 = 0; __ActorMessage(q0, q1); }
     OvlFunc_887_20097e4();
     __Func_809259c(8, 2);
-    { PIN3; q1 = 0; q2 = 0x14; q0 = 0x9008; __Func_8093040(q0, q1, q2); }
+    __Func_8093040(0x9008, 0, 0x14);
     p = __MapActor_GetActor(8) + 0x5a;
     *p = 0xfe & *p;
     { PIN3; q2 = 0xaa; q2 <<= 2; q1 = 0x21e; q0 = 8;
@@ -304,14 +287,13 @@ void OvlFunc_887_2008578(void)
     __Actor_AddSpriteLayer(__MapActor_GetActor(0), 0xe2);
     __SetFlag(0x21);
     __PlaySound(0x7e);
-    { PIN2; q1 = 7; q0 = 0; __Func_8092950(q0, q1); }
+    __Func_8092950(0, 7);
     __CutsceneWait(0xa);
-    { PIN2; q1 = 0; q0 = 0; __Func_8092950(q0, q1); }
+    __Func_8092950(0, 0);
     __CutsceneWait(0x14);
     p = __MapActor_GetActor(8) + 0x5a;
     *p = 0xfe & *p;
-    { PIN3; q2 = 0xac; q1 = 0x216; q2 <<= 2; q0 = 8;
-      __Func_80921c4(q0, q1, q2); }
+    __Func_80921c4(8, 0x216, (0xac) << 2);
     __CutsceneWait(1);
     p = __MapActor_GetActor(8) + 0x5a;
     *p = bit | *p;
@@ -338,9 +320,9 @@ void OvlFunc_887_2008578(void)
     if (__Func_8091c7c(0, 0) == 0)
         *(short *)(g[0] + (0xec << 1)) += 1;
     __CutsceneWait(0x14);
-    { PIN3; q2 = 0x14; q0 = 0x8008; q1 = 0; __Func_8093040(q0, q1, q2); }
+    __Func_8093040(0x8008, 0, 0x14);
     __MapActor_SetAnim(0, 3);
-    { PIN2; q1 = 3; q0 = 8; __MapActor_DoAnim(q0, q1); }
+    __MapActor_DoAnim(8, 3);
     __CutsceneWait(0x14);
     __MapActor_SetBehavior(8, gScript_887__02009b04);
     __MapActor_SetBehavior(0, gScript_887__02009b34);

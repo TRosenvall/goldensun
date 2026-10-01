@@ -1,62 +1,107 @@
 /* OvlFunc_921_2009fa4 -- NON-MATCHING, 1 ENCODING OF 199.  Size identical (452
- * both) and relocations identical.  THE CLOSEST PARK IN THE PROJECT.
- *
- * Blocker class: gcse (PRE).  BATCH 282 LOCATED IT TO THE INSN, where this park had
- * said only "reload copying from a live address pseudo".
- *
- * At .00.rtl the latch site is
- * `(insn 350 (set (reg:SI 118) (plus:SI (reg:SI 28 virtual-stack-vars) (const_int -12))))`
- * followed by `(insn 352 (set (reg/v:SI 2 r2) (reg:SI 118)))`, and site 1 has the
- * identical shape with pseudo 72.  At .03.cse insn 350 STILL HOLDS THE `plus`.  At
- * .07.gcse ITS SOURCE HAS BECOME `(reg:SI 56)` -- the long-lived `&v[0]` pseudo that
- * lands in r5 -- and .09.cse2 propagates 56 into the r2 set, giving `mov r2, r5`.
- *
- * The ROM's `add r2, sp, #8` is that pseudo LEFT SEPARATE with 2 refs in one block, so
- * update_equiv_regs substitutes the frame address into its single use.  The ordering
- * around the residue already matches the ROM exactly; only the one instruction differs.
- *
- * `-fno-gcse` IS THE ONLY THING THAT TOUCHES THIS INSTRUCTION AND IT IS WORSE -- SO A
- * FLAG ROW IS ARGUED AGAINST HERE, the way batch 281 argued against
- * -fno-strength-reduce.  It keeps the pseudos separate but local-alloc then gives the
- * site-2 pseudo its own register, producing `add r5, sp, #8 / mov r2, r5`: still one
- * encoding wrong PLUS an extra instruction (ref 192 / ours 193).
- *
- * 36 NEW SPELLINGS IN BATCH 282, floor 1 throughout: a typed `register int *q2`
- * instead of `register int q2` + cast; dropping the q2 pin and passing `v` or `&v[0]`
- * with q0/q1 still pinned; q2 assigned first / last / between the shifts;
- * `(int)&v[0]` against `(int)v`; a `do{}while(0)` at `step:` -- each crossed with four
- * site-1 spellings.  Site 1 may be `v`, `&v[0]` or a named `int *vs = v` (all keep 1);
- * PINNING SITE 1 AS WELL COSTS 2 (3 of 199).
+ * both), relocations identical, 201 instructions.  THE CLOSEST PARK IN THE TREE.
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/ovl_7a7298/2009fa4.c \
  *     asm/overlays/rom_7a7298/ovl_30_c_c_c_c_c_c_c_c.s
- * The reference holds ONE function, so no split is needed for the TEXT.
+ *   XX ENCODINGS differ in 1 place(s) (ref 199, ours 199)
+ *      first at index 142: ref aa02  ours 1c2a
+ * The reference holds ONE function, so no --func is needed and no TEXT split.
+ *
+ * THE RESIDUE, one instruction at the loop latch's second __vec3_translate:
+ *
+ *     ref   add  r2, sp, #8      (aa02)
+ *     ours  adds r2, r5, #0      (1c2a)
+ *
+ * r5 holds sp+8 on BOTH sides and is live ACROSS the call (the surrounding
+ * [r5,#0]/[r5,#4]/[r5,#8] accesses are identical), and the FIRST translate emits
+ * `mov r2, r5` in both.  So the ROM REMATERIALISES the frame address at the
+ * second site where we COPY from the live address pseudo.
  *
  * ONE asm/ LINE IS NEEDED BEFORE THIS CAN LAND, AND IT IS NOT A CODE CHANGE.
- * `.L2430` is defined in that same .s WITH NO `.global` (grep -rn "global .L2430"
- * asm/ returns nothing).  Converting the function makes the reference
- * cross-object, so the .data section needs `.global .L2430` -- the one-line,
- * zero-byte export that docs/elevation.md already records, and that batch 281 used
- * successfully when rehoming .L60b8 for src/overlays/rom_7ac2d8/ovl_22c4_c_c_c_c_c.c.
- * (.L31c0 and .L31d6, which the 921 pair reaches, are ALREADY exported by this same
- * file, so that pair needed nothing.)
+ * `.L2430` is defined in that same .s with no `.global`
+ * (`grep -rn "global .L2430" asm/` returns nothing).  Converting the function
+ * makes the reference cross-object, so the .data section needs
  *
- * THE RESIDUE, one instruction at the loop latch's __vec3_translate:
+ *     .global .L2430
  *
- *     ref   add r2, sp, #8
- *     ours  add r2, r5, #0
+ * the one-line, zero-byte export docs/elevation.md records under "Splitting
+ * again: a `.L` label in `.rodata` needs `.global`".  BATCH 314 CONFIRMED THIS
+ * DOES NOT CHANGE THE FIGURE: against a workspace copy of the reference carrying
+ * that line, production objcmp still reads exactly 1 of 199 with NO relocation
+ * line.  It is a BUILD prerequisite, not a measurement artifact -- which is the
+ * opposite of src/non_matching/ovl_7bdeb0/2009984.c, whose missing reference-side
+ * `_AREA_` spelling WAS inflating its figure.  (.L31c0 and .L31d6, which the 921
+ * pair reaches, are already exported by this same file.)
  *
- * r5 holds sp+8 on BOTH sides, and the FIRST translate emits `mov r2, r5` in both.
- * So this is reload preferring a copy from the live pseudo over rematerialising the
- * frame address, at the second site only.
+ * ================= THE BLOCKER ATTRIBUTION, AND A PARK CORRECTION =================
+ * Blocker class: the long-lived `&v[0]` pseudo is created by gcse (PRE) and
+ * propagated into the r2 argument set by cse2.  At .00.rtl the latch site is
+ * `(insn 350 (set (reg:SI 118) (plus:SI (reg:SI 28 virtual-stack-vars)
+ * (const_int -12))))` followed by `(insn 352 (set (reg/v:SI 2 r2) (reg:SI 118)))`.
+ * At .03.cse insn 350 STILL HOLDS the `plus`; at .07.gcse its source has become
+ * `(reg:SI 56)` -- the pseudo that lands in r5 -- and .09.cse2 forwards 56 into
+ * the r2 set, giving the copy.  The ROM's `add r2, sp, #8` is that pseudo LEFT
+ * SEPARATE, so update_equiv_regs substitutes the frame address into its single
+ * use.
  *
- * PLATEAUED AT 1 across: four pin orders, a lone `register int *q2 __asm__("r2")`,
- * `&v[0]` against `v` at either site, and a separate element pointer (74 of 199 --
- * much worse).
+ * BATCH 314 RAN THE FLAG TEST THE BRIEF REQUIRES BEFORE ACCEPTING "gcse", AND
+ * CORRECTED THIS PARK'S RECORD OF IT.  The previous revision said -fno-gcse
+ * leaves "still one encoding wrong PLUS an extra instruction (ref 192 / ours
+ * 193)".  MEASURED, it is nothing like that:
  *
- * NEXT: the export line, then this is one instruction from landing.  Worth doing
- * before any larger target in this overlay.
+ *     XF=-fno-gcse  ->  XX SIZE  ref 452 bytes, ours 456
+ *                       XX ENCODINGS differ in 71 place(s) (ref 199, ours 201)
+ *                       XX RELOCATIONS differ (same names and order, all offsets
+ *                                              shifted by +2/+4)
+ *
+ * i.e. 71 of 199 and +4 bytes, not 1 and +1.  So -fno-gcse DOES NOT PRODUCE THE
+ * ROM'S INSTRUCTION and is a global perturbation; the flag test neither confirms
+ * nor isolates the pass, and the dump evidence above is the only support for the
+ * attribution.  A FLAG ROW IS STILL ARGUED AGAINST, for a stronger reason than
+ * the park previously gave.  `-fno-cse-follow-jumps` is INERT (still 1 at 142).
+ *
+ * =================== WHAT CLOSED THE OTHER 198 INSTRUCTIONS ===================
+ * 1. THE NARROWING COMPARISON WAS WORTH 49 OF 55 and the other 48 were symptoms:
+ *    `if (dir << 16 == (int)0xffff0000)` written out as the shift.  Neither
+ *    `(short)dir == -1` nor a separate `short dh` reaches it.  55 -> 6, taking
+ *    eleven separate r2/r3 scratch permutations with it.
+ * 2. THE ROM'S BLOCK ORDER IS NOT REACHABLE FROM STRUCTURED LOOPS; explicit
+ *    labels and gotos are worth 27.
+ * 3. PINNING THE 0x80000 THRESHOLD TO r11 FIXED THE FRAME SIZE (101 -> 82).
+ * 4. The pooled halfword zero and the byte-flag OR, both via r3 carriers.
+ *
+ * ============ BATCH 314: 14 MORE SPELLINGS, FLOOR STILL 1 ============
+ * (sweep figures are whole-object, so they print one higher than production;
+ * the extra one is the .L2430 pool word.)
+ *   dropping the q2 pin -- as `v`, as `&v[0]`, or as a one-set `int *vp`   worse by 1
+ *   `extern void` -> `int` on __Actor_WaitMovement / __CutsceneStart /
+ *     __WaitFrames                                                        INERT
+ *   `extern void` -> `int` on __vec3_translate / __Actor_TravelTo          worse
+ *   THE BUFFER/POINTER SPLIT, six shapes                                  75-76
+ *
+ * THE HYPOTHESIS MOST WORTH RECORDING, BECAUSE IT IS SOUND IN FORM AND FALSE
+ * HERE.  For reload to rematerialise at site 2, site 2's address pseudo must be
+ * one-set with REG_EQUIV = sp+8 and NO hard register, which requires cse not to
+ * have equated it with the long-lived pseudo.  Read as "two named quantities are
+ * ONE variable in the ROM, in reverse", what this park models as one `int v[3]`
+ * would be TWO quantities -- a buffer plus a pointer to it
+ * (`int vbuf[3]; int *v = vbuf;`) -- so site 1's `v` is a VARIABLE READ and site
+ * 2's `vbuf` is a FRAME-ADDRESS expression cse cannot common, which is exactly
+ * the ROM's asymmetry (`mov r2,r5` then `add r2,sp,#8`).  Measured across six
+ * shapes (site 2 as `vbuf`, `&vbuf[0]`, pinned, or `v`; site 1 flipped; fully
+ * unpinned): 75-76 of 199, FIRST DIFF AT INDEX 11.  gcc propagates `v = &vbuf`
+ * at once and the whole register map changes.  Do not re-derive it.
+ *
+ * THE BRIEF'S ALIAS-SET DEPENDENT-COUNT LEVER CANNOT REACH THIS PARK: that lever
+ * moves rank_for_schedule's dependent count, and this residue is not a scheduling
+ * tie at all but a reload address-reload choice.  There is no tie to break.
+ *
+ * SHIMS: 6 register pins (tools/shimcount.py).  A pinned landing needs a
+ * fakematch.txt row.
+ *
+ * NEXT: the export line, then one instruction.  Nothing source-level found for
+ * it across 36 (batch 282) + 14 (batch 314) spellings.
  */
 /* OvlFunc_921_2009fa4 (0x02009fa4) -- NON-MATCHING, 1 encoding of 199 as
  * objcmp reports it.  SIZE IS IDENTICAL, 452 bytes both sides, RELOCATIONS ARE

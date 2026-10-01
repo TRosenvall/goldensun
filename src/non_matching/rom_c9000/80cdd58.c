@@ -1,143 +1,112 @@
-/* InitRenderTilemapBG1 -- asm/rom_c9000/rom_cd508_c_a.s, 0x080cdd58, 107 ROM lines.
+/* InitRenderTilemapBG1 -- NON-MATCHING, 2 ENCODINGS OF 129.
  *
- * NON-MATCHING: 2 encodings of 129 differ (objcmp).
- *
- * SIZE EXACT (312 bytes = 312), INSTRUCTION COUNT EXACT (129 = 129),
- * RELOCATIONS EXACT (objcmp prints no RELOCATIONS line).  So 2 IS a true
- * distance.  rom_cd508_c.s has NO data section (tools/datacheck.py prints
- * nothing for it); the split is text-only, and Anim_PlanetDiver / Anim_Haunt
- * stay in assembly beside DrawLine and Anim_Confuse.
+ * SIZE EXACT (312 = 312), INSTRUCTION COUNT EXACT (129 = 129), RELOCATIONS EXACT
+ * (objcmp prints no RELOCATIONS line).  So 2 IS A TRUE DISTANCE.
+ * tools/datacheck.py reports no data section for rom_cd508_c.s; the split is
+ * text-only, and Anim_PlanetDiver / Anim_Haunt stay in assembly beside DrawLine
+ * and Anim_Confuse.
  *
  * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/rom_c9000/cdd58_InitRenderTilemapBG1.c \
+ *   python3 tools/objcmp.py src/non_matching/rom_c9000/80cdd58.c \
  *     asm/rom_c9000/rom_cd508_c_a.s --func InitRenderTilemapBG1
+ *   XX ENCODINGS differ in 2 place(s) (ref 129, ours 129)
+ *      first at index 39: ref 4694  ours 2400
  *
- * THE RESIDUE, exactly: ONE sched2 SWAP IN THE LOOP PREHEADER.
- *   rom  ... mov r0,#0 / mov r6,#0 / mov r12,r2 / mov r4,#0
- *   ours ... mov r0,#0 / mov r6,#0 / mov r4,#0  / mov ip,r2
- * `mov r12,r2` is reload's copy for the 0x100 loop invariant (thumb cannot
- * shift a hi register, so the value is built in r2 and copied to ip).  loop.c
- * inserts a hoisted invariant with emit_insn_before (loop_start), i.e. AFTER
- * everything expand already put in the preheader -- and `row = 0` comes from
- * the `for` init, which expand emitted there.  So gcc's pre-sched2 order has
- * `row = 0` first, both insns are ready together in the preheader block, their
- * sched2 priorities tie at 0 (both die across the block boundary), and
- * rank_for_schedule falls through to INSN_LUID.  PASS: sched2 (haifa-sched.c
- * rank_for_schedule, LUID tie-break), forced by loop.c's invariant insertion
- * point.  No source order reaches it: `row = 0` is already the last
- * initialisation the source can express (`for (i = 0, row = 0; ...)` beats
- * `row = 0;` before the loop by 4 encodings; putting `o = 0` in the for-init
- * too costs 2).  Giving 0x100 its own source local DOES put its materialisation
- * first -- and costs 98 of 129 AND TWO INSTRUCTIONS, because a source local
- * gets a LOW register and the `mov ip,r2` / `mov r3,ip` pair disappears.  The
- * hi-register 0x100 only exists because it is a compiler pseudo under pressure.
+ * THE RESIDUE IS ONE ADJACENT TRANSPOSITION IN THE LOOP PREHEADER:
  *
- * ============================================================
- * TWO HARD-REGISTER PINS ARE LOAD-BEARING HERE.  Without them this file is
- * 18 of 129 (same size, same count).  Both are the Tackle-park device
- * ("give a compiler-generated operand a source statement by pinning it to the
- * register the ROM uses"), and the r1 one is this bank's own recorded
- * `invalidate_for_call` lever.  They are reported, not smuggled:
+ *     [39] ref 4694 mov  ip, r2   | ours 2400 movs r4, #0
+ *     [40] ref 2400 movs r4, #0   | ours 4694 mov  ip, r2
  *
- *  (1) `register int n __asm__("r1")` for the size argument of the last two
- *      calls -- worth 8.  MECHANISM, PROVEN: the ROM re-materialises
- *      `mov r1,#0x80 / lsl r1,#7` at BOTH calls; gcc shares one pseudo.
- *      expand makes a pseudo per constant argument (.00.rtl insns 245 and 255,
- *      `(set (reg 87) (const_int 16384))` / `(set (reg 89) (const_int 16384))`),
- *      cse1 unifies 89 into 87 (COST of a CONST_INT is 0 under ARM's
- *      CONST_COSTS because const_ok_for_arm(0x4000) holds, so a REG at cost 0
- *      ties and wins), local_alloc then gives 87 a CALLEE-SAVED register
- *      because it crosses the call -- and that steals r5 from the function
- *      pointer, which is why the ROM's `bl _call_via_r5` reads
- *      `bl _call_via_r6` without the pin.  A hard call-clobbered register is
- *      invalidated by cse's invalidate_for_call, so the pin breaks the
- *      unification.  CONTROL: giving the second call a DIFFERENT constant
- *      (0x80 << 8) reproduces the ROM's whole tail with no pin -- the tail
- *      collapses to the `lsl` alone -- which isolates the sharing as the only
- *      cause.  Eight source spellings of the same value (named local, two
- *      locals, re-assigned pointer, `unsigned`, K&R pointer type, casts,
- *      0x100 << 6) are ALL INERT at 20/18.
- *  (2) `register int row __asm__("r4")` -- worth 5, and the PASS is
- *      global_alloc.  `.18.greg` prints the priority order as
- *      `43 41 42 60 45 40 62 58 37` = t, j, o, BASE, row, i; the ROM needs
- *      row before base (base is r5, row r4, i r6).  base is pseudo 60, the
- *      0x600fb00 pool value loop.c hoists; row is pseudo 45.  Both carry 7
- *      loop-depth-weighted refs, so floor_log2(n_refs)*n_refs is 14 for each
- *      and the order is decided by live_length: base dies at the last inner
- *      store, row at the outer `row += 0x10`, so base's range is the shorter
- *      and it wins.  Closing that needs ONE more weighted reference on row
- *      (7 -> 8 flips floor_log2 to 3 and the numerator to 24) -- i.e. an
- *      instruction the ROM does not have.  BY THE .17.lreg RULE THIS ONE IS
- *      UNREACHABLE BY ARITHMETIC from any spelling, which is why the pin is
- *      here.  Declaration order is INERT (four permutations, all 20/18),
- *      consistent with every local being register-resident.
+ * `mov ip, r2` is reload's copy for the 0x100 loop invariant (thumb cannot shift
+ * a hi register, so the value is built in r2 and copied to ip).
  *
- * ============================================================
- * SIX LEVERS THAT LANDED HERE, 127 -> 2.  All measured, drop ladder run.
+ * ============ PASS: sched2, AND BATCH 314 PROVED IT FROM THE DUMP ============
+ * THIS IS THE ONE PARK OF ITS BATCH WHOSE NAMED BLOCKER WAS CONFIRMED RATHER THAN
+ * CORRECTED, and it now rests on the dependence table instead of inference.
+ * `-fsched-verbose=6`, block 0's four tail insns, as
+ * `;; insn code bb dep prio cost ... : <INSN_DEPEND>`:
  *
- *  (a) A (reg + LARGE CONSTANT) HImode ADDRESS BECOMES `add rD,rN,rM / strh
- *      [rD]`, BUT (reg + reg) FROM TWO VARIABLES BECOMES `strh [rB,rO]`.
- *      Writing the VRAM base as the literal `0x600fb00` inside the address
- *      (`*(u16 *)(o + 0x600fb00)`) is what produces the ROM's two separate
- *      `add r3,r0,r5`; a named `vram` pointer gives `strh r6,[r1,r5]` and
- *      loses 2 instructions.  126 of 129 with the wrong SIZE -> 45 of 129
- *      with the size and count EXACT, in one edit.  Same shape as the landed
- *      src/rom_a1000/rom_a5534_a_b.c (`ldr r2,=914 / add r3,r5,r2 / strh`).
- *  (b) `volatile` ON THE VRAM STORE STOPS loop.c BUILDING A WALKING POINTER.
- *      36 -> 26.  Without it strength reduction makes the inner address a giv,
- *      hoists `add r3,r0,r5` above the `if` and walks it with `add r3,#2`;
- *      the ROM recomputes it in BOTH arms.  This is the cheap alternative to
- *      writing the inner loop as a goto loop -- which also removes it from
- *      loop.c's reach but costs the outer loop its invariant hoisting
- *      (292 bytes, 119 instructions).
- *  (c) THE RETURN TYPE OF AN INDIRECT-CALL POINTER IS PER CALL SITE, NOT PER
- *      CALLEE.  `int (*)(void *, int)` for the two early calls is worth 9 and
- *      fixes the pool word order (it makes gcc load the function pointer
- *      BEFORE r0, which is the ROM's order); `void (*)(void *, int)` for the
- *      two tail calls is worth a further 2.  The SAME callee, Func_80008d4, is
- *      reached through an `int` pointer at one site and a `void` pointer at
- *      another IN ONE FUNCTION.  `int` on the tail pointer costs 2, `void` on
- *      the early one costs 9, and `void` on fq costs 7.
- *  (d) A NAMED LOCAL POINTER DEFEATS THE symbol+offset POOL FOLD.
- *      `*(u16 *)(iwram_3001ad0 + 6)` pools `iwram_3001ad0+6`; `p =
- *      iwram_3001ad0; *(u16 *)(p + 6)` pools the plain symbol and keeps the
- *      offset in `strh [r2,#6]`, which is the ROM.  Same for iwram_3001e74 --
- *      and that ALSO fixed the prologue: with the three loads reached off one
- *      named pointer gcc emits `ldr r3,=sym / ldr [r3,#0x7c] / ldr [r3] /
- *      add r3,#0x8c / ldr [r3]`, byte-for-byte the ROM, where the folded form
- *      picked `sym+124` as the pool word and cost two instructions.
- *  (e) AN `int` CARRIER FOR A HALFWORD CONSTANT STORE.  `z = 0x20;
- *      *(u16 *)(p + 6) = z;` gives `mov r3,#0x20`; the bare literal gives a
- *      POOLED `ldr r3,=32`.  Confirmed in isolation.  But the SAME function's
- *      ten REG_* stores all want the BARE literal (the ROM pools 0x7741,
- *      0x1f81, 0x3f42, 0xf0, 0x1088, 0x3537, 0x3f21, 0x100e -- including 0xf0
- *      and 0xff, both of which FIT `mov #imm8`), so the carrier question is
- *      per store, not per function.  Eleven halfword constants, ONE carrier.
- *  (f) `zr = 0;` WRITTEN BEFORE `z = 0x20;` -- 26 -> 20.  The zero then lands
- *      in r1 before the 0x20 reaches r3, which is the ROM's
- *      `mov r1,#0 / mov r3,#0x20 / strh / str r1`.  Reordering the two STORES
- *      instead is inert (26).  And `j = 0;` written before `t = row + 0x100;`
- *      inside the outer body is worth 6 -> 4 on top of everything else: both
- *      are batch 290's "i = 0 written early", twice in one function.
+ *     ;;  88  173  0  1  1  1  core :        <- movs r0, #0   (o   = 0)
+ *     ;;  91  173  0  2  1  1  core :        <- movs r6, #0   (i   = 0)
+ *     ;;  93  173  0  4  1  1  core :        <- movs r4, #0   (row = 0)
+ *     ;; 330  173  0  5  1  1  core :        <- mov  ip, r2   (reload's copy)
  *
- * MEASURED NEGATIVES (do not retry):
- *  - `-fno-gcse`, `-fno-rerun-cse-after-loop`, `-fno-schedule-insns2`,
- *    `-fno-strength-reduce`, `-fno-cse-follow-jumps`, `-fno-cse-skip-blocks`,
- *    `-fno-expensive-optimizations`, `-fno-caller-saves`, `-fno-force-mem`:
- *    ALL leave the residue at 19.  No per-file Makefile row is warranted.
- *  - Declaration order: 4 permutations of `row` against `base` and `i`, all
- *    inert.  SLOT lever only; every local here is register-resident.
- *  - `t = i * 0x10 + 0x100` / `(i << 4) + 0x100` / `(i + 0x10) << 4` instead of
- *    an explicit `row`: 98 of 129 and 127 instructions.  gcc does NOT
- *    strength-reduce it here; the explicit local IS the ROM's r4.
- *  - `row += 0x10` moved above the inner loop: 51.  `unsigned row`: inert.
- *  - REG_BLDCNT (0x4000050) is reached as `ldr =REG_BG1CNT (0x400000a) /
- *    add r2,#0x46` and REG_BLDALPHA (0x4000052) as
- *    `ldr =REG_WININ (0x4000048) / add r2,#2 / add r2,#8`.  Both come out of
- *    plain `REG_BLDCNT = ...` / `REG_BLDALPHA = ...` from include/gba/io.h --
- *    the move2add chains are automatic, no spelling needed.
+ * ALL FOUR CARRY INSN_PRIORITY 1 AND AN EMPTY INSN_DEPEND LIST -- dependent count
+ * 0 for every one.  So rank_for_schedule genuinely does fall through priority AND
+ * dependent count to INSN_LUID, and the trace confirms it: the ready list prints
+ * as `330 93 91 88` yet the picks are 88, 91, 93, 330 -- strict ascending LUID.
+ * The LUID order is the pre-sched chain order, which is [expand's o/i/row inits]
+ * then [loop.c's hoisted invariant + reload's copy], because loop.c inserts the
+ * invariant with emit_insn_before(loop_start), i.e. AFTER everything expand
+ * already put in the preheader.  The ROM needs the opposite order.
+ *
+ * TWO CORRECTIONS TO THE PREVIOUS REVISION OF THIS PARK: the priorities tie at
+ * 1, NOT 0; and it asserted the LUID fall-through WITHOUT EVER CHECKING THE
+ * DEPENDENT COUNT -- the exact step that cost five other parks their attribution
+ * in the same batch.  Checked here, it ties at 0, so the conclusion holds.
+ *
+ * THE BRIEF'S ALIAS-SET DEPENDENT-COUNT LEVER CANNOT REACH THIS TIE.  It needs a
+ * MEM as one of the two COMPETING insns, so that retyping the access widens its
+ * alias set and picks up anti-dependences on the block's stores.  Here BOTH
+ * competitors are register sets (`mov ip,r2`, `movs r4,#0`) and the block holds
+ * no store either could take an anti-dependence on.  Breaking this tie needs an
+ * extra DEPENDENT, i.e. an instruction the ROM does not have.
+ *
+ * ============ BATCH 314: 12 MORE SPELLINGS, FLOOR STILL 2 ============
+ *   `o` folded into the for-init                        2  INERT
+ *   `t = 0x100 + row`                                   2  INERT
+ *   `extern int Func_80008d4` / `extern int WaitFrames` 2  INERT
+ *     (Func_80008d4 is the ONLY callee here declared in a tracked header --
+ *      libcamelot.h:6 `void Func_80008d4(void*, u32);` -- and it AGREES with this
+ *      file, so the return-type lever has no evidence base and measures inert.)
+ *   `for (row = 0, i = 0; ...)` / loop counters unsigned 3
+ *   `extern int _Func_80c0774`                          4
+ *   the r4 pin dropped                                  7  (so it is worth 5)
+ *   `o` pinned to r0                                   14
+ *   THE STRENGTH-REDUCTION IDEA, three spellings        98 and -4 BYTES
+ *
+ * THE STRENGTH-REDUCTION HYPOTHESIS, AND WHY IT FAILED -- RECORDED SO IT IS NOT
+ * RE-DERIVED.  `row` is a SOURCE biv whose `row = 0` expand emits into the
+ * preheader BEFORE loop.c appends the hoisted 0x100, which is precisely why
+ * LUID(row=0) < LUID(copy).  If `row` were instead a loop.c STRENGTH-REDUCTION
+ * product (`t = (i << 4) + 0x100`, with `row` and `row += 0x10` deleted), then
+ * strength_reduce -- which runs AFTER move_movables -- would emit the giv's
+ * initialisation with its own emit_insn_before(loop_start), landing it CLOSER to
+ * loop_start and therefore LATER in the chain than the hoisted invariant: the
+ * ROM's order.  Measured at 98 of 129 and -4 bytes in all three spellings
+ * (`i << 4`, `i * 0x10`, with and without the r4 pin).  loop.c does not reduce it
+ * to the ROM's shape; it removes the add entirely.
+ *
+ * ============ TWO HARD-REGISTER PINS ARE LOAD-BEARING ============
+ * Without them this file is 18 of 129 (same size, same count).  Reported, not
+ * smuggled; tools/shimcount.py counts 2.
+ *  (1) `register int n __asm__("r1")` for the size argument of the last two calls
+ *      -- worth 8.  The ROM re-materialises `mov r1,#0x80 / lsl r1,#7` at BOTH
+ *      calls; cse1 unifies the two pseudos (a CONST_INT costs 0, so a REG at cost
+ *      0 ties and wins), local_alloc then gives the survivor a CALLEE-SAVED
+ *      register because it crosses the call, which steals r5 from the function
+ *      pointer.  A hard call-clobbered register is invalidated by
+ *      invalidate_for_call, so the pin breaks the unification.  CONTROL: giving
+ *      the second call a different constant reproduces the whole tail with no pin.
+ *      Eight source spellings of the same value are ALL INERT.
+ *  (2) `register int row __asm__("r4")` -- worth 5, and the pass is global_alloc.
+ *      .18.greg prints the priority order as `43 41 42 60 45 40 62 58 37`; the ROM
+ *      needs row before base.  Both carry 7 loop-depth-weighted refs, so
+ *      floor_log2(n_refs)*n_refs is 14 for each and live_length decides: base dies
+ *      at the last inner store, row at the outer `row += 0x10`, so base's range is
+ *      shorter and it wins.  Closing it needs one MORE weighted reference on row
+ *      (7 -> 8 flips floor_log2 and the numerator to 24), i.e. an instruction the
+ *      ROM does not have.  Declaration order is inert in four permutations.
+ *
+ * NOTE: pin (1)'s mechanism is the SAME ONE that makes two individually-inert
+ * pins jointly load-bearing in src/non_matching/ovl_787e04/2008578.c -- there it
+ * takes TWO pins to break the unification, because unification needs two unpinned
+ * peers.  See that park's header for the grouping rule any depinning pass needs.
+ *
+ * A pinned landing needs a fakematch.txt row.
+ *
+ * THIS PARK IS AT ITS FLOOR AT 2 absent a way to add a dependent without an
+ * instruction.
  */
 #include "gba/io.h"
 
