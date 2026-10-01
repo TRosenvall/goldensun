@@ -59,6 +59,25 @@ def main():
             if kind != "thumb":
                 continue
             end = starts[i + 1][0] if i + 1 < len(starts) else len(t)
+            # END AT `.func_end`, NOT AT THE NEXT FUNCTION START.
+            #
+            # Slicing to the next function start drags in everything BETWEEN the
+            # two functions -- the literal pool and, decisively, the trailing
+            # `.global` directives for DATA symbols.  Those lines begin with a
+            # tab, so they survive the filter in normalise(), and names like
+            # `gOvl_0200a8f4`, `gScript_921__0200a4f4` and `gTable_921__0200a3f0`
+            # are NOT placeholdered (only Func_/OvlFunc_/.L are).  Two copies of
+            # one routine in different overlays therefore differ in ~39 lines of
+            # symbol names and NEVER GROUP.
+            #
+            # That is how the tree's two CLOSEST parks -- 1 of 199 and 2 of 199,
+            # the same 192-instruction routine in two overlays, identical after
+            # name/label/pool normalisation -- were missed, with neither park
+            # referencing the other.  A pin present in one and absent in the
+            # other was the whole of their 2-vs-1 difference.
+            fe = t.find("\n.func_end", off)
+            if fe != -1 and fe < end:
+                end = fe
             body = normalise(t[off:end])
             total += 1
             if body.count("\n") < 8:

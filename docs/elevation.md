@@ -31059,3 +31059,119 @@ which is what made 218 measurements and two bisections affordable in one brief.
 
 **Use it for pass three's group sweeps.** The pin-grouping guard above needs a
 subset sweep per distinct constant, and that is only practical at this cost.
+
+## `allocno_compare` priority is DIRECTLY CHECKABLE off `.17.lreg` -- stop guessing live lengths
+
+The most useful instrument found in batch 315, and it retires a whole class of
+guesswork. `.17.lreg` prints, per pseudo:
+
+    Register N used R times across L insns
+
+Those are **exactly the two inputs** to `floor_log2(R) * R / L`. Sorting pseudos by
+that expression **reproduces `.18.greg`'s `;; N regs to allocate:` line exactly**,
+verified on two functions.
+
+So any claim of the form *"quantity X outranks quantity Y, so it takes the
+register first"* is now a two-line calculation rather than an estimate — and
+estimates have been wrong. **I propagated a price that was off by about 2x:** a
+park said a quantity needed **five** references to win, derived from guessed live
+lengths of ~60 and ~55, and I repeated it in a brief. The real figures are 5 refs
+over 38 insns against 3 refs over 29 — the competitor has the **shorter** range,
+so **four** references suffice (0.2759 against 0.2632).
+
+**And reading the real numbers moved the open question.** The ROM's two quantities
+have the **same 5 and 3 reference counts as ours**, so the ROM did not differ in
+ref count at all — **it differed in LIVE LENGTH.** That is a completely different
+thing to go looking for, and the guessed pricing had hidden it.
+
+## REJECTED-AS-NEGATIVE LISTS MUST BE RE-CROSSED, NOT RE-RUN
+
+The third and sharpest form of the same gap. Established so far:
+
+  * a lever can measure **inert** only because a prerequisite is missing (batch 314);
+  * pins can be **jointly load-bearing while individually inert** (batch 314);
+  * and now: **edits that each measure as a clear REGRESSION can be jointly worth a
+    large gain.**
+
+On `Func_80b9724`, three source changes measured individually at **69, 112 and
+142** against a 57 baseline — every one a plain regression, and a one-at-a-time
+sweep scores all three negative and discards them. Taken together they are worth
+**57 → 40**:
+
+| combination | figure |
+|---|---|
+| baseline | 57 |
+| compound mask alone | 69 |
+| the ROM's arm order alone | **112** |
+| the pointer out of alias set 0 alone | **142** |
+| mask + arm order | **48** |
+| all three | **42** |
+| all three + a union | **40** |
+
+> **A one-at-a-time sweep cannot find a lever whose members are individually
+> negative. When a park carries a list of rejected spellings, the list is a set of
+> SINGLE measurements and must be CROSSED before it is believed.**
+
+That is expensive in general, which is exactly what `tools/sweep_variants.py`
+exists for — 35 variants in about 3 seconds makes a 2^3 or 2^4 cross affordable
+where one-rebuild-per-trial does not.
+
+The mechanism behind this particular case is worth keeping too. `.08.loop` shows
+it outright: the `|= 1` arm emits `(set (reg:HI 103) (const_int 1))` and the
+`& 1` arm `(set (reg:SI 116) (const_int 1))`. **`combine_movables` merges only
+equal `set_dest` MODES**, so savings stays 1 and `move_movables`' `savings > 1`
+test fails. **A cast will not narrow it** (six spellings byte-identical); the
+construct that does is the **compound assignment** `m = e->f4; m &= 1;`.
+
+## 60 SYMBOLS ARE DECLARED BOTH `void` AND VALUE-RETURNING IN LANDED FILES -- and that is the PROOF the return type is usually inert
+
+Found while checking why the callee-return-type lever reached nothing on one TU.
+A tree-wide sweep of `extern` declarations in `src/`:
+
+    declared both ways somewhere in src/      74
+    disagreeing among LANDED (byte-verified)  60
+    disagreeing among PARKS only              34
+    landed and park disagreeing outright       6
+
+**The 60 are not a defect in the ROM — they are evidence.** If two *byte-identical*
+landed files declare the same callee with different return types, then at those
+call sites **the return type is codegen-inert**. That reconciles three facts that
+looked unrelated:
+
+  * the `extern void` → `extern int` sweep measured **inert on 18 of 19 parks**;
+  * it nonetheless **landed four functions** in two batches;
+  * and the tree tolerated 60 contradictions without anything breaking.
+
+> **A callee's return type is inert at almost every call site and decisive at a
+> sched2 tie.** That is why it must be *swept* rather than reasoned about, and why
+> sweeping is cheap enough to always do.
+
+**The practical consequence for the lever:** on one TU, 14 extern respellings were
+all byte-identical **and there was no header to settle them against** — none of
+those symbols is in `include/`, and `src/` carries both spellings of three of
+them. So "cross-check against the tree's own headers" only works where a header
+exists; where it does not, **the sweep is the only authority.**
+
+The 6 landed-against-park disagreements are the ones worth fixing, since a park
+inheriting the wrong spelling from a landed neighbour will measure a lever that
+cannot pay. Recorded for pass four, which is the naming pass and the right place
+to make 60 declarations agree.
+
+## A park may carry a construct that measures well and must not SHIP
+
+`Func_80b9604`'s best body reaches 40 using a **union whose member is never read**
+— it exists only to widen an alias set. That is legal C and a legitimate
+*measurement*, but it is contrived, and the TU is not landing at 40 anyway. A
+union-free body at 42 is kept beside it at `docs/variant-80b9604-nounion.c`, and
+the park now says in its header that **the choice must be made deliberately if the
+TU ever reaches zero**, rather than defaulting to whichever figure is better.
+
+Related, from batch 314's landing: a park reached diff=0 by declaring a
+**fictitious three-argument alias** of a real callee, purely as a diagnostic.
+Together these give a rule for pass five, which hands this tree to another
+maintainer:
+
+> **A figure is only a figure if the body that produced it is one we would ship.**
+> A never-read union member, an invented symbol, a flag with no Makefile row — each
+> can produce a real number against a body that must not land. Say so in the park,
+> at the figure, not further down.
