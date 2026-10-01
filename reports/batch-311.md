@@ -206,9 +206,37 @@ remaining work is a single dump read rather than a search.
 ## Owed
 
 - `OvlFunc_889_2008074`'s 233 pins are still not minimised to a fixpoint (owed since 310).
-- `BufferString` needs `.func_end_emit_size Func_8015430, _FUNC_8015430_SIZE` in `asm/rom_15000/rom_15430.s:92`.
-- `Anim_TitanBlade` needs 12 `.global` exports in one gated commit.
 - Promote `DMA3_COPY_RW` to `include/dma.h` — two functions now satisfy the standing condition.
-- `_FILE_bf` is missing from `include/file_table.h`.
+  **Owner decision, still open.**
+
+### Cleared after the report was first written
+
+Four prerequisites, all byte-neutral and in one gated commit — none changes a byte of the ROM, and
+each removes a trip hazard that would otherwise be hit at landing time, when it is most expensive.
+
+- **`Anim_TitanBlade`'s twelve `.global` exports** are in. `split_s.py --dry-run` used to refuse that
+  file with *"12 local label(s) would cross files"*; it now succeeds and prints exactly the three-way
+  shape the park predicted — 7 functions / 1 function / 39-line data tail — so that shape is
+  **verified rather than inferred**. A `.global` emits no bytes, so this one commit makes **every
+  later split of that eight-function file free of asm work**, for all eight. The dry-run was confirmed
+  to have written nothing, which is worth checking rather than assuming: this is the tool whose
+  `--dry-run` was silently ignored until batch 302 gave it a real flag, and three agents lost tracked
+  files to it.
+- **`BufferString`'s prerequisite** is in: `asm/rom_15000/rom_15430.s` now carries
+  `.func_end_emit_size Func_8015430, _FUNC_8015430_SIZE`. That file is **hand-written ARM**, not
+  generated, and already used the macro twice for its own siblings. `BufferString` is nowhere near
+  landing, so this only clears its path.
+- **`_FILE_bf`** is now `0xbf` in `file_table.sym` (which `stage1.ld` INCLUDEs) and declared in the
+  header. **I got this one wrong first**: `file_table.sym` jumps be → c0, so I read the gap as proof
+  that `bf` is not a file, added a header-only declaration, then removed it as a fiction that would
+  declare an undefined symbol tree-wide. The park's own argument corrected me — the ROM's pool word is
+  `0x000000bf`, and by **this batch's own proof** a pooled eight-bit-movable word *is* a symbol, since
+  gcc emits `mov r7,#0xbf` for the literal and a pool load can only come from a relocation.
+  `file_table.sym` was simply **incomplete**, which is how it has always grown: it holds only the
+  entries decompiled code has needed, and its gaps are unreferenced files, not absent ones.
+- **`_FILE_1a`** — found by the parity check that mistake prompted, and unrelated to any park: present
+  in `file_table.sym`, missing from the header, the only real mismatch between the two. Both now agree
+  exactly at 158 entries with no gap in either direction, and the check is worth keeping as a routine
+  screen.
 - `2009a3c` needs re-measuring before its blocker diagnosis is trusted again.
 - Owner decisions still open: the `.L4`/`.L5` rename in the shared common1 data file; `_CONST_1f`/`_CONST_200`.
