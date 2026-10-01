@@ -31796,3 +31796,263 @@ both of this brief's landings. It counts `register ... __asm__` pins,
 barriers; a value-producing `__asm__ __volatile__("mov %0, lr" : "=l"(t))` is a
 **fourth class** and is invisible to it. Pin counts taken from that tool are lower
 bounds until this is fixed.
+
+# Batch 317: the nineteen smallest parked functions, and why "the small ones are harder" was a statement about testing
+
+Twelve of nineteen landed in one batch, one closed as unmatchable on its own
+evidence, and six improved. The band went from 19 parked to 6.
+
+## The document this batch refutes, and the sentence inside it that gave the game away
+
+`src/non_matching/tiny_reg_order.c` is a careful, well-written class park, and it
+argued the opposite of what happened:
+
+> "At five to ten instructions there is no structure left to get right — no
+> control flow, no field layout, no expression shape. Everything that is still
+> wrong is the compiler's ARRANGEMENT… The levers that carry a 30-line function —
+> statement order, named locals, assign-back-into-the-parameter,
+> constant-as-destination — have nothing to bite on. Each was tried on each of
+> these and none moved a single one."
+
+and it closed with planning advice: *"'Clear the smallest band first' is a
+reasonable instinct and it is wrong here… Below twenty, the ratio inverts."*
+
+Two things are true about it at once. Its **observations** are almost all
+accurate — the residues really are arrangement, and the specific permutations it
+records reproduce. Its **verdict** was a measurement artefact, for two reasons:
+
+1. **It predates the levers.** The four levers it lists are the pass-one toolkit.
+   It never had the alias-set lever, `REG_N_REFS` loop-depth weighting, the
+   destination/dying-source combine, the aggregate lever, the LUID lever, the
+   declared return type, or the declaration-initialiser lever.
+2. **It proves the cross-the-lists law on its own targets and then does not apply
+   it.** On `GetFlagByte` it records: *"the 2 of 5 needs a SPECIFIC pairing that
+   the note above did not record: the index in a NAMED LOCAL **and** SCHED2 …
+   neither half is sufficient alone."* Every other entry in the file is a list of
+   levers tried **one at a time**.
+
+> **"Each was tried on each of these and none moved a single one" is a statement
+> about how they were tested, not about a floor.** The small band is not harder;
+> it is the band where a *single* lever is least likely to be sufficient, because
+> there is no slack anywhere in the function. That makes crossing the lists more
+> necessary, not less.
+
+And the arithmetic is the other half of the correction. At nine instructions a
+*two*-encoding residue is 22% of the function, so the figures look dreadful while
+the work remaining is one or two decisions. **Never rank the small band by its
+figure; rank it by the number of named causes.**
+
+## Not one of the nineteen had a recipe naming it, and every checkable figure was wrong
+
+Zero of 19 carried a `--func` recipe for themselves. Measured against claimed:
+
+| claimed | measured |
+|---|---|
+| 15 of 21 | **20 of 21** |
+| 11 of 17 | **10 of 17** |
+| 7 of 18 | **14 of 18** |
+| "13 lines against 15" | **8 of 17** |
+| "5 instructions of 17" | **0 — it landed** |
+| "19 lines against 20" | **18 of 20** |
+| 6 of 21 | **5 of 21 + RELOCDIFF** |
+| "19 against 19" | **2 of 20** |
+| 7 of 22 | **7 of 20 + RELOCDIFF** |
+
+Several carried RELOCDIFF, so they were never distances at all. Two were prose
+figures with no body to measure.
+
+> **A park matched to a function by substring is not a park for that function.**
+> `free` was counted parked because the word "free" appears in another park's
+> prose. It is the ONE function in the tree whose name can collide that way
+> (measured: of all parked functions, exactly one has a name that can occur as an
+> ordinary prose word), and it was the one target in the band with no analysis at
+> all. census.py's docstring names this risk and says a hand check of the 1-20
+> band found it did not materialise. It had since.
+
+## A PARK WITH NO BODY IS A LOST CANDIDATE, NOT A RECORD OF PROGRESS
+
+Found **twice in one batch**, both times as the *second* park for a function
+whose *first* park had the code:
+
+- `Func_80f7df0`: `80f7df0.c` has a body measuring 30 of 32. `f7df0.c` claimed
+  **18 of 30** — better — in 34 lines of pure comment, **zero function
+  definitions**, compiling to a **zero-byte TU**. objcmp still prints a number
+  against an empty TU, which is exactly what `parkcheck.py`'s `NOBODY` verdict
+  exists to catch; nobody had run it on that file.
+- `Func_8078ad0`: `8078ad0.c`, 23 lines, no body, *"Candidate at
+  scratch/L78ad0.c"* — a gitignored path, long gone.
+
+In both cases the better work was lost and its figure outlived it as a claim.
+`f7df0.c`'s two structural findings were recoverable from its prose and are now
+preserved verbatim in the park that has the body, because they are the documented
+route from 30 down to 18.
+
+> **Two parks for one function is not redundancy — it is a race in which the file
+> nobody compiles wins the headline.** When `dupfuncs.py` or a name search turns
+> up two parks for one subject, measure both bodies before believing either
+> figure, and retire the loser into `toDelete/`.
+
+## New levers
+
+### The aggregate lever is SIZE-GATED AT TWO WORDS, and it is POSITIONAL
+
+Batch 316 found that merging two scalars into one addressable aggregate can make
+a reload spill-store never exist. Batch 317 bounds it and extends it:
+
+- **`int sv[1]` and a one-member struct are EXACTLY INERT.** Two words land. The
+  kind (array or struct) is free; the *size* is not.
+- A two-word aggregate is allocated as a **consecutive hard-register pair** —
+  `.18.greg` prints `;; 2 regs to allocate: 32 (2)`. So it is a **positional**
+  lever: **you choose which two registers by choosing which two values share the
+  aggregate.** One target sat at 3 of 17 until the pair was moved off the loop
+  counter and onto the right two values.
+- A two-word aggregate also **defeats dead-store elimination for its unused
+  half**, and that half can be **held alive for free** when its value is an
+  identity for the operator that reads it (a `| 0`). That is a new route into the
+  "dead callee-saved register" class which both `tiny_reg_order.c` and
+  `HANDOFF.md` call unreachable — and it is the first one that costs no
+  instruction.
+
+### A PRE-CROSS-JUMP DUPLICATION IS AN ALLOCATOR LEVER
+
+Duplicating a store into **both arms** of an `if` raises its operand's
+`REG_N_REFS` **before flow1 measures it**, lifting it past a competitor in
+`allocno_compare`; **cross-jumping runs after reload and merges the duplicate
+back out at no cost.** 7 → 2 on one target.
+
+> This is batch 316's *"a pin can lose a function by enabling a cross-jump the
+> ROM does not have"* **read in reverse**. The same pass is a liability in one
+> direction and a free lever in the other, and the difference is whether the
+> duplication exists **before** flow1 or is created **by** the allocator.
+
+### The declaration-initialiser lever has a DIRECTION, and parks keep testing it on the wrong variable
+
+Batch 310 found that initialising a constant at its declaration *lowers* its
+priority (it makes the pseudo live from function entry, and `allocno_compare`
+divides by `LIVE_LENGTH`). Batch 317 moved **two** targets with the same handle
+and recorded the thing that makes it hard to find:
+
+> **The effect is on L, not R — and both parks had already screened "declaration
+> order" and filed it inert ON A DIFFERENT VARIABLE FROM THE ONE THAT MOVES.** A
+> park's "declaration order: inert" means nothing unless it names the variable.
+
+### Bounds added
+
+- **A register pin CANNOT defeat cse1 on an array-decay address.** `expand_expr`
+  forces the address into a fresh pseudo **before** any copy into the pinned
+  register, so the pin is erased and the output is byte-identical. Proven on two
+  shapes.
+- **`const` is not the cure for an alias-set-0 memory edge**, even though it
+  looks like exactly that (`anti_dependence` returns 0 for an unchanging read).
+  It is **bit-identically inert on the dependence table**.
+- **Alias-set-0 edges on a byte access are UNREMOVABLE**, because the instruction
+  must stay a byte access and **every one-byte C type is a character type**, so
+  `DIFFERENT_ALIAS_SETS_P` can never fire. Three of four targets in one brief
+  bottomed out on `rank_for_schedule`'s dependent count inflated this way.
+- **local-alloc's walk is `{3,2,1,0,4,5,…}`, shortest-lived-first** (probed, not
+  inherited). This makes the register-permutation residue class **calculable**
+  rather than a guess.
+- **gcse's PRE, not cse, sinks a load** — it inserts two `pre_insert_copies` and
+  puts the reloads on the store edge only. A park that blamed cse concluded "the
+  only way to defeat that analysis is `volatile`, which is a fakematch"; both
+  halves are false, and `-fno-gcse` **crossed with** distinct reload locals is
+  byte-exact.
+
+## A park body can be a WRONG PROGRAM via a LABEL COLLISION
+
+One park was five instructions from matching, and could never have linked. It
+spelled its loop `do {} while`, for which **gcc names its own loop label `.L6`**;
+the park's digit table was **also** `.L6`; and **gas resolves a `.L`-prefixed
+reference locally**, so the park's pool word pointed at its own loop top.
+
+The cure is two orthogonal edits, each necessary: `while` instead of `do`-`while`
+(which moves gcc's label numbering off 6 and is **byte-neutral in the
+instruction stream**), and the mask written inline so it becomes a loop invariant
+too, letting hoist order decide the register.
+
+> **Check `.L` label collisions whenever a park defines its own local labels, and
+> remember that a label-numbering change can be invisible in the instruction
+> stream while being decisive in the relocations.** `--func` will not show it.
+
+## The fifth measurement device, and the first caught by its own author
+
+An agent reached 2 of 16 using an `extern unsigned char ZEROSYM_PLACEHOLDER[]`
+whose only purpose was to put a relocation where the ROM has one — and
+**labelled it in its own deliverable as a device that must not ship**, by the
+standard in this document. Removing it and re-measuring gave **3 of 16**, which
+is the honest improvement (from 12 of 16 *with size wrong*).
+
+The device figure is still worth keeping, stated as what it is: **a figure about
+the remaining blocker.** 2 of 16 says that once that one pool word is a
+relocation, everything else in the function is already right. That is a different
+and useful claim from "this body is 2 away".
+
+> **A device is permitted as an instrument and forbidden as a result.** The test
+> is whether the number it produces is reported as a distance.
+
+## parkcheck.py: the claim-phrasing chain, and why ORDER is load-bearing
+
+Four accepted phrasings now, and the fourth is deliberately **last**. Parks write
+`NOT MATCHING, 4 of 19` and `DOES NOT LAND -- 8 of 17`, which none of the first
+three match, so **nineteen parks reported `NO CLAIM` and went unverified.**
+
+Measured before adding — and this is the whole reason for the ordering:
+
+| | parks |
+|---|---|
+| match the new pattern **alone** (pure gain) | **19** |
+| also match an earlier pattern, and **agree** | 162 |
+| also match an earlier pattern, and **DISAGREE** | **11** |
+
+The new pattern is greedier and picks up a different number in those eleven
+headers. **Promote it and you silently change eleven parks' verified figures.**
+
+> **When you widen a checker's pattern, measure the three buckets — alone, agrees,
+> disagrees — before choosing where in the chain it goes.** "It matches more" is
+> not the same as "it is right more".
+
+And a rule for park authors that falls out of the same finding:
+
+> **A park carrying more than one figure must name its OWN in the headline.** One
+> park quoted both the retired body's 20 and its own 18, and a checker scanning
+> for the first `N of M` reads whichever came first.
+
+## `free`: closed on its own evidence, having inherited a verdict it did not earn
+
+`free` (FreeScratch, 0x08002df0, 6 instructions) was reached **exactly** — 6 of 6
+instructions in the ROM's order and operand shape, size and relocations exact —
+differing only in hard-register assignment, which reduces to **one condition: r3
+unavailable**. It is enrolled as `thumb-regalloc`, and the argument is structural:
+
+- local-alloc is the only allocator that runs (branchless; greg reports `0 regs
+  to allocate`) and it walks shortest-lived-first, so reaching the ROM's
+  (index r2, mask r1, base r4) needs a **fourth competitor no source spelling can
+  supply** — an extra quantity costs an extra instruction, and a plain copy dies
+  in cprop.
+- `-ffixed-r3` matches the body **exactly**, and is **refuted as a build flag**
+  because the shared pool word at 0x08002dfc proves `gfree` is in the **same
+  object**, and `gfree` uses r3 three times.
+- Corpus: **0 of 4,807 generated thumb functions use r4 without r3** (654 use
+  r4). The only hand-written thumb companions are this function and `ply_fine`,
+  already enrolled.
+
+The provenance matters as much as the verdict. **`free` had inherited `gfree`'s
+unmatchability by sharing a file**, and the batch-265 shared-pool argument does
+**not** apply to it: `gfree`'s `ldr` reaches *forward* 32 bytes across `free`'s
+whole body to that word, while `free`'s own per-function pool word lands exactly
+where the ROM's is.
+
+> **An impossibility argument does not transfer to a file-mate.** Check the
+> arithmetic for each function separately — the same shared pool word that proves
+> one function unreachable can be perfectly ordinary for its neighbour.
+
+## Two measurement traps, both paid for
+
+- **`tryc.py` is blind to pool ORDER.** It cost one brief a 60-variant round that
+  had to be re-swept under `objcmp`. Screen with `tryc`, but never conclude with
+  it when the residue might be in the pool.
+- **A corpus scan of generated `.s` that greps `.thumb_func_start` measures ~137
+  functions instead of 4,807.** One brief's first result, "0 of 4,469", was
+  **vacuous**. The broken scan was kept beside the fixed one in the deliverable,
+  which is the right instinct: a corpus denominator that looks plausible is the
+  easiest figure in this project to get silently wrong.
