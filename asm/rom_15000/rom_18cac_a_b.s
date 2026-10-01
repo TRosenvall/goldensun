@@ -19,12 +19,12 @@ DrawText:
 	str	r2, [sp, #12]
 	str	r3, [sp, #8]
 	mov	r7, r1
-	ldr	r1, .L34+4
-	ldr	r2, .L34+8
+	ldr	r1, .L36+4
+	ldr	r2, .L36+8
 	ldr	r6, [r1]
 	add	r3, r6, r2
 	ldrh	r3, [r3]
-	ldr	r2, .L34+12
+	ldr	r2, .L36+12
 	str	r3, [sp, #4]
 	add	r3, r6, r2
 	ldrh	r3, [r3]
@@ -32,45 +32,45 @@ DrawText:
 	ldr	r3, [sp, #176]
 	mov	r8, r0
 	cmp	r3, #1
-	beq	.L10
+	beq	.L12
 	ldrh	r2, [r0, #22]
 	mov	r3, #8
 	and	r3, r3, r2
 	cmp	r3, #0
-	beq	.L10
+	beq	.L12
 	ldr	r3, [r1, #88]
 	ldr	r3, [r3]
 	cmp	r3, r8
-	bne	.L11
-	ldr	r0, .L34+16
+	bne	.L13
+	ldr	r0, .L36+16
 	bl	GetFile
-	ldr	r0, .L34+20
+	ldr	r0, .L36+20
 	bl	GetFile
 	mov	r1, #3
 	mov	r9, r1
 	cmp	r7, #32
 	bne	.LCB47
-	b	.L13	@long jump
+	b	.L15	@long jump
 .LCB47:
-.L11:
-	ldr	r0, .L34+20
+.L13:
+	ldr	r0, .L36+20
 	bl	GetFile
 	mov	r2, #4
 	mov	sl, r0
 	mov	r9, r2
 	cmp	r7, #32
 	bne	.LCB56
-	b	.L13	@long jump
+	b	.L15	@long jump
 .LCB56:
-	ldr	r5, .L34+24
+	ldr	r5, .L36+24
 	mov	r0, r5
 	bl	Func_8004938
 	mov	r2, #132
 	mov	r6, r0
 	lsr	r5, r5, #2
 	lsl	r2, r2, #24
-	ldr	r3, .L34+28
-	ldr	r0, .L34+32
+	ldr	r3, .L36+28
+	ldr	r0, .L36+32
 	mov	r1, r6
 	orr	r2, r2, r5
 	stmia	r3!, {r0, r1, r2}
@@ -87,25 +87,25 @@ DrawText:
 	mov	r0, r6
 	bl	free
 	mov	r0, r5
-	b	.L9
-.L10:
+	b	.L11
+.L12:
 	mov	r1, #5
 	mov	r9, r1
 	cmp	r7, #32
 	bne	.LCB93
-	b	.L13	@long jump
+	b	.L15	@long jump
 .LCB93:
 	bl	Func_8015e8c
 	mov	r5, r0
 	mov	r0, #0
 	cmp	r5, #0
 	bne	.LCB98
-	b	.L9	@long jump
+	b	.L11	@long jump
 .LCB98:
-	ldr	r2, .L34+36
+	ldr	r2, .L36+36
 	sub	r3, r5, r6
 	add	r3, r3, r2
-	ldr	r2, .L34+40
+	ldr	r2, .L36+40
 	mov	r1, r3
 	mul	r1, r1, r2
 	mov	r3, #1
@@ -115,82 +115,82 @@ DrawText:
 	ldr	r3, [sp, #176]
 	mov	sl, r1
 	cmp	r3, #1
-	bne	.L18
+	bne	.L20
 	mov	r1, #1
 	mov	r3, #2
 	mov	r9, r1
 	strb	r3, [r5, #5]
-	b	.L19
-.L18:
-	ldr	r1, .L34+44
+	b	.L21
+.L20:
+	ldr	r1, .L36+44
 	add	r3, r6, r1
 	ldrh	r3, [r3]
 	cmp	r3, #3
-	beq	.L21
-	cmp	r3, #3
-	bgt	.L27
-	cmp	r3, #2
-	beq	.L24
-	b	.L20
-.L27:
-	cmp	r3, #4
-	beq	.L22
-	cmp	r3, #5
 	beq	.L23
-	b	.L20
-.L21:
+	cmp	r3, #3
+	bgt	.L29
+	cmp	r3, #2
+	beq	.L26
+	b	.L22
+.L29:
+	cmp	r3, #4
+	beq	.L24
+	cmp	r3, #5
+	beq	.L25
+	b	.L22
+.L23:
 	mov	r3, #5
 	strb	r3, [r5, #5]
-	b	.L20
-.L22:
+	b	.L22
+.L24:
 	mov	r3, #6
 	strb	r3, [r5, #5]
 	mov	r3, #8
 	strh	r3, [r5, #12]
-	b	.L20
-.L23:
+	b	.L22
+.L25:
 	mov	r3, #7
-	b	.L33
-.L24:
+	b	.L35
+.L26:
 	mov	r3, #4
-.L33:
+.L35:
 	strb	r3, [r5, #5]
 	strh	r2, [r5, #12]
-.L20:
+.L22:
 	add	r1, sp, #16
 	mov	r0, r7
 	bl	DrawMsgGlyph
 	cmp	r0, #0
-	bne	.L28
+	bne	.L30
 	mov	r0, #1
-.L28:
+.L30:
 	mov	r9, r0
-.L19:
+.L21:
 	ldrb	r3, [r5, #5]
 	cmp	r3, #2
-	bne	.L29
-	ldr	r2, .L34+48
+	bne	.L31
+	ldr	r2, .L36+48
 	add	r6, r6, r2
 	ldrh	r3, [r6]
 	mov	r7, r5
 	add	r7, r7, #16
 	cmp	r3, #99
-	bne	.L30
+	bne	.L32
 	bl	AllocSpriteSlot
 	strh	r0, [r6]
-.L30:
+.L32:
 	mov	r3, r8
 	ldrh	r2, [r3, #12]
-	ldr	r1, .L34+52
+	ldr	r1, .L36+52
 	ldrh	r3, [r3, #8]
 	add	r3, r3, r1
 	add	r2, r2, r3
 	lsl	r2, r2, #3
-	ldrh	r3, .L34
+	ldrh	r3, .L36
 	add	r2, r2, #4
 	and	r2, r2, r3
 	ldrh	r1, [r7, #6]
-	ldr	r3, .L34+56
+	ldr	r3, .L36+56
 	and	r3, r3, r1
 	orr	r3, r3, r2
 	mov	r2, r8
@@ -202,10 +202,10 @@ DrawText:
 	lsl	r3, r3, #3
 	sub	r3, r3, #1
 	strb	r3, [r7, #4]
-	b	.L31
-.L35:
+	b	.L33
+.L37:
 	.align	2, 0
-.L34:
+.L36:
 	.word	511
 	.word	iwram_3001e8c
 	.word	4784
@@ -221,17 +221,17 @@ DrawText:
 	.word	4790
 	.word	65534
 	.word	-512
-.L29:
-	ldr	r3, .L36+4
+.L31:
+	ldr	r3, .L38+4
 	add	r4, r6, r3
 	ldrh	r1, [r4]
-	ldr	r2, .L36+8
+	ldr	r2, .L38+8
 	add	r1, r1, sl
 	lsl	r1, r1, #5
 	add	r1, r1, r2
-	ldr	r3, .L36+12
+	ldr	r3, .L38+12
 	add	r0, sp, #16
-	ldr	r2, .L36+16
+	ldr	r2, .L38+16
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -243,7 +243,7 @@ DrawText:
 	ldrh	r2, [r1, #14]
 	lsl	r2, r2, #3
 	add	r3, r3, r2
-	ldr	r2, .L36+20
+	ldr	r2, .L38+20
 	add	r3, r3, r2
 	strh	r3, [r5, #20]
 	ldr	r3, [sp, #4]
@@ -254,7 +254,7 @@ DrawText:
 	ldrh	r3, [r1, #12]
 	lsl	r3, r3, #3
 	add	r2, r2, r3
-	ldrh	r3, .L36
+	ldrh	r3, .L38
 	add	r2, r2, #2
 	orr	r2, r2, r3
 	strh	r2, [r5, #22]
@@ -263,7 +263,7 @@ DrawText:
 	mov	r7, r5
 	strh	r3, [r5, #24]
 	add	r7, r7, #16
-.L31:
+.L33:
 	mov	r3, #254
 	strb	r3, [r5, #15]
 	ldrh	r3, [r7, #6]
@@ -279,20 +279,20 @@ DrawText:
 	mov	r0, r8
 	mov	r1, r5
 	bl	Func_8016584
-.L13:
+.L15:
 	mov	r0, r9
-	b	.L37
-.L38:
+	b	.L39
+.L40:
 	.align	2, 0
-.L36:
+.L38:
 	.word	16384
 	.word	4792
 	.word	100728832
 	.word	67109076
 	.word	-2080374752
 	.word	65534
-.L37:
-.L9:
+.L39:
+.L11:
 	add	sp, sp, #144
 	pop	{r3, r5, r6, r7}
 	mov	r8, r3
