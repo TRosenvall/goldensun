@@ -18,7 +18,7 @@
 	add	r3, r2, r0
 	mov	r0, #0
 	ldrsh	r1, [r3, r0]
-	ldr	r3, =0x5e
+	ldr	r3, =_AREA_5e
 	sub	sp, #8
 	cmp	r1, r3
 	beq	.L199c
@@ -160,7 +160,7 @@
 	bl	__Func_8010704
 	b	.L1bc6
 .L1acc:
-	ldr	r3, =0x5f
+	ldr	r3, =_AREA_5f
 	cmp	r1, r3
 	bne	.L1bc6
 	mov	r0, #0xe1
