@@ -28773,3 +28773,96 @@ register map (one keeps `variant` in r10, another spills it in the first instruc
 the dispatch shape, and **the aggregate declaration direction** — reversing it measured *worse* on
 `StatUp`, a third data point after inert on `Attack` and decisive on `ParticleCloud`. **Try both
 directions; do not carry the answer.**
+
+## THE cse1 COMMONING BLOCKER IS DECIDED: IT IS THE RTL SHAPE, AND THE COST MODEL IS RULED OUT
+
+`docs/band-800plus.md`'s central open question — why cse1 commons repeated wide constants in our
+output and not the ROM's — is answered. Repro: **`docs/repro-cse1-commoning.c`, five functions, eight
+lines.**
+
+**The mechanism.** At expand, a `CONST_INT` that Thumb can load in **one `mov #imm8`** goes **directly
+into the hard argument register**. One that cannot — a wide `mov`+`lsl`, or a pooled value — is forced
+through a **fresh pseudo**. And `cse.c`'s `invalidate_for_call` **invalidates hard registers only**. So
+the narrow class is rebuilt at every site and the pseudo class **survives every call**. Visible in one
+screen of `00.rtl` inside a single argument setup:
+
+    (set (reg:SI 0 r0) (const_int 18))              <- narrow: straight to the hard reg
+    (set (reg:SI 172) (const_int 48758784))         <- wide: forced through a pseudo
+    (set (reg:SI 1 r1) (reg:SI 172))
+
+**The cost model is excluded by a control, not by argument.** `0x12` — the *cheapest* constant in the
+set — **is** commoned into r5 across three calls **when it is an `orr` operand rather than an
+argument**. A cost model that declines to common `mov #imm8` as an argument cannot also common it
+there. So the difference is **where the value is required**, not what it costs.
+
+**And this PREDICTS the band doc's two negative levers instead of merely recording them.**
+"Region-scoping cannot reach a pseudo the compiler invented" — that pseudo is **exactly** the one above,
+created by the expander because the hard register cannot take the constant directly. Likewise
+declaration order and reuse-to-inherit: all three act on source variables, and this quantity is not one.
+
+**The honest limit:** the arithmetic, the constant set and the prologue are all reachable from C; **the
+last few instructions per repeated wide ARGUMENT are not**, because the pseudo belongs to the expander.
+The best candidate makes 33 copies against the reference's 10.
+
+## MEASURE COMMONING BY THE COPY COUNT, NOT BY THE BUILD REGISTER — a retracted instrument
+
+Recorded because it was published and retracted **before it reached a claim line**, and because the
+wrong instrument gave a confident wrong conclusion.
+
+**The wrong measure:** which register each wide constant is *built* into. 445 of 450 builds across five
+references go into `r0–r3`, from which it looks as though the references **never** common a wide
+argument constant. **False.** Tracing one value caught it: in one reference `0x90 << 5` is built into
+r5 **three times** and fed to arguments **eight times**. **One build and eight copies counts as one
+build**, so a build-register census cannot see commoning at all.
+
+**The right measure is the COPY count** — `mov rARG, rSAVED`. Validated against the agent's own lever
+sequence: it fell **46 → 33 at exactly the edit that fixed the prologue**. Reference figures:
+`925 → 2`, `924 → 5`, `888 → 8`, `964 → 10`, **`959 → 57`**.
+
+**Two bounds on the new instrument.** It is **coarse at the end** (it cannot separate +12/+5 from
++8/+3), and **it fires falsely on a source-base function** — run it with the offset columns or it sends
+you after the wrong mechanism on the one function where the right one is cheapest.
+
+## THE "CHANGE THE SET OF LONG-LIVED QUANTITIES" LEVER RUNS SUBTRACTIVELY TOO
+
+Recorded additively — add a quantity the reference has. On `OvlFunc_964_200a59c` **four named locals had
+to be UN-named**, +44/+21 → **+8/+3**.
+
+**So the rule reads: make the count EQUAL, in whichever direction.** And it is not "un-name everything"
+— un-naming the function pointer measured **worse** (+16/+7), so it tracks **the reference's own parked
+set**, function by function.
+
+## Three re-triages that change what to brief next
+
+- **`OvlFunc_959_200b054` is a SOURCE-BASE function, not a commoning one** — and it had been nominated
+  as the *hardest* of its group. r5 has **three definitions** across 2,123 instructions (message-ID
+  bases) with **75 base-plus-offset uses**, and **both arms** of the Thumb immediate-width tell are
+  present (21 `add r0,r5,#k` for k ≤ 7; 54 `mov`+`add` for k > 7). It is the only one of the five with
+  any such uses, and its dominant lever is already costed at +56/+6 → +4/+3.
+- **`OvlFunc_924_200bd20` was misclassified by me**: 89 branches **minus 21 pool skips = 68 real**,
+  about 18 instructions per block, against 4/4/7/28 for the others. It is an ordinary 500-instruction
+  lever-set function. **The fix for noisy branch counting is eleven lines — subtract the pool skips** —
+  after which the populations separate cleanly.
+- **`OvlFunc_925_2009af0` is the purest commoning case** (164 wide builds, 141 rebuilds, 2 copies) and
+  is therefore **the function to measure any future fix against**. `OvlFunc_888_200888c` has **no frame
+  at all** — 490 calls, not one with a fifth argument.
+
+Also: a **pooled `1`** behaved exactly like the recorded pooled-zero defect, so **the discriminator is
+the store WIDTH, not the value**. And the frame finding holds on all five — **zero `ldr rX,[sp,…]`
+anywhere**, so every frame word is argument staging.
+
+## A RECIPE MUST NAME DURABLE PATHS ON BOTH SIDES — third flavour of the same defect
+
+All five parks of one brief arrived with recipes pointing at **the agent's own gitignored workspace**
+(`scratch_elev/b311d/ref_<NAME>.s`). They would have become unrunnable the moment the workspace was
+cleaned, and `parkcheck` reported TOOLING on all five.
+
+That is the **third** flavour of an unverifiable recipe, after a literal `<this file>` placeholder (six
+parks) and a recipe naming a file that does not exist. **All three have the same consequence: the
+park's figure can never be caught lying.** A recipe must name the **installed** `.c` and the **tracked**
+`asm/` reference, and nothing from a workspace.
+
+A fourth flavour appeared in the same batch: the recipe wrapped its whole command in single quotes for
+`sh -c`, so the closing quote attached to the function name and objcmp searched for `NAME'`. **Write
+the plain `docker run … python3 tools/objcmp.py <cand> <ref> --func NAME` form** that the rest of the
+tree uses.
