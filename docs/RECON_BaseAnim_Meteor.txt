@@ -1,0 +1,175 @@
+BaseAnim_Meteor -- 0x080e7404, asm/rom_c9000/rom_e7320_c_c.s line 208,
+1532 ROM instructions.
+
+NO CANDIDATE WAS WRITTEN AND NO FIGURE IS CLAIMED.  This is an honest triage
+park: the measurement below is complete and checked, the reconstruction is not
+started.  Do not read any number here as a distance.
+
+=====================================================================
+SPLIT: CONFIRMED UNBLOCKED.  VERIFIED THIS BATCH, NOT TAKEN ON TRUST.
+=====================================================================
+  python3 tools/datacheck.py asm/rom_c9000/rom_e7320_c_c.s
+    -> "EXPORTS: .Leee76 .Leeea0 .Leeebc .Leeeca .Leeed8 .Leeee1 .Leeeea
+        .Leeef8 .Leef06 .Leef0c .Leef12 .Leef18  (already global)"
+    -> "BaseAnim_Meteor reads .Leee76, .Leeea0, .Leeebc, .Leeeca
+        (all already global) -> no new export"
+
+  python3 tools/split_s.py --dry-run asm/rom_c9000/rom_e7320_c_c.s BaseAnim_Meteor
+    -> SUCCEEDS.  It no longer refuses with "12 local label(s) would cross
+       files".  The three-way shape it prints:
+
+         asm/rom_c9000/rom_e7320_c_c_a.s   2 functions,  131 lines
+                                           (Func_80e7338, Func_80e73a0)
+         asm/rom_c9000/rom_e7320_c_c_b.s   1 function, 1750 lines  <-- THE TARGET
+         asm/rom_c9000/rom_e7320_c_c_c.s   5 functions, 3765 lines
+                                           (Anim_Ramses, Anim_DragonCloud,
+                                            Anim_Annihilation, Anim_Ragnarok,
+                                            Anim_TitanBlade, + the .rodata)
+         + stage1.ld rewritten; rom_e7320_c_c.s removed.
+
+  BaseAnim_Meteor is the THIRD of the file's eight functions, so it takes the
+  `_b` stem.  *** SUFFIX COLLISION WARNING, carried forward from
+  Anim_Ragnarok.c's own header: Anim_Annihilation is already parked and claims
+  `_b` for a cut at a DIFFERENT function, and Anim_Ragnarok's park claims it
+  too.  Only ONE of the three can hold `_b`.  Coordinate before any of them
+  lands; the file can only be cut three ways once. ***
+
+  Note that Anim_Ragnarok.c's header still says the dry-run REFUSES.  That
+  header is now STALE -- the twelve exports landed earlier today and the refusal
+  is gone.  Worth a one-line correction when Ragnarok is next touched.
+
+SHIMS: tools/shimcount.py prints the filename and nothing else -- ZERO.
+
+=====================================================================
+THE FRAME.  ACCOUNTING CLOSES TO THE BYTE: 0x11c = 284.
+=====================================================================
+G1 `sub sp,#imm`         0x11c = 284.  Under the 508-byte Thumb-1 cap.
+G2 `(add|sub) sp,rN`     NONE.
+G3 `mov rX,sp` x4, `add rX,sp,#K` x10  -- 14 SITES.
+G4 `str rX,[sp]` no-load 9 sites at +0x00 AND 6 at +0x04 (6-argument calls).
+   *** +0x04 is invisible to a `#0x`-keyed regex: this tree prints offsets
+   below 0x10 in DECIMAL.  See PARK_Anim_Kirin.c. ***
+G5 `mov rX,sp` THEN `add rX,#K`: 1 site (prologue, r2 -> sp+0x94).
+
+  +0x000 .. +0x007    8    outgoing argument area
+  +0x008 .. +0x04c   72    18 spilled scalar words
+  +0x050 .. +0x11b  204    the aggregates
+                    ---
+                     284 = 0x11c   EXACT
+
+TRUE AGGREGATES: 8, NOT THE 14 THE BRIEF'S "aggr" COLUMN GIVES.
+Resolved block-aware by region reading (scratch_elev/b313g/aggres.py plus hand
+reading of the sites whose use lies past a label):
+
+  +0x050   8 B   base saved to slot +0x1c            AGGREGATE
+  +0x058   8 B   base saved to slot +0x2c            AGGREGATE
+  +0x060  12 B   word stores at +0, copied to r1     AGGREGATE (3 sites)
+  +0x06c  12 B   passed as arg 2 to Func_80e3944     AGGREGATE
+  +0x078  12 B   stores at +0/+4/+8, arg 1 to
+                 Func_80e3944                        AGGREGATE (a vec3 pair
+                 with +0x6c: project in, result out)
+  +0x084  16 B   base saved to slot +0x18            AGGREGATE
+  +0x094   4 B   ADDRESS-TAKEN int.  `mov r2,sp / add r2,#0x94` then
+                 `str r2,[sp,#0x3c]` -- its ADDRESS is parked in the slot with
+                 28 loads, which is why the prose header in the .s says "the
+                 state pointer is kept indirectly at sp+0x3c, which points to a
+                 stack slot HOLDING [iwram_1eec]".  THE DOUBLE INDIRECTION IS
+                 REAL AND IT IS THIS FUNCTION'S DEFINING ODDITY.
+  +0x098 128 B   u8[128], walked `strb r0,[r5] / add r5,#1` to its sentinel
+                 `add r6,sp,#0x118`                  AGGREGATE
+
+NOT AGGREGATES -- four of the fourteen sites:
+  +0x034, +0x038   SUB-WORD SCALARS.  Both store-only in the `[sp,#imm]`
+                   census, both read `add rX,sp,#K / ldrh rX,[rX]`.  Thumb-1
+                   has no sp-relative `ldrh`, so an ordinary `int` slot read
+                   narrow MUST materialise its address.  Same mechanism as
+                   Anim_Kirin's +0x38, where it is measured byte-identical with
+                   and without `&` -- see PARK_Anim_Kirin.c, bound (a).
+  +0x118           LOOP END SENTINEL for the u8[128] at +0x098.  Not an object.
+  +0x11c           = THE FRAME SIZE.  `add r2,sp,#0x11c / mov r9,r2` immediately
+                   before `bl Func_80e7338`.  NOT a local at all: r9 is a HIDDEN
+                   REGISTER ARGUMENT -- Func_80e7338, 0x80e7338 in this same
+                   file, opens `mov r4,r9 / mov r3,sp / str r4,[r3]` and READS
+                   it.  So this is a frame-top pointer handed over in a pinned
+                   register, and any grep that counts it as an aggregate is
+                   counting a calling convention.
+
+SPILL-SLOT MAP, every word classified:
+  +0x000 s9/l0   STORE-ONLY  outgoing arg 5
+  +0x004 s6/l0   STORE-ONLY  outgoing arg 6
+  +0x008 s1/l1   both        pass-created (saved across a call)
+  +0x00c s1/l1   both
+  +0x010 s2/l4   both
+  +0x014 s2/l2   both
+  +0x018 s1/l12  both        holds the +0x084 aggregate's base
+  +0x01c s1/l5   both        holds the +0x050 aggregate's base
+  +0x020 s1/l6   both
+  +0x024 s1/l1   both
+  +0x028 s1/l4   both
+  +0x02c s1/l5   both        holds the +0x058 aggregate's base
+  +0x030 s1/l2   both
+  +0x034 s1/l0   STORE-ONLY  sub-word scalar (narrow read via address)
+  +0x038 s1/l0   STORE-ONLY  sub-word scalar (narrow read via address)
+  +0x03c s1/l28  both        *** MAXRELOAD: the ADDRESS of +0x094 ***
+  +0x040 s3/l5   both
+  +0x044 s2/l6   both
+  +0x048 s1/l6   both
+  +0x04c s1/l9   both
+  (+0x050 and +0x058 appear store-only in the census; they are aggregate bases,
+   not holes -- their loads go through the materialised base registers.)
+
+NO PHANTOM HOLES.  Every gap in +0x008..+0x04c is occupied, and the two
+store-only entries are explained above.  By the "A GAP IN THE AGGREGATE LAYOUT
+IS A DECLARATION" rule there is nothing left over to declare.
+
+DECLARATION ORDER TO START FROM (the two rules, which PARK_Anim_Kirin.c
+confirms hold on a 7-aggregate frame):
+  scalars DESCENDING   +0x04c, +0x048, +0x044, +0x040, +0x03c, +0x038, +0x034,
+                       +0x030, +0x02c, +0x028, +0x024, +0x020, +0x01c, +0x018,
+                       +0x014, +0x010, +0x00c  (17 declared; +0x008 is
+                       pass-created, as on Kirin)
+  aggregates ASCENDING +0x050, +0x058, +0x060, +0x06c, +0x078, +0x084, +0x094,
+                       +0x098
+
+=====================================================================
+COMPARISON CENSUS -- PER FUNCTION, NOT IMPORTED
+=====================================================================
+  bne=38  beq=7  blt=4  ble=7  bgt=5  bge=17  bhi=1
+  38 `bne` against 33 SIGNED compares.  MIXED.  Gaia's blanket `!=` rule would
+  corrupt 33 sites; the single `bhi` is the only unsigned range guard.
+  NOTE THE 17 `bge`, by far the highest of brief G's four (Kirin has 1): that is
+  the clamp idiom of the per-scanline gradient, `if (x < 0) x = 0`, repeated.
+
+=====================================================================
+REBUILD-vs-MIXED SCREEN: MIXED.  DO NOT RUN A BLANKET PIN PASS.
+=====================================================================
+96 pool refs, 58 distinct, PARTITIONED (the partition is the whole point --
+the raw maxreload carries no signal, see Bite_Sting's recon):
+    NUMERIC const 39   SYMBOL addr 37   ABS addr-ish 9
+    IO-REG addr    7   DATA-LABEL addr 4
+Highest NUMERIC reload: 0x77d8 x7.  `mov rlo,rhigh` reuse copies: 68 (the most
+of the four).  Seven-or-eight reloads with ~68 reuse copies is the documented
+MIXED signature, so the pure-rebuild blanket pin pass is NOT step 1 here.
+
+=====================================================================
+WHAT MAKES THIS ONE HARD, AND IT IS NOT THE LENGTH
+=====================================================================
+IT IS TWO FUNCTIONS WOVEN TOGETHER.  `r1` is a VARIANT flag (0 or 1), stored to
++0x04c in the first instruction after the frame is cut, and it branches the
+prologue, both frame loops and the teardown.  The prose analysis already in the
+.s (lines 135-207) names every divergence.  Variant 1 draws two actors at
++0x77D8/+0x77DC where variant 0 draws one; variant 0 alone destroys its actor at
+the end.  A reconstruction has to get the IF-NESTING right at ~a dozen sites
+before any lever is measurable, and a wrong nesting will look exactly like a
+codegen residue.
+
+START HERE, in this order:
+ 1. the double indirection at +0x094 / +0x03c.  It is the single highest-traffic
+    quantity in the function (28 loads) and every other decision sits downstream
+    of spelling it right.  It is an address-taken `int` holding a pointer --
+    `unsigned char *base; ... p = &base;` shape, NOT a plain `base`.
+ 2. the variant branch structure, from the .s prose header.
+ 3. the per-scanline gradient loop (scanlines 0x10..0x86) -- it is the 17 `bge`
+    clamps and probably a third of the body.
+ 4. only then the frame: the accounting above is exact, so the declaration list
+    is already written down and does not need deriving.

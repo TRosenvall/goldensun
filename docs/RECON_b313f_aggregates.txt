@@ -1,0 +1,87 @@
+AGGREGATE RE-CLASSIFICATION -- every `add rX, sp, #K` / `mov rX, sp` RESOLVED BY
+READING ITS REGION, BLOCK-AWARE (stopping at any label or branch).
+
+The mechanism behind the inflation: Thumb-1 has NO sp-relative ldrh/strh/ldrb/
+strb, so every SUB-WORD stack scalar must materialise a base with
+`add rX, sp, #K` and is indistinguishable at the grep from a real aggregate.
+
+  function            brief  TRUE  resolution of each site
+  Anim_ScreenShatter    0      0   EXACT, and exact for a stronger reason than
+                                   "the bound is 0": the function has ZERO
+                                   address-forming forms of ANY kind (no
+                                   `mov rX,sp`, no `add rX,sp,#K`, no bare
+                                   `add rX,sp`, no register-built frame). All
+                                   71 of its `[sp]` accesses are word-width
+                                   ldr/str. Because no base register is ever
+                                   materialised, NO STORE CAN HIDE BEHIND ONE
+                                   -- so the slot census is complete and the
+                                   phantom-hole re-check the coordinator asks
+                                   for is vacuously satisfied here.
+  BaseAnim_Tiamat       1      1   EXACT. sp+0x3c: `add r6,sp,#0x3c` then
+                                   `mov r1,r6 / bl GetBattleActorPos2` -- the
+                                   address is PASSED AS AN ARGUMENT, and it is
+                                   used at two offsets ([r6] and [r6,#4]).
+                                   Genuine aggregate, a vec3_t-style out-param.
+                                   The other two sites are the SIXTH idiom
+                                   (`mov r3,#0x3c / add r3,sp`, same for r4),
+                                   both at the SAME offset 0x3c, so they are
+                                   extra references to the one object, not
+                                   extra objects. They exist because the
+                                   address goes into a HIGH register (`mov
+                                   r9,r3`), which `add rX,sp,#K` cannot target.
+  BaseAnim_ParticleSpray 3     3   EXACT. sp+0x8c and sp+0x88: addresses stored
+                                   to `[sp]` and `[sp,#4]` as outgoing
+                                   arguments 5 and 6 of `Anim_Djinni` -- two
+                                   address-taken out-params. sp+0x90: `mov r1,r7
+                                   / bl Func_80e3944` then `ldr/str [r7]` -- a
+                                   vec3_t out-param (Func_80e3944's signature is
+                                   already declared in the EPowerUp park).
+                                   All three pass the "passed as an argument"
+                                   test.
+  Anim_Neptune          5      4   *** CORRECTED, AND THE BRIEF'S TABLE IS ONE
+                                   TOO HIGH. ***
+                                   sp+0x50  AGG. `mov r2,sp / add r2,#0x50`
+                                            (the documented fifth idiom), then
+                                            `str r2,[sp,#0x18]` -- the address
+                                            is stored INTO ANOTHER SLOT, so slot
+                                            0x18 (10 accesses) is a DECLARED
+                                            POINTER TO A LOCAL. Also `str
+                                            r3,[r2,#4]`.
+                                   sp+0x64  AGG. `str r3,[r2,#4]` and
+                                            `str r3,[r2,#0xc]` -- varying
+                                            offsets, >= 0x10 bytes.
+                                   sp+0x58  AGG. `mov r1,r6 / bl
+                                            GetBattleActorPos2` -- argument.
+                                   sp+0x48  AGG. `mov r2,r7` -- argument.
+                                            *** AND THIS SITE IS THE TRAP. ***
+                                            Three blocks later r7 is REASSIGNED
+                                            (`ldr r7,=gBuffer`) and then walked
+                                            (`[r7]`, `[r7,#4]`, `[r7,#0xc]`,
+                                            `[r7,#0x10]`, `[r7,#0x18]`,
+                                            `add r7,#0x1c`). A first-use scan
+                                            that is not block-aware reads those
+                                            six offsets as the STACK object and
+                                            reports a 0x1c-byte aggregate at
+                                            sp+0x48. It is a gBuffer particle
+                                            walk and has nothing to do with sp.
+                                   sp+0x28  NOT AN AGGREGATE. `add r4,sp,#0x28
+                                            / ldrh r4,[r4] / strh r4,[r3,#4]`.
+                                            One sub-word load, base register
+                                            overwritten by its own result on the
+                                            next instruction. This is a u16
+                                            SCALAR and it is the exact shape the
+                                            coordinator described.
+
+CONSEQUENCE FOR THE SELECTION PREMISE. The group was picked as the family's
+"simplest frames" on the aggregate column. After resolution the column reads
+0 / 1 / 3 / 4 instead of 0 / 1 / 3 / 5 -- so the ORDERING the brief gave is
+unchanged and the premise survives, with Neptune one step less bad than stated.
+ScreenShatter leading is confirmed on the strongest possible version of the
+test, which is why it is the one taken to depth.
+
+A SEVENTH FORM, for the frame recipe: an address-taken SCALAR (ParticleSpray's
+0x88/0x8c, and any `&local` passed to a callee) also surfaces at the
+`add rX, sp, #K` grep and is neither an aggregate nor a sub-word scalar. The
+discriminator that actually works is not "aggregate vs scalar" but
+"does a base register get materialised at all" -- and when one does, only
+reading the region settles what it is.

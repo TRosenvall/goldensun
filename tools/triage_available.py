@@ -17,10 +17,26 @@ What does predict, and what this script measures:
                   order is REVERSED relative to the scalars, so aggregates cost far
                   more than instructions do.  A function with NO frame has no spill
                   map at all and none of the declaration-order material applies.
-  hi              high-register mentions (r8-r11/sl/fp).  The 800+ band's triage
-                  axis: it tracks the reference's wide-constant REUSE fraction.
+  hi              high-register mentions (r8-r11/sl/fp).  *** THIS MEASURES
+                  HIGH-REGISTER PRESSURE, WHATEVER ITS CAUSE -- NOT the
+                  wide-constant reuse fraction. ***  Batch 313: the top-ranked
+                  function at 191 mentions turned out to be dominated by ONE
+                  memory-loaded pointer and its 28 reads, and another with 58
+                  copies had ZERO constant-rooted ones, so the pin pass had no
+                  domain there at all.  Use tools/hipartition.py, which traces
+                  each copy back to the ROOT of its value and is VALIDATED against
+                  this document's hand-computed table on four functions.
   maxrl / distc   the pooled-constant multiset -- the most-reloaded value's count,
-                  and how many distinct values are pooled.
+                  and how many distinct values are pooled.  *** maxrl
+                  UNPARTITIONED IS ACTIVELY MISLEADING, NOT MERELY WEAK. ***  The
+                  highest maxreload in batch 313 was 23, and all 23 were ONE ARRAY
+                  BASE ADDRESS (an 84-byte table read `ldrb [base,index]` at 23
+                  sites).  Partitioned, that function had the LOWEST true-numeric
+                  ratio of its group -- 15 of 89 pool refs -- making it the
+                  CLOSEST to a pure rebuild, the exact opposite of what the figure
+                  suggests.  Partition pool references into NUMERIC CONSTANTS
+                  against SYMBOL/ARRAY-BASE ADDRESSES before reading anything off
+                  this column.
   reuse           `mov rlo,rhigh` copies.
 
   maxrl + reuse together are the PURE-REBUILD vs MIXED discriminator (batch 311):
@@ -31,7 +47,16 @@ What does predict, and what this script measures:
   finish, because a pin forces the REGISTER not the REBUILD and it fights naming at
   exactly the sites where both apply.
 
-  bne / sgn       the loop-comparison census, and it MUST be read PER FUNCTION.
+  bne / sgn       a COMPARISON census -- and *** IT DOES NOT COUNT LOOPS. ***
+                  Batch 313 classified every BACKWARD EDGE in a function this
+                  column called signed-dominant (48 signed against 16 bne) and
+                  found ELEVEN LOOPS, TEN CLOSING ON bne/beq: the signed compares
+                  were clamps, signed-division corrections and frame-phase tests,
+                  none of them loop closures.  The `!=` lever's applicability
+                  INVERTED.  Classify backward edges (target address below the
+                  branch) and read what each closes on; this column is a hint
+                  about arithmetic, not about loop form.  It MUST be read PER
+                  FUNCTION.
                   Anim_Gaia's loops are all `bne` and spelling every loop `!=` was
                   worth 23 encodings; its sibling Anim_ScreenShatter has 48 signed
                   comparisons, where the same change would corrupt 48 sites.

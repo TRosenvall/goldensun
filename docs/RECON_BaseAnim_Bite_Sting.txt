@@ -1,0 +1,166 @@
+BaseAnim_Bite_Sting -- 0x080ca60c,
+asm/rom_c9000/rom_ca57c_c_c_c_c_c_c_c_c_c_c_c_c.s line 15,
+1259 ROM instructions.
+
+NO CANDIDATE WAS WRITTEN AND NO FIGURE IS CLAIMED.  Honest triage park.
+
+=====================================================================
+*** CORRECTION TO THE BRIEF: THIS IS NOT "1, NO SPLIT" EITHER. ***
+=====================================================================
+Like Anim_Procne: one function in the file, but a `.rodata` section beside it
+and SEVEN local labels read out of it, so a TEXT/DATA SPLIT with SEVEN NEW
+EXPORTS is a prerequisite.
+
+  python3 tools/datacheck.py <stem>
+    -> "BaseAnim_Bite_Sting reads .Ledf04 .Ledf58 .Ledf5e .Ledf64 .Ledf70
+        .Ledf76 .Ledf7b"
+  python3 tools/split_s.py --dry-run <stem> BaseAnim_Bite_Sting
+    -> REFUSES, naming:
+         .global .Ledf04  .global .Ledf58  .global .Ledf5e  .global .Ledf64
+         .global .Ledf70  .global .Ledf76  .global .Ledf7b
+
+One gated commit (exports, `make compare` green, THEN split).  Not done, so this
+function cannot be installed this batch.
+
+SHIMS: tools/shimcount.py prints the filename and nothing else -- ZERO.
+
+=====================================================================
+*** THE MAXRELOAD 23 CARRIES NO REBUILD-vs-MIXED SIGNAL AT ALL. ***
+*** IT IS 23/23 AN ARRAY BASE ADDRESS.  THE BRIEF PREDICTED THIS. ***
+=====================================================================
+The brief asked me to partition the reloads before reading anything into the
+count of 23.  Partitioned, the answer is unambiguous:
+
+  `.Ledf04` x23  -> DATA-LABEL ADDRESS, not a constant.
+  `.Ledf04` is `.incrom 0xedf04, 0xedf58` -- an 84-BYTE TABLE -- and every one
+  of the 23 reloads is followed within two instructions by
+      ldrb rN, [rBase, rIndex]
+  i.e. it is `tbl[i]` on a file-scope `const u8` array, subscripted with a
+  VARIABLE index at 23 separate sites.  gcc rebuilds the base at each one
+  because the reg+reg byte-load addressing mode needs it in a register.
+  THERE IS NOTHING TO PIN AND NOTHING TO REUSE: write the array as a plain
+  `extern unsigned char Ledf04[] __asm__(".Ledf04");` and subscript it, and the
+  23 reloads come out on their own.
+
+Full partition of 89 pool refs, 42 distinct:
+    SYMBOL addr 37   DATA-LABEL addr 34   NUMERIC const 15
+    ABS addr-ish 2   IO-REG addr 1
+Highest NUMERIC reload: 0x7828 x5.  `mov rlo,rhigh` copies: 35 (the FEWEST of
+brief G's four), plus 31 `mov rlo,rlo`.
+Only 15 of 89 pool refs are true numeric constants -- the LOWEST ratio of the
+four.  So on the partitioned screen this is the CLOSEST of the four to a pure
+rebuild, which is the exact opposite of what "maxreload 23, the highest in the
+batch" suggests on its face.  Still MIXED (5 reloads, 35 reuse copies), so no
+blanket pin pass -- but if any of the four ever rewards a pin pass it is this
+one, and the candidates are the 15 numeric constants, NOT the 23.
+
+CONCLUSION, stated for the record because the brief asked: THE RELOAD COUNT
+MUST BE PARTITIONED BEFORE IT IS READ, and once partitioned it predicted the
+OPPOSITE ranking.  An unpartitioned maxreload is not a weak signal, it is an
+actively misleading one.
+
+=====================================================================
+THE FRAME.  ACCOUNTING CLOSES TO THE BYTE: 0x9c = 156.
+=====================================================================
+G1 `sub sp,#imm`         0x9c = 156.  SMALLEST frame of brief G's four.
+G2 `(add|sub) sp,rN`     NONE.
+G3 `mov rX,sp` x3, `add rX,sp,#K` x3  -- 6 SITES.
+G4 `str rX,[sp]` no-load *** 20 sites at +0x00 AND 8 at +0x04 ***  -- by far
+   the heaviest outgoing-argument traffic of the four (Kirin 7, Meteor 9,
+   Procne 13).  Twenty 6-argument calls in 1259 instructions.
+G5 `mov rX,sp` THEN `add rX,#K`: 1 site (r2 -> sp+0x84).
+
+  +0x000 .. +0x007    8    outgoing argument area
+  +0x008 .. +0x060   92    23 spilled scalar words
+  +0x064 .. +0x09b   56    the aggregates
+                    ---
+                     156 = 0x9c   EXACT
+
+TRUE AGGREGATES: 5, not 6.
+
+  +0x064   8 B   base saved to slot +0x18                AGGREGATE
+  +0x06c  12 B   passed as arg 2 to Func_80e3944, then
+                 `ldr r2,[r6]` / `str r2,[r6]`           AGGREGATE (2 sites)
+  +0x078  12 B   base copied (`mov r1,r5`)               AGGREGATE
+  +0x084  12 B   base copied (`mov r1,r2`), reached via
+                 `mov r2,sp / add r2,#0x84`              AGGREGATE
+  +0x090  12 B   base saved to slot +0x44                AGGREGATE
+
+The 6th site is the SECOND materialisation of +0x06c, not a 6th object.  No
+sub-word scalars, no loop sentinels -- the mildest inflation of the four
+(6 -> 5), and the only one explained purely by re-materialisation.
+
+*** THE PHANTOM-LOAD-ONLY TRAP, AND THIS FUNCTION IS THE CLEAN EXAMPLE. ***
+The `[sp,#imm]` census reports
+    +0x084  str=0  ld=4   LOAD-ONLY
+    +0x088  str=0  ld=2   LOAD-ONLY
+which reads as two frame words that are read but never written -- i.e. two
+holes, or two incoming arguments.  BOTH READINGS ARE WRONG.  They are the first
+two words of the 12-byte aggregate BASED at +0x084, and every store to them goes
+through the `mov r2,sp / add r2,#0x84` base register, which a `[sp,#imm]`
+census is structurally blind to.  A HOLE CLAIM MUST BE CHECKED AGAINST THE
+`add rX, sp` SITES FIRST.  (These are also the only LOAD-ONLY slots anywhere in
+brief G's four, so this is the single sighting -- but it is decisive.)
+
+SPILL-SLOT MAP, every word classified:
+  +0x000 s20/l0 STORE-ONLY  outgoing arg 5  (20 calls)
+  +0x004 s8/l0  STORE-ONLY  outgoing arg 6
+  +0x008 s1/l2   both
+  +0x00c s2/l3   both
+  +0x010 s2/l2   both
+  +0x014 s1/l1   both
+  +0x018 s1/l4   both       holds the +0x064 aggregate's base
+  +0x01c s1/l3   both
+  +0x020 s2/l2   both
+  +0x024 s1/l3   both
+  +0x028 s1/l4   both
+  +0x02c s1/l3   both
+  +0x030 s1/l8   both
+  +0x034 s3/l1   both       3 stores / 1 load -- a rewritten quantity
+  +0x038 s1/l2   both
+  +0x03c s1/l1   both
+  +0x040 s1/l1   both
+  +0x044 s1/l2   both       holds the +0x090 aggregate's base
+  +0x048 s1/l5   both
+  +0x04c s1/l2   both
+  +0x050 s1/l3   both
+  +0x054 s4/l2   both       4 stores -- a rewritten quantity
+  +0x058 s2/l15  both       *** MAXRELOAD among the slots, 15 loads ***
+  +0x05c s1/l8   both
+  +0x060 s1/l11  both
+  (+0x064 store-only in the census = aggregate base, not a hole.
+   +0x084 / +0x088 "LOAD-ONLY" = see the trap above.)
+
+NO PHANTOM HOLES: +0x008..+0x060 is 23 consecutive occupied words.
+
+DECLARATION ORDER TO START FROM:
+  scalars DESCENDING   +0x060, +0x05c, +0x058, +0x054, +0x050, +0x04c, +0x048,
+                       +0x044, +0x040, +0x03c, +0x038, +0x034, +0x030, +0x02c,
+                       +0x028, +0x024, +0x020, +0x01c, +0x018, +0x014, +0x010,
+                       +0x00c, +0x008   (23)
+  aggregates ASCENDING +0x064, +0x06c, +0x078, +0x084, +0x090
+  The three 12-byte objects at +0x06c/+0x078/+0x084 plus the one at +0x090 are
+  almost certainly four vec3s; +0x06c is confirmed as Func_80e3944's output
+  parameter, so Func_80e3944(in, out) gives the types for free.
+
+=====================================================================
+COMPARISON CENSUS -- PER FUNCTION
+=====================================================================
+  bne=23  beq=14  blt=4  ble=4  bgt=1  bge=2  bhi=4  bls=1
+  23 `bne` against 11 SIGNED compares -- THE MOST `bne`-DOMINATED OF THE FOUR
+  (Kirin 33/27, Meteor 38/33, Procne 27/38).  This is the one where Gaia's
+  blanket `!=` lever is most likely to pay, and the 11 signed sites are few
+  enough to hand-check afterwards.  FIVE unsigned guards (4 bhi + 1 bls), the
+  most of the four, which fits an 84-byte table indexed by a bounded variable.
+
+=====================================================================
+RANK: THE EASIEST OF BRIEF G's FOUR, AND THE BRIEF HAD IT RIGHT
+=====================================================================
+Smallest frame (156), fewest true aggregates (5), no sub-word scalars, no loop
+sentinels, most `bne`-dominated, and the 23 reloads are a free consequence of
+one array subscript rather than 23 decisions.  Its one real cost is the 20-site
+outgoing-argument traffic, which is bookkeeping, not structure.
+BLOCKED, though, behind the same seven-export commit as Anim_Procne -- so the
+right order for the next batch is: land ONE commit adding both export sets
+(7 + 7 labels, two files, no bytes emitted), verify `make compare`, and then
+BaseAnim_Bite_Sting is the cheapest remaining target in this family.

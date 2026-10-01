@@ -1,0 +1,222 @@
+RECON -- BATCH 313 BRIEF F, the three targets NOT reconstructed
+===============================================================
+
+NO CANDIDATE .c EXISTS for BaseAnim_Tiamat, BaseAnim_ParticleSpray or
+Anim_Neptune, and NO FIGURE IS CLAIMED FOR ANY OF THEM.  Nothing below has been
+through objcmp, aligncmp or tryc.  Every number here came from a grep or a
+region read of the tracked reference .s and can be re-derived in one command;
+the split shapes are the only things that were run through a tool
+(tools/datacheck.py and tools/split_s.py --dry-run, which deletes nothing).
+
+This is deliberate and it is the brief's own instruction: depth on two beats
+shallowness on four.  Anim_ScreenShatter was taken to a measured, parkcheck-OK
+park (scratch_elev/b313f/PARK_Anim_ScreenShatter.c, 1042 of 1132, aligned 511 of
+1132 = 45.1%, ten levers measured) and the remaining budget went into resolving
+the aggregate question the coordinator raised, which applies to all four and
+changes one of the figures in the brief's table.  A half-written candidate with
+an honest-looking objcmp line would have been worse than this file.
+
+-----------------------------------------------------------------------
+0.  THE FRAME, MEASURED ON SIX GREPS, AND THE AGGREGATE COLUMN RESOLVED
+-----------------------------------------------------------------------
+
+The four-grep recipe is not enough.  Two further address-forming idioms exist
+and both appear in this group:
+
+  FIFTH  `add rX, sp`         (bare, no immediate)
+  SIXTH  `mov rX, #K` then `add rX, sp`   -- immediate FIRST, sp added into it
+
+The sixth is how you get a stack address into a HIGH register, which
+`add rX, sp, #K` cannot do (it needs a low rd).  BaseAnim_Tiamat uses it twice.
+Neither is covered by the four-grep recipe or by docs/elevation.md's
+`mov rX, sp / add rX, #K` note, which is the fifth form in the other operand
+order.
+
+  function                frame  sub sp  reg-built  mov rX,sp  add rX,sp,#K  bare add rX,sp  str[sp] no load
+  Anim_ScreenShatter      0x38   yes     no         0          0             0               7
+  BaseAnim_Tiamat         0x48   yes     no         0          1 (0x3c)      2 (both 0x3c)   9
+  BaseAnim_ParticleSpray  0x9c   yes     no         0          3 (0x88,0x8c,0x90) 0          32
+  Anim_Neptune            0x74   yes     no         1 (0x50)   4 (0x28,0x48,0x58,0x64) 0     19
+
+AGGREGATES, every site resolved by READING ITS REGION, block-aware:
+
+  Anim_ScreenShatter      0  EXACT -- zero address-forming forms of ANY kind,
+                             so no base register is ever materialised and no
+                             store can hide behind one.  All 71 `[sp]` accesses
+                             are word ldr/str.
+  BaseAnim_Tiamat         1  EXACT -- sp+0x3c's address is passed to
+                             GetBattleActorPos2 and used at [r6] and [r6,#4].
+                             The two sixth-form sites are the SAME offset, so
+                             they are extra references to one object.
+  BaseAnim_ParticleSpray  3  EXACT -- 0x8c and 0x88 are stored to [sp]/[sp,#4]
+                             as outgoing args 5 and 6 of Anim_Djinni;
+                             0x90 goes to Func_80e3944 as a vec3_t out-param.
+  Anim_Neptune            4  *** THE BRIEF SAYS 5.  ONE SITE IS NOT AN
+                             AGGREGATE. ***  sp+0x28 is
+                             `add r4,sp,#0x28 / ldrh r4,[r4] / strh r4,[r3,#4]`
+                             -- ONE sub-word load with the base overwritten by
+                             its own result on the next instruction.  It is a
+                             u16 SCALAR.  Thumb-1 has no sp-relative ldrh, so a
+                             sub-word stack scalar MUST materialise a base and
+                             is indistinguishable from an aggregate at the grep.
+
+  AND THE TRAP, WHICH COST NOTHING ONLY BECAUSE THE SCAN WAS BLOCK-AWARE:
+  Neptune's sp+0x48 is a genuine aggregate (`mov r2,r7` -- passed as an
+  argument), but THREE BLOCKS LATER r7 IS REASSIGNED, `ldr r7, =gBuffer`, and
+  then walked: [r7], [r7,#4], [r7,#0xc], [r7,#0x10], [r7,#0x18], `add r7,#0x1c`.
+  A first-use scan that does not stop at a label reads those six offsets as the
+  STACK object and reports a 0x1c-byte aggregate at sp+0x48.  It is a particle
+  walk over gBuffer and has nothing to do with sp.  STOP AT EVERY LABEL AND
+  BRANCH, and re-check whether the base register is still the one you tracked.
+
+  A SEVENTH CASE for the recipe: an address-taken SCALAR (ParticleSpray's
+  0x88/0x8c -- `int a; f(&a);`) also surfaces at this grep and is neither an
+  aggregate nor a sub-word scalar.  The question the grep actually answers is
+  "is a base register materialised at all"; when one is, only reading the
+  region settles what it is.
+
+  NET EFFECT ON THE BRIEF'S SELECTION PREMISE: the column reads 0/1/3/4 instead
+  of 0/1/3/5.  The ORDERING is unchanged, so the premise survives and
+  ScreenShatter leading is confirmed on the strongest form of the test.
+
+-----------------------------------------------------------------------
+1.  THE COMPARISON CENSUS -- AND IT MUST BE RE-RUN AS A LOOP CENSUS
+-----------------------------------------------------------------------
+
+Raw mnemonic counts on the reference bodies:
+
+  function                bne  signed(blt/ble/bgt/bge)  beq  bhi  bls  insns  pool
+  Anim_ScreenShatter       16   48                        2    1    0   1044    15
+  BaseAnim_Tiamat          41   14                       12    5    1    977     2
+  BaseAnim_ParticleSpray   68   15                       27    1    2   1595     1
+  Anim_Neptune             35   55                        8    5    1   1466    13
+
+THE RAW CENSUS MIS-SIGNALS, AND ANIM_SCREENSHATTER IS THE PROOF.  Its 48-to-16
+signed majority is the brief's headline reason not to import Anim_Gaia's all-`!=`
+rule.  I classified every backward edge in it: ELEVEN loops close the function
+and TEN close on `bne`/`beq`.  Exactly one, the midpoint-circle inner loop, is a
+signed compare (`while (i >= j)`).  All 48 signed compares but one are
+coordinate CLAMPS, signed-division bias corrections and frame-phase tests -- not
+loops at all.  Gaia's rule TRANSFERS almost completely and is in the delivered
+body.
+
+So before using these four rows: count only branches that CLOSE A BACKWARD EDGE.
+RECON_b311b_four states this as a caveat about `bhi`/`bls` and notices it locally
+for ScreenShatter's tilemap pair; it generalises, and on a clamp-heavy or
+division-heavy function it inverts the headline.  Tiamat and ParticleSpray are
+bne-dominant on the raw count too, so for those two the raw and loop censuses
+are likely to agree -- but that is a prediction, not a measurement, and Neptune
+(55 signed) is the one where the re-count matters most and has NOT been done.
+
+-----------------------------------------------------------------------
+2.  SPILL-SLOT ACCESS-COUNT MAPS (reference, scalars descending)
+-----------------------------------------------------------------------
+
+Build these with a regex that accepts BOTH `#0x28` and `#8`: small immediates
+are printed WITHOUT the 0x prefix and a `#0x`-only regex silently drops every
+slot below 0x10.  Mine did, and it manufactured a phantom hole I then chased.
+(Independently flagged by the coordinator from a sibling agent's work -- two
+separate discoveries of the same instrument defect in one batch.)
+
+BaseAnim_Tiamat  (frame 0x48, aggregate at 0x3c, 12 scalars)
+    0x38 11   0x34  6   0x30  3   0x2c  2   0x28  5   0x24 28  <- hot
+    0x20  4   0x1c  5   0x18  5   0x14  8   0x10  3   0x0c  2
+    0x00  9  (outgoing args)
+  Slot 0x24 with 28 accesses is the hot pointer and the thing to identify first.
+
+BaseAnim_ParticleSpray  (frame 0x9c, aggregates 0x88/0x8c/0x90, ~30 scalars)
+    0x84 18   0x80 20  <- the two hot ones
+    0x7c  9   0x78 12   0x74  1   0x70  6   0x6c  3   0x68  4   0x64  5
+    0x60  3   0x5c  7   0x58 12   0x54  2   0x50  4   0x4c  4   0x48  3
+    0x44  4   0x40  3   0x3c  4   0x38  3   0x34  4   0x30  2   0x2c  2
+    0x28  4   0x24  4   0x20  7   0x1c  4   0x18  4   0x14  5   0x10  4
+    0x0c 11   0x00 32  (outgoing args -- the largest arg block of the four)
+  THIRTY declared scalars is the real difficulty here, not the 1605 instructions.
+
+Anim_Neptune  (frame 0x74, 4 aggregates + a u16 scalar at 0x28)
+    0x50  5*  0x4c  1*  0x48  1*  0x44 16  <- hot
+    0x40  4   0x3c  4   0x38  6   0x34  8   0x30  8   0x2c 14  <- second hot
+    0x28  1*  0x24  2   0x20  3   0x1c  2   0x18 10   0x14  3   0x10  5
+    0x0c  2   0x00 19  (outgoing args)
+    (* rows that are aggregate interiors or the u16 scalar, not spill slots)
+  Slot 0x18's 10 accesses are a DECLARED POINTER TO THE LOCAL AT 0x50 -- the
+  ROM stores `sp+0x50` into it (`mov r2,sp / add r2,#0x50 / str r2,[sp,#0x18]`).
+  That is a source-level fact worth having before writing anything.
+
+-----------------------------------------------------------------------
+3.  SPLIT SHAPES -- ALL THREE RUN, AND ONE IS FREE
+-----------------------------------------------------------------------
+
+BaseAnim_ParticleSpray   *** NO SPLIT NEEDED.  CONVERT DIRECTLY. ***
+    split_s.py --dry-run: "holds only BaseAnim_ParticleSpray and no data".
+    It reads eight data labels (.Leebe9 .Leebec .Leec28 .Leec2f .Leec36
+    .Leec3d .Leec44 .Leec52) and all of them live in
+    asm/rom_c9000/rom_de974_c_c_c_c_c_c_c_c_c_c_c.s where they are ALREADY
+    `.global` -- checked on three of the eight, not assumed.  This is the
+    cheapest install path of the four and that is a reason to prefer it next.
+
+BaseAnim_Tiamat          TEXT/DATA split, SEVEN new exports:
+    .global .Lee184 .Lee188 .Lee18a .Lee18e .Lee194 .Lee19a .Lee1a0
+
+Anim_Neptune             TEXT/DATA split, THREE new exports:
+    .global .Leef68 .Leef70 .Leef78
+    The file already carries `.global .Leef56` and `.global .Leef5f`, which are
+    NOT the set a split needs -- datacheck.py says so explicitly, so do not
+    read the existing exports as the job being done.
+
+In every case a `.global` emits no bytes: add the exports, verify `make compare`
+is green AFTER the exports and BEFORE the split, then re-run the dry run.  That
+order is what split_s.py's own message asks for and it keeps the two changes
+separable.
+
+-----------------------------------------------------------------------
+4.  WHAT TRANSFERS FROM THE DELIVERED SCREENSHATTER PARK
+-----------------------------------------------------------------------
+
+Full detail and figures are in PARK_Anim_ScreenShatter.c's header.  The items
+most likely to matter on these three:
+
+(a) A TILED-SURFACE PLOT INDEX MUST BE A FLAT SUM WITH `<<`, NOT `*`
+    (437 -> 511 of 1132, the batch's biggest single move).  When the scale
+    factors are all multiples of a common power of two -- 8, 0x40, 0x800 for an
+    8x8 tiled surface -- fold FACTORS THE POWER OUT and emits a Horner form with
+    extra `lsl` per site.  Shifts leave it nothing to factor.  Any function in
+    this bank that writes a tiled buffer by coordinate is exposed.
+
+(b) BUT THE DIVISIONS STAY DIVISIONS.  `x / 8` is `cmp x,#0 / bge / add x,#7 /
+    asr x,#3`; the bias correction only exists for signed division, and `>> 3`
+    is a bare `asr`.  `/ 2` takes gcc's other shape (`lsr #31 / add / asr #1`).
+    Mixing shifts for the multiplies with `/` for the divisions in one
+    expression is the lever, and it is not obvious.
+
+(c) DO NOT READ AN ACCUMULATION ORDER BACK OUT AS PARENTHESISATION -- measured
+    FIFTY encodings NEGATIVE (511 -> 461).  fold reassociates a flat sum and
+    cse1 then rebuilds the reference's grouping from the shared subexpressions;
+    writing the grouping by hand pins it and defeats the sharing.  Same caution
+    docs/elevation.md records for `mul` operand order, on a new construct.
+
+(d) CLAMP AND BRANCH ORDER IS SOURCE ORDER; ARITHMETIC ORDER IS NOT.  sched2
+    runs and freely reorders straight-line arithmetic inside a block but cannot
+    move anything across a conditional jump.  In ScreenShatter the four
+    coordinate computations come out in the REVERSE of the order their clamps
+    test them.  Read structure off the branches.
+
+(e) `base + 0x7828` IS NOT A NAMED LOCAL -- the bank rule held again, and
+    Tiamat reads 0x7828 too (`ldr r5, =0x7828 / add r5, r10 / ldr r3, [r5]`).
+    Anim_Ragnarok's `slot` remains the documented EXCEPTION.
+
+(f) THE HBlank REGISTER-QUEUE PUSH IS ALREADY SOLVED IN THIS BANK.  Take
+    `QueuePush1` from src/non_matching/rom_c9000/80cd86c.c verbatim, including
+    `SET_IO(REG_IME, REG_ADDR_IME)`, which is what explains the otherwise
+    baffling `strh r0, [r0]`.  Do not re-derive it.
+
+(g) FLAGS, RUN ON SCREENSHATTER AND NOT TRANSFERABLE WITHOUT RE-RUNNING:
+    `-fno-gcse` and `-fno-cse-follow-jumps` are BOTH EXACTLY INERT there, so
+    gcse is ruled out and nothing may be attributed to it.
+    `-fno-rerun-cse-after-loop` is NEGATIVE (frame 0x3c -> 0x44).  Flags are
+    per-function; re-run before citing.
+
+(h) COUNT A CONSTRUCT ON BOTH SIDES BEFORE NAMING A PASS.  I wrote down that
+    cse1 had hoisted a `gBuffer` address function-wide, then counted the pool
+    loads: ours 16, reference 16.  One spilled copy of an address is not
+    evidence of commoning.

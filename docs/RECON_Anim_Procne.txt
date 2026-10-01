@@ -1,0 +1,162 @@
+Anim_Procne -- 0x080d1714, asm/rom_c9000/rom_d1714.s line 96,
+1481 ROM instructions.
+
+NO CANDIDATE WAS WRITTEN AND NO FIGURE IS CLAIMED.  Honest triage park.
+
+=====================================================================
+*** CORRECTION TO THE BRIEF: THIS IS NOT "1, NO SPLIT". ***
+=====================================================================
+The brief's table says "1 function, no split".  The file does hold only
+Anim_Procne -- but it ALSO HOLDS A `.rodata` SECTION, and the function reads
+SEVEN local labels in it, so a conversion still needs a TEXT/DATA SPLIT and
+SEVEN NEW EXPORTS BEFORE the split can run.
+
+  python3 tools/datacheck.py asm/rom_c9000/rom_d1714.s
+    -> "data sections: .rodata"
+    -> "converting a function here needs a TEXT/DATA SPLIT"
+    -> "Anim_Procne reads .Lee15a .Lee163 .Lee16c .Lee174 .Lee177 .Lee17a
+        .Lee17e"
+    -> "*** SPLIT MUST EXPORT: ..." (all seven)
+
+  python3 tools/split_s.py --dry-run asm/rom_c9000/rom_d1714.s Anim_Procne
+    -> REFUSES: "A `.L` symbol does not survive into the object's symbol table,
+       so the link would fail."  It names the same seven:
+
+         .global .Lee15a  .global .Lee163  .global .Lee16c  .global .Lee174
+         .global .Lee177  .global .Lee17a  .global .Lee17e
+
+A `.global` emits no bytes.  The prerequisite is one gated commit: add the seven
+exports, verify `make compare` BEFORE the split so the two changes stay
+separable, then split.  THAT IS ASM WORK AND IT IS NOT DONE.  Anim_Procne
+therefore cannot be installed this batch no matter how good a candidate is.
+Same situation as BaseAnim_Bite_Sting; see its recon.
+
+SHIMS: tools/shimcount.py prints the filename and nothing else -- ZERO.
+
+=====================================================================
+THE FRAME.  ACCOUNTING CLOSES TO THE BYTE: 0x164 = 356.
+=====================================================================
+G1 `sub sp,#imm`         0x164 = 356.  Still under the 508-byte cap, so G2
+                         cannot fire -- but this is the LARGEST frame of brief
+                         G's four and the largest in the family after
+                         LuckyDiceMain.
+G2 `(add|sub) sp,rN`     NONE.
+G3 `mov rX,sp` x1, `add rX,sp,#K` x18  -- 19 SITES.
+G4 `str rX,[sp]` no-load 13 sites at +0x00 AND 10 at +0x04 (6-argument calls).
+G5 `mov rX,sp` THEN `add rX,#K`: NONE (the lone `mov r2,sp` is the +0xa4 base).
+
+  +0x000 .. +0x007    8    outgoing argument area
+  +0x008 .. +0x064   96    24 spilled scalar words
+  +0x068 .. +0x163  252    the aggregates
+                    ---
+                     356 = 0x164   EXACT
+
+TRUE AGGREGATES: 10, NOT 19.  The brief's figure is a 1.9x over-count -- the
+worst of the four, and the one the brief leaned on hardest ("19 aggregates").
+Resolved block-aware by region reading:
+
+  +0x068   8 B   stores at +0x4                        AGGREGATE
+  +0x070  16 B   stores at +0xc                        AGGREGATE
+  +0x080  12 B   stores at +0x8                        AGGREGATE
+  +0x08c  12 B   passed as arg (`mov r1,r7`) at FOUR
+                 sites, and copied to r10 at one       AGGREGATE (5 sites)
+  +0x098  12 B   base copied to r8                     AGGREGATE
+  +0x0a4  32 B   base saved to slot +0x28; also walked
+                 `ldmia r7!,{r3}`                      AGGREGATE (2 sites)
+  +0x0c4  64 B   `ldr r3,[r5]` / `ldr r3,[r5,#4]` --
+                 a scale pair read out and copied into
+                 an actor struct                       AGGREGATE (2 sites)
+  +0x104  32 B   reg+reg indexed `ldr r3,[r7,r4]`      AGGREGATE (4 sites)
+  +0x124  32 B   reg+reg indexed `ldr r3,[r5,r4]`      AGGREGATE (2 sites)
+  +0x144  32 B   reg+reg indexed `ldr r0,[r6,r4]`      AGGREGATE
+
+NOT AGGREGATES -- the other NINE sites are all RE-MATERIALISATIONS of the ten
+bases above.  +0x08c is materialised FIVE separate times, +0x104 four times,
++0x0a4 / +0x0c4 / +0x124 twice each.  THAT IS THE WHOLE INFLATION HERE: unlike
+Kirin and Meteor, Procne has NO sub-word scalars and NO loop sentinels among its
+sites -- every one of the nineteen is a real aggregate base, just only ten
+distinct ones.  SO THE OVER-COUNT HAS THREE SEPARATE CAUSES ACROSS THE FOUR
+FUNCTIONS and a corrected grep would have to handle all three:
+    sub-word scalars      (Kirin +0x38; Meteor +0x34, +0x38)
+    loop end sentinels    (Kirin +0x82, +0x94; Meteor +0x118)
+    hidden register args  (Meteor +0x11c)
+    plain re-materialisation of one base  (Procne, 9 of 19)
+Only the last is fixable by de-duplicating offsets, which is why
+"distinct offsets" is a better upper bound than "sites" but still not a count.
+
+SPILL-SLOT MAP, every word classified:
+  +0x000 s13/l0 STORE-ONLY  outgoing arg 5
+  +0x004 s10/l0 STORE-ONLY  outgoing arg 6
+  +0x008 s6/l11  both       *** 6 stores: a heavily rewritten accumulator ***
+  +0x00c s1/l1   both
+  +0x010 s2/l4   both
+  +0x014 s2/l2   both
+  +0x018 s2/l2   both
+  +0x01c s2/l2   both
+  +0x020 s2/l3   both
+  +0x024 s1/l1   both
+  +0x028 s1/l1   both       holds the +0x0a4 aggregate's base
+  +0x02c s1/l1   both
+  +0x030 s1/l1   both
+  +0x034 s1/l1   both
+  +0x038 s1/l1   both
+  +0x03c s3/l2   both
+  +0x040 s3/l2   both
+  +0x044 s3/l6   both
+  +0x048 s3/l5   both
+  +0x04c s1/l5   both
+  +0x050 s4/l34  both       *** MAXRELOAD 34, and FOUR stores -- not a
+                            load-once pointer but a rewritten quantity ***
+  +0x054 s1/l6   both
+  +0x058 s1/l3   both
+  +0x05c s1/l30  both       second-heaviest, 30 loads, ONE store (a pointer)
+  +0x060 s1/l2   both
+  +0x064 s1/l10  both
+  (+0x068 and +0x06c read store-only in the census; +0x068 is an aggregate base
+   and NOT a hole.  +0x06c is the second word of that 8-byte object.)
+
+NO PHANTOM HOLES: +0x008..+0x064 is fully occupied, 24 consecutive words.
+TWO maxreload slots (34 and 30 loads) rather than one is unusual in this family
+and says there are TWO function-wide quantities, not one base pointer.
+
+DECLARATION ORDER TO START FROM:
+  scalars DESCENDING   +0x064, +0x060, +0x05c, +0x058, +0x054, +0x050, +0x04c,
+                       +0x048, +0x044, +0x040, +0x03c, +0x038, +0x034, +0x030,
+                       +0x02c, +0x028, +0x024, +0x020, +0x01c, +0x018, +0x014,
+                       +0x010, +0x00c, +0x008   (24 -- note NO pass-created
+                       word here, unlike Kirin and Meteor, so all 24 are
+                       declared quantities)
+  aggregates ASCENDING +0x068, +0x070, +0x080, +0x08c, +0x098, +0x0a4, +0x0c4,
+                       +0x104, +0x124, +0x144
+
+=====================================================================
+COMPARISON CENSUS -- PER FUNCTION
+=====================================================================
+  bne=27  beq=12  blt=1  ble=17  bgt=14  bge=6  bhi=3
+  27 `bne` against 38 SIGNED compares -- THE ONLY ONE OF BRIEF G's FOUR WHERE
+  SIGNED COMPARES OUTNUMBER `bne`.  This is the function Gaia's `!=` lever would
+  damage most: 38 sites.  Three `bhi` unsigned range guards.
+
+=====================================================================
+REBUILD-vs-MIXED SCREEN: MIXED.
+=====================================================================
+69 pool refs, 46 distinct, partitioned:
+    NUMERIC const 33   SYMBOL addr 21   DATA-LABEL addr 9   ABS addr-ish 6
+Highest NUMERIC reload: 0x7828 x11 -- the most-rebuilt numeric constant of the
+four.  `mov rlo,rhigh` reuse copies: 48, plus 51 `mov rlo,rlo`.
+Eleven reloads with ~48 reuse copies is squarely MIXED, so no blanket pin pass.
+BUT 0x7828 at ELEVEN sites is the largest single rebuild population in brief G,
+and `base + 0x7828` is the family's documented per-site coin-flip (named on
+Anim_Ragnarok, must NOT be named on Anim_Gaia, and MEASURED NEGATIVE THREE WAYS
+ON Anim_Kirin this batch -- see PARK_Anim_Kirin.c).  Procne is where that
+decision is worth the most, so MEASURE IT EARLY AND BOTH WAYS.
+
+=====================================================================
+RANK: THIS IS THE HARDEST OF BRIEF G's FOUR
+=====================================================================
+Largest frame (356), most true aggregates (10), most spilled scalars (24), two
+function-wide maxreload quantities, most signed compares (38), and the largest
+rebuild population.  It is also blocked behind a seven-export asm commit.
+Take it LAST on installability and FIRST on difficulty -- those are not in
+conflict here, they are the same conclusion: do not start it until the export
+commit has landed and `make compare` is green.

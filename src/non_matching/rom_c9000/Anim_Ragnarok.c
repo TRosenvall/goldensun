@@ -21,10 +21,28 @@
  *     src/non_matching/rom_c9000/Anim_Ragnarok.c \
  *     asm/rom_c9000/rom_e7320_c_c.s --func Anim_Ragnarok
  *
- * SPLIT SHAPE: TEXT/DATA SPLIT, TWO NEW EXPORTS.  tools/datacheck.py says the
- * stem has a `.rodata` section and that Anim_Ragnarok reads `.Leef06` and
- * `.Leef0c` -- and nothing else.  `tools/split_s.py --dry-run` REFUSES until
- * they are exported, naming ten labels across the whole file:
+ * SPLIT SHAPE: TEXT/DATA SPLIT.  *** THE EXPORTS LANDED IN BATCH 312 AND THE
+ * REFUSAL BELOW IS STALE. ***  All twelve `.global` lines named by the tool are
+ * now in asm/rom_c9000/rom_e7320_c_c.s, each immediately before its label, in
+ * one build+compare-gated commit, and `split_s.py --dry-run` now SUCCEEDS on
+ * this file (confirmed on BaseAnim_Meteor in batch 313: it prints the three-way
+ * 131 / 1750 / 3765 shape).  So EVERY split of this eight-function file is now
+ * free of asm work -- for all eight members, not just this one.
+ *
+ * *** SUFFIX COLLISION, AND IT IS A REAL BLOCKER FOR WHICHEVER GOES SECOND. ***
+ * Anim_Annihilation, Anim_Ragnarok and BaseAnim_Meteor each have a park naming
+ * `rom_e7320_c_c_b` as their own output stem, and ONLY ONE CAN HAVE IT.  The
+ * stem a cut produces depends on the member's POSITION, so the three claims are
+ * mutually exclusive rather than merely duplicated.  Whoever converts first
+ * takes `_b`; every later conversion of this file must RE-DERIVE its stems from
+ * a fresh `--dry-run` against the then-current file, not from the shape written
+ * in its own park.  Check this before writing linker rows.
+ *
+ * The historical reading, kept because the export list is still the right list:
+ * tools/datacheck.py says the stem has a `.rodata` section and that
+ * Anim_Ragnarok reads `.Leef06` and `.Leef0c` -- and nothing else.
+ * `split_s.py --dry-run` USED TO REFUSE until they were exported, naming ten
+ * labels across the whole file:
  *
  *     .global .Leee76  .global .Leeea0  .global .Leeebc  .global .Leeeca
  *     .global .Leeed8  .global .Leeee1  .global .Leeeea  .global .Leeef8

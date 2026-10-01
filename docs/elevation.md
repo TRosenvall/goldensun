@@ -30067,3 +30067,240 @@ proved mechanism — a pooled eight-bit-movable word means a relocation *or* a
 spilled constant pseudo — but it should no longer lead a brief. Run it only when
 the pooled multiset actually contains a small value, which is one
 `grep | sort | uniq -c` away and is the check I kept skipping.
+
+## Batch 313 briefs B, F and G -- four of my triage columns are actively misleading
+
+Three agents independently attacked the triage table I built over batches 312-313
+and the verdict is consistent: **every column that is a PROXY has now been shown
+to invert the ranking it was built to produce.** Recording the corrected
+instruments, because the proxies are worse than useless — they are confidently
+wrong.
+
+### `maxreload` is not weak, it is ACTIVELY MISLEADING
+
+`BaseAnim_Bite_Sting` carries the highest max reload in the batch at 23 — and
+**all 23 are one ARRAY BASE ADDRESS** (`.Ledf04`, an 84-byte table, `ldrb
+[base,index]` at 23 sites). Partitioned, only **15 of 89** pool references are
+true numeric constants: the **lowest** ratio of its group, making it the
+**closest to a pure rebuild** — the exact opposite of what "highest maxreload"
+suggests.
+
+> **An unpartitioned reload count is not a weak signal, it is an actively
+> misleading one.** Partition pool references into numeric constants against
+> symbol/array-base addresses before reading anything off a reload figure.
+
+### High-register mentions measure PRESSURE, not constant reuse
+
+Brief B automated the `mov rlo,rhigh` partition by tracing each high-register copy
+back to the **root** of its value, and **validated it against this document's own
+hand-computed table — reproducing all four tabulated functions exactly**
+(4/5/4/0, 3/10/2/1, 2/0/2/7, 4/5/6/11). Installed as `tools/hipartition.py` and
+`tools/hivalmap.py`. On the four functions I had ranked by high-register count:
+
+| function | constant-rooted | mem-rooted | accumulator | what it actually is |
+|---|---|---|---|---|
+| `Func_80a2680` | 10 of 55 | **35** | 0 | 28 of 55 copies are ONE pointer in r9 |
+| `Func_8090a5c` | 2 of 59 | 2 | **41** | a pointer/counter function |
+| `UpdateActors` | **0 of 58** | 54 | 0 | **the pin pass has NO DOMAIN here** |
+| `OvlFunc_969_200a360` | **44 of 58** | 0 | 4 | the only constant-reuse function |
+
+I ranked the 191-mention function top; it is dominated by one memory-loaded
+pointer and its 28 reads. **Only one of the four is the population the question
+was about.**
+
+### A raw mnemonic census counts COMPARISONS, not LOOPS
+
+The per-function loop census recorded since batch 311 — `grep -coE
+'\b(bne|blt|ble|bgt|bge)\b'` — is the wrong instrument. Brief F classified every
+**backward edge** in `Anim_ScreenShatter`: **eleven loops, ten closing on
+`bne`/`beq`**, only one inner loop signed. The 48 signed comparisons that this
+document cited as making it "signed-dominant" are **clamps, signed-division
+corrections and frame-phase tests** — none of them loop closures.
+
+**So the conclusion inverts: `Anim_Gaia`'s all-`!=` rule transfers almost
+completely to `Anim_ScreenShatter`**, where batch 311 recorded that it would
+corrupt 48 sites. Classify backward edges (branch target below the branch) and
+read what each one closes on.
+
+### The aggregate over-count has FOUR causes, and inflation grows with the figure
+
+Brief G re-derived every aggregate by region reading and then **closed the byte
+accounting** — 156 / 176 / 284 / 356 bytes, exact, with no slack to hide a
+miscount. That is the check a grep cannot have, and it is how to settle a frame.
+
+| function | raw `add rX,sp,#K` | TRUE | cause of the excess |
+|---|---|---|---|
+| `BaseAnim_Bite_Sting` | 6 | **5** | |
+| `Anim_Kirin` | 10 | **7** | sub-word scalars |
+| `BaseAnim_Meteor` | 14 | **8** | sub-word scalars, loop end sentinels, **a hidden register argument** |
+| `Anim_Procne` | 19 | **10** | 9 of them plain re-materialisation |
+
+**The inflation grows with the raw figure**, so the column is worst exactly where
+it matters most. The four distinct causes:
+
+1. **sub-word scalars** — Thumb-1 has no sp-relative `ldrh`/`strh`/`ldrb`/`strb`;
+2. **loop end sentinels** — an address materialised as a termination bound;
+3. **a hidden REGISTER ARGUMENT** — `BaseAnim_Meteor`'s `+0x11c` is a frame-top
+   pointer handed to a callee in r9. **That is a calling convention, not a
+   local**, and no amount of declaration work will produce it;
+4. **plain re-materialisation** — the same offset formed twice. **Only this last
+   one is fixable by de-duplicating offsets.**
+
+Two further classification cases found: an **address-taken scalar** (`f(&a)`) is
+neither aggregate nor sub-word scalar; and a **sixth frame idiom** the recipe
+lacked — `mov rX,#K` then `add rX,sp` (immediate first), plus `mov rX,sp` then
+`add rX,#K`.
+
+### The decimal-immediate trap, hit INDEPENDENTLY by three agents
+
+`str rX,[sp,#4]` is invisible to a `#0x`-keyed regex, because **this tree prints
+sub-0x10 offsets in decimal.** One agent's first frame map read 4 bytes of
+outgoing argument space where the truth is 8; another's "phantom hole" was partly
+its own regex; a third nearly reversed a finding on it. **Three independent
+sightings in one batch.** Also re-confirmed: POSIX awk has no `strtonum` and
+prints nothing silently.
+
+And the **phantom-LOAD-ONLY** trap now has a clean sighting: two offsets read as
+holes but are words of an aggregate based at the lower one, **stored through a
+materialised base the `[sp,#imm]` census cannot see.** Every "loaded but never
+stored" slot is a phantom until checked against the `add rX,sp` sites.
+
+## The mixed-placement rule was SOLVED and never reached this document
+
+A gap I created. `src/non_matching/ovl_7f6e64/20088b4.c` — installed in batch 311
+— **states the mixed placement rule and measures it**, 81.6% → 85.9% with the
+count exact at 962 and the pool set exact:
+
+  * reference **RELOADS** at every site → **PIN** (a pin's destination is
+    call-clobbered, so it rebuilds by construction);
+  * reference **HOLDS** the value → **the two-step computed form**
+    `q = 0x80; q <<= 8;` (two sets defeat the `REG_EQUIV` that makes a one-set
+    `int q = 0x80 << 8;` inert).
+
+**The two lists are DISJOINT and cover every value**, so this is not a partial
+constant set and the zero-sum objection does not apply to it. This document
+carried both halves of the mechanism separately and said only that
+"`20088b4` stays mixed for this reason" — which reads as *unsolved*, and I briefed
+it as the batch's open question on that basis.
+
+**A park can hold a solved rule. Extracting it is part of installing it** — this
+is the second time a park has written down an answer the document did not carry
+(batch 310's `ActorCmd_Wander` recorded its own answer and rejected it).
+
+**And a falsifiable discriminator for "mixed":** both constant sub-classes
+populated — built **and** pooled. Every pure-rebuild function in this document's
+table has one or none; the resisting function is 11/11, and another at 29/13 is
+predicted to resist the same way.
+
+## Two more ladder entries, both from candidates I would have installed
+
+**Rung 3 at its cleanest.** `Anim_Kirin`'s K5 probe — naming `slot` function-wide
+— gives **count EXACT at 1095/1095** while **aligncmp COLLAPSES 4.8 points** and
+the frame stays 8 bytes over. The agent's own words: *"had I ranked on objcmp
+alone I'd have installed it."* Its K2/K3 probes are the same trap inverted: both
+axes better, structure 2.5 points worse.
+
+**TWO AXES MATCHING DOES NOT MEAN THE OBJECT IS CLOSE.** Nine address pins
+measured **size- AND count-identical** while the object carried **~60 `.s`
+differences including a permuted spill-slot map**. The agent nearly recorded
+"byte-identical" off two matching axes. This is sharper than rung 3: both axes are
+**blind**, not merely insufficient.
+
+**And a frame-size match can be a coincidence** — rung 7 on a new axis. `0x38` on
+both sides, with the ROM at **9 live slots + 3 dead words** against a candidate at
+**12 live + 1 dead**.
+
+## Levers that paid
+
+  * **A TYPE, NOT A SPELLING, was the best single edit of the batch** — 36 bytes
+    and 25 encodings in **one token**. `unsigned short v = *src++;` emits `ldrsh`
+    + `lsl #16` + `lsr #16`, giving **11 `ldrsh` where the reference has ZERO**;
+    `int v = *src++;` removes all of it, taking size to exact and count to +1.
+    **Screen it with one grep for `ldrsh`** on any halfword-loading function: if
+    the candidate has them and the reference has none, the carrier's TYPE is the
+    defect.
+  * **Rung 8 paid immediately on the same function.** At count +1 of 849 the
+    histogram read `bcc -21 | blt +21 | lsr -21 | asr +21` — **42 instructions of
+    pure signedness cancelling inside the count.** An unsigned loop counter and
+    source value zeroed all four columns at unchanged size and count.
+  * **A tiled index must be a flat sum of `<<` terms, not `*`** — 437 → 511
+    aligned, count 1154 → 1120. With multiplies, `fold` factors out the common
+    power of two and emits a Horner form with two extra `lsl` per site, times 16
+    plots. **But the DIVISIONS stay `/`**: `x/8` shows the signed bias correction
+    (`cmp/bge/add #7/asr`), so a `>>` there is a bug. Opposite directions in one
+    function.
+  * **A negative array index is NOT the negative-offset spelling.**
+    `iwram_3001ef0[-1]` gives 3 instructions; `*(u8**)((char*)iwram_3001ef0 - 4)`
+    gives the ROM's 2.
+  * **One variable per region, found via the slot table** (our heaviest slot 7
+    stores against the reference's 3): one function-level `int u` served eight
+    regions, and splitting it took `str` +17 → +10 — exactly those seven stores —
+    with aligned 23.0% → 24.3%, **while moving size from exact to −20 and count
+    +1 → −9.** Ranked on the histogram and the slot map per the documented
+    discipline; **re-ranking that on size-and-count picks the worse candidate.**
+
+## Bounds measured
+
+  * **Reading an add order back out as source grouping measured 50 encodings
+    NEGATIVE** (511 → 461). With batch 311's `mul` bound and batch 313's
+    `and`/`orr` bound, the general statement is now: **neither operand order nor
+    associativity at a commutative site is readable from the output.**
+  * **Hoisting `int j = 0;` out of a loop was inert on all four figures AND on
+    the slot map**, despite the live-initialiser precondition holding — a fourth
+    bound on initialise-at-declaration.
+  * **Naming `base + 0x7828`** is −4.8 function-wide, −0.2 in-region, **inert in
+    the prologue**: `Anim_Kirin` sides with `Anim_Gaia`, not `Anim_Ragnarok`. The
+    lever stays per-site.
+  * **The pin pass is negative or inert in all three subsets** on one function
+    (all pins +20/+7; call-targets-only +20/+7, i.e. 100% of the regression;
+    table-addresses-only 0/+1). **The pooled multiset said "pin" and the partition
+    said "don't" — the partition was right.** Prefer the partition.
+  * **Offset-zero stores through a HIGH-register pointer are not evidence of
+    `*p++`** — `*dst++` is +8/+4 worse than indexed stores even where the
+    reference shows three offset-zero `strh` with `add r8,#2` between, because a
+    high register needs its own `mov rlo,r8` per store anyway.
+  * `&saved` against plain assignment: byte-identical. `n - 1` as its own named
+    quantity: +4/+2 worse.
+  * `-fno-gcse` **inert** on two more functions, so **gcse is not the pass** in
+    either.
+
+## A `.call_via` trap INSIDE the rung-8 histogram
+
+Each `.call_via` macro line expands to `mov r12,pc` + `bx`, so **a per-opcode
+histogram taken over the RAW reference under-counts its `mov` and `bx` by one per
+site.** One function read `bx +3 / mov -16` unexpanded and `bx 0 / mov -19`
+expanded. **Expand veneer sites before trusting a histogram column.** Third
+distinct `.call_via` counting trap recorded, after the `bl _call_via_rN`
+over-count and the unscoped-grep over-count.
+
+## Split-shape corrections, and a SUFFIX COLLISION
+
+  * **Two functions I listed as "1 function in file, no split" DO need splits.**
+    Each has a `.rodata` section and reads 7 local labels, and `split_s.py`
+    refuses until 7 `.global` exports land — so both were **blocked behind asm
+    commits and could not have been installed this batch at any candidate
+    quality.** My path mapping counted `thumb_func_start` occurrences and never
+    ran `datacheck.py`. **A one-function file can still need a TEXT/DATA split.**
+  * **`BaseAnim_Meteor`'s split is confirmed unblocked** by batch 312's twelve
+    exports — the dry-run succeeds and prints a three-way 131 / 1750 / 3765 shape.
+  * **SUFFIX COLLISION: five parks plus one recon all name `rom_e7320_c_c_b` as
+    their own output stem, and only one can have it.** The stem a cut produces
+    depends on the member's POSITION, and `split_s.py` cuts one named target, so
+    these claims are mutually exclusive rather than duplicated. Whoever converts
+    first takes `_b`; **every later conversion must re-derive its stems from a
+    fresh `--dry-run` against the then-current file.** All six annotated in place.
+  * A recon's export claim was LOW — "at least two" where five are needed, with
+    the tool refusing until eight exist. **Derive export sets from `datacheck.py`,
+    never from a recon's prose.**
+
+## Two reference annotations corrected
+
+  * `Func_8090a5c`'s own `.s` annotation calls it *"ApplyFadeToPalette… takes no
+    arguments… ~1800-instruction body"*. It takes **four** arguments (colour, src,
+    dst, mode) and is **806** instructions. Third function in two batches whose
+    tracked annotation misstates its arity, after `FieldMain` and `MenuBar`.
+  * **`UpdateActors` is not a cheap retraction-return.** The `.call_via`
+    retraction removed a wall, not the cost: **31 of the tree's 134 veneer sites,
+    five register variants, two of them high (12 sites)**, and r8 doubles as a
+    delta register. The existing advice to land a single-register veneer function
+    first is confirmed.

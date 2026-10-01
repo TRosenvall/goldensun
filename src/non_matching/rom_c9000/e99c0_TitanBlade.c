@@ -262,7 +262,22 @@
  *    the frame exact, so its header is already reconciled against this exact
  *    .rodata run and this exact linker entry.  Anim_Annihilation.c and
  *    Anim_DragonCloud.c are two more parks from the same object.
- */
+  *
+ * *** SUFFIX COLLISION, FLAGGED IN BATCH 313 -- DO NOT TRUST THE STEM BELOW. ***
+ * FIVE parks in this directory plus one recon all name `rom_e7320_c_c_b` as
+ * their own output stem: Anim_Ragnarok, Anim_Annihilation, Anim_DragonCloud,
+ * Anim_Ramses, e99c0_TitanBlade and RECON_Anim_TitanBlade.txt.  ONLY ONE CAN
+ * HAVE IT.  The stem a cut produces depends on the member's POSITION in the
+ * file, so these claims are mutually exclusive rather than merely duplicated --
+ * and `split_s.py` cuts out ONE NAMED TARGET, so the shape changes for everyone
+ * else each time a member converts.
+ *
+ * Whoever converts FIRST takes `_b`.  Every later conversion of this
+ * eight-function file must RE-DERIVE its stems from a FRESH `--dry-run` against
+ * the then-current file, never from the shape recorded here.  Check this before
+ * writing any linker row.  (The twelve `.global` exports this file needed landed
+ * in batch 312, so the cut itself is no longer blocked -- only the naming is.)
+*/
 #include "decls.h"
 
 extern void GetBattleActorPos3(int id, vec3_t *out);
