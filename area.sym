@@ -82,6 +82,17 @@ _AREA_4c = 0x4c;
 _AREA_4d = 0x4d;
 _AREA_4f = 0x4f;
 _AREA_51 = 0x51;
+
+/* Added in batch 315 for OvlFunc_930_20091b0, on the STRUCTURAL argument.
+ * 0x58 is EIGHT-BIT MOVABLE, so *thumb_movsi_insn emits `mov rX,#0x58` and the
+ * value can never reach the literal pool as a const_int -- a pool word holding
+ * it CAN ONLY have come from a relocation.  That is an impossibility argument,
+ * not an inference from what the ROM happened to choose, which is the same
+ * footing as _AREA_5e and _AREA_5f (whose reference spellings were corrected in
+ * this batch for exactly this reason).
+ * Fills a documented hole: _AREA_57 and _AREA_59 were already present. */
+_AREA_58 = 0x58;
+
 _AREA_5d = 0x5d;
 _AREA_5e = 0x5e;
 _AREA_5f = 0x5f;
