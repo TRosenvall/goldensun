@@ -238,6 +238,18 @@ asm/rom_a1000/rom_ad274_a.o: src/rom_a1000/rom_ad274_a.c
 	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+# ALIAS_CFLAGS, batch 310.  OvlFunc_881_20081c4's park recorded its residue as "two pure
+# scheduling pairs, no spelling found" -- and BOTH CLOSE UNDER THE ALIASING FLAG WITH NO SOURCE
+# CHANGE.  At -O2 it reads 12 of 63; with -fno-strict-aliasing it is byte-exact at 140 bytes, 63
+# encodings and 6 relocations.  The pass IS sched2 (-fno-schedule-insns2 makes it worse, 15), but
+# what the flag fixes is the DEPENDENCE INFORMATION sched2 works from, not the scheduler's choice --
+# which is why no source spelling reached it.  PIN-FREE: the veneer comes from include/math.h's
+# fx32_multiply rather than a local helper, so there is nothing for fakematch.txt.
+asm/overlays/rom_77a7c8/ovl_30_a_a_a_c_c.o: src/overlays/rom_77a7c8/ovl_30_a_a_a_c_c.c
+	$(GCC296_CC) $(ALIAS_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 # OvlFunc_957_2008ee0 re-reads its counter halfword after two `int` stores; at
 # -O2 strict aliasing lets gcc keep the first read. 20 differing lines -> 1.
 asm/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_c_c_c_c_b.o: src/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_c_c_c_c_b.c
@@ -459,6 +471,21 @@ asm/overlays/rom_7d30e0/ovl_30_c_a_c_c_a_a_c_c_c_c_c_c_c_c_b.o: src/overlays/rom
 # the 17 blocks was dropped and remeasured and NONE is inert, the cheapest drop costing
 # 3 encodings -- so it is booked in fakematch.txt as well.
 asm/overlays/rom_78c76c/ovl_30_c_c_a_c_c_a_a_c_a.o: src/overlays/rom_78c76c/ovl_30_c_c_a_c_c_a_a_c_a.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+# CSE_CFLAGS, batch 310.  ActorCmd_Wander IS THE CASE WHERE A PARK RECORDED ITS OWN ANSWER AND
+# REJECTED IT.  Its header said "byte-exact under -fno-rerun-cse-after-loop" and then ruled the flag
+# out because its file-mate ActorCmd_Unk9 needs the OPPOSITE -- but the .s held exactly TWO
+# functions, so THAT IS A SPLIT, NOT A BLOCKER.  The file is now cut and only Wander's half carries
+# the flag.  The second half of the answer is a source order: THE DIVISION MUST BE WRITTEN BEFORE
+# THE COORDINATE.  Each ingredient alone reads inert -- the park's statement order is 10 of 187 with
+# OR without the flag -- which is why seventeen "+r" barrier spellings never found it, and why the
+# park's barriered 2-of-187 was closer on the count and a dead end on the route.  Now byte-exact at
+# 404 bytes, 187 encodings and 13 relocations, and PIN-FREE: both barriers are gone, so there is
+# nothing for fakematch.txt.
+asm/rom_9000/rom_d924_c_c_c_b.o: src/rom_9000/rom_d924_c_c_c_b.c
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)

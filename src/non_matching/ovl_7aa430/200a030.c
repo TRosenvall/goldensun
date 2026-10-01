@@ -1,141 +1,210 @@
-/* OvlFunc_923_200a030 -- NON-MATCHING, 14 of 371 encodings differ.
- * Size equal, count equal (ref 371, ours 371), so the 14 IS a distance.
+/* OvlFunc_923_200a030 -- NON-MATCHING, 13 of 371 encodings differ.
+ * (objcmp PRODUCTION-FLAG figure: -O2 -mthumb -mthumb-interwork -mcpu=arm7tdmi
+ *  -fno-builtin -nostdinc -ffreestanding -fcall-used-r4.  No flag row needed or
+ *  wanted -- see the flag table below.)
+ *
+ * SIZE EXACT (ref 832 bytes = ours) and COUNT EXACT (ref 371, ours 371), so 13
+ * IS A TRUE DISTANCE.  aligncmp separately: 360 of 371 aligned-equal (97.0%),
+ * 12 differing/ins/del in 9 hunks.  WAS 14 AT BATCH 305; THIS BATCH CLOSED ONE.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7aa430/200a030.c \
+ *     goldensun-build python3 tools/objcmp.py scratch_elev/b310b/PARK_OvlFunc_923_200a030.c \
  *     asm/overlays/rom_7aa430/ovl_1a3c_a_c_c_a.s --func OvlFunc_923_200a030
- * ONE function in the reference -- it CONVERTS WHOLE, no split.
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/aligncmp.py scratch_elev/b310b/PARK_OvlFunc_923_200a030.c \
+ *     asm/overlays/rom_7aa430/ovl_1a3c_a_c_c_a.s OvlFunc_923_200a030 -v
+ *
+ * SPLIT SHAPE: NONE.  asm/overlays/rom_7aa430/ovl_1a3c_a_c_c_a.s holds
+ * exactly ONE function and tools/datacheck.py is silent -- it CONVERTS WHOLE,
+ * no split_s.py, no code/data cut.
+ *
+ * shimcount.py: 4 register pins (the two `register ... __asm__` operands inside
+ * the call_via helper, plus one `register unsigned char *g __asm__("r1")` per
+ * cell block).  Plus one `__asm__ volatile ("" : : "r" (t))` barrier at cell
+ * site 1, which is LOAD-BEARING (removing it measures 16).  A fakematch.txt row
+ * is due AT LANDING, not now.
  *
  * ============================================================
- * THIS IS AN EXACT TWIN OF src/non_matching/ovl_7ac2d8/200d5c0.c
+ * THE VENEER IS IRRELEVANT TO THIS PARK.  IT IS ALREADY BYTE-EXACT.
  * ============================================================
- * OvlFunc_924_200d5c0 (asm/overlays/rom_7ac2d8/ovl_35b8_a_c_c_a.s) and this
- * function have IDENTICAL instruction streams. Normalising `.L<addr>` labels and
- * the two per-overlay script symbols leaves exactly ONE differing line out of 378:
+ * This function carries exactly ONE inline `.call_via r4` site (reference line
+ * 364, `ldr r4, =Func_8000888 / .call_via r4`).  The helper is ALREADY INSTALLED
+ * and the whole veneer region ALREADY MATCHES: the last differing hunk is at
+ * encoding index 118 of 371 and the veneer sits past index 300.  So for this
+ * park the answer to "how much of the residue IS the veneer?" is NONE OF IT.
+ * Do not spend a round re-spelling the helper here.
  *
- *     923   bl OvlFunc_923_2009bc8
- *     924   bl OvlFunc_924_200d158
- *
- * NO CONSTANT DIFFERS. The symbol map is mechanical:
- *     .L5e44 -> .L27f4   (both `.global`'d by the overlay's _c.s file)
- *     gScript_924__0200de2c -> gScript_923__0200a7dc   (the f18 arm)
- *     gScript_924__0200de20 -> gScript_923__0200a7d0   (the spawn arm)
- * dupfuncs.py does NOT pair them -- it only matches byte-identical text, and the
- * three relocated symbols differ. The pairing was found by grepping src/ for the
- * FOUR-HELPER SIGNATURE `__vec3_translate` + `__TestCollision` + `__Func_8092158`
- * + `Func_8000888`, which hits exactly one park. That is a cheap and repeatable
- * way to find a twin the byte-level tool cannot see: a rare COMBINATION of
- * callees is as good a fingerprint as the bytes.
- *
- * This is the SECOND 923/924 twin (ovl_1a3c_a_c_a_b.c records the first,
- * OvlFunc_923_2009ec8 / OvlFunc_924_200d458). Overlay 924 is a near-copy of
- * overlay 923; check for a twin BEFORE writing anything in either.
- *
- * IF YOU EDIT ONE, EDIT BOTH. Everything below applies to 200d5c0.c verbatim.
+ * One thing is worth recording even so: this is a SINGLE-SITE function using the
+ * UNPINNED `bx %1` form, which docs/elevation.md's "one site and several sites
+ * want DIFFERENT spellings" table says is the two-or-more spelling.  It does not
+ * matter -- the region is exact as written -- so the table's single-site advice
+ * is a preference, not a requirement, when the callee is already the only one.
+ * The "r2" clobber IS load-bearing (it moves the Func_8000888 pointer to r4).
  *
  * ============================================================
- * WHAT THIS BATCH CLOSED: 16 -> 14
+ * WHAT THIS BATCH CLOSED: 14 -> 13.  THE cell2 CARRIER MUST BE POINTER-TYPED.
  * ============================================================
- * THE TWO LOOP-SETUP ASSIGNMENTS MUST BE WRITTEN `i = 0;` BEFORE `mask = 0xf;`.
- * The ROM emits
- *     mov r1, #0xf / ldr r6, =gKeyPress / mov r5, #0 / mov r10, r1
- * and the park had
- *     mov r1, #0xf / ldr r6, =gKeyPress / mov r10, r1 / mov r5, #0
- * -- the high-register copy `mov r10, r1` and the `mov r5, #0` swapped. Nothing
- * about the mask expression reaches this; the ONLY lever is the order of the two
- * initialisers in the source. Worth 2 encodings from a one-line move, and it is
- * the same class as batch 278's "s = n->f50 must be first": sched2 emits the
- * high-register copy at the position its source statement occupies relative to
- * its sibling, even though both feed a loop that follows.
+ *     was   { register int g __asm__("r1"); ...
+ *             g = (int)gBuffer; cell2 = (unsigned char *)(t * 4 + g); }
+ *     now   { register unsigned char *g __asm__("r1"); ...
+ *             g = gBuffer; cell2 = g + t * 4; }
  *
- * THE SITE-2 `t` BARRIER IS NOW INERT AND HAS BEEN REMOVED. With the loop-setup
- * order fixed, `__asm__ volatile ("" : : "r" (t))` in the cell2 block measures
- * 14 with and without. THE SITE-1 BARRIER IS STILL LOAD-BEARING: removing it
- * measures 16, and removing both measures 16. One shim fewer than the twin park.
+ *     rom   add r1, r3, r1 / str r1, [sp, #8]
+ *     was   add r3, r3, r1 / str r3, [sp, #8]      (2 differ)
+ *     now   add r1, r1, r3 / str r1, [sp, #8]      (1 differ)
  *
- * ============================================================
- * THE REMAINING 14, by region
- * ============================================================
- * (a) 3 encodings -- the `__vec3_translate` argument fill.
- *         rom   mov r2, r11 / lsl r0, #0xe / mov r1, r6
- *         ours  lsl r0, #0xe / mov r1, r6 / mov r2, r11
- *     The third argument is filled FIRST in the ROM. This is NOT the uniform
- *     ascending pinned-fill shape; it is sched2 having hoisted one `mov` two
- *     slots. MEASURED, all inert at 14: a named `int d = 0x80 << 14` for arg1;
- *     a named `int *pp = p` for arg3; three argument temporaries declared in
- *     reverse order. A `__asm__ volatile ("" : : "r" (p))` before the call is
- *     26 -- far worse, and it is the only probe that moved anything.
+ * The INT carrier lands the sum in r3 and stores r3; the POINTER carrier lands
+ * it in the pinned r1, which is the ROM's destination, and the `str` then falls
+ * into place for free.  `cell2` is spilled the instant it is computed, so this
+ * is reload's choice of reload register and the TYPE of the carrier is what
+ * moves it -- a one-token edit that the old header had written off as "reload's
+ * choice of reload register, not an allocation" and therefore unreachable.
  *
- * (b) 8 encodings -- a scratch-register rotation in the SECOND division block.
- *         rom   T1=r2  C1=r0  T2=r1  C2=r0
- *         ours  T1=r1  C1=r2  T2=r0  C2=r1
- *     where Tn is `mov rX, r11` (the low-register copy of `p` the Thumb `ldr`
- *     base requires -- a RELOAD register, not a pseudo) and Cn is the signed-
- *     division rounding constant 0xfffff. THE SHAPE IS EXACT; only the names
- *     differ. The FIRST division block, whose constants fold to 0x17ffff, is
- *     byte-exact in both.
- *
- *     THE ROM GIVES BOTH CONSTANTS r0. Ours gives them r2 and r1, i.e. two qtys
- *     that out-prioritise the reload temps. local-alloc.c's QTY_CMP_PRI is
- *         floor_log2(n_refs) * n_refs * size / (death - birth)
- *     and all four are n_refs=2, size=1, length ~2 -- a four-way TIE, broken by
- *     qty number, i.e. by RTL creation order. So the lever, if there is one, is
- *     the order the two constants are created in, not their live ranges.
- *
- *     AND THE REG_EQUIV LEVER DOES NOT REACH IT. local-alloc.c's
- *     update_equiv_regs doubles REG_LIVE_LENGTH for a constant REG_EQUIV, but
- *     the comment directly above that line says so explicitly:
- *         "Note that the statement below does not affect the priority
- *          in local-alloc!"
- *     That RETIRES the batch-295 "dominating-block local for a repeated
- *     constant" lever for any constant whose live range lies inside ONE basic
- *     block: it is a GLOBAL-alloc lever only. Measured accordingly: hoisting
- *     `int rc = 0xfffff;` to the top of the function and hand-writing both
- *     divisions as `if (x < 0) x += rc; x >>= 20;` reproduces the ROM's
- *     schedule EXACTLY and leaves all four registers unchanged -- 14, inert, in
- *     four placements (function top, before the translate call, inside the
- *     block, declared first among the locals).
- *
- * (c) 2 encodings -- the cell2 destination.
- *         rom   add r1, r3, r1 / str r1, [sp, #0x8]
- *         ours  add r3, r3, r1 / str r3, [sp, #0x8]
- *     `cell2` is spilled the instant it is computed, so r1/r3 is RELOAD's choice
- *     of reload register, not an allocation. `g += t * 4; cell2 = g;` changes the
- *     operand order to `add r3, r1, r3` but not the destination -- still 14.
- *
- * (d) 1 encoding -- `__TestCollision`'s second argument.
- *         rom   add r1, sp, #0x10        ours  mov r1, r11
- *     The ROM re-derives `&v` from sp where r11 already holds it. MEASURED, all
- *     inert at 14: `&v[0]`, `v + 0`, `(int *)(char *)v`, and a one-member
- *     `union { int a[3]; }` wrapping the array (the batch-295 alias escape --
- *     it does not apply, because the conflict here is between two spellings of
- *     one ADDRESS, not between two MEMs).
+ * The LAST encoding in that hunk is the add's OPERAND ORDER, and it is fold
+ * canonicalising a pointer PLUS so the pointer is always operand 1.  Measured,
+ * all with the pointer carrier in place:
+ *     cell2 = g + t * 4;                     13   <- installed
+ *     cell2 = &g[t * 4];                     13   (byte-identical)
+ *     g = t * 4 + g; cell2 = g;              14
+ *     g += t * 4; cell2 = g;                 14
+ *     cell2 = (unsigned char *)(t*4+(int)g); 14
+ * So 13 is the floor from the carrier side.
  *
  * ============================================================
- * Carried forward from the twin park, all still true
+ * CORRECTION: REGION (b) IS *RELOAD*, NOT local-alloc.  THE OLD HEADER'S WHOLE
+ * READING AND ITS "NEXT" PLAN ARE RETIRED.
  * ============================================================
- * `define_peephole` in arm.md:523 turns `mov rX,#N / add rX,sp` into
- * `add rX,sp,#N` only when the two insns end up ADJACENT, so the ROM's
- * two-instruction form is sched2 output, not a source fact.
+ * The header said the eight encodings in the second division block were a
+ * "four-way qty-number tie" in local-alloc, with QTY_CMP_PRI as the model and
+ * the constant-creation order as the lever.  NONE OF THE FOUR QUANTITIES IS A
+ * PSEUDO.  From the .15.regmove dump of the installed candidate at production
+ * flags (reproduce with xgcc -da; the dumps are in scratch_elev/b310b/dump/):
  *
- * PINNING A POOLED SYMBOL TO A CALL-CLOBBERED REGISTER reproduces the ROM's
- * rematerialisation where CSE would common it: `register int g __asm__("r1")`
- * at both cell sites gives the ROM's two `ldr r1, =gBuffer` loads, because a
- * hard register cannot survive the intervening `bl`. The assignment must come
- * AFTER the index computation or the load lands in an earlier block. Repinning g
- * to r0 or r2 measures 15; to r3, 21.
+ *     (insn 191 (set (reg:SI 99)
+ *         (plus:SI (reg:SI 99) (const_int 1048575 [0xfffff]))) 5 {*thumb_addsi3}
+ *     (insn 200 (set (reg:SI 105) (mem:SI (reg/v:SI 32) 4)))
  *
- * STACK-SLOT ORDER FOLLOWS C DECLARATION ORDER EXACTLY.
+ * The rounding constant NEVER becomes a pseudo -- it is a CONST_INT operand of
+ * `*thumb_addsi3`, so `ldr rN, =0xfffff` is RELOAD materialising an operand that
+ * does not fit the pattern.  And `mov rN, fp` is RELOAD giving the Thumb `ldr` a
+ * LOW base for `(mem (reg/v 32))`, because `p` (reg 32) is allocated r11.  Four
+ * reload registers.  QTY_CMP_PRI, allocno_compare, REG_EQUIV, declaration order
+ * and live-range spelling CANNOT REACH ANY OF THEM.  That is why every probe in
+ * the old header and in batch 305's addendum measured 14 or worse.
  *
- * The `call_via` clobber list carries "r2" deliberately -- it moves the
- * Func_8000888 pointer from r2 to the ROM's r4.
+ * THE MODEL THAT DOES FIT, AND IT MAKES REGION (b) ONE FACT INSTEAD OF EIGHT.
+ * Both sides allocate those four reloads by the SAME rule -- walk r0..r3 round
+ * robin from the last one used, skipping any register live at the insn -- and
+ * they differ by EXACTLY ONE STEP OF PHASE:
  *
- * NEXT: (b) is the whole game -- 8 of the 14. It is a four-way qty-number tie
- * in local-alloc, so the probe is a source edit that changes the ORDER in which
- * the two 0xfffff constants are created, with the schedule held fixed (the
- * hand-written-division form above does hold it fixed, so it is the right
- * vehicle). Nothing about live ranges will move it.
+ *     rom    base1 r2 -> const1 r0 -> base2 r1 -> const2 r0
+ *     ours   base1 r1 -> const1 r2 -> base2 r0 -> const2 r1
+ *
+ *     rom    start r2; r3 live (dividend) so skip -> r0; -> r1; now r2 is live
+ *            too (`lsl r2, r3, #7` holds the high term) and r3 still is -> r0
+ *     ours   start r1; -> r2; r3 live so skip -> r0; -> r1
+ *
+ * Same rule, different starting register.  So REGION (b) IS NOT EIGHT TIES, IT
+ * IS ONE ROTATION PHASE, and no spelling INSIDE the block can move it: the phase
+ * is set by how many reload registers were allocated BEFORE the block.  Every
+ * reload in the cell1 block is identical on both sides (indices 0-78 match
+ * exactly), so the divergence is introduced between the cell1 result and the
+ * first cell2 reload -- which is exactly where region (a) sits.
+ *
+ * ============================================================
+ * NEW: gcse OWNS REGION (d).  MEASURED, NOT INFERRED.
+ * ============================================================
+ *     rom   add r1, sp, #0x10      ours  mov r1, fp
+ * at `__TestCollision(actor, v)`.  Adding -fno-gcse ALONE gives the ROM's
+ * `add r1, sp, #16` and the whole function reads 12.  So the mechanism is gcse's
+ * copy propagation substituting the `p` pseudo (in r11) for the frame address
+ * `(plus sfp 16)` that expand emits for the array name.  The old header blamed
+ * "the ROM re-derives &v from sp" and tried four spellings of the ADDRESS; the
+ * address spelling is not the handle, the AVAILABILITY of `p = v` is.
+ *
+ * The batch-306 "TWO SETS PREVENT A HOIST" lever was tried here and is a WRONG
+ * PROGRAM, not a near miss: a second `p = v;` (after `__CutsceneStart()`, and
+ * again immediately before the call) both come out 4 instructions SHORT, 367 of
+ * 371, with size short by 8 bytes.  `__TestCollision(actor, p)` is byte-identical
+ * to `(actor, v)` at 13 -- gcse has already made them the same program.
+ *
+ * -fno-gcse is NOT proposed as a flag row: it buys 1 of 13 and leaves regions
+ * (a), (b) and (c) untouched.  It is recorded because it NAMES THE PASS.
+ *
+ * ============================================================
+ * THE REMAINING 13, by region
+ * ============================================================
+ * (a) 2 -- the `__vec3_translate` argument fill.  ROM fills arg2 FIRST:
+ *         rom   mov r2, fp / lsl r0, #0xe / mov r1, r6
+ *         ours  lsl r0, #0xe / mov r1, r6 / mov r2, fp
+ *     sched2's tie-break is priority -> dependent count -> INSN_LUID, and all
+ *     three have the call as their one dependent, so this is pure LUID, i.e.
+ *     EXPAND order.  load_register_parameters walks argument 0 upward, so the
+ *     ROM's order means arg2's hard-register write was emitted FIRST -- which no
+ *     ordinary call expansion does.  Previously measured inert at 14: a named
+ *     `int d = 0x80 << 14`, a named `int *pp = p`, three argument temporaries in
+ *     reverse order.  A barrier before the call is 26.
+ * (b) 8 -- the reload rotation phase, above.  ONE fact, not eight.
+ * (c) 1 -- the cell2 add's operand order (fold's pointer-PLUS canonicalisation).
+ * (d) 1 -- gcse cprop at __TestCollision, above.
+ * (One encoding of the 13 is objcmp/aligncmp accounting at a hunk boundary:
+ *  aligncmp counts 12 where objcmp counts 13.  Both figures are reported.)
+ *
+ * ============================================================
+ * MEASURED THIS BATCH, ALL WORSE OR INERT (an inert spelling is UNTESTED, not
+ * disproved -- but these are now tested)
+ * ============================================================
+ *     cell2 carrier pinned r2                              15
+ *     cell2 carrier pinned r3                              21
+ *     cell2 carrier pinned r0                      breaks count (369)
+ *     cell2 with NO pin (`cell2 = gBuffer + t*4;`)          15
+ *     `{ int t; register ... g; }` decl order swapped       14
+ *     `g` assigned BEFORE the divisions                     20
+ *     site-2 barrier restored                               14  (inert, confirmed)
+ *     `t = 128 * (p[2]/0x100000) + p[0]/0x100000`           14
+ *     a second pointer local `int *q = p` for the loads     14
+ *     ONE function-level carrier `ct` for both cell blocks  17
+ *     reusing the function-level `t` for both cell blocks  breaks count (367)
+ *     -fno-rerun-cse-after-loop                            14
+ *     -fno-cse-follow-jumps                                13  (inert)
+ *     -fno-schedule-insns2                         breaks count (369)
+ *     -fno-gcse                                            12  (region (d) only)
+ *
+ * ============================================================
+ * CARRIED FORWARD, STILL TRUE
+ * ============================================================
+ * `i = 0;` MUST BE WRITTEN BEFORE `mask = 0xf;` (worth 2; sched2 emits the
+ * high-register copy at the position its source statement occupies).
+ * STACK-SLOT ORDER FOLLOWS C DECLARATION ORDER EXACTLY, and the spill map
+ * confirms the installed order: scalars descending are base(sp+0xc),
+ * cell2(sp+8), saved(sp+4), savep(sp+0) and the aggregate v[3] sits highest at
+ * sp+0x10 -- both the scalar rule and the "aggregates reversed" rule hold as
+ * written, so there is NOTHING to gain from the declaration list.
+ * NOTE ON THE TWIN AS A SOURCE OF EVIDENCE: the briefing hoped two spill maps
+ * would pin an order neither pins alone.  THEY CANNOT.  923_200a030 and
+ * 924_200d5c0 have IDENTICAL instruction streams (one `bl` target and two script
+ * symbols apart), so they have IDENTICAL spill maps and the pair carries exactly
+ * the information one of them does.
+ * tools/tryc.py --full prints "269 differ" on this file.  That is an ARTEFACT of
+ * one extra label; objcmp is right at 13 and the count is exact.  Use objcmp.
+ *
+ * ============================================================
+ * IF YOU EDIT ONE, EDIT BOTH -- OvlFunc_924_200d5c0 (src/non_matching/ovl_7ac2d8/200d5c0.c) IS AN EXACT TWIN
+ * ============================================================
+ * Normalising `.L<addr>` labels and the two per-overlay script symbols leaves
+ * ONE differing line of 378 (the `bl OvlFunc_92{3,4}_...` target).  The
+ * pointer-carrier fix was applied to both and both measure 13.  dupfuncs.py
+ * does not pair them (it demands byte identity); the FOUR-HELPER SIGNATURE
+ * `__vec3_translate` + `__TestCollision` + `__Func_8092158` + `Func_8000888`
+ * does.
+ *
+ * NEXT.  Regions (a) and (b) are PROBABLY ONE FACT -- 10 of the 13 -- because
+ * the reload phase diverges in exactly the window where the argument fill
+ * differs.  Stop probing inside the cell2 block; it is proven barren from the
+ * carrier, constant, dividend, division-spelling and pin sides.  Find the
+ * spelling that makes gcc EXPAND the third argument of `__vec3_translate`
+ * before the first, and check region (b) on the same candidate.
  */
 extern unsigned int gState;
 extern unsigned int gKeyHeld;
@@ -242,10 +311,10 @@ void OvlFunc_923_200a030(void)
       g = (int)gBuffer;
       cell1 = (unsigned char *)(t * 4 + g); }
     __vec3_translate(0x80 << 14, ang, p);
-    { register int g __asm__("r1"); int t;
+    { register unsigned char *g __asm__("r1"); int t;
       t = (p[2] / 0x100000) * 128 + p[0] / 0x100000;
-      g = (int)gBuffer;
-      cell2 = (unsigned char *)(t * 4 + g); }
+      g = gBuffer;
+      cell2 = g + t * 4; }
     if (cell1[2] != e->f4 && cell2[2] == e->f4 && e->f0 == 0)
         return;
     __CutsceneStart();
@@ -332,42 +401,3 @@ void OvlFunc_923_200a030(void)
         call_via(Func_8000888, *(int *)(base + (0xd8 << 1)), 0x80 << 14);
 }
 
-/* *** BATCH-305d ADDENDUM for src/non_matching/ovl_7aa430/200a030.c
- *     (AND ITS TWIN src/non_matching/ovl_7ac2d8/200d5c0.c -- EDIT BOTH) ***
- *
- * RE-MEASURED AS INSTALLED: 14 of 371, ref 371 / ours 371, size silent.  The
- * header figure is CONFIRMED and it is a true distance.  STILL 14.
- *
- * ONE HEADER CLAIM DOES NOT REPRODUCE -- CORRECT IT.  The "(b)" section says
- * hand-writing both divisions as `if (x < 0) x += rc; x >>= 20;` "reproduces
- * the ROM's schedule EXACTLY and leaves all four registers unchanged -- 14,
- * inert, in four placements".  IT MEASURES 20, NOT 14.  Every hand-written
- * spelling of the second division block costs 6 encodings on top of the 14:
- *     literal 0xfffff at both divisions                        20
- *     the two divisions written in reverse order               20
- *     `0x100000 - 1` instead of 0xfffff                        20
- *     the rounding constant through a reused existing local
- *       (`j`, `off`, `idx`, `n` -- four separate builds)       20
- * All six keep the count exact at 371, so the 6 extra are register/schedule,
- * not size.  THE HAND-WRITTEN DIVISION IS NOT A NEUTRAL VEHICLE, so the
- * header's "NEXT" plan -- probe the constant creation order with the schedule
- * held fixed by the hand-written form -- rests on a vehicle that itself moves
- * the schedule.  That plan is closed.
- *
- * THE COMPILER'S OWN DIVISION, with the creation order varied instead:
- *     t = 128 * (p[2] / 0x100000) + p[0] / 0x100000            14  (inert)
- *     t = p[0] / 0x100000 + (p[2] / 0x100000) * 128            19
- *     t = (p[2] / 0x100000) * 128; t += p[0] / 0x100000;       16
- *     idx = p[2]/0x100000; off = p[0]/0x100000; t = idx*128+off;   24
- *     the same two assignments in reverse order                24
- *     n = p[2]/0x100000; j = p[0]/0x100000; t = n*128+j;      177
- * So reordering or naming the two dividends cannot move region (b) either:
- * everything is 14 or worse.  Region (b) -- 8 of the 14 -- takes no source
- * handle from the dividend side, the constant side, or the division spelling.
- *
- * ALSO NOTE, for anyone reading tools/tryc.py --full on this park: it prints
- * "rom 375 lines, ours 376 ... 269 differ".  That is an ARTEFACT.  Ours emits
- * one EXTRA LABEL (a redundant `.L7:` beside `.L8:`) which is not an encoding,
- * so the line-level view desynchronises from there and calls everything after
- * it different.  objcmp is right at 14 and the count is exact.  Use objcmp.
- */

@@ -1,3 +1,70 @@
+/* Func_80a9f10 -- NON-MATCHING, 48 of 569 encodings differ.
+ * (objcmp PRODUCTION-FLAG figure, RE-MEASURED AS INSTALLED THIS BATCH.  The
+ *  header's 48 is CONFIRMED -- it is not one of the lying ones.)
+ *
+ * SIZE EXACT (1336 = 1336) and COUNT EXACT (569 = 569), so 48 IS A TRUE
+ * DISTANCE.  aligncmp separately: 538 of 569 aligned-equal (94.6%), 42
+ * differing/ins/del in 15 hunks.  The relocation SYMBOL SEQUENCE is identical
+ * (93 entries, re-checked) and exactly ONE offset differs, _GetUnit at 0x6e
+ * against ours at 0x70 -- 2 bytes, entirely downstream of blocker 1.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py scratch_elev/b310b/PARK_Func_80a9f10.c \
+ *     asm/rom_a1000/rom_a8604_c_c_c_c_a_a.s --func Func_80a9f10
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/aligncmp.py scratch_elev/b310b/PARK_Func_80a9f10.c \
+ *     asm/rom_a1000/rom_a8604_c_c_c_c_a_a.s Func_80a9f10 -v
+ *
+ * SPLIT SHAPE: NONE.  asm/rom_a1000/rom_a8604_c_c_c_c_a_a.s holds this one
+ * function, datacheck.py is silent, no `.global` -- it CONVERTS WHOLE.
+ * shimcount.py: ZERO shims, pin-free.  No fakematch row will be due.
+ *
+ * THE VENEER IS IRRELEVANT TO THIS FUNCTION.  Screened on the anchored pattern
+ * `^[[:space:]]*\.call_via` over the WHOLE reference file: ZERO sites.  This
+ * target was never veneer-blocked and none of the 48 is a veneer.
+ *
+ * BLOCKER 2'S sched1 ATTRIBUTION IS STILL IN THE BLOCK BELOW AND IS STILL
+ * WRONG; batch 305's correction note at the bottom of that block is the
+ * authority.  sched1 does not run in this build.  Treat blocker 2 as sched2's
+ * LUID (i.e. EXPAND order) or as the allocation that fixed the order, and note
+ * that the probe recorded against it ("naming the switch index in a local so
+ * the and/sub are written first") came out 571 instructions -- it broke the
+ * count, so it is not evidence about ordering at all.
+ *
+ * ONE READING TO CARRY INTO THE NEXT ROUND, from the twin work in this batch.
+ * Blocker 3 is described as "LOW-REGISTER TIES ... Pass: local-alloc/reload" and
+ * the four bullets are all pairs of adjacent short-lived registers.  On
+ * OvlFunc_923_200a030 an identical-looking "four-way local-alloc tie" turned out
+ * to be RELOAD, provably: the .15.regmove dump showed the quantities were never
+ * pseudos (a CONST_INT operand of *thumb_addsi3 and a low base for a MEM whose
+ * address pseudo got a high register), so QTY_CMP_PRI, allocno_compare,
+ * REG_EQUIV and declaration order could not reach any of them -- and the whole
+ * residue was ONE rotation phase rather than N independent ties.  BEFORE
+ * SPENDING ANOTHER ROUND ON BLOCKER 3, DUMP .17.lreg AND .15.regmove AND CHECK
+ * WHETHER THOSE REGISTERS ARE PSEUDOS AT ALL.  If they are reloads, every
+ * per-variable spelling is barren by construction and the four bullets are one
+ * fact, not four.  Reproduce the dumps with:
+ *   xgcc -B/opt/gcc296/ -O2 -mthumb -mthumb-interwork -mcpu=arm7tdmi -fno-builtin \
+ *     -nostdinc -ffreestanding -fcall-used-r4 -I include -da -S -o t.s t.c
+ *
+ * BLOCKER 1 (~10 and the relocation offset) is gcse's commit_edge_insertions.
+ * I PROPOSED -fno-gcse AS THE DIAGNOSTIC AND THEN RAN IT, AND IT RULES THE
+ * SHORTCUT OUT: -fno-gcse measures 549 of 569 with ours 565 instructions, FOUR
+ * SHORT and 8 bytes short.  The flag deletes the PRE that BOTH SIDES HAVE, so
+ * the residue is not "gcse ran" -- it is purely WHERE pre_edge_insert put the
+ * copy, and the only handle is a CFG shape in which the preheader has ONE
+ * successor at the insertion point (insert_insn_end_bb appends to the pred only
+ * then; otherwise it splits the edge, which is our .LCB44).  A do-while cannot
+ * be it, because the ROM has the entry guard.  The untried direction is the
+ * guard's SHAPE: the ROM's `cmp r4,r3 / bcc <top> / b <exit>` with the counter
+ * zero reused for the compare means the zero and the bound are live together
+ * across the hoisted load, which ours cannot do because it materialises a
+ * SECOND zero.  Spell the bound as its own local read before the loop.
+ *
+ * EVERYTHING BELOW THIS BLOCK IS THE EARLIER PARK, UNCHANGED.  Its nine
+ * "WHAT CLOSED 538 OF 569" levers all still hold as written.
+ */
 /* Func_80a9f10 -- ApplyItemEffect, 0x080a9f10, 484 ROM instructions.
  * PARKED.
  * NON-MATCHING, 48 of 569 encodings differ.

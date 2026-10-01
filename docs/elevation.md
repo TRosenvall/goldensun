@@ -27992,6 +27992,15 @@ anything below a compiler-made pseudo was made by a pass, not written by a progr
 
 ## A REGISTER REPEATING ACROSS DISJOINT LOOPS SUGGESTS THE PARTITION — but it is NOT PROOF, and the direction is not fixed
 
+**BOUNDED TWICE. A THIRD BOUND, FROM BATCH 310: READING TWO MAPS TOGETHER NEEDS THE TWO FUNCTIONS TO
+SPILL *DIFFERENT* SUBSETS.** I briefed the twin pair `OvlFunc_923_200a030` / `OvlFunc_924_200d5c0` to
+read both spill maps together, on the strength of the `rom_15000` pair where it worked. It does not
+apply here: **those twins' instruction streams are identical apart from one `bl` target and two script
+symbols**, so their maps are identical and the pair carries exactly what one carries. Both maps already
+matched the installed declaration order, so there was nothing to win. **The technique needs the two
+functions to spill different subsets** — which is what made the `rom_15000` pair informative and makes
+a true twin pair useless for it.
+
 **BOUNDED IN BATCH 309, and the bound matters as much as the lever.** Two things the original
 statement got wrong:
 
@@ -28339,3 +28348,64 @@ area. **Read the prologue's high-register saves to classify a function before ch
 
 This is a better population test than branch count alone, and it is cheaper: one `grep` of the
 prologue against reading the whole function.
+
+## A POINTER-TYPED CARRIER, NOT AN `int` ONE — and a reload PHASE is one fact, not four
+
+Two results from the `OvlFunc_923_200a030` / `OvlFunc_924_200d5c0` twins, now at **13 of 371 each with
+size and count exact** (97.0% aligned), improved from 14.
+
+**The gain is one token: a pinned carrier for a `gBuffer`-derived pointer must be POINTER-typed.**
+
+    register unsigned char *g __asm__("r1");   /* not  register int g */
+    g = gBuffer;  cell2 = g + t * 4;
+
+That lands the sum in the pinned register, which is the ROM's destination, and the store falls into
+place free. 13 is the floor from the carrier side, over five spellings.
+
+**And the bigger correction: the park's central model was wrong, and the residue is ONE fact rather
+than four.** The park modelled region (b) — 8 of the 13 — as a four-way `QTY_CMP_PRI` tie in local-alloc
+broken by quantity number, and roughly **twenty recorded probes all measured 14 or worse** on that
+basis. The `.15.regmove` dump shows the rounding constant **is never a pseudo at all**
+(`(plus (reg 99) (const_int 1048575))` under `*thumb_addsi3`), and `mov rN, fp` is **reload** giving a
+Thumb `ldr` a low base. So `allocno_compare`, `REG_EQUIV` and declaration order **cannot reach any of
+the four** — which is exactly why the probes were inert.
+
+**What it actually is:** both sides walk r0–r3 **round-robin skipping live registers** and differ by
+**exactly one step of phase** — ROM `r2,r0,r1,r0` against ours `r1,r2,r0,r1`. Same rule, different
+start. **Four differing registers is one fact about phase, not four facts about registers**, and that
+reframing is what makes the region worth re-attacking from outside rather than probing inside it (the
+cell2 block is now proven barren from the carrier, constant, dividend, division-spelling and pin sides).
+
+## `-fno-gcse` CAN DELETE A PRE *BOTH* SIDES HAVE — a diagnostic that lies
+
+Recorded because the agent proposed it, ran it, and disproved its own suggestion before shipping it.
+
+On `Func_80a9f10` the hypothesis was that `-fno-gcse` would isolate blocker 1 (a PRE'd load placed in a
+split critical-edge block where the ROM's sits at the end of the preheader). It reads **549 of 569 at
+565 instructions** — far worse — because **it deletes a PRE the ROM has too.** So the flag is not a
+clean probe for "did PRE cause this": it removes the pass, not the placement decision, and the
+reference depends on the pass having run. Blocker 1 is purely `pre_edge_insert`'s **placement**.
+
+Contrast with the same flag on a different function in the same batch, where `-fno-gcse` alone produces
+the ROM's `add r1, sp, #16` and reads 12 — there it *is* diagnostic. **So `-fno-gcse` answers "does
+gcse own this region", not "is this PRE's fault", and the two differ whenever the ROM also benefits
+from the pass.**
+
+## The veneer was IRRELEVANT on all five targets of one brief — a negative worth having
+
+I briefed five `.call_via` parks to ask how much of each residue **is** the veneer, on the theory that a
+park whose whole residue is the unreachable sequence lands the moment the helper goes in. **On all five
+it was none of it:**
+
+* two had the helper already installed with the whole veneer region byte-exact (last differing hunk at
+  index 118 of 371, the veneer past index 300);
+* two were already matched on both call forms;
+* one had **zero `.call_via` sites in the entire file** — never veneer-related.
+
+So the queue of 35 veneer functions is real **as a set of unblocked targets**, not as a set of
+near-landings. The veneer removes a *structural* obstacle; it does not shorten an existing residue.
+
+And a concrete instance of the counting trap: `Func_80ad6d4` has **1 inline `.call_via`** plus **14
+ordinary `bl _call_via_rN`** (r3×10, r5×3, r4×1). An unanchored grep answers **15**, of which 14 are the
+freely-reachable form. It is also a clean demonstration that **mixing the two forms in one function
+blocks nothing.**
