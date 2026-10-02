@@ -61,12 +61,24 @@
  *       int local does fix the width (gcc otherwise emits `ldrh` for it, the
  *       batch-71 narrow-constant symptom) but not the order.
  *
- *   OvlFunc_971_2008128         asm/overlays/rom_7fb4a8/...       6 of 9
- *       Every instruction present, six registers permuted. The ROM's store is
- *       `str r2, [r3, r4]` with the SCALED INDEX as the base and the array
- *       address as the offset -- the reverse of what the pointer-typed-operand
- *       lever produces. Writing the store through explicit char* arithmetic in
- *       either direction does not swap them.
+ *   OvlFunc_971_2008128      *** LANDED, BATCH 318.  RETIRED FROM THIS PARK. ***
+ *       Recorded here at 6 of 9 as "every instruction present, six registers
+ *       permuted", with the ROM's `str r2, [r3, r4]` -- scaled index as base,
+ *       array address as offset -- called the reverse of what the
+ *       pointer-typed-operand lever produces, and explicit char* arithmetic in
+ *       either direction filed as not swapping them.
+ *
+ *       The permutation half was solved in batch 317 by NAMING ALL THREE SYMBOL
+ *       BASES AS LOCALS (7 -> 2), which reproduced the ROM's five quantities and
+ *       all eight register assignments -- so "name the symbol base as a local"
+ *       is a FALSE-DEPENDENCE lever, not cosmetic.  Batch 318 closed the last
+ *       two with `__attribute__((packed))` on the byte table's aggregate, which
+ *       removes an ldrb->str memory anti-dependence: the dependent count then
+ *       ties 3/3 and the sched2 decision falls through to INSN_LUID, where the
+ *       `lsl` is lower.  Byte-identical at 32 bytes, 13 encodings, 3
+ *       relocations, zero pins.
+ *
+ *       Its code is now src/overlays/rom_7fb4a8/ovl_30_a_c_c_c_a_a_a_b.c.
  *
  *   Func_8019d0c                asm/rom_15000/rom_1908c_c_c.s     8 of 10
  *       Two halfword stores of one value at +0x12ec and +0x12ee. The ROM

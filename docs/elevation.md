@@ -31945,10 +31945,15 @@ and recorded the thing that makes it hard to find:
 - **`const` is not the cure for an alias-set-0 memory edge**, even though it
   looks like exactly that (`anti_dependence` returns 0 for an unchanging read).
   It is **bit-identically inert on the dependence table**.
-- **Alias-set-0 edges on a byte access are UNREMOVABLE**, because the instruction
-  must stay a byte access and **every one-byte C type is a character type**, so
-  `DIFFERENT_ALIAS_SETS_P` can never fire. Three of four targets in one brief
-  bottomed out on `rank_for_schedule`'s dependent count inflated this way.
+- ~~**Alias-set-0 edges on a byte access are UNREMOVABLE**~~ — **RETRACTED IN
+  BATCH 318, AND IT WAS THE MOST EXPENSIVE WRONG BOUND THIS DOCUMENT HAS
+  CARRIED.** See "A bound I propagated held three functions" below. The premise
+  was right and the conclusion did not follow: `DIFFERENT_ALIAS_SETS_P` really
+  cannot fire **between two character types**, but that is a statement about
+  *types*, not about the *edge*. A `__attribute__((packed))` aggregate and a real
+  **struct member** access each remove it. Three of four targets in one brief
+  bottomed out on `rank_for_schedule`'s dependent count inflated this way, and
+  all three then landed once the bound was tested instead of believed.
 - **local-alloc's walk is `{3,2,1,0,4,5,…}`, shortest-lived-first** (probed, not
   inherited). This makes the register-permutation residue class **calculable**
   rather than a guess.
@@ -32056,3 +32061,122 @@ where the ROM's is.
   **vacuous**. The broken scan was kept beside the fixed one in the deliverable,
   which is the right instinct: a corpus denominator that looks plausible is the
   easiest figure in this project to get silently wrong.
+
+
+# Batch 318: a bound I propagated held three functions, and the minipool is sorted after sched2
+
+## A BOUND I WROTE INTO A BRIEF AS SETTLED WAS FALSE, AND IT WAS LOAD-BEARING FOR THREE RESIDUES
+
+Batch 317's brief A reported, and I promoted into this document and into batch
+318's brief as a **BOUND**:
+
+> "Alias-set-0 edges on a byte access are unremovable, because the instruction
+> must stay a byte access and every one-byte C type is a character type, so
+> `DIFFERENT_ALIAS_SETS_P` can never fire."
+
+I then told brief B of 318, in writing: *"do not spend your budget trying to
+remove those edges."* **All three of its targets landed by removing those edges.**
+
+The premise is true and the conclusion does not follow. `DIFFERENT_ALIAS_SETS_P`
+cannot fire **between two character types** — that is a fact about *types*. The
+dependence edge is not a property of types alone:
+
+- **`__attribute__((packed))` on the aggregate removes it.** That closed
+  `OvlFunc_971_2008128`: the `ldrb`→`str` memory anti-dependence disappears, the
+  dependent count then **ties 3/3**, and the sched2 decision falls through to
+  `INSN_LUID`, where the `lsl` is lower. 2 → 0.
+- **A real struct MEMBER access removes it**, which is what let
+  `DIFFERENT_ALIAS_SETS_P` fire on a `strb` and closed `OvlFunc_881_20082f0`.
+
+This belongs beside the union finding already in this document ("a struct member
+is inert; only a UNION works" — true for `c_get_alias_set` answering 0 on a
+`COMPONENT_REF` based on a **union**). The two are not in conflict; they are
+different questions, and I had generalised one into a bound on the other.
+
+> **A bound is the most dangerous thing in this document, because it is the one
+> kind of entry that stops work from being attempted.** A lever that is wrongly
+> recorded as inert costs one agent one round. A BOUND wrongly recorded as closed
+> costs every future agent the whole class, silently, and it compounds — this one
+> was repeated in a brief *as an instruction not to look*, which is the worst
+> possible form for a false claim to take.
+>
+> **So: a bound needs a stronger standard than a lever.** Specifically, it needs
+> a mechanism that explains why EVERY source spelling fails, not a measurement
+> that several did. "Every one-byte C type is a character type" explains why one
+> route fails. It says nothing about `packed`, or about struct members, or about
+> anything else that changes the MEM rather than the type.
+
+And the corollary for how I brief agents:
+
+> **Never write "do not spend budget on X" unless X is closed by a mechanism I
+> can state.** Telling an agent where not to look is only safe when the bound is
+> genuinely structural; otherwise it converts a cheap re-measurement into a
+> permanent blind spot. Brief B landed three functions by disregarding my
+> instruction — and it was right to, because it tested the bound first.
+
+## THE THUMB MINIPOOL IS BUILT AFTER sched2 AND SORTED BY `max_address`
+
+A genuinely reusable mechanism, and the first precise account of pool ORDER in
+this document.
+
+The minipool is sorted by `max_address` = **(the referencing insn's address + that
+insn's pool range)**. Two consequences:
+
+1. **It is built after sched2.** Proven, not assumed: `-fno-schedule-insns2`
+   **reverses the pool word order** on `OvlFunc_971_2008128`. (This is consistent
+   with the bound already recorded here — no pool load is ever a MEM for
+   scheduling, because the pool does not exist yet.)
+2. **A NARROWER-MODE reference has a smaller range and therefore sorts EARLIER,
+   even when it is referenced LATER.** That is the only route to the ROM's
+   `[zero, iwram]` order with the iwram load at insn 0.
+
+Which gives a usable rule:
+
+> **To move a word EARLIER in the literal pool without moving its reference,
+> narrow the MODE of the reference.** `HImode` is the mode that works here.
+> `QImode` also sorts early but **always forces a jump-around pool dump** (+4
+> bytes; verified on six probe shapes), so it is not usable.
+
+This is what closed `OvlFunc_881_20082cc`, and it retired that park's
+symbol-table request outright rather than merely leaving it withheld — see below.
+
+## A `*.sym` REQUEST KILLED BY ONE LINE, AND THE DIFFERENCE BETWEEN WITHHELD AND DEAD
+
+`20082cc`'s park argued structurally that **a pool word holding zero must be a
+relocation**, because `*thumb_movsi_insn` would emit `mov rN,#0` for a plain zero.
+That is the same structural-impossibility shape this document accepts for
+`_FILE_*` and `_AREA_*` entries. It was **withheld** on the completion test.
+
+It is now **dead**, refuted by one line:
+
+    *(unsigned short *)(p + 4) = 0;     ->  ldrh r3, .L3  /  .word 0
+
+A zero **in HImode** is pooled as a literal, because thumb `movhi` has **no
+immediate alternative**. The park's six test spellings were all SImode or QImode
+moves, where `mov rN,#imm8` exists — so its sweep could not have found this.
+
+> **"A pool word holding an 8-bit-movable value must be a relocation" is
+> MODE-DEPENDENT, and the structural argument is only valid for the modes whose
+> move patterns have an immediate alternative.** Every symbol-table entry in this
+> tree resting on that argument should be re-read with the mode in mind. The
+> completion test is what kept this one out of the table, and it was doing more
+> work than anyone realised: it held a wrong structural argument at arm's length
+> for long enough to be refuted.
+
+Also worth recording: **gas assembles `ldrb rN, label` and `ldrh rN, label` as a
+word `ldr rN,[pc,#imm]`** — the same identical-encoding trap this document
+already records for pool loads, now confirmed from the assembler's side.
+
+## AND THE SEARCH SPACE THAT COULD NOT CONTAIN THE ANSWER
+
+**637 crossed variants** on `OvlFunc_881_20082f0` all floor at 3, until the
+**parameter itself** becomes a struct. Nothing in the
+statement/declaration/local-spelling space reaches it.
+
+> This is why batch 317's exhaustive permutation sweeps on this function could not
+> have found it, and it is a sharper version of the cross-the-lists law: **crossing
+> is only exhaustive over the dimensions you chose.** 637 variants is a thorough
+> search of the wrong space. When a large crossed sweep is FLAT — every cell the
+> same figure — that flatness is the finding: it says the lever is not in any of
+> the dimensions swept, and the next move is to change the SIGNATURE, the TYPE, or
+> the TU shape rather than to add a 638th cell.
