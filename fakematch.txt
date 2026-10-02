@@ -613,3 +613,5 @@ Func_8005ee0  src/rom_c0/rom_5cf8_a_a_a_c_c_a_b.c
 Func_8015e8c  src/rom_15000/rom_15e8c_a_a.c
 Func_80a65e4  src/rom_a1000/rom_a5534_c_c_a_b.c
 OvlFunc_933_2009874  src/overlays/rom_7bc690/ovl_4e4_c_c_c_b.c
+OvlFunc_921_2009fa4  src/overlays/rom_7a7298/ovl_30_c_c_c_c_c_c_c_c_b.c
+OvlFunc_922_200a094  src/overlays/rom_7a8c8c/ovl_30_c_c_c_c_c_c_c_c_b.c

@@ -363,6 +363,27 @@ asm/rom_f6000/rom_f6008_c_c_a_b.o: src/rom_f6000/rom_f6008_c_c_a_b.c
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 
+# GCSE_CFLAGS, batch 318.  OvlFunc_921_2009fa4 and OvlFunc_922_200a094 are ONE
+# 192-instruction routine living in two overlays (tools/dupfuncs.py pairs them),
+# and both were parked at 1 of 199 -- the closest parks in the tree.  The single
+# residue was ONE gcse PRE substitution, named in the dump as
+# `PRE: redundant insn 350 (expression 14) in bb 8`, the only subst in the whole
+# function; lcm.c's `delete[bb] = antloc & ~laterin` makes that deletion FORCED,
+# and from C source a `(plus sfp K)` can never be kept out of gcse's hash table.
+# So the flag is not a convenience here, it is the mechanism.  Byte-identical
+# under it at 452 bytes, 199 encodings and 24 relocations; at production -O2 the
+# same bodies are far worse.  Six register pins each -- fakematch.txt rows -- and
+# pass 3 is where those come off.
+asm/overlays/rom_7a7298/ovl_30_c_c_c_c_c_c_c_c_b.o: src/overlays/rom_7a7298/ovl_30_c_c_c_c_c_c_c_c_b.c
+	$(GCC296_CC) $(GCSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+asm/overlays/rom_7a8c8c/ovl_30_c_c_c_c_c_c_c_c_b.o: src/overlays/rom_7a8c8c/ovl_30_c_c_c_c_c_c_c_c_b.c
+	$(GCC296_CC) $(GCSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
 # -fno-schedule-insns2 : OvlFunc_945_2009978 hoists `mov r0,#0x8f / lsl r0,#4`
 # above the gState[0x22b] store at -O2.  The post-reload scheduler is what does
 # it; the named-shifted-local lever does not reach it, and -O1 matches too but

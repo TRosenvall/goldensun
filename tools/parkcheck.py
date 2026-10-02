@@ -176,7 +176,26 @@ def check(path):
     cmd = [sys.executable, os.path.join(ROOT, "tools", "objcmp.py"), path, ref]
     if func:
         cmd += ["--func", func]
-    r = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT)
+    # HONOUR A PER-PARK FLAG DECLARED IN THE PARK'S OWN RECIPE.
+    #
+    # Some parks' figures are reachable only under one non-production flag, and
+    # the honest ones SAY SO in the `Verify with:` line as
+    # `-e OBJCMP_EXTRA=-fno-gcse`.  Measured at the tree default those parks came
+    # back MISMATCH -- "a park's header is lying about its own body" -- which is
+    # exactly backwards: the header was telling the truth and this checker was
+    # measuring something the header never claimed.  Found on
+    # OvlFunc_956_2008ba4, whose figure is 2 under -fno-gcse and 72 without it,
+    # and whose park states that in capitals.
+    #
+    # So: if the recipe declares OBJCMP_EXTRA, measure with it, and SAY SO in the
+    # verdict so the figure is never mistaken for a production-flag distance.
+    # A park that needs a flag and does NOT declare it still reads MISMATCH,
+    # which is the right answer -- an undeclared flag dependency is a defect.
+    env = dict(os.environ)
+    xm = re.search(r"OBJCMP_EXTRA=(\S+)", hdr)
+    if xm:
+        env["OBJCMP_EXTRA"] = xm.group(1)
+    r = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT, env=env)
     out = r.stdout
     if r.returncode != 0 and "differ" not in out and " OK " not in out:
         first = (r.stderr.strip().splitlines() or ["no stderr"])[-1]
@@ -192,7 +211,10 @@ def check(path):
         return ("NO CLAIM", f"measures {got[0]}", None, got[0])
     claimed = int(cm.group(1))
     if claimed == got[0]:
-        return ("OK", f"{claimed}", claimed, got[0])
+        note = f"{claimed}"
+        if xm:
+            note += f"  [under {xm.group(1)} -- NOT a production-flag figure]"
+        return ("OK", note, claimed, got[0])
     return ("MISMATCH", f"header claims {claimed}, body measures {got[0]}", claimed, got[0])
 
 

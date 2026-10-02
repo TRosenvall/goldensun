@@ -32180,3 +32180,143 @@ statement/declaration/local-spelling space reaches it.
 > same figure — that flatness is the finding: it says the lever is not in any of
 > the dimensions swept, and the next move is to change the SIGNATURE, the TYPE, or
 > the TU shape rather than to add a 638th cell.
+
+# Batch 318, briefs A and C: the closest two parks land, and two more of my own claims were wrong
+
+## The two closest parks in the tree landed, and they are ONE function
+
+`OvlFunc_921_2009fa4` and `OvlFunc_922_200a094` — both parked at **1 of 199**,
+both now byte-identical at 452 bytes, 199 encodings and 24 relocations. They are
+one 192-instruction routine in two overlays, and the second landed by **porting
+the first with three renames and MEASURING it**, which is the discipline batch 316
+established for duplicate groups.
+
+The single residue was **one gcse PRE substitution**, and the dump names it
+outright: `PRE: redundant insn 350 (expression 14) in bb 8` — the only
+substitution in the whole function. The agent derived from `lcm.c` that
+`delete[bb] = antloc & ~laterin` makes that deletion **forced**, validated the
+model against the dump (it predicts bb2's occurrence surviving while bb8's dies),
+and showed that from C source a `(plus sfp K)` can never be kept out of gcse's
+hash table — **the aggregate lever puts the SUBREG on the *copy*, not the plus.**
+So `-fno-gcse` here is not a convenience, it is the mechanism.
+
+**And the park's own stated landing mechanism was refuted on two independent
+counts.** It proposed `update_equiv_regs`, whose gate needs `REG_BASIC_BLOCK < 0`
+(multi-block — which a step-site temp is not) **and** `REG_N_REFS == 2` — and
+`REG_N_REFS` is loop-depth weighted, so at depth 2 a set-once/used-once pseudo
+scores **4**. It could never have fired. That is the loop-depth finding from batch
+316 paying off a second time, in the opposite direction: there it corrected a
+priority claim, here it kills a gate.
+
+### What actually landed it: crossing the park's own two lists, with a figure read as misalignment
+
+- `-fno-gcse` sat in the park's **negatives** at "71 of 199".
+- `int *vp` sat in the park's **rejected** list at "72 — WORSE".
+
+But **71 is 201 instructions**, so by this document's own rule that figure is a
+**misalignment, not a distance**. Read aligned, `-fno-gcse` *already emits the
+ROM's `aa02`*; the +2 is cse1 reusing the step block's address temp for the
+post-call reads — which is the park's own "STAGE 1, SOURCE-DEFEATABLE", and whose
+cure is the very `vp` it had rejected. The ladder:
+
+| step | figure |
+|---|---|
+| `-fno-gcse` | 71 (**201 insns — misaligned**) |
+| + `int *vp` **unpinned** (the r5 pin was what cost an earlier repro its 179) | 74 |
+| + `vp = v` moved **inside the loop** (worth 72 on its own) | **2** |
+| + step-block pin order | **0** |
+
+> **A park's negative list is not safe to skip when one of its figures has the
+> wrong instruction count.** This one hid a *correct* flag behind a number that
+> looked twice as bad as the park's own baseline, and the cure for the remaining
+> two was sitting in the rejected list on the same page.
+
+## A SECOND BOUND OF MINE REFUTED IN THE SAME BATCH
+
+Batch 318's brief A was told, in my own words, that `BaseAnim_Tackle`'s residue
+involved MEMs in **alias set 0**. **It does not: the target load is alias set
+22 at sched2.** The park's *conclusion* survives — the dependence really is
+excluded — but on the **offsets**, not the sets.
+
+Combined with the byte-access bound retracted above, **two of the bounds I
+propagated in this batch's briefs were wrong**, and both were wrong the same way:
+I had taken a correct observation about one mechanism and restated it as a
+property of the code. The byte-access one cost nothing in the end only because
+the agent disregarded it.
+
+> **State a bound with the evidence that produced it attached, not as a fact about
+> the function.** "Three MEMs measured alias set 0 in `.19.flow2`" is checkable and
+> survives being wrong. "The MEMs are in alias set 0" is a claim the next reader
+> will build on.
+
+## `BaseAnim_Tackle` is DECLINED, and the decline is worth more than a guess
+
+All four `rank_for_schedule` rungs **tie by construction** at the deciding point
+(t=56): each fill's dependent set is necessarily `{own call, next write of own
+register, site-2 call}` — three, and equal, because **sched-deps links a set only
+to the NEXT set of that register.** The agent also closed the escape the park had
+not checked (reordering the stack-arg stores hands one insn the first slot and
+still fails on the next pair), and killed the obvious idea for a reason:
+**after the site-1 call, `reg_last_sets[r4]` IS the call, so nothing later can
+depend on it.** No ready-list ranking produces the ROM's `(r4, r1, r0)`.
+
+And it noted that brief B's edge-removal lever — the one that landed three
+functions in this same batch — **does not transfer here**, because the three fills
+have no mutual dependence at all, so there is no edge to remove.
+
+> **A declined park with a derived mechanism is a better deliverable than a park
+> with a plausible one.** 18 crossed variants re-measured at the new baseline (the
+> old lists had been taken at 8, a different body), 10 exactly inert and 7 worse.
+
+## A park figure can be A FIGURE ABOUT ONE FLAG, and parkcheck now reads it
+
+`OvlFunc_956_2008ba4`'s long-standing "2 of 75" is reachable **only under
+`-fno-gcse`**; at the tree default the same body is **72 of 75 with the relocation
+list four bytes short.** The park said so in capitals and was right to.
+
+This had a tooling consequence worth recording. `parkcheck.py` measures at
+production flags, so it reported **MISMATCH — "a park's header is lying about its
+own body"** — which is exactly backwards: the header was telling the truth and the
+checker was measuring something it never claimed. `parkcheck.py` now reads
+`OBJCMP_EXTRA=` out of the park's own recipe, measures with it, and **says so in
+the verdict** so the figure can never be mistaken for a production distance:
+
+    OK   .../2008ba4.c   2   [under -fno-gcse -- NOT a production-flag figure]
+
+A park that needs a flag and **does not declare it** still reads MISMATCH, which
+is the right answer — an undeclared flag dependency is a defect.
+
+> **A figure that needs a flag is not a distance at the flags the build uses.**
+> Declare the flag in the recipe or the figure is unverifiable, and rank such a
+> park separately — it is not competing with production-flag parks for closeness.
+
+## The aggregate lever has a THIRD mode
+
+Batch 316: it can make a reload spill-store **never exist**. Batch 317: it is
+**size-gated at two words** and **positional** (a consecutive hard-register pair).
+Batch 318: it can take a value **out of alias set 0**, by replacing a reload spill
+slot with a real C object. That is what landed `BaseAnim_Spasm`.
+
+Three distinct mechanisms from one declaration-shaped edit. **When a residue
+involves a reload-created MEM, try the aggregate before reasoning about reload.**
+
+## And the sched2 CLASS rung is dead for a SECOND reason
+
+Already recorded: it is skipped at t=0 because `last_scheduled_insn` is 0
+(haifa-sched.c:5963). Brief C adds: **an insn that IS data-dependent on
+`last_scheduled_insn` still gets class 3.** So the CLASS rung does not separate
+insns in this build in either of the two situations where you would expect it to.
+Treat the ladder as effectively `priority → dependent count → INSN_LUID`.
+
+## Where `.global` exports go is load-bearing
+
+`split_s.py` copies the **preamble into every part**, and correctly **refuses** to
+split when the preamble holds anything but includes and comments. So exports added
+for a text/data split must sit **beside the data labels they export**, not at the
+top of the file. Three splits in this batch needed exports; the first attempt put
+them in the preamble and the tool stopped it with a clear message naming the
+offending lines.
+
+> That refusal is a good tool behaviour to preserve: a `.global` in the preamble
+> would have been **duplicated into both halves**, which assembles fine and means
+> something different.

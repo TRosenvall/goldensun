@@ -1,3 +1,90 @@
+/* ===================== BATCH 318 (brief A) ADDENDUM -- READ FIRST =====================
+ * BaseAnim_Tackle -- STILL NON-MATCHING, 2 ENCODINGS OF 402.  NO CHANGE TO THE
+ * BODY: of 18 crossed variants this batch, none beat it and the ten that were
+ * exactly inert are listed below so nobody re-runs them.  DECLINING TO CLOSE.
+ *
+ * FIGURE RE-MEASURED MYSELF, both ways:
+ *   --func  : 2 of 402 (ref 402, ours 402), idx 223 ref 9c06 ours 9808,
+ *             idx 225 ref 9808 ours 9c06
+ *   --whole : 2 of 402, 916 bytes, *** RELOCATIONS EXACT ***  <- so the 2 IS a
+ *             distance, unlike the two overlay twins' figures
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/dfa18_Tackle.c \
+ *     asm/rom_c9000/rom_dfa18_c_c_c_c_a.s --func BaseAnim_Tackle
+ * SPLIT: `python3 tools/datacheck.py asm/rom_c9000/rom_dfa18_c_c_c_c_a.s` prints
+ * NOTHING -- no data section, one function.  CONVERTS WHOLE, no split, no data
+ * work, no .sym entry, no flag row.  PINS: 10 (tools/shimcount.py, via PIN3);
+ * needs a fakematch.txt row.
+ *
+ * -------- THE SCHED2 BOUND IS CONFIRMED, AND NOW DERIVED FROM THE TRACE --------
+ * Taken with -fsched-verbose=6 on THIS body, the decision is at t = 56:
+ *     ;;  Ready list (t = 54):  549  1101  545   -> schedules 545
+ *     ;;  Ready list (t = 56):  551  1101  549   -> schedules 549  (ROM wants 1101)
+ *     ;;  Ready list (t = 58):  1101 551         -> schedules 551
+ * and the insns, read out of the dump:
+ *     549  (set (reg r0) (mem:SI (plus (reg sp) 32) 0))      arg 0, `ctx`
+ *     551  (set (reg r1) (reg/v:SI 9 r9))                    arg 1, `base`
+ *     1101 (set (reg r4) (mem:SI (plus (reg sp) 24) 22))     the call target
+ *     594 = site-1 *call_indirect, 556 = site-2's
+ *     1104 (set (reg r0) (reg sl))       = idx 227, the next r0 write
+ *     1110 (set (reg r4) (const_int 32)) = idx 233, site 2's 0x20 stack arg
+ *
+ * *** ALL FOUR RUNGS TIE BY CONSTRUCTION, which is stronger than this header's
+ * previous claim. ***  Each fill's INSN_DEPEND is exactly {its own call, the
+ * next write of its own register, the site-2 call} -- three, and NECESSARILY
+ * three and equal, because sched-deps links a set only to the NEXT set of the
+ * same register and a CALL_INSN depends on every preceding set of a
+ * call-clobbered one.  Priority ties at 35 for all three: all are dominated by
+ * the same site-2 call (prio 34, cost 1).  The CLASS rung demotes only 551,
+ * anti-dependent on 545 = `str r1,[sp,#4]`, the last stack-arg store.  So LUID
+ * decides, and `load_register_parameters` emits the fills FORWARD with
+ * LOAD_ARGS_REVERSED defined by no target, so LUID(549) < LUID(551) < LUID(1101).
+ * I ALSO CHECKED THE OBVIOUS ESCAPE: reordering the two stack-arg stores makes
+ * 549 class 2 and hands 1101 the first slot -- AND IT STILL FAILS, because the
+ * next pair is 549 against 551 with everything tied and LUID picking 549 while
+ * the ROM picks 551.  The matching site-2 call (idx 239-241) is the same three
+ * insns with the same ties scheduled in LUID order, which is exactly why it
+ * matches.  @224 IS AN ARGUMENT-EXPANSION-ORDER QUESTION.  That stands.
+ *
+ * -------- REFUTED: THIS HEADER'S ALIAS-SET PARAGRAPH --------
+ * It says "*** ALL THREE MEMs ARE ALREADY IN ALIAS SET 0, THE WIDEST THERE IS ***".
+ * At sched2 the target load is `(mem:SI (plus (reg sp) (const_int 24)) 22)` --
+ * alias set 22, the `DrawFn dfs[2]` array's own set.  Only `ctx`'s load is set 0.
+ * The CONCLUSION survives (the three fills have no mutual memory dependence),
+ * but the load-bearing reason is the one the header also gives -- *dead between
+ * two frame MEMs at constant disjoint offsets*, which memrefs_conflict_p
+ * excludes whatever the sets say.  Strike the alias-set sentence, keep the
+ * offset one.  (The brief's ADDENDUM question is therefore answered: the
+ * alias-set lever is not live here, but not because every set is 0.)
+ *
+ * -------- MEASURED THIS BATCH AT THE 2-OF-402 BASELINE (the old lists were at 8) --------
+ * EXACTLY INERT at 2, size 0, relocations ok -- free to keep or drop:
+ *   an r4 pin on the first call's target assigned immediately before the call;
+ *   an unpinned `DrawFn f0 = dfs[0]` local; r4 pins on BOTH calls; 0x28/0x20
+ *   named into shared locals; `ctx` named into a block local (shared, and one
+ *   per call); the SECOND call's target named into a local BEFORE the first
+ *   call; both targets named before the first call; `0x28` written `0x20 + 8`;
+ *   `&apos` named into a pointer.
+ * WORSE: an r0 pin for `ctx` 8; an r1 pin for `base` 8; r4+r1 crossed 8; r4+r0
+ *   crossed 8; `apos.x / 2 - 0x10` named once 196 AT 8 BYTES SMALLER; the two y
+ *   offsets named 168; `base` named into a block-local 166.
+ * So the pin, naming and dependent-count levers are exhausted at the NEW
+ * baseline too -- and the "give 1101 a fourth dependent" idea is DEAD FOR A
+ * REASON, not for want of trying: after the site-1 call `reg_last_sets[r4]` is
+ * the call itself, so no later insn can ever depend on 1101.
+ *
+ * WHAT IS LEFT, stated as a question rather than a count of attempts: a
+ * spelling in which `ctx` reaches r0 WITHOUT an `emit_move_insn` from
+ * `load_register_parameters` at its forward position.  I could not find one and
+ * I do not think one exists for an ordinary register argument -- when the
+ * argument's pseudo is spilled, reload rewrites that fill IN PLACE instead of
+ * emitting a new insn, so the forward LUID survives either way.  If that is
+ * genuinely closed then this park closes, but it wants the citation, not
+ * another sweep.
+ * =====================================================================================
+ */
 /* BaseAnim_Tackle -- NON-MATCHING, 2 ENCODINGS OF 402 (was 8).  SIZE EXACT
  * (916 bytes), INSTRUCTION COUNT EXACT (402), FRAME EXACT (`sub sp, #0x48`),
  * RELOCATIONS EXACT.  ONE function, no .rodata -- CONVERTS WHOLE when it lands,
