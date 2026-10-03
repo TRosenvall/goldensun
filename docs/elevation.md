@@ -32490,3 +32490,69 @@ What a brief should carry instead: the park's **observations**, the verified
 figure, the levers with their preconditions, and the explicit instruction that
 **every inherited diagnosis is a hypothesis**. Across pass two the diagnosis has
 been wrong roughly forty times out of forty-two.
+
+## Batch 319 addendum: the manifest convention, and the pin policy
+
+### `tools/install_batch.py` — because the coordinator became the bottleneck
+
+By batch 319 the agents were not the constraint. Twenty-one landings arrived across
+batches 317–319, and for each one the coordinator read the candidate's **prose
+header** to recover the install path, the split command, the Makefile flag group,
+the `fakematch` row and which parks to retire, then applied them one at a time.
+That reading is most of the coordinator's context per batch, and it is what caps
+how many functions a batch can carry — not agent throughput.
+
+So every brief now emits a **`MANIFEST.json`** beside its candidates, and the
+information moves from English a human must parse into data a script can act on.
+Agents already knew every field; they were writing it in prose.
+
+The tool keeps the gating discipline rather than doing everything at once, because
+*a layout mistake and a bad decompilation look identical at the end*:
+
+    validate (default) -> exports -> GATE -> splits -> GATE -> install -> GATE
+
+It **never runs make itself** — it prints the gate command and stops. Running the
+gate from inside an install script invites treating a red gate as something to
+debug rather than something to stop on.
+
+**Validation is the point, not convenience.** Every check encodes a mistake
+actually made here:
+
+- `function` must appear as `.thumb_func_start` in `reference` — batch 318's
+  briefs carried **three wrong symbol names**, taken from park filenames.
+- a `reference` that is gcc-generated output is reported as **"this function
+  appears to have already landed"**, separately from "wrong symbol name". Two
+  different failures; reporting them identically is the bug class this project
+  keeps paying for, and the first version of this very tool did it.
+- every `parks_retire` entry must have the landed function as its **subject**. In
+  batch 317 the coordinator nearly deleted `8022a7c.c`, a park for a *different*
+  function that merely cited the landing as a callee. **Retiring a park for
+  another function hides that function from every scan.**
+- `figure: 0` with `pins > 0` and `fakematch: false` is a hard error.
+- `flag_group` without `flag_reason` is a hard error — a per-file flag is an
+  owner-facing decision and an unexplained one is unreviewable.
+
+### THE PIN POLICY, set by the owner in batch 319
+
+> **Prefer a pin-free body. If a landing needs pins and no pin-free landing is
+> readily available, do not land it — park it at its pin-free figure and leave it
+> for pass 3.**
+
+This replaces the working practice that produced the seven pinned landings of
+batches 317–318, which are grandfathered and listed in `reports/pass3-depin.md`.
+None of them had a pin-free *landing* available: the alternatives were parks at 2
+and 7 encodings, so there was nothing to prefer at the time.
+
+`install_batch.py` warns on every pinned landing so the choice is deliberate.
+
+And the scoping fact that makes this policy matter: **`fakematch.txt` carries 617
+rows**, and `shimcount.py` **misses the value-producing inline-asm class
+entirely** — it reports *zero* shims for `GetUnit`, which ships exactly one. So
+617 is a floor, fixing `shimcount.py` is pass 3's first task, and every pinned
+landing taken now is a row added to a list nobody can yet measure.
+
+### What a brief must now ask for
+
+Alongside the candidates and `FINDINGS.md`: a `MANIFEST.json` with one entry per
+target, and for any target that needs pins to land, **both** figures — the pinned
+one and the pin-free one — so the policy above can be applied without re-measuring.
