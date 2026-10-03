@@ -1,5 +1,20 @@
 /* OvlFunc_973_200871c  [ovl_7fc720]
  *
+ * NON-MATCHING, 24 of 32 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 32, ours 30) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 76 bytes, ours 72.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7fc720/200871c.c \
+ *     asm/overlays/rom_7fc720/ovl_30_c_a_c_c_c_a_c.s --func OvlFunc_973_200871c
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Source asm: goldensun/asm/overlays/rom_7fc720/ovl_30_c_a_c_c_c_a.s
  *
  * Blocker: INDEXED STORE WHERE THE ROM COMPUTES THE ADDRESS.

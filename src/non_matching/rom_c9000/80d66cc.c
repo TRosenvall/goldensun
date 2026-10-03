@@ -1,5 +1,20 @@
 /* Func_80d66cc -- asm/rom_c9000/rom_d6504_a_c_c_c.s
  *
+ * NON-MATCHING, 38 of 56 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 56, ours 55) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 132 bytes, ours 128.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/80d66cc.c \
+ *     asm/rom_c9000/rom_d6504_a_c_c_c_a.s --func Func_80d66cc
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: TRANSLATION-UNIT SIZE (pool placement). tryc says OK; the REAL
  * BUILD DISAGREES. This park exists mostly to record that.
  *

@@ -1,4 +1,16 @@
 /* Func_80b110c -- 0x080b110c, asm/rom_b0000/rom_b0070_a_a_c_c_a_c_c.s (1 function, no
+ *
+ * NON-MATCHING, 1 of 66 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_b0000/80b110c.c \
+ *     asm/rom_b0000/rom_b0070_a_a_c_c_a_c_c.s --func Func_80b110c
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * data section, so landing needs NO split).
  *
  * ==================== SOLVED IN BATCH 273, HELD ON A BUILD-INPUT DECISION ====================

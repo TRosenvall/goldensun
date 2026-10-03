@@ -1,4 +1,15 @@
 /* Func_80bf574 (0x080bf574) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 15 of 24 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_b5000/80bf574.c \
+ *     asm/rom_b5000/rom_bbb0c_a_c_c_a_c_a.s --func Func_80bf574
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: A ZERO-EXTENSION GCC KNOWS IT DOES NOT NEED.
  *
  * 24 lines against the ROM's 25 -- ONE SHORT -- with 16 differing. The twelfth

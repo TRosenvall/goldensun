@@ -1,5 +1,16 @@
 /* Func_8099070 -- 0x08099070  (asm/rom_8a000/rom_97b54_a_c_c_a_c_c_a.s)
  *
+ * NON-MATCHING, 7 of 44 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/8099070.c \
+ *     asm/rom_8a000/rom_97b54_a_c_c_a_c_c_a_a.s --func Func_8099070
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * TWIN: Func_80990cc in the same .s is identical except that it SUBTRACTS the
  * shifted counter where this one adds it, so this park covers both -- and the
  * .s holds only these two, so solving it converts the whole TU with no split.

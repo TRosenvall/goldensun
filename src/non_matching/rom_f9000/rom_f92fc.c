@@ -1,4 +1,19 @@
 /* Debug_SoundTest(void) sound-test / music control loop [rom_f9000]
+ *
+ * NON-MATCHING, 134 of 146 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 146, ours 140) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 316 bytes, ours 304.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_f9000/rom_f92fc.c \
+ *     asm/rom_f9000/rom_f9080_a_a_a.s --func Debug_SoundTest
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Source asm: goldensun/asm/rom_f9000/rom_f9080_a_a_a.s
  * (path updated: the .s was split or renamed after this was parked)  (Camelot music-driver prefix)
  *

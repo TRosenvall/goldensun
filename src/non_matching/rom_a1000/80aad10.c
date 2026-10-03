@@ -1,4 +1,19 @@
 /* Func_80aad10 (PaintDjinnBackground, 0x080aad10) -- NON-MATCHING, 94 lines against 82.
+ *
+ * NON-MATCHING, 111 of 101 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 101, ours 113) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 260 bytes, ours 284.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_a1000/80aad10.c \
+ *     asm/rom_a1000/rom_aa538_c_c_a_c_a.s --func Func_80aad10
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: NEW -- CSE-SHARED EXPENSIVE CONSTANTS ACROSS SIBLING CALLS.
  * Never attempted before batch 276.
  *

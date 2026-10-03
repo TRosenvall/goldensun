@@ -1,5 +1,20 @@
 /* OvlFunc_952_2008264 -- 0x02008264  (asm/overlays/rom_7d768c/ovl_30_c_a_a_a_c.s)
  *
+ * NON-MATCHING, 36 of 85 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 85, ours 87) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 228 bytes, ours 236.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7d768c/2008264.c \
+ *     asm/overlays/rom_7d768c/ovl_30_c_a_a_a_c_c.s --func OvlFunc_952_2008264
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: the GetFlag/SetFlag rule and the DERIVED-CONSTANT shape want
  * OPPOSITE flags in the same function, and neither can be had without losing
  * the other. 33 of 85, exact length. This is a boundary on CSE_CFLAGS, not a

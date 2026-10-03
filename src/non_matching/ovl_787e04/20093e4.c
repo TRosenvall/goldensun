@@ -1,5 +1,20 @@
 /* OvlFunc_887_20093e4  [ovl_787e04]  --  0x020093e4
  *
+ * NON-MATCHING, 127 of 144 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 144, ours 142) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 352 bytes, ours 348.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_787e04/20093e4.c \
+ *     asm/overlays/rom_787e04/ovl_30_c_a_c_a_c_c_c_c_c_c_c_c_c_c_c_c_c_c.s --func OvlFunc_887_20093e4
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Source asm: goldensun/asm/overlays/rom_787e04/ovl_30_c_a_c_a_c_c_c_c_c_c_c_c_c_c_c_c_c_c.s
  *
  * A 140-instruction straight-line cutscene, 29 calls, no branches. Attempted

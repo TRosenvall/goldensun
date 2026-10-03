@@ -1,5 +1,17 @@
 /* Func_80c00d8 @ 0x080c00d8
  *
+ * NON-MATCHING, 33 of 37 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_b5000/rom_c00d8.c \
+ *     asm/rom_b5000/rom_bffb8_a_a_a_c.s --func Func_80c00d8
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Source asm: goldensun/asm/rom_b5000/rom_bffb8_a_a_a_c.s
  *
  * NOT SPLIT. The .s still holds its remaining functions and the linker script

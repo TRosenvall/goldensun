@@ -1,5 +1,20 @@
 /* Func_807a7a0 -- 0x0807a7a0, asm/rom_77000/rom_79460_c_c_c_c_c_c.s
  *
+ * NON-MATCHING, 51 of 60 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 60, ours 61) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 136 bytes, ours 140.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_77000/807a7a0.c \
+ *     asm/rom_77000/rom_79460_c_c_c_c_c_c_c.s --func Func_807a7a0
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Restores a saved party from the staging buffer at ewram_2001078, but only if
  * its first halfword still reads 0x6774. For each of four party members it
  * copies fifteen halfwords into the unit record at +0xd8, then reruns

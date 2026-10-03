@@ -1,4 +1,15 @@
 /* Func_807a0f4 -- 0x0807a0f4,
+ *
+ * NON-MATCHING, 7 of 88 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_77000/807a0f4.c \
+ *     asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_a_a.s --func Func_807a0f4
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_a_a.s (1 function, no data section, so
  * landing needs NO split).
  *

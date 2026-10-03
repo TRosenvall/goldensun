@@ -1,5 +1,19 @@
 /* Func_807a458 -- 0x0807a458 -- asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_c.s
  *
+ * NON-MATCHING, 20 of 30 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 30, ours 28) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   SIZE ref 64 bytes, ours 60.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_77000/807a458.c \
+ *     asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_c_a_a.s --func Func_807a458
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: two address forms collapsed into one. 19 of 30, two lines short.
  *
  * Appends a four-byte record to a table: pick a bank by whether the first

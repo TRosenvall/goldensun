@@ -1,5 +1,16 @@
 /* Func_80a8b10 -- asm/rom_a1000/rom_a8604_a_a_c_a.s
  *
+ * NON-MATCHING, 51 of 60 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_a1000/80a8b10.c \
+ *     asm/rom_a1000/rom_a8604_a_a_c_a_a.s --func Func_80a8b10
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: ONE MISSING INSTRUCTION -- `mov r12, r5`. 58 of 66, ONE LINE SHORT,
  * and every one of the 58 is the cascade from that single omission.
  *

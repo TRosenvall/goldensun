@@ -1,4 +1,15 @@
 /* OvlFunc_917_20092f4 (0x020092f4) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 4 of 207 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7a4370/20092f4.c \
+ *     asm/overlays/rom_7a4370/ovl_30_c_c_c_c_a_a_c_a.s --func OvlFunc_917_20092f4
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: scheduling -- two argument pairs transposed, four lines.
  *
  * 230 lines against the ROM's 230, FOUR differing, and 226 of the 230 include

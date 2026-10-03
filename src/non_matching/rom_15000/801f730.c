@@ -1,4 +1,15 @@
 /* ============================================================================
+ *
+ * NON-MATCHING, 7 of 33 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/801f730.c \
+ *     asm/rom_15000/rom_1de5c_c_c_c_c_a_a_c_a_c_a_a.s --func Func_801f730
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * CORRECTION -- THE BLOCKER RECORDED BELOW IS REFUTED. Residue is now 3, not 8.
  *
  * This park (and docs/elevation.md, twice, naming this function) states that

@@ -1,5 +1,16 @@
 /* OvlFunc_897_200ac1c -- NOT MATCHING
  *
+ * NON-MATCHING, 14 of 53 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_791794/200ac1c.c \
+ *     asm/overlays/rom_791794/ovl_30_c_c_a_c_c_c_a_c.s --func OvlFunc_897_200ac1c
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Source asm: goldensun/asm/overlays/rom_791794/ovl_30_c_c_a_c_c_c.s
  * Best screen: 14 differing of 52, streams the same length.
  *

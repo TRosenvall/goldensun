@@ -1,4 +1,16 @@
 /* Func_80286a0 -- 0x080286a0, asm/rom_15000/rom_23178_a_a_a_a_c_c_a_c.s (2 functions; the
+ *
+ * NON-MATCHING, 4 of 85 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/80286a0.c \
+ *     asm/rom_15000/rom_23178_a_a_a_a_c_c_a_c.s --func Func_80286a0
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * sibling Func_8028574 stays in assembly, so landing needs a two-way split).
  *
  * NOT MATCHING: 4 differing of 85 encodings, SIZE IDENTICAL -- and only THREE are real.

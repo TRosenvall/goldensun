@@ -1,5 +1,16 @@
 /* OvlFunc_931_20086f0 -- 0x020086f0  (asm/overlays/rom_7b8cb0/ovl_30_c_c_c_c_c_c_c_c_c_a_c.s)
  *
+ * NON-MATCHING, 17 of 92 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7b8cb0/20086f0.c \
+ *     asm/overlays/rom_7b8cb0/ovl_30_c_c_c_c_c_c_c_c_c_a_c_c_a.s --func OvlFunc_931_20086f0
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * TWIN: OvlFunc_932_2009770 (asm/overlays/rom_7b9cb4/...) is the same function
  * over a different actor record -- same three halfword state machines, same
  * two __Func_8012330 calls, same 0x5b flag write. Solving one solves both, so

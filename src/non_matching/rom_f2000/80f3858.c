@@ -1,4 +1,18 @@
 /* Func_80f3858 (BeginPaletteFade) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 8 of 29 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 29, ours 30) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   SIZE ref 64 bytes, ours 68.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_f2000/80f3858.c \
+ *     asm/rom_f2000/rom_f2028_c_c_c_a_a.s --func Func_80f3858
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: CONSTANT DERIVATION, and it is the MIRROR IMAGE of
  * src/non_matching/ovl_7ac2d8/200adcc.c.
  *

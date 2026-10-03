@@ -1,4 +1,15 @@
 /* OvlFunc_970_2008da4 (0x02008da4) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 9 of 175 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7fa4ec/2008da4.c \
+ *     asm/overlays/rom_7fa4ec/ovl_30_c_c_c_a_c_c_c_c_a_c.s --func OvlFunc_970_2008da4
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: a narrowed mask, an allocation role, and one scheduled load.
  *
  * 167 lines against 167, SEVEN differing -- down from 158 through four levers,

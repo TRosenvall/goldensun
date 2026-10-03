@@ -1,5 +1,16 @@
 /* OvlFunc_common1_15b8 -- NOT MATCHING. 6 of 34, same length.
  *
+ * NON-MATCHING, 6 of 34 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_common/common1_15b8.c \
+ *     asm/overlays/common/common1_a_c_c_c_a.s --func OvlFunc_common1_15b8
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Source asm: goldensun/asm/overlays/common/common1_a_c_c_c.s
  *
  * Blocker: instruction ORDER around a pointer walk, not the values.

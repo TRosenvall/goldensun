@@ -1,4 +1,15 @@
 /* OvlFunc_918_2009424 (0x02009424) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 4 of 141 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7a5214/2009424.c \
+ *     asm/overlays/rom_7a5214/ovl_314_c_c_c_a_c.s --func OvlFunc_918_2009424
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: argument-setup order, TWO SITES of eleven, 4 lines of 154.
  *
  * A thirteen-case jump table whose arms are all __MapActor_SetAnim(8, N) with

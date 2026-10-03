@@ -1,4 +1,16 @@
 /*
+ *
+ * NON-MATCHING, 15 of 26 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_77000/8079bf8.c \
+ *     asm/rom_77000/rom_79460_c_c_c_c_a_c_c_a_a_a_a.s --func Func_8079bf8
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * ### BATCH 267 -- THE MULTIPLY READING IS CONFIRMED, AND A SIBLING PARK WAS WRONG.
  *
  * The note below ends "the multiply is `r * (x + c * 2)` with r first, because

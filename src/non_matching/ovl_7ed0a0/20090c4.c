@@ -1,4 +1,16 @@
 /* OvlFunc_964_20090c4  --  0x020090c4
+ *
+ * NON-MATCHING, 16 of 119 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7ed0a0/20090c4.c \
+ *     asm/overlays/rom_7ed0a0/ovl_30_a_a_c_c_a_c_a.s --func OvlFunc_964_20090c4
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * asm/overlays/rom_7ed0a0/ovl_30_a_a_c_c_a_c_a.s, line 12 (one function, no data).
  *
  * PARKED at 17 aligned of 116, length exact (116 / 116). FOUR OF THE 17 ARE

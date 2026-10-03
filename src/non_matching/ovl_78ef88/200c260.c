@@ -1,5 +1,17 @@
 /* OvlFunc_896_200c260 -- 0x0200c260  (asm/overlays/rom_78ef88/ovl_314_c_c_c_c_a.s)
  *
+ * NON-MATCHING, 4 of 85 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_78ef88/200c260.c \
+ *     asm/overlays/rom_78ef88/ovl_314_c_c_c_c_a.s --func OvlFunc_896_200c260
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ * ITS PREVIOUS PROSE CLAIM OF 78 DID NOT REPRODUCE -- measured 4.
+ *
  * BLOCKER: which scratch register a temporary constant gets. 4 of 85, exact
  * length. Was parked at 78 of 85 as "register-role rotation, nothing in the
  * inventory reaches it". That was WRONG, and the correction is the useful part.

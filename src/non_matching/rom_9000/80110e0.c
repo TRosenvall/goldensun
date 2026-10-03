@@ -1,5 +1,20 @@
 /* Func_80110e0 -- asm/rom_9000/rom_108e4.s
  *
+ * NON-MATCHING, 52 of 63 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 63, ours 59) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 132 bytes, ours 124.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_9000/80110e0.c \
+ *     asm/rom_9000/rom_108e4_c.s --func Func_80110e0
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: LICM + one spare register. 49 of 61, and OURS IS SHORTER (57 vs 61).
  *
  * Two identical tile-copy loops, 32 iterations each, reading an index from

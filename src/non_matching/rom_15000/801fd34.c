@@ -1,4 +1,16 @@
 /* Func_801fd34 (StepOverlayAnimation) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 14 of 36 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/801fd34.c \
+ *     asm/rom_15000/rom_1de5c_c_c_c_c_a_a_c_c_c_c.s --func Func_801fd34
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: EXPRESSION SCHEDULING inside one statement.  12 of 35, same
  * length, and the loop body up to the divide is byte-exact.
  *

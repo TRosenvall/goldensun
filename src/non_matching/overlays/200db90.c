@@ -1,4 +1,15 @@
 /* OvlFunc_969_200db90 -- 0x0200db90, asm/overlays/rom_7f8b34/ovl_2b_c.s
+ *
+ * NON-MATCHING, 2 of 43 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/overlays/200db90.c \
+ *     asm/overlays/rom_7f6e64/ovl_314_c_c_c.s --func OvlFunc_969_200db90
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * and its twin OvlFunc_925_200b460 -- 0x0200b460
  *
  * The twins differ in ONE constant (0xa4 against 0x90), so one solution

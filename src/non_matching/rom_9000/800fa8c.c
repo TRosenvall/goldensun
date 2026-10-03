@@ -1,5 +1,16 @@
 /* Func_800fa8c  --  NOT MATCHING
  *
+ * NON-MATCHING, 20 of 28 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_9000/800fa8c.c \
+ *     asm/rom_9000/rom_f9cc_a_c_c.s --func Func_800fa8c
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Source asm: goldensun/asm/rom_9000/rom_f9cc_a_c.s
  * Best screen: 20 instructions in disagreeing regions, of 28 (streams same length).
  *

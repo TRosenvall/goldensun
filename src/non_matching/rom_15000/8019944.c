@@ -1,4 +1,19 @@
 /* Func_8019944 (0x08019944) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 35 of 41 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 41, ours 39) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 88 bytes, ours 84.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/8019944.c \
+ *     asm/rom_15000/rom_1908c_c_a_c_c_c_c_a.s --func Func_8019944
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: a held zero the source cannot force into a register.
  *
  * 38 lines against the ROM's 40, 36 differing. The two missing instructions are

@@ -1,4 +1,19 @@
 /* Func_8026e80 (0x08026e80) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 90 of 136 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 136, ours 134) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 296 bytes, ours 292.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/8026e80.c \
+ *     asm/rom_15000/rom_23178_a_a_a_a_c_a_a_a.s --func Func_8026e80
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: basic-block LAYOUT -- gcc emits a nested test inline where the
  * ROM places it out of line, before the block that reaches it.
  *

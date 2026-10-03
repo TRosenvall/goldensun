@@ -1,5 +1,16 @@
 /* Func_8029274 -- asm/rom_15000/rom_23178_a_c.s
  *
+ * NON-MATCHING, 6 of 40 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/8029274.c \
+ *     asm/rom_15000/rom_23178_a_c_c_c_a.s --func Func_8029274
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: post-reload scheduling + one allocator preference. 6 of 47,
  * LENGTH EXACT. Came down from 12 by four separate documented levers, so this
  * file is mostly a record of which ones bit and which backfired.

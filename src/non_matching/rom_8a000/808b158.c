@@ -1,4 +1,19 @@
 /* GetLocationName -- 0x0808b158, asm/rom_8a000/rom_8ace0_a_a_c_a_c_a.s
+ *
+ * NON-MATCHING, 62 of 61 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 61, ours 63) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 128 bytes, ours 132.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/808b158.c \
+ *     asm/rom_8a000/rom_8ace0_a_a_c_a_c_a.s --func GetLocationName
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * (two functions; tools/datacheck.py confirms no data section).
  *
  * BLOCKER CLASS: ONE CALLEE-SAVED REGISTER TOO MANY. 63 instructions against

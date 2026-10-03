@@ -1,5 +1,16 @@
 /* OvlFunc_924_20096c4 -- 0x020096c4  (asm/overlays/rom_7ac2d8/ovl_f84_a_c_c_c_c_c.s)
  *
+ * NON-MATCHING, 13 of 91 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7ac2d8/20096c4.c \
+ *     asm/overlays/rom_7ac2d8/ovl_f84_a_c_c_c_c_c_c.s --func OvlFunc_924_20096c4
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: stack-argument register allocation INSIDE A LOOP. 13 of 92, exact
  * length. The interleave this function was selected for is NOT the problem --
  * it reproduced.

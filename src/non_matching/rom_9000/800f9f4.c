@@ -1,5 +1,20 @@
 /* DecodeMetatileset -- asm/rom_9000/rom_f9cc_a_c_b.s
  *
+ * NON-MATCHING, 48 of 73 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 73, ours 71) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 152 bytes, ours 148.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_9000/800f9f4.c \
+ *     asm/rom_9000/rom_f9cc_a_c_b.s --func DecodeMetatileset
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: REGISTER ROTATION (allocator preference). 41 of 78, two short.
  *
  * A three-mode decoder: plain halfword copy, byte-plane merge with a running

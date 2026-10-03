@@ -1,4 +1,15 @@
 /* OvlFunc_924_2009db4  --  0x02009db4
+ *
+ * NON-MATCHING, 21 of 291 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7ac2d8/2009db4.c \
+ *     asm/overlays/rom_7ac2d8/ovl_1db4_a_a.s --func OvlFunc_924_2009db4
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * [asm/overlays/rom_7ac2d8/ovl_1db4_a.s, FIRST of two functions]
  *
  * PARK.  301 lines against 301, 291 encodings against 291, 21 differing --

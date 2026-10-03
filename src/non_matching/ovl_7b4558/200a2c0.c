@@ -1,4 +1,19 @@
 /* OvlFunc_927_200a2c0 (0x0200a2c0) -- NON-MATCHING, 61 differing of 193 in clean C.
+ *
+ * NON-MATCHING, 184 of 198 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 198, ours 194) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 492 bytes, ours 484.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7b4558/200a2c0.c \
+ *     asm/overlays/rom_7b4558/ovl_30_c_c_c_a_a_c_c_c.s --func OvlFunc_927_200a2c0
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: STRAIGHT-LINE REPEATED-CONSTANT CSE, in one basic block across ~20 calls.
  * UNREACHABLE-WITH-EVIDENCE in clean C. Never attempted before batch 279.
  *

@@ -1,5 +1,16 @@
 /* Func_80e38b8 -- asm/rom_c9000/rom_e28f4_c_c_a.s
  *
+ * NON-MATCHING, 39 of 40 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/80e38b8.c \
+ *     asm/rom_c9000/rom_e28f4_c_c_a.s --func Func_80e38b8
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: an unreachable register COPY of the base pointer. 42 of 43,
  * one line short -- and the one missing line is `mov r4, r0`.
  *

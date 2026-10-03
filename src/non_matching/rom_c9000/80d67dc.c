@@ -1,4 +1,19 @@
 /* Func_80d67dc -- 0x080d67dc, asm/rom_c9000/rom_d6504_a_c_c_c.s
+ *
+ * NON-MATCHING, 30 of 72 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 72, ours 71) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 172 bytes, ours 168.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/80d67dc.c \
+ *     asm/rom_c9000/rom_d6504_a_c_c_c_c_a.s --func Func_80d67dc
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * (four functions; Func_80d6750 beside it is elevated).
  *
  * BLOCKER CLASS: the frame base gcc picks for a store -- `[sp]` against a

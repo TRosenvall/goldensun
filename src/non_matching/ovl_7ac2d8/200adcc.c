@@ -1,5 +1,19 @@
 /* OvlFunc_924_200adcc -- NON-MATCHING.  Blocker class: CONSTANT DERIVATION.
  *
+ * NON-MATCHING, 6 of 26 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 26, ours 25) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   SIZE ref 60 bytes, ours 56.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7ac2d8/200adcc.c \
+ *     asm/overlays/rom_7ac2d8/ovl_2dcc_a.s --func OvlFunc_924_200adcc
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * 24 lines against the ROM's 24, 5 differing, ALL of them in the setup.  The
  * loop is byte-exact, including the counter direction and the unsigned test.
  *

@@ -1,5 +1,16 @@
 /* Func_808bc44 -- asm/rom_8a000/rom_8ba38_a_a_a.s
  *
+ * NON-MATCHING, 38 of 43 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/808bc44.c \
+ *     asm/rom_8a000/rom_8ba38_a_a_a_a_c.s --func Func_808bc44
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: a TWO-REGISTER SWAP, repeated twelve times. 38 of 41, LENGTH EXACT,
  * and the instruction sequence is otherwise identical line for line.
  *

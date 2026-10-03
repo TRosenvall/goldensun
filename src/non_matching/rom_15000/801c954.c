@@ -1,4 +1,19 @@
 /* Func_801c954 (CloseMenuScreen) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 39 of 43 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 43, ours 41) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 104 bytes, ours 100.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/801c954.c \
+ *     asm/rom_15000/rom_1aeec_c_a_c_c_c.s --func Func_801c954
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: CONSTANT CSE ACROSS A CALL -- the SECOND counterexample to
  * the documented remedy, which is why this park is worth reading.
  *

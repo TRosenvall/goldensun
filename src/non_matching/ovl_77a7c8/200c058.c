@@ -1,5 +1,38 @@
 /* OvlFunc_881_200c058  [overlays/rom_77a7c8]
  *
+ * ===== BATCH 319: tools/dupfuncs.py PAIRS THIS WITH A TWIN, AND THE TWIN IS 2 CLOSER =====
+ *
+ *   this park   OvlFunc_881_200c058         111 of its reference
+ *   the twin    OvlFunc_883_200dd68         109   (ovl_780898/200dd68.c)
+ *
+ * Batch 316 established that a duplicate group is A TRANSFER OPPORTUNITY WITH
+ * WORK ATTACHED, not a shared fix: a twin measured 181 of 177 (saturated, figure
+ * withdrawn) while the solved body ported across with three renames read 5 of
+ * 179 -- the identical residue.  So the better body here is worth 2 encodings
+ * to this function, FOR THE COST OF A PORT PLUS ONE MEASUREMENT.
+ *
+ * BUT THE PORT IS NOT THREE RENAMES THIS TIME, and that was checked, not assumed:
+ * the two bodies reference DIFFERENT NUMBERS OF DATA LABELS, so there is no clean
+ * symbol mapping and dupfuncs' "duplicate" verdict is about the NORMALISED
+ * INSTRUCTION STREAM, not the data references.  Expect to map the label and pool
+ * order by hand against both references.  Do the port, then MEASURE -- a twin's
+ * figure describes a different body until you have.
+ *
+ * NON-MATCHING, 111 of 133 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 133, ours 137) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 284 bytes, ours 292.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_77a7c8/200c058.c \
+ *     asm/overlays/rom_77a7c8/ovl_30_c_c_c_c_c_c.s --func OvlFunc_881_200c058
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Source asm: goldensun/asm/overlays/rom_77a7c8/ovl_30_c_c_c_c_c_c.s
  *
  * BLOCKER: an address-walk chain and tail register roles. 27 of 129, on the

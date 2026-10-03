@@ -1,4 +1,19 @@
 /*
+ *
+ * NON-MATCHING, 57 of 61 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 61, ours 55) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 136 bytes, ours 124.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/overlays/2008e00.c \
+ *     asm/overlays/rom_7ced6c/ovl_30_c_c_a_a_a_c.s --func OvlFunc_946_2008e00
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * OvlFunc_946_2008e00 -- asm/overlays/rom_7ced6c/ovl_30_c_c_a_a_a_c.s
  *
  * BLOCKER: register pressure. 53 lines against 59 -- SIX SHORT. The ROM keeps

@@ -1,5 +1,18 @@
 /* OvlFunc_941_2008094 -- NOT MATCHING. 9 of 30, and ours is one instruction SHORT.
  *
+ * NON-MATCHING, 23 of 29 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7c5efc/2008094.c \
+ *     asm/overlays/rom_7c5efc/ovl_30_c_a_c_c_a_c_a_a.s --func OvlFunc_941_2008094
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ * ITS PREVIOUS PROSE CLAIM OF 9 DID NOT REPRODUCE -- measured 23.
+ *
  * Source asm: goldensun/asm/overlays/rom_7c5efc/ovl_30_c_a_c_c_a_c_a.s
  *
  * Blocker: gcc CHAINS THE TWO FIELD ADDRESSES and the ROM builds both from the

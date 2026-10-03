@@ -1,5 +1,18 @@
 /* OvlFunc_935_20089c0  --  0x020089c0  [asm/overlays/rom_7bf5a8/ovl_2e0_c_c_a_c_c_c_a.s]
  *
+ * NON-MATCHING, 57 of 93 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7bf5a8/20089c0.c \
+ *     asm/overlays/rom_7bf5a8/ovl_2e0_c_c_a_c_c_c_a.s --func OvlFunc_935_20089c0
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ * ITS PREVIOUS PROSE CLAIM OF 61 DID NOT REPRODUCE -- measured 57.
+ *
  * NOT MATCHING. Best 61 of 94, ours 93 lines. The .s holds this function alone
  * with no data tail, so no split is needed when it is finished.
  *

@@ -1,4 +1,18 @@
 /* Func_80a3d9c (0x080a3d9c) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 25 of 30 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 30, ours 26) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   SIZE ref 64 bytes, ours 56.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_a1000/80a3d9c.c \
+ *     asm/rom_a1000/rom_a1814_c_a_c_c_c_c_c_a_c_a_c.s --func Func_80a3d9c
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: COMBINE FOLDS A NARROWING MASK IT CAN PROVE REDUNDANT.
  *
  * 28 lines against the ROM's 32, 25 differing -- an improvement on this park's

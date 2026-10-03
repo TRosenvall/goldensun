@@ -1,4 +1,19 @@
 /* SoundMainBTM  [rom_f9000]
+ *
+ * NON-MATCHING, 11 of 12 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 12, ours 7) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 24 bytes, ours 16.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_f9000/rom_f9a18.c \
+ *     asm/rom_f9000/rom_f95e0.s --func SoundMainBTM
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Source asm: goldensun/asm/rom_f9000/rom_f95e0.s
  *
  * Parked: logic faithful, does NOT byte-match (endgame permuter seed).

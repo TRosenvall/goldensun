@@ -1,4 +1,19 @@
 /*
+ *
+ * NON-MATCHING, 30 of 43 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 43, ours 41) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 100 bytes, ours 96.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_79c738/200809c.c \
+ *     asm/overlays/rom_79c738/ovl_30_c_c_a_a_a_a.s --func OvlFunc_909_200809c
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * OvlFunc_909_200809c -- asm/overlays/rom_79c738/ovl_30_c_c_a_a_a_a.s
  *
  * BLOCKER: gcc chains four byte stores that the ROM recomputes. 39 lines

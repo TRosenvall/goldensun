@@ -1,5 +1,16 @@
 /* OvlFunc_881_200b95c -- 0x0200b95c  [asm/overlays/rom_77a7c8/ovl_30_c_c_a_c_c.s]
  *
+ * NON-MATCHING, 6 of 72 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_77a7c8/200b95c.c \
+ *     asm/overlays/rom_77a7c8/ovl_30_c_c_a_c_c_a.s --func OvlFunc_881_200b95c
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * NOT MATCHING. 74 lines against 74, SEVEN differing -- of which ONE IS A
  * PHANTOM and six are real. The .s also holds OvlFunc_881_200b9fc; no split was
  * done, since it would be wasted until the body lands.

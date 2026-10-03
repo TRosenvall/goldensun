@@ -1,5 +1,16 @@
 /* OvlFunc_956_2008ad4 -- NOT MATCHING. 9 of 36, same length.
  *
+ * NON-MATCHING, 9 of 39 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7e0928/2008ad4.c \
+ *     asm/overlays/rom_7e0928/ovl_30_c_c_a_c_a.s --func OvlFunc_956_2008ad4
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Source asm: goldensun/asm/overlays/rom_7e0928/ovl_30_c_c_a_c.s
  *
  * Blocker: register choice on two constant builds, and one of them is the

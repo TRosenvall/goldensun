@@ -1,4 +1,19 @@
 /*
+ *
+ * NON-MATCHING, 49 of 60 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 60, ours 58) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 124 bytes, ours 120.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c0/8003e58.c \
+ *     asm/rom_c0/rom_3e58_a.s --func Func_8003e58
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Func_8003e58 (FindObjTileRun) -- asm/rom_c0/rom_3e58_a.s
  *
  * BLOCKER: the ROM carries one address in TWO registers and we carry it in one.

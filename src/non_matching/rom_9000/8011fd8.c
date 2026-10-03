@@ -1,5 +1,16 @@
 /* Func_8011fd8 -- asm/rom_9000/rom_11ce0_c_a_a.s
  *
+ * NON-MATCHING, 32 of 45 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_9000/8011fd8.c \
+ *     asm/rom_9000/rom_11ce0_c_a_a.s --func Func_8011fd8
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: REGISTER ROTATION / birth order. 34 of 45, LENGTH EXACT.
  *
  * A tile lookup: two fixed-point coordinates shifted down 16 and divided by 16

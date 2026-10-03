@@ -1,4 +1,19 @@
 /* Anim_Atalanta (GS1) = Anim_Atalanta @ 0x080DC968
+ *
+ * NON-MATCHING, 1026 of 1039 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 1039, ours 1069) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 2372 bytes, ours 2420.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/rom_dc968.c \
+ *     asm/rom_c9000/rom_dbbdc_c_c_c_c_c_c_c.s --func Anim_Atalanta
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Defined in: goldensun/asm/rom_c9000/rom_dbbdc.s (cluster, lines 1644-2693)
  *
  * Ported from Salenewt GS2 re_Atalanta.c (Anim_Atalanta @ GS2 0x8153EBC),

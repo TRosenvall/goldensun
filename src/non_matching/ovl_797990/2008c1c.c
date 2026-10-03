@@ -1,4 +1,17 @@
 /* BATCH 207 -- THE BARRIER LEVER IS RULED OUT BY MEASUREMENT, not by omission.
+ *
+ * ===== BATCH 319: ITS TWIN OvlFunc_898_2009090 HAS NO PARK OF ITS OWN =====
+ * tools/dupfuncs.py pairs OvlFunc_901_2008c1c with OvlFunc_898_2009090
+ * (asm/overlays/rom_793768/ovl_314_c_c_c_a_c_a_c_c_a.s).  NEITHER IS LANDED, and
+ * NO park file in the tree carries a `--func OvlFunc_898_2009090` recipe -- this
+ * file merely MENTIONS the symbol twice, which is enough for census.py to count
+ * that function as parked.
+ *
+ * So 2009090 is in the same position `free` was in before batch 317: counted
+ * parked, never analysed, and therefore invisible to every "closest parks" scan.
+ * It is EFFECTIVELY UNATTEMPTED, and it is a byte-duplicate of this function --
+ * so whatever lands here is a transfer candidate for it, and vice versa.
+ * A PARK THAT MENTIONS A SYMBOL IS NOT A PARK FOR IT.
  * This park closes by saying "source position does not reach post-reload
  * scheduling of a copy", and it is right. Batch 206 found a lever that DOES
  * reach post-reload scheduling -- a volatile asm consuming the value, which

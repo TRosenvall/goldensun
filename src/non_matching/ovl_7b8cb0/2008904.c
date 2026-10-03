@@ -1,4 +1,15 @@
 /* OvlFunc_931_2008904 (0x02008904) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 7 of 221 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7b8cb0/2008904.c \
+ *     asm/overlays/rom_7b8cb0/ovl_30_c_c_c_c_c_c_c_c_c_c_a_c.s --func OvlFunc_931_2008904
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: stack-argument materialisation, plus an `orr` destination.
  *
  * 222 lines against 222, SEVEN differing, in two shapes.

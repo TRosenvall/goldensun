@@ -1,5 +1,17 @@
 /* Func_80c0eec -- asm/rom_b5000/rom_bffb8_c_c_a.s
  *
+ * NON-MATCHING, 66 of 79 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_b5000/80c0eec.c \
+ *     asm/rom_b5000/rom_bffb8_c_c_a.s --func Func_80c0eec
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: LOOP ROTATION / basic-block placement. 73 of 81, one line short.
  *
  * A key-repeat edit loop: four guarded adjustments to the int at base+0x828

@@ -1,5 +1,17 @@
 /* Func_80ad5b4  --  0x080ad5b4, asm/rom_a1000/rom_ad274_c_a_a_c_c.s
  *
+ * NON-MATCHING, 4 of 30 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_a1000/80ad5b4.c \
+ *     asm/rom_a1000/rom_ad274_c_a_a_c_c.s --func Func_80ad5b4
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER CLASS: literal pool ORDERING.  A new one -- this is the first
  * function in the corpus to need both a pooled SYMBOL and a pooled INTEGER
  * CONSTANT, and they come out in the opposite order from the ROM.

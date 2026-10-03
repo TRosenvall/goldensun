@@ -1,5 +1,19 @@
 /* OvlFunc_912_20081c4  [overlays/rom_7a0010]
  *
+ * NON-MATCHING, 86 of 106 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 106, ours 105) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7a0010/20081c4.c \
+ *     asm/overlays/rom_7a0010/ovl_30_c_c_c.s --func OvlFunc_912_20081c4
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Source asm: goldensun/asm/overlays/rom_7a0010/ovl_30_c_c_c.s
  *
  * BLOCKER CLASS: ldrh/ldrsh CSE -- LIKELY A CLASS, NOT A ONE-OFF. 10 of 105.

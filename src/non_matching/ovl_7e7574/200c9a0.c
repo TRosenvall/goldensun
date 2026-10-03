@@ -1,5 +1,18 @@
 /* OvlFunc_959_200c9a0  --  0x0200c9a0  [asm/overlays/rom_7e7574/ovl_9dc_c_c_a_c_a_a.s]
  *
+ * NON-MATCHING, 147 of 170 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 456 bytes, ours 452.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7e7574/200c9a0.c \
+ *     asm/overlays/rom_7e7574/ovl_9dc_c_c_a_c_a_a.s --func OvlFunc_959_200c9a0
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * NOT MATCHING. Best 165 lines against the ROM's 166. The .s holds this
  * function alone, so no split is needed when it is finished.
  *

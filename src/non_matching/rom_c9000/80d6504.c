@@ -1,4 +1,15 @@
 /* Task_SpinCamera -- NON-MATCHING.
+ *
+ * NON-MATCHING, 23 of 41 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/80d6504.c \
+ *     asm/rom_c9000/rom_d6504_a_a.s --func Task_SpinCamera
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: REGISTER CHOICE, plus one extra callee-saved register.
  * 39 lines against the ROM's 41, 28 differing, and the opening -- including
  * the part that looked hardest -- is exact.

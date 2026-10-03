@@ -1,4 +1,15 @@
 /* OvlFunc_890_2008ef8 (0x02008ef8) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 9 of 133 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_78b2ac/2008ef8.c \
+ *     asm/overlays/rom_78b2ac/ovl_30_c_c_a_c_b_a_c_a_a_c.s --func OvlFunc_890_2008ef8
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * COVERS THREE FUNCTIONS. OvlFunc_890_200901c and OvlFunc_890_2009140 in the
  * same .s are byte-identical to this one except for the state variable they
  * read (.L2de0 and .L2dec against .L2ddc) and the label names. Solving any one

@@ -1,4 +1,11 @@
 /* OvlFunc_897_200b01c -- asm/overlays/rom_791794/ovl_30_c_c_c_c_c_a.s
+ *
+ * ===== BATCH 319: THIS BODY IS THE BETTER HALF OF A DUPLICATE PAIR =====
+ * tools/dupfuncs.py pairs OvlFunc_897_200b01c with OvlFunc_896_200c49c
+ * (ovl_78ef88/200c49c.c), which sits at 337 against this body's 299.
+ * IF THIS ONE LANDS, THE PORT IS OWED ON THE TWIN -- and it is not three renames:
+ * the two bodies reference different numbers of data labels, so the label and
+ * pool order must be mapped by hand against both references, then MEASURED.
  * NON-MATCHING, 299 encodings of 360.  NOT a distance (ref 752 bytes / 360 encodings against ours 744 / 356, four short).
  * READ `--align`: 223 of 377.  All 15 relocations exact and in order.
  *

@@ -1,4 +1,19 @@
 /* CreateSpriteLayer (0x0800bbc0) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 39 of 64 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 64, ours 63) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 136 bytes, ours 132.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_9000/800bbc0.c \
+ *     asm/rom_9000/rom_b798_c_c_a_c.s --func CreateSpriteLayer
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: register allocation -- gcc keeps a pointer in r8 where the
  * ROM spills it to the frame.
  *

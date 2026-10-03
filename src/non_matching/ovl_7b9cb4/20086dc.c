@@ -1,5 +1,18 @@
 /* OvlFunc_932_20086dc  --  0x020086dc  [asm/overlays/rom_7b9cb4/ovl_30_a_c_c_a_a_a_c_c_c_c_c_c_a.s]
  *
+ * NON-MATCHING, 42 of 107 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7b9cb4/20086dc.c \
+ *     asm/overlays/rom_7b9cb4/ovl_30_a_c_c_a_a_a_c_c_c_c_c_c_a_a.s --func OvlFunc_932_20086dc
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ * ITS PREVIOUS PROSE CLAIM OF 35 DID NOT REPRODUCE -- measured 42.
+ *
  * NOT MATCHING. Best 35 of 100, LENGTH EXACT. The candidate below is that form.
  *
  * A twenty-four iteration loop that walks a field down, with one iteration

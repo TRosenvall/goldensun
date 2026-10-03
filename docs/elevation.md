@@ -32320,3 +32320,173 @@ offending lines.
 > That refusal is a good tool behaviour to preserve: a `.global` in the preamble
 > would have been **duplicated into both halves**, which assembles fine and means
 > something different.
+
+# Batch 319: the frontier audit, and the five process changes
+
+Not a function batch. The owner asked what would make the parked functions go
+faster; this section is the measured answer and what was built from it.
+
+## WHERE THE TIME WAS ACTUALLY GOING
+
+Per-landing token cost across the five briefs of batches 317 and 318:
+
+| brief | tokens | landings | per landing |
+|---|---|---|---|
+| 317-D — four targets, one mechanism moved two | 231k | 4 | **58k** |
+| 318-B — three targets sharing one wall | 249k | 3 | **83k** |
+| 317 average — mixed assignments | 242k | 2.4 | ~95k |
+| 318-A — one hard decline in the set | 324k | 2 | 162k |
+
+> **Grouping targets by MECHANISM rather than by bank or by size is worth about
+> 2× on token cost.** The two cheapest briefs each had a single wall shared across
+> their targets, so the diagnosis was paid for once and spent three or four times.
+
+## THE AUDIT: 342 VERIFIED, ZERO MISMATCHES, AND 428 NEVER MEASURED BY ANYTHING
+
+`parkcheck.py` across all 819 park files:
+
+| verdict | count |
+|---|---|
+| **OK** — figure verified against the body | **342** |
+| **MISMATCH** | **0** |
+| UNCHECKABLE — no recipe at all | **428** |
+| NOBODY — no function definition | 33 |
+| NOFIGURE — legitimate triage parks | 10 |
+| NO CLAIM / ALTVERIFY / TOOLING | 6 |
+
+That zero is the important number, and it inverts the conclusion I had been
+drawing all through pass two:
+
+> **A park with a recipe is trustworthy. A park without one is a coin flip.** All
+> 342 checkable parks agree with their own headers. Every wrong figure this
+> project has found — the nineteen of batch 317, the twelve below — was in a park
+> that had no recipe, because nothing had ever checked it. The problem was never
+> that park figures are unreliable; it was that **52% of the frontier had never
+> been measured.**
+
+## THE BACKFILL, AND THE PARK THAT WAS 74 ENCODINGS CLOSER THAN IT CLAIMED
+
+Of the 428 unverifiable parks, **306 were safely derivable** — exactly one
+function defined in the body, that symbol present in exactly one `.s`. The other
+122 are class parks defining several symbols, prose-only parks, and parks whose
+subject is named differently from anything in `asm/`.
+
+**304 recipes written and measured.** Twelve prose claims did not reproduce:
+
+| park | claimed | measured |
+|---|---|---|
+| `ovl_78ef88/200c260.c` | 78 | **4** |
+| `ovl_7bf5a8/20089c0.c` | 61 | 57 |
+| `ovl_7eaf28/20089cc.c` | 115 | 112 |
+| `ovl_7ac2d8/200a648.c` | 5 | 6 |
+| `ovl_7e636c/2008df0.c` | 12 | **63** |
+| `ovl_7ec968/2008124.c` | 104 | **143** |
+| `rom_a1000/80a3c08.c` | 20 | **45** |
+| `rom_77000/rom_79008.c` | 11 | **29** |
+| `ovl_7c5efc/2008094.c` | 9 | **23** |
+| `rom_15000/rom_21b80.c` | 12 | 22 |
+| `ovl_7aa430/2009df8.c` | 29 | 38 |
+| `ovl_7b9cb4/20086dc.c` | 35 | 42 |
+
+Nine were optimistic and three pessimistic, and the pessimistic one matters most:
+**`200c260` was parked at "78 of 85 — register-role rotation" and is 4 of 85.** It
+had been sitting near the top of the frontier for batches, invisible, because a
+prose figure said it was 74 encodings further away than it is.
+
+> **An unverified figure is not a conservative estimate — it is noise with a sign
+> you cannot predict.** The optimistic ones waste an agent's round; the
+> pessimistic ones hide the closest work in the tree.
+
+## `tools/crossfire.py` — the crossing harness, because every agent rebuilt it
+
+One-at-a-time testing is the measured top obstacle, and every brief hand-rolled a
+sweep (`sweep.py`, `sw.sh`, `gen*.py`, `idx.py` — five times in batch 317 alone).
+One of those hand-rolled harnesses imported a **drifted fork** of `objcmp.py`.
+
+`crossfire.py` takes a base `.c` and a JSON list of named edits, generates every
+subset up to `--depth`, and scores each by **importing the authority**. It screens
+the three things a hand-rolled sweep keeps getting wrong:
+
+1. **Alignment vs distance** — it prints the instruction count beside every figure
+   and flags `COUNT` when they differ, because a positional figure on a
+   different-length stream measures misalignment. This is what hid a *correct
+   flag* in a park's negatives at "71 of 199" when 71 was 201 instructions.
+2. **Memory-access counts** — rows whose `ldr/ldrb/ldrh/ldrsb/ldrsh/str/strb/strh`
+   totals differ from the reference are flagged `MEM`, because a false improvement
+   is a wrong program and at this distance from zero it is a *likely* search
+   outcome, not a rare one.
+3. **Unapplied edits** — an edit whose `old` string is missing or ambiguous is
+   reported loudly as SKIPPED, because a silently unapplied edit measures as a
+   clean inert result. That is how BSD `sed`'s missing `\t` once produced a whole
+   round of false inerts.
+
+It also marks every row that **ties the base** as a *candidate prerequisite*
+rather than a dead end, which is the whole point: two exactly-inert edits once
+closed a 10-encoding residue together.
+
+### And writing it reproduced two of this project's own bug classes
+
+Worth recording because it is the third and fourth time:
+
+- The first version swallowed the exception while profiling the reference and
+  printed `reference memory profile: None` — **a missing input silently disabling
+  the screen**, rung 6 of the figures-that-lie ladder, in the tool built to
+  enforce that ladder. It now says `MEM SCREEN DISABLED` and names the exception.
+- The first version reported a **compile failure identically to a skipped edit**.
+  A `void` return-type edit came back indistinguishable from an edit whose `old`
+  string was missing. It now separates `COMPILEFAIL` (with the compiler's message)
+  from `SKIPPED` from `NOFIGURE`.
+
+> **A tool that reports two different failures the same way is the bug this
+> project keeps paying for**, and building a tool to prevent it is not protection
+> against writing it again.
+
+## Duplicate groups: 8 pairs, and THREE are asymmetric
+
+| group | better | worse | free gain |
+|---|---|---|---|
+| 2 | `200b01c` 299 | `200c49c` 337 | **38** |
+| 4 | `2008cc0` 70 | `2008098` 78 | 8 |
+| 1 | `200dd68` 109 | `200c058` 111 | 2 |
+| 5–8 | the 923/924 family | — | already in lockstep |
+
+The 923/924 pairs are level because the port discipline has been applied to them.
+The three asymmetric ones are worth 48 encodings between them for the cost of a
+port — **but the port is not three renames, and that was checked rather than
+assumed**: the two bodies in group 2 reference **different numbers of data
+labels**, so there is no clean symbol mapping. `dupfuncs.py`'s verdict is about
+the **normalised instruction stream**, not the data references.
+
+> **A duplicate pair guarantees the instruction streams match after
+> normalisation. It guarantees nothing about the data references, and the port
+> cost scales with those.** Cross-references are now written into both halves of
+> all three pairs, so neither side rediscovers the asymmetry.
+
+And group 3 produced a second instance of batch 317's provenance finding:
+**`OvlFunc_898_2009090` has no park of its own.** No file in the tree carries a
+`--func OvlFunc_898_2009090` recipe; one park merely *mentions* the symbol twice,
+which is enough for `census.py` to count the function as parked. It is in exactly
+the position `free` was in — counted parked, never analysed, invisible to every
+"closest parks" scan. **A park that mentions a symbol is not a park for it.**
+
+## THE BRIEFING RULE I KEEP BREAKING
+
+Batch 318 had **two** of my propagated bounds refuted, one of them phrased as an
+instruction not to look (*"do not spend your budget trying to remove those
+edges"*) on a question where all three of that brief's targets then landed by
+removing them.
+
+> **Never write a bound into a brief unless I can state the mechanism that closes
+> it.** The asymmetry is the reason: a lever wrongly recorded inert costs one
+> agent one round, while a BOUND wrongly recorded closed costs every future agent
+> the whole class, silently and compounding.
+>
+> **And state a bound with its evidence attached, not as a fact about the code.**
+> "Three MEMs measured alias set 0 in `.19.flow2`" is checkable and survives being
+> wrong. "The MEMs are in alias set 0" is a claim the next reader builds on — and
+> in batch 318 the load was alias set 22.
+
+What a brief should carry instead: the park's **observations**, the verified
+figure, the levers with their preconditions, and the explicit instruction that
+**every inherited diagnosis is a hypothesis**. Across pass two the diagnosis has
+been wrong roughly forty times out of forty-two.

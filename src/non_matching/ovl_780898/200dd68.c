@@ -1,4 +1,26 @@
 /* OvlFunc_883_200dd68 (0x0200dd68) -- NON-MATCHING, ONE EXTRA INSTRUCTION (ref 133 encodings /
+ *
+ * ===== BATCH 319: THIS BODY IS THE BETTER HALF OF A DUPLICATE PAIR =====
+ * tools/dupfuncs.py pairs OvlFunc_883_200dd68 with OvlFunc_881_200c058
+ * (ovl_77a7c8/200c058.c), which sits at 111 against this body's 109.
+ * IF THIS ONE LANDS, THE PORT IS OWED ON THE TWIN -- and it is not three renames:
+ * the two bodies reference different numbers of data labels, so the label and
+ * pool order must be mapped by hand against both references, then MEASURED.
+ *
+ * NON-MATCHING, 109 of 133 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 133, ours 135) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 284 bytes, ours 288.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_780898/200dd68.c \
+ *     asm/overlays/rom_780898/ovl_30_c_c_c_c_c_c_c_c_c_b.s --func OvlFunc_883_200dd68
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * 284 bytes; ours 135 / 288). Blocker class: TWO ROUTES THAT COST EACH OTHER, priced.
  *
  * asm/overlays/rom_780898/ovl_30_c_c_c_c_c_c_c_c_c_b.s (1 function, so landing needs NO split).

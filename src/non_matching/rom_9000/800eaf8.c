@@ -1,5 +1,20 @@
 /* Func_800eaf8 -- asm/rom_9000/rom_ea54_c_c.s
  *
+ * NON-MATCHING, 35 of 77 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 77, ours 78) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 168 bytes, ours 172.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_9000/800eaf8.c \
+ *     asm/rom_9000/rom_ea54_c_c_a.s --func Func_800eaf8
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: OPERAND MODE on one stored constant. 3 of 78, LENGTH EXACT.
  *
  * A key-binding dispatcher: five masks read out of gState are tested against

@@ -1,4 +1,19 @@
 /* Func_808b090 (0x0808b090) -- NON-MATCHING, 26 differing in disagreeing regions of 100.
+ *
+ * NON-MATCHING, 84 of 96 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 96, ours 92) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 200 bytes, ours 192.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/808b090.c \
+ *     asm/rom_8a000/rom_8ace0_a_a_c_a_c_a.s --func Func_808b090
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: global_alloc PRIORITY, reached through a genuine source dilemma.
  * Never attempted before batch 276.
  *

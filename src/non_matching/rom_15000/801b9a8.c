@@ -1,5 +1,20 @@
 /* Func_801b9a8 -- asm/rom_15000/rom_1aeec_a_a_c_a_c_c.s
  *
+ * NON-MATCHING, 19 of 32 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 32, ours 31) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 68 bytes, ours 64.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/801b9a8.c \
+ *     asm/rom_15000/rom_1aeec_a_a_c_a_c_c_c_c.s --func Func_801b9a8
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * COVERS TWO FUNCTIONS:
  *   Func_801b9a8  asm/rom_15000/rom_1aeec_a_a_c_a_c_c.s
  *   Func_801b9ec  asm/rom_15000/rom_1aeec_a_a_c_a_c_c.s

@@ -1,5 +1,16 @@
 /* Anim_Attack -- NOT MATCHING. 5 of 39, same length.
  *
+ * NON-MATCHING, 5 of 39 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/rom_e3a3c.c \
+ *     asm/rom_c9000/rom_e3958_c_c_c_c_a.s --func Anim_Attack
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Source asm: goldensun/asm/rom_c9000/rom_e3958_c_c_c_c.s
  *
  * Blocker: register allocation, and nothing else. Identical instruction

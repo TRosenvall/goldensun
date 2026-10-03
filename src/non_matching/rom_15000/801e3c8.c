@@ -1,5 +1,16 @@
 /* Func_801e3c8 -- asm/rom_15000/rom_1de5c_a_c.s
  *
+ * NON-MATCHING, 29 of 38 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/801e3c8.c \
+ *     asm/rom_15000/rom_1de5c_a_c_c.s --func Func_801e3c8
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: gcc NORMALISES A DEAD-COUNTER LOOP TO COUNT DOWN. 30 of 40.
  *
  * Sets a flag at +0xea2 and clears 128 bytes at +0xe20. Both arms do the same

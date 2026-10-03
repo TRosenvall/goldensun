@@ -1,4 +1,15 @@
 /* Func_8095938 (0x08095938) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 3 of 129 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/8095938.c \
+ *     asm/rom_8a000/rom_944ec_a_c_a_a_c_a_a.s --func Func_8095938
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: scheduling -- ONE store moved two instructions late.
  *
  * 137 lines against the ROM's 136, and the extra line is a DUPLICATE LABEL

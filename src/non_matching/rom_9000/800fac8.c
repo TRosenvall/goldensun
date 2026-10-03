@@ -1,5 +1,20 @@
 /* UnpackTilemap  --  0x0800fac8, asm/rom_9000/rom_f9cc_a_c.s
  *
+ * NON-MATCHING, 44 of 44 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 44, ours 48) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 112 bytes, ours 120.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_9000/800fac8.c \
+ *     asm/rom_9000/rom_f9cc_a_c_c.s --func UnpackTilemap
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER CLASS: a symbol address CSEd across two call sites.
  * Status: 42 lines against the ROM's 38.
  *

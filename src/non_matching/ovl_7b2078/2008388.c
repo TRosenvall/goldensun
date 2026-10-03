@@ -1,4 +1,16 @@
 /* OvlFunc_926_2008388 -- NON-MATCHING.  Blocker class: CONSTANT CSE ACROSS A
+ *
+ * NON-MATCHING, 26 of 62 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7b2078/2008388.c \
+ *     asm/overlays/rom_7b2078/ovl_314_c_c_a_a_a.s --func OvlFunc_926_2008388
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * CALL -- and it is a COUNTEREXAMPLE to the documented remedy, which is the
  * reason this park is worth reading.
  *

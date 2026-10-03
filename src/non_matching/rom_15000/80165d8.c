@@ -1,4 +1,15 @@
 /* Func_80165d8 -- 0x080165d8, asm/rom_15000/rom_15e8c_a_c_c_c_a.s
+ *
+ * NON-MATCHING, 30 of 74 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/80165d8.c \
+ *     asm/rom_15000/rom_15e8c_a_c_c_c_a_a.s --func Func_80165d8
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * (two functions; tools/datacheck.py confirms no data section).
  *
  * BLOCKER CLASS: a three-way register rotation among three single-use

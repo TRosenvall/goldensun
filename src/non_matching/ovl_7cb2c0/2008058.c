@@ -1,4 +1,19 @@
 /* OvlFunc_945_2008058 -- NON-MATCHING.  Blocker class: ORDER OF A LOAD AGAINST
+ *
+ * NON-MATCHING, 34 of 41 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 41, ours 43) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 88 bytes, ours 96.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7cb2c0/2008058.c \
+ *     asm/overlays/rom_7cb2c0/ovl_30_a_a_c.s --func OvlFunc_945_2008058
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * AN ARITHMETIC CHAIN.  18 of 42, same length.
  *
  * Two arms, each drawing a random offset and stepping the actor's pos.y, with

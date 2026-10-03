@@ -1,4 +1,19 @@
 /* Func_80c1014 (0x080c1014) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 23 of 30 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 30, ours 28) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 64 bytes, ours 60.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_b5000/80c1014.c \
+ *     asm/rom_b5000/rom_bffb8_c_c_a.s --func Func_80c1014
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: REGISTER-ROLE SWAP plus one uncreatable copy.
  *
  * 31 lines against the ROM's 33. The bodies agree instruction for instruction;

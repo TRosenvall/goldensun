@@ -1,5 +1,17 @@
 /* MapActor_WaitAnim @ 0x08091c44
  *
+ * NON-MATCHING, 18 of 26 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/rom_91c44.c \
+ *     asm/rom_8a000/rom_91584_c_c_a_a_a_a_a.s --func MapActor_WaitAnim
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Source asm: goldensun/asm/rom_8a000/rom_91584_c_c_a_a_a_a.s
  *
  * NOT SPLIT. The .s still holds both of its functions and the linker script is

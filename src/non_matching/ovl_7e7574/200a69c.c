@@ -1,4 +1,16 @@
 /* OvlFunc_959_200a69c (0x0200a69c) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 29 of 48 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7e7574/200a69c.c \
+ *     asm/overlays/rom_7e7574/ovl_9dc_c_c_a_a_a_c_c.s --func OvlFunc_959_200a69c
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: duplicate-constant CSE. THIRD specimen this batch.
  *
  * A pure cutscene script -- thirteen calls, no branches, no loops. 47 lines

@@ -1,5 +1,20 @@
 /* OvlFunc_888_200b1b8 -- 0x0200b1b8  [asm/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c_c_a_c_c.s]
  *
+ * NON-MATCHING, 23 of 79 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 79, ours 76) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 184 bytes, ours 176.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7892c8/200b1b8.c \
+ *     asm/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c_c_a_c_c.s --func OvlFunc_888_200b1b8
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * NOT MATCHING, but the long-standing diagnosis was WRONG and is now corrected.
  * Best 74 lines against the ROM's 75, 17 differing, 176 bytes against 184.
  * It sat at 79 lines and 74 differing for three batches.

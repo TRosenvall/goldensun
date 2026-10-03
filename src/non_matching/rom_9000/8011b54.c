@@ -1,5 +1,16 @@
 /* Func_8011b54 -- 0x08011b54 -- asm/rom_9000/rom_11568_c_c_c_c_a_a_c.s
  *
+ * NON-MATCHING, 48 of 56 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_9000/8011b54.c \
+ *     asm/rom_9000/rom_11568_c_c_c_c_a_a_c.s --func Func_8011b54
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * SCREENED TWICE, NOT PURSUED. Best 50 of 55 at 56 lines. Filed at the depth
  * actually reached so the next attempt does not repeat it.
  *

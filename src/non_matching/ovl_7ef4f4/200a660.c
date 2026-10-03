@@ -1,5 +1,16 @@
 /* OvlFunc_965_200a660  --  asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c_c_c.s
  *
+ * NON-MATCHING, 19 of 32 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7ef4f4/200a660.c \
+ *     asm/overlays/rom_7ef4f4/ovl_30_a_c_c_c_c_c_c_c_c_c_c.s --func OvlFunc_965_200a660
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER CLASS: register birth order -- two callee-saved registers exchanged,
  * and every use of them with it.
  * Status: 30 lines against 30, 19 differing, all of them r5/r6 and r0/r1.

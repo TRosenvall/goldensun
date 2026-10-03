@@ -1,5 +1,20 @@
 /* Func_8010560 -- 0x08010560, asm/rom_9000/rom_10424_a.s
  *
+ * NON-MATCHING, 48 of 55 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 55, ours 47) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 116 bytes, ours 100.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_9000/8010560.c \
+ *     asm/rom_9000/rom_10424_a.s --func Func_8010560
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Runs a map-tile animation script: a table of 10-byte records, each an
  * unsigned short id followed by four shorts, walked until the id reads 0xffff.
  * Every record calls CopyMapTiles with the id, the first field, the caller's

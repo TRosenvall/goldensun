@@ -1,5 +1,20 @@
 /* OvlFunc_903_200843c -- 0x0200843c  (asm/overlays/rom_798dc4/ovl_314_a_c_a_c.s)
  *
+ * NON-MATCHING, 56 of 54 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 54, ours 62) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 144 bytes, ours 160.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/overlays/ovl903_200843c.c \
+ *     asm/overlays/rom_798dc4/ovl_314_a_c_a_c.s --func OvlFunc_903_200843c
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: duplicate-constant CSE into callee-saved registers.  SECOND instance
  * of the class first written up in src/non_matching/overlays/ovl942_2008144.c.
  * 58 of 51 differ (ours 59 lines) -- almost everything, from one cause.

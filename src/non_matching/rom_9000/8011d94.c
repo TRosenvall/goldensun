@@ -1,5 +1,17 @@
 /* HeightTile_5 -- 0x08011d94  (asm/rom_9000/rom_11ce0_a_c_c_a_a_a_b.s)
  *
+ * NON-MATCHING, 27 of 34 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_9000/8011d94.c \
+ *     asm/rom_9000/rom_11ce0_a_c_c_a_a_a_b.s --func HeightTile_5
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: register assignment and scheduling in the three-read prologue.
  * 29 of 36, exact length. docs/elevation.md already records this family as
  * "three-for-three on register assignment with interpolation, divisions and

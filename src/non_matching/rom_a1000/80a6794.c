@@ -1,4 +1,15 @@
 /* Func_80a6794 (0x080a6794) -- NON-MATCHING, 14 differing of 101.
+ *
+ * NON-MATCHING, 14 of 102 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_a1000/80a6794.c \
+ *     asm/rom_a1000/rom_a5534_c_c_a_c.s --func Func_80a6794
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: global_alloc PRIORITY. Never attempted before batch 276.
  *
  * asm/rom_a1000/rom_a5534_c_c_a.s (4 functions, so landing needs a split).

@@ -1,4 +1,15 @@
 /* OvlFunc_924_200d158 -- 0x0200d158, asm/overlays/rom_7ac2d8/ovl_35b8_a_a_c_c_a.s
+ *
+ * NON-MATCHING, 7 of 40 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7ac2d8/200d158.c \
+ *     asm/overlays/rom_7ac2d8/ovl_35b8_a_a_c_c_a.s --func OvlFunc_924_200d158
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * (two functions; tools/datacheck.py confirms no data section).
  *
  * BLOCKER CLASS: a two-register rotation between two address bases. SIZE EXACT

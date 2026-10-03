@@ -1,4 +1,15 @@
 /* Func_80f0254 (ClearBackgroundPage) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 4 of 39 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_f0000/80f0254.c \
+ *     asm/rom_f0000/rom_f0254_a_a.s --func Func_80f0254
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: PLACEMENT OF A POOL LOAD among cheap register setup.
  * 33 lines against the ROM's 34, 13 differing.
  *

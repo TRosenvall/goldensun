@@ -1,5 +1,21 @@
 /* Func_80a3c08 -- 0x080a3c08  [asm/rom_a1000/rom_a1814_c_a_c_c_c_c_a_c_a_a.s]
  *
+ * NON-MATCHING, 45 of 64 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 64, ours 63) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 144 bytes, ours 140.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_a1000/80a3c08.c \
+ *     asm/rom_a1000/rom_a1814_c_a_c_c_c_c_a_c_a_a.s --func Func_80a3c08
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ * ITS PREVIOUS PROSE CLAIM OF 20 DID NOT REPRODUCE -- measured 45.
+ *
  * NOT MATCHING. Best 20 of 62, and OURS IS EXACTLY 62 LINES -- no length error,
  * no missing or extra instruction, only register choice and schedule. The .s
  * holds this and Func_80a38d0; no split was done, since the split would be

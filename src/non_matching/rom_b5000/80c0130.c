@@ -1,4 +1,15 @@
 /* Func_80c0130 (0x080c0130) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 6 of 37 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_b5000/80c0130.c \
+ *     asm/rom_b5000/rom_bffb8_a_a_a_c.s --func Func_80c0130
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: scheduling -- one `add` hoisted across a volatile store.
  *
  * 32 lines against the ROM's 32, THREE differing, same instruction multiset:

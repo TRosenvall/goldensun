@@ -1,4 +1,15 @@
 /* ===================== BATCH 297a DELTA -- Field_Halt =====================
+ *
+ * NON-MATCHING, 2 of 191 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/809abb4.c \
+ *     asm/rom_8a000/rom_9a44c_c_c_c.s --func Field_Halt
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * RE-MEASURED: still 2 of 191 (ref 191 enc / 444 bytes / 30 rel, ours the same),
  * index 97: ref 2f0b `cmp r7, #0xb` against ours 2f0a `cmp r7, #0xa`, plus the
  * branch.  The park's conclusion stands.  TWO THINGS ARE NEW.

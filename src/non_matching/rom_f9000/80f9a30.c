@@ -1,4 +1,18 @@
 /* RealClearChain (0x080f9a30) -- NON-MATCHING, AND NOT BY gcc-2.96.
+ *
+ * NON-MATCHING, 17 of 16 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 16, ours 18) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   SIZE ref 32 bytes, ours 36.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_f9000/80f9a30.c \
+ *     asm/rom_f9000/rom_f95e0.s --func RealClearChain
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: the TU was not built by gcc-2.96. This park exists to record
  * the test, not the function.
  *

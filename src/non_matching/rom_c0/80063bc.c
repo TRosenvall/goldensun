@@ -1,5 +1,16 @@
 /* Func_80063bc  --  0x080063bc, asm/rom_c0/rom_5cf8_a_a_c_a.s
  *
+ * NON-MATCHING, 27 of 33 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c0/80063bc.c \
+ *     asm/rom_c0/rom_5cf8_a_a_c_a.s --func Func_80063bc
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER CLASS: register allocation (REG_ALLOC_ORDER).
  * Status: 30 lines against the ROM's 29. Every instruction matches except one
  * extra register move at entry. Semantics are settled; only the allocation is.

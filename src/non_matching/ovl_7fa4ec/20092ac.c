@@ -1,4 +1,19 @@
 /* OvlFunc_970_20092ac (0x020092ac) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 46 of 41 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 41, ours 47) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 104 bytes, ours 116.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7fa4ec/20092ac.c \
+ *     asm/overlays/rom_7fa4ec/ovl_30_c_c_c_c.s --func OvlFunc_970_20092ac
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: duplicate-constant CSE, the class pickable.py rejects on.
  *
  * 39 lines against the ROM's 34, and all five extra lines are one decision.

@@ -1,4 +1,19 @@
 /* UpdateScreenEdge_V -- 0x0800fec8, asm/rom_9000/rom_f9cc_c.s (four functions;
+ *
+ * NON-MATCHING, 73 of 66 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 66, ours 74) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 140 bytes, ours 156.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_9000/800fec8.c \
+ *     asm/rom_9000/rom_f9cc_c.s --func UpdateScreenEdge_V
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * tools/datacheck.py confirms no data section).
  *
  * BLOCKER CLASS: REGISTER PRESSURE -- the ROM spends ip and lr as scratch and

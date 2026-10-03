@@ -1,5 +1,20 @@
 /* OvlFunc_882_200c5b8  [ovl_77dd1c]  --  0x0200c5b8
  *
+ * NON-MATCHING, 36 of 31 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 31, ours 37) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 68 bytes, ours 80.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_77dd1c/200c5b8.c \
+ *     asm/overlays/rom_77dd1c/ovl_30_c_c_c_c_c_c_c_a.s --func OvlFunc_882_200c5b8
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Source asm: goldensun/asm/overlays/rom_77dd1c/ovl_30_c_c_c_c_c_c_c_a.s
  *
  * Copies two sprite-flag bits (mask 0xc) from the player's sprite onto the

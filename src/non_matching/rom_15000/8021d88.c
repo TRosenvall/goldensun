@@ -1,4 +1,18 @@
 /* Func_8021d88 (0x08021d88) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 42 of 53 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 53, ours 52) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   SIZE ref 116 bytes, ours 112.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/8021d88.c \
+ *     asm/rom_15000/rom_20198_c_c_c_c_c.s --func Func_8021d88
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: spill versus high register.
  *
  * 49 lines against 50. Four values are live across the two calls and only

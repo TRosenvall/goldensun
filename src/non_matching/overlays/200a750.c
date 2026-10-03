@@ -1,4 +1,15 @@
 /* OvlFunc_888_200a750 -- 0x0200a750,
+ *
+ * NON-MATCHING, 12 of 59 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/overlays/200a750.c \
+ *     asm/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c_c_a_c_a_a.s --func OvlFunc_888_200a750
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * asm/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c_c_a_c_a.s
  *
  * Spawns actor 0x11d at the queried actor's position raised by 0x2d0000,

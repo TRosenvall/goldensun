@@ -1,4 +1,19 @@
 /* GetVenusDjinni  --  0x08096140  (READ FROM THE LINKED ELF:
+ *
+ * NON-MATCHING, 282 of 301 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 301, ours 294) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 732 bytes, ours 716.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/8096140.c \
+ *     asm/rom_8a000/rom_944ec_a_c_a_c_c_a_c_a.s --func GetVenusDjinni
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * `arm-none-eabi-nm goldensun.elf | grep GetVenusDjinni` -> 08096140 T
  * GetVenusDjinni.  NOT inferred from the .s stem.)
  *

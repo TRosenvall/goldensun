@@ -1,4 +1,15 @@
 /* Func_80ab21c (FillTilemapRect, 0x080ab21c) -- NON-MATCHING, 2 differing of 101.
+ *
+ * NON-MATCHING, 2 of 101 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_a1000/80ab21c.c \
+ *     asm/rom_a1000/rom_aa538_c_c_a_c_c.s --func Func_80ab21c
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: sched2 PRIORITY. Never attempted before batch 276.
  *
  * asm/rom_a1000/rom_aa538_c_c_a_c_c.s (3 functions, so landing needs a split).

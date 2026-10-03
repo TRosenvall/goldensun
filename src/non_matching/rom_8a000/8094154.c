@@ -1,5 +1,16 @@
 /* Func_8094154 -- 0x08094154, asm/rom_8a000/rom_93304_a_c_c_c_c_a.s
  *
+ * NON-MATCHING, 18 of 63 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/8094154.c \
+ *     asm/rom_8a000/rom_93304_a_c_c_c_c_c.s --func Func_8094154
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Converts a field actor's world position to screen coordinates: subtract the
  * camera origin at iwram_3001e70 + 0xe4 with its low 16 bits masked off, divide
  * both axes by 0x10000, and write the pair through the caller's pointer. Actors

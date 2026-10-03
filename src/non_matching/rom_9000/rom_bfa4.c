@@ -1,5 +1,16 @@
 /* Func_800bfa4 -- 0x0800bfa4  (asm/rom_9000/rom_be70_c.s)
  *
+ * NON-MATCHING, 12 of 44 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_9000/rom_bfa4.c \
+ *     asm/rom_9000/rom_be70_c_c.s --func Func_800bfa4
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: register assignment.  12 of 41 differ, EXACT length, exact prologue,
  * exact branch structure, exact constant placement.  Everything that source can
  * express is right; the residue is which register holds which value.

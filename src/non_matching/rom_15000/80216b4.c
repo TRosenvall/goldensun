@@ -1,5 +1,16 @@
 /* Func_80216b4  --  NOT MATCHING
  *
+ * NON-MATCHING, 14 of 24 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/80216b4.c \
+ *     asm/rom_15000/rom_20198_c_c_c_a_a_c_a_a_c.s --func Func_80216b4
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Source asm: goldensun/asm/rom_15000/rom_20198_c_c_c_a_a_c_a.s
  * Best screen: 14 instructions in disagreeing regions, of 22 (streams same length).
  *

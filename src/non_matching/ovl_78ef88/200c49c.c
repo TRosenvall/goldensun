@@ -1,4 +1,22 @@
 /* OvlFunc_896_200c49c -- NON-MATCHING, 337 of 360 encodings differ.
+ *
+ * ===== BATCH 319: tools/dupfuncs.py PAIRS THIS WITH A TWIN, AND THE TWIN IS 38 CLOSER =====
+ *
+ *   this park   OvlFunc_896_200c49c         337 of its reference
+ *   the twin    OvlFunc_897_200b01c         299   (ovl_791794/200b01c.c)
+ *
+ * Batch 316 established that a duplicate group is A TRANSFER OPPORTUNITY WITH
+ * WORK ATTACHED, not a shared fix: a twin measured 181 of 177 (saturated, figure
+ * withdrawn) while the solved body ported across with three renames read 5 of
+ * 179 -- the identical residue.  So the better body here is worth 38 encodings
+ * to this function, FOR THE COST OF A PORT PLUS ONE MEASUREMENT.
+ *
+ * BUT THE PORT IS NOT THREE RENAMES THIS TIME, and that was checked, not assumed:
+ * the two bodies reference DIFFERENT NUMBERS OF DATA LABELS, so there is no clean
+ * symbol mapping and dupfuncs' "duplicate" verdict is about the NORMALISED
+ * INSTRUCTION STREAM, not the data references.  Expect to map the label and pool
+ * order by hand against both references.  Do the port, then MEASURE -- a twin's
+ * figure describes a different body until you have.
  *   [asm/overlays/rom_78ef88/ovl_314_c_c_c_c_c_c.s, 1st of 2 functions]
  *   Unattempted before batch 300e.  Draft = scratch_elev/b300e/fc49c/x1.c.
  *

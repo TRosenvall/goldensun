@@ -1,4 +1,15 @@
 /*
+ *
+ * NON-MATCHING, 9 of 57 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7d0e88/200a1ac.c \
+ *     asm/overlays/rom_7d0e88/ovl_1528_c_c_c_c_a_a.s --func OvlFunc_947_200a1ac
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * OvlFunc_947_200a1ac -- asm/overlays/rom_7d0e88/ovl_1528_c_c_c_c_a_a.s
  *
  * BLOCKER: register allocation for a rematerialised constant. 54 lines

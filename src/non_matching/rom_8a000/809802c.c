@@ -1,5 +1,16 @@
 /* Field_Move  --  0x0809802c, asm/rom_8a000/rom_97b54_a_c_a_a.s
  *
+ * NON-MATCHING, 2 of 26 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/809802c.c \
+ *     asm/rom_8a000/rom_97b54_a_c_a_a_a_c_a_c_a.s --func Field_Move
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER CLASS: scheduling -- where the prologue's `sub sp` lands.
  * Status: 25 lines against the ROM's 25, TWO transposed, everything else exact.
  *

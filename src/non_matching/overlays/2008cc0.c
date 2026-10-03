@@ -1,4 +1,11 @@
 /* OvlFunc_947_2008cc0 -- NON-MATCHING: 70 encodings of 86 differ (objcmp).
+ *
+ * ===== BATCH 319: THIS BODY IS THE BETTER HALF OF A DUPLICATE PAIR =====
+ * tools/dupfuncs.py pairs OvlFunc_947_2008cc0 with OvlFunc_916_2008098
+ * (overlays/2008098.c), which sits at 78 against this body's 70.
+ * IF THIS ONE LANDS, THE PORT IS OWED ON THE TWIN -- and it is not three renames:
+ * the two bodies reference different numbers of data labels, so the label and
+ * pool order must be mapped by hand against both references, then MEASURED.
  * 0x02008cc0, asm/overlays/rom_7d0e88/ovl_314_a_c_c_c_c_c.s (1 of 2 functions).
  *
  * Verify with:

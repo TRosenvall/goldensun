@@ -1,4 +1,15 @@
 /* Func_80936a0 (0x080936a0) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 16 of 48 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/80936a0.c \
+ *     asm/rom_8a000/rom_93304_a_c_a_a_a_c.s --func Func_80936a0
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: REGISTER ROTATION in an offset/address chain.
  *
  * 43 lines against the ROM's 43, SIXTEEN differing, and the first fourteen

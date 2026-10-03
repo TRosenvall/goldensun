@@ -1,4 +1,16 @@
 /* Func_801d014 (0x0801d014) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 37 of 91 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/801d014.c \
+ *     asm/rom_15000/rom_1ca1c_c_a_c.s --func Func_801d014
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: scheduling WITHIN a statement -- which of a copy's two
  * addresses is formed first.
  *

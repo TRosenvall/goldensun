@@ -1,4 +1,16 @@
 /* Func_80a9a5c -- 0x080a9a5c, asm/rom_a1000/rom_a8604_c_c_a_a_a.s (2 functions,
+ *
+ * NON-MATCHING, 1 of 59 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_a1000/80a9a5c.c \
+ *     asm/rom_a1000/rom_a8604_c_c_a_a_a.s --func Func_80a9a5c
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * no data section).
  *
  * ==================== SOLVED IN BATCH 272, HELD ON A BUILD-INPUT DECISION ====================

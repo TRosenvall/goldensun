@@ -1,5 +1,20 @@
 /* Func_801edec  @ 0x0801edec  [rom_15000]
  *
+ * NON-MATCHING, 48 of 52 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 52, ours 41) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 124 bytes, ours 100.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/801edec.c \
+ *     asm/rom_15000/rom_1de5c_c_c_c_c_a_a_a_a.s --func Func_801edec
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Source asm: goldensun/asm/rom_15000/rom_1de5c_c_c_c_c_a_a_a_a.s
  *
  * BLOCKER: TWO instructions, an ordering swap inside the DMA staging sequence.

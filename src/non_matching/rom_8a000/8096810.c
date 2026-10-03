@@ -1,4 +1,15 @@
 /* FieldMove_NoTarget -- NON-MATCHING.
+ *
+ * NON-MATCHING, 7 of 122 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/8096810.c \
+ *     asm/rom_8a000/rom_944ec_a_c_c_a_a_a_a_a.s --func FieldMove_NoTarget
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: REGISTER-ALLOCATION PRIORITY, and it is QUANTIFIED rather than
  * guessed -- the two requirements are provably mutually exclusive.
  *

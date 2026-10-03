@@ -1,5 +1,17 @@
 /* AnimEnd  [rom_c9000]  --  asm/rom_c9000/rom_cd508_a_c.s
  *
+ * NON-MATCHING, 14 of 142 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/AnimEnd.c \
+ *     asm/rom_c9000/rom_cd508_a_c_c.s --func AnimEnd
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: a queue-push inline, four residues. 48 of 126. The prologue
  * through the first queue push matches instruction for instruction.
  *

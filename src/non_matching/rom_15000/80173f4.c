@@ -1,5 +1,16 @@
 /* Func_80173f4 -- asm/rom_15000/rom_15e8c_c_a_c_a_a_b.s
  *
+ * NON-MATCHING, 18 of 46 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/80173f4.c \
+ *     asm/rom_15000/rom_15e8c_c_a_c_a_a_b.s --func Func_80173f4
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: gcc HOISTS the pooled address offsets. 18 of 37, LENGTH EXACT.
  *
  * A task setup: upload sprite graphics, write six halfwords into the module

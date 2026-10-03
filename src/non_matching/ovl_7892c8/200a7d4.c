@@ -1,4 +1,19 @@
 /* OvlFunc_888_200a7d4  --  0x0200a7d4   PARKED
+ *
+ * NON-MATCHING, 134 of 130 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 130, ours 136) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 312 bytes, ours 328.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7892c8/200a7d4.c \
+ *     asm/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c_c_a_c_a_a.s --func OvlFunc_888_200a7d4
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  *   [asm/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c_c_a_c_a.s, 3rd of 5]
  *
  * BLOCKER CLASS (NEW): gcc-2.96 CANNOT EMIT TWO IDENTICAL `add rN, sp, #K`

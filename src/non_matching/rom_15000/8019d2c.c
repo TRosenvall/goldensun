@@ -1,4 +1,15 @@
 /* GetPortrait -- 0x08019d2c, asm/rom_15000/rom_19d2c_a.s
+ *
+ * NON-MATCHING, 51 of 60 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/8019d2c.c \
+ *     asm/rom_15000/rom_19d2c_a_a.s --func GetPortrait
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * (tools/datacheck.py confirms no data section).
  *
  * BLOCKER CLASS: strength reduction of a table index. SIZE EXACT ON THE FIRST

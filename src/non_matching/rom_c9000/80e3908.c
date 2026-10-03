@@ -1,5 +1,19 @@
 /* Func_80e3908  --  0x080e3908, asm/rom_c9000/rom_e28f4_c_c_a.s
  *
+ * NON-MATCHING, 29 of 30 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 30, ours 28) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   SIZE ref 60 bytes, ours 56.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/80e3908.c \
+ *     asm/rom_c9000/rom_e28f4_c_c_a.s --func Func_80e3908
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER CLASS: an elided register copy -- gcc is one instruction AHEAD.
  * Status: 30 lines against the ROM's 31, every instruction otherwise in order.
  *

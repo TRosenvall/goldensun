@@ -1,4 +1,19 @@
 /* PrepareSaveHeader (0x0801f818) -- NON-MATCHING, 69 differing of 181.
+ *
+ * NON-MATCHING, 170 of 185 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 185, ours 181) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 412 bytes, ours 404.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/801f818.c \
+ *     asm/rom_15000/rom_1de5c_c_c_c_c_a_a_c_a_c_a_c.s --func PrepareSaveHeader
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: a CSE base-canonicalisation choice, plus reload_cse_move2add.
  * Never attempted before batch 277.
  *

@@ -1,4 +1,15 @@
 /* Func_8078870 (0x08078870) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 5 of 40 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_77000/8078870.c \
+ *     asm/rom_77000/rom_78414_c_c_a_c_a_c_c.s --func Func_8078870
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: PROLOGUE INSTRUCTION SCHEDULE (see docs/elevation.md).
  *
  * 41 lines against the ROM's 41, FIVE differing, and all five are the position

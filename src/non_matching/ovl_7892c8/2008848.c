@@ -1,5 +1,20 @@
 /* OvlFunc_888_2008848 -- 0x02008848  (asm/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c_a_c_a.s)
  *
+ * NON-MATCHING, 37 of 32 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 32, ours 38) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 68 bytes, ours 80.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7892c8/2008848.c \
+ *     asm/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c_a_c_a_a.s --func OvlFunc_888_2008848
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: PRE hoisting of a repeated cheap constant. 36 of 31, six lines long.
  *
  * The function merges a two-bit field from one sprite into another, twice. The

@@ -1,5 +1,19 @@
 /* Func_80e727c  @ 0x080e727c  [rom_c9000]
  *
+ * NON-MATCHING, 38 of 48 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 48, ours 45) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   SIZE ref 100 bytes, ours 92.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/80e727c.c \
+ *     asm/rom_c9000/rom_e6638_a_c_c.s --func Func_80e727c
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Source asm: goldensun/asm/rom_c9000/rom_e6638_a_c.s
  *
  * A palette-adjust loop: over 0x3f entries from 0x5000002, unpack the three

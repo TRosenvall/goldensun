@@ -1,5 +1,20 @@
 /* Func_80b5a0c -- 0x080b5a0c  [asm/rom_b5000/rom_b5a0c_a_a_a.s]
  *
+ * NON-MATCHING, 79 of 94 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 94, ours 90) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 200 bytes, ours 192.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_b5000/80b5a0c.c \
+ *     asm/rom_b5000/rom_b5a0c_a_a_a.s --func Func_80b5a0c
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * NOT MATCHING. Best 94 lines against 97 (the body below); a `for`-loop variant
  * reaches 96 of 97 but buys the extra two lines with a redundant loop-entry
  * guard, so the do-while form below is the better base. The .s holds this

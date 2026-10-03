@@ -1,4 +1,19 @@
 /* Func_80a40ac (DiscardFirstUnlockedItem) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 36 of 47 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 47, ours 45) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 100 bytes, ours 96.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_a1000/80a40ac.c \
+ *     asm/rom_a1000/rom_a1814_c_c_a_a.s --func Func_80a40ac
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: REGISTER-ROLE SWAP. 53 lines against the ROM's 55, 38
  * differing, and the opening is now structurally identical -- only r2 and r3
  * are exchanged.

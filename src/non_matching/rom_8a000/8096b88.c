@@ -1,4 +1,15 @@
 /*
+ *
+ * NON-MATCHING, 7 of 48 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/8096b88.c \
+ *     asm/rom_8a000/rom_944ec_a_c_c_a_c.s --func Func_8096b88
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Func_8096b88  (SetEntityVisible)  --  asm/rom_8a000/rom_944ec_a_c_c_a_c.s
  *
  * BLOCKER: register-role swap in a loop preheader. 49 lines against 49 -- the

@@ -1,4 +1,15 @@
 /* Func_8095fcc (0x08095fcc) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 3 of 56 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/8095fcc.c \
+ *     asm/rom_8a000/rom_944ec_a_c_a_c_c_a_a.s --func Func_8095fcc
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: post-reload scheduling of ONE register copy.
  *
  * 54 lines against the ROM's 54, THREE differing, and the three are one

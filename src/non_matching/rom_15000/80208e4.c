@@ -1,4 +1,15 @@
 /* SystemMsgBox (0x080208e4) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 23 of 85 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/80208e4.c \
+ *     asm/rom_15000/rom_20198_a_a_c.s --func SystemMsgBox
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: SCRATCH-REGISTER SELECTION.
  *
  * 79 lines against the ROM's 79, 23 differing, and as with

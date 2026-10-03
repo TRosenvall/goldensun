@@ -1,5 +1,20 @@
 /* OvlFunc_891_2008098 -- 0x02008098  (asm/overlays/rom_78c76c/ovl_30_c_c_a_a_c.s)
  *
+ * NON-MATCHING, 25 of 79 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 79, ours 77) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 184 bytes, ours 180.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_78c76c/2008098.c \
+ *     asm/overlays/rom_78c76c/ovl_30_c_c_a_a_c_a.s --func OvlFunc_891_2008098
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: a constant REMATERIALISED by the ROM at a dominated use, where gcc
  * commons it. This is the SECOND instance of the contradiction docs/elevation.md
  * records as unresolved under "When gcc HOISTS a repeated constant, exactly:

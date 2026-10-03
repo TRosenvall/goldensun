@@ -1,4 +1,15 @@
 /*
+ *
+ * NON-MATCHING, 2 of 52 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/942e0.c \
+ *     asm/rom_8a000/rom_93304_c_a_c.s --func Func_942e0
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * ### BATCH 268 -- THE STRUCT-TYPING LEVER IS INERT HERE. Measured, so that the
  * new docs entry ("use the tree's structs, not hand-rolled offsets", which
  * closed Sprite_AddLayer's last two) does not send anyone back to this file.

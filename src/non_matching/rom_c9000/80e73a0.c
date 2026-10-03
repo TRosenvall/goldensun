@@ -1,5 +1,19 @@
 /* Func_80e73a0 -- 0x080e73a0, asm/rom_c9000/rom_e7320_c_c.s (eight functions).
  *
+ * NON-MATCHING, 45 of 50 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 50, ours 44) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   SIZE ref 100 bytes, ours 88.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/80e73a0.c \
+ *     asm/rom_c9000/rom_e7320_c_c.s --func Func_80e73a0
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER CLASS: A LOOP THE ROM DOES NOT OPTIMISE. 50 instructions against our
  * best 46, 35 differing. The function BODY is settled; only the loop's shape is
  * open.

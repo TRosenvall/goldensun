@@ -1,4 +1,19 @@
 /* OvlFunc_959_200a718 -- 0x0200a718,
+ *
+ * NON-MATCHING, 55 of 63 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 63, ours 59) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 152 bytes, ours 144.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/overlays/200a718.c \
+ *     asm/overlays/rom_7e7574/ovl_9dc_c_c_a_a_a_c_c.s --func OvlFunc_959_200a718
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * asm/overlays/rom_7e7574/ovl_9dc_c_c_a_a_a_c.s
  *
  * A cutscene beat: give slots 2, 3 and 1 the same speed and send each to its

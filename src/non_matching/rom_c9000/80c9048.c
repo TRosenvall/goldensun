@@ -1,5 +1,17 @@
 /* Func_80c9048 -- 0x080c9048 -- asm/rom_c9000/rom_c9048_a_a.s
  *
+ * NON-MATCHING, 53 of 65 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/80c9048.c \
+ *     asm/rom_c9000/rom_c9048_a_a.s --func Func_80c9048
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: the placement of ONE pooled address load. 9 of 54, LENGTH EXACT.
  *
  * Sets eight blend and window registers, then appends a three-word entry to

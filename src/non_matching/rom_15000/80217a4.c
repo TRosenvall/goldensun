@@ -1,5 +1,19 @@
 /* Func_80217a4 -- 0x080217a4  (asm/rom_15000/rom_20198_c_c_c_a_a_c_c_a.s)
  *
+ * NON-MATCHING, 28 of 74 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 74, ours 72) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   SIZE ref 164 bytes, ours 160.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/80217a4.c \
+ *     asm/rom_15000/rom_20198_c_c_c_a_a_c_c_a.s --func Func_80217a4
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: register roles across three small blocks, plus one missing branch.
  * 19 of 68, one line short. The hard part of this function -- a bitfield pack
  * into a stack pair -- reproduces EXACTLY.

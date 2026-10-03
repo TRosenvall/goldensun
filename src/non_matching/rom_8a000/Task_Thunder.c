@@ -1,5 +1,17 @@
 /* Task_Thunder -- asm/rom_8a000/rom_944ec_a_a_a_a_c_c_a_a_c_a.s (7 functions).
  *
+ * NON-MATCHING, 19 of 117 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/Task_Thunder.c \
+ *     asm/rom_8a000/rom_944ec_a_a_a_a_c_c_a_a_c_a.s --func Task_Thunder
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * NOT MATCHING: 18 differing of 117 encodings, LENGTH IDENTICAL. Candidate below.
  * INDICES 0-94 ARE EXACT; the whole residue is one pool load's position.
  *

@@ -1,4 +1,16 @@
 /*
+ *
+ * NON-MATCHING, 14 of 51 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_77000/807a2e4.c \
+ *     asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_c.s --func SetDjinni
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * SetDjinni  (AddStatusEntry) -- asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_c.s
  *
  * BLOCKER: constant hoisting. 53 lines against 54, 24 differing, first

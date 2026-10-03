@@ -1,5 +1,16 @@
 /* OvlFunc_947_2009938 -- 0x02009938  (asm/overlays/rom_7d0e88/ovl_1528_a_a_c.s)
  *
+ * NON-MATCHING, 41 of 89 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7d0e88/2009938.c \
+ *     asm/overlays/rom_7d0e88/ovl_1528_a_a_c_a_c_a.s --func OvlFunc_947_2009938
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * TWIN: OvlFunc_947_20099f0 in the same .s is the same shape, so this park
  * covers two functions.
  *

@@ -1,4 +1,15 @@
 /* Func_801a910 (AllocScreenSlot) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 27 of 43 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/801a910.c \
+ *     asm/rom_15000/rom_1a66c_c_a_a.s --func Func_801a910
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: BRANCH POLARITY -- which arm falls through and which is the
  * branch target.  31 of 49, same length.
  *

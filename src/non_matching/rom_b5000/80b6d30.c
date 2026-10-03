@@ -1,4 +1,15 @@
 /* ================= BATCH 297a DELTA -- Func_80b6d30 =================
+ *
+ * NON-MATCHING, 4 of 119 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_b5000/80b6d30.c \
+ *     asm/rom_b5000/rom_b5a0c_c_c_c_a_c.s --func Func_80b6d30
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * RE-MEASURED: still 4 of 119 (ref 119 enc / 256 bytes / 7 rel, ours the same),
  * first at index 23: ref 4654 `mov r4, sl` against ours 2400 `movs r4, #0`.
  *

@@ -1,4 +1,15 @@
 /* Func_8092b08 (SetSlotDrawPriority) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 17 of 37 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/8092b08.c \
+ *     asm/rom_8a000/rom_92950_a_c_c.s --func Func_8092b08
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: REGISTER-ROLE SWAP. 17 of 38, SAME LENGTH, and the structure
  * is right throughout -- the two guards, both sprite-byte masks, the flags
  * clear, and the shared exit all reproduce.

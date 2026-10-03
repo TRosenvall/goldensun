@@ -1,4 +1,22 @@
 /* OvlFunc_916_2008098  --  0x02008098, asm/overlays/rom_7a37f0/ovl_30_c_c_c_a_a_a.s
+ *
+ * ===== BATCH 319: tools/dupfuncs.py PAIRS THIS WITH A TWIN, AND THE TWIN IS 8 CLOSER =====
+ *
+ *   this park   OvlFunc_916_2008098          78 of its reference
+ *   the twin    OvlFunc_947_2008cc0          70   (overlays/2008cc0.c)
+ *
+ * Batch 316 established that a duplicate group is A TRANSFER OPPORTUNITY WITH
+ * WORK ATTACHED, not a shared fix: a twin measured 181 of 177 (saturated, figure
+ * withdrawn) while the solved body ported across with three renames read 5 of
+ * 179 -- the identical residue.  So the better body here is worth 8 encodings
+ * to this function, FOR THE COST OF A PORT PLUS ONE MEASUREMENT.
+ *
+ * BUT THE PORT IS NOT THREE RENAMES THIS TIME, and that was checked, not assumed:
+ * the two bodies reference DIFFERENT NUMBERS OF DATA LABELS, so there is no clean
+ * symbol mapping and dupfuncs' "duplicate" verdict is about the NORMALISED
+ * INSTRUCTION STREAM, not the data references.  Expect to map the label and pool
+ * order by hand against both references.  Do the port, then MEASURE -- a twin's
+ * figure describes a different body until you have.
  * and its byte-identical twin OvlFunc_947_2008cc0  --  0x02008cc0,
  * asm/overlays/rom_7d0e88/ovl_314_a_c_c_c_c.s
  *

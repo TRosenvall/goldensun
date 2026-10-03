@@ -1,4 +1,15 @@
 /*
+ *
+ * NON-MATCHING, 2 of 74 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7b9cb4/20082cc.c \
+ *     asm/overlays/rom_7b9cb4/ovl_30_a_c_c_a_a_a_a_a_c.s --func OvlFunc_932_20082cc
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * OvlFunc_932_20082cc -- asm/overlays/rom_7b9cb4/ovl_30_a_c_c_a_a_a_a_a_c.s
  *
  * BLOCKER: instruction scheduling. 74 lines against 74, TWO differing, and

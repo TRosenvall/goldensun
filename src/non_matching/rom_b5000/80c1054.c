@@ -1,4 +1,16 @@
 /* Func_80c1054 -- NON-MATCHING.
+ *
+ * NON-MATCHING, 17 of 22 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_b5000/80c1054.c \
+ *     asm/rom_b5000/rom_bffb8_c_c_a.s --func Func_80c1054
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: THE COUNT IS SAVED BEFORE THE TEST, plus the addressing-base
  * choice that follows from it. 23 lines against the ROM's 24, 19 differing.
  *

@@ -1,5 +1,17 @@
 /* Func_80f0614 -- 0x080f0614 -- asm/rom_f0000/rom_f0254_c.s
  *
+ * NON-MATCHING, 38 of 45 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_f0000/80f0614.c \
+ *     asm/rom_f0000/rom_f0254_c_c_a.s --func Func_80f0614
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * SCREENED ONCE, 40 of 44, one line short. Filed at the depth actually
  * reached; the structure is understood and the divergence is identified, but
  * only one spelling was tried.

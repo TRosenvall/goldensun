@@ -1,5 +1,17 @@
 /* OvlFunc_954_2008540  --  NOT MATCHING
  *
+ * NON-MATCHING, 42 of 302 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7db0c8/2008540.c \
+ *     asm/overlays/rom_7db0c8/ovl_30_c_c_a_a_c_c_c.s --func OvlFunc_954_2008540
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Source asm: goldensun/asm/overlays/rom_7db0c8/ovl_30_c_c_a_a_c_c_c.s
  * Best screen: 42 of 302, AT THE ROM'S EXACT LENGTH.  Measured 3x.
  *   Exact push mask, exact relocation order, exact pool order.

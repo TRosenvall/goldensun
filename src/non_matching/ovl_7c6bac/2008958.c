@@ -1,4 +1,16 @@
 /* OvlFunc_942_2008958 (0x02008958) -- NON-MATCHING, ours 165 of ref 163, with
+ *
+ * NON-MATCHING, 151 of 163 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7c6bac/2008958.c \
+ *     asm/overlays/rom_7c6bac/ovl_30_c_c_a_c_c_c_c_c_c.s --func OvlFunc_942_2008958
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * -fno-strict-aliasing. Blocker class: A FLAG CONFLICT -- the fix for one residue breaks another.
  *
  * asm/overlays/rom_7c6bac/ovl_30_c_c_a_c_c_c_c_c_c.s (1 function, so landing needs NO split).

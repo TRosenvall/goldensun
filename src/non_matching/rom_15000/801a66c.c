@@ -1,4 +1,19 @@
 /* Func_801a66c (0x0801a66c) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 112 of 128 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 128, ours 134) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 268 bytes, ours 288.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/801a66c.c \
+ *     asm/rom_15000/rom_1a66c_a_a_a.s --func Func_801a66c
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: allocation ORDER -- gcc assigns callee-saved registers upward
  * from r4, the original build downward from r7.
  *

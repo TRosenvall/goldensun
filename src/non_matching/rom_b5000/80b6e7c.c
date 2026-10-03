@@ -1,5 +1,20 @@
 /* GetWeaponType  --  NOT MATCHING
  *
+ * NON-MATCHING, 26 of 26 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 26, ours 22) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 56 bytes, ours 48.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_b5000/80b6e7c.c \
+ *     asm/rom_b5000/rom_b6e7c.s --func GetWeaponType
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Source asm: goldensun/asm/rom_b5000/rom_b6e7c.s
  * Best screen: 18 instructions in disagreeing regions, of 27 (rom 27, ours 23).
  *

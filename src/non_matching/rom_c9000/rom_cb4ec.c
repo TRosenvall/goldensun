@@ -1,4 +1,19 @@
 /* Anim_Unused_SabreRain (GS1) = Anim_Unused_SabreRain @ 0x080CB4EC
+ *
+ * NON-MATCHING, 311 of 347 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 347, ours 330) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 780 bytes, ours 748.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/rom_cb4ec.c \
+ *     asm/rom_c9000/rom_cb1a4.s --func Anim_Unused_SabreRain
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Defined in: goldensun/asm/rom_c9000/rom_cb1a4.s (cluster, lines 382-749)
  *
  * First-draft decompilation, re-derived against the GS1 .s. NOTE: the GS1

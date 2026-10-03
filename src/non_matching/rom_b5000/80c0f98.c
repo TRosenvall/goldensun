@@ -1,5 +1,16 @@
 /* Func_80c0f98 -- asm/rom_b5000/rom_bffb8_c_c_a.s
  *
+ * NON-MATCHING, 30 of 61 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_b5000/80c0f98.c \
+ *     asm/rom_b5000/rom_bffb8_c_c_a.s --func Func_80c0f98
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: REGISTER ROTATION inside both case bodies. 30 of 64, LENGTH EXACT.
  *
  * Sets a two-bit field (bits 2-3, mask -0xd) at offsets +5 and +0x11, either on

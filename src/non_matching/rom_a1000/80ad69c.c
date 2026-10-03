@@ -1,5 +1,17 @@
 /* Func_80ad69c  --  NOT MATCHING
  *
+ * NON-MATCHING, 17 of 25 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_a1000/80ad69c.c \
+ *     asm/rom_a1000/rom_ad274_c_c_a.s --func Func_80ad69c
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Source asm: goldensun/asm/rom_a1000/rom_ad274_c_c.s
  * Best screen: 5 instructions in disagreeing regions, of 25 (rom 25, ours 24).
  *

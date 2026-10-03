@@ -1,4 +1,15 @@
 /* Func_80979a4  --  0x080979a4
+ *
+ * NON-MATCHING, 13 of 47 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/80979a4.c \
+ *     asm/rom_8a000/rom_97384_c_c_a_a.s --func Func_80979a4
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * asm/rom_8a000/rom_97384_c_c_a_a.s, line 8 (the file's only function).
  *
  * PARKED at 13 disagreeing of 45, ours 45 lines. Structure, instruction count,

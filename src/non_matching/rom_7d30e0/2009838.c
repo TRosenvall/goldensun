@@ -1,5 +1,20 @@
 /* OvlFunc_948_2009838 -- NOT MATCHING, and this park covers THREE functions.
  *
+ * NON-MATCHING, 47 of 51 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 51, ours 55) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 136 bytes, ours 144.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_7d30e0/2009838.c \
+ *     asm/overlays/rom_7d30e0/ovl_30_c_a_c_c_a_a_c_c_c_c_c_c_c_c_c.s --func OvlFunc_948_2009838
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Source asm: goldensun/asm/overlays/rom_7d30e0/ovl_30_c_a_c_c_a_a_c_c_c_c_c_c.s
  * Best screen: 53 instructions against the ROM's 50, 52 differing.
  *

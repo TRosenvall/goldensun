@@ -1,4 +1,19 @@
 /* MapActor_WaitAnim (0x08091c44) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 18 of 26 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 26, ours 24) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 56 bytes, ours 52.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_8a000/8091c44.c \
+ *     asm/rom_8a000/rom_91584_c_c_a_a_a_a_a.s --func MapActor_WaitAnim
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: LOOP GUARD HOISTED -- ours is three lines SHORT.
  *
  * 26 lines against the ROM's 29, 19 differing.

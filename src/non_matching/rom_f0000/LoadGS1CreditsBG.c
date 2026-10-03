@@ -1,4 +1,16 @@
 /* LoadGS1CreditsBG -- asm/rom_f0000/rom_f0254_a_a.s (2 functions; the sibling Func_80f0254 is
+ *
+ * NON-MATCHING, 14 of 87 encodings  (MEASURED, batch 319 recipe backfill).
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_f0000/LoadGS1CreditsBG.c \
+ *     asm/rom_f0000/rom_f0254_a_a.s --func LoadGS1CreditsBG
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * parked at src/non_matching/rom_f0000/80f0254.c, so landing needs a two-way split).
  *
  * NOT MATCHING: 14 differing of 87 encodings, SIZE IDENTICAL -- and 13 of those are instructions,

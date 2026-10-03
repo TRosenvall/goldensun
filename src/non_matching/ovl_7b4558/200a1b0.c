@@ -1,4 +1,15 @@
 /* OvlFunc_927_200a1b0 (0x0200a1b0) -- NON-MATCHING.
+ *
+ * NON-MATCHING, 6 of 110 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7b4558/200a1b0.c \
+ *     asm/overlays/rom_7b4558/ovl_30_c_c_c_a_a_c_c_c.s --func OvlFunc_927_200a1b0
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: ARGUMENT INTERLEAVE, STRAIGHT-LINE variant (not reachable).
  *
  * 108 lines against the ROM's 108, SIX differing, and all six are the same

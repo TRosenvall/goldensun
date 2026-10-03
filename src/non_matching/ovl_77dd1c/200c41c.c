@@ -1,4 +1,19 @@
 /* OvlFunc_882_200c41c (0x0200c41c) -- NON-MATCHING (ref 144 encodings / 308 bytes; ours 142 /
+ *
+ * NON-MATCHING, 47 of 144 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 144, ours 142) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 308 bytes, ours 304.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_77dd1c/200c41c.c \
+ *     asm/overlays/rom_77dd1c/ovl_30_c_c_c_c_a_c_c_c_c_c.s --func OvlFunc_882_200c41c
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * 304). Blocker class: the 200dd68 address chain, PLUS a cached pointer field.
  *
  * asm/overlays/rom_77dd1c/ovl_30_c_c_c_c_a_c_c_c_c_c.s (1 function, so landing needs NO split).

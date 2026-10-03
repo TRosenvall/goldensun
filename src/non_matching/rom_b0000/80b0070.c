@@ -1,4 +1,15 @@
 /*
+ *
+ * NON-MATCHING, 14 of 59 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_b0000/80b0070.c \
+ *     asm/rom_b0000/rom_b0070_a_a_a.s --func Func_80b0070
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Func_80b0070  (ClassifyShopItem) -- asm/rom_b0000/rom_b0070_a_a_a.s
  *
  * BLOCKER: register choice for a materialised zero. 55 lines against 55, 14

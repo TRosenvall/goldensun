@@ -1,5 +1,16 @@
 /* Task_BlitAnim -- NOT MATCHING
  *
+ * NON-MATCHING, 3 of 104 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/cd260_a.c \
+ *     asm/rom_c9000/rom_cd260_a_a.s --func Task_BlitAnim
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * UPDATED IN BATCH 105: 29 differing to 3, by the BASIC-BLOCK LEVER.
  *
  * The constant hoist named below IS reachable. Giving the two 0x4000 uses in

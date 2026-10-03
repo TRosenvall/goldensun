@@ -1,4 +1,15 @@
 /* UpdateScreenEdge_H  --  0x0800ff54   PARKED
+ *
+ * NON-MATCHING, 48 of 82 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_9000/800ff54.c \
+ *     asm/rom_9000/rom_f9cc_c.s --func UpdateScreenEdge_H
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  *   [asm/rom_9000/rom_f9cc_c.s, 2nd of 4 + a .rodata section]
  *
  * BLOCKER CLASS: THE REGISTER-ROLE SWAP.

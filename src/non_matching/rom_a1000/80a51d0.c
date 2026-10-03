@@ -1,5 +1,20 @@
 /* Func_80a51d0 -- NOT MATCHING
  *
+ * NON-MATCHING, 43 of 53 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 53, ours 50) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 124 bytes, ours 116.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_a1000/80a51d0.c \
+ *     asm/rom_a1000/rom_a4f08_c_a.s --func Func_80a51d0
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * Source asm: goldensun/asm/rom_a1000/rom_a4f08_c.s
  * Best screen: 50 instructions against the ROM's 49, 24 differing.
  *

@@ -1,5 +1,19 @@
 /* HeightTile_B -- asm/rom_9000/rom_11ce0_a_c_c_a_c_c.s
  *
+ * NON-MATCHING, 31 of 34 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 34, ours 32) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   SIZE ref 68 bytes, ours 64.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_9000/8011ed0.c \
+ *     asm/rom_9000/rom_11ce0_a_c_c_a_c_c.s --func HeightTile_B
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: one unreachable register COPY. 34 of 37, two lines short, and the
  * whole count is the cascade from a single `mov r4, r2`.
  *

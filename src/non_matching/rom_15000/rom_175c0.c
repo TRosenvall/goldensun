@@ -1,5 +1,16 @@
 /* Func_80175c0 -- 0x080175c0  (asm/rom_15000/rom_15e8c_c_a_c_c_c.s)
  *
+ * NON-MATCHING, 20 of 44 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/rom_175c0.c \
+ *     asm/rom_15000/rom_15e8c_c_a_c_c_c.s --func Func_80175c0
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: register coalescing of two variables that both hold 0, plus an
  * outgoing-argument frame 8 bytes larger than the call needs.  18 of 43 differ.
  *

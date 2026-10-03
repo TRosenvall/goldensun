@@ -1,5 +1,16 @@
 /* Func_8011a84 -- 0x08011a84  (asm/rom_9000/rom_11568_c_c_a_c_c.s)
  *
+ * NON-MATCHING, 7 of 40 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_9000/8011a84.c \
+ *     asm/rom_9000/rom_11568_c_c_a_c_c.s --func Func_8011a84
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: prologue instruction scheduling. 7 of 36, exact length, and all
  * seven are the SAME instructions in a different order:
  *

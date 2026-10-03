@@ -1,5 +1,20 @@
 /* OvlFunc_926_2008e94 -- 0x02008e94  (asm/overlays/rom_7b2078/ovl_314_c_c_a_c_c_c_a_a_a_a.s)
  *
+ * NON-MATCHING, 88 of 106 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 106, ours 104) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   SIZE ref 236 bytes, ours 232.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7b2078/2008e94.c \
+ *     asm/overlays/rom_7b2078/ovl_314_c_c_a_c_c_c_a_a_a_a_c.s --func OvlFunc_926_2008e94
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: register roles and argument scheduling across four eight-argument
  * calls, plus an UNRESOLVED aliasing question. 65 of 101 with
  * -fno-strict-aliasing, 82 without.

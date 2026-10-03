@@ -1,5 +1,18 @@
 /* Func_8006408 -- 0x08006408 -- asm/rom_c0/rom_5cf8_a_a_c_a.s
  *
+ * NON-MATCHING, 31 of 34 encodings  (MEASURED, batch 319 recipe backfill).
+ *   COUNT DIFFERS (ref 34, ours 35) -- so this positional figure measures
+ *   MISALIGNMENT, not distance.  Read the count before the figure.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c0/8006408.c \
+ *     asm/rom_c0/rom_5cf8_a_a_c_a.s --func Func_8006408
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * BLOCKER: a saved parameter plus register rotation. 29 of 29, two lines long.
  *
  * Refuses if a state word is non-zero, otherwise sets two control bytes, clears

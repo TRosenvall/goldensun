@@ -1,5 +1,16 @@
 /* Func_807808c -- 0x0807808c, asm/rom_77000/rom_77320_a_c_c.s (3 functions).
  *
+ * NON-MATCHING, 5 of 86 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_77000/807808c.c \
+ *     asm/rom_77000/rom_77320_a_c_c.s --func Func_807808c
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
+ *
  * NOT MATCHING: 5 differing of 86 encodings, SIZE EXACT. Candidate below.
  *
  * TWO RESIDUES, and both are priced.

@@ -1,4 +1,15 @@
 /* OvlFunc_957_2008f10 -- NON-MATCHING.
+ *
+ * NON-MATCHING, 18 of 44 encodings  (MEASURED, batch 319 recipe backfill).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7e3e08/2008f10.c \
+ *     asm/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_c_c_c_c_c.s --func OvlFunc_957_2008f10
+ *
+ * This recipe was ADDED by the batch-319 backfill: the park had none, so
+ * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: REGISTER-PRESSURE RESIDUE, "dead callee-saved register"
  * shape.  See HANDOFF.md, "Register-pressure residue: a category, not a set of
  * one-offs" -- that section already states the conclusion and this park is an
