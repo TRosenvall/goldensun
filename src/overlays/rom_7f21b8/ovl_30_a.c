@@ -29,6 +29,24 @@
  *     `const`, `* 2` instead of `<< 1`, an extern, and a parameter. Twelve
  *     formulations, all contiguous. Eight more are recorded in
  *     src/non_matching/overlays/interleaved_arg_setup.c.
+ *
+ * ===== PASS 3, BATCH 320: THE REGISTER PIN IS GONE.  IT WAS REDUNDANT. =====
+ * This file carried TWO shim constructs -- a `register ... __asm__("r0")` pin AND
+ * the `__asm__ volatile ("" : : "r" (rq))` barrier -- and ONLY THE BARRIER IS
+ * LOAD-BEARING.  Measured against this file's own tracked generated `.s`, which
+ * is the regression baseline:
+ *     pin removed, barrier kept  ->  0 differing lines  (BYTE-IDENTICAL)
+ *     both removed               ->  2 differing lines  (the barrier is real)
+ * So the pin did nothing: the barrier's `"r"` constraint already forces the value
+ * into a register, and r0 is where the first argument goes anyway.  A pin that
+ * names the register a value would occupy regardless creates no reload -- the
+ * same result batch 316 measured on 14 pins added at plain call sites, all
+ * exactly inert.
+ *
+ * STILL A FAKEMATCH: the barrier remains and the row stays in fakematch.txt.
+ * What changed is that the shim count is 1, not 2, and the remaining one is the
+ * one this header already identified as the real stand-in for a register-level
+ * volatile.
  */
 extern void __MapActor_Surprise(unsigned int a, unsigned int b);
 
@@ -38,7 +56,7 @@ int OvlFunc_967_2008030(void)
 
     w = 0x81;
     {
-        register unsigned int rq __asm__("r0") = 0xe;
+        unsigned int rq = 0xe;
         __asm__ volatile ("" : : "r" (rq));
         w <<= 1;
         __MapActor_Surprise(rq, w);
