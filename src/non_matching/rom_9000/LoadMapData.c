@@ -25,7 +25,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_9000/LoadMapData.c \
- *     asm/rom_9000/rom_f9cc_a_c_c.s --func LoadMapData
+ *     asm/rom_9000/rom_f9cc_a_c_c_c.s --func LoadMapData
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/aligncmp.py \
  *     src/non_matching/rom_9000/LoadMapData.c \

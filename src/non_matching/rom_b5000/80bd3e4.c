@@ -80,7 +80,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *       goldensun-build python3 tools/objcmp.py \
  *       src/non_matching/rom_b5000/80bd3e4.c \
- *       asm/rom_b5000/rom_bbb0c_a_a_c.s --func Func_80bd3e4
+ *       asm/rom_b5000/rom_bbb0c_a_a_c_a.s --func Func_80bd3e4
  *
  * ===== BATCH 316: THIS PARK IS SOLVED; ONLY ITS SIBLING IS LEFT =====
  * Measured again under the nested recipe: as `Func_80bd3e4.0` inside

@@ -39,6 +39,40 @@ static inline void DMA3_SET(const void *src, void *dst, u32 cnt) {
     );
 }
 
+/* DMA3_SET_RW -- DMA3_SET except that it does NOT promise the count survives.
+ *
+ * Identical to DMA3_SET above apart from one thing: `_cnt` is an inline-asm
+ * OUTPUT (`"+r" (_cnt)`) rather than an input.  DMA3_SET's input-only form tells
+ * gcc the count register is unchanged across the asm, so gcc keeps reusing it
+ * and re-materialises nothing.  The ROM, at several sites, RE-ISSUES the count
+ * per transfer -- `mov r2,#0x84 / lsl r2,#24` each time -- which only happens if
+ * the compiler believes the register was clobbered.  `"+r"` withdraws the
+ * promise and that re-issue comes back.
+ *
+ * Promoted here in batch 323 on the standing instruction left by the park that
+ * first derived it (src/non_matching/rom_b5000/80c02a4.c: "promote DMA3_SET_RW
+ * to dma.h when it lands"), now that a SECOND independent function needs it --
+ * Func_80bd7a4, same bank, where it is worth 18 of 25 -> 1.  docs/elevation.md
+ * forbids landing with a file-local copy, which is why this is a prerequisite
+ * rather than a convenience.
+ *
+ * The four register pins are the house pattern for this file, not matching
+ * shims: `stmia r3!, {r0, r1, r2}` requires those exact registers, so every
+ * helper here carries them (32 in total). */
+static inline void DMA3_SET_RW(const void *src, void *dst, u32 cnt) {
+    register vu32 *_base __asm__("r3") = &REG_DMA3SAD;
+    register const void *_src  __asm__("r0") = src;
+    register void *_dst  __asm__("r1") = dst;
+    register u32 _cnt  __asm__("r2") = cnt;
+    __asm__ volatile (
+        "stmia\tr3!, {r0, r1, r2}\n\t"
+        "sub\tr3, #0xc"
+        : "+r" (_cnt)
+        : "r" (_base), "r" (_src), "r" (_dst)
+        : "memory", "r0"
+    );
+}
+
 // there must be a way to unify those, maybe they were macros instead of
 // inline functions and had some sort of common DMAN_SET
 
