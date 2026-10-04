@@ -32556,3 +32556,96 @@ landing taken now is a row added to a list nobody can yet measure.
 Alongside the candidates and `FINDINGS.md`: a `MANIFEST.json` with one entry per
 target, and for any target that needs pins to land, **both** figures — the pinned
 one and the pin-free one — so the policy above can be applied without re-measuring.
+
+# A comparison against pokefirered: they have ZERO register pins
+
+Run in batch 320 to answer whether our 2,650 pins are the price of matching GBA
+code or a property of how we do it. Full write-up in
+`reports/pokefirered-patterns.md`; the load-bearing facts:
+
+| | pokefirered | goldensun |
+|---|---|---|
+| approx functions | ~12,000 | ~3,300+ |
+| **`register ... asm("rN")` pins** | **0** | **2,650** |
+| `asm` statements | **21** | 4,601 |
+
+All 21 of their `asm` statements are genuine hardware — `swi 0x2A`,
+`.hword 0xEFFF`, `svc 2`, `mov r2, pc` for multiboot. **Not one is a matching
+aid.** So the pin technique is not necessary to match a commercial GBA game.
+
+Two structural differences explain part of the gap and neither is cheaply
+reversible: they match with **`agbcc`, the actual Nintendo compiler**, while we
+match with **gcc-2.96, a reconstruction** of Camelot's toolchain (908 of our 914
+objects; agbcc covers only the 6 stock m4a/agbflash files) — and their TUs hold
+~43 functions each as the original was built, against our mostly one.
+
+## FOUR PATTERNS FROM THEIR `[LEAK-INFORMED] fix ... fakematch` COMMITS
+
+They had fakematches too, and for some functions later obtained the original
+source and replaced the shim with what the human wrote. **Those diffs are ground
+truth, and all four share one theme.**
+
+1. **Split a compound condition — this replaced a REGISTER PIN.** `sub_8113AE8`
+   dropped `register const u16 *r0 asm("r0")` in favour of writing
+   `if (a0 == NULL) return FALSE; if (r0[1] > x) return FALSE;` as **two
+   sequential ifs** rather than one `||`. Their comment states the lever outright:
+   *"checks must be separate to match"*.
+2. **Narrow the pointer type and put `volatile` AT THE USE SITE.** `sub_812E768`
+   dropped `asm("":::"r4")` by declaring the pointer `u8 *` instead of `u16 *`,
+   taking the wide access as a **cast at the dereference** — `*(vu16 *)p` — using
+   `p--` instead of `(void *)p - 1`, and **accumulating into a local then storing
+   once** instead of storing in each arm.
+3. **One expression with a pointer difference, not hand-unrolled arithmetic.**
+   `battle_interface` replaced a transcription of gcc's own strength reduction
+   (`4*v + v` for `5*v`, with `xPos--; xPos--;`) by
+   `xPos = 5 * (3 - (objVram - (text + 2)))`, reusing a variable needed later.
+4. **Declare the extern with its real type.** `CreateShedinja` deleted two helper
+   pointers and a *"can't match it otherwise, ehh"* comment by declaring
+   `extern struct Evolution gEvolutionTable[][EVOS_PER_MON]` — with its inner
+   dimension — after which normal subscripting produces the arithmetic gcc wants.
+
+> **IN ALL FOUR CASES THE ARTIFACT APPEARED WHERE A TYPE OR DECLARATION WAS WRONG,
+> AND THE FIX WAS TO CORRECT THE TYPE — NEVER TO ADD A SHIM.** The shim was
+> compensating for address arithmetic, a width, or a short-circuit that the
+> compiler produces by itself from correctly-typed source.
+>
+> **So a pin is evidence about a DECLARATION, not only about an allocator.** That
+> is a different place to look than anything in this document so far.
+
+### `volatile` AS A CAST IS NOT `volatile` ON THE DECLARATION
+
+Worth separating out, because this document already records the wrong half of it.
+Several parks conclude that `volatile` "produces the right ordering but forces a
+stack slot — three instructions the ROM does not have", and therefore ship an
+`__asm__ volatile` barrier as a stand-in for a *register-level* volatile.
+
+**`*(volatile T *)p` is a volatile ACCESS without a volatile OBJECT, so it creates
+no stack slot.** pokefirered used exactly that to delete a clobber barrier. It has
+not been tried here, and the barrier class is large.
+
+## The opportunity, measured against our own tree
+
+Of **533 pinned files**: **272 (51%)** do raw-offset arithmetic `*(T *)(p + N)`,
+**198 (37%)** declare `extern T name[];` with no dimensions, 106 (20%) cast a
+pointer to `(u32)`/`(int)`, and 72 (14%) carry a compound `if`. Half our pinned
+files are doing address arithmetic by hand, which is pattern 4's exact signature.
+
+## And it transfers: a 14th free depin, found by accident
+
+`src/overlays/rom_77dd1c/ovl_30_c_c_c_a_a_c_b.c` carries three shims. Against its
+own tracked `.s`: **pin removed → 0 differing lines**; `rq` barrier removed → 4;
+`f` barrier removed → 8; all three → 10. So the pin is inert, the two barriers are
+real, and this file was missed by batch 320's sweep **only because that sweep used
+an arbitrary 22-line cutoff and this file is 27 lines.**
+
+> **Re-run the free-pin sweep with no line limit over all 617 fakematch rows.** A
+> cutoff chosen for convenience hid at least one result, so it hid an unknown
+> number.
+
+## What the comparison does NOT establish
+
+pokefirered has the real compiler and whole translation units; some of our pins
+may be the price of having neither, and no restyling removes those. This
+comparison shows that **many are not** — one in four small pinned files is inert
+on removal — and it names four constructs the original authors used where we
+reached for a shim. It does not show that zero is reachable here.
