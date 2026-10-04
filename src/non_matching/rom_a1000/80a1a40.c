@@ -1,9 +1,10 @@
-/* Func_80a1a40 -- 0x080a1a40, asm/rom_a1000/rom_a1814_a_c.s
+/* Func_80a1a40 -- PlaceCursor -- 0x080a1a40, asm/rom_a1000/rom_a1814_a_c.s
+ * NON-MATCHING, 8 of 52 encodings (measured batch 322).
  *
- * NON-MATCHING, 8 of 57 encodings  (MEASURED, batch 319 recipe backfill).
- *   RELOCATIONS differ, but THE SAME SYMBOLS AT A SHIFTED OFFSET -- which
- *   this project treats as a CONSEQUENCE of the length difference, not a
- *   separate blocker.  Re-classified in batch 322; the figure IS a distance.
+ * PARK, 8 of 57 encodings  (MEASURED batch 322, brief H).  PINS: 0.
+ * Instruction count matches, 57 against 57.  Relocations differ: the same four
+ * symbols, three of them 4 bytes earlier than the ROM's -- a CONSEQUENCE of the
+ * pool order below, not a second blocker.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -11,101 +12,152 @@
  *     src/non_matching/rom_a1000/80a1a40.c \
  *     asm/rom_a1000/rom_a1814_a_c.s --func Func_80a1a40
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
+ * SPLIT SHAPE: a pure text split, two ways.  `tools/datacheck.py
+ * asm/rom_a1000/rom_a1814_a_c.s` is silent (exit 0).  `tools/split_s.py
+ * asm/rom_a1000/rom_a1814_a_c.s Func_80a1a40 --dry-run`:
+ *     would write asm/rom_a1000/rom_a1814_a_c_b.s  (1 function, 69 lines)  <- this
+ *     would write asm/rom_a1000/rom_a1814_a_c_c.s  (1 function, 148 lines)
+ *     would REMOVE asm/rom_a1000/rom_a1814_a_c.s, would rewrite stage1.ld
+ * Install path on a landing: src/rom_a1000/rom_a1814_a_c_b.c.  Exports: none --
+ * .Laf294 and .Laf29d are already `.global` in
+ * asm/rom_a1000/rom_a1814_c_c_c_c.s, so the __asm__-named externs link as-is.
  *
- * Places a cursor: index two byte tables by (iwram_1e40 >> 1) & 7, add the
- * caller's x/y and the window origin scaled by 8, store the result to the
- * cursor's coordinate halfwords and to two bitfields in its attribute word.
+ * THE INSTRUCTION STREAM IS EXACT.  tryc reports OK at 49 of 49 and the function
+ * assembles to 0x80 bytes, the ROM's exact size, WITH the mid-function literal
+ * pool and the `b` that jumps over it reproduced.  THE RESIDUE IS POOL WORD
+ * ORDER AND NOTHING ELSE: 0xffff sorts first in the ROM and fifth here, which
+ * moves three pool words and five `ldr` pc-offsets.
  *
- * THE INSTRUCTION STREAM IS EXACT -- tryc reports OK at 49 of 49, and the
- * function assembles to 0x80 bytes, the ROM's exact size, WITH the mid-function
- * literal pool and the `b` that jumps over it reproduced.
+ * =============== BATCH 322: THE MECHANISM, WITH THE DUMP THAT SHOWS IT ======
  *
- * BLOCKER: POOL WORD ORDER, and nothing else. 0xffff sorts FIRST in the ROM and
- * FIFTH in ours. That moves three pool words and five `ldr` pc-offsets -- five
- * halfwords of code and twelve bytes of pool. Every other byte is identical.
+ * `push_minipool_fix` (arm.c:5380) prints every pool fix into the `-da` dump
+ * `<base>.c.26.mach`.  For this body, verbatim:
  *
- *   rom   ... e00e 0000 ffff 0000 01ff 0000 1f2c 0300 ...
- *   ours  ... e00e 0000 01ff 0000 0000 0000 0000 0000 ... ffff ...
+ *   ;; SImode fixup for i14;  addr 0,  range (0,1020): `iwram_3001f2c'   -> 1020
+ *   ;; SImode fixup for i169; addr 4,  range (0,1020): `iwram_3001e40'   -> 1024
+ *   ;; SImode fixup for i22;  addr 18, range (0,1020): `*.Laf294'        -> 1038
+ *   ;; SImode fixup for i66;  addr 36, range (0,1020): 0xffff            -> 1056
+ *   ;; HImode fixup for i71;  addr 40, range (0,64):   0x1ff             ->  104
+ *   ;; SImode fixup for i82;  addr 54, range (0,1020): 0xfffffe00        -> 1074
+ *   ;; SImode fixup for i95;  addr 66, range (0,1020): `*.Laf29d'        -> 1086
  *
- * A NEW AND PRECISELY CHARACTERISED PARK CLASS: "the pool entry needs
- * *thumb_zero_extendhisi2 mode". Minipool entries are ordered by the maximum
- * address at which they can still be reached, which is the referencing
- * instruction's address plus its pattern's pool_range. For 0xffff to sort
- * FIRST, its reference must have a NARROW range. Only two patterns are narrow
- * enough -- *thumb_movhi_insn at 64 and *thumb_zero_extendhisi2 at 60 -- and
- * 64 is provably unreachable here.
+ * Order is ascending `addr + range` (arm.c:4820), which reproduces our pool
+ * exactly: 0x1ff, 3001f2c, 3001e40, .Laf294, 0xffff, 0xfffffe00, .Laf29d.
  *
- * So the ROM's 0xffff must be `(zero_extend:SI (mem:HI <pool>))`, a
- * zero-extending HALFWORD load of a pool constant, which prints as `ldr` via
- * the LABEL_REF branch at arm.md:3050. The max_address arithmetic was computed
- * against the real ROM addresses and reproduces the ROM's pool order exactly,
- * so the inference is tight rather than a guess.
+ * THE ROM'S ORDER IS 0xffff, 0x1ff, then the five SImode entries in reference
+ * order.  That requires exactly one thing: **0xffff must be a HImode fix**
+ * (36+64 = 100 < 104).  Nothing else needs to change.  The arithmetic is
+ * forced -- 0x1ff must stay narrow (SImode would put it at 1060, after the
+ * symbols) and the symbols cannot be made wider than 1020.
  *
- * WHY NO C SPELLING REACHES IT -- READ from the compiler, not merely swept.
- * A HImode `& 0xffff` DOES NOT EXIST. `simplify_binary_operation` returns op0
- * unchanged when `INTVAL(op1) == GET_MODE_MASK(mode)`, and tree-level `fold`
- * kills `(u16)x & (u16)0xffff` before RTL is even built. Eleven spellings were
- * tried -- a named `t = vx & 0xffff`, casts at the store, u16 locals, u32
- * locals, a `:16` bitfield, `unsigned int` bitfield units, and field
- * read-backs -- and every one either folded the AND away entirely or left it at
- * SImode, where the pool entry sorts last. The mask has to survive to RTL AT
- * HALFWORD WIDTH, and C has no way to ask for that.
+ * TWO CORRECTIONS TO THE OLD HEADER'S MECHANISM.  Its conclusion stands; its
+ * identification of the pattern does not.
  *
- * WHAT WAS WON, and it is most of the function. Three levers took this from 47
- * to 0 on the instruction stream:
+ *  (a) It said "*thumb_movhi_insn at 64 ... is provably unreachable here", and
+ *      so the ROM's 0xffff "must be `(zero_extend:SI (mem:HI <pool>))`",
+ *      *thumb_zero_extendhisi2 at 60.  **movhi alternative 1 at range 64 is the
+ *      reachable one, and it is what produces our own 0x1ff** (see the dump
+ *      above: a HImode fix at range 64, from `store_bit_field` on
+ *      `unsigned short a16 : 9`).  So the park's own output already contains a
+ *      counterexample to its own bound.
+ *  (b) It said `ldrh rN, .LC` is the emitted form.  It is what gcc PRINTS, but
+ *      `ldrh rN,[pc,#imm]` is not an encodable Thumb instruction and gas
+ *      assembles the line as the WORD load.  Verified on a landed, byte-exact
+ *      file: asm/overlays/common/common1_a_b.s:27 is `ldrh r3, .L3` and
+ *      objdump of common1_a_b.o gives `4b04  ldr r3, [pc, #16]`.  So a HImode
+ *      fix is byte-compatible with the ROM's `ldr r5, .La1a9c`; only the RANGE
+ *      differs.  A HImode fix is dumped as a full `.word`.
  *
- *   - THE BITFIELD IS WHAT PLACES THE POOL. Writing the attribute merge by hand
- *     as `(attr & 0xfffffe00) | (v & 0x1ff)` lets convert_to_integer shorten
- *     the mask to 0xfe00 -- ordinary blocker-1b behaviour. An `int` local for
- *     the merge defeats the shortening and restores `.word 0xfffffe00`, but
- *     leaves both masks SImode, so the pool goes to the END of the function.
- *     Declaring the field `unsigned short a16 : 9` makes store_bit_field emit
- *     the mask at HImode -- `ldrh rN, .LC`, pool_range 64 -- which drags the
- *     minipool UP and makes gcc manufacture the `b` over it. That is the ROM's
- *     shape. This is the missing half of the existing 1b / mid-body-pool note:
- *     THE BITFIELD IS NOT ONLY THE FIX FOR NARROW-CONSTANT MATERIALISATION, IT
- *     IS THE LEVER THAT PLACES THE POOL.
+ * REACHABILITY, with the denominator printed.  Of 4,418 files under asm/ whose
+ * first line is `@ Generated by gcc 2.96`, **359** lines are `ldrh rN, .L<pool>`
+ * carrying **108 distinct** pooled values (0 x96, 511 x18, -16384 x15, 1 x15,
+ * 31 x12, 1023 x10, 255 x8, ...).  The HImode pool fix is ordinary, byte-exact
+ * output.  **65535 is not among the 108**, and the next section says why.
  *
+ * The clearest landed reading is in this bank and this struct idiom:
+ * src/rom_a1000/rom_a1814_c_a_a_c_a_c_a_a_c_c_b.c writes
+ * `v = tmp[i] & 0x1ff;` on an `unsigned short tmp[15]`, and
+ * asm/rom_a1000/rom_a1814_c_a_a_c_a_c_a_a_c_c_b.s:121 is `ldrh r3, .L55` with
+ * `.L55: .word 511`.  `convert_to_integer` shortens the promoted AND back to
+ * HImode, `expand_binop` has no `andhi3`, so OPTAB_WIDEN's `widen_operand` does
+ * `gen_lowpart (SImode, force_reg (HImode, op))` -- and THAT force_reg is the
+ * HImode constant move.  That is the general recipe for a narrow pool fix.
+ *
+ * ============== WHY 0xffff SPECIFICALLY CANNOT USE IT ==============
+ * The old header's verdict survives, for a reason now stated at both levels:
+ *
+ *   TREE: `fold` kills a BIT_AND_EXPR whose mask is all ones of the operand's
+ *   type, so a HImode `& 0xffff` never reaches RTL.  (The RTL-level twin is
+ *   `simplify_binary_operation` returning op0 when `INTVAL(op1) ==
+ *   GET_MODE_MASK(mode)`.)  Confirmed: 65535 is absent from all 108 pooled
+ *   HImode values in the corpus, while 511, 255, 1023 and 61440 are all present.
+ *
+ *   RTL: the other producer of a HImode mask is `store_fixed_bit_field`
+ *   (expmed.c:745-759), and it emits exactly ONE value mask,
+ *   `mask_rtx (mode, 0, bitsize, 0)`, and only when
+ *   `must_and = (GET_MODE_BITSIZE (GET_MODE (value)) != bitsize
+ *               && bitpos + bitsize != GET_MODE_BITSIZE (mode))`.
+ *   For a 16-bit field in a HImode unit at bitpos 0 the second conjunct is
+ *   false, so bitsize 16 never produces a mask at all.  The ROM has TWO masks
+ *   on the value (0xffff then 0x1ff), so the 0xffff is a SOURCE-level mask, not
+ *   a bitfield artefact.
+ *
+ * NEW MEASURED ATTEMPT, batch 322 (this one is not in the park's list of eleven):
+ *   a `unsigned short` VARIABLE holding the mask --
+ *       `unsigned short m; m = 0xffff; ... vx &= m; ... vy &= m;`
+ *   puts the RIGHT VALUE in the pool (`.word 65535`, which the park's own
+ *   spelling also does) but combine promotes the standalone
+ *   `(set (reg:HI m) (const_int 65535))` to SImode, so the fix is SImode at
+ *   range 1020 and the order is unchanged.  **8 of 57, exactly inert**, even
+ *   with the mask used TWICE.  In scratch_elev/b322/H/work/a1.c.
+ *   The same promotion was measured four times this batch on Func_80ad5b4
+ *   (work/e1.c, work/k6.c, work/m3.c), so it is a property of combine and not
+ *   of this function.
+ *
+ * SO THE PARK STANDS, with a sharper statement of what would close it: a HImode
+ * `and` whose constant operand is 0xffff, surviving both `fold` and combine's
+ * HI->SI promotion.  Both of the two known producers are closed, with the file
+ * and line for each.  This is now a compiler question, not a spelling search.
+ *
+ * ============ WHAT WAS WON, and it is most of the function ============
+ * Three levers took this from 47 to 0 on the instruction stream:
+ *
+ *   - THE BITFIELD IS WHAT PLACES THE POOL.  Writing the attribute merge by hand
+ *     as `(attr & 0xfffffe00) | (v & 0x1ff)` lets convert_to_integer shorten the
+ *     mask to 0xfe00.  An `int` local for the merge defeats the shortening and
+ *     restores `.word 0xfffffe00`, but leaves both masks SImode, so the pool
+ *     goes to the END of the function.  Declaring the field
+ *     `unsigned short a16 : 9` makes store_bit_field emit the mask at HImode --
+ *     range 64 -- which drags the minipool UP and makes gcc manufacture the `b`
+ *     over it.  That is the ROM's shape.
  *   - AN EAGERLY-LOADED POINTER IS FIXED BY GIVING A LATER POINTER AN EARLIER
- *     LIVE RANGE. `st` landed in r4 and coalesced with `cur`; the ROM has st in
- *     r5 and cur in r4. Assigning `cur = st->cur;` immediately after `st` --
- *     even though the ROM loads it fourteen instructions later -- makes the two
- *     conflict, forces st to r5, which makes reload pick r6 rather than r5 as
- *     the low temp for the constant 7, which creates the anti-dependence that
- *     stops sched2 hoisting `ldr r6, [r5, #0x10]`. ONE STATEMENT MOVE: 12 to 2.
- *     Statement order fixes register BIRTH order and the scheduler then
- *     restores the ROM's emission order.
- *
+ *     LIVE RANGE.  `st` landed in r4 and coalesced with `cur`; the ROM has st in
+ *     r5 and cur in r4.  Assigning `cur = st->cur;` immediately after `st` --
+ *     fourteen instructions before the ROM loads it -- makes the two conflict,
+ *     forces st to r5, makes reload pick r6 rather than r5 as the low temp for
+ *     the constant 7, and that anti-dependence stops sched2 hoisting
+ *     `ldr r6, [r5, #0x10]`.  ONE STATEMENT MOVE: 12 to 2.
  *   - Splitting `a |= vx & 0x1ff;` into `vx &= 0x1ff;` as its own statement was
- *     worth 20 to 12 -- the documented statement-splitting lever, here on a
- *     mask chain.
+ *     worth 20 to 12 -- statement splitting, here on a mask chain.
  *
  * iwram_3001e40 must be `volatile`: the ROM keeps its address in r14, reloads
  * the value, and recomputes the `>> 1 & 7`.
  *
- * The two byte tables need no asm change -- .Laf294 and .Laf29d are already
- * .global in asm/rom_a1000/rom_a1814_c_c_c_c.s, so the __asm__-named externs
- * link as they stand.
+ * TRIED AND LOST (park), so nobody repeats them: a field read-back with a
+ * hand-written merge (47); unsigned short locals, where PROMOTE_MODE gives
+ * lsl/lsr rather than an and (41); int locals with an explicit &= 0xffff (25);
+ * win and cur as named locals in six placements (20-30); the
+ * constant-as-destination spelling (20); *8 rather than << 3 (20); compound
+ * accumulation (20); u16 locals or casts on the bitfield store (29-31); and
+ * -fno-schedule-insns2, WORSE at 31 -- sched2 is helping here, not hurting.
  *
- * TRIED AND LOST, so nobody repeats them: a field read-back with a hand-written
- * merge (47); unsigned short locals, where PROMOTE_MODE gives lsl/lsr rather
- * than an and (41); int locals with an explicit &= 0xffff (25); win and cur as
- * named locals in six placements (20-30); the constant-as-destination
- * spelling (20); *8 rather than << 3 (20); compound accumulation (20); u16
- * locals or casts on the bitfield store (29-31); and -fno-schedule-insns2,
- * which is WORSE at 31 -- sched2 is helping here, not hurting.
- *
- * A NOTE FOR neighbour.py: it returned an 8-way tie on the single global
- * iwram_3001e40, all in a different directory with different conventions.
- * Applying the documented N-way-tie rule to the OTHER named global,
- * iwram_3001f2c, gave ~40 same-directory siblings, one of which already
- * declared the exact struct this function needs. SUGGESTED REFINEMENT: rank a
- * shared global by how FEW files use it, and prefer same-directory hits -- a
- * global shared with a distant overlay family is noise.
+ * A NOTE FOR neighbour.py (park): it returned an 8-way tie on iwram_3001e40,
+ * all in a different directory with different conventions.  Applying the
+ * N-way-tie rule to iwram_3001f2c instead gave ~40 same-directory siblings, one
+ * of which already declared the exact struct this function needs.  SUGGESTED
+ * REFINEMENT: rank a shared global by how FEW files use it, and prefer
+ * same-directory hits.
  */
-
 struct Win {
     unsigned char pad00[0xc];
     unsigned short fc;

@@ -1,73 +1,124 @@
-/* Func_80a8f40 -- DrawEquipPage -- NON-MATCHING: 6 encodings of 167 differ (objcmp).
- * Size and instruction count MATCH (ref 167 encodings / 17 relocations, ours 167).
+/* Func_80a8f40 -- DrawEquipPage -- 0x080a8f40, asm/rom_a1000/rom_a8604_a_a_c_c_c.s
+ * NON-MATCHING, 6 of 167 encodings (measured batch 322).
+ *
+ * PARK, 6 of 167 encodings  (MEASURED batch 322, brief H).  PINS: 0.
+ * Instruction count matches, 167 against 167; RELOCATIONS ARE IDENTICAL.
+ * The figure IS a distance.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80a8f40.c \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_a1000/80a8f40.c \
  *     asm/rom_a1000/rom_a8604_a_a_c_c_c.s --func Func_80a8f40
  *
- * FRESH TARGET (batch 290). The .s holds three functions (Func_80a8d34,
- * Func_80a8f40, Func_80a90bc -- the last is parked); datacheck.py clean, so a
- * landing is a pure text split.
+ * SPLIT SHAPE: a pure text split, three ways.  `tools/datacheck.py
+ * asm/rom_a1000/rom_a8604_a_a_c_c_c.s` is silent (exit 0 -- no data in the .s).
+ * `tools/split_s.py asm/rom_a1000/rom_a8604_a_a_c_c_c.s Func_80a8f40 --dry-run`:
+ *     would write ..._a.s  (1 function, 254 lines)
+ *     would write ..._b.s  (1 function, 171 lines)   <- this function
+ *     would write ..._c.s  (1 function, 325 lines)
+ *     would REMOVE ..._a_a_c_c_c.s, would rewrite stage1.ld
+ * Install path on a landing: src/rom_a1000/rom_a8604_a_a_c_c_c_b.c.  Exports: none.
  *
  * VERIFICATION SHIM, scratch only: the `__asm__(".equ _MSG_333, 0x333")` line
- * below. _MSG_333 is ALREADY ADMITTED in message.sym (batch 285); a landed file
- * must NOT carry the shim.
+ * below.  _MSG_333 is ALREADY ADMITTED in message.sym (batch 285); a landed file
+ * must NOT carry the shim.  It is an instrument, not a result, and it is the only
+ * device in this file.
  *
- * WHAT IS RIGHT: everything except one reload register. The four levers below
- * were transferred wholesale from Func_80a6b64 in rom_a5534_c_c_c_a_c_c.s, which
- * went EXACT in this same batch and is the same drawing routine one screen over.
- * First candidate written with all four already in place scored 6.
+ * ============ THE DIAGNOSIS, REPRODUCED IN FULL IN BATCH 322 ============
+ *
+ * The park's blocker claim is one of the few that survives intact, and I
+ * reproduced it rather than inheriting it.  Compiled with
+ * `-fno-schedule-insns2`, THE TAIL BECOMES THE ROM'S INSTRUCTION ORDER EXACTLY
+ * and the only remaining difference is one register field:
+ *
+ *   ROM        ldr r3,[sp,#4] / ldrb r0,[r3,#0xf] / mov r3,#0x30 / str r3,[sp]
+ *              / mov r1,#2 / mov r2,r8 / mov r3,#0x18 / bl _Func_801ea08
+ *   -fno-s2    ldr r1,[sp,#4] / ldrb r0,[r1,#15]  / mov r3,#48   / str r3,[sp]
+ *              / mov r1,#2 / mov r2,r8 / mov r3,#24 / bl _Func_801ea08
+ *   with s2    ldr r1,[sp,#4] / mov r3,#48 / ldrb r0,[r1,#15] / mov r2,r8
+ *              / str r3,[sp] / mov r1,#2 / mov r3,#24
+ *
+ * So the WHOLE residue is `allocate_reload_reg` (reload1.c:5003) taking r1 for
+ * the third reload of the spilled `unit` pointer where the ROM took r3, and the
+ * schedule difference is a CONSEQUENCE: with the pointer in r3 the ROM's order
+ * is forced, because `mov r3,#0x30` cannot then be hoisted above the `ldrb`.
+ * 6 = 2 register fields x their sched2 fan-out.  This is the `last_spill_reg`
+ * rotation, and every insn before that block is byte-identical, so the rotation
+ * state entering it is identical too -- there is nothing earlier to perturb
+ * without changing emitted code.
+ *
+ * ============ CROSSED SWEEP, BATCH 322 -- FLAT, AND THAT IS THE FINDING ======
+ *
+ * `tools/crossfire.py --depth 2` over six declaration edits, 7 edits total,
+ * every pair.  Reference memory profile ldr=18 ldrb=6 ldrh=2 str=6; BASE carried
+ * NO flags (no COUNT, no MEM, no RELOC).  Sixteen rows read EXACTLY 6:
+ *
+ *   `_GetUnit` -> `void *`                          6  (exactly inert)
+ *   `_Func_801ea08` -> `int` return                 6  (exactly inert)
+ *   `_UIDrawText` first arg -> `unsigned char *`    6  (exactly inert)
+ *   `_Func_801e8b0` first arg -> `unsigned char *`  6  (exactly inert)
+ *   `iwram_3001f2c` -> `unsigned char *const`       6  (exactly inert)
+ *   ... and every pair of the above                 6  (exactly inert)
+ *
+ * TRIED AND WORSE in the same sweep, with figures:
+ *   `t` as `unsigned char`                          87 of 167 at 169 insns -- COUNT,
+ *                                                   so that figure is misalignment
+ *   `af22c` as `unsigned char *` not `[]`           23, RELOC + MEM -- a WRONG
+ *                                                   PROGRAM (one extra indirection)
+ *
+ * THE DECLARATION LEVER IS A DIVIDEND HERE, NOT A FIX.  Five independent type
+ * corrections are provably free.  I have NOT folded them into the body, because
+ * `_Func_801ea08` returning `int` is a guess with no evidence behind it, and the
+ * `void` declarations below agree with three other files in this bank
+ * (80a8604.c, 80a4924.c, 80a112c.c).  Changing them would trade a measured
+ * nothing for an unevidenced claim.
+ *
+ * RETURN TYPES CHECKED AGAINST THE TREE, not against park extern lines, because
+ * a wrong return type has been found twice in this bank: none of _Func_801e7c0,
+ * _Func_801e8b0, _Func_801e9d4, _Func_801ea08, _UIDrawText has a DEFINITION in
+ * src/ -- they are all still asm -- and every park that declares them declares
+ * them `void` (_GetUnit / _GetMoveInfo return pointers, as here).  So there is
+ * no definition-level evidence to correct, and the `int`-return lever is inert
+ * here by measurement rather than by argument.
+ *
+ * ============ WHAT IS RIGHT, kept from the park ============
+ * The four levers below were transferred from Func_80a6b64 in
+ * rom_a5534_c_c_c_a_c_c.s, which went EXACT in batch 290 and is the same drawing
+ * routine one screen over.  The first candidate written with all four already in
+ * place scored 6, and nothing since has moved it.
  *
  *  1. THE LOOP IS `i = 0; if (n > i) { ofs = ...; do { ... } while (n > i); }`,
- *     NOT a `for`. The ROM emits the entry guard BEFORE the walking offset's
- *     init, which means the init sits in the LOOP PREHEADER -- after the copied
- *     exit test. A `for` puts the init ahead of the guard. Measured on the twin:
- *     19 differing as a `for`, 6 as guard + do/while.
- *  2. THE LOOP CONDITION IS SPELLED COUNT-FIRST, `n > i`. `i < n` is 83
- *     differing on the twin: the ROM's `cmp r9, r10 / bhi` puts the count in the
- *     first operand and gcc does not commute it.
+ *     NOT a `for`.  The ROM emits the entry guard BEFORE the walking offset's
+ *     init, so the init sits in the LOOP PREHEADER, after the copied exit test.
+ *     Measured on the twin: 19 differing as a `for`, 6 as guard + do/while.
+ *  2. THE LOOP CONDITION IS SPELLED COUNT-FIRST, `n > i`.  `i < n` is 83
+ *     differing on the twin: the ROM's `cmp r9, r10 / bhi` puts the count first
+ *     and gcc does not commute it.
  *  3. THE ADDRESS IS `*(unsigned short *)(ofs + (int)state)` -- OFFSET FIRST.
- *     `state + ofs` gives `ldrh rD,[state,ofs]`; the ROM has `ldrh rD,[ofs,state]`,
- *     which is a different encoding. 3 differing on the twin.
- *  4. `i` AND `n` ARE `unsigned char`. The lsl #24 / lsr #24 pair on the counter
- *     increment and on `d[5] - first` is the QImode zero-extension, and it is
- *     also what makes the two loop compares UNSIGNED (`bhi` / `bls`). `int`
- *     counters cost 4 instructions and 89 differing on the twin.
+ *     `state + ofs` gives `ldrh rD,[state,ofs]`; the ROM has `ldrh rD,[ofs,state]`.
+ *  4. `i` AND `n` ARE `unsigned char`.  The lsl #24 / lsr #24 pairs are the QImode
+ *     zero-extension, and they are also what makes the two loop compares unsigned
+ *     (`bhi` / `bls`).  `int` counters cost 4 instructions and 89 differing.
  *
- * BLOCKER -- ONE RELOAD REGISTER, and its cost is multiplied by sched2.
- * The `unit` pointer returned by _GetUnit lives in the sp+4 stack slot and is
- * reloaded three times in the tail. The ROM takes r0, r1, r3; we take r0, r1, r1.
- * With the pointer in r3 the ROM's order is FORCED, because `mov r3,#0x30`
- * cannot then be hoisted above the `ldrb`:
- *
- *     ROM   ldr r3,[sp,#4] / ldrb r0,[r3,#0xf] / mov r3,#0x30 / str r3,[sp]
- *           / mov r1,#2 / mov r2,r8 / mov r3,#0x18
- *     ours  ldr r1,[sp,#4] / mov r3,#0x30 / ldrb r0,[r1,#0xf] / mov r2,r8
- *           / str r3,[sp] / mov r1,#2 / mov r3,#0x18
- *
- * PROVED that the schedule is a CONSEQUENCE, not a second blocker: at
- * -fno-schedule-insns2 our order becomes the ROM's exactly and only the two
- * register fields differ. So the whole residue is `allocate_reload_reg`
- * (reload1.c:5003) picking r1 where the ROM picked r3 -- the `last_spill_reg`
- * rotation, with no low-register pseudo live at that point to push it along.
- * Every insn before that block is byte-identical, so the rotation state entering
- * it is identical too, which is what makes this hard: there is nothing earlier
- * to perturb.
- *
- * TRIED AND INERT (all still 6): a named local for `unit[0xf]`; a second pointer
- * local `u2 = unit`; `*(unsigned char *)(unit + 0x129)` instead of `unit[0x129]`;
- * `&af22c[0]` instead of `af22c`; a `struct Unit *` with real f0f/f129 fields;
- * an `int`-typed `unit` with casts; declaring _Func_801ea08 / _Func_801e8b0 /
- * _Func_801e7c0 / _Func_801e9d4 `int` instead of `void`.
- * TRIED AND WORSE: a shared `y = 0x30` local across the last two calls (90);
- * a local for the 0x741 message id (21); `_UIDrawText` declared `int` (9);
+ * TRIED AND INERT (park, all still 6): a named local for `unit[0xf]`; a second
+ * pointer local `u2 = unit`; `*(unsigned char *)(unit + 0x129)`; `&af22c[0]`; a
+ * `struct Unit *` with real f0f/f129 fields; an `int`-typed `unit` with casts;
+ * declaring _Func_801ea08 / _Func_801e8b0 / _Func_801e7c0 / _Func_801e9d4 `int`.
+ * TRIED AND WORSE (park): a shared `y = 0x30` local across the last two calls
+ * (90); a local for the 0x741 message id (21); `_UIDrawText` declared `int` (9);
  * hoisting `unit[0xf]` above the _UIDrawText call (21).
  *
- * THE `.Laf22c` REFERENCE NEEDS NO label.sym ENTRY. `extern unsigned char
+ * THE `.Laf22c` REFERENCE NEEDS NO label.sym ENTRY.  `extern unsigned char
  * af22c[] __asm__(".Laf22c");` makes gcc emit the relocation against the label
- * verbatim and objcmp reports the relocation table IDENTICAL. The label is
+ * verbatim and objcmp reports the relocation table IDENTICAL.  The label is
  * already `.global` at asm/rom_a1000/rom_a8604_c_c_c_c_c.s:4.
+ *
+ * NEXT STEP FOR PASS 3, and it is not a C question: shift the `last_spill_reg`
+ * rotation.  That needs either one more or one fewer reload-register ALLOCATION
+ * earlier in the function (an inherited reload does not advance the rotation),
+ * which cannot be arranged without changing emitted code -- or a register pin,
+ * which this file deliberately does not carry.
  */
 __asm__(".equ _MSG_333, 0x333");
 

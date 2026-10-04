@@ -33004,3 +33004,52 @@ A large number of flat rows on both of its parks were screened with `.17.lreg` a
 found to have **bit-identical allocator inputs** — edits that never reached the
 allocator, not inert levers. That is batch 321's rule holding on its third batch:
 **screen allocation edits by `.17.lreg`, not by the figure.**
+
+## Batch 322 brief H: the pool-order instrument this project never had
+
+`push_minipool_fix` (`arm.c:5380`) prints **every pool fix** into the plain `-da`
+dump **`<base>.c.26.mach`** — per pool word, its **MODE**, the **referencing
+insn's address**, and its **`pool_range`**. The pool is emitted in ascending
+`addr + range` order (`arm.c:4820`).
+
+> **ONE COMPILE REPLACES REVERSE-ENGINEERING POOL ORDER OUT OF THE `.s`.** Any
+> park whose residue is pool order should start here. This project has spent
+> whole rounds inferring from listings what `.26.mach` prints directly — including
+> a brief that verified pool order out of `baserom.gba` by hand.
+
+### And the HImode pool mechanism, now complete and source-backed
+
+Batch 318 found that a narrower-mode reference sorts earlier; batch 322 corrected
+the *reason* (alternative order, not the absence of an immediate alternative);
+brief H now supplies the numbers and the C that asks for it:
+
+- `*thumb_movhi_insn` alternative 1 takes `mn`, so a HImode constant is matched by
+  the **load** alternative at **`pool_range` 64**, against `movsi`'s **1020**.
+  **So a HImode pool fix sorts ahead of every SImode one.**
+- `ldrh rN,.LC` **is not an `ldrh` in the object** — gas emits the word form.
+  Verified on a landed object: `4b04  ldr r3,[pc,#16]`. The entry dumps as a full
+  `.word`, and a *signed* short truncation of `0x8000` is `-32768`, i.e.
+  **`.word 0xffff8000`**.
+- **The C that asks for it** is a `convert_to_integer` narrowing consumed by a
+  `short` store, where `widen_operand`'s `gen_lowpart (SImode, force_reg (HImode,
+  op))` *is* the HImode constant move.
+- Corpus, denominator printed: of **4,418** generated `.s`, **359**
+  `ldrh rN,.L<pool>` lines carry **108 distinct** pooled values.
+
+### A park claiming THE TOOLCHAIN DIFFERED, with both supports refuted
+
+`Func_80ad5b4`'s park concluded the toolchain must have differed, resting on two
+claims. Both are false by corpus count: "zero mixed symbol+constant pools" —
+there are **1,540 mixed runs** across 4,418 files — and "nothing in the source
+controls pool entry order", which the mechanism above directly contradicts. A
+pool-order body at the ROM's **exact 64-byte size** is preserved at
+`docs/repro-b322/`.
+
+> **"The toolchain differed" is the strongest claim a park can make and it needs
+> the strongest evidence.** Here it rested on two corpus assertions neither of
+> which had been counted.
+
+And a caution row worth keeping: on that same function **a ternary reads 4 of 30
+with the pool order correct and is a WRONG PROGRAM** — it stores twice. The
+memory-access screen is what catches this, and at four encodings from zero it
+would otherwise look like the answer.
