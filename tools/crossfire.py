@@ -131,6 +131,38 @@ def memhist(src, ref, func):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def _insn_count(src, ref):
+    """Real instruction count (NOT encodings) for a candidate.
+
+    objcmp's encoding count includes a trailing `.short 0x0000` alignment pad, so
+    two objects can agree on encodings and differ by one INSTRUCTION.  This counts
+    only lines objdump renders as instructions.
+    """
+    try:
+        cf, _ = objcmp.cflags_for(ref)
+    except Exception:
+        cf = []
+    tmp = tempfile.mkdtemp(prefix="crossfire.ic.")
+    try:
+        asm = os.path.join(tmp, "c.s")
+        gcc = os.path.join(objcmp.GCC, "xgcc")
+        r = subprocess.run([gcc, "-B" + objcmp.GCC + "/"] + cf +
+                           ["-I" + os.path.join(objcmp.ROOT, "include"), "-S", "-o", asm, src],
+                           capture_output=True, text=True, cwd=objcmp.ROOT)
+        if r.returncode != 0:
+            return None
+        obj = os.path.join(tmp, "c.o")
+        if subprocess.run(objcmp.AS + ["-o", obj, asm], capture_output=True,
+                          cwd=objcmp.ROOT).returncode != 0:
+            return None
+        d = subprocess.run(["arm-none-eabi-objdump", "-d", "--no-show-raw-insn", obj],
+                           capture_output=True, text=True).stdout
+        return len([l for l in d.splitlines()
+                    if re.match(r"\s+[0-9a-f]+:\s+\S", l) and ".short" not in l])
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def apply_edits(base_text, edits, chosen):
     t = base_text
     for i in chosen:
@@ -181,6 +213,23 @@ def main():
     except Exception as e:
         ref_mem_err = f"{type(e).__name__}: {e}"
 
+    ref_insns = None
+    try:
+        rp2 = os.path.join(work, "refi.s")
+        _of2 = objcmp.one_function(a.ref, a.func)
+        open(rp2, "w").write(_of2 if isinstance(_of2, str) else "\n".join(_of2))
+        o2 = os.path.join(work, "refi.o")
+        if subprocess.run(objcmp.AS + ["-o", o2, rp2], capture_output=True,
+                          cwd=objcmp.ROOT).returncode == 0:
+            d2 = subprocess.run(["arm-none-eabi-objdump", "-d",
+                                 "--no-show-raw-insn", o2],
+                                capture_output=True, text=True).stdout
+            ref_insns = len([l for l in d2.splitlines()
+                             if re.match(r"\s+[0-9a-f]+:\s+\S", l)
+                             and ".short" not in l])
+    except Exception:
+        pass
+
     combos = [()] + [c for n in range(1, a.depth + 1)
                      for c in itertools.combinations(range(len(edits)), n)]
     for c in combos:
@@ -194,7 +243,19 @@ def main():
         mem = memhist(vp, a.ref, a.func)
         flag = ""
         if reloc: flag += "RELOC "
-        if rc is not None and oc is not None and rc != oc: flag += "COUNT "
+        # COUNT compares ENCODING counts, and objcmp counts a trailing
+        # `.short 0x0000` alignment half-word as an encoding -- so the counts can
+        # MATCH while the INSTRUCTION counts differ by one, and this screen stays
+        # silent on exactly the misalignment it exists to catch.  Found
+        # independently by two agents in batch 323, on five functions between them
+        # (23-v-22 and 22-v-21 insns both reporting "24/24" and "22/22").
+        # So also compare instruction counts, and say which kind of mismatch it is.
+        if rc is not None and oc is not None and rc != oc:
+            flag += "COUNT "
+        elif ref_insns is not None and mem is not None:
+            oi = _insn_count(vp, a.ref)
+            if oi is not None and oi != ref_insns:
+                flag += "INSNS "
         if ref_mem and mem and any(mem[k] != ref_mem[k] for k in MEMOPS): flag += "MEM "
         rows.append((d, rc, oc, flag.strip() or "-", label, serr))
 
@@ -227,6 +288,9 @@ def main():
     print(f"\n  flags: COUNT = instruction count differs, so the figure measures MISALIGNMENT")
     print(f"         MEM   = memory-access counts differ from the reference -- A BETTER FIGURE")
     print(f"                 HERE MAY BE A WRONG PROGRAM.  Read it before believing it.")
+    print(f"         INSNS = encoding counts AGREE but INSTRUCTION counts differ, which")
+    print(f"                 objcmp's own count hides: it counts a trailing")
+    print(f"                 `.short 0x0000` alignment pad as an encoding.  Treat as COUNT.")
     print(f"         RELOC = relocations differ -- the figure is NOT a distance.")
     if a.keep:
         print(f"\n  variants kept in {work}")

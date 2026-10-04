@@ -39,6 +39,46 @@ static inline void DMA3_SET(const void *src, void *dst, u32 cnt) {
     );
 }
 
+/* DMA3_CLEAR_OFS -- DMA3_CLEAR that takes the offset as its own argument and
+ * RETURNS the destination.
+ *
+ * The point is WHERE the `base + off` add happens.  With DMA3_CLEAR the caller
+ * computes the address, so the add is evaluated with the call's arguments --
+ * before the inline body is spliced in -- and lands at a lower INSN_LUID than the
+ * body's `mov r0,sp`.  sched2's last rung is INSN_LUID, so that pair can never
+ * flip from statement order.  Taking the offset as an argument moves the add
+ * INSIDE the body and closes it.
+ *
+ * Same shape and same reason as DMA3_FILL_OFS.  Promoted in batch 323 for
+ * Func_8011a84 (7 of 40 -> 0); docs/elevation.md forbids landing with a
+ * file-local copy, which is why this is a prerequisite rather than a tidy-up.
+ *
+ * NOT a fakematch: the constraints are legal "l" inputs plus a "memory" clobber,
+ * exactly like the helpers above, and none of the 82 landed users of this file
+ * carries a fakematch row.  (The two landed files that DO define a local DMA
+ * helper and ARE fakematch rows define `DMA3_SET_R2CLOB`, whose row is bought by
+ * an ILLEGAL r2 clobber -- a different thing entirely.) */
+static inline void *DMA3_CLEAR_OFS(void *base, unsigned off, unsigned size)
+{
+    u32 value;
+    register u32 *_src __asm__("r0") = (&value);
+    void *dst = (char *)base + off;
+    *_src = 0;
+    {
+        register vu32 *_base __asm__("r3") = &REG_DMA3SAD;
+        register unsigned _dst __asm__("r1") = (unsigned)(dst);
+        register unsigned _cnt __asm__("r2") = (unsigned)(0x85000000 | (size / 4));
+        __asm__ volatile (
+            "stmia\t%0!, {%1, %2, %3}\n\t"
+            "sub\t%0, #0xc"
+            :
+            : "l" (_base), "l" (_src), "l" (_dst), "l" (_cnt)
+            : "memory"
+        );
+    }
+    return dst;
+}
+
 /* DMA3_SET_RW -- DMA3_SET except that it does NOT promise the count survives.
  *
  * Identical to DMA3_SET above apart from one thing: `_cnt` is an inline-asm

@@ -12,7 +12,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_b5000/80c1014.c \
- *     asm/rom_b5000/rom_bffb8_c_c_a.s --func Func_80c1014
+ *     asm/rom_b5000/rom_bffb8_c_c_a_a.s --func Func_80c1014
  *
  * This recipe was ADDED by the batch-319 backfill: the park had none, so
  * parkcheck.py could not report its figure and nothing had ever checked it.

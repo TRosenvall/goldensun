@@ -12,7 +12,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_15000/801b810.c \
- *     asm/rom_15000/rom_1aeec_a_a_c_a_c_c_c_c.s --func Func_801b810
+ *     asm/rom_15000/rom_1aeec_a_a_c_a_c_c_c_c_a.s --func Func_801b810
  *
  * NO SHIMS, NO PINS, NO asm.  Its .s carries NO data section -- datacheck.py
  * prints nothing and exits 0 -- so no split is needed; but the file holds four

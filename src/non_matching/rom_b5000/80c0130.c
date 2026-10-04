@@ -1,6 +1,10 @@
 /* Func_80c0130 (0x080c0130) -- NON-MATCHING.
  *
- * NON-MATCHING, 6 of 37 encodings  (MEASURED, batch 319 recipe backfill).
+ * NON-MATCHING, 6 of 37 encodings  (MEASURED, batch 323; unchanged figure,
+ * corrected diagnosis).  The BODY IS UNCHANGED from the installed park -- it
+ * is still the best of the 32 spellings now measured.  What this revision
+ * carries is the mechanism, which the park had attributed to the wrong pass,
+ * and a BOUND with its evidence attached.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -8,54 +12,124 @@
  *     src/non_matching/rom_b5000/80c0130.c \
  *     asm/rom_b5000/rom_bffb8_a_a_a_c.s --func Func_80c0130
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- * Blocker class: scheduling -- one `add` hoisted across a volatile store.
+ * PINS: 0.  `tools/shimcount.py` -- the authority for this field -- reports no
+ * pins in this candidate.  The four `register ... __asm__` declarations this
+ * body depends on live in include/dma.h, which is that header's house pattern
+ * for all 32 of its helpers (`stmia r3!, {r0, r1, r2}` needs those exact
+ * registers) and is shared with the 82 landed DMA users; they are not counted
+ * against a candidate.  Noted here only so a future pass does not mistake them
+ * for an unbooked fakematch.
  *
- * 32 lines against the ROM's 32, THREE differing, same instruction multiset:
+ * ---------------------------------------------------------------------------
+ * WHAT THE SIX PLACES ARE: four instructions and TWO POOL WORDS
  *
- *   rom   ldr r1, =0x400000c / strh r3, [r1] / ldr r3, =0x40000b0
- *         ldr r2, =0xa2600001 / add r0, #0x22 / stmia r3!, {r0, r1, r2}
- *   ours  ldr r1, =0x400000c / add r0, #0x22 / strh r3, [r1]
- *         ldr r2, =0xa2600001 / ldr r3, =0x40000b0 / stmia r3!, {r0, r1, r2}
+ *   idx  ROM                             ours
+ *    16  strh r3, [r1, #0]               adds r0, #0x22
+ *    17  ldr  r3, =0x040000b0            strh r3, [r1, #0]
+ *    18  ldr  r2, =0xa2600001            ldr  r2, =0xa2600001
+ *    19  adds r0, #0x22                  ldr  r3, =0x040000b0
+ *    ...
+ *    34  .word 0x040000b0                .word 0xa2600001
+ *    35  .word 0xa2600001                .word 0x040000b0
  *
- * gcc hoists the DMA source's `+ 0x22` above the volatile `strh` to REG_BG2CNT
- * -- legal, since a non-volatile computation may cross a volatile access -- and
- * swaps the two pool loads. The original build did neither.
+ * THE TWO POOL WORDS ARE NOT A SECOND DEFECT.  `<base>.c.26.mach` prints every
+ * pool fix (`push_minipool_fix`, arm.c:5380):
  *
- * MEASURED (rom 32 lines):
- *   baseline                                              32, 3
- *   `q = p + 0x22;` as its own statement AFTER the strh    32, 3
- *   -fno-strict-aliasing / -fno-gcse / -fno-strength-reduce
- *     / -fno-rerun-cse-after-loop                          32, 3 (all inert)
- *   -fno-schedule-insns2                                   32, 6 (worse)
+ *   ;; SImode fixup for i42; addr 34, range (0,1020): 0x400000c
+ *   ;; SImode fixup for i59; addr 40, range (0,1020): 0xa2600001
+ *   ;; SImode fixup for i56; addr 42, range (0,1020): 0x40000b0
  *
- * -fno-schedule-insns2 doubling the count is the recorded "destroying the
- * evidence" signature, which per batch 173 rules out the scheduler pass rather
- * than merely that flag -- so this is insn placement decided earlier, and no
- * spelling reaches it. Naming the address after the store was the one probe
- * with a mechanism behind it (batch 172's materialisation-point rule) and it is
- * byte-identical.
+ * Both constants are SImode, so both take *thumb_movsi_insn's `mi` load
+ * alternative at pool_range 1020, and the fixes are emitted in ascending
+ * `addr + range` order (arm.c:4820) -- i.e. in the order of the referencing
+ * `ldr`s.  Fix the insn order and the pool follows.  THERE IS NO SEPARATE POOL
+ * LEVER HERE.  (This is also why the park reported 3 and objcmp reports 6: the
+ * park screened with tryc.py, whose `=value` normalisation hides the rotation.)
  *
- * WHAT IS RIGHT, and worth reading before touching this again -- three separate
- * things gcc reproduced on its own that look like they would need levers:
+ * So the whole residue is one basic block's insn order:
+ * ROM `strh / ldr / ldr / add` against ours `add / strh / ldr / ldr`.
  *
- *   1. TWO ADJACENT GLOBALS FROM ONE POOL ENTRY, at a NEGATIVE offset. The ROM
- *      reaches iwram_3001e78 as `mov r3, r2 / sub r3, #0x88` off
- *      iwram_3001f00's pool address. `extern unsigned char iwram_3001f00[];`
- *      with `*(unsigned char **)(iwram_3001f00 - 0x88)` gives exactly that.
- *      Same rule as batch 174's `ldmia` finding -- adjacent globals the ROM
- *      reaches from one pool entry are one array -- and it works backwards too.
+ * ---------------------------------------------------------------------------
+ * THE MECHANISM: sched2's CLASS rung, not LUID and not an earlier pass
  *
- *   2. THE DMA3 BASE DERIVED FROM THE DMA0 BASE. The ROM's second transfer uses
- *      `add r3, #0x24` off &REG_DMA0SAD rather than a fresh &REG_DMA3SAD pool
- *      load. Writing DMA0_SET followed by DMA3_SET produces it -- gcc's
- *      constant CSE finds 0x40000d4 = 0x40000b0 + 0x24 by itself.
+ * From `.23.sched2` (`-da -fsched-verbose=6`), all four insns at issue carry
+ * `prio 3`, so rank_for_schedule (haifa-sched.c:4029) falls past the priority
+ * rung.  The reg-weight rung is `!reload_completed`-gated and sched2 runs after
+ * reload; the interblock rungs need INSN_BB to differ and it does not.  That
+ * leaves THE CLASS RUNG: an insn data-dependent on `last_scheduled_insn` with
+ * cost != 1 is class 1, an independent one is class 3, higher class wins.
  *
- *   3. THE SECOND DMA'S DESTINATION LIKEWISE. `add r1, #0x14` off &REG_BG2CNT
+ * At the deciding cycle `last_scheduled_insn` is insn 42, `ldr r1, =0x400000c`,
+ * and IT HAS TO BE: it carries prio 5 against the others' 3, so the priority
+ * rung puts it there for every source spelling.  The ROM's next insn is the
+ * `strh`, which is data-dependent on insn 42 FOR ITS ADDRESS REGISTER at cost
+ * 2 -- class 1 -- while the `add` and the `_cnt` load are independent of it,
+ * class 3.  arm_adjust_cost (arm.c:2416) does not rescue it: it zeroes
+ * anti/output deps and discounts a LOAD after a STORE, and this is a STORE
+ * after a LOAD, so `single_set`'s SET_SRC is not a MEM and the cost passes
+ * through unchanged.
+ *
+ * The class rung is evaluated BEFORE depend_count and BEFORE INSN_LUID.  So no
+ * amount of statement or declaration reordering can get the `strh` scheduled
+ * there, and the measured sweep below is the evidence, not the inference.
+ *
+ * ---------------------------------------------------------------------------
+ * MEASURED (ref 37 encodings, tools/sweep_variants.py -> tools/objcmp.py)
+ *
+ *   the installed body (baseline)                          6, first 16
+ *   named dest pointer `vu16 *d`, store through it          6, first 16
+ *   `*d = *s++` -- the idiom BOTH landed DMA0_SET siblings
+ *     use (src/overlays/rom_7fa4ec/ovl_30_c_c_c_a_c_c_c_c_b.c,
+ *     src/rom_8a000/rom_97384_c_a_c_b.c)                    6, first 16
+ *   `q = p + 0x22;` named BEFORE the store                  6, first 16
+ *   `q = p + 0x22;` named AFTER the store                   6, first 16
+ *   explicit `(void *)` casts on both DMA sources           6, first 16
+ *   ALL 24 PERMUTATIONS of the four pinned operand
+ *     declarations in a file-local DMA0_SET                 6, first 16  (24/24)
+ *   -fno-schedule-insns2  (flag figure, not shippable)      6, first 14
+ *
+ * THE 24-ROW SWEEP IS NOT A FLAT ROW WITH BIT-IDENTICAL INPUTS -- the edit
+ * demonstrably reached the scheduler.  Base numbers the three operand insns 56
+ * (`_base`), 57 (`add` = `_src`), 59 (`_cnt`); the `_src`-last order numbers
+ * them 56, 58 (`_cnt`), 59 (`add`), and that variant's SCHEDULE CHANGES -- it
+ * emits `ldr r1 / ldr cnt / strh / add / ldr base`.  Still 6, composed
+ * differently.  The LUID rung fires and does not reach the ROM.
+ *
+ * ---------------------------------------------------------------------------
+ * TWO CORRECTIONS TO THE PARK
+ *
+ *  1. The park reasoned that "-fno-schedule-insns2 doubling the count is the
+ *     recorded 'destroying the evidence' signature, which per batch 173 RULES
+ *     OUT THE SCHEDULER PASS rather than merely that flag -- so this is insn
+ *     placement decided earlier."  Measured at object level the flag doubles
+ *     nothing: it reads 6 of 37, first at index 14 -- the SAME figure, one
+ *     index earlier.  sched2 IS the pass.  The park reached the right
+ *     conclusion ("no spelling reaches it") from the wrong premise, and that
+ *     premise would have sent the next reader to cse/combine/loop.
+ *  2. The park's figure line said 3 differing (a tryc.py figure).  It is 6.
+ *
+ * WHAT IS RIGHT, and still worth reading before touching this again -- three
+ * things gcc reproduces unprompted that look like they would need levers:
+ *
+ *   1. TWO ADJACENT GLOBALS FROM ONE POOL ENTRY, AT A NEGATIVE OFFSET.  The
+ *      ROM reaches iwram_3001e78 as `mov r3, r2 / sub r3, #0x88` off
+ *      iwram_3001f00's pool address.  `extern unsigned char iwram_3001f00[];`
+ *      with `*(unsigned char **)(iwram_3001f00 - 0x88)` gives exactly that --
+ *      the batch-174 `ldmia` rule (adjacent globals the ROM reaches from one
+ *      pool entry are one array), and it works backwards too.
+ *   2. THE DMA3 BASE DERIVED FROM THE DMA0 BASE.  The ROM's second transfer
+ *      uses `add r3, #0x24` off &REG_DMA0SAD rather than a fresh &REG_DMA3SAD
+ *      pool load.  DMA0_SET followed by DMA3_SET produces it: gcc's constant
+ *      CSE finds 0x40000d4 = 0x40000b0 + 0x24 by itself.
+ *   3. THE SECOND DMA'S DESTINATION LIKEWISE.  `add r1, #0x14` off &REG_BG2CNT
  *      comes from plainly writing `(void *)&REG_BG2PA`.
  *
- * NEXT: nothing source-level.
+ * NEXT.  Nothing source-level, now with a mechanism behind the claim.  The only
+ * routes left are to raise the `strh`'s priority above 3 -- its only dependents
+ * are the `stmia` asm and the anti-dep `_base` load, both at priority 3 with
+ * cost 0, so the longest path through it is fixed -- or to put a real insn into
+ * the stalled cycle between insn 42 and the store, and the instruction count is
+ * exact at 37, so there is nothing to put there.
  */
 #include "gba/types.h"
 #include "gba/io.h"

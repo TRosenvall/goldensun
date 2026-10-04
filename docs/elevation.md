@@ -33166,3 +33166,136 @@ An unread `char[8]` or `short[4]` local gives **0 of 44, byte-identical** — an
 only to move the frame number. Worth noting what is *not* explained: `int[2]` and
 `struct {int,int}`, the same eight bytes, get **no slot at all**. The agent
 declined to record a mechanism it had not read, which is the right call.
+
+# Batch 323: the pool instrument pays, and two parks' "keep this" lists were the blocker
+
+Ten agents by bank. Landings and figures are in `reports/batch-323.md`; the method
+is below, and much of it is mechanisms read out of the compiler rather than
+inferred.
+
+## `.26.mach` EXPLAINED 29 ENCODINGS ACROSS TWO FUNCTIONS IN ONE COMPILE
+
+The instrument found at the end of batch 322 — `push_minipool_fix` printing every
+pool fix with its MODE and `pool_range` into the plain `-da` dump — did the single
+biggest piece of work this batch:
+
+> **A halfword store of a literal makes a HImode minipool fix at `pool_range`
+> 64 against SImode's 1020, and that does TWO things**, which is why parks read it
+> as several independent blockers:
+>
+> 1. `add_minipool_forward_ref` (`arm.c:4817`) sorts the pool by
+>    `address + forwards`, so the HImode word jumps to the **front** — and every
+>    `ldr [pc,#imm]` offset in the function shifts.
+> 2. Sixty-four bytes of reach **cannot** put the pool after the epilogue, so gcc
+>    **dumps it mid-function and branches over it** — +1 insn, +1 alignment `nop`,
+>    +4 bytes, and every relocation shifted.
+>
+> That accounted for **14 of one function's 18 and 15 of another's 20.** One
+> compile, no spellings.
+
+### WHICH PUTS AN UNMATCHABLE ENROLLMENT IN DOUBT
+
+`Func_80b09fc` is enrolled in `unmatchable.txt` as class `tu-pool`, on the grounds
+that *"the ROM dumps its literal pool MID-FUNCTION with a skip-branch before the
+epilogue (b.n; .word; pop) with NO loop to anchor it; an original-TU pool-pressure
+artifact a standalone TU cannot reproduce"*.
+
+**A HImode minipool fix produces exactly that shape from ordinary C.** So the
+reason given for that enrollment now has a mechanism behind it that a standalone
+TU *can* reproduce. The sibling `Func_80b0a20` is named in the same entry as
+having the identical tail.
+
+> **This does not prove the enrollment wrong — but it removes its stated reason,
+> and an unmatchable enrollment is the strongest closure this project makes.**
+> Re-measure both with `.26.mach` before trusting either. Follow-up recorded in
+> `reports/batch-323.md`.
+
+## TWO PARKS' "WHAT IS RIGHT AND SHOULD BE KEPT" LISTS WERE THE BLOCKER
+
+Both landed once that list was disbelieved.
+
+- One park said **"NEXT: nothing source-level outstanding"** and listed its offset
+  variables under *"WHAT IS RIGHT AND SHOULD BE KEPT"*. Those were the blocker:
+  the ROM's `add r3,#4` / `add r1,#2` are **`reload_cse_move2add` products, not
+  source arithmetic** — there is no offset variable in the function at all, just
+  four constant-offset accesses. Five independent spellings all read 0.
+- Another's `off`-before-`base` head was right and its *tail* was wrong, while a
+  **second park for the same function** had the right tail. (See the duplicate-park
+  section — crossing the two was worth 18 of 20.)
+
+> **A park's "do not change this" list deserves the same suspicion as its
+> diagnosis.** It is the same act of inference, recorded with more confidence.
+> **Corollary: an `off` / `off +=` idiom in a park is a SUSPECT, not an asset.**
+
+## FOUR MECHANISMS READ FROM THE SOURCE, NONE PREVIOUSLY IN THIS DOCUMENT
+
+- **local-alloc ties a derived address to a dying offset pseudo.**
+  `local-alloc.c:1090-1178` → `combine_regs` (1593). Thumb's `add rd,rn,rm` has
+  **no matching constraint**, so *every* dying operand is a tie candidate and
+  `q = base + off` steals `off`'s register. It can only be refused by making the
+  offset a **global** allocno — so the lever is to have no offset variable at all.
+- **regmove will not keep a commutative two-address op in place on a parameter
+  pseudo.** `regmove.c:1199-1205` gates on `replacement_quality`
+  (`regmove.c:341`): a pseudo copied from a hard register scores **1**, a fresh
+  constant **3**, so `param &= K` is always retargeted off the parameter, costing
+  it two `REG_N_REFS`. Confirmed by `.15.regmove`'s own `Fixed operand 2 of insn
+  51` line — and it explains why a landed sibling *can* keep `lsl`/`asr` in place:
+  those patterns are not commutative.
+- **A load's address register donates a hard-register preference to the load's
+  destination.** `global.c`'s `set_preference` strips one level
+  (`XEXP (src, 0)`), so `(set (reg P) (mem (reg A)))` gives P a preference for A's
+  hard register; `prune_preferences` republishes it and `find_reg` ORs it into
+  `used` at `global.c:1016`.
+- **`*thumb_movhi_insn`'s operand 1 is `"l,mn,l,*h,*r,I"`** (`arm.md:4318`) —
+  alternative 1's `n` matches **any** `const_int` and precedes alternative 5's
+  `I`, so **the 8-bit `mov` is unreachable for a HImode const_int** and even the
+  value 9 is forced through `force_const_mem`. This is the precise form of the
+  alternative-order correction from batch 322.
+
+## A NEW AND STRONGER SYMBOL-TABLE ARGUMENT: THE SIGN OF THE POOL WORD
+
+`const.sym`'s standing bar is the eight-bit-`mov` tell. Batch 323 found a
+stronger one, and it validated `_CONST_1f` (which that file had carried as
+UNVALIDATED):
+
+> With a pool-forcing **literal** (`- 0x101`), gcc emits `adds r0,r0,r3` against
+> `.word 0xfffffeff` — **it negates a pooled `const_int` subtrahend.** With the
+> **symbol** it emits the ROM's `subs r0,r0,r3` against a *positive* pool word.
+>
+> **So `sub reg,reg,pool` is unreachable from any literal, and the SIGN of the
+> pool word is the evidence.** Checkable against every existing entry.
+
+And the caution that comes with it: **the pool-forcing literal is a good alignment
+instrument and a misleading screen.** With the negated `add`, one crossed edit read
+14 — worse than the 9 it was being compared against; with the real `sub`, the same
+edit read **1**.
+
+## A DUMP TRAP: `.12.life`'s FIGURES DO NOT DECIDE ALLOCATION
+
+`.12.life` prints `Register N used R times across L insns`, and **those figures do
+not reproduce `.18.greg`'s allocno order** — `reg_live_length` is recomputed
+between the two passes. On one function `.12.life` put an allocno third while the
+printed greg order put it elsewhere, and the park's own numbers reproduced greg
+exactly on all ten allocnos.
+
+> **Screen allocation edits on the printed `;; N regs to allocate:` order, not on
+> `.12.life`.** And `allocno_compare` (`global.c:597`) ties **by allocno number
+> ascending**, so a tie resolves to the lower-numbered pseudo.
+
+## AND A CORRECTION TO MY OWN BRIEF, CORRECTLY SCOPED
+
+I told all ten agents to "quote local priorities as a ranking, never a number". One
+pointed out that **this does not apply to the global allocator**: where `.18.greg`
+prints `;; 19 regs to allocate:` the denominator is plain `live_length` with **no
+parity term**, so the figures are exact and reproduce greg's printed order
+(4000 against 2222 on that function).
+
+> The ranking-only rule is a **local-alloc** rule, because `death - birth` is slot
+> numbers at two per insn. Global priorities can be quoted as numbers. I had
+> stated it unconditionally.
+
+Also worth recording as good practice: that brief reported lever 5 as **"not
+tested rather than measured inert"** on its targets, because no sched2 dependence
+question survived into the residues once the allocator questions were resolved.
+**Saying which of the two it is matters** — an untested lever recorded as inert
+becomes a bound nobody revisits.

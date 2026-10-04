@@ -1,8 +1,16 @@
 /* Debug_WarpMenu_UI -- 0x08029094, the only function in
  * asm/rom_15000/rom_23178_a_c_c_a.s (grep -c func_start = 1), so it converts
- * WHOLE-FILE; no data section (datacheck), no split needed.
+ * WHOLE-FILE; no data section (datacheck.py exits 0), NO SPLIT needed.
  *
- * NON-MATCHING: 17 encodings of 163 differ (objcmp, production flags).
+ * STILL A PARK. 17 of 163 PIN-FREE, re-measured in batch 323 at production
+ * flags (163 / 163 instructions, +0 bytes, so 17 IS A TRUE DISTANCE).
+ *
+ *   *** 0 of 163 WITH ONE REGISTER PIN -- byte-identical, 163/163, +0 bytes.
+ *   *** TWO INDEPENDENT ONE-PIN ROUTES, below. Parked under the pin policy
+ *   *** (owner decision 3): prefer a pin-free body; record the pinned figure
+ *   *** beside it and leave the landing for pass 3. This is the same shape as
+ *   *** Func_80979a4 (owner decision 3, DEFERRED TO PASS 3) -- see
+ *   *** reports/pass3-depin.md.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -10,85 +18,132 @@
  *     src/non_matching/rom_15000/8029094.c \
  *     asm/rom_15000/rom_23178_a_c_c_a.s --whole
  *
- * 17 IS A TRUE DISTANCE: size and instruction count both match (163 / 163).
- * Every one of the 17 is the same two-register swap, printed with operands:
+ * ON THE SYMBOL AND THE RECIPE, because batch 323's scan flagged this park as
+ * having a malformed recipe. IT IS NOT MALFORMED: there is no `--func` to
+ * extract because this is a `--whole` recipe. The subject is confirmed from
+ * the .s and not from the filename --
+ *   asm/rom_15000/rom_23178_a_c_c_a.s:6:
+ *     .thumb_func_start Debug_WarpMenu_UI  @ 0x08029094
+ * -- so `Func_8029094` IS NOT A SYMBOL in this tree; the park's filename is an
+ * address. The neighbours Func_8029274 and Func_80292c4 are unrelated.
+ *
+ * ========================== WHAT THE RESIDUE IS ==========================
+ *
+ * ALL 17 ARE ONE CAUSE: pseudo 38 (`d`) and pseudo 39 (`&gKeyRepeat`) hold
+ * each other's hard register. The ROM puts `d` in r0 and &gKeyRepeat in r6; we
+ * do the reverse. Printed with operands:
  *     idx 1   ldr r6,=gKeyRepeat | mov r7,r0
  *     idx 2   mov r7,r0          | ldr r0,=gKeyRepeat
  *     idx 3   mov r0,r3          | mov r6,r3
  *     idx 4,15,23,28,38,62,87,125   ldr r3,[r6] | ldr r3,[r0]
- *     idx 33,36   ldrh/strh [r0]  | [r6]
- *     idx 44,68,94,132  ldrsh [r0,r2] | [r6,r2]
- * The ROM puts `d` in r0 and &gKeyRepeat in r6; we put them the other way round.
- * The idx 1/2 ORDER difference is a CONSEQUENCE, not a second defect: with the
- * pool load targeting r0 it cannot be scheduled before `mov r7,r0`.
+ *     idx 33,36                     ldrh/strh [r0] | [r6]
+ *     idx 44,68,94,132              ldrsh [r0,r2] | [r6,r2]
+ * The idx 1/2 order difference is a CONSEQUENCE: with the pool load targeting
+ * r0 it cannot be scheduled before `mov r7,r0`.
  *
- * *** BATCH-316b CORRECTION: THE OLD HEADER'S CLOSURE PROOF IS FALSE. ***
- * It read "THE RESIDUE IS UNREACHABLE BY ARITHMETIC" and turned on this step:
- * "every use of &gKeyRepeat precedes `d`'s last use ... so `d`'s live range is a
- * SUPERSET of &gKeyRepeat's and live_length(38) >= live_length(39)".
- * Measured off `.17.lreg` at production flags:
+ * ================= BATCH 323: A SECOND ROUTE, FROM .18.greg =================
  *
- *     p38 (d)            R=7   L=44
- *     p39 (&gKeyRepeat)  R=9   L=60
+ * The park framed this purely as an allocation ORDER problem and reduced it to
+ * a priority inequality. That framing is CORRECT AND INCOMPLETE. `.18.greg`'s
+ * conflict rows say there is a second, independent route the park never named:
  *
- * L38 = 44 is LESS than L39 = 60.  d's live range is the SHORTER of the two, not
- * a superset.  The live lengths were GUESSED (the brief's "off by ~2x"), and the
- * closure argument was built on the guess.  `allocno_compare` is directly
- * checkable and should never be argued about again:
+ *     ;; 38 conflicts: ... 1 2 3 13      <- hard regs 1, 2, 3
+ *     ;; 39 conflicts: ... 2 3 13        <- hard regs 2, 3 ONLY
  *
- *   ;; 10 regs to allocate: 100 120 33 37 56 106 126 39 38 32
- *     p100 R=3  L=3   1.0000 ->r3      p126 R=3  L=6   0.5000 ->r2
- *     p120 R=3  L=3   1.0000 ->r3      p39  R=9  L=60  0.4500 ->r0
- *     p33  R=22 L=117 0.7521 ->r5      p38  R=7  L=44  0.3182 ->r6
- *     p37  R=19 L=110 0.6909 ->r4      p32  R=5  L=104 0.0962 ->r7
- *     p56  R=5  L=17  0.5882 ->r1
- * floor_log2(R)*R/L sorted descending reproduces that printed order EXACTLY, on
- * all ten allocnos.  So the park's CONCLUSION (an allocation order decided by
- * allocno priority, which no flag closes) stands; only its proof of closure dies.
+ * **p39 has NO CONFLICT WITH r0 AND NO CONFLICT WITH r1.** p38's only
+ * call-used option is r0 (it conflicts with r1, r2, r3). So p39 takes r0
+ * simply because it is allocated first AND r0 is open to it, and p38 is then
+ * pushed to r6. EITHER of these closes the function:
  *
- * THE TARGET IS NOW A NUMBER.  Need pri(38) > 0.4500, i.e. any of:
- *     R38 = 7 and L38 <= 31          (from 44 -- a 13-insn shortening)
- *     R38 = 8 and L38 <= 53          (the floor_log2 step at 8 does the work)
- *     R39 <= 7                       (RULED OUT: the ROM really reads gKeyRepeat
- *                                     eight times and loads its address once --
- *                                     `grep r6` on the reference: one
- *                                     `ldr r6,=gKeyRepeat`, eight `ldr rN,[r6]`)
- * And the flip gives the ROM EXACTLY, verified from the conflict sets rather
- * than assumed: with 38 allocated first it takes r0 (it conflicts with hard regs
- * 1,2,3, so r0 is its only call-clobbered option), and 39 is then pushed off r0
- * (conflict with 38) and off r1 (conflict with 56) onto r6.
+ *   ROUTE A (the park's): re-rank, so p38 is allocated first. Needs
+ *            pri(38) >= pri(39) = 4500. allocno_compare (global.c:597) is
+ *            `(floor_log2(n_refs) * n_refs / live_length) * 10000 * size`,
+ *            truncated to int, tie-broken BY ALLOCNO NUMBER ASCENDING
+ *            (`return v1 - v2`), and allocno numbers follow pseudo numbers --
+ *            so a TIE GOES TO p38. With R38 = 7, L38 = 44, L39 = 60, R39 = 9:
+ *                R38 = 7 and L38 <= 31     (14/L * 10000 >= 4500)
+ *                R38 = 8 and L38 <= 53     (the floor_log2 step at 8 does it)
+ *                R39 <= 7                  (ruled out: the ROM genuinely reads
+ *                                           gKeyRepeat eight times and loads
+ *                                           its address once)
+ *                L39 >= 85                 (nothing extends it; its last use
+ *                                           is the 0x200 test)
+ *   ROUTE B (new): leave the order alone and MANUFACTURE A CONFLICT BETWEEN
+ *            p39 AND r0. p39 is born at the first gKeyRepeat read, which
+ *            expand places AFTER all four parameter copies, so r0 (holding `a`)
+ *            is already dead. In the ROM `ldr r6,=gKeyRepeat` is the FIRST body
+ *            insn -- the address pseudo is born while r0..r3 still hold
+ *            parameters, which forces it off every call-used register and onto
+ *            r6, and p38 then takes r0 unopposed. No source form reached that
+ *            ordering: expand_function_start emits the parameter copies before
+ *            any body statement, and four named-pointer forms (below) are
+ *            exactly inert.
  *
- * ========== MEASURED INERT THIS BATCH (R/L unmoved at 7/44 and 9/60) ==========
- *   `*d = *d ^ 1`;  `d[0]` throughout;  `!*d` for the four tests;
- *   `register short *d`;  return type `int`.
- *   `*d = *d;` as a free eighth reference -- DELETED as a no-op store.
- *   AND THE INTERESTING ONE: five placements of a range-splitting local copy
- *   `short *e = d;` with all arms switched to `*e` -- at the top, after the `&1`
- *   early return, after the `&2` early return, and as a braced initialiser.
- *   All four measure ndiff=17 with R=7 L=44 BIT-IDENTICAL.  **Copy propagation
- *   deletes the split before flow measures it** -- the pseudo count drops by one
- *   (the allocno list renumbers 39->40) and nothing else moves.  A source-level
- *   copy is NOT a region split in this compiler.  The one placement that did
- *   split (inside the 0x80/0x40 arm) split the wrong way: R=7 L=48 pri=0.2917,
- *   ndiff 31.
+ * WHICH DUMP TO READ, because this cost a round. `.12.life` prints
+ * `Register 39 used 9 times across 30 insns`, i.e. L39 = 30 -- and those
+ * figures DO NOT reproduce `.18.greg`'s printed allocno order (they put 39
+ * third, ahead of 33 and 37). The park's L38 = 44 / L39 = 60 DO reproduce it
+ * exactly, on all ten allocnos, so `reg_live_length` is recomputed between
+ * `.12.life` and global-alloc. **Screen allocation edits on the printed
+ * `;; N regs to allocate:` ORDER, which is the observable, not on `.12.life`.**
  *
- * Still true from the old park, and still the reading evidence:
- *  - `mov r2,#0 / ldrsh r3,[r0,r2]` is the tell that d is `short *`: thumb-1 has
- *    no ldrsh with an immediate offset, so a signed halfword load through a
- *    pointer always costs a zero register.
- *  - `ldrh r3,[r4] / lsl r3,#16 / cmp r3,r2` with r2 = 0x63<<16 is a SIGNED
- *    halfword compare in the shifted domain -> c is `short *`.
- *  - `ldr r2,=1` / `ldr r3,=0x63` are pooled because they are HImode constants.
- *  - The wrap fixups must be `*c = *c - 0x63` / `*c = *c + 0x63`, NOT 0x59:
- *    gcc CSEs the pre-store load and folds the constants outermost
- *    (0xa - 0x63 = -0x59), which is the ROM's `mov r3,r2 / sub r3,#0x59`.
- *    Writing 0x59 directly is wrong arithmetic AND wrong code (19 of 163).
- *  - No flag closes it: -fno-gcse, -fno-rerun-cse-after-loop,
- *    -fno-strict-aliasing, -fno-caller-saves, -fomit-frame-pointer all 17;
- *    -fno-force-mem 19, -fno-schedule-insns2 31, -fno-cse-follow-jumps 90,
- *    -fno-expensive-optimizations 177.  NOT a per-file flag row.
+ * ============== THE TWO ONE-PIN BODIES, both 0 of 163, 163/163 ==============
  *
- * No pins, no barriers, no .equ, no DMA3_SET.  NO fakematch row needed.
+ * 1. `register short *d __asm__("r0")` assigned from a renamed 4th parameter.
+ * 2. `register volatile unsigned int *k __asm__("r6"); k = &gKeyRepeat;` with
+ *    all eight tests through `*k`. This one is arguably the better pass-3
+ *    candidate: r6 is callee-saved and the ROM genuinely keeps the pointer
+ *    there across the whole function, so the pin asserts something the bytes
+ *    show, where pinning `d` to an argument register does not.
+ * Each is ONE pin. Neither ships here.
+ *
+ * ===================== MEASURED INERT / WORSE (batch 323) =====================
+ *   volatile unsigned int *k named, no pin, assigned at the top     17, R/L unmoved
+ *   same, initialised in its declaration                            17, R/L unmoved
+ *   same, declared before the other locals                          17, R/L unmoved
+ *   `extern volatile unsigned int gKeyRepeat[]` with `[0]`          17, R/L unmoved
+ *   `register short *d` (no asm register)                           17, R/L unmoved
+ *   `if (!*d)` for the four `*d == 0` tests                         17, R/L unmoved
+ *   `short t; if ((t = *d) == 0)` for all four tests                17  (R39 and the
+ *       printed order BOTH move -- 39 goes to the head of the list -- and the
+ *       figure does not, which is the clearest proof the order is not the cause)
+ *   the xor through a short local (`t = *d; *d = t ^ 1;`)           31, L38 44 -> 46
+ *   `*c = *d` for the two arms where the ROM stores the known zero 125, 167 insns
+ *   `unsigned short *d` with `(short)` casts on the tests          134, 157 insns
+ *
+ * The naming results are the park's own "copy propagation deletes the split"
+ * finding again, in a new place: the pseudo count changes and the allocno list
+ * renumbers, and p38/p39 do not move.
+ *
+ * ===================== STILL TRUE FROM THE OLD PARK =====================
+ *   - Inert this way too: `*d = *d ^ 1`; `d[0]` throughout; return type `int`;
+ *     `*d = *d;` as a free eighth reference (DELETED as a no-op store); five
+ *     placements of `short *e = d;` (copy propagation deletes the split before
+ *     flow measures it).
+ *   - `mov r2,#0 / ldrsh r3,[r0,r2]` is the tell that `d` is `short *`:
+ *     thumb-1 has no `ldrsh` with an immediate offset.
+ *   - `ldrh r3,[r4] / lsl r3,#16 / cmp r3,r2` with r2 = 0x63<<16 is a SIGNED
+ *     halfword compare in the shifted domain -> `c` is `short *`.
+ *   - `ldr r2,=1` and `ldr r3,=0x63` are pooled because they are HImode
+ *     constants. This is now settled from the compiler source:
+ *     arm.md:4318 `*thumb_movhi_insn` constrains operand 1 as
+ *     "l,mn,l,*h,*r,I" -- alternative 1's `n` matches any const_int and sits
+ *     BEFORE alternative 5's `I`, and recog takes the first match, so the
+ *     8-bit `mov` alternative is UNREACHABLE for a HImode const_int. The
+ *     internal control is in this very function: `gKeyRepeat & 1` emits
+ *     `mov r2, #1` (SImode) four instructions from the `*d ^= 1` that emits
+ *     `ldr r2, .L290f8` with `.word 1` (HImode). Same value, one each way.
+ *   - The wrap fixups must be `*c = *c - 0x63` / `*c = *c + 0x63`, NOT 0x59:
+ *     gcc CSEs the pre-store load and folds the constants outermost
+ *     (0xa - 0x63 = -0x59), which is the ROM's `mov r3,r2 / sub r3,#0x59`.
+ *     Writing 0x59 directly is wrong arithmetic AND wrong code (19 of 163).
+ *   - NO FLAG CLOSES IT, re-measured: -fno-gcse, -fno-rerun-cse-after-loop,
+ *     -fno-strict-aliasing, -fno-caller-saves, -fomit-frame-pointer all 17;
+ *     -fno-force-mem 19, -fno-schedule-insns2 31, -fno-cse-follow-jumps 90,
+ *     -fno-expensive-optimizations 177. NOT a per-file flag row.
+ *
+ * No pins, no barriers, no .equ, no DMA3_SET in the body below.
+ * NO fakematch row needed.
  */
 extern volatile unsigned int gKeyRepeat;
 
