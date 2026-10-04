@@ -33053,3 +33053,57 @@ And a caution row worth keeping: on that same function **a ternary reads 4 of 30
 with the pool order correct and is a WRONG PROGRAM** — it stores twice. The
 memory-access screen is what catches this, and at four encodings from zero it
 would otherwise look like the answer.
+
+
+## Batch 322 brief E: what batch 321 ACTUALLY saw, and why its attribution was impossible
+
+Five briefs this batch read `local-alloc.c:1496` independently and all five agreed
+the `floor_log2` retraction is right. Brief E then supplied the piece that was
+missing — **a mechanism for the symptom batch 321 reported**, which is what finally
+closes the question:
+
+> Batch 321 observed a park's priority claim turning a **1.3% margin into an
+> apparent factor of three**. That is real, and it is explained by substituting
+> **`REG_LIVE_LENGTH` for an in-block `death - birth`**, which can differ by a
+> LARGE factor.
+>
+> **Dropping `floor_log2` could never have produced it** — it could only ever move
+> a ratio by the ratio of two small integers.
+
+So the observation stands, the attribution was not merely unverified but
+*arithmetically impossible*, and the real cause is the denominator — which is also
+why brief I's parity finding matters (`death - birth ≈ 2 × span ± 1`).
+
+> **When a correction explains an observation, check that the mechanism it names
+> could produce the magnitude observed.** Batch 321's could not, and five reads of
+> one source file would have shown it. That is the cheapest test available and
+> nobody ran it, including me.
+
+### `reload_cse_move2add`, a pass this document has never named
+
+`Func_8091254`'s park blamed constant CSE. Refuted at the source:
+`rtlanal.c:get_related_value` returns 0 for anything that is not a `CONST`, **so
+cse can never derive 0x2a02 from 0x2a01.** The ROM's `adds r1,#1` is
+**`reload_cse_move2add` (`reload1.c:8840`)**, which requires both constant loads
+to land in **one hard register**. Three declarations buy that, and all three are
+needed — name the first address; assign the second *after* the first store so it
+reuses r3; materialise the zero *before* it so it holds r2. **A pin makes it
+worse** (11).
+
+### Two independent confirmations, and a park gate that is never evaluated
+
+- **local-alloc's fake-lifetime widening is dead on thumb** — found independently
+  by two briefs this batch. Both call sites are gated `!SMALL_REGISTER_CLASSES`,
+  and `arm.h:1061` is `#define SMALL_REGISTER_CLASSES TARGET_THUMB`.
+- `local-alloc.c:360-366` **short-circuits on `REG_N_DEATHS == 1`**, so where a
+  pseudo dies twice the `STACK_REG`/`CLASS_LIKELY_SPILLED_P` gate a park blamed is
+  **never evaluated at all**.
+
+### And the pin policy did its job
+
+`Func_80979a4` reads **0 of 47** with `register int h __asm__("r4")` alone — so
+there is nothing behind its rotation. The agent **reported it as a park rather
+than a landing**, because it would be a fourth pin on a veneer that already
+carries three. That is the owner's prefer-pin-free policy working as intended: the
+figure is recorded, the mechanism is named, and the landing waits for pass 3
+instead of adding a row to a list nobody can yet count.
