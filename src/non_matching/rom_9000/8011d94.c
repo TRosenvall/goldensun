@@ -1,7 +1,9 @@
 /* HeightTile_5 -- 0x08011d94  (asm/rom_9000/rom_11ce0_a_c_c_a_a_a_b.s)
  *
  * NON-MATCHING, 27 of 34 encodings  (MEASURED, batch 319 recipe backfill).
- *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   RELOCATIONS differ, but THE SAME SYMBOLS AT A SHIFTED OFFSET -- which
+ *   this project treats as a CONSEQUENCE of the length difference, not a
+ *   separate blocker.  Re-classified in batch 322; the figure IS a distance.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \

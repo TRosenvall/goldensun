@@ -32828,3 +32828,56 @@ independent, and declaration order is exactly inert once the pin is gone.
   exist — and validation reported that as four hard errors. **A phase tool has to
   know which phase it is in.** Fixed: it detects the post-split state and warns
   instead of failing, and the splits phase skips a split already applied.
+
+## Batch 322: my batch-319 backfill told 137 parks their figure was not a distance, wrongly
+
+The backfill that gave 304 parks their first recipe also stamped 178 of them with
+a single blunt banner:
+
+    *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+
+It was emitted whenever `objcmp --func` printed `RELOCATIONS differ`. An agent
+flagged it as stale; sampling ten showed the banner was **accurate every time**,
+so the complaint looked wrong. It was not — the banner was **true and far too
+blunt**. Re-measured across all 176 still carrying it:
+
+| what the relocation delta actually is | parks |
+|---|---|
+| **the SAME symbols at a shifted offset** | **137 (78%)** |
+| genuinely different symbols | 38 |
+| relocations now identical | 1 |
+
+This project has established repeatedly that a relocation at a shifted offset
+with the same symbol is a **consequence of being N bytes short, not a separate
+blocker**. So for 137 parks — about 17% of the whole parked frontier — the
+backfill was telling every future reader that a real distance was not one.
+
+> **A diagnostic that is true but undiscriminating is worse than no diagnostic**,
+> because it is believed. "Relocations differ" has two completely different
+> meanings here: a different SYMBOL is a hard fail `make compare` cannot pass, and
+> a shifted OFFSET is a restatement of the size difference you already measured.
+> Collapsing them discourages work on the larger group.
+
+Each banner now names which case it is, and the real ones **list the differing
+symbols** (`_call_via_r0` vs `_call_via_r3`, `__umodsi3` vs `_umodsi3_RAM`,
+`_AREA_3c`, `Data_fb794` vs `.Lfb794`, `_SIZE_80f0024` — several of which are
+themselves interesting, since an alias pair or a missing `_SIZE_*`/`_AREA_*` is a
+*symbol-table* question rather than a codegen one).
+
+And the generator's lesson, which is the same one as the `COUNT` flag in
+`crossfire.py`: **when a tool emits a warning across hundreds of files, the
+warning's precision matters more than its presence.** Both of this batch's
+corrections to my own tooling were cases of a signal that fired correctly and
+meant two different things.
+
+### Also: there is no `.NN.sched2` dump
+
+`-fsched-verbose=6` writes to **stderr**, and only with `-dS`/`-da`. Briefs in
+this project have repeatedly been told to "read `.23.sched2`". That file does not
+exist; capture stderr instead.
+
+### And a qualification to the HImode note
+
+"A `register short` declaration gives you HImode" holds at a **store** site. At an
+AND site it measured **exactly bit-identical**, so the note needs qualifying by
+site rather than being read as general.

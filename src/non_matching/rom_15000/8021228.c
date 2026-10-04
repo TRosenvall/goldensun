@@ -1,7 +1,10 @@
 /* Func_8021228  --  0x08021228
  *
  * NON-MATCHING, 101 of 132 encodings  (MEASURED, batch 319 recipe backfill).
- *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   *** RELOCATIONS DIFFER IN THEIR SYMBOLS, NOT ONLY THEIR OFFSETS --
+ *   _MSG_980
+ *   SO THIS FIGURE IS NOT A DISTANCE: `make compare` cannot pass a
+ *   relocation difference.  Fix this before trusting the encoding count. ***
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \

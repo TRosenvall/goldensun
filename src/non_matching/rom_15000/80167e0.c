@@ -1,7 +1,10 @@
 /* Func_80167e0 (ScrollTextBuffer) -- NON-MATCHING.
  *
  * NON-MATCHING, 47 of 63 encodings  (MEASURED, batch 319 recipe backfill).
- *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   *** RELOCATIONS DIFFER IN THEIR SYMBOLS, NOT ONLY THEIR OFFSETS --
+ *   _call_via_fp, _call_via_r3
+ *   SO THIS FIGURE IS NOT A DISTANCE: `make compare` cannot pass a
+ *   relocation difference.  Fix this before trusting the encoding count. ***
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
