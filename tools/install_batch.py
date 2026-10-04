@@ -109,6 +109,26 @@ def park_subject(path):
     return m.group(1) if m else None
 
 
+def split_already_applied(e):
+    """True when this entry's split has run: its source .s is gone and the parts exist.
+
+    THE MANIFEST DESCRIBES THE PRE-SPLIT TREE, BUT THE INSTALL PHASE RUNS
+    POST-SPLIT.  split_s.py consumes the original .s, so by install time an
+    entry's `reference` and `split.file` legitimately no longer exist -- and the
+    first version of this tool reported that as four hard errors and refused a
+    whole batch that was proceeding correctly.  A phase tool has to know which
+    phase it is in.
+    """
+    sp = e.get("split")
+    if not sp:
+        return False
+    src = rel(sp["file"])
+    if os.path.exists(src):
+        return False
+    stem = src[:-2]
+    return any(os.path.exists(f"{stem}_{p}.s") for p in ("a", "b", "c", "d"))
+
+
 def validate(entries):
     errs, warns = [], []
     for e in entries:
@@ -120,8 +140,13 @@ def validate(entries):
             continue
         if not os.path.exists(rel(e["candidate"])):
             errs.append(f"{tag}: candidate not found: {e['candidate']}")
+        post = split_already_applied(e)
         if not os.path.exists(rel(e["reference"])):
-            errs.append(f"{tag}: reference not found: {e['reference']}")
+            if post:
+                warns.append(f"{tag}: split already applied -- reference "
+                             f"{e['reference']} is gone, as expected")
+            else:
+                errs.append(f"{tag}: reference not found: {e['reference']}")
         elif not func_in(e["reference"], e["function"]):
             # TWO DIFFERENT FAILURES, AND REPORTING THEM THE SAME WAY IS THE BUG
             # CLASS THIS PROJECT KEEPS PAYING FOR.  A reference with no
@@ -166,7 +191,7 @@ def validate(entries):
                             f"not {e['function']}.  Retiring a park for a different "
                             f"function hides that function from every scan.")
         sp = e.get("split")
-        if sp:
+        if sp and not post:
             if not os.path.exists(rel(sp["file"])):
                 errs.append(f"{tag}: split file not found: {sp['file']}")
             elif not func_in(sp["file"], sp.get("func", e["function"])):
@@ -212,6 +237,9 @@ def do_splits(entries, dry):
     for e in entries:
         sp = e.get("split")
         if not sp:
+            continue
+        if split_already_applied(e):
+            print(f"  {e['function']}: split already applied, skipping")
             continue
         cmd = [sys.executable, os.path.join(ROOT, "tools", "split_s.py"),
                sp["file"], sp.get("func", e["function"])]

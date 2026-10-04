@@ -20,9 +20,9 @@ Func_809ba90:
 	mov	r7, r3
 	mov	r8, r2
 	str	r2, [r0]
-	ldr	r3, .L12
+	ldr	r3, .L14
 	mov	r1, r5
-	ldr	r2, .L12+4
+	ldr	r2, .L14+4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -30,13 +30,13 @@ Func_809ba90:
 	bl	_CreateSprite
 	str	r0, [r5]
 	cmp	r0, #0
-	beq	.L11
+	beq	.L13
 	ldrb	r2, [r0, #9]
 	mov	r3, #13
 	neg	r3, r3
 	and	r3, r3, r2
 	strb	r3, [r0, #9]
-.L11:
+.L13:
 	mov	r1, r6
 	mov	r0, r5
 	mov	r2, r7
@@ -84,9 +84,9 @@ Func_809ba90:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L13:
+.L15:
 	.align	2, 0
-.L12:
+.L14:
 	.word	67109076
 	.word	-2063597550
 .Lfe1:

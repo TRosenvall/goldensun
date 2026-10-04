@@ -18,13 +18,13 @@ OvlFunc_common1_1608:
 	bl	__MapActor_GetActor
 	mov	r6, r0
 	cmp	r6, #0
-	beq	.L9
+	beq	.L11
 	mov	r3, r6
 	add	r3, r3, #84
 	ldrb	r3, [r3]
 	mov	sl, r3
 	cmp	r3, #1
-	bne	.L9
+	bne	.L11
 	mov	r1, #193
 	lsl	r1, r1, #3
 	mov	r0, #17
@@ -38,9 +38,9 @@ OvlFunc_common1_1608:
 	mov	r0, sp
 	mov	r8, r2
 	str	r2, [r0]
-	ldr	r3, .L13+4
+	ldr	r3, .L15+4
 	mov	r1, r5
-	ldr	r2, .L13+8
+	ldr	r2, .L15+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -70,10 +70,10 @@ OvlFunc_common1_1608:
 	neg	r3, r3
 	and	r3, r3, r2
 	strb	r3, [r7, #5]
-	ldrh	r3, .L13
+	ldrh	r3, .L15
 	ldrh	r2, [r7, #8]
 	and	r5, r5, r3
-	ldr	r3, .L13+12
+	ldr	r3, .L15+12
 	and	r3, r3, r2
 	orr	r3, r3, r5
 	strh	r3, [r7, #8]
@@ -83,16 +83,16 @@ OvlFunc_common1_1608:
 	strb	r2, [r3]
 	add	r3, r3, #1
 	strb	r2, [r3]
-	b	.L14
-.L15:
+	b	.L16
+.L17:
 	.align	2, 0
-.L13:
+.L15:
 	.word	1023
 	.word	67109076
 	.word	-2063597536
 	.word	-1024
-.L14:
-.L9:
+.L16:
+.L11:
 	add	sp, sp, #4
 	pop	{r3, r5, r6}
 	mov	r8, r3

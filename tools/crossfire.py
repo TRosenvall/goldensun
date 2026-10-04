@@ -111,11 +111,22 @@ def memhist(src, ref, func):
                            capture_output=True, text=True, cwd=objcmp.ROOT)
         if r.returncode != 0:
             return None
-        txt = open(asm, errors="ignore").read()
-        h = {}
-        for op in MEMOPS:
-            h[op] = len(re.findall(rf"(?m)^\s+{op}\b", txt))
-        return h
+        # PROFILE THE CANDIDATE THE SAME WAY AS THE REFERENCE: assemble and
+        # objdump.  The first version grepped the .s TEXT, and that is the
+        # identical-encoding trap this project documents in its own method notes
+        # -- gcc spells a HImode pool reference `ldrh r5, .L20`, which ASSEMBLES
+        # to a plain `ldr rN,[pc,#imm]`, because Thumb-1 has no PC-relative
+        # halfword load.  Grepped: ldr=34 ldrh=2.  Objdumped: ldr=35 ldrh=1.
+        # The reference was objdumped, so the screen fired on EVERY row
+        # including BASE -- which makes it misleading rather than merely noisy.
+        obj = os.path.join(tmp, "c.o")
+        r = subprocess.run(objcmp.AS + ["-o", obj, asm], capture_output=True,
+                           text=True, cwd=objcmp.ROOT)
+        if r.returncode != 0:
+            return None
+        d = subprocess.run(["arm-none-eabi-objdump", "-d", "--no-show-raw-insn", obj],
+                           capture_output=True, text=True).stdout
+        return {op: len(re.findall(rf"(?m)^\s+\S+:\s+{op}\b", d)) for op in MEMOPS}
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

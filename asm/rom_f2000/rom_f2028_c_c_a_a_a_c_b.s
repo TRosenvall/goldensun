@@ -9,10 +9,10 @@
 	.type	 Func_80f2f10,function
 Func_80f2f10:
 	push	{r5, r6, r7, lr}
-	ldr	r3, .L79
+	ldr	r3, .L81
 	mov	r1, #224
 	ldr	r5, [r3]
-	ldr	r2, .L79+4
+	ldr	r2, .L81+4
 	lsl	r1, r1, #5
 	add	r4, r5, r1
 	add	r1, r5, r2
@@ -20,7 +20,7 @@ Func_80f2f10:
 	ldrsb	r3, [r1, r3]
 	cmp	r3, #0
 	bne	.LCB17
-	b	.L37	@long jump
+	b	.L39	@long jump
 .LCB17:
 	add	r2, r2, #1
 	add	r3, r5, r2
@@ -32,13 +32,13 @@ Func_80f2f10:
 	ldrsb	r3, [r1, r3]
 	asr	r2, r2, #24
 	cmp	r2, r3
-	bge	.L39
+	bge	.L41
 	mov	r3, #128
 	lsl	r3, r3, #3
-	ldr	r6, .L79+8
+	ldr	r6, .L81+8
 	add	r1, r5, r3
 	mov	r0, #0
-.L43:
+.L45:
 	ldrh	r3, [r1]
 	ldrh	r2, [r4]
 	add	r0, r0, #1
@@ -47,31 +47,31 @@ Func_80f2f10:
 	add	r4, r4, #2
 	add	r1, r1, #2
 	cmp	r0, r6
-	ble	.L43
-	b	.L45
-.L80:
+	ble	.L45
+	b	.L47
+.L82:
 	.align	2, 0
-.L79:
+.L81:
 	.word	iwram_3001ed0
 	.word	12289
 	.word	1535
-.L39:
+.L41:
 	mov	r1, #128
 	mov	r2, #128
 	lsl	r1, r1, #5
 	lsl	r2, r2, #3
 	add	r0, r5, r1
-	ldr	r3, .L81+8
+	ldr	r3, .L83+8
 	add	r1, r5, r2
-	ldr	r2, .L81+12
+	ldr	r2, .L83+12
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	ldr	r3, .L81+16
+	ldr	r3, .L83+16
 	add	r2, r5, r3
 	mov	r3, #0
 	strb	r3, [r2]
-.L45:
+.L47:
 	mov	r1, #192
 	lsl	r1, r1, #6
 	add	r3, r5, r1
@@ -88,22 +88,22 @@ Func_80f2f10:
 	lsl	r3, r3, #7
 	mov	r0, #128
 	lsl	r2, r2, #3
-	ldrh	r7, .L81
-	ldrh	r6, .L81+4
+	ldrh	r7, .L83
+	ldrh	r6, .L83+4
 	mov	ip, r3
 	lsl	r0, r0, #2
 	add	r1, r5, r2
-	b	.L82
-.L83:
+	b	.L84
+.L85:
 	.align	2, 0
-.L81:
+.L83:
 	.word	992
 	.word	31
 	.word	67109076
 	.word	-2080374016
 	.word	12289
-.L82:
-.L50:
+.L84:
+.L52:
 	ldrh	r3, [r1]
 	mov	r2, ip
 	and	r2, r2, r3
@@ -122,7 +122,7 @@ Func_80f2f10:
 	add	r1, r1, #6
 	add	r4, r4, #2
 	cmp	r0, #0
-	bne	.L50
+	bne	.L52
 	mov	r3, #192
 	lsl	r3, r3, #6
 	add	r1, r5, r3
@@ -135,15 +135,15 @@ Func_80f2f10:
 	lsl	r3, r3, #10
 	add	r0, r5, r3
 	lsl	r1, r1, #6
-	ldr	r5, .L84
+	ldr	r5, .L86
 	add	r6, r0, r1
-	ldr	r4, .L84+4
+	ldr	r4, .L86+4
 	ldrh	r3, [r4]
 	mov	r1, r3
 	strh	r4, [r4]
 	ldrh	r2, [r5]
 	cmp	r2, #31
-	bgt	.L59
+	bgt	.L61
 	lsl	r3, r2, #1
 	add	r3, r3, r2
 	lsl	r3, r3, #2
@@ -155,16 +155,16 @@ Func_80f2f10:
 	mov	r2, #160
 	lsl	r2, r2, #19
 	stmia	r3!, {r2}
-	ldr	r2, .L84+8
+	ldr	r2, .L86+8
 	str	r2, [r3]
-.L59:
+.L61:
 	strh	r1, [r4]
 	ldrh	r3, [r4]
 	mov	r6, r3
 	strh	r4, [r4]
 	ldrh	r2, [r5]
 	cmp	r2, #31
-	bgt	.L73
+	bgt	.L75
 	lsl	r3, r2, #1
 	add	r3, r3, r2
 	lsl	r3, r3, #2
@@ -176,19 +176,19 @@ Func_80f2f10:
 	strh	r2, [r5]
 	add	r2, r0, r1
 	stmia	r3!, {r2}
-	ldr	r2, .L84+12
+	ldr	r2, .L86+12
 	stmia	r3!, {r2}
-	ldr	r2, .L84+8
+	ldr	r2, .L86+8
 	str	r2, [r3]
-.L73:
+.L75:
 	strh	r6, [r4]
-.L37:
+.L39:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L85:
+.L87:
 	.align	2, 0
-.L84:
+.L86:
 	.word	gDMATaskCount
 	.word	67109384
 	.word	-2080374656

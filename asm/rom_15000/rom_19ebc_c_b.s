@@ -15,7 +15,7 @@ LoadIcon:
 	.code	16
 	mov	r6, r1
 	.code	16
-	ldr	r5, .L16
+	ldr	r5, .L18
 	mov	r0, #49
 	mov	r1, r5
 	bl	galloc_iwram
@@ -24,14 +24,14 @@ LoadIcon:
 	lsl	r2, r2, #24
 	mov	r1, r0
 	mov	r8, r2
-	ldr	r3, .L16+4
-	ldr	r0, .L16+8
+	ldr	r3, .L18+4
+	ldr	r0, .L18+8
 	orr	r2, r2, r5
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	ldr	r3, .L16+12
-	ldr	r4, .L16+16
+	ldr	r3, .L18+12
+	ldr	r4, .L18+16
 	add	r3, r3, #196
 	add	r2, r7, r4
 	ldr	r0, [r2]
@@ -41,34 +41,34 @@ LoadIcon:
 	mov	r0, #49
 	bl	gfree
 	cmp	r6, #0
-	beq	.L11
-	ldr	r5, .L16+20
+	beq	.L13
+	ldr	r5, .L18+20
 	mov	r0, #49
 	mov	r1, r5
 	bl	galloc_iwram
 	lsr	r5, r5, #2
 	mov	r2, r8
 	mov	r1, r0
-	ldr	r3, .L16+4
-	ldr	r0, .L16+24
-	b	.L15
-.L11:
-	ldr	r5, .L16+28
+	ldr	r3, .L18+4
+	ldr	r0, .L18+24
+	b	.L17
+.L13:
+	ldr	r5, .L18+28
 	mov	r0, #49
 	mov	r1, r5
 	bl	galloc_iwram
 	lsr	r5, r5, #2
 	mov	r2, r8
 	mov	r1, r0
-	ldr	r3, .L16+4
-	ldr	r0, .L16+32
-.L15:
+	ldr	r3, .L18+4
+	ldr	r0, .L18+32
+.L17:
 	orr	r2, r2, r5
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	mov	r4, #192
-	ldr	r0, .L16+12
+	ldr	r0, .L18+12
 	lsl	r4, r4, #3
 	mov	r2, #128
 	add	r3, r7, r4
@@ -89,9 +89,9 @@ LoadIcon:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L17:
+.L19:
 	.align	2, 0
-.L16:
+.L18:
 	.word	_SIZE_8015afc
 	.word	67109076
 	.word	Func_8015afc

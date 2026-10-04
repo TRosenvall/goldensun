@@ -9,7 +9,7 @@
 	.type	 OvlFunc_957_2008c98,function
 OvlFunc_957_2008c98:
 	push	{r5, r6, lr}
-	ldr	r3, .L12
+	ldr	r3, .L14
 	ldr	r6, [r3]
 	mov	r1, #128
 	ldr	r5, [r6, #16]
@@ -30,11 +30,11 @@ OvlFunc_957_2008c98:
 	bl	__CreateActor
 	mov	r4, r0
 	cmp	r4, #0
-	beq	.L10
-	ldr	r3, .L12+4
+	beq	.L12
+	ldr	r3, .L14+4
 	mov	r0, r5
 	mov	r1, r4
-	ldr	r2, .L12+8
+	ldr	r2, .L14+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -44,13 +44,13 @@ OvlFunc_957_2008c98:
 	str	r2, [r5, #108]
 	str	r4, [r6, #16]
 	strb	r2, [r3]
-.L10:
+.L12:
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L13:
+.L15:
 	.align	2, 0
-.L12:
+.L14:
 	.word	iwram_3001f30
 	.word	67109076
 	.word	-2080374756

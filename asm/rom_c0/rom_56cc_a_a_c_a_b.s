@@ -9,40 +9,40 @@
 	.type	 Func_8005a78,function
 Func_8005a78:
 	push	{r5, r6, lr}
-	ldr	r3, .L15
+	ldr	r3, .L17
 	mov	r6, r1
 	ldr	r5, [r3]
 	bl	Func_8005b24
 	cmp	r0, #15
-	bls	.L10
+	bls	.L12
 	mov	r0, #1
-	b	.L9
-.L10:
+	b	.L11
+.L12:
 	bl	Func_80058ac
 	mov	r0, r5
-	ldr	r3, .L15+4
+	ldr	r3, .L17+4
 	add	r0, r0, #80
 	mov	r1, r6
-	ldr	r2, .L15+8
+	ldr	r2, .L17+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	mov	r2, #128
-	ldr	r1, .L15+4
+	ldr	r1, .L17+4
 	lsl	r2, r2, #24
-.L14:
+.L16:
 	ldr	r3, [r1, #8]
 	and	r3, r3, r2
 	cmp	r3, #0
-	bne	.L14
+	bne	.L16
 	mov	r0, #0
-.L9:
+.L11:
 	pop	{r5, r6}
 	pop	{r1}
 	bx	r1
-.L16:
+.L18:
 	.align	2, 0
-.L15:
+.L17:
 	.word	iwram_3001f1c
 	.word	67109076
 	.word	-2080373764

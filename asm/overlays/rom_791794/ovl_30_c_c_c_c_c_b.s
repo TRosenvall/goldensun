@@ -27,26 +27,26 @@ OvlFunc_897_200b30c:
 	mov	r0, sp
 	str	r3, [r0]
 	mov	r5, r9
-	ldr	r3, .L17
+	ldr	r3, .L19
 	mov	r1, r9
-	ldr	r2, .L17+4
+	ldr	r2, .L19+4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	mov	r2, r8
 	cmp	r2, #10
-	bls	.L11
+	bls	.L13
 	mov	r3, #10
 	mov	r8, r3
-.L11:
+.L13:
 	mov	r2, #0
 	mov	r3, r8
 	mov	sl, r2
 	cmp	r3, #0
-	beq	.L12
+	beq	.L14
 	mov	fp, r2
 	mov	r7, #0
-.L16:
+.L18:
 	mov	r0, r6
 	bl	__MapActor_GetActor
 	ldr	r3, [r0, #80]
@@ -60,10 +60,10 @@ OvlFunc_897_200b30c:
 	bl	__MapActor_GetActor
 	mov	r1, #1
 	bl	__Func_800c548
-	ldr	r2, .L17+8
+	ldr	r2, .L19+8
 	ldr	r3, [r7, r2]
 	str	r3, [r5, #28]
-	ldr	r3, .L17+12
+	ldr	r3, .L19+12
 	ldr	r3, [r3, r7]
 	mov	r2, r5
 	neg	r3, r3
@@ -77,8 +77,8 @@ OvlFunc_897_200b30c:
 	add	r5, r5, #40
 	add	r6, r6, #1
 	cmp	sl, r8
-	bne	.L16
-.L12:
+	bne	.L18
+.L14:
 	mov	r3, #200
 	lsl	r3, r3, #1
 	add	r3, r3, r9
@@ -86,7 +86,7 @@ OvlFunc_897_200b30c:
 	mov	r1, #200
 	strh	r2, [r3]
 	lsl	r1, r1, #4
-	ldr	r0, .L17+16
+	ldr	r0, .L19+16
 	bl	__StartTask
 	add	sp, sp, #4
 	pop	{r3, r5, r6, r7}
@@ -97,9 +97,9 @@ OvlFunc_897_200b30c:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L18:
+.L20:
 	.align	2, 0
-.L17:
+.L19:
 	.word	67109076
 	.word	-2063597467
 	.word	.L3a68

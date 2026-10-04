@@ -11,7 +11,7 @@ DecompressLZ16:
 	push	{r5, r6, r7, lr}
 	mov	r7, r8
 	push	{r7}
-	ldr	r2, .L11
+	ldr	r2, .L13
 	lsr	r2, r2, #2
 	lsl	r3, r2, #2
 	mov	r6, r1
@@ -22,9 +22,9 @@ DecompressLZ16:
 	mov	r7, sp
 	mov	r5, r0
 	mov	r8, sp
-	ldr	r3, .L11+4
+	ldr	r3, .L13+4
 	mov	sp, r1
-	ldr	r0, .L11+8
+	ldr	r0, .L13+8
 	orr	r2, r2, r4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
@@ -39,9 +39,9 @@ DecompressLZ16:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L12:
+.L14:
 	.align	2, 0
-.L11:
+.L13:
 	.word	_DECOMPRESS_LZ16_SIZE
 	.word	67109076
 	.word	DecompressLZ16_ROM
@@ -58,15 +58,15 @@ DecompressLZ:
 	push	{r5, r6}
 	mov	r8, r0
 	mov	sl, r1
-	ldr	r5, .L23
+	ldr	r5, .L25
 	mov	r0, r5
 	bl	Func_8004938
 	mov	r2, #132
 	mov	r6, r0
 	lsr	r5, r5, #2
 	lsl	r2, r2, #24
-	ldr	r3, .L23+4
-	ldr	r0, .L23+8
+	ldr	r3, .L25+4
+	ldr	r0, .L25+8
 	mov	r1, r6
 	orr	r2, r2, r5
 	stmia	r3!, {r0, r1, r2}
@@ -85,9 +85,9 @@ DecompressLZ:
 	pop	{r5, r6}
 	pop	{r1}
 	bx	r1
-.L24:
+.L26:
 	.align	2, 0
-.L23:
+.L25:
 	.word	_DECOMPRESS_LZ_SIZE
 	.word	67109076
 	.word	DecompressLZ_ROM
@@ -104,15 +104,15 @@ DecompressLZ2:
 	push	{r5, r6}
 	mov	r8, r0
 	mov	sl, r1
-	ldr	r5, .L35
+	ldr	r5, .L37
 	mov	r0, r5
 	bl	Func_8004938
 	mov	r2, #132
 	mov	r6, r0
 	lsr	r5, r5, #2
 	lsl	r2, r2, #24
-	ldr	r3, .L35+4
-	ldr	r0, .L35+8
+	ldr	r3, .L37+4
+	ldr	r0, .L37+8
 	mov	r1, r6
 	orr	r2, r2, r5
 	stmia	r3!, {r0, r1, r2}
@@ -131,9 +131,9 @@ DecompressLZ2:
 	pop	{r5, r6}
 	pop	{r1}
 	bx	r1
-.L36:
+.L38:
 	.align	2, 0
-.L35:
+.L37:
 	.word	_DECOMPRESS_LZ2_SIZE
 	.word	67109076
 	.word	DecompressLZ2_ROM
@@ -150,15 +150,15 @@ DecompressLZ1:
 	push	{r5, r6}
 	mov	r8, r0
 	mov	sl, r1
-	ldr	r5, .L47
+	ldr	r5, .L49
 	mov	r0, r5
 	bl	Func_8004938
 	mov	r2, #132
 	mov	r6, r0
 	lsr	r5, r5, #2
 	lsl	r2, r2, #24
-	ldr	r3, .L47+4
-	ldr	r0, .L47+8
+	ldr	r3, .L49+4
+	ldr	r0, .L49+8
 	mov	r1, r6
 	orr	r2, r2, r5
 	stmia	r3!, {r0, r1, r2}
@@ -177,9 +177,9 @@ DecompressLZ1:
 	pop	{r5, r6}
 	pop	{r1}
 	bx	r1
-.L48:
+.L50:
 	.align	2, 0
-.L47:
+.L49:
 	.word	_DECOMPRESS_LZ1_SIZE
 	.word	67109076
 	.word	DecompressLZ1_ROM
@@ -194,7 +194,7 @@ BlitFade_Add:
 	mov	r7, r8
 	push	{r7}
 	mov	ip, r2
-	ldr	r2, .L51
+	ldr	r2, .L53
 	lsr	r2, r2, #2
 	mov	r6, r1
 	mov	lr, r3
@@ -206,9 +206,9 @@ BlitFade_Add:
 	mov	r7, sp
 	mov	r5, r0
 	mov	r8, sp
-	ldr	r3, .L51+4
+	ldr	r3, .L53+4
 	mov	sp, r1
-	ldr	r0, .L51+8
+	ldr	r0, .L53+8
 	orr	r2, r2, r4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
@@ -225,9 +225,9 @@ BlitFade_Add:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L52:
+.L54:
 	.align	2, 0
-.L51:
+.L53:
 	.word	_BLITFADE_ADD_SIZE
 	.word	67109076
 	.word	BlitFade_Add_ROM
@@ -242,7 +242,7 @@ BlitFade_Sub:
 	mov	r7, r8
 	push	{r7}
 	mov	ip, r2
-	ldr	r2, .L55
+	ldr	r2, .L57
 	lsr	r2, r2, #2
 	mov	r6, r1
 	mov	lr, r3
@@ -254,9 +254,9 @@ BlitFade_Sub:
 	mov	r7, sp
 	mov	r5, r0
 	mov	r8, sp
-	ldr	r3, .L55+4
+	ldr	r3, .L57+4
 	mov	sp, r1
-	ldr	r0, .L55+8
+	ldr	r0, .L57+8
 	orr	r2, r2, r4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
@@ -273,9 +273,9 @@ BlitFade_Sub:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L56:
+.L58:
 	.align	2, 0
-.L55:
+.L57:
 	.word	_BLITFADE_SUB_SIZE
 	.word	67109076
 	.word	BlitFade_Sub_ROM
@@ -290,7 +290,7 @@ BlitFade_Div4:
 	mov	r7, r8
 	push	{r7}
 	mov	ip, r2
-	ldr	r2, .L59
+	ldr	r2, .L61
 	lsr	r2, r2, #2
 	lsl	r3, r2, #2
 	mov	r6, r1
@@ -301,9 +301,9 @@ BlitFade_Div4:
 	mov	r7, sp
 	mov	r5, r0
 	mov	r8, sp
-	ldr	r3, .L59+4
+	ldr	r3, .L61+4
 	mov	sp, r1
-	ldr	r0, .L59+8
+	ldr	r0, .L61+8
 	orr	r2, r2, r4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
@@ -319,9 +319,9 @@ BlitFade_Div4:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L60:
+.L62:
 	.align	2, 0
-.L59:
+.L61:
 	.word	_BLITFADE_DIV4_SIZE
 	.word	67109076
 	.word	BlitFade_Div4_ROM
@@ -336,7 +336,7 @@ BlitFade_Div2:
 	mov	r7, r8
 	push	{r7}
 	mov	ip, r2
-	ldr	r2, .L63
+	ldr	r2, .L65
 	lsr	r2, r2, #2
 	lsl	r3, r2, #2
 	mov	r6, r1
@@ -347,9 +347,9 @@ BlitFade_Div2:
 	mov	r7, sp
 	mov	r5, r0
 	mov	r8, sp
-	ldr	r3, .L63+4
+	ldr	r3, .L65+4
 	mov	sp, r1
-	ldr	r0, .L63+8
+	ldr	r0, .L65+8
 	orr	r2, r2, r4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
@@ -365,9 +365,9 @@ BlitFade_Div2:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L64:
+.L66:
 	.align	2, 0
-.L63:
+.L65:
 	.word	_BLITFADE_DIV2_SIZE
 	.word	67109076
 	.word	BlitFade_Div2_ROM
@@ -382,7 +382,7 @@ BlitFadeAlt_Add:
 	mov	r7, r8
 	push	{r7}
 	mov	ip, r2
-	ldr	r2, .L67
+	ldr	r2, .L69
 	lsr	r2, r2, #2
 	mov	r6, r1
 	mov	lr, r3
@@ -394,9 +394,9 @@ BlitFadeAlt_Add:
 	mov	r7, sp
 	mov	r5, r0
 	mov	r8, sp
-	ldr	r3, .L67+4
+	ldr	r3, .L69+4
 	mov	sp, r1
-	ldr	r0, .L67+8
+	ldr	r0, .L69+8
 	orr	r2, r2, r4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
@@ -413,9 +413,9 @@ BlitFadeAlt_Add:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L68:
+.L70:
 	.align	2, 0
-.L67:
+.L69:
 	.word	_BLITFADE_ALT_ADD_SIZE
 	.word	67109076
 	.word	BlitFadeAlt_Add_ROM
@@ -430,7 +430,7 @@ BlitFadeAlt_Sub:
 	mov	r7, r8
 	push	{r7}
 	mov	ip, r2
-	ldr	r2, .L71
+	ldr	r2, .L73
 	lsr	r2, r2, #2
 	mov	r6, r1
 	mov	lr, r3
@@ -442,9 +442,9 @@ BlitFadeAlt_Sub:
 	mov	r7, sp
 	mov	r5, r0
 	mov	r8, sp
-	ldr	r3, .L71+4
+	ldr	r3, .L73+4
 	mov	sp, r1
-	ldr	r0, .L71+8
+	ldr	r0, .L73+8
 	orr	r2, r2, r4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
@@ -461,9 +461,9 @@ BlitFadeAlt_Sub:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L72:
+.L74:
 	.align	2, 0
-.L71:
+.L73:
 	.word	_BLITFADE_ALT_SUB_SIZE
 	.word	67109076
 	.word	BlitFadeAlt_Sub_ROM
@@ -478,7 +478,7 @@ BlitFadeAlt_Div4:
 	mov	r7, r8
 	push	{r7}
 	mov	ip, r2
-	ldr	r2, .L75
+	ldr	r2, .L77
 	lsr	r2, r2, #2
 	lsl	r3, r2, #2
 	mov	r6, r1
@@ -489,9 +489,9 @@ BlitFadeAlt_Div4:
 	mov	r7, sp
 	mov	r5, r0
 	mov	r8, sp
-	ldr	r3, .L75+4
+	ldr	r3, .L77+4
 	mov	sp, r1
-	ldr	r0, .L75+8
+	ldr	r0, .L77+8
 	orr	r2, r2, r4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
@@ -507,9 +507,9 @@ BlitFadeAlt_Div4:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L76:
+.L78:
 	.align	2, 0
-.L75:
+.L77:
 	.word	_BLITFADE_ALT_DIV4_SIZE
 	.word	67109076
 	.word	BlitFadeAlt_Div4_ROM
@@ -524,7 +524,7 @@ BlitFadeAlt_Div2:
 	mov	r7, r8
 	push	{r7}
 	mov	ip, r2
-	ldr	r2, .L79
+	ldr	r2, .L81
 	lsr	r2, r2, #2
 	lsl	r3, r2, #2
 	mov	r6, r1
@@ -535,9 +535,9 @@ BlitFadeAlt_Div2:
 	mov	r7, sp
 	mov	r5, r0
 	mov	r8, sp
-	ldr	r3, .L79+4
+	ldr	r3, .L81+4
 	mov	sp, r1
-	ldr	r0, .L79+8
+	ldr	r0, .L81+8
 	orr	r2, r2, r4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
@@ -553,9 +553,9 @@ BlitFadeAlt_Div2:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L80:
+.L82:
 	.align	2, 0
-.L79:
+.L81:
 	.word	_BLITFADE_ALT_DIV2_SIZE
 	.word	67109076
 	.word	BlitFadeAlt_Div2_ROM

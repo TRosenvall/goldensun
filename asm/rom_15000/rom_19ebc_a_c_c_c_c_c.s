@@ -19,17 +19,17 @@ LoadPortrait:
 	mov	r7, r2
 	bl	galloc_iwram
 	mov	r6, r0
-	ldr	r0, .L13
+	ldr	r0, .L15
 	bl	GetFile
 	mov	r3, r5
 	cmp	r5, #127
-	bls	.L10
+	bls	.L12
 	sub	r3, r3, #112
-.L10:
+.L12:
 	.code	16
 	lsl	r3, r3, #1
 	ldrh	r3, [r3, r0]
-	ldr	r1, .L13+4
+	ldr	r1, .L15+4
 	add	r5, r0, r3
 	mov	r3, r5
 	add	r2, r6, r1
@@ -48,10 +48,10 @@ LoadPortrait:
 	bl	LoadIcon
 	ldr	r2, [sp, #24]
 	cmp	r2, #0
-	bne	.L11
+	bne	.L13
 	bl	AllocSpriteSlot
 	str	r0, [r7]
-.L11:
+.L13:
 	mov	r3, #128
 	lsl	r3, r3, #3
 	mov	r1, #128
@@ -64,12 +64,12 @@ LoadPortrait:
 	mov	r0, #17
 	bl	gfree
 	ldr	r1, [sp, #20]
-	ldr	r2, .L13+8
+	ldr	r2, .L15+8
 	lsl	r1, r1, #5
 	add	r1, r1, r2
-	ldr	r3, .L13+12
+	ldr	r3, .L15+12
 	mov	r0, r5
-	ldr	r2, .L13+16
+	ldr	r2, .L15+16
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -78,9 +78,9 @@ LoadPortrait:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L14:
+.L16:
 	.align	2, 0
-.L13:
+.L15:
 	.word	_FILE_f0
 	.word	1540
 	.word	83886592

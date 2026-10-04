@@ -8,20 +8,20 @@
 	.thumb_func
 	.type	 Func_8011568,function
 Func_8011568:
-	ldr	r2, .L15
-	ldr	r3, .L15+4
+	ldr	r2, .L17
+	ldr	r3, .L17+4
 	strh	r2, [r3]
 	add	r3, r3, #202
-	ldr	r0, .L15+8
-	ldr	r1, .L15+12
-	ldr	r2, .L15+16
+	ldr	r0, .L17+8
+	ldr	r1, .L17+12
+	ldr	r2, .L17+16
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	bx	lr
-.L16:
+.L18:
 	.align	2, 0
-.L15:
+.L17:
 	.word	1666
 	.word	67108874
 	.word	gBuffer

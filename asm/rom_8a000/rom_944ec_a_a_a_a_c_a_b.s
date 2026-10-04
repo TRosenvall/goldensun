@@ -25,33 +25,33 @@ Func_8094730:
 	mov	r0, sp
 	str	r3, [r0]
 	mov	r1, r4
-	ldr	r3, .L14
-	ldr	r2, .L14+4
+	ldr	r3, .L16
+	ldr	r2, .L16+4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	mov	r2, #128
 	mov	r1, r3
 	lsl	r2, r2, #24
-.L13:
+.L15:
 	ldr	r3, [r1, #8]
 	and	r3, r3, r2
 	cmp	r3, #0
-	bne	.L13
-	ldr	r2, .L14+8
+	bne	.L15
+	ldr	r2, .L16+8
 	add	r3, r4, r2
 	add	r2, r2, #7
 	strb	r5, [r3]
 	add	r3, r4, r2
 	str	r6, [r3]
-	ldr	r3, .L14+12
+	ldr	r3, .L16+12
 	add	r2, r4, r3
 	ldr	r3, [sp, #24]
 	str	r3, [r2]
-	ldr	r2, .L14+16
+	ldr	r2, .L16+16
 	add	r3, r4, r2
 	str	r7, [r3]
-	ldr	r3, .L14+20
+	ldr	r3, .L16+20
 	add	r2, r4, r3
 	ldr	r3, [sp, #32]
 	str	r3, [r2]
@@ -60,17 +60,17 @@ Func_8094730:
 	add	r3, r4, r2
 	mov	r2, r8
 	str	r2, [r3]
-	ldr	r3, .L14+24
+	ldr	r3, .L16+24
 	add	r2, r4, r3
 	ldr	r3, [sp, #28]
 	mov	r1, #200
 	str	r3, [r2]
 	lsl	r1, r1, #4
-	ldr	r0, .L14+28
+	ldr	r0, .L16+28
 	bl	StartTask
 	mov	r1, #144
 	lsl	r1, r1, #3
-	ldr	r0, .L14+32
+	ldr	r0, .L16+32
 	bl	StartTask
 	add	sp, sp, #4
 	pop	{r3}
@@ -78,9 +78,9 @@ Func_8094730:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L15:
+.L17:
 	.align	2, 0
-.L14:
+.L16:
 	.word	67109076
 	.word	-2063596600
 	.word	3841

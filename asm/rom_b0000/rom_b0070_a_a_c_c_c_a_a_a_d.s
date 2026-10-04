@@ -43,19 +43,19 @@ Func_80b1614:
 	mov	sl, r0
 	cmp	r0, #0
 	bne	.LCB33
-	b	.L10	@long jump
+	b	.L12	@long jump
 .LCB33:
 	bl	AllocSpriteSlot
 	str	r0, [sp, #4]
 	cmp	r0, #96
 	bne	.LCB38
-	b	.L10	@long jump
+	b	.L12	@long jump
 .LCB38:
 	mov	r1, #128
 	lsl	r1, r1, #1
 	mov	r2, #0
 	bl	UploadSpriteGFX
-	ldr	r5, .L22+4
+	ldr	r5, .L24+4
 	ldr	r0, [sp, #4]
 	mov	r1, r5
 	mov	r2, sl
@@ -70,59 +70,59 @@ Func_80b1614:
 	bl	_Func_801eadc
 	ldrh	r1, [r0, #24]
 	lsl	r2, r1, #22
-	ldrh	r3, .L22
+	ldrh	r3, .L24
 	lsr	r2, r2, #22
 	add	r2, r2, #4
 	and	r2, r2, r3
-	ldr	r3, .L22+8
+	ldr	r3, .L24+8
 	and	r3, r3, r1
 	orr	r3, r3, r2
 	strh	r3, [r0, #24]
-	b	.L12
-.L23:
+	b	.L14
+.L25:
 	.align	2, 0
-.L22:
+.L24:
 	.word	1023
 	.word	1073758208
 	.word	-1024
-.L16:
-	ldr	r5, .L24
+.L18:
+	ldr	r5, .L26
 	ldr	r3, [r5]
 	mov	r2, #32
 	and	r3, r3, r2
 	cmp	r3, #0
-	beq	.L17
+	beq	.L19
 	mov	r0, #111
 	bl	_PlaySound
 	mov	r3, #1
 	str	r3, [sp, #8]
 	sub	r7, r7, #1
-.L17:
+.L19:
 	ldr	r3, [r5]
 	mov	r2, #16
 	and	r3, r3, r2
 	cmp	r3, #0
-	beq	.L18
+	beq	.L20
 	mov	r0, #111
 	bl	_PlaySound
 	mov	r2, #1
 	str	r2, [sp, #8]
 	add	r7, r7, #1
-.L18:
+.L20:
 	ldr	r3, [sp, #8]
 	cmp	r3, #0
-	beq	.L19
+	beq	.L21
 	mov	r3, r9
 	mov	r2, #0
 	add	r0, r7, r3
 	mov	r1, r9
 	str	r2, [sp, #8]
 	bl	__modsi3
-	ldr	r3, .L24+4
+	ldr	r3, .L26+4
 	mov	r7, r0
 	mov	r1, r8
-	ldr	r0, .L24+8
-	ldr	r2, .L24+12
+	ldr	r0, .L26+8
+	ldr	r2, .L26+12
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -165,43 +165,43 @@ Func_80b1614:
 	mov	r3, #88
 	str	r6, [sp]
 	bl	_Func_801ea08
-	ldr	r0, .L24+16
+	ldr	r0, .L26+16
 	mov	r1, sl
 	mov	r2, #136
 	mov	r3, #0
 	bl	_Func_801e7c0
-.L19:
+.L21:
 	mov	r0, #1
 	bl	WaitFrames
-.L12:
-	ldr	r2, .L24+20
+.L14:
+	ldr	r2, .L26+20
 	ldr	r3, [r2]
 	mov	r2, #1
 	and	r3, r3, r2
 	cmp	r3, #0
-	beq	.L15
+	beq	.L17
 	mov	r0, #112
 	bl	_PlaySound
 	add	r5, r7, #1
-	b	.L13
-.L15:
-	ldr	r3, .L24+20
+	b	.L15
+.L17:
+	ldr	r3, .L26+20
 	ldr	r6, [r3]
 	mov	r3, #2
 	and	r6, r6, r3
 	cmp	r6, #0
-	beq	.L16
+	beq	.L18
 	mov	r0, #113
 	bl	_PlaySound
 	mov	r5, #1
 	neg	r5, r5
-.L13:
+.L15:
 	mov	r0, #1
 	bl	WaitFrames
 	mov	r0, sl
 	mov	r1, #2
 	bl	_CloseUIBox
-.L10:
+.L12:
 	mov	r0, #14
 	bl	gfree
 	mov	r0, r5
@@ -214,9 +214,9 @@ Func_80b1614:
 	pop	{r5, r6, r7}
 	pop	{r1}
 	bx	r1
-.L25:
+.L27:
 	.align	2, 0
-.L24:
+.L26:
 	.word	gKeyRepeat
 	.word	67109076
 	.word	.Lb3f80

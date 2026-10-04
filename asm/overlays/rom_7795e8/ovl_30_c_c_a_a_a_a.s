@@ -10,22 +10,22 @@
 OvlFunc_880_2008054:
 	push	{r5, r6, lr}
 	mov	r0, #0
-	ldr	r5, .L21+4
+	ldr	r5, .L23+4
 	bl	__Func_8003b70
-	ldr	r2, .L21+8
-	ldrh	r3, .L21
+	ldr	r2, .L23+8
+	ldrh	r3, .L23
 	strh	r3, [r2]
-	ldr	r2, .L21+12
+	ldr	r2, .L23+12
 	mov	r3, #0
 	strh	r3, [r2, #10]
 	mov	r0, r5
 	bl	__GetFile
 	mov	r1, #160
-	ldr	r6, .L21+16
+	ldr	r6, .L23+16
 	mov	r4, r0
-	ldr	r3, .L21+20
+	ldr	r3, .L23+20
 	lsl	r1, r1, #19
-	ldr	r2, .L21+24
+	ldr	r2, .L23+24
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -33,16 +33,16 @@ OvlFunc_880_2008054:
 	lsl	r2, r2, #1
 	add	r4, r4, r2
 	mov	r0, r4
-	ldr	r1, .L21+28
+	ldr	r1, .L23+28
 	bl	__DecompressLZ
-	ldr	r3, .L21+20
-	ldr	r0, .L21+28
-	ldr	r1, .L21+32
-	ldr	r2, .L21+36
-	b	.L22
-.L23:
+	ldr	r3, .L23+20
+	ldr	r0, .L23+28
+	ldr	r1, .L23+32
+	ldr	r2, .L23+36
+	b	.L24
+.L25:
 	.align	2, 0
-.L21:
+.L23:
 	.word	1665
 	.word	_FILE_1a
 	.word	67108876
@@ -53,17 +53,17 @@ OvlFunc_880_2008054:
 	.word	gBuffer
 	.word	100689920
 	.word	-2080365184
-.L22:
+.L24:
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	mov	r3, #208
-	ldr	r1, .L24+4
+	ldr	r1, .L26+4
 	lsl	r3, r3, #1
 	mov	r4, #0
-.L12:
+.L14:
 	mov	r0, #0
-.L13:
+.L15:
 	mov	r2, r3
 	mov	r5, #128
 	lsl	r3, r2, #16
@@ -74,51 +74,51 @@ OvlFunc_880_2008054:
 	asr	r3, r3, #16
 	add	r1, r1, #2
 	cmp	r0, #29
-	bls	.L13
+	bls	.L15
 	strh	r6, [r1]
 	add	r4, r4, #1
 	add	r1, r1, #2
 	strh	r6, [r1]
 	add	r1, r1, #2
 	cmp	r4, #19
-	bls	.L12
-	ldr	r3, .L24+8
+	bls	.L14
+	ldr	r3, .L26+8
 	mov	r4, #0
 	mov	r2, #0
-.L19:
+.L21:
 	add	r4, r4, #1
 	strh	r2, [r3, #2]
 	strh	r2, [r3]
 	add	r3, r3, #4
 	cmp	r4, #3
-	bls	.L19
-	ldr	r3, .L24+12
-	ldr	r0, .L24+8
-	ldr	r1, .L24+16
-	ldr	r2, .L24+20
+	bls	.L21
+	ldr	r3, .L26+12
+	ldr	r0, .L26+8
+	ldr	r1, .L26+16
+	ldr	r2, .L26+20
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	ldr	r3, .L24+24
+	ldr	r3, .L26+24
 	ldr	r2, [r3]
 	mov	r3, #160
 	lsl	r3, r3, #5
 	strh	r3, [r2, #20]
-	ldr	r3, .L24+28
+	ldr	r3, .L26+28
 	mov	r2, #250
 	lsl	r2, r2, #1
 	add	r3, r3, r2
 	ldr	r0, [r3]
 	bl	__MapActor_GetActor
-	ldrh	r5, .L24
+	ldrh	r5, .L26
 	add	r0, r0, #85
 	strb	r5, [r0]
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L25:
+.L27:
 	.align	2, 0
-.L24:
+.L26:
 	.word	0
 	.word	100675584
 	.word	iwram_3001ad0

@@ -9,7 +9,7 @@
 	.type	 Func_8015f30,function
 Func_8015f30:
 	push	{r5, lr}
-	ldr	r1, .L12
+	ldr	r1, .L14
 	mov	r0, #15
 	sub	sp, sp, #4
 	bl	galloc_ewram
@@ -18,29 +18,29 @@ Func_8015f30:
 	mov	r5, sp
 	str	r3, [r5]
 	mov	r0, r5
-	ldr	r3, .L12+4
+	ldr	r3, .L14+4
 	mov	r1, r4
-	ldr	r2, .L12+8
+	ldr	r2, .L14+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	ldr	r3, .L12+12
+	ldr	r3, .L14+12
 	add	r2, r4, r3
 	mov	r3, #1
 	strb	r3, [r2]
-	ldr	r3, .L12+16
+	ldr	r3, .L14+16
 	add	r2, r4, r3
 	mov	r3, #99
 	strh	r3, [r2]
-	ldr	r3, .L12+20
+	ldr	r3, .L14+20
 	add	r2, r4, r3
 	mov	r3, #15
 	strb	r3, [r2]
-	ldr	r3, .L12+24
+	ldr	r3, .L14+24
 	mov	r0, r5
 	str	r3, [r5]
-	ldr	r2, .L12+28
-	ldr	r3, .L12+4
+	ldr	r2, .L14+28
+	ldr	r3, .L14+4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -48,16 +48,16 @@ Func_8015f30:
 	bl	Func_8019d0c
 	mov	r1, #144
 	lsl	r1, r1, #3
-	ldr	r0, .L12+32
+	ldr	r0, .L14+32
 	bl	StartTask
 	bl	Func_80173f4
 	add	sp, sp, #4
 	pop	{r5}
 	pop	{r0}
 	bx	r0
-.L13:
+.L15:
 	.align	2, 0
-.L12:
+.L14:
 	.word	4860
 	.word	67109076
 	.word	-2063596353

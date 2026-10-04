@@ -32675,3 +32675,156 @@ It also says nothing about whether our *flags* are right per object. Nine object
 carry per-file flag groups because the original build did not use one flag set
 everywhere — ordinary, done by both projects, and a per-file discovery problem
 rather than a doubt about the compiler.
+
+# Batch 321: four of my own propagated claims refuted, and the gcc source was on this machine all along
+
+Seven agents over the verified frontier. The landings are in `reports/batch-321.md`;
+this section is the method, and most of it is corrections to things I had written
+into briefs as settled.
+
+## *** THE GCC-2.96 SOURCE IS IN THIS REPO'S PARENT DIRECTORY. USE IT. ***
+
+    ~/gs_project/camelot-gcc/gcc-2.96/gcc/
+
+This document cites `haifa-sched.c`, `local-alloc.c`, `global.c`, `reload.c` and
+`lcm.c` line numbers **in a dozen places and never once gives the path**, so every
+brief re-derives the ladder from `-da` dumps instead of reading the code. One
+brief found the tree late in its run and immediately caught a wrong sub-claim of
+its own *before shipping it*.
+
+> **A park that cites the compiler outranks your inference from dumps.** That
+> brief had "corrected" a park's statement that `insn_cost 0` shuts the `== 1`
+> escape in `rank_for_schedule`, reasoning the escape belonged only to true
+> dependences. The source tests the cost escape **before** the note kind — it is
+> kind-agnostic — and `arm_adjust_cost` returns 0 for `REG_DEP_ANTI`. **The park
+> was right down to the mechanism; the inference was not.**
+
+## CORRECTION 1: `qty_compare` HAS NO `floor_log2`. TWO FORMULAE, NOT ONE.
+
+I have written `allocno_compare`'s `floor_log2(R)*R/L` into many briefs as *the*
+allocation priority. It is **global-alloc's only**.
+
+- `global.c`'s `allocno_compare` **includes** `floor_log2` — verified, it
+  reproduces `.18.greg`'s order exactly.
+- `local-alloc.c`'s `qty_compare` **does not** — verified twice, in both
+  directions.
+
+One park had imported global-alloc's formula into a **local-alloc** decision,
+which turned a **1.3% margin into an apparent factor of three**. That substitution
+is what kept it parked; the function landed pin-free once the right formula was
+used.
+
+> **DISCRIMINATOR, AND IT IS FREE:** `.18.greg` prints `;; N regs to allocate:`.
+> **`N = 0` means local-alloc decided it, so there is no `floor_log2`.** Check
+> that line before quoting any priority arithmetic.
+
+## CORRECTION 2: THE sched2 CLASS RUNG IS NOT DEAD
+
+I recorded it as "dead twice over" — skipped at t=0, and an insn data-dependent on
+`last_scheduled_insn` still getting class 3 — and told a brief so. **Refuted, with
+a counterexample and an instrument.** On one target: priority ties 38/38, the
+dependent-count rung favours the ROM's insn **four to two**, and the ROM's insn
+still loses, because the CLASS rung separates them. Proved by instrument rather
+than argument: `register int base __asm__("r4")` moves the pool-load carrier into
+a call-used register and **the order flips to the ROM's**.
+
+Treat the ladder as the full four rungs again: `priority → CLASS → dependent
+count → INSN_LUID`. `INSN_REG_WEIGHT` remains dead (`!reload_completed`).
+
+## CORRECTION 3: THE HImode POOLING MECHANISM
+
+This tree says in five places that `*thumb_movhi_insn` "has no immediate
+alternative". **It has one** — alternative 5, constraint `I`. HImode pools
+everything because of **ALTERNATIVE ORDER**: alternative 1's source constraint is
+`mn`, `n` matches any `const_int`, and recog takes the first match, so
+alternative 5 is never reached. Probed: HImode stores of 0, 5, 0xff and 0x100 all
+pool; QImode and SImode all `mov`.
+
+The conclusion survives and the mechanism matters, because **a symbol-table
+argument depends on WHICH alternative matches first, not on whether an immediate
+one exists.** That is exactly how `_MSG_182` was admitted this batch: SImode,
+`0x182 = 0xc1 << 1`, so constraint `K` matches at alternative 3 while the pool
+path `mi` is alternative 6 — **an SImode `const_int` 0x182 can never reach the
+pool**, so the ROM's pool load proves a symbol.
+
+## CORRECTION 4: GROUPING BY NAMED PASS IS NOT GROUPING BY DECIDING RUNG
+
+I built `tools/frontier.py` to bucket the frontier by blocker keywords from park
+prose, and batched seven agents on those buckets. **Two briefs independently
+refuted their own bucket label.** One was handed four "reload" targets of which
+*none* was reload — three were sched2 and one was combine's
+`simplify_comparison` plus global-alloc. Another found two of its three residues
+decided **before any tie-break at all**, so "sched2 tie-breaking" was the wrong
+bucket for them.
+
+The buckets are still useful as a *starting hypothesis* — that is how the file
+describes them — but they name a PASS, and what matters is the **deciding rung**.
+Expect to re-derive it per target, and report it with numbers from
+`-fsched-verbose=6`.
+
+## And the lesson about where the good mechanism came from
+
+The one lever that moved more than one target in a brief **did not come from a
+park**. It came from a **landed, EXACT file in the same subsystem** — an
+alias-set-0 union member access whose effect was documented in that file's header.
+
+> **Read the landed siblings, not just the parks.** A landed header records what
+> the TU actually wanted; a park records what somebody could not make work.
+
+## NEW LEVERS AND BOUNDS FROM THIS BATCH
+
+- **Tail cross-jumping runs in jump2, AFTER sched2**, so a hand-written
+  fall-through is **not** equivalent to a duplicated tail plus `break`. Spelling
+  each switch arm's final call out explicitly gives sched2 one longer block, and
+  jump2 merges the duplicate tail back into the ROM's fall-through. Landed a
+  function and refuted that park's bound that the arms had to be fall-throughs.
+- **sched2 transposes every argument pair except the last one in its basic
+  block** — so an argument-order residue can be a question about *where the block
+  ends*, not about registers.
+- **The alias-set lever is DIRECTIONAL and AIMABLE.** Typing *one* of two byte
+  stores drops its priority; typing **both cancels** — which is why an earlier
+  batch recorded typing as inert. And the lever extends past memory: where the
+  residue is a *register copy* that no alias set can depend on, the same edge
+  still closes it by **raising the rival chain's priority**. So it applies
+  wherever sched2 picked the wrong one of two *ready* insns.
+- **`packed` is for structs whose layout gcc chooses.** On a pad-array struct it
+  measures 552 of 319 at 563 instructions — it cannot move a layout already
+  pinned by pads, only drop alignment.
+- **`DIFFERENT_ALIAS_SETS_P` can never fire against a reload spill slot** — the
+  slot prints as alias set 0. The alias lever is live in general; it cannot reach
+  a spill-slot competitor.
+- **An inline-asm clobber list cannot narrow a volatile asm's scheduling deps** —
+  `__asm__ volatile ("" ::: "r5")` is byte-identical to the empty form.
+- **You cannot give a reload-materialised constant an extra dependent from C** —
+  every expression relating two compile-time constants folds before sched2.
+- **SCREEN ALLOCATION EDITS BY `.17.lreg`, NOT BY THE FIGURE.** Sixteen variants
+  of one function read a dead-flat figure with **bit-identical allocator inputs**
+   — so the flatness meant *the edit never happened*, not *the lever is inert*.
+
+## A PARK CARRYING A PIN HAS NOT NECESSARILY RE-MEASURED WHETHER IT NEEDS IT
+
+One target landed at **0 by deleting its own pin and changing nothing else.** An
+earlier batch had held it on debt with a diagnosis of declaration order — and the
+depin works at *both* declaration orders, so the reordering and the depin are
+independent, and declaration order is exactly inert once the pin is gone.
+
+> **Delete a park's pins and measure before anything else. That is one compile.**
+> This is the same finding as batch 320's free-depin sweep, arriving from the
+> other direction: there it was 14 of 25 *landed* files, here it is a *parked* one
+> whose pin was the entire blocker.
+
+## TWO BUGS IN THE TOOLS I BUILT LAST BATCH, BOTH FOUND BY AGENTS
+
+- **`crossfire.py`'s MEM screen fired on every row including BASE.** It profiled
+  the candidate by grepping the `.s` while profiling the reference by
+  assemble-and-objdump — and gcc spells a HImode pool reference `ldrh r5, .L20`,
+  which **assembles to a plain `ldr`** because Thumb-1 has no PC-relative
+  halfword load. Grepped: `ldr=34 ldrh=2`. Objdumped: `ldr=35 ldrh=1`. **This is
+  the identical-encoding trap this document has recorded since batch 71, built
+  into the tool written to enforce it.** Fixed: both sides now objdump.
+- **`install_batch.py` refused a correct batch after its own splits phase.** The
+  manifest describes the **pre-split** tree, `split_s.py` consumes the original
+  `.s`, so at install time the `reference` and `split.file` legitimately no longer
+  exist — and validation reported that as four hard errors. **A phase tool has to
+  know which phase it is in.** Fixed: it detects the post-split state and warns
+  instead of failing, and the splits phase skips a split already applied.

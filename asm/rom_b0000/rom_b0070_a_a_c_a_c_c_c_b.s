@@ -25,10 +25,10 @@ Func_80b0744:
 	mov	r3, #0
 	mov	r6, r0
 	mov	r9, r3
-	ldr	r0, .L16
-	ldr	r3, .L16+4
+	ldr	r0, .L18
+	ldr	r3, .L18+4
 	mov	r1, r6
-	ldr	r2, .L16+8
+	ldr	r2, .L18+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -43,7 +43,7 @@ Func_80b0744:
 	bl	__divsi3
 	mov	r5, r0
 	cmp	r5, #0
-	beq	.L11
+	beq	.L13
 	mov	r1, #10
 	bl	__modsi3
 	mov	r1, r6
@@ -54,7 +54,7 @@ Func_80b0744:
 	bl	__divsi3
 	mov	r5, r0
 	cmp	r5, #0
-	beq	.L11
+	beq	.L13
 	mov	r1, #10
 	bl	__modsi3
 	mov	r1, r6
@@ -65,7 +65,7 @@ Func_80b0744:
 	bl	__divsi3
 	mov	r5, r0
 	cmp	r5, #0
-	beq	.L11
+	beq	.L13
 	mov	r1, #10
 	bl	__modsi3
 	mov	r1, r6
@@ -75,29 +75,29 @@ Func_80b0744:
 	mov	r1, #10
 	bl	__divsi3
 	cmp	r0, #0
-	beq	.L11
+	beq	.L13
 	mov	r1, #10
 	bl	__modsi3
 	mov	r1, r6
 	mov	r2, #4
 	bl	Func_80b06ec
-.L11:
+.L13:
 	bl	AllocSpriteSlot
 	mov	r5, r0
 	cmp	r5, #96
-	beq	.L15
+	beq	.L17
 	mov	r1, #128
 	lsl	r1, r1, #1
 	mov	r2, r6
 	bl	UploadSpriteGFX
-	ldr	r1, .L16+12
+	ldr	r1, .L18+12
 	mov	r0, r5
 	mov	r2, r8
 	mov	r3, sl
 	str	r7, [sp]
 	bl	_Func_801eadc
 	mov	r9, r0
-.L15:
+.L17:
 	mov	r0, #14
 	bl	gfree
 	mov	r0, r9
@@ -109,9 +109,9 @@ Func_80b0744:
 	pop	{r5, r6, r7}
 	pop	{r1}
 	bx	r1
-.L17:
+.L19:
 	.align	2, 0
-.L16:
+.L18:
 	.word	.Lb3e80
 	.word	67109076
 	.word	-2080374720

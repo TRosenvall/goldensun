@@ -9,17 +9,17 @@
 	.type	 OvlFunc_932_200b9c8,function
 OvlFunc_932_200b9c8:
 	push	{r5, r6, lr}
-	ldr	r3, .L15+4
-	ldr	r4, .L15+8
+	ldr	r3, .L17+4
+	ldr	r4, .L17+8
 	ldr	r6, [r3]
 	mov	r2, #0
 	ldrsh	r3, [r4, r2]
 	cmp	r3, #0
-	bgt	.L11
-.L12:
-	ldr	r1, .L15+12
+	bgt	.L13
+.L14:
+	ldr	r1, .L17+12
 	ldrh	r3, [r1]
-	ldr	r5, .L15+16
+	ldr	r5, .L17+16
 	add	r2, r3, #1
 	lsl	r3, r3, #16
 	asr	r3, r3, #16
@@ -28,44 +28,44 @@ OvlFunc_932_200b9c8:
 	neg	r3, r3
 	strh	r2, [r1]
 	cmp	r0, r3
-	bne	.L13
-	ldrh	r3, .L15
+	bne	.L15
+	ldrh	r3, .L17
 	strh	r3, [r1]
-	b	.L12
-.L16:
+	b	.L14
+.L18:
 	.align	2, 0
-.L15:
+.L17:
 	.word	0
 	.word	iwram_3001ed0
 	.word	.L525c
 	.word	.L5260
 	.word	s8_ARRAY_932__0200bd28
-.L13:
+.L15:
 	add	r3, r2, #1
 	strh	r3, [r1]
 	lsl	r3, r2, #16
 	asr	r3, r3, #16
 	ldrsb	r3, [r5, r3]
-	ldr	r4, .L17
+	ldr	r4, .L19
 	lsl	r0, r0, #1
 	strh	r3, [r4]
 	add	r0, r6, r0
-	ldr	r3, .L17+4
-	ldr	r1, .L17+8
-	ldr	r2, .L17+12
+	ldr	r3, .L19+4
+	ldr	r1, .L19+8
+	ldr	r2, .L19+12
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-.L11:
+.L13:
 	ldrh	r3, [r4]
 	sub	r3, r3, #1
 	strh	r3, [r4]
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L18:
+.L20:
 	.align	2, 0
-.L17:
+.L19:
 	.word	.L525c
 	.word	67109076
 	.word	83886086

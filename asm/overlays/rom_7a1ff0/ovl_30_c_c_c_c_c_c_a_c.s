@@ -9,18 +9,18 @@
 	.type	 OvlFunc_914_2008c0c,function
 OvlFunc_914_2008c0c:
 	push	{lr}
-	ldr	r3, .L15
+	ldr	r3, .L17
 	ldr	r1, [r3]
 	cmp	r0, #0
-	beq	.L10
-	ldr	r3, .L15+4
-	ldr	r0, .L15+8
-	b	.L14
-.L10:
-	ldr	r3, .L15+4
-	ldr	r0, .L15+12
-.L14:
-	ldr	r2, .L15+16
+	beq	.L12
+	ldr	r3, .L17+4
+	ldr	r0, .L17+8
+	b	.L16
+.L12:
+	ldr	r3, .L17+4
+	ldr	r0, .L17+12
+.L16:
+	ldr	r2, .L17+16
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -31,9 +31,9 @@ OvlFunc_914_2008c0c:
 	bl	OvlFunc_914_2008bcc
 	pop	{r0}
 	bx	r0
-.L16:
+.L18:
 	.align	2, 0
-.L15:
+.L17:
 	.word	iwram_3001ed0
 	.word	67109076
 	.word	.L17b0

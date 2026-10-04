@@ -9,58 +9,58 @@
 	.type	 Func_80907b0,function
 Func_80907b0:
 	push	{r5, lr}
-	ldr	r3, .L21
+	ldr	r3, .L23
 	sub	sp, sp, #4
 	ldr	r5, [r3]
-	ldr	r3, .L21+4
+	ldr	r3, .L23+4
 	mov	r4, r0
 	mov	r0, sp
 	str	r3, [r0]
-	ldr	r1, .L21+8
-	ldr	r3, .L21+12
-	ldr	r2, .L21+16
+	ldr	r1, .L23+8
+	ldr	r3, .L23+12
+	ldr	r2, .L23+16
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	mov	r2, #1
 	neg	r2, r2
 	cmp	r4, r2
-	beq	.L11
+	beq	.L13
 	mov	r1, #0
 	mov	r3, #7
-.L15:
+.L17:
 	lsl	r1, r1, #4
 	sub	r3, r3, #1
 	orr	r1, r1, r4
 	cmp	r3, #0
-	bge	.L15
+	bge	.L17
 	mov	r3, #161
 	lsl	r3, r3, #3
 	add	r2, r5, r3
 	mov	r3, #7
-.L19:
+.L21:
 	sub	r3, r3, #1
 	stmia	r2!, {r1}
 	cmp	r3, #0
-	bge	.L19
+	bge	.L21
 	mov	r2, #161
 	lsl	r2, r2, #3
 	mov	r1, #192
 	add	r0, r5, r2
-	ldr	r3, .L21+12
+	ldr	r3, .L23+12
 	lsl	r1, r1, #19
-	ldr	r2, .L21+20
+	ldr	r2, .L23+20
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-.L11:
+.L13:
 	add	sp, sp, #4
 	pop	{r5}
 	pop	{r0}
 	bx	r0
-.L22:
+.L24:
 	.align	2, 0
-.L21:
+.L23:
 	.word	iwram_3001ecc
 	.word	-268374016
 	.word	100671488

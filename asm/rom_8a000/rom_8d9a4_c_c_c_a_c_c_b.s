@@ -19,14 +19,14 @@ Func_8091494:
 	lsl	r1, r1, #3
 	mov	r0, #14
 	bl	galloc_iwram
-	ldr	r3, .L13
+	ldr	r3, .L15
 	mov	r4, r0
 	mov	r5, sp
 	str	r3, [r5]
 	mov	r0, r5
-	ldr	r3, .L13+4
+	ldr	r3, .L15+4
 	mov	r1, r4
-	ldr	r2, .L13+8
+	ldr	r2, .L15+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -39,10 +39,10 @@ Func_8091494:
 	bl	gfree
 	mov	r1, #200
 	lsl	r1, r1, #4
-	ldr	r0, .L13+12
+	ldr	r0, .L15+12
 	bl	StartTask
-	ldr	r2, .L13+16
-	ldr	r3, .L13+20
+	ldr	r2, .L15+16
+	ldr	r3, .L15+20
 	strh	r2, [r3]
 	mov	r2, #16
 	add	r3, r3, #2
@@ -53,30 +53,30 @@ Func_8091494:
 	mov	r3, #0
 	str	r3, [r5]
 	mov	r0, r5
-	ldr	r3, .L13+4
+	ldr	r3, .L15+4
 	mov	r1, r7
-	ldr	r2, .L13+24
+	ldr	r2, .L15+24
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	cmp	r6, #0
-	bne	.L12
-	ldr	r3, .L13+28
+	bne	.L14
+	ldr	r3, .L15+28
 	mov	r2, #250
 	lsl	r2, r2, #1
 	add	r3, r3, r2
 	ldr	r0, [r3]
 	bl	GetFieldActor
 	mov	r6, r0
-.L12:
+.L14:
 	str	r6, [r7, #24]
 	add	sp, sp, #4
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L14:
+.L16:
 	.align	2, 0
-.L13:
+.L15:
 	.word	286331153
 	.word	67109076
 	.word	-2063597440

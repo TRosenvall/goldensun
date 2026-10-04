@@ -9,7 +9,7 @@
 	.type	 Func_80060e8,function
 Func_80060e8:
 	push	{r5, lr}
-	ldr	r4, .L19+4
+	ldr	r4, .L21+4
 	ldr	r1, [r4, #40]
 	ldrb	r3, [r4, #11]
 	strb	r3, [r1]
@@ -19,50 +19,50 @@ Func_80060e8:
 	eor	r3, r3, r2
 	strb	r3, [r1, #1]
 	strh	r5, [r1, #2]
-	ldr	r3, .L19+8
+	ldr	r3, .L21+8
 	add	r1, r1, #4
-	ldr	r2, .L19+12
+	ldr	r2, .L21+12
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	ldr	r2, [r4, #40]
 	mov	r1, #0
-.L14:
+.L16:
 	ldrh	r3, [r2]
 	add	r1, r1, #1
 	add	r2, r2, #2
 	add	r5, r5, r3
 	cmp	r1, #13
-	bls	.L14
+	bls	.L16
 	ldr	r3, [r4, #40]
 	mvn	r2, r5
 	strh	r2, [r3, #2]
 	ldrb	r3, [r4]
 	cmp	r3, #0
-	beq	.L16
-	ldr	r2, .L19+16
+	beq	.L18
+	ldr	r2, .L21+16
 	mov	r3, #0
 	strh	r3, [r2]
-.L16:
+.L18:
 	mov	r3, #1
 	neg	r3, r3
 	str	r3, [r4, #20]
 	ldrb	r3, [r4]
 	cmp	r3, #0
-	beq	.L17
+	beq	.L19
 	ldrb	r3, [r4, #8]
 	cmp	r3, #0
-	beq	.L17
-	ldr	r2, .L19+16
-	ldrh	r3, .L19
+	beq	.L19
+	ldr	r2, .L21+16
+	ldrh	r3, .L21
 	strh	r3, [r2]
-.L17:
+.L19:
 	pop	{r5}
 	pop	{r0}
 	bx	r0
-.L20:
+.L22:
 	.align	2, 0
-.L19:
+.L21:
 	.word	192
 	.word	ewram_2002240
 	.word	67109076

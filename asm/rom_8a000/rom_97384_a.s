@@ -9,48 +9,48 @@
 	.type	 Func_8097384,function
 Func_8097384:
 	push	{r5, lr}
-	ldr	r3, .L22
+	ldr	r3, .L24
 	mov	r2, #154
 	ldr	r5, [r3, #20]
 	lsl	r2, r2, #5
 	ldr	r4, [r3]
 	add	r0, r5, r2
-	ldr	r2, .L22+4
-	ldr	r3, .L22+8
+	ldr	r2, .L24+4
+	ldr	r3, .L24+8
 	add	r1, r4, r2
-	ldr	r2, .L22+12
+	ldr	r2, .L24+12
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	ldr	r2, .L22+16
+	ldr	r2, .L24+16
 	add	r3, r4, r2
 	mov	r2, #0
 	ldrsh	r3, [r3, r2]
 	cmp	r3, #0
-	bne	.L11
+	bne	.L13
 	mov	r2, #224
 	lsl	r2, r2, #4
 	add	r0, r5, r2
-	ldr	r2, .L22+20
-	ldr	r3, .L22+8
+	ldr	r2, .L24+20
+	ldr	r3, .L24+8
 	add	r1, r4, r2
-	ldr	r2, .L22+12
+	ldr	r2, .L24+12
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-.L11:
+.L13:
 	mov	r2, #224
 	lsl	r2, r2, #4
 	add	r0, r5, r2
 	mov	r2, #224
 	lsl	r2, r2, #2
 	add	r1, r5, r2
-	ldr	r3, .L22+8
-	ldr	r2, .L22+24
+	ldr	r3, .L24+8
+	ldr	r2, .L24+24
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	ldr	r3, .L22+28
+	ldr	r3, .L24+28
 	mov	r0, #164
 	ldr	r5, [r3]
 	lsl	r0, r0, #1
@@ -58,55 +58,55 @@ Func_8097384:
 	and	r5, r5, r3
 	bl	_GetFlag
 	cmp	r0, #0
-	beq	.L14
+	beq	.L16
 	mov	r5, #0
-.L14:
-	ldr	r0, .L22+32
+.L16:
+	ldr	r0, .L24+32
 	bl	_GetFlag
 	cmp	r0, #0
-	beq	.L15
+	beq	.L17
 	mov	r5, #1
-.L15:
+.L17:
 	mov	r0, #165
 	lsl	r0, r0, #1
 	bl	_GetFlag
 	cmp	r0, #0
-	beq	.L16
+	beq	.L18
 	mov	r5, #2
-.L16:
-	ldr	r0, .L22+36
+.L18:
+	ldr	r0, .L24+36
 	bl	_GetFlag
 	cmp	r0, #0
-	beq	.L17
+	beq	.L19
 	mov	r5, #3
-.L17:
+.L19:
 	mov	r0, #166
 	lsl	r0, r0, #1
 	bl	_GetFlag
 	cmp	r0, #0
-	beq	.L18
+	beq	.L20
 	mov	r5, #4
-.L18:
-	ldr	r0, .L22+40
+.L20:
+	ldr	r0, .L24+40
 	bl	_GetFlag
 	cmp	r0, #0
-	beq	.L19
+	beq	.L21
 	mov	r5, #5
-.L19:
+.L21:
 	mov	r0, #167
 	lsl	r0, r0, #1
 	bl	_GetFlag
 	cmp	r0, #0
-	beq	.L20
+	beq	.L22
 	mov	r5, #6
-.L20:
-	ldr	r0, .L22+44
+.L22:
+	ldr	r0, .L24+44
 	bl	_GetFlag
 	cmp	r0, #0
-	beq	.L21
+	beq	.L23
 	mov	r5, #7
-.L21:
-	ldr	r3, .L22+48
+.L23:
+	ldr	r3, .L24+48
 	lsl	r2, r5, #2
 	ldr	r0, [r3, r2]
 	mov	r1, #1
@@ -116,9 +116,9 @@ Func_8097384:
 	pop	{r5}
 	pop	{r0}
 	bx	r0
-.L23:
+.L25:
 	.align	2, 0
-.L22:
+.L24:
 	.word	iwram_3001ebc
 	.word	1910
 	.word	67109076

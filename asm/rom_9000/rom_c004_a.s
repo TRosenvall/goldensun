@@ -27,50 +27,50 @@ InitActors:
 	mov	r5, #0
 	mov	r4, sp
 	str	r5, [r4]
-	ldr	r3, .L16
+	ldr	r3, .L18
 	mov	r0, r4
 	mov	r1, r6
-	ldr	r2, .L16+4
+	ldr	r2, .L18+4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	str	r5, [r4]
 	mov	r0, r4
 	mov	r1, r8
-	ldr	r2, .L16+8
+	ldr	r2, .L18+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	cmp	r7, #4
-	bne	.L12
-	ldr	r0, .L16+12
-	ldr	r1, .L16+16
-	bl	StartTask
-	b	.L13
-.L12:
-	ldr	r0, .L16+20
-	ldr	r1, .L16+16
-	bl	StartTask
-.L13:
-	sub	r3, r7, #3
-	cmp	r3, #1
-	bhi	.L14
-	mov	r1, #200
-	ldr	r0, .L16+24
-	lsl	r1, r1, #4
+	bne	.L14
+	ldr	r0, .L18+12
+	ldr	r1, .L18+16
 	bl	StartTask
 	b	.L15
 .L14:
+	ldr	r0, .L18+20
+	ldr	r1, .L18+16
+	bl	StartTask
+.L15:
+	sub	r3, r7, #3
+	cmp	r3, #1
+	bhi	.L16
 	mov	r1, #200
-	ldr	r0, .L16+28
+	ldr	r0, .L18+24
 	lsl	r1, r1, #4
 	bl	StartTask
-	ldr	r3, .L16+32
+	b	.L17
+.L16:
+	mov	r1, #200
+	ldr	r0, .L18+28
+	lsl	r1, r1, #4
+	bl	StartTask
+	ldr	r3, .L18+32
 	mov	r2, #0
 	str	r2, [r3]
-	ldr	r3, .L16+36
+	ldr	r3, .L18+36
 	str	r2, [r3]
-.L15:
+.L17:
 	mov	r1, r8
 	mov	r2, #0
 	mov	r3, #15
@@ -82,9 +82,9 @@ InitActors:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L17:
+.L19:
 	.align	2, 0
-.L16:
+.L18:
 	.word	67109076
 	.word	-2063595776
 	.word	-2063597545

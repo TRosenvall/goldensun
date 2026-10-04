@@ -9,12 +9,12 @@
 	.type	 Func_8005d10,function
 Func_8005d10:
 	push	{r5, r6, r7, lr}
-	ldr	r6, .L23+4
+	ldr	r6, .L25+4
 	ldrh	r3, [r6]
 	sub	sp, sp, #4
 	mov	r7, r3
 	strh	r6, [r6]
-	ldr	r5, .L23+8
+	ldr	r5, .L25+8
 	mov	r0, #7
 	mov	r1, #0
 	mov	r2, r5
@@ -23,11 +23,11 @@ Func_8005d10:
 	mov	r1, #0
 	mov	r2, r5
 	bl	SetIntrHandler
-	ldrh	r4, .L23
+	ldrh	r4, .L25
 	mov	r3, r6
 	strh	r4, [r3]
-	ldr	r1, .L23+12
-	ldr	r3, .L23+16
+	ldr	r1, .L25+12
+	ldr	r3, .L25+16
 	ldrh	r2, [r1]
 	and	r3, r3, r2
 	strh	r3, [r1]
@@ -37,30 +37,30 @@ Func_8005d10:
 	mov	r3, r0
 	and	r3, r3, r2
 	cmp	r3, #0
-	beq	.L14
+	beq	.L16
 	strh	r0, [r1]
-	b	.L24
-.L25:
+	b	.L26
+.L27:
 	.align	2, 0
-.L23:
+.L25:
 	.word	0
 	.word	67109384
 	.word	Func_8006240
 	.word	67109376
 	.word	65343
-.L24:
-.L14:
+.L26:
+.L16:
 	ldrh	r2, [r1]
 	mov	r0, #64
 	mov	r3, r0
 	and	r3, r3, r2
 	cmp	r3, #0
-	beq	.L15
+	beq	.L17
 	strh	r0, [r1]
-.L15:
-	ldr	r2, .L26+12
-	ldrh	r3, .L26
-	ldr	r1, .L26+16
+.L17:
+	ldr	r2, .L28+12
+	ldrh	r3, .L28
+	ldr	r1, .L28+16
 	strh	r3, [r2]
 	mov	r3, #128
 	lsl	r3, r3, #5
@@ -70,24 +70,24 @@ Func_8005d10:
 	lsl	r3, r3, #6
 	strh	r4, [r2]
 	str	r3, [r1]
-	ldrh	r2, .L26+4
+	ldrh	r2, .L28+4
 	ldrh	r3, [r1]
 	orr	r3, r3, r2
 	strh	r3, [r1]
-	ldr	r2, .L26+20
-	ldrh	r3, .L26+8
+	ldr	r2, .L28+20
+	ldrh	r3, .L28+8
 	mov	ip, r2
 	strh	r3, [r6]
 	mov	r0, sp
 	mov	r3, #0
 	str	r3, [r0]
 	mov	r1, ip
-	ldr	r3, .L26+24
-	ldr	r2, .L26+28
-	b	.L27
-.L28:
+	ldr	r3, .L28+24
+	ldr	r2, .L28+28
+	b	.L29
+.L30:
 	.align	2, 0
-.L26:
+.L28:
 	.word	32768
 	.word	16387
 	.word	1
@@ -96,7 +96,7 @@ Func_8005d10:
 	.word	ewram_2002240
 	.word	67109076
 	.word	-2063597480
-.L27:
+.L29:
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -115,7 +115,7 @@ Func_8005d10:
 	add	r2, r2, #48
 	add	r1, r1, #160
 	mov	r0, #1
-.L20:
+.L22:
 	sub	r0, r0, #1
 	str	r1, [r2]
 	str	r3, [r2, #16]
@@ -125,37 +125,37 @@ Func_8005d10:
 	add	r2, r2, #4
 	add	r1, r1, #96
 	cmp	r0, #0
-	bge	.L20
-	ldr	r5, .L29+12
+	bge	.L22
+	ldr	r5, .L31+12
 	mov	r0, #0
 	strh	r0, [r5]
-	ldr	r1, .L29+16
-	ldrh	r2, .L29
+	ldr	r1, .L31+16
+	ldrh	r2, .L31
 	ldrh	r3, [r1]
 	orr	r3, r3, r2
 	strh	r3, [r1]
-	ldrh	r2, .L29+4
-	ldr	r3, .L29+20
+	ldrh	r2, .L31+4
+	ldr	r3, .L31+20
 	strh	r2, [r5]
-	ldrh	r4, .L29+8
+	ldrh	r4, .L31+8
 	strh	r2, [r3]
-	ldr	r3, .L29+24
+	ldr	r3, .L31+24
 	strb	r4, [r3]
-	ldr	r3, .L29+28
+	ldr	r3, .L31+28
 	str	r0, [r3]
-	ldr	r3, .L29+32
+	ldr	r3, .L31+32
 	strh	r0, [r3]
-	ldr	r3, .L29+36
+	ldr	r3, .L31+36
 	str	r0, [r3]
-	ldr	r3, .L29+40
+	ldr	r3, .L31+40
 	strh	r0, [r3]
 	bl	Func_800651c
 	strh	r7, [r5]
 	add	sp, sp, #4
-	b	.L30
-.L31:
+	b	.L32
+.L33:
 	.align	2, 0
-.L29:
+.L31:
 	.word	128
 	.word	1
 	.word	0
@@ -167,7 +167,7 @@ Func_8005d10:
 	.word	ewram_2002008
 	.word	ewram_20023ac
 	.word	ewram_2002238
-.L30:
+.L32:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0

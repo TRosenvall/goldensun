@@ -9,7 +9,7 @@
 	.type	 Func_8005b64,function
 Func_8005b64:
 	push	{r5, r6, lr}
-	ldr	r3, .L23
+	ldr	r3, .L25
 	sub	sp, sp, #20
 	mov	r5, r0
 	ldr	r6, [r3]
@@ -17,60 +17,60 @@ Func_8005b64:
 	mov	r3, #0
 	str	r3, [r0]
 	add	r1, sp, #4
-	ldr	r3, .L23+4
-	ldr	r2, .L23+8
+	ldr	r3, .L25+4
+	ldr	r2, .L25+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	mov	r2, #128
-	ldr	r1, .L23+4
+	ldr	r1, .L25+4
 	lsl	r2, r2, #24
-.L13:
+.L15:
 	ldr	r3, [r1, #8]
 	and	r3, r3, r2
 	cmp	r3, #0
-	bne	.L13
-	ldr	r3, .L23+4
-	ldr	r0, .L23+12
+	bne	.L15
+	ldr	r3, .L25+4
+	ldr	r0, .L25+12
 	add	r1, sp, #4
-	ldr	r2, .L23+16
+	ldr	r2, .L25+16
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	mov	r3, #128
-	ldr	r1, .L23+4
+	ldr	r1, .L25+4
 	lsl	r3, r3, #24
-.L17:
+.L19:
 	ldr	r2, [r1, #8]
 	and	r2, r2, r3
 	cmp	r2, #0
-	bne	.L17
+	bne	.L19
 	add	r0, sp, #4
 	mov	r3, #16
 	mov	r1, r6
 	strb	r3, [r0, #7]
 	strh	r2, [r0, #10]
-	ldr	r3, .L23+4
+	ldr	r3, .L25+4
 	add	r1, r1, #64
-	ldr	r2, .L23+20
+	ldr	r2, .L25+20
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	mov	r2, #128
-	ldr	r1, .L23+4
+	ldr	r1, .L25+4
 	lsl	r2, r2, #24
-.L21:
+.L23:
 	ldr	r3, [r1, #8]
 	and	r3, r3, r2
 	cmp	r3, #0
-	bne	.L21
+	bne	.L23
 	mov	r0, r5
 	bl	Func_8005868
 	cmp	r0, #0
-	beq	.L22
+	beq	.L24
 	mov	r0, #1
-	b	.L9
-.L22:
+	b	.L11
+.L24:
 	mov	r2, r5
 	mov	r3, #16
 	add	r2, r2, #16
@@ -80,14 +80,14 @@ Func_8005b64:
 	add	r3, r3, #32
 	strh	r0, [r6, r3]
 	mov	r0, #0
-.L9:
+.L11:
 	add	sp, sp, #20
 	pop	{r5, r6}
 	pop	{r1}
 	bx	r1
-.L24:
+.L26:
 	.align	2, 0
-.L23:
+.L25:
 	.word	iwram_3001f1c
 	.word	67109076
 	.word	-2063597564

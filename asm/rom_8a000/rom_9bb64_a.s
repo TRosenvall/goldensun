@@ -12,10 +12,10 @@ Func_809bb64:
 	mov	r0, #32
 	sub	sp, sp, #12
 	bl	Func_8004970
-	ldr	r7, .L22
+	ldr	r7, .L24
 	mov	r1, r7
 	add	r1, r1, #32
-	ldr	r3, .L22+4
+	ldr	r3, .L24+4
 	mov	r2, #250
 	str	r1, [sp, #4]
 	lsl	r2, r2, #1
@@ -30,14 +30,14 @@ Func_809bb64:
 	add	r0, sp, #8
 	str	r3, [r0]
 	mov	r1, r5
-	ldr	r3, .L22+8
-	ldr	r2, .L22+12
+	ldr	r3, .L24+8
+	ldr	r2, .L24+12
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	mov	r3, #255
 	str	r3, [r5]
-	ldr	r3, .L22+16
+	ldr	r3, .L24+16
 	str	r3, [r5, #4]
 	mov	r3, #68
 	str	r3, [r5, #32]
@@ -46,16 +46,16 @@ Func_809bb64:
 	str	r3, [r5, #36]
 	mov	r3, #119
 	str	r3, [r5, #64]
-	ldr	r3, .L22+20
+	ldr	r3, .L24+20
 	str	r3, [r5, #68]
 	mov	r3, #255
 	lsl	r3, r3, #4
 	str	r3, [r5, #96]
-	ldr	r3, .L22+24
+	ldr	r3, .L24+24
 	str	r3, [r5, #100]
-	ldr	r3, .L22+28
+	ldr	r3, .L24+28
 	str	r3, [r5, #104]
-	ldr	r3, .L22+32
+	ldr	r3, .L24+32
 	mov	r2, #136
 	str	r3, [r5, #108]
 	mov	r3, #136
@@ -75,7 +75,7 @@ Func_809bb64:
 	ldr	r3, [sp, #4]
 	mov	r2, #0
 	mov	r1, #0
-.L14:
+.L16:
 	str	r1, [r3]
 	str	r1, [r3, #4]
 	str	r0, [r3, #8]
@@ -85,21 +85,21 @@ Func_809bb64:
 	add	r3, r3, #12
 	str	r4, [sp, #4]
 	cmp	r2, #65
-	bls	.L14
+	bls	.L16
 	mov	r0, r5
 	bl	free
 	mov	r0, #142
 	lsl	r0, r0, #1
 	bl	_GetFlag
 	cmp	r0, #0
-	beq	.L16
+	beq	.L18
 	mov	r3, #240
 	lsl	r3, r3, #15
 	str	r3, [r7, #4]
 	mov	r3, #160
 	lsl	r3, r3, #15
-	b	.L21
-.L16:
+	b	.L23
+.L18:
 	ldr	r2, [r6, #8]
 	mov	r1, #240
 	lsl	r1, r1, #24
@@ -109,10 +109,10 @@ Func_809bb64:
 	sub	r3, r3, r2
 	lsl	r3, r3, #4
 	cmp	r3, #0
-	bge	.L18
-	ldr	r2, .L22+36
+	bge	.L20
+	ldr	r2, .L24+36
 	add	r3, r3, r2
-.L18:
+.L20:
 	asr	r3, r3, #12
 	lsl	r3, r3, #16
 	str	r3, [r7, #4]
@@ -122,18 +122,18 @@ Func_809bb64:
 	add	r3, r3, r2
 	lsl	r0, r3, #5
 	cmp	r0, #0
-	bge	.L19
-	ldr	r4, .L22+36
+	bge	.L21
+	ldr	r4, .L24+36
 	add	r0, r0, r4
-.L19:
+.L21:
 	asr	r3, r0, #12
 	lsl	r3, r3, #16
-.L21:
+.L23:
 	str	r3, [r7, #8]
 	bl	_Func_80209b0
 	strh	r0, [r7, #2]
 	ldrh	r3, [r7, #2]
-	ldr	r2, .L22+40
+	ldr	r2, .L24+40
 	lsl	r3, r3, #2
 	add	r3, r3, r2
 	ldrh	r5, [r3, #2]
@@ -144,7 +144,7 @@ Func_809bb64:
 	mov	r3, #0
 	mov	r0, #0
 	bl	_CreateUIBox
-	ldr	r3, .L22+24
+	ldr	r3, .L24+24
 	strh	r3, [r7, #18]
 	add	r3, r3, #1
 	str	r3, [r7, #24]
@@ -168,9 +168,9 @@ Func_809bb64:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L23:
+.L25:
 	.align	2, 0
-.L22:
+.L24:
 	.word	gBuffer
 	.word	gState
 	.word	67109076

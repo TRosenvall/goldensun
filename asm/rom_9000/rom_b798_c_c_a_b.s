@@ -11,7 +11,7 @@ InitSprites:
 	push	{r5, r6, r7, lr}
 	sub	sp, sp, #4
 	cmp	r0, #3
-	bne	.L10
+	bne	.L12
 	mov	r1, #224
 	lsl	r1, r1, #4
 	mov	r0, #4
@@ -21,8 +21,8 @@ InitSprites:
 	lsl	r1, r1, #3
 	mov	r0, #3
 	bl	galloc_ewram
-	b	.L15
-.L10:
+	b	.L17
+.L12:
 	mov	r1, #224
 	lsl	r1, r1, #4
 	mov	r0, #4
@@ -32,31 +32,31 @@ InitSprites:
 	lsl	r1, r1, #3
 	mov	r0, #3
 	bl	galloc_iwram
-.L15:
+.L17:
 	mov	r6, r0
 	bl	LoadSpritePalette
 	mov	r5, #0
 	mov	r4, sp
 	str	r5, [r4]
-	ldr	r3, .L16
+	ldr	r3, .L18
 	mov	r0, r4
 	mov	r1, r7
-	ldr	r2, .L16+4
+	ldr	r2, .L18+4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	str	r5, [r4]
 	mov	r0, r4
 	mov	r1, r6
-	ldr	r2, .L16+8
+	ldr	r2, .L18+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	ldr	r2, .L16+12
+	ldr	r2, .L18+12
 	mov	r1, #128
 	mov	r0, #93
 	bl	UploadSpriteGFX
-	ldr	r5, .L16+16
+	ldr	r5, .L18+16
 	mov	r0, #53
 	mov	r1, r5
 	bl	galloc_iwram
@@ -64,8 +64,8 @@ InitSprites:
 	lsr	r5, r5, #2
 	lsl	r2, r2, #24
 	mov	r1, r0
-	ldr	r3, .L16
-	ldr	r0, .L16+20
+	ldr	r3, .L18
+	ldr	r0, .L18+20
 	orr	r2, r2, r5
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
@@ -74,9 +74,9 @@ InitSprites:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L17:
+.L19:
 	.align	2, 0
-.L16:
+.L18:
 	.word	67109076
 	.word	-2063596672
 	.word	-2063597184

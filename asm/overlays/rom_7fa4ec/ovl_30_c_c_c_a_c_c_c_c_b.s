@@ -8,7 +8,7 @@
 	.thumb_func
 	.type	 OvlFunc_970_2008f30,function
 OvlFunc_970_2008f30:
-	ldr	r3, .L12
+	ldr	r3, .L14
 	mov	r2, #240
 	ldr	r0, [r3]
 	lsl	r2, r2, #4
@@ -18,27 +18,27 @@ OvlFunc_970_2008f30:
 	sub	r3, r3, r2
 	lsl	r3, r3, #7
 	add	r0, r0, r3
-	ldr	r3, .L12+4
-	ldr	r2, .L12+8
+	ldr	r3, .L14+4
+	ldr	r2, .L14+8
 	ldrh	r4, [r3, #10]
 	and	r2, r2, r4
 	strh	r2, [r3, #10]
-	ldr	r2, .L12+12
+	ldr	r2, .L14+12
 	ldrh	r4, [r3, #10]
 	and	r2, r2, r4
 	strh	r2, [r3, #10]
-	ldr	r1, .L12+16
+	ldr	r1, .L14+16
 	ldrh	r2, [r3, #10]
 	ldmia	r0!, {r2}
 	str	r2, [r1]
-	ldr	r2, .L12+20
+	ldr	r2, .L14+20
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	bx	lr
-.L13:
+.L15:
 	.align	2, 0
-.L12:
+.L14:
 	.word	iwram_3001ed8
 	.word	67109040
 	.word	50687

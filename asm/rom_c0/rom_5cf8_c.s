@@ -13,81 +13,81 @@ Debug_TransferTest:
 	sub	sp, sp, #4
 	bl	_PlaySound
 	bl	Func_8005d10
-	ldr	r2, .L27
-	ldr	r3, .L27+4
+	ldr	r2, .L29
+	ldr	r3, .L29+4
 	mov	r1, #19
-.L13:
+.L15:
 	sub	r1, r1, #1
 	strh	r3, [r2]
 	sub	r2, r2, #2
 	sub	r3, r3, #1
 	cmp	r1, #0
-	bge	.L13
+	bge	.L15
 	mov	r0, sp
 	mov	r3, #0
 	str	r3, [r0]
-	ldr	r1, .L27+8
-	ldr	r2, .L27+12
+	ldr	r1, .L29+8
+	ldr	r2, .L29+12
 	bl	CpuSet
 	mov	r0, #3
 	bl	Func_8006384
-.L14:
-	ldr	r0, .L27+8
+.L16:
+	ldr	r0, .L29+8
 	bl	Func_8006408
-	ldr	r6, .L27+16
-.L15:
+	ldr	r6, .L29+16
+.L17:
 	ldr	r3, [r6]
 	mov	r2, #1
 	and	r3, r3, r2
 	cmp	r3, #0
-	beq	.L18
+	beq	.L20
 	mov	r0, #128
 	mov	r1, #160
 	lsl	r0, r0, #20
 	lsl	r1, r1, #2
 	bl	Func_80063bc
-.L18:
+.L20:
 	ldr	r3, [r6]
 	mov	r2, #2
 	and	r3, r3, r2
 	cmp	r3, #0
-	beq	.L19
+	beq	.L21
 	mov	r1, #160
-	ldr	r0, .L27+20
+	ldr	r0, .L29+20
 	lsl	r1, r1, #2
 	bl	Func_80063bc
-.L19:
+.L21:
 	ldr	r3, [r6]
 	mov	r2, #8
 	and	r3, r3, r2
 	cmp	r3, #0
-	beq	.L20
-	ldr	r5, .L27+24
-.L24:
+	beq	.L22
+	ldr	r5, .L29+24
+.L26:
 	sub	r5, r5, #1
 	bl	Func_8006798
 	cmp	r5, #0
-	bge	.L24
-.L20:
-	ldr	r3, .L27+28
+	bge	.L26
+.L22:
+	ldr	r3, .L29+28
 	ldr	r3, [r3]
 	cmp	r3, #0
-	bne	.L25
-	ldr	r3, .L27+32
-	ldr	r0, .L27+8
-	ldr	r1, .L27+36
-	ldr	r2, .L27+40
+	bne	.L27
+	ldr	r3, .L29+32
+	ldr	r0, .L29+8
+	ldr	r1, .L29+36
+	ldr	r2, .L29+40
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	b	.L14
-.L25:
+	b	.L16
+.L27:
 	mov	r0, #1
 	bl	WaitFrames
-	b	.L15
-.L28:
+	b	.L17
+.L30:
 	.align	2, 0
-.L27:
+.L29:
 	.word	100672550
 	.word	-3949
 	.word	gBuffer

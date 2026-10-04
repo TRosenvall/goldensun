@@ -24,22 +24,22 @@ Field_MindRead:
 	mov	r0, sp
 	str	r3, [r0]
 	mov	r1, r5
-	ldr	r3, .L11
-	ldr	r2, .L11+4
+	ldr	r3, .L13
+	ldr	r2, .L13+4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	ldr	r3, .L11+8
+	ldr	r3, .L13+8
 	ldr	r0, [r3]
 	mov	r1, #180
 	lsl	r1, r1, #1
 	lsl	r0, r0, #1
 	bl	__umodsi3
-	ldr	r2, .L11+12
+	ldr	r2, .L13+12
 	add	r3, r5, r2
 	strh	r0, [r3]
 	bl	Func_80978c4
-	ldr	r2, .L11+16
+	ldr	r2, .L13+16
 	add	r3, r5, r2
 	sub	r2, r2, #1
 	mov	r0, #0
@@ -80,7 +80,7 @@ Field_MindRead:
 	bl	Func_8097a7c
 	mov	r1, #200
 	lsl	r1, r1, #4
-	ldr	r0, .L11+20
+	ldr	r0, .L13+20
 	bl	StartTask
 	add	sp, sp, #4
 	pop	{r3}
@@ -88,9 +88,9 @@ Field_MindRead:
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L12:
+.L14:
 	.align	2, 0
-.L11:
+.L13:
 	.word	67109076
 	.word	-2063597402
 	.word	iwram_3001e40

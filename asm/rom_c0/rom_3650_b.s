@@ -9,98 +9,98 @@
 	.type	 VBlank,function
 VBlank:
 	push	{r5, lr}
-	ldr	r2, .L22+4
-	ldr	r3, .L22+8
+	ldr	r2, .L24+4
+	ldr	r3, .L24+8
 	ldrh	r1, [r2, #10]
 	and	r3, r3, r1
 	strh	r3, [r2, #10]
-	ldr	r3, .L22+12
+	ldr	r3, .L24+12
 	ldrh	r1, [r2, #10]
 	and	r3, r3, r1
 	strh	r3, [r2, #10]
 	ldrh	r3, [r2, #10]
-	ldr	r3, .L22+16
+	ldr	r3, .L24+16
 	ldrh	r3, [r3]
 	cmp	r3, #0
-	beq	.L11
-	ldr	r0, .L22+20
-	ldr	r1, .L22+24
-	ldr	r5, .L22+28
+	beq	.L13
+	ldr	r0, .L24+20
+	ldr	r1, .L24+24
+	ldr	r5, .L24+28
 	bl	Func_8006088
 	strh	r0, [r5]
 	bl	Func_800655c
-.L11:
+.L13:
 	bl	_UpdateMusicSettings
 	bl	Func_8003adc
-	ldr	r5, .L22+32
+	ldr	r5, .L24+32
 	ldrb	r3, [r5]
 	cmp	r3, #0
-	beq	.L12
-	ldr	r3, .L22+36
+	beq	.L14
+	ldr	r3, .L24+36
 	ldrb	r3, [r3]
 	cmp	r3, #0
-	beq	.L13
-	ldr	r2, .L22+40
+	beq	.L15
+	ldr	r2, .L24+40
 	mov	r1, #224
 	add	r2, r2, #208
 	ldr	r0, [r2]
-	ldr	r3, .L22+44
+	ldr	r3, .L24+44
 	lsl	r1, r1, #19
-	ldr	r2, .L22+48
+	ldr	r2, .L24+48
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-.L13:
-	ldr	r3, .L22+44
-	ldr	r0, .L22+52
-	ldr	r1, .L22+56
-	ldr	r2, .L22+60
+.L15:
+	ldr	r3, .L24+44
+	ldr	r0, .L24+52
+	ldr	r1, .L24+56
+	ldr	r2, .L24+60
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	bl	UploadPalette
 	mov	r3, #0
 	strb	r3, [r5]
-.L12:
-	ldr	r1, .L22+64
+.L14:
+	ldr	r1, .L24+64
 	ldr	r2, [r1]
 	cmp	r2, #0
-	beq	.L16
+	beq	.L18
 	mov	r3, #0
 	str	r3, [r1]
 	bl	_call_via_r2
-.L16:
+.L18:
 	mov	r0, #144
 	lsl	r0, r0, #3
 	bl	RunTasks
-	ldr	r3, .L22+68
+	ldr	r3, .L24+68
 	ldrh	r2, [r3]
-	ldrh	r3, .L22
-	ldr	r4, .L22+72
+	ldrh	r3, .L24
+	ldr	r4, .L24+72
 	mov	r0, r3
 	eor	r0, r0, r2
 	ldr	r3, [r4]
 	mov	r2, r0
 	bic	r2, r2, r3
-	ldr	r3, .L22+76
-	ldr	r1, .L22+80
+	ldr	r3, .L24+76
+	ldr	r1, .L24+80
 	str	r2, [r3]
 	ldr	r3, [r1]
 	orr	r3, r3, r2
 	str	r3, [r1]
 	str	r0, [r4]
 	cmp	r0, #0
-	bne	.L17
-	ldr	r3, .L22+84
+	bne	.L19
+	ldr	r3, .L24+84
 	mov	r2, #19
 	str	r2, [r3]
-	ldr	r3, .L22+88
-	ldr	r1, .L22+92
+	ldr	r3, .L24+88
+	ldr	r1, .L24+92
 	str	r0, [r3]
-	b	.L18
-.L23:
+	b	.L20
+.L25:
 	.align	2, 0
-.L22:
+.L24:
 	.word	1023
 	.word	67109040
 	.word	50687
@@ -125,49 +125,49 @@ VBlank:
 	.word	iwram_3001b00
 	.word	gKeyRepeat
 	.word	iwram_3001d0c
-.L17:
-	ldr	r1, .L24+4
-	ldr	r2, .L24+8
+.L19:
+	ldr	r1, .L26+4
+	ldr	r2, .L26+8
 	ldr	r3, [r1]
 	eor	r3, r3, r2
 	ldr	r2, [r4]
 	and	r2, r2, r3
 	cmp	r2, #0
-	beq	.L19
-	ldr	r3, .L24+12
+	beq	.L21
+	ldr	r3, .L26+12
 	mov	r2, #1
 	neg	r2, r2
 	str	r2, [r3]
-	ldr	r3, .L24+16
+	ldr	r3, .L26+16
 	str	r0, [r3]
-	b	.L18
-.L19:
-	ldr	r2, .L24+12
+	b	.L20
+.L21:
+	ldr	r2, .L26+12
 	ldr	r3, [r2]
 	cmp	r3, #0
-	ble	.L18
+	ble	.L20
 	sub	r3, r3, #1
 	str	r3, [r2]
-.L18:
+.L20:
 	str	r0, [r1]
-	ldr	r2, .L24+20
+	ldr	r2, .L26+20
 	ldr	r3, [r2]
 	add	r3, r3, #1
 	str	r3, [r2]
-	ldr	r2, .L24+24
+	ldr	r2, .L26+24
 	ldrh	r3, [r2]
 	add	r3, r3, #1
 	strh	r3, [r2]
-	ldr	r2, .L24+28
-	ldrh	r3, .L24
+	ldr	r2, .L26+28
+	ldrh	r3, .L26
 	strh	r3, [r2]
 	bl	cam4aSoundMain
 	pop	{r5}
 	pop	{r0}
 	bx	r0
-.L25:
+.L27:
 	.align	2, 0
-.L24:
+.L26:
 	.word	1
 	.word	iwram_3001d0c
 	.word	65535
@@ -185,26 +185,26 @@ VBlank:
 SetSoundFXMode:
 	push	{lr}
 	cmp	r0, #4
-	bls	.L27
+	bls	.L29
 	mov	r0, #0
-.L27:
+.L29:
 	mov	r3, #152
 	mov	r2, r0
 	mul	r2, r2, r3
-	ldr	r0, .L29
-	ldr	r3, .L29+4
+	ldr	r0, .L31
+	ldr	r3, .L31+4
 	add	r0, r2, r0
-	ldr	r1, .L29+8
-	ldr	r2, .L29+12
+	ldr	r1, .L31+8
+	ldr	r2, .L31+12
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	mov	r0, #0
 	pop	{r1}
 	bx	r1
-.L30:
+.L32:
 	.align	2, 0
-.L29:
+.L31:
 	.word	ROM_SoundFXCode
 	.word	67109076
 	.word	RAM_SoundFXCode
@@ -233,22 +233,22 @@ Func_800380c:
 	.type	 KeypadIntr,function
 KeypadIntr:
 	push	{lr}
-	ldr	r3, .L39
+	ldr	r3, .L41
 	ldrh	r3, [r3]
 	cmp	r3, #0
-	bne	.L34
-	ldr	r2, .L39+4
-	ldr	r3, .L39+8
+	bne	.L36
+	ldr	r2, .L41+4
+	ldr	r3, .L41+8
 	strh	r2, [r3]
-	ldr	r2, .L39+12
+	ldr	r2, .L41+12
 	mov	r3, #1
 	strb	r3, [r2]
-.L34:
+.L36:
 	pop	{r0}
 	bx	r0
-.L40:
+.L42:
 	.align	2, 0
-.L39:
+.L41:
 	.word	ewram_2002000
 	.word	50175
 	.word	67109170

@@ -16,37 +16,37 @@ GameInit:
 	add	r5, sp, #4
 	mov	r4, #0
 	str	r4, [r5]
-	ldr	r3, .L17+8
+	ldr	r3, .L19+8
 	mov	r0, r5
-	ldr	r1, .L17+12
-	ldr	r2, .L17+16
+	ldr	r1, .L19+12
+	ldr	r2, .L19+16
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	str	r4, [r5]
 	mov	r0, r5
-	ldr	r1, .L17+20
-	ldr	r2, .L17+24
+	ldr	r1, .L19+20
+	ldr	r2, .L19+24
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	mov	r3, #128
-	ldr	r2, .L17+8
+	ldr	r2, .L19+8
 	lsl	r3, r3, #24
-.L14:
+.L16:
 	ldr	r4, [r2, #8]
 	and	r4, r4, r3
 	cmp	r4, #0
-	bne	.L14
+	bne	.L16
 	str	r4, [r5]
-	ldr	r3, .L17+8
+	ldr	r3, .L19+8
 	mov	r0, r5
-	ldr	r1, .L17+28
-	ldr	r2, .L17+32
+	ldr	r1, .L19+28
+	ldr	r2, .L19+32
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	ldr	r3, .L17+20
+	ldr	r3, .L19+20
 	mov	r1, #130
 	lsl	r1, r1, #1
 	add	r3, r3, r1
@@ -54,22 +54,22 @@ GameInit:
 	strb	r2, [r3]
 	mov	r0, r5
 	str	r4, [r5]
-	ldr	r3, .L17+8
-	ldr	r1, .L17+36
-	ldr	r2, .L17+40
+	ldr	r3, .L19+8
+	ldr	r1, .L19+36
+	ldr	r2, .L19+40
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	str	r4, [sp]
 	bl	ResetPCs
-	ldr	r7, .L17+12
+	ldr	r7, .L19+12
 	mov	r3, #132
 	lsl	r3, r3, #2
 	add	r2, r7, r3
 	mov	r3, #1
 	strh	r3, [r2]
-	ldrh	r1, .L17
-	ldr	r2, .L17+44
+	ldrh	r1, .L19
+	ldr	r2, .L19+44
 	mov	sl, r1
 	add	r3, r7, r2
 	mov	r1, #2
@@ -77,11 +77,11 @@ GameInit:
 	mov	r3, #133
 	lsl	r3, r3, #2
 	add	r2, r7, r3
-	ldrh	r3, .L17+4
+	ldrh	r3, .L19+4
 	mov	r8, r3
 	mov	r3, #4
 	strh	r3, [r2]
-	ldr	r3, .L17+48
+	ldr	r3, .L19+48
 	add	r2, r7, r3
 	mov	r3, #8
 	strh	r3, [r2]
@@ -97,10 +97,10 @@ GameInit:
 	strh	r3, [r2]
 	mov	r2, #135
 	lsl	r2, r2, #2
-	b	.L18
-.L19:
+	b	.L20
+.L21:
 	.align	2, 0
-.L17:
+.L19:
 	.word	0
 	.word	4
 	.word	67109076
@@ -114,7 +114,7 @@ GameInit:
 	.word	-2063596904
 	.word	530
 	.word	534
-.L18:
+.L20:
 	add	r3, r7, r2
 	strh	r1, [r3]
 	mov	r1, #136
@@ -132,9 +132,9 @@ GameInit:
 	bl	AddPartyMember
 	mov	r2, #131
 	ldr	r4, [sp]
-	ldrh	r5, .L20
+	ldrh	r5, .L22
 	lsl	r2, r2, #2
-	ldr	r1, .L20+8
+	ldr	r1, .L22+8
 	add	r3, r7, r2
 	str	r4, [r7, #16]
 	sub	r2, r2, #1
@@ -144,7 +144,7 @@ GameInit:
 	sub	r1, r1, #5
 	add	r3, r7, r2
 	strb	r5, [r3]
-	ldrh	r6, .L20+4
+	ldrh	r6, .L22+4
 	add	r3, r7, r1
 	mov	r2, sl
 	add	r1, r1, #1
@@ -158,43 +158,43 @@ GameInit:
 	add	r3, r7, r2
 	str	r0, [r3]
 	ldr	r4, [sp]
-	ldr	r3, .L20+12
-	b	.L21
-.L22:
+	ldr	r3, .L22+12
+	b	.L23
+.L24:
 	.align	2, 0
-.L20:
+.L22:
 	.word	1
 	.word	8
 	.word	522
 	.word	iwram_3001c9c
-.L21:
+.L23:
 	str	r4, [r3]
-	ldr	r3, .L23+4
+	ldr	r3, .L25+4
 	mov	r1, sl
 	strb	r1, [r3]
-	ldr	r1, .L23+8
+	ldr	r1, .L25+8
 	ldrb	r2, [r3]
 	add	r3, r7, r1
 	str	r4, [r7, #4]
 	strb	r2, [r3]
-	ldr	r3, .L23+12
-	ldr	r2, .L23+16
+	ldr	r3, .L25+12
+	ldr	r2, .L25+16
 	strh	r4, [r3]
-	ldrh	r3, .L23
+	ldrh	r3, .L25
 	strh	r3, [r2]
-	ldr	r2, .L23+20
+	ldr	r2, .L25+20
 	mov	r1, r8
 	add	r3, r7, r2
 	add	r2, r2, #1
 	strb	r1, [r3]
 	add	r3, r7, r2
 	strb	r1, [r3]
-	ldr	r1, .L23+24
+	ldr	r1, .L25+24
 	mov	r2, r8
 	add	r3, r7, r1
 	strb	r2, [r3]
 	add	r1, r1, #1
-	ldr	r2, .L23+28
+	ldr	r2, .L25+28
 	add	r3, r7, r1
 	strb	r6, [r3]
 	add	r1, r1, #2
@@ -210,10 +210,10 @@ GameInit:
 	add	r3, r7, r1
 	add	r1, r1, #1
 	strb	r2, [r3]
-	b	.L24
-.L25:
+	b	.L26
+.L27:
 	.align	2, 0
-.L23:
+.L25:
 	.word	-1
 	.word	iwram_3001d08
 	.word	554
@@ -222,7 +222,7 @@ GameInit:
 	.word	285
 	.word	287
 	.word	289
-.L24:
+.L26:
 	add	r3, r7, r1
 	strb	r2, [r3]
 	mov	r2, #147
@@ -236,7 +236,7 @@ GameInit:
 	strb	r2, [r3]
 	add	r3, r7, r1
 	strb	r2, [r3]
-	ldr	r3, .L26
+	ldr	r3, .L28
 	add	r1, r1, #2
 	add	r2, r7, r3
 	mov	r3, #64
@@ -253,9 +253,9 @@ GameInit:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L27:
+.L29:
 	.align	2, 0
-.L26:
+.L28:
 	.word	297
 .Lfe1:
 	.size	 GameInit,.Lfe1-GameInit

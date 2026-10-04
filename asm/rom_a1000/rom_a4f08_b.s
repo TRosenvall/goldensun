@@ -18,7 +18,7 @@ Func_80a4f08:
 	sub	sp, sp, #28
 	str	r1, [sp, #24]
 	str	r2, [sp, #20]
-	ldr	r3, .L27+4
+	ldr	r3, .L29+4
 	mov	r1, #128
 	ldr	r3, [r3]
 	lsl	r1, r1, #3
@@ -41,27 +41,27 @@ Func_80a4f08:
 	ldr	r2, [sp, #20]
 	mov	r8, fp
 	cmp	r2, #0
-	bne	.L10
-	ldr	r3, .L27+8
+	bne	.L12
+	ldr	r3, .L29+8
 	add	r3, r3, r9
 	ldrb	r0, [r3]
 	mov	r3, #188
 	lsl	r3, r3, #1
 	add	r3, r3, r9
 	ldrh	r3, [r3]
-	ldr	r1, .L27+12
+	ldr	r1, .L29+12
 	and	r1, r1, r3
 	bl	Func_80a3d9c
 	str	r0, [sp, #8]
-.L10:
-	ldr	r3, .L27+16
+.L12:
+	ldr	r3, .L29+16
 	add	r3, r3, r9
 	ldrb	r0, [r3]
 	mov	r3, #188
 	lsl	r3, r3, #1
 	add	r3, r3, r9
 	ldrh	r3, [r3]
-	ldr	r1, .L27+12
+	ldr	r1, .L29+12
 	and	r1, r1, r3
 	bl	Func_80a3d9c
 	str	r0, [sp, #4]
@@ -69,13 +69,13 @@ Func_80a4f08:
 	str	r0, [sp, #16]
 	cmp	r0, #96
 	bne	.LCB75
-	b	.L12	@long jump
+	b	.L14	@long jump
 .LCB75:
 	mov	r1, #128
 	lsl	r1, r1, #1
 	mov	r2, #0
 	bl	UploadSpriteGFX
-	ldr	r6, .L27+20
+	ldr	r6, .L29+20
 	mov	r5, #32
 	ldr	r0, [sp, #16]
 	mov	r1, r6
@@ -91,21 +91,21 @@ Func_80a4f08:
 	bl	_Func_801eadc
 	ldrh	r1, [r0, #24]
 	lsl	r2, r1, #22
-	ldrh	r3, .L27
+	ldrh	r3, .L29
 	lsr	r2, r2, #22
 	add	r2, r2, #4
 	and	r2, r2, r3
-	ldr	r3, .L27+24
+	ldr	r3, .L29+24
 	and	r3, r3, r1
 	orr	r3, r3, r2
 	strh	r3, [r0, #24]
 	mov	r1, #40
 	mov	r0, #128
 	bl	Func_80a1ac0
-	b	.L13
-.L28:
+	b	.L15
+.L30:
 	.align	2, 0
-.L27:
+.L29:
 	.word	1023
 	.word	iwram_3001f2c
 	.word	539
@@ -113,11 +113,11 @@ Func_80a4f08:
 	.word	538
 	.word	1073758208
 	.word	-1024
-.L16:
+.L18:
 	ldr	r3, [sp, #12]
 	cmp	r3, #0
 	bne	.LCB130
-	b	.L17	@long jump
+	b	.L19	@long jump
 .LCB130:
 	ldr	r0, [sp, #24]
 	ldr	r1, [sp, #24]
@@ -129,14 +129,14 @@ Func_80a4f08:
 	mov	r0, r7
 	bl	_Func_8016498
 	mov	r1, r7
-	ldr	r0, .L29+4
+	ldr	r0, .L31+4
 	mov	r2, #32
 	mov	r3, #0
 	bl	_Func_801e7c0
-	ldr	r3, .L29+8
-	ldr	r0, .L29+12
+	ldr	r3, .L31+8
+	ldr	r0, .L31+12
 	mov	r1, sl
-	ldr	r2, .L29+16
+	ldr	r2, .L31+16
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -175,9 +175,9 @@ Func_80a4f08:
 	lsl	r3, r3, #1
 	add	r3, r3, r9
 	ldrh	r3, [r3]
-	ldrh	r0, .L29
+	ldrh	r0, .L31
 	and	r0, r0, r3
-	ldr	r3, .L29+20
+	ldr	r3, .L31+20
 	mov	r1, r7
 	add	r0, r0, r3
 	mov	r2, #16
@@ -195,18 +195,18 @@ Func_80a4f08:
 	bl	_Func_801ea08
 	ldr	r3, [sp, #20]
 	cmp	r3, #0
-	bne	.L19
-	b	.L30
-.L31:
+	bne	.L21
+	b	.L32
+.L33:
 	.align	2, 0
-.L29:
+.L31:
 	.word	511
 	.word	2782
 	.word	67109076
 	.word	.Laf08c
 	.word	-2080374720
 	.word	_MSG_182
-.L30:
+.L32:
 	ldr	r0, [sp, #8]
 	add	r0, r0, r8
 	add	r0, r0, #1
@@ -215,8 +215,8 @@ Func_80a4f08:
 	mov	r3, #80
 	str	r5, [sp]
 	bl	_Func_801ea08
-.L19:
-	ldr	r3, .L32
+.L21:
+	ldr	r3, .L34
 	add	r3, r3, r9
 	ldrb	r0, [r3]
 	bl	_GetUnit
@@ -226,8 +226,8 @@ Func_80a4f08:
 	bl	_Func_801e8b0
 	ldr	r2, [sp, #20]
 	cmp	r2, #0
-	bne	.L17
-	ldr	r3, .L32+4
+	bne	.L19
+	ldr	r3, .L34+4
 	add	r3, r3, r9
 	ldrb	r0, [r3]
 	bl	_GetUnit
@@ -235,67 +235,67 @@ Func_80a4f08:
 	mov	r2, #80
 	mov	r3, #16
 	bl	_Func_801e8b0
-.L17:
-	ldr	r1, .L32+8
+.L19:
+	ldr	r1, .L34+8
 	ldr	r3, [r1]
 	mov	r2, #1
 	and	r3, r3, r2
 	cmp	r3, #0
-	beq	.L21
+	beq	.L23
 	mov	r0, #112
 	bl	_PlaySound
-	b	.L12
-.L21:
+	b	.L14
+.L23:
 	ldr	r3, [r1]
 	mov	r2, #2
 	and	r3, r3, r2
 	cmp	r3, #0
-	beq	.L22
+	beq	.L24
 	mov	r3, #1
 	neg	r3, r3
 	mov	r0, #113
 	mov	r8, r3
 	bl	_PlaySound
-	b	.L12
-.L22:
+	b	.L14
+.L24:
 	mov	r0, #128
 	mov	r1, #40
 	bl	Func_80a1a40
-	ldr	r5, .L32+12
+	ldr	r5, .L34+12
 	ldr	r3, [r5]
 	mov	r2, #32
 	and	r3, r3, r2
 	cmp	r3, #0
-	beq	.L23
+	beq	.L25
 	sub	r2, r2, #33
 	mov	r3, #1
 	mov	r0, #111
 	add	r8, r8, r2
 	str	r3, [sp, #12]
 	bl	_PlaySound
-.L23:
+.L25:
 	ldr	r3, [r5]
 	mov	r2, #16
 	and	r3, r3, r2
 	cmp	r3, #0
-	beq	.L24
+	beq	.L26
 	mov	r2, #1
 	mov	r0, #111
 	add	r8, r8, r2
 	str	r2, [sp, #12]
 	bl	_PlaySound
-.L24:
+.L26:
 	mov	r0, #1
 	bl	WaitFrames
-.L13:
+.L15:
 	mov	r0, #168
 	lsl	r0, r0, #1
 	bl	_GetFlag
 	cmp	r0, #0
 	bne	.LCB350
-	b	.L16	@long jump
+	b	.L18	@long jump
 .LCB350:
-.L12:
+.L14:
 	mov	r0, r7
 	bl	_Func_8016498
 	mov	r0, r7
@@ -312,11 +312,11 @@ Func_80a4f08:
 	lsl	r0, r0, #1
 	bl	_GetFlag
 	cmp	r0, #0
-	beq	.L26
+	beq	.L28
 	mov	r3, #1
 	neg	r3, r3
 	mov	r8, r3
-.L26:
+.L28:
 	mov	r0, r8
 	add	sp, sp, #28
 	pop	{r3, r5, r6, r7}
@@ -327,9 +327,9 @@ Func_80a4f08:
 	pop	{r5, r6, r7}
 	pop	{r1}
 	bx	r1
-.L33:
+.L35:
 	.align	2, 0
-.L32:
+.L34:
 	.word	538
 	.word	539
 	.word	gKeyPress

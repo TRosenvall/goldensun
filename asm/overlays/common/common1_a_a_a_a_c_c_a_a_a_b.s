@@ -15,33 +15,33 @@ OvlFunc_common1_88c:
 	mov	r0, #229
 	lsl	r0, r0, #5
 	bl	__Func_8004970
-	ldr	r7, .L16
+	ldr	r7, .L18
 	mov	r2, #0
 	ldrsh	r3, [r7, r2]
 	mov	r2, #1
 	neg	r2, r2
 	mov	r6, r0
 	cmp	r3, r2
-	bne	.L10
+	bne	.L12
 	bl	__AllocSpriteSlot
 	strh	r0, [r7]
-.L10:
-	ldr	r3, .L16+4
+.L12:
+	ldr	r3, .L18+4
 	ldrb	r3, [r3, r5]
 	mov	r8, r3
 	cmp	r5, #8
-	bne	.L11
+	bne	.L13
 	mov	r5, #4
-.L11:
-	ldr	r0, .L16+8
+.L13:
+	ldr	r0, .L18+8
 	bl	__GetFile
 	mov	r1, r6
 	bl	__DecompressLZ
 	mov	r2, r8
 	add	r0, r6, r2
-	ldr	r3, .L16+12
-	ldr	r1, .L16+16
-	ldr	r2, .L16+20
+	ldr	r3, .L18+12
+	ldr	r1, .L18+16
+	ldr	r2, .L18+20
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -54,13 +54,13 @@ OvlFunc_common1_88c:
 	ldrsh	r0, [r7, r3]
 	bl	__UploadSpriteGFX
 	mov	r2, #128
-	ldr	r1, .L16+12
+	ldr	r1, .L18+12
 	lsl	r2, r2, #24
-.L15:
+.L17:
 	ldr	r3, [r1, #8]
 	and	r3, r3, r2
 	cmp	r3, #0
-	bne	.L15
+	bne	.L17
 	mov	r0, r6
 	bl	__free
 	pop	{r3}
@@ -68,9 +68,9 @@ OvlFunc_common1_88c:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L17:
+.L19:
 	.align	2, 0
-.L16:
+.L18:
 	.word	_TBL_L10
 	.word	.L1
 	.word	_FILE_e7

@@ -712,3 +712,30 @@ _MSG_820 = 0x820;
  * The landed file carries NO `.equ` shim -- verified with nm that the symbol resolves
  * exactly once, so this line is genuinely exercised. */
 _MSG_333 = 0x0333;
+
+/* _MSG_182 -- the item-name message base, admitted in batch 321.
+ *
+ * TEST 1 (structural impossibility) PASSES, AND THE MODE WAS CHECKED. The access
+ * is SImode. 0x182 = 0xc1 << 1, so constraint `K` matches at ALTERNATIVE 3 of
+ * *thumb_movsi_insn while the pool path `mi` is ALTERNATIVE 6 -- and recog takes
+ * the first matching alternative, so an SImode const_int 0x182 CAN NEVER REACH
+ * THE POOL. The ROM pool-loads it. Therefore the source named a symbol.
+ *
+ * TEST 2 (completion) PASSES: with this entry Func_80b110c is byte-identical --
+ * all 65 instruction encodings and all 6 call relocations match, and the single
+ * objcmp difference is the pool word itself becoming a relocation.
+ *
+ * CORROBORATION: 0x182 is pool-loaded in EIGHT reference .s files across five ROM
+ * regions, and the ROM's own annotation on Func_80a9aec calls it the item-name
+ * base. Eight device-free spellings (one of them a barrier device) all measure 28
+ * differing at 65 instructions against the reference's 66 -- the wrong length and
+ * a wrong memory profile, i.e. unreachable rather than merely different.
+ *
+ * NOTE ON THE MODE RULE, corrected in this batch: the older note in this tree that
+ * "*thumb_movhi_insn has no immediate alternative" is WRONG AS STATED. It does
+ * have one (alternative 5, constraint `I`). HImode pools everything because of
+ * ALTERNATIVE ORDER -- alternative 1's source constraint is `mn`, and `n` matches
+ * any const_int, so alternative 5 is never reached. Same conclusion, different
+ * mechanism; and the distinction matters, because the reasoning above depends on
+ * WHICH alternative matches first, not on whether an immediate one exists. */
+_MSG_182 = 0x0182;

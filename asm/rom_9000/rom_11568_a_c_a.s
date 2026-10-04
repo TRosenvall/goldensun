@@ -9,25 +9,25 @@
 	.type	 Func_8011590,function
 Func_8011590:
 	push	{r5, r6, r7, lr}
-	ldr	r3, .L11
+	ldr	r3, .L13
 	ldmia	r3!, {r5}
 	ldr	r7, [r3]
 	mov	r3, r7
 	add	r3, r3, #252
 	mov	r6, #1
 	strb	r6, [r3]
-	ldr	r0, .L11+4
+	ldr	r0, .L13+4
 	bl	Func_80042c8
-	ldr	r3, .L11+8
-	ldr	r0, .L11+12
-	ldr	r1, .L11+16
-	ldr	r2, .L11+20
+	ldr	r3, .L13+8
+	ldr	r0, .L13+12
+	ldr	r1, .L13+16
+	ldr	r2, .L13+20
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	mov	r0, #1
 	bl	WaitFrames
-	ldr	r3, .L11+24
+	ldr	r3, .L13+24
 	ldr	r2, [r3]
 	and	r2, r2, r6
 	lsl	r3, r2, #2
@@ -37,7 +37,7 @@ Func_8011590:
 	mov	r3, #200
 	lsl	r3, r3, #4
 	add	r5, r5, r3
-	ldr	r1, .L11+28
+	ldr	r1, .L13+28
 	mov	r0, r5
 	bl	Func_8012388
 	mov	r3, #128
@@ -49,15 +49,15 @@ Func_8011590:
 	add	r2, r7, r3
 	mov	r3, #255
 	strh	r3, [r2]
-	ldr	r2, .L11+32
-	ldr	r3, .L11+36
+	ldr	r2, .L13+32
+	ldr	r3, .L13+36
 	str	r3, [r2]
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L12:
+.L14:
 	.align	2, 0
-.L11:
+.L13:
 	.word	iwram_3001e6c
 	.word	Func_801179c
 	.word	67109076

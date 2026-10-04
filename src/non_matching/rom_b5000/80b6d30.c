@@ -1,6 +1,15 @@
-/* ================= BATCH 297a DELTA -- Func_80b6d30 =================
+/* Func_80b6d30 (AssignBattlePositions)  --  0x080b6d30
  *
- * NON-MATCHING, 4 of 119 encodings  (MEASURED, batch 319 recipe backfill).
+ * STILL NON-MATCHING, **4 of 119 encodings** (ref 119 / ours 119, first
+ * differing index 23).  PIN-FREE, SHIM-FREE, FLAG-FREE.  Batch 321 brief E
+ * RE-MEASURED and CONFIRMED the figure, ran 37 crossed variants over the lever
+ * class the park had never touched (declarations and signatures), and
+ * independently DERIVED residue (1)'s impossibility from cse.c rather than
+ * inferring it.  THE BODY BELOW IS UNCHANGED from the parked one.
+ *
+ * The only function in asm/rom_b5000/rom_b5a0c_c_c_c_a_c.s and no data section
+ * (datacheck.py prints nothing), so landing would be a plain whole-file
+ * conversion with no export and no split.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -8,131 +17,127 @@
  *     src/non_matching/rom_b5000/80b6d30.c \
  *     asm/rom_b5000/rom_b5a0c_c_c_c_a_c.s --func Func_80b6d30
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- * RE-MEASURED: still 4 of 119 (ref 119 enc / 256 bytes / 7 rel, ours the same),
- * first at index 23: ref 4654 `mov r4, sl` against ours 2400 `movs r4, #0`.
+ * THE RESIDUE IS TWO PLACES, FOUR ENCODINGS, and both are confirmed:
  *
- * NEW, AND IT IS THE DISCRIMINATOR THIS PARK NEEDED.  Residue (1) here is the
- * SAME cse1 residue that batch 297a closed BYTE-EXACT on Func_80b9dc4
- * (0x080b9dc4) with a single `__asm__ ("" : "+r" (v))` barrier at the copy.  The
- * difference is WHICH REGISTER THE ZERO LIVES IN, and it decides whether the
- * barrier is free:
- *     Func_80b9dc4   `flag` is in r7, a LOW register  -> "+r" costs NOTHING
- *                    (108 encodings before and after; 1 -> 0, exact)
- *     Func_80b6d30   `ret`  is in sl, a HI register   -> every constraint class
- *                    costs the same TWO instructions
- * Measured here, each a single drop from this file (baseline 4 of 119):
- *     "+r" before the loop            96   121 enc, 260 bytes
- *     "+r" after `ret = 0`            96   121 enc
- *     "+h" before the loop            96   121 enc
- *     "+h" after `ret = 0`            96   121 enc
- *     "+g" before the loop           103   121 enc
- *     "+g" after `ret = 0`            98   121 enc
- *     "+l" before the loop           100   123 enc, 264 bytes
- *     "+l" after `ret = 0`           104   123 enc
- * So the park's "the barrier costs two extra instructions" is confirmed AND the
- * obvious escape -- ask for a HI-register constraint so no low-register round
- * trip is needed -- DOES NOT WORK: "+h" is 121 encodings just like "+r".
- * gcc-2.96 copies through a low register either way.  Nothing in the barrier
- * family reaches this function; the park's floor of 4 stands.
+ *   (1) index 23:   rom `mov r4, sl`              ours `movs r4, #0`
+ *   (2) indices 82-84:
+ *       rom  `lsl r3, r5, #12 / orr r3, r7 / mov sl, r3`
+ *       ours `lsl r2, r5, #12 / orr r2, r7 / mov sl, r2`
  *
- * THE CFG FACT, for completeness: the ROM's `ret = 0` (`movs r1,#0 / mov sl,r1`)
- * and `j = ret` (`mov r4, sl`) sit in ONE basic block with only `bl
- * Func_80c2384` between them -- there is no label before the loop init -- so the
- * jumped-to-block escape that the corpus exemplar
- * src/rom_b5000/rom_b8228_c_a_c_c_a_c_a_c_b.c uses (its `for (i = ret; ...)` is
- * in the ELSE arm, at .L3) is not available here either.
- * -- scratch_elev/b297a/t3
- */
-
-/* Func_80b6d30 (AssignBattlePositions) -- NON-MATCHING, 4 encodings of 119.
- * 0x080b6d30, the only function in asm/rom_b5000/rom_b5a0c_c_c_c_a_c.s (no data
- * section, so datacheck.py prints nothing and NO EXPORT is required), so landing
- * would be a plain whole-file conversion.  Fresh in batch 287, re-verified at 4 in
- * batch 295.  SIZE EXACT (119 = 119).  NO SHIM, NO PIN, NO FLAG.
+ * ===== BATCH 321: RESIDUE (1) IS NOW PROVED, NOT ARGUED =====
  *
- * Verify with:
- *   python3 tools/objcmp.py src/non_matching/rom_b5000/80b6d30.c \
- *     asm/rom_b5000/rom_b5a0c_c_c_c_a_c.s --func Func_80b6d30
+ * The park argued from COST and notreg_cost that the constant wins on ties.
+ * That is correct as far as it goes but it is not the whole decision, and the
+ * missing half makes the result STRONGER rather than weaker.  Read in gcc-2.96's
+ * own cse.c, the full chain at `j = ret` is:
  *
- * The inner slot search is the landed Func_80b6cdc (rom_b5a0c_c_c_c_a_b.c)
- * verbatim, and the two slot stores reuse its `off`/`a` idiom -- in a NEW
- * block-scoped offset variable (a fresh `int o`; reusing the loop's `off` puts
- * it in r2 instead of the ROM's r0, 10 differing).
+ *   a. `ret = 0` records BOTH `(const_int 0)` and ret's pseudo in ONE
+ *      equivalence class, and `insert` keeps a class sorted by CHEAPER with the
+ *      cheapest FIRST.  Its own comment says it: "a constant is the only thing
+ *      that can be cheaper than a register".  So the class head is the constant.
  *
- * THE RESIDUE, TWO PLACES, and batch 295 named the pass for both.
+ *   b. At `j = ret`, cse_insn walks that class and PRUNES every candidate that
+ *      is already in the table -- `src = 0` for the register and then
+ *      `src_folded = 0` for the constant ("Prefer items not in the hash table
+ *      to ones that are when they are equal cost").  BOTH are pruned, so
+ *      src_cost and src_folded_cost both stay at 10000 and NEITHER is what
+ *      decides anything.
  *
- *  1. index 23: `mov r4, sl` (ROM) against `movs r4, #0` (ours) -- j initialised by
- *     COPYING the already-zero `ret` out of sl.  THIS IS PROVABLY UNREACHABLE FROM
- *     SOURCE, and the proof is a cost comparison, not a table question:
- *       - cse_insn (cse.c:5229) takes `src_folded` -- the constant -- whenever
- *         `src_folded_cost <= src_cost`, i.e. the CONSTANT WINS ON TIES.
- *       - COST (cse.c:509) of a pseudo is 1, because CHEAP_REG (cse.c:505) needs
- *         `REG_USERVAR_P && REGNO < FIRST_PSEUDO_REGISTER` and CHEAP_REGNO
- *         (cse.c:495) covers only the frame/stack/arg pointers, the virtuals and
- *         fixed hard regs.
- *       - notreg_cost (cse.c:725) of `(const_int 0)` is `rtx_cost (x, SET) * 2`, and
- *         arm_rtx_costs' thumb CONST_INT case (arm.c:2077-2080) returns 0 when
- *         `outer == SET` and the value is < 256.  So src_folded_cost = 0 <= 1 and
- *         the fold is unconditional.
- *     .03.cse confirms it: insn 54 goes from `(set (reg/v:SI 38) (reg/v:SI 37))` to
- *     `(set (reg/v:SI 38) (const_int 0))` with REG_EQUAL, where 37 is ret and 38 is j.
- *     THE ONLY ESCAPE IS CHEAP_REG, i.e. a hard-register user variable, and it is
- *     measured: `register int ret __asm__("r10")` is 102 of 119 and `__asm__("sl")`
- *     is 102 -- pinning ret for its whole life costs two instructions and the loop
- *     rotation.  So the park's old line "something the ROM's author wrote keeps
- *     ret's zero out of cse1's table; not found" should be retired: nothing in the
- *     same basic block can, because the decision is made on cost before the table
- *     is consulted, and the ROM's own instruction layout puts `ret = 0` (indices
- *     18/21, `movs r1,#0 / mov sl,r1`) and `j = ret` (index 23) in one block with
- *     only a call between, which does not invalidate a pseudo.
+ *   c. The substitution therefore comes from the hash-table entry, and `elt` was
+ *      set to `elt->first_same_value` -- the class HEAD -- which by (a) is the
+ *      constant, at `src_elt_cost == 0`.  The fold is unconditional.
  *
- *  2. indices 82-84: `lsl r3,r5,#12 / orr r3,r7 / mov sl,r3` (ROM) against r2.  This
- *     is reload's choice of RELOAD REGISTER for `ret = (i << 12) | v` (ret lives in
- *     sl, so reload computes into a low reg and copies -- the copy is insn 381, a
- *     reload-created insn).  THE PARK MISREAD THE DUMP: the `.18.greg` line
- *     "Using reg 3 for reload 0" against insn 200 is printed by find_reg
- *     (reload1.c:1664), which selects which hard register to SPILL, not which
- *     register the reload gets.  The reload register is chosen later, per insn, by
- *     allocate_reload_reg, which walks `spill_regs` ROUND-ROBIN from
- *     `last_spill_reg` (reload1.c:5003, updated at 4937) precisely so that
- *     consecutive reloads leapfrog.  So the register at index 82 is a function of
- *     the COUNT of reload-register allocations made EARLIER in the function, not of
- *     anything written at that statement -- which is exactly why every respelling
- *     of it is inert, and why it is coupled to (1).
+ * So the escape is not "make the register cheaper than the constant", it is
+ * "keep the register off the head of its own equivalence class", and the only
+ * thing in CHEAPER that can beat a `(const_int 0)` at cost 0 is CHEAP_REG, which
+ * needs `REG_USERVAR_P && REGNO < FIRST_PSEUDO_REGISTER` -- a HARD-REGISTER USER
+ * VARIABLE.  That is the pin the park already measured at 102 of 119.  **There
+ * is no pin-free C source that reaches residue (1) inside one basic block**, and
+ * the ROM's own layout puts `ret = 0` (indices 18/21) and `j = ret` (index 23)
+ * in one block with only `bl Func_80c2384` between them -- and a call does not
+ * invalidate a pseudo in cse's table, which the park verified from the other
+ * direction by moving `j = ret` across it (still 4).
  *
- * DELTA to the inert list, batch 295 -- 15 further spellings, all still 4 of 119:
- *   * commuted operands `v | (i << 12)`; `!j` instead of `j == 0`; the commuted form
- *     paired with `!j`; a block-scoped temp for `i << 12` paired with the commuted
- *     form; a function-scope temp with the uncommuted form; `ret = i << 12; ret |= v`
- *     -- the park had measured several of these alone, and NO PAIR among them pays;
- *   * declaration order: `ret` last, `ret` first, `j` before `ret` -- all 4, so the
- *     spill-slot/allocno-order lever does not reach this one;
- *   * `i` declared before `j`; `o` declared at function scope rather than in the
- *     store block; the tail test written `if (v != 0x1dc && v != 0x1e3) break;`;
- *     `(int)ewram_2018000 + (i << 14)` instead of `(int)(ewram_2018000 + (i << 14))`.
- *   NEW MEASUREMENTS THAT ARE NOT INERT, recorded so nobody repeats them:
- *     `a = off; a += 4;` in the inner loop -> 75.  Hoisting `u[0x128]` into a local
- *     `id` and using it at all three call sites -> 59.  Moving `ret = 0` to AFTER
- *     the Func_80c2384 call -> 10 (the park's note covers `j = ret` before and after
- *     the call, not `ret = 0`).
- *   AND the cse-defeating barrier, measured: `__asm__ volatile ("" : "+r" (ret))`
- *     after `ret = 0` is 98, before the loop 96, non-volatile 96.  It DOES restore
- *     the copy -- 96 shows `mov r2, sl` where we had `movs r4, #0`, which is the
- *     mechanism in (1) confirmed from the other side -- but it costs two extra
- *     instructions and un-rotates the loop.  An `__asm__ ("mov %0, #0" : "=r")`
- *     producer for the zero fails to compile to a comparable stream at all (0 lines).
+ * The documented escape remains a CONTROL-FLOW BOUNDARY, as in the corpus
+ * exemplar src/rom_b5000/rom_b8228_c_a_c_c_a_c_a_c_b.c whose `for (i = ret; ...)`
+ * sits in an ELSE arm at .L3.  This function has no boundary to put there.
  *
- * INERT from earlier batches (unchanged): `for (j = ret; ...)`, `j = ret` before and
- * after the call, `ret = j = 0`, `j = ret = 0`, `j = 0; ...; ret = j` (all 4 or far
- * worse, 77-104); `-fno-gcse`, `-fno-cse-follow-jumps`, `-fno-rerun-cse-after-loop`,
- * `-fno-strength-reduce` all leave it at 4.  `+` instead of `|` is far worse (56).
+ * ===== BATCH 321: THE DECLARATION LEVER CLASS IS MEASURED, AND IT IS FLAT =====
  *
- * SHIMS -- NONE:
- *   register class:  0
- *   .equ class:      0
- *   other __asm__:   0
+ * docs/humanization.md section 3 says a pin is evidence about a DECLARATION.
+ * This park's body is a textbook instance of that signature -- `*(short *)(s +
+ * a)` raw-offset arithmetic four times, and `extern unsigned char
+ * ewram_2018000[];` with no dimensions -- and NOTHING in the class had ever been
+ * tried here.  37 crossed variants via tools/crossfire.py, depth 2, two edit
+ * sets.  Reference memory profile ldr=7 ldrb=4 ldrsh=4 str=1 strh=2.
+ *
+ * EXACTLY INERT at 4 of 119, ref 119 / ours 119 (so these are distances, and
+ * each is a candidate prerequisite that pays nothing on its own OR in any pair):
+ *
+ *   * `extern unsigned char ewram_2018000[][0x4000];` WITH the use rewritten as
+ *     `(int)ewram_2018000[i]` -- pattern 4, the inner dimension included.  This
+ *     is the dividend case the brief asks to be reported: BETTER-TYPED SOURCE,
+ *     IDENTICAL BYTES.  (Either half ALONE is 5 of 119, i.e. one worse -- the
+ *     declaration and the use have to move together.)
+ *   * splitting `if (v == 0x1dc || v == 0x1e3) continue;` into two sequential
+ *     `if`s -- pattern 1.
+ *   * `i * 0x4000` for `i << 14`; dropping the `(int)` cast on the ewram
+ *     argument; `_PreloadSpriteGFX`'s second parameter declared `void *`;
+ *     `_GetUnit`'s prototype withheld; `ret` declared `unsigned int`; `v`
+ *     declared `unsigned int`.  And every PAIR of the above.
+ *
+ * FAR WORSE, all with a COUNT flag (so the figure measures misalignment, not
+ * distance) -- recorded so nobody repeats them:
+ *   * `short *s` with the four accesses as `s[i+2]` / `s[i+3]`: 79-94 at 115-123
+ *     instructions, with MEM divergence.  Pattern 2 does NOT apply here: the
+ *     ROM's `ldrsh r3, [r6, r2]` register-offset form is what the `off`/`a`
+ *     idiom produces, and narrowing the pointer type replaces it with scaled
+ *     addressing.  The landed sibling Func_80b6cdc's idiom is correct as written.
+ *   * hoisting the arg-4 call `Func_80c23a0(u[0x128])` into a temp: 101 at 123.
+ *
+ * READ THE FLATNESS AS THE FINDING (brief 321): 29 of 37 rows tie the base
+ * exactly, across three different dimensions.  The lever is not in declarations,
+ * types or callee signatures.  Given the derivation above, that is expected:
+ * residue (1) is decided on COST inside cse1's equivalence class, which no type
+ * written in C can move, and residue (2) is a reload-register INDEX.
+ *
+ * ===== RESIDUE (2), inherited and still right =====
+ *
+ * `ret` lives in sl, a hi register, so Thumb must compute `(i << 12) | v` in a
+ * lo register and copy; the copy is a RELOAD-created insn.  The park corrected an
+ * earlier misreading that is worth keeping: `.18.greg`'s "Using reg 3 for reload
+ * 0" is printed by find_reg, which selects which hard register to SPILL, not
+ * which register a reload gets.  The reload register is chosen later, per insn,
+ * by allocate_reload_reg walking `spill_regs` ROUND-ROBIN from `last_spill_reg`,
+ * precisely so consecutive reloads leapfrog.  So the register at index 82 is a
+ * function of the COUNT of reload-register allocations made EARLIER in the
+ * function -- which is why every respelling of that statement is inert.
+ *
+ * ===== THE INERT LIST, carried forward =====
+ *
+ * From earlier batches, all still 4 or far worse: `for (j = ret; ...)`, `j = ret`
+ * before and after the call, `ret = j = 0`, `j = ret = 0`, `j = 0; ...; ret = j`;
+ * commuted `v | (i << 12)`; `!j` for `j == 0`; a block-scoped temp for `i << 12`;
+ * `ret = i << 12; ret |= v`; declaration order (`ret` last, `ret` first, `j`
+ * before `ret`); `i` before `j`; `o` at function scope; the tail test as
+ * `if (v != 0x1dc && v != 0x1e3) break;`; `(int)ewram_2018000 + (i << 14)`.
+ * NOT inert and not useful: `a = off; a += 4;` -> 75; hoisting `u[0x128]` into a
+ * local -> 59; moving `ret = 0` after the call -> 10; `+` for `|` -> 56.
+ * Flags: `-fno-gcse`, `-fno-cse-follow-jumps`, `-fno-rerun-cse-after-loop`,
+ * `-fno-strength-reduce` all leave it at 4, so NO flag group applies.
+ * The cse-defeating barrier family is measured in full and all of it costs two
+ * instructions, because `ret` is in a HI register: "+r" 96, "+h" 96, "+g" 98-103,
+ * "+l" 100-104, at 121-123 encodings against 119.  "+h" not helping is the
+ * important one -- gcc-2.96 copies through a low register either way.
+ *
+ * SHIMS -- NONE.  register class 0, .equ class 0, other __asm__ 0.
+ *
+ * NEXT, IF ANYONE TAKES IT UP: residue (1) needs a control-flow boundary between
+ * `ret = 0` and `j = ret` that cse1 SEES and that a later pass REMOVES.  Nothing
+ * in C is known to do that -- jump optimisation runs at pass 02, BEFORE cse1 at
+ * pass 03, so a branch gcc can fold is already gone when cse1 runs, and one it
+ * cannot fold survives to the output.  State that as the open question rather
+ * than as a lever.
  */
 extern unsigned char *_GetUnit(int id);
 extern int Func_80c23c0(int a);

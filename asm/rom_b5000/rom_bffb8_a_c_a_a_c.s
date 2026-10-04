@@ -9,82 +9,82 @@
 	.type	 Func_80c0774,function
 Func_80c0774:
 	push	{r5, r6, r7, lr}
-	ldr	r3, .L56+4
+	ldr	r3, .L58+4
 	ldr	r6, [r3]
 	ldr	r3, [r6, #8]
 	mov	r7, r0
 	mov	r5, r2
 	cmp	r3, #0
-	bne	.L24
-	ldr	r0, .L56+8
-	ldr	r1, .L56+12
+	bne	.L26
+	ldr	r0, .L58+8
+	ldr	r1, .L58+12
 	bl	StartTask
-.L24:
+.L26:
 	str	r7, [r6, #8]
 	cmp	r7, #1
-	bne	.L25
-	ldr	r1, .L56+16
-	ldr	r0, .L56+20
+	bne	.L27
+	ldr	r1, .L58+16
+	ldr	r0, .L58+20
 	ldrh	r3, [r0]
 	mov	r4, r3
 	strh	r0, [r0]
 	ldrh	r2, [r1]
 	cmp	r2, #31
-	bgt	.L34
+	bgt	.L36
 	lsl	r3, r2, #1
 	add	r3, r3, r2
 	lsl	r3, r3, #2
 	add	r2, r2, #1
 	add	r3, r3, r1
 	strh	r2, [r1]
-	ldr	r2, .L56+24
+	ldr	r2, .L58+24
 	add	r3, r3, #4
 	stmia	r3!, {r2}
-	ldr	r2, .L56+28
+	ldr	r2, .L58+28
 	stmia	r3!, {r2}
 	mov	r2, #128
 	lsl	r2, r2, #10
 	str	r2, [r3]
-.L34:
+.L36:
 	strh	r4, [r0]
-.L25:
-	ldr	r3, .L56+32
-	ldr	r0, .L56+36
-	ldr	r1, .L56+40
-	ldr	r2, .L56+44
+.L27:
+	ldr	r3, .L58+32
+	ldr	r0, .L58+36
+	ldr	r1, .L58+40
+	ldr	r2, .L58+44
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	ldr	r2, .L56+48
-	ldr	r3, .L56+52
+	ldr	r2, .L58+48
+	ldr	r3, .L58+52
 	ldrh	r2, [r2]
 	strh	r2, [r3]
 	cmp	r5, #128
-	bne	.L41
-	ldr	r3, .L56+56
-	ldr	r2, .L56+60
+	bne	.L43
+	ldr	r3, .L58+56
+	ldr	r2, .L58+60
 	ldr	r0, [r3]
 	add	r1, r1, #32
 	add	r0, r0, r2
-	ldr	r3, .L56+32
-	ldr	r2, .L56+64
+	ldr	r3, .L58+32
+	ldr	r2, .L58+64
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	b	.L43
-.L41:
+	b	.L45
+.L43:
 	cmp	r5, #0
-	beq	.L43
-	ldr	r3, .L56+56
-	ldr	r2, .L56+60
+	beq	.L45
+	ldr	r3, .L58+56
+	ldr	r2, .L58+60
 	ldr	r3, [r3]
-	ldrh	r7, .L56
+	ldrh	r7, .L58
 	add	r2, r2, r3
-	ldr	r4, .L56+68
+	ldr	r4, .L58+68
 	mov	ip, r2
 	mov	r6, #0
 	mov	r0, #0
-.L48:
+.L50:
 	mov	r2, ip
 	ldrh	r3, [r0, r2]
 	mov	r1, #31
@@ -95,12 +95,12 @@ Func_80c0774:
 	and	r2, r2, r7
 	and	r3, r3, r7
 	cmp	r1, r5
-	ble	.L49
+	ble	.L51
 	sub	r1, r1, r5
-	b	.L50
-.L57:
+	b	.L52
+.L59:
 	.align	2, 0
-.L56:
+.L58:
 	.word	31
 	.word	iwram_3001f00
 	.word	Func_80c0130
@@ -119,23 +119,23 @@ Func_80c0774:
 	.word	1348
 	.word	-2147483520
 	.word	83886272
-.L49:
-	mov	r1, #0
-.L50:
-	cmp	r2, r5
-	ble	.L51
-	sub	r2, r2, r5
-	b	.L52
 .L51:
-	mov	r2, #0
+	mov	r1, #0
 .L52:
-	cmp	r3, r5
+	cmp	r2, r5
 	ble	.L53
-	sub	r3, r3, r5
+	sub	r2, r2, r5
 	b	.L54
 .L53:
-	mov	r3, #0
+	mov	r2, #0
 .L54:
+	cmp	r3, r5
+	ble	.L55
+	sub	r3, r3, r5
+	b	.L56
+.L55:
+	mov	r3, #0
+.L56:
 	lsl	r3, r3, #10
 	lsl	r2, r2, #5
 	orr	r3, r3, r2
@@ -145,18 +145,18 @@ Func_80c0774:
 	add	r0, r0, #2
 	add	r4, r4, #2
 	cmp	r6, #128
-	bne	.L48
-.L43:
-	ldr	r0, .L58
+	bne	.L50
+.L45:
+	ldr	r0, .L60
 	bl	Func_80c0098
-	ldr	r0, .L58+4
+	ldr	r0, .L60+4
 	bl	Func_80c00d8
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L59:
+.L61:
 	.align	2, 0
-.L58:
+.L60:
 	.word	100677632
 	.word	100726784
 .Lfe1:

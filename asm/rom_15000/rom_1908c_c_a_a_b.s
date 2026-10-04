@@ -13,7 +13,7 @@ DecompressString:
 	mov	r6, r9
 	mov	r5, r8
 	push	{r5, r6, r7}
-	ldr	r3, .L33+4
+	ldr	r3, .L35+4
 	add	r3, r3, #200
 	mov	r7, r2
 	ldr	r2, [r3]
@@ -24,8 +24,8 @@ DecompressString:
 	mov	r9, r0
 	mov	r6, r1
 	cmp	r3, #0
-	bne	.L10
-	ldr	r5, .L33+8
+	bne	.L12
+	ldr	r5, .L35+8
 	mov	r0, #50
 	mov	r1, r5
 	bl	galloc_iwram
@@ -33,41 +33,41 @@ DecompressString:
 	lsr	r5, r5, #2
 	lsl	r2, r2, #24
 	mov	r1, r0
-	ldr	r3, .L33+12
-	ldr	r0, .L33+16
+	ldr	r3, .L35+12
+	ldr	r0, .L35+16
 	orr	r2, r2, r5
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	mov	r2, r8
 	ldr	r3, [r2]
-.L10:
+.L12:
 	mov	r5, sp
 	mov	r1, r9
 	mov	r0, r5
 	mov	r8, r3
 	bl	HuffStr_Start
-	ldr	r3, .L33+20
+	ldr	r3, .L35+20
 	mov	r9, r3
-	b	.L12
-.L14:
-	cmp	r0, #14
-	beq	.L16
-	cmp	r0, #14
-	bhi	.L29
-	cmp	r0, #12
-	bhi	.L26
-	cmp	r0, #8
-	bcc	.L26
-	b	.L24
-.L29:
-	cmp	r0, #15
-	beq	.L24
-	b	.L26
+	b	.L14
 .L16:
+	cmp	r0, #14
+	beq	.L18
+	cmp	r0, #14
+	bhi	.L31
+	cmp	r0, #12
+	bhi	.L28
+	cmp	r0, #8
+	bcc	.L28
+	b	.L26
+.L31:
+	cmp	r0, #15
+	beq	.L26
+	b	.L28
+.L18:
 	sub	r7, r7, #3
 	cmp	r7, #0
-	ble	.L18
+	ble	.L20
 	strh	r0, [r6]
 	mov	r0, r5
 	bl	_call_via_r8
@@ -78,38 +78,38 @@ DecompressString:
 	bl	_call_via_r8
 	add	r6, r6, #2
 	add	r0, r0, r9
-	b	.L32
-.L24:
-	sub	r7, r7, #1
-	cmp	r7, #0
-	ble	.L18
-	strh	r0, [r6]
-	mov	r0, r5
-	bl	_call_via_r8
-	ldr	r2, .L33+20
-	add	r6, r6, #2
-	add	r0, r0, r2
-	b	.L32
+	b	.L34
 .L26:
 	sub	r7, r7, #1
 	cmp	r7, #0
-	ble	.L18
-.L32:
+	ble	.L20
+	strh	r0, [r6]
+	mov	r0, r5
+	bl	_call_via_r8
+	ldr	r2, .L35+20
+	add	r6, r6, #2
+	add	r0, r0, r2
+	b	.L34
+.L28:
+	sub	r7, r7, #1
+	cmp	r7, #0
+	ble	.L20
+.L34:
 	strh	r0, [r6]
 	add	r6, r6, #2
-.L12:
+.L14:
 	mov	r0, r5
 	bl	_call_via_r8
 	cmp	r0, #0
-	bne	.L14
-.L18:
+	bne	.L16
+.L20:
 	mov	r3, sl
 	cmp	r3, #0
-	bne	.L31
+	bne	.L33
 	mov	r0, #50
 	bl	gfree
-.L31:
-	ldrh	r3, .L33
+.L33:
+	ldrh	r3, .L35
 	add	sp, sp, #12
 	strh	r3, [r6]
 	pop	{r3, r5, r6}
@@ -119,9 +119,9 @@ DecompressString:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L34:
+.L36:
 	.align	2, 0
-.L33:
+.L35:
 	.word	0
 	.word	gPtrs
 	.word	_SIZE_8015430

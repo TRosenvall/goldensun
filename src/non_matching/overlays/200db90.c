@@ -1,6 +1,11 @@
-/* OvlFunc_969_200db90 -- 0x0200db90, asm/overlays/rom_7f8b34/ovl_2b_c.s
+/* OvlFunc_969_200db90  --  0x0200db90
  *
- * NON-MATCHING, 2 of 43 encodings  (MEASURED, batch 319 recipe backfill).
+ * STILL NON-MATCHING, **2 of 43 encodings** (ref 43 / ours 43, first differing
+ * index 31).  PIN-FREE, SHIM-FREE, FLAG-FREE.  Batch 321 brief E RE-MEASURED
+ * the park's figure and CONFIRMED it, then closed the remaining question that
+ * batch 271 left open -- so this park is now closed on PROOF rather than on an
+ * exhausted list.  The BODY BELOW IS UNCHANGED from the parked one; everything
+ * new here is the diagnosis.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -8,84 +13,120 @@
  *     src/non_matching/overlays/200db90.c \
  *     asm/overlays/rom_7f6e64/ovl_314_c_c_c.s --func OvlFunc_969_200db90
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- * and its twin OvlFunc_925_200b460 -- 0x0200b460
+ * (The park's own first line names asm/overlays/rom_7f8b34/ovl_2b_c.s.  That is
+ * stale: a grep of all of asm/ finds OvlFunc_969_200db90 in exactly ONE file,
+ * asm/overlays/rom_7f6e64/ovl_314_c_c_c.s, which is what the recipe uses.)
  *
- * The twins differ in ONE constant (0xa4 against 0x90), so one solution
- * elevates both.  41 of 41 lines, ELEVEN differing.  Candidate: scratch/Ldb90.c.
+ * THE RESIDUE, and it is two instructions TRANSPOSED, nothing more:
  *
- * SOLVED, and both halves generalise -- see docs/elevation.md:
+ *     rom    str r0, [r5, #0x40] / ldr r1, =0xfffffe00 / ldrh r3, [r6] / add r3, r1
+ *     ours   str r0, [r5, #0x40] / ldrh r3, [r6] / ldr r1, =0xfffffe00 / add r3, r1
  *
- *   SOURCE ORDER OF TWO LOADS DECIDES WHICH GETS r8 AND WHICH GETS r10.
- *   Two values are loaded before the first call and both survive it.  Written
- *   in the ROM's apparent order (halfword first, pointer second) gcc assigned
- *   them to the opposite high registers from the ROM.  Swapping the two
- *   assignment statements in the source -- while the emitted load order stayed
- *   the ROM's, because that follows first USE, not source position -- fixed the
- *   allocation, and fixed the mul operand order with it.  20 differing -> 11.
+ * ========== BATCH 321: THE CHAIN IS NOW COMPLETE IN BOTH DIRECTIONS ==========
  *
- *   MUL COPIES THE SECOND OPERAND.  `mul rD, rS` computes rD = rD * rS, and
- *   gcc emits the copy for the RIGHT-hand operand of the C expression.  The ROM
- *   copies the addend-side value, so the source wants `c * r`, not `r * c`.
+ * Batch 271 closed this on "RELOAD MATERIALISES -512 IMMEDIATELY BEFORE THE ADD,
+ * so it is always emitted after the ldrh".  That is right, and I reproduced the
+ * dump it rests on verbatim -- .19.flow2 still reads
  *
- * BLOCKER: scheduling of the tail.  The same twelve instructions in a different
- * order.  Ours hoists the final halfword update's two loads (`ldr r1,=0xfffffe00`
- * and `ldrh r3,[r6]`) up past the three word stores; the ROM leaves them at the
- * bottom in source order.
+ *     (insn 80  (set (reg:SI 3 r3) (zero_extend:SI (mem:HI (reg/v:SI 6 r6)))))
+ *     (insn 113 (set (reg:SI 1 r1) (const_int -512)))
+ *     (insn 82  (set (reg/v:SI 3 r3) (plus:SI (reg:SI 3 r3) (reg:SI 1 r1))))
  *
- * NOT AN ALIASING PROBLEM, despite appearances.  The hoist crosses stores to
- * a+0x10/0x38/0x40 while loading from a+0x64, but every one of those is a
- * constant offset from the SAME base register, so gcc disambiguates by
- * arithmetic and never consults alias analysis.  -fno-strict-aliasing changes
- * nothing, which is the confirmation rather than a surprise.
+ * -- but it left the obvious follow-up unanswered: sched2 runs AFTER reload, so
+ * why can sched2 not hoist insn 113 above insn 80?  Both halves are now read off
+ * the compiler rather than inferred, and together they close the class.
  *
- * TRIED, all 11: ALIAS, CSE, SCHED2 (worse, 15), O1 (worse, 29, and one line
- * short), -fno-schedule-insns; naming the computed word in a local and storing
- * it twice; moving the a+0x38 store above the a+0x10 store in the source.
+ * (1) WHY THE CONST INSN CANNOT EXIST BEFORE THE LDRH.  Thumb's addsi3 takes its
+ *     second operand through a `nonmemory_operand` predicate, and gcc checks
+ *     PREDICATES but NOT CONSTRAINTS before reload (insn_invalid_p only consults
+ *     constraints once reload_completed).  So cse1's validate_change of
+ *     `(plus (zero_extend (mem:HI ...)) (const_int -512))` into insn 82 ALWAYS
+ *     succeeds, whatever the constant is and however the source spells it, and
+ *     the standalone pre-reload materialisation is then dead and deleted.  There
+ *     is no constant value and no statement order that survives this: the park's
+ *     five measured spellings (`*p = *p - 0x200`, a named `int bias` assigned
+ *     before the tail, the bare-pin form, two halfword variants) are not an
+ *     exhausted list, they are five instances of one impossibility.
  *
- * ================== BATCH 204: 11 DIFFERING DOWN TO 2 ==================
+ * (2) WHY sched2 CANNOT PUT IT BACK.  haifa's rank_for_schedule ends with two
+ *     tiebreaks, in this order:
+ *         * "Prefer the insn which has more later insns that depend on it" --
+ *           depend_count2 - depend_count1; and
+ *         * "If insns are equally good, sort by INSN_LUID (original insn order),
+ *           so that we make the sort stable.  This minimizes instruction
+ *           movement."
+ *     Insn 80 has the LONGER INSN_DEPEND list (the park read it as `119 118 86
+ *     82 113`), so it wins the first tiebreak outright; and if it did not, it
+ *     wins the LUID tiebreak, because reload inserted 113 between 80 and 82 and
+ *     LUIDs are assigned in chain order.  A reload-created insn can therefore
+ *     NEVER be scheduled above an equal-priority insn that precedes it.  The
+ *     park's "every insn in the tail has IDENTICAL priority 36" is the premise
+ *     that makes both tiebreaks the whole decision.
  *
- * The diagnosis above is right and the list of things tried has one gap: no
- * SCHEDULING BARRIER was tried, and the blocker is described as scheduling.
+ *     SCHED_GROUP_P is NOT what does this, and that is worth recording because
+ *     it is the natural guess: in gcc-2.96 set_sched_group_p is called from only
+ *     two places, the cc0 user case and the post-call group, so reload insns are
+ *     NOT glued to the insn they serve.  They do not need to be.
  *
- * 1. `do { } while (0)` IMMEDIATELY BEFORE THE TAIL takes it from 11 to 4.
- *    That is the batch-189 barrier used for exactly what this park describes --
- *    gcc hoisting the final halfword update's loads up past the three word
- *    stores. `__asm__ volatile("")` in the same place is byte-identical.
+ * SO THE FLOOR IS 2, AND IT IS A FLOOR, not a search frontier.  Do not spend a
+ * round on another spelling of the tail, and do not add a fakematch row: as
+ * batch 271 established, the pin is destroyed before scheduling.
  *
- * 2. NAMING THE a+8 VALUE takes it from 4 to 2. The ROM interleaves
- *    `ldr r3, [r5, #8]` into the build of `0xa4 << 16`:
+ * FLAGS RE-MEASURED AGAINST THIS BODY (batch 321).  This closed a real gap: the
+ * park's own flag list is labelled "TRIED, all 11", i.e. it was measured against
+ * the 11-DIFFERING body, before the batch-204 barrier and the batch-204 naming
+ * of the a+8 value took it to 2.  Re-run on the 2-differing body, ALL of these
+ * are EXACTLY INERT at 2 of 43, ref 43 / ours 43:
  *
- *        mov r2, #0xa4 / ldr r3, [r5, #8] / lsl r2, #0x10
+ *     -fno-gcse                     2      -fno-strength-reduce      2
+ *     -fno-rerun-cse-after-loop     2      -fno-schedule-insns       2
+ *     -fno-cse-follow-jumps         2      -fno-strict-aliasing      2
+ *     -fno-cse-skip-blocks          2      -fno-peephole             2
+ *     -fno-expensive-optimizations  2
+ *     -fno-gcse -fno-rerun-cse-after-loop (crossed)                  2
  *
- *    Reading a+8 into a local BEFORE the a+0x10 store, and storing that local
- *    to a+0x38 afterwards, puts the load where the ROM has it.
+ *   and ONE is worse: -fno-schedule-insns2 is 14 of 43.  So neither GCSE_CFLAGS
+ *   nor CSE_CFLAGS is a candidate here, crossed or alone, and the cse/gcse
+ *   bucket is empty for this function.  That is consistent with (1): the fold
+ *   that removes the materialisation is cse1's, and cse1 has no flag.
  *
- * WHAT REMAINS -- TWO INDEPENDENT LOADS, TRANSPOSED:
+ * ========== EVERYTHING BELOW IS THE INHERITED, STILL-CORRECT RECORD ==========
  *
- *     rom    ldr r1, =0xfffffe00 / ldrh r3, [r6, #0]
- *     ours   ldrh r3, [r6, #0]   / ldr r1, =0xfffffe00
+ * Its twin is OvlFunc_925_200b460 (0x0200b460) in
+ * asm/overlays/rom_7b0400/ovl_314_c_c_c_c.s; the two differ in ONE constant
+ * (0xa4 against 0x90), so one solution elevates both.
  *
- * MEASURED AGAINST IT, all byte-identical at 2 of 41:
+ *   SOURCE ORDER OF TWO LOADS DECIDES WHICH GETS r8 AND WHICH GETS r10.  Two
+ *   values are loaded before the first call and both survive it.  Written in the
+ *   ROM's apparent order (halfword first, pointer second) gcc assigned them to
+ *   the opposite high registers from the ROM.  Swapping the two assignment
+ *   statements -- while the emitted load order stayed the ROM's, because that
+ *   follows first USE, not source position -- fixed the allocation, and fixed
+ *   the mul operand order with it.  20 differing -> 11.
  *
- *     `v = 0xfffffe00; v += *p;`   -- the constant written first
- *     both destinations PINNED, r1 and r3, assigned in the ROM's order
- *     `do { } while (0)` between the two
- *     `__asm__ volatile("")` between the two
- *     the halfword read into its own temp before the addition
+ *   MUL COPIES THE SECOND OPERAND.  `mul rD, rS` computes rD = rD * rS and gcc
+ *   emits the copy for the RIGHT-hand operand, so the source wants `c * r`.
  *
- * A PIN ORDERS TWO INDEPENDENT MOVS BUT NOT TWO INDEPENDENT LOADS, and that is
- * the distinction this park adds. Batch 197 closed
- * src/overlays/rom_7e7574/ovl_9dc_c_a_c_c_a_a_c_c_c_c_c_a_c.c by pinning three
- * argument registers whose fills the ROM ran backwards, and that worked because
- * each was a `mov` of an immediate -- the pin decides where that materialisation
- * happens. Here both instructions are LOADS, one from the pool and one from
- * memory. Naming their destination registers says nothing about when the loads
- * issue, so the scheduler still orders them and every spelling above is inert.
+ *   `do { } while (0)` IMMEDIATELY BEFORE THE TAIL takes 11 to 4.  It is the
+ *   batch-189 scheduling barrier, and `__asm__ volatile("")` there is
+ *   byte-identical.  NAMING THE a+8 VALUE takes 4 to 2: the ROM interleaves
+ *   `ldr r3, [r5, #8]` into the build of `0xa4 << 16`, so reading a+8 into a
+ *   local BEFORE the a+0x10 store and storing that local to a+0x38 afterwards
+ *   puts the load where the ROM has it.
  *
- * The body below is the 2-differing form, not the 11-differing one the text
- * above was written against.
+ *   NOT AN ALIASING PROBLEM.  The hoist crosses stores to a+0x10/0x38/0x40 while
+ *   loading from a+0x64, but all are constant offsets from the SAME base
+ *   register, so gcc disambiguates by arithmetic and never consults alias
+ *   analysis.  -fno-strict-aliasing changing nothing is the confirmation.
+ *
+ *   THE CURRENT SPELLING IS LOAD-BEARING, not merely equivalent.  `*p +=
+ *   0xfffffe00;`, `{ int h = *p; *p = h + 0xfffffe00; }` and the fully
+ *   spelled-out halfword version are all 42 lines and 11 differing.  The
+ *   named-int-intermediate form below is one line SHORTER and is what holds the
+ *   length at 41 text instructions.
+ *
+ * FOR WHOEVER LANDS THE TWIN PAIR: datacheck says this .s carries .bss AND
+ * .data, so it needs a TEXT/DATA split, not just a text split.
  */
 
 
@@ -118,49 +159,3 @@ void OvlFunc_969_200db90(unsigned char *a)
     v += *p;
     *p = v;
 }
-
-/* ==================== CLOSED IN BATCH 271: A PIN CANNOT REACH THIS ====================
- *
- * Still 2 of 41. This park's own conclusion -- "a pin orders two independent movs
- * but not two independent loads" -- is right, and the reason is now readable
- * rather than inferred, which turns it from an open question into a closed one.
- *
- * From -fsched-verbose=5, every insn in the tail has IDENTICAL priority 36 (the
- * three stores, the ldrh and the constant), so the order is decided purely by
- * LUID. And the constant's LUID cannot be moved, because it is not an expand-time
- * insn. flow2 shows:
- *
- *     (insn 80  (set (reg r3) (zero_extend (mem:HI (reg r6)))))   <- the ldrh
- *     (insn 113 (set (reg:SI 1 r1) (const_int -512)))             <- RELOAD-created
- *     (insn 82  (set (reg r3) (plus (reg r3) (reg r1))))          <- the add
- *
- * RELOAD MATERIALISES -512 IMMEDIATELY BEFORE THE ADD, so it is always emitted
- * after the ldrh, and it additionally acquires a dependence on whatever precedes
- * it -- insn 80's INSN_DEPEND list is `119 118 86 82 113`, and the verbose log
- * shows 113 entering the ready list only once 80 is scheduled.
- *
- * SOURCE POSITION OF THE CONSTANT IS IRRELEVANT, because cse and reload discard
- * any earlier materialisation. Verified directly: with `int bias = 0xfffffe00`
- * assigned BEFORE the tail read, and again with
- * `register int bias __asm__("r1");` declaration split from assignment -- the
- * batch-269 bare-pin lever -- flow2 still shows the constant as a high-numbered
- * reload insn between the ldrh and the add.
- *
- * SO DO NOT ADD A FAKEMATCH ROW FOR THIS ONE. The pin is destroyed before
- * scheduling; no number of pins can reach it. That is worth stating explicitly
- * given how well the bare pin has worked elsewhere in batches 269-271.
- *
- * MEASURED: `bias` as a plain int assigned before the tail, 2 (unchanged); the
- * pinned form, 2 (unchanged); `*p = *p - 0x200;`, 2; `{ int h; h = 0xfffffe00;
- * h = h + (int)*p; *p = h; }`, 2; `{ int h; h = 0xfffffe00; *p = *p + h; }`, 2.
- *
- * AND THREE THAT ARE WORSE, which makes the park's current spelling load-bearing
- * rather than merely equivalent: `*p += 0xfffffe00;`, `{ int h = *p; *p = h +
- * 0xfffffe00; }`, and the fully-spelled-out halfword version are ALL 42 lines and
- * 11 differing. The named-int-intermediate form is one line SHORTER than the
- * obvious spellings and is what holds the length at 41.
- *
- * NOTE FOR LANDING WHENEVER IT IS SOLVED: datacheck says this .s carries .bss AND
- * .data, so it needs a TEXT/DATA split, not just a text split. The twin
- * OvlFunc_925_200b460 is in asm/overlays/rom_7b0400/ovl_314_c_c_c_c.s.
- */

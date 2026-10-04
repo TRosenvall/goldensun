@@ -11,7 +11,7 @@ DecompressIcon:
 	push	{r5, r6, lr}
 	mov	r6, r0
 	.code	16
-	ldr	r5, .L11
+	ldr	r5, .L13
 	mov	r0, #49
 	mov	r1, r5
 	bl	galloc_iwram
@@ -19,14 +19,14 @@ DecompressIcon:
 	lsr	r5, r5, #2
 	lsl	r2, r2, #24
 	mov	r1, r0
-	ldr	r3, .L11+4
-	ldr	r0, .L11+8
+	ldr	r3, .L13+4
+	ldr	r0, .L13+8
 	orr	r2, r2, r5
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	ldr	r3, .L11+12
-	ldr	r1, .L11+16
+	ldr	r3, .L13+12
+	ldr	r1, .L13+16
 	add	r3, r3, #196
 	add	r2, r6, r1
 	ldr	r0, [r2]
@@ -38,9 +38,9 @@ DecompressIcon:
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L12:
+.L14:
 	.align	2, 0
-.L11:
+.L13:
 	.word	_SIZE_8015afc
 	.word	67109076
 	.word	Func_8015afc

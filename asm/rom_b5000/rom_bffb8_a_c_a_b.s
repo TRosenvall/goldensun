@@ -14,14 +14,14 @@ Func_80c08a8:
 	mov	r0, #10
 	sub	sp, sp, #4
 	bl	galloc_ewram
-	ldr	r3, .L11
+	ldr	r3, .L13
 	mov	r1, r0
 	mov	r4, #0
 	mov	r0, sp
 	ldr	r5, [r3]
 	str	r4, [r0]
-	ldr	r3, .L11+4
-	ldr	r2, .L11+8
+	ldr	r3, .L13+4
+	ldr	r2, .L13+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -30,9 +30,9 @@ Func_80c08a8:
 	pop	{r5}
 	pop	{r0}
 	bx	r0
-.L12:
+.L14:
 	.align	2, 0
-.L11:
+.L13:
 	.word	iwram_3001f00
 	.word	67109076
 	.word	-2063597400

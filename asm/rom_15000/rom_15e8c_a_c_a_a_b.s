@@ -13,28 +13,28 @@ Func_8015fb8.0:
 	push	{r3}
 	mov	r3, ip
 	mov	r3, r0
-	ldr	r0, .L12
+	ldr	r0, .L14
 	mov	r2, r9
 	sub	sp, sp, #4
 	mov	r4, r1
 	str	r2, [sp]
 	and	r4, r4, r0
-	ldr	r2, .L12+4
+	ldr	r2, .L14+4
 	and	r0, r0, r3
 	lsl	r0, r0, #5
 	lsl	r4, r4, #5
 	add	r0, r0, r2
 	sub	r2, r2, #16
 	add	r1, r4, r2
-	ldr	r3, .L12+8
-	ldr	r2, .L12+12
+	ldr	r3, .L14+8
+	ldr	r2, .L14+12
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	ldr	r3, .L12+16
+	ldr	r3, .L14+16
 	add	r4, r4, r3
 	mov	r0, r4
-	ldr	r3, .L12+20
+	ldr	r3, .L14+20
 	mov	r1, #20
 	bl	_call_via_r3
 	add	sp, sp, #4
@@ -42,9 +42,9 @@ Func_8015fb8.0:
 	mov	r9, r3
 	pop	{r1}
 	bx	r1
-.L13:
+.L15:
 	.align	2, 0
-.L12:
+.L14:
 	.word	1023
 	.word	100663312
 	.word	67109076
@@ -62,7 +62,7 @@ Func_8016018:
 	mov	r6, r9
 	push	{r6}
 	mov	r6, r0
-	ldr	r1, .L22
+	ldr	r1, .L24
 	mov	r0, #15
 	sub	sp, sp, #4
 	bl	galloc_ewram
@@ -71,77 +71,77 @@ Func_8016018:
 	mov	r4, sp
 	str	r3, [r4]
 	mov	r0, r4
-	ldr	r3, .L22+4
+	ldr	r3, .L24+4
 	mov	r1, r5
-	ldr	r2, .L22+8
+	ldr	r2, .L24+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	ldr	r1, .L22+12
+	ldr	r1, .L24+12
 	add	r3, r5, r1
 	mov	r1, #1
 	strb	r1, [r3]
-	ldr	r3, .L22+16
+	ldr	r3, .L24+16
 	add	r2, r5, r3
 	mov	r3, #99
 	strh	r3, [r2]
-	ldr	r2, .L22+20
+	ldr	r2, .L24+20
 	add	r3, r5, r2
 	strb	r1, [r3]
-	ldr	r3, .L22+24
+	ldr	r3, .L24+24
 	add	r2, r5, r3
 	mov	r3, #15
 	strb	r3, [r2]
-	ldr	r3, .L22+28
+	ldr	r3, .L24+28
 	mov	r0, r4
 	str	r3, [r4]
 	mov	r1, r5
-	ldr	r3, .L22+4
-	ldr	r2, .L22+32
+	ldr	r3, .L24+4
+	ldr	r2, .L24+32
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	bl	Func_8015ef4
 	mov	r1, #144
 	lsl	r1, r1, #3
-	ldr	r0, .L22+36
+	ldr	r0, .L24+36
 	bl	StartTask
 	mov	r0, r6
 	bl	Func_8017464
 	add	r1, sp, #4
 	mov	r9, r1
-	ldr	r0, .L22+40
+	ldr	r0, .L24+40
 	mov	r1, #128
 	bl	Func_8015fb8.0
 	add	r2, sp, #4
 	mov	r9, r2
 	mov	r1, #129
-	ldr	r0, .L22+44
+	ldr	r0, .L24+44
 	bl	Func_8015fb8.0
 	add	r3, sp, #4
 	mov	r9, r3
 	mov	r1, #130
-	ldr	r0, .L22+48
+	ldr	r0, .L24+48
 	bl	Func_8015fb8.0
-	ldr	r1, .L22+52
+	ldr	r1, .L24+52
 	mov	r2, #4
 	mov	r3, #2
 	add	r5, r5, r1
-.L19:
+.L21:
 	sub	r3, r3, #1
 	strb	r2, [r5]
 	sub	r5, r5, #1
 	cmp	r3, #0
-	bge	.L19
+	bge	.L21
 	add	sp, sp, #4
 	pop	{r3}
 	mov	r9, r3
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L23:
+.L25:
 	.align	2, 0
-.L22:
+.L24:
 	.word	4860
 	.word	67109076
 	.word	-2063596353

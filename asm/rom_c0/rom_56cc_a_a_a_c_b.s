@@ -9,7 +9,7 @@
 	.type	 Func_80058ac,function
 Func_80058ac:
 	push	{r5, lr}
-	ldr	r3, .L14
+	ldr	r3, .L16
 	ldr	r5, [r3]
 	lsl	r0, r0, #16
 	add	r5, r5, #64
@@ -20,21 +20,21 @@ Func_80058ac:
 	mov	r1, #0
 	sub	sp, sp, #16
 	bl	ReadFlash
-	ldr	r3, .L14+4
+	ldr	r3, .L16+4
 	mov	r0, r5
 	mov	r1, sp
-	ldr	r2, .L14+8
+	ldr	r2, .L16+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	mov	r2, #128
-	ldr	r1, .L14+4
+	ldr	r1, .L16+4
 	lsl	r2, r2, #24
-.L13:
+.L15:
 	ldr	r3, [r1, #8]
 	and	r3, r3, r2
 	cmp	r3, #0
-	bne	.L13
+	bne	.L15
 	bl	Func_8005ae0
 	mov	r3, sp
 	ldrh	r3, [r3, #8]
@@ -45,9 +45,9 @@ Func_80058ac:
 	pop	{r5}
 	pop	{r1}
 	bx	r1
-.L15:
+.L17:
 	.align	2, 0
-.L14:
+.L16:
 	.word	iwram_3001f1c
 	.word	67109076
 	.word	-2080374780

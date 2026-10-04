@@ -12,11 +12,11 @@ OvlFunc_916_2008980:
 	mov	r7, sl
 	mov	r6, r8
 	push	{r6, r7}
-	ldr	r3, .L13+4
-	ldr	r1, .L13+8
-	ldr	r2, .L13+12
+	ldr	r3, .L15+4
+	ldr	r1, .L15+8
+	ldr	r2, .L15+12
 	mov	r8, r3
-	ldr	r7, .L13+16
+	ldr	r7, .L15+16
 	str	r2, [r1]
 	add	r3, r2, #2
 	mov	sl, r1
@@ -48,14 +48,14 @@ OvlFunc_916_2008980:
 	str	r6, [sp]
 	str	r3, [sp, #4]
 	bl	__Func_8010704
-	ldr	r0, .L13+20
+	ldr	r0, .L15+20
 	bl	__GetFlag
 	cmp	r0, #0
-	bne	.L10
-	ldr	r3, .L13+24
-	ldr	r0, .L13+28
+	bne	.L12
+	ldr	r3, .L15+24
+	ldr	r0, .L15+28
 	ldr	r1, [r7]
-	ldr	r2, .L13+32
+	ldr	r2, .L15+32
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -64,13 +64,13 @@ OvlFunc_916_2008980:
 	strh	r6, [r3]
 	mov	r3, r8
 	ldr	r2, [r3]
-	ldrh	r3, .L13
+	ldrh	r3, .L15
 	strh	r3, [r2]
-.L10:
+.L12:
 	ldr	r0, [r7]
 	bl	OvlFunc_916_2008a90
 	mov	r1, #255
-	ldr	r0, .L13+28
+	ldr	r0, .L15+28
 	bl	OvlFunc_916_2008b3c
 	bl	OvlFunc_916_2008194
 	mov	r1, #0
@@ -87,10 +87,10 @@ OvlFunc_916_2008980:
 	mov	r3, #192
 	lsl	r3, r3, #8
 	str	r3, [r0, #24]
-	b	.L14
-.L15:
+	b	.L16
+.L17:
 	.align	2, 0
-.L13:
+.L15:
 	.word	1
 	.word	.L12c8
 	.word	.L12c4
@@ -100,9 +100,9 @@ OvlFunc_916_2008980:
 	.word	67109076
 	.word	.L111c
 	.word	-2080374766
-.L14:
+.L16:
 	str	r3, [r0, #28]
-	ldr	r3, .L16
+	ldr	r3, .L18
 	mov	r1, #224
 	ldr	r3, [r3]
 	lsl	r1, r1, #1
@@ -110,13 +110,13 @@ OvlFunc_916_2008980:
 	add	r3, r3, r1
 	lsl	r2, r2, #2
 	str	r2, [r3]
-	ldr	r0, .L16+4
+	ldr	r0, .L18+4
 	bl	__GetFlag
 	cmp	r0, #0
-	bne	.L12
+	bne	.L14
 	mov	r0, #4
 	bl	OvlFunc_916_2008e64
-.L12:
+.L14:
 	mov	r0, #0
 	add	sp, sp, #8
 	pop	{r3, r5}
@@ -125,9 +125,9 @@ OvlFunc_916_2008980:
 	pop	{r5, r6, r7}
 	pop	{r1}
 	bx	r1
-.L17:
+.L19:
 	.align	2, 0
-.L16:
+.L18:
 	.word	iwram_3001ebc
 	.word	2117
 .Lfe1:

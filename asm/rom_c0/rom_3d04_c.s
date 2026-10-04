@@ -12,15 +12,15 @@ Func_8003e10:
 	mov	r6, r8
 	push	{r6}
 	mov	r8, r0
-	ldr	r5, .L19
+	ldr	r5, .L21
 	mov	r0, r5
 	bl	Func_8004938
 	mov	r2, #132
 	mov	r6, r0
 	lsr	r5, r5, #2
 	lsl	r2, r2, #24
-	ldr	r3, .L19+4
-	ldr	r0, .L19+8
+	ldr	r3, .L21+4
+	ldr	r0, .L21+8
 	mov	r1, r6
 	orr	r2, r2, r5
 	stmia	r3!, {r0, r1, r2}
@@ -35,9 +35,9 @@ Func_8003e10:
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L20:
+.L22:
 	.align	2, 0
-.L19:
+.L21:
 	.word	_FUNC_8001DC8_SIZE
 	.word	67109076
 	.word	Func_8001dc8

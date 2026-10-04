@@ -12,8 +12,8 @@ Func_8011644:
 	mov	r7, sl
 	mov	r6, r8
 	push	{r6, r7}
-	ldr	r3, .L11+4
-	ldr	r2, .L11+8
+	ldr	r3, .L13+4
+	ldr	r2, .L13+8
 	ldr	r7, [r3]
 	mov	sl, r2
 	mov	r2, #142
@@ -33,30 +33,30 @@ Func_8011644:
 	mov	r2, sl
 	strh	r3, [r2]
 	mov	r0, sl
-	ldr	r3, .L11+12
+	ldr	r3, .L13+12
 	mov	r1, r6
-	ldr	r2, .L11+16
+	ldr	r2, .L13+16
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	ldr	r0, [r5, #4]
 	bl	GetFile
-	ldr	r1, .L11+20
+	ldr	r1, .L13+20
 	bl	DecompressLZ
 	ldr	r0, [r5, #8]
 	bl	GetFile
-	ldr	r1, .L11+24
+	ldr	r1, .L13+24
 	bl	DecompressLZ
 	ldr	r0, [r5, #12]
 	bl	GetFile
-	ldr	r1, .L11+28
+	ldr	r1, .L13+28
 	bl	DecompressLZ
 	ldr	r0, [r5, #16]
 	bl	GetFile
-	ldr	r1, .L11+32
+	ldr	r1, .L13+32
 	bl	DecompressLZ
-	ldr	r2, .L11+36
-	ldr	r3, .L11+40
+	ldr	r2, .L13+36
+	ldr	r3, .L13+40
 	str	r3, [r2]
 	mov	r3, #128
 	lsl	r3, r3, #1
@@ -70,23 +70,23 @@ Func_8011644:
 	strh	r3, [r2]
 	mov	r0, #1
 	bl	WaitFrames
-	ldr	r0, .L11+44
+	ldr	r0, .L13+44
 	bl	GetFile
 	mov	r1, sl
 	bl	DecompressLZ
-	ldrh	r5, .L11
+	ldrh	r5, .L13
 	bl	Func_80113e4
 	mov	r3, r7
 	add	r3, r3, #252
 	strb	r5, [r3]
-	ldr	r0, .L11+48
+	ldr	r0, .L13+48
 	bl	Func_800439c
 	mov	r0, #1
 	bl	WaitFrames
-	b	.L12
-.L13:
+	b	.L14
+.L15:
 	.align	2, 0
-.L11:
+.L13:
 	.word	0
 	.word	iwram_3001e70
 	.word	gBuffer
@@ -100,7 +100,7 @@ Func_8011644:
 	.word	Func_801161c
 	.word	_FILE_d5
 	.word	Func_801179c
-.L12:
+.L14:
 	pop	{r3, r5}
 	mov	r8, r3
 	mov	sl, r5

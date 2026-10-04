@@ -9,71 +9,71 @@
 	.type	 AgbMain,function
 AgbMain:
 	push	{r5, lr}
-	ldr	r2, .L20+4
-	ldr	r3, .L20+8
+	ldr	r2, .L22+4
+	ldr	r3, .L22+8
 	ldrh	r1, [r2, #10]
 	and	r3, r3, r1
 	strh	r3, [r2, #10]
-	ldr	r3, .L20+12
+	ldr	r3, .L22+12
 	ldrh	r1, [r2, #10]
 	and	r3, r3, r1
 	strh	r3, [r2, #10]
 	ldrh	r3, [r2, #10]
 	sub	sp, sp, #4
-	ldr	r2, .L20+16
-	ldr	r3, .L20+20
+	ldr	r2, .L22+16
+	ldr	r3, .L22+20
 	strh	r2, [r3]
 	mov	r0, sp
 	mov	r5, #0
 	mov	r1, #192
 	str	r5, [r0]
-	ldr	r3, .L20+24
+	ldr	r3, .L22+24
 	lsl	r1, r1, #18
-	ldr	r2, .L20+28
+	ldr	r2, .L22+28
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	bl	ClearHeap
 	bl	InitRAMLib
-	ldr	r3, .L20+32
+	ldr	r3, .L22+32
 	str	r5, [r3]
-	ldr	r3, .L20+36
+	ldr	r3, .L22+36
 	strb	r5, [r3]
-	ldr	r3, .L20+40
+	ldr	r3, .L22+40
 	strb	r5, [r3]
-	ldr	r3, .L20+44
+	ldr	r3, .L22+44
 	strb	r5, [r3]
 	bl	SetRAMBuildDate
 	bl	Func_800479c
 	bl	ClearVRAM
-	ldrh	r3, .L20
+	ldrh	r3, .L22
 	mov	r2, #128
 	lsl	r2, r2, #19
 	strh	r3, [r2]
 	mov	r0, #0
-	ldr	r2, .L20+48
+	ldr	r2, .L22+48
 	mov	r1, #1
 	bl	SetIntrHandler
-	ldr	r2, .L20+52
-	ldr	r3, .L20+56
+	ldr	r2, .L22+52
+	ldr	r3, .L22+56
 	strh	r2, [r3]
 	bl	_InitSoundEngine
 	bl	ClearSprites
 	bl	ClearTasks
-	ldr	r3, .L20+60
-	ldr	r2, .L20+64
+	ldr	r3, .L22+60
+	ldr	r2, .L22+64
 	str	r5, [r3]
 	mov	r3, #1
 	strb	r3, [r2]
-	ldr	r3, .L20+68
+	ldr	r3, .L22+68
 	mov	r0, #10
 	strb	r5, [r3]
 	bl	WaitFrames
 	mov	r0, #0
-	b	.L21
-.L22:
+	b	.L23
+.L24:
 	.align	2, 0
-.L20:
+.L22:
 	.word	320
 	.word	67109040
 	.word	50687
@@ -92,7 +92,7 @@ AgbMain:
 	.word	gIWRAMHeap_end
 	.word	iwram_3001d18
 	.word	iwram_3001ca0
-.L21:
+.L23:
 	bl	_GameStart
 	add	sp, sp, #4
 	pop	{r5}
@@ -106,15 +106,15 @@ AgbMain:
 	.type	 Unused_WaitForever,function
 Unused_WaitForever:
 	push	{r5, lr}
-	ldr	r5, .L27
-.L24:
+	ldr	r5, .L29
+.L26:
 	mov	r0, #1
 	ldr	r3, [r5]
 	bl	WaitFrames
-	b	.L24
-.L28:
+	b	.L26
+.L30:
 	.align	2, 0
-.L27:
+.L29:
 	.word	gKeyPress
 .Lfe2:
 	.size	 Unused_WaitForever,.Lfe2-Unused_WaitForever

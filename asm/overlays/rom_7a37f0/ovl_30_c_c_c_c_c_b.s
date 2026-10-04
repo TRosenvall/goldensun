@@ -9,21 +9,21 @@
 	.type	 OvlFunc_916_2008f74,function
 OvlFunc_916_2008f74:
 	push	{lr}
-	ldr	r3, .L12
+	ldr	r3, .L14
 	ldr	r4, [r3]
 	mov	r0, #160
-	ldr	r3, .L12+4
+	ldr	r3, .L14+4
 	lsl	r0, r0, #19
 	mov	r1, r4
-	ldr	r2, .L12+8
+	ldr	r2, .L14+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	mov	r2, #224
 	lsl	r2, r2, #1
 	add	r1, r4, r2
-	ldr	r0, .L12+12
-	ldr	r2, .L12+8
+	ldr	r0, .L14+12
+	ldr	r2, .L14+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -33,9 +33,9 @@ OvlFunc_916_2008f74:
 	bl	__Func_8091220
 	pop	{r0}
 	bx	r0
-.L13:
+.L15:
 	.align	2, 0
-.L12:
+.L14:
 	.word	iwram_3001ed0
 	.word	67109076
 	.word	-2080374672

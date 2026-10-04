@@ -9,29 +9,29 @@
 	.type	 Func_80c0700,function
 Func_80c0700:
 	push	{r5, r6, lr}
-	ldr	r3, .L25
+	ldr	r3, .L27
 	ldr	r0, [r3]
-	ldr	r3, .L25+4
+	ldr	r3, .L27+4
 	sub	sp, sp, #4
 	mov	r4, r1
 	add	r5, r0, r3
 	mov	r6, sp
-	ldr	r3, .L25+8
+	ldr	r3, .L27+8
 	ldrh	r2, [r3]
 	str	r2, [r6]
 	strh	r3, [r3]
 	cmp	r4, #0
-	bne	.L18
-	ldr	r3, .L25+12
+	bne	.L20
+	ldr	r3, .L27+12
 	mov	r0, r5
-	ldr	r1, .L25+16
-	ldr	r2, .L25+20
+	ldr	r1, .L27+16
+	ldr	r2, .L27+20
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	b	.L20
-.L18:
-	ldr	r3, .L25+24
+	b	.L22
+.L20:
+	ldr	r3, .L27+24
 	add	r0, r0, r3
 	lsl	r3, r4, #4
 	add	r3, r3, r4
@@ -42,21 +42,21 @@ Func_80c0700:
 	lsl	r2, r2, #9
 	sub	r2, r2, r3
 	str	r2, [r0]
-	ldr	r1, .L25+16
+	ldr	r1, .L27+16
 	mov	r0, r5
 	mov	r3, #128
 	bl	UploadBGPalette
-.L20:
+.L22:
 	ldr	r2, [r6]
-	ldr	r3, .L25+8
+	ldr	r3, .L27+8
 	add	sp, sp, #4
 	strh	r2, [r3]
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L26:
+.L28:
 	.align	2, 0
-.L25:
+.L27:
 	.word	iwram_3001e74
 	.word	1348
 	.word	67109384

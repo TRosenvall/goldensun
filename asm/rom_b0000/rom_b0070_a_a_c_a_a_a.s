@@ -20,8 +20,8 @@ Func_80b010c:
 	mov	r0, sp
 	str	r3, [r0]
 	mov	r1, r5
-	ldr	r3, .L11
-	ldr	r2, .L11+4
+	ldr	r3, .L13
+	ldr	r2, .L13+4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -30,10 +30,10 @@ Func_80b010c:
 	add	r2, r5, r3
 	mov	r3, #12
 	strb	r3, [r2]
-	ldr	r2, .L11+8
+	ldr	r2, .L13+8
 	add	r0, r5, r2
 	bl	_Func_80796c4
-	ldr	r2, .L11+12
+	ldr	r2, .L13+12
 	add	r3, r5, r2
 	strb	r0, [r3]
 	bl	AllocSpriteSlot
@@ -41,14 +41,14 @@ Func_80b010c:
 	lsl	r2, r2, #2
 	add	r3, r5, r2
 	strh	r0, [r3]
-	ldr	r2, .L11+16
+	ldr	r2, .L13+16
 	mov	r1, #128
 	bl	UploadSpriteGFX
 	bl	AllocSpriteSlot
-	ldr	r2, .L11+20
+	ldr	r2, .L13+20
 	add	r3, r5, r2
 	strh	r0, [r3]
-	ldr	r2, .L11+24
+	ldr	r2, .L13+24
 	mov	r1, #128
 	bl	UploadSpriteGFX
 	bl	AllocSpriteSlot
@@ -56,42 +56,42 @@ Func_80b010c:
 	lsl	r2, r2, #2
 	add	r3, r5, r2
 	strh	r0, [r3]
-	ldr	r2, .L11+28
+	ldr	r2, .L13+28
 	mov	r1, #128
 	bl	UploadSpriteGFX
 	bl	AllocSpriteSlot
-	ldr	r2, .L11+32
+	ldr	r2, .L13+32
 	add	r3, r5, r2
 	strh	r0, [r3]
-	ldr	r2, .L11+36
+	ldr	r2, .L13+36
 	mov	r1, #128
 	bl	UploadSpriteGFX
 	bl	AllocSpriteSlot
-	ldr	r2, .L11+40
+	ldr	r2, .L13+40
 	add	r3, r5, r2
 	strh	r0, [r3]
-	ldr	r2, .L11+44
+	ldr	r2, .L13+44
 	mov	r1, #128
 	bl	UploadSpriteGFX
 	bl	AllocSpriteSlot
 	mov	r3, #230
 	lsl	r3, r3, #2
 	add	r5, r5, r3
-	ldr	r2, .L11+48
+	ldr	r2, .L13+48
 	strh	r0, [r5]
 	mov	r1, #128
 	bl	UploadSpriteGFX
 	mov	r1, #200
 	lsl	r1, r1, #4
-	ldr	r0, .L11+52
+	ldr	r0, .L13+52
 	bl	StartTask
 	add	sp, sp, #4
 	pop	{r5}
 	pop	{r0}
 	bx	r0
-.L12:
+.L14:
 	.align	2, 0
-.L11:
+.L13:
 	.word	67109076
 	.word	-2063596900
 	.word	878

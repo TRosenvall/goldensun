@@ -12,25 +12,25 @@ OvlFunc_879_20081c0:
 	mov	r0, #164
 	lsl	r0, r0, #3
 	bl	__Func_8004970
-	ldr	r6, .L15
+	ldr	r6, .L17
 	mov	r2, #0
 	ldrsh	r3, [r6, r2]
 	mov	r2, #1
 	neg	r2, r2
 	mov	r5, r0
 	cmp	r3, r2
-	bne	.L10
+	bne	.L12
 	bl	__AllocSpriteSlot
 	strh	r0, [r6]
-.L10:
-	ldr	r0, .L15+4
+.L12:
+	ldr	r0, .L17+4
 	bl	__GetFile
 	mov	r1, r5
 	bl	__DecompressLZ
-	ldr	r3, .L15+8
+	ldr	r3, .L17+8
 	mov	r0, r5
-	ldr	r1, .L15+12
-	ldr	r2, .L15+16
+	ldr	r1, .L17+12
+	ldr	r2, .L17+16
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -42,21 +42,21 @@ OvlFunc_879_20081c0:
 	ldrsh	r0, [r6, r3]
 	bl	__UploadSpriteGFX
 	mov	r2, #128
-	ldr	r1, .L15+8
+	ldr	r1, .L17+8
 	lsl	r2, r2, #24
-.L14:
+.L16:
 	ldr	r3, [r1, #8]
 	and	r3, r3, r2
 	cmp	r3, #0
-	bne	.L14
+	bne	.L16
 	mov	r0, r5
 	bl	__free
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L16:
+.L18:
 	.align	2, 0
-.L15:
+.L17:
 	.word	.L650
 	.word	_FILE_1c
 	.word	67109076

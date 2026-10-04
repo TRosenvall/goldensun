@@ -9,7 +9,7 @@
 	.type	 Func_80f377c,function
 Func_80f377c:
 	push	{lr}
-	ldr	r1, .L13
+	ldr	r1, .L15
 	mov	r0, #32
 	sub	sp, sp, #4
 	bl	galloc_ewram
@@ -18,22 +18,22 @@ Func_80f377c:
 	mov	r0, sp
 	str	r3, [r0]
 	mov	r1, r4
-	ldr	r3, .L13+4
-	ldr	r2, .L13+8
+	ldr	r3, .L15+4
+	ldr	r2, .L15+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	mov	r0, #160
 	lsl	r0, r0, #19
-	ldr	r2, .L13+12
+	ldr	r2, .L15+12
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	mov	r2, #128
 	lsl	r2, r2, #2
 	add	r1, r4, r2
-	ldr	r0, .L13+16
-	ldr	r2, .L13+12
+	ldr	r0, .L15+16
+	ldr	r2, .L15+12
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -47,14 +47,14 @@ Func_80f377c:
 	bl	Func_80f3078
 	mov	r1, #200
 	lsl	r1, r1, #4
-	ldr	r0, .L13+20
+	ldr	r0, .L15+20
 	bl	StartTask
 	add	sp, sp, #4
 	pop	{r0}
 	bx	r0
-.L14:
+.L16:
 	.align	2, 0
-.L13:
+.L15:
 	.word	12292
 	.word	67109076
 	.word	-2063594495

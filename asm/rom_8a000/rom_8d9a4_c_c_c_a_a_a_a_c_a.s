@@ -9,42 +9,42 @@
 	.type	 Task_Transition300,function
 Task_Transition300:
 	push	{r5, r6, r7, lr}
-	ldr	r3, .L46
-	ldr	r1, .L46+4
+	ldr	r3, .L48
+	ldr	r1, .L48+4
 	ldr	r6, [r3]
 	add	r4, r6, r1
 	mov	r2, #0
 	ldrsb	r2, [r4, r2]
 	cmp	r2, #0
-	beq	.L24
-	ldr	r3, .L46+8
+	beq	.L26
+	ldr	r3, .L48+8
 	add	r1, r6, r3
 	mov	r3, #0
 	ldrsb	r3, [r1, r3]
 	ldrb	r0, [r1]
 	cmp	r3, r2
-	blt	.L25
+	blt	.L27
 	mov	r3, #0
 	strb	r3, [r4]
-	ldr	r0, .L46+12
+	ldr	r0, .L48+12
 	bl	StopTask
-	ldr	r2, .L46+16
-	ldr	r3, .L46+20
+	ldr	r2, .L48+16
+	ldr	r3, .L48+20
 	ldrh	r1, [r2, #10]
 	and	r3, r3, r1
 	strh	r3, [r2, #10]
-	ldr	r3, .L46+24
+	ldr	r3, .L48+24
 	ldrh	r1, [r2, #10]
 	and	r3, r3, r1
 	strh	r3, [r2, #10]
 	ldrh	r3, [r2, #10]
-	b	.L23
-.L25:
-	ldr	r7, .L46+28
+	b	.L25
+.L27:
+	ldr	r7, .L48+28
 	add	r3, r6, r7
 	mov	r2, #0
 	ldrsb	r2, [r3, r2]
-	ldr	r3, .L46+32
+	ldr	r3, .L48+32
 	add	r5, r6, r3
 	mov	r3, #0
 	ldrsb	r3, [r5, r3]
@@ -57,7 +57,7 @@ Task_Transition300:
 	mul	r0, r0, r2
 	mov	r1, #0
 	ldrsb	r1, [r4, r1]
-	ldr	r3, .L46+36
+	ldr	r3, .L48+36
 	bl	_call_via_r3
 	mov	r3, #0
 	ldrsb	r3, [r5, r3]
@@ -65,9 +65,9 @@ Task_Transition300:
 	add	r3, r3, r0
 	add	r2, r6, r7
 	strh	r3, [r2]
-.L24:
-	ldr	r1, .L46+40
-	ldr	r2, .L46+44
+.L26:
+	ldr	r1, .L48+40
+	ldr	r2, .L48+44
 	add	r3, r6, r1
 	ldrh	r3, [r3]
 	add	r1, r6, r2
@@ -80,18 +80,18 @@ Task_Transition300:
 	and	r3, r3, r0
 	mov	r5, #0
 	cmp	r3, #0
-	beq	.L27
+	beq	.L29
 	mov	r5, #15
-.L27:
+.L29:
 	mov	r3, #31
 	and	r3, r3, r0
 	lsl	r0, r3, #1
-	ldr	r3, .L46+48
+	ldr	r3, .L48+48
 	mov	r7, #63
 	mov	r4, #0
 	mov	ip, r3
 	mov	lr, r7
-.L28:
+.L30:
 	mov	r1, lr
 	mov	r3, r0
 	and	r3, r3, r1
@@ -105,33 +105,33 @@ Task_Transition300:
 	mov	r3, #1
 	and	r3, r3, r2
 	cmp	r3, #0
-	beq	.L29
+	beq	.L31
 	ldrb	r3, [r1]
 	mov	r2, #15
 	and	r2, r2, r3
 	lsl	r3, r5, #4
 	orr	r2, r2, r3
 	strb	r2, [r1]
-	b	.L30
-.L29:
+	b	.L32
+.L31:
 	ldrb	r2, [r1]
 	mov	r3, #240
 	and	r3, r3, r2
 	orr	r3, r3, r5
 	strb	r3, [r1]
-.L30:
+.L32:
 	add	r4, r4, #1
 	add	r0, r0, #1
 	cmp	r4, #1
-	bls	.L28
-	ldr	r1, .L46+52
-	ldr	r0, .L46+56
+	bls	.L30
+	ldr	r1, .L48+52
+	ldr	r0, .L48+56
 	ldrh	r3, [r0]
 	mov	r4, r3
 	strh	r0, [r0]
 	ldrh	r2, [r1]
 	cmp	r2, #31
-	bgt	.L40
+	bgt	.L42
 	lsl	r3, r2, #1
 	add	r3, r3, r2
 	lsl	r3, r3, #2
@@ -146,17 +146,17 @@ Task_Transition300:
 	mov	r2, #192
 	lsl	r2, r2, #19
 	stmia	r3!, {r2}
-	ldr	r2, .L46+60
+	ldr	r2, .L48+60
 	str	r2, [r3]
-.L40:
+.L42:
 	strh	r4, [r0]
-.L23:
+.L25:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L47:
+.L49:
 	.align	2, 0
-.L46:
+.L48:
 	.word	iwram_3001ecc
 	.word	1340
 	.word	1341

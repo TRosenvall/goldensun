@@ -15,7 +15,7 @@ Func_808ba38:
 	push	{r5, r6, r7}
 	mov	r7, r8
 	push	{r7}
-	ldr	r7, .L27
+	ldr	r7, .L29
 	mov	r2, #224
 	lsl	r2, r2, #4
 	add	r2, r2, r7
@@ -33,7 +33,7 @@ Func_808ba38:
 	mov	r2, #66
 	str	r2, [sp]
 	mov	r8, r3
-	ldr	r3, .L27+4
+	ldr	r3, .L29+4
 	mov	r2, #207
 	ldr	r3, [r3]
 	lsl	r2, r2, #1
@@ -43,25 +43,25 @@ Func_808ba38:
 	mov	r6, r7
 	sub	r6, r6, #32
 	cmp	r3, #3
-	bne	.L10
+	bne	.L12
 	mov	r3, #8
 	str	r3, [sp]
-.L10:
+.L12:
 	ldr	r2, [sp]
 	mov	r5, #0
 	cmp	r5, r2
-	bge	.L12
-.L14:
+	bge	.L14
+.L16:
 	mov	r0, r5
 	bl	GetFieldActor
 	mov	r4, r0
 	cmp	r4, #0
-	beq	.L13
+	beq	.L15
 	strb	r5, [r6]
-	ldr	r3, .L27+8
+	ldr	r3, .L29+8
 	add	r6, r6, #1
 	mov	r1, r7
-	ldr	r2, .L27+12
+	ldr	r2, .L29+12
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -69,7 +69,7 @@ Func_808ba38:
 	add	r3, r3, #84
 	ldrb	r3, [r3]
 	cmp	r3, #1
-	bne	.L17
+	bne	.L19
 	ldr	r2, [r4, #80]
 	mov	r3, r2
 	add	r3, r3, #36
@@ -79,12 +79,12 @@ Func_808ba38:
 	ldrb	r3, [r2, #9]
 	lsl	r3, r3, #28
 	lsr	r0, r3, #30
-	b	.L18
-.L17:
+	b	.L20
+.L19:
 	mov	r4, #0
 	mov	r1, #0
 	mov	r0, #0
-.L18:
+.L20:
 	mov	r3, fp
 	strb	r4, [r3]
 	mov	r3, r9
@@ -100,26 +100,26 @@ Func_808ba38:
 	add	sl, sl, r3
 	add	r7, r7, #112
 	cmp	r2, #31
-	bhi	.L12
-.L13:
+	bhi	.L14
+.L15:
 	ldr	r3, [sp]
 	add	r5, r5, #1
 	cmp	r5, r3
-	blt	.L14
-.L12:
+	blt	.L16
+.L14:
 	mov	r5, r8
 	cmp	r5, #31
-	bgt	.L26
+	bgt	.L28
 	mov	r3, #32
 	mov	r2, #255
 	sub	r5, r3, r5
-.L24:
+.L26:
 	sub	r5, r5, #1
 	strb	r2, [r6]
 	add	r6, r6, #1
 	cmp	r5, #0
-	bne	.L24
-.L26:
+	bne	.L26
+.L28:
 	add	sp, sp, #4
 	pop	{r3, r5, r6, r7}
 	mov	r8, r3
@@ -129,9 +129,9 @@ Func_808ba38:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L28:
+.L30:
 	.align	2, 0
-.L27:
+.L29:
 	.word	ewram_2001124
 	.word	iwram_3001ebc
 	.word	67109076

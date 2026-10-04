@@ -1,94 +1,117 @@
-/* Func_80ab1f4 @ 0x080ab1f4  --  NOT MATCHING, 4 of 19
+/* Func_80ab1f4 @ 0x080ab1f4  --  NOT MATCHING, 4 of 19 encodings
  *
- * FIGURE: 4 of 19 encodings (ref 19, ours 19, relocations ok), first diff at
- * index 9.  Measured, not inherited.  The park body measures the SAME 4 -- but
- * on two DIFFERENT differences, and one of them was a blocker the park never
- * saw.  This body is strictly better content at the same count.
+ * MEASURED THIS BATCH.  PIN COUNT: 0 (tools/shimcount.py reports no shims).
  *
  * Verify with:
- *     docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *       goldensun-build python3 tools/objcmp.py \
- *       src/non_matching/rom_a1000/rom_ab1f4.c \
- *       asm/rom_a1000/rom_aa538_c_c_a_c_c.s --func Func_80ab1f4
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_a1000/rom_ab1f4.c \
+ *     asm/rom_a1000/rom_aa538_c_c_a_c_c.s --func Func_80ab1f4
  *
- * THE PARK'S RECIPE PATH IS STALE.  src/non_matching/rom_a1000/rom_ab1f4.c
- * cites asm/rom_a1000/rom_aa538_c_c_a.s twice (header and merged note); the live
- * file is asm/rom_a1000/rom_aa538_c_c_a_c_c.s.  Repoint both.
- * Note also that src/non_matching/rom_a1000/80ab314.c is NOT a park for this
- * function -- it names asm/rom_a1000/rom_aa538_c_c_c_a_a.s and its "227 of 307"
- * is its own figure for Func_80ab314.  rom_ab1f4.c is the real subject.
+ *   --func : XX ENCODINGS differ in 4 place(s) (ref 19, ours 19), first at index 9
+ *   --whole is NOT a figure for this file: the reference TU holds THREE
+ *   functions (Func_80aafb8, Func_80ab1f4, Func_80ab21c), so --whole reports
+ *   the other two "missing from candidate" plus a SIZE and RELOCATIONS diff.
+ *   Use --func until the split below is taken.
  *
- * SPLIT (for when it does land).  The live .s holds THREE functions.
- *   python3 tools/datacheck.py asm/rom_a1000/rom_aa538_c_c_a_c_c.s -> CLEAN
+ * SPLIT (for when it lands).  CORRECTED -- the park's split filenames were
+ * computed against the OLD reference name and are stale:
+ *   python3 tools/datacheck.py asm/rom_a1000/rom_aa538_c_c_a_c_c.s  -> CLEAN (exit 0)
  *   python3 tools/split_s.py asm/rom_a1000/rom_aa538_c_c_a_c_c.s Func_80ab1f4 --dry-run
- *     would write ..._c_c_a.s  (1 function, 283 lines) [Func_80aafb8]
- *     would write ..._c_c_b.s  (1 function, 26 lines)  [Func_80ab1f4]
- *     would write ..._c_c_c.s  (1 function, 114 lines) [Func_80ab21c]
- * PIN COUNT: 0.
+ *     would write asm/rom_a1000/rom_aa538_c_c_a_c_c_a.s  (1 function, 283 lines)
+ *     would write asm/rom_a1000/rom_aa538_c_c_a_c_c_b.s  (1 function,  26 lines)  <- this one
+ *     would write asm/rom_a1000/rom_aa538_c_c_a_c_c_c.s  (1 function, 114 lines)
  *
- * FINDING 1 -- A SECOND BLOCKER THE PARK MISSED, AND IT IS CLOSED.
- * The park says the only difference is one transposition.  It is not; the
- * epilogue differed too:
- *     rom    pop {r1} / bx r1
- *     park   pop {r0} / bx r0
- * The Thumb epilogue pops lr into a low register that is not holding the return
- * value.  The ROM avoids r0, so r0 IS LIVE AT EXIT -- the function returns a
- * value, and `_Func_8022768`'s result is what it returns.  Declaring both as
- * s32 and writing `return _Func_8022768(...)` closes it.  That is the brief's
- * declared-return-type lever, and the park's "void" signature was simply wrong.
+ * ===== WHAT I REPRODUCED AND WHAT I ADD =====
  *
- * FINDING 2 -- THE REMAINING RESIDUE, AND THE EXACT RUNG IT SITS ON.
- * One insn, `add r0, #1`, is scheduled three slots late:
- *     rom    add r1,r2 | add r0,#1 | ldr r3,[sp,#0x10] | add r1,#1 | mov r2,r6
- *     ours   add r1,r2 | ldr r3,[sp,#0x10] | add r1,#1 | mov r2,r6 | add r0,#1
+ * REPRODUCED, both of the park's findings.  The epilogue blocker is closed and
+ * stays closed: `pop {r1} / bx r1` means r0 is live at exit, the function
+ * returns its callee's result, and the declared return type is what fixes it.
+ * The remaining residue is one sched2 rung, 19 instructions against 19:
  *
- * -fsched-verbose=6, at the cycle where they compete (last_scheduled_insn is
- * `add r1,r2`, so the CLASS rung is a 3-3 tie):
- *     insn 12  r3=[sp+0x10]   prio 66  dependents {42, 65, 66, 67}  = 4
- *     insn 25  r0=r0+0x1      prio 66  dependents {42, 66}          = 2
- *     insn 31  r1=r1+0x1      prio 66  dependents {42, 66, 67}      = 3
- *     insn 39  r2=r6          prio 66  dependents {42, 66, 67}      = 3
- *     insn 33  [sp]=r5        prio 65
- * Priorities TIE at 66 -- arm_adjust_cost charges 1 for any link into a
- * CALL_INSN, so the load gets no latency credit.  The pick is therefore made on
- * the DEPENDENT-COUNT rung, and our order is exactly that rung's order:
- * 4, then 3, then 3 (LUID), then 2.  `add r0,#1` loses because it has the
- * FEWEST dependents in the window.
+ *     idx  REF                      | OURS
+ *      9   3001 add r0, #1          | 9b04 ldr r3, [sp, #16]
+ *     10   9b04 ldr r3, [sp, #16]   | 3101 add r1, #1
+ *     11   3101 add r1, #1          | 1c32 mov r2, r6
+ *     12   1c32 mov r2, r6          | 3001 add r0, #1
  *
- * The a5 load's two extra dependents are both sp anti-dependences -- on insn 65
- * (`add sp,#4`) and insn 67 (the pop/return) -- which it has purely for being
- * sp-relative.  `add r0,#1` cannot acquire a third or fourth dependent: r0 is
- * the return value, so the epilogue's `pop {r1}` gives it no output dependence
- * (and the void spelling, which does give it one, costs the epilogue).  That is
- * the whole shape of the residue: 4 vs 2, with no source-reachable way to close
- * the gap in either direction.
+ * ALL FOUR ARE REAL INSTRUCTIONS.  This function has NO literal pool at all
+ * (its one relocation is the `bl` at index 14), so no rung below is blind.
  *
- * So the park's intuition -- "the incoming stack argument's load is not
- * reachable from statement order ... it is an ABI fetch, not something the
- * source sequences" -- is RIGHT, and now has a mechanism and a number instead
- * of a hunch.  But it named the wrong cause (it blamed gcc "pulling the fifth
- * stack argument up one slot") and it stopped one blocker short.
+ * ADDED (1): the park's numbers are confirmed from the dump rather than
+ * inherited.  .23.sched2's own ready lists for block 0:
+ *     t=11:  33  39  25  31  12   -> picks 12   (the a5 load)
+ *     t=12:  33  25  39  31       -> picks 31
+ *     t=14:  33  25  39           -> picks 39
+ *     t=15:  33  25               -> picks 25   (`add r0,#1`, LAST)
+ * The rank order is 33 < 25 < 39 < 31 < 12.  `add r0,#1` is second-lowest of
+ * the five, above only the outgoing-stack-argument store.  The ladder is
+ * priority (all tie at 66; arm_adjust_cost charges 1 for any link into a
+ * CALL_INSN, so the load gets no latency credit) -> dependent count
+ * (12:4, 31:3, 39:3, 25:2) -> INSN_LUID.  Our order IS the dependent-count
+ * order.  Frame offsets were already confirmed correct and are not re-derived.
  *
- * CROSSED PAIRS AND TRIPLES TRIED, ALL EXACTLY INERT AT 4 WITH THE RETURN TYPE:
- *   both coordinates in named locals, x first                               4
- *   x only in a named local                                                 4
- *   sums first, then the two +1s as separate statements                     4
- *   x finished before y, y's +1 left in the call                            4
- *   `__asm__("" : "+r" (cx))` between the add and the call                  4
- *   a5 copied into a named local first                                      4
- *   a4 and a6 copied into named locals first                                4
- *   `1 + w->col + x` (PLUS operand order, in integer space)                 4
- *   `register s32 a5` on the parameter                                      4
- *   a seventh, unused parameter                                             4
- *   the window struct replaced by a union (alias-set lever)                 4
- *   named local + barrier + a5 local (triple)                               4
- * The pre-sched2 stream is BIT-IDENTICAL across the first four of those, which
- * is why the park's statement-order list found nothing: gcc canonicalises them
- * all, and the a5 load is emitted in the prologue region at LUID 4 in every one.
+ * ADDED (2): THE TWO BLOCKERS ARE COUPLED, AND THE COUPLING IS NOT THE BINDING
+ * CONSTRAINT -- WHICH IS WORTH SAYING BECAUSE IT CLOSES A TEMPTING DEAD END.
+ * `add r0,#1` has only 2 dependents because r0 is the return value, so the
+ * epilogue's `pop {r1}` gives it no output dependence.  The `void` spelling
+ * does give it one -- and costs the epilogue, as the park says.  But even with
+ * that third dependent it is 3 against the a5 load's 4, so the void spelling
+ * CANNOT win the rung either.  The gap is not one dependent; it is two.
  *
- * DECLINING TO CLOSE.  The diagnosis is refuted and replaced, the epilogue
- * blocker is closed, and the residue is reduced to one scheduler rung with its
- * inputs measured.  No reachability claim either way on that rung.
+ * ADDED (3): the corpus says what the only reachable route is.  Searching the
+ * GENERATED assembly of matching functions:
+ *     `add rX, rX, #1` immediately before `ldr rY, [sp, #N]`   ->  0 hits
+ *     `ldr rY, [sp, #N]` immediately before `add rX, rX, #1`   -> 34 hits
+ *     any `add rX, rX, #imm` before `ldr r3, [sp, #N]`         ->  1 hit
+ * The single hit is src/overlays/rom_7d0e88/ovl_1528_a_a_c_a_c_c.c:
+ *     add r5, r5, #12 / ldr r3, [sp, #4] / add r5, r5, sl / ... / mov r3, r5 / bl
+ * It beats the sp load on the PRIORITY rung, not the dependent-count rung,
+ * because its value is three insns from the call instead of one.
+ *
+ * > BOUND, with its evidence attached.  To beat the a5 load, `add r0,#1` needs
+ * > either >= 4 dependents or a longer chain to the call.  Its two extra
+ * > dependents would have to come from later writers of r0, and r0 is the
+ * > return value (that is what closed the epilogue).  A longer chain needs an
+ * > extra instruction, and the stream is already 19 of 19 -- and the two +1s
+ * > cannot be moved onto the operands instead of the sums, because the ROM's
+ * > encodings are `add r0,#1` (3001) and `add r1,#1` (3101), i.e. on the sums
+ * > in r0 and r1, not on x in r1 and y in r2 (which would be 3101/3201).
+ * > This is what I measured on this body; it is NOT a claim that the rung is
+ * > unreachable in general -- the corpus hit above shows the priority route
+ * > works where an extra chain insn exists.
+ *
+ * ===== MEASURED, BUILDING ON THE PRIOR CROSSFIRE RUN, NOT REPEATING IT =====
+ *
+ * The prior run's "named sums" row measured exactly inert at 4 and was
+ * therefore a candidate prerequisite, so this round CROSSED it with the
+ * declaration dimension the brief asked for.  crossfire.py, 5 edits at depth 3
+ * (26 live subsets): COMPLETELY FLAT.  Every subset exactly inert at 4, same
+ * instruction count, clean relocations, nothing better and nothing worse:
+ *     named sums (the prior prerequisite)                          4
+ *     pad_00[0x0c] replaced by real declared members               4
+ *     callee without a prototype                                   4
+ *     window declared const                                         4
+ *     a5 cast at the call                                           4
+ *     ALL 21 pairs and triples of those, named sums included        4
+ * Probed separately: col/row as a `u16 pos[2]` array -- 4, inert.
+ * -fno-schedule-insns2 is REJECTED: 12 of 19, first at index 1.
+ *
+ * ON THE BRIEF'S DECLARATION LEVER, which was the reason to look here: the
+ * `u8 pad_00[0x0c]` padding is NOT hiding the defect.  Replacing it with real
+ * members is exactly inert, and so is turning col/row into an array -- because
+ * THE ADDRESSING IS ALREADY THE ROM'S (`ldrh r0,[r4,#12]`, `ldrh r1,[r4,#14]`)
+ * and 19 of 19 instructions already agree.  A correct declaration here can
+ * only move the SCHEDULE, and the schedule depends on the successor graph,
+ * which these edits leave bit-identical.  The lever class is real -- it already
+ * paid out on this function once, as the `void` return type -- but it is spent.
+ * The padding is left as padding rather than filled with invented members:
+ * inventing f00/f04/f08/f0a would be a guess, and it buys nothing measurable.
+ *
+ * DECLINING TO CLOSE.  Figure unchanged at 4; the diagnosis is now confirmed
+ * from the dump, the two blockers are shown to be coupled, the gap is sized at
+ * two dependents rather than one, the only corpus-attested escape route is
+ * named, and the declaration dimension is measured shut.
  */
 #include "gba/types.h"
 

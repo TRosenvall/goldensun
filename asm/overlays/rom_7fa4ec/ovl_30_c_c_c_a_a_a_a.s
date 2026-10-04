@@ -9,17 +9,17 @@
 	.type	 OvlFunc_970_20080b0,function
 OvlFunc_970_20080b0:
 	push	{r5, lr}
-	ldr	r5, .L12+4
+	ldr	r5, .L14+4
 	mov	r1, #6
 	ldrh	r0, [r5]
 	bl	__udivsi3
-	ldr	r2, .L12+8
+	ldr	r2, .L14+8
 	lsl	r0, r0, #16
 	lsr	r0, r0, #15
 	add	r0, r0, r2
-	ldr	r3, .L12+12
-	ldr	r1, .L12+16
-	ldr	r2, .L12+20
+	ldr	r3, .L14+12
+	ldr	r1, .L14+16
+	ldr	r2, .L14+20
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -30,16 +30,16 @@ OvlFunc_970_20080b0:
 	lsl	r2, r2, #14
 	lsl	r3, r3, #16
 	cmp	r3, r2
-	bls	.L11
-	ldrh	r3, .L12
+	bls	.L13
+	ldrh	r3, .L14
 	strh	r3, [r5]
-.L11:
+.L13:
 	pop	{r5}
 	pop	{r0}
 	bx	r0
-.L13:
+.L15:
 	.align	2, 0
-.L12:
+.L14:
 	.word	0
 	.word	.L181c
 	.word	.L14ac

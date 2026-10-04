@@ -9,7 +9,7 @@
 	.type	 Func_80251d4,function
 Func_80251d4:
 	mov	r3, r0
-	ldr	r0, .L11
+	ldr	r0, .L13
 	mov	r2, #192
 	and	r1, r1, r0
 	and	r0, r0, r3
@@ -18,15 +18,15 @@ Func_80251d4:
 	lsl	r1, r1, #5
 	add	r0, r0, r2
 	add	r1, r1, r2
-	ldr	r3, .L11+4
-	ldr	r2, .L11+8
+	ldr	r3, .L13+4
+	ldr	r2, .L13+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	bx	lr
-.L12:
+.L14:
 	.align	2, 0
-.L11:
+.L13:
 	.word	1023
 	.word	67109076
 	.word	-2080374776

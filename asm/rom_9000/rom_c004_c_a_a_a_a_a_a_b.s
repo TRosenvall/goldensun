@@ -12,51 +12,51 @@ DeleteActor:
 	mov	r7, r0
 	sub	sp, sp, #4
 	cmp	r7, #0
-	beq	.L9
+	beq	.L11
 	mov	r3, r7
 	add	r3, r3, #84
 	ldrb	r3, [r3]
 	mov	r2, #15
 	and	r2, r2, r3
 	cmp	r2, #1
-	beq	.L12
+	beq	.L14
 	cmp	r2, #2
-	beq	.L13
-	b	.L11
-.L12:
+	beq	.L15
+	b	.L13
+.L14:
 	ldr	r0, [r7, #80]
 	bl	DeleteSprite
-	b	.L11
-.L13:
+	b	.L13
+.L15:
 	ldr	r5, [r7, #80]
 	mov	r6, #3
-.L17:
+.L19:
 	ldmia	r5!, {r0}
 	cmp	r0, #0
-	beq	.L16
+	beq	.L18
 	bl	DeleteSprite
-.L16:
+.L18:
 	sub	r6, r6, #1
 	cmp	r6, #0
-	bge	.L17
-.L11:
+	bge	.L19
+.L13:
 	mov	r0, sp
 	mov	r3, #0
 	str	r3, [r0]
 	mov	r1, r7
-	ldr	r3, .L23
-	ldr	r2, .L23+4
+	ldr	r3, .L25
+	ldr	r2, .L25+4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-.L9:
+.L11:
 	add	sp, sp, #4
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L24:
+.L26:
 	.align	2, 0
-.L23:
+.L25:
 	.word	67109076
 	.word	-2063597540
 .Lfe1:

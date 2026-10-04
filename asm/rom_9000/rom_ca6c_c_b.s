@@ -9,15 +9,15 @@
 	.type	 Func_800d304,function
 Func_800d304:
 	push	{r5, r6, lr}
-	ldr	r5, .L11
+	ldr	r5, .L13
 	mov	r0, r5
 	bl	Func_8004938
 	mov	r2, #132
 	mov	r6, r0
 	lsr	r5, r5, #2
 	lsl	r2, r2, #24
-	ldr	r3, .L11+4
-	ldr	r0, .L11+8
+	ldr	r3, .L13+4
+	ldr	r0, .L13+8
 	mov	r1, r6
 	orr	r2, r2, r5
 	stmia	r3!, {r0, r1, r2}
@@ -29,9 +29,9 @@ Func_800d304:
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L12:
+.L14:
 	.align	2, 0
-.L11:
+.L13:
 	.word	_FUNC_800A494_SIZE
 	.word	67109076
 	.word	Func_800a494

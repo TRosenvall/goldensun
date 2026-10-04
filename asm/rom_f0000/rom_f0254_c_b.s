@@ -12,28 +12,28 @@ Func_80f0538:
 	mov	r7, sl
 	mov	r6, r8
 	push	{r6, r7}
-	ldr	r3, .L26+4
+	ldr	r3, .L28+4
 	ldrh	r3, [r3]
 	mov	r4, #7
 	and	r4, r4, r3
 	lsl	r3, r3, #16
 	asr	r2, r3, #16
 	cmp	r2, #0
-	bge	.L10
+	bge	.L12
 	add	r2, r2, #7
-.L10:
-	ldrh	r3, .L26
+.L12:
+	ldrh	r3, .L28
 	asr	r2, r2, #3
 	and	r2, r2, r3
 	lsl	r3, r2, #1
 	add	r3, r3, r2
 	lsl	r1, r3, #3
-	ldr	r3, .L26+8
+	ldr	r3, .L28+8
 	ldr	r3, [r3]
 	mov	r0, r3
 	neg	r3, r4
 	add	r3, r3, #16
-	ldr	r2, .L26+12
+	ldr	r2, .L28+12
 	mov	lr, r3
 	mov	r3, #192
 	lsl	r3, r3, #2
@@ -43,21 +43,21 @@ Func_80f0538:
 	mov	sl, r2
 	mov	r8, r3
 	lsl	r7, r7, #14
-.L14:
+.L16:
 	mov	r5, #192
 	mov	ip, lr
 	lsl	r5, r5, #13
 	mov	r4, #5
-	b	.L27
-.L28:
+	b	.L29
+.L30:
 	.align	2, 0
-.L26:
+.L28:
 	.word	31
 	.word	ewram_2004c00
 	.word	ewram_2004c0c
 	.word	1073758208
-.L27:
-.L18:
+.L29:
+.L20:
 	mov	r3, ip
 	mov	r2, sl
 	orr	r3, r3, r5
@@ -68,52 +68,52 @@ Func_80f0538:
 	add	r1, r1, #4
 	add	r0, r0, #8
 	cmp	r1, r8
-	bne	.L17
+	bne	.L19
 	mov	r1, #0
-.L17:
+.L19:
 	sub	r4, r4, #1
 	add	r5, r5, r7
 	cmp	r4, #0
-	bge	.L18
+	bge	.L20
 	mov	r3, #8
 	add	r6, r6, #1
 	add	lr, lr, r3
 	cmp	r6, #15
-	ble	.L14
-	ldr	r2, .L29
+	ble	.L16
+	ldr	r2, .L31
 	mov	r1, #224
 	ldr	r0, [r2]
-	ldr	r3, .L29+4
+	ldr	r3, .L31+4
 	lsl	r1, r1, #19
-	ldr	r2, .L29+8
+	ldr	r2, .L31+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	ldr	r3, .L29+12
+	ldr	r3, .L31+12
 	mov	r2, #0
 	ldrsh	r3, [r3, r2]
 	cmp	r3, #0
-	bne	.L23
-	ldr	r3, .L29+16
+	bne	.L25
+	ldr	r3, .L31+16
 	ldr	r3, [r3]
 	mov	r2, #3
 	and	r3, r3, r2
 	cmp	r3, #0
-	bne	.L23
-	ldr	r2, .L29+20
+	bne	.L25
+	ldr	r2, .L31+20
 	ldrh	r3, [r2]
 	add	r3, r3, #1
 	strh	r3, [r2]
-.L23:
+.L25:
 	pop	{r3, r5}
 	mov	r8, r3
 	mov	sl, r5
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L30:
+.L32:
 	.align	2, 0
-.L29:
+.L31:
 	.word	ewram_2004c0c
 	.word	67109076
 	.word	-2080374528

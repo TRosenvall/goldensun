@@ -18,22 +18,22 @@ Func_80284dc:
 	mov	r0, sp
 	str	r3, [r0]
 	mov	r1, r5
-	ldr	r3, .L11
-	ldr	r2, .L11+4
+	ldr	r3, .L13
+	ldr	r2, .L13+4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	ldr	r1, .L11+8
-	ldr	r0, .L11+12
+	ldr	r1, .L13+8
+	ldr	r0, .L13+12
 	bl	StartTask
 	mov	r0, r5
 	add	sp, sp, #4
 	pop	{r5}
 	pop	{r1}
 	bx	r1
-.L12:
+.L14:
 	.align	2, 0
-.L11:
+.L13:
 	.word	67109076
 	.word	-2063597530
 	.word	3190

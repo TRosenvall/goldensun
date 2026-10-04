@@ -12,41 +12,41 @@ DeleteSprite:
 	mov	r7, r0
 	sub	sp, sp, #4
 	cmp	r7, #0
-	beq	.L10
+	beq	.L12
 	ldrb	r2, [r7, #29]
 	mov	r3, #1
 	and	r3, r3, r2
 	cmp	r3, #0
-	bne	.L11
+	bne	.L13
 	ldrb	r0, [r7, #28]
 	bl	Func_8003f3c
-.L11:
+.L13:
 	mov	r5, r7
 	add	r5, r5, #40
 	mov	r6, #3
-.L15:
+.L17:
 	ldmia	r5!, {r0}
 	sub	r6, r6, #1
 	bl	DeleteSpriteLayer
 	cmp	r6, #0
-	bge	.L15
+	bge	.L17
 	mov	r0, sp
 	mov	r3, #0
 	str	r3, [r0]
 	mov	r1, r7
-	ldr	r3, .L19
-	ldr	r2, .L19+4
+	ldr	r3, .L21
+	ldr	r2, .L21+4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-.L10:
+.L12:
 	add	sp, sp, #4
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L20:
+.L22:
 	.align	2, 0
-.L19:
+.L21:
 	.word	67109076
 	.word	-2063597554
 .Lfe1:

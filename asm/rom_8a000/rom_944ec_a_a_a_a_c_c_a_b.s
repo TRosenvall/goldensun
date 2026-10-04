@@ -20,9 +20,9 @@ StartSnow:
 	mov	r0, sp
 	str	r1, [r0]
 	add	r7, r7, #8
-	ldr	r3, .L22+4
+	ldr	r3, .L24+4
 	mov	r1, r5
-	ldr	r2, .L22+8
+	ldr	r2, .L24+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -32,7 +32,7 @@ StartSnow:
 	bl	galloc_ewram
 	mov	r6, r0
 	mov	r1, r6
-	ldr	r0, .L22+12
+	ldr	r0, .L24+12
 	bl	DecompressLZ1
 	bl	AllocSpriteSlot
 	mov	r1, #192
@@ -44,14 +44,14 @@ StartSnow:
 	mov	r0, #14
 	bl	gfree
 	mov	r5, #0
-.L15:
-	ldr	r3, .L22+16
+.L17:
+	ldr	r3, .L24+16
 	ldr	r3, [r3]
 	mov	r1, r7
 	mov	r6, #0
 	stmia	r1!, {r6}
 	ldr	r2, [r3]
-	ldr	r3, .L22+20
+	ldr	r3, .L24+20
 	stmia	r1!, {r3}
 	mov	r3, #212
 	lsl	r3, r3, #8
@@ -64,7 +64,7 @@ StartSnow:
 	asr	r1, r1, #16
 	asr	r2, r2, #16
 	bl	_Func_8011f54
-	ldrh	r2, .L22
+	ldrh	r2, .L24
 	mov	r3, r5
 	and	r3, r3, r2
 	lsl	r0, r0, #16
@@ -74,25 +74,25 @@ StartSnow:
 	strh	r3, [r7, #28]
 	add	r7, r7, #32
 	cmp	r5, #31
-	bls	.L15
-	ldr	r3, .L22+24
+	bls	.L17
+	ldr	r3, .L24+24
 	mov	r2, #252
 	lsl	r2, r2, #6
 	strh	r2, [r3]
-	ldr	r2, .L22+28
+	ldr	r2, .L24+28
 	add	r3, r3, #2
 	strh	r2, [r3]
 	add	r3, r3, #2
 	strh	r6, [r3]
-	ldr	r0, .L22+32
+	ldr	r0, .L24+32
 	mov	r1, #200
 	lsl	r1, r1, #4
 	bl	StartTask
 	add	sp, sp, #4
-	b	.L23
-.L24:
+	b	.L25
+.L26:
 	.align	2, 0
-.L22:
+.L24:
 	.word	15
 	.word	67109076
 	.word	-2063597308
@@ -102,7 +102,7 @@ StartSnow:
 	.word	67108944
 	.word	4104
 	.word	Task_Snow
-.L23:
+.L25:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0

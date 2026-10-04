@@ -11,11 +11,11 @@ StartThunder:
 	push	{r5, r6, lr}
 	mov	r6, r8
 	push	{r6}
-	ldr	r1, .L11
+	ldr	r1, .L13
 	mov	r0, #30
 	sub	sp, sp, #4
 	bl	galloc_ewram
-	ldr	r3, .L11+4
+	ldr	r3, .L13+4
 	ldr	r3, [r3]
 	mov	r5, r0
 	mov	r8, r3
@@ -23,15 +23,15 @@ StartThunder:
 	mov	r3, #0
 	str	r3, [r0]
 	mov	r1, r5
-	ldr	r3, .L11+8
-	ldr	r2, .L11+12
+	ldr	r3, .L13+8
+	ldr	r2, .L13+12
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	mov	r1, r8
 	mov	r2, r5
 	mov	r3, #1
-	ldr	r0, .L11+16
+	ldr	r0, .L13+16
 	bl	Func_8090a5c
 	mov	r3, #168
 	lsl	r3, r3, #4
@@ -39,7 +39,7 @@ StartThunder:
 	mov	r1, r8
 	mov	r2, r6
 	mov	r3, #1
-	ldr	r0, .L11+20
+	ldr	r0, .L13+20
 	bl	Func_8090a5c
 	mov	r3, #168
 	lsl	r3, r3, #5
@@ -62,13 +62,13 @@ StartThunder:
 	mov	r3, #150
 	lsl	r3, r3, #2
 	strh	r3, [r2]
-	ldr	r3, .L11+24
+	ldr	r3, .L13+24
 	mov	r1, #200
 	add	r5, r5, r3
 	mov	r3, #1
 	strh	r3, [r5]
 	lsl	r1, r1, #4
-	ldr	r0, .L11+28
+	ldr	r0, .L13+28
 	bl	StartTask
 	add	sp, sp, #4
 	pop	{r3}
@@ -76,9 +76,9 @@ StartThunder:
 	pop	{r5, r6}
 	pop	{r0}
 	bx	r0
-.L12:
+.L14:
 	.align	2, 0
-.L11:
+.L13:
 	.word	8072
 	.word	iwram_3001ed0
 	.word	67109076

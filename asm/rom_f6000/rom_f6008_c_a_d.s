@@ -17,28 +17,28 @@ Func_80f61e8:
 	sub	sp, sp, #128
 	mov	r8, r1
 	bl	GetFile
-	ldr	r3, .L25+4
+	ldr	r3, .L27+4
 	mov	r1, sp
-	ldr	r2, .L25+8
+	ldr	r2, .L27+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
 	mov	r2, #0
 	mov	r3, #31
-	ldrh	r7, .L25
+	ldrh	r7, .L27
 	mov	lr, r2
 	mov	sl, r3
 	mov	ip, sp
 	mov	r6, #0
-	b	.L26
-.L27:
+	b	.L28
+.L29:
 	.align	2, 0
-.L25:
+.L27:
 	.word	31
 	.word	67109076
 	.word	-2080374752
-.L26:
-.L23:
+.L28:
+.L25:
 	mov	r1, r8
 	ldrh	r3, [r1]
 	mov	r5, sl
@@ -58,32 +58,32 @@ Func_80f61e8:
 	and	r4, r4, r7
 	and	r3, r3, r7
 	cmp	r5, r1
-	bge	.L14
+	bge	.L16
 	add	r5, r5, #1
-	b	.L15
-.L14:
+	b	.L17
+.L16:
 	cmp	r5, r1
-	ble	.L15
+	ble	.L17
 	sub	r5, r5, #1
-.L15:
-	cmp	r2, r4
-	bge	.L17
-	add	r2, r2, #1
-	b	.L18
 .L17:
 	cmp	r2, r4
-	ble	.L18
+	bge	.L19
+	add	r2, r2, #1
+	b	.L20
+.L19:
+	cmp	r2, r4
+	ble	.L20
 	sub	r2, r2, #1
-.L18:
-	cmp	r0, r3
-	bge	.L20
-	add	r0, r0, #1
-	b	.L21
 .L20:
 	cmp	r0, r3
-	ble	.L21
+	bge	.L22
+	add	r0, r0, #1
+	b	.L23
+.L22:
+	cmp	r0, r3
+	ble	.L23
 	sub	r0, r0, #1
-.L21:
+.L23:
 	lsl	r2, r2, #5
 	lsl	r3, r0, #10
 	orr	r3, r3, r2
@@ -97,12 +97,12 @@ Func_80f61e8:
 	add	r6, r6, #2
 	add	r8, r8, r1
 	cmp	r2, #64
-	bne	.L23
+	bne	.L25
 	mov	r0, sp
-	ldr	r3, .L28
+	ldr	r3, .L30
 	add	r0, r0, #2
-	ldr	r1, .L28+4
-	ldr	r2, .L28+8
+	ldr	r1, .L30+4
+	ldr	r2, .L30+8
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -113,9 +113,9 @@ Func_80f61e8:
 	pop	{r5, r6, r7}
 	pop	{r0}
 	bx	r0
-.L29:
+.L31:
 	.align	2, 0
-.L28:
+.L30:
 	.word	67109076
 	.word	83886082
 	.word	-2147483585

@@ -13,15 +13,15 @@ Func_809bb34:
 	ldr	r0, [r5]
 	sub	sp, sp, #4
 	cmp	r0, #0
-	beq	.L10
+	beq	.L12
 	bl	_DeleteSprite
-.L10:
+.L12:
 	mov	r0, sp
 	mov	r3, #0
 	str	r3, [r0]
 	mov	r1, r5
-	ldr	r3, .L12
-	ldr	r2, .L12+4
+	ldr	r3, .L14
+	ldr	r2, .L14+4
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
@@ -29,9 +29,9 @@ Func_809bb34:
 	pop	{r5}
 	pop	{r0}
 	bx	r0
-.L13:
+.L15:
 	.align	2, 0
-.L12:
+.L14:
 	.word	67109076
 	.word	-2063597550
 .Lfe1:

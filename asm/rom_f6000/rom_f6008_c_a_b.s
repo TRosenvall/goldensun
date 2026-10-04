@@ -9,79 +9,79 @@
 	.type	 Task_BlitLuckyWheelsAnim,function
 Task_BlitLuckyWheelsAnim:
 	push	{r5, lr}
-	ldr	r0, .L21
-	ldr	r2, .L21+4
+	ldr	r0, .L23
+	ldr	r2, .L23+4
 	ldr	r5, [r0]
 	add	r3, r5, r2
 	ldr	r3, [r3]
 	cmp	r3, #1
-	bne	.L10
+	bne	.L12
 	sub	r2, r2, #164
 	add	r3, r5, r2
 	ldr	r3, [r3]
 	ldr	r4, [r0, #4]
 	cmp	r3, #1
-	beq	.L12
-	cmp	r3, #2
 	beq	.L14
-	b	.L11
-.L12:
-	ldr	r3, .L21+8
+	cmp	r3, #2
+	beq	.L16
+	b	.L13
+.L14:
+	ldr	r3, .L23+8
 	mov	r0, r4
-	ldr	r1, .L21+12
-	ldr	r2, .L21+16
+	ldr	r1, .L23+12
+	ldr	r2, .L23+16
 	stmia	r3!, {r0, r1, r2}
 	sub	r3, #0xc
 	.code	16
-	ldr	r2, .L21+20
+	ldr	r2, .L23+20
 	mov	r1, #128
 	add	r3, r5, r2
 	ldr	r2, [r3]
 	mov	r0, r4
-	ldr	r3, .L21+24
+	ldr	r3, .L23+24
 	lsl	r1, r1, #8
 	bl	_call_via_r3
-	b	.L11
-.L14:
-	ldr	r2, .L21+20
+	b	.L13
+.L16:
+	ldr	r2, .L23+20
 	add	r3, r5, r2
 	ldr	r3, [r3]
 	cmp	r3, #50
-	bne	.L15
+	bne	.L17
 	mov	r2, #128
-	ldr	r1, .L21+12
+	ldr	r1, .L23+12
 	lsl	r2, r2, #8
 	mov	r0, r4
 	bl	BlitFadeAlt_Div2
-	b	.L11
-.L15:
+	b	.L13
+.L17:
 	mov	r2, #128
-	ldr	r1, .L21+12
+	ldr	r1, .L23+12
 	lsl	r2, r2, #8
 	mov	r0, r4
 	bl	BlitFadeAlt_Div4
-.L11:
-	ldr	r3, .L21+4
+.L13:
+	ldr	r3, .L23+4
 	add	r2, r5, r3
 	mov	r3, #0
 	str	r3, [r2]
-	ldr	r3, .L21+28
+	ldr	r3, .L23+28
 	add	r2, r5, r3
 	mov	r3, #1
-	b	.L20
-.L10:
-	ldr	r3, .L21+28
+	b	.L22
+.L12:
+	ldr	r3, .L23+28
 	add	r2, r5, r3
 	ldr	r3, [r2]
 	add	r3, r3, #1
-.L20:
+.L22:
 	str	r3, [r2]
 	pop	{r5}
 	pop	{r0}
 	bx	r0
-.L22:
+.L24:
 	.align	2, 0
-.L21:
+.L23:
 	.word	iwram_3001eec
 	.word	30756
 	.word	67109076
