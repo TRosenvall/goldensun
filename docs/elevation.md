@@ -32573,11 +32573,32 @@ All 21 of their `asm` statements are genuine hardware — `swi 0x2A`,
 `.hword 0xEFFF`, `svc 2`, `mov r2, pc` for multiboot. **Not one is a matching
 aid.** So the pin technique is not necessary to match a commercial GBA game.
 
-Two structural differences explain part of the gap and neither is cheaply
-reversible: they match with **`agbcc`, the actual Nintendo compiler**, while we
-match with **gcc-2.96, a reconstruction** of Camelot's toolchain (908 of our 914
-objects; agbcc covers only the 6 stock m4a/agbflash files) — and their TUs hold
-~43 functions each as the original was built, against our mostly one.
+**CORRECTION, SAME BATCH: I FIRST WROTE THAT THE COMPILER EXPLAINED PART OF THIS
+GAP, CALLING gcc-2.96 "A RECONSTRUCTION" OF CAMELOT'S TOOLCHAIN.  THAT IS FALSE
+AND IT POINTED THE CONCLUSION THE WRONG WAY.**
+
+gcc-2.96 is identified, not guessed: **patched gcc-2.96, arm-elf, Debian
+2000-07-31 dev snapshot**, the branch between FSF 2.95 and 3.0, vendored in
+`camelot-gcc`, and it **reproduces the full ROM byte-identically** — 4,426
+functions in this tree match through it. `docs/attribution.md` records the
+provenance: FutureFractal identified the compiler generation, Tarpman documented
+the codegen fingerprints in 2021, Karathan published the flag set, and this
+project had independently narrowed it to "GCC-family, later than agbcc's 2.9".
+**A wrong compiler does not match 4,426 functions byte-exactly.** Both projects
+have the real compiler; they are simply different compilers, because the two
+publishers used different ones.
+
+The only structural difference left is **TU size** — their ~43 functions per file
+against our mostly one — and that does not reach register allocation either,
+because **gcc-2.96 does no cross-function optimisation at `-O2`**. What TU
+composition changes is the literal pool and data/symbol ordering, which is why
+`Func_80b09fc` is enrolled unmatchable as a "tu-pool" artifact. Pool placement is
+not what a register pin fixes.
+
+> **So the conclusion is the opposite of my first one: with the compiler
+> identified and validated, and TU size not reaching allocation, the 2,650 pins
+> are almost entirely SOURCE-SHAPE ARTIFACTS — which makes the four patterns below
+> more promising, not less.**
 
 ## FOUR PATTERNS FROM THEIR `[LEAK-INFORMED] fix ... fakematch` COMMITS
 
@@ -32644,8 +32665,13 @@ an arbitrary 22-line cutoff and this file is 27 lines.**
 
 ## What the comparison does NOT establish
 
-pokefirered has the real compiler and whole translation units; some of our pins
-may be the price of having neither, and no restyling removes those. This
-comparison shows that **many are not** — one in four small pinned files is inert
-on removal — and it names four constructs the original authors used where we
-reached for a shim. It does not show that zero is reachable here.
+It does not show that zero pins is reachable here, nor that every pin is
+removable. What it shows is narrower and still strong: a mature human-written
+decompilation of a commercial GBA game carries **none** of this construct; one in
+four of our small pinned files is **inert on removal**; and four specific
+constructs the originals used are where we reached for a shim.
+
+It also says nothing about whether our *flags* are right per object. Nine objects
+carry per-file flag groups because the original build did not use one flag set
+everywhere — ordinary, done by both projects, and a per-file discovery problem
+rather than a doubt about the compiler.
