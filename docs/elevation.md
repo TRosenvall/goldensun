@@ -33107,3 +33107,62 @@ than a landing**, because it would be a fourth pin on a veneer that already
 carries three. That is the owner's prefer-pin-free policy working as intended: the
 figure is recorded, the mechanism is named, and the landing waits for pass 3
 instead of adding a row to a list nobody can yet count.
+
+## Batch 323 brief I: a FOURTH outcome for duplicate parks — two PARTIAL answers
+
+Three outcomes were on record for a function with two park files: true
+redundancy (md5-identical bodies), a bodyless phantom claiming the better figure,
+and a stale pair. **Here is a fourth, and it is the most valuable one.**
+
+`Func_80175c0` had two parks, `rom_175c0.c` at **20** and `80175c0.c` at **28**.
+Both hold real definitions and **both claims measure correctly** — neither is the
+zero-byte-TU trap. And:
+
+> **THE WORSE PARK HELD HALF THE ANSWER.** Its early-return tail is the ROM's
+> tail; the better park's `off`-before-`base` head is the ROM's head. **Crossing
+> the two was worth 18 of the 20.**
+
+So the rule for a duplicate pair is not "find the better body and retire the
+other" — it is **cross them**. The same law this project applies to a park's own
+inert and rejected lists applies across two parks for one function, and nobody
+had looked there.
+
+### And its central diagnosis was refuted at the PREMISE
+
+The park argued from "two variables holding 0 that must NOT share a register …
+there is no source-level way to say these two zeros are different", after four
+initialisation positions. **The ROM has one variable.** r6 holds 0, is stored
+twice, is passed as argument five, then is overwritten by the call's result; the
+two `movs r0,#0` are the `return 0;` paths and the "missing instruction" is just
+the result assignment. One `int r = 0` plus early returns: 20 → 2. Either half
+alone is nearly inert.
+
+## EQUAL ENCODING COUNTS CAN STILL HIDE A LENGTH DIFFERENCE
+
+New trap, and it defeats the check this document already prescribes. `Func_801219c`
+measured **50 against 50** — so the usual "check the count before the figure" test
+passes — and the reference is nevertheless **47 instructions plus an alignment
+pad** against the park's 48.
+
+> **An encoding count includes padding.** When counts agree but a residue looks
+> like misalignment, compare INSTRUCTION counts, not encoding counts. Of that
+> function's 17, seven were pure downstream misalignment from one extra
+> instruction.
+
+Its ten closed by writing the **comparison** rather than a named value:
+`emit_store_flag` reduces `x != 255` to `(x ^ 255) != 0`, which is the ROM's
+`movs r2,#255 / eors r3,r2`. The park's named `t` let combine pick `mvn` and then
+pay `lsl #24 / lsr #24`.
+
+## A frame-size residue read from the source, and a device correctly withheld
+
+`arm.c:8928` computes the frame as `ROUND_UP (get_frame_size () +
+outgoing_args_size)` with `ROUND_UP(X) = (X + 3) & ~3`. So a `sub sp,#16` against
+the ROM's `#8` says **the ROM carried 5–8 bytes of frame, and not a spill** — it
+never touches `[sp,#8]` or `[sp,#12]`.
+
+An unread `char[8]` or `short[4]` local gives **0 of 44, byte-identical** — and was
+**recorded as a device figure and not shipped**, correctly: an unread local exists
+only to move the frame number. Worth noting what is *not* explained: `int[2]` and
+`struct {int,int}`, the same eight bytes, get **no slot at all**. The agent
+declined to record a mechanism it had not read, which is the right call.

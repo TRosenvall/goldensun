@@ -1,6 +1,8 @@
-/*
+/* Func_8028ef0 -- 0x08028ef0  (asm/rom_15000/rom_23178_a_c_a.s)
  *
- * NON-MATCHING, 20 of 73 encodings  (MEASURED, batch 319 recipe backfill).
+ * NON-MATCHING, 20 of 73 encodings.  MEASURED in batch 323, brief I.
+ * NOT IMPROVED.  The body below is the existing park's body, unchanged; what
+ * batch 323 adds is the DECOMPOSITION and the deciding pass.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -8,64 +10,76 @@
  *     src/non_matching/rom_15000/8028ef0.c \
  *     asm/rom_15000/rom_23178_a_c_a.s --func Func_8028ef0
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- * ### BATCH 267 CORRECTION -- TWO CLAIMS BELOW ARE WRONG.
+ * SPLIT SHAPE: none.  asm/rom_15000/rom_23178_a_c_a.s holds exactly one
+ * .thumb_func_start (Func_8028ef0), so this would convert WHOLE.
+ * PINS: 0.
  *
- * 1. `;; 0 regs to allocate` IS true for this function, measured. But the note
- *    below groups it with Func_80a8578 and Func_80cd52c and says all four
- *    report it. They do not:
+ * THE FIGURE IS A DISTANCE, not a misalignment.  73 real slots against 73,
+ * 168 bytes against 168, and all three pool words (0x99b, the L37428
+ * relocation placeholder, 0xa07) are identical and in the ROM's order.  The
+ * `-da` dump b.c.26.mach confirms the pool order is already correct, so there
+ * is NO pool-order component to this residue.
  *
- *        Func_942e0    ;; 0 regs to allocate           <- local-alloc
- *        Func_8028ef0  ;; 0 regs to allocate           <- local-alloc
- *        Func_80a8578  ;; 5 regs to allocate: 37 33 36 35 32
- *        Func_80cd52c  ;; 7 regs to allocate: 37 41 33 32 34 35 36
- *        Func_80919d8  ;; 5 regs to allocate: 35 34 50 32 33
+ * THE 20 IS FIVE INDEPENDENT RELOAD-SCRATCH CHOICES PLUS TWO SCHED2
+ * CONSEQUENCES -- it is not one exchange, and it is not an allocator tie.
  *
- *    Three of the five are global_alloc, and grouping them cost a wrong
- *    conclusion in reports/batch-266.md, corrected there.
+ *   #  indices        what
+ *   1  16, 19         scratch for the 0x99b pool constant feeding `add sl, rX`
+ *                     rom r3 / ours r2
+ *   2  21, 22         scratch materialising 0xe into r8   rom r2 / ours r3
+ *   3  23, 24, 25,    sched2 order of the first Func_801e9a0 argument setup
+ *      26, 27         -- A CONSEQUENCE of #2, see below
+ *   4  29, 30, 31     the second `ldrsh rd, [rb, ro]`: base and offset-scratch
+ *                     exchanged.  rom base r2 + scratch r3 / ours the reverse
+ *   5  32, 33         scratch moving r8 back to a low reg for `str [sp]`
+ *                     rom r3 / ours r2
+ *   6  34, 35         sched2 order -- A CONSEQUENCE of #5
+ *   7  38, 39         scratch for the L37428 pool address into r8
+ *                     rom r2 / ours r3
+ *   8  45, 46         scratch for the 0xa07 pool constant  rom r3 / ours r2
+ *                                                            total  20
  *
- * 2. THE DIFFERING REGISTERS HERE ARE NOT ALLOCATOR QUANTITIES AT ALL. The
- *    local-alloc dump assigns `name` to hard reg 10 and the 0xe value to hard
- *    reg 8 -- BOTH ALREADY THE ROM'S REGISTERS. The r2/r3 exchange is in
- *    ARGUMENT SETUP and the reload scratch for the pool load: `.15.regmove`
- *    shows `(set (reg:SI 3 r3) (const_int 14))` -- a hard register chosen when
- *    the argument is materialised -- and the 0x99b never becomes a pseudo at
- *    all, it is an operand of `(plus (reg 36) (const_int 2459))` that reload
- *    turns into a pool load with a scratch it picks itself.
+ * WHY 3 AND 6 ARE CONSEQUENCES AND NOT A SCHEDULING CAUSE.  At idx 21-27 the
+ * ROM holds 0xe in r2, so `movs r3, #0` (the fourth argument) has no dependence
+ * on it and sched2 may place it early; we hold 0xe in r3, so `movs r3, #0` must
+ * wait for `mov r8, r3`, and `adds r2, r6, #0` is hoisted into the gap instead.
+ * The same inversion explains 34/35.  Nine of the twenty indices therefore
+ * close for free the moment the scratch choices do, and there is nothing to
+ * attack with a scheduling lever.
  *
- *    So the blocker class below is wrong. It is not a priority tie; it is which
- *    scratch reload takes, downstream of argument-setup order. That is a
- *    different and probably more tractable problem, and the measurements below
- *    (which spellings are inert) remain valid evidence for it.
+ * THE DECIDING PASS IS RELOAD, and this is now read out of the dumps rather
+ * than inferred.  The batch-267 correction already said these are not
+ * allocator quantities; .18.greg confirms `;; 0 regs to allocate:` and
+ * `;; Hard regs used: 0 1 2 3 5 6 8 9 10 13 14 25 26` with NO pseudo assigned
+ * r2 or r3.  The sharper fact:
  *
- * READ `.18.greg`'s "regs to allocate" LINE BEFORE CALLING ANYTHING A
- * LOCAL-ALLOC TIE, and read `.17.lreg`'s `;; Register N in M.` lines to check
- * whether the registers you are arguing about are quantities at all.
- */
-
-/* Func_8028ef0 -- 0x08028ef0, asm/rom_15000/rom_23178_a_c_a.s (single-function
- * file, so it would convert WHOLE with no split).
+ *   * The 0xe is pseudo 43, and .18.greg assigns it HARD REG 8.  Thumb cannot
+ *     `mov r8, #14`, so reload inserts a LO_REGS scratch.  .19.flow2 insn 128
+ *     -- a reload-generated insn, numbered above the original stream --
+ *     is `(set (reg:SI 3 r3) (const_int 14))` feeding
+ *     `(set (reg:SI 8 r8) (reg:SI 3 r3))` with `REG_EQUIV (const_int 14)`.
+ *   * The 0x99b is .19.flow2 insn 125, also reload-generated:
+ *     `(set (reg:SI 2 r2) (const_int 2459))`.
+ *   * .18.greg's own log is the authority on the pairings:
+ *         Spilling for insn 21.  Using reg 3 for reload 1 / reg 2 for reload 0
+ *         Spilling for insn 54.  Using reg 3 for reload 1 / reg 2 for reload 0
+ *         Spilling for insns 32, 39, 40, 57, 69, 83 -- reg 3 only
+ *     Insns 21 and 54 are both `*thumb_extendhisi2_insn`, a parallel carrying
+ *     `(clobber (scratch:SI))` because thumb `ldrsh` only has the
+ *     register-offset form.  They are the ONLY two insns taking two reloads,
+ *     and they are exactly cause #4's pair.
  *
- * BLOCKER CLASS: SCRATCH REGISTER EXCHANGE, r2 against r3. Size exact -- 168
- * bytes, 73 instructions against 73 -- with 20 encodings differing and NOTHING
- * else wrong. Every instruction is present, in the ROM's order, with the ROM's
- * operands.
+ * So the lever is not a spelling and not an allocator priority: it is WHICH
+ * RELOAD INDEX a given operand becomes within one insn, and
+ * allocate_reload_reg then hands r2 to reload 0 and r3 to reload 1 off the
+ * spill list.  The park's standing instruction -- "STOP SWEEPING SPELLINGS ON
+ * THIS CLASS" -- is confirmed, and the next reader should start at
+ * reload1.c's allocate_reload_reg / choose_reload_regs and at how
+ * reload_order is built, with insns 21 and 54 of this function as the
+ * two-reload specimen.
  *
- * The residue is a single consistent exchange between two short-lived temps:
- *
- *     rom    ldr r3, =0x99b ... add r10, r3      |  mov r2, #0xe / str r2, [sp]
- *     ours   ldr r2, .L3    ... add sl, sl, r2   |  mov r3, #14  / str r3, [sp]
- *
- * The pool temp for 0x99b and the constant temp for 0xe have swapped registers,
- * and every instruction mentioning either follows. gcc's REG_ALLOC_ORDER hands
- * out call-clobbered registers {3, 2, 1, 0, ...}, so r3 goes first -- which is
- * what we get. The ROM gives r3 to the LATER temp.
- *
- * THIS FUNCTION IS A SINGLE BASIC BLOCK. There are no branches at all, so there
- * is no control flow to lever against, no loop for an induction variable to
- * come out of, and nothing for a `goto` or a barrier to split. That makes it a
- * clean specimen of the tie and a bad one to attack by spelling.
+ * The park's own MEASURED AND INERT / WORSE lists are retained below and were
+ * not re-run; nothing in this brief contradicts them.
  *
  * MEASURED AND INERT, all 20:
  *   0xe as three bare literals, or named in a local assigned after the first
@@ -78,22 +92,7 @@
  *   0xe named and assigned BEFORE the first call    172 bytes, 75 instructions
  *   -fno-schedule-insns2                            30 differing
  *
- * -fno-schedule-insns2 being worse says the ROM was built with sched2 ON, so
- * the interleave we do have is the scheduled one and this is not a case for a
- * SCHED2_CFLAGS rule.
- *
- * NEXT -- AND THIS IS NOW THE FOURTH FUNCTION IN A ROW. Func_942e0,
- * Func_80cd52c, Func_80a8578 and this one all end on a local-alloc decision
- * that no source spelling moves, and all four report `;; 0 regs to allocate` in
- * .18.greg. Three of them are priority ties between named values; this one is
- * the same thing between anonymous temps, which is the cleanest form of it.
- *
- * STOP SWEEPING SPELLINGS ON THIS CLASS. The next person should read
- * local-alloc.c -- `qty_compare_1` for the ordering and `find_free_reg` for how
- * a quantity picks from REG_ALLOC_ORDER once ordered -- and find what feeds the
- * decision besides the published priority formula. Four independent specimens
- * are now available to test any hypothesis against, which is more than any
- * single function's sweep could give.
+ * -fno-schedule-insns2 being worse says the ROM was built with sched2 ON.
  */
 #include "gba/types.h"
 
