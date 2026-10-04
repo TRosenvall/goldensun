@@ -1,43 +1,99 @@
 /* Func_807808c -- 0x0807808c, asm/rom_77000/rom_77320_a_c_c.s (3 functions).
  *
- * NON-MATCHING, 5 of 86 encodings  (MEASURED, batch 319 recipe backfill).
+ * STILL NON-MATCHING.  PARK AT 4 of 86 encodings, device-free, down from the
+ * park's 5.  A further 2 of 86 is reachable and diagnosed; see "THE VOLATILE
+ * VARIANT" below.  SIZE EXACT, 86 against 86 encodings, both figures.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/rom_77000/807808c.c \
+ *     scratch_elev/b322/F/p1_candidate.c \
  *     asm/rom_77000/rom_77320_a_c_c.s --func Func_807808c
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
+ * INSTALLED PATH, if it ever lands: src/rom_77000/rom_77320_a_c_c_b.c.
+ * Split shape: TEXT-ONLY.  tools/datacheck.py prints nothing (no data section).
+ * tools/split_s.py asm/rom_77000/rom_77320_a_c_c.s Func_807808c --dry-run:
+ *   _a.s Func_8077f70 (140 lines), _b.s Func_807808c (97), _c.s Func_8078144 (115).
+ * PINS: 0.  No shim, no fakematch row, no flag group.
  *
- * NOT MATCHING: 5 differing of 86 encodings, SIZE EXACT. Candidate below.
+ * ---------------------------------------------------------------------------
+ * WHAT THE PARK CLAIMED, AND WHAT SURVIVED
  *
- * TWO RESIDUES, and both are priced.
+ * The park named both residues correctly and priced both correctly.  Its
+ * OBSERVATIONS all reproduced.  What it got wrong is that it tested its
+ * candidate edits ONE AT A TIME, and its own rejected list contains BOTH HALVES
+ * of a two-part fix:
  *
- * 1. `ldr r2, =gState` against `lsl r1, #1` transposed -- a LUID tie. -fsched-verbose=6:
- *    `r1 = 0xfc` has priority 75, then `r1 << 1` and `r2 = [gState]` both have 74 with
- *    dependent counts 4 and 4. Naming the base as a pointer FIXES the order and COSTS the
- *    base/index register roles (6 differing) -- the recorded "the LUID lever and the register
- *    cost are separable" trade, measured in both directions here.
+ *     "inline index"              rejected at 6      <-- half one
+ *     "a one-statement sign extend" rejected at 8    <-- half two
+ *     the two together                               4
  *
- * 2. `strh r3, [r5, #0x3a]` sinking below the sign-extend pair. This is the SAME blocker
- *    src/non_matching/rom_77000/8077f70.c already proved: store priority 34 against shift
- *    priority 36, and rank_for_schedule decides on priority before any tie-break.
+ * This is exactly docs/elevation.md's "a rejected-because-worse edit that is
+ * HALF of a two-part fix", and it is the fourth shape in tools/crossfire.py's
+ * list.  Reproduced at depth 4 over five edits; the full table is in
+ * scratch_elev/b322/F/FINDINGS.md.
  *
- * MEASURED, none better than 5: a named index 5; inline index 6; `*(gState+K+i)` 80;
- * `gState[i+K]` 6; a named 0x1f8 6; named base before the index 6; named base after it 5;
- * declaration-order permutations 5-6; the store swapped with the 0x38 store 5; the store moved
- * between and after the shifts 5, 5, 5; a one-statement sign extend 8.
+ * WHY THOSE TWO AND NOT EITHER ALONE.  There were two independent residues:
  *
- * FLAGS: --no-sched2 is WORSE at 9. Inert at 5: -fno-gcse, -fno-sched-interblock, -fno-peephole,
- * -fno-strict-aliasing, -fno-cse-follow-jumps.
+ *   R1 (indices 10-13) `ldr r2,=gState` against `lsl r1,#1`, plus the
+ *      base/index register roles.  The inline subscript fixes the ORDER and
+ *      breaks the ROLES (6).  The one-statement sign extend, added on top, puts
+ *      the ROLES back -- a NON-LOCAL effect: the extra intermediate pseudo in
+ *      the sign extend shifts local-alloc's quantity priorities for the whole
+ *      block.  Indices 10, 11, 12 and 13 then all go exact.
  *
- * WORTH CARRYING: whether `gState[K+i]` wants a NAMED INDEX depends on whether the loaded byte
- * is itself named. This function consumes the byte straight into GetUnit and needs
- * `k = K + i; gState[k]`; its file-mate Func_8078144 keeps the byte in a callee-saved register
- * for two uses and needs the fully inline `gState[K + i]`, which gets order AND registers right.
- * Both spellings were measured on both functions.
+ *   R2 (indices 18-21) the two halfword stores against the sign-extend pair.
+ *
+ * THE SCHEDULER ARITHMETIC FOR R2, from `.23.sched2` with -fsched-verbose=6
+ * (haifa-sched.c `rank_for_schedule`: priority -> CLASS -> dependent count ->
+ * INSN_LUID, best LAST in the ready array):
+ *
+ *   park body:  strh[0x38] 36   strh[0x3a] 34   lsl 36   asr 35
+ *   this body:  strh[0x38] 35   strh[0x3a] 36   lsl 36   asr 35
+ *   ROM wants:  strh[0x38], strh[0x3a], lsl, asr
+ *
+ * A STORE'S PRIORITY IS SET BY WHICHEVER SHIFT OVERWRITES ITS SOURCE REGISTER.
+ * The edge is an ANTI dependence (the shift writes the register the store
+ * reads), `arm_adjust_cost` gives REG_DEP_ANTI cost 0, so the store inherits
+ * that shift's priority exactly.  In the park body the in-place `lsl r1,r1`
+ * overwrites r1, so the 0x38 store inherits 36 and the 0x3a store -- whose r3
+ * nothing overwrites -- falls to prio(call)+1 = 34.  In this body the
+ * intermediate lands in r3, so the roles swap.  Either way exactly one of the
+ * two stores is at 36 and the other loses to the lsl.
+ *
+ * THE VOLATILE VARIANT -- 2 of 86, and the mechanism is a DEPENDENCE, not a
+ * priority.  scratch_elev/b322/F/v1/d1.c is this body with BOTH stores written
+ * `*(volatile unsigned short *)`.  Each volatile cast ALONE is EXACTLY INERT
+ * (4 and 4); together they are worth 2.  That is crossfire shape four, "two
+ * edits each exactly inert, jointly worth the residue", and one-at-a-time
+ * testing cannot see it.  Why it works: a volatile MEM makes
+ * `sched_analyze_insn` call `flush_pending_lists`, which adds a dependence from
+ * the second volatile store to the first, so prio(0x38 store) becomes
+ * prio(0x3a store) + 1 = 37 and the pair is emitted adjacent, in source order,
+ * ahead of the lsl.  Residue then: indices 20/21 only, `lsl r3,r1,#16 /
+ * asr r1,r3,#16` against the ROM's in-place `lsl r1,r1,#16 / asr r1,r1,#16`.
+ *
+ * WHY THE IN-PLACE SHIFT AND THE VOLATILE PAIR WILL NOT COEXIST (measured, 3):
+ * the in-place pair needs local-alloc's `combine_regs` to tie the intermediate
+ * to its dying source, and local-alloc.c refuses when the source "is not local
+ * to this block OR DIES MORE THAN ONCE" -- `r1` is set twice in this block (the
+ * 0x34 load, then the sign-extend result), so it never gets a quantity.  Three
+ * single-set variables (`t1 = r1 << 16; s1 = t1 >> 16;`) DO chain, and give the
+ * ROM's in-place pair -- see v1/g1.c -- but then nothing overwrites r3, the
+ * 0x3a store drops back to 34, and it sinks below the shifts again: 3 of 86.
+ * So R2 is a THREE-CORNERED constraint, and 2 and 3 are the two corners
+ * reachable so far.  NOT a bound; the evidence is the three figures 2, 3, 4 and
+ * the priority table above.
+ *
+ * MEASURED FLAT (all exactly 4, on top of this body): an explicit temp for the
+ * sign extend, `r1 = (short)r1`, `r0 = r1 * 0x4000`, swapping the two stores,
+ * giving the 0x36 value its own variable, every declaration-order permutation
+ * of r0/r1/r3, a fresh variable declared first.  Twenty crossed rows, dead
+ * flat -- so the lever for the last 4 is not in spelling, statement order or
+ * declaration order.
+ * WORSE: the deref form `*(gState + ...)` and `((unsigned char *)gState)[...]`
+ * both 77 at 84 instructions (RELOC+COUNT: they fold the symbol).
+ * `r1` volatile-loaded 73 at 88.  Shifts before the stores 72 (RELOC+MEM).
  */
 extern int GetPartySize(void);
 extern void *GetUnit(int unit);
@@ -55,14 +111,12 @@ void Func_807808c(int sel)
 
     n = GetPartySize();
     for (i = 0; i < n; i++) {
-        k = (0xfc << 1) + i;
-        r5 = GetUnit(gState[k]);
+        r5 = GetUnit(gState[(0xfc << 1) + i]);
         r1 = *(unsigned short *)((char *)r5 + 0x34);
         r3 = *(unsigned short *)((char *)r5 + 0x36);
         *(unsigned short *)((char *)r5 + 0x38) = r1;
         *(unsigned short *)((char *)r5 + 0x3a) = r3;
-        r1 <<= 16;
-        r1 >>= 16;
+        r1 = (r1 << 16) >> 16;
         r0 = r1 << 14;
         r0 /= r1;
         r3 = 0x80;

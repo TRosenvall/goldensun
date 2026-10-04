@@ -1,87 +1,96 @@
-/* Func_807a0f4 -- 0x0807a0f4,
+/* Func_807a0f4 -- 0x0807a0f4, asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_a_a.s
+ * (1 function, no data section, so landing needs NO split).
  *
- * NON-MATCHING, 7 of 88 encodings  (MEASURED, batch 319 recipe backfill).
+ * STILL NON-MATCHING.  PARK AT 7 of 88 encodings -- the park's figure, RE-MEASURED
+ * and confirmed, including `--whole`: 7 of 88, 92 lines against 92, RELOCATIONS
+ * IDENTICAL.  Body below is the park's body, unchanged.  PINS: 0.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/rom_77000/807a0f4.c \
+ *     scratch_elev/b322/F/p3_candidate.c \
  *     asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_a_a.s --func Func_807a0f4
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- * asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_a_a.s (1 function, no data section, so
- * landing needs NO split).
+ * ---------------------------------------------------------------------------
+ * WHAT I REPRODUCED, AND WHAT I REFUTED.
  *
- * NOT MATCHING: 7 differing of 88 encodings, 92 lines against 92 -- LENGTH EXACT, and
- * relocations identical. Candidate below.
+ * REPRODUCED, all of it, by reading `.18.greg` and `.17.lreg` directly:
+ *   - the whole residue is the r5/r6 contest between pseudo 79 (the
+ *     strength-reduced gState byte cursor) and pseudo 40 (the outer
+ *     check_dbra_loop down-counter).  Every other register matches.
+ *   - it IS global-alloc's decision: `;; 12 regs to allocate: 38 37 42 41 39 79
+ *     40 32 36 33 35 34`, so `allocno_compare` (global.c:607) applies, and it
+ *     DOES carry floor_log2.  (For the record, so does local-alloc's
+ *     QTY_CMP_PRI at local-alloc.c:1496; the real difference between the two
+ *     formulae is the DENOMINATOR -- `death - birth` against `live_length`.
+ *     Nothing here rests on that, because this is a global-alloc decision, but
+ *     a brief circulating the "local-alloc has no floor_log2" claim is wrong
+ *     and should not be inherited.)
+ *   - the reference counts.  Counted by hand in `.17.lreg`:
+ *       pseudo 79: def (insn 286) + two `zero_extend(mem:QI (reg 79))` uses
+ *                  + `(set 79 (plus 79 1))` counting twice   = 5
+ *       pseudo 40: def (insn 275) + `(set 40 (plus 40 ...))` twice
+ *                  + `(ne (reg 40) ...)`                      = 4
+ *   - 79 is allocated first and `find_reg` hands it r5 (r0-r3 conflict across
+ *     the call, r4 is -fcall-used-r4), so 40 gets r6.  The ROM is the other way.
  *
- * THE WHOLE RESIDUE IS ONE REGISTER CONTEST, r5 against r6:
+ * REFUTED: the park's stated route out.  It wrote
  *
- *   idx  rom                  ours
- *    33  add r6, r3, r2       mov r6, r0
- *    34  mov r5, r0           add r5, r3, r2
- *    36  ldrb r0, [r6]        ldrb r0, [r5]
- *    56  ldrb r3, [r6]        ldrb r3, [r5]
- *    60  sub r5, #1           sub r6, #1
- *    61  add r6, #1           add r5, #1
- *    62  cmp r5, #0           cmp r6, #0
+ *   "At 4 against 4 the tie breaks by allocno number, 40 < 79 takes r5, and
+ *    that IS the ROM.  So batch 272's declaration-order lever would apply if
+ *    the counts were equal."
  *
- * Every other register matches the ROM -- r7 the id, r8 the best, r9 the best index,
- * r10 the effect, r11 the flag.
+ * EQUAL COUNTS DO NOT TIE, because `allocno_compare` divides by live_length and
+ * the two live ranges are NOT equal.  `.19.flow2` has the counter's init
+ * (insn 275) BEFORE the cursor's init (insn 286) in the insn chain, with insn
+ * 315 between them, so len40 = len79 + 2.  Then:
+ *     refs 4 and 4:  pri40 = 32/(L+2)  <  pri79 = 32/L      -> 79 still first
+ *     refs 5 and 5:  pri40 = 40/(L+2)  <  pri79 = 40/L      -> 79 still first
+ * There is no tie to break, at any equal reference count, while the counter's
+ * init is the earlier of the two.  The declaration-order lever cannot reach it.
  *
- * IT IS A REFERENCE-COUNT CONTEST, NOT A SPELLING, and the arithmetic says so. From
- * .18.greg:
+ * AND THE REFS-ONLY ROUTE IS CLOSED FROM THE OTHER SIDE TOO.  Giving the
+ * counter a fifth reference is not available: `check_dbra_loop` (loop.c, the
+ * `else` arm at the `initial_value == const0_rtx && comparison_value CONST_INT`
+ * test) requires `no_use_except_counting` whenever the comparison value is NOT
+ * a constant -- and `size` is `GetPartySize()`.  ANY extra mention of `i`
+ * therefore kills the reversal, which is measured: `for (i = 0; i != size; i++)`
+ * reads 70 at 92 instructions and `i = 0; if (size > i) { do ... }` reads 75.
  *
- *   ;; 12 regs to allocate: 38 37 42 41 39 79 40 32 36 33 35 34
- *   ;; Register dispositions: ... 40 in 6 ... 79 in 5
+ * SO THE FLIP NEEDS TWO THINGS AT ONCE, and that is the sharpened map:
+ *   (A) the cursor's init EARLIER than the counter's in the insn chain, so
+ *       len79 > len40 -- which is also visible in the output, since the ROM
+ *       emits `adds r6,r3,r2` (cursor) at index 32 and `adds r5,r0,#0`
+ *       (counter) at index 33, while we emit them the other way round; AND
+ *   (B) equal reference counts, which given (A) then favours 40.
+ * With refs 5 against 4 and (A) in place the arithmetic is still 32/L against
+ * 40/(L+2), which needs L < 8 to flip and L is about 30.  So (A) alone is not
+ * enough, and neither is (B) alone.  NOT A BOUND -- the evidence is the two
+ * formulae, the two reference counts and the chain order above.
  *
- * Pseudo 79 is the strength-reduced gState byte cursor with FIVE references (its def, two
- * ldrb, and `add r79, r79, 1` counting twice); pseudo 40 is the check_dbra_loop
- * down-counter with FOUR. They are born adjacent in the RTL (insn 275 and insn 286), so
- * their live lengths differ by one. allocno_compare gives 79 `floor_log2(5)*5*4 = 40/len`
- * against 40's `32/len`, and with lengths differing by one over a ~30-insn loop 40 CAN
- * NEVER OVERTAKE 79 at this reference-count pair.
+ * MEASURED AND SCREENED ON `.18.greg`'s ALLOCATION ORDER, not on the figure
+ * (docs/elevation.md's correction 4).  All leave the order `... 39 79 40 ...`
+ * with `79 in 5, 40 in 6`, i.e. exactly 7:
+ *   `while` form with the increment at the bottom; `++i` for `i++`; `base` as
+ *   `int` rather than `unsigned int`; the inner loop as a bottom-tested
+ *   do/while with `k--` in the body; `k = gState[...]` as a named index.
+ * CHANGES THE ORDER but breaks the program: `i` unsigned 70 (order becomes
+ *   `41 40 79 39`, `40 in 1`); `i != size` 70 (`40 in 4`); the outer loop as a
+ *   `goto` loop -- the park's own suggested next move -- 83 at 92 instructions,
+ *   because suppressing loop.c suppresses the strength reduction the ROM needs.
+ * FLAG INSTRUMENTS: -fno-regmove and -fno-rerun-cse-after-loop exactly inert
+ *   at 7; -fno-rerun-loop-opt changes the SIZE (every relocation offset moves),
+ *   so the two-pass loop structure is load-bearing but removing it is not the
+ *   answer.
  *
- * So the ROM's allocation needs either the cursor at 4 references or the counter at 5 --
- * a different reference count, not a different spelling. (At 4 against 4 the tie breaks by
- * allocno number, 40 < 79 takes r5, and that IS the ROM. So batch 272's declaration-order
- * lever would apply if the counts were equal; they are not.)
- *
- * WHAT IS ALREADY RIGHT, and all of it was needed to get here:
- *   - the call-argument fill order `r1, r2, r0` needs GiveDjinni and Func_807a458 declared
- *     INT-returning, not void (void gives `r0, r1, r2`).
- *   - `ldr r3, =gState` plus `mov r2, #0xfc / lsl r2, #1 / add` needs the offset as a
- *     NAMED VARIABLE; `&gState + 0xfc*2` folds to `ldr r3, =gState+504`.
- *   - the cursor init must sit AFTER the loop guard, which means the subscript has to be
- *     INSIDE the loop: a giv init lands at loop_start, i.e. after the duplicated exit
- *     test, where a source statement before the loop lands before it.
- *   - `add r3, r7, r2 / ldrb r3, [r0, r3]` needs `o = 0x8c * 2;` as its own statement used
- *     twice.
- *   - the inner loop's `sub r2, #1 / add r0, #1 / add r1, r3` needs `t = *q; q++;
- *     sum += t;` -- 9 differing with `sum += *q++` or with `sum += *q; q++;`.
- *
- * MEASURED, all exactly 7 and no change: four spellings of the gState byte access
- * (`((unsigned char *)&gState)[base+i]`, the int-cast form, the base-added form, and a
- * struct member); `base` as int against unsigned int; `for`, `while` and
- * `i = 0; if (size > i) { do ... }` outer forms -- the last of which is 75, because it
- * breaks the reversal.
- *
- * WORSE: the cursor as a source pointer before the loop (`p += base; p[i]`) is 64, because
- * it keeps `i` live so check_dbra_loop does not reverse; the cursor assigned inside the
- * loop is 49 and 64, with gcc falling to r4 and spilling.
- *
- * FLAGS, all inert at 7: -fno-rerun-cse-after-loop, -fno-strict-aliasing, -fno-regmove,
- * -fno-cse-follow-jumps, -fno-caller-saves, -fno-force-mem, -fno-thread-jumps,
- * -fno-peephole, -fno-delayed-branch, -fno-function-cse. WORSE: -fno-schedule-insns2 27,
- * -fno-gcse 78, -fno-expensive-optimizations 82, -fno-strength-reduce 90. So no existing
- * Makefile flag group lands it either.
- *
- * NEXT: the only routes are to change a reference count (give the cursor a fourth use or
- * the counter a fifth) without changing the emitted instructions, or to stop the cursor
- * being strength-reduced at all -- for which see the `goto`-loop lever recorded in batch
- * 274, which suppresses strength_reduce outright by removing NOTE_INSN_LOOP_BEG. That was
- * not tried here and is the obvious next move.
+ * DECLARATION DIVIDEND, no figure change: GetUnit's real definition is
+ * `void *GetUnit(unsigned int id)` (src/rom_77000/rom_77320_a_a_c_c_a_b.c) and
+ * GiveDjinni's is `int GiveDjinni(int id, int elem, int bit)`
+ * (src/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_a_b.c); Func_807a458 really does
+ * take three arguments (asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_c_a_a.s,
+ * r0/r1/r2 all copied on entry).  The park's int-returning declarations for
+ * GiveDjinni and Func_807a458 are load-bearing for the argument fill order and
+ * are kept.
  */
 typedef struct { unsigned char _b[704]; } GlobalState;
 extern GlobalState gState;
