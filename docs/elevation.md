@@ -32699,7 +32699,7 @@ its own *before shipping it*.
 > kind-agnostic — and `arm_adjust_cost` returns 0 for `REG_DEP_ANTI`. **The park
 > was right down to the mechanism; the inference was not.**
 
-## CORRECTION 1: `qty_compare` HAS NO `floor_log2`. TWO FORMULAE, NOT ONE.
+## ~~CORRECTION 1: `qty_compare` HAS NO `floor_log2`~~ — ITSELF WRONG, SEE BELOW
 
 I have written `allocno_compare`'s `floor_log2(R)*R/L` into many briefs as *the*
 allocation priority. It is **global-alloc's only**.
@@ -32881,3 +32881,55 @@ exist; capture stderr instead.
 "A `register short` declaration gives you HImode" holds at a **store** site. At an
 AND site it measured **exactly bit-identical**, so the note needs qualifying by
 site rather than being read as general.
+
+
+## Batch 322: correction 1 of batch 321 was itself wrong, and the SOURCE settles it
+
+Batch 321 reported, and I propagated into `docs/elevation.md` **and into nine
+agents' briefs**, that `local-alloc.c`'s `qty_compare` does not use `floor_log2`
+and that `allocno_compare`'s formula is global-alloc's only. **That is false.**
+Read the source — it is on this machine, and this is exactly the standing rule
+that a claim backed by the compiler outranks an inference from dumps:
+
+`local-alloc.c:1496` —
+
+    #define QTY_CMP_PRI(q)                                                   \
+      ((int) (((double) (floor_log2 (qty[q].n_refs) * qty[q].n_refs * qty[q].size) \
+              / (qty[q].death - qty[q].birth)) * 10000))
+
+`global.c:607` —
+
+    pri = (((double) (floor_log2 (allocno[v].n_refs) * allocno[v].n_refs)
+            / allocno[v].live_length) * 10000 * allocno[v].size);
+
+**Both use `floor_log2`.** One definition in each file, no `#ifdef`, and
+`local-alloc.c:1483-1488` says the sameness is *deliberate*: *"This is the
+identical prioritization as done by global-alloc… using the same algorithm in both
+local- and global-alloc can speed up execution of some programs by as much as a
+factor of three!"*
+
+> **THE REAL DIFFERENCE IS THE DENOMINATOR**: local-alloc divides by
+> `qty[q].death - qty[q].birth`, global-alloc by `allocno[v].live_length`. `size`
+> is applied on the other side of the division in each, which is mathematically
+> the same. **So the formula is shared and only the live-range measure differs.**
+
+### What batch 321 actually observed, and why its explanation was wrong
+
+Its park had genuinely mispriced a local-alloc decision, and the function landed
+once that was corrected — the *observation* was sound. But the cause was the
+**denominator**, not the presence of `floor_log2`; `death - birth` and
+`live_length` are different numbers, and that is where a 1.3% margin can hide.
+Attributing it to `floor_log2` made the claim both wrong and more sweeping than
+the evidence.
+
+> **The `;; N regs to allocate:` discriminator is still worth checking** — it
+> tells you which allocator decided, and therefore which live-range measure to
+> read. It is just not a `floor_log2` question.
+
+**And the process lesson, which is the one that cost the most here:** batch 321's
+correction was itself a correction of a park, accepted without reading the source
+even though *that same batch* had discovered where the source lives and recorded
+"a park that cites the compiler outranks your inference from dumps". I propagated
+it to nine agents the next batch. **A correction needs the same standard of
+evidence as the claim it corrects — and for a compiler-internals claim, that
+standard is the source.**

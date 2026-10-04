@@ -1,170 +1,277 @@
-/* Func_801c154  @  0x0801c154  [rom_15000]   *** DOES NOT LAND -- 8 of 17 ***
- * Declining to close, with a corpus-wide structural result that narrows the
- * blocker from "OPEN" to one named precondition this function cannot satisfy.
+/* Func_801c154  @  0x0801c154  [rom_15000]   *** PARK -- 8 of 17 ***
+ * NON-MATCHING, 8 of 17 encodings (measured batch 322).
  *
- * Source asm: goldensun/asm/rom_15000/rom_1aeec_c_a_a_a_a_a_a_c.s
- *   BOTH parks cite asm/rom_15000/rom_1aeec_c_a_a_a_a_a_a.s, which no longer
- *   exists -- the file has been split once more since they were written.
+ * NOT A LANDING. Parked at 8, PIN-FREE. Same figure as the two parks this
+ * replaces, but a DIFFERENT and sharper residue: this body already has the
+ * ROM's register ASSIGNMENT, which neither park did.
  *
- * FIGURE (measured here; NEITHER park quoted an objcmp figure):
- *   objcmp --func : 8 of 17 encodings differ (ours 15), 40 bytes against 36
- *   objcmp --whole: same 8 of 17; RELOCATIONS IDENTICAL, so the 8 IS a distance.
- *   Both parks claim "13 lines against 15". tryc reads rom 15 / ours 13 lines,
- *   which is where that came from -- but one of the ROM's 15 "lines" is a LABEL,
- *   not an instruction. The honest count is 14 ROM instructions against our 13.
+ * ===========================================================================
+ * FIRST: THE TWO-PARK QUESTION. SETTLED BY MEASURING BOTH BODIES.
+ * ===========================================================================
  *
- * Verify with:
+ * Func_801c154 had TWO park files. Batch 317's lesson was that twice the park
+ * claiming the better figure held NO FUNCTION DEFINITION AT ALL -- pure comment
+ * compiling to a zero-byte TU that objcmp still prints a number against.
+ *
+ *   *** THAT FAILURE MODE IS NOT WHAT HAPPENED HERE. BOTH PARKS HAVE REAL,
+ *       COMPILING FUNCTION DEFINITIONS, AND THE TWO BODIES ARE BYTE-IDENTICAL
+ *       TO EACH OTHER. ***
+ *
+ *   md5 of everything from `#include` onward:
+ *       src/non_matching/rom_15000/801c154.c   6dab0d707a826d4b1ba7379d2d2427de
+ *       src/non_matching/rom_15000/rom_1c154.c 6dab0d707a826d4b1ba7379d2d2427de
+ *   and both measure IDENTICALLY, --func and --whole:
+ *       8 of 17 (ours 15, COUNT DIFFERS), size 40 v 36, relocations identical,
+ *       MEM clean, idx=[1,2,3,4,11,12].
+ *
+ * So this is TRUE REDUNDANCY, not a race -- no work was lost, and no figure
+ * was a phantom. The difference between the files is PROSE ONLY.
+ *
+ * WHICH TO KEEP: 801c154.c's prose is the strict superset. It is batch 317
+ * (commit a2aeb2ac, 2026-10-01) and it already reproduces rom_1c154.c's whole
+ * TRIED list, plus the corpus result, plus the refutation below. rom_1c154.c is
+ * older prose (b67ea886, 2026-08-03) whose last touch was batch 319's recipe
+ * backfill (a676b77b, 2026-10-03) -- a newer COMMIT DATE on OLDER CONTENT,
+ * which is exactly how a duplicate park wins a headline it has not earned.
+ * RETIRE rom_1c154.c.
+ *
+ * THREE DEFECTS TO FIX WHILE RETIRING IT, each of which bites someone later:
+ *  1. 801c154.c's own `Verify with:` recipe names rom_1c154.c AS THE CANDIDATE.
+ *     Retire rom_1c154.c without fixing that and the keeper's recipe breaks.
+ *     This file's recipe names ITSELF. (parkcheck.py reads these.)
+ *  2. rom_1c154.c says "NOT SPLIT. The .s still holds both of its functions and
+ *     the linker script is untouched." STALE -- the split has happened:
+ *     asm/rom_15000/rom_1aeec_c_a_a_a_a_a_a_c.s holds exactly ONE
+ *     .thumb_func_start and datacheck.py is clean.
+ *  3. BOTH parks cite asm/rom_15000/rom_1aeec_c_a_a_a_a_a_a.s, which no longer
+ *     exists. The reference is the `_c` file above.
+ * ONE THING WORTH MERGING FROM rom_1c154.c AND NOT IN 801c154.c: its three
+ * TU-context tests, reproduced under "REFUTED" below.
+ *
+ * ===========================================================================
+ * SECOND: WHICH READING OF THE POOL-PLACEMENT QUESTION SURVIVES
+ * ===========================================================================
+ *
+ * The "*** CORRECTED, SAME BATCH ***" block is in NEITHER current file. It was
+ * in the OLD 801c154.c, at commit c75a7c53 ("SETTLED: the branch-over-pool
+ * shape is not a blocker, and my own park was wrong", 2026-08-30), and batch
+ * 317 removed it, quoting and refuting it. It said: pool placement is not a
+ * residue at all; the pool branch is a consequence of CODE LENGTH; the missing
+ * `b` is "downstream of being two instructions short for some other reason";
+ * screen the class normally.
+ *
+ *   *** THAT READING IS REFUTED HERE BY DIRECT COUNTING, WHICH IS A STRONGER
+ *       ARGUMENT THAN THE ONE BATCH 317 USED. ***
+ *
+ * Per-index, with pool words and padding identified (the brief's trap: an
+ * objcmp "encoding" can be a POOL WORD, and here two of them are):
+ *
+ *      0  b500  push {lr}            |  b500  push {lr}
+ *   XX 1  4b06  ldr  r3,=0x1ff       |  4c06  ldr  r4,=0x1ff        real insn
+ *   XX 2  88c4  ldrh r4,[r0,#6]      |  88c3  ldrh r3,[r0,#6]       real insn
+ *   XX 3  4019  ands r1,r3           |  4021  ands r1,r4            real insn
+ *   XX 4  4b05  ldr  r3,=0xfffffe00  |  4c05  ldr  r4,=0xfffffe00   real insn
+ *      5  4023  ands r3,r4           |  4023  ands r3,r4   (same ENCODING,
+ *      6  430b  orrs r3,r1           |  430b  orrs r3,r1    opposite meaning)
+ *      7  21fc  movs r1,#0xfc        |  21fc  (same)
+ *      8  80c3  strh r3,[r0,#6]      |  80c3  (same)
+ *      9  7102  strb r2,[r0,#4]      |  7102  (same)
+ *     10  bl Func_8003dec            |  bl    (same)
+ *   XX11  e004  b .L1c178            |  bc01  pop {r0}              real insn
+ *   XX12  0000  .short 0x0000        |  4700  bx r0            POOL PADDING
+ *     13  .word 0x000001ff           |  .word 0x000001ff           POOL WORD
+ *     14  .word 0xfffffe00           |  .word 0xfffffe00           POOL WORD
+ *   XX15  bc01  pop {r0}             |  --
+ *   XX16  4700  bx  r0               |  --
+ *
+ * ROM = 14 real instructions + 1 padding halfword + 2 pool words.
+ * Ours = 13 real instructions + 2 pool words.
+ *   *** WE ARE SHORT EXACTLY ONE REAL INSTRUCTION, AND IT IS THE `b`. ***
+ * Every other real instruction is present. There is no "some other reason" to
+ * be downstream of: the ONLY length difference IS the `b`, and the `b` exists
+ * only because the pool is placed before the epilogue. "Length causes
+ * placement" is therefore circular on this function, and self-refuting.
+ *
+ * SO 801c154.c's VERDICT SURVIVES -- but its ARITHMETIC DOES NOT, and it
+ * contradicts itself. It says the placement "is 2 of the 8 encodings and all 4
+ * bytes ... the rest is misalignment downstream of it", and then later says the
+ * rename "is 2 encodings of the 8 and the placement is the other 6". MEASURED,
+ * IT IS FOUR AND FOUR:
+ *     rename    -> idx 1, 2, 3, 4                  = 4 of the 8, 0 bytes
+ *     placement -> idx 11, 12 plus the 2-count gap = 4 of the 8, all 4 bytes
+ * So "do not spend more passes on the register rename -- it is 2 encodings of
+ * the 8" understates it by half. The rename is HALF THE FIGURE and it is the
+ * half that moved this batch.
+ *
+ * THE CORPUS BOUND BEHIND THE PLACEMENT HALF: RE-MEASURED, IT SURVIVES, AND IT
+ * IS SLIGHTLY STRONGER THAN RECORDED. Independent re-scan, denominator printed
+ * (the brief's rule), 4,418 generated .s files carrying gcc's own banner,
+ * 3,478 functions with a literal pool:
+ *
+ *                               pool BEFORE epilogue   pool AFTER
+ *     has a narrow pool load        197 (min 12)        27 (min 4)
+ *     only `ldr` pool loads         112 (min 23)      3142 (min 2)
+ *
+ *   A narrow pool load gives pool-before 88% of the time (197/224); without
+ *   one, 3.4% (112/3254). The park recorded 90% / 3.8%, 189/110, floors 11/21.
+ *   *** THE LOAD-BEARING FLOOR RE-MEASURES AT 23, NOT 21: there is no
+ *       pool-before function in this tree below 23 instructions whose pool
+ *       loads are all `ldr`. *** Func_801c154 is 14. The bound HOLDS.
+ *
+ *   The batch-322 correction that HImode pooling is ALTERNATIVE ORDER (alt 1's
+ *   `mn` matches any const_int before alt 5's `I` is reached), not the absence
+ *   of an immediate alternative, does NOT disturb this: the park's claim is
+ *   that these masks can never BE HImode, because gcc-2.96 Thumb has no HImode
+ *   AND, so every narrow spelling is promoted to SImode before the mask load.
+ *   The correction changes WHY HImode pools, not whether these two constants
+ *   can get there. Their pool words are already exact in both bodies.
+ *
+ * I ALSO HIT THE TRAP THE PARK WARNED ABOUT, INDEPENDENTLY. Two of my rows
+ * (`e7`, `g4`) reach ref 17 encodings AND ref 40 bytes -- an apparent exact
+ * size+count match -- by PUSHING r5 (`push {r5, lr}` / `pop {r5}`), two extra
+ * instructions and four extra bytes, with the pool still after the epilogue and
+ * still no `b`. They read 13 and 14. A size-only or count-only screen calls
+ * those near-misses. They are not.
+ *
+ * REFUTED, and worth keeping from rom_1c154.c: the TU-CONTEXT theory. Three
+ * tests, all negative -- Func_801c154 is the LAST function in its .s so "code
+ * after it" cannot be the cause; adding a function after it in the .c does not
+ * move the pool; adding a bulky literal-heavy function BEFORE it does not
+ * either. Pool-before also happens in SINGLE-FUNCTION TUs (Func_8006358,
+ * Func_80b09fc), so it is not a TU property at all.
+ *
+ * ===========================================================================
+ * THIRD: THE RENAME HALF MOVED. TWO ORTHOGONAL LEVERS, ONE NEW RUNG.
+ * ===========================================================================
+ *
+ * FIGURE of this body (measured):
+ *   objcmp --func / --whole: 8 of 17 (ours 15), size 40 v 36, relocations
+ *   identical, MEM clean, idx=[3,4,5,6,11,12].
+ *   PIN COUNT: 0.
+ *
+ * Verify with (INSTALLED PATH):
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/rom_1c154.c \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/801c154.c \
  *     asm/rom_15000/rom_1aeec_c_a_a_a_a_a_a_c.s --func Func_801c154
  *
  * SPLIT SHAPE: NONE NEEDED.
- *   python3 tools/datacheck.py asm/rom_15000/rom_1aeec_c_a_a_a_a_a_a_c.s -> clean
- *   The .s holds exactly ONE thumb_func_start. rom_1c154.c's header still says
- *   "NOT SPLIT. The .s still holds both of its functions and the linker script
- *   is untouched" -- that is STALE; the split has already happened.
+ *   grep -c thumb_func_start asm/rom_15000/rom_1aeec_c_a_a_a_a_a_a_c.s -> 1
+ *   python3 tools/datacheck.py <that .s>            -> clean (no output)
+ *   python3 tools/split_s.py   <that .s> --dry-run  -> nothing to split
  *   INSTALL PATH if it ever lands: src/rom_15000/rom_1aeec_c_a_a_a_a_a_a_c.c
  *
- * PIN COUNT: 0.
+ * *** THIS BODY'S idx LIST IS 3,4,5,6 AND THE PARKS' IS 1,2,3,4. SAME FIGURE,
+ *     DIFFERENT RESIDUE. Indices 1 and 2 -- `ldr r3,=0x1ff` and
+ *     `ldrh r4,[r0,#6]` -- NOW MATCH: the mask is in r3 and the loaded halfword
+ *     is in r4, which IS the ROM's assignment and is the thing both parks
+ *     called their residue. ***
  *
- * TWO PARKS, ONE SUBJECT. src/non_matching/rom_15000/rom_1c154.c and
- * src/non_matching/rom_15000/801c154.c BOTH define `void Func_801c154(...)`.
- * They are duplicate parks, not a mis-naming; rom_1c154.c is the later and
- * better one and its body is reproduced below. 801c154.c's citation of
- * asm/rom_b0000/rom_b0070_a_a_c_c_a_a.s is a cross-reference to Func_80b09fc,
- * as the brief said. THE TWO PARKS CONTRADICT EACH OTHER on the blocker, and
- * the measurement below settles it against 801c154.c.
+ * A 24-CELL CROSS over three dimensions found two orthogonal levers and a clean
+ * 12-row inert dimension. Dimensions: v-form (`v &= M` / `v = v & M`) x t-form
+ * (same) x OR order (`t | v` / `v | t`) x mask (two literals / ONE reassigned
+ * named mask / TWO named masks). Results collapse into exactly three outcomes:
  *
- * ---------------------------------------------------------------------------
- * WHAT THE RESIDUE IS: exactly two things, and the second is the real one.
+ *   mask = ONE REASSIGNED NAMED MASK  -> 8, idx=[1,2,3,4,11,12]  (both parks)
+ *       8 of 8 such rows, regardless of OR order or either and-form.
+ *   mask = literals or TWO named  +  `v | t`  -> 8, idx=[3,4,5,6,11,12] (HERE)
+ *       8 of 8 such rows.
+ *   mask = literals or TWO named  +  `t | v`  -> 10, idx=[1,2,3,4,5,6,11,12]
+ *       8 of 8 such rows -- both halves wrong.
  *
- *   1. A TWO-REGISTER RENAME in the first four instructions. The ROM keeps the
- *      mask in r3 and the loaded halfword in r4; we use r4 and r3.
- *          rom  ldr r3, =0x1ff / ldrh r4, [r0,#6] / and r1, r3 / ldr r3, =0xfffffe00
- *          ours ldr r4, =0x1ff / ldrh r3, [r0,#6] / and r1, r4 / ldr r4, =0xfffffe00
- *      The remaining nine body instructions, `and r3, r4` through `bl`, are
- *      exact. Both parks report this and both call it secondary; that is right.
+ *   LEVER 1: THE OR'S OPERAND ORDER. `p->f6 = v | t` fixes indices 1 and 2;
+ *            `t | v` does not. Nobody had tried this.
+ *   LEVER 2: A SINGLE REASSIGNED MASK PINS THE MASK TO r4 AND OVERRIDES LEVER 1
+ *            COMPLETELY. This is the exact mechanism rom_1c154.c advertised as
+ *            its headline win ("ONE VARIABLE REASSIGNED gives both the 32-bit
+ *            loads AND the register reuse") -- and it is ALSO what blocked the
+ *            rename. See below.
+ *   INERT, 12 PAIRINGS: `v &= M` versus `v = v & M`, and the same for `t`.
+ *            Exactly inert in every pairing. A free code-quality choice.
  *
- *   2. THE LITERAL POOL SITS BEFORE THE EPILOGUE, BEHIND A BRANCH:
- *          rom   bl Func_8003dec / b .L1c178 / <pool> / .L1c178: pop {r0} / bx r0
- *          ours  bl Func_8003dec / pop {r0} / bx r0 / <pool>
- *      That `b` is a real instruction and the pool's 4-byte alignment adds a
- *      padding halfword, which is the whole 4-byte size deficit and 2 of the 8
- *      differing encodings; the rest is misalignment downstream of it.
- *      THE POOL CONTENTS ARE ALREADY EXACT -- gcc emits `.word 511 / .word -512`
- *      in the ROM's order. Only the PLACEMENT differs.
+ * WHY A REASSIGNED MASK CANNOT GET r3 -- the mechanism, from .17.lreg/.18.greg:
+ *   Parks' body:  ;; 1 regs to allocate: 35
+ *                 Register 35 (the mask `m`) ... set 2 times; DIES IN 2 PLACES
+ *                 Register dispositions: ... 35 in 4   36 (`t`) in 3
+ *   A reassigned mask dies twice, so LOCAL-ALLOC declines it and it is the one
+ *   pseudo handed to GLOBAL-ALLOC -- which runs after local-alloc has already
+ *   given r3 away. Under REG_ALLOC_ORDER (config/arm/arm.h:989 = 3,2,1,0,...)
+ *   only r4 is left.
+ *   AND THIS IS NOT A PRIORITY QUESTION. I flipped the body so the mask becomes
+ *   the long-lived result carrier (`m &= t; p->f6 = m | v`), which moves it from
+ *   n_refs 4 / span 10 to n_refs 8 / span 18 -- from QTY_CMP_PRI 8000 to 13333,
+ *   far above `t`'s -- and `;; 1 regs to allocate: 35` and `35 in 4 / 36 in 3`
+ *   DO NOT CHANGE. The dispositions are bit-identical. "Dies in 2 places" is
+ *   the invariant; priority is irrelevant.
+ *   So the 8 flip rows (all 11, one 12) are not an allocation regression at all:
+ *   the flip only changes which operand of the two-operand `and` is the
+ *   DESTINATION, costing 3 extra encodings at idx 5/6/8 with the allocation
+ *   untouched. Both parks guessed this was "downstream of the same allocation
+ *   question"; it is downstream of nothing -- it is a different pass.
  *
- * 801c154.c's CORRECTION IS ITSELF WRONG. It says, in a block marked
- * "*** CORRECTED, SAME BATCH ***": "POOL PLACEMENT IS NOT A RESIDUE AT ALL ...
- * The pool branch is a consequence of CODE LENGTH, not of a source construct.
- * So on this function the missing `b` is not the blocker ... `.pool_aligned` in
- * a reference is neither a ceiling nor a signal. Screen the class normally."
- * On this function the placement IS the residue -- it is 2 of the 8 encodings
- * and all 4 bytes -- and it is NOT only a function of code length. There is a
- * second, measurable discriminator, and this function fails it.
+ * *** A CORRECTION TO BATCH 321'S CORRECTION 1, READ FROM THE SOURCE. ***
+ * The brief states: "`global.c`'s allocno_compare INCLUDES floor_log2;
+ * `local-alloc.c`'s qty_compare DOES NOT -- verified twice, both directions",
+ * and warns that substituting one for the other turned a 1.3% margin into an
+ * apparent factor of three. THE SECOND HALF IS WRONG IN THIS COMPILER.
+ *   local-alloc.c:1496-1498 defines
+ *       QTY_CMP_PRI(q) = (int)(((double)(floor_log2(qty[q].n_refs)
+ *                        * qty[q].n_refs * qty[q].size)
+ *                        / (qty[q].death - qty[q].birth)) * 10000)
+ *   -- floor_log2 is THERE. There is exactly one definition (grep: 1496, used
+ *   at 1504/1513/1544/1558, #undef at 1568), and the comment at 1485-1487 says
+ *   the sameness is deliberate: the same algorithm in local- and global-alloc.
+ *   THE REAL DIFFERENCE between the two formulae is the DENOMINATOR:
+ *       local  (local-alloc.c:1498)  /  (qty[q].death - qty[q].birth)   a SPAN
+ *       global (global.c:609/613)    /  allocno[v].live_length          a COUNT
+ *   and where `size` multiplies in. For SImode (size 1) they are the same
+ *   number. The `;; N regs to allocate` discriminator is still useful -- it
+ *   tells you WHICH allocator decided -- but NOT because one lacks floor_log2.
  *
- * ---------------------------------------------------------------------------
- * THE CORPUS RESULT (new; this is the part worth more than the function)
+ * THE NEW RUNG FOR THIS BODY'S REMAINING RENAME (idx 3,4,5,6): REGMOVE.
+ * The ROM has `and r1, r3` -- the AND's result lives in `v`'s register, the
+ * mask's register dies, and mask2 reuses it. We emit `ands r3, r1`. That is not
+ * reload, not sched2 and not the allocator. It is pass .15, regmove, rewriting
+ * the two-address destination. Same insn, two consecutive dumps of THIS body:
  *
- * I scanned all 4,469 tracked .s files in asm/ that carry gcc's own banner and
- * partitioned every function that has a literal pool by (a) whether the pool is
- * dumped BEFORE the function's final `bx` and (b) whether any of its
- * PC-relative loads is a NARROW-MODE load (gcc writes `ldrh`/`ldrb rX, .LN`;
- * Thumb-1 has no PC-relative halfword load, so these assemble to the SAME
- * ENCODING as `ldr` and are INVISIBLE in any ROM disassembly -- the brief's own
- * trap, here load-bearing):
+ *   .13.combine: (insn 21 (set (reg/v:SI 33) (and (reg/v:SI 33) (reg:SI 36))))
+ *                 REG_DEAD (reg:SI 36)          dest = 33 = `v`  <- THE ROM
+ *   .15.regmove: (insn 21 (set (reg:SI 36)    (and (reg/v:SI 33) (reg:SI 36))))
+ *                 REG_DEAD (reg/v:SI 33)       dest = 36 = the mask pseudo
  *
- *     3,088 functions have a pool.  299 dump it before the epilogue, 2,789 after.
+ * regmove swapped the destination AND the REG_DEAD note -- which is precisely
+ * why the mask's register stays live and the second mask has to take r1. The
+ * second AND (insn 26) was left alone. Combine had it RIGHT; regmove undid it.
+ * That is where the next pass on this function should aim, and it is a rung
+ * this project has not previously named on any target.
  *
- *                              pool BEFORE   pool AFTER
- *       has a narrow pool load      189           20
- *       only `ldr` pool loads       110        2,769
+ * TRIED AND MEASURED WORSE on the rename, all 8 flavours of "make `v` the
+ * destination again" (none reached idx 3):
+ *   a third variable `w = v & 0x1ff`                            10
+ *   `w =` with `t = p->f6` after                                10
+ *   `w = 0x1ff & v` (operands written the other way)            10
+ *   `v &= 0x1ff` with t's mask named, `v|t`                      8  (same shape)
+ *   literal first mask + named second, `v|t`                     8  (same shape)
+ *   `v &= 0x1ff` before `t = p->f6`                             11
+ *   `t &= ...` before `v &= ...`                                11
+ *   both masks named and both set up front                      14  (pushes r5)
+ * Older rows from the parks, all reproduced: plain literals on the OLD
+ * halfword-cast body 18; named pointer to +6 costs r5, 18; two named u32 masks
+ * 14; one reassigned u32 mask 13; declaration order byte-identical either way;
+ * flip + two separate masks 13 at dsize 0 by pushing r5 (the size coincidence).
+ * The six mask/operand TYPE rows from 801c154.c (masks u16/s16 x t u16/u32 etc.)
+ * were not re-run; its narrow-store argument for why they cannot produce a
+ * narrow pool load is unaffected by anything above.
  *
- * A narrow pool load gives pool-before 90% of the time; without one it happens
- * 3.8% of the time. And the size cut is sharp:
+ * STATUS: OPEN at 8. Placement half bounded by the re-measured corpus floor of
+ * 23 instructions against this function's 14. Rename half now half-solved, with
+ * the remaining decision localised to ONE regmove rewrite of ONE insn.
  *
- *   *** OF THE 110 POOL-BEFORE FUNCTIONS WITH ONLY `ldr` POOL LOADS, THE
- *       SMALLEST IS 21 INSTRUCTIONS. THERE IS NOT ONE EXAMPLE BELOW 21 IN THE
- *       WHOLE TREE. ***
- *
- *   With a narrow pool load they go down to 11 instructions:
- *       11 insns, 2 words  OvlFunc_924_2008dfc  asm/overlays/rom_7ac2d8/ovl_d58_b.s
- *       11 insns, 1 word   StartLuckyDice       asm/rom_f4000/rom_f4008_a_a_b.s
- *       14 insns, 1 word   Func_80b09fc         asm/rom_b0000/rom_b0070_a_a_c_c_a_a_b.s
- *       14 insns, 2 words  Func_8006358         asm/rom_c0/rom_5cf8_a_a_b.s
- *
- * Func_801c154 is 14 ROM instructions. So the corpus says its pool-before shape
- * needs a narrow-mode pool load, and the two landed 14-instruction twins show
- * exactly where one comes from -- a NARROW STORE OF A CONSTANT, where gcc-2.96
- * has no movhi/movqi alternative taking a CONST_INT and calls force_const_mem:
- *     Func_8006358  `iwram_3001cb0 = 0;` (volatile u16 global)
- *                   -> ldrh r3, .L3 / strh r3, [r2]      + b over the pool
- *     Func_80b09fc  `a->fc = 0;` (u8 struct member)
- *                   -> ldrh r6, .L3 / strb r6, [r0,#12]  + b over the pool
- * Both are SINGLE-FUNCTION translation units, which independently confirms
- * rom_1c154.c's refutation of the TU-context theory: pool-before happens with
- * nothing before or after the function.
- *
- * I ALSO OBSERVED THE MECHANISM FIRE LIVE, in this same brief, on an unrelated
- * target. While sweeping Func_80270ac, the spelling `unsigned short *h = &s.a;
- * *h = 0xff;` turned `mov r3, #0xff` into a POOLED HImode constant and gcc
- * immediately emitted `ldr r3, =0xff ... b .L0 / <pool> / .L0: pop` -- the
- * branch-over-pool shape appearing in a 17-instruction function the moment a
- * narrow constant store existed, and vanishing when it did not. That is a
- * controlled before/after on the discriminator, not just a correlation.
- *
- * WHY THIS FUNCTION CANNOT SATISFY IT. Func_801c154's two pool words are its two
- * masks. For gcc to load them narrowly they would have to be HImode constants
- * moved into registers, and they cannot be: gcc-2.96 Thumb has no HImode AND, so
- * every narrow spelling of the mask is promoted to SImode before it reaches the
- * mask load. Measured, all at the same 4-byte deficit (no `b` in any of them):
- *     masks u16, t u32                 16, RELOCDIFF
- *     masks s16, t u32                  8  (exactly inert)
- *     masks u32, t u16                  8  (exactly inert)
- *     masks u16, t u16                 16, RELOCDIFF
- *     two u16 masks                    16, RELOCDIFF
- *     two u32 masks                    10
- *     v narrowed to u16                16, RELOCDIFF
- *     masks s16, t u16                  8  (exactly inert)
- * The function's only narrow stores are `strh` and `strb` of COMPUTED values
- * (`p->f6 = t | v`, `p->f4 = b`), never of a constant, so force_const_mem is
- * never reached. The 0xfc argument is an SImode int that fits mov #imm8.
- *
- * CROSSED PAIRS TRIED on the register rename (the AND's operand order; in
- * two-operand Thumb `and rd, rs` the destination follows operand 1, and the ROM
- * makes the MASK the destination -- `and r3, r4` with the mask in r3 -- while we
- * make `t` the destination):
- *     flip, one reassigned mask                      11  (worse)
- *     flip written as `m = m & t` not `m &= t`       11  (worse)
- *     flip only the second AND                       11  (worse)
- *     flip + two separate masks                      13, dsize 0, first=0
- *     flip + t declared first                        11  (worse)
- *     flip + t read before the mask is assigned      11  (worse)
- *     flip + t u16                                   11  (worse)
- *     flip + mask u16                                16, RELOCDIFF
- * The flip is a regression in every pairing, so the ROM's `and r3, r4` is NOT
- * reached by reordering the AND's operands -- it is downstream of the same
- * allocation question as the rename itself. The "flip + two masks" row is the
- * one oddity worth a second look: it is the ONLY c154 variant in this brief with
- * dsize 0, i.e. the ROM's 40 bytes -- but it reaches them by pushing r5 in the
- * prologue (first=0) rather than by emitting the `b`, so it is a coincidence of
- * size, not progress. It is the kind of row that would be misread as a near-miss
- * by a size-only screen.
- *
- * STATUS: OPEN, with a named precondition. This is not a reachability proof --
- * it is a 4,469-file structural argument plus one controlled observation, and
- * the honest statement is that no source shape measured here produces a
- * narrow-mode pool load in this dataflow. What would retire it: any
- * demonstration of pool-before-epilogue in a <=20-instruction gcc-2.96 Thumb
- * function with only `ldr` pool loads. The scan found none in this tree.
- * WHAT NOT TO DO: do not "screen the class normally" per 801c154.c, and do not
- * spend more passes on the register rename -- it is 2 encodings of the 8 and the
- * placement is the other 6.
- *
- * The body below is rom_1c154.c's, unchanged, reproduced so the figure above is
- * reproducible from this file alone. Its own TRIED list (plain literals 18;
- * named pointer to +6 costs r5, 18; two named u32 masks 14; one reassigned u32
- * mask 13; declaration order byte-identical either way) all still holds.
+ * NOTE ON THE BODY BELOW: it is NOT the parks' body. Both parks' (identical)
+ * body also reads 8 and its residue is idx=[1,2,3,4,11,12]; it is preserved in
+ * git at src/non_matching/rom_15000/801c154.c before this commit, and its
+ * distinguishing feature -- one reassigned named mask -- is exactly LEVER 2
+ * above, documented rather than lost.
  */
 #include "gba/types.h"
 
@@ -174,15 +281,12 @@ extern void Func_8003dec(struct S *p, s32 n);
 
 void Func_801c154(struct S *p, u32 v, u32 b)
 {
-    u32 m;
     u32 t;
 
-    m = 0x1ff;
     t = p->f6;
-    v &= m;
-    m = 0xfffffe00;
-    t &= m;
-    p->f6 = t | v;
+    v &= 0x1ff;
+    t &= 0xfffffe00;
+    p->f6 = v | t;
     p->f4 = b;
     Func_8003dec(p, 0xfc);
 }
