@@ -1,5 +1,5 @@
 /* DisplayMenuArrowCursor (EmitPartySprites) -- 0x0801aeec, PARK.
- * NON-MATCHING: 6 encodings of 133 differ (objcmp, production flags).  WAS 16.
+ * STILL NON-MATCHING, 6 of 133 encodings -- RE-MEASURED batch 322A.  WAS 16.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -7,86 +7,119 @@
  *     src/non_matching/rom_15000/DisplayMenuArrowCursor.c \
  *     asm/rom_15000/rom_1aeec_a_a_a_a_a.s --func DisplayMenuArrowCursor
  *
- * BATCH 316b: the 16 -> 6 LEVER IS NOW ACTUALLY IN THE BODY.  Batch 297a found it,
- * batch 305 noticed the header had advanced while the body had not, and it still was
- * not applied.  It is applied here and it reproduces exactly:
+ * --func 6 of 133, size identical.  --whole: **6 of 133 and the TU is this
+ * function ALONE** -- no missing sibling, no FUNCTIONS/ORDER line, relocations
+ * equal.  tools/datacheck.py on the reference: no output, exit 0.  SPLIT SHAPE:
+ * NONE, confirmed again this batch.  PINS: 0.
  *
- *     int d;  unsigned short e;
- *     d = m->a[1].f0;      -- WIDE local: the zero_extend:SI load, feeds the ADD
- *     e = d;               -- NARROW local: the HImode value, feeds the COMPARE
- *     src = L342f8;
- *     if (e != 0) o->x = o->x + d;
+ * *** THE PARK'S BLOCKER IS WRONG, AND THE DUMP SAYS SO. ***
  *
- * `e = d` is the ROM's `mov r3, r2`.  The compare load is `(set (reg:HI) (mem:HI))`
- * and the add load is `(zero_extend:SI (mem:HI))`; with both spelled as one local
- * cse merges them and one of the two sites re-loads.  Two locals OF DIFFERENT WIDTH
- * keep the modes apart, and THE DIRECTION IS LOAD-BEARING.  Re-measured in one
- * container this batch, from the 16-of-133 park body:
- *     int d + u16 e = d, compare on e, add on d          6   <- INSTALLED
- *     the same with d/e placed AFTER `src = ...`         6
- *     the same with `e = m->a[i].f0` re-read             6
- *     the same with d/e block-scoped inside each arm     6
- *     u16 d + int e (NARROW carries the add)            57   RELOCDIFF
- *     one local + `(unsigned short)d != 0` at the test   57   RELOCDIFF
+ * The park says insn 55 (the `ldrh` of `m->a[i].x`) "IS NOT IN THE READY LIST
+ * UNTIL t=5 (latency 2 from 53)", that it is therefore "NOT reachable by any
+ * rank_for_schedule tie-break", and that to close the rotation "its ADDRESS must
+ * stop depending on the `adds r2,#0x10`".  `.23.sched2`, production flags,
+ * `-fsched-verbose=6`, basic block 1:
  *
- * SPLIT SHAPE: NONE.  Re-ran tools/datacheck.py on the reference this batch: no
- * output, exit 0 -- no TEXT/DATA split.  Reference holds one function.
- * tools/shimcount.py on the candidate reports no pins -- NO fakematch.txt row.
- * The data labels `.L342f8` / `.L33ef8` are already `.global` in
- * asm/rom_15000/rom_1aeec_c_c_b.s, so no new export and no linker alias.
+ *     ;;    insn  code  bb  dep  prio  cost   units
+ *     ;;      45     5   0    0    12     1   core : 106 55 53 412
+ *     ;;     412   173   0    1    11     1   core : 106 55 47
+ *     ;;      53     5   0    1    12     1   core : 106 86 55
+ *     ;;      55   157   0    3    11     2   core : 106 104 86 78 62
+ *     ;;      57   180   0    1    11     1   core : 106 408 419
+ *     ;;  Ready list (t = 3):  68 57 412 53
+ *     ;;    --> scheduling insn <<<53>>>
+ *     ;;    Ready list after queue_to_ready:  68 57 412       <-- 53 RESOLVED NOTHING
+ *     ;;  Ready list (t = 4):  68 57 412
+ *     ;;    --> scheduling insn <<<412>>>
+ *     ;;    dependences resolved: insn 55 into ready          <-- 412 DID
  *
- * ===================== THE REMAINING 6, READ OFF THE DUMP =====================
+ * 53's cost column is **1**, so the address dependence alone would have had 55
+ * ready at t=4.  What holds it is the THIRD of its three dependences: insn 412
+ * is `adds r5,r3,#0`, the reload-inserted `o = &m->a[i].oam` copy, and it
+ * **reads r3** -- which is insn 55's own DESTINATION register.  An
+ * ANTI-DEPENDENCE, cost 0, manufactured by the ALLOCATOR.
  *
- * Positions with operands (objdump -dz encodings, ref | ours):
- *     idx 21  ldrh r1,[r6,r2]   | adds r5,r3,#0
- *     idx 22  adds r5,r3,#0     | mov  ip,r0
- *     idx 23  mov  ip,r0        | ldrh r3,[r6,r2]
- *     idx 25  mov  r3,ip        | mov  r1,ip
- *     idx 35  mov  r1,r8        | mov  r2,r8
- *     idx 37  cmp  r1,#0        | cmp  r2,#0
- * idx 27 `and r3,r1` is identical in both (commutative, two-address).  So (1) is
- * ONE three-insn rotation -- WHERE the `ldrh` of `m->a[i].x` sits -- plus the two
- * register names that follow from it, and (2) is the hi->lo reload round-robin for
- * `i` in r8, coupled to (1) because idx 25 is itself a hi->lo reload.
+ * The ROM's load lands in **r1** (`5ab1 ldrh r1,[r6,r2]`); ours lands in **r3**
+ * (`5ab3`).  With the load in r1 there is no edge from 412 and it is ready at
+ * t=4 -- and it WINS there, which the park could not have predicted from the
+ * three-rung ladder.  From `rank_for_schedule` in
+ * ~/gs_project/camelot-gcc/gcc-2.96/gcc/haifa-sched.c:
  *
- * *** THE sched2 DUMP, NOT A GUESS.  Block 1 at production flags: ***
- *     t=0..1  416  r0=0x1ff              (pool load, 2 cycles)
- *     t=2     45   r3=r6+r2              (&m->a[i])
- *     t=3     53   r2=r2+0x10            (the x offset)
- *     t=4     412  r5=r3                 <-- THE ROM EMITS INSN 55 HERE
- *     t=5     57   ip=r0
- *     t=6..7  55   r3=zxn([r6+r2])       <-- the ldrh
- * Insn 55 IS NOT IN THE READY LIST UNTIL t=5 (latency 2 from 53), and at t=5 it
- * loses to 57.  So this is NOT reachable by any rank_for_schedule tie-break: 55
- * is not a candidate at t=4 at all.  The chain 45 -> 53 is FORCED -- 53 writes r2
- * and 45 reads it, an anti-dependence -- so 53 cannot move earlier either.
- * To close (1) the x load has to become ready at t=4, i.e. its ADDRESS must stop
- * depending on the `adds r2,#0x10`, and the ROM has that add.
+ *       link = find_insn_list (tmp, INSN_DEPEND (last_scheduled_insn));
+ *       if (link == 0 || insn_cost (last_scheduled_insn, link, tmp) == 1)
+ *         tmp_class = 3;
  *
- * *** MEASURED NEGATIVE, AND IT RETIRES A TEMPTING CROSS-PARK TRANSFER. ***
- * The landed file-mate src/rom_15000/rom_18cac_a_c.c closed its last 2 with a
- * `*(unsigned short *)&win->w` cast on ONE struct-member read, equalising a sched2
- * dependent count through the MEM's alias set.  THAT LEVER DOES NOT CARRY HERE.
- * Crossed 5 spellings of the x read against 3 of the y read (15 variants, one
- * container):
- *     x member,         y member                        6   (this body)
- *     x member,         y `*(short *)&...`             26
- *     x member,         y through a union              26
- *     x `*(unsigned short *)&m->a[i].x`, any y    117-119, dsize -4..+8, RELOCDIFF
- *     x through a union / `(void *)` / `char *`   116-119,                RELOCDIFF
- * A cast on the X read destroys the shared `m + i*0x34` address CSE -- it changes
- * the ADDRESSING, so it is not a scheduling lever on this function.
+ * the **cost escape is tested BEFORE the note kind**, so insn 55 -- a true data
+ * dependent of the just-issued 53 -- still classifies 3, not 1.  Priority ties
+ * 11/11/11 against 412 and 57, CLASS ties 3/3/3, and the **dependent-count** rung
+ * then favours 55 **five to three** (`106 104 86 78 62` against `106 55 47` and
+ * `106 408 419`).  Breaking the anti-dependence is sufficient.
  *
- * *** AND A 32-VARIANT CROSS FLOORS AT 6, so 6 is not a one-at-a-time artefact. ***
- * Crossed: position of `f = (iwram_3001800 >> 2) & 7;` (4 slots) x `if (i != 0)`
- * vs `if (i)` x store order (x-then-y / y-then-x) x `o = &m->a[i].oam` before the
- * stores vs writing them through `m->a[i].oam.x` and computing `o` after.
- *     f at top,  o first, x-then-y   ->   6   (both i-test spellings)
- *     f after the f2 early-return    ->  22
- *     y-then-x                       ->  52-63
- *     f after the arms               -> 130, dsize -4
- *     o computed after the stores    -> 130+
- * Only 2 of the 32 reach 6 and they differ only in the (inert) i-test spelling.
+ * ===================== PROVED WITH AN INSTRUMENT (a device) =================
+ *
+ *     register int xv __asm__("r1");  xv = m->a[i].x;  o->x = xv;
+ *
+ *     park body                    6   first=21
+ *     + the r1 pin                 9   first=35
+ *
+ * and the pinned build's own index list shows **21, 22, 23 AND 25 all gone**.
+ * So **4 of the 6 encodings are ONE ALLOCATION DECISION** -- which hard register
+ * the x load lands in -- and not a scheduling or an addressing problem.  The pin
+ * is NOT shipped: it costs 3 fresh encodings in the later blocks (86/87,
+ * 110/111, 114/115/116), so it reads 9 against the body's 6.  Its number is
+ * recorded as a figure ABOUT THE BLOCKER, per the device rule.
+ *
+ * *** THIS RETIRES BOTH OF THE PARK'S BIG SWEEPS. ***  The park crossed 5
+ * spellings of the x read against 3 of the y read (15 variants) and then 32
+ * variants of statement position, and reported "a 32-VARIANT CROSS FLOORS AT 6,
+ * so 6 is not a one-at-a-time artefact".  Both sweeps were aimed at rungs BELOW
+ * the deciding one, which is exactly why both floored.  The park's conclusion
+ * that idx 35/37 are "coupled to (1)" is also wrong: they SURVIVE the pin
+ * unchanged, so they are independent.
+ *
+ * ===================== PIN-FREE ROUTES TRIED, 19 VARIANTS ===================
+ *
+ * Allocation happens at passes 17/18, sched2 at 23, and in the PRE-sched2 order
+ * 412 precedes 55 -- so `&m->a[i]` is already dead when the load is born and its
+ * register is free to reuse.  Chicken and egg: the schedule decides the overlap
+ * and the allocation decides the schedule.  Two landed-sibling levers were aimed
+ * at it and neither bit:
+ *
+ *   src/rom_15000/rom_15e8c_c_c_a_b.c -- "a variable assigned twice is never a
+ *   local-alloc quantity", so reuse an existing GLOBAL allocno for the x value:
+ *       reuse `e`                                  6    inert
+ *       reuse `d`                                118    dsize +8, RELOCDIFF
+ *       reuse `f`                                130    dsize -12, RELOCDIFF
+ *   make the x value LIVE ACROSS the `o = ...` copy so the ranges must not share:
+ *       x read hoisted above `o =`               123    dsize +4, RELOCDIFF
+ *       the same reusing `d` / `f`           122/130    RELOCDIFF
+ *       x read below the y store                  52    RELOCDIFF
+ *   change what insn 412 reads:
+ *       `ar = &m->a[i]` for `o` only               6    inert
+ *       all three reads through `ar`              25
+ *       a second OamSprite pointer                 6    inert
+ *       the y store through `m->a[i].oam.y`      132    dsize +20
+ *       the x store through `m->a[i].oam.x`      140    dsize +24
+ *       `int xv` named, no pin                     6    inert
+ *
+ * **Everything that leaves the function intact is exactly inert at 6; everything
+ * that moves the x value's identity destroys it.**  That is a flat cross in the
+ * allocation dimension, so the next move is NOT another spelling of the read --
+ * it is the allocno priority itself.  The lever to try next is the one in
+ * src/rom_15000/rom_15e8c_a_a.c: REG_N_REFS is loop-depth weighted and
+ * source-reachable, and a statement duplicated into both arms of an `if` raises
+ * it BEFORE flow1 measures it while jump2's cross-jumper merges the duplicate
+ * back out after reload.  `.18.greg` here says `;; 12 regs to allocate`, so this
+ * is GLOBAL-alloc and `allocno_compare`'s floor_log2(R)*R/L applies -- NOT
+ * local-alloc's `qty_compare`, which has no floor_log2.
+ *
+ * IDX 35/37 are a separate residue: `mov r1,r8` / `cmp r1,#0` against our
+ * `mov r2,r8` / `cmp r2,#0`, the hi->lo reload round-robin for `i` in r8.  They
+ * are untouched by everything above.
+ *
+ * The park's own 16 -> 6 lever is unchanged and reproduces: a WIDE `int d` for
+ * the zero_extend:SI load that feeds the ADD and a NARROW `unsigned short e = d`
+ * for the HImode value that feeds the COMPARE.  `e = d` is the ROM's `mov r3,r2`.
  */
 struct OamSprite {
     unsigned char pad[4];

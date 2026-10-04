@@ -1,7 +1,8 @@
-/* Func_80286a0 -- 0x080286a0, asm/rom_15000/rom_23178_a_a_a_a_c_c_a_c.s (2 functions; the
+/* Func_80286a0 -- 0x080286a0, asm/rom_15000/rom_23178_a_a_a_a_c_c_a_c.s
  *
- * NON-MATCHING, 4 of 85 encodings  (MEASURED, batch 319 recipe backfill).
- *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ * STILL NON-MATCHING, 4 of 85 encodings -- RE-MEASURED batch 322A, the park's
+ * figure and the park's DIAGNOSIS both survive.  This is the rare park that was
+ * right; the correction here is to its ANATOMY, not its verdict.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -9,43 +10,90 @@
  *     src/non_matching/rom_15000/80286a0.c \
  *     asm/rom_15000/rom_23178_a_a_a_a_c_c_a_c.s --func Func_80286a0
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- * sibling Func_8028574 stays in assembly, so landing needs a two-way split).
+ * --func: 4 of 85, SIZE IDENTICAL, relocations differ (see the phantom below).
+ * --whole: the reference holds TWO functions, ['Func_8028574', 'Func_80286a0'],
+ *   so landing needs a two-way split.  SPLIT SHAPE (both re-run this batch):
+ *     tools/datacheck.py asm/.../rom_23178_a_a_a_a_c_c_a_c.s -> NO OUTPUT, exit 0
+ *       (no TEXT/DATA split; the split is a plain two-function one)
+ *     tools/split_s.py ... Func_80286a0 --dry-run ->
+ *       rom_23178_a_a_a_a_c_c_a_c_a.s (1 function, 150 lines)   [Func_8028574]
+ *       rom_23178_a_a_a_a_c_c_a_c_b.s (1 function,  92 lines)   [Func_80286a0]
+ *       removes rom_23178_a_a_a_a_c_c_a_c.s, rewrites stage1.ld
+ *       install path on a landing: src/rom_15000/rom_23178_a_a_a_a_c_c_a_c_b.c
+ * PINS: 0.  No `register __asm__`, no `__asm__("")`, no per-file flag, no
+ *   fakematch row.  The one device is `_CONST_1f`, which const.sym ALREADY
+ *   defines -- see below -- and which is a relocation, not a pin.
  *
- * NOT MATCHING: 4 differing of 85 encodings, SIZE IDENTICAL -- and only THREE are real.
- * Candidate below.
+ * ===================== WHAT THE 4 ARE (re-measured per index) ================
  *
- * THE FOURTH IS A PHANTOM: `ldr r3, =0x1f` against our `ldr r3, =_CONST_1f`, a pool word plus a
- * relocation. `_CONST_1f` ALREADY EXISTS in const.sym, so NO .sym edit is needed -- this is the
- * documented const.sym phantom-relocation class where objcmp cannot return OK and `make compare`
- * is the only authority.
+ *     XX  21  ref 4680 mov  r8,r0    | ours 2392 movs r3,#0x92
+ *     XX  22  ref 2392 movs r3,#0x92 | ours 199b adds r3,r3,r6
+ *     XX  23  ref 199b adds r3,r3,r6 | ours 4680 mov  r8,r0
+ *     XX  83  ref 0000001f .word     | ours 00000000 .word + R_ARM_ABS32 _CONST_1f
  *
- * THE THREE REAL ONES ARE A ROTATION IN THE LOOP PREHEADER, and it is priced out. From .23.sched2
- * the block is `{38: r8=r0 prio 1, 252: r3=0x92 prio 3, 41: r3=r3+r6 prio 2, 255: fp=r3 prio 1,
- * 43: jump}`. rank_for_schedule is strictly priority-first, so `r8 = r0` cannot issue at t=0
- * unless its priority reaches 3 -- and `cur`'s initialiser has no in-block successor other than
- * the jump, so there is nothing for it to inherit from. Ties break on ascending LUID, confirmed
- * both ways: `cur = start` before `m = ...` puts it third, after puts it fourth.
+ * *** INDEX 83 IS A POOL WORD, NOT AN INSTRUCTION. ***  Determined, not assumed:
+ * objdump gives it no mnemonic and `-r` puts an R_ARM_ABS32 against `_CONST_1f`
+ * at 0xb4.  const.sym defines `_CONST_1f` at 0x1f, so the LINKED word is the
+ * ROM's `0000001f` and only `make compare` can adjudicate it.  **The real
+ * distance is 3, and all 3 are one rotation.**  Idx 24 `mov fp,r3` and idx 25
+ * `b` are IDENTICAL in both, so the whole residue is inside one 5-insn block.
  *
- * THREE LEVERS LANDED, 67 differing to 33 to 7 to 4:
+ * ===================== THE DECIDING RUNG, FROM THE DUMP =====================
  *
- * 1. A `goto` INTO A `do/while` IS THE LOOP FORM.
+ * The park said the rotation is priced out and it is right.  `.23.sched2` at
+ * production flags, basic block 2 (the join block of `if (target < start)`):
  *
- *        goto entry; do { update; entry: body; } while (cur != target);
+ *     ;;  Ready list (t = 0):   38  252
+ *     ;;  0  252 r3=0x92  /  1  41 r3=r3+r6  /  2  38 r8=r0
+ *     ;;  3  255 fp=r3    /  4  43 pc=L70
  *
- *    The ROM's `b ENTRY / TOP: update / ENTRY: body / bne TOP` is NOT reachable from
- *    `while (1) { body; if (x) break; update; }`, which lays the body first. 67 to 33.
- *    `for (;;)`-with-`break` and `while (cur != target)` wrapped the same way are BYTE-IDENTICAL
- *    to the do/while, so only the `goto` matters -- the loop keyword does not.
- * 2. `if (d >= 0) j = d; else j = target - *c;` -- 33 to 7. The plain `j = d; if (d < 0) j = ...;`
- *    lets gcc COALESCE `j` with `d` and loses the ROM's `mov r2, r3`; the explicit if/else keeps
- *    it. The inverted `if (d < 0) ... else j = d;` is 18. Declaring `j` first, `unsigned j`, and
- *    moving a load between are all INERT at 33.
- * 3. `step = 1; extra = 0xc;` BEFORE `c = u + 0x8c;` -- 7 to 4, fixing the second rotation.
+ * priorities 252=3, 41=2, 255=1, 38=1.  **Insn 38 IS in the ready list at t=0
+ * and loses on the FIRST rung**, so no tie-break is involved -- which is the
+ * opposite of the DisplayMenuArrowCursor case in this same bank, where the ROM's
+ * insn was not ready at all.  Grouping the two as "one rotation each" would be
+ * wrong; they are decided on different rungs.
  *
- * INERT: -fno-gcse, -fno-rerun-cse-after-loop. WORSE: -fno-schedule-insns2 at 16.
- * `cur = start` in both if-arms (hoping for cross-jumping) is 89 lines and 38.
+ * Priority is the longest dependence path to the block end.  252 -> 41 -> 255
+ * is 3.  Insn 38's only in-block dependent is the block-end jump, so it is 1,
+ * and `cur` has nothing else in this block to feed: the other four insns all
+ * compute `m`.  Reaching 3 would TIE, and a tie then falls to the dependent
+ * count, where 252 leads 2 to 1 -- so 38 needs **4**, i.e. a two-deep dependent
+ * chain for `cur` inside a block whose instruction count is already exact.
+ *
+ * ===================== SO THE ATTACK WAS THE BLOCK BOUNDARY =================
+ *
+ * Batch 321's lever: tail cross-jumping runs in **jump2, AFTER sched2**, so
+ * putting a statement at the end of both arms of the `if` gives sched2 a block
+ * where it is alone and lets jump2 merge the duplicate back out.  *** THAT DOES
+ * NOT HAPPEN HERE, AND THE TELL IS dsize. ***  Measured, one container:
+ *
+ *     v00_base (park body)                        4   dsize  0
+ *     `cur = start` at the tail of BOTH arms      40   dsize +4   <-- NOT merged
+ *     the same with the test inverted             37   dsize +4   <-- NOT merged
+ *     `cur` and the `m` build both in the arms    77   dsize +12
+ *     only the `m` build in the arms              69   dsize  +8
+ *     `*c = cur` moved into the join block        46   dsize  +4
+ *     `*c = cur` after the `m` build              47   dsize  +4
+ *     `*c = cur` before the `if`                  46   dsize  +4
+ *     `k = 0x92;` named, m from k                  4   dsize  0   EXACTLY INERT
+ *     the same with `k = 0x92` before `cur`        4   dsize  0   EXACTLY INERT
+ *
+ * **dsize +4 on every duplicated-tail variant means jump2 did not merge them --
+ * it kept both copies.**  So the duplicate-tail-plus-cross-jump lever is
+ * BOUNDED OFF for this function, with its evidence attached: the two arms here
+ * are not a switch's arms ending in a call, they are a 2-insn arm against an
+ * empty one, and jump2's cross-jumper did not take it.
+ *
+ * The named-constant lever (landed sibling src/rom_15000/rom_1de5c_a_c_b.c: a
+ * loop-invariant LITERAL is emitted after the source-order preheader statements,
+ * naming it promotes it into source-order position) is **exactly inert** at 4
+ * both ways.  Per batch 321's framing that is a dividend, not a failure -- but it
+ * does not move this residue, because the problem is priority, not position.
+ *
+ * WHAT WOULD CLOSE IT: an in-block dependent for `cur` that costs no
+ * instruction.  Nothing in this brief found one.  The park's three landed levers
+ * (the `goto`-into-`do/while` loop form 67->33, the explicit if/else for `j`
+ * 33->7, and `step`/`extra` before `c` 7->4) all reproduce and are kept.
  */
 struct Ui {
     unsigned char pad0[0x78];

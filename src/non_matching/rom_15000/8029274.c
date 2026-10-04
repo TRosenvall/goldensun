@@ -1,6 +1,7 @@
-/* Func_8029274 -- asm/rom_15000/rom_23178_a_c.s
+/* Func_8029274 -- asm/rom_15000/rom_23178_a_c_c_c_a.s
  *
- * NON-MATCHING, 6 of 40 encodings  (MEASURED, batch 319 recipe backfill).
+ * STILL NON-MATCHING, 6 of 40 encodings -- RE-MEASURED batch 322A.  The park's
+ * figure is right and its two-cluster anatomy is right; its DENOMINATOR is not.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -8,63 +9,75 @@
  *     src/non_matching/rom_15000/8029274.c \
  *     asm/rom_15000/rom_23178_a_c_c_c_a.s --func Func_8029274
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
+ * *** THE DENOMINATOR IS 40, NOT 47. ***  The park's prose says "6 of 47" in
+ * four places while its own recipe line says 40.  objcmp: `(ref 40, ours 40)`,
+ * size identical.  47 appears nowhere in any measurement and should not be
+ * quoted again.
  *
- * BLOCKER: post-reload scheduling + one allocator preference. 6 of 47,
- * LENGTH EXACT. Came down from 12 by four separate documented levers, so this
- * file is mostly a record of which ones bit and which backfired.
+ * --whole: the reference holds TWO functions, ['Func_8029274', 'Func_80292c4'],
+ *   so landing needs a two-way split.  SPLIT SHAPE (both re-run this batch):
+ *     tools/datacheck.py asm/.../rom_23178_a_c_c_c_a.s -> NO OUTPUT, exit 0
+ *     tools/split_s.py ... Func_8029274 --dry-run ->
+ *       rom_23178_a_c_c_c_a_b.s (1 function, 52 lines)   [Func_8029274]
+ *       rom_23178_a_c_c_c_a_c.s (1 function, 98 lines)   [Func_80292c4]
+ *       removes rom_23178_a_c_c_c_a.s, rewrites stage1.ld
+ *       install path on a landing: src/rom_15000/rom_23178_a_c_c_c_a_b.c
+ * PINS: 0.  No shims of any kind, no per-file flag, no fakematch row.
  *
- * WHAT IT IS. Value to hex string: mask a nibble, add 0x30 or 0x37, write it
- * into an 8-byte stack buffer least-significant digit first, then copy the
- * buffer back out in reverse. The digit count is clamped to 5.
+ * ===================== WHAT THE 6 ARE (re-measured per index) ===============
  *
- * THE FOUR THAT WORKED, isolated one at a time from a 12-differing baseline:
+ * All six are REAL INSTRUCTIONS -- no pool words anywhere in this function.
  *
- *   name the 0xf mask in a local assigned BEFORE the buffer pointer   12 -> 10
- *       (fixes `mov r6,#0xf / mov r4,sp` birth order)
- *   invert the digit test to `if (d <= 9)` so the ROM's FALLTHROUGH is
- *       the 0x30 arm                                                  12 -> 10
- *   compare the copy-back pointer signed, `(int)p >= (int)buf`         8 -> 7
- *       (ROM uses `bge`; a plain pointer compare is unsigned, `bcs`)
- *   make the digit UNSIGNED so the nibble test is `bhi` not `bgt`      7 -> 6
+ *   cluster 1 (2 encodings) -- the digit store against the index increment
+ *     XX  18  ref 7023 strb r3,[r4]  | ours 3201 adds r2,#1
+ *     XX  19  ref 3201 adds r2,#1    | ours 7023 strb r3,[r4]
  *
- * Combined: 6 of 47, length exact.
+ *   cluster 2 (4 encodings) -- ONE register decision with four consequences
+ *     XX  28  ref 18d1 adds r1,r2,r3 | ours 189c adds r4,r3,r2
+ *     XX  30  ref 780b ldrb r3,[r1]  | ours 7823 ldrb r3,[r4]
+ *     XX  31  ref 3901 subs r1,#1    | ours 3c01 subs r4,#1
+ *     XX  34  ref 4561 cmp  r1,ip    | ours 4564 cmp  r4,ip
  *
- * THE TWO THAT BACKFIRED, and they are the useful part:
+ * The copy-back pointer is **r1** in the ROM and **r4** in ours, and r1 is the
+ * register the digit count `n` arrived in and is dead in by then.  Note idx 28
+ * also differs in OPERAND ORDER: `adds r1,r2,r3` is index-then-base, ours is
+ * base-then-index.
  *
- *   rewriting the copy-back loop in int arithmetic (`q = i + lim`,
- *   `*(char *)q`) instead of pointers                    12 -> 26, ONE SHORT
+ * ===================== A FLAT CROSS, WHICH IS THE FINDING ===================
  *
- *       This looked like the right move because it produces the signed
- *       compare the ROM has. It does -- but converting the loop BODY to
- *       integer arithmetic costs far more than the compare gains. Casting
- *       ONLY the comparison, and leaving the body as pointer dereferences,
- *       gets the same `bge` for free. Change one thing at a time: bundling
- *       these four edits at once produced 25 differing and hid the fact that
- *       three of them were correct.
+ * Landed sibling src/rom_15000/rom_20198_c_c_c_a_a_c_a_b.c documents that a
+ * reg+reg form whose FIRST register is the scaled index is the tell for a
+ * SUBSCRIPT, and that base-first is what naive pointer arithmetic gives -- which
+ * is exactly the idx-28 difference.  **It is inert here.**  Measured, one
+ * container, every row size-exact and relocation-clean:
  *
- *   a SEPARATE pointer variable for the copy-back loop     6 -> 21, two short
+ *     v00_base   `p = buf + i;`                        6
+ *     v01        `p = &buf[i];`           (subscript)  6
+ *     v02        `p = (char *)(i + (int)buf);`         6
+ *     v04        `p = (char *)((int)buf + i);`         6
+ *     v03        `p = buf; p += i;`                    8   WORSE
+ *     v06        `p++` before `i++`                    6
+ *     v07        `*p++ = d;`                           6
+ *     v08        `val >>= 4` before `i++`              6
+ *     v09        `i++` last in the body                6
  *
- *       Motivated by the ROM using different registers for the two loops
- *       (r4 then r1), which looked like two variables. It is not: giving gcc
- *       a second pointer changes how the buffer address itself is kept and
- *       wrecks the prologue. Declaring it before or after `p` is identical.
+ * **Nine spellings, two independent dimensions (how the pointer is FORMED and
+ * the order of the four loop-body statements), and the figure never moves off 6
+ * except to get worse.**  Per the batch-322 brief, a flat cross is itself the
+ * result: the lever is in neither dimension, and the next move is the SIGNATURE,
+ * the TYPE or the TU shape -- not another cell. In particular the index-first
+ * spelling does NOT reach idx 28 here, so whatever decides operand order on this
+ * insn is downstream of the source form, and the landed sibling's rule does not
+ * generalise to a stack-array base.
  *
- * WHAT REMAINS, two clusters:
- *
- *   1. rom `strb r3,[r4] / add r2,#1`   ours `add r2,#1 / strb r3,[r4]`
- *      Pure scheduling. Moving `i++` after `p++` in the source changes
- *      nothing -- measured, byte-identical.
- *
- *   2. rom keeps the copy-back pointer in r1 (the register that held the
- *      digit count); gcc puts it in r4, which is free under -fcall-used-r4.
- *      Both are dead-correct; the ROM reuses a register gcc has no reason to
- *      prefer. This is the same allocator-preference class as
- *      src/non_matching/rom_f4000/80f4100.c.
- *
- * Nothing in the remaining six is reachable by naming or ordering, which the
- * two backfires above bound fairly tightly.
+ * The park's own two backfires still bound the obvious moves and are kept: the
+ * copy-back loop in int arithmetic is 26 and one short, and a SECOND pointer
+ * variable for the copy-back loop is 21 and two short.  The second is worth
+ * re-reading, because the ROM genuinely uses two different registers for the two
+ * loops (r4 then r1), which one pseudo cannot do -- yet two pseudos lose the
+ * second `mov rN, sp`.  **That tension is unresolved and is the most promising
+ * thing left here:** a shape that gives two pointers but materialises the buffer
+ * address twice.
  */
 void Func_8029274(unsigned int val, unsigned int n, char *out)
 {
