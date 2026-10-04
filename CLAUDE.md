@@ -14,7 +14,10 @@ against `baserom.gba`.
    grep it before writing anything up as a new finding.
 3. **[HANDOFF.md](HANDOFF.md)** — the batch index. The last row is the current
    state of play.
-4. **[docs/humanization.md](docs/humanization.md)** — the pass-3/pass-4 playbook:
+4. **[docs/owner-decisions.md](docs/owner-decisions.md)** — standing rulings from the
+   owner, with the reasoning, so they are not re-litigated.  Several are marked for
+   revisiting in pass 3/4; reopening them mid-batch is not.
+5. **[docs/humanization.md](docs/humanization.md)** — the pass-3/pass-4 playbook:
    how to remove matching artifacts without losing the match, the artifact
    taxonomy, and what pokefirered's leak-informed fixes show a human wrote instead.
 5. **[docs/web-session-286-289.md](docs/web-session-286-289.md)** — the handoff from

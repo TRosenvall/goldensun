@@ -1,5 +1,15 @@
 /* Func_80a9a5c -- 0x080a9a5c, asm/rom_a1000/rom_a8604_c_c_a_a_a.s (2 functions,
  *
+ * ===== OWNER DECISION, 2026-10-04: `_MSG_b24` DECLINED.  THIS PARK STAYS. =====
+ * The symbol would land this function, and it was refused because the argument is
+ * SUFFICIENT BUT NOT NECESSARY: 0xb24 is neither 8-bit-movable nor shiftable, so
+ * gcc pools it as a literal anyway and the ROM's pool word carries NO relocation
+ * -- the bytes are equally consistent with a plain literal.  The force_const_mem
+ * argument explains the SCHEDULING, not the VALUE.
+ * Contrast `_MSG_182`, admitted the same day on structural impossibility with the
+ * mode checked.  Full reasoning and the revisit condition: docs/owner-decisions.md.
+ * DO NOT RE-PROPOSE without new evidence that bears on the VALUE.
+ *
  * NON-MATCHING, 1 of 59 encodings  (MEASURED, batch 319 recipe backfill).
  *   *** RELOCATIONS DIFFER IN THEIR SYMBOLS, NOT ONLY THEIR OFFSETS --
  *   _MSG_b24

@@ -1,6 +1,25 @@
 /* ===================== BATCH 297a DELTA -- Field_Halt =====================
  *
- * NON-MATCHING, 2 of 191 encodings  (MEASURED, batch 319 recipe backfill).
+ * ===== OWNER DECISION, 2026-10-04: per-file `-ffixed-r11` DECLINED. =====
+ * This function is BYTE-IDENTICAL under a per-file FIXEDR11_CFLAGS rule, and that
+ * was refused.  A per-file flag asserts something about how the original object
+ * was built, and the counter-evidence is in this bank: the landed twin
+ * Field_Whirlwind (src/rom_8a000/rom_9a44c_c_c_a_a.c, byte-exact) USES fp FREELY.
+ * Park at the flag-free figure instead.  One encoding is a cheap price for not
+ * making an unsupported assertion about the build.
+ * Full reasoning and the revisit condition: docs/owner-decisions.md.
+ *
+ * AND THE FLAG-FREE BODY IS NOW INSTALLED, 2 -> 1, ON ONE TOKEN:
+ *     was   for (; i < 11; i++)
+ *     now   for (; i != 11; i++)
+ * This is why the park's ELEVEN literal spellings all measured 2 and could not
+ * reach it: combine's `simplify_comparison` rewrites `LT C>0` into `LE C-1`, so
+ * every `<` form collapses to the same comparison -- and `!=` is not subject to
+ * that transformation at all.  The park's own conclusion that the bound was
+ * "unreachable from any literal" was therefore true OF LITERALS and false of the
+ * operator.  Device-free, 0 pins.
+ *
+ * NON-MATCHING, 1 of 191 encodings (batch 322; was 2 at the batch-319 backfill).
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -10,7 +29,8 @@
  *
  * This recipe was ADDED by the batch-319 backfill: the park had none, so
  * parkcheck.py could not report its figure and nothing had ever checked it.
- * RE-MEASURED: still 2 of 191 (ref 191 enc / 444 bytes / 30 rel, ours the same),
+ * RE-MEASURED batch 321: 2 of 191 (ref 191 enc / 444 bytes / 30 rel, ours the same);
+ * NOW 1, on the `!=` bound recorded above.
  * index 97: ref 2f0b `cmp r7, #0xb` against ours 2f0a `cmp r7, #0xa`, plus the
  * branch.  The park's conclusion stands.  TWO THINGS ARE NEW.
  *
@@ -53,124 +73,6 @@
  *    62, -fno-schedule-insns2 59, -fno-strength-reduce 46 (189 enc),
  *    -fno-peephole 71.  (-fno-if-conversion is not an option this cc1 accepts.)
  * -- scratch_elev/b297a/t2
- */
-
-/* Field_Halt -- 0x0809abb4.  PARKED at 2 of 191.
- * ref: asm/rom_8a000/rom_9a44c_c_c_c.s
- *
- * NON-MATCHING: 2 encodings of 191 differ (objcmp).
- *
- * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/809abb4.c \
- *     asm/rom_8a000/rom_9a44c_c_c_c.s --func Field_Halt
- *
- * IT IS A TRUE DISTANCE: ref 444 bytes / 191 encodings, ours 444 bytes / 191
- * encodings, and the two differing encodings are ADJACENT and are the same
- * instruction pair.  Everything else -- prologue push list, both loops, the
- * frame, every call and every constant -- is byte-identical.
- *
- * batch 292, brief A, target 2.  NO SHIMS in this draft: no pins, no barriers,
- * no volatile, default flags.  One union, for the same alias-set reason as its
- * twin (see below); it is inert here and could be dropped, but is kept so the
- * two files read alike.
- *
- * FILE SHAPE / SPLIT.  rom_9a44c_c_c_c.s is `grep -ci func_start` = 1 plus a
- * .rodata tail:
- *      .section .rodata
- *      .global .La012c
- *      .La012c:  .incrom 0xa012c, 0xa0138
- * Field_Halt itself references NO data label (checked instruction by
- * instruction), so the split is TEXT-ONLY: cut the function out, leave the
- * 12-byte .rodata piece in the residual `_b.s`.  `.La012c` is ALREADY
- * `.global` and is already reached from C by
- * src/rom_8a000/rom_9a44c_a_a_a_c.c as
- *      extern struct Script *La012c[] __asm__(".La012c");
- * so NO new export and NO linker alias is needed for the split.
- *
- * ------------------------------------------------------------ THE BLOCKER ---
- * The residue is loop 1's exit test:
- *      ROM   cmp r7, #0xb / blt   <loop top>
- *      ours  cmp r7, #0xa / ble   <loop top>
- *
- * This is combine.c's `simplify_comparison`, gcc-2.96 lines 10138-10150:
- *      case LT:   if (const_op > 0) { const_op -= 1; code = LE; }
- * applied UNCONDITIONALLY for MODE_INT, and reached from
- * `combine_simplify_rtx` (combine.c:4339) for ANY comparison rtx combine
- * visits.  So with a literal bound gcc-2.96 CANNOT emit `cmp #K / blt` for
- * K > 0.  Eleven literal spellings were compiled and every one measures
- * exactly 2:  `i < 11`, `i <= 10`, `11 > i`, `i < 11L`, `i < (int)11`,
- * `(i | 0) < 11`, `(i < 11) != 0`, `(i < 11) ? 1 : 0`, `!(i >= 11)`,
- * a `while` with the bump in the body, and a `do/while`.  (`i - 11 < 0` and
- * `!(i - 11 >= 0)` are WORSE -- 87-90 differing, 193 insns.)
- *
- * THE ONE ESCAPE IS A REGISTER-RESIDENT BOUND, AND IT COSTS MORE THAN IT BUYS.
- * docs/elevation.md's "CORRECTION: `cmp rN, #K / bge` with K > 0 IS reachable"
- * says to name the bound, and naming it DOES produce `blt`.  But `n` is then a
- * seventh call-crossing allocno: the ROM's push list is exactly
- * {r5,r6,r7} + {r8,r9,r10} = six (t/ep, p, i/v, to/v, o, from/k), and a named
- * bound takes r11, adds `mov r7, r8 / push {r7}` to the prologue and its mirror
- * to the epilogue, and measures 195 encodings against 191 with 178 differing.
- * Assigning `n` at four different points (first statement, before `i = 0`,
- * immediately before the loop, inside the loop) is 178-180 every time.
- *
- * So the two instructions are a HARD FLOOR unless a spelling is found that
- * gives gcc a sixth-or-fewer allocno set WITH a live bound.  Reusing an
- * existing local as the bound cannot work: the only candidate with a disjoint
- * live range is `t`/`ep` in r5, and the ROM CLOBBERS r5 inside loop 1
- * (`ldr r5, [r0]` / `add r5, r0` / `str r5, [r6, #8]`), so no register holds a
- * stable 11 across that loop in the ROM's own allocation.
- *
- * Corpus check: every `cmp rN, #K / blt` with K > 0 among the 19 sites in the
- * tree's generated `.s` is a `switch` dispatch chain, never a loop bound
- * (grep over asm/ (all banks) paired with an existing src/ (elevated)).  Two of those
- * exemplars are src/overlays/rom_78dee8/ovl_30_c_c_c_a_a.c and
- * src/rom_b5000/rom_bb588_c_c_b.c and both say the same thing in their headers.
- *
- * -------------------------------------- THE FOUR LEVERS THAT GOT IT TO TWO ---
- * 1. THE 16-ITERATION SECOND LOOP IS WRITTEN COUNTING UP.  The ROM counts DOWN
- *    (`mov r0,#1 / neg r0,r0 / add r10,r0 / cmp r0,#0 / bge`), and writing it
- *    down as `for (k = 0xf; k >= 0; k--)` measures 7; writing it UP as
- *    `for (k = 0; k < 16; k++)` and letting check_dbra_loop reverse it measures
- *    2.  That is docs/elevation.md's "a count-down loop whose counter is unused
- *    is written counting UP", confirmed: `k` appears nowhere in the body, only
- *    `ep += 0x48` walks.  The countdown spelling also mis-assigns the preheader
- *    registers (ROM `add r3, sp, #0x18` + `mov r0, #0xf`; the countdown gives
- *    `add r0, sp, #0x18` + `mov r3, #0xf`), which is the same r3-first
- *    REG_ALLOC_ORDER readout as its twin.  A `do/while` countdown is also 7.
- *    A named `int *vp = v;` for the vector is WORSE (187 insns, 90 differing) --
- *    it deletes the ROM's `mov r7, r8` second copy of the address.
- *
- * 2. THE 0xc000 MULTIPLIER IS A LOCAL ASSIGNED INSIDE THE LOOP.  Written
- *    inline (`w = i * (0xc0 << 8) / 10 + ...`) loop.c strength-reduces it:
- *    `.08.loop` says "Insn 238: giv reg 124 src reg 36 benefit 9 lifetime 1
- *    mult 49152" then "giv at 238 reduced", and the ROM's
- *    `mov r3,#0xc0 / lsl r3,#8 / mul r0,r3` becomes `add sl, sl, r0` on a new
- *    callee-saved register -- 195 encodings, 178 differing.  Assigning
- *    `c = 0xc0 << 8;` BEFORE the loop does not help (cse folds it back).
- *    Assigning it INSIDE the loop, immediately before the multiply, does: the
- *    multiplier is then not loop-invariant, no giv is formed, and the constant
- *    build stays in the loop exactly as the ROM has it.  Reusing `w` itself as
- *    the carrier brings the giv back (187 differing).
- *
- * 3. `(to[k] - from[k]) * i`, WITH THE COUNTER SECOND.  `i * (to - from)` gives
- *    `mov r0, r3 / mul r0, r0, r7` -- the destination tied to the delta -- and
- *    the ROM ties it to the counter (`mov r0, r7 / mul r0, r3`).  NOTE THIS IS
- *    THE OPPOSITE SOURCE ORDER FROM ITS TWIN Field_Whirlwind, where `i * delta`
- *    is what ties the destination to `i`.  The two functions have the same ROM
- *    shape for this multiply; what differs is that Whirlwind's counter lives in
- *    r8 (so a `mov r0, r8` is needed anyway) and Halt's lives in r7.  TRY BOTH
- *    ORDERS -- the mul lever has no fixed direction.
- *
- * 4. THREE SEPARATE int[3] ARRAYS in declaration order v, from, to, for the
- *    same sub sp, #0x24 / last-declared-lowest reason as the twin.
- *
- * ALSO MEASURED AND INERT: the union on the 0x68-equivalent store (there is no
- * such store here); `short`/`signed char` for `i` (193-195, worse); a `goto`
- * loop for loop 1 (197 insns -- it kills the giv but then synth_mult expands
- * the 0xc000 multiply into `lsl/add/lsl` and the bound takes fp anyway).
- *
- * -- worked in scratch_elev/b292/A
  */
 union blob { unsigned char *pp; short hh; int ii; };
 
@@ -222,7 +124,7 @@ void Field_Halt(void)
     to[0] = o[1];
     to[1] = o[2] + (0x80 << 12);
     to[2] = o[3];
-    for (; i < 11; i++) {
+    for (; i != 11; i++) {
         *(int *)(p + 8) = from[0] + (to[0] - from[0]) * i / 10;
         *(int *)(p + 0xc) = from[1] + (to[1] - from[1]) * i / 10;
         *(int *)(p + 0x10) = from[2] + (to[2] - from[2]) * i / 10;
