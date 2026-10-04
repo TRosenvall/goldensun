@@ -105,6 +105,16 @@ The four patterns, each transferable:
    — `sub_812E768` dropped `asm("":::"r4")` with `u8 *` instead of `u16 *`,
    `*(vu16 *)p` at the use, `p--` instead of `(void *)p - 1`, and
    accumulate-into-a-local-then-store-once.
+
+   **REFINEMENT, measured in batch 322 (worth 16 -> 7 on one function): THE CAST
+   MUST BE ON A STORE THROUGH A NAMED POINTER.** `*(volatile unsigned char *)q = w`
+   stops combine substituting into the insn, because combine will not substitute
+   into an insn holding a volatile MEM. The *inline* form
+   `*(volatile unsigned char *)(p + k) = w` measures **no change at all**, because
+   expand folds the address and combine never sees two insns to merge. So the
+   lever needs the pointer to exist as its own pseudo first — which is the same
+   precondition as the volatile-cast bound already recorded here (a cast needs a
+   pointer that already exists), arriving from the other direction.
 3. **One expression with a pointer difference**, not hand-unrolled arithmetic —
    `battle_interface` replaced a transcription of gcc's own strength reduction
    (`4*v + v` for `5*v`) with `xPos = 5 * (3 - (objVram - (text + 2)))`.

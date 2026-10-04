@@ -32961,3 +32961,46 @@ even though *that same batch* had discovered where the source lives and recorded
 it to nine agents the next batch. **A correction needs the same standard of
 evidence as the claim it corrects — and for a compiler-internals claim, that
 standard is the source.**
+
+## Batch 322 brief I: quote local-alloc priorities as ORDERINGS, never as numbers
+
+A fourth independent read of `local-alloc.c:1496` confirmed the `floor_log2`
+retraction, and added the refinement that actually matters for using it:
+
+> **`live_length` is exactly what the dumps print. `death - birth` is NOT.**
+> local-alloc's birth and death are **slot numbers at two per insn** — visible in
+> the `fake_birth = MAX (0, qty[q].birth - 2 + qty[q].birth % 2)` arithmetic at
+> `local-alloc.c:1415` — so `death - birth ≈ 2 × span ± 1`.
+>
+> The factor of two cancels in an ordering. **The ±1 parity term does not, and it
+> is a sub-percent perturbation — exactly the size of margin these parks turn
+> on.** Batch 322 closed functions at 0.8%, 1.2% and 0.87% margins.
+
+So: **compute local-alloc priorities as a RANKING and never quote the number.**
+And make one check mandatory before trusting any priority claim:
+
+> **Verify your computed priorities reproduce `.18.greg`'s published allocno order
+> IN SEQUENCE.** Brief I's do for both of its global targets (`37 33 36 35 32` and
+> `37 36 49 57 39 53 32 34 38`), and that check is what caught a park pricing one
+> allocno at 6 refs / `floor_log2` 2 when `.17.lreg` says 8 / 3.
+
+### Two bounds, each shutting a route that looked open
+
+- **A SECOND NAME CANNOT CHANGE `REG_N_REFS`.** Three copy edits (`gb = g`,
+  `gl = g`, `box2 = box`) all measure identically with `.17.lreg` inputs
+  **bit-identical**, because copy propagation rewrites the uses back before the
+  count is taken. The ref-count route needs genuinely different **address
+  arithmetic**, not another name. (Consistent with the older finding that a
+  source-level copy is not a region split.)
+- **local-alloc's `fake_birth`/`fake_death` false-dependency avoidance NEVER RUNS
+  IN THIS PROJECT.** Its gate includes `!SMALL_REGISTER_CLASSES`, and
+  `arm.h:1061` is `#define SMALL_REGISTER_CLASSES TARGET_THUMB`. **So it is shut
+  for every thumb function here.** It had looked like the whole explanation for
+  one park's residue.
+
+### And a reminder that keeps paying
+
+A large number of flat rows on both of its parks were screened with `.17.lreg` and
+found to have **bit-identical allocator inputs** — edits that never reached the
+allocator, not inert levers. That is batch 321's rule holding on its third batch:
+**screen allocation edits by `.17.lreg`, not by the figure.**

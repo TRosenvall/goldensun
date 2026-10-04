@@ -1,6 +1,11 @@
-/* Func_80a6794 (0x080a6794) -- NON-MATCHING, 14 differing of 101.
+/* Func_80a6794  --  NON-MATCHING, 14 of 102 encodings
+ *                   (ref 102, ours 102 -- COUNT EQUAL, so the figure IS a
+ *                    distance.  SIZE EXACT.  RELOCATIONS CLEAN.)
  *
- * NON-MATCHING, 14 of 102 encodings  (MEASURED, batch 319 recipe backfill).
+ *   RE-MEASURED batch 322, brief I.  The parks 14 stands and is ONE cause.
+ *   Its ARITHMETIC DOES NOT: the park prices `box` at 6 references and
+ *   floor_log2 2.  It is 8 references and floor_log2 3, and the real margin is
+ *   11.4 percent, not the landslide the park implies.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -8,62 +13,122 @@
  *     src/non_matching/rom_a1000/80a6794.c \
  *     asm/rom_a1000/rom_a5534_c_c_a_c.s --func Func_80a6794
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- * Blocker class: global_alloc PRIORITY. Never attempted before batch 276.
+ * SPLIT SHAPE.  asm/rom_a1000/rom_a5534_c_c_a_c.s holds TWO functions
+ * (Func_80a6614, Func_80a6794) and tools/datacheck.py reports no data section.
+ * tools/split_s.py --dry-run asm/rom_a1000/rom_a5534_c_c_a_c.s Func_80a6794:
+ *     would write asm/rom_a1000/rom_a5534_c_c_a_c_a.s  (1 function, 176 lines)
+ *     would write asm/rom_a1000/rom_a5534_c_c_a_c_b.s  (1 function, 110 lines)
+ *     would REMOVE asm/rom_a1000/rom_a5534_c_c_a_c.s, rewrite stage1.ld
+ * So a landing installs at src/rom_a1000/rom_a5534_c_c_a_c_b.c with NO exports.
+ * PINS: 0.
  *
- * asm/rom_a1000/rom_a5534_c_c_a.s (4 functions, so landing needs a split).
+ * ------------------------------------------------------------------------
+ * THE 14, PER INDEX -- ONE CAUSE, CONFIRMED.  It is a genuine EXCHANGE, not a
+ * one-way slip: ten indices have the ROM saying `sl` where we say `r8`
+ * (7, 8, 26, 27, 32, 35, 39, 47, 55, 74) and four the mirror (43, 52, 66, 84).
+ * Every other instruction, both loop preheaders and all five argument fills,
+ * matches.  `g` is r10 in the ROM and r8 in ours; `box` is r8 in the ROM and
+ * r10 in ours.
  *
- * ALL 14 DIFFERING PAIRS ARE ONE REGISTER SWAP: `g` and `box` are in r10 and r8
- * where the ROM has them in r8 and r10. Eleven pairs are `mov`/`add rX, r10`
- * against `rX, r8` and three are the mirror. EVERY other instruction matches,
- * including both loop preheaders and all five call-argument fills. 101 lines
- * against the ROM's 101.
+ * (The parks prose has this BACKWARDS -- it reads "`g` and `box` are in r10 and
+ * r8 where the ROM has them in r8 and r10", which contradicts its own greg
+ * quote.  Index 7 is `mov sl, r3` in the ROM, immediately after loading the
+ * global, and index 43 is `mov r8, r0`, the _CreateUIBox result.  The
+ * MEASUREMENTS in the park are right; one sentence is inverted.)
  *
- * `.18.greg` PRICES IT EXACTLY, so there is no spelling left to find:
+ * ------------------------------------------------------------------------
+ * THE RUNG, PRICED.  `.18.greg`: `;; 9 regs to allocate: 37 36 49 57 39 53 32 34 38`
+ * -- GLOBAL allocnos, so the denominator is `allocno[].live_length`, which is
+ * exactly `.17.lreg` "across N insns".  `global.c:605`:
  *
- *     ;; 9 regs to allocate: 37 36 49 57 39 53 32 34 38
- *     ;; Register dispositions: ... 32 in 8 ... 34 in 10 ... 38 in 9
+ *     pri = floor_log2(n_refs) * n_refs / live_length * 10000 * size
  *
- * 32 is `g` and 34 is `box`. ARM's REG_ALLOC_ORDER runs r8, then r10, then r9
- * for the hi range -- confirmed by `38 in 9` being processed AFTER `34 in 10` --
- * so whichever allocno is processed first takes r8. `g` (10 references,
- * floor_log2 3) strictly outranks `box` (6 references, floor_log2 2).
+ *     allocno  role     n_refs  live_length  priority
+ *       37                 18       64        11250
+ *       36                 10       28        10714
+ *       49                  2        2        10000
+ *       57                  2        2        10000   (tie, broken by number)
+ *       39                 14       52         8076
+ *       53                  2        3         6666
+ *       32     g           10       62         4838   <-- first, takes r8
+ *       34     box          8       56         4285   <-- then r10
+ *       38                  6       56         2142
  *
- * AND IT IS NOT A DECLARATION-ORDER TIE. Declaring `box` before `g` flipped the
- * greg processing list from `32 34 38` to `33 32 38` -- `g` is still processed
- * first, by pseudo identity -- and the count went UP to 17. So the recorded
- * declaration-order tie-break does not apply: this is a strict priority win on
- * reference count, not a tie, and the only way to change it is to change how
- * many times `g` is referenced.
+ * Those nine values reproduce greg published order EXACTLY, in that sequence.
+ * That is the proof the formula and the denominator are the right ones.
  *
- * A NEGATIVE FOR THE STRUCT LEVER, worth recording because it is the first one.
- * "When every expression spelling measures identical, the variable not yet
- * varied may be the TYPE" does NOT hold here: `g` retyped as a full `struct St *`
- * with named fields emits BYTE-FOR-BYTE the same output as `unsigned char *`
- * plus hand offsets. The struct lever works where strength_reduce or a register
- * CLASS is involved (batch 275's Func_80b2e30, batch 276's Func_80c1ebc); it has
- * nothing to reach when the contest is a reference-count priority in
- * global_alloc.
+ * THE PARK IS WRONG ABOUT `box`.  It says "6 references, floor_log2 2", giving
+ * 2*6 = 12 against g 30 and making this look hopeless.  `.17.lreg` says
+ * `Register 34 used 8 times across 56 insns` -- floor_log2(8) = 3, so 3*8 = 24.
+ * The eight comes from the six source references PLUS the two argument fills
+ * inside the two `do` loops being counted at loop weight.  THE MARGIN IS
+ * 4838 AGAINST 4285, i.e. 11.4 PERCENT, NOT A FACTOR OF ANYTHING.
  *
- * WHAT DID MOVE IT, 17 -> 14: the SECOND LOOP'S PREHEADER ORDER alone.
- * `i = 8; n = 0x18; p = ...; y = ...` puts `mov r5, #8` third; writing
- * `n; p; i; y` puts it fifth. The ROM wants `i` named before `n`.
+ * FOUR WAYS TO FLIP IT, all exact:
+ *     n_refs(g)       10 -> 8       (24/62 = 3871 < 4285)   -- 9 is NOT enough
+ *                                     (27/62 = 4354 still wins)
+ *     n_refs(box)      8 -> 10      (30/56 = 5357 > 4838)   -- 9 is NOT enough
+ *                                     (27/56 = 4821, loses by 17)
+ *     live_length(box) 56 -> <= 48  (24/48 = 5000 > 4838)
+ *     live_length(g)   62 -> >= 71  (30/71 = 4225 < 4285)   -- 70 TIES, and the
+ *                                     tie-break `v1 - v2` on allocno number
+ *                                     still puts 32 before 34, so 70 loses.
  *
- * MEASURED (rom 101 lines):
- *   t2a baseline                                        17
- *   t2c preheader order i, n, p, y                      14   <- best, below
- *   t2b `box` declared before `g`                       17   (greg list flipped)
- *   t2d                                                 14
- *   t2e                                                 18
- *   t2f `g` as a typed `struct St *`                    14   (byte-identical to t2c)
- *   t2g `n` as a plain literal instead of a variable    20
+ * ------------------------------------------------------------------------
+ * A BOUND, WITH EVIDENCE -- A SECOND NAME CANNOT CHANGE REG_N_REFS.
  *
- * NEXT: allocno_compare and find_reg read against `.18.greg`, not more
- * spellings. Belongs with the other global_alloc parks -- Func_80a8578,
- * Func_80cd52c, Func_80919d8, Func_808b090 and Func_80f6148 -- which are now
- * five specimens of the same contest and are probably one finding rather than
- * five parks.
+ * The obvious attack on n_refs(g) is to route some of gs uses through a copy:
+ * `gb = g;` then `gb[0x110] = z;` and so on.  It does not work, and the reason
+ * matters for every allocation park in this bank.  THREE such edits --
+ *   `gb = g` carrying the four byte stores      (g refs 10 -> 7 intended)
+ *   `gl = g` carrying the two loop preheaders   (g refs 10 -> 9 intended)
+ *   `box2 = box` carrying the two loop uses     (box refs 8 -> 10 intended)
+ * -- all measure 14, and `.17.lreg` shows allocator inputs BIT-IDENTICAL to this
+ * body (32: 10/62, 34: 8/56, 36: 10/28, 37: 18/64, 39: 14/52 in all four).
+ * Copy propagation rewrites every use back onto the original pseudo long before
+ * `.17.lreg`, so the second name never exists by the time REG_N_REFS is counted.
+ * SO: THE REF-COUNT ROUTE NEEDS GENUINELY DIFFERENT ADDRESS ARITHMETIC, which
+ * changes the instruction stream.  Do not re-run the copy trick.
+ *
+ * That also means the flat rows below are NOT evidence against the declaration
+ * lever; they are the batch-321 "screen allocation edits by .17.lreg, not by the
+ * figure" rule firing.  Checked that way, every one of them is an edit that
+ * never reached the allocator.
+ *
+ * MEASURED AND EXACTLY INERT AT 14 (allocator inputs verified identical):
+ *   gb = g for the four byte stores
+ *   gl = g for the two loop preheaders
+ *   box2 = box for the two loop uses
+ *   g[0x110] / g[0x112] spelled as literals instead of 0x88 << 1 / 0x89 << 1
+ *   `two` dropped and 2 written as a literal in all three places
+ *   `box` declared before `g`
+ *
+ * MEASURED AND WORSE:
+ *   the second loop continuing from where p left off, no `g + 0x68`
+ *                                                 99 differing, size -16
+ *       -- this is the only edit that really does cut a `g` reference, and it
+ *          costs the whole second preheader.  The ROM re-derives `g + 0x68`
+ *          from `g`, so the shape is not available.
+ *   `*(void **)(g + 0x20) = box` moved after the first byte store     17
+ *   `r[5] = 0xd` after the g+0x44 store instead of before            17
+ *   `n = 0x18` before `i = 8` in the second preheader                 16
+ *       -- confirms the parks own 17 -> 14 finding from the other direction:
+ *          the ROM wants `i` named before `n`, and this body has it right.
+ *
+ * CARRIED OVER FROM THE PARK AND NOT RE-TESTED: `g` retyped as a full
+ * `struct St *` with named fields is byte-identical to `unsigned char *` plus
+ * hand offsets.  Consistent with the bound above -- the typed form produces the
+ * same addressing, hence the same REG_N_REFS.
+ *
+ * NEXT, CONCRETELY: this needs box live_length cut by 8 insns, or g live_length
+ * grown by 9, with the instruction stream unchanged.  Both are REORDERING
+ * questions, not spelling questions, and neither is reachable from the edits
+ * tried here.  `box` is born at the _CreateUIBox result and dies in the second
+ * loop; `g` is born at the top and dies in the second loop preheader, so their
+ * ranges nest and the 8-insn gap between them is structural.  A brief with
+ * budget should look at whether the two `do` loops can be given a different
+ * BLOCK shape -- that is the only thing left that moves a live_length without
+ * moving an instruction.
  */
 extern unsigned char *iwram_3001f2c;
 extern void *Func_80a1814(void *g);
