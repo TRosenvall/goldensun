@@ -1,7 +1,10 @@
 /* OvlFunc_926_2008388 -- NON-MATCHING.  Blocker class: CONSTANT CSE ACROSS A
  *
  * NON-MATCHING, 26 of 62 encodings  (MEASURED, batch 319 recipe backfill).
- *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   *** RELOCATIONS DIFFER IN THEIR SYMBOLS, NOT ONLY THEIR OFFSETS --
+ *   _AREA_3c
+ *   SO THIS FIGURE IS NOT A DISTANCE: `make compare` cannot pass a
+ *   relocation difference.  Fix this before trusting the encoding count. ***
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \

@@ -1,7 +1,9 @@
 /* Func_80ad5b4  --  0x080ad5b4, asm/rom_a1000/rom_ad274_c_a_a_c_c.s
  *
  * NON-MATCHING, 4 of 30 encodings  (MEASURED, batch 319 recipe backfill).
- *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   RELOCATIONS differ, but THE SAME SYMBOLS AT A SHIFTED OFFSET -- which
+ *   this project treats as a CONSEQUENCE of the length difference, not a
+ *   separate blocker.  Re-classified in batch 322; the figure IS a distance.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \

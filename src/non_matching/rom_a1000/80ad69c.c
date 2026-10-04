@@ -1,7 +1,9 @@
 /* Func_80ad69c  --  NOT MATCHING
  *
  * NON-MATCHING, 17 of 25 encodings  (MEASURED, batch 319 recipe backfill).
- *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   RELOCATIONS differ, but THE SAME SYMBOLS AT A SHIFTED OFFSET -- which
+ *   this project treats as a CONSEQUENCE of the length difference, not a
+ *   separate blocker.  Re-classified in batch 322; the figure IS a distance.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \

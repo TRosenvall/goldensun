@@ -3,7 +3,10 @@
  * NON-MATCHING, 134 of 146 encodings  (MEASURED, batch 319 recipe backfill).
  *   COUNT DIFFERS (ref 146, ours 140) -- so this positional figure measures
  *   MISALIGNMENT, not distance.  Read the count before the figure.
- *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   *** RELOCATIONS DIFFER IN THEIR SYMBOLS, NOT ONLY THEIR OFFSETS --
+ *   .Lfb794, Data_fb794
+ *   SO THIS FIGURE IS NOT A DISTANCE: `make compare` cannot pass a
+ *   relocation difference.  Fix this before trusting the encoding count. ***
  *   SIZE ref 316 bytes, ours 304.
  *
  * Verify with:

@@ -1,7 +1,10 @@
 /* OvlFunc_946_2008f70  [overlays/rom_7ced6c]
  *
  * NON-MATCHING, 102 of 283 encodings  (MEASURED, batch 319 recipe backfill).
- *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   *** RELOCATIONS DIFFER IN THEIR SYMBOLS, NOT ONLY THEIR OFFSETS --
+ *   _AREA_71, _AREA_7b, _AREA_7d, _AREA_7e, _AREA_86
+ *   SO THIS FIGURE IS NOT A DISTANCE: `make compare` cannot pass a
+ *   relocation difference.  Fix this before trusting the encoding count. ***
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \

@@ -3,7 +3,9 @@
  * NON-MATCHING, 18 of 26 encodings  (MEASURED, batch 319 recipe backfill).
  *   COUNT DIFFERS (ref 26, ours 24) -- so this positional figure measures
  *   MISALIGNMENT, not distance.  Read the count before the figure.
- *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   RELOCATIONS differ, but THE SAME SYMBOLS AT A SHIFTED OFFSET -- which
+ *   this project treats as a CONSEQUENCE of the length difference, not a
+ *   separate blocker.  Re-classified in batch 322; the figure IS a distance.
  *   SIZE ref 56 bytes, ours 52.
  *
  * Verify with:

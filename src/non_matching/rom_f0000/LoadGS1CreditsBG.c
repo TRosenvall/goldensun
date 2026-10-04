@@ -1,7 +1,10 @@
 /* LoadGS1CreditsBG -- asm/rom_f0000/rom_f0254_a_a.s (2 functions; the sibling Func_80f0254 is
  *
  * NON-MATCHING, 14 of 87 encodings  (MEASURED, batch 319 recipe backfill).
- *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   *** RELOCATIONS DIFFER IN THEIR SYMBOLS, NOT ONLY THEIR OFFSETS --
+ *   _SIZE_80f0024
+ *   SO THIS FIGURE IS NOT A DISTANCE: `make compare` cannot pass a
+ *   relocation difference.  Fix this before trusting the encoding count. ***
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \

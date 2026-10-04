@@ -1,7 +1,9 @@
 /* OvlFunc_959_200c9a0  --  0x0200c9a0  [asm/overlays/rom_7e7574/ovl_9dc_c_c_a_c_a_a.s]
  *
  * NON-MATCHING, 147 of 170 encodings  (MEASURED, batch 319 recipe backfill).
- *   *** RELOCATIONS ALSO DIFFER -- this figure is NOT a distance. ***
+ *   RELOCATIONS differ, but THE SAME SYMBOLS AT A SHIFTED OFFSET -- which
+ *   this project treats as a CONSEQUENCE of the length difference, not a
+ *   separate blocker.  Re-classified in batch 322; the figure IS a distance.
  *   SIZE ref 456 bytes, ours 452.
  *
  * Verify with:
