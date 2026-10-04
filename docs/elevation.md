@@ -32870,11 +32870,39 @@ warning's precision matters more than its presence.** Both of this batch's
 corrections to my own tooling were cases of a signal that fired correctly and
 meant two different things.
 
-### Also: there is no `.NN.sched2` dump
+### The sched2 dump: the threshold is TEN, and two agents disagreed about it
 
-`-fsched-verbose=6` writes to **stderr**, and only with `-dS`/`-da`. Briefs in
-this project have repeatedly been told to "read `.23.sched2`". That file does not
-exist; capture stderr instead.
+One brief reported "there is no `.NN.sched2` dump; `-fsched-verbose=6` writes to
+stderr". Another reported the opposite — that `-fsched-verbose=5` writes the
+dependence table, per-insn `prio`/`cost` and the ready list into `*.23.sched2`.
+**Settled from the source and then measured.** `haifa-sched.c:6846`:
+
+    dump = ((sched_verbose_param >= 10 || !dump_file) ? stderr : dump_file);
+
+So **the threshold is 10**, and both agents were partly right:
+
+| invocation | where the scheduling detail goes |
+|---|---|
+| `-da -fsched-verbose=N` for **N < 10** | **into `*.23.sched2`** |
+| `-fsched-verbose=N` for **N >= 10** | stderr |
+| `-fsched-verbose=N` with **no `-da`** | stderr |
+| `-da` with no `-fsched-verbose` | nowhere — the plain RTL dump has no scheduling detail |
+
+Measured on a control at N = 2, 5, 9, 10: the detail is present in `.23.sched2`
+through 9 and gone at 10. What it looks like:
+
+    ;;		Ready list after queue_to_ready:    4  6  13  15
+    ;;	Ready list (t =  0):    15  13  6  4
+
+**So `-da -fsched-verbose=6`, which this document's briefs already ask for, is
+correct and lands in the file.** Use `>= 10` only if you deliberately want it on
+stderr.
+
+> And the lesson about the disagreement: **two agents reported contradictory
+> facts about the same tool in the same batch, and the compiler source settled it
+> in one grep.** Neither had read `haifa-sched.c:6846`, though both cite
+> `haifa-sched.c` elsewhere. That is the third time this batch that reading the
+> source would have been cheaper than the inference.
 
 ### And a qualification to the HImode note
 

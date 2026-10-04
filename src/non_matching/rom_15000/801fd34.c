@@ -1,53 +1,140 @@
-/* Func_801fd34 (StepOverlayAnimation) -- NON-MATCHING.
+/* Func_801fd34 (StepOverlayAnimation)  --  0x0801fd34   [rom_15000]
  *
- * NON-MATCHING, 14 of 36 encodings  (MEASURED, batch 319 recipe backfill).
- *   RELOCATIONS differ, but THE SAME SYMBOLS AT A SHIFTED OFFSET -- which
- *   this project treats as a CONSEQUENCE of the length difference, not a
- *   separate blocker.  Re-classified in batch 322; the figure IS a distance.
+ * NON-MATCHING, 10 of 36 encodings, 36 against 36, 80 bytes against 80.
+ *   *** RELOCATIONS NOW IDENTICAL.  The park's 14 had DIRTY RELOCATIONS and was
+ *   therefore not a distance; this 10 is one. ***
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_15000/801fd34.c \
  *     asm/rom_15000/rom_1de5c_c_c_c_c_a_a_c_c_c_c.s --func Func_801fd34
+ *   (and --whole, which agrees: `XX Func_801fd34  10 of 36 differ (ours 36)`)
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- * Blocker class: EXPRESSION SCHEDULING inside one statement.  12 of 35, same
- * length, and the loop body up to the divide is byte-exact.
+ * SPLIT SHAPE: none.  asm/rom_15000/rom_1de5c_c_c_c_c_a_a_c_c_c_c.s holds ONE
+ * `.thumb_func_start` (Func_801fd34) and no data; `tools/datacheck.py` exits 0
+ * silently, so when this lands it is a WHOLE-FILE conversion to
+ * src/rom_15000/rom_1de5c_c_c_c_c_a_a_c_c_c_c.c with no `split_s.py` step and no
+ * object-path change.  PINS: 0.  No flag group (generic `asm/%.o: src/%.c`).
  *
- * The function packs three terms derived from one value into a halfword:
+ * ---------------------------------------------------------------------------
+ * THE PARK'S 14 WAS **TWO** CAUSES, NOT ONE.  ONE IS NOW CLOSED.
  *
- *     *p = ((t + 0x14) << 10) | ((t + 0x10) << 5) | (t * 2 + 0x16);
+ * A per-index differ splits the park's 14 cleanly:
  *
- * The ROM computes all three BASES first (`lsl r1, r3, #1` for the doubled
- * term, `mov r2, r3` for the middle one, `r3` already holding t), then the
- * three adds, then the two shifts, then the two ORs.  gcc completes each term
- * before starting the next.  Same instructions, different interleave.
+ *   CAUSE A -- POOL ORDER, indices 1, 2, 33, 34.  *** CLOSED. ***
+ *     Two of those four "encodings" ARE POOL WORDS: index 33/34 are the
+ *     `.word` pair, and the ROM's is {iwram_3001800-reloc, 0x050001d0} against
+ *     our {0x050001d0, iwram_3001800-reloc}.  Indices 1 and 2 are the two
+ *     `ldr rX,[pc,#64]` that read them -- SAME offset, different destination
+ *     register, because the words swapped.  Both compilations put
+ *     &iwram_3001800 in r7 and 0x50001d0 in r6, so the REGISTERS were never
+ *     wrong; only which pool word each `ldr` reaches.  This is also what made
+ *     the park's relocations dirty.
  *
- * THREE THINGS WERE SOLVED and each is worth reusing:
+ *   CAUSE B -- ONE sched2 RUN OVER ONE BASIC BLOCK, indices 16-22 and 25-27.
+ *     STILL OPEN, and these are TEN of the ten remaining.  Indices 15..29 are a
+ *     SINGLE basic block (`bge` at index 12 jumps to index 15; `ble` at 29
+ *     closes the loop), so the three-term interleave the park described and the
+ *     store/counter swap at 25-27 are NOT separate blockers -- they are one
+ *     list-scheduling pass choosing differently twice.  A park reporting one
+ *     figure for this pair is why "expression scheduling inside one statement"
+ *     read as the whole story.
  *
- *   1. THE SIGNED DIVIDE IS THE IDIOM, NOT A SHIFT.  `asr r3, r0, #0xe`
- *      preceded by `cmp r0, #0 / bge / add r0, #0x3fff` is gcc's expansion of
- *      `/ 0x4000` on a signed int.  Writing `>> 14` gives the shift without
- *      the bias and never matches; writing the division reproduces all four
- *      instructions.
- *   2. ASSIGNMENT ORDER SETS THE POOL-LOAD ORDER.  `i = 0;` before
- *      `p = (unsigned short *)0x50001d0;` is what puts `ldr r7, =0x3001800`
- *      ahead of `ldr r6, =0x50001d0`, matching the ROM's prologue.
- *   3. NAMING THE THREE TERMS as locals took it from 18 differing to 12 and
- *      made both ORs exact.  The accumulator gcc picks is the FIRST operand of
- *      `a | b | c`, and the ROM's accumulator is the `<< 10` term, so that
- *      term must be written first.
+ * HOW CAUSE A CLOSED: `g = &iwram_3001800;` AS THE FIRST STATEMENT.
  *
- * Tried for the remaining 12, all worse or equal:
- *   - operands reversed, `(t*2+0x16) | ((t+0x10)<<5) | ((t+0x14)<<10)`: 14
- *   - explicit right grouping `a | (b | c)`: 20, and a line longer
- *   - a `for` loop instead of `do/while`: 12, byte-identical to the form below
+ * The ROM loads the global's ADDRESS first and 0x50001d0 second.  In our body
+ * that address load was not a source insn at all: `iwram_3001800` is read inside
+ * the loop, loop.c hoists its address into the preheader, and loop.c APPENDS to
+ * the preheader -- so `.19.flow2` block 0 reads
  *
- * What remains needs gcc to start the second and third terms before finishing
- * the first, which is scheduling within a single expression and has no source
- * form.  The loop structure, the divide, the compare and both ORs are right.
+ *     insn 10  r5 = 0        insn 13  r6 = 0x50001d0        insn 134  r7 = &iwram
+ *
+ * with the hoisted load LAST and carrying the highest INSN_LUID.  sched2 then
+ * sees insn 13 and insn 134 both at `prio 2` (`ldr` costs 2; insn 10's `mov`
+ * costs 1), with no `last_scheduled_insn` yet, so `rank_for_schedule`
+ * (haifa-sched.c:4029) falls past priority, past the interblock rungs, past
+ * CLASS and past the dependent count to its last rung, INSN_LUID -- and the
+ * smaller LUID wins.  `-fsched-verbose=5` prints it verbatim:
+ *
+ *     ;;  Ready list (t = 0):   10  134  13
+ *     ;;    --> scheduling insn <<<13>>>
+ *
+ * Naming the address in a local pointer makes it a REAL source insn placed where
+ * the assignment is, so its LUID is the smallest of the three and the same tie
+ * resolves the ROM's way.  The pool words follow the instruction order, so
+ * indices 33/34 fall out with 1/2.  14 -> 10 and the relocations go clean.
+ *
+ * THE PARK'S CLAIM 2 IS REFUTED.  It said "`i = 0;` before `p = ...0x50001d0;`
+ * is what puts `ldr r7, =0x3001800` ahead of `ldr r6, =0x50001d0`".  It does
+ * not: with the park's own statement order the 0x50001d0 load comes FIRST, and
+ * swapping `i` and `p` leaves the figure at 14.  `i = 0;` is irrelevant here --
+ * it is the LOWEST-priority insn in the block either way.
+ *
+ * ITS OTHER TWO CLAIMS SURVIVED and are kept:
+ *   1. THE SIGNED DIVIDE IS THE IDIOM.  `/ 0x4000` reproduces
+ *      `cmp r0,#0 / bge / add r0,#0x3fff / asr r3,r0,#14`; `>> 14` never can.
+ *   3. NAMING THE THREE TERMS, with the `<< 10` term written FIRST because gcc's
+ *      OR accumulator is the first operand of `a | b | c` and the ROM's
+ *      accumulator is r3 = c << 10.
+ *
+ * ---------------------------------------------------------------------------
+ * WHAT CAUSE B IS, WITH THE NUMBERS, AND WHY NO SOURCE FORM REACHES IT
+ *
+ * Block 3's dependence table (`-fsched-verbose=5`, our build):
+ *
+ *   insn 52  asr r3,r0,#14   prio 7     insn 65  add r3,#20   prio 5
+ *   insn 57  lsl r1,r3,#1    prio 5     insn 70  lsl r3,#10   prio 4
+ *   insn 146 mov r2,r3       prio 6     insn 74  lsl r2,#5    prio 4
+ *   insn 59  add r1,#22      prio 3     insn 89  strh         prio 1 (cost 2)
+ *   insn 62  add r2,#16      prio 5     insn 95  add r5,#1    prio 2
+ *
+ * B's first half: after 52, the ready list is {95, 57, 146} and gcc takes 146
+ * (`mov r2,r3`, prio 6) where the ROM takes 57 (`lsl r1,r3,#1`, prio 5).  The
+ * priorities are forced by the expression's own shape: `a` is the LAST operand
+ * of `(c<<10) | (b<<5) | a`, so its chain is one `orr` shorter than `b`'s and
+ * `c`'s, and the ROM's two `orr` encodings (`4313 orr r3,r2`, `430b orr r3,r1`)
+ * PIN which term is the accumulator and which enters which `orr`.  So raising
+ * `a`'s chain means changing an encoding that is already right.  57 reaches prio
+ * 5 only via its ANTI-dependence on 65 (cost 0 -- `arm_adjust_cost` returns 0 for
+ * REG_DEP_ANTI); its data chain is worth 4.  There is no priority-6 spelling of
+ * `a`.
+ *
+ * B's second half: after the last `orr`, ready = {89 (strh, prio 1), 95
+ * (add r5,#1, prio 2)} and priority alone decides for 95.  `strh` cannot get
+ * above 1 -- its only dependents are the `add r6,#2` (prio 1) and the jump --
+ * and `add r5,#1` cannot get below 2, since 2 = 1 + the jump.
+ *
+ * MEASURED, and the flatness is the finding:
+ *
+ *   60 legal permutations of the preheader statements, 32 (preheader order x
+ *   term spelling) crossed variants, then 24 more aimed at the two sub-causes:
+ *   *** EVERY ONE OF THEM READS 10 ***, once `g` is present.  The off-10 rows
+ *   are all strictly worse: `(c<<10)` written third 12; `i` unsigned 11; a `for`
+ *   loop 20 at 32 instructions (COUNT); `c` assigned first 12; the `cba` term
+ *   order 25 at 38 instructions.
+ *
+ *   crossfire at depth 2 over {volatile store, p[0] subscript, *p++ store,
+ *   unsigned i, for loop, volatile deref of g, c-first}: NINE rows EXACTLY
+ *   INERT at 10, including `volatile unsigned short *p`.  A volatile store does
+ *   NOT move this -- MEM_VOLATILE_P constrains a store against OTHER MEMs, and
+ *   this block contains exactly one MEM.
+ *
+ *   THE INSTRUMENT (not shipped): `-fno-schedule-insns2` takes this body to 4
+ *   and the `gpi` preheader order to 4 as well -- it closes indices 25-27
+ *   EXACTLY and reduces 16-22 to a single adjacent swap (`mov r2,r3` against
+ *   `add r1,#22`, i.e. where reload inserts the base copy).  That is the proof
+ *   that cause B is sched2 and nothing else, and the figure 4 is a figure ABOUT
+ *   THE BLOCKER, not a result: the ROM's block 0 is NOT chain order, so
+ *   -fno-schedule-insns2 regresses cause A to 2, and 4 is not 0.  I am NOT
+ *   proposing SCHED2_CFLAGS for this file.  (Under the instrument a further 24
+ *   term respellings were ALSO dead flat at 4.)
+ *
+ * WHAT WOULD CLOSE IT: a reason for the ROM's block 3 to have a shorter
+ * `mov r2,r3` chain or a longer `lsl r1,r3,#1` chain than this expression gives
+ * -- i.e. evidence that the ROM's packing statement is not this one statement.
+ * Everything else in the function (36 of 36 instructions, both pool words, both
+ * relocations, the divide idiom, both ORs, the loop and the prologue) is exact.
  */
 extern int iwram_3001800;
 extern int sin(int a);
@@ -55,13 +142,15 @@ extern int sin(int a);
 void Func_801fd34(void)
 {
     unsigned short *p;
+    int *g;
     int i;
     int t, a, b, c;
 
-    i = 0;
+    g = &iwram_3001800;
     p = (unsigned short *)0x50001d0;
+    i = 0;
     do {
-        t = sin((iwram_3001800 + i * 8) * 3 << 8) / 0x4000;
+        t = sin((*g + i * 8) * 3 << 8) / 0x4000;
         a = t * 2 + 0x16;
         b = t + 0x10;
         c = t + 0x14;
