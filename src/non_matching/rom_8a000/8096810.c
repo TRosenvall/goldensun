@@ -1,6 +1,7 @@
-/* FieldMove_NoTarget -- NON-MATCHING.
+/* FieldMove_NoTarget -- 0x08096810.  STILL NON-MATCHING.
  *
- * NON-MATCHING, 7 of 122 encodings  (MEASURED, batch 319 recipe backfill).
+ * NON-MATCHING, 7 of 122 encodings, PIN-FREE, exact instruction count
+ * (RE-MEASURED batch 322, brief D -- the park's figure is CORRECT).
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -8,92 +9,149 @@
  *     src/non_matching/rom_8a000/8096810.c \
  *     asm/rom_8a000/rom_944ec_a_c_c_a_a_a_a_a.s --func FieldMove_NoTarget
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- * Blocker class: REGISTER-ALLOCATION PRIORITY, and it is QUANTIFIED rather than
- * guessed -- the two requirements are provably mutually exclusive.
+ * The reference holds ONE function and no data (grep -c thumb_func_start = 1),
+ * so when this lands it converts the whole file with NO SPLIT, to
+ * src/rom_8a000/rom_944ec_a_c_c_a_a_a_a_a.c (path currently free).
  *
- * SIX instructions of 137, all inside the ten-instruction prologue. The line
- * counts agree, the literal pool agrees, and instructions 12 through 136 -- the
- * range check, the jump table, all sixteen arms, the whole of the two big cases
- * and the epilogue -- are IDENTICAL INCLUDING EVERY REGISTER.
+ * ========================================================================
+ * BATCH 322 REWROTE THE DIAGNOSIS.  THE PARK WAS THREE-QUARTERS SOLVED AND
+ * HAD FILED THE SOLVED PART IN ITS NEGATIVES.  READ THIS BEFORE ANYTHING.
+ * ========================================================================
  *
- * Dispatches a field move that needs no target: sixteen arms on a kind read out
- * of the field block, two of which do real work.
+ * The residue is TWO rungs in TWO DIFFERENT PASSES, not one mutually-exclusive
+ * trade-off.  The park treated it as one.
  *
- * THE RESIDUE, in full:
+ * RUNG 1 -- A RELOAD SCRATCH REGISTER, AND IT IS ALREADY SOLVED.
  *
- *     rom    mov r2, #0x1e / ldrsh r6, [r5, r2] / sub r3, #0x74 / ldr r1, [r3]
- *            mov r3, #0x1a / ldrsh r7, [r5, r3] / sub r3, r6, #0x1
- *     ours   sub r3, #0x74 / ldr r1, [r3] / mov r3, #0x1e / ldrsh r6, [r5, r3]
- *            sub r3, r6, #0x1 / mov r2, #0x1a / ldrsh r7, [r5, r2]
+ * Both halfword reads are *thumb_extendhisi2_insn with (clobber (scratch:SI)):
+ * thumb has no immediate-offset ldrsh, so each needs a register holding its
+ * offset, and reload fills the scratch.  In this body reload gives the 0x1a
+ * (style) read r2 and the 0x1e (kind) read r3.  The r3 choice is the whole of
+ * rung 1: insns 18 and 20 (`sub r3,#0x74` / `ldr r1,[r3]`) USE r3 and insn 251
+ * (`r3 = r6 - 1`) SETS it, so a kind read clobbering r3 is anti- and
+ * output-dependent on that chain and sched2 cannot hoist it.  `.23.sched2`
+ * shows exactly that: the kind read is not even in the ready list until t=6,
+ * after `ldr r1,[r3]` retires.  Give it r2 and it is free, which is the ROM.
  *
- * THE MECHANISM, read out of gcc's own dumps. `global.c:allocno_compare` ranks
- * by `floor_log2(n_refs) * n_refs / live_length`. The whole function turns on
- * ONE comparison: the kind variable against the gState slot pointer. The slot
- * has 4 refs over a live length of 50, priority 1600. The kind has 3 refs over
- * a length that depends on where it is assigned:
+ * WHICH READ GETS r2 IS DECIDED BY PLAIN RTL ORDER.  reload1.c:821 sets
+ * `last_spill_reg = -1` and reload1.c:5003 starts `allocate_reload_reg`'s
+ * round-robin from it, so THE FIRST ldrsh IN RTL ORDER TAKES spill_regs[0] =
+ * r2 and the second takes r3.  The ROM gives the kind read r2.  **Therefore
+ * the kind read MUST come FIRST in RTL, i.e. first in source order.**  That is
+ * not a preference, it is forced, and it is the opposite of what this park
+ * concluded after its order sweep.
  *
- *     kind assigned 2nd in the entry block   length 21   priority 1523
- *     kind assigned 3rd                      length 19   priority 1684 -- but see below
- *     kind assigned 4th (last)               length 18   priority 1666
+ * RUNG 2 -- ONE ADJACENT TRANSPOSITION IN global.c's allocno_order.  THIS IS
+ * THE ONLY THING LEFT.
  *
- * Only a length of 18 wins the comparison against 1600 in the direction that
- * puts kind in r6 and leaves the ROM's r7/r5/r8 assignment intact -- and that
- * requires kind to be assigned AFTER the style read.
+ * Put the kind read first (either `p, kind, m, style` or `p, m, kind, style` --
+ * they produce BYTE-IDENTICAL output) and the prologue goes from 7 differing to
+ * THREE, with indices 5, 7, 8 and 9 all EXACT:
  *
- * BUT THE EMISSION ORDER REQUIRES THE OPPOSITE. The ROM loads the 0x1e offset
- * before the `sub r3, #0x74` that builds the second base. With kind assigned
- * last, the pooled block address in r3 is dead before kind's load, so kind's
- * offset scratch takes r3 instead of r2, and the anti-dependency forces the
- * second base to schedule first.
+ *     rom    mov r2,#0x1e / ldrsh r6,[r5,r2] / sub r3,#0x74 / ldr r1,[r3]
+ *            mov r3,#0x1a / ldrsh r7,[r5,r3] / sub r3,r6,#1
+ *     ord C  mov r2,#0x1e / ldrsh r7,[r5,r2] / sub r3,#0x74 / ldr r1,[r3]
+ *            mov r3,#0x1a / ldrsh r6,[r5,r3] / sub r3,r7,#1
  *
- * The two requirements are mutually exclusive at every statement order, and the
- * gap is exactly ONE RTL instruction. Measured on both sides of it:
- *   shortening the kind's live range -- copying it to a temp, re-reading it via
- *     gcse, typing it `short`, -fno-schedule-insns, --no-sched2, -O1,
- *     declaration order, an explicit `unsigned int` base chain
- *   lengthening the slot's range to 51 or more WITHOUT adding an instruction --
- *     naming the call results, naming the reloaded words, inverting the if/else,
- *     a named offset local
- * All inert.
+ * EVERY INSTRUCTION AND BOTH SCRATCH REGISTERS ARE THE ROM'S.  The only defect
+ * is that `kind` and `style` have swapped r6 and r7, and that costs 9 rather
+ * than 3 because the swap also shows at kind's and style's uses in cases 9
+ * and 2.
  *
- * TWO LEVERS DID FIRE AND ARE WORTH KEEPING.
+ * `.18.greg` names the decision in one line.  The allocation order is
+ * IDENTICAL between the two bodies except for ONE ADJACENT PAIR:
  *
- *   THE NEGATIVE-OFFSET GLOBAL. `*(T **)((unsigned char *)&iwram_3001f30 -
- *   0x74)` reproduces the ROM's `ldr r3, =iwram_3001f30 / sub r3, #0x74 /
- *   ldr r1, [r3]` verbatim on the first try, with no extra pool word.
+ *     this body   ;; 10 regs to allocate: 45 71 46 32 33 43 34 44 54 35
+ *     ord C       ;; 10 regs to allocate: 45 71 46 32 33 43 44 34 54 35
+ *
+ * reg 34 is `kind`, reg 44 is the gState slot pointer (`slot = g + 0x24a`,
+ * set at insn 107, used at 110/126/179), and reg 35 is `style`.  r5 is taken
+ * by `p` and r8 by reg 54, so r6 goes to whichever of 34 and 44 is allocated
+ * FIRST and r7 to the other -- they conflict, so they cannot share.
+ * Dispositions flip exactly: `34 in 6 / 44 in 7` here, `34 in 7 / 44 in 6`
+ * under ord C.  **So the open question is: make reg 34 outrank reg 44 in
+ * global.c:allocno_compare while the kind read stays first in RTL.**
+ *
+ * SO THE PARK NAMED THE RIGHT PAIR -- "the kind variable against the gState
+ * slot pointer" -- AND THEN DREW THE WRONG CONCLUSION FROM IT.  Its claim that
+ * the two requirements are "mutually exclusive at every statement order" is
+ * true only of the SOURCE ORDERS it swept; it never noticed that the order it
+ * rejected at 9 had already bought both scratch registers and the entire
+ * prologue schedule.  This is the "rejected-because-worse edit that is HALF of
+ * a two-part fix" shape that tools/crossfire.py's docstring warns about.
+ *
+ * ORDER SWEEP, RE-MEASURED WITH objcmp (the park's table used tryc line
+ * counts, which is why its numbers read 6/9/22 against these):
+ *     p, m, style, kind   (this body)      7
+ *     p, style, m, kind                    7  (exactly inert -- same output)
+ *     p, m, kind, style                    9  <-- schedule+scratch EXACT
+ *     p, kind, m, style                    9  <-- byte-identical to the above
+ *     p, kind, style, m                   22
+ *     p, style, kind, m                   22
+ *
+ * MEASURED AND EXACTLY INERT ON TOP OF ord C (all 122 of 122 instructions, no
+ * COUNT/MEM/RELOC flag) -- 40+ crossed rows, so rung 2 is in NONE of these
+ * dimensions and the next agent should not re-sweep them:
+ *   declaration order of kind and style; `short kind`; `short style`;
+ *   `short v`; `short *slot` as `unsigned short *`; `char *g`;
+ *   `slot = (short *)(gState + 0x24a)` instead of via `g`;
+ *   the 0x24a load written through `g` instead of `slot`;
+ *   either 0x24a STORE written through `g` instead of `slot`;
+ *   a VOLATILE cast on either 0x24a store or on the load
+ *     (`*(volatile short *)(g + 0x24a)`) -- all three still CSE back onto
+ *     `slot`, so slot's reference count is NOT reachable from the source;
+ *   naming the Func_808d5a4 result; naming the g+0x1f4 word;
+ *   copying kind into a temp for the case-9 argument;
+ *   moving the case-9 block-scoped locals to function scope;
+ *   declaring Func_808df1c, Func_809ade8 or Field_Halt_Target int-returning
+ *     (the batch-321 int-return lever: inert here).
+ * MEASURED AND WORSE ON ord C: inverting the case-9 if/else, 17 with RELOC;
+ *   reading 0x1a inline in case 2, 96; dropping the style read, 98 at 120
+ *   instructions.
+ *
+ * ***  DO NOT USE `register ... __asm__` AS AN INSTRUMENT IN THIS FUNCTION. ***
+ * It is not a probe here, it is a different program: pinning a call-crossing
+ * local to a callee-saved register changes the prologue's push set and
+ * therefore the INSTRUCTION COUNT.  Measured on ord C:
+ *   register int kind __asm__("r6")    106 of 122 at 116 instructions (COUNT)
+ *   register int style __asm__("r7")    14 of 122
+ *   both pinned                       106 of 122 at 116 instructions (COUNT)
+ * So "pin it and see" cannot confirm or refute rung 2, and a figure obtained
+ * that way is not a distance.
+ *
+ * TWO BANK FACTS NOT RE-DERIVED HERE, both already established elsewhere:
+ *   - THE DECLARATION LEVER IS CONTRAINDICATED FOR gState.  A typed member at
+ *     offset 500 folds a pool word the ROM builds at run time (a measured
+ *     51-line regression).  This function reads g+0x1f4 = 500.  Left as plain
+ *     array indexing deliberately.
+ *   - iwram_3001f30 is declared ELEVEN different ways across the tree against
+ *     an unused `struct MapState` whose layout does not fit its users'
+ *     offsets.  Left as `extern char *` here.
+ *
+ * ------------------------------------------------------------------------
+ * WHAT THE PARK GOT RIGHT, REPRODUCED AND KEPT.  Instructions 12 through 136 --
+ * the range check, the jump table, all sixteen arms, both big cases and the
+ * epilogue -- are IDENTICAL INCLUDING EVERY REGISTER, and that is because of:
+ *
+ *   THE NEGATIVE-OFFSET GLOBAL.  `*(T **)((unsigned char *)&iwram_3001f30 -
+ *   0x74)` reproduces `ldr r3, =iwram_3001f30 / sub r3, #0x74 / ldr r1, [r3]`
+ *   verbatim with no extra pool word.
  *
  *   THE `ldr rN, =0xffff / strh` SHAPE NEEDS AN int LOCAL ASSIGNED IN A
- *   DOMINATING BLOCK -- the function's FIRST statement. Assigned inside the arm,
- *   or inside the guarded body, gcc folds it back to a HImode const_int -1,
- *   commons it with the `mov #1 / neg` from the `!= -1` test, and emits a
- *   register store instead -- three instructions short. Hoisting the assignment
- *   to the top of the function was worth 27 aligned down to 9 on its own.
- *   The corpus template is src/rom_9000/rom_ea54_c_b.c. THIS IS THE MISSING
- *   COUNTER-EXAMPLE to the halfword-pool blocker note, which says the
- *   word-sized pool load for a halfword store is unreached: it is reached, by a
+ *   DOMINATING BLOCK -- the function's FIRST statement.  Assigned inside the
+ *   arm or inside the guarded body, gcc folds it to a HImode const_int -1,
+ *   commons it with the `mov #1 / neg` from the `!= -1` test and stores a
+ *   register instead, three instructions short.  Hoisting it was worth 27
+ *   down to 9 on its own.  Corpus template: src/rom_9000/rom_ea54_c_b.c.
+ *   This is the counter-example to the halfword-pool blocker note: the
+ *   word-sized pool load for a halfword store IS reachable, by a
  *   dominating-block int local.
  *
- * MEASURED (rom 137 lines), the ordering sweep that isolates the mechanism:
- *   sentinel assigned inside the arm, order p/kind/m/style     27 aligned
- *   the same, sentinel inside the guarded body                 27
- *   sentinel hoisted to the function's first statement          9
- *   ... and then, with the sentinel hoisted, by assignment order:
- *     p, kind, m, style                                         9
- *     p, m, kind, style                                         9
- *     p, m, style, kind                                         6
- *     p, style, m, kind                                         6
- *     p, kind, style, m                                        22
- *     p, style, kind, m                                        22
- * FLAGS on the best form: -fno-schedule-insns 6, --no-sched2 10, -O1 20,
- *   --no-rerun-cse 9, -fno-cse-follow-jumps 9.
- *
- * WHAT IS RIGHT: everything else. The case-body order in the source is the
- * emission order (1,7,11,4,5,14,6,3,12,13,9,2,8,10,15,16); the epilogue's
- * `pop {r0}` confirmed `void`; and three of the callees take NO arguments --
- * declared `extern int f();` and called bare, because the ROM sets up no
- * argument registers for them.
+ *   The case-body order in the source is the emission order
+ *   (1,7,11,4,5,14,6,3,12,13,9,2,8,10,15,16); the epilogue's `pop {r0}`
+ *   confirms `void`; three callees take NO arguments, declared
+ *   `extern int f();` and called bare, because the ROM sets up no argument
+ *   registers for them.
  */
 extern char *iwram_3001f30;
 extern unsigned char gState[];
