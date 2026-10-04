@@ -5,90 +5,127 @@
  * (copying OBJ palette 0x5000200[c] to BG palette 0x5000000[n]), then DMA the
  * 0x400-byte result to 0x6004000 + slot*64.
  *
- * 14 encodings of 92 differ (objcmp, production flags; ref 92, ours 92).
+ * NON-MATCHING.  14 encodings of 92 differ positionally (ref 92, ours 92,
+ * dsize 0, relocations ok).  ALIGNED (tools/aligncmp.py) it is
+ * 9 DIFFERING IN 6 HUNKS, 85 of 92 aligned-equal, 92.4%.
  *
  * Verify with:
- *   python3 tools/objcmp.py src/non_matching/rom_15000/8021cb8.c \
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/8021cb8.c \
  *     asm/rom_15000/rom_20198_c_c_c_c_c.s --func Func_8021cb8
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/aligncmp.py \
+ *     src/non_matching/rom_15000/8021cb8.c \
+ *     asm/rom_15000/rom_20198_c_c_c_c_c.s Func_8021cb8 -v
  *
- * ============ BATCH 316b: THE RESIDUE IS TWO DEFECTS, NOT ONE ============
+ * PINS: the DMA3_SET macro's four `register ... __asm__` operands only.  They
+ * are the project's standard DMA idiom and are not part of this residue.
  *
- * The old blocker line called it "ONE register pair".  Printed with operands it
- * is two independent defects, and the park's own "every spelling tried either
- * coalesces OR narrows" sentence is the giveaway that they were only ever tested
- * one at a time.  Side by side (ref | ours), the loop head:
+ * ***********************************************************************
+ * *** BATCH 323: THE PREVIOUS HEADER'S "NEXT MOVE" WOULD INSTALL A    ***
+ * *** STRICTLY WORSE BODY.  DO NOT FOLLOW IT.  Measured, below.       ***
+ * ***********************************************************************
  *
- *   idx 29   ldrb r4,[r6]        | ldrb r4,[r6]
- *   idx 30   ldrb r2,[r7,r4]     | ldrb r3,[r7,r4]
- *   idx 31   adds r3,r2,#0       | adds r6,#1        <-- DEFECT 1: OURS HAS NO COPY
- *   idx 32   adds r6,#1          | cmp  r3,#0xff
- *   idx 33   cmp  r3,#0xff       | bne
- *   ...
- *   idx 38   ldr  r3,[r0]        | ldrb r2,[r0]      <-- DEFECT 2: NARROWED *cnt LOAD
+ * The batch-316b header said defect 2 "IS SOLVED" by declaring `v` a full word,
+ * that this "fixes defect 2 outright", that its total of 32 "is NOT a distance:
+ * it is 14 plus the one-slot POSITIONAL SHIFT", and it instructed the next
+ * reader to install `int v` and then hunt only for defect 1.
  *
- * DEFECT 2 IS SOLVED, AND IT IS NOT WHAT THE PARK THOUGHT.  Declaring `v` as a
- * FULL WORD (`int` / `unsigned int`) gives the ROM's `ldr r3,[r0]` exactly, with
- * `strb r3,[r7,r4]` storing its low byte.  That is the real content of the ROM's
- * "the output is the FULL-WORD *cnt register".  Measured, `unsigned char o` +
- * `int v`: idx 38 becomes `ldr r3,[r0,#0]` and idx 39/40/41/42 all become the
- * ROM's.  The park dismissed this spelling because its TOTAL rises to 32 -- but
- * 32 is NOT a distance: it is 14 plus the one-slot POSITIONAL SHIFT that defect 1
- * still causes.  This is the brief's "edits each a clear regression, jointly a
- * gain" shape and the reason a one-at-a-time list never found it.
+ * MEASURED ON ALIGNED DISTANCE, WHICH IS THE METRIC THAT CLAIM NEEDS:
+ *     this body (`unsigned char v`)   9 differing in 6 hunks   85 equal  92.4%
+ *     `int v` + `unsigned char o`    10 differing in 4 hunks   84 equal  91.3%
+ * `int v` IS ALIGNED-WORSE.  It does delete the extra narrowed load, but it
+ * ADDS a zero-extend pair where the ROM has a plain copy:
+ *     ref[58]   adds r2,r3,#0        ours   lsls r3,r3,#24
+ *                                           lsrs r3,r3,#24
+ * because with `int v` and `unsigned char o` the assignment `o = v` is an
+ * explicit 8-bit truncation that gcc has to materialise, while both of `o`'s
+ * definitions must agree on a zero-extended value.  So it trades one difference
+ * for two.  "32 = 14 + a shift" is wrong: aligned, the two bodies are 9 and 10.
  *
- * So the whole remaining problem is DEFECT 1: the ROM's `adds r3,r2,#0` -- a
- * register copy of map[c] that is COMPARED while the load itself stays the
- * output.  `mov r3,r2 / cmp r3,#0xff` is a redundant copy (r2 is already a low
- * register), so it is a source-level copy that failed to propagate away.
+ * ============== THE RESIDUE, DECOMPOSED ON ALIGNED HUNKS ==============
  *
- * *** THIS IS THE CLUSTER'S SHARED IDIOM, AND IT IS WHY THIS PARK IS WORTH
- * *** RETRYING.  The ROM compares a REGISTER COPY, not the loaded value, in at
- * *** least three of the five rom_15000 parks:
- * ***     8021cb8   ldrb r2,[r7,r4] / mov r3,r2  / cmp r3,#0xff
- * ***     801908c   ldrh r3,[r6,#0xc] / mov r0,r3 / cmp r0,#7
- * ***     DMAC      ldrh r2,[r6,#0x3c] / mov r3,r2 / cmp r3,#0
- * *** On DisplayMenuArrowCursor that idiom is worth 16 -> 6, spelled as TWO
- * *** LOCALS OF DIFFERENT WIDTH (the wide one feeds the arithmetic, the narrow
- * *** one the compare), because the two then have different RTL modes and cse
- * *** cannot substitute.  HERE THE SAME TRICK IS INERT, and that is measured,
- * *** not assumed: the narrow/wide trick needs the surviving use to be WIDER
- * *** than the compare, and `o`'s only use is the byte store `*dst++ = o`, so
- * *** both ends are QImode and cse merges them.
+ * Six hunks, nine differences, and they belong to TWO causes that CANCEL in the
+ * positional count -- which is why ref and ours are both 92 and why a
+ * one-at-a-time sweep could never separate them.
  *
- * ================= CROSSED, NOT TESTED ONE AT A TIME =================
- * 154 variants in two sweeps, each sweep one container.  FLOOR IS 14.
+ * DEFECT 1 -- the missing compare copy.  8 of the 9.  Real instructions.
+ *     hunk  ref[30:32] -> ours[30:31]
+ *       ref  ldrb r2,[r7,r4]      ours  ldrb r3,[r7,r4]
+ *       ref  adds r3,r2,#0                (nothing)
+ *   The ROM loads map[c] into r2, COPIES it to r3, and compares r3; `o` then
+ *   lives in r2 on all three paths.  We load straight into r3 and compare it,
+ *   so `o` lives in r3 and `v` in r2 -- the roles swapped.  The other four
+ *   hunks are that swap and its consequences, not independent causes:
+ *     ref[34]      branch offset, because hunk 1 shortened the branch span
+ *     ref[56]      ldrb r2 vs ldrb r3                     (role)
+ *     ref[58:60]   adds r2,r3,#0 / strb r2  vs  adds r3,r2,#0 / strb r3,
+ *                  with movs r2,#0x80 pulled one slot earlier   (role + move)
+ *     ref[61]      the other half of that move
  *
- * Sweep 1 (64) -- a third local `q` compared instead of `o`, crossing
- * type(o) x type(q) x {q = o | q = map[c]} x type(v), all four widths each:
- *     every combination with `unsigned char v`            14   (33 of them)
- *     `int v` with `unsigned char`/`unsigned short` o     32   (defect 1 only)
- *     `int v` with `int`/`unsigned int` o                 64   RELOCDIFF, dsize -4
+ * DEFECT 2 -- an EXTRA narrowed load of *cnt.  1 of the 9.
+ *     hunk  insert ours[38]   ldrb r2,[r0,#0]
+ *   We load the counter as a word for the `map[c] =` store AND as a byte for
+ *   `v`; the ROM loads it as a word twice (ldr r3,[r0] then ldr r1,[r0]) and
+ *   never as a byte.
  *
- * Sweep 2 (90) -- 15 ways to stop the copy being propagated, x type(v) x type(o):
- *     q = o;  q = o | 0;  q = o + 0;  q = o & 0xff;       inert (14 / 32)
- *     q = map[c] re-read;  q through `(void *)`           inert
- *     q as a one-byte-plus-word UNION, compared as .b     inert
- *     q as int / unsigned short / two chained locals      inert
- *     `volatile unsigned char q`                          worse
- *     `__asm__ ("" : "+r" (q))` AS A PROBE ONLY           37-69, dsize +4,
- *         RELOCDIFF -- the "+r" barrier DOES NOT isolate this residue, so unlike
- *         801908c there is no shim measurement available here.  (It would not
- *         ship anyway -- a measurement device must not ship.)
+ * DEFECT 1 REMOVES AN INSTRUCTION AND DEFECT 2 ADDS ONE.  That is the whole
+ * reason the counts match at 92 and the reason the positional 14 looked like one
+ * contiguous problem.
  *
- * WHAT IS STILL TRUE FROM THE OLD PARK (re-verified):
+ * CLOSEST CAUSE: defect 2, at one aligned difference -- but every spelling that
+ * removes it so far pays more than one elsewhere (see below).  Defect 1 is worth
+ * 8 and is the one to solve.
+ *
+ * ==================== WHAT IS STILL TRUE (re-verified) ====================
  *   * The loop must be a goto loop with the counter test at the bottom; a
  *     for/do loop lets loop.c hoist 0x100 / 0x5000000 / 0x5000200 into
  *     callee-saved registers, and the ROM rebuilds all three in the body.
  *   * `map[c] = v = *cnt;` with `else o = v;` reproduces the else path reusing
- *     the stored register (the ROM's `.L21d34: mov r2,r3`), and the ROM really
- *     does load *cnt TWICE (`ldr r3,[r0]` then `ldr r1,[r0]`) -- grepped, not
- *     inferred.
+ *     the stored register (the ROM's `.L21d34: mov r2,r3`).
  *   * The 0x3f test is SIGNED (`cmp r1,#0x3f / bgt`), so `*cnt` is `int`.
  *
- * NEXT MOVE FOR WHOEVER PICKS THIS UP: install `int v` (it is correct, and it
- * fixes defect 2 outright) and then hunt ONLY for a spelling that keeps the
- * compare copy.  Do not re-measure the total against 14 -- measure defect 1 at
- * idx 31 directly, because the two are coupled through a positional shift.
+ * ========== MEASURED THIS BATCH -- 16 VARIANTS, ALIGNED AND POSITIONAL ==========
+ * The earlier 154-variant sweeps covered type(o) x type(q) x type(v) and 15 ways
+ * to block the copy.  These are the shapes those sweeps did NOT cover: reusing
+ * `v` ITSELF as the compare carrier, and moving the output store into the arms.
+ *
+ *   spelling                                    positional   aligned (hunks)
+ *   this body                                        14         9  (6)
+ *   `v = o;` before the if, compare v, char v         14         9  (6)
+ *   `o = v;` after v = map[c], compare v, char v      14         9  (6)
+ *   `o = v;` ... compare o, char v                    14         9  (6)
+ *   a fourth local w for *cnt, char w                 14         9  (6)
+ *   char v + int o                                    14         9  (6)
+ *   int v + char o   (the old header's NEXT MOVE)     32        10  (4)
+ *   int v + `v = o;` compare v                        32        10  (4)
+ *   int v + `o = v;` compare o                        32        10  (4)
+ *   int v + int w                                     32        10  (4)
+ *   char v + int w                                    32        10  (4)
+ *   int v + int o                                     64        15 (11)
+ *   int v + `o = v;` compare v                        44        13 (10)
+ *   output store moved into the arms, char v          39        19  (9)
+ *   output store moved into the arms, int v           66        21 (12)
+ *
+ * NOTHING BEATS 9 ALIGNED.  Six distinct bodies tie it, so the 9 is a floor on
+ * this whole space, not a property of one spelling.
+ *
+ * WHY int/int COLLAPSES (worth recording, it is a trap): with `int o` gcc
+ * COMMONS the then-arm's `o = map[c]` re-read with `v` and deletes it along with
+ * the branch over it -- ref[56] `ldrb r2,[r7,r4]` and ref[57] `b` both vanish.
+ * The ROM really does re-read map[c] there, so any spelling that lets cse
+ * common those two is wrong however good its figure looks.
+ *
+ * NEXT MOVE, CORRECTED.  Keep this body.  Defect 1 asks for a SECOND SImode
+ * pseudo holding map[c] at the compare whose copy gcc does not delete -- and at
+ * the compare only ONE of the two values is live afterwards on every path, so
+ * the copy is genuinely dead code that the original's gcc failed to remove,
+ * not something the source forces.  That means the lever is not another
+ * spelling of the comparison: it is whatever makes the two pseudos
+ * non-substitutable (different mode, different alias set, or a block boundary
+ * cse does not cross).  Measure defect 1 at ref[30:32] with aligncmp -v, NOT
+ * the positional total, because defect 2 cancels it in the count.
  */
 extern int _FILE_f1;
 #define FILE_f1 ((int)&_FILE_f1)
