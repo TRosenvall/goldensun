@@ -14,7 +14,10 @@ against `baserom.gba`.
    grep it before writing anything up as a new finding.
 3. **[HANDOFF.md](HANDOFF.md)** — the batch index. The last row is the current
    state of play.
-4. **[docs/web-session-286-289.md](docs/web-session-286-289.md)** — the handoff from
+4. **[docs/humanization.md](docs/humanization.md)** — the pass-3/pass-4 playbook:
+   how to remove matching artifacts without losing the match, the artifact
+   taxonomy, and what pokefirered's leak-informed fixes show a human wrote instead.
+5. **[docs/web-session-286-289.md](docs/web-session-286-289.md)** — the handoff from
    the web session that ran batches 286-289 (122 functions): how it orchestrated
    agents, every non-function tree change, the mistakes and their guards, the
    mechanisms found, the decisions waiting on the owner, and the open work.

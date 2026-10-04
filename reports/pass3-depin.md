@@ -169,3 +169,11 @@ nested scopes, an `int v[3]` aggregate (worse, 14), mixed `0-1`/`~0`/`-1`; and
 > **A park claim that survives re-measurement is worth upgrading IN PLACE, not
 > merely confirming.** The next reader should inherit the sweep rather than repeat
 > it — which is the whole reason this project writes figures into headers.
+
+---
+
+**Humanization method: see [docs/humanization.md](../docs/humanization.md).**
+It carries the artifact taxonomy (free shim / compiler-strategy constant / wrong
+declaration / genuinely unreachable), the four pokefirered patterns with their
+leak-informed diffs, the measurement discipline, and the ordered worklist.  This
+file remains the per-function depinning scope; that file is the how.
