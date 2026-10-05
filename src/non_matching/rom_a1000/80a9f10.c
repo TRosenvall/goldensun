@@ -1,4 +1,86 @@
-/* Func_80a9f10 -- NON-MATCHING, 48 of 569 encodings differ.
+/* ====== BATCH 328, BRIEF F -- THE FIGURE IS RE-CLASSIFIED AND THE =========
+ * ====== MECHANISM CITATION IS CORRECTED.  READ THIS BEFORE THE REST. =======
+ *
+ * (1) "48 IS A TRUE DISTANCE" IS REFUTED.  WE ARE ONE INSTRUCTION LONG.
+ *     objcmp now prints a metric this park predates:
+ *         XX INSTRUCTION COUNT  ref 469, ours 470
+ *            (16-bit encodings only; pool words 99/99 and pads excluded)
+ *         NOTE: size and encoding count MATCH -- a pad is absorbing the
+ *         difference, so the positional figure below measures MISALIGNMENT,
+ *         not distance.
+ *     SIZE is 1336/1336 and ENCODINGS 569/569 ONLY because the reference has
+ *     ONE PAD and we have NONE.  The park's whole framing -- "SIZE EXACT and
+ *     COUNT EXACT, so 48 IS A TRUE DISTANCE", and the three independent
+ *     "blockers" built on it -- rests on a metric that did not exist when it
+ *     was written.  **ADD THIS AS A VARIANT OF THE PADDING TRAP.**
+ *
+ * (2) THE EXTRA INSTRUCTION, LOCATED EXACTLY.  Side-by-side, our index 36:
+ *       REF   30 mov r3,fp | 31 movs r4,#0 | 32 ldr r0,[sp,#4] | 33 ldr r1,[pc]
+ *             34 ldrb r2,[r3,#8] | 35 str r4,[sp,#0] | 36 adds r3,r0,r1
+ *             37 ldrb r3,[r3,#0] | 38 cmp r4,r3 | 39 bcc .top | 40 b .exit
+ *       OURS  30 movs r3,#0 | 31 ldr r4,[sp,#4] | 32 ldr r0,[pc]
+ *             33 str r3,[sp,#0] | 34 adds r3,r4,r0 | 35 ldrb r3,[r3,#0]
+ *             36 *** movs r1,#0 *** | 37 cmp r1,r3 | 38 bcc | 39 b .exit
+ *             40 mov r3,fp | 41 ldrb r2,[r3,#8]
+ *     The ROM keeps the loop counter's zero in r4 ACROSS the count load; we put
+ *     it in r3, clobber r3 with the address temp and then the count, and
+ *     rematerialise a SECOND zero.  That `movs r1,#0` IS the extra instruction,
+ *     and everything else in the 48 is its 2-byte fan-out (the one shifted
+ *     _GetUnit relocation, 0x6e against 0x70).  So the function is ONE CAUSE
+ *     plus misalignment, not "blocker 1 ~10 + blocker 2 (3) + blocker 3 (~8)".
+ *
+ * (3) THE MECHANISM CITATION IS WRONG, AND THE CORRECT ONE OPENS A ROUTE THE
+ *     PARK NEVER CONSIDERED.  The park says the copy's placement is
+ *     `insert_insn_end_bb`, which "appends to the pred only [when the pred has
+ *     ONE successor]; otherwise it splits the edge".  In gcc-2.96:
+ *       - `pre_edge_insert` (gcse.c:4389-4446) calls `insert_insn_end_bb`
+ *         **ONLY** when `(eg->flags & EDGE_ABNORMAL) == EDGE_ABNORMAL`.  This
+ *         edge is not abnormal, so that routine is never reached.
+ *       - Every normal edge goes to `insert_insn_on_edge`, committed later by
+ *         `commit_one_edge_insertion` (flow.c:1656-1718), which tests IN ORDER:
+ *           1. `e->dest->pred->pred_next == NULL` (dest has ONE pred)
+ *                -> insert at the TOP of the DESTINATION block;
+ *           2. else non-abnormal && `e->src->succ->succ_next == NULL`
+ *                -> insert at the END of the SOURCE block, before its jump;
+ *           3. else `split_edge (e)`.
+ *     **THERE ARE TWO NON-SPLITTING ROUTES, NOT ONE.**  The park knew only #2
+ *     and therefore only ever varied the shape of the preheader block.
+ *
+ * (4) WHERE EACH BUILD ACTUALLY PUT THE COPY -- AND WHY THE OPEN QUESTION IS
+ *     NOT THE ONE THE PARK ASKS.
+ *       ours: top of the split block (.LCB44), between guard and loop header
+ *             -- route 3.
+ *       ROM : at the END OF THE BLOCK **BEFORE** THE GUARD, immediately after
+ *             `bl _GetUnit / adds r5,r0,#0` and AHEAD of the `cmp/bcc` -- i.e.
+ *             route 2 on the edge ONE BLOCK EARLIER, not route 2 on this edge.
+ *     The ROM's guard block has two successors just as ours does, so route 2
+ *     cannot have applied to the guard->header edge in either build.  The
+ *     question is therefore **why `info->f8` is marked for insertion on the
+ *     EARLIER edge in the ROM's build** -- an antic/avail question in
+ *     `pre_insert_map` (gcse.c:4409-4415), NOT a block-shape question.  Every
+ *     body in this park's history varied block shape.
+ *
+ * MEASURED, BATCH 328 (figures, with instruction counts, because the count is
+ * the thing that matters here):
+ *   BASE, park as installed .................. 48 of 569, 470 insns (ONE LONG)
+ *   THE PARK'S OWN STATED UNTRIED DIRECTION -- "Spell the bound as its own local
+ *     read before the loop", `cnt = st->count; for (i = 0; i < cnt; i++)`
+ *     ........................................ **375 of 569, 463 insns,
+ *                                              SIZE 1328 vs 1336.  REFUTED.**
+ *     It defeats the PRE outright and comes out SIX SHORT -- the same failure
+ *     mode the park already recorded for `unsigned char all;` refreshed at the
+ *     loop bottom.  Naming the bound and naming the value are the SAME EDIT as
+ *     far as the PRE is concerned.  Strike this direction.
+ *   MODULE-MATE LEVER, from this module's 80a8f40 park lever 1 -- explicit
+ *     source guard plus do/while,
+ *     `i = 0; if (i < st->count) { do { ... i++; } while (i < st->count); }`
+ *     ........................................ **48 of 569, 470 insns --
+ *                                              BYTE-IDENTICAL to the `for`.**
+ *     Exactly inert.  A sibling lever that does not transfer: gcc builds the
+ *     same CFG from both spellings, so the source-level guard buys nothing here.
+ *   both together ............................ 375 of 569, 463 insns.
+ * ==========================================================================  *
+ * Func_80a9f10 -- NON-MATCHING, 48 of 569 encodings differ.
  * (objcmp PRODUCTION-FLAG figure, RE-MEASURED AS INSTALLED THIS BATCH.  The
  *  header's 48 is CONFIRMED -- it is not one of the lying ones.)
  *

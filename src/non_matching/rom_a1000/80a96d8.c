@@ -1,4 +1,55 @@
-/* Func_80a96d8 @ 0x080a96d8 -- NON-MATCHING, 2 differing encodings of 319.
+/* ========= BATCH 328, BRIEF F -- VERDICT HOLDS; RESIDUE LOCATED; =========
+ * ========= AND THE BARRIER IS PROVED LOAD-BEARING BY ITS CONTROL =========
+ *
+ * FIGURE RE-DERIVED: 2 differing encodings of 319 (ref 319, ours 319).  No
+ * objcmp SIZE line, no INSTRUCTION COUNT line.  `--whole` agrees: "2 of 319
+ * differ (ours 319), first at index 44".  THE FIGURE IS A DISTANCE, and the
+ * park's verdict survives.
+ *
+ * (1) THE RESIDUE IS ONE ADJACENT TRANSPOSITION, pinned for the first time.
+ *     Immediately after `bl StopTask`, at indices 44/45:
+ *         ROM    movs r6, #24    /  ldr r5, =0xb06
+ *         ours   ldr r5, =0xb06  /  movs r6, #24
+ *     r6 is then `negs r6,r6`, i.e. it is the shared `-0x18` y-argument of both
+ *     `_Func_801e7c0` calls; r5 is `msg`.  So the contest is `msg = 0xb06`
+ *     against the `-0x18` argument -- the SAME construct, in the same position,
+ *     that the landed module-mate `src/rom_a1000/rom_a8604_c_c_a_a_a_b.c`
+ *     (Func_80a9a5c, `msg = 0xb24`) settled.  It is not a separate mechanism.
+ *
+ * (2) THE MODULE-MATE CONTRAST, RESOLVED: THEY ARE ON THE SAME SIDE.
+ *     The bare `__asm__ volatile ("")` in this body already sits exactly where
+ *     Func_80a9a5c's does -- immediately before the `msg = ...` pool constant --
+ *     and does exactly the same job (supply a predecessor via
+ *     `reg_pending_sets_all` so the constant is not `dep 0` and ready at t = 0).
+ *     THE CONTROL NOBODY HAD RUN IS REMOVING IT:
+ *         barrier REMOVED .................. **8 of 319** (ref 319, ours 319)
+ *         barrier present (as installed) ... 2 of 319
+ *     **THE BARRIER IS WORTH SIX ENCODINGS AND IS LOAD-BEARING.**  What is inert
+ *     here is the park's PROPOSED `__asm__ volatile ("" ::: "r5")` clobber-list
+ *     escape, which is a different construct; the bare barrier is the same lever
+ *     with the same sign as the landing.  BOTH FIGURES FOR PASS 3/4:
+ *     **2 with the barrier, 8 without it.**
+ *
+ * (3) THE EXPAND-ORDER / LUID DIMENSION IS NOW CLOSED FROM THE SOURCE SIDE.
+ *     The obvious attack on a transposition is to write the loser's value first.
+ *     All three positions BREAK THE COUNT, so none of them is even a figure
+ *     about ordering:
+ *       `n = -0x18;` BEFORE `msg = 0xb06;` ..... 123 of 319, 275 insns (ref 273)
+ *       `n = -0x18;` AFTER  `msg = 0xb06;` ..... 123 of 319, 275 insns
+ *       `n = -0x18;` then the barrier then msg . 125 of 319, 275 insns
+ *     All three SIZE 732 vs 728 with relocations differing.  Naming the shared
+ *     `-0x18` in an existing local costs TWO INSTRUCTIONS whatever its position,
+ *     so source order cannot reach the transposition.  Combined with batch 327's
+ *     durable fact -- a volatile asm as `last_scheduled_insn` FLATTENS RUNG 3
+ *     for the whole ready list, which is why the clobber-list escape measured
+ *     exactly inert -- the barrier that buys the 6 is also what removes the rung
+ *     that would separate these two insns.  That is the real shape of the
+ *     blocker: **the lever and the obstacle are the same insn.**
+ *     Pass 3/4 should ask whether the predecessor can be supplied by something
+ *     that is NOT a volatile asm (the landing's route (a): a genuine MEM
+ *     dependence), since that would restore rung 3 while keeping the 6.
+ * ========================================================================  *
+ * Func_80a96d8 @ 0x080a96d8 -- NON-MATCHING, 2 differing encodings of 319.
  *
  * FIGURE RE-DERIVED batch 327 brief E, not inherited.  SIZE 728/728, 319
  * instructions both sides, no objcmp INSTRUCTION COUNT line, relocations

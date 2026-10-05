@@ -1,4 +1,57 @@
-/* Func_80a8f40 -- DrawEquipPage -- 0x080a8f40, asm/rom_a1000/rom_a8604_a_a_c_c_c.s
+/* ============ BATCH 328, BRIEF F -- THE LAYER IS NOW PINNED DOWN ============
+ *
+ * FIGURE RE-DERIVED, NOT INHERITED: 6 differing encodings of 167 (ref 167, ours
+ * 167).  No objcmp SIZE line, no INSTRUCTION COUNT line, relocations identical.
+ * THE FIGURE IS A DISTANCE.  The park's 6 survives untouched.
+ *
+ * (1) LAYER 1 ALREADY AGREES WITH THE ROM.  MEASURED, .18.greg of the body as
+ *     installed:
+ *         Spilling for insn 322.
+ *         Using reg 3 for reload 0
+ *         ;; Register dispositions: ... 108 in 0  109 in 3
+ *     `find_reg` reserves r3 -- THE ROM'S REGISTER -- and r1 is what gets
+ *     emitted.  So no edit aimed at layer 1 can help: not `spill_cost`, not
+ *     `inv_reg_alloc_order`, not allocno priority, not `REG_N_REFS`, not
+ *     declaration order.  The whole residue is layer 3.
+ *
+ * (2) ONE STANDING HYPOTHESIS IS NOW DEAD: "pass 0 reused r1".
+ *     `allocate_reload_reg` is NOT a plain round-robin.  reload1.c:4996-5006
+ *     runs TWO PASSES, and pass 0 accepts a register only when
+ *         TEST_HARD_REG_BIT (reload_reg_used_at_all, regnum)
+ *         && ! TEST_HARD_REG_BIT (reload_reg_used_for_inherit, regnum)
+ *     (reload1.c:5029-5035) -- a REUSE-FIRST pass over registers already taken
+ *     by another reload OF THE SAME INSN.  And `reload_reg_used_at_all` is
+ *     CLEARED PER INSN, in `choose_reload_regs_init` at reload1.c:5102 --
+ *     four lines above the `COMPL_HARD_REG_SET (reload_reg_unavailable,
+ *     chain->used_spill_regs)` at :5126 that this park already cites.
+ *     INSN 322 HAS EXACTLY ONE RELOAD, so the set is empty when
+ *     allocate_reload_reg runs and PASS 0 CAN MATCH NOTHING.  r1 is therefore
+ *     chosen on pass 1, the plain round-robin from `last_spill_reg`.
+ *     => the three-layer model is CONFIRMED rather than complicated, and the
+ *        ONLY remaining free quantity is `chain->used_spill_regs` at insn 322,
+ *        i.e. WHICH PSEUDO HOLDS r3 ACROSS IT.  `.18.greg` says pseudo 109
+ *        (the `const_int 48`, `109 in 3`) is the only candidate anywhere near,
+ *        which is the park's own prime suspect -- still unconfirmed, because the
+ *        per-chain `live_throughout` set is not dumped.
+ *
+ * (3) A CITATION CORRECTION THAT MATTERS BEYOND THIS FILE.  Anywhere in this
+ *     bank's parks that blames `insert_insn_end_bb`'s successor test for a PRE
+ *     placement: gcse.c:4389-4446 (`pre_edge_insert`) reaches
+ *     `insert_insn_end_bb` ONLY when `(eg->flags & EDGE_ABNORMAL) ==
+ *     EDGE_ABNORMAL`.  Every normal edge goes to `insert_insn_on_edge` and is
+ *     committed by `commit_one_edge_insertion` (flow.c:1656-1718), which tests
+ *     IN ORDER: dest has ONE pred -> insert at TOP of dest; else src has ONE
+ *     succ -> insert at END of src before its jump; else `split_edge`.  TWO
+ *     non-splitting routes, not one.  Written up in full in
+ *     src/non_matching/rom_a1000/80a9f10.c, this module's other park.
+ *
+ * NEXT STEP, REPLACING THE PARK'S OWN (which chased reload COUNT): confirm or
+ * refute pseudo 109 in insn 322's `live_throughout` by instrumenting
+ * `finish_spills` (reload1.c:3609-3627) or by printing `chain->used_spill_regs`,
+ * then find a BYTE-NEUTRAL source change that kills 109's liveness there.  Do
+ * not spend another round on spellings of the differing site; layer 1 is right.
+ * ==========================================================================  *
+ * Func_80a8f40 -- DrawEquipPage -- 0x080a8f40, asm/rom_a1000/rom_a8604_a_a_c_c_c.s
  * NON-MATCHING, 6 of 167 encodings (measured batch 322).
  *
  * PARK, 6 of 167 encodings  (MEASURED batch 322, brief H).  PINS: 0.
