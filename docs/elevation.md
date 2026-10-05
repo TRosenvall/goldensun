@@ -34257,3 +34257,88 @@ The scope of the near-miss is worth stating: it would have mis-flagged **every
 park whose pool ends in a relocation placeholder**, and the agents most likely to
 believe it are the ones working the close parks where a one-instruction
 misalignment actually matters.
+
+## THE `while` LOOP'S THIRD READ IS THE COMPILER'S ROTATION, NOT A C NAME — AND IT RETIRES THE COPY-COLLAPSE FRAME
+
+`Func_8020b64` sat at 50 of 57 across three batches, and this document framed it
+as the "copy-collapse family": a two-instruction copy chain collapsed by
+`cse_insn`'s gated swap, with four legs and a named open leg 3. **That frame was
+wrong, and the function lands at 0.**
+
+> **The ROM's three insns are not three C names. They are three separate C
+> EXPRESSIONS each reading `*src`** — the entry test, the body store and the
+> bottom test. A `while` loop has only **two**; `expand_end_loop` manufactures
+> the third **by rotating the loop**, and the rotation's duplicate pseudos —
+> marked `REG_LOOP_TEST_P`, printed **`/s`** in the dumps — live and die inside
+> the loop body's own cse block, so ordinary cse propagation folds the chain.
+
+Writing the rotation **by hand** closes it:
+
+	if (*src != 0) {
+	    do { buf[n] = *src; src++; n++; } while (*src != 0);
+	}
+
+> **When a residue is one missing copy at the bottom of a `while` loop, ask
+> whether the SOURCE or the COMPILER did the rotation. `/s` in `.02.jump` is the
+> tell.**
+
+The naive three-statement `while` body **with no named char at all** already read
+46 and was exact in 55 of 56 instructions. **More than twenty park bodies had all
+varied what was *inside* the `while`** — the loop's own shape was never a
+variable. That is the cost of a frame: it told everyone where to look.
+
+**Leg 3 does not exist.** The copy-collapse mechanism (`cse.c:5979-6005`, gated on
+`make_regs_eqv`'s liveness test) is real and correctly read; it was simply not
+what blocked this function. Its other listed members must each be re-examined on
+their own evidence rather than inheriting the frame.
+
+## `lang_get_alias_set` RETURNS 0 FOR A *REFERENCE*, NOT A TYPE — SO IT IS A LEVER, NOT ONLY A BOUND
+
+This document has repeatedly cited `c-common.c:3347-3352` as a **bound**: alias
+set 0 for any char-precision reference, therefore two `char` accesses cannot be
+given distinct sets. True, and incomplete — it reads **in both directions**, and
+the forward direction landed `SystemMsgBox`.
+
+`rank_for_schedule`'s **dependent-count rung (`haifa-sched.c:4096-4107`) is an
+alias-set fact, not a structural tie.** On the same byte of the same object:
+
+| source form | the MEM | in-block dependents |
+|---|---|---|
+| `gState.f22a` (a `COMPONENT_REF`) | `(mem/s:QI … 7)` | **2** |
+| `((unsigned char *)&gState)[0x22a]` | `(mem:QI … 0)` | **4** |
+
+Alias set 0 **cannot suppress** the memory anti-dependences to the two later
+`strh`, so the cast form *gains* two dependents and wins the rung. The park had
+proved `INSN_LUID` was the only free variable and spent **21 bodies** moving
+statements; **the free variable was the type of the reference.**
+
+> **It is a property of the REFERENCE, not of the type** — so the lever is how you
+> spell the access, and a `COMPONENT_REF` and a char-pointer cast to the same byte
+> are different operands to the scheduler.
+
+Independent confirmation that this is the mechanism: **`-fno-strict-aliasing` on
+the unmodified park body is byte-identical**, so the figure was never about
+aliasing *strength* — only about which set that one reference lands in.
+
+Note also, from the same work, that a park's "the struct is load-bearing" verdict
+was **true of one member and false of another** in the same struct. The
+observation was real; its generalisation was not.
+
+## A SCREENING TOOL MUST NOT CARRY A SECOND IMPLEMENTATION OF THE AUTHORITY
+
+`tools/crossfire.py` opens by promising *"IT IMPORTS tools/objcmp.py, THE
+AUTHORITY. It does not reimplement scoring and it cannot drift from it."* It then
+carried its own `_insn_count()`, which counted objdump-rendered lines out of a
+`.s` — and which received **none** of the three corrections `objcmp`'s counter
+received (the trailing pad, the mid-stream pad, the relocated pool word). So
+after `objcmp` was fixed, `crossfire` still false-positived its `INSNS` flag on a
+**base row**, reported by batch 327 brief D.
+
+Fixed by deleting the duplicate: the counting logic is now
+`objcmp.insn_pool_counts()`, a single module-level authority, and `crossfire`
+reads `objcmp`'s own `INSTRUCTION COUNT` / `POOL WORD COUNT` verdicts out of the
+run it already performs — no second compile and nothing to drift.
+
+> **A tool that states it cannot drift from the authority is exactly the tool to
+> check for a private copy.** The promise in the docstring is not the mechanism;
+> the import is.

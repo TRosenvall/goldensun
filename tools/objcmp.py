@@ -210,6 +210,56 @@ def one_function(ref, name):
     return ['\t.include "macros.inc"\n', '\t.include "gba.inc"\n', "\n"] + out
 
 
+def insn_pool_counts(enc, rel):
+    """(instructions, pool words) for an encoding list, pads excluded.
+
+    THE AUTHORITY FOR "HOW LONG IS THIS FUNCTION".  It exists as a module-level
+    function because tools/crossfire.py had its OWN second implementation that
+    counted objdump-rendered lines out of a `.s`, and that copy did not receive
+    any of the three corrections this one did -- so crossfire's INSNS screen
+    false-positived on a base row after objcmp had been fixed.  Two
+    implementations of one authority is the defect; this is the single copy.
+
+    Three traps are folded in, each found the hard way:
+      * a TRAILING `.short 0x0000` alignment pad is not an instruction;
+      * neither is a MID-STREAM pad -- `.align 2` before a literal pool inserts
+        one, and it is followed by the pool word rather than ending the stream;
+      * but a zero word that CARRIES A RELOCATION is a pool entry, not a pad: a
+        _CONST_*/_MSG_*/_FILE_* placeholder dumps as 00000000 and only acquires
+        its value at link time.
+    And pool words are reported separately because a figure can differ by a POOL
+    WORD while the instruction streams are the same length, which is a different
+    defect with a different fix.
+    """
+    rel_off = set()
+    for r in rel or ():
+        try:
+            rel_off.add(int(r[0], 16))
+        except (ValueError, IndexError, TypeError):
+            pass
+    off, offs = 0, []
+    for e in enc:
+        offs.append(off)
+        off += 2 if len(e.replace("0x", "")) <= 4 else 4
+    k = len(enc)
+    while k > 0 and enc[k - 1] in ("0000", "0x0000", "00000000") \
+            and offs[k - 1] not in rel_off:
+        k -= 1
+    pads = 0
+    for i in range(k - 1):
+        e = enc[i].replace("0x", "")
+        if (len(e) <= 4 and int(e, 16) == 0
+                and len(enc[i + 1].replace("0x", "")) > 4
+                and offs[i] not in rel_off):
+            pads += 1
+    kept = [e for i, e in enumerate(enc[:k])
+            if not (len(e.replace("0x", "")) <= 4 and int(e.replace("0x", ""), 16) == 0
+                    and i + 1 < k and len(enc[i + 1].replace("0x", "")) > 4
+                    and offs[i] not in rel_off)]
+    insns = sum(1 for e in kept if len(e.replace("0x", "")) <= 4)
+    return insns, len(kept) - insns
+
+
 def dump(obj):
     # -z (--disassemble-zeroes) is REQUIRED, not cosmetic. Without it objdump
     # ELIDES A RUN OF IDENTICAL WORDS as a single "...", the encoding regex
@@ -492,8 +542,8 @@ def main():
         n = _insns(enc, rel)                      # pads already excluded
         insns = sum(1 for e in enc[:n] if len(e.replace("0x", "")) <= 4)
         return insns, n - insns
-    a_in, a_pool = _split(a_enc, a_rel)
-    b_in, b_pool = _split(b_enc, b_rel)
+    a_in, a_pool = insn_pool_counts(a_enc, a_rel)
+    b_in, b_pool = insn_pool_counts(b_enc, b_rel)
     if a_pool != b_pool and a_in == b_in:
         print("  XX POOL WORD COUNT  ref %d, ours %d  (instructions AGREE at %d)"
               % (a_pool, b_pool, a_in))

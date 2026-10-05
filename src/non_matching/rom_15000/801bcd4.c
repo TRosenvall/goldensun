@@ -1,3 +1,120 @@
+/* Func_801bcd4 -- PARK IMPROVED 16 -> 13 of 81, the park's CHAIN-ORDER claim
+ * REFUTED, and the two runs shown to be ONE defect.  Batch 327 brief C.
+ *
+ *   13 differing encodings of 81.  ref 81 encodings, ours 81 -- EQUAL.
+ *   SIZE IDENTICAL (196 bytes).  RELOCATIONS IDENTICAL.  80 instructions
+ *   against the ROM's 80.  Memory profile 3 ldr / 4 str = the reference's.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/801bcd4.c asm/rom_15000/rom_1aeec_a_a_c_c.s --func Func_801bcd4
+ *
+ * ================= THE EDIT: MOVE THE EARLY RETURN TO THE BOTTOM
+ *
+ * `goto fail;` out of the guard with `fail: return slot;` after the switch,
+ * instead of `return slot;` inside the guard.  Semantically identical.  It
+ * takes the parameter copy out of the first three instructions, so the ROM's
+ * `mov r8,r3 / mov r3,#1` now align, and 16 -> 13.  It costs the ROM's
+ * `cmp r4,r3` (we emit `cmp r5,r3`), so this is a 4-for-1 trade, not a new
+ * mechanism -- see the warning at the end.
+ *
+ * ================= WHAT THE REMAINING 13 IS, AND IT IS ONE DEFECT
+ *
+ *   rom   mov r8,r3 / mov r3,#1 / sub sp,#0xc / mov r4,r2  / neg r3,r3 /
+ *         mov r7,r0 / mov r5,r1 / str r2,[sp,#8] / mov r6,r4 / cmp r4,r3
+ *   ours  mov r8,r3 / mov r3,#1 / mov r5,r2    / sub sp,#12 / neg r3,r3 /
+ *         mov r7,r0 / mov r6,r1 / str r5,[sp,#8] / mov r4,r5 / cmp r5,r3
+ *
+ * NINE insns each, and the difference is the DIRECTION OF A TWO-LINK COPY CHAIN:
+ *
+ *   rom    incoming r2  ->  PRE pseudo (r4)  ->  across-call copy (r6)
+ *   ours   incoming r2  ->  across-call copy (r5)  ->  PRE pseudo (r4)
+ *
+ * The ROM's across-call value is a SINGLE-USE COPY OF THE PRE PSEUDO, so the
+ * parameter pseudo dies in the prologue and keeps its incoming r2 (its `(set P
+ * r2)` is a noop and vanishes).  Ours IS the parameter, so it must survive the
+ * call and takes a callee-saved register.
+ *
+ * ** THE OTHER 7 OF THE 13 ARE NOT A SECOND PROBLEM.  They are
+ * `allocno_compare` (global.c:597-620) on reference counts: ** the ROM's
+ * across-call pseudo has ONE reference and so loses r5 to `b` (SIX references,
+ * one per switch arm) and takes r6; ours is the parameter with THREE (`s =
+ * slot`, the store, the early return) and so beats `b` to r5.  Hence `mov r5,r1`
+ * vs `mov r6,r1` and six `mov r0,r5` vs `mov r0,r6`.  **Fixing the chain
+ * direction fixes all seven for free; the two runs must never be costed apart.**
+ *
+ * ================= REFUTED: "the blocker is sub-condition (i)" IS HALF OF IT,
+ * ================= AND THE CHAIN IS REVERSED, NOT MERELY COLLAPSED
+ *
+ * Dumps of `s = slot; s0 = s; ... return s0;` (brief C, dump/bcd4b03):
+ *
+ *   .08.loop   insn   8  (set (reg/v:SI 34) (reg:SI 2 r2))      the parameter
+ *              insn  18  (set (mem/f:SI (sfp-4)) (reg/v:SI 34)) `s = slot`
+ *              insn  21  (set (reg/v:SI 38) (mem/f:SI (sfp-4))) `s0 = s`, a MEM READ
+ *              insn 242  (set (reg:SI 64) (reg/v:SI 38))        gcse's PRE rep
+ *   .09.cse2   insn  21  (set (reg/v:SI 38) (reg/v:SI 34))
+ *              insn 242  (set (reg:SI 64) (reg/v:SI 34))        SOURCE rewritten
+ *
+ * ** gcse HANGS ITS PRE REPRESENTATIVE OFF `s0 = s` -- insn 242 reads 38, not
+ * the memory -- so our chain is param -> s0 -> PRE where the ROM's is
+ * param -> PRE -> s0. **  The park read the residue as one collapsed copy; it is
+ * a chain in the WRONG ORDER, and that is why giving `s0` a second life does not
+ * help.  Making `s0 = s` the SECOND read of `s`, so the PRE rep attaches to the
+ * compare instead (`if (s == -1) { s0 = s; ... }`), does NOT reverse it: cse2
+ * folds both ends to the parameter either way.  MEASURED at 16, twice.
+ *
+ * The park's sub-condition (i) is real -- cse2's first extended block is
+ * `;; Processing block from 2 to 41`, the entry through the early return with no
+ * CODE_LABEL in it, so pseudo 38's whole range is inside one block.  But
+ * sub-condition (ii) fails INDEPENDENTLY on every `s0 = s` body:
+ *
+ *     uid_cuid[REGNO_LAST_UID (s0)] > uid_cuid[REGNO_LAST_UID (firstr)]
+ *
+ * with `firstr` the parameter pseudo, whose last mention is the early return
+ * itself or later.  ** So a lever that buys only a CODE_LABEL cannot work here;
+ * both sub-conditions have to be bought at once, and every edit that extends
+ * s0's range past the first block (the `goto fail` cross, the `||` form) costs
+ * TWO INSTRUCTIONS and reads 80 at 83. **
+ *
+ * MEASURED, this batch (ref 81 encodings / 80 insns; every row with equal
+ * counts also had the reference's 3 ldr / 4 str memory profile):
+ *   goto fail / fail: return slot                      ** 13 **  <- kept
+ *   the same + s0 = slot (s0 deleted; byte-identical)     13
+ *   the previous park body (return slot inside guard)     16
+ *   s0 = slot, return s0 inside guard                     16  byte-identical to it
+ *   s0 = s,    return s0 inside guard                     16  byte-identical to it
+ *   s0 declared before s                                  16  identical
+ *   block-scoped `int s0 = s;` inside the guard           16
+ *   s0 assigned inside the guard, function scope          16
+ *   `while (s == -1) { ...; break; }` (label manufacture) 16
+ *   compare s0 rather than s                              41  at 79 insns
+ *   the alloc block moved to the bottom via goto          68  at 83 insns
+ *   s0 = s crossed with `goto fail`                       80  at 83 insns
+ *   `if (s != -1 || (s = Alloc()) != 0x60)`               80  at 83 insns
+ *   s0 inside the guard crossed with `goto fail`          80  at 83 insns
+ * INSTRUMENTS (flags, figures ABOUT the blocker, not proposals):
+ *   -fno-rerun-cse-after-loop  72 at 84 insns -- it DOES keep the copy, which
+ *     confirms cse2 is the actor, and costs two instructions elsewhere.
+ *   -fno-gcse                  41 at 78 insns.
+ *
+ * > ** AND THE 13 IS A WARNING, NOT ONLY A GAIN.  The 16 body matched the ROM's
+ * > `cmp r4,r3` (it compares the PRE pseudo); the 13 body emits `cmp r5,r3`.
+ * > Both figures have the IDENTICAL single cause, so whoever picks this up should
+ * > read the 16 body as the one whose compare is right and the 13 body as the one
+ * > whose prologue head is right -- not as 13 being three steps nearer. **
+ *
+ * NEXT, named: reverse the chain -- get gcse's PRE representative set DIRECTLY
+ * from the parameter pseudo and the across-call value set from the PRE pseudo,
+ * with the across-call pseudo having exactly ONE reference.  REFUTED IF that is
+ * reachable from C.  Nothing that only moves `s0`'s live range or only
+ * manufactures a CODE_LABEL can do it; both cse2 sub-conditions bind.
+ *
+ * SIBLINGS BY SIGNATURE (unverified): any park whose prologue residue is two
+ * copies of one value in the opposite order, where one end is a parameter and
+ * the other is read after a call.  Diagnostic: compare `.08.loop`'s and
+ * `.09.cse2`'s source register on gcse's inserted PRE insn -- if cse2 rewrote
+ * it to the parameter, this is the same defect.
+ */
+
 /* Func_801bcd4 -- PARK IMPROVED 48 -> 16, and the CROSS-JUMP BOUND IS REFUTED.
  * Batch 326 brief A.
  *
@@ -345,7 +462,7 @@ int Func_801bcd4(int kind, int b, int slot, int d)
 	if (s == -1) {
 		s = AllocSpriteSlot();
 		if (s == 0x60)
-			return slot;
+			goto fail;
 	}
 	switch (kind) {
 	case 1:
@@ -371,4 +488,6 @@ int Func_801bcd4(int kind, int b, int slot, int d)
 		break;
 	}
 	return s;
+fail:
+	return slot;
 }

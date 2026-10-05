@@ -12,14 +12,14 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_15000/802106c.c \
- *     asm/rom_15000/rom_20198_c_c_c_a_a_a_a_c.s --func Func_802106c
+ *     asm/rom_15000/rom_20198_c_c_c_a_a_a_a_c_c.s --func Func_802106c
  *
  * This recipe was ADDED by the batch-319 backfill: the park had none, so
  * parkcheck.py could not report its figure and nothing had ever checked it.
  * Blocker class: one build-input symbol, plus a reload split on an r8-allocated frame address.
  * Never attempted before batch 277.
  *
- * asm/rom_15000/rom_20198_c_c_c_a_a_a_a_c.s (4 functions: Func_8020b64, UI_NameEntry,
+ * asm/rom_15000/rom_20198_c_c_c_a_a_a_a_c_c.s (4 functions: Func_8020b64, UI_NameEntry,
  * Func_802106c, Func_8021228 -- so landing needs a split). Func_8021228 is parked at
  * src/non_matching/rom_15000/8021228.c, and ITS `struct S` + `q = &s` note is what gave this
  * function's sprite-record shape. A park is a file-mate source, again.

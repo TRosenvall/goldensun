@@ -1,9 +1,9 @@
-/* UI_NameEntry  --  0x08020bd8, was asm/rom_15000/rom_20198_c_c_c_a_a_a_a_c.s.
+/* UI_NameEntry  --  0x08020bd8, was asm/rom_15000/rom_20198_c_c_c_a_a_a_a_c_c.s.
  *
  * SPLIT SHAPE: a PLAIN 3-WAY TEXT SPLIT, NO EXTRA EXPORTS.
  *   The file holds FOUR functions in this order -- Func_8020b64, UI_NameEntry,
  *   Func_802106c, Func_8021228 -- so UI_NameEntry is the middle cut:
- *     python3 tools/split_s.py asm/rom_15000/rom_20198_c_c_c_a_a_a_a_c.s UI_NameEntry
+ *     python3 tools/split_s.py asm/rom_15000/rom_20198_c_c_c_a_a_a_a_c_c.s UI_NameEntry
  *   gives _a (Func_8020b64), _b (UI_NameEntry -> this .c), _c (Func_802106c +
  *   Func_8021228).  tools/datacheck.py reports NO data section, and `stage1.ld`
  *   names the object EXACTLY ONCE, at line 538, with `(.text)` only and no
@@ -32,7 +32,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_15000/8020bd8.c \
- *     asm/rom_15000/rom_20198_c_c_c_a_a_a_a_c.s --func UI_NameEntry
+ *     asm/rom_15000/rom_20198_c_c_c_a_a_a_a_c_c.s --func UI_NameEntry
  *   -> XX SIZE  ref 1172 bytes, ours 1216
  *      XX ENCODINGS differ in 488 place(s) (ref 525, ours 547)
  *

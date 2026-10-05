@@ -68,7 +68,7 @@ MEMOPS = ("ldr", "ldrb", "ldrh", "ldrsb", "ldrsh", "str", "strb", "strh")
 
 
 def score(src, ref, func):
-    """(differing, ref_count, our_count, relocdiff, error) via objcmp itself.
+    """(differing, ref_count, our_count, relocdiff, error, lenflag) via objcmp itself.
 
     `error` is non-empty when there is NO figure, and it says WHY.  A variant that
     fails to compile and a variant whose score cannot be parsed are different
@@ -81,19 +81,29 @@ def score(src, ref, func):
                                         "objcmp.py"), src, ref, "--func", func]
     r = subprocess.run(cmd, capture_output=True, text=True, cwd=objcmp.ROOT)
     out, err = r.stdout, r.stderr
+    # objcmp's OWN length verdicts, rather than a second implementation here.
+    # tools/crossfire.py used to recompute the instruction count by counting
+    # objdump-rendered lines out of a `.s`, and that copy received none of the
+    # three corrections objcmp's counter did -- so after objcmp was fixed this
+    # screen still false-positived on a BASE row (reported by batch 327 brief D).
+    # Two implementations of one authority is the defect.  objcmp already prints
+    # `INSTRUCTION COUNT` when the instruction streams differ in length and
+    # `POOL WORD COUNT` when only the pool does, so read those.
+    lenflag = ("INSNS " if "XX INSTRUCTION COUNT" in out else
+               "POOL "  if "XX POOL WORD COUNT"  in out else "")
     if " OK " in out:
-        return (0, None, None, False, "")
+        return (0, None, None, False, "", lenflag)
     m = re.search(r"ENCODINGS differ in (\d+) place\(s\) \(ref (\d+), ours (\d+)\)", out)
     if m:
         return (int(m.group(1)), int(m.group(2)), int(m.group(3)),
-                "RELOCATIONS differ" in out, "")
+                "RELOCATIONS differ" in out, "", lenflag)
     blob = (err + "\n" + out)
     cerr = [l for l in blob.splitlines()
             if re.search(r"\berror\b|\bundefined\b|parse error|syntax error", l, re.I)]
     if cerr:
-        return (None, None, None, False, "COMPILEFAIL: " + cerr[0].strip()[:110])
+        return (None, None, None, False, "COMPILEFAIL: " + cerr[0].strip()[:110], "")
     last = (blob.strip().splitlines() or ["no output"])[-1]
-    return (None, None, None, False, "NOFIGURE: " + last.strip()[:110])
+    return (None, None, None, False, "NOFIGURE: " + last.strip()[:110], "")
 
 
 def memhist(src, ref, func):
@@ -131,38 +141,12 @@ def memhist(src, ref, func):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
-def _insn_count(src, ref):
-    """Real instruction count (NOT encodings) for a candidate.
-
-    objcmp's encoding count includes a trailing `.short 0x0000` alignment pad, so
-    two objects can agree on encodings and differ by one INSTRUCTION.  This counts
-    only lines objdump renders as instructions.
-    """
-    try:
-        cf, _ = objcmp.cflags_for(ref)
-    except Exception:
-        cf = []
-    tmp = tempfile.mkdtemp(prefix="crossfire.ic.")
-    try:
-        asm = os.path.join(tmp, "c.s")
-        gcc = os.path.join(objcmp.GCC, "xgcc")
-        r = subprocess.run([gcc, "-B" + objcmp.GCC + "/"] + cf +
-                           ["-I" + os.path.join(objcmp.ROOT, "include"), "-S", "-o", asm, src],
-                           capture_output=True, text=True, cwd=objcmp.ROOT)
-        if r.returncode != 0:
-            return None
-        obj = os.path.join(tmp, "c.o")
-        if subprocess.run(objcmp.AS + ["-o", obj, asm], capture_output=True,
-                          cwd=objcmp.ROOT).returncode != 0:
-            return None
-        d = subprocess.run(["arm-none-eabi-objdump", "-d", "--no-show-raw-insn", obj],
-                           capture_output=True, text=True).stdout
-        return len([l for l in d.splitlines()
-                    if re.match(r"\s+[0-9a-f]+:\s+\S", l) and ".short" not in l])
-    finally:
-        shutil.rmtree(tmp, ignore_errors=True)
-
-
+# _insn_count() REMOVED in batch 327.  It was a second implementation of
+# objcmp's instruction counter that counted objdump-rendered lines out of a
+# `.s`, and it did not receive the pad, mid-stream-pad or relocated-pool-word
+# corrections objcmp's counter did -- so it false-positived on a BASE row after
+# objcmp was fixed.  score() now reads objcmp's own INSTRUCTION COUNT / POOL
+# WORD lines; objcmp.insn_pool_counts() is the single authority.
 def apply_edits(base_text, edits, chosen):
     t = base_text
     for i in chosen:
@@ -213,22 +197,9 @@ def main():
     except Exception as e:
         ref_mem_err = f"{type(e).__name__}: {e}"
 
-    ref_insns = None
-    try:
-        rp2 = os.path.join(work, "refi.s")
-        _of2 = objcmp.one_function(a.ref, a.func)
-        open(rp2, "w").write(_of2 if isinstance(_of2, str) else "\n".join(_of2))
-        o2 = os.path.join(work, "refi.o")
-        if subprocess.run(objcmp.AS + ["-o", o2, rp2], capture_output=True,
-                          cwd=objcmp.ROOT).returncode == 0:
-            d2 = subprocess.run(["arm-none-eabi-objdump", "-d",
-                                 "--no-show-raw-insn", o2],
-                                capture_output=True, text=True).stdout
-            ref_insns = len([l for l in d2.splitlines()
-                             if re.match(r"\s+[0-9a-f]+:\s+\S", l)
-                             and ".short" not in l])
-    except Exception:
-        pass
+    # The reference instruction count used to be recomputed here for the
+    # retired _insn_count() screen.  objcmp now reports the comparison itself,
+    # so this block is gone rather than left computing a value nothing reads.
 
     combos = [()] + [c for n in range(1, a.depth + 1)
                      for c in itertools.combinations(range(len(edits)), n)]
@@ -239,7 +210,7 @@ def main():
             rows.append((None, None, None, "SKIP", label, err)); continue
         vp = os.path.join(work, f"v{len(rows):04d}.c")
         open(vp, "w").write(txt)
-        d, rc, oc, reloc, serr = score(vp, a.ref, a.func)
+        d, rc, oc, reloc, serr, lenflag = score(vp, a.ref, a.func)
         mem = memhist(vp, a.ref, a.func)
         flag = ""
         if reloc: flag += "RELOC "
@@ -252,10 +223,8 @@ def main():
         # So also compare instruction counts, and say which kind of mismatch it is.
         if rc is not None and oc is not None and rc != oc:
             flag += "COUNT "
-        elif ref_insns is not None and mem is not None:
-            oi = _insn_count(vp, a.ref)
-            if oi is not None and oi != ref_insns:
-                flag += "INSNS "
+        else:
+            flag += lenflag
         if ref_mem and mem and any(mem[k] != ref_mem[k] for k in MEMOPS): flag += "MEM "
         rows.append((d, rc, oc, flag.strip() or "-", label, serr))
 
@@ -288,9 +257,10 @@ def main():
     print(f"\n  flags: COUNT = instruction count differs, so the figure measures MISALIGNMENT")
     print(f"         MEM   = memory-access counts differ from the reference -- A BETTER FIGURE")
     print(f"                 HERE MAY BE A WRONG PROGRAM.  Read it before believing it.")
-    print(f"         INSNS = encoding counts AGREE but INSTRUCTION counts differ, which")
-    print(f"                 objcmp's own count hides: it counts a trailing")
-    print(f"                 `.short 0x0000` alignment pad as an encoding.  Treat as COUNT.")
+    print(f"         INSNS = encoding counts AGREE but the INSTRUCTION streams differ in")
+    print(f"                 length -- a pad is absorbing the difference.  Treat as COUNT.")
+    print(f"         POOL  = instruction streams AGREE and only the POOL WORD count differs,")
+    print(f"                 so the residue is pool CONTENT, not a missing instruction.")
     print(f"         RELOC = relocations differ -- the figure is NOT a distance.")
     if a.keep:
         print(f"\n  variants kept in {work}")
