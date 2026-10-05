@@ -1,88 +1,113 @@
 /* Func_8029274 -- asm/rom_15000/rom_23178_a_c_c_c_a.s
  *
- * STILL NON-MATCHING, 6 of 40 encodings -- RE-MEASURED batch 322A.  The park's
- * figure is right and its two-cluster anatomy is right; its DENOMINATOR is not.
+ * STILL NON-MATCHING, 2 differing encodings of 40 -- IMPROVED FROM 6 in batch
+ * 328 brief G.  Size identical, relocations clean, 40 real instructions
+ * against 40, no pool words anywhere in this function.  2 IS A TRUE DISTANCE.
  *
  * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/rom_15000/8029274.c \
- *     asm/rom_15000/rom_23178_a_c_c_c_a.s --func Func_8029274
- *
- * *** THE DENOMINATOR IS 40, NOT 47. ***  The park's prose says "6 of 47" in
- * four places while its own recipe line says 40.  objcmp: `(ref 40, ours 40)`,
- * size identical.  47 appears nowhere in any measurement and should not be
- * quoted again.
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/8029274.c asm/rom_15000/rom_23178_a_c_c_c_a.s --func Func_8029274
  *
  * --whole: the reference holds TWO functions, ['Func_8029274', 'Func_80292c4'],
- *   so landing needs a two-way split.  SPLIT SHAPE (both re-run this batch):
+ *   so landing needs a two-way split.  SPLIT SHAPE (unchanged, re-verified):
  *     tools/datacheck.py asm/.../rom_23178_a_c_c_c_a.s -> NO OUTPUT, exit 0
  *     tools/split_s.py ... Func_8029274 --dry-run ->
  *       rom_23178_a_c_c_c_a_b.s (1 function, 52 lines)   [Func_8029274]
  *       rom_23178_a_c_c_c_a_c.s (1 function, 98 lines)   [Func_80292c4]
  *       removes rom_23178_a_c_c_c_a.s, rewrites stage1.ld
  *       install path on a landing: src/rom_15000/rom_23178_a_c_c_c_a_b.c
- * PINS: 0.  No shims of any kind, no per-file flag, no fakematch row.
+ * PINS: 0.  No shims, no device, no per-file flag, no fakematch row.
  *
- * ===================== WHAT THE 6 ARE (re-measured per index) ===============
+ * =================== WHAT CLOSED FOUR OF THE SIX, AND WHY ===================
  *
- * All six are REAL INSTRUCTIONS -- no pool words anywhere in this function.
+ * The retired park recorded BOTH halves of this fix in its own negatives list,
+ * each measured ALONE and each therefore rejected:
  *
- *   cluster 1 (2 encodings) -- the digit store against the index increment
- *     XX  18  ref 7023 strb r3,[r4]  | ours 3201 adds r2,#1
- *     XX  19  ref 3201 adds r2,#1    | ours 7023 strb r3,[r4]
+ *     "a SECOND pointer variable for the copy-back loop is 21 and two short"
+ *     "v02  p = (char *)(i + (int)buf)   6"   (inert, one container)
  *
- *   cluster 2 (4 encodings) -- ONE register decision with four consequences
- *     XX  28  ref 18d1 adds r1,r2,r3 | ours 189c adds r4,r3,r2
- *     XX  30  ref 780b ldrb r3,[r1]  | ours 7823 ldrb r3,[r4]
- *     XX  31  ref 3901 subs r1,#1    | ours 3c01 subs r4,#1
- *     XX  34  ref 4561 cmp  r1,ip    | ours 4564 cmp  r4,ip
+ * CROSSED, THEY ARE THE WHOLE OF CLUSTER 2.  Two pointer variables take 6 -> 3;
+ * forming the second one by an INT-DOMAIN add takes 3 -> 2.  Neither works
+ * without the other, and the park's nine-row cross varied only how ONE pointer
+ * was formed -- the number of pointers was never a dimension.  This is the
+ * batch-327 law verbatim: when a park's negatives all vary one dimension, the
+ * answer is in a dimension nobody varied.
  *
- * The copy-back pointer is **r1** in the ROM and **r4** in ours, and r1 is the
- * register the digit count `n` arrived in and is dead in by then.  Note idx 28
- * also differs in OPERAND ORDER: `adds r1,r2,r3` is index-then-base, ours is
- * base-then-index.
+ *   * TWO POINTERS.  The ROM materialises the buffer address TWICE --
+ *     `mov r4, sp` for the digit loop and `mov r3, sp` for the copy-back loop,
+ *     with the copy-back pointer AND the `ip` limit both derived from that
+ *     second r3 (`add r1, r2, r3` / `mov r12, r3`).  One C pointer is one
+ *     pseudo in gcc-2.96 and cannot occupy r4 then r1, which is exactly the
+ *     tension the old park named as "the most promising thing left here".  It
+ *     was right.  The park's "two short" was a MISSING PREREQUISITE: with `q`
+ *     actually declared, the instruction count is 40 = 40.
+ *   * THE INT-DOMAIN ADD IS THE OPERAND ORDER.  ROM `add r1, r2, r3` is
+ *     INDEX-first; `q = buf + i` and `q = &buf[i]` and even `q = i + buf` all
+ *     give BASE-first, because fold canonicalises a POINTER_PLUS and puts the
+ *     pointer operand first regardless of how it was written.  Casting to int
+ *     first leaves an ordinary PLUS_EXPR whose operand order survives:
+ *         q = (char *)(i + (int)buf);   ->   add r1, r2, r3
+ *     `q = buf; q += i;` is 5 -- a compound assignment makes q's own pseudo the
+ *     destination (expr.c:7290-7292, no EXPAND_SUM), which is a third shape.
  *
- * ===================== A FLAT CROSS, WHICH IS THE FINDING ===================
+ * ========================= THE REMAINING 2, NAMED =========================
  *
- * Landed sibling src/rom_15000/rom_20198_c_c_c_a_a_c_a_b.c documents that a
- * reg+reg form whose FIRST register is the scaled index is the tell for a
- * SUBSCRIPT, and that base-first is what naive pointer arithmetic gives -- which
- * is exactly the idx-28 difference.  **It is inert here.**  Measured, one
- * container, every row size-exact and relocation-clean:
+ * ONE SCHEDULING DECISION IN THE DIGIT LOOP, and it is a sched2 rank, not a
+ * dependence error.  The ROM issues the store first; we issue `i++` first:
  *
- *     v00_base   `p = buf + i;`                        6
- *     v01        `p = &buf[i];`           (subscript)  6
- *     v02        `p = (char *)(i + (int)buf);`         6
- *     v04        `p = (char *)((int)buf + i);`         6
- *     v03        `p = buf; p += i;`                    8   WORSE
- *     v06        `p++` before `i++`                    6
- *     v07        `*p++ = d;`                           6
- *     v08        `val >>= 4` before `i++`              6
- *     v09        `i++` last in the body                6
+ *     rom   strb r3,[r4] / add r2,#1      ours   add r2,#1 / strb r3,[r4]
  *
- * **Nine spellings, two independent dimensions (how the pointer is FORMED and
- * the order of the four loop-body statements), and the figure never moves off 6
- * except to get worse.**  Per the batch-322 brief, a flat cross is itself the
- * result: the lever is in neither dimension, and the next move is the SIGNATURE,
- * the TYPE or the TU shape -- not another cell. In particular the index-first
- * spelling does NOT reach idx 28 here, so whatever decides operand order on this
- * insn is downstream of the source form, and the landed sibling's rule does not
- * generalise to a stack-array base.
+ * Read out of `.23.sched2`, block 7 (`Ready list (t = 0): 62 56 59`, chosen
+ * 59 -- the list prints ASCENDING rank, so the pick is the LAST entry):
  *
- * The park's own two backfires still bound the obvious moves and are kept: the
- * copy-back loop in int arithmetic is 26 and one short, and a SECOND pointer
- * variable for the copy-back loop is 21 and two short.  The second is worth
- * re-reading, because the ROM genuinely uses two different registers for the two
- * loops (r4 then r1), which one pseudo cannot do -- yet two pseudos lose the
- * second `mov rN, sp`.  **That tension is unresolved and is the most promising
- * thing left here:** a shape that gives two pointers but materialises the buffer
- * address twice.
+ *     insn 59  `r2=r2+1`    (i++)   dependent: insn 69, the fused `cmp r2,r1`
+ *                                   + branch.  TRUE dep -> priority 1.
+ *     insn 56  `[r4]=r3`    (store) dependent: insn 65 `r4=r4+1` (p++) and the
+ *                                   dependence is an ANTI dep.  arm_adjust_cost
+ *                                   (arm.c:2416-2453) returns 0 for anti and
+ *                                   output deps and NEVER RAISES a cost, so
+ *                                   priority(56) = priority(65) + 0 = 0.
+ *
+ * So `rank_for_schedule` returns on the FIRST rung and the store never gets to
+ * the dependent-count or INSN_LUID rungs where source order would favour it.
+ *
+ *   >> WHAT WOULD CLOSE IT: priority(56) >= 1, which needs EITHER a true-
+ *      dependence consumer of the store (a load of the same byte -- not in this
+ *      program) OR an in-block dependent for `p++`, at no instruction cost.
+ *      The loop-closing compare is on `i` against `n` in the ROM (`cmp r2,r1`),
+ *      so the pointer cannot be made to carry the exit test.
+ *
+ * `-fno-schedule-insns2` is NOT the answer and proves the residue is symmetric:
+ * it fixes the digit loop and BREAKS the copy-back loop (still 2, now
+ * `sub r1,#1` against `strb r3,[r5]` at idx 37).  The scheduler is right in one
+ * loop and wrong in the other, so no flag can serve both.  NOT a flag row.
+ *
+ * ===================== MEASURED INERT / WORSE (batch 328) ====================
+ * All rows one container, every row ref 40 / ours 40 unless noted.
+ *   q = &buf[i]                                               3   (base-first)
+ *   q = i + buf                                               3   (fold swaps it)
+ *   q = buf; q += i;                                          5
+ *   loop 1 fully INDEXED, `buf[i] = d`, no p at all           2   exactly inert
+ *   loop 2 INDEXED on a down counter, `out[..] = buf[i]`      2   exactly inert
+ *   *(unsigned char *)p = d   (alias-set / sched2 lever)      2   exactly inert
+ *   unsigned char buf[8]                                      2   exactly inert
+ *   *p++ = d                                                  2   exactly inert
+ *   i++ last in the body / p++ before i++ / i = i + 1         2   exactly inert
+ *   val >>= 4 before the store                                2   exactly inert
+ *   store via a named `char` temp                             2   exactly inert
+ *   *p = (char)d                                              2   exactly inert
+ *   `d` as signed int                                         2   exactly inert
+ *   0xf used directly instead of the named `mask`             4   WORSE
+ *   `mask` declaration removed as well                       31   WORSE, 40/40
+ * The last two re-confirm the old park's finding that the NAMED `mask` is
+ * load-bearing.  The byte-access/alias-set lever (brief 328's "if a target has
+ * a byte access and a sched2 residue, spell it both ways") is EXACTLY INERT
+ * here: `char` already has alias set 0, so there is no room to move.
  */
 void Func_8029274(unsigned int val, unsigned int n, char *out)
 {
     char buf[8];
     char *p;
+    char *q;
     int i;
     unsigned int d;
     int mask;
@@ -107,11 +132,11 @@ void Func_8029274(unsigned int val, unsigned int n, char *out)
     }
     i = n - 1;
     if (i >= 0) {
-        p = buf + i;
+        q = (char *)(i + (int)buf);
         do {
-            *out = *p;
-            p--;
+            *out = *q;
+            q--;
             out++;
-        } while ((int)p >= (int)buf);
+        } while ((int)q >= (int)buf);
     }
 }
