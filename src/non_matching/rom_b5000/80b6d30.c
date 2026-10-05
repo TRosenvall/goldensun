@@ -1,7 +1,10 @@
 /* Func_80b6d30 (AssignBattlePositions)  --  0x080b6d30
  *
- * STILL NON-MATCHING, **4 of 119 encodings** (ref 119 / ours 119, first
- * differing index 23).  PIN-FREE, SHIM-FREE, FLAG-FREE.  Batch 321 brief E
+ * STILL NON-MATCHING, **4 differing encodings of 119** (ref 119 / ours 119,
+ * 118 real instructions on both sides, first differing index 23).  PIN-FREE,
+ * SHIM-FREE, FLAG-FREE.  RE-DERIVED batch 326 brief F -- objcmp --func AND
+ * --whole both read 4 of 119 with SIZE, INSTRUCTION COUNT and RELOCATIONS all
+ * silent, so no pad is absorbing a length difference.  Batch 321 brief E
  * RE-MEASURED and CONFIRMED the figure, ran 37 crossed variants over the lever
  * class the park had never touched (declarations and signatures), and
  * independently DERIVED residue (1)'s impossibility from cse.c rather than
@@ -12,10 +15,7 @@
  * conversion with no export and no split.
  *
  * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/rom_b5000/80b6d30.c \
- *     asm/rom_b5000/rom_b5a0c_c_c_c_a_c.s --func Func_80b6d30
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_b5000/80b6d30.c asm/rom_b5000/rom_b5a0c_c_c_c_a_c.s --func Func_80b6d30
  *
  * THE RESIDUE IS TWO PLACES, FOUR ENCODINGS, and both are confirmed:
  *
@@ -101,17 +101,131 @@
  * residue (1) is decided on COST inside cse1's equivalence class, which no type
  * written in C can move, and residue (2) is a reload-register INDEX.
  *
- * ===== RESIDUE (2), inherited and still right =====
+ * ===== BATCH 326 BRIEF F: RESIDUE (1)'s OPEN ROUTE IS REFUTED, AND ITS
+ * ===== SHAPE IS REPRODUCED
  *
- * `ret` lives in sl, a hi register, so Thumb must compute `(i << 12) | v` in a
- * lo register and copy; the copy is a RELOAD-created insn.  The park corrected an
- * earlier misreading that is worth keeping: `.18.greg`'s "Using reg 3 for reload
- * 0" is printed by find_reg, which selects which hard register to SPILL, not
- * which register a reload gets.  The reload register is chosen later, per insn,
- * by allocate_reload_reg walking `spill_regs` ROUND-ROBIN from `last_spill_reg`,
- * precisely so consecutive reloads leapfrog.  So the register at index 82 is a
- * function of the COUNT of reload-register allocations made EARLIER in the
- * function -- which is why every respelling of that statement is inert.
+ * OBSERVED rather than derived: `.02.jump` insn 54 is
+ * `(set (reg/v:SI 38) (reg/v:SI 37))` and `.03.cse` insn 54 is
+ * `(set (reg/v:SI 38) (const_int 0))` with a REG_EQUAL note (reg 37 = `ret`,
+ * reg 38 = `j`).  cse1 does fold it, exactly as the park derived.
+ *
+ * **BUT THE SAME FOLD ALSO DELETES `jump_insn 308`, THE LOOP'S ENTRY GUARD**
+ * `(if_then_else (gt (reg 38) (const_int 1)) ...)`, which `stmt.c` emits ahead
+ * of `NOTE_INSN_LOOP_BEG` for every `for`.  The ROM has NO entry guard: it goes
+ * `mov r4, sl / mov r7, r0` straight into `.Lb6d68`.  Measured -- every edit
+ * that blocks the fold puts the guard back and pays two encodings for it:
+ *
+ *   * `ret = _DEVICE_ZERO` (a volatile extern, INSTRUMENT): `cmp r1,#1 / bgt
+ *     .L4` appears, **121 instructions**, figure 105.
+ *   * `register int ret asm("r10")` (the park's pin): `cmp r7,#1 / bgt .L4`,
+ *     **121 instructions**, figure 102.
+ *
+ * So the park's "residue (1) needs a control-flow boundary that cse1 SEES and a
+ * later pass REMOVES" is necessary and **NOT SUFFICIENT**: a boundary that hides
+ * `ret`'s value also stops the guard folding.  **Any solution must ALSO make the
+ * outer loop bottom-tested in RTL**, and that cross is measured and it works:
+ *
+ *   * `j = ret; do { ... } while (++j <= 1);` is **EXACTLY INERT at 4 of 119,
+ *     118 instructions, with a bit-identical `.18.greg` reload trace.**  The
+ *     bottom-tested spelling is free -- a candidate prerequisite that pays
+ *     nothing on its own, which is why 37 one-at-a-time variants in batch 321
+ *     and six statement orders before that could not see it.
+ *   * the same do-while WITH the volatile instrument emits `mov r7, sl` at the
+ *     init, **no entry guard, and 118 instructions -- the ROM's exact count**
+ *     (against 121 for `for` + the same instrument).  Its figure is 101 only
+ *     because the volatile load swaps `j` and `v` between r7 and r4 and drops
+ *     one reload from the trace.
+ *
+ * > **Residue (1)'s SHAPE is therefore reproduced** -- register copy out of sl,
+ * > no guard, 118 instructions.  What remains is a DEVICE-FREE way to keep
+ * > `ret`'s value from cse1 at the init of a bottom-tested loop.  State the open
+ * > question that way; the boundary and the loop shape must arrive together.
+ *
+ * Device-free boundary attempts, all INERT at 4 (the label never survives to
+ * cse1): `goto start; start: j = ret;` -- jump1 runs at pass 02 and deletes the
+ * jump together with its now-unused label -- and braces on the `continue` arm.
+ * `int ret = 0;` as a declaration initialiser with the do-while reads **22**.
+ *
+ * ===== A FAMILY NOBODY HAD CHECKED, NOW CLOSED, WITH ITS EVIDENCE =====
+ *
+ * `mov r4, sl` could have come from post-reload CSE instead of from source --
+ * there are two passes that replace a non-register SET_SRC with a register that
+ * already holds the value, and both run after reload.  Neither can fire here:
+ *
+ *   * `reload_cse_simplify_set` (**reload1.c:8046-8056**) substitutes when
+ *     `this_cost < old_cost`, or on a tie because "If equal costs, prefer
+ *     registers over anything else".
+ *   * `reload_cse_simplify_operands` (**reload1.c:8219-8224**), optional
+ *     reloading, gates a CONST_INT operand on
+ *     `rtx_cost (operand, SET) > rtx_cost (reg, SET)`.
+ *
+ * and the Thumb costs are: `arm_rtx_costs` returns **0** for any `const_int`
+ * below 256 with `outer == SET` (**arm.c:2078-2081**); `REGISTER_MOVE_COST` is
+ * **4** when HI_REGS is involved, 2 otherwise (**arm.h:1280-1285**); and
+ * `rtx_cost ((reg), SET)` is **1** = `! CHEAP_REG` (**cse.c:805**, CHEAP_REG at
+ * **cse.c:505-507** -- `CHEAP_REGNO` is false for r10, which is neither
+ * fp/sp/ap nor `FIXED_REGNO_P`).  `4 < 0` false, `4 == 0` false, `0 > 1` false.
+ * **BOUND: on Thumb no post-reload pass can replace a `const_int` below 256
+ * with a register.**  Also checked: `*thumb_movsi_insn`'s alternative 8 is
+ * `"*lh"/"*lh"` (**arm.md:3839-3840**), so lo<-hi needs no reload in either
+ * direction -- residues (1) and (2) are NOT linked through the reload count.
+ *
+ * ===== RESIDUE (2) RE-DIAGNOSED: find_reg ALREADY PICKS THE ROM'S REGISTER ====
+ *
+ * `.15.regmove:533` shows insn 200 is `(set (reg/v:SI 37) (ashift (reg 39) 12))`
+ * and insn 202 `(set (reg 37) (ior (reg 37) (reg 36)))` -- both write `ret`,
+ * which is in sl, so both need a lo-register reload, and insn 381
+ * (`mov sl, r2`) is the reload copy.  `.18.greg` prints
+ *
+ *     Spilling for insn 200.
+ *     Using reg 3 for reload 0
+ *     Spilling for insn 202.
+ *     Using reg 3 for reload 0
+ *
+ * -- **`find_reg` (reload1.c:1588, the only `Using reg` printf, :1664) already
+ * chooses the ROM's r3.**  We emit r2.  So layer 1 agrees with the ROM and the
+ * divergence is purely layer 3: `allocate_reload_reg`'s round-robin over
+ * `spill_regs` starting at `last_spill_reg` (**reload1.c:4998-5013**; the cursor
+ * is written only at **:4937**, inside `set_reload_reg`).
+ *
+ * Measured inputs.  `spill_regs` is built in ASCENDING hard-register order
+ * (**reload1.c:3527-3532**) and here it is **{1,2,3}, n_spills 3**; the whole
+ * cursor trace for the function is **3 2 3 2 1 3 2 3 3 2 3 2 3 3**.  At insn 200
+ * the live pseudos are 32-39 in fp, r6, r9, r8, r7, sl, r4, r5, so the per-insn
+ * grown set `chain->used_spill_regs` (**reload1.c:3621-3622**, read into
+ * `reload_reg_unavailable` at **:5129**) is the full {1,2,3} and ALL THREE ARE
+ * FREE -- batch 325's "`Using reg`, several free -> the cursor" triage, and the
+ * cursor alone decides.
+ *
+ * **The hard-register pin flips the site to the ROM's `lsl r3, r5, #12`, and it
+ * does it by putting r0 into the spill set** -- trace `3 2 3 2 0 3 1 3 3 3 3 3`,
+ * n_spills 3 -> 4.  So residue (2)'s lever class is the **modulus or parity of
+ * the cursor** (n_spills, or the count of non-inherited reload allocations
+ * before insn 200), NOT the spelling of the statement.  That is why the park's
+ * respellings were inert, and the park's old sentence "the register at index 82
+ * is a function of the COUNT of reload-register allocations made EARLIER" was
+ * right about the mechanism while its "`Using reg 3` selects which register to
+ * SPILL, not which a reload gets" understated how close layer 1 already is.
+ *
+ * ===== MEASURED BATCH 326 (ref 119 / ours 119, 118 instructions unless noted) =
+ *
+ * EXACTLY INERT at 4 with a bit-identical reload trace -- candidate
+ * prerequisites, not dead ends: the do-while above; `goto`+label before the
+ * init; braces on the `continue` arm; `i >= 5` for `i > 4`; `if (flag)`;
+ * `if (!flag)`; `a = i * 2 + 4` with `off`/`a` eliminated; `off = i << 1`;
+ * `o = i << 1`; `v | (i << 12)`; `if (u[0x129])`; `u[0x129] > 0`;
+ * `(int)ewram_2018000 + (i << 14)`; `i * 0x4000`;
+ * `if (v != 0x1dc && v != 0x1e3) break;`; the tail test split into two `if`s;
+ * `int a` before `int off`; `int i` before `int j`; `int j` before `int ret`;
+ * `unsigned char *s`; `unsigned int flag`; `unsigned int v`; `void *` as
+ * `_PreloadSpriteGFX`'s second parameter; `i = 0;` lifted out of the inner
+ * `for`.
+ *
+ * WORSE: `j + v` for `v + j` **5**; `i != 6` as the inner bound **6**; `i > 5`
+ * for `i == 6` **7**; `int ret = 0;` as a declaration initialiser **22**;
+ * `ret = i << 12; ret |= v;` **46** at 120; the `j == 0` assignment moved below
+ * the store block **47** at 120; `off` reused in place of `o` in the store
+ * block **116** at 128.
  *
  * ===== THE INERT LIST, carried forward =====
  *
@@ -132,12 +246,22 @@
  *
  * SHIMS -- NONE.  register class 0, .equ class 0, other __asm__ 0.
  *
- * NEXT, IF ANYONE TAKES IT UP: residue (1) needs a control-flow boundary between
- * `ret = 0` and `j = ret` that cse1 SEES and that a later pass REMOVES.  Nothing
- * in C is known to do that -- jump optimisation runs at pass 02, BEFORE cse1 at
- * pass 03, so a branch gcc can fold is already gone when cse1 runs, and one it
- * cannot fold survives to the output.  State that as the open question rather
- * than as a lever.
+ * NEXT, IF ANYONE TAKES IT UP, in priority order:
+ *
+ *   1. Residue (1): a DEVICE-FREE boundary that hides `ret`'s value from cse1,
+ *      CROSSED WITH the bottom-tested loop (which is measured free).  The
+ *      instrumented cross already gives the ROM's `mov <j>, sl` at the ROM's
+ *      118 instructions, so the shape is right and only the boundary is missing.
+ *      Do not test a boundary on the `for` body -- it will read two worse and
+ *      look inert-or-harmful for the wrong reason.
+ *   2. Residue (2): shift `allocate_reload_reg`'s cursor by one before insn 200,
+ *      or change `n_spills`.  Nothing at the differing statement can do it; look
+ *      for an edit that adds or removes ONE non-inherited reload allocation
+ *      earlier in the function, or that brings r0 into `used_spill_regs`.
+ *
+ * Do NOT re-propose: 32+ respellings of the two differing statements, the
+ * declaration/type/signature class (37 variants, 29 exactly flat), and the
+ * post-reload-CSE family (closed above with citations).
  */
 extern unsigned char *_GetUnit(int id);
 extern int Func_80c23c0(int a);

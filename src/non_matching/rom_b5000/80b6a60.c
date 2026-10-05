@@ -1,14 +1,15 @@
 /* Func_80b6a60 (0x080b6a60) -- NON-MATCHING.
  *
- * NON-MATCHING, 5 of 59 encodings  (MEASURED, batch 323).  WAS 14 of 59.
+ * NON-MATCHING, **5 differing encodings of 59** (MEASURED batch 323;
+ * RE-DERIVED batch 326 brief F: ref 59 / ours 59, 56 instructions each, SIZE /
+ * INSTRUCTION COUNT / RELOCATIONS all silent on --func).  WAS 14 of 59.
+ * (`--whole` is uninformative here: the reference .s carries ~150 functions, so
+ * compare per function.  Landing would need a split.)
  * Pin-free, device-free, no per-file flags.  The whole register rotation the
  * park named is SOLVED; what is left is two sched2 decisions.
  *
  * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/rom_b5000/80b6a60.c \
- *     asm/rom_b5000/rom_b5a0c_c_c_a_a_a_c_a.s --func Func_80b6a60
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_b5000/80b6a60.c asm/rom_b5000/rom_b5a0c_c_c_a_a_a_c_a.s --func Func_80b6a60
  *
  * PINS: 0.
  *
@@ -147,9 +148,100 @@
  * which falls out of the two-statement index init once the allocation is right;
  * and the whole prologue/epilogue including the r8 save.
  *
- * NEXT: residue B, by finding the decrement one unit of priority.  Residue A is
- * blocked by the hoist-last rule and its remedy is measured to cost more than
- * it buys.
+ * ===== BATCH 326 BRIEF F: BOTH RESIDUES RE-READ OFF `.23.sched2` VERBATIM ====
+ *
+ * THE PARK'S EXPLANATION OF ITS OWN 10 IS REFUTED.  Its residue-A paragraph
+ * says the remedy "is lever B INVERTED, so it cannot be taken: naming the
+ * constant costs the rotation and reads 10".  The named-constant variant was
+ * rebuilt and the whole stream read: **the register allocation is IDENTICAL to
+ * this body** -- `out` r5, the counter r6, the count r7, the constant r8, the
+ * walker r2, exactly the ROM's.  The 10 is (i) **seven preheader encodings that
+ * are a pure ORDER PERMUTATION** -- the same seven instructions in the same
+ * registers, with `mov r1,#2 / mov r8,r1` migrating to the FRONT of the
+ * preheader and `mov r6,r7` landing before `add r2,r3,r1` -- plus (ii) the same
+ * 3 of residue B, untouched.  So naming the constant does NOT cost the
+ * rotation: it makes residue A worse (7 instead of 2) and leaves B alone.  What
+ * cannot be taken is a 7-encoding preheader permutation, not a lost rotation.
+ *
+ * RESIDUE A, exact rungs (`.23.sched2`, the preheader block).  Dependence table
+ * verbatim: `53` (`r6 = r7`) prio 1 cost 1, no dependents; `174` (`r8 = r3`)
+ * prio 1 cost 1, no dependents; `194` (`r3 = 0x2`) prio 2, its only dependent
+ * 174.  At `Ready list (t = 6): 174 53` **all four rungs of rank_for_schedule
+ * tie** -- priority 1 = 1; class 3 = 3, because `insn_cost (194, link, X) == 1`
+ * takes the `tmp_class = 3` escape; dependent count 0 = 0 -- and the function's
+ * last line is `INSN_LUID (tmp) - INSN_LUID (tmp2)`, so the LOWER LUID wins and
+ * LUID is simply position in the pre-sched stream.
+ *
+ * `53` is the ONLY original insn in that preheader: 165/203/204/172 (the gState
+ * base) and 174 (the hoisted 2) are all created by loop.c and therefore land
+ * after it.  **So residue A needs the counter initialisation to sit AFTER the
+ * invariant hoist in the pre-sched stream, which means it must be created or
+ * moved by something that runs after loop.c's `move_movables`** -- not a
+ * different statement order, which is exactly why the park's six preheader
+ * orders and the `lim`-as-counter form (which deletes the `i = n` statement
+ * outright) were all inert.  loop.c emits movables immediately before
+ * `loop_start`, and giv initialisations after them, so the one shape worth
+ * trying is a counter that loop.c CREATES as a derived induction variable; the
+ * only such spelling reachable from C here, `gState[(0xfc<<1) + n - i]`, reads
+ * 14 and is already in the negatives.
+ *
+ * RESIDUE B, exact rungs -- AND A RUNG THE PARK NEVER MENTIONS.  Loop-block
+ * (`b 8`) table verbatim: `88` (`sub r6,#1`) prio 2 cost 1, one dependent
+ * (102); `200` (`mov r1,r8`) prio 3; `98` (`strb`) prio 2, dependents 102 and
+ * 188; `188` (`ldr r2,[sp]`) prio 1; `102` (the combined `cmp r6,#0 / bne`)
+ * prio 1.  The decrement gets **two** chances and loses both:
+ *
+ *   * **t = 37**, ready `88 200`: loses on PRIORITY, 2 against 3.  (The park has
+ *     this one and its "the margin is exactly one" is right.)
+ *   * **t = 38**, ready `88 98`: priority TIES at 2 and class TIES at 3, and it
+ *     loses on the **DEPENDENT-COUNT rung** -- `98` has two in-block dependents
+ *     (102, 188) against the decrement's one.  The park does not mention this
+ *     rung at all, so "give the decrement one more unit of priority" would have
+ *     won t = 37 and then lost t = 38 on a rung nobody had looked at.
+ *
+ * AND BOTH OF THE PARK'S TWO NAMED ROUTES ARE CLOSED, with their evidence:
+ *
+ *   * "a cost-2 edge to the branch".  `insn_cost`'s only target hook is
+ *     `ADJUST_COST` -> `arm_adjust_cost` (**arm.c:2416-2453**), and every branch
+ *     of it either returns 0 (REG_DEP_ANTI / REG_DEP_OUTPUT, :2425-2427),
+ *     returns 1 (a call, or a load from the stack or the constant pool) or
+ *     passes `cost` through unchanged -- **it never raises a cost.**  The base
+ *     latency comes from the `core` function unit (**arm.md:253-264**) where
+ *     only `load` (and `store1` when `ldsched` is not yes) has ready-delay 2;
+ *     a register-to-register `subs` is `single`, delay 1.  So the 88 -> 102 edge
+ *     is 1 and cannot be 2 unless the decrement becomes a memory load, i.e.
+ *     unless `i` is spilled.
+ *   * "a second in-block dependent" of the decrement requires a SECOND USE of
+ *     `i` inside the loop.  The ROM's body has none, and the only spelling that
+ *     manufactures one -- deriving the gState index from `i` -- is the measured
+ *     14.  `priority()` is `max` over in-block dependents of
+ *     `insn_cost + priority(dep)`, so a second dependent only helps if it
+ *     itself has priority 2.
+ *   * the remaining alternative, dropping prio(200) from 3 to 2 so the
+ *     priorities tie and the CLASS rung hands it to the decrement (200 is
+ *     anti-dependent on the just-scheduled `adds r3, r0, r1`, class 2, against
+ *     the decrement's class 3), needs prio(98) = 1, i.e. the `strb` with NO
+ *     in-block dependents.  It has two: the 188 edge is closed by the
+ *     documented alias bound (char-precision store, `lang_get_alias_set`
+ *     returns 0, `DIFFERENT_ALIAS_SETS_P` can never fire against a reload spill
+ *     slot) and the 102 edge is the block-ending branch.
+ *
+ * MEASURED BATCH 326, ref 59 / ours 59, 56 instructions on every row, nothing
+ * below 5: base **5**; `lim` reused as the counter **5**; `while (i != 0)`
+ * **5**; `k` initialised after `i = n` **5**; `i = n` hoisted above the
+ * `if (n > 0)` guard **12**; descending index `gState[(0xfc<<1) + n - i]`
+ * **14**; `for (i = 0; i != n; i++)` **17**; ascending do-while
+ * `while (i != n)` **19**; ascending with the index folded into the subscript
+ * **19**; `n` itself as the counter with a saved return value **52 with
+ * COUNT + RELOCDIFF + MEM** (it loses the `str`/`ldr` spill pair entirely);
+ * the named constant **10** (composition above).
+ *
+ * NEXT: residue B has no route left that this project can state -- all three of
+ * its rungs are closed above with citations, so treat it as bounded rather than
+ * untried, and report any disagreement with the cited lines rather than with
+ * another spelling.  Residue A's one live shape is a counter that loop.c
+ * CREATES after its own movables (a giv initialisation), because loop.c emits
+ * movables immediately before `loop_start` and giv inits after them.
  */
 extern unsigned char *iwram_3001e74;
 extern unsigned char gState[];
