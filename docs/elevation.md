@@ -34342,3 +34342,72 @@ run it already performs — no second compile and nothing to drift.
 > **A tool that states it cannot drift from the authority is exactly the tool to
 > check for a private copy.** The promise in the docstring is not the mechanism;
 > the import is.
+
+## A LANDED BODY PORTS TO A WHOLE-PIECE DUPLICATE BY RENAME ALONE
+
+Batch 328 brief C took **two** landings from one body. The second was free.
+
+`tools/dupfuncs.py` reports that `ovl_1a3c_a_a_a.s` is a wholesale copy of
+`ovl_35b8_a_a_c_c_a.s`. Brief C checked it properly: **a normalised diff of the
+two pieces is EMPTY** after mapping 2 function names, 3 `gScript` names and every
+`.L<hex>` label. The renamed translation unit then gives **identical figures and
+identical first differing indices**, so the landing transferred with no new
+analysis at all.
+
+> **Before working any parked overlay function, ask whether it is a duplicate of
+> something already landed — or of something you are about to land.** 272 overlay
+> functions are parked, and `dupfuncs` reports that **74 of 101** duplicate-group
+> members come free once their representative is solved.
+
+Two qualifications established at the same time:
+
+- **Whole-piece figures are ADDITIVE.** One TU holding both functions read exactly
+  the sum of the two `--func` figures — no cross-function interference, no pool or
+  tail-alignment complaint. So a whole-piece attempt costs nothing in
+  measurability.
+- **But a whole-piece `.c` can only be INSTALLED when both functions match.** With
+  one still parked, each landing installs as a two-way **text split**. Gate the
+  attempt on `--whole` against a simulated post-split piece.
+- **And `--func` cannot see a prototype conflict between two parks of one TU.**
+  These two declared the same three callees with **incompatible prototypes**;
+  unifying them on `void *` needed no cast on either side and was inert — but it
+  had to be reconciled before one file could hold both.
+
+## READING A PARK AGAINST ITS DUPLICATE'S ADDRESS IS A MISSING CHECK
+
+The mechanism that landed `OvlFunc_924_200d158` **was already written up in this
+document**, end to end, under *"A `REG_UNUSED` insn still takes a hard register"*
+— worked on `OvlFunc_923_2009bc8`, which is that function's **`dupfuncs` twin.**
+
+The park never connected them, **because parks are filed by their own address.**
+It cost that function two batches.
+
+> This is the same failure as the two before it: **information that exists,
+> indexed under a different name.** `upstream_module.py` reported `our parks: 0`
+> for modules holding nine because landings are split-named and parks are
+> address-named; the `Anim_*` claim was false because a filename scan stood in for
+> a definition scan; and here a solved mechanism was invisible because it was
+> filed under the twin's address.
+>
+> **When a park resists, search this file for its DUPLICATE's symbol as well as
+> its own.**
+
+### The two-command triage that came out of it
+
+For the specific shape *"an address pseudo cannot get r3 for no visible reason"*:
+
+	grep REG_UNUSED <base>.c.17.lreg
+	grep -A2 'conflicts' <base>.c.18.greg
+
+A pseudo carrying `REG_UNUSED` **still takes a hard register**: on this function
+`.18.greg` read `;; 43 conflicts: … 45 3 13`, where the trailing `3` is hard r3,
+and pseudo 45 was `(set (reg:QI 45) (const_int 0))` sitting between an address
+insn and its store. It is still live in `.12.life` (consumed by a
+`*thumb_iorsi3`), combine substitutes it away, and **gcc-2.96 runs no flow pass
+between combine and allocation** — so the dead insn holds the register all the
+way through.
+
+> **The fix is never a re-spelling of the real values.** Here it was
+> `int zi = 0; u8 z = zi;` — **both** an SImode and a QImode zero had to exist as
+> real pseudos. `int z` alone and `u8 z` alone both read 7, and the cast was not
+> the lever.

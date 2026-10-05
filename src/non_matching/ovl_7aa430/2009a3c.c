@@ -11,7 +11,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/ovl_7aa430/2009a3c.c \
- *     asm/overlays/rom_7aa430/ovl_1a3c_a_a_a.s --func OvlFunc_923_2009a3c
+ *     asm/overlays/rom_7aa430/ovl_1a3c_a_a_a_a.s --func OvlFunc_923_2009a3c
  *   XX ENCODINGS differ in 5 place(s) (ref 179, ours 179)
  *      first at index 54: ref 4640  ours 189b
  *

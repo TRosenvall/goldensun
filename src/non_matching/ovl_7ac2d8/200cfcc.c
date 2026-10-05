@@ -9,7 +9,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/ovl_7ac2d8/200cfcc.c \
- *     asm/overlays/rom_7ac2d8/ovl_35b8_a_a_c_c_a.s --func OvlFunc_924_200cfcc
+ *     asm/overlays/rom_7ac2d8/ovl_35b8_a_a_c_c_a_a.s --func OvlFunc_924_200cfcc
  *   XX ENCODINGS differ in 5 place(s) (ref 179, ours 179)
  *      first at index 54
  *
@@ -20,7 +20,7 @@
  * ***** BATCH 316: THE DUPLICATE TWIN IS SOLVED BY PORTING THIS BODY *****
  *
  * tools/dupfuncs.py pairs this with OvlFunc_923_2009a3c
- * (asm/overlays/rom_7aa430/ovl_1a3c_a_a_a.s).  The twin park
+ * (asm/overlays/rom_7ac2d8/ovl_35b8_a_a_c_c_a_a.s).  The twin park
  * src/non_matching/ovl_7aa430/2009a3c.c carries a DIFFERENT and much worse
  * body -- its own header says "181 of 177 -- SATURATED", figure withdrawn.
  * MEASURED THIS BATCH: this body, with only three renames
@@ -211,11 +211,11 @@ void OvlFunc_924_200cfcc(int a, unsigned char *c)
  * remains untested and is now the only other door.
  *
  * THE WHOLE PIECE IS THE RIGHT UNIT -- THIS IS THE CHEAPEST STRUCTURE IN THE BANK.
- * The other function in asm/overlays/rom_7ac2d8/ovl_35b8_a_a_c_c_a.s is
+ * The other function in asm/overlays/rom_7ac2d8/ovl_35b8_a_a_c_c_a_a.s is
  * OvlFunc_924_200d158, which is ALSO parked (7 of 40,
  * src/non_matching/ovl_7ac2d8/200d158.c).  tools/dupfuncs.py pairs THIS function
  * with OvlFunc_923_2009a3c and that one with OvlFunc_923_2009bc8, and both
- * duplicates live in asm/overlays/rom_7aa430/ovl_1a3c_a_a_a.s -- 244 lines, two
+ * duplicates live in asm/overlays/rom_7ac2d8/ovl_35b8_a_a_c_c_a_a.s -- 244 lines, two
  * functions, same order, same lengths as our piece.  So:
  *   - solving BOTH functions in ONE .c is a whole-piece match with NO SPLIT;
  *   - the same .c with three symbol renames covers the foreign piece too;
