@@ -26,7 +26,50 @@ umul3232H32   m4a-asm   Thumb->ARM interworking veneer (adr r2; bx r2; .arm; umu
 Func_80fa1c8   m4a-asm   m4a mixer leaf at 0x080fa1c8 (in the rom_f9ef8_a.s mixer tail, < 0x080fa1fc); hand-asm (reads a byte into r3, not the r0 return reg). Stock m4a, stays asm.
 Func_80f9ab4   m4a-asm   m4a mixer body at 0x080f9ab4 (within 0x080F95E0-0x080FA1FC); ARM-only ops (e.g. `adds r3,r2,#1` with no Thumb-1 encoding); no -mthumb C assembles. Stock m4a, stays asm.
 Func_80fa1ac   m4a-asm   MP2K lfos/mod event helper at 0x080fa1ac (rom_f9ef8_a.s mixer tail, sibling of registered Func_80fa1c8); takes its track pointer in r1 with r0 live-through, and has conditional branches in a no-push leaf; gcc-2.96 (-mthumb-interwork) pushes lr in every branchy function, so no C matches. Stock m4a, stays asm.
-Func_80b09fc   tu-pool   struct-init at 0x080b09fc; body is 2 scheduler slots from C (work/fixable_drain attempt 2026-06-11), but the ROM dumps its literal pool MID-FUNCTION with a skip-branch before the epilogue (b.n; .word; pop) with NO loop to anchor it; an original-TU pool-pressure artifact a standalone TU cannot reproduce (sibling Func_80b0a20 in rom_b0070_a_a_c.s has the identical tail). Park class: tu-pool midpool.
+# RETIRED 2026-10-04 (batch 324) -- Func_80b09fc.  IT IS MATCHED.
+#
+# It is compiled from C at src/rom_b0000/rom_b0070_a_a_c_c_a_a_b.c, the generated
+# .s beside it bears gcc's own banner, and `make compare` passes against SHA1
+# 5c4695205413df7db52b9a184815a07783999971.  The enrollment read:
+#
+#   "the ROM dumps its literal pool MID-FUNCTION with a skip-branch before the
+#    epilogue (b.n; .word; pop) with NO loop to anchor it; an original-TU
+#    pool-pressure artifact a standalone TU cannot reproduce"
+#
+# That shape is not a TU artifact.  It is gcc-2.96's ORDINARY output for a HImode
+# store of a constant.  The matching C is thirty lines of plain struct assignment
+# with no pins, no devices and no per-file flags; its last statement is
+# `a->fc = 0;`, and the generated tail is exactly the alleged impossibility:
+#
+#       ldrh    r6, .L3          <- a HImode pool load of zero
+#       ...
+#       b       .L4              <- the skip-branch
+#   .L3:
+#       .word   0                <- the mid-function pool
+#   .L4:
+#       pop     {r5, r6}
+#
+# The mechanism: `*thumb_movhi_insn` alternative 1 takes `mn` (arm.md:4318), so a
+# HImode const_int matches the LOAD alternative before the 8-bit mov alternative
+# is ever considered -- gcc cannot build a HImode constant with `mov`.  A HImode
+# fix has pool_range 64 against SImode's 1020, so it sorts to the front of the
+# pool AND forces the dump before the epilogue with a branch over it.
+#
+# WHAT THIS COSTS, AND IT IS THE POINT.  An unmatchable enrollment is the
+# strongest claim this project makes -- it says no C exists.  This one was made
+# from a correct observation (the tail really is unusual) plus an inference about
+# its cause that was never checked against the compiler.  The ONE dump that would
+# have settled it, `.26.mach`, prints every pool fix with its mode and range.
+#
+# So: an entry here needs the same standard as a *.sym entry -- STRUCTURAL
+# IMPOSSIBILITY READ FROM THE COMPILER, not an unexplained byte pattern.  The
+# sibling Func_80b0a20 named in the old reason is still parked, at 26 of 34, and
+# its park is a genuine proof citing arm.c:4820 and arm.h:1807 -- that one is NOT
+# refuted by this, but it should be re-examined in the light of a narrow HImode
+# entry being reachable from ordinary C.
+#
+# The original line, kept for the record:
+#   Func_80b09fc   tu-pool   struct-init at 0x080b09fc; body is 2 scheduler slots from C (work/fixable_drain attempt 2026-06-11), but the ROM dumps its literal pool MID-FUNCTION with a skip-branch before the epilogue (b.n; .word; pop) with NO loop to anchor it; an original-TU pool-pressure artifact a standalone TU cannot reproduce (sibling Func_80b0a20 in rom_b0070_a_a_c.s has the identical tail). Park class: tu-pool midpool.
 
 # 2026-06-17 bulk enrollment: the remainder of the stock m4a mixer region.
 #   The whole 0x080F95E0-0x080FA1FC range is hand-written assembly (the SA2
