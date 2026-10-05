@@ -171,3 +171,65 @@ void OvlFunc_924_200cfcc(int a, unsigned char *c)
         *(unsigned char **)(c + 0x18) = 0;
     }
 }
+
+/* ===================== BATCH 327 =====================
+ *
+ * FIGURE RE-DERIVED AND THE PARK IS CORRECT IN EVERY PARTICULAR:
+ *   5 differing encodings of 179, SIZE EXACT, INSTRUCTION COUNT EXACT
+ *   (179 = 179), first differing index 54 (ref 4640, ours 189b).
+ *   --whole differs ONLY by the missing second function (the split shape the
+ *   header describes), and the 13 relocations belonging to THIS function are
+ *   byte-for-byte identical to the reference's.
+ * This is one of the very few parks this session whose figure AND diagnosis both
+ * survived re-measurement.  The batch-316 correction (find_dummy_reload in
+ * reload.c, not local-alloc.c:1131) is confirmed by reading the same code.
+ *
+ * NEW NEGATIVE, AND IT CLOSES A LEVER THAT POSTDATES THIS PARK.  Batch 326
+ * landed Func_801219c on expr.c:7340 -- "put a constant term last and put a
+ * multiplication first" -- reached only when the modifier is EXPAND_SUM and
+ * `mode == ptr_mode` (expr.c:7290-7292), which an ARRAY_REF address satisfies,
+ * so expr.c:7324 puts the MULT first unconditionally inside a subscript while a
+ * plain `p + E` falls to `goto binop` and keeps the written order.  That is
+ * precisely a lever on the PLUS operand order this park needs, and it was not
+ * available when this park was last worked.
+ *
+ *   TRIED, THREE SUBSCRIPT SPELLINGS OF `cell`, ALL EXACTLY INERT AT 5 of 179
+ *   WITH THE SAME FIRST INDEX 54:
+ *     cell = &gBuffer[(A * 0x80 + B) << 2];
+ *     cell = &gBuffer[(A * 0x80 + B) * 4];
+ *     cell = &gBuffer[A * 0x200 + B * 4];
+ *
+ * WHY, AND THIS STRENGTHENS THE PARK RATHER THAN WEAKENING IT: the park's cse1
+ * half already explains it.  cse.c:3652's commutative canonicalisation in
+ * fold_rtx moves the operand with a known constant value -- a SYMBOL_REF
+ * qualifies, through reg 67's REG_EQUIV -- to XEXP (x, 1).  cse runs AFTER
+ * expand, so WHATEVER ORDER expand CHOOSES IS UNDONE.  An expand-time lever can
+ * therefore never reach this blocker, and the park's route (a) ("break reg 67's
+ * constant equivalence") is not just one option among several: IT IS THE ONLY
+ * ROUTE THAT CAN WORK AT ALL ON THE OPERAND ORDER.  Route (b) (stop the index
+ * dying at the add, so find_dummy_reload's `REG_DEAD real_in` clause fails)
+ * remains untested and is now the only other door.
+ *
+ * THE WHOLE PIECE IS THE RIGHT UNIT -- THIS IS THE CHEAPEST STRUCTURE IN THE BANK.
+ * The other function in asm/overlays/rom_7ac2d8/ovl_35b8_a_a_c_c_a.s is
+ * OvlFunc_924_200d158, which is ALSO parked (7 of 40,
+ * src/non_matching/ovl_7ac2d8/200d158.c).  tools/dupfuncs.py pairs THIS function
+ * with OvlFunc_923_2009a3c and that one with OvlFunc_923_2009bc8, and both
+ * duplicates live in asm/overlays/rom_7aa430/ovl_1a3c_a_a_a.s -- 244 lines, two
+ * functions, same order, same lengths as our piece.  So:
+ *   - solving BOTH functions in ONE .c is a whole-piece match with NO SPLIT;
+ *   - the same .c with three symbol renames covers the foreign piece too;
+ *   - FOUR functions from one translation unit.
+ * `ovl_1a3c` copies more of `ovl_35b8` than these two: 200d244 = 2009cb4 and
+ * 200d5c0 = 200a030 pair the same way and are both parked here as well.  When
+ * this bank is next worked, work it by PIECE.
+ *
+ * ON THE BANK ITSELF, because a brief was told the opposite: ovl_7ac2d8 has
+ * **72 landed .c files / 80 landed OvlFunc_924_* definitions** against 12 parks.
+ * tools/upstream_module.py puts this function in upstream `overlays/ovl_35b8.s`,
+ * which alone has **18 landed .c** siblings.  It reports `our parks: 0` for the
+ * module only because parks are filed as `src/non_matching/<bank>/<addr>.c`
+ * while landings are split-named `src/overlays/<bank>/ovl_XXXX_<path>.c`, so a
+ * FILENAME scan of either directory sees none of the other.  A name check is not
+ * a definition check.
+ */

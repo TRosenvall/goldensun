@@ -1,78 +1,132 @@
-/* ===================== BATCH 297a DELTA -- Field_Halt =====================
+/* Field_Halt -- 1 differing encoding of 191.  PARKED, PIN-FREE, DEVICE-FREE.
+ *
+ * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/809abb4.c asm/rom_8a000/rom_9a44c_c_c_c.s --func Field_Halt
  *
  * ===== OWNER DECISION, 2026-10-04: per-file `-ffixed-r11` DECLINED. =====
- * This function is BYTE-IDENTICAL under a per-file FIXEDR11_CFLAGS rule, and that
- * was refused.  A per-file flag asserts something about how the original object
- * was built, and the counter-evidence is in this bank: the landed twin
- * Field_Whirlwind (src/rom_8a000/rom_9a44c_c_c_a_a.c, byte-exact) USES fp FREELY.
- * Park at the flag-free figure instead.  One encoding is a cheap price for not
- * making an unsupported assertion about the build.
- * Full reasoning and the revisit condition: docs/owner-decisions.md.
+ * This function is BYTE-IDENTICAL under a per-file FIXEDR11_CFLAGS rule and that
+ * was refused; the counter-evidence is the landed twin Field_Whirlwind
+ * (src/rom_8a000/rom_9a44c_c_c_a_a.c, byte-exact) using fp freely in this same
+ * bank.  Full reasoning in docs/owner-decisions.md entry 2.  DO NOT RE-PROPOSE.
+ * Its revisit condition was "or the 1 turns out to be reachable another way".
+ * BATCH 327 ANSWERS THAT: NO.  The lattice is closed and every rung below is
+ * either read in the compiler or measured in a dump.
  *
- * AND THE FLAG-FREE BODY IS NOW INSTALLED, 2 -> 1, ON ONE TOKEN:
- *     was   for (; i < 11; i++)
- *     now   for (; i != 11; i++)
- * This is why the park's ELEVEN literal spellings all measured 2 and could not
- * reach it: combine's `simplify_comparison` rewrites `LT C>0` into `LE C-1`, so
- * every `<` form collapses to the same comparison -- and `!=` is not subject to
- * that transformation at all.  The park's own conclusion that the bound was
- * "unreachable from any literal" was therefore true OF LITERALS and false of the
- * operator.  Device-free, 0 pins.
+ * RE-DERIVED batch 327, brief F: 1 differing encoding of 191 (ref 191, ours 191),
+ * 444 bytes against 444, 30 relocations identical.  `--whole` prints
+ * `SIZE ref 456 bytes, ours 444`; that 12-byte gap is NOT text -- the reference
+ * ends with `.section .rodata / .global .La012c / .La012c: .incrom 0xa012c,
+ * 0xa0138`, exactly 12 bytes, and that blob is consumed by an ALREADY-LANDED
+ * sibling (src/rom_8a000/rom_9a44c_a_a_a_c.c:111,
+ * `extern struct Script *La012c[] __asm__(".La012c");`).  Whatever ships this
+ * function must carry that rodata; it is not a defect in the body.
  *
- * NON-MATCHING, 1 of 191 encodings (batch 322; was 2 at the batch-319 backfill).
+ * ===================== THE RESIDUE, DECODED =====================
+ * index 98 (the park said 97; off by one): ref `dbc9` against ours `d1c9`.
+ * Thumb `1101 cccc iiiiiiii`: 0xdb is cond 0b1011 = LT -> `blt`; 0xd1 is cond
+ * 0b0001 = NE -> `bne`.  The imm8 is 0xc9 = -55 in BOTH, so only the CONDITION
+ * differs.  The `cmp r7, #0xb` at index 97 MATCHES (that is what the installed
+ * `i != 11` bought).  The ROM is `cmp r7,#0xb` + `blt`; we emit `cmp r7,#0xb` +
+ * `bne`.  ONE RUN, ONE CAUSE.
  *
- * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/rom_8a000/809abb4.c \
- *     asm/rom_8a000/rom_9a44c_c_c_c.s --func Field_Halt
+ * ========== CORRECTION: THE REWRITE IS IN fold, NOT IN combine ==========
+ * Both this park and an independent read of combine.c attributed `LT 11 -> LE 10`
+ * to combine's `simplify_comparison`.  MEASURED, IT IS ALREADY DONE IN `.00.rtl`:
+ * with the literal `i < 11`, jump_insn 101 of x.c.00.rtl reads
+ *     (if_then_else (le (reg/v:SI 36) (const_int 10 [0xa])) (label_ref 104) (pc))
+ * before jump, cse, gcse, loop, life or combine has run.  The site is
+ *     fold-const.c:6269-6291, comment "Change X >= CST to X > (CST - 1) if CST
+ *     is positive", whose switch also carries
+ *       case LT_EXPR: code = LE_EXPR;
+ *                     arg1 = const_binop (MINUS_EXPR, arg1, integer_one_node, 0);
+ * gated by exactly
+ *     TREE_CODE (arg1) == INTEGER_CST && TREE_CODE (arg0) != INTEGER_CST
+ *     && tree_int_cst_sgn (arg1) > 0
+ * It is a FRONT-END TREE FOLD.  **That is why this park's 12-toggle RTL flag sweep
+ * found nothing at this index -- the sweep was looking in the wrong half of the
+ * compiler.**  combine's `simplify_comparison` (combine.c:10140, inside
+ * `while (GET_CODE (op1) == CONST_INT)` at :10082) performs the SAME rewrite and
+ * is a second, redundant gate: it re-canonicalises the constant if any RTL pass
+ * puts it back before combine.
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- * RE-MEASURED batch 321: 2 of 191 (ref 191 enc / 444 bytes / 30 rel, ours the same);
- * NOW 1, on the `!=` bound recorded above.
- * index 97: ref 2f0b `cmp r7, #0xb` against ours 2f0a `cmp r7, #0xa`, plus the
- * branch.  The park's conclusion stands.  TWO THINGS ARE NEW.
+ * ================= THE CLOSED LATTICE, rung by rung =================
+ * Target: `cmp r7,#0xb` + `blt` is ONE insn, `cbranchsi4` (arm.md:5152), whose
+ * alternative 0 is operand1 "l" + operand2 "rI" -- so a `const_int 11` is legal
+ * there and reload CAN put one back.
  *
- * 1. THE BLOCKER IS NOT "A SEVENTH CALL-CROSSING ALLOCNO IS INEVITABLE".  IT IS
- *    global-alloc CHOOSING TO ALLOCATE THE BOUND, and the dump says so.  With
- *    `for (; i < n; i++)` and `n = 11`, x.c.17.lreg carries
- *        (insn 37 ...) (set (reg/v:SI 39) (const_int 11 [0xb]))
- *            (expr_list:REG_EQUIV (const_int 11 [0xb]) (nil))
- *    -- i.e. the bound ALREADY HAS A REG_EQUIV CONSTANT NOTE, which is exactly
- *    what reload needs to rematerialise `#0xb` into the compare and keep
- *    combine's un-canonicalised `blt`.  It does not, because .18.greg hands the
- *    pseudo a hard register first:
- *        (insn 37 ...) (set (reg/v:SI 11 fp) (reg:SI 2 r2))
- *            (expr_list:REG_EQUIV (const_int 11 [0xb]) (nil))
- *        (jump_insn 101 ...) if_then_else (lt (reg/v:SI 7 r7) (reg/v:SI 11 fp))
- *    reg_equiv_constant is only consulted for a pseudo that got NO hard register,
- *    so the escape is not "find a spelling with six allocnos" but "make greg
- *    decline this one".  fp (r11) is free in thumb at -O2, so there is no
- *    pressure to make it decline, and an eighth allocno would have to be real
- *    code.  That is a sharper and more checkable statement of the floor.
+ * 1. NO LITERAL SPELLING CAN WORK, and the operator space is now EXHAUSTED by
+ *    the fold table rather than by sampling:
+ *      X <  11  -> X <= 10   (fold-const.c:6286)        -> cmp #0xa + ble
+ *      X <= 10  -> stable                               -> cmp #0xa + ble
+ *      X >= 11  -> X > 10                               -> cmp #0xa
+ *      X >= 12  -> X > 11  (GT survives; GT is not in that switch)
+ *                                                       -> cmp #0xb + `ble` 0xdd
+ *      11 >  X  -> fold swaps the constant right first  -> as X < 11
+ *      X != 11  -> not in the switch at all             -> cmp #0xb + `bne` 0xd1
+ *    `(lt X 11)` is UNREACHABLE as a tree.  The park's eleven literal spellings
+ *    were therefore exhaustive over the wrong dimension; the installed `!=` is
+ *    the best literal there is.
+ * 2. SO op1 MUST BE A REGISTER THROUGH combine -- i.e. a named non-const bound.
+ * 3. AND THE CONSTANT MUST RETURN AFTER combine, else :10082 re-canonicalises it.
+ *    The only post-combine pass that can put a `const_int` into an operand is
+ *    reload's `reg_equiv_constant` substitution, which needs
+ *    `reg_renumber[bound] < 0`.
+ *    - `update_equiv_regs` (local-alloc.c:667, called from :326) cannot do it.
+ *      Its replace path needs `REG_N_REFS == 2` (set once, used once) and the
+ *      loop weighting makes it THREE: all four REG_N_REFS sites in flow.c add
+ *      `pbi->bb->loop_depth + 1`, so a bound SET at depth 0 (counts 1) and USED
+ *      in the loop test at depth 1 (counts 2) is 3.  MEASURED, .17.lreg:206 of
+ *      the named-bound variant: `Register 39 used 3 times across 134 insns`.
+ *      (The 134 is 2 x 67 -- `update_equiv_regs`'s own `REG_LIVE_LENGTH *= 2`
+ *      for a constant-equivalent pseudo, which is why the bound sorts LAST.)
+ * 4. SO greg MUST DECLINE THE BOUND.  Measured in the named-bound variant:
+ *      ;; 11 regs to allocate: 35 34 137 33 36 166 37 61 60 32 39   <- 39 last
+ *      ;; 39 conflicts: ... 0 1 2 3 5 13 14
+ *      ;; Register dispositions: ... 39 in 11 ...
+ *      ;; Hard regs used:  0 1 2 3 5 6 7 8 9 10 11 14
+ *      .17.lreg: `crosses 7 calls; pref LO_REGS`, costs
+ *                `LO_REGS:0 HI_REGS:2 GENERAL_REGS:4 ALL_REGS:20 MEM:72`
+ *    39 conflicts with the six allocnos holding r5..r10 (32->r9 33->r5 34->r6
+ *    36->r7 61->r8 60->r10) and crosses calls, so `find_reg`'s `used1`
+ *    (global.c:967) already holds call_used_reg_set + {r5..r10}: **r11 is the one
+ *    remaining bit.**  find_reg DOES decline on the PREFERRED class, because
+ *    `IOR_COMPL_HARD_REG_SET (used1, reg_class_contents[class])` with LO_REGS
+ *    leaves nothing -- but global_alloc's alternate pass is UNCONDITIONAL
+ *    (global.c:565: `if (reg_alternate_class (...) != NO_REGS) find_reg (..., 1,
+ *    0, 0);`) and the bound's alternate class is ALL_REGS.  (.17.lreg prints
+ *    `Register 39 pref LO_REGS` with no `, else` suffix precisely in
+ *    regclass.c:1240-1245's `alt == ALL_REGS` branch.)  For that alternate class
+ *    to be NO_REGS, regclass.c:1217-1232 needs EVERY non-LO class to cost >=
+ *    mem_cost; HI_REGS costs 2 against MEM 72, and those costs come from
+ *    `cbranchsi4`'s alternative 1 ("r","r"), which no C spelling removes.
+ * 5. SO r11 MUST BE UNAVAILABLE.  Three routes, all costed:
+ *    - `-ffixed-r11`: byte-identical.  OWNER DECLINED.
+ *    - `frame_pointer_needed` puts HARD_FRAME_POINTER_REGNUM into
+ *      `no_global_alloc_regs` -- but on thumb that register is **r7**, not r11
+ *      (arm.h:898-899, THUMB_HARD_FRAME_POINTER_REGNUM 7).  Route does not exist.
+ *    - a SEVENTH call-crossing allocno taking r11: it grows the push set.
+ *      MEASURED: the named-bound body is **195 insns / 452 bytes against 191 /
+ *      444**, and `Hard regs used` goes from `0 1 2 3 5 6 7 8 9 10 14` (this
+ *      body -- exactly the ROM's six call-saved registers, r4 and r11 both
+ *      absent) to `... 10 11 14`.  There is no zero-cost seventh.
  *
- * 2. THE BOUND PLACEMENTS RE-MEASURED, confirming the park's numbers exactly:
- *        bound literal (this file)                     2  (191 enc, 444 bytes)
- *        const int n = 11 (folded away)                2  (191 enc)
- *        n = 11 where this file puts it               179  (195 enc, 452 bytes)
- *        n = 11 as the first statement                178  (195 enc)
- *        n = 11 after the `if (p == 0) return`        180  (195 enc)
- *        n = 11 immediately before the loop           180  (195 enc)
- *        unsigned n, `i < (int)n`                     179  (195 enc)
- *    NOTE the CFG fact the park did not record: the whole body after
- *    `if (p == 0) return;` is at a LABEL -- the ROM emits `cmp r6,#0 / bne
- *    .L9abea / b .L9ad52` -- so the loop IS in a jumped-to block and cse1
- *    genuinely cannot fold a bound assigned before that branch.  That is why
- *    naming the bound produces `blt` at all; the cost is purely greg's.
+ * BOUND PLACEMENTS, re-confirmed (the park's figures are exact):
+ *      bound literal, `!=` (this file)                1  (191 enc, 444 bytes)
+ *      bound literal, any `<`/`<=` form               2  (191 enc)
+ *      const int n = 11 (folded away)                 2  (191 enc)
+ *      n = 11 where this file puts it               179  (195 enc, 452 bytes)
+ *      n = 11 as the first statement                178  (195 enc)
+ *      n = 11 after the `if (p == 0) return`        180  (195 enc)
+ *      n = 11 immediately before the loop           180  (195 enc)
+ *      unsigned n, `i < (int)n`                     179  (195 enc)
+ * CFG fact worth keeping: the whole body after `if (p == 0) return;` is at a
+ * LABEL (the ROM emits `cmp r6,#0 / bne .L9abea / b .L9ad52`), so the loop is in
+ * a jumped-to block and cse1 cannot fold a bound assigned before that branch.
+ * That is why naming the bound produces `blt` at all; the cost is purely greg's.
  *
- * 3. FLAG SWEEP, 12 toggles, none reaches index 97.  Still 2 with
- *    -fno-cse-follow-jumps, -fno-expensive-optimizations, -fno-thread-jumps,
- *    -fno-caller-saves, -fno-move-all-movables, -fno-reduce-all-givs,
- *    -fno-unroll-loops.  WORSE: -fno-gcse 98 (189 enc), -fno-rerun-cse-after-loop
- *    62, -fno-schedule-insns2 59, -fno-strength-reduce 46 (189 enc),
- *    -fno-peephole 71.  (-fno-if-conversion is not an option this cc1 accepts.)
- * -- scratch_elev/b297a/t2
+ * DO NOT: re-sweep literal spellings (closed by the fold table above);
+ * re-sweep RTL flags at this index (the decider is a front-end tree fold);
+ * re-propose -ffixed-r11.
+ * -- scratch_elev/b327/F
  */
 union blob { unsigned char *pp; short hh; int ii; };
 

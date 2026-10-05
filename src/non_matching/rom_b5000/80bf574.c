@@ -202,6 +202,40 @@
  * the `add r3, #0xff` decrement rather than `(*p)--`, the inverted `bne` guard
  * that distinguishes this sibling from its eleven mates, and the shared
  * `mov r0, #0` exit.
+ *
+
+ * ===== BATCH 327 BRIEF H: FOUR MORE int-temp BODIES, AND THE ONE UNTRIED
+ * ===== LEVER ON THAT HORN
+ *
+ * Figure re-derived: **3 differing encodings of 24**, ref 24 / ours 24, first at
+ * index 10, SIZE / INSTRUCTION COUNT / RELOCATIONS all silent.  BODY UNCHANGED.
+ *
+ * Treating the rejected rows as candidates, four int-temp bodies the park's 17
+ * do not include were built -- the cast moved into the TEST so the carrier has
+ * `REG_N_SETS == 1` rather than 2:
+ *   `int v; v = *p + 0xff; *p = v; if ((unsigned char)v != 0) ...`   23 insns
+ *   the same with `unsigned int v`                                   23 insns
+ *   the same with `u[0x147] = v`                                     23 insns
+ *   single read `v = *p; if (v == 0); v += 0xff; *p = v; ...`        22 insns
+ * The first three read "19 differ" and **objcmp's own note says the 19 is
+ * MISALIGNMENT, not distance**: size and encoding count match while the
+ * instruction count is 23 against 24, so a pad is absorbing the difference.
+ * They are three more members of the park's 9-of-24 family with the 0x147 pool
+ * word gone, which independently confirms step 5 of the five-step chain.
+ * `REG_N_SETS` on the carrier is therefore NOT the lever.
+ *
+ * THE ONE UNTRIED LEVER ON THE int-temp HORN, with its line.
+ * `reload_cse_move2add`'s rewrite is gated on `reg_set_luid[regno] >
+ * last_label_luid` (**reload1.c:8871**), and `last_label_luid` is reset at every
+ * CODE_LABEL (**:8855-8857**).  So a CODE_LABEL between the insn that puts 0x146
+ * into r0 and the insn that puts 0x147 there would save the pool word and leave
+ * the int-temp horn at 24 instructions.  The int-temp body has no label on that
+ * path and manufacturing one costs a branch -- but it is a different lever from
+ * the allocation one the park names, and nobody has tried it.
+ * Why the reference is immune at all: there the two offsets live in DIFFERENT
+ * registers -- 0x146 is built in **r3** (`mov r3,#0xa3 / lsl r3,#1`) and r3 is
+ * then REUSED for the byte, while 0x147 is pooled into **r1** -- so move2add has
+ * nothing to derive from.
  */
 extern unsigned char *_GetUnit(void);
 

@@ -117,6 +117,45 @@
  * one is reused; `c1 = 0xfc << 6; REG_BLDCNT = c1;` as its own statement, because
  * the bare literal pools as `ldr r3, =0x3f00`; the `sub sp, #8` with r4 absent
  * from the push list is a CALLER-SAVE slot under -fcall-used-r4, not a spill.
+ *
+ * ================= BATCH 327, BRIEF F: RE-DERIVED AND CONFIRMED =================
+ * 4 differing encodings of 104 (ref 104, ours 104), first at index 80: ref `3302`
+ * against ours `21c8`.  `--whole` adds no SIZE, no INSTRUCTION COUNT and no
+ * RELOCATIONS line.  244 bytes against 244, 103 instructions against 103.
+ * The figure and the whole batch-326 analysis above SURVIVE.
+ *
+ * The deciding cycle is reproduced independently, from `.23.sched2` with
+ * `-da -fsched-verbose=6`:
+ *     --> scheduling insn <<<215>>> on unit core
+ *     Ready list (t = 10):    224  218  281      (nothing issued -- STALL)
+ *     Ready list (t = 11):    224  218  281
+ *     --> scheduling insn <<<281>>> on unit core
+ *     Ready list (t = 12):    282  224  218
+ *     --> scheduling insn <<<218>>> on unit core
+ *     Ready list (t = 13):    282  224  221
+ *     --> scheduling insn <<<221>>> on unit core
+ * So 215 IS still `last_scheduled_insn` at t=11, and the mov (281) is chosen
+ * there ahead of 218 and 224.  TWO THINGS ADDED TO THE ANALYSIS:
+ *
+ * 1. THE t=10 STALL NOW HAS A CITATION, not an assertion.  215 is a `strh`, and
+ *    arm.md:262-263 gives `(and (eq_attr "ldsched" "!yes") (eq_attr "type"
+ *    "load,store1")) 2 2` -- ready-delay 2, ISSUE-DELAY 2 -- which is the
+ *    arm7tdmi case.  A load or store therefore holds the `core` unit for two
+ *    cycles, nothing can issue in the second, and `last_scheduled_insn` is only
+ *    updated when an insn is actually scheduled.  That is the whole reason the
+ *    class rung is evaluated against 215 rather than against whatever would
+ *    otherwise have issued at t=10.
+ * 2. `rank_for_schedule` HAS NO RUNG ABOVE PRIORITY -- read in full, the first
+ *    statement in the function is `priority_val = INSN_PRIORITY (tmp2) -
+ *    INSN_PRIORITY (tmp); if (priority_val) return priority_val;`.  So the
+ *    park's rung list is complete and its conclusion that priority(281) MUST be
+ *    66 in the ROM is the only remaining way in.  Nothing in this batch found a
+ *    route to 66, and the park's two-route bound (`LINK_COST_FREE` or an
+ *    anti/output link on 281->282) is unchanged.
+ *
+ * STILL REFUTED, so nobody re-proposes it: `-fno-schedule-insns2` (35 of 95).
+ * STILL CLOSED: no spelling of StartTask's second argument reaches the 4.
+ * -- scratch_elev/b327/F
  */
 #include "dma.h"
 

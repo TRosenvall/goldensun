@@ -262,6 +262,92 @@
  * Do NOT re-propose: 32+ respellings of the two differing statements, the
  * declaration/type/signature class (37 variants, 29 exactly flat), and the
  * post-reload-CSE family (closed above with citations).
+ *
+
+ * ===== BATCH 327 BRIEF H: RESIDUE (1) IS TWO FOLDS, NOT ONE, AND A PLAIN
+ * ===== CODE_LABEL IS *NOT* A BOUNDARY
+ *
+ * Figure re-derived: **4 differing encodings of 119**, ref 119 / ours 119,
+ * first at index 23, SIZE / INSTRUCTION COUNT / RELOCATIONS all silent.
+ * BODY UNCHANGED.
+ *
+ * 1. THE FOLD IS UNCONDITIONAL FOR THE REASON THE PARK DERIVED, and the lines
+ *    are: `CHEAPER(X,Y)` is literally `X->cost < Y->cost` (**cse.c:1479**);
+ *    `COST` gives a pseudo 1 and a non-reg `rtx_cost (x, SET) * 2`
+ *    (**cse.c:509-520**), and `arm_rtx_costs` returns 0 for a `const_int` < 256
+ *    with `outer == SET` (**arm.c:2078-2081**), so `(const_int 0)` at cost 0
+ *    takes the head of the class in `insert` (**cse.c:1546-1556**); cse_insn
+ *    then walks from `elt->first_same_value` (**:5108**), prunes both `src` and
+ *    `src_folded` as already-in-class (**:5109-5148**) and falls to
+ *    `trial = copy_rtx (elt->exp)` (**:5247-5251**) -- the constant.
+ *
+ * 2. **THERE ARE TWO FOLDS, WITH DIFFERENT BOUNDARY SETS.**  `cse_end_of_basic_block`
+ *    (**cse.c:6534-6743**) ends a block at ANY CODE_LABEL (**:6573**, no
+ *    LABEL_NUSES test) and, when `! after_loop`, at NOTE_INSN_LOOP_END
+ *    (**:6588-6591**).  cse1 is called with after_loop == 0 and **cse2 with
+ *    after_loop == 1, so cse2 ignores LOOP_END.**  Measured:
+ *      `do { v = Func_80c2384(u[0x128]); } while (0);` + the free do-while puts
+ *      a NOTE_INSN_LOOP_END between `ret = 0` and `j = ret` AT ZERO INSTRUCTION
+ *      COST, and `.02.jump` insn 69 `(set (reg 38) (reg 37))` **survives
+ *      `.03.cse`, `.07.gcse` and `.08.loop` unchanged** -- cse1 does NOT fold --
+ *      and `.09.cse2` turns it into `(const_int 0)` with a REG_EQUAL note.
+ *      Figure 7 of 119 (119 encodings, first at index 20); the 3 extra are a
+ *      scheduling perturbation of the `ldrb`/`mov sl,r1` pair and the init's
+ *      placement.  Variants: the same wrapper on the `for` body 7; around
+ *      `ret = 0` and the call together 7; around `ret = 0` alone 8.
+ *
+ * 3. **A CODE_LABEL IS NOT AUTOMATICALLY A BOUNDARY -- THIS IS WHY EVERY LABEL
+ *    ATTEMPT IN THIS PARK'S HISTORY MEASURED INERT.**  Before reaching a label
+ *    the block is EXTENDED ACROSS a forward conditional jump by two independent
+ *    paths, both on at -O2: `follow_jumps` (**cse.c:6640-6684**) when
+ *    `LABEL_NUSES == 1`, there are insns after the target and the target is
+ *    preceded by a BARRIER; and `skip_blocks` (**:6686-6720**), "a branch around
+ *    a block of code", when `q != CODE_LABEL` and no labels intervene.
+ *    PROVED with an instrument: `if (u[0x129] != 0) return ret;` before the init
+ *    (+5 instructions; semantically equivalent because the in-loop test already
+ *    makes the body a no-op then and `ret` is 0) puts
+ *    `barrier / code_label [1 uses] / insn 74 (set (reg 38) (reg 37))` in
+ *    `.02.jump` -- and cse1 folds it anyway.  With `-fno-cse-follow-jumps`
+ *    ALONE it STILL folds; only with **both** `-fno-cse-follow-jumps
+ *    -fno-cse-skip-blocks` does `.03.cse` keep the copy.
+ *    The park's "the label never survives to cse1" is therefore wrong in a way
+ *    that matters: a single-use, barrier-preceded label DOES survive and is
+ *    STEPPED OVER.
+ *
+ * 4. THE BOUND, STATED.  The boundary must be a label the block cannot be
+ *    extended into -- reached by FALL-THROUGH plus a jump from outside the
+ *    block (a true join), or `LABEL_NUSES >= 2`, or a loop top -- and it must
+ *    still be a boundary at cse2, which ignores LOOP_END.  Every such label
+ *    needs a compare and a branch, and the reference is exact at 118
+ *    instructions with no conditional anywhere before `.Lb6d68`.
+ *
+ * 5. AND A CORRECTION TO "ONLY THE BOUNDARY IS MISSING".  The do-while +
+ *    LOOP_END body with `-fno-rerun-cse-after-loop` (instrument) DOES keep the
+ *    copy, and it comes out as `mov r4, r0 / mov r7, sl` -- **`j` in r7 and `v`
+ *    in r4, the reverse of the ROM** -- 13 differing at 123 lines.  So blocking
+ *    the fold lengthens `ret`'s live range and re-orders the allocnos: the
+ *    boundary is NECESSARY AND NOT SUFFICIENT.  Treat "find a device-free
+ *    boundary and it lands" as refuted; the allocation has to be re-won too.
+ *
+ * 6. THE POST-RELOAD BOUND NOW COVERS ALL THREE PASSES.  The park cited
+ *    `reload_cse_simplify_set` and `reload_cse_simplify_operands`.  There is a
+ *    THIRD: `reload_cse_move2add` (**reload1.c:8840**), called from
+ *    `reload_cse_regs` (**:7991**) between two `reload_cse_regs_1` passes.  Its
+ *    const path is gated on `GET_CODE (src) == CONST_INT && reg_base_reg[regno]
+ *    < 0` and rewrites only against **the same hard register's own** recorded
+ *    constant `reg_offset[regno]`, emitting `(set (reg) (reg))` -- a SELF-move
+ *    -- when the delta is 0 (**:8899-8903**).  It can never take the value from
+ *    a DIFFERENT register, so it cannot make `movs r4, #0` into `mov r4, sl`.
+ *    **The bound stands, now checked across all three post-reload passes.**
+ *
+ * NEXT, REVISED:
+ *   1. Residue (1) needs a free join-point label AND a way to keep `j` in r4
+ *      once `ret` stays live across the init.  Do not test a boundary without
+ *      checking the j/v allocation in `.19.flow2`.
+ *   2. Residue (2) unchanged -- the `allocate_reload_reg` cursor's parity.
+ * Do NOT re-propose: `goto`+label (stepped over by follow_jumps), do-while(0)
+ * wrappers in any of the four positions measured above, or the post-reload CSE
+ * family.
  */
 extern unsigned char *_GetUnit(int id);
 extern int Func_80c23c0(int a);

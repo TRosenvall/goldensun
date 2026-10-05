@@ -1,202 +1,155 @@
-/* Func_80ab1f4 @ 0x080ab1f4  --  NOT MATCHING, 4 of 19 encodings
+/* Func_80ab1f4 @ 0x080ab1f4 -- NON-MATCHING, 4 differing encodings of 19.
  *
- * MEASURED THIS BATCH.  PIN COUNT: 0 (tools/shimcount.py reports no shims).
+ * FIGURE RE-DERIVED batch 327 brief E.  19 instructions both sides, SIZE equal,
+ * no objcmp INSTRUCTION COUNT line -- the 4 IS a distance.  PIN COUNT 0.
  *
- * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/rom_a1000/rom_ab1f4.c \
- *     asm/rom_a1000/rom_aa538_c_c_a_c_c.s --func Func_80ab1f4
+ * Verify with -- ONE LINE:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/rom_ab1f4.c asm/rom_a1000/rom_aa538_c_c_a_c_c.s --func Func_80ab1f4
+ *     -> XX ENCODINGS differ in 4 place(s) (ref 19, ours 19), first at index 9
+ *   `--whole` is NOT a figure for this file: the reference TU holds THREE
+ *   functions (Func_80aafb8, Func_80ab1f4, Func_80ab21c).  Use --func.
  *
- *   --func : XX ENCODINGS differ in 4 place(s) (ref 19, ours 19), first at index 9
- *   --whole is NOT a figure for this file: the reference TU holds THREE
- *   functions (Func_80aafb8, Func_80ab1f4, Func_80ab21c), so --whole reports
- *   the other two "missing from candidate" plus a SIZE and RELOCATIONS diff.
- *   Use --func until the split below is taken.
- *
- * SPLIT (for when it lands).  CORRECTED -- the park's split filenames were
- * computed against the OLD reference name and are stale:
+ * SPLIT, for when it lands:
  *   python3 tools/datacheck.py asm/rom_a1000/rom_aa538_c_c_a_c_c.s  -> CLEAN (exit 0)
  *   python3 tools/split_s.py asm/rom_a1000/rom_aa538_c_c_a_c_c.s Func_80ab1f4 --dry-run
  *     would write asm/rom_a1000/rom_aa538_c_c_a_c_c_a.s  (1 function, 283 lines)
- *     would write asm/rom_a1000/rom_aa538_c_c_a_c_c_b.s  (1 function,  26 lines)  <- this one
+ *     would write asm/rom_a1000/rom_aa538_c_c_a_c_c_b.s  (1 function,  26 lines) <- this one
  *     would write asm/rom_a1000/rom_aa538_c_c_a_c_c_c.s  (1 function, 114 lines)
  *
- * ===== WHAT I REPRODUCED AND WHAT I ADD =====
+ * ================================================================
+ * THE FULL INSN -> INSTRUCTION MAP.  The batch-326 table was INCOMPLETE: it
+ * omitted insns 61, 14, 27, 46, 54, 65, 66 and 67, and insn 61 is load-bearing.
+ * ================================================================
+ *   idx 0  push {r5,r6,lr}          idx 10  OURS 31  | ROM 12
+ *   idx 1  mov r4,r0        = 4     idx 11  OURS 39  | ROM 31
+ *   idx 2  ldrh r0,[r4,#12] = 21    idx 12  OURS 25  | ROM 39
+ *   idx 3  add r0,r0,r1     = 23    idx 13  str r5,[sp]      = 33
+ *   idx 4  ldrh r1,[r4,#14] = 27    idx 14  bl _Func_8022768 = 42
+ *   idx 5  sub sp,#4        = 61    idx 15  add sp,#4        = 65
+ *   idx 6  ldr r5,[sp,#20]  = 14    idx 16  pop {r5,r6}
+ *   idx 7  mov r6,r3        = 10    idx 17  pop {r1}
+ *   idx 8  add r1,r1,r2     = 29    idx 18  bx r1            = 67
+ *   idx 9  OURS 12 | ROM 25
+ * where 25 = `add r0,#1`, 31 = `add r1,#1`, 39 = `mov r2,r6`,
+ *       12 = `ldr r3,[sp,#16]` (the a5 load), 14 = `ldr r5,[sp,#20]` (a6).
  *
- * REPRODUCED, both of the park's findings.  The epilogue blocker is closed and
- * stays closed: `pop {r1} / bx r1` means r0 is live at exit, the function
- * returns its callee's result, and the declared return type is what fixes it.
- * The remaining residue is one sched2 rung, 19 instructions against 19:
+ * *** THE RESIDUE IS A ROTATION, NOT A SWAP: `add r0,#1` moves from LAST to
+ * *** FIRST of four.  INDICES 0-8 AND 13-18 ALREADY AGREE WITH THE ROM.
  *
- *     idx  REF                      | OURS
- *      9   3001 add r0, #1          | 9b04 ldr r3, [sp, #16]
- *     10   9b04 ldr r3, [sp, #16]   | 3101 add r1, #1
- *     11   3101 add r1, #1          | 1c32 mov r2, r6
- *     12   1c32 mov r2, r6          | 3001 add r0, #1
+ * ================================================================
+ * BATCH 326'S "SHARPER TARGET" IS REFUTED.  IT NAMES TWO MATCHING ENCODINGS.
+ * ================================================================
+ * It reads: "our schedule picks 10 at t=9 and 29 at t=10; SWAPPING THOSE TWO
+ * PICKS IS THE WHOLE LANDING ... what is needed is ONE MORE DEPENDENT ON INSN 29,
+ * OR ONE FEWER ON INSN 10 -- not two more on insn 25."
  *
- * ALL FOUR ARE REAL INSTRUCTIONS.  This function has NO literal pool at all
- * (its one relocation is the `bl` at index 14), so no rung below is blind.
+ * Insn 10 IS `mov r6,r3` at index 7 and insn 29 IS `add r1,r1,r2` at index 8,
+ * **and the ROM has them in exactly that order.**  Swapping them converts two
+ * CORRECT encodings into two wrong ones.  This is the brief's own warning --
+ * check that a matching encoding matches for the right reason -- firing in the
+ * opposite direction: here two encodings are right and a propagated target asks
+ * for them to be broken.  (It is also why "one more dependent on insn 29" would
+ * not help even if it were free.)
  *
- * ADDED (1): the park's numbers are confirmed from the dump rather than
- * inherited.  .23.sched2's own ready lists for block 0:
- *     t=11:  33  39  25  31  12   -> picks 12   (the a5 load)
- *     t=12:  33  25  39  31       -> picks 31
- *     t=14:  33  25  39           -> picks 39
- *     t=15:  33  25               -> picks 25   (`add r0,#1`, LAST)
- * The rank order is 33 < 25 < 39 < 31 < 12.  `add r0,#1` is second-lowest of
- * the five, above only the outgoing-stack-argument store.  The ladder is
- * priority (all tie at 66; arm_adjust_cost charges 1 for any link into a
- * CALL_INSN, so the load gets no latency credit) -> dependent count
- * (12:4, 31:3, 39:3, 25:2) -> INSN_LUID.  Our order IS the dependent-count
- * order.  Frame offsets were already confirmed correct and are not re-derived.
+ * ================================================================
+ * THE CONTEST IS ENTIRELY AT t=11, AND IT IS THREE-WAY
+ * ================================================================
+ * `.23.sched2`, block 0 (`from 55 to 67`), dependence table in CHAIN order:
+ *   insn  prio  cost  dependents
+ *     61    68    1   66 65 42 33 14 12      <- sub sp,#4  (reload frame adjust)
+ *      4    72    1   67 66 42 27 21
+ *     10    67    1   67 66 39 12            <- mov r6,r3
+ *     12    66    2   67 66 65 42      = 4   <- ldr r3,[sp,#16]  (a5)
+ *     14    67    2   67 66 65 42 33
+ *     21    71    2   67 66 42 23
+ *     23    69    1   66 27 25
+ *     25    66    1   66 42            = 2   <- add r0,#1
+ *     27    69    2   67 66 42 29
+ *     29    67    1   66 39 31         = 3   <- add r1,r1,r2
+ *     31    66    1   67 66 42         = 3   <- add r1,#1
+ *     33    65    2   67 66 65 42
+ *     39    66    1   67 66 42         = 3   <- mov r2,r6
+ *     42    65   32   67 66 65 54 46         <- the call
+ *   t=9  Ready: 33 25 29 10      -> 10  (prio 67 ties 29; rung 4 deps 4 > 3)
+ *   t=10 Ready: 33 12 25 29      -> 29  (prio 67, rung 1 outright)
+ *   t=11 Ready: 33 39 25 31 12   -> 12  *** THE ONLY CONTEST THAT MATTERS ***
  *
- * ADDED (2): THE TWO BLOCKERS ARE COUPLED, AND THE COUPLING IS NOT THE BINDING
- * CONSTRAINT -- WHICH IS WORTH SAYING BECAUSE IT CLOSES A TEMPTING DEAD END.
- * `add r0,#1` has only 2 dependents because r0 is the return value, so the
- * epilogue's `pop {r1}` gives it no output dependence.  The `void` spelling
- * does give it one -- and costs the epilogue, as the park says.  But even with
- * that third dependent it is 3 against the a5 load's 4, so the void spelling
- * CANNOT win the rung either.  The gap is not one dependent; it is two.
+ * THE t=11 RANKING, FULLY RECONSTRUCTED -- it reproduces the printed order exactly:
+ *   rung 1 priority: 33 = 65 (worst); 39, 25, 31, 12 all = 66.            TIES
+ *   rung 3 CLASS, last_scheduled_insn = 29 (dependents {66,39,31}):
+ *     39: REG_DEP_ANTI from 29 (29 READS r2, 39 WRITES r2); arm_adjust_cost
+ *         prices anti at 0, so insn_cost != 1 => **class 2, DEMOTED**
+ *     31: link from 29 with cost 1 ("insn 31 into queue with cost=1"), and
+ *         `:4077` makes `insn_cost(...) == 1` class 3 => **class 3**
+ *     25, 12: no link => class 3
+ *   rung 4 dependent count among the class-3 group: 12 = 4, 31 = 3, 25 = 2.
+ *         MORE WINS -> 12.   Printed order `33 39 25 31 12` matches exactly.
  *
- * ADDED (3): the corpus says what the only reachable route is.  Searching the
- * GENERATED assembly of matching functions:
- *     `add rX, rX, #1` immediately before `ldr rY, [sp, #N]`   ->  0 hits
- *     `ldr rY, [sp, #N]` immediately before `add rX, rX, #1`   -> 34 hits
- *     any `add rX, rX, #imm` before `ldr r3, [sp, #N]`         ->  1 hit
- * The single hit is src/overlays/rom_7d0e88/ovl_1528_a_a_c_a_c_c.c:
- *     add r5, r5, #12 / ldr r3, [sp, #4] / add r5, r5, sl / ... / mov r3, r5 / bl
- * It beats the sp load on the PRIORITY rung, not the dependent-count rung,
- * because its value is three insns from the call instead of one.
+ * ================================================================
+ * THE REPLACEMENT TARGET, AND THE PREREQUISITE THAT IS NOW BANKED
+ * ================================================================
+ * Because `:4115` returns `INSN_LUID(tmp) - INSN_LUID(tmp2)` the LOWER LUID WINS,
+ * and the chain order above gives LUID(25) < LUID(31) < LUID(39).  So
+ * **deps(25) = 3 already beats BOTH 31 and 39 on rung 5** -- the gap to those two
+ * is ONE dependent, not two.
  *
- * > BOUND, with its evidence attached.  To beat the a5 load, `add r0,#1` needs
- * > either >= 4 dependents or a longer chain to the call.  Its two extra
- * > dependents would have to come from later writers of r0, and r0 is the
- * > return value (that is what closed the epilogue).  A longer chain needs an
- * > extra instruction, and the stream is already 19 of 19 -- and the two +1s
- * > cannot be moved onto the operands instead of the sums, because the ROM's
- * > encodings are `add r0,#1` (3001) and `add r1,#1` (3101), i.e. on the sums
- * > in r0 and r1, not on x in r1 and y in r2 (which would be 3101/3201).
- * > This is what I measured on this body; it is NOT a claim that the rung is
- * > unreachable in general -- the corpus hit above shows the priority route
- * > works where an extra chain insn exists.
+ * AND THE `void` RETURN TYPE SUPPLIES EXACTLY IT, MEASURED, WITH THE DUMP AS
+ * EVIDENCE.  Declaring the prototype AND the definition `void` together:
+ *   figure 4, 19 of 19, SIZE equal -- EXACTLY INERT
+ *   deps(25) goes {57,42} -> {58,57,42}, i.e. **2 -> 3**
+ *   the t=11 ready list goes `33 39 25 31 12` -> `33 39 31 25 12`, i.e.
+ *   **insn 25 OVERTAKES insn 31**, exactly as rung 5 predicts, output unchanged.
+ * This is batch 326's "a tie-break lever is invisible until something else
+ * manufactures the tie", observed in the dump rather than inferred.  It is a
+ * DEMONSTRATED prerequisite, not a candidate one.
  *
- * ===== MEASURED, BUILDING ON THE PRIOR CROSSFIRE RUN, NOT REPEATING IT =====
+ * ALSO CORRECTED: both the park and batch 326 assert the `void` spelling "costs
+ * the epilogue" because `pop {r1} / bx r1` proves a non-void return.  **ON THIS
+ * BODY IT COSTS NOTHING** -- indices 17-18 still match, because the callee
+ * clobbers r0 either way, so thumb_exit emits the same pop.  Neither measured it.
+ * (The body below nonetheless KEEPS `s32`, because the function really does
+ * forward its callee's result and `void` buys no encoding.  The figure is
+ * recorded here so the next round does not re-measure it.)
  *
- * The prior run's "named sums" row measured exactly inert at 4 and was
- * therefore a candidate prerequisite, so this round CROSSED it with the
- * declaration dimension the brief asked for.  crossfire.py, 5 edits at depth 3
- * (26 live subsets): COMPLETELY FLAT.  Every subset exactly inert at 4, same
- * instruction count, clean relocations, nothing better and nothing worse:
- *     named sums (the prior prerequisite)                          4
- *     pad_00[0x0c] replaced by real declared members               4
- *     callee without a prototype                                   4
- *     window declared const                                         4
- *     a5 cast at the call                                           4
- *     ALL 21 pairs and triples of those, named sums included        4
- * Probed separately: col/row as a `u16 pos[2]` array -- 4, inert.
- * -fno-schedule-insns2 is REJECTED: 12 of 19, first at index 1.
+ * > WHAT IS STILL MISSING, stated with its evidence.  Insn 12 must be DEMOTED on
+ * > rung 3 at t=11, and `last_scheduled_insn` must therefore be one of insn 12's
+ * > only two producers:
+ * >     insn 10 = `mov r6,r3` (index 7) -- ANTI dep: 10 reads r3, 12 writes it
+ * >     insn 61 = `sub sp,#4` (index 5) -- 12 reads sp
+ * > **Both already sit at indices that MATCH the ROM**, so moving either into the
+ * > t=10 slot trades correct encodings for the 4.  There is no rung-4/5 route
+ * > either: LUID(12) < LUID(25) in the chain order above, so ties go to 12, and
+ * > deps(12) would have to fall to <= 2.  Its 4 is {67,66,65,42}, of which 65
+ * > (`add sp,#4`) and 67 (`pop {r1}/bx r1`) are anti-dependences insn 12 picks up
+ * > MERELY BY READING THE FRAME -- which a5 must do, being the 5th parameter.
+ * > So the open question is whether a5 can be made to arrive through a register
+ * > that the ROW SUM writes, NOT whether insn 25 can gain dependents (it can gain
+ * > exactly one, and one is not enough).
  *
- * ON THE BRIEF'S DECLARATION LEVER, which was the reason to look here: the
- * `u8 pad_00[0x0c]` padding is NOT hiding the defect.  Replacing it with real
- * members is exactly inert, and so is turning col/row into an array -- because
- * THE ADDRESSING IS ALREADY THE ROM'S (`ldrh r0,[r4,#12]`, `ldrh r1,[r4,#14]`)
- * and 19 of 19 instructions already agree.  A correct declaration here can
- * only move the SCHEDULE, and the schedule depends on the successor graph,
- * which these edits leave bit-identical.  The lever class is real -- it already
- * paid out on this function once, as the `void` return type -- but it is spent.
- * The padding is left as padding rather than filled with invented members:
- * inventing f00/f04/f08/f0a would be a guess, and it buys nothing measurable.
+ * MEASURED THIS BATCH (all 19 of 19, SIZE equal, no COUNT line):
+ *   base ........................................................ 4
+ *   `void` on PROTOTYPE AND DEFINITION together ................. 4  inert, and
+ *                                      it moves the ready list (see above)
+ *   `void` on the DEFINITION ONLY (prototype left s32) .......... 6  WORSE
+ *   `s32 last = a6;` named before the call ...................... 4  exactly inert
+ *   `s32 d = a4;` named before the call ......................... 4  exactly inert
+ *   `const struct Window *window` ............................... 4  exactly inert
+ *   both sums named in locals (`cx`, `cy`) ...................... 4  exactly inert
+ *   all pairs and triples of those (crossfire, depth 3) ......... 4  exactly inert
+ * Inherited and not re-run: pad_00[0x0c] replaced by real declared members 4;
+ *   callee without a prototype 4; a5 cast at the call 4; col/row as a `u16 pos[2]`
+ *   array 4; `p = a5;` / `q = a6;` / `p = a4;` named 4; `1 + window->col + x` 4;
+ *   named sums ROW first 13 WORSE; `x + window->col + 1` SIZE 44 vs 40 at 20
+ *   insns -- a LENGTH defect, so its 17 is misalignment, not distance;
+ *   -fno-schedule-insns2 REJECTED at 12 of 19.
  *
- * ===== BATCH 326, BRIEF C: THE PARK'S BOUND IS REFUTED FROM SOURCE =====
+ * Reproduced and still closed: the epilogue blocker.  `pop {r1} / bx r1` means r0
+ * is live at exit and the declared return type is what fixes it.
  *
- * The park's bound reads: "To beat the a5 load, `add r0,#1` needs either >= 4
- * dependents or a longer chain to the call."  That is computed on the
- * DEPENDENT-COUNT rung, and it assumes the ladder is
- * priority -> dependent count -> INSN_LUID.  **THE LADDER HAS FOUR RUNGS, NOT
- * THREE.**  `rank_for_schedule` (haifa-sched.c:4029-4116), in order:
- *
- *   1. `:4041`  INSN_PRIORITY.
- *   2. `:4046`  INSN_REG_WEIGHT -- gated `!reload_completed`, so DEAD in sched2.
- *   3. `:4069-4095`  THE `last_scheduled_insn` CLASS RUNG.  Each ready insn is
- *      classified 3 (independent of the last-scheduled insn, OR joined to it by a
- *      link of cost 1), 1 (data-dependent) or 2 (anti/output-dependent), and the
- *      HIGHEST class wins outright.
- *   4. `:4100-4110`  dependent count, then `:4115` INSN_LUID.
- *
- * RUNG 3 SITS ABOVE THE DEPENDENT COUNT, SO THE PARK'S BOUND DOES NOT BIND.
- * And the dump shows rung 3 deciding this very contest.  With `-da
- * -fsched-verbose=6`, insn 12 (the a5 load) appears in two consecutive sorted
- * ready lists with NO change to its priority (66) and NO change to its dependent
- * count (4):
- *
- *     Ready list (t = 10):   33  12  25  29      -> picks 29   (12 is 2nd WORST)
- *     Ready list (t = 11):   33  39  25  31  12  -> picks 12   (12 is BEST)
- *
- * The only thing that changed is `last_scheduled_insn`: 10 at t=10, 29 at t=11.
- * Insn 12's two producers are 10 and 61, so at t=10 it is a dependent of the
- * just-scheduled insn and demoted, and at t=11 it is independent and promoted.
- * **A rank that moves from second-worst to best between consecutive cycles cannot
- * be bounded by a dependent-count argument.**
- *
- * THE DEPENDENCE TABLE, so nobody re-derives it (`.23.sched2`, block 0):
- *
- *     insn  prio  cost  dependents
- *       4    72    1    67 66 42 27 21
- *      10    67    1    67 66 39 12
- *      12    66    2    67 66 65 42        <- the a5 load, 4 dependents
- *      21    71    2    67 66 42 23
- *      23    69    1    66 27 25
- *      25    66    1    66 42              <- `add r0,#1`, 2 dependents
- *      29    67    1    66 39 31
- *      31    66    1    67 66 42
- *      33    65    2    67 66 65 42
- *      39    66    1    67 66 42
- *      42    65   32    67 66 65 54 46     <- the call
- *
- * WHY THE a5 LOAD'S 4 IS STRUCTURAL -- which STRENGTHENS the park on rung 4 even
- * as rung 3 retires its bound.  Insn 12's dependents are the call (42), the use
- * note (66), the epilogue's `add sp` (65) and the return (67).  The last two are
- * ANTI-DEPENDENCES IT PICKS UP MERELY BY READING THE FRAME: 65 writes sp and 67
- * reads it.  So EVERY incoming stack-argument load in this function has >= 4
- * dependents and every register-to-register add has 2, whatever the source says.
- * a5 and a6 are the 5th and 6th parameters and must come off the stack, so rung 4
- * can never be won here.  Rung 3 is the only way in.
- *
- * > THE SHARPER TARGET, replacing the park's.  Insn 25 wins at t=11 IF AND ONLY IF
- * > insn 10 -- one of insn 12's two producers -- is the insn scheduled at t=10.
- * > Our schedule picks 10 at t=9 and 29 at t=10; SWAPPING THOSE TWO PICKS IS THE
- * > WHOLE LANDING.  The t=9 contest is 10 against 29, both priority 67, both class
- * > 3, decided on rung 4 by dependent count 4 against 3.  So what is needed is
- * > ONE MORE DEPENDENT ON INSN 29, OR ONE FEWER ON INSN 10 -- not two more on insn
- * > 25.  That is a different and much softer target, and it is stated here with
- * > the dump lines above as its evidence rather than as a claim to build on.
- *
- * MEASURED THIS BATCH, 8 more bodies, screening the dependence graph rather than
- * the declarations (the park had already measured the declaration dimension shut):
- *     named sums, col first then row                              4   inert
- *     `p = a5;` named before the call                             4   inert
- *     `q = a6;` named before the call                             4   inert
- *     both a5 and a6 named                                        4   inert
- *     `p = a4;` named before the call                             4   inert
- *     `1 + window->col + x` / `1 + window->row + y`               4   inert
- *     named sums, ROW first then col                             13   WORSE
- *     `x + window->col + 1` / `y + window->row + 1`     SIZE 44 vs 40, 20 insns
- *                                                        against 19 -- a LENGTH
- *                                                        defect, so 17 is
- *                                                        misalignment, not distance
- * None of the six inert bodies moved the sched2 ready lists at all, which is the
- * park's own conclusion holding: these edits leave the successor graph identical.
- * The ROW-first ordering is worse because it swaps the register assignment of the
- * two sums (first difference at index 1, `1c04` against `1c0d`).
- *
- * DECLINING TO CLOSE.  Figure unchanged at 4 (re-measured batch 326: ref 19,
- * ours 19, SIZE equal, no INSTRUCTION COUNT line -- the 4 IS a distance).  The
- * park's BOUND is retired and replaced by the sharper target above; its
- * diagnosis is confirmed
- * from the dump, the two blockers are shown to be coupled, the gap is sized at
- * two dependents rather than one, the only corpus-attested escape route is
- * named, and the declaration dimension is measured shut.
+ * Blocker class: sched2 rank_for_schedule RUNG 4 (dependent count) at t=11, with
+ * the rung-3 escape requiring a reorder of encodings that already match.
+ * DECLINING TO CLOSE: figure unchanged at 4, with one prerequisite banked and
+ * batch 326's target retired.
  */
 #include "gba/types.h"
 

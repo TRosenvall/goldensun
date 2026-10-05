@@ -155,6 +155,73 @@
  * the zero_extend:SI load that feeds the ADD and a NARROW `unsigned short e = d`
  * for the HImode value that feeds the COMPARE.  `e = d` is the ROM's `mov r3,r2`.
  * The sibling DisplayMenuArrowCursor2 (30 of 140) keeps this struct layout.
+ *
+ * ======================================================================
+ * BATCH 327 BRIEF D -- 6 of 133 RE-DERIVED.  THE "WORTH TRYING FROM THE OTHER
+ * SIDE" SUGGESTION ABOVE IS NOW CLOSED **WITH ARITHMETIC**, NOT ANOTHER SWEEP.
+ * ======================================================================
+ * objcmp --func: 6 of 133 (ref 133, ours 133), first at index 21 (ref 5ab1
+ * `ldrh r1,[r6,r2]`, ours 1c1d `adds r5,r3,#0`).  No SIZE, no RELOCATIONS, no
+ * INSTRUCTION COUNT line -- the figure IS a distance.  Both find_free_reg
+ * citations stand.
+ *
+ * BLOCK 1's SIX LOCAL QUANTITIES, read out of .17.lreg WITH THEIR RTL ROLES
+ * (the insns, not just the header line):
+ *   qty  refs/span  QTY_CMP_PRI  born..dies  what it is
+ *    52     2 / 2      10000       45 -> 47   `m + idx` (&m->a[i]); feeds o = that + 40
+ *    72     2 / 2      10000       86 -> 88   `m + (idx+16)` RECOMPUTED for the y read
+ *    74     2 / 2 HI   10000       88 -> 104  the loaded m->a[i].y
+ *    56     4 / 9       8888       55 -> 75   the x value: set at 55
+ *                                             (zero_extend (mem:HI (plus reg32 reg55))),
+ *                                             re-set at 62 (& 0x1ff), used at 75 (ior)
+ *    55     3 / 11      2727       53 -> 86   `idx + 16`
+ *    61     2 / 8 HI    2500       64 -> 69   the old o->x halfword
+ *
+ * MECHANISM RE-CONFIRMED IN THE COMPILER: QTY_CMP_PRI is
+ * floor_log2(n_refs)*n_refs*size / (death - birth) * 10000 (local-alloc.c:1496-1498);
+ * qty_compare_1 ties on the LOWER quantity number (:1519-1521); find_free_reg
+ * takes the first reg_alloc_order regno not in `first_used` (:2023-2032); and
+ * `post_mark_life (regno, mode, 1, born_index, dead_index)` (:2039) is what puts
+ * an ALREADY-ALLOCATED quantity's register into the exclusion set -- and only
+ * across its OWN birth..death.  So the exclusion needs an overlapping quantity
+ * allocated EARLIER, i.e. priced strictly above 8888 (or tied at 8888 with a
+ * lower qty number).
+ *
+ * THE BOUND, WITH THE ARITHMETIC.  Need floor_log2(R)*R/L > 0.8888:
+ *     R = 2 -> L <= 2     R = 3 -> L <= 3     R = 4 -> L <= 8
+ *     R = 5 -> L <= 11    R = 6 -> L <= 13
+ * Applied to the three existing 10000-priced quantities:
+ *   - 52 is born at insn 45 and must live to at least 55.  The insns in its way
+ *     are 45, 47, 53, 55, so L >= 4 with at best R = 3 => 1*3/4 = 7500, BELOW
+ *     8888.  Reaching R = 4 inside L <= 8 means using `m + idx` four times in
+ *     eight insns, and the only available fourth use is to address the x load
+ *     off it as (plus reg52 16) -- which replaces the ROM's register-offset
+ *     `ldrh r1,[r6,r2]` with an immediate-offset `ldrh`, i.e. a different
+ *     program AT THE VERY ENCODING BEING FIXED.
+ *   - 72 is born at 86 and must be born before 75.  Pulling it up means one
+ *     base pointer serving both the x and the y read: R = 3 over L ~ 53..88, a
+ *     few thousand at best.  (That is the already-measured `ar = &m->a[i]`
+ *     family: 25, and 122/130.)
+ *   - 74 is the loaded y halfword and cannot be born before the load that
+ *     defines it without moving the y read -- the refuted named-intermediate
+ *     family, 129-132 at 135-137 insns.
+ *
+ *   >> BOUND: QTY_CMP_PRI DIVIDES BY THE LIVE SPAN, so any way of stretching an
+ *      existing 10000-priced block-1 quantity across insn 55 necessarily pushes
+ *      its span past the L its ref count can afford, and it ends up allocated
+ *      AFTER pseudo 56 -- where post_mark_life can no longer exclude r3.  The
+ *      only shape the arithmetic permits is a FRESH 2-ref/2-insn quantity born
+ *      and dying inside 55..75, which is exactly the route batch 326 refuted ten
+ *      ways: the destination is a BITFIELD, so a named intermediate never folds
+ *      and costs +2 to +4 instructions (COUNT and MEM on every row).
+ *      Evidence attached: the table above is read from .17.lreg, the formula
+ *      from local-alloc.c:1496, the exclusion from :2039.
+ *      WHAT WOULD RETIRE IT: a block-1 quantity with 4 refs inside 8 insns (or
+ *      5 inside 11) spanning insn 55 that costs no instruction.  None of the
+ *      block's six quantities can be reshaped into one.
+ *
+ * PARK HOLDS AT 6 of 133.  The suggested direction is closed; no new variants
+ * were measured this round because the arithmetic rules out the whole class.
  */
 struct OamSprite {
     unsigned char pad[4];

@@ -127,7 +127,28 @@
  * interleaves into the `mag` computation; and the 0x20-slot init loop's base as a
  * strength-reduced giv (`((Part *)(base + (0xe1 << 7)))[i].x`) with the
  * per-target loop's four increments in the order `th, p, boff, i`.
- */
+  *
+ * ================================================================
+ * BATCH 327B -- RE-DERIVED, AND ONE INSTRUMENT RULED OUT FOR THIS FUNCTION
+ * ================================================================
+ * Baseline re-derived as installed: 20 of 381, counts exact (381 = 381), no
+ * SIZE line and no RELOCATIONS line, first differing index 38.  The 20 stands.
+ *
+ * THE giv-ORDER LEVER THAT BATCH 327B OPENED ON Anim_Whirlwind DOES NOT APPLY
+ * HERE, and this is worth recording so nobody spends the compile.  On
+ * Anim_Whirlwind two strength-reduced givs land in two frame slots and their
+ * order is decided by record_giv's prepend (see that file's batch-327B block).
+ * `Anim_Venus`'s `.08.loop` has only ONE REDUCED GIV IN THE WHOLE FUNCTION --
+ *     Loop from 535 to 618: giv at 567 reduced to (reg:SI 222)
+ * and every other candidate is either "combined with"/"recombined with" another
+ * giv or rejected ("giv of insn 761 not worth while, -102 vs 44", likewise 711,
+ * 438, 434).  With one reduced giv per loop there is no PAIR to order, so the
+ * slot-ordering question cannot arise.
+ *
+ * The residue characterised in the batch-326 block above (two sched2 ties, one
+ * local-alloc first-free walk, three reload-cursor registers) is unchanged and
+ * nothing in it was refuted this batch.
+*/
 #include "gba/types.h"
 #include "gba/io.h"
 #include "file_table.h"

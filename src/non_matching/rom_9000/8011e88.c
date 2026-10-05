@@ -1,20 +1,24 @@
 /* HeightTile_A -- 0x08011e88  (asm/rom_9000/rom_11ce0_a_c_c_a_c_c_a.s)
  *
- * NON-MATCHING, 2 differing encodings of 36, NO PINS, NO DEVICES  (RE-MEASURED, batch 325 brief C).
- * 36 instructions against 36, 72 bytes against 72, 0 relocation differences,
- * first differing index 26.  The batch-323 figure is exact and reproduces.
+ * NON-MATCHING, 2 differing encodings of 36, NO PINS, NO DEVICES
+ *   (RE-MEASURED batch 327 brief I; reproduces exactly).
+ *   --func: 2 of 36 (ref 36, ours 36), first differing index 26.
+ *   --whole: "2 of 36 differ (ours 36), first at index 26" -- agrees.
+ *   0 relocation differences.
  *
  * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_9000/8011e88.c asm/rom_9000/rom_11ce0_a_c_c_a_c_c_a.s --func HeightTile_A
  *
- * RECIPE REPOINTED.  The previous recipe named the pre-split
- * asm/rom_9000/rom_11ce0_a_c_c_a_c_c.s and was DEAD -- objcmp exits
- * FileNotFoundError on it.  Batch 324's HeightTile_B landing split that file,
- * and this header's old SPLIT SHAPE prediction is now spent: the split is DONE,
- * the tool named the halves `_a` and `_b` (not `_b` and `_c` as predicted),
- * HeightTile_A's asm is at ..._a_c_c_a_c_c_a.s, and **no further split is
- * needed if this ever lands** -- the install path would be
- * src/rom_9000/rom_11ce0_a_c_c_a_c_c_a.c.
- *   datacheck.py on the reference: CLEAN, no data section, no exports.
+ *   SPLIT SHAPE: the split is DONE (batch 324's HeightTile_B landing did it);
+ *   this function's asm is already alone in ..._a_c_c_a_c_c_a.s, datacheck.py
+ *   on the reference is CLEAN (no data section, no exports), and the install
+ *   path if it ever lands is src/rom_9000/rom_11ce0_a_c_c_a_c_c_a.c with NO
+ *   further split_s.py run.
+ *
+ * *** ARITHMETIC CORRECTION TO THE PREVIOUS HEADER ***
+ * It said "36 instructions against 36, 72 bytes against 72".  The byte count is
+ * right and the instruction count is NOT: counted off both streams, the ROM and
+ * ours each hold **35 real instructions** = 70 bytes, plus ONE 2-byte alignment
+ * pad = 72 bytes = 36 encodings.  `of 36` in the figure is encodings.
  *
  * WHAT THE RESIDUE IS: two encodings, indices 26 and 27, a real instruction
  * pair and not pool words.
@@ -22,138 +26,112 @@
  *     rom   mov r0, r3 / mul r0, r2       (0x1c18 then 0x4350)
  *     ours  mov r0, r2 / mul r0, r3       (0x1c10 then 0x4358)
  *
- * THE PATTERN, read out of arm.md rather than inferred:
+ * `*thumb_mulsi3` (arm.md:1116) ties the dest to md operand 1 and C `X * Y`
+ * expands to `(mult Y X)`, so md operand 1 is the SECOND C operand and it is
+ * the register the `mov` reads.  The ROM's high arm puts the sample difference
+ * in r2 and `t - 8` in r3, and its `mov r0, r3` makes md operand 1 = `t - 8`.
+ * So the ROM needs `a * (t - 8)`, the FLIP of what ships.
  *
- *     (define_insn "*thumb_mulsi3"                                 arm.md:1116
- *       [(set (match_operand:SI 0 "register_operand" "=&l,&l,&l")
- *             (mult:SI (match_operand:SI 1 "register_operand" "%l,*h,0")
- *                      (match_operand:SI 2 "register_operand" "l,l,l")))]
- *       which_alternative < 2  ->  "mov %0, %1 ; mul %0, %0, %2"
- *       else                   ->  "mul %0, %0, %2"
+ * *** THE FLIP IS NOW EXCLUDED ON LENGTH, WHICH IS A STRONGER BOUND THAN THE
+ *     PREVIOUS HEADER'S "32 of 36". ***
+ * That 32 was MISALIGNMENT, NOT A DISTANCE.  objcmp's repaired pad guard prints,
+ * on every flipped body:
+ *     INSTRUCTION COUNT ref 35, ours 36 (excluding 1/0 pad word(s))
+ *     NOTE: size and encoding count MATCH -- a pad is absorbing the difference
+ * The flipped body is **36 real instructions against the ROM's 35**.  The extra
+ * instruction is exactly the resurrected incoming copy of `t`:
+ *     (insn 6 (set (reg/v:SI 4 r4) (reg:SI 1 r1)))   ->   mov r4, r1
+ * which is `NOTE_INSN_DELETED` in the body that ships.  The whole register map
+ * rotates with it (t->r4, a->r1, b->r2), which is why 32 of 36 positions differ.
+ * This is a FIFTH sighting of the padding trap on a figure already in a header.
  *
- * so **the register the `mov` reads IS md operand 1**, and alternative 2 (md
- * operand 1 constrained `0`, tied to the destination) is the no-`mov` form.
- * Confirmed on this function's own RTL: the ONLY difference between the two
- * spellings' `.17.lreg` is insn 66,
+ * *** THE PREVIOUS HEADER'S OPEN QUESTION IS ANSWERED: THE CARRIER IS
+ *     `expand_preferences`, NOT `set_preference`. ***
+ * It recorded "which insn supplies `;; 34 preferences: 1` is NOT established",
+ * having ruled out `set_preference` (global.c:1585) because its `XEXP (src, 0)`
+ * strip on the multiply yields reg 51, not reg 34.  That ruling is correct and
+ * the answer is one function up.  Measured and read, in four steps:
  *
- *     `(t - 8) * a`   (set (reg 54) (mult (reg/v 34) (reg 51)))    34 = a, 51 = t-8
- *     `a * (t - 8)`   (set (reg 54) (mult (reg 51) (reg/v 34)))
+ *  1. `.18.greg` for the two spellings differs in EXACTLY ONE LINE,
+ *     `;; 34 preferences: 1`, present only in the flip.  Every conflict set,
+ *     every other allocno's preferences, and the allocation order
+ *     `32 46 54 34 35 33` are bit-identical -- so the previous header's
+ *     retraction of the allocation-ORDER argument was right.
+ *  2. `.17.lreg` insn 66's REG_DEAD NOTE ORDER FOLLOWS THE MULT'S RTL OPERAND
+ *     ORDER exactly:
+ *       base `(mult 34 51)` -> (REG_DEAD 34) then (REG_DEAD 51)
+ *       flip `(mult 51 34)` -> (REG_DEAD 51) then (REG_DEAD 34)
+ *  3. `expand_preferences` (global.c:828-869) walks `REG_NOTES` IN ORDER and
+ *     IORs `hard_reg_preferences` / `hard_reg_full_preferences` SYMMETRICALLY
+ *     between SET_DEST's allocno and each REG_DEAD allocno, CUMULATIVELY.  With
+ *     notes [51, 34]: allocno 54 absorbs 51's r1 preference first, then 34 is
+ *     merged with the now-r1-bearing 54 and INHERITS r1.  With notes [34, 51]:
+ *     34 is merged while 54 is still empty and inherits nothing.  The chain is
+ *     t (r1) -> `t - 8` -> the product -> `a`, and the mult's operand order is
+ *     the only thing deciding whether the last link transmits.
+ *  4. The consequence runs through `prune_preferences` (global.c:941), which
+ *     does `AND_COMPL_HARD_REG_SET (temp, allocno[num].hard_reg_full_preferences)`
+ *     BEFORE storing `regs_someone_prefers` -- so a register the allocno ITSELF
+ *     prefers is REMOVED from the set `find_reg`'s pass 0 avoids.  In the base
+ *     body r1 stays in 34's `regs_someone_prefers` (because 33 prefers it) and
+ *     pass 0 skips it, giving 34 r2; in the flip it is subtracted out, and
+ *     `find_reg`'s trailing preference loop (global.c:1097-1110) then overrides
+ *     best_reg with r1.
+ *  Pass order inside `global_alloc` confirmed (global.c:496-547):
+ *  global_conflicts -> mirror_conflicts -> expand_preferences ->
+ *  qsort(allocno_compare) -> prune_preferences -> dump_conflicts, so the dump IS
+ *  after both preference passes and the one-line diff is a real input diff.
  *
- * i.e. C `X * Y` really builds `(mult Y X)` and md operand 1 really is the
- * SECOND C operand.  The ROM needs md operand 1 = `t - 8`, so it needs
- * `a * (t - 8)`.
+ * WHY UNFLIPPED CAN NEVER MATCH EITHER -- stating the previous header's
+ * "cancelling errors" trap as an impossibility.  Matching the `mov`/`mul` pair
+ * with the unflipped spelling requires the sample difference in r3 (it becomes
+ * md operand 1), while the FOUR EARLIER encodings of the high arm
+ * (`lsl r2,r3,#19` / `mov r3,r1` / `sub r2,r4` / `sub r3,#8`) pin it to r2.
+ * The two requirements are contradictory, which is exactly why the fresh-local
+ * body reads 4 with a coincidentally-correct multiply.  **The flip is NECESSARY
+ * and costs +1 instruction.  That is the whole bound.**
  *
- * WHY THAT SPELLING STILL COSTS 23 AT BEST -- and this CORRECTS the mechanism
- * the batch-323 header gave for the same number.
+ * NEW-AXIS SWEEP, batch 327 -- four axes the previous 32-body cross did not
+ * touch (it crossed statement PLACEMENT x flip; these change TYPE, SIGNATURE,
+ * WRITEBACK TARGET and DECLARATION ORDER).  All EXACTLY INERT against the plain
+ * flip, reproducing 32 differing encodings AND the same first difference
+ * `index 4: ref 04da ours 1c0c`, all at 36 instructions:
+ *     `unsigned int t` parameter with `if (t <= 7)` and explicit casts ... 32
+ *     product written back into `a`  (`a = a * (t - 8); return b + a / 8;`) 32
+ *     product written back into the PARAMETER `t = a * (t - 8)` .......... 32
+ *     declaration order swapped to `int b; int a;` ...................... 32
+ *   and, outside the flip axis:
+ *     `b = (a - b) * (t - 8) / 8 + b;` .... 6 of 36 but 36 instructions (LENGTH)
+ * => the rotation is decided solely by the mult's RTL operand order; nothing
+ *    above it in the source reaches the decision.
  *
- * `.18.greg` for the two bodies differs in exactly two lines:
+ * THE FAMILY: `_A` IS THE LAST UNLANDED MEMBER OF SIXTEEN AND IT DOES NOT CLOSE.
+ * The landed twin `HeightTile_B` (src/rom_9000/rom_11ce0_a_c_c_a_c_c_b.c) is the
+ * SAME BODY with the flip -- and with the signature `(unsigned char *p,
+ * int unused, int t)`, which puts `t` in **r2**.  `_A`'s ROM `cmp r1, #7` puts
+ * `t` in **r1**, and r1 being the incoming argument register is precisely what
+ * makes the inherited preference cost an instruction.  So the family's
+ * multiply-order lever is real and `_A` is the member where it cannot be paid
+ * for.  The family's OTHER lever -- writing the biased index back into the
+ * parameter, which landed `_4` and `_6` -- also cannot apply: it needs a second
+ * statement on the index and `_A` has only one (`t -= 8` measures 24, deleting
+ * the ROM's `mov r3, r1`).
  *
- *     `(t-8) * a`   ;; 6 regs to allocate: 32 46 54 34 35 33
- *                   dispositions: 33 in 1   34 in 2   35 in 4   <- the ROM's map
- *     `a * (t-8)`   ;; 34 preferences: 1                        <- ADDED
- *                   dispositions: 33 in 4   34 in 1   35 in 2   <- rotated
+ * PRIORITY ARITHMETIC, carried forward unchanged (it is still the reason the
+ * rotation cannot be out-ranked).  From `.17.lreg`, global.c:607's
+ * floor_log2(n_refs) * n_refs / live_length:
+ *     32 p  8 refs / 12 = 2.000      34 a  7 refs / 17 = 0.824
+ *     46    5 refs /  5 = 2.000      35 b  4 refs / 13 = 0.615
+ *     54    5 refs /  5 = 2.000      33 t  4 refs / 14 = 0.571
+ * For `t` to precede `a` it needs SIX refs (floor_log2 makes five worth
+ * nothing: 10/14 = 0.714 < 0.824, six gives 12/14 = 0.857) or `a` must fall to
+ * FOUR.  Every reference here is an emitted instruction, so neither is reachable.
  *
- * and the consequence shows up as one insn: in the good body insn 6, the
- * incoming copy of `t`, is `NOTE_INSN_DELETED`; in the flipped body it survives
- *
- *     (insn 6 (set (reg/v:SI 4 r4) (reg:SI 1 r1)))      ->   mov r4, r1
- *
- * **That surviving `mov r4, r1` is the observable to screen on, not the
- * figure.**  The ROM's prologue has no such copy.
- *
- * THE CORRECTION.  The old header said the flip "leaves `a` with a
- * hard-register preference it should not have, and `a` -- allocated BEFORE
- * `t` -- takes r1", then argued the fix would need "`a` down to 4 refs or `t`
- * up to 6".  That is an argument about allocation ORDER, and **the order is
- * IDENTICAL in both bodies** (`32 46 54 34 35 33`), as are all ref counts.
- * `a` is allocated before `t` either way.  What the flip actually changes is
- * find_reg's CHOICE, via the added `;; 34 preferences: 1` -- not
- * allocno_compare's ranking.
- *
- * The priority arithmetic is still worth having, and it still closes the door.
- * From `.17.lreg`, with global.c:607's floor_log2(n_refs) * n_refs / live_length:
- *
- *     32 p  8 refs / 12 = 2.000        34 a  7 refs / 17 = 0.824
- *     46    5 refs /  5 = 2.000        35 b  4 refs / 13 = 0.615
- *     54    5 refs /  5 = 2.000        33 t  4 refs / 14 = 0.571
- *
- * reproducing the order exactly.  For `t` to precede `a` it needs SIX refs --
- * floor_log2 makes five worth nothing, 10/14 = 0.714 < 0.824, while six gives
- * 12/14 = 0.857 -- or `a` must fall to FOUR, since five is 10/17 = 0.588 and
- * still ahead.  Every reference in this function is an emitted instruction, so
- * neither is reachable.  That is the stop, reached by a more exact route.
- *
- * OPEN QUESTION, recorded with its evidence rather than as a mechanism:
- * **which insn supplies `;; 34 preferences: 1` is NOT established.**
- * `set_preference` (global.c:1585) is called only from `mark_reg_store`
- * (global.c:1440) as (dest, SET_SRC), strips one `XEXP (src, 0)` for a
- * format-`e` src, and needs one side to be a hard register after
- * `reg_renumber`.  On insn 66 that strip yields reg 51, not reg 34, so that
- * call cannot put a preference on 34.  The figure and the `mov r4, r1`
- * observable stand without it.
- *
- * LEVER 1 (reuse the existing local `a` for the third sample) IS GENUINELY
- * RIGHT, and now for a stated reason rather than a measurement.  With a fresh
- * local `c` the third sample is live only in the tail block, so it is a LOCAL
- * quantity, never reaches greg, and local-alloc hands it **r3** -- while the
- * ROM wants the third sample in **r2**.  `.18.greg` for both fresh-local
- * bodies shows `36 in 3` beside `34 in 2`, 34 now being the block-0 first
- * sample at only 3 refs.  Reusing `a` makes the third sample a global allocno
- * and greg gives it r2.  **The fresh-local bodies cannot get below 4 however
- * the multiply is spelled, because they lose the register the ROM needs for
- * the thing the multiply reads.**
- *
- * A SECOND TRAP, found here: A MATCHING `mov`/`mul` PAIR IS NOT EVIDENCE THE
- * MULTIPLY IS SPELLED RIGHT.  The fresh-local UNFLIPPED body reads 4 of 36 and
- * its aligned diff does NOT include the `mov`/`mul` pair -- the pair agrees
- * with the ROM's bytes, for the wrong reason.  There `c` is in r3 and `t - 8`
- * in r2, exactly transposed against the ROM, so the same two encodings mean md
- * operand 1 = `c` in our program and md operand 1 = `t - 8` in the ROM's.  An
- * operand-order error and a register transposition cancelling inside the
- * encoding.  HeightTile_4 hit the same shape from the other side (its
- * `t = a - b` emits the ROM's `sub` exactly and is a wrong program).
- * **Check the register map before believing a matching multiply.**
- *
- * MEASURED THIS ROUND -- a FULL 32-BODY CROSS, the product of
- *   {arm-2 multiply flipped / not}
- *   x {index inline, named after the third load, named after `a -= b`, hoisted
- *      into block 0}
- *   x {`a -= b` / `a = a - b`}
- *   x {arm-1 multiply flipped / not}
- * all 36 instructions against 36 unless noted:
- *
- *    2  this body; `a = a - b`; `u` named after `a -= b`; and both crossed
- *    4  arm-1 multiply flipped (in all four of its combinations)
- *    4  `u` named after the third load
- *    6  `u` after the third load + arm-1 flipped
- *   23  FLIP + `u` hoisted into block 0 -- and index 0 itself differs,
- *       ROM b500 against ours b520: **the rotation makes us PUSH r5.**
- *   24  `u` hoisted into block 0, unflipped
- *   31  FLIP + `u` named after the third load
- *   32  FLIP, with every other combination
- *
- * plus, hand-built outside the cross:
- *   fresh local `c` for the third sample, unflipped        4 of 36
- *   fresh local `c` for the third sample, FLIPPED          6 of 36
- *   `c = c - b` instead of `c -= b`, flipped               6 of 36
- *   `t -= 8` writeback + `a * t`                          24 of 36
- *   `t -= 8` before the third load + `a * t`              24 of 36
- *   `t -= 8` after `a -= b` + `t * a`            14 of 36, ours 34 insns (SHORT)
- *   `p[1]`/`p[2]` indexing instead of `p++`      33 of 36, ours 34 insns (SHORT)
- *   `(a * (t-8)) / 8 + b` instead of `b + ...`            29 of 36
- *
- * NOTHING BEATS 2, and the flip never goes below 23.  The batch-323 bound
- * therefore SURVIVES on a wider edit list than the one that produced it --
- * notably including the one edit its own 8-edit crossfire had omitted, because
- * lever 1 had settled it.
- *
- * WHY THE FAMILY'S WRITEBACK LEVER DOES NOT APPLY HERE.  HeightTile_4 and
- * HeightTile_6 both landed in batch 325 on `a = t + 0xf` -- writing the biased
- * index back into the parameter to buy it one extra reference and with it its
- * own argument register.  `_A` has no bias statement to write back: its low arm
- * uses the raw index and its high arm's `t - 8` writeback (`t -= 8`) measures
- * 24, because it deletes the ROM's `mov r3, r1`.  The lever needs a second
- * statement on the index, and `_A` has only one.
+ * LEVER 1 (reuse the existing local `a` for the third sample) stands, with the
+ * previous header's reason: a fresh local lives only in the tail block, is
+ * therefore a LOCAL quantity, never reaches greg, and local-alloc hands it r3 --
+ * while the ROM wants the third sample in r2.  Reusing `a` makes it a global
+ * allocno and greg gives it r2.
  *
  * PINS ARE STRICTLY WORSE (batch 271, not re-tested):
  * `register int a __asm__("r2")` is 28 at 40 lines, both pins also 28.

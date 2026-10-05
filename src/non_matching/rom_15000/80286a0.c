@@ -112,6 +112,87 @@
  *     rom_23178_a_a_a_a_c_c_a_c_a.s (1 function, 150 lines)   [Func_8028574]
  *     rom_23178_a_a_a_a_c_c_a_c_b.s (1 function,  92 lines)   [Func_80286a0]
  *   install path on a landing: src/rom_15000/rom_23178_a_a_a_a_c_c_a_c_b.c
+ *
+ * ===========================================================================
+ * BATCH 327 BRIEF D -- 4 of 85 RE-DERIVED (fourth time).  TWO CORRECTIONS TO
+ * THE REASONING, AND ONE HALF OF THE REQUIREMENT IS PROVED IMPOSSIBLE.
+ * ===========================================================================
+ * objcmp --func: 4 of 85 (ref 85, ours 85), SIZE 188 = 188, first at index 21,
+ * relocations differ by `_CONST_1f` only.  Figure, anatomy and the three landed
+ * levers all reproduce.
+ *
+ * *** THE "DO NOT TRUST objcmp's INSTRUCTION COUNT" SECTION ABOVE IS OBSOLETE.
+ * *** Batch 326's relocation-placeholder fix removed exactly that false
+ * *** positive; objcmp now prints NO INSTRUCTION COUNT line on this function.
+ * *** But tools/crossfire.py still carries the OLD-STYLE check and flags `INSNS`
+ * *** on the BASE row itself, so on this function crossfire's INSNS flag is a
+ * *** known false positive and only its ref/ours COUNT columns should be read.
+ *
+ * BLOCK 2's DEPENDENCE TABLE, read out of .23.sched2 independently
+ * (`-- basic block 2 from 35 to 43 -- after reload`):
+ *     insn  code  bb  dep  prio  cost   units
+ *      38   173    0    0     1     1   core : 43
+ *     252   173    0    0     3     1   core : 43 41
+ *      41     5    0    1     2     1   core : 43 255
+ *     255   173    0    1     1     1   core : 43
+ *      43   230    0    4     1     1   core :
+ *     Ready (t=0): 38 252 -> 252   (prio 3 beats 1 on rung 1)
+ *     Ready (t=1): 38  41 -> 41
+ *     Ready (t=2): 255 38 -> 38    (prio TIES 1; the CLASS rung decides: 255 is
+ *                                   in 41's INSN_DEPEND => class 1, 38 is not
+ *                                   => class 3, and the higher class wins)
+ *
+ * CORRECTION 1 -- THE CLASS RUNG IS PROVABLY DEAD AT t = 0, so this header's
+ * jump from priority straight to the dependent count is now JUSTIFIED rather
+ * than assumed.  rank_for_schedule (haifa-sched.c:4029) orders its rungs
+ * priority (:4038) -> INSN_REG_WEIGHT (:4044, dead: gated `!reload_completed`)
+ * -> three interblock rungs (:4051-4066, dead: gated INSN_BB(tmp) != INSN_BB(tmp2))
+ * -> last_scheduled_insn CLASS (:4069-4095) -> dependent count (:4096-4108)
+ * -> INSN_LUID (:4112).  The class rung is guarded by `if (last_scheduled_insn)`
+ * and schedule_block sets `last_scheduled_insn = 0;` at haifa-sched.c:5963
+ * ("No insns scheduled in this block yet").  The t=2 trace above shows the rung
+ * is live later in the block.
+ *
+ * CORRECTION 2 -- "38 NEEDS PRIORITY 4" IS UNREACHABLE WITH ONE DEPENDENT, and
+ * there is a SECOND sufficient condition this header ruled out.
+ *   priority(i) = max over d in INSN_DEPEND(i) of (priority(d) + insn_cost(i,d)).
+ *   Insn 38's only in-block dependent is the block-end jump 43, at priority 1.
+ *   The `core` unit gives 1 cycle to everything `core_cycles single`
+ *   (arm.md:254) and 2 only to `load`/`store1` (arm.md:263, and `ldsched` is
+ *   `no` here because the arm7tdmi row carries no FL_LDSCHED -- arm.c:254,
+ *   arm.c:568); arm_adjust_cost (arm.c:2416-2453) never RAISES a cost.  So with
+ *   a single dependent priority(38) <= 1 + 2 = 3, and a register move like
+ *   `mov r8,r0` cannot even reach 3.
+ *
+ *   >> THE REQUIREMENT, RESTATED: insn 38 must gain a SECOND in-block dependent
+ *      AND a 2-deep chain.  Then rung 1 ties at 3, the class rung is dead at
+ *      t=0, the dependent-count rung ties at 2, and the bottom INSN_LUID rung
+ *      (haifa-sched.c:4112, LOWER LUID wins) picks 38 because `cur = start` is
+ *      written before the `m` build.  Equivalently: a dependent of priority 3,
+ *      or a dependent of priority 2 with insn 38 turned into a load.  All three
+ *      cost instructions in a block whose count is already exact.
+ *
+ * MEASURED batch 327 (base 4 of 85; every row ref 85, RELOC = `_CONST_1f`):
+ *   g3  `m` via a named `unsigned char *t2`           4  85/85  EXACTLY INERT
+ *   g5  `cur` declared first among the locals         4  85/85  EXACTLY INERT
+ *   g3 x g5 crossed                                   4  85/85  still inert
+ *   g2  `cur = start` and the `m` build swapped       5  85/85
+ *   g2 x g3,  g2 x g5                                 5  85/85
+ *   h1  `cur` HOISTED **and the existing compare reads `cur`**   40  85/87
+ *   h3  the same with the test inverted                          40  85/87
+ *   h2  hoisted, store AND compare both read `cur`               46  85/87
+ *   g4  `cur = *c` (cse-equivalence probe)            65  85/87
+ *   g1  `extra = 0xc` moved below `cur = start`       72  85/85
+ *
+ * h1/h2/h3 are the crossing this park had not tried: the hoist is in the
+ * negatives at 40, and making the EXISTING compare read `cur` is what would give
+ * insn 38 an in-block dependent AT NO INSTRUCTION COST.  Crossed, they still
+ * read 87 instructions -- the hoist's +2 is paid before the dependent is earned,
+ * so the two halves do not compose.  g4 also shows cse does NOT fold a reload of
+ * the just-stored halfword (+2 insns).
+ *
+ * PARK HOLDS AT 4 of 85 (real distance 3; idx 83 is the `_CONST_1f` placeholder,
+ * adjudicable only by `make compare`).
  */
 struct Ui {
     unsigned char pad0[0x78];

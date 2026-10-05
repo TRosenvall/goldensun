@@ -1,3 +1,91 @@
+/* ===================== BATCH 327 (brief A) ADDENDUM -- READ FIRST =====================
+ * BaseAnim_Tackle -- STILL NON-MATCHING, 2 differing encodings of 402.  BODY
+ * UNCHANGED.  NO SWEEP RUN THIS BATCH, BY DESIGN: this header's own closing line
+ * asked for "the citation, not another sweep", and the citation is below.
+ *
+ * FIGURE RE-MEASURED MYSELF: --func 2 of 402 (ref 402, ours 402); --whole
+ * 2 of 402, relocations exact.  So the 2 is still a true distance.
+ * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_c9000/dfa18_Tackle.c asm/rom_c9000/rom_dfa18_c_c_c_c_a.s --func BaseAnim_Tackle
+ *
+ * *** FIRST, A POLICY FACT THAT OUTRANKS THE FIGURE AND WAS NOT RECORDED HERE.
+ * THIS BODY CARRIES 10 PINS (PIN1/2/3 = r0,r1,r2, plus r9,r11,r0,r8,r3,r7,r4),
+ * AND THIS HEADER ITSELF SAYS REMOVING ONLY THE r9 PIN COSTS 47 -> 224.  SO THE
+ * PIN-FREE FIGURE IS IN THE HUNDREDS AND THE 2 IS A TEN-PIN FIGURE.  Under
+ * docs/owner-decisions.md standing standard 3, BaseAnim_Tackle CANNOT BE A
+ * PASS-2 LANDING EVEN AT 0 -- it is a pass-3 (depinning) item by construction.
+ * Batch 327's brief ranked it "the best landing chance" on the figure alone.
+ * A LOW PARK FIGURE IS NOT A SHORT DISTANCE TO A LANDING WHEN IT IS BOUGHT
+ * WITH PINS; RANK LOW-BAND PARKS BY (figure, pins), NEVER BY figure. ***
+ *
+ * -------- THE RESIDUE IS A SWAP, NOT A SHIFT (new; decoded this batch) --------
+ *   idx 223  ref 9c06 = ldr r4,[sp,#24]   ours 9808 = ldr r0,[sp,#32]
+ *   idx 224  MATCHES in both              = mov r1,r9   (a FIXED POINT)
+ *   idx 225  ref 9808                     ours 9c06
+ * ours = 549, 551, 1101   ROM = 1101, 551, 549.  The middle insn does not move;
+ * the two ENDS exchange.  The ROM's order is the EXACT REVERSE of chain order.
+ *
+ * -------- WHY NO READY-LIST RANKING REACHES IT: the priority rung is tied
+ * -------- BY CONSTRUCTION, and this header's stated reason was the wrong one.
+ * This header claimed "ALL FOUR RUNGS TIE BY CONSTRUCTION" and justified it with
+ * the DEPENDENT-COUNT argument, which does not bear on priority.  From my own
+ * .23.sched2 (-da -fsched-verbose=6) on this body:
+ *     549  prio 35  deps 594 1104 556       1104 prio 8
+ *     551  prio 35  deps 594 1107 556       1107 prio 3
+ *    1101  prio 35  deps 594 1110 556       1110 prio 3
+ *     556  prio 34  <- THE SITE-2 CALL      594  prio 1
+ * All three fills share the dominant dependent 556, and prio(556) = 34 exceeds
+ * every private next-writer (8, 3, 3) by >= 26, so all three are pinned at
+ * 34 + 1 = 35.
+ * *** THE GENERAL FORM, worth more than this function: IN A BASIC BLOCK THAT
+ * CONTAINS A LATER CALL, EVERY ARGUMENT FILL AND EVERY ADDRESS RELOAD OF AN
+ * EARLIER CALL HAS THAT LATER CALL IN ITS INSN_DEPEND (a CALL_INSN depends on
+ * every preceding set of a call-clobbered register), AND THE LATER CALL'S
+ * PRIORITY IS THE BLOCK-TAIL LENGTH, SO IT DOMINATES EVERY PRIVATE NEXT-WRITER.
+ * THE PRIORITY RUNG IS THEREFORE DEAD FOR THE WHOLE WINDOW, AND PERTURBING THE
+ * LATER CALL'S OWN ARGUMENT SETUPS CANNOT REVIVE IT. ***  (That was the one
+ * crack this header had left open; it is shut.)
+ *
+ * -------- AND LUID'S DIRECTION, CITED --------
+ * rank_for_schedule (haifa-sched.c:4030-4115) binds `tmp = *(rtx*)y` and
+ * `tmp2 = *(rtx*)x` -- SWAPPED -- so its tail `return INSN_LUID (tmp) -
+ * INSN_LUID (tmp2)` is LUID(y) - LUID(x): the ready array sorts DESCENDING by
+ * LUID and the scheduler takes the LAST element, i.e. the LOWEST LUID.  (The
+ * same swap makes the priority rung sort ascending, so the highest priority is
+ * taken last = scheduled first.  Both readings are consistent.)
+ *
+ * -------- CHAIN ORDER IS FORCED, AND THIS HEADER HAD ONLY HALF THE CITATION --
+ * It cited only LOAD_ARGS_REVERSED (undefined by every target, calls.c:1692).
+ * THERE IS A SECOND REVERSAL SWITCH IT NEVER CHECKED: args[] itself can be
+ * filled back-to-front at calls.c:1097 under PUSH_ARGS_REVERSED.  That is also
+ * 0 on this target, and the chain is
+ *     arm.h:1314   ACCUMULATE_OUTGOING_ARGS 1
+ *  -> calls.c:44   PUSH_ARGS = !ACCUMULATE_OUTGOING_ARGS          = 0
+ *  -> calls.c:67   PUSH_ARGS_REVERSED = PUSH_ARGS                 = 0   (:73 default 0)
+ * So args[0] IS argument 0 and load_register_parameters (calls.c:1692-1696)
+ * walks it FORWARD.  *** ARGUMENT 0'S FILL IS UNCONDITIONALLY CHAIN-EARLIER
+ * THAN ARGUMENT 1'S ON THIS TARGET. ***
+ *
+ * THE ROM PUTS ARGUMENT 1 (mov r1,r9) BEFORE ARGUMENT 0 (ldr r0,[sp,#32]).  The
+ * rungs above say the scheduler can only reproduce chain order; the switches say
+ * chain order can never put argument 1 first.  THEREFORE NO SOURCE SPELLING WITH
+ * `ctx` AS A PLAIN REGISTER ARGUMENT 0 CAN PRODUCE THE ROM'S WINDOW.
+ *
+ * THE ONE ESCAPE LEFT -- this header's own named next step, now derived as the
+ * UNIQUE route rather than guessed.  The ROM's `ldr r0,[sp,#32]` must not be
+ * argument 0's forward fill at all but a reload for THE CALL INSN ITSELF (call
+ * reloads are emitted immediately before the call, hence after every forward
+ * fill), while the target load sits at its rtx_for_function_call expand position
+ * (calls.c:2916, which runs BEFORE load_register_parameters at :3029) -- giving
+ * exactly [ldr r4] [mov r1] [ldr r0].  For that, `emit_move_insn (r0,
+ * args[0].value)` must emit NOTHING at the forward position, which requires
+ * args[0].value to already BE hard reg r0.  I could not construct that for an
+ * ordinary pseudo argument and do not believe it is constructible in C.
+ * STATED AS A BOUND WITH ITS EVIDENCE ATTACHED, NOT AS A CLOSED DOOR.
+ *
+ * NOT RE-SWEPT and still valid: every inert/worse list below, measured at this
+ * same 2-of-402 baseline in batch 318.
+ * =====================================================================================
+ */
 /* ===================== BATCH 318 (brief A) ADDENDUM -- READ FIRST =====================
  * BaseAnim_Tackle -- STILL NON-MATCHING, 2 ENCODINGS OF 402.  NO CHANGE TO THE
  * BODY: of 18 crossed variants this batch, none beat it and the ten that were

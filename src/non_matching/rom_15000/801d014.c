@@ -143,6 +143,63 @@
  *   gState as a packed struct, member access                              0
  *   destination `p` as a struct pointer, member access                    0
  *   struct members individually const                                     0
+ *
+ * ======================================================================
+ * BATCH 327 BRIEF D -- FIGURE RE-DERIVED AT 3 of 91.  THE "RIGID LADDER" IS
+ * CONFIRMED, AND THE +1 IS NOW NAMED ONE LEVEL DEEPER: IT IS A CONSTANT OF THE
+ * ARM7TDMI SCHEDULING MODEL, NOT A SOURCE PROPERTY.
+ * ======================================================================
+ * Re-derived, not inherited: objcmp --func 3 of 91 (ref 91, ours 91), no SIZE
+ * line, no RELOCATIONS line, no INSTRUCTION COUNT line -- a real distance.
+ * (One small correction: objcmp reports the first differing encoding at index
+ * 35, not 36.  The header's "ref indices 36-38" is off by one.)
+ *
+ * THE DEPENDENCE TABLE, read out of .23.sched2 independently.  Every number
+ * this header quotes reproduces:
+ *     insn  code  bb  dep  prio  cost   units
+ *     102   189    0    3    90    1    core : 282 110 103     `movs r3,#15`
+ *     103   189    0    9    89    2    core : ... 112 110     the strb
+ *     270   112    0    2    89    1    core : 282 238 110     `lsls r0,r0,#2`
+ *     110     5    0    5    88    1    core : ... 238 112     an address add
+ *     112   159    0    8    87    2    core : ... 124 121     the ldrb
+ *     238   173    0    3    88    2    core : 282 244 121     a pool load
+ *
+ * WHY THE GAP IS EXACTLY ONE.  Both chains bottom out on insn 112:
+ *     prio(102) = prio(103) + cost(102->103) = 89 + 1 = 90   [via the STORE]
+ *     prio(103) = prio(112) + cost(103->112) = 87 + 2 = 89
+ *     prio(270) = prio(110) + cost(270->110) = 88 + 1 = 89   [via the ADD]
+ *     prio(110) = prio(112) + cost(110->112) = 87 + 1 = 88
+ * They differ by one cycle and THE CYCLE IS THE MEMORY INSN'S CORE OCCUPANCY:
+ *   - arm.md:263  (define_function_unit "core" 1 0
+ *                   (and (eq_attr "ldsched" "!yes")
+ *                        (eq_attr "type" "load,store1")) 2 2)
+ *     gives 2 to loads and stores against 1 for everything `core_cycles single`
+ *     (arm.md:254).
+ *   - `ldsched` is (const (symbol_ref "arm_ld_sched")) at arm.md:111;
+ *     arm_ld_sched = (tune_flags & FL_LDSCHED) != 0 at arm.c:568; and the
+ *     **arm7tdmi row carries no FL_LDSCHED** (arm.c:254).  So :263 is the rule
+ *     that fires here -- confirmed by the dump's own `cost` column, 2 for insns
+ *     103/112/238 and 1 for 100/102/270/110/121.
+ *   - arm_adjust_cost (arm.c:2425-2427) returns 0 for ANTI/OUTPUT, which is why
+ *     270's other edge (270 -> 238, an OUTPUT dependence on r0 between the
+ *     shift and a pool load) contributes 88 + 0 and cannot lift 270 either.
+ *
+ *   >> 102's path to insn 112 runs through the STORE (cost 2); 270's runs
+ *      through an ADDRESS ADD (cost 1).  The two edits that would produce the
+ *      tie this header already shows is sufficient -- cost(103->112) == 1 or
+ *      cost(110->112) == 2 -- are both decided by the insns' `type` attribute.
+ *      A `strb` is store1 and an `add` is alu, and no spelling of the C changes
+ *      either.  THAT is why the nine reorderings and five temporary variants
+ *      were all worse; it is a stronger statement than "the ladder is rigid".
+ *
+ * ALIAS SIDE re-read independently: `base_alias_check` really is reached BEFORE
+ * true_dependence's QImode catch-alls, so a resolvable STORE base is the one
+ * open door -- and `p` is galloc_ewram's return value, for which find_base_term
+ * has nothing (reg_base_value is populated only from symbol / frame copies).
+ * Not reachable without changing the program.
+ *
+ * THE const STAYS A DEVICE and is NOT re-proposed.  The 0 of 91 remains a figure
+ * ABOUT THE BLOCKER.  Nothing device-free is open.  PARK HOLDS AT 3 of 91.
  */
 #include "gba/types.h"
 #include "gba/io.h"

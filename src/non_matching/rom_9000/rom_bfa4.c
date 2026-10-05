@@ -204,7 +204,44 @@
  *
  * Bodies live in scratch_elev/b325/D/v8/, the reasoning in
  * scratch_elev/b325/D/NOTES.md.
+ *
+ * ---------------------------------------------------------------------------
+ * BATCH 327 BRIEF I -- RE-DERIVED, PARK HOLDS AT 8 of 44.
+ *   objcmp --func: 8 differing encodings of 44 (ref 44, ours 44), first at
+ *   index 7, indices 7..14 contiguous.  The figure and the residue reproduce.
+ *   (`--whole` still prints SIZE ref 164 / ours 96 because the .s carries the
+ *   .rodata the recorded split would separate; the --func figure is the distance.)
+ *
+ * READ OFF THE REFERENCE DIRECTLY, which pins down where the park's "four
+ * references on one qty" comes from: the ROM runs the dx chain FIRST and reuses
+ * one register for the whole chain --
+ *     ldr r1,[r3] / ldr r2,[r3,#4] / ldr r3,[r0,#8] / and r1,r4 / sub r1,r3,r1
+ * so cx, `cx & mask` and dx ALL live in r1, and cy, `cy & mask` and dy all live
+ * in r2.  That is why cam[1]'s quantity carries four references (load, and-use,
+ * and-set, minus-use) and why the count cannot be lowered from source.
+ *
+ * FOUR NEW CROSSES, none of them among the park's 45 bodies.  These cross the
+ * park's own EXACTLY-INERT prerequisite (the simpler body with no `cy` local)
+ * against its map lever (which camera word is read first) and against the ROM's
+ * chain order -- the batch-326 pattern of crossing an inert row with a rejected
+ * one.  All ref 44 / ours 44, so these are distances:
+ *     the inert simpler body re-derived
+ *       (`cx = cam[0]; dy = o[4] - (cam[1] & mask); dx = o[2] - (cx & mask);`)
+ *       ................................................................ 8
+ *     `cy = cam[1]` read FIRST, no `cx` local, dx chain first (ROM order)  12
+ *     NEITHER camera read given a local, dx chain first ................. 19
+ *     `cx` local read first, dx chain first, cam[1] inline .............. 19
+ * Nothing below 8.  The park's contradiction stands and is now tested from the
+ * inert side as well as the worse side: **dx-first and cy-in-r2 come from
+ * opposite source orders**, and removing the `cy` local -- the one edit that is
+ * free at 8 -- does not unlock the dx-first form either.
+ *
+ * So the NAMED REMAINING CAUSE above is unchanged and is the whole residue: a
+ * third local-alloc quantity of higher priority than cam[1]'s would have to
+ * occupy r3 across cam[1]'s range WITHOUT lengthening the `cam` pointer's live
+ * range, and nothing in the program supplies one.
  */
+
 extern int iwram_3001e70;
 
 int Func_800bfa4(int *o, int *out)

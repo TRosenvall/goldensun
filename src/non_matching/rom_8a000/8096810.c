@@ -155,6 +155,76 @@
  *   (1,7,11,4,5,14,6,3,12,13,9,2,8,10,15,16); the epilogue's `pop {r0}` confirms
  *   `void`; three callees take NO arguments, declared `extern int f();` and called
  *   bare, because the ROM sets up no argument registers for them.
+ *
+ * ============ BATCH 327, BRIEF F: THE BOUND ABOVE IS REFUTED AS A BOUND ============
+ * RE-DERIVED: 7 differing encodings of 122 (ref 122, ours 122), first at index 5,
+ * size equal, relocations clean.  ord C re-derived at 9 with the park's allocator
+ * inputs confirmed EXACTLY:
+ *     ;; 10 regs to allocate: 45 71 46 32 33 43 **44 34** 54 35
+ *     Register 34 (kind) used 3 times across 19 insns; crosses 1 call; pref LO_REGS
+ *     Register 44 (slot) used 4 times across 50 insns; crosses 7 calls; pref LO_REGS
+ * `allocno_compare` read in full -- the transcription above is right:
+ *     pri = ((double)(floor_log2 (n_refs) * n_refs) / live_length) * 10000 * size
+ * **BUT THE BOUND ABOVE ("needs live(kind) <= 18 OR live(slot) >= 51") HOLDS
+ * `n_refs` FIXED, AND `n_refs` IS THE OTHER NUMERATOR -- WITH A STEP IN IT:**
+ *     floor_log2(3)*3 = 3   but   floor_log2(4)*4 = 8     -- a 2.67x jump at 4
+ *     kind at 4 refs / 19 live -> (8/19)*10000 = 4210  against slot's 1600
+ *     slot at 3 refs / 50 live -> (3/50)*10000 =  600  against kind's 1578
+ * Either one wins by a mile, and NEITHER needs live_length to move at all.  The
+ * "that is a GEOMETRIC fact about the two ranges, not a spelling question"
+ * conclusion is correct ABOUT live_length and is NOT a closure of rung 2.
+ *
+ * PROVED BY PROBE (instrument, labelled -- NOT a result).  Adding `case 0: break;`
+ * makes the switch's low value 0, so gcc skips the index subtraction and reads
+ * `kind` directly in the dispatch:
+ *     Register 34 used **4** times across **18** insns
+ *     ;; 9 regs to allocate: 45 46 32 **34** 33 43 44 35 54
+ * kind moves from EIGHTH to FOURTH, ahead of slot (now seventh).  The figure is
+ * 110 because the extra case changes the jump table -- which is exactly why this
+ * is an instrument and its number is a figure about the blocker.
+ *
+ * WHERE n_refs COMES FROM (so the next reader does not have to find it again).
+ * `REG_N_REFS` has exactly four increment sites in flow.c and they are
+ * `sets + uses`, each weighted `pbi->bb->loop_depth + 1`:
+ *     :4435  the SET site (also does REG_N_SETS += 1 and REG_LIVE_LENGTH += 1)
+ *     :5115  the USE site
+ *     :4948  AUTO-INCREMENT ("Count an extra reference to the reg.  When a reg is
+ *            incremented, spilling it is worse, so we want to make that less
+ *            likely.")  -- also REG_N_SETS++
+ *     :5556  AUTO-INCREMENT, adding a reference for an increment insn it DELETES
+ * arm.h:1740 makes HAVE_POST_INCREMENT 1 UNCONDITIONALLY (unlike
+ * HAVE_PRE_INCREMENT and HAVE_POST_DECREMENT, both TARGET_ARM), so the two
+ * auto-increment sites are nominally live on thumb -- but `kind` is not a
+ * pointer, so they are unreachable FOR IT.  For `kind`, 4 refs therefore means a
+ * SECOND SET, or any reference at `loop_depth >= 1`.
+ *
+ * MEASURED batch 327 on ord C (figure | slot refs/live | kind refs/live):
+ *   ALL THREE slot accesses written through `g`, `slot` deleted  9 | 4/50 | 3/19
+ *       relocations clean.  cse recreates the address as COMPILER TEMP pseudo 48
+ *       with the IDENTICAL 4 refs / 50 insns / crosses 7 calls.  The rows above
+ *       tested these three edits ONE AT A TIME; **CROSSED, they are still exactly
+ *       inert**, which is what properly closes "slot's n_refs from the source".
+ *   `kind | (kind & 0)` at the Func_808df1c argument                9 | 4/50 | 3/19
+ *       fold kills algebraic duplications: a second textual OCCURRENCE is not a
+ *       second reference, just as a second NAME is not.
+ *   the guard's two statements swapped                             11 | 4/52 | 3/20
+ *       reproduces the row above.  Worth keeping as a PREREQUISITE: with slot at
+ *       52 the requirement relaxes from live(kind) <= 18 to <= 19.
+ *   `g = gState` hoisted above the switch                          91 | 4/25 | 3/18
+ *       RELOCDIFF.  It HALVES slot's live length and shortens kind -- i.e. it
+ *       moves both allocator inputs hard -- at the cost of the entry-block
+ *       emission order.  Not inert, and not to be dismissed either.
+ *   `g` AND `slot` both hoisted                           BROKEN 114, dsize +12
+ *   `*slot = 0xffff` with `inval` deleted                 BROKEN  93, dsize -4
+ *   crosses: guardswap x each of the four above           114, 90, 9, 93
+ *       no cross beats its better half.
+ *
+ * ==> THE OPEN QUESTION IS NOW ONE SENTENCE, AND IT IS NOT THE ONE ABOVE:
+ *     is there a ZERO-INSTRUCTION way to give `kind` a FOURTH reference -- a
+ *     second SET, or any reference at loop_depth >= 1?
+ *     If yes, rung 2 falls by a factor of 2.67 and live_length never has to move.
+ * "DO NOT RE-SWEEP SPELLINGS" still stands.  The n_refs axis is not a spelling.
+ * -- scratch_elev/b327/F
  */
 extern char *iwram_3001f30;
 extern unsigned char gState[];

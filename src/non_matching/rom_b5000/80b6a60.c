@@ -242,6 +242,40 @@
  * another spelling.  Residue A's one live shape is a counter that loop.c
  * CREATES after its own movables (a giv initialisation), because loop.c emits
  * movables immediately before `loop_start` and giv inits after them.
+ *
+
+ * ===== BATCH 327 BRIEF H: RESIDUE A IS A CLOSED-FORM LUID BOUND =====
+ *
+ * Figure re-derived: **5 differing encodings of 59**, ref 59 / ours 59, first at
+ * index 25, SIZE / INSTRUCTION COUNT / RELOCATIONS silent.  BODY UNCHANGED.
+ *
+ * The reference preheader is
+ *   ldr r3,=gState / mov r1,#0xfc / lsl r1,#1 / add r2,r3,r1   (the giv base)
+ *   mov r3,#2 / mov r8,r3                                      (the hoist)
+ *   mov r6,r7                                                  (i = n)
+ * and we transpose only the last two.  Brief F showed all four rungs of
+ * `rank_for_schedule` tie at `Ready list (t = 6): 174 53` so the last line,
+ * `INSN_LUID (tmp) - INSN_LUID (tmp2)`, decides and the LOWER LUID wins.  What
+ * was missing was why no source order can move it:
+ *
+ * > **EVERY `move_movables` EMISSION SITE IN loop.c USES
+ * > `emit_insn_before (..., loop_start)`** -- loop.c:1825, :1890, :1982, :1991,
+ * > :2024, :2028, :2047, :2055 -- so a hoisted insn is ALWAYS placed immediately
+ * > before NOTE_INSN_LOOP_BEG, i.e. **after every original statement of the
+ * > preheader.**  `i = n` is an original statement, therefore
+ * > LUID(i = n) < LUID(hoist) unconditionally.
+ *
+ * So residue A is not an untried spelling, it is an ordering loop.c fixes, and
+ * there are exactly two escapes -- both already measured:
+ *   (a) the hoist stops being loop.c-created.  Naming the constant makes its
+ *       init an ORIGINAL insn with the LOWEST LUID of all, so it migrates to the
+ *       FRONT of the preheader, ahead of the giv base too: the recorded **10**,
+ *       of which 7 are exactly that permutation.
+ *   (b) the counter init stops being original, i.e. loop.c must create it after
+ *       its own movables (a giv initialisation).  The only C spelling,
+ *       `gState[(0xfc<<1) + n - i]`, is the recorded **14**.
+ * Residue B is unchanged and remains closed on brief F's three citations.
+ * **Report disagreement with loop.c's emission sites, not with another spelling.**
  */
 extern unsigned char *iwram_3001e74;
 extern unsigned char gState[];

@@ -130,6 +130,59 @@
  * cost 0, so the longest path through it is fixed -- or to put a real insn into
  * the stalled cycle between insn 42 and the store, and the instruction count is
  * exact at 37, so there is nothing to put there.
+ *
+
+ * ===== BATCH 327 BRIEF H: THE CLASS-RUNG DIAGNOSIS CONFIRMED FROM THE DUMP,
+ * ===== AND THE ESCAPE SET ENUMERATED (the park named two of three)
+ *
+ * Figure re-derived: **6 differing encodings of 37**, ref 37 / ours 37, first at
+ * index 16, SIZE / INSTRUCTION COUNT / RELOCATIONS all silent -- no pad is
+ * absorbing a length difference.  The reference is 32 Thumb instructions plus 5
+ * pool words (=iwram_3001f00, =0x400000c, =0x40000b0, =0xa2600001,
+ * =0x84000004).  BODY UNCHANGED.
+ *
+ * SPLIT NOTE THE PARK LACKS: `tools/upstream_module.py` puts this in upstream
+ * module rom_b5000/rom_bffb8.s with **17 landed siblings and 0 parks**, and the
+ * reference `asm/rom_b5000/rom_bffb8_a_a_a_c.s` carries **Func_80c00d8 as
+ * well** -- so a landing needs a SPLIT, not a whole-file conversion.
+ *
+ * THE TRACE, verbatim from `.23.sched2` (block 1, `-da -fsched-verbose=6`).
+ * Table rows: 42 prio 5 cost 2; 44 prio 5 cost 2; **45 (the `strh`) prio 3
+ * cost 2, dependents `60 56`**; 56 prio 3 cost 2, dependents `60`; 57 (`add
+ * r0,#0x22`) prio 3 cost 1, dependents `60`; 59 prio 3 cost 2, dependents `60`.
+ *     t = 12  ready `57 59 42` -> schedules 42, "insn 45 into queue with cost=2"
+ *     t = 13  ready `59 57`    -> BOTH re-queued: a FORCED STALL, core unit busy
+ *     t = 14  ready `45 59 57` -> schedules **57**        <-- the decision
+ *     t = 15  -> 45 (the strh);  t = 17 -> 59;  t = 18 -> 56
+ * Note what this adds: **45 has TWO in-block dependents against 56/57/59's one,
+ * so 45 WINS the dependent-count rung** (haifa-sched.c:4097-4108).  It never
+ * reaches it because the class rung sits above.
+ *
+ * THE CLASS RUNG, read verbatim (**haifa-sched.c:4068-4094**): an insn gets
+ * class 3 when `link == 0 || insn_cost (last_scheduled_insn, link, tmp) == 1`,
+ * class 1 for a data dependence, class 2 for anti/output, higher wins.  At
+ * t = 14 `last_scheduled_insn` is 42, and 45 is data-dependent on it at cost 2.
+ *
+ * **THREE escapes exist; the park named the first two:**
+ *   1. `link == 0`.  Impossible -- the reference is itself
+ *      `ldr r1, =REG_BG2CNT / strh r3, [r1]`, and r1 is also the DMA0
+ *      destination operand, which is exactly why insn 42 carries prio 5.
+ *   2. `insn_cost == 1`.  Needs insn 42 not to be a `load`: the `core` unit
+ *      gives a load ready-delay 2 (**arm.md:253-264**) and `arm_adjust_cost`
+ *      (**arm.c:2415-2451**, read in full) returns 0 only for anti/output, 1 for
+ *      a CALL or a **load-after-store** from a cached address, and otherwise
+ *      passes `cost` through -- a STORE after a LOAD gets no discount and no
+ *      branch of it ever raises a cost.
+ *   3. **NEW: make insn 42 not be `last_scheduled_insn` at that moment.**  Any
+ *      insn issued in the t = 13 stall would leave 45 INDEPENDENT of it, class
+ *      3, tied with 57/59, and 45 would then win on dependent count 2 against 1.
+ *      Measured dead end: t = 13 is a FORCED stall because the only non-`core`
+ *      insns in the block are the `stmia` asm (insn 60, units "none") and insn
+ *      78, both of which must follow.  Unreachable from C -- but it is the only
+ *      rung-level route left and belongs in the record rather than omitted.
+ *
+ * NEXT: unchanged -- nothing source-level.  The bound is now the escape set
+ * above; disagree with those three lines, not with another spelling.
  */
 #include "gba/types.h"
 #include "gba/io.h"

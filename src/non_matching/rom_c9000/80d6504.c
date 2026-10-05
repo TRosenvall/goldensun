@@ -1,205 +1,164 @@
 /* Task_SpinCamera -- 0x080d6504, 37 ROM instructions (41 encodings).
  *
- * NON-MATCHING, 18 differing encodings of 41.   [batch 325H: was 23]
+ * NON-MATCHING, 2 differing encodings of 41.   [batch 327B: was 18]
  *
- * MEASUREMENT -- THIS COUNT IS A TRUE DISTANCE.  SIZE IS EXACT (88 bytes both
- * sides, objcmp prints no SIZE line), the instruction COUNT IS EXACT (41 / 41)
- * and relocations are identical (objcmp prints no RELOCATIONS line), so the 18
- * ranks directly.  First differing index 0.
+ * MEASUREMENT.  SIZE IS EXACT (objcmp prints no SIZE line), the instruction
+ * COUNT IS EXACT (41 / 41) and RELOCATIONS ARE IDENTICAL (no RELOCATIONS
+ * line), so the 2 is a TRUE DISTANCE.  Confirmed with --whole as well as
+ * --func: "Task_SpinCamera  2 of 41 differ (ours 41), first at index 16".
+ * aligncmp: 40 of 41 aligned-equal (97.6%), 2 differing in 2 hunks.
  *
  * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_c9000/80d6504.c asm/rom_c9000/rom_d6504_a_a.s --func Task_SpinCamera
  *
- * SHIMS: NONE.  PIN-FREE, no register pin, no barrier, no per-file flag
- * override, no fakematch.txt row.  The figure above is a PRODUCTION-FLAG
- * figure.
+ * SHIMS: NONE.  tools/shimcount.py is clean.  No register pin, no barrier, no
+ * per-file flag override, no fakematch.txt row, no .equ, no fictitious symbol.
+ * The figure above is a PRODUCTION-FLAG figure.  The one-member `union Word`
+ * is the alias escape docs/elevation.md documents at length ("A one-member
+ * UNION is a per-MEM alias escape, and it beats -fno-strict-aliasing", and the
+ * controls table under "A UNION MEMBER ACCESS IS ALIAS SET 0, AND THE MEMBER
+ * LIST IS IRRELEVANT"): it has NO unread member, so it is not the never-read
+ * -union-member device.  UNION-FREE THE BODY READS 15 -- see the ladder below.
  *
  * SPLIT SHAPE: none needed.  asm/rom_c9000/rom_d6504_a_a.s holds exactly ONE
  * function (`grep -c func_start` = 1), so elevating this is a file rename with
- * no split and no exports.  That also means a per-file flag group for this
- * object would affect THIS FUNCTION ONLY -- there is no sibling in the object
- * to contradict the assertion, which is the counter-evidence that sank the
- * `-ffixed-r11` request in docs/owner-decisions.md #2.
+ * no split and no exports.
  *
  * ================================================================
- * BATCH 325H -- THE BLOCKER IS ALIAS SETS, AND THE PARK'S TWO VERDICTS WERE
- * BOTH WRONG
+ * BATCH 327B -- 18 -> 2, AND THREE OF THE PARK'S CLAIMS WERE WRONG
  * ================================================================
  *
- * THE PARK SAID: "Blocker class: REGISTER CHOICE, plus one extra callee-saved
- * register ... the ROM overwrites the state pointer with the amount it loads
- * from it, so state is dead from that point; in C the two have different types
- * and cannot share a variable, so the source cannot express the reuse."
- * REFUTED.  Nothing here needs two types in one variable.  The extra
- * callee-saved register, the r3-vs-r4 rotation and the branchless mode update
- * are ONE cause with ONE name.
+ * WRONG CLAIM 1, AND IT WAS A BOUND: "`lang_get_alias_set` hands back 0 in
+ * exactly two reachable cases -- a COMPONENT_REF taken DIRECTLY through a
+ * UNION_TYPE (:3344), and any reference of char precision (:3348) -- and an
+ * `int`-width field can be neither, so THERE IS NO SOURCE SPELLING THAT
+ * REACHES ALIAS SET 0 HERE."
  *
- * > THE ROM RE-READS THE `int` MODE WORD AT `st+0x77b0` AFTER STORING A
- * > HALFWORD THROUGH `view+0x36`, AND WE DO NOT.  That is the recogniser
- * > docs/elevation.md already carries verbatim ("A MISSING RELOAD after a store
- * > of a different width is an ALIASING tell"), with `short`-against-`int`
- * > named as the paying case and two functions closed on it (`Func_808d828`
- * > 68 -> 7, `Func_80935d4` 54 -> 4).
+ * An int-width field CAN be a union member.  `union { int i; }` and
+ * `union { int i; unsigned short h[2]; }` measure IDENTICALLY (12 / 10 / 7 / 2
+ * across the four bodies below), which is the member-list-is-irrelevant result
+ * docs/elevation.md already records with a struct control.  The union
+ * reproduces `-fno-strict-aliasing` EXACTLY on this function: the park records
+ * 12 for this body and 10 for its alternative WITH the flag, and the union
+ * gives 12 and 10 WITHOUT it.  So the blocker was never TU-wide and the
+ * ALIAS_CFLAGS request this park raised is MOOT -- there is no owner-facing
+ * flag decision here any more.
  *
- * `true_dependence` (alias.c:1573) returns 0 at `DIFFERENT_ALIAS_SETS_P`
- * BEFORE it ever looks at the addresses, so under `-fstrict-aliasing` (on at
- * -O2) the halfword store cannot invalidate the SImode load and cse commons the
- * two reads.  `get_alias_set` (alias.c:351) returns 0 for everything when the
- * flag is off, which is why the flag moves it.  `lang_get_alias_set`
- * (c-common.c:3328) hands back 0 in exactly two reachable cases -- a
- * COMPONENT_REF taken DIRECTLY through a UNION_TYPE (:3344), and any reference
- * of char precision (:3348) -- and an `int`-width field can be neither, so
- * THERE IS NO SOURCE SPELLING THAT REACHES ALIAS SET 0 HERE.  Both exclusions
- * recorded for the recogniser are clear: there is no CALL between the store and
- * the re-read, and the store is `short`, not a character type.
+ * WRONG CLAIM 2: the park's "WHAT THE REMAINING 18 IS -- TWO CAUSES ...
+ * A. `view` and `mode` over r0/r1" describes a body that was not installed.
+ * Measured, the 18 has NO r0/r1 swap at all -- ref and ours both address the
+ * mode word as `[r0,#0]`.  All 7 of its aligncmp hunks trace to the ONE
+ * aliasing defect: the commoned re-read forces the mode value into
+ * callee-saved r4, which forces `push {r5,lr}` / `pop {r5}` and rotates
+ * r4 -> r5.  The r0/r1 swap only EXISTS once the aliasing is fixed; it is the
+ * with-union body's residue, not the 18's.
  *
- * MEASURED, as a figure ABOUT THE BLOCKER and not a result:
+ * WRONG CLAIM 3, and it is the one that paid: "the POSITION wants the
+ * statement after the y update, the cross-jump wants it before ... Give the
+ * outer zero r2 and the statement can go back to its natural place."  The
+ * position and the register are the SAME FACT and neither is the lever.  The
+ * lever is CONSUMING `amt` INTO A NAMED TEMP so that r2 is free at the moment
+ * the zero is materialised:
  *
- *     this body                       18 pin-free   /  12 with ALIAS_CFLAGS
- *     the `best10` variant below      23 pin-free   /  10 with ALIAS_CFLAGS
+ *     int amt = *(int *)(st + 0x77ac);
+ *     int yv  = *(unsigned short *)(view + 0x36) + amt;   // amt dies HERE
+ *     mode->i = 0;                                        // zero takes r2
+ *     *(unsigned short *)(view + 0x36) = yv;
  *
- * `Makefile:235` already defines `ALIAS_CFLAGS := $(GCC296_CFLAGS)
- * -fno-strict-aliasing` and TWENTY OBJECTS use it; `tools/tryc.py:183` maps it.
- * This is an owner-facing call, not an agent one, so the body shipped here is
- * the one with the best PRODUCTION-FLAG figure.
+ * The ROM's shape is `ldrh r3 / add r3,r2 / mov r2,#0 / strh r3 / str r2,[r0]`
+ * -- the zero is materialised AFTER the add consumes amt, which is why it gets
+ * r2, and a different value register is ALSO why it does not cross-jump onto
+ * the inner shared `str r3,[r0]`.  Cross-jumping needs TWO MATCHING INSNS
+ * (jump.c:675), so the register and the merge are one question.
  *
- * ================================================================
- * THE PARK'S SECOND VERDICT, ALSO REFUTED: THE TEMPORARY IS THE DEFECT
- * ================================================================
+ * THE LADDER, all production flags, pin-free, 41 = 41 encodings both sides:
  *
- * THE PARK SAID: "the mode assignment written without a temporary,
- * `if (...) *mode = 2; else *mode = 0;`: THREE lines short instead of two, so
- * the temporary is load-bearing and is kept."
+ *     body                                   union-free   one-member union
+ *     ------------------------------------   ----------   ----------------
+ *     installed (view-first, no temp)            18             12
+ *     mode-first, no temp (the park's alt)       23             10
+ *     mode-first + yv temp                       20              7
+ *     view-first + yv temp   <-- THIS BODY       15          **  2 **
+ *     view-first + yv temp, no `amt` local       28             24 (1 insn LONG)
  *
- * With the temporary, gcc-2.96's ifcvt (`.14.ce` / `.20.ce2`) if-converts
- * `v = (*mode != 2) ? 2 : 0` into SIX arithmetic instructions --
- * `movs r2,#2 / eors r2,r4 / negs r3,r2 / orrs r3,r2 / lsrs r3,#31 /
- * lsls r3,#1` -- where the ROM branches.  `noce_*` only handles a REGISTER
- * destination, so writing the two stores out (`*mode = 0;` / `*mode = 2;`)
- * cannot be if-converted at all; cross-jumping then merges the two stores onto
- * one shared `str`, which is EXACTLY the reference's idx 31-34
- * (`movs r3,#0 / b / movs r3,#2 / str r3,[r0]`).
- * The park measured the no-temp form WITHOUT the alias prerequisite and read
- * its 2-short length as a refutation.  Another recorded "worse" that was a
- * MISSING PREREQUISITE.
- *
- * ================================================================
- * THE FOUR LEVERS, AND WHY ONE-AT-A-TIME SCREENING FINDS NONE OF THEM
- * ================================================================
- *
- *   (1) the two-store inner update, not a temp          -- blocks ifcvt
- *   (2) `*mode = 0;` BEFORE the y update in the outer branch
- *       -- without it cross-jumping merges ALL THREE `str rX,[r0]` onto one
- *          shared store and the body comes out TWO INSTRUCTIONS SHORT (34)
- *   (3) `amt` declared BLOCK-SCOPED in each branch, not one function-scope
- *       `int amt;` -- worth 3 encodings on its own once (1) and (2) are in, and
- *       it is what puts the signed halving in the ROM's registers and order
- *       (`lsr #31 / add / asr #1` interleaved with the `ldrh`)
- *   (4) `view` initialised BEFORE `mode` -- the reference loads the 0x77b0 pool
- *       constant into r3, REUSING the register the symbol address died in, so
- *       the constant's pseudo must be born after that death.  With `mode`
- *       first, the constant must take r1 and the whole head mis-schedules.
- *
- * Lever (4) is the one that TRADES: it fixes the head completely but exchanges
- * r0/r1 between `view` and `mode`.  Read off `.18.greg`, which is the right
- * instrument here and not the figure:
- *
- *     view-first  `;; 3 regs to allocate: 32 34 33`  -> mode r1, view r0  WRONG
- *     mode-first  `;; 3 regs to allocate: 32 33 34`  -> mode r0, view r1  RIGHT
- *
- *   (33 is `view`, 34 is `mode`, 32 is `st`; all three conflict with hard r2/r3
- *   so the only question is which takes r1 and which r0, and REG_ALLOC_ORDER
- *   is `{3, 2, 1, 0, ...}` (arm.h:989) so the EARLIER-allocated allocno gets
- *   **r1**.)  Initialising `mode` second shortens its live range, raises its
- *   `allocno_compare` priority above `view`'s and swaps them.
+ * So the two levers are INDEPENDENT and MULTIPLICATIVE, and neither is visible
+ * alone: the temp alone is 18 -> 15, the union alone is 18 -> 12, together 2.
+ * The park's lever (4) ("the one that TRADES: it fixes the head completely but
+ * exchanges r0/r1") is ALSO a missing-prerequisite row -- with the temp in,
+ * view-first gives the ROM's head AND the right r0/r1, and there is no trade.
  *
  * ================================================================
- * BATCH 325H -- THE .18.greg RELOAD TRIAGE, FOR THE RECORD
+ * THE REMAINING 2 -- ONE SLOT, AND IT IS A FIXED POINT
  * ================================================================
- * This park does NOT cite `REG_ALLOC_ORDER` and nothing above rests on it, but
- * the triage is cheap to record and it CONFIRMS the reading above.
- * `Using reg N for reload M` in `.18.greg` is `find_reg`'s decision
- * (reload1.c:1664, inside find_reg at :1588); find_reg reads `REG_ALLOC_ORDER`
- * explicitly (:1645-1662) with `inv_reg_alloc_order` breaking ties among equal
- * `spill_cost`; and `choose_reload_regs_init` (:5129) leaves ONE BIT and
- * therefore NO freedom when an insn carries one reload.  So: one `Using reg`
- * per `Spilling for insn` block means REG_ALLOC_ORDER is blamed CORRECTLY and
- * the actionable quantity is `spill_cost`, i.e. the LIVE SET at that insn; two
- * or more reloads on one insn, or inheritance, is where a round-robin cursor
- * reading applies; and NO `Using reg` at all means there is no reload register
- * and it is an ALLOCNO question.
+ *   ours  mov r2,#0 | str r2,[r0] | strh r3,[r1,#0x36]
+ *   ref   mov r2,#0 | strh r3,[r1,#0x36] | str r2,[r0]
+ * The mode store is alias set 0, so it conflicts with everything and sched2
+ * CANNOT reorder it against the halfword store -- source order decides.  But
+ * writing the strh first puts the mode store LAST in the block, where
+ * cross-jumping merges it onto the inner shared `str` and the body comes out
+ * 2 INSTRUCTIONS SHORT.  Position -> register -> cross-jump -> position.
  *
- * This function: 16 `Spilling for insn` blocks -- 10 with no reload, 6 with
- * exactly one, NONE with two, and ZERO `Reusing reg` lines.  The registers in
- * the residue above (`view`/`mode` over r0/r1, the outer zero over r2/r3) have
- * NO `Using reg` at all, so they are an allocno question -- which is where this
- * header already works them, off `;; 3 regs to allocate:`.  The cursor reading
- * has no purchase here and neither does REG_ALLOC_ORDER.
+ * SEVEN CROSSES MEASURED AGAINST IT, every head order, both inner-arm orders,
+ * with and without the union prerequisite, with and without the temp -- all
+ * 39 instructions against 40, i.e. 2 SHORT:
+ *   mode store after the y update x {view-first, mode-first}
+ *     x {arms normal, arms swapped} x {no union, union}           2 SHORT (x6)
+ *   the same with the yv temp and the union (`sc_w14`)            2 SHORT
+ * ALSO MEASURED, 41 instructions but worse: a named `unsigned short *yp` for
+ * the y word, store last 35, store before the mode store 27.
+ *
+ * MEASURED INERT (this batch, at this body's figure):
+ *   - the inner arms written `if (mode->i != 2) mode->i = 2; else mode->i = 0;`
+ *     -- BUT NOTE: union-free and temp-free that variant ALSO reads 18 while
+ *     emitting `beq` + `mov #2` first against the ROM's `mov #0` first.  It is
+ *     a SECOND BODY AT THE SAME FIGURE and the WORSE corner; do not start from
+ *     it (batch 326's `InitMapActors` warning, reproduced here).
+ *   - a named `int off = 0x77b0;` for the offset (10 against 10 with the union)
+ * MEASURED WORSE (this batch):
+ *   - `mode = (Word *)st;` then re-assigned after `view`   1 insn LONG, 34
+ *   - `view`'s load before `st`                            2 SHORT, 40
  *
  * ================================================================
- * WHAT THE REMAINING 18 IS -- TWO CAUSES, AND BOTH ARE REGISTER CHOICE
+ * KEPT FROM THE PARK, STILL RIGHT
  * ================================================================
- *
- *   A. `view` and `mode` over r0/r1, as above.  Everything that reads or writes
- *      either pointer differs by that one swap and nothing else.
- *   B. the outer `*mode = 0;`: the ROM materialises `movs r2,#0` between the
- *      `adds` and the `strh` and stores `str r2,[r0]` AFTER the `strh`; we emit
- *      `movs r3,#0 / str r3,[r0]` before the `ldrh`.  The two halves are in
- *      DIFFERENT LISTS -- the POSITION wants the statement after the y update,
- *      the cross-jump wants it before -- and what separates them in the
- *      reference is that the outer zero lives in **r2** while the inner shared
- *      store uses r3.  Give the outer zero r2 and the statement can go back to
- *      its natural place; that is the whole residue.
- *
- * The signed halving (ref idx 22-27) is EXACT in this body and needed no work.
- *
- * MEASURED INERT (all at this body's figure, with and without the flag):
- *   - declaration order of `view` / `mode` -- free either way
- *   - dropping the `st` local and reading the global twice
- *   - `amt /= 2` against `amt = amt / 2`
- *   - `view` as `unsigned short *` with `view[0x1b]`
- *   - `amt + y` against `y + amt`, and the `+=` form
- *   - `0x77b0` through a named `int off` local
- * MEASURED WORSE:
- *   - `*mode = 0;` after the y update            34, and 2 instructions SHORT
- *   - `amt = *(int *)(st + 0x77ac) / 2;` in one statement     +2
- *   - no `mode` variable, the expression written out at all four uses   +2
- *   - `mode = (int *)st;` then re-assigned after `view`       +24
- *   - `view` initialised before `st`                          +30
- *
- * THE LEVER THE OLD PARK FOUND IS KEPT AND IS STILL RIGHT: the second global is
- * reached as an offset FROM THE FIRST SYMBOL'S ADDRESS, which is why the head
- * is `ldr r3,=iwram_3001eec / ldr r2,[r3] / sub r3,#0x6c / ldr r1,[r3]` and not
- * two pool loads.
- *
- * ALTERNATIVE BODY, 10 with ALIAS_CFLAGS and 23 without -- the same body with
- * the two initialisers swapped:
- *     st   = iwram_3001eec;
- *     mode = (int *)(st + 0x77b0);
- *     view = *(char **)((char *)&iwram_3001eec - 0x6c);
- * Its residue is cause B above plus the head schedule, and NOT cause A.
+ *   (1) the two-store inner update, not a temp -- blocks ifcvt.  `noce_*` only
+ *       handles a REGISTER destination, so two direct stores cannot be
+ *       if-converted and cross-jumping merges them onto the ROM's one shared
+ *       `str` (ref idx 31-34).
+ *   (2) `amt` declared BLOCK-SCOPED in each branch.
+ *   (3) the second global reached as an offset FROM THE FIRST SYMBOL'S ADDRESS,
+ *       which is why the head is `ldr r3,=iwram_3001eec / ldr r2,[r3] /
+ *       sub r3,#0x6c / ldr r1,[r3]` and not two pool loads.
+ * The signed halving (ref idx 22-27) is EXACT and needed no work.
  */
 extern char *iwram_3001eec;
+
+/* A ONE-MEMBER union: lang_get_alias_set (c-common.c:3329-3345) returns alias
+ * set 0 for a COMPONENT_REF taken directly through a UNION_TYPE, which is what
+ * keeps the two reads of the mode word apart across the halfword store.  No
+ * unread member, so nothing here is a device -- see docs/elevation.md,
+ * "A one-member UNION is a per-MEM alias escape". */
+typedef union { int i; } Word;
 
 void Task_SpinCamera(void)
 {
     char *st;
     char *view;
-    int *mode;
-
+    Word *mode;
     st = iwram_3001eec;
     view = *(char **)((char *)&iwram_3001eec - 0x6c);
-    mode = (int *)(st + 0x77b0);
-    if (*mode == 1) {
+    mode = (Word *)(st + 0x77b0);
+    if (mode->i == 1) {
         int amt = *(int *)(st + 0x77ac);
-        *mode = 0;
-        *(unsigned short *)(view + 0x36) = *(unsigned short *)(view + 0x36) + amt;
+        int yv = *(unsigned short *)(view + 0x36) + amt;
+        mode->i = 0;
+        *(unsigned short *)(view + 0x36) = yv;
     } else {
         int amt = *(int *)(st + 0x77ac);
         amt = amt / 2;
         *(unsigned short *)(view + 0x36) = *(unsigned short *)(view + 0x36) + amt;
-        if (*mode == 2)
-            *mode = 0;
+        if (mode->i == 2)
+            mode->i = 0;
         else
-            *mode = 2;
+            mode->i = 2;
     }
 }

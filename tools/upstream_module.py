@@ -87,18 +87,82 @@ def module_of(path, up):
 
 
 def index():
-    """Map every module to the tree files that implement it."""
+    """Map every module to the tree files that implement it.
+
+    A PARK CANNOT BE RESOLVED BY ITS FILENAME, and assuming otherwise made this
+    tool report `our parks: 0` for a module that has nine of them.  Found by
+    batch 327 brief J on ovl_7ac2d8: landings are SPLIT-NAMED
+    (src/overlays/rom_7ac2d8/ovl_35b8_a_a_c_c_a.c) while parks are ADDRESS-NAMED
+    (src/non_matching/ovl_7ac2d8/200cfcc.c), so a prefix match against the
+    upstream module `ovl_35b8` finds every landing and no park.  The landed side
+    was right the whole time, which is what made the zero look plausible.
+
+    So a park is resolved by its RECIPE SYMBOL: take the `--func` out of its
+    header, find the asm piece that defines that symbol, and take THAT file's
+    module.  Falling back to the filename only when a park has no recipe.
+
+    This is the fourth instance in this project of a NAME CHECK STANDING IN FOR A
+    DEFINITION CHECK, and the third of them in my own tooling, after
+    park_bodies.py counting a top-level `extern` as a definition and then its own
+    sibling bug of reading an indented call as a K&R definition.  A false
+    NEGATIVE is the expensive direction: it tells the reader not to look.
+    """
     up = upstream_modules()
     landed, parks, asm = collections.defaultdict(list), collections.defaultdict(list), collections.defaultdict(list)
-    for f in _ls("HEAD", "src/", ".c"):
+    # which asm piece defines which symbol -> that piece's module
+    sym_mod = {}
+    for f in _ls("HEAD", "asm/", ".s"):
         m = module_of(f, up)
         if not m:
             continue
-        (parks if "/non_matching/" in f else landed)[m].append(f)
-    for f in _ls("HEAD", "asm/", ".s"):
-        m = module_of(f, up)
+        asm[m].append(f)
+        # A FILE IN HEAD IS NOT NECESSARILY A FILE ON DISK.  `git ls-tree HEAD`
+        # lists what the last commit holds, and install_batch's splits phase
+        # DELETES the pre-split .s before anything is committed -- so during a
+        # batch this loop hit a path that no longer exists and the whole tool
+        # died with FileNotFoundError, for every function.  Reported by batch 327
+        # brief F, which had been told to run this tool early; any "no landed
+        # sibling" conclusion from that batch was reached without it.
+        #
+        # My own fix introduced this, and I introduced it while ten agents were
+        # running -- the same mid-batch-tool-change discipline breach another
+        # brief flagged one batch earlier.
+        fp = os.path.join(ROOT, f)
+        if not os.path.exists(fp):
+            continue
+        for sym in re.findall(r"thumb_func_start\s+(\w+)",
+                              open(fp, errors="replace").read()):
+            sym_mod[sym] = m
+    VERIFY = re.compile(r"objcmp\.py[\s\\]+\S+[\s\\]+(\S+\.s)(?:[\s\\]+--func\s+(\S+))?")
+    for f in _ls("HEAD", "src/", ".c"):
+        if "/non_matching/" not in f:
+            m = module_of(f, up)
+            if m:
+                landed[m].append(f)
+            continue
+        # Same reason as above: a RETIRED park is still in HEAD and gone from
+        # disk until the retirement is committed.
+        fp = os.path.join(ROOT, f)
+        if not os.path.exists(fp):
+            continue
+        txt = open(fp, errors="replace").read()
+        i = txt.find("*/")
+        hdr = (txt[:i] if i > 0 else txt[:3000]).replace("*", " ")
+        vm = VERIFY.search(hdr)
+        m = None
+        if vm:
+            # prefer the reference .s the park itself names
+            m = module_of(vm.group(1).strip("'\""), up)
+            if not m and vm.group(2):
+                m = sym_mod.get(vm.group(2).strip("'\""))
+        if not m:
+            fn = re.search(r"--func\s+([A-Za-z_]\w*)", hdr)
+            if fn:
+                m = sym_mod.get(fn.group(1))
+        if not m:
+            m = module_of(f, up)          # last resort: the old filename guess
         if m:
-            asm[m].append(f)
+            parks[m].append(f)
     return up, landed, parks, asm
 
 

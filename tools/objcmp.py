@@ -476,11 +476,34 @@ def main():
                     and offs[i] not in rel_off):
                 pads += 1
         return k - pads
-    a_in, b_in = _insns(a_enc, a_rel), _insns(b_enc, b_rel)
+    # AND IT MUST NOT COUNT POOL WORDS AS INSTRUCTIONS -- the FIFTH variant,
+    # found by batch 327 brief J.  Two bodies emitted 22 real instructions, the
+    # same as the reference, and this line read `ref 26 / ours 25`: that was
+    # 22+4 pool words against 22+3.  THEY WERE ONE POOL WORD SHORT, NEVER ONE
+    # INSTRUCTION SHORT, and two earlier batches had attacked a pool that was
+    # only short because of an unrelated trade.  A line labelled INSTRUCTION
+    # COUNT that counts pool words is a mislabel, and a mislabelled diagnostic
+    # is believed in the wrong terms.
+    #
+    # The separation is exact on this target: ARMv4T has no 32-bit Thumb
+    # encoding, so every 8-hex-char entry in a thumb function's stream is a pool
+    # word and every 4-hex-char entry is an instruction.
+    def _split(enc, rel):
+        n = _insns(enc, rel)                      # pads already excluded
+        insns = sum(1 for e in enc[:n] if len(e.replace("0x", "")) <= 4)
+        return insns, n - insns
+    a_in, a_pool = _split(a_enc, a_rel)
+    b_in, b_pool = _split(b_enc, b_rel)
+    if a_pool != b_pool and a_in == b_in:
+        print("  XX POOL WORD COUNT  ref %d, ours %d  (instructions AGREE at %d)"
+              % (a_pool, b_pool, a_in))
+        print("     The instruction streams are the same length; the difference is")
+        print("     pool CONTENT.  Do not read this as a missing instruction.")
+        bad = 1
     if a_in != b_in:
-        print("  XX INSTRUCTION COUNT  ref %d, ours %d  (excluding %d/%d pad word(s);"
-              " a pad may be TRAILING or sit mid-stream before a pool word)"
-              % (a_in, b_in, len(a_enc) - a_in, len(b_enc) - b_in))
+        print("  XX INSTRUCTION COUNT  ref %d, ours %d  (16-bit encodings only;"
+              " pool words %d/%d and pads excluded)"
+              % (a_in, b_in, a_pool, b_pool))
         if a_sz == b_sz and len(a_enc) == len(b_enc):
             print("     NOTE: size and encoding count MATCH -- a pad is absorbing the")
             print("     difference, so the positional figure below measures MISALIGNMENT,")

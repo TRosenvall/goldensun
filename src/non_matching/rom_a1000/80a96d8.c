@@ -1,126 +1,108 @@
-/* Func_80a96d8 -- 0x080a96d8.  NON-MATCHING, 2 of 319 encodings.
+/* Func_80a96d8 @ 0x080a96d8 -- NON-MATCHING, 2 differing encodings of 319.
  *
- * Figure RE-MEASURED this batch (brief 321-B), not inherited.  SIZE 728/728,
- * 319 instructions both sides, relocations identical in symbol and order.
- * PIN COUNT 0: tools/shimcount.py reports "empty asm : 1 (NOT treated as a
- * fakematch in this tree)" and nothing else.  The empty `__asm__ volatile ("")`
- * is a scheduling barrier.
+ * FIGURE RE-DERIVED batch 327 brief E, not inherited.  SIZE 728/728, 319
+ * instructions both sides, no objcmp INSTRUCTION COUNT line, relocations
+ * identical in symbol and order.  PIN COUNT 0 (tools/shimcount.py reports only
+ * "empty asm : 1 (NOT treated as a fakematch in this tree)").
  *
- * Verify with -- NAMES THE INSTALLED PATH:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/rom_a1000/80a96d8.c \
- *     asm/rom_a1000/rom_a8604_c_a_a_c.s --func Func_80a96d8
- *     -> XX ENCODINGS differ in 2 place(s) (ref 319, ours 319)
- *           first at index 44: ref 2618  ours 4d99
- *   `--whole` prints the same 2 of 319 with no SIZE and no relocation line.
+ * Verify with -- NAMES THE INSTALLED PATH, ONE LINE:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80a96d8.c asm/rom_a1000/rom_a8604_c_a_a_c.s --func Func_80a96d8
+ *     -> XX ENCODINGS differ in 2 place(s) (ref 319, ours 319), first at index 44
  *
- * SPLIT SHAPE: NONE.  tools/datacheck.py is silent, and
- *   tools/split_s.py asm/rom_a1000/rom_a8604_c_a_a_c.s Func_80a96d8 --dry-run
- *   says "holds only Func_80a96d8 and no data; convert it directly".
+ * SPLIT SHAPE: NONE.  datacheck.py silent; split_s.py --dry-run says the
+ * reference "holds only Func_80a96d8 and no data; convert it directly".
  *
  * THE RESIDUE, ONE ADJACENT SWAP, both halves real code (no pool word):
  *   idx 44  ref 2618 `mov r6,#0x18`   ours 4d99 `ldr r5,=0xb06`
  *   idx 45  ref 4d99 `ldr r5,=0xb06`  ours 2618 `mov r6,#0x18`
  *
- * ================================================================
- * WHICH RUNG DECIDES, READ OFF -fsched-verbose=6
- * ================================================================
- * .23.sched2, basic block 4, the decision at t = 34:
+ * ===== THE PARK'S VERDICT STANDS. ITS RUNG-3 REASONING DOES NOT. =====
  *
- *   ;;      insn  code    bb   dep  prio  cost   blockage units
- *   ;;      102   239     0     1    42    32    1 - 32   core : 797 121 120 118 114 110 104
- *   ;;      104    -1     0     2    42     1    0 -  0   none : 797 ... 1133 110 107
- *   ;;      107   173     0     1    42     2    1 - 32   core : 797 124 114
- *   ;;     1133   173     0     1    42     1    1 - 32   core : 797 1134
- *   ;;      110   173     0     2    40     2    1 - 32   core : 797 126 121
- *   ;;      118   173     0     2    40     1    1 - 32   core : 797 134 121
- *   ;;      Ready list (t = 34):    118  110  1133  107
- *   ;;              --> scheduling insn <<<107>>>          (ROM picks 1133)
+ * Re-read from my own `.23.sched2`, block 4 (`from 862 to 797`):
+ *    99  (173)  dep 0 prio 43 cost  2  deps {797,104,102}
+ *    102 (239, a CALL) dep 1 prio 42 cost 32
+ *    104 (-1, THE ASM BARRIER) dep 2 prio 42 cost 1, unit `none`, 17 dependents
+ *    107 (173)  dep 1 prio 42 cost  2  deps {797,124,114} = 3  <- ldr r5,=0xb06
+ *    1133(173)  dep 1 prio 42 cost  1  deps {797,1134}    = 2  <- mov r6,#0x18
+ *    1134(125 neg) dep 1 prio 41       deps {797,136,120} = 3
+ *  Schedule 99@t0, 102@t2, 104@t3, then a 30-CYCLE STALL (102 is a call,
+ *  cost 32), so `last_scheduled_insn` is STILL 104 at the contest:
+ *    t=34 Ready: 118 110 1133 107 -> picks 107.  (ROM picks 1133.)
+ *    t=36 picks 1133, t=37 1134 -- the two land adjacent either way.
  *
- *   rung 1 PRIORITY        42 == 42 for 107 and 1133; 110 and 118 are excluded
- *                          here at 40.                              ties
- *   rung 4 CLASS vs last_scheduled_insn (= insn 104, the barrier, scheduled at
- *          t = 33 on unit `none`).  BOTH carry the SAME note on the SAME insn:
- *            (insn  107 ... (insn_list:REG_DEP_OUTPUT 104 (nil)))
- *            (insn 1133 ... (insn_list:REG_DEP_OUTPUT 104 (nil)))
- *          class 2 == class 2.                                      ties
- *          (The class formula is haifa-sched.c:4068 -- class 3 if there is no
- *          link OR insn_cost == 1, else 1 for a true dependence, else 2.  Here
- *          both links are REG_DEP_OUTPUT on the SAME insn, and arm_adjust_cost
- *          prices an output dependence at 0, so both land in class 2 and the
- *          rung cannot separate them whatever the source says.)
- *   rung 5 DEPENDENT COUNT  107 -> {797,124,114} = 3
- *                          1133 -> {797,1134}    = 2
- *          MORE WINS.  ***THIS RUNG DECIDES.***
- *   rung 6 INSN_LUID        never reached -- and (insn 107 104 1133 ...) puts
- *          107 first in the chain, so equalising at 2-2 still loses it.
+ *  rung 1 `:4041` priority ....... 42 == 42                        TIES
+ *  rung 2 `:4046` REG_REG_WEIGHT . dead, gated `!reload_completed`
+ *  rung 3 `:4067-4094` CLASS vs 104:  both 107 and 1133 take a REG_DEP_OUTPUT
+ *         from the asm, because a volatile asm sets `reg_pending_sets_all` in
+ *         sched_analyze, so EVERY later register write gets one.  SAME note kind
+ *         on the SAME insn => SAME class.                           TIES
+ *  rung 4 `:4100-4110` dependent count  3 vs 2, MORE WINS -> 107.  ** DECIDES **
+ *  rung 5 `:4115` INSN_LUID ...... not reached; and it returns
+ *         LUID(tmp)-LUID(tmp2), so the LOWER LUID WINS, and the dependence table
+ *         lists 107 before 1133 -- so equalising rung 4 at 2-2 or 3-3 STILL
+ *         loses it.  The park was right about this.
  *
- * ================================================================
- * WHY RUNG 5 CANNOT BE REACHED FROM SOURCE -- A NEW, STRONGER ARGUMENT
- * ================================================================
- * 107 cannot drop below 2: the ROM's own stream gives the pooled 0xb06 two users
- * in this block, `mov r0,r5` (arg0 of the first `_Func_801e7c0`) and `add r5,#3`
- * (the second call's msg), and any C spelling of `msg + 3` reads msg.  So 1133
- * must RISE to 3, i.e. the +0x18 must have TWO readers before `neg r6,r6`
- * overwrites it.
+ * *** WHAT THE PARK GOT WRONG, AND IT MATTERS FOR OTHER FUNCTIONS, NOT THIS ONE.
+ * The park explains rung 3 as "both links are REG_DEP_OUTPUT on the SAME insn,
+ * and arm_adjust_cost prices an output dependence at 0, so both land in class 2".
+ * The arithmetic is right and the GENERALISATION it invites is wrong.  The
+ * durable fact is stronger and simpler:
  *
- * *** AND IT CANNOT, FOR A REASON THAT GENERALISES: insns 1133/1134 ARE RELOAD
- * *** OUTPUT materialising a COMPILE-TIME CONSTANT, and every expression that
- * *** could relate 0x18 to another value in this block relates two compile-time
- * *** constants -- so cse and gcse's cprop fold it away long before sched2.
- * *** YOU CANNOT GIVE A RELOAD-MATERIALISED CONSTANT AN EXTRA DEPENDENT FROM C.
- * This is exactly why this function's earlier 4 -> 2 advance came from a
- * DECLARATION (`extern int Func_80a10d0(...)` instead of `void`, which turns
- * `*call_insn` into `*call_value_insn` and moves an output dependence onto the
- * CALL) and not from an expression.  Measured here, from 2:
- *   `y = 0x18;` named, both arg3s written `-y` ........ 2   exactly inert
- *     (cprop folds `-y` back to `-24`; reload re-splits it in the same place)
- *   the same body under -fno-gcse ..................... 241 of 319 at 321 insns
- *   the same body under -fno-rerun-cse-after-loop ..... 13
- *   so the flags that would stop the folding cost far more than they buy.
+ *   > A VOLATILE ASM AS `last_scheduled_insn` FLATTENS RUNG 3 FOR THE WHOLE
+ *   > READY LIST.  It sets `reg_pending_sets_all`, so every ready insn that
+ *   > writes a register carries the SAME kind of link to it and lands in the
+ *   > SAME class.  The barrier does not merely fail to discriminate -- it
+ *   > removes rung 3's ability to discriminate at all.
  *
- * THE PARK'S OWN ESCAPE FROM RUNG 4 IS ALSO SHUT, AND THIS IS NEW.  The park
- * says "to break rung 4 the last-scheduled insn would have to touch r5 and NOT
- * r6".  An inline-asm clobber cannot do it: `__asm__ volatile ("" ::: "r5")` is
- * EXACTLY INERT at 2, because a volatile asm is dependent on EVERYTHING
- * regardless of its clobber list (sched_analyze sets reg_pending_sets_all for
- * any volatile ASM_OPERANDS / ASM_INPUT), so the named register narrows nothing.
- * Do not spend a round on a clobber list here.
+ * That is why the park's own proposed escape (`__asm__ volatile ("" ::: "r5")`,
+ * to make the last-scheduled insn "touch r5 and not r6") measured EXACTLY INERT
+ * rather than merely unhelpful: the clobber list is irrelevant twice over.
+ * AND IT IS THE MIRROR IMAGE OF THIS BATCH'S 80a9a5c LANDING, where adding a
+ * barrier WON, because there it gave a dep-0 pool load a PREDECESSOR -- see
+ * src/rom_a1000/rom_a8604_c_c_a_a_a_b.c.  Same construct, opposite sign:
+ * a barrier HELPS when the problem is a dep-0 insn being ready too early, and
+ * HURTS when the problem is rung 3 needing to tell two competitors apart.
  *
- * MEASURED THIS BATCH (tools/crossfire.py, 6 edits to depth 2, 319 encodings):
- *   base ................................................. 2
- *   __asm__ volatile ("" ::: "r5") ....................... 2   exactly inert
- *   `msg = 0xb06;` moved ABOVE the barrier ............... 2   exactly inert
- *   `msg += 3;` then pass `msg` to the second call ....... 2   exactly inert
- *   named `int y = 0x18` with `-y` at both calls ......... 2   exactly inert
- *   those four crossed pairwise .......................... 2   exactly inert
- *   `msg` above the barrier + clobber "r5" ............... 8
- *   __attribute__((packed)) on struct State .............. 552 of 319 at 563
- *                                                            insns, RELOC + MEM
- * THE BRIEF'S `packed` LEVER IS MEASURED BADLY WORSE HERE, and the reason is
- * structural rather than bad luck: this struct's layout is already pinned by
- * explicit `pad` arrays at the ROM's offsets, so `packed` cannot change the
- * layout -- it can only drop every member's alignment, which turns aligned word
- * and halfword accesses into byte-wise ones (hence +244 instructions and a
- * failing MEM screen).  `packed` is a lever for a struct whose layout gcc is
- * choosing; it is inert-at-best and destructive-at-worst on a pad-array struct.
+ * A CAUTION I had to apply to myself, recorded so nobody repeats it: I first
+ * read `insn_cost` (`haifa-sched.c:3060`) as returning 1 unconditionally for an
+ * asm (`:3072-3076`, `INSN_CODE(insn) < 0 => INSN_COST = 1; return 1;`), which
+ * would make every ready insn class 3.  THAT EARLY RETURN IS GATED ON
+ * `INSN_COST(insn) == 0` AND INSN_COST IS CACHED -- the priority pass has already
+ * set INSN_COST(104) = 1 before rank_for_schedule runs, so the call falls through
+ * to ADJUST_COST instead.  Rung 3 ties either way, so the verdict is unaffected;
+ * but only one of the two mechanisms is true.
  *
- * Blocker class: sched2 ready-list ranking, rank_for_schedule RUNG 5 (dependent
- * count).  Closed on rungs 1, 4 and 5 together, each by a property of the ROM's
- * own instruction stream or of the competitors' RTL form.  Needs a different
+ * REMAINING TARGET, unchanged and narrow: deps(1133) > deps(107), i.e. 1133 at
+ * >= 3 while 107 is at <= 2.  The park's reasons both survive re-reading:
+ * 107 cannot drop below 2 because the ROM's own stream gives the pooled 0xb06 two
+ * users (`mov r0,r5` = insn 114 and `add r5,#3` = insn 124), and 1133 cannot rise
+ * because 1133/1134 are reload output materialising a COMPILE-TIME CONSTANT, so
+ * every expression that could relate 0x18 to another value in this block relates
+ * two compile-time constants and cse/cprop folds it before sched2.
+ *
+ * MEASURED, inherited from the batch-321 run and NOT re-run (319 encodings):
+ *   base 2; `__asm__ volatile ("" ::: "r5")` 2 inert; `msg = 0xb06` moved above
+ *   the barrier 2 inert; `msg += 3` then pass `msg` 2 inert; named `int y = 0x18`
+ *   with `-y` at both calls 2 inert; those four crossed pairwise 2 inert;
+ *   `msg` above the barrier + clobber "r5" 8; `__attribute__((packed))` on
+ *   struct State 552 of 319 at 563 insns, RELOC + MEM.  Re-ablations from 2:
+ *   dropping the barrier 8, dropping `n = 0xc80` 4, inlining `c = 0xf0` 5,
+ *   `int ctx[7]` first 7, `f14` back to `unsigned char *` 151, dropping the dead
+ *   `t` 299.  `packed` is a lever for a struct whose layout gcc is CHOOSING; on
+ *   this pad-array struct it can only drop alignment, so it is inert-at-best.
+ *
+ * Blocker class: sched2 ready-list ranking, rank_for_schedule RUNG 4 (dependent
+ * count).  Closed on rungs 1, 3, 4 and 5, each by a property of the ROM's own
+ * instruction stream or of the competitors' RTL form.  Needs a different
  * rank_for_schedule.
  *
- * Everything below this line is unchanged from the batch-315 park and still
- * load-bearing; it is kept because it is the record of how the body reached 2.
- * (iwram_3001f2c IS A STRUCT, worth ~290 encodings; a pointer field must point at
- * a struct with no `int` member; the outer-loop rotation lever;
+ * Still load-bearing from the batch-315 park, and the record of how the body
+ * reached 2: iwram_3001f2c IS A STRUCT, worth ~290 encodings; a pointer field
+ * must point at a struct with no `int` member; the outer-loop rotation lever;
  * FRAME_GROWS_DOWNWARD so `short buf[15]` is declared before `int ctx[7]`; the
  * dead one-line `t` temp, 299 -> 17; `msg = 0xb06` with `msg + 3`; every
  * `extern void` re-swept to `extern int` in batch 315 -- all inert at 2 except
- * `_Func_801e7c0`, which is 4.  Re-ablations from 2: dropping the barrier 8,
- * dropping `n = 0xc80` 4, inlining `c = 0xf0` 5, `int ctx[7]` first 7, `f14`
- * back to `unsigned char *` 151, dropping the dead `t` 299.)
+ * `_Func_801e7c0`, which is 4.
  */
 struct W {
     unsigned char pad00[5];

@@ -1,3 +1,137 @@
+/* ===================== BATCH 327 (brief A) -- 15 -> 13, BODY CHANGED =========
+ * Anim_CriticalHit -- NON-MATCHING, 13 differing encodings of 707 (was 15).
+ * PIN-FREE, DEVICE-FREE, NO FLAG GROUP, NO fakematch ROW.
+ *     XX ENCODINGS differ in 13 place(s) (ref 707, ours 707)
+ *        first at index 78: ref 6812  ours 33bc
+ * NO SIZE LINE AND NO RELOCATIONS LINE, so the 13 is a true distance.
+ * aligncmp: aligned-equal 702 of 707 = 99.3%, 10 differing/ins/del in 9 hunks
+ * (was 701, 12 in 11).
+ * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_c9000/Anim_CriticalHit.c asm/rom_c9000/rom_e3958_c_c_c_c_a.s --func Anim_CriticalHit
+ * (`--whole` additionally reports Anim_Attack and BaseAnim_Attack "missing from
+ * candidate" plus a SIZE and RELOCATIONS line.  THAT IS THE UNDONE SPLIT, NOT A
+ * DEFECT: the .s holds three functions and this .c defines one.  Read the
+ * per-function row.)
+ *
+ * -------- THE EDIT, AND IT IS ONE STATEMENT PLUS ONE DECLARATION -------------
+ *     int msk;                       <- appended to the declaration list
+ *     ...
+ *     msk = 0xff;                    <- NEW, immediately BEFORE `p = base + K`
+ *     p = (Part *)(base + (0xe1 << 7));
+ *     do {
+ *         ...
+ *         p->vx = (Random() & msk) << 10;      -- was & 0xff, three times
+ *         p->vy = (Random() & msk) << 10;
+ *         p->vz = ((Random() & msk) - 0x7f) << 10;
+ * It closes RUN 5 (idx 464/465) EXACTLY and moves nothing else.
+ *
+ * -------- WHY, AND THE RULE IS REUSABLE ACROSS THE WHOLE BANK ----------------
+ * 0xff has three uses in that loop, so it is a loop-invariant MOVABLE and
+ * move_movables hoists it with emit_insn_before (..., loop_start) -- AT THE END
+ * OF THE PREHEADER, above every ordinary preheader statement.  `p = base +
+ * (0xe1 << 7)` is an ordinary statement, so its `add r5,fp` had the LOWER LUID.
+ * Both insns are region LEAVES (their consumers are inside the loop, a different
+ * scheduling region), so priority = own cost = 1 for both, EVERY
+ * rank_for_schedule RUNG TIES, and LUID ALONE DECIDES, LOWEST FIRST -- giving us
+ * `add r5,fp` then `mov r7,#0xff`, and the ROM the reverse.
+ * > GIVING A LICM-HOISTED LOOP CONSTANT ITS OWN SOURCE STATEMENT AHEAD OF THE
+ * > LAST ORDINARY PREHEADER STATEMENT MOVES IT FROM move_movables' INSERTION
+ * > POINT TO ITS WRITTEN POSITION.  THAT IS THE ONLY HANDLE ON A PREHEADER TIE,
+ * > BECAUSE EVERY PREHEADER INSN WHOSE CONSUMER IS INSIDE THE LOOP IS A REGION
+ * > LEAF AND PRIORITY CAN NEVER SEPARATE THEM.
+ * > PRECONDITION: THE HOISTED QUANTITY MUST HAVE NO USE OUTSIDE THE LOOP.
+ * > (AnimEnd's cause 2 is the same class and fails exactly this test -- its
+ * > `b + (0xc9<<3)` is also used before the loop, so naming it folds the two
+ * > computations and loses three instructions.  See that park.)
+ *
+ * -------- FULL DECOMPOSITION OF THE REMAINING 13: FOUR RUNS -----------------
+ * Measured with a helper that IMPORTS tools/objcmp.py (never forks it) to print
+ * ALL differing indices, not just the first:
+ *     differ 13 at: 78 79 80 81 82 83 84 | 169 170 | 245 246 | 364 365
+ *
+ * RUN 1 (idx 78-84, SEVEN -- this header previously said FOUR).  The gPtrs block:
+ *     ref   6812 ldr r2,[r2] | 920e str r2,[sp,#0x38] | 33bc add r3,#0xbc |
+ *           466d mov r5,sp   | 681b ldr r3,[r3]       | 3538 add r5,#0x38 |
+ *           9504 str r5,[sp,#0x10]
+ *     ours  33bc 466d 6812 681b 3538 9504 920e
+ *   Roles: ldr r2,[r2] + str r2,[sp,#0x38] = `d[0] = gPtrs[0x2e]` (d is at
+ *   sp+0x38); add r3,#0xbc + ldr r3,[r3] = `f1 = gPtrs[0x2f]`; mov r5,sp +
+ *   add r5,#0x38 + str r5,[sp,#0x10] = `fp = d`.
+ *   *** THE SINGLE STRUCTURAL FACT: THE ROM ISSUES str r2,[sp,#0x38] IMMEDIATELY
+ *   AFTER ITS LOAD (slot 2 of 7); WE DEFER IT TO SLOT 7 OF 7.  That store is
+ *   insn 1771, a reload-created number, at prio 18 -- THE LOWEST PRIORITY IN THE
+ *   WINDOW -- which is exactly why we sink it. ***  The previous reading
+ *   ("prio(166)=21 beats prio(157)=20") is ONE DECISION INSIDE A SEVEN-ENCODING
+ *   PERMUTATION whose real shape is the deferred store.  AIM AT prio(1771).
+ *
+ * RUN 2 (idx 169/170) -- `mov r7,#0` against `add r5,fp`, swapped.  THE SAME
+ *   CLASS AS THE EDIT ABOVE, at the FIRST particle loop, where r7 holds the
+ *   hoisted `0` for `p->y = 0; p->z = 0;` (confirmed from our own asm:
+ *   `add r5,r5,fp / mov r7,#0 / .L11: ... str r7,[r5,#4]`).  The lever does NOT
+ *   transfer.  MEASURED THIS BATCH, standalone and crossed with the msk edit:
+ *     `zero` named, declared top-level, assigned before p        51 / 49  RELOCDIFF
+ *     `zero` named, assigned before `i = 0`                      53 / 51  RELOCDIFF
+ *     `zero` named, declared BLOCK-SCOPED in the crit block      53 / 51  RELOCDIFF
+ *     block-scoped decl, assigned separately before p            51 / 49  RELOCDIFF
+ *     `p = base + K` moved before `i = 0`, no new local          16 / 14
+ *   Every naming form is a DIFFERENT PROGRAM (relocations differ), not a near
+ *   miss.  The asymmetry against the msk edit is real and unexplained: msk is
+ *   consumed as an `&` OPERAND, zero is consumed as a STORED VALUE, and only the
+ *   operand form survives.  NEXT READER: that asymmetry is the question, and it
+ *   is worth 2.
+ *
+ * RUNS 3 and 4 (idx 245/246, 364/365) -- each a pool-load-against-other-load
+ *   ADJACENT SWAP:
+ *     245/246  ref 0109 lsl r1,r1,#4 then 4862 ldr r0,[pc,#392]   ours swapped
+ *              (the 4862/4863 difference is the pc displacement MOVING WITH it,
+ *               not a different operand -- the earlier note is right)
+ *     364/365  ref 4d24 ldr r5,[pc,#0x90] then 980d ldr r0,[sp,#0x34]  ours swapped
+ *   Run 4 is the batch-310c "stack reload before the lsl, pool load after it"
+ *   asymmetry; RUN 3 IS THE SAME ASYMMETRY FAILING AT A SECOND SITE, which makes
+ *   it a class of two.  *** AND AnimEnd's POOL-LOAD RULE BOUNDS BOTH: a
+ *   pc-relative pool load has no register inputs and an unchanging,
+ *   privately-aliased MEM, so it can never acquire a new forward dependent and
+ *   its priority is a fixed function of the program.  DO NOT SPEND ANOTHER ROUND
+ *   TRYING TO RE-RANK THESE TWO THROUGH THE SCHEDULER. ***
+ *
+ * -------- FOUR NEW EXACTLY-INERT PREREQUISITES ON THE gPtrs BLOCK -----------
+ * All at the base figure, all verified to be GENUINELY DIFFERENT OUTPUT (md5 of
+ * the -S asm differs from base and from each other), so none is the "flat row
+ * means the edit never happened" trap:
+ *     a separate carrier `f0` for d[0], both stored through fp     INERT
+ *     `d[0]=..; d[1]=..; fp=d;`  (the previously recorded prereq)  INERT
+ *     `d[1] = f1;` instead of `fp[1] = f1;`                        INERT
+ *     `f0 = gPtrs[0x2e]; d[0] = f0;` then the base shape           INERT
+ *   WORSE: carrier on the FIRST pointer with d[1] direct 23; `fp` formed first
+ *   with both stores through it and no `f1` 18.
+ * *** AND THE CROSSING IS A CLEAN NEGATIVE: all four crossed with the msk edit
+ * still read 13.  So the previous ask -- "give the d[0] chain an equal-length
+ * tail" -- IS CONSTRUCTIBLE AND IS NOT RUN 1'S PARTNER.  Run 1's partner is the
+ * deferred store (prio 18), not the carrier shape. ***
+ *
+ * -------- CORRECTION TO THIS PARK'S OWN FAMILY CLAIM ------------------------
+ * THE CLAIM BELOW THAT NO `Anim_*` SOURCES HAVE LANDED IS FALSE, and it came
+ * from me, not from this park's author.  **148 `Anim_*`/`BaseAnim_*` functions are
+ * defined in landed sources** under `src/rom_c9000/` against 52 parked.  The error
+ * was a FILENAME check standing in for a DEFINITION check: every landed file in
+ * that bank is split-named (`rom_XXXXXX_*.c`), so a scan for `Anim_*.c` finds
+ * none of them.  `Anim_Hail` is landed in `Anim_Venus`'s own upstream module and
+ * `Anim_Confuse` in `AnimEnd`'s; `tools/upstream_module.py <Func>` prints the
+ * landed, parked and still-asm siblings of any function's module.
+ *
+ * A false NEGATIVE is the expensive direction, because it tells the next reader
+ * not to look.  Treat the paragraph below as retracted.
+ *
+ * This header says "THERE ARE NO LANDED Anim_* OR BaseAnim_* SOURCES ... all 46
+ * named animations are parked".  *** THAT IS FALSE.  148 ARE LANDED in
+ * src/rom_c9000/ against 52 parked. ***  The claim came from checking FILENAMES
+ * (all split-named rom_XXXXXX_*.c) instead of definitions -- a name check
+ * standing in for a definition check.  `tools/upstream_module.py
+ * Anim_CriticalHit` prints the six landed module-mates of rom_e3958 unprompted.
+ * A FALSE NEGATIVE IS WORSE THAN A FALSE POSITIVE, BECAUSE IT TELLS THE NEXT
+ * AGENT NOT TO LOOK; this one suppressed the best available evidence for two
+ * briefs across two batches.
+ * =====================================================================================
+ */
 /* Anim_CriticalHit -- 0x080e40a4, 672 ROM instructions (707 encodings).
  *
  * NON-MATCHING, 15 of 707 encodings differ.   [batch 310c: was 19]
@@ -550,6 +684,7 @@ void Anim_CriticalHit(void *context)
     CopyFn cp;
     int clen = 0x80 << 7;
     ClearFn cl;
+    int msk;
 
     g = iwram_3001eec;
     pp = g;
@@ -697,14 +832,15 @@ void Anim_CriticalHit(void *context)
     actorB = (int *)*_GetBattleActor((*(State **)(base + 0x7828))->ids[0]);
     h = _Func_80b8530((*(State **)(base + 0x7828))->ids[0]) / 2;
     i = 0;
+    msk = 0xff;
     p = (Part *)(base + (0xe1 << 7));
     do {
         p->x = actorB[2];
         p->y = actorB[3] + h;
         p->z = actorB[4];
-        p->vx = (Random() & 0xff) << 10;
-        p->vy = (Random() & 0xff) << 10;
-        p->vz = ((Random() & 0xff) - 0x7f) << 10;
+        p->vx = (Random() & msk) << 10;
+        p->vy = (Random() & msk) << 10;
+        p->vz = ((Random() & msk) - 0x7f) << 10;
         if (p->x > 0) {
             p->vx = -p->vx;
         }

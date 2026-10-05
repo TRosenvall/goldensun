@@ -230,7 +230,82 @@
  * own three-insn derivation regardless.  Worth knowing before it is tried
  * again: the device only bites where the assigned value must be REMATERIALISED
  * at each copy, which is true of a pool constant and false of a loop invariant.
- */
+  *
+ * ================================================================
+ * BATCH 327B -- RESIDUE A: I RAN THE LOOP DUMP THIS HEADER ASKED FOR, AND THE
+ * RECORDED CLOSURE REASON IS WRONG
+ * ================================================================
+ * Baseline re-derived as installed: 26 of 472, 1068 bytes and 472 encodings
+ * both sides, so the 26 is still a true distance.
+ *
+ * The header above says "The next thing to try is a gcc-2.96 `-da` dump of the
+ * loop pass to see the giv list order directly; that was not done here."  DONE.
+ * loop.c writes its verbose log straight into `*.08.loop` (loop_dump_stream is
+ * rtl_dump_file), so plain `-da` is enough and no extra flag is needed.
+ *
+ * The m-loop is "Loop from 386 to 769: 148 real insns", and its giv candidates
+ * are
+ *     Insn 413: giv reg 121 mult 16384 add 0              <- bare k << 14
+ *     Insn 415: giv reg 122 mult 16384 add (reg:SI 310)   <- ANGLE, 310=frame<<11
+ *     Insn 598: giv reg 188 mult 8   add 0
+ *     Insn 600: giv reg 189 mult 7   add 0
+ *     Insn 602: giv reg 190 mult 112 add 0                <- bare k * 0x70
+ *     Insn 604: giv reg 191 mult 112 add (reg/v:SI 35)    <- ROW, the q ADDRESS
+ *     giv of insn 602 not worth while, 136 vs 148.
+ *     giv of insn 600 not worth while, 102 vs 148.
+ *     giv of insn 598 not worth while, 0 vs 148.
+ *     giv of insn 413 not worth while, 0 vs 148.
+ *     giv at 604 reduced to (reg:SI 320)
+ *     giv at 415 reduced to (reg:SI 321)
+ *
+ * CONFIRMED: record_giv prepends and strength_reduce walks from the head, so
+ * the walk takes 604 before 415 -- the LATER insn gets the LOWER new pseudo and
+ * therefore the HIGHER slot.  320 = row -> sp+0x10, 321 = angle -> sp+0xc,
+ * which is our build; the ROM wants the reverse.
+ *
+ * REFUTED: "loop.c derives the two givs from `k`'s uses in a canonical order of
+ * its own and does not follow the order the source writes them in."  Source
+ * order IS followed.  All four of the inert rows recorded above moved a BARE
+ * `k * 0x70` -- an `int row = k * 0x70;` before the sin, the same at function
+ * scope, `k * (4 * 0x1c)`, the swapped addend order -- and a bare `k * 0x70` is
+ * **insn 602's candidate, which is REJECTED (`not worth while, 136 vs 148`)**.
+ * The surviving row giv is the q ADDRESS.  Four byte-identical inert rows were
+ * measuring a giv that never existed in the output.
+ *
+ * AND THE LEVER WORKS.  Moving `i = 0; q = (Part *)(base + k*0x70 + (0xe1<<7));`
+ * ABOVE the X/sin statement flips it, measured in that body's own `.08.loop`:
+ *     giv at 433 reduced to (reg:SI 320)   <- ANGLE now the LOWER pseudo
+ *     giv at 422 reduced to (reg:SI 322)   <- ROW
+ * i.e. angle-high / row-low, the ROM's assignment.
+ *
+ * ITS PRICE, EXACTLY: 476 encodings / 1076 bytes / 474 instructions against the
+ * ROM's 472 / 1068 / 470.  aligncmp reads 311 aligned-equal (65.9%), 210
+ * differing in 79 hunks, and essentially all of it is ONE cause replicated --
+ * the frame grows 52 -> 56 bytes, every sp offset shifts +4, and the frame-loop
+ * counter leaves `fp`:
+ *     ref  movs r2,#1 | add fp,r2 | mov r3,fp | cmp r3,#0x50
+ *     ours ldr r2,[sp,#24] | adds r2,#1 | str r2,[sp,#24] | cmp r2,#0x50
+ * It is NOT a lost allocno: `.18.greg` says `29 regs to allocate` in BOTH
+ * bodies and the list is the same set in near-identical order (only the giv
+ * pseudos renumber 321/320 -> 320/322 and 169/168/124 -> 175/174/130).  The
+ * sixth slot is a reload-level outcome, and `fp` changes tenant -- the base body
+ * uses it read-only (`mov rX, fp` x6), the moved body as an arithmetic
+ * accumulator (`add fp,fp,rX` x3).
+ *
+ * THE PRESSURE-RELIEF CROSS IS DEAD.  Four bodies, all BYTE-IDENTICAL to each
+ * other at 476 / 1076:
+ *   q + `i = 0;` to the top, `r5 = rem * 5;` named (the recorded 476)   476
+ *   the same with r5 UNNAMED (`rem * 5` inline in all three call args)  476
+ *   the same with `rem` and `r5` both inlined (`frame / 2 % 3 * 5`)     476
+ *   q alone to the top, `i = 0;` left after the three calls             476
+ * So r5's naming and `i`'s placement are inert once q is above the calls, and
+ * the register held across the three fns[0] calls is not what decides it.
+ *
+ * SO RESIDUE A IS BLOCKED ON REGISTER PRESSURE ACROSS THE THREE fns[0] CALLS,
+ * not on loop.c's ordering.  The flip is available on demand and costs the frame
+ * a sixth slot.  Anything that frees one register across those three calls
+ * without changing the program is the whole remaining question.
+*/
 #include "gba/types.h"
 #include "gba/io.h"
 #include "file_table.h"

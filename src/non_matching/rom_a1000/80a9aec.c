@@ -9,7 +9,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_a1000/80a9aec.c \
- *     asm/rom_a1000/rom_a8604_c_c_a_a_a.s --func Func_80a9aec
+ *     asm/rom_a1000/rom_a8604_c_c_a_a_a_c.s --func Func_80a9aec
  *
  * NO .sym EDIT NEEDED, and two existing entries are CONFIRMED rather than assumed:
  * message.sym:221 _MSG_182 and const.sym:77 _CONST_200 both already exist, both are
@@ -32,7 +32,7 @@
  * `mov r3, r8` are reload copies that exist BECAUSE msg is in r8, so reading them as the
  * cause is circular.
  */
-/* Func_80a9aec -- 0x080a9aec, asm/rom_a1000/rom_a8604_c_c_a_a_a.s (2 functions,
+/* Func_80a9aec -- 0x080a9aec, asm/rom_a1000/rom_a8604_c_c_a_a_a_c.s (2 functions,
  * datacheck.py clean).  PARKED at 76 lines against 80, ONE register exchange.
  *
  *   objcmp: XX SIZE ref 168 bytes, ours 160

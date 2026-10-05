@@ -1,3 +1,43 @@
+/* ===================== BATCH 327 (brief A) ADDENDUM -- READ FIRST =====================
+ * Anim_Attack -- STILL NON-MATCHING, 5 differing encodings of 39.  BODY
+ * UNCHANGED.  The pin ladder below is closed-form and the 0 is a pass-3 item
+ * (docs/owner-decisions.md standing standard 3), so the pin was NOT re-proposed.
+ *
+ * FIGURE RE-MEASURED MYSELF: 5 of 39 (ref 39, ours 39), first differing index
+ * 12.  Confirmed, pin-free, instruction count exact.
+ * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_c9000/rom_e3a3c.c asm/rom_c9000/rom_e3958_c_c_c_c_a.s --func Anim_Attack
+ *
+ * -------- WHAT BATCH 327 ADDS: THE MODULE EVIDENCE THIS PARK WAS DENIED -------
+ * `tools/upstream_module.py Anim_Attack` -> upstream rom_c9000/rom_e3958.s,
+ * with SIX LANDED module-mates: rom_e3958_b.c [GetBattleActorPos],
+ * _c_b.c [GetBattleActorPos2], _c_c_b.c [GetBattleActorPos3],
+ * _c_c_c_a.c [call_via, Func_80e3994], _c_c_c_b.c [Func_80e3a14],
+ * _c_c_c_c_b.c [UploadPalette, CopyBuf, Func_80e46f0].
+ * The tree-wide claim that "ZERO Anim_* / BaseAnim_* sources have landed" is FALSE
+ * -- 148 are landed in src/rom_c9000/ against 52 parked -- and it was reached by
+ * checking FILENAMES (all split-named rom_XXXXXX_*.c) instead of definitions.
+ * A LANDED HEADER RECORDS WHAT THE TU ACTUALLY WANTED; A PARK RECORDS WHAT
+ * SOMEBODY COULD NOT MAKE WORK.
+ *
+ * -------- AND A SPLIT FACT THAT BINDS THIS PARK TO TWO OTHERS ----------------
+ * asm/rom_c9000/rom_e3958_c_c_c_c_a.s HOLDS THREE FUNCTIONS -- Anim_Attack,
+ * BaseAnim_Attack AND Anim_CriticalHit -- so none of the three converts whole.
+ * Per Anim_CriticalHit's own dry-run evidence the good cut order is
+ * BaseAnim_Attack FIRST (it leaves Anim_CriticalHit alone in _c.s and
+ * Anim_Attack alone in _a.s); cutting for Anim_CriticalHit first buries
+ * Anim_Attack and BaseAnim_Attack together in a two-function _a.s that would
+ * have to be split again.  WHOEVER LANDS ANY ONE OF THE THREE SHOULD LAND THEM
+ * IN THE SAME SITTING, OFF THE ATTACK-FIRST CUT.
+ *
+ * -------- THE ONE CRACK I DID NOT CLOSE, stated so nobody mistakes it for one -
+ * The bound below rests on "no LOCAL qty can overlap t's lifetime, because a qty
+ * live at a block end is not block-local".  A qty BORN inside bb0 and DYING AT
+ * bb0'S LAST INSN is still block-local and would overlap, and no row below tests
+ * one.  I did not test it either (it needs an extra instruction to be worth
+ * anything, and the counts are exact).  TREAT THE BOUND AS STRONG BUT NOT
+ * AIRTIGHT ON THAT ONE SHAPE.
+ * =====================================================================================
+ */
 /* Anim_Attack  [rom_c9000]  --  5 of 39, MEASURED batch 326 (brief H).
  *
  * NON-MATCHING, 5 of 39 encodings.  INSTRUCTION COUNT 39 = 39 and SIZE equal,

@@ -310,6 +310,108 @@
  * (Also reconfirmed from the park: the explicit-countdown and up-counting loop
  * forms are bit-identical under check_dbra_loop, so loop form is one equivalence
  * class here and sweeping it measures nothing.)
+ *
+ * ===========================================================================
+ * BATCH 327 BRIEF D -- *** THE BOUND ABOVE IS REFUTED.  THIS FUNCTION IS ONE
+ * INSTRUCTION FROM MATCHING. ***  PARK HOLDS AT 3 of 33, device-free and
+ * MEM-clean, but the remaining cause is a DIFFERENT one and it is now exact.
+ * ===========================================================================
+ * Re-derived: objcmp --func 3 of 33 (ref 33, ours 33), first at index 12
+ * (ref 490a, ours 480a).  Figure unchanged.
+ *
+ * ---- THE REFUTATION ------------------------------------------------------
+ * scratch_elev/b327/D/f730_w1.c -- walking `signed char *q` biv, a named
+ * `signed char c = *q;`, and `q += 0x40;` written BETWEEN the read and the test
+ * -- produces the ROM's instruction stream with EXACTLY ONE INSTRUCTION MISSING
+ * (32 lines against 33).  tryc --full:
+ *       rom ldr r3, =0x3001f1c     ours ldr r3, =0x3001f1c
+ *       rom ldr r1, =0x1071        ours ldr r1, =0x1071     <<< THE ROM'S r1
+ *       rom ldr r3, [r3, #0x0]     ours ldr r3, [r3, #0x0]
+ *       rom add r2, r3, r1         ours add r2, r3, r1      <<< ROM'S ORDER
+ *       rom mov r1, #0x2           ours mov r1, #0x2        <<< COUNTER AFTER
+ *       rom ldrb r3, [r2, #0x0]    ours ldrb r3, [r2, #0x0]
+ *    -> rom lsl  r3, #0x18         ours add r2, #0x40       <<< ONLY DEFECT
+ *       ... identical thereafter, to and including `pop {r1} / bx r1`.
+ *
+ * WHY THE BOUND WAS WRONG: it assumed the 0x1071 must come from a RELOAD of a
+ * strength-reduced giv init, and derived (twice, correctly) that loop.c orders
+ * the giv init after the counter init.  With a walking-pointer BIV,
+ * `q = base + 0x1071` is the source's own insn, the 0x1071 is an ORDINARY
+ * PSEUDO that global-alloc places in r1 and that is dead before `mov r1,#2`.
+ * No reload is involved, and find_reg / spill_cost[r1] never enter the question.
+ * Everything derived from loop.c:4408 / :4778 is still true and simply is not
+ * the governing mechanism.
+ *
+ * ---- AND THE PARK'S "ONE GREP IN arm.md" WAS THE WRONG QUESTION ----------
+ * The header above says gcc "only chooses [ldrb + lsl #24] when the address is a
+ * (plus base index) at EXPAND time".  Both halves are false:
+ *   * `extendqisi2` (arm.md:3449) is a define_expand whose THUMB arm
+ *     (:3471-3488) is unconditional and ends in DONE: it does
+ *     `copy_to_mode_reg (QImode, operands[1])` then `ashift 24` then
+ *     `ashiftrt 24`.  So on Thumb EVERY QImode sign-extending load expands to
+ *     movqi + lsl + asr, whatever the address.  `*thumb_extendqisi2_insn`
+ *     (arm.md:3543) is reachable ONLY by combine re-forming
+ *     (sign_extend:SI (mem:QI ...)).  There is no expand-time choice to find.
+ *   * In THIS body the address already IS a plain register at expand time --
+ *     .12.life insn 50 is `(set (reg:QI 39) (mem:QI (reg:SI 45) 0))`.
+ *
+ * THE REAL QUESTION IS WHAT STOPS COMBINE, and this body's own dump answers it:
+ *     (insn  50 (set (reg:QI 39) (mem:QI (reg:SI 45) 0)))      ldrb
+ *     (insn 130 (set (reg:SI 45) (plus (reg:SI 45) 64)))       THE GIV BUMP
+ *     (insn  51 (set (reg:SI 41) (ashift (subreg:SI (reg:QI 39)) 24)))
+ *     (insn  52 (set (reg:SI 40) (ashiftrt (reg:SI 41) 24)))
+ * can_combine_p (combine.c:933) refuses at the guard on :1083-1088:
+ *     || (! all_adjacent
+ *         && (((GET_CODE (src) != MEM
+ *               || ! find_reg_note (insn, REG_EQUIV, src))
+ *              && use_crosses_set_p (src, INSN_CUID (insn))) ...
+ * -- insn 130 WRITES reg 45, the MEM's own address, so the 3-insn merge dies and
+ * the `asr` is then killed by simplify_comparison against 0, leaving the ROM's
+ * `ldrb` + `lsl #24` + `cmp #0`.  NOTE the predicate: the intervening insn must
+ * SET A REGISTER USED IN THE ADDRESS.  A counter decrement makes `all_adjacent`
+ * false but leaves use_crosses_set_p false, so the `&&` does not fire.
+ *
+ * ---- THE CORRECT BOUND: A MUTUAL EXCLUSION THROUGH loop.c ----------------
+ *   * `ldrb` + `lsl #24` needs (a) an UNNAMED `signed char` rvalue, because
+ *     PROMOTE_MODE makes a NAMED char local an SImode pseudo loaded by
+ *     *thumb_zero_extendqisi2 and marks the subreg `/u` -- w1's .12.life:193
+ *     `(zero_extend:SI (mem:QI (reg/v:SI 36) 0))` and :211
+ *     `REG_EQUAL (sign_extend:SI (subreg/s/u:QI (reg:SI 41) 0))` -- so
+ *     nonzero_bits <= 0xff and simplify_comparison takes
+ *     (ne (ashift x 24) 0) all the way to (ne x 0), killing BOTH shifts;
+ *     and (b) the intervening address-clobbering insn, which only loop.c's GIV
+ *     update supplies ==> the base pointer must be loop-INVARIANT ==>
+ *     strength_reduce folds the +0x1071 into the giv's add_val and
+ *     re-materialises it as a RELOAD at the preheader end ==> r0.
+ *   * `ldr r1,=0x1071` needs the +0x1071 to be an ordinary pre-loop pseudo ==>
+ *     the pointer must be a BIV ==> the address is a plain register with no
+ *     intervening set ==> either combine merges to `ldrsb`, or the named temp is
+ *     promoted `/u` and the `lsl` dies.
+ *
+ *   >> WHAT WOULD RETIRE IT: any way to get an insn that WRITES the load's
+ *      address register between the `movqi` and its `ashift` in a loop whose
+ *      pointer is a source-level biv.  The obvious candidate -- bump the
+ *      POINTER and keep a CONSTANT index, so the address is a giv off a pointer
+ *      biv -- measures EXACTLY INERT at 3 (y1 below): strength_reduce folds it
+ *      to the same giv.
+ *
+ * ---- MEASURED, batch 327 (base = this body, 3 of 33, ref 33 / ours 33) ----
+ *   w2  `signed char *q` biv, `int c = *q;`, bump between      2  33/33  MEM ldrsb
+ *   y3  `unsigned char *q`, `int c = (signed char)*q;`, ditto  2  33/33  MEM ldrsb
+ *   y1  bump the POINTER, constant index 0x1071                3  33/33  INERT
+ *   y4  `q += 0x40` first, read q[0], start 0x1031             4  33/33  MEM
+ *   q01 park's repro: walk sc*, bump after the `if`            7  33/33  MEM
+ *   w6  QI temp, bump in the for-increment clause              7  33/33  MEM
+ *   y2  `p = base+0x1071` biv, `p[0]`, `p += 0x40`             7  33/33  MEM
+ *   w1  `signed char c = *q;`, bump between               20  33/31  THE ROM -1 lsl
+ *   w3/w4/w5/w8  w1 with decl order / `q = q + 0x40` /
+ *                up-counting / a separate base local      20  33/31  (as w1)
+ *   w7  this body's walking index + a QI temp above the test   22  33/31
+ *
+ * The 2s read better than this park's 3 but on the WRONG LOAD OPCODE, which this
+ * park's own installed-figure decision already settled ("a figure of 7 on the
+ * wrong load opcode is not four away from 3").  Both are recorded as figures
+ * ABOUT THE BLOCKER.  PARK HOLDS AT 3 of 33.
  */
 extern int Func_80056cc(void);
 extern int Func_8005c68(void);

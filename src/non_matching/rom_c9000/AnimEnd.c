@@ -1,3 +1,110 @@
+/* ===================== BATCH 327 (brief A) ADDENDUM -- READ FIRST =====================
+ * AnimEnd -- STILL NON-MATCHING, 14 differing encodings of 142.  BODY UNCHANGED.
+ * Cause 1 (12) is bounded; cause 2 (2) now has its mechanism NAMED and its
+ * reason for resisting the fix MEASURED.
+ *
+ * FIGURE RE-MEASURED MYSELF: 14 of 142 (ref 142, ours 142), first differing
+ * index 32.  Relocations differ, and this header is right that it is a
+ * consequence, not a blocker -- but say what it IS:
+ * *** IT IS A POOL-WORD TRANSPOSITION.  Same 16 symbols in the same order; only
+ * gDMATaskCount's two ABS32 offsets move (ref 0x88/0x148, ours 0x8c/0x14c) with
+ * every offset between them identical.  One non-relocated literal and
+ * gDMATaskCount have SWAPPED POOL SLOTS, twice.  That is the defect class
+ * tools/tryc.py is structurally blind to, so AnimEnd must never be screened
+ * with tryc alone. ***
+ * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_c9000/AnimEnd.c asm/rom_c9000/rom_cd508_a_c_c.s --func AnimEnd
+ *
+ * ============ CAUSE 1 -- CONCLUSION SURVIVES, REASONING CORRECTED ============
+ * From my own .23.sched2, basic block 0, with the insn->pattern map read off the
+ * final schedule listing:
+ *     130  prio 11  deps 165 144 133    r3 = 0x20
+ *     133  prio 10  deps 165 154 144    [r6+0x6] = r3   (iwram_3001ad0[3]=0x20)
+ *     142  prio  7  deps 165 154        r1 = [`*.LC7']  <- THE gDMATaskCount POOL LOAD
+ *     143  prio 10  deps 165 154 144    r0 = 0x4000208  (REG_IME addr, BARE const_int)
+ *     144  prio  8  deps 165 154 146    r3 = [r0]
+ *     146  prio  6  deps 165 154        r4 = r3
+ *     154  prio  5  deps 165 164        [r0] = r0       (volatile IME store)
+ *     164  prio  3  deps 165            r2 = zxn([r1])
+ *     165  prio  1                      the cmp/branch
+ *
+ * *** THIS HEADER'S REGISTER ARGUMENT IS THE WRONG WAY ROUND.  It says "an insn
+ * that READ r1 would make 142 depend on it, which is backwards."  priority()
+ * (haifa-sched.c:3129-3163) is max over INSN_DEPEND of (insn_cost + priority),
+ * and INSN_DEPEND is the FORWARD list -- 142 SETS r1, so a reader of r1 depends
+ * ON 142 and FEEDS 142's priority.  The register lever points the way this
+ * header wanted; it simply has nothing to grab. ***
+ *
+ * THE STRUCTURE THIS HEADER DID NOT STATE: BLOCK 0 IS ONE LINEAR CHAIN,
+ * 130 -> 133 -> 144 -> 146 -> 154 -> 164 -> 165 at 11, 10, 8, 6, 5, 3, 1.  Every
+ * insn's priority is just ITS ATTACH POINT'S PRIORITY PLUS ITS OWN COST.  142
+ * attaches at 154 (5) and costs 2 -> 7.  143 attaches at 144 (8) and costs 2
+ * -> 10.  THE WHOLE RESIDUE IS THAT THE REG_IME ADDRESS FEEDS THE CHAIN FOUR
+ * LINKS HIGHER THAN THE gDMATaskCount ADDRESS DOES.
+ *
+ * AND THE BOUND, correctly reasoned.  prio(142) > 11 needs it to attach at 133
+ * (10+2=12) or 130 (11+2=13).  Three routes, all shut:
+ *   - TRUE dependence: 130 and 133 touch only r3 and r6; the only reader of r1
+ *     in the block is 164, prio 3.
+ *   - ANTI dependence: *** 142 IS A PC-RELATIVE POOL LOAD AND HAS NO REGISTER
+ *     INPUTS AT ALL, so it can never be the SOURCE of a register
+ *     anti-dependence. ***  (This is the clean statement this header was
+ *     reaching for with its "backwards" sentence.)
+ *   - MEMORY anti dependence onto store 133: write_dependence_p tests
+ *     MEM_VOLATILE_P on BOTH operands first (so marking the store volatile buys
+ *     nothing), then DIFFERENT_ALIAS_SETS_P -- pool set 9 against the u16
+ *     array's -- returns 0; RTX_UNCHANGING_P refuses it a second time.
+ *
+ * AND A TIE DOES NOT HELP, which is worth recording because batch 326's
+ * crossing pattern invites trying it.  Flatten every priority above and LUID
+ * decides, lowest first -- and chain order is 130, 133, 142, 143, 144, so LUID
+ * STILL puts 130 and 133 ahead.  THE ROM NEEDS 142 FIRST, WHICH NEEDS ITS CHAIN
+ * POSITION TO BE FIRST, NOT MERELY A TIE.  The ROM's own order keeps the 0x20
+ * store between the pool load and the IME dance, so the ROM's source had that
+ * statement there too.  CAUSE 1 IS BOUNDED.
+ *
+ * >>> THE REUSABLE RULE, and it is the thing to carry out of this park: <<<
+ * > A PC-RELATIVE LITERAL-POOL LOAD HAS NO REGISTER INPUTS AND AN UNCHANGING,
+ * > PRIVATELY-ALIASED MEM.  IT CAN THEREFORE NEVER ACQUIRE A NEW FORWARD
+ * > DEPENDENT BY ANY SOURCE-LEVEL EDIT -- not a true dependence, not an
+ * > anti-dependence (no inputs), not a memory anti-dependence
+ * > (DIFFERENT_ALIAS_SETS_P plus RTX_UNCHANGING_P).  ITS sched2 PRIORITY IS
+ * > EXACTLY cost + priority(ITS CONSUMER'S CHAIN ATTACH POINT) AND IS A FIXED
+ * > FUNCTION OF THE PROGRAM.  WHERE THE ROM SCHEDULES A POOL LOAD EARLIER THAN
+ * > ITS CONSUMER CHAIN CAN JUSTIFY, THE DIFFERENCE IS NOT REACHABLE THROUGH THE
+ * > SCHEDULER.
+ * This applies unchanged to Anim_CriticalHit's runs 3 and 4 (two pool-load
+ * adjacent swaps) and to every "pool load one slot early/late" park in the bank.
+ *
+ * ============ CAUSE 2 -- MECHANISM NAMED, AND WHY IT RESISTS, MEASURED =======
+ * Cause 2 is one instance of a CLASS that also accounts for 4 of
+ * Anim_CriticalHit's 15: a LICM-hoisted quantity adjacent to a constant init in
+ * a loop preheader, in the wrong order.  move_movables hoists with
+ * emit_insn_before (..., loop_start) -- at the preheader's END, above every
+ * ordinary preheader statement.  Every such insn is a region LEAF (its consumer
+ * is inside the loop, a different scheduling region), so priority = own cost for
+ * all of them, every rank_for_schedule rung ties, and LUID ALONE DECIDES,
+ * LOWEST FIRST.
+ * >>> THE LEVER: GIVE THE HOISTED QUANTITY ITS OWN SOURCE STATEMENT AHEAD OF
+ * THE LAST ORDINARY PREHEADER STATEMENT.  That moves it from the insertion point
+ * to its written position and is the ONLY handle on a preheader tie. <<<
+ * IT IS WORTH 2 ON Anim_CriticalHit (15 -> 13, see that park).
+ *
+ * *** AND IT HAS A PRECONDITION, WHICH IS WHY IT CANNOT BE USED HERE: THE
+ * HOISTED QUANTITY MUST HAVE NO USE OUTSIDE THE LOOP. ***  `b + (0xc9 << 3)` is
+ * also used before the loop by _Func_80c0774, so naming it folds the two
+ * computations into one.  MEASURED THIS BATCH, all four with the pre-loop use
+ * left written out in full:
+ *     named `bp` BETWEEN the two zero inits   SIZE 332 vs 340, COUNT 138 vs 141
+ *     named `bp` BEFORE both inits            SIZE 332 vs 340, COUNT 138 vs 141
+ *     named `bp` AFTER both inits             SIZE 332 vs 340, COUNT 138 vs 141
+ *     named only the BASE (`bq = b`)          14  EXACTLY INERT  <- candidate prereq
+ * The three folds are -3 instructions and 8 bytes short, which CONFIRMS this
+ * header's "LICM lever is load-bearing, do not tidy it" warning from the other
+ * side.  CAUSE 2 IS BOUNDED BY THE SECOND USE, not by statement order.
+ *
+ * SO AnimEnd'S FLOOR IS 12, NOT 0, UNTIL THE POOL-LOAD RULE ABOVE IS BROKEN.
+ * =====================================================================================
+ */
 /* AnimEnd  [rom_c9000]  --  14 of 142, MEASURED batch 326 (brief H).
  *
  * NON-MATCHING, 14 of 142 encodings.  INSTRUCTION COUNT 142 = 142 and SIZE

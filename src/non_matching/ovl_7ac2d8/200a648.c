@@ -1,112 +1,94 @@
-/* OvlFunc_924_200a648  --  0x0200a648  [asm/overlays/rom_7ac2d8/ovl_22c4_c_c_c_a.s]
+/* OvlFunc_924_200a648 -- 0x0200a648, asm/overlays/rom_7ac2d8/ovl_22c4_c_c_c_a_a.s
  *
- * NON-MATCHING, 6 of 26 encodings  (MEASURED, batch 319 recipe backfill).
- *   COUNT DIFFERS (ref 26, ours 25) -- so this positional figure measures
- *   MISALIGNMENT, not distance.  Read the count before the figure.
- *   SIZE ref 60 bytes, ours 56.
+ * NON-MATCHING, 9 differing encodings of 26.  SIZE EXACT (60 = 60) and
+ * INSTRUCTION COUNT EXACT (26 = 26, 22 real instructions plus 4 pool words),
+ * so this IS a true distance.  Relocations identical.  ZERO pins, no devices,
+ * no per-file flag group.
  *
  * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/ovl_7ac2d8/200a648.c \
- *     asm/overlays/rom_7ac2d8/ovl_22c4_c_c_c_a_a.s --func OvlFunc_924_200a648
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7ac2d8/200a648.c asm/overlays/rom_7ac2d8/ovl_22c4_c_c_c_a_a.s --func OvlFunc_924_200a648
+ *   XX ENCODINGS differ in 9 place(s) (ref 26, ours 26)
+ *      first at index 8
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- * ITS PREVIOUS PROSE CLAIM OF 5 DID NOT REPRODUCE -- measured 6.
+ * SPLIT SHAPE.  One function in the reference; tools/datacheck.py prints
+ * nothing (no data section).  EXPORT LIST: EMPTY.  No split needed.
+ * (The old header's FIRST LINE named `ovl_22c4_c_c_c_a.s`, which is a different
+ * piece and does not contain this function.  The recipe's `_a_a` was right, and
+ * tools/upstream_module.py confirms it.  Fixed.)
  *
- * NOT MATCHING. 5 of 24, LENGTH EXACT.
+ * READ src/non_matching/ovl_7ac2d8/200adcc.c -- it is this routine's TWIN at
+ * 0x50000c2/0x50000ce/0x50000c4 with a bound of 5, and it carries the full
+ * mechanism.  THE TWO ARE NOW PROVEN TO SHARE ONE MECHANISM COMPLETELY: the
+ * single edit below gives both of them 9 differing of 26 with ref 26 = ours 26
+ * and the same first differing index (8).
  *
- * READ src/non_matching/ovl_7ac2d8/200adcc.c FIRST. That park covers this
- * function's twin, predates this file, and contains the whole analysis. This
- * file exists only because the twin was worked separately; everything below is
- * a pointer to it plus a correction of what this file used to claim.
+ * ===================== BATCH 327: THE FIGURE WENT UP ON PURPOSE =====================
  *
- * A 7-entry palette rotation at 0x5000050, guarded on (iwram_3001e40 & 7) == 0.
- * OvlFunc_924_200adcc is the same routine at 0x50000c2 with a bound of 5. Both
- * screen at 5 of 24 with the body below.
+ * THE PREVIOUS BODY READ 6 of 26 AND THAT 6 WAS NOT A DISTANCE:
+ *   SIZE  ref 60 / ours 56     INSTRUCTION COUNT  ref 26 / ours 25
+ * The stream was ONE POOL WORD SHORT, so a positional count against it measured
+ * MISALIGNMENT.  The one edit here -- `s` assigned BEFORE `i` rather than after
+ * -- restores the pool word.  9 true beats 6 false.  This is the exact REVERSE
+ * of the lever the twin's park recommended, and that trade is why batches 204 and
+ * 271 were both spent on the literal pool.
  *
- * THE REMAINING DEFECT IS CONSTANT DERIVATION, diagnosed in the twin's park:
+ * ============ THE BLOCKER CLASS WAS WRONG: IT IS NOT CONSTANT DERIVATION ============
  *
- *     rom   ldr r2, =0x5000052      <- a third independent pool entry
- *     ours  sub r2, #0xc            <- derived from the save target
+ * The `sub r2, #0xc` is absent from .00.rtl through .17.lreg and first appears in
+ * .18.greg.  It is reload_cse_move2add (reload1.c:8840, called from :7991), a
+ * POST-RELOAD pass, so the hard registers are already fixed when it fires.  It
+ * can only fire because reload put the save pointer and `s` in the SAME hard
+ * register; in the ROM they are in different registers and gate 3
+ * (`reg_offset[regno]` must be a CONST_INT) fails, because r2's previous value
+ * there came from a `ldrh`.  The derivation is a CONSEQUENCE of the register
+ * choice, not its cause.  Full gate list in the twin's header.
  *
- * gcc notices the save target and the source pointer are a fixed distance apart
- * and reuses the register rather than taking another pool slot. Five lines move
- * because that one register is live in the wrong form.
+ * SO BATCH 271's `_PLTT_50`/`_PLTT_52`/`_PLTT_5E` PROPOSAL IS WITHDRAWN AS A
+ * DIAGNOSIS, not merely as a landing.  It did remove the derivation, but by
+ * removing gcc's ability to relate two constants rather than by fixing the
+ * register, and it left the transposition untouched -- which is exactly what a
+ * symptom treatment looks like.  It would also have needed three wram.sym
+ * absolutes to buy a NON-match, which the owner-decisions standard (structural
+ * impossibility, and completion) refuses anyway.
  *
- * ==================== CORRECTION, BATCH 204 ====================
+ * ========================= WHAT THE 9 ARE =========================
  *
- * THIS FILE PREVIOUSLY CLAIMED TWO THINGS THAT WERE WRONG, and both were mine.
+ *   ROM                        this body
+ *   ldr r1, =0x5000050   d     ldr r1, =0x5000050    d    r1   SAME
+ *   ldr r3, =0x500005e   save  ldr r2, =0x500005e    save r2   <- RUN B
+ *   ldrh r2, [r1]        tmp   ldrh r3, [r1]         tmp  r3   <- RUN B
+ *   strh r2, [r3]              ldr r0, =0x5000052    s    r0   <- RUN A
+ *   ldr r2, =0x5000052   s     strh r3, [r2]
+ *   mov r0, #0           i     mov r2, #0            i    r2   <- RUN A
+ *   (loop body and epilogue byte-exact in both)
  *
- * 1. It presented "an unsigned counter blocks gcc's loop reversal" as a finding
- *    of batch 203. It is not new. The twin's park had already recorded it, with
- *    a better statement of the tell: the ROM's `bls` is itself the evidence,
- *    because an unsigned branch on a loop counter means the counter is
- *    unsigned. I derived it again from scratch without looking.
+ * RUN A (4 encodings): global-alloc ranks `i` above `s` because assigning `s`
+ * earlier lengthens its live_length, the denominator of allocno_compare.
+ * .18.greg's order line goes from `32 33 34` to `32 34 33`.  Second-ranked takes
+ * r2, third takes r0.  ALL SIX declaration orders of d/s/i are INERT at 9 of 26,
+ * so global.c:617's tie-break rung is dead here -- a TIE-ABSENT row.
  *
- * 2. It said "this file parks BOTH functions" and "solving either solves both",
- *    while a separate, older and BETTER park for the twin already existed. Mine
- *    screened at 9 and 10 differing; the existing one screens at 5, because it
- *    also knows that assigning the counter BEFORE the source pointer is worth
- *    four instructions. That ordering is now used here.
+ * RUN B (5 encodings): local-alloc gives r3 to the HI temp instead of the save
+ * pointer.  REG_ALLOC_ORDER (arm.h:989) starts 3,2,1,0, so r3 goes to whichever
+ * block-local qty is allocated FIRST, ordered by
+ *     QTY_CMP_PRI = floor_log2(n_refs) * n_refs * size / (death - birth)
+ * Both have n_refs 2 and size 1, so only the span counts: save span 2 -> 10000,
+ * temp span 1 -> 20000.  expand_assignment is LHS-FIRST (expr.c:3402), so a
+ * direct `*(vu16 *)0x500005e = *d;` always materialises the save address before
+ * the load and always gives the save pointer the longer span.
  *
- * WHY IT HAPPENED, since it is a process failure and not a compiler one: I
- * triaged these two functions out of tools/shape_groups.py and never grepped
- * src/non_matching for their names before starting. The tree's own rule --
- * locate a function by NAME, not by path or address, recorded in batch 197 --
- * applies to checking whether a park already exists, and I applied it only to
- * finding .s files.
+ * THE ONE REMAINING CAUSE: run B needs the halfword in a SINGLE HImode pseudo
+ * with n_refs 2 across the save-address insn.  Naming it inverts the RTL order
+ * but leaves a subreg copy (n_refs 4 -> 26666, still beats 20000) because a
+ * volatile mem load will not propagate through combine; narrowing the temp
+ * instead trips PROMOTE_MODE and emits a real lsl/asr pair.  No C spelling found.
  *
- * ==================== THE NAMED RE-ATTACK IS NOW MEASURED, BATCH 271 ====================
- *
- * The open work was: give the three addresses symbolic names rather than three
- * literals, so what lands in the pool changes. TRIED. It does exactly what the
- * diagnosis predicted and does NOT close the function.
- *
- * THREE INDEPENDENT extern symbols -- not a common base with offsets, which
- * would only hand gcc the differences again -- remove the derivation outright:
- *
- *     extern volatile unsigned short _PLTT_50[], _PLTT_52[], _PLTT_5E[];
- *
- *     ours before   sub r2, #0xc            <- derived from the save target
- *     ours after    ldr r2, =_PLTT_52       <- a third independent pool entry
- *
- * WHY IT WORKS: an extern's value is unknown at COMPILE time, so gcc cannot
- * compute 0x500005e - 0x5000052 and has no derivation available. A `#define`
- * would not do this -- it is a literal at compile time and derives like one.
- * That is also the limit of what this proves about the original source.
- *
- * WHAT IS LEFT is a TWO-REGISTER TRANSPOSITION on the save pair, and the count
- * stays at 5 because the cascade is replaced rather than removed:
- *
- *     rom    ldr r1, =0x5000050 / ldr r3, =0x500005e / ldrh r2, [r1] / strh r2, [r3]
- *     ours   ldr r1, =_PLTT_50  / ldr r2, =_PLTT_5E  / ldrh r3, [r1] / strh r3, [r2]
- *
- * Of the five, TWO are the transposition and THREE are pool-entry SPELLING
- * (`=_PLTT_50` against `=0x5000050`) which would link to identical words -- so
- * the real residue is two instructions, not five. That is a much sharper park
- * than the derivation was.
- *
- * MEASURED AND INERT against the transposition, all 5: the save target named as
- * a local pointer; that pointer assigned BEFORE `d`; the counter assigned first
- * (the twin's ordering lever, which was worth four instructions on the
- * derivation and is worth nothing here). MEASURED AND WORSE: naming the copied
- * halfword in a local, 26 lines and 19 differing.
- *
- * SO THIS IS NOT LANDABLE AS IT STANDS, and the reason is worth stating. Making
- * it exact would need three absolute assignments in wram.sym, and they would be
- * buying a NON-match -- a build-input change for a function that still differs.
- * The LoadUIBanner precedent landed in this batch is the contrast: there the
- * symbol count is forced by a decisive in-function control (one symbol gives
- * nine instructions against the ROM's twenty-nine) and the result is EXACT. Here
- * the symbols improve the shape and something else still blocks it.
- *
- * NEXT: the transposition is the corpus's dominant class, but this is a
- * two-value case in SCRATCH registers rather than callee-saved ones -- the same
- * subfamily as OvlFunc_924_200d158's park. Those two should be read together.
+ * MEASURED on the TWIN this batch and applying here unchanged: `int t`,
+ * `unsigned int t`, `unsigned long t`, a named save pointer, and the named save
+ * pointer crossed with `unsigned int t` are all INERT; `unsigned short t`,
+ * `short t`, the cast form and the declared-first form are all WORSE at 27
+ * instructions against 26.
  */
-
 extern int iwram_3001e40;
 
 void OvlFunc_924_200a648(void)
@@ -118,8 +100,8 @@ void OvlFunc_924_200a648(void)
     if ((iwram_3001e40 & 7) == 0) {
         d = (volatile unsigned short *)0x5000050;
         *(volatile unsigned short *)0x500005e = *d;
-        i = 0;
         s = (volatile unsigned short *)0x5000052;
+        i = 0;
         do {
             *d = *s;
             i++;

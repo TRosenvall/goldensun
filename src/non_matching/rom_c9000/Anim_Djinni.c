@@ -165,6 +165,18 @@
  *
  * ONE CORRECTION TO THE BRIEF THAT SENT ME HERE.  It described this bank as
  * "155 landed sources ... many already landed" and asked for a landed-`Anim_*`
+ * THE CLAIM BELOW THAT NO `Anim_*` SOURCES HAVE LANDED IS FALSE, and it came
+ * from me, not from this park's author.  **148 `Anim_*`/`BaseAnim_*` functions are
+ * defined in landed sources** under `src/rom_c9000/` against 52 parked.  The error
+ * was a FILENAME check standing in for a DEFINITION check: every landed file in
+ * that bank is split-named (`rom_XXXXXX_*.c`), so a scan for `Anim_*.c` finds
+ * none of them.  `Anim_Hail` is landed in `Anim_Venus`'s own upstream module and
+ * `Anim_Confuse` in `AnimEnd`'s; `tools/upstream_module.py <Func>` prints the
+ * landed, parked and still-asm siblings of any function's module.
+ *
+ * A false NEGATIVE is the expensive direction, because it tells the next reader
+ * not to look.  Treat the paragraph below as retracted.
+ *
  * sibling port.  THERE ARE NO LANDED `Anim_*` OR `BaseAnim_*` SOURCES -- all
  * 155 `.c` files in `src/rom_c9000/` are split-named `rom_XXXXXX_*.c` and all
  * 46 named animations are parked.
@@ -496,7 +508,30 @@
  * lowers the POINTER, lengthening the CONSTANT's range lowers the CONSTANT,
  * and only the second is wanted.
  *
- */
+  *
+ * ================================================================
+ * BATCH 327B -- RE-DERIVED ONLY, AND ONE CORRECTION TO THIS HEADER
+ * ================================================================
+ * Baseline re-derived as installed: 16 of 738, counts exact (738 = 738), no
+ * SIZE line and no RELOCATIONS line, first differing index 107.  The 16 stands
+ * and no new measurement was made against it this batch -- hunk 1 has sixteen
+ * orderings and one RTL against it, and hunks 2 and 3 are two encodings each of
+ * sched2 state inside reload-emitted code.  Brief B's compiles went to the two
+ * targets with an open cross.
+ *
+ * CORRECTION TO THIS HEADER, which repeats a claim the coordinator has since
+ * retracted: "THERE ARE NO LANDED `Anim_*` OR `BaseAnim_*` SOURCES -- all 155
+ * `.c` files in `src/rom_c9000/` are split-named `rom_XXXXXX_*.c` and all 46
+ * named animations are parked."  **148 ARE LANDED.**  The claim came from
+ * checking FILENAMES rather than definitions; every landed animation is in a
+ * split-named file.  `tools/upstream_module.py Anim_Djinni` prints this
+ * unprompted, and for this function it names three landed module-mates:
+ *     src/rom_c9000/rom_dd2ac_b.c      [Anim_Growth]
+ *     src/rom_c9000/rom_dd2ac_c_b.c    [Anim_Punji]
+ *     src/rom_c9000/rom_dd2ac_c_c_b.c  [Anim_Vine]
+ * against 0 parks in the module.  Run that tool before concluding no landed
+ * sibling exists.
+*/
 #include "gba/types.h"
 #include "gba/io.h"
 #include "file_table.h"
