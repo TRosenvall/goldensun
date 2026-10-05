@@ -33541,3 +33541,67 @@ question, and it is the right place to spend the next round on that function.
 
 > **A proof and a stale premise can coexist.** Do not discard the proof; find the
 > premise it was built on and check whether it is still true.
+
+## A CALL IS NOT A BASIC-BLOCK BOUNDARY, AND A PARK SPENT ITS ROUND ON THE BELIEF THAT IT IS
+
+The pool-constant CSE rule requires **a control-flow boundary between the two
+uses**. `Func_801c954`'s park read that requirement, observed a call between its
+two uses, and wrote:
+
+> "the boundary is a CALL, which is as strong a boundary as exists"
+
+**It is not a boundary at all.** Read from the compiler, twice over:
+
+`count_basic_blocks` (`flow.c:493-519`) starts a new block only at a `CODE_LABEL`,
+or at an insn whose predecessor was a `JUMP_INSN`, a `BARRIER`, or a `CALL_INSN`
+**with `call_had_abnormal_edge`** — and that flag is set only for an EH region, a
+`REG_EH_RETHROW` note, or `nonlocal_goto_handler_labels`. None of those exist in
+plain C on this target. So an ordinary `bl` leaves the block intact, and cse1 sees
+both uses in **one extended basic block** and commons them exactly as designed.
+
+What a call *does* do is narrower, and it is `cse.c:5710-5714`:
+
+	if (GET_CODE (insn) == CALL_INSN)
+	  {
+	    if (! CONST_CALL_P (insn))
+	      invalidate_memory ();
+	    invalidate_for_call ();
+	  }
+
+with the comment *"Some registers are invalidated by subroutine calls. Memory is
+invalidated by non-constant calls."* `invalidate_for_call` (`cse.c:2027-2039`)
+walks `regs_invalidated_by_call` and drops **call-clobbered HARD registers** from
+the quantity chains. That is the whole effect.
+
+> **So: a call invalidates MEMORY and the call-clobbered HARD REGISTERS. It does
+> not end a basic block, and it does not invalidate a pseudo.** An expression over
+> pseudos and constants — an address computation, a pooled literal, a shifted
+> constant — is commoned straight across a call.
+
+### This reconciles two findings that looked contradictory
+
+- Batch 322 brief F: *"Reads 1 and 3 are never at risk — the call between them
+  invalidates cse's memory table."* **True**, and it is about a `mem:HI`.
+- Batch 324 brief D: *"a call is not a basic-block boundary, so cse1 commoned both
+  occurrences."* **True**, and it is about an address constant.
+
+Both are right because `invalidate_memory` and block boundaries are different
+mechanisms. The error is to generalise either one into "a call separates things".
+
+### What to check in the parks that may share the error
+
+`tools/blocked_cse.py` is **not** affected — its test is "the same materialised
+constant appears twice with no LABEL between", which is exactly right per
+`flow.c`, and its docstring already declares its own approximation honestly. The
+risk is in prose, not tooling.
+
+`Func_801c954`'s park also claimed `src/non_matching/ovl_7b2078/2008388.c` is "the
+first counterexample" to the rule, on the grounds that *its* boundary is a `beq`.
+A `beq` **is** a real boundary (`JUMP_INSN`), so that park's premise is sound where
+this one's was not — but it was reasoned about by the same author in the same
+round, and is worth re-measuring on the same suspicion.
+
+> **The lesson is narrower than "read the compiler".** The park *did* read the
+> rule; it substituted an intuition about what a boundary is for the definition.
+> A rule that names a precondition is only as good as the precondition's
+> definition, and "control-flow boundary" has one, at `flow.c:493`.
