@@ -1,12 +1,10 @@
-/* Func_801965c (0x0801965c) -- NON-MATCHING.
+/* Func_801965c (0x0801965c) -- NON-MATCHING, 10 of 48 encodings.
  *
- * NON-MATCHING, 39 of 48 encodings  (MEASURED, batch 319 recipe backfill).
- *   COUNT DIFFERS (ref 48, ours 51) -- so this positional figure measures
- *   MISALIGNMENT, not distance.  Read the count before the figure.
- *   RELOCATIONS differ, but THE SAME SYMBOLS AT A SHIFTED OFFSET -- which
- *   this project treats as a CONSEQUENCE of the length difference, not a
- *   separate blocker.  Re-classified in batch 322; the figure IS a distance.
- *   SIZE ref 104 bytes, ours 112.
+ *   SIZE ref 104 bytes, ours 104 -- EQUAL.
+ *   RELOCATIONS IDENTICAL.  INSTRUCTION COUNT 49 against 49.
+ *   So the 10 is a TRUE DISTANCE, not misalignment.  (The park this replaces
+ *   read 39 of 48 at 112 bytes with shifted relocations; that 39 was dominated
+ *   by literal-pool OFFSETS, every one of them a consequence of the length.)
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -14,58 +12,98 @@
  *     src/non_matching/rom_15000/801965c.c \
  *     asm/rom_15000/rom_1908c_c_a_a_a.s --func Func_801965c
  *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- * Blocker class: a redundant copy of the loop bound into a HIGH register
- * (r12), the wall recorded three times already for r7/r8 copies.
+ * ------------------------------------------------------------------ 39 -> 10
  *
- * 51 lines against the ROM's 49, 36 differing. The prologue, the guard and the
- * loop's shape all match; the residue centres on two ROM instructions we do
- * not emit and two of ours the ROM does not:
+ * TWO INDEPENDENT CAUSES WERE FIXED, both found by decomposing the diff into
+ * runs rather than treating 39 as one problem.
  *
- *   rom    mov r12, r5          <- the loop bound copied to a high register
- *          add r2, r6, r2       <- the walking pointer formed AFTER the
- *                                  peeled first load, which is
- *                                  `ldrh r3, [r6, r2]` -- an INDEXED load off
- *                                  the block base, not a pointer dereference
- *   ours   mov r1, #0x0         <- the empty-path byte index hoisted
- *          b L2 / L2:           <- a branch to the next label
+ * 1. THE +0x12b2 STORE NEEDED AN int-TYPED ZERO.  (39 -> 24, and it is what
+ *    made the size and the relocations agree.)
  *
- * and we compare against r5 directly where the ROM compares against r12.
+ *    `*(unsigned short *)(blk + 0x12b2) = 0;` CANNOT emit the ROM's
+ *    `mov r3, #0`.  `*thumb_movhi_insn` (config/arm/arm.md:4318) lists
+ *    `=l <- mn` as ALTERNATIVE 1 and `=l <- I` as ALTERNATIVE 5, and recog
+ *    takes the first alternative that costs nothing -- so a HImode const_int 0,
+ *    which `I` would happily build with `mov`, goes to the literal POOL
+ *    instead.  Alternative 1's `pool_range` is 64 (against 1020 for SImode), so
+ *    that fix sorts ahead of every SImode fix and forces a pool dump in the
+ *    MIDDLE of the function with a branch over it: +1 insn, +1 `.short 0`
+ *    pad, +1 pool word, +8 bytes, and every `ldr rN,[pc,#X]` in the function
+ *    displaced.  The movhi expander's own CONST_INT->movsi escape hatch is
+ *    gated on `! CONST_OK_FOR_THUMB_LETTER (..., 'I')`, so it never fires for 0.
  *
- * MEASURED (rom 49 lines):
- *   `src` as a named pointer before the loop                51, 43
- *   the source expression INLINED into the loop body        51, 36  <- best
- *   a named index `k` with `blk + k + i * 2`                50, 37
- *   -fno-strength-reduce                                    48, 32
- *   -fno-gcse                                               44, 35
- *   -fno-strict-aliasing                                    51, 36
- *   -fno-schedule-insns2                                    51, 41
+ *    Measured in scratch_elev/b324/D/probe/z.c: of six spellings of the store
+ *    (plain, through a named `u16 *`, `(u16)0`, `s16` lvalue, int variable) ONLY
+ *    the int variable emits `mov r2,#0` with no pool word.  So the ROM's
+ *    `mov r3,#0` PROVES the stored zero reached expand as an SImode value.
  *
- * Neither flag that changes the length improves the match; both cut
- * instructions the ROM has. Inlining the source expression rather than naming
- * a `src` pointer is a real 43 -> 36 and is kept: it lets gcc build the
- * address after the guard, as the ROM does, instead of hoisting it above.
+ *    The int must be SHORT-LIVED and must not cross the call: storing the loop
+ *    index `i` instead measures 51, because `i` then lives in a callee-saved
+ *    register and gcc does not rematerialise the zero.  The ROM's r3 is dead
+ *    immediately after the `strh`, which is the same fact.
  *
- * WHAT IS RIGHT, and is the reusable part:
+ *    COROLLARY, and it corrects the old park: the ROM's TAIL zero,
+ *    `ldr r3, =0x0`, is NOT an SImode literal -- an SImode 0 is `mov` (the same
+ *    recog-alternative reasoning as `_MSG_182` in docs/owner-decisions.md).  It
+ *    is the HImode POOLED zero, which we already emit: Thumb-1 has no
+ *    pc-relative `ldrh`, so gas renders `ldrh r3,.L15` as `ldr r3,[pc,#8]`.
+ *    And the old park's "gcc CSEs ours into a single pooled zero" was wrong --
+ *    we emitted TWO pool words of 0 precisely because they landed in two
+ *    different pool dumps and so could not be shared.
  *
- *   THE ASSIGNMENT'S VALUE IS WHAT IS TESTED. The ROM's
- *   `strh r3, [r7] / lsl r3, #0x10 / cmp r3, #0x0` is a 16-bit zero test on a
- *   value that came from a halfword LOAD -- so gcc already knows the high bits
- *   are clear and would not narrow it. Writing the copy and the test as one
- *   expression, `if ((out[i] = src[i]) == 0)`, makes the tested value the
- *   ASSIGNMENT's value, whose type is the `unsigned short` lvalue's, and that
- *   is what produces the `lsl #16`. Two separate statements do not.
+ * 2. THE +0x12b2 POINTER HAD TO BE NAMED.  (24 -> 10.)
  *
- *   TWO ZEROS THROUGH HALFWORD STORES, ONE POOLED AND ONE NOT. The ROM has
- *   `mov r3, #0x0` for the store at +0x12b2 and `ldr r3, =0x0` for the
- *   terminator. gcc CSEs ours into a single pooled zero used at both. There is
- *   no `_CONST_0` in const.sym and none is wanted -- this is the same
- *   duplicate-constant CSE that parked OvlFunc_970_20092ac, in its cheapest
- *   possible form (one line, not five), and it confirms from a third angle
- *   that a POOLED ZERO through a halfword store is ordinary gcc output.
+ *    With the store spelled inline, the `0x12b2` pool constant is allocated
+ *    r1 -- the `out` parameter's register.  That creates an anti-dependence
+ *    which drags `mov r7, r1` up to position 2, and the sum then takes r3 and
+ *    the zero r2: SEVEN encodings of prologue rotation.  Naming the pointer
+ *    gives the constant r3 (reusing the dead `iwram_3001e8c`-address register,
+ *    exactly as the ROM does) and the entire prologue falls into place.
  *
- * NEXT: nothing source-level. The `mov r12, r5` is the wall.
+ *    Naming the OFFSET instead measures 40 with dirty relocations; the
+ *    pointer is the thing to name.
+ *
+ * ------------------------------------------------------- WHAT THE 10 ACTUALLY IS
+ *
+ * Instruction counts are equal, so these are a rotation of one block:
+ *
+ *   rom   mov r2,#0xeb / lsl r2,#4 / ldrh r3,[r6,r2] / strh r3,[r7] /
+ *         lsl r3,#16 / cmp r3,#0 / beq L0 / mov r12,r5 / add r2,r6,r2 /
+ *         mov r4,#0
+ *   ours  mov r3,#0xeb / lsl r3,#4 / add r2,r6,r3 / ldrh r3,[r2] /
+ *         strh r3,[r7] / lsl r3,#16 / mov r1,#0 / cmp r3,#0 / beq L1 /
+ *         mov r4,#0
+ *
+ *   (i) 9 of the 10.  We materialise `blk + 0xeb0` BEFORE the peeled first
+ *       load; the ROM uses Thumb's register-offset form `ldrh r3,[r6,r2]` and
+ *       forms the pointer only in the PREHEADER (`add r2,r6,r2`).  cse has
+ *       commoned the peeled load's address with the giv's start value into ONE
+ *       pseudo where the ROM has two.
+ *   (ii) 1 of the 10.  `cmp r0,r12` vs `cmp r0,r5` -- the loop bound copied to
+ *       a high register.  It shares the accounting with (i): we spend the spare
+ *       slot on a `mov r1,#0` hoisted into the guarded block (so `beq` targets
+ *       the tail), the ROM spends it on `mov r12,r5` (so `beq` targets the
+ *       shared `L0: mov r1,#0 / b` block).
+ *
+ * MEASURED AND INERT at 10, all at 49/49 insns, dsize 0, relocations clean:
+ *   inline `i * 2` subscript; `0xeb0` written plainly instead of `0xeb << 4`;
+ *   the `while` form with `i++` at the bottom; `n--` moved before the call;
+ *   `*flag = (unsigned short)z`.
+ * MEASURED AND WORSE: a named `src` pointer 27; `*src++` 47; an explicit
+ *   byte-offset `j` carrier 40; an explicit source-level peel of iteration 0
+ *   51; a named `int off = 0x12b2` 40; `i < n - 1` without the decrement 44
+ *   (loop.c's invariant hoist costs an insn); `n` as `int` 26; `out[i] = z`
+ *   53; a `t = 0; out[i] = t` terminator 19; an explicit guard + `do/while` 39.
+ * FLAG PROBES, as instruments only (lines against the ROM's 49):
+ *   -fno-thread-jumps 49/17, -fno-cse-follow-jumps 49/17 (both exactly inert),
+ *   -fno-schedule-insns2 49/29, -fno-rerun-cse-after-loop 47/32,
+ *   -fno-strength-reduce 46/32, -fno-gcse 42/37, -fno-expensive-optimizations
+ *   50/28.  None reaches the ROM's shape; cse2 ADDS two insns here.
+ *
+ * NEXT: cause (i).  The question is how to keep the peeled first load's address
+ * and the loop giv's start value as TWO pseudos.  Every loop spelling tried
+ * collapses to the same 10 (consistent with `check_dbra_loop` making loop form
+ * one equivalence class, docs/elevation.md), so the lever is not the loop.
  */
 extern unsigned char *iwram_3001e8c;
 extern void BufferString(int a, int b);
@@ -73,10 +111,14 @@ extern void BufferString(int a, int b);
 int Func_801965c(int a, unsigned short *out, unsigned int n)
 {
     unsigned char *blk;
+    unsigned short *flag;
     unsigned int i;
+    int z;
 
     blk = iwram_3001e8c;
-    *(unsigned short *)(blk + 0x12b2) = 0;
+    flag = (unsigned short *)(blk + 0x12b2);
+    z = 0;
+    *flag = z;
     BufferString(a, 1);
     n--;
     for (i = 0; i < n; i++) {
