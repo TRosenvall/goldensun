@@ -1,4 +1,70 @@
-/* Func_80175c0 -- PARK STANDS at 2 of 44, and the park's ELEMENT-TYPE ASYMMETRY
+/* Func_80175c0 -- *** PARK HOLDS at 2 of 44 ***   Batch 328 brief E.
+ * The park's own closing instruction -- "closing this needs evidence from
+ * OUTSIDE the function ... upstream_module.py and the module's landed siblings
+ * are where to look, not another spelling" -- WAS FOLLOWED. The evidence exists,
+ * it was crossed, and IT MEASURES INERT. The bound is now closed on both sides.
+ *
+ * RE-DERIVED FIRST: 2 of 44 (ref 44, ours 44; first at index 13, ref b084
+ * `sub sp,#0x10` against ours b082 `sub sp,#8`; relocations identical).
+ * Figure CONFIRMED.
+ *
+ * I ALSO RE-READ THE TWO THINGS THE PARK ASSERTED BUT DID NOT QUOTE.
+ *  1. `thumb_expand_prologue` (arm.c:8926-8931):
+ *         HOST_WIDE_INT amount = (get_frame_size ()
+ *                                 + current_function_outgoing_args_size);
+ *         ... amount = ROUND_UP (amount);
+ *     CONFIRMED -- there is no third term, so the park's arithmetic (ROM's
+ *     get_frame_size() in [5,8], ours 0, outgoing args 8) stands.
+ *  2. The ROM's own assembly, asm/rom_15000/rom_15e8c_c_a_c_c_c.s. It confirms
+ *     the diagnosis byte for byte: `mov r6,#0` ahead of the frame, `str r6,[sp]`
+ *     as the fifth argument, `mov r6,r0` taking the result, `sub sp,#0x10` /
+ *     `add sp,#0x10`, only [sp] and [sp,#4] ever touched -- AND NO
+ *     `add rX, sp, #N` ANYWHERE. So the eight bytes are a slot whose ADDRESS IS
+ *     NEVER COMPUTED, which is stronger than the park's "never accessed" and is
+ *     what rules out the whole address-taken class below.
+ *
+ * ---- THE OUTSIDE EVIDENCE, FOUND AND CROSSED -------------------------------
+ * `tools/upstream_module.py Func_80175c0` -> upstream rom_15000/rom_15e8c.s,
+ * 36 landed .c against 6 parks. The NEXT FUNCTION IN THE MODULE,
+ * src/non_matching/rom_15000/8017658.c (Func_8017658), calls THE SAME CALLEE
+ * with a POINTER fifth argument and carries the family's idiom for it:
+ *     extern int Func_80165d8(void *box, int n, int c, int d, int *e, int f);
+ *     int e[2];  int *ep;   ...  ep = e;
+ *     Func_801868c(n, &x, &y, &w, &h, ep, z);
+ *     Func_80165d8(box, n, 0, 0, ep, z2)
+ * An 8-byte `int e[2]` out-parameter buffer whose address is passed is exactly
+ * the right size and exactly the module's own construct -- THE FIRST NON-DEVICE
+ * CANDIDATE THIS PARK HAS EVER HAD. Measured against this body:
+ *     h1  int e[2]; int *ep;  ep = e;   (the module idiom, ep unused)   2  INERT
+ *     h2  h1 with ep actually passed as the fifth argument            37  RELOCDIFF
+ *     h3  int e[2]; int u;    u = (int)e;                              2  INERT
+ *     h4  int e[2];           unreferenced                             2  INERT
+ *     h6  int e[2]; int u;    u = sizeof e;                            2  INERT
+ *     h5  CONTROL: char pad[8] (the park's known device)               0  byte-identical
+ *
+ * WHY IT CANNOT WORK, WHICH SHARPENS THE BOUND RATHER THAN LOOSENING IT.
+ * Taking the address of an `int[2]` does not buy the slot either. `int[2]`
+ * keeps DImode (TYPE_ALIGN 32 >= BIGGEST_ALIGNMENT, so stor-layout.c:1432-1449's
+ * first conjunct fails), and when the only address-taking is a store that dies,
+ * `purge_addressof` folds the ADDRESSOF away and the local goes back to being a
+ * pseudo -- the same fate the park already measured for `*&w`. For the slot to
+ * be forced the address must genuinely ESCAPE, and the moment it escapes gcc
+ * emits `add rX, sp, #N`, which the ROM does not contain. h2 is that cost: 37
+ * differing.
+ *
+ *   >> THE BOUND, NOW CLOSED ON BOTH SIDES. The construct must be a 5-to-8 byte
+ *      **BLKmode** local -- an array of 1- or 2-byte elements, or a struct/union
+ *      with such an array as a member -- that is **NEVER READ** (a read costs an
+ *      instruction) **AND NEVER ADDRESS-TAKEN** (an escaping address costs an
+ *      instruction), in a function whose other 42 encodings are already exact.
+ *      Every construct meeting all three conditions is a never-read local, i.e.
+ *      a DEVICE by docs/owner-decisions.md item 4. The 0 of 44 stays a figure
+ *      ABOUT THE BLOCKER and this body ships at 2, device-free and pin-free.
+ *
+ * NOT RETRIED, and recorded so nobody retries them: every spelling row in the
+ * park below, and loop/declaration order, which this function does not have.
+  *
+ * Func_80175c0 -- PARK STANDS at 2 of 44, and the park's ELEMENT-TYPE ASYMMETRY
  * NOW HAS ITS MECHANISM, read in the compiler.  Batch 327 brief C.
  *
  *   2 differing encodings of 44.  ref 44 encodings / 44 insns / 96 bytes, ours

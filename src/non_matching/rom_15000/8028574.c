@@ -9,12 +9,12 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/8028574.c \
- *     asm/rom_15000/rom_23178_a_a_a_a_c_c_a_c.s --func Func_8028574
+ *     asm/rom_15000/rom_23178_a_a_a_a_c_c_a_c_a.s --func Func_8028574
  * Distance while iterating (the number that ranks variants here):
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/tryc.py src/non_matching/rom_15000/8028574.c \
- *     --ref asm/rom_15000/rom_23178_a_a_a_a_c_c_a_c.s --align
- * asm/rom_15000/rom_23178_a_a_a_a_c_c_a_c.s.
+ *     --ref asm/rom_15000/rom_23178_a_a_a_a_c_c_a_c_a.s --align
+ * asm/rom_15000/rom_23178_a_a_a_a_c_c_a_c_a.s.
  *
  * THE SPLIT.  grep -ci func_start says 2: Func_8028574 at 0x08028574 (lines 7-155)
  * and Func_80286a0 at 0x080286a0 (lines 156-end).  The second is ALREADY PARKED at
@@ -30,7 +30,7 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/8028574.c \
- *     asm/rom_15000/rom_23178_a_a_a_a_c_c_a_c.s --func Func_8028574
+ *     asm/rom_15000/rom_23178_a_a_a_a_c_c_a_c_a.s --func Func_8028574
  *
  * Every shared idiom is the sibling park's, not a guess: struct Ui, iwram_3001f38,
  * the `short *c` / `short *m` pair at +0x8c / +0x92, `k = *c + 0x84` as a named

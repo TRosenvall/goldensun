@@ -1,3 +1,75 @@
+/* Func_801bcd4 -- PARK HOLDS AT 13 of 81.  Batch 328 brief D.
+ * Figure re-derived; three more exactly-inert rows and two new negatives on
+ * the axis the park named as its next move.
+ *
+ *   13 differing encodings of 81.  ref 81, ours 81 -- EQUAL.  SIZE IDENTICAL
+ *   (196 bytes).  RELOCATIONS IDENTICAL.  Memory profile ldr=3 str=4 = the
+ *   reference's.  First differing index 5.  PINS 0.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/801bcd4.c asm/rom_15000/rom_1aeec_a_a_c_c.s --func Func_801bcd4
+ *
+ * ========== THE PARK'S NEXT MOVE, ATTACKED FROM cse2's FIRST SUB-CONDITION
+ *
+ * The park's named move is "reverse the chain -- get gcse's PRE representative
+ * set DIRECTLY from the parameter pseudo and the across-call value set from
+ * the PRE pseudo, with the across-call pseudo having exactly ONE reference",
+ * and it records that `make_regs_eqv`'s sub-condition (ii) fails
+ * independently because the parameter's LAST MENTION is the early return
+ * itself or later.
+ *
+ * SO THIS BATCH ATTACKED THE LAST MENTION DIRECTLY: make the bottom `fail:`
+ * arm stop naming `slot` at all, so the parameter's last mention becomes the
+ * prologue store and it can no longer be `firstr`.  Both legal spellings were
+ * measured (`slot` IS -1 at `fail:`, so `return -1;` is semantically
+ * identical):
+ *     fail: return -1;                                80  at 83 insns, RELOC
+ *     `orig = s;` + fail: return orig;                80  at 83 insns, RELOC
+ * BOTH COST EXACTLY TWO INSTRUCTIONS, which is the same +2 the park already
+ * recorded for every edit that extends the copy's range past cse2's first
+ * extended block.  So the two sub-conditions really are jointly binding:
+ * buying (ii) by shortening the PARAMETER's range costs the same two
+ * instructions as buying (i) by lengthening the COPY's range.
+ *
+ *   >> The park's "REFUTED IF that is reachable from C" is not yet answered,
+ *      but the search space is narrower by one dimension: the early-return
+ *      value's identity is NOT a free variable.  Naming it costs +2; not
+ *      naming it leaves the parameter as `firstr`.  The remaining question is
+ *      whether the ROM's `mov r6,r4` is a C-level copy at all -- it is set
+ *      unconditionally in the prologue, read ONCE (`mov r0,r6` inside the
+ *      guard, before `cmp r4,#0x60`), and the ROM's `str r2,[sp,#8]` stores
+ *      the INCOMING PARAMETER REGISTER while `mov r4,r2` copies it
+ *      separately, so the ROM has THREE pseudos where every C body measured so
+ *      far collapses to two.  Worth checking whether r6 is produced by
+ *      `regmove`'s `copy_src_to_dest` (regmove.c:1484, the "if we weren't able
+ *      to replace any of the alternatives" fallback) rather than by source. <<
+ *
+ * ========== MEASURED THIS BATCH (crossfire, depth 2, against the base 13)
+ *   `orig = s;` added, bottom still `return slot`    13  EXACTLY INERT (orig dies)
+ *   `int t;` declared before `int s;`                13  EXACTLY INERT
+ *   the fifth argument as a named local `one = 1`    13  EXACTLY INERT
+ *   the three above crossed, pairwise                13  EXACTLY INERT
+ *   fail: return -1;                                 80  at 83 insns, RELOC
+ *   `orig = s;` + fail: return orig;                 80  at 83 insns, RELOC
+ * Every inert row is a CANDIDATE PREREQUISITE, not a dead end.
+ *
+ * ========== WHAT THE LANDED MODULE-MATES SAID
+ * `tools/upstream_module.py Func_801bcd4` -> rom_15000/rom_1aeec.s, 34 landed
+ * siblings.  The one that bears on this function is
+ * src/rom_15000/rom_1aeec_c_a_a_a_a_a_c_a_a_c.c (Func_801c244), whose header
+ * records `expand_case` sorting the TESTS by value while `emit_case_nodes`
+ * lays the BODIES out in SOURCE order -- already applied here, and the reason
+ * this body's nine-entry jump table and case layout are exact.  Nothing in the
+ * module speaks to the prologue copy chain.  The module's OTHER lesson, from
+ * Func_801c154 landing in this batch off a sibling's struct, does not apply:
+ * this function has no struct to get wrong.
+ *
+ * THE BATCH-327 WARNING STANDS AND IS REPEATED HERE BECAUSE IT IS EASY TO
+ * LOSE: the 16 body matched the ROM's `cmp r4,r3` and this 13 body emits
+ * `cmp r5,r3`.  Both figures have the IDENTICAL single cause.  Read the 16 as
+ * the body whose compare is right and the 13 as the body whose prologue head
+ * is right -- NOT as 13 being three steps nearer.
+ */
 /* Func_801bcd4 -- PARK IMPROVED 16 -> 13 of 81, the park's CHAIN-ORDER claim
  * REFUTED, and the two runs shown to be ONE defect.  Batch 327 brief C.
  *

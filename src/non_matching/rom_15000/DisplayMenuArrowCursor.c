@@ -1,3 +1,80 @@
+/* DisplayMenuArrowCursor -- PARK HOLDS AT 6 of 133.  Batch 328 brief D.
+ * The park's bound now covers BOTH directions, with the second direction's
+ * arithmetic AND its measurement, instead of only the first.
+ *
+ *   6 differing encodings of 133.  ref 133, ours 133 -- EQUAL.  SIZE EQUAL,
+ *   INSTRUCTION COUNT EQUAL, RELOCATIONS EQUAL (objcmp prints no SIZE, no
+ *   INSTRUCTION COUNT and no RELOCATIONS line), first differing index 21
+ *   (ref 5ab1 `ldrh r1,[r6,r2]`, ours 1c1d `adds r5,r3,#0`).  So the figure IS
+ *   a distance.  SPLIT SHAPE: none.  PINS 0.  Figure independently re-derived.
+ *
+ * VERIFY: python3 tools/objcmp.py src/non_matching/rom_15000/DisplayMenuArrowCursor.c asm/rom_15000/rom_1aeec_a_a_a_a_a.s --func DisplayMenuArrowCursor
+ *
+ * ========== THE SECOND DIRECTION, CLOSED THE SAME WAY AS THE FIRST ==========
+ *
+ * Batch 327 closed the direction "stretch an existing 10000-priced block-1
+ * quantity (52, 72 or 74) DOWN across insn 55": QTY_CMP_PRI divides by the
+ * live span, so stretching one pushes it past the span its ref count can
+ * afford and it ends up allocated AFTER pseudo 56, where `post_mark_life`
+ * (local-alloc.c:2039) can no longer exclude r3.
+ *
+ * THE OPPOSITE DIRECTION WAS NEVER COSTED: extend PSEUDO 56 UPWARD so that the
+ * quantities already priced at 10000 overlap IT.  The arithmetic says it
+ * should work.  56 has R = 4 and size 1, so QTY_CMP_PRI = 80000 / L:
+ *     L = 9  (today)  8888        L = 31 (death moved 75 -> 86)  2580
+ * At 2580 the allocation order becomes 52, 72, 74 (10000), 55 (2727),
+ * 56 (2580), 61 (2500) -- and qty 55 (`idx + 16`, born 53, DIES 86) then
+ * OVERLAPS 56 and is allocated BEFORE it, so `post_mark_life` excludes 55's
+ * register across 56's whole range.  That is exactly the exclusion the park
+ * has been looking for, and it needs no new quantity at all.
+ *
+ * SO THE REQUIREMENT IS: move pseudo 56's death from insn 75 to insn >= 86 at
+ * zero instruction cost, keeping R = 4 (R = 5 needs L >= 37 to stay under
+ * 55's 2727).  Insn 86 is the recomputed `m + (idx + 16)` for the y read, so
+ * in source terms the X VALUE must still be live after the y store -- i.e. the
+ * arms must consume the x VALUE rather than re-read the bitfield.
+ *
+ * MEASURED, crossed over four edits at depth 4 (tools/crossfire.py), and it
+ * fails for the SAME reason the first direction did -- the bitfield:
+ *     `int xv = m->a[i].x; o->x = xv;` with the arms still on `o->x`
+ *                                          6   EXACTLY INERT (xv folds)
+ *     the declaration of `xv` alone        6   EXACTLY INERT
+ *     arms read `xv + d` (if arm only)   129   at 135 insns, RELOC, COUNT
+ *     arms read `xv - d` (else arm only) 133   at 137 insns, RELOC, COUNT
+ *     BOTH arms read xv, with `xv =`     105   RELOC, INSNS
+ *     BOTH arms read xv, without `xv =`  119   RELOC, INSNS
+ * Every row that actually extends 56 carries RELOC and a length flag.  The
+ * reason is semantic, not accidental: `o->x = o->x + d` is a READ-MODIFY-WRITE
+ * of a 9-bit field and the ROM performs that read (`ldrh`); feeding the arms a
+ * saved value deletes it.  The results are arithmetically identical mod 512,
+ * so these are not wrong programs -- they are DIFFERENT programs, doing less
+ * memory work than the ROM, which is the trap crossfire's MEM/COUNT screen
+ * exists for.
+ *
+ *   >> BOUND, now symmetric and with its evidence attached.  Pseudo 56 cannot
+ *      be made to lose r3 in `find_free_reg` (local-alloc.c:1934, :2026):
+ *      pulling an overlapping quantity DOWN to insn 55 costs it its price
+ *      (span in the denominator, batch 327's table), and pushing 56's own
+ *      death UP to insn 86 costs an `ldrh` the ROM performs.  BOTH ends of the
+ *      only arithmetic that works are held by the same fact -- the
+ *      destination is a BITFIELD, so no intermediate is free.
+ *      WHAT WOULD RETIRE IT: a block-1 quantity priced above 8888 that
+ *      overlaps insn 55 and costs no instruction, OR a way to keep the x value
+ *      live past insn 86 while still emitting the arms' halfword read. <<
+ *
+ * ========== WHAT THE LANDED MODULE-MATES SAID ==========
+ *
+ * This function's struct is CONFIRMED by the module, not merely plausible.
+ * `tools/upstream_module.py DisplayMenuArrowCursor` -> rom_15000/rom_1aeec.s,
+ * 34 landed siblings.  src/rom_15000/rom_1aeec_c_a_a_a_a_a_a_b.c (Func_801c0dc)
+ * carries the SAME `struct OamSprite` field for field, and in this batch
+ * Func_801c154 -- also in this module -- LANDED BYTE-IDENTICAL as nothing but
+ * `o->x = x; o->y = y; Func_8003dec(o, 0xfc);` on that struct.  So the x:9 /
+ * y:8 layout and the `Func_8003dec(o, N)` tail are both module facts now.
+ * That is also the warning: on Func_801c154 the park had built a hand-rolled
+ * struct and spent six batches on the consequences.  Here the struct is right
+ * and the residue is genuinely the allocator.
+ */
 /* DisplayMenuArrowCursor (EmitPartySprites) -- 0x0801aeec, PARK.
  * STILL NON-MATCHING, 6 of 133 encodings -- RE-MEASURED batch 326B.  WAS 16.
  *
