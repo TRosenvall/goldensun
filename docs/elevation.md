@@ -33299,3 +33299,76 @@ tested rather than measured inert"** on its targets, because no sched2 dependenc
 question survived into the residues once the allocator questions were resolved.
 **Saying which of the two it is matters** — an untested lever recorded as inert
 becomes a bound nobody revisits.
+
+## A CLASS PARK GROUPS BY SYMPTOM, AND A SHARED SYMPTOM IS NOT A SHARED CAUSE
+
+Found while retiring stale parks in batch 324: `src/non_matching/overlays/constant_reuse.c`
+grouped **three** overlay functions under one hypothesis, stated plainly in its
+own header —
+
+> "this looks like the same underlying disposition seen from three angles:
+> gcc-2.96 as invoked here is more eager to reuse than the original build was
+> ... Finding it would move all three at once, and probably a great deal of the
+> overlay corpus."
+
+**All three have since landed, and no two landed by the same route. None landed
+by the class hypothesis.**
+
+| function | what actually landed it |
+|---|---|
+| `OvlFunc_946_2009624` | the **stack-arg-pair lever** — two named locals, so both are materialised before either is stored |
+| `OvlFunc_909_200828c` | **the park's C was semantically wrong** — `__ActorMessage`/`__SetFlag` were inside the `if`. Not a codegen problem at all. |
+| `OvlFunc_965_2009158` | **two register pins**, booked in `fakematch.txt`. A `push {lr}`-only function has no callee-saved register to steer. |
+
+So the park's prediction that one find would "move all three at once" was exactly
+inverted: the three shared a *symptom* (gcc reusing a value the ROM recomputes)
+and had **three unrelated causes**, one of which was not a compiler behaviour at
+all. The park even carried a dated counterexample of its own (`Func_80167ac`
+going the *other* way, the ROM deriving `0xeac` from `0xeae` while gcc loads each
+fresh) and drew the right conclusion from it — "the disposition is NOT uniform" —
+without following that through to the grouping.
+
+> **A class park's eleven-flag sweep was not wrong; it was unanswerable.** No flag
+> moved the class because there was no single cause to move. A flag sweep over a
+> symptom-grouped class cannot fail informatively — a null result is the expected
+> result whether or not a flag exists for any individual member.
+
+**And the park's own measurement of a lever was refuted by the landing.** The park
+recorded:
+
+> "Naming the two values as locals before the call does not separate them; it
+> costs an instruction instead (17 vs 16)."
+
+The landed header records that it matched **on the first screen** with precisely
+that lever. So this is not only "a park's diagnosis is a hypothesis" — it is a
+park reporting a *measured* lever as inert when the lever lands the function.
+(Most likely the park measured it at the wrong typing or the wrong position; the
+landing's locals are typed and placed so both are live across the first store.)
+
+### What this changes about how to open a class park
+
+1. **Decompose a class park into its members before touching any of them.** Its
+   grouping is a claim, and the grouping is the first thing to disbelieve — not
+   the last.
+2. **Check each member for a semantic error first.** One of three here was a wrong
+   program. A class park makes this *more* likely, not less: the author was
+   thinking about what the members had in common, not about whether each one was
+   correct.
+3. **Do not re-run a sweep a class park already ran.** Not because the sweep was
+   right, but because a sweep over a symptom class is uninformative by
+   construction. Re-run it against **one member**, or not at all.
+4. A class park's **counterexamples are its most valuable content** — they are the
+   part that was measured against the hypothesis rather than in support of it.
+
+This is the same shape as the duplicate-park and "what is right and should be
+kept" findings, one level up: **the park's organising idea is evidence about what
+the author believed, not about the functions.**
+
+### The flag-sweep content of this park is superseded, not lost
+
+Its eleven flags overlap the sweep recorded above under *"There is no flag to
+find, and that is READ, not swept"*, which is strictly stronger: the responsible
+pass is the first `cse_main`, and `toplev.c:2917` places it inside the plain
+`optimize > 0` block **with no `-f` flag gating it at all** (`flag_rerun_cse_after_loop`
+guards only the second call, line 3095). A behaviour with no flag cannot be swept
+for. The park is retired to `toDelete/` with its text intact.
