@@ -33474,3 +33474,70 @@ figure disguises.
 - Relatedly, `VERIFY`'s token separator class is `[\s\\]`, which does **not**
   include the `*` of a comment prefix. A recipe wrapped across lines with ` * `
   continuations is not found. **Write the recipe on one line.**
+
+## AN UNMATCHABLE ENROLLMENT WAS REFUTED BY A LANDING
+
+`unmatchable.txt` is the strongest claim this project makes: an entry says **no
+byte-matching C exists**. Batch 324 found one that was false, and the function had
+already been matched by someone who presumably never looked at the list.
+
+`Func_80b09fc` was enrolled as `tu-pool` because the ROM
+
+> "dumps its literal pool MID-FUNCTION with a skip-branch before the epilogue
+> (b.n; .word; pop) with NO loop to anchor it; an original-TU pool-pressure
+> artifact a standalone TU cannot reproduce"
+
+It is compiled from C at `src/rom_b0000/rom_b0070_a_a_c_c_a_a_b.c`. The matching
+source is **thirty lines of plain struct assignment** — no pins, no devices, no
+per-file flags — and its generated tail is precisely the alleged impossibility:
+
+	ldrh	r6, .L3          @ a HImode pool load of zero
+	...
+	b	.L4              @ the skip-branch
+.L3:	.word	0                @ the mid-function pool
+.L4:	pop	{r5, r6}
+
+**The shape is gcc-2.96's ordinary output for a HImode store of a constant.** The
+source statement responsible is `a->fc = 0;`. `*thumb_movhi_insn` alternative 1
+takes `mn` (`arm.md:4318`), so a HImode `const_int` matches the **load**
+alternative before the 8-bit `mov` alternative is ever considered — gcc **cannot**
+build a HImode constant with `mov`. A HImode fix carries `pool_range` **64**
+against SImode's **1020**, so it sorts to the front of the pool *and* forces the
+dump before the epilogue with a branch over it.
+
+> **The enrollment was a correct observation plus an unchecked inference.** The
+> tail really is unusual. What was never done is the one compile that settles it:
+> `.26.mach` prints every pool fix with its mode and its range.
+
+### The standard an enrollment now has to meet
+
+The same standard as a `*.sym` entry: **structural impossibility read from the
+compiler, not an unexplained byte pattern.** And as with `*.sym`, the argument is
+**mode-dependent** — this entry's whole error was reasoning about a pool without
+asking what MODE the fix had.
+
+Note what the mistake was *not*: it was not a measurement error, and the park
+behind it was not sloppy — it had genuinely tried and genuinely failed. The defect
+was the **jump from "I cannot do this" to "this cannot be done"**, which is the
+same jump a BOUND makes, and which this project has already paid for twice
+(the alias-set-0 bound, the eleven-flag class sweep).
+
+### The sibling is NOT refuted by this
+
+`Func_80b0a20`, named in the old reason as having "the identical tail", is still
+parked at 26 of 34 — and **its park is a real proof**, citing
+`add_minipool_forward_ref` (`arm.c:4820`) for the sort, a measured
+`.26.mach` bound (`";; Emitting minipool after insn 229; address 92"`), and
+`THUMB_LEGITIMATE_CONSTANT_P` (`arm.h:1807`) for why gcc never `force_const_mem`s
+an integer on thumb. It even disqualifies the symbol reading of its zero **by
+construction** rather than by score.
+
+Per our own rule — *a park that cites the compiler outranks your inference from
+dumps* — that proof stands until it is answered on its own terms. But it now has
+new evidence it did not have: its step 3 argues that **nothing can supply a narrow
+0xffff**, and the landed sibling demonstrates that a **narrow HImode pool entry
+arises from ordinary C**. Whether that reaches `0xffff` specifically is the open
+question, and it is the right place to spend the next round on that function.
+
+> **A proof and a stale premise can coexist.** Do not discard the proof; find the
+> premise it was built on and check whether it is still true.
