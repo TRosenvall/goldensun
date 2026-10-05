@@ -341,7 +341,30 @@ def do_install(entries, dry):
             if os.path.exists(rel(p)):
                 print(f"      retire park {p}")
                 if not dry:
-                    subprocess.run(["git", "rm", "-q", p], cwd=ROOT)
+                    # `git rm` REFUSES A FILE WITH LOCAL MODIFICATIONS, and the
+                    # return code used to be discarded -- so the retire was
+                    # ANNOUNCED and silently not performed.  Batch 325 hit this
+                    # for real: repoint_orphaned_recipes (added the same day)
+                    # rewrites a sibling park's recipe during the SPLITS phase,
+                    # so by the INSTALL phase that park was modified-but-unstaged
+                    # and git rm declined it.  Func_808fe38 landed and its park
+                    # survived at "11 differing encodings" -- a park for an
+                    # already-matched function, which is exactly the class of
+                    # eight stale parks retired in batch 324.
+                    #
+                    # -f is correct here rather than dangerous: the file is a
+                    # park whose function has just been proven byte-identical,
+                    # and its content is in git history either way.  What is NOT
+                    # acceptable is failing quietly, so the result is verified.
+                    r = subprocess.run(["git", "rm", "-q", "-f", p],
+                                       cwd=ROOT, capture_output=True, text=True)
+                    if r.returncode != 0 or os.path.exists(rel(p)):
+                        print(f"      !! RETIRE FAILED for {p}")
+                        if r.stderr.strip():
+                            print(f"         {r.stderr.strip().splitlines()[-1]}")
+                        print(f"         the function has landed but its park is still in the tree;")
+                        print(f"         remove it by hand or the next census counts it as parked.")
+                        sys.exit(1)
         if e.get("fakematch"):
             fm.append(f"{e['function']}  {e['install_path']}")
         if e.get("flag_group"):
