@@ -1,3 +1,20 @@
+/* MEASURED FIGURE, backfilled in batch 324 (this park carried none).
+ *
+ *   4 differing encodings of 103.  SIZE EXACT (103 against 103).
+ *
+ * Relocations differ in ONE entry and it is a SYMBOL NAME, not an offset:
+ * ref `.L7a828`, ours `_TBL_7a828`.  The ROM references a LOCAL LABEL in
+ * .rodata where we reference a named symbol -- so the open question is how the
+ * original DECLARED that table, not what code it emitted.  First differing
+ * encoding is at index 42 (ref 2238, ours 2338).
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_77000/8078144.c asm/rom_77000/rom_77320_a_c_c.s --func Func_8078144
+ *
+ * The figure is EVIDENCE.  Everything below it is a HYPOTHESIS, and across
+ * pass two a park's diagnosis has been wrong roughly 40 times in 42.
+ */
+
 /* Func_8078144 -- p3, batch 321 bucket C.  PARK, NOT A LANDING.
  *
  * FIGURE 4 of 103 encodings, SIZE EXACT (ref 103 / ours 103, no COUNT, no MEM).

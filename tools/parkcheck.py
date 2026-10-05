@@ -107,11 +107,39 @@ def header_of(path):
         i += 1
     s = "\n".join(lines[i:])
     m = re.match(r"/\*.*?\*/", s, re.S)
-    return m.group(0) if m else ""
+    if not m:
+        return ""
+    # A HEADER CLOSED INSIDE ITS OWN PROSE.  Found in batch 324 on StartRain.c,
+    # whose header contained the text `int/void*` immediately followed by
+    # `/undeclared`; the star-slash pair inside that closed the comment, the rest
+    # of the prose became code, and the body would not compile.  The park was
+    # therefore UNMEASURABLE BY EVERY TOOL -- it carried no figure, frontier.py
+    # could not rank it, and parkcheck reported "no recipe" because the recipe was
+    # below the accidental terminator.  It measured 4 of 104 with relocations
+    # identical once fixed: a near-landing invisible for want of two characters.
+    #
+    # The signal is exact and was validated against all 780 parks with ZERO false
+    # positives: a LEGITIMATE terminator has nothing after it on its line, because
+    # anything there would have to be valid C.  Prose after it means the comment
+    # ended early.
+    #
+    # Reported as its own verdict, not as UNCHECKABLE: the park is not
+    # unverifiable, it is BROKEN, and the repair is mechanical.
+    j = s.find("*/")
+    eol = s.find("\n", j)
+    tail = s[j + 2:eol if eol > 0 else len(s)].strip()
+    if tail:
+        return "\x00HEADERCUT\x00" + tail[:60]
+    return m.group(0)
 
 
 def check(path):
     hdr = header_of(path)
+    if hdr.startswith("\x00HEADERCUT\x00"):
+        return ("HEADERCUT",
+                "header comment closed INSIDE its prose, so the body does not "
+                "compile and no tool can measure this park -- prose after the "
+                f"terminator: {hdr.split(chr(0))[2]!r}", None, None)
     if not hdr:
         return ("UNCHECKABLE", "no header comment", None, None)
     vm = VERIFY.search(hdr.replace("*", " "))

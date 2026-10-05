@@ -1,3 +1,18 @@
+/* MEASURED FIGURE, backfilled in batch 324 (this park carried none).
+ *
+ *   72 differing encodings of 75.  SIZE DIFFERS (ref 75 encodings, ours 73).
+ *
+ * All sixteen relocations are the SAME SYMBOLS at a uniform -4 offset, so the
+ * figure IS a distance: we are two instructions short near the top (first diff
+ * at index 1) and everything after it is shifted.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7e0928/2008ba4.c asm/overlays/rom_7e0928/ovl_30_c_c_c_a_a_a.s --func OvlFunc_956_2008ba4
+ *
+ * The figure is EVIDENCE.  Everything below it is a HYPOTHESIS, and across
+ * pass two a park's diagnosis has been wrong roughly 40 times in 42.
+ */
+
 /* OvlFunc_956_2008ba4 -- 0x02008ba4.  NOT MATCHING.
  *
  * TWO FIGURES, AND THE FIRST IS NOT A PRODUCTION-FLAG FIGURE:

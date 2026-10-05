@@ -1,3 +1,20 @@
+/* MEASURED FIGURE, backfilled in batch 324 (this park carried none).
+ *
+ *   30 differing encodings of 35.  SIZE DIFFERS (ref 35, ours 32 -- three short).
+ *
+ * First diff is at INDEX 0 and it is the PROLOGUE PUSH SET: ref b5e0
+ * (`push {r4,r5,r6,r7,lr}`) against ours b560 (`push {r5,r6,lr}`).  So this is
+ * not 30 problems -- it is a register-allocation difference visible in the very
+ * first encoding, with the whole body shifted behind it.  Two callee-saved
+ * registers the ROM uses are going unused here.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/rom_28e54.c asm/rom_15000/rom_23178_a_a_c_c_a.s --func YesNoMenu2
+ *
+ * The figure is EVIDENCE.  Everything below it is a HYPOTHESIS, and across
+ * pass two a park's diagnosis has been wrong roughly 40 times in 42.
+ */
+
 /* YesNoMenu2  [rom_15000]  --  0x08028e54
  *
  * Source asm: goldensun/asm/rom_15000/rom_23178_a_a_c_c_a.s

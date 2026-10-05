@@ -1,3 +1,21 @@
+/* MEASURED FIGURE, backfilled in batch 324 (this park carried none).
+ *
+ *   17 differing encodings of 163.  SIZE EXACT (163 against 163).  RELOCATIONS IDENTICAL.
+ *
+ * A clean mid-band candidate that was invisible to tools/frontier.py because it
+ * carried no parseable figure.  First diff at index 1 (ref 4e19, ours 1c07):
+ * the ROM's second instruction is a POOL LOAD (`ldr r1,[pc,#...]`) where ours
+ * is a register move, so read `.26.mach` FIRST -- it prints every pool fix with
+ * its mode and range and has explained larger residues than this in one
+ * compile.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/8029094.c asm/rom_15000/rom_23178_a_c_c_a.s --func Debug_WarpMenu_UI
+ *
+ * The figure is EVIDENCE.  Everything below it is a HYPOTHESIS, and across
+ * pass two a park's diagnosis has been wrong roughly 40 times in 42.
+ */
+
 /* Debug_WarpMenu_UI -- 0x08029094, the only function in
  * asm/rom_15000/rom_23178_a_c_c_a.s (grep -c func_start = 1), so it converts
  * WHOLE-FILE; no data section (datacheck.py exits 0), NO SPLIT needed.

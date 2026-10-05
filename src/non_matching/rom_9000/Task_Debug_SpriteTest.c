@@ -1,3 +1,21 @@
+/* MEASURED FIGURE, backfilled in batch 324 (this park carried none).
+ *
+ *   NO ENCODING FIGURE EXISTS: the SIZE DIFFERS, ref 248 bytes against ours 256.
+ *
+ * Eight bytes long.  objcmp reports SIZE *instead of* an encoding count, so a
+ * grep for `ENCODINGS` hides the result entirely -- that is how this park
+ * briefly looked like a near-match during the batch-324 backfill.  DO NOT READ
+ * IT AS ONE.  The last relocation is `.L13584` in the ROM against `.rodata`
+ * here, the same local-label-versus-named-symbol question as Func_8078144 in
+ * rom_77000; the two may share a cause.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_9000/Task_Debug_SpriteTest.c asm/rom_9000/rom_1219c_c_c.s --func Task_Debug_SpriteTest
+ *
+ * The figure is EVIDENCE.  Everything below it is a HYPOTHESIS, and across
+ * pass two a park's diagnosis has been wrong roughly 40 times in 42.
+ */
+
 /* Task_Debug_SpriteTest -- EXACT AS C, NOT LANDED: a .rodata layout job.
  *
  * Against a reference cut to this function plus its 8-byte .L13584 rodata, objcmp

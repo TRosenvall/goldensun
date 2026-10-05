@@ -1,3 +1,18 @@
+/* MEASURED FIGURE, backfilled in batch 324 (this park carried none).
+ *
+ *   38 differing encodings of 39 (ref 39, ours 38).
+ *
+ * The one call relocation is the same symbol at -4, so this is a distance: one
+ * instruction missing at the very top (first diff at index 1) shifts
+ * essentially the whole function.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80ae99c.c asm/rom_a1000/rom_ae88c_c_c_c.s --func Func_80ae99c
+ *
+ * The figure is EVIDENCE.  Everything below it is a HYPOTHESIS, and across
+ * pass two a park's diagnosis has been wrong roughly 40 times in 42.
+ */
+
 /* ================== BATCH 297a DELTA -- Func_80ae99c ==================
  * RE-MEASURED: 38 of 39, and it is NOT a distance -- ref 39 encodings, ours 38.
  * The park said "39 of 40, two lines short"; the figures have drifted by one and

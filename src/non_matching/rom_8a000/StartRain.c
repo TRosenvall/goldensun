@@ -1,3 +1,29 @@
+/* MEASURED FIGURE, backfilled in batch 324 (this park carried none).
+ *
+ *   4 differing encodings of 104.  SIZE EXACT (104 against 104).  RELOCATIONS
+ *   IDENTICAL.
+ *
+ * THIS PARK COULD NOT BE MEASURED BY ANY TOOL until batch 324, because its
+ * header was terminated early by a comment-closing sequence embedded in the
+ * prose: it read "int/void*" immediately followed by "/undeclared", and the
+ * star-slash pair inside that closed the comment, so the rest of the prose
+ * became code and the body would not compile.  The figure of 4 AGREES WITH THE
+ * HEADER'S OWN `INERT at 4:` LIST, so the park knew its number and simply
+ * could not state it in a form anything could read.  First differing encoding
+ * is at index 80 (ref 3302, ours 21c8).
+ *
+ * (Writing this note reproduced the very bug it describes: the first draft
+ * quoted the offending sequence literally and closed its own header at line 6.
+ * Hence the circumlocution above -- a park header cannot quote a comment
+ * terminator, and prose about C syntax has to respect C syntax.)
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/StartRain.c asm/rom_8a000/rom_944ec_a_a_a_a_c_c_a_a_c_a_c.s --func StartRain
+ *
+ * The figure is EVIDENCE.  Everything below it is a HYPOTHESIS, and across
+ * pass two a park's diagnosis has been wrong roughly 40 times in 42.
+ */
+
 /* StartRain -- asm/rom_8a000/rom_944ec_a_a_a_a_c_c_a_a_c_a.s (7 functions).
  *
  * NOT MATCHING: 4 differing of 95 encodings, LENGTH IDENTICAL, relocations identical.
@@ -45,7 +71,7 @@
  *
  * INERT at 4: 0xc80 spelled directly, `&Task_Rain`, `unsigned short c1`, declaration-order swaps,
  * a named `vu16 *` for the three BLD registers, StartTask returning unsigned. WORSE: StartTask
- * returning int/void*/undeclared 5; a named `pri` local 5-10; `c1` hoisted before the loop 10;
+ * returning int, void* or undeclared, 5; a named `pri` local 5-10; `c1` hoisted before the loop 10;
  * any reordering of the w[0]/w[2] reads relative to the walk 56-57; no `zero`-shaped local at all 46.
  */
 #include "dma.h"

@@ -1,3 +1,19 @@
+/* MEASURED FIGURE, backfilled in batch 324 (this park carried none).
+ *
+ *   73 differing encodings of 91.  SIZE DIFFERS (ref 91, ours 93 -- two long).
+ *
+ * First diff at index 7 (ref 4b29, ours 4b2a) -- a one-register difference that
+ * early, combined with two extra instructions, suggests the residue is a single
+ * allocation decision plus its consequences rather than 73 independent
+ * problems.  Decompose before costing it.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_9000/80113e4.c asm/rom_9000/rom_108e4_c.s --func Func_80113e4
+ *
+ * The figure is EVIDENCE.  Everything below it is a HYPOTHESIS, and across
+ * pass two a park's diagnosis has been wrong roughly 40 times in 42.
+ */
+
 /* Func_80113e4 -- NON-MATCHING.  objcmp: SIZE ref 188 bytes / ours 192, ENCODINGS
  * differ in 73 place(s) (ref 91, ours 93) -- positional, so it overstates the gap; a
  * difflib alignment of the tryc --full listing puts it at 39 lines of 92 differing.

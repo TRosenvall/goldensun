@@ -33372,3 +33372,105 @@ pass is the first `cse_main`, and `toplev.c:2917` places it inside the plain
 `optimize > 0` block **with no `-f` flag gating it at all** (`flag_rerun_cse_after_loop`
 guards only the second call, line 3095). A behaviour with no flag cannot be swept
 for. The park is retired to `toDelete/` with its text intact.
+
+## A PARK CAN BE INVISIBLE FOR WANT OF TWO CHARACTERS
+
+Batch 324's backfill of figureless parks turned up the worst failure mode in the
+park corpus so far, and it is not a measurement error — it is a C syntax error.
+
+`src/non_matching/rom_8a000/StartRain.c` contained this in its header prose:
+
+    * returning int/void*/undeclared 5; a named `pri` local 5-10; ...
+
+The `*` ending `void*` and the `/` beginning `/undeclared` form a comment
+terminator. The header closed **there**, four lines early. Everything after it —
+the rest of the prose, the `#include`, the struct definitions — became code, and
+the body would not compile.
+
+**The consequences compounded:**
+
+- the park carried no `N of M` figure, so `tools/frontier.py` could not rank it;
+- `tools/parkcheck.py` reported "no recipe in header", because the recipe was
+  *below* the accidental terminator;
+- and nothing could compile it to find out, so no tool contradicted any of this.
+
+**It measures 4 differing encodings of 104, size exact, relocations identical.**
+A near-landing, invisible for want of two characters.
+
+And the park's own prose had said `INERT at 4:` before listing what it had tried.
+**The park knew its number and could not state it in a form anything could
+read.**
+
+> **A park that cannot be compiled cannot be ranked, cannot be checked, and
+> cannot be caught lying.** It is strictly worse than a park with a wrong figure,
+> because a wrong figure at least enters the queue.
+
+### The guard, and why its signal is exact
+
+`parkcheck.py` now reports a new verdict, **`HEADERCUT`**, when the first `*/` has
+any non-whitespace after it on its own line.
+
+The signal is exact rather than heuristic: **a legitimate terminator has nothing
+after it on its line, because anything there would have to be valid C.** Prose
+after it means the comment ended early. Validated against all 780 parks with
+**zero false positives**.
+
+It is its own verdict and deliberately not `UNCHECKABLE`. The park is not
+unverifiable — it is **broken**, and the repair is mechanical. Filing it under
+`UNCHECKABLE` would have buried it in the bucket that already holds legitimately
+unscorable parks.
+
+### Writing the guard reproduced the bug
+
+The first draft of StartRain's new header explained the fault by quoting the
+offending sequence literally, and **closed its own header at line 6.** The
+corrected note describes the sequence in words instead.
+
+> **A park header cannot quote a comment terminator.** Prose about C syntax has
+> to respect C syntax. This is now the fourth time in this project that writing
+> up a bug class reproduced a member of it.
+
+### What the rest of the backfill found
+
+Of eight figureless parks with a live recipe, measured for the first time:
+
+| park | figure | note |
+|---|---|---|
+| `rom_8a000/StartRain.c` | **4 of 104**, size exact, relocs identical | the `HEADERCUT` park |
+| `rom_77000/8078144.c` | **4 of 103**, size exact | one reloc differs and it is a **symbol name**: ref `.L7a828`, ours `_TBL_7a828` |
+| `rom_15000/8029094.c` | **17 of 163**, size exact, relocs identical | first diff at index 1 is a **pool load** vs a register move — read `.26.mach` |
+| `rom_15000/rom_28e54.c` | 30 of 35 | first diff at **index 0** and it is the **prologue push set** — `push {r4,r5,r6,r7,lr}` vs `push {r5,r6,lr}` |
+| `rom_a1000/80ae99c.c` | 38 of 39 | one reloc, same symbol at −4: a distance |
+| `ovl_7e0928/2008ba4.c` | 72 of 75 | all sixteen relocs same symbols at −4: a distance |
+| `rom_9000/80113e4.c` | 73 of 91 | first diff at index 7, two instructions long |
+| `rom_9000/Task_Debug_SpriteTest.c` | **no encoding figure exists** | SIZE differs, 248 vs 256 |
+
+`parkcheck.py` independently re-measured six of these and agreed with every
+figure.
+
+**Two of the eight are at 4 with exact size**, and a third at 17 of 163 with
+identical relocations — i.e. the figureless set was hiding better candidates than
+much of the ranked queue. Three of the remaining five are **distances**, not
+residues: a single early difference shifting the whole body, which the large
+figure disguises.
+
+> **A figureless park is not a park with nothing to say. It is a park nobody
+> asked.**
+
+### Two smaller traps confirmed inside this one exercise
+
+- **`objcmp` reports SIZE *instead of* an encoding count**, so a grep for
+  `ENCODINGS` hides the result completely. `Task_Debug_SpriteTest` briefly looked
+  like a relocation-only near-match during this backfill because my own filter
+  dropped the `SIZE` line. **Never filter objcmp's output when deriving a figure.**
+  This is the "equal encoding counts hide length differences" trap in a new
+  costume: there the pad hid it, here the grep did.
+- **`parkcheck.py`'s CLAIM vocabulary is word-order sensitive**: `CLAIM` matches
+  `N differing encodings of M`, and the backfill's first draft wrote
+  `N of M differing encodings`, which parses as no claim at all. Six parks came
+  back `NO CLAIM` with correct figures sitting in their headers. **When writing a
+  figure into a park, write it in the canonical order** — or parkcheck will
+  measure it, agree with it, and still not know a claim was made.
+- Relatedly, `VERIFY`'s token separator class is `[\s\\]`, which does **not**
+  include the `*` of a comment prefix. A recipe wrapped across lines with ` * `
+  continuations is not found. **Write the recipe on one line.**
