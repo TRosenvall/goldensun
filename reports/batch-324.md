@@ -1,12 +1,11 @@
 # Batch 324 — the mid-band (21–50 encodings)
 
-**6 landings, 11 parks improved, 0 pins, 0 devices, 0 new flag groups.**
-Progress **4,853 → 4,859 of 5,710 (85.1%)**; remaining functions 857 → 851,
-parked 765 → 759, park files 788 → 774.
+**7 landings, 13 parks improved, 0 pins, 0 devices, 0 new flag groups.**
+Progress **4,853 → 4,860 of 5,710 (85.1%)**; remaining functions 857 → 850,
+parked 765 → 758, park files 788 → 773.
 
 Eight briefs, grouped by bank: six in `rom_15000` (235 landed / 89 parked at the
-start), two in `rom_9000` (131 / 59). Brief F was still running when this was
-written; its three targets are the largest figures in the batch (48, 48, 50).
+start), two in `rom_9000` (131 / 59). All eight reported.
 
 ## Why the mid-band, and whether it worked
 
@@ -26,6 +25,7 @@ job:
 | `Func_80217a4` | 28 | **bitfields** + an `EXPAND_SUM` address form + an `int` temp |
 | `HeightTile_B` | 31 | port two sibling levers + flip the multiply's operand order |
 | `Func_801c954` | 39 | the read inside the `while` condition + a named halfword pointer |
+| `Func_801edec` | 48 | the helper as a **macro**, not an inline function |
 
 And the parks that did not land moved a long way: **41 → 2**, **37 → 3**,
 **23 → 2**, **35 → 5**, **39 → 10**, **27 → 10**.
@@ -210,9 +210,85 @@ My errors, all four caught by agents or by measurement:
    `N differing encodings of M`, and the verify recipe must be on **one line**
    (`VERIFY`'s separator class excludes the `*` of a comment prefix).
 
-## Carried forward
+## Brief F — the largest figures in the batch, and one mechanism behind two of them
 
-- **Brief F's three targets** (48, 48, 50) — still running at time of writing.
+`Func_801edec` **48 → 0**. The park's body did not contain its own helper
+(`DMA3_FILL16` was not in `dma.h`, so it emitted a call relocation); pasting the
+park's commented-out inline function back in gave 48 → 40, and **the whole
+remaining 40 was pool layout** — both streams held the same 43 instructions.
+
+The fix was writing the helper as a **MACRO** rather than an inline function:
+
+> **A `u16` PARAMETER IS PROMOTED.** With the inline function, `.02.jump` already
+> holds `(set (reg/v:SI 37) (const_int 57568))` — the fill value is an SImode
+> pseudo and **the constant never enters `movhi` at all.** A macro pastes the
+> literal into the HImode store, `force_reg (HImode, …)` fires, the HImode fix
+> appears, both pools land in the ROM's order, and the `mov r0,sp` ordering
+> closes as a side effect. 40 → 1 → 0.
+
+Promoted to `include/dma.h`, the fourth of that shape after `DMA3_FILL_OFS`,
+`DMA3_SET_RW` and `DMA3_CLEAR_OFS`.
+
+**It also overturned a screening decision from batch 205.** That park had
+recorded `_FUNC_80158E8_SIZE` and its literal as "NOT interchangeable in the
+built ROM". The symbol is **absolute** (`nm`: `00000214 A`), so they are
+interchangeable in the link — the rejection had been screened on `tryc.py`
+reaching one differing line, and **`tryc.py` is blind to pool order**, which is
+where the other 40 encodings were. The symbol is now independently *vindicated*:
+the literal `0x214` lets the control word fold and reads **50 of 52**.
+
+> **A screening tool's null result is scoped to what that tool can see.** We had
+> already written down that `tryc.py` cannot see pool order. The cost of not
+> joining those two facts was one symbol-table entry wrongly doubted and a park
+> left parked for 119 batches.
+
+**`Func_8020b64` stays at 50 of 57, and `Func_801bcd4` at 48 of 81** — but both
+are now one named mechanism, found in two different passes, and the figures are
+reframed. `Func_8020b64`'s reference is 56 instructions plus a 2-byte pad against
+our 55, so **the entire 50 is ONE missing instruction** and its misalignment.
+`Func_801bcd4`'s two streams hold **70 instructions each**.
+
+### The copy-collapse family
+
+A two-instruction copy chain — load into a temp, then copy to the variable — is
+collapsed inside the cse pass block, by `delete_trivially_dead_insns` at
+`toplev.c:2908-2933`, not by `cse_insn`'s canonicalisation (`cse.c` never reads
+`REG_DEAD`; grep gives no hits).
+
+> **The surviving insn keeps its own LUID, and sched2's last rung is `INSN_LUID`.
+> So which of the two survives decides BOTH which register holds the value AND
+> where the instruction sits** — one collapse producing what looks like two
+> unrelated defects.
+
+`Func_8020b64` is the sharper diagnostic: through `.03.cse`, `.07.gcse` and
+`.08.loop` the chain runs in the **ROM's** direction, and **`.09.cse2` reverses
+it** — which is why that park's `-fno-rerun-cse-after-loop` row measured *worse*
+rather than inert. **Fourteen whole bodies across the two functions, all exactly
+flat**, every one matching the reference's per-opcode memory profile.
+
+### The cross-jump threshold is TWO, and argument order decides it
+
+`jump.c:660` calls `find_cross_jump` with minimum 1 for a simplejump; for every
+**other** jump to the same label on `jump_chain`, `jump.c:675` passes
+**minimum 2**. Each matching insn decrements it (`jump.c:1602`) and the merge
+fires at `minimum <= 0` (`:1607`).
+
+	ROM   adds r2,r4,#0 / adds r0,r5,#0 / movs r1,#0x3a / bl / b   -> suffix 1, NO MERGE
+	ours  adds r0,r6,#0 / movs r1,#0x3a / adds r2,r4,#0 / bl / b   -> suffix 2, MERGE
+
+**The ROM sets the COMMON argument first and the DIFFERING one last**, leaving a
+one-insn suffix, exactly one short of the threshold. Cross-jumping is
+unconditional at `-O1`+ (`toplev.c:3515` is the only `JUMP_CROSS_JUMP` site), so
+**no flag reaches it.** The ROM can set `r2` first because `s` is
+**address-taken**, so `store_one_arg` emits that read at *evaluation* time, ahead
+of `load_register_parameters`' moves — independently confirmed by the same
+function's 5-argument arms, which already match for the same reason.
+
+Three instruments on `Func_801bcd4` read **42** and were correctly **rejected as
+figures that lie**: 83 instructions against the reference's 81, with `ldr=7`
+against the ROM's 3.
+
+## Carried forward
 - **`HeightTile_*` is 13 of 16 landed**, and the family rule is now stated and
   measured twice: the ROM's opening `mov` tells you which way to spell the
   multiply. `_4` (which has two parks), `_6` and `_A` remain.
@@ -230,3 +306,22 @@ My errors, all four caught by agents or by measurement:
 - **`Func_801965c`'s remaining 10** and **`Func_8011164`'s 27** both reduce to
   "greg has a free register and the original build did not"; `-ffixed-r7` closes
   the latter's length gap exactly, as an instrument.
+- **The copy-collapse family** (`Func_8020b64`, `Func_801bcd4`) is the batch's one
+  genuinely unreached mechanism — fourteen bodies, all flat. Worth a brief of its
+  own rather than another spelling sweep.
+
+## A process error of mine, the third of its kind this session
+
+I ran `git add -A` for the publish commit **while brief F was still writing to
+the tree**, so its landing was swept into "Publish batch 324" and its `dma.h`
+change into the briefs-A-and-C commit. Both commits are green — I re-gated HEAD
+to confirm — but the publish commit went in **ungated**, and that was luck rather
+than care.
+
+> **Before `git add -A`, check that no agent is still running, or stage explicit
+> paths.** I had already raced my own background jobs twice this session; this is
+> the first time it reached a commit.
+
+Brief F's manifest also carried **only its landing**, so its two parks' findings
+existed nowhere but scratch. They are now written into the park headers and
+verified by `parkcheck` at 50 and 48.

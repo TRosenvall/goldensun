@@ -33605,3 +33605,109 @@ round, and is worth re-measuring on the same suspicion.
 > rule; it substituted an intuition about what a boundary is for the definition.
 > A rule that names a precondition is only as good as the precondition's
 > definition, and "control-flow boundary" has one, at `flow.c:493`.
+
+## THE COPY-COLLAPSE FAMILY: WHICH INSN SURVIVES FIXES BOTH THE REGISTER AND THE POSITION
+
+Batch 324 brief F found the same mechanism blocking two different functions in
+two different passes, and measured **fourteen whole bodies** against it without
+moving either. It is worth stating as a family, because the two instances look
+nothing alike in the diff.
+
+A two-instruction copy chain — a load into a temp, then a copy to the variable —
+is **collapsed inside the cse pass block**, not by `cse_insn`'s canonicalisation.
+`cse.c` never reads `REG_DEAD` (grep: no hits); the collapse is
+`delete_trivially_dead_insns` inside the block at `toplev.c:2908-2933` (reg_scan
+→ thread_jumps → cse_main → jump_optimize → delete_trivially_dead_insns).
+
+> **The consequence that matters: the SURVIVING insn keeps its own LUID, and
+> sched2's last rung is `INSN_LUID`. So which of the two insns survives decides
+> BOTH which register holds the value AND where the instruction sits.** One
+> collapse therefore produces what looks like two unrelated defects — a register
+> difference and a scheduling difference.
+
+The two instances:
+
+| function | pass | what survives | symptom |
+|---|---|---|---|
+| `Func_8020b64` | `.03.cse`, then **`.09.cse2` FLIPS it back** | the load, retargeted | `ldrb r3` where the ROM has `ldrb r2`, and a copy in the wrong place |
+| `Func_801bcd4` | `.07.gcse` commons, **`.09.cse2`** propagates | the **argument move** | the third argument is set LAST, which then trips cross-jumping |
+
+`Func_8020b64` is the sharper diagnostic: through `.03.cse`, `.07.gcse` and
+`.08.loop` the chain runs in the **ROM's** direction, and `.09.cse2` reverses it.
+That is why that park's `--no-rerun-cse-after-loop` row measured *worse* rather
+than inert — the flag moves the flip and loses other things.
+
+**Not reachable from C.** Ten bodies on one function and four on the other, all
+exactly flat: three and four names, type changes on each name, read order,
+statement order, a volatile instrument, role swaps. Every row matched the
+reference's per-opcode memory profile, so none was a figure bought by doing less
+work than the ROM.
+
+### And the cross-jump threshold, read exactly — it is TWO
+
+`jump.c:660` calls `find_cross_jump (insn, JUMP_LABEL (insn), 1, ...)` for a
+simplejump against the code before its label. Then, for every **other** jump to
+the same label on `jump_chain`, `jump.c:675` calls it with **minimum 2**. Inside
+`find_cross_jump` (`jump.c:1427`) each matching insn before the jump does
+`--minimum` (line 1602), and the merge fires on `minimum <= 0` (1607).
+
+So **two arms ending in the same `b .Lexit` merge only once they share TWO
+instructions before it.** On `Func_801bcd4`:
+
+	ROM   adds r2,r4,#0 / adds r0,r5,#0 / movs r1,#0x3a / bl / b
+	      bl matches (2->1), movs r1,#imm DIFFERS  =>  minimum 1, NO MERGE
+	ours  adds r0,r6,#0 / movs r1,#0x3a / adds r2,r4,#0 / bl / b
+	      bl matches (2->1), adds r2,r4,#0 matches (1->0)  =>  MERGE
+
+> **So argument ORDER decides cross-jumping, through the length of the common
+> suffix.** The ROM sets the **common** argument first and the **differing** one
+> last, leaving a one-insn suffix — exactly one short of the threshold. And
+> cross-jumping is unconditional at `-O1` and above (`toplev.c:3515` is the only
+> `JUMP_CROSS_JUMP` site), so **no flag reaches it.**
+
+Why the ROM can set `r2` first: `s` is **address-taken**, so reading it for the
+third argument is a MEM read, and `store_one_arg` emits it at **evaluation**
+time — before the three argument moves `load_register_parameters` emits. The ROM
+allocated that pseudo to `r2`, so the argument move became `(set r2 r2)` and
+jump2's noop-move pass deleted it, leaving the evaluation-time read at its own
+early LUID. Independently confirmed by the function's **5-argument arms, which
+already MATCH**: `add r2,sp,#8 / add r3,sp,#4` precede `mov r0 / mov r1` because
+`&s` and `&t` are evaluation-time computations too.
+
+## A HELPER MACRO AND A HELPER FUNCTION ARE NOT INTERCHANGEABLE, AND THE REASON IS PROMOTION
+
+`Func_801edec` landed 48 → 0, and the last 40 of that was **all pool layout**.
+The fix was writing `DMA3_FILL16` as a **macro** rather than an inline function,
+and the mechanism is exact:
+
+> **A `u16` PARAMETER IS PROMOTED.** With an inline function, `.02.jump` already
+> holds `(set (reg/v:SI 37) (const_int 57568))` — the fill value is an SImode
+> pseudo and **the constant never enters `movhi` at all**. A macro pastes the
+> literal directly into the HImode store, `force_reg (HImode, …)` fires, the
+> HImode fix appears, and the pool lands in the ROM's order.
+
+That HImode fix is the whole difference: `*thumb_movhi_insn` alternative 1 takes
+`mn` (`arm.md:4318`) at `pool_range` **64** (`arm.md:4353`), so it sorts ahead of
+every SImode entry in `add_minipool_forward_ref` (`arm.c:4820`) and forces
+`arm_reorg` (`arm.c:5497-5600`) to split the pool in two. `MINIPOOL_FIX_SIZE
+(HImode)` is 4 (`arm.c:4713`), so it still emits a full `.word`, and Thumb-1 has
+no pc-relative halfword load, so gas assembles `ldrh %0,%1` as `ldr`.
+
+Promoted to `include/dma.h` — the fourth of that shape, after `DMA3_FILL_OFS`,
+`DMA3_SET_RW` and `DMA3_CLEAR_OFS`.
+
+### And a past screening decision was wrong for a reason we already documented
+
+That park had recorded `_FUNC_80158E8_SIZE` and its literal as "NOT
+interchangeable in the built ROM". The symbol is **absolute** (`nm` reports
+`00000214 A`), so they are interchangeable in the link; the batch-205 rejection
+had been screened on **`tryc.py` reaching 1 differing line**, and
+**`tryc.py` is blind to pool ORDER** — which is where the other 40 encodings
+were. The symbol is now independently *vindicated*: spelling the size as the
+literal `0x214` lets the control word fold and reads **50 of 52** at 44
+instructions and 108 bytes.
+
+> **A screening tool's null result is scoped to what that tool can see.** We had
+> already written down that `tryc.py` cannot see pool order; the cost of not
+> joining those two facts was one symbol-table entry wrongly doubted and a park
+> parked for 119 batches.

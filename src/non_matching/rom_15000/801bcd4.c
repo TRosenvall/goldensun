@@ -1,3 +1,77 @@
+/* Func_801bcd4 -- PARK STANDS.  Re-derived in batch 324 brief F, and the park's
+ * diagnosis is CORRECT -- now with a number attached to it.
+ *
+ *   48 differing encodings of 81.  ref 81 encodings / 196 bytes, ours 80 / 192.
+ *   BOTH STREAMS HOLD 70 INSTRUCTIONS -- equal.  The gap is one `.short 0x0000`
+ *   pad plus where the pool words land.
+ *
+ * DECOMPOSITION -- four runs, only run 1 and run 3 are causes:
+ *   1  ref idx 3-11    the prologue copy chain: the same two copies in the
+ *                      OPPOSITE DIRECTION, with the r5/r6 roles swapped.
+ *                      9 differing, NO length change.
+ *   2  ref idx 23,29-35  the nine jump-table words and one pool offset -- pure
+ *                      CONSEQUENCE of run 3's shift.
+ *   3  ref idx 40,44-72  the two `LoadInventoryIcon` arms are CROSS-JUMPED in
+ *                      ours and not in the ROM: -2 insns, paid back +2 in the
+ *                      switch-exit and epilogue.
+ *   4  ref idx 79-80   the trailing pad, downstream of run 3.
+ *
+ * THE PARK'S LAYOUT WORRY DOES NOT APPLY.  The ROM's case BODIES sit at 0x5c
+ * (1/6), 0x6e (2), 0x7a (7), 0x86 (4), 0x98 (8), 0xa4 (9), 0xb0 (default) --
+ * exactly the park's source order, and ours matches.  The landed sibling
+ * src/rom_15000/rom_1aeec_a_a_a_a_b.c, from the same source file, records why:
+ * `expand_case` sorts the TESTS by value, `emit_case_nodes` lays the BODIES out
+ * in SOURCE order.
+ *
+ * THE CROSS-JUMP THRESHOLD, READ EXACTLY.  `jump.c:660` calls
+ * `find_cross_jump (insn, JUMP_LABEL (insn), 1, ...)` for a simplejump against
+ * the code before the label; then for every OTHER jump to the same label on
+ * `jump_chain`, `jump.c:675` calls it with **minimum 2**.  Inside
+ * `find_cross_jump` (`jump.c:1427`) each matching insn before the jump does
+ * `--minimum` (line 1602) and the merge fires on `minimum <= 0` (1607).  So two
+ * arms that both end in `b .Lexit` need TWO matching instructions before it:
+ *
+ *   ROM   adds r2,r4,#0 / adds r0,r5,#0 / movs r1,#0x3a / bl / b
+ *         `bl` matches (2->1), `movs r1,#imm` DIFFERS  =>  minimum 1, NO MERGE
+ *   ours  adds r0,r6,#0 / movs r1,#0x3a / adds r2,r4,#0 / bl / b
+ *         `bl` matches (2->1), `adds r2,r4,#0` matches (1->0)  =>  MERGE
+ *
+ * ** The ROM sets the COMMON argument FIRST and the DIFFERING one LAST, so its
+ * common suffix is ONE insn -- exactly one short of the threshold. **
+ * Cross-jumping is unconditional at -O1 and above (`toplev.c:3515` is the only
+ * JUMP_CROSS_JUMP site), so NO FLAG REACHES IT.
+ *
+ * WHY THE ROM SETS r2 FIRST -- the real mechanism, and not the park's guess.
+ * `.02.jump` for the case-2 arm reads insn 78 `(set (reg 48) (mem/f:SI
+ * (addressof:SI (reg/v:SI 40))))`, then insn 80 `r0 = b`, insn 82
+ * `r1 = 58`, insn 84 `r2 = 48`.  `s` IS ADDRESS-TAKEN, so reading it for the
+ * third argument is a MEM read and `store_one_arg` emits it at EVALUATION time,
+ * i.e. BEFORE the three argument moves `load_register_parameters` emits.  The
+ * ROM allocated pseudo 48 to r2, so insn 84 became `(set r2 r2)` and jump2's
+ * noop-move pass deleted it, leaving insn 78 as `adds r2,r4,#0` at its own early
+ * LUID.  The same thing is already visible in the 5-argument arms, WHICH MATCH:
+ * `add r2,sp,#8 / add r3,sp,#4` precede `mov r0 / mov r1` because `&s` and `&t`
+ * are evaluation-time computations too.
+ *
+ * WE LOSE IT IN `.09.cse2`: `.07.gcse` commons the load so insn 78 becomes
+ * `(set (reg 48) (reg 65))`, cse2 propagates 65 into insn 84, and insn 78 is
+ * left a dead copy that `delete_trivially_dead_insns` removes.  THE SURVIVOR IS
+ * INSN 84 -- hence r2 LAST, hence a two-insn common suffix, hence the merge.
+ * This is the SAME COPY-COLLAPSE FAMILY as Func_8020b64, in a different pass.
+ *
+ * MEASURED, SEVEN WHOLE BODIES (reference memory profile ldr=3 str=4):
+ *   park base                                          48
+ *   arm-local `int u = s;` for the 3rd argument        48 flat, BYTE-IDENTICAL
+ *   ROM's prologue chain `s = slot; s0 = s; return s0` 48 flat, BYTE-IDENTICAL
+ *   both together                                      48 flat, BYTE-IDENTICAL
+ * Three further instruments read 42 and ARE REJECTED AS FIGURES THAT LIE: they
+ * are 83 instructions against the reference's 81 with ldr=7 against the ROM's 3.
+ * Recorded as a figure about the blocker only, never as a candidate.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/801bcd4.c asm/rom_15000/rom_1aeec_a_a_c_c.s --func Func_801bcd4
+ */
+
 /* Func_801bcd4 (0x0801bcd4) -- NON-MATCHING.
  *
  * NON-MATCHING, 48 of 81 encodings  (MEASURED, batch 319 recipe backfill).
