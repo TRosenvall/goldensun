@@ -1,78 +1,122 @@
-/* MEASURED FIGURE, backfilled in batch 324 (this park carried none).
+/* StartRain -- 4 differing encodings of 104.  PARKED.
  *
- *   4 differing encodings of 104.  SIZE EXACT (104 against 104).  RELOCATIONS
- *   IDENTICAL.
+ * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/StartRain.c asm/rom_8a000/rom_944ec_a_a_a_a_c_c_a_a_c_a_c.s --func StartRain
  *
- * THIS PARK COULD NOT BE MEASURED BY ANY TOOL until batch 324, because its
- * header was terminated early by a comment-closing sequence embedded in the
- * prose: it read "int/void*" immediately followed by "/undeclared", and the
- * star-slash pair inside that closed the comment, so the rest of the prose
- * became code and the body would not compile.  The figure of 4 AGREES WITH THE
- * HEADER'S OWN `INERT at 4:` LIST, so the park knew its number and simply
- * could not state it in a form anything could read.  First differing encoding
- * is at index 80 (ref 3302, ours 21c8).
+ * RE-DERIVED batch 326, brief D: 4 differing encodings of 104.  SIZE 244 bytes
+ * against 244.  INSTRUCTION COUNT 103 against 103 (the reference carries one
+ * trailing pad word, we carry one too).  RELOCATIONS IDENTICAL.  objcmp prints
+ * no SIZE and no INSTRUCTION COUNT line, which is how both of those are known.
+ * The backfilled figure from batch 324 is CORRECT.
  *
- * (Writing this note reproduced the very bug it describes: the first draft
- * quoted the offending sequence literally and closed its own header at line 6.
- * Hence the circumlocution above -- a park header cannot quote a comment
- * terminator, and prose about C syntax has to respect C syntax.)
+ * (Batch 324's note on why nothing could measure this park for 300 batches --
+ * a star-slash pair inside the header prose -- is retired; it is fixed.  Do not
+ * quote a comment terminator in a park header.)
  *
- * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/StartRain.c asm/rom_8a000/rom_944ec_a_a_a_a_c_c_a_a_c_a_c.s --func StartRain
+ * THE RESIDUE IS ONE INSTRUCTION DISPLACED BY FOUR SLOTS, and nothing else:
  *
- * The figure is EVIDENCE.  Everything below it is a HYPOTHESIS, and across
- * pass two a park's diagnosis has been wrong roughly 40 times in 42.
- */
-
-/* StartRain -- asm/rom_8a000/rom_944ec_a_a_a_a_c_c_a_a_c_a.s (7 functions).
+ *   rom   strh r2,[r3] | add r3,#2 | strh r4,[r3] | ldr r0,=Task_Rain | mov r1,#0xc8 | lsl r1,#4 | bl
+ *   ours  strh r2,[r3] | mov r1,#0xc8 | add r3,#2 | strh r4,[r3] | ldr r0,=Task_Rain | lsl r1,#4 | bl
  *
- * NOT MATCHING: 4 differing of 95 encodings, LENGTH IDENTICAL, relocations identical.
- * Candidate below.
+ * `mov r1,#0xc8` only.  Insn 282 (`lsl r1,#4`) and the whole epilogue are in the
+ * ROM's slots.  One run, one cause.
  *
- * THE RESIDUE IS ONE INSTRUCTION, a sched2 hoist at the tail:
+ * ===================== THE PARK'S VERDICT IS REFUTED =====================
  *
- *   rom   add r3, #0x2 / strh r4, [r3] / ldr r0, =Task_Rain / mov r1, #0xc8
- *   ours  mov r1, #0xc8 / add r3, #0x2 / strh r4, [r3] / ldr r0, =Task_Rain
+ * The old header said: "sched2 hoists the mov because the dependence dump gives
+ * 281 priority 67 against 224's and 221's 66 ... rank_for_schedule never reaches
+ * the LUID tie-break, so no statement order can decide it."
  *
- * AND IT IS PRICED OUT, not unswept. The PRE-schedule RTL order (.20.ce2) is ALREADY the
- * ROM's -- insn 224 (`ldr r0, =Task_Rain`) precedes insn 281 (`mov r1, #0xc8`) -- and sched2
- * hoists the mov because the dependence dump gives 281 priority 67 against 224's and 221's 66:
- * 281 -> 282 -> call is one cycle longer than 224 -> call. rank_for_schedule never reaches the
- * LUID tie-break, so no statement order can decide it.
+ * It MISSED INSN 218.  The `.23.sched2` block-2 region table, measured with
+ * `-da -fsched-verbose=6` (below the threshold of 10, so it lands in the file):
  *
- * ================ THE LEVER THAT GOT IT HERE, AND IT IS NEW ================
+ *     insn  code  prio  cost   dependents
+ *     215   180    67     2    299 298 231 221 218      strh r2,[r3]
+ *     218     5    67     1    299 298 231 221          add  r3,#2
+ *     221   180    66     2    299 298 231              strh r4,[r3]
+ *     224   173    66     2    299 298 231              ldr  r0,=Task_Rain
+ *     281   173    67     1    298 282                  mov  r1,#0xc8
+ *     282   112    66     1    299 298 231              lsl  r1,#4
+ *     231   239    65    32    299 298 297              bl   StartTask
  *
- * TWO POINTER ROLES CAN BE ONE SOURCE VARIABLE. The second allocation's buffer pointer and the
- * per-entry walk pointer had to be the SAME local: `q` as its own `int *` is 46 differing,
- * reusing one variable is 9, reusing the other is 16.
+ * So 218 and 281 TIE at 67 and rank_for_schedule does reach a tie-break -- just
+ * not the LUID one.  It stops two tests earlier.
  *
- * Batch 274 recorded "DISTINCT call results want DISTINCT variables". This is the other side of
- * it and was worth 37 differing in one edit. THE TELL is a callee-saved register serving two
- * unrelated roles either side of a `gfree`.
+ * WHAT DECIDES IT, read in the compiler:
+ *   `schedule_block` (haifa-sched.c:6008) re-sorts the ready list EVERY cycle and
+ *   issues `ready[--n_ready]`, the highest-ranked element.  215 issues at t=9 and
+ *   occupies the core for 2 cycles, so t=10 is a stall and `last_scheduled_insn`
+ *   is STILL 215 when t=11 sorts {224(66), 218(67), 281(67)}.
+ *   `rank_for_schedule` (haifa-sched.c:4029):
+ *     1 priority -- 218 and 281 tie at 67.
+ *     2 INSN_REG_WEIGHT -- SKIPPED, gated `!reload_completed` (:4046).
+ *     3 interblock -- same bb, skipped.
+ *     4 CLASS AGAINST last_scheduled_insn (:4068-4094) -- THE DECIDER.  218 is in
+ *       INSN_DEPEND(215) through an ANTI dependence (215 reads r3, 218 writes it)
+ *       and `arm_adjust_cost` (config/arm/arm.c:2425-2427) RETURNS 0 FOR
+ *       REG_DEP_ANTI/REG_DEP_OUTPUT, so insn_cost != 1 and 218 gets class 2.  281
+ *       is in no dependence with 215, so link == 0 -> class 3.  Class 3 wins.
+ *     5 depend_count (unreached) -- 218 has 4 dependents, 281 has 2: 218 would win.
+ *     6 INSN_LUID (unreached).
  *
- * Making them one variable is what makes the walk pointer a global allocno holding r6, which
- * forces the shared literal 0 onto call-clobbered r4 and produces the ROM's `sub sp, #8` -- the
- * DMA fill word at sp+4, a caller-save slot at sp+0 -- plus the `str r4, [sp]` / `ldr r4, [sp]`
- * pair.
+ * So the hoist is decided by an ANTI-DEPENDENCE ON THE POINTER-WALK `add`, not by
+ * a priority gap, and the test that fires is a LIVENESS-shaped one.
  *
- * WHICH GIVES A SECOND GENERAL READING: a `sub sp, #N` LARGER THAN THE ADDRESS-TAKEN LOCALS IS A
- * CALLER-SAVE SLOT, not a spill slot, when -fcall-used-r4 is in the flags. `str r4, [sp]` before a
- * call plus `ldr r4, [sp]` after it, with r4 ABSENT from the push list, is caller-save.c, and it
- * means that value's allocno lost every callee-saved register. Read the push list and the frame
- * size TOGETHER before touching spellings.
+ * ================= WHAT THE ROM'S ORDER REQUIRES, EXACTLY =================
  *
- * MEASURED: `DMA3_FILL(p, z, ...)` with `z` a named local assigned right after the first
- * galloc_ewram took 9 to 4 -- the fill value then wants a callee-saved register, matching the
- * ROM's r6. DMA3_CLEAR is 9; `z` assigned just before the fill is 8; one `zero` shared by the
- * fill AND the loop AND REG_BLDY is 97.
+ * In the ROM 281 sits ready and unchosen from t=0 to t=15 while 218(67), 221(66)
+ * and 224(66) all issue ahead of it.  Losing to a 66 means PRIORITY(281) MUST BE
+ * 66 IN THE ROM.  With 66: t=11 -> 218 (sole 67); t=12 -> 221; t=14 -> {224,281}
+ * both 66, both class 3 against last_scheduled 221, depend_count 3 against 2 ->
+ * 224; t=16 -> 281.  THAT IS EXACTLY THE ROM'S ORDER, and nothing else in the
+ * lattice reproduces it.
  *
- * `c1 = 0xfc << 6; REG_BLDCNT = c1;` is REQUIRED -- the bare literal pools as `ldr r3, =0x3f00`,
- * the HImode-store class.
+ * PROVEN BY PROBE, not argued.  The same body with the second argument changed to
+ * `0x80` -- an 8-bit immediate, so `*thumb_movsi_insn` takes alternative 1, no
+ * split, ONE insn, priority 66 -- emits
+ *     add r3,#2 | strh r4,[r3] | ldr r0,=Task_Rain | mov r1,#0x80 | bl StartTask
+ * with THE MOV NO LONGER HOISTED.  (It reads 11 because the value is wrong and
+ * the stream is an instruction short: a DEVICE used as an instrument, labelled,
+ * and its number is a figure about the blocker.)
  *
- * INERT at 4: 0xc80 spelled directly, `&Task_Rain`, `unsigned short c1`, declaration-order swaps,
- * a named `vu16 *` for the three BLD registers, StartTask returning unsigned. WORSE: StartTask
- * returning int, void* or undeclared, 5; a named `pri` local 5-10; `c1` hoisted before the loop 10;
- * any reordering of the w[0]/w[2] reads relative to the walk 56-57; no `zero`-shaped local at all 46.
+ * THE BOUND, with its evidence attached:
+ *   priority(281) = insn_cost(281,link,282) + priority(282) = 1 + 66.  The 1 can
+ *   only become 0 two ways -- `LINK_COST_FREE`, which haifa-sched.c:3096 sets when
+ *   the CONSUMER is unrecognizable, or an ANTI/OUTPUT link (arm.c:2425).  The
+ *   consumer is a legal thumb ashlsi3 (code 112 in the table) and it READS r1
+ *   (`lsl r1,#4` has Rd == Rm; that encoding is among the MATCHING ones, so Rd ==
+ *   Rm in the ROM too), so the link is a true dependence.  Neither route exists.
+ *   And the split is not optional: `*thumb_movsi_insn` alternative 3 (arm.md:3844)
+ *   emits `#` for any thumb `K` constant and `split_all_insns` runs at
+ *   toplev.c:3376, BEFORE sched2 at :3481.  Both the 0xfc<<6 pair and the 0xc8<<4
+ *   pair appear first in `.18.greg` and are recog_memoized during sched.
+ *
+ * ==> NO SPELLING OF StartTask's SECOND ARGUMENT CAN REACH THE 4.  The open
+ *     question is one sentence: why does the ROM's K-split pair behave as if it
+ *     were a single insn at sched2?
+ *
+ * REFUTED, so nobody proposes it: "the object was built unscheduled."
+ * `tryc --no-sched2` on this body reads 35 of 95, first diff at index 3 (the
+ * prologue's `sub sp,#8` moves).  The ROM's StartRain WAS scheduled.  A
+ * `-fno-schedule-insns2` flag group is not the answer.
+ *
+ * MEASURED batch 326, nine tail spellings, all against 244 bytes / 103 insns:
+ *   INERT at 4 -- `0xc80` written literally (confirms the park); a
+ *     `void (*f)(void)` local for the callee; a walking `volatile unsigned short *`
+ *     with `*bp++` for all three BLD registers; `StartTask(void *, unsigned int)`;
+ *     `unsigned short c1, c2`.
+ *   WORSE -- a block-scoped `int pri` temp, 5; a function-scope `pri` assigned
+ *     before the BLD stores, 5.
+ *   STRUCTURALLY DIFFERENT, dead -- `REG_BLDY = z` (the named zero), 106 insns at
+ *     248 bytes; `REG_BLDALPHA = 0x1008` with no named `c2`, 105 insns at 252.
+ * None of them changes the critical path through the K-split, which is why the
+ * tail spelling is inert.  A sweep can be exhaustive over the wrong dimension.
+ *
+ * KEPT FROM THE PARK, re-confirmed as still load-bearing: the two pointer roles
+ * are ONE source variable (`g` reused as the second allocation's buffer pointer
+ * and the per-entry walk pointer) -- 46 differing if split, 9 or 16 if the wrong
+ * one is reused; `c1 = 0xfc << 6; REG_BLDCNT = c1;` as its own statement, because
+ * the bare literal pools as `ldr r3, =0x3f00`; the `sub sp, #8` with r4 absent
+ * from the push list is a CALLER-SAVE slot under -fcall-used-r4, not a spill.
  */
 #include "dma.h"
 

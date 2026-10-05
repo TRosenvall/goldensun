@@ -2,96 +2,98 @@
  * ref: asm/rom_8a000/rom_8b674_a_a.s  (ONE function, no data section; whole-file
  *      conversion, no split -- tools/datacheck.py prints nothing)
  *
- * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/rom_8a000/808b674.c \
- *     asm/rom_8a000/rom_8b674_a_a.s --whole
- *   -> XX InitMapActors   14 of 195 differ (ours 195), first at index 30
- *      and NO "RELOCATIONS differ" line.
+ * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/808b674.c asm/rom_8a000/rom_8b674_a_a.s --whole
  *
- * SHIM: still ONE, `register unsigned char *g __asm__("r8")`, and re-confirmed
- * load-bearing: without it g is allocated r7 (`;; 19 regs to allocate` has it at
- * `33 in 7`), the push list changes, and the file reads 50 of 195 WITH DIRTY
- * RELOCATIONS.  Needs a fakematch.txt row if this ever lands.
+ * RE-DERIVED batch 326, brief D: `14 of 195 differ (ours 195), first at index 30`
+ * with NO SIZE line, NO INSTRUCTION COUNT line and NO RELOCATIONS line -- so size
+ * equal, 195 instructions against 195, relocations clean.  `--func` agrees.
  *
- * ====================== WHAT BATCH 323 CHANGED, AND WHAT IT REFUTED =========
- * The figure is unchanged at 14.  TWO of the four cluster diagnoses were wrong,
- * and one cluster's instruction FORM is now fixed, so the residue is strictly
- * better mapped than it was.  Nothing in the batch-316 correction was disturbed:
- * `a = &gBuffer[i]` still precedes `b = &ewram_200fe00[i]` (pool order) and the
- * condition still tests `b->flags` before `a->flags`.
+ * SHIM: still ONE, `register unsigned char *g __asm__("r8")`, re-confirmed
+ * load-bearing: without it g is allocated r7, the push list changes, and the file
+ * reads 50 of 195 WITH DIRTY RELOCATIONS.  Needs a fakematch.txt row if it lands.
  *
- * --------------------------------------------------------------- CHANGED (b) --
- *   NEW STATEMENT: `gl = g;` before the subscript, and the load written through
- *   `gl`.  This is the ONE spelling that reproduces the ROM's REGISTER-OFFSET
- *   LOAD.  The park listed four spellings as "INERT"; all four of them, and the
- *   installed body, emit `add r3, r8 / ldr r5, [r3]`.  With `gl`:
- *       rom     mov r0, r8 / movs r1,#0xf6 / ldr r5, [r0, r3]
- *       ours    mov r2, r8 / movs r0,#0xf6 / ldr r5, [r2, r3]
- *   -- same instruction at every slot, only the register rotated.  WHY: `g` is a
- *   HARD register (r8) and r8 is a HI register, so `(mem (plus (reg r8) (reg n)))`
- *   fails thumb's GO_IF_LEGITIMATE_ADDRESS and expand legitimises it with an
- *   `add`.  A plain lo-register COPY of g is a pseudo, the REG+REG address is
- *   legitimate, and reload then emits the ROM's `mov r0, r8` itself.  The park's
- *   four inert spellings all left `g` itself in the address, so none of them
- *   could ever have reached this.
- *   STILL OPEN: the rotation.  `gl` takes r2 and the 0xf6 constant r0; the ROM
- *   has gl in r0 and 0xf6 in r1.  `register unsigned char *gl __asm__("r0")`
- *   measures 13 of 195 -- so the gl register alone is worth ONE, and the other
- *   four in the cluster are the 0xf6 chain.  `gl = g;` BEFORE `n = id*4+0x14;`
- *   is 15 (worse).  Naming `s + 0x1ec` is exactly inert.
+ * ================= THE 14 DECOMPOSES INTO FOUR RUNS, 2+5+2+5 =================
+ *   A  2  indices 30/32: `mov r2,#0` and `mov ip,r8` transposed.  A sched2 tie on
+ *         INSN_LUID; loop.c hoists the loop body's zero to the END of the
+ *         preheader, so it is always later than the `lim` copy.  Park's negatives
+ *         re-confirmed: naming the zero is 185-186 and +4 bytes; dropping `lim` is
+ *         166 and -4 bytes; `w` before `lim` is 15.
+ *   B  5  the `gl` cluster.  `gl = g;` before the subscript is the ONE spelling
+ *         that reproduces the ROM's REGISTER-OFFSET LOAD (`g` is a HI hard
+ *         register, so `(mem (plus (reg r8) (reg n)))` fails thumb's
+ *         GO_IF_LEGITIMATE_ADDRESS and expand legitimises it with an `add`; a
+ *         plain lo-register COPY is a pseudo, the REG+REG address is legitimate,
+ *         and reload emits the ROM's `mov r0, r8` itself).  What is left is the
+ *         rotation: ROM has gl in r0 and the 0xf6 constant in r1, we have r2 and
+ *         r0.  `register unsigned char *gl __asm__("r0")` measures 13, so the gl
+ *         register alone is worth ONE and the other four are the 0xf6 chain.
+ *         `gl = g;` BEFORE `n = id*4+0x14;` is 15.  Naming `s + 0x1ec` is inert.
+ *   C  2  indices 79/80: `ldr r2, =0xfffff` against our `ldr r1`.  NOT a reload --
+ *         an ordinary insn of the signed-division expansion, register chosen by
+ *         local-alloc.  The OTHER `ldr r4, =0xfffff` of the same pair already
+ *         matches, so the two halves of the division chain disagree only here.
+ *   D  5  the `a`/`b` pointer cluster -- rewritten below.
  *
- * --------------------------------------------------------------- REFUTED (d) --
- *   The park said: "the two pointers are both refs=2, and the one with the
- *   SHORTER live length is allocated first and takes r2 -- live=5 against live=9".
- *   THAT IS NOT WHAT DECIDES IT.  `.18.greg` prints `;; 19 regs to allocate:`,
- *   so this is the GLOBAL allocator and the denominator is `allocno[].live_length`
- *   straight out of `.17.lreg` -- no slot numbers, no parity term, the figure is
- *   exactly quotable: 1*2/5*10000 = 4000 for b against 1*2/9*10000 = 2222 for a.
- *   And the priority is IRRELEVANT, because r2 is not a choice:
+ * ========== RUN D: THE 14 CONTAINS TWO COINCIDENTAL MATCHES ==========
  *
- *       assign order | test order | figure | reloc | a(41) | b(42) | live 41/42
- *       a,b          | b,a        |   14   | clean |  r1   |  r2   |   9 / 5
- *       a,b          | a,b        |   16   | clean |  r1   |  r2   |   7 / 7
- *       b,a          | b,a        |   16   | DIRTY |  r2   |  r1   |   7 / 7
- *       b,a          | a,b        |   14   | DIRTY |  r2   |  r1   |   5 / 9
+ * The reference names its symbols (rom_8b674_a_a.s:115 and :118):
+ *   rom   ldr r0,=gBuffer | lsl r3,#2 | add r2,r3,r0 | ldr r4,=ewram_200fe00 | mov r0,#0xf0 | lsl r0,#1 | add r1,r3,r4
+ *   ours  ldr r2,=gBuffer | lsl r3,#2 | add r1,r3,r2 | mov r0,#0xf0 | ldr r2,=ewram_200fe00 | lsl r0,#1 | add r2,r3,r2
  *
- *   Row 2 has the two live lengths EQUAL (a tie that `allocno_compare` breaks by
- *   allocno number, giving a first) and a still gets r1.  The registers track the
- *   ASSIGNMENT order only.  `;; 41 conflicts` says why:
- *       a,b assigned:  41 conflicts: ... 2 3 8 13      42 conflicts: ... 3 8 13
- *       b,a assigned:  41 conflicts: ... 3 8 13        42 conflicts: ... 2 3 8 13
- *   WHICHEVER POINTER IS COMPUTED FIRST CARRIES A HARD-REGISTER CONFLICT WITH r2
- *   and therefore CANNOT be allocated r2 at any priority.  The conflict is there
- *   because the first pointer's live range covers the SECOND pool load, which
- *   local-alloc had already placed in r2 (the ROM places it in r4).
- *   SO THE REAL QUESTION FOR (d) IS: get local-alloc to put the second pool
- *   pseudo somewhere other than r2.  Measured and NOT it: base pointers that
- *   separate the symbol reference from the add
- *   (`pa = gBuffer; pb = ewram_200fe00; b = &pb[i]; a = &pa[i];`) in all four
- *   assign/test combinations -- 14, 16, 16, 30, and two of them with dirty
- *   relocations; `pa = gBuffer; a = &pa[i]; b = &ewram_200fe00[i];` ties at 14.
- *   Pinning a to r2 is NOT a diagnostic here: it turns the relocations DIRTY and
- *   reads 18.
- *   The park's "a shape getting both was not found" still stands -- but the
- *   conflict, not the priority, is what it has to get past.
+ * So IN THE ROM `a = &gBuffer[i]` IS IN r2 AND `b = &ewram_200fe00[i]` IN r1;
+ * in this body they are the other way round.  The two `ldrb r3,[rN,#2]` tests
+ * that follow are not in the diff AND THAT IS A COINCIDENCE: the ROM tests r2,
+ * which is its `a`; we test r2, which is our `b`.  Two differences cancel.
+ * Measured batch 326, all three at 195 instructions against 195:
  *
- * ------------------------------------------------- UNCHANGED, re-measured (a) --
- *   [2] indices 30/32.  `movs r2, #0` and `mov ip, r8` in the opposite order; a
- *   sched2 tie on INSN_LUID, the loop body's zero hoisted to the END of the
- *   preheader by loop.c and therefore always later than the `lim` copy.  The
- *   park's negatives re-confirmed: naming the zero is 185-186 and +4 bytes;
- *   dropping `lim` is 166 and -4 bytes; `w` before `lim` is 15.
+ *   body                                     pool order        a / b    tested  figure  reloc
+ *   this body: a computed first, b tested     gBuffer (ROM)    r1 / r2    b        14    clean
+ *   a computed first, A TESTED FIRST          gBuffer (ROM)    r1 / r2    a        16    clean
+ *   b computed first, a tested first          ewram (WRONG)    r2 / r1    a        14    DIRTY
  *
- * ------------------------------------------------- UNCHANGED, re-measured (c) --
- *   [2] indices 79/80.  `ldr r2, =0xfffff` against our `ldr r1`.  The park's
- *   correction stands: it is NOT a reload, it is an ordinary insn of the signed-
- *   division expansion and the register is local-alloc's.  Note [85] -- the OTHER
- *   `ldr r4, =0xfffff` of the same pair -- already matches, so the two halves of
- *   the division chain disagree only here.
+ * The 16-body's diff is this body's diff PLUS EXACTLY THE TWO `ldrb` LINES --
+ * same four runs, same single run-D cause.
  *
- * -- measured in scratch_elev/b323/D (s5/, s6/, s7/, f1_noshim.c)
+ * ==> THE INSTALLED 14 IS A LOCAL OPTIMUM POINTING AWAY FROM THE FIX.  Correct
+ *     the a/b registers on top of THIS body and the test order becomes wrong, so
+ *     run D goes 5 -> 2 and the figure 14 -> 11.  Correct them on top of the
+ *     16-body and run D goes 7 -> 0 and the figure 16 -> 9.  THE REJECTED 16 IS
+ *     THE BASE TO BUILD ON.  Its source is this body with the condition written
+ *     `a->flags == 0xfd && b->flags == 0xfd`.
+ *
+ * WHY THE POINTERS GET r1 AND r2, read in the compiler.  `REG_ALLOC_ORDER`
+ * (config/arm/arm.h:989-995) is  r3, r2, r1, r0, ip, lr, r4, r5, r6, r7, ...
+ * r3 holds the scaled index, so r2 IS THE NEXT CHOICE FOR ANY SHORT-LIVED LOCAL
+ * QUANTITY, and local-alloc -- which runs before global-alloc -- hands r2 to the
+ * `ldr rX,=<symbol>` pool pseudo of BOTH loads.  Whichever pointer is computed
+ * first has a live range covering the OTHER load, so it conflicts with r2 and
+ * global-alloc gives it r1; the second-computed pointer is then free to take r2.
+ * Measured as an invariant across all three bodies above: THE FIRST-COMPUTED
+ * POINTER ALWAYS GETS r1 AND THE SECOND ALWAYS GETS r2.  The ROM is first -> r2,
+ * second -> r1, inverted, and its two pool values are in r0 and r4 -- the 4th and
+ * 7th entries of REG_ALLOC_ORDER.
+ *
+ * ==> THE REQUIREMENT, SHARPENED: in the ROM's compilation r2 AND r1 were BOTH
+ *     unavailable to local-alloc for the two pool pseudos at that point.  That
+ *     replaces the park's "get local-alloc to put the SECOND pool pseudo
+ *     somewhere other than r2", which was only half of it -- the FIRST pool
+ *     pseudo is in r2 in our output too, and the ROM has it in r0.
+ * The ROM also emits `ldr r4,=ewram_200fe00` BEFORE `mov r0,#0xf0` where we emit
+ * it after, so its ewram pool value is live two insns longer than ours --
+ * consistent with having been given a register nothing else wanted.
+ *
+ * REFUTED EARLIER AND STILL REFUTED: "the one with the SHORTER live length is
+ * allocated first and takes r2".  `.18.greg` prints `;; 19 regs to allocate`, so
+ * this is the GLOBAL allocator and the denominator is allocno[].live_length out
+ * of `.17.lreg`; the priority is IRRELEVANT because r2 is not a choice -- the
+ * conflict decides.  The dispositions are BIT-IDENTICAL between the 14-body and
+ * the 16-body (`42 in 1`, `43 in 2` in both): only the allocno ORDER line moves.
+ * Measured and NOT it: base pointers separating the symbol reference from the add
+ * in all four assign/test combinations -- 14, 16, 16, 30, two with dirty
+ * relocations.  Pinning a to r2 is not a diagnostic: it turns relocations DIRTY
+ * and reads 18.
+ *
+ * -- batch 326 work in scratch_elev/b326/D (v_ima/, rtl_imaA/, rtl_imaB/)
  */
 struct Tile {
     unsigned char f0;

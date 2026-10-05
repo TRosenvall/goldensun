@@ -114,6 +114,106 @@
  * verbatim and objcmp reports the relocation table IDENTICAL.  The label is
  * already `.global` at asm/rom_a1000/rom_a8604_c_c_c_c_c.s:4.
  *
+ * ============ BATCH 326, BRIEF C: RE-MEASURED 6, AND THE PARK'S =============
+ * ============ ATTRIBUTION TO THE ROTATION IS WRONG              =============
+ *
+ * Re-measured 6 of 167: ref and ours both 167 encodings, SIZE equal, NO
+ * `INSTRUCTION COUNT` line, relocations identical.  The figure IS a distance.
+ *
+ * THE LAYER-1 / LAYER-3 DIVERGENCE, MEASURED HERE.  `.18.greg` says
+ *
+ *     Spilling for insn 322.
+ *     Using reg 3 for reload 0
+ *
+ * and `.19.flow2` emits
+ *
+ *     (insn 455 (set (reg:SI 1 r1) (mem:SI (plus (reg:SI 13 sp) (const_int 4)))))
+ *     (insn 322 (set (reg:SI 0 r0)
+ *               (zero_extend:SI (mem:QI (plus (reg:SI 1 r1) (const_int 15))))))
+ *
+ * `find_reg` printed r3; the emitted register is r1.  That is batch 325 brief E's
+ * observable reproduced in a second bank, on a SINGLE-RELOAD insn -- so a
+ * `Using reg` line is not the register you get even when there is only one.
+ *
+ * THE CURSOR IS NOT THE VARIABLE.  `unit` is reloaded three times in the tail,
+ * and the first two agree with the ROM exactly:
+ *
+ *     reload 1  `_Func_801e8b0(unit, ...)`   ROM ldr r0,[sp,#4]   ours ldr r0,[sp,#4]
+ *     reload 2  `unit[0x129]`                ROM ldr r1,[sp,#4]   ours ldr r1,[sp,#4]
+ *     reload 3  `unit[0xf]`                  ROM ldr r3,[sp,#4]   ours ldr r1,[sp,#4]
+ *
+ * So `last_spill_reg` stands at r1's index entering reload 3 in BOTH builds.
+ * `spill_regs` is built by ASCENDING HARD REG NUMBER -- reload1.c:3527-3532 is a
+ * plain `for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)` over `used_spill_regs`,
+ * NOT `REG_ALLOC_ORDER` (which only reaches `find_reg`'s tie-break, layer 1).
+ * From r1 the scan is therefore r2, r3, r0, r1: the ROM STOPPED AT r3, and we fell
+ * through r2, r3 and r0 and wrapped back to r1.
+ *
+ * > CORRECTED QUESTION, with its evidence.  The variable is WHETHER r3 IS
+ * > AVAILABLE AT INSN 322, not where the rotation stands.  Availability is
+ * > `choose_reload_regs_init`'s
+ * > `COMPL_HARD_REG_SET (reload_reg_unavailable, chain->used_spill_regs)`
+ * > (reload1.c:5126), and `chain->used_spill_regs` is `finish_spills`'
+ * > COMPL(hard regs used by pseudos in `live_throughout | dead_or_set`) INTERSECT
+ * > the global spill set (reload1.c:3600-3628).  SO THIS IS A PSEUDO-LIVENESS
+ * > QUESTION AT ONE INSN -- which is the action batch 325 settled on -- and NOT a
+ * > count-the-reloads question.  The park's own "NEXT STEP FOR PASS 3" below
+ * > therefore chases the wrong variable: one more or one fewer reload-register
+ * > allocation EARLIER cannot be the answer when reloads 1 and 2 already agree.
+ * > The one reading this evidence cannot exclude is that the ROM's build made an
+ * > extra allocation BETWEEN reloads 2 and 3 that emitted no surviving insn; that
+ * > is still a question about this one insn, not about the function's total.
+ *
+ * PRIME SUSPECT, STATED AS A HYPOTHESIS AND NOT CONFIRMED.  Pre-reload
+ * (`.17.lreg`) the block is
+ *
+ *     insn 322: (set (reg:SI 108) (zero_extend (mem:QI (plus (reg/v:SI 36) (const_int 15)))))
+ *     insn 324: (set (reg:SI 109) (const_int 48))
+ *
+ * and `.18.greg`'s dispositions read `108 in 0` and `109 in 3`.  Pseudo 108 being
+ * `dead_or_set` at insn 322 explains why r0 is rejected.  Pseudo 109 -- the 0x30
+ * written to the outgoing stack slot, carrying `REG_EQUIV (const_int 48)` -- is
+ * the ONLY pseudo allocated to r3 anywhere near that insn.  I could NOT confirm
+ * that 109 is in insn 322's `live_throughout`: the per-chain set is not dumped.
+ * Test it; do not assume it.
+ *
+ * ================ REFUTED THIS BATCH, one instrument each ================
+ *
+ * 1. "THE TWO 0x30s ARE CSE'd INTO ONE PSEUDO LIVE ACROSS INSN 322."  My own
+ *    hypothesis, and false: changing the last call's stack argument to 0x31, so no
+ *    sharing with `_UIDrawText`'s 0x30 is possible, STILL emits `ldr r1,[sp,#4]`.
+ *
+ * 2. THE BATCH-325 `Func_808fe38` PRECEDENT DOES NOT TRANSFER.  That landing
+ *    (11 -> 0) named an ADDRESS as its own statement so a pseudo left an insn's
+ *    live set.  This park had tried naming the VALUE (`unit[0xf]`) and a second
+ *    POINTER (`u2 = unit`) but never the ADDRESS -- a real gap in its list.  Five
+ *    spellings of it, ALL EXACTLY INERT AT 6 and all still r1:
+ *      `p = unit + 0xf; *p`     `p = &unit[0xf]; *p`     `*(unit + 0xf)`
+ *      `q = (int)unit + 0xf; *(unsigned char *)q`        `p = unit; p[0xf]`
+ *
+ * 3. `const` IS NOT THE LEVER HERE, IN EITHER POSITION.  All inert at 6:
+ *    `unsigned char *const unit` with an initialiser; the same without `const`;
+ *    `state` alone as an initialiser; `const unsigned char *` on the POINTEE with
+ *    `_GetUnit` re-declared to match.  This tests batch 325's "inert through a
+ *    pointer, decisive on the object" ruling in a new place and finds it INERT ON
+ *    A LOCAL POINTER OBJECT TOO.
+ *
+ * ================ r3 IS REACHABLE, AND WHAT THAT COSTS ================
+ *
+ * `unsigned char *const unit = _GetUnit(iwram_3001f2c[0x21a]);`, dropping the
+ * `state` indirection, emits `ldr r3,[sp,#4] / ldrb r0,[r3,#0xf]` -- THE ROM'S
+ * REGISTERS -- at 147 of 167 with relocations shifted, because reading the global
+ * twice restructures the prologue.  So the park's bound is right as stated
+ * ("cannot be arranged without changing emitted code") and WRONG IN SPIRIT in its
+ * "or a register pin": the register is sensitive to upstream pseudo structure, not
+ * only to a pin.  What is missing is a BYTE-NEUTRAL change to liveness at insn
+ * 322, and none of the 13 bodies measured this batch reaches it.
+ *
+ * Two devices probed and reported for completeness, screened on the emitted
+ * register rather than the figure: `return unit[0x10];` adds a 4th reload which
+ * takes r2 while insn 322 STILL takes r1; `return first;` gives the new reload r0
+ * and insn 322 r1.  Neither frees r3.
+ *
  * NEXT STEP FOR PASS 3, and it is not a C question: shift the `last_spill_reg`
  * rotation.  That needs either one more or one fewer reload-register ALLOCATION
  * earlier in the function (an inherited reload does not advance the rotation),

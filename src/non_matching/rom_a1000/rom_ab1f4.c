@@ -108,7 +108,92 @@
  * The padding is left as padding rather than filled with invented members:
  * inventing f00/f04/f08/f0a would be a guess, and it buys nothing measurable.
  *
- * DECLINING TO CLOSE.  Figure unchanged at 4; the diagnosis is now confirmed
+ * ===== BATCH 326, BRIEF C: THE PARK'S BOUND IS REFUTED FROM SOURCE =====
+ *
+ * The park's bound reads: "To beat the a5 load, `add r0,#1` needs either >= 4
+ * dependents or a longer chain to the call."  That is computed on the
+ * DEPENDENT-COUNT rung, and it assumes the ladder is
+ * priority -> dependent count -> INSN_LUID.  **THE LADDER HAS FOUR RUNGS, NOT
+ * THREE.**  `rank_for_schedule` (haifa-sched.c:4029-4116), in order:
+ *
+ *   1. `:4041`  INSN_PRIORITY.
+ *   2. `:4046`  INSN_REG_WEIGHT -- gated `!reload_completed`, so DEAD in sched2.
+ *   3. `:4069-4095`  THE `last_scheduled_insn` CLASS RUNG.  Each ready insn is
+ *      classified 3 (independent of the last-scheduled insn, OR joined to it by a
+ *      link of cost 1), 1 (data-dependent) or 2 (anti/output-dependent), and the
+ *      HIGHEST class wins outright.
+ *   4. `:4100-4110`  dependent count, then `:4115` INSN_LUID.
+ *
+ * RUNG 3 SITS ABOVE THE DEPENDENT COUNT, SO THE PARK'S BOUND DOES NOT BIND.
+ * And the dump shows rung 3 deciding this very contest.  With `-da
+ * -fsched-verbose=6`, insn 12 (the a5 load) appears in two consecutive sorted
+ * ready lists with NO change to its priority (66) and NO change to its dependent
+ * count (4):
+ *
+ *     Ready list (t = 10):   33  12  25  29      -> picks 29   (12 is 2nd WORST)
+ *     Ready list (t = 11):   33  39  25  31  12  -> picks 12   (12 is BEST)
+ *
+ * The only thing that changed is `last_scheduled_insn`: 10 at t=10, 29 at t=11.
+ * Insn 12's two producers are 10 and 61, so at t=10 it is a dependent of the
+ * just-scheduled insn and demoted, and at t=11 it is independent and promoted.
+ * **A rank that moves from second-worst to best between consecutive cycles cannot
+ * be bounded by a dependent-count argument.**
+ *
+ * THE DEPENDENCE TABLE, so nobody re-derives it (`.23.sched2`, block 0):
+ *
+ *     insn  prio  cost  dependents
+ *       4    72    1    67 66 42 27 21
+ *      10    67    1    67 66 39 12
+ *      12    66    2    67 66 65 42        <- the a5 load, 4 dependents
+ *      21    71    2    67 66 42 23
+ *      23    69    1    66 27 25
+ *      25    66    1    66 42              <- `add r0,#1`, 2 dependents
+ *      29    67    1    66 39 31
+ *      31    66    1    67 66 42
+ *      33    65    2    67 66 65 42
+ *      39    66    1    67 66 42
+ *      42    65   32    67 66 65 54 46     <- the call
+ *
+ * WHY THE a5 LOAD'S 4 IS STRUCTURAL -- which STRENGTHENS the park on rung 4 even
+ * as rung 3 retires its bound.  Insn 12's dependents are the call (42), the use
+ * note (66), the epilogue's `add sp` (65) and the return (67).  The last two are
+ * ANTI-DEPENDENCES IT PICKS UP MERELY BY READING THE FRAME: 65 writes sp and 67
+ * reads it.  So EVERY incoming stack-argument load in this function has >= 4
+ * dependents and every register-to-register add has 2, whatever the source says.
+ * a5 and a6 are the 5th and 6th parameters and must come off the stack, so rung 4
+ * can never be won here.  Rung 3 is the only way in.
+ *
+ * > THE SHARPER TARGET, replacing the park's.  Insn 25 wins at t=11 IF AND ONLY IF
+ * > insn 10 -- one of insn 12's two producers -- is the insn scheduled at t=10.
+ * > Our schedule picks 10 at t=9 and 29 at t=10; SWAPPING THOSE TWO PICKS IS THE
+ * > WHOLE LANDING.  The t=9 contest is 10 against 29, both priority 67, both class
+ * > 3, decided on rung 4 by dependent count 4 against 3.  So what is needed is
+ * > ONE MORE DEPENDENT ON INSN 29, OR ONE FEWER ON INSN 10 -- not two more on insn
+ * > 25.  That is a different and much softer target, and it is stated here with
+ * > the dump lines above as its evidence rather than as a claim to build on.
+ *
+ * MEASURED THIS BATCH, 8 more bodies, screening the dependence graph rather than
+ * the declarations (the park had already measured the declaration dimension shut):
+ *     named sums, col first then row                              4   inert
+ *     `p = a5;` named before the call                             4   inert
+ *     `q = a6;` named before the call                             4   inert
+ *     both a5 and a6 named                                        4   inert
+ *     `p = a4;` named before the call                             4   inert
+ *     `1 + window->col + x` / `1 + window->row + y`               4   inert
+ *     named sums, ROW first then col                             13   WORSE
+ *     `x + window->col + 1` / `y + window->row + 1`     SIZE 44 vs 40, 20 insns
+ *                                                        against 19 -- a LENGTH
+ *                                                        defect, so 17 is
+ *                                                        misalignment, not distance
+ * None of the six inert bodies moved the sched2 ready lists at all, which is the
+ * park's own conclusion holding: these edits leave the successor graph identical.
+ * The ROW-first ordering is worse because it swaps the register assignment of the
+ * two sums (first difference at index 1, `1c04` against `1c0d`).
+ *
+ * DECLINING TO CLOSE.  Figure unchanged at 4 (re-measured batch 326: ref 19,
+ * ours 19, SIZE equal, no INSTRUCTION COUNT line -- the 4 IS a distance).  The
+ * park's BOUND is retired and replaced by the sharper target above; its
+ * diagnosis is confirmed
  * from the dump, the two blockers are shown to be coupled, the gap is sized at
  * two dependents rather than one, the only corpus-attested escape route is
  * named, and the declaration dimension is measured shut.
