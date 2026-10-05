@@ -444,10 +444,42 @@ def main():
         while k > 0 and enc[k - 1] in ("0000", "0x0000", "00000000") \
                 and offs[k - 1] not in rel_off:
             k -= 1
-        return k
+        # A PAD IS NOT ALWAYS TRAILING -- the FOURTH variant of this trap, found
+        # by batch 326 brief G.  `.align 2` before a literal pool inserts a 2-byte
+        # 0x0000 when the current offset is 2 mod 4, and the pool word FOLLOWS it,
+        # so the pad is mid-stream and the trailing scan above never sees it.
+        # ActorCmd_Loop: the ROM is 37 instructions + 1 pool word, the park body
+        # 36 instructions + a pad + 1 pool word -- equal bytes, equal encodings,
+        # ONE INSTRUCTION APART, and its park had recorded the figure as a
+        # distance on exactly that basis.
+        #
+        # The signal is structural: a 16-bit zero encoding sitting at an offset
+        # 2 mod 4 and immediately followed by a 32-bit word is an alignment pad,
+        # because a pool entry is word-aligned and that is the only reason a
+        # half-word hole exists there.  0x0000 is a legal Thumb encoding
+        # (`lsls r0,r0,#0`), so this is not airtight -- but the guard only WARNS
+        # and points at `tryc --align`, and after the relocation false positive
+        # the rule is that a check must be judged by what it says when it should
+        # stay silent, not by its hit rate.
+        # The test is deliberately OFFSET-INDEPENDENT.  In `--func` mode this
+        # encoding list starts at 0, not at the function's real offset in the
+        # object, so an `offs[i] % 4 == 2` alignment test is unreliable -- it
+        # depends on where the function begins, which has been discarded by then.
+        # What IS reliable: a pool entry is word-aligned, so a 16-bit ZERO sitting
+        # immediately before a 32-bit word exists only to achieve that alignment.
+        # If no pad were needed gas would not emit a half-word of zero there.
+        pads = 0
+        for i in range(k - 1):
+            e = enc[i].replace("0x", "")
+            if (len(e) <= 4 and int(e, 16) == 0
+                    and len(enc[i + 1].replace("0x", "")) > 4
+                    and offs[i] not in rel_off):
+                pads += 1
+        return k - pads
     a_in, b_in = _insns(a_enc, a_rel), _insns(b_enc, b_rel)
     if a_in != b_in:
-        print("  XX INSTRUCTION COUNT  ref %d, ours %d  (excluding %d/%d trailing pad word(s))"
+        print("  XX INSTRUCTION COUNT  ref %d, ours %d  (excluding %d/%d pad word(s);"
+              " a pad may be TRAILING or sit mid-stream before a pool word)"
               % (a_in, b_in, len(a_enc) - a_in, len(b_enc) - b_in))
         if a_sz == b_sz and len(a_enc) == len(b_enc):
             print("     NOTE: size and encoding count MATCH -- a pad is absorbing the")

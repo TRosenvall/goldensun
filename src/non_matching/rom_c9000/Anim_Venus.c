@@ -1,124 +1,132 @@
-/* Anim_Venus -- 0x080e0564, first of the four functions in
+/* Anim_Venus  --  0x080e0564, first of the four functions in
  * asm/rom_c9000/rom_e0564_a_a.s (Anim_Venus, Anim_Mars, Anim_Hail, Anim_Ground).
  *
- * NON-MATCHING, 22 of 381 encodings differ.
- * SIZE and INSTRUCTION COUNT are both the ROM's (860 bytes, 381 encodings), so
- * objcmp's 22 IS a true distance here; tools/aligncmp.py reads 95.8% aligned-equal.
- * objcmp verbatim:
- *     XX ENCODINGS differ in 22 place(s) (ref 381, ours 381)
+ * NON-MATCHING, 20 of 381 encodings.  WAS 22; batch 326 (brief H) took it to 20.
+ * SIZE and INSTRUCTION COUNT are both the ROM's (860 bytes, 381 = 381), so the
+ * 20 IS a true distance.  aligncmp reads 366/381 aligned-equal (96.1%),
+ * 24 differing/ins/del in 12 hunks.  objcmp verbatim:
+ *     XX ENCODINGS differ in 20 place(s) (ref 381, ours 381)
  *        first at index 38: ref 6a2d  ours 9306
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_c9000/e0564_Anim_Venus.c \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_c9000/Anim_Venus.c \
  *     asm/rom_c9000/rom_e0564_a_a.s --func Anim_Venus
- *   (and for the residue view, tools/aligncmp.py with the same two paths plus
- *    `Anim_Venus -v`)
+ *   (the previous header's recipe named src/non_matching/rom_c9000/e0564_Anim_Venus.c,
+ *    a path that does not exist -- repointed here.)
  *
- * SPLIT SHAPE IF IT LANDS: Anim_Venus is the FIRST function of rom_e0564_a.s, so
- * it needs only a two-way split -- `_a_b.c` for the function and `_a_c.s` for
- * Anim_Mars + Anim_Hail + Anim_Ground -- EXCEPT that Anim_Hail (this batch,
- * MATCHING) splits the same stem.  Landing both gives
+ * SPLIT SHAPE IF IT LANDS: unchanged from the earlier header.  Anim_Venus is the
+ * FIRST function of rom_e0564_a_a.s, so a two-way split; with Anim_Hail also
+ * landed the file set is
  *   src/rom_c9000/rom_e0564_a_a.c  Anim_Venus
  *   asm/rom_c9000/rom_e0564_a_b.s  Anim_Mars
- *   src/rom_c9000/rom_e0564_a_c.c  Anim_Hail  (renumbered from _a_b.c)
+ *   src/rom_c9000/rom_e0564_a_c.c  Anim_Hail (renumbered)
  *   asm/rom_c9000/rom_e0564_a_d.s  Anim_Ground
- * `python3 tools/datacheck.py asm/rom_c9000/rom_e0564_a_a.s` is SILENT; no data
- * moves and no new exports are needed (Data_ede48 lives in rom_eda78.s).
+ * `python3 tools/datacheck.py asm/rom_c9000/rom_e0564_a_a.s` is SILENT (rc 0,
+ * re-run batch 326); no data moves and no new exports are needed.
  *
- * ================================================================
- * FIVE LEVERS TOOK IT 312 -> 22, AND THE ORDER MATTERS
- * ================================================================
+ * PINS: 1 (the Anim_Vine StartTask pin, `tools/shimcount.py` = 1), unchanged and
+ * still load-bearing -- 22 without it, 20 with.
  *
- * 312 of 381 (65.9% aligned, 8 instructions short)
- *   Pass 1 off src/rom_c9000/rom_d82b0_b.c (Anim_Break): same bank, same
- *   `iwram_3001eec` walk, same Random/sin/cos particle loop, same Data_ede48
- *   blit.  The RELOCATION SEQUENCE was already identical on pass 1 and stayed so.
+ * ================= WHAT BATCH 326 CHANGED: 22 -> 20 =========================
+ * SPLIT THE BIAS OFF THE SHIFT in the blitB frame computation.  The ROM pairs
+ * the two `asr #16`s and applies both biases afterwards; writing the bias into
+ * the same expression makes gcc interleave x's `add` between them:
+ *     ref   asr r5,#16 | asr r3,#16 | add r5,#0x16 | str r2,[sp] | ... | add r3,#0x1d
+ *     ours  asr r5,#16 | add r5,#22 | asr r3,#16   | str r2,[sp] | ... | add r3,#29
+ * So
+ *     x = (sin(ang) * 24) >> 16;
+ *     y = ((0x40 - frame * 2) * cos(ang)) >> 16;
+ *     x += 0x16;
+ *     y += 0x1d;
+ * instead of biasing inside each expression.  This is the SAME family rule batch
+ * 325 settled for HeightTile ("the writeback must be on the SUBTRACTION, not the
+ * bias") pointing the other way: here the bias must be its OWN statement.
+ * Biasing only x and leaving y fused is byte-identical (also 20), so the lever is
+ * x's bias; writing `x = 0x16 + (...)` (operand order) is INERT at 22.
  *
- * 169 -> 112 (76.4%)  ONE COUNTER ACROSS *FOUR* LOOPS, not three.
- *   Anim_Break records "a counter reused across several loops is one variable".
- *   Here the ROM keeps r10 across the 0x20-slot init loop, the 0x200-slot `-1`
- *   loop, the TEN-target loop and the 0x200-particle draw loop -- so the
- *   per-target `i` and the sweep `j` are THE SAME VARIABLE.  Splitting them cost
- *   r9 for `base`, r11 for `frame` and the whole spill map.
+ * ================= THE REMAINING 20, FOUR CLUSTERS =========================
+ * Every role register is still the ROM's -- r9 base, r10 the shared counter,
+ * r11 th, r8 p, the whole spill map, every branch target, every relocation.
  *
- * 112 -> 95 (80.1%)  THE SPILL MAP IS REVERSE DECLARATION ORDER.
- *   Ascending slot = LAST declared first.  The ROM's 0x8..0x24 run is
- *   k, boff, ang, gfx, blitA, blitB, frame, ctx, so the declarations go
- *   ctx, frame, blitB, blitA, gfx, ang, boff with `k` innermost.  Eight slot
- *   numbers land in one edit.
+ * (A) 2 enc, index 38.  `str r3,[sp,#0x18]` one slot EARLY:
+ *       ref  ldr r3,[r5,#0x1c] | ldr r5,[r5,#0x20] | str r3,[sp,#0x18]
+ *       ours ldr r3,[r5,#0x1c] | str r3,[sp,#0x18] | ldr r5,[r5,#0x20]
+ *     blitA's reload OUTPUT store against blitB's load.  sched2.
  *
- * 95 -> 58 (87.9%)  THE ids LOOP IS A `while`, NOT `if (c) { do } while (c)`.
- *   This is the sharpest measurement in the file and it fixed TWO things at once:
- *   `duplicate_loop_exit_test` runs AFTER gcse, so the guard it copies is never
- *   gcse'd -- which is why the ROM's guard reads the state pointer with the
- *   INDEXED form `mov r7,r9 / ldr r3,[r7,r3]` and a pool load of 0x7828 all its
- *   own, while the loop body gets a SEPARATE `ldr r5,=0x7828 / add r5,r9` hoisted
- *   into the preheader.  The `if`-guarded do-while commons the two (one pool
- *   load, one address) and cannot be made to diverge.  It also brought SIZE and
- *   COUNT to the ROM's for the first time.
+ * (B) 4 enc, index 177-181.  The `gBuffer` pool load is r3 in ours and r2 in the
+ *     ROM, and it is one slot late:
+ *       ref  ldr r1,[sp,#0xc] | ldr r2,=gBuffer | mov r4,#0 | add r7,r1,r2
+ *       ours ldr r3,=gBuffer  | ldr r1,[sp,#0xc]| mov r4,#0 | add r7,r1,r3
+ *     THIS IS local-alloc, AND IT IS THE SAME BOUND AS Anim_Attack'S.  `.17.lreg`
+ *     block 12 contains exactly ONE local qty, pseudo 117 (insn 403, the pool
+ *     load; `;; Register 117 in 3.`), pref LO_REGS, no suggestion, life insns
+ *     403-405.  `find_free_reg` (local-alloc.c:1963-2050) walks REG_ALLOC_ORDER
+ *     {3,2,1,0,...} and takes the first free, so r3.  For r2, r3 must be in
+ *     `used` across 117's life -- and no *local* qty can be, because block 12 is
+ *     three insns long and anything live at its end is global.  Pinning it
+ *     (`register char *gb __asm__("r2")`) DOES put the load in r2, measured, but
+ *     then gcc canonicalises the add as `adds r7,r2,r1` against the ROM's
+ *     `adds r7,r1,r2` and the figure stays 20 -- writing `boff + gb` does not
+ *     flip it.  So the pin buys nothing here.
  *
- * 60 -> 33 (93.2%)  NAME THE SECOND Random() RESULT.
- *   The ROM interleaves the `g->x = p->x << 16` store INTO the `mag` computation
- *   (`bl Random / mov r1,r8 / ldr r3,[r1] / lsl r3,#16 / str r3,[r7] / ldr r5,=0x1ff
- *   / ... / and r5,r0`), which is only reachable if the call's result survives the
- *   store in r0.  Written `mag = (Random() & 0x1ff) + 0x100;` gcc consumes r0
- *   first and takes r0 for the pointer copy, so the store can never move up.
- *   `int rv = Random(); g->x = p->x << 16; mag = (rv & 0x1ff) + 0x100;` puts the
- *   pointer copy in r1 and the ROM's schedule falls out.  27 encodings.
+ * (C) 3 enc, index 184-188, and ~11 enc at index 193-203.  TWO RELOAD SCRATCH
+ *     REGISTERS inside the particle loop:
+ *       0x80<<7 (the `+ 0x4000` on a2):  ROM r3, ours r2
+ *       0x80<<1 (the `+ 0x100` on mag):  ROM r0, ours r2
+ *     `.18.greg` prints `Spilling for insn 425. / Using reg 3` and
+ *     `Spilling for insn 445. / Using reg 3` -- **find_reg printed r3 for BOTH
+ *     and the emitted registers are r2 and r2**, which is the batch-325
+ *     observable again: a `Using reg` line is not the register you get.  Confirm
+ *     in `.19.flow2`: insns 1186/1187 and the pair before 445 are both r2.
+ *     So this is LAYER 3, `allocate_reload_reg`'s round-robin (reload1.c:4996-5065)
+ *     over `spill_regs[]`.  Two facts worth keeping:
+ *       * `spill_regs[]` is built in ASCENDING HARD-REGISTER ORDER
+ *         (reload1.c:3527-3532), NOT REG_ALLOC_ORDER, so the cursor walks
+ *         r0,r1,r2,r3,... -- do not reason about it with {3,2,1,0}.
+ *       * r0 IS free at insn 445 in our build: `.19.flow2` insn 441 carries
+ *         `REG_DEAD (reg/v:SI 0 r0)` immediately before the reload.  The ROM
+ *         takes r0 and we do not, so this is purely the CURSOR POSITION
+ *         (`last_spill_reg`, reload1.c:4937), not availability.
+ *     AND A PIN CANNOT REACH IT: `register int c __asm__("r0"); c = 0x80 << 1;
+ *     mag = (rv & 0x1ff) + c;` compiles BYTE-IDENTICALLY to the unpinned body --
+ *     the named pseudo is copy-propagated away and reload invents its own
+ *     constant register regardless.  Same for a pin on the `i & 1` copy.
  *
- * 63 -> 60 and 33 -> 24  TWO MORE giv REWRITES, same lever as Anim_Hail's closer.
- *   The 0x20-slot init loop's base (`base + (0xe1 << 7)`) must be a
- *   strength-reduced giv, not a source-level pointer, or its `add r5,r9` is born
- *   before the hoisted 0x3f/0x68 instead of between them:
- *   `((Part *)(base + (0xe1 << 7)))[i].x = ...`.  A FULL 24-PERMUTATION SWEEP of
- *   the per-target loop's four increment statements then found `th, p, boff, i`
- *   at 24 against 35 for the worst and 33 for the shape pass 1 used -- the spread
- *   is real and the winner is not the natural order.
+ * (D) 2 enc, index 225-227.  `mov r2,sl / ands r3,r2` (ROM) against
+ *     `mov r4,sl / ands r3,r4` (ours) -- the hi->lo copy for `i & 1`, another
+ *     reload scratch register from the same cursor.
  *
- * 24 -> 22  THE Anim_Vine StartTask PIN.
- *   `register void *tf __asm__("r0"); tf = Task_BlitAnim; arg <<= 3;
- *   StartTask(tf, arg);` -- copied verbatim from the landed
- *   src/rom_c9000/rom_dd2ac_c_c_b.c, where the same call needs it.  Measured
- *   load-bearing: 24 without, 22 with.  ONE pin, at a fixpoint
- *   (`tools/shimcount.py` = 1; a fakematch.txt row is due if this ever lands).
+ * So the real residue is: TWO sched2 ties (A and B's slot, 4 enc), ONE local-alloc
+ * first-free walk (B's register, bounded above), and THREE reload-cursor
+ * registers (C and D, ~16 enc) that move together.  The cursor is a single global
+ * sequence over the function, so the lever is the NUMBER AND ORDER OF RELOADS
+ * EARLIER IN THE FUNCTION, not the spelling of any differing site.
  *
- * ================================================================
- * THE BLOCKER: 22 ENCODINGS, ALL LOW-REGISTER TIES IN ONE BASIC BLOCK
- * ================================================================
+ * MEASURED INERT, byte-identical to this file -- do not repeat:
+ *   `g = (Part *)(boff + (char *)gBuffer)`; `&((char *)gBuffer)[boff]`;
+ *   `(Part *)((unsigned)gBuffer + boff)`; a named `char *gb` for the address;
+ *   `k = 0` before `g = ...`; `blitA, blitB` as one comma statement; via
+ *   `pp = tbl + 7; *pp++`; `blitB = (DrawFn)*(tbl + 8)`; two temporaries for the
+ *   blit pair; `x = 0x16 + (...)` operand order; a `register __asm__("r0")` pin
+ *   on the 0x100 constant; a `register __asm__("r2")` pin on the `i & 1` copy.
+ *   (Plus everything the earlier header already listed: operand order on
+ *   `(Random() & 0x7fff) + 0x4000` and on `+ 0x100`; `a2`/`rv`/`mag` at function
+ *   scope; `k` declared before `g`; `(i & 1) != 0`.)
+ * MEASURED WORSE: `blitB` assigned before `blitA` 24; `g = &gBuffer[boff / 28]`
+ *   239 and 12 bytes long; and the earlier header's list (DrawFn returning void
+ *   27, BuildDraw2DFuncEx void 31, LoadVFXFile returning int 43, `gBuffer[i]`
+ *   indexing in the draw loop 182, the particle-init loop indexed 265, `mag`
+ *   split into mask-then-add 187).
  *
- * Every role register is the ROM's -- r9 base, r10 the shared counter, r11 th,
- * r8 p, r5/r6/r7 as the ROM uses them, the whole spill map, every branch target,
- * every relocation.  What is left is WHICH low register stages three short-lived
- * values, and three one-slot scheduling ties:
- *
- *   ref  ldr r2,=gBuffer   / movs r3,#0x80 (<<7) / movs r0,#0x80 (<<1)
- *   ours ldr r3,=gBuffer   / movs r2,#0x80 (<<7) / movs r2,#0x80 (<<1)
- *
- * The 0x80 pair sits in ONE basic block (the particle-init loop body has no
- * branches), so this is local_alloc's `find_free_reg` walking
- * REG_ALLOC_ORDER {3,2,1,0,...}: the ROM spends r3 on the first constant and then
- * r0 -- leaving r2 UNUSED IN THAT LOOP ENTIRELY -- while we take r2 twice.  The
- * remaining three are single-position sched2 ties: `str r3,[sp,#0x18]` one insn
- * early (blitA's store, ref pairs the two `tbl[7]`/`tbl[8]` loads first),
- * `adds r5,#22` one insn early, and `mov r4,sl` vs `mov r2,sl` for `i & 1`.
- *
- * MEASURED INERT, so do not repeat them (all 22, byte-identical to this file):
- *   - operand order on `(Random() & 0x7fff) + 0x4000` and on the `+ 0x100`
- *     (both directions, 3 combinations);
- *   - `g = (Part *)(boff + (char *)gBuffer)` instead of `(char *)gBuffer + boff`;
- *   - `a2` / `rv` / `mag` declared at function scope instead of in the loop body;
- *   - `k` declared before `g` in the inner block;
- *   - `(i & 1) != 0` instead of `i & 1`.
- * MEASURED WORSE: DrawFn returning void (27), BuildDraw2DFuncEx void (31),
- *   LoadVFXFile returning int (43), `gBuffer[i]` indexing in the DRAW loop (182,
- *   and 10 instructions long -- the walking pointer is right there), the
- *   particle-init loop indexed (265), `mag` split into mask-then-add in any of
- *   three placements (187).
- *
- * The next thing to try is the documented scratch-register pin on the 0x80
- * constants ("one scratch-register pin can settle two distant clusters"), which
- * was not attempted here because the pin budget was being kept at one.
+ * THE FIVE LEVERS THAT TOOK IT 312 -> 22 ARE ALL STILL LOAD-BEARING and are
+ * documented at length in the batch-32x history: one counter across FOUR loops;
+ * the spill map is REVERSE DECLARATION ORDER; the ids loop is a `while`, not an
+ * `if`-guarded do-while; naming the second Random() result so the `g->x` store
+ * interleaves into the `mag` computation; and the 0x20-slot init loop's base as a
+ * strength-reduced giv (`((Part *)(base + (0xe1 << 7)))[i].x`) with the
+ * per-target loop's four increments in the order `th, p, boff, i`.
  */
 #include "gba/types.h"
 #include "gba/io.h"
@@ -232,8 +240,10 @@ void Anim_Venus(void *context)
             int x;
             int y;
 
-            x = ((sin(ang) * 24) >> 16) + 0x16;
-            y = (((0x40 - frame * 2) * cos(ang)) >> 16) + 0x1d;
+            x = (sin(ang) * 24) >> 16;
+            y = ((0x40 - frame * 2) * cos(ang)) >> 16;
+            x += 0x16;
+            y += 0x1d;
             blitB(ctx, base, x, y, 0x14, 0x26);
         }
         if (frame == 0x38) {

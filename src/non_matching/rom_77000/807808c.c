@@ -1,102 +1,95 @@
-/* Func_807808c -- 0x0807808c, asm/rom_77000/rom_77320_a_c_c.s (3 functions).
+/* Func_807808c (0x0807808c) -- asm/rom_77000/rom_77320_a_c_c.s (3 functions).
  *
- * STILL NON-MATCHING.  PARK AT 4 of 86 encodings, device-free, down from the
- * park's 5.  A further 2 of 86 is reachable and diagnosed; see "THE VOLATILE
- * VARIANT" below.  SIZE EXACT, 86 against 86 encodings, both figures.
+ * PARK IMPROVED, 4 -> 3 of 86 encodings, DEVICE-FREE.  SIZE EXACT (86 against
+ * 86 encodings, 86 instructions both sides), relocations identical, and the
+ * per-opcode memory profile is the reference's exactly:
+ * ldr=2 ldrb=1 ldrh=2 ldrsh=4 strb=2 strh=6.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     scratch_elev/b322/F/p1_candidate.c \
+ *     src/non_matching/rom_77000/807808c.c \
  *     asm/rom_77000/rom_77320_a_c_c.s --func Func_807808c
  *
  * INSTALLED PATH, if it ever lands: src/rom_77000/rom_77320_a_c_c_b.c.
- * Split shape: TEXT-ONLY.  tools/datacheck.py prints nothing (no data section).
- * tools/split_s.py asm/rom_77000/rom_77320_a_c_c.s Func_807808c --dry-run:
- *   _a.s Func_8077f70 (140 lines), _b.s Func_807808c (97), _c.s Func_8078144 (115).
- * PINS: 0.  No shim, no fakematch row, no flag group.
+ * Split shape: TEXT-ONLY, tools/datacheck.py prints nothing (no data section).
+ *   tools/split_s.py asm/rom_77000/rom_77320_a_c_c.s Func_807808c --dry-run:
+ *     _a.s Func_8077f70 (140 lines), _b.s Func_807808c (97), _c.s Func_8078144 (115).
+ * NOTE FOR THE COORDINATOR: all THREE functions in this .s are parked
+ * (Func_8077f70 at 3 since batch 325, Func_807808c at 3 here, Func_8078144 at
+ * 4), and the two 3-way and 2-way split shapes in their headers are ALTERNATIVE
+ * splits of the same file.  Whichever lands first decides the suffixes, and
+ * install_batch.py's splits phase must repoint the other two recipes.
+ * PINS: 0.  No shim, no fakematch row, no flag group.  No device.
  *
  * ---------------------------------------------------------------------------
- * WHAT THE PARK CLAIMED, AND WHAT SURVIVED
+ * WHAT CHANGED, AND WHY THE PARK NEVER SAW IT
  *
- * The park named both residues correctly and priced both correctly.  Its
- * OBSERVATIONS all reproduced.  What it got wrong is that it tested its
- * candidate edits ONE AT A TIME, and its own rejected list contains BOTH HALVES
- * of a two-part fix:
+ * The park's own analysis names this cure and then measures it ONLY WITH A
+ * DEVICE.  Its scratch_elev/b322/F/v1/g1.c -- three single-set locals for the
+ * sign extend, so local-alloc's `combine_regs` can tie the intermediate to its
+ * dying source and emit the ROM's IN-PLACE `lsl r1,r1,#16 / asr r1,r1,#16` --
+ * carries `*(volatile unsigned short *)` on BOTH stores, and the 3 it recorded
+ * was read with those casts in place.  The park header then reports that 3 as a
+ * corner of a three-cornered constraint and keeps the 4.
  *
- *     "inline index"              rejected at 6      <-- half one
- *     "a one-statement sign extend" rejected at 8    <-- half two
- *     the two together                               4
+ * MEASURED HERE: strip the two volatile casts and the SAME body still reads 3.
+ * The casts were never load-bearing for this corner.
  *
- * This is exactly docs/elevation.md's "a rejected-because-worse edit that is
- * HALF of a two-part fix", and it is the fourth shape in tools/crossfire.py's
- * list.  Reproduced at depth 4 over five edits; the full table is in
- * scratch_elev/b322/F/FINDINGS.md.
+ *   3   single-set sign-extend chain, plain stores        <- THIS BODY
+ *   3   same, 0x38 store moved ahead of the 0x36 read
+ *   3   b322's v1/g1.c with both volatile casts deleted
+ *   4   the body this park shipped
  *
- * WHY THOSE TWO AND NOT EITHER ALONE.  There were two independent residues:
+ * So the park's "corners 2 / 3 / 4" is right about the SHAPE and wrong about
+ * which corner is device-free: it is 3.
  *
- *   R1 (indices 10-13) `ldr r2,=gState` against `lsl r1,#1`, plus the
- *      base/index register roles.  The inline subscript fixes the ORDER and
- *      breaks the ROLES (6).  The one-statement sign extend, added on top, puts
- *      the ROLES back -- a NON-LOCAL effect: the extra intermediate pseudo in
- *      the sign extend shifts local-alloc's quantity priorities for the whole
- *      block.  Indices 10, 11, 12 and 13 then all go exact.
+ * WHY THE SINGLE-SET CHAIN IS THE LEVER.  local-alloc refuses to combine a dest
+ * with a dying source when the source "is not local to this block OR DIES MORE
+ * THAN ONCE".  With `r1 = (r1 << 16) >> 16;` the variable r1 is SET TWICE in the
+ * block (the 0x34 load, then the sign-extend result), so it never gets a
+ * quantity and the shift pair cannot be in-place.  Three single-set names
+ * (t1, s1 and r1 read-only after the load) do chain, and indices 22/23 go
+ * byte-exact.
  *
- *   R2 (indices 18-21) the two halfword stores against the sign-extend pair.
+ * THE REMAINING 3, stated as a defect and not as a verdict.  Indices 21,22,23:
  *
- * THE SCHEDULER ARITHMETIC FOR R2, from `.23.sched2` with -fsched-verbose=6
- * (haifa-sched.c `rank_for_schedule`: priority -> CLASS -> dependent count ->
- * INSN_LUID, best LAST in the ready array):
+ *      ref                       ours
+ *  18  ldrh r1, [r5, #0x34]      ldrh r1, [r5, #0x34]
+ *  19  ldrh r3, [r5, #0x36]      ldrh r3, [r5, #0x36]
+ *  20  strh r1, [r5, #0x38]      strh r1, [r5, #0x38]
+ *  21  strh r3, [r5, #0x3a]      lsls r1, r1, #16
+ *  22  lsls r1, r1, #16          asrs r1, r1, #16
+ *  23  asrs r1, r1, #16          strh r3, [r5, #0x3a]
  *
- *   park body:  strh[0x38] 36   strh[0x3a] 34   lsl 36   asr 35
- *   this body:  strh[0x38] 35   strh[0x3a] 36   lsl 36   asr 35
- *   ROM wants:  strh[0x38], strh[0x3a], lsl, asr
+ * The in-place pair is now EXACT and the only defect left is that
+ * `strh r3,[r5,#0x3a]` sinks below it.  The park's scheduler arithmetic explains
+ * why, and it is worth restating because this body makes it sharp: a store's
+ * priority comes from whichever later insn OVERWRITES ITS SOURCE REGISTER (an
+ * anti dependence, `arm_adjust_cost` cost 0 for REG_DEP_ANTI, so the store
+ * inherits that insn's priority exactly).  The ROM's in-place `lsl r1,r1,#16`
+ * overwrites r1, which is the 0x38 store's source, so the 0x38 store is lifted;
+ * NOTHING overwrites r3 before the call, so the 0x3a store keeps only the call's
+ * memory dependence and loses to the shifts.
  *
- * A STORE'S PRIORITY IS SET BY WHICHEVER SHIFT OVERWRITES ITS SOURCE REGISTER.
- * The edge is an ANTI dependence (the shift writes the register the store
- * reads), `arm_adjust_cost` gives REG_DEP_ANTI cost 0, so the store inherits
- * that shift's priority exactly.  In the park body the in-place `lsl r1,r1`
- * overwrites r1, so the 0x38 store inherits 36 and the 0x3a store -- whose r3
- * nothing overwrites -- falls to prio(call)+1 = 34.  In this body the
- * intermediate lands in r3, so the roles swap.  Either way exactly one of the
- * two stores is at 36 and the other loses to the lsl.
+ * So the open question is narrow and new: **lift the 0x3a store without
+ * reintroducing a second set of the sign-extend variable.**  The 4-body lifted
+ * it by putting the sign-extend intermediate in r3 -- which is exactly what
+ * breaks the in-place pair.  That is the trade, now priced at one encoding
+ * instead of two.
  *
- * THE VOLATILE VARIANT -- 2 of 86, and the mechanism is a DEPENDENCE, not a
- * priority.  scratch_elev/b322/F/v1/d1.c is this body with BOTH stores written
- * `*(volatile unsigned short *)`.  Each volatile cast ALONE is EXACTLY INERT
- * (4 and 4); together they are worth 2.  That is crossfire shape four, "two
- * edits each exactly inert, jointly worth the residue", and one-at-a-time
- * testing cannot see it.  Why it works: a volatile MEM makes
- * `sched_analyze_insn` call `flush_pending_lists`, which adds a dependence from
- * the second volatile store to the first, so prio(0x38 store) becomes
- * prio(0x3a store) + 1 = 37 and the pair is emitted adjacent, in source order,
- * ahead of the lsl.  Residue then: indices 20/21 only, `lsl r3,r1,#16 /
- * asr r1,r3,#16` against the ROM's in-place `lsl r1,r1,#16 / asr r1,r1,#16`.
+ * MEASURED FLAT ON TOP OF THIS BODY (all exactly 3, crossfire depth 2, 10 edits
+ * and every compatible pair): swap the two stores; read 0x36 after the 0x38
+ * store; the 0x3a copy as one statement; declare t1/s1 after r3; `s1 * 0x4000`
+ * instead of `s1 << 14`; `(s1 << 14) / s1` as one expression; drop the unused k;
+ * the real `GetUnit(unsigned int)` signature.
  *
- * WHY THE IN-PLACE SHIFT AND THE VOLATILE PAIR WILL NOT COEXIST (measured, 3):
- * the in-place pair needs local-alloc's `combine_regs` to tie the intermediate
- * to its dying source, and local-alloc.c refuses when the source "is not local
- * to this block OR DIES MORE THAN ONCE" -- `r1` is set twice in this block (the
- * 0x34 load, then the sign-extend result), so it never gets a quantity.  Three
- * single-set variables (`t1 = r1 << 16; s1 = t1 >> 16;`) DO chain, and give the
- * ROM's in-place pair -- see v1/g1.c -- but then nothing overwrites r3, the
- * 0x3a store drops back to 34, and it sinks below the shifts again: 3 of 86.
- * So R2 is a THREE-CORNERED constraint, and 2 and 3 are the two corners
- * reachable so far.  NOT a bound; the evidence is the three figures 2, 3, 4 and
- * the priority table above.
- *
- * MEASURED FLAT (all exactly 4, on top of this body): an explicit temp for the
- * sign extend, `r1 = (short)r1`, `r0 = r1 * 0x4000`, swapping the two stores,
- * giving the 0x36 value its own variable, every declaration-order permutation
- * of r0/r1/r3, a fresh variable declared first.  Twenty crossed rows, dead
- * flat -- so the lever for the last 4 is not in spelling, statement order or
- * declaration order.
- * WORSE: the deref form `*(gState + ...)` and `((unsigned char *)gState)[...]`
- * both 77 at 84 instructions (RELOC+COUNT: they fold the symbol).
- * `r1` volatile-loaded 73 at 88.  Shifts before the stores 72 (RELOC+MEM).
+ * FREE CORRECTNESS DIVIDEND, measured exactly inert: `GetUnit`'s real parameter
+ * type is `unsigned int`, from its landed definition at
+ * src/rom_77000/rom_77320_a_a_c_c_a_b.c:136.  The park declared `int`.
  */
 extern int GetPartySize(void);
-extern void *GetUnit(int unit);
+extern void *GetUnit(unsigned int id);
 extern unsigned char gState[];
 
 void Func_807808c(int sel)
@@ -104,6 +97,8 @@ void Func_807808c(int sel)
     void *r5;
     int r0;
     int r1;
+    int t1;
+    int s1;
     int r3;
     int i;
     int n;
@@ -116,9 +111,10 @@ void Func_807808c(int sel)
         r3 = *(unsigned short *)((char *)r5 + 0x36);
         *(unsigned short *)((char *)r5 + 0x38) = r1;
         *(unsigned short *)((char *)r5 + 0x3a) = r3;
-        r1 = (r1 << 16) >> 16;
-        r0 = r1 << 14;
-        r0 /= r1;
+        t1 = r1 << 16;
+        s1 = t1 >> 16;
+        r0 = s1 << 14;
+        r0 /= s1;
         r3 = 0x80;
         r3 <<= 7;
         if (r0 > r3) {

@@ -1,153 +1,161 @@
 /* Func_8078870 (0x08078870) -- asm/rom_77000/rom_78414_c_c_a_c_a_c_c.s (2 functions).
  *
- * STILL NON-MATCHING, 5 of 40 encodings -- this park's own body, unchanged; see
- * the coordinator's correction below.  SIZE EXACT (40 against 40), relocations
- * identical.  A device-bearing variant reaches 2 of 40 with crossfire.py's
- * memory screen reporting the REFERENCE's own profile exactly (ldr=1 ldrb=1
- * ldrh=3), so that 2 is not a figure bought by doing less work than the ROM --
- * but it IS bought by a device, and is recorded as a figure about the blocker.
- *
- * *** CORRECTED BY THE COORDINATOR, BATCH 322.  The brief reported "device-free
- * *** it is 5, i.e. the park's figure".  MEASURED: that is not so.  Three
- * *** distinct bodies, three distinct figures --
- * ***     this park's body (below), device-free ............ 5 of 40
- * ***     the brief's body WITH the volatile cast .......... 2 of 40
- * ***     the brief's body with the cast removed ........... 7 of 40
- * *** So the brief's body is better ONLY WITH THE DEVICE, and device-free it is
- * *** WORSE than what was already here.  THE BODY BELOW IS THEREFORE THIS PARK'S
- * *** ORIGINAL, UNCHANGED, at 5; the analysis above and below is the brief's and
- * *** is kept because it is correct and valuable.
- * ***
- * *** AND THE CAST IS A DEVICE, NOT THE DOCUMENTED LEVER.  The same lvalue
- * *** `*(unsigned short *)p` is read THREE TIMES in that loop -- twice plain and
- * *** once volatile -- so the qualifier says nothing true about the data; it
- * *** exists only to stop cse commoning the third read.  Contrast the lever in
- * *** docs/humanization.md, where pokefirered's ORIGINAL source cast a `u8 *`
- * *** pointer to `vu16` at the one access whose WIDTH was a real property, and
- * *** did so consistently.
- * ***     A VOLATILE CAST APPLIED TO ONE OF SEVERAL READS OF THE SAME LVALUE IS
- * ***     A DEVICE.  Applied consistently to an access whose width or ordering
- * ***     is a genuine property of the data, it is a lever.
- * *** The 2 is kept as a figure ABOUT THE BLOCKER: it says that once that third
- * *** read is not commoned, three of the five encodings close.
+ * PARK HELD AT 5 of 40 encodings, device-free, body UNCHANGED.  SIZE EXACT
+ * (40 against 40 encodings, 39 instructions both sides), relocations identical,
+ * per-opcode memory profile the reference's exactly: ldr=1 ldrb=1 ldrh=3.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
- *     scratch_elev/b322/F/p2_candidate.c \
+ *     src/non_matching/rom_77000/8078870.c \
  *     asm/rom_77000/rom_78414_c_c_a_c_a_c_c.s --func Func_8078870
  *
  * INSTALLED PATH, if it ever lands: src/rom_77000/rom_78414_c_c_a_c_a_c_c_b.c.
- * Split shape: TEXT-ONLY.  tools/datacheck.py prints nothing (no data section).
- * tools/split_s.py asm/.../rom_78414_c_c_a_c_a_c_c.s Func_8078870 --dry-run:
- *   _b.s Func_8078870 (46 lines), _c.s Func_80788c4 (79).  No _a.s -- the target
- *   is the FIRST function in the file.
- * PINS: 0.  No shim, no fakematch row, no flag group.
+ * Split shape: TEXT-ONLY, tools/datacheck.py prints nothing.
+ *   tools/split_s.py asm/.../rom_78414_c_c_a_c_a_c_c.s Func_8078870 --dry-run:
+ *     _b.s Func_8078870 (46 lines), _c.s Func_80788c4 (79).  No _a.s -- the
+ *     target is the FIRST function in the file.
+ * PINS: 0.  No shim, no fakematch row, no flag group.  No device.
+ *
+ * OWNER RULING 4 (docs/owner-decisions.md) STANDS AND IS NOT REOPENED HERE.
+ * The 2-of-40 body carries `*(volatile unsigned short *)` on ONE of THREE reads
+ * of the same lvalue; that is a DEVICE, the 2 is a figure about the blocker, and
+ * device-free that body is 7.  Nothing below re-proposes it.
  *
  * ---------------------------------------------------------------------------
- * THE PARK'S VERDICT IS REFUTED.  It said:
+ * THE RESIDUE IS THREE INDEPENDENT DEFECTS, NOT ONE.  THIS IS THE NEW MAP.
  *
- *   "a diff that has collapsed to a fixed permutation of instructions with no
- *    dependence between them is done"
- *   "it is not reachable from the source: the copies into r8/r10 are emitted by
- *    reload at the point it chooses, not at any point the C names"
+ * The park and batch 322's brief treated it as "the prologue" plus "the GetUnit
+ * pair".  Measured here it is THREE separable defects, and the park's stated
+ * NEXT is a question about one the park's own body does not have.
  *
- * Both halves are false.  The permutation is decided by ONE rung of
- * `rank_for_schedule` -- the LAST one, INSN_LUID -- and the LUID order IS
- * source-reachable.  The park measured nine source spellings and nine flag
- * settings and never read `.23.sched2`.
+ * This body's 5 differing encodings are ALL IN THE PROLOGUE, indices 6,7,10,11,12
+ * -- a three-way permutation:
  *
- * THE ARITHMETIC (`-da -fsched-verbose=6`, prologue block, 9 insns, all leaves):
+ *      ref                       ours
+ *  4   movs r2,#0x80             movs r2,#0x80
+ *  5   ldr  r3,=0x1ff            ldr  r3,=0x1ff
+ *  6   lsls r2,r2,#2       XX    adds r5,r0,#0
+ *  7   adds r5,r0,#0       XX    lsls r2,r2,#2
+ *  8   adds r7,r1,#0             adds r7,r1,#0
+ *  9   movs r6,#0                movs r6,#0
+ * 10   mov  r8,r2          XX    adds r5,#0xd8
+ * 11   mov  sl,r3          XX    mov  r8,r2
+ * 12   adds r5,#0xd8       XX    mov  sl,r3
  *
- *     insn  what               prio  cost  dependents
- *     140   r2 = 0x80             3    1    141
- *     141   r2 = r2 << 2          2    1    118
- *     118   r8 = r2               1    1    --
- *     133   r3 = 0x1ff            3    2    120      <-- pool load, 2 cycles
- *     120   sl = r3               1    1    --
- *     125   r5 = r0               2    1    17       <-- reload's param copy
- *     17    r5 = r5 + 0xd8        1    1    --
- *     6     r7 = r1               1    1    --
- *     14    r6 = 0                1    1    --
+ *   D1  the 0x200 chain hoists AFTER the parameter copy   (indices 6,7,10)
+ *       CURED by naming 0x200 as an `int` local before `p`.  Side effect: D3.
+ *   D2  the 0x1ff chain hoists AFTER `p`'s init           (indices 11,12)
+ *       CURED by naming 0x1ff as an `int` local before `p`.  Side effect: the
+ *       index 24/25 register swap appears.
+ *   D3  cse1 commons read 1 with read 2, so we emit ONE `ldrh` where the ROM
+ *       emits TWO                                        (indices 13,15,16,17,18)
+ *       No device-free cure found.  The mechanism is below and it is in the
+ *       FRONT END.
  *
- * Two contests decide all five of the park's encodings, and BOTH fall through
- * priority, CLASS and dependent count to INSN_LUID:
- *   t=3, ready {120,14,6,141,125}: 141 and 125 both priority 2, both CLASS 3
- *     (neither depends on the last-scheduled 133), both exactly one dependent.
- *   t=7, ready {120,118,17}: all priority 1, all CLASS 3, all zero dependents.
- * Our chain order is `6 14 125 17 140 141 118 133 120`.  Simulating the ladder
- * over all ten cycles, the ROM's schedule is reproduced EXACTLY by the chain
- * order `6 14 140 141 118 133 120 125 17` -- i.e. the two constants' defining
- * insns must sit BEFORE the pointer's.
+ * The four corners, all 40/40 encodings and 39 instructions:
  *
- * WITH THE PARK'S LITERAL MASKS THAT IS IMPOSSIBLE, and this is the part worth
- * carrying: they are loop invariants, `move_movables` emits them with
- * `emit_insn_before (..., loop_start)`, and `-frerun-loop-opt` (on at -O2) runs
- * loop twice, so the second pass's hoist lands AFTER anything the first pass
- * created.  MEASURED, not assumed: making the pointer a giv instead (the
- * subscript inline, or `((unsigned short *)(a + 0xd8))[i]`) still puts its init
- * at chain position 3-4, BEFORE the invariants -- `.08.loop` of v2/a.c reads
- * `14, 140(giv), 148(0x200), 150(0x1ff)` -- and both spellings measure 5,
- * unchanged.  A SOURCE STATEMENT and a GIV INIT land in the same place relative
- * to hoisted invariants; only a source statement for the CONSTANT moves it.
+ *   | masks                              | figure | ldrh | residue        |
+ *   | both literal  (THIS BODY)          |   5    |  3   | D1 + D2        |
+ *   | `int` 0x200, literal 0x1ff         |   7    |  2   | D2 + D3        |
+ *   | literal 0x200, `int` 0x1ff         |   9    |  3   |                |
+ *   | both `int`   (b322 p2_devicefree)  |   7    |  2   | D3 + the swap  |
  *
- * SO: NAME THE TWO MASKS AS `int` LOCALS, BEFORE THE POINTER.  `.08.loop`
- * becomes `14, 17(equipped), 20(idmask), 23(p)` and the WHOLE NINE-INSN
- * PROLOGUE, indices 4..12, GOES BYTE-EXACT.  They must be `int`: typed
- * `unsigned short` they are propagated away and the constants get re-hoisted to
- * the end of the preheader, and the prologue reverts (7, first diff at index 6
- * again -- v2/d.c).
+ * **`int` 0x200 with a LITERAL 0x1ff is the best map in the file**: its prologue
+ * is exact at indices 4-10 AND its indices 24/25/26 are exact.  Its whole
+ * residue is ONE scheduler contest (0x1ff's `mov sl,r3` against `p`'s
+ * `adds r5,#0xd8`) plus D3.
  *
- * WHAT NAMING THEM COSTS, AND THE CURE.  `int` masks make the AND SImode, so
- * read 1 expands as `zero_extend:SI(mem:HI p)` rather than the literal mask's
- * `mem:HI` -- gcc narrows an AND to HImode only for a CONSTANT operand.  That
- * makes read 1 and read 2 (the GetItemInfo argument, `zero_extend:SI(mem:HI p)`
- * by argument promotion) the same expression in the same extended basic block,
- * so cse1 unifies them and we read memory twice where the ROM reads it three
- * times.  `.03.cse` counts it: 2 `mem:HI` against the park's 3.  Reads 1 and 3
- * are never at risk -- the call between them invalidates cse's memory table.
- * Cure: `*(volatile unsigned short *)p` on THE CALL ARGUMENT ONLY.  The pointer
- * already exists, which is the recorded precondition for the volatile-cast
- * lever.  Volatile on read 1 instead is 11 at 39 insns; volatile on all three
- * loses a relocation offset; volatile on read 3 as well is 39 at 36 insns.
+ * ---------------------------------------------------------------------------
+ * D3's MECHANISM, LOCATED TO THE PASS AND READ OUT OF THE COMPILER
  *
- * THE REMAINING 2 -- the GetUnit mechanism, third instance in this bank:
+ * `mem:HI` count per dump:
  *
- *     idx  rom                ours
- *      23  ldrh r3, [r5]      ldrh r0, [r5]
- *      24  mov  r0, sl        mov  r3, sl
- *      25  ands r0, r3        ands r0, r3     <-- identical
+ *               .02.jump  .03.cse  .07.gcse  .08.loop  .09.cse2
+ *   literal        3         3        5         3         3
+ *   `int` mask     3         2        3         2         2
  *
- * combine leaves `(set 45 (and 46 36))` + `(set r0 45)`; regmove's
- * `fixup_match_1` rewrites the dest to the dying source 46 (`.15.regmove` shows
- * 45 -> 46), and 46 then carries the r0 copy-suggestion, so the LOAD lands in
- * r0.  The ROM instead ties the dest to the `sl`-to-low reload copy, which
- * reload emits as `mov r0, sl` because operand 1 of `*thumb_andsi3_insn` is
- * `%0`-matched AND commutative.  local-alloc's `combine_regs` is a SECOND route
- * to the same register: it refuses only when `reg_qty[ureg] < 0` (source not
- * block-local, or dies more than once) or `reg_qty[sreg] >= -1` (dest not
- * block-local).  `-fno-regmove` IS EXACTLY INERT HERE (2 of 40), which proves
- * the two routes are interchangeable and that killing one is not enough.
+ * The loss is cse1, confirming the park.  But the CAUSE is in `c-typeck.c`, not
+ * in cse: `build_binary_op`'s narrowing block (`shorten = -1` for bitwise ops at
+ * `c-typeck.c:2023`, applied at `:2351-2412`).  Two of its three cases matter:
  *
- * MEASURED, ALL EXACTLY 2 (i.e. inert) against that last pair:
- *   `idmask & *(u16*)p` -- the swapped operand order SURVIVES to `.17.lreg`
- *     (checked), and reload's `%` commutative swap neutralises it;
- *   a block-local `m = idmask; return m & *(u16*)p;` (copy-propagated away);
- *   a function-scope `ret` written in two blocks;
- *   a shared `v` written in block 1 and block 3 (local-alloc'd anyway);
- *   `GetItemInfo(unsigned int)` -- its REAL definition's parameter type, from
- *     src/rom_77000/rom_78414_a_b.c, so this is a free declaration-correctness
- *     dividend rather than a lever;
- *   declaring `idmask` before `equipped`.
- * WORSE: `p` typed `unsigned short *` 3; ASSIGNING idmask before equipped 7;
- *   `(unsigned short)equipped` or `(unsigned short)(... & equipped)` 11 at 39.
+ *   * `:2396` -- the other operand is an `INTEGER_CST` that fits in the narrower
+ *     type, so the AND is done in `unsigned short`.  RTL:
+ *     `(and:SI (subreg:SI (reg:HI 37) 0) (const_int 512))` -- read 1 is a plain
+ *     `mem:HI` into an HImode pseudo, which is NOT read 2's expression, so cse1
+ *     cannot common them and all three `ldrh` survive.
+ *   * `:2385` -- BOTH operands variable and narrowed from the same precision with
+ *     the same signedness.  Also narrows.
  *
- * NEXT: the side that has to become ineligible for the dest/dying-source
- * combine is the LOAD, and it is born and dies inside one basic block.  That is
- * the same question GetUnit answered in the other direction
- * (src/rom_77000/rom_77320_a_a_c_c_a_b.c).
+ * An `int` mask hits neither, so read 1 expands as `(zero_extend:SI (mem:HI p))`
+ * -- character for character read 2's expression, read 2 being the `GetItemInfo`
+ * argument, zero-extended by promotion.  cse1 commons them and emits
+ * `adds r3,r0,#0` where the ROM has its second `ldrh`.  Same length, which is
+ * why the figure stays 40/40 and only the indices move.
+ *
+ *   **THE COUPLING, stated as the bound it is: a narrow AND requires the mask to
+ *   be an INTEGER_CST or an equally-narrow variable; an `unsigned short` mask
+ *   does narrow the AND (ldrh=3 measured) but then expand must zero-extend the
+ *   mask pseudo for the SImode `and`, and those extension insns are emitted
+ *   INSIDE the loop and hoisted by `move_movables` to `loop_start`, i.e. AFTER
+ *   `p`'s init -- so the prologue reverts.  Narrow AND <=> constant-foldable mask
+ *   <=> hoisted late.**
+ *
+ * Dump evidence for the last clause, `unsigned short equipped` at `.08.loop`:
+ * insn 17 sets reg 35 = 512 (low LUID, good), insn 23 sets `p`, and THEN insns
+ * 125/126 are `reg 55 = reg 35 << 16` / `reg 40 = reg 55 >> 16` carrying
+ * `REG_EQUAL (zero_extend:SI (subreg:HI (const_int 512) 0))`.  Those two collapse
+ * to the single `movs/lsls` pair later, at insn 126's position -- after `p`.
+ *
+ * ---------------------------------------------------------------------------
+ * CLOSED FROM SOURCE (so nobody spends a round on them)
+ *
+ *  * **A type-based alias difference cannot separate read 1 from read 2.**
+ *    `canon_hash`'s `case MEM` (cse.c:2252-2267) hashes only `MEM` plus the
+ *    address and bails out only on `MEM_VOLATILE_P` / `BLKmode`.  The alias set
+ *    is not in the hash at all.
+ *  * **An `unsigned short` parameter cannot keep read 2 in HImode.**
+ *    `arm.h:2363` defines `PROMOTE_PROTOTYPES 1` and `:611` defines
+ *    `PROMOTE_FUNCTION_ARGS`, so the argument is always promoted to SImode.
+ *    Measured inert, consistent with that.
+ *  * **The park's stated NEXT -- "the side that has to become ineligible for the
+ *    dest/dying-source combine is the LOAD", about `regmove`'s `fixup_match_1`
+ *    and the index 24/25 pair -- is a question about a defect THIS BODY DOES NOT
+ *    HAVE.** With 0x1ff left a literal, indices 24/25/26 are byte-exact; the
+ *    swap is a SIDE EFFECT of naming 0x1ff as an `int`, not a property of the
+ *    function.  `-fno-regmove` being exactly inert at 2 of 40 is still true and
+ *    still interesting, but it is evidence about the device-bearing body.
+ *
+ * MEASURED DEVICE-FREE (all 40/40 encodings, 39 instructions)
+ *
+ *   5   THIS BODY
+ *   5   `unsigned short *p` instead of `unsigned char *p`            INERT
+ *   5   reuse the PARAMETER `a` instead of `p`                       INERT
+ *   5   `unsigned short` 0x200 with a literal 0x1ff
+ *   5   `GetItemInfo(unsigned short)` prototype                      INERT
+ *   5   `GetItemInfo((unsigned short)*(unsigned short *)p)`           INERT
+ *   5   assign idmask before equipped / assign `p` before both        INERT
+ *   7   `int` 0x200 + `int` 0x1ff                            ldrh=2
+ *   7   `int` 0x200, literal 0x1ff                           ldrh=2
+ *   7   `unsigned short` BOTH masks                          ldrh=3
+ *   7   `int` masks + `(p + 0)` on the call read             ldrh=2
+ *   7   `unsigned int` 0x200, literal 0x1ff                 ldrh=2
+ *   9   `int` 0x1ff only                                     ldrh=3
+ *   9   `unsigned short` 0x200 + `int` 0x1ff                ldrh=3
+ *   9   parameter reuse crossed with both `int` masks        ldrh=2
+ *  10   `int` 0x200 + `p` assigned first
+ *  11   `(unsigned short)equipped` as the mask -- 39 encodings, COUNT; ldr=0,
+ *       because the cast re-enables the constant fold and BOTH masks collapse
+ *  12   `int` masks + idmask-assigned-first / p-assigned-first
+ *  39   `(unsigned short)idmask` at the return -- 36 encodings, RELOC
+ *  42   the call-argument read written as a GIV, `*(unsigned short *)(a + 0xd8 +
+ *       i * 2)` -- keeps ldrh=3 but costs FOUR instructions (43 against 39), the
+ *       giv becomes a second induction variable.  Refuted.
+ *
+ * Crossfire depth 3 over {use-equipped, use-idmask, proto-ushort,
+ * arg-cast-ushort, idmask-first, p-first}: 37 rows, nothing below 5.
  */
-extern unsigned char *GetItemInfo(int id);
+extern unsigned char *GetItemInfo(unsigned int id);
 
 int Func_8078870(unsigned char *a, int kind)
 {

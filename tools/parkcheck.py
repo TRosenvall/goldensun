@@ -64,6 +64,17 @@ GCC = os.path.join(os.environ.get("GCC296_DIR", "/opt/gcc296"), "xgcc")
 # a .c path broke exactly those four. It only has to not swallow a bare continuation.
 VERIFY = re.compile(r"objcmp\.py[\s\\]+([^\s\\]+)[\s\\]+(\S+\.s)(?:[\s\\]+--func\s+(\S+))?", re.M)
 CLAIM  = re.compile(r"(\d+)\s+(?:differing\s+)?encodings?\s+of\s+(\d+)", re.I)
+# THE MIRROR WORD ORDER, added batch 326.  CLAIM above wants
+# "4 differing encodings of 103"; agents write "4 of 103 encodings" and
+# "PARK HELD AT 4 of 103 encodings" just as naturally, and three of brief E's
+# headers came back NO CLAIM with correct measurements sitting in them.  That is
+# the same defect as the batch-324 backfill, where six parks read NO CLAIM for
+# the same reason -- a claim nothing can parse cannot be caught lying.
+#
+# It is SPECIFIC, not a fallback: the word "encodings" must FOLLOW the pair, so
+# it cannot swallow a bare "4 of 103" appearing in prose about something else.
+# That is what keeps it safe to rank alongside CLAIM rather than after CLAIM4.
+CLAIM5 = re.compile(r"(\d+)\s+of\s+(\d+)\s+(?:differing\s+)?encodings?", re.I)
 CLAIM2 = re.compile(r"NON-MATCHING,\s*(\d+)\s+of\s+(\d+)", re.I)
 # A third accepted phrasing, anchored the way CLAIM2 is.  Agents naturally write
 # "PARKED at 20 of 76" and neither pattern above matched it, so such a park
@@ -155,7 +166,7 @@ def check(path):
             r"NO\s+(?:objcmp\s+)?(?:FIGURE|CANDIDATE)|"
             r"NOT\s+RECONSTRUCTED|TRIAGE\s+ONLY|NO\s+CANDIDATE\s+WRITTEN",
             flat, re.I)
-        claims = (CLAIM.search(flat) or CLAIM2.search(flat)
+        claims = (CLAIM.search(flat) or CLAIM5.search(flat) or CLAIM2.search(flat)
                   or CLAIM3.search(flat) or CLAIM4.search(flat)) or CLAIM3.search(flat)
         if declares_none and not claims:
             return ("NOFIGURE", "triage park, no candidate and no figure claimed",
@@ -187,7 +198,7 @@ def check(path):
     ref = ref.strip("'\"")
     if not os.path.exists(os.path.join(ROOT, ref)):
         return ("UNCHECKABLE", f"reference {ref} not found", None, None)
-    cm = (CLAIM.search(hdr) or CLAIM2.search(hdr)
+    cm = (CLAIM.search(hdr) or CLAIM5.search(hdr) or CLAIM2.search(hdr)
           or CLAIM3.search(hdr) or CLAIM4.search(hdr)) or CLAIM3.search(hdr)
     # A park with NO FUNCTION BODY still produces a number: objcmp compiles the
     # empty translation unit and reports every one of the reference's encodings as

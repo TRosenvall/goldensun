@@ -1,3 +1,102 @@
+/* Func_801bcd4 -- PARK IMPROVED 48 -> 16, and the CROSS-JUMP BOUND IS REFUTED.
+ * Batch 326 brief A.
+ *
+ *   16 differing encodings of 81.  ref 81 encodings, ours 81 -- EQUAL.
+ *   SIZE IDENTICAL (196 bytes).  RELOCATIONS IDENTICAL -- both
+ *   `R_ARM_THM_CALL LoadInventoryIcon` are back, so the cross-jump is GONE.
+ *   90 instruction lines against the ROM's 90, matching LINE FOR LINE except
+ *   the prologue and one register role.  The previous body read 48 of 81 at
+ *   80 encodings / 192 bytes with shifted relocations.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/801bcd4.c \
+ *     asm/rom_15000/rom_1aeec_a_a_c_c.s --func Func_801bcd4
+ *
+ * ================= THE ONE EDIT: `default: break;` INSTEAD OF `default: return s;`
+ *
+ * Semantically identical -- no call sits between the two, so both yield `s` --
+ * and gcc even reproduces the ROM's own two-label exit (`.L1bd82: ldr r4,[sp,#8]`
+ * followed by `.L1bd84: mov r0,r4`, with the out-of-range `bhi` and the two
+ * unused jump-table words aimed at the SECOND label, skipping the reload).
+ *
+ * WHY IT MOVES 32 ENCODINGS, read in the dumps rather than inferred:
+ *
+ *   `s` is address-taken, so every by-value read of it is a MEM read, and
+ *   `.07.gcse` PREs all of them into one pseudo (reg 65 / 62 / 63 depending on
+ *   the body).  Each three-argument arm's own eval-time temp must be its
+ *   quantity's `first_reg` to survive `canon_reg` (cse.c:2630-2646, which
+ *   substitutes `first_reg` unconditionally for any pseudo with a valid
+ *   quantity).  `make_regs_eqv`'s promotion test (cse.c:1026-1035) needs
+ *
+ *       uid_cuid[REGNO_LAST_UID (temp)] > uid_cuid[REGNO_LAST_UID (PRE pseudo)]
+ *
+ *   ** AND THE PRE PSEUDO'S LAST MENTION WAS IN THE `default:` ARM. **  With
+ *   `default: return s;` that arm is laid out AFTER every other arm (insn 159
+ *   at `code_label 156`, bb 11, in `.07.gcse`), so NO arm's temp can outlive
+ *   it -- not the last arm's, and not a shared function-scope temp spanning all
+ *   four three-argument arms, which I measured at 48 FLAT with insn 85's source
+ *   still rewritten at `.09.cse2`.  Written `default: break;`, that arm reads
+ *   the stack slot through the common exit instead, the PRE pseudo's last
+ *   mention moves back into case 9, the eval-time temps stay canonical, insn 78
+ *   survives, and r2 is set FIRST in every arm.
+ *
+ * > THE PARK'S BOUND SAID "THE SUFFIX LENGTH *IS* THE COLLAPSE ... THERE IS NO
+ * > SECOND DOOR".  That is right about the mechanism and wrong about the bound:
+ * > the door was the DEFAULT ARM, which is not part of the suffix at all.  The
+ * > park correctly identified `load_register_parameters` as emitting r2 last
+ * > (confirmed: calls.c:1692-1695 loops FORWARD because arm defines no
+ * > `LOAD_ARGS_REVERSED`), and correctly identified `canon_reg` as the actor;
+ * > what it got wrong was treating the PRE pseudo's lifetime as fixed "by
+ * > construction".  IT IS SET BY WHERE THE LAST READ OF `s` IS.
+ *
+ * ================= WHAT THE REMAINING 16 IS -- ONE PROLOGUE COPY CHAIN
+ *
+ *   rom   mov r8,r3 / mov r3,#1 / sub sp,#0xc / mov r4,r2 / neg r3,r3 /
+ *         mov r7,r0 / mov r5,r1 / str r2,[sp,#8] / mov r6,r4
+ *   ours  mov r5,r2 / mov r8,r3 / mov r3,#1 / sub sp,#0xc / mov r4,r5 /
+ *         neg r3,r3 / mov r7,r0 / mov r6,r1 / str r5,[sp,#8]
+ *
+ * NINE INSNS EACH.  The ROM has THREE pseudos for the slot value -- the
+ * parameter (allocated to the INCOMING r2, so `(set reg34 r2)` is a noop and
+ * vanishes), the PRE pseudo (r4), and a third for the early return (r6, copied
+ * from r4).  We have TWO: the parameter lives across the call in r5 (because
+ * the early return reads it) and the PRE pseudo is r4.  Our `mov r5,r2` stands
+ * where the ROM's `mov r6,r4` does.  The other 7 of the 16 are the consequent
+ * r5/r6 swap for the second argument `b`, one per arm plus the early return.
+ *
+ * ** SO THE 16 IS THE SAME COPY-COLLAPSE FAMILY AGAIN, now in the prologue, and
+ * the blocker is cse2's EXTENDED BASIC BLOCK. **  Traced on a
+ * `s = slot; s0 = s; ... return s0;` body (scratch_elev/b326/A/dump/bcd4s0):
+ * `.02.jump` through `.08.loop` hold `insn 36 (set (reg/i:SI 0 r0) (reg/v:SI
+ * 37))` with `s0` = reg 37 intact; at `.09.cse2` it reads `(reg/v:SI 34)` and
+ * reg 37 is dead by `.12.life`.  There is NO CODE_LABEL between the function
+ * entry and the early return -- the guard's fall-through path has none -- so
+ * `cse_end_of_basic_block` (cse.c:6572, `while (p && GET_CODE (p) !=
+ * CODE_LABEL)`) puts reg 37's WHOLE live range inside one cse2 block, promotion
+ * sub-condition (i) fails, and `canon_reg` rewrites the return to the parameter.
+ *
+ * MEASURED on top of this body, all EXACTLY INERT at 16 (crossfire, 5 edits):
+ *   `s0 = s` + compare s0 + return s0; `s0 = s` + compare s0 + return slot;
+ *   `s0 = s` + compare the PARAMETER + return s0; `return -1` in the guard
+ *   (legal -- `s` is -1 there); and a block-scoped `int s0 = s;` placed INSIDE
+ *   the guard, after the compare.  Spelling does not reach it, exactly as the
+ *   family's law predicts.
+ * MEASURED AND WORSE: `t = 0;` as a separator reads 80 at 83 insns; a shared
+ *   function-scope arg temp `u` with `default: u = s; return u;` reads 65 at 78.
+ *
+ * NEXT, named: give the early-return pseudo a live range that LEAVES cse2's
+ * first extended block, or get a CODE_LABEL between the entry and the early
+ * return without paying an instruction.  REFUTED IF either is reachable.
+ *
+ * SIBLINGS BY SIGNATURE (unverified): any park whose residue is "two copies of
+ * one value in the opposite direction" where one of the two is a parameter
+ * copy and the other is read after a call.  The diagnostic is cheap -- grep
+ * `.09.cse2` for a `(set (reg/i:SI 0 r0) (reg/v:SI N))` whose N differs from
+ * `.08.loop`'s.
+ */
+
 /* Func_801bcd4 -- PARK STANDS.  Batch 325 brief B: figure re-derived, and the
  * park's PASS ATTRIBUTION REFUTED by its own dumps.
  *
@@ -269,7 +368,7 @@ int Func_801bcd4(int kind, int b, int slot, int d)
 		LoadUIBanner(b, 0, s);
 		break;
 	default:
-		return s;
+		break;
 	}
 	return s;
 }

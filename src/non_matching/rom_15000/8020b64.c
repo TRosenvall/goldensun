@@ -1,3 +1,104 @@
+/* Func_8020b64 -- PARK STANDS at 50 of 57, but the BLOCKER IS REDUCED FROM FOUR
+ * SITES TO ONE, and two of the three legs are solved.  Batch 326 brief A.
+ *
+ *   50 differing encodings of 57.  ref 57 encodings / 116 bytes / 56 insns,
+ *   ours 55 / 112 / 55.  Re-measured; identical to the batch-324/325 figure.
+ *   The whole 50 is ONE MISSING INSTRUCTION plus its misalignment.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/8020b64.c \
+ *     asm/rom_15000/rom_20198_c_c_c_a_a_a_a_c.s --func Func_8020b64
+ *
+ * =========== CORRECTION: THE SWAP'S SECOND GATE IS ADJACENCY, AND IT BREAKS
+ *
+ * docs/elevation.md and the headers below treat `cse_insn`'s transform as
+ * governed by the liveness test in `make_regs_eqv`.  It has TWO MORE gates,
+ * both structural, and both defeated by ONE ORDINARY STATEMENT:
+ *
+ *   cse.c:5980   && NEXT_INSN (PREV_INSN (insn)) == insn
+ *   cse.c:5992   rtx prev = prev_nonnote_insn (insn);
+ *   cse.c:5993-4 if (prev != 0 && GET_CODE (prev) == INSN
+ *                    && GET_CODE (PATTERN (prev)) == SET
+ *                    && SET_DEST (PATTERN (prev)) == SET_SRC (sets[0].rtl))
+ *
+ * ** A STATEMENT PLACED BETWEEN TWO MEMBERS OF THE COPY CHAIN STOPS THE SWAP
+ * OUTRIGHT, IN cse AND IN cse2, WHATEVER THE LIVENESS. **  The fourteen flat
+ * bodies varied names, types, read order and role; none moved a statement INTO
+ * the chain.  Note also that `prev_nonnote_insn` skips NOTEs but NOT
+ * CODE_LABELs, so a chain member that is the first insn of a block is already
+ * immune -- which is why only the IN-LOOP chain ever needed fixing.
+ *
+ * Chain length after the loop's `ldrb`, by pass (insn counts in brackets; count the reg-reg SImode copies between the
+ *   `(zero_extend (mem:QI ...))` and the loop-closing compare in each -da dump):
+ *
+ *   body                  .02.jump .03.cse .09.cse2 .12.life .13.combine .19.flow2
+ *   this park body           3        2        2        2         2          2  [55]
+ *   batch 325's block `x`    4        3        3(dead)  2         2          2  [55]
+ *   A: `x=*src; n++; c=x;`   4        3        3        3         2          2  [55]
+ *   E: store between         4        3        3        3         2          2  [55]
+ *   H3 / K: see below        4        3        3        3         3          2  [55]
+ *
+ * ** FOUR bodies now carry the chain past cse2 and TWO carry it past combine.
+ * No body before batch 326 got past cse2 at all. **
+ *
+ * =========== THE THREE LEGS, EACH WITH ITS OWN MEASURED SINK
+ *
+ * Name the ROM's three insns p1 (`ldrb r3,[r1]`), p2 (`mov r2,r3`), p3
+ * (`mov r3,r2`).  The ROM's liveness is: p1 ONE use (p2's copy), p2 TWO uses
+ * (the `strb` at the top of the NEXT iteration, and p3's copy), p3 ONE use (the
+ * loop-closing `cmp`).  p1 dies before p3 is born, so they SHARE r3; p2 is r2.
+ *
+ * leg 1 -- the cse/cse2 swap.  SOLVED: put a statement between p1's set and
+ *   p2's set.  (`x = *src;` always emits load-then-copy adjacently, so the
+ *   separator has to sit between the NAMED copies, which needs three names.)
+ *
+ * leg 2 -- combine folding p1 forward into p2.  SOLVED, and the lever is
+ *   specifically a MEMORY WRITE, not any statement: with `n++` as the separator
+ *   (body A) combine moves the `mem:QI` load into p2; with `buf[n] = c` as the
+ *   separator (body E) it does not.  Both bodies are otherwise identical.
+ *
+ * leg 3 -- combine folding p3 into the loop-closing `cbranchsi4`.  OPEN.  p3's
+ *   only use is that branch and it dies there, so combine substitutes p2 and
+ *   deletes the copy.  PROOF: body E's `.13.combine` branch reads
+ *   `(ne (reg/v:SI 34) 0)` where this park body's reads `(reg/v:SI 35)` -- the
+ *   branch's operand IS the collapsed copy.
+ *
+ * MEASURED on body E, all EXACTLY INERT at 52 (so leg 3 is a USE COUNT, not a
+ * mode or a spelling): `t` as `unsigned char`, `unsigned int`, `short`,
+ * `unsigned short`; and `while (t)` for `while (t != 0)`.
+ *
+ * =========== WHY THE TWO BODIES THAT DO PASS COMBINE STILL CANNOT LAND
+ *
+ * H3 (`src++; x=*src; buf[n]=c; c=x; t=c; n++;`) and K (`src++; x=*src;
+ * buf[n]=c; t=x; n++; c=t;`) both reach `.15.regmove` with THREE insns and lose
+ * one at `.19.flow2`.  Both reverse the chain so that p3, not p2, is the
+ * loop-carried value.  p3 is then live across the back edge while p1 is live at
+ * the load that precedes the store, so p1 and p3 OVERLAP and cannot share a
+ * register; the allocator gives p1 and p2 the same one instead, the copy becomes
+ * `(set (reg:SI 3 r3) (reg:SI 3 r3))` and the noop-move pass deletes it.
+ * Confirmed in `.19.flow2`: `insn 49 ... NOTE_INSN_DELETED`.
+ *
+ * > SO BODY E'S STRUCTURE IS THE ONLY ONE WITH THE ROM'S LIVENESS, and its
+ * > single remaining blocker is leg 3.  Body E reads 52 at 55 insns, worse than
+ * > this park's 50, so the 50 stays as the shipped figure and 52 is recorded as
+ * > a figure ABOUT the blocker.
+ *
+ * REFUTED IF someone gives p3 a second real use, or puts p3's set and the
+ * loop-closing branch in different basic blocks, without costing an
+ * instruction.  Both were looked for and neither was found; `for (;;)` with an
+ * `if (c == 0) break;` costs TWO instructions (53 insns, 52 differing), and an
+ * explicit cursor pointer costs two more (53 insns at 108 bytes) -- which
+ * independently re-confirms CORRECTION 1 below.
+ *
+ * SIBLINGS BY SIGNATURE (unverified, for whoever picks this class up):
+ * grep the parks for a loop whose body holds TWO OR MORE reg-reg copies of one
+ * loaded byte/halfword -- i.e. a `.02.jump` chain of length >= 3 between a
+ * `(zero_extend (mem:QI ...))` and the loop-closing compare.  The three-legged
+ * test above applies verbatim to any of them, and legs 1 and 2 are cheap.
+ */
+
 /* Func_8020b64 -- PARK STANDS.  Batch 325 brief B: figure re-derived, and the
  * family's MECHANISM CORRECTED against the compiler source.
  *

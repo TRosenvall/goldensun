@@ -1,24 +1,9 @@
-/* MEASURED FIGURE, backfilled in batch 324 (this park carried none).
+/* Func_8078144 (0x08078144) -- asm/rom_77000/rom_77320_a_c_c.s (3 functions).
  *
- *   4 differing encodings of 103.  SIZE EXACT (103 against 103).
- *
- * Relocations differ in ONE entry and it is a SYMBOL NAME, not an offset:
- * ref `.L7a828`, ours `_TBL_7a828`.  The ROM references a LOCAL LABEL in
- * .rodata where we reference a named symbol -- so the open question is how the
- * original DECLARED that table, not what code it emitted.  First differing
- * encoding is at index 42 (ref 2238, ours 2338).
- *
- * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_77000/8078144.c asm/rom_77000/rom_77320_a_c_c.s --func Func_8078144
- *
- * The figure is EVIDENCE.  Everything below it is a HYPOTHESIS, and across
- * pass two a park's diagnosis has been wrong roughly 40 times in 42.
- */
-
-/* Func_8078144 -- p3, batch 321 bucket C.  PARK, NOT A LANDING.
- *
- * FIGURE 4 of 103 encodings, SIZE EXACT (ref 103 / ours 103, no COUNT, no MEM).
- *   Measured, confirming the batch-319 backfill figure.
+ * PARK HELD AT 4 of 103 encodings.  SIZE EXACT (103 against 103), per-opcode
+ * memory profile the reference's exactly (ldr=4 ldrb=2 ldrh=1 ldrsh=6 strh=5).
+ * The figure is unchanged; THE DIAGNOSIS IS CORRECTED, in the direction the
+ * batch-321 park rejected.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -26,82 +11,124 @@
  *     src/non_matching/rom_77000/8078144.c \
  *     asm/rom_77000/rom_77320_a_c_c.s --func Func_8078144
  *
- * THE RELOCATION WARNING IN THE PARK HEADER IS NOT A DIRTY FIGURE.  All nine
- * relocations sit at identical offsets; the only delta is `.L7a828` against
- * `_TBL_7a828` at 0xd8, an ALIAS for the same address.  The figure IS a distance.
+ * INSTALLED PATH, if it ever lands: src/rom_77000/rom_77320_a_c_c_b.c.
+ * Split shape: TEXT-ONLY, tools/datacheck.py prints nothing.
+ *   tools/split_s.py asm/rom_77000/rom_77320_a_c_c.s Func_8078144 --dry-run:
+ *     _a.s (2 functions, 237 lines), _b.s Func_8078144 (1 function, 115 lines).
+ * All THREE functions in this .s are parked -- see the note in 807808c.c.
+ * PINS: 0.  No shim, no fakematch row, no flag group.  No device.
  *
- * SPLIT, if it ever lands: three functions, this one is the LAST.
- *   python3 tools/split_s.py asm/rom_77000/rom_77320_a_c_c.s Func_8078144
- *   [dry-run] would write ..._a.s (2 functions, 237 lines) and ..._b.s (1 function, 115 lines)
- *   -> src/rom_77000/rom_77320_a_c_c_b.c.  datacheck.py: CLEAN.
- * PINS: 0.  Devices: none.  Flags: none.
+ * ---------------------------------------------------------------------------
+ * THE RELOCATION DELTA IS OUR OWN SPLITTING ARTIFACT, NOT A DIFFERENCE
  *
- * ================ _TBL_7a828 IS WITHHELD, AND THAT IS THE CORRECT RESULT ================
+ * All nine relocations sit at identical offsets; the only delta is `.L7a828`
+ * (ref) against `_TBL_7a828` (ours) at 0xd8.  `.L7a828` is an ASSEMBLER-LOCAL
+ * label in asm/rom_77000/rom_77320_c_c_c_b.s that our tree has already promoted
+ * to `.global` because the split put its user in another object -- one of the
+ * 1,544 such promotions.  A C file cannot name a `.L` symbol, and in the
+ * ORIGINAL object a reference to a same-object local label is a SECTION-relative
+ * relocation, not a named-symbol one.  So the names can never agree while the
+ * table lives in a different object than its user, and the delta says nothing
+ * about the C.  **The 4 IS a distance.  Stop reporting the relocation line as a
+ * difference.**  (`_TBL_7a828` stays out of label.sym on the COMPLETION test,
+ * exactly as the park argues -- that part is unchanged and correct.)
  *
- * TEST 1 (evidence): PASSES, on label.sym's own bar rather than on a pool tell.
- *   The ROM has `ldr r3, =.L7a828`, an assembler-local label at
- *   asm/rom_77000/rom_77320_c_c_c_b.s:13 that is unreachable from C, and it is
- *   already `.global` in that .s -- which is label.sym's stated bar.  Re-verified.
- *   (aliases.txt:537 has BYTE_ARRAY_0807a828, but aliases.txt is NOT INCLUDEd by
- *   stage1.ld, so it does not link and is not a substitute.  Do not reach for it.)
+ * ---------------------------------------------------------------------------
+ * WHAT THE 4 ENCODINGS ARE, READ FROM THE MACHINE DESCRIPTION
  *
- * TEST 2 (completion): FAILS.  With the entry, FOUR encodings still differ.  That
- *   is the _FILE_e4 shape exactly -- an accepted argument that buys a relocation
- *   line and leaves real differences -- so the entry stays out.  A build input is
- *   worth adding when it COMPLETES a function, not when it improves one.
+ * Indices 42-45, two `ldrsh`es and their two scratch `mov`s:
  *
- * ================ THE PARK'S "THE TWO RESIDUES TRADE" DIAGNOSIS IS REFUTED ================
+ *      ref                          ours
+ *  47  movs  r2, #0x38              movs  r3, #0x38
+ *  48  ldrsh r0, [r5, r2]           ldrsh r0, [r5, r3]
+ *  49  movs  r3, #0x34              movs  r2, #0x34
+ *  50  ldrsh r1, [r5, r3]           ldrsh r1, [r5, r2]
  *
- * The park says source order A keeps the scratch registers right but sinks
- * `strh [r5, #0x3a]` below the first `ldrsh` (6 differing), and order B keeps the
- * store put but swaps the scratch registers (4 differing), so "no source order can
- * satisfy both".  REPRODUCED: swap-ldrsh-order does measure 6.  REFUTED as a
- * characterisation of the 4, because in the body below BOTH the store position AND
- * the load order are ALREADY the ROM's.  Ours against ref:
+ * The scratch is NOT a local-alloc pseudo.  `.17.lreg` still carries the address
+ * as `(plus (reg 32) (const_int 56))`, and `.19.flow2` has
  *
- *     ldrh  r3, [r5, #0x36]      ldrh  r3, [r5, #0x36]
- *     strh  r3, [r5, #0x3a]      strh  r3, [r5, #0x3a]
- *     mov   r3, #0x38            mov   r2, #0x38       <-- only difference
- *     ldrsh r0, [r5, r3]         ldrsh r0, [r5, r2]
- *     mov   r2, #0x34            mov   r3, #0x34
- *     ldrsh r1, [r5, r2]         ldrsh r1, [r5, r3]
+ *   (insn 141 (parallel [(set (reg/v:SI 1 r1)
+ *        (sign_extend:SI (mem:HI (plus:SI (reg/v:SI 5 r5) (const_int 52)) 8)))
+ *       (clobber (reg:SI 2 r2))]) 162 {*thumb_extendhisi2_insn}
  *
- * SO THE WHOLE RESIDUE IS ONE REGISTER-ALLOCATION CHOICE: which of r2/r3 holds
- * which `ldrsh` offset.  (Thumb `ldrsh` has only the register-offset form, which
- * is why the two scratch `mov`s exist at all.)  gcc reuses r3 the instant `strh`
- * frees it; the ROM's allocator took r2 first and r3 second.  There is no trade
- * and no scheduling question left -- 4 is a pure allocation residue, and that is a
- * better map for pass 3 than "the residues trade".
+ * and `*thumb_extendhisi2_insn` (arm.md:3239-3242) declares that operand as
+ * `(clobber (match_scratch:SI 2 "=&l"))`.  **A `match_scratch` is a RELOAD
+ * register**, so this goes through `allocate_reload_reg` -- layer 3 of batch
+ * 325's settled model, the round-robin from `last_spill_reg` (reload1.c:5003).
+ * `last_spill_reg` is initialised to -1 exactly once per function
+ * (reload1.c:821) and advanced only at :4937, so **the cursor is FUNCTION-WIDE,
+ * not per-insn.**  Read from source.
  *
- * MEASURED HERE (crossfire, depth 2, device-free): base 4, and FLAT at 4 across
- * drop-unused-k, decl-r0-after-r1, decl-r3-first, short-ptr-subscript,
- * short-ptr-local and every pair of them -- 16 rows, all exactly inert.
- * swap-ldrsh-order 6 (and 6 crossed with everything).  separate-copy-local 7.
- * swap + separate-copy 9.  Plus the park's own list: inline index 29, offset
- * locals 29, signed-short store 75, one-statement copy 29, separate store pointer
- * 29, store between loads 29, store after both loads 28, offset locals either
- * order 27, --no-sched2 27.
+ * And this function reproduces batch 325's decisive observable.  `.18.greg`:
  *
- * THE SWEEP IS FLAT, so per the brief the lever is not in any dimension swept.
+ *     Spilling for insn 141.   Using reg 3 for reload 0
+ *     Spilling for insn 146.   Using reg 3 for reload 0
  *
- * ================ A FREE DIVIDEND: THE REAL STRUCT, AND IT IS BYTE-IDENTICAL ================
+ * `find_reg` printed r3 for BOTH; the emitted pair is (r2, r3).  A `Using reg`
+ * line is not the register you get -- confirm in `.19.flow2`.
  *
- * The brief's humanization pattern 4 was tried properly: all ELEVEN raw-offset
- * accesses `*(short *)((char *)r5 + N)` were replaced by named fields of a
- * `struct Unit *` with 0x14/0x16/0x34/0x36/0x38/0x3a declared as `short`
- * (scratch_elev/b321/C/v_78144_struct.c, zero `(char *)r5` left).  Result:
- *   4 of 103, first at index 42 -- IDENTICAL OUTPUT, down to the index.
- * So the typed struct is NOT a lever here, but it is free: same bytes, much better
- * C.  Worth adopting on code-quality grounds whenever this function is revisited,
- * and worth recording as a measured negative for pattern 4 on an allocation residue.
+ * ---------------------------------------------------------------------------
+ * THE BATCH-321 REFUTATION IS ITSELF REFUTED: THE RESIDUES DO TRADE
  *
- * WHAT PASS 3 SHOULD TRY: this is a two-register allocation swap in local-alloc,
- * not a source-shape problem.  The levers left are the ones the brief names when a
- * sweep goes flat -- the SIGNATURE of GetUnit (its return type reaching this body),
- * or the TU shape (this function's two file-mates, which a split would separate).
+ * This park has said, since batch 321:
+ *
+ *   "SO THE WHOLE RESIDUE IS ONE REGISTER-ALLOCATION CHOICE ... There is no
+ *    trade and no scheduling question left -- 4 is a pure allocation residue"
+ *
+ * reached by reproducing the batch-319 park's `swap-ldrsh-order` at 6 and
+ * declaring the matter closed.  MEASURED HERE: swapping the two source
+ * statements so the 0x38 read comes first,
+ *
+ *     r0 = *(short *)((char *)r5 + 0x38);
+ *     r1 = *(short *)((char *)r5 + 0x34);
+ *
+ * makes ALL FOUR of those encodings EXACT -- `movs r2,#0x38 / ldrsh r0,[r5,r2] /
+ * movs r3,#0x34 / ldrsh r1,[r5,r3]`, the ROM's pair -- and costs 6 because
+ * `strh r3,[r5,#0x3a]` then sinks below the first `ldrsh` and `lsls r0,r0,#14`
+ * rises past the second `movs`.
+ *
+ * So 4 and 6 are COMPLEMENTARY CORNERS, which is what the batch-319 park said
+ * and what batch 321 rejected.  Batch 321 refuted the WORDING ("no source order
+ * can satisfy both") by observing that the 4-body has the store position and the
+ * load order right -- without noticing that the 4-body has the REGISTERS wrong
+ * and that the 6-body is its exact complement.
+ *
+ * THIS IS WHY THE SWEEPS WERE FLAT.  Three crossfire runs at depth 2 over 11
+ * local edits and every pair -- getunit-uint, gstate-flat-index, flag-88-flat,
+ * flag-89-flat, drop-unused-k, t-uchar, ok-decl-first, decl-r0-before-r1,
+ * shift-in-load-stmt, div-expanded, copy36-one-stmt -- read **exactly 4 on every
+ * single row**, 56 rows.  The park's own 16-row sweep was flat for the same
+ * reason.  The one dimension that moves this function is the ORDER OF THE TWO
+ * `ldrsh` STATEMENTS, and none of those 27 edits touches it.
+ *
+ * MEASURED ON THE SWAPPED BASE (crossfire depth 2, 10 edits):
+ *   6   the swapped base itself
+ *   5   `strh [0x3a]` moved after both loads -- scratch 1 becomes r2 (correct)
+ *       but scratch 2 becomes r2 again, so the pair is (r2,r2) not (r2,r3)
+ *   4   `shift-in-load` and its seven crossings -- but that edit's `new` text
+ *       puts the 0x34 read back first, i.e. it UN-SWAPS; this 4 is the base 4,
+ *       not a new corner.  Recorded so nobody reads it as progress.
+ *
+ * WHAT TO TRY NEXT, with the mechanism attached: on the swapped base the defect
+ * is the 0x3a store's SCHEDULER PRIORITY, which comes from whichever later insn
+ * overwrites its source register r3 -- in the swapped body that is the SECOND
+ * scratch `movs r3,#0x34` instead of the first, so the store inherits a lower
+ * priority and sinks.  (The same mechanism, in the same bank, is what is left of
+ * Func_807808c -- see src/non_matching/rom_77000/807808c.c.)  The question is
+ * therefore how to lift a store whose source register nothing overwrites early,
+ * NOT how to persuade local-alloc to swap two registers.
+ *
+ * FREE CORRECTNESS DIVIDEND, measured exactly inert: the real callee signatures
+ * in this tree are `int GetPartySize(void)` (src/rom_77000/rom_79460_b.c:10),
+ * `int GetFlag(int idx)` (src/rom_77000/rom_79338_a.c:68) and
+ * **`void *GetUnit(unsigned int id)`** (src/rom_77000/rom_77320_a_a_c_c_a_b.c:136).
+ * The park declared `GetUnit(int)`; corrected below.
+ *
+ * The typed-struct rewrite the park records as byte-identical still is; it
+ * remains worth adopting on code-quality grounds whenever this lands.
  */
 extern int GetPartySize(void);
-extern void *GetUnit(int unit);
+extern void *GetUnit(unsigned int id);
 extern int GetFlag(int id);
 extern unsigned char gState[];
 extern unsigned char L7a828[] __asm__("_TBL_7a828");
