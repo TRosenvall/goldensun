@@ -108,6 +108,102 @@
  *     cam[0]-first x any of the seven inert edits            14  (the inert
  *         edits do not unlock the dx-chain-first form)
  * Nothing below 8 was found in 84 measured subsets.
+ *
+ * ---------------------------------------------------------------------------
+ * BATCH 325 BRIEF D -- REOPENED AGAINST THE RELOAD-CURSOR READING. PARK HOLDS
+ * AT 8 of 44.  Re-derived: objcmp --func 8 of 44 (ref 44, ours 44), first at
+ * index 7, indices 7..14 contiguous, relocations identical, MEM ldr=9 str=2.
+ * (`--whole` prints SIZE ref 164 / ours 96 because the .s still carries the
+ * .rodata the split above would separate; the --func figure is the distance.)
+ *
+ * *** VERDICT: GENUINE ALLOCATION ORDER (local-alloc), NOT A RELOAD CURSOR. ***
+ * `.18.greg` does print three reloads -- `Using reg 0` twice and `Using reg 3`
+ * once, for insns 46/49/53 -- but those are the guard's pooled constants and
+ * they are already byte-exact; none of them is in indices 7..14.  And the two
+ * lines are `find_reg`'s (reload1.c:1664) and `find_reload_regs`' (:1729), not
+ * `allocate_reload_reg`'s, which prints nothing; `choose_reload_regs_init`
+ * (:5129) confines the round-robin cursor to `chain->used_spill_regs`, so on a
+ * one-reload insn the cursor has no freedom.  See
+ * src/non_matching/rom_15000/801f730.c for that reading in full.
+ *
+ * THE PARK'S OBSERVATION REPRODUCES EXACTLY.  `.17.lreg` for this body:
+ *   ;; Register 36 in 1.  (cx = cam[0])      ;; Register 37 in 3.  (cy = cam[1])
+ *   ;; Register 43 in 2.  (o[4])             ;; Register 45 in 3.  (o[2])
+ * and `;; 3 regs to allocate: 39 33 38` with dx->r1, dy->r2.  The ROM's map is
+ * cx->r1, cy->r2, and BOTH o-reads->r3.  One local-alloc decision, as claimed.
+ *
+ * *** BUT THE PARK'S "FIX cam[1]'s REGISTER AND THE CHAIN ORDER FOLLOWS;
+ *     NOTHING ELSE IS WRONG" IS REFUTED BY MEASUREMENT. ***
+ *
+ * Reading cam[1] BEFORE cam[0] while keeping the dy chain first gives
+ * `;; Register 37 in 2` -- cam[1] in r2, the ROM's register -- AND cx->r1,
+ * o[2]->r3, o[4]->r3, dx->r1, dy->r2.  THE WHOLE REGISTER MAP IS THE ROM'S.
+ * That body reads 10, not 0, and every one of the 10 is instruction ORDER: both
+ * streams hold the same 41 instructions.  So fixing cam[1]'s register does NOT
+ * bring the chain order with it.
+ *
+ *   int *cam; int mask; int cx, cy, dx, dy;
+ *   cam = (int *)(iwram_3001e70 + 0xe4); mask = 0xffff0000;
+ *   cy = cam[1]; cx = cam[0];
+ *   dy = o[4] - (cy & mask); dx = o[2] - (cx & mask);        -> 10 of 44
+ *   (scratch_elev/b325/D/v8/v09_dyfirst_cyread1st.c)
+ *
+ * WHY cam[1]'s REGISTER MOVES, read off the dumps: cam[1]'s qty is born at the
+ * insn where the `cam` pointer qty dies, and local-alloc's death/birth are
+ * separate slots (local-alloc.c:1415, two per insn), so it can reuse r3 --
+ * exactly as the park says.  Reading cam[1] FIRST makes the pointer die at the
+ * cam[0] read instead, i.e. AFTER cam[1]'s birth, a real overlap, and r3 is
+ * barred.  That is the lever, and it is reachable from ordinary C.
+ *
+ * WHY THE TWO HALVES COLLIDE -- the mechanism this park now stops on.  Both
+ * o-reads land in r3, so the two `ldr r3,[r0,#N]` insns carry a mutual
+ * anti-dependence; `.23.sched2`'s dependence table for the fixed-map body shows
+ * insn 24 (the cam[1] read) at prio 9 against insn 27's and insn 6's prio 8
+ * precisely because the dx chain hangs off the dy chain through that r3 edge.
+ * The chain that comes first in RTL therefore owns the longer path, wins the
+ * ready list, and goes first -- so THE OUTPUT'S CHAIN ORDER IS THE SOURCE'S
+ * CHAIN ORDER, and the sched2 ladder cannot be asked to invert it.
+ *
+ *   >> NAMED REMAINING CAUSE: the ROM needs the dx chain FIRST *and* cam[1] in
+ *      r2, and those two come from opposite source orders.  dx-first requires
+ *      cam[0] read first for the map, and cam[0]-first dx-first (v01) gives
+ *      cx->r2 / cy->r1 and `push {r5, r6, lr}` -- an extra callee-saved register
+ *      the ROM does not push.  Closing this needs a way to bar r3 over cam[1]'s
+ *      range WITHOUT lengthening the `cam` pointer's live range, i.e. a third
+ *      local-alloc qty of higher priority than cam[1]'s occupying r3 across it.
+ *      Nothing in the program supplies one.
+ *
+ * MEASURED THIS ROUND -- 45 WHOLE BODIES, ref 44 / ours 44 and MEM ldr=9 str=2
+ * everywhere except as noted.  NOTHING BELOW 8.
+ *   8   this body (base)
+ *   8   `cx = cam[0]; dy = o[4] - (cam[1] & mask); dx = o[2] - (cx & mask);`
+ *         -- EXACTLY INERT, no `cy` local and NO volatile anywhere: a candidate
+ *            prerequisite, and a strictly simpler body at the same figure
+ *  10   cam[1] read first, dy chain first        <- THE ROM'S REGISTER MAP
+ *  10   the same with either or both values pre-masked at the read
+ *  10   the same with `mask = ~0xffff`
+ *  10   the same with `mask` declared after `cam`
+ *  10   the same with `dx = -(cx & mask) + o[2]`
+ *  10   the same with `mask` assigned before `cam`
+ *  10   `unsigned int cx, cy`
+ *  12   cam[1] read first + dx chain first (three spellings)
+ *  13   both values pre-masked + dx chain first
+ *  14   dx chain first (the park's row, reproduced)
+ *  14   cam[1] read inline late + dx chain first, via a struct
+ *  14   masked values assigned into dx/dy then subtracted
+ *  15   `mask` as an inline literal at both uses
+ *  16   accumulator form with both o-reads hoisted
+ *  17   two accumulator forms
+ *  19   both camera reads inline in the expressions (3 spellings); all
+ *         `push {r5, r6, lr}`
+ *  26   both inline with the dy chain first
+ *  31   cam[1] pre-masked + dx first -- 42 insns, -4 bytes, RELOCDIFF
+ *  45   `cam2 = cam + 1` as a second pointer -- 46 insns, +4 bytes, RELOCDIFF
+ * Struct spellings for the camera (`struct Cam { int x, y; }`) and for `o` both
+ * reach 19 and need r6; they are not a route.
+ *
+ * Bodies live in scratch_elev/b325/D/v8/, the reasoning in
+ * scratch_elev/b325/D/NOTES.md.
  */
 extern int iwram_3001e70;
 

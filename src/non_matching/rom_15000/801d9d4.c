@@ -1,4 +1,4 @@
-/* Func_801d9d4 (DrawSubScreen) -- 0x0801d9d4, asm/rom_15000/rom_1ca1c_c_c_c.s
+/* Func_801d9d4 (DrawSubScreen) -- 0x0801d9d4, asm/rom_15000/rom_1ca1c_c_c_c_b.s
  *
  * NON-MATCHING: 2 encodings of 184 differ (objcmp).  PIN-FREE, SHIM-FREE, NO asm.
  * Was 41 when batch 324 opened it.  41 -> 36 -> 30 -> 4 -> 2.
@@ -12,7 +12,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_15000/801d9d4.c \
- *     asm/rom_15000/rom_1ca1c_c_c_c.s --func Func_801d9d4
+ *     asm/rom_15000/rom_1ca1c_c_c_c_b.s --func Func_801d9d4
  *
  * The only non-obvious declaration is
  * `extern unsigned char L367dc[] __asm__(".L367dc");` -- the tree's established

@@ -183,6 +183,133 @@
  *   - `r = -9` assigned AFTER the Func_80056cc call, which gives
  *     `bl / mov r5,#9 / neg r5,r5 / cmp r0,#0` in that order.
  *   - the pooled 0x1071 added to the DEREFERENCED global.
+ *
+ * ---------------------------------------------------------------------------
+ * BATCH 325 BRIEF D -- REOPENED AGAINST THE RELOAD-CURSOR READING. PARK HOLDS
+ * AT 3 of 33.  Re-derived, not inherited: objcmp --func 3 of 33 (ref 33, ours
+ * 33), --whole 3 of 33 first at index 12, SIZE 76 v 76, relocations identical,
+ * MEM ldr=3 ldrb=1.  Indices 12/14/15 as the park says.
+ *
+ * *** VERDICT: THIS IS A GENUINE ALLOCATION-ORDER CASE, NOT A RELOAD CURSOR. ***
+ *
+ * Batch 324 found reload's round-robin cursor in `allocate_reload_reg`
+ * (reload1.c:4962, `last_spill_reg` at :5003) and batch 325's brief asked every
+ * REG_ALLOC_ORDER park to be retested against it.  Read in the compiler
+ * (~/gs_project/camelot-gcc/gcc-2.96/gcc/), the cursor is NOT what decides this:
+ *
+ *  1. THE TWO DUMP LINES EVERYONE READS ARE NOT `allocate_reload_reg`'S.
+ *     `grep -n 'Using reg %d for reload' reload1.c` gives ONE hit, at
+ *     reload1.c:1664, inside `find_reg` (reload1.c:1588).  "Spilling for insn
+ *     %d." is reload1.c:1729 in `find_reload_regs`.  `allocate_reload_reg`
+ *     prints nothing at all.
+ *  2. `find_reg` READS REG_ALLOC_ORDER EXPLICITLY, reload1.c:1645-1662:
+ *     minimum `spill_cost`, ascending hard-reg scan, with
+ *     `inv_reg_alloc_order[regno] < inv_reg_alloc_order[best_reg]` as the
+ *     tie-break among equal costs.
+ *  3. AND THE CURSOR CANNOT REACH PAST `find_reg`.  `choose_reload_regs_init`
+ *     (reload1.c:5129) sets `reload_reg_unavailable` to the COMPLEMENT of
+ *     `chain->used_spill_regs`, which is what `find_reload_regs` wrote at
+ *     reload1.c:1761 from `find_reg`'s picks; and `reload_reg_unavailable` is
+ *     tested in BOTH gates of the cursor loop -- `reload_reg_free_p`
+ *     (reload1.c:4280) and `reload_reg_free_for_value_p` (reload1.c:4684).
+ *     So the cursor walks the global `spill_regs` array but can only stop on a
+ *     register find_reg already reserved FOR THAT INSN.  This function has ONE
+ *     reload, so `used_spill_regs` has ONE bit and the cursor has no freedom.
+ *
+ *     >> A RELOAD CURSOR CAN ONLY DECIDE ANYTHING ON AN INSN WITH TWO OR MORE
+ *        RELOADS (which of them gets which reserved reg), OR UNDER RELOAD
+ *        INHERITANCE.  On a single-reload insn "the cursor shifted" is not an
+ *        available explanation.  The `.18.greg` SPILL SET is still the right
+ *        observable -- it is just find_reg's output, not a cursor's.
+ *
+ * WHAT find_reg ACTUALLY WEIGHS HERE.  `order_regs_for_reload`
+ * (reload1.c:1518) sets spill_cost[hard] = sum of REG_N_REFS over live pseudos
+ * allocated to that hard reg, and `bad_spill_regs` excludes fixed regs plus any
+ * HARD reg live in or across the insn.  At insn 134 the live pseudos are the
+ * pointer->r3, counter 36->r1, giv 45->r2 (in dead_or_set), `r`->r5, `a`->r6,
+ * and hard r7 is live so r7 is barred.  That leaves TWO zero-cost candidates,
+ * r0 and r4, and inv_reg_alloc_order (r3=0 r2=1 r1=2 r0=3 ip=4 lr=5 r4=6) picks
+ * r0.  So the park's "r0 is simply the first free one" understates it: there are
+ * two free registers and REG_ALLOC_ORDER chooses between them.
+ *
+ *   >> THE EXACT REQUIREMENT FOR THE ROM'S `ldr r1,=0x1071` IS
+ *      `spill_cost[r1] == 0` AT INSN 134.  r1 beats r0 and r4 on the tie-break
+ *      (inv 2 < 3 < 6), so a TIE at zero suffices -- it need not be cheaper.
+ *
+ * THE PARK'S BOUND SURVIVES, RE-DERIVED INDEPENDENTLY FROM loop.c:
+ *   - the giv init is emit_iv_add_mult(bl->initial_value, ..., loop_start) at
+ *     loop.c:4777-4778, and emit_iv_add_mult ends in
+ *     emit_insn_before (seq, insert_before) at loop.c:7636 -- immediately before
+ *     NOTE_INSN_LOOP_BEG, which is where insn 134 sits in our dump.  CONFIRMED.
+ *   - check_dbra_loop is called from strength_reduce at loop.c:4408, 370 lines
+ *     BEFORE that, and also inserts before loop_start, so the later insertion
+ *     lands CLOSER to loop_start: the giv init is always AFTER the counter init.
+ *     CONFIRMED.
+ *   - and in THIS function the counter init is not check_dbra_loop's at all: it
+ *     is insn 39, a low (expand-era) UID, i.e. the source's own `i = 2`.  No
+ *     pass-created insn can precede it.
+ *   The only other route to spill_cost[r1] == 0 needs live pseudos in BOTH r0
+ *   and r4 across the preheader -- two extra loop-spanning locals, a different
+ *   program and a different prologue.
+ *
+ * ONE CORRECTION TO THE PARK'S DECOMPOSITION, IN ITS FAVOUR: indices 14/15 are
+ * not an independent sched2 defect.  In the ROM `add r2,r3,r1` READS r1 and
+ * `mov r1,#2` WRITES it -- a WAR dependence that forces the ROM's order.  Fix
+ * index 12 and 14/15 follow for free.  ONE CAUSE, THREE ENCODINGS.
+ *
+ * MEASURED THIS ROUND, 13 more bodies, none better than 3 (ref 33 / ours 33,
+ * size 76, relocations identical, idx=[12,14,15] unless noted):
+ *   q06  k = 0x1071 before p = iwram_3001f1c                    3 (inert)
+ *   u04  q = p + 0x1071 with an index from 0                     3 (inert)
+ *   u05  i = 2 first, do/while, i-- at the bottom                3 (inert)
+ *   u02  p[0x1071 + i * 0x40], no walking index                  5
+ *   u03  p[0x1071 + (i << 6)]                                    5
+ *   u06  p = base + 0x1071 then p[i * 0x40]                      5
+ *   u01  single biv: for (k = 0x1071; k < 0x1131; k += 0x40)     6, 34 insns, +4 bytes
+ *   q01  walking `signed char *q`, init BEFORE the counter       7  MEM ldrsb
+ *   q02  same, spelled q[0]                                      7  MEM ldrsb
+ *   q03  same, up-counting loop                                  7  MEM ldrsb
+ *   q04  same, with a separate base local `p`                     7  MEM ldrsb
+ *   r03  same, `if (*q)`                                         7  MEM ldrsb
+ *   r05  same, via `signed char c = *q;`                         7  MEM ldrsb
+ *   r07  same, via `int c = *q;`                                 7  MEM ldrsb
+ *   q05  walking pointer, `while (i-- != 0)`                    25, 35 insns, +4 bytes
+ *   r01  walking `unsigned char *q`                             20, 31 insns, -4 bytes
+ *   r02  walking `char *q`                                      20, 31 insns, -4 bytes
+ *   r04  walking unsigned ptr, `(signed char)*q != 0`           20, 31 insns, -4 bytes
+ *   r06  walking unsigned ptr, `(*q << 24) != 0`                20, 31 insns, -4 bytes
+ *   r08  walking unsigned ptr, `if (*q)`                        20, 31 insns, -4 bytes
+ *
+ * *** THE SHARPEST NEW FACT, AND IT IS A HALF-FIX IN THE OTHER LIST. ***
+ * The walking-pointer form FIXES indices 12/14/15 -- q01's first differing
+ * encoding is at index 16, so the reload register and the two insns around it
+ * are EXACT.  Writing `q = iwram_3001f1c + 0x1071;` BEFORE the loop means the
+ * 0x1071 is materialised before the counter is live, and find_reg takes r1.
+ * What it breaks instead is the LOAD: Thumb-1 `ldrsb` has no immediate-offset
+ * form, so `*q` with a `signed char *` costs `mov r3,#0` + `ldrsb r3,[r2,r3]`
+ * where the ROM has `ldrb r3,[r2]` + `lsl r3,#24` -- a MEM-screen failure
+ * (ldrsb=1 against the ROM's ldrb=1), not a distance.  An `unsigned char *`
+ * gets `ldrb` back but loses the `lsl #24` entirely and runs TWO INSTRUCTIONS
+ * SHORT (31 against 33), so its 20 is misalignment.
+ *
+ * So the two halves are: the walking POINTER buys index 12 and costs the load;
+ * the walking INT INDEX buys the load and costs index 12.  SIX spellings of the
+ * load were swept on top of the walking pointer (r01-r08) and none recovers
+ * `ldrb` + `lsl #24` with the right length.
+ *
+ *   >> NAMED REMAINING CAUSE: the `ldrb` + `lsl #24` pair is the expand-time
+ *      QImode sign-extend-by-shift-pair (its `asr #24` is dropped by combine's
+ *      simplify_comparison against 0), and gcc only chooses it when the address
+ *      is a `(plus base index)` at EXPAND time -- which is exactly the spelling
+ *      that forces strength_reduce to create the giv init, and therefore the
+ *      reload, after the counter init.  To close this park someone has to find a
+ *      QImode sign-extending load whose address is a plain register at expand
+ *      time and which still takes the shift-pair path.  That is one grep in
+ *      arm.md's extendqisi/movqi alternatives, and it was not done here.
+ *
+ * (Also reconfirmed from the park: the explicit-countdown and up-counting loop
+ * forms are bit-identical under check_dbra_loop, so loop form is one equivalence
+ * class here and sweeping it measures nothing.)
  */
 extern int Func_80056cc(void);
 extern int Func_8005c68(void);

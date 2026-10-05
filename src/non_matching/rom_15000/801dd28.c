@@ -3,7 +3,7 @@
  *
  * Verify with:
  *   python3 tools/objcmp.py src/non_matching/rom_15000/801dd28.c \
- *     asm/rom_15000/rom_1ca1c_c_c_c.s --func Func_801dd28
+ *     asm/rom_15000/rom_1ca1c_c_c_c_c.s --func Func_801dd28
  *
  * ITS .s NEEDS A TEXT/DATA SPLIT AND THE SHAPE IS KNOWN.  datacheck.py, verbatim:
  *     data sections : .rodata
@@ -37,7 +37,7 @@
  *
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py <this> \
- *     asm/rom_15000/rom_1ca1c_c_c_c.s --func Func_801dd28
+ *     asm/rom_15000/rom_1ca1c_c_c_c_c.s --func Func_801dd28
  *
  * USE objcmp, NOT tryc: this reference keeps its literal pool INSIDE the
  * function body (the 0xf000 word at .L1de38, jumped over by the `b`), which is

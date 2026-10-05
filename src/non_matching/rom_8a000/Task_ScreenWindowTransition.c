@@ -9,7 +9,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_8a000/Task_ScreenWindowTransition.c \
- *     asm/rom_8a000/rom_8d9a4_c_c_a_a_c.s --func Task_ScreenWindowTransition
+ *     asm/rom_8a000/rom_8d9a4_c_c_a_a_c_a.s --func Task_ScreenWindowTransition
  *
  * SHIMS: not applicable, no candidate. The fact that replaces it, and it is
  * the DOMINANT fact about this function: THE REFERENCE CARRIES SIX
@@ -23,7 +23,7 @@
  * MEASURED STRUCTURE -- AND WHY THE TINY FRAME IS A WARNING, NOT A GIFT
  * ================================================================
  *
- *     asm/rom_8a000/rom_8d9a4_c_c_a_a_c.s, lines 74..1159
+ *     asm/rom_8a000/rom_8d9a4_c_c_a_a_c_a.s, lines 74..1159
  *     885 instructions, 83 branches, 87 labels, 129 high-register mentions
  *     frame `sub sp, #0x18`  (24 bytes)
  *     6 veneers through r9, r3 and r7
@@ -107,19 +107,19 @@
  * SPLIT SHAPE -- CLEAN THREE-WAY, NO EXPORTS, NO DATA
  * ================================================================
  *
- * `python3 tools/datacheck.py asm/rom_8a000/rom_8d9a4_c_c_a_a_c.s` is SILENT:
+ * `python3 tools/datacheck.py asm/rom_8a000/rom_8d9a4_c_c_a_a_c_a.s` is SILENT:
  * the file carries no data section of its own and no function in it reads a
  * data label, so nothing is lost by the split and NO `.global` is needed.
  * The asm-label capture hazard does not arise, there being no labels to
  * export.
  *
- * `python3 tools/split_s.py asm/rom_8a000/rom_8d9a4_c_c_a_a_c.s
+ * `python3 tools/split_s.py asm/rom_8a000/rom_8d9a4_c_c_a_a_c_a.s
  * Task_ScreenWindowTransition --dry-run` does NOT refuse:
  *
  *     would write asm/rom_8a000/rom_8d9a4_c_c_a_a_c_a.s  (1 fn,   66 lines)
  *     would write asm/rom_8a000/rom_8d9a4_c_c_a_a_c_b.s  (1 fn, 1091 lines)
  *     would write asm/rom_8a000/rom_8d9a4_c_c_a_a_c_c.s  (1 fn,   49 lines)
- *     would REMOVE asm/rom_8a000/rom_8d9a4_c_c_a_a_c.s
+ *     would REMOVE asm/rom_8a000/rom_8d9a4_c_c_a_a_c_a.s
  *     would rewrite stage1.ld
  *
  * The target lands as src/rom_8a000/rom_8d9a4_c_c_a_a_c_b.c, and the _a piece

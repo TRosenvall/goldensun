@@ -103,7 +103,7 @@
  * datacheck.py is SILENT: no data section and no exports to add.  The five `.L`
  * tables the function reads (.L367c9, .L367cc, .L367ce, .L367d0, .L367d6) live
  * OUTSIDE this file and are reached with `__asm__(".L367c9")` declarations.
- * ALL FIVE ARE ALREADY `.global`, in asm/rom_15000/rom_1ca1c_c_c_c.s lines
+ * ALL FIVE ARE ALREADY `.global`, in asm/rom_15000/rom_1ca1c_c_c_a_a_a.s lines
  * 567-571, so the split needs NO export work -- verified, not assumed.
  */
 #include "gba/types.h"

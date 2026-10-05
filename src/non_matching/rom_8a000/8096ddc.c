@@ -1,169 +1,134 @@
-/* Func_8096ddc -- NON-MATCHING, 11 of 146.  ref 146 / ours 146, LENGTH EXACT,
- * relocations identical, first diff at index 31.  PRODUCTION FLAGS.
- * RE-MEASURED batch 322 brief E with tools/objcmp.py: 11 stands, and all 11 are
- * real instructions -- indices 0-30, 40-80 and 83-145 agree, and both
- * mid-function pools (a HImode 0 and a HImode 0xfffffc00) reproduce.
+/* Func_8096ddc -- NON-MATCHING, 11 differing encodings of 146.
+ *   RE-DERIVED batch 325 brief E: ref 146 / ours 146, SIZE 312 bytes against
+ *   312, relocations identical, first diff at index 31.  PRODUCTION FLAGS.
+ *   So the figure is a TRUE DISTANCE and it has now been reproduced in three
+ *   separate batches (315, 322, 325).
+ *
+ * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/8096ddc.c asm/rom_8a000/rom_96cdc_a_a_c_c.s --func Func_8096ddc
  *
  * asm/rom_8a000/rom_96cdc_a_a_c_c.s holds only this function; tools/datacheck.py
  * is silent on it.  Whole file, no split, no exports beyond Func_8096ddc.
+ * PINS 0.  DEVICES 0.
  *
- * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/8096ddc.c \
- *     asm/rom_8a000/rom_96cdc_a_a_c_c.s --func Func_8096ddc
+ * THE DECOMPOSITION STANDS: 5 + 4 + 2 in two runs, 31-39 and 81-82.
+ *   (A) 5  the q / zero r2-r3 swap
+ *   (B) 4  the placement of `s = o->f50`'s load  -- pure sched2
+ *   (C) 2  the negs/strh tie at 81-82, decided at INSN_LUID
  *
- * ***********************************************************************
- * *** BATCH 322: THE 11 ARE **THREE** CAUSES, 5 + 4 + 2, AND ONLY ONE OF
- * *** THEM IS THE r2/r3 BLOCKER.  TWO PREVIOUS HEADERS GOT THE
- * *** DECOMPOSITION WRONG IN OPPOSITE DIRECTIONS.
- * ***********************************************************************
- * The instrument is one pin and one compile: `register unsigned char *q
- * __asm__("r3")` and nothing else reads 6 of 146 at exact count (the figure
- * batch 315 recorded, reproduced).  Reading WHICH SIX, which nobody had done:
+ * ========================================================================
+ * BATCH 325: WHICH ALLOCATOR RUNG, AND TWO CORRECTIONS
+ * ========================================================================
  *
- *   idx 35 36 37 39   ref `ldr r5,[r0,#0x50] / strb r2,[r3] / adds r3,#15
- *                      ... ldr r1,[pc,#16]`
- *                     ours the same four insns with `ldr r5,[r0,#0x50]` LAST
- *   idx 81 82         the negs/strh pair, still swapped
+ * TRIAGE (the batch-325 question about every park citing REG_ALLOC_ORDER):
+ * `.18.greg` prints `Spilling for insn 73.`, `... 84.`, `... 87.`, `... 98.`
+ * with **NO `Using reg` line on any of them**, so NO RELOAD REGISTER EXISTS IN
+ * THE DIFFERING WINDOW.  Run 1 is `adds r2,r0,#0 / adds r2,#0x55 / movs r3,#0`
+ * -- pseudo definitions.  `.18.greg` dispositions put **pseudo 40 (the walk
+ * pointer q) in r2 and pseudo 54 (the shared literal zero) in r3**; the ROM has
+ * them the other way round.  This is an ALLOCNO/QUANTITY question, so
+ * local-alloc.c:360-366 and QTY_CMP_PRI are the right place to look, and the
+ * batch-324 reload-cursor reading does NOT apply here.  (Elsewhere in this same
+ * function insn 17 carries TWO `Using reg` lines, so reload reuse exists -- just
+ * not where the diff is.)
  *
- * So with the walk pointer forced into r3 the ENTIRE 31-34/38 window closes and
- * the tail pair DOES NOT.  Therefore:
- *   - batch 316's "ONE FACT WITH TWO SYMPTOMS, which is also why the flag
- *     closes both at once" is REFUTED.  Closing the r2/r3 fact leaves the tail
- *     at 2.  A flag that closes both closes two things.
- *   - batch 315's "TWO INDEPENDENT PARTS" was right in kind and short by one.
- *     There are THREE: (A) the q/zero r2-r3 swap, 5 encodings; (B) the
- *     placement of `s = o->f50`'s load, 4 encodings; (C) the negs/strh tie, 2.
- *   - (B) had never been separated from (A) at all.  It is pure sched2: moving
- *     the `s = o->f50;` statement to three different source positions is
- *     EXACTLY INERT at 6 (see the measured list).
+ * *** CORRECTION 1 -- THE PARK'S "NEXT STEP" IS NECESSARY BUT NOT SUFFICIENT. ***
+ * The park reduces (A) to "make the walk pointer die once", on the correct
+ * reading that `REG_N_DEATHS == 2` short-circuits local-alloc.c:360-366 before
+ * `CLASS_LIKELY_SPILLED_P` is evaluated.  But the second disjunct would then
+ * refuse q anyway.  `.17.lreg` prints `Register 40 pref STACK_REG` with **no
+ * suffix**, and regclass.c:1235-1248 shows that exact format (`" pref %s\n"`)
+ * is used ONLY when `alt == ALL_REGS || best == ALL_REGS`: the `NO_REGS` case
+ * prints `" pref %s or none"` and the general case `" pref %s, else %s"`, both
+ * of which appear for other pseudos in the same dump.  So
+ * **reg_alternate_class(40) == ALL_REGS, not NO_REGS**, and
+ * `reg_class_size[STACK_REG] == 1` makes `CLASS_LIKELY_SPILLED_P` true.
+ * CLOSING (A) NEEDS BOTH A SINGLE DEATH AND A PREFERRED CLASS THAT IS NOT
+ * STACK_REG.  Those are not two jobs: the STACK_REG preference exists only
+ * because, after cse's rebase, q's only uses are as a memory base
+ * (record_address_regs charges BASE_REG_CLASS; `may_move_in_cost[STACK_REG]
+ * [BASE_REGS]` is 0 while LO_REGS costs 8), and the arithmetic use
+ * `(plus (reg 40) (const_int 15))` that would charge LO_REGS is exactly what
+ * the rebase deletes.  **The park's two sub-questions are ONE question, and it
+ * is the rebase.**
  *
- * ===== (A) THE r2/r3 SWAP: THE PARK NAMED THE WRONG PSEUDO =====
- * Batch 316's "next step, named and narrow" was to find a spelling of the
- * `o->f55` byte store whose zero does not create a second DEAD QImode pseudo.
- * The dead pseudo is real -- .17.lreg insn 78 is
- *     (set (reg:QI 52) (const_int 0))   REG_UNUSED
- * i.e. a set whose result is never read, which local-alloc still gives a
- * quantity (2 refs / 2 insns) and still hands r3.  **BUT IT IS NOT THE
- * BLOCKER.**  The REAL zero is pseudo 54, insn 80, `(set (reg:SI 54)
- * (const_int 0))`, used as `(subreg:QI (reg 54))` by insn 84 and
- * `(subreg:HI (reg 54))` by insn 98 -- the sharing the park wanted.  Its range
- * is insns 80-98.  The walk pointer (pseudo 40) lives 73-84 and 87-98.  **54
- * OVERLAPS ALL OF q AND ALSO TAKES r3** (disposition `54 in 3`).  Deleting 52
- * would free nothing: 54 would still be in r3 and q would still be pushed to
- * r2.  Do not spend another round on the QImode pseudo.
+ * *** CORRECTION 2 -- THE -fno-expensive-optimizations ROW IS REFUTED. ***
+ * The park records "95 of 146, FIRST DIFF AT INDEX 120, indices 0-119 exact, so
+ * it closes both residue windows ... It NAMES THE PASS and bounds the search."
+ * Measured by passing that flag through objcmp's own env hook (the name of
+ * which is deliberately NOT spelled here -- parkcheck greps the header for it
+ * and would re-measure this park under the flag), objcmp output unfiltered:
+ *     XX SIZE  ref 312 bytes, ours 300
+ *     XX ENCODINGS differ in 100 place(s) (ref 146, ours 141)
+ *        first at index 14: ref 233f  ours 2300
+ *     XX RELOCATIONS differ    (the pool moves, 0xdc -> 0x120)
+ * 100 not 95, first diff 14 not 120, FIVE instructions and TWELVE bytes short
+ * with dirty relocations: **that figure measures MISALIGNMENT and bounds
+ * nothing.**  And it could not have closed (A) anyway -- under the flag
+ * `.17.lreg` still says "Register 40 ... set 2 times ... dies in 2 places; pref
+ * STACK_REG" and `.18.greg` still says `40 in 2`.  THE FLAG DOES NOT REACH THE
+ * REBASE, so the rebase site is still unlocated; it is NOT cse.c:2849's
+ * flag_expensive_optimizations block in find_best_addr.
  *
- * ===== WHY q LOSES r3, CORRECTED AT THE SOURCE =====
- * q is in `;; 12 regs to allocate` -- a GLOBAL allocno -- and globals are
- * allocated AFTER every local quantity, so q can only ever have what the
- * locals left.  The park explains that exclusion with the STACK_REG gate:
- * `reg_class_size[STACK_REG] == 1` so `CLASS_LIKELY_SPILLED_P` is true and
- * local-alloc.c:362-368 refuses the pseudo.  **READ THE WHOLE TEST
- * (local-alloc.c:360-366):**
- *     if (REG_BASIC_BLOCK (i) >= 0 && REG_N_DEATHS (i) == 1
- *         && (reg_alternate_class (i) == NO_REGS
- *             || ! CLASS_LIKELY_SPILLED_P (reg_preferred_class (i))))
- *       reg_qty[i] = -2;            // eligible
- * `.17.lreg` says q is "used 8 times across 7 insns in block 2; set 2 times;
- * **dies in 2 places**".  *** REG_N_DEATHS IS 2, SO THE SECOND CONJUNCT FAILS
- * AND THE CLASS_LIKELY_SPILLED_P TEST IS NEVER EVALUATED. ***  Every STACK_REG
- * line in this park is true about the macro and about `reg_preferred_class`,
- * and NONE of it is the reason q is global here.
+ * ========================================================================
+ * MEASURED BATCH 325 -- exact count 146 unless marked.  BASE 11.
+ * ========================================================================
+ *   11  BASE
+ *   11  `s = o->f50;` moved to three FURTHER positions (after q's def, after
+ *       the byte store, after the whole walk)  EXACTLY INERT x3
+ *       -> reproduces the park's "(B) is sched2" finding PIN-FREE
+ *   11  `zero = 0;` moved below the two 0x1999 stores            INERT
+ *   11  two separate pointers (`q = o+0x55` then `q = o+0x64`)    INERT
+ *   12  the walk pointer as the first statement of the if-body
+ *   12  `o->f14 = e->f14;` moved below the whole walk
+ *   13  `o->f68 = e;` hoisted above the walk
+ *   15  BOTH 0x1999 stores hoisted above the walk -- first diff moves to 32,
+ *       so this DOES close index 31 (the `str r3,[r0,#20]` placement) and
+ *       costs 5 elsewhere.  A HALF-FIX worth crossing against, not a dead end.
+ *   17  q set ONCE, second store as `((struct H1 *)(q + 0xf))->v = 0`
+ *   17  byte store as plain `o->f55 = 0`, halfword via a once-set pointer
+ *   17  plain field stores with `s = o->f50` moved below them
+ *   20  plain `o->f55 = 0; o->f64 = 0;` -- NO walk pointer at all
+ *   20  the same with `s = o->f50` above `o->f14 = e->f14`
+ *   20  walk pointer for the byte store only, `o->f64 = 0` for the halfword
+ *  132  COUNT `*q = 0; *(unsigned short *)(q + 0xf) = 0;` (148 insns)
+ *  Cause (C) only, the idx 81-82 negs/strh tie -- all WORSE:
+ *   21  `s->c6 = 1;` before `s->c5 = 0;`
+ *   24  `s->d6 = 2;` hoisted above both
+ *   28  `d6`, then `c6`, then `c5`
+ *   53  COUNT both bitfields hoisted above `s->f08 = ...` (144 insns)
  *
- * q dies twice because of the rebase the park itself identified: cse rewrites
- * `q += 0xf` to `o + 0x64`, so the second set does not READ q and q becomes two
- * disjoint ranges.  (The emitted `adds r3,#15` is then put BACK by
- * reload_cse_move2add's SECOND transform, reload1.c:8920-8970 -- the
- * `(set REGX REGY)(set REGX (plus REGX A))` ... `(set REGX (plus REGX B))`
- * form collapsing to `B-A`.  Same pass that landed Func_8091254 this batch.)
+ * ========================================================================
+ * STILL TRUE FROM EARLIER BATCHES (re-checked, not re-derived)
+ * ========================================================================
+ * The dead QImode pseudo 52 is NOT the blocker -- pseudo 54 is, and it overlaps
+ * all of q and also takes r3.  Do not spend a round on 52.
+ * q is global because REG_N_DEATHS == 2 (cse rewrites `q += 0xf` to `o + 0x64`,
+ * so the second set does not read q); the emitted `adds r3,#15` is put BACK by
+ * reload_cse_move2add's second transform, reload1.c:8920-8970.
+ * Every STACK_REG line is true about the macro and about reg_preferred_class.
+ * REG_ALLOC_ORDER is {3,2,1,0,12,14,4,5,...} (arm.h:989-995).
+ * The idx 81-82 analysis (insn 239 vs 509, priorities tie at 12, CLASS rung ties
+ * at 3, dependent count ties at 2, INSN_LUID decides, and the dependence is a
+ * REGISTER anti-dependence on r3 so no alias set can reach it).
+ * "FIX ONE AND THE OTHER FOLLOWS" remains STRUCK between this park and
+ * ovl_784360/200a440.c -- they share a mechanism, not a fix.
+ * Lever 5 (callee return types): EXHAUSTED, 15 variants all 11.
+ * Field_Whirlwind's lever 4 does not transfer (that loop clears move_movables'
+ * threshold at lifetime 3; this one does not).
  *
- * ===== THE TARGET, NOW QUANTITATIVE =====
- * If q were local-eligible it would be allocated FIRST in block 2 and take r3,
- * and the zero would fall to r2 -- the ROM.  `.18.greg` says 12 regs to
- * allocate, so block 2's locals are ranked by local-alloc's QTY_CMP_PRI
- * (local-alloc.c:1496).  *** NOTE: that macro DOES contain floor_log2, exactly
- * like global.c's allocno_compare; the two differ only in the denominator
- * (`qty[].death - qty[].birth` in half-luids vs `REG_LIVE_LENGTH`).  A brief
- * in this batch circulated the opposite and it is false -- see FINDINGS.md. ***
- * Using the .17.lreg spans as a proxy for death-birth:
- *     q  (40)  8 refs /  7  ->  floor_log2(8)*8/7  = 3.43   <-- would win
- *     f14 temp (50) 4 / 4   ->  2*4/4              = 2.00
- *     0x1999   (61) 6 / 6   ->  2*6/6              = 2.00
- *     zero     (54) 6 / 10  ->  2*6/10             = 1.20
- *     dead QI  (52) 2 / 2   ->  1*2/2              = 1.00
- * So the whole of (A) reduces to ONE question: **make the walk pointer die
- * once.**  Its preferred class must then also not be likely-spilled, and the
- * park's own isolate gives the rule -- +0x54 and +0x64 read BASE_REGS, +0x55
- * and +0x65 read STACK_REG -- with BASE_REGS being `{ 0x00020FF }`
- * (arm.h:1040), nine registers, hence NOT likely spilled.  A single-death
- * pointer born at 0x55 is still refused; one born at 0x64 is not.
- *
- * ===== STRIKE "FIX ONE AND THE OTHER FOLLOWS" -- STILL STRUCK =====
- * Batch 316 struck it between this park and ovl_784360/200a440.c on measured
- * evidence (same flag, 95 of 146 first-diff-120 here against 125 of 136
- * first-diff-7 there).  Nothing in this batch disturbs that.  THEY SHARE A
- * MECHANISM, NOT A FIX.  Family: 8096ddc, 200a440, ovl_787e04/200968c.c,
- * ovl_791794/200aeb0.c, and the parked 200dd68 / 200c41c.  tools/dupfuncs.py
- * makes this a duplicate of OvlFunc_896_200a440; the flag separates them.
- *
- * ===== STILL TRUE AND CORRECTLY CITED (re-checked, not re-derived) =====
- * REG_ALLOC_ORDER `{3,2,1,0,12,14,4,5,...}` (arm.h:989-995) -- r3 tried first.
- * The STACK_REG/BASE_REGS preference rule and its four line citations
- * (arm.md:496, arm.h:1095, regclass.c:1459-1462, local-alloc.c:362-368) --
- * right about what they say, just not the operative conjunct here.
- * -fno-expensive-optimizations: 95 of 146, FIRST DIFF AT INDEX 120, indices
- * 0-119 exact, so it closes both residue windows and exposes a further defect
- * from 120 on.  It NAMES THE PASS and bounds the search; it is not a flag row.
- * The idx 81-82 analysis: insn 239 vs 509, priorities tie at 12, the CLASS rung
- * ties at 3 via rank_for_schedule's `insn_cost == 1` escape, dependent count
- * ties at 2, INSN_LUID decides; and the dependence is a REGISTER
- * ANTI-DEPENDENCE on r3, not a memory one, so no alias set can reach it.
- * Lever 5 (callee return types int vs void): EXHAUSTED, 15 variants all 11.
- *
- * ===== MEASURED THIS BATCH.  Exact count 146 unless a flag is shown. =====
- * On the production body (BASE 11):
- *    6  INSTRUMENT `register unsigned char *q __asm__("r3")`  (see above)
- *    7  that pin + the pointer re-based to o+0x54 with a [+1] byte store
- *   11  adding `int z;` to the declarations and not using it (inert)
- *   13  `((struct H1 *)q)->v = zero` -- the HImode store from the existing
- *       `unsigned short zero` instead of a literal
- *   15  that pin + the pointer re-based to o+0x64 with a [-0xf] byte store
- *   17  second address as its own expression `((struct H1 *)(o+0x64))->v = 0`
- *   17  pointer born at o+0x54, byte store at [+1], `q += 0x10`
- *   18  pointer born at o+0x64, byte store at [-0xf]
- *   20  `((struct B1 *)q)->v = zero` (the QImode store from `zero`)
- *   24  MEM -- `zero = 0;` hoisted above the walk.  A MEM flag at this
- *       distance is a WRONG PROGRAM: `zero` is re-read per iteration.
- *  114-134 RELOC/COUNT -- every form that introduces an `int z` carrier for the
- *       walk zeros (four spellings) lands at 141-148 insns, because the carrier
- *       is loop-invariant and loop.c hoists it into the preheader.  This
- *       reproduces the park's recorded 22/148 and is why Field_Whirlwind's
- *       lever 4 (an int carrier plus a named pointer for the FIRST store only,
- *       src/rom_8a000/rom_9a44c_c_c_a_a.c) DOES NOT TRANSFER here: that loop is
- *       49 real insns and clears move_movables' threshold at lifetime 3, this
- *       one does not.
- * On the pinned instrument (BASE 6), i.e. figures ABOUT causes (B) and (C):
- *    6  moving `s = o->f50;` to any of three later source positions -- EXACTLY
- *       INERT.  (B) is a sched2 placement, immune to statement order.
- *    6  an alias-set-0 union member (`union UZ { unsigned char b; unsigned
- *       short h; }`) on the f55 byte store -- EXACTLY INERT
- *    6  the same union on the f64 halfword store -- EXACTLY INERT
- *    6  a union read inserted beside `s->f08 = ...` -- EXACTLY INERT
- *       *** So Field_Whirlwind's LEVER 5 is inert on this function in all three
- *       positions.  That is consistent with the park's own finding that the
- *       tail dependence is a REGISTER anti-dependence: there is no memory
- *       anti-dependence for alias set 0 to restore. ***
- *
- * ===== NEXT STEP, NAMED AND NARROW (replaces batch 316's) =====
- * (A) Make the walk pointer a SINGLE-DEATH pseudo whose preferred class is not
- *     likely-spilled.  Two sub-questions, both cheap: can cse be stopped from
- *     re-basing `q += 0xf` onto `o`, and is there a spelling born at 0x64
- *     (BASE_REGS) that still emits `strb r2,[r3,#0]` at 0x55?
- * (B) is sched2 and has never been attacked on its own; it is now isolated by
- *     the pin, so measure it against the pinned base, not the production one.
- * (C) is decided at INSN_LUID with everything above it tied; per the brief's
- *     batch-321 counterexample the CLASS rung is live in general, but here it
- *     ties, so the lever is whatever changes the LUID of insn 239 or 509.
+ * ========================================================================
+ * NEXT STEP, NAMED AND NARROW (replaces the park's)
+ * ========================================================================
+ * ONE question, not two: **suppress cse's rebase of `q += 0xf` onto `o`**.  That
+ * restores the `(plus (reg q) (const_int 15))` arithmetic use, which both gives
+ * q a single death AND charges LO_REGS so the preferred class stops being
+ * STACK_REG -- and then QTY_CMP_PRI ranks q (8 refs / 7 insns) above pseudo 54
+ * (6 / 10), q is allocated first, takes r3 off reg_alloc_order, and 54 falls to
+ * r2, which is the ROM's map.  The rebase site is NOT the
+ * flag_expensive_optimizations block (measured above); find it, then ask what
+ * removes `o + 0x55` from q's cse equivalence class at that point.
+ * (B) is sched2 and is now measured inert to SEVEN source positions.
+ * (C) is an INSN_LUID tie and four bitfield orderings are all worse.
  */
 struct Sprite {
     unsigned char pad00[5];

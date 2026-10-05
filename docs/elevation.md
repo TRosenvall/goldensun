@@ -33783,3 +33783,202 @@ a confident wrong figure, the second produces an error.
 
 > **After any split, the question "which other parks referenced that file?" has to
 > be asked by something other than a person's memory.**
+
+## CORRECTION: THE RELOAD-CURSOR "DISCOVERY" OF BATCH 324 WAS HALF OF SOMETHING THIS DOCUMENT ALREADY HELD
+
+Batch 324 reported, as its headline finding and from two agents independently,
+that a coherent r0/r2/r3 register rotation **is not `REG_ALLOC_ORDER`** and that
+the responsible mechanism is `allocate_reload_reg`'s round-robin over
+`last_spill_reg`. I promoted that into `HANDOFF.md`, into `reports/batch-324.md`,
+and into five briefs of batch 325.
+
+**It is half of the mechanism, and the missing half inverts the conclusion.**
+Batch 325 brief D refuted it from source, and I verified every line myself:
+
+1. **`allocate_reload_reg` prints nothing.** `"Using reg %d for reload %d"`
+   occurs exactly once in `reload1.c`, at **`:1664`, inside `find_reg`**
+   (`:1588`). So every `Using reg` line in `.18.greg` is **find_reg's** decision.
+   `"Spilling for insn %d."` is `:1729`, in `find_reload_regs`.
+2. **`find_reg` reads `REG_ALLOC_ORDER` explicitly**, at `reload1.c:1645-1662`:
+   it minimises `spill_cost`, and among registers of **equal** cost it breaks the
+   tie on `inv_reg_alloc_order[regno] < inv_reg_alloc_order[best_reg]`.
+3. **The cursor is almost entirely unfree.** `choose_reload_regs_init`
+   (`reload1.c:5129`) does
+   `COMPL_HARD_REG_SET (reload_reg_unavailable, chain->used_spill_regs)` —
+   everything find_reg did *not* reserve for this insn becomes unavailable — and
+   that set is tested in **both** gates of the cursor loop: `reload_reg_free_p`
+   (`:4280`) and `reload_reg_free_for_value_p` (`:4684`).
+
+> **So the cursor walks the global `spill_regs` array but can only STOP on a
+> register `find_reg` reserved for that insn. One reload on an insn means one bit
+> set, which means zero freedom.** `REG_ALLOC_ORDER` is therefore blamed
+> *correctly* by a large share of the 86 parks that cite it.
+
+### And this document already said so, at batch 255
+
+See **"A RELOAD SCRATCH REGISTER IS ROUND ROBIN OVER A SET THE SOURCE CONTROLS"**
+above. That entry has the whole mechanism, correctly, in both halves:
+
+> "`spill_cost[]` is zeroed per insn, so free low registers all tie at 0;
+> `find_reg`'s tie-break is `inv_reg_alloc_order`, so **r3 wins every tie**; the
+> winners become `used_spill_regs`, sorted ascending into `spill_regs[]`; and
+> `allocate_reload_reg` then picks per insn by **round robin over that array**.
+> All ties therefore give the singleton `{r3}`…"
+
+It even states the discriminator and the cure: **count `Using reg N` in
+`.18.greg`; if they are all one register where the reference alternates two, the
+SPILL SET IS TOO NARROW — add a reload somewhere else and never touch the
+differing site.** On two functions the cure was one line 500 bytes from the
+defect, and one of them had survived 182 measured perturbations.
+
+**So batch 324 rediscovered the round-robin half, lost the find_reg half, and I
+turned the fragment into a headline that contradicted our own record.**
+`CLAUDE.md` says of this document: *"It is long and it is the point; grep it
+before writing anything up as a new finding."* Neither the agents nor I did.
+
+> **A finding that two independent agents reach is well evidenced but not
+> necessarily NEW — and "new" is the claim that does the damage, because it is
+> what licenses overwriting the old entry.** Independent rediscovery raises
+> confidence in the fragment and says nothing about whether the fragment is
+> complete.
+>
+> **Before promoting anything to a headline, grep this file for the mechanism's
+> function names.** `allocate_reload_reg` would have found it.
+
+### What IS new, and is worth keeping — brief D's triage rule
+
+Batch 255 gave the discriminator for one case. Brief D generalised it to a
+three-way classification, which is the actionable product of this correction.
+**Read `.18.greg`:**
+
+| observed | what decides it | what to change |
+|---|---|---|
+| **one `Using reg` per `Spilling for insn` block** | `REG_ALLOC_ORDER`, correctly — the cursor has no freedom | **`spill_cost`**: which pseudos are live at that insn. Widen the spill set (batch 255's cure) |
+| **two or more reloads on one insn, or inheritance** | the round-robin cursor genuinely has room | batch 324's lever: add or remove an earlier reload |
+| **no `Using reg` at all** | no reload register exists | it is an **allocno** question — `allocno_compare`, `find_reg`'s allocno path |
+
+And one further note from batch 282, consistent with all of the above: **an
+identical instruction stream up to the divergence does not imply identical reload
+state**, because inherited reloads advance the counter without emitting anything.
+
+> **The actionable quantity in case 1 is the LIVE SET, not the spelling of the
+> differing site.** That is why 112 spellings were inert on one function and 182
+> perturbations on another: both were case 1, and every one of those edits changed
+> the site rather than the live set.
+
+## THE RELOAD REGISTER, SETTLED: THREE LAYERS, AND THE CORRECTION ABOVE WAS ALSO WRONG
+
+The correction immediately above said *"one reload on an insn means one bit set,
+which means zero freedom"*. **That is wrong.** Batch 325 brief E refuted it with an
+observable, and I verified the source. Here is the whole mechanism in one place,
+because it has now been stated incorrectly three times in two days — twice by me.
+
+**Layer 1 — `find_reg` reserves.** `reload1.c:1588`, printing
+`Using reg %d for reload %d` at `:1664` (the **only** such printf in the file).
+It minimises `spill_cost` and breaks ties among equal-cost registers on
+`inv_reg_alloc_order` (`:1645-1662`). **So `REG_ALLOC_ORDER` is genuinely read
+here**, and a park citing it is not automatically wrong.
+
+**Layer 2 — `finish_spills` GROWS the set.** `reload1.c:3609-3627`, comment
+*"Mark any unallocated hard regs as available for spills. That makes inheritance
+work somewhat better."*
+
+	COMPL_HARD_REG_SET (chain->used_spill_regs, used_by_pseudos);
+	AND_HARD_REG_SET  (chain->used_spill_regs, used_spill_regs);
+	/* Make sure we only enlarge the set.  */
+	GO_IF_HARD_REG_SUBSET (used_by_pseudos2, chain->used_spill_regs, ok);
+	abort ();
+
+So the per-insn set becomes **(every hard register not holding a pseudo live
+across that insn) ∩ (the global spill set)**, with an `abort()` asserting it only
+grows. **This is the layer both my corrections missed.**
+
+**Layer 3 — the cursor picks inside the grown set.** `allocate_reload_reg`
+(`:4962`) round-robins from `last_spill_reg` (`:5003`), gated by
+`reload_reg_unavailable`, which `choose_reload_regs_init` (`:5129`) sets to the
+complement of the **grown** `chain->used_spill_regs`, tested at `:4280` and
+`:4684`.
+
+> **So the cursor's freedom is the number of FREE REGISTERS at that insn, not the
+> number of reloads on it.** Brief E's amended rule: **count free registers, not
+> `Using reg` lines.**
+
+**The decisive observable**, from brief E, single reload on the insn:
+
+	.18.greg    Spilling for insn 47. / Using reg 2 for reload 0
+	.19.flow2   (insn 135 (set (reg:SI 1 r1) (const_int 165)))
+	            (insn 47 (set (reg 3) (plus (reg 4) (reg:SI 1 r1))))
+
+**`find_reg` printed r2; the emitted register is r1.** Across its four reloads,
+find_reg said r2,r2,r1,r2 and the emission was r1,r2,r1,r2. A `Using reg` line is
+therefore **not** the register you get.
+
+### What every version of this agreed on, and it is the actionable part
+
+Batch 255 (`"A RELOAD SCRATCH REGISTER IS ROUND ROBIN OVER A SET THE SOURCE
+CONTROLS"`), batch 324, brief D and brief E all converge on the same **action**:
+
+> **Change which pseudos are LIVE at the insn, not the spelling of the differing
+> site.** Batch 255's cure was one line 500 bytes away, adding a reload that
+> widened the set. Batch 325's `Func_808fe38` landed 11 → 0 by naming an address
+> as its own statement so a pseudo left an insn's live set, which stopped
+> `order_regs_for_reload` (`reload1.c:1534`) banning r3 there.
+
+That is why 112 spellings were inert on one function and 182 perturbations on
+another: every one of those edits changed the site, not the live set.
+
+### Triage, final form
+
+Read `.18.greg` **per insn**, not per function (brief H measured 2+-reload insns
+at 0–10% of blocks across 15 animation functions, median ~2%, so a function-level
+count hides the cases that matter):
+
+| observed | what decides it | what to change |
+|---|---|---|
+| no `Using reg` for the insn at all | no reload register exists | an **allocno** question: `allocno_compare`, `find_reg`'s allocno path |
+| `Using reg` present, **few free registers** at the insn | effectively `find_reg` / `REG_ALLOC_ORDER` | `spill_cost` — the live set |
+| `Using reg` present, **several free registers** | the round-robin cursor | the live set, or an earlier reload's position |
+
+And note the register you get may differ from the one printed, so **confirm in
+`.19.flow2`, never from `.18.greg` alone.**
+
+### The lesson about the record, which is the expensive part
+
+**This document already held the complete mechanism at batch 255, in both
+halves.** Batch 324 rediscovered one half from two agents independently; I
+promoted the fragment to a headline; brief D restored the `find_reg` half and
+over-corrected; brief E found the layer neither had. `CLAUDE.md` says of this
+file: *"grep it before writing anything up as a new finding."*
+
+> **Two independent agents reaching the same conclusion is strong evidence the
+> FRAGMENT is real and no evidence that it is COMPLETE.** "New" is the dangerous
+> word, because it is what licenses overwriting an older, better entry. Grep for
+> the mechanism's function names first — `allocate_reload_reg` would have found
+> batch 255's entry immediately.
+
+## `allocno_compare` HAS NO LOOP-DEPTH TERM, BUT ITS INPUT IS ALREADY LOOP-WEIGHTED
+
+Batch 324 established that `allocno_compare` (`global.c:597-620`) is exactly
+`(floor_log2(n_refs) * n_refs / live_length) * 10000 * size`, **with no frequency
+and no loop-depth term**, and used that to refute a park. That reading of the
+formula is correct and I repeated it in the batch-325 brief.
+
+**It is also misleading on its own**, as batch 325 brief G found: `REG_N_REFS` is
+**already weighted by loop depth when it is accumulated.** All four increment
+sites in `flow.c` read
+
+	REG_N_REFS (regno) += (optimize_size ? 1 : pbi->bb->loop_depth + 1);
+
+at `flow.c:4435`, `:4948`, `:5115` and `:5556` — the general use and set counting,
+the auto-increment extra reference, and two others. We do not build with
+`-Os`, so **every reference inside a loop counts `depth + 1`.**
+
+> **So a bound computed from RAW reference counts is wrong by a factor of
+> `loop_depth + 1` per reference.** On brief G's target the park's raw 5 and 4 are
+> really **9 and 7**, which turns a priority ratio of 1.25 into **1.93** — the
+> park's bound was far easier than the truth, and the correction made it *harder*.
+
+The tie-break is on the **allocno index** (`global.c:617`), so an exact tie goes to
+the lower-numbered allocno.
+
+> **Read `n_refs` out of `.17.lreg`; never count references in the C.**

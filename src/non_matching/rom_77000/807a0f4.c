@@ -1,15 +1,12 @@
 /* Func_807a0f4 -- 0x0807a0f4, asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_a_a.s
  * (1 function, no data section, so landing needs NO split).
  *
- * STILL NON-MATCHING.  PARK AT 7 of 88 encodings -- the park's figure, RE-MEASURED
- * and confirmed, including `--whole`: 7 of 88, 92 lines against 92, RELOCATIONS
- * IDENTICAL.  Body below is the park's body, unchanged.  PINS: 0.
+ * STILL NON-MATCHING.  PARKED AT 7 differing encodings of 88 -- RE-MEASURED
+ * AGAIN in batch 325 and unchanged: 7 differing encodings of 88, ref 88 against
+ * ours 88, 92 lines against 92, SIZE EQUAL, RELOCATIONS IDENTICAL (objcmp prints
+ * no RELOCATIONS line).  Body below is the park's body, unchanged.  PINS: 0.
  *
- * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py \
- *     scratch_elev/b322/F/p3_candidate.c \
- *     asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_a_a.s --func Func_807a0f4
+ * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_77000/807a0f4.c asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_a_a.s --func Func_807a0f4
  *
  * ---------------------------------------------------------------------------
  * WHAT I REPRODUCED, AND WHAT I REFUTED.
@@ -91,6 +88,130 @@
  * r0/r1/r2 all copied on entry).  The park's int-returning declarations for
  * GiveDjinni and Func_807a458 are load-bearing for the argument fill order and
  * are kept.
+ *
+ * ===========================================================================
+ * BATCH 325.  THE PARK SURVIVES.  THREE CORRECTIONS TO ITS ARITHMETIC, ONE OF
+ * WHICH MAKES ITS BOUND HARDER, AND ONE STRUCTURAL SHARPENING.
+ *
+ * Everything the park REPRODUCED, I reproduced again: 7 of 88 at equal size and
+ * identical relocations; the whole residue is the r5/r6 contest between the
+ * strength-reduced gState byte cursor (pseudo 79) and the check_dbra_loop
+ * down-counter (pseudo 40); `;; 12 regs to allocate: 38 37 42 41 39 79 40 32 36
+ * 33 35 34` and `;; Register dispositions: ... 40 in 6 ... 79 in 5`, so it IS
+ * global-alloc's ordering; the ROM wants 40 in r5 and 79 in r6.
+ *
+ * CORRECTION 1 -- THE REFERENCE COUNTS THE FORMULA DIVIDES ARE NOT RAW COUNTS.
+ * `allocno_compare` divides `allocno[v].n_refs`, and global.c:449 accumulates
+ * that from `REG_N_REFS`, which flow.c:4948 increments by
+ * `(optimize_size ? 1 : pbi->bb->loop_depth + 1)` PER REFERENCE -- so at -O2
+ * every reference in the outer loop body counts TWO.  The park's "pseudo 79: 5,
+ * pseudo 40: 4" are the raw counts.  The weighted ones are
+ *     79: def (depth 0) 1 + two reads (depth 1) 2+2 + increment set&use 2+2 = 9
+ *     40: def (depth 0) 1 + `sub` set&use 2+2 + the `ne` compare 2         = 7
+ * and `floor_log2(9)*9 = 27` against `floor_log2(7)*7 = 14`, not 10 against 8.
+ * SO THE PARK'S BOUND IS HARDER THAN IT WROTE, not softer: with (A) in place
+ * (len79 = len40 + 2) the inequality for 40-first becomes 14/len40 > 27/len79,
+ * i.e. **len79 > 1.93 * len40**, against the park's 1.25.  Both pseudos live
+ * across the same loop, so that ratio is not reachable by moving one init.
+ *
+ * CORRECTION 2 -- THE DIVISION IS DOUBLE, NOT INTEGER (global.c:605-612): the
+ * `(double)` cast is on the numerator and the truncation to int happens only
+ * after `* 10000 * size`.  Nothing in the park turns on this, but a reader
+ * doing the arithmetic in C ints gets 0 == 0 for both allocnos and would
+ * conclude, wrongly, that they always tie.
+ *
+ * CORRECTION 3 -- THE TIE-BREAK IS ON THE ALLOCNO INDEX, NOT THE PSEUDO NUMBER.
+ * `allocno_compare` ends `return v1 - v2` (global.c:617) where v1/v2 are
+ * allocno indices; global_alloc numbers allocnos in ascending pseudo order, so
+ * allocno(40) < allocno(79) and a tie DOES go to 40.  The park's target (B) --
+ * "make the priorities equal and 40 takes r5" -- is therefore the right target.
+ * What (B) needs is EQUAL WEIGHTED counts, and by correction 1 that means
+ * moving 9 to 7 or 7 to 9, i.e. adding or removing a whole outer-loop
+ * reference, which the park already closed from both sides: the cursor is read
+ * twice in the ROM (`ldrb r0,[r6]` and `ldrb r3,[r6]`) so neither read can go,
+ * and any extra mention of the counter kills check_dbra_loop's reversal.
+ *
+ * STRUCTURAL SHARPENING -- (A) AND THE REGISTER SWAP ARE ONE PHENOMENON, SO (A)
+ * IS NOT SEPARATELY PURCHASABLE.  The park lists the init order and the
+ * register assignment as two things that must both be got.  `.23.sched2`'s
+ * visualization for the preheader block says they are the same thing:
+ *
+ *     ;; block 3   0  253  r3=[`*.LC0']
+ *     ;;           2  315  r2=0xfc
+ *     ;;           3  316  r2=r2<<0x1
+ *     ;;           4  275  r6=r0        <- the counter init
+ *     ;;           5  286  r5=r3+r2     <- the cursor init
+ *
+ * Both 275 and 286 are ready at clock 4 and both have priority 1, so
+ * rank_for_schedule decides on a rung below priority and 275 wins with the
+ * smaller INSN_LUID.  The LUID order is the chain order, which is also what
+ * decides the live lengths, which is what `allocno_compare` divides by.  In
+ * BOTH streams the init that comes FIRST in the chain takes r6 and the second
+ * takes r5 -- ours has the counter first and the ROM has the cursor first.  So
+ * a single edit that flips the chain order flips the emitted order AND the two
+ * registers together; there is no separate (A) to buy.  Stated as evidence, not
+ * as a claim: two streams is a small sample, and correction 1's arithmetic says
+ * the length change alone does not reach the priority flip.
+ *
+ * MEASURED THIS BATCH, all screened on `.18.greg` and not on the figure:
+ *   EXACTLY INERT AT 7, allocation order and dispositions BIT-IDENTICAL (so the
+ *   edit never reached the allocator, which is not the same as the lever being
+ *   inert):
+ *     `base = 0xfc * 2;` moved BEFORE the GetPartySize call
+ *     `base` as `int` rather than `unsigned int`
+ *     `size` declared last in its declaration list (batch 272's lever)
+ *   WORSE, and both still `79 in 5 / 40 in 6`:
+ *     `size > i` instead of `i < size`                9 of 88, first diff 27
+ *     the gState base named in a local `g`           10 of 88, first diff 27
+ *   WORSE AND A DIFFERENT PROGRAM -- these SUPPRESS the strength reduction the
+ *   ROM needs, and come out SHORTER than the reference, so their figures are
+ *   measuring misalignment:
+ *     an explicit `unsigned char *p` walked with `p++` in the for-step
+ *                                                  63 of 88, 8 bytes SHORT
+ *     the same with the init before GetPartySize    64 of 88, 8 bytes SHORT
+ *     the same with `p[i]` indexing                 62 of 88, 4 bytes SHORT
+ *     the same with `p++` at the bottom of the body 64 of 88, 8 bytes SHORT
+ *     the `0xfc * 2` pasted in as a literal, no `base`
+ *                                                   62 of 88, 8 bytes SHORT
+ *     `unsigned int i` with `i < (unsigned)size`    70 of 88, 8 bytes LONG
+ *
+ * NEXT MOVE, with its price: the only remaining purchase is (B), equal WEIGHTED
+ * reference counts, and by correction 1 that is a whole outer-loop reference,
+ * not a spelling.  The one thing not yet swept is the loop-depth weighting
+ * itself: a reference moved from the outer loop body to a DEEPER block counts
+ * three instead of two, so a shape in which one of the cursor's two reads sits
+ * inside the inner k-loop would make 79's weighted count 10 (floor_log2 3, 30)
+ * and one in which a counter reference sits there would make 40's 9
+ * (floor_log2 3, 27).  Neither is obviously honest C for this function; it is
+ * recorded as the only unswept direction, not as a recommendation.
+ *
+ * CLASSIFIED AGAINST THE BATCH-325 RELOAD-CURSOR TRIAGE RULE, because this park
+ * IS a coherent two-register rotation and that is exactly the shape the rule is
+ * for.  `.18.greg` for this function prints
+ *
+ *     Spilling for insn 24.            <- no `Using reg` at all
+ *     Spilling for insn 27.   Using reg 3 for reload 0
+ *     Spilling for insn 30.   Using reg 3 for reload 0
+ *     Spilling for insn 286.  Using reg 2 for reload 0
+ *     Spilling for insn 81.   Using reg 2 for reload 0
+ *     Spilling for insn 95.   Using reg 3 for reload 0
+ *     Spilling for insn 147.  Using reg 3 for reload 0
+ *     Spilling for insn 168.  Using reg 3 for reload 0
+ *
+ * -- ONE `Using reg` per `Spilling for insn` block, and every one of them is
+ * r2 or r3, the scratch for a pool load.  `"Using reg %d for reload %d"` occurs
+ * once in reload1.c, at :1664 inside `find_reg` (:1588), so those lines are
+ * find_reg's decisions and NOT `allocate_reload_reg`'s round-robin cursor; with
+ * one reload per insn the cursor has no freedom anyway, because
+ * `choose_reload_regs_init` (reload1.c:5129) sets `reload_reg_unavailable` to
+ * the complement of `chain->used_spill_regs`.
+ *
+ * NONE OF THEM IS r5 OR r6.  The r5/r6 contest is on the
+ * `;; Register dispositions:` line -- `79 in 5`, `40 in 6` -- so this park is
+ * about an ALLOCNO, which is the third case of the triage rule and is what the
+ * park already says.  Neither the reload cursor nor `REG_ALLOC_ORDER` is the
+ * place to look here; `allocno_compare`'s ordering is, and the corrections
+ * above are to that.
  */
 typedef struct { unsigned char _b[704]; } GlobalState;
 extern GlobalState gState;

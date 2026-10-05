@@ -78,6 +78,108 @@
  * argument 0 is a pool load and we still hoist it.
  *
  * ================================================================
+ * BATCH 325H -- HUNK 1 IS NOT A TIE-BREAK, IT IS A PRIORITY DIFFERENCE, AND
+ * THE NUMBER IS READ OFF .23.sched2
+ * ================================================================
+ *
+ * Reproduced exactly: 15 of 707, ref 707 / ours 707, no SIZE line, no
+ * RELOCATIONS line, first differing index 78.  aligncmp: 701 of 707 aligned,
+ * 12 differing/ins/del in 11 hunks.  Everything the park records about the
+ * SHAPE of the residue reproduced; what follows corrects its MECHANISM.
+ *
+ * SCHED2 DID THE REORDERING AND THE CHOICE WAS DECIDED ON RUNG ONE.  Compiled
+ * with `-da -fsched-verbose=6`, the eleven instructions of hunk 1 are basic
+ * block 5 (`-- basic block 5 from 148 to 251 -- after reload`) and the whole
+ * hunk turns on ONE decision:
+ *
+ *     ;;   Ready list (t =  4):    157  1917  166
+ *     ;;           --> scheduling insn <<<166>>> on unit core
+ *
+ * with the block's dependence table giving
+ *
+ *     ;;      155     5   ...  prio 21  ...  : 251 157          <- d[0]'s address
+ *     ;;      157   173   ...  prio 20  ...  : 251 195 194 1920 1771
+ *     ;;      166     5   ...  prio 21  ...  : 251 168          <- f1's address
+ *     ;;      168   173   ...  prio 20  ...  : 251 195 182 174 1920
+ *     ;;     1917   173   ...  prio 20  ...  : 251 245 ... 171
+ *
+ * `rank_for_schedule` (haifa-sched.c) compares INSN_PRIORITY first and returns
+ * on any difference, so `166` at 21 beats `157` at 20 before the CLASS rung,
+ * the dependent-count rung or INSN_LUID is ever consulted.  The reference
+ * schedules `157` there, so:
+ *
+ * > HUNK 1 IS NOT REACHABLE BY STATEMENT ORDER OR BY ANY OTHER LUID LEVER.
+ * > It needs prio(157) >= 21, or prio(166) <= 20.  LUID already favours us
+ * > (157 < 166); the priority overrides it.
+ *
+ * WHERE THE 21 COMES FROM, so the next reader can aim at it.  Priority is the
+ * longest path to the block end.  `d[0] = gPtrs[0x2e];` has a TWO-insn tail
+ * (load `157`, store `1771` at prio 18, cost 2 -> 20).  `f1 = gPtrs[0x2f];`
+ * has a THREE-insn tail (address `166`, load `168`, store `174` at prio 18,
+ * cost 2 -> 20, +1 -> 21) because the `f1` INTERMEDIATE puts an extra rung
+ * under it.  The park's lever (3) -- naming `f1` -- bought the last
+ * instruction and the exact size, and it is ALSO what gives `166` the extra
+ * point of priority that loses the schedule.  Those are the two halves to
+ * cross: a form that keeps `f1`'s instruction count and gives the `d[0]`
+ * chain an equal-length tail.
+ *
+ * MEASURED THIS BATCH on the gPtrs block, all with relocations and size
+ * checked, base 15:
+ *     `d[1] = gPtrs[0x2f]; fp = d;` (no `fp[1]`)      15  EXACTLY INERT
+ *                                                        -- candidate prereq
+ *     `f1` read before `d[0]`                        533  +4 bytes, RELOCDIFF
+ *     `fp = d;` between the two reads                619  +4 bytes, RELOCDIFF
+ *     `fp = d;` first, both stores through `fp`      619  +4 bytes, RELOCDIFF
+ *     `f1` reused as the carrier for `d[0]` too      531  +4 bytes, RELOCDIFF
+ *     `f1` read, `fp = d`, then `d[0]`                18
+ * The four large rows are not near-misses: each is a different program (one
+ * more pool word and a relocation shift), so they rule the SHAPE out, not just
+ * the figure.
+ *
+ * ONE CORRECTION TO THE BRIEF THAT SENT ME HERE.  The brief said this bank has
+ * "155 landed sources ... full of named families, many already landed", and to
+ * port levers from a landed `Anim_*` sibling.  THERE ARE NO LANDED `Anim_*` OR
+ * `BaseAnim_*` SOURCES: all 155 `.c` files in `src/rom_c9000/` are split-named
+ * `rom_XXXXXX_*.c`, and all 46 named animations (41 `Anim_*`, 5 `BaseAnim_*`)
+ * are parked.  The reusable structure in this family is the PAIR relationship
+ * this park and Anim_Djinni already record -- one three-token change moved both
+ * in batch 310c -- not a landed-sibling port.
+ *
+ * ================================================================
+ * BATCH 325H -- THE .18.greg RELOAD TRIAGE, AND A FAMILY-WIDE COUNT
+ * ================================================================
+ * `Using reg N for reload M` in `.18.greg` is `find_reg`'s decision
+ * (reload1.c:1664, inside find_reg at :1588), find_reg reads `REG_ALLOC_ORDER`
+ * explicitly (:1645-1662) with `inv_reg_alloc_order` breaking equal-`spill_cost`
+ * ties, and `choose_reload_regs_init` (:5129) leaves one bit -- so one reload on
+ * an insn means no freedom.  ONE `Using reg` per block => REG_ALLOC_ORDER blamed
+ * CORRECTLY, act on `spill_cost` (the live set).  TWO OR MORE, or inheritance
+ * => a round-robin cursor reading applies.  NONE => an ALLOCNO question.
+ *
+ * This function: 162 blocks -- 75 with no reload, 75 with one, 12 with two,
+ * ZERO `Reusing reg`.  HUNK 1's insns (155, 157, 166, 168) have NO RELOAD AT
+ * ALL, so they are not a reload question in any form; the answer above is a
+ * sched2 PRIORITY and not a register.  The two hunk-1 blocks that do reload
+ * (insns 171 and 174) carry exactly one each, both `Using reg 2` -- case 1, so
+ * if either is ever suspected, change the LIVE SET at that insn, not a spelling.
+ *
+ * FAMILY COUNT, because it is reusable and this bank is where it matters:
+ * TWELVE `Anim_*` parks cite `REG_ALLOC_ORDER` and every one is in rom_c9000.
+ * Compiled all twelve plus `d5c48_Curse` with `-da` and classified `.18.greg`:
+ * 2+-reload insns are 0% to 10% of blocks (median ~2%), and there is **ZERO
+ * reload inheritance in any of the fifteen functions measured in this bank** --
+ * not one `Reusing reg` line in ~2,100 `Spilling for insn` blocks.
+ * `Anim_Ice` and `d5c48_Curse` have NO multi-reload insn in the whole function,
+ * so their citations can only be case 1 or case 3; `Anim_Venus` has 2 of 87
+ * blocks and `Anim_Mars` 1 of 84.  Per-function figures are in
+ * scratch_elev/b325/H/FINDINGS.md section 5.
+ *
+ * > IN THIS BANK THE CURSOR READING IS THE HYPOTHESIS OF LAST RESORT, NOT THE
+ * > FIRST.  But run the triage on the SPECIFIC INSN behind the rotation, not on
+ * > the function: Anim_Djinni's hunk 1 sits on one of the rare 2+ insns.
+ * The counts are measured on OUR candidate bodies, not the reference's TU.
+ *
+ * ================================================================
  * THE REMAINING 15 -- ELEVEN HUNKS, EVERY ONE A SINGLE-SLOT TRANSPOSITION
  * ================================================================
  *

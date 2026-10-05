@@ -1,4 +1,4 @@
-/* Func_808f498 -- 0x0808f498 -- asm/rom_8a000/rom_8d9a4_c_c_a_a_c.s
+/* Func_808f498 -- 0x0808f498 -- asm/rom_8a000/rom_8d9a4_c_c_a_a_c_a.s
  *
  * NON-MATCHING, 25 of 64 encodings  (MEASURED, batch 319 recipe backfill).
  *   RELOCATIONS differ, but THE SAME SYMBOLS AT A SHIFTED OFFSET -- which
@@ -9,7 +9,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_8a000/808f498.c \
- *     asm/rom_8a000/rom_8d9a4_c_c_a_a_c.s --func Func_808f498
+ *     asm/rom_8a000/rom_8d9a4_c_c_a_a_c_a.s --func Func_808f498
  *
  * This recipe was ADDED by the batch-319 backfill: the park had none, so
  * parkcheck.py could not report its figure and nothing had ever checked it.

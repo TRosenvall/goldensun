@@ -1,12 +1,12 @@
 /* Func_80ae2f4 (0x080ae2f4) -- NON-MATCHING, 395 of 461 encodings differ.
- * Reference asm/rom_a1000/rom_ad274_c_c_a.s.  Intended park path:
+ * Reference asm/rom_a1000/rom_ad274_c_c_a_c.s.  Intended park path:
  * src/non_matching/rom_a1000/80ae2f4.c
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *       goldensun-build python3 tools/objcmp.py \
  *       src/non_matching/rom_a1000/80ae2f4.c \
- *       asm/rom_a1000/rom_ad274_c_c_a.s --func Func_80ae2f4
+ *       asm/rom_a1000/rom_ad274_c_c_a_c.s --func Func_80ae2f4
  *
  * NON-MATCHING, 395 of 461 encodings differ.
  * NOT A TRUE DISTANCE: 1000 bytes against 1056 and 433 encodings against 461,
@@ -14,7 +14,7 @@
  * (47.5%), 298 in 103 hunks.  Reference instruction count 439 (the .s's own
  * lines) plus one pool word.  Shim count 0 (pin-free, no fakematch.txt row).
  *
- * SPLIT: asm/rom_a1000/rom_ad274_c_c_a.s holds THREE functions -- Func_80ad69c,
+ * SPLIT: asm/rom_a1000/rom_ad274_c_c_a_c.s holds THREE functions -- Func_80ad69c,
  * Func_80ad6d4 and Func_80ae2f4, in that order -- so landing this one is a
  * two-way split at the third: `rom_ad274_c_c_a_a.s` (the first two, unchanged)
  * plus `rom_ad274_c_c_a_b.s`.  AND THE ROADBLOCK IS IN THE LINKER SCRIPT, NOT

@@ -1,129 +1,118 @@
-/* SystemMsgBox (0x080208e4) -- NON-MATCHING, 2 of 85 encodings.
+/* SystemMsgBox (0x080208e4) -- NON-MATCHING, 2 differing encodings of 85.
  *
  * SIZE 204 == 204, ENCODINGS 85 == 85, 16 RELOCATIONS IDENTICAL, so the 2 is a
- * TRUE DISTANCE, not a misalignment.  (The park this replaces,
- * src/non_matching/rom_15000/80208e4.c, measures 23 of 85 -- re-derived, its
- * claim reproduced.)
+ * TRUE DISTANCE, not a misalignment.  PINS: 0 (tools/shimcount.py).
+ * Figure re-derived in batch 325; the previous header's claim reproduced exactly.
  *
- * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/rom_15000/80208e4.c \
- *     asm/rom_15000/rom_20198_a_a_c.s --func SystemMsgBox
+ * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/80208e4.c asm/rom_15000/rom_20198_a_a_c.s --func SystemMsgBox
  *
  * SPLIT: NONE NEEDED if it ever lands.  asm/rom_15000/rom_20198_a_a_c.s holds
  * exactly ONE function (one .thumb_func_start) and tools/datacheck.py reports no
- * data section and no required exports, so the whole .s would be replaced by the
- * .c.  PINS: 0 (tools/shimcount.py reports none).
+ * data section and no required exports, so the whole .s would be replaced.
  *
- * ================== THE PARK'S DIAGNOSIS, REPRODUCED AND REFUTED =============
- * Reproduced: the length, the branch structure, the five early-exit values and
- * the whole tail are exact, and most differences are "which scratch register
- * carries a value".
- *
- * REFUTED, in three parts:
- *
- *  1. "Every difference is which scratch register carries a value."  Decomposed
- *     into runs, the 23 is FIVE runs and two of them are ORDER, not register:
- *       A  prologue, `ret = 0` into r8          2   scratch r1 vs r2
- *       B  arm 1, `-9` into r8                  3   scratch r2 vs r3
- *       C  `.L2090c`, ldrsh + arg setup         5   ORDER + the zero-index reg
- *       D  arm 2, call args + `-2` into r8      5   ORDER (2) + scratch (3)
- *       E  `.L2095c`, five pooled addresses     8   local-alloc choices
- *     Block `.L2092c` (the two Func_8005a78 calls) is exact.
- *
- *  2. "WHAT IS RIGHT AND SHOULD BE KEPT: ... `g = gState;` with `g[0x22a]`."
- *     That local is the ENTIRE CAUSE OF RUNS A, B, C AND D.  Deleting it and
- *     reaching gState directly takes 23 -> 5 in one edit.
- *
- *  3. "No recorded lever addresses that choice ... NEXT: nothing source-level."
- *     The register is not spellable, but what picks it is, and it is not
- *     REG_ALLOC_ORDER.
- *
- * ================== THE MECHANISM: A ROUND-ROBIN OVER THE SPILL SET ==========
- * `(set (reg:SI 8 r8) (const_int N))` has no thumb pattern -- a high register
- * cannot take an immediate -- so reload splits every assignment to `ret` into a
- * LO_REGS scratch plus `mov r8,scratch`.  `.19.flow2` shows exactly that
- * (insn 200 `set r2,0` + insn 12 `set r8,r2`).  Runs A, B and the `-2` of D are
- * those scratches.
- *
- * `allocate_reload_reg` (reload1.c:4996-5013) does NOT consult REG_ALLOC_ORDER.
- * It starts its scan at `i = last_spill_reg` and, in the compiler's own words,
- * "We advance it round-robin between insns to use all spill regs equally".
- * `last_spill_reg` is -1 per function (reload1.c:821) and is set to the chosen
- * index at reload1.c:4937.  `spill_regs` is the ASCENDING list of hard regs in
- * `used_spill_regs` (reload1.c:3527-3536).
- *
- * So the whole function's scratch pattern is one rotation, and ours was one
- * position behind the ROM's for every reload in the function:
- *     rom   r1, r2, ..., r1, r2        ours  r2, r3, ..., r2, r2
- * which is the SAME rotation over a spill set of {r1,r2,r3} versus {r2,r3}.
- * The park's compile never prints "Using reg 1" in `.18.greg`'s reload trace;
- * this one does ("Spilling for insn 129. Using reg 1 for reload 0").
- *
- * WHICH REGISTERS JOIN THE SET is `find_reg` (reload1.c:1588-1659): candidates
- * are ranked by `spill_cost[regno]`, the summed `REG_N_REFS` of pseudos
- * allocated to that hard reg and live across the insn (`count_pseudo`, 1490),
- * and ties go to `inv_reg_alloc_order`, which on ARM is 3, 2, 1, 0
- * (config/arm/arm.h:989-995).  The decisive insn is the reload that materialises
- * 0x22a for `add r3, r3, #0x22a`: with the `iwram_3001d08` store address still
- * live in r2 at that point, r1 is the only zero-cost candidate and joins the
- * set; with it dead, r1 and r2 both cost 0 and the tie-break takes r2.
- *
- * SO THE LEVER IS NOT THE REGISTER, IT IS HOW MANY REFS ARE LIVE ACROSS ONE
- * RELOAD -- and that is ordinary source.  Worth 15 of the 23 here.
- *
- * ================== WHY THE STRUCT, AND WHAT IT IS WORTH =====================
- * Reaching gState as `*(int *)(gState + 4)` folds the displacement INTO the
- * pool word: gcc emits `.word gState+4`, `ldr r2,[r3]` and `.word 0x226`.  The
- * ROM has `.word gState`, `ldr r2,[r3,#4]` and `.word 0x22a` -- three
- * encodings.  A named `unsigned char *g` fixes that (it is what the landed
- * sibling src/rom_15000/rom_23178_a_c_b.c does, and its header records the same
- * folding trap) but costs the rotation above.  A STRUCT does both: a
- * COMPONENT_REF keeps the base in a register and the member offset as a MEM
- * displacement, with no user pseudo to perturb local-alloc.  Worth 5 -> 2.
- * The `typedef struct { unsigned char _bytes[704]; } GlobalState;` spelling is
- * already the project's convention for this symbol in a dozen parks; this is
- * the same object with the two fields this function touches named.
- *
- * ================== THE REMAINING 2, AND WHY IT IS NOT SPELLABLE =============
- * Both are one swap:
+ * ================== THE RESIDUE, UNCHANGED ==================================
+ * Both differing encodings are one swap:
  *     rom    add r3,r1 / ldrb r3,[r3] / ldr r2,=iwram_3001d08 / strb r3,[r2]
  *     ours   add r3,r1 / ldr r2,=iwram_3001d08 / ldrb r3,[r3] / strb r3,[r2]
+ * `.23.sched2` block 6 prints `Ready list (t = 11):  139  129` and schedules 129.
+ *   129 = `r2=[*.LC6]`, the iwram_3001d08 pool load
+ *   139 = `r3=[r3]`,    the ldrb
+ * `expand_assignment` expands the LHS address first for a plain VAR_DECL LHS
+ * (expr.c:3639-3647, its one exception gated on CALL_EXPR at expr.c:3604), so
+ * LUID(129) < LUID(139).
  *
- * `expand_assignment` (expr.c:3639-3647, "Ordinary treatment.  Expand TO to get
- * a REG or MEM rtx") expands the LHS address FIRST for a plain VAR_DECL LHS, so
- * the pool load always has the lower INSN_LUID.  Its one documented exception is
- * a CALL_EXPR right-hand side (expr.c:3594-3614, "If the rhs is a function call
- * ... call the function before we start to compute the lhs"), which does not
- * apply.
- *
- * sched2 then has both insns ready in the same cycle -- `.23.sched2` prints
- * `Ready list (t = 11):    131  121` -- and EVERY RUNG of `rank_for_schedule`
- * (haifa-sched.c:4029-4116) ties:
- *   priority        7 == 7
+ * ================== BATCH 325: THE TIE IS TIED IN THE ROM TOO ===============
+ * Every rung of `rank_for_schedule` (haifa-sched.c:4029-4116) ties, and -- this
+ * is the new part -- EACH TIE IS STRUCTURAL IN THE ROM'S OWN CODE, so the ROM's
+ * order can only have come from INSN_LUID:
+ *   priority        7 == 7, and both 7s come from the SAME shared dependent 140
+ *                   (the strb): prio(140) + insn_cost = 5 + 2.  The other edges
+ *                   contribute nothing, because ARM's ADJUST_COST returns 0 for
+ *                   REG_DEP_ANTI and REG_DEP_OUTPUT (arm.c:2425-2427).
  *   INSN_REG_WEIGHT gated off by `!reload_completed` (line 4046)
- *   CLASS           both 3: the ldrb's dependence on the `add` has
- *                   `insn_cost == 1`, which line 4078 maps to class 3, and the
- *                   pool load is independent of it, which is also class 3
- *   dependents      2 == 2  (121 -> {214 anti-r2, 132}; 131 -> {135 anti-r3, 132})
- * so line 4115's `INSN_LUID` tie-break decides, and it decides against us.
+ *   CLASS           both 3 (last_scheduled_insn is 137 and
+ *                   insn_cost(137,link,139) == 1, which line 4078 maps to 3)
+ *   dependents      2 == 2, and the ROM HAS BOTH SECOND EDGES:
+ *                     129 -> {140, 222 `mov r2,r8`}   -- ROM writes r2 later
+ *                     139 -> {140, 143 `ldr r3,=d24`} -- ROM writes r3 later
+ * so neither the priority rung nor the dependent-count rung can be moved by any
+ * body that still emits the ROM's instructions.
  *
- * THE TWO FIXES ARE MUTUALLY EXCLUSIVE THROUGH THE SPILL SET, and this is the
- * finding worth carrying.  The only source form that lowers the ldrb's LUID is
- * a separate statement:
- *     b = gState.f22a;  iwram_3001d08 = b;
- * That DOES produce the ROM's order -- and it also takes the store address out
- * of r2 across the 0x22a reload, so `find_reg` ties and r1 never joins the
- * spill set, and all 15 rotation differences return.  Measured: 20 of 85.
- * Eight further spellings of the split and all six permutations of the tail
- * statements were measured; none beats 2 (figures 2, 6, 8, 10, 15, 19, 20, 23,
- * 25, 26, 28).
+ * ================== THE "MUTUALLY EXCLUSIVE" CLAIM IS REFUTED ===============
+ * The previous header's finding was: the only source form that lowers the ldrb's
+ * LUID is a separate statement `b = gState.f22a; iwram_3001d08 = b;`, and that
+ * "takes the store address out of r2 across the 0x22a reload, so find_reg ties
+ * and r1 never joins the spill set, and all 15 rotation differences return.
+ * Measured: 20 of 85."  The 20 reproduces.  The EXCLUSION does not.
  *
- * NEXT MOVE: find a value that is live in r2 across the `add r3,r3,#0x22a`
- * WITHOUT being the store address -- that would re-admit r1 to the spill set
- * while leaving the ldrb's LUID low.  Nothing in the ROM's register use suggests
- * one, which is why this is a park and not a landing.
+ *   v = gState.f4;
+ *   b = gState.f22a;
+ *   iwram_3001c9c = v;
+ *   iwram_3001d08 = b;
+ *
+ * measures **8 of 85**, first diff moved from index 4 to index 56, and
+ * `.18.greg` prints `Using reg 1 for reload 0` again -- the spill set is
+ * {r1,r2,r3} and EVERY ONE of the ~15 rotation differences is gone, WITH the
+ * ldrb below the pool load.  `v`'s pseudo sits in r2 and is live across the
+ * `add r3,r3,#0x22a`, which is exactly what the previous header's NEXT MOVE
+ * asked for ("find a value that is live in r2 across the add WITHOUT being the
+ * store address").  It exists: it is gState.f4's value.
+ *
+ * Mechanism, read in the compiler.  `order_regs_for_reload` (reload1.c:1517)
+ * fills spill_cost[] by `count_pseudo` (reload1.c:1490, `spill_cost[r] +=
+ * REG_N_REFS (reg)`) over live_throughout + dead_or_set, and `bad_spill_regs`
+ * takes only the HARD registers out of those sets -- `reg_set_to_hard_reg_set`
+ * (flow.c:7781) RETURNS at the first pseudo.  `find_reg` (reload1.c:1589) scans
+ * ascending, lowest spill_cost wins, and ties go to the lower
+ * `inv_reg_alloc_order`, which on ARM is 3,2,1,0 (arm.h:989-995).
+ * > SO r3 BEATS r2 BEATS r1 BEATS r0 ON EVERY TIE, and r1 can only be chosen at
+ * > a reload where r3 AND r2 BOTH carry cost.  In the park body r3 carries the
+ * > gState pseudo and r2 the iwram_3001d08 address pseudo; that is the only such
+ * > reload in the function, which is why removing the r2 cost loses r1 entirely.
+ *
+ * ================== WHY THE 8 IS STILL NOT 0 ================================
+ * The 8 is a DIFFERENT defect.  With iwram_3001c9c assigned in statement 3 its
+ * LHS pool load has a high LUID and a short chain, so sched2 drops the
+ * `ldr =iwram_3001c9c / str` pair BELOW the ldrb and the pool words for 0x22a
+ * and iwram_3001c9c swap (objcmp prints a RELOCATIONS line: iwram_3001c9c at
+ * 0xc0 against the ROM's 0xbc).  In the park body that pair is pinned high only
+ * by the anti-dependence 126 -> 219, both of which use r1.
+ *
+ * And the two requirements are geometrically opposed: the ldrb must be below the
+ * pool load in LUID, so the pool-load pseudo must be born AFTER the ldrb, while
+ * the r2 cost must be live ACROSS the add, which is BEFORE the ldrb.  Only a
+ * THIRD value can satisfy both, and the only third value available --
+ * gState.f4's -- drags its own store down with it.
+ *
+ * REMAINING CAUSE, NAMED: a pseudo in r2 live across `add r3,r3,#0x22a` whose
+ * death does NOT force the iwram_3001c9c store below that add.
+ *
+ * ================== MEASURED IN BATCH 325 (none beats 2) ====================
+ *   park body (base)                                                    2
+ *   `d = &iwram_3001d08;` then `b = gState.f22a;` then `*d = b;`        2  <- inert
+ *   + `v` split (above)                                                 8
+ *   + `v` split with `unsigned int v`                                   8
+ *   + `v` split with `short v`                                         27
+ *   + `v` split and `c = &iwram_3001c9c;` hoisted to the front          9
+ *   + `v` split and `c` hoisted after `v`                              10
+ *   `c = &iwram_3001c9c; b = ...; *c = gState.f4; iwram_3001d08 = b;`  10
+ *   `b` split alone, `unsigned char b` / `int b` / reusing `int r`      20
+ *   `b` split with `d = &iwram_3001d08;` AFTER the `b` statement        20
+ *   `b` split, the two split statements swapped                        10
+ *   `b` split + `*pw = slot;` before `iwram_3001d24 = ret;`            25
+ *   `b` split with the ldrb statement above the c9c statement          26
+ *   tail permutation c9c, d08, pw, d24                                  6
+ *   tail permutations c9c,d24,d08,pw / c9c,d24,pw,d08 / c9c,pw,d24,d08 15, reloc
+ *   tail permutation c9c, pw, d08, d24                                 28
+ * The three 15s all lift iwram_3001d24's pool word above iwram_3001d08's, which
+ * is why they carry a RELOCATIONS line -- pool order is first-reference order
+ * (push_minipool_fix, arm.c:4820).
+ *
+ * KEPT, and still load-bearing: the GlobalState struct (a COMPONENT_REF keeps
+ * the base in a register and the member offset as a MEM displacement, where
+ * `*(int *)(gState + 4)` folds the displacement into the pool word and costs 3);
+ * no `g` local; `pw` as a named `short *`; `buf2 = buf + 0x1000` as a named
+ * local; the five early-exit values written into `ret`.
  */
 extern int Func_80056cc(void);
 extern int Func_801776c(int, int);

@@ -36,6 +36,21 @@ And the parks that did not land moved a long way: **41 → 2**, **37 → 3**,
 
 ## The finding that generalises furthest: reload's round-robin cursor
 
+> **CORRECTED BY BATCH 325 — READ THAT FIRST.** What follows is a *fragment* of
+> the mechanism, and `docs/elevation.md` already held the complete version at
+> **batch 255** under *"A RELOAD SCRATCH REGISTER IS ROUND ROBIN OVER A SET THE
+> SOURCE CONTROLS"*. `find_reg` **does** read `REG_ALLOC_ORDER`
+> (`reload1.c:1645-1662`) and owns the only `Using reg` printf (`:1664`), so the
+> instruction below to "reopen any park blaming `REG_ALLOC_ORDER`" is wrong as
+> written. `finish_spills` then **grows** the per-insn set to every hard register
+> not holding a live pseudo (`reload1.c:3609-3627`), so the cursor's freedom is
+> the number of **free registers**, not of reloads — and the register `find_reg`
+> prints is not necessarily the one emitted. See elevation.md,
+> *"THE RELOAD REGISTER, SETTLED: THREE LAYERS"*.
+>
+> Two independent agents reaching the same conclusion was strong evidence the
+> fragment was real, and no evidence that it was complete.
+
 **Two agents, two functions, two banks, no contact between them, same
 conclusion.** Brief E found it at `reload1.c:5003`; brief A found it at
 `reload1.c:4996-5013`.

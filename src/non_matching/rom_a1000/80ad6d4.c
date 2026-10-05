@@ -1,3 +1,26 @@
+/* STALE REFERENCES REPAIRED, batch 325.  asm/rom_a1000/rom_ad274_c_c_a.s NO
+ * LONGER EXISTS: Func_80ad69c landed in that batch and the file was split into
+ * _b.s (Func_80ad69c, now compiled from src/rom_a1000/rom_ad274_c_c_a_b.c) and
+ * _c.s, which is where THIS function now lives.
+ *
+ * Three things below are therefore stale and are corrected here rather than in
+ * place, so the original recon text stays readable:
+ *   - the reference is now asm/rom_a1000/rom_ad274_c_c_a_c.s;
+ *   - the line range 42..1437 was measured in the pre-split file;
+ *   - the predicted install path src/rom_a1000/rom_ad274_c_c_a_b.c IS NOW
+ *     TAKEN by Func_80ad69c's landing, so this function needs a different one
+ *     (it is the only function left in _c.s, so _c.c converts whole).
+ *
+ * This park was found by install_batch.py's new repoint guard, which flagged it
+ * for manual repair because it names no `--func` line for the guard to resolve
+ * -- correctly, since it is a RECON park with no body.  The guard repointed its
+ * two siblings automatically.  See docs/elevation.md, "A LANDING THAT SPLITS A
+ * `.s` SILENTLY ORPHANS EVERY OTHER PARK'S RECIPE IN THAT FILE".
+ *
+ * The instruction count and the veneer analysis below are unaffected -- the
+ * split moved the function, it did not change it.
+ */
+
 /* Func_80ad6d4 -- RECON, NO CANDIDATE BODY, THEREFORE NO FIGURE.
  *
  * NO `NON-MATCHING, N of M` LINE AND NO `Verify with:` RECIPE: there is no .c

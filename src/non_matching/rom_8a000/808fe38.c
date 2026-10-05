@@ -1,4 +1,4 @@
-/* Func_808fe38 -- 0x0808fe38 -- asm/rom_8a000/rom_8d9a4_c_c_a_a_c.s
+/* Func_808fe38 -- 0x0808fe38 -- asm/rom_8a000/rom_8d9a4_c_c_a_a_c_b.s
  *
  * NON-MATCHING, 11 of 50 encodings  (MEASURED, batch 323 brief E).
  *   COUNT EXACT  (ref 50, ours 50).  SIZE EXACT (120 bytes).
@@ -11,7 +11,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_8a000/808fe38.c \
- *     asm/rom_8a000/rom_8d9a4_c_c_a_a_c.s --func Func_808fe38
+ *     asm/rom_8a000/rom_8d9a4_c_c_a_a_c_b.s --func Func_808fe38
  *
  * PINS: 0.  DEVICES: 0.  Default flags.  No split: this is a park, one
  * function out of a multi-function reference, so --whole does not apply.

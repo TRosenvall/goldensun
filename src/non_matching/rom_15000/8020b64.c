@@ -1,3 +1,133 @@
+/* Func_8020b64 -- PARK STANDS.  Batch 325 brief B: figure re-derived, and the
+ * family's MECHANISM CORRECTED against the compiler source.
+ *
+ *   50 differing encodings of 57.  ref 57 encodings / 116 bytes, ours 55 / 112.
+ *   Re-measured in batch 325 brief B; identical to the batch-324 figure.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/8020b64.c asm/rom_15000/rom_20198_c_c_c_a_a_a_a_c.s --func Func_8020b64
+ *
+ * ================= CORRECTION 1: IT IS NOT delete_trivially_dead_insns ========
+ *
+ * The header below, and docs/elevation.md's COPY-COLLAPSE section, attribute the
+ * collapse to `delete_trivially_dead_insns` inside the cse pass block and state
+ * it is "not cse_insn's canonicalisation".  BOTH HALVES ARE WRONG.
+ *
+ * `delete_trivially_dead_insns` (cse.c:7245) deletes an insn only when
+ * `counts[REGNO (SET_DEST)] == 0` -- a whole-function use count.  It is a
+ * JANITOR; it chooses no direction.  In THIS function's production build it is
+ * not even the collector: the dead copy is removed by `life_analysis` at
+ * `.12.life` (traced pass-by-pass, scratch_elev/b325/B/NOTES.md).
+ *
+ * The DECISION is a specific named transform in `cse_insn`:
+ *
+ *   cse.c:5959  "Special handling for (set REG0 REG1) where REG0 is the
+ *                'cheapest', cheaper than REG1. ... change this insn to
+ *                (set REG1 REG0) and replace REG1 with REG0 in the previous
+ *                insn that computed their value.  Then REG1 will become a
+ *                dead store"
+ *
+ *   cse.c:5999   validate_change (prev, &SET_DEST (PATTERN (prev)), dest, 1);
+ *   cse.c:6000   validate_change (insn, &SET_DEST (sets[0].rtl),    src,  1);
+ *   cse.c:6001   validate_change (insn, &SET_SRC  (sets[0].rtl),    dest, 1);
+ *
+ * That is what rewrites the LOAD'S DESTINATION -- which no propagation could do,
+ * and which the old header correctly observed without naming.
+ *
+ * ================= CORRECTION 2: THE GATE IS A LIVENESS TEST =================
+ *
+ * Two conditions must hold for the swap:
+ *
+ *  GATE 1 (cse.c:5986)  src_ent->first_reg == REGNO (SET_DEST).  `first_reg` is
+ *    maintained by `make_regs_eqv (new, old)` (cse.c:1397), which for two
+ *    pseudos promotes `new` ONLY IF
+ *
+ *      (uid_cuid[REGNO_LAST_UID (new)]  > cse_basic_block_end
+ *       || uid_cuid[REGNO_FIRST_UID (new)] < cse_basic_block_start)
+ *      && uid_cuid[REGNO_LAST_UID (new)] > uid_cuid[REGNO_LAST_UID (firstr)]
+ *
+ *    i.e. (i) `new` must live OUTSIDE the current cse extended basic block and
+ *    (ii) its last mention must come after `firstr`'s.  A cse block ends at
+ *    EVERY CODE_LABEL (`cse_end_of_basic_block`'s
+ *    `while (p && GET_CODE (p) != CODE_LABEL)`), so a loop body is always its
+ *    own block.
+ *
+ *  GATE 2 (cse.c:5992)  `prev_nonnote_insn (insn)` must BE the insn whose
+ *    SET_DEST is REG1.
+ *
+ * ** NEITHER GATE IS A NAME OR A TYPE.  Both are liveness/adjacency facts. **
+ * That is exactly why fourteen whole bodies measured flat: they varied names,
+ * types, read order and statement order, and none varied which pseudo's live
+ * range leaves the block.
+ *
+ * ================= WHAT THAT BUYS: .03.cse REACHES THE ROM'S THREE ==========
+ *
+ * A BLOCK-SCOPED `unsigned char` intermediate inside the loop body:
+ *
+ *      while (t != 0) {
+ *              unsigned char x;
+ *              buf[n] = c;  src++;
+ *              x = *src;  c = x;  t = c;
+ *              n++;
+ *      }
+ *
+ * makes `.03.cse` keep THREE insns -- the ROM's shape, which no previously
+ * measured body has produced:
+ *
+ *   (insn 44 (set (reg:SI 41)   (zero_extend:SI (mem:QI (reg/v:SI 33) 0))))
+ *   (insn 49 (set (reg/v:SI 35) (reg:SI 41)))
+ *   (insn 52 (set (reg/v:SI 34) (reg/v:SI 35)))
+ *
+ * `x`'s pseudo is born and dead inside the loop body's cse block, so gate 1(i)
+ * fails, it is never promoted, and the swap does not fire.
+ *
+ * WHY THE PARK'S "three names ... 50 flat" MISSED IT: that row used a
+ * FUNCTION-SCOPE `int x`.  Both halves break it, and I reproduced both --
+ * `int x` against `unsigned char c` inserts a TRUNCATION, so `c = x` expands as
+ * `(set (reg) (lshiftrt (reg) 24))` and the cse.c:5959 transform does not apply
+ * to it at all; and a function-scope name is not bb-local, so even as a clean
+ * copy its promotion test passes.  ** THE TYPE AND THE SCOPE ARE BOTH
+ * LOAD-BEARING, and the sweep varied the type at fixed scope. **
+ *
+ * ================= WHY IT STILL DOES NOT LAND: FOUR SITES, NOT ONE ==========
+ *
+ * Loop-chain length per pass (scratch_elev/b325/B/dump/v4norm, v4nocse2):
+ *
+ *   pass          production    -fno-rerun-cse-after-loop
+ *   .02.jump          4              4
+ *   .03.cse           3              3
+ *   .09.cse2          3 (1 DEAD)     3
+ *   .12.life          2              3
+ *   .13.combine       2              2
+ *
+ * `.09.cse2` reapplies the SAME cse.c:5959 swap (it runs with after_loop = 1,
+ * toplev.c:3095, which drops cse_end_of_basic_block's NOTE_INSN_LOOP_END break
+ * and widens its blocks), and `life_analysis` collects.  With cse2 off, the three
+ * survive to `.12.life` and then COMBINE merges the load into the copy through a
+ * LOG_LINK -- a second, independent sink.
+ *
+ * BOUND, with its evidence: twelve bodies measured here, every one reaching
+ * `.12.life` at 2 and reading 50 of 57 at 112 bytes / 55 insns:
+ *   fn-scope `int x`; fn-scope + `n++` between load and copy; block `unsigned
+ *   char x`; block `unsigned int x`; block + `n++` between; TWO and THREE
+ *   block-scoped intermediates; one, two and three block-scoped intermediates
+ *   placed AFTER the loop-carried variable (these collapse to 2 inside cse
+ *   alone); and `x = *src; c = x; t = x;` giving x two uses.
+ * `.03.cse`'s floor is 3 for one, two or three intermediates alike.
+ * INSTRUMENTS: -fno-rerun-cse-after-loop reads 56 on the block-scoped body and
+ *   57 on the park body, both still 55 insns -- it moves the flip without
+ *   restoring the instruction.
+ *
+ * The structural reason: cse's own collapse always leaves the BB-LOCAL name
+ * owning the load and the BB-CROSSING name owning the next copy -- precisely the
+ * pair whose promotion test passes, so cse2 swaps it.
+ *
+ * REFUTED IF someone finds a spelling where the copy surviving `.03.cse` has a
+ * destination dead inside the loop body's cse block while still being the value
+ * the next iteration reads, or gives the load's destination a second REAL use
+ * (so combine has no LOG_LINK) that is not itself collapsed.
+ */
+
 /* Func_8020b64 -- PARK STANDS.  Re-derived and refined in batch 324 brief F.
  *
  *   50 differing encodings of 57.  ref 57 encodings / 116 bytes, ours 55 / 112.

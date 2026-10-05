@@ -83,6 +83,118 @@
  * of the indirect call.
  *
  * ================================================================
+ * BATCH 325H -- HUNK 1 IS A TRUE DEPENDENCE, NOT A SCHEDULING CHOICE, AND
+ * THAT IS WHY SIXTEEN STATEMENT ORDERINGS WERE ALL FLAT
+ * ================================================================
+ *
+ * Reproduced exactly: 16 of 738, ref 738 / ours 738, no SIZE line, no
+ * RELOCATIONS line, first differing index 107.  aligncmp: 730 of 738 aligned,
+ * 15 differing/ins/del in 10 hunks.
+ *
+ * THE PARK SAID of hunk 1: "the ROM's early placement is sched2 hoisting it
+ * above the two frame STORES -- which it may only do if sched2's aliasing lets
+ * a sp load cross a sp store.  No source statement order reaches it."
+ * The CONCLUSION is right and the park is right to say stop spending compiles
+ * on statement order.  The MECHANISM is the other way round, and it matters
+ * because it says what WOULD move it.
+ *
+ * Compiled with `-da -fsched-verbose=6`, the post-reload RTL of this block
+ * (basic block 16) carries the dependence explicitly:
+ *
+ *     (insn 1962 ... (set (mem:SI (plus (reg 13 sp) (const_int 28))  0 )
+ *                        (reg:SI 2 r2)) ...          <- the d0 spill store
+ *     (insn  264 ... (set (reg:SI 3 r3) (mem/s:SI (reg:SI 3 r3) 6 ))
+ *                        ... (insn_list 1962 (insn_list 262 (nil)))
+ *
+ * -- insn 264, the `ldr r3,[r3]` that finishes the 0xbc chain, has a TRUE
+ * dependence on insn 1962, the spill store.  The two alias sets are printed
+ * right there: the spill MEM is **alias set 0** and the gPtrs load is alias set
+ * 6.
+ *
+ * > A RELOAD SPILL SLOT CARRIES ALIAS SET 0, SO `DIFFERENT_ALIAS_SETS_P` CAN
+ * > NEVER DISQUALIFY IT (alias.c:1573, and it is checked FIRST), and
+ * > `memrefs_conflict_p` cannot disprove the overlap either, because one
+ * > address is `sp+28` and the other is a pointer in a pseudo with no known
+ * > base.  So every load after a spill store is ORDERED AFTER IT.
+ *
+ * sched2 therefore had no choice to make: once the d0 chain is expanded first
+ * and spilled, the d1 chain's load is PINNED behind that store, and
+ * `ldr r4,[sp,#0x28]`, `ldr r7,=0x7828` and `add r5` are pinned behind it in
+ * turn.  The whole hunk is one forced ordering, which is exactly why all
+ * sixteen statement orderings produced one RTL: the orderings change which
+ * STATEMENT comes first, and reload still spills the first-expanded value
+ * before the second chain's load.  `-fsched-verbose` is the wrong instrument
+ * for this hunk; the RTL dependence list is the right one.
+ *
+ * WHAT WOULD MOVE IT, stated so it can be tested rather than re-swept: the
+ * reference's first spill store is the 0xbc value (`str r3,[sp,#0x20]`,
+ * ref idx 113) and its 0xb8 load (ref idx 116) comes AFTER it -- so the
+ * reference has the SAME forced ordering, with the two chains exchanged.  Both
+ * streams put the 0xbc chain in the pooled register r3 and the 0xb8 chain in
+ * the reload copy `mov r2,r3`; the question is which chain reload copies.  That
+ * is decided before sched2, in reload, by which value is live when the base
+ * register is destroyed -- i.e. by the SPILL MAP (d1 at 0x20, d0 at 0x1c),
+ * which the park correctly identifies as fixed by DECLARATION order and NOT by
+ * assignment order.  SO I TESTED THE HALF THE PARK'S SIXTEEN ROWS ALL HOLD
+ * CONSTANT -- the DECLARATION order -- and it is WORSE, which closes this
+ * route rather than leaving it as a suggestion:
+ *
+ *     declare `d0` before `d1` (slots exchanged)                 19  (base 16)
+ *     declare `d0` first AND assign `d1` first                   19
+ *     assign `d1` first, declaration order unchanged             16  INERT
+ *
+ * all three at 738 / 738 encodings, size exact, relocations exact.  So the
+ * spill map is not a lever either: exchanging the two slots costs 3 and moves
+ * nothing in this hunk.  Hunk 1 now has NINETEEN measured orderings against it
+ * and one forced RTL.  **The next move on it is not an ordering at all** -- it
+ * is a form in which the d0 value is NOT spilled before the d1 chain's load,
+ * i.e. one fewer live value across that block, and that is a question about the
+ * whole function's locals, not about these two statements.
+ *
+ * HUNKS 2 AND 3 ARE THE SAME SHAPE AS Anim_CriticalHit'S FOUR ONE-SLOT HUNKS:
+ * in each, ours schedules a `ldr rX,[pc,...]` pool load exactly ONE slot
+ * earlier than the reference.  On Anim_CriticalHit the matching decision was
+ * read off `.23.sched2` and is a pure INSN_LUID tie (`Ready list (t =193):
+ * 2268 352` -> picks 352, equal priority 2, equal dependent count 1), and the
+ * ladder's last rung prefers the LOWER LUID, so the reference's pre-sched
+ * stream had the shift before the pool load.  `load_register_parameters`
+ * (calls.c) emits register arguments in index order 0..N-1, which is ours;
+ * reaching the reference's order means the r1 value must be materialised during
+ * ARGUMENT EVALUATION rather than in the load phase.  That is the one lever
+ * worth a compile on hunks 2 and 3, and it is the same lever on both functions.
+ *
+ * ONE CORRECTION TO THE BRIEF THAT SENT ME HERE.  It described this bank as
+ * "155 landed sources ... many already landed" and asked for a landed-`Anim_*`
+ * sibling port.  THERE ARE NO LANDED `Anim_*` OR `BaseAnim_*` SOURCES -- all
+ * 155 `.c` files in `src/rom_c9000/` are split-named `rom_XXXXXX_*.c` and all
+ * 46 named animations are parked.
+ *
+ * ================================================================
+ * BATCH 325H -- THE .18.greg RELOAD TRIAGE: HUNK 1 SITS ON THE ONE INSN IN
+ * THIS REGION WHERE A CURSOR READING IS LIVE
+ * ================================================================
+ * Triage (see Anim_CriticalHit's header for the source lines): one `Using reg`
+ * per `Spilling for insn` block => `REG_ALLOC_ORDER` blamed CORRECTLY, act on
+ * `spill_cost`; two or more, or inheritance => the round-robin cursor reading;
+ * none => an ALLOCNO question.
+ *
+ * This function: 170 blocks -- 71 with no reload, 88 with one, 11 with two,
+ * ZERO `Reusing reg`.  In hunk 1, insns 253, 255 and 264 have NO reload, and
+ *
+ *     Spilling for insn 246.
+ *       Using reg 3 for reload 0
+ *       Using reg 2 for reload 1
+ *
+ * -- insn 246 is `add r5,r4,r7`, and its two reload-fed operands are
+ * `ldr r4,[sp,#0x28]` and `ldr r7,=0x7828`: PRECISELY the two instructions the
+ * reference places early in this hunk.  So the two readings are not in
+ * conflict, they divide the hunk: the alias-set-0 spill dependence above FIXES
+ * THE ORDER OF THE TWO gPtrs CHAINS and cannot be moved, while the remaining
+ * freedom in the hunk is the TWO reloads on insn 246, which is the one place
+ * here the cursor reading applies.  That is the half to work next, and it is
+ * NOT an ordering -- nineteen orderings have now been measured against it.
+ *
+ * ================================================================
  * THE REMAINING 16, BY HUNK -- ALL THREE ARE SCHEDULE ORDER, NO PROGRAM CHANGE
  * ================================================================
  *

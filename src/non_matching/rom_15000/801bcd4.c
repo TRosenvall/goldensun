@@ -1,3 +1,82 @@
+/* Func_801bcd4 -- PARK STANDS.  Batch 325 brief B: figure re-derived, and the
+ * park's PASS ATTRIBUTION REFUTED by its own dumps.
+ *
+ *   48 differing encodings of 81.  ref 81 encodings / 196 bytes, ours 80 / 192.
+ *   Re-measured in batch 325 brief B; identical to the batch-324 figure.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/801bcd4.c asm/rom_15000/rom_1aeec_a_a_c_c.s --func Func_801bcd4
+ *
+ * INDEPENDENT PROOF OF THE MERGE, from objcmp's relocation list: the reference
+ * carries TWO `R_ARM_THM_CALL LoadInventoryIcon` (0x74 and 0x80); we carry ONE
+ * (0x7a).  The cross-jump is not an inference.
+ *
+ * =============== REFUTED: "cse2 propagates 65 into insn 84, insn 78 is left a
+ * dead copy that delete_trivially_dead_insns removes.  THE SURVIVOR IS INSN 84."
+ *
+ * `.09.cse2` actually holds BOTH insns (scratch_elev/b325/B/dump/bcd4):
+ *
+ *   (insn 78 (set (reg:SI 48) (reg:SI 65)))        <- STILL PRESENT at cse2
+ *   (insn 80 (set (reg:SI 0 r0) (reg/v:SI 33)))
+ *   (insn 82 (set (reg:SI 1 r1) (const_int 58)))
+ *   (insn 84 (set (reg:SI 2 r2) (reg:SI 65)))      <- its SRC was (reg 48)
+ *
+ * So this is NOT the cse.c:5959 swap -- that needs a PSEUDO dest (insn 84's dest
+ * is hard reg r2) and would have rewritten insn 78's DEST, which it did not.  It
+ * is plain `canon_reg` substituting the quantity's `first_reg` into insn 84's
+ * SET_SRC.  `delete_trivially_dead_insns` is again only a janitor.
+ *
+ * =============== AND `.07.gcse` IS PRE, NOT "COMMONING" -- IT INSERTS INSNS
+ *
+ *   (insn 225 (set (reg:SI 65) (reg:SI 41)))   inserted after the 1st read of s
+ *   (insn 226 (set (reg:SI 65) (reg:SI 43)))   inserted after the 2nd read of s
+ *
+ * reg 65 is a gcse PRE representative for the address-taken local `s`
+ * (`(mem/f:SI (plus sfp -4))`), and ALL FIVE three-argument arms were rewritten
+ * to read it (insns 78, 92, 127, 141, 155).  ** THE ROM DID THE SAME PRE **:
+ * every ROM arm is `mov r2,r4`, a register, not `ldr r2,[sp,#8]`.  So gcse is
+ * NOT the divergence, and the park's "we lose it in .09.cse2" is right about the
+ * pass and wrong about the transform.
+ *
+ * =============== THE DIVERGENCE, AND IT IS STRUCTURAL
+ *
+ * The arm's eval-time temp (reg 48) is BORN AND DEAD INSIDE THE SWITCH ARM'S OWN
+ * BASIC BLOCK: set at insn 78, read at insn 84, with `code_label 75` immediately
+ * before and `jump_insn 87` / `barrier 88` immediately after.  `make_regs_eqv`'s
+ * promotion test (cse.c:1413-1433) therefore fails on BOTH sub-conditions:
+ *
+ *   (i)  `LAST_UID(48) > cse_basic_block_end` is false AND
+ *        `FIRST_UID(48) < cse_basic_block_start` is false -- its whole span is
+ *        inside one block, and a cse block ends at every CODE_LABEL
+ *        (`cse_end_of_basic_block`: `while (p && GET_CODE (p) != CODE_LABEL)`);
+ *   (ii) `LAST_UID(48) > LAST_UID(65)` is false -- reg 65's last mention is in
+ *        the LAST switch arm (insn 155), long after insn 84.
+ *
+ * > A SWITCH ARM'S ARGUMENT TEMP CAN NEVER BE ITS QUANTITY'S CANONICAL
+ * > REGISTER, so canon_reg must rewrite the argument move to the PRE pseudo and
+ * > the eval-time copy must die.  Sub-condition (i) fails because a switch arm
+ * > is always its own cse block; (ii) because the PRE pseudo outlives every
+ * > individual arm by construction.
+ *
+ * =============== THEREFORE BRIEF-325 ITEM 3 IS CLOSED: THE SUFFIX *IS* THE
+ * COLLAPSE
+ *
+ * With insn 78 dead, the three argument moves are exactly
+ * `load_register_parameters`' r0, r1, r2 in ASCENDING hard-register order, so the
+ * last one is always `mov r2,r4` -- always identical between the two arms,
+ * always the second match, so `jump.c:675`'s threshold of 2 is always met.  Our
+ * asm: `.L8: mov r0,r6 / mov r1,#58 / b .L15` + `.L9: mov r0,r6 / mov r1,#42` +
+ * `.L15: mov r2,r4 / bl`.  The ROM gets a ONE-insn suffix only because its r2 is
+ * set by a SURVIVING eval-time insn at an earlier LUID.  There is no second door:
+ * you cannot shorten the suffix without keeping that insn alive.
+ *
+ * REFUTED IF a body makes the third argument's eval-time value a NON-COPY (a
+ * real computation, which nothing collapses) while still reaching r2 from a
+ * register rather than the stack slot -- or if gcse can be made not to PRE the
+ * five reads of `s` while the ROM's `mov r2,r4` is still produced.  Those look
+ * mutually exclusive, which is the content of the bound.
+ */
+
 /* Func_801bcd4 -- PARK STANDS.  Re-derived in batch 324 brief F, and the park's
  * diagnosis is CORRECT -- now with a number attached to it.
  *

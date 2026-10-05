@@ -1,3 +1,78 @@
+/* Func_801965c -- PARK STANDS, but CAUSE (i) IS NOW REACHABLE and the park's
+ * negatives list contains the lever that closes it.  Batch 325 brief B.
+ *
+ *   10 differing encodings of 48.  ref 104 bytes, ours 104 -- EQUAL.
+ *   Relocations identical.  45 instruction lines against the reference's 45.
+ *   Re-measured in batch 325 brief B; identical to the batch-324 figure.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/801965c.c asm/rom_15000/rom_1908c_c_a_a_a.s --func Func_801965c
+ *
+ * ============== WHAT THE 10 IS, read in the RTL rather than inferred
+ *
+ * The ROM's peeled load is `ldrh r3,[r6,r2]` -- Thumb's register-OFFSET form,
+ * i.e. `(mem:HI (plus (reg blk) (reg off)))` -- and it forms the loop pointer
+ * `add r2,r6,r2` only in the PREHEADER, after the guard branch.  Our body emits
+ * `(set (reg 65) (plus (reg blk) (reg 64)))` and then `(mem:HI (reg 65))` from
+ * `.00.rtl` onward (scratch_elev/b325/B/dump/965c), so the register-offset form
+ * is never generated at all.  The park's "cse has commoned the peeled load's
+ * address with the giv's start value" is the wrong pass: there is nothing to
+ * common, because the address was already one pseudo in the expander's output.
+ *
+ * ============== REFUTED: THE ARRAY SPELLING IS NOT THE LEVER
+ *
+ * `((unsigned short *)blk)[0x758 + i]`, `[i + 0x758]` and a named
+ * `unsigned short *hw` all read 10 flat -- and their `.02.jump` is BIT-IDENTICAL
+ * to the base's (same md5 over every `(set ...)` pattern).  Fold erases the
+ * grouping before RTL exists.  Index carriers `j = 0x758 + i` as `unsigned int`
+ * and as `int` also read 10 flat.
+ *
+ * ============== REACHED: AN EXPLICIT BYTE-OFFSET CARRIER
+ *
+ *      for (i = 0; i < n; i++) {
+ *              unsigned int j;
+ *              j = (0xeb << 4) + i * 2;
+ *              if ((out[i] = *(unsigned short *)(blk + j)) == 0)
+ *                      break;
+ *      }
+ *
+ * `.02.jump` then holds TWO `(mem:HI (plus reg reg))`, and the whole critical
+ * block comes out in the ROM's shape --
+ *   mov r2,#0xeb / lsl r2,#4 / ldrh r3,[r5,r2] / strh r3,[r7] / lsl r3,#16 /
+ *   cmp r3,#0 / beq ... / add r2,r5,r2 / mov r4,#0
+ * with `add` only AFTER the branch.  ** That is cause (i), 9 of the 10. **
+ *
+ * It reads 31 -- at 44 instruction lines against the reference's 45, and
+ * crossfire flags the row INSNS.  ** SO THE 31 IS A MISALIGNMENT FIGURE, NOT A
+ * DISTANCE: the body is exactly ONE INSTRUCTION SHORT, and the missing one is
+ * the ROM's `mov r12,r5` ** -- which is the park's own cause (ii).
+ *
+ * > CAUSES (i) AND (ii) ARE ONE CAUSE.  The ROM has one more simultaneously live
+ * > value than we do, which both parks its loop bound in a hi register
+ * > (`mov r12,r5` / `cmp r0,r12`) and leaves the offset register alive for the
+ * > register-offset load.  We have a spare low register and spend it on a
+ * > precomputed pointer.  Confirmed in `.18.greg`: the base allocates pseudo 34
+ * > before 35 (`8 regs to allocate: 69 71 77 37 65 34 35 33`) and the
+ * > byte-offset body allocates 35 before 34 (`... 37 35 34 33 59`), which is the
+ * > r5/r6 swap.
+ *
+ * ** AND THE PARK WROTE OFF THIS LEVER ON A LENGTH NUMBER. ** Its negatives read
+ * "an explicit byte-offset `j` carrier 40".  I measure 31, and 31 is
+ * misalignment.  The one edit that closes 9 of its 10 was in its rejected list.
+ *
+ * MEASURED on top of the byte-offset body, all EXACTLY INERT at 31 (crossfire,
+ * depth 2, 11 subsets): `0xeb0` written plainly; `i << 1` for the offset; `j` at
+ * function scope; `&blk[0x12b2]` for the store pointer; and every pair.
+ * MEASURED and worse: bound in its own local `m = n - 1` 25; `n--; m = n;` 25;
+ * a block-scoped copy of the bound inside the loop 31.  None produced any
+ * hi-register `mov`.
+ *
+ * NEXT, named: supply a ninth simultaneously-live low-register value so
+ * `global.c`'s `find_reg` parks the loop bound in a hi register.  The park's
+ * cause-(i) framing ("the lever is not the loop") survives; its cause-(ii)
+ * framing as a separate 1-encoding rotation does not.
+ */
+
 /* Func_801965c (0x0801965c) -- NON-MATCHING, 10 of 48 encodings.
  *
  *   SIZE ref 104 bytes, ours 104 -- EQUAL.

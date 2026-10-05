@@ -63,7 +63,7 @@
  *   2. `box[6]` / `box[7]` (offsets 0xC and 0xE) are the box's tile x and y.
  *   3. `extern signed char L367c9[] __asm__(".L367c9");` -- the tree's spelling
  *      for a `.L` local label.  All three tables live in
- *      asm/rom_15000/rom_1ca1c_c_c_c.s and are ALREADY `.global` there (lines
+ *      asm/rom_15000/rom_1ca1c_c_c_a_a_a.s and are ALREADY `.global` there (lines
  *      567-571), so no new export is needed -- they are ABS32 relocations in the
  *      reference object too.
  *   4. `if (slot <= 0x5f)` for the ROM's `cmp #0x5f / bgt`.

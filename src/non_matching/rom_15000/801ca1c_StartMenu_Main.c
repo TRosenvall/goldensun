@@ -1,4 +1,4 @@
-/* StartMenu_Main (RunSubScreen) -- 0x0801db70, asm/rom_15000/rom_1ca1c_c_c_c.s
+/* StartMenu_Main (RunSubScreen) -- 0x0801db70, asm/rom_15000/rom_1ca1c_c_c_c_c.s
  *
  * NON-MATCHING: 49 encodings of 195 differ (objcmp).
  *
@@ -11,7 +11,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_15000/801db70.c \
- *     asm/rom_15000/rom_1ca1c_c_c_c.s --func StartMenu_Main
+ *     asm/rom_15000/rom_1ca1c_c_c_c_c.s --func StartMenu_Main
  *
  * NO SHIMS, NO PINS, NO asm.  `extern signed char L367dc[] __asm__(".L367dc");`
  * is the tree's spelling for a `.L` local label.
