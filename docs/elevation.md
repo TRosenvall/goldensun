@@ -34158,3 +34158,102 @@ blocks), `canon_reg`'s `first_reg` substitution, and `combine`'s LOG_LINK merge.
 > is **not** preserved by committing. This entry and the park headers are the
 > durable copy. Anything a brief establishes that is worth keeping has to be
 > moved into `docs/` or a park header before its scratch directory is forgotten.
+
+## A TIE-BREAK LEVER IS INVISIBLE UNTIL SOMETHING ELSE MANUFACTURES THE TIE
+
+Batch 326 brief B landed `Func_8019944` (5 of 41 → 0) on two edits of which
+**neither survives one-at-a-time screening**:
+
+| edit | alone | together |
+|---|---|---|
+| statement order | **12** — *worse* than the park's 5 | |
+| declaration order | **exactly inert at 5** | **0** |
+
+And the park had already recorded *"three declaration orders: exactly inert"* —
+which is **precisely why the pair was never crossed.**
+
+> **Declaration order reaches the allocator only through `allocno_compare`'s LAST
+> rung** (`global.c:617`, `return v1 - v2`), **and that rung is DEAD whenever the
+> priority arithmetic above it separates the allocnos.** Edit 1 makes two
+> priorities exactly equal; edit 2 then decides them. The decisive margin was
+> 8333 against 8437 — 1.2%.
+
+This is a distinct shape from the crossing law as previously recorded, and it
+explains a whole category of recorded inertness:
+
+> **An edit that only acts on a TIE-BREAK rung will measure exactly inert in
+> every body where the rungs above it are not tied.** Its "inert" row is not
+> evidence about the lever; it is evidence that the tie was absent. The same
+> applies to `qty_compare_1`'s tie on quantity number, `allocno_compare`'s tie on
+> allocno index, and `rank_for_schedule`'s bottom rung `INSN_LUID`.
+
+So when a park's inert list contains a **tie-break-only** edit, the question is
+not "does this lever work" but **"what else would have to tie first"** — and that
+second edit is usually elsewhere in the function.
+
+Two passes on that function constrain the same three statements in **opposite**
+directions, which is worth keeping as a shape: `reload_cse_simplify_set`
+(`reload1.c:8003`) with the prepend at `simplify-rtx.c:3088` forces one
+zero-set to be last, while `rank_for_schedule`'s `INSN_LUID` rung
+(`haifa-sched.c:4112`, lower wins) forces another ordering. A full sweep of all
+**120** statement orders satisfying the first constraint floors at 2 — so the
+park was right that the order dimension alone cannot pay. The index rung pays.
+
+## A BLOCK-LOCAL PSEUDO IS ABSENT FROM `.18.greg`, SO THE GLOBAL-ALLOC ROUTE CANNOT REACH IT
+
+`DisplayMenuArrowCursor`'s park named `allocno_compare` as the thing to attack,
+**my batch-326 brief repeated that**, and batch 325's brief had too. All three
+were pointing at the wrong allocator.
+
+**The pseudo that must move is block-local and does not appear in `.18.greg`'s
+allocno list at all**, so global-alloc never sees it and no amount of
+`REG_N_REFS`/loop-depth reasoning can apply. (The twelve allocnos that *are*
+listed reproduce their printed order exactly from the formula, so the formula and
+the loop weighting are sound — they are simply aimed at the wrong pseudo.)
+
+The real decider is **`find_free_reg`** (`local-alloc.c:1934`, `:2026`): r3 is
+first in `REG_ALLOC_ORDER` and **free**. That is **an empty exclusion set, not a
+priority loss** — a different kind of problem requiring a different kind of edit.
+
+> **Before computing any allocation priority, check the pseudo is IN
+> `.18.greg`'s list.** `;; N regs to allocate:` names every allocno global-alloc
+> considers; a pseudo absent from it was handled by local-alloc, where the policy
+> is `QTY_CMP_PRI` (`local-alloc.c:1496`) and `find_free_reg`'s exclusion set, not
+> `allocno_compare`.
+
+Also refuted in passing: that park's claim that *"`qty_compare` has no
+`floor_log2`"* is wrong — `QTY_CMP_PRI` has the same shape and ties on quantity
+number. (This is the third time that specific claim has been made and refuted;
+see the batch-321/322 exchange above.)
+
+## A GUARD THAT CRIES WOLF IS WORSE THAN NO GUARD
+
+The `INSTRUCTION COUNT` guard added for the pad-absorption trap had a **false
+positive within a day**, found by batch 326 brief B.
+
+It stripped trailing zero encodings **by value**, which also eats **pool words
+carrying relocations**: a `_CONST_*` / `_MSG_*` / `_FILE_*` placeholder — the
+symbol-address technique this project uses heavily — is emitted as a **zero word
+in the unlinked object** and acquires its value only at link time. On
+`Func_80286a0` three of four trailing "pads" were such placeholders, so the strip
+ran on through the real pad and the guard printed `ref 84, ours 81` **together
+with the misalignment NOTE** for a pair that is **81 instructions on both sides**.
+
+The fix: **a trailing zero is padding only if nothing relocates at its offset.**
+Encoding widths differ (4 hex chars for a Thumb insn, 8 for a pool word), so the
+offset is accumulated rather than assumed. Verified to still fire on the true
+positive, and to stay silent on a relocated pool word, a mid-function zero, and a
+genuine match.
+
+> **A diagnostic's failure mode matters more than its hit rate**, because a tool's
+> output is believed in a way prose is not. This project has now recorded the same
+> lesson three times — *"a diagnostic that is true but undiscriminating is worse
+> than no diagnostic"* (the 178 relocation banners), the `HEADERCUT` verdict kept
+> out of `UNCHECKABLE` so the dangerous bucket stays clean, and this. **When
+> adding a check, enumerate what it would say on the cases it should stay silent
+> about, and test those first.**
+
+The scope of the near-miss is worth stating: it would have mis-flagged **every
+park whose pool ends in a relocation placeholder**, and the agents most likely to
+believe it are the ones working the close parks where a one-instruction
+misalignment actually matters.
