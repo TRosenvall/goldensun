@@ -1,10 +1,12 @@
 /* Func_801d9d4 (DrawSubScreen) -- 0x0801d9d4, asm/rom_15000/rom_1ca1c_c_c_c.s
  *
- * NON-MATCHING: 41 encodings of 184 differ (objcmp).
+ * NON-MATCHING: 2 encodings of 184 differ (objcmp).  PIN-FREE, SHIM-FREE, NO asm.
+ * Was 41 when batch 324 opened it.  41 -> 36 -> 30 -> 4 -> 2.
  *
- * SIZE EXACT (412 bytes both), INSTRUCTION COUNT EXACT (176 = 176), and objcmp
+ * SIZE EXACT (412 bytes both).  INSTRUCTION COUNT EXACT (176 = 176).  objcmp
  * reports NO relocation difference -- all 14 `bl` offsets and all 4 ABS32 pool
- * words are the ROM's, at the ROM's byte offsets.  Only ENCODINGS differ.
+ * words are the ROM's, at the ROM's byte offsets.  Only two ENCODINGS differ,
+ * and they are ONE ADJACENT TRANSPOSITION of two independent instructions.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -12,104 +14,169 @@
  *     src/non_matching/rom_15000/801d9d4.c \
  *     asm/rom_15000/rom_1ca1c_c_c_c.s --func Func_801d9d4
  *
- * NO SHIMS, NO PINS, NO asm.  The only non-obvious declaration is
+ * The only non-obvious declaration is
  * `extern unsigned char L367dc[] __asm__(".L367dc");` -- the tree's established
  * spelling for a `.L` local label (src/rom_c9000/rom_dd2ac_c_c_b.c:123).
  *
- * ITS .s NEEDS A TEXT/DATA SPLIT, AND THE EXPORT LIST IS ONE LABEL SHORT.
- * datacheck.py, verbatim:
+ * SPLIT SHAPE.  tools/datacheck.py, verbatim:
  *     data sections : .rodata
  *     functions     : Func_801d9d4, StartMenu_Main, Func_801dd28
  *     EXPORTS       : .L367c9, .L367cc, .L367ce, .L367d0, .L367d6, .L36750
- * Those six are already `.global`.  BUT `.L367dc` is NOT, and BOTH Func_801d9d4
- * and StartMenu_Main reach it (`ldr r3, =.L367dc`, lines 157 and 274).  Today it
- * resolves as a file-local label; the moment either function leaves this .s the
- * data object must also carry `.global .L367dc`.  So the split needs SEVEN
- * exports, not six.  Data is a clean tail cut: functions end at line 564, the
- * `.section .rodata` is at 566, and the seven `.incrom` ranges span
- * 0x36750-0x367e4 with nothing interleaved between functions.  stage1.ld keeps
- * the two lines far apart -- `.text` at line 468, `.rodata` at line 623 -- so the
- * repoint is two independent edits.
+ *                     (already global -- NOT the set a split needs)
+ *     Func_801d9d4                 reads .L367dc
+ *                                  *** SPLIT MUST EXPORT: .global .L367dc
+ *     StartMenu_Main               reads .L367dc
+ *                                  *** SPLIT MUST EXPORT: .global .L367dc
+ * tools/split_s.py refuses until that export exists, verbatim:
+ *     REFUSING to split: 1 local label(s) would cross files.
+ *     asm/rom_15000/rom_1ca1c_c_c_c_b.s references .L367dc, defined in
+ *     asm/rom_15000/rom_1ca1c_c_c_c_c.s
+ * So the split needs SEVEN exports, not six -- the previous header said this and
+ * it is CONFIRMED by both tools.  Data is a clean tail cut.
  *
- * FOUR LEVERS LANDED.  Drop ladder from 41, each removed alone:
- *   int carrier for the sign extension   67   (26 worse)
- *   `ty` reused for the sprite Y         89   (48 worse, and 2 instructions short)
- *   `sel = 0` after the _GetFlag call    44
- *   `t = 3` before `n = rows - 1`        43
- * Full ladder: 78 -> 64 (ty reuse + sel-after-call) -> 43 (int carrier + named
- * `bx`/`pp`) -> 41 (`t = 3` first).
+ * ================= WHAT BATCH 324 CHANGED, AND WHAT IT MEASURED =============
  *
- * 1. AN `int` CARRIER TURNS `ldrsb` BACK INTO `ldrb / lsl #24 / asr #24`.
- *    The ROM sign-extends the option table byte with shifts.  Both
- *    `signed char *p; ... f((signed char)*p)` and
- *    `unsigned char *p; ... f((signed char)*p)` give gcc-2.96 a single
- *    `mov r0,#0 / ldrsb r0,[r6,r0]` -- combine merges the extension into the
- *    load, and on Thumb that costs an extra zero register because `ldrsb` has no
- *    immediate-offset form.  Routing the byte through `int c = *p;` and casting
- *    `(signed char)c` at the call keeps the extension a separate operation and
- *    reproduces the ROM exactly.  This is the "an `int` carrier keeps a
- *    zero-extension combine would drop" lever, in its sign-extension direction.
- *    It is also worth an INSTRUCTION, not just an encoding: it took the count
- *    from 175 to 176.
- *    NOTE THE CONTRAST WITH ITS SIBLING: StartMenu_Main, 200 lines below in the
- *    same .s, reads the SAME table and the ROM really does use `ldrsb` there
- *    (`ldrsb r0,[r6,r3]`), because there the index varies and the base is
- *    loop-invariant.  So the table is `signed char` in one function and read
- *    through an int in the other; the two spellings are not interchangeable.
+ *   step  edit                                                        figure
+ *   ----  ----------------------------------------------------------  ------
+ *   park  as shipped                                                      41
+ *   v1    `s->obj = Func_801eadc(...)` direct store; `&s->obj` at the
+ *         call; the `pp` LOCAL DELETED                                    36
+ *   v2    + `rows = 1;` before `sel = 2;`  AND  `h` before `y`            30
+ *   v3    + `y` before `h` (reverting half of v2) AND `tx = bx->x * 8`
+ *         named before `ty`                                                4
+ *   v4    + final loop as three statements in the order q, n, p            2
  *
- * 2. THE SPRITE Y GOES INTO THE SAME LOCAL THAT CARRIES THE TEXT ROW.
- *    The ROM spends `mov r7,r3 / add r7,#0x10 / ... / mov r2,r7` where a fresh
- *    temporary gives `lsl r2,#3 / add r2,#0x10` with no copy -- two instructions
- *    fewer and 48 encodings worse.  r7 is the register that held the
- *    DrawSmallText row offset (4, 0x34, +0x18 ...) above and holds -4 below, so
- *    ONE `ty` local spans all three roles.  Assigning the y coordinate into it
- *    (`ty = bx->y * 8 + 0x10;` then passing `ty`) is what puts the copy back.
+ * THE PARK'S DIAGNOSIS IS REFUTED.  It said: *"Every one of the 41 differing
+ * encodings is the same instruction with a different register number ... This is
+ * the corpus's REG_ALLOC_ORDER class ... and nothing tried here moves it."*
+ * Two of its nineteen runs were not that at all -- indices 44-46 were three
+ * IDENTICAL instructions in a different ORDER, and indices 125-135 were a
+ * different instruction SEQUENCE -- and those two runs were 25 of the 41.
  *
- * 3. `sel = 0` IS AFTER THE _GetFlag CALL, not before.  The ROM's
- *    `bl _GetFlag / mov r2,#0 / mov r9,r0 / str r2,[sp,#8]` puts the store below
- *    the call, and gcc-2.96 will not move a store across a call, so source
- *    position is the only lever.  Worth 3.
+ * ITS TWO "MEASURED" NEGATIVES WERE NEGATIVES FOR WANT OF A PREREQUISITE.
+ * The park records `rows = 1;` before `sel = 2;` as **+2, worse**.  On top of v1
+ * the same edit is **-2**, and crossed with `h before y` (itself -4) the pair is
+ * **-6**: crossfire depth 2 from v1 reads base 36, `rows=1 first` 34,
+ * `h before y` 32, BOTH 30.
  *
- * 4. `t = 3;` BEFORE `n = rows - 1;` lets sched2 land `mov r6,#3` between the
- *    ROM's `mov r5,r10` and `sub r5,#1`.  Worth 2.
+ * AND `h before y` WAS ITSELF ONLY HALF A FIX.  It is load-bearing while
+ * `bx->x * 8` is written inline at the call, and a 4-encoding REGRESSION once
+ * `tx` is named: from v2, `y before h` alone reads 34 (worse than 30),
+ * `tx` named alone reads 10, and the two together read **4**.  One half in the
+ * applied list, the other in the untried list, never crossed.
  *
- * MEASURED AND INERT, so nobody need repeat them:
- *   declaration-initialiser vs statement form for `rows = 3` and `s`   0
- *   block-scoping `bx`/`pp`/`c` inside the `if`                        0
- *   `slot` declared first / last in the local list                     0
- *   `p` before `q` in the final loop                                   0
- *   a descending argument pin on CreateUIBox (`a2 = 0x14; a0 = 5;`)     0
- *   `rows = 1;` before `sel = 2;` in the flag arm                      +2
- *   `n = rows` assigned before q/p in the final loop                   +3
+ * ================= THE MECHANISM: RELOAD'S ROUND-ROBIN CURSOR ===============
  *
- * MEASURED AND WRONG: the "one shared scratch variable" theory.  The ROM keeps
- * r5 for five separate roles -- the first loop's counter, the 0xc23 message id,
- * the 0xc27 message id, the sprite slot, and the final loop's counter -- which
- * looks like one source variable.  It is not.  Unifying all five read 62,
- * `slot` merged with `m` alone read 50, `slot` merged with `n` alone read 53,
- * all against 41 for five distinct locals.  Separate variables are correct here.
+ * The r0/r2/r3 "rotation" the park saw is NOT REG_ALLOC_ORDER and NOT either
+ * register allocator.  Every instruction in it is a RELOAD -- of a high-register
+ * allocno (`mov sl,rX`, `mov rX,sl`, `mov rX,r8`) or of a spilled stack slot
+ * (`movs rX,#2 / str rX,[sp,#8]`) -- so the register comes from
+ * `allocate_reload_reg`, reload1.c:4962.  At reload1.c:5003:
  *
- * BLOCKER: RELOAD/GLOBAL-ALLOC REGISTER ROTATION AT EQUAL COUNT.  PASS .18.greg.
- * Every one of the 41 differing encodings is the same instruction with a
- * different register number, and the shift is one coherent rotation:
+ *     i = last_spill_reg;
+ *     for (count = 0; count < n_spills; count++)
+ *       { i++; if (i >= n_spills) i -= n_spills; regnum = spill_regs[i]; ... }
  *
- *   ROM  mov r0,#3        ours  mov r2,#3      (rows, prologue)
- *   ROM  mov r2,#0        ours  mov r3,#0      (sel = 0)
- *   ROM  mov r0,#2        ours  mov r2,#2      (sel = 2)
- *   ROM  mov r0,r10       ours  mov r2,r10     (rows copy for the y/h algebra)
- *   ROM  mov r2,r10       ours  mov r3,r10     (rows copy for the loop guard)
- *   ROM  mov r3,r9        ours  mov r2,r9      (flag copy)
- *   ROM  mov r5,r0        ours  mov r6,r0      (sprite slot)
- *   ROM  ldr r2,=0x5a4    ours  ldr r5,=0x5a4  (the &s->obj address)
- *   ROM  ldr r0,[sp,#8]   ours  ldr r2,[sp,#8] (sel reload)
+ * with the comment "We advance it round-robin between insns to use all spill
+ * regs equally."  `last_spill_reg` is set on every successful allocation
+ * (reload1.c:4937) and reset to -1 EXACTLY ONCE PER FUNCTION (reload1.c:823);
+ * `spill_regs` is built in ASCENDING hard-register order in `finish_spills`
+ * (reload1.c:3531).
  *
- * `.18.greg` gives the dispositions: 39 in r6, 40 in r5, 41 in r6, 42 in r5,
- * 45 in r5, 80 in r6.  The sprite slot draws r6 where the ROM's is r5, and the
- * 0x5a4 address then draws r5 (callee-saved) where the ROM's is r2
- * (call-clobbered, correctly short-lived).  This is the corpus's
- * REG_ALLOC_ORDER class -- {3,2,1,0,12,14,4,5,6,7,...} with no Thumb override --
- * and nothing tried here moves it.  It is NOT the cse-zero class: no constant
- * zero is shared, the four `mov rN,#0` sites all rematerialise.
+ * So a reload register is a function of HOW MANY RELOADS PRECEDE IT IN THE
+ * FUNCTION, modulo n_spills.  It is a CURSOR, not a preference order.  The whole
+ * "coherent rotation" is ONE PHASE STEP of that cursor, and adding or removing a
+ * single earlier reload shifts every later reload register by one -- which is
+ * reachable from ordinary C, and is why deleting `pp` (one edit, late in the
+ * function) moved the registers at indices 16, 18, 48, 50, 65 and 67.
+ *
+ * Deleting `pp` is the lever with the mechanism attached: for `s->obj = f(...)`
+ * gcc expands the CALL first and the LHS ADDRESS AFTER it, so the address pseudo
+ * is born after the call and never crosses it -- it gets the ROM's
+ * call-clobbered r2 instead of a callee-saved r5.  The park's `pp = &s->obj;`
+ * placed the address BEFORE the call, forcing a callee-saved register and
+ * pushing `slot` off r5 onto r6.
+ *
+ * `tx` works the same way and explains the 11-encoding run at 125-135: the ROM's
+ * box copy is `mov r0, r8` -- into r0, the register STILL HOLDING the return
+ * value of Func_801eadc.  That WAR dependence on r0 is what forces the box chain
+ * below `str r0,[r2,#0]`, which is why the ROM stores first.  Ours put the copy
+ * in r1, no WAR, so sched2 hoisted the whole box chain above the store.  Naming
+ * `tx` re-phases the cursor, `bx` lands in r0, and the run collapses to zero AS
+ * A CONSEQUENCE OF THE REGISTER -- no scheduling edit was involved.
+ *
+ * ================= WHAT THE LAST 2 ARE, AND WHY THEY DO NOT CLOSE ==========
+ *
+ *   index 143  ROM  ldr r3, =.L367dc      ours  movs r4, #194
+ *   index 144  ROM  movs r4, #194         ours  ldr r3, =.L367dc
+ *
+ * `.23.sched2` from `-da -fsched-verbose=6`, basic block 16, verbatim:
+ *
+ *     ;;      insn  code    bb   dep  prio  cost   blockage units
+ *     ;;      508   173     0     0     3     1    1 - 32   core : 509
+ *     ;;      346   173     0     0     3     2    1 - 32   core : 348
+ *     ;;      507   173     0     0     3     2    1 - 32   core : 348
+ *     ;;      343   173     0     0     1     1    1 - 32   core :
+ *     ;;  Ready list (t =  0):    343  507  346  508
+ *     ;;      --> scheduling insn <<<508>>> on unit core
+ *
+ * 508 is `r4 = 194` (the `q` address: 0x610 = 194 << 3), 346 the `.L367dc` pool
+ * load.  PRIORITY TIES AT 3 -- both chains are three cost-weighted insns to the
+ * block end -- and `rank_for_schedule` (haifa-sched.c:4029) then falls through
+ * every remaining rung: `INSN_REG_WEIGHT` is gated `!reload_completed` and so is
+ * DEAD in sched2; the three interblock rungs are skipped because `INSN_BB` is
+ * equal; the CLASS rung gives both class 3 (both independent of
+ * `last_scheduled_insn`); DEPENDENT COUNT is 1 each.  The pick therefore lands on
+ * the last rung, `return INSN_LUID (tmp) - INSN_LUID (tmp2);` -- pure RTL order,
+ * lower LUID scheduled first.
+ *
+ * `.20.ce2` gives the pre-sched2 chain for bb 16:
+ *     508 (r4=194) -> 509 (lsl) -> 340 (add fp) -> 343 (r5=sl)
+ *       -> 346 (pool) -> 507 (sel reload) -> 348 (adds r6)
+ *
+ * REMAINING CAUSE, NAMED: matching needs LUID(346) < LUID(508) WHILE 348 stays
+ * last.  No statement order reaches it, because the two insns are welded to
+ * opposite ends of ONE statement -- 346 is emitted at the first reference to
+ * `.L367dc`, and 507/348 are emitted together at the end of the same statement
+ * (507 is reload's load of the spilled `sel`, inserted immediately before the
+ * insn that needs it).  Moving the statement moves both ends.
+ *
+ * MEASURED AND SIZE-WRONG -- 408 bytes against 412, a DIFFERENT PROGRAM, do not
+ * repeat: hoisting only the pool load.  `p = L367dc;` ... `p += sel;`,
+ * `p = &p[sel];`, and both with `n = rows;` moved -- all four lose an
+ * instruction to cse folding the split back.
+ *
+ * MEASURED AND INERT AT 2 (candidate prerequisites, not dead ends):
+ *   declaration order `p` before `q` inside the block                     0
+ *   `q = s->items` for `q = &s->items[0]`                                 0
+ *   `p = L367dc + sel` for `p = &L367dc[sel]`                             0
+ *   `q` as a declaration-initialiser rather than a statement              0
+ *   `bx = (struct Box *)box;` hoisted above the store                     0
+ *   `sel` declared last in the local list                                 0
+ *   a named `w = 0x14` argument for CreateUIBox                           0
+ *
+ * MEASURED AND WORSE from v4:
+ *   final loop as p, n, q                                                +2
+ *   final loop as p, q, n                                                +3
+ *   final loop as n, p, q                                                +3
+ *   `p` before `q` in declaration-initialiser form                       +3
+ *   `s = iwram_3001ea0;` moved below `f = _GetFlag(...)`         +33 and RELOC
+ *
+ * THE PARK'S OWN INERT LIST IS WRONG ON TWO ROWS, measured here: it records
+ * "`p` before `q` in the final loop  0" (it is +3) and "`n = rows` assigned
+ * before q/p  +3" (it is +2).
+ *
+ * KEPT FROM THE PREVIOUS HEADER, all four re-measured and still load-bearing:
+ * the `int` carrier that keeps the sign extension a separate `ldrb / lsl / asr`
+ * instead of `ldrsb`; the single `ty` local spanning the text row, the sprite y
+ * and the final loop's -4; `sel = 0` AFTER the _GetFlag call; and `t = 3` before
+ * `n = rows - 1`.  Its "one shared scratch variable" refutation also still holds
+ * -- five distinct locals beat every merge.
+ *
+ * NEXT MOVE: nothing source-level is known.  The 2 is a sched2 LUID tie with the
+ * two insns pinned to opposite ends of one statement.  If a lever is ever found
+ * that gives a pool load an independent RTL position WITHOUT cse folding the
+ * split back, this closes.
  */
 struct SubScr {
     unsigned char pad0[0x5a4];
@@ -139,9 +206,8 @@ unsigned char *Func_801d9d4(void)
     int rows;
     int sel;
     int f;
-    int y, h, ty, slot, n, t, m, c;
+    int y, h, ty, slot, n, t, m, c, tx;
     struct Box *bx;
-    void **pp;
     unsigned char *box;
 
     s = iwram_3001ea0;
@@ -149,8 +215,8 @@ unsigned char *Func_801d9d4(void)
     f = _GetFlag(0x17e);
     sel = 0;
     if (f != 0) {
-        sel = 2;
         rows = 1;
+        sel = 2;
     }
     if (gDebugMode != 0)
         rows += 3;
@@ -191,17 +257,19 @@ unsigned char *Func_801d9d4(void)
     slot = AllocSpriteSlot();
     if (slot <= 0x5f) {
         UploadSpriteGFX(slot, 0x80, Data_310a4);
-        pp = &s->obj;
-        *pp = Func_801eadc(slot, 0x40000000, box, 0, 0);
+        s->obj = Func_801eadc(slot, 0x40000000, box, 0, 0);
         bx = (struct Box *)box;
+        tx = bx->x * 8;
         ty = bx->y * 8 + 0x10;
-        _Func_80b0a20(pp, bx->x * 8, ty);
+        _Func_80b0a20(&s->obj, tx, ty);
     }
     ty = -4;
     if (rows > 0) {
-        void **q = &s->items[0];
-        unsigned char *p = &L367dc[sel];
+        void **q;
+        unsigned char *p;
+        q = &s->items[0];
         n = rows;
+        p = &L367dc[sel];
         do {
             c = *p;
             p++;

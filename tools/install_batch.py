@@ -259,8 +259,17 @@ def do_install(entries, dry):
     fm, rules = [], []
     for e in entries:
         src, dst = rel(e["candidate"]), rel(e["install_path"])
-        print(f"  {e['function']}: {e['candidate']} -> {e['install_path']}  (figure {e['figure']})")
-        if not dry:
+        # A park a brief examined and deliberately left ALONE names its own
+        # install path as its candidate -- a legitimate and useful outcome (batch
+        # 324 brief E: StartMenu_Main, the one park of four whose diagnosis
+        # survived re-measurement).  shutil.copyfile raises SameFileError on
+        # that, and it raised it AFTER applying the three entries before it, so
+        # the batch was half-installed with a traceback and no summary.  An
+        # unchanged park is a result, not an error.
+        same = os.path.abspath(src) == os.path.abspath(dst)
+        arrow = "UNCHANGED (candidate is the install path)" if same else e["install_path"]
+        print(f"  {e['function']}: {e['candidate']} -> {arrow}  (figure {e['figure']})")
+        if not dry and not same:
             shutil.copyfile(src, dst)
         if e["figure"] == 0:
             hand = rel(e["install_path"].replace("src/", "asm/", 1)[:-2] + ".s")
