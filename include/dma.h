@@ -187,6 +187,46 @@ static inline void DMA3_FILL_OFS(void *dst, unsigned off, u32 _value, unsigned s
     }
 }
 
+/* DMA3_FILL16 -- a 16-bit DMA fill: stages a HALFWORD and passes 0x81000000.
+ *
+ * A MACRO, and that is load-bearing rather than stylistic.  The ROM's fill value
+ * reaches the literal pool as a HImode fix: `*thumb_movhi_insn` alternative 1
+ * takes `mn` (arm.md:4318) with `pool_range` 64 (arm.md:4353), so it sorts ahead
+ * of every SImode entry in `add_minipool_forward_ref` (arm.c:4820) and forces
+ * `arm_reorg` to dump a mid-function pool.  An INLINE FUNCTION cannot get there:
+ * a `u16` parameter is PROMOTED, so the store becomes a `subreg:HI` of an SImode
+ * register and the constant never enters `movhi`.  A macro pastes the literal
+ * into the HImode store, expand calls `force_reg (HImode, ...)`, and the HImode
+ * fix appears.  (`MINIPOOL_FIX_SIZE(HImode)` is 4 -- arm.c:4713 -- so the entry
+ * is a full `.word`, and Thumb-1 has no pc-relative halfword load, so gas
+ * assembles the pattern's `ldrh %0, %1` as `ldr rN,[pc,#imm]`.)
+ *
+ * This is the shape the file's own standing comment guessed at: "maybe they were
+ * macros instead of inline functions".  For the 16-bit fill it is not a guess.
+ *
+ * The four register pins are this file's house pattern, not matching shims:
+ * `stmia r3!, {r0, r1, r2}` requires those exact registers.  Added for
+ * Func_801edec (48 of 52 -> 0); docs/elevation.md forbids landing with a
+ * file-local copy, which is why this is a prerequisite rather than a tidy-up.
+ */
+#define DMA3_FILL16(dst, _value, count) do {                                    \
+    u16 value;                                                                  \
+    register u16 * _src  __asm__("r0") = (&value);                              \
+    *_src = (_value);                                                           \
+    {                                                                           \
+        register vu32 *_base __asm__("r3") = &REG_DMA3SAD;                      \
+        register unsigned _dst  __asm__("r1") = (unsigned)(dst);                \
+        register unsigned _cnt  __asm__("r2") = (unsigned)(0x81000000 | (count)); \
+        __asm__ volatile (                                                      \
+            "stmia\t%0!, {%1, %2, %3}\n\t"                                      \
+            "sub\t%0, #0xc"                                                     \
+            :                                                                   \
+            : "l" (_base), "l" (_src), "l" (_dst), "l" (_cnt)                   \
+            : "memory"                                                          \
+        );                                                                      \
+    }                                                                           \
+} while (0)
+
 static inline void DMA3_COPY16(const void *src, void *dst, u32 size) {
     register vu32 *_base __asm__("r3") = &REG_DMA3SAD;
     register const void *_src  __asm__("r0") = src;
