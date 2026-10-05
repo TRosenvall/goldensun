@@ -33614,10 +33614,19 @@ moving either. It is worth stating as a family, because the two instances look
 nothing alike in the diff.
 
 A two-instruction copy chain — a load into a temp, then a copy to the variable —
-is **collapsed inside the cse pass block**, not by `cse_insn`'s canonicalisation.
-`cse.c` never reads `REG_DEAD` (grep: no hits); the collapse is
-`delete_trivially_dead_insns` inside the block at `toplev.c:2908-2933` (reg_scan
-→ thread_jumps → cse_main → jump_optimize → delete_trivially_dead_insns).
+is **collapsed inside the cse pass block** (`toplev.c:2908-2933`: reg_scan →
+thread_jumps → cse_main → jump_optimize → delete_trivially_dead_insns).
+
+> **THIS PARAGRAPH ORIGINALLY NAMED THE WRONG PASS, AND NAMED IT TWICE.** It said
+> the collapse is `delete_trivially_dead_insns` and explicitly *"not `cse_insn`'s
+> canonicalisation"*. **Both halves are false.** The deciding transform is
+> `cse_insn`'s own gated swap at `cse.c:5979-6005`, whose gate is a **liveness**
+> test; the janitor is downstream of it and chooses no direction at all, since it
+> deletes only when `counts[REGNO (SET_DEST)] == 0` (`cse.c:7245`). The `REG_DEAD`
+> observation was sound (`grep -c REG_DEAD cse.c` is 0) and the inference from it
+> was not. **Read the section "WHICH PASS ACTUALLY DOES THE COPY COLLAPSE, AND WHY
+> FOURTEEN BODIES WERE FLAT" at the end of this file before acting on anything
+> below.** Corrected by batch 325 brief B, verified line by line.
 
 > **The consequence that matters: the SURVIVING insn keeps its own LUID, and
 > sched2's last rung is `INSN_LUID`. So which of the two insns survives decides
