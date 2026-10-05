@@ -417,12 +417,35 @@ def main():
     # Only TRAILING zero encodings are stripped.  0x0000 is a legal Thumb
     # encoding (`lsls r0,r0,#0`), so a zero in the middle of a function is an
     # instruction and must be left alone.
-    def _insns(enc):
+    # FALSE POSITIVE FIXED, batch 326 brief B.  Stripping trailing zeros BY VALUE
+    # also eats POOL WORDS: a relocation placeholder (`_CONST_1f`, `_MSG_820`,
+    # `_FILE_e6` -- the symbol-address technique) is emitted as a zero word in the
+    # unlinked object and only acquires its value at link time.  On Func_80286a0
+    # three of four trailing "pads" were such placeholders, so the strip ran on
+    # through the real pad and this guard reported `ref 84, ours 81` with the
+    # misalignment NOTE for a pair that is 81 instructions on BOTH sides.
+    #
+    # A guard that cries wolf is worse than no guard, because its output is
+    # believed.  So a trailing zero is padding only if NOTHING RELOCATES AT ITS
+    # OFFSET.  Encoding widths differ (4 hex chars for a Thumb insn, 8 for a pool
+    # word), so the offset is accumulated rather than assumed.
+    def _insns(enc, rel):
+        rel_off = set()
+        for r in rel or ():
+            try:
+                rel_off.add(int(r[0], 16))
+            except (ValueError, IndexError, TypeError):
+                pass
+        off, offs = 0, []
+        for e in enc:
+            offs.append(off)
+            off += 2 if len(e.replace("0x", "")) <= 4 else 4
         k = len(enc)
-        while k > 0 and enc[k - 1] in ("0000", "0x0000", "00000000"):
+        while k > 0 and enc[k - 1] in ("0000", "0x0000", "00000000") \
+                and offs[k - 1] not in rel_off:
             k -= 1
         return k
-    a_in, b_in = _insns(a_enc), _insns(b_enc)
+    a_in, b_in = _insns(a_enc, a_rel), _insns(b_enc, b_rel)
     if a_in != b_in:
         print("  XX INSTRUCTION COUNT  ref %d, ours %d  (excluding %d/%d trailing pad word(s))"
               % (a_in, b_in, len(a_enc) - a_in, len(b_enc) - b_in))
