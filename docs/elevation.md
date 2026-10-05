@@ -34070,3 +34070,82 @@ that currently matches.
 > **The `tu-pool` park class was refuted on a different and stronger ground**
 > (batch 325 brief G: every input to `add_minipool_forward_ref` is per-function),
 > so "we split the TU" was never the reason those parks were stuck.
+
+## WHICH PASS ACTUALLY DOES THE COPY COLLAPSE, AND WHY FOURTEEN BODIES WERE FLAT
+
+Batch 325 brief B corrected the attribution above, and I verified every line in
+the compiler. The deciding transform is **`cse_insn`'s own gated swap**, at
+`cse.c:5979-6005`:
+
+	if ((src_ent->first_reg == REGNO (SET_DEST (sets[0].rtl)))
+	    && ! find_reg_note (insn, REG_RETVAL, NULL_RTX))
+	  {
+	    rtx prev = prev_nonnote_insn (insn);
+	    if (prev != 0 && … SET_DEST (PATTERN (prev)) == SET_SRC (sets[0].rtl))
+	      {
+	        validate_change (prev, & SET_DEST (PATTERN (prev)), dest, 1);
+	        validate_change (insn, & SET_DEST (sets[0].rtl), src,  1);
+	        validate_change (insn, & SET_SRC  (sets[0].rtl), dest, 1);
+	        apply_change_group ();
+
+It **rewrites the previous insn's `SET_DEST`** and turns the copy into a dead
+store, which `delete_trivially_dead_insns` then merely sweeps up. So the janitor
+is downstream of the decision, not the decision.
+
+### The gate is a LIVENESS test, which is the whole point
+
+The swap fires on `src_ent->first_reg == REGNO (SET_DEST …)`, and `first_reg` is
+set by `make_regs_eqv` (`cse.c:1002`), which promotes a pseudo to canonical only
+when
+
+	(uid_cuid[REGNO_LAST_UID (new)]  > cse_basic_block_end
+	 || uid_cuid[REGNO_FIRST_UID (new)] < cse_basic_block_start)
+	&& (uid_cuid[REGNO_LAST_UID (new)] > uid_cuid[REGNO_LAST_UID (firstr)])
+
+— that is, **the pseudo must LIVE OUTSIDE the current cse block** (its last use
+after the block ends, or its first use before the block begins) **and** its last
+mention must follow the rival's. A cse block ends at every `CODE_LABEL`.
+
+> **So what decides which insn survives is WHICH LIVE RANGE LEAVES THE BLOCK.**
+> That is why **fourteen whole bodies measured exactly flat** across two
+> functions: they varied names, types, read order, statement order, role swaps and
+> a volatile instrument — and **not one of them changed which live range leaves
+> the block.** A sweep can be exhaustive over the wrong dimension.
+
+This is the same shape as the reload-register correction in this document: the
+earlier entry named a real pass that is genuinely involved, and the actionable
+quantity was one layer away.
+
+### What it makes reachable
+
+- **`Func_8020b64`**: a **block-scoped `unsigned char`** intermediate makes
+  `.03.cse` keep the ROM's **three** insns, which no previous body achieved. The
+  park's "three names → 50 flat" row failed for two reasons at once: a
+  *function-scope* `int` inserts a truncation (`lshiftrt`, so the transform does
+  not apply at all) **and** is not block-local. **Type and scope are both
+  load-bearing.** It still does not land — cse2 reapplies the swap, and with cse2
+  off `combine` merges instead. Two remaining sinks, both named.
+- **`Func_801bcd4`**: the park's pass attribution is refuted by its own dump —
+  insn 78 is *still present* at `.09.cse2` and insn 84's **source** was rewritten,
+  so the actor there is `canon_reg`, not this swap and not the janitor. Structural
+  bound: a switch arm's argument temp is born and dies inside that arm's own cse
+  block, failing **both** promotion sub-conditions, so the rewrite is
+  unavoidable. **That closes the cross-jump question too: the suffix length IS
+  the collapse**, because `load_register_parameters` always emits r2 last.
+- **`Func_801965c`**: cause (i) is reachable — an explicit byte-offset carrier
+  (`j = (0xeb << 4) + i * 2; *(unsigned short *)(blk + j)`) generates the ROM's
+  `(mem:HI (plus reg reg))` and reproduces the whole critical block, 9 of the 10.
+  It reads 31 **at 44 instruction lines against 45**, so that 31 is misalignment:
+  one instruction short, and the missing one is the ROM's `mov r12,r5` — the
+  park's own cause (ii). **Causes (i) and (ii) are one cause.** The park had the
+  working lever in its own *rejected* list, at 40, discarded on a misalignment
+  figure.
+
+The family has **at least four sites**: this swap (in `cse` *and* again in
+`cse2`, which runs with `after_loop = 1` at `toplev.c:3095` and therefore wider
+blocks), `canon_reg`'s `first_reg` substitution, and `combine`'s LOG_LINK merge.
+
+> **`scratch_elev/` is gitignored** (`.gitignore:28`), so a brief's `FINDINGS.md`
+> is **not** preserved by committing. This entry and the park headers are the
+> durable copy. Anything a brief establishes that is worth keeping has to be
+> moved into `docs/` or a park header before its scratch directory is forgotten.
