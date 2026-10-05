@@ -1,113 +1,95 @@
 /* OvlFunc_968_200c2bc -- 0x0200c2bc,
  * asm/overlays/rom_7f2f14/ovl_30_c_c_a_c_c_c_a.s
  *
- * TWO differing encodings of 271, at the ROM's EXACT encoding count, with
- * EVERY REGISTER ROLE ALREADY THE ROM'S.
- *      first at index 163: ref 46ca  ours 4693
- * Best candidate: scratch_elev/b250/trio/final/e2bc_BEST.c.
+ * NON-MATCHING, 2 differing encodings of 271.  RE-DERIVED batch 328:
+ * first at index 163, ref 46ca ours 4693.  Size exact, instruction count
+ * exact, pool word count exact, relocations clean.  PIN COUNT: 0.
  *
- * FLOOR HISTORY: 205 -> 110 -> 2. Start from e2bc_BEST.c. Starting over has
- * now cost two rounds and is the single most expensive mistake available here.
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7f2f14/200c2bc.c asm/overlays/rom_7f2f14/ovl_30_c_c_a_c_c_c_a.s --func OvlFunc_968_200c2bc
  *
- * ITS TWO FILE-MATES WERE LANDED SEPARATELY IN BATCH 300 rather than waiting any
- * longer for this one.  They had been matched since batch 250 and held here on the
- * plan of converting the file whole, but fifty batches passed, and meanwhile census
- * counted them as AVAILABLE -- one was handed to a batch-300 brief as an unattempted
- * target, which is how this was noticed.  A finished candidate parked in a header is
- * invisible to every tool in the tree.
+ * FLOOR HISTORY: 205 -> 110 -> 2.  DO NOT START OVER; starting over has cost
+ * two rounds and is still the most expensive mistake available here.  The two
+ * file-mates OvlFunc_968_200c048 and OvlFunc_968_200c520 landed separately in
+ * batch 300, so closing this converts the last third of the .s, not the whole.
  *
- * The file is now split three ways: OvlFunc_968_200c048 and OvlFunc_968_200c520 are
- * C, and this function keeps asm/overlays/rom_7f2f14/ovl_30_c_c_a_c_c_c_a.s to
- * itself.  Closing it now converts the last third rather than the whole file.
+ * LANDING SHAPE WHEN CLOSED: src/overlays/rom_7f2f14/ovl_30_c_c_a_c_c_c_a.c.
+ * overlay.ld already names the asm/ object and MUST keep its path until then.
+ * The .s carries no data; pooled symbols gState, iwram_3001ebc, iwram_3001e40
+ * are already extern in the tree.  makefile_flags() empty, so plain -O2.
  *
- * Originally (batch 250): its two file-mates were matched and waiting on this one:
- *      OvlFunc_968_200c048  628 bytes, 290 encodings, 20 relocations
- *      OvlFunc_968_200c520  208 bytes,  93 encodings,  9 relocations
- * They sit in scratch_elev/b250/trio/final/ as e048_MATCH.c and e520_MATCH.c,
- * and final/merged.c holds all three in ROM order with both still
- * instruction-identical inside the merged TU. c2bc is in the MIDDLE of the .s,
- * so landing the other two alone would need an awkward three-way split; the
- * file lands WHOLE the moment these two encodings close.
- *
- * THE RESIDUE, in loop 2's preheader:
- *      ROM    mov r2,#0 / mov r8,r2 / mov r10,r9 / mov r11,r2
- *      ours   mov r2,#0 / mov r8,r2 / mov r11,r2 / mov r10,r9
+ * ========== THE RESIDUE, in loop 2's preheader ==========
+ *      ROM    mov r2,#0 | mov r8,r2 | mov r10,r9 | mov r11,r2
+ *      ours   mov r2,#0 | mov r8,r2 | mov r11,r2 | mov r10,r9
  * One adjacent pair, transposed.
  *
- * BLOCKER CLASS: GCSE INSERTION POINT, not allocation. The count is exact and
- * the register assignment is the ROM's throughout.
+ * ========== BATCH 328: "FLOOR, NOT A SPELLING" IS REFUTED ==========
  *
- * THE PREVIOUSLY RECORDED HYPOTHESIS IS REFUTED. `base`/`z` are NOT a GIV and a
- * hoisted invariant. What actually held the function was `q = tp`: gcc
- * COALESCES two names for one address -- the recorded "if the two pointers
- * genuinely hold the same address, this lever has nothing to work with" -- which
- * freed r9 and let gcse hoist 0x17ffc there. Writing plain `t.f8 = ...` lets
- * GCSE MANUFACTURE THE SECOND REGISTER ITSELF, and that alone was 114 -> 12.
+ * The park concluded "NOT ONE [of 30 variants] put the hoisted copy anywhere
+ * but last" and "SO THIS IS A FLOOR, NOT A SPELLING".  A single variant puts it
+ * EXACTLY where the ROM has it.  The park's loop.c reading is still correct --
+ * .08.loop prints `Insn 366: regno 105 (life 21), savings 1  moved to 647`, so
+ * insn 647 (`mov sl,r9`) really is a move_movables hoist emitted immediately
+ * before the NOTE_INSN_LOOP_BEG -- but PLACEMENT IS NOT THE LAST WORD.
  *
- * ALSO LOAD-BEARING in the current candidate: `tp = &t` assigned THIRD (birth
- * order); `m = i + 0x1a` named before `n`; and a FRESH n2/s4/s5 for the second
- * __CopyMapTiles site.
+ * WHAT ACTUALLY DECIDES THE OUTPUT ORDER, read from .23.sched2's block-10 table:
+ *      352 (`r8 = r2`)   dep 2   prio 1   dependents: (none)
+ *      355 (`fp = r2`)   dep 2   prio 1   dependents: (none)
+ *      647 (`sl = r9`)   dep 0   prio 1   dependents: (none)
+ * Every rung above INSN_LUID ties -- zero dependents each, equal priority -- so
+ * LUID alone decides, and 647 is the LAST insn of basic block 10 and therefore
+ * has the highest LUID, so it is issued last.  647 can never acquire an
+ * in-block dependent, because the loop's top label opens the next block right
+ * after it.  THAT is the airtight part of the floor, and it is a floor only for
+ * a HOISTED copy.
  *
- * WHY STATEMENT ORDER CANNOT REACH IT. THIS FILE PREVIOUSLY GAVE A WRONG
- * MECHANISM HERE -- it claimed gcse's `insert_insn_end_bb` appends always-last
- * unless the block ends in a jump or call. THAT IS NOT THE PATH TAKEN, and the
- * claim is struck. `pre_edge_insert` (gcse.c:4440) calls insert_insn_end_bb
- * only for EDGE_ABNORMAL; everything else goes through `insert_insn_on_edge`,
- * and `commit_one_edge_insertion` (flow.c:1656) then chooses among three
- * placements. Nor is the copy gcse's: gcse only rewrites the in-loop address in
- * place (the dump logs `COPY-PROP: Replacing reg 155 in insn 366 with reg 46`),
- * leaving a copy INSIDE loop 2.
+ * THE ESCAPE, MEASURED (scratch_elev/b328/A/tc2bc/q1.c):
+ *   base + `register struct P *qq __asm__("r10");` assigned `qq = tp` BETWEEN
+ *   `i = 0` and `acc = 0`, and used as the 8th argument of loop 2's
+ *   OvlFunc_968_2008118 call (loop 1 keeps `tp`), emits VERBATIM
+ *        mov r2,#0 | mov r8,r2 | mov sl,r9 | mov fp,r2     == THE ROM
+ *   The park's 30 variants all used PSEUDO copies, which it correctly measured
+ *   coalesced away (its recorded 114 class); A HARD-REGISTER LOCAL CANNOT BE
+ *   COALESCED, and that is the dimension nobody varied.
  *
- * THE REAL FLOOR IS loop.c's. `move_movables` inserts every hoisted movable
- * with `emit_insn_before (pat, loop_start)` -- every branch of it (loop.c:1825,
- * 1890, 1982, 1991, 2024, 2028, 2047, 2055). `loop_start` is the
- * NOTE_INSN_LOOP_BEG, and `expand_start_loop` emits that note and the loop's
- * top label back to back, so NO C STATEMENT CAN LAND BETWEEN THEM. A hoisted
- * invariant is therefore always after every source-level preheader statement,
- * and `acc = 0` is one of those (`Biv 36 initialized at insn 355`).
+ *   q1 reads 4 of 271 and the first difference MOVES 163 -> 173.  The four are
+ *   a pure r9 <-> r10 ROLE SWAP inside loop 2, nothing else:
+ *        rom[179] mov r2,r10   ours mov r2,r9     (t.f8  store)
+ *        rom[189] mov r2,r10   ours mov r2,r9     (t.fc  store)
+ *        rom[197] mov r2,r10   ours mov r2,r9     (t.f22 store)
+ *        rom[219] mov r2,r9    ours mov r2,r10    (8th arg -> [sp,#12])
+ *   The BASE already has the ROM's roles here (checked in the base .s: stores
+ *   via sl, stack argument via r9).  So this is a TRADE, not a floor: both
+ *   halves are reachable, just not yet together.
  *
- * BOTH ESCAPES WERE MEASURED AND BOTH ARE SHUT. The init would have to be
- * created by a pass running after move_movables:
- *   - strength_reduce's giv initialiser -- refused, because the giv is cheap:
- *     the loop dump prints `not worth while, 0 vs 65` for the shift, so
- *     `acc = i << 20` stays in the body;
- *   - check_dbra_loop's re-emitted biv init -- re-emits only the loop's
- *     COMPARISON biv, and the ROM compares `i`, not `acc`.
- * A source-level copy (`q = &t` / `q = tp`) in the preheader is coalesced away
- * in every placement, freeing r9 for a pool constant -- that is the recorded
- * 114 class, reproduced.
+ * THE OPEN QUESTION IS NOW NARROW AND NAMED: keep q1's preheader order while
+ * keeping the base's r9/r10 roles in loop 2.  That is one allocation question
+ * about which register loop 2's struct address lands in -- NOT a loop.c
+ * placement question, and not the gcse insertion-point question either.
  *
- * 30 further variants measured across for/while/goto forms, `acc` in the
- * for-init, wrapper loops (`do{}while(0)`, `while(1){...break;}`, `for(;;)` --
- * all deleted before loop.c, byte-identical to base), eight `t.` vs `tp->`
- * store combinations, store reordering, operand order, and
- * register/unsigned/declaration-position on `acc`. NOT ONE put the hoisted copy
- * anywhere but last. Notables: b1/t1/t2 swap r9<->r10 globally (10 differing);
- * b2/b3/t3/t4/p1-p5 hoist 0x17ffc into r9; g1 comes out TWO INSTRUCTIONS SHORT
- * (269); g2/g3 land at 108.
+ * MEASURED IN THE PIN FAMILY, ALL WORSE THAN THE BASE's 2:
+ *   q1  pin r10, copy between the inits, qq at loop-2 call           4 (first 173)
+ *   q2  pin r10, copy BEFORE `i = 0`                                 6 (first 162)
+ *   q3  pin r10, `qq = &t` instead of `qq = tp`                      4
+ *   q4  pin r10, loop-2 stores via `qq->`, call via tp    94 of 272, +1 pool word
+ *   q5  as q4 with `qq = &t`                              94 of 272, +1 pool word
+ *   q6  as q4 with `&t` at the call                       94 of 272, +1 pool word
+ *   q7  qq for the stores AND the call argument          108 of 272, +1 pool word
+ *   q9  qq assigned and never read                                  22 (first 34)
+ *   q10 pin r9 instead of r10, qq at loop-2 call                     6 (first 34)
+ *   q11 pin r9, qq at BOTH call sites              249 of 281, +10 instructions
+ *   q12 pin r8                                                      22 (first 34)
  *
- * SO THIS IS A FLOOR, NOT A SPELLING. Full sweep and the RTL dumps are in
- * scratch_elev/b251/c2bc/ (final/NOTES.md, dumps_base/, o.sh, gen.sh, batch.sh).
+ * STILL LOAD-BEARING in the body below (do not disturb): `t.f8 = ...` written
+ * plain so GCSE manufactures the second register itself (that alone was
+ * 114 -> 12); `tp = &t` assigned THIRD; `m = i + 0x1a` named before `n`; a
+ * FRESH n2/s4/s5 for the second __CopyMapTiles site.
  *
- * MEASURED WORSE: the split-condition `do` + `break` form is 270 lines, 224
- * differing, frame grown to 0x3c by a spill.
- *
- * LANDING SHAPE WHEN CLOSED: src/overlays/rom_7f2f14/ovl_30_c_c_a_c_c.c holding
- * all three in ROM order. No split, no linker edit -- overlay.ld:91 already
- * names asm/overlays/rom_7f2f14/ovl_30_c_c_a_c_c.o(.text) and MUST KEEP its
- * asm/ path. The .s carries no data, and the only pooled symbols are gState,
- * iwram_3001ebc and iwram_3001e40, all already extern in the tree.
- * makefile_flags() is empty, so plain -O2.
-  *
- * NON-MATCHING, 2 of 271 encodings differ.
- * Verify with (recipe added in batch 300; this park never had one, which is why
- * parkcheck could not report its figure):
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *       goldensun-build python3 tools/objcmp.py \
- *       src/non_matching/ovl_7f2f14/200c2bc.c \
- *       asm/overlays/rom_7f2f14/ovl_30_c_c_a_c_c_c_a.s --func OvlFunc_968_200c2bc
-*/
-
+ * STRUCK, and kept struck: the claim that gcse's insert_insn_end_bb appends
+ * always-last.  pre_edge_insert (gcse.c:4440) uses it only for EDGE_ABNORMAL.
+ * MEASURED WORSE (earlier batches): the split-condition `do` + `break` form,
+ * 270 lines, 224 differing, frame grown to 0x3c by a spill.
+ */
 /* BODY REPLACED IN BATCH 300.  parkcheck caught this park's header lying about its
  * own body: the header claimed 2 of 271 while the body measured 271.  The 2-of-271
  * candidate was sitting in scratch_elev/b250/trio/final/e2bc_BEST.c, named in the

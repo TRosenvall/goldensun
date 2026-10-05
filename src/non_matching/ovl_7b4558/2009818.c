@@ -1,120 +1,107 @@
 /* OvlFunc_927_2009818 -- asm/overlays/rom_7b4558/ovl_30_c_c_a_c_c_c_b.s
  *
- * NON-MATCHING, 3 of 38 encodings.  MEASURED THIS BATCH, --func AND --whole.
- * PIN COUNT: 0 (tools/shimcount.py reports no shims).
+ * NON-MATCHING PIN-FREE, 3 differing encodings of 38.  RE-DERIVED batch 328,
+ * --func AND --whole; exact length, relocations clean, no SIZE line.
+ * PIN COUNT of the body below: 0.
+ *
+ * ***** 0 of 38 IS IN HAND AT TWO PINS.  SEE "THE LANDING" BELOW. *****
+ * Parked rather than landed ONLY on the pin policy (owner-decisions.md
+ * standing standard 3, and the Func_80979a4 precedent of 2026-10-04: 0 of 47
+ * with ONE pin was parked at its pin-free figure for pass 3).  Figure 3 here
+ * is the pin-free figure; the pinned figure is 0.
  *
  * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/ovl_7b4558/2009818.c \
- *     asm/overlays/rom_7b4558/ovl_30_c_c_a_c_c_c_b.s --func OvlFunc_927_2009818
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7b4558/2009818.c asm/overlays/rom_7b4558/ovl_30_c_c_a_c_c_c_b.s --func OvlFunc_927_2009818
  *
- *   --func  : XX ENCODINGS differ in 3 place(s) (ref 38, ours 38), first at index 29
- *   --whole : OvlFunc_927_2009818  3 of 38 differ (ours 38), first at index 29
- *   relocations clean, no SIZE line, exact length.
+ * SPLIT: NONE NEEDED.  datacheck.py CLEAN; split_s.py: holds only
+ * OvlFunc_927_2009818 and no data, convert it directly.  No frame at all
+ * (`push {lr}` / `pop {r0}` / `bx r0`); the two pool words are indices 36-37,
+ * after the last instruction, and both match.
  *
- * SPLIT: NONE NEEDED.  datacheck.py CLEAN; split_s.py says "holds only
- * OvlFunc_927_2009818 and no data; convert it directly".
- *
- * THE FRAME QUESTION IS VACUOUS HERE, checked with all five greps over the
- * extracted reference: no `sub sp,#imm`, no `(add|sub) sp, rN`, no `mov rX,sp`
- * and no `add rX,sp,#K`, no `str rX,[sp...]`, no two-operand `add rX, sp`.
- * The prologue is `push {lr}` and the epilogue `pop {r0} / bx r0`.  There is no
- * frame at all, so none of the seven aggregate-resolution classes applies.
- * THE POOL IS NOT MID-FUNCTION EITHER: the two pool words are indices 36-37,
- * after the last instruction, and BOTH MATCH -- so the Func_80b09fc "tu-pool"
- * precedent does not apply.  Checked, not assumed.
- *
- * ===== THE RESIDUE, AND THE EXACT RUNG -- WHICH IS NOT THE ONE THE PARK NAMED
- *
- * All three differing indices are REAL INSTRUCTIONS; the only pool words
- * (36, 37) match.
- *
+ * ========== THE RESIDUE, indices 29-31 of 38 ==========
  *     idx  REF                    | OURS
  *     29   2011 mov r0, #0x11     | 0449 lsl r1, #17
  *     30   0449 lsl r1, #17       | 0452 lsl r2, #17
  *     31   0452 lsl r2, #17       | 2011 mov r0, #0x11
+ * ROM:  mov r1,#0xd4 | mov r2,#0xf0 | mov r0,#0x11 | lsl r1 | lsl r2 | bl
+ * ours: mov r1,#0xd4 | mov r2,#0xf0 | lsl r1 | lsl r2 | mov r0,#0x11 | bl
  *
- * The park called this "argument emission interleave ... scheduler, probably
- * unreachable from this function's shape".  The first half is right, the
- * mechanism was not read.  It is:
+ * ========== THE CHAIN, RE-READ IN BATCH 328 ==========
  *
- * (1) gcc PRECOMPUTES the two out-of-range constant arguments into pseudos
- *     BEFORE any hard-register load.  .00.rtl, verbatim:
- *         insn 68  (set (reg:SI 37) (const_int 27787264 [0x1a80000]))
- *         insn 70  (set (reg:SI 38) (const_int 31457280 [0x1e00000]))
- *         insn 72  (set (reg:SI 0 r0) (const_int 17 [0x11]))
- *         insn 74  (set (reg:SI 1 r1) (reg:SI 37))
- *         insn 76  (set (reg:SI 2 r2) (reg:SI 38))
- *     This is precompute_register_parameters forcing the CONSTANT_P but not
- *     LEGITIMATE_CONSTANT_P arguments into registers.  0x11 fits a Thumb
- *     `mov #imm8` and is therefore NOT precomputed, so it is emitted LAST and
- *     gets the HIGHEST LUID of the three.  Reload then materialises the two
- *     pseudos in place as mov+lsl pairs, still ahead of insn 72 (.19.flow2:
- *     91, 92, 93, 94, 72, call 77).
+ * The park's reading of the sched2 TIE is correct and its conclusion was aimed
+ * one step too far downstream.  Confirmed first: there is NO sched1 in this
+ * build at all -- the -da dump list goes .13.combine then .23.sched2 -- so
+ * rank_for_schedule's register-pressure rung (guarded `!reload_completed`,
+ * haifa-sched.c:4029) never runs and cannot be the cause.
  *
- * (2) sched2 then cannot fix it, because the ladder ties all the way down.
- *     From .23.sched2's own table for this block:
- *         insn 91 `r1=0xd4`   prio 66   dependents {77, 92}
- *         insn 93 `r2=0xf0`   prio 66   dependents {77, 94}
- *         insn 92 `r1<<=17`   prio 65   dependents {98, 79, 77}
- *         insn 94 `r2<<=17`   prio 65   dependents {98, 79, 77}
- *         insn 72 `r0=0x11`   prio 65   dependents {98, 79, 77}
- *     The two movs win the priority rung (two-insn chain to the call) and are
- *     emitted first, which we match.  The remaining three TIE on priority (65)
- *     AND on dependent count (3) -- identical successor sets, because the
- *     trailing `bl __CutsceneEnd` clobbers r0, r1 and r2 alike and the
- *     epilogue insn depends on all three.  So INSN_LUID decides, and insn 72
- *     has the highest.  The observed ready lists are exactly that:
- *         t=340:  33 ... 94 92   -> picks 92
- *         t=341:  72  94         -> picks 94
- *         t=342:  72             -> picks 72
- *     insn 72 sits at the HEAD (= lowest rank) of every list it appears in.
+ * 1. precompute_register_parameters (calls.c:805) forces the two out-of-range
+ *    constant arguments into PSEUDOS, because its only gate is
+ *    `rtx_cost (value, SET) > 2 && SMALL_REGISTER_CLASSES && reg_parm_seen`.
+ *    0x11 is a Thumb `mov #imm8` and costs less, so argument 0 is NEVER
+ *    precomputed and its load is emitted by load_register_parameters AFTER all
+ *    precompute insns.  .00.rtl, verbatim:
+ *        insn 68  (set (reg:SI 37) (const_int 27787264 [0x1a80000]))
+ *        insn 70  (set (reg:SI 38) (const_int 31457280 [0x1e00000]))
+ *        insn 72  (set (reg:SI 0 r0) (const_int 17 [0x11]))
+ *        insn 74  (set (reg:SI 1 r1) (reg:SI 37))
+ *        insn 76  (set (reg:SI 2 r2) (reg:SI 38))
+ * 2. .17.lreg gives pseudos 37/38 REG_EQUIV, and the allocator takes the r1/r2
+ *    preference off the copies, so reload rewrites insns 68/70 IN PLACE as the
+ *    mov/lsl pairs and deletes the copies.  .19.flow2 is therefore
+ *        91 r1=0xd4 | 92 lsl r1 | 93 r2=0xf0 | 94 lsl r2 | 72 r0=17
+ *        74, 76 -> NOTE_INSN_DELETED
+ *    -- i.e. `mov r0,#0x11` ends up with the HIGHEST LUID in the block.
+ * 3. .23.sched2's table, VERBATIM:
+ *        91  prio 66  core : 77 92
+ *        93  prio 66  core : 77 94
+ *        92  prio 65  core : 98 79 77
+ *        94  prio 65  core : 98 79 77
+ *        72  prio 65  core : 98 79 77
+ *    Priority picks 91 then 93.  The remaining three tie on priority, on the
+ *    last-scheduled-insn class, AND on dependent count (3 each, identical sets
+ *    {98,79,77}), so INSN_LUID decides and 72's highest LUID issues it LAST.
+ * SO THE FREE VARIABLE IS THE LUID, NOT A FOURTH DEPENDENT.  The park went
+ * looking for an insn after the call that writes r0 and not r1/r2, found none
+ * in the ROM's 36-instruction stream, and recorded a bound.  The bound is true
+ * and it is not the only route.
  *
- * ===== WHAT WOULD CLOSE IT, FROM A MATCHING FUNCTION THAT ALREADY DOES =====
+ * ========== THE LANDING: 0 of 38, TWO PINS ==========
+ * scratch_elev/b328/A/t9818/v6.c, which is this body with the call written
  *
- * 221 matching functions in this tree emit the ROM's exact shape
- * (`mov r0,#imm / lsl rA / lsl rB / bl`), so IT IS REACHABLE.  Read one:
- * src/overlays/rom_7f2f14/ovl_30_c_c_a_a_a_a.c writes the call as a plain
- * literal -- `__MapActor_SetSpeed(9, 0x80 << 8, 0x80 << 7);` -- with the same
- * precompute order and the same LUIDs, and gets the ROM's order anyway.  Its
- * block-0 visualization:
- *         107  371 r1=0x80        109  43  r0=0x9
- *         108  373 r2=0x80        110  372 r1=r1<<0x8   111  374 r2=r2<<0x7
- * It wins on the DEPENDENT-COUNT rung, before LUID is consulted, because the
- * statement AFTER the call is `if (arg != 0)`, which emits `r0 = r9` in the
- * same basic block.  That insn gives `mov r0,#9` an OUTPUT dependence the two
- * shifts do not have.
+ *     { PIN0; PIN1; q0 = 0x11; q1 = 0xd4 << 17;
+ *       __MapActor_SetPos(q0, q1, 0xf0 << 17); }
+ *     #define PIN0 register int q0 __asm__("r0")
+ *     #define PIN1 register int q1 __asm__("r1")
  *
- * > BOUND, with its evidence attached: in THIS function the three argument
- * > insns have IDENTICAL successor sets {call, __CutsceneEnd call, epilogue},
- * > measured in .23.sched2, so there is no rung above LUID to break.  Closing
- * > it needs an insn after `bl __MapActor_SetPos` that writes r0 and not
- * > r1/r2 -- and the ROM's 36-instruction stream contains no such insn
- * > (`bl __CutsceneEnd / pop {r0} / bx r0`).  That is a statement about what
- * > was measured here, not a claim that the class is closed: the 221 corpus
- * > hits say the shape is ordinary wherever the tie-break exists.
+ *   objcmp --whole: OK whole file -- 104 bytes, 38 encodings and 12 relocations
+ *   identical.  shimcount.py: 2 register pins (PIN0, PIN1), no fakematch row.
+ *   The mechanism is exactly step 3: a hard-register local makes the r0 fill an
+ *   ORDINARY STATEMENT, which puts it ahead of the two materialisations in the
+ *   stream, so it holds the LOWEST LUID and wins the three-way tie.
  *
- * MEASURED, ALL EXACTLY INERT AT 3 (crossfire, 5 edits at depth 3 -- 22 live
- * subsets, every one a candidate prerequisite, nothing better, nothing worse):
- *     callee without a prototype (the no-prototype lever)          3
- *     __MapActor_SetPos declared to return a value                 3
- *     __CutsceneEnd declared to return a value                     3
- *     slot in a named local                                        3
- *     coordinates cast at the call                                 3
- *     every pair and triple of the above                           3
- * And probed singly, with the same result: varargs declaration (3), unsigned
- * coordinate parameters (3), unsigned char slot parameter (3), coordinates in
- * named locals immediately before the call (3), __CutsceneEnd with no
- * prototype (3).  -fno-schedule-insns2 is REJECTED: 9 of 38, first at index 6.
+ * CONTROLS, each one change against v6/v1 (this is what proves the mechanism):
+ *   v1 PIN0+PIN1+PIN2, q0 assigned FIRST                             0
+ *   v9 PIN0+PIN1+PIN2, two-step `q1 = 0xd4; q1 <<= 17;` fills        0
+ *   v6 PIN0+PIN1 only, q0 first                                      0  <- minimal
+ *   v3 SAME THREE PINS but q0 assigned LAST                          3  <- order is the lever
+ *   v5 PIN1+PIN2 only (no r0 pin)                                    3
+ *   v4 pin-free named locals x,y for the two shifted arguments        3
+ *   v8 PIN0 + pin-free locals for the other two                      3
+ *   v2 PIN0 only, arguments 1/2 left bare                            4 (first moves to 27)
+ *   v7 PIN0+PIN2                                                     4 (first moves to 27)
+ * So {r0, r1} is the MINIMAL pin set and the ASSIGNMENT ORDER is load-bearing.
  *
- * A FLAT SWEEP IS THE FINDING.  Neither the declaration dimension nor the
- * statement dimension touches this, because the decision is made in
- * precompute_register_parameters and then confirmed by a three-way tie.
+ * MEASURED, ALL EXACTLY INERT AT 3 (earlier batches, 5 edits at depth 3, 22
+ * live subsets): callee without a prototype; __MapActor_SetPos declared to
+ * return a value; __CutsceneEnd declared to return a value; slot in a named
+ * local; coordinates cast at the call; every pair and triple of those; varargs
+ * declaration; unsigned coordinate parameters; unsigned char slot parameter;
+ * coordinates in named locals immediately before the call; __CutsceneEnd with
+ * no prototype.  -fno-schedule-insns2 is REJECTED: 9 of 38, first at index 6.
  *
  * SUPERSEDES the park's "re-attack it if a way is found to make gcc
- * rematerialise without inventing locals" -- rematerialisation is not the
- * question.  The question is one extra dependent on the r0 move.
+ * rematerialise without inventing locals".  Rematerialisation was never the
+ * question; stream position was.
  */
 extern void __CutsceneStart(void);
 extern void __CutsceneEnd(void);

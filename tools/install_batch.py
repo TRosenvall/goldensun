@@ -102,9 +102,22 @@ def park_subject(path):
         s = open(rel(path), errors="replace").read()
     except OSError:
         return None
-    m = re.search(r"--func\s+(\w+)", s[:s.find("*/") if s.find("*/") > 0 else 3000])
-    if m:
-        return m.group(1)
+    # PROSE THAT LOOKS LIKE MACHINERY.  Taking the FIRST `--func` in the header
+    # captured the word `and` from a park whose text read "--func and --whole:",
+    # and this function's caller then correctly refused to retire that park --
+    # which is the guard working, but on a fiction.  Found in batch 328 brief D.
+    #
+    # So prefer a capture that looks like one of this tree's function names, and
+    # fall back to the last `--func` rather than the first: a real recipe is
+    # written at the END of a header, after whatever prose discusses it.
+    hdr = s[:s.find("*/") if s.find("*/") > 0 else 3000]
+    cands = re.findall(r"--func\s+(\w+)", hdr)
+    named = [c for c in cands
+             if re.match(r"(?:Ovl)?Func_[0-9a-fA-F]+$", c) or re.match(r"[A-Z]\w*$", c)]
+    if named:
+        return named[-1]
+    if cands:
+        return cands[-1]
     m = re.match(r"/\*\s*\**\s*((?:Ovl)?Func_[0-9a-zA-Z_]+|[A-Z][A-Za-z0-9_]*)", s)
     return m.group(1) if m else None
 

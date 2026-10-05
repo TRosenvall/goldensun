@@ -117,9 +117,29 @@ def header_of(path):
     while i < len(lines) and (not lines[i].strip() or lines[i].lstrip().startswith("//")):
         i += 1
     s = "\n".join(lines[i:])
-    m = re.match(r"/\*.*?\*/", s, re.S)
-    if not m:
+    # A RECIPE CAN SIT IN THE SECOND COMMENT BLOCK.  header_of used to return
+    # only the first /* ... */, so a brief that prepends a SEPARATE block -- a
+    # correction, a re-measurement note -- strands the `Verify with:` recipe in
+    # block 2 and every such park reports UNCHECKABLE with a correct figure
+    # sitting in it.  FOUR parks hit this in batch 328 alone, and it is a
+    # recurrence of batch 311's prepended-note failure, which was fixed only for
+    # leading `//` lines and blank lines.
+    #
+    # So: take the leading RUN of comment blocks, not just the first.  A park's
+    # header is everything before its first declaration, and that is what a
+    # reader sees as the header too.  Stop at the first non-comment,
+    # non-whitespace line so a recipe quoted inside the BODY cannot be mistaken
+    # for the park's own.
+    blocks, rest = [], s
+    while True:
+        mm = re.match(r"\s*(/\*.*?\*/)", rest, re.S)
+        if not mm:
+            break
+        blocks.append(mm.group(1))
+        rest = rest[mm.end():]
+    if not blocks:
         return ""
+    m = type("M", (), {"group": lambda self, _=0: "\n".join(blocks)})()
     # A HEADER CLOSED INSIDE ITS OWN PROSE.  Found in batch 324 on StartRain.c,
     # whose header contained the text `int/void*` immediately followed by
     # `/undeclared`; the star-slash pair inside that closed the comment, the rest
