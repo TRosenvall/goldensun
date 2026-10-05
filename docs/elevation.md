@@ -33711,3 +33711,75 @@ instructions and 108 bytes.
 > already written down that `tryc.py` cannot see pool order; the cost of not
 > joining those two facts was one symbol-table entry wrongly doubted and a park
 > parked for 119 batches.
+
+## A PAD CAN ABSORB A LENGTH DIFFERENCE AND HIDE IT FROM BOTH OF objcmp's GUARDS
+
+This is the **third** variant of the padding trap in this project's record, and it
+is the first that a careful reader cannot catch.
+
+gas appends a `.short 0x0000` to word-align a function, and that pad **is an
+encoding** in `objcmp`'s lists. So:
+
+| | instructions | pad | encodings | bytes |
+|---|---|---|---|---|
+| reference | 25 | 1 | 26 | 52 |
+| ours | 26 | 0 | 26 | 52 |
+
+**The SIZE guard is silent, the encoding count in the `ENCODINGS` line matches,
+and the two programs differ in length by one instruction.** Found in batch 325
+brief C on `HeightTile_4`, where it made the park read **19** when, aligned, it was
+**3**. `tools/tryc.py --align` caught what `objcmp` could not.
+
+The earlier two variants are read by a human who remembers them:
+
+1. *"equal encoding counts hide length differences"* — the pad is counted, so a
+   count can match while lengths differ.
+2. *"`objcmp` reports SIZE **instead of** an encoding count"* — so grepping for
+   `ENCODINGS` hides the result.
+
+**This one is invisible even to a careful reader**, so it belongs in the tool.
+`objcmp.py` now prints
+
+	XX INSTRUCTION COUNT  ref 25, ours 26  (excluding 1/0 trailing pad word(s))
+	   NOTE: size and encoding count MATCH -- a pad is absorbing the
+	   difference, so the positional figure below measures MISALIGNMENT,
+	   not distance.  Re-screen with tools/tryc.py --align.
+
+Only **trailing** zero encodings are stripped: `0x0000` is a legal Thumb encoding
+(`lsls r0,r0,#0`), so a zero inside a function is an instruction. Verified against
+five cases, including a mid-function zero that must not be stripped and two
+trailing pads on one side; and regression-checked against four known park figures,
+all unchanged.
+
+> **Do the length arithmetic before trusting any figure** — and now the tool does
+> it for you.
+
+## A LANDING THAT SPLITS A `.s` SILENTLY ORPHANS EVERY OTHER PARK'S RECIPE IN THAT FILE
+
+Batch 324's `HeightTile_5` and `_B` landings split both parent `.s` files. That
+left **all four** remaining `HeightTile_*` park recipes naming a path that no
+longer existed, so `objcmp` exited `FileNotFoundError` and **no figure in that
+family had been checkable since.** One of those parks also carried a *prediction*
+of the split names (`_b`/`_c`) that `split_s.py` contradicted (`_a`/`_b`).
+
+`parkcheck.py` does report it — `UNCHECKABLE`, *"reference … not found"* — but
+nothing forced anyone to look, and **a park whose figure cannot be measured cannot
+be caught lying.** That is the same failure class as the `HEADERCUT` park and the
+figureless backfill, and it is now the third route into it.
+
+A tree-wide scan found exactly **one** other instance:
+`src/non_matching/rom_c9000/80cd358.c` still pointed at a pre-split
+`rom_cd260_a_a.s`. Repointed to `rom_cd260_a_a_c.s` it measures **67** and its
+claim verifies — it had been unmeasurable.
+
+So the population is small, but the defect is **invisible and recurs on every
+split**, which is exactly the combination worth automating.
+`install_batch.py`'s splits phase now calls `repoint_orphaned_recipes`, which
+after each split finds every park mentioning the pre-split path and repoints it —
+but **only when the symbol is found in exactly one successor `.s`.** Anything
+ambiguous is printed for a human rather than guessed, because **a recipe pointing
+at the WRONG reference is worse than one pointing at nothing**: the first produces
+a confident wrong figure, the second produces an error.
+
+> **After any split, the question "which other parks referenced that file?" has to
+> be asked by something other than a person's memory.**

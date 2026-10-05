@@ -253,6 +253,66 @@ def do_splits(entries, dry):
             if r.returncode != 0:
                 print(f"      !! split FAILED: {r.stdout.strip().splitlines()[-1:]}")
                 sys.exit(1)
+            repoint_orphaned_recipes(sp["file"], dry)
+
+
+def repoint_orphaned_recipes(split_file, dry):
+    """A SPLIT SILENTLY INVALIDATES EVERY OTHER PARK'S RECIPE IN THAT FILE.
+
+    Found in batch 325 brief C: batch 324's HeightTile_5 and _B landings split
+    both parent .s files, and that left ALL FOUR remaining HeightTile park
+    recipes naming a path that no longer exists, so objcmp exited
+    FileNotFoundError and NO FIGURE IN THAT FAMILY HAD BEEN CHECKABLE SINCE.
+    parkcheck does report it (UNCHECKABLE, "reference ... not found"), but
+    nothing forced anyone to look, and a park whose figure cannot be measured
+    cannot be caught lying -- the same failure class as the HEADERCUT park and
+    the figureless backfill.
+
+    A tree-wide scan after that batch found exactly one other instance
+    (rom_c9000/80cd358.c, pointing at a pre-split rom_cd260_a_a.s; repointed to
+    rom_cd260_a_a_c.s it measures 67 and its claim verifies), so this is narrow
+    -- but it is invisible and it recurs on every split, which is precisely the
+    combination worth automating.
+
+    Repointing is only attempted when the symbol is found in exactly one
+    successor .s; anything ambiguous is reported for a human rather than
+    guessed, because a recipe pointing at the WRONG reference is worse than one
+    pointing at nothing.
+    """
+    import glob as _glob
+    if not os.path.exists(os.path.join(ROOT, split_file)):
+        pass  # the pre-split path is gone, which is exactly the situation
+    hits = []
+    for q in sorted(_glob.glob(os.path.join(ROOT, "src/non_matching/**/*.c"), recursive=True)):
+        txt = open(q, errors="replace").read()
+        if split_file not in txt:
+            continue
+        rel = os.path.relpath(q, ROOT)
+        fm = re.search(r"--func\s+([A-Za-z_]\w*)", txt)
+        if not fm:
+            hits.append((rel, None, []))
+            continue
+        fn = fm.group(1)
+        found = [os.path.relpath(c, ROOT)
+                 for c in _glob.glob(os.path.join(ROOT, "asm/**/*.s"), recursive=True)
+                 if re.search(r"thumb_func_start\s+" + re.escape(fn) + r"\b",
+                              open(c, errors="replace").read())]
+        hits.append((rel, fn, found))
+    if not hits:
+        return
+    print(f"      recipes naming {split_file}: {len(hits)} park(s)")
+    for rel, fn, found in hits:
+        if len(found) == 1:
+            print(f"        REPOINT {rel}  ({fn}) -> {found[0]}")
+            if not dry:
+                t = open(os.path.join(ROOT, rel), errors="replace").read()
+                open(os.path.join(ROOT, rel), "w").write(t.replace(split_file, found[0]))
+        elif not fn:
+            print(f"        !! {rel} mentions it but names no --func; CHECK BY HAND")
+        elif not found:
+            print(f"        !! {rel} ({fn}) -- symbol in NO .s; it may have LANDED. CHECK BY HAND")
+        else:
+            print(f"        !! {rel} ({fn}) -- symbol in {len(found)} files; CHECK BY HAND")
 
 
 def do_install(entries, dry):

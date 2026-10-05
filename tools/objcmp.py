@@ -396,6 +396,42 @@ def main():
     bad = 0
     if a_sz != b_sz:
         print("  XX SIZE  ref %d bytes, ours %d" % (a_sz, b_sz)); bad = 1
+
+    # A PAD CAN ABSORB A LENGTH DIFFERENCE AND HIDE IT FROM BOTH GUARDS.
+    #
+    # gas appends a `.short 0x0000` to word-align a function, and that pad is an
+    # ENCODING in these lists.  So a reference of 25 instructions + 1 pad and a
+    # candidate of 26 instructions + 0 pad are 26 encodings and the same byte
+    # count on both sides -- the SIZE guard is silent AND the count in the
+    # ENCODINGS line matches -- while the two programs differ in length by one
+    # instruction.  Found in batch 325 brief C on HeightTile_4, where it made a
+    # park read 19 when aligned it was 3; `tryc --align` caught what this tool
+    # could not.
+    #
+    # This is the THIRD variant of the padding trap in this project's record,
+    # after "equal encoding counts hide length differences" and "objcmp reports
+    # SIZE instead of an encoding count".  The other two are read by a human who
+    # remembers; this one is invisible even to a careful reader, so it belongs in
+    # the tool.
+    #
+    # Only TRAILING zero encodings are stripped.  0x0000 is a legal Thumb
+    # encoding (`lsls r0,r0,#0`), so a zero in the middle of a function is an
+    # instruction and must be left alone.
+    def _insns(enc):
+        k = len(enc)
+        while k > 0 and enc[k - 1] in ("0000", "0x0000", "00000000"):
+            k -= 1
+        return k
+    a_in, b_in = _insns(a_enc), _insns(b_enc)
+    if a_in != b_in:
+        print("  XX INSTRUCTION COUNT  ref %d, ours %d  (excluding %d/%d trailing pad word(s))"
+              % (a_in, b_in, len(a_enc) - a_in, len(b_enc) - b_in))
+        if a_sz == b_sz and len(a_enc) == len(b_enc):
+            print("     NOTE: size and encoding count MATCH -- a pad is absorbing the")
+            print("     difference, so the positional figure below measures MISALIGNMENT,")
+            print("     not distance.  Re-screen with tools/tryc.py --align.")
+        bad = 1
+
     if a_enc != b_enc:
         n = sum(1 for x, y in zip(a_enc, b_enc) if x != y) + abs(len(a_enc) - len(b_enc))
         print("  XX ENCODINGS differ in %d place(s) (ref %d, ours %d)"

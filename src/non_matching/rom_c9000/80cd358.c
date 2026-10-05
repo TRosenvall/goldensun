@@ -12,7 +12,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_c9000/80cd358.c \
- *     asm/rom_c9000/rom_cd260_a_a.s --func Task_BlitAnim_BG1Wide
+ *     asm/rom_c9000/rom_cd260_a_a_c.s --func Task_BlitAnim_BG1Wide
  *
  * This recipe was ADDED by the batch-319 backfill: the park had none, so
  * parkcheck.py could not report its figure and nothing had ever checked it.
