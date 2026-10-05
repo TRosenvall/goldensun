@@ -33982,3 +33982,91 @@ The tie-break is on the **allocno index** (`global.c:617`), so an exact tie goes
 the lower-numbered allocno.
 
 > **Read `n_refs` out of `.17.lreg`; never count references in the C.**
+
+## OUR FILE SPLITS AGAINST THE UPSTREAM DISASSEMBLY'S MODULES
+
+Asked by the owner on 2026-10-05: *do the `tu-pool` parks and the TU-merging
+question come down to us having broken module boundaries that the upstream
+disassembly already had right?*
+
+**Measured answer: no, nothing is broken — and yes, there is a real cost, but it
+is not in the ROM.**
+
+### The upstream layout, and ours
+
+`upstream` is `github.com/gsret/goldensun`, "Disassembly of Golden Sun", and our
+branch is a clean descendant of its `master` (`0fa7b312`; `merge-base` is
+upstream HEAD itself). It ships **521 `.s` files**, one per object, at
+`<bank>/src/rom_<addr>.s`, with **no `_a`/`_b`/`_c` suffixes anywhere**. Its
+`stage1.ld` lists them **one `.o` at a time** inside named output sections:
+
+	rom_1b70 : {
+		rom_c0/src/rom_1b70.o(.text)
+		rom_c0/src/rom_2544.o(.text)
+		…
+	}
+
+So upstream genuinely models each `.s` as a separate object. `tools/split_s.py`
+then bisected those objects so single functions could be converted, and we now
+have **5,203 `.s` files**: a mean of **24.4 pieces per upstream module**, and
+`overlays/ovl_30.s` alone has become **2,476 pieces**.
+
+### Three reasons nothing is broken
+
+1. **The splits are PURE SUBDIVISIONS.** Every one of the 5,203 `.s` files, and
+   **4,461 of our 4,468 landed `.c` files**, maps onto **exactly one** upstream
+   module — **zero crossings, zero ambiguity.** No split ever merged across an
+   upstream boundary.
+2. **The ROM is byte-identical.** `make compare` passes and the SHA1 matches.
+   Subdividing an object and relinking the pieces in the same order is
+   byte-neutral.
+3. **No information was lost.** Because the nesting is strict, the upstream
+   module of any function is recoverable from its filename prefix. That is what
+   `tools/upstream_module.py` does.
+
+### The real cost, which is structural rather than binary
+
+- **1,544 local labels have been promoted to `.global`.** A `.L…` label is
+  file-local by construction; the original build never exported one. Ours must,
+  because the split put the label's user in a different object. This is invisible
+  in the ROM — a symbol table is not linked into the binary — but it is 1,544
+  assertions of visibility the original did not make. Batch 325's `Func_801d9d4`
+  landing needed exactly one of these (`.global .L367dc`), which is how the
+  question surfaced.
+- **150 upstream modules are now spread across more than one of our `.c` files**,
+  a mean of **29.6** each, and **only 19 upstream modules have been landed as a
+  single whole `.c`.**
+- So a converted function is almost always **its own translation unit** where the
+  original compiler saw its module's functions **together**. Upstream
+  `rom_15000/rom_1ca1c.s` was one object of ~19 functions; we have landed 15 of
+  them as 15 separate `.c` files.
+
+### How much authority an upstream boundary carries
+
+**Less than it first appears.** Upstream's own README puts *"Isolate modules
+further. Modules should be partially linked and combined in a final link.
+Functions and data should not be visible, only exported entry points"* on its
+**roadmap**, so upstream does not claim its objects are the original translation
+units either.
+
+> **Treat an upstream module boundary as BETTER EVIDENCE THAN OUR BISECTIONS AND
+> COARSER THAN THE TRUTH MIGHT BE** — a hypothesis about grouping, in exactly the
+> way a park's figure is evidence and its diagnosis is not.
+
+### What this is actually good for
+
+It answers the question a TU merge has to answer first — **which functions
+belonged together** — and we have it for free, by prefix. `tools/upstream_module.py`
+reports a function's module and every sibling of it, split by landed / parked /
+still-asm.
+
+It does **not** on its own argue for merging. The ROM already matches, so a merge
+buys no bytes; what it could buy is (a) deleting artificial exports, (b) source
+that is honest about module structure for pass 4, and (c) possibly unblocking
+parks whose residue depends on a module-mate. Each is worth measuring before any
+merge, and a merge of 15 files into 1 is a large, risky refactor against a tree
+that currently matches.
+
+> **The `tu-pool` park class was refuted on a different and stronger ground**
+> (batch 325 brief G: every input to `add_minipool_forward_ref` is per-function),
+> so "we split the TU" was never the reason those parks were stuck.
