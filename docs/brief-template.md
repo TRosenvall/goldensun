@@ -29,6 +29,17 @@ figures, their park paths, what each park claims) goes on top of this.
   not dead ends.
 - **`tools/objcmp.py` is THE AUTHORITY. Never fork it.** A forked copy drifted 32
   lines in batch 316.
+- **`asm/` is a labelled corpus: every generated `.s` is byte-matching by
+  construction, so each instruction window is tagged with the C construct that
+  produced it.** When a reference window will not reproduce, grep the generated
+  half for 4-8 of its instructions and read the `.c` beside the hit. Batch 332
+  landed two of three targets that way after spelling-level search had failed on
+  both. Count hits in the generated half against the hand-written half for a
+  reachability bound; partition by `shimcount` for a pin-free bound.
+- **When a park names another function, read that function's LANDED SOURCE
+  first.** Twin, module-mate, piece-mate, "same construct as" — it costs one
+  `cat`, and seven times now the answer has been sitting in it while the park
+  that named it went unread.
 - **The compiler's source is on disk — read it, do not recall it.**
   `/opt/camelot-gcc/gcc-2.96/gcc` in the container,
   `~/gs_project/camelot-gcc/gcc-2.96/gcc` on the host: the exact patched

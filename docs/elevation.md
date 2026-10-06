@@ -34686,3 +34686,64 @@ sources` has not moved after a batch that landed something, that is the bug and
 not a plateau. The same arithmetic is the check in the other direction: the gap
 between census-remaining and `dupfuncs`-remaining grew by exactly 4 this batch,
 which turned out to be 4 functions sitting in **untracked new split parts**.
+
+## `asm/` IS A CORPUS OF REFERENCE-SHAPE → SOURCE-CONSTRUCT PAIRS, AND IT IS THE BEST SEARCH IN THE TREE
+
+Every `.s` under `asm/` bearing gcc's banner is **byte-matching by construction**
+— it is the output of a landed `.c` sitting beside it. So the ~4,500 generated
+files are not just build products. They are a labelled dataset: *this exact
+instruction window came out of that exact C construct.*
+
+**So when a reference window will not reproduce, search the corpus for that
+window and read the `.c` next to the hit.** Batch 332 brief B landed two of
+three targets this way, and in both cases it beat every spelling-level search it
+had tried first:
+
+- `OvlFunc_973_200871c` — one hit, `asm/overlays/rom_78dd40/ovl_30_c_c_b.s`,
+  whose opening is instruction-for-instruction the reference's. The `.c` beside
+  it carries a header that already says *"A STRUCT POINTER IS A
+  REGISTER-ALLOCATION LEVER"*. Porting that `struct Blk` and writing the two
+  stores as field assignments fixed the missing address materialisation **and** a
+  base/offset register rotation in one edit.
+- `OvlFunc_941_2008094` — the answer was `struct Actor` out of this tree's own
+  `include/actor.h` (`flags` at 0x23, `interactFlag` at 0x55). The park's verdict
+  *"nothing at the expression level"* was refuted by a header file.
+
+### Three ways to query it, in increasing cost
+
+1. **Exact window.** Take 4–8 consecutive reference instructions, normalise
+   registers and immediates, and grep the generated half. A single hit is worth
+   more than twenty variants.
+2. **Shape regex with a reachability count.** Count hits in the *generated* half
+   against the *hand-written* half. A shape with **zero** hits in gcc's own
+   output anywhere in the tree is a reachability argument stronger than any
+   sweep — one residue shape measured 0 against 4,721. Conversely a shape with
+   two hits tells you it IS reachable and names the two files to read.
+3. **Pin-status correlation.** Partition the hits by `shimcount`. Batch 331 found
+   a shape at **0 pin-free against 83 pinned** where there is no branch, which
+   refuted a pin-free route by corpus rather than by failing to find one.
+
+**Fold the spelling differences first.** The two halves of the tree are not
+written the same way: hand-written `.s` writes `mov r6, r10` and `add r6, #0x64`
+where gcc writes `mov r6, sl` and `add r6, r6, #100`, and a generated function
+has **no `.thumb_func_start`** (gcc emits `.thumb_func` plus
+`.type NAME,function`, ending at `.size`, with its literal pool *before* that).
+`tools/dupfuncs.py` carries validated folds for all of this — register aliases,
+three-operand destructive forms, immediate radix — and a `--vs-landed` mode that
+uses them.
+
+### The real lesson is narrower and worse
+
+In **both** of brief B's landings the park header **had already named the twin**,
+and nobody had read its landed body. That is the seventh instance of
+*information that exists in this tree, indexed under a name nobody searched* —
+after nine parks invisible because landings are split-named and parks
+address-named, 148 landed `Anim_*` invisible because a filename scan stood in
+for a definition scan, a solved mechanism filed under a `dupfuncs` twin's
+address, a lever written in the installed file-mate one piece away, a remedy
+filed under a residue class, and a superseded figure read as current out of a
+park's own prose.
+
+> **When a park names another function — twin, module-mate, piece-mate, "same
+> construct as" — READ THAT FUNCTION'S LANDED SOURCE before measuring anything.**
+> It costs one `cat`. Seven times now the answer has been sitting in it.
