@@ -250,10 +250,38 @@ def check(path):
     # verdict so the figure is never mistaken for a production-flag distance.
     # A park that needs a flag and does NOT declare it still reads MISMATCH,
     # which is the right answer -- an undeclared flag dependency is a defect.
+    # SCOPE: THE RECIPE'S OWN COMMAND, NOT THE WHOLE HEADER.
+    #
+    # The paragraph above says "if the RECIPE declares OBJCMP_EXTRA" and the code
+    # used to search `hdr` -- the entire header. So a park DISCUSSING the flag in
+    # prose was measured under it. Batch 330 found three parks in rom_77000 that
+    # each record `OBJCMP_EXTRA=-fno-schedule-insns2` as a REFUTED route, with
+    # the refuted numbers written out beside it; parkcheck harvested the flag and
+    # reported two of them MISMATCH at exactly those refuted numbers, and the
+    # third TOOLING because prose had glued a trailing colon to the token. The
+    # accusation MISMATCH makes -- "a park's header is lying about its own body"
+    # -- was false in all three cases. The headers were right.
+    #
+    # A real declaration is shell: `OBJCMP_EXTRA=-flag python3 tools/objcmp.py
+    # ...`, so it sits just before `objcmp.py` in the SAME command. Prose does
+    # not. Scope the search to that span, and require the capture to look like a
+    # flag after trailing punctuation is stripped.
     env = dict(os.environ)
-    xm = re.search(r"OBJCMP_EXTRA=(\S+)", hdr)
+    span = hdr[max(0, vm.start() - 400):vm.start()]
+    xm = re.search(r"OBJCMP_EXTRA=(\S+)", span)
+    extra_note = ""
     if xm:
-        env["OBJCMP_EXTRA"] = xm.group(1)
+        tok = xm.group(1).rstrip(":,.;)\"'")
+        if re.fullmatch(r"-[A-Za-z0-9][-A-Za-z0-9=_+.]*", tok):
+            env["OBJCMP_EXTRA"] = tok
+        else:
+            extra_note = f" [ignored a malformed OBJCMP_EXTRA token {xm.group(1)!r}]"
+    elif "OBJCMP_EXTRA=" in hdr:
+        # Mentioned somewhere in the header but not in the recipe's command. Do
+        # NOT apply it -- an undeclared flag dependency must still read MISMATCH,
+        # which is the right answer -- but say so, because a flag the park really
+        # needs and misplaced would otherwise look like an ordinary mismatch.
+        extra_note = " [header mentions OBJCMP_EXTRA outside the recipe; NOT applied]"
     r = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT, env=env)
     out = r.stdout
     if r.returncode != 0 and "differ" not in out and " OK " not in out:
@@ -267,14 +295,16 @@ def check(path):
             return ("UNCHECKABLE", "objcmp produced no encoding line", None, None)
         got = (int(m.group(1)), int(m.group(2)))
     if not cm:
-        return ("NO CLAIM", f"measures {got[0]}", None, got[0])
+        return ("NO CLAIM", f"measures {got[0]}{extra_note}", None, got[0])
     claimed = int(cm.group(1))
     if claimed == got[0]:
         note = f"{claimed}"
-        if xm:
-            note += f"  [under {xm.group(1)} -- NOT a production-flag figure]"
-        return ("OK", note, claimed, got[0])
-    return ("MISMATCH", f"header claims {claimed}, body measures {got[0]}", claimed, got[0])
+        if "OBJCMP_EXTRA" in env and env.get("OBJCMP_EXTRA"):
+            note += f"  [under {env['OBJCMP_EXTRA']} -- NOT a production-flag figure]"
+        return ("OK", note + extra_note, claimed, got[0])
+    return ("MISMATCH",
+            f"header claims {claimed}, body measures {got[0]}{extra_note}",
+            claimed, got[0])
 
 
 def main():
