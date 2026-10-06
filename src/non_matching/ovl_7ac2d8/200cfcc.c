@@ -83,6 +83,71 @@
  * -fno-regmove 11, -fno-force-mem 11, -fno-schedule-insns2 34,
  * -fno-expensive-optimizations 171).  Both `extern void` callees
  * (__Actor_SetScript, __Sprite_SetAnim) -> `extern int`: INERT at 5
+ *
+ *
+ * ===================== BATCH 329 (brief A) =====================
+ *
+ * FIGURE RE-DERIVED A THIRD TIME AND IT HOLDS: 5 DIFFERING ENCODINGS OF 179,
+ * size exact, instruction count exact, first differing index 54 (ref 4640,
+ * ours 189b).  The whole-TU run agrees exactly (5 of 179, same index).
+ *
+ * THE TWO TOOLS RECONCILE, AND THE DIFFERENCE IS THE TAIL PAD -- WORTH KNOWING
+ * BEFORE ANYONE "FINDS" A SIXTH DIFFERENCE.  aligncmp reports 6 differing in 3
+ * hunks; objcmp reports 5.  The accounting is exact:
+ *     ref[54:58]  4 encodings   the add / the r8 copy / the sl park
+ *     ref[60:61]  1 encoding    ldr r3, [r0, #20]  vs  ldr r3, [r2, #20]
+ *     ref[178]    1 encoding    ref .short 0x0000  vs  ours nop (mov r8, r8)
+ * The third is the FUNCTION-TAIL ALIGNMENT FILL, and objcmp deliberately does
+ * not count it.  So the real distance is 5 code encodings in TWO hunks, and
+ * every one of them is in one place.  Do not chase index 178.
+ *
+ * ROUTE (c) REPRODUCED INDEPENDENTLY, AND IT SHRINKS THE RESIDUE TO ONE FACT.
+ *     { int n4 = -((((t[0x10] term) * 0x80 + (t[8] term)) << 2));
+ *       cell = gBuffer - n4; }
+ * reads 5 of 179 with first index 54 == 18d2, i.e. the ROM's own
+ * `adds r2, r2, r3`.  Behind it the 5 is NOT five things, it is ONE:
+ *     rom   mov r0, r8 / ... / ldr r3, [r0, #0] / ... / ldr r3, [r0, #20]
+ *     ours  mov r2, r8 / ... / ldr r3, [r2, #0] / ... / ldr r3, [r2, #20]
+ * The copy of `t` out of r8 into a low base for the Thumb loads goes to r0 in
+ * the ROM and r2 here, and it also sits two slots later.  That is the entire
+ * remaining residue of this function.  Route (c) stays an INSTRUMENT, not a
+ * shipped body -- a negated index subtracted from a base is a matching artifact
+ * and belongs to pass 4, not to pass 2 -- but it isolates the blocker cleanly
+ * and it refutes "the add order is the blocker": the add order is reachable.
+ *
+ * THE BLOCKER IS NOW NAMED, AND IT IS SHARED WITH THIS BANK'S OTHER TWO PARKS.
+ * WHICH LOW REGISTER A THUMB BASE COPY / RELOAD PICKS.  Read from reload1.c:
+ * allocate_reload_reg (:4962) walks `i = last_spill_reg; i++` round robin over
+ * spill_regs (:5003-5013), and last_spill_reg is set only on success in
+ * set_reload_reg (:4937) and reset ONCE PER FUNCTION (:821).  So the register
+ * is a FUNCTION-SCOPED PHASE COUNTER, not a local decision.
+ *   NOTE THE SHARP PROBLEM THIS RAISES HERE, because it bounds the next round:
+ *   encodings 0-53 are BYTE-IDENTICAL on both sides, so if the phase were the
+ *   whole story the phase entering index 54 would be identical too.  Either the
+ *   number of RELOADS differs while the emitted code does not (an inherited
+ *   reload emits nothing and still advances the counter), or this copy is not
+ *   chosen by the round robin at all but by find_dummy_reload, which the batch
+ *   316 correction already showed owns the other half of this hunk.
+ *   ANSWERING THAT QUESTION IS THE NEXT ROUND.  Read the reload dumps, do not
+ *   guess, and do not re-run the expand-time levers: they are closed.
+ *
+ * THE DUPLICATE PORT IS NOW PROVEN TWO WAYS, NOT ONE.
+ *   (1) STRUCTURAL.  A normalised diff of
+ *       asm/overlays/rom_7ac2d8/ovl_35b8_a_a_c_c_a_a.s (lines 1-197) against
+ *       asm/overlays/rom_7aa430/ovl_1a3c_a_a_a_a.s     (lines 1-197)
+ *       -- strip the banner comments and blanks, canonicalise every .L<hex>
+ *       label in order of first appearance, canonicalise every bank-qualified
+ *       OvlFunc/gScript name -- is EMPTY, 185 significant lines each.
+ *   (2) MEASURED.  This body with the three renames below compiles against the
+ *       TWIN'S OWN reference to 5 differing encodings of 179, first index 54,
+ *       relocations identical.  Same figure, same index, nothing to re-derive.
+ *       OvlFunc_924_200cfcc   -> OvlFunc_923_2009a3c
+ *       gScript_924__0200de20 -> gScript_923__0200a7d0
+ *       gScript_924__0200de38 -> gScript_923__0200a7e8
+ * The twin park src/non_matching/ovl_7aa430/2009a3c.c still carries its own
+ * withdrawn "181 of 177 SATURATED" body.  IT IS OWED THIS ONE, at 5.
+ *
+ * Verify with: python3 tools/objcmp.py src/non_matching/ovl_7ac2d8/200cfcc.c asm/overlays/rom_7ac2d8/ovl_35b8_a_a_c_c_a_a.s --func OvlFunc_924_200cfcc
  */
 #include "dma.h"
 

@@ -1,12 +1,12 @@
 /* OvlFunc_959_200cda0 -- NON-MATCHING, 19 of 184 encodings differ.
  * Unattempted before batch 298.  Reference
- * asm/overlays/rom_7e7574/ovl_9dc_c_c_c_a_a_c_a.s (3 functions, this is the 1st).
+ * asm/overlays/rom_7e7574/ovl_9dc_c_c_c_a_a_c_a_a.s (3 functions, this is the 1st).
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *       goldensun-build python3 tools/objcmp.py \
  *       src/non_matching/ovl_7e7574/200cda0.c \
- *       asm/overlays/rom_7e7574/ovl_9dc_c_c_c_a_a_c_a.s --func OvlFunc_959_200cda0
+ *       asm/overlays/rom_7e7574/ovl_9dc_c_c_c_a_a_c_a_a.s --func OvlFunc_959_200cda0
  *
  * 19 IS A TRUE DISTANCE: size exact (448 bytes) and instruction count exact
  * (184 == 184).  SHIMS: 15 register pins (5x PIN3) plus 3 "+r" barriers, so a

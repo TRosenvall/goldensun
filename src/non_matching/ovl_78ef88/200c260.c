@@ -115,6 +115,71 @@
  * for `mov r8, #0` at insn 30 is r2 where the ROM has r0, and the two insns
  * that carry it plus sched2's hoist of `mov r0, #22` past it are the three
  * encodings.  Not a spelling of indices 6-8.
+ *
+ * ========== BATCH 329: THE PASS-3 QUESTION IS ANSWERED.  IT IS REG_ALLOC_ORDER ==========
+ *
+ * RE-DERIVED AS FOUND: 3 differing encodings of 85, first differing index 6,
+ * counts equal, relocations clean.  The greg-versus-flow2 correction above is
+ * reproduced exactly on this body: .18.greg prints
+ *     Spilling for insn 30. / Using reg 3 for reload 0
+ * and .19.flow2 emits `(insn 219 (set (reg:SI 2 r2) (const_int 0)))` ahead of
+ * insn 30.  Printed 3, emitted 2, same insn.
+ *
+ * THE QUESTION THIS PARK LEFT FOR PASS 3 -- "why is r0 excluded at insn 30 when
+ * the parameter save at insn 4 already freed it" -- HAS AN ANSWER, and it is
+ * neither account recorded above.  r0 is not excluded because it is live and not
+ * because the function takes a parameter.  It is FOURTH IN LINE.
+ *
+ * (1) order_regs_for_reload (reload1.c:1525-1537) builds, per insn,
+ *         bad_spill_regs = fixed_reg_set
+ *                        | hardregs (chain->live_throughout)
+ *                        | hardregs (chain->dead_or_set)
+ *     r0 is in none of those at insn 30.
+ * (2) find_reg (reload1.c:1616-1655) then scans regno 0 upward, scoring each
+ *     candidate `spill_cost[regno]` -- zero for a register holding no live
+ *     pseudo -- and breaks an EQUAL-COST tie with
+ *         inv_reg_alloc_order[regno] < inv_reg_alloc_order[best_reg]
+ *     config/arm/arm.h:989-995 defines
+ *         REG_ALLOC_ORDER = { 3, 2, 1, 0, 12, 14, 4, 5, 6, 7, 8, 10, 9, 11, ... }
+ *     so among equally free low registers find_reg takes r3 FIRST, then r2, then
+ *     r1, and r0 LAST.  That is the whole reason greg prints 3.
+ * (3) The pick sets used_spill_regs_local (reload1.c:1686), which is ORed into
+ *     the function-global used_spill_regs (reload1.c:1754).
+ * (4) reload1.c:3529-3532 rebuilds spill_regs[] from that global set in
+ *     ASCENDING REGISTER ORDER, and allocate_reload_reg (reload1.c:5003-5013)
+ *     starts its round robin at last_spill_reg + 1, which is 0 for the first
+ *     reload in the function (last_spill_reg is -1 at reload1.c:821).
+ *     THE FUNCTION'S FIRST RELOAD THEREFORE GETS THE LOWEST-NUMBERED MEMBER OF
+ *     THE GLOBAL SPILL SET.  Ours is {2,3}, so insn 30 emits r2.  If r0 were in
+ *     the set it would be spill_regs[0] and insn 30 would emit r0 -- the ROM.
+ *     So the park's round-robin model is right and its membership evidence was
+ *     the only broken part.
+ *
+ * CONTROL, and it refutes BOTH accounts recorded above.  The two landed
+ * siblings this park cites were dumped with -da:
+ *     src/overlays/rom_7eaf28/ovl_314_c_c_c_c_a.c   .18.greg:
+ *         Spilling for insn 10.  / Using reg 3 for reload 0
+ *         ... Using reg 0 for reload 0   at insn 317 AND at insn 319
+ *     src/overlays/rom_7a5214/ovl_314_c_c_c_c_b.c   .18.greg:
+ *         Using reg 3, then Using reg 2, then Using reg 0 for reload 0 at insn 131
+ * In BOTH, the FIRST reload reserves r3 exactly as ours does, and r0 is reserved
+ * only at an insn DEEP IN THE FUNCTION.  Their prologue `mov r0, #0 / mov rHI, r0`
+ * is then produced by step (4), not by r0 being free at entry.  So:
+ *   - "both are void, so r0 is free at entry and the FIRST reload takes it" is
+ *     FALSE as stated -- their first reload takes r3;
+ *   - "the condition is register pressure" is RIGHT IN SUBSTANCE and wrong in
+ *     scale: what is required is ONE insn at which r3, r2 AND r1 are all in
+ *     bad_spill_regs, not a doubly-nested loop.
+ *
+ * THE ACTION, stated so it can be executed: make SOME insn anywhere in this
+ * function need a reload while r1, r2 and r3 are all live across or set at that
+ * insn.  Nothing written at indices 6-8 can do it; the lever is elsewhere in the
+ * body.  The screen is cheap and needs no objcmp run -- compile with -da and
+ * grep the .18.greg dump for a line reading "Using reg 0".  That is a boolean
+ * test on exactly the condition, and it costs one compile per candidate.
+ *
+ * STILL AT 3 pin-free, device-free, flag-free.  Declining to close, with the
+ * cause now named to the line and the next test made cheap.
  */
 extern unsigned char gScript_881__0200cbe4[];
 extern unsigned char *__CreateActor(int a);

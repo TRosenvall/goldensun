@@ -1,12 +1,15 @@
 /* Func_80b6a60 (0x080b6a60) -- NON-MATCHING.
  *
- * NON-MATCHING, **5 differing encodings of 59** (MEASURED batch 323;
- * RE-DERIVED batch 326 brief F: ref 59 / ours 59, 56 instructions each, SIZE /
- * INSTRUCTION COUNT / RELOCATIONS all silent on --func).  WAS 14 of 59.
+ * NON-MATCHING, **2 differing encodings of 59** (MEASURED batch 329 brief D on
+ * THIS body: ref 59 / ours 59, 56 instructions each, first at index 25, SIZE /
+ * INSTRUCTION COUNT / RELOCATIONS all silent on --func).  WAS 14, then 5; the
+ * batch-329 section at the end of this header is the edit that took 5 -> 2 and
+ * the body below carries it.
  * (`--whole` is uninformative here: the reference .s carries ~150 functions, so
  * compare per function.  Landing would need a split.)
- * Pin-free, device-free, no per-file flags.  The whole register rotation the
- * park named is SOLVED; what is left is two sched2 decisions.
+ * Pin-free, device-free, shim-free, no per-file flags.  The whole register
+ * rotation the park named is SOLVED, and so is residue B; what is left is ONE
+ * sched2 decision, residue A, which is a closed-form LUID bound.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_b5000/80b6a60.c asm/rom_b5000/rom_b5a0c_c_c_a_a_a_c_a.s --func Func_80b6a60
@@ -276,11 +279,100 @@
  *       `gState[(0xfc<<1) + n - i]`, is the recorded **14**.
  * Residue B is unchanged and remains closed on brief F's three citations.
  * **Report disagreement with loop.c's emission sites, not with another spelling.**
+ 
+ * ===== BATCH 329 BRIEF D: RESIDUE B IS CLOSED.  5 -> 2 OF 59.
+ * ===== THE PARK'S ALIAS BOUND WAS WRONG IN BOTH OF ITS HALVES
+ *
+ * Figure re-derived first: **5 differing encodings of 59**, ref 59 / ours 59,
+ * first at index 25.  THEN the body changed: residue B, the 3 encodings at
+ * indices 38-40, is GONE.  New figure **2 differing encodings of 59**, ref 59 /
+ * ours 59, first at index 25, SIZE / INSTRUCTION COUNT / RELOCATIONS silent.
+ * Still PIN-FREE, SHIM-FREE, FLAG-FREE, DEVICE-FREE.
+ *
+ * THE EDIT IS ONE LINE: the byte store is a STRUCT COMPONENT instead of a
+ * pointer subscript.
+ *     was   u[0x95 << 1] = 2;
+ *     now   ((struct Bc *)(u + (0x95 << 1)))->b = 2;      struct Bc { unsigned char b; };
+ * and the loop now emits the reference's `add r3, r0, r1 / sub r6, #1 /
+ * mov r1, r8 / strb r1, [r3] / ldr r2, [sp]`.
+ *
+ * WHY, AND IT IS NOT THE ALIAS SET.  The park closed residue B's third route on
+ * *"the 188 edge is closed by the documented alias bound (char-precision store,
+ * lang_get_alias_set returns 0, DIFFERENT_ALIAS_SETS_P can never fire against a
+ * reload spill slot)"*.  Both halves are wrong:
+ *
+ *   1. A RELOAD SPILL SLOT DOES CARRY A FRESH NONZERO ALIAS SET --
+ *      `MEM_ALIAS_SET (x) = new_alias_set ();` at **reload1.c:1918** and again
+ *      at **:1954** (with :1952 inheriting an existing slot's set).  So the
+ *      spill-slot side of the comparison was never the obstacle.
+ *   2. `DIFFERENT_ALIAS_SETS_P` IS NOT THE ONLY DISJOINTNESS TEST.
+ *      `true_dependence` (**alias.c:1559**) and `write_dependence_p`
+ *      (**:1658**) both consult **`fixed_scalar_and_varying_struct_p`
+ *      (alias.c:1521-1543)**, which returns non-NULL -- the two MEMs can never
+ *      alias -- when one is `MEM_SCALAR_P` at a NON-varying address and the
+ *      other is `MEM_IN_STRUCT_P` at a VARYING one.  The spill slot is a scalar
+ *      at a fixed sp-relative address; the unit byte is reached through the
+ *      `_GetUnit` result, which varies.  **The test is on MEM_IN_STRUCT_P, which
+ *      the TYPE CONSTRUCTOR of the lvalue sets, and it is reached with the
+ *      field still `unsigned char` and its alias set still 0.**
+ *
+ * The store -> `ldr r2, [sp]` edge therefore disappears, the `strb`'s in-block
+ * dependents drop from two to one, and at the park's `t = 38` the decrement no
+ * longer loses the dependent-count rung (haifa-sched.c:4097-4108).  Everything
+ * the park said about the RUNGS was right; what it had wrong was that one of
+ * the two edges feeding them is reachable from C.
+ *
+ * MEASURED, AND THE TYPE CONSTRUCTOR IS THE WHOLE VARIABLE (ref 59, dsize 0):
+ *   u[0x95 << 1] = 2;                                  5   <- the old park
+ *   *(u + (0x95 << 1)) = 2;                            5
+ *   u[0x12a] = 2;                                      5
+ *   *(unsigned char *)(u + (0x95 << 1)) = 2;           5
+ *   a named `unsigned char *w` then `*w = 2;`          5
+ *   ((struct Bc *)(u + (0x95 << 1)))->b = 2;           2   <- shipped
+ *   the same with 0x12a, or via a named struct pointer  2
+ *   struct { unsigned short b:8; } / { unsigned int b:8; }  2
+ *   ((struct Bc *)u)[0x95 << 1].b = 2;                 36 with RELOCDIFF
+ * so it is MEM_IN_STRUCT_P and not the alias set, not the address spelling and
+ * not the field width.
+ *
+ * AND THE PARK'S ELEVEN "EXACTLY INERT AT 5" ROWS WERE RE-CROSSED AGAINST IT --
+ * all ELEVEN are still exactly inert, now at 2, so none of them was a missing
+ * prerequisite and residue A is independent of every one: `k` initialised after
+ * `i = n`; `while (i)`; `--i != 0`; `--i`; `i-- != 1`; `--i;` as the step; the
+ * decrement at the tail; `*out++ = id;`; `lim` reused as the counter.  Worse,
+ * now re-measured on this body: `while (i > 0)` **3**; the named constant
+ * **7** (was 10); the pointer walker **41 with RELOCDIFF**; the store through
+ * `u` with no offset **36 with RELOCDIFF**.
+ *
+ * RESIDUE A IS UNCHANGED AND ITS THIRD ROUTE IS NOW ALSO REFUTED.  The
+ * remaining 2 are still indices 25/26, the hoist and `i = n` transposed, and
+ * still the LUID bound: loop.c emits every movable with
+ * `emit_insn_before (..., loop_start)` so LUID(i = n) < LUID(hoist)
+ * unconditionally.  Escape (b) -- "the counter init must be created by loop.c
+ * after its own movables" -- has a mechanism the park never named and it does
+ * not fire: **`check_dbra_loop` (loop.c:7748), called from `strength_reduce` at
+ * loop.c:4408 and therefore AFTER `move_movables`, emits its reversed counter
+ * init with `emit_insn_before (gen_move_insn (reg, start_value), loop_start)`
+ * at loop.c:8154**, with the CONST_INT-initial-value branch at :8157-8178
+ * emitting `add reg, comparison_value, offset` -- exactly the shape and exactly
+ * the LUID position residue A needs.  MEASURED: gcc does NOT reverse this loop.
+ * Seven ascending bodies (`i != n` / `i < n` / `++i` / `++i != n` in the test /
+ * `i++` before the call / a `while` head), all **17-20, all first = 9**: the
+ * counter stays ascending (`mov r2, #0` in the preheader) AND the ascending
+ * shape loses the earlier `lim`/`n` rotation, emitting `mov r7, #4` / `mov r6,
+ * r0` where the reference has `mov r6, #4` / `mov r7, r0`.
+ *
+ * NEXT: residue A only, and only escape (b) -- some construct that makes the
+ * counter initialisation a `strength_reduce` creation.  Loop reversal is now
+ * measured dead; a derived induction variable is the recorded 14.  Do NOT
+ * re-propose residue B: it is closed, in the body.
  */
 extern unsigned char *iwram_3001e74;
 extern unsigned char gState[];
 extern int _GetPartySize(void);
 extern unsigned char *_GetUnit(int id);
+
+struct Bc { unsigned char b; };
 
 int Func_80b6a60(unsigned short *out)
 {
@@ -311,7 +403,7 @@ int Func_80b6a60(unsigned short *out)
             }
             u = _GetUnit(id);
             i--;
-            u[0x95 << 1] = 2;
+            ((struct Bc *)(u + (0x95 << 1)))->b = 2;
         } while (i != 0);
     }
     if (out != 0)

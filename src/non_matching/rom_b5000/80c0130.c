@@ -1,16 +1,14 @@
 /* Func_80c0130 (0x080c0130) -- NON-MATCHING.
  *
- * NON-MATCHING, 6 of 37 encodings  (MEASURED, batch 323; unchanged figure,
+ * NON-MATCHING, **6 differing encodings of 37**  (MEASURED batch 323,
+ * RE-DERIVED batch 329 brief D; unchanged figure,
  * corrected diagnosis).  The BODY IS UNCHANGED from the installed park -- it
  * is still the best of the 32 spellings now measured.  What this revision
  * carries is the mechanism, which the park had attributed to the wrong pass,
  * and a BOUND with its evidence attached.
  *
  * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/rom_b5000/80c0130.c \
- *     asm/rom_b5000/rom_bffb8_a_a_a_c.s --func Func_80c0130
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_b5000/80c0130.c asm/rom_b5000/rom_bffb8_a_a_a_c.s --func Func_80c0130
  *
  * PINS: 0.  `tools/shimcount.py` -- the authority for this field -- reports no
  * pins in this candidate.  The four `register ... __asm__` declarations this
@@ -183,6 +181,57 @@
  *
  * NEXT: unchanged -- nothing source-level.  The bound is now the escape set
  * above; disagree with those three lines, not with another spelling.
+ 
+ * ===== BATCH 329 BRIEF D: THE ESCAPE SET VERIFIED IN THE COMPILER, AND THE
+ * ===== FORCED STALL NOW HAS ITS LINE
+ *
+ * Figure re-derived: **6 differing encodings of 37**, ref 37 / ours 37, first at
+ * index 16, SIZE / INSTRUCTION COUNT / RELOCATIONS all silent.  BODY UNCHANGED.
+ * (`--whole` is not a figure here: the reference also carries Func_80c00d8, so a
+ * landing needs a split, as the batch-327 note says.)
+ *
+ * All three escapes were re-read in gcc-2.96's own source rather than taken on
+ * trust, and all three hold -- with one of them gaining the citation it lacked:
+ *
+ *   1. `link == 0` -- unchanged.  The reference is itself `ldr r1, =REG_BG2CNT /
+ *      strh r3, [r1]` and r1 is also the DMA0 destination operand, so the
+ *      register dependence 42 -> 45 is in the reference too.
+ *   2. `insn_cost == 1` -- CONFIRMED by reading `arm_adjust_cost`
+ *      (**arm.c:2415-2452**) in full.  It returns 0 for REG_DEP_ANTI /
+ *      REG_DEP_OUTPUT (:2424-2427), 1 for a CALL_INSN consumer (:2429-2431), and
+ *      1 for a LOAD-AFTER-STORE whose load address is a constant-pool address or
+ *      mentions sp/fp (:2433-2448).  Its last line is `return cost;` -- **no
+ *      branch of it ever RAISES a cost**, and a STORE after a LOAD does not
+ *      match the one discounted shape because `single_set (insn)`'s SET_SRC is
+ *      not a MEM.
+ *   3. "make insn 42 not be `last_scheduled_insn`" -- the park called `t = 13` a
+ *      forced stall without saying what forces it.  **It is
+ *      `(define_function_unit "core" 1 0 (and (eq_attr "ldsched" "!yes")
+ *      (eq_attr "type" "load,store1")) 2 2)` at arm.md:262-263**: with
+ *      `ldsched` not yes -- which is the case for arm7tdmi -- a load or a
+ *      single store occupies the single `core` unit for an ISSUE delay of 2, not
+ *      1.  (The `ldsched "yes"` rows at arm.md:256-260 give delay `2 1` and
+ *      `1 1`; that is the tuning this build does not use.)  So the cycle after
+ *      insn 42 cannot issue any `core` insn at all, and the only non-`core`
+ *      insns in the block are the `stmia` asm and insn 78, both of which must
+ *      follow.  **The stall is a machine-description fact, not an observation.**
+ *
+ * ALSO CHECKED AND CLOSED: raising prio(45) instead of fixing its class.
+ * `priority()` is the max over in-block dependents of `insn_cost + priority`,
+ * and 45's two dependents are the `stmia` asm (an output/anti dependence, so
+ * `arm_adjust_cost` returns 0) and the anti-dependent `_base` load (also 0), so
+ * prio(45) = 0 + 3 = 3 is forced and cannot reach 4.
+ *
+ * ONE LEVER CLASS RULED OUT FOR THIS FUNCTION, having landed its bank-mate
+ * Func_80bf574 and improved Func_80b6a60 in the same round: the TYPE
+ * CONSTRUCTOR of an lvalue (`promote_mode` skipping RECORD_TYPE, and
+ * `MEM_IN_STRUCT_P` feeding `fixed_scalar_and_varying_struct_p`).  Neither can
+ * reach this residue, because the deciding dependence 42 -> 45 is a REGISTER
+ * dependence on an address, not a memory one, and the class rung reads
+ * `insn_cost`, which comes from the function unit and `arm_adjust_cost` alone.
+ *
+ * NEXT: unchanged.  The bound is the three escapes above, each now with a line
+ * in the compiler or the machine description.  Disagree with those lines.
  */
 #include "gba/types.h"
 #include "gba/io.h"

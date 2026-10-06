@@ -55,6 +55,83 @@
  * it moved r0 on THAT function's SetPos calls and moves nothing on this
  * function's, so whatever selects between the two orderings is not the
  * declaration alone. Do not spend a round re-running these four.
+ *
+ * BATCH 329 (brief H).  FIGURE RE-DERIVED AND HELD: 9 differing encodings of 72.
+ * Exact length -- objcmp prints no SIZE, no INSTRUCTION COUNT and no POOL WORD
+ * COUNT line.  Pin-free.  Not in any tools/dupfuncs.py group.
+ *
+ * THE PIECE HOLDS TWO FUNCTIONS AND BOTH ARE PARKED, so neither can install
+ * alone: asm/overlays/rom_7c7b9c/ovl_30_c_a_a_c_a_c_a_c_a_c_a_a_c_a_a.s carries
+ * OvlFunc_943_200985c and OvlFunc_943_2009920, and
+ * src/non_matching/ovl_7c7b9c/2009920.c is parked at 5 of 50 ON THE IDENTICAL
+ * BLOCKER -- "r0 IN THE MIDDLE OF A THREE-ARGUMENT CALL", with the same two
+ * shapes, one of them instruction-for-instruction the same call.  Work the two
+ * as one target; the piece is worth two functions and the blocker is one.
+ *
+ * THE DECOMPOSITION, corrected.  Seven of the nine are the r0 slot at three
+ * sites and TWO of the nine are the second `orr`; the park's "three sites, all
+ * the same" is right about the cause and wrong about the shape, because the
+ * ROM does not put `mov r0` FIRST -- it puts it SECOND, in all three:
+ *
+ *     rom    mov r1, #0xee / mov r0, #0x17 / lsl r1, #0x10 / ldr r2, =0x2720000
+ *     rom    ldr r2, =0x4ccc / mov r0, #0x16 / ldr r1, =0x9999
+ *     rom    ldr r1, =0xcccc / mov r0, #0x15 / ldr r2, =0x6666
+ *     ours   the same insns with `mov r0` LAST, in each case
+ *
+ * and at the ONE __MapActor_SetPos site that matches, the ROM's `mov r0` is
+ * LAST.  So "r0 first" is not the quantity; "r0 second" is, and the matching
+ * site proves the discriminator is CONTEXT, not the call -- SetPos site 2
+ * (0x17, 0xee << 16, 0x2720000) and site 3 (0x16, 0xcc << 16, 0x2090000) are
+ * structurally identical and the ROM orders them differently.
+ *
+ * THE ONE BOUND THIS BATCH ESTABLISHED, with its evidence.  OUR r0 SLOT IS NOT
+ * THE SCHEDULER'S DOING.  Rebuilt with -fno-schedule-insns2 the figure rises to
+ * 12 and the three r0 runs are UNCHANGED, same shape, same positions -- so our
+ * order is the RTL emission order and sched2 leaves these groups alone.  The
+ * ROM's order therefore requires sched2 to MOVE `mov r0` up, which means a
+ * rank_for_schedule tie-break we lose, not an emission order we could respell.
+ * Every insn in the group feeds only the call, so arm_adjust_cost (arm.c:2430)
+ * puts them all at prio(call)+1 and the only reachable rung is the
+ * dependent-count one (haifa-sched.c:4096-4107), where a constant argument has
+ * exactly one dependent.  Note the sibling park's `-fno-schedule-insns2` row
+ * reads 11 against the same 5, the same direction.
+ *
+ * READING OUR OWN EMISSION ORDER, which the next round can use: our order is
+ * `precompute_register_parameters` (expensive args, forward) followed by
+ * `load_register_parameters` in REVERSE argument order.  That is why SetPos
+ * site 2 comes out [mov r1 / lsl r1 / ldr r2 / mov r0] -- `0xee << 16` costs two
+ * insns so it is precomputed and hoisted, the rest load backwards -- while
+ * SetSpeed site 1 comes out [ldr r2 / ldr r1 / mov r0], pure reverse, nothing
+ * precomputed.  Both reconstructions are confirmed against the
+ * -fno-schedule-insns2 build.  THE r0 SLOT CANNOT BE REACHED BY MAKING arg0
+ * PRECOMPUTED either: that would put `mov r0` FIRST, not second.
+ *
+ * MEASURED THIS BATCH, all 9 unless noted:
+ *   the actor id named as one `int` local, reassigned at the three
+ *     differing sites                                              9 (inert)
+ *   a separate named `int` local per differing site                9 (inert)
+ *   the same at all four sites, including the matching one         9 (inert)
+ *   the shared 0x80 as one named `unsigned char` local used by
+ *     both `|=` sites           46 instructions against 45, 33 (WORSE, and the
+ *                               pad absorbs it -- a MISALIGNMENT figure)
+ *   the 0x80 reached through a copy local (regmove
+ *     replacement_quality 3 -> 1)                     46 / 45, 33 (WORSE, ditto)
+ *
+ * The first three close the FIRST argument as a dimension: the park had varied
+ * the callee's declaration four ways and the sibling park had varied the SHIFTED
+ * argument, and arg0's own storage is now varied too.  All inert.
+ *
+ * The last two are a real bound on the `orr` run and they cost an instruction,
+ * which is worth stating plainly: THE ROM'S SHARED 0x80 IS NOT A NAMED LOCAL.
+ * Naming it adds an insn whichever way it is spelled, so the r5 the ROM runs
+ * through both sites is gcc's own choice for a propagated literal, and the
+ * second site's `orr r5, r3` has to come out of the two-address rewrite on
+ * literal operands.  regmove.c:1200-1205 skips the commutative swap when
+ * replacement_quality(comm) >= replacement_quality(src); the loaded byte and a
+ * propagated constant both score 3, so the swap is skipped -- and the copy-local
+ * route to scoring the constant 1 is now measured to cost an instruction.  What
+ * is NOT yet tried is reaching quality 2, or changing which operand is `src`
+ * without changing the operand count.
  */
 extern unsigned char L5160[] __asm__(".L5160");
 extern unsigned char gScript_943__0200c58c[];

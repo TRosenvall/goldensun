@@ -102,6 +102,91 @@
  * SUPERSEDES the park's "re-attack it if a way is found to make gcc
  * rematerialise without inventing locals".  Rematerialisation was never the
  * question; stream position was.
+ *
+ * ========== BATCH 329: PIN-FREE IS CORPUS-REFUTED.  THIS PARK IS CLOSED ==========
+ *
+ * RE-DERIVED AS FOUND: 3 of 38, first differing index 29, ref 2011 ours 0449,
+ * counts equal, no SIZE line, no POOL WORD line.  The figure and the whole
+ * sched2 reading above are confirmed.  What is new is that the brief's question
+ * -- "find a pin-free way to give the r0 constant an early def site" -- has a
+ * NEGATIVE answer with corpus evidence, so nobody should spend another round on
+ * it in pass 2.
+ *
+ * (A) THE PRECOMPUTE ROUTE IS STRUCTURALLY CLOSED, not merely untried.
+ *     precompute_register_parameters gates copy_to_mode_reg on
+ *     `rtx_cost (args[i].value, SET) > 2`, and arm_rtx_costs
+ *     (config/arm/arm.c:2076-2083) under TARGET_THUMB returns, for a CONST_INT
+ *     with outer == SET:
+ *         (unsigned HOST_WIDE_INT) INTVAL (x) < 256   ->  0
+ *         thumb_shiftable_const (INTVAL (x))          ->  COSTS_N_INSNS (2)
+ *         otherwise                                   ->  COSTS_N_INSNS (3)
+ *     0x11 costs ZERO.  No first argument that is an 8-bit constant can ever be
+ *     precomputed, so its fill is always emitted by load_register_parameters,
+ *     always after every precompute insn.  (CONST / SYMBOL_REF cost
+ *     COSTS_N_INSNS (3) and WOULD be precomputed, but a symbol-table entry for
+ *     0x11 fails owner standard 1: 0x11 is 8-bit movable, so gcc never pools it
+ *     and the bytes do not force a symbol.  Same ruling as _MSG_b24.)
+ *
+ * (B) AND NO ORDINARY STATEMENT CAN HOLD AN 8-BIT CONSTANT TO AN EARLY DEF.
+ *     arm.c returns 0 for that constant in a SET; cse.c's rtx_cost returns
+ *     `! CHEAP_REG (x)` = 1 for a pseudo.  THE CONSTANT IS CHEAPER THAN A
+ *     REGISTER, so cse always substitutes it at the use and the early def dies.
+ *     Measured on a body with `int slot;` set TWICE (0x1e then 0x11, to deny it
+ *     REG_EQUIV): .00.rtl insn 72 does set pseudo 32 to 17 ahead of both
+ *     precomputes, and by .17.lreg THERE IS NO REGISTER 32 AT ALL.  Two sets do
+ *     not save it.  This is why every "name the slot" row above is inert, and it
+ *     is a property of the cost table, not of the spelling.
+ *
+ * (C) THE DOMINATING-BLOCK LEVER -- the one that DOES produce this interleave
+ *     pin-free elsewhere -- NEEDS A BRANCH, AND THIS FUNCTION HAS NONE.
+ *     Scan of all 4,468 gcc-generated .s files in asm/ for the ROM's shape
+ *     `mov r1,#imm / mov r2,#imm / mov r0,#imm / lsl r1 / lsl r2 / bl`, with pin
+ *     status taken from tools/shimcount.py (not grep):
+ *
+ *         function has NO branch anywhere:    0 pin-free,  83 PINNED
+ *         function has a branch:             88 pin-free, 512 pinned
+ *         hand-written .s:                    0 hits
+ *
+ *     Zero of 83.  gcc-2.96 has never emitted this interleave from a pin-free
+ *     straight-line function anywhere in this tree, and OvlFunc_927_2009818 is
+ *     straight-line: 24 instructions, every one a call or an argument fill, no
+ *     conditional, no loop, no early return.
+ *
+ *     This re-derives a bound the tree already had and this park never cited:
+ *     docs/elevation.md "BOUNDARY (batch 152): a function with no branches is
+ *     out of reach ... a straight-line function has exactly one basic block and
+ *     there is no different block to assign the constant in", and "The boundary
+ *     of the interleave lever ... The lever needs a split build AND a preceding
+ *     branch; missing either, park it."  The 88 pin-free hits are all guarded;
+ *     the landed pin-free example nearest to this one,
+ *     src/overlays/rom_7b9cb4/ovl_30_a_c_c_a_c_c_a_a_a_c_b.c, names x and y in
+ *     the block dominating a guarded __MapActor_SetPos and leaves the slot a
+ *     literal.  Batch 329 landed OvlFunc_959_200d0e4 and OvlFunc_881_200b95c
+ *     with exactly that lever, both of which HAVE guards.
+ *
+ * (D) MEASURED THIS BATCH, ten bodies, all pin-free, against the base of 3:
+ *       slot in a single-set local                                      3
+ *       slot in a local with TWO sets (0x1e then 0x11)                   3
+ *       one actor local carrying every 0xe and then 0x11                 3
+ *       one-member union, u.i = 0x11                                     3
+ *       two sets, 0xe at OvlFunc_927_2008e18 then 0x11                   3
+ *       single-set local plus a do-while-zero before the call            5 (first moves to index 7)
+ *       x,y (the two shifted coords) in locals assigned at the TOP      20 of 42, 27 insns vs 24, RELOCS DIRTY
+ *       same, initialised in the declaration                            20 of 42 (identical bytes)
+ *       same, assigned one call earlier                                 20 of 42 (identical bytes)
+ *       x,y early plus a forward goto and label before the call         20 of 42 (identical bytes)
+ *     The last four are the dominating-block lever attempted without a
+ *     dominating block: the coords become live across calls, take callee-saved
+ *     r5/r6, and the function grows `push {r5,r6,lr}` and two extra movs.  The
+ *     goto row is the control that says a zero-instruction CFG boundary is not
+ *     available -- jump deletes the unconditional jump and then the unreferenced
+ *     label, so the body is byte-identical to the one without it.
+ *
+ * VERDICT, REPLACING "the ORDER is the lever, find a pin-free way":  the order
+ * IS the lever and the only instruments that reach it are hard-register locals.
+ * Park stands at 3 pin-free; the 0 at two pins (scratch body recorded above) is
+ * the pass-3 landing and needs no further search.  Do not re-open this as a
+ * pass-2 spelling question.
  */
 extern void __CutsceneStart(void);
 extern void __CutsceneEnd(void);

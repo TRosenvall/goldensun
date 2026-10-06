@@ -1,8 +1,20 @@
-/* Func_801c34c -- PARK HOLDS AT 8 of 69.  Batch 328 brief D.
+/* Func_801c34c -- PARK AT 3 differing encodings of 69.
+ * Batch 329 brief B.  WAS 8.  ref 69, ours 69; SIZE EQUAL (156 bytes);
+ * RELOCATIONS IDENTICAL; first differing index 6 (ref 21e0 `mov r1,#0xe0`,
+ * ours 9304 `str r3,[sp,#16]`).
+ * PINS 0 (shimcount: "empty asm : 2", not a fakematch in this tree).
+ * THE BARRIER-FREE FIGURE IS 8 -- the two are not comparable.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/801c34c.c asm/rom_15000/rom_1aeec_c_a_a_a_a_a_c_c_c_c.s --func Func_801c34c
+ *
+ * The full batch-329 reading is at the END of this comment block.
+ *
  * THE PARK'S OWN "NAMED NEXT MOVE" IS NOW MEASURED AND REFUTED, AND THE
  * RESIDUE IS BOUNDED BY AN IDENTITY BETWEEN TWO PRIORITIES.
  *
- *   8 differing encodings of 69.  ref 69 encodings, ours 69 -- EQUAL.
+ *   SUPERSEDED, see the batch-329 section at the end of this block: that 8 is
+ *   the BARRIER-FREE figure.  ref 69 encodings, ours 69 -- EQUAL.
  *   SIZE EQUAL (156 bytes).  RELOCATIONS IDENTICAL.  POOL IDENTICAL.
  *   Memory profile ldr=7 ldrsh=2 str=7 strh=1 = the reference's.
  *   First differing index 2.  PINS 0.  Figure independently re-derived.
@@ -101,7 +113,93 @@
  * STATUS: OPEN at 8.  Residue B (the pooled HImode 0x5a) stays closed by the
  * typed `Blk`.  Residue A is now bounded by the priority identity above
  * rather than by "nothing we tried worked".
- */
+  *
+ * ============ BATCH 329 BRIEF B -- 8 -> 3 of 69.  THE PRIORITY IDENTITY IS
+ * STILL TRUE; IT WAS NEVER THE ONLY WAY OUT. ============
+ *
+ * RE-DERIVED FIRST: 8 of 69 (ref 69, ours 69), first at index 2, ref b085
+ * `sub sp,#0x14` against ours 4a22 `ldr r2,=gState`.  No SIZE, no COUNT, no
+ * RELOCATIONS line.  Confirmed, then improved.
+ *
+ * THE BOUND ABOVE SAYS "insn 21 strictly outranks insn 212 in every body where
+ * gState's pool load feeds the first index add and the frame store of `w`
+ * anti-depends on that add's destination register".  THAT IS CORRECT AND IT IS
+ * NOT A BOUND ON THE RESIDUE, because a bare `__asm__ volatile` with an empty
+ * string and no operands does not close the priority gap -- IT REMOVES THE
+ * CONTEST.  docs/elevation.md says so in terms ("AN EMPTY BARRIER BEATS
+ * PRIORITY ARITHMETIC"): a traditional asm is analysed as using and clobbering
+ * every hard register, so the ready list never forms.  A region boundary also
+ * TRUNCATES EVERY DEPENDENCE CHAIN THAT CROSSES IT, which is the part that
+ * matters here -- in-region priorities are recomputed from in-region chains
+ * only, so prio(21) and prio(212) both collapse to 0 and the tie falls to
+ * INSN_LUID, where `sub sp,#20` sits at the top of the stream and wins.
+ *
+ * THE BODY, and the statement order is half the edit:
+ *     st = iwram_3001ebc;
+ *     g = (unsigned char *)&gState;
+ *     an empty barrier
+ *     w = 8;
+ *     h = 8;
+ *     an empty barrier
+ *     id = _GetLocationName(...);
+ * Regions: R1 = {push, 10, 212, 12, 21}, R2 = {15, 57, 60}, R3 = {200, 201, 28,
+ * 32, ...}.  R1 now reproduces ROM idx 0-4 EXACTLY, and the eight differences
+ * at idx 2-9 collapse to three at idx 6-8.
+ * tools/shimcount.py: "empty asm : 2  (NOT treated as a fakematch in this
+ * tree)" -- still PIN-FREE, no fakematch row.  BARRIER-FREE FIGURE STILL 8.
+ *
+ * SWEPT: 66 variants = 3 statement orders x {control, 6 single boundaries, 15
+ * pairs}, every row through tools/objcmp.py.
+ *   order A (the park's own: st, w, h, g)   floors at 5
+ *   order B (st, g, w, h)                   floors at 3   *** THIS ***
+ *   order C (g, st, w, h)                   floors at 5, and six of its rows
+ *       carry XX RELOCATIONS differ: putting `g` first SWAPS THE TWO POOL WORDS
+ *       (gState ahead of iwram_3001ebc).  Order C is a wrong program shape, not
+ *       merely a worse figure -- recorded so nobody reads its 5 as comparable.
+ *   a barrier at the very TOP of the body   9 in all three orders, because it
+ *       pins `sub sp,#20` ahead of insn 10 and the ROM puts insn 10 FIRST.
+ *       That is the proof that `sub sp` is itself a scheduled insn here.
+ *   CONTROL, no barrier, order A            8
+ *
+ * THE REMAINING 3 ARE ONE 3-CYCLE ROTATION, AND IT IS THE OLD prio(28) BOUND
+ * ISOLATED TO A 3-INSN WINDOW:
+ *     ROM   mov r1,#0xe0 / str r3,[sp,#0x10] / str r3,[sp,#0xc]
+ *     ours  str r3,[sp,#16] / str r3,[sp,#12] / mov r1,#224
+ * insn 200 must issue BETWEEN insn 15 (`mov r3,#8`) and insn 57 (`str` of `w`).
+ * A SECOND IDENTITY, derived the same way the park derived its first, says a
+ * single region cannot do it: prio(15) = prio(57) + 1 = prio(28) + 1 and
+ * prio(200) = prio(201) + 1 = prio(28) + 2, so
+ *       ** prio(200) = prio(15) + 1 FOR EVERY VALUE OF prio(28), **
+ * and 200 wins any ready list it shares with 15.  The region that WOULD work is
+ * {15, 57, 60, 200, 201} alone: in-region prios are 15:1 200:1 57:0 60:0 201:0,
+ * ready{15,200} ties on priority and LUID(15) < LUID(200) so 15 goes first,
+ * then 200 at prio 1 beats the two 0-prio stores, then 57, 60, 201 by LUID --
+ * exactly the ROM's 15, 200, 57, 60, 201.  Getting 200 and 201 into that region
+ * needs the offset materialised before the boundary, AND THAT FOLDS, which
+ * re-confirms the park's finding above with the barrier prerequisite crossed in:
+ *     o = 0xe0 << 1; before the 2nd boundary        64 of 69, 57 insns, RELOC
+ *     o = 0xe0; o <<= 1; before the 2nd boundary    64 of 69, 57 insns, RELOC
+ *     both offsets named                            65 of 69, 55 insns, RELOC
+ *     o and o + 2                                   65 of 69, 55 insns, RELOC
+ *     the o statement before w/h                    65 of 69, 56 insns, RELOC
+ *     the o statement between w and h               64 of 69, 56 insns, RELOC
+ *     gp = g + (0xe0 << 1); POINTER form             5 of 69, counts EQUAL
+ * A named offset lets gcc fold gState+0x1c0 and DELETES the mov/lsl/add trio
+ * (55-57 instructions against 59).  Thumb LDRSH has no immediate-offset form,
+ * which is why the ROM computes the offset in a register at all.
+ * Also measured against the 3, all exactly inert: naming the first halfword
+ * read, naming both in ROM order, and a third boundary after either -- 3, 3, 3,
+ * 3, 3.  A third boundary after the call statement is 7; moving the second
+ * boundary to after the first read is 5.
+ *
+ *   >> BOUND: the 3 needs insn 200 in R2's region and prio(200) = prio(15) + 1
+ *      identically, so a region boundary cannot deliver it and a named offset
+ *      deletes three instructions getting there.  WHAT WOULD RETIRE IT: a way
+ *      to materialise `0xe0 << 1` into a register BEFORE the second region
+ *      boundary without letting cse fold gState + 0x1c0 -- or prio(28) = 178,
+ *      which the clobber in insn 32's PARALLEL still forbids.
+ *      PARK AT 3 of 69 WITH TWO BARRIERS, 8 of 69 WITHOUT THEM.
+*/
 /* Func_801c34c -- asm/rom_15000/rom_1aeec_c_a_a_a_a_a_c_c_c_c.s   (PARK)
  *
  * NON-MATCHING, 8 of 69 encodings.  Was 17.  COUNT NOW EQUAL (ref 69, ours 69),
@@ -222,9 +320,11 @@ void Func_801c34c(void)
     int id;
     void *box;
     st = iwram_3001ebc;
+    g = (unsigned char *)&gState;
+    __asm__ volatile ("");
     w = 8;
     h = 8;
-    g = (unsigned char *)&gState;
+    __asm__ volatile ("");
     id = _GetLocationName(*(short *)(g + (0xe0 << 1)), *(short *)(g + (0xe1 << 1)));
     id += 0x99b;
     TextBox(id, &w, &h, &tw, &th);

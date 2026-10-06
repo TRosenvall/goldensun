@@ -204,7 +204,20 @@ def validate(entries):
                             f"not {e['function']}.  Retiring a park for a different "
                             f"function hides that function from every scan.")
         sp = e.get("split")
-        if sp and not post:
+        # A PARK MUST NOT CARRY A SPLIT.  do_splits() never looks at `figure`, so a
+        # split field on a park entry is EXECUTED: split_s.py consumes the .s, the
+        # linker script gains entries and local labels are promoted to .global --
+        # all for a function that is not landing and whose asm stays in the build.
+        # Batch 329 brief C shipped three park entries with aspirational splits
+        # ("this is the split you would need IF the owner approves a new symbol"),
+        # which is worth recording but must not run.  Record it in `notes`.
+        if sp and e["figure"] != 0:
+            errs.append(f"{tag}: PARK (figure {e['figure']}) CARRIES A SPLIT.  Splits run "
+                        f"for any entry with a `split` field regardless of figure, so this "
+                        f"would split {sp['file']} for a function that is not landing -- "
+                        f"tree churn and promoted .global labels for no match.  Move the "
+                        f"intended split into `notes` and set \"split\": null.")
+        elif sp and not post:
             if not os.path.exists(rel(sp["file"])):
                 errs.append(f"{tag}: split file not found: {sp['file']}")
             elif not func_in(sp["file"], sp.get("func", e["function"])):

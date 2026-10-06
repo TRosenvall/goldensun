@@ -154,6 +154,48 @@
  * dead one-line `t` temp, 299 -> 17; `msg = 0xb06` with `msg + 3`; every
  * `extern void` re-swept to `extern int` in batch 315 -- all inert at 2 except
  * `_Func_801e7c0`, which is 4.
+ *
+ * ========= BATCH 329, BRIEF C: VERDICT HOLDS, AND RUNG 4 NOW HAS A =========
+ * ========= STRUCTURAL CAP RATHER THAN AN UNEXPLORED TIE-BREAK      =========
+ *
+ * FIGURE RE-DERIVED: 2 differing encodings of 319 (ref 319, ours 319), no SIZE
+ * line, no INSTRUCTION COUNT line, first at index 44.  PINS 0 (one empty asm).
+ *
+ * deps(1133) CANNOT REACH 3, and the reason is the shape of the insn pair rather
+ * than anything about constants.  From my own `.19.flow2` the two insns are
+ * adjacent in the chain and the second OVERWRITES the first's register:
+ *     insn 1133   (set (reg:SI 6 r6) (const_int 24))
+ *     insn 1134   (set (reg:SI 6 r6) (neg:SI (reg:SI 6 r6)))
+ * 1133 reads nothing and writes only r6, and 1134 supersedes r6 immediately, so
+ * nothing later in the block can see 1133 at all.  Scanning every LOG_LINKS list
+ * in `.23.sched2` for 1133 as a producer returns EXACTLY TWO consumers -- 1134 and
+ * 797, the block end -- and for 107 exactly three: 114, 124 and 797.
+ *
+ * > **A two-insn constant materialisation whose second insn overwrites the first's
+ * > register is capped at TWO dependents, permanently.**  That is the same cap
+ * > shape found on `Func_80ab1f4` in this batch (there it is insn 25, excluded from
+ * > the epilogue's last-writer set because the call re-writes r0).  The park said
+ * > 1133 "cannot rise" and gave a reason about constant folding; the real reason is
+ * > stronger and needs no argument about cse -- the register is dead on arrival.
+ *
+ * So rung 4 is 3 against 2 with BOTH sides pinned: 107's 3 is the ROM's own two
+ * users of the pooled 0xb06 plus the block end, and 1133's 2 is structural.  Rung
+ * 5 then loses it twice over, since the `.19.flow2` chain is 104, 107, 110, 1133,
+ * 1134 and `:4115` gives the LOWER LUID the win.
+ *
+ * Re-confirmed from my dump: `Ready list (t = 34): 118 110 1133 107`, 107 taken
+ * last and therefore chosen, then 1133 at t=36 and 1134 at t=37 -- the two land
+ * adjacent either way, which is why the residue is exactly one transposition.
+ *
+ * NOT RE-RUN, inherited and still believed: the barrier control (2 with it, 8
+ * without it), the three source-order attacks that break the count, and the
+ * clobber-list escape measured inert.  Nothing in this round bears on them.
+ *
+ * Blocker class unchanged: sched2 `rank_for_schedule` rung 4, now with the
+ * quantity shown to be CAPPED rather than merely unmoved.  Park terminal at 2
+ * unless the pass-3 question is answered -- can the barrier's predecessor be
+ * supplied by a genuine MEM dependence instead of a volatile asm, which would
+ * restore rung 3 while keeping the six encodings the barrier buys.
  */
 struct W {
     unsigned char pad00[5];

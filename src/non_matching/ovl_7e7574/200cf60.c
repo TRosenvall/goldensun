@@ -9,7 +9,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/ovl_7e7574/200cf60.c \
- *     asm/overlays/rom_7e7574/ovl_9dc_c_c_c_a_a_c_a.s --func OvlFunc_959_200cf60
+ *     asm/overlays/rom_7e7574/ovl_9dc_c_c_c_a_a_c_a_a.s --func OvlFunc_959_200cf60
  *
  * This recipe was ADDED by the batch-319 backfill: the park had none, so
  * parkcheck.py could not report its figure and nothing had ever checked it.

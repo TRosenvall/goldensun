@@ -69,7 +69,59 @@
  * sharing both constants by itself; and the actor pointers advanced in place.
  *
  * NEXT: nothing in eight probes.
- */
+ 
+
+ *
+ * ===== BATCH 329 BRIEF I: THE FIGURE IS 9, NOT SEVEN =====
+ *
+ * Re-measured unfiltered: 9 differing encodings of 175, ref 175 ours 175, first
+ * at index 42, no SIZE and no POOL WORD line, so the streams are aligned. The
+ * header's "SEVEN differing" is tryc's instruction-stream count; the two extra
+ * encodings are the pc-relative offsets of the two pool loads that the (c)
+ * scheduling swap moves, which tryc normalises away and objcmp does not.
+ * objcmp is the authority, so the figure to carry forward is 9 of 175.
+ *
+ * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7fa4ec/2008da4.c asm/overlays/rom_7fa4ec/ovl_30_c_c_c_a_c_c_c_c_a_c.s --func OvlFunc_970_2008da4
+ *
+ * The three runs reproduce as the header describes them: 1 insn for the mask
+ * build (`sub r5, #0xf` against `mov r5, #0xf3`), 3 for the last `->f50`
+ * reload (rom r2, ours r1), 3 for the pool-load swap.
+ *
+ * TWO CROSS-PARK PORTS MEASURED HERE AND BOTH REFUTED, which matters because
+ * this park and ovl_7d0e88/200a1ac.c carry the SAME `(x & -13) | K` byte-field
+ * edit and sit at the same figure:
+ *
+ *   a named `int mask = -13;` assigned at the top of the function, which is the
+ *   lever 200a1ac's header calls "a NEW LEVER worth reusing" (it is what stops
+ *   the narrowing there and is worth 33 differing on that function)
+ *                       MUCH WORSE HERE: 177 differing of 175, 159 instructions
+ *                       against 152, 412 bytes against 396. It does not port.
+ *                       That agrees with this park's own note that `& -13`
+ *                       instead of `& ~0xc` is byte-identical, and settles the
+ *                       obvious "then try naming it" follow-up.
+ *
+ *   the ten field edits written as 2-bit BITFIELD stores (`s->b2 = 1` and
+ *   `s->c2 = 1` on a `struct Sprite` with `b0:2, b2:2, b4:4`), which is the
+ *   construct that produces the ROM's hoisted constant build in the landed
+ *   `src/overlays/rom_794ac0/ovl_30_a_c_c_c_a_c_c_c_a.c` -- and that file's
+ *   edits, like these, are separated by `__MapActor_GetActor` calls, so it is
+ *   the closest solved analogue in the tree
+ *                       WORSE: 128 differing of 175, and 149 instructions
+ *                       against 152, so it emits LESS WORK than the ROM. The
+ *                       park's "the field edit repeated ten times with gcc
+ *                       sharing both constants by itself" is RIGHT and should
+ *                       be kept; the bitfield spelling makes gcc share harder.
+ *
+ * The 3-insn pointer run is the same class as the other three parks in this
+ * batch: `local-alloc.c:combine_regs` (:1593) ties a destination to a
+ * block-local input that dies exactly once, so the reloaded `->f50` pointer
+ * lands on the register the previous `strb` just freed (r1) where the ROM has
+ * r2. Its only source-visible escape is the guard
+ * `ureg >= FIRST_PSEUDO_REGISTER && reg_qty[ureg] < 0` -- "not local to this
+ * block OR DIES MORE THAN ONCE" -- and this program gives each pointer one
+ * death. Not closed; the header's "nothing in eight probes" stands, now with
+ * the pass named.
+*/
 #include "gba/types.h"
 #include "gba/io.h"
 

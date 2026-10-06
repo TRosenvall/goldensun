@@ -1,8 +1,19 @@
-/* DisplayMenuArrowCursor -- PARK HOLDS AT 6 of 133.  Batch 328 brief D.
+/* DisplayMenuArrowCursor -- PARK AT 5 differing encodings of 133.
+ * Batch 329 brief B.  WAS 6.  ref 133, ours 133; size and relocations equal;
+ * first differing index 21 (ref 5ab1 `ldrh r1,[r6,r2]`, ours 4684 `mov ip,r0`).
+ * PINS 0 (shimcount: "empty asm : 1", not a fakematch in this tree).
+ * THE BARRIER-FREE FIGURE IS 6 -- the two are not comparable.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/DisplayMenuArrowCursor.c asm/rom_15000/rom_1aeec_a_a_a_a_a.s --func DisplayMenuArrowCursor
+ *
+ * The full batch-329 reading is at the END of this comment block.
+ *
  * The park's bound now covers BOTH directions, with the second direction's
  * arithmetic AND its measurement, instead of only the first.
  *
- *   6 differing encodings of 133.  ref 133, ours 133 -- EQUAL.  SIZE EQUAL,
+ *   SUPERSEDED, see the batch-329 section at the end of this block: that 6 is
+ *   the BARRIER-FREE figure.  ref 133, ours 133 -- EQUAL.  SIZE EQUAL,
  *   INSTRUCTION COUNT EQUAL, RELOCATIONS EQUAL (objcmp prints no SIZE, no
  *   INSTRUCTION COUNT and no RELOCATIONS line), first differing index 21
  *   (ref 5ab1 `ldrh r1,[r6,r2]`, ours 1c1d `adds r5,r3,#0`).  So the figure IS
@@ -74,7 +85,83 @@
  * That is also the warning: on Func_801c154 the park had built a hand-rolled
  * struct and spent six batches on the consequences.  Here the struct is right
  * and the residue is genuinely the allocator.
- */
+  *
+ * ============ BATCH 329 BRIEF B -- 6 -> 5 of 133.  EVERY ROW THIS PARK EVER
+ * MEASURED WAS A SOURCE EXPRESSION; THE VARIABLE NOBODY VARIED WAS THE SCHED2
+ * REGION BOUNDARY. ============
+ *
+ * RE-DERIVED FIRST: 6 of 133 (ref 133, ours 133), first at index 21, ref 5ab1
+ * `ldrh r1,[r6,r2]` against ours 1c1d `adds r5,r3,#0`.  No SIZE, no COUNT, no
+ * RELOCATIONS line.  Figure confirmed, then improved.
+ *
+ * THE EDIT: a bare `__asm__ volatile` with an empty string and no operands,
+ * placed BETWEEN the x store and the y store -- after `o->x = m->a[i].x;` and
+ * before `o->y = m->a[i].y;`.  5 of 133, counts still 133 = 133, relocations
+ * still equal.  tools/shimcount.py: "empty asm : 1  (NOT treated as a fakematch
+ * in this tree)", so this body is still PIN-FREE and carries no fakematch row.
+ * THE BARRIER-FREE FIGURE IS STILL 6; both numbers are given because they are
+ * not comparable, and the 6 is what a depinned pass-3 body would read.
+ *
+ * THE MECHANISM, and it is NOT the one docs/elevation.md advertises.  The
+ * advertised one is that a traditional asm uses and clobbers every hard
+ * register so the ready list never forms.  The one that matters here is the
+ * side effect: A REGION BOUNDARY TRUNCATES EVERY DEPENDENCE CHAIN THAT CROSSES
+ * IT, so in-region priorities are recomputed from in-region chains only.  That
+ * is how it moves an insn whose priority arithmetic is provably pinned.
+ *
+ * SWEPT: 29 variants = every statement boundary (7) and every pair (21) plus
+ * the control, all through tools/objcmp.py.
+ *     barrier between the x store and the y store     5   *** THIS ***
+ *     the same + a barrier after the early return     5
+ *     the same + a barrier after the arms             5
+ *     barrier after the early-return test             6   inert
+ *     barrier after `o->y = m->a[i].y;`               6   inert
+ *     barrier after the arms                          6   inert
+ *     CONTROL, no barrier                             6
+ *     barrier after `o = &m->a[i].oam;`              10
+ *     barrier after `f = (iwram_3001800 >> 2) & 7;`  12
+ *     barrier before `f = ...`                       16
+ *     every pair containing one of the last three    10-21
+ *   finer placements, all against the 5:
+ *     before `e = d;` in both arms                    5   inert
+ *     inside the arms, before `if (e != 0)`           7
+ *     before Func_8003dec / before `if (_GetFlag`     7 / 7
+ *     after `src = L342f8` and `src = L33ef8`         9
+ *     before `o = &m->a[i].oam;` (two barriers)      10
+ * AND THE PARK'S OWN "EXACTLY INERT" ROWS CROSSED WITH IT (tools/crossfire.py,
+ * depth 2, base 5) -- still exactly inert, so they were NOT missing
+ * prerequisites, which is the one thing this cross was for:
+ *     `int xv` declared + `xv = m->a[i].x; o->x = xv;`         5  inert
+ *     `ar = &m->a[i]; o = &ar->oam;` + the declaration         5  inert
+ *     either of those paired with a barrier after the arms     5  inert
+ *
+ * THE RESIDUE IS NOW 3 + 2, NOT 4 + 2, AND THE CLOSED ONE IS NAMED.  Streams
+ * compared instruction by instruction against the reference:
+ *     idx 21  ref `ldrh r1,[r6,r2]`   ours `mov ip,r0`         still differs
+ *     idx 22  ref `mov r5,r3`         ours `mov r5,r3`         *** NOW EQUAL ***
+ *     idx 23  ref `mov r12,r0`        ours `ldrh r3,[r6,r2]`   still differs
+ *     idx 25  ref `mov r3,r12`        ours `mov r1,ip`         still differs
+ *     idx 35  ref `mov r1,r8`         ours `mov r2,r8`         still differs
+ *     idx 37  ref `cmp r1,#0`         ours `cmp r2,#0`         still differs
+ * So the x-load cluster goes 4 -> 3 and the hi-to-lo reload-scratch pair is
+ * untouched -- exactly as the park predicted for anything that does not change
+ * the allocation.
+ *
+ *   >> AND THAT IS THE BOUND, SHARPENED RATHER THAN BROKEN.  A traditional asm
+ *      is not a jump, so it does NOT split a basic block: local-alloc's block-1
+ *      quantity table is unchanged, and pseudo 56 still takes r3 out of
+ *      `find_free_reg`'s empty exclusion set (local-alloc.c:1934, :2026).  The
+ *      barrier changes the sched2 REGION only.  The three surviving x-load
+ *      encodings and the two reload-scratch encodings are ALLOCATION facts and
+ *      the barrier is a SCHEDULING instrument, so the 5 is the floor of the
+ *      whole barrier class -- 36 placements and crossings reach it and none
+ *      pass it.  WHAT WOULD RETIRE IT is unchanged and still correct: a block-1
+ *      quantity priced above 8888 that overlaps insn 55 and costs no
+ *      instruction, or a way to keep the x value live past insn 86 while still
+ *      emitting the arms' halfword read.  Neither is reachable by a region
+ *      boundary.
+ *      PARK AT 5 of 133 WITH THE BARRIER, 6 of 133 WITHOUT IT.
+*/
 /* DisplayMenuArrowCursor (EmitPartySprites) -- 0x0801aeec, PARK.
  * STILL NON-MATCHING, 6 of 133 encodings -- RE-MEASURED batch 326B.  WAS 16.
  *
@@ -359,6 +446,7 @@ void DisplayMenuArrowCursor(struct Menu *m, int i)
         return;
     o = &m->a[i].oam;
     o->x = m->a[i].x;
+    __asm__ volatile ("");
     o->y = m->a[i].y;
     if (i != 0) {
         d = m->a[1].f0;

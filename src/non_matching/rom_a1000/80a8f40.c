@@ -272,6 +272,105 @@
  * earlier in the function (an inherited reload does not advance the rotation),
  * which cannot be arranged without changing emitted code -- or a register pin,
  * which this file deliberately does not carry.
+ *
+ * ========= BATCH 329, BRIEF C: THE RESIDUE IS SOLVED, AND THE =========
+ * ========= REMAINING QUESTION IS AN OWNER DECISION ONLY       =========
+ *
+ * FIGURE RE-DERIVED, not inherited: 6 differing encodings of 167 (ref 167, ours
+ * 167), no SIZE line, no INSTRUCTION COUNT line, relocations identical, first
+ * differing index 139 (ref 9b01 = ldr r3,[sp,#4]; ours 9901 = ldr r1,[sp,#4]).
+ *
+ * >>> ONE EDIT TAKES THIS FUNCTION TO ZERO.  Spelling the 0x741 message base as a
+ * >>> SYMBOL REFERENCE -- exactly as the loop above already spells 0x333 --
+ * >>>     _Func_801e7c0(unit[0x129] + (int)&_MSG_741, win, 0, 0x20);
+ * >>> with `extern int _MSG_741;` measures
+ * >>>     OK Func_80a8f40 -- 380 bytes, 167 encodings and 16 relocations identical
+ * >>> i.e. **0 of 167, byte-identical, relocation table identical.**
+ * >>> It is NOT INSTALLED, because _MSG_741 is not in message.sym and a new
+ * >>> symbol-table entry is an owner decision under owner standard 1.  Measured
+ * >>> here with the same .equ instrument the file already carries for _MSG_333.
+ *
+ * THE MECHANISM, READ END TO END IN THE DUMPS.  The park's "corrected question"
+ * (pseudo liveness at insn 322) IS REFUTED, and so is its NEXT STEP's premise.
+ * The variable is the `last_spill_reg` ROTATION after all, and the park closed
+ * that door on a wrong count: it reasoned that because unit's reloads 1 and 2
+ * already take the ROM's registers the rotation must agree, but **the rotation is
+ * advanced by reload-register allocations for OTHER values too.**
+ *
+ * `.19.flow2` of the BASE body shows four allocations in the window, in order:
+ *     insn 446  r1 = [sp,#4]        reload of `unit` for unit[0x129]   (agrees)
+ *     insn 449  r2 = 0x129          reload of the CONSTANT 297
+ *     insn 452  r3 = 0x741          reload of the CONSTANT 1857
+ *     insn 455  r1 = [sp,#4]        reload of `unit` for unit[0xf]     <-- the 6
+ * `set_reload_reg` (reload1.c:4937) sets `last_spill_reg = i` only on acceptance,
+ * so it stands at r3's index entering insn 322.  `allocate_reload_reg` (:5003)
+ * starts at `last_spill_reg` and PRE-INCREMENTS, so the scan is r0, r1, r2, r3;
+ * r0 is the insn's own output (pseudo 108 in r0), so the first acceptable is r1.
+ *     last = 0 -> r1     last = 1 -> r2     last = 2 -> r3     last = 3 -> r1
+ * **Only `last_spill_reg` = r2's index reaches the ROM's r3.**
+ *
+ * `.19.flow2` of the SYMBOL body shows THREE allocations in the window:
+ *     insn 446  r1 = [sp,#4]        insn 449  r2 = 0x129
+ *     insn 452  r3 = [sp,#4]        <-- the ROM's register
+ * and `.18.greg` no longer prints `Spilling for insn 298` at all.  A `symbol_ref`
+ * cannot be an `add` immediate, so expand loads it into a PSEUDO, which global
+ * allocation homes in r3 -- emitting the identical `ldr r3,=...`.  A `const_int`
+ * 1857 is folded into the `add` and RELOAD must materialise it, which costs the
+ * extra allocation.  Same instruction, same encoding, one more rotation step.
+ *
+ * So the 6 is: index 139's register field, plus its sched2 fan-out, which is why
+ * `-fno-schedule-insns2` reduced the tail to a single register difference.
+ *
+ * THE DEVICE-FREE ROUTE DOES NOT EXIST, MEASURED (crossfire, 7 edits, 167
+ * encodings, reference memory profile ldr=18 ldrb=6 ldrh=2 str=6 on every row).
+ * ALL SEVEN EXACTLY INERT AT 6:
+ *     `int base = 0x741;` named before the call ................. 6
+ *     `const int base = 0x741;` ................................. 6
+ *     `int msgid = unit[0x129] + 0x741;` then pass msgid ........ 6
+ *     `0x741 + unit[0x129]` (operand order) ..................... 6
+ *     file-scope `static const int kMsgBase = 0x741;` ........... 6
+ *     `*(unit + 0x129) + 0x741` ................................. 6
+ *     `unit[0x129] + 0x740 + 1` ................................. 6
+ * AND THE DUMP SAYS WHY: the named-local body still emits all four allocations
+ * (451 r1, 454 r2, 457 r3, 460 r1) and still carries exactly one `const_int 1857`
+ * in `.17.lreg` -- cprop folds every spelling back to the immediate.  The cap is
+ * structural: nothing that is a compile-time integer constant can avoid reload.
+ *
+ * THE OTHER THREE ROUTES, EACH CLOSED WITH ITS REASON:
+ *   * make the 0x741 reload take r2 -- that breaks index 137, which matches now.
+ *   * add allocations to reach last = r2 from last = r3 -- needs THREE more, each
+ *     emitting an instruction.
+ *   * make r1 AND r2 unavailable at insn 322 -- `reload_reg_unavailable` is
+ *     COMPL(chain->used_spill_regs) (:5126) and `finish_spills` (:3609-3627)
+ *     builds that from pseudos in `live_throughout | dead_or_set`.  At insn 322
+ *     the only live pseudos are 32 (`win`, in r8) and the SPILLED 36, which
+ *     `AND_COMPL_REG_SET` has already removed.  Two more live values in the
+ *     function tail is not byte-neutral.
+ *
+ * WHAT THE OWNER IS BEING ASKED, stated against the _MSG_b24 ruling it resembles.
+ * 0x741 is neither 8-bit-movable nor shiftable, so gcc pools it as a literal
+ * either way and the ROM's pool word carries NO relocation -- the POOL-WORD
+ * evidence is exactly as inconclusive as _MSG_b24's was.  The argument here is a
+ * DIFFERENT observable:
+ *   (a) NECESSITY, on the register field and not on the pool word.  The ROM's
+ *       `ldr r3,[sp,#4]` at index 139 is UNREACHABLE from a `const_int`, because
+ *       the const_int forces one extra reload-register allocation and the
+ *       round-robin then cannot land on r3.  Measured both ways and read in the
+ *       dumps: 0 of 167 as a symbol, 6 of 167 as a constant, seven spellings.
+ *   (b) IDIOM, inside this one function.  The loop above already does
+ *       `id = (item & 0x3fff) + (int)&_MSG_333` -- the same "entry id + message
+ *       base" construct, feeding the SAME callee `_Func_801e7c0`, and _MSG_333
+ *       was admitted in batch 285.  The two message bases in one function would
+ *       otherwise be spelled two different ways.
+ *   (c) COMPLETION.  It takes the function to 0, so owner standard 2 is met --
+ *       unlike _FILE_e4 / _FILE_e5, which were withheld on exactly that test.
+ * If the entry is declined, THE PARK FIGURE IS 6 and every route from a constant
+ * is now closed, so it should be read as a terminal park rather than an open one.
+ *
+ * Blocker class: `allocate_reload_reg` round-robin position (reload1.c:5003) at
+ * insn 322, set by the COUNT of reload-register allocations in the window, not by
+ * pseudo liveness and not by the printed `Using reg` line.
+ * PARK HELD AT 6 device-free; 0 of 167 at one message.sym entry.
  */
 __asm__(".equ _MSG_333, 0x333");
 

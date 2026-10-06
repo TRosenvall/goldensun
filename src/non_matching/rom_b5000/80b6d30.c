@@ -348,6 +348,98 @@
  * Do NOT re-propose: `goto`+label (stepped over by follow_jumps), do-while(0)
  * wrappers in any of the four positions measured above, or the post-reload CSE
  * family.
+ 
+ * ===== BATCH 329 BRIEF D: A ZERO-BYTE cse1 BOUNDARY EXISTS, AND THE SECOND
+ * ===== FOLD IS `.07.gcse`, NOT `.09.cse2`
+ *
+ * Figure re-derived: **4 differing encodings of 119**, ref 119 / ours 119, first
+ * at index 23, SIZE / INSTRUCTION COUNT / RELOCATIONS all silent on BOTH --func
+ * and --whole.  BODY UNCHANGED.  The bottom-tested do-while control was
+ * re-measured and is still EXACTLY inert at 4, confirming it is free.
+ *
+ * 1. THE PARK'S BOUNDARY BOUND IS REFUTED.  Batch 327 point 4 ended on *"Every
+ *    such label needs a compare and a branch, and the reference is exact at 118
+ *    instructions with no conditional anywhere before .Lb6d68."*  Measured
+ *    false.  A ONE-TRIP BOTTOM-TESTED LOOP AROUND THE INIT ALONE is a real
+ *    CODE_LABEL boundary and costs ZERO BYTES:
+ *        do { j = ret; } while (j > 1);    4 -> 5 of 119, dsize 0, reloc ok
+ *        do { j = ret; } while (j != 0);   4 -> 5 of 119, dsize 0, reloc ok
+ *    and in both `.03.cse` KEEPS `(insn 58 (set (reg/v:SI 38) (reg/v:SI 37)))`
+ *    unfolded.  cse1 is defeated device-free for nothing.  The reason the
+ *    extension code cannot step over it is structural: the loop-top label is
+ *    reached by FALL-THROUGH, so the insn ending the block is not a conditional
+ *    JUMP_INSN and `cse.c:6636-6719` -- which requires
+ *    `GET_CODE (p) == JUMP_INSN && ... IF_THEN_ELSE` -- is never entered.  (The
+ *    only other boundary at cse.c:6534-6600 is NOTE_INSN_SETJMP, unreachable.)
+ *
+ * 2. THE PASS THAT THEN FOLDS IT IS `.07.gcse`.  insn 58 traced through every
+ *    dump of the boundary body: `.03.cse` reg copy; **`.07.gcse` const_int 0**;
+ *    `.08.loop`, `.09.cse2`, `.13.combine`, `.15.regmove` const_int 0.  The
+ *    park's chain blamed cse1 and then cse2 and never named gcse -- which is
+ *    why four batches of boundary work aimed at the wrong pass.  **gcse's
+ *    constant propagation is GLOBAL (reaching definitions over the CFG), so no
+ *    basic-block boundary of any kind can stop it.**
+ *
+ * 3. THE gcse GATE, READ, AND UNREACHABLE FROM C.  `hash_scan_set`
+ *    (**gcse.c:1877-1892**) records a set for cprop when the dest is a pseudo,
+ *    the src is a reg / CONST_INT / SYMBOL_REF / CONST_DOUBLE, and
+ *    `insn == BLOCK_END (BLOCK_NUM (insn)) || oprs_available_p (pat,
+ *    next_nonnote_insn (insn))`.  The second disjunct fails only if the DEST is
+ *    set again later in the same basic block -- so **the LAST definition of a
+ *    register in a block always satisfies one disjunct or the other**, and no
+ *    source edit can keep `ret = 0` out of the cprop set table.
+ *    `can_copy_p[SImode]` is true and CONST_INT is explicitly accepted.
+ *
+ * 4. AND THE BOUNDARY'S ZERO COST IS gcse's OWN DOING -- the lever and the
+ *    blocker are ONE PASS.  The same body measured with gcse disabled as an
+ *    INSTRUMENT (the no-gcse flag, passed to objcmp through its extra-flags
+ *    environment hook -- NOT written here as a key=value pair, because
+ *    tools/parkcheck.py greps park headers for that spelling and would then
+ *    measure this park under the flag and report TOOLING) reads
+ *    **95 of 119 at dsize +4**: the one-trip loop's `cmp`/branch SURVIVES.  Its
+ *    freedom in the normal build is bought by gcse propagating the constant so a
+ *    later pass can delete the dead branch.
+ *
+ * 5. THE COST ESCAPE IS MEASURED SHUT.  `CHEAPER` is `cost <` (cse.c:1479) and
+ *    a pseudo costs 1 (cse.c:509-514), so the register would take the class head
+ *    if the constant cost more than 1.  `arm_rtx_costs` (**arm.c:2077-2082**)
+ *    returns **0** for a `const_int` below 256 with `outer == SET`, so the ROM's
+ *    own value 0 is precisely the one value that cannot lose the head.
+ *    Instruments: `ret = 0x4321;` **11 of 119 at dsize +4**; `ret = 256;`
+ *    **97 of 119**, both RELOCDIFF.
+ *
+ * 6. THE POST-RELOAD BOUND RE-READ LINE BY LINE AND CONFIRMED, with one
+ *    precision.  `reload_cse_simplify_set` (**reload1.c:8025-8056**) sets
+ *    `old_cost = rtx_cost (src, SET)` = 0 for a CONSTANT_P src and
+ *    `this_cost = REGISTER_MOVE_COST` = 4 whenever HI_REGS is an endpoint
+ *    (**arm.h:1280-1285**): `4 < 0` false, the tie branch needs `4 == 0`, false.
+ *    `reload_cse_simplify_operands` (**reload1.c:8216-8224**) gates on
+ *    `rtx_cost (operand, SET) > rtx_cost (reg, SET)` = `0 > 1`, false.
+ *    `reload_cse_move2add` (**reload1.c:8891-8910**) rewrites only against the
+ *    SAME hard register's own `reg_offset[regno]` and emits a SELF-move at delta
+ *    0.  Precision worth keeping: `rtx_cost` on a REG is `! CHEAP_REG`
+ *    (**cse.c:804-805**), and post-reload a pseudo rtx renumbered in place keeps
+ *    `REG_USERVAR_P`, so CHEAP_REG can be TRUE and that cost 0 -- it does not
+ *    matter here because the candidate rtx in that loop is not the user's and
+ *    `0 > 0` is false too.
+ *
+ * 7. AND "NECESSARY BUT NOT SUFFICIENT" IS NOT ESTABLISHED.  `.26.mach` for the
+ *    installed body is instruction-for-instruction the reference through the
+ *    whole init -- `mov r1, #0 / mov r8, r0 / ldrb r0, [r5] / mov sl, r1 / bl`
+ *    -- with the reference's allocation (`j` r4, `v` r7, `ret` sl, `i` r5, `s`
+ *    r6, `flag` r8, `u` r9, `slot` fp).  **ONLY insn 54's SET_SRC differs.**
+ *    Batch 327 point 5 inferred that blocking the fold must re-order the
+ *    allocnos, but it measured that with `-fno-rerun-cse-after-loop` and with a
+ *    volatile load, each of which perturbs the allocation by itself.  With the
+ *    device-free boundary above the allocation is UNCHANGED; the only cost is
+ *    that sched2 swaps the two init copies (+1).
+ *
+ * NEXT, REPLACING THE OLD LIST: the question is no longer a cse boundary -- that
+ * is found, free, and written above.  It is **keep `ret = 0` out of gcse's cprop
+ * set table, or out of `cprop_avin` at the init.**  On the reading above the
+ * first is unreachable; the second needs a SECOND reaching definition of `ret`
+ * at the init, which needs a branch.  Do NOT re-propose cse-era boundaries,
+ * do-while(0) wrappers, labels, or the post-reload CSE family.
  */
 extern unsigned char *_GetUnit(int id);
 extern int Func_80c23c0(int a);

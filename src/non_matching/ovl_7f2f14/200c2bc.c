@@ -89,6 +89,85 @@
  * always-last.  pre_edge_insert (gcse.c:4440) uses it only for EDGE_ABNORMAL.
  * MEASURED WORSE (earlier batches): the split-condition `do` + `break` form,
  * 270 lines, 224 differing, frame grown to 0x3c by a spill.
+ *
+ * ========== BATCH 329 (brief F): THE PIN-FREE SIDE IS SWEPT, AND A LANDED NEAR-TWIN FOUND ==========
+ *
+ * RE-DERIVED: 2 differing encodings of 271, first differing index 163,
+ * ref 46ca ours 4693, size 612 = 612, instruction count 236 = 236, pool word
+ * count 35 = 35, relocations clean, PIN COUNT 0.  The stream differs at
+ * EXACTLY indices 163 and 164.  46ca is `mov r10,r9`, 4693 is `mov r11,r2`, so
+ * the residue is still the one transposed adjacent pair in loop 2's preheader
+ * and nothing else.
+ *
+ * ----- THE LEAD THIS PARK HAS NEVER MENTIONED -----
+ *
+ * OvlFunc_968_200c610, in src/overlays/rom_7f2f14/ovl_30_c_c_c_c_a.c, IS A
+ * LANDED NEAR-TWIN OF THIS FUNCTION.  Same overlay, same prologue down to the
+ * constants (iwram_3001ebc + 0x1c0 = 0x202, CutsceneStart,
+ * Actor_SetSpriteFlags(MapActor_GetActor(0), 0), Func_8092950(0, 0xf),
+ * Func_8091ff0(0xaa), MapTransitionIn, WaitMapTransition, CutsceneWait(0x28),
+ * PlaySound(0xa2)), the same `struct P t` on the stack with `tp = &t`, the same
+ * `j = 0; i = 0; tp = &t; acc = 0;` quartet, the same inner
+ * OvlFunc_968_2008118 call with 0x88 << 16 as the seventh argument and tp as
+ * the eighth, the same `goto mid` re-entry, and the same CopyMapTiles tail.
+ *
+ * AND ITS GENERATED .s HOLDS THE PREHEADER SHAPE THIS PARK NEEDS, twice:
+ *      mov r2,#16 | mov r3,#0 | add r2,r2,sp
+ *      mov sl,r3  | mov r8,r3 | mov fp,r2 | mov r9,r3
+ * -- the frame-address copy `mov fp,r2` sits THIRD of four, not last.  So "the
+ * address copy is emitted last" is NOT a property of gcc-2.96 under this
+ * invocation; it is a property of this park's copy being a move_movables HOIST
+ * while that one's is an ordinary live-range copy of a pseudo that is live-in
+ * to the block.  READ THAT FILE BEFORE SPENDING ANOTHER ROUND HERE.  Its
+ * structural differences from this body are few and named: a `do { } while
+ * (k <= 3)` inner loop instead of `while (k <= 3 && i <= 7)`, a named `base`
+ * accumulated with `base += 0x80 << 11` instead of the inline
+ * `(0xc0 << 14) + acc + (k << 18)`, and a named `z` for two literal-zero
+ * arguments.
+ *
+ * CORPUS COUNT FOR THE SHAPE, so it is not mistaken for unreachable: the
+ * pattern "two copies from one source register separated by one unrelated copy"
+ * has 8 hits across 4,468 gcc-GENERATED .s files and 12 across 740 hand-written
+ * ones.  This is NOT the zero-hit class that bounds OvlFunc_932_20082cc.  gcc
+ * does emit it.
+ *
+ * ----- MEASURED PIN-FREE, ALL INERT OR WORSE (the park's pinned q-family stands) -----
+ *
+ *   a second `struct P *q` assigned `q = tp` between `i = 0` and `acc = 0`,
+ *     loop 2's call taking q, loop 1 keeping tp          2, SAME two indices
+ *   the same with `q = &t`                               2, SAME two indices
+ *   loop 2's call taking `&t` directly                   2, SAME two indices
+ *   `q = tp` beside `tp = &t`, loop 1 on q, loop 2 on tp 2, SAME two indices
+ *   `q = &t` beside `tp = &t`, loop 1 on tp, loop 2 on q 2, SAME two indices
+ *   q for loop 2's THREE STORES, tp for the call       105 of 271, and one
+ *                                                       instruction SHORT
+ *   `tp = &t` repeated at the bottom of loop 2, to give the pseudo a second
+ *     set in the loop and spoil its movable status     119 of 271, 620 bytes
+ *                                                       and 239 instructions
+ *   `acc = 0` written BEFORE `i = 0`                     3 (idx 162,163,164)
+ *   do { } while (0) between `i = 0` and `acc = 0`       5 (idx 154-156,163,164)
+ *
+ * The five inert rows all produced IDENTICAL CODE, which confirms the park's
+ * "pseudo copies coalesce away" finding in the PIN-FREE setting and extends it:
+ * making the two pointers' live ranges overlap does not stop the coalescing
+ * either, in either direction.
+ *
+ * ----- AND ONE MECHANISM CORRECTION THAT RULES OUT THE BARRIER FAMILY -----
+ *
+ * A `do { } while (0)` does NOT split a basic block in sched2.  It plants a
+ * reg_pending_sets_all TOTAL-ORDER ANCHOR: the first insn after its two loop
+ * notes takes an anti-dependence on every prior insn and becomes the recorded
+ * last setter of EVERY register, so the next register write takes an output
+ * dependence on IT.  Here that is the wrong direction both ways -- an anchor at
+ * `acc = 0` forces the hoist after it, and an anchor after `acc = 0` IS the
+ * hoist and forces it after both inits.  For the hoist to issue before
+ * `mov fp,r2` it needs the LOWER LUID, and sched2 has no instrument that
+ * reaches LUID.  The reachable quantity is where loop.c's move_movables emits
+ * it, and emit_insn_before(loop_start) puts a hoist last in the preheader by
+ * construction.  So the open dimension is: STOP THE COPY BEING A HOIST -- which
+ * is exactly what OvlFunc_968_200c610 shows is possible.
+ *
+ * NOTHING IN THE BODY BELOW IS CHANGED BY THIS BATCH.
  */
 /* BODY REPLACED IN BATCH 300.  parkcheck caught this park's header lying about its
  * own body: the header claimed 2 of 271 while the body measured 271.  The 2-of-271

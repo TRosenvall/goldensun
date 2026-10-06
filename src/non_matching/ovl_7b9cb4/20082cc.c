@@ -78,6 +78,60 @@
  * SETTLED, so it is not re-derived: the poll loop at the end re-reads both
  * actors' +0xc every iteration WITHOUT volatile, because __WaitFrames sits
  * between the reads and gcc must assume the call writes through the pointers.
+ *
+ * ========== BATCH 329 (brief F): THE ONE OPEN LEVER IS MEASURED CLOSED ==========
+ *
+ * RE-DERIVED: 2 differing encodings of 74, first differing index 29, size
+ * 188 = 188, instruction count 53 = 53, pool word count 20 = 20, relocations
+ * clean, PIN COUNT 0.  The stream differs at EXACTLY indices 29 and 30 and
+ * nowhere else.  The park's whole sched2 reading reproduces verbatim: block 2's
+ * table gives 71/216 priority 16 and 73/217 priority 15, t=0 picks 71 on LUID,
+ * t=1 picks 216 on priority, and t=2 faces {73 prio 15, 217 prio 15} where 217
+ * wins FOUR dependents to TWO.
+ *
+ * THE PARK LEFT ONE LEVER OPEN -- "the counts equalise only if the region ENDS
+ * at the store".  That is now QUANTIFIED, and the cheap route to it is closed.
+ *
+ *   do { } while (0) immediately AFTER the a+0x28 store     2 of 74 (idx 29,30)
+ *
+ * It does what the park predicted and still loses.  Read out of .23.sched2:
+ * with the barrier, insn 230 (`lsl r2,#11`) has dependents `198 94 77` and
+ * insn 73 (`lsl r3,#14`) has `198 77`.  The barrier anchor (insn 94) absorbs
+ * reg_last_sets for every register, so the SetAnim call's r2 clobber and the
+ * TravelTo argument's r2 load lose their output dependences on 230 -- FOUR
+ * BECOMES THREE -- but THE ANCHOR ITSELF BECOMES THE THIRD DEPENDENT, because
+ * 230 is still the last setter of r2 when the anchor is analysed.  Meanwhile 73
+ * stays capped at 2 for the park's own structural reason: the add re-sets r3
+ * immediately, so reg_last_sets[r3] is the add and never 73.
+ *
+ * So the floor is 3 against 2 and the gap cannot be closed from this direction.
+ * 230 reaches 2 only if NOTHING after it writes r2 anywhere in the scheduling
+ * region, the anchor included -- which needs a REGION END, not an anchor.
+ *
+ * AND THAT IS A DISTINCTION THE TREE HAD WRONG.  docs/elevation.md records
+ * "A basic-block boundary -- do { } while (0); re-regions the scheduler".
+ * IT DOES NOT RE-REGION ANYTHING.  In every dump taken here the anchor sits
+ * INSIDE one block: this function's barrier variant is "basic block 2 from 68
+ * to 198" with the anchor at insn 94 inside it, and on OvlFunc_969_200b600 the
+ * whole function is "basic block 0 from 92 to 114" with both loop notes inside.
+ * What the idiom plants is a reg_pending_sets_all TOTAL-ORDER ANCHOR: the first
+ * insn after the notes gets an anti-dependence on every prior insn and becomes
+ * the recorded last setter of every register.  That is why the same idiom
+ * LANDED OvlFunc_969_200b600 and OvlFunc_969_200db90 this batch (where only the
+ * anchor's POSITION mattered) and cannot touch this function (which needs the
+ * region to end).  Treat "barrier" and "basic-block boundary" as two different
+ * instruments from here on.
+ *
+ * ALSO MEASURED, barrier before the add with the halves named, three spellings
+ * (`int k = 0x80 << 11`, `int k = 0x40000`, `int k = 0x80; k <<= 11;`):
+ *   all 2 of 74 with the residue MOVED to indices 28,29 -- ours becomes
+ *   asr r3 | lsl r3 | mov r2 | lsl r2 against the ROM's interleave.  The dump
+ *   says why, and it is not what it looks like: cse folds the named constant,
+ *   so the `mov r2` is materialised at the add and the barrier's anchor turns
+ *   out to BE the `mov r2` (insn 235).  These three rows are therefore the
+ *   park's own "asm BETWEEN the two halves" row re-derived, not a new family.
+ *
+ * NOTHING IN THE BODY BELOW IS CHANGED BY THIS BATCH.
  */
 extern unsigned char *__MapActor_GetActor(int slot);
 extern void __Func_808e118(void);

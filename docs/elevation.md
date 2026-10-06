@@ -15871,11 +15871,38 @@ before an insn, `schedule_barrier_found` fires and that insn gets a
 `REG_DEP_ANTI` on **every** prior register use and set.
 
 So a macro body wrapped in `do { } while (0)` — this tree's `SET_IO` and
-`SET_PALETTE` — **splits one basic block into two scheduling regions without
-emitting a single instruction.** Everything before the macro is scheduled to
-exhaustion first.
+`SET_PALETTE` — **totally orders the block at that point without emitting a
+single instruction.** Everything before the macro is scheduled to exhaustion
+first.
 
 **This is the lever for "sched2 put my prologue filler in the wrong hole".**
+
+### *Amended, batch 329.* IT DOES NOT RE-REGION. IT PLANTS AN ANCHOR.
+
+This section used to say the wrapper *"splits one basic block into two
+scheduling regions"*. It does not, and the mechanism quoted immediately above
+already says why: the note gives the following insn a `REG_DEP_ANTI` on every
+prior use and set, which is a **total order through one point inside one
+block** — not a block boundary. Every `.23.sched2` dump of a wrapped body shows
+the anchor *inside* a single region.
+
+Two consequences, both measured in batch 329 brief F:
+
+- **The anchor has a POSITION, and the position is the lever.** On
+  `OvlFunc_969_200b600` the wrapper one statement earlier reads **0**; where it
+  sat read 2; removing it entirely reads **8**. The anchor insn's `LOG_LINKS`
+  list was all 23 entries in the block, and `reg_pending_sets_all` makes it the
+  recorded last setter of every register — which is why moving it one statement
+  changes which insn inherits that.
+- **An anchor cannot do a region end's job.** `OvlFunc_932_20082cc` needs a
+  genuine region *end*, and there the anchor's own dependent spoils it: 4 → 3,
+  never 2, because the add re-sets r3. A park that needs re-regioning will not
+  be closed by this lever no matter where the wrapper goes, and the two cases
+  are indistinguishable from the residue alone.
+
+**So: `do { } while (0)` buys an anchor whose placement you tune. For a real
+zero-instruction region boundary, the instrument is a `NOTE_INSN_LOOP_END` and
+cse1's `! after_loop` gate — a different section of this document.**
 
 ### And it reaches a residue that source order cannot
 
@@ -34392,6 +34419,33 @@ It cost that function two batches.
 > **When a park resists, search this file for its DUPLICATE's symbol as well as
 > its own.**
 
+### Batch 329 added two more, and the second names the real index
+
+5. **The lever was in the installed FILE-MATE.** `OvlFunc_890_2008ef8` (9 → 0,
+   carrying two piece-mates) was closed by an edit already written in
+   `src/overlays/rom_78b2ac/ovl_30_c_c_a_c_b_a_c_a_a_b.c` — the landed file
+   beside it in the same piece. A park does not get searched for the solutions
+   sitting in its own directory.
+6. **Indexed by RESIDUE CLASS, not by any name at all.** This document has a
+   section *"AN EMPTY `__asm__ volatile ("")` BEATS PRIORITY ARITHMETIC"* whose
+   whole point is that the barrier is a route **even when the priority
+   arithmetic is provably unreachable** — it does not close the gap, it removes
+   the contest. It even records the shape of the miss: *"one park had proved its
+   window unreachable by arithmetic, correctly, and its 19-spelling list omitted
+   this one."*
+   **Two of batch 329 brief B's four targets were in precisely that state**, and
+   between them had spent five batches on spellings. A park writes "priority(56)
+   = 0 and here is why"; this document files the remedy under "when priority
+   arithmetic is unreachable". **Nothing joins them.**
+
+> So the index is not always an address or a filename. It can be the **shape of
+> the residue** — and that is the one no grep finds.
+>
+> **When a park's bound is an arithmetic IMPOSSIBILITY in sched2 — a fixed
+> priority gap, a zero priority, "no spelling can reach this" — grep this file
+> for the barrier section before writing another spelling.** An impossibility
+> proof is a signal to change instrument, not a terminal verdict.
+
 ### The two-command triage that came out of it
 
 For the specific shape *"an address pseudo cannot get r3 for no visible reason"*:
@@ -34411,3 +34465,147 @@ way through.
 > `int zi = 0; u8 z = zi;` — **both** an SImode and a QImode zero had to exist as
 > real pseudos. `int z` alone and `u8 z` alone both read 7, and the cast was not
 > the lever.
+
+## PROSE THAT LOOKS LIKE MACHINERY — SIX INSTANCES, AND IT IS A CLASS
+
+A park header is read by **tools and by people**, and every tool reads it with a
+pattern. So a sentence *discussing* a mechanism can be parsed *as* that
+mechanism. Six instances across batches 311–329, each found only after it had
+already cost something:
+
+1. **`*/` inside prose** closes the header early, hiding everything after it.
+2. **A separate prepended comment block** strands the recipe in block 2;
+   `parkcheck`'s `header_of` returned only the first block and the park read
+   `UNCHECKABLE` with a correct figure sitting in it. Now takes the leading
+   **run** of blocks.
+3. **`install_batch`'s `park_subject` took the FIRST `--func`** and captured the
+   word `and` from a header reading "`--func and --whole:`". Its caller then
+   correctly refused to retire the park — the guard working, on a fiction. Now
+   prefers a function-shaped capture and falls back to the **last** `--func`.
+4. **A file-wide grep counts the prose**, so a header that *describes* its pins
+   or tabulates every spelling tried inflates every count taken from it. This is
+   why pin and barrier counts come from `shimcount`, never from grep.
+5. **A flag-shaped field, batch 329 brief D.** `parkcheck.py:254` greps the
+   header for `OBJCMP_EXTRA=(\S+)` and then measures the park under whatever it
+   finds. Writing that spelling in a *sentence* made `Func_80b6d30` report
+   `TOOLING: Unrecognized option '-fno-gcse'`. **First instance where the
+   captured text became a compiler argument** — the failure is no longer a wrong
+   number, it is a wrong build.
+6. **A park's own PROPOSAL prose, batch 329.**
+   `src/non_matching/ovl_7aa430/2009a3c.c` *is* the batch-316 port that replaced
+   its predecessor, but it kept the paragraph arguing for that replacement —
+   which described "the installed park" in the third person and quoted
+   `"181 of 177 -- SATURATED"`. Once installed, the paragraph referred to
+   **itself**, and a reader scanning for a figure met a superseded one in a
+   sentence that parsed as current state. `parkcheck` reported `OK`: it takes the
+   **first** `CLAIM` match, which was the correct 5. Batch 329 brief A read the
+   181 and reported a "free improvement 181 → 5" that batch 316 had banked.
+
+### The two rules this yields
+
+**Writing:** never put a figure, a flag spelling, a `--func`, or a `*/` in park
+prose except as the park's own current claim. If you must discuss a dead figure,
+label the paragraph dead in its first line — not its last.
+
+**Reading:** a tool reporting `OK` means its pattern matched something, not that
+the header is honest. **When a park's prose and its first claim disagree, the
+claim wins and the prose is the bug.**
+
+### And the rule for installing a port
+
+**When a port is installed, rewrite its proposal prose into the past tense.** A
+header that argues for its own installation is stale the moment it wins the
+argument. One sweep found instance 6 to be unique — `grep -rl "The installed
+park\|REPLACES THE EXISTING PARK" src/non_matching/` is the check, and it is
+cheap enough to run whenever a park is replaced wholesale.
+
+## THERE ARE NO FREE RENAME-ONLY PORTS FROM LANDED BODIES (batch 329)
+
+`tools/dupfuncs.py` finds duplicate groups among the **remaining** functions —
+its file list excludes every piece with a sibling `.c`. So a park whose twin has
+**already landed** was invisible to it, and that is the cheapest landing there
+is: the landed `.c` is a working body and the port is a rename.
+
+`--vs-landed` closes that gap, and the answer is **none**. 774 remaining against
+4,883 landed, zero hashes shared. The negative is trustworthy because the
+cross-half normaliser passes two controls:
+
+- the 7 known hand-vs-hand duplicate groups all survive the folds, **7/7**;
+- the same folds find **197 duplicate groups covering 756 of the landed bodies**.
+
+Getting there needed three folds and one bug fix, all documented in the tool: a
+generated `.s` has **no `.thumb_func_start`** (gcc writes `.thumb_func` plus
+`.type NAME,function`), spells registers `sl`/`lr` where hand asm writes
+`r10`/`r14`, writes `add r6, r6, #100` where hand asm writes `add r6, #0x64`,
+and ends a function at `.size` with its literal pool **before** that — so
+slicing to the next function start drags the pool in.
+
+**What it does NOT rule out, which is the live opportunity.** Equality here is
+exact after a normaliser that placeholders only `Func_`/`OvlFunc_` names, `.L`
+labels and `=` pool operands. A pair differing in a **data symbol, a non-`Func`
+callee, or one immediate** does not hash equal. Batch 329 brief F's case is
+exactly that: it ported the landed body of `OvlFunc_925_200b460` onto **two**
+parks, and the asm is 42 instructions against 41 — a near-twin with an extra
+call. So *"no free rename-only ports"* is established; *"no free ports"* is not.
+**Finding near-twins needs a shape instrument, not a hash**, and that instrument
+does not exist yet.
+
+## A CHEAP QUERY FOR PARKS THAT ARE REASONING FROM A STALE MEASUREMENT
+
+Batch 319 ran a recipe backfill: it gave recipe-less parks a recipe and a
+measured figure, and **did no new work**. A park whose header still reads
+
+    "MEASURED, batch 319 recipe backfill"
+
+with nothing after it is therefore reasoning from a measurement that predates
+every lever found since. Batch 329 brief J took four such parks and moved three
+(4 → 2, 8 → 2, 10 → 9), and the reason is worth stating plainly:
+
+> **Two of the four carried a claim that actively discouraged working them, and
+> both of those parks moved.**
+
+One declared its own figure meaningless (`"COUNT DIFFERS → this figure measures
+MISALIGNMENT"`) when `objcmp` actually reports `POOL WORD COUNT ref 3, ours 4
+(instructions AGREE at 26)` — a distance all along, and now at 2 with the pool
+excess gone. The other's framing sent five batches at a constant derivation that
+never needed writing.
+
+**A worked bank has had its wrong claims shot out of it; a cold one still has
+them — and a wrong claim is worth more than a right one, because it names the
+dimension nobody varied.** That is the real argument for cold banks, and it is
+not "the code is easier".
+
+## FREE SCREENS FOUND IN BATCH 329
+
+Both cost one `-da` compile and no reference, so they run before any objcmp.
+
+- **"Why is r0 excluded here?" → it is FOURTH IN LINE.** `arm.h:989` is
+  `REG_ALLOC_ORDER = {3, 2, 1, 0, …}`, and `find_reg` (`reload1.c:1616-1655`)
+  breaks an equal-`spill_cost` tie with `inv_reg_alloc_order`. r0 enters
+  `used_spill_regs` only at an insn where r3, r2 **and** r1 are all in
+  `bad_spill_regs`; `spill_regs[]` is then rebuilt **ascending**, so the
+  function's *first* reload takes r0. **Screen: compile `-da`, grep `.18.greg`
+  for `Using reg 0`.** Landed siblings show it deep in the function while their
+  first reload still reserves r3 — which refutes both the "void function" and
+  the "register pressure" readings of that residue class.
+- **Before costing a dependent-count attack, ask whether the candidate insn is
+  the last writer of anything that survives to the block end.** The epilogue's
+  `unspec_volatile` takes a true link from the **last writer of every hard
+  register**, so an insn whose register is rewritten by an intervening call is
+  excluded from it — which caps its dependent count permanently. That capped
+  three of brief C's four parks and closed one at 4 of 19.
+
+## COUNTERS THAT READ `git ls-files` ARE BLIND TO AN UNSTAGED LANDING
+
+`tools/directory.py` and `tools/dupfuncs.py` both enumerate through
+`git ls-files`; `tools/census.py` walks the filesystem. After batch 329's eleven
+landings, a pre-staging regeneration reported the **old** 5,006 definitions and
+4,484 landed `.c` files while census had already moved to 4,894 — four counters,
+two reading git and two reading disk, and only the disk pair right. The output
+looked entirely plausible.
+
+**`git add -A` before regenerating the directory.** If `definitions in landed
+sources` has not moved after a batch that landed something, that is the bug and
+not a plateau. The same arithmetic is the check in the other direction: the gap
+between census-remaining and `dupfuncs`-remaining grew by exactly 4 this batch,
+which turned out to be 4 functions sitting in **untracked new split parts**.

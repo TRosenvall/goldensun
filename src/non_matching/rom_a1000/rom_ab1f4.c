@@ -150,6 +150,77 @@
  * the rung-3 escape requiring a reorder of encodings that already match.
  * DECLINING TO CLOSE: figure unchanged at 4, with one prerequisite banked and
  * batch 326's target retired.
+ *
+ * ========= BATCH 329, BRIEF C: CLOSED.  deps(insn 25) HAS A HARD CAP OF 3. =======
+ *
+ * FIGURE RE-DERIVED: 4 differing encodings of 19 (ref 19, ours 19), SIZE equal, no
+ * INSTRUCTION COUNT line, first at index 9 (ref 3001, ours 9b04).  PINS 0.
+ *
+ * A TRAP TO RECORD FIRST, because I nearly wrote a false correction out of it:
+ * `.23.sched2`'s RTL LISTING IS THE POST-SCHEDULE ORDER, not the chain order.
+ * Read in it, the order looks like 29, 12, 31, 39, 25 and the park's rung-5
+ * claim looks inverted.  **LUIDs come from `.19.flow2`**, which gives the real
+ * pre-sched chain 61, 4, 10, 12, 14, 21, 23, 25, 27, 29, 31, 33, 39, 42, 46, 54,
+ * 65, 66, 67 -- so LUID(12) < LUID(25) < LUID(31) < LUID(39), and the park's
+ * rung-5 reading is CORRECT as written.
+ *
+ * THE DEPENDENT COUNTS DECOMPOSE, and that is what closes the function.  Every
+ * dependent in block 0 comes from exactly one of four sources:
+ *   + insn 42, the call .......... true; every argument insn has it
+ *   + insn 66, `(use (reg sp))` .. ANTI, and it links to EVERY insn in the block,
+ *                                  so it is a free +1 for all of them
+ *   + insn 67, `*epilogue_insns` . an `unspec_volatile`, and its TRUE links are
+ *                                  precisely the LAST WRITER OF EVERY HARD
+ *                                  REGISTER: 10=r6, 14=r5, 4=r4, 12=r3, 39=r2,
+ *                                  31=r1, 42=r0, 65=sp
+ *   + insn 65, `add sp,#4` ....... ANTI, only for insns that READ sp
+ * giving deps(12) = 4 {42,65,66,67}, deps(31) = deps(39) = 3, deps(25) = 2 {42,66}.
+ *
+ * >>> INSN 25 (`add r0,#1`) IS EXCLUDED FROM 67 PRECISELY BECAUSE THE CALL
+ * >>> RE-WRITES r0, and from 65 because it does not read sp.  So deps(25) can gain
+ * >>> AT MOST ONE, and only by removing the call's set of r0.
+ *
+ * THE CONTROL THAT PROVES IT, measured here and not inherited.  The park banked
+ * `void` on prototype and definition as a demonstrated prerequisite; it is real,
+ * and it is now also PROVED INSUFFICIENT.  The void body reads 4 of 19 (19 of 19,
+ * SIZE equal) -- inert -- and its own `.23.sched2` shows WHY it moved the ready
+ * list: the epilogue insn gains a TRUE link to insn 25 that the base build does
+ * not have, because with the result discarded the call no longer sets r0 and insn
+ * 25 becomes r0's last writer.  deps(25) goes 2 -> 3 and the t=11 ready list goes
+ * `33 39 25 31 12` -> `33 39 31 25 12`, i.e. 25 overtakes 31 on rung 5 exactly as
+ * the park predicted.  It still loses to 12's 4, and a 4-4 tie would also lose
+ * because LUID(12) < LUID(25).  **3 is the ceiling and 4 is the bar.**
+ *
+ * EVERY ROUTE, WITH ITS CLOSURE.  ROM order in the window is 25, 12, 31, 39, 33;
+ * ours is 12, 31, 39, 25, 33; the single decision is t=11, ready `33 39 25 31 12`.
+ *   rung 1  all of 12/25/31/39 sit at prio 66 = prio(call) + 1, because each feeds
+ *           only the call and `arm_adjust_cost` returns 1 for a CALL_INSN consumer
+ *           and never raises.  33 is the only one that loses here.  CLOSED.
+ *   rung 3  12 would have to carry a link from 29 (`add r1,r1,r2`) with cost != 1.
+ *           29 touches r1/r2; 12 touches r3/sp.  And demoting 12 ALONE hands t=11
+ *           to 31, not to 25 -- 31 and 12 would BOTH have to fall, and 31's link
+ *           from 29 is a true dependence priced at exactly 1, which `:4077` makes
+ *           class 3.  CLOSED.
+ *   rung 4  deps(25) <= 3 < 4 = deps(12), per the cap above.  CLOSED.
+ *   rung 5  LUID(12) < LUID(25), so every tie goes to 12.  CLOSED.
+ *   readiness  delaying 12 past t=11 needs a producer finishing at t >= 10 with
+ *           cost >= 2.  Its only producers are 61 (sp, true) and 10 (ANTI, which
+ *           `arm_adjust_cost` prices 0).  A memory dependence would need a STORE
+ *           ahead of the a5 load, and the only store in the function is the
+ *           outgoing-argument `str r5,[sp]`, which is after it.  CLOSED.
+ *   deps(12) <= 2  needs a5 neither to read sp nor to be r3's last writer at the
+ *           epilogue.  a5 is the 5th parameter (so it arrives on the frame) and
+ *           callee argument 4 (so it arrives in r3).  Both are fixed by the ROM's
+ *           own `ldr r3,[sp,#16]`.  CLOSED.
+ *
+ * VERDICT: 4 of 19 is NOT REACHABLE through `rank_for_schedule` for any body with
+ * the ROM's 19-instruction stream.  Batch 326's target was retired by batch 327;
+ * the replacement target banked by batch 327 is retired here.  The park is
+ * terminal at 4 unless the 19-instruction stream itself can be reached another
+ * way, which `-fno-schedule-insns2` (12 of 19) does not do.
+ *
+ * Blocker class: sched2 `rank_for_schedule` rung 4, with a STRUCTURAL CAP on the
+ * quantity -- not an unexplored tie-break.
  */
 #include "gba/types.h"
 

@@ -46,6 +46,67 @@
  * the `| 4` that makes src/rom_8a000/rom_8d9a4_c_a_c_c_c_c_c_c.c match, so the
  * "does the and feed an orr" theory recorded in docs/elevation.md does NOT
  * explain the split. That theory should be treated as refuted.
+ *
+ * BATCH 329 (brief H).  FIGURE RE-DERIVED AND HELD: 8 differing encodings of 41.
+ * Exact length -- objcmp prints no SIZE, no INSTRUCTION COUNT and no POOL WORD
+ * COUNT line, so size, instruction count and pool words all agree.  Pin-free.
+ * Not a member of any tools/dupfuncs.py group (7 groups / 14 functions, none
+ * here).
+ *
+ * THE DIAGNOSIS IS NARROWED TO ONE QUANTITY.  The park calls this register
+ * allocation plus an ordering ("the +0x55 address is computed after the flag
+ * store").  The ordering is not independent: ALL EIGHT differences follow from
+ * ONE choice, which hard register the sprite pointer gets.  The ROM gives it
+ * r1 and we give it r0, and the ROM's reason is that r0 IS STILL HOLDING `n`
+ * from `bl __CreateActor`, so reload_cse deletes the `mov r0, r5` that
+ * __Actor_SetSpriteFlags' first argument would otherwise need -- and the ROM
+ * then has to materialise `mov r1, #0x0` fresh for the second argument.  We put
+ * the sprite pointer in r0, so we must emit `mov r0, r5`, and we pay for it by
+ * reusing the r1 zero left over from the `f55` store as the second argument.
+ * The two instruction counts balance at 43 lines for exactly that reason.
+ *
+ *     rom    ldr r1, [r5, #0x50] ... mov r2, r5 / add r2, #0x55 /
+ *            strb r3, [r1, #0x9] / mov r3, #0x0 / strb r3, [r2] / mov r1, #0x0
+ *     ours   ldr r0, [r5, #0x50] ... strb r3, [r0, #0x9] / mov r3, r5 /
+ *            add r3, #0x55 / mov r1, #0x0 / strb r1, [r3] / mov r0, r5
+ *
+ * So the question to ask of this park is ONLY: how does a pseudo come to occupy
+ * r0 across the sprite-pointer live range?  The +0x55 ordering, the `orr`
+ * destination and the two zeros are all downstream of it and should not be
+ * probed separately.
+ *
+ * AND ONE THING THAT READING DOES NOT EXPLAIN, which is where the next round
+ * should start.  Our sprite pointer takes r0 -- ARM's REG_ALLOC_ORDER opens
+ * 3, 2, 1, 0, so r0 is the LAST of the four low registers gcc reaches for.
+ * Over the sprite pointer's whole live range (the `ldr` to the `strb`) r2 and
+ * r3 are busy with the byte, the mask and the 4, but **r1 is free** -- the zero
+ * that ends up in r1 is not defined until after the `strb`.  A plain
+ * first-free-in-REG_ALLOC_ORDER walk would therefore have given it r1, which is
+ * the ROM's answer.  It did not, so something is EXCLUDING r1 from that qty,
+ * or the qty carries a suggestion toward r0 (local-alloc records a suggested
+ * hard register from a copy; the __CreateActor return in r0 is the only
+ * candidate).  READ `.17.lreg` AND `.18.greg` FOR THIS QTY BEFORE SPELLING
+ * ANYTHING: the sprite pointer is block-local, so per the standing note it will
+ * be ABSENT from .18.greg's allocno list and the decider is find_free_reg's
+ * exclusion set, which is the thing to print.
+ *
+ * MEASURED THIS BATCH, all 8 unless noted, all at exact length unless noted:
+ *   a second variable `m = n` inside the test, passed to
+ *     __Actor_SetSpriteFlags, so the argument has its own pseudo   8 (inert)
+ *   `m` taken from the call and `n` copied from `m`                8 (inert)
+ *   the above plus the batch-328 two-zero split
+ *     (`zi = 0; z = zi; n->f55 = z;`)                              8 (inert)
+ *   the two-zero split alone                                       8 (inert)
+ *   the sprite pointer in a nested block, shortest range           8 (inert)
+ *   the `n->f55 = 0` store moved ahead of the masked byte write
+ *     (37 instructions against 38, a pad absorbing it)             30 (WORSE)
+ *
+ * The four inert rows are one hypothesis, not four: that a source-level second
+ * reference to `n` can keep a pseudo in r0.  It cannot -- gcc coalesces the copy
+ * away in every spelling, so DO NOT re-run that family.  The last row restates
+ * the park's own "+0x55 store moved ahead" result from the other side: moving a
+ * store across the masked read changes the instruction COUNT, so any row in
+ * this park that reorders the two stores is measuring misalignment.
  */
 struct Spr { unsigned char pad00[9]; unsigned char f9; };
 

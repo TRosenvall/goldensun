@@ -177,3 +177,60 @@ It carries the artifact taxonomy (free shim / compiler-strategy constant / wrong
 declaration / genuinely unreachable), the four pokefirered patterns with their
 leak-informed diffs, the measurement discipline, and the ordered worklist.  This
 file remains the per-function depinning scope; that file is the how.
+
+## The bare empty-asm barrier: 10 landed files, and one booked deliberately (batch 329)
+
+`shimcount` reports a bare `__asm__ volatile ("")` as
+
+    empty asm     : 1  (NOT treated as a fakematch in this tree)
+
+so it raises no pin count and needs no `fakematch.txt` row. It is still a
+matching artifact and it is still pass-3 debt. **Booking it here is the only
+record there is.**
+
+### Why it is permitted at all
+
+`docs/elevation.md`, *"AN EMPTY `__asm__ volatile ("")` BEATS PRIORITY
+ARITHMETIC, AND IS NOT A FAKEMATCH HERE"*: a traditional asm clobbers every
+hard register, so the ready list never forms. It does not close a scheduling
+gap — **it removes the contest.** That makes it a route even where the priority
+arithmetic is provably unreachable, which is precisely when a park has stopped
+looking for one.
+
+### The ten
+
+| file | note |
+|---|---|
+| [src/rom_15000/rom_23178_a_c_c_c_a_b.c](../src/rom_15000/rom_23178_a_c_c_c_a_b.c) | **batch 329, `Func_8029274`** — booked here on arrival |
+| [src/rom_15000/rom_23178_a_a_a_a_c_c_a_c_b.c](../src/rom_15000/rom_23178_a_a_a_a_c_c_a_c_b.c) | same `rom_23178` module as the above |
+| [src/rom_a1000/rom_a8604_c_c_a_a_a_b.c](../src/rom_a1000/rom_a8604_c_c_a_a_a_b.c) | |
+| [src/rom_c0/rom_2e00_c_b.c](../src/rom_c0/rom_2e00_c_b.c) | |
+| [src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_c_c_a_a.c](../src/overlays/rom_77a7c8/ovl_30_c_a_c_c_a_c_a_c_c_a_a.c) | |
+| [src/overlays/rom_7d6418/ovl_30_c_c_c_a_c_a_a_a_a.c](../src/overlays/rom_7d6418/ovl_30_c_c_c_a_c_a_a_a_a.c) | |
+| [src/overlays/rom_7d768c/ovl_30_c_a_a_c_c_c_c_c_c_b.c](../src/overlays/rom_7d768c/ovl_30_c_a_a_c_c_c_c_c_c_b.c) | also 432 register pins |
+| [src/overlays/rom_7e3e08/ovl_30_c_c_a_a_a_c.c](../src/overlays/rom_7e3e08/ovl_30_c_c_a_a_a_c.c) | |
+| [src/overlays/rom_7fa4ec/ovl_30_c_c_c_a_a_c.c](../src/overlays/rom_7fa4ec/ovl_30_c_c_c_a_a_c.c) | |
+| [src/overlays/rom_7fa4ec/ovl_30_c_c_c_a_c_c_c_c_a_b.c](../src/overlays/rom_7fa4ec/ovl_30_c_c_c_a_c_c_c_c_a_b.c) | also 325 pins |
+
+Ten files, eleven barriers — one file carries two.
+
+### A count correction worth keeping
+
+Batch 329 brief B reported **21** landed files carrying one, and used that
+number as the precedent for landing a twelfth. The real figure was **9** at the
+time (10 now). Checked with the loop below, which is the authority — not grep,
+for the reasons in the directory README.
+
+    python3 tools/shimcount.py --all | awk '!/^ /{f=$0} /empty asm/{print f}'
+
+The precedent was genuine regardless, and better than the raw count suggests:
+one of the nine was in **the same `rom_23178` module** as B's own target. But
+*"21 files already do this"* was not a fact, and an inflated precedent is how a
+permitted exception turns into a default.
+
+### Removal order for pass 3
+
+Take these **before** the heavily-pinned files. A barrier is one line and its
+removal has a measurable figure immediately, where a 432-pin file needs the pins
+resolved to functions first. Two of the ten already sit in files whose pin load
+is in the hundreds, so their barrier is the cheap part of an expensive file.

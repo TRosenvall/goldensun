@@ -159,7 +159,43 @@
  * already uses whose size is 5..8 with sub-word alignment, declared here for a
  * call this version does not make.  `tools/upstream_module.py Func_80175c0`
  * and the module's landed siblings are where to look, not another spelling.
- */
+  *
+ * ======================= BATCH 329 BRIEF B -- 2 of 44 HELD =======================
+ * RE-DERIVED FIRST: 2 of 44 (ref 44, ours 44; first at index 13, ref b084
+ * `sub sp,#0x10` against ours b082 `sub sp,#8`).  objcmp prints no SIZE, no
+ * INSTRUCTION COUNT and no RELOCATIONS line, so the figure IS a distance.
+ * Figure CONFIRMED for the third batch running.  Body UNCHANGED.
+ *
+ * ONE NEW CLASS MEASURED AND REFUTED, AND IT IS WORTH THE ROW BECAUSE IT LANDED
+ * A SIBLING IN THE SAME BATCH.  docs/elevation.md's empty-barrier lever -- a
+ * bare `__asm__ volatile` with an empty string and no operands, which takes
+ * Func_8029274 from 2 to byte-identical and Func_801c34c from 8 to 3 in this
+ * very batch -- IS INERT-TO-HARMFUL HERE, at every one of the ten statement
+ * boundaries this function has:
+ *     barrier before `off = 0x12f4;`                        13
+ *     barrier before `base = (char *)iwram_3001e8c;`        15  RELOCDIFF
+ *     barrier before `r = 0;`                               12
+ *     barrier before the first `p =`                        12
+ *     barrier before the first `*p = r;`                    10
+ *     barrier before `off += 2;`                             9
+ *     barrier before the second `p =`                        9
+ *     barrier before the second `*p = r;`                    7
+ *     barrier before `idx = BufferString(b, 1);`             5
+ *     barrier before `t = (idx << 1) + (0xeb << 4);`         6
+ *     CONTROL, no barrier                                    2
+ * EVERY row still emits `sub sp,#8`: the frame size never moved once.
+ *
+ *   >> SO THE BOUND GAINS A SIDE.  The barrier reaches SCHEDULING only.  It
+ *      cannot reach `get_frame_size`, because it is not a DECL and
+ *      `assign_stack_local` is never called for it -- there is nothing for
+ *      `thumb_expand_prologue`'s `amount` to count.  This park's residue is a
+ *      FRAME-ALLOCATION fact, not an ordering fact, and the one lever that beat
+ *      "provably unreachable priority arithmetic" twice in this batch is
+ *      structurally unable to touch it.  The 5-to-8-byte never-read BLKmode
+ *      local is still the only construct that produces the 16, and every such
+ *      construct is a DEVICE by docs/owner-decisions.md item 4.
+ *      PARK HOLDS AT 2 of 44, device-free and pin-free.
+*/
 
 /* Func_80175c0 -- 0x080175c0  (asm/rom_15000/rom_15e8c_c_a_c_c_c.s)
  *

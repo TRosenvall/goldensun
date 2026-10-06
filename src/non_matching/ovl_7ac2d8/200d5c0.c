@@ -226,6 +226,78 @@
  * carrier, constant, dividend, division-spelling and pin sides.  Find the
  * spelling that makes gcc EXPAND the third argument of `__vec3_translate`
  * before the first, and check region (b) on the same candidate.
+ *
+ *
+ * ===================== BATCH 329 (brief A) =====================
+ *
+ * FIGURE RE-DERIVED: 12 DIFFERING ENCODINGS OF 371, size exact, count exact,
+ * first differing index 80 (ref 0380, ours 1c31), relocations identical.
+ * The park is correct in every particular and its region table, rebuilt from
+ * scratch without reading it first, came out the same four regions:
+ *     (a) 2 aligncmp / 1 objcmp  mov r1, r6 one slot early
+ *     (b) 8                      the r0/r1/r2 reload-scratch ROTATION
+ *     (c) 1                      adds r1,r3,r1 vs adds r1,r1,r3
+ *     (d) 1                      add r1,sp,#16 vs mov r1,fp  (gcse cprop)
+ * All 12 sit inside indices 80-119; 360 of 371 are aligned-equal.
+ *
+ * NEW NEGATIVE, AND IT CLOSES A WHOLE CLASS ON REGION (a).
+ * Region (a) is now ONE adjacent swap: the r2 pin already put `mov r2, fp`
+ * first, and what is left is that the ROM emits `lsl r0, #14` before
+ * `mov r1, r6` while we emit them the other way round.  PINNING THE ARGUMENTS
+ * CANNOT REACH IT.  Measured, both EXACTLY INERT at 12 of 371 with the SAME
+ * first index 80:
+ *     all three args pinned, assigned in the order q2, d0, a1   12
+ *     all three args pinned, assigned in the order q2, a1, d0   12
+ * WHY, so nobody tries a third ordering: a `register ... __asm__` argument is
+ * already in its hard register when load_register_parameters runs, so NO insn
+ * is emitted for it and the LUID sequence the scheduler sorts on is unchanged.
+ * The park's three earlier region-(a) probes varied the argument SPELLINGS; the
+ * pins vary the argument REGISTERS; neither touches LUID.  The remaining
+ * dimension is what EMITS the r0 build, not what it contains.
+ *
+ * THE SCHEDULER'S RUNGS, READ OUT OF THE COMPILER SO THE NEXT READER DOES NOT
+ * HAVE TO.  rank_for_schedule (haifa-sched.c:4029-4118), in order:
+ *     1. INSN_PRIORITY
+ *     2. INSN_REG_WEIGHT  -- GATED ON `! reload_completed` (:4046), SO IT IS
+ *        DEAD IN sched2.  The register-pressure rung does not exist in this
+ *        build in EITHER pass: sched1 does not run, and sched2 skips this.
+ *     3. class relative to the last scheduled insn (:4072-4096): 3 independent
+ *        or latency 1, 1 data-dependent, 2 anti/output; HIGHEST class wins
+ *     4. dependent count (:4098-4109), MORE dependents wins
+ *     5. INSN_LUID, SMALLEST FIRST
+ * For region (a) rungs 1, 3 and 4 all tie, so it is rung 5 and rung 5 only.
+ *
+ * REGION (b) IS THE SAME BLOCKED QUANTITY AS THE OTHER TWO PARKS IN THIS BANK.
+ * reload1.c: allocate_reload_reg (:4962) walks `i = last_spill_reg; i++` round
+ * robin (:5003-5013); last_spill_reg is set only on success in set_reload_reg
+ * (:4937) and reset ONCE PER FUNCTION (:821).  The park's "one rotation phase,
+ * not eight ties" reading is exactly right, and it is now confirmed to be the
+ * residue of OvlFunc_924_200d244 and of OvlFunc_924_200cfcc as well.  Three
+ * parks, one quantity: WHICH LOW REGISTER A RELOAD PICKS.  Work it once.
+ *
+ * THE DUPLICATE PORT HOLDS, AND IT NEEDS FIVE RENAMES, NOT FOUR.
+ *   (1) STRUCTURAL.  A normalised diff of
+ *       asm/overlays/rom_7ac2d8/ovl_35b8_a_c_c_a.s against
+ *       asm/overlays/rom_7aa430/ovl_1a3c_a_c_c_a.s (395 lines each) is EMPTY,
+ *       382 significant lines each.
+ *   (2) MEASURED, against the twin's own reference: 12 differing encodings of
+ *       371, first index 80, relocations IDENTICAL, with
+ *       OvlFunc_924_200d5c0   -> OvlFunc_923_200a030
+ *       OvlFunc_924_200d158   -> OvlFunc_923_2009bc8   (a CALLEE, easy to miss)
+ *       gScript_924__0200de2c -> gScript_923__0200a7dc
+ *       gScript_924__0200de20 -> gScript_923__0200a7d0
+ *       L5e44                 -> L27f4                 (THE FIFTH, see below)
+ *
+ * THE TRAP IN THE NORMALISED-DIFF METHOD, FOUND HERE AND WORTH MORE THAN THE
+ * FIGURE.  A normaliser that canonicalises `.L<hex>` labels -- which it must, or
+ * every label differs -- HIDES exactly the labels the C source NAMES.  This body
+ * declares a jump table as an aliased local label, and the twin's reference
+ * reaches `ldr r1, =.L27f4` where ours reaches `ldr r1, =.L5e44`.  The
+ * structural diff was EMPTY and the ported body still had ONE DIRTY RELOCATION
+ * until the fifth rename went in.  So: AFTER a normalised diff comes up empty,
+ * diff the RELOCATION LISTS too -- that is what catches a named label.
+ *
+ * Verify with: python3 tools/objcmp.py src/non_matching/ovl_7ac2d8/200d5c0.c asm/overlays/rom_7ac2d8/ovl_35b8_a_c_c_a.s --func OvlFunc_924_200d5c0
  */
 extern unsigned int gState;
 extern unsigned int gKeyHeld;

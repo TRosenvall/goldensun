@@ -15,14 +15,24 @@
  *   XX ENCODINGS differ in 5 place(s) (ref 179, ours 179)
  *      first at index 54: ref 4640  ours 189b
  *
- * WHY THIS REPLACES THE EXISTING PARK WHOLESALE.  The installed park
- * (src/non_matching/ovl_7aa430/2009a3c.c) carries a DIFFERENT body and its own
- * header says "181 of 177 -- SATURATED", figure withdrawn, "needs
- * re-measuring before its diagnosis is trusted".  Re-measured this batch
- * against this reference it is 172 differing instructions with nins 169/175
- * and +12 bytes, so the saturation is real.  Its recorded blocker -- "one
- * allocno too many, PLUS an unsolved pooled-zero construct" -- describes that
- * saturated body and does not apply to this one.
+ * HISTORY -- THE SUPERSEDED BODY.  THE FIGURES IN THIS PARAGRAPH ARE DEAD.
+ * Batch 316 replaced this park wholesale.  The body it replaced was a
+ * different, SATURATED one at 181 of 177, with 172 differing instructions at
+ * nins 169/175 and +12 bytes, and its recorded blocker was "one allocno too
+ * many, PLUS an unsolved pooled-zero construct".  None of that describes the
+ * body in this file, whose figure is the 5 of 179 stated above.
+ *
+ * This paragraph is dated on purpose.  It previously read as a PROPOSAL --
+ * "WHY THIS REPLACES THE EXISTING PARK WHOLESALE", describing "the installed
+ * park" in the third person -- which was true when it was written and became
+ * self-referential the moment the port was installed, because this file then
+ * BECAME the installed park.  A reader scanning for a figure met "181 of 177
+ * -- SATURATED" in a sentence that parsed as current state.  parkcheck never
+ * flagged it: it takes the FIRST claim match, which is the correct 5.  Batch
+ * 329 brief A read the 181 and reported a "free improvement 181 -> 5" that
+ * batch 316 had already banked.  When a port is installed, rewrite its
+ * proposal prose into the past tense -- see docs/elevation.md, "prose that
+ * looks like machinery".
  *
  * The port is THREE RENAMES and nothing else:
  *   OvlFunc_924_200cfcc    -> OvlFunc_923_2009a3c

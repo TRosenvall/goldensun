@@ -112,6 +112,42 @@
  * NAMING THE DIRTY POINTER BEFORE THE OFFSET (`d = base + 0xea3;` written before
  * `off = ...` is 2, after it 5) because LICM appends rather than prepends.
  * Read the last one against Func_8016f2c, the same lever with the opposite sign.
+ *
+ * ========= BATCH 329, BRIEF C: VERDICT REPRODUCED A THIRD TIME =========
+ *
+ * FIGURE RE-DERIVED: 2 differing encodings of 101 (ref 101, ours 101), SIZE equal,
+ * no INSTRUCTION COUNT line, first at index 82.  PINS 0.
+ *
+ * My own `.23.sched2` block 16 agrees with both previous readings, and it also
+ * settles the one thing the park left as prose.  The full ready-list sequence is
+ *     t=7  173 167 164     t=8  173 167 291     t=9  173 167 291
+ *     t=10 173 167         t=11 173 170 167     t=12 173 170
+ * **291 is in the ready list at BOTH t=8 and t=9**, which is the park's own
+ * correction confirmed: "one cycle later for 164" is not the quantity, because 291
+ * was already ready and only the busy core unit stalled it.
+ *
+ * The two priorities are forced by the dependence graph as printed, not inferred:
+ *     insn 167  `(set (reg 5) (plus (reg 5) (const_int -1)))`  -- the `h--`
+ *               Scanning every LOG_LINKS list for 167 as a producer returns
+ *               EXACTLY ONE consumer, the loop branch 177, which is the block's
+ *               last insn and therefore priority 1.  prio(167) = 1 + 1 = 2.
+ *     insn 291  `(set (reg:SI 3 r3) (mem:SI (reg:SI 13 sp)))`  -- the reload load
+ *               Its consumers are 170 (true), 294 (anti) and 177 (anti), and the
+ *               chain 291 -> 170 `add r3,#0x40` -> 294 `str r3,[sp]` gives
+ *               prio(291) = 2 + prio(170) = 2 + 2 = 4.
+ * `rank_for_schedule` returns on rung 1 (`:4041-4044`) before class, dependent
+ * count or LUID is consulted, so no tie-break lever can reach this window.  Both
+ * numbers are set by instructions the ROM has as well -- the ROM spills `off` too
+ * and carries the same load/update/store at indices 83-86, which is why only two
+ * encodings differ at all.
+ *
+ * Nothing new attempted and nothing refuted.  The park's bounds on the alias-set
+ * route (a reload SPILL SLOT prints alias set 0, so `DIFFERENT_ALIAS_SETS_P` can
+ * never fire against it, and removing the edge would make 291 ready EARLIER) stand
+ * unexamined-but-sound; the priority rung closes the function before they matter.
+ *
+ * Blocker class unchanged: sched2 `rank_for_schedule` RUNG 1, priorities 2 against
+ * 4, both forced by the ROM's own 107 instructions.  Park terminal at 2.
  */
 typedef unsigned char u8;
 typedef unsigned short u16;

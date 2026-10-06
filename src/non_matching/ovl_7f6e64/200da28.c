@@ -1,5 +1,5 @@
 /* OvlFunc_969_200da28 -- 0x0200da28, first of the two functions in
- * asm/overlays/rom_7f6e64/ovl_314_c_c_c.s (147 instructions by the .s comment,
+ * asm/overlays/rom_7f6e64/ovl_314_c_c_c_a.s (147 instructions by the .s comment,
  * 157 encodings / 360 bytes as an object).
  *
  * NON-MATCHING: 48 encodings of 157 differ (objcmp).
@@ -8,7 +8,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *       goldensun-build python3 tools/objcmp.py \
  *       src/non_matching/ovl_7f6e64/200da28.c \
- *       asm/overlays/rom_7f6e64/ovl_314_c_c_c.s --func OvlFunc_969_200da28
+ *       asm/overlays/rom_7f6e64/ovl_314_c_c_c_a.s --func OvlFunc_969_200da28
  *
  * 48 IS A TRUE DISTANCE: SIZE 360 == 360, ENCODINGS 157 == 157, and the
  * relocation list holds the same 19 symbols in the same order (the reported
@@ -16,10 +16,10 @@
  * below, plus the known one-symbol `_divsi3_RAM` / `__divsi3` overlay alias).
  *
  * THIS FILE CANNOT BE BUILT AS-IS -- IT NEEDS A TEXT/DATA SPLIT FIRST.
- * `python3 tools/datacheck.py asm/overlays/rom_7f6e64/ovl_314_c_c_c.s` prints,
+ * `python3 tools/datacheck.py asm/overlays/rom_7f6e64/ovl_314_c_c_c_a.s` prints,
  * verbatim:
  *
- *   asm/overlays/rom_7f6e64/ovl_314_c_c_c.s
+ *   asm/overlays/rom_7f6e64/ovl_314_c_c_c_a.s
  *       data sections : .bss, .data
  *       functions     : OvlFunc_969_200da28, OvlFunc_969_200db90
  *       EXPORTS       : gScript_969__0200dfc4, gScript_969__0200e004,
