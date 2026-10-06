@@ -69,7 +69,85 @@
  * `cmp r5,r3`.  Both figures have the IDENTICAL single cause.  Read the 16 as
  * the body whose compare is right and the 13 as the body whose prologue head
  * is right -- NOT as 13 being three steps nearer.
- */
+ 
+ * ===========================================================================
+ * BATCH 330 BRIEF D.  FIGURE RE-DERIVED AT THIRTEEN; IT HOLDS, BODY UNCHANGED.
+ * AND THE PARK'S NAMED NEXT MOVE IS NOW *** REFUTED WITH ITS MECHANISM ***.
+ *
+ * The standing next move is "reverse the chain -- get gcse's PRE representative
+ * set DIRECTLY from the parameter pseudo and the across-call value set from the
+ * PRE pseudo", and it asks whether that is reachable from C.  It is not, and the
+ * reason is one line of cse2 that nobody had looked at: *** gcse's SECOND PRE
+ * COPY, THE ONE INSIDE THE GUARD, REDEFINES THE PRE PSEUDO, WHICH TAKES IT OUT
+ * OF ITS OWN EQUIVALENCE CLASS BEFORE THE EARLY RETURN IS EVER PROCESSED. ***
+ *
+ * The dumps, on a body with `orig = s;` as the first statement inside the guard:
+ *   .07.gcse  insn  51  (set (reg:SI 42) (mem/f:SI (sfp-4)))   the `s == -1` read
+ *             insn 242  (set (reg:SI 64) (reg:SI 42))          PRE rep, hung off 42
+ *             insn 243  (set (reg:SI 64) (reg:SI 43))          PRE copy, IN THE GUARD
+ *             insn  36  (set (reg/i:SI 0 r0) (reg:SI 42))      the early return
+ *   .09.cse2  insn  51  (set (reg:SI 42) (reg/v:SI 34))
+ *             insn 242  (set (reg:SI 64) (reg/v:SI 34))
+ *             jump  22  (ne (reg:SI 64) (reg:SI 39))     <- rewritten to 64
+ *             insn  36  (set (reg/i:SI 0 r0) (reg/v:SI 34))  <- rewritten to 34
+ *
+ * `make_regs_eqv` (cse.c:1002, the condition at :1021-1035) DOES make 64 the
+ * canonical `first_reg` at insn 242 -- 64's `REGNO_LAST_UID` is out in the switch
+ * arms, past `cse_basic_block_end`, and later than the parameter's -- and that is
+ * exactly why jump 22's use of 42 comes out as 64.  Then insn 243 writes 64,
+ * `invalidate` calls `delete_reg_equiv` (cse.c, immediately after make_regs_eqv),
+ * 64 leaves the class, and `first_reg` falls back to the parameter 34.  Insn 36
+ * is processed after that, so it canonicalises to 34.
+ *
+ *   >> SO THE COPY THE ROM HAS (`mov r6,r4`) WOULD HAVE TO BE DEFINED BETWEEN
+ *   >> INSN 242 AND INSN 243 AS A SURVIVING INSN, and cse1 deletes exactly that:
+ *   >> a one-use copy `(set O (mem s))` is propagated into its single use and
+ *   >> dies, so by `.07.gcse` there is no insn there at all -- verified, no
+ *   >> `orig` pseudo appears anywhere in that dump.  Nothing that only renames,
+ *   >> re-scopes or re-orders a copy of `s` can put an insn in that window. <<
+ *
+ * A SECOND ROUTE IN, WHICH IS NOT THE CHAIN AT ALL, AND IT IS ARITHMETIC.
+ * `.18.greg` on this body prints
+ *     ;; 6 regs to allocate: 63 54 34 33 32 35
+ *     34 in 5   33 in 6
+ * and `allocno_compare` (global.c:597-620) is
+ *     floor_log2 (n_refs) * n_refs / live_length * 10000 * size
+ * with the tie broken by `v1 - v2`, i.e. by ALLOCNO NUMBER.  Pseudo 33 is `b`
+ * (seven references spread over nearly the whole function); pseudo 34 is the
+ * parameter, with few references and a live range that ENDS IN THE GUARD,
+ * because `fail: return slot` is threaded into the fail arm -- insn 36 already
+ * sits in bb 2 in `.07.gcse`.  Short range plus moderate refs outranks long
+ * range plus many refs, so 34 is allocated first and takes r5.
+ *
+ *   ** 33 IS THE LOWER ALLOCNO NUMBER, SO A TIE PUTS IT FIRST -- THE ROM'S
+ *   ORDER. **  And 33 before 34 is worth most of the figure on its own: it fixes
+ *   `mov r5,r1`, it fixes the early return's `mov r0,r6`, and it fixes all six
+ *   `mov r0,r5` in the switch arms, leaving only the two prologue orderings and
+ *   the store/copy/compare triple -- about five.  What it needs is the
+ *   PARAMETER'S PRIORITY LOWERED (a longer live range, or fewer references), not
+ *   the copy chain reversed.  That is a different search from everything this
+ *   park has recorded, and it is the one worth taking next.
+ *
+ * MEASURED THIS BATCH (ref 81 encodings / 63 instructions; every figure from
+ * objcmp --func, and every row with a different instruction count is marked):
+ *   the park body, `goto fail` / `fail: return slot`      ** thirteen **  <- kept
+ *   `orig = s;` inside the guard, `return orig` there         sixteen
+ *   block-scoped `int orig = s;` inside the guard              sixteen
+ *   `if ((orig = s) == -1)`, `return orig` in the guard        sixteen
+ *   `orig = s;` before the if, `return orig` in the guard      sixteen
+ *   `orig = slot;` inside the guard, `return orig` there       sixteen
+ *   one return point through a `ret` local plus `goto out`     sixteen
+ *   `orig = s;` in the guard + `fail: return orig` at bottom   64 instructions
+ *   `orig = s;` before the if + `fail: return orig`            64 instructions
+ *   `(orig = s)` in the condition + `fail: return orig`        64 instructions
+ *   a named register value, `s = slot; v = s; ...`, 4 shapes   61 instructions
+ *   comparing the PARAMETER, `if (slot == -1)`, 4 shapes       61 instructions
+ * *** EVERY 61-INSTRUCTION ROW LOSES THE gcse PRE PSEUDO ENTIRELY *** -- both
+ * `mov r4,r0` and the second base copy vanish and the guard's branch polarity
+ * flips -- so "name the register value" is CONTRAINDICATED on this function, not
+ * merely inert.  The three 64-instruction rows cost one instruction, not the two
+ * the earlier note recorded.
+*/
 /* Func_801bcd4 -- PARK IMPROVED 16 -> 13 of 81, the park's CHAIN-ORDER claim
  * REFUTED, and the two runs shown to be ONE defect.  Batch 327 brief C.
  *

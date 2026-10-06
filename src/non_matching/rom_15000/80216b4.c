@@ -1,14 +1,16 @@
 /* Func_80216b4  --  0x080216b4   [rom_15000]
  *
- * NON-MATCHING, 12 of 24 encodings, 24 against 24, 52 bytes against 52,
- * 2 relocations identical.  (The park's figure was 14, also clean-reloc.)
+ * NON-MATCHING, 9 of 24 encodings, 24 against 24, 52 bytes against 52,
+ * 2 relocations identical.  (Earlier bodies of this park stood at fourteen and
+ * then at twelve differing; both of those numbers are dead -- see batch 330's
+ * section at the end for what moved.)
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_15000/80216b4.c \
  *     asm/rom_15000/rom_20198_c_c_c_a_a_c_a_a_c.s --func Func_80216b4
- *   (and --whole, which agrees: `XX Func_80216b4  12 of 24 differ (ours 24)`)
+ *   (and --whole, which agrees at the same figure)
  *
  * SPLIT SHAPE: none.  asm/rom_15000/rom_20198_c_c_c_a_a_c_a_a_c.s holds ONE
  * `.thumb_func_start` (Func_80216b4) and no data; `tools/datacheck.py` exits 0
@@ -50,8 +52,8 @@
  * park's attempt 2 -- "both loads through separate named locals, WORSE, 18 of
  * 22" -- was right about the symptom and wrong about the lesson: the cost is not
  * "naming subexpressions", it is giving the two halves a SHARED long-lived
- * local.  Re-measured on this layout, `x = a[8]; a[0x14] = x + tb[v];` is 14 and
- * a full `x`-accumulator form is 17.
+ * local.  Re-measured on that layout, `x = a[8]; a[0x14] = x + tb[v];` was worse by
+ * five and a full `x`-accumulator form worse by eight.
  *
  * HOW THE FIFTH CLOSED, AND THE ARITHMETIC IS EXACT.  With `m = 7` as a local,
  * `.17.lreg` gives `w` 3 refs across 24 insns and `m` 3 refs across 24 insns --
@@ -152,7 +154,113 @@
  * `ldrb`/`strb` widths and the offsets 8, 0x14 and 0 intact.  The plain struct
  * above is not that, because it folds the offsets; a struct whose 0x14 member is
  * reached through a cast that keeps the member type is the untried shape.
- */
+ 
+ * ===========================================================================
+ * BATCH 330 BRIEF D.  *** NINE of 24 now, device-free, counts and relocations
+ * still equal.  THE PARK'S OWN OPERAND-REVERSAL NEGATIVE IS REFUTED. ***
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/80216b4.c \
+ *     asm/rom_15000/rom_20198_c_c_c_a_a_c_a_a_c.s --whole
+ *   -> `XX Func_80216b4   9 of 24 differ (ours 24), first at index 7`
+ *   (--func Func_80216b4 agrees: 24 against 24 encodings, no SIZE line.)
+ *
+ * WHAT CLOSED, AND IT IS ONE CHARACTER PAIR: *** THE TWO HALVES WANT OPPOSITE
+ * OPERAND ORDERS. ***  The first half is `tb[v] + a[8]` and the second half is
+ * `a[8] + tb[v]`.  The standing header recorded "operand reversal, x6, worse"
+ * -- that measurement reversed BOTH halves (re-measured here: both reversed is
+ * eleven differing).  Reversing ONLY THE FIRST closes the first half's whole
+ * register rotation: the index pseudo moves off r2 onto r3, a[8] moves off r3
+ * onto r2, and the `ldr`/`lsr`/`and` triple that the park counted as three
+ * separate wrong encodings falls out together.  The two halves are NOT a
+ * symmetric pair and must never be edited as one.
+ *
+ *   >> THE GENERAL LESSON, for docs/elevation.md: when a body has two textually
+ *   >> identical statements, "vary the spelling" has to mean varying them
+ *   >> INDEPENDENTLY.  Six prior probes on this park varied them together,
+ *   >> which is a search over the diagonal of a square.  <<
+ *
+ * WHAT THE REMAINING NINE IS, PER INDEX
+ *   4  the two `ldrb`s inside each add, still swapped in BOTH halves
+ *      (the park's cause 3, unchanged)
+ *   1  `add r2,r3` against our `add r3,r2` in the FIRST half only -- the
+ *      accumulator is whichever operand is written first, so this one encoding
+ *      is in direct tension with the four above: the order that fixes the
+ *      register rotation names the table byte first, and the ROM's add
+ *      accumulates into a[8]'s register
+ *   4  the park's cause 4, the second global read against the first store
+ *
+ * ===========================================================================
+ * THE ALIAS ROUTE IS REAL AND THE PARK'S REASON FOR CLOSING IT IS WRONG
+ *
+ * The standing header says the alias route "is closed here, with its reason:
+ * both stores are BYTE stores through a `char`-typed lvalue ... so gcc gives
+ * them alias set 0".  The first half of that is right and the conclusion is
+ * wrong, because the lvalue's type is a SOURCE-LEVEL CHOICE.  The rule is
+ * `lang_get_alias_set`, c-common.c:3347-3352:
+ *
+ *     if (TREE_CODE_CLASS (TREE_CODE (t)) == 'r'
+ *         && TREE_CODE (TREE_TYPE (t)) == INTEGER_TYPE
+ *         && TYPE_PRECISION (TREE_TYPE (t)) == TYPE_PRECISION (char_type_node))
+ *       return 0;
+ *
+ * -- it tests the REFERENCE's type, and it requires INTEGER_TYPE.  A reference
+ * whose type is an eight-bit BIT-FIELD declared `unsigned int` is an
+ * INTEGER_TYPE of precision 32, so it escapes the test and gets its own
+ * non-null set while still emitting `ldrb`/`strb`.  Measured, as an INSTRUMENT:
+ * writing the store and the table read through two DISTINCT one-bit-field
+ * struct types takes the first-half-reversed body to FIVE differing, closing
+ * all four of the park's cause-3 encodings in both halves at once.
+ *
+ *   *** THAT FIVE IS A FIGURE ABOUT THE BLOCKER, NOT A PROPOSAL. ***  A byte
+ *   table indexed through `((struct T *)(tb + v))->c` is not source anyone
+ *   wrote; it is a device, and the shipped body above is the device-free one.
+ *   What the five proves is that cause 3 is EXACTLY the disambiguation the park
+ *   said it was, and that it is reachable if a genuine non-char type for either
+ *   end is ever found.
+ *
+ * AND THE TWO HALVES OF THAT INSTRUMENT ARE MUTUALLY DEPENDENT, which is the
+ * part worth keeping.  `true_dependence` (alias.c) is, in order:
+ *     if (MEM_VOLATILE_P (x) && MEM_VOLATILE_P (mem))  return 1;
+ *     if (DIFFERENT_ALIAS_SETS_P (x, mem))             return 0;
+ *     ... if (mem_mode == QImode || GET_CODE (mem_addr) == AND) return 1;
+ * so (a) a QImode store aliases EVERYTHING that reaches that late, which is the
+ * real reason a `strb` is so hard to disambiguate, and (b) the moment the store
+ * leaves alias set 0 the two reads of the global become provably independent of
+ * it and *** cse2 COMMONS THEM, dropping the body to sixteen instructions. ***
+ * Keeping two reads therefore needs a `volatile unsigned int *` for the global,
+ * which is why the instrument carries one.  On the device-free body `volatile`
+ * is EXACTLY INERT (nine, byte-identical), so it is not shipped.
+ *
+ * MEASURED THIS BATCH (all 24 against 24 instructions unless noted)
+ *   first half reversed, second half not                   ** 9 **  <- shipped
+ *   the same + `const` on the table and its pointer            9  (inert)
+ *   the same + `volatile unsigned int *w`                      9  (inert)
+ *   the same + the store through a one-bit-field struct        9  (inert)
+ *   the same + the store through `q = a + 0x14`                9  (inert)
+ *   the same + the table byte named in a local                 9  (inert)
+ *   BOTH halves reversed                                      11
+ *   neither half reversed (the standing body)                 12
+ *   `volatile unsigned int *w` alone                          12  (inert)
+ *   one-bit-field store + volatile global, neither reversed   12  (inert)
+ *   one-bit-field store alone, no volatile                    16 instructions,
+ *     the two global reads commoned -- COUNT, not a distance
+ *   one-bit-field store and table + volatile, not reversed    10
+ *   INSTRUMENT: the above + first half reversed                5
+ *   the table byte named, both halves                         17
+ *   the second global read moved above the first store        15
+ *
+ * NEXT, named: the one encoding at index 9.  The add accumulates into its
+ * FIRST operand's register, so the first half cannot have both the ROM's
+ * register rotation (which needs the table term written first) and the ROM's
+ * accumulator (which needs a[8] written first) from one `+` expression.  The
+ * untried shape is one that separates those two decisions -- an accumulator
+ * whose register is fixed before either load, or a first half whose index
+ * pseudo reaches r3 without being evaluated first.  Four probes that named the
+ * sum or the table byte in a local did not separate them.
+*/
 extern unsigned int iwram_3001800;
 extern unsigned char L37226[] __asm__(".L37226");
 
@@ -165,7 +273,7 @@ void Func_80216b4(unsigned char *a)
     w = &iwram_3001800;
     tb = L37226;
     v = (*w >> 2) & 7;
-    a[0x14] = a[8] + tb[v];
+    a[0x14] = tb[v] + a[8];
     a = *(unsigned char **)a;
     v = (*w >> 2) & 7;
     a[0x14] = a[8] + tb[v];

@@ -135,7 +135,76 @@
  * -- i.e. evidence that the ROM's packing statement is not this one statement.
  * Everything else in the function (36 of 36 instructions, both pool words, both
  * relocations, the divide idiom, both ORs, the loop and the prologue) is exact.
- */
+ 
+ * ===========================================================================
+ * BATCH 330 BRIEF D.  FIGURE RE-DERIVED AT TEN; IT HOLDS.  AND CAUSE B IS NOW
+ * BOUNDED FROM BOTH SIDES, WHICH CLOSES TWO ROUTES THIS PARK LEFT OPEN.
+ *
+ * *** THE ROM'S BLOCK 3 IS NEITHER CHAIN ORDER NOR PRIORITY ORDER. ***  That is
+ * the whole finding, and it is decisive because the two regimes available from C
+ * are exactly those two.
+ *
+ * SIDE ONE -- WITH sched2 (production flags), the block comes out in STRICTLY
+ * DESCENDING PRIORITY, verified against this park's own recorded priorities:
+ *   mov r2,r3 (6), lsl r1,r3,#1 (5), add r2,#0x10 (5), add r3,#0x14 (5),
+ *   lsl r3,#0xa (4), lsl r2,#5 (4), add r1,#0x16 (3), orr (3), orr (2),
+ *   add r5,#1 (2), strh (1), add r6,#2 (1).
+ * The ROM's order is `... orr / orr / strh / add r6,#2 / add r5,#1`, i.e. it puts
+ * the increment of the TESTED counter BELOW two priority-one insns.  `add r5,#1`
+ * feeds the `cbranchsi4` directly, so its priority cannot be less than two.
+ * ** The ROM's block 3 therefore cannot be the output of a priority-ordered list
+ * schedule at all, whatever the expression is spelled like. **  This is a
+ * stronger statement than the park's "there is no priority-6 spelling of `a`",
+ * and it does not depend on the OR structure.
+ *
+ * SIDE TWO -- WITHOUT sched2 the figure is FOUR, not the two-plus-four this park
+ * recorded, and the park's attribution of the residue is wrong.  Under
+ * `-fno-schedule-insns2` the WHOLE PREHEADER MATCHES (cause A does not regress;
+ * `g = &iwram_3001800;` already fixed it and the flag does not undo that).  The
+ * four are two adjacent swaps:
+ *   (i)  the loop top, `ldr r3,[r7,#0]` against `lsl r2,r5,#0x3`
+ *   (ii) `mov r2,r3` against `add r1,#0x16`
+ *
+ * AND (ii) IS PROVABLY UNREACHABLE IN THAT REGIME.  `mov r2,r3` is RELOAD'S COPY
+ * for the non-matching constraint on `*thumb_addsi3` -- `.19.flow2` of the best
+ * body shows it as a freshly numbered insn sitting IMMEDIATELY BEFORE the add it
+ * feeds, with the add's dependence list naming it:
+ *     (insn 148  (set (reg/v:SI 2 r2) (reg/v:SI 3 r3))     *thumb_movsi_insn
+ *     (insn  63  (set (reg/v:SI 2 r2) (plus (reg 2) (const_int 16)))  *thumb_addsi3
+ *     (insn  66  (set (reg/v:SI 1 r1) (plus (reg 1) (const_int 22)))
+ * Reload emits that copy directly before its insn and nothing between reload and
+ * the assembler moves it, so insn 66 can only get BETWEEN 148 and 63 if sched2
+ * runs.  The ROM has it between them.
+ *
+ *   >> SO THE ROM NEEDS sched2 TO SPLIT THE RELOAD PAIR AND NOT TO SORT THE
+ *   >> REST, AND NO FLAG OFFERS THAT.  Both standing routes are closed: this
+ *   >> file must NOT be proposed for the SCHED2_CFLAGS group (the flag leaves
+ *   >> four, and a flag group that does not reach zero buys nothing), and no
+ *   >> amount of further term respelling can reach it either. <<
+ *
+ * MEASURED THIS BATCH, 24 crossed variants (four spellings of the `sin`
+ * argument x six term-statement shapes), every row under the flag, ref 36
+ * encodings / 32 instructions:
+ *   `(*g + i * 8)` or `(*g + (i << 3))`, crossed with
+ *     {a-then-b; a=t*2,b=t,a+=,b+=; a=t*2,b=t+0x10,a+=; b=t,a=t*2+0x16,b+=}
+ *                                            FOUR, every one of the eight
+ *   the same spellings x {c first; c in the middle}      ten and twelve
+ *   `(i * 8 + *g)` crossed with all six                  seven, then thirteen/fifteen
+ *   `t = *g;` named as its own statement x all six       the load leaves the loop:
+ *       one instruction more than the reference, relocations shift -- COUNT, so
+ *       none of those six is a distance
+ * The term-statement shape MOVES WHICH PAIR is swapped without changing the
+ * count: `a = t*2; b = t + 0x10; a += 0x16;` puts `mov r2,r3` in the ROM's place
+ * and leaves `add r1,#0x16` against `add r2,#0x10` instead.  Four either way.
+ *
+ * WHAT IS LEFT, honestly stated: nothing source-reachable that this batch can
+ * name.  The function is 36 of 36 instructions, both pool words, both
+ * relocations, the divide idiom, both ORs, the loop and the prologue exact, and
+ * the residue is one scheduler decision that neither of gcc's two available
+ * orders produces.  The next real move is evidence that the ROM's loop body is
+ * not this one statement -- e.g. a `b` term whose add fits a three-operand
+ * `add rd,rn,#imm3` so that reload needs no copy and there is no pair to split.
+*/
 extern int iwram_3001800;
 extern int sin(int a);
 
