@@ -15,18 +15,30 @@
  * clean, so the split is text-only and needs NO `.global`.  Func_80a7440 stays
  * in asm/.
  *
- * SHIMS: 4 register pins, all inside the local DMA3_COPY16_RW helper -- the
- * fakematch class.  The helper is VERBATIM from the landed
- * src/rom_a1000/rom_a1814_c_a_a_c_a_c_a_c_c_b.c, whose own note says "Promote it
- * if a second function needs it".  THIS IS THAT SECOND FUNCTION, so the better
- * landing is to move DMA3_COPY16_RW into include/dma.h (the pins then live in the
- * shared header, exactly as they already do for the other six helpers, and this
- * file becomes pin-free).  If it stays local it needs a fakematch.txt row.
- * Do NOT reach for `"r0","r2"` clobbers instead: that names INPUT registers as
- * clobbered, which the tree has twice declined as undefined.  Measured here:
- * the `"+l"` form and the illegal clobber form score IDENTICALLY (178/243, 209
- * aligned), so there is no reason to prefer the illegal one.
+ * SHIMS: NONE.  shimcount reports ZERO register pins, and no fakematch.txt row
+ * is needed.
  *
+ * CORRECTED, batch 329.  This paragraph used to assert a count of FOUR pins
+ * inside a local DMA3_COPY16_RW helper and call it the fakematch class, and
+ * then RECOMMENDED moving that helper into include/dma.h so the file would
+ * become pin-free.  (The dead count is spelled in words deliberately: written
+ * as digits it is still matched by tools/pinclaims.py, and quoting a dead
+ * number in a live format re-creates the claim -- which this correction's own
+ * first draft did.)  **That was done in batch 299** -- see the note at the top of the
+ * body, "DMA3_COPY16_RW now comes from include/dma.h -- PROMOTED in batch 299".
+ * The recommendation stood in the present tense for thirty batches after being
+ * carried out, next to a pin count that the promotion had already zeroed.
+ *
+ * Same shape as the proposal-prose trap in docs/elevation.md: **a header that
+ * recommends an action is stale the moment the action is taken.**  And nothing
+ * re-measures a pin count -- parkcheck re-measures the FIGURE with objcmp on
+ * every run and never looks at pins.  `tools/pinclaims.py` is the check.
+ *
+ * The advice that is still live, because it is about what NOT to do: do not
+ * reach for `"r0","r2"` clobbers instead of the pins -- that names INPUT
+ * registers as clobbered, which the tree has twice declined as undefined.
+ * Measured here: the `"+l"` form and the illegal clobber form score IDENTICALLY
+ * (178/243, 209 aligned), so there is no reason to prefer the illegal one.
  * WHAT THE HELPER BUYS.  With the shared DMA3_COPY16, gcc believes the `stmia`
  * leaves r0 and r2 intact, so reload_cse_move2add derives the later transfers'
  * source and count (`sub r0,#56 / sub r2,#15`) where the ROM reloads both from

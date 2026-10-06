@@ -40,11 +40,25 @@
  * exactly ONE function and tools/datacheck.py is silent -- it CONVERTS WHOLE,
  * no split_s.py, no code/data cut.
  *
- * shimcount.py: 4 register pins (the two `register ... __asm__` operands inside
- * the call_via helper, plus one `register unsigned char *g __asm__("r1")` per
- * cell block).  Plus one `__asm__ volatile ("" : : "r" (t))` barrier at cell
- * site 1, which is LOAD-BEARING (removing it measures 16).  A fakematch.txt row
- * is due AT LANDING, not now.
+ * shimcount.py: 5 register pins -- :331 `_a __asm__("r0")` and :332
+ * `_b __asm__("r1")` in the call_via helper, :402 `g __asm__("r1")` in cell
+ * block 1, :406 `q2 __asm__("r2")`, and :408 `g __asm__("r1")` in cell block 2.
+ * Plus one `__asm__ volatile ("" : : "r" (t))` barrier at cell site 1, which is
+ * LOAD-BEARING (removing it measures 16).  A fakematch.txt row is due AT
+ * LANDING, not now.
+ *
+ * CORRECTED, batch 329.  This paragraph said "shimcount.py: 4 register pins"
+ * and enumerated only four -- it omitted the `q2 __asm__("r2")` pin that this
+ * header itself introduces further up, under "now { register int *q2
+ * __asm__("r2"); q2 = p;".  The park added a pin and never updated its own
+ * count, while still citing the tool by name.
+ *
+ * SO: A HEADER THAT QUOTES `shimcount.py: N` IS A CACHED NUMBER, AND NOTHING
+ * RE-MEASURES IT.  parkcheck re-measures the FIGURE with objcmp on every run;
+ * it does not check a pin count, so a stale one survives indefinitely while
+ * reading as authoritative because it names the tool.  docs/directory/ is NOT
+ * affected -- it calls shimcount itself and already listed 5.  **Quote a pin
+ * count only with the line numbers, so the next reader can count them.**
  *
  * ============================================================
  * THE VENEER IS IRRELEVANT TO THIS PARK.  IT IS ALREADY BYTE-EXACT.

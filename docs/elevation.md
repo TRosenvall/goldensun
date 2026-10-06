@@ -34540,6 +34540,54 @@ label the paragraph dead in its first line — not its last.
 the header is honest. **When a park's prose and its first claim disagree, the
 claim wins and the prose is the bug.**
 
+### The seventh instance is a PIN COUNT, and it needed a new tool
+
+`parkcheck` re-measures a park's **figure** with `objcmp` on every run, so a
+stale figure cannot survive. **Nothing re-measures a pin count.** A sentence
+like *"shimcount.py: 4 register pins"* is a cached number that reads as
+authoritative precisely because it names the tool, and it goes stale the moment
+the body gains or loses a pin. `tools/pinclaims.py` is now the check; across 40
+headers stating a count it found three genuinely stale:
+
+- **`ovl_7ac2d8/200d5c0.c`** said four and enumerated four, having itself
+  introduced a fifth (`q2 __asm__("r2")`) *further up the same header*.
+- **`ovl_7e7574/200cda0.c`** said `5x PIN3`; the body now uses `PIN2` four times
+  and `PIN1` once. The macros changed and the count did not.
+- **`rom_a1000/80a7478.c`** asserted pins inside a local helper **and
+  recommended promoting that helper to `include/dma.h` to become pin-free** —
+  which was done in **batch 299**. The recommendation stood in the present tense
+  for thirty batches after being carried out. *A header that recommends an
+  action is stale the moment the action is taken* — the same shape as the
+  proposal-prose trap above.
+
+`docs/directory/` was never wrong about any of them, because it calls
+`shimcount` itself. **Only prose drifts, which bounds the damage to
+documentation and never to the match.**
+
+### Two lessons from writing the checker, both the trap itself
+
+1. **The first pattern was `(\d+)\s+register pins`**, which matched the `2` in
+   *"the r3/r2 register pins"* and the `3` in *"the p0..p3 register pins"* — the
+   digit of a **register name**. It reported two landed files as understating
+   their pins when neither did. A screening tool reading prose as machinery, for
+   the second time in two batches.
+2. **Quoting a dead number in a live format re-creates the claim.** The fix to
+   `80a7478.c` wrote *"used to read \"4 register pins\""* and the checker
+   matched it again. Dead counts are now spelled in **words**.
+
+> **So the writing rule has a second half.** It is not enough to label a dead
+> figure dead; it must also be unparseable. **Spell a superseded number in
+> words, or leave it out.**
+
+### A mismatch is not automatically a bug — read the sentence
+
+Two headers state counts that are deliberately not their own, and both are good
+writing: `2009818.c` records a body that is byte-exact **at two pins** and is
+parked pin-free per owner policy, and `ovl_30_a_a_a_c_c.c` tabulates a 3-pin and
+a 0-pin alternative, both exact, and ships the pin-free one. `pinclaims.py`
+carries these as `EXPECTED` **with the reason attached**, because an entry
+without a reason is indistinguishable from a silenced bug.
+
 ### And the rule for installing a port
 
 **When a port is installed, rewrite its proposal prose into the past tense.** A

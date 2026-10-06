@@ -9,8 +9,17 @@
  *       asm/overlays/rom_7e7574/ovl_9dc_c_c_c_a_a_c_a_a.s --func OvlFunc_959_200cda0
  *
  * 19 IS A TRUE DISTANCE: size exact (448 bytes) and instruction count exact
- * (184 == 184).  SHIMS: 15 register pins (5x PIN3) plus 3 "+r" barriers, so a
- * landing needs a fakematch.txt row.  datacheck is silent; the split needs no
+ * (184 == 184).  SHIMS: 9 register pins (PIN2 x4 + PIN1 x1, which is what
+ * shimcount reports: `9  via PIN2, PIN2, PIN2, PIN1, PIN2`) plus 3 "+r"
+ * barriers, so a
+ * landing needs a fakematch.txt row.
+ *
+ * CORRECTED, batch 329.  That line read "15 register pins (5x PIN3)".  The body
+ * now uses PIN2 four times and PIN1 once -- the macros changed and the count
+ * did not.  Nothing re-measures a pin count: parkcheck re-measures the FIGURE
+ * with objcmp on every run and never looks at pins, so a stale one survives
+ * indefinitely while reading as authoritative.  `tools/pinclaims.py` is the
+ * check; docs/directory/ was never wrong because it calls shimcount itself.  datacheck is silent; the split needs no
  * export.
  *
  * The only relocation asymmetry is our four R_ARM_ABS32 against _AREA_a0..a3, and
