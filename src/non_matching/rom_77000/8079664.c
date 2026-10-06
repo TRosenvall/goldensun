@@ -1,4 +1,4 @@
-/* Func_8079664 -- asm/rom_77000/rom_79460_c_a_a_a.s
+/* Func_8079664 -- asm/rom_77000/rom_79460_c_a_a_a_c.s
  *
  * NON-MATCHING, 14 of 44 encodings  (MEASURED, batch 332 D).
  *   SIZE EXACT: 96 bytes both sides, 44 encodings both sides, 39 instructions
@@ -10,7 +10,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_77000/8079664.c \
- *     asm/rom_77000/rom_79460_c_a_a_a.s --func Func_8079664
+ *     asm/rom_77000/rom_79460_c_a_a_a_c.s --func Func_8079664
  *
  * NOTE ON THE REFERENCE PATH.  The recipe above names the piece as it stands
  * BEFORE batch 332's install.  This park's piece-mate AddPartyMember LANDED in

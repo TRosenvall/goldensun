@@ -34747,3 +34747,58 @@ park's own prose.
 > **When a park names another function — twin, module-mate, piece-mate, "same
 > construct as" — READ THAT FUNCTION'S LANDED SOURCE before measuring anything.**
 > It costs one `cat`. Seven times now the answer has been sitting in it.
+
+## IN THUMB, `local-alloc` CAN NEVER HAND OUT r7 — ONLY `global-alloc` CAN
+
+`HARD_FRAME_POINTER_REGNUM` is **r7** on Thumb (`arm.h:898-899`:
+`THUMB_HARD_FRAME_POINTER_REGNUM 7`, selected by `TARGET_ARM ? 11 : 7`), and
+`local-alloc.c:1978-1990` puts every eliminable's `from` register into its
+`used` set — plus `HARD_FRAME_POINTER_REGNUM` itself, because
+`FRAME_POINTER_REGNUM != HARD_FRAME_POINTER_REGNUM`. The comment says why:
+
+> *"Don't use the frame pointer reg in local-alloc even if we may omit the frame
+> pointer, because if we do that and then we need a frame pointer, reload won't
+> know how to move the pseudo to another hard reg. **It can move only regs made
+> by global-alloc.**"*
+
+**r7 is not reserved** — 1,010 generated `.s` files in this tree push it. It is
+simply **unreachable from the local allocator.**
+
+### What that buys you as a screen
+
+> **Wherever the ROM holds a value in r7 and we do not, the question is not
+> "what spelling asks for r7". It is "does that value cross a basic-block
+> boundary", because only a GLOBAL allocno can be given r7.**
+
+A block-local quantity cannot get r7 no matter how it is spelled, how many
+references it has, or where it is declared. So the lever is the live range's
+*extent*, not its name — and a park whose residue is "the ROM uses a high
+register here" has a one-line triage: check whether our pseudo is in
+`.18.greg`'s allocno list at all. If it is absent it is block-local, and every
+spelling-level probe is wasted.
+
+This closed one instruction on `YesNoMenu2` in batch 332, and it **refutes the
+standing verdict in `src/non_matching/rom_15000/8028df4.c`** — *"nothing in the
+source chooses which of five live ranges gets the high register"* — which should
+be re-attacked with it. That park is the neighbour of the one that found this.
+
+### Related: the comparison expanders are ARM-only
+
+While proving the above, batch 332 brief C established that **in Thumb a
+comparison can never be materialised by the comparison expander at all**: `sne`
+(`arm.md:5581`) and `abssi2` (`arm.md:2663`) are both `TARGET_ARM`, so
+`genopinit.c:231`'s guard leaves those optabs empty and `do_store_flag` always
+returns 0. A boolean therefore comes from one of two other places:
+
+- **`expr.c:7720-7738`** intercepts `foo != 0` directly — *"load foo, and if it
+  is nonzero load 1 instead"* — which is what `return r != 0;` reaches;
+- **`expr.c:7745-7765`**, the `TRUTH_ANDIF` fallback, which is what
+  `ok = 0; if (r != 0) ok = 1; return ok;` reaches instead, and which then lets
+  `ifcvt.c:544` fold it into the ROM's `neg`/`orr`/`lsr` shape
+  (`expmed.c:4500-4515`).
+
+**So the two spellings of "is it nonzero" take different paths through the
+expander and produce different instructions.** That was the second of three
+levers on a batch-332 landing, and the park's open question — *"what makes gcc
+materialise a boolean instead of branching when the other arm is a constant"* —
+had nothing to do with the other arm.
