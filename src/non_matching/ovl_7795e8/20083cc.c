@@ -10,7 +10,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/ovl_7795e8/20083cc.c \
- *     asm/overlays/rom_7795e8/ovl_30_c_c_a_a_c_c.s --func OvlFunc_880_20083cc
+ *     asm/overlays/rom_7795e8/ovl_30_c_c_a_a_c_c_c.s --func OvlFunc_880_20083cc
  *
  * ================================================================
  * THE TRIAGE SAID "FRAME: NONE".  THE FRAME IS 548 BYTES WITH SIX STACK
@@ -76,7 +76,7 @@
  * one) and NO data section: `python3 tools/datacheck.py` on the reference is
  * SILENT, and `python3 tools/shimcount.py` reports no shims.  A plain two-way
  * text split, no exports needed.  `python3 tools/split_s.py
- * asm/overlays/rom_7795e8/ovl_30_c_c_a_a_c_c.s OvlFunc_880_20083cc --dry-run`
+ * asm/overlays/rom_7795e8/ovl_30_c_c_a_a_c_c_c.s OvlFunc_880_20083cc --dry-run`
  * (quoted, NOT run destructively) reports:
  *
  *     [dry-run] would write ..._a.s  (1 function(s), 40 lines)
