@@ -15865,10 +15865,38 @@ where the C plainly said `x - 12`. Likewise `x + 12` gets the two-address
 
 ## `do { } while (0)` IS A SCHEDULING BARRIER
 
-READ from `haifa-sched.c`, `sched_analyze_insn` (~line 3714): if any
-`NOTE_INSN_LOOP_BEG`, `LOOP_END`, `EH_REGION` or `SETJMP` note was collected
-before an insn, `schedule_barrier_found` fires and that insn gets a
-`REG_DEP_ANTI` on **every** prior register use and set.
+READ from `haifa-sched.c`, `sched_analyze_insn`: if any `NOTE_INSN_LOOP_BEG`,
+`LOOP_END`, either `EH_REGION` note or `SETJMP` was collected before an insn
+(`:3714` the branch, `:3727-3731` the five arming notes — a RANGE note
+deliberately does **not** arm it), `schedule_barrier_found` fires and the insn
+is given a dependence on every prior insn touching any register.
+
+**The two kinds are NOT the same, and this section said they were until batch
+329.** It read *"a `REG_DEP_ANTI` on every prior register use and set"*:
+
+| line | list | dependence type |
+|---|---|---|
+| `:3744` | `reg_last_uses[i]` | `REG_DEP_ANTI` |
+| `:3748` | `reg_last_sets[i]` | **`0` — the TRUE dependence** |
+| `:3751` | `reg_last_clobbers[i]` | **`0` — the TRUE dependence** |
+
+(`add_dependence` takes the type as `dep_type` and `:884` tests
+`(int) dep_type == 0` against the *true* dependency cache; `arm_adjust_cost`
+tests `REG_NOTE_KIND (link) == 0` for the same thing.)
+
+Then `:3754` sets `reg_pending_sets_all`, `:3756` `flush_pending_lists` clears
+the **memory** lists too, and `:3780-3789` makes this insn `reg_last_sets[i]`
+**for every register `i`** — which is why the next register write anywhere takes
+a `REG_DEP_OUTPUT` against the anchor.
+
+**Why the distinction is worth a table.** `arm_adjust_cost` (`arm.c:2425`)
+returns **0 for anti and output** but passes the real latency through for a true
+dependence. So the anchor's ANTI edges to prior *uses* are free, while its TRUE
+edges to prior *setters and clobberers* carry real cost — the difference between
+*"the anchor cannot move"* and *"the anchor's producers are pinned underneath
+it"*. It also connects to `rank_for_schedule`'s rung 4
+(`haifa-sched.c:4069-4096`): a true dependence with latency != 1 drops its
+consumer to class 1, and an anti dependence never can.
 
 So a macro body wrapped in `do { } while (0)` — this tree's `SET_IO` and
 `SET_PALETTE` — **totally orders the block at that point without emitting a
@@ -15880,11 +15908,12 @@ first.
 ### *Amended, batch 329.* IT DOES NOT RE-REGION. IT PLANTS AN ANCHOR.
 
 This section used to say the wrapper *"splits one basic block into two
-scheduling regions"*. It does not, and the mechanism quoted immediately above
-already says why: the note gives the following insn a `REG_DEP_ANTI` on every
-prior use and set, which is a **total order through one point inside one
-block** — not a block boundary. Every `.23.sched2` dump of a wrapped body shows
-the anchor *inside* a single region.
+scheduling regions"*. It does not, and the mechanism tabulated immediately above
+says why: the note gives the following insn a dependence on every prior insn
+touching a register — anti on uses, **true** on setters and clobberers — which
+is a **total order through one point inside one block**, not a block boundary.
+Every `.23.sched2` dump of a wrapped body shows the anchor *inside* a single
+region.
 
 Two consequences, both measured in batch 329 brief F:
 

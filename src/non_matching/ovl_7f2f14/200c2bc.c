@@ -156,9 +156,15 @@
  *
  * A `do { } while (0)` does NOT split a basic block in sched2.  It plants a
  * reg_pending_sets_all TOTAL-ORDER ANCHOR: the first insn after its two loop
- * notes takes an anti-dependence on every prior insn and becomes the recorded
- * last setter of EVERY register, so the next register write takes an output
- * dependence on IT.  Here that is the wrong direction both ways -- an anchor at
+ * notes is the one sched_analyze_insn then treats it as a scheduling barrier
+ * (haifa-sched.c:3714 onward, CONFIRMED IN THE COMPILER SOURCE): at :3744 it
+ * gets a REG_DEP_ANTI on every reg_last_uses entry, at :3748 and :3751 a
+ * dependence of type 0 -- REG_DEP_TRUE, NOT anti -- on every reg_last_sets and
+ * reg_last_clobbers entry, at :3756 flush_pending_lists also clears the memory
+ * lists, and at :3754 reg_pending_sets_all is set.  Then :3780-3789 assigns
+ * reg_last_sets[i] = this insn FOR EVERY REGISTER i, which is exactly why the
+ * next insn to write any register takes a REG_DEP_OUTPUT on it.
+ * Here that is the wrong direction both ways -- an anchor at
  * `acc = 0` forces the hoist after it, and an anchor after `acc = 0` IS the
  * hoist and forces it after both inits.  For the hoist to issue before
  * `mov fp,r2` it needs the LOWER LUID, and sched2 has no instrument that

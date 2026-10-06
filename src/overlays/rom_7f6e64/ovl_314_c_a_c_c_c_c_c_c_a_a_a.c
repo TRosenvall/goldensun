@@ -31,13 +31,17 @@
  * 79 sets r3 and 110 sets r1, so that REG_DEP_OUTPUT is not a register
  * conflict.  It is the barrier: the two NOTE_INSN_LOOP_BEG / LOOP_END notes a
  * `do { } while (0)` plants are collected as `loop_notes` and attached to the
- * FIRST insn after them, and sched_analyze_insn then gives that insn an
- * anti-dependence on every prior insn -- insn 79's LOG_LINKS list is 23 entries
- * long, the whole block -- AND sets reg_pending_sets_all, which records it as
- * the last setter of EVERY register.  The next insn to write any register
- * therefore takes an output dependence on it.  That insn was the
- * reload-created constant.  So the barrier is a TOTAL order in BOTH
- * directions, and with it sitting before the tail the ldrh became the wall the
+ * FIRST insn after them, and sched_analyze_insn then treats it as a scheduling barrier
+ * (haifa-sched.c:3714 onward, CONFIRMED IN THE COMPILER SOURCE): at :3744 it
+ * gets a REG_DEP_ANTI on every reg_last_uses entry, at :3748 and :3751 a
+ * dependence of type 0 -- REG_DEP_TRUE, NOT anti -- on every reg_last_sets and
+ * reg_last_clobbers entry, at :3756 flush_pending_lists also clears the memory
+ * lists, and at :3754 reg_pending_sets_all is set.  Then :3780-3789 assigns
+ * reg_last_sets[i] = this insn FOR EVERY REGISTER i, which is exactly why the
+ * next insn to write any register takes a REG_DEP_OUTPUT on it.
+ * Insn 79's LOG_LINKS list is 23 entries long -- the whole block -- and the
+ * insn that wrote next was the reload-created constant.  So the barrier is a
+ * TOTAL order in BOTH directions, and with it sitting before the tail the ldrh became the wall the
  * constant could never cross.
  *
  * This also answers the half the park reported as not established -- why insn

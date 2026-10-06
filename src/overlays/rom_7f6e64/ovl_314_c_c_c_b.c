@@ -35,10 +35,17 @@
  *
  * A `do { } while (0)` plants NOTE_INSN_LOOP_BEG and NOTE_INSN_LOOP_END, and
  * sched_analyze collects those as `loop_notes` and hands them to the FIRST insn
- * after them.  sched_analyze_insn then gives that insn an anti-dependence on
- * every prior insn and sets reg_pending_sets_all, which records it as the last
- * setter of EVERY register -- so the next insn to write any register takes an
- * output dependence on it.  With the barrier sitting before the tail, the
+ * after them.  sched_analyze_insn then treats it as a scheduling barrier
+ * (haifa-sched.c:3714 onward, CONFIRMED IN THE COMPILER SOURCE): at :3744 it
+ * gets a REG_DEP_ANTI on every reg_last_uses entry, at :3748 and :3751 a
+ * dependence of type 0 -- REG_DEP_TRUE, NOT anti -- on every reg_last_sets and
+ * reg_last_clobbers entry, at :3756 flush_pending_lists also clears the memory
+ * lists, and at :3754 reg_pending_sets_all is set.  Then :3780-3789 assigns
+ * reg_last_sets[i] = this insn FOR EVERY REGISTER i, which is exactly why the
+ * next insn to write any register takes a REG_DEP_OUTPUT on it.
+ * (Only LOOP_BEG, LOOP_END, the two EH_REGION notes and SETJMP arm this, per
+ * the scan at :3727-3731; a RANGE note deliberately does not.)  With the
+ * barrier sitting before the tail, the
  * anchor was the ldrh and the reload-created constant was nailed behind it by a
  * hard dependence edge.  Measured on the twin: the barrier one statement
  * earlier reads 0, and removed entirely reads 8.

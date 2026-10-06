@@ -115,8 +115,15 @@
  * to 198" with the anchor at insn 94 inside it, and on OvlFunc_969_200b600 the
  * whole function is "basic block 0 from 92 to 114" with both loop notes inside.
  * What the idiom plants is a reg_pending_sets_all TOTAL-ORDER ANCHOR: the first
- * insn after the notes gets an anti-dependence on every prior insn and becomes
- * the recorded last setter of every register.  That is why the same idiom
+ * insn after the notes is the one sched_analyze_insn then treats it as a scheduling barrier
+ * (haifa-sched.c:3714 onward, CONFIRMED IN THE COMPILER SOURCE): at :3744 it
+ * gets a REG_DEP_ANTI on every reg_last_uses entry, at :3748 and :3751 a
+ * dependence of type 0 -- REG_DEP_TRUE, NOT anti -- on every reg_last_sets and
+ * reg_last_clobbers entry, at :3756 flush_pending_lists also clears the memory
+ * lists, and at :3754 reg_pending_sets_all is set.  Then :3780-3789 assigns
+ * reg_last_sets[i] = this insn FOR EVERY REGISTER i, which is exactly why the
+ * next insn to write any register takes a REG_DEP_OUTPUT on it.
+ * That is why the same idiom
  * LANDED OvlFunc_969_200b600 and OvlFunc_969_200db90 this batch (where only the
  * anchor's POSITION mattered) and cannot touch this function (which needs the
  * region to end).  Treat "barrier" and "basic-block boundary" as two different
