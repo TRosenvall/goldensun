@@ -88,6 +88,74 @@
  * The body below is the best STANDALONE body -- everything except the nested
  * prologue and epilogue -- so it is the right starting point for step 2b, not
  * something to install.
+ *
+ * ========== BATCH 331 BRIEF C: STEP 2b IS DOWN TO ONE ENCODING ==========
+ *
+ * RE-CONFIRMED, not inherited.  The figure above is a MISALIGNMENT and stays
+ * the park's claim because it is what the pin-free body measures: reference
+ * eighteen instructions against ours thirteen, so there is no distance to
+ * state.  DO NOT replace it with an aligned number -- parkcheck compares the
+ * first claim against the same objcmp line, and an aligned figure there reads
+ * as the park lying about its own body.  For ranking, the ALIGNED residue of
+ * the pin-free body is SEVEN insert/delete/replace in FOUR hunks,
+ * aligned-equal FOURTEEN of TWENTY, seventy per cent (tools/aligncmp.py), and
+ * every one of those seven is the static chain:
+ *     the save            mov r5, r9 / push {r5}        missing, two
+ *     the chain read      mov r3, r9 / str r3, [sp, #4] against our one
+ *                                                       str r3, [r5, #4]
+ *     the restore         pop {r3} / mov r9, r3         missing, two
+ *     our trailing two-byte pad                         one
+ * The eight-instruction run from `mov r0, r5` through the second call, and the
+ * three after the restore, are already exact.
+ *
+ * *** STEP 2b DOES NOT NEED THE ARTIFICIAL PARENT, AND IT IS NOT FOUR
+ * *** INSTRUCTIONS AWAY.  IT IS ONE ENCODING AWAY.
+ *
+ * A DEVICE -- `register int chain __asm__("r9");` read once into the object's
+ * +4 word -- makes a STANDALONE body emit the whole r9 save and restore and
+ * reach ONE differing encoding of TWENTY, with the instruction counts equal at
+ * eighteen and eighteen and the relocations identical.  That is an INSTRUMENT,
+ * not a result: it is a register pin and must not ship, and the function is
+ * still a nested function that has to be elevated inside its parent.  But it
+ * retires two things the old park believed:
+ *
+ *   - "no standalone body can emit the r9 save at all" is false as stated.
+ *     What emits the save is r9 appearing in `regs_ever_live`; r9 is
+ *     call-saved, so the prologue saves it and the epilogue restores it, and a
+ *     hard-register declaration is enough to put it there.  The NESTED form is
+ *     still required for the real elevation -- the chain has to be a chain --
+ *     but the prologue and epilogue are NOT the obstacle any more.
+ *   - the "four surplus instructions, all from the chain being materialised
+ *     into a stack slot" are an artefact of the artificial parent ONLY.  With
+ *     the chain read directly there is no spill and no surplus at all.
+ *
+ * THE ONE REMAINING ENCODING, with its mechanism.  The reference stores the
+ * chain with `str r3, [sp, #4]` and we store it with `str r3, [r5, #4]`; both
+ * are correct, since r5 holds sp, so this is a base-register choice and
+ * nothing else.  Read out of the dumps: at `.00.rtl` gcc holds the eight-byte
+ * object in a DImode pseudo and emits `(set (reg) (addressof ...))` TWICE --
+ * once for the member store and once for the named pointer -- and `.03.cse`
+ * commons the two, after which they coalesce into one hard register, so the
+ * member store inherits the pointer's base.  The reference's store is a plain
+ * frame reference that was never commoned with the pointer.
+ *
+ * MEASURED INERT ON THAT ONE ENCODING, all still reading one of twenty:
+ * writing the word store as `s.b` instead of `p->b`; moving `p = &s` after the
+ * word store; declaring the member `volatile`; a bare `__asm__ volatile ("")`
+ * between them; the full cse-barrier form `__asm__ volatile ("" : : "r"(p))`
+ * after the pointer is formed; and three attempts to force the object out of
+ * its DImode pseudo into a stack slot from the start -- a one-element array of
+ * the struct, a two-element `int` array cast to it, and a union of the struct
+ * with a two-word array.  So the DImode-pseudo dimension is CLOSED for this
+ * encoding, and so is the asm-barrier dimension.  What is left to vary is the
+ * order in which the two `addressof` pseudos are CREATED, which is the next
+ * thing to try, and it is probably easier to vary inside the real nested
+ * parent than out here.
+ *
+ * MEASURED WORSE: reading the chain into the object via a named
+ * `unsigned short *` for the halfword instead of the struct pointer is
+ * twenty-two instructions of eighteen and brings back the pool word the old
+ * park warns about above.
  */
 struct S { unsigned short a; unsigned short pad; int b; };
 

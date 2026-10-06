@@ -84,7 +84,7 @@
  * `void *GetUnit(unsigned int id)` (src/rom_77000/rom_77320_a_a_c_c_a_b.c) and
  * GiveDjinni's is `int GiveDjinni(int id, int elem, int bit)`
  * (src/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_a_b.c); Func_807a458 really does
- * take three arguments (asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_c_a_a.s,
+ * take three arguments (asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_a_c_a_a.s,
  * r0/r1/r2 all copied on entry).  The park's int-returning declarations for
  * GiveDjinni and Func_807a458 are load-bearing for the argument fill order and
  * are kept.
@@ -212,6 +212,110 @@
  * park already says.  Neither the reload cursor nor `REG_ALLOC_ORDER` is the
  * place to look here; `allocno_compare`'s ordering is, and the corrections
  * above are to that.
+
+ * ===========================================================================
+ * BATCH 331.  THE PARK SURVIVES AT ITS STATED FIGURE, RE-MEASURED.  ONE OF ITS
+ * STRUCTURAL CLAIMS IS REFUTED BY EXPERIMENT, AND THE CHAIN ORDER IT WANTS IS
+ * NOW TRACED TO ITS LINE IN loop.c -- WHERE IT TURNS OUT NOT TO BE THE LEVER.
+ *
+ * RE-MEASURED: unchanged.  "ENCODINGS differ in 7 place(s) (ref 88, ours 88)
+ * [STREAM length ...; instructions are 79/79]", first at index 32, SIZE equal,
+ * no RELOCATIONS line.  Everything the park reproduced reproduces.  The residue
+ * is a clean two-register rotation and nothing else: dumped against the
+ * reference instruction-by-instruction, the only differing lines are the two
+ * preheader inits (swapped), the two cursor reads, and the three loop-tail
+ * insns -- `sub`, `add`, `cmp` -- with r5 and r6 exchanged throughout.
+ *
+ * REFUTED -- "(A) AND THE REGISTER SWAP ARE ONE PHENOMENON, SO (A) IS NOT
+ * SEPARATELY PURCHASABLE."  They are TWO phenomena that merely correlate in the
+ * two streams the park had.  Compiled with the post-reload scheduler suppressed
+ * as an INSTRUMENT (tryc's own screen switch for it; no flag group is proposed
+ * and none is needed), the emitted order changes and THE REGISTERS DO NOT: the
+ * counter init moves two slots earlier, landing immediately after the gState
+ * pool load and ahead of both constant-building insns, while the counter stays
+ * in r6 and the cursor stays in r5.  So the emitted order is the post-reload
+ * scheduler's and the registers are global-alloc's, decided passes earlier.
+ * The park's own inference from "in BOTH streams the init that comes FIRST in
+ * the chain takes r6" was drawn from a sample of two and is not causal.
+ *
+ * AND THE CORRECTED ARITHMETIC CLOSES (A) FROM THE OTHER SIDE, so this is a
+ * tightening of the park rather than a new opening.  Take the park's own
+ * correction 1 (weighted counts nine for the cursor, seven for the counter, so
+ * the numerators are twenty-seven and fourteen) and flip the chain order, i.e.
+ * make the cursor's live range the longer one by two: the condition for the
+ * counter to be allocated first becomes 14/L > 27/(L + 2), i.e. L < 2.2, where
+ * L is about thirty.  The chain order is worth nothing on its own.  Only the
+ * WEIGHTED REFERENCE COUNTS can move this, exactly as the park says.
+ *
+ * WHY THE CHAIN ORDER IS WHAT IT IS, with the lines, because the next reader
+ * should not have to find this again.  Both preheader inits are emitted by one
+ * pass of `strength_reduce`, both with `emit_insn_before (..., loop_start)`,
+ * which inserts immediately ahead of the loop -- so WHICHEVER IS EMITTED LATER
+ * ENDS UP LATER IN THE CHAIN.  `check_dbra_loop` is called at loop.c:4408 and
+ * emits the down-counter init itself (loop.c:8153-8155 for the
+ * `initial_value == const0_rtx`, non-constant-comparison case, and :8168-8174
+ * for the `INTVAL (initial_value)` case that this loop actually takes, giving
+ * `mov rX, r0`); the giv's init is emitted afterwards by
+ * `emit_iv_add_mult (bl->initial_value, v->mult_val, v->add_val, v->new_reg,
+ * loop_start)` at loop.c:4778-4779.  4408 is before 4778, so WITHIN ONE LOOP
+ * PASS the counter init is UNCONDITIONALLY earlier in the chain than the giv
+ * init.  Ours is.  THE ROM'S IS NOT -- it emits `add r6, r3, r2` (cursor)
+ * before `mov r5, r0` (counter).
+ *
+ * THAT ASYMMETRY IS NOT REACHABLE THROUGH THE SCHEDULER EITHER, which is worth
+ * recording because it is where a reader would look next.  `rank_for_schedule`
+ * (haifa-sched.c:4029-4116) has exactly six rungs in this build and four of
+ * them are dead here: priority (:4041-4043); `INSN_REG_WEIGHT` (:4046-4048),
+ * gated on `! reload_completed` and therefore dead post-reload; three
+ * interblock rungs (:4051-4067), gated on `INSN_BB (tmp) != INSN_BB (tmp2)` and
+ * therefore dead in basic-block scheduling; the last-scheduled-insn CLASS rung
+ * (:4069-4095), where class 3 is `link == 0 || insn_cost (...) == 1`; the
+ * dependent-count rung (:4097-4110), counting `INSN_DEPEND`; and finally
+ * `INSN_LUID` at :4115.  At the contested slot the last scheduled insn is the
+ * `lsl` that finishes the 0xfc*2 constant.  The CURSOR init reads that result,
+ * so it is class 1 unless its cost is one; the COUNTER init reads only the
+ * GetPartySize result, which is set in a PREVIOUS block, so it has no in-block
+ * dependence and is class 3 unconditionally.  The rung prefers the HIGHER class,
+ * so the counter wins it; and if the cursor's cost were one, both are class 3,
+ * both have no in-block dependents, and :4115 hands it to the counter anyway on
+ * the smaller LUID.  There is no rung on which the cursor can be issued first
+ * while its LUID is the larger.
+ *
+ * SO THE ROM'S COUNTER INIT IS GENUINELY LATER IN ITS CHAIN THAN ITS GIV INIT,
+ * which given loop.c:4408 against loop.c:4778 means the reversal and the
+ * reduction happened in DIFFERENT loop passes in the original build -- the giv
+ * in an earlier pass, the reversal in a later one.  This build has two loop
+ * passes (the park already measured that suppressing the second changes the
+ * SIZE), so that is a reachable state, and it is the one unswept structural
+ * question left on this function: A SOURCE SHAPE WHERE `check_dbra_loop` FAILS
+ * ON THE FIRST PASS AND SUCCEEDS ON THE SECOND.  Recorded as a question, not a
+ * recommendation, and with its price attached: by the arithmetic three
+ * paragraphs up, winning it would move the emitted order and NOT the registers,
+ * so it is worth at most two of the seven and only in combination with a change
+ * to the weighted counts.  The gate to read first is loop.c:7884,
+ * `if (bl->giv_count == 0 && ! loop->exit_count)` -- `no_use_except_counting`
+ * is only ever computed when the biv has NO givs, so the park's "check_dbra_loop
+ * requires no_use_except_counting whenever the comparison value is not a
+ * constant" is at best imprecise: with a giv present that variable stays zero
+ * and the comment at loop.c:7886-7890 says the condition met instead is "there
+ * is only one biv".
+ *
+ * MEASURED THIS BATCH, all at the park's figure and all byte-identical to the
+ * park's own body, so none of them reached the allocator:
+ *   `bestIdx` assigned BEFORE `best` inside the `if`
+ *   the subscript written `i + base` in BOTH cursor reads
+ *   the subscript written `i + base` in ONLY the first read
+ *   the subscript written `i + base` in ONLY the second read
+ *     (the last two deliberately, per the do-not-search-the-diagonal rule)
+ *   `o = 0x8c * 2` hoisted above the GetUnit call
+ * WORSE: the unit id saved in a local before GetUnit and the second read left
+ *   in place -- nine of eighty-eight, still 79 instructions.
+ *
+ * `allocno_compare` RE-VERIFIED VERBATIM for the park's corrections 2 and 3:
+ * global.c:597-621, the formula at :607-614 with the `(double)` cast on the
+ * numerator and the truncation after `* 10000 * size`, higher priority
+ * allocated first, and the tie-break `return v1 - v2` on ALLOCNO INDEX at :620.
+ * Both corrections stand.
  */
 typedef struct { unsigned char _b[704]; } GlobalState;
 extern GlobalState gState;

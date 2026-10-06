@@ -230,6 +230,24 @@ def insn_pool_counts(enc, rel):
     And pool words are reported separately because a figure can differ by a POOL
     WORD while the instruction streams are the same length, which is a different
     defect with a different fix.
+
+    WHAT THE SECOND NUMBER REALLY COUNTS, and it is not only pool words.  The
+    split here is purely by ENCODING WIDTH: 2-byte entries are called
+    instructions, everything wider is called a pool word.  On Thumb a `bl` is a
+    32-bit encoding, so EVERY CALL IS COUNTED IN THE "POOL WORD" COLUMN.  The
+    first number is therefore "16-bit instructions", not "instructions", and it
+    understates a function's real length by its call count.
+
+    Found by batch 331 brief D while decomposing the stream-inflation class: all
+    three of its parks' prose already carried the right instruction counts
+    ("rom 31", "rom 33", "the ROM's 34 lines") and only the headers' M came off
+    the stream line.  Subtracting the `bl`s reconciled tool and prose exactly.
+
+    NOT RECLASSIFIED ON PURPOSE.  Telling a 32-bit INSTRUCTION from a 32-bit
+    POOL WORD needs more than the width -- a local `bl` need not carry a
+    relocation -- and guessing wrong would corrupt the authority every other
+    tool reads.  The labels now say what is measured; read the two columns
+    together and subtract the calls yourself when you need a true length.
     """
     rel_off = set()
     for r in rel or ():
@@ -545,14 +563,15 @@ def main():
     a_in, a_pool = insn_pool_counts(a_enc, a_rel)
     b_in, b_pool = insn_pool_counts(b_enc, b_rel)
     if a_pool != b_pool and a_in == b_in:
-        print("  XX POOL WORD COUNT  ref %d, ours %d  (instructions AGREE at %d)"
+        print("  XX POOL WORD COUNT  ref %d, ours %d  (32-bit entries: pool words AND"
+              " `bl` calls; 16-bit instructions AGREE at %d)"
               % (a_pool, b_pool, a_in))
         print("     The instruction streams are the same length; the difference is")
         print("     pool CONTENT.  Do not read this as a missing instruction.")
         bad = 1
     if a_in != b_in:
-        print("  XX INSTRUCTION COUNT  ref %d, ours %d  (16-bit encodings only;"
-              " pool words %d/%d and pads excluded)"
+        print("  XX INSTRUCTION COUNT  ref %d, ours %d  (16-BIT encodings only; the"
+              " %d/%d 32-bit entries -- pool words AND `bl` calls -- and pads excluded)"
               % (a_in, b_in, a_pool, b_pool))
         if a_sz == b_sz and len(a_enc) == len(b_enc):
             print("     NOTE: size and encoding count MATCH -- a pad is absorbing the")

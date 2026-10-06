@@ -1,4 +1,4 @@
-/* Func_807a3a8 -- 0x0807a3a8 -- asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_c_a_a.s
+/* Func_807a3a8 -- 0x0807a3a8 -- asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_c_a_a_a.s
  *
  * BLOCKER: loop shape of the search loop.  68 encodings of 87 differ (objcmp:
  * "ENCODINGS differ in 68 place(s) (ref 87, ours 87)") -- same length as the
@@ -6,7 +6,7 @@
  * the call is offset.
  *
  * Verify with:
- *   python3 tools/objcmp.py src/non_matching/rom_77000/807a3a8.c asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_c_a_a.s --func Func_807a3a8
+ *   python3 tools/objcmp.py src/non_matching/rom_77000/807a3a8.c asm/rom_77000/rom_79460_c_c_c_c_a_c_c_c_c_a_a_a.s --func Func_807a3a8
  *
  * WHAT IT DOES: pick the table bank by `(unsigned)unit <= 7 ? 0 : 1`
  * (Func_8077330), search the 4-byte entries at rec+8 (count at rec+0x108) for

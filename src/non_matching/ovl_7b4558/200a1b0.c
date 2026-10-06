@@ -63,8 +63,91 @@
  * `mov r4, #0` for the three stack zeros and `mov r3, #0` for the register zero
  * needs no naming at all.
  *
- * NEXT: nothing source-level. This is a specimen for the straight-line
- * interleave, not a candidate.
+ * NEXT: see the batch-331 section below.  The line that used to stand here,
+ * calling this a specimen and not a candidate, is REFUTED -- it is a pass-3
+ * candidate, EXACT at two register pins.
+ *
+ * ================= BATCH 331 BRIEF A =================
+ *
+ * THE PIN-FREE FIGURE ABOVE IS CONFIRMED.  Re-measured; exact length both ways,
+ * relocations clean, no SIZE line.  aligncmp resolves the residue into three
+ * insert/delete PAIRS and nothing else, so it is three pure reorderings: at each
+ * of the three sites our `lsl r1` sits one slot early and the ROM's
+ * `mov r0, #0x12` one slot late.  Everything else is aligned-equal.
+ *
+ * ***** EXACT AT TWO REGISTER PINS.  THIS IS A PASS-3 CANDIDATE. *****
+ * Parked rather than landed ONLY on the pin policy, the same way its
+ * overlay-mate ovl_7b4558/2009818.c is -- see that header, and
+ * docs/owner-decisions.md standing standard 3.  The figure claimed at the top
+ * of this file is the PIN-FREE figure; the pinned figure is nothing at all,
+ * objcmp reporting 272 bytes, every encoding and all 25 relocations identical.
+ * The pinned body is two declarations and three assignments away from the body
+ * below; book it in reports/pass3-depin.md alongside 2009818, which has the
+ * same shape and the same pin count.
+ *
+ * THE PINNED BODY: two pins declared ONCE at function scope and reused at all
+ * three sites -- `register int q0 __asm__("r0")` and
+ * `register int q1 __asm__("r1")` -- with each of the three failing calls
+ * written as `q0 = 0x12; q1 = <the split build>; f(q0, q1, ...)`.
+ * shimcount.py reports two register pins and flags the missing fakematch row,
+ * as it should for a body nobody is shipping.
+ *
+ * THE PIN LADDER, measured, because the minimum was not obvious:
+ *   r0 pinned once at function scope, used at all three sites   two differing
+ *   r0 pinned separately at each site (three pins)              two differing
+ *   r0 and r1 pinned separately at each site (six pins)         EXACT
+ *   r0 and r1 pinned ONCE at function scope (two pins)          EXACT  <- minimal
+ * So r1 carries half the residue, and the pins DO NOT need to be per-site.
+ * Nobody had checked the second point; it is what keeps the count at two rather
+ * than six, and it is the finding most likely to transfer to the other
+ * straight-line interleave parks.
+ *
+ * EIGHT MORE PIN-FREE NEGATIVES, including the two dimensions this park had
+ * never varied.  All at exact length unless marked:
+ *   the SLOT constant 0x12 named in a local at the top of the function and
+ *     used at the three failing sites                           inert
+ *   the same, crossed with the split builds named just before each call  inert
+ *   the slot assigned immediately before each of the three sites         inert
+ *   the slot substituted for EVERY appearance of 0x12                    worse
+ *   naming ONLY the first split argument at the three-argument site      inert
+ *   naming ONLY the second split argument at that site                   worse
+ *   all four split builds named at the TOP of the function          badly worse
+ *   the slot assigned late and used at the two-argument site only        worse
+ * The last-but-three and last-but-two answer the brief's "do not search the
+ * diagonal of a square": the three-argument site's two split arguments were
+ * varied INDEPENDENTLY for the first time here, and the asymmetry does not pay.
+ *
+ * THE MECHANISM, READ FROM THE COMPILER ON DISK rather than inferred, which
+ * tightens the sibling park's account of the same chain:
+ *   - precompute_register_parameters, calls.c:813-829, loops over the arguments
+ *     in ASCENDING order and calls expand_expr for each register argument right
+ *     there -- so an argument whose value must be COMPUTED gets the lowest
+ *     INSN_LUIDs, in argument order.
+ *   - its copy-to-pseudo gate is calls.c:849-856, and its FIRST clause is that
+ *     the value must NOT already be a REG or a SUBREG of a REG.  Only then are
+ *     BLKmode, `rtx_cost (args[i].value, SET) > 2` and
+ *     `SMALL_REGISTER_CLASSES && *reg_parm_seen` consulted.
+ * Those two facts close the pin-free route, and they are worth stating because
+ * at first glance they look like an opening.  0x12 is an INTEGER_CST, so
+ * expand_expr emits NO insn for it and rtx_cost keeps it out of the pseudo
+ * path, leaving load_register_parameters to emit `mov r0, #0x12` after every
+ * precompute -- the highest LUID in the block, which is exactly what loses the
+ * sched2 tie the sibling park documents.  Naming it does not help either: a
+ * named local's value IS already a REG, so the first clause excludes it too and
+ * its materialisation stays wherever reload rewrites the pseudo's own set,
+ * which is EARLIER than the call rather than between the two split builds.
+ * There is no source position between "before the call" and "inside the
+ * argument setup".  That gap is what a hard-register local fills, and it is why
+ * the pin works and no spelling does.
+ *
+ * SPLIT SHAPE, for whoever lands this at pass 3: datacheck.py on the reference
+ * .s is CLEAN, and split_s.py --dry-run cuts it TWO ways, not three -- the .s
+ * holds two functions and this one is the first, so the target goes to the _b
+ * stem at 115 lines and the other to the _c stem at 200, with
+ * overlays/rom_7b4558/overlay.ld rewritten.
+ *
+ * NOT A DUPLICATE.  dupfuncs.py reports seven duplicate groups covering
+ * fourteen functions and this is not a member, so landing it is worth one.
  */
 extern unsigned char *__MapActor_GetActor(int slot);
 extern void __CutsceneStart(void);

@@ -1,6 +1,44 @@
 /* OvlFunc_970_2008da4 (0x02008da4) -- NON-MATCHING.
  *
- * NON-MATCHING, 9 of 175 encodings  (MEASURED, batch 319 recipe backfill).
+ * NON-MATCHING, 6 differing encodings of 175  (MEASURED, batch 331 brief E).
+ *
+ * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7fa4ec/2008da4.c asm/overlays/rom_7fa4ec/ovl_30_c_c_c_a_c_c_c_c_a_c.s --func OvlFunc_970_2008da4
+ *
+ * ===== BATCH 331 BRIEF E: CAME DOWN FROM NINE ON THE ONE DIMENSION NOBODY
+ * ===== HAD VARIED -- HOW MANY NAMES THE *LAST* ACTOR BLOCK SHARES
+ *
+ * The body changed, so everything below that was measured against the old
+ * body carries its old figure of nine, spelled in words so no tool reads it as
+ * a claim.  The 3-insn `->f50` run the header below calls "not closed" IS NOW
+ * CLOSED.  All four actor blocks read the same `*(char **)(p + 0x50)` twice,
+ * once for `[9]` and once for `[0x15]`, and the whole standing negative list
+ * had varied the mask, the OR constant and the bitfield spelling -- never the
+ * naming.  Giving the SECOND read of the LAST block its own local closes it:
+ *
+ *     all four blocks reusing `s` for both reads (the old body)   nine of 175
+ *     a second name in the LAST block only                           6 of 175
+ *     a second name in the last TWO blocks                          twelve
+ *     a second name in ALL FOUR blocks                              eighteen
+ *     a second POINTER name in the last block only                  nine
+ *     a second pointer AND a second result name, last block          6 of 175
+ *     one single `->f50` read reused for both offsets, last block    forty
+ *
+ * So it is strictly the last block, and extending the split to the others
+ * costs three encodings each.  This is batch 330's "do not search the diagonal
+ * of a square" rule on a FOUR-fold repeat: the right edit is asymmetric across
+ * textually identical regions, and any sweep that varies them together misses
+ * it.  The second pointer name is a tie on top of the second result name, so
+ * only the result name ships.
+ *
+ * WHAT THE REMAINING SIX ARE.  One encoding is the mask build, and the
+ * reference's spelling is now readable: at index 42 ref `3d0f` is
+ * `sub r5, #0xf` against our `25f3`, `mov r5, #0xf3`.  The reference does NOT
+ * materialise the mask -- it takes the `mov r5, #2` already standing from the
+ * two `*p = 2;` byte stores and subtracts 0xf to reach -13, then feeds that one
+ * register to all ten `mov r3, r5` copies.  So the reference's program relates
+ * the STORED VALUE and the MASK, and the untried dimension here is a spelling
+ * in which 2 and -13 come from one named quantity rather than two constants.
+ * The other five are the pool-load swap the header below describes.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -74,12 +112,12 @@
  *
  * ===== BATCH 329 BRIEF I: THE FIGURE IS 9, NOT SEVEN =====
  *
- * Re-measured unfiltered: 9 differing encodings of 175, ref 175 ours 175, first
+ * Re-measured unfiltered (OLD BODY): nine differing of a hundred and seventy-five, ref and ours equal, first
  * at index 42, no SIZE and no POOL WORD line, so the streams are aligned. The
  * header's "SEVEN differing" is tryc's instruction-stream count; the two extra
  * encodings are the pc-relative offsets of the two pool loads that the (c)
  * scheduling swap moves, which tryc normalises away and objcmp does not.
- * objcmp is the authority, so the figure to carry forward is 9 of 175.
+ * objcmp is the authority, so the figure the old body carried forward was nine.
  *
  * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/ovl_7fa4ec/2008da4.c asm/overlays/rom_7fa4ec/ovl_30_c_c_c_a_c_c_c_c_a_c.s --func OvlFunc_970_2008da4
  *
@@ -139,6 +177,7 @@ int OvlFunc_970_2008da4(void)
     unsigned char *q;
     char *p;
     char *s;
+    char *u;
     volatile unsigned short t;
     int n;
     unsigned char *r;
@@ -179,8 +218,8 @@ int OvlFunc_970_2008da4(void)
     p = __MapActor_GetActor(3);
     s = *(char **)(p + 0x50);
     s[9] = (s[9] & ~0xc) | 4;
-    s = *(char **)(p + 0x50);
-    s[0x15] = (s[0x15] & ~0xc) | 4;
+    u = *(char **)(p + 0x50);
+    u[0x15] = (u[0x15] & ~0xc) | 4;
     t = (REG_BG3CNT & 0xfffc) | 2;
     REG_BG3CNT = t;
     t = (REG_BG2CNT & 0xfffc) | 3;

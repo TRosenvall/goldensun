@@ -342,6 +342,20 @@ the first task of pass 3, not something this index can do.
         f.write(f"""
 ## By figure
 
+> **TWO THIRDS OF THESE FIGURES MEASURE PHASE, NOT DISTANCE.** A park's figure
+> is a POSITIONAL count over the encoding stream, so when the two sides' 16-bit
+> instruction counts differ the streams are compared out of phase and the figure
+> counts the offset. A full `parkcheck` sweep in batch 331 found **388 of 571**
+> verified figures in that state, **133 of them one instruction apart in
+> length** — including one claiming 918 at a gap of one.
+>
+> **Do not rank by this column alone.** See
+> [reports/park-figure-audit.md](../../reports/park-figure-audit.md) for the
+> flagged list and a shortlist of the cheapest to re-price; `parkcheck` prints
+> `*** INFLATED` per park, and `tools/aligncmp.py` gives a real number. Batch
+> 331 worked four parks that turned out to be in this shape and **three landed
+> outright.**
+
 **{npin} of these parks carry register pins.** A pinned body's figure is not
 comparable with a pin-free one: owner standard 3 prefers a pin-free body, so a
 park at 2 with ten pins is further from a pass-2 landing than a park at 20 with

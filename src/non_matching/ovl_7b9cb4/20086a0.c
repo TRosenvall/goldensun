@@ -46,6 +46,65 @@
  *   - `t = 0xfdff; t &= v;` likewise.
  * The local data label is reached the established way,
  * `extern unsigned char L5238[] __asm__(".L5238");`.
+ *
+ * ================= BATCH 331 BRIEF A =================
+ *
+ * THE RESIDUE IS TWO INSTRUCTIONS, IN ONE PLACE.  The figure claimed at the top
+ * of this file is a MISALIGNMENT count, as the header already warns, and nobody
+ * had decomposed it.  tools/aligncmp.py -v resolves it into three hunks
+ * carrying five entries, and only ONE of the three is real:
+ *     ref index 4    ldr r3, [pc, #40]   vs ours ldr r3, [pc, #36]
+ *     ref index 11   ldr r2, [pc, #28]   vs ours ldr r2, [pc, #24]
+ *     ref indices 19 to 21   lsl r3, r5, #16 / lsr r3, #16 / strh r3, [r6]
+ *     ours indices 19 to 20                                  strh r5, [r6]
+ * The two pool-load hunks are a CONSEQUENCE of the length difference, exactly
+ * as the header's re-classification says.  So the true gap is the narrowing
+ * pair at the end and nothing else: twenty-two of the ROM's twenty-four
+ * instructions are exact.  Read the INSTRUCTION COUNT line, not the stream
+ * line, when deciding whether this park is close.
+ *
+ * WHAT THE FUNCTION IS, which identifies every constant in it.  `0x80 << 19` is
+ * 0x04000000, the GBA display-control register; include/gba/io.h:352 declares
+ * REG_DISPCNT as an lvalue through a volatile unsigned-halfword pointer at that
+ * address.  `0xfdff` is the complement of 0x0200 and `0x80 << 2` IS 0x0200,
+ * which include/gba/io.h:517 names DISPCNT_BG1_ON.  So the body turns BG1 on
+ * when a scaled random draw clears the threshold halfword at .L5238.  Worth
+ * keeping for pass-4 naming whatever happens to the match.
+ *
+ * THE PARK'S DIAGNOSIS SURVIVED, and the spelling dimension is now closed hard.
+ * The header had two negatives; nine more were measured and EVERY ONE is
+ * byte-identical to the body above, with three of them producing
+ * character-identical assembly:
+ *   a volatile unsigned-halfword pointer, cast store        inert
+ *   the same, plain store (this IS the REG_DISPCNT shape)   inert
+ *   the same, masking store                                 inert
+ *   casting the masked value at the store                   inert
+ *   masking with 0xffff and no cast                         inert
+ *   an unsigned left-then-right shift pair at the store      inert
+ *   declaring the value a signed short, plain store          inert
+ *   volatile pointer crossed with the signed short           inert
+ *   declaring the value an unsigned short, plain store       inert
+ * The volatile row is the newsworthy one: the real source almost certainly
+ * writes through REG_DISPCNT, and a VOLATILE halfword destination does not
+ * preserve the narrowing either.
+ *
+ * WHY THE WHOLE SPELLING DIMENSION IS CLOSED.  For a halfword destination the
+ * conversion never becomes an insn at all -- expand converts the right-hand
+ * side to the destination's mode with a SUBREG, so there is no zero-extend
+ * instruction for any later pass to keep.  Combine is not the actor here, which
+ * means blocking combine cannot help, and that matters because the obvious next
+ * idea is the cross-block trick: flow.c:4476 only creates a LOG_LINK when
+ * `BLOCK_NUM (y) == blocknum`, so a set in another block is already outside
+ * combine's reach.  That lever is unavailable for a second reason too -- in the
+ * ROM the shift pair and the store are all three in the SAME block, so combine
+ * COULD have folded them there if a narrowing insn had existed.  It did not
+ * fold them, so whatever the ROM emitted was not a foldable
+ * narrowing-at-a-store in the first place.
+ *
+ * NEXT: stop spelling the conversion.  The remaining question is what makes a
+ * zero-extension exist as an INSN before a halfword store, which is a question
+ * about why the value is needed thirty-two bits wide, not about how the store
+ * is written.
  */
 extern unsigned char L5238[] __asm__(".L5238");
 extern int __Random(void);

@@ -287,6 +287,23 @@ def check(path):
     if r.returncode != 0 and "differ" not in out and " OK " not in out:
         first = (r.stderr.strip().splitlines() or ["no stderr"])[-1]
         return ("TOOLING", f"objcmp failed to run: {first}", None, None)
+    # STREAM INFLATION.  A park's figure is a POSITIONAL count over the encoding
+    # STREAM, which includes one entry per pool word and one per 2-byte pad.  So
+    # when the two sides' instruction counts differ, the streams are compared out
+    # of phase and the figure counts the phase shift, not wrong instructions.
+    #
+    # This is NOT only the 18 parks whose claim exceeds their own length.  Batch
+    # 331 brief A found OvlFunc_932_20086a0 claiming a perfectly coherent "10 of
+    # 27" whose real content was TWO differing instructions out of 24 -- the rest
+    # was phase.  A park can therefore look four or five times further away than
+    # it is, which is exactly the kind of park nobody picks up.
+    #
+    # `insn` below is objcmp's own INSTRUCTION COUNT line (pool and pads
+    # EXCLUDED).  When it is present the two sides' lengths disagree, so the
+    # verdict says INFLATED and names both numbers.  parkcheck still verifies the
+    # park's own claim against the stream figure -- that contract is unchanged.
+    im = re.search(r"INSTRUCTION COUNT\s+ref (\d+), ours (\d+)", out)
+    insn = (int(im.group(1)), int(im.group(2))) if im else None
     if " OK " in out:
         got = (0, None)
     else:
@@ -294,6 +311,10 @@ def check(path):
         if not m:
             return ("UNCHECKABLE", "objcmp produced no encoding line", None, None)
         got = (int(m.group(1)), int(m.group(2)))
+    if insn:
+        extra_note += ("  *** INFLATED: instruction counts differ (ref %d, ours %d),"
+                       " so this positional figure counts PHASE, not distance"
+                       % insn)
     if not cm:
         return ("NO CLAIM", f"measures {got[0]}{extra_note}", None, got[0])
     claimed = int(cm.group(1))

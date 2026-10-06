@@ -4,7 +4,7 @@
  * "N of M" line to carry.  What follows is measurement of the REFERENCE.
  *
  * Reference sliced to ref_OvlFunc_888_200888c.s in this directory, from
- * asm/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c_a_c_a_a.s, where it is the THIRD
+ * asm/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c_a_c_a_a_c.s, where it is the THIRD
  * of three functions (1,524 instructions, offsets 152-1546 of that file).  The
  * first two are at lines 11 and 112.  Its overlay already has a landed sibling,
  * src/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c_a_a.c, so the directory and the
@@ -21,7 +21,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/ovl_7892c8/200888c.c \
- *     asm/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c_a_c_a_a.s --func OvlFunc_888_200888c
+ *     asm/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c_a_c_a_a_c.s --func OvlFunc_888_200888c
  *
  * ================== THE ONE WITH LOOPS, AND NO FRAME AT ALL ==================
  *

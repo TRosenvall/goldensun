@@ -234,3 +234,59 @@ Take these **before** the heavily-pinned files. A barrier is one line and its
 removal has a measurable figure immediately, where a 432-pin file needs the pins
 resolved to functions first. Two of the ten already sit in files whose pin load
 is in the hundreds, so their barrier is the cheap part of an expensive file.
+
+## A PIN PAIR DOES NOT HAVE TO BE PER-SITE (batch 331)
+
+`OvlFunc_927_200a1b0` is byte-identical — *272 bytes, 110 encodings and 25
+relocations identical* — at **two** register pins, and the economy is the
+finding:
+
+| pinning | pins | figure |
+|---|---|---|
+| r0 alone, either way | 1 | 2 differing |
+| r0+r1 **per site**, three sites | **6** | exact |
+| r0+r1 **once, at function scope**, reused at all three sites | **2** | exact |
+
+Three times the artifact for the same match. Its sibling
+`ovl_7b4558/2009818.c` landed its own exact body with two **per-site** pins at a
+single call site, which is where the per-site habit came from — but nothing
+required it.
+
+**So when a pinned body is the pass-3 outcome, try one function-scope pin pair
+before accepting a pin per site.** The pin count is the thing pass 3 has to pay
+down, and this is a 3x difference in that debt for an identical ROM.
+
+### Why pin-free is genuinely blocked here, cited rather than inferred
+
+`calls.c:813-829` expands register arguments in ascending order (lowest LUIDs),
+and the copy-to-pseudo gate at `calls.c:849-856` has as its **first** clause
+that the value must not already be a REG. So a small literal like `0x12` emits
+no insn, and *naming* it does not help either — a named constant is excluded by
+the same clause. **There is no source position between "before the call" and
+"inside the argument setup"**, and that gap is exactly what a hard-register
+local fills.
+
+### Two parks in one overlay now sit exact at two pins, same shape
+
+`ovl_7b4558` holds **`OvlFunc_927_2009818`** and **`OvlFunc_927_200a1b0`**, both
+byte-identical at two pins, both blocked pin-free by the `calls.c` gate above,
+and `2009818`'s pin-free route is **corpus-refuted** rather than merely unfound
+(0 pin-free against 83 pinned across 4,468 generated `.s` for its shape, and it
+is straight-line). **Take them to pass 3 as one item** — a single ruling covers
+both, and if a function-scope pair is acceptable the whole overlay's debt is
+four pins for two functions.
+
+## Empty-asm barriers: 11 files, 14 barriers (batch 330 update)
+
+Batch 330's `rom_77000` three-for-one landing
+([src/rom_77000/rom_77320_a_c_c.c](../src/rom_77000/rom_77320_a_c_c.c)) carries
+**three** bare `__asm__ volatile ("")` barriers, one per function. That is the
+eleventh file in the empty-asm list above.
+
+A distinction worth keeping when paying these down: a bare asm's pattern code is
+`ASM_INPUT`, so `haifa-sched.c:3580` fires the full scheduling barrier, but
+`cse.c:5743-5745` flushes the cse hash table only for
+`ASM_OPERANDS && MEM_VOLATILE_P` — which a bare asm is **not**. So
+`("" : : "r"(x))` is both kinds of barrier and the bare form is only the
+scheduling kind. **A depin attempt that swaps one for the other is changing two
+things**, and these three bodies specifically need cse left alone.
