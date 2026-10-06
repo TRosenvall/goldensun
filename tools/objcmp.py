@@ -562,8 +562,24 @@ def main():
 
     if a_enc != b_enc:
         n = sum(1 for x, y in zip(a_enc, b_enc) if x != y) + abs(len(a_enc) - len(b_enc))
-        print("  XX ENCODINGS differ in %d place(s) (ref %d, ours %d)"
-              % (n, len(a_enc), len(b_enc)))
+        # SAY WHAT ref/ours COUNT.  These are STREAM lengths -- one entry per
+        # pool word and one per 2-byte pad INCLUDED -- whereas the INSTRUCTION
+        # COUNT line above excludes both.  Four park headers quoted this `ref`
+        # as the function's instruction count, which is the entire reason 18
+        # parks in this tree carry "a figure larger than the function", a
+        # shape that is impossible for a positional distance and reads as a
+        # tooling bug.  Batch 330 brief C did the decomposition: in three of
+        # four the stated reference length was simply too big.
+        #
+        # The suffix is appended AFTER the closing paren on purpose --
+        # parkcheck.py:293 and crossfire.py:96 both anchor on `(ref N, ours N)`
+        # and must keep matching.
+        tail = ""
+        if (len(a_enc), len(b_enc)) != (a_in, b_in):
+            tail = ("   [STREAM length, pool+pad INCLUDED; instructions are %d/%d]"
+                    % (a_in, b_in))
+        print("  XX ENCODINGS differ in %d place(s) (ref %d, ours %d)%s"
+              % (n, len(a_enc), len(b_enc), tail))
         for i, (x, y) in enumerate(zip(a_enc, b_enc)):
             if x != y:
                 print("     first at index %d: ref %s  ours %s" % (i, x, y)); break

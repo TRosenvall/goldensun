@@ -166,6 +166,52 @@
  * NEXT: the `_CONST_21` ruling.  If it is admitted this is 4 away with the
  * mechanism of the 4 named above; if it is declined this park is at 20 and
  * the 15 is unreachable, which is worth knowing either way.
+ *
+ * ========================================================================
+ * BATCH 330 BRIEF E -- figure unchanged, device figure REPRODUCED, and the
+ * remaining residue is now bounded to exactly four instructions
+ * ========================================================================
+ *
+ * Re-derived from scratch.  The pin-free body still reads twenty of
+ * forty-three with the counts differing (thirty-five reference instructions
+ * against thirty-six), so that number is still the minipool misalignment the
+ * park names.  The device body reads five with the counts EQUAL at
+ * forty-three, which confirms the park's split of fifteen plus four plus one.
+ *
+ * THE FOUR ARE EXACTLY FOUR INSTRUCTIONS, AND THEY ARE ADJACENT.  Laid side
+ * by side the two streams agree everywhere except the four that follow the
+ * gState pool load in the first guarded arm: the reference materialises the
+ * VALUE into the second register and then accumulates the address IN PLACE on
+ * the base, so its store reads `strh <value>, [<base>]`; ours computes the
+ * address into the second register with a three-operand add and then loads the
+ * value into the base's register, so its store reads the pair the other way
+ * round.  Both streams use the same three-operand add encoding; the only
+ * difference is WHICH pseudo reuses the base's hard register -- the address in
+ * the reference, the value in ours.
+ *
+ * THE SECOND GUARDED ARM ALREADY GETS IT RIGHT, which is the useful control:
+ * it accumulates in place on the base exactly as the reference does, and it
+ * differs from the first arm in having NO COMPETING POOL LOAD.  So the cause
+ * is local, it is a local-alloc hard-register choice between two pseudos in a
+ * four-pseudo block, and it is not the store's spelling.
+ *
+ * MEASURED EXACTLY INERT -- all five, device figure unchanged, counts equal:
+ * a second dedicated pointer local for the SECOND arm (the untried half of
+ * the park's own asymmetry lever -- it is inert, so that lever is closed here
+ * in both directions); the base block-scoped inside each arm; nested ifs
+ * instead of the short-circuit; a short-pointer base with a halfword index.
+ * REFUTES ONE PARK ROW: the park records "naming the value in an int local
+ * inside the if" at twenty.  A `const int` named inside a BRACED BLOCK in the
+ * same arm is EXACTLY INERT instead.  The park's row is true of a
+ * function-scope int and false of a block-scoped const, so the row bounds
+ * only the spelling it actually used.
+ * MEASURED WORSE: dropping the named `e` and reading the iwram word twice,
+ * COUNT at thirty-seven instructions.
+ *
+ * NEXT: the completion test the park is withheld on is FOUR INSTRUCTIONS OF
+ * LOCAL-ALLOC, now exactly located.  Attack which pseudos are LIVE in that
+ * arm, not how the store is written -- thirteen spellings from batch 323 and
+ * five more here are a plateau.
  */
 extern int iwram_3001ebc;
 extern unsigned char gState[];

@@ -111,6 +111,62 @@
  *
  * Confirmed in passing: the bias-add of 0xffff under `bge` before `asr #16`
  * is the division tell -- the source wrote `/ 0x10000`; a `>> 16` omits it.
+ *
+ * ========================================================================
+ * BATCH 330 BRIEF E -- figure unchanged; the park's mask rows are CORRECTED
+ * and six crossings were added.  Count exact in every row below unless
+ * flagged COUNT.
+ * ========================================================================
+ *
+ * CORRECTION, AND IT MATTERS.  Every row that NAMES THE MASK IN A LOCAL
+ * changes the instruction count, so the two figures the park records for that
+ * row -- twenty-three, and fifty-two crossed with c0 -- measure MISALIGNMENT,
+ * not distance, and bound nothing.  Re-measured, all four placements, with
+ * the reference at fifty-seven instructions:
+ *     named after the call, before the early return     fifty-five insns
+ *     named as the first statement                      fifty-five insns
+ *     named in the body block                           fifty-six insns
+ *     dy as (f10 - fc) - cam1m                          fifty-six insns
+ * The park's "costs two instructions (the prologue widens)" has the sign
+ * backwards: the body gets SHORTER, by one or two.
+ *
+ * THE PRIORITY LADDER IS MADE OF ANTI DEPENDENCES, not of chain length.
+ * The park reads prio 8 for cam[0] and 9 for cam[1] and attributes the point
+ * to dy's extra subs.  Read the whole table out of the sched2 dump instead
+ * (-fsched-verbose into *.23.sched2; block 2):
+ *       insn 28 prio 14 | 30 prio 12 | 32 prio 10 | 35 prio 8 (cam[0])
+ *       insn 38 prio 9 (cam[1]) | 40 prio 9 (mask pool load) | 42 prio 7
+ *       insn 44 prio 8 (a->f10) | 46 prio 6 | 48 prio 6 | 50 prio 4
+ *       insn 55 prio 3 | 57 prio 4 | 62 prio 1
+ * `priority` (haifa-sched.c) maximises over INSN_DEPEND links of EVERY kind,
+ * and `arm_adjust_cost` (arm.c:2416) returns 0 for anti and output deps.  So
+ * prio(35) is max(prio(55) + 2, prio(44) + 0) and the WINNING TERM IS THE
+ * ANTI DEP ON INSN 44.  Likewise prio(46) is set by an anti dep on insn 48
+ * and prio(50) by one on insn 57.  cam[0]'s own true chain is worth only 5.
+ *   >> The reachable dimension is therefore WHICH HARD REGISTERS GET REUSED
+ *   >> in .19.flow2, not the arithmetic.  Re-spelling the expressions cannot
+ *   >> move a ladder whose rungs are register anti dependences.
+ * And the ready-list trace confirms there is no tie to break: at t=5 the list
+ * is `35 40 38` and insn 38 wins outright on the priority rung; at t=7 it is
+ * `35 40` and 40 wins the same way.
+ *
+ * MEASURED EXACTLY INERT, COUNT EXACT, EVERY ROW CROSSED WITH c0 (these are
+ * the park's pre-c0 rows re-run against the current body): `~0xffff` for the
+ * mask; the unparenthesised dy; `c1 = cam[1] & mask` named; `c1 = cam[1]`
+ * named and masked at the use; `t = f10 - cam1m; dy = t - fc;`; `c0 = *cam`;
+ * declaration order.
+ * MEASURED WORSE, crossed with c0: naming a->fc, twenty-eight; naming a->f8,
+ * thirty; naming a->f10, COUNT at fifty-six insns; `cb = cam + 1` for the
+ * second read, COUNT at fifty-nine insns.
+ * MEASURED WORSE -- THE OTHER ASYMMETRIC HALF IS NOW CLOSED: naming cam[1]
+ * ONLY, with c0 removed, reads eighteen.  So the park's lever-5 DIRECTIONALITY
+ * is confirmed with its direction pinned: c0 is the half that moves.
+ *
+ * NEXT: stop spelling.  The question is what makes insn 44 (a->f10) stop
+ * sharing a hard register with insn 35, and insn 48 with insn 46 -- i.e. a
+ * liveness change, not a syntax change.  The `q = out; out = out + 1;`
+ * construct and `c0` are both prerequisites and must be carried into any
+ * probe.
  */
 
 struct Sub {

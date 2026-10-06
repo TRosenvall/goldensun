@@ -124,6 +124,62 @@
  *    literal, indices 24/25/26 are byte-exact; the swap is a side effect of
  *    naming 0x1ff an `int`.
  *
+ * ---------------------------------------------------------------------------
+ * BATCH 330 A.  THE FIGURE IS UNCHANGED AND RE-DERIVED.  THE LEVER THAT CLOSED
+ * THE OTHER THREE FUNCTIONS IN THIS FAMILY IS MEASURED HERE AND IS REFUTED, SO
+ * NOBODY NEEDS TO SPEND A ROUND FINDING THAT OUT.
+ *
+ * Context worth having: the three parks of asm/rom_77000/rom_77320_a_c_c.s --
+ * Func_8077f70, Func_807808c and Func_8078144, the same family, the same
+ * division-and-clamp shape -- ALL LANDED this batch on one line each,
+ * `__asm__ volatile ("");` placed between a store and the shift that follows
+ * it.  A bare asm has pattern code ASM_INPUT, so gcc/haifa-sched.c:3580's guard
+ * `if (code != ASM_OPERANDS || MEM_VOLATILE_P (x))` is unconditionally true for
+ * it: :3585-3593 makes it depend on every prior use, setter and clobberer,
+ * :3595 sets reg_pending_sets_all and :3780-3789 makes it the last setter of
+ * every register, so the block is cut in two.  Each of those parks had PROVED a
+ * priority bound and stopped; the barrier does not win the arithmetic, it
+ * deletes the contest.
+ *
+ * THAT DOES NOT WORK HERE, AND THE REASON IS IN THIS PARK'S OWN DIAGNOSIS.
+ * D1 and D2 are not an insn the scheduler SINKS past a barrier-able point; they
+ * are TIES decided by `rank_for_schedule`'s final INSN_LUID rung
+ * (gcc/haifa-sched.c:4113-4115), and the ROM's order is neither our schedule
+ * nor the LUID order a barrier would freeze -- the ROM issues the two
+ * priority-three insns first, then one priority-two insn whose LUID is the
+ * HIGHEST of the group.  A barrier cannot invert a LUID; only the source can.
+ * Measured, all at the reference length and with no memory-profile divergence:
+ *
+ *   * a bare barrier as the first statement of the guarded arm: EXACTLY INERT.
+ *   * an extended `("" : : "r" (p))` barrier in the same place: EXACTLY INERT.
+ *     Worth knowing WHY that one is interesting and still inert: gcc/cse.c
+ *     :5741-5745 flushes the hash table only for `GET_CODE (PATTERN (insn)) ==
+ *     ASM_OPERANDS && MEM_VOLATILE_P`, which a bare asm is NOT, so the extended
+ *     form is the one that could in principle break D3's cse1 commoning without
+ *     a volatile cast.  It does not: ldrh stays at the count this body already
+ *     has, because with both masks left literal there is nothing to common.
+ *   * EITHER barrier in the preheader, before the pointer init: WORSE, by four.
+ *   * both masks named `int` locals, with or without either barrier: WORSE,
+ *     by five, and all three spellings agree with each other.
+ *   * naming only one mask, with or without either barrier: WORSE, by four or
+ *     by five depending on which mask.
+ *   * splitting the pointer init into a copy and a separate `+= 0xd8` add, so
+ *     the add is its own statement that can be moved: EXACTLY INERT in four
+ *     orderings, WORSE by one in a fifth.  This is the sharpest of the new
+ *     rows, because it was the obvious attack on "the ROM wants the add LAST":
+ *     the add's LUID is fixed by where the pointer is first NEEDED, not by
+ *     where the statement sits, so source order cannot move it.
+ *   * crossing the above with the mask namings: WORSE by five to six, never
+ *     better than this body.
+ *
+ * SO THE PARK'S LANGUAGE-LEVEL BOUND SURVIVES A GENUINELY NEW INSTRUMENT.
+ * Twenty-four new rows, nothing below this body.  Note that the earlier park
+ * table's two cure figures did NOT reproduce for me: my spelling of the "name
+ * the masks as locals" cures measures worse than that table records, by three
+ * and by two.  Those superseded cure figures should be read as spelling-
+ * dependent, not as a reachable rung; if someone revisits this, re-derive them
+ * before building on them.
+ *
  * REVISIT ONLY IF: owner ruling 4 is revisited (i.e. someone establishes the
  * location genuinely is volatile, in which case all three reads should be), or
  * someone finds a way to hold a non-foldable 16-bit-precision constant in a

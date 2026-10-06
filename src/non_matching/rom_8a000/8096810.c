@@ -225,6 +225,79 @@
  *     If yes, rung 2 falls by a factor of 2.67 and live_length never has to move.
  * "DO NOT RE-SWEEP SPELLINGS" still stands.  The n_refs axis is not a spelling.
  * -- scratch_elev/b327/F
+ *
+ * ===== BATCH 330, BRIEF B: HALF THE OPEN QUESTION IS ANSWERED -- NO =====
+ * RE-DERIVED: seven differing encodings of 122, index 5, ref 221e against ours
+ * 3b74, counts equal, size equal, relocations clean.  Ord C re-derived too, with
+ * its allocator inputs confirmed verbatim out of `.17.lreg` and `.18.greg`:
+ *     Register 34 used 3 times across 19 insns; crosses 1 call; pref LO_REGS
+ *     Register 44 used 4 times across 50 insns; crosses 7 calls; pref LO_REGS
+ *     ;; 10 regs to allocate: 45 71 46 32 33 43 44 34 54 35
+ * So the two numerators and the ordering are exactly as recorded.
+ *
+ * THE OPEN QUESTION WAS: is there a zero-instruction way to give kind a FOURTH
+ * reference -- a second SET, or any reference at loop_depth >= 1?
+ *
+ * **THE loop_depth HALF IS DEAD, AND IT IS DEAD IN THE COMPILER SOURCE.**
+ * loop_depth is not a note-driven quantity and no bracket-shaped construct can
+ * raise it.  flow.c:7619-7634 recomputes it from scratch, zeroing every block
+ * and then counting only genuine BACK EDGES found by dominator test:
+ *     BASIC_BLOCK (b)->loop_depth = 0;
+ *     for (e = BASIC_BLOCK (b)->pred; e; e = e->pred_next)
+ *       { basic_block latch = e->src;
+ *         if (latch != ENTRY_BLOCK_PTR && TEST_BIT (dom[latch->index], b))
+ *           num_loops++; }
+ * and the increment itself is in `find_loop_nodes_find` (flow.c:7295, :7301,
+ * :7322), which walks predecessors from the latch and does `->loop_depth++` per
+ * node of an actual natural loop.  THIS FUNCTION HAS NO BACK EDGE -- the switch
+ * dispatch and all sixteen arms branch forward to the common exit -- so every
+ * block is at depth zero and stays there.  Raising the weight on any reference
+ * therefore requires a real loop, which is instructions.  That is a GEOMETRIC
+ * fact about the CFG, like the live-range nesting above, and it should not be
+ * probed again.
+ *
+ * THE SECOND-SET HALF survived everything I could aim at it, and the dimension I
+ * aimed was the TYPE CONSTRUCTOR, which no earlier row varied (it is the axis
+ * that paid for an unrelated park last batch: promote_mode, explow.c:895-902,
+ * skips RECORD_TYPE).  IT IS EXACTLY INERT HERE, and not merely at the same
+ * figure -- at the same ALLOCATOR INPUTS.  Measured on ord C, allocator inputs
+ * read out of `.17.lreg` beside each figure (figure | slot refs/live | kind
+ * refs/live):
+ *     ord C itself                                      9 | 4/50 | 3/19
+ *     unsigned int kind                                 9 | 4/50 | 3/19
+ *     kind wrapped in a one-member STRUCT               9 | 4/50 | 3/19
+ *     kind wrapped in a one-member UNION                9 | 4/50 | 3/19
+ *     all three slot accesses through g, slot deleted   9 | 4/50 | 3/19
+ *     the guard's two statements swapped               11 | 4/52 | 3/20
+ *     guardswap + slot accesses through g              11
+ * The struct and union rows are byte-for-byte the same object as ord C: the
+ * pseudo numbering shifts by one and every ref/live pair is identical.  A
+ * one-member aggregate is an ALIAS escape, not a reference-count lever.
+ * NOTE for the two guardswap rows: both now also report differing RELOCATIONS,
+ * which the earlier record of that row did not say.  A row with dirty
+ * relocations is not a clean distance, so do not use it as a prerequisite
+ * without re-checking that.
+ *
+ * WHY I THINK THE SECOND-SET HALF IS ALSO DEAD, stated as evidence and not as a
+ * bound: REG_N_REFS counts SETs and CLOBBERs at flow.c:4435-4436 and USEs at
+ * :5115, the two auto-increment sites (:4948, :5556) require the register to be
+ * a MEM address register that is incremented and kind is neither, fold removes
+ * every algebraic duplication (the recorded inert row above), and a second
+ * textual occurrence or a second NAME commons back onto the one use.  What is
+ * left is a genuine second SET or CLOBBER of kind's pseudo, and every C
+ * construct that produces one also produces an instruction.  I did not find a
+ * counter-example and I am not claiming none exists -- I am recording that the
+ * loop_depth escape is closed, so the question is now ONE clause, not two.
+ *
+ * AND A DIRECTION NOBODY HAS STATED: the SAME factor-of-2.67 step can be taken
+ * from the OTHER side.  Dropping slot from four references to three gives it
+ * (floor_log2(3)*3/50)*10000 = 600 against kind's 1578, which is a far wider
+ * margin than kind-at-four-refs needs and also leaves live_length alone.  It is
+ * not obviously reachable either -- all three slot accesses are real reference
+ * instructions and cse recreates the address pseudo with four references when
+ * the local is deleted -- but it has never been written down as the symmetric
+ * half of the open question, and a future reader should see both halves.
+ * -- scratch_elev/b330/B
  */
 extern char *iwram_3001f30;
 extern unsigned char gState[];

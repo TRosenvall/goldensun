@@ -234,6 +234,38 @@
  * and cost back into the order.  Action 2 short-circuits the pricing, 0x1fd is
  * the "nothing usable" action, and Func_80bd3c8 decides whether the move is worth
  * an item slot.
+ *
+ * ===== BATCH 330: A GUARD AGAINST THIS PARK BEING BRIEFED AS A SMALL ONE =====
+ * This park was handed to an agent in batch 330 as a short function with a
+ * single-digit residue, on a pair of numbers lifted out of the SIBLING park
+ * src/non_matching/rom_b5000/80bd3e4.c -- a pair that park itself labels wrong
+ * (it measures thirty standalone) and that is moot anyway, since Func_80bd3e4 is
+ * a nested function and is byte-identical when written that way.  This function
+ * is nothing like that size: its residue is in the hundreds of differing lines
+ * over four hundred-odd instructions and pool words, and `parkcheck' cannot
+ * score it at all -- it reports this file as needing the per-symbol recipe above,
+ * because a nested parent has no isolatable symbol.  So the only figure for this
+ * park is the one in its own opening paragraph, reached through that recipe, and
+ * the sibling's prose must not be read as this park's distance.
+ * THE NEXT WORK IS STILL THE THREE HISTOGRAM ITEMS NAMED ABOVE: the two signed
+ * halfword reads that should be unsigned, the fused-versus-split comparison at
+ * the site item six did not reach, and the four unconditional branches that are
+ * missing out-of-line arms or shared tails.  Each is checkable off the per-opcode
+ * histogram on its own.
+ *
+ * AND THE SPLIT HAS ALREADY HAPPENED, SO THE SPLIT SHAPE SECTION ABOVE IS NOW
+ * HISTORY, as is this park's opening recipe -- which names a piece that no
+ * longer exists on disk, and therefore cannot be run at all:
+ *   asm/rom_b5000/rom_bbb0c_a_a_c_a.s  holds exactly Func_80bd3e4 then
+ *     Func_80bd424, in five hundred and thirteen lines -- the pair, alone, in one
+ *     piece, which is the cut the section above prescribes.  Compare against this
+ *     file WHOLE; no line range is needed any more.
+ *   asm/rom_b5000/rom_bbb0c_a_a_c_b.s  carries gcc's own banner and names a .c
+ *     file in its .file directive, because Func_80bd7a4 has ALREADY LANDED as
+ *     src/rom_b5000/rom_bbb0c_a_a_c_b.c.
+ * So the install path for a future landing of the nested pair is
+ * src/rom_b5000/rom_bbb0c_a_a_c_a.c, and nothing about the layout is outstanding:
+ * what is left is entirely the three histogram items.
  */
 #include "gba/types.h"
 

@@ -126,7 +126,44 @@
  * DO NOT: re-sweep literal spellings (closed by the fold table above);
  * re-sweep RTL flags at this index (the decider is a front-end tree fold);
  * re-propose -ffixed-r11.
- * -- scratch_elev/b327/F
+ *
+ * ========= BATCH 330, BRIEF B: ONE NEW DIMENSION, MEASURED AND CLOSED =========
+ * RE-DERIVED FIRST, and the park is exact: one differing encoding of 191, index
+ * 98, ref dbc9 against ours d1c9, 191 encodings both sides.
+ *
+ * The eleven spellings above, and the fold table that replaced them, all share
+ * one unexamined assumption: THE CONSTANT SITS ON THE RIGHT.  That is precisely
+ * the gate of the rewrite -- fold-const.c:6269-6291 requires
+ *     TREE_CODE (arg1) == INTEGER_CST && TREE_CODE (arg0) != INTEGER_CST
+ *     && tree_int_cst_sgn (arg1) > 0
+ * so putting the eleven into the LEFT-HAND EXPRESSION and comparing against zero
+ * makes `tree_int_cst_sgn (arg1) > 0` FALSE and the rewrite never fires.  The
+ * tree then really does keep a strict LT, which is the thing the park declared
+ * unreachable.  NOBODY HAD VARIED THAT DIMENSION; I did, and it does not pay,
+ * because gcc materialises the subtraction instead of folding it back into the
+ * compare operand:
+ *
+ *     loop condition            instructions          figure
+ *     i - 11 < 0                161 against 159         87
+ *     i + (-11) < 0             161 against 159         87
+ *     0 > i - 11                161 against 159         87
+ *     !(i - 11 >= 0)            161 against 159         87
+ *     i - 10 < 1                161 against 159         87
+ *     i - 11 <= -1              163 against 159         88
+ *     i - 11 != 0               191 against 191          1   folds back to != 11
+ *     (i ^ 11) != 0             191 against 191          1   folds back to != 11
+ *
+ * Every row with the constant on the left is LONGER than the reference, so none
+ * of them is a distance at all -- read the instruction column, not the figure
+ * column.  The last two rows show fold collapsing the algebraic disguise back to
+ * the installed inequality, which is the same `fold kills algebraic duplication`
+ * result recorded elsewhere in the tree.
+ *
+ * SO THE CLOSED LATTICE IS NOW CLOSED ON ITS LAST OPEN SIDE TOO: the strict LT
+ * is reachable as a tree after all, and reaching it costs two instructions.  The
+ * park's conclusion survives; only its reason for rung one needed widening.
+ * DO NOT re-sweep either side of the comparison again.
+ * -- scratch_elev/b330/B
  */
 union blob { unsigned char *pp; short hh; int ii; };
 

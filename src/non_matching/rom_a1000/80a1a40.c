@@ -164,6 +164,93 @@
  * iwram_3001f2c instead gave ~40 same-directory siblings, one of which already
  * declared the exact struct this function needs.  SUGGESTED REFINEMENT: rank a
  * shared global by how FEW files use it, and prefer same-directory hits.
+ *
+ * ========== BATCH 330, brief F: THE BOUND SURVIVES, ITS CAUSES DO NOT ==========
+ *
+ * The park's conclusion -- that this is a compiler question and not a spelling
+ * search -- reproduced and stands.  Three of the statements underneath it are
+ * wrong or incomplete, and the corrections move where the next attempt should
+ * aim, so they are what is recorded here.
+ *
+ * (1) THE PATTERN THAT OWNS A POOL RANGE OF SIXTY IS A THUMB PATTERN, NOT AN
+ * ARM ONE.  This park reads "the ranges 60 and 32,32 belong to
+ * `*arm_zero_extendhisi2' and `extendsfdf2' -- ARM-only and float".  Range sixty
+ * belongs to `*thumb_zero_extendhisi2' (arm.md:3030-3069), whose condition is
+ * TARGET_THUMB, and which prints a plain WORD load -- not a halfword load --
+ * whenever its memory operand is a LABEL_REF (arm.md:3038-3040), i.e. exactly
+ * in the literal-pool case.  `*arm_zero_extendhisi2' is the NEXT pattern
+ * (arm.md:3071-3080) and its range is two hundred and fifty-six.
+ *   THE CONCLUSION SURVIVES ANYWAY, for a reason the park did not give: that
+ *   pattern's operand one is a `memory_operand', and `note_invalid_constants'
+ *   (arm.c:5424-5452) pushes a fix only for an operand that is CONSTANT_P in a
+ *   memory-ok alternative, or for a MEM whose address is a SYMBOL_REF with
+ *   CONSTANT_POOL_ADDRESS_P.  A const_int can never satisfy `m', so the pattern
+ *   cannot carry one.  `*thumb_movhi_insn' alternative one (arm.md:4318, :4353)
+ *   really is the only narrow carrier a constant can reach -- but check the
+ *   PATTERN next time, not the range.
+ *
+ * (2) A THIRD PRODUCER OF A NARROW MASK EXISTS AND IS CLOSED BY ARITHMETIC.  The
+ * park enumerates two producers (store_fixed_bit_field's value mask, and
+ * expand_binop's expensive-constant force_reg).  There is also
+ * `extract_fixed_bit_field's unsigned-field mask, expmed.c:1621-1637 -- the one
+ * a bitfield READ goes through.  It cannot help, twice over: the clause that
+ * would fire it on a mode change, `|| tmode != mode', sits inside an `#if 0'
+ * (expmed.c:1625-1631), so the only live guard is
+ * `GET_MODE_BITSIZE (mode) != bitpos + bitsize', which is FALSE for a sixteen-bit
+ * field at bitpos zero of a HImode unit -- no mask is emitted at all; and when
+ * the guard does fire, op0 has already been converted to tmode at expmed.c:1619,
+ * so the `expand_binop (GET_MODE (op0), ...)' that follows is SImode.  So no
+ * bitfield read, of any width, in any unit, can put this constant in a narrow fix.
+ *
+ * (3) THE CAUSE OF THE MODE LOSS IS THE USE, NOT THE DECLARATION -- AND THIS IS
+ * THE CORRECTION THAT MATTERS.  The park records a named halfword mask used
+ * twice as inert and explains it as "combine promotes the standalone HImode set
+ * to SImode".  The outcome is right; the cause is not, and the park's phrasing
+ * points the next reader at the declaration.  Measured here with the TYPE
+ * CONSTRUCTOR varied, the dimension that landed two overlay functions in this
+ * same batch:
+ *     struct { unsigned short v; } / union / `v : 16' / `unsigned short v[1]'
+ * all dodge promote_mode exactly as they should -- its switch, explow.c:897-901,
+ * covers INTEGER_TYPE and friends and lets RECORD_TYPE, UNION_TYPE and
+ * ARRAY_TYPE fall out of the `default:' at :911 -- and the HImode constant set IS
+ * created and DOES survive: it is present as
+ *     (set (reg/v:HI 36) (const_int 65535))   `*thumb_movhi_insn' 180
+ * in the zeroth, the second and the twelfth dump.  It dies in the THIRTEENTH.
+ * What kills it is reading the member into an `int': Thumb has no register
+ * zero_extendhisi2, so the read expands to the shift pair
+ *     (set (reg:SI 61) (ashift (subreg:SI (reg:HI 36) 0) (const_int 16)))
+ *     (set (reg:SI 60) (lshiftrt (reg:SI 61) (const_int 16)))
+ * and combine constant-folds the pair into `(set (reg:SI 60) (const_int 65535))',
+ * `*thumb_movsi_insn', which is the wide fix.  PROMOTE_MODE never got a turn.
+ *   SO THE LEVER IS ON THE USE SIDE: the mask has to be CONSUMED in HImode, with
+ *   no widening between its set and its use, the way this body's own narrow mask
+ *   already is -- the thirteenth dump holds
+ *     (set (reg:SI 62) (and:SI (reg/v:SI 36) (subreg:SI (reg:HI 60) 0)))
+ *   which is precisely the shape wanted, and it is reached because
+ *   store_fixed_bit_field masks at the UNIT mode (expmed.c:743-756) and never
+ *   widens the constant it force_regs.
+ *   And that is also why every use-side spelling tried here failed: consuming
+ *   this mask in HImode means a sixteen-bit AND, and a sixteen-bit AND with this
+ *   value is deleted -- by fold at tree level, or by combine at RTL level if it
+ *   gets that far.  The two meet in the middle.  That is the real shape of the
+ *   wall, and it is narrower than "no spelling exists": what is missing is a
+ *   HImode CONSUMER of the mask that is not an AND.
+ *
+ * MEASURED THIS BATCH, every one against the claim at the top of this file and
+ * none of them better:
+ *   INERT, byte-identical to the body below -- a one-member struct mask; a
+ *   one-member union mask; a `v : 16' mask; a one-element array mask; each of
+ *   those with the mask assignment both before and after the pointer setup; a
+ *   two-member struct with a separate mask per use; a plain halfword scalar mask
+ *   (the park's own row, reproduced); and the mask applied with `=' rather than
+ *   with `&='.
+ *   WORSE, the fold rule firing and instructions GONE: the mask folded into the
+ *   bitfield-store expression (fifty-one differing, four bytes short); a
+ *   one-member-struct holder for the masked value (forty-nine differing, four
+ *   bytes short).
+ *   WORSE, the mask forced to the stack: a volatile member (sixty differing,
+ *   eight bytes long); the two-member struct (sixty differing, twelve bytes
+ *   long).
  */
 struct Win {
     unsigned char pad00[0xc];

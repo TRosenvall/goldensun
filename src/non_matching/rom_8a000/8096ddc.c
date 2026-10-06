@@ -129,6 +129,45 @@
  * removes `o + 0x55` from q's cse equivalence class at that point.
  * (B) is sched2 and is now measured inert to SEVEN source positions.
  * (C) is an INSN_LUID tie and four bitfield orderings are all worse.
+ *
+ * ========================================================================
+ * BATCH 330 BRIEF E -- figure unchanged; two whole dimensions closed
+ * ========================================================================
+ *
+ * Re-derived: unchanged, counts exact at one hundred forty-six each, first
+ * diff still at index 31.  Fourth independent reproduction.
+ *
+ * DIMENSION CLOSED 1 -- NAMING THE SHARED LITERAL ZERO.  Pseudo 54 is the
+ * blocker and it is a constant, so the obvious attack is to give it a name
+ * whose set lies in a different basic block, which is the escape that closed
+ * a sibling park in this same bank this batch (see the retired park for
+ * 0x08092b08: reg_is_remote_constant_p at regmove.c:856-901 makes
+ * fixup_match_1 at regmove.c:1651 refuse to retarget).  IT DOES NOT WORK
+ * HERE, and the reason is arithmetic rather than a near miss: EVERY
+ * placement adds an instruction, one hundred thirty-four against the
+ * reference's one hundred thirty-three, so every such figure measures
+ * misalignment.  Measured, all COUNT: reusing the existing named `zero` for
+ * the two walk-pointer stores; a separate int named and set before the loop;
+ * the same declared with an initialiser; set at the top of the loop body; set
+ * after the `o == 0` guard; two separately named zeros, one per store.
+ *   >> A name costs this function an instruction because the two stores are
+ *   >> different widths, so the named pseudo cannot be the QImode one.
+ *
+ * DIMENSION CLOSED 2 -- THE LOOP'S OWN SHAPE.  Everything the park measured
+ * varies statement POSITION inside the loop body; the loop header was never
+ * varied, and in this tree that has been the deciding dimension elsewhere.
+ * It is not here.  EXACTLY INERT, counts exact: `i < 2` for `i <= 1`; the two
+ * `continue`s rewritten as nested ifs; the array written through a pointer
+ * expression rather than indexed.  WORSE: an unsigned induction variable,
+ * twelve.  COUNT: `i != 2`, one hundred thirty-two instructions.
+ *   >> The two `continue`s are load-bearing for the shape -- a while or a
+ *   >> do-while cannot carry them without moving the increment, which is a
+ *   >> different program -- so `for` is forced and this dimension has only
+ *   >> the three inert spellings above.
+ *
+ * NEXT: unchanged and still the park's own -- suppress cse's rebase of the
+ * walk pointer's increment onto `o`.  Both cheap dimensions beside it are now
+ * measured shut, which raises the value of that one question.
  */
 struct Sprite {
     unsigned char pad00[5];

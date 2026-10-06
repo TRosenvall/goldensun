@@ -36,6 +36,51 @@
  * one.  I did not test it either (it needs an extra instruction to be worth
  * anything, and the counts are exact).  TREAT THE BOUND AS STRONG BUT NOT
  * AIRTIGHT ON THAT ONE SHAPE.
+ *
+ * ======== BATCH 330, BRIEF B: THE ONE ADMITTED CRACK IS NOW CLOSED ========
+ * RE-DERIVED: five differing encodings of thirty-nine, index twelve, ref 682b
+ * against ours 682a, counts and size equal.  The ladder and the decode above
+ * both reproduce exactly.
+ *
+ * ONE CORRECTION TO THE MACHINERY, read out of the dump rather than recalled:
+ * the header says t is `pref LO_REGS`.  It is not.  `.17.lreg` prints
+ *     Register 34 used 2 times across 2 insns in block 0; set 1 time; user var;
+ *     pref BASE_REGS.
+ * BASE_REGS, not LO_REGS.  The conclusion is unaffected -- find_free_reg walks
+ * REG_ALLOC_ORDER inside whichever class and r3 is first and free either way --
+ * but anyone recomputing the exclusion set from the header's class would get the
+ * wrong set.  Confirmed alongside it: `.18.greg` says
+ *     ;; 2 regs to allocate: 33 32
+ * so t is NOT a global allocno at all, and
+ *     ;; Register 34 in 3.
+ * so local-alloc is indeed what takes r3, exactly as the header says.
+ *
+ * THE CRACK THE HEADER LEFT OPEN -- `a qty BORN inside bb0 and DYING AT bb0'S
+ * LAST INSN is still block-local and would overlap, and no row tests one` --
+ * CANNOT PRODUCE A LANDING, and the header's own ladder is what proves it.
+ * Blocking r3 alone is measured at three, not zero: t moves exactly one step
+ * down REG_ALLOC_ORDER to r2.  So t reaches r1 only if BOTH r3 AND r2 are in
+ * `used` across t's two-insn life, which needs TWO overlapping live values,
+ * not one.  And there is no spare value to make even one of them out of: the
+ * two instruction streams agree INSTRUCTION FOR INSTRUCTION -- same count, same
+ * size, the only difference being which register holds v and which holds t --
+ * so any additional live value is an additional instruction, and the count is
+ * exact.  The shape may well exist in general; in THIS function there is
+ * nothing to put in it.
+ *
+ * ALSO CHECKED, so it is not re-derived: making t a GLOBAL allocno would not
+ * help even if a zero-instruction way to do it existed.  `allocno_compare`
+ * (global.c:597-620) gives v (three refs across four insns) a priority of
+ * 7500 and t (two refs across two insns) 10000, so t would sort FIRST and take
+ * r3 again.  For v to sort first t would need a live length of three or more,
+ * which is one more insn.
+ *
+ * VERDICT UNCHANGED AND NOW BOUNDED FROM BELOW AS WELL AS ABOVE: pin-free this
+ * is five, the one-pin body is zero, and the gap is TWO simultaneous register
+ * exclusions in a function with no spare instruction to buy either.  Pass-3
+ * depin item; do not re-sweep spellings and do not re-propose the pin as a
+ * landing.
+ * -- scratch_elev/b330/B
  * =====================================================================================
  */
 /* Anim_Attack  [rom_c9000]  --  5 of 39, MEASURED batch 326 (brief H).
