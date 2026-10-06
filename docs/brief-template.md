@@ -29,6 +29,15 @@ figures, their park paths, what each park claims) goes on top of this.
   not dead ends.
 - **`tools/objcmp.py` is THE AUTHORITY. Never fork it.** A forked copy drifted 32
   lines in batch 316.
+- **The compiler's source is on disk — read it, do not recall it.**
+  `/opt/camelot-gcc/gcc-2.96/gcc` in the container,
+  `~/gs_project/camelot-gcc/gcc-2.96/gcc` on the host: the exact patched
+  gcc-2.96 that builds this ROM. **Quote the file and line in every mechanism
+  claim**, so the next agent can check it in one command. Batch 329 found a
+  mechanism written into a park header from memory that was wrong in the costly
+  direction — it called the dependent-count rung "the only reachable rung" when
+  `rank_for_schedule` has an earlier rung at `haifa-sched.c:4069-4096` — and
+  that error had been steering two parks' probes.
 - **Check `--whole`, not just `--func`.** A figure with dirty relocations is not a
   distance; three parks were found in that state.
 

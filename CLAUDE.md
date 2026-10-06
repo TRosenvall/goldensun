@@ -60,6 +60,34 @@ a Mach-O binary and will not run there. Target SHA1:
 Screen candidates with `tools/tryc.py` before touching the build. A commit is
 gated on the build and compare both passing.
 
+## THE COMPILER'S SOURCE IS RIGHT HERE — READ IT, DO NOT RECALL IT
+
+Nearly every finding in this project is a claim about what gcc-2.96 does, and
+**the exact patched source that builds this ROM is on disk.** There is no reason
+to write a mechanism from memory, and memory has been wrong:
+
+    ~/gs_project/camelot-gcc/gcc-2.96/gcc     on the host (outside this repo)
+    /opt/camelot-gcc/gcc-2.96/gcc             in the build container
+
+The files that come up constantly:
+
+| file | what it decides |
+|---|---|
+| `haifa-sched.c` | `rank_for_schedule`'s rungs, `sched_analyze_insn`'s barriers |
+| `config/arm/arm.c` | `arm_adjust_cost`, `arm_rtx_costs`, the minipool |
+| `config/arm/arm.h` | `REG_ALLOC_ORDER` (`:989`), `LEGITIMATE_CONSTANT_P` |
+| `config/arm/arm.md` | every pattern, its `pool_range` and its predicates |
+| `reload1.c` | `find_reg`, `finish_spills`, `allocate_reload_reg` |
+| `global.c`, `local-alloc.c` | allocation priority and preferences |
+| `cse.c`, `gcse.c`, `loop.c`, `combine.c`, `expr.c`, `explow.c` | the rest |
+
+**Quote the file and line.** A mechanism with a line number can be checked by
+the next agent in one command; a mechanism from memory has to be re-derived, and
+batch 329 found one written into a park header that was wrong in the costly
+direction — it named the dependent-count rung as "the only reachable rung" when
+`rank_for_schedule` has an earlier rung at `haifa-sched.c:4069-4096` that was
+simply omitted. That mistake had been steering two parks' probes.
+
 ## Never
 
 - switch branches (see BRANCH.md)

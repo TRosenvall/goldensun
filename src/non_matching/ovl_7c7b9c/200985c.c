@@ -90,11 +90,54 @@
  * order is the RTL emission order and sched2 leaves these groups alone.  The
  * ROM's order therefore requires sched2 to MOVE `mov r0` up, which means a
  * rank_for_schedule tie-break we lose, not an emission order we could respell.
- * Every insn in the group feeds only the call, so arm_adjust_cost (arm.c:2430)
- * puts them all at prio(call)+1 and the only reachable rung is the
- * dependent-count one (haifa-sched.c:4096-4107), where a constant argument has
- * exactly one dependent.  Note the sibling park's `-fno-schedule-insns2` row
- * reads 11 against the same 5, the same direction.
+ * Every insn in the group feeds only the call, so arm_adjust_cost (arm.c:2416)
+ * puts them all at prio(call)+1 and the tie goes down the rungs.  Note the
+ * sibling park's `-fno-schedule-insns2` row reads 11 against the same 5, the
+ * same direction.
+ *
+ * THE RUNGS, READ OUT OF THE COMPILER RATHER THAN RECALLED -- and this CORRECTS
+ * an earlier sentence in this very append, which said the dependent-count rung
+ * was "the only reachable rung".  IT IS NOT, and that is the direction of error
+ * that closes a class, so it is worth the space.  rank_for_schedule
+ * (haifa-sched.c:4029) has five rungs in this order:
+ *
+ *   1. priority                                      (:4041)
+ *   2. register pressure -- `if (!reload_completed)`, so DEAD in sched2 (:4046)
+ *   3. interblock: target-bb, speculative, probability (:4051, same-bb here)
+ *   4. RELATION TO last_scheduled_insn                (:4069-4096)
+ *   5. dependent count                               (:4097-4111)
+ *   6. INSN_LUID, the stable fallback                (:4112-4116)
+ *
+ * RUNG 4 IS THE ONE THAT WAS MISSED.  It classifies each ready insn against the
+ * insn just scheduled and prefers the HIGHEST class:
+ *
+ *     class 3  link == 0 (independent of it) OR insn_cost(...) == 1
+ *     class 1  data dependent on it, cost != 1
+ *     class 2  anti/output dependent on it, cost != 1
+ *
+ * So all three of our group members sit at class 3 only because the
+ * `mov r1,#0xee -> lsl r1` latency is 1; the rung collapses and we fall to
+ * rung 6, which is why our order IS the emission order.  The rung OPENS as soon
+ * as any dependence in the group has latency != 1: the dependent insn drops to
+ * class 1 and EVERY class-3 insn jumps ahead of it.
+ *
+ * AND arm_adjust_cost SAYS WHICH DEPENDENCE CAN DO THAT.  Reading arm.c:2416
+ * in full, it returns 0 for anti/output, 1 for a true dependence whose consumer
+ * is a CALL_INSN, 1 for a LOAD AFTER A STORE **only when the load's address is
+ * CONSTANT_POOL_ADDRESS_P or mentions sp / fp / hard-fp**, and otherwise falls
+ * through to the DEFAULT cost.  That last clause is the opening: a load after a
+ * store whose address is NOT the pool and NOT the frame keeps its real latency,
+ * which is not 1.
+ *
+ * SO THE DIMENSION NOBODY VARIED ON THIS PARK IS A MEMORY DEPENDENCE.  Every
+ * probe recorded here and in the sibling park -- four callee declarations, the
+ * shifted argument, arg0's storage three ways, the 0x80 two ways -- is
+ * register-only, and rung 4 cannot be reached with registers alone when every
+ * latency is 1.  NOT MEASURED, so this is a route and not a result; but it is
+ * the first route on this park that is not already known to be inert, and the
+ * cheap first probe is whether any ordinary memory traffic already in the
+ * function (the `strb` through `p`, the `str r3,[r0,#0xc]`) can be made to sit
+ * where one of these argument groups is scheduled.
  *
  * READING OUR OWN EMISSION ORDER, which the next round can use: our order is
  * `precompute_register_parameters` (expensive args, forward) followed by
@@ -130,8 +173,25 @@
  * replacement_quality(comm) >= replacement_quality(src); the loaded byte and a
  * propagated constant both score 3, so the swap is skipped -- and the copy-local
  * route to scoring the constant 1 is now measured to cost an instruction.  What
- * is NOT yet tried is reaching quality 2, or changing which operand is `src`
- * without changing the operand count.
+ * is NOT yet tried is reaching quality 1, which is a SHARPER statement than the
+ * one this append first made.  replacement_quality (regmove.c:341, gating at
+ * :1203-1204) reads, in full:
+ *
+ *     not a REG, or REG_LIVE_LENGTH < 0        -> 0
+ *     NOT COPIED from another register         -> 3
+ *     copied from a HARD register              -> 1
+ *     copied from a PSEUDO register            -> 2
+ *
+ * So the loaded byte and the propagated constant both score 3 by the
+ * "not copied" clause, 3 >= 3, swap skipped -- that part holds.  But the copy
+ * local measured above reached quality **2**, NOT 1, because it copies from a
+ * pseudo.  And 2 >= 3 is FALSE, so the gate at :1203-1204 DID open and the swap
+ * still did not produce the ROM's shape -- it cost an instruction instead.
+ * That is a more useful negative than "the copy route is worse": it says the
+ * gate is not the binding constraint, so reaching quality 1 by copying the
+ * constant from a HARD register is unlikely to pay either, and the `orr`
+ * destination is probably decided downstream of regmove.  Spend the next round
+ * on rung 4 above, not on this.
  */
 extern unsigned char L5160[] __asm__(".L5160");
 extern unsigned char gScript_943__0200c58c[];

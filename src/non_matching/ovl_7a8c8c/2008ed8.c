@@ -77,7 +77,7 @@
  *
  * AND ONE THING THAT READING DOES NOT EXPLAIN, which is where the next round
  * should start.  Our sprite pointer takes r0 -- ARM's REG_ALLOC_ORDER opens
- * 3, 2, 1, 0, so r0 is the LAST of the four low registers gcc reaches for.
+ * 3, 2, 1, 0 (VERIFIED verbatim, config/arm/arm.h), so r0 is the LAST of the four low registers gcc reaches for.
  * Over the sprite pointer's whole live range (the `ldr` to the `strb`) r2 and
  * r3 are busy with the byte, the mask and the 4, but **r1 is free** -- the zero
  * that ends up in r1 is not defined until after the `strb`.  A plain
