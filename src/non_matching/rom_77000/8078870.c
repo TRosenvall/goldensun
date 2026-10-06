@@ -184,6 +184,46 @@
  * location genuinely is volatile, in which case all three reads should be), or
  * someone finds a way to hold a non-foldable 16-bit-precision constant in a
  * pseudo before the loop.
+ *
+ * ---------------------------------------------------------------------------
+ * BATCH 332 D.  FIGURE RE-DERIVED AND UNCHANGED, BODY UNTOUCHED.  THE BOUND IS
+ * NOT REFUTED -- BUT ITS SECOND CLAUSE WAS STATED WITHOUT A CONSTRUCT THAT NOW
+ * EXISTS, SO READ IT AGAIN BEFORE TREATING IT AS CLOSED.
+ *
+ * The standing bound is: to be narrow the mask must be constant-foldable, and
+ * to fix the prologue order it must survive as a pseudo, and no C spelling of
+ * the 0x200 mask is both.  The second clause rests on the claim that an
+ * `unsigned short` local "does narrow but then expand must zero-extend the
+ * mask pseudo for the SImode and, and move_movables hoists those extension
+ * insns to loop_start".  That reasoning is about a DECLARED local, and it is
+ * right about declared locals for a reason the bound does not name:
+ * arm.h:597-606 defines PROMOTE_MODE, and for HImode it takes the
+ * unsignedness from TARGET_MMU_TRAPS, which this object does not enable -- so
+ * a declared halfword local is promoted to a word with a SIGN extension no
+ * matter how it was written, and the extension insns the bound describes are
+ * the consequence.
+ *
+ * What the bound does not consider is that explow.c:896-913 only sends the
+ * scalar type codes through PROMOTE_MODE at :898-901; RECORD, UNION and ARRAY
+ * fall out of the default arm at :912 UNPROMOTED.  A one-member aggregate
+ * therefore holds a 16-bit value in a pseudo of its own width with no
+ * extension insns to hoist, which is exactly the shape the bound says does not
+ * exist in the language.  Whether that reaches a MASK is a separate question
+ * and was not tried here -- a mask has to be a constant and the aggregate's
+ * member would have to be initialised from one, which may well put the fold
+ * back.  Stated as an open dimension, not as a result.
+ *
+ * WHY THIS IS WORTH THE PARAGRAPH.  The piece-mate Func_80788c4 was re-priced
+ * this batch from a positional claim on streams one instruction apart to a
+ * genuine distance at the reference's exact length, and the construct that did
+ * it was this aggregate escape -- used as a HOLDER for a loaded halfword, not
+ * as a mask.  See that park's header for the machinery, including the field's
+ * signedness deciding which way combine folds the widening pair.  Both
+ * functions must land for this piece to convert, so the two are coupled.
+ *
+ * NOT REFUTED and still not worth re-running: the D1/D2 chain-order analysis,
+ * the barrier rows, the twenty-four batch-330 rows, and the cse hash argument
+ * against separating the reads by alias set.  Nothing above touches them.
  */
 extern unsigned char *GetItemInfo(unsigned int id);
 
