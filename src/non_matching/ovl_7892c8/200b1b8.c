@@ -1,13 +1,20 @@
 /* OvlFunc_888_200b1b8 -- 0x0200b1b8  [asm/overlays/rom_7892c8/ovl_30_c_c_a_a_a_c_c_a_c_c.s]
  *
- * NON-MATCHING, 23 of 79 encodings  (MEASURED, batch 319 recipe backfill).
+ * NON-MATCHING, 20 of 79 encodings  (MEASURED, batch 333 brief E).
  *   COUNT DIFFERS (ref 79, ours 76) -- so this positional figure measures
  *   MISALIGNMENT, not distance.  Read the count before the figure.
- *   *** RELOCATIONS DIFFER IN THEIR SYMBOLS, NOT ONLY THEIR OFFSETS --
- *   __umodsi3, _umodsi3_RAM
- *   SO THIS FIGURE IS NOT A DISTANCE: `make compare` cannot pass a
- *   relocation difference.  Fix this before trusting the encoding count. ***
- *   SIZE ref 184 bytes, ours 176.
+ *   INSTRUCTIONS ref 65, ours 64; aligned-equal 82.3 per cent of the reference
+ *   stream, nine hunks.  SIZE ref 184 bytes, ours 176.
+ *
+ *   THE RELOCATION SCARE THAT STOOD HERE WAS WRONG AND IS WITHDRAWN.  This park
+ *   carried a banner saying the relocations differ in their SYMBOLS
+ *   (the modulo helper) and that the figure is therefore not a distance.  The
+ *   overlay's own linker script already aliases the two spellings -- see
+ *   overlays/rom_7892c8/overlay.ld, the line that equates gcc's helper name to
+ *   the overlay's RAM stub, which is line sixty-nine.  So the two objects link
+ *   to one symbol and the only real relocation difference is the four-byte
+ *   OFFSET shift that the length gap causes.  Five other parks in this tree
+ *   record the same alias for their own banks.
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -69,51 +76,102 @@
  * the sharing. With the hoist fixed, dropping both is byte-identical. Scaffolding
  * that was load-bearing under one diagnosis is dead weight under the next.
  *
- * THE POOLED ZERO IS A LITERAL, NOT A SYMBOL -- CLOSED, DO NOT RE-OPEN.
- * The ROM loads its second zero from the pool (`ldr r2, =0x0`) and holds it in
- * r8 across two call pairs, which is exactly const.sym's stated tell for a
- * named SYMBOL. Spelling it `(int)&_CONST_0` even LOOKS better by tryc's line
- * count (16 differing against 17). It is wrong. objcmp settles it: THE
- * REFERENCE OBJECT CARRIES NO RELOCATION AT THAT POOL WORD -- its relocations
- * are the six calls and OvlFunc_888_200b144, nothing else -- while the symbol
- * spelling adds an R_ARM_ABS32 _CONST_0 the ROM does not have.
+ * THE POOLED ZERO: THE PARK'S "CLOSED, DO NOT RE-OPEN" VERDICT IS REFUTED, BUT
+ * NOT IN THE DIRECTION IT EXPECTED.  The park wrote that the ROM's second zero
+ * is an ordinary literal and that a symbol spelling is excluded because the
+ * reference object carries no relocation at that pool word.  BOTH HALVES OF
+ * THAT ARE UNSOUND.
  *
- * A SYMBOL HYPOTHESIS MUST BE CHECKED AGAINST THE REFERENCE'S RELOCATIONS, NOT
- * ITS LINE COUNT. tryc normalises pool loads to `=value`, so a symbol and a
- * literal look alike to it and the score can move the wrong way. This also
- * confirms from a second angle what src/non_matching/rom_15000/801965c.c
- * already records: a pooled zero is ordinary gcc output, and no _CONST_0
- * belongs in const.sym.
+ *  - A SMALL SImode CONSTANT CAN NEVER REACH THE POOL.  `*thumb_movsi_insn`
+ *    (arm.md:3838, operands at :3839-3840) lists constraint `I` -- an eight-bit
+ *    immediate -- as ALTERNATIVE 1 and the memory-or-immediate `mi` pool path as
+ *    ALTERNATIVE 6, and `constrain_operands` takes the FIRST alternative that
+ *    needs no reload.  So an SImode zero into a low register is always a `mov`
+ *    and the pool path is unreachable for it.  This is exactly the structural
+ *    test the owner's standing ruling on symbol-table entries demands, read in
+ *    the other direction: a pooled small value proves the source named
+ *    something.  A high-register destination does not change it -- alternative 8
+ *    pairs `*lh` with `*lh`, so no alternative accepts a constant at all and
+ *    reload has to build the value in a low register with a `mov` first.
+ *  - THE RELOCATION ARGUMENT IS ABOUT A RECONSTRUCTION, NOT THE ORIGINAL.  The
+ *    reference .s is this project's own disassembly; its `.word 0` was written
+ *    by the splitter from a word that read as zero, so the absence of a
+ *    relocation in the ASSEMBLED reconstruction says nothing about what the
+ *    original object had there.  objcmp compares two reconstructions of the same
+ *    side on that word and will agree with whichever we write.
  *
- * WHAT IS LEFT -- 8 bytes, and both pieces are identified:
+ * CONTRAST THAT WITH A CASE WHERE THE POOLED ZERO *IS* A LITERAL, because the
+ * distinction is a mode, not a value.  `*thumb_movhi_insn` (arm.md:4318,
+ * operands at :4319-4320) lists the pool path `mn` as ALTERNATIVE 1 and the
+ * eight-bit `I` as ALTERNATIVE 5 -- the OPPOSITE order -- so a HImode zero is
+ * always pooled.  src/overlays/rom_7b9cb4/ovl_30_c_c_b.c is a landed function
+ * that pools a zero for exactly that reason and says so.  THE RULE: a pooled
+ * zero reached by `ldrh` is ordinary gcc output; a pooled zero reached by a full
+ * `ldr` is not, and this function's is a full `ldr`.
  *
- *  - THE ROM'S `b .L3264` IS NOT A REDUNDANT BRANCH. Its literal pool is
- *    emitted INSIDE the function, between the last block and the epilogue, so
- *    the branch jumps OVER the pool. Our pool goes elsewhere, so we have no
- *    branch and are 2 bytes plus a pool word short. tryc cannot judge this --
- *    it warns "the reference keeps its literal pool INSIDE the function" -- so
- *    objcmp or make compare is the authority.
- *  - A TAIL REGISTER SWAP, 4 lines: the ROM puts the masked flag byte in r2 and
- *    the sprite byte in r1, we have them the other way round. Four spellings of
- *    the two `&` expressions were measured (fused, split, either order): 16-22
- *    differing, none swapping them.
+ * SO THE REMAINING EIGHT BYTES ARE NOT A SPELLING PROBLEM.  Which also settles
+ * the second open piece:
  *
- * MEASURED THIS ROUND (differ counts, rom 75 lines):
+ *  - THE ROM'S `b .L3264` IS `create_fix_barrier` (arm.c:5240; the jump, the
+ *    barrier and the label after it are emitted at :5305-5309).  Its only caller
+ *    is :5572, reached from the branch at :5551-5556 whose own comment says it
+ *    runs when a fix will not fit in this pool and "there [are] no natural
+ *    barriers that we could use" -- so gcc MANUFACTURES one by jumping around
+ *    it.  The park called this a translation-unit-level property; IT IS NOT.
+ *    This reference .s holds ONE function and 184 bytes, and the corpus has 382
+ *    mid-function pool dumps of exactly this shape in generated (byte-matching)
+ *    asm, one of them in a 44-byte object -- so the shape is reachable in a tiny
+ *    single-function TU.  What forces it there is `pool_range`: 1020 for the
+ *    SImode pool alternative (arm.md:3856) against 64 for the HImode one
+ *    (arm.md:4353).  A fix with the short range cannot wait for the natural
+ *    barrier at the end of the function and gcc inserts the jump.  Our candidate
+ *    has no such fix, which is why our pool sits after `bx` with nothing over it.
+ *
+ * THE TWO PIECES ARE THE SAME PIECE.  Identify the pooled word and the barrier
+ * comes with it; keep writing a bare zero and neither can appear.  An owner
+ * decision on a symbol-table entry is the gate, and this park now MEETS the
+ * structural-impossibility bar the ruling sets -- it did not before, because the
+ * argument offered was a line count.  It would still fail the ruling's second,
+ * COMPLETION test while the reference .s itself spells the word as a literal.
+ *
+ * THE TAIL SWAP IS DOWN TO TWO ENCODINGS, AND THE PARK SEARCHED THE DIAGONAL.
+ * It recorded four spellings of the two `&` expressions -- "fused, split, either
+ * order" -- and concluded none swapped the registers.  The two masks are not
+ * symmetric and want OPPOSITE treatment, which the diagonal cannot reach.
+ * Varying them independently:
+ *
+ *     first mask   second mask   `|` order    encodings differing of 79
+ *     ----------   -----------   ---------    -------------------------
+ *     split        split         v | t                     23  (the old body)
+ *     split        fused         v | t                     25
+ *     fused        split         v | t                     23
+ *     fused        fused         v | t                     25
+ *     split        split         t | v                     24
+ *     split        fused         t | v                     26
+ *     fused        split         t | v                     20  <- this file
+ *     second mask written before the first                 28
+ *     an explicit trailing `return;`                       23  (inert)
+ *
+ * This file is the fused-first / split-second / reversed-`|` cell.  What is left
+ * in the tail is one register pair: the ROM finishes `orr r3, r2` and stores r3
+ * where we finish `orr r2, r3` and store r2.
+ *
+ * MEASURED IN BATCH 319'S ROUND (differ counts, rom 75 lines), kept for the
+ * record; the `(int)&_CONST_0` row's verdict is the one withdrawn above:
  *
  *     name 2nd store's RHS only                     75 lines, 52
  *     ... + pin map actor to r6                     76, 42
  *     ... + assign the zero just before its use     74, 26
- *     ... + name 1st store's RHS too                74, 17   <- this file
+ *     ... + name 1st store's RHS too                74, 17
  *     ... with the r5 pins dropped                  74, 17   (identical)
- *     ... + `(int)&_CONST_0` for the zero           74, 16   (REFUTED by objcmp)
+ *     ... + `(int)&_CONST_0` for the zero           74, 16
  *     name BOTH RHSs, no r6 pin                     68, 74   (r8 freed entirely)
  *     both zeros written bare, letting CSE pool     73, 42
  *     zero assigned at the top of the function      79, 78
  *     nested positive ifs instead of early returns  74, 17   (inert)
  *     tail's two masks computed in the other order  74, 22
  *
- * NEXT: the pool placement. It is a translation-unit-level property, so the
- * remaining 8 bytes may not be reachable by spelling this function alone.
+ * NEXT: the pooled word's identity, which is an owner call, not a measurement.
  */
 extern unsigned int __Random(void);
 extern unsigned char *__MapActor_GetActor(int slot);
@@ -150,9 +208,8 @@ void OvlFunc_888_200b1b8(int slot)
     *(short *)(n + 0x66) = r;
     *(void **)(n + 0x6c) = OvlFunc_888_200b144;
     q[0x26] = z;
-    t = 0xc;
-    t &= (*(unsigned char **)(a + 0x50))[9];
+    t = 0xc & (*(unsigned char **)(a + 0x50))[9];
     v = -13;
     v &= q[9];
-    q[9] = v | t;
+    q[9] = t | v;
 }

@@ -1,4 +1,4 @@
-/* Anim_Gaia (asm/rom_c9000/rom_e28f4_c_c_a.s:814, 0x080e302c, 936 ROM
+/* Anim_Gaia (asm/rom_c9000/rom_e28f4_c_c_a_a.s:814, 0x080e302c, 936 ROM
  * instructions / 990 encodings) --
  * NON-MATCHING, 921 of 990 encodings differ.
  *
@@ -28,11 +28,11 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_c9000/Anim_Gaia.c \
- *     asm/rom_c9000/rom_e28f4_c_c_a.s --func Anim_Gaia
+ *     asm/rom_c9000/rom_e28f4_c_c_a_a.s --func Anim_Gaia
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/aligncmp.py \
  *     src/non_matching/rom_c9000/Anim_Gaia.c \
- *     asm/rom_c9000/rom_e28f4_c_c_a.s Anim_Gaia
+ *     asm/rom_c9000/rom_e28f4_c_c_a_a.s Anim_Gaia
  * RECIPE PATH CORRECTED ON INSTALL: the delivered recipe named the agent's own
  * scratch_elev/b311b/ workspace, which is GITIGNORED and would have made this
  * park unverifiable the moment the workspace was cleaned.  Both lines now name
@@ -44,7 +44,7 @@
  * override, no fakematch.txt row.
  *
  * SPLIT SHAPE: TEXT-ONLY, THREE PARTS, AND NO NEW `.global` AT ALL.
- * `tools/split_s.py --dry-run asm/rom_c9000/rom_e28f4_c_c_a.s Anim_Gaia` writes
+ * `tools/split_s.py --dry-run asm/rom_c9000/rom_e28f4_c_c_a_a.s Anim_Gaia` writes
  *
  *     rom_e28f4_c_c_a_a.s   BaseAnim_RapidSlash                 802 lines
  *     rom_e28f4_c_c_a_b.s   Anim_Gaia                          1055 lines

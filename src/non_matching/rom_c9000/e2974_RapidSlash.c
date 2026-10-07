@@ -1,4 +1,4 @@
-/* BaseAnim_RapidSlash -- 0x080e2974, asm/rom_c9000/rom_e28f4_c_c_a.s line 12,
+/* BaseAnim_RapidSlash -- 0x080e2974, asm/rom_c9000/rom_e28f4_c_c_a_a.s line 12,
  * 742 ROM instructions.
  * NON-MATCHING, 740 of 778 encodings differ.
  *
@@ -24,7 +24,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_c9000/e2974_RapidSlash.c \
- *     asm/rom_c9000/rom_e28f4_c_c_a.s --func BaseAnim_RapidSlash
+ *     asm/rom_c9000/rom_e28f4_c_c_a_a.s --func BaseAnim_RapidSlash
  * FINAL INSTALLED PATH: src/non_matching/rom_c9000/e2974_RapidSlash.c
  * (the file includes the family header src/non_matching/rom_c9000/decls.h by
  * plain name, so it compiles verbatim from that directory and needs no edit on
@@ -52,7 +52,7 @@
  * --dry-run cuts TWO ways:
  *     asm/rom_c9000/rom_e28f4_c_c_a_b.s   BaseAnim_RapidSlash  (1 fn,  802 lines)
  *     asm/rom_c9000/rom_e28f4_c_c_a_c.s   the other three      (3 fn, 1143 lines)
- * and it would REMOVE asm/rom_c9000/rom_e28f4_c_c_a.s and rewrite stage1.ld.
+ * and it would REMOVE asm/rom_c9000/rom_e28f4_c_c_a_a.s and rewrite stage1.ld.
  * Comes into C as src/rom_c9000/rom_e28f4_c_c_a_b.c.  --dry-run ONLY; nothing in
  * the tree was touched, and `make compare` after the split is still owed.
  *

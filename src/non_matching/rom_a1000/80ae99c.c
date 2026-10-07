@@ -1,6 +1,79 @@
+/* BATCH 333 DELTA -- Func_80ae99c IS NOW 18 differing encodings of 39 (ref 39,
+ * ours 39), DOWN FROM thirty-eight of thirty-nine, AND THE LENGTHS NOW AGREE.
+ * Size 84 against 84, relocations 2 against 2, so the figure is a DISTANCE and
+ * not a phase offset for the first time in this park's life.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80ae99c.c \
+ *     asm/rom_a1000/rom_ae88c_c_c_c.s --func Func_80ae99c
+ *
+ * WHAT CHANGED, AND WHY THE PARK COULD NOT SEE IT. The batch-297a delta below
+ * states the residue correctly as TWO deficits -- the if-conversion that
+ * deletes the join, and the address form -- and it measured the one spelling
+ * that fixes both: a POINTER PER ARM, which it recorded as overshooting by one
+ * encoding and therefore set aside. It was not overshooting. There was a THIRD
+ * residue, a SURPLUS, sitting in the tail and hiding it:
+ *
+ *     rom    mov r3, #0 / strb r3, [r0, #4] / strh r3, [r0, #0xc]
+ *     ours   mov r3, #0 / strb r3, [r0, #4] / ldrh r3, .L / strh r3, [r0, #0xc]
+ *
+ * A LITERAL ZERO STORED THROUGH A HALFWORD IS AN HImode CONSTANT, so it goes to
+ * the pool -- `*thumb_movhi_insn` with `pool_range` 64, arm.md:4318 and :4353 --
+ * costing one instruction AND one pool word. The ROM re-uses the SImode zero it
+ * already has in the register. Naming the zero as an `int` local and storing
+ * that local through both the byte and the halfword keeps it in SImode and the
+ * pool entry disappears. This is the SAME MODE MECHANISM that landed the two
+ * palette functions in this batch, running in the OPPOSITE direction: there a
+ * `(u16)` cast was added to PUT a mask in the pool, here a cast is removed to
+ * KEEP a zero out of it. Worth reading as one lever with two signs.
+ *
+ * So the park's own two-deficit diagnosis was right and its arithmetic was off
+ * by a surplus it had not looked for. A park measuring a candidate as "one too
+ * long" should check the TAIL for an independent surplus before discarding the
+ * candidate -- three residues cannot be read off one length.
+ *
+ * WHAT IS LEFT IS ONE THING: THE PARAMETER-COPY ROTATION, and it is now the
+ * whole residue rather than a cascade. All four arguments are live on entry and
+ * the iwram pool address needs a low register, so one of them must be evicted.
+ * The ROM evicts the LAST argument, freeing its register for the pool address
+ * and leaving the third argument undisturbed in place until it is pushed as the
+ * fifth call argument. We evict the THIRD argument, use its register for the
+ * pool address, and must then stage the fifth argument through the evicted copy
+ * -- which also flips the order of the stack-argument store against the
+ * register-argument setup, since the store now has a dependence the ROM's does
+ * not. Every difference in the residue is that one choice.
+ *
+ * MEASURED IN BATCH 333, eighteen variants, EVERY ONE EXACTLY at the figure
+ * above -- so these dimensions are closed, not merely unpromising:
+ *   four declaration orders of the four locals                     all equal
+ *   three arm spellings: equality, inequality, conditional expr    all equal
+ *   the condition argument copied into a named local first         equal
+ *   the fifth call argument copied into a named local first        equal
+ *   the loaded id copied into a named local before the call        equal
+ *   the base retyped as a halfword pointer with halfword indices   equal
+ *   the second call argument spelled as a wider shift              equal
+ *
+ * NEXT, and it is a specific question about ONE decision rather than a search:
+ * which incoming argument local-alloc evicts to free a low register for the
+ * pool address. That is `find_free_reg` walking `reg_alloc_order`
+ * (local-alloc.c:2021-2050) over quantities ordered by `qty_compare`, and the
+ * thing to read is which quantity is reached first with all four argument
+ * registers still occupied. No source spelling found here moves it, which is
+ * consistent with it being an ordering inside the allocator rather than a
+ * liveness fact the source controls -- but that should be CONFIRMED from the
+ * allocator dump before the park is called blocked, because the eighteen
+ * variants above all leave the liveness shape identical and so cannot
+ * distinguish the two explanations.
+ *
+ * THE BODY BELOW IS THE IMPROVED ONE: pointer per arm, and the tail's zero
+ * named as an SImode local.
+ */
+
 /* MEASURED FIGURE, backfilled in batch 324 (this park carried none).
  *
- *   38 differing encodings of 39 (ref 39, ours 38).
+ *   SUPERSEDED: it read thirty-eight differing of thirty-nine, ref thirty-nine
+ * against ours thirty-eight.
  *
  * The one call relocation is the same symbol at -4, so this is a distance: one
  * instruction missing at the very top (first diff at index 1) shifts
@@ -14,7 +87,8 @@
  */
 
 /* ================== BATCH 297a DELTA -- Func_80ae99c ==================
- * RE-MEASURED: 38 of 39, and it is NOT a distance -- ref 39 encodings, ours 38.
+ * RE-MEASURED: thirty-eight of thirty-nine, and NOT a distance -- ref thirty-nine
+ * encodings, ours thirty-eight.
  * The park said "39 of 40, two lines short"; the figures have drifted by one and
  * the correct statement is ONE INSTRUCTION SHORT.  84 bytes against 84 (the pool
  * padding absorbs the difference), 2 relocations against 2.  The park also
@@ -109,20 +183,21 @@ extern void *_Func_801eadc(int id, int a, int b, int c, int d);
 int Func_80ae99c(int a, int b, int c, int d)
 {
     char *g;
-    int off;
+    unsigned short *q;
     unsigned char *r;
+    int t;
 
     g = (char *)iwram_3001f2c;
     if (d == 0)
-        off = 0x392;
+        q = (unsigned short *)(g + 0x392);
     else
-        off = 0xe5 << 2;
-    r = (unsigned char *)_Func_801eadc(*(unsigned short *)(g + off),
-                                       0x80 << 23, a, b, c);
+        q = (unsigned short *)(g + (0xe5 << 2));
+    r = (unsigned char *)_Func_801eadc(*q, 0x80 << 23, a, b, c);
     if (r == 0)
         return -1;
-    r[4] = 0;
-    *(unsigned short *)(r + 0xc) = 0;
+    t = 0;
+    r[4] = t;
+    *(unsigned short *)(r + 0xc) = t;
     r[5] = 1;
     return 1;
 }

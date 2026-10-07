@@ -1,4 +1,4 @@
-/* Anim_Unsummon (asm/rom_c9000/rom_e6638_a_c_c.s, 411 instructions) --
+/* Anim_Unsummon (asm/rom_c9000/rom_e6638_a_c_c_a.s, 411 instructions) --
  * NON-MATCHING, 415 of 432 encodings differ.  SIZE 968 against the ROM's 976
  * (-8) and COUNT 428 against 432 (-4), so THAT FIGURE IS SATURATED, NOT A
  * DISTANCE -- read the four-instruction deficit below, not the 415.
@@ -17,11 +17,11 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_c9000/Anim_Unsummon.c \
- *     asm/rom_c9000/rom_e6638_a_c_c.s --func Anim_Unsummon
+ *     asm/rom_c9000/rom_e6638_a_c_c_a.s --func Anim_Unsummon
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/aligncmp.py \
  *     src/non_matching/rom_c9000/Anim_Unsummon.c \
- *     asm/rom_c9000/rom_e6638_a_c_c.s Anim_Unsummon -v
+ *     asm/rom_c9000/rom_e6638_a_c_c_a.s Anim_Unsummon -v
  * Installed path is src/non_matching/rom_c9000/Anim_Unsummon.c.
  *
  * SHIMS: NONE.  `python3 tools/shimcount.py` reports zero rows for this file.
