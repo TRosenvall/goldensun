@@ -1,10 +1,12 @@
 /* Func_80c00d8 @ 0x080c00d8
  *
- * NON-MATCHING, 33 of 37 encodings  (MEASURED, batch 319 recipe backfill).
- *   *** RELOCATIONS DIFFER IN THEIR SYMBOLS, NOT ONLY THEIR OFFSETS --
- *   _call_via_r5, _call_via_r6, ewram_2010200
- *   SO THIS FIGURE IS NOT A DISTANCE: `make compare` cannot pass a
- *   relocation difference.  Fix this before trusting the encoding count. ***
+ * NON-MATCHING, 33 of 37 stream encodings  (RE-MEASURED, batch 333).
+ *   The STREAM lengths are both 37 because a pad absorbs the difference; the
+ *   16-bit INSTRUCTION counts differ, ref 30 against ours 29, so this
+ *   positional figure measures MISALIGNMENT, not distance.
+ *   *** RELOCATIONS ALSO DIFFER IN THEIR SYMBOLS, NOT ONLY THEIR OFFSETS.
+ *   Two of those rows are real and one is not; see the batch-333 note below
+ *   before trusting the encoding count. ***
  *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
@@ -71,6 +73,62 @@
  *
  * This is the same wall as src/non_matching/ovl_7f2f14/20087d8.c, where the ROM
  * materialises -1 three times. Nothing in the tree defeats it yet.
+ *
+ * ---------------------------------------------------------------------------
+ * BATCH 333: THE MISSING INSTRUCTION, THE REASON FOR IT, AND ONE RELOCATION
+ * ROW THAT IS A REFERENCE-SIDE ARTEFACT.
+ *
+ * THE GAP IS DEFECT 1 ABOVE AND NOTHING ELSE.  Counting only the instructions
+ * that build or consume the first size value: the reference spends five (two to
+ * build it for the call argument, two to build it AGAIN, one to add it to the
+ * pointer) and we spend four (two to build it once, one to copy it into the
+ * argument register, one to add it).  That one instruction is the whole length
+ * gap.  Defect 2, the re-materialised function pointer, costs no instruction --
+ * it moves which `_call_via_rN` veneer is referenced, which is why it shows up
+ * as a relocation row rather than a count.
+ *
+ * WHY WE KEEP THE VALUE AND THE REFERENCE DOES NOT, stated more precisely than
+ * "gcc's common-subexpression elimination is too eager".  In the reference the
+ * value is built straight into the argument register and dies at the first
+ * call, so the second use has to rebuild it.  In our output it is a pseudo that
+ * is live across the argument setup, so it is given a CALLEE-SAVED register --
+ * which is also why our prologue pushes one register more than the
+ * reference's, and why our whole first block is register-renamed.  The brief's
+ * standing lever is the relevant one: a pseudo that crosses a call cannot take
+ * r0-r3 or r4 (global.c:967, :992-995), so the register the reference uses is
+ * available only to a value that does NOT cross the call.  The question to ask
+ * is therefore "what keeps the size value out of a pseudo that outlives the
+ * argument setup", not "what spelling of the constant differs".
+ *
+ * MEASURED AND EXACTLY INERT, all twenty-nine instructions and thirty-three
+ * differing with the first difference at the prologue: the advance written
+ * through a byte-pointer cast with the size as a plain literal; the size pulled
+ * into its own local used once; the whole function on a byte pointer.  Add
+ * those to the four spellings already listed above; all seven are the same
+ * cell of the search.
+ * MEASURED WORSE: a second pointer name for the later calls (thirty-four
+ * instructions); naming the callee directly at every call site instead of
+ * through a pointer (twenty-seven instructions, and it loses a veneer call
+ * altogether).
+ *
+ * THE `ewram_2010200` RELOCATION ROW IS NOT OUR DEFECT.  The reference `.s`
+ * carries `ldr r2, =ewram_2010200` for the ramp's starting value, and
+ * `wram.sym` defines `ewram_2010200 = 0x02010200`, so the symbol resolves to
+ * exactly the literal this body writes.  The value is not an address: the loop
+ * stores it and adds 0x20002 each iteration, which is a pair of packed
+ * halfwords each stepping by one -- tile data, not a pointer.  So the row is
+ * the hand-written disassembly having symbolised a numeric literal that happens
+ * to fall in the EWRAM range, and it disappears from the build the moment this
+ * function is elevated, because the generated `.s` replaces the hand-written
+ * one.  (The symbol IS a real object elsewhere -- another park declares it as
+ * an array -- so this is a misattribution at THIS use, not a bad symbol.)
+ * The `_call_via_r5` against `_call_via_r6` rows ARE real: they are defect 2's
+ * register allocation showing through, and they go when the allocation does.
+ *
+ * PIECE: `asm/rom_b5000/rom_bffb8_a_a_a_c.s` also holds Func_80c0130, and THAT
+ * FUNCTION IS ALSO PARKED (src/non_matching/rom_b5000/80c0130.c).  One .c is
+ * one TU, so neither converts alone -- a landing here must carry both.
+ * ---------------------------------------------------------------------------
  */
 #include "gba/types.h"
 

@@ -1,6 +1,6 @@
 # Pass 4 — humanizing
 
-**4,276 landed functions are still named `Func_<addr>`** against 766 with a real name, across **4,455 split-named files** of 4,516 landed.
+**4,283 landed functions are still named `Func_<addr>`** against 766 with a real name, across **4,462 split-named files** of 4,523 landed.
 
 See `docs/humanization.md` for the method and the artifact taxonomy. Two
 structural facts bound this work:
@@ -18,16 +18,16 @@ structural facts bound this work:
 
 | bank | unnamed functions |
 |---|---|
-| overlays | 3205 |
+| overlays | 3206 |
 | rom_8a000 | 265 |
 | rom_15000 | 212 |
 | rom_b5000 | 150 |
-| rom_a1000 | 144 |
+| rom_a1000 | 145 |
 | rom_c0 | 72 |
 | rom_9000 | 58 |
 | rom_b0000 | 58 |
-| rom_77000 | 51 |
-| rom_c9000 | 27 |
+| rom_77000 | 52 |
+| rom_c9000 | 31 |
 | rom_f2000 | 11 |
 | rom_f6000 | 7 |
 | rom_f9000 | 6 |
@@ -406,6 +406,7 @@ structural facts bound this work:
 | `Func_8078b60` | [src/rom_77000/rom_78a8c_c_b.c](../../src/rom_77000/rom_78a8c_c_b.c) |
 | `Func_8078ecc` | [src/rom_77000/rom_78b9c_b.c](../../src/rom_77000/rom_78b9c_b.c) |
 | `Func_8079004` | [src/rom_77000/rom_78ee8_b.c](../../src/rom_77000/rom_78ee8_b.c) |
+| `Func_8079008` | [src/rom_77000/rom_79008_a_b.c](../../src/rom_77000/rom_79008_a_b.c) |
 | `Func_80792c4` | [src/rom_77000/rom_79008_b.c](../../src/rom_77000/rom_79008_b.c) |
 | `Func_80796c4` | [src/rom_77000/rom_79460_c_a_a_b.c](../../src/rom_77000/rom_79460_c_a_a_b.c) |
 | `Func_8079754` | [src/rom_77000/rom_79460_c_c_a_a_a_b.c](../../src/rom_77000/rom_79460_c_c_a_a_a_b.c) |
@@ -720,6 +721,7 @@ structural facts bound this work:
 | `Func_80a1d08` | [src/rom_a1000/rom_a1814_c_a_a_c_a_c_a_a_c_b.c](../../src/rom_a1000/rom_a1814_c_a_a_c_a_c_a_a_c_b.c) |
 | `Func_80a1e38` | [src/rom_a1000/rom_a1814_c_a_a_c_a_c_a_a_c_c_b.c](../../src/rom_a1000/rom_a1814_c_a_a_c_a_c_a_a_c_c_b.c) |
 | `Func_80a1fd4` | [src/rom_a1000/rom_a1814_c_a_a_c_a_c_a_a_c_c_c_b.c](../../src/rom_a1000/rom_a1814_c_a_a_c_a_c_a_a_c_c_c_b.c) |
+| `Func_80a2144` | [src/rom_a1000/rom_a1814_c_a_a_c_a_c_a_a_c_c_c_c.c](../../src/rom_a1000/rom_a1814_c_a_a_c_a_c_a_a_c_c_c_c.c) |
 | `Func_80a21b0` | [src/rom_a1000/rom_a1814_c_a_a_c_a_c_a_b.c](../../src/rom_a1000/rom_a1814_c_a_a_c_a_c_a_b.c) |
 | `Func_80a2268` | [src/rom_a1000/rom_a1814_c_a_a_c_a_c_a_c_b.c](../../src/rom_a1000/rom_a1814_c_a_a_c_a_c_a_c_b.c) |
 | `Func_80a22f4` | [src/rom_a1000/rom_a1814_c_a_a_c_a_c_a_c_c_b.c](../../src/rom_a1000/rom_a1814_c_a_a_c_a_c_a_c_c_b.c) |
@@ -1058,6 +1060,7 @@ structural facts bound this work:
 | `Func_80cdb24` | [src/rom_c9000/rom_cd508_a_c_b.c](../../src/rom_c9000/rom_cd508_a_c_b.c) |
 | `Func_80cdd14` | [src/rom_c9000/rom_cd508_b.c](../../src/rom_c9000/rom_cd508_b.c) |
 | `Func_80d6750` | [src/rom_c9000/rom_d6504_a_c_c_c_b.c](../../src/rom_c9000/rom_d6504_a_c_c_c_b.c) |
+| `Func_80d67dc` | [src/rom_c9000/rom_d6504_a_c_c_c_c_a.c](../../src/rom_c9000/rom_d6504_a_c_c_c_c_a.c) |
 | `Func_80d6888` | [src/rom_c9000/rom_d6504_a_c_c_c_c_b.c](../../src/rom_c9000/rom_d6504_a_c_c_c_c_b.c) |
 | `Func_80d6960` | [src/rom_c9000/rom_d6504_b.c](../../src/rom_c9000/rom_d6504_b.c) |
 | `Func_80da24c` | [src/rom_c9000/rom_d9ab8_c_c_c_c_b.c](../../src/rom_c9000/rom_d9ab8_c_c_c_c_b.c) |
@@ -1067,11 +1070,14 @@ structural facts bound this work:
 | `Func_80df90c` | [src/rom_c9000/rom_de974_c_c_c_c_c_c_c_c_c_c_b.c](../../src/rom_c9000/rom_de974_c_c_c_c_c_c_c_c_c_c_b.c) |
 | `Func_80df9d0` | [src/rom_c9000/rom_de974_c_c_c_c_c_c_c_c_c_c_c_b.c](../../src/rom_c9000/rom_de974_c_c_c_c_c_c_c_c_c_c_c_b.c) |
 | `Func_80dfddc` | [src/rom_c9000/rom_dfa18_c_c_c_c_b.c](../../src/rom_c9000/rom_dfa18_c_c_c_c_b.c) |
+| `Func_80e38b8` | [src/rom_c9000/rom_e28f4_c_c_a_b.c](../../src/rom_c9000/rom_e28f4_c_c_a_b.c) |
+| `Func_80e3908` | [src/rom_c9000/rom_e28f4_c_c_a_c.c](../../src/rom_c9000/rom_e28f4_c_c_a_c.c) |
 | `Func_80e3944` | [src/rom_c9000/rom_e28f4_c_c_b.c](../../src/rom_c9000/rom_e28f4_c_c_b.c) |
 | `Func_80e3994` | [src/rom_c9000/rom_e3958_c_c_c_a.c](../../src/rom_c9000/rom_e3958_c_c_c_a.c) |
 | `Func_80e3a14` | [src/rom_c9000/rom_e3958_c_c_c_b.c](../../src/rom_c9000/rom_e3958_c_c_c_b.c) |
 | `Func_80e46f0` | [src/rom_c9000/rom_e3958_c_c_c_c_b.c](../../src/rom_c9000/rom_e3958_c_c_c_c_b.c) |
 | `Func_80e6d3c` | [src/rom_c9000/rom_e6638_a_c_b.c](../../src/rom_c9000/rom_e6638_a_c_b.c) |
+| `Func_80e727c` | [src/rom_c9000/rom_e6638_a_c_c_b.c](../../src/rom_c9000/rom_e6638_a_c_c_b.c) |
 | `Func_80e72e0` | [src/rom_c9000/rom_e6638_b.c](../../src/rom_c9000/rom_e6638_b.c) |
 | `Func_80f037c` | [src/rom_f0000/rom_f0254_a_b.c](../../src/rom_f0000/rom_f0254_a_b.c) |
 | `Func_80f03c0` | [src/rom_f0000/rom_f0254_b.c](../../src/rom_f0000/rom_f0254_b.c) |
@@ -1534,6 +1540,7 @@ structural facts bound this work:
 | `OvlFunc_891_2008044` | [src/overlays/rom_78c76c/ovl_30_c_b.c](../../src/overlays/rom_78c76c/ovl_30_c_b.c) |
 | `OvlFunc_891_200804c` | [src/overlays/rom_78c76c/ovl_30_c_b.c](../../src/overlays/rom_78c76c/ovl_30_c_b.c) |
 | `OvlFunc_891_2008054` | [src/overlays/rom_78c76c/ovl_30_c_c_a_a_b.c](../../src/overlays/rom_78c76c/ovl_30_c_c_a_a_b.c) |
+| `OvlFunc_891_2008098` | [src/overlays/rom_78c76c/ovl_30_c_c_a_a_c_a.c](../../src/overlays/rom_78c76c/ovl_30_c_c_a_a_c_a.c) |
 | `OvlFunc_891_2008150` | [src/overlays/rom_78c76c/ovl_30_c_c_a_a_c_b.c](../../src/overlays/rom_78c76c/ovl_30_c_c_a_a_c_b.c) |
 | `OvlFunc_891_2008614` | [src/overlays/rom_78c76c/ovl_30_c_c_a_a_c_c_b.c](../../src/overlays/rom_78c76c/ovl_30_c_c_a_a_c_c_b.c) |
 | `OvlFunc_891_2008c8c` | [src/overlays/rom_78c76c/ovl_30_c_c_a_a_c_c_c.c](../../src/overlays/rom_78c76c/ovl_30_c_c_a_a_c_c_c.c) |

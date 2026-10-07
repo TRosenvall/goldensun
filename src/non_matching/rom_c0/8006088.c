@@ -1,8 +1,9 @@
 /* Func_8006088 (0x08006088) -- NON-MATCHING.
  *
- * NON-MATCHING, 24 of 44 encodings  (MEASURED, batch 319 recipe backfill).
- *   COUNT DIFFERS (ref 44, ours 42) -- so this positional figure measures
- *   MISALIGNMENT, not distance.  Read the count before the figure.
+ * NON-MATCHING, 24 of 44 stream encodings  (RE-MEASURED, batch 333).
+ *   STREAM lengths differ, ref 44 against ours 42, and the 16-bit INSTRUCTION
+ *   counts differ, ref 39 against ours 38 -- so this positional figure
+ *   measures MISALIGNMENT, not distance.  Read the count before the figure.
  *   RELOCATIONS differ, but THE SAME SYMBOLS AT A SHIFTED OFFSET -- which
  *   this project treats as a CONSEQUENCE of the length difference, not a
  *   separate blocker.  Re-classified in batch 322; the figure IS a distance.
@@ -64,6 +65,66 @@
  *
  * NEXT: nothing source-level outstanding. This is one register-allocation
  * instruction, in the class docs/elevation.md records as the dominant wall.
+ *
+ * ---------------------------------------------------------------------------
+ * BATCH 333: THE MISSING INSTRUCTION IS LOCATED AND REACHABLE, AND THE BLOCKER
+ * CLASS IN THIS HEADER IS WRONG.
+ *
+ * Aligned against the reference, the whole gap is the ONE instruction this
+ * header already names, and nothing else in the body is a shape difference.
+ * Of the forty-four reference encodings, every one is identical except:
+ *   - two pool-load displacements, a consequence of the length;
+ *   - the accumulator's register in three instructions (r2 against r0);
+ *   - the missing copy itself.
+ * So once the copy lands this function is a candidate for zero.
+ *
+ * IT IS NOT A REGISTER-ALLOCATION WALL.  This header says "one `mov` the source
+ * cannot ask for" and files it under register allocation.  The copy is in fact
+ * deleted much earlier, by GCSE's COPY PROPAGATION in pass 07, long before
+ * local-alloc runs.  Written with the two accumulator names and the copy at the
+ * first if's join -- the spelling this header's table records as inert -- the
+ * dump `cand.c.07.gcse` prints exactly:
+ *
+ *     COPY-PROP: Replacing reg 37 in insn 86 with reg 36
+ *     CPROP of Func_8006088, pass 1: 0 const props, 1 copy props
+ *
+ * one copy propagated, and it is this one.  So the question is not "what asks
+ * for a mov" but "what stops gcse.c's cprop_insn from propagating the join
+ * copy".  The same pass eats the same kind of copy in
+ * src/non_matching/rom_b5000/80b90ac.c, where the dump line was also read.
+ *
+ * AND THE COPY IS DEMONSTRABLY REACHABLE.  Writing the first guard with an
+ * ELSE, so both arms assign the second name --
+ *
+ *     if (s[0] == 8) v = w | 0x80; else v = w;
+ *
+ * -- emits the reference's `mov r0, r2` in the right place and reads twenty of
+ * forty-four, with the first twenty-one instructions exact.  It costs an
+ * unconditional branch over the else arm, so it is forty instructions against
+ * the reference's thirty-nine: one too LONG instead of one too short.  That is
+ * recorded as evidence that the copy is reachable, NOT as progress -- this
+ * park's own trap note applies, and the body below is kept.
+ *
+ * WHAT THE REFERENCE'S BLOCKS ARE, since the next attempt needs them: the copy
+ * sits in the JOIN block of the first guard, where the accumulator has two
+ * reaching definitions (the initial or, and the `|= 0x80` arm).  An if/else
+ * puts the copy in an ARM instead, which is why cprop cannot reach it there.
+ *
+ * MEASURED AND EXACTLY INERT, all at twenty-four of forty-four: the two-name
+ * spelling with the copy at the first join; the same with the declaration order
+ * swapped; the same with every or written out as `v = v | K`; both accumulators
+ * `unsigned int`; the first or split into two statements.
+ * MEASURED WORSE: the copy placed BEFORE the first guard (twenty-seven); a
+ * redundant zero test before the return (forty-one instructions).
+ *
+ * THE DECLARATION IS CONFIRMED BY THE EPILOGUE: `pop {r1} / bx r1` pops into r1,
+ * which `thumb_exit` (arm.c:8302, :8306-8330, :8382) emits for a declared
+ * return of one to four bytes.  The `int` return below is right.
+ *
+ * PIECE: `asm/rom_c0/rom_5cf8_a_a_a_c_c_a_c.s` also holds Func_8005fcc, and
+ * THAT FUNCTION IS ALSO PARKED (src/non_matching/rom_c0/8005fcc.c).  One .c is
+ * one TU, so neither converts alone -- a landing here must carry both.
+ * ---------------------------------------------------------------------------
  */
 #include "gba/types.h"
 #include "gba/io.h"
