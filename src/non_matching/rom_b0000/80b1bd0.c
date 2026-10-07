@@ -70,6 +70,63 @@
  * ITS FILE-MATE Func_80b1a14 IS EXACT and stays exact in the combined TU, so
  * closing this one instruction converts asm/rom_b0000/rom_b0070_a_a_c_c_c_c_a.s
  * WHOLE with no split and no linker change (datacheck.py: no data section).
+ 
+ *
+ * === BATCH 333: THE GAP IS LOCATED EXACTLY, AND TWELVE MORE SPELLINGS DIE. ===
+ *
+ * tools/aligncmp.py puts the whole residue at 234 aligned-equal of 238 (98.3%),
+ * 5 differing in 5 hunks, and the hunks are:
+ *     ref[207]  adds r2, r0, #0          -- MISSING on our side.  THE gap.
+ *     ref[202]  bne.n  +0x1f0 / ours +0x1ee     \  both pure consequences of
+ *     ref[220]  b.n    +0x36  / ours same, off   /  the two-byte shift
+ *     ours[233] a trailing .short 0x0000 the reference does not have
+ * NOTHING ELSE IN 238 ENCODINGS DIFFERS.  The park's own reading is right.
+ *
+ * THE PARK'S ARITHMETIC IS CONFIRMED FROM THE COMPILER SOURCE, not recalled:
+ * REG_ALLOC_ORDER is `{3, 2, 1, 0, 12, 14, 4, 5, 6, 7, 8, 10, 9, 11, 13, 15,
+ * ...}` (arm.h:989-995), so a quantity that misses the copy suggestion and
+ * walks the order finds r3 already holding the -1 and lands on r2 -- the ROM's
+ * register, as claimed.
+ *
+ * MECHANISM, NARROWED TO ONE SENTENCE.  block_alloc's copy suggestion succeeds
+ * here only because r0 DIES AT THE COPY, which leaves the suggested register
+ * free across the quantity's entire life.  To reach the ROM, EITHER r0 must be
+ * live past the copy and through the compare, OR the quantity must cross a
+ * call.  Neither is expressible from this control flow: the ROM's taken arm
+ * reloads `unit` from the frame AFTER the branch, so nothing else wants r0
+ * there, and the value is dead at the compare so nothing can carry it over a
+ * call.  That is a sharper statement of the park's conclusion and it points at
+ * the same place.
+ *
+ * TWELVE MORE SPELLINGS, FIVE OF THEM IN DIMENSIONS THE PARK HAD NOT VARIED.
+ * All byte-identical to the baseline at 28 encodings and 231 instructions:
+ *   - reuse `r` for the following _FindEmptyInventorySlot result (this
+ *     CONFIRMS the park's row, which had no figure beside it)
+ *   - a second definition `r = -1;` inside the taken arm (dead, eliminated)
+ *   - the ternary `r != -1 ? Func_80b1f4c(unit, i) : (void)0;`
+ *   - `if (r + 1 != 0)`
+ *   - `if ((r ^ -1) != 0)`
+ *   - `if (-1 != r)`, the reversed operand order
+ *   - Func_80b1e80's PROTOTYPE WITHHELD, so the call returns implicit int
+ *   - a ONE-MEMBER STRUCT CARRIER, `struct { int m; } rs;` with `rs.m` as the
+ *     result.  The promote_mode constructor lever (explow.c:897-911) is INERT
+ *     here and should be expected to be: an `int` member is SImode either way,
+ *     so there is no mode to keep.  Recorded because that lever is the first
+ *     thing the current briefs reach for.
+ * WORSE: reusing `item` (240 encodings, eighty-two aligned differing); reusing
+ * `cnt` (nineteen aligned differing); a separate `cnt` for the FindEmpty result
+ * (twenty); an `else r = 0;` (twenty-eight); duplicating Func_80b04dc into both
+ * arms (241 encodings, thirty-four).
+ *
+ * A HAZARD WORTH THE LINE: writing the test as
+ * `switch (r) { case -1: break; default: Func_80b1f4c(unit, i); break; }`
+ * makes gcc 2.96 die with `Internal error: Segmentation fault` on this
+ * function.  Do not retry that shape.
+ *
+ * So the park's inert list is now twenty-five spellings deep across nine
+ * structural dimensions, and the blocker as stated survives.  The useful next
+ * question is not another spelling: it is whether any construct can keep a
+ * value live in r0 across a compare that does not itself read r0.
  */
 struct Spr {
 	unsigned char pad00[4];

@@ -212,6 +212,56 @@
  * LOCAL-ALLOC, now exactly located.  Attack which pseudos are LIVE in that
  * arm, not how the store is written -- thirteen spellings from batch 323 and
  * five more here are a plateau.
+ *
+ * ========================================================================
+ * BATCH 333 BRIEF B -- FIGURE REPRODUCED, AND THE MODE ARGUMENT GENERALISES
+ * ========================================================================
+ *
+ * DIRECTION, STATED BACK: this park is OURS LONGER -- thirty-five reference
+ * instructions against thirty-six, forty-three stream entries against
+ * forty-five, one hundred bytes against one hundred and four.  So nothing is
+ * missing from the source; gcc emits one thing extra.
+ *
+ * REPRODUCED EXACTLY, pin-free and device-free, at twenty of forty-three, and
+ * the extra material is precisely what the park says it is: an unconditional
+ * branch over a minipool dumped before the epilogue, plus a two-byte alignment
+ * pad, plus the pool word for the stored halfword value sitting FIRST in our
+ * pool where the reference has it LAST.  Laid side by side there is nothing
+ * else: every other instruction aligns.
+ *
+ * ONE ADDITION TO THE MECHANISM, and it makes this park's argument stronger
+ * rather than changing it.  The park reasons from pool_range sixty-four at
+ * arm.md:4353 and from recog's first-match rule on `*thumb_movsi_insn`.  The
+ * matching fact on the HImode side is the CONSTRAINT ORDER itself:
+ * `*thumb_movhi_insn` (arm.md:4318-4320) constrains operand 1 as
+ * "l,mn,l,*h,*r,I".  Alternative 1 is `mn`, and `n` matches ANY const_int;
+ * the 8-bit immediate alternative `I` is alternative 5.  recog takes the first
+ * match, so EVERY HImode const_int in Thumb -- zero included -- is recognised
+ * as the memory alternative and goes to the minipool.  There is no HImode
+ * constant that does not pool, which is why the park's "HImode pools it in the
+ * WRONG PLACE; SImode does not pool it AT ALL" is exhaustive and not merely
+ * the behaviour of this one value.
+ *
+ * TWO OTHER PARKS WERE RE-PRICED IN THIS BATCH BY THAT SAME RULE, in the other
+ * direction -- src/non_matching/rom_a1000/80ae9f0.c and
+ * src/non_matching/ovl_7fb4a8/20087b0.c were each ONE INSTRUCTION LONG because
+ * gcc built an HImode zero and pooled it where the reference reused an SImode
+ * zero already in a register.  Both halved on one named local.  So this park is
+ * also the reference entry for the rule: when a stream is one instruction and
+ * one pool word long, look for an `ldrh` from the pool before anything else.
+ *
+ * ALSO CHECKED AND WORTH RECORDING ALONGSIDE THE WITHHELD RULING: area.sym
+ * already carries a name for the value this function stores.  That does NOT
+ * make the device admissible -- the park's own argument is that the field at
+ * this offset belongs to no identified id space, and the area field this bank
+ * does identify is at a different offset in the same block -- but the next
+ * reader should know the name exists before proposing it, and should bring
+ * evidence about the FIELD, not about the value.
+ *
+ * NOTHING NEW TRIED.  Eighteen spellings across batches 323 and 330 are a
+ * plateau and the park's NEXT is still right: the remaining four are
+ * local-alloc, already located, and the question is which pseudos are LIVE in
+ * that arm.
  */
 extern int iwram_3001ebc;
 extern unsigned char gState[];

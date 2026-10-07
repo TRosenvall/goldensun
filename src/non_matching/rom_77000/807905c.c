@@ -5,16 +5,16 @@
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_77000/807905c.c \
- *     asm/rom_77000/rom_79008_a.s --func Func_807905c
+ *     asm/rom_77000/rom_79008_a_c.s --func Func_807905c
  *
- * SPLIT SHAPE. asm/rom_77000/rom_79008_a.s holds TWO functions, Func_8079008
+ * SPLIT SHAPE. asm/rom_77000/rom_79008_a_c.s holds TWO functions, Func_8079008
  * (CanLevelUp, 40 instructions, also unattempted) and Func_807905c. Converting
  * this one needs
- *     asm/rom_77000/rom_79008_a.s -> rom_79008_a_a.s  (Func_8079008, stays asm)
+ *     asm/rom_77000/rom_79008_a_c.s -> rom_79008_a_a.s  (Func_8079008, stays asm)
  *                                  + rom_79008_a_b.c  (Func_807905c)
  * with the two stems in place of the one in stage1.ld. EXPORTS: Func_807905c
  * only; it calls its own file-mate Func_8079008, which must stay `.global`.
- * `python3 tools/datacheck.py asm/rom_77000/rom_79008_a.s` is CLEAN -- no data
+ * `python3 tools/datacheck.py asm/rom_77000/rom_79008_a_c.s` is CLEAN -- no data
  * section rides along, so the split is text-only.
  *
  * RELOCATION SEQUENCE IS EXACT from the first draft on: GetUnit, Func_8004970,

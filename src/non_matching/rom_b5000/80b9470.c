@@ -133,7 +133,50 @@
  * `last = n-1` 78 (this park's declaration-order figure, reproduced); a `switch`
  * 85; the test split into `if`/`else if` 100.
  * **The "stop rather than continue through temp spellings" verdict STANDS.**
-*/
+ *
+ * === BATCH 333: THE FIGURE IS PHASE, AND THE GAP IS ONE INSTRUCTION. ===
+ *
+ * "SIZE EXACT" above is true and MISLEADING ON ITS OWN: the stream lengths
+ * agree at 105 encodings only because the reference carries a 2-byte pad that
+ * ours does not.  The INSTRUCTION counts are ref 95, OURS 96 -- so this park is
+ * the rare one in these banks where WE ARE ONE INSTRUCTION LONG, and the
+ * positional figure is measuring the offset, not the number of wrong decisions.
+ * tools/aligncmp.py reads 81 aligned-equal of 105 (77.1%), 28 differing in 17
+ * hunks.  Re-screen any future change with aligncmp, never with the figure.
+ *
+ * WHERE THE EXTRA INSTRUCTION IS, in stream terms:
+ *     ref     mov r9, r7 / mov r3, #0 / mov r7, r9 / mov sl, r3     (four)
+ *     ours    add r3, sp, #4 / str r7, [sp] / mov r9, r3 /
+ *             ldr r7, [sp] / mov r1, #0 / mov sl, r1                (six)
+ *     ref     mov r0, sp  ...  mov r1, sp     (the temp address, twice)
+ *     ours    mov r0, r9  ...  mov r1, r9
+ *     ref     sub sp, #0x10 / add sp, #0x10
+ *     ours    sub sp, #0x14 / add sp, #0x14
+ * plus the `adds r3, r2, #0` the reference has before its `cmp r3, #0x35`,
+ * which the park already names, and a two-slot displacement of
+ * `adds r0, r6, #0`.  That is the whole of the twenty-eight.
+ *
+ * ONE OBSERVATION THE PARK DOES NOT RECORD, AND IT MAY BE THE WHOLE THING.
+ * THE REFERENCE'S FRAME IS EXACTLY THE SIXTEEN-BYTE TEMP AND NOTHING ELSE, so
+ * the temp sits at sp+0 and `&tmp` IS the stack pointer -- which is why the ROM
+ * can write `mov r0, sp` and `mov r1, sp` at the two uses for free, with no
+ * pseudo, no allocno and nothing for `.08.loop` to hoist.  Ours puts a 4-byte
+ * spill slot at sp+0 and the temp at sp+4, so `&tmp` is a genuine `sp + 4`
+ * expression that needs a register.  The park's chain (two `(plus sfp -16)` ->
+ * cse1 commons -> loop hoists -> eighth allocno -> `n - 1` spills) is correct
+ * as written, but the spill and the non-zero offset are MUTUALLY REINFORCING:
+ * the spill slot is what moves the temp off offset zero, and the temp being off
+ * offset zero is what makes its address an allocno in the first place.
+ * Whichever way a future attempt breaks that, the test to apply is NOT another
+ * temp spelling -- eight of those are already byte-identical -- it is whether
+ * the frame can be made to hold the temp ALONE, so that instantiate_virtual_regs
+ * folds `virtual-stack-vars - 16` to bare `sp` and the uses rematerialise.
+ *
+ * NOTHING WAS CHANGED IN THIS BODY IN BATCH 333.  The park's eight temp
+ * spellings, both declaration orders, four temp placements and the single and
+ * paired flag sweeps were all read and none was re-run; the brief's own
+ * instruction was to stop at temp spellings, and that is still the right call.
+ */
 struct Act {
     short id;
     short f2;
