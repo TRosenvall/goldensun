@@ -304,6 +304,8 @@ def check(path):
     # park's own claim against the stream figure -- that contract is unchanged.
     im = re.search(r"INSTRUCTION COUNT\s+ref (\d+), ours (\d+)", out)
     insn = (int(im.group(1)), int(im.group(2))) if im else None
+    sm = re.search(r"ENCODINGS differ in \d+ place\(s\) \(ref (\d+), ours (\d+)\)", out)
+    ref_stream_equal = bool(sm) and sm.group(1) == sm.group(2)
     if " OK " in out:
         got = (0, None)
     else:
@@ -311,10 +313,32 @@ def check(path):
         if not m:
             return ("UNCHECKABLE", "objcmp produced no encoding line", None, None)
         got = (int(m.group(1)), int(m.group(2)))
+    # DISTINGUISH THE TWO CASES, because they are not the same defect.
+    #
+    # `insn` is the 16-BIT instruction count; `got[1]` is the STREAM length,
+    # which includes 32-bit entries (pool words AND `bl` calls) and pads.  The
+    # first draft of this flag fired on an instruction-count difference alone
+    # and called every such park PHASE.  Batch 334 brief C showed that is wrong
+    # for Func_8093af8: its 16-bit counts are 116/115 but its STREAM lengths are
+    # 124/124, a 32-bit entry absorbing the difference -- and its residue
+    # decomposes into real causes.  So:
+    #
+    #   stream lengths DIFFER  -> the comparison really is out of phase
+    #   stream lengths AGREE   -> positions line up; the figure may well be a
+    #                             distance, and the mix of 16- and 32-bit
+    #                             entries differs instead
+    #
+    # The flag now reports what it measured instead of asserting a conclusion.
     if insn:
-        extra_note += ("  *** INFLATED: instruction counts differ (ref %d, ours %d),"
-                       " so this positional figure counts PHASE, not distance"
-                       % insn)
+        if ref_stream_equal:
+            extra_note += ("  [16-bit instruction counts differ (ref %d, ours %d) but"
+                           " STREAM LENGTHS AGREE -- a 32-bit entry absorbs it, so"
+                           " positions line up and this figure may be a true distance]"
+                           % insn)
+        else:
+            extra_note += ("  *** INFLATED: instruction counts differ (ref %d, ours %d)"
+                           " AND stream lengths differ, so this positional figure"
+                           " counts PHASE, not distance" % insn)
     if not cm:
         return ("NO CLAIM", f"measures {got[0]}{extra_note}", None, got[0])
     claimed = int(cm.group(1))

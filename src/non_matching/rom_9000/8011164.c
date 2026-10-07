@@ -147,6 +147,65 @@
  * `i <= 0x3f` bound, the 0x80 strides on both pointers, the `dst + 0x40` second
  * store, and the pool CONTENTS and ORDER (ewram_2020000, 0x06004000, gBuffer),
  * which already agree with the ROM's.
+ *
+ * ============ BATCH 334, BRIEF C: THE CLAIM REPRODUCES; A PIECE-LEVEL
+ * ============ BLOCKER AND ONE UNTRIED DIMENSION
+ *
+ * RE-MEASURED, and the claim line at the top of this file REPRODUCES EXACTLY:
+ * ref 37 encodings / ours 35, instructions ref 34 / ours 32, size ref 80 bytes /
+ * ours 76, relocations differing only by the shift the deficit causes.  The
+ * decomposition below is confirmed off both streams.  Nothing in this header
+ * needed correcting.
+ *
+ * ==================== THE PIECE CANNOT BE LANDED AT ALL YET ====================
+ *
+ * asm/rom_9000/rom_108e4_c.s holds SEVEN functions and ALL SEVEN ARE PARKED --
+ * Func_8010e14, Func_8010ff0, Func_80110e0, this one, Func_80111b4,
+ * Func_80113e4, Func_80114a0.  A .c is one TU, so matching this function alone
+ * installs nothing: it needs a split, and because its piece-mate Func_80114a0 is
+ * also a batch-334 target and is NOT adjacent to it, taking both off the count
+ * needs TWO cuts of the same .s rather than one.  Coordinators should treat this
+ * park and the Func_80114a0 park as a PAIR whose landing cost includes two
+ * byte-neutral splits and a linker-script change, and should not schedule either
+ * as a standalone single.  (The note above about Func_80111b4 not being a second
+ * park for this function still stands and is unrelated.)
+ *
+ * ========== THE IN-LOOP DIFFERENCE IS ALSO AN ADDRESSING-MODE DIFFERENCE ==========
+ *
+ * The decomposition above reads the in-loop deficit entirely as gBuffer failing
+ * to get a hard register.  That is one true description of it; here is a second,
+ * which names a lever the inert list above does NOT contain.  Set the two bodies
+ * side by side at the loads:
+ *
+ *     rom   add r3,r2,r5 / ldrh r3,[r3]   ... add r3,r2,r5 / ldrh r3,[r3]
+ *     ours  ldrh r3,[r6,r2]               ... ldrh r3,[r3,r2]
+ *
+ * The ROM MATERIALISES EACH ADDRESS and uses an immediate-offset load; we use
+ * Thumb's REGISTER-OFFSET form, which is exactly one instruction cheaper per
+ * load.  Two loads, two instructions -- the same arithmetic the gBuffer story
+ * gives, reached from the addressing mode instead of from the allocation.
+ *
+ * This is worth recording because it is a lever with a measured precedent in
+ * this batch rather than an open question: src/non_matching/rom_a1000/80a3354.c
+ * had two stores in the same shape, and NAMING THE ADDRESS AS ITS OWN POINTER
+ * LOCAL converted one of them from the register-offset form to the ROM's
+ * materialise-then-store form, moving its instruction count by one.  The inert
+ * list above does contain "the address named as its own pointer, `a = t + g;
+ * *(u16 *)a`" at the parked figure -- so the lever has been tried HERE and did
+ * not fire, and that is a real negative.  What was never tried is the lever
+ * CROSSED with the pointer walk: in the 80a3354 measurement the site that
+ * accepted the edit was the one whose INDEX REGISTER STAYED LIVE past the
+ * access, and the site that refused it was the one where the index died there.
+ * In this loop both indices die at their load.  So the dimension nobody has
+ * varied here is not how the address is spelled -- it is whether `t` survives
+ * its second use, and the cheapest probe is a body in which the index is still
+ * needed after the second load.
+ *
+ * NOTE ON docs/agbcc-thumb-regoffset-bug.md: read its scope note before using
+ * any of the above.  gcc296 emits register-offset addressing freely (1,156 sites
+ * in this tree) and "the offset as a named local" is a recorded lever that EARNS
+ * that form; what this park needs is its INVERSE, and the two must not be
+ * confused.
  */
 extern unsigned char ewram_2020000[];
 extern unsigned char gBuffer[];

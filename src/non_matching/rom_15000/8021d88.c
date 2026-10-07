@@ -94,6 +94,58 @@
  *
  * NEXT: nothing source-level for cause A.  It needs the spill-versus-high-register
  * class solved, which is tracked across five parks.
+ *
+ * ===== BATCH 334: DIRECTION CONFIRMED, AND THE LENGTH GAP IS CLOSEABLE =====
+ *
+ * The figure above reproduced exactly.  DIRECTION: the instruction counts are
+ * forty-seven for the reference against FORTY-EIGHT for us, so WE EMIT AN EXTRA
+ * INSTRUCTION -- gcc failed an optimisation the original build made.  The stream
+ * lengths are equal (fifty-three both) because the ROM spends a pool word where
+ * we spend an instruction, which is why the positional figure did not show it.
+ *
+ * WHAT WE KEEP THAT THE ROM'S SOURCE DID NOT: a SECOND high register.
+ * aligncmp puts the extra instruction in the prologue/epilogue pair --
+ *
+ *     rom    mov r6, r8 / push {r6}                   ONE high register
+ *     ours   mov r6, sl / mov r5, r8 / push {r5, r6}  TWO
+ *
+ * and the ROM pays for its one register with a four-instruction frame spill
+ * (`sub sp,#4`, `str r4,[sp]`, `ldr r4,[sp]`, `add sp,#4`) that we do not need.
+ * Net: us plus one.  The park's cause A survives and its "nothing source-level"
+ * verdict survives with it.
+ *
+ * MEASURED, AND ONE OF THEM CLOSES THE LENGTH GAP.  Inlining the first halfword
+ * read at the second call --
+ *
+ *     r = Func_8021c64(*(unsigned short *)(a + k), c);
+ *
+ * in place of the two statements `v = ...; r = Func_8021c64(v, c);` -- makes the
+ * instruction counts AGREE at forty-seven each, size still exact, and the
+ * positional count falls to THIRTY-SEVEN, which is then a real distance rather
+ * than a phase offset.  IT COSTS CAUSE B: with `v` set only once,
+ * `nonzero_bits` tracking comes back and the mask narrows to the
+ * two-instruction `movs`/`lsls` build again, losing the ROM's pooled wide
+ * constant and its pool word.  So the two levers documented in this header are
+ * in direct tension, exactly like the pin and the guard in
+ * src/non_matching/ovl_7b9cb4/20086dc.c.  THE BODY BELOW KEEPS THE MASK, because
+ * the mask is the documented, generalisable finding; the length-agreeing variant
+ * is one statement away and is written out above.
+ *
+ * MEASURED AND INERT (all at the park figure, lengths still one apart):
+ *   `m` inlined into the first call's third argument
+ *   `c` copied into a named local used at all three of its sites
+ *   the two p-relative stores moved ahead of the a-relative one   (worse)
+ *   a named local for the 0x80002000 store value, live across call one  (worse)
+ * MEASURED AND WORSE, and these were the CROSS of the two levers above --
+ * reusing an existing twice-set local for the masked read so that cause B's
+ * REG_N_SETS lever survives the inlining.  None of the three available locals
+ * works: `m` and `k` both LOSE instructions (ours drops to forty-five and
+ * forty-four, size short by four bytes), `j` returns to the park figure.
+ *
+ * PIECE NOTE, and it matters: this reference holds TWO functions,
+ * Func_8021cb8 and Func_8021d88, and Func_8021cb8 is ALSO PARKED
+ * (src/non_matching/rom_15000/8021cb8.c).  A piece converts whole or not at
+ * all, so neither can land alone -- work them together.
  */
 extern void Func_8021cb8(void *p, int c, int m);
 extern int Func_8021c64(int v, int c);

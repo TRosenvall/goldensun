@@ -31,6 +31,48 @@
  * INERT / WORSE (measured): layer*0x140 inline (80 differ), bias as a user var
  * incremented (84), `zq` as its own biv (84), row local at j-level (77-84), all-goto
  * loops with explicit copies (88; copies coalesce), 0xff000000 constant (unsigned).
+ *
+ * ============ BATCH 334, BRIEF C: RE-MEASURED, AND THE SAME PIECE-LEVEL
+ * ============ BLOCKER AS ITS PIECE-MATE
+ *
+ * RE-MEASURED and the claim line at the top of this file REPRODUCES: 55 of 97
+ * encodings, ref 97 / ours 95, instructions ref 94 / ours 92, size ref 200 bytes
+ * / ours 196.  COUNT DIFFERS, so that positional figure measures MISALIGNMENT and
+ * the honest statement is WE ARE TWO 16-BIT INSTRUCTIONS SHORT.  Read the count
+ * before the figure; the figure is not a distance here and the real distance is
+ * unknown until the lengths agree.
+ *
+ * ==================== THE PIECE CANNOT BE LANDED AT ALL YET ====================
+ *
+ * asm/rom_9000/rom_108e4_c.s holds SEVEN functions and ALL SEVEN ARE PARKED --
+ * Func_8010e14, Func_8010ff0, Func_80110e0, Func_8011164, Func_80111b4,
+ * Func_80113e4 and this one.  A .c is one TU, so a match here installs nothing
+ * without a split.  Its piece-mate Func_8011164 is also parked two instructions
+ * short and is NOT adjacent to this function, so taking both off the count needs
+ * TWO byte-neutral cuts of the same .s plus a linker-script change.  Schedule the
+ * two as a pair, not as standalone singles.
+ *
+ * ALSO: the header above names Func_80113e4 as "the streaming twin of this
+ * function (same file, not yet elevated either)".  That is still true, and it is
+ * a THIRD member of the same piece -- so a split that carves out this function
+ * and Func_8011164 leaves the twin behind in the remainder, where it stays
+ * reachable as a separate target.  The twin is the first thing to read before any
+ * further work here: the brief's standing rule is that when a park names another
+ * function, that function's source is read first, and in this piece every named
+ * relative is still a park, which is itself the reason this one has had no
+ * labelled-corpus neighbour to query.
+ *
+ * >> ON THE STATED BLOCKER.  The 0xF-mask story above is an observation about
+ *    where two equal constants are unified, and it is NOT yet an account of the
+ *    two-instruction deficit -- the header never says which two instructions are
+ *    missing, only which register the ROM spends differently.  The first thing a
+ *    next round should produce is the DECOMPOSITION: count the ROM's and our
+ *    instructions inside each of the three nested loops and in the straight-line
+ *    head and tail separately, and say which region is short.  Func_8011164's
+ *    header in this same piece is the model for that, and on a body of this size
+ *    tools/aligncmp.py's hunk list gives it directly.  Without it, every mask
+ *    spelling measured here is being screened against a figure that cannot move
+ *    until the lengths do.
  */
 extern unsigned char *iwram_3001e70;
 extern int Func_80108e4(int layer, int qx, int qz, int tileset, int force);

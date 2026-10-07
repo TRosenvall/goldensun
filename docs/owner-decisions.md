@@ -122,3 +122,49 @@ which case all three reads should be.
    readily available, park it at its pin-free figure for pass 3.
 4. **A device is permitted as an instrument and forbidden as a result.** Keep its
    number, label it as a figure about the blocker, and ship the device-free body.
+
+## Pass 2.5 is official, and it runs between passes 2 and 3 (2026-10-07)
+
+**Ruling.** The roadmap gains a **pass 2.5**: put the tree back together before
+depinning starts. It merges the 5,203 landed pieces back into upstream's 521
+module files, demotes the 1,543 `.global` labels the splits promoted, resolves
+artifact→function, and builds the pin-group index pass 3 needs.
+
+**Spec:** [`docs/pass-2.5.md`](pass-2.5.md). **Instrument:**
+`tools/mergetest.py`.
+
+**Why it is a separate pass rather than part of 3 or 4.** A module is the unit
+upstream ships, the unit pass 4 renames to, and the only unit in which a
+promoted `.global` can be demoted — and all three want the merge to have
+happened first. Doing the merge inside pass 3 or 4 would mean traversing the
+tree twice.
+
+**Why it cannot start early.** Only **9** multi-piece modules are fully landed
+today; 237 others still contain assembly, and a module cannot be merged while
+part of it is `.s`. So the ordering 2 → 2.5 → 3 → 4 is forced by the data, not
+chosen.
+
+**What was measured before ruling.** The open question was whether merging is
+mechanical or a *third matching pass*, since merging 24 pieces across 521
+modules would cost as much as pass 2 if each merge could break. First case:
+`ovl_d58_a.c` + `ovl_d58_b.c` compiled as one TU is **byte-identical to the two
+compiled separately**, 82 encodings. A mechanism predicts it — gcc-2.96's
+minipool and every relevant optimisation pass are per-function. **This also
+retires batch 285's `OvlFunc_932_200b738` worry**: that was a statement moving
+during a paste, not a property of merging.
+
+**Still untested, and worth testing before pass 2 closes:** a piece carrying
+`.data`/`.rodata`, colliding `static` helpers, `#include` ordering, and many
+pieces rather than two. Pieces with *different per-file flags* cannot be one TU
+at all; `mergetest.py` refuses those rather than guessing.
+
+## Publishing intent changed (2026-10-07)
+
+The owner now intends to **push finished modules upstream to Coaltergeist** as
+pass 3 and pass 4 complete, running them in parallel with pass 3 kept ahead of
+pass 4. This was previously preservation-only.
+
+**It tightens two things.** Pass 4's naming scheme stops being a preference and
+becomes a hard constraint, and **every matching artifact becomes something an
+external reviewer sees** — so the 89 fakematch-class barriers and the 2 unbooked
+ones in `reports/pass3-depin.md` carry materially more weight than they did.

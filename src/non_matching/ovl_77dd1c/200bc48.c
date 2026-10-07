@@ -33,6 +33,69 @@
  * The rest of the function is exact: 22 calls, the six-times-repeated channel
  * loops written out rather than looped (a loop gives an induction variable the
  * ROM does not have), and 0x166 built as `0xb3 << 1` rather than pooled.
+ *
+ * ===== BATCH 334: THE EXTRA INSTRUCTION, THE PASS, AND A ONE-PIN ZERO =====
+ *
+ * The figure above reproduced exactly.  DIRECTION: thirty-one instructions for
+ * the reference against THIRTY-TWO for us -- WE EMIT AN EXTRA ONE.  aligncmp
+ * puts the whole delta in five hunks and the extra instruction is the `pop`
+ * ALONE, not "push {r5} with its pop" as this header said above: `push {lr}`
+ * and `push {r5, lr}` are one instruction each, so the hoist is plus two to
+ * build the value, minus two because each site collapses to one `adds`, and
+ * PLUS ONE for the `pop {r5}`.
+ *
+ * WHY THE HOIST IS UNAVOIDABLE AT SOURCE LEVEL.  0x166 is 358.
+ * `arm.c:2075-2082` gives `rtx_cost (const_int, SET)` as COSTS_N_INSNS(2) for a
+ * `thumb_shiftable_const`, and 358 is 0xb3 << 1, so its cost is six.
+ * `calls.c:841-857` calls `copy_to_mode_reg` for any argument whose
+ * `rtx_cost (value, SET) > 2` when `SMALL_REGISTER_CLASSES && *reg_parm_seen`.
+ * SO THE ARGUMENT ALWAYS GETS A FRESH PSEUDO; no spelling of this value reaches
+ * r0 directly.  A constant below 256 would cost zero and go straight to the hard
+ * register.  CHECK THE VALUE before attacking this class.
+ *
+ * NAME THE PASS: this is cse1, NOT gcse.  The function has no control flow at
+ * all, so it is ONE basic block; cse's `invalidate_for_call` clears HARD
+ * registers at a call and leaves pseudos alone, which is why fifteen intervening
+ * calls do not break the equivalence, and why this header's own survey was right
+ * that all seventy-six tree functions doing the rebuild have their repeated uses
+ * in different conditional branches.  A real basic block boundary is the only
+ * thing that stops it, and this function has none to offer.
+ *
+ * THE CORPUS ANSWERED IT, AND THE ANSWER WAS IN A LANDED FILE.  Querying every
+ * gcc-generated reference for a `mov rN,#imm / lsl rN,rN,#s` pair in r0-r3 whose
+ * value is at or above 256, appearing twice in one function with a call between
+ * and NO label or conditional branch between, returns sixty-six hits.  The
+ * closest is OvlFunc_888_200987c -- `mov r0,#154 / lsl r0,r0,#1` rebuilt twice
+ * across twenty-nine calls, straight-line, feeding the same callee both times.
+ * Its landed source is
+ *
+ *     { PIN1; q0 = 0x9a << 1; __PlaySound(q0); }
+ *
+ * at the FIRST site with a plain literal at the second, where PIN1 is
+ * `register int q0 __asm__("r0")`.  That file's own header even states the rule:
+ * every one of its sixty surviving pins is a site with a SHIFTED or pooled
+ * argument, which is precisely this case.
+ *
+ * MEASURED HERE, and it is a landing behind one pin:
+ *   PIN1 on the __SetFlag site       IDENTICAL -- 156 bytes, stream exact
+ *   PIN1 on both sites               IDENTICAL
+ *   PIN1 on the __ClearFlag site     INERT, at the park figure
+ *   the two sites spelled differently (0xb3 << 1 against 0x166)   INERT
+ *   both sites spelled 0x166                                      INERT
+ *
+ * The __ClearFlag-only row is the mechanism's own proof: the pin works by
+ * putting the constant in HARD REGISTER r0 at the FIRST site, where
+ * `invalidate_for_call` then kills the equivalence; pinning the second site
+ * changes nothing because the first still leaves a live pseudo.
+ *
+ * SO THE PARK STANDS AT ITS PIN-FREE FIGURE, with a one-pin zero recorded.
+ * This is a FOR-THE-OWNER call under the prefer-pin-free policy: ONE pin, on a
+ * previously pin-free SINGLE-FUNCTION piece, with a landed precedent for the
+ * identical construct against the identical blocker -- materially easier than
+ * Func_80979a4 in docs/owner-decisions.md, which was a fourth pin on a veneer.
+ * It is NOT reachable by a symbol-table entry: 0x166 is 0xb3 << 1, so constraint
+ * K of the SImode move matches ahead of the pool path and gcc can never pool it,
+ * which fails the structural-impossibility test the same document sets.
  */
 extern void __WaitFrames(int n);
 extern void __SetFlag(int id);

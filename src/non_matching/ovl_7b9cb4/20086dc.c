@@ -82,6 +82,53 @@
  * bottom-tested loop with a pinned induction variable, and the do-while
  * spelling that removes the guard costs three instructions elsewhere. This may
  * simply be a shape where the pin and the loop form cannot both be had.
+ *
+ * ===== BATCH 334: THE GAP LOCATED, AND THE COPY LEVER MEASURED INERT =====
+ *
+ * The figure above reproduced exactly.  DIRECTION: SEVENTY-NINE instructions for
+ * the reference against seventy-eight for us -- THE REFERENCE IS LONGER, we are
+ * MISSING one.  The stream lengths are equal (one hundred and seven both).
+ *
+ * NOTE FOR ANY BRIEF QUOTING THIS PARK AS PIN-FREE: IT IS NOT.  The body below
+ * carries five `register __asm__` declarations plus repeated PIN3 blocks.
+ *
+ * aligncmp reads it at sixteen differing in eleven hunks, ninety-five of one
+ * hundred and seven aligned-equal, and the net minus one is THREE real deltas
+ * that nearly cancel:
+ *
+ *   PLUS TWO, ours   `cmp r5,#23 / bgt` -- the loop entry guard this header
+ *                    already documents, and whose tension with the counter pin
+ *                    is already measured on both horns.
+ *   MINUS TWO, ours  the `movs r1,#152 / movs r2,#216` pair inside the
+ *                    `if (i == 8)` arm reads at a different position, so the
+ *                    alignment charges it to both sides.
+ *   MINUS ONE, ours  `adds r5, r2, #0` -- A COPY THE ROM MAKES AND WE DO NOT:
+ *
+ *     rom    ldr r2,=.L5238 / ldr r3,=0 / strh r3,[r2] / adds r5,r2,#0
+ *     ours   ldr r5,=.L5238 / ldr r3,=0 / strh r3,[r5]
+ *
+ * So the ROM holds the store's address in one register and COPIES it into the
+ * timed loop's pointer, where we use one register for both.  That is the shape
+ * the two inverse copy levers address, and ALL THREE SPELLINGS ARE INERT here --
+ * every one still reads at the park figure with the lengths still one apart:
+ *
+ *   two named pointers, the store through the first and `q = q2` after   INERT
+ *   the store through a fresh cast, then `q` assigned from a second cast INERT
+ *   `q` assigned BEFORE the store, the store through a fresh cast        INERT
+ *
+ * So the missing copy is NOT a naming question at this spelling level.  Note it
+ * is also entangled with the guard: the guard costs two and the copy plus the
+ * mov-pair positioning gives three back, which is why the positional figure
+ * moved not at all across the three probes.  THE LOOP FORM HAS TO BE SETTLED
+ * FIRST; measuring the copy against a stream that is still two long from the
+ * guard cannot separate them.
+ *
+ * PIECE NOTE, and it decides the order of work: this reference holds TWO
+ * functions, OvlFunc_932_20086a0 and OvlFunc_932_20086dc, and 20086a0 is ALSO
+ * PARKED (src/non_matching/ovl_7b9cb4/20086a0.c, re-priced in batch 331 to two
+ * real differing instructions of twenty-four).  A piece converts whole or not at
+ * all, so NEITHER CAN LAND ALONE.  20086a0 is much the closer of the two and is
+ * where the piece's next hour belongs.
  */
 extern unsigned char *iwram_3001e70;
 extern int L5238 __asm__(".L5238");

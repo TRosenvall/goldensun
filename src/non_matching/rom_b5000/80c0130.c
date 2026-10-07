@@ -232,6 +232,32 @@
  *
  * NEXT: unchanged.  The bound is the three escapes above, each now with a line
  * in the compiler or the machine description.  Disagree with those lines.
+ 
+ * ===== BATCH 334 BRIEF B: FIGURE RE-DERIVED, AND THE PIECE'S OTHER MEMBER
+ * ===== CHECKED SO THE TWO BOUNDS SIT TOGETHER.
+ *
+ * Figure re-derived unchanged: six of thirty-seven stream encodings, ref
+ * thirty-one instructions against ours thirty-one, first at index sixteen.
+ * Body unchanged.  The three-escape bound above was not re-litigated; nothing
+ * found this round bears on `arm.md:262-263` or `arm.c:2415-2452`.
+ *
+ * WHAT IS NEW IS THE PIECE'S ARITHMETIC.  `asm/rom_b5000/rom_bffb8_a_a_a_c.s`
+ * holds exactly two members, this one and Func_80c00d8, and BOTH are parked --
+ * so the batch-327 note's "a landing here needs a split" is only true of a
+ * landing that carries one member.  Carry both in one translation unit and the
+ * piece converts whole with no split at all.  That is the cheaper route, and it
+ * is also why neither member is worth landing alone.
+ *
+ * Func_80c00d8's own bound was sharpened in the same round and is now the same
+ * KIND of bound as this one: its one missing instruction is cse1 substituting
+ * a live pseudo for a rebuilt constant, forced by `cse.c:509-514` against
+ * `arm.c:2077-2080`, and the only escape is a control-flow boundary that costs
+ * more than it buys.  See src/non_matching/rom_b5000/rom_c00d8.c.
+ *
+ * NEXT: both members are bounded in the compiler's own source.  A reader who
+ * wants this piece should attack whichever of the two bounds they disbelieve --
+ * neither is a spelling problem, and converting one without the other buys
+ * nothing.
  */
 #include "gba/types.h"
 #include "gba/io.h"

@@ -31,6 +31,72 @@
  * 6 init-statement orders (only `best = 0;` before `bestd = 0x28;` mattered and it fixed
  * the PROLOGUE, not this); 12 tail spellings; 5 `(short)` cast spellings; 4 `u16 ang`
  * spellings; an `fp` spelling; a named `u8 *` for the +0x54 byte load; --no-rerun-cse.
+ *
+ * ================ BATCH 334, BRIEF C: THE FIGURE IS A DISTANCE, AND THE
+ * ================ PARK'S "ONE DECISION" CLAIM IS INCOMPLETE
+ *
+ * RE-MEASURED: the claim line at the top of this file REPRODUCES EXACTLY, and it
+ * is a TRUE DISTANCE -- ref and ours are both 124 encodings, size and relocations
+ * identical.  reports/park-figure-audit.md lists this park in its gap-of-one
+ * shortlist as ref 116 / ours 115; that pair is the SIXTEEN-BIT-ONLY instruction
+ * count, and a PAD absorbs the halfword, so the STREAM lengths are equal and this
+ * park does NOT belong on a misalignment list.  The honest reading of the two
+ * numbers together: the ROM has ONE MORE 16-BIT INSTRUCTION than we do and we
+ * have one more pad halfword.  Anyone handed this park as "one instruction apart
+ * in length" has been handed a different problem from the one in the file.
+ *
+ * ==================== THE MISSING INSTRUCTION, LOCATED ====================
+ *
+ * The claim that "ALL 29 differing encodings trace to ONE decision" -- the r2/r3
+ * reload-scratch swap -- is REFUTED as an accounting of the residue, though the
+ * swap itself reproduces.  tools/aligncmp.py's hunk list puts a second, separate
+ * difference in the TAIL, and it is the missing instruction:
+ *
+ *     rom    mov r3,r10 / mov r0,#0 / cmp r3,#0 / beq END
+ *            mov r2,r10 / ldr r3,[r2,#0x50]
+ *     ours   mov r2,sl  / mov r0,#0 / cmp r2,#0 / beq END
+ *                         ldr r3,[r2,#80]
+ *
+ * THE ROM COPIES `best` OUT OF r10 TWICE -- once into a low register for the null
+ * test, and AGAIN, in the block after the branch, for the dereference.  We copy it
+ * once and keep that low copy live across the branch.  So the ROM's low copies are
+ * two short-lived values re-materialised per basic block; ours is a single pseudo
+ * spanning the branch.  That is where the instruction count differs, and it is
+ * independent of the r2/r3 phase.
+ *
+ * ================ THE TAIL IS NOT REACHABLE BY SPELLING ================
+ *
+ * Eight tail spellings, measured this batch.  Every one is BIT-IDENTICAL to the
+ * body above -- same stream, same aligned-equal count, same hunk list -- which by
+ * the rule in src/rom_8a000/rom_93304_c_a_c.c ("if an edit does not move the
+ * allocator's inputs, the edit did not happen") means these are NOT inert levers;
+ * the edits never reached flow at all:
+ *
+ *   the sprite pointer named in its own local
+ *   the loaded halfword named in its own local
+ *   the `short *` named in its own local
+ *   both of the above named, as two statements
+ *   a second actor local assigned from `best`
+ *   an early `return res` instead of the nested test
+ *   `&&` instead of the nested ifs
+ *   the body's own spelling (control)
+ *
+ * This matters more than the eight rows: the previous header's inert list is also
+ * mostly tail spellings ("12 tail spellings", "5 cast spellings", "4 u16 ang
+ * spellings"), and the eight above suggest that WHOLE CLASS was flat for the same
+ * reason -- it was never reaching the compiler's intermediate form.  A tail edit
+ * on this function should be screened by `-da`'s dumps before its figure is
+ * believed either way.
+ *
+ * >> NAMED REMAINING QUESTION, and it is narrower than the previous one: what
+ *    keeps OUR low copy of `best` alive across the `beq`?  If the copy is reload's
+ *    (r10 is a high register and both `cmp` and the `ldr` base need a low one),
+ *    then the single copy is the anomaly and the thing to read is whether
+ *    reload1.c's post-reload CSE is deleting the second re-materialisation, and
+ *    whether its value table is reset at the block boundary.  If instead the copy
+ *    is an allocator-assigned pseudo, the thing to read is why `best` has a low
+ *    pseudo at all when the ROM reaches r10 directly at every use.  Those are
+ *    different files; name which before editing C again.
  */
 typedef unsigned char u8;
 typedef unsigned short u16;

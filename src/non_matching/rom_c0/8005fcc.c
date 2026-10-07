@@ -1,64 +1,3 @@
-/* Func_8005fcc (0x08005fcc) -- NON-MATCHING.
- *
- * NON-MATCHING, 77 of 87 encodings  (MEASURED, batch 319 recipe backfill).
- *   COUNT DIFFERS (ref 87, ours 89) -- so this positional figure measures
- *   MISALIGNMENT, not distance.  Read the count before the figure.
- *   RELOCATIONS differ, but THE SAME SYMBOLS AT A SHIFTED OFFSET -- which
- *   this project treats as a CONSEQUENCE of the length difference, not a
- *   separate blocker.  Re-classified in batch 322; the figure IS a distance.
- *   SIZE ref 188 bytes, ours 196.
- *
- * Verify with:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
- *     goldensun-build python3 tools/objcmp.py \
- *     src/non_matching/rom_c0/8005fcc.c \
- *     asm/rom_c0/rom_5cf8_a_a_a_c_c_a_c.s --func Func_8005fcc
- *
- * This recipe was ADDED by the batch-319 backfill: the park had none, so
- * parkcheck.py could not report its figure and nothing had ever checked it.
- * Blocker class: pooled small constants at hardware-register writes, plus an
- * `and` destination.
- *
- * 86 lines against the ROM's 85. A link-cable status read: no calls at all, so
- * nothing forces callee-saved registers and the residue is pure selection.
- *
- * THE ROM BUILDS ITS SMALL CONSTANTS AND gcc POOLS THEM, four times:
- *
- *     rom    mov r3, #0x81 / neg r3, r3      ours  ldr r3, =0xff7f
- *     rom    mov r2, #0x40                   ours  ldr r2, =0x40
- *     rom    mov r3, #0x1                    ours  ldr r3, =0x1
- *     rom    mov r3, #0x1 / sub r3, #0x42    ours  mov r3, #0xbf
- *
- * All four feed halfword writes to I/O registers, which is the pooling
- * exception recorded in batch 175 and worked around in batch 176 by naming the
- * stored value. Naming works here too but is not free:
- *
- *   baseline                                     83 lines, 77 differing
- *   `one = 1` named, block-scoped                86, 70   <- best
- *   `bb = 0x40` named                            83, 77 (inert)
- *   all three of `one`, the mask and 0x40 named  86, 76
- *
- * Each name that lands costs the `mov`/`neg` pair it buys, so the length walks
- * past the ROM's before the differing count converges. That is the shape of a
- * function where several constants each need the treatment and the register
- * file cannot hold them all -- the same bound as the basic-block lever.
- *
- * The other residue is the first mask:
- *
- *     rom    mov r3, #0x88 / mov r4, r5 / and r4, r3
- *     ours   mov r6, #0x88 / and r6, r5
- *
- * The ROM copies the value and masks IN PLACE, keeping the result in the
- * register it later stores from; gcc masks into the constant's register.
- * `t = s; t &= 0x88;` as two statements is byte-identical -- gcc folds it.
- *
- * WHAT IS RIGHT: the 32-bit read of REG_SIOCNT through a `vu32 *`; the byte
- * access `((vu8 *)sio)[1] &= ~0x40` for the high half; `REG_TM3CNT = 0xc963`
- * with gcc deriving 0x400010c from REG_IF by itself (`sub r2, #0xf6`); the
- * `(s << 26) >> 30` bit extraction; and the three `|=` flag bits in the tail.
- *
- * NEXT: nothing found in five probes.
- */
 #include "gba/types.h"
 #include "gba/io.h"
 
@@ -70,6 +9,7 @@ int Func_8005fcc(void)
     vu32 *sio;
     unsigned int s;
     unsigned int v;
+    unsigned int ie;
     int r;
     int t;
 
@@ -83,7 +23,10 @@ int Func_8005fcc(void)
             if (v == 0 && *(int *)(p + 0x14) == -1) {
                 int one = 1;
                 REG_IME = v;
-                REG_IE = (REG_IE & ~0x80) | 0x40;
+                ie = ~0x80;
+                ie &= REG_IE;
+                ie |= 0x40;
+                REG_IE = ie;
                 REG_IME = one;
                 ((vu8 *)sio)[1] &= ~0x40;
                 REG_IF = 0xc0;

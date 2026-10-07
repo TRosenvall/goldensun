@@ -129,6 +129,51 @@
  * FUNCTION IS ALSO PARKED (src/non_matching/rom_b5000/80c0130.c).  One .c is
  * one TU, so neither converts alone -- a landing here must carry both.
  * ---------------------------------------------------------------------------
+ 
+ * ===== BATCH 334 BRIEF B: THE PASS IS cse1, AND THE SUBSTITUTION IS FORCED
+ * ===== ARITHMETIC RATHER THAN A HEURISTIC.
+ *
+ * Figure re-derived unchanged: thirty-three of thirty-seven stream encodings,
+ * instructions ref thirty against ours twenty-nine.  Body unchanged.
+ *
+ * THE PARK IS WRONG ABOUT EXPAND, AND THAT MATTERS.  It says "gcc computes it
+ * once".  It does not: `.00.rtl` holds TWO pseudos for the value, insn 15
+ * `(set (reg 36) (const_int 256))` feeding the argument register and insn 27
+ * `(set (reg 38) (const_int 256))` feeding the pointer advance.  Insn 27 is
+ * ALREADY GONE in `.03.cse`, where the advance reads reg 36.  So the merge
+ * happens in cse1 -- not in gcse, not in combine, not in the allocator -- and
+ * the batch-333 note's "what keeps the size value out of a pseudo that
+ * outlives the argument setup" is the right question asked of the wrong pass.
+ *
+ * AND NO SPELLING OF A 256 CAN LOSE THAT SUBSTITUTION.  cse picks the cheapest
+ * member of an equivalence class, and its cost function (**cse.c:509-514**)
+ * charges a pseudo 1 while `notreg_cost` defers to `rtx_cost (const_int 256,
+ * SET)`, which `thumb_shiftable_const` sends to `COSTS_N_INSNS (2)` = 6
+ * (**arm.c:2077-2080**).  One is less than six for every value that needs more
+ * than an eight-bit move, so the register always wins.  cse's table is flushed
+ * only at a basic-block path boundary, and `invalidate_for_call` clears HARD
+ * regs, never pseudos, so the call between the two uses does not help.  The
+ * only route is a control-flow boundary between the argument and the advance,
+ * which costs more instructions than the one it buys.
+ *
+ * THE OTHER HALF IS CLOSED TOO: a 256 argument ALWAYS takes a pseudo.
+ * `calls.c:841-857` forces one when `rtx_cost (value, SET) > 2`, and the same
+ * `arm.c:2077-2080` returns 0 below 256 and `COSTS_N_INSNS (2)` at or above
+ * it.  So "build it straight into the argument register and let the call
+ * invalidate it" is not reachable from C either.
+ *
+ * MEASURED INERT THIS ROUND, both still twenty-nine instructions and seventeen
+ * aligned-equal of thirty-seven:
+ *   - the callee's size parameter declared as a halfword type, so the two
+ *     constants would hash in different modes (cse's `lookup` compares `mode`
+ *     before `exp_equiv_p`).  The constant is converted back to word mode
+ *     before the table ever sees it, so there is no mode to split.
+ *   - the advance written through a byte-pointer cast with the size left as a
+ *     plain literal.
+ *
+ * NEXT: disagree with `cse.c:509-514` or with `arm.c:2077-2080`, not with
+ * another spelling of the constant.  The piece is still blocked on
+ * Func_80c0130 regardless -- see that park's own three-escape bound.
  */
 #include "gba/types.h"
 

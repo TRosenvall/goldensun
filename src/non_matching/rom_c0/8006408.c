@@ -1,4 +1,4 @@
-/* Func_8006408 -- 0x08006408 -- asm/rom_c0/rom_5cf8_a_a_c_a.s
+/* Func_8006408 -- 0x08006408 -- asm/rom_c0/rom_5cf8_a_a_c_a_c.s
  *
  * NON-MATCHING, 7 of 34 encodings  (MEASURED, batch 332).
  *   Stream lengths now AGREE: ref 34, ours 34, instructions 27 and 27.
@@ -11,7 +11,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_c0/8006408.c \
- *     asm/rom_c0/rom_5cf8_a_a_c_a.s --func Func_8006408
+ *     asm/rom_c0/rom_5cf8_a_a_c_a_c.s --func Func_8006408
  *
  * Pins: 0.  Devices: none.  Production flags.
  *
@@ -72,6 +72,39 @@
  * residue and has the same cause and the same refutation attached to it there
  * (disabling the second scheduling pass is refuted, not untested).  The other
  * two hunks are both ordering inside the tail and are the open question here.
+ * *
+ * ---------------------------------------------------------------------------
+ * BATCH 334: THE 0x81 HUNK IS NOW A BOUND, AND THE PIECE HAS BEEN SPLIT.
+ *
+ * The 0x81-in-the-load-delay-slot hunk this header shares with the sibling is
+ * no longer an open question there: it is a structural property of
+ * rank_for_schedule, derived from the dumps and the compiler sources and
+ * written up in full in src/non_matching/rom_c0/80063bc.c.  In short,
+ * arm_adjust_cost (arm.c:2425-2427) zeroes every anti-dependence, so the
+ * volatile read's priority equals that of the first store after the IME write
+ * while the constant's is that store's priority plus one -- a gap of exactly
+ * one that no arrangement of the critical section can close, and which the
+ * class tie-break (haifa-sched.c:4068-4095) would not close even at equal
+ * priority.  Do not sweep orderings for it again; read that park first.
+ *
+ * THE PIECE WAS SPLIT.  Func_8006384, the first function in this .s, MATCHES
+ * as of batch 334, so asm/rom_c0/rom_5cf8_a_a_c_a_c.s was split and that function
+ * landed on its own -- see src/rom_c0/rom_5cf8_a_a_c_a_b.c.  This park and
+ * Func_80063bc's are the two functions in the remaining _c half, and the
+ * recipe above names the pre-split path, so it is repointed by
+ * tools/repoint_parks.py.  The note at the foot of this header -- that
+ * Func_8006384 "emits a relocation the reference does not" and "must be fixed
+ * with an address cast before the piece can pass" -- was exactly right, and the
+ * cast that fixed it is `*(vu32 *)&REG_SIOCNT`: include/gba.inc:49 makes
+ * REG_SIOCNT an absolute in the hand `.s`, so the reference carries no
+ * relocation there at all, and include/gba/io.h:482's `vu16` is additionally
+ * the wrong WIDTH for it.
+ *
+ * WHAT REMAINS HERE, restated against the new bound: of the six instructions in
+ * four hunks, the 0x81 pair is bounded above, and the OTHER TWO HUNKS -- the
+ * state store one slot early against the flag-byte store, and the two tail pool
+ * loads in the opposite order -- are still the open question and are still
+ * ordering inside the tail.  They are the whole of what is left.
  *
  * NOTE FOR WHOEVER CLOSES THIS.  Func_80063bc, Func_8006408 and Func_8006384
  * are ALL in this one .s, so none of them can be converted alone: one .c is

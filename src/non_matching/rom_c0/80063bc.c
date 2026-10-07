@@ -1,4 +1,4 @@
-/* Func_80063bc  --  0x080063bc, asm/rom_c0/rom_5cf8_a_a_c_a.s
+/* Func_80063bc  --  0x080063bc, asm/rom_c0/rom_5cf8_a_a_c_a_c.s
  *
  * NON-MATCHING, 3 of 33 encodings  (MEASURED, batch 332).
  *   Stream lengths now AGREE: ref 33, ours 33, instructions 27 and 27.
@@ -11,7 +11,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_c0/80063bc.c \
- *     asm/rom_c0/rom_5cf8_a_a_c_a.s --func Func_80063bc
+ *     asm/rom_c0/rom_5cf8_a_a_c_a_c.s --func Func_80063bc
  *
  * Pins: 0.  Devices: none.  Production flags.
  *
@@ -108,6 +108,70 @@
  * naming the 0x80 in a local.  MEASURED WORSE: a plain non-volatile pointer
  * for the interrupt register, and a halfword-typed `save`, which changes the
  * size.
+ * *
+ * ---------------------------------------------------------------------------
+ * BATCH 334: THE REMAINING 3 IS A STRUCTURAL BOUND, NOT AN OPEN ORDERING
+ * QUESTION.  THE 0x80 CANNOT BE PUSHED OUT OF THE LOAD-DELAY SLOT FROM C.
+ *
+ * The residue is exactly what this header says: `mov r3, #0x80` scheduled into
+ * the stall after `ldr r2, =REG_IME` instead of after the IME read and write,
+ * three positions rotated and nothing else.  Read out of sched2's own verbose
+ * dump (`-da -fsched-verbose=6`, block 2), the numbers are
+ *
+ *     insn 30  `r2 = 0x4000208`   prio 9  cost 2
+ *     insn 42  `r3 = 0x80`        prio 8  cost 1
+ *     insn 33  `r1 = [r2]`        prio 7  cost 2   (the volatile read)
+ *     insn 39  `[r2] = r2`        prio 7           (the volatile write)
+ *     insn 43  `[r7+1] = r3`      prio 7
+ *
+ * At t = 0 the pool load wins and occupies two clocks; at t = 2 the ready list
+ * is insn 33 and insn 42, and rank_for_schedule (haifa-sched.c:4038-4042)
+ * returns on INSN_PRIORITY, 8 against 7.
+ *
+ * WHY THAT GAP IS FIXED AT EXACTLY ONE.  arm_adjust_cost (arm.c:2425-2427)
+ * returns 0 for EVERY anti- and output-dependence.  The edge from the volatile
+ * read to the volatile write is a memory anti-dependence -- flush_pending_lists
+ * adds it as REG_DEP_ANTI -- so it costs nothing, and the write's own successors
+ * are the later stores.  Therefore
+ *
+ *     prio(volatile read) = prio(first store after the IME write)
+ *     prio(the constant)  = prio(its own store) + 1
+ *
+ * and when the first store after the IME write IS the 0x80's store, the
+ * constant beats the volatile read by exactly one, always.  Reordering the
+ * critical section cannot fix it: priority falls monotonically along the
+ * store chain, so putting any other store between the IME write and the 0x80
+ * store gives that store the higher priority and emits IT before the 0x80 pair,
+ * which the reference contradicts.  That is why this header's own sweep of all
+ * one hundred and twenty orderings bottomed out above the current figure.
+ *
+ * AND A TIE DOES NOT HELP EITHER, which is the part worth writing down because
+ * it closes the obvious next idea.  On equal priority rank_for_schedule falls
+ * through to the class test (haifa-sched.c:4068-4095): it prefers the insn
+ * INDEPENDENT of the last-scheduled insn over one data-dependent on it.  The
+ * constant is independent of the pool load; the volatile read is data-dependent
+ * on it.  So the constant wins the tie as well, and the target is not
+ * prio(read) >= prio(constant) but prio(read) > prio(constant) -- two clocks of
+ * headroom that no arrangement of these five statements can produce.
+ *
+ * MEASURED IN BATCH 334, both EXACTLY INERT at 3: declaring the flag array
+ * `volatile unsigned char` (so its two stores are volatile MEMs), and naming
+ * the 0x80 in a local before the store.  MEASURED WORSE at 8: making all four
+ * ewram globals volatile.  MEASURED WORSE still: moving the halfword store
+ * ahead of the 0x80 store, which costs an instruction.
+ *
+ * SO: THE NEXT MOVE ON THIS FUNCTION IS NOT A SPELLING.  Either the 0x80's
+ * dependence structure has to change -- which means the ROM's source is doing
+ * something here that is not three independent stores -- or this is a
+ * SCHED2_CFLAGS question for the owner, and note that this header already
+ * refutes the flag: disabling the second scheduling pass reads ten in stream
+ * terms and swaps two pool words.
+ *
+ * PIECE STATUS, BATCH 334: Func_8006384, the third function in this .s, now
+ * MATCHES, and the piece was therefore SPLIT so that it could land --
+ * see src/rom_c0/rom_5cf8_a_a_c_a_b.c for the four crossed levers that did it,
+ * one of which (the REG_SIOCNT width and relocation) this header's sibling
+ * already named.  This park and Func_8006408's stay together in the _c half.
  *
  * ITS SIBLING Func_8006408 (0x08006408) IS THE SAME FUNCTION over a different
  * pair of globals AND SHARES THIS EXACT MECHANISM -- see that park, which the

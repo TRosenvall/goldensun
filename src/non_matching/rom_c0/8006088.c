@@ -116,6 +116,53 @@
  * `unsigned int`; the first or split into two statements.
  * MEASURED WORSE: the copy placed BEFORE the first guard (twenty-seven); a
  * redundant zero test before the return (forty-one instructions).
+ * *
+ * ---------------------------------------------------------------------------
+ * BATCH 334: WHAT THE JOIN COPY ACTUALLY NEEDS, AND WHY EVERY SPELLING OF
+ * TWO NAMES IS INERT.  gcse's CPROP IS NOT THE LAST PASS THAT EATS IT.
+ *
+ * Batch 333 was right that cprop (pass 07) propagates the join copy and right
+ * that the if/else form reaches it at the cost of a branch.  But propagation is
+ * not what makes the two-name spelling INERT, and that distinction is the whole
+ * of what is left here.
+ *
+ * Work the uses through find_avail_set (gcse.c:3608-3671).  It will only
+ * substitute a set that is AVAILABLE ON ENTRY to the block containing the use.
+ * With the copy at the first guard's join, the accumulator's uses are: the
+ * `|= 0x80 << 5` arm, the `|= 0x80 << 6` arm, and the return.  Only the FIRST
+ * of those has the copy available on entry -- the second and the return are
+ * reached by a path through the first arm, which redefines the accumulator and
+ * kills the set.  So cprop replaces ONE use, which is exactly the one line the
+ * dump prints, and the copy's definition still has live uses afterwards.
+ *
+ * It is deleted later, and by coalescing rather than propagation: both names
+ * are referenced in more than one basic block, so both are GLOBAL allocnos,
+ * and `(set w v)` with v dead at the copy gives each a hard-register preference
+ * for the other (global.c's set_preference, republished by prune_preferences).
+ * They get the same register and flow2 drops the copy as a no-op.
+ *
+ * THE REQUIREMENT IS THEREFORE A CONFLICT, NOT A SPELLING.  For the two
+ * accumulators to land in two registers -- the reference's r2 and r0 -- their
+ * live ranges must OVERLAP, which means the first accumulator must be read
+ * AFTER the copy.  It is read nowhere after the copy in the reference (r2 is
+ * never touched again), and there is no free use of it in the source, which is
+ * why every disjoint-live-range spelling in this header's two tables reads the
+ * same number.  The if/else form reaches the copy by a different route -- it
+ * gives the second name two reaching definitions in two arms instead of one
+ * definition at a join -- and pays a branch for it, which is the trade this
+ * header already records.
+ *
+ * So the next attempt should not vary the copy's spelling or position again.
+ * It should look for a form in which the FIRST accumulator is genuinely still
+ * needed after the second exists, or for a reason the allocator would refuse
+ * the preference -- and the comparison case to read first is
+ * src/rom_c0/rom_5cf8_a_a_c_a_b.c, landed in batch 334, where the same class of
+ * copy was recovered by making the two temps BLOCK-LOCAL instead of global so
+ * that local-alloc, not global-alloc, assigned them: Thumb's REG_ALLOC_ORDER
+ * (arm.h:989-995) is `{3, 2, 1, 0, ...}`, and local-alloc hands out r3 first.
+ * Here both accumulators span blocks by construction, so that exact lever does
+ * not transfer -- but the question it answers, WHICH allocator assigns the two
+ * quantities, has not been asked of this function.
  *
  * THE DECLARATION IS CONFIRMED BY THE EPILOGUE: `pop {r1} / bx r1` pops into r1,
  * which `thumb_exit` (arm.c:8302, :8306-8330, :8382) emits for a declared

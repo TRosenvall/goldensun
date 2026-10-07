@@ -51,6 +51,66 @@
  * for register-offset loads, applied per access.
  *
  * NEXT: nothing source-level.
+ 
+ * ===== BATCH 334 BRIEF B: THE COPY IS NOT THE BLOCKER.  THE BLOCKER IS THE
+ * ===== ALLOCNO PRIORITY ORDER, AND IT IS NOW QUANTIFIED.
+ *
+ * Figure re-derived unchanged: twenty-three of thirty stream encodings,
+ * instructions ref twenty-eight against ours twenty-six.  Body unchanged.
+ *
+ * THE TWO MISSING INSTRUCTIONS ARE ONE DECISION, AND IT IS NOT A COPY.
+ * The reference's `mov r8, r5` and its per-iteration `mov r2, r8` both exist
+ * because the loop's buffer base is in a HIGH register and `ldrsh` needs a low
+ * one -- so `mov r2, r8` is a RELOAD, not a source-level copy.  Our output is
+ * the same program with the roles of two values swapped: we put the parameter
+ * in r8 (where a `cmp` can read it for free) and the base in r7.  The park's
+ * reading, and batch 333's correction of it to gcse copy propagation, are both
+ * about keeping `p = base` alive; neither would produce the reference even if
+ * it worked, because the reference's two instructions come from WHICH VALUE
+ * TAKES THE HIGH REGISTER.
+ *
+ * READ IT STRAIGHT OFF `.18.greg`, which prints the order for you:
+ *     ;; 6 regs to allocate: 38 36 35 37 33 32
+ *     ;; Register dispositions: 32 in 8  33 in 7  35 in 0  36 in 5  37 in 6
+ * That list IS `allocno_order` after its sort, lowest priority LAST.  reg 32
+ * is the parameter (set from r0 at insn 4) and reg 33 is the base.  The
+ * parameter is last, so it is the one that fails its preferred class and
+ * retries with `reg_alternate_class` (**global.c:561-566**), and that retry is
+ * what hands out r8.  To reach the reference, reg 33 must be last instead.
+ *
+ * WHY IT CANNOT BE, ARITHMETICALLY.  `allocno_compare` (**global.c**, the
+ * `pri1`/`pri2` expression) is
+ * `floor_log2 (n_refs) * n_refs / live_length`, descending.  The base has
+ * three references (its set, the call argument, the loop load) against the
+ * parameter's two, and the parameter is born at the FIRST insn of the function
+ * so its `live_length` is strictly the larger.  Ordering the base after the
+ * parameter therefore needs `3 / L_base < 2 / L_param`, i.e. the base's live
+ * length more than half again the parameter's -- impossible when the base is
+ * born later.  Cutting the base to two references does not help either: with
+ * equal reference counts the shorter life wins, and that is still the base.
+ *
+ * SO THE ESCAPE IS EXPLICIT AND NARROW: the compared value needs FOUR
+ * references and the base TWO.  `floor_log2` jumps at four, so 2/L_base is
+ * then below 8/L_param for any plausible pair of lengths.  That is the shape
+ * to go looking for, and it is a statement about reference COUNTS, not about
+ * spellings of a copy.
+ *
+ * MEASURED INERT THIS ROUND, all twenty-six instructions and twenty-one
+ * aligned-equal of thirty, i.e. byte-identical to the installed body -- and
+ * note these vary the dimension the park and batch 333 both aimed at:
+ *   - the parameter copied into a local inside the guard
+ *   - a second pointer assigned inside the guard
+ *   - both of the above together
+ *   - the parameter copied into a local BEFORE the call
+ *   - the array passed to the call directly, with the base named in the guard
+ * MEASURED WORSE: reusing `count` as the loop counter (nineteen aligned-equal).
+ * `.18.greg` confirms every one of these collapses back to the six allocnos
+ * above, which is why they are all one cell of the search.
+ *
+ * ALSO WORTH KNOWING: r4 is unavailable across the loop's call in this build,
+ * so only r5, r6 and r7 are low callee-saved registers for four values that
+ * live across it.  One of the four MUST go high; the question is only which,
+ * and that is the priority order above.
  */
 extern int Func_80b6c08(int a, short *buf);
 extern void Func_80c0f98(int v, int b);
