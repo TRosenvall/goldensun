@@ -258,6 +258,37 @@
  * wants this piece should attack whichever of the two bounds they disbelieve --
  * neither is a spelling problem, and converting one without the other buys
  * nothing.
+ *
+ * ===== BATCH 335 BRIEF B: FIGURE RE-DERIVED, THE PIECE MEASURED AS ONE TU, AND
+ * ===== THE OTHER MEMBER CONFIRMED AS THE GATE.
+ *
+ * Figure re-derived unchanged: six of thirty-seven stream encodings, ref thirty-
+ * one instructions against ours thirty-one, first at index sixteen, SIZE and
+ * INSTRUCTION COUNT and RELOCATIONS all silent.  BODY UNCHANGED.  DIRECTION:
+ * NEITHER SIDE IS LONGER -- this is the one target in its brief that is in phase,
+ * so its figure is a TRUE DISTANCE and not an offset.  The three-escape bound
+ * above was not re-litigated and nothing found this round bears on
+ * `arm.md:262-263` or `arm.c:2415-2452`.
+ *
+ * THE PIECE WAS COMPILED AS ONE TRANSLATION UNIT AND CHECKED WHOLE.  Both
+ * members in one file, Func_80c00d8 first in the reference's order, gives
+ * EXACTLY the two separate figures with the same first indices -- six of
+ * thirty-seven here, thirty-three of thirty-seven there.  So the merge is
+ * byte-neutral, which is the batch-334 arithmetic confirmed by measurement
+ * rather than inferred, and it is a second instance of the owner's pass-2.5
+ * finding that merging pieces into one TU is mechanical.  Joint distance:
+ * thirty-nine of seventy-four.
+ *
+ * AND THE GATE IS THE OTHER MEMBER, NOT THIS ONE.  This residue is six encodings
+ * of pure post-reload SCHEDULE in one basic block, with the instruction count
+ * already exact; Func_80c00d8 is a MISSING INSTRUCTION, bounded by cse1's cost
+ * arithmetic, and twelve further cells across pointer type, advance spelling and
+ * size carrier were measured flat at twenty-nine instructions this round.  A
+ * reader who wants this piece should start there: closing this one still leaves
+ * the piece unlandable, while closing that one leaves only these six.
+ *
+ * The `pop {r0}` reading was checked as a free test and AGREES with the void
+ * declaration this body carries.
  */
 #include "gba/types.h"
 #include "gba/io.h"

@@ -72,6 +72,76 @@
  * Verify with (run it inside the build container; /opt/gcc296 is not on the host):
  *   python3 tools/objcmp.py src/non_matching/rom_b5000/80b5368_Debug_BattleTest.c \
  *     asm/rom_b5000/rom_b5368_a.s --func Debug_BattleTest
+ *
+ * ======================= BATCH 335: WHERE THE LENGTH GAP IS =================
+ *
+ * The claim above still reproduces exactly at production flags, and the stream
+ * lengths are equal while the INSTRUCTION count is one short on our side. That
+ * one is NOT one missing statement. It is the net of THREE separate causes, and
+ * the accounting closes to the byte:
+ *
+ *   (i)  the reference derives the second EWRAM address from the first by
+ *        negating a small constant and adding the high register that holds the
+ *        first -- three instructions and no pool word. Ours folds the whole
+ *        thing into one relocated pool word with a negative addend, so ours is
+ *        three instructions shorter and one pool word longer. This is blocker C
+ *        above, now priced.
+ *   (ii) the hoisted key mask costs us two extra high-register copies, one at
+ *        each of two of its three uses, where the reference materialises the
+ *        mask twice in small registers and lets the third use share the second.
+ *        Two instructions longer on our side. This is blocker B, now priced.
+ *   (iii) because (i) adds a pool word, the literal pool no longer fits before
+ *        the no-key tail block, so gcc dumps a SECOND pool and duplicates the
+ *        battle id word in it. One more pool word, and it is why the tail block
+ *        and the pool appear in the opposite order from the reference.
+ *
+ * Minus three plus two is the one-instruction deficit; plus one plus one is the
+ * two extra long entries; and that is the whole four-byte size difference. So
+ * the short instruction count is a SYMPTOM OF (i), not an independent defect,
+ * and (iii) is downstream of (i) as well. Fixing the address derivation would
+ * collapse two of the three.
+ *
+ * MEASURED AND INERT, so nobody re-runs them.
+ *
+ * Flags. Turning off global common-subexpression elimination improves the
+ * aligned count by three positions and no more; turning off the second
+ * common-subexpression pass changes nothing at all; the two together are the
+ * same as the first alone. There is no option in this compiler to disable loop
+ * optimisation on its own, so blocker B has no flag route. The park's reading
+ * that its three blockers are independent and in different passes SURVIVES.
+ *
+ * Address-derivation spellings, all tried against blocker C, all unchanged from
+ * the body below: the offset through an int local assigned immediately before
+ * the subtraction; the same through an int local assigned once outside the
+ * loop; negative array subscript notation; and a no-op self-assignment of the
+ * base pointer afterwards. One spelling DOES defeat the fold -- casting the
+ * base to the halfword pointer type FIRST and subtracting from that in a second
+ * statement -- and it is worse overall: the stream grows by three entries and
+ * the derivation still does not come out as the negate-and-add, because what
+ * gcc then builds is a separate pooled address rather than an offset from the
+ * high register. So the fold is not the only obstacle; the base has to be in a
+ * high register at the time of the subtraction, and that is blocker B's hoist
+ * and blocker C sharing one cause.
+ *
+ * FILE-MATE NEWS. Func_80b5864, the last of the four functions in the piece,
+ * LANDED in batch 335 at production flags with no pins and no flag group, so
+ * the piece has been split and this park's three remaining file-mates are
+ * Debug_LoadPresetParty (unattempted), Func_80b5534 (parked, and it ships three
+ * shim definitions that must not land) and this one. The split means a landing
+ * here needs only one further cut, not a four-function conversion -- and the
+ * premise that this function and Func_80b5864 could only ship together was
+ * never true: a single-function cut was always available to either of them.
+ *
+ * The two levers Func_80b5864 needed are worth reading from here because one of
+ * them applies to blocker A's shape. Raising a user variable's reference count
+ * by REUSING IT for a value gcc would otherwise put in its own temp changes
+ * which of the two wins the head of the register allocation order
+ * (`allocno_compare`, global.c:598-621). Blocker A is a constant that the
+ * reference keeps in a callee-saved register across five calls while gcc
+ * rebuilds it at each use; that is a different pass from allocation, but the
+ * question "what makes this value outrank the alternative" has not been asked
+ * of it, and every negative recorded above varies the SPELLING of the constant
+ * instead.
  */
 extern volatile int gKeyRepeat;
 extern int gKeyHeld;

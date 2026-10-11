@@ -1,4 +1,71 @@
 /* Func_802106c (0x0802106c) -- NON-MATCHING, 23 differing of 194.
+ * ===== BATCH 335 RE-MEASUREMENT.  141 differing encodings of 193 (STREAM; ref
+ * 193, ours 195 -- ours TWO longer).  Aligned-equal one hundred and eighty-five
+ * of one hundred and ninety-three, ELEVEN differing in eight hunks.  Instructions
+ * one hundred and sixty-three against ours one hundred and sixty-four, so we emit
+ * ONE extra.  Body unchanged; this block is the current reading. =====
+ *
+ * THE WHOLE RESIDUE IS ITEM (b) AND NOTHING ELSE.  Of the eight aligned hunks,
+ * SIX are branch displacements or literal-pool offsets that shift because the
+ * body is longer, one is the trailing `.short 0x0000` pad that the longer body
+ * forces, and ONE is the actual difference:
+ *
+ *     rom   add r3, sp, #0xc / str r0, [r3] / ldrh / ldrh / mov r8, r3
+ *     ours  mov r3, #12 / ldrh / ldrh / add r3, r3, sp / mov r8, r3 / ... str
+ *
+ * One extra instruction plus one pad is the two-encoding stream gap, exactly.
+ * Items (a) and (c) of the header's itemised twenty-three are NOT separately
+ * visible any more: (a) is inside the pool offsets and (c) is already correct.
+ * So this park is ONE INSTRUCTION from the message.sym ruling, not twenty-three
+ * from anywhere.
+ *
+ * *** THE HEADER'S MECHANISM FOR (b) IS REFUTED BY THE ENCODINGS, AND THE
+ * REPLACEMENT IS BETTER NEWS. *** It says reload splits the add "BECAUSE THE
+ * PSEUDO IS ALLOCATED TO r8, and `add rd, sp, #imm` needs a LOW destination".
+ * Our destination IS low -- `add r3, r3, sp` writes r3 -- and BOTH sides carry
+ * the same `mov r8, r3` afterwards, so the high register is not what is being
+ * worked around.  What we fail to select is the one-instruction PATTERN.
+ *
+ * `*thumb_addsi3` (arm.md:496-519) has seven alternatives.  Operand triples,
+ * read down the columns: alternative FIVE is `=l` / `!k` / `!M`, which is
+ * `add Rd, SP, #imm` and is the reference's instruction; the fallback we get is
+ * alternative THREE, `*r` / `*0` / `*h`, which is `add %0, %0, %2` with the stack
+ * pointer as the high source operand -- and it needs the twelve built in a
+ * register first, which is the extra instruction.  THE OPERATIVE DETAIL IS THE
+ * `!`: alternative five disparages BOTH operands severely, so it survives only
+ * while the insn needs NO RELOAD AT ALL.  The output reload that copies the
+ * address into its r8 home is enough to abandon it.
+ *
+ * SO THE HEADER'S OBSERVATION WAS RIGHT AND ITS REASON WAS WRONG, WHICH MAKES
+ * THE NEXT ROUTE DIFFERENT.  The observation that matters is the one the header
+ * states and then does not use: THE REFERENCE'S ADDRESS IS TWO PSEUDOS -- a low
+ * one that the store goes through and dies, and the r8 copy that lives.  Ours is
+ * ONE pseudo with an output reload.  The target is therefore not a spelling of
+ * the address but a LIVE-RANGE SPLIT, and it has to come from somewhere other
+ * than writing `&obj` twice, because that is now measured (below).  Read it with
+ * the batch-277 priority formula as the header already says.
+ *
+ * SEVEN MORE SPELLINGS MEASURED THIS BATCH, ALL CROSSED, NONE REACHING IT --
+ * aligned-equal of one hundred and ninety-three, against the shipped body's one
+ * hundred and eighty-five:
+ *     `*(int *)q = t` in place of `q->f0 = t`            one hundred eighty-five  INERT
+ *     `obj.f0 = t` with `&obj` passed, q named after     one hundred eighty-five  INERT
+ *     q named ONCE before the if, removed from both arms one hundred fifty-six    WORSE
+ *     that, crossed with the cast store                  one hundred fifty-six    WORSE
+ *     a short-lived `w` for the store, q re-taken         one hundred fifty-three  WORSE
+ *     the same with the call taking `w`                   one hundred fifty-one    WORSE
+ *     `obj.f0 = t` sp-relative, address only for the call one hundred fifty-three  WORSE
+ * Added to the header's eight, the pointer-naming dimension now has FIFTEEN
+ * negatives.  It is exhausted; stop varying it.
+ *
+ * AND THE PIECE SHAPE IS NOT WHAT THIS HEADER SAYS.  It claims four functions
+ * naming Func_8020b64 first.  `grep '^\.thumb_func_start'` returns THREE:
+ * UI_NameEntry at 0x08020bd8, this function, then Func_8021228.  UI_NameEntry is
+ * parked at four hundred and eighty-eight of five hundred and twenty-five, so the
+ * piece cannot convert whole; the one workable cut is `split_s.py` on
+ * UI_NameEntry, which leaves this function and Func_8021228 in a single part and
+ * therefore a single translation unit.  Do not run it before the two message.sym
+ * rulings land, or the reference is consumed for a landing that cannot happen.
  *
  * NON-MATCHING, 141 of 193 encodings  (MEASURED, batch 319 recipe backfill).
  *   COUNT DIFFERS (ref 193, ours 195) -- so this positional figure measures

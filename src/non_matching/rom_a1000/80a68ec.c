@@ -1,9 +1,61 @@
-/* Func_80a68ec -- FilterItemList -- NON-MATCHING, 47 encodings of 133 differ
- * (objcmp: ref 133 / ours 133, same size).
+/* Func_80a68ec -- FilterItemList -- NON-MATCHING, 23 encodings of 133 differ
+ * (objcmp: ref 133 / ours 133, same size AND SAME INSTRUCTION COUNT, 126 each).
  *
  * Verify with:
- *   python3 tools/objcmp.py /tmp/claude-0/-home-user-goldensun/ad08b1ee-c1a0-56c8-b3c2-c0ff6481844c/scratchpad/b287/V/Func_80a68ec.park.c \
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80a68ec.c \
  *     asm/rom_a1000/rom_a5534_c_c_c_a_a_c.s --func Func_80a68ec
+ *
+ * ===== BATCH 335, BRIEF H: THE LENGTH GAP IS CLOSED.  READ THIS FIRST. =====
+ *
+ * The park's figure of forty-seven was measured against a body ONE INSTRUCTION
+ * LONG (one hundred and twenty-seven against the reference's one hundred and
+ * twenty-six), so it was counting phase, not distance.  The extra instruction
+ * was the ZERO LOOP'S SURVIVING COUNTER, and what removes it is the DIRECTION
+ * THE LOOP IS WRITTEN IN, not its form:
+ *
+ *     WRITE IT UP-COUNTING.  `for (k = 0; k < 32; k++) dst[k] = 0;`
+ *
+ * loop.c's check_dbra_loop REVERSES an up-counting loop whose index is not used
+ * after it, and the reversal is what performs the biv elimination: the counter
+ * disappears, the walking pointer is compared against a SAVED COPY OF dst in a
+ * scratch high register, and that copy -- the one the park records as missing
+ * from its pointer recipe, and attributes to dst being a parameter pseudo -- is
+ * MANUFACTURED BY THE REVERSAL ITSELF.  Written down-counting in source there is
+ * nothing for check_dbra_loop to reverse, biv elimination is refused on the
+ * "not worth while" benefit test the park documents, and the counter survives.
+ *
+ * So BLOCKER 1 IS CLOSED and its diagnosis was inverted: the obstacle was never
+ * the benefit test, it was that loop.c had already been handed the loop in the
+ * direction it wanted to produce.
+ *
+ * GENERAL RULE WORTH MORE THAN THIS FUNCTION.  When a reference loop counts DOWN
+ * and the candidate is ONE LONG as a source down-counter and ONE SHORT as a
+ * source pointer walk, write it UP-COUNTING and let loop.c reverse it.  Three
+ * pointer spellings were measured here -- the park's own recipe, a named lower
+ * bound, an int-cast bound, a bound derived non-trivially, and a bound written
+ * as the address of the zeroth element -- and ALL FIVE are byte-identical at one
+ * hundred and twenty-five instructions and one hundred and thirteen differing.
+ * They are one point, not five.
+ *
+ * AND THE ZERO THIS LOOP STORES MUST STAY A BARE LITERAL.  The reference loads
+ * it from the pool, which is the HImode pooling rule read in the OTHER
+ * direction: a bare literal through a halfword lvalue is an HImode constant and
+ * always pools, and here that is what the original did.  Do NOT give it an int
+ * carrier.  The matched OvlFunc_886_2008368 in this same batch is the same
+ * mechanism used the opposite way round, and the two together are the clearest
+ * statement of it in the tree.
+ *
+ * WHAT IS LEFT, all of it allocation, and it is ONE ROTATION rather than N ties:
+ *  - one HIGH-REGISTER SWAP -- the record pointer and the hoisted mask constant
+ *    hold each other's registers;
+ *  - one CYCLIC LOW-REGISTER ROTATION across the pass counter, the walking entry
+ *    pointer and the destination cursor;
+ *  - one operand order in the cursor's add, and one position for the add of the
+ *    list offset, which the reference places after the inner counter's init.
+ * MEASURED INERT THIS BATCH, DO NOT RE-RUN: the declaration order of the locals
+ * in three orders, all byte-identical; naming the mask constant in a
+ * pass-loop-scoped int, which is one encoding WORSE.
  *
  * FRESH TARGET (batch 287).  The .s holds only this function (no split needed).
  *
@@ -64,7 +116,7 @@ int Func_80a68ec(struct CharRecord *rec, unsigned short *dst, int filter)
     struct MoveInfo *info;
 
     passes = (filter != 2) + 3;
-    for (k = 31; k >= 0; k--)
+    for (k = 0; k < 32; k++)
         dst[k] = 0;
     n = 0;
     if (filter == 1) {

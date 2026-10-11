@@ -1,4 +1,72 @@
 /* MEASURED FIGURE, backfilled in batch 324 (this park carried none).
+ * ===== BATCH 335.  32 differing encodings of 35 (STREAM; ref 35, ours 28).
+ * Aligned-equal twenty-six of thirty-five, nine differing in five hunks.
+ * Instructions twenty-seven against ours twenty-one.  THE BODY BELOW IS NEW --
+ * the whole header is carried forward and this block is the current reading. =====
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/rom_15000/rom_28e54.c \
+ *     asm/rom_15000/rom_23178_a_a_c_c_a.s --func YesNoMenu2
+ *
+ * THE ANSWER TO "CAN THE LENGTHS BE CLOSED DEVICE-FREE" IS NO, AND IT IS NOW A
+ * STRUCTURAL RESULT RATHER THAN A SPELLING SWEEP.  calls.c:841-857 forces a
+ * call argument into a fresh pseudo only when `rtx_cost (args[i].value, SET) > 2`;
+ * arm.c's CONST_INT case under `outer == SET` returns 0 outright for
+ * `(unsigned HOST_WIDE_INT) INTVAL (x) < 256` (the three rungs are 0, two insns
+ * and three insns, in that order).  0x24 is under 256, so it costs nothing, so NO
+ * SPELLING OF A LITERAL EVER GETS A PSEUDO FOR IT -- and the register the
+ * reference keeps it in across three calls cannot come into existence.  That
+ * retires the eight-spelling sweep as a line of search: it was not unlucky, it
+ * was impossible.  arm.h's CONST_OK_FOR_THUMB_LETTER gives the same bound from
+ * the constraint side, letter I accepting anything under 256.
+ *
+ * BATCH 332'S "TWO LEVERS, EACH WORTH EXACTLY ONE INSTRUCTION" IS WRONG, AND THE
+ * TWO LEVERS ARE NOT ADDITIVE -- THEY INTERACT.  The full cross, measured, as
+ * 16-bit instruction counts against the reference's twenty-seven:
+ *
+ *     separate result variable + literal          twenty-five   (two SHORT)
+ *     separate result variable + symbol standin   twenty-nine   (two LONG)
+ *     third parameter reused   + literal          twenty-one    (six SHORT)  SHIPS
+ *     third parameter reused   + symbol standin   twenty-seven  BYTE-IDENTICAL
+ *
+ * The last row is the result: zero differing of thirty-five, six relocations
+ * identical, with a local `.set` standing in for the entry.  SO CRITERION TWO IS
+ * MET IN ITS STRONG FORM -- THE SYMBOL COMPLETES THE FUNCTION.  Batch 332 saw one
+ * differing encoding only because it measured the name as an UNRESOLVED extern;
+ * the placeholder was the difference, and with the value actually set there is
+ * none.  Nothing has been added to const.sym and the standin lives in scratch
+ * only; the ruling is still the owner's.
+ *
+ * LEVER ONE IS REAL AND IT IS NOW IN THE BODY.  Reusing the third parameter as
+ * the result makes one pseudo span basic blocks, so GLOBAL alloc rather than
+ * local-alloc places it and r7 becomes reachable -- the reading this park already
+ * argued from local-alloc.c and arm.h, now confirmed by what shipped.  The
+ * prologue push set, which this park's leading block called the first difference
+ * at index zero, IS NOW CORRECT; the first difference has moved to index one.
+ *
+ * AND THE OLD BODY'S NEARER LENGTH WAS AN ACCIDENT, WHICH IS WHY THE STREAM
+ * FIGURE GOT NUMERICALLY WORSE WHILE THE BODY GOT CLOSER.  With a separate result
+ * variable gcc gratuitously took r8 for the third parameter -- `mov r6, r8 /
+ * push {r6} / pop {r3} / mov r8, r3`, four instructions of save and restore for a
+ * value that needed none -- and those four coincidentally stood in for four of
+ * the six the reference spends on the pooled constant.  Superseded: thirty of
+ * thirty-five, and the "two short" that went with it.  This is the batch-334 trap
+ * exactly: a nearer count with the instructions in the wrong places.  Rank these
+ * two bodies on the ALIGNED reading, where it is twenty-six against eighteen.
+ *
+ * THE SIX MISSING INSTRUCTIONS, ITEMISED, so nobody counts them again: the pool
+ * load `ldr r3, =0x24`; the pair `mov r7, r8` and `push {r7}` that buys r8 at
+ * entry; `mov r8, r3` that parks the value there; and `pop {r3}` with its
+ * `mov r8, r3` at exit.  Every one is downstream of the single fact that the
+ * constant lives in a register, and the call-site `mov r3, r8` costs the same as
+ * our `mov r3, #36`, so it is not among them.
+ *
+ * THE SPILLOVER THIS PARK LEFT FOR src/non_matching/rom_15000/8028df4.c IS
+ * STRENGTHENED, not merely repeated: the pseudo that spans basic blocks is the
+ * one that can get r7, and reusing an incoming PARAMETER as the later value is
+ * the cheap way to make a pseudo span them.  That is the edit to try there.
  *
  *   30 differing encodings of 35.  SIZE DIFFERS (ref 35, ours 32 -- three short).
  *
@@ -178,16 +246,15 @@ extern void Func_802851c(void);
 int YesNoMenu2(int a, int b, int c)
 {
     int k;
-    int r;
 
     k = 0x24;
     Func_80284dc();
     AddMenuBarOption(5);
     AddMenuBarOption(6);
     Func_80288a8(a, b, 3, k);
-    r = Func_8028574(c);
+    c = Func_8028574(c);
     Func_802851c();
-    if (r == -1)
-        r = 1;
-    return r;
+    if (c == -1)
+        c = 1;
+    return c;
 }

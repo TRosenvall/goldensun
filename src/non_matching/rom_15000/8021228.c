@@ -1,4 +1,58 @@
 /* Func_8021228  --  0x08021228
+ * ===== BATCH 335 RE-MEASUREMENT.  101 differing encodings of 132 (STREAM; ref
+ * 132, ours 132 -- THE STREAM LENGTHS ARE EQUAL).  Aligned-equal one hundred and
+ * sixteen of one hundred and thirty-two, twenty differing in seventeen hunks.
+ * Instructions one hundred and eight against ours one hundred and seven, so we
+ * are ONE instruction short.  Body unchanged; this block is the current reading.
+ * =====
+ *
+ * READ THE TWO COLUMNS SEPARATELY, BECAUSE THIS PARK IS THE EXACT CASE THE
+ * BATCH-335 BRIEF WARNED ABOUT, WITH A TWIST.  The instruction count differs by
+ * one and the STREAM lengths are identical -- and what absorbs the difference is
+ * not a 32-bit entry but a 16-BIT ALIGNMENT PAD: ours emits an extra
+ * `.short 0x0000` before its pool.  So the positional figure here is NOT a pure
+ * phase error from a length gap; the ends line up and the misalignment is
+ * interior.  Anyone ranking this park by its stream figure is reading a number
+ * that counts an offset introduced in the MIDDLE and cancelled at the end.
+ *
+ * THE ONE MISSING INSTRUCTION IS LOCATED, AND THE PARK'S OWN WALL DIAGNOSIS
+ * SURVIVES INTACT.  It is at reference index eighteen: `mov r9, r0`.  That is the
+ * SECOND SHORT-LIVED ZERO PSEUDO this header already describes -- the reference
+ * builds `mov r0, #0 / mov r9, r0 / mov r10, r0` and gcc collapses the pair.  The
+ * aligned view shows the consequence immediately after it as an r8/r9 ROLE SWAP:
+ * where the reference writes `mov r8, r1` then `mov r1, r9`, ours writes
+ * `mov r9, r1` then `mov r1, r10`, and the two registers stay transposed through
+ * every later use.  So ONE missing allocno accounts for the whole register half
+ * of the residue, which is a much tighter statement than the header's "about
+ * seven lines".
+ *
+ * THE RESIDUE, ITEMISED AGAINST THE ALIGNED VIEW, so the next reader does not
+ * re-derive it: the missing zero pseudo and the r8/r9 transposition it causes
+ * (five encodings); the two struct stores, reference `str r3, [sp, #24]` and
+ * `str r3, [sp, #28]` against our `str r3, [r7, #4]` and `str r3, [r7, #8]`
+ * (four, exactly as the header's second wall says); the literal-pool load offsets
+ * that shift by one word behind the pad (six); the pad itself; and the
+ * `_MSG_980` placeholder word.  Nothing else differs.  The two walls plus the
+ * symbol ARE the whole file -- there is no unexplained remainder.
+ *
+ * *** THE PIECE HOLDS THREE FUNCTIONS, NOT FOUR, AND THAT CHANGES THE LANDING
+ * SHAPE.  *** This header says "4 functions: Func_8020b64, UI_NameEntry,
+ * Func_802106c, Func_8021228".  `grep '^\.thumb_func_start'` on the reference
+ * returns THREE: UI_NameEntry at 0x08020bd8, Func_802106c, Func_8021228, in that
+ * order, with this function LAST.  Func_8020b64 is not in this file.  The stale
+ * fourth name has been in two park headers since batch 277.
+ *
+ * SO THE PIECE CANNOT BE LANDED BY MERGING ITS PARKS, AND THE REASON IS NOT THIS
+ * FUNCTION.  UI_NameEntry is the first member and it is parked far away at four
+ * hundred and eighty-eight of five hundred and twenty-five, so a whole-piece
+ * conversion is out of reach.  The ONLY shape that works is `split_s.py` on
+ * UI_NameEntry: nothing precedes it, so the cut yields a part holding it alone
+ * and a part holding Func_802106c and Func_8021228 TOGETHER, which is one
+ * translation unit and both parks at once.  That is worth remembering and it is
+ * NOT worth running yet -- both members also want a message.sym entry that is an
+ * owner call (`_MSG_980` here, `_MSG_2080` next door), and neither is at zero
+ * without it.  A split run before the ruling would consume the reference for a
+ * landing that cannot happen.
  *
  * NON-MATCHING, 101 of 132 encodings  (MEASURED, batch 319 recipe backfill).
  *   *** RELOCATIONS DIFFER IN THEIR SYMBOLS, NOT ONLY THEIR OFFSETS --

@@ -174,6 +174,59 @@
  * NEXT: disagree with `cse.c:509-514` or with `arm.c:2077-2080`, not with
  * another spelling of the constant.  The piece is still blocked on
  * Func_80c0130 regardless -- see that park's own three-escape bound.
+ *
+ * ===== BATCH 335 BRIEF B: THE PIECE COMPILES AS ONE TU AND THIS FUNCTION IS
+ * ===== THE GATE.  TWELVE NEW CELLS IN THREE UNVARIED DIMENSIONS, ALL FLAT.
+ *
+ * Figure re-derived unchanged: thirty-three of thirty-seven stream encodings,
+ * instructions ref thirty against ours twenty-nine, stream lengths equal at
+ * thirty-seven because a pad absorbs it.  BODY UNCHANGED.  DIRECTION: the
+ * REFERENCE IS LONGER, by one, so we are MISSING one -- the batch-333 reading.
+ *
+ * THE PIECE ARITHMETIC IS NOW MEASURED RATHER THAN ARGUED.  Both members of
+ * asm/rom_b5000/rom_bffb8_a_a_a_c.s were put in ONE translation unit, this
+ * function first in the reference's order, and checked whole: this function
+ * reads thirty-three of thirty-seven and Func_80c0130 reads six of thirty-seven,
+ * EXACTLY their separate figures with the same first indices.  So the piece
+ * genuinely converts whole, no split is needed, the joint distance is thirty-
+ * nine of seventy-four -- and the batch-327 note's "a landing here needs a
+ * split" is retired for good.  datacheck reports no data; `grep -c func_start`
+ * is two.  THIS FUNCTION IS THE GATE: Func_80c0130's residue is six scheduling
+ * encodings bounded by three escapes in the machine description, while this one
+ * is a MISSING INSTRUCTION, which is the larger obstacle of the two.
+ *
+ * WHAT IT NEEDS, STATED PLAINLY.  One instruction: the reference rebuilds the
+ * first size value for the pointer advance where we copy the register cse1
+ * already has.  Per the batch-334 reading the merge is cse1's and is FORCED
+ * arithmetic, not a heuristic -- `cse.c:509-514` charges a pseudo one against
+ * `rtx_cost (const_int 256, SET)` of six from `arm.c:2077-2080` -- so what it
+ * needs is for the two values NOT TO BE IN ONE EQUIVALENCE CLASS at pass 03.
+ * cse's `lookup` compares MODE before `exp_equiv_p`, so a mode split would do
+ * it; the batch-334 round closed the halfword-parameter route, and this round
+ * closes the three remaining ways to reach expand with a different constant.
+ *
+ * MEASURED THIS ROUND -- TWELVE CELLS, AND THE POINT IS THAT THEY ARE A CROSS
+ * AND NOT A DIAGONAL.  Pointer type and advance spelling (a word pointer
+ * advanced by sixty-four; a byte pointer advanced by the byte count written
+ * out; a sixty-four-word STRUCT pointer advanced by `++`, so the byte offset is
+ * the struct's size rather than a written constant) crossed with the size
+ * argument's carrier (a plain literal; a named word local; a named HALFWORD
+ * local; and a negated double-negative spelling).  ALL TWELVE ARE EXACTLY
+ * TWENTY-NINE INSTRUCTIONS AND THIRTY-THREE OF THIRTY-SEVEN.  Not one of them
+ * changes the constant expand sees: the front end folds every spelling of the
+ * byte count to the same word-mode constant, and the struct pointer's `++`
+ * produces the same one from the type's size.
+ *
+ * So the park's and batch 334's bound both hold, now with the pointer-type
+ * dimension closed as well as the spelling one.  Add these twelve to the seven
+ * already listed above; nineteen cells in five dimensions.
+ *
+ * The `pop {r0}` reading was checked as a free test and AGREES: the reference's
+ * epilogue pops r0, which is the void declaration this body already carries.
+ *
+ * NEXT: unchanged, and sharper.  Disagree with `cse.c:509-514` or with
+ * `arm.c:2077-2080`, or find a construct that reaches cse1 with the two values
+ * in different MODES.  Do NOT re-spell the constant or re-type the pointer.
  */
 #include "gba/types.h"
 

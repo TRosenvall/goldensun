@@ -59,6 +59,61 @@
  * quantitative test is whether &ewram_2002240's live-out pseudo can be given a
  * priority above the frame-address pseudo's in .17.lreg.
  *
+ * ===================================================================
+ * BATCH 335: THE FIGURE IS NOT A DISTANCE, THE ONE MISSING INSTRUCTION IS
+ * LOCATED, AND THE SEPARATE-POINTER NEGATIVE IS NOW CONFIRMED ON A METRIC
+ * THAT CANNOT SATURATE.
+ * ===================================================================
+ *
+ * objcmp's own note on this park says it: the streams are EQUAL at 109 and the
+ * 16-bit instruction counts are 104 against 103, so a PAD is absorbing the
+ * difference and the positional figure measures MISALIGNMENT.  Every row of the
+ * MEASURED AND INERT table above was scored with that saturating number, so a
+ * row reading the same value as the base is not evidence of inertness.  The
+ * non-saturating view (tools/aligncmp.py, alignment-tolerant, no masking) puts
+ * this body at 78 of 109 aligned-equal, 36 differing in 24 hunks, and that is
+ * the number to move.
+ *
+ * THE ONE MISSING INSTRUCTION IS THE ARGUMENT'S SECOND COPY.  The reference
+ * copies the incoming destination pointer TWICE -- once at the very top, into a
+ * low register that survives the swap loop, and once again into the high
+ * register the main loop walks:
+ *     mov r4, r0        (before the swap loop)
+ *     ... swap loop, which reuses r0 for the zero it stores ...
+ *     mov r12, r4       (immediately before the main loop)
+ * We emit only the second step, straight from the argument register.  So the
+ * requirement is TWO pseudos for one value, with the copy between them
+ * surviving -- the shape batch 334 established on Func_8006384's mask copies
+ * and on Func_8006088's accumulator, where what decides it is a live-range
+ * CONFLICT and not a spelling.
+ *
+ * AND THE SEPARATE POINTER DOES NOT CREATE ONE.  Re-measured on aligncmp, a
+ * named walking destination initialised from the parameter is EXACTLY INERT at
+ * all three positions tried -- declared first, declared last, assigned
+ * immediately before the main loop -- all 78 of 109 aligned-equal with the
+ * instruction count still 103.  The copy is coalesced away because the
+ * parameter is dead at the assignment, so the two never conflict.  The
+ * untried dimension is a spelling in which the parameter is still LIVE after
+ * the walking pointer is initialised.
+ *
+ * THE `sub r3, r1, #4` DERIVE IS NOT THE MISSING INSTRUCTION.  It is one
+ * instruction against our one pool load, so it costs nothing in count; it is a
+ * cse effect on the base address, and the reference genuinely pools BOTH
+ * symbols (its own source reads `ldr r1, =ewram_2002244` beside
+ * `ldr r3, =ewram_2002240`), so folding the two into one struct with the u32 at
+ * offset 4 would change our relocations away from the reference's.  It is a
+ * shape question for pass 3, not a length one.
+ *
+ * SHARED MECHANISM WITH THE PIECE-MATE.  This park and
+ * src/non_matching/rom_c0/8006240.c sit on opposite sides of ONE lever: which
+ * of two nearby absolute addresses gets a pool word and which is derived at
+ * runtime.  There the reference pools two control-register addresses and
+ * derives the third as a +2 offset while we pooled the offset one; here the
+ * reference pools one struct address and derives the other two offsets from
+ * it while we re-pool.  A runtime derive proves ONE live base pseudo and a
+ * pool word proves a second independent one, which is why the piece's two
+ * members read in opposite directions from the same cause.
+ *
  * Verify with:
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_c0/800615c.c \

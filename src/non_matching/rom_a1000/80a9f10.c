@@ -1,4 +1,75 @@
-/* ====== BATCH 328, BRIEF F -- THE FIGURE IS RE-CLASSIFIED AND THE =========
+/* Func_80a9f10 -- ApplyItemEffect -- NON-MATCHING, 19 encodings of 569 differ.
+ * Stream lengths AGREE at 569 and so does the instruction count, 469 each.
+ * aligncmp: 551 of 569 aligned-equal, 96.8 percent, 20 differing in 8 hunks.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80a9f10.c \
+ *     asm/rom_a1000/rom_a8604_c_c_c_c_a_a.s --func Func_80a9f10
+ *
+ * ===== BATCH 335, BRIEF H: THE LENGTH GAP IS CLOSED.  READ THIS FIRST. =====
+ *
+ * Batch 328 located the extra instruction exactly -- a SECOND zero
+ * rematerialised for the party loop's entry compare -- and then concluded that
+ * the only handle was WHERE gcse's PRE put the hoisted field read, an antic and
+ * avail question.  That conclusion is now refuted by the cheapest possible
+ * edit, and the park's whole measurement history missed it because every body
+ * ever tried varied the GUARD'S SHAPE while holding its OPERAND ORDER fixed.
+ *
+ *     WRITE THE PARTY LOOP'S TEST WITH THE BOUND ON THE LEFT.
+ *     `for (i = 0; st->count > i; i++)`  --  forty-eight becomes nineteen,
+ *     and the instruction counts agree.
+ *
+ * WHY.  With the index on the left the zero is the SECOND compare operand, and
+ * gcc materialises it into a register and compares register against register --
+ * which needs the zero alive across the hoisted read, and ours cannot keep it
+ * there, so a second zero is built.  With the bound on the left the zero is the
+ * FIRST operand of a narrowed unsigned compare, fold turns the whole entry test
+ * into a compare of the bound against zero with a HIGHER-THAN branch, and there
+ * is no second zero to build because there is no zero in a register at all.
+ * The reference reaches the same count by the other route -- it keeps its one
+ * zero alive in a call-used register and reuses it for both the spill store and
+ * the compare -- so the two builds are NOT instruction-identical here; this is
+ * the one hunk where we are short of the reference's shape while being exactly
+ * its length.  That makes it a candidate for the original having had the index
+ * on the LEFT and the reference's reuse coming from reload, which is the
+ * remaining open question and the only one worth a round.
+ *
+ * GENERAL RULE.  ARGUMENT AND OPERAND ORDER IS A LEVER IN ITS OWN RIGHT, and on
+ * a loop test it is independent of the loop's shape.  A guard rewritten as an
+ * explicit source guard plus a do-while is byte-identical to the for, because
+ * gcc builds the same control flow from both; swapping the two operands of the
+ * SAME test is not, because it changes which operand fold is allowed to be a
+ * constant.  Vary the two independently.
+ *
+ * MEASURED THIS BATCH, DO NOT RE-RUN:
+ *   bound on the left, party loop only ........ NINETEEN, counts agree  <- HERE
+ *   bound on the left in BOTH loops ........... twenty-three, counts agree
+ *   bound on the left, and the trailing stat loop rewritten as an explicit
+ *     guard plus a do-while .................... twenty-one, counts agree
+ *   the three flag initialisations moved down to immediately above the party
+ *     loop, with and without the operand swap, and with the index initialised
+ *     outside the for ......................... five hundred and fifty-seven,
+ *     and THREE SHORT.  It defeats the PRE, the same failure mode batch 328
+ *     recorded for naming the hoisted value.  Strike this direction.
+ *
+ * WHAT IS LEFT, nineteen in eight hunks, and only the first is a shape:
+ *  - the hoisted field read sits after the entry branch for us and before it in
+ *    the reference, which is batch 328's blocker one, now worth about four;
+ *  - the shift-and-subtract pair of the one-valued idiom takes the other of two
+ *    low registers;
+ *  - the eager pair of reads in the last switch arm takes the two low registers
+ *    the other way round, and the add that consumes them is two-operand for us;
+ *  - the trailing stat loop's back-edge compare has its operands the other way
+ *    round, with the matching inverted branch.
+ * All four are allocation or operand order, none changes a length.
+ *
+ * EVERYTHING BELOW THIS BLOCK IS THE BATCH 328 AND EARLIER PARK, UNCHANGED.
+ * Its nine closing levers and its structure notes all still hold as written;
+ * its claim of forty-eight, and the padding-trap re-classification it argues
+ * for, are superseded by the figure at the top of this block.
+ *
+ * ====== BATCH 328, BRIEF F -- THE FIGURE IS RE-CLASSIFIED AND THE =========
  * ====== MECHANISM CITATION IS CORRECTED.  READ THIS BEFORE THE REST. =======
  *
  * (1) "48 IS A TRUE DISTANCE" IS REFUTED.  WE ARE ONE INSTRUCTION LONG.
@@ -385,7 +456,7 @@ int Func_80a9f10(int id, int chr, int target, int apply)
         unit = _GetUnit(target);
     else
         unit = _GetUnit(0);
-    for (i = 0; i < st->count; i++) {
+    for (i = 0; st->count > i; i++) {
         if (info->f8 == 0xff) {
             target = st->party[i];
             unit = _GetUnit(target);

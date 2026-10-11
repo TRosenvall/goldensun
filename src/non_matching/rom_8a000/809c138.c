@@ -18,6 +18,65 @@
  * displacement in the function shifts.
  * A pin to r9 confirms the diagnosis (167 aligned) but is 4 instructions long, so it
  * is not a landing route.
+ *
+ * ===== BATCH 335, BRIEF H: THE EXTRA INSTRUCTION IS LOCATED, AND IT IS NOT
+ * ===== THE FRAME SIZE.  IT IS A BLOCKED PEEPHOLE.
+ *
+ * The figure is saturated because we are ONE INSTRUCTION LONG -- one hundred
+ * and seventy-four against one hundred and seventy-three -- and TWO POOL WORDS
+ * long, which is the eight bytes.  The one instruction is NOT anywhere near the
+ * file-id constant.  It is the address of the byte buffer taken for the first
+ * sixteen-iteration loop:
+ *
+ *     reference    one instruction, the add-to-stack-pointer-immediate form
+ *     ours         two, a move of the byte offset into a low register followed
+ *                  by an add of the stack pointer to it
+ *
+ * arm.md carries a define_peephole immediately after the thumb add pattern
+ * whose ONLY job is to fuse exactly that pair into the one-instruction form.
+ * Its conditions are that the added register is the stack pointer, that the
+ * constant is below one thousand and twenty-four, and that the constant is a
+ * multiple of four.  OUR OFFSET SATISFIES ALL THREE.  The peephole does not
+ * fire because gcc-2.96's define_peephole matches only CONSECUTIVE insns, and
+ * the post-reload scheduler has moved ONE unrelated instruction between the
+ * pair -- the add that forms the entry pointer from the base pointer.  In the
+ * reference that add is complete before the buffer address is taken, so the
+ * pair is adjacent and the peephole fires.
+ *
+ * THIS IS A NEW BLOCKER CLASS: A PEEPHOLE DEFEATED BY SCHEDULING.  Its
+ * signature is a two-instruction stack-relative address where the reference has
+ * one, with an unrelated instruction sitting between the constant and the add.
+ * The lever is the SCHEDULE, and sched2's last tie-break is insn order, which
+ * preserves expand order -- so it is reachable from source statement order, not
+ * from any spelling of the address.
+ *
+ * MEASURED INERT THIS BATCH, DO NOT RE-RUN: swapping the declaration order of
+ * the byte buffer and the saved word, which does not move either stack slot;
+ * computing the cursor first and the never-mutated copy from it; both together.
+ * All three are byte-identical to the installed body.
+ *
+ * AND THE FILE-ID CONSTANT IS NOW PROVABLY UNREACHABLE BY ANY CONSTANT
+ * SPELLING.  calls.c forces a fresh pseudo for a call argument only when the
+ * value's cost in a set exceeds two, and arm.c charges a small immediate zero,
+ * a larger one six and a pool-sized one ten -- so a constant argument BELOW two
+ * hundred and fifty-six NEVER gets a pseudo and one at or above it ALWAYS does.
+ * This value is below it.  That closes the park's whole measurement table with
+ * a mechanism rather than a list: no spelling of this literal can create the
+ * long-lived callee-saved pseudo the reference has.  The reference's register
+ * holds the value for a SINGLE use, placed about forty-five instructions and
+ * four calls ahead of it, which no pass in this build will do for a literal.
+ * So the original did not write a literal there, and the productive probe is
+ * the park's own untried one: find where the value comes from in the unelevated
+ * siblings of this same original file.
+ *
+ * NOTE ALSO that the two-pool artefact is the SAME MECHANISM as the matched
+ * OvlFunc_886_2008368 in this batch, and the park's explanation of it is wrong.
+ * It is not the word-sized reach of a thousand and twenty bytes being exceeded.
+ * A halfword constant's pool reach is SIXTY-FOUR BYTES, and one such entry
+ * forces an early pool dump, a branch over it, and a duplicated word for the
+ * symbol that is read on both sides of the dump.  Two of the halfword stores
+ * here are pooled literals by the park's own reading of the reference, so check
+ * which of them is out of reach before treating the split as self-sustaining.
  */
 /* PARK -- Func_809c138  --  0x0809c138, asm/rom_8a000/rom_9bb64_c_a_a.s
  * (2 functions: Func_809bcf8 0x0809bcf8, Func_809c138.  Func_809c138 is the LAST,

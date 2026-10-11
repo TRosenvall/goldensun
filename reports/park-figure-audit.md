@@ -1,7 +1,44 @@
-# Park figure audit — 388 of 571 measured figures are PHASE, not distance
+# Park figure audit — 388 of 571 measured figures have MISMATCHED INSTRUCTION COUNTS
 
 Generated from a full `tools/parkcheck.py` sweep (batch 331). **Regenerate by
 running `parkcheck` over the whole corpus** — it now flags this itself.
+
+## ⚠ CORRECTION, batch 335 — THIS IS AN INSTRUCTION-COUNT LIST, NOT A PHASE LIST
+
+**Read this before using the shortlist below to aim a batch.** The flag that
+built this report compares **16-bit instruction counts**. That is *not* the same
+as the comparison being out of phase, because the encoding **stream** also
+contains 32-bit entries — pool words **and** `bl` calls — and one of those can
+absorb an instruction-count difference while the stream lengths still agree.
+
+When the stream lengths agree, **positions line up and the figure may be a true
+distance.** Three briefs caught me treating the two as one thing:
+
+- batch 334 brief C — `Func_8093af8`, 16-bit counts 116/115, **streams 124/124**;
+- batch 335 brief F — `Func_800615c`, 16-bit counts 104/103, **streams equal at
+  109**, and it noted that every row of that park's nine-row measured-and-inert
+  table had therefore been scored with a saturating figure and **proved nothing**;
+- batch 335 brief B — `Func_80c0130`, **31/31, in phase**, so never a length-gap
+  target at all.
+
+I fixed `parkcheck` to distinguish the two cases after the first of those and
+then **kept using the instruction-count numbers in brief tables anyway** — the
+tool was corrected and my own usage was not. `parkcheck` now prints either:
+
+    *** INFLATED: instruction counts differ AND stream lengths differ, so this
+        positional figure counts PHASE, not distance
+    [16-bit instruction counts differ but STREAM LENGTHS AGREE -- a 32-bit entry
+        absorbs it, so positions line up and this figure may be a true distance]
+
+**So the shortlist below is still useful — a 16-bit count difference is a real
+structural difference worth finding — but it is two populations, and only the
+first is a misalignment.** Separate them before aiming a batch, and quote both
+numbers in any brief table.
+
+**It does not invalidate the results.** Across four batches the criterion has
+run 8 of 15, 7 of 25, 8 of 25 and (so far) well-placed again, and briefs located
+the gap on essentially every target. Finding the structural difference is what
+pays, whether or not the streams were in phase.
 
 ## What the flag means
 
