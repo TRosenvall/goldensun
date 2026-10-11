@@ -115,7 +115,11 @@
  *     ARE SUPERSEDED BY THE TEN STATED AT THE TOP.
  */
 
-/* BATCH 333 DELTA -- Func_80ae99c IS NOW 18 differing encodings of 39 (ref 39,
+/* BATCH 333 DELTA -- SUPERSEDED BY BATCH 336, WHICH MEASURED 10.  The figure
+ * stated in this block is HISTORY, not the current claim; parkcheck read it as
+ * the claim and reported MISMATCH (header 18, body 10) until this note was
+ * added.  The current figure is in the leading block.
+ * [historical] Func_80ae99c was 18 differing encodings of 39 (ref 39,
  * ours 39), DOWN FROM thirty-eight of thirty-nine, AND THE LENGTHS NOW AGREE.
  * Size 84 against 84, relocations 2 against 2, so the figure is a DISTANCE and
  * not a phase offset for the first time in this park's life.

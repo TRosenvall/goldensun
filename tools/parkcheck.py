@@ -63,7 +63,16 @@ GCC = os.path.join(os.environ.get("GCC296_DIR", "/opt/gcc296"), "xgcc")
 # placeholder `<this>`, and why this group must stay permissive -- requiring it to look like
 # a .c path broke exactly those four. It only has to not swallow a bare continuation.
 VERIFY = re.compile(r"objcmp\.py[\s\\]+([^\s\\]+)[\s\\]+(\S+\.s)(?:[\s\\]+--func\s+(\S+))?", re.M)
-CLAIM  = re.compile(r"(\d+)\s+(?:differing\s+)?encodings?\s+of\s+(\d+)", re.I)
+# WIDENED, batch 336.  This wanted `differing` to sit DIRECTLY against
+# `encodings`, so the house style this project now asks briefs to write --
+# "10 differing STREAM encodings of 39", the current figure first and in
+# stream terms -- was INVISIBLE to it.  On rom_a1000/80ae99c.c it skipped the
+# leading 10 and matched an older "18 differing encodings of 39" further down,
+# then reported MISMATCH against a figure the park was not claiming.  The
+# checker was reading history as the claim.  tools/piece.py had the identical
+# defect and is fixed the same way; allow a few intervening words.
+CLAIM  = re.compile(
+    r"(\d+)\s+(?:differing\s+)?(?:[A-Za-z]+\s+){0,3}encodings?\s+of\s+(\d+)", re.I)
 # THE MIRROR WORD ORDER, added batch 326.  CLAIM above wants
 # "4 differing encodings of 103"; agents write "4 of 103 encodings" and
 # "PARK HELD AT 4 of 103 encodings" just as naturally, and three of brief E's

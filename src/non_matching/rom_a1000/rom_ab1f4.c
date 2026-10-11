@@ -1,3 +1,8 @@
+/* NOTE (batch 336): this park's reference .s was RENAMED by the split that
+ * landed Func_80ab21c.  split_s.py consumed rom_aa538_c_c_a_c_c.s; this
+ * function now lives in rom_aa538_c_c_a_c_c_a.s with Func_80aafb8, and the
+ * recipes below are updated to it.  parkcheck read UNCHECKABLE until then.
+ */
 /*
  * ========= BATCH 336, BRIEF B: THE READINESS PRECONDITION IS CHECKED ========
  * ========= AND CLOSED STRUCTURALLY.  NO BARRIER PLACEMENT CAN FIT.  =========
@@ -75,14 +80,14 @@
  * no objcmp INSTRUCTION COUNT line -- the 4 IS a distance.  PIN COUNT 0.
  *
  * Verify with -- ONE LINE:
- *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/rom_ab1f4.c asm/rom_a1000/rom_aa538_c_c_a_c_c.s --func Func_80ab1f4
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/rom_ab1f4.c asm/rom_a1000/rom_aa538_c_c_a_c_c_a.s --func Func_80ab1f4
  *     -> XX ENCODINGS differ in 4 place(s) (ref 19, ours 19), first at index 9
  *   `--whole` is NOT a figure for this file: the reference TU holds THREE
  *   functions (Func_80aafb8, Func_80ab1f4, Func_80ab21c).  Use --func.
  *
  * SPLIT, for when it lands:
- *   python3 tools/datacheck.py asm/rom_a1000/rom_aa538_c_c_a_c_c.s  -> CLEAN (exit 0)
- *   python3 tools/split_s.py asm/rom_a1000/rom_aa538_c_c_a_c_c.s Func_80ab1f4 --dry-run
+ *   python3 tools/datacheck.py asm/rom_a1000/rom_aa538_c_c_a_c_c_a.s  -> CLEAN (exit 0)
+ *   python3 tools/split_s.py asm/rom_a1000/rom_aa538_c_c_a_c_c_a.s Func_80ab1f4 --dry-run
  *     would write asm/rom_a1000/rom_aa538_c_c_a_c_c_a.s  (1 function, 283 lines)
  *     would write asm/rom_a1000/rom_aa538_c_c_a_c_c_b.s  (1 function,  26 lines) <- this one
  *     would write asm/rom_a1000/rom_aa538_c_c_a_c_c_c.s  (1 function, 114 lines)

@@ -1,4 +1,14 @@
-/* LoadGS1CreditsBG -- asm/rom_f0000/rom_f0254_a_a.s (2 functions; the sibling Func_80f0254 is
+/* NOTE (batch 336): THE SIBLING HAS LANDED, and this park's reference .s was
+ * renamed by the split that did it.  Func_80f0254 is now
+ * src/rom_f0000/rom_f0254_a_a_b.c (byte-identical, 92 bytes, 39 encodings);
+ * this function is alone in rom_f0254_a_a_c.s, and the recipes below are
+ * updated to it.  parkcheck read UNCHECKABLE until then.
+ *
+ * So the header line below saying the piece holds two functions and that the
+ * other one blocks this one is HISTORY: this park now converts its piece
+ * WHOLE on its own, and its figure is the only thing left.
+ */
+/* LoadGS1CreditsBG -- asm/rom_f0000/rom_f0254_a_a_c.s (2 functions; the sibling Func_80f0254 is
  *
  * NON-MATCHING, 3 of 87 encodings  (MEASURED, batch 336 brief C; was fourteen).
  *   STREAM terms: ref 87, ours 87; instructions 72/72; SIZE equal; first
@@ -12,10 +22,10 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_f0000/LoadGS1CreditsBG.c \
- *     asm/rom_f0000/rom_f0254_a_a.s --func LoadGS1CreditsBG
+ *     asm/rom_f0000/rom_f0254_a_a_c.s --func LoadGS1CreditsBG
  *
  * ***** THIS FUNCTION IS NOW THE WHOLE GATE ON A TWO-FUNCTION PIECE.
- * ***** asm/rom_f0000/rom_f0254_a_a.s holds exactly two functions, and the other
+ * ***** asm/rom_f0000/rom_f0254_a_a_c.s holds exactly two functions, and the other
  * ***** one -- Func_80f0254 -- went 2 -> 0 in batch 336 and is BYTE-IDENTICAL.
  * ***** Closing these 2 lands TWO functions.  The merged TU was built and
  * ***** measured with `objcmp --whole`: `ok Func_80f0254  39 encodings` /
@@ -181,7 +191,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_f0000/LoadGS1CreditsBG.c \
- *     asm/rom_f0000/rom_f0254_a_a.s --func LoadGS1CreditsBG
+ *     asm/rom_f0000/rom_f0254_a_a_c.s --func LoadGS1CreditsBG
  *
  * This recipe was ADDED by the batch-319 backfill: the park had none, so
  * parkcheck.py could not report its figure and nothing had ever checked it.
