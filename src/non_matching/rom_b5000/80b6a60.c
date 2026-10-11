@@ -366,7 +366,62 @@
  * counter initialisation a `strength_reduce` creation.  Loop reversal is now
  * measured dead; a derived induction variable is the recorded 14.  Do NOT
  * re-propose residue B: it is closed, in the body.
- */
+ *
+ * ===== BATCH 336 BRIEF D: FIGURE RE-DERIVED AT 2 OF 59; ONE INSTRUCTION-COUNT
+ * ===== CORRECTION; AND BATCH 335'S READINESS LEVER IS MEASURED DEAD HERE.
+ *
+ * Re-derived on THIS body before anything else: **2 differing encodings of 59**,
+ * ref 59 / ours 59, first at index 25, SIZE / INSTRUCTION COUNT / RELOCATIONS
+ * all silent.  BODY UNCHANGED.
+ *
+ * CORRECTION TO THE HEADER ABOVE: the instruction count is **53 each side**,
+ * not 56.  Three sections of this header say "56 instructions"; objcmp reports
+ * `instructions are 53/53`.  The figure itself is unaffected -- the counts agree
+ * either way, so the 2 is still a true distance -- but the number is wrong where
+ * it is written, and a wrong count is exactly what makes a future reader
+ * misclassify a positional figure as a length figure.
+ *
+ * THE BATCH-335 PRECONDITION LEVER DOES NOT APPLY TO RESIDUE A.  Batch 335's
+ * finding is that a park proving an ORDERING cannot be won should check the
+ * PRECONDITION of the comparison, and its first named precondition is
+ * READINESS: an insn ready at cycle t only because it has no predecessor can be
+ * given one with a bare `__asm__ volatile ("")`, which emits nothing
+ * (haifa-sched.c:3567-3597 with :3780-3789 make an ASM_INPUT a two-sided
+ * barrier).  That is precisely the shape of residue A -- `Ready list (t = 6):
+ * 174 53`, all four rungs tied, decided by `INSN_LUID` -- so it was tried.
+ *
+ * IT CANNOT WORK, AND THE REASON IS STRUCTURAL RATHER THAN EMPIRICAL.  A
+ * barrier is TWO-SIDED, and every `move_movables` emission site in loop.c uses
+ * `emit_insn_before (..., loop_start)` (loop.c:1825, :1890, :1982, :1991,
+ * :2024, :2028, :2047, :2055), so the hoist always lands AFTER every original
+ * preheader statement -- including the barrier.  Whichever side of `i = n` the
+ * barrier goes, it can only ever delay the HOIST as well as or instead of the
+ * counter init:
+ *
+ *   barrier before `k = 0xfc << 1;`   2   (inert -- both 53 and 174 after it)
+ *   barrier before `i = n;`           2   (inert -- same reason)
+ *   barrier after  `i = n;`           7   (WORSE -- 53 is now before the
+ *                                          barrier and 174 after it, so the
+ *                                          counter init is forced EARLIER still)
+ *
+ * The third row is the informative negative: it is the lever running in the
+ * wrong direction, and it confirms the dependence structure the bound rests on.
+ *
+ * > **So the readiness precondition is not reachable when the insn you need to
+ * > delay is the ORIGINAL one and the insn you need to promote is created by
+ * > loop.c.**  A two-sided barrier cannot order two insns that are both
+ * > downstream of it, and loop.c guarantees its own emissions are downstream of
+ * > everything original.  Worth recording against batch 335's four
+ * > preconditions: readiness has a direction, and `emit_insn_before
+ * > (..., loop_start)` fixes it.
+ *
+ * NOTHING ELSE WAS CHANGED.  Residue B stays closed in the body (the
+ * MEM_IN_STRUCT_P store); escape (a) is the recorded 7 for the named constant;
+ * escape (b) needs a counter init that `strength_reduce` CREATES, loop reversal
+ * is measured dead on the `check_dbra_loop` citations above, and the derived
+ * induction variable is the recorded 14.  **Report disagreement with loop.c's
+ * emission sites, not with another spelling.**
+  */
 extern unsigned char *iwram_3001e74;
 extern unsigned char gState[];
 extern int _GetPartySize(void);

@@ -143,7 +143,77 @@
  * available here, and the pointer split reached the same shape without either,
  * which is the generalisation: what the hoist needs is only that the
  * constant's register be one the `and` does not read.
- */
+ 
+ * ===== BATCH 336: THE "SINGULAR QUESTION" IS ANSWERED, AND IT WAS MISPOSED.
+ * ===== THE GATE IS calls.c:848-856 AND IT IS STRUCTURAL FOR THIS ARGUMENT.
+ *
+ * RE-MEASURED AT 2 of 57, ref 57 ours 57, first difference at index 35.  The
+ * body below is unchanged and every figure above reproduces.
+ *
+ * THE PARK ASKED: "what makes `load_register_parameters` (calls.c:1684-1696, a
+ * plain ascending loop) emit the arg-0 move before the arg-2 build."  IT DOES
+ * NOT.  In `.00.rtl` the four argument moves are insns **101 (r0), 103 (r1),
+ * 105 (r2), 107 (r3)** -- ascending, arg 0 FIRST, exactly as the loop reads.
+ * There is nothing to explain there.
+ *
+ * WHAT ACTUALLY HAPPENS IS RELOAD.  At `.17.lreg` the chain is
+ *
+ *   95  pseudo61 = [r6+8]            arg-1 value
+ *   97  pseudo62 = 0x200000          arg-2 value
+ *   99  pseudo63 = [r6+0x10]         arg-3 value
+ *   101 r0 = reg32                   arg-0 move
+ *   103 r1 = pseudo61 / 105 r2 = pseudo62 / 107 r3 = pseudo63
+ *
+ * and at `.18.greg` insns 103, 105 and 107 are GONE: reload gave their hard
+ * registers to the earlier value insns (95 -> r1, 99 -> r3) and split the
+ * constant in place at 97 into **152 `r2 = 0x80`** and **153 `r2 = r2 << 14`**.
+ * Insn 101 survives only because its source `reg32` is already r6, so there is
+ * nothing to fold it into.  **The arg-0 move is last because the other three
+ * were deleted, not because it was emitted late.**
+ *
+ * WHERE THE THREE VALUE INSNS COME FROM, AND WHY THAT IS THE WHOLE GATE.
+ * `calls.c:848-856` forces an argument value into a pseudo when it is not
+ * already a REG and `rtx_cost (value, SET) > 2` and
+ * `SMALL_REGISTER_CLASSES && *reg_parm_seen` -- both true on ARM for any call
+ * with register arguments.  `arm_rtx_costs` (arm.c:2077-2084) gives a CONST_INT
+ * under SET: **0 if it is below 256**, `COSTS_N_INSNS (2)` = 6 if
+ * `thumb_shiftable_const`, `COSTS_N_INSNS (3)` = 10 otherwise.  0x200000 is
+ * `0x80 << 14`, so it costs **6**, so it is copied to a pseudo, so its
+ * definition insn lands in the argument-evaluation loop -- which runs BEFORE
+ * `load_register_parameters`.  `LUID(lsl) < LUID(mov r0)` is therefore forced
+ * for ANY third argument that is a constant of 256 or more.
+ *
+ * AND THE SCHEDULER'S LAST RUNG MAKES THAT DECISIVE.  Corrected from the park,
+ * which had the rungs right and the DIRECTION of the final one unstated: the
+ * chosen insn is the LAST element of the sorted ready array, and
+ * `rank_for_schedule`'s final rung (haifa-sched.c:4111) is
+ * `INSN_LUID (tmp) - INSN_LUID (tmp2)` with the arguments swapped at entry, so
+ * **the LOWEST LUID wins**.  Read off the scheduler log: at t=171 the ready list
+ * is `99 101 153`; insn 99 (`ldr r3,[r6,#0x10]`) is demoted to class 2 by the
+ * class rung because it is anti-dependent on the just-scheduled
+ * `str r3,[r6,#0x30]`, and between 101 and 153 -- both class 3, both with one
+ * dependent -- the lower LUID, 153, wins.  So we emit `lsl, ldr, mov` where the
+ * ROM has `mov, ldr, lsl`.
+ *
+ * THE REQUIREMENT IS THEREFORE WEAKER THAN THE PARK STATED, AND STILL BLOCKED.
+ * The park asked for chain order r1, r0, r3, r2.  Only ONE inequality matters:
+ * **LUID(101) < LUID(153)**.  The relative order of 99 and 101 is irrelevant,
+ * because the class rung demotes 99 at t=171 whichever way round they are, and
+ * at t=172 the lower-LUID of {99, 153} wins anyway.  But the one inequality
+ * that matters is the one calls.c:856 forbids.
+ *
+ * THE ONE ESCAPE LEFT, NAMED SO IT CAN BE TESTED RATHER THAN RE-DERIVED.
+ * If pseudo62 were SPILLED with a `REG_EQUIV (const_int 2097152)` note, reload
+ * would rematerialise it at the USE (insn 105, which is AFTER 101) instead of
+ * splitting it at the definition -- which is exactly what it already does for
+ * the 0x6666 and 0xcccc constants, whose `.18.greg` insns 87 and 91 carry
+ * REG_EQUIV notes and whose `ldr r3,=...` lands immediately before each store,
+ * as in the ROM.  pseudo62 is NOT spilled: it gets r2 outright.  So the open
+ * question is a REGISTER-PRESSURE question -- what makes the 0x200000 pseudo
+ * fail to get a hard register -- and NOT a spelling question.  Do not re-sweep
+ * the call's spelling; the park's thirty-four inert rows stand and this batch
+ * adds no reason to doubt them.
+*/
 extern unsigned char *__MapActor_GetActor(int slot);
 extern void __Actor_TravelTo(unsigned char *a, int x, int y, int z);
 extern void __MapActor_WaitMovement(int slot);

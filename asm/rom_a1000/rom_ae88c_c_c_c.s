@@ -2,7 +2,10 @@
 
 @ AttachArrowSprite
 @ r0 = x, r1 = y, r2 = priority, r3 = direction -- 0 up, non-zero down.
-@ Attaches the arrow whose tiles .gcc2_compiled. loaded, picking state+0x392 for up
+@ Attaches the arrow whose tiles <SYMBOL LOST> loaded, picking state+0x392 for up
+@ (the annotation port 6098e247 overwrote that name with the literal string
+@ ".gcc2_compiled."; not recoverable from the body -- the only bl here is
+@ _Func_801eadc, and the sentence names whatever loaded the tiles EARLIER)
 @ and +0x394 for down. Clears the node's +0x04 and +0x0C and marks it live.
 @ Returns 1, or -1 when no node was free. This is the arrow Func_a15f0 puts
 @ beside a stat that changes.

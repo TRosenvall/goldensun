@@ -72,7 +72,76 @@
  * `a+8`. Six orderings of the cos block and the tail were measured: the temp
  * read before the v stores is the only one at 2, reading it in place is twelve,
  * and storing `a+0x38` before the v stores is four.
- */
+ 
+ * ===== BATCH 336: THE RESIDUE IS A STALL SLOT, AND THE READINESS LEVER IS
+ * ===== INERT HERE -- MEASURED, NOT ASSUMED
+ *
+ * RE-MEASURED AT 2 of 46, ref 46 ours 46, instructions 43/43, SIZE 96/96, first
+ * difference at index 19 (ref 60ab = `str r3, [r5, #8]`, ours 1c30 =
+ * `mov r0, r6`).  The park's figure and its whole account of HOW it got to 2
+ * reproduce exactly.  The body below is unchanged.
+ *
+ * WHAT THE TWO ACTUALLY ARE, read off the scheduler's own log
+ * (`-fsched-verbose=6`, which this build writes into `x.c.23.sched2`, not to
+ * stderr).  In `.19.flow2` the pair is
+ *
+ *   insn 45  (set (mem:SI (plus r5 8)) (reg:SI 3 r3))     the `str`
+ *   insn 50  (set (reg:SI 0 r0) (reg:SI 6 r6))            the `__sin` arg move
+ *
+ * and at t=49 the ready list is exactly `45 50`.  **The chosen insn is the LAST
+ * element of the sorted array** -- `rank_for_schedule` (haifa-sched.c:4029)
+ * takes `tmp = *(rtx *)y` and `tmp2 = *(rtx *)x`, so the ascending sort puts the
+ * BEST last and `schedule_block` reads `ready[n_ready - 1]`.  Ours picks 50.
+ *
+ * THE DECIDING RUNG IS THE CLASS TEST, NOT LUID.  LUID(45) < LUID(50), and the
+ * final rung (haifa-sched.c:4111, `INSN_LUID (tmp) - INSN_LUID (tmp2)`) makes
+ * the LOWEST LUID win -- so if the rungs above it tied, the `str` would already
+ * be chosen.  It is not, so an earlier rung demotes it: `last_scheduled_insn` at
+ * t=49 is insn 43, `add r3, r3, r2`, and insn 45 is DATA DEPENDENT on it, which
+ * is class 1 (haifa-sched.c:4068-4095); insn 50 has NO log links at all and is
+ * class 3.  `arm_adjust_cost` (arm.c:2402-2437) cannot help: it zeroes only
+ * anti/output dependences, returns 1 only for a CALL_INSN after a load or a
+ * load-after-store from stack/pool, and otherwise returns `cost` unchanged.
+ * **So the scheduler is filling the add->str latency slot with the independent
+ * argument move, and the ROM did not.**
+ *
+ * THE BATCH-335 READINESS BARRIER IS INERT HERE AND COSTS TWO INSTRUCTIONS.
+ * insn 50 is in the ready list from t=0 purely because it has no predecessor,
+ * which is the exact precondition that batch 335 broke with a bare
+ * `__asm__ volatile ("")`.  MEASURED, both placements:
+ *
+ *   bare barrier between the `a+8` store and `s = __sin(ang);`   41 instructions against 43, twenty differing
+ *   bare barrier before the `a+8` store                           41 against 43, twenty-one differing
+ *
+ * Both LOSE two instructions rather than reordering two, because a two-sided
+ * `ASM_INPUT` barrier also stops the `mov r0, r6` from being hoisted out of the
+ * cos block at all.  **Record this as a limit on that lever: it fixes readiness
+ * for an insn you want scheduled LATER, and it cannot be used to make a
+ * stall-slot filler unavailable without changing the block's length.**
+ *
+ * THE ACCUMULATE DIMENSION IS NOW CLOSED, CROSSED NOT DIAGONAL.  The park had
+ * varied the sin line alone; the cos line was never varied, and crossing both
+ * is worse everywhere.  Figures are stream lengths, ref 46, all at 43/43
+ * instructions so these are distances:
+ *
+ *   cos load-first, sin load-first (SHIPPED)                      2
+ *   cos value-first, sin load-first                               six
+ *   cos load-first, sin value-first                               seven
+ *   cos value-first, sin value-first                              eleven
+ *   cos value-first + `t` read after the v stores                 sixteen
+ *   cos value-first + both value-first + `t` read late            twelve
+ *   cos sum through a named `t` then stored                        six
+ *   the `__sin` argument re-read from `q` instead of `ang`        37 instructions against 43
+ *   a second `unsigned short ang2` copied for the `__sin` call    48 against 43
+ *
+ * NEXT, and it is narrow: the only way to win the class rung is for insn 45 NOT
+ * to be data-dependent on whatever is scheduled immediately before it, which
+ * means the stored value must be produced more than one insn earlier WITHOUT
+ * adding an insn.  Every spelling that separates them (a named `t`, a
+ * value-first sum) costs four or more because it also changes which register
+ * the sum accumulates into.  A `define_peephole`-style fusion is not available:
+ * `arm.md` has no pattern over `add`+`str`.
+*/
 extern int __cos(int a);
 extern int __sin(int a);
 

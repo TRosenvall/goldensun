@@ -1,3 +1,120 @@
+/* Func_80ae99c -- asm/rom_a1000/rom_ae88c_c_c_c.s
+ *
+ * NON-MATCHING, **10 differing STREAM encodings of 39** (MEASURED batch 336
+ * brief D on THIS body: ref 39 / ours 39, instructions 35/35, SIZE and
+ * RELOCATIONS silent, first at index 1).  DOWN FROM eighteen, and the body
+ * below is the improved one -- the arms now carry the LOAD, not an offset and
+ * not a pointer.  Pin-free, device-free, shim-free, flag-free.
+ * **With one pin it is 0 of 39: see the pass-3 note at the end.**
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_a1000/80ae99c.c \
+ *     asm/rom_a1000/rom_ae88c_c_c_c.s --func Func_80ae99c
+ *
+ * ========================================================================
+ * BATCH 336 BRIEF D -- THE PARK'S "TWO DEFICITS" WERE ONE `find_memory` TEST,
+ * AND THE REST IS THE TU MATE'S ALLOCATOR DECISION.  18 -> 10.
+ * ========================================================================
+ *
+ * EDIT, one line: **the halfword load goes INSIDE each arm.**
+ *     was   if (d == 0) q = (unsigned short *)(g + 0x392); else q = ...;  id = *q;
+ *     now   if (d == 0) id = *(unsigned short *)(g + 0x392); else id = ...;
+ *
+ * WHY, AND IT IS NOT THE ARM'S COST AND NOT ITS CONTROL FLOW.  The park's
+ * 297a section is right that `.14.ce` deletes the join, and its whole measured
+ * plateau -- offset per arm, two-statement arms, both arms two-statement,
+ * ternary, `switch`, destructive `g += off`, explicit `goto` control flow --
+ * fails for ONE reason none of those spellings touches.
+ *
+ * `find_if_case_1` (ifcvt.c:1651-1720) has a size gate at :1683,
+ * `if (count_bb_insns (then_bb) > BRANCH_COST) return FALSE;`, and
+ * **BRANCH_COST here is `(TARGET_ARM ? 4 : (optimize > 1 ? 1 : 0))`
+ * (arm.h:2413) = 1 in Thumb at -O2.**  That gate NEVER fires for this
+ * function: `.14.ce` shows the then block is exactly ONE rtl insn in every
+ * spelling -- `(set (reg 37) (const_int 914))` for the offset form and
+ * `(set (reg 37) (plus (reg 36) (const_int 914)))` for the pointer form, since
+ * `*thumb_addsi3` is a single insn even with a non-encodable addend.  So the
+ * cost rung is a dead end and that is why the park's arm-cost idea measured
+ * inert six ways.
+ *
+ * The reachable precondition is one rung down, in `dead_or_predicable`
+ * (ifcvt.c:1911-1925):
+ *
+ *     if (for_each_rtx (&PATTERN (insn), find_memory, NULL)) return FALSE;
+ *
+ * **ANY MEM anywhere in ANY insn of the merge block makes if-conversion
+ * refuse** -- the comment there says even non-trapping stack references must be
+ * avoided, because for a read it would have to assert `true_dependence` false
+ * against every store in the TEST range.  Putting the LOAD in the arm puts a
+ * MEM in the merge block, `dead_or_predicable` declines, the join survives, and
+ * sched2 then moves the add and the load back out to the join on their own --
+ * which is why the emitted arms still hold only the offset constant, exactly
+ * as the reference does.  `.14.ce` goes from "IF-CASE-1 found / Conversion
+ * succeeded" to no conversion.
+ *
+ * > **THE LEVER, GENERALISED:** when gcc if-converts a two-arm selection that
+ * > the ROM keeps as a real branch, and neither control-flow spelling nor arm
+ * > cost moves it, **MOVE A MEMORY REFERENCE INTO THE ARM.**  The gate is
+ * > `dead_or_predicable`'s `find_memory` scan, not `count_bb_insns` against
+ * > BRANCH_COST.  First lever here that is about the CONTENTS of a block rather
+ * > than its shape or its size.
+ *
+ * MEASURED, ref 39 on every row, crossed against the rotation artifact below:
+ *   park body, pointer per arm                                   18
+ *   **load in arm (shipped)**                                    **10**
+ *   offset per arm + `g += off`                                  36, dsize -4
+ *   arms swapped, offset per arm                                 37, dsize -4
+ *   global re-read inside each arm (pool MEM in the arm)         39, dsize +4
+ *   `off` initialised then only the else arm assigning           36, dsize -8
+ *   both the offset AND `g += off` inside each arm                6, first 14
+ *   load in arm + rotation artifact                              **0**
+ *   load in arm + bare `__asm__ volatile ("")`                   10 (inert)
+ *
+ * THE REMAINING 10 IS THE TU MATE'S RESIDUE, NOT THIS FUNCTION'S.  It is the
+ * same parameter rotation documented at length on Func_80ae9f0 in this piece:
+ * `REG_ALLOC_ORDER` is `{3,2,1,0,12,14,4,5,6,7,...}` (arm.h:989-994) so r3 is
+ * tried first; `d` is a BLOCK-LOCAL quantity with a copy suggestion of r3
+ * (combine_regs on its parm copy), so local-alloc phase 1
+ * (local-alloc.c:1339-1348) gives it r3; the pool-address pseudo reaches phase
+ * 2 (:1385-1400) and takes r2; and hard r2 then sits in `c`'s conflict set so
+ * greg cannot leave `c` in its incoming register.  The ROM is the mirror:
+ * pool/base r3, `c` undisturbed in r2, a->r4, d->r5, b->r6.
+ *
+ * It flips ONLY when `d` crosses the call, because that is the branch of
+ * `find_free_reg`'s exclusion set that reads
+ * `COPY_HARD_REG_SET (used, call_used_reg_set)` and so removes r3 -- and with
+ * `-fcall-used-r4` the walk then lands on r5.  **Globality alone is NOT
+ * enough:** measured on the mate, a probe that makes `d` multi-block but lets
+ * it die before the call puts `d` in **r1**.
+ *
+ * PASS-3 NOTE, and this is the piece-level fact that matters.  One pin per
+ * function -- `register int d5 __asm__("r5") = d;` -- makes **BOTH members of
+ * this TU byte-exact**: `objcmp --whole` reads
+ * `ok Func_80ae99c 39 encodings / ok Func_80ae9f0 43 encodings`
+ * (the SIZE line is only the `.incrom` .rodata the text/data split carries).
+ * `__asm__ volatile ("" :: "r"(d))` after the null check is the same 0; a BARE
+ * `__asm__ volatile ("")` is INERT, so this is NOT the batch-335 empty-barrier
+ * class -- the artifact must hold a value live, which makes it a pin in
+ * substance however it is spelled.  Parked rather than landed per the pin
+ * policy and the Func_80979a4 precedent (docs/owner-decisions.md:72-85).
+ *
+ * SPLIT SHAPE (unchanged, re-confirmed): the piece is exactly TWO functions --
+ * `grep '^\.thumb_func_start' asm/rom_a1000/rom_ae88c_c_c_c.s` gives
+ * Func_80ae99c (line 9) and Func_80ae9f0 (line 56) -- plus a `.rodata` block
+ * whose labels .Laed4c and .Laedcc are ALREADY `.global`, and neither function
+ * reads a data label.  A landing is a TEXT/DATA split with NO new export, and
+ * BOTH members must close because one `.c` is one TU.
+ *
+ * NEXT: nothing left in this function.  The 10 is the mate's allocator fact and
+ * closes with it; report disagreement with `find_free_reg`'s exclusion-set
+ * branch, not with another spelling of the arms.
+ *
+ * --- THE PARK'S ENTIRE PRE-BATCH-336 RECORD IS CARRIED FORWARD BELOW,
+ *     VERBATIM.  ITS FIGURES (eighteen, thirty-eight, thirty-nine of forty)
+ *     ARE SUPERSEDED BY THE TEN STATED AT THE TOP.
+ */
+
 /* BATCH 333 DELTA -- Func_80ae99c IS NOW 18 differing encodings of 39 (ref 39,
  * ours 39), DOWN FROM thirty-eight of thirty-nine, AND THE LENGTHS NOW AGREE.
  * Size 84 against 84, relocations 2 against 2, so the figure is a DISTANCE and
@@ -178,21 +295,21 @@
  * one more expensive) might tip it. Not tried.
  */
 extern int iwram_3001f2c;
-extern void *_Func_801eadc(int id, int a, int b, int c, int d);
+extern void *_Func_801eadc(int id, int flags, int a, int b, int c);
 
 int Func_80ae99c(int a, int b, int c, int d)
 {
     char *g;
-    unsigned short *q;
     unsigned char *r;
+    int id;
     int t;
 
     g = (char *)iwram_3001f2c;
     if (d == 0)
-        q = (unsigned short *)(g + 0x392);
+        id = *(unsigned short *)(g + 0x392);
     else
-        q = (unsigned short *)(g + (0xe5 << 2));
-    r = (unsigned char *)_Func_801eadc(*q, 0x80 << 23, a, b, c);
+        id = *(unsigned short *)(g + 0xe5 * 4);
+    r = (unsigned char *)_Func_801eadc(id, 0x80 << 23, a, b, c);
     if (r == 0)
         return -1;
     t = 0;

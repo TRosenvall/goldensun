@@ -15080,6 +15080,24 @@ the conversion is cancelled.
 **A trap in the same function:** `dead_or_predicable`'s "no memory reference" test runs BEFORE
 reload, so spill `ldr`s visible in the final assembly do not protect a block from being moved.
 
+**3. THE `find_memory` SCAN — and this is the one you can reach deliberately.** The same "no
+memory reference" test is a *lever* when the MEM comes from source rather than from reload.
+`dead_or_predicable` scans the merge block (`ifcvt.c:1911-1925`) and **any MEM in it makes
+if-conversion refuse outright.** Batch 336 brief D moved a halfword *load* into each arm and
+`Func_80ae99c` went **18 → 10 of 39**.
+
+> **To refuse an if-conversion, move a memory reference into the arm.**
+
+This is the first ifcvt lever in this tree about a block's **contents** rather than its shape
+or its size, and it matters because gate 1 is often unreachable: brief D's park had plateaued
+six ways on insn-count spellings, and the reason is that `BRANCH_COST` is **1** in Thumb at -O2
+(`arm.h:2413`), while the then block is a single RTL insn in *every* spelling. `count_bb_insns
+> BRANCH_COST` therefore never fires no matter how the arm is written. When gate 1 is pinned
+like that, gate 3 is the way in.
+
+Note how 2 and 3 differ in what they ask of you. Gate 2 needs you to change how many pseudos
+carry a value — a whole-loop rewrite. Gate 3 needs one existing load moved across a brace.
+
 ### THE int-RETURN LEVER, FINALLY EXPLAINED -- IT IS A DEPENDENT COUNT
 
 The lever has been used for many batches on the observation that declaring a callee `int`
@@ -34883,6 +34901,23 @@ That is why placement sweeps are cheap and worth running exhaustively: there is
 no reasoning shortcut to which side wins, because the dependence is on
 everything.
 
+#### The one case where placement IS predictable: a loop hoist
+
+Batch 336 brief D found the exception, and it runs the lever **backwards** if you
+miss it. When the insn you are contesting is a **hoist out of a loop**, `loop.c`
+emits every movable with `emit_insn_before (..., loop_start)` — so the hoisted
+insn is **always upstream of everything written in the loop body**, whatever the
+source order. A barrier placed *before* the loop cannot separate them and is
+inert; a barrier placed *after* orders the wrong pair.
+
+Measured on `Func_80b6a60`: barrier before → **inert at 2**; barrier after →
+**7**. The lever did not fail, it reversed.
+
+> **Readiness has a direction.** A two-sided barrier is only useful where the
+> two insns can actually land on opposite sides of it. Against a loop hoist they
+> cannot, because the hoist's emission point is fixed by `loop.c` and sits above
+> the whole body.
+
 ### BUT A READINESS BARRIER IS NOT FREE INSIDE A LOOP BODY
 
 Batch 335's landing and `Field_Move` are both **straight-line** code, where an
@@ -34912,6 +34947,37 @@ order. All four placements of the second barrier are byte-identical — once the
 ranges are balanced, position stops mattering. That is the signature to look
 for: *if placement suddenly stops mattering, the lever is no longer ordering
 anything, it is balancing lengths.*
+
+### A BARE BARRIER DOES NOT FLUSH cse's TABLE — IT IS NOT A GENERAL-PURPOSE FENCE
+
+Batch 336 found three independent limits on the readiness barrier in one batch,
+which together say what it is: **a scheduling device, and only that.** The two
+above are about cost and direction. The third is about reach, and it is the one
+most likely to waste a round, because the barrier *looks* like it should work:
+
+`cse.c:5742-5745` flushes the equivalence table on an asm, but the test requires
+**`ASM_OPERANDS`** — and a bare `__asm__ volatile ("")` is an **`ASM_INPUT`**. It
+is not matched, nothing is flushed, and brief A measured it inert at 36 where the
+park needed 0.
+
+> **To fence `cse`, the asm must carry an operand or a memory clobber. To fence
+> the *scheduler*, a bare one is enough.** They are different tests on different
+> RTL, and only the second accepts the empty form.
+
+Both operand-carrying forms reach 0 on that function and are recorded as
+**devices rather than shipped**, which is the right call: the landing came from
+deleting the carrier instead (below).
+
+So before reaching for a barrier, ask which pass is actually doing the thing you
+want stopped:
+
+| to stop | needs | citation |
+|---|---|---|
+| a ready-list membership | bare `__asm__ volatile ("")` | `haifa-sched.c:3567-3597` |
+| a `cse` equivalence | an **operand** or memory clobber | `cse.c:5742-5745` |
+| a `gcse` cprop of a named constant | **nothing — a volatile asm does not block it** | measured, batches 336 B and B's 4th target |
+| an if-conversion | a **MEM** in the arm | `ifcvt.c:1911-1925` |
+| a loop hoist | not reachable by a barrier at all | `loop.c` `emit_insn_before (..., loop_start)` |
 
 ### THE RUNG ABOVE DEPENDENT COUNT, AND WHY IT TIES HERE
 
@@ -35024,3 +35090,47 @@ The piece that triggered all this holds `Anim_Attack` at 5 of 39,
 split instead. The useful question is never *can this piece convert whole* but
 **what is the worst member's figure**, because that is the number the whole-piece
 route is actually waiting on.
+
+## TWO GREPS THAT READ AS CLEAN NEGATIVES AND ARE NOT
+
+Both were hit live in batch 336, and both are the same failure shape as the
+prose-as-machinery bug: a search that returns an answer the searcher has no way
+to distinguish from a true one.
+
+### 1. `grep -rl gcc2_compiled asm/` does NOT identify generated `.s`
+
+`asm/rom_a1000/rom_ae88c_c_c_c.s` is **hand-written** — it opens with
+`.include "macros.inc"` and carries no gcc banner — and it matches, because line
+5 is a **prose comment** containing the literal string `.gcc2_compiled.`:
+
+    @ Attaches the arrow whose tiles .gcc2_compiled. loaded, ...
+
+That comment is itself damaged: commit `6098e247` ("Port 1282 annotations onto
+the adopted tree") overwrote a symbol name with the literal `.gcc2_compiled.`,
+and the name is **not recoverable from the body** — the function's only `bl` is
+`_Func_801eadc`, while the sentence names whatever loaded the tiles *earlier*.
+It is now marked `<SYMBOL LOST>` in place rather than guessed at.
+
+**Partition generated from hand-written on the `.s` header, not on a substring
+anywhere in the file** — and strip comments first, as everywhere else in this
+tree.
+
+### 2. Matching pool loads as `ldr rX, =sym` finds ZERO generated hits
+
+gcc-2.96 does not emit the `=` form. It emits a label reference:
+
+    ldr     r3, .L5
+
+Measured over `asm/`: **16,146** occurrences of `ldr rX, .LN`, and **not one**
+generated file using `ldr rX, =`. The 65 files that do use `=` are all
+hand-written. So a sweep keyed on `=sym` reports *no generated code loads a
+pooled symbol*, which is both false and perfectly plausible-looking.
+
+> A grep over `asm/` is a query against a **labelled corpus of two dialects**.
+> gcc's dialect and the hand-written dialect spell the same operation
+> differently, so any instruction-level sweep has to be written for the dialect
+> it is actually aimed at — or run twice.
+
+Batch 336 brief F hit the same class a third way: an escaping frame address has
+**three** encodings (`add rX,sp`, `mov rX,sp`, `adds rX,rY,sp`), and matching
+only the first produced a false precedent and swung a hit list from 9 to 233.

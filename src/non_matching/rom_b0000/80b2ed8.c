@@ -130,7 +130,109 @@
  * not. That is the same allocator disagreement as
  * src/non_matching/ovl_7ed0a0/2009458.c, seen on a constant rather than on a
  * loaded byte.
- */
+ *
+ * ===== BATCH 336 BRIEF D: THE PARK'S rank_for_schedule TIE ANALYSIS IS VOID --
+ * ===== THE THREE INSNS ARE IN TWO DIFFERENT BASIC BLOCKS.  AND THE ROM'S
+ * ===== ORDER IS WHAT sched2 PRODUCES ONCE THEY SHARE ONE.
+ *
+ * Figure re-derived first: **3 differing encodings of 48**, ref 48 / ours 48,
+ * 37 instructions each side, first at index 29, relocations identical.  BODY
+ * UNCHANGED.
+ *
+ * THE REFUTATION.  The section above says rank_for_schedule "ties all three
+ * candidates ... The comparison therefore falls through to
+ * `INSN_LUID (tmp) - INSN_LUID (tmp2)`, i.e. EXPAND ORDER.  So no spelling of
+ * these two statements reorders them while they remain two statements."  Every
+ * rung it names is reproduced, and the conclusion does not follow, because
+ * **rank_for_schedule never compares these insns at all.**  `.23.sched2` on
+ * this exact body:
+ *
+ *     ;; -- basic block 2 from 105 to 64 --   56 r5=0xd2c / 59 r0=r5 /
+ *                                            60 call Func_80b2884 / 62 r5=r0 /
+ *                                            64 pc=L79
+ *     ;; -- basic block 3 from 66 to 77 --   71 r5=0xd2d / 74 r0=r5 /
+ *                                            75 call Func_80b2884 / 77 r5=r0
+ *     ;; -- basic block 4 from 79 to 107 --  Ready list (t = 0): 84 82
+ *                                            0  82 r0=r8
+ *                                            1  84 r1=0x5
+ *
+ * `mov r5, r0` is the LAST insn of EACH ARM BLOCK (insns 62 and 77).
+ * `mov r0, r8` and `mov r1, #5` are the FIRST TWO insns of the JOIN BLOCK (82,
+ * 84).  Scheduling is per basic block, so the only comparison sched2 ever makes
+ * here is 82 against 84 -- and the ROM's order requires `mov r1, #5` to come
+ * BEFORE `mov r5, r0`, i.e. to cross a block boundary, which no scheduler can
+ * do.  **The park checked the arithmetic of a comparison that does not
+ * happen.**  This is the batch-335 precondition failure in its sharpest form:
+ * not readiness, not pass applicability, but *same-block membership*.
+ *
+ * The CFG is this way because cross-jumping runs at `.25.jump2`, AFTER
+ * `.23.sched2`: `jump_optimize` is only called with cross_jump set in the final
+ * jump pass, and `find_cross_jump` / `do_cross_jump` (jump.c:118-119, call
+ * sites :605, :651-680) merge the arms' duplicated tails afterwards.  So the
+ * single `bl Func_80b2884` in the output is a jump2 artefact of a CFG that was
+ * still duplicated when the order was decided.
+ *
+ * AND THE ROM'S ORDER IS REACHABLE -- IT IS WHAT sched2 EMITS WHEN THE THREE
+ * INSNS SHARE A BLOCK.  Duplicating the second call into both arms puts
+ * `r5=r0`, `r0=r8` and `r1=5` in one block, and sched2 then produces the
+ * reference's order VERBATIM in each arm:
+ *
+ *     mov r0, r5 / bl Func_80b2884 / mov r1, #0x5 / mov r5, r0 / mov r0, r8
+ *       / bl _Func_8019908
+ *
+ * because `r1 = 5` hangs off the call by a REG_DEP_OUTPUT edge, which
+ * `arm_adjust_cost` ZEROES (arm.c:2425-2427), while `r5 = r0` is a true
+ * dependence on the call's result at cost 1.  So `r1 = 5` is ready a cycle
+ * earlier and wins without any rung being tied.  **The ordering is not the
+ * blocker and never was.**
+ *
+ * WHAT IS LEFT IS A CROSS-JUMP MERGE THAT DOES NOT HAPPEN.  That variant reads
+ * 39 of 48 at dsize +16 because jump2 leaves BOTH copies of the six-insn tail:
+ * the call count is 12 in `.23.sched2` and still 12 in `.25.jump2`.  By the
+ * letter of `find_cross_jump` it should merge -- walking back from arm 1's
+ * `b L2` and from L2, six insns match before `ldr r5,=0xd2c` meets
+ * `ldr r5,=0xd2d`, `minimum` starts at 1 (jump.c:660) and the test is
+ * `if (minimum <= 0 && last1 != 0 && last1 != e1)` -- and it does not.  **That
+ * gap is the one open question on this function, and it is a question about
+ * jump.c, not about C.**  Note the base body DOES get a three-insn merge at the
+ * same site, so cross-jumping is not disabled and does not refuse calls as
+ * such.
+ *
+ * MEASURED THIS ROUND, ref 48 unless noted:
+ *   this body                                                       3
+ *   `n = 5;` as the LAST statement of each arm, `_Func_8019908(h,n)` 3 (inert)
+ *   `n = 5;` as the FIRST statement of each arm                      3 (inert)
+ *     -- both inert because gcse's cprop is GLOBAL: both arms define n as the
+ *        same const, so it is available at the join, folded back into the use,
+ *        and the arm insns die.  The park's two positions (before the call,
+ *        before the whole if/else) fail the same way; these are the two
+ *        positions it had NOT tried, and they fail for the same reason.
+ *   `_Func_8019908(h, 5)` duplicated into both arms                 39, +16
+ *   the call with the constant inline, no `s =` in the arms         26, -4
+ *   `id = 0xd2c; if (!cond) id = 0xd2d;` then the call at the join  49, +4
+ *   `id = 0xd2d; if (cond) id = 0xd2c;` then the call at the join   49, +4
+ *   the same two reusing `s` as the id                              33 / 34, -4
+ *
+ * The four IF-THEN rows are worth keeping as a negative with its mechanism.
+ * They were tried because `noce_try_store_flag_constants` (ifcvt.c:584-624)
+ * is gated on `GET_CODE (if_info->a) == CONST_INT && GET_CODE (if_info->b) ==
+ * CONST_INT`, and in an IF-THEN the not-taken value is the REG itself, so the
+ * gate fails and the branch survives WITH the call left in the join -- exactly
+ * the CFG this residue needs.  It does not pay: the `ldr r5,=0xd2c` then hoists
+ * above the `Func_80b27b0` call and everything downstream shifts.
+ * (For the record on the IF-THEN-ELSE form the park measured at 26: `diff` is
+ * +/-1 = +/-STORE_FLAG_VALUE, so `normalize = 0` at ifcvt.c:605 and the
+ * conversion fires regardless of BRANCH_COST.  The only escape is one operand
+ * not being a CONST_INT, which is the `_MSG_b24` argument and is SUFFICIENT,
+ * NOT NECESSARY -- the branch is equally explained by the call being in the
+ * arms -- so it fails the standard in docs/owner-decisions.md:17-44.)
+ *
+ * NEXT: not argument order and not the scheduler.  Either (a) find why
+ * `find_cross_jump` declines the six-insn two-call tail when it accepts the
+ * three-insn one-call tail at the same site, which would land this function
+ * outright, or (b) treat the 3 as bounded on the two-basic-blocks fact above.
+ * Do NOT re-propose a reordering of the three movs: they are not in one block.
+  */
 extern unsigned char *iwram_3001f2c;
 extern void *Func_80b2778(int a, int b);
 extern int Func_80b27b0(int a, int b);
