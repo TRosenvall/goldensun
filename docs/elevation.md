@@ -35252,3 +35252,56 @@ actually fine.
 > `--func` only to attribute a difference once `--whole` has told you there is
 > one. The figure `--func` prints on a merged TU is not a figure about that
 > function.
+
+## A PLAIN `unsigned char` MEMBER STORE EXPANDS AS A READ-MODIFY-WRITE INSERT, AND LEAVES A ZERO BEHIND
+
+Batch 337 brief C landed `OvlFunc_922_2008ed8` (8 of 41 → **0**, byte-identical,
+pin-free) on this, and it is the most reusable thing in that batch because the
+cost is invisible in the source and invisible in the final assembly.
+
+Writing a byte-wide struct member the obvious way:
+
+    n->f55 = w;
+
+does **not** expand to a byte store. `.00.rtl` shows a **read-modify-write
+insert** — `(old & ~fieldmask) | value` — and in this function `~fieldmask` is
+**0**, so combine is left holding a `(set (reg) 0)` that nothing needs. gcc then
+**hands that leftover zero to the next statement that wants a zero**, which
+extends the zero's live range backwards into a region where it has no business
+being.
+
+That is what blocked the park. The sprite pointer lost `r1` not to any property
+of its own but to **the zero**, whose range (insn 57 → 82) overlapped the
+pointer's (34 → 67).
+
+The fix is to take the plain MEM path instead, which emits an actual byte store
+and no insert:
+
+    *(unsigned char *)&n->f9 = w;      /* 8 -> 5, and all three registers
+                                          become the ROM's at once */
+
+then one more statement of placement — hoisting `q55 = &n->f55;` one statement
+earlier — closed the last two-insn `sched2` swap and the function went to **0**.
+
+> **If a park's residue is a register choice and the function stores a byte-wide
+> struct member, check `.00.rtl` for an insert before theorising about the
+> allocator.** The member store is not the statement the park is looking at, and
+> the register it costs you is somewhere else entirely.
+
+### The park's own note on this pointer was true and had expired
+
+The park had already tried that pointer and recorded it as **"WORSE, 45 lines and
+32 differing … forces r12"**. That was accurate *for the body it was tried on*,
+and wrong two steps later — once the member store took the MEM path, the same
+pointer was the last 5 → 0. A negative is a measurement of **one body**, not a
+property of the lever, and a park's negative list silently expires every time its
+body changes.
+
+### And both named preconditions resolved while being the wrong ones
+
+The brief pointed brief C at two preconditions for a register-choice residue:
+allocno membership, and whether the value crosses a call. **Both resolved** —
+pseudo 37 *is* block-local and absent from `.18.greg`'s allocno list, and it does
+*not* cross a call — **and neither was the blocker.** Eliminating them is what
+left the overlapping zero as the only candidate. Checking a precondition is
+useful when it holds *and* when it fails; what it is never is decorative.

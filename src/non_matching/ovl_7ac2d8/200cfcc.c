@@ -1,3 +1,21 @@
+/* OvlFunc_924_200cfcc -- NON-MATCHING, PARKED AT **5 DIFFERING ENCODINGS OF
+ * 179** (stream terms: 179 encodings = 159 16-bit instructions + 20 32-bit
+ * entries).  RE-DERIVED AT THE HEAD OF BATCH 337 AND IT HOLDS, for the fourth
+ * time: size exact, INSTRUCTION COUNT EXACT (159 = 159), relocations identical,
+ * first differing index 54 (ref 4640, ours 189b).  So this IS a distance, and
+ * the length-gap criterion has no purchase on it.  Pin-free.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7ac2d8/200cfcc.c \
+ *     asm/overlays/rom_7ac2d8/ovl_35b8_a_a_c_c_a_a.s --func OvlFunc_924_200cfcc
+ *
+ * ***** READ THE BATCH 337 SECTION AT THE END OF THIS FILE FIRST. *****
+ * The park's route (a) is no longer a proposal: it is PROVEN TO WORK, the cse1
+ * operand swap is CLOSED, and the residue is now ONE named quantity.  Four of
+ * the five differences in the header below are no longer the obstacle.
+ */
 /* OvlFunc_924_200cfcc  --  overlay 924, 168 instructions.  NON-MATCHING,
  * PARKED AT 5 ENCODINGS OF 179, and this IS a true distance: SIZE EXACT,
  * INSTRUCTION COUNT EXACT (179 = 179), all relocations identical.
@@ -297,4 +315,119 @@ void OvlFunc_924_200cfcc(int a, unsigned char *c)
  * while landings are split-named `src/overlays/<bank>/ovl_XXXX_<path>.c`, so a
  * FILENAME scan of either directory sees none of the other.  A name check is not
  * a definition check.
+ */
+
+/* ===================== BATCH 337 (brief C) =====================
+ *
+ * FIGURE: 5 DIFFERING ENCODINGS OF 179 (159 instructions against 159, 20
+ * 32-bit entries each, size exact, relocations identical, first index 54).
+ * HELD.  Pin-free.  The twins still read the same figure at the same index, so
+ * whatever closes one closes the other; nothing about that changed.
+ *
+ * ***** THE cse1 OPERAND SWAP IS NOW PROVEN FROM THE DUMPS, NOT ARGUED. *****
+ *   .00.rtl  insn 118: (set (reg/v:SI 37) (plus (reg:SI 67) (reg:SI 66)))
+ *   .03.cse  insn 118: (set (reg/v:SI 37) (plus (reg:SI 66) (reg:SI 67)))
+ * where 67 is the gBuffer pool load (REG_EQUAL symbol_ref "gBuffer") and 66 is
+ * the index.  **EXPAND EMITS gBuffer FIRST -- THE ROM'S OWN ORDER -- AND cse1
+ * SWAPS IT.**  The deciding code, quoted so the next reader can check it in one
+ * command, is the canonicalisation at the end of fold_rtx, cse.c:3649-3663:
+ *       if (must_swap || (const_arg0
+ *                         && (const_arg1 == 0
+ *                             || (GET_CODE (const_arg0) == CONST_INT
+ *                                 && GET_CODE (const_arg1) != CONST_INT))))
+ *           ... swap XEXP (x, 0) and XEXP (x, 1)
+ * const_arg0 comes from the REG fast path at cse.c:3534-3547, which takes the
+ * qty's const_rtx unless it is a REG or a PLUS.  So gBuffer-first swaps
+ * (const_arg0 = the symbol_ref, const_arg1 = 0) and index-first does not swap
+ * (const_arg0 = 0) -- BOTH LAND ON INDEX-FIRST, which is why both source orders
+ * measured inert and why no expand-time lever can ever reach this.
+ *
+ * ***** ROUTE (a) WORKS.  BREAKING THE CONSTANT EQUIVALENCE IS ENOUGH. *****
+ * A volatile asm whose PATTERN is a bare ASM_OPERANDS flushes the cse table --
+ * cse.c:5741-5745 tests GET_CODE (PATTERN (insn)) == ASM_OPERANDS and calls
+ * flush_hash_table (cse.c:1726), which `invalidate`s every REG entry, so
+ * REGNO_QTY_VALID_P fails and equiv_constant (cse.c:4105) returns 0.  With the
+ * barrier BETWEEN the pool load and the add, const_arg0 is 0, NO SWAP HAPPENS,
+ * and `.18.greg` reads
+ *       (insn 122 (set (reg/v:SI 2 r2) (plus (reg/v:SI 2 r2) (reg/v:SI 3 r3))))
+ *       (insn 450 (set (reg/v:SI 10 sl) (reg/v:SI 2 r2)))
+ * which is THE ROM'S `add r2, r2, r3` / `mov r10, r2` EXACTLY.  Measured body:
+ *       idx = (A) * 0x80 + (B);
+ *       base = gBuffer;
+ *       __asm__ volatile ("" :: "i"(0));
+ *       cell = base + (idx << 2);
+ * reads **5 of 179 with the whole gBuffer hunk byte-identical** -- indices 52,
+ * 53, 55 and 57 all come right and the figure only stays at 5 because the
+ * residue moved.  IT IS KEPT AS AN INSTRUMENT, NOT SHIPPED: tools/shimcount.py
+ * calls a bare ASM_OPERANDS a fakematch-class shim, and the pin policy prefers
+ * the shim-free body at the same figure.  The one-line change is in
+ * reports/batch-337.md if anyone wants it back.
+ *
+ * ***** WHAT THE RESIDUE ACTUALLY IS, AND IT IS ONE QUANTITY. *****
+ * With the swap gone, all five remaining differences are the SAME fact:
+ *       ref   mov r0, r8 / add r2, r2, r3 / ldr r3, [r0] / mov sl, r2 ...
+ *                                                       ... ldr r3, [r0, #0x14]
+ *       ours  add r2, r2, r3 / mov sl, r2 / mov r2, r8 / ldr r3, [r2] ...
+ *                                                       ... ldr r3, [r2, #0x14]
+ * THE LOW REGISTER THE `c` BASE ADDRESS RELOAD TAKES: r0 in the ROM, r2 here.
+ * Its position (one slot later) follows by anti-dependence -- r2 is still
+ * holding `cell` until `mov sl, r2`, so sched2 cannot lift the copy above the
+ * add; with r0 it could, and the whole window would fall into place.
+ *
+ * ***** AND THIS ANSWERS THE BATCH-329 "SHARP PROBLEM" IN THIS PARK. *****
+ * 329 asked how the round robin can diverge when encodings 0-53 are identical,
+ * and offered "either the number of RELOADS differs while the emitted code does
+ * not, or this copy is not chosen by the round robin at all".  IT IS THE FIRST,
+ * and the signature is visible in the dump.  `.18.greg` prints
+ *       Spilling for insn 118.                 <- NO "Using reg N for reload" line
+ *       Spilling for insn 121.
+ *       Using reg 2 for reload 0
+ * A reload with no "Using reg" line never went through allocate_reload_reg
+ * (reload1.c:4962, round robin from last_spill_reg at :5003-5013 over
+ * spill_regs, which finish_spills builds in ASCENDING REGNO at :3527-3532).
+ * `last_spill_reg` is set only on success in set_reload_reg, SO A DUMMY OR
+ * INHERITED RELOAD EMITS NOTHING *AND DOES NOT ADVANCE THE COUNTER*.  Insn
+ * 118's reload is exactly that -- find_dummy_reload (called at reload.c:1404
+ * only when `in != 0 && out != 0`) takes the IN operand, which is the PLUS's
+ * FIRST operand, which is why the add's destination tracks the operand order at
+ * all.  The ROM's equivalent reload must therefore have ADVANCED the counter
+ * once more than ours, which puts insn 121 one step further round and lands it
+ * on r0.  **So the next door is: make insn 118's reload an ALLOCATED reload
+ * rather than a dummy, without adding an instruction.** find_dummy_reload's IN
+ * clause needs `find_reg_note (this_insn, REG_DEAD, real_in)`, so that is the
+ * park's old route (b) -- "stop the index dying at the add" -- now with a
+ * reason to want it that is about the PHASE rather than about the operand
+ * order, and with the operand order already solved.
+ *
+ * MEASURED THIS BATCH (all against the 200cfcc reference; the twin reads the
+ * same).  All at exact length and relocation-clean unless noted:
+ *   base (this body)                                                 5  @54
+ *   barrier before the whole `cell = gBuffer + ...` statement         5  @54
+ *     (INERT BY CONSTRUCTION: the pool load is then emitted after the
+ *      flush, so cse re-records the constant and swaps again)
+ *   idx named + base named, no barrier                                5  @54
+ *   idx named alone                                                   5  @54
+ *   idx named + barrier, gBuffer inline in the add                    7  @52
+ *   idx + base + bare `__asm__ volatile ("")`   (ASM_INPUT, no flush) 7  @52
+ *   idx + base + `::: "memory"`                 (PARALLEL, no flush)  130 @11  RELOCDIFF
+ *   idx + base + `:: "i"(0)`                    (ASM_OPERANDS, FLUSH) 7  @52
+ *   the same with the shift AFTER the barrier (the shipped-shape test) 5  @54
+ *      *** and THIS one has the whole gBuffer hunk right; see above ***
+ *   the same + a second barrier after the add                         7  @52
+ *   the same + `base += idx; cell = base;`                            7  @52
+ *   the same + `idx <<= 2;` in place                                  7  @52
+ *   the same + `unsigned int` idx                                     7  @52
+ *   the same + `cell = &base[idx];`                                   7  @52
+ *   base named BEFORE idx (pool load hoisted)              33/34 @26  RELOCDIFF
+ *   declaration order of idx/base at the head / at the tail of the
+ *     declaration list                                                7  @52
+ *   the two `c` tests through a named local pointer                    7  @52
+ *   `base` kept live past the add via `base[idx + 2]` later        180 @1   +8 bytes
+ *
+ * NOTE FOR THE LEDGER: the batch-329 note in this file cites
+ * "allocate_reload_reg (:4962) walks i = last_spill_reg; i++ round robin" and
+ * that citation is CORRECT -- it was checked line by line this batch.  Do not
+ * confuse it with find_reg (reload1.c:1588), which is the cost walk that picks
+ * which hard register to SPILL and tie-breaks on inv_reg_alloc_order; that one
+ * is a different function and a different question.
  */

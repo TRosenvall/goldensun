@@ -1,3 +1,20 @@
+/* OvlFunc_931_2008904 (0x02008904) -- NON-MATCHING, PARKED AT **4 DIFFERING
+ * ENCODINGS OF 221** (stream terms: 221 encodings = 165 16-bit instructions +
+ * 56 32-bit entries -- pool words AND `bl` calls, and this function has many).
+ * RE-DERIVED AT THE HEAD OF BATCH 337 AND IT HOLDS: size exact, INSTRUCTION
+ * COUNT EXACT (165 = 165), relocations clean, first differing index 167.
+ * So this IS a distance.  Pin-free.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7b8cb0/2008904.c \
+ *     asm/overlays/rom_7b8cb0/ovl_30_c_c_c_c_c_c_c_c_c_c_a_c.s --func OvlFunc_931_2008904
+ *
+ * ***** READ THE BATCH 337 SECTION AT THE END OF THIS FILE. *****  The park's
+ * remaining shape two is now bounded from the compiler source AND from this
+ * function's own dumps, with nine more spellings measured exactly inert.
+ */
 /* OvlFunc_931_2008904 (0x02008904) -- NON-MATCHING.
  *
  * NON-MATCHING, 4 of 221 encodings  (MEASURED, batch 331 brief A).  The park's
@@ -239,3 +256,102 @@ void OvlFunc_931_2008904(void)
     __CutsceneEnd();
     __WaitFrames(1);
 }
+
+/* ===================== BATCH 337 (brief C) =====================
+ *
+ * FIGURE: 4 DIFFERING ENCODINGS OF 221 (165 instructions against 165), HELD.
+ * The four are TWO instances of the park's shape two and nothing else:
+ *       index 167  ref 431d `orr r5, r3`     ours 432b `orr r3, r5`
+ *       index 168  ref 7005 `strb r5, [r0]`  ours 7003 `strb r3, [r0]`
+ *       index 186  ref 431d                  ours 432b
+ *       index 187  ref 7005                  ours 7003
+ * i.e. the THIRD use of each shared mask.  The park's shape one is gone (the
+ * batch-331 stack-argument locals) and every other instruction in the function
+ * is byte-identical, including both masks' first two uses.
+ *
+ * THE REFERENCE, SO NOBODY HAS TO GO LOOKING, with the asymmetry visible:
+ *       add r0,#0x59 / ldrb r3,[r0] / mov r5,#8 / orr r3,r5 / strb r3,[r0]
+ *       add r0,#0x59 / ldrb r3,[r0] /             orr r3,r5 / strb r3,[r0]
+ *       add r0,#0x59 / ldrb r3,[r0] /             orr r5,r3 / strb r5,[r0]
+ * and the same shape again with `mov r5,#2` for the 0x23 group.  So at the
+ * last use the ROM makes the MASK's register the destination.
+ *
+ * ***** WHAT IS NOW READ FROM OUR OWN DUMPS, AND IT NARROWS THE QUESTION. *****
+ * `.17.lreg` holds the three IOR insns of the first group and THEY ARE
+ * IDENTICAL IN OPERAND ORDER; the only thing that differs is the death set:
+ *       insn 382  (set (reg:SI 70) (ior (subreg (reg:QI 68)) (subreg (reg:QI 69))))
+ *                   REG_DEAD 68
+ *       insn 400  (set (reg:SI 75) (ior (subreg (reg:QI 73)) (subreg (reg:QI 69))))
+ *                   REG_DEAD 73
+ *       insn 418  (set (reg:SI 80) (ior (subreg (reg:QI 78)) (subreg (reg:QI 69))))
+ *                   REG_DEAD 78 **AND REG_DEAD 69**
+ * (reg 69 is the shared mask.)  So the loaded byte is the IOR's FIRST operand
+ * at all three sites in our RTL, and the ROM needs the MASK first at site
+ * three.  THE DIFFERENCE IS AN RTL OPERAND ORDER, PER SITE, AND NOTHING
+ * SOURCE-LEVEL PUTS IT THERE.
+ *
+ * ***** THE PARK'S local-alloc READING IS CORRECT -- REPRODUCED LINE BY LINE.
+ * For *thumb_iorsi3 (arm.md:2088-2095, operand 0 "=l", operand 1 "%0",
+ * operand 2 "l", one alternative), local-alloc.c:1116-1130 computes
+ * must_match_0 = 1 and n_matching_alts = 1 = n_alternatives.  In the loop at
+ * :1133-1176 operand 1 passes both skip tests and is handed to combine_regs
+ * FIRST; the byte dies at every one of the three sites, so that tie always
+ * succeeds and `win` breaks the loop.  Operand 2 never gets a chance anyway:
+ * the second skip test at :1149-1153 throws it out, because n_matching_alts
+ * equals n_alternatives and `requires_inout ("l")` is 0 -- and the comment
+ * there says in as many words that it ignores commutativity to keep things
+ * simple.  **SO local-alloc CAN NEVER TIE THE DESTINATION TO THE MASK**, and
+ * the `%` on operand 1 buys nothing here.
+ *
+ * ***** AND combine's SWAP IS ORDER-INSENSITIVE FOR THIS OPERAND PAIR. *****
+ * combine_simplify_rtx (combine.c:3491-3504) swaps a commutative pair when
+ * XEXP(x,0) is class 'o' and XEXP(x,1) is not, or when XEXP(x,0) is a SUBREG of
+ * a class-'o' and XEXP(x,1) is not class 'o'.  Enumerate the four cases for
+ * (mask, byte) with each either a QImode SUBREG (class 'x', SUBREG_REG 'o') or
+ * a plain SImode REG (class 'o'):
+ *       byte SUBREG, mask SUBREG : swap   -> byte first
+ *       byte REG,    mask SUBREG : swap   -> mask first  (both sites!)
+ *       byte SUBREG, mask REG    : NO swap -> written order survives
+ *       byte REG,    mask REG    : NO swap -> written order survives
+ * The first row is ours.  The second gives mask-first AT ALL THREE SITES, which
+ * costs an insn at each of the first two (the mask does not die there, so
+ * combine_regs fails and reload must copy).  Rows three and four make the
+ * source order survive -- but the source order is the SAME STATEMENT at all
+ * three sites, so it still cannot produce a per-site difference.  **NO CHOICE
+ * OF TEMP TYPES AND SOURCE ORDER CAN GIVE A LAST-USE-ONLY SWAP.**  That is the
+ * bound, stated with its derivation attached so it can be attacked.
+ *
+ * ***** THE ONE DOOR LEFT, NAMED. *****  The only place in this toolchain that
+ * honours the `%` on operand 1 and looks at deaths is find_reloads' commutative
+ * handling (reload.c:2880-2930, which calls find_dummy_reload for the matched
+ * pair at :2918-2925).  It is only REACHED if the straight order loses -- i.e.
+ * if local-alloc's tie of the destination to operand 1 FAILS.  combine_regs
+ * needs the byte to die at the insn, so the precondition to manufacture is
+ * **A BYTE LOAD THAT DOES NOT DIE AT THE THIRD IOR**, at zero instruction cost.
+ * No such spelling was found and none was measured; it is untested, and it is
+ * the only route this batch could not close.
+ *
+ * MEASURED INERT THIS BATCH -- NINE SPELLINGS, ALL EXACTLY 4 AT INDEX 167,
+ * all at exact length and relocation-clean.  A PERFECT PLATEAU:
+ *   int byte temp + int mask temp, mask on the left, all three sites        4
+ *   unsigned char mask temp + int byte temp, mask on the left, all three    4
+ *   int mask temp, mask on the left, byte dereferenced inline, all three    4
+ *   the mask RE-ASSIGNED immediately before the third site of each group,
+ *     so that site has its own dying pseudo (`mi = 8; *p = mi | *p;`)       4
+ *   `unsigned char *` throughout instead of `char *` (pointer, accessor
+ *     prototype, __Actor_SetSpriteFlags prototype and the `a` local)        4
+ *   `__asm__ volatile ("")` immediately before the third site of each group 4
+ *   int byte temp only, byte on the left, all three                         4
+ *   a SEPARATE pointer variable for each of the six sites                   4
+ *   the third site only, written `*p = 8 | *p;` with a bare literal left    4
+ *
+ * ***** ONE CORRECTION TO THE BATCH-331 SECTION ABOVE. *****  It records
+ * "MEASURED WORSE ... applying any different spelling to ONE of three
+ * otherwise-identical statements splits the mask pseudo and costs real
+ * instructions ... expect that shape of answer from any further third-use-only
+ * probe".  That does not generalise.  The deliberate re-split above
+ * (`mi = <mask>;` re-assigned before the third site) is EXACTLY INERT at 4 and
+ * at exact length -- gcse's copy propagation unifies the two materialisations
+ * and nothing grows.  The old sentence is true of the spellings it was measured
+ * on and false as a rule; a third-use-only probe is still worth running.
+ */
