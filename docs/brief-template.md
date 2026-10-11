@@ -36,6 +36,13 @@ figures, their park paths, what each park claims) goes on top of this.
   landed two of three targets that way after spelling-level search had failed on
   both. Count hits in the generated half against the hand-written half for a
   reachability bound; partition by `shimcount` for a pin-free bound.
+- **Two environment facts that have each cost an agent a detour.** The
+  container's gcc driver is **`/opt/gcc296/xgcc`** — there is no `bin/`
+  subdirectory, so `/opt/gcc296/bin/gcc` does not exist (verified: the directory
+  holds exactly `cc1`, `cpp`, `tradcpp`, `xgcc`). And **`-fsched-verbose=6`
+  writes into the `.23.sched2` dump file, not to stderr** (batch 336 brief A) —
+  if you are looking for it on the terminal you will conclude the flag did
+  nothing.
 - **If this brief mentions a PIECE, verify its membership with
   `tools/piece.py` before trusting anything the brief says about it.** The
   coordinator has mis-stated piece membership four times, by grouping the
