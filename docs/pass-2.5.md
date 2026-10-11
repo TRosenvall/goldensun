@@ -89,6 +89,119 @@ So the earlier worry — that pass 2.5 might be a third *matching* pass — is
 answered. **It is a declaration-hygiene pass.** The merge does not move code;
 it surfaces latent declaration debt that separate TUs have been hiding.
 
+> ### CORRECTION (batch 336): that conclusion is right in spirit and too
+> ### optimistic in fact, for a measured majority of the clashes.
+>
+> The nine-module sweep was representative — `tools/declclash.py` puts the
+> blocking rate at **146 of 247 multi-piece modules (59%)**, against the sweep's
+> 5 of 9 — but it understated what a clash *is*. Two corrections:
+>
+> **1. The failures are not "duplicate" declarations.** C permits a repeated
+> *identical* `extern`. Every one of these is a **conflicting** declaration:
+> two pieces of one module declaring the same symbol at **different types**,
+> each type chosen because it made that piece's own function match.
+>
+> **2. For 163 of the 276 clashes (59%) one side is a POINTER and another is
+> not** — and reconciling those is not an edit to a declaration. It is picking
+> the true type and then **rewriting the other pieces' expressions so they still
+> emit the same instructions through it**, because `p[i]` scales by the pointee
+> and `&x` on a value is not the word stored at `x`. Every such piece must be
+> re-verified. That is bounded, evidence-driven matching work, but it is
+> matching work, and pass 2.5's estimate should carry it.
+>
+> What makes it tractable is that **the types are facts, not preferences, and the
+> ROM answers them.** Every hand-written access to `iwram_3001ebc` reads:
+>
+>     ldr r5, =iwram_3001ebc     <- the symbol's ADDRESS
+>     ldr r3, [r5]               <- the WORD STORED THERE, then offsets
+>     mov r2, #0xe0                 0xe0 / 0xe4 / 0xec off it
+>
+> so it **holds a pointer**, and `extern unsigned char iwram_3001ebc;` used as
+> `&iwram_3001ebc` is the wrong shape however well it matched in isolation.
+> One `grep` per symbol settles it. We do not need another project's opinion
+> about these types — we have the ROM, and `asm/` is a labelled corpus.
+>
+> **And the debt is concentrated, which is the good news.** 276 clashes live in
+> **52 distinct symbols**, and the distribution is steep:
+>
+> | rank | symbol | blocks | cumulative |
+> |---|---|---|---|
+> | 1 | `iwram_3001ebc` | 73 modules | 26% |
+> | 2 | `gState` | 54 modules | 46% |
+> | 3 | `iwram_3001e70` | 27 modules | 55% |
+> | 4 | `iwram_3001e40` | 19 modules | 62% |
+> | … | (through rank 11) | | **81%** |
+>
+> **Eleven symbols carry 81% of the blocking.** So the shape of the work is not
+> 276 problems; it is ~11 symbol-typing decisions taken once, tree-wide, put in
+> headers, followed by re-verification of the pieces that disagreed.
+
+### A SECOND BLOCKER CLASS: REPEATED LOCAL TYPEDEFS, AND gcc-2.96 REJECTS EVEN AN IDENTICAL ONE
+
+`gState`'s 215 `GlobalState` declarations do not point at a header. Each of
+those files carries its own copy of
+
+    typedef struct { unsigned char _bytes[704]; } GlobalState;
+
+and gcc-2.96 refuses the repeat outright -- **verified, not assumed**:
+
+    $ xgcc -B/opt/gcc296/ -O2 -c td.c
+    td.c:2: conflicting types for `GlobalState'
+    td.c:1: previous declaration of `GlobalState'
+
+C89 has no typedef-redefinition rule, so **two pieces that AGREE still will not
+merge.** This class did not appear in the nine-module sweep's failure names
+(`__StopTask`, `__MapActor_GetActor`, `AttrAccessor`, `gKeyPress`,
+`iwram_3001eec` -- all symbols), so it is additional to them.
+
+The good news is that it is the cheap half of pass 2.5. Landed sources carry
+only **33 distinct local typedef names**, and just **11 modules** have a name
+with two genuinely *different* bodies:
+
+| name | local copies |
+|---|---|
+| `GlobalState` | 215 |
+| `u8` | 18 |
+| `State` | 15 |
+| `Blk`, `u16` | 12 each |
+| `Unit` | 10 |
+
+Hoisting those 33 into headers carries **no codegen risk** when the body is
+unchanged -- a typedef is not a declaration of storage -- so it is a pure
+unblocking step, gateable before any symbol typing is decided.
+
+### Devices must not live in declarations
+
+`gKeyPress` is declared seven ways across 30 landed files, and one of them
+explains the whole class. `src/rom_c0/rom_2e00_b.c` has:
+
+    extern vu32 gKeyPress;
+    ...
+    (void) gKeyPress;
+
+That `vu32` is not a claim about the data — it is a **device**, there to stop the
+dead read being optimised away. It works perfectly in its own TU and it is
+unmergeable, because the two other pieces in the module store to the same symbol
+through `vs32` and `s32`.
+
+> **A device in a DECLARATION is module-scoped debt. The same device written at
+> the USE SITE is statement-scoped and merges for free.**
+>
+>     extern u32 gKeyPress;                      /* the real type, shareable */
+>     (void) *(volatile u32 *) &gKeyPress;       /* the device, local */
+>
+> This is the same distinction as `docs/owner-decisions.md` ruling 4 (a qualifier
+> applied to one of several reads is a device; applied to an access whose width
+> is a genuine property of the data it is a lever) — and the same shape as the
+> `*(vu16 *)p` pattern in pokefirered's leak-informed source, where the pointer
+> is plainly typed and the one real access carries the qualifier.
+
+**Pass-2 consequence, and it is the cheapest thing on this page:** every clash
+was created by pass 2, one piece at a time, and pass 2 is still running. A guard
+at install time — does this piece's `extern` for symbol S match the type the
+module already uses? — costs nothing and stops clash 277. Retrofitting 276 is
+work; preventing the next one is free.
+
 ### That debt is real, and worth fixing regardless
 
 `ovl_22c4`'s failure is the instructive one: the clash is against
