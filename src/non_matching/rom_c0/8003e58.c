@@ -12,7 +12,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_c0/8003e58.c \
- *     asm/rom_c0/rom_3e58_a.s --func Func_8003e58
+ *     asm/rom_c0/rom_3e58_a.s --whole
  *
  * This recipe was ADDED by the batch-319 backfill: the park had none, so
  * parkcheck.py could not report its figure and nothing had ever checked it.
@@ -59,6 +59,70 @@
  *     used one variable, not two returns.
  *   * Guard-then-do/while for the inner scan, which places `add r2,r0,r7` after
  *     the guard.
+ *
+ * ========== BATCH 335 BRIEF D: THE GAP IS LOCATED, AND THE BLOCKER SENTENCE
+ * ========== ABOVE IS WRONG =================================================
+ *
+ * Re-measured whole: 49 of 60 encodings, ours 58, so the reference is TWO
+ * instructions longer and the figure above is unchanged.  Pin-free confirmed
+ * by tools/shimcount.py -- no register declarations, no .equ, no barriers.
+ * Its piece holds exactly ONE function, so it converts alone.
+ *
+ * BOTH MISSING INSTRUCTIONS ARE COPIES OF THE SAME BASE ADDRESS OUT OF ip, and
+ * the blocker sentence above ("the ROM carries one address in TWO registers and
+ * we carry it in one") is false: WE CARRY IT IN TWO AS WELL.  What differs is
+ * which of the four use sites each pseudo serves, and that decides the count.
+ *
+ *   ROM   P1 = {fill store, skip load} -> ip.  A pc-relative pool load cannot
+ *         target a high register, so creating it costs a low-register staging
+ *         load plus a move into ip, and EACH of its two uses costs a move back
+ *         out.  P2 = {loop-head load, inner pointer init} -> r7, created by one
+ *         move from ip and costing nothing at either use.  FOUR moves.
+ *   ours  P1 = {loop-head load, skip load} -> r6, created by the pool load
+ *         itself and costing nothing.  P2 = {fill store} -> ip, one move to
+ *         create and one at its single use.  TWO moves.
+ *
+ * Four minus two is the gap exactly.  Note also that the loop-head and inner
+ * pair is ALREADY count-neutral: we spend an address add plus a plain load and
+ * then reuse that address as the inner pointer, where the ROM spends a
+ * register-offset load and a separate pointer add.  Two against two.
+ *
+ * So the question is not "which instruction is missing" but WHY THE PARTITION
+ * DIFFERS, and the answer is that gcse's copy propagation is GLOBAL (pass 07,
+ * and no basic-block boundary stops it): every spelling that tries to give the
+ * base two source-level names collapses them before the allocator sees two
+ * pseudos.
+ *
+ * MEASURED IN BATCH 335, ADDING TO THE SIXTEEN ABOVE -- all worse or inert:
+ *   the four sites re-swept with objcmp rather than line counts, all sixteen
+ *     combinations                          50 to 56 differing, 56 or 58 long
+ *   -- and the fill store through a pointer local always costs TWO MORE, so the
+ *      fill must stay on the bare global; that is the one thing the sixteen
+ *      agree on.
+ *   a SECOND pointer assigned INSIDE the loop from the bare global, four
+ *     partitions by three spellings of the slot-table access
+ *                                           54 to 58 long, 55 to 59 differing
+ *   -- this refutes the obvious route.  `loop.c` is pass 08 and would hoist an
+ *      in-loop invariant into its own pseudo, which is the documented source of
+ *      a surviving copy; but gcse's cprop has already collapsed the in-loop
+ *      symbol_ref into the pre-loop pointer by then, so loop.c never sees two.
+ *   the second pointer assigned from the first inside the loop   same collapse
+ *   the slot table reached as a struct subscript rather than a
+ *     cast through a byte pointer                                inert
+ *   the slot table reached as a bare array subscript             two shorter
+ *   a local copy of the slot argument, before and after the
+ *     early return, crossed with two site combinations           all inert
+ * AND ONE POSITIVE FINDING ABOUT THE EXISTING BODY: the ORDER of the three
+ * initialisers matters.  The body below writes the pointer, then the index,
+ * then the slot-table pointer, and that is ONE BETTER than writing both
+ * pointers before the index.  Do not tidy it.
+ *
+ * NEXT: the dimension nobody has varied is not another name for the base -- all
+ * of those are now measured.  It is whether the two pseudos can be made to
+ * CONFLICT differently, since what the allocator needs is a live-range overlap
+ * it does not have, not a second spelling.  The ROM's master pseudo is the HIGH
+ * one, so the question is what makes the pool-loaded pseudo the one with FEWER
+ * references and the copy the one with more.
  */
 struct SpriteSlot { unsigned short size; unsigned short vramOffset; };
 extern struct SpriteSlot gSpriteSlots[];

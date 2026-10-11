@@ -1559,7 +1559,8 @@ SECTIONS {
 	rom_b5000 : ALIGN(0x1000) {
 		src/rom_b5000/exports.o(.text)
 		asm/rom_b5000/rom_b5138.o(.text)
-		asm/rom_b5000/rom_b5368_a.o(.text)
+		asm/rom_b5000/rom_b5368_a_a.o(.text)
+		asm/rom_b5000/rom_b5368_a_b.o(.text)
 		asm/rom_b5000/rom_b5368_b.o(.text)
 		asm/rom_b5000/rom_b5a0c_a_a_a.o(.text)
 		asm/rom_b5000/rom_b5a0c_a_a_b.o(.text)

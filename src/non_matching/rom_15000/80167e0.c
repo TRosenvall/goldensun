@@ -14,7 +14,7 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_15000/80167e0.c \
- *     asm/rom_15000/rom_15e8c_c_a_a_a_a.s --func Func_80167e0
+ *     asm/rom_15000/rom_15e8c_c_a_a_a_a.s --whole
  *
  * ========== CORRECTION 1: THE "SOLVED" INDIRECT CALL IS NOT SOLVED ==========
  *
@@ -90,6 +90,69 @@
  * the OR behind a hard register are measured inert above, so the next thing to
  * try is NOT another spelling of the OR: it is whatever makes one of the two
  * operands non-invariant in the ROM's source.
+ *
+ * ========== BATCH 335 BRIEF D: THE HOIST IS THE WHOLE GAP, AND THE SIZE
+ * ========== ROUTE TO DEFEATING IT IS CLOSED BY ARITHMETIC ==================
+ *
+ * Re-measured whole: 47 of 63 encodings, ours 63, SIZE 136 bytes both, and the
+ * relocation symbols still differ, so the figure above stands and is still not
+ * a distance.  Pin-free confirmed by tools/shimcount.py.  Its piece holds
+ * exactly ONE function.
+ *
+ * WHAT IS NEW IS THE DIRECTION IN REAL INSTRUCTIONS: fifty-nine against our
+ * fifty-eight.  The equal encoding counts are an ALIGNMENT PAD -- the
+ * reference's odd instruction count leaves a halfword that the assembler pads
+ * before the pool, and `objdump -dz` counts that pad as an encoding.  So we are
+ * ONE REAL INSTRUCTION SHORT, not level, and the correction-2 analysis above is
+ * confirmed quantitatively:
+ *
+ *   the or inside the loop     costs two moves plus the or against our one move
+ *   the pointer in the loop     costs a pool load, and saves the setup move
+ *   the shifted base on the     costs a load, an add and a store against our
+ *     stack                     move and add, and saves building the constant
+ *   our spilled counter         costs a store and a load the reference lacks
+ *
+ * Net one, and every term follows from the single hoist named above.
+ *
+ * ========== THE SIZE ROUTE IS CLOSED, WITH THE ARITHMETIC =================
+ *
+ * `move_movables` hoists when `threshold * savings * lifetime >= insn_count`
+ * (loop.c:1803), where `threshold = (has_call ? 1 : 2) * (1 + n_non_fixed_regs)`
+ * (loop.c:651).  This loop HAS a call, so the multiplier is one -- but
+ * n_non_fixed_regs is of order fourteen on this target, so the product clears
+ * the loop's twenty-odd insns with a lifetime of two.  Defeating the hoist by
+ * making the loop bigger or the value shorter-lived would need a lifetime of
+ * one, i.e. the or's result consumed by the very next insn, and it already
+ * nearly is.  DO NOT SPEND ANOTHER ROUND ON THE THRESHOLD.
+ *
+ * ========== AND THE HARD-REGISTER ROUTE REPRODUCES AS INERT ===============
+ *
+ * `scan_loop` refuses a movable whose destination is in `may_not_optimize`
+ * (loop.c:766), and loop.c:713-717 sets that flag for EVERY hard register
+ * below FIRST_PSEUDO_REGISTER.  So a set whose destination is a hard register
+ * is STRUCTURALLY un-hoistable, which looked like the answer.  Measured as an
+ * instrument -- a file-local helper identical to this file's DMA3 helper except
+ * that the or happens inside its own pinned r2 initialiser -- the or is STILL
+ * gone from the loop and the figure is unchanged, in both operand orders.  So
+ * the hoisted object is NOT that set: it is a pseudo that precedes it, exactly
+ * as the correction above says, and the header's own warning that this is not a
+ * spelling problem is now backed by the compiler source.
+ *
+ * Also measured: routing the control word through this file's existing
+ * size-taking DMA3 helper, so the or is built from a byte count inside the
+ * helper rather than at the call site.  THREE instructions LONG and the same
+ * forty-seven differing -- the unsigned divide by four does not fold against
+ * the multiply by four that feeds it.
+ *
+ * NEXT, narrowed: the question is no longer how to stop loop.c, because the
+ * hoist is of a pseudo that integrate.c's parameter copy creates and the
+ * threshold cannot be reached.  It is how the ROM's source avoids HAVING a
+ * loop-invariant or at all -- which means one of its two operands is not
+ * invariant there.  The count is a constant difference and the control word is
+ * a literal, so the candidate worth testing next is that the ROM's loop does
+ * not carry a count at all: that the transferred length is derived from a value
+ * the loop already changes, and the apparent invariant is an artifact of our
+ * reconstruction.
  */
 #include "gba/types.h"
 #include "gba/io.h"

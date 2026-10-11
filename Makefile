@@ -5694,6 +5694,33 @@ asm/overlays/rom_79b154/ovl_30_c_a_a_c_a_c_c_c.o: src/overlays/rom_79b154/ovl_30
 	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
 	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+# CSE_CFLAGS, batch 335.  OvlFunc_947_200a384 -- a save-flag id read and then
+# cleared, the guard-then-clear shape this group exists for.  The reference
+# loads the same pool word twice for the two calls; gcc's second
+# common-subexpression pass hoists it into a callee-saved register and pays for
+# that with a prologue one register too wide (push {r5, r6, lr} against the
+# ROM's push {r5, lr}) plus two register copies.  At production flags the body
+# is 63 of 105 at an instruction count of 72 against 71; under the group it is
+# byte-identical.  There is no pin-free production-flag route -- the only one is
+# a register pin at each of the two sites, and the pin policy prefers the flag.
+asm/overlays/rom_7d0e88/ovl_1528_c_c_c_c_a_c_c.o: src/overlays/rom_7d0e88/ovl_1528_c_c_c_c_a_c_c.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
+
+# CSE_CFLAGS, batch 335.  OvlFunc_935_20089c0 -- a save-flag id tested and then
+# set, the test-then-set shape this group exists for.  Same mechanism as above,
+# and NO SOURCE SPELLING AVOIDS IT, measured: two distinct locals each assigned
+# the id immediately before its own call compile to the identical hoist, and
+# there is no cse-block boundary to hide behind because cse ends a block only at
+# a CODE_LABEL (cse.c:6572) and the jump between the two uses branches FORWARD.
+# At production flags the body is 11 aligned positions away with a stream two
+# entries long; under the group it is byte-identical.
+asm/overlays/rom_7bf5a8/ovl_2e0_c_c_a_c_c_c_a.o: src/overlays/rom_7bf5a8/ovl_2e0_c_c_a_c_c_c_a.c
+	$(GCC296_CC) $(CSE_CFLAGS) -S -o $(@:.o=.s) $<
+	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)
+	arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork -Iinclude -o $@ $(@:.o=.s)
 asm/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a%.o: src/overlays/rom_7ed0a0/ovl_30_c_c_c_a_a%.c
 	$(GCC296_CC) $(O1_CFLAGS) -S -o $(@:.o=.s) $<
 	printf '\n\t.text\n\t.align\t2, 0\n' >> $(@:.o=.s)

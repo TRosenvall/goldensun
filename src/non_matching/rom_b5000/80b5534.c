@@ -1,4 +1,4 @@
-/* Func_80b5534 -- 0x080b5534, from goldensun/asm/rom_b5000/rom_b5368_a.s.
+/* Func_80b5534 -- 0x080b5534, from goldensun/asm/rom_b5000/rom_b5368_a_a.s.
  *
  * NON-MATCHING: 169 encodings of 187 differ (objcmp).
  * The SIZE also differs -- 436 bytes against 428, 191 instructions against 187 --
@@ -73,7 +73,7 @@
  *
  * Verify with (run it inside the build container; /opt/gcc296 is not on the host):
  *   python3 tools/objcmp.py src/non_matching/rom_b5000/80b5534.c \
- *     asm/rom_b5000/rom_b5368_a.s --func Func_80b5534
+ *     asm/rom_b5000/rom_b5368_a_a.s --func Func_80b5534
  *
  * The .s holds FOUR functions (Debug_LoadPresetParty, Func_80b5534,
  * Debug_BattleTest, Func_80b5864) and NO data, so landing any one needs a split.

@@ -1,4 +1,4 @@
-/* Debug_BattleTest -- 0x080b56e0, from goldensun/asm/rom_b5000/rom_b5368_a.s.
+/* Debug_BattleTest -- 0x080b56e0, from goldensun/asm/rom_b5000/rom_b5368_a_a.s.
  *
  * NON-MATCHING: 141 encodings of 162 differ (objcmp).
  * The instruction COUNT is right (162 against 162) but the SIZE is not -- 392
@@ -71,7 +71,7 @@
  *
  * Verify with (run it inside the build container; /opt/gcc296 is not on the host):
  *   python3 tools/objcmp.py src/non_matching/rom_b5000/80b5368_Debug_BattleTest.c \
- *     asm/rom_b5000/rom_b5368_a.s --func Debug_BattleTest
+ *     asm/rom_b5000/rom_b5368_a_a.s --func Debug_BattleTest
  *
  * ======================= BATCH 335: WHERE THE LENGTH GAP IS =================
  *
