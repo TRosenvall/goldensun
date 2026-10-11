@@ -1,3 +1,22 @@
+/* BACKFILLED FIGURE (batch 337) -- NOT MATCHING, a SIZE mismatch: ref 1588 bytes against ours 252.
+ *
+ * This park carried NO PARSEABLE FIGURE AND NO RECIPE, so it was invisible to
+ * every targeting instrument in this tree: absent from the figure bands,
+ * NO CLAIM in parkcheck, unrankable in reports/frontier.md.  170 of 675 park
+ * files were in that state; 26 of them had a compilable body, which means a
+ * figure was one compile away.  tools/backfill.py found them and this is the
+ * measurement.
+ *
+ * objcmp stops at the size check, so there is no encoding figure yet; the body must reach the reference's LENGTH before a distance exists.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_15000/8022a7c.c \
+ *     asm/rom_15000/rom_22a7c.s --func Func_8022b44
+ *
+ * THE FIGURE IS EVIDENCE; ANY DIAGNOSIS BELOW IS A HYPOTHESIS.  Across pass two
+ * a park's stated blocker has been wrong roughly 40 times in 42.
+ */
 /* Func_8022a7c -- asm/rom_15000/rom_22a7c.s   (PARK, fresh target)
  *
  * AttachListNode (scroll arrow): take a display node with Func_8015e8c, give it

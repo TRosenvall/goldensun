@@ -1,3 +1,22 @@
+/* BACKFILLED FIGURE (batch 337) -- NOT MATCHING, a SIZE mismatch: ref 104 bytes against ours 196.
+ *
+ * This park carried NO PARSEABLE FIGURE AND NO RECIPE, so it was invisible to
+ * every targeting instrument in this tree: absent from the figure bands,
+ * NO CLAIM in parkcheck, unrankable in reports/frontier.md.  170 of 675 park
+ * files were in that state; 26 of them had a compilable body, which means a
+ * figure was one compile away.  tools/backfill.py found them and this is the
+ * measurement.
+ *
+ * objcmp stops at the size check, so there is no encoding figure yet; the body must reach the reference's LENGTH before a distance exists.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_c9000/80e7338.c \
+ *     asm/rom_c9000/rom_e7320_c_c.s --func Func_80e7338
+ *
+ * THE FIGURE IS EVIDENCE; ANY DIAGNOSIS BELOW IS A HYPOTHESIS.  Across pass two
+ * a park's stated blocker has been wrong roughly 40 times in 42.
+ */
 /* Func_80e7338 -- 0x080e7338, and its twin
  * Func_80e73a0 -- 0x080e73a0,
  * both in asm/rom_c9000/rom_e7320_c_c.s

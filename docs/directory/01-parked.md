@@ -1,6 +1,6 @@
 # Parked functions
 
-**675 park files**, 523 carrying a parseable figure, 144 bodyless (prose/triage/class parks), 122 with no live verify recipe.
+**675 park files**, 524 carrying a parseable figure, 144 bodyless (prose/triage/class parks), 114 with no live verify recipe.
 
 A figure is the park's own claim. `tools/parkcheck.py` is what verifies it.
 
@@ -10,7 +10,7 @@ A figure is the park's own claim. `tools/parkcheck.py` is what verifies it.
 |---|---|
 | 0 | 1 |
 | 1–2 | 11 |
-| 3–5 | 16 |
+| 3–5 | 17 |
 | 6–10 | 14 |
 | 11–20 | 53 |
 | 21–50 | 84 |
@@ -71,6 +71,7 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 5 |  | 179 | `OvlFunc_923_2009a3c` | overlays/ovl_1a3c.s | [src/non_matching/ovl_7aa430/2009a3c.c](../../src/non_matching/ovl_7aa430/2009a3c.c) |
 | 5 |  | 179 | `OvlFunc_924_200cfcc` | overlays/ovl_35b8.s | [src/non_matching/ovl_7ac2d8/200cfcc.c](../../src/non_matching/ovl_7ac2d8/200cfcc.c) |
 | 5 |  | 175 | `OvlFunc_970_2008da4` | overlays/ovl_30.s | [src/non_matching/ovl_7fa4ec/2008da4.c](../../src/non_matching/ovl_7fa4ec/2008da4.c) |
+| 5 |  | 7 | `free` | rom_c0/rom_2dd8.s | [src/non_matching/rom_c0/rom_2df0.c](../../src/non_matching/rom_c0/rom_2df0.c) |
 | 6 |  | 44 | `Func_800bfa4` | rom_9000/rom_be70.s | [src/non_matching/rom_9000/rom_bfa4.c](../../src/non_matching/rom_9000/rom_bfa4.c) |
 | 6 |  | 167 | `Func_80a8f40` | rom_a1000/rom_a8604.s | [src/non_matching/rom_a1000/80a8f40.c](../../src/non_matching/rom_a1000/80a8f40.c) |
 | 6 |  | 110 | `OvlFunc_927_200a1b0` | overlays/ovl_30.s | [src/non_matching/ovl_7b4558/200a1b0.c](../../src/non_matching/ovl_7b4558/200a1b0.c) |
@@ -546,7 +547,7 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 815 | 2 | 849 | `Func_8090a5c` | rom_8a000/rom_8d9a4.s | [src/non_matching/rom_8a000/Func_8090a5c.c](../../src/non_matching/rom_8a000/Func_8090a5c.c) |
 | 819 |  | 888 | `OvlFunc_881_2008c28` | overlays/ovl_30.s | [src/non_matching/ovl_77a7c8/2008c28.c](../../src/non_matching/ovl_77a7c8/2008c28.c) |
 | 824 |  | 915 | `BaseAnim_Heal` | rom_c9000/rom_d8948.s | [src/non_matching/rom_c9000/d89ac_Heal.c](../../src/non_matching/rom_c9000/d89ac_Heal.c) |
-| 834 |  | 927 | `CalcStats'` | rom_77000/rom_77320.s | [src/non_matching/rom_77000/CalcStats.c](../../src/non_matching/rom_77000/CalcStats.c) |
+| 834 |  | 927 | `CalcStats` | rom_77000/rom_77320.s | [src/non_matching/rom_77000/CalcStats.c](../../src/non_matching/rom_77000/CalcStats.c) |
 | 844 |  | 1007 | `BaseAnim_StatUp` | rom_c9000/rom_d9194.s | [src/non_matching/rom_c9000/d91dc_StatUp.c](../../src/non_matching/rom_c9000/d91dc_StatUp.c) |
 | 907 | 1 | 1071 | `OvlFunc_882_200b1ac` | overlays/ovl_30.s | [src/non_matching/ovl_77dd1c/200b1ac.c](../../src/non_matching/ovl_77dd1c/200b1ac.c) |
 | 918 |  | 971 | `OvlFunc_951_2008e5c` | overlays/ovl_30.s | [src/non_matching/ovl_7d6418/2008e5c.c](../../src/non_matching/ovl_7d6418/2008e5c.c) |
@@ -567,7 +568,7 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 1934 | 796 | 2364 | `OvlFunc_957_20093f8` | overlays/ovl_30.s | [src/non_matching/ovl_7e3e08/20093f8.c](../../src/non_matching/ovl_7e3e08/20093f8.c) |
 | 3080 |  | 3380 | `BaseAnim_SpecialAttack` | rom_c9000/rom_e47b8.s | [src/non_matching/rom_c9000/e47b8_SpecialAttack.c](../../src/non_matching/rom_c9000/e47b8_SpecialAttack.c) |
 
-## No parseable figure (152)
+## No parseable figure (151)
 
 Prose, triage and class parks, plus any whose claim phrasing `parkcheck` cannot read.
 
@@ -705,7 +706,6 @@ Prose, triage and class parks, plus any whose claim phrasing `parkcheck` cannot 
 | `?` | [src/non_matching/rom_c0/1b70_sin.c](../../src/non_matching/rom_c0/1b70_sin.c) |
 | `?` | [src/non_matching/rom_c0/2dd8.c](../../src/non_matching/rom_c0/2dd8.c) |
 | `?` | [src/non_matching/rom_c0/2df0.c](../../src/non_matching/rom_c0/2df0.c) |
-| `free` | [src/non_matching/rom_c0/rom_2df0.c](../../src/non_matching/rom_c0/rom_2df0.c) |
 | `?` | [src/non_matching/rom_c9000/80cd52c.c](../../src/non_matching/rom_c9000/80cd52c.c) |
 | `Func_80e7338` | [src/non_matching/rom_c9000/80e7338.c](../../src/non_matching/rom_c9000/80e7338.c) |
 | `Anim_Cybele` | [src/non_matching/rom_c9000/Anim_Cybele.c](../../src/non_matching/rom_c9000/Anim_Cybele.c) |

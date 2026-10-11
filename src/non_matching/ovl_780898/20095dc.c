@@ -1,3 +1,22 @@
+/* BACKFILLED FIGURE (batch 337) -- NOT MATCHING, a SIZE mismatch: ref 5240 bytes against ours 5200.
+ *
+ * This park carried NO PARSEABLE FIGURE AND NO RECIPE, so it was invisible to
+ * every targeting instrument in this tree: absent from the figure bands,
+ * NO CLAIM in parkcheck, unrankable in reports/frontier.md.  170 of 675 park
+ * files were in that state; 26 of them had a compilable body, which means a
+ * figure was one compile away.  tools/backfill.py found them and this is the
+ * measurement.
+ *
+ * objcmp stops at the size check, so there is no encoding figure yet; the body must reach the reference's LENGTH before a distance exists.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/ovl_780898/20095dc.c \
+ *     asm/overlays/rom_780898/ovl_30_c_c_c_a_a_a_c_c_c_c_c_c_a_a_a_a.s --func OvlFunc_883_20095dc
+ *
+ * THE FIGURE IS EVIDENCE; ANY DIAGNOSIS BELOW IS A HYPOTHESIS.  Across pass two
+ * a park's stated blocker has been wrong roughly 40 times in 42.
+ */
 /* OvlFunc_883_20095dc -- NON-MATCHING, 1885 of 2061
  *
  * Source asm: asm/overlays/rom_780898/ovl_30_c_c_c_a_a_a_c_c_c_c_c_c_a_a_a_a.s

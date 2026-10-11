@@ -1,3 +1,22 @@
+/* BACKFILLED FIGURE (batch 337) -- NOT MATCHING, 14 differing encodings of 195.
+ *
+ * This park carried NO PARSEABLE FIGURE AND NO RECIPE, so it was invisible to
+ * every targeting instrument in this tree: absent from the figure bands,
+ * NO CLAIM in parkcheck, unrankable in reports/frontier.md.  170 of 675 park
+ * files were in that state; 26 of them had a compilable body, which means a
+ * figure was one compile away.  tools/backfill.py found them and this is the
+ * measurement.
+ *
+ * ref 195 / ours 195 stream encodings; 172/172 16-bit instructions -- IN PHASE, so this is a true DISTANCE.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/808b674.c \
+ *     asm/rom_8a000/rom_8b674_a_a.s --func InitMapActors
+ *
+ * THE FIGURE IS EVIDENCE; ANY DIAGNOSIS BELOW IS A HYPOTHESIS.  Across pass two
+ * a park's stated blocker has been wrong roughly 40 times in 42.
+ */
 /* InitMapActors -- 0x0808b674.  PARKED at 14 of 195, relocations CLEAN.
  * ref: asm/rom_8a000/rom_8b674_a_a.s  (ONE function, no data section; whole-file
  *      conversion, no split -- tools/datacheck.py prints nothing)

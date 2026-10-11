@@ -1,3 +1,22 @@
+/* BACKFILLED FIGURE (batch 337) -- NOT MATCHING, 20 differing encodings of 76.
+ *
+ * This park carried NO PARSEABLE FIGURE AND NO RECIPE, so it was invisible to
+ * every targeting instrument in this tree: absent from the figure bands,
+ * NO CLAIM in parkcheck, unrankable in reports/frontier.md.  170 of 675 park
+ * files were in that state; 26 of them had a compilable body, which means a
+ * figure was one compile away.  tools/backfill.py found them and this is the
+ * measurement.
+ *
+ * ref 76 / ours 76 stream encodings; 70/70 16-bit instructions -- IN PHASE, so this is a true DISTANCE.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py src/non_matching/rom_f6000/80f6148.c \
+ *     asm/rom_f6000/rom_f6008_c_a_c.s --func Func_80f6148
+ *
+ * THE FIGURE IS EVIDENCE; ANY DIAGNOSIS BELOW IS A HYPOTHESIS.  Across pass two
+ * a park's stated blocker has been wrong roughly 40 times in 42.
+ */
 /* Func_80f6148 (0x080f6148) -- STILL PARKED at 20 of 76, BUT THE BLOCKER CLASS
  * WAS WRONG AND THE RESIDUE IS NOW A DIFFERENT, SMALLER, NAMED THING.
  *
