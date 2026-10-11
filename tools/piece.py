@@ -44,8 +44,17 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 START = re.compile(r"^\s*\.(?:thumb|arm)_func_start(?:_noalign)?\s+(\S+)", re.M)
-CLAIM = re.compile(r"(\d+)\s+(?:differing\s+)?encodings?\s+of\s+(\d+)", re.I)
-CLAIM2 = re.compile(r"(\d+)\s+of\s+(\d+)\s+encodings", re.I)
+# A park states its figure in several house styles, and the words BETWEEN the
+# count and "encodings" vary -- "10 differing STREAM encodings of 39", "2 of 59
+# encodings", "13 differing encodings of 707".  The first version of this tool
+# required `differing` to sit directly against `encodings`, so on a header
+# reading "10 differing STREAM encodings of 39" it missed the real figure and
+# matched a STALE one further down the file, reporting 18 where the park said
+# 10.  Allow a few intervening words, and keep the FIRST match: the brief
+# template requires a park's CURRENT figure to come first in its header.
+CLAIM = re.compile(
+    r"(\d+)\s+(?:differing\s+)?(?:[A-Za-z]+\s+){0,3}encodings?\s+of\s+(\d+)", re.I)
+CLAIM2 = re.compile(r"(\d+)\s+of\s+(\d+)\s+(?:[A-Za-z]+\s+){0,3}encodings", re.I)
 
 
 def park_index():

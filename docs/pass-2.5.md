@@ -7,9 +7,45 @@ see "Why it cannot run in parallel" below.
 ## Why it exists
 
 Pass 2 lands functions **one at a time**, which means cutting upstream's objects
-into pieces. The tree now holds **5,203 pieces** against upstream's **521 `.s`
-files** — a mean of **24.4 pieces per module**. That was the right call for
-landing and it is the wrong end state.
+into pieces. The tree now holds **5,231 pieces** against **313 modules** — a mean
+of **16.7 pieces per module**. That was the right call for landing and it is the
+wrong end state.
+
+> **THE "521" THIS PAGE USED TO CARRY WAS NOT A MEASUREMENT (corrected batch
+> 336).** It is the **`fakematch.txt` row count** from
+> `docs/web-session-286-289.md:19` ("fakematch.txt rows | 521 | 530"), picked up
+> as if it were an object count. Its own paragraph gave it away: 5,203 ÷ 521 is
+> **10.0**, not the 24.4 the same sentence claimed.
+>
+> Reconciled three ways, and the piece count was wrong too:
+>
+> | basis | count |
+> |---|---|
+> | pieces — `asm/*.s` | **5,231** |
+> | pieces — `asm/*.s` + landed `src/*.c` | 9,774 — **double-counts**, see below |
+> | modules — stem only, directory-independent | 219 (mean 23.9) |
+> | modules — **directory + stem** | **313** (mean 16.7) |
+> | upstream `.s` at the adopt commit `851f2086` | 3,302 |
+>
+> **The piece count is `asm/*.s` alone.** Converting a function deletes its
+> hand-written `.s` and the build writes a *generated* one to the same path
+> (see CLAUDE.md), so every landed `.c` already has an `.s` beside it and adding
+> the two double-counts every landing.
+>
+> **The module count is 313, not 219.** The stem-only figure reproduces this
+> page's original arithmetic exactly — 219 modules at mean 23.9, with `ovl_30`
+> at 2,479 pieces against the 2,476 recorded — which is how the author counted.
+> But it is wrong, because it treats `ovl_30` as **one** module across all
+> overlays. There are **96 `overlays/*/overlay.ld` scripts and each links only
+> its own objects** (verified: no overlay's `.ld` names another's directory), so
+> `asm/overlays/rom_7ced6c/ovl_30` and `asm/overlays/rom_7a8c8c/ovl_30` can
+> never be merged. Directory + stem is the only definition a merge can act on.
+>
+> Note also that the tree was **already split when adopted** — only **66 of
+> 3,302** upstream `.s` files at `851f2086` carried no split suffix — so
+> "upstream's objects" never meant one `.s` per original compilation unit, and
+> the true original module boundaries remain an inference from ROM layout rather
+> than something the linker scripts record.
 
 The split itself was free: a **pure subdivision**, zero crossings, ROM
 byte-identical. Its one cost was **1,543 local labels promoted to `.global`**.
@@ -29,7 +65,7 @@ Pass 2.5 reverses it, because a module is simultaneously:
 
 | item | scale |
 |---|---|
-| merge landed pieces back into module files | 5,203 → **521** |
+| merge landed pieces back into module files | 5,231 → **313** |
 | demote the promoted `.global` labels | **1,543** |
 | resolve artifact→function (the directory calls this "the first task of pass 3") | 785 files |
 | build the **pin-group** index — pass 3's real unit, not the file | 14,517 pins |
@@ -169,6 +205,65 @@ with two genuinely *different* bodies:
 Hoisting those 33 into headers carries **no codegen risk** when the body is
 unchanged -- a typedef is not a declaration of storage -- so it is a pure
 unblocking step, gateable before any symbol typing is decided.
+
+### A MERGE CANNOT FIX A FIGURE -- MEASURED, NOT INFERRED
+
+It is tempting to think a park fails because it is "not in the correct TU", and
+that merging it with its piece-mates would land it. **It would not.** Batch 336
+tested it on the closest available case -- `asm/rom_a1000/rom_ae88c_c_c_c.s`,
+wholly parked, members at **10 of 39** and **13 of 43**, the closest
+wholly-parked piece in the tree -- by writing both bodies into one TU and
+measuring:
+
+    XX Func_80ae99c    10 of 39 differ (ours 39), first at index 1
+    XX Func_80ae9f0    13 of 43 differ (ours 43), first at index 1
+
+**Identical to the separate figures.** Codegen in this compiler is decided per
+function; register allocation, scheduling and CSE all run inside a function
+body, so putting two function bodies in one file changes neither. This is the
+same result the nine-module sweep reports from the other direction -- four
+merges byte-neutral, and not one of the five failures a codegen difference.
+
+> **TU membership decides which piece SHIPS, never whether a function MATCHES.**
+> A piece converts whole or not at all, so a parked mate can block a *landing* --
+> and the fix for that is `split_s.py`, which cuts the matching member out. A
+> merge is the right tool for declaration hygiene, pass-4 naming and `.global`
+> demotion. It is never the tool for a figure.
+
+Consequence for targeting: there is **no backlog of "matching parks stuck in the
+wrong TU" to clear.** Measured this batch:
+
+- **0** parks claiming <= 3 share a piece with landed code -- because landing
+  splits the piece first, so a landing never leaves a near-matching mate behind;
+- **no** wholly-parked piece has every member at 0; the closest is the 10/13 pair
+  above, and 67 wholly-parked pieces have a claim on every member;
+- the one park at **0** (`Func_80b9554`) is blocked by the C language, not by
+  file layout -- see below.
+
+### THE SINGLE REAL "WRONG TU" CASE, AND IT IS A REWRITE NOT A MERGE
+
+`Func_80b9554` measures **0 of 81** and still cannot ship, because it is a gcc
+**nested function**: its static chain reaches its parent `Func_80b9724`'s frame
+slots, so it must be written *lexically inside* the parent. That is a change to
+the source form, which a merge does not perform.
+
+The work is already begun and already scoped, in
+`src/non_matching/rom_b5000/80b9604.c` -- a whole-TU candidate holding
+`Func_80b9724` with `Func_80b9554` **and** `Func_80b9604` nested inside it, for
+the last three of the four functions in
+`asm/rom_b5000/rom_b8228_c_a_c_c_a_c_a_c_c_c.s`. Its measured state:
+
+| function | state |
+|---|---|
+| `Func_80b9554` | **81 of 81 instructions, 0 differing — EXACT, nested** |
+| `Func_80b9604` | 129 against 131, 66 differing |
+| `Func_80b9724` | 183 against 181, 40 differing |
+
+So the merge is written and two of its three members are **not** matching yet.
+This is ordinary pass-2 work on the parent and one child, not a pass-2.5 item,
+and it needs `objcmp`'s absent mode for nested functions (they emit as the local
+symbols `Func_80b9554.0` and `Func_80b9604.1`, which `--func` cannot score --
+the park carries a hand-rolled `objdump`/`diff` recipe instead).
 
 ### Devices must not live in declarations
 

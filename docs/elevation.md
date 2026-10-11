@@ -34091,8 +34091,15 @@ upstream HEAD itself). It ships **521 `.s` files**, one per object, at
 
 So upstream genuinely models each `.s` as a separate object. `tools/split_s.py`
 then bisected those objects so single functions could be converted, and we now
-have **5,203 `.s` files**: a mean of **24.4 pieces per upstream module**, and
-`overlays/ovl_30.s` alone has become **2,476 pieces**.
+have **5,231 `.s` files**: a mean of **16.7 pieces per module across 313
+modules**, and the `ovl_30` stem alone accounts for **2,479 pieces**.
+
+> **Counted directory-independently this reads 219 modules at a mean of 23.9,
+> which is how it was originally written here — and that is wrong.** Each of the
+> 96 `overlays/*/overlay.ld` scripts links only its own objects, so the `ovl_30`
+> in one overlay can never merge with the `ovl_30` in another. Module =
+> **directory + stem**. See docs/pass-2.5.md for the full reconciliation,
+> including why the companion "521" figure was a `fakematch.txt` row count.
 
 ### Three reasons nothing is broken
 
@@ -35099,6 +35106,31 @@ current claim. Run it before writing any brief that mentions a piece:
 Tree-wide it reports **86 pieces holding two or more parked functions, 75 of
 them wholly parked** — a real targeting pool, because one candidate on a wholly
 parked piece can retire several parks at once.
+
+### A MERGE IS BYTE-NEUTRAL PER FUNCTION, SO IT CANNOT FIX A FIGURE
+
+Measured in batch 336 on the closest wholly-parked piece in the tree,
+`asm/rom_a1000/rom_ae88c_c_c_c.s`, whose two members read 10 of 39 and 13 of 43
+as separate parks. Written into **one TU** and re-measured:
+
+    XX Func_80ae99c    10 of 39 differ (ours 39), first at index 1
+    XX Func_80ae9f0    13 of 43 differ (ours 43), first at index 1
+
+Unchanged. Allocation, scheduling and CSE all run inside a function body, so two
+bodies in one file do not interact. (Reconciling one declaration was required to
+compile it at all -- the two parks declare `_Func_801eadc` as `void *` and
+`char *` -- which is the pass-2.5 clash class in miniature.)
+
+> **TU membership decides which piece SHIPS, never whether a function MATCHES.**
+> A parked mate can block a *landing*, and the fix for that is `split_s.py`,
+> which cuts the matching member out -- the direction batch 336 used five times.
+> Merging is for declaration hygiene, pass-4 naming and `.global` demotion.
+> **A park is never "failing because it is in the wrong TU."**
+
+Corollary worth having before anyone goes looking: there is no backlog of
+matching-but-misplaced parks. **Zero** parks claiming <= 3 share a piece with
+landed code, because landing splits the piece first and never leaves a
+near-matching mate behind.
 
 ### THE ONE REAL EXCEPTION: gcc NESTED FUNCTIONS
 

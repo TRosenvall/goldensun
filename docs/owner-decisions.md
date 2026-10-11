@@ -149,7 +149,8 @@ which case all three reads should be.
 ## Pass 2.5 is official, and it runs between passes 2 and 3 (2026-10-07)
 
 **Ruling.** The roadmap gains a **pass 2.5**: put the tree back together before
-depinning starts. It merges the 5,203 landed pieces back into upstream's 521
+depinning starts. It merges the 5,231 pieces back into the 313 modules (the 5,203/521 pair
+this line used to carry was wrong; see docs/pass-2.5.md)
 module files, demotes the 1,543 `.global` labels the splits promoted, resolves
 artifact→function, and builds the pin-group index pass 3 needs.
 
@@ -168,7 +169,7 @@ part of it is `.s`. So the ordering 2 → 2.5 → 3 → 4 is forced by the data,
 chosen.
 
 **What was measured before ruling.** The open question was whether merging is
-mechanical or a *third matching pass*, since merging 24 pieces across 521
+mechanical or a *third matching pass*, since merging ~17 pieces across 313
 modules would cost as much as pass 2 if each merge could break. First case:
 `ovl_d58_a.c` + `ovl_d58_b.c` compiled as one TU is **byte-identical to the two
 compiled separately**, 82 encodings. A mechanism predicts it — gcc-2.96's
