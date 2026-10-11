@@ -1,6 +1,6 @@
 # Parked functions
 
-**676 park files**, 524 carrying a parseable figure, 144 bodyless (prose/triage/class parks), 122 with no live verify recipe.
+**675 park files**, 523 carrying a parseable figure, 144 bodyless (prose/triage/class parks), 122 with no live verify recipe.
 
 A figure is the park's own claim. `tools/parkcheck.py` is what verifies it.
 
@@ -11,7 +11,7 @@ A figure is the park's own claim. `tools/parkcheck.py` is what verifies it.
 | 0 | 1 |
 | 1–2 | 11 |
 | 3–5 | 16 |
-| 6–10 | 15 |
+| 6–10 | 14 |
 | 11–20 | 53 |
 | 21–50 | 84 |
 | 51–100 | 73 |
@@ -73,7 +73,6 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 5 |  | 175 | `OvlFunc_970_2008da4` | overlays/ovl_30.s | [src/non_matching/ovl_7fa4ec/2008da4.c](../../src/non_matching/ovl_7fa4ec/2008da4.c) |
 | 6 |  | 44 | `Func_800bfa4` | rom_9000/rom_be70.s | [src/non_matching/rom_9000/rom_bfa4.c](../../src/non_matching/rom_9000/rom_bfa4.c) |
 | 6 |  | 167 | `Func_80a8f40` | rom_a1000/rom_a8604.s | [src/non_matching/rom_a1000/80a8f40.c](../../src/non_matching/rom_a1000/80a8f40.c) |
-| 6 |  | 37 | `Func_80c0130` | — | [src/non_matching/rom_b5000/80c0130.c](../../src/non_matching/rom_b5000/80c0130.c) |
 | 6 |  | 110 | `OvlFunc_927_200a1b0` | overlays/ovl_30.s | [src/non_matching/ovl_7b4558/200a1b0.c](../../src/non_matching/ovl_7b4558/200a1b0.c) |
 | 7 |  | 122 | `FieldMove_NoTarget` | rom_8a000/rom_944ec.s | [src/non_matching/rom_8a000/8096810.c](../../src/non_matching/rom_8a000/8096810.c) |
 | 7 |  | 88 | `Func_807a0f4` | rom_77000/rom_79460.s | [src/non_matching/rom_77000/807a0f4.c](../../src/non_matching/rom_77000/807a0f4.c) |

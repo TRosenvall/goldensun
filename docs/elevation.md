@@ -35027,6 +35027,33 @@ want stopped — and then pick the spelling for *that* pass:
 > Use an `__asm__` form only when you need a reach the anchor lacks — the `cse`
 > flush or the `combine` fence, which need an `ASM_OPERANDS` pattern.
 
+### The anchor substitutes INSIDE A SHARED HEADER too, which retired an escalation
+
+Batch 337 brief B reached `Func_80c0130`'s 0 of 37 with two bare barriers, one of
+them inside a new `include/dma.h` inline helper, and escalated that as an owner
+decision — correctly, because a scheduling device in a shared header is
+inherited by every future caller and this tree had no precedent for one.
+
+The substitution was then measured in all four combinations, and **every one
+matches** at 84 bytes, 37 encodings and 1 relocation:
+
+| header | call site | result |
+|---|---|---|
+| barrier | barrier | OK |
+| anchor | barrier | OK |
+| barrier | anchor | OK |
+| **anchor** | **anchor** | **OK** |
+
+So the function landed with **no device anywhere** — `shimcount` prints no rows
+on the landed file, where the inlined control had printed `empty asm : 2` — and
+`include/dma.h` gained a helper that carries none. The escalation was withdrawn
+rather than ruled on.
+
+> **When a hold is about a DEVICE, test a device-free construct before asking for
+> a ruling.** A precedent for devices in shared headers was nearly set for a
+> function that did not need one. This is the cheapest check in the escalation
+> path and it costs one compile per position.
+
 The operand-carrying forms that reach 0 on brief A's function are recorded as
 **devices rather than shipped**; that landing came from deleting the carrier
 instead (below).

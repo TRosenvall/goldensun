@@ -1,10 +1,12 @@
 # Batch 337
 
-Five briefs, 20 targets, **6 landings** installed and **1 held** on an owner
-call. **682 → 676 park files**; census ROM functions landed 4,949 → **4,955**.
+Five briefs, 20 targets, **7 landings** — six from the briefs, and the seventh
+finished after the batch when the hold on it turned out to be unnecessary.
+**682 → 675 park files**; census ROM functions landed 4,949 → **4,956**.
 
-Landings: `Func_801fd34` and `HeightTile_A` (A), `Func_8006240` (B),
-`OvlFunc_922_2008ed8` (C), `OvlFunc_932_20086a0` and `OvlFunc_common1_588` (D).
+Landings: `Func_801fd34` and `HeightTile_A` (A), `Func_8006240` and
+`Func_80c0130` (B), `OvlFunc_922_2008ed8` (C), `OvlFunc_932_20086a0` and
+`OvlFunc_common1_588` (D).
 Brief E held all four with several rungs closed.
 
 Targets were drawn from the 49 parks claiming ≤10, **every one re-verified by
@@ -121,11 +123,30 @@ Ladder: neither barrier **6**, call-site only **5**, header only **3**, both
 **0** — so no route to 0 avoids it. Parked at 6 device-free, candidate kept,
 finding preserved in the park header, booked in `docs/owner-decisions.md`.
 
-> **Possible dissolution, worth measuring before ruling.** Brief A's anchor
-> finding landed *after* brief B had finished. If a `do { } while (0)` anchor
-> substitutes for the header barrier, the shared header carries no device and
-> this question goes away entirely. Not yet tried — it is the first thing to
-> measure.
+> **RESOLVED — the question was withdrawn, not ruled on.** Brief A's anchor
+> finding landed *after* brief B had finished, so nobody had tried substituting
+> it. Measured in all four combinations, and **every one matches** at 84 bytes,
+> 37 encodings and 1 relocation:
+>
+> | header | call site | result |
+> |---|---|---|
+> | barrier | barrier | OK |
+> | anchor | barrier | OK |
+> | barrier | anchor | OK |
+> | **anchor** | **anchor** | **OK** |
+>
+> `Func_80c0130` is **landed** at `src/rom_b5000/rom_bffb8_a_a_a_c_b.c` with
+> **no device anywhere**: `shimcount` prints no rows on it, where the inlined
+> control printed `empty asm : 2`. `include/dma.h` gained `DMA0_SET_OFS`
+> carrying an anchor rather than a barrier, so no caller inherits a device, and
+> no `fakematch.txt` row was needed. The helper's four register pins live in the
+> header as its house pattern for `stmia r3!, {r0, r1, r2}`, exactly as
+> `DMA0_SET` has them.
+>
+> **The general lesson is worth more than the function: when a hold is about a
+> DEVICE, test a device-free construct before asking for a ruling.** A precedent
+> for devices in shared headers was nearly set for a function that did not need
+> one.
 
 ## Data quality: park headers are putting the stream count on the instruction line
 

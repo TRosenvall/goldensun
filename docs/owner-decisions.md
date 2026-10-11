@@ -100,6 +100,44 @@ which case all three reads should be.
 
 ---
 
+### 5. A scheduling device in a SHARED HEADER — QUESTION WITHDRAWN, NOT RULED
+
+**Asked (batch 337 brief B):** may `include/dma.h`'s new `DMA0_SET_OFS` helper
+carry a bare `__asm__ volatile ("")`? It took `Func_80c0130` from 6 of 37 to 0,
+and the ladder left no route to 0 without it: neither barrier 6, call site only
+5, header only 3, both 0. The concern was real and new — every future caller of
+that helper would inherit a scheduling device in a shared header.
+
+**Withdrawn, because the device turned out to be unnecessary.** Brief A, later in
+the same batch, established that for a purely *scheduling* residue a
+`do { } while (0)` anchor has the same reach, is stronger in the compiler
+(`haifa-sched.c:3744-3757` depends on every register's last uses, sets and
+clobbers, then calls `flush_pending_lists`, so it orders memory too), emits
+nothing, and is **not counted by `shimcount`**. Substituting it was then measured
+in all four combinations:
+
+| header | call site | result |
+|---|---|---|
+| barrier | barrier | 84 bytes, 37 encodings, 1 relocation — OK |
+| **anchor** | barrier | OK |
+| barrier | **anchor** | OK |
+| **anchor** | **anchor** | **OK** |
+
+So the anchor substitutes in both positions. `Func_80c0130` is **landed** at
+`src/rom_b5000/rom_bffb8_a_a_a_c_b.c`, `include/dma.h` carries **no** device, the
+landed file carries none either (`shimcount` prints no rows — 0 pins, 0 devices;
+the helper's four register pins live in the header as its house pattern for
+`stmia r3!, {r0, r1, r2}`, exactly as `DMA0_SET` has them), and no
+`fakematch.txt` row was needed.
+
+> **THE GENERAL LESSON, worth more than the function: when a hold is about a
+> DEVICE, check whether a device-free construct reaches the same place before
+> asking for a ruling.** This question consumed an escalation and would have set
+> a precedent for devices in shared headers. The answer was that the device was
+> never required.
+
+---
+
 ## Still open, carried from earlier batches
 
 - **Promote `DMA3_COPY_RW` to `include/dma.h`** — a naming/placement call.
@@ -132,29 +170,6 @@ which case all three reads should be.
   declares buffers it stopped using, and a 32-byte local is the kind of thing
   the original source plausibly had. The question is whether *our* reason for
   writing it — frame slack, to match — makes it one.
-
-- **A scheduling device inside a SHARED HEADER's inline helper** — new class,
-  raised by batch 337 brief B. `Func_80c0130` reaches **0 of 37** (from 6) with
-  `DMA0_SET_OFS` promoted into `include/dma.h` carrying a bare
-  `__asm__ volatile ("")`. Two separable halves:
-  - *the helper promotion* has **precedent** — `DMA3_CLEAR_OFS` (`dma.h:42-55`),
-    `DMA3_FILL_OFS` (`:172`) and `DMA3_SET_RW` (`:82`) were each promoted in
-    batch 323 for a single function, and the four register pins are that
-    header's house pattern for `stmia r3!, {r0, r1, r2}`, not matching shims;
-  - *the barrier in the header* is **new**: every future caller of
-    `DMA0_SET_OFS` would inherit a scheduling device.
-
-  Ladder, measured: neither barrier 6, call-site only 5, header only 3, both 0 —
-  so no route to 0 avoids the header barrier. Parked at 6 device-free pending
-  the ruling; the candidate is kept and the park header carries the full finding.
-
-  **Possible dissolution, worth measuring before ruling.** Batch 337 brief A
-  established (same batch, after B had finished) that for a purely *scheduling*
-  residue a `do { } while (0)` anchor has the same reach as a bare barrier,
-  emits nothing, flushes memory too (`haifa-sched.c:3744-3757`), and is **not
-  counted by `shimcount`**. If an anchor substitutes for the header barrier, the
-  shared header carries no device and this question goes away. That substitution
-  has not been tried.
 
 ## Standing standards these decisions rest on
 

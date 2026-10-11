@@ -258,6 +258,61 @@ static inline void DMA0_SET(const void *src, void *dst, u32 cnt) {
     );
 }
 
+/* DMA0_SET_OFS -- DMA0_SET that takes the source OFFSET as its own argument.
+ *
+ * Same lever and same reason as DMA3_CLEAR_OFS and DMA3_FILL_OFS above: the
+ * point is WHERE the `base + off` add happens.  With DMA0_SET the caller
+ * computes the address, so the add is evaluated with the call's arguments --
+ * before the inline body is spliced in -- and lands at a lower INSN_LUID than
+ * the body's operand setups.  Taking the offset as an argument moves the add
+ * INSIDE the body.
+ *
+ * ON ITS OWN THAT IS INERT HERE, which is the part worth recording: all 24
+ * declaration permutations read the same figure, because sched2's class rung
+ * (haifa-sched.c:4069-4094) sits ABOVE INSN_LUID.  What closes it is the
+ * ANCHOR below, which splits the window so the add is scheduled in a region of
+ * its own, after `_base` and `_cnt` -- the ROM's order at Func_80c0130.
+ *
+ * THE ANCHOR IS `do { } while (0)` AND NOT A BARRIER, DELIBERATELY.  Batch 337
+ * brief B reached this with a bare `__asm__ volatile ("")` here, which would
+ * have made every future caller of this helper inherit a scheduling DEVICE in a
+ * shared header -- a new class, and it was escalated as an owner decision.
+ * Brief A then established that for a purely scheduling residue the anchor has
+ * the same reach, is STRONGER in the compiler (haifa-sched.c:3744-3757 depends
+ * on every register's last uses, sets and clobbers and then calls
+ * flush_pending_lists, so it orders memory too), emits nothing, and is NOT
+ * counted by shimcount.  Measured: barrier/barrier, anchor/barrier,
+ * barrier/anchor and anchor/anchor ALL give 84 bytes, 37 encodings and 1
+ * relocation identical -- so the anchor substitutes in both positions and this
+ * header carries no device.  The owner decision dissolved rather than being
+ * ruled on.
+ *
+ * Promoted in batch 337 for Func_80c0130 (6 of 37 -> 0).  docs/elevation.md
+ * forbids landing with a file-local DMA helper, which is why this is a
+ * prerequisite rather than a tidy-up.
+ *
+ * NOT a fakematch: the four register pins are this file's house pattern --
+ * `stmia r3!, {r0, r1, r2}` requires those exact registers, exactly as
+ * DMA0_SET above does -- and none of this file's landed users carries a
+ * fakematch row.
+ */
+static inline void DMA0_SET_OFS(void *base, unsigned off, void *dst, u32 cnt) {
+    register vu32 *_base __asm__("r3") = &REG_DMA0SAD;
+    register void *_dst  __asm__("r1") = dst;
+    register u32 _cnt  __asm__("r2") = cnt;
+    register const void *_src  __asm__("r0");
+    do { } while (0);           /* LOAD-BEARING -- see above */
+    _src = (char *)base + off;
+    __asm__ volatile (
+        "stmia	r3!, {r0, r1, r2}
+	"
+        "sub	r3, #0xc"
+        :
+        : "r" (_base), "r" (_src), "r" (_dst), "r" (_cnt)
+        : "memory"
+    );
+}
+
 // prelude on some functions
 
 static inline u16 UnknownDMAPrefix(void) {

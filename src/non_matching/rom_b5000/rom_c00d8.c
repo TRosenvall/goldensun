@@ -12,12 +12,12 @@
  *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
  *     goldensun-build python3 tools/objcmp.py \
  *     src/non_matching/rom_b5000/rom_c00d8.c \
- *     asm/rom_b5000/rom_bffb8_a_a_a_c.s --func Func_80c00d8
+ *     asm/rom_b5000/rom_bffb8_a_a_a_c_a.s --func Func_80c00d8
  *
  * This recipe was ADDED by the batch-319 backfill: the park had none, so
  * parkcheck.py could not report its figure and nothing had ever checked it.
  *
- * Source asm: goldensun/asm/rom_b5000/rom_bffb8_a_a_a_c.s
+ * Source asm: goldensun/asm/rom_b5000/rom_bffb8_a_a_a_c_a.s
  *
  * NOT SPLIT. The .s still holds its remaining functions and the linker script
  * is untouched.
@@ -125,7 +125,7 @@
  * The `_call_via_r5` against `_call_via_r6` rows ARE real: they are defect 2's
  * register allocation showing through, and they go when the allocation does.
  *
- * PIECE: `asm/rom_b5000/rom_bffb8_a_a_a_c.s` also holds Func_80c0130, and THAT
+ * PIECE: `asm/rom_b5000/rom_bffb8_a_a_a_c_a.s` also holds Func_80c0130, and THAT
  * FUNCTION IS ALSO PARKED (src/non_matching/rom_b5000/80c0130.c).  One .c is
  * one TU, so neither converts alone -- a landing here must carry both.
  * ---------------------------------------------------------------------------
@@ -184,7 +184,7 @@
  * REFERENCE IS LONGER, by one, so we are MISSING one -- the batch-333 reading.
  *
  * THE PIECE ARITHMETIC IS NOW MEASURED RATHER THAN ARGUED.  Both members of
- * asm/rom_b5000/rom_bffb8_a_a_a_c.s were put in ONE translation unit, this
+ * asm/rom_b5000/rom_bffb8_a_a_a_c_a.s were put in ONE translation unit, this
  * function first in the reference's order, and checked whole: this function
  * reads thirty-three of thirty-seven and Func_80c0130 reads six of thirty-seven,
  * EXACTLY their separate figures with the same first indices.  So the piece
