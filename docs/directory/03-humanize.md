@@ -1,6 +1,6 @@
 # Pass 4 — humanizing
 
-**4,303 landed functions are still named `Func_<addr>`** against 768 with a real name, across **4,480 split-named files** of 4,541 landed.
+**4,305 landed functions are still named `Func_<addr>`** against 768 with a real name, across **4,482 split-named files** of 4,543 landed.
 
 See `docs/humanization.md` for the method and the artifact taxonomy. Two
 structural facts bound this work:
@@ -24,15 +24,15 @@ structural facts bound this work:
 | rom_b5000 | 151 |
 | rom_a1000 | 147 |
 | rom_c0 | 75 |
+| rom_9000 | 59 |
 | rom_b0000 | 59 |
-| rom_9000 | 58 |
 | rom_77000 | 53 |
 | rom_c9000 | 31 |
 | rom_f2000 | 11 |
 | rom_f6000 | 8 |
 | rom_f9000 | 6 |
+| rom_f0000 | 5 |
 | rom_f4000 | 5 |
-| rom_f0000 | 4 |
 | lib | 1 |
 
 <details><summary>Full list</summary>
@@ -162,6 +162,7 @@ structural facts bound this work:
 | `Func_8011ce0` | [src/rom_9000/rom_11ce0_a_b.c](../../src/rom_9000/rom_11ce0_a_b.c) |
 | `Func_8011f3c` | [src/rom_9000/rom_11ce0_b.c](../../src/rom_9000/rom_11ce0_b.c) |
 | `Func_8011f48` | [src/rom_9000/rom_11ce0_b.c](../../src/rom_9000/rom_11ce0_b.c) |
+| `Func_8011fd8` | [src/rom_9000/rom_11ce0_c_a_a_b.c](../../src/rom_9000/rom_11ce0_c_a_a_b.c) |
 | `Func_8012038` | [src/rom_9000/rom_11ce0_c_a_b.c](../../src/rom_9000/rom_11ce0_c_a_b.c) |
 | `Func_8012078` | [src/rom_9000/rom_11ce0_c_a_b.c](../../src/rom_9000/rom_11ce0_c_a_b.c) |
 | `Func_80120b4` | [src/rom_9000/rom_11ce0_c_b.c](../../src/rom_9000/rom_11ce0_c_b.c) |
@@ -1089,6 +1090,7 @@ structural facts bound this work:
 | `Func_80e6d3c` | [src/rom_c9000/rom_e6638_a_c_b.c](../../src/rom_c9000/rom_e6638_a_c_b.c) |
 | `Func_80e727c` | [src/rom_c9000/rom_e6638_a_c_c_b.c](../../src/rom_c9000/rom_e6638_a_c_c_b.c) |
 | `Func_80e72e0` | [src/rom_c9000/rom_e6638_b.c](../../src/rom_c9000/rom_e6638_b.c) |
+| `Func_80f0254` | [src/rom_f0000/rom_f0254_a_a_b.c](../../src/rom_f0000/rom_f0254_a_a_b.c) |
 | `Func_80f037c` | [src/rom_f0000/rom_f0254_a_b.c](../../src/rom_f0000/rom_f0254_a_b.c) |
 | `Func_80f03c0` | [src/rom_f0000/rom_f0254_b.c](../../src/rom_f0000/rom_f0254_b.c) |
 | `Func_80f0538` | [src/rom_f0000/rom_f0254_c_b.c](../../src/rom_f0000/rom_f0254_c_b.c) |

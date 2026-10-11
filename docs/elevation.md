@@ -35154,3 +35154,42 @@ pooled symbol*, which is both false and perfectly plausible-looking.
 Batch 336 brief F hit the same class a third way: an escaping frame address has
 **three** encodings (`add rX,sp`, `mov rX,sp`, `adds rX,rY,sp`), and matching
 only the first produced a false precedent and swung a hit list from 9 to 233.
+
+## SHIFT THE PARAMETER IN PLACE — A PARAMETER'S PSEUDO IS NOT A FRESH VARIABLE'S
+
+Batch 336 brief G took `Func_8011f54` from **59 to 33 of 60 on one line**, and the
+line is a one-token change that two parks had already screened and correctly
+measured as inert:
+
+    x = fx >> 16;        /* tried, inert */
+    x = fx; x >>= 16;    /* tried, inert */
+    fx >>= 16;           /* THIS -- 59 -> 33 */
+
+The first two both introduce a **fresh** variable, whose pseudo is a copy and
+gets propagated away. The third modifies the **parameter's own** pseudo, which
+still carries the save that `assign_parms` emitted in the prologue — so the shift
+attaches to that value rather than to a copy of it, and the dependence structure
+around it differs.
+
+> **A parameter is not just a local that happens to be initialised.** Its pseudo
+> has a prologue store behind it, and `>>=` on the parameter is a different RTL
+> shape from the same arithmetic through a new name — even when the two are
+> indistinguishable in C.
+
+This is worth trying wherever a park's residue is near a parameter's first use,
+and it is cheap. Note the shape of the error it corrects: the two parks had
+varied **where** the shift happened and **what it was assigned to**, and never
+varied **whose pseudo it modified**. Another instance of *when a park's negatives
+all vary one dimension, the answer is usually in a dimension nobody varied.*
+
+### `objcmp --func NAME` is wrong on a multi-function candidate
+
+Brief C hit this and it cost it nine good variants: `--func` compares the
+**whole object** against the one named reference function, so on a candidate `.c`
+holding two functions it reported **124 differing of 87** for bodies that were
+actually fine.
+
+> **Use `--whole` for any candidate that holds more than one function**, and
+> `--func` only to attribute a difference once `--whole` has told you there is
+> one. The figure `--func` prints on a merged TU is not a figure about that
+> function.

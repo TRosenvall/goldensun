@@ -1,6 +1,6 @@
 # Parked functions
 
-**684 park files**, 532 carrying a parseable figure, 144 bodyless (prose/triage/class parks), 122 with no live verify recipe.
+**682 park files**, 530 carrying a parseable figure, 144 bodyless (prose/triage/class parks), 124 with no live verify recipe.
 
 A figure is the park's own claim. `tools/parkcheck.py` is what verifies it.
 
@@ -9,11 +9,11 @@ A figure is the park's own claim. `tools/parkcheck.py` is what verifies it.
 | differing encodings | parks |
 |---|---|
 | 0 | 1 |
-| 1–2 | 13 |
-| 3–5 | 15 |
+| 1–2 | 12 |
+| 3–5 | 16 |
 | 6–10 | 20 |
-| 11–20 | 54 |
-| 21–50 | 85 |
+| 11–20 | 53 |
+| 21–50 | 84 |
 | 51–100 | 73 |
 | 101–300 | 162 |
 | 301+ | 109 |
@@ -48,7 +48,6 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 2 |  | 44 | `Func_80175c0` | rom_15000/rom_15e8c.s | [src/non_matching/rom_15000/rom_175c0.c](../../src/non_matching/rom_15000/rom_175c0.c) |
 | 2 |  | 319 | `Func_80a96d8` | rom_a1000/rom_a8604.s | [src/non_matching/rom_a1000/80a96d8.c](../../src/non_matching/rom_a1000/80a96d8.c) |
 | 2 |  | 59 | `Func_80b6a60` | rom_b5000/rom_b5a0c.s | [src/non_matching/rom_b5000/80b6a60.c](../../src/non_matching/rom_b5000/80b6a60.c) |
-| 2 |  | 39 | `Func_80f0254` | rom_f0000/rom_f0254.s | [src/non_matching/rom_f0000/80f0254.c](../../src/non_matching/rom_f0000/80f0254.c) |
 | 2 |  | 29 | `Func_80f3858` | rom_f2000/rom_f2028.s | [src/non_matching/rom_f2000/80f3858.c](../../src/non_matching/rom_f2000/80f3858.c) |
 | 2 |  | 36 | `HeightTile_A` | rom_9000/rom_11ce0.s | [src/non_matching/rom_9000/8011e88.c](../../src/non_matching/rom_9000/8011e88.c) |
 | 2 |  | 46 | `OvlFunc_888_200a6f0` | overlays/ovl_30.s | [src/non_matching/ovl_7892c8/200a6f0.c](../../src/non_matching/ovl_7892c8/200a6f0.c) |
@@ -60,6 +59,7 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 3 |  | 130 | `Func_8006240` | rom_c0/rom_5cf8.s | [src/non_matching/rom_c0/8006240.c](../../src/non_matching/rom_c0/8006240.c) |
 | 3 |  | 69 | `Func_801c34c` | rom_15000/rom_1aeec.s | [src/non_matching/rom_15000/801c34c.c](../../src/non_matching/rom_15000/801c34c.c) |
 | 3 |  | 48 | `Func_80b2ed8` | rom_b0000/rom_b0070.s | [src/non_matching/rom_b0000/80b2ed8.c](../../src/non_matching/rom_b0000/80b2ed8.c) |
+| 3 |  | 87 | `LoadGS1CreditsBG` | rom_f0000/rom_f0254.s | [src/non_matching/rom_f0000/LoadGS1CreditsBG.c](../../src/non_matching/rom_f0000/LoadGS1CreditsBG.c) |
 | 3 |  | 85 | `OvlFunc_896_200c260` | overlays/ovl_314.s | [src/non_matching/ovl_78ef88/200c260.c](../../src/non_matching/ovl_78ef88/200c260.c) |
 | 3 |  | 38 | `OvlFunc_927_2009818` | overlays/ovl_30.s | [src/non_matching/ovl_7b4558/2009818.c](../../src/non_matching/ovl_7b4558/2009818.c) |
 | 4 |  | 25 | `Func_80a7440` | rom_a1000/rom_a7380.s | [src/non_matching/rom_a1000/80a7440.c](../../src/non_matching/rom_a1000/80a7440.c) |
@@ -115,7 +115,6 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 14 |  | 47 | `Func_80a40ac` | rom_a1000/rom_a1814.s | [src/non_matching/rom_a1000/80a40ac.c](../../src/non_matching/rom_a1000/80a40ac.c) |
 | 14 |  | 102 | `Func_80a6794` | rom_a1000/rom_a5534.s | [src/non_matching/rom_a1000/80a6794.c](../../src/non_matching/rom_a1000/80a6794.c) |
 | 14 |  | 59 | `Func_80b0070` | rom_b0000/rom_b0070.s | [src/non_matching/rom_b0000/80b0070.c](../../src/non_matching/rom_b0000/80b0070.c) |
-| 14 |  | 87 | `LoadGS1CreditsBG` | rom_f0000/rom_f0254.s | [src/non_matching/rom_f0000/LoadGS1CreditsBG.c](../../src/non_matching/rom_f0000/LoadGS1CreditsBG.c) |
 | 14 |  | 53 | `OvlFunc_897_200ac1c` | overlays/ovl_30.s | [src/non_matching/ovl_791794/200ac1c.c](../../src/non_matching/ovl_791794/200ac1c.c) |
 | 14 |  | 367 | `OvlFunc_954_2008a3c` | overlays/ovl_30.s | [src/non_matching/ovl_7db0c8/2008a3c.c](../../src/non_matching/ovl_7db0c8/2008a3c.c) |
 | 14 |  | 71 | `OvlFunc_971_20087b0` | overlays/ovl_30.s | [src/non_matching/ovl_7fb4a8/20087b0.c](../../src/non_matching/ovl_7fb4a8/20087b0.c) |
@@ -174,7 +173,6 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 29 |  | 48 | `OvlFunc_959_200a69c` | overlays/ovl_9dc.s | [src/non_matching/ovl_7e7574/200a69c.c](../../src/non_matching/ovl_7e7574/200a69c.c) |
 | 29 | 11 | 270 | `OvlFunc_952_200c0b4` | overlays/ovl_30.s | [src/non_matching/ovl_7d768c/200c0b4.c](../../src/non_matching/ovl_7d768c/200c0b4.c) |
 | 30 |  | 140 | `DisplayMenuArrowCursor2` | rom_15000/rom_1aeec.s | [src/non_matching/rom_15000/DisplayMenuArrowCursor2.c](../../src/non_matching/rom_15000/DisplayMenuArrowCursor2.c) |
-| 30 |  | 45 | `Func_8011fd8` | rom_9000/rom_11ce0.s | [src/non_matching/rom_9000/8011fd8.c](../../src/non_matching/rom_9000/8011fd8.c) |
 | 30 |  | 74 | `Func_80165d8` | rom_15000/rom_15e8c.s | [src/non_matching/rom_15000/80165d8.c](../../src/non_matching/rom_15000/80165d8.c) |
 | 30 |  | 32 | `Func_80bd3e4` | rom_b5000/rom_bbb0c.s | [src/non_matching/rom_b5000/80bd3e4.c](../../src/non_matching/rom_b5000/80bd3e4.c) |
 | 30 |  | 61 | `Func_80c0f98` | rom_b5000/rom_bffb8.s | [src/non_matching/rom_b5000/80c0f98.c](../../src/non_matching/rom_b5000/80c0f98.c) |
