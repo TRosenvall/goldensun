@@ -1,3 +1,48 @@
+/* ===== CARRIED FORWARD from the retired duplicate park 80e3a3c.c =====
+ * That file was a 30-line HEADER-ONLY park for this same function, naming the
+ * pre-split asm/rom_c9000/rom_e3958_c_c_c_c.s and a scratch/Nattack_best.c
+ * that no longer exist.  It is retired to toDelete/ as of batch 336; this one
+ * note is the only thing in it the live park did not already carry.
+ *
+ * THIS PARK'S COIN FLIP IS NOT THE SAME COIN FLIP AS THE OTHER FOUR.  The
+ * register coin flip parked on ovl_7ced6c/2009c84.c, .../200a16c.c,
+ * .../20096a8.c and ovl_7d0e88/2008f58.c is about CALLEE-SAVED registers --
+ * which long-lived value earns r5 rather than r6.  This one is entirely in the
+ * SCRATCH set: after the third galloc call every one of r0-r3 is free, and gcc
+ * simply takes r2 where the ROM took r3.  No push differs, no value is
+ * spilled, and nothing about live ranges is in play.  Whether the two share a
+ * cause in `find_reg` is NOT established -- recorded separately so nobody
+ * assumes it and fixes four parks with one lever that cannot reach this one.
+ *
+ * Three screened and inert at 5 (from that file, not re-verified here): the
+ * subtraction given its own named local; the field read twice instead of held
+ * in a local; and `(unsigned)(k - 0x64) > 0x23` with the arms swapped, which
+ * is WORSE at 16 because it reorders the branches too.
+ */
+/* ===== BATCH 336 (brief E) -- 5 OF 39 STREAM ENCODINGS.  BODY UNCHANGED. =====
+ * RE-MEASURED, not inherited: `XX ENCODINGS differ in 5 place(s) (ref 39, ours
+ * 39) ... instructions are 27/27`, first differing index 12, ref 682b against
+ * ours 682a.  Stream lengths and instruction counts both exact, so the 5 IS a
+ * distance.  PIN-FREE: tools/shimcount.py prints the filename and nothing else.
+ * NOT RE-SWEPT -- the brief forbade it and the batch-330 ladder below is
+ * closed-form.  The 0 stays a pass-3 depin item.
+ *
+ * ONE CORRECTION TO THE PIECE NOTE BELOW, which is otherwise exactly right.
+ * It says "none of the three converts whole", and that is true, but the batch
+ * brief turned it into "neither ships alone", which is FALSE.  tools/split_s.py
+ * cuts before/target/after, so ANY member can be cut out alone; my own
+ * --dry-run on this .s:
+ *     target Anim_Attack      -> _a_b.s (Anim_Attack ALONE, 46 lines)
+ *                              + _a_c.s (2 funcs, 1434 lines)
+ *     target Anim_CriticalHit -> _a_a.s (2 funcs, 757 lines)
+ *                              + _a_b.s (Anim_CriticalHit ALONE, 723 lines)
+ * So the "land all three in the same sitting" advice below is a CONVENIENCE,
+ * not a constraint -- and since BaseAnim_Attack is at 653 of 688 with size and
+ * count both inexact, waiting for it would park the other two indefinitely.
+ * Whichever reaches 0 first should be cut out on its own.
+ * -- scratch_elev/b336/E
+ * =============================================================================
+ */
 /* ===================== BATCH 327 (brief A) ADDENDUM -- READ FIRST =====================
  * Anim_Attack -- STILL NON-MATCHING, 5 differing encodings of 39.  BODY
  * UNCHANGED.  The pin ladder below is closed-form and the 0 is a pass-3 item

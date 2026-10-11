@@ -1,3 +1,92 @@
+/* ========== BATCH 336 (brief E) -- 10 OF 707.  BODY CHANGED.  READ FIRST ======
+ * Anim_CriticalHit -- NON-MATCHING, **10 differing encodings of 707** (STREAM
+ * length; previously thirteen).  ref 707 / ours 707 and 1612 bytes both sides,
+ * no SIZE line and no RELOCATIONS line, instructions 607/607 -- so the 10 IS a
+ * true distance.  First differing index 79: ref 920e, ours 33bc.
+ * PIN-FREE in the fakematch sense: tools/shimcount.py reports
+ * `empty asm : 1  (NOT treated as a fakematch in this tree)`, the same standing
+ * as the four barriers in the LANDED src/rom_c0/rom_5cf8_a_a_c_a_c.c, which
+ * carries no fakematch row.  DEVICE-FREE, no flag group.
+ *
+ * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_c9000/Anim_CriticalHit.c asm/rom_c9000/rom_e3958_c_c_c_c_a.s --func Anim_CriticalHit
+ * (`--whole` reports Anim_Attack and BaseAnim_Attack "missing from candidate"
+ * plus SIZE and RELOCATIONS lines.  THAT IS THE UNDONE SPLIT, NOT A DEFECT --
+ * see the piece note below.  Read the per-function row.)
+ *
+ * -------- THE EDIT: ONE LINE, A READINESS BARRIER ---------------------------
+ *     d[0] = (DrawFn)gPtrs[0x2e];
+ *     f1 = (DrawFn)gPtrs[0x2f];
+ *     __asm__ volatile ("");          <- NEW
+ *     fp = d;
+ *
+ * -------- WHAT IT CLOSED, AND IT IS THE ASK THIS PARK LEFT ------------------
+ * RUN 1 (idx 78-84) GOES FROM SEVEN TO FOUR, and index 78 -- `ldr r2,[r2]` --
+ * now MATCHES.  Runs 2, 3 and 4 are untouched.  Measured residue of the shipped
+ * body: `differ 10 at: 79 80 81 82 | 169 170 | 245 246 | 364 365`.
+ *
+ * This park's standing ask was *** AIM AT prio(1771) *** -- the reload-created
+ * `str r2,[sp,#0x38]`, priority 18, the lowest in the window, which is why we
+ * sank it to slot 7 of 7.  **A bare `__asm__ volatile ("")` is what reaches it**,
+ * and the mechanism is readiness, not priority:
+ *     haifa-sched.c:3568  case ASM_INPUT:
+ *     haifa-sched.c:3589    for (u = deps->reg_last_sets[i]; u; u = XEXP (u, 1))
+ *     haifa-sched.c:3590      add_dependence (insn, XEXP (u, 0), 0);
+ *     haifa-sched.c:3595    reg_pending_sets_all = 1;
+ * :3583-3593 walk EVERY register, hard and pseudo, so the asm becomes a
+ * dependent of the deferred store; :3595 makes everything after it a dependent
+ * of the asm.  The store acquires the forward dependent its priority needed and
+ * the window re-orders, at zero bytes.
+ *
+ * -------- AND IT CONFIRMS THIS PARK'S OWN NEGATIVE --------------------------
+ * The four gPtrs carrier shapes recorded here as EXACTLY INERT are inert
+ * CROSSED WITH THE BARRIER TOO.  A 39-row crossed sweep of five block shapes
+ * (base; an f0 carrier for d[0]; `d[1] = f1` direct; fp formed first; both
+ * stores through d) against eight barrier placements (the three slots and every
+ * combination) reads:
+ *     best 10, reached by placement AFTER f1, AFTER fp, or both,
+ *            on EVERY shape except "fp formed first"
+ *     13-15 for the placement AFTER d[0] on every shape
+ *     "fp formed first" is a DIFFERENT PROGRAM (608 insns against 607,
+ *            709 encodings against 707, relocations differ) on all eight
+ * A second focused round -- barrier after `fp[1] = f1` (11), after f1 AND after
+ * fp[1] (10), `fp = &d[0]` (10), `d[1] = f1` with fp last (10), two barriers
+ * bracketing `fp = d` (10), an fa carrier for f1 (10) -- lands SIX INDEPENDENT
+ * VARIANTS ON EXACTLY 10.  **10 is a hard floor for this dimension**, and the
+ * remaining four of run 1 are not reachable from the gPtrs block's shape.
+ *
+ * -------- WHAT IS LEFT, AND WHERE THE NEXT READER SHOULD GO -----------------
+ * RUN 1 remainder (4, idx 79-82): ref `920e str r2,[sp,#0x38]` / `33bc add
+ * r3,#0xbc` / `466d mov r5,sp` / `681b ldr r3,[r3]` against ours `33bc` /
+ * `920e` / `681b` / `466d`.  The store is still ONE slot late and `mov r5,sp`
+ * and `ldr r3,[r3]` are still swapped.  The ROM INTERLEAVES f1's address
+ * computation, `mov r5,sp` and f1's load, and no statement boundary exists
+ * between `add r3,#0xbc` and `ldr r3,[r3]` -- they are one source expression --
+ * so a barrier cannot get between them.  That is the shape to attack next.
+ * RUNS 2, 3 and 4 are unchanged and this park's readings of them stand; note
+ * that run 2 CANNOT be helped by a barrier, and the reason is structural:
+ * move_movables hoists the loop constant with `emit_insn_before (..., loop_start)`,
+ * i.e. at the END of the preheader, so a barrier written anywhere before the
+ * loop is emitted ABOVE the hoist point and can only force `add r5,fp` FIRST --
+ * the wrong order.  Do not spend a round on it.
+ *
+ * -------- THE PIECE: THREE MEMBERS, AND EITHER END SHIPS ALONE --------------
+ * asm/rom_c9000/rom_e3958_c_c_c_c_a.s holds THREE .thumb_func_starts --
+ * Anim_Attack (line 8), BaseAnim_Attack (line 53), Anim_CriticalHit (line 764)
+ * -- and all three are parked.  BaseAnim_Attack
+ * (src/non_matching/rom_c9000/e3aa0_Attack.c) is at 653 of 688 with size AND
+ * count INEXACT, so no pairing of the other two converts this TU.
+ * **BUT "neither ships alone" is false.**  tools/split_s.py cuts
+ * before/target/after, so any member can be cut out; my own --dry-run:
+ *     target Anim_CriticalHit -> _a_a.s (2 funcs, 757 lines)
+ *                              + _a_b.s (Anim_CriticalHit ALONE, 723 lines)
+ *     target Anim_Attack      -> _a_b.s (Anim_Attack ALONE, 46 lines)
+ *                              + _a_c.s (2 funcs, 1434 lines)
+ * tools/datacheck.py prints nothing for this .s, so it is a TEXT-ONLY split
+ * needing NO new `.global`.  Whoever gets this function to 0 cuts it out with
+ * ONE split and ships it; it does NOT have to wait for its piece-mates.
+ * -- scratch_elev/b336/E
+ * =============================================================================
+ */
 /* ===================== BATCH 327 (brief A) -- 15 -> 13, BODY CHANGED =========
  * Anim_CriticalHit -- NON-MATCHING, 13 differing encodings of 707 (was 15).
  * PIN-FREE, DEVICE-FREE, NO FLAG GROUP, NO fakematch ROW.
@@ -711,6 +800,7 @@ void Anim_CriticalHit(void *context)
     }
     d[0] = (DrawFn)gPtrs[0x2e];
     f1 = (DrawFn)gPtrs[0x2f];
+    __asm__ volatile ("");
     fp = d;
     fp[1] = f1;
     slot = (State **)(base + 0x7828);

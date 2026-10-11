@@ -1,3 +1,70 @@
+/* ===== BATCH 336 (brief E) -- 1 OF 191 STREAM ENCODINGS.  BODY UNCHANGED. ====
+ * RE-MEASURED: `XX ENCODINGS differ in 1 place(s) (ref 191, ours 191) ...
+ * instructions are 159/159`, index 98, ref dbc9 (blt) against ours d1c9 (bne).
+ * Still the closest park in the tree.  PIN-FREE, DEVICE-FREE.
+ *
+ * ONE NEW DIMENSION TRIED AND REFUTED, and it was the right one to try.
+ * Every bound row below is a BODY ASSIGNMENT (`n = 11;` as a statement, in five
+ * positions).  Batch 310c's landed finding -- recorded in
+ * src/non_matching/rom_c9000/Anim_CriticalHit.c, and the lever that moved two
+ * functions -- is that ONLY A DECLARATION INITIALISER makes a pseudo lose its
+ * hard register, because allocno_compare's priority is
+ * log2(n_refs)*freq/LIVE_LENGTH and a range starting at function entry is the
+ * longest and lowest-priority; a body assignment keeps the range SHORT and
+ * RAISES priority, "the exact opposite of what is wanted".  That is this park's
+ * rung 4 exactly, and `int n = 11;` had never been tried here.  MEASURED:
+ *     int n = 11; in place, `i < n`                164 insns / 159    178 RELOCDIFF
+ *     int n = 11; FIRST in the declaration list    164 / 159          178 RELOCDIFF
+ *     int n = 11; `n > i`                          164 / 159          178 RELOCDIFF
+ *     int n = 0xb; `i < n`                         164 / 159          178 RELOCDIFF
+ *     int n = 11; AND int i = 0; both initialised  164 / 159          178 RELOCDIFF
+ *     int n = 11; `i <= n - 1`                     159 / 159            2 idx 97
+ * THE LEVER DOES NOT TRANSFER.  Every `<` form costs exactly FIVE instructions
+ * and changes the relocation sequence, so none is a distance -- read the
+ * instruction column.  The bound is live across seven calls either way, which
+ * is what the declaration initialiser cannot fix.
+ * AND THE LAST ROW IS THE USEFUL ONE: 159/159, 2 differing, index 97
+ * `ref 2f0b (cmp r7,#0xb)` against `ours 2f0a (cmp r7,#0xa)` -- the named bound
+ * was propagated and `11 - 1` folded to 10, collapsing the row onto the literal
+ * `<=` row.  So this is a DIRECT MEASUREMENT OF RUNG 5's PRICE: 164 insns when
+ * the bound survives to the jump, 159 when it does not.  Five instructions is
+ * what -ffixed-r11 avoids, and nothing cheaper exists.
+ *
+ * TWO COMPILER-LEVEL CORRECTIONS TO THE LATTICE.  Both change the REASON, not
+ * the verdict, and the first closes rung 3 harder than the stated reason did.
+ * (1) *** NEW ***  gcse.c:3682-3703 -- `cprop_jump` substitutes the constant,
+ *     calls `simplify_ternary_operation` on the jump, and then
+ *         if (temp == 0)
+ *           return 0;
+ *     so the replacement is ABANDONED unless the jump folds to a known branch.
+ *     **gcse's global cprop can therefore NEVER put a constant into a LIVE
+ *     conditional branch**, whatever the block structure.  The lattice says
+ *     rung 3 holds because combine re-canonicalises; the stronger statement is
+ *     that gcse cannot deliver the constant to the jump at all.  This also
+ *     retires the CFG note below as the operative reason -- it is not cse1's
+ *     block boundary that stops the fold, it is cprop_jump's gate.
+ * (2) "else combine.c:10082 re-canonicalises it" needed a mechanism, because
+ *     `simplify_comparison` is NOT a sweep over all comparisons -- it runs only
+ *     inside a SUCCESSFUL `try_combine`.  The `i <= n - 1` row above supplies
+ *     the mechanism: combine folds the CONSTANT-LOAD INSN into the compare,
+ *     which is what produced `cmp r7,#0xa` there.  The claim is right; the
+ *     route is combination, not canonicalisation.
+ * Both switch arms re-read and confirmed verbatim: fold-const.c:6272-6294 (gate
+ * `TREE_CODE (arg1) == INTEGER_CST && TREE_CODE (arg0) != INTEGER_CST &&
+ * tree_int_cst_sgn (arg1) > 0`, cases GE_EXPR and LT_EXPR) and
+ * combine.c:10138-10175 (LT -> LE whenever `const_op > 0`, unconditionally; the
+ * reverse LE -> LT fires only for `const_op < 0`).  **So for a POSITIVE constant
+ * the canonical RTL forms are LE and GT, and `(lt reg (const_int 11))` is
+ * non-canonical -- it can only be created AFTER combine.**  That is why
+ * -ffixed-r11 is byte-identical and why nothing else is.
+ *
+ * VERDICT UNCHANGED: park at 1 pin-free.  The owner's revisit condition ("the 1
+ * turns out to be reachable another way") is NOT met.  Do not re-sweep literal
+ * spellings, either side of the comparison, RTL flags at this index, or -- now
+ * -- declaration-initialised bounds.
+ * -- scratch_elev/b336/E
+ * =============================================================================
+ */
 /* Field_Halt -- 1 differing encoding of 191.  PARKED, PIN-FREE, DEVICE-FREE.
  *
  * Verify with: docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work goldensun-build python3 tools/objcmp.py src/non_matching/rom_8a000/809abb4.c asm/rom_8a000/rom_9a44c_c_c_c.s --func Field_Halt
