@@ -34,22 +34,22 @@ structure**, and a file can need both.
 
 | | |
 |---|---|
-| definitions in landed sources | **5,067** |
-|   (census ROM functions landed) | **4,943** |
-| landed .c files | **4,538** |
-| park FILES (not functions) | **689** |
-| parked with a figure | **536** |
-| parked bodyless | **145** |
+| definitions in landed sources | **5,069** |
+|   (census ROM functions landed) | **4,945** |
+| landed .c files | **4,540** |
+| park FILES (not functions) | **686** |
+| parked with a figure | **534** |
+| parked bodyless | **144** |
 | parked unverifiable (no live recipe) | **122** |
-| files needing DEPIN | **789** |
+| files needing DEPIN | **791** |
 | register pins (shimcount) | **14,517** |
 | fakematch-class barriers | **89** |
-| unbooked fakematch-class | **2** |
+| unbooked fakematch-class | **0** |
 | per-file flag groups | **10** |
 | parks carrying register pins | **90** |
-| functions still Func_<addr> | **4,300** |
-| functions with a real name | **767** |
-| split-named files | **4,477** |
+| functions still Func_<addr> | **4,301** |
+| functions with a real name | **768** |
+| split-named files | **4,479** |
 
 ## Why two function counts
 
