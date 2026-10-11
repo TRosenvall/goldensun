@@ -1,6 +1,6 @@
 # Parked functions
 
-**686 park files**, 534 carrying a parseable figure, 144 bodyless (prose/triage/class parks), 122 with no live verify recipe.
+**684 park files**, 532 carrying a parseable figure, 144 bodyless (prose/triage/class parks), 122 with no live verify recipe.
 
 A figure is the park's own claim. `tools/parkcheck.py` is what verifies it.
 
@@ -8,17 +8,17 @@ A figure is the park's own claim. `tools/parkcheck.py` is what verifies it.
 
 | differing encodings | parks |
 |---|---|
-| 0 | 2 |
+| 0 | 1 |
 | 1–2 | 13 |
 | 3–5 | 15 |
 | 6–10 | 20 |
 | 11–20 | 54 |
-| 21–50 | 86 |
+| 21–50 | 85 |
 | 51–100 | 73 |
 | 101–300 | 162 |
 | 301+ | 109 |
 
-Median **104**.
+Median **105**.
 
 ## By figure
 
@@ -43,7 +43,6 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 
 | fig | pins | of | function | module | park |
 |---|---|---|---|---|---|
-| 0 |  | 62 | `OvlFunc_957_2008b30` | overlays/ovl_30.s | [src/non_matching/ovl_7e3e08/2008b30.c](../../src/non_matching/ovl_7e3e08/2008b30.c) |
 | 0 | 1 | 81 | `Func_80b9554` | rom_b5000/rom_b8228.s | [src/non_matching/rom_b5000/80b9554.c](../../src/non_matching/rom_b5000/80b9554.c) |
 | 1 |  | 191 | `Field_Halt` | — | [src/non_matching/rom_8a000/809abb4.c](../../src/non_matching/rom_8a000/809abb4.c) |
 | 2 |  | 44 | `Func_80175c0` | rom_15000/rom_15e8c.s | [src/non_matching/rom_15000/rom_175c0.c](../../src/non_matching/rom_15000/rom_175c0.c) |
@@ -193,7 +192,6 @@ none. **Rank by (figure, pins).** Pin counts are `shimcount`'s.
 | 36 |  | 235 | `ActorCmd_Camera` | rom_9000/rom_d924.s | [src/non_matching/rom_9000/800daf0.c](../../src/non_matching/rom_9000/800daf0.c) |
 | 36 |  | 91 | `Func_80292c4` | rom_15000/rom_23178.s | [src/non_matching/rom_15000/80292c4.c](../../src/non_matching/rom_15000/80292c4.c) |
 | 36 |  | 85 | `OvlFunc_952_2008264` | overlays/ovl_30.s | [src/non_matching/ovl_7d768c/2008264.c](../../src/non_matching/ovl_7d768c/2008264.c) |
-| 36 |  | 41 | `OvlFunc_957_2008bc8` | overlays/ovl_30.s | [src/non_matching/ovl_7e3e08/2008bc8.c](../../src/non_matching/ovl_7e3e08/2008bc8.c) |
 | 37 |  | 426 | `Anim_Mars` | rom_c9000/rom_e0564.s | [src/non_matching/rom_c9000/Anim_Mars.c](../../src/non_matching/rom_c9000/Anim_Mars.c) |
 | 37 |  | 105 | `Func_80b9470` | rom_b5000/rom_b8228.s | [src/non_matching/rom_b5000/80b9470.c](../../src/non_matching/rom_b5000/80b9470.c) |
 | 38 |  | 185 | `Debug_FaceTest` | rom_15000/rom_23178.s | [src/non_matching/rom_15000/802977c.c](../../src/non_matching/rom_15000/802977c.c) |

@@ -1,6 +1,6 @@
 # Pass 4 — humanizing
 
-**4,301 landed functions are still named `Func_<addr>`** against 768 with a real name, across **4,479 split-named files** of 4,540 landed.
+**4,303 landed functions are still named `Func_<addr>`** against 768 with a real name, across **4,480 split-named files** of 4,541 landed.
 
 See `docs/humanization.md` for the method and the artifact taxonomy. Two
 structural facts bound this work:
@@ -18,7 +18,7 @@ structural facts bound this work:
 
 | bank | unnamed functions |
 |---|---|
-| overlays | 3213 |
+| overlays | 3215 |
 | rom_8a000 | 266 |
 | rom_15000 | 213 |
 | rom_b5000 | 151 |
@@ -3758,6 +3758,8 @@ structural facts bound this work:
 | `OvlFunc_957_2008b0c` | [src/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_b.c](../../src/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_b.c) |
 | `OvlFunc_957_2008b18` | [src/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_b.c](../../src/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_b.c) |
 | `OvlFunc_957_2008b24` | [src/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_c_b.c](../../src/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_c_b.c) |
+| `OvlFunc_957_2008b30` | [src/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_c_c_a_a.c](../../src/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_c_c_a_a.c) |
+| `OvlFunc_957_2008bc8` | [src/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_c_c_a_a.c](../../src/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_c_c_a_a.c) |
 | `OvlFunc_957_2008c2c` | [src/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_c_c_a_b.c](../../src/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_c_c_a_b.c) |
 | `OvlFunc_957_2008c98` | [src/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_c_c_a_c_a.c](../../src/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_c_c_a_c_a.c) |
 | `OvlFunc_957_2008cf8` | [src/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_c_c_a_c_b.c](../../src/overlays/rom_7e3e08/ovl_30_c_c_a_c_c_c_c_c_c_a_c_b.c) |

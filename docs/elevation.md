@@ -34955,29 +34955,49 @@ which together say what it is: **a scheduling device, and only that.** The two
 above are about cost and direction. The third is about reach, and it is the one
 most likely to waste a round, because the barrier *looks* like it should work:
 
-`cse.c:5742-5745` flushes the equivalence table on an asm, but the test requires
-**`ASM_OPERANDS`** — and a bare `__asm__ volatile ("")` is an **`ASM_INPUT`**. It
-is not matched, nothing is flushed, and brief A measured it inert at 36 where the
-park needed 0.
+`cse.c:5742-5745` flushes the equivalence table on an asm, and the test is
+narrower than it looks:
 
-> **To fence `cse`, the asm must carry an operand or a memory clobber. To fence
-> the *scheduler*, a bare one is enough.** They are different tests on different
-> RTL, and only the second accepts the empty form.
+    /* A volatile ASM invalidates everything.  */
+    if (GET_CODE (insn) == INSN
+        && GET_CODE (PATTERN (insn)) == ASM_OPERANDS
+        && MEM_VOLATILE_P (PATTERN (insn)))
+      flush_hash_table ();
 
-Both operand-carrying forms reach 0 on that function and are recorded as
-**devices rather than shipped**, which is the right call: the landing came from
-deleting the carrier instead (below).
+The **pattern itself must BE an `ASM_OPERANDS`.** That single line decides three
+spellings that look interchangeable in C, and batch 336 brief G measured all
+three against all three passes:
+
+| spelling | pattern RTX | scheduler | combine | cse |
+|---|---|---|---|---|
+| `__asm__ volatile ("")` | `ASM_INPUT` | **fences** | no — `volatile_insn_p` returns 0 for `ASM_INPUT` | no |
+| `__asm__ volatile ("" ::: "memory")` | `PARALLEL` (asm + clobber) | fences | **fences** | **no** — pattern is a `PARALLEL`, not an `ASM_OPERANDS` |
+| `__asm__ volatile ("" :: "i"(0))` | `ASM_OPERANDS` | fences | fences | **fences** |
+
+> **A memory clobber does NOT flush `cse`.** Wrapping the asm in a `PARALLEL` is
+> exactly what takes it out of `cse.c:5745`'s reach. The form that flushes is the
+> one carrying a plain operand — `:: "i"(0)` — which emits nothing either.
+
+That is a correction to this document's first write-up of the limit, which said
+"an operand **or a memory clobber**" on brief A's wording; brief G measured the
+clobber form inert on `cse` and the source agrees. Both overlay parks in brief G
+moved on `:: "i"(0)` specifically.
 
 So before reaching for a barrier, ask which pass is actually doing the thing you
-want stopped:
+want stopped — and then pick the spelling for *that* pass:
 
 | to stop | needs | citation |
 |---|---|---|
 | a ready-list membership | bare `__asm__ volatile ("")` | `haifa-sched.c:3567-3597` |
-| a `cse` equivalence | an **operand** or memory clobber | `cse.c:5742-5745` |
-| a `gcse` cprop of a named constant | **nothing — a volatile asm does not block it** | measured, batches 336 B and B's 4th target |
+| a `combine` substitution | an `ASM_OPERANDS` — clobber form is enough | `rtlanal.c` `volatile_insn_p` |
+| a `cse` equivalence | `:: "i"(0)` — **a bare `ASM_OPERANDS` pattern only** | `cse.c:5742-5745` |
+| a `gcse` cprop of a named constant | **nothing — a volatile asm does not block it** | measured, batch 336 brief B |
 | an if-conversion | a **MEM** in the arm | `ifcvt.c:1911-1925` |
 | a loop hoist | not reachable by a barrier at all | `loop.c` `emit_insn_before (..., loop_start)` |
+
+The operand-carrying forms that reach 0 on brief A's function are recorded as
+**devices rather than shipped**; that landing came from deleting the carrier
+instead (below).
 
 ### THE RUNG ABOVE DEPENDENT COUNT, AND WHY IT TIES HERE
 

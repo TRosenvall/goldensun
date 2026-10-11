@@ -40,8 +40,18 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PIN_DEF = re.compile(r"^\s*#define\s+(PIN\d)\b(.*)$", re.M)
 DECL    = re.compile(r"register\s+[^;=]*?__asm__\s*\(\s*\"(\w+)\"\s*\)")
 EQU     = re.compile(r"__asm__\s*(?:volatile\s*)?\(\s*\"\.equ\s+([A-Za-z_]\w*)")
-BARRIER = re.compile(r"__asm__\s*volatile\s*\(\s*\"\"\s*\)")
+# Three spellings of "a volatile asm barrier" reach THREE DIFFERENT passes, decided
+# by the RTX code of the insn's pattern -- see docs/elevation.md, "A BARE BARRIER
+# DOES NOT FLUSH cse's TABLE".  They are counted separately because they are
+# different devices carrying different pass-3 debt, and because counting only the
+# first (which this tool did until batch 336) reports zero pins for a body that
+# ships either of the other two.
+BARRIER = re.compile(r"__asm__\s*volatile\s*\(\s*\"\"\s*\)")              # ASM_INPUT: sched only
+CLOBBER = re.compile(r"__asm__\s*volatile\s*\(\s*\"\"\s*:{3}\s*\"memory\"") # PARALLEL: + combine
 PLUSR   = re.compile(r"__asm__\s*(?:volatile\s*)?\(\s*\"\"\s*:\s*\"\+r\"")
+# a bare ASM_OPERANDS pattern -- the only form that reaches cse.c:5742-5745.
+# Matches an operand list that is NOT "+r" (counted above) and NOT ::: "memory".
+OPERAND = re.compile(r"__asm__\s*volatile\s*\(\s*\"\"\s*:(?!::)\s*(?!\"\+r\")[^;]*?\)\s*;")
 
 
 def strip_comments(s):
@@ -71,6 +81,8 @@ def count(path):
         "pins": pins, "pin_blocks": blocks,
         "equ": EQU.findall(body),
         "barriers": len(BARRIER.findall(body)),
+        "clobber": len(CLOBBER.findall(body)),
+        "operand": len(OPERAND.findall(body)),
         "plus_r": len(PLUSR.findall(body)),
     }
 
@@ -98,7 +110,8 @@ def main():
     for p in args:
         r = count(p)
         rel = os.path.relpath(p, ROOT)
-        total = r["pins"] + len(r["equ"]) + r["plus_r"]
+        total = (r["pins"] + len(r["equ"]) + r["plus_r"]
+                 + r["clobber"] + r["operand"])
         if "--all" in sys.argv and total == 0 and not r["barriers"]:
             continue
         print(f"{rel}")
@@ -114,7 +127,14 @@ def main():
         if r["barriers"]:
             print("    empty asm     : %d  (NOT treated as a fakematch in this tree)"
                   % r["barriers"])
-        if (r["pins"] or r["plus_r"]) and "non_matching" not in rel and not booked(rel):
+        if r["clobber"]:
+            print('    asm + memory  : %d  (PARALLEL -- fences combine, NOT cse;'
+                  ' fakematch-class)' % r["clobber"])
+        if r["operand"]:
+            print('    asm + operand : %d  (bare ASM_OPERANDS -- the only form that'
+                  ' flushes cse; fakematch-class)' % r["operand"])
+        if ((r["pins"] or r["plus_r"] or r["clobber"] or r["operand"])
+                and "non_matching" not in rel and not booked(rel)):
             print("    *** has a fakematch-class shim and NO fakematch.txt row")
             problems += 1
     return 1 if problems else 0

@@ -102,6 +102,74 @@
  * `push {r5, lr}` prologue, which looks like a clobbered callee-saved register,
  * but r4 is call-used in this build and that lead was checked and dropped in
  * src/non_matching/ovl_77a7c8/200811c.c.
+  * ===== BATCH 336: 2 OF 31 CONFIRMED; THE RESIDUE IS A CLOSED TWO-CELL SPACE. =====
+ *
+ * Re-measured, not inherited: 2 of 31 in STREAM terms (ref 31, ours 31),
+ * instructions 29/29, SIZE 64/64, first differing index 25.  Pin-free.  Body
+ * unchanged.  The two are indices 25 and 26:
+ *
+ *   rom    orrs r2, r1 / strb r2, [r0, #0x15]
+ *   ours   orrs r1, r2 / strb r1, [r0, #0x15]
+ *
+ * (1) THE TWO-ADDRESS DIRECTION FOLLOWS THE FIRST OPERAND OF THE `|`, and that
+ * is now a clean rule rather than a coupling to be guessed at:
+ *   `e[0x15] = m | (n & e[0x15]);`   -> OR dest = the MASK   (this body, 2)
+ *   `e[0x15] = (n & e[0x15]) | m;`   -> OR dest = the AND    (9)
+ * The `&`'s OWN operand order is EXACTLY INERT, which the file did not record
+ * before.  All four cells:
+ *   `m | (n & e[0x15])`  2      `m | (e[0x15] & n)`  2
+ *   `(n & e[0x15]) | m`  9      `(e[0x15] & n) | m`  9
+ * Only the `|` matters, and it matters completely.
+ *
+ * (2) THE 9 REPRODUCES EXACTLY AS DESCRIBED: all nine are a pure r0 <-> r1
+ * rename of (mask) against (the second byte load, the second pointer) at
+ * indices 12, 14, 16, 19, 20, 22, 23, 25, 26, with every instruction SHAPE
+ * identical.  Confirmed by side-by-side dump.
+ *
+ * (3) NAMING THE RESULT DOES NOT BUY THE DIRECTION -- it was worth checking
+ * because the batch-333 lever that closed the length gap was exactly "name the
+ * destination", and here it fails in the other direction.  Measured:
+ *   `t = n & e[0x15]; e[0x15] = t | m;`                  14
+ *   `t = n & e[0x15]; t |= m; e[0x15] = t;`              14
+ *   `t = e[0x15]; t &= n; t |= m; e[0x15] = t;`          14
+ *   `t = n; t &= e[0x15]; t |= m; e[0x15] = t;`          14
+ *   `t = m | (n & e[0x15]); e[0x15] = t;`                19
+ *   `t = n & e[0x15]; e[0x15] = m | t;`                  19
+ * So the OR's destination is decided before regmove can be given a pseudo to
+ * retarget, and the dest-naming lever is specific to the AND at site 1.
+ *
+ * (4) FURTHER MEASURED ON THE NINE, all still nine and all first-differing at
+ * index 12 (the mask's materialisation) -- i.e. the allocation never budged:
+ *   the zero store moved after the mask build; `n = 0xd; n = -n;` moved to just
+ *   before site 1; one pointer variable serving both sites; `u` as
+ *   `unsigned char`.
+ * WORSE: `m = 0xc;` hoisted above the early `return` (to push the mask's
+ *   pseudo out of local-alloc and into global-alloc, the batch-335
+ *   "allocno membership" lever) 23 -- gcc emits `movs r1,#12` in the entry
+ *   block, before the `cmp`, and the whole stream shifts; `n` built before the
+ *   mask 16; naming the site-2 byte 14; naming the site-1 byte 18 and FOUR BYTES
+ *   SHORT (SIZE 60 against 64); naming both bytes 24 and also four short.
+ *
+ * (5) WHERE THE WALL ACTUALLY IS.  The park's QTY_CMP_PRI reading is right in
+ * substance -- local-alloc.c:1496-1498 is
+ *   floor_log2(n_refs) * n_refs * size / (death - birth)
+ * sorted by qty_compare_1 (:1397-1410) with "sort by qty number" as the ONLY
+ * tie-break -- but the allocation that follows is NOT a plain first-fit.  Under
+ * INSN_SCHEDULING, local-alloc tries find_free_reg with a FAKE LIFETIME first
+ * (local-alloc.c:1398-1440): `fake_birth = MAX (0, birth - 2 + birth % 2)` and
+ * `fake_death = MIN (..., death + 2 - death % 2)`, so a quantity born
+ * immediately after this one dies, or dying immediately before it is born,
+ * CONFLICTS.  Both bounds are parity-dependent on the insn index.  That makes
+ * the r0/r1 assignment a function of WHERE IN THE INSN NUMBERING the mask's
+ * birth and death fall, which is why every spelling-level change above is
+ * exactly inert: none of them moves an insn boundary.
+ *
+ * NEXT, concretely: the thing to vary is the PARITY of the mask's birth or
+ * death index -- the number of insns between the mask's materialisation and the
+ * second byte load -- while keeping the instruction count at 29.  Nothing in
+ * the source space tried so far does that, and the only two cells of the
+ * `|`-operand space are the 2 and the 9, so this residue is a closed two-cell
+ * space whose exit is an insn-numbering parity, not a construct.
  */
 extern unsigned char *__MapActor_GetActor(int slot);
 

@@ -162,6 +162,82 @@ void Func_80f3858(int frames)
         Func_80f2ebc(p + 0x400, p + 0x1000, p + 0x1c00, frames);
     }
 }
+  * ===== BATCH 336: 2 OF 29 CONFIRMED, AND THE DIAGNOSIS IS NOW SPECIFIC. =====
+ *
+ * Re-measured, not inherited: 2 of 29 in STREAM terms (ref 29, ours 29), first
+ * differing index 9, no SIZE and no POOL WORD line.  Pin-free.  Body unchanged.
+ * The residue is the adjacent pair at 9/10, exactly as read above.
+ *
+ * (1) WHICH RUNG DECIDES -- the scheduler's own dump, not an inference.
+ * `-fsched-verbose=4`, block 1, insn 28 = `[r3]=r5`, insn 31 = `r2=0x0`:
+ *
+ *   ;;	Ready list (t =  4):    31  28
+ *   ;;		--> scheduling insn <<<28>>> on unit core
+ *
+ * The section above attributes this to "both insns sit at scheduling priority 0
+ * ... so sched2 falls through to INSN_LUID".  THE PRIORITY CLAIM IS WRONG AND
+ * THE LUID CONCLUSION IS RIGHT FOR A DIFFERENT REASON.  Walking the dependence
+ * graph (rank_for_schedule, haifa-sched.c:4040-4114):
+ *   insn 28 (`strb r5,[r3]`) has TWO dependents -- insn 38 (`r3=r4+r1`, ANTI on
+ *     r3) and insn 41 (`strb r2,[r3]`, memory).
+ *   insn 31 (`r2=0x0`) also has TWO -- insn 41 (true, r2) and insn 110
+ *     (`r2=0x80`, the first argument temp; an OUTPUT dependence on r2).
+ * So rung 5 (depend_count) TIES AT TWO EACH and the fall-through to rung 6,
+ * `INSN_LUID (tmp) - INSN_LUID (tmp2)`, is what decides.  Both counts are
+ * forced by the reference's own text -- the second address is recomputed into
+ * r3 in the ROM too, and arg c lands in r2 -- so THE ONLY WAY TO WIN IS A LOWER
+ * LUID FOR THE ZERO, i.e. the original source assigned it BEFORE the first
+ * store.  That is now an inference about the original, not just a probe result.
+ *
+ * (2) WITH ZERO-BEFORE THE STORE BLOCK IS EXACT, as recorded above (7 of 29,
+ * first index 14, indices 0..13 byte-identical with `movs r2,#0` at 9).
+ *
+ * (3) AND THE ARGUMENT BLOCK'S BREAK IS A RELOAD REGISTER CHOICE, NOT A
+ * SCHEDULE.  `-fno-schedule-insns2` on both bodies shows it directly:
+ *
+ *   body                        0x400 temp  0x1000  0x1c00  post-sched
+ *   zero BETWEEN (this body)        r2        r3      r3     the ROM's
+ *                                                            interleave, exact
+ *   zero BEFORE (7 of 29)           r3        r3      r3     serialised
+ *
+ * With two registers sched2 has two independent chains and interleaves them
+ * into the reference's `mov r3 / lsl r3 / mov r2 / add r1 / mov r3 / lsl r2 /
+ * lsl r3 / add r0 / add r2`.  With one register the three sequences are a chain
+ * and NO scheduling can interleave them.  The register is chosen by
+ * allocate_reload_reg (reload1.c:4995-5064), which ROUND-ROBINS A FUNCTION-WIDE
+ * CURSOR: `i = last_spill_reg;` at :5003, advanced and stored at :4937, reset
+ * to -1 only once per reload pass at :821.  So the temp's register depends on
+ * how many reload registers were allocated EARLIER IN THE FUNCTION, and on
+ * nothing local to the argument block.
+ *
+ * CORRECTION TO THE SECTION ABOVE: it says the argument block breaks because
+ * "with `zero` live into that region gcc serialises all three through one
+ * temp".  `zero` IS NOT LIVE INTO THAT REGION -- in both bodies it dies at
+ * `strb r2,[r3]`, several insns before the first temp.  The observation
+ * (serialisation) is sound; the cause is the reload cursor.
+ *
+ * (4) EVERYTHING SWEPT TO MOVE THAT CURSOR, zero-before throughout:
+ * INERT at 7 (first index 14, identical): `char`, `unsigned char`, `short`,
+ *   `unsigned int`, `long` for `zero`; `zero` in an inner scope; a local copy
+ *   of `frames`; `unsigned char *p`; `&p[0x400]`-style arguments; and the three
+ *   offsets written `(0x80<<3)`, `(0x80<<5)`, `(0xe0<<5)` instead of literals,
+ *   which is EXACTLY inert at every naming -- the constant spelling is not a
+ *   lever here at all.
+ * NAMED ARGUMENT POINTERS, all six assignment orders x both offset spellings:
+ *   bac 6, abc 7, bca 18, cba 19, acb 21, cab 21.
+ * PARTIAL NAMING, every one- and two-element subset in every order (an
+ *   uncrossed dimension before this batch): b 6, ba 6, a 7, ab 7, bc 18,
+ *   cb 19, ac 21, c 21, ca 21.
+ * WORSE: the three arguments computed before the stores 21/21/22; named store
+ *   pointers (`q = p + 0x3001; *q = ...`) 23; `zero = 0` before `p = ...` 8
+ *   AND ONE INSTRUCTION LONG.
+ *
+ * SO 6 IS THE FLOOR FOR ZERO-BEFORE AND THIS BODY'S 2 IS THE FLOOR FOR
+ * ZERO-BETWEEN.  NEXT: the only live direction is shifting
+ * allocate_reload_reg's cursor so the 0x400 temp lands in r2 under zero-before
+ * -- which needs the count of reload-register allocations before the argument
+ * block to change by one, with the instruction count unchanged.  Nothing in the
+ * source space above does that.
  */
 extern char *iwram_3001ed0;
 extern void Func_80f2ebc(void *a, void *b, void *c, int n);

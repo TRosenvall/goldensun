@@ -172,7 +172,104 @@
  * NEXT: pass 3, depinning.  The pinned form is exact, so the whole question is
  * register pressure in a four-pseudo window, and `reports/pass3-depin.md` is
  * where it belongs.
-*/
+
+ * ========================================================================
+ * BATCH 336 BRIEF G -- TWENTY-NINE TO TEN.  "THE CLASS HAS NO KNOWN
+ * SOURCE-LEVEL LEVER" IS REFUTED: cse.c:5741-5745 HAS A DOOR.
+ * ========================================================================
+ *
+ * CURRENT FIGURE: 10 of 48 encodings in STREAM terms (ref 48, ours 48),
+ * 33 instructions against 33, and RELOCATIONS NOW IDENTICAL -- the park's
+ * thirteen `bl` offsets all line up, which they did not at twenty-nine.
+ * Superseded figures: twenty-nine pin-free, and eighteen with nine pins.
+ * Barrier-free the body still reads TWENTY-NINE.
+ *
+ * Verify with:
+ *   docker run --rm --security-opt seccomp=unconfined -v "$PWD:/work" -w /work \
+ *     goldensun-build python3 tools/objcmp.py \
+ *     src/non_matching/ovl_7e7574/200a69c.c \
+ *     asm/overlays/rom_7e7574/ovl_9dc_c_c_a_a_a_c_c.s --func OvlFunc_959_200a69c
+ *
+ * THE LEVER.  cse.c:5741-5745, inside `cse_insn`:
+ *
+ *     /* A volatile ASM invalidates everything.  *\/
+ *     if (GET_CODE (insn) == INSN
+ *         && GET_CODE (PATTERN (insn)) == ASM_OPERANDS
+ *         && MEM_VOLATILE_P (PATTERN (insn)))
+ *       flush_hash_table ();
+ *
+ * -- cse pass one drops its ENTIRE value table at such an insn, so the
+ * repeated constants are no longer unified across the intervening call and
+ * each site rebuilds its own, which is what the ROM does.  Put one before
+ * each call that carries a repeated shifted constant and the extra `pop`
+ * disappears: the prologue is `push {lr}` and the body is 33 against 33.
+ *
+ * >> THE PATTERN MUST BE A BARE `ASM_OPERANDS`, AND THAT IS WHY THE OBVIOUS
+ * >> SPELLINGS FAIL.  A no-operand no-clobber `__asm__ volatile ("")` expands
+ * >> to ASM_INPUT, not ASM_OPERANDS, so the test above is false (and
+ * >> rtlanal.c `volatile_insn_p` likewise lists ASM_INPUT in its `return 0`
+ * >> group).  Adding `::: "memory"` wraps the asm in a PARALLEL with the
+ * >> clobber, so `GET_CODE (PATTERN (insn)) == ASM_OPERANDS` is false again
+ * >> and cse does NOT flush -- measured, 56 of 63 on the TU-mate, worse than
+ * >> baseline.  What works is an asm with ZERO OUTPUTS, ZERO CLOBBERS and at
+ * >> least one input, with the input an IMMEDIATE so no code is emitted:
+ * >>
+ * >>     __asm__ volatile ("" :: "i"(0));
+ * >>
+ * >> That is the shape whose pattern IS the asm_operands.  Three spellings of
+ * >> "a volatile asm barrier" behave three different ways here and only one
+ * >> reaches cse.
+ *
+ * WHAT THE PARK GOT RIGHT, and it is nearly all of it: the direction (OURS
+ * LONGER), the cause (cse pass one unifying constants >= 256 into
+ * callee-saved registers), the entry condition (calls.c:841-857 with
+ * arm.c:2075-2082 -- a constant argument below 256 never gets a pseudo), the
+ * register arithmetic (global.c:987-997), and that the extra instruction is
+ * the interwork epilogue's second `pop`.  Every line of that reproduced.
+ * ONLY THE VERDICT -- "NEXT: nothing.  The class has no known source-level
+ * lever" -- was wrong, and it was wrong because the barrier it ruled out was
+ * the ASM_INPUT spelling.
+ *
+ * ALSO REFUTED, from the brief rather than the park: the extra `pop` is NOT a
+ * declared-return-type error.  The ROM's epilogue is `pop {r0}` / `bx r0`,
+ * which is `thumb_exit`'s VOID case, and this park already declares `void`.
+ * The surplus was the SEPARATE `pop {r5, r6}` ahead of it.  Fourteen parks in
+ * this tree do disagree with their declaration; this is not one of them.
+ *
+ * WHAT THE REMAINING 10 IS.  Eight of the ten are ARGUMENT-SETUP ORDER inside
+ * four call sites, with every instruction present and no length difference:
+ *   ROM   mov r1,#0x80 / mov r2,#0x80 / mov r0,#0xb / lsl r1,#9 / lsl r2,#8
+ *   ours  the same five, with `mov r0,#0xb` two or three slots later and the
+ *         `lsl` one slot earlier.
+ * `-fno-schedule-insns2` makes it WORSE (16 of 48), so the production
+ * schedule is right and the residue is in what sched2 is given, not in sched2.
+ *
+ * PIECE MEMBERSHIP, CORRECTED.  `tools/piece.py` reports FOUR functions in
+ * asm/overlays/rom_7e7574/ovl_9dc_c_c_a_a_a_c_c.s -- 200a69c, 200a718,
+ * 200a7b0 (753 of 835) and 200b054 (2,123 instructions, no park body) -- so
+ * the brief's "pair" is a four-member piece.  That does NOT make this
+ * function hostage to the other three: it is the FIRST member, and
+ * `split_s.py --dry-run` on it writes only `_b.s` (this function) and `_c.s`
+ * (the other three), with no `_a.s`.  >> IT SPLITS OUT ALONE.
+ *
+ * MEASURED (all at production flags, stream terms):
+ *   park body, no barrier                                   29 of 48, RELOC
+ *   `:: "i"(0)` barrier before the four repeated sites       10 of 48  <- kept
+ *   the same barrier before EVERY call                      14 of 48
+ *   the same, skipping the first two sites                   10 of 48
+ *   `0x10000` / `0x8000` / `0x1d8` written as plain hex      10 of 48
+ *   the two speeds assigned to named locals first            10 of 48
+ *   two barriers per site instead of one                     10 of 48
+ *   `-fno-schedule-insns2` on the 10 body                    16 of 48
+ *
+ * SHIMS.  One `__asm__ volatile ("" :: "i"(0))` per repeated site, four in
+ * all, no pins.  `tools/shimcount.py` reports ZERO -- its BARRIER regex is
+ * `__asm__\s*volatile\s*\(\s*""\s*\)` and matches only the bare form, so this
+ * spelling is INVISIBLE to the audit.  Fourth known blind spot.
+ *
+ * NEXT: the eight-encoding argument-setup order.  The pinned exact match
+ * recorded above is still the pass-3 route; the barrier form is a better map
+ * and a much smaller gap to carry there. */
 extern void __Func_8093500(int a, int b);
 extern void __Func_8093530(void);
 extern void __CutsceneWait(int n);
@@ -189,19 +286,19 @@ void OvlFunc_959_200a69c(void)
     __Func_8093500(0xb, 1);
     __Func_8093530();
     __CutsceneWait(0x3c);
+    __asm__ volatile ("" :: "i"(0));
     __MessageID(0x247c);
     __ActorMessage(0xd, 0);
+    __asm__ volatile ("" :: "i"(0));
     __MapActor_SetSpeed(0xb, 0x80 << 9, 0x80 << 8);
+    __asm__ volatile ("" :: "i"(0));
     __MapActor_SetSpeed(0xf, 0x80 << 9, 0x80 << 8);
+    __asm__ volatile ("" :: "i"(0));
     __Func_809218c(0xb, 0xec << 1, 0xb4);
+    __asm__ volatile ("" :: "i"(0));
     __Func_809218c(0xf, 0xec << 1, 0xb4);
     __SetCameraTarget(0xb, 1);
     __MapActor_WaitMovement(0xb);
     __MapActor_SetAnim(0xb, 4);
     __CutsceneWait(0x1e);
 }
-
-/* The pinned form that matches exactly is written out in the batch-333 section
- * of the header above.  The path once cited here pointed into a scratch
- * directory, which is gitignored and no longer exists -- which is why the
- * recipe now lives in the header instead of behind a reference to it. */
