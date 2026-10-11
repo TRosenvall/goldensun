@@ -110,6 +110,29 @@ which case all three reads should be.
   leave 13 real differences and buy only a relocation line). This is the
   precedent the `_MSG_b24` decision follows.
 
+- **A never-read local array that only reserves frame bytes** — e.g.
+  `unsigned char unused[32];` — **is it a device, and if so is it admissible?**
+  Raised by batch 336 brief F, which found that `Func_80175c0` closes at
+  **0 of 44 in one line** with one, and declined to ship it on an unbooked
+  precedent. The precedent is real and larger than the brief thought: **22
+  landed, byte-matching files already carry one** (`tools/` survey, batch 336),
+  the clearest being `src/overlays/rom_7fc720/ovl_30_c_a_c_c_c_b.c`, whose
+  `OvlFunc_973_2008768` opens with exactly that declaration. Seven of the 22 are
+  booked in `02-depin.md` — but for *other* pins; **`02-depin.md`'s taxonomy has
+  no category for a never-read local at all**, so none of the 22 is booked for
+  this. Three outcomes, and they differ in cost:
+  - *admissible* — `Func_80175c0` lands now, and nothing else changes;
+  - *a device needing booking* — `Func_80175c0` can still land, but the
+    taxonomy gains a column and 22 landed files gain a row each;
+  - *inadmissible* — `Func_80175c0` stays parked **and 22 landed files are
+    carrying a device they should not**, which is a pass-3 debt nobody has
+    costed.
+
+  Worth noting on the substance: this is not obviously an artifact. Real code
+  declares buffers it stopped using, and a 32-byte local is the kind of thing
+  the original source plausibly had. The question is whether *our* reason for
+  writing it — frame slack, to match — makes it one.
+
 ## Standing standards these decisions rest on
 
 1. **A `*.sym` entry needs structural impossibility, not plausibility** — and the

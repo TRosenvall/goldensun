@@ -34856,6 +34856,92 @@ each with a source lever:
   a satisfied condition still loses if scheduling wedged something between them
   (batch 335 brief H).
 
+Batch 336 ran the readiness lever twice more and both landed, which makes it
+**two landings in two batches and four precondition failures in five** —
+`Field_Move` 2 → 0 and `Func_80ab21c` 2 → 0, each on one bare
+`__asm__ volatile ("")`. Both parks had been terminal for multiple batches with
+every number in their bound correct. The batch also found the lever's reach and
+its price, and both are worth knowing before reaching for it.
+
+### THE BARRIER DEPENDS ON EVERY REGISTER'S LAST SET, INCLUDING `sp`
+
+`Field_Move`'s park held a bound reading *"2 is the floor at 26"*, reproduced in
+every statement, and it failed on an assumption nobody had written down: that a
+barrier can only order insns it **names**. It cannot name anything — it has no
+operands. `haifa-sched.c:3589-3595` makes an `ASM_INPUT` a dependent of **every
+register's last set, `sp` included**, without the asm referencing `sp` in any
+source expression.
+
+So the barrier's position in the *source* is the whole lever, and it is measured
+against ordinary insns, not against anything syntactically related to it:
+
+> `Field_Move` is **0 with the barrier after the `iwram_3001f30 + 0x10` load and
+> 3 with it before**. One statement's difference in placement, and nothing in the
+> C refers to the barrier or the load jointly.
+
+That is why placement sweeps are cheap and worth running exhaustively: there is
+no reasoning shortcut to which side wins, because the dependence is on
+everything.
+
+### BUT A READINESS BARRIER IS NOT FREE INSIDE A LOOP BODY
+
+Batch 335's landing and `Field_Move` are both **straight-line** code, where an
+emit-nothing barrier is genuinely free. Inside a loop it is not, and batch 336
+brief B measured the mechanism exactly.
+
+`Func_80ab21c`'s first barrier fixed the readiness contest and moved the park to
+**90 of 101 — at 94 instructions against 98.** A length defect, not a distance.
+The cause is not pressure in any usual sense:
+
+- the two `.18.greg` **conflict graphs are byte-identical**;
+- only the allocno **order** swaps two entries;
+- because `allocno_compare` (`global.c:598-620`) divides by `live_length`, and a
+  barrier that emits nothing **still lengthens every live range that crosses it
+  by one insn**.
+
+The spill then moves onto a different pseudo, and the four missing instructions
+are exactly `sub sp,#4` / `add sp,#4` / the slot store / the reload load.
+
+> **A barrier is free in the instruction stream and never free in
+> `allocno_compare`.** It costs one insn of `live_length` to every range
+> crossing it, which is every range in a loop body.
+
+The fix is the same tool applied again: **a second barrier inside the inner
+loop**, placed so it sits in the competitor's live range too, restoring the
+order. All four placements of the second barrier are byte-identical — once the
+ranges are balanced, position stops mattering. That is the signature to look
+for: *if placement suddenly stops mattering, the lever is no longer ordering
+anything, it is balancing lengths.*
+
+### THE RUNG ABOVE DEPENDENT COUNT, AND WHY IT TIES HERE
+
+Many parks in this tree reason from `rank_for_schedule`'s **dependent-count**
+rung. There is a rung above it, and batch 336 brief H found three parks
+arguing past it without naming it. `haifa-sched.c:4068-4095` takes the highest
+**class** first — 3 for no edge or `insn_cost == 1`, 2 for anti/output, 1 for
+data — *before* dependent count (`:4096-4110`) and `INSN_LUID` (`:4113-4115`).
+
+It ties in most of this tree for a **target** reason rather than a structural
+one, which is why it has been invisible:
+
+- `arm_adjust_cost` (`arm.c:2414-2452`) returns **0** for anti and output deps;
+- `arm.md:254` gives every `core_cycles single` insn latency **1**;
+- the only non-unit latencies are `arm.md:260-294` — `load`/`store1` **2** (since
+  `arm_ld_sched == 0`, `arm.c:165`), `mult` **16**, `store2/3/4` 3/4/5.
+
+So every all-ALU window ties at class 3 and the rung is dead. But:
+
+> **A candidate depending on the last-scheduled insn through a LOAD, a MULTIPLY
+> or a MULTI-REGISTER STORE falls to class 1 and loses to any independent
+> candidate — above dependent count, above LUID.** Dead for an ALU window;
+> a first-class lever for any park whose contested window holds a load or store.
+
+Also booked, correcting a possible reading of batch 335: `SCHED_SORT` calls
+`qsort` only at `n_ready > 2`, but `swap_sort` (`:4120-4134`) calls the
+comparator too. The readiness finding is about ready-list **membership**; it was
+never about whether the comparator runs.
+
+
 ## "THIS SYMBOL HAS NO BENEFICIARY" IS A TREE-WIDE CLAIM, AND IT HAS BEEN MADE WRONGLY TWICE
 
 A `.sym` entry is a **claim about the original source** — that it named a symbol
@@ -34891,3 +34977,50 @@ match. The pattern is now specific enough to state as a rule:
 
 > **Any tool that greps this tree's sources for an identifier must strip
 > comments first, or it will measure the documentation instead of the code.**
+
+## "NEITHER SHIPS ALONE" IS ALWAYS FALSE, AND THE COORDINATOR HAS WRITTEN IT THREE TIMES
+
+When two parked functions share a `.s`, it is tempting to brief them as a pair:
+*"neither ships alone, so write ONE candidate holding both."* It has been
+written into briefs in batches 335, and twice in 336, and **three separate
+briefs rejected it on the same ground**:
+
+> `tools/split_s.py` cuts **before / target / after**. Any member of a piece can
+> be cut out alone, including the first and the last. So no member is ever
+> hostage to another member's figure.
+
+Batch 336 brief B put it plainest: it wrote one candidate per function and *"the
+landing did not wait on its mate."* Brief F went further and found the pairing
+advice wrong in a second way — its two targets were members 4 and 7 of seven, so
+the piece needed **three** cuts, not one, and the last member needed only one
+cut while the other needed two. **Nothing about the pair was symmetric.**
+
+### The real error underneath was a measurement one
+
+The claim never came from reading the `.s`. It came from grouping the
+*shortlist* parks — figure ≤ 60 and pin-free — that happened to name the same
+reference, and then describing the piece as though those were its only members.
+The pieces in question held three and seven functions. Four briefs in two
+batches were handed a false membership.
+
+`tools/piece.py` now answers it directly, printing every
+`.thumb_func_start` in the `.s` with each member's park state, park file and
+current claim. Run it before writing any brief that mentions a piece:
+
+    python3 tools/piece.py src/non_matching/rom_c9000/rom_e3a3c.c
+    python3 tools/piece.py --pairs        # tree-wide
+
+Tree-wide it reports **86 pieces holding two or more parked functions, 75 of
+them wholly parked** — a real targeting pool, because one candidate on a wholly
+parked piece can retire several parks at once.
+
+### "Converts whole" is a fact about the TU, not about the work
+
+`piece.py`'s verdict is deliberately hedged for this reason. A wholly parked
+piece *could* be landed by one candidate, but only if **every** member reaches 0.
+The piece that triggered all this holds `Anim_Attack` at 5 of 39,
+`Anim_CriticalHit` at 13 of 707 — and `BaseAnim_Attack` at **653 of 688**. It
+"converts whole" and it is not going to, so the tool says so and recommends the
+split instead. The useful question is never *can this piece convert whole* but
+**what is the worst member's figure**, because that is the number the whole-piece
+route is actually waiting on.

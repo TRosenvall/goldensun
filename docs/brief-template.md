@@ -36,6 +36,16 @@ figures, their park paths, what each park claims) goes on top of this.
   landed two of three targets that way after spelling-level search had failed on
   both. Count hits in the generated half against the hand-written half for a
   reachability bound; partition by `shimcount` for a pin-free bound.
+- **If this brief mentions a PIECE, verify its membership with
+  `tools/piece.py` before trusting anything the brief says about it.** The
+  coordinator has mis-stated piece membership four times, by grouping the
+  *shortlist* parks that share a reference `.s` and then describing the piece as
+  if those were its only members; the real pieces held three and seven
+  functions. And **ignore any brief sentence of the form "neither ships
+  alone"** — it is always false. `tools/split_s.py` cuts before/target/after, so
+  ANY member can be cut out alone and no member is hostage to another's figure.
+  Three briefs across batches 335-336 had to reject that premise. Write one
+  candidate per function unless you have measured a reason not to.
 - **When a park names another function, read that function's LANDED SOURCE
   first.** Twin, module-mate, piece-mate, "same construct as" — it costs one
   `cat`, and seven times now the answer has been sitting in it while the park
