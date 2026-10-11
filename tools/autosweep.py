@@ -6,22 +6,43 @@
 
 WHAT THIS IS FOR.  Most of elevating a park needs judgment: reading the
 disassembly, forming a hypothesis, reading `.00.rtl` or `.18.greg` to name the
-pass.  None of that is scriptable.  But TWO axes are completely mechanical, they
-need no hypothesis at all, and in batch 337 each of them produced a landing:
+pass.  None of that is scriptable.  Two axes ARE mechanical and need no
+hypothesis, so this tool runs them for free:
 
   * THE FLAG AXIS.  Ten per-file flag groups exist in the Makefile.  Trying the
     UNCHANGED body under each is pure measurement -- no source edit, nothing to
-    decide.  OvlFunc_common1_588 landed on -O1, and the brief's note was that
-    "the park had closed the source axis hard and never swept the flag axis."
+    decide.
   * THE ANCHOR AXIS.  Inserting `do { } while (0);` at each top-level statement
-    boundary is text manipulation.  Func_801fd34 landed on one such placement,
+    boundary is text manipulation.  Func_801fd34 landed on one such placement
     after a hand sweep of 82; Field_Move and Func_80ab21c landed the same shape
     with a barrier, and the anchor is strictly preferable (same reach, emits
     nothing, not counted by shimcount -- see docs/elevation.md).
 
-So this tool is worth running on a park BEFORE spending an agent on it, because
-it costs wall-clock and zero tokens, and the two cheapest classes of answer come
-back without anyone forming an opinion.
+## MEASURED HIT RATE, AND IT IS LOW -- READ THIS BEFORE EXPECTING LANDINGS
+
+This file's first version claimed the flag axis "produced a landing in batch
+337", citing OvlFunc_common1_588's -O1 match.  **That was wrong, and the batch's
+own report says so**: the -O1 match needed the flag CROSSED WITH A SOURCE CHANGE
+(two locals instead of the park's reused one), and
+reports/batch-337.md records the inversion -- "the parked body is the only one of
+ten in that corpus group that does not improve at -O1, so a flag sweep run on
+the park alone finds nothing."  A blind flag sweep would NOT have found it.
+
+Measured since, on parks no agent had swept:
+
+    FLAG axis    0 landings / 0 improvements in 6 parks
+    ANCHOR axis  0 landings / 0 improvements in 2 parks
+
+So do not expect this tool to land functions.  **Its value is the recorded
+NEGATIVE**, which is worth real tokens for a different reason: an agent that
+knows both cheap axes are closed does not spend part of its round re-screening
+them, and every brief so far has burned some of its round on exactly that.  The
+secondary value is as a CROSSING PARTNER -- a flag that is inert alone may not be
+inert against a changed body, which is how the -O1 landing actually happened, and
+knowing which flags are inert on the parked body tells an agent which ones are
+worth re-crossing after it edits the source.
+
+So this is a BEFORE-THE-AGENT tool, not an instead-of-the-agent tool.
 
 WHAT IT CANNOT DO, stated plainly so nobody mistakes a clean sweep for a verdict:
 it does not read dumps, cannot invent a spelling, cannot write a body for a
