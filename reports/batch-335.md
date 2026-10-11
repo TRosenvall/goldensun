@@ -94,11 +94,15 @@ residue doesn't exist pin-free.
 
 ## Two symbols are now retirement candidates
 
-- **`_CONST_200` is no longer referenced anywhere** — `Func_80a40ac` is
-  device-free, and `const.sym`'s stated reason for the entry ("no HImode
-  expression for gcc to pool into") is **refuted**: a `(u16)` cast on the wider
-  value makes the mask an HImode pool entry.
-- **`_CONST_1f`** lost its last beneficiary in batch 333.
+- **`_CONST_200` has no LANDED beneficiary** — `Func_80a40ac` is device-free,
+  and `const.sym`'s stated reason for the entry ("no HImode expression for gcc
+  to pool into") is **refuted**: a `(u16)` cast on the wider value makes the
+  mask an HImode pool entry. **But it is still referenced by one park**
+  (`rom_a1000/80a9aec.c`), so it is not retirable yet — only if that park lands
+  device-free too. Corrected in batch 336; brief C's "no longer referenced
+  anywhere" was a generalisation from its own bank.
+- ~~**`_CONST_1f`** lost its last beneficiary in batch 333.~~ **RETRACTED** —
+  `tools/symrefs.py` reports 3 landed files, 1 park and 3 asm references.
 - Fixed in passing: **`_MSG_182` was defined twice** in `message.sym` (same
   value); the bare duplicate is replaced by a note.
 

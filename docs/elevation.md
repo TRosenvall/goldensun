@@ -34855,3 +34855,39 @@ each with a source lever:
 - **pattern matching** — a `define_peephole` matches only CONSECUTIVE insns, so
   a satisfied condition still loses if scheduling wedged something between them
   (batch 335 brief H).
+
+## "THIS SYMBOL HAS NO BENEFICIARY" IS A TREE-WIDE CLAIM, AND IT HAS BEEN MADE WRONGLY TWICE
+
+A `.sym` entry is a **claim about the original source** — that it named a symbol
+where we would otherwise write a literal — and the owner admits one only on
+structural evidence. So "nothing uses this any more" is a retirement argument,
+and it needs a tree-wide check rather than a bank-wide one:
+
+- **batch 333 brief D**: *"`_CONST_1f` now has no beneficiary anywhere in the
+  tree — its entry rests entirely on this function's pooled mask."* It is
+  referenced by **three landed files**, a park, and three `.s`.
+- **batch 335 brief C**: *"`_CONST_200` is no longer referenced anywhere."* It is
+  referenced by a park. (Its weaker claim — no *landed* beneficiary — does hold.)
+
+Both briefs had genuinely closed **their own function's** use of the symbol and
+generalised from one bank to the whole tree, and the coordinator relayed both
+without checking. `tools/symrefs.py` now answers it in one command, and reports
+landed / park / header / asm references separately, because those carry different
+weight: a landed reference settles the question, while a park-only reference
+means *"retirable if that park ever lands device-free."*
+
+### The tool's own first draft was the trap again
+
+`grep -r _CONST_200 src/` hits **park-header prose** — including the very
+sentence asserting the symbol is unreferenced. The first version of the check
+therefore reported **zero** unreferenced symbols out of 448, which reads as a
+clean bill of health and is actually a tautology. Comments must be stripped
+first: C block and line comments, and in `.s` both `@` comments and `/* */`
+continuation lines.
+
+That is the **third** sighting of prose-as-machinery inside a measuring tool,
+after `parkcheck`'s `OBJCMP_EXTRA` harvest and `pinclaims`' register-digit
+match. The pattern is now specific enough to state as a rule:
+
+> **Any tool that greps this tree's sources for an identifier must strip
+> comments first, or it will measure the documentation instead of the code.**

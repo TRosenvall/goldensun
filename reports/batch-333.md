@@ -119,9 +119,11 @@ allocator, not to coalescing as claimed.
 
 ## For the owner
 
-- **`_CONST_1f` now has no beneficiary anywhere in the tree.** Its `const.sym`
-  entry rested entirely on `Func_80a2144`'s pooled mask, which the `(u16)` cast
-  now supplies. Candidate for retirement; untouched.
+- ~~**`_CONST_1f` now has no beneficiary anywhere in the tree.**~~
+  **RETRACTED, batch 336.** Brief D closed `Func_80a2144`'s use of it and
+  generalised from one bank to the tree. `tools/symrefs.py` reports
+  **3 landed files, 1 park and 3 asm references** — it is not a retirement
+  candidate and never was. The coordinator relayed the claim without checking.
 - `_MSG_741` (`message.sym`) and `_CONST_24` (`const.sym`) still stand as the
   two evidenced symbol requests.
 
